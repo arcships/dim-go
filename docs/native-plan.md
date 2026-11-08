@@ -48,12 +48,12 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - `SessionStream`：订阅先行 attach、head 兜底、通知缓冲/路由、事件幂等、detach/closed/lost 生命周期；
 - submit/stop/approval.respond/session.delete mutation helpers 和 unknown-result 分类；
 - fake App Server（`net.Pipe`）和 fake daemon 测试；
-- `internal/session` 组合层：首屏 latest-turn/兼容扫描/history 降级、按 branch 的 durable/transient projection、bounded pending buffer、terminal/close 语义；
+- `internal/session` 组合层：首屏 latest-turn/兼容扫描/history 降级、按 branch 的 durable/transient projection、bounded pending buffer、terminal/close 语义；`BranchDirectory` 提供 daemon branch metadata 的只读 snapshot，尚未接入 UI 切换或 cut point。
 - `internal/viewmodel`：projection snapshot → native 行（user/assistant/tool）；
 - `internal/integration`：supervisor → session → viewmodel 的 `SessionController`（Open/Catalog/State/Close），fake daemon 端到端测试；
 - Supervisor reconnect：单飞、generation、旧 attachment 失效、transport 终止原因和 close 竞争处理。
 
-未完成：session 层 re-attach/domain resync、UI branch switching/cut point、`session.methods` 插件入口、approval replay 集合替换、附件上传、approval UI 接线和 session/viewmodel/integration 窗口接线。`session.create` 已有 Go client/helper；`session.keys`/`session.branches` 已有 capability-gated session read 与只读 snapshot，`session.input_lookup` 已有 opaque read-back helper，均由 fake/headless 覆盖但尚未接入 UI。真实 daemon 控制面 smoke 已有 opt-in 测试，并已用 `../dim-2` 构建的 `dim-app-server` 实测通过；它不覆盖真实 session 流、GUI 或 IME。
+未完成：session 层 re-attach/domain resync、UI branch switching/cut point（当前仅有 `BranchDirectory` 只读 snapshot）、`session.methods` 插件入口、approval replay 集合替换、附件上传、approval UI 接线和 session/viewmodel/integration 窗口接线。`session.create` 已有 Go client/helper；`session.keys`/`session.branches` 已有 capability-gated session read 与只读 snapshot，`session.input_lookup` 已有 opaque read-back helper，均由 fake/headless 覆盖但尚未接入 UI。真实 daemon 控制面 smoke 已有 opt-in 测试，并已用 `../dim-2` 构建的 `dim-app-server` 实测通过；它不覆盖真实 session 流、GUI 或 IME。
 
 ## Milestone 3：第一个纵向闭环
 
