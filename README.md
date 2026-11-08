@@ -44,4 +44,5 @@ go vet ./...
 - [开发计划与 Subagent 编排](docs/development-plan.md)
 - [Native UI 执行计划](docs/native-plan.md)
 - [Protocol v3 Wire 合同草案](docs/protocol-contract.md)
+- [Projection / TimelineFold 合同草案](docs/projection-contract.md)
 - [dim-electron 产品基线](https://github.com/arcships/dim-electron)

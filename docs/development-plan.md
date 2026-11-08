@@ -241,7 +241,7 @@ Next action
 - 主 agent：冻结计划、维护合同、集成和验收。
 - Wave 0 Toolchain/UI agent（deepseek-v4.1-flash）：已完成 Go 1.27.3 / MyGo v0.8.3 版本决策、最小窗口和 headless shell；提交 `7f89890` 已合并。
 - Wave 0 Protocol research agent（deepseek-v4.1-flash）：已完成只读合同调查；`docs/protocol-contract.md` 已审阅并合并（`1977952`），后续据此实现 Go types/fake server。
-- Wave 0 Projection research agent（deepseek-v4.1-flash）：已完成 TimelineFold 调查；主 agent 待审阅并转化为 fixtures 任务。
+- Wave 0 Projection research agent（deepseek-v4.1-flash）：已完成 TimelineFold 调查；`docs/projection-contract.md` 已审阅并等待合并，后续据此实现 golden fixtures。
 - Wave 0 QA agent（deepseek-v4.1-flash）：已完成只读验收矩阵和 blocker 分类；报告已审阅。
 
 ### QA 基线（2026-11-08）
