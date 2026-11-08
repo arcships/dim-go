@@ -438,4 +438,4 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
 6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，但没有 real-daemon 证据。
-7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 reconnect/resync 未实现；入口保持 WIP，不用本地替代事实。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
+7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 session 层 re-attach/resync 未实现；入口保持 WIP，不用本地替代事实。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
