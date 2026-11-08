@@ -168,7 +168,7 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 
 验收命令：`go test ./...`、`go vet ./...`；projection 专项用 `go test -run TestGoldenFixtures -v ./internal/projection` 运行并逐个报告 fixture 名称。
 
-当前状态：Go projection、Go `RawEvent` 类型和 golden runner 已实现；`internal/session` 已按 branch 持有独立的 durable/transient reducer，并把 history 与 live 事件送入同一个 `Apply`；`internal/viewmodel` 把 projection snapshot 映射成 native 行（user/assistant/tool），只保留有界预览；`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`、`gofmt -l .` 通过，14 个 fixture 全部通过（`headless`）。
+当前状态：Go projection、Go `RawEvent` 类型和 golden runner 已实现；`internal/session` 已按 branch 持有独立的 durable/transient reducer，并把 history 与 live 事件送入同一个 `Apply`；`internal/viewmodel` 把 projection snapshot 映射成 native 行（user/assistant/tool），只保留有界预览，`internal/integration` 再把 supervisor/session/viewmodel 组合成会话桥；`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`、`gofmt -l .` 通过，14 个 fixture 全部通过（`headless`）。
 
 剩余 blocker：
 

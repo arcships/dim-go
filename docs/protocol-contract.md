@@ -425,9 +425,9 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 
 ## 20. 验收（当前状态）
 
-- 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（6 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
+- 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（7 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
-- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 session 层 re-attach/resync 未覆盖；
+- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 session 层 re-attach/resync 未覆盖；
 - 未通过：真实 daemon 验收未运行；本机缺 `dim-app-server`（`DIMCODE_APP_SERVER_BIN` 未设置，target/runtime/.tmp 路径均不存在），因此保持 blocked，不用 fake 结果宣称 real-daemon 通过。
 
 ## 21. 未决问题与 blocker

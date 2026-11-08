@@ -50,22 +50,23 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - fake App Server（`net.Pipe`）和 fake daemon 测试；
 - `internal/session` 组合层：首屏 latest-turn/兼容扫描/history 降级、按 branch 的 durable/transient projection、bounded pending buffer、terminal/close 语义；
 - `internal/viewmodel`：projection snapshot → native 行（user/assistant/tool）；
+- `internal/integration`：supervisor → session → viewmodel 的 `SessionController`（Open/Catalog/State/Close），fake daemon 端到端测试；
 - Supervisor reconnect：单飞、generation、旧 attachment 失效、transport 终止原因和 close 竞争处理。
 
-未完成：session 层 re-attach/domain resync、`session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods`、approval replay 集合替换、附件上传、approval UI 接线、session/viewmodel UI 接线和真实 daemon 验证。
+未完成：session 层 re-attach/domain resync、`session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods`、approval replay 集合替换、附件上传、approval UI 接线、session/viewmodel/integration 窗口接线和真实 daemon 验证。
 
 ## Milestone 3：第一个纵向闭环
 
-底层组件已实现（`headless` + `fake-server`），UI 接线未开始。
+底层组件已实现（`headless` + `fake-server`），窗口接线未开始。
 
-- open session（`SessionStream` + `internal/session` 已有，未接入 UI）
-- render history（projection、首屏 history 和 viewmodel 已有，未接入 UI）
-- submit（`internal/session.Submit`/`SubmitWithID` 已有，未接入 UI）
-- live event（stream 路由和 session drain 已有，未接入 UI）
-- stop（`internal/session.Stop` 已有，未接入 UI）
+- open session（`SessionStream` + `internal/session` + `internal/integration` 已有，未接入窗口）
+- render history（projection、首屏 history 和 viewmodel 已有，未接入窗口）
+- submit（`internal/session.Submit`/`SubmitWithID` 已有，未接入窗口）
+- live event（stream 路由和 session drain 已有，未接入窗口）
+- stop（`internal/session.Stop` 已有，未接入窗口）
 - reconnect/resync（supervisor `Reconnect`/generation 已有；session re-attach/rebuild 未实现）
 
-`cmd/dimagent` 仍使用手写 fixture，尚未接线 supervisor → session → viewmodel → UI。
+`cmd/dimagent` 仍使用手写 fixture，尚未接线 supervisor → session → viewmodel → UI 的窗口/事件循环。
 
 ## Milestone 4：核心能力
 
