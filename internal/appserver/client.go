@@ -104,6 +104,11 @@ func NewClient(rw io.ReadWriter) *Client {
 }
 func (c *Client) Notifications() <-chan Notification { return c.notify }
 
+// Done is closed once the client has shut down, either because Close was called
+// or because the transport ended. It is the wire-layer signal contract §14
+// turns into a domain resync when a session stream loses its transport.
+func (c *Client) Done() <-chan struct{} { return c.done }
+
 // Errors delivers protocol and transport reports. Delivery into the channel is
 // best-effort while the buffer is full: every report that could not be
 // buffered increments DroppedErrors instead of vanishing silently.

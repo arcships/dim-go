@@ -375,6 +375,15 @@ type AttachParams struct {
 
 func (p AttachParams) Validate() error { return requireNonEmpty("sessionId", p.SessionID) }
 
+// DetachParams is the session.detach request (§8). The reply is ignored: the
+// contract treats closing the connection as what releases the daemon-side
+// attachment.
+type DetachParams struct {
+	SessionID string `json:"sessionId"`
+}
+
+func (p DetachParams) Validate() error { return requireNonEmpty("sessionId", p.SessionID) }
+
 type ModelPreferences struct {
 	ReasoningEffort string `json:"reasoningEffort,omitempty"`
 	ServiceTier     string `json:"serviceTier,omitempty"`
@@ -595,6 +604,47 @@ func (p StopParams) Validate() error {
 	}
 	return requireNonEmpty("branchId", p.BranchID)
 }
+
+// ----- approval.respond (§12) -----
+
+// ApprovalRespondParams collapses the UI options onto the wire decision before
+// it reaches this type: allow_once/allow_all become allow, everything else
+// becomes deny (§12).
+type ApprovalRespondParams struct {
+	SessionID string `json:"sessionId"`
+	BranchID  string `json:"branchId"`
+	RequestID string `json:"requestId"`
+	Decision  string `json:"decision"`
+}
+
+func (p ApprovalRespondParams) Validate() error {
+	if err := requireNonEmpty("sessionId", p.SessionID); err != nil {
+		return err
+	}
+	if err := requireNonEmpty("branchId", p.BranchID); err != nil {
+		return err
+	}
+	if err := requireNonEmpty("requestId", p.RequestID); err != nil {
+		return err
+	}
+	if !oneOf(p.Decision, DecisionAllow, DecisionDeny) {
+		return protocolErrorf("decision", "got %q, want allow or deny", p.Decision)
+	}
+	return nil
+}
+
+// ----- session.delete (§5) -----
+
+// DeleteParams is the minimal session.delete payload. docs/protocol-contract.md
+// names session.delete on the control connection and its session_active refusal
+// (§13), but defines neither additional request members nor a response body, so
+// the Go client sends only sessionId and ignores the reply. Callers that need to
+// know whether the row is gone must read session.catalog back.
+type DeleteParams struct {
+	SessionID string `json:"sessionId"`
+}
+
+func (p DeleteParams) Validate() error { return requireNonEmpty("sessionId", p.SessionID) }
 
 // ----- notifications (§11) -----
 

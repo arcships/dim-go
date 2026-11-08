@@ -54,6 +54,13 @@ func (g *catalogGate) open() {
 	g.releaseOnce.Do(func() { close(g.release) })
 }
 
+// fakeMutation scripts one mutation reply. Fault takes precedence over Result;
+// both zero values mean an empty success object.
+type fakeMutation struct {
+	Result json.RawMessage
+	Fault  *fakeRPCError
+}
+
 type fakeConfig struct {
 	Hello HelloResult
 
@@ -65,9 +72,29 @@ type fakeConfig struct {
 
 	Attach map[string]AttachResult
 
+	// OnAttach runs inside the session.attach reply path, after the request is
+	// recorded and before the reply is written. Tests use it to emit
+	// notifications that must arrive before the attach reply.
+	OnAttach func(*fakeServer)
+
+	// DetachErr is returned by session.detach when set.
+	DetachErr *fakeRPCError
+
 	// HistoryRaw is served in order, one raw JSON result per session.history
 	// request. Tests script exactly the pages they expect to be requested.
 	HistoryRaw []json.RawMessage
+
+	// Mutations is served in order per mutation method. Tests that script a
+	// request assert the queue was consumed exactly once.
+	Mutations map[string][]fakeMutation
+
+	// MutationGate blocks a mutation method before its reply so a caller can
+	// time out while the request is provably in flight.
+	MutationGate map[string]*catalogGate
+
+	// CloseOnMethod drops the transport after recording the request, before
+	// any reply, producing a connection_closed unknown result.
+	CloseOnMethod map[string]bool
 }
 
 type fakeRequest struct {
@@ -88,12 +115,13 @@ type fakeServer struct {
 	calls   []fakeRequest
 
 	historyIndex int
+	mutations    map[string][]fakeMutation
 }
 
 func newFakeServer(t *testing.T, cfg fakeConfig) (*fakeServer, *Client) {
 	t.Helper()
 	a, b := net.Pipe()
-	server := &fakeServer{t: t, conn: b, fr: NewFrameReader(b), cfg: cfg}
+	server := &fakeServer{t: t, conn: b, fr: NewFrameReader(b), cfg: cfg, mutations: cloneFakeMutations(cfg.Mutations)}
 	go server.serve()
 	client := NewClient(a)
 	t.Cleanup(func() {
@@ -101,6 +129,14 @@ func newFakeServer(t *testing.T, cfg fakeConfig) (*fakeServer, *Client) {
 		_ = b.Close()
 	})
 	return server, client
+}
+
+func cloneFakeMutations(in map[string][]fakeMutation) map[string][]fakeMutation {
+	out := make(map[string][]fakeMutation, len(in))
+	for method, queue := range in {
+		out[method] = append([]fakeMutation(nil), queue...)
+	}
+	return out
 }
 
 func (s *fakeServer) serve() {
@@ -122,7 +158,12 @@ func (s *fakeServer) serve() {
 		}
 		s.mu.Lock()
 		s.calls = append(s.calls, fakeRequest{Method: request.Method, Params: request.Params})
+		closeNow := s.cfg.CloseOnMethod[request.Method]
 		s.mu.Unlock()
+		if closeNow {
+			_ = s.conn.Close()
+			return
+		}
 		result, fault := s.dispatch(request.Method, request.Params)
 		if fault != nil {
 			s.writeError(request.ID, fault)
@@ -153,9 +194,29 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		if !ok {
 			return nil, fakeBadParams()
 		}
+		if s.cfg.OnAttach != nil {
+			s.cfg.OnAttach(s)
+		}
 		return result, nil
+	case "session.detach":
+		var p DetachParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+		if s.cfg.DetachErr != nil {
+			return nil, s.cfg.DetachErr
+		}
+		return struct{}{}, nil
 	case "session.history":
 		return s.history(params)
+	case "session.submit":
+		return s.mutation(MutationSessionSubmit, params)
+	case "session.stop":
+		return s.mutation(MutationSessionStop, params)
+	case "approval.respond":
+		return s.mutation(MutationApprovalRespond, params)
+	case "session.delete":
+		return s.mutation(MutationSessionDelete, params)
 	default:
 		return nil, fakeUnknownMethod()
 	}
@@ -219,6 +280,55 @@ func (s *fakeServer) history(raw json.RawMessage) (any, *fakeRPCError) {
 	return result, nil
 }
 
+// mutation validates the request, optionally blocks on the method gate, then
+// serves the next scripted reply. An empty queue is a test bug, reported as
+// -32602 so it fails visibly instead of hanging.
+func (s *fakeServer) mutation(method MutationMethod, raw json.RawMessage) (any, *fakeRPCError) {
+	switch method {
+	case MutationSessionSubmit:
+		var p SubmitParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	case MutationSessionStop:
+		var p StopParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	case MutationApprovalRespond:
+		var p ApprovalRespondParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	case MutationSessionDelete:
+		var p DeleteParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	default:
+		return nil, fakeUnknownMethod()
+	}
+	if gate := s.cfg.MutationGate[string(method)]; gate != nil {
+		gate.wait()
+	}
+	s.mu.Lock()
+	queue := s.mutations[string(method)]
+	if len(queue) == 0 {
+		s.mu.Unlock()
+		return nil, fakeBadParams()
+	}
+	next := queue[0]
+	s.mutations[string(method)] = queue[1:]
+	s.mu.Unlock()
+	if next.Fault != nil {
+		return nil, next.Fault
+	}
+	if len(next.Result) == 0 {
+		return json.RawMessage(`{}`), nil
+	}
+	return next.Result, nil
+}
+
 func (s *fakeServer) writeResult(id json.RawMessage, result any) {
 	s.writeJSON(struct {
 		JSONRPC string          `json:"jsonrpc"`
@@ -266,3 +376,17 @@ func (s *fakeServer) recordedCalls(method string) []fakeRequest {
 	}
 	return out
 }
+
+// recordedMethods is the request method order the server observed.
+func (s *fakeServer) recordedMethods() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]string, 0, len(s.calls))
+	for _, call := range s.calls {
+		out = append(out, call.Method)
+	}
+	return out
+}
+
+// closeConn drops the daemon-side transport, as an unexpected stream loss.
+func (s *fakeServer) closeConn() { _ = s.conn.Close() }
