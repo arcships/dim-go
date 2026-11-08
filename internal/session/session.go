@@ -389,9 +389,21 @@ func (s *Session) finishDrain() {
 	if terminal != nil {
 		s.report(terminal)
 	}
+	// Serialize channel close with report: report holds errMu while sending.
+	// Closing after unlocking races with a sender that passed errsClosed and would
+	// panic even though both operations are otherwise non-blocking.
+	s.closeErrors()
+}
+
+// closeErrors atomically marks and closes the error channel. report uses the
+// same mutex, so no sender can race a close and panic.
+func (s *Session) closeErrors() {
 	s.errMu.Lock()
+	defer s.errMu.Unlock()
+	if s.errsClosed {
+		return
+	}
 	s.errsClosed = true
-	s.errMu.Unlock()
 	close(s.errs)
 }
 

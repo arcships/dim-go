@@ -23,6 +23,40 @@ func findError(errs []error, target error) error {
 	return nil
 }
 
+func TestErrorChannelCloseSerializesConcurrentReports(t *testing.T) {
+	s := &Session{errs: make(chan error, 256)}
+	var wg sync.WaitGroup
+	for i := 0; i < 32; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 32; j++ {
+				s.report(errors.New("concurrent report"))
+			}
+		}()
+	}
+	// Repeated close attempts model a duplicate terminal notification racing the
+	// drain goroutine. The channel must close exactly once and reports must never
+	// panic by sending after close.
+	for i := 0; i < 16; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			s.closeErrors()
+		}()
+	}
+	wg.Wait()
+	select {
+	case _, ok := <-s.errs:
+		if ok {
+			for range s.errs {
+			}
+		}
+	default:
+		t.Fatal("error channel was not closed")
+	}
+}
+
 func TestAdaptEventBounds(t *testing.T) {
 	for _, tc := range []struct {
 		name string
