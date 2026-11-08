@@ -1,0 +1,414 @@
+# Protocol v3 Wire 合同草案
+
+Status: draft（仅合同与类型草案，不含实现）
+Last updated: 2026-11-08
+基线证据：`dim-electron` 工作树 `3339f4f`（`wire.ts` / `client.ts` / `electron-main/src/app-server` 无本地改动）
+Owner: protocol
+
+本文冻结 `dimagent-mygo` 第一阶段（Milestone 2 + Milestone 3 最小闭环）需要的 protocol v3 最小合同。它只描述 wire 事实和 Go 侧类型边界，不实现 transport、supervisor 或 projection。
+
+实现前请先读本文的"边界"与"未决问题"两节；合同之外的能力一律 fail-closed，不用本地存储或推测补齐。
+
+## 1. 边界
+
+必须遵守：
+
+1. Rust `dim-app-server` 是 session、branch、timeline、approval、model、permission 的唯一事实源。
+2. 只通过公开 socket/pipe + protocol v3 访问；不读 App Server 的 SQLite/JSONL/session 文件/`daemon.log`，不调 plugin 实例或私有 IPC。
+3. 不建第二份 session/message/run/approval 存储，不写本地 session 数据库。
+4. 能力缺失时 visible-disabled 并说明原因；不伪造成功、不返回空列表冒充真相。
+5. wire 类型以 `dim-electron` 的 `wire.ts` 与上游 Rust `dim` 为准；本文与之冲突时以它们为准，并修本文。
+
+本阶段不做：branch/side chat、question、MCP、skills、workflow、scheduler、account、plugin、UI extensions、modality、runtime 管理。
+
+## 2. 证据索引
+
+全部结论来自只读代码阅读，证据等级 `source-read`（不是 real-daemon，也不是 fake-server 实测）。
+
+| 结论 | 证据（dim-electron 路径:行） |
+|---|---|
+| wire 类型唯一来源 | `packages/desktop/packages/app-server-protocol/src/wire.ts` |
+| JSON-RPC 信封与解析 | `wire.ts:8-45`、`wire.ts:540-567` |
+| NDJSON 与 16 MiB 帧上限 | `packages/desktop/packages/app-server-protocol/src/ndjson.ts:1`、`:26-53` |
+| 请求关联 / 超时 / 关闭 | `packages/desktop/packages/app-server-protocol/src/client.ts:60-72`、`:115-191`、`:294-308` |
+| hello 与校验 | `packages/desktop/packages/electron-main/src/app-server/supervisor.ts:441-452`、`:122-129` |
+| 列表走 catalog / summaries | `packages/desktop/packages/electron-main/src/app-server/session-reader.ts:678-722` |
+| attach 先订阅、head 兜底 | `session-reader.ts:752-787` |
+| history 不变量与 latestTurn | `session-reader.ts:1273-1304`、`:1354-1458`、`:1460-1525` |
+| submit / stop | `packages/desktop/packages/electron-main/src/app-server/service.ts:4892-4938`、`:5040-5069` |
+| 通知分派 | `service.ts:5672-5815` |
+| approval respond | `packages/desktop/packages/electron-main/src/app-server/interaction-service.ts:466-476`、`:497-528` |
+| 错误映射 | `packages/desktop/packages/electron-main/src/app-server/error-mapping.ts:1-157` |
+| resync 是 Desktop domain event | `packages/desktop/packages/electron-main/src/app/bootstrap.ts:852-860`、`packages/desktop/packages/shared/src/protocol/base.ts:184-219` |
+| 连接语义文档 | `docs/architecture/app-server.md:21-66` |
+
+## 3. 传输与帧
+
+- 一行一个 JSON-RPC 2.0 对象，LF 结尾。读端容忍 CRLF 与空行，空行不产生消息。
+- 单帧上限 **16 MiB**（`16 * 1024 * 1024`）。未结束的残留 buffer 也按同一上限检查，超限即协议错误，不继续累积。
+- 写端不产生空行、不写 BOM；用标准 JSON 序列化即可，不做额外的非 ASCII 转义（控制字符按 JSON 规则转义）。`params` 为 nil 时**省略该字段**，不发 `"params": null`。
+- Go 侧不要用默认 `bufio.Scanner`（64 KiB 上限）；应自建按行读取 + 长度上限，且能在任意 chunk 边界拼接。
+
+## 4. JSON-RPC 信封
+
+```text
+request       { jsonrpc:"2.0", id:<number|string>, method:string, params?:object }
+success       { jsonrpc:"2.0", id:<number|string>, result:<any> }
+failure       { jsonrpc:"2.0", id:<number|string|null>, error:{ code:int, message:string, data?:{ appError:string, ... } } }
+notification  { jsonrpc:"2.0", method:string, params?:object }   // 不允许带 id
+```
+
+校验规则（必须与 Desktop 一致）：
+
+1. `jsonrpc` 必须是 `"2.0"`。
+2. 带 `method` 的消息若带 `id` → 协议错误。
+3. reply 必须**恰好**有 `result` 或 `error` 之一（用 key 存在性判断，`result: null` 合法）。
+4. `error.data` 可缺省；存在时 `data.appError` 必须是字符串。
+5. `id: null` 的 error reply 不属于任何请求：上报错误，不崩溃、不断连接。
+6. 未知通知方法必须原样透传（保留 `params` 全部未知字段）。
+
+请求关联：
+
+- 请求 id 由客户端生成，从 1 递增的整数即可；接收端同时支持 number 与 digit-string。
+- 默认单请求超时 **30s**；可按请求覆盖；长生命周期调用用"无超时 + context 取消"。
+- 关闭连接时必须拒绝所有 in-flight 请求（`connection_closed`），并关闭 transport。
+
+客户端本地错误（与服务端错误分开建模）：
+
+| appError | code | 可重试 |
+|---|---|---|
+| `connection_closed` | -32000 | 是（重连） |
+| `request_timeout` | -32000 | 是（读操作） |
+| `request_aborted` | -32000 | 否 |
+
+注意：-32000 也是服务端通用错误码，语义只能靠 `appError` 区分，不能只看 code。
+
+## 5. 连接模型
+
+```text
+control connection (1)
+  hello / daemon.ping / session.catalog / session.create / session.delete / management.*
+
+session stream (每打开 session 1 条)
+  session.attach / session.detach / session.history / session.submit / session.stop / session.*
+  → session.event / session.state / approval.* / session.notice / session.closed
+```
+
+- control 连接不 attach，也不接收 session 通知；列表只是快照。
+- 每条连接（含每条 stream）都要先 `hello`，各自有一份 `hello.features`。
+- 同一 session 多窗口共享一个 attachment；最后一个 holder 释放才 detach。
+- 同一连接对同一 session 只有一个 attachment；重复 attach 会替换旧订阅，客户端不主动重复 attach。
+
+## 6. `hello`
+
+请求：
+
+```json
+{"protocolVersion":3,"clientKind":"other","clientName":"dimagent-mygo"}
+```
+
+`clientKind` 合法值只有 `"cli" | "web" | "other"`；Go 客户端固定发 `"other"`。
+
+响应：
+
+| 字段 | Go 类型 | 说明 |
+|---|---|---|
+| `instanceId` | `string` | 必填非空；daemon 重启后变化，是"是否重启"的唯一依据 |
+| `serverVersion` | `string` | 展示用 |
+| `protocolVersion` | `int` | 必须等于 3 |
+| `daemonProfile` | union | `{kind:"product"}` / `{kind:"configured",modelConfigSha256:string}`（非空）/ `{kind:"mock"}` |
+| `features` | `[]string?` | 连接级能力快照 |
+
+校验失败即断开并停止重试（不 spawn、不降级）：版本不是 3、`instanceId` 为空、`daemonProfile` 形状非法。
+
+辅助方法：`daemon.ping` → `{sessions, connections, serverVersion}`；`daemon.shutdown {force:false}`。二者只用于 supervisor 的替换/退出判定，不用于列表或运行状态。
+
+## 7. 列表：`session.catalog` 与 `session.summaries`
+
+**不存在 `session.list`。** 列表只走下面两条路。
+
+### 7.1 `session.catalog`（首选）
+
+参数：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `limit` | `int?` | Desktop 固定 200；Go 第一阶段也用 200 |
+| `cursor` | `string?` | 不透明分页游标，原样回传 |
+| `query` | `string?` | 服务端搜索 |
+| `cwd` | `string \| []string?` | 单个 workspace 用 string；数组需要 `session.catalog.workspaces` |
+| `withPreview` | `bool?` | |
+| `withInternal` | `bool?` | 需要 `session.catalog.origins` |
+| `withAcpSessions` | `bool?` | 需要 `session.catalog.origins` |
+
+响应：`{ sessions: SessionSummary[], nextCursor?: string }`。
+
+`SessionSummary` 最小字段：`sessionId`、`cwd`、`model{providerId,modelId}`、`createdAt`、`running`、`sequence`、`attachedClients`、`updatedAt`；可选 `agentId`、`origin`(`client|acp|internal|unknown`)、`parentSessionId`、`title`(可 null)、`titleSource`(`auto|manual|null`)、`titleRevision`、`preview`(可 null)、`closed`。
+
+规则：
+
+- 缺 `session.catalog` feature → 列表不可用，明确报错；**不要**回退到 summaries，也不要本地伪造列表。
+- 缺 `session.catalog.origins` → 删除 `withInternal` / `withAcpSessions` 后重发。
+- 分页循环到 `nextCursor` 为空；并发刷新合并成一次遍历（Desktop 有单飞，Go 也应单飞）。
+
+### 7.2 `session.summaries`（仅例外）
+
+参数 `{includeClosed?: bool}`；响应是**裸数组**，不是对象。
+
+旧 daemon 对 `includeClosed` 回 `-32602`；此时**只重试一次**不带该字段的请求，其他错误照抛。第一阶段只在需要 closed 行时才用，不用于普通列表。
+
+### 7.3 创建
+
+`session.create` → `{sessionId, model?, modelPreferences?}`；参数含 `cwd`、`model{provider,modelId}`、`modelPreferences`、`permissionPolicy{preset}`。缺 `sessionId` 视为 INTERNAL。
+
+## 8. attach：订阅先行
+
+顺序不能变：
+
+1. 新建一条连接并完成 `hello`；
+2. **先**注册通知监听（approval replay 会紧贴 attach 到达）；
+3. 发 `session.attach {sessionId}`；
+4. 取 head：`attach.sequence` 存在则用它，否则 `session.history {branchId:"main", after:0, limit:1}` 的 `through`；
+5. 读最新 turn window（见 §9）；
+6. 可选 `session.branches`（feature `session.branches`）、可选 `session.keys`（feature `session.keys`）；
+7. 建 projection；把 attach 到 projection 就绪之间到达的事件/状态按**到达顺序**补放，并按 `event.id` 去重。
+
+`session.attach` 响应：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `sequence` | `int?` | 主分支 head；**老 daemon 可能不返回**，必须兜底 |
+| `running` | `bool?` | |
+| `model` | `{providerId?,modelId?}?` | |
+| `modelPreferences` | `{reasoningEffort?,serviceTier?}?` | |
+
+其他规则：
+
+- attach 没有"快照完成"标记；`session.event` 可能早于 `session.state`，必须乱序合并。
+- `session.detach {sessionId}`：删除路径要等回复（2s），普通释放可 fire-and-forget（500ms）后关闭连接；无论成败都要关连接，否则 daemon 侧 attachment 计数不释放。
+- `session.closed {sessionId, reason?}` 是终态：释放全部 holder、清理 interaction/branch 状态、关闭连接，且**不**发 resync。
+
+## 9. `session.history`
+
+参数：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `sessionId` | `string` | |
+| `branchId` | `string?` | 默认 `main` |
+| `after` | `int?` | 前向页下界（不含） |
+| `limit` | `int?` | |
+| `through` | `int?` | 上界（含）；传了则回包 `through` 必须一致 |
+| `before` | `int?` | 前向游标的镜像：取该序列之前的事件 |
+| `latestTurn` | `bool?` | 需要 feature `session.history.latestTurn` |
+
+响应：
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `events` | `RawEvent[]` | |
+| `through` | `int` | 本页上界 |
+| `nextAfter` | `int` | 下一页前向游标 |
+| `done` | `bool` | |
+| `nextBefore` | `int?` | 仅 latestTurn 反向翻页用 |
+| `turnStart` | `int?` | latestTurn 读里最新 `turn/start` 的 sequence |
+
+`RawEvent`：`id:string`、`sequence:int`、`create_at:int`（epoch 毫秒，Desktop 用 `new Date(create_at)`）、`tags?:[]string`、`type:string`、`name:string`、`data?:any`。
+
+分页不变量（Go fake server 与 client 校验都要实现）：
+
+1. 每个事件 `after < sequence <= through`；
+2. `after <= nextAfter <= through`；
+3. 未 `done` 时 `nextAfter > after`；
+4. 请求带了 `through`，响应 `through` 必须相同。
+
+首屏"最新 turn"策略（沿用 Desktop 语义）：
+
+- 有 `session.history.latestTurn`：`{latestTurn:true, limit:4096, through:head}`，用 `nextBefore` 往前翻到 `done`；多页的 `turnStart` 必须一致，否则放弃窗口改走兼容扫描。
+- 无该 feature：从 head 往前 512 条/页、最多 64 页，用 `{after, limit, through}` 扫到 turn 边界，并尽量带上该 turn 的 prompting input。
+- `appError === "history_too_large"`：该批原子事件无法塞进一帧。首屏降级为"空窗口 + hasOlder=true"，Session 仍可打开；不要反复重试同一批。
+
+往回翻用 `before`，直到页首是 "turn 前的 user input" 或 `sequence === 1`。
+
+可选读（失败只降级，不影响 open）：
+
+- `session.keys` → `{through, entries:[{key, sequence, inputId, text}]}`。
+- `session.branches` → `{branches:[{branchId, parentBranchId?, branchPoint?, createEvent?, source?, state:"open"|"ending"|"ended", head, endEvent?}]}`。
+
+## 10. `session.submit` / `session.stop`
+
+`session.submit`（在 session stream 上）：
+
+```json
+{"sessionId":"…","submissionId":"<client uuid>","branchId":"main","text":"…","user":{…},"mode":"queue|steer|append"}
+```
+
+- `submissionId` 是幂等键，客户端生成 UUID；`text` 与 `user` 至少一个。
+- `mode` 仅分支/steering 使用；`steer` 不等待 `turn/start`。
+- 响应至少含 `{event: RawEvent}`。`turnId` **不是** wire 字段：Desktop 从随后 `session.event` 的 `turn/start` 取 `data.turn_id ?? data.turnId`，最多等 2s，超时则不带。
+- 附件：文本走 `attachment.put {sessionId, name, text}` → `{path}` 后拼进 text；图片作为 inline `image` base64 block 放进 `user.content`；两者不能与显式 `user` 混用。第一阶段只做 text 即可。
+- 结果未知（超时/断线）时用 `session.input_lookup {sessionId, branchId, submissionId}` 读回，**不重发**。
+
+`session.stop {sessionId, branchId, reason?}`，响应内容忽略；停止状态由 `session.state` 收敛。
+
+## 11. 通知（只出现在 session stream 上）
+
+| 方法 | 参数要点 | 处理 |
+|---|---|---|
+| `session.event` | `{sessionId, branchId, event:RawEvent}` | durable Timeline 唯一事实；按 `(branchId, sequence)` 归并；按 `event.id` 幂等 |
+| `session.state` | `{sessionId, branchId, running, stopping}` | 运行态；与 event 无序，按到达顺序合并 |
+| `approval.request` | `{sessionId, branchId, requestId, source{kind,callId?}, call{name,input}, reason}` | 重放时**整体替换**该 session 的 pending 集合 |
+| `approval.resolved` | `{sessionId, branchId, requestId, decision:"allow"\|"deny"}` | 外部或本端已决 |
+| `approval.cancelled` | `{sessionId, branchId, requestId, reason}` | 已撤销 |
+| `session.notice` | `{sessionId, source, kind, data}` | 按 source+kind 分派；第一阶段只记录 title 可选 |
+| `session.closed` | `{sessionId, reason?}` | 终态，见 §8 |
+| `session.model.progress` | `{sessionId, branchId, turnId?, requestId?, textPartId?, thinkingPartId?, text, textOffset, thinking, thinkingOffset, tools[]}` | transient，不进 Timeline；第一阶段可只存不透传 |
+
+Timeline 的 `type/name` 是 Rust EventKind 摊平结果；projection 需要的组合见另外的 projection 合同文档，wire 层不校验 `data` 形状。
+
+## 12. Approval
+
+`approval.respond`：`{sessionId, branchId, requestId, decision:"allow"|"deny"}`（在 session stream 上）。
+
+- UI option 折叠为 decision：`allow_once|allow_all → allow`，其余 `deny`。
+- 回 `-32602` 表示该 approval 已不存在：按 cancelled 处理，不报错、不重试。
+- 持久化授权（always allow）走 `session.grants.add`，且必须先由 `session.methods` advertise；本阶段可不做。
+- pending question 不在 attach replay 里，需从当前 turn 的 `step/tool-call` 缺少对应 `step/tool-result` 推导；本阶段不做。
+
+## 13. 错误
+
+判定顺序：先看 `code === -32602`（一律 invalid params / BAD_REQUEST），再按 `appError` 分派，未知 `appError` 降级 INTERNAL 且不可重试。
+
+| appError | 行为 |
+|---|---|
+| `unknown_method` | 能力不存在；入口 disabled/WIP，不重试 |
+| `service_reloading` / `connection_busy` | 可重试（有界退避） |
+| `service_unavailable` | 不可重试，提示用户 |
+| `subscription_changed` | REPLAY_GAP：只读操作强制 re-attach 并**只重试一次**；写操作不重放 |
+| `session_closed` | 刷新列表，丢弃该 attachment |
+| `session_active` | 删除被拒；保持行，不重试 |
+| `protocol_version` / `session_protocol_version` | 不兼容，停止重试并提示升级 |
+| `submission_unknown` | 用 `session.input_lookup` 读回 |
+| `submission_ambiguous` | 不重发，提示并刷新 |
+| `permission_conflict` / `permission_rules_conflict` | 重读 permission，让用户确认 |
+| `question_not_pending` | 用 tool-result 判断是否已 settle |
+| `operation_interrupted` | 先读当前状态，不盲重试 |
+| `local_transport_required` | 本地启动/配置错误 |
+| `history_too_large` | 见 §9 降级 |
+
+## 14. unknown mutation 与 resync 边界
+
+- **`session.resync` 不是 wire 方法。** wire 层只有"transport 关闭"和 `subscription_changed`。
+- Go 侧定义 domain event `session.resync {sessionId}`，触发条件：session stream transport 意外关闭，或 `subscription_changed` 恢复失败。
+- 收到 resync 的动作固定为：重新 `openStream` + `hello` + `attach` + 重读最新 turn window，**按 branch sequence 重建**；不要用 renderer/VM 的 cursor 当 resume token。
+- `session.closed` 不触发 resync（它是终态，不是流丢失）。
+- `instanceId` 变化视为 daemon 重启：按新 daemon 的 history 重建，旧 attachment 全部丢弃。
+- mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。
+- 重连单飞：并发重连共享同一个进行中的尝试；关闭中的 supervisor 拒绝新重连。
+
+## 15. Capability
+
+两层门禁都要进 capability snapshot：
+
+1. 连接级 `hello.features`（每条连接各一份）。第一阶段相关：
+   `session.catalog`、`session.catalog.origins`、`session.catalog.workspaces`、`session.history`、`session.history.latestTurn`、`session.keys`、`session.branches`。
+2. session 级 `session.methods {sessionId}` → `{methods:[{name, mutating?}]}`，用于插件方法（`session.rename`、`shell.run`、`session.goal.*`、`session.grants.add`、`session.collaboration.*`）。Desktop 在 session stream 上调用。
+
+规则：缺 feature 时功能降级或 disabled，并说明原因；不写本地替代事实。`session.catalog` 缺失是"列表不可用"，不是"空列表"。
+
+## 16. Go DTO 草案（`internal/appserver/wire`）
+
+命名与字段（草案，未编译；实现时按此冻结）：
+
+```go
+type ID struct { Num int64; Str string; IsStr bool }   // JSON number 或 digit string
+
+type Request struct {
+    JSONRPC string          `json:"jsonrpc"`
+    ID      ID              `json:"id"`
+    Method  string          `json:"method"`
+    Params  json.RawMessage `json:"params,omitempty"`
+}
+
+type Notification struct {
+    JSONRPC string          `json:"jsonrpc"`
+    Method  string          `json:"method"`
+    Params  json.RawMessage `json:"params,omitempty"`
+}
+
+type RPCError struct {
+    Code    int             `json:"code"`
+    Message string          `json:"message"`
+    Data    json.RawMessage `json:"data,omitempty"`   // 解析出 AppError 后仍保留原始 data
+}
+```
+
+DTO 一律：`json.RawMessage` 承载未知/未用字段；整数字段用 `int64`；可空字段用指针或 `Optional[T]`；不做"宽容别名"（例如 `provider_id` 与 `providerId` 的兼容只允许在明确的 legacy 读路径里，wire 层不加）。
+
+建议类型清单：
+
+| Go 类型 | wire 方法 | 必需字段 |
+|---|---|---|
+| `HelloParams` / `HelloResult` | `hello` | 见 §6 |
+| `CatalogParams` / `CatalogResult` | `session.catalog` | 见 §7.1 |
+| `SessionSummary` | 同上 | 见 §7.1 |
+| `SummariesParams` | `session.summaries` | `includeClosed?`；响应 `[]SessionSummary` |
+| `CreateParams` / `CreateResult` | `session.create` | `sessionId` 必需 |
+| `AttachParams` / `AttachResult` | `session.attach` | 见 §8 |
+| `HistoryParams` / `HistoryResult` | `session.history` | 见 §9 |
+| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | 见 §9 |
+| `SubmitParams` / `SubmitResult` | `session.submit` | `event` 必需 |
+| `StopParams` | `session.stop` | |
+| `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` | 通知 | 见 §11 |
+| `RawEvent` | 内嵌 | `id`、`sequence`、`create_at`、`type`、`name` |
+
+## 17. Transport 与 Supervisor 参数（供实现阶段使用）
+
+- Unix：`<productHome>/rust/daemon.sock`；`<productHome>/rust` 必须 0700、属于当前用户、canonicalize 后使用。
+- Windows：`\\.\pipe\dim-rust-<sha256("dimcode:"+canonicalNativeHome)[:32]>`。
+- 连接超时 5s；只有 `ENOENT`/`ECONNREFUSED` 才算"daemon 不存在"并允许 spawn，其他错误直接上报。
+- spawn 参数：`--unix <endpoint>`（或 `--pipe`）、`--no-ws`、`--home <nativeHome>`，可选 `--mock-model`、`--defaults <path>`、`--model-config <path>`，否则 `--product-home <productHome>`。
+- 等待 listen：10s 上限、50ms 重试。
+- 退出：只停自己 spawn 的 daemon；先 `daemon.ping` 确认 `connections == 1`，再 `daemon.shutdown {force:false}`，否则保留。
+- POSIX 以 detached 方式 spawn；子进程 stdout/stderr 只重定向到 `<nativeHome>/daemon.log`，**只写不读**。
+
+## 18. Golden fixtures 计划
+
+目录 `internal/appserver/wire/testdata/`（实现阶段建立）：
+
+| 文件 | 断言 |
+|---|---|
+| `frame-split.jsonl` | 任意 chunk 边界、CRLF、空行；输出消息数正确 |
+| `frame-too-large.jsonl` | 16 MiB+1 → 明确错误，不 OOM |
+| `frame-malformed.jsonl` | 非 JSON、reply 同时有 result/error、notification 带 id → 进错误通道且连接可用 |
+| `hello-*.json` | product / configured / mock / 三类反例 |
+| `catalog-pages.json` | 2 页 + 空页；缺 `origins` 时参数被裁掉 |
+| `summaries-closed.json` | 裸数组 + `-32602` 只回退一次 |
+| `attach-with-sequence.json` / `attach-without-sequence.json` | 不发/发 head 探测 |
+| `history-latest-turn.json` | 3 页 `nextBefore` 拼接，`turnStart` 恒定 |
+| `history-latest-turn-shift.json` | `turnStart` 变化 → 回退兼容扫描 |
+| `history-too-large-first.json` | 空窗口 + hasOlder，open 仍成功 |
+| `submit-ok.json` | `{event}` + 随后 `turn/start`；turnId 来自通知 |
+| `submit-unknown.json` | 超时后用 `session.input_lookup`，不重发 |
+| `approval-flow.json` | 重放整体替换；`-32602` → cancelled |
+| `errors.json` | 每个 `appError` 的目标语义/可重试性 |
+| `notifications.ndjson` | 直接复用真机 fixture：`dim-electron/packages/desktop/packages/app-server-protocol/tests/fixtures/notifications.ndjson` |
+
+最省事的做法：先用 `dim-electron` 的 `fake-app-server.mjs` 形状派生 fake server，再逐条把上面 case 落成表驱动测试。
+
+## 19. 验收（实现阶段）
+
+- `go test ./...`、`go vet ./...` 通过；
+- 无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
+- fake server 能确定性模拟：断线、乱序、重复通知、协议错误、分页不变量、`subscription_changed`、未知 mutation 结果；
+- 真实 daemon 验收单独记录，缺少 `dim-app-server` 时标 blocked，不用 fake 结果宣称 real-daemon 通过。
+
+## 20. 未决问题与 blocker
+
+1. 上游 Rust 源码未读（不在本仓库）。`SessionAttachResult` 除 `sequence` 外是否必返、`session.submit` 结果是否还有其它字段，wire 都标可选；实现按"可选 + 缺失兜底"。
+2. `session.summaries` 返回裸数组这一形状只有 Desktop 与 fake server 佐证；若上游变化，属 wire 修正。
+3. `session.history` 的 `through` 在上游是否必填、`through < after` 是否报错，未验证。
+4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
+5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
+6. 本文未运行任何构建或测试；所有证据为静态阅读。
+7. 本文创建后，项目 `README.md` 的"参考"清单尚未加入本文件链接（按本轮任务边界未改其他文件）。
