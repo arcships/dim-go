@@ -14,6 +14,10 @@ Last updated: 2026-11-08
 - MyGo 当前主分支 `go.mod` 要求 Go 1.27.3；本机 Go 1.24.3。第一任务不是盲目添加依赖，而是完成 Go toolchain/MyGo 版本决策：升级本机 Go，或选择兼容的 MyGo commit/tag，并记录证据。
 - 不能复制 `github.com/egoist/mygo/internal/...`；只使用公开 API。
 - 所有跨 agent 的领域合同以 Go package 和 golden fixtures 为准，不能靠口头约定。
+- protocol v3 的 session 列表方法是 `session.catalog`（首选）或受限的 `session.summaries`，不是 `session.list`。
+- `session.resync` 是 Desktop domain event，不是 wire RPC；触发后必须重新 attach 并重读窗口，不按 cursor 伪造重放。
+- Projection 必须同时覆盖 durable `TimelineFold` 和 live `RawEventBridge` 的一致性；approval/question 与 model progress 是独立 transient projection，不塞进 TimelineFold。
+- Go golden fixture 要注入时钟，避免 `GoalFoldState` 等逻辑使用 `Date.now()` 造成跨语言不确定性。
 
 ## Milestone 0：工具链和组件 Spike
 
@@ -52,18 +56,23 @@ AppFrame
 
 任务：
 
-1. 从 `dim-electron` protocol v3 wire 合同提取最小 Go 类型，不复制 Electron IPC。
+1. 从 `dim-electron` protocol v3 wire 合同提取最小 Go 类型，不复制 Electron IPC；列表首选 `session.catalog`，不虚构 `session.list`。
 2. NDJSON framing、request correlation、notification dispatch、malformed frame/size/timeout/cancel。
-3. control connection、session stream、attach/detach。
+3. control connection、每 session 独立 stream、attach/detach；attach 前先订阅通知。
 4. Supervisor：发现/启动 Desktop 自己拥有的 daemon，hello 校验，退出时只停止自己启动者。
-5. reconnect、re-attach、resync、instanceId 变化和 capability unavailable。
-6. fake App Server：断线、乱序、重复、协议错误和未知 mutation 结果。
+5. reconnect、re-attach、domain-level resync、instanceId 变化和 capability unavailable；resync 不作为 wire 方法。
+6. fake App Server：断线、乱序、重复、协议错误、history 分页不变量、subscription_changed 和未知 mutation 结果。
 
 退出条件：transport/supervisor/reconnect 单测；fake server 可确定性重放；没有任何私有存储读取。
 
 ## Milestone 3：Projection 与 Session 最小闭环
 
-先建立 golden fixtures：history、live event、state、model progress、approval replay、branch、closed/resync。
+先建立两层 golden fixtures：
+
+- 纯 projection：history/live raw events、sequence 幂等、ID/block 生命周期、branch、closed；
+- 协议会话：catalog、attach 顺序、history 分页、approval replay、model progress、subscription_changed、resync。
+
+其中 TimelineFold 与 RawEventBridge 必须对相同事实维持一致的 ID/block 边界；approval/question 和 model progress 保持独立 transient projection。
 
 任务：
 
@@ -184,9 +193,15 @@ Next action
 ## 当前分配
 
 - 主 agent：冻结计划、维护合同、集成和验收。
-- Wave 0 Toolchain/UI agent：待启动，先解决 Go 1.27.3 / MyGo 版本与最小窗口。
-- Wave 0 Protocol agent：待启动，只读提取 protocol v3 最小合同。
-- Wave 0 Projection agent：待启动，只读提取 TimelineFold/golden fixtures。
-- Wave 0 QA agent：待启动，设计验证矩阵。
+- Wave 0 Toolchain/UI agent（deepseek-v4.1-flash）：执行 Go 1.27.3 / MyGo 版本与最小窗口 Spike，进行中。
+- Wave 0 Protocol research agent（deepseek-v4.1-flash）：已完成只读合同调查；主 agent 待审阅并转化为 Go types/fake server 任务。
+- Wave 0 Projection research agent（deepseek-v4.1-flash）：已完成 TimelineFold 调查；主 agent 待审阅并转化为 fixtures 任务。
+- Wave 0 QA agent（deepseek-v4.1-flash）：设计验证矩阵，进行中。
+
+## Wave 0 研究结论（已收录）
+
+- MyGo 组件：`ui.List` 的 keyed/dynamic rows 与 `FollowEnd` 是聊天首选；`ui.TextArea/TextBuffer` 是 Composer 首选；`ui.Markdown` 是 assistant 基础 renderer；`ui/editor` 延后用于代码/diff；richtext/chart/video/plugins 延后。
+- 协议：不存在 `session.list`；`session.catalog` 是首选列表；`session.resync` 不是 wire method；attach 必须先订阅；history/live、approval replay、subscription_changed 和未知 mutation 结果都要有 fixtures。
+- Projection：TimelineFold 是 durable transcript fold；RawEventBridge 是并行 live projection；approval/question/model progress 不应塞进 fold；Go golden 需要注入时钟。
 
 在 Wave 0 全部完成并由主 agent 审核前，不开始大型功能开发。
