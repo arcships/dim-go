@@ -194,13 +194,36 @@ func TestLatestTurnEmptySessionWithoutTurnStart(t *testing.T) {
 			return historyPage(t, nil, 0, 0, true, nil, nil), nil
 		},
 	}
-	_, _, s := openTestSession(t, cfg, []string{"session.history", "session.history.latestTurn"}, OpenOptions{})
+	server, _, s := openTestSession(t, cfg, []string{"session.history", "session.history.latestTurn"}, OpenOptions{})
 	status := s.History()
 	if status.Mode != HistoryModeLatestTurn || status.Pages != 1 || status.TurnStart != nil || status.Through != 0 {
 		t.Fatalf("history status = %#v, want empty latest-turn window", status)
 	}
 	if snapshot := s.Snapshot(); len(snapshot.Messages) != 0 {
 		t.Fatalf("empty session messages = %#v", snapshot.Messages)
+	}
+	view := s.View(appserver.MainBranchID)
+	if !view.Ready || view.Head != 0 || view.History.Through != 0 {
+		t.Fatalf("empty session view = %#v, want ready zero-head window", view)
+	}
+	calls := server.callsSnapshot()
+	latest, compatibility := 0, 0
+	for _, call := range calls {
+		switch call.Method {
+		case "session.history":
+			var params appserver.HistoryParams
+			if err := json.Unmarshal(call.Params, &params); err != nil {
+				t.Fatalf("decode history params: %v", err)
+			}
+			if params.LatestTurn != nil && *params.LatestTurn {
+				latest++
+			} else {
+				compatibility++
+			}
+		}
+	}
+	if latest != 1 || compatibility != 0 {
+		t.Fatalf("history calls latest=%d compatibility=%d, want one latest-turn only", latest, compatibility)
 	}
 }
 
