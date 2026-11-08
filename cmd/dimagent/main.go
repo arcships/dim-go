@@ -309,11 +309,19 @@ func (a *app) startRefresh(interval time.Duration) {
 				if a.bridge == nil {
 					continue
 				}
+				gen := a.currentSelection()
 				view := a.bridge.LiveState()
 				if view == nil {
 					continue
 				}
-				a.update(func(state *dimui.State) { applyView(state, view) })
+				a.update(func(state *dimui.State) {
+					// A selection may complete while LiveState is rebuilding; do
+					// not let that older snapshot overwrite the new conversation.
+					if !a.selectionCurrent(gen) {
+						return
+					}
+					applyView(state, view)
+				})
 			}
 		}
 	}()
@@ -351,6 +359,9 @@ func (a *app) selectSession(id string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := a.bridge.open(ctx, row); err != nil {
+			if !a.selectionCurrent(gen) {
+				return
+			}
 			log.Printf("dimagent: open session %q: %v", id, err)
 			a.update(func(state *dimui.State) {
 				state.ConversationLoading = false
