@@ -1,6 +1,6 @@
 # Protocol v3 Wire 合同
 
-Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach 和四个 mutation helper；reconnect/resync 与 real-daemon 未验证）
+Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper 和 supervisor reconnect；session re-attach/resync、UI 接线与 real-daemon 未验证）
 Last updated: 2026-11-08
 基线证据：`dim-electron` 工作树 `3339f4f`（`wire.ts` / `client.ts` / `electron-main/src/app-server` 无本地改动）
 Owner: protocol
@@ -259,7 +259,7 @@ Go 实现：`internal/session/history.go` 实现 latest-turn 反向分页、`tur
 
 `session.stop {sessionId, branchId, reason?}`，响应内容忽略；停止状态由 `session.state` 收敛。
 
-Go 实现：`internal/appserver/mutations.go` 的 `Submit`/`Stop` 发送这两个方法。`Submit` 校验 `submissionId`、`branchId` 和 `text|user`，按最小 `{event}` 解码；`Submit` 遇到 timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 或畸形结果时返回 unknown-result 并注明读回方法，绝不自动重发。`session.input_lookup` 本身和 attachment 上传尚未实现，入口保持 WIP。
+Go 实现：`internal/appserver/mutations.go` 的 `Submit`/`Stop` 发送这两个方法。`Submit` 校验 `submissionId`、`branchId` 和 `text|user`，按最小 `{event}` 解码；`Submit` 遇到 timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 或畸形结果时返回 unknown-result 并注明读回方法，绝不自动重发。`internal/session` 的 `SubmitWithID`/`SubmitBranchWithID` 额外返回已发送的 UUID，供调用方在 unknown-result 时读取 `submissionId`；`session.input_lookup` 本身和 attachment 上传尚未实现，入口保持 WIP。
 
 ## 11. 通知（只出现在 session stream 上）
 
@@ -318,7 +318,7 @@ Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返�
 - mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。四类 mutation 都必须各有 unknown-result fixture；不能只用 submit 覆盖。
 - 重连单飞：并发重连共享同一个进行中的尝试；关闭中的 supervisor 拒绝新重连。
 
-Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；unknown-result 只携带读回方法名，`session.input_lookup` 等读回本身仍未实现。`Client.Done` 和 `SessionStream` 的 `lost`/`transport_closed` 已提供 resync 触发信号，但 reconnect/re-attach/domain resync 尚未实现，`session.resync` 仍只是 domain event 规范。
+Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；`internal/session.SubmitWithID` 返回已发送的 submission UUID，但 `session.input_lookup` 读回本身仍未实现。supervisor 已实现 `Reconnect`（单飞、重新解析 endpoint、关闭旧 attachment、按 backoff 重试、generation/stale 标记、transport 终止原因和 close 竞争处理）；`Client.Done`、`SessionStream` 的 `lost`/`transport_closed` 和 `Connection.Done`/`Err` 提供 resync 触发信号。session 层的 re-attach/domain resync 仍由上层编排，`internal/session` 不会自己重开或重建 attachment。
 
 ## 15. 当前合同缺口与上游确认项
 
@@ -425,9 +425,9 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 
 ## 20. 验收（当前状态）
 
-- 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（5 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
+- 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（6 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
-- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 reconnect/resync 未覆盖；
+- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 session 层 re-attach/resync 未覆盖；
 - 未通过：真实 daemon 验收未运行；本机缺 `dim-app-server`（`DIMCODE_APP_SERVER_BIN` 未设置，target/runtime/.tmp 路径均不存在），因此保持 blocked，不用 fake 结果宣称 real-daemon 通过。
 
 ## 21. 未决问题与 blocker
