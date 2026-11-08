@@ -113,7 +113,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - 纵向闭环未开始：`cmd/dimagent/main.go` 仍是手写 fixture，没有 supervisor → appserver → projection → UI 接线（Milestone 3）。
 - reconnect/re-attach/domain resync 未实现；Milestone 2 任务 5 仍未完成。
 - `session.create`、`session.keys`、`session.branches`、`session.input_lookup`、approval mutation 和 attachment 上传没有 Go 实现；对应入口保持 WIP。
-- real-daemon 控制面 smoke 尚未运行：`../dim-2` 可用 `cargo build --locked -p dim-app-server` 构建独立 binary，Go 侧通过 `DIMAGENT_REAL_APP_SERVER_BIN` 显式指定；未运行前不宣称 real-daemon 通过。
+- real-daemon 控制面 smoke 已运行：在 `../dim-2` 用 `cargo build --locked -p dim-app-server` 构建独立 binary，并用 `DIMAGENT_REAL_APP_SERVER_BIN` 驱动 `TestRealDaemonSmoke`；spawn/hello/catalog/close 通过。该证据不覆盖真实 session 流、GUI 或 IME。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 测试是 headless。
 - 交叉编译只证明能编译，Windows named pipe 和 Linux GUI 运行时未验证。
 
@@ -160,12 +160,12 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - `session.methods` 能力门禁、`session.keys`/`session.branches`、`session.input_lookup` 和 `session.create` 没有 Go 实现；unknown-result 已能返回 submission UUID，但读回方法本身仍是 WIP。
 - approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
 - `internal/session` 的 branch 支持是“每个 branch 独立 reducer/transient/state”，没有 branch directory、cut point 或 side-chat 创建流程。
-- real-daemon 控制面 smoke 已有 opt-in 测试，但尚未运行；使用 `../dim-2` 构建的 binary 和 `DIMAGENT_REAL_APP_SERVER_BIN`，未运行前不宣称 real-daemon 通过。
+- real-daemon 控制面 smoke 已有 opt-in 测试并已通过：使用 `../dim-2` 构建的 binary 验证 spawn/hello/catalog/close；不覆盖真实 session 流、GUI 或 IME。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 证据仍是 `headless`。
 - `subscription_changed` 恢复和 Windows/Linux GUI 运行时仍未验证。
 - `internal/supervisor` 的 `TestDefaultSpawnRunsDetachedAndLogs` 在并行全量 race 下出现过一次 spawn child 未退出的时序 flake；单包和复跑通过，仍应加宽等待或隔离。
 
-**Next action**：运行 `../dim-2` binary 驱动的 real-daemon 控制面 smoke，并为 `cmd/dimagent` 增加会话选择、live 事件刷新和 submit/stop/approval 接线；真实窗口手测和 real-daemon session 流程仍单独记录，不因控制面 smoke 通过而提前标记 preview 可用。
+**Next action**：为 `cmd/dimagent` 增加会话选择、live 事件刷新和 submit/stop/approval 接线；继续运行 real-daemon session 流程验收，真实窗口手测仍单独记录，不因控制面 smoke 通过而提前标记 preview 可用。
 
 ## Milestone 1：Native UI 静态壳
 

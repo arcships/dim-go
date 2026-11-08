@@ -43,6 +43,13 @@ func TestRealDaemonSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new supervisor: %v", err)
 	}
+	t.Cleanup(func() {
+		closeCtx, cancelClose := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancelClose()
+		if _, err := sup.Close(closeCtx); err != nil {
+			t.Logf("cleanup close real daemon: %v", err)
+		}
+	})
 
 	startCtx, cancelStart := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancelStart()
