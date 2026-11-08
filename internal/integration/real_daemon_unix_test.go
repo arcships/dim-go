@@ -110,6 +110,20 @@ func TestRealDaemonSessionFlow(t *testing.T) {
 	if controller.Session == nil {
 		t.Fatal("session flow returned nil session")
 	}
+	// A newly created mock session is an intentional empty window: attach/history
+	// must succeed with head=0 and no turnStart, without a compatibility retry.
+	// This assertion uses only the public session view; no daemon persistence is
+	// inspected or treated as a local source of truth.
+	if !controller.Session.Ready() {
+		t.Fatal("new session is not ready after attach/history")
+	}
+	status := controller.Session.History()
+	if status.Through != 0 || status.TurnStart != nil || status.HasOlder {
+		t.Fatalf("new session history = %#v, want empty zero-head window", status)
+	}
+	if snapshot := controller.Session.Snapshot(); len(snapshot.Messages) != 0 {
+		t.Fatalf("new session snapshot = %#v, want empty", snapshot.Messages)
+	}
 	if got := controller.Session.SessionID(); got != created.SessionID {
 		t.Fatalf("attached session id = %q, want created id %q", got, created.SessionID)
 	}
