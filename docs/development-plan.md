@@ -11,7 +11,7 @@ Last updated: 2026-11-08
 
 ## 关键技术前置
 
-- MyGo 当前主分支 `go.mod` 要求 Go 1.27.3；本机 Go 1.24.3。第一任务不是盲目添加依赖，而是完成 Go toolchain/MyGo 版本决策：升级本机 Go，或选择兼容的 MyGo commit/tag，并记录证据。
+- Toolchain 已定：`go.mod` 固定 Go 1.27.3 和 MyGo `v0.8.3`。MyGo 所有已发布 tag 都要求 Go 1.27.1 以上，没有能配 Go 1.24.3 的版本；本机 `/usr/local/go` 仍是 1.24.3，靠 `GOTOOLCHAIN=auto` 按 `go.mod` 自动下载 `go1.27.3`。证据见 [Milestone 0 进展](#milestone-0-进展toolchain-和最小窗口2026-11-08)。
 - 不能复制 `github.com/egoist/mygo/internal/...`；只使用公开 API。
 - 所有跨 agent 的领域合同以 Go package 和 golden fixtures 为准，不能靠口头约定。
 - protocol v3 的 session 列表方法是 `session.catalog`（首选）或受限的 `session.summaries`，不是 `session.list`。
@@ -34,6 +34,52 @@ Last updated: 2026-11-08
 7. 加入 headless/fake 测试和基本 accessibility labels。
 
 退出条件：macOS 可启动；上述 fixture 有可复现实测结果；依赖和版本已锁定；未通过的能力明确记录为 blocker。
+
+### Milestone 0 进展：Toolchain 和最小窗口（2026-11-08）
+
+Task / owner：Wave 0 Toolchain/UI agent，工作树改动，未提交，待主 agent 审查。
+
+Changed files：`go.mod`、`go.sum`、`cmd/dimagent/main.go`、`internal/ui/shell.go`、`internal/ui/shell_test.go`、`docs/development-plan.md`、`README.md`、`docs/mygo-native-components.md`。
+
+**版本结论**
+
+- MyGo 所有已发布 tag（`v0.1.0` 到 `v0.8.3`）的 `go.mod` 都要求 Go 1.27.1 以上；`v0.8.3` 和 `main`（`c8e911e`，2026-11-08）要求 `go 1.27.3`。因此"选一个能用 Go 1.24.3 构建的 MyGo 版本"不成立，唯一可行路径是让构建使用 Go 1.27.3。
+- 本机 `/usr/local/go` 仍是 Go 1.24.3，`GOTOOLCHAIN=auto`（默认）按 `go.mod` 自动下载 toolchain 到模块缓存：`~/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.27.3.darwin-arm64`（243 MB）。系统 Go 安装未被修改。
+- 锁定 `go 1.27.3` + `github.com/egoist/mygo v0.8.3`（tag，不跟 `main` commit）。不需要 `toolchain` 行：`go get` 会因为 `go` 指令已达到所需版本而删掉它。
+- 依赖面：`go list -m all` 共 17 个模块，`go.mod` 的直接依赖只有 MyGo；`purego`、`go-text/typesetting`、`x/image`、`x/net`、`x/text` 是间接依赖。`go-mp3`、`oggvorbis`、`vorbis` 只出现在模块图里，没有写进 `go.mod` 的 require，也没有参与当前构建。
+
+**Verification（实际命令和结果）**
+
+| 命令 | 结果 |
+|---|---|
+| `go version`（仓库内） | `go version go1.27.3 darwin/arm64`（自动切换后） |
+| `GOTOOLCHAIN=local /usr/local/go/bin/go build ./...` | 失败：`go: go.mod requires go >= 1.27.3 (running go 1.24.3; GOTOOLCHAIN=local)` |
+| `go mod tidy` | 成功，写出 `go.mod`/`go.sum` |
+| `go mod verify` | `all modules verified` |
+| `go vet ./...` | 通过，退出码 0 |
+| `go test ./...` | `ok github.com/arcships/dimagent-mygo/internal/ui 0.393s`；`cmd/dimagent` 无测试文件 |
+| `go build -o /tmp/dimagent-spike ./cmd/dimagent` | 成功，14 MB 单文件 |
+| 运行 `/tmp/dimagent-spike` 3 秒 | 进程存活；`lsappinfo list` 显示 GUI app `dimagent-spike`（in front）；`SIGTERM` 后退出码 0，stderr 为空 |
+
+**实现范围**
+
+- `cmd/dimagent/main.go`：`mygo.App.WhenReady` + `mygo.NewWindow`，窗口 1080×720，内容为 `ui.View(state.View)`。
+- `internal/ui/shell.go`：静态 AppFrame（`ui.Sidebar` 会话列 + content 列 + `ui.TextArea` composer），只持有可丢 view state，不放 session/run/approval 事实。
+- `internal/ui/shell_test.go`：3 个 headless 用例（`ui.NewTester`）：静态文本渲染、sidebar 选择驱动 header、composer 输入写入 draft。
+- 只使用公开 `ui` API：`Row`、`Column`、`Box`、`Sidebar`、`SidebarItem`、`Scroll`、`Text`、`Textf`、`TextArea`、`View`、`NewTester`。没有 import `github.com/egoist/mygo/internal/...`。
+
+**Contract impact**：无。没有 socket/App Server 访问，没有本地 session 存储，没有 self-defined 协议类型。
+
+**Known gaps/blockers**
+
+- 真实窗口的视觉和交互没有人工验收，目前证据只有"进程启动 + 窗口注册"加 headless 断言。
+- 中文/emoji IME、复制粘贴、撤销、字体 fallback、accessibility 朗读均未验证；IME 必须真机手测。
+- `ui.List` + `FollowEnd`、`ui.Markdown`、`TextBuffer` composer 尚未做（Milestone 0 任务 4–6）。
+- `mygo.App.Run()` 必须在 main goroutine 调用，真实窗口不能写成 `go test`；目前只能 `go run ./cmd/dimagent` 手测。
+- 离线环境或 CI 没有 `GOTOOLCHAIN=auto` 时会在 `go.mod` 版本检查处失败；需要预装 Go 1.27.3。
+- 平台覆盖只有 macOS arm64。
+
+**Next action**：主 agent 审查 diff 和版本策略；通过后 Native UX agent 在 `internal/ui` 上继续 `ui.List`/Composer/Markdown fixture，Toolchain/UI agent 让出这些文件。
 
 ## Milestone 1：Native UI 静态壳
 
@@ -193,7 +239,7 @@ Next action
 ## 当前分配
 
 - 主 agent：冻结计划、维护合同、集成和验收。
-- Wave 0 Toolchain/UI agent（deepseek-v4.1-flash）：执行 Go 1.27.3 / MyGo 版本与最小窗口 Spike，进行中。
+- Wave 0 Toolchain/UI agent（deepseek-v4.1-flash）：已完成 Go 1.27.3 / MyGo v0.8.3 版本决策、最小窗口和 headless shell；主 agent 待审查 diff。
 - Wave 0 Protocol research agent（deepseek-v4.1-flash）：已完成只读合同调查；主 agent 待审阅并转化为 Go types/fake server 任务。
 - Wave 0 Projection research agent（deepseek-v4.1-flash）：已完成 TimelineFold 调查；主 agent 待审阅并转化为 fixtures 任务。
 - Wave 0 QA agent（deepseek-v4.1-flash）：设计验证矩阵，进行中。

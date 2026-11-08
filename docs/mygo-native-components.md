@@ -1,6 +1,8 @@
 # MyGo Native GUI 组件调查
 
-调查对象：[egoist/mygo](https://github.com/egoist/mygo) 当前主分支（2026-11-08）。本地 checkout 位于 `/tmp/mygo-research`，其 `go.mod` 当前声明 Go `1.27.3`；本机 Go `1.24.3` 尚不能直接按主分支构建。
+调查对象：[egoist/mygo](https://github.com/egoist/mygo) 当前主分支（2026-11-08）。调查时的本地 checkout 位于 `/tmp/mygo-research`，其 `go.mod` 声明 Go `1.27.3`，本机 Go 为 `1.24.3`。
+
+版本已定（2026-11-08）：MyGo 所有 tag 都要求 Go 1.27.1 以上，没有兼容 Go 1.24.x 的版本；项目改为 `go 1.27.3` + MyGo `v0.8.3`，由 `GOTOOLCHAIN=auto` 自动下载 toolchain。实测命令和结果见 [development-plan.md](development-plan.md#milestone-0-进展toolchain-和最小窗口2026-11-08)。
 
 ## 结论
 

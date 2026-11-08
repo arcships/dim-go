@@ -26,7 +26,17 @@ docs/               研究、设计与验收记录
 
 ## 开发前提
 
-MyGo 当前主分支的 `go.mod` 声明 Go 1.27.3；本机 Go 版本低于该要求时，先升级 Go，再添加依赖和运行构建。
+`go.mod` 固定 Go 1.27.3 和 MyGo `v0.8.3`。MyGo 所有已发布 tag 都要求 Go 1.27.1 以上，所以本项目不能用 Go 1.24.x 构建。
+
+本机 `/usr/local/go` 可以是更老的版本：`GOTOOLCHAIN=auto`（默认）会按 `go.mod` 自动下载 `go1.27.3` toolchain 到模块缓存（`~/go/pkg/mod/golang.org/toolchain@...`，约 243 MB），第一次构建需要网络。CI 或离线环境请预装 Go 1.27.3，或用 `GOTOOLCHAIN=local` 立即暴露版本不足。
+
+```bash
+go run ./cmd/dimagent     # 启动最小窗口
+go test ./...             # headless view 测试，不需要窗口
+go vet ./...
+```
+
+版本决策和实测结果见 [开发计划](docs/development-plan.md#milestone-0-进展toolchain-和最小窗口2026-11-08)。
 
 ## 参考
 
