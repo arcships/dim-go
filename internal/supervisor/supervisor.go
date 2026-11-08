@@ -334,6 +334,10 @@ func (s *Supervisor) Reconnect(ctx context.Context) (*Connection, error) {
 		s.mu.Unlock()
 		return nil, ErrNotStarted
 	}
+	if err := ctx.Err(); err != nil {
+		s.mu.Unlock()
+		return nil, err
+	}
 	if call := s.reconnecting; call != nil {
 		call.waiters++
 		s.mu.Unlock()
@@ -410,6 +414,9 @@ func (s *Supervisor) reconnectOnce(ctx context.Context) (*Connection, error) {
 	attempts := 0
 	var lastErr error
 	for {
+		if s.isClosing() {
+			return nil, ErrClosed
+		}
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -473,6 +480,16 @@ func (s *Supervisor) Close(ctx context.Context) (CloseReport, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	// Refuse new starts/reconnects immediately; an in-flight attempt is
+	// serialized below and will fail its post-dial closing check.
+	s.mu.Lock()
+	if s.closed {
+		s.mu.Unlock()
+		return CloseReport{Skipped: CloseSkippedAlreadyClosed}, nil
+	}
+	s.closing = true
+	s.mu.Unlock()
+
 	s.startMu.Lock()
 	defer s.startMu.Unlock()
 
@@ -481,7 +498,6 @@ func (s *Supervisor) Close(ctx context.Context) (CloseReport, error) {
 		s.mu.Unlock()
 		return CloseReport{Skipped: CloseSkippedAlreadyClosed}, nil
 	}
-	s.closing = true
 	owned := s.owned
 	control := s.control
 	others := make([]*Connection, 0, len(s.conns))
@@ -663,6 +679,12 @@ func (s *Supervisor) InstanceID() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.instanceID
+}
+
+func (s *Supervisor) isClosing() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.closing || s.closed
 }
 
 func (s *Supervisor) spawnDaemon(ctx context.Context, link Link) error {

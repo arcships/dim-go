@@ -325,6 +325,14 @@ func (d *fakeDaemon) setInstanceID(instanceID string) {
 	d.mu.Unlock()
 }
 
+// setHelloRaw overrides subsequent hello results, modelling a daemon whose
+// protocol is no longer compatible.
+func (d *fakeDaemon) setHelloRaw(raw json.RawMessage) {
+	d.mu.Lock()
+	d.cfg.HelloRaw = append(json.RawMessage(nil), raw...)
+	d.mu.Unlock()
+}
+
 // dropConnections closes every live accepted connection but keeps listening,
 // so tests can simulate a lost transport and then reconnect.
 func (d *fakeDaemon) dropConnections() {

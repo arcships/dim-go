@@ -4,6 +4,7 @@ package supervisor
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +14,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"github.com/arcships/dimagent-mygo/internal/appserver"
 )
 
 func waitConnectionClosed(t *testing.T, conn *Connection) {
@@ -128,6 +131,12 @@ func TestReconnectAfterTransportLoss(t *testing.T) {
 	}
 	if conn == old {
 		t.Fatal("Reconnect reused the lost control connection")
+	}
+	if !old.Closed() {
+		t.Fatal("Reconnect left the lost control connection open")
+	}
+	if got := sup.ActiveConnections(); got != 1 {
+		t.Fatalf("ActiveConnections = %d, want 1 after reconnect", got)
 	}
 	if conn.InstanceID() != "one" {
 		t.Fatalf("instanceId = %q, want one", conn.InstanceID())
@@ -391,6 +400,100 @@ func TestReconnectRespawnsOwned(t *testing.T) {
 	}
 	if fake.shutdownCount() != 1 {
 		t.Fatalf("shutdown calls = %d, want 1", fake.shutdownCount())
+	}
+}
+
+func TestReconnectHelloReject(t *testing.T) {
+	home := socketHome(t)
+	_, fake := startFakeDaemon(t, home, fakeDaemonConfig{InstanceID: "one"})
+	spawner := &countingSpawner{}
+	sup := newTestSupervisor(t, Config{ProductHome: home, Spawn: spawner.spawn})
+	ctx, cancel := testContext(t)
+	defer cancel()
+	if _, err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	fake.setHelloRaw(json.RawMessage(`{"protocolVersion":2,"instanceId":"x","serverVersion":"v","daemonProfile":{"kind":"product"}}`))
+	if _, err := sup.Reconnect(ctx); !errors.Is(err, appserver.ErrProtocol) {
+		t.Fatalf("Reconnect = %v, want a protocol error", err)
+	}
+	if spawner.calls.Load() != 0 {
+		t.Fatalf("spawn calls = %d, want 0 for a hello rejection", spawner.calls.Load())
+	}
+}
+
+func TestOpenStreamRestartGeneration(t *testing.T) {
+	home := socketHome(t)
+	_, fake := startFakeDaemon(t, home, fakeDaemonConfig{InstanceID: "one"})
+	sup := newTestSupervisor(t, Config{ProductHome: home})
+	ctx, cancel := testContext(t)
+	defer cancel()
+	control, err := sup.Start(ctx)
+	if err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	fake.setInstanceID("two")
+	stream, err := sup.OpenStream(ctx)
+	if err != nil {
+		t.Fatalf("OpenStream: %v", err)
+	}
+	if !stream.Restarted() || stream.PreviousInstanceID() != "one" || stream.Generation() != 2 {
+		t.Fatalf("stream metadata = restarted %v previous %q generation %d", stream.Restarted(), stream.PreviousInstanceID(), stream.Generation())
+	}
+	if sup.Generation() != 2 || sup.InstanceID() != "two" {
+		t.Fatalf("supervisor instance = %q generation %d", sup.InstanceID(), sup.Generation())
+	}
+	if !control.Stale() {
+		t.Fatal("the control connection from the old generation is not stale")
+	}
+}
+
+func TestReconnectCloseInFlight(t *testing.T) {
+	home := socketHome(t)
+	_, fake := startFakeDaemon(t, home, fakeDaemonConfig{InstanceID: "one"})
+	var dials atomic.Int32
+	sup := newTestSupervisor(t, Config{
+		ProductHome: home,
+		Dial: func(ctx context.Context, endpoint Endpoint) (net.Conn, error) {
+			dials.Add(1)
+			return DefaultDial(ctx, endpoint)
+		},
+		ReconnectBackoff: ReconnectBackoff{Attempts: 1000, Initial: 100 * time.Millisecond, Max: 100 * time.Millisecond},
+	})
+	if _, err := sup.Start(context.Background()); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	fake.close()
+
+	reconnectErr := make(chan error, 1)
+	go func() {
+		_, err := sup.Reconnect(context.Background())
+		reconnectErr <- err
+	}()
+	waitFor(t, "reconnect to start dialing", func() bool { return dials.Load() > 1 })
+
+	closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	closeReport := make(chan CloseReport, 1)
+	go func() {
+		report, _ := sup.Close(closeCtx)
+		closeReport <- report
+	}()
+	select {
+	case err := <-reconnectErr:
+		if !errors.Is(err, ErrClosed) {
+			t.Fatalf("in-flight Reconnect = %v, want ErrClosed after Close", err)
+		}
+	case <-time.After(testWaitTimeout):
+		t.Fatal("in-flight Reconnect did not abort after Close")
+	}
+	select {
+	case <-closeReport:
+	case <-time.After(testWaitTimeout):
+		t.Fatal("Close did not finish after the reconnect aborted")
+	}
+	if _, err := sup.Reconnect(context.Background()); !errors.Is(err, ErrClosed) {
+		t.Fatalf("Reconnect after Close = %v, want ErrClosed", err)
 	}
 }
 
