@@ -5,6 +5,7 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net"
 	"os"
 	"testing"
@@ -204,6 +205,14 @@ func TestSessionControllerBridge(t *testing.T) {
 	}
 	if err := controller.Stop(ctx); err != nil {
 		t.Fatalf("Stop: %v", err)
+	}
+	if _, _, err := controller.SubmitWithID(nil, "nil context"); err == nil {
+		t.Fatal("SubmitWithID with nil context should fail")
+	}
+	cancelled, cancelSubmit := context.WithCancel(ctx)
+	cancelSubmit()
+	if _, _, err := controller.SubmitWithID(cancelled, "cancelled"); !errors.Is(err, appserver.ErrUnknownResult) {
+		t.Fatalf("cancelled SubmitWithID error = %v, want unknown result", err)
 	}
 
 	rows, err := Catalog(ctx, sup)
