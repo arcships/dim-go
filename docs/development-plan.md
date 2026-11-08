@@ -187,7 +187,7 @@ AppFrame
 
 ## Milestone 2：协议合同、Transport 和 Supervisor
 
-状态：任务 1–4 已实现（`headless` + `fake-server`）；Wave 2 补上 session stream/attach、detach 和四个 mutation helper，并扩展 fake server 的 attach/detach、断线、事件冲突、unknown_method 和 unknown-result 场景；任务 5 的 reconnect/re-attach/domain resync 未实现；任务 6 的 `subscription_changed` 和 latest-turn 场景仍未覆盖。
+状态：任务 1–4 已实现（`headless` + `fake-server`）；Wave 2 补上 session stream/attach、detach、四个 mutation helper 和 supervisor reconnect/generation，并扩展 fake server 的 attach/detach、断线、事件冲突、unknown_method 和 unknown-result 场景；任务 5 的 session re-attach/domain resync 仍由上层编排；任务 6 的 latest-turn 已由 `internal/session` 覆盖，`subscription_changed` 恢复仍未覆盖。
 
 任务：
 
