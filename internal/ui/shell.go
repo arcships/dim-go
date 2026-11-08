@@ -152,8 +152,8 @@ func (s *State) View(c *ui.Context) {
 }
 
 // sidebarActions holds the session list's actions above it. Creating a session
-// needs session.create, which the Go client does not expose yet, so the entry
-// stays visible and unavailable rather than disappearing.
+// needs session.create, which the Go client exposes but the shell does not call
+// yet, so the entry stays visible and unavailable rather than disappearing.
 func (s *State) sidebarActions(c *ui.Context, k tokens) {
 	ui.Row(c).PaddingX(k.sidebarPadX).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Grow(1)

@@ -60,15 +60,11 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 			t.Errorf("%q reports %q, but its helper exists", action, capability.gap)
 		}
 	}
-	for _, action := range []string{"Session creation", "Attachments"} {
-		capability, ok := cards[action]
-		if !ok {
-			t.Errorf("no card for %q", action)
-			continue
-		}
-		if !strings.Contains(capability.gap, "no Go client helper") {
-			t.Errorf("%q reports %q, but the method is absent", action, capability.gap)
-		}
+	if capability := cards["Session creation"]; !strings.Contains(capability.gap, "helper exists") {
+		t.Errorf("session creation reports %q, want helper exists", capability.gap)
+	}
+	if capability := cards["Attachments"]; !strings.Contains(capability.gap, "no Go client helper") {
+		t.Errorf("attachments reports %q, want missing helper", capability.gap)
 	}
 
 	// Reconnect used to say the App Server had not implemented it. The

@@ -16,7 +16,7 @@ const wipOpacity = 0.5
 // docs/protocol-contract.md and docs/development-plan.md; the App Server
 // remains the only source of the facts those actions would change.
 const (
-	reasonCreateSession = "Unavailable: the Go client has no session.create helper yet."
+	reasonCreateSession = "Unavailable: the shell is not wired to session.create yet."
 	reasonApproval      = "Unavailable: the shell does not call approval.respond yet."
 	reasonAttachment    = "Unavailable: the Go client has no attachment.put helper yet."
 	reasonReconnect     = "Unavailable: the shell is not wired to supervisor reconnect yet."

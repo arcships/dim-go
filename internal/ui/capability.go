@@ -25,7 +25,7 @@ type wipCapability struct {
 // set, so it is unavailable only while that callback is missing.
 func wipCapabilities(s *State) []wipCapability {
 	capabilities := []wipCapability{
-		{"Session creation", "session.create", "no Go client helper yet"},
+		{"Session creation", "session.create", "helper exists; shell not wired"},
 		{"Approvals", "approval.respond", "helper exists; shell not wired"},
 		{"Attachments", "attachment.put", "no Go client helper yet"},
 		{"Connection recovery", "supervisor.Reconnect", "helper exists; shell not wired"},
