@@ -84,16 +84,18 @@ func TestSummaryForRow(t *testing.T) {
 
 // fakeSession stands in for integration.SessionController.
 type fakeSession struct {
-	view        *dimui.State
-	summary     appserver.SessionSummary
-	submitErr   error
-	stopErr     error
-	reattachErr error
-	closed      bool
-	submitted   chan string
-	stopped     chan struct{}
-	liveCalls   chan struct{}
-	submitText  []string
+	view           *dimui.State
+	summary        appserver.SessionSummary
+	submitErr      error
+	stopErr        error
+	reattachErr    error
+	closed         bool
+	submitted      chan string
+	stopped        chan struct{}
+	liveCalls      chan struct{}
+	reconnectStart chan struct{}
+	reconnectGate  chan struct{}
+	submitText     []string
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -116,6 +118,12 @@ func (f *fakeSession) Submit(_ context.Context, text string) (appserver.SubmitRe
 }
 
 func (f *fakeSession) Reattach(context.Context) error {
+	if f.reconnectStart != nil {
+		close(f.reconnectStart)
+	}
+	if f.reconnectGate != nil {
+		<-f.reconnectGate
+	}
 	return f.reattachErr
 }
 
@@ -225,6 +233,39 @@ func TestAppBindsCallbacks(t *testing.T) {
 	a.bind()
 	if a.state.OnSelect == nil || a.state.OnSubmit == nil || a.state.OnStop == nil || a.state.OnReconnect == nil {
 		t.Fatalf("callbacks not bound: %#v", a.state)
+	}
+}
+
+func TestAppReconnectStaleFailureDoesNotOverwriteNewSelection(t *testing.T) {
+	boom := errors.New("stale reconnect")
+	started := make(chan struct{})
+	gate := make(chan struct{})
+	f := &fakeSession{reattachErr: boom, reconnectStart: started, reconnectGate: gate}
+	a := &app{state: &dimui.State{Connection: dimui.ConnError, Selected: "s1"}, bridge: &sessionBridge{controller: f}}
+	a.bind()
+	updates := make(chan struct{}, 2)
+	a.updateHook = func(fn func(*dimui.State)) { fn(a.state); updates <- struct{}{} }
+	a.state.OnReconnect()
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("reattach did not start")
+	}
+	a.beginSelect() // invalidate the reconnect generation as if the user chose another session
+	a.state.Connection = dimui.ConnReady
+	close(gate)
+	select {
+	case <-updates:
+	case <-time.After(2 * time.Second):
+		t.Fatal("initial reconnect update missing")
+	}
+	select {
+	case <-updates:
+		t.Fatal("stale reconnect failure updated the new selection")
+	case <-time.After(50 * time.Millisecond):
+	}
+	if a.state.Connection != dimui.ConnReady || a.state.ConnectionError != "" {
+		t.Fatalf("stale failure changed state: %#v", a.state)
 	}
 }
 

@@ -413,9 +413,19 @@ func (a *app) reconnect() {
 		state.ConnectionError = ""
 	})
 	go func() {
+		// Reattach swaps the bridge controller, so serialize it with session
+		// selection; otherwise a selection can close a freshly rebuilt stream.
+		a.selectMu.Lock()
+		defer a.selectMu.Unlock()
+		if !a.selectionCurrent(gen) {
+			return
+		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := a.bridge.reattach(ctx); err != nil {
+			if !a.selectionCurrent(gen) {
+				return
+			}
 			log.Printf("dimagent: reconnect: %v", err)
 			a.update(func(state *dimui.State) {
 				state.ConversationLoading = false
