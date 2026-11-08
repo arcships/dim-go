@@ -332,15 +332,14 @@ func (s *State) canSubmit() bool {
 		s.Selected != "" && strings.TrimSpace(s.Draft) != ""
 }
 
-// submitDraft sends the draft through the caller's submit callback. The shell
-// leaves the draft in place: the caller clears it once the App Server accepts
-// the submission, so a failed send keeps the text.
+// submitDraft sends the draft through the caller's submit callback when the
+// shell can submit. The shell leaves the draft in place: the caller clears it
+// once the App Server accepts the submission, so a failed send keeps the text.
 func (s *State) submitDraft() {
-	text := strings.TrimSpace(s.Draft)
-	if text == "" || s.OnSubmit == nil {
+	if !s.canSubmit() {
 		return
 	}
-	s.OnSubmit(text)
+	s.OnSubmit(strings.TrimSpace(s.Draft))
 }
 
 // stopRun asks the caller to stop the running turn.
