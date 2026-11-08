@@ -30,6 +30,11 @@ const streamEventBuffer = 64
 // DroppedErrors instead of blocked, mirroring Client.Errors.
 const streamErrorBuffer = 8
 
+// maxPreAttachPending bounds notifications buffered while the attach handshake
+// is in flight. Overflow keeps memory bounded: the event is dropped and a
+// protocol error is reported, so the caller must rebuild from history.
+const maxPreAttachPending = 4096
+
 // StreamReasonTransportClosed is the Reason reported when the transport ends
 // without a terminal session.closed.
 const StreamReasonTransportClosed = "transport_closed"
@@ -88,6 +93,11 @@ func (s StreamState) Terminal() bool {
 // the session closed (contract §8: terminal, no resync).
 var ErrSessionClosed = errors.New("appserver: session closed")
 
+// ErrStreamAlreadyOpen marks a second OpenSessionStream on a Client that already
+// has one. A Client serves at most one session stream because the stream takes
+// ownership of Client.Notifications and Client.Errors.
+var ErrStreamAlreadyOpen = errors.New("appserver: client already has a session stream")
+
 // SessionClosedError is the terminal session.closed observed before the stream
 // finished opening. It unwraps to ErrSessionClosed.
 type SessionClosedError struct {
@@ -135,8 +145,9 @@ type SessionStreamConfig struct {
 // notifications in arrival order.
 //
 // It takes ownership of Client.Notifications and Client.Errors for the lifetime
-// of the stream. The caller must keep draining Events, otherwise the router
-// blocks and request replies stop flowing.
+// of the stream, so one Client may serve at most one SessionStream; a second
+// OpenSessionStream returns ErrStreamAlreadyOpen. The caller must keep draining
+// Events, otherwise the router blocks and request replies stop flowing.
 //
 // It does not build a projection, read the latest turn window, read
 // session.branches/session.keys, or reopen after loss; those stay with the
@@ -187,21 +198,42 @@ type eventKey struct {
 // resolves the head as attach.sequence, or, when an older daemon omits it, the
 // through of session.history {branchId:"main", after:0, limit:1}.
 //
-// Every failure closes the dedicated connection: a half-opened stream is
-// discarded and the caller opens a new one. A session.closed that arrives
-// during the handshake is returned as *SessionClosedError.
+// Every failure closes the dedicated connection when CloseTransport was
+// supplied. Validation failures (nil client, empty sessionId, done context,
+// already-taken stream) close only that caller-provided transport; they never
+// close a shared Client when CloseTransport is nil. A session.closed that
+// arrives during the handshake is returned as *SessionClosedError, and a second
+// stream on the same Client returns ErrStreamAlreadyOpen.
 func OpenSessionStream(ctx context.Context, client *Client, cfg SessionStreamConfig) (*SessionStream, error) {
+	// A dedicated transport belongs to the stream as soon as the caller passes
+	// it, so validation failures must close it instead of leaking the connection.
+	closeDedicated := cfg.CloseTransport
 	if client == nil {
+		if closeDedicated != nil {
+			closeDedicated()
+		}
 		return nil, errors.New("appserver: session stream requires a client")
 	}
 	if err := requireNonEmpty("sessionId", cfg.SessionID); err != nil {
+		if closeDedicated != nil {
+			closeDedicated()
+		}
 		return nil, err
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if err := ctx.Err(); err != nil {
+		if closeDedicated != nil {
+			closeDedicated()
+		}
 		return nil, localContextError(ctx)
+	}
+	if !client.takeStream() {
+		if closeDedicated != nil {
+			closeDedicated()
+		}
+		return nil, ErrStreamAlreadyOpen
 	}
 	closeTransport := cfg.CloseTransport
 	if closeTransport == nil {
@@ -333,8 +365,23 @@ func (s *SessionStream) Events() <-chan StreamEvent { return s.events }
 // Overflow increments DroppedErrors instead of blocking.
 func (s *SessionStream) Errors() <-chan error { return s.errs }
 
-// DroppedErrors counts stream error reports that could not be buffered.
+// DroppedErrors counts stream-level error reports that could not be buffered in
+// Errors. It does not include reports that Client.Errors dropped before this
+// stream's router read them; use ClientDroppedErrors for that stage. Never add
+// just this counter to delivered reports and claim the sum equals reports sent.
 func (s *SessionStream) DroppedErrors() uint64 { return s.dropped.Load() }
+
+// ClientDroppedErrors returns the number of Client.Errors reports dropped
+// before this stream's router could read them. Reports pass two bounded stages
+// (Client.Errors, then SessionStream.Errors); total loss is
+// DroppedErrors + ClientDroppedErrors, and delivered + that sum equals reports
+// attempted, not reports delivered.
+func (s *SessionStream) ClientDroppedErrors() uint64 {
+	if s.client == nil {
+		return 0
+	}
+	return s.client.DroppedErrors()
+}
 
 // SessionID is the session this stream is attached to.
 func (s *SessionStream) SessionID() string { return s.sessionID }
@@ -556,6 +603,10 @@ func (s *SessionStream) acceptEvent(n EventNotice) bool {
 // order is exactly the arrival order.
 func (s *SessionStream) emit(event StreamEvent) bool {
 	if !s.attached.Load() || len(s.pending) > 0 {
+		if len(s.pending) >= maxPreAttachPending {
+			s.report(protocolErrorf("pending", "pre-attach buffer exceeded %d events; dropped %s", maxPreAttachPending, event.Method))
+			return true
+		}
 		s.pending = append(s.pending, event)
 		return true
 	}

@@ -132,6 +132,18 @@ func mapMutationError(method MutationMethod, err error) error {
 		return err
 	}
 	appError := rpcAppError(rpcErr.Data)
+	// Contract §13: "判定顺序：先看 code === -32602（一律 invalid params /
+	// BAD_REQUEST），再按 appError 分派". -32602 is a definitive rejection even
+	// when data.appError says submission_unknown, so it must never become an
+	// unknown-result signal.
+	if rpcErr.Code == -32602 {
+		return &MutationError{
+			Method:   method,
+			AppError: appError,
+			Mapped:   MapRPCError(rpcErr),
+			Err:      err,
+		}
+	}
 	if method == MutationSessionSubmit {
 		switch appError {
 		case AppErrorSubmissionUnknown:

@@ -222,6 +222,31 @@ func TestSubmitMutation(t *testing.T) {
 		}
 	})
 
+	t.Run("-32602 wins over submission_unknown", func(t *testing.T) {
+		// Contract §13 makes -32602 a definitive invalid-params rejection before
+		// appError dispatch, so it must not become an unknown-result signal.
+		server, client := newFakeServer(t, fakeConfig{
+			Hello: fakeHello(),
+			Mutations: map[string][]fakeMutation{
+				string(MutationSessionSubmit): {
+					{Fault: &fakeRPCError{Code: -32602, Message: "invalid params", Data: appErrorData(AppErrorSubmissionUnknown)}},
+				},
+			},
+		})
+		_, err := Submit(testContext(t), client, validSubmitParams())
+		mutationErr := requireMutationError(t, err, MutationSessionSubmit, AppErrorSubmissionUnknown)
+		if mutationErr.Mapped.Class != ErrorClassBadRequest || mutationErr.Mapped.Retryable {
+			t.Fatalf("mapped = %#v, want non-retryable bad request", mutationErr.Mapped)
+		}
+		var unknown *UnknownResultError
+		if errors.As(err, &unknown) || errors.Is(err, ErrUnknownResult) {
+			t.Fatalf("error = %#v, want a definitive rejection", err)
+		}
+		if calls := server.recordedCalls(string(MutationSessionSubmit)); len(calls) != 1 {
+			t.Fatalf("submit calls = %d, want no retry", len(calls))
+		}
+	})
+
 	t.Run("malformed result is visible as protocol plus unknown result", func(t *testing.T) {
 		_, client := newFakeServer(t, fakeConfig{
 			Hello: fakeHello(),

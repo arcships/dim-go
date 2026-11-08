@@ -59,17 +59,18 @@ func (e *LocalError) Unwrap() error { return e.Err }
 // full, so callers must keep draining Notifications for responses to keep
 // flowing.
 type Client struct {
-	rw        io.ReadWriter
-	fr        *FrameReader
-	writes    chan writeRequest
-	mu        sync.Mutex
-	nextID    int64
-	pending   map[string]chan rpcResponse
-	notify    chan Notification
-	errs      chan error
-	dropped   atomic.Uint64
-	done      chan struct{}
-	closeOnce sync.Once
+	rw          io.ReadWriter
+	fr          *FrameReader
+	writes      chan writeRequest
+	mu          sync.Mutex
+	nextID      int64
+	pending     map[string]chan rpcResponse
+	notify      chan Notification
+	errs        chan error
+	dropped     atomic.Uint64
+	streamTaken atomic.Bool
+	done        chan struct{}
+	closeOnce   sync.Once
 }
 
 // writeRequest is one framed request queued for the writer loop.
@@ -118,6 +119,10 @@ func (c *Client) Errors() <-chan error { return c.errs }
 // could not buffer. Callers that need a complete audit trail should drain
 // Errors promptly and treat this counter as loss.
 func (c *Client) DroppedErrors() uint64 { return c.dropped.Load() }
+
+// takeStream claims the client's single session-stream slot. A Client owns one
+// Notifications/Errors handoff, so at most one SessionStream may take it.
+func (c *Client) takeStream() bool { return c.streamTaken.CompareAndSwap(false, true) }
 
 // Call sends one request and waits for its response. A nil params value omits
 // the params member. Without a context deadline the request times out after
