@@ -20,6 +20,7 @@ const (
 	reasonApproval      = "Unavailable: the shell does not call approval.respond yet."
 	reasonAttachment    = "Unavailable: the shell does not call attachment.put yet."
 	reasonReconnect     = "Unavailable: App Server reconnect/resync is not implemented yet."
+	reasonStop          = "Unavailable: the shell does not call session.stop yet."
 )
 
 // wipAction draws one entry for an action the shell cannot carry out yet. It

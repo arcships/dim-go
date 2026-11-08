@@ -19,9 +19,19 @@ func main() {
 			{ID: "s2", Title: "Second fixture"},
 		},
 		Selected: "s1",
+		// The run and the tool call below are fixture values, not reports: the
+		// supervisor and the timeline projection replace them in Milestone 2
+		// and 3, and nothing in the shell derives them.
+		Run: dimui.RunRunning,
 		Messages: []dimui.Message{
 			{ID: "m1", Author: dimui.AuthorUser, Content: "dimagent-mygo: native UI prototype"},
 			{ID: "m2", Author: dimui.AuthorAssistant, Content: "## Native shell\n\nA keyed `ui.List` of rows, the assistant's in **Markdown**."},
+			{ID: "m3", Author: dimui.AuthorTool, Tool: dimui.Tool{
+				Name:   "bash",
+				Params: `{"command":"go test ./internal/ui -count=1 -timeout 120s"}`,
+				Status: dimui.ToolRunning,
+			}},
+			{ID: "m4", Author: dimui.AuthorApproval, Content: "Run the release script?"},
 		},
 	}
 	mygo.App.WhenReady(func() {

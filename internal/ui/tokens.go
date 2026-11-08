@@ -36,6 +36,9 @@ type tokens struct {
 	sidebarW    float32
 	composerH   float32
 	statusDot   float32
+	cardRadius  float32
+	cardPadY    float32 // above and below a card's parts
+	cardPadX    float32 // left and right inside a card
 
 	// Type sizes, in DIPs.
 	titleSize float32
@@ -44,7 +47,7 @@ type tokens struct {
 	smallSize float32
 
 	// Colors: the theme's, named for what the shell uses them for.
-	muted, border, surface, accent, success, danger ui.Color
+	muted, border, surface, accent, success, warning, danger ui.Color
 }
 
 // newTokens builds the shell's tokens from the window's theme.
@@ -69,6 +72,9 @@ func newTokens(t *ui.Theme) tokens {
 		sidebarW:    t.Space(55),
 		composerH:   t.Space(18),
 		statusDot:   t.Space(2),
+		cardRadius:  t.Radius,
+		cardPadY:    t.Space(1),
+		cardPadX:    t.Space(2),
 
 		titleSize: fontSize * typeTitleStep,
 		bodySize:  fontSize,
@@ -80,6 +86,7 @@ func newTokens(t *ui.Theme) tokens {
 		surface: t.Surface,
 		accent:  t.Accent,
 		success: t.Success,
+		warning: t.Warning,
 		danger:  t.Danger,
 	}
 }
@@ -90,6 +97,32 @@ func (k tokens) space(n float32) float32 { return k.theme.Space(n) }
 
 // wash tints a color as the background of a banner or a status area.
 func (k tokens) wash(color ui.Color) ui.Color { return color.Alpha(washAlpha) }
+
+// runColor is the color of the run status row and its dot.
+func (k tokens) runColor(state RunState) ui.Color {
+	switch state {
+	case RunRunning:
+		return k.accent
+	case RunStopping:
+		return k.warning
+	default:
+		return k.muted
+	}
+}
+
+// toolStatusColor is the color of a tool call's status label.
+func (k tokens) toolStatusColor(status ToolStatus) ui.Color {
+	switch status {
+	case ToolRunning:
+		return k.accent
+	case ToolComplete:
+		return k.success
+	case ToolError:
+		return k.danger
+	default:
+		return k.muted
+	}
+}
 
 // connectionColor is the color of the status row and its dot.
 func (k tokens) connectionColor(conn Connection) ui.Color {

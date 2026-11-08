@@ -44,6 +44,9 @@ const (
 	// AuthorApproval is a pending approval request from the transient
 	// projection: plain text with the decisions the shell cannot take yet.
 	AuthorApproval
+	// AuthorTool is a tool call, drawn as a compact card with its name, its
+	// status and one bounded line each of its params and its result.
+	AuthorTool
 )
 
 // String is the author's name, as a row shows it.
@@ -53,6 +56,8 @@ func (a Author) String() string {
 		return "DimAgent"
 	case AuthorApproval:
 		return "Approval request"
+	case AuthorTool:
+		return "Tool"
 	default:
 		return "You"
 	}
@@ -70,6 +75,10 @@ type Message struct {
 	Author Author
 	// Content is the row's text: Markdown for an assistant row.
 	Content string
+	// Tool is the call of an AuthorTool row: its name, previews and status.
+	// It stays a pure view model, filled by the fixture, and is zero on a row
+	// of any other author.
+	Tool Tool
 }
 
 // State is the view state of the shell.
@@ -85,6 +94,10 @@ type State struct {
 	Connection          Connection
 	ConnectionError     string
 	ConversationLoading bool
+	// Run is what the selected session is doing, as the supervisor reports it.
+	// The shell draws it and offers no stop while nothing runs; it never
+	// derives a run from the rows it shows.
+	Run RunState
 
 	// Messages are fixture conversation rows, not session facts.
 	Messages []Message
@@ -143,12 +156,29 @@ func (s *State) header(c *ui.Context, k tokens) {
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
 		ui.Text(c, s.selectedTitle()).Bold().FontSize(k.titleSize)
 		ui.Box(c).Grow(1)
+		s.runStatus(c, k)
 		s.status(c, k)
+		// Stopping is the App Server's to do once session.stop is called, so the
+		// entry belongs beside the status only while a turn still runs.
+		if s.Run == RunRunning {
+			wipAction(c, k, "Stop", reasonStop)
+		}
 		// A healthy connection has nothing to reconnect: the entry belongs
 		// beside the status only while the connection is missing or failed.
 		if s.Connection != ConnReady {
 			wipAction(c, k, "Reconnect", reasonReconnect)
 		}
+	})
+}
+
+// runStatus is the toolbar's run row: what the selected session is doing, as a
+// dot and a label in a live region, so a turn starting or settling is read out
+// once. It is fixture-driven until the supervisor reports session state.
+func (s *State) runStatus(c *ui.Context, k tokens) {
+	ui.Row(c).Role(ui.RoleStatus).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+		ui.Box(c).Size(k.statusDot, k.statusDot).Radius(k.statusDot / 2).
+			Background(k.runColor(s.Run)).Unselectable()
+		ui.Text(c, "Session: "+s.Run.String()).FontSize(k.smallSize).TextColor(k.muted)
 	})
 }
 
@@ -220,8 +250,8 @@ func (s *State) emptyConversation(c *ui.Context, k tokens) {
 }
 
 // messageRow builds one row: the author's name, then the content as Markdown
-// for the assistant, as plain text for the user, or as an approval request with
-// the decisions the shell cannot take yet.
+// for the assistant, as plain text for the user, as an approval request with the
+// decisions the shell cannot take yet, or as a tool call's card.
 func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.rowPadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
@@ -231,6 +261,8 @@ func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 		case AuthorApproval:
 			ui.Text(c, m.Content).FontSize(k.bodySize)
 			s.approvalActions(c, k)
+		case AuthorTool:
+			s.toolRow(c, k, m)
 		default:
 			ui.Text(c, m.Content).FontSize(k.bodySize)
 		}
