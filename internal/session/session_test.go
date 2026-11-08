@@ -846,6 +846,126 @@ func TestSubmitUsesUUIDAndDoesNotResendUnknownResults(t *testing.T) {
 	})
 }
 
+func TestLookupInputReadsBackSubmission(t *testing.T) {
+	t.Run("defaults branch and returns the raw App Server result", func(t *testing.T) {
+		raw := json.RawMessage(`{"inputId":"i-1","status":"queued","submissionId":"sub-1"}`)
+		calls := 0
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(1)},
+			History: emptyHistory(t, 1),
+			InputLookup: func(params InputLookupParams) (any, *fakeRPCError) {
+				calls++
+				if params.SessionID != "s1" || params.BranchID != "main" || params.SubmissionID != "sub-1" {
+					t.Fatalf("input lookup params = %#v", params)
+				}
+				return raw, nil
+			},
+		}, []string{"session.history"}, OpenOptions{})
+
+		got, err := s.LookupInput(testContext(t), "", "sub-1")
+		if err != nil {
+			t.Fatalf("LookupInput: %v", err)
+		}
+		if string(got) != string(raw) {
+			t.Fatalf("lookup result = %s, want %s", got, raw)
+		}
+		if calls != 1 {
+			t.Fatalf("input lookup calls = %d, want 1", calls)
+		}
+	})
+
+	t.Run("preserves an explicit branch", func(t *testing.T) {
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(1)},
+			History: emptyHistory(t, 1),
+			InputLookup: func(params InputLookupParams) (any, *fakeRPCError) {
+				if params.BranchID != "side" || params.SubmissionID != "sub-2" {
+					t.Fatalf("input lookup params = %#v", params)
+				}
+				return json.RawMessage(`{"status":"unknown"}`), nil
+			},
+		}, []string{"session.history"}, OpenOptions{})
+
+		if _, err := s.LookupInput(testContext(t), "side", "sub-2"); err != nil {
+			t.Fatalf("LookupInput: %v", err)
+		}
+	})
+
+	t.Run("empty submission id fails before a request", func(t *testing.T) {
+		called := false
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(1)},
+			History: emptyHistory(t, 1),
+			InputLookup: func(InputLookupParams) (any, *fakeRPCError) {
+				called = true
+				return nil, invalidParams()
+			},
+		}, []string{"session.history"}, OpenOptions{})
+
+		if _, err := s.LookupInput(testContext(t), "", ""); !errors.Is(err, appserver.ErrProtocol) {
+			t.Fatalf("LookupInput error = %v, want ErrProtocol", err)
+		}
+		if called {
+			t.Fatal("input lookup was sent for an empty submission id")
+		}
+	})
+
+	t.Run("unknown_method is surfaced", func(t *testing.T) {
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(1)},
+			History: emptyHistory(t, 1),
+		}, []string{"session.history"}, OpenOptions{})
+
+		_, err := s.LookupInput(testContext(t), "", "sub-3")
+		var rpcErr *appserver.RPCError
+		if !errors.As(err, &rpcErr) || rpcErr.Code != -32601 {
+			t.Fatalf("LookupInput error = %v, want a daemon unknown_method", err)
+		}
+	})
+
+	t.Run("reads back the submission id from an unknown submit", func(t *testing.T) {
+		gate := newFakeGate()
+		t.Cleanup(gate.open)
+		raw := json.RawMessage(`{"inputId":"i-9","status":"queued"}`)
+		var mu sync.Mutex
+		submittedID := ""
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:       appserver.AttachResult{Sequence: int64Ptr(1)},
+			History:      emptyHistory(t, 1),
+			MutationGate: map[string]*fakeGate{"session.submit": gate},
+			Mutations:    map[string][]fakeMutation{"session.submit": {{Result: json.RawMessage(`{}`)}}},
+			InputLookup: func(params InputLookupParams) (any, *fakeRPCError) {
+				mu.Lock()
+				want := submittedID
+				mu.Unlock()
+				if params.SubmissionID != want {
+					t.Fatalf("lookup submission id = %q, want %q", params.SubmissionID, want)
+				}
+				return raw, nil
+			},
+		}, []string{"session.history"}, OpenOptions{})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+		_, submissionID, err := s.SubmitWithID(ctx, "hello")
+		cancel()
+		if !errors.Is(err, appserver.ErrUnknownResult) {
+			t.Fatalf("SubmitWithID error = %v, want ErrUnknownResult", err)
+		}
+		mu.Lock()
+		submittedID = submissionID
+		mu.Unlock()
+		gate.open()
+
+		got, err := s.LookupInput(testContext(t), "", submissionID)
+		if err != nil {
+			t.Fatalf("LookupInput: %v", err)
+		}
+		if string(got) != string(raw) {
+			t.Fatalf("lookup result = %s, want %s", got, raw)
+		}
+	})
+}
+
 func TestStopAndApprovalDefaultBranch(t *testing.T) {
 	server, _, s := openTestSession(t, fakeConfig{
 		Attach:  appserver.AttachResult{Sequence: int64Ptr(1)},

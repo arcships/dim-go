@@ -59,6 +59,7 @@ type fakeMutation struct {
 }
 
 type fakeHistoryFunc func(appserver.HistoryParams) (any, *fakeRPCError)
+type fakeInputLookupFunc func(InputLookupParams) (any, *fakeRPCError)
 
 type fakeConfig struct {
 	Attach       appserver.AttachResult
@@ -66,6 +67,7 @@ type fakeConfig struct {
 	OnAttach     func(*fakeServer)
 	History      fakeHistoryFunc
 	DetachErr    *fakeRPCError
+	InputLookup  fakeInputLookupFunc
 	Mutations    map[string][]fakeMutation
 	MutationGate map[string]*fakeGate
 }
@@ -187,6 +189,15 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, s.cfg.DetachErr
 		}
 		return struct{}{}, nil
+	case "session.input_lookup":
+		var p InputLookupParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.InputLookup == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.InputLookup(p)
 	case "session.submit", "session.stop", "approval.respond", "session.delete":
 		return s.mutation(method, params)
 	default:
@@ -300,6 +311,9 @@ func (s *fakeServer) recorded(method string) []fakeCall {
 }
 
 func (s *fakeServer) closeConn() { _ = s.conn.Close() }
+
+// Close is an idempotent test cleanup alias for closeConn.
+func (s *fakeServer) Close() { s.closeConn() }
 
 func rawEventWithID(id string, sequence int64, typ, name string, data map[string]any) appserver.RawEvent {
 	payload, _ := json.Marshal(data)

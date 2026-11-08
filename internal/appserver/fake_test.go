@@ -84,6 +84,11 @@ type fakeConfig struct {
 	// request. Tests script exactly the pages they expect to be requested.
 	HistoryRaw []json.RawMessage
 
+	// KeysRaw is the session.keys result, and KeysFault an optional error that
+	// replaces it. The params are validated before either is served.
+	KeysRaw   json.RawMessage
+	KeysFault *fakeRPCError
+
 	// Mutations is served in order per mutation method. Tests that script a
 	// request assert the queue was consumed exactly once.
 	Mutations map[string][]fakeMutation
@@ -209,6 +214,8 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		return struct{}{}, nil
 	case "session.history":
 		return s.history(params)
+	case "session.keys":
+		return s.keys(params)
 	case "session.submit":
 		return s.mutation(MutationSessionSubmit, params)
 	case "session.stop":
@@ -278,6 +285,23 @@ func (s *fakeServer) history(raw json.RawMessage) (any, *fakeRPCError) {
 	result := s.cfg.HistoryRaw[s.historyIndex]
 	s.historyIndex++
 	return result, nil
+}
+
+// keys validates the request and serves the scripted session.keys result. The
+// params check is deliberate: a request without the required through is a test
+// typo, not a daemon result.
+func (s *fakeServer) keys(raw json.RawMessage) (any, *fakeRPCError) {
+	var p KeysParams
+	if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+		return nil, fakeBadParams()
+	}
+	if s.cfg.KeysFault != nil {
+		return nil, s.cfg.KeysFault
+	}
+	if len(s.cfg.KeysRaw) == 0 {
+		return nil, fakeBadParams()
+	}
+	return s.cfg.KeysRaw, nil
 }
 
 // mutation validates the request, optionally blocks on the method gate, then

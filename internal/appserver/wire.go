@@ -547,6 +547,86 @@ func DecodeHistoryResult(raw json.RawMessage, req HistoryParams) (HistoryResult,
 	return r, nil
 }
 
+// ----- session.keys (§9) -----
+
+// KeysParams is the optional keyed-block snapshot read (§9). It runs on a
+// session stream. Through is required: the seed must be anchored at the same
+// head as the history window, otherwise a wrong window would seed state that
+// contradicts the replayed events.
+type KeysParams struct {
+	SessionID string `json:"sessionId"`
+	BranchID  string `json:"branchId,omitempty"`
+	Through   *int64 `json:"through"`
+}
+
+func (p KeysParams) Validate() error {
+	if err := requireNonEmpty("sessionId", p.SessionID); err != nil {
+		return err
+	}
+	if p.Through == nil {
+		return protocolErrorf("through", "missing")
+	}
+	if *p.Through < 0 {
+		return protocolErrorf("through", "got %d, want a non-negative integer", *p.Through)
+	}
+	return nil
+}
+
+// SessionKeyEntry is the latest live keyed block for one key on a branch. Text
+// is the block body and may be empty; the wire layer does not interpret it.
+type SessionKeyEntry struct {
+	Key      string `json:"key"`
+	Sequence int64  `json:"sequence"`
+	InputID  string `json:"inputId"`
+	Text     string `json:"text"`
+}
+
+// Validate enforces the §9 shape. Entry order and per-key uniqueness are daemon
+// guarantees the client consumes as-is, so they are not client-side checks.
+func (e SessionKeyEntry) Validate() error {
+	if err := requireNonEmpty("key", e.Key); err != nil {
+		return err
+	}
+	if e.Sequence <= 0 {
+		return protocolErrorf("sequence", "got %d, want a positive integer", e.Sequence)
+	}
+	return requireNonEmpty("inputId", e.InputID)
+}
+
+// KeysResult is the session.keys response. Through is a pointer so a missing
+// member fails fast instead of decoding as the zero sequence.
+type KeysResult struct {
+	Through *int64            `json:"through"`
+	Entries []SessionKeyEntry `json:"entries"`
+}
+
+func (r KeysResult) Validate() error {
+	if r.Through == nil {
+		return protocolErrorf("through", "missing")
+	}
+	if *r.Through < 0 {
+		return protocolErrorf("through", "got %d, want a non-negative integer", *r.Through)
+	}
+	if r.Entries == nil {
+		return protocolErrorf("entries", "missing array")
+	}
+	for i := range r.Entries {
+		if err := r.Entries[i].Validate(); err != nil {
+			return fmt.Errorf("entries[%d]: %w", i, err)
+		}
+	}
+	return nil
+}
+
+// DecodeKeysResult decodes and validates one session.keys response.
+func DecodeKeysResult(raw json.RawMessage) (KeysResult, error) {
+	var r KeysResult
+	if err := decodeValidated("session.keys result", raw, &r); err != nil {
+		return r, err
+	}
+	return r, nil
+}
+
 // ----- session.submit / session.stop (§10) -----
 
 type SubmitParams struct {
