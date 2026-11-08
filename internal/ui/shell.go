@@ -5,6 +5,10 @@
 // approval facts; the real catalog, timeline and connection come from the App
 // Server and its supervisor, so everything here is throwaway view state that
 // the fixture fills by hand.
+//
+// Actions the shell cannot carry out yet stay visible and unavailable: they are
+// marked in the accessibility tree, dimmed, and explained with the upstream
+// method they wait on, and no view reports a click on one. See wipAction.
 package ui
 
 import (
@@ -37,14 +41,21 @@ const (
 	AuthorUser Author = iota
 	// AuthorAssistant is a row of agent output, shown as Markdown.
 	AuthorAssistant
+	// AuthorApproval is a pending approval request from the transient
+	// projection: plain text with the decisions the shell cannot take yet.
+	AuthorApproval
 )
 
 // String is the author's name, as a row shows it.
 func (a Author) String() string {
-	if a == AuthorAssistant {
+	switch a {
+	case AuthorAssistant:
 		return "DimAgent"
+	case AuthorApproval:
+		return "Approval request"
+	default:
+		return "You"
 	}
-	return "You"
 }
 
 // Message is one conversation row of the fixture. It is view state only: the
@@ -54,7 +65,8 @@ type Message struct {
 	// ID keys the list row, so a row's state and the list's place survive
 	// rows being added, removed or measured.
 	ID string
-	// Author decides whether the row renders as Markdown or plain text.
+	// Author decides whether the row renders as Markdown, plain text or an
+	// approval request with its decisions.
 	Author Author
 	// Content is the row's text: Markdown for an assistant row.
 	Content string
@@ -96,6 +108,7 @@ func (s *State) View(c *ui.Context) {
 	k := newTokens(c.Theme())
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 		ui.Column(c).Width(k.sidebarW).Shrink(0).PaddingY(k.sidebarPadY).Background(k.surface).Children(func() {
+			s.sidebarActions(c, k)
 			ui.Sidebar(c, &s.Selected, func() {
 				for _, session := range s.Sessions {
 					ui.SidebarItem(c, session.ID, nil, session.Title)
@@ -114,6 +127,16 @@ func (s *State) View(c *ui.Context) {
 	}
 }
 
+// sidebarActions holds the session list's actions above it. Creating a session
+// needs session.create, which the shell does not call yet, so the entry stays
+// visible and unavailable rather than disappearing.
+func (s *State) sidebarActions(c *ui.Context, k tokens) {
+	ui.Row(c).PaddingX(k.sidebarPadX).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+		ui.Box(c).Grow(1)
+		wipAction(c, k, "New session", reasonCreateSession)
+	})
+}
+
 // header shows the selected session's title beside the connection status.
 func (s *State) header(c *ui.Context, k tokens) {
 	ui.Row(c).Gap(k.gapWide).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
@@ -121,6 +144,11 @@ func (s *State) header(c *ui.Context, k tokens) {
 		ui.Text(c, s.selectedTitle()).Bold().FontSize(k.titleSize)
 		ui.Box(c).Grow(1)
 		s.status(c, k)
+		// A healthy connection has nothing to reconnect: the entry belongs
+		// beside the status only while the connection is missing or failed.
+		if s.Connection != ConnReady {
+			wipAction(c, k, "Reconnect", reasonReconnect)
+		}
 	})
 }
 
@@ -192,24 +220,43 @@ func (s *State) emptyConversation(c *ui.Context, k tokens) {
 }
 
 // messageRow builds one row: the author's name, then the content as Markdown
-// for the assistant and as plain text for the user. Tool and approval cards
-// take the same place once the projection carries them.
+// for the assistant, as plain text for the user, or as an approval request with
+// the decisions the shell cannot take yet.
 func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.rowPadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
-		if m.Author == AuthorAssistant {
+		switch m.Author {
+		case AuthorAssistant:
 			markdown.View(c, m.Content, &s.markdown)
-			return
+		case AuthorApproval:
+			ui.Text(c, m.Content).FontSize(k.bodySize)
+			s.approvalActions(c, k)
+		default:
+			ui.Text(c, m.Content).FontSize(k.bodySize)
 		}
-		ui.Text(c, m.Content).FontSize(k.bodySize)
 	})
 }
 
-// composer holds the draft. It is a TextArea for now; IME composition is not
-// claimed by this shell, only checked headless as draft text that survives a
-// rebuild. ComposerShortcutMods with ComposerShortcutKey gives it the focus.
+// approvalActions are the decisions an approval row asks for. approval.respond
+// is not implemented in the Go client yet, so both entries stay visible, dimmed
+// and unavailable: a click cannot report a decision the App Server never
+// received.
+func (s *State) approvalActions(c *ui.Context, k tokens) {
+	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+		wipAction(c, k, "Approve", reasonApproval)
+		wipAction(c, k, "Deny", reasonApproval)
+	})
+}
+
+// composer holds the draft and the attachment entry. It is a TextArea for now;
+// IME composition is not claimed by this shell, only checked headless as draft
+// text that survives a rebuild. ComposerShortcutMods with ComposerShortcutKey
+// gives it the focus.
 func (s *State) composer(c *ui.Context, k tokens) {
 	ui.Column(c).Padding(k.edgePad).Gap(k.gap).Children(func() {
+		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+			wipAction(c, k, "Attach file", reasonAttachment)
+		})
 		ui.TextArea(c.Key("composer"), &s.Draft).Bind(&s.composerFocus).
 			Height(k.composerH).Placeholder("Message DimAgent").Label("Composer")
 	})

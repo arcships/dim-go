@@ -32,6 +32,7 @@ type tokens struct {
 	edgePad     float32 // inside the composer
 	panelPad    float32 // inside the empty state and the loading row
 	sidebarPadY float32
+	sidebarPadX float32
 	sidebarW    float32
 	composerH   float32
 	statusDot   float32
@@ -64,6 +65,7 @@ func newTokens(t *ui.Theme) tokens {
 		edgePad:     t.Space(3),
 		panelPad:    t.Space(6),
 		sidebarPadY: t.Space(2),
+		sidebarPadX: t.Space(2),
 		sidebarW:    t.Space(55),
 		composerH:   t.Space(18),
 		statusDot:   t.Space(2),
