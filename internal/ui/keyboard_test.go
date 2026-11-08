@@ -46,9 +46,10 @@ func TestSidebarKeyboardNavigation(t *testing.T) {
 
 // TestTabOrder checks the shell's Tab stops in tree order: the new-session
 // entry, the sidebar, the reconnect entry, the attachment entry, then the
-// composer, round again. The WIP entries stay in the order on purpose: a
-// keyboard or screen-reader user finds them, reads that they are unavailable
-// and why, and moves on.
+// composer, round again. The send entry is unavailable—the fixture's draft is
+// empty and it has no submit callback—and so skipped. The WIP entries stay in
+// the order on purpose: a keyboard or screen-reader user finds them, reads that
+// they are unavailable and why, and moves on.
 func TestTabOrder(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)

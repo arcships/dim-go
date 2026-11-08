@@ -12,6 +12,8 @@
 package ui
 
 import (
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
 )
@@ -103,6 +105,14 @@ type State struct {
 	Messages []Message
 	Draft    string
 
+	// OnSelect, OnSubmit and OnStop connect the shell's actions to the caller's
+	// session controller. A nil field leaves its action in the view without an
+	// effect, as a fixture does; the callback owns the App Server call and the
+	// facts it returns, so the shell never reports an action it did not send.
+	OnSelect func(sessionID string)
+	OnSubmit func(text string)
+	OnStop   func()
+
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
 	// their state as the conversation changes.
@@ -126,7 +136,8 @@ func (s *State) View(c *ui.Context) {
 				for _, session := range s.Sessions {
 					ui.SidebarItem(c, session.ID, nil, session.Title)
 				}
-			}).Grow(1).Label("Sessions")
+			}).Grow(1).Label("Sessions").OnChange(s.selectSession)
+			s.capabilityCards(c, k)
 		})
 		ui.Column(c).Grow(1).FillHeight().Children(func() {
 			s.header(c, k)
@@ -141,8 +152,8 @@ func (s *State) View(c *ui.Context) {
 }
 
 // sidebarActions holds the session list's actions above it. Creating a session
-// needs session.create, which the shell does not call yet, so the entry stays
-// visible and unavailable rather than disappearing.
+// needs session.create, which the Go client does not expose yet, so the entry
+// stays visible and unavailable rather than disappearing.
 func (s *State) sidebarActions(c *ui.Context, k tokens) {
 	ui.Row(c).PaddingX(k.sidebarPadX).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Grow(1)
@@ -158,10 +169,14 @@ func (s *State) header(c *ui.Context, k tokens) {
 		ui.Box(c).Grow(1)
 		s.runStatus(c, k)
 		s.status(c, k)
-		// Stopping is the App Server's to do once session.stop is called, so the
-		// entry belongs beside the status only while a turn still runs.
+		// Stopping is the App Server's to do once the callback sends session.stop,
+		// so the entry belongs beside the status only while a turn still runs.
 		if s.Run == RunRunning {
-			wipAction(c, k, "Stop", reasonStop)
+			if s.OnStop == nil {
+				wipAction(c, k, "Stop", reasonStop)
+			} else {
+				ui.Button(c, "Stop").OnClick(s.stopRun)
+			}
 		}
 		// A healthy connection has nothing to reconnect: the entry belongs
 		// beside the status only while the connection is missing or failed.
@@ -269,10 +284,9 @@ func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 	})
 }
 
-// approvalActions are the decisions an approval row asks for. approval.respond
-// is not implemented in the Go client yet, so both entries stay visible, dimmed
-// and unavailable: a click cannot report a decision the App Server never
-// received.
+// approvalActions are the decisions an approval row asks for. The shell does
+// not call approval.respond yet, so both entries stay visible, dimmed and
+// unavailable: a click cannot report a decision the App Server never received.
 func (s *State) approvalActions(c *ui.Context, k tokens) {
 	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		wipAction(c, k, "Approve", reasonApproval)
@@ -280,18 +294,60 @@ func (s *State) approvalActions(c *ui.Context, k tokens) {
 	})
 }
 
-// composer holds the draft and the attachment entry. It is a TextArea for now;
-// IME composition is not claimed by this shell, only checked headless as draft
-// text that survives a rebuild. ComposerShortcutMods with ComposerShortcutKey
-// gives it the focus.
+// composer holds the draft, the attachment entry and the send entry. It is a
+// TextArea for now; IME composition is not claimed by this shell, only checked
+// headless as draft text that survives a rebuild. ComposerShortcutMods with
+// ComposerShortcutKey gives it the focus; the same modifier with Enter submits
+// the draft.
 func (s *State) composer(c *ui.Context, k tokens) {
 	ui.Column(c).Padding(k.edgePad).Gap(k.gap).Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			wipAction(c, k, "Attach file", reasonAttachment)
+			ui.Box(c).Grow(1)
+			send := ui.Button(c, "Send").OnClick(s.submitDraft)
+			if !s.canSubmit() {
+				send.Disabled(true)
+			}
 		})
 		ui.TextArea(c.Key("composer"), &s.Draft).Bind(&s.composerFocus).
-			Height(k.composerH).Placeholder("Message DimAgent").Label("Composer")
+			Height(k.composerH).Placeholder("Message DimAgent").Label("Composer").
+			OnShortcut(ComposerShortcutMods, ui.KeyEnter, s.submitDraft)
 	})
+}
+
+// selectSession tells the caller the sidebar chose another session. The shell
+// changed Selected first; the caller opens that session and reports what it
+// finds.
+func (s *State) selectSession() {
+	if s.OnSelect != nil {
+		s.OnSelect(s.Selected)
+	}
+}
+
+// canSubmit reports whether the shell has a selected session on a ready
+// connection, text to send, and a callback to send it through. A fixture
+// without those cannot pretend a submission the App Server never received.
+func (s *State) canSubmit() bool {
+	return s.OnSubmit != nil && s.Connection == ConnReady && !s.ConversationLoading &&
+		s.Selected != "" && strings.TrimSpace(s.Draft) != ""
+}
+
+// submitDraft sends the draft through the caller's submit callback. The shell
+// leaves the draft in place: the caller clears it once the App Server accepts
+// the submission, so a failed send keeps the text.
+func (s *State) submitDraft() {
+	text := strings.TrimSpace(s.Draft)
+	if text == "" || s.OnSubmit == nil {
+		return
+	}
+	s.OnSubmit(text)
+}
+
+// stopRun asks the caller to stop the running turn.
+func (s *State) stopRun() {
+	if s.OnStop != nil {
+		s.OnStop()
+	}
 }
 
 // selectedTitle returns the title of the selected session, or a placeholder.

@@ -34,28 +34,24 @@ func TestRunStatusLabels(t *testing.T) {
 }
 
 // TestStopEntryOnlyWhileRunning checks that the stop entry is there while a turn
-// runs, visible and unavailable with the session.stop reason, and gone once
-// nothing runs or the stop is settling.
+// runs and gone once nothing runs or the stop is settling. It is a real action:
+// the caller's callback sends session.stop, so the entry is enabled and carries
+// no WIP reason.
 func TestStopEntryOnlyWhileRunning(t *testing.T) {
 	s := fixture()
 	s.Run = RunRunning
+	s.OnStop = func() {}
 	tt := ui.NewTester(s.View, 900, 600)
 
 	info, ok := tt.AccessByRole(ui.RoleButton, "Stop")
 	if !ok {
 		t.Fatalf("a running session offers no stop entry, texts %q", tt.Texts())
 	}
-	if !info.Disabled {
-		t.Error("the stop entry is not marked unavailable")
+	if info.Disabled {
+		t.Error("the stop entry is disabled while a turn runs")
 	}
 	if !info.Focusable {
-		t.Error("the stop entry is unreachable, so its reason is never read")
-	}
-	if !strings.Contains(info.Description, "session.stop") {
-		t.Errorf("the stop entry's description %q does not name session.stop", info.Description)
-	}
-	if !strings.Contains(info.Description, wipBadge) {
-		t.Errorf("the stop entry's description %q does not include the %q badge", info.Description, wipBadge)
+		t.Error("the stop entry is unreachable")
 	}
 	if !tt.HasText("Stop") {
 		t.Errorf("the stop entry is not drawn, texts %q", tt.Texts())
@@ -76,23 +72,27 @@ func TestStopEntryOnlyWhileRunning(t *testing.T) {
 	}
 }
 
-// TestStopDoesNotPretendSuccess clicks the stop entry and checks that no view
-// state changed: the run still runs, the rows are untouched and nothing was
-// announced as stopped. The shell never reads Clicked for the entry, so it
-// cannot report a stop the App Server did not perform.
-func TestStopDoesNotPretendSuccess(t *testing.T) {
+// TestStopCallsCallback checks that clicking Stop reaches the caller's callback
+// once, and that the shell itself reports nothing: the run state and rows stay
+// as they were until the App Server's state arrives through the supervisor.
+func TestStopCallsCallback(t *testing.T) {
 	s := fixture()
 	s.Run = RunRunning
 	s.Messages = append(s.Messages, Message{
 		ID: "t1", Author: AuthorTool,
 		Tool: Tool{Name: "bash", Params: "go test", Status: ToolRunning},
 	})
+	stops := 0
+	s.OnStop = func() { stops++ }
 	tt := ui.NewTester(s.View, 900, 600)
 
 	if err := tt.Click("Stop"); err != nil {
 		t.Fatalf("click Stop: %v", err)
 	}
 
+	if stops != 1 {
+		t.Errorf("OnStop ran %d times, want 1", stops)
+	}
 	if s.Run != RunRunning {
 		t.Errorf("run is %v after clicking Stop, want it untouched", s.Run)
 	}
@@ -105,6 +105,43 @@ func TestStopDoesNotPretendSuccess(t *testing.T) {
 	}
 	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); ok {
 		t.Error("clicking Stop raised an alert, as if the stop had failed or succeeded")
+	}
+	if tt.HasText("Stopped") || tt.HasText("Stopping…") {
+		t.Errorf("the view claims the session stopped, texts %q", tt.Texts())
+	}
+}
+
+// TestStopWithoutCallbackDoesNotPretendSuccess checks that a fixture shell with
+// no callback keeps the Stop entry visible and unavailable, explaining the
+// session.stop gap, and leaves its state alone: a click cannot report a stop the
+// App Server did not perform.
+func TestStopWithoutCallbackDoesNotPretendSuccess(t *testing.T) {
+	s := fixture()
+	s.Run = RunRunning
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "Stop")
+	if !ok {
+		t.Fatalf("a running session offers no stop entry, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("the stop entry is available without a callback")
+	}
+	if !info.Focusable {
+		t.Error("the stop entry is unreachable, so its reason is never read")
+	}
+	if !strings.Contains(info.Description, "session.stop") {
+		t.Errorf("the stop entry's description %q does not name session.stop", info.Description)
+	}
+	if !strings.Contains(info.Description, wipBadge) {
+		t.Errorf("the stop entry's description %q does not include the %q badge", info.Description, wipBadge)
+	}
+
+	if err := tt.Click("Stop"); err != nil {
+		t.Fatalf("click Stop: %v", err)
+	}
+	if s.Run != RunRunning {
+		t.Errorf("run is %v after clicking Stop, want it untouched", s.Run)
 	}
 	if tt.HasText("Stopped") || tt.HasText("Stopping…") {
 		t.Errorf("the view claims the session stopped, texts %q", tt.Texts())

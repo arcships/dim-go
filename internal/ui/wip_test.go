@@ -136,7 +136,9 @@ func TestReconnectEntryHidesWhenConnected(t *testing.T) {
 	if _, ok := tt.AccessByRole(ui.RoleButton, "Reconnect"); ok {
 		t.Error("the reconnect entry shows while connected")
 	}
-	if tt.HasText("Reconnect") {
+	// Find matches the whole text: the read-only capability card's
+	// "supervisor.Reconnect" is not the entry.
+	if _, ok := tt.Find("Reconnect"); ok {
 		t.Errorf("the reconnect entry is drawn while connected, texts %q", tt.Texts())
 	}
 }
