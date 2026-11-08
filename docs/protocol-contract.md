@@ -318,7 +318,7 @@ Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返�
 - mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。四类 mutation 都必须各有 unknown-result fixture；不能只用 submit 覆盖。
 - 重连单飞：并发重连共享同一个进行中的尝试；关闭中的 supervisor 拒绝新重连。
 
-Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；`internal/session.SubmitWithID` 返回已发送的 submission UUID，但 `session.input_lookup` 读回本身仍未实现。supervisor 已实现 `Reconnect`（单飞、重新解析 endpoint、关闭旧 attachment、按 backoff 重试、generation/stale 标记、transport 终止原因和 close 竞争处理）；`Client.Done`、`SessionStream` 的 `lost`/`transport_closed` 和 `Connection.Done`/`Err` 提供 resync 触发信号。session 层的 re-attach/domain resync 仍由上层编排，`internal/session` 不会自己重开或重建 attachment。
+Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；`internal/session.SubmitWithID` 返回已发送的 submission UUID，`Session.LookupInput`/`appserver.InputLookup` 可按该 UUID opaque 读回，绝不自动重发。supervisor 已实现 `Reconnect`（单飞、重新解析 endpoint、关闭旧 attachment、按 backoff 重试、generation/stale 标记、transport 终止原因和 close 竞争处理）；`Client.Done`、`SessionStream` 的 `lost`/`transport_closed` 和 `Connection.Done`/`Err` 提供 resync 触发信号。session 层的 re-attach/domain resync 仍由上层编排，`internal/session` 不会自己重开或重建 attachment。
 
 ## 15. 当前合同缺口与上游确认项
 
@@ -381,7 +381,7 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` / `ModelProgress` | 通知 | 已实现，`DecodeNotification` 按方法解码；未知方法原样透传 |
 | `LocalError` / `MappedError` | 客户端本地错误 / `appError` 映射 | 已实现 |
 
-`SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.keys`/`session.branches`、`session.input_lookup` 和 `session.methods` 的读取仍未实现。
+`SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.keys`/`session.branches`、`session.input_lookup` 的读取已由 `internal/session`/`appserver` 实现并受 capability/只读语义约束；`session.methods` 的读取已实现，插件方法入口仍保持 WIP。
 
 ## 18. Transport 与 Supervisor 参数（已实现，real-daemon 控制面已验证）
 
