@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver"
 	dimui "github.com/arcships/dimagent-mygo/internal/ui"
 )
 
@@ -20,6 +21,14 @@ func TestStateFromDaemonWithoutProductHome(t *testing.T) {
 	}
 	if len(state.Sessions) != 0 || len(state.Messages) != 0 {
 		t.Fatalf("state must not invent fixtures: %#v", state)
+	}
+}
+
+func TestRefreshStateWithoutControllerIsNoop(t *testing.T) {
+	state := &dimui.State{Selected: "keep", Connection: dimui.ConnReady}
+	refreshState(state, nil, appserver.SessionSummary{SessionID: "s1"})
+	if state.Selected != "keep" || state.Connection != dimui.ConnReady {
+		t.Fatalf("state changed on nil controller: %#v", state)
 	}
 }
 

@@ -45,9 +45,11 @@ func stateFromDaemon(ctx context.Context, productHome string) (*dimui.State, fun
 	if err != nil {
 		return nil, closeSupervisor(sup), err
 	}
-	view := controller.State(summaryForRow(rows[0]))
-	state.Messages = view.Messages
-	state.Run = view.Run
+	// Build the initial frame through the same live snapshot adapter used by
+	// refreshState. The controller's session drain folds subsequent stream
+	// events into memory; callers can refresh this state without another fact
+	// source or local persistence read.
+	refreshState(state, controller, summaryForRow(rows[0]))
 	return state, func(closeCtx context.Context) error {
 		if err := controller.Close(closeCtx); err != nil {
 			_, _ = sup.Close(closeCtx)
@@ -56,6 +58,26 @@ func stateFromDaemon(ctx context.Context, productHome string) (*dimui.State, fun
 		_, err := sup.Close(closeCtx)
 		return err
 	}, nil
+}
+
+// refreshState pulls the latest in-memory session projection into the existing
+// UI state. It is intentionally synchronous and side-effect free outside the
+// supplied state: SessionController.LiveState is the only adapter, while the
+// session drain goroutine owns live event ingestion.
+func refreshState(state *dimui.State, controller *integration.SessionController, summary appserver.SessionSummary) {
+	if state == nil || controller == nil {
+		return
+	}
+	view := controller.LiveState(summary)
+	if view == nil {
+		return
+	}
+	state.Selected = view.Selected
+	state.Connection = view.Connection
+	state.ConnectionError = view.ConnectionError
+	state.ConversationLoading = view.ConversationLoading
+	state.Run = view.Run
+	state.Messages = view.Messages
 }
 
 func summaryForRow(row dimui.Session) appserver.SessionSummary {
