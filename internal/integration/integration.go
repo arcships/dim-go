@@ -92,6 +92,15 @@ func sessionTitle(s appserver.SessionSummary) string {
 	return s.SessionID
 }
 
+// LiveState returns a fresh view of the selected session. Session's drain
+// goroutine continuously folds live stream events into its in-memory projection;
+// this method intentionally rebuilds throwaway UI rows on each call rather than
+// introducing a second event/fact source. Callers can invoke it after a render
+// tick or event notification to refresh the UI.
+func (c *SessionController) LiveState(summary appserver.SessionSummary) *ui.State {
+	return c.State(summary)
+}
+
 // Catalog reads the authoritative session list over the supervisor control
 // connection and adapts it to sidebar rows.
 func Catalog(ctx context.Context, sup *supervisor.Supervisor) ([]ui.Session, error) {

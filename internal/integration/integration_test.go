@@ -4,7 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver"
 	"github.com/arcships/dimagent-mygo/internal/supervisor"
+	"github.com/arcships/dimagent-mygo/internal/ui"
 )
 
 func TestOpenSessionRejectsInvalidInputsBeforeDial(t *testing.T) {
@@ -20,6 +22,20 @@ func TestOpenSessionRejectsInvalidInputsBeforeDial(t *testing.T) {
 	}
 	if _, err := OpenSession(context.Background(), sup, ""); err == nil {
 		t.Fatal("empty session id should fail")
+	}
+}
+
+func TestLiveStateWithoutSessionIsDisconnected(t *testing.T) {
+	controller := &SessionController{}
+	state := controller.LiveState(appserver.SessionSummary{SessionID: "s1"})
+	if state == nil {
+		t.Fatal("LiveState returned nil")
+	}
+	if state.Connection != ui.ConnUnknown {
+		t.Fatalf("connection = %v, want unknown", state.Connection)
+	}
+	if len(state.Messages) != 0 {
+		t.Fatalf("messages = %d, want empty", len(state.Messages))
 	}
 }
 
