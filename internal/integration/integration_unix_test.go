@@ -191,6 +191,17 @@ func TestSessionControllerBridge(t *testing.T) {
 	if !controller.Session.Lost() {
 		t.Fatal("session did not observe transport loss")
 	}
+	lostState := controller.State(appserver.SessionSummary{SessionID: "s1"})
+	if lostState.Connection != ui.ConnError || lostState.ConnectionError == "" {
+		t.Fatalf("lost state = %#v, want visible connection error", lostState)
+	}
+	// The stream can report Lost just before the session drain publishes Err;
+	// repeated reads must still never produce a blank banner.
+	for i := 0; i < 20; i++ {
+		if state := controller.State(appserver.SessionSummary{SessionID: "s1"}); state.ConnectionError == "" {
+			t.Fatalf("lost state read %d had blank error: %#v", i, state)
+		}
+	}
 	if err := controller.Reattach(ctx); err != nil {
 		t.Fatalf("Reattach after transport loss: %v", err)
 	}

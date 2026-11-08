@@ -89,12 +89,28 @@ func (c *SessionController) State(summary appserver.SessionSummary) *ui.State {
 	if c == nil || c.Session == nil {
 		return &ui.State{Connection: ui.ConnUnknown}
 	}
+	connection := ui.ConnReady
+	connectionError := ""
+	if c.Session.Lost() {
+		connection = ui.ConnError
+		// StreamState transitions to lost before Session.drain publishes Err.
+		// Keep the banner stable across that small synchronization window rather
+		// than exposing a blank error during a live refresh tick.
+		if err := c.Session.Err(); err != nil {
+			connectionError = err.Error()
+		} else if reason := c.Session.TerminalReason(); reason != "" {
+			connectionError = fmt.Sprintf("session transport lost (%s)", reason)
+		} else {
+			connectionError = "session transport lost"
+		}
+	}
 	state := &ui.State{
-		Sessions:   []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary)}},
-		Selected:   summary.SessionID,
-		Connection: ui.ConnReady,
-		Messages:   viewmodel.Build(c.Session.Snapshot()),
-		Run:        ui.RunIdle,
+		Sessions:        []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary)}},
+		Selected:        summary.SessionID,
+		Connection:      connection,
+		ConnectionError: connectionError,
+		Messages:        viewmodel.Build(c.Session.Snapshot()),
+		Run:             ui.RunIdle,
 	}
 	if view := c.Session.View(c.Session.BranchID()); view.State != nil {
 		if view.State.Running {
