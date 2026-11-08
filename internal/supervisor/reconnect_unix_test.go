@@ -175,11 +175,21 @@ func TestReconnectRestartGeneration(t *testing.T) {
 	if sup.Generation() != 1 || sup.InstanceID() != "one" {
 		t.Fatalf("supervisor instance = %q generation %d", sup.InstanceID(), sup.Generation())
 	}
+	stream, err := sup.OpenStream(ctx)
+	if err != nil {
+		t.Fatalf("OpenStream: %v", err)
+	}
 
 	fake.setInstanceID("two")
 	result, err := sup.ReconnectResult(ctx)
 	if err != nil {
 		t.Fatalf("ReconnectResult: %v", err)
+	}
+	if !stream.Closed() || !errors.Is(stream.Err(), ErrConnectionClosed) {
+		t.Fatalf("old stream done=%v err=%v, want a local close", stream.Closed(), stream.Err())
+	}
+	if got := sup.ActiveConnections(); got != 1 {
+		t.Fatalf("ActiveConnections = %d, want only the new control", got)
 	}
 	if result.Connection == nil || result.NewInstanceID != "two" || result.PreviousInstanceID != "one" {
 		t.Fatalf("result = %+v, want one -> two", result)

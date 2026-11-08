@@ -1,10 +1,15 @@
 // Package supervisor resolves the protocol-v3 daemon endpoint, connects and
 // handshakes each connection, spawns the daemon when and only when it is
-// absent, and stops only a daemon this process started.
+// absent, reconnects after transport loss, and stops only a daemon this process
+// started.
 //
 // The Rust dim-app-server remains the only source of truth. This package keeps
 // no session, message, run, or approval state; it only owns transport lifecycle
 // so a later session-stream layer can issue session.* calls.
+//
+// Per protocol-contract §14, a lost connection is a transport event, not a wire
+// method: Connection.Done is the resync trigger and Generation marks which
+// attachments are stale. Reconnect never reopens sessions itself.
 package supervisor
 
 import (
@@ -311,12 +316,14 @@ func (s *Supervisor) OpenStream(ctx context.Context) (*Connection, error) {
 
 // Reconnect re-resolves the endpoint and replaces the control connection.
 // Concurrent calls are coalesced: one attempt runs and every caller receives
-// its connection or error. A closing or closed supervisor refuses reconnect.
+// its connection or error. If the leader's context ends, waiters receive that
+// outcome. A closing or closed supervisor refuses new reconnect calls.
 //
-// A missing endpoint is retried with bounded exponential backoff. When this
-// supervisor owns the daemon it may spawn exactly one replacement during the
-// attempt; a non-owned daemon is only retried, never spawned. Every non-missing
-// dial error and every hello failure is surfaced without retry or spawn.
+// A missing endpoint is retried with bounded exponential backoff
+// (ReconnectBackoff). When this supervisor owns the daemon it may spawn exactly
+// one replacement during the attempt; a non-owned daemon is only retried, never
+// spawned. Every non-missing dial error and every hello failure is surfaced
+// without retry or spawn.
 //
 // Reconnect closes all previously tracked connections first; session
 // attachments are not reopened. A restart is visible through Connection
@@ -664,10 +671,10 @@ func (s *Supervisor) observeInstanceLocked(instanceID string) (generation uint64
 	return s.generation, previous, true
 }
 
-// Generation is the current daemon generation. It starts at 1 after the first
-// successful hello and increments whenever a hello reports a different
-// instanceId. A Connection with an older generation is stale and its session
-// attachments must be rebuilt by the session layer.
+// Generation is the current daemon generation: 0 before the first hello, 1
+// after it, and one higher whenever a hello reports a different instanceId. A
+// Connection with an older generation is stale and its session attachments must
+// be rebuilt by the session layer.
 func (s *Supervisor) Generation() uint64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -758,6 +765,8 @@ type Connection struct {
 	closeOnce          sync.Once
 }
 
+// Client is the underlying JSON-RPC client. Close the Connection rather than
+// the client directly so supervisor tracking stays accurate.
 func (c *Connection) Client() *appserver.Client { return c.client }
 
 func (c *Connection) Hello() appserver.HelloResult { return c.hello }
@@ -811,7 +820,8 @@ func (c *Connection) Err() error {
 func (c *Connection) Generation() uint64 { return c.generation }
 
 // PreviousInstanceID is the instanceId observed before this hello. It is empty
-// for the first connection and stays unchanged when no restart occurred.
+// for the first connection; for a connection that did not observe a restart it
+// equals InstanceID.
 func (c *Connection) PreviousInstanceID() string { return c.previousInstanceID }
 
 // Restarted reports whether this hello observed a different instanceId than the
