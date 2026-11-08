@@ -407,7 +407,6 @@ func (a *app) selectBranch(branchID string) {
 	view := branchViewer.StateForBranch(summary, branchID)
 	a.update(func(state *dimui.State) {
 		applyView(state, view)
-		state.SelectedBranch = branchID
 	})
 }
 
