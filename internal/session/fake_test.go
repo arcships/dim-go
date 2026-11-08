@@ -66,6 +66,8 @@ type fakeConfig struct {
 	AttachErr    *fakeRPCError
 	OnAttach     func(*fakeServer)
 	History      fakeHistoryFunc
+	Keys         any
+	KeysErr      *fakeRPCError
 	DetachErr    *fakeRPCError
 	InputLookup  fakeInputLookupFunc
 	Mutations    map[string][]fakeMutation
@@ -157,6 +159,12 @@ func (s *fakeServer) serve() {
 	}
 }
 
+func (s *fakeServer) callsSnapshot() []fakeCall {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]fakeCall(nil), s.calls...)
+}
+
 func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fakeRPCError) {
 	switch method {
 	case "session.attach":
@@ -180,6 +188,18 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, invalidParams()
 		}
 		return s.cfg.History(p)
+	case "session.keys":
+		var p appserver.KeysParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.KeysErr != nil {
+			return nil, s.cfg.KeysErr
+		}
+		if s.cfg.Keys == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.Keys, nil
 	case "session.detach":
 		var p appserver.DetachParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {

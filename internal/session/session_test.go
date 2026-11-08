@@ -84,6 +84,60 @@ func TestAdaptEventBounds(t *testing.T) {
 	}
 }
 
+func TestSessionKeysSnapshotCapabilityAndCopy(t *testing.T) {
+	through := int64(0)
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: &through},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			return historyPage(t, nil, 0, 0, true, nil, nil), nil
+		},
+		Keys: appserver.KeysResult{Through: &through, Entries: []appserver.SessionKeyEntry{{Key: "k", Sequence: 1, InputID: "i", Text: "v"}}},
+	}
+	_, _, s := openTestSession(t, cfg, []string{"session.history", "session.keys"}, OpenOptions{})
+	got, ok := s.Keys()
+	if !ok || len(got.Entries) != 1 || got.Entries[0].Text != "v" {
+		t.Fatalf("keys = %#v, loaded=%v", got, ok)
+	}
+	got.Entries[0].Text = "mutated"
+	again, ok := s.Keys()
+	if !ok || again.Entries[0].Text != "v" {
+		t.Fatalf("keys accessor did not copy entries: %#v", again)
+	}
+}
+
+func TestSessionKeysErrorIsBestEffort(t *testing.T) {
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(0)},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			return historyPage(t, nil, 0, 0, true, nil, nil), nil
+		},
+		KeysErr: unknownMethod(),
+	}
+	_, _, s := openTestSession(t, cfg, []string{"session.history", "session.keys"}, OpenOptions{})
+	if _, ok := s.Keys(); ok {
+		t.Fatal("keys unexpectedly loaded after daemon error")
+	}
+}
+
+func TestSessionKeysCapabilityAbsentDoesNotRequest(t *testing.T) {
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(0)},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			return historyPage(t, nil, 0, 0, true, nil, nil), nil
+		},
+		KeysErr: unknownMethod(),
+	}
+	server, _, s := openTestSession(t, cfg, []string{"session.history"}, OpenOptions{})
+	if _, ok := s.Keys(); ok {
+		t.Fatal("keys unexpectedly loaded without capability")
+	}
+	for _, call := range server.callsSnapshot() {
+		if call.Method == "session.keys" {
+			t.Fatal("session.keys requested without capability")
+		}
+	}
+}
+
 func TestLatestTurnEmptySessionWithoutTurnStart(t *testing.T) {
 	cfg := fakeConfig{
 		Attach: appserver.AttachResult{Sequence: int64Ptr(0)},

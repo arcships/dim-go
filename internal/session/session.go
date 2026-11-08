@@ -169,6 +169,8 @@ type Session struct {
 	// read once during Open and never treated as a local source of session truth.
 	methods         appserver.MethodsResult
 	branchDirectory appserver.BranchesResult
+	keySnapshot     appserver.KeysResult
+	keysLoaded      bool
 
 	errs       chan error
 	errMu      sync.Mutex
@@ -234,6 +236,24 @@ func OpenWithOptions(ctx context.Context, client *appserver.Client, features []s
 			return nil, err
 		}
 		s.branchDirectory = branches
+	}
+	if appserver.HasFeature(features, "session.keys") {
+		through := s.History().Through
+		keys, err := appserver.SessionKeys(ctx, client, appserver.KeysParams{
+			SessionID: sessionID,
+			BranchID:  appserver.MainBranchID,
+			Through:   &through,
+		}, features)
+		if err != nil {
+			// Keys are optional enrichment; preserve the authoritative session view
+			// and surface the degradation through the existing error channel.
+			s.report(err)
+		} else {
+			s.mu.Lock()
+			s.keySnapshot = keys
+			s.keysLoaded = true
+			s.mu.Unlock()
+		}
 	}
 	return s, nil
 }
@@ -762,6 +782,19 @@ func (s *Session) Methods() appserver.MethodsResult {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return appserver.MethodsResult{Methods: append([]appserver.MethodDeclaration(nil), s.methods.Methods...)}
+}
+
+// Keys returns the optional daemon-provided keyed-block snapshot captured during
+// Open. The returned entries are copied and the boolean reports whether the
+// capability read succeeded; an unavailable snapshot is never synthesized.
+func (s *Session) Keys() (appserver.KeysResult, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.keysLoaded {
+		return appserver.KeysResult{}, false
+	}
+	out := appserver.KeysResult{Through: cloneInt64(s.keySnapshot.Through), Entries: append([]appserver.SessionKeyEntry(nil), s.keySnapshot.Entries...)}
+	return out, true
 }
 
 // BranchDirectory returns the daemon branch directory captured during Open.
