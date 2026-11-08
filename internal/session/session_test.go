@@ -50,6 +50,40 @@ func TestAdaptEventBounds(t *testing.T) {
 	}
 }
 
+func TestLatestTurnEmptySessionWithoutTurnStart(t *testing.T) {
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(0)},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			if params.LatestTurn == nil || !*params.LatestTurn {
+				return nil, invalidParams()
+			}
+			return historyPage(t, nil, 0, 0, true, nil, nil), nil
+		},
+	}
+	_, _, s := openTestSession(t, cfg, []string{"session.history", "session.history.latestTurn"}, OpenOptions{})
+	status := s.History()
+	if status.Mode != HistoryModeLatestTurn || status.Pages != 1 || status.TurnStart != nil || status.Through != 0 {
+		t.Fatalf("history status = %#v, want empty latest-turn window", status)
+	}
+	if snapshot := s.Snapshot(); len(snapshot.Messages) != 0 {
+		t.Fatalf("empty session messages = %#v", snapshot.Messages)
+	}
+}
+
+func TestLatestTurnMissingTurnStartNonEmptyFails(t *testing.T) {
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(1)},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			return historyPage(t, []appserver.RawEvent{userEvent(1, "hello")}, 1, 1, true, nil, nil), nil
+		},
+	}
+	_, client := newFakeServer(t, cfg)
+	_, err := OpenWithOptions(testContext(t), client, []string{"session.history", "session.history.latestTurn"}, "s1", OpenOptions{})
+	if err == nil || !errors.Is(err, appserver.ErrProtocol) {
+		t.Fatalf("Open error = %v, want protocol error", err)
+	}
+}
+
 func TestOpenMultiPageHistoryAttachOverlapAndFreshHead(t *testing.T) {
 	const head = int64(520)
 	all := make([]appserver.RawEvent, 0, head)
