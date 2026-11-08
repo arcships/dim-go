@@ -317,6 +317,30 @@ func (d *fakeDaemon) activeConnections() int {
 	return d.active
 }
 
+// setInstanceID changes the instanceId returned by subsequent hellos, modelling
+// a daemon restart without replacing the listener.
+func (d *fakeDaemon) setInstanceID(instanceID string) {
+	d.mu.Lock()
+	d.cfg.InstanceID = instanceID
+	d.mu.Unlock()
+}
+
+// dropConnections closes every live accepted connection but keeps listening,
+// so tests can simulate a lost transport and then reconnect.
+func (d *fakeDaemon) dropConnections() {
+	d.mu.Lock()
+	conns := make([]net.Conn, 0, len(d.conns))
+	for conn := range d.conns {
+		conns = append(conns, conn)
+	}
+	d.mu.Unlock()
+	for _, conn := range conns {
+		_ = conn.Close()
+	}
+}
+
+func (d *fakeDaemon) listenAddress() string { return d.ln.Addr().String() }
+
 func waitFor(t *testing.T, what string, condition func() bool) {
 	t.Helper()
 	deadline := time.Now().Add(testWaitTimeout)

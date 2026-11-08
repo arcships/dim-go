@@ -66,31 +66,48 @@ func Dial(ctx context.Context, endpoint Endpoint, hello appserver.HelloParams) (
 // DialWith is Dial with an injectable connect function.
 func DialWith(ctx context.Context, endpoint Endpoint, hello appserver.HelloParams, dial DialFunc) (*appserver.Client, appserver.HelloResult, error) {
 	var zero appserver.HelloResult
-	if err := endpoint.Validate(); err != nil {
+	dialed, err := dialConn(ctx, endpoint, hello, dial)
+	if err != nil {
 		return nil, zero, err
 	}
+	return dialed.client, dialed.hello, nil
+}
+
+// dialed is one successful connect + hello. watch is the transport wrapper
+// that records the terminal reason for a Connection.
+type dialed struct {
+	client *appserver.Client
+	hello  appserver.HelloResult
+	watch  *watchedConn
+}
+
+func dialConn(ctx context.Context, endpoint Endpoint, hello appserver.HelloParams, dial DialFunc) (*dialed, error) {
+	if err := endpoint.Validate(); err != nil {
+		return nil, err
+	}
 	if err := hello.Validate(); err != nil {
-		return nil, zero, fmt.Errorf("supervisor: hello params: %w", err)
+		return nil, fmt.Errorf("supervisor: hello params: %w", err)
 	}
 	if dial == nil {
 		dial = DefaultDial
 	}
 	conn, err := dialOnce(ctx, endpoint, dial)
 	if err != nil {
-		return nil, zero, err
+		return nil, err
 	}
-	client := appserver.NewClient(conn)
+	watch := &watchedConn{Conn: conn}
+	client := appserver.NewClient(watch)
 	raw, err := client.Call(ctx, "hello", hello)
 	if err != nil {
 		client.Close()
-		return nil, zero, fmt.Errorf("supervisor: hello on %s: %w", endpoint, err)
+		return nil, fmt.Errorf("supervisor: hello on %s: %w", endpoint, err)
 	}
 	result, err := appserver.DecodeHelloResult(raw)
 	if err != nil {
 		client.Close()
-		return nil, zero, fmt.Errorf("supervisor: hello on %s: %w", endpoint, err)
+		return nil, fmt.Errorf("supervisor: hello on %s: %w", endpoint, err)
 	}
-	return client, result, nil
+	return &dialed{client: client, hello: result, watch: watch}, nil
 }
 
 // dialOnce runs one attempt with the 5-second connect timeout (shortened when

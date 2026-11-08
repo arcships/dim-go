@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
@@ -56,8 +57,9 @@ type Config struct {
 	Dial  DialFunc
 	Spawn SpawnFunc
 
-	ListenWait ListenWait
-	CloseGrace CloseGrace
+	ListenWait       ListenWait
+	CloseGrace       CloseGrace
+	ReconnectBackoff ReconnectBackoff
 }
 
 // CloseGrace bounds the daemon.ping retries Close performs while stream
@@ -79,6 +81,60 @@ func (g CloseGrace) normalized() CloseGrace {
 	return g
 }
 
+// ReconnectBackoff bounds the reconnect retry series. Only a missing endpoint
+// (ENOENT/ECONNREFUSED) is retried; every other dial error and every hello
+// failure is surfaced immediately. Attempts counts connect+hello tries,
+// including the first.
+type ReconnectBackoff struct {
+	Attempts int
+	Initial  time.Duration
+	Max      time.Duration
+}
+
+// DefaultReconnectBackoff retries a restarted daemon for roughly three
+// seconds: 100 ms, 200 ms, 400 ms, 800 ms, 1.6 s, then the final attempt.
+var DefaultReconnectBackoff = ReconnectBackoff{
+	Attempts: 6,
+	Initial:  100 * time.Millisecond,
+	Max:      2 * time.Second,
+}
+
+func (b ReconnectBackoff) normalized() ReconnectBackoff {
+	if b.Attempts <= 0 {
+		b.Attempts = DefaultReconnectBackoff.Attempts
+	}
+	if b.Initial <= 0 {
+		b.Initial = DefaultReconnectBackoff.Initial
+	}
+	if b.Max <= 0 {
+		b.Max = DefaultReconnectBackoff.Max
+	}
+	if b.Max < b.Initial {
+		b.Max = b.Initial
+	}
+	return b
+}
+
+// ReconnectResult describes one successful control reconnect. The session
+// layer compares Generation with older connections to decide which attachments
+// must be rebuilt; this package never reopens sessions itself.
+type ReconnectResult struct {
+	Connection         *Connection
+	PreviousInstanceID string
+	NewInstanceID      string
+	Restarted          bool
+	Generation         uint64
+}
+
+// reconnectCall is the single-flight state shared by concurrent Reconnect
+// calls. waiters is count-only bookkeeping exposed to package tests.
+type reconnectCall struct {
+	done    chan struct{}
+	conn    *Connection
+	err     error
+	waiters int
+}
+
 // CloseReport records what Close decided. Connections is meaningful only when
 // Pinged is true.
 type CloseReport struct {
@@ -91,26 +147,32 @@ type CloseReport struct {
 
 // Supervisor owns daemon discovery, connection handshakes, and exit rules.
 type Supervisor struct {
-	cfg        Config
-	hello      appserver.HelloParams
-	dial       DialFunc
-	spawn      SpawnFunc
-	listenWait ListenWait
-	closeGrace CloseGrace
+	cfg              Config
+	hello            appserver.HelloParams
+	dial             DialFunc
+	spawn            SpawnFunc
+	listenWait       ListenWait
+	closeGrace       CloseGrace
+	reconnectBackoff ReconnectBackoff
 
-	// startMu serializes Start against Close so a spawn cannot race a close.
+	// startMu serializes Start, OpenStream, Reconnect, and Close so connection
+	// establish/teardown cannot race each other.
 	startMu sync.Mutex
 
-	mu      sync.Mutex
-	link    Link
-	linked  bool
-	control *Connection
-	conns   map[*Connection]struct{}
-	owned   bool
-	process Process
-	spawned bool
-	closing bool
-	closed  bool
+	mu           sync.Mutex
+	link         Link
+	linked       bool
+	control      *Connection
+	conns        map[*Connection]struct{}
+	owned        bool
+	process      Process
+	spawned      bool
+	closing      bool
+	closed       bool
+	reconnecting *reconnectCall
+	instanceID   string
+	seenInstance bool
+	generation   uint64
 }
 
 // New validates cfg and builds a supervisor. Endpoint resolution (which may
@@ -140,13 +202,14 @@ func New(cfg Config) (*Supervisor, error) {
 		spawn = DefaultSpawn
 	}
 	return &Supervisor{
-		cfg:        cfg,
-		hello:      hello,
-		dial:       dial,
-		spawn:      spawn,
-		listenWait: cfg.ListenWait.normalized(),
-		closeGrace: cfg.CloseGrace.normalized(),
-		conns:      make(map[*Connection]struct{}),
+		cfg:              cfg,
+		hello:            hello,
+		dial:             dial,
+		spawn:            spawn,
+		listenWait:       cfg.ListenWait.normalized(),
+		closeGrace:       cfg.CloseGrace.normalized(),
+		reconnectBackoff: cfg.ReconnectBackoff.normalized(),
+		conns:            make(map[*Connection]struct{}),
 	}, nil
 }
 
@@ -194,9 +257,9 @@ func (s *Supervisor) Start(ctx context.Context) (*Connection, error) {
 		link = resolved
 	}
 
-	client, hello, err := s.dialHello(ctx, link.Endpoint)
+	dialed, err := s.dialHello(ctx, link.Endpoint)
 	if err == nil {
-		return s.registerControl(client, hello)
+		return s.newConnection(dialed, true)
 	}
 	if !IsMissingEndpoint(err) {
 		return nil, err
@@ -214,11 +277,11 @@ func (s *Supervisor) Start(ctx context.Context) (*Connection, error) {
 	if err := waitForListen(ctx, link.Endpoint, s.dial, s.listenWait); err != nil {
 		return nil, err
 	}
-	client, hello, err = s.dialHello(ctx, link.Endpoint)
+	dialed, err = s.dialHello(ctx, link.Endpoint)
 	if err != nil {
 		return nil, err
 	}
-	return s.registerControl(client, hello)
+	return s.newConnection(dialed, true)
 }
 
 // OpenStream opens one additional hello-authenticated connection. Session
@@ -239,20 +302,168 @@ func (s *Supervisor) OpenStream(ctx context.Context) (*Connection, error) {
 	if !linked {
 		return nil, ErrNotStarted
 	}
-	client, hello, err := s.dialHello(ctx, link.Endpoint)
+	dialed, err := s.dialHello(ctx, link.Endpoint)
 	if err != nil {
 		return nil, err
 	}
-	conn := &Connection{sup: s, client: client, hello: hello}
+	return s.newConnection(dialed, false)
+}
+
+// Reconnect re-resolves the endpoint and replaces the control connection.
+// Concurrent calls are coalesced: one attempt runs and every caller receives
+// its connection or error. A closing or closed supervisor refuses reconnect.
+//
+// A missing endpoint is retried with bounded exponential backoff. When this
+// supervisor owns the daemon it may spawn exactly one replacement during the
+// attempt; a non-owned daemon is only retried, never spawned. Every non-missing
+// dial error and every hello failure is surfaced without retry or spawn.
+//
+// Reconnect closes all previously tracked connections first; session
+// attachments are not reopened. A restart is visible through Connection
+// Generation/Restarted or the ReconnectResult metadata.
+func (s *Supervisor) Reconnect(ctx context.Context) (*Connection, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	s.mu.Lock()
 	if s.closing || s.closed {
 		s.mu.Unlock()
-		client.Close()
 		return nil, ErrClosed
 	}
-	s.conns[conn] = struct{}{}
+	if !s.linked {
+		s.mu.Unlock()
+		return nil, ErrNotStarted
+	}
+	if call := s.reconnecting; call != nil {
+		call.waiters++
+		s.mu.Unlock()
+		select {
+		case <-call.done:
+			return call.conn, call.err
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+	call := &reconnectCall{done: make(chan struct{})}
+	s.reconnecting = call
 	s.mu.Unlock()
-	return conn, nil
+
+	conn, err := s.reconnectOnce(ctx)
+
+	s.mu.Lock()
+	call.conn, call.err = conn, err
+	s.mu.Unlock()
+	close(call.done)
+	// Clear only after the outcome is published: a Reconnect arriving in this
+	// window joins the completed call instead of starting a redundant attempt.
+	s.mu.Lock()
+	if s.reconnecting == call {
+		s.reconnecting = nil
+	}
+	s.mu.Unlock()
+	return conn, err
+}
+
+// ReconnectResult reconnects and returns the restart metadata for the new
+// control connection. Reconnect is the primary API; this convenience keeps the
+// instanceId decision in one value for callers that need it immediately.
+func (s *Supervisor) ReconnectResult(ctx context.Context) (ReconnectResult, error) {
+	conn, err := s.Reconnect(ctx)
+	if err != nil {
+		return ReconnectResult{}, err
+	}
+	return conn.ReconnectResult(), nil
+}
+
+func (s *Supervisor) reconnectOnce(ctx context.Context) (*Connection, error) {
+	s.startMu.Lock()
+	defer s.startMu.Unlock()
+
+	s.mu.Lock()
+	if s.closing || s.closed {
+		s.mu.Unlock()
+		return nil, ErrClosed
+	}
+	if !s.linked {
+		s.mu.Unlock()
+		return nil, ErrNotStarted
+	}
+	s.mu.Unlock()
+
+	// Re-resolve on every reconnect: a moved product home or a replaced
+	// symlink must address the same endpoint the daemon will publish.
+	link, err := ResolveLink(s.cfg.ProductHome)
+	if err != nil {
+		return nil, err
+	}
+	s.mu.Lock()
+	s.link = link
+	s.linked = true
+	s.mu.Unlock()
+
+	// Old attachments are invalid once a control reconnect begins.
+	s.closeAllConnections()
+
+	backoff := s.reconnectBackoff
+	delay := backoff.Initial
+	respawned := false
+	attempts := 0
+	var lastErr error
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		attempts++
+		dialed, err := s.dialHello(ctx, link.Endpoint)
+		if err == nil {
+			return s.newConnection(dialed, true)
+		}
+		lastErr = err
+		if !IsMissingEndpoint(err) {
+			return nil, err
+		}
+
+		s.mu.Lock()
+		owned := s.owned
+		s.mu.Unlock()
+		if owned && !respawned {
+			respawned = true
+			if err := s.spawnDaemon(ctx, link); err != nil {
+				return nil, err
+			}
+			if err := waitForListen(ctx, link.Endpoint, s.dial, s.listenWait); err != nil {
+				return nil, err
+			}
+			// The spawn consumed no retry budget; redial immediately.
+			continue
+		}
+
+		if attempts >= backoff.Attempts {
+			break
+		}
+		if err := sleepContext(ctx, delay); err != nil {
+			return nil, err
+		}
+		delay *= 2
+		if delay > backoff.Max {
+			delay = backoff.Max
+		}
+	}
+	return nil, fmt.Errorf("supervisor: reconnect to %s failed after %d attempts: %w", link.Endpoint, attempts, lastErr)
+}
+
+// closeAllConnections closes every tracked connection, including the control
+// connection, so stale attachments cannot outlive a reconnect.
+func (s *Supervisor) closeAllConnections() {
+	s.mu.Lock()
+	conns := make([]*Connection, 0, len(s.conns))
+	for conn := range s.conns {
+		conns = append(conns, conn)
+	}
+	s.mu.Unlock()
+	for _, conn := range conns {
+		conn.Close()
+	}
 }
 
 // Close closes this supervisor's connections and, when this process spawned
@@ -384,22 +595,74 @@ func (s *Supervisor) Control() (*Connection, bool) {
 	return s.control, s.control != nil
 }
 
-func (s *Supervisor) dialHello(ctx context.Context, endpoint Endpoint) (*appserver.Client, appserver.HelloResult, error) {
-	return DialWith(ctx, endpoint, s.hello, s.dial)
+func (s *Supervisor) dialHello(ctx context.Context, endpoint Endpoint) (*dialed, error) {
+	return dialConn(ctx, endpoint, s.hello, s.dial)
 }
 
-func (s *Supervisor) registerControl(client *appserver.Client, hello appserver.HelloResult) (*Connection, error) {
-	conn := &Connection{sup: s, client: client, hello: hello}
+// newConnection registers a hello-authenticated connection. It also advances
+// the daemon generation when the observed instanceId changes.
+func (s *Supervisor) newConnection(dialed *dialed, control bool) (*Connection, error) {
+	if dialed == nil || dialed.client == nil {
+		return nil, errors.New("supervisor: nil connection")
+	}
 	s.mu.Lock()
 	if s.closing || s.closed {
 		s.mu.Unlock()
-		client.Close()
+		dialed.client.Close()
 		return nil, ErrClosed
 	}
-	s.control = conn
+	generation, previous, restarted := s.observeInstanceLocked(dialed.hello.InstanceID)
+	conn := &Connection{
+		sup:                s,
+		client:             dialed.client,
+		watch:              dialed.watch,
+		hello:              dialed.hello,
+		generation:         generation,
+		previousInstanceID: previous,
+		restarted:          restarted,
+	}
+	if control {
+		s.control = conn
+	}
 	s.conns[conn] = struct{}{}
 	s.mu.Unlock()
 	return conn, nil
+}
+
+// observeInstanceLocked records a hello instanceId. The first observation is
+// generation 1 without a restart; any later different instanceId increments the
+// generation and marks every older connection stale.
+func (s *Supervisor) observeInstanceLocked(instanceID string) (generation uint64, previous string, restarted bool) {
+	if !s.seenInstance {
+		s.seenInstance = true
+		s.instanceID = instanceID
+		s.generation = 1
+		return s.generation, "", false
+	}
+	if instanceID == s.instanceID {
+		return s.generation, s.instanceID, false
+	}
+	previous = s.instanceID
+	s.instanceID = instanceID
+	s.generation++
+	return s.generation, previous, true
+}
+
+// Generation is the current daemon generation. It starts at 1 after the first
+// successful hello and increments whenever a hello reports a different
+// instanceId. A Connection with an older generation is stale and its session
+// attachments must be rebuilt by the session layer.
+func (s *Supervisor) Generation() uint64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.generation
+}
+
+// InstanceID is the most recently observed daemon instanceId.
+func (s *Supervisor) InstanceID() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.instanceID
 }
 
 func (s *Supervisor) spawnDaemon(ctx context.Context, link Link) error {
@@ -462,10 +725,15 @@ func sleepContext(ctx context.Context, delay time.Duration) error {
 // supervisor's tracking; closing the control connection also means Close can
 // no longer shut down an owned daemon on that connection.
 type Connection struct {
-	sup       *Supervisor
-	client    *appserver.Client
-	hello     appserver.HelloResult
-	closeOnce sync.Once
+	sup                *Supervisor
+	client             *appserver.Client
+	watch              *watchedConn
+	hello              appserver.HelloResult
+	generation         uint64
+	previousInstanceID string
+	restarted          bool
+	closedByUs         atomic.Bool
+	closeOnce          sync.Once
 }
 
 func (c *Connection) Client() *appserver.Client { return c.client }
@@ -480,8 +748,78 @@ func (c *Connection) Features() []string {
 
 func (c *Connection) HasFeature(name string) bool { return c.hello.HasFeature(name) }
 
+// Done is the wire client's Done channel: it closes when the transport ends or
+// the connection is closed. A session layer treats an unexpected close as the
+// domain resync trigger; session.resync is not a wire method.
+func (c *Connection) Done() <-chan struct{} { return c.client.Done() }
+
+// Closed reports whether Done has fired.
+func (c *Connection) Closed() bool {
+	select {
+	case <-c.client.Done():
+		return true
+	default:
+		return false
+	}
+}
+
+// Err is the terminal reason once Done has fired, and nil while the
+// connection is still live. A remotely lost transport reports the underlying
+// read/write error (for example io.EOF); a local close reports
+// ErrConnectionClosed.
+func (c *Connection) Err() error {
+	select {
+	case <-c.client.Done():
+	default:
+		return nil
+	}
+	if c.watch != nil {
+		if err := c.watch.Err(); err != nil {
+			return err
+		}
+	}
+	if c.closedByUs.Load() {
+		return ErrConnectionClosed
+	}
+	return ErrTransportLost
+}
+
+// Generation is the daemon generation observed by this connection's hello.
+// Compare it with Supervisor.Generation to detect a restart.
+func (c *Connection) Generation() uint64 { return c.generation }
+
+// PreviousInstanceID is the instanceId observed before this hello. It is empty
+// for the first connection and stays unchanged when no restart occurred.
+func (c *Connection) PreviousInstanceID() string { return c.previousInstanceID }
+
+// Restarted reports whether this hello observed a different instanceId than the
+// previously observed daemon.
+func (c *Connection) Restarted() bool { return c.restarted }
+
+// Stale reports whether the supervisor has observed a newer daemon generation
+// since this connection was established.
+func (c *Connection) Stale() bool {
+	if c.sup == nil {
+		return false
+	}
+	return c.generation < c.sup.Generation()
+}
+
+// ReconnectResult returns this connection's restart metadata. It is also
+// available for connections created by Start and OpenStream.
+func (c *Connection) ReconnectResult() ReconnectResult {
+	return ReconnectResult{
+		Connection:         c,
+		PreviousInstanceID: c.previousInstanceID,
+		NewInstanceID:      c.hello.InstanceID,
+		Restarted:          c.restarted,
+		Generation:         c.generation,
+	}
+}
+
 func (c *Connection) Close() {
 	c.closeOnce.Do(func() {
+		c.closedByUs.Store(true)
 		c.client.Close()
 		if c.sup != nil {
 			c.sup.release(c)
