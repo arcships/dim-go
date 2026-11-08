@@ -39,6 +39,19 @@ func TestLiveStateWithoutSessionIsDisconnected(t *testing.T) {
 	}
 }
 
+func TestMutationMethodsRequireSessionAndContext(t *testing.T) {
+	controller := &SessionController{}
+	if _, err := controller.Submit(context.Background(), "text"); err == nil {
+		t.Fatal("Submit without session should fail")
+	}
+	if _, _, err := controller.SubmitWithID(context.Background(), "text"); err == nil {
+		t.Fatal("SubmitWithID without session should fail")
+	}
+	if err := controller.Stop(context.Background()); err == nil {
+		t.Fatal("Stop without session should fail")
+	}
+}
+
 func TestCatalogRequiresStartedSupervisor(t *testing.T) {
 	if _, err := Catalog(nil, nil); err == nil {
 		t.Fatal("nil context should fail")

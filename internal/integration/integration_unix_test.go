@@ -103,6 +103,10 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		}`), nil
 	case "session.detach":
 		return json.RawMessage(`{}`), nil
+	case "session.submit":
+		return appserver.SubmitResult{Event: appserver.RawEvent{ID: "submitted", Sequence: 3, CreateAt: 1700000000002, Type: "input", Name: "message", Data: json.RawMessage(`{"text":"submitted"}`)}}, nil
+	case "session.stop":
+		return json.RawMessage(`{}`), nil
 	case "session.catalog":
 		title := "Fake session"
 		return appserver.CatalogResult{Sessions: []appserver.SessionSummary{{
@@ -189,6 +193,17 @@ func TestSessionControllerBridge(t *testing.T) {
 	}
 	if state.Run != ui.RunIdle {
 		t.Fatalf("run = %v, want idle after the input was consumed", state.Run)
+	}
+
+	result, submissionID, err := controller.SubmitWithID(ctx, "hello again")
+	if err != nil {
+		t.Fatalf("SubmitWithID: %v", err)
+	}
+	if submissionID == "" || result.Event.ID != "submitted" {
+		t.Fatalf("submit result = %#v, id %q", result, submissionID)
+	}
+	if err := controller.Stop(ctx); err != nil {
+		t.Fatalf("Stop: %v", err)
 	}
 
 	rows, err := Catalog(ctx, sup)

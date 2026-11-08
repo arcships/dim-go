@@ -53,7 +53,7 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - `internal/integration`：supervisor → session → viewmodel 的 `SessionController`（Open/Catalog/State/Close），fake daemon 端到端测试；
 - Supervisor reconnect：单飞、generation、旧 attachment 失效、transport 终止原因和 close 竞争处理。
 
-未完成：session 层 re-attach/domain resync、`session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods`、approval replay 集合替换、附件上传、approval UI 接线和 session/viewmodel/integration 窗口接线。真实 daemon 控制面 smoke 已有 opt-in 测试，使用 `../dim-2` 构建的 `dim-app-server`，但尚未运行；它不覆盖真实 session 流、GUI 或 IME。
+未完成：session 层 re-attach/domain resync、`session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods`、approval replay 集合替换、附件上传、approval UI 接线和 session/viewmodel/integration 窗口接线。真实 daemon 控制面 smoke 已有 opt-in 测试，并已用 `../dim-2` 构建的 `dim-app-server` 实测通过；它不覆盖真实 session 流、GUI 或 IME。
 
 ## Milestone 3：第一个纵向闭环
 

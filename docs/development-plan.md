@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划与 Subagent 编排
 
-Status: active（Wave 1 已实现；Wave 2 底层组件已实现，纵向闭环和真实运行验收未开始）
+Status: active（Wave 1 已实现；Wave 2 底层组件已实现，real-daemon 控制面已验收，真实 session/GUI 运行验收仍未开始）
 Last updated: 2026-11-08
 
 ## 目标与边界
@@ -113,11 +113,11 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - 纵向闭环未开始：`cmd/dimagent/main.go` 仍是手写 fixture，没有 supervisor → appserver → projection → UI 接线（Milestone 3）。
 - reconnect/re-attach/domain resync 未实现；Milestone 2 任务 5 仍未完成。
 - `session.create`、`session.keys`、`session.branches`、`session.input_lookup`、approval mutation 和 attachment 上传没有 Go 实现；对应入口保持 WIP。
-- real-daemon 控制面 smoke 已运行：在 `../dim-2` 用 `cargo build --locked -p dim-app-server` 构建独立 binary，并用 `DIMAGENT_REAL_APP_SERVER_BIN` 驱动 `TestRealDaemonSmoke`；spawn/hello/catalog/close 通过。该证据不覆盖真实 session 流、GUI 或 IME。
+- real-daemon 控制面 smoke 已运行：在 `../dim-2` 用 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server` 构建独立 binary，并用 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 驱动 `TestRealDaemonSmoke`；spawn/hello/catalog/close 通过。该证据不覆盖真实 session 流、GUI 或 IME。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 测试是 headless。
 - 交叉编译只证明能编译，Windows named pipe 和 Linux GUI 运行时未验证。
 
-**Next action**：用 `../dim-2` 构建 `dim-app-server` 后运行 opt-in 的控制面 smoke；继续接通 session/UI 闭环。真实窗口、IME/VoiceOver 和跨平台 GUI 手测仍单独记录，不因控制面 smoke 通过而宣称 preview 可用。
+**Next action**：继续接通 session/UI 闭环，并用 real-daemon 验证 session attach/history/submit 路径；真实窗口、IME/VoiceOver 和跨平台 GUI 手测仍单独记录，不因控制面 smoke 通过而宣称 preview 可用。
 
 ## Wave 2 进展：Session stream、mutation helpers、input blocks 和 WIP 入口（2026-11-08）
 
@@ -161,6 +161,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
 - `internal/session` 的 branch 支持是“每个 branch 独立 reducer/transient/state”，没有 branch directory、cut point 或 side-chat 创建流程。
 - real-daemon 控制面 smoke 已有 opt-in 测试并已通过：使用 `../dim-2` 构建的 binary 验证 spawn/hello/catalog/close；不覆盖真实 session 流、GUI 或 IME。
+- real-daemon session 流尚未验收：空 session 的 `session.history.latestTurn` 可能没有 `turnStart`，当前 `OpenSession` 会按协议错误失败；需要先定义空窗口语义再扩展 attach/history/submit smoke。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 证据仍是 `headless`。
 - `subscription_changed` 恢复和 Windows/Linux GUI 运行时仍未验证。
 - `internal/supervisor` 的 `TestDefaultSpawnRunsDetachedAndLogs` 在并行全量 race 下出现过一次 spawn child 未退出的时序 flake；单包和复跑通过，仍应加宽等待或隔离。
@@ -290,7 +291,7 @@ Electron 继续作为行为基线，MyGo 作为 preview；双方使用同一 App
 - Native UX：已实现静态 AppFrame、Sidebar、Conversation fixture、Composer；
 - Protocol：已实现 framing/client/read helpers、Supervisor 和受限 fake server；
 - Projection：已实现纯 Go TimelineFold/transient projection 和 12 个 golden fixtures（Wave 2 增至 14）；
-- QA：已补 headless/fake tests；真实窗口和 real-daemon 验收仍未做。
+- QA：已补 headless/fake tests；real-daemon 控制面 smoke 已通过，真实 session 流和窗口验收仍未做。
 
 ### Wave 2：纵向闭环组件（底层已实现，接线未开始）
 
@@ -358,9 +359,9 @@ Next action
 
 - 已通过（`headless`）：MyGo v0.8.3 List/FollowEnd、Markdown、accessibility、IME 基础测试；项目 `go build ./...`、`go test -count=1 ./...`、`go test -race -count=1 ./...`、六目标 `go vet ./...`、Windows/Linux 交叉编译、`gofmt -l .` 和 `git diff --check`。
 - 已通过（`headless` + `fake-server`）：项目内 FollowEnd/Markdown/键盘/状态/AX fixtures、WIP visible-disabled fixtures、Go fake server/fake daemon、session stream/attach、四个 mutation 的成功/拒绝/unknown-result 场景、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close 测试、viewmodel 行映射、supervisor dial/spawn/close/endpoint/reconnect QA、14 个 projection golden fixtures。
-- 仍是底层证据：session stream 只到 fake peer；real-daemon 控制面 smoke 已定义但未运行，不能替代真实 session 流、窗口、IME 或 VoiceOver 手测。
+- 仍是分层证据：real-daemon 控制面 smoke 已通过 spawn/hello/catalog/close，但 session stream 仍只到 fake peer；不能替代真实 session 流、窗口、IME 或 VoiceOver 手测。
 - 已通过 Electron 行为基线：protocol 16、shared 4、renderer IME 7、FollowEnd 64、Markdown 53，以及 typecheck/lint/boundary/docs。
-- 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon 控制面 smoke 尚未运行（binary 可由 `../dim-2` 构建）；两个浏览器 E2E 存在 bridge harness 漂移。
+- 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon session 流和窗口验收仍未运行（控制面 smoke 已通过）；两个浏览器 E2E 存在 bridge harness 漂移。
 - 尚未满足 Wave 0 退出：真实窗口手测、真实 IME/VoiceOver、字体 fallback 和跨平台 GUI 运行时验证。
 - 证据等级固定为 `headless`、`fake-server`、`real-daemon`、`manual`、`packaged`；低等级证据不得宣称高等级能力通过。
 

@@ -101,6 +101,38 @@ func (c *SessionController) LiveState(summary appserver.SessionSummary) *ui.Stat
 	return c.State(summary)
 }
 
+// Submit sends text through the selected session's dedicated App Server
+// connection. The session layer owns the submission id and unknown-result
+// semantics; this bridge does not retry or manufacture local timeline facts.
+func (c *SessionController) Submit(ctx context.Context, text string) (appserver.SubmitResult, error) {
+	result, _, err := c.SubmitWithID(ctx, text)
+	return result, err
+}
+
+// SubmitWithID is Submit with the idempotency key exposed for callers that
+// need to read back an unknown result through the App Server protocol.
+func (c *SessionController) SubmitWithID(ctx context.Context, text string) (appserver.SubmitResult, string, error) {
+	if c == nil || c.Session == nil {
+		return appserver.SubmitResult{}, "", fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.SubmitResult{}, "", fmt.Errorf("integration: nil context")
+	}
+	return c.Session.SubmitWithID(ctx, text)
+}
+
+// Stop asks the App Server to stop the selected session's default branch.
+// Running state converges through the session.state stream notification.
+func (c *SessionController) Stop(ctx context.Context) error {
+	if c == nil || c.Session == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return fmt.Errorf("integration: nil context")
+	}
+	return c.Session.Stop(ctx)
+}
+
 // Catalog reads the authoritative session list over the supervisor control
 // connection and adapts it to sidebar rows.
 func Catalog(ctx context.Context, sup *supervisor.Supervisor) ([]ui.Session, error) {

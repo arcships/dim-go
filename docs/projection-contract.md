@@ -8,7 +8,7 @@ Owner: projection
 
 ## 1. 证据与范围
 
-本合同基于 `dim-electron` 既有实现的只读调研（合同证据等级 `source-read`）。核心 timeline 已按本合同实现在 `internal/projection`，并由 14 个 golden fixtures 在 `headless` 等级验证；其中 `user-content-blocks` 和 `shell-input-raw-block` 于 Wave 2 补齐。两者都不构成 real-daemon 证据。
+本合同基于 `dim-electron` 既有实现的只读调研（合同证据等级 `source-read`）。核心 timeline 已按本合同实现在 `internal/projection`，并由 14 个 golden fixtures 在 `headless` 等级验证；其中 `user-content-blocks` 和 `shell-input-raw-block` 于 Wave 2 补齐。real-daemon 当前只有控制面 smoke 证据，不覆盖 projection data shape。
 
 | 语义 | 证据 |
 |---|---|
@@ -174,6 +174,6 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 
 - `internal/session` 和 `internal/viewmodel` 已组合 stream、history、projection 和行映射，但还没有接到 UI；session/viewmodel UI 接线、submit/live 端到端和真实运行验收未验证；
 - goal、usage、branch directory、exec/background task 等非核心投影未实现，本合同只冻结 input/text/thinking/tool；
-- 上游 wire `RawEvent` 的完整 data 形状仍以 `dim-electron` protocol v3 和 Rust App Server 为准；real-daemon 控制面 smoke 尚未运行，且即使通过也不覆盖 projection data shape，因此不能宣称 real-daemon projection 语义通过；
+- 上游 wire `RawEvent` 的完整 data 形状仍以 `dim-electron` protocol v3 和 Rust App Server 为准；real-daemon 控制面 smoke 已通过，但不覆盖 projection data shape，因此不能宣称 real-daemon projection 语义通过；
 - approval/question/permission 只有通用 transient notice fixture（`transient-isolation.json`）；`approval.respond` mutation 已有 client helper，但 replay 集合替换和 UI 决策流程未实现；
 - 同一 sequence 不同 id 的冲突已由 `SessionStream` 在路由层报告为协议错误并丢弃第二个事件；projection reducer 仍按 sequence 丢弃重复项，fixture 会拒绝该输入；上游语义仍待确认。

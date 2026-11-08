@@ -1,6 +1,6 @@
 # Protocol v3 Wire 合同
 
-Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper 和 supervisor reconnect；session re-attach/resync、UI 接线与 real-daemon 未验证）
+Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper 和 supervisor reconnect；real-daemon 控制面已验证，session re-attach/resync、UI 接线与真实 session 流仍未验证）
 Last updated: 2026-11-08
 基线证据：`dim-electron` 工作树 `3339f4f`（`wire.ts` / `client.ts` / `electron-main/src/app-server` 无本地改动）
 Owner: protocol
@@ -23,7 +23,7 @@ Owner: protocol
 
 ## 2. 证据索引
 
-合同结论来自对 `dim-electron` 的只读代码阅读，证据等级 `source-read`。Wave 1 的 framing、client、DTO 和 read helpers，以及 Wave 2 的 session stream、mutation helpers 另有 `headless` + `fake-server` 测试；两者都不构成 real-daemon 证据。
+合同结论来自对 `dim-electron` 的只读代码阅读，证据等级 `source-read`。Wave 1 的 framing、client、DTO 和 read helpers，以及 Wave 2 的 session stream、mutation helpers 另有 `headless` + `fake-server` 测试；real-daemon 目前只有控制面 smoke 证据，不覆盖真实 session 流。
 
 | 结论 | 证据（dim-electron 路径:行） |
 |---|---|
@@ -383,9 +383,9 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 
 `SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.keys`/`session.branches`、`session.input_lookup` 和 `session.methods` 的读取仍未实现。
 
-## 18. Transport 与 Supervisor 参数（已实现，real-daemon 未验证）
+## 18. Transport 与 Supervisor 参数（已实现，real-daemon 控制面已验证）
 
-以下参数已实现在 `internal/supervisor`，由 `headless` 测试和 fake daemon 覆盖；没有对真实 `dim-app-server` 运行。Wave 2 增补了 dial/hello 超时、dial 错误分类、spawn 失败不声明 ownership、等待 listen 上限、关闭时先停 stream 再 ping、按单连接重试、endpoint 相对路径/symlink 和 fake daemon 按次 ping 的 QA 测试；Windows named pipe 运行时仍未验证。
+以下参数已实现在 `internal/supervisor`，由 `headless` 测试、fake daemon 和 real-daemon 控制面 smoke 覆盖；真实 smoke 仅验证 spawn/hello/catalog/close。Wave 2 增补了 dial/hello 超时、dial 错误分类、spawn 失败不声明 ownership、等待 listen 上限、关闭时先停 stream 再 ping、按单连接重试、endpoint 相对路径/symlink 和 fake daemon 按次 ping 的 QA 测试；Windows named pipe 运行时仍未验证。
 
 - Unix：`<productHome>/rust/daemon.sock`；`<productHome>/rust` 必须 0700、属于当前用户、canonicalize 后使用。
 - Windows：`\\.\pipe\dim-rust-<sha256("dimcode:"+canonicalNativeHome)[:32]>`。
@@ -428,7 +428,7 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 - 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（8 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
 - 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥和 cmd 的 opt-in 启动路径，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 session 层 re-attach/resync 未覆盖；
-- 待运行（`real-daemon`）：在 `../dim-2` 执行 `cargo build --locked -p dim-app-server`，再设置 `DIMAGENT_REAL_APP_SERVER_BIN` 运行 `TestRealDaemonSmoke`，覆盖 spawn/hello/catalog/close 控制面；未运行前保持未验证，不用 fake 结果宣称 real-daemon 通过。
+- 已通过（`real-daemon` 控制面）：在 `../dim-2` 执行 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server`，再设置 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 运行 `TestRealDaemonSmoke`，覆盖 spawn/hello/catalog/close；该证据不覆盖真实 session 流、projection 或 GUI。
 
 ## 21. 未决问题与 blocker
 
@@ -437,5 +437,5 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 3. `session.history` 的 `through` 在上游是否必填、`through < after` 是否报错，未验证。
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
-6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 控制面 smoke 已定义但尚未运行，不代表真实 session 流或 GUI 通过。
+6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 已补充控制面 smoke（spawn/hello/catalog/close），不代表真实 session 流、projection 或 GUI 通过。
 7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 session 层 re-attach/resync 未实现；入口保持 WIP，不用本地替代事实。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
