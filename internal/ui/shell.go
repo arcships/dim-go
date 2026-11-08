@@ -109,9 +109,10 @@ type State struct {
 	// session controller. A nil field leaves its action in the view without an
 	// effect, as a fixture does; the callback owns the App Server call and the
 	// facts it returns, so the shell never reports an action it did not send.
-	OnSelect func(sessionID string)
-	OnSubmit func(text string)
-	OnStop   func()
+	OnSelect    func(sessionID string)
+	OnSubmit    func(text string)
+	OnStop      func()
+	OnReconnect func()
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -181,7 +182,11 @@ func (s *State) header(c *ui.Context, k tokens) {
 		// A healthy connection has nothing to reconnect: the entry belongs
 		// beside the status only while the connection is missing or failed.
 		if s.Connection != ConnReady {
-			wipAction(c, k, "Reconnect", reasonReconnect)
+			if s.OnReconnect == nil {
+				wipAction(c, k, "Reconnect", reasonReconnect)
+			} else {
+				ui.Button(c, "Reconnect").OnClick(s.reconnect)
+			}
 		}
 	})
 }
@@ -346,6 +351,12 @@ func (s *State) submitDraft() {
 func (s *State) stopRun() {
 	if s.OnStop != nil {
 		s.OnStop()
+	}
+}
+
+func (s *State) reconnect() {
+	if s.OnReconnect != nil {
+		s.OnReconnect()
 	}
 }
 

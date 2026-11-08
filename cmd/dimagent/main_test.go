@@ -84,15 +84,16 @@ func TestSummaryForRow(t *testing.T) {
 
 // fakeSession stands in for integration.SessionController.
 type fakeSession struct {
-	view       *dimui.State
-	summary    appserver.SessionSummary
-	submitErr  error
-	stopErr    error
-	closed     bool
-	submitted  chan string
-	stopped    chan struct{}
-	liveCalls  chan struct{}
-	submitText []string
+	view        *dimui.State
+	summary     appserver.SessionSummary
+	submitErr   error
+	stopErr     error
+	reattachErr error
+	closed      bool
+	submitted   chan string
+	stopped     chan struct{}
+	liveCalls   chan struct{}
+	submitText  []string
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -112,6 +113,10 @@ func (f *fakeSession) Submit(_ context.Context, text string) (appserver.SubmitRe
 		f.submitted <- text
 	}
 	return appserver.SubmitResult{}, f.submitErr
+}
+
+func (f *fakeSession) Reattach(context.Context) error {
+	return f.reattachErr
 }
 
 func (f *fakeSession) Stop(context.Context) error {
@@ -218,8 +223,31 @@ func TestAppRefreshesLiveState(t *testing.T) {
 func TestAppBindsCallbacks(t *testing.T) {
 	a := &app{state: &dimui.State{}}
 	a.bind()
-	if a.state.OnSelect == nil || a.state.OnSubmit == nil || a.state.OnStop == nil {
+	if a.state.OnSelect == nil || a.state.OnSubmit == nil || a.state.OnStop == nil || a.state.OnReconnect == nil {
 		t.Fatalf("callbacks not bound: %#v", a.state)
+	}
+}
+
+func TestAppReconnectReattachesAndRefreshes(t *testing.T) {
+	f := &fakeSession{view: &dimui.State{Connection: dimui.ConnReady, Selected: "s1"}}
+	a := &app{state: &dimui.State{Connection: dimui.ConnError, Selected: "s1"}, bridge: &sessionBridge{controller: f}}
+	a.bind()
+	updates := make(chan struct{}, 2)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		updates <- struct{}{}
+	}
+	a.state.OnReconnect()
+	deadline := time.After(2 * time.Second)
+	for i := 0; i < 2; i++ {
+		select {
+		case <-updates:
+		case <-deadline:
+			t.Fatal("reconnect did not refresh")
+		}
+	}
+	if a.state.Connection != dimui.ConnReady {
+		t.Fatalf("connection = %v, want ready", a.state.Connection)
 	}
 }
 

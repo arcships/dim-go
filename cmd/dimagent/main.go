@@ -27,6 +27,7 @@ type sessionActions interface {
 	LiveState(summary appserver.SessionSummary) *dimui.State
 	Submit(ctx context.Context, text string) (appserver.SubmitResult, error)
 	Stop(ctx context.Context) error
+	Reattach(ctx context.Context) error
 	Close(ctx context.Context) error
 }
 
@@ -103,6 +104,19 @@ func (b *sessionBridge) Submit(ctx context.Context, text string) error {
 }
 
 // Stop asks the selected session to stop its running turn.
+func (b *sessionBridge) reattach(ctx context.Context) error {
+	if b == nil {
+		return errNoSession
+	}
+	b.mu.Lock()
+	controller := b.controller
+	b.mu.Unlock()
+	if controller == nil {
+		return errNoSession
+	}
+	return controller.Reattach(ctx)
+}
+
 func (b *sessionBridge) Stop(ctx context.Context) error {
 	if b == nil {
 		return errNoSession
@@ -220,6 +234,7 @@ func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
 	a.state.OnSubmit = a.submit
 	a.state.OnStop = a.stop
+	a.state.OnReconnect = a.reconnect
 }
 
 // update applies fn to the window's state on the main thread. It does nothing
@@ -385,6 +400,41 @@ func (a *app) submit(text string) {
 
 // stop asks the App Server to stop the running turn; the run state converges
 // through the session stream rather than a local guess.
+// reconnect re-attaches the selected session after a transport loss. The
+// controller rebuilds its projection from authoritative App Server history;
+// this callback only coordinates the UI and never invents local facts.
+func (a *app) reconnect() {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	gen := a.currentSelection()
+	a.update(func(state *dimui.State) {
+		state.ConversationLoading = true
+		state.ConnectionError = ""
+	})
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := a.bridge.reattach(ctx); err != nil {
+			log.Printf("dimagent: reconnect: %v", err)
+			a.update(func(state *dimui.State) {
+				state.ConversationLoading = false
+				state.Connection = dimui.ConnError
+				state.ConnectionError = fmt.Sprintf("%v", err)
+			})
+			return
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		view := a.bridge.LiveState()
+		a.update(func(state *dimui.State) {
+			applyView(state, view)
+			state.ConversationLoading = false
+		})
+	}()
+}
+
 func (a *app) stop() {
 	if a.bridge == nil {
 		return
