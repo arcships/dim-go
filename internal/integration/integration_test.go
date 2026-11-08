@@ -8,6 +8,9 @@ import (
 )
 
 func TestOpenSessionRejectsInvalidInputsBeforeDial(t *testing.T) {
+	if _, err := OpenSession(nil, nil, "s1"); err == nil {
+		t.Fatal("nil context should fail")
+	}
 	if _, err := OpenSession(context.Background(), nil, "s1"); err == nil {
 		t.Fatal("nil supervisor should fail")
 	}
@@ -21,6 +24,9 @@ func TestOpenSessionRejectsInvalidInputsBeforeDial(t *testing.T) {
 }
 
 func TestCatalogRequiresStartedSupervisor(t *testing.T) {
+	if _, err := Catalog(nil, nil); err == nil {
+		t.Fatal("nil context should fail")
+	}
 	sup, err := supervisor.New(supervisor.Config{ProductHome: t.TempDir()})
 	if err != nil {
 		t.Fatal(err)

@@ -23,6 +23,9 @@ type SessionController struct {
 // OpenSession opens a dedicated stream through sup and loads the first history
 // window. The returned controller owns the stream connection until Close.
 func OpenSession(ctx context.Context, sup *supervisor.Supervisor, sessionID string) (*SessionController, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("integration: nil context")
+	}
 	if sup == nil {
 		return nil, fmt.Errorf("integration: nil supervisor")
 	}
@@ -45,6 +48,9 @@ func OpenSession(ctx context.Context, sup *supervisor.Supervisor, sessionID stri
 func (c *SessionController) Close(ctx context.Context) error {
 	if c == nil || c.Session == nil {
 		return nil
+	}
+	if ctx == nil {
+		return fmt.Errorf("integration: nil context")
 	}
 	return c.Session.Detach(ctx)
 }
@@ -89,6 +95,9 @@ func sessionTitle(s appserver.SessionSummary) string {
 // Catalog reads the authoritative session list over the supervisor control
 // connection and adapts it to sidebar rows.
 func Catalog(ctx context.Context, sup *supervisor.Supervisor) ([]ui.Session, error) {
+	if ctx == nil {
+		return nil, fmt.Errorf("integration: nil context")
+	}
 	if sup == nil {
 		return nil, fmt.Errorf("integration: nil supervisor")
 	}
