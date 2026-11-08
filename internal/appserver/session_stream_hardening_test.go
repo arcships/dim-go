@@ -90,25 +90,51 @@ func TestOpenSessionStreamValidationClosesDedicatedTransport(t *testing.T) {
 	}
 }
 
+// stallStreamReader blocks the stream router and then the client reader, so a
+// reply to any later request can never be read.
+func stallStreamReader(t *testing.T, server *fakeServer, client *Client, stream *SessionStream) {
+	t.Helper()
+	blockStreamRouter(t, server, stream)
+	for i := 0; i < cap(client.notify); i++ {
+		client.notify <- Notification{Method: "filler", Params: json.RawMessage(`{}`)}
+	}
+	server.emit("session.state", StateNotice{SessionID: stream.SessionID(), BranchID: MainBranchID, Running: false})
+}
+
 // TestOpenSessionStreamIsTakeOncePerClient pins the one-stream-per-client
-// precondition and proves a rejected second open leaves the first stream intact.
+// precondition and the transport ownership rule: a rejected second open must
+// not close a closer that may be shared with the live stream.
 func TestOpenSessionStreamIsTakeOncePerClient(t *testing.T) {
 	ctx := testContext(t)
 	server, client := newFakeServer(t, fakeConfig{
 		Hello:  fakeHello("session.history"),
 		Attach: map[string]AttachResult{"s1": {Sequence: int64Ptr(3)}},
 	})
-	stream, err := OpenSessionStream(ctx, client, SessionStreamConfig{SessionID: "s1"})
+	spy := &closeCounter{}
+	stream, err := OpenSessionStream(ctx, client, SessionStreamConfig{SessionID: "s1", CloseTransport: spy.close})
 	if err != nil {
 		t.Fatalf("first OpenSessionStream: %v", err)
 	}
+	if spy.count != 0 {
+		t.Fatalf("successful open closed its transport: %d", spy.count)
+	}
 
-	spy := &closeCounter{}
+	// A rejected second stream sharing the same closer must not tear down the
+	// existing stream's connection.
 	if _, err := OpenSessionStream(ctx, client, SessionStreamConfig{SessionID: "s1", CloseTransport: spy.close}); !errors.Is(err, ErrStreamAlreadyOpen) {
 		t.Fatalf("second OpenSessionStream error = %v, want ErrStreamAlreadyOpen", err)
 	}
-	if spy.count != 1 {
-		t.Fatalf("rejected stream close count = %d, want 1", spy.count)
+	if spy.count != 0 {
+		t.Fatalf("rejected second stream closed the shared transport: %d", spy.count)
+	}
+
+	// Validation failures while a stream is live must leave the shared closer
+	// alone too; the transport may belong to the existing stream.
+	if _, err := OpenSessionStream(ctx, client, SessionStreamConfig{SessionID: "", CloseTransport: spy.close}); !errors.Is(err, ErrProtocol) {
+		t.Fatalf("empty sessionId error = %v, want ErrProtocol", err)
+	}
+	if spy.count != 0 {
+		t.Fatalf("validation failure closed the live stream's transport: %d", spy.count)
 	}
 	if _, err := OpenSessionStream(ctx, client, SessionStreamConfig{SessionID: "s1"}); !errors.Is(err, ErrStreamAlreadyOpen) {
 		t.Fatalf("second OpenSessionStream without a closer error = %v, want ErrStreamAlreadyOpen", err)
@@ -122,6 +148,12 @@ func TestOpenSessionStreamIsTakeOncePerClient(t *testing.T) {
 	server.emit("session.state", StateNotice{SessionID: "s1", BranchID: MainBranchID, Running: true})
 	if event := nextStreamEvent(t, stream); event.Method != "session.state" {
 		t.Fatalf("original stream event = %#v", event)
+	}
+
+	// The live stream still owns its transport and closes it on release.
+	stream.Release()
+	if spy.count != 1 {
+		t.Fatalf("Release close count = %d, want 1", spy.count)
 	}
 }
 
@@ -138,14 +170,7 @@ func TestSessionStreamUndrainedConsumerStallsCalls(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenSessionStream: %v", err)
 	}
-	blockStreamRouter(t, server, stream)
-
-	// The router is blocked, so filling the client handoff makes the reader
-	// stop after one more notification; the reply to any request sits unread.
-	for i := 0; i < cap(client.notify); i++ {
-		client.notify <- Notification{Method: "filler", Params: json.RawMessage(`{}`)}
-	}
-	server.emit("session.state", StateNotice{SessionID: "s1", BranchID: MainBranchID, Running: false})
+	stallStreamReader(t, server, client, stream)
 
 	callCtx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
@@ -155,6 +180,60 @@ func TestSessionStreamUndrainedConsumerStallsCalls(t *testing.T) {
 		t.Fatalf("Call blocked for %v, want a bounded request_timeout", elapsed)
 	}
 	assertAppError(t, callErr, "request_timeout")
+}
+
+// TestSessionStreamDetachDuringStall proves the delete path still terminates
+// when the stream consumer is stalled: the detach request times out, then the
+// connection is closed and the stream reaches detached.
+func TestSessionStreamDetachDuringStall(t *testing.T) {
+	ctx := testContext(t)
+	server, client := newFakeServer(t, fakeConfig{
+		Hello:  fakeHello("session.history"),
+		Attach: map[string]AttachResult{"s1": {Sequence: int64Ptr(5)}},
+	})
+	stream, err := OpenSessionStream(ctx, client, SessionStreamConfig{SessionID: "s1"})
+	if err != nil {
+		t.Fatalf("OpenSessionStream: %v", err)
+	}
+	stallStreamReader(t, server, client, stream)
+
+	detachCtx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	defer cancel()
+	start := time.Now()
+	err = stream.Detach(detachCtx)
+	if elapsed := time.Since(start); elapsed > testPeerTimeout {
+		t.Fatalf("Detach blocked for %v", elapsed)
+	}
+	assertAppError(t, err, "request_timeout")
+	if state := stream.State(); state != StreamStateDetached {
+		t.Fatalf("state = %s, want detached", state)
+	}
+	waitClientDone(t, client)
+}
+
+// TestSessionStreamReleaseDuringStall proves the ordinary holder release also
+// finishes under the 500 ms bound and closes the connection.
+func TestSessionStreamReleaseDuringStall(t *testing.T) {
+	ctx := testContext(t)
+	server, client := newFakeServer(t, fakeConfig{
+		Hello:  fakeHello("session.history"),
+		Attach: map[string]AttachResult{"s1": {Sequence: int64Ptr(5)}},
+	})
+	stream, err := OpenSessionStream(ctx, client, SessionStreamConfig{SessionID: "s1"})
+	if err != nil {
+		t.Fatalf("OpenSessionStream: %v", err)
+	}
+	stallStreamReader(t, server, client, stream)
+
+	start := time.Now()
+	stream.Release()
+	if elapsed := time.Since(start); elapsed > testPeerTimeout {
+		t.Fatalf("Release blocked for %v", elapsed)
+	}
+	if state := stream.State(); state != StreamStateDetached {
+		t.Fatalf("state = %s, want detached", state)
+	}
+	waitClientDone(t, client)
 }
 
 // TestSessionStreamErrorAccountingIncludesClientDrops overflows both error
@@ -225,6 +304,9 @@ func TestSessionStreamPreAttachBufferCap(t *testing.T) {
 	if got := len(stream.pending); got != maxPreAttachPending {
 		t.Fatalf("pending after overflow = %d, want the cap %d", got, maxPreAttachPending)
 	}
+	if got := stream.PreAttachDropped(); got != 1 {
+		t.Fatalf("PreAttachDropped = %d, want 1", got)
+	}
 	select {
 	case err := <-stream.errs:
 		if !errors.Is(err, ErrProtocol) || !strings.Contains(err.Error(), "pre-attach buffer") {
@@ -232,5 +314,9 @@ func TestSessionStreamPreAttachBufferCap(t *testing.T) {
 		}
 	default:
 		t.Fatal("pre-attach overflow did not report a protocol error")
+	}
+	stream.emit(StreamEvent{Method: "session.state"})
+	if got := stream.PreAttachDropped(); got != 2 {
+		t.Fatalf("PreAttachDropped = %d after second overflow, want 2", got)
 	}
 }

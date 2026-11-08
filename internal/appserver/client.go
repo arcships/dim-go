@@ -124,6 +124,10 @@ func (c *Client) DroppedErrors() uint64 { return c.dropped.Load() }
 // Notifications/Errors handoff, so at most one SessionStream may take it.
 func (c *Client) takeStream() bool { return c.streamTaken.CompareAndSwap(false, true) }
 
+// hasStream reports whether a SessionStream already owns this client's
+// notification handoff.
+func (c *Client) hasStream() bool { return c.streamTaken.Load() }
+
 // Call sends one request and waits for its response. A nil params value omits
 // the params member. Without a context deadline the request times out after
 // 30 seconds. The request is complete once Call returns: if the context is done

@@ -95,7 +95,9 @@ var ErrSessionClosed = errors.New("appserver: session closed")
 
 // ErrStreamAlreadyOpen marks a second OpenSessionStream on a Client that already
 // has one. A Client serves at most one session stream because the stream takes
-// ownership of Client.Notifications and Client.Errors.
+// ownership of Client.Notifications and Client.Errors. The rejected caller
+// retains ownership of any CloseTransport it passed, because that transport may
+// be shared with the existing stream.
 var ErrStreamAlreadyOpen = errors.New("appserver: client already has a session stream")
 
 // SessionClosedError is the terminal session.closed observed before the stream
@@ -165,6 +167,9 @@ type SessionStream struct {
 	events  chan StreamEvent
 	errs    chan error
 	dropped atomic.Uint64
+	// preAttachDropped counts notifications dropped by the bounded pre-attach
+	// buffer. A non-zero value means durable facts are missing.
+	preAttachDropped atomic.Uint64
 
 	// attached is set by Open after the attach reply and head are resolved. The
 	// router buffers until then, then flushes in arrival order.
@@ -199,40 +204,45 @@ type eventKey struct {
 // through of session.history {branchId:"main", after:0, limit:1}.
 //
 // Every failure closes the dedicated connection when CloseTransport was
-// supplied. Validation failures (nil client, empty sessionId, done context,
-// already-taken stream) close only that caller-provided transport; they never
-// close a shared Client when CloseTransport is nil. A session.closed that
-// arrives during the handshake is returned as *SessionClosedError, and a second
-// stream on the same Client returns ErrStreamAlreadyOpen.
+// supplied, except while the client already hosts a stream: that transport may
+// be shared with the existing stream, so it stays with the caller. Validation
+// failures never close a shared Client when CloseTransport is nil. A
+// session.closed that arrives during the handshake is returned as
+// *SessionClosedError, and a second stream on the same Client returns
+// ErrStreamAlreadyOpen without closing CloseTransport.
 func OpenSessionStream(ctx context.Context, client *Client, cfg SessionStreamConfig) (*SessionStream, error) {
-	// A dedicated transport belongs to the stream as soon as the caller passes
-	// it, so validation failures must close it instead of leaking the connection.
+	// A caller-supplied transport is closed on failures that happen before this
+	// stream adopts it, unless the client already hosts a stream: in that case
+	// the transport may be shared with the existing stream and stays with the
+	// caller.
 	closeDedicated := cfg.CloseTransport
-	if client == nil {
-		if closeDedicated != nil {
-			closeDedicated()
+	closeRejected := func() {
+		if closeDedicated == nil {
+			return
 		}
+		if client != nil && client.hasStream() {
+			return
+		}
+		closeDedicated()
+	}
+	if client == nil {
+		closeRejected()
 		return nil, errors.New("appserver: session stream requires a client")
 	}
 	if err := requireNonEmpty("sessionId", cfg.SessionID); err != nil {
-		if closeDedicated != nil {
-			closeDedicated()
-		}
+		closeRejected()
 		return nil, err
 	}
 	if ctx == nil {
 		ctx = context.Background()
 	}
 	if err := ctx.Err(); err != nil {
-		if closeDedicated != nil {
-			closeDedicated()
-		}
+		closeRejected()
 		return nil, localContextError(ctx)
 	}
 	if !client.takeStream() {
-		if closeDedicated != nil {
-			closeDedicated()
-		}
+		// The slot holder owns the transport it passed, which may be the same
+		// closer this rejected caller supplied; never tear it down here.
 		return nil, ErrStreamAlreadyOpen
 	}
 	closeTransport := cfg.CloseTransport
@@ -382,6 +392,12 @@ func (s *SessionStream) ClientDroppedErrors() uint64 {
 	}
 	return s.client.DroppedErrors()
 }
+
+// PreAttachDropped returns the number of notifications dropped because the
+// bounded pre-attach buffer was full. A non-zero value means durable facts are
+// missing: the stream must not be treated as a complete timeline, and the
+// caller should rebuild from history (fail closed) or surface the loss.
+func (s *SessionStream) PreAttachDropped() uint64 { return s.preAttachDropped.Load() }
 
 // SessionID is the session this stream is attached to.
 func (s *SessionStream) SessionID() string { return s.sessionID }
@@ -604,6 +620,7 @@ func (s *SessionStream) acceptEvent(n EventNotice) bool {
 func (s *SessionStream) emit(event StreamEvent) bool {
 	if !s.attached.Load() || len(s.pending) > 0 {
 		if len(s.pending) >= maxPreAttachPending {
+			s.preAttachDropped.Add(1)
 			s.report(protocolErrorf("pending", "pre-attach buffer exceeded %d events; dropped %s", maxPreAttachPending, event.Method))
 			return true
 		}
