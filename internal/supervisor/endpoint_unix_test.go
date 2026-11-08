@@ -38,6 +38,46 @@ func TestResolveLinkUnix(t *testing.T) {
 	}
 }
 
+// TestEndpointForUnix pins the Unix endpoint selection shape: the socket is
+// `<canonical native home>/daemon.sock`.
+func TestEndpointForUnix(t *testing.T) {
+	home := t.TempDir()
+	endpoint, err := endpointFor(home)
+	if err != nil {
+		t.Fatalf("endpointFor: %v", err)
+	}
+	want := Endpoint{Network: NetworkUnix, Address: filepath.Join(home, daemonSocketName)}
+	if endpoint != want {
+		t.Fatalf("endpointFor(%q) = %v, want %v", home, endpoint, want)
+	}
+}
+
+// TestResolveLinkRelativeProductHome pins that endpoint selection works from a
+// relative product home and that the endpoint is built from the absolute
+// canonical native home while ProductHome keeps the caller's value.
+func TestResolveLinkRelativeProductHome(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	link, err := ResolveLink("product")
+	if err != nil {
+		t.Fatalf("ResolveLink: %v", err)
+	}
+	wantNative, err := filepath.EvalSymlinks(filepath.Join(root, "product", nativeHomeName))
+	if err != nil {
+		t.Fatalf("eval native home: %v", err)
+	}
+	if link.NativeHome != wantNative {
+		t.Fatalf("NativeHome = %q, want %q", link.NativeHome, wantNative)
+	}
+	wantEndpoint := Endpoint{Network: NetworkUnix, Address: filepath.Join(wantNative, daemonSocketName)}
+	if link.Endpoint != wantEndpoint {
+		t.Fatalf("Endpoint = %v, want %v", link.Endpoint, wantEndpoint)
+	}
+	if link.ProductHome != "product" {
+		t.Fatalf("ProductHome = %q, want the caller value %q", link.ProductHome, "product")
+	}
+}
+
 func TestResolveLinkCreatesNativeHome(t *testing.T) {
 	parent := t.TempDir()
 	home := filepath.Join(parent, "nested", "product")

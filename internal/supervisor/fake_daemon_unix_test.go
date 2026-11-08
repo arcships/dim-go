@@ -40,9 +40,13 @@ type fakeDaemonConfig struct {
 	Features []string
 	// PingConnections overrides the reported connection count.
 	PingConnections *int
-	Sessions        int
-	PingErr         *appserver.RPCError
-	ShutdownErr     *appserver.RPCError
+	// PingConnectionsSeq overrides the reported connection count per ping,
+	// starting at the first. Later pings keep the last value. It takes
+	// precedence over PingConnections.
+	PingConnectionsSeq []int
+	Sessions           int
+	PingErr            *appserver.RPCError
+	ShutdownErr        *appserver.RPCError
 }
 
 type fakeRequest struct {
@@ -162,6 +166,9 @@ func (d *fakeDaemon) serve(conn net.Conn) {
 			connections := d.active
 			if d.cfg.PingConnections != nil {
 				connections = *d.cfg.PingConnections
+			}
+			if index := d.pings - 1; index < len(d.cfg.PingConnectionsSeq) {
+				connections = d.cfg.PingConnectionsSeq[index]
 			}
 			sessions := d.cfg.Sessions
 			pingErr := d.cfg.PingErr
