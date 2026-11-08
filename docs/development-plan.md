@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划与 Subagent 编排
 
-Status: active（Wave 1 已实现；Wave 2 纵向闭环未开始）
+Status: active（Wave 1 已实现；Wave 2 底层组件已实现，纵向闭环和真实运行验收未开始）
 Last updated: 2026-11-08
 
 ## 目标与边界
@@ -79,7 +79,7 @@ Changed files：`go.mod`、`go.sum`、`cmd/dimagent/main.go`、`internal/ui/shel
 - 离线环境或 CI 没有 `GOTOOLCHAIN=auto` 时会在 `go.mod` 版本检查处失败；需要预装 Go 1.27.3。
 - 平台运行覆盖只有 macOS arm64；六个目标只做过交叉编译和 vet，未运行。
 
-**Next action**：Wave 1 由主 agent 审查后进入纵向闭环；真实窗口、IME 和 accessibility 手测在 Wave 2 前单独记录。
+**Next action**：Wave 1 由主 agent 审查后进入纵向闭环；真实窗口、IME 和 accessibility 手测在纵向闭环前单独记录。
 
 ## Wave 1 进展：协议、supervisor、projection 和静态壳（2026-11-08）
 
@@ -119,9 +119,51 @@ Changed files：`internal/appserver/`（wire、framing、client、catalog、summ
 
 **Next action**：主 agent 审查 Wave 1 diff；通过后只由一个 integration agent 接通 Wave 2 闭环。UI 手测和 real-daemon 验收在二进制和目标平台可用后单独记录。
 
+## Wave 2 进展：Session stream、mutation helpers、input blocks 和 WIP 入口（2026-11-08）
+
+Task / owner：Wave 2 App Server、Session、Projection、Supervisor QA 和 Native UX agents。Projection、Supervisor QA、Native UX 与 App Server hardening 已分别提交 `6dd3be3`、`892d7b6`、`bf74da2`、`b0f853f`/`3ebfea3`；`internal/session` 已提交 `8c4e7e8`；UI 接线仍待同步。
+
+Changed files：`internal/appserver/`（`session_stream.go`、`mutations.go`、`client.go`、`wire.go`、`fake_test.go`、对应 tests）、`internal/session/`（`session.go`、`history.go`、`adapter.go`、`fake_test.go`、`session_test.go`）、`internal/projection/`（`projection.go`、`projection_test.go`、新增 `testdata/projection/user-content-blocks.json` 和 `shell-input-raw-block.json`）、`internal/supervisor/`（`connect_unix_test.go`、`dial_test.go`、`lifecycle_unix_test.go`、`endpoint_unix_test.go`、`fake_daemon_unix_test.go`）、`internal/ui/`（`shell.go`、`wip.go`、`tokens.go`、`wip_test.go`、`keyboard_test.go`）、`README.md` 和 `docs/` 的四份合同/计划。
+
+**实现范围**
+
+- Session stream：`OpenSessionStream` 先订阅通知再发 `session.attach`；`attach.sequence` 缺失时用 `session.history {branchId:"main", after:0, limit:1}` 的 `through` 兜底，缺 feature 时返回 capability error；attach 期间的通知按到达顺序缓冲，返回后按顺序补放；按 `event.id` 去重，并拒绝同一 `(branchId, sequence)` 映射到不同 id；`session.closed` 为终态；transport 意外结束时进入 `lost` 状态，提示调用方需要 domain resync；`Detach` 等待 detach 回复（默认 2s），`Release` 最多等 500ms 并忽略回复，两者都关闭连接。
+- Mutation helpers：`Submit`、`Stop`、`ApprovalRespond`、`Delete` 覆盖 wire 调用、参数校验和 §13 错误映射；timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 以及 `Submit` 的畸形结果都返回 unknown-result（绝不自动重发），并注明应读回的协议方法；`unknown_method` 作为 visible-disabled/WIP 情况暴露；`approval.respond` 的 `-32602` 映射为已经 cancelled，不报错、不重试。
+- Session vertical slice：`internal/session` 组合 `SessionStream`、首屏 history 和 projection；支持 latest-turn 反向分页、`turnStart` 漂移时回退兼容扫描、`history_too_large`/page-cap 降级、按 branch 隔离的 durable/transient reducer、有限且按 `event.id` 去重的 attach 期间缓冲、approval/model progress/未知通知的显式暴露，以及 remote closed / transport lost / local release 的区分。`Head`/`Through`/`View` 提供一致快照；重连和 resync 仍由上层触发。
+- Projection input blocks：`input/message` 的文本按 upstream 优先级提取——`user.content` 的 `text` blocks 优先，其次 `blocks` 里的 `text` blocks，最后拼接已记录的 `dim-shell-input` raw block；其他 raw block 保持为模型上下文，不进入 timeline；不再读取未文档化的顶层 `content` 字段。新增 `user-content-blocks` 和 `shell-input-raw-block` 两个 golden fixture，fixture 总数从 12 增至 14。
+- Supervisor QA：补 dial/hello 超时、已分类 dial 错误保留、换行包装的 connect 错误分类、错误 network 拒绝、spawn 失败不声明 ownership、等待 listen 上限、只关闭自有 daemon、关闭时先停 stream 再 ping、按单连接重试、shutdown 错误、context 截止、endpoint 相对路径和 symlink canonicalize、按次返回 ping 连接数的 fake daemon。
+- UI WIP affordances：`New session`、`Reconnect`（仅在非 ready 时出现）、`Attach file` 和 approval 的 `Approve`/`Deny` 保持可见、dimmed、accessibility 标记 disabled，并用描述说明等待的上游方法；WIP 入口没有点击处理，不会报告 App Server 未执行的成功。Tab 顺序包含这些入口，headless 测试验证其可发现且不伪造成功。
+
+**Verification（实际命令和结果）**
+
+| 命令 | 结果 |
+|---|---|
+| `go build ./...` | 通过 |
+| `go test -count=1 ./...` | 5 个包全部 `ok`（appserver、session、projection、supervisor、ui） |
+| `go test -race -count=1 ./...` | 5 个包全部 `ok` |
+| `go test -count=20 ./internal/session`、`go test -race -count=5 ./internal/session` | 通过 |
+| `go vet ./...` | 通过 |
+| `gofmt -l .`、`git diff --check` | 无输出、通过 |
+| `go test -run TestGoldenFixtures -v ./internal/projection` | 14 个 golden fixture 全部通过 |
+
+**Contract impact**：`protocol-contract.md` 增加 session stream/attach、detach、四个 mutation、首屏 history 组合和 unknown-result 边界的实现状态；`projection-contract.md` 增加 input text/block 提取语义、14 个 fixture 矩阵和 session 组合状态；没有新增本地 session/run/approval 事实，没有读取 App Server 私有文件。未实现的方法保持 WIP，不以本地状态补齐。
+
+**Known gaps/blockers**
+
+- 纵向闭环仍未接通：`cmd/dimagent` 仍使用手写 fixture，`internal/session` 还没有接到 supervisor/UI；这是下一步 integration 的范围。
+- reconnect/re-attach/domain resync 未实现：`SessionStream` 只报告 `lost` 和 `transport_closed`，`internal/session` 暴露 `Done`/`TerminalState`/`Err` 供上层触发 resync，但不会自己重开。
+- `session.methods` 能力门禁、`session.keys`/`session.branches`、`session.input_lookup` 和 `session.create` 没有 Go 实现；unknown-result 只能提示读回方法，读回本身仍是 WIP。
+- approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
+- `internal/session` 的 branch 支持是“每个 branch 独立 reducer/transient/state”，没有 branch directory、cut point 或 side-chat 创建流程。
+- 没有 real-daemon 测试：本机仍缺 `dim-app-server`，不宣称 real-daemon 通过。
+- 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 证据仍是 `headless`。
+- `subscription_changed` 恢复和 Windows/Linux GUI 运行时仍未验证。
+
+**Next action**：只由一个 integration agent 把 `internal/session` 接到 supervisor → UI 并补端到端 fake-server 场景；真实窗口手测和 real-daemon 验收在二进制和目标平台可用后单独记录，不因底层组件通过而提前标记 preview 可用。
+
 ## Milestone 1：Native UI 静态壳
 
-状态：静态壳和 headless fixtures 已实现；真实窗口视觉、IME 和 accessibility 手测未完成。
+状态：静态壳、headless fixtures 和 visible-disabled WIP 入口已实现；真实窗口视觉、IME 和 accessibility 手测未完成。
 
 组件：
 
@@ -140,7 +182,7 @@ AppFrame
 
 ## Milestone 2：协议合同、Transport 和 Supervisor
 
-状态：任务 1–4 已实现（`headless` + `fake-server`）；任务 5 的 reconnect/re-attach/domain resync 未实现；任务 6 只有 hello/catalog/summaries/attach/history 的 fake peer，断线、`subscription_changed` 和未知 mutation 场景未覆盖。
+状态：任务 1–4 已实现（`headless` + `fake-server`）；Wave 2 补上 session stream/attach、detach 和四个 mutation helper，并扩展 fake server 的 attach/detach、断线、事件冲突、unknown_method 和 unknown-result 场景；任务 5 的 reconnect/re-attach/domain resync 未实现；任务 6 的 `subscription_changed` 和 latest-turn 场景仍未覆盖。
 
 任务：
 
@@ -155,7 +197,7 @@ AppFrame
 
 ## Milestone 3：Projection 与 Session 最小闭环
 
-状态：纯 projection 和 12 个 golden fixtures 已实现（`headless`）；session/wire 接线、history 分页和 submit/stop 闭环未开始。
+状态：纯 projection（14 个 golden fixtures，含 user content blocks 和 `dim-shell-input` raw block）、session stream/attach 和 mutation helpers 已实现（`headless` + `fake-server`）；`cmd/dimagent` 接线、latest-turn、history 分页端到端和 submit/stop 闭环未开始。
 
 先建立两层 golden fixtures：
 
@@ -237,22 +279,29 @@ Electron 继续作为行为基线，MyGo 作为 preview；双方使用同一 App
 - Projection research：列出现有 TimelineFold 语义和 golden fixture 输入；
 - QA：设计 headless、fixture、性能和 IME 验收矩阵。
 
-### Wave 1：合同冻结后（已实现，待审查）
+### Wave 1：合同冻结后（已实现并提交）
 
 - Native UX：已实现静态 AppFrame、Sidebar、Conversation fixture、Composer；
 - Protocol：已实现 framing/client/read helpers、Supervisor 和受限 fake server；
-- Projection：已实现纯 Go TimelineFold/transient projection 和 12 个 golden fixtures；
+- Projection：已实现纯 Go TimelineFold/transient projection 和 12 个 golden fixtures（Wave 2 增至 14）；
 - QA：已补 headless/fake tests；真实窗口和 real-daemon 验收仍未做。
 
-### Wave 2：纵向闭环（未开始）
+### Wave 2：纵向闭环组件（底层已实现，接线未开始）
 
-只允许一个 integration agent 接通：
+已实现的底层组件：
+
+- App Server：`SessionStream` 覆盖订阅先行 attach、head 兜底、通知缓冲/路由、事件幂等和 detach/closed/lost 生命周期；`Submit`/`Stop`/`ApprovalRespond`/`Delete` mutation helpers 覆盖成功、拒绝和 unknown-result 分类；
+- Projection：input text blocks 和 `dim-shell-input` raw block 解码，14 个 golden fixtures；
+- Supervisor QA：dial、spawn、close、endpoint 和 fake daemon 的失败路径与生命周期测试；
+- Native UX：create session、reconnect、attachment 和 approval 决策的 visible-disabled WIP 入口。
+
+仍未开始：只由一个 integration agent 接通
 
 ```text
-protocol → projection → ViewModel → native UI
+supervisor → protocol → projection → ViewModel → native UI
 ```
 
-其他 agent 负责回归测试、错误注入、性能和可访问性，不再并行改同一条链。
+`cmd/dimagent` 仍是手写 fixture。其他 agent 负责回归测试、错误注入、性能和可访问性，不再并行改同一条链。
 
 ### Wave 3：能力切片
 
@@ -288,14 +337,20 @@ Next action
 - Wave 0 Projection research agent（deepseek-v4.1-flash）：已完成 TimelineFold 调查；`docs/projection-contract.md` 已提交（`bafef10`）。
 - Wave 0 QA agent（deepseek-v4.1-flash）：已完成只读验收矩阵和 blocker 分类；报告已审阅。
 - Wave 1 Protocol/Supervisor agent：已实现 `internal/appserver` + `internal/supervisor` 的 headless/fake 子集，见 [Wave 1 进展](#wave-1-进展协议supervisorprojection-和静态壳2026-11-08)。
-- Wave 1 Projection agent：已实现 `internal/projection` 和 12 个 golden fixtures，见 [Wave 1 进展](#wave-1-进展协议supervisorprojection-和静态壳2026-11-08)。
+- Wave 1 Projection agent：已实现 `internal/projection` 和 12 个 golden fixtures；Wave 2 增至 14 个，见 [Wave 1 进展](#wave-1-进展协议supervisorprojection-和静态壳2026-11-08)。
 - Wave 1 Native UX agent：已实现 `internal/ui` 静态壳和 fixtures，见 [Wave 1 进展](#wave-1-进展协议supervisorprojection-和静态壳2026-11-08)。
-- Wave 2 integration agent：未开始；等 Wave 1 diff 审查结束后只由一人接通纵向闭环。
+- Wave 2 App Server agent：已实现 `SessionStream`、detach 和四个 mutation helper；未实现 reconnect/resync、create、keys/branches 和 input_lookup，见 [Wave 2 进展](#wave-2-进展session-streammutation-helpersinput-blocks-和-wip-入口2026-11-08)。
+- Wave 2 Session agent：已实现 `internal/session` 组合层（首屏 history + 按 branch projection + transient/terminal 状态），提交 `8c4e7e8`；尚未接到 UI。
+- Wave 2 Projection agent：已补 input content blocks 和 shell-input raw block，golden fixtures 增至 14 个。
+- Wave 2 Supervisor QA agent：已补 dial、spawn、close、endpoint 和 fake daemon 的失败路径测试。
+- Wave 2 Native UX agent：已补 visible-disabled WIP 入口和 headless 断言。
+- Wave 2 integration agent：未开始；等 Wave 2 diff 审查结束后只由一人把 `internal/session` 接到 supervisor/UI。
 
 ### QA 基线（2026-11-08）
 
 - 已通过（`headless`）：MyGo v0.8.3 List/FollowEnd、Markdown、accessibility、IME 基础测试；项目 `go build ./...`、`go test -count=1 ./...`、`go test -race -count=1 ./...`、六目标 `go vet ./...`、Windows/Linux 交叉编译、`gofmt -l .` 和 `git diff --check`。
-- 已通过（`headless` + `fake-server`）：项目内 FollowEnd/Markdown/键盘/状态/AX fixtures、Go fake server/fake daemon、12 个 projection golden fixtures。
+- 已通过（`headless` + `fake-server`）：项目内 FollowEnd/Markdown/键盘/状态/AX fixtures、WIP visible-disabled fixtures、Go fake server/fake daemon、session stream/attach、四个 mutation 的成功/拒绝/unknown-result 场景、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close 测试、supervisor dial/spawn/close/endpoint QA、14 个 projection golden fixtures。
+- 仍是底层证据：session stream 只到 fake peer，supervisor 只到 fake daemon；没有 `real-daemon` 证据，也不能替代真实窗口、IME 或 VoiceOver 手测。
 - 已通过 Electron 行为基线：protocol 16、shared 4、renderer IME 7、FollowEnd 64、Markdown 53，以及 typecheck/lint/boundary/docs。
 - 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon 缺 `dim-app-server`；两个浏览器 E2E 存在 bridge harness 漂移。
 - 尚未满足 Wave 0 退出：真实窗口手测、真实 IME/VoiceOver、字体 fallback 和跨平台 GUI 运行时验证。
@@ -307,4 +362,4 @@ Next action
 - 协议：不存在 `session.list`；`session.catalog` 是首选列表；`session.resync` 不是 wire method；attach 必须先订阅；history/live、approval replay、subscription_changed 和未知 mutation 结果都要有 fixtures。
 - Projection：TimelineFold 是 durable transcript fold；RawEventBridge 是并行 live projection；approval/question/model progress 不应塞进 fold；Go golden 需要注入时钟。
 
-Wave 0 研究已收录，Wave 1 实现已通过 `headless` + `fake-server` 验证；在纵向闭环、真实窗口手测和 real-daemon 验收完成前，不把 preview 标成可用。
+Wave 0 研究已收录，Wave 1 和 Wave 2 底层组件已通过 `headless` + `fake-server` 验证；在纵向闭环、真实窗口手测和 real-daemon 验收完成前，不把 preview 标成可用。

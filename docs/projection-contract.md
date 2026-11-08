@@ -1,6 +1,6 @@
 # Go Projection Golden Fixture 合同
 
-Status: active（核心 timeline 合同已实现；session/wire 集成未开始）
+Status: active（核心 timeline 和 input blocks 已实现；session/wire 集成未开始）
 Last updated: 2026-11-08
 Owner: projection
 
@@ -8,13 +8,14 @@ Owner: projection
 
 ## 1. 证据与范围
 
-本合同基于 `dim-electron` 既有实现的只读调研（合同证据等级 `source-read`）。核心 timeline 已按本合同实现在 `internal/projection`，并由 12 个 golden fixtures 在 `headless` 等级验证；两者都不构成 real-daemon 证据。
+本合同基于 `dim-electron` 既有实现的只读调研（合同证据等级 `source-read`）。核心 timeline 已按本合同实现在 `internal/projection`，并由 14 个 golden fixtures 在 `headless` 等级验证；其中 `user-content-blocks` 和 `shell-input-raw-block` 于 Wave 2 补齐。两者都不构成 real-daemon 证据。
 
 | 语义 | 证据 |
 |---|---|
 | history 与 live 都调用同一 fold，按 sequence 排 history | `packages/desktop/packages/electron-main/src/app-server/timeline-fold.ts:389-445` |
 | sequence 幂等、更新时钟和 branch fold | `timeline-fold.ts:511-523` |
 | user input ID、环境 raw block 隔离、consumed 完成 | `timeline-fold.ts:628-670`；`packages/desktop/packages/electron-main/tests/unit/timeline-fold.test.ts:83-156` |
+| input 文本优先级和 shell-input raw block 解码 | `timeline-fold.ts:289-335` |
 | assistant ID 为 `a:<branch>:<turn>:<request>` | `timeline-fold.ts:718-735`；`timeline-fold.test.ts:158-193` |
 | text/thinking 按工作边界形成 block，block ID 使用首个 raw event ID | `timeline-fold.ts:738-823`；`timeline-fold.test.ts:195-224` |
 | tool 以 call ID 配对，start/use 合并，result 结束生命周期 | `timeline-fold.ts:825-938`；`timeline-fold.test.ts:226-298` |
@@ -65,6 +66,16 @@ Owner: projection
 - tool 开始会关闭 thinking；tool 结果不自动拼入 assistant text。
 - 未知 tool/event 类型保留 raw 输入可诊断，但不伪造 timeline message。
 
+### 2.6 input 文本与 raw block
+
+`input/message` 的可见文本按 upstream `inputTextFromData` 的优先级提取：
+
+1. `data.user.content` 中 `type: "text"` 的 block 按顺序拼接；image 等其他 block 不贡献 timeline 文本；
+2. 没有用户文本时，`data.blocks` 中 `type: "text"` 的 block 按顺序拼接；
+3. 否则把 `data.blocks` 中 `type: "raw"` 且匹配 `<dim-shell-input ...>...</dim-shell-input>` 的 body 解码后，用换行拼接。实体只解码一层，按 `&lt;`、`&gt;`、`&quot;`、`&#39;`、`&amp;` 的顺序替换，并去掉首尾空白。
+
+其他 raw block（例如 `<dim-state>`、branch parent）保持模型上下文，不进入 timeline message。没有非 null `user` 且文本为空的 input 不产生 message；不得回退到未文档化的顶层 `data.content` 字段，也不得用本地内容补齐。显式非 null 的 `user` 仍按输入消息处理。
+
 ## 3. history/live 共用 reducer
 
 Go 实现必须只有一个 `Reducer.Apply(RawEvent)` 事实入口：
@@ -102,7 +113,7 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 
 ## 6. Golden fixture schema（v1）
 
-文件实际放在 `internal/projection/testdata/projection/*.json`，一文件一个 case（当前 12 个）；schema 版本必须显式：
+文件实际放在 `internal/projection/testdata/projection/*.json`，一文件一个 case（当前 14 个）；schema 版本必须显式：
 
 ```json
 {
@@ -143,24 +154,26 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 ## 7. 必备 fixture 矩阵
 
 1. user input → consumed：sending→complete，环境 state/raw block 不出现在 messages。（`user-input-consumed.json`）
-2. one assistant：text 连续 delta；thinking→text→thinking 分成三个 block，首 event ID 稳定。（`text-thinking-blocks.json`、`two-assistants-interleaved.json`）
-3. tool：tool-use-start→tool-use→tool-completed；call ID 配对、input 合并、result 完成。（`tool-lifecycle.json`、`tool-result-before-call.json`）
-4. duplicate/overlap：同一 sequence 重放不产生第二条 message/block。（`duplicate-sequence-idempotent.json`）
-5. history/live permutation：相同事实以分页和通知两种路径输入，snapshot 相等。（`history-live-equivalence.json`，另有 `live-attach-mid-text`、`live-attach-overlap` 子 case）
-6. transient isolation：approval/question/model progress 交错但 durable snapshot 不变。（`transient-isolation.json`）
-7. injected clock：重复运行得到完全相同 JSON；不允许 wall-clock 泄漏。（`clock-determinism.json`）
-8. branch isolation：不同 `branchId` 生成不同 assistant ID/order scope，不串消息。（`branch-isolation.json`）
+2. input content blocks：`user.content` 的多个 text block 拼接，image 不贡献文本，环境 raw block 隔离。（`user-content-blocks.json`）
+3. shell-input raw block：单个/多个 `<dim-shell-input>` body 解码并用换行拼接，只有已记录输入进入 timeline。（`shell-input-raw-block.json`）
+4. one assistant：text 连续 delta；thinking→text→thinking 分成三个 block，首 event ID 稳定。（`text-thinking-blocks.json`、`two-assistants-interleaved.json`）
+5. tool：tool-use-start→tool-use→tool-completed；call ID 配对、input 合并、result 完成。（`tool-lifecycle.json`、`tool-result-before-call.json`）
+6. duplicate/overlap：同一 sequence 重放不产生第二条 message/block。（`duplicate-sequence-idempotent.json`）
+7. history/live permutation：相同事实以分页和通知两种路径输入，snapshot 相等。（`history-live-equivalence.json`，另有 `live-attach-mid-text`、`live-attach-overlap` 子 case）
+8. transient isolation：approval/question/model progress 交错但 durable snapshot 不变。（`transient-isolation.json`）
+9. injected clock：重复运行得到完全相同 JSON；不允许 wall-clock 泄漏。（`clock-determinism.json`）
+10. branch isolation：不同 `branchId` 生成不同 assistant ID/order scope，不串消息。（`branch-isolation.json`）
 
 ## 8. 验收与 blocker
 
 验收命令：`go test ./...`、`go vet ./...`；projection 专项用 `go test -run TestGoldenFixtures -v ./internal/projection` 运行并逐个报告 fixture 名称。
 
-当前状态：Go projection、Go `RawEvent` 类型和 golden runner 已实现；`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...` 通过，12 个 fixture 全部通过（`headless`）。
+当前状态：Go projection、Go `RawEvent` 类型和 golden runner 已实现；`internal/session` 已按 branch 持有独立的 durable/transient reducer，并把 history 与 live 事件送入同一个 `Apply`；`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`、`gofmt -l .` 通过，14 个 fixture 全部通过（`headless`）。
 
 剩余 blocker：
 
-- projection 尚未接入 session/wire/UI 闭环，history 分页、attach 顺序和 submit/live 端到端未验证；
+- `internal/session` 已组合 stream、history 和 projection，但还没有接到 UI；session UI 接线、submit/live 端到端和真实运行验收未验证；
 - goal、usage、branch directory、exec/background task 等非核心投影未实现，本合同只冻结 input/text/thinking/tool；
 - 上游 wire `RawEvent` 的完整 data 形状仍以 `dim-electron` protocol v3 和 Rust App Server 为准；真实 daemon 未运行，不能宣称 real-daemon 语义通过；
-- approval/question/permission 只有通用 transient notice fixture（`transient-isolation.json`），respond/replay 流程未实现；
-- 同一 sequence 不同 id 的运行时冲突还未按协议错误上报：reducer 当前按 sequence 丢弃重复项，fixture 会拒绝该输入；等待上游语义确认。
+- approval/question/permission 只有通用 transient notice fixture（`transient-isolation.json`）；`approval.respond` mutation 已有 client helper，但 replay 集合替换和 UI 决策流程未实现；
+- 同一 sequence 不同 id 的冲突已由 `SessionStream` 在路由层报告为协议错误并丢弃第二个事件；projection reducer 仍按 sequence 丢弃重复项，fixture 会拒绝该输入；上游语义仍待确认。

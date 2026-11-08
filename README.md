@@ -13,16 +13,20 @@ MyGo native UI 重实现实验项目。
 
 Wave 1 已实现：`internal/appserver` 的 protocol v3 framing、JSON-RPC client、wire DTO、catalog/summaries/history helpers 和错误映射；`internal/supervisor` 的 endpoint、dial/hello、spawn 和连接生命周期；`internal/projection` 的 TimelineFold、transient projection 和 golden runner；`internal/ui` 的静态 shell、`ui.List`/`FollowEnd`、Markdown、composer、键盘和 accessibility fixtures。
 
-验证目前只到 `headless` + `fake-server`：`go build ./...`、`go test -race -count=1 ./...`、六目标 `go vet ./...` 通过，12 个 projection golden fixture 和 fake server/fake daemon 测试通过。纵向闭环尚未接通，`cmd/dimagent` 仍使用手写 fixture；没有 real-daemon、真实 IME/VoiceOver、复制粘贴/撤销或 Windows/Linux 运行时验证。证据等级约定见[开发计划](docs/development-plan.md#qa-基线2026-11-08)。
+Wave 2 已实现底层组件：`internal/appserver` 的 `SessionStream`（订阅先行 attach、head 兜底、通知路由、事件幂等和 detach/closed/lost 生命周期）与 submit/stop/approval.respond/session.delete mutation helpers（含 unknown-result 读回提示）；`internal/session` 把 stream、首屏 history（latest-turn、兼容扫描、`history_too_large`/page-cap 降级）和按 branch 隔离的 projection 组合成可重建的内存会话视图；`internal/projection` 增加 user content text blocks 和 `dim-shell-input` raw block 解码，golden fixtures 增至 14 个；`internal/supervisor` 补齐 dial、生命周期、endpoint 和错误分类的 QA 测试；`internal/ui` 为 create session、reconnect、attachment 和 approval 决策提供 visible-disabled WIP 入口。
+
+验证目前只到 `headless` + `fake-server`：`go build ./...`、`go test -race -count=1 ./...`、`go vet ./...`、`gofmt -l .` 通过，14 个 projection golden fixture 和 fake server/fake daemon 测试通过。纵向闭环尚未接通，`cmd/dimagent` 仍使用手写 fixture，`internal/session` 还没有接到 UI；reconnect/resync、session methods/keys/branches/input_lookup、approval UI 接线、real-daemon、真实 IME/VoiceOver、复制粘贴/撤销和 Windows/Linux 运行时均未验证。证据等级约定见[开发计划](docs/development-plan.md#qa-基线2026-11-08)。
 
 ## 目录
 
 ```text
 cmd/dimagent/       应用入口（当前为 fixture shell）
-internal/appserver/ protocol v3 framing、client、wire DTO 和 read helpers
-internal/projection/ TimelineFold 与 transient projection
+internal/appserver/ protocol v3 framing、client、wire DTO、read helpers、
+                    session stream/attach 和 mutation helpers
+internal/projection/ TimelineFold、transient projection 和 14 个 golden fixtures
+internal/session/   stream + 首屏 history + 按 branch 隔离的内存会话视图
 internal/supervisor/ daemon 发现/启动、hello 和连接生命周期
-internal/ui/        native view tree
+internal/ui/        native view tree，未接通动作以 visible-disabled WIP 呈现
 docs/               研究、设计与验收记录
 ```
 

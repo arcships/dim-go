@@ -1,6 +1,6 @@
 # Protocol v3 Wire 合同
 
-Status: active（合同已冻结；Wave 1 已实现 transport/client/DTO 子集，real-daemon 未验证）
+Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach 和四个 mutation helper；reconnect/resync 与 real-daemon 未验证）
 Last updated: 2026-11-08
 基线证据：`dim-electron` 工作树 `3339f4f`（`wire.ts` / `client.ts` / `electron-main/src/app-server` 无本地改动）
 Owner: protocol
@@ -23,7 +23,7 @@ Owner: protocol
 
 ## 2. 证据索引
 
-合同结论来自对 `dim-electron` 的只读代码阅读，证据等级 `source-read`。Wave 1 的 framing、client、DTO 和 read helpers 另有 `headless` + `fake-server` 测试；两者都不构成 real-daemon 证据。
+合同结论来自对 `dim-electron` 的只读代码阅读，证据等级 `source-read`。Wave 1 的 framing、client、DTO 和 read helpers，以及 Wave 2 的 session stream、mutation helpers 另有 `headless` + `fake-server` 测试；两者都不构成 real-daemon 证据。
 
 | 结论 | 证据（dim-electron 路径:行） |
 |---|---|
@@ -173,6 +173,10 @@ session stream (每打开 session 1 条)
 6. 可选 `session.branches`（feature `session.branches`）、可选 `session.keys`（feature `session.keys`）；
 7. 建 projection；把 attach 到 projection 就绪之间到达的事件/状态按**到达顺序**补放。pending buffer 按 `event.id` 去重；进入 TimelineFold 后必须再按 `(branchId, sequence)` 做幂等，不能只依赖 event.id。若同一 sequence 出现不同 id，按协议错误记录并停止盲目合并，等待上游语义确认。
 
+Go 实现：`internal/appserver/session_stream.go` 的 `OpenSessionStream` 假定 supervisor 已完成步骤 1 的连接与 hello，实现步骤 2–4 以及步骤 7 的订阅先行、到达顺序缓冲和 `event.id`/`(branchId, sequence)` 冲突检查；它不构建 projection，也不读 latest turn 或 `session.branches`/`session.keys`。`Detach` 与 `Release` 按本节超时语义发送 `session.detach` 并关闭连接。
+
+`internal/session` 在 stream 之上实现步骤 5–7 的会话组合：首屏 history（latest-turn / 兼容扫描）、按 branch 的 projection、attach 期间有界 pending buffer，以及 remote closed / transport lost / local release 的区分。它仍不读 `session.branches`/`session.keys`，不自动 reconnect/resync，也不把投影写入本地存储。
+
 `session.attach` 响应：
 
 | 字段 | 类型 | 说明 |
@@ -187,6 +191,7 @@ session stream (每打开 session 1 条)
 - attach 没有"快照完成"标记；`session.event` 可能早于 `session.state`，必须乱序合并。
 - `session.detach {sessionId}`：删除路径要等回复（2s），普通释放可 fire-and-forget（500ms）后关闭连接；无论成败都要关连接，否则 daemon 侧 attachment 计数不释放。
 - `session.closed {sessionId, reason?}` 是终态：释放全部 holder、清理 interaction/branch 状态、关闭连接，且**不**发 resync。
+- Go `SessionStream` 把 `session.closed` 记为 `closed` 并关闭连接；transport 意外结束时记为 `lost` 并带 `transport_closed`，由上层触发 domain resync，stream 自己不会重开。
 
 ## 9. `session.history`
 
@@ -231,6 +236,8 @@ session stream (每打开 session 1 条)
 
 往回翻用 `before`，直到页首是 "turn 前的 user input" 或 `sequence === 1`。
 
+Go 实现：`internal/session/history.go` 实现 latest-turn 反向分页、`turnStart` 漂移回退兼容扫描、`history_too_large` 和 page-cap 降级；缺 `turnStart`/`nextBefore` 或 `nextBefore` 非递减仍是 protocol error。首屏窗口只覆盖 main branch，side branch 的 durable event 走各自 reducer。
+
 可选读（失败只降级，不影响 open）：
 
 - `session.keys` → `{through, entries:[{key, sequence, inputId, text}]}`。
@@ -251,6 +258,8 @@ session stream (每打开 session 1 条)
 - 结果未知（超时/断线）时用 `session.input_lookup {sessionId, branchId, submissionId}` 读回，**不重发**。
 
 `session.stop {sessionId, branchId, reason?}`，响应内容忽略；停止状态由 `session.state` 收敛。
+
+Go 实现：`internal/appserver/mutations.go` 的 `Submit`/`Stop` 发送这两个方法。`Submit` 校验 `submissionId`、`branchId` 和 `text|user`，按最小 `{event}` 解码；`Submit` 遇到 timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 或畸形结果时返回 unknown-result 并注明读回方法，绝不自动重发。`session.input_lookup` 本身和 attachment 上传尚未实现，入口保持 WIP。
 
 ## 11. 通知（只出现在 session stream 上）
 
@@ -275,6 +284,8 @@ Timeline 的 `type/name` 是 Rust EventKind 摊平结果；projection 需要的�
 - 回 `-32602` 表示该 approval 已不存在：按 cancelled 处理，不报错、不重试。
 - 持久化授权（always allow）走 `session.grants.add`，且必须先由 `session.methods` advertise；本阶段可不做。
 - pending question 不在 attach replay 里，需从当前 turn 的 `step/tool-call` 缺少对应 `step/tool-result` 推导；本阶段不做。
+
+Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返回 cancelled 而不报错或重试；always-allow（`session.grants.add`）和 question 仍未实现。UI 的 approve/deny 仍是 visible-disabled WIP，不报告未发送的决策。
 
 ## 13. 错误
 
@@ -307,13 +318,15 @@ Timeline 的 `type/name` 是 Rust EventKind 摊平结果；projection 需要的�
 - mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。四类 mutation 都必须各有 unknown-result fixture；不能只用 submit 覆盖。
 - 重连单飞：并发重连共享同一个进行中的尝试；关闭中的 supervisor 拒绝新重连。
 
+Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；unknown-result 只携带读回方法名，`session.input_lookup` 等读回本身仍未实现。`Client.Done` 和 `SessionStream` 的 `lost`/`transport_closed` 已提供 resync 触发信号，但 reconnect/re-attach/domain resync 尚未实现，`session.resync` 仍只是 domain event 规范。
+
 ## 15. 当前合同缺口与上游确认项
 
 以下项目已进入实现门禁，未确认前不得用本地推测补齐：
 
 - `session.history` 的 `through` 必填性和 `through < after` 的服务端行为仍缺 Rust 上游确认；`session.summaries` 裸数组形状已由 fake server 覆盖。
 - `RawEvent` 的 `create_at`、`type`、`name` 已在普通 history 路径做运行时校验（`HistoryResult.Validate`）；TS interface 不能作为运行时验证。
-- TimelineFold 的 durable 幂等以 `(branchId, sequence)` 为准，attach pending buffer 以 `event.id` 去重；同 sequence 不同 id 的冲突处理需要上游语义确认。当前 Go reducer 按 sequence 丢弃重复项，fixture 会拒绝该输入，但 runtime 还未上报协议错误。
+- TimelineFold 的 durable 幂等以 `(branchId, sequence)` 为准，attach pending buffer 以 `event.id` 去重；同 sequence 不同 id 的冲突处理仍需要上游语义确认。`SessionStream` 已在路由层把该冲突报告为协议错误并丢弃第二个事件；projection reducer 仍按 sequence 丢弃重复项，fixture 会拒绝该输入。
 - unknown `appError` 已统一映射为不可重试 INTERNAL；`history_too_large` 已显式映射，但 §9 的首屏降级窗口未实现。
 
 ## 16. Capability
@@ -356,18 +369,23 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `CatalogParams` / `CatalogResult` / `SessionSummary` | `session.catalog` | 已实现 |
 | `SummariesParams` | `session.summaries` | 已实现；响应 `[]SessionSummary` |
 | `CreateParams` / `CreateResult` | `session.create` | **未实现** |
-| `AttachParams` / `AttachResult` | `session.attach` | 已实现；缺 `sequence` 时的 head 兜底由调用方处理 |
+| `AttachParams` / `AttachResult` / `SessionStream` / `StreamState` | `session.attach` | 已实现；`OpenSessionStream` 负责订阅先行、head 兜底和通知路由 |
+| `DetachParams` | `session.detach` | 已实现；`Detach`/`Release` 都关闭连接 |
 | `HistoryParams` / `HistoryResult` / `RawEvent` | `session.history` | 已实现；分页不变量运行时校验 |
 | `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | **未实现** |
-| `SubmitParams` / `SubmitResult` | `session.submit` | 参数和 `{event}` 结果已实现 |
-| `StopParams` | `session.stop` | 已实现 |
+| `SubmitParams` / `SubmitResult` + `Submit` | `session.submit` | 已实现；unknown-result 不重发 |
+| `StopParams` + `Stop` | `session.stop` | 已实现 |
+| `ApprovalRespondParams` + `ApprovalRespond` | `approval.respond` | 已实现；`-32602` 映射为 cancelled |
+| `DeleteParams` + `Delete` | `session.delete` | 已实现；响应体被忽略，需用 catalog 读回 |
+| `InputLookupParams` | `session.input_lookup` | **未实现** |
 | `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` / `ModelProgress` | 通知 | 已实现，`DecodeNotification` 按方法解码；未知方法原样透传 |
-| `ApprovalRespondParams` / `InputLookupParams` | `approval.respond` / `session.input_lookup` | **未实现** |
 | `LocalError` / `MappedError` | 客户端本地错误 / `appError` 映射 | 已实现 |
+
+`SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.keys`/`session.branches`、`session.input_lookup` 和 `session.methods` 的读取仍未实现。
 
 ## 18. Transport 与 Supervisor 参数（已实现，real-daemon 未验证）
 
-以下参数已实现在 `internal/supervisor`，由 `headless` 测试和 fake daemon 覆盖；没有对真实 `dim-app-server` 运行。
+以下参数已实现在 `internal/supervisor`，由 `headless` 测试和 fake daemon 覆盖；没有对真实 `dim-app-server` 运行。Wave 2 增补了 dial/hello 超时、dial 错误分类、spawn 失败不声明 ownership、等待 listen 上限、关闭时先停 stream 再 ping、按单连接重试、endpoint 相对路径/symlink 和 fake daemon 按次 ping 的 QA 测试；Windows named pipe 运行时仍未验证。
 
 - Unix：`<productHome>/rust/daemon.sock`；`<productHome>/rust` 必须 0700、属于当前用户、canonicalize 后使用。
 - Windows：`\\.\pipe\dim-rust-<sha256("dimcode:"+canonicalNativeHome)[:32]>`。
@@ -389,21 +407,27 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | hello 的 product / configured / mock / 反例 | `wire_test.go` |
 | catalog 多页、空页、缺 `origins` 裁参 | `read_helpers_test.go` + fake server |
 | summaries 裸数组和 `-32602` 只回退一次 | `read_helpers_test.go` |
-| attach 有/无 `sequence` 的 head 读取 | `wire_test.go` |
+| attach 有/无 `sequence` 的 head 读取 | `wire_test.go`、`session_stream_test.go` |
+| attach 订阅先行、通知缓冲/路由、跨 session 过滤、未知通知透传 | `session_stream_test.go` |
+| 事件 `id` 去重、`(branchId, sequence)` 冲突、closed 终态、transport loss | `session_stream_test.go` |
+| detach 回复等待、release 忽略回复、closed 后 no-op | `session_stream_test.go` |
 | history 分页不变量 | `wire_test.go` |
-| latest-turn、`turnStart` 漂移、`history_too_large` | 未实现 |
-| submit 成功/未知结果 | 未实现；当前只有 `SubmitParams` 校验 |
-| approval 重放和 `-32602` | 未实现 |
+| latest-turn、`turnStart` 漂移、`history_too_large`/page-cap 降级 | `internal/session/session_test.go`（session 组合层，fake history） |
+| submit 成功/未知结果 | `mutations_test.go` + fake server；含 `submission_unknown`/`submission_ambiguous` |
+| stop 成功/拒绝 | `mutations_test.go` + fake server |
+| approval `-32602` 映射；attach 期间 approval 到达顺序 | `mutations_test.go`、`session_stream_test.go`；完整 replay 集合替换未实现 |
+| delete 成功/`session_active` | `mutations_test.go` + fake server |
+| unknown_method、timeout、断线的 visible WIP/unknown-result | `mutations_test.go` |
 | 每个 `appError` 的语义和可重试性 | `errors_test.go` |
 | `dim-electron` 通知 fixture | `testdata/wire/notifications.ndjson` + `wire_test.go` |
 
-fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，只服务 `hello`、`session.catalog`、`session.summaries`、`session.attach` 和 `session.history`；尚未从 `dim-electron` 的 `fake-app-server.mjs` 派生完整场景。
+fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`、`session.catalog`、`session.summaries`、`session.attach`、`session.detach`、`session.history`、`session.submit`、`session.stop`、`approval.respond` 和 `session.delete`，并支持 scripted mutation fault、gate 和主动断线；`subscription_changed` 和完整 history 分页场景仍未从 `dim-electron` 的 `fake-app-server.mjs` 派生。latest-turn 和兼容扫描由 `internal/session` 自己的 fake history 覆盖，不依赖 appserver fake server。
 
 ## 20. 验收（当前状态）
 
-- 已通过：`go build ./...`、`go vet ./...`、`go test ./...`、`go test -race ./...`；
+- 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（5 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
-- 部分通过：fake server 能覆盖 catalog/summaries/attach/history 和 client 层错误，但断线、重复通知、`subscription_changed`、未知 mutation 结果尚未全部覆盖；
+- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 reconnect/resync 未覆盖；
 - 未通过：真实 daemon 验收未运行；本机缺 `dim-app-server`（`DIMCODE_APP_SERVER_BIN` 未设置，target/runtime/.tmp 路径均不存在），因此保持 blocked，不用 fake 结果宣称 real-daemon 通过。
 
 ## 21. 未决问题与 blocker
@@ -413,5 +437,5 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，只服务 `hel
 3. `session.history` 的 `through` 在上游是否必填、`through < after` 是否报错，未验证。
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
-6. 合同结论仍是 `source-read`；Wave 1 实现已有 `headless` + `fake-server` 证据，但没有 real-daemon 证据。
-7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、approval mutation 和 reconnect/resync 未实现，不在 Wave 1 范围；入口保持 WIP，不用本地替代事实。
+6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，但没有 real-daemon 证据。
+7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 reconnect/resync 未实现；入口保持 WIP，不用本地替代事实。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
