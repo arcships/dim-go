@@ -168,11 +168,11 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 
 验收命令：`go test ./...`、`go vet ./...`；projection 专项用 `go test -run TestGoldenFixtures -v ./internal/projection` 运行并逐个报告 fixture 名称。
 
-当前状态：Go projection、Go `RawEvent` 类型和 golden runner 已实现；`internal/session` 已按 branch 持有独立的 durable/transient reducer，并把 history 与 live 事件送入同一个 `Apply`；`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`、`gofmt -l .` 通过，14 个 fixture 全部通过（`headless`）。
+当前状态：Go projection、Go `RawEvent` 类型和 golden runner 已实现；`internal/session` 已按 branch 持有独立的 durable/transient reducer，并把 history 与 live 事件送入同一个 `Apply`；`internal/viewmodel` 把 projection snapshot 映射成 native 行（user/assistant/tool），只保留有界预览；`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...`、`gofmt -l .` 通过，14 个 fixture 全部通过（`headless`）。
 
 剩余 blocker：
 
-- `internal/session` 已组合 stream、history 和 projection，但还没有接到 UI；session UI 接线、submit/live 端到端和真实运行验收未验证；
+- `internal/session` 和 `internal/viewmodel` 已组合 stream、history、projection 和行映射，但还没有接到 UI；session/viewmodel UI 接线、submit/live 端到端和真实运行验收未验证；
 - goal、usage、branch directory、exec/background task 等非核心投影未实现，本合同只冻结 input/text/thinking/tool；
 - 上游 wire `RawEvent` 的完整 data 形状仍以 `dim-electron` protocol v3 和 Rust App Server 为准；真实 daemon 未运行，不能宣称 real-daemon 语义通过；
 - approval/question/permission 只有通用 transient notice fixture（`transient-isolation.json`）；`approval.respond` mutation 已有 client helper，但 replay 集合替换和 UI 决策流程未实现；
