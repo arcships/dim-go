@@ -37,7 +37,7 @@ Last updated: 2026-11-08
 
 ### Milestone 0 进展：Toolchain 和最小窗口（2026-11-08）
 
-Task / owner：Wave 0 Toolchain/UI agent，工作树改动，未提交，待主 agent 审查。
+Task / owner：Wave 0 Toolchain/UI agent，主 agent 已审查并合并。提交：`7f89890 feat(ui): add mygo native shell spike`。
 
 Changed files：`go.mod`、`go.sum`、`cmd/dimagent/main.go`、`internal/ui/shell.go`、`internal/ui/shell_test.go`、`docs/development-plan.md`、`README.md`、`docs/mygo-native-components.md`。
 
@@ -239,7 +239,7 @@ Next action
 ## 当前分配
 
 - 主 agent：冻结计划、维护合同、集成和验收。
-- Wave 0 Toolchain/UI agent（deepseek-v4.1-flash）：已完成 Go 1.27.3 / MyGo v0.8.3 版本决策、最小窗口和 headless shell；主 agent 待审查 diff。
+- Wave 0 Toolchain/UI agent（deepseek-v4.1-flash）：已完成 Go 1.27.3 / MyGo v0.8.3 版本决策、最小窗口和 headless shell；提交 `7f89890` 已合并。
 - Wave 0 Protocol research agent（deepseek-v4.1-flash）：已完成只读合同调查；主 agent 待审阅并转化为 Go types/fake server 任务。
 - Wave 0 Projection research agent（deepseek-v4.1-flash）：已完成 TimelineFold 调查；主 agent 待审阅并转化为 fixtures 任务。
 - Wave 0 QA agent（deepseek-v4.1-flash）：设计验证矩阵，进行中。
