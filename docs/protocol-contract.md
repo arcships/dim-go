@@ -175,7 +175,7 @@ session stream (每打开 session 1 条)
 
 Go 实现：`internal/appserver/session_stream.go` 的 `OpenSessionStream` 假定 supervisor 已完成步骤 1 的连接与 hello，实现步骤 2–4 以及步骤 7 的订阅先行、到达顺序缓冲和 `event.id`/`(branchId, sequence)` 冲突检查；它不构建 projection，也不读 latest turn 或 `session.branches`/`session.keys`。`Detach` 与 `Release` 按本节超时语义发送 `session.detach` 并关闭连接。
 
-`internal/session` 在 stream 之上实现步骤 5–7 的会话组合：首屏 history（latest-turn / 兼容扫描）、按 branch 的 projection、attach 期间有界 pending buffer，以及 remote closed / transport lost / local release 的区分。它仍不读 `session.branches`/`session.keys`，不自动 reconnect/resync，也不把投影写入本地存储。
+`internal/session` 在 stream 之上实现步骤 5–7 的会话组合：首屏 history（latest-turn / 兼容扫描）、按 branch 的 projection、attach 期间有界 pending buffer，以及 remote closed / transport lost / local release 的区分。Open 在 capability gate 下读取可选的 `session.branches`/`session.keys` snapshot，并通过 `BranchDirectory`/`Keys` 暴露只读副本；它不自动 reconnect/resync，也不把投影写入本地存储。
 
 `session.attach` 响应：
 
@@ -372,12 +372,12 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `AttachParams` / `AttachResult` / `SessionStream` / `StreamState` | `session.attach` | 已实现；`OpenSessionStream` 负责订阅先行、head 兜底和通知路由 |
 | `DetachParams` | `session.detach` | 已实现；`Detach`/`Release` 都关闭连接 |
 | `HistoryParams` / `HistoryResult` / `RawEvent` | `session.history` | 已实现；分页不变量运行时校验 |
-| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | **未实现** |
+| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | 已实现；`internal/session.Open` 按 capability 可选读取并暴露只读 snapshot，UI branch switching/cut point 尚未实现 |
 | `SubmitParams` / `SubmitResult` + `Submit` | `session.submit` | 已实现；unknown-result 不重发 |
 | `StopParams` + `Stop` | `session.stop` | 已实现 |
 | `ApprovalRespondParams` + `ApprovalRespond` | `approval.respond` | 已实现；`-32602` 映射为 cancelled |
 | `DeleteParams` + `Delete` | `session.delete` | 已实现；响应体被忽略，需用 catalog 读回 |
-| `InputLookupParams` | `session.input_lookup` | **未实现** |
+| `InputLookupParams` | `session.input_lookup` | 已实现；`Session.LookupInput`/`appserver.InputLookup` 返回 opaque read-back 结果，不自动重发 |
 | `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` / `ModelProgress` | 通知 | 已实现，`DecodeNotification` 按方法解码；未知方法原样透传 |
 | `LocalError` / `MappedError` | 客户端本地错误 / `appError` 映射 | 已实现 |
 
