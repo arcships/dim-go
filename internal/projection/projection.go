@@ -4,6 +4,7 @@ package projection
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -725,21 +726,68 @@ func mapValue(value any) map[string]any {
 	return m
 }
 
+// shellInputPattern matches the runtime's recorded shell-input marker. A `!`
+// run is stored as one `input/message` raw block whose text is the marker; the
+// recorded body is what stays visible after reload (timeline-fold.ts:289-302).
+var shellInputPattern = regexp.MustCompile(`(?s)^<dim-shell-input\b[^>]*>(.*)</dim-shell-input>\s*$`)
+
+// inputText mirrors upstream inputTextFromData (timeline-fold.ts:303-335): the
+// user's own text blocks win, then ordinary text blocks, then recorded
+// shell-input raw blocks joined with a newline. Any other raw block stays model
+// context and never becomes timeline text. There is deliberately no fallback to
+// an undocumented top-level `content` field: InputMessageData denies unknown
+// fields, so such an event could only be fabricated locally.
 func inputText(data map[string]any) string {
 	if user := mapValue(data["user"]); user != nil {
-		parts, _ := user["content"].([]any)
-		var text strings.Builder
-		for _, part := range parts {
-			block := mapValue(part)
-			if stringValue(block["type"]) == "text" {
-				text.WriteString(stringValue(block["text"]))
-			}
-		}
-		if text.Len() > 0 {
-			return text.String()
+		if text := textBlockText(user["content"]); text != "" {
+			return text
 		}
 	}
-	return stringValue(data["content"])
+	blocks, _ := data["blocks"].([]any)
+	if text := textBlockText(blocks); text != "" {
+		return text
+	}
+	bodies := make([]string, 0, len(blocks))
+	for _, value := range blocks {
+		block := mapValue(value)
+		if stringValue(block["type"]) != "raw" {
+			continue
+		}
+		if body := shellInputBody(stringValue(block["text"])); body != "" {
+			bodies = append(bodies, body)
+		}
+	}
+	return strings.Join(bodies, "\n")
+}
+
+// textBlockText joins the text of `type: "text"` content blocks. Other block
+// types (images) contribute no timeline text.
+func textBlockText(parts any) string {
+	blocks, _ := parts.([]any)
+	var text strings.Builder
+	for _, part := range blocks {
+		block := mapValue(part)
+		if stringValue(block["type"]) == "text" {
+			text.WriteString(stringValue(block["text"]))
+		}
+	}
+	return text.String()
+}
+
+// shellInputBody decodes the escaped marker body. Entities decode one level
+// only, in the upstream order, and the framing newlines are trimmed.
+func shellInputBody(text string) string {
+	match := shellInputPattern.FindStringSubmatch(text)
+	if match == nil {
+		return ""
+	}
+	body := match[1]
+	body = strings.ReplaceAll(body, "&lt;", "<")
+	body = strings.ReplaceAll(body, "&gt;", ">")
+	body = strings.ReplaceAll(body, "&quot;", "\"")
+	body = strings.ReplaceAll(body, "&#39;", "'")
+	body = strings.ReplaceAll(body, "&amp;", "&")
+	return strings.TrimSpace(body)
 }
 
 func eventStatus(status any) string {

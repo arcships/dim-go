@@ -60,6 +60,115 @@ func TestInputIsolationAndConsumed(t *testing.T) {
 	}
 }
 
+func TestInputJoinsUserContentTextBlocks(t *testing.T) {
+	r := NewReducer("main", FixedClock(1))
+	if err := r.Apply(testEvent("e-1", 1, "input", "message", map[string]any{
+		"user": map[string]any{"content": []any{
+			map[string]any{"type": "text", "text": "hello"},
+			map[string]any{"type": "image", "source": map[string]any{"data": "ignored"}},
+			map[string]any{"type": "text", "text": " world"},
+		}},
+		// A raw context block never wins over the user's own text.
+		"blocks": []any{map[string]any{"type": "raw", "text": "<dim-state>date</dim-state>"}},
+	})); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := r.Snapshot()
+	if len(snapshot.Messages) != 1 {
+		t.Fatalf("messages=%+v", snapshot.Messages)
+	}
+	if message := snapshot.Messages[0]; message.Content != "hello world" || message.Status != "sending" {
+		t.Fatalf("message=%+v", message)
+	}
+}
+
+func TestInputProjectsRecordedShellInputBlock(t *testing.T) {
+	const marker = "<dim-shell-input kind=\"command\" status=\"completed\" exit=\"0\" truncated=\"false\">\n$ printf '&lt;x&gt;'\n&lt;x&gt; &amp; done\n\n</dim-shell-input>"
+	r := NewReducer("main", FixedClock(1))
+	events := []RawEvent{
+		testEvent("e-env", 1, "input", "message", map[string]any{
+			"blocks": []any{map[string]any{"type": "raw", "key": "state:env", "text": "<dim-state>date</dim-state>"}},
+			"mode":   "append",
+		}),
+		testEvent("e-shell", 2, "input", "message", map[string]any{
+			"blocks": []any{map[string]any{"type": "raw", "text": marker}},
+			"mode":   "append",
+		}),
+		testEvent("e-consumed", 3, "input", "consumed", map[string]any{"input_id": "e-shell"}),
+	}
+	if err := r.ApplyHistory(events); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := r.Snapshot()
+	if len(snapshot.Messages) != 1 {
+		t.Fatalf("environment block leaked into messages: %+v", snapshot.Messages)
+	}
+	message := snapshot.Messages[0]
+	if message.ID != "e-shell" || message.Role != "user" || message.Status != "complete" {
+		t.Fatalf("message=%+v", message)
+	}
+	if want := "$ printf '<x>'\n<x> & done"; message.Content != want {
+		t.Fatalf("content=%q, want %q", message.Content, want)
+	}
+	if !reflect.DeepEqual(snapshot.TimelineUserMessageIds, []string{"e-shell"}) {
+		t.Fatalf("user ids=%+v", snapshot.TimelineUserMessageIds)
+	}
+}
+
+func TestInputJoinsMultipleShellInputBlocks(t *testing.T) {
+	first := "<dim-shell-input kind=\"command\" status=\"completed\" exit=\"0\" truncated=\"false\">\n$ pwd\n/workspace\n\n</dim-shell-input>"
+	second := "<dim-shell-input kind=\"command\" status=\"stopped\" truncated=\"false\">\n$ sleep 9\npartial\n\n</dim-shell-input>"
+	r := NewReducer("main", FixedClock(1))
+	if err := r.Apply(testEvent("e-1", 1, "input", "message", map[string]any{
+		"blocks": []any{
+			map[string]any{"type": "raw", "text": first},
+			map[string]any{"type": "raw", "text": "<dim-branch-parent branch=\"main\">notice</dim-branch-parent>"},
+			map[string]any{"type": "raw", "text": second},
+		},
+	})); err != nil {
+		t.Fatal(err)
+	}
+	message := messageByID(t, r.Snapshot(), "e-1")
+	if want := "$ pwd\n/workspace\n$ sleep 9\npartial"; message.Content != want {
+		t.Fatalf("content=%q, want %q", message.Content, want)
+	}
+}
+
+// TestInputDoesNotGuessContentField pins the upstream wire shape: the field
+// does not exist on InputMessageData, so it must not fabricate a user message.
+func TestInputDoesNotGuessContentField(t *testing.T) {
+	r := NewReducer("main", FixedClock(1))
+	if err := r.Apply(testEvent("e-1", 1, "input", "message", map[string]any{"content": "hi"})); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := r.Snapshot()
+	if len(snapshot.Messages) != 0 || len(snapshot.TimelineUserMessageIds) != 0 {
+		t.Fatalf("undocumented content fabricated a user message: %+v", snapshot)
+	}
+	if ignored := r.IgnoredEvents(); len(ignored) != 0 {
+		t.Fatalf("known input type reported as ignored: %+v", ignored)
+	}
+}
+
+// TestInputProjectsTextBlocks pins the upstream precedence inside `blocks`.
+// The current wire InputBlock enum only has `raw`, so this is defensive parity
+// with inputTextFromData rather than a reachable shape.
+func TestInputProjectsTextBlocks(t *testing.T) {
+	r := NewReducer("main", FixedClock(1))
+	if err := r.Apply(testEvent("e-1", 1, "input", "message", map[string]any{
+		"blocks": []any{
+			map[string]any{"type": "text", "text": "from "},
+			map[string]any{"type": "text", "text": "blocks"},
+			map[string]any{"type": "raw", "text": "<dim-shell-input kind=\"command\" status=\"completed\" exit=\"0\" truncated=\"false\">\n$ pwd\n/x\n\n</dim-shell-input>"},
+		},
+	})); err != nil {
+		t.Fatal(err)
+	}
+	if message := messageByID(t, r.Snapshot(), "e-1"); message.Content != "from blocks" {
+		t.Fatalf("content=%q", message.Content)
+	}
+}
+
 func TestTextThinkingBoundariesAndDuplicateSequence(t *testing.T) {
 	r := NewReducer("main", FixedClock(1700000000999))
 	events := []RawEvent{
@@ -321,7 +430,9 @@ func TestConsumedBeforeInputConverges(t *testing.T) {
 	if err := r.Apply(testEvent("e-2", 2, "input", "consumed", map[string]any{"input_id": "e-1"})); err != nil {
 		t.Fatal(err)
 	}
-	if err := r.Apply(testEvent("e-1", 1, "input", "message", map[string]any{"content": "hi"})); err != nil {
+	if err := r.Apply(testEvent("e-1", 1, "input", "message", map[string]any{
+		"user": map[string]any{"content": []any{map[string]any{"type": "text", "text": "hi"}}},
+	})); err != nil {
 		t.Fatal(err)
 	}
 	snapshot := r.Snapshot()
@@ -623,7 +734,7 @@ func TestNullUserIsEnvironmentContext(t *testing.T) {
 		t.Fatalf("null user leaked: %+v", messages)
 	}
 	if err := r.Apply(testEvent("e-2", 2, "input", "message", map[string]any{
-		"user": nil, "content": "hi",
+		"user": map[string]any{"content": []any{map[string]any{"type": "text", "text": "hi"}}},
 	})); err != nil {
 		t.Fatal(err)
 	}
@@ -640,7 +751,9 @@ func TestNullUserIsEnvironmentContext(t *testing.T) {
 func TestCompleteInputRejectsUndocumentedAliases(t *testing.T) {
 	r := NewReducer("main", FixedClock(1))
 	events := []RawEvent{
-		testEvent("e-1", 1, "input", "message", map[string]any{"content": "hi"}),
+		testEvent("e-1", 1, "input", "message", map[string]any{
+			"user": map[string]any{"content": []any{map[string]any{"type": "text", "text": "hi"}}},
+		}),
 		testEvent("e-2", 2, "input", "consumed", map[string]any{"message_id": "e-1"}),
 	}
 	for _, event := range events {
@@ -662,7 +775,9 @@ func TestCompleteInputRejectsUndocumentedAliases(t *testing.T) {
 func TestInputDeletedRemovesMessage(t *testing.T) {
 	r := NewReducer("main", FixedClock(1))
 	events := []RawEvent{
-		testEvent("e-1", 1, "input", "message", map[string]any{"content": "hi"}),
+		testEvent("e-1", 1, "input", "message", map[string]any{
+			"user": map[string]any{"content": []any{map[string]any{"type": "text", "text": "hi"}}},
+		}),
 		testEvent("e-2", 2, "input", "consumed", map[string]any{"input_id": "e-1"}),
 		testEvent("e-3", 3, "input", "deleted", map[string]any{"input_id": "e-1"}),
 	}
