@@ -36,6 +36,15 @@ type Session struct {
 	Title string
 }
 
+// Branch is a read-only branch directory row supplied by the App Server.
+type Branch struct {
+	ID       string
+	Label    string
+	State    string
+	Head     int64
+	Selected bool
+}
+
 // Author says who wrote a conversation row, which decides how it renders.
 type Author uint8
 
@@ -101,6 +110,10 @@ type Message struct {
 type State struct {
 	Sessions []Session
 	Selected string
+	// Branches is the daemon branch directory for the selected session. It is
+	// display-only metadata; branch switching is delegated through OnBranchSelect.
+	Branches       []Branch
+	SelectedBranch string
 
 	// Connection, ConnectionError and ConversationLoading stand in for what
 	// the App Server supervisor reports: its connection, the last error it
@@ -126,10 +139,11 @@ type State struct {
 	// session controller. A nil field leaves its action in the view without an
 	// effect, as a fixture does; the callback owns the App Server call and the
 	// facts it returns, so the shell never reports an action it did not send.
-	OnSelect    func(sessionID string)
-	OnSubmit    func(text string)
-	OnStop      func()
-	OnReconnect func()
+	OnSelect       func(sessionID string)
+	OnBranchSelect func(branchID string)
+	OnSubmit       func(text string)
+	OnStop         func()
+	OnReconnect    func()
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -155,6 +169,17 @@ func (s *State) View(c *ui.Context) {
 					ui.SidebarItem(c, session.ID, nil, session.Title)
 				}
 			}).Grow(1).Label("Sessions").OnChange(s.selectSession)
+			if len(s.Branches) > 0 {
+				ui.Sidebar(c, &s.SelectedBranch, func() {
+					for _, branch := range s.Branches {
+						label := branch.Label
+						if label == "" {
+							label = branch.ID
+						}
+						ui.SidebarItem(c, branch.ID, nil, label)
+					}
+				}).Label("Branches").OnChange(s.selectBranch)
+			}
 			s.capabilityCards(c, k)
 		})
 		ui.Column(c).Grow(1).FillHeight().Children(func() {
@@ -355,6 +380,13 @@ func (s *State) composer(c *ui.Context, k tokens) {
 func (s *State) selectSession() {
 	if s.OnSelect != nil {
 		s.OnSelect(s.Selected)
+	}
+}
+
+// selectBranch delegates branch switching to the session view/reducer owner.
+func (s *State) selectBranch() {
+	if s.OnBranchSelect != nil {
+		s.OnBranchSelect(s.SelectedBranch)
 	}
 }
 

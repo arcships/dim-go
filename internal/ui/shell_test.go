@@ -34,6 +34,21 @@ func TestShellRenders(t *testing.T) {
 
 // TestShellSelectsSession checks that the sidebar drives the header, which is
 // the only interaction the shell claims.
+func TestShellSelectsBranch(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{{ID: "main", Label: "main"}, {ID: "side", Label: "side"}}
+	s.SelectedBranch = "main"
+	var got string
+	s.OnBranchSelect = func(id string) { got = id }
+	tt := ui.NewTester(s.View, 900, 600)
+	if err := tt.Click("side"); err != nil {
+		t.Fatal(err)
+	}
+	if got != "side" {
+		t.Fatalf("branch callback = %q, want side", got)
+	}
+}
+
 func TestShellSelectsSession(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)

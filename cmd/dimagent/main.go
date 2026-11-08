@@ -197,11 +197,15 @@ func applyView(state, view *dimui.State) {
 		return
 	}
 	state.Selected = view.Selected
+	state.SelectedBranch = view.SelectedBranch
+	state.Branches = append([]dimui.Branch(nil), view.Branches...)
 	state.Connection = view.Connection
 	state.ConnectionError = view.ConnectionError
 	state.ConversationLoading = view.ConversationLoading
 	state.Run = view.Run
-	state.Messages = view.Messages
+	state.Messages = append([]dimui.Message(nil), view.Messages...)
+	state.ModelProgress = view.ModelProgress
+	state.Notices = append([]string(nil), view.Notices...)
 }
 
 func summaryForRow(row dimui.Session) appserver.SessionSummary {
@@ -232,6 +236,7 @@ type app struct {
 
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
+	a.state.OnBranchSelect = a.selectBranch
 	a.state.OnSubmit = a.submit
 	a.state.OnStop = a.stop
 	a.state.OnReconnect = a.reconnect
@@ -382,6 +387,28 @@ func (a *app) selectSession(id string) {
 			state.ConversationLoading = false
 		})
 	}()
+}
+
+// selectBranch refreshes the selected branch through the controller's existing
+// session view/reducer. No branch mutation or local facts are created.
+func (a *app) selectBranch(branchID string) {
+	if a == nil || a.bridge == nil || a.state == nil || branchID == "" {
+		return
+	}
+	a.bridge.mu.Lock()
+	controller, summary := a.bridge.controller, a.bridge.summary
+	a.bridge.mu.Unlock()
+	branchViewer, ok := controller.(interface {
+		StateForBranch(appserver.SessionSummary, string) *dimui.State
+	})
+	if !ok {
+		return
+	}
+	view := branchViewer.StateForBranch(summary, branchID)
+	a.update(func(state *dimui.State) {
+		applyView(state, view)
+		state.SelectedBranch = branchID
+	})
 }
 
 // submit sends the composer's text in the background and clears the draft only

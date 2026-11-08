@@ -94,6 +94,25 @@ func (c *SessionController) Close(ctx context.Context) error {
 // Facts remain owned by App Server/projection; this function only adapts them.
 // A controller without a session returns an empty, disconnected state.
 func (c *SessionController) State(summary appserver.SessionSummary) *ui.State {
+	return c.StateForBranch(summary, c.SessionBranchID())
+}
+
+// SessionBranchID returns the session's selected branch view id.
+func (c *SessionController) SessionBranchID() string {
+	if c == nil {
+		return ""
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return ""
+	}
+	return c.Session.BranchID()
+}
+
+// StateForBranch builds UI state from an existing session branch view/reducer.
+// It does not create or mutate branches.
+func (c *SessionController) StateForBranch(summary appserver.SessionSummary, branchID string) *ui.State {
 	if c == nil {
 		return &ui.State{Connection: ui.ConnUnknown}
 	}
@@ -117,11 +136,26 @@ func (c *SessionController) State(summary appserver.SessionSummary) *ui.State {
 			connectionError = "session transport lost"
 		}
 	}
-	snapshot := c.Session.Snapshot()
-	progress, notices := viewmodel.Transient(c.Session.Transient())
+	// Only expose a branch that exists in the daemon directory or has been
+	// observed by the session reducer. Unknown IDs must not silently render an
+	// empty synthetic branch.
+	available := map[string]bool{}
+	for _, branch := range c.Session.BranchDirectory().Branches {
+		available[branch.BranchID] = true
+	}
+	for _, observed := range c.Session.Branches() {
+		available[observed] = true
+	}
+	if branchID == "" || !available[branchID] {
+		branchID = c.Session.BranchID()
+	}
+	branchView := c.Session.View(branchID)
+	snapshot := branchView.Snapshot
+	progress, notices := viewmodel.Transient(branchView.Transient)
 	state := &ui.State{
 		Sessions:        []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary)}},
 		Selected:        summary.SessionID,
+		SelectedBranch:  branchID,
 		Connection:      connection,
 		ConnectionError: connectionError,
 		Messages:        viewmodel.Build(snapshot),
@@ -129,7 +163,14 @@ func (c *SessionController) State(summary appserver.SessionSummary) *ui.State {
 		ModelProgress:   progress,
 		Notices:         notices,
 	}
-	if view := c.Session.View(c.Session.BranchID()); view.State != nil {
+	for _, branch := range c.Session.BranchDirectory().Branches {
+		label := branch.BranchID
+		if branch.Purpose != nil && *branch.Purpose != "" {
+			label = *branch.Purpose
+		}
+		state.Branches = append(state.Branches, ui.Branch{ID: branch.BranchID, Label: label, State: branch.State, Head: branch.Head, Selected: branch.BranchID == branchID})
+	}
+	if view := branchView; view.State != nil {
 		if view.State.Running {
 			state.Run = ui.RunRunning
 		}
@@ -137,7 +178,7 @@ func (c *SessionController) State(summary appserver.SessionSummary) *ui.State {
 			state.Run = ui.RunStopping
 		}
 	} else {
-		state.Run = viewmodel.RunStateFrom(c.Session.Snapshot())
+		state.Run = viewmodel.RunStateFrom(branchView.Snapshot)
 	}
 	return state
 }
