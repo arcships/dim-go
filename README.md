@@ -31,5 +31,6 @@ MyGo 当前主分支的 `go.mod` 声明 Go 1.27.3；本机 Go 版本低于该要
 ## 参考
 
 - [MyGo Native UI 组件调查](docs/mygo-native-components.md)
+- [开发计划与 Subagent 编排](docs/development-plan.md)
 - [Native UI 执行计划](docs/native-plan.md)
 - [dim-electron 产品基线](https://github.com/arcships/dim-electron)
