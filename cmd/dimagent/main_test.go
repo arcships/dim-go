@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -459,5 +460,41 @@ func TestAppSelectOpensSession(t *testing.T) {
 	}
 	if b.summary.SessionID != "s2" {
 		t.Fatalf("current summary = %#v, want s2", b.summary)
+	}
+}
+
+func TestAppSubmitAndStopPublishOutcomes(t *testing.T) {
+	boom := errors.New("mutation failed")
+	f := &fakeSession{submitErr: boom, stopErr: boom}
+	a := &app{state: &dimui.State{Draft: "hello"}, bridge: &sessionBridge{controller: f}}
+	a.bind()
+	var stateMu sync.Mutex
+	a.updateHook = func(fn func(*dimui.State)) { stateMu.Lock(); defer stateMu.Unlock(); fn(a.state) }
+	a.state.OnSubmit("hello")
+	a.state.OnStop()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		stateMu.Lock()
+		count := len(a.state.Notices)
+		stateMu.Unlock()
+		if count >= 2 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	stateMu.Lock()
+	defer stateMu.Unlock()
+	if len(a.state.Notices) < 2 {
+		t.Fatalf("notices = %#v, want submit and stop errors", a.state.Notices)
+	}
+	kinds := map[string]bool{}
+	for _, notice := range a.state.Notices {
+		kinds[notice.Kind] = true
+	}
+	if !kinds["submit.error"] || !kinds["stop.error"] {
+		t.Fatalf("notice kinds = %#v", kinds)
+	}
+	if a.state.Draft != "hello" {
+		t.Fatalf("draft = %q, want retained after failed submit", a.state.Draft)
 	}
 }

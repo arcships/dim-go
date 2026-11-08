@@ -342,6 +342,17 @@ func (a *app) stopRefresh() {
 	}
 }
 
+// notice publishes a bounded, inspectable UI outcome. It is deliberately a
+// throwaway view fact: daemon/session remains the source of timeline truth.
+func (a *app) notice(kind, id string) {
+	a.update(func(state *dimui.State) {
+		state.Notices = append(state.Notices, dimui.Notice{Kind: kind, ID: id})
+		if len(state.Notices) > 8 {
+			state.Notices = append([]dimui.Notice(nil), state.Notices[len(state.Notices)-8:]...)
+		}
+	})
+}
+
 // selectSession opens the chosen session in the background and publishes its
 // live view. The callback runs on the UI thread, so loading shows at once while
 // the App Server call stays off the frame.
@@ -422,6 +433,9 @@ func (a *app) submit(text string) {
 		defer cancel()
 		if err := a.bridge.Submit(ctx, text); err != nil {
 			log.Printf("dimagent: submit: %v", err)
+			if a.selectionCurrent(gen) {
+				a.notice("submit.error", err.Error())
+			}
 			return
 		}
 		if !a.selectionCurrent(gen) {
@@ -432,6 +446,7 @@ func (a *app) submit(text string) {
 			applyView(state, view)
 			state.Draft = ""
 		})
+		a.notice("submit.accepted", "")
 	}()
 }
 
@@ -492,6 +507,9 @@ func (a *app) stop() {
 		defer cancel()
 		if err := a.bridge.Stop(ctx); err != nil {
 			log.Printf("dimagent: stop: %v", err)
+			if a.selectionCurrent(gen) {
+				a.notice("stop.error", err.Error())
+			}
 			return
 		}
 		if !a.selectionCurrent(gen) {
@@ -499,6 +517,7 @@ func (a *app) stop() {
 		}
 		view := a.bridge.LiveState()
 		a.update(func(state *dimui.State) { applyView(state, view) })
+		a.notice("stop.accepted", "")
 	}()
 }
 
