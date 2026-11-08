@@ -192,6 +192,29 @@ func TestSessionBridgeOpenSwapsAndClosesPrevious(t *testing.T) {
 
 // TestAppBindsCallbacks checks that the window state exposes every action the
 // shell draws, so a click or a shortcut reaches the controller.
+func TestAppRefreshesLiveState(t *testing.T) {
+	f := &fakeSession{view: &dimui.State{Selected: "s1", Connection: dimui.ConnReady, Messages: []dimui.Message{{ID: "m1"}}}, liveCalls: make(chan struct{}, 4)}
+	a := &app{state: &dimui.State{Draft: "keep"}, bridge: &sessionBridge{controller: f}}
+	updated := make(chan struct{}, 1)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		select {
+		case updated <- struct{}{}:
+		default:
+		}
+	}
+	a.startRefresh(5 * time.Millisecond)
+	defer a.stopRefresh()
+	select {
+	case <-updated:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("refresh did not update state")
+	}
+	if a.state.Selected != "s1" || len(a.state.Messages) != 1 || a.state.Draft != "keep" {
+		t.Fatalf("state = %#v, refresh did not apply view safely", a.state)
+	}
+}
+
 func TestAppBindsCallbacks(t *testing.T) {
 	a := &app{state: &dimui.State{}}
 	a.bind()

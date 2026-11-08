@@ -206,8 +206,11 @@ type app struct {
 	bridge *sessionBridge
 	win    *mygo.Window
 
-	mu        sync.Mutex
-	selectGen uint64
+	mu            sync.Mutex
+	selectGen     uint64
+	refreshCancel context.CancelFunc
+	// updateHook is test-only; production updates run through Window.Update.
+	updateHook func(func(*dimui.State))
 	// selectMu keeps session opens in order: a newer choice waits for the
 	// attachment in flight, then replaces it.
 	selectMu sync.Mutex
@@ -222,7 +225,14 @@ func (a *app) bind() {
 // update applies fn to the window's state on the main thread. It does nothing
 // before the window exists.
 func (a *app) update(fn func(*dimui.State)) {
-	if a.win == nil || a.state == nil {
+	if a.state == nil {
+		return
+	}
+	if a.updateHook != nil {
+		a.updateHook(fn)
+		return
+	}
+	if a.win == nil {
 		return
 	}
 	a.win.Update(func() { fn(a.state) })
@@ -257,6 +267,51 @@ func (a *app) selectionCurrent(gen uint64) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return a.selectGen == gen
+}
+
+// startRefresh periodically rebuilds the selected view from the controller's
+// public LiveState snapshot. It does not create local session/message facts.
+// Calling it again replaces the previous loop.
+func (a *app) startRefresh(interval time.Duration) {
+	if interval <= 0 {
+		interval = 250 * time.Millisecond
+	}
+	a.mu.Lock()
+	if a.refreshCancel != nil {
+		a.refreshCancel()
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	a.refreshCancel = cancel
+	a.mu.Unlock()
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if a.bridge == nil {
+					continue
+				}
+				view := a.bridge.LiveState()
+				if view == nil {
+					continue
+				}
+				a.update(func(state *dimui.State) { applyView(state, view) })
+			}
+		}
+	}()
+}
+
+// stopRefresh terminates the background refresh loop.
+func (a *app) stopRefresh() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.refreshCancel != nil {
+		a.refreshCancel()
+		a.refreshCancel = nil
+	}
 }
 
 // selectSession opens the chosen session in the background and publishes its
@@ -362,6 +417,7 @@ func main() {
 	application.bind()
 	if bridge != nil {
 		defer func() {
+			application.stopRefresh()
 			closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			_ = bridge.Close(closeCtx)
@@ -374,6 +430,9 @@ func main() {
 			Height:  720,
 			Content: ui.View(application.state.View),
 		})
+		if application.bridge != nil {
+			application.startRefresh(250 * time.Millisecond)
+		}
 	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
