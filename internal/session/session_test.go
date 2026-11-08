@@ -956,6 +956,33 @@ func TestLatestTurnCapAndProtocolErrors(t *testing.T) {
 		}
 	})
 
+	t.Run("empty session without turnStart is valid", func(t *testing.T) {
+		server, client := newFakeServer(t, fakeConfig{
+			Attach: appserver.AttachResult{Sequence: int64Ptr(0)},
+			History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+				if params.Through == nil || *params.Through != 0 {
+					t.Fatalf("through = %#v, want 0", params.Through)
+				}
+				return historyPage(t, nil, 0, 0, true, nil, nil), nil
+			},
+		})
+		s, err := Open(testContext(t), client, []string{"session.history", "session.history.latestTurn"}, "s1")
+		if err != nil {
+			t.Fatalf("Open empty session: %v", err)
+		}
+		t.Cleanup(func() { _ = s.Close(context.Background()) })
+		if !s.Ready() || len(s.Snapshot().Messages) != 0 {
+			t.Fatalf("empty session state: ready=%v snapshot=%#v", s.Ready(), s.Snapshot())
+		}
+		status := s.History()
+		if status.Mode != HistoryModeLatestTurn || status.Through != 0 || status.TurnStart != nil || status.Pages != 1 {
+			t.Fatalf("history status = %#v", status)
+		}
+		if calls := len(server.recorded("session.history")); calls != 1 {
+			t.Fatalf("history calls = %d, want 1", calls)
+		}
+	})
+
 	t.Run("missing turnStart fails fast", func(t *testing.T) {
 		head := int64(10)
 		_, client := newFakeServer(t, fakeConfig{

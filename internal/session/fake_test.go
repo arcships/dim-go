@@ -117,6 +117,18 @@ func cloneFakeMutations(in map[string][]fakeMutation) map[string][]fakeMutation 
 	return out
 }
 
+func (s *fakeServer) callsFor(method string) []fakeCall {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []fakeCall
+	for _, call := range s.calls {
+		if call.Method == method {
+			out = append(out, call)
+		}
+	}
+	return out
+}
+
 func (s *fakeServer) serve() {
 	for {
 		raw, err := s.fr.ReadFrame()

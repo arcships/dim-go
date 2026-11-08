@@ -64,9 +64,13 @@ func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow
 		}
 		pages++
 		if page.TurnStart == nil {
-			return historyWindow{}, &appserver.ProtocolError{Field: "turnStart", Detail: "missing in latest-turn page"}
-		}
-		if turnStart == nil {
+			// The server omits turnStart for a genuinely empty session. An
+			// empty page at a non-zero head is not enough evidence: it may be a
+			// malformed latest-turn response and must remain a protocol error.
+			if !(head == 0 && page.Done && len(page.Events) == 0) {
+				return historyWindow{}, &appserver.ProtocolError{Field: "turnStart", Detail: "missing in latest-turn page"}
+			}
+		} else if turnStart == nil {
 			value := *page.TurnStart
 			turnStart = &value
 		} else if *page.TurnStart != *turnStart {
