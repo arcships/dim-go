@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "name": "text-thinking-blocks",
+  "sessionId": "s-1",
+  "branchId": "main",
+  "clock": { "nowMillis": 1700000000999 },
+  "input": {
+    "history": [
+      {
+        "id": "e-1",
+        "sequence": 1,
+        "create_at": 1700000000001,
+        "type": "step",
+        "name": "model-start",
+        "data": { "turn_id": "t-1", "request_id": "r-1" }
+      },
+      {
+        "id": "e-2",
+        "sequence": 2,
+        "create_at": 1700000000002,
+        "type": "step",
+        "name": "thinking",
+        "data": { "delta": "plan" }
+      },
+      {
+        "id": "e-3",
+        "sequence": 3,
+        "create_at": 1700000000003,
+        "type": "step",
+        "name": "text",
+        "data": { "delta": "Hello" }
+      },
+      {
+        "id": "e-4",
+        "sequence": 4,
+        "create_at": 1700000000004,
+        "type": "step",
+        "name": "text",
+        "data": { "delta": " world" }
+      },
+      {
+        "id": "e-5",
+        "sequence": 5,
+        "create_at": 1700000000005,
+        "type": "step",
+        "name": "thinking",
+        "data": { "delta": "recheck" }
+      },
+      {
+        "id": "e-6",
+        "sequence": 6,
+        "create_at": 1700000000006,
+        "type": "step",
+        "name": "model-output-end",
+        "data": { "status": "completed" }
+      }
+    ],
+    "live": [],
+    "transient": []
+  },
+  "expect": {
+    "messages": [
+      {
+        "id": "a:main:t-1:r-1",
+        "orderKey": "00000000000000000001",
+        "role": "assistant",
+        "content": "Hello world",
+        "status": "complete",
+        "createdAt": 1700000000001,
+        "updatedAt": 1700000000006,
+        "events": [
+          {
+            "id": "e-2",
+            "type": "thinking",
+            "status": "complete",
+            "content": "plan",
+            "startTime": 1700000000002,
+            "endTime": 1700000000003
+          },
+          {
+            "id": "e-3",
+            "type": "text_delta",
+            "status": "complete",
+            "content": "Hello world",
+            "startTime": 1700000000003,
+            "endTime": 1700000000005
+          },
+          {
+            "id": "e-5",
+            "type": "thinking",
+            "status": "complete",
+            "content": "recheck",
+            "startTime": 1700000000005,
+            "endTime": 1700000000006
+          }
+        ]
+      }
+    ],
+    "timelineUserMessageIds": [],
+    "transient": []
+  }
+}

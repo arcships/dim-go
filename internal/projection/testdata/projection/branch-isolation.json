@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "name": "branch-isolation",
+  "sessionId": "s-1",
+  "branchId": "b-2",
+  "clock": { "nowMillis": 1700000000999 },
+  "input": {
+    "history": [
+      {
+        "id": "e-1",
+        "sequence": 1,
+        "create_at": 1700000000001,
+        "type": "step",
+        "name": "model-start",
+        "data": { "turn_id": "t-1", "request_id": "r-1" }
+      },
+      {
+        "id": "e-2",
+        "sequence": 2,
+        "create_at": 1700000000002,
+        "type": "step",
+        "name": "text",
+        "data": { "delta": "hi" }
+      },
+      {
+        "id": "e-3",
+        "sequence": 3,
+        "create_at": 1700000000003,
+        "type": "step",
+        "name": "model-output-end",
+        "data": { "status": "completed" }
+      }
+    ],
+    "live": [],
+    "transient": []
+  },
+  "expect": {
+    "messages": [
+      {
+        "id": "a:b-2:t-1:r-1",
+        "orderKey": "00000000000000000001",
+        "role": "assistant",
+        "content": "hi",
+        "status": "complete",
+        "createdAt": 1700000000001,
+        "updatedAt": 1700000000003,
+        "events": [
+          {
+            "id": "e-2",
+            "type": "text_delta",
+            "status": "complete",
+            "content": "hi",
+            "startTime": 1700000000002,
+            "endTime": 1700000000003
+          }
+        ]
+      }
+    ],
+    "timelineUserMessageIds": [],
+    "transient": []
+  }
+}
