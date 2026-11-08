@@ -242,7 +242,15 @@ Next action
 - Wave 0 Toolchain/UI agent（deepseek-v4.1-flash）：已完成 Go 1.27.3 / MyGo v0.8.3 版本决策、最小窗口和 headless shell；提交 `7f89890` 已合并。
 - Wave 0 Protocol research agent（deepseek-v4.1-flash）：已完成只读合同调查；主 agent 待审阅并转化为 Go types/fake server 任务。
 - Wave 0 Projection research agent（deepseek-v4.1-flash）：已完成 TimelineFold 调查；主 agent 待审阅并转化为 fixtures 任务。
-- Wave 0 QA agent（deepseek-v4.1-flash）：设计验证矩阵，进行中。
+- Wave 0 QA agent（deepseek-v4.1-flash）：已完成只读验收矩阵和 blocker 分类；报告已审阅。
+
+### QA 基线（2026-11-08）
+
+- 已通过：MyGo v0.8.3 headless List/FollowEnd、Markdown、accessibility、IME 基础测试；项目 `go build ./...`、`go vet ./...`、`go test ./...`、`go test -race ./internal/ui`；六目标交叉编译与 vet。
+- 已通过 Electron 行为基线：protocol 16、shared 4、renderer IME 7、FollowEnd 64、Markdown 53，以及 typecheck/lint/boundary/docs。
+- 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon 缺 `dim-app-server`；两个浏览器 E2E 存在 bridge harness 漂移。
+- 尚未满足 Wave 0 退出：项目内 FollowEnd/IME/Markdown/AX fixtures、Go fake server、projection golden、真实 IME/VoiceOver 和跨平台 GUI 手测。
+- 证据等级固定为 `headless`、`fake-server`、`real-daemon`、`manual`、`packaged`；低等级证据不得宣称高等级能力通过。
 
 ## Wave 0 研究结论（已收录）
 
