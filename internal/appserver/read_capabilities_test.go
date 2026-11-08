@@ -2,7 +2,6 @@ package appserver
 
 import (
 	"context"
-	"errors"
 	"testing"
 )
 
@@ -11,19 +10,16 @@ func TestSessionBranches(t *testing.T) {
 	server, client := newFakeServer(t, fakeConfig{
 		Hello:   fakeHello("session.branches"),
 		KeysRaw: rawJSON(t, map[string]any{}),
+		BranchesRaw: rawJSON(t, map[string]any{
+			"branches": []any{map[string]any{"branchId": "main", "state": "open", "head": 4}},
+		}),
 	})
-	// The fake server dispatch does not yet script branches; validate the gate
-	// and decoder independently below, while keeping this test focused on the
-	// no-request capability contract.
-	result, err := SessionBranches(ctx, client, BranchesParams{SessionID: "s1"}, []string{"session.history"})
-	if !errors.Is(err, ErrCapabilityUnavailable) {
-		t.Fatalf("error = %v, want capability error", err)
+	result, err := SessionBranches(ctx, client, BranchesParams{SessionID: "s1"}, []string{"session.branches"})
+	if err != nil || len(result.Branches) != 1 {
+		t.Fatalf("SessionBranches = %#v, %v", result, err)
 	}
-	if result.Branches != nil {
-		t.Fatalf("result = %#v, want zero result", result)
-	}
-	if calls := server.recordedCalls("session.branches"); len(calls) != 0 {
-		t.Fatalf("session.branches calls = %d, want 0", len(calls))
+	if calls := server.recordedCalls("session.branches"); len(calls) != 1 {
+		t.Fatalf("session.branches calls = %d, want 1", len(calls))
 	}
 
 	branches, err := DecodeBranchesResult(rawJSON(t, map[string]any{
@@ -42,16 +38,18 @@ func TestSessionBranches(t *testing.T) {
 
 func TestSessionMethods(t *testing.T) {
 	ctx := context.Background()
-	server, client := newFakeServer(t, fakeConfig{Hello: fakeHello("session.methods")})
-	result, err := SessionMethods(ctx, client, MethodsParams{SessionID: "s1"}, []string{"session.history"})
-	if !errors.Is(err, ErrCapabilityUnavailable) {
-		t.Fatalf("error = %v, want capability error", err)
+	server, client := newFakeServer(t, fakeConfig{
+		Hello: fakeHello("session.methods"),
+		MethodsRaw: rawJSON(t, map[string]any{
+			"methods": []any{map[string]any{"name": "shell.run", "mutating": true}},
+		}),
+	})
+	result, err := SessionMethods(ctx, client, MethodsParams{SessionID: "s1"}, []string{"session.methods"})
+	if err != nil || len(result.Methods) != 1 {
+		t.Fatalf("SessionMethods = %#v, %v", result, err)
 	}
-	if result.Methods != nil {
-		t.Fatalf("result = %#v, want zero result", result)
-	}
-	if calls := server.recordedCalls("session.methods"); len(calls) != 0 {
-		t.Fatalf("session.methods calls = %d, want 0", len(calls))
+	if calls := server.recordedCalls("session.methods"); len(calls) != 1 {
+		t.Fatalf("session.methods calls = %d, want 1", len(calls))
 	}
 
 	methods, err := DecodeMethodsResult(rawJSON(t, map[string]any{

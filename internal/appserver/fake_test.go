@@ -89,6 +89,10 @@ type fakeConfig struct {
 	KeysRaw   json.RawMessage
 	KeysFault *fakeRPCError
 
+	// MethodsRaw and BranchesRaw script optional read helper responses.
+	MethodsRaw  json.RawMessage
+	BranchesRaw json.RawMessage
+
 	// Mutations is served in order per mutation method. Tests that script a
 	// request assert the queue was consumed exactly once.
 	Mutations map[string][]fakeMutation
@@ -216,6 +220,18 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		return s.history(params)
 	case "session.keys":
 		return s.keys(params)
+	case "session.methods":
+		var p MethodsParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil || len(s.cfg.MethodsRaw) == 0 {
+			return nil, fakeBadParams()
+		}
+		return s.cfg.MethodsRaw, nil
+	case "session.branches":
+		var p BranchesParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil || len(s.cfg.BranchesRaw) == 0 {
+			return nil, fakeBadParams()
+		}
+		return s.cfg.BranchesRaw, nil
 	case "session.submit":
 		return s.mutation(MutationSessionSubmit, params)
 	case "session.stop":

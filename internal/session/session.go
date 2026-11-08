@@ -165,6 +165,11 @@ type Session struct {
 	closed      *appserver.ClosedNotice
 	terminalErr error
 
+	// methods and branches are optional daemon capability snapshots. They are
+	// read once during Open and never treated as a local source of session truth.
+	methods         appserver.MethodsResult
+	branchDirectory appserver.BranchesResult
+
 	errs       chan error
 	errMu      sync.Mutex
 	errsClosed bool
@@ -210,6 +215,25 @@ func OpenWithOptions(ctx context.Context, client *appserver.Client, features []s
 	if err := s.loadHistory(ctx, features); err != nil {
 		s.abortOpen()
 		return nil, err
+	}
+	// These are optional read paths. A daemon that does not advertise either
+	// capability is left untouched; advertised capabilities are authoritative and
+	// malformed/error replies fail Open rather than inventing local state.
+	if appserver.HasFeature(features, "session.methods") {
+		methods, err := appserver.SessionMethods(ctx, client, appserver.MethodsParams{SessionID: sessionID}, features)
+		if err != nil {
+			s.abortOpen()
+			return nil, err
+		}
+		s.methods = methods
+	}
+	if appserver.HasFeature(features, "session.branches") {
+		branches, err := appserver.SessionBranches(ctx, client, appserver.BranchesParams{SessionID: sessionID}, features)
+		if err != nil {
+			s.abortOpen()
+			return nil, err
+		}
+		s.branchDirectory = branches
 	}
 	return s, nil
 }
@@ -718,6 +742,21 @@ func (s *Session) PendingApprovals(branchID string) []appserver.ApprovalRequest 
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].RequestID < out[j].RequestID })
 	return out
+}
+
+// Methods returns the daemon-advertised session method table captured during
+// Open. An absent capability yields a zero result.
+func (s *Session) Methods() appserver.MethodsResult {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return appserver.MethodsResult{Methods: append([]appserver.MethodDeclaration(nil), s.methods.Methods...)}
+}
+
+// BranchDirectory returns the daemon branch directory captured during Open.
+func (s *Session) BranchDirectory() appserver.BranchesResult {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return appserver.BranchesResult{Branches: append([]appserver.BranchInfo(nil), s.branchDirectory.Branches...)}
 }
 
 // Branches returns the branches observed so far, sorted. Main is always present

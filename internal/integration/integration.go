@@ -123,6 +123,22 @@ func (c *SessionController) SubmitWithID(ctx context.Context, text string) (apps
 
 // Stop asks the App Server to stop the selected session's default branch.
 // Running state converges through the session.state stream notification.
+// Methods returns the daemon-advertised session method table captured during Open.
+func (c *SessionController) Methods() appserver.MethodsResult {
+	if c == nil || c.Session == nil {
+		return appserver.MethodsResult{}
+	}
+	return c.Session.Methods()
+}
+
+// BranchDirectory returns the daemon branch directory captured during Open.
+func (c *SessionController) BranchDirectory() appserver.BranchesResult {
+	if c == nil || c.Session == nil {
+		return appserver.BranchesResult{}
+	}
+	return c.Session.BranchDirectory()
+}
+
 func (c *SessionController) Stop(ctx context.Context) error {
 	if c == nil || c.Session == nil {
 		return fmt.Errorf("integration: no session")
