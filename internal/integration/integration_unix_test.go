@@ -174,6 +174,29 @@ func TestSessionControllerBridge(t *testing.T) {
 	if err != nil {
 		t.Fatalf("OpenSession: %v", err)
 	}
+	// A healthy attachment must not be replaced by an accidental reattach;
+	// this also pins the atomicity contract before exercising transport loss.
+	oldConn, oldSession := controller.Conn, controller.Session
+	if err := controller.Reattach(ctx); err == nil {
+		t.Fatal("Reattach on healthy session unexpectedly succeeded")
+	}
+	if controller.Conn != oldConn || controller.Session != oldSession {
+		t.Fatal("failed Reattach mutated the existing controller")
+	}
+	oldConn.Client().Close()
+	deadline := time.Now().Add(testWait)
+	for !controller.Session.Lost() && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !controller.Session.Lost() {
+		t.Fatal("session did not observe transport loss")
+	}
+	if err := controller.Reattach(ctx); err != nil {
+		t.Fatalf("Reattach after transport loss: %v", err)
+	}
+	if controller.Conn == oldConn || controller.Session == oldSession {
+		t.Fatal("successful Reattach retained stale controller")
+	}
 	t.Cleanup(func() {
 		closeCtx, closeCancel := context.WithTimeout(context.Background(), testWait)
 		defer closeCancel()

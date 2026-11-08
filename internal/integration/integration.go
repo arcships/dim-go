@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
 	"github.com/arcships/dimagent-mygo/internal/session"
@@ -18,6 +19,8 @@ type SessionController struct {
 	Supervisor *supervisor.Supervisor
 	Conn       *supervisor.Connection
 	Session    *session.Session
+
+	mu sync.Mutex
 }
 
 // OpenSession opens a dedicated stream through sup and loads the first history
@@ -147,6 +150,35 @@ func (c *SessionController) Stop(ctx context.Context) error {
 		return fmt.Errorf("integration: nil context")
 	}
 	return c.Session.Stop(ctx)
+}
+
+// Reattach reconnects the selected session after transport loss. It rebuilds
+// the view from App Server history and never uses the old projection as truth.
+func (c *SessionController) Reattach(ctx context.Context) error {
+	if c == nil || c.Supervisor == nil || c.Session == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return fmt.Errorf("integration: nil context")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.Session.Lost() {
+		return fmt.Errorf("integration: session transport is not lost")
+	}
+	conn, err := c.Supervisor.OpenStream(ctx)
+	if err != nil {
+		return err
+	}
+	fresh, err := session.OpenWithOptions(ctx, conn.Client(), conn.Features(), c.Session.SessionID(), session.OpenOptions{CloseTransport: conn.Close})
+	if err != nil {
+		conn.Close()
+		return err
+	}
+	old := c.Session
+	c.Conn, c.Session = conn, fresh
+	old.Release()
+	return nil
 }
 
 // Catalog reads the authoritative session list over the supervisor control
