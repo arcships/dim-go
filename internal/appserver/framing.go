@@ -13,6 +13,10 @@ import (
 // MaxFrameSize is the maximum number of JSON bytes in one NDJSON frame.
 const MaxFrameSize = 16 * 1024 * 1024
 
+// maxLineSize is MaxFrameSize plus the optional CRLF terminator, which is not
+// part of the JSON payload.
+const maxLineSize = MaxFrameSize + 2
+
 var ErrFrameTooLarge = errors.New("appserver: frame exceeds 16 MiB")
 
 // FrameReader reads LF-terminated NDJSON frames. It accepts CRLF and ignores
@@ -34,15 +38,11 @@ func (r *FrameReader) ReadFrame() ([]byte, error) {
 		part, err := r.r.ReadSlice('\n')
 		if len(part) > 0 {
 			frame = append(frame, part...)
-			line := part
-			if len(frame) > MaxFrameSize+1 { // allow one LF while checking below
+			if len(frame) > maxLineSize {
 				return nil, ErrFrameTooLarge
 			}
 			if err == nil {
-				line = frame
-				if len(line) > 0 && line[len(line)-1] == '\n' {
-					line = line[:len(line)-1]
-				}
+				line := frame[:len(frame)-1] // drop LF
 				if len(line) > 0 && line[len(line)-1] == '\r' {
 					line = line[:len(line)-1]
 				}
@@ -58,7 +58,9 @@ func (r *FrameReader) ReadFrame() ([]byte, error) {
 		}
 		if err != nil {
 			if errors.Is(err, bufio.ErrBufferFull) {
-				if len(frame) > MaxFrameSize {
+				// One trailing CR may still be waiting for its LF; anything
+				// longer can no longer become a valid frame.
+				if len(frame) > MaxFrameSize+1 {
 					return nil, ErrFrameTooLarge
 				}
 				continue
@@ -67,7 +69,11 @@ func (r *FrameReader) ReadFrame() ([]byte, error) {
 				if len(frame) == 0 {
 					return nil, io.EOF
 				}
-				if len(frame) > MaxFrameSize {
+				line := frame
+				if line[len(line)-1] == '\r' {
+					line = line[:len(line)-1]
+				}
+				if len(line) > MaxFrameSize {
 					return nil, ErrFrameTooLarge
 				}
 				return nil, io.ErrUnexpectedEOF
@@ -110,7 +116,7 @@ func ValidateEnvelope(raw []byte) error {
 			return errors.New("request/notification must not contain result or error")
 		}
 		if hasID {
-			if string(fields["id"]) == "null" {
+			if isJSONNull(fields["id"]) {
 				return errors.New("request id must be a number or string")
 			}
 			return validateID(fields["id"])
@@ -120,7 +126,7 @@ func ValidateEnvelope(raw []byte) error {
 	if !hasID || hasResult == hasError {
 		return errors.New("reply must contain exactly one of result or error and an id")
 	}
-	if string(fields["id"]) == "null" {
+	if isJSONNull(fields["id"]) {
 		if !hasError {
 			return errors.New("null id is only valid on error replies")
 		}
@@ -128,18 +134,29 @@ func ValidateEnvelope(raw []byte) error {
 		return err
 	}
 	if hasError {
+		// A reply's error must be the §4 object: code and message are required,
+		// and data, when present, must carry a string appError. Rejecting a
+		// malformed error here keeps it from surfacing as a zero-value daemon
+		// error on some caller's request.
 		var e struct {
-			Code int             `json:"code"`
-			Data json.RawMessage `json:"data"`
+			Code    *int            `json:"code"`
+			Message *string         `json:"message"`
+			Data    json.RawMessage `json:"data"`
+		}
+		if isJSONNull(fields["error"]) {
+			return errors.New("error must be an object")
 		}
 		if err := json.Unmarshal(fields["error"], &e); err != nil {
 			return fmt.Errorf("invalid error object: %w", err)
 		}
-		if len(e.Data) > 0 && string(e.Data) != "null" {
+		if e.Code == nil || e.Message == nil {
+			return errors.New("error object must contain code and message")
+		}
+		if len(e.Data) > 0 {
 			var data struct {
-				AppError string `json:"appError"`
+				AppError *string `json:"appError"`
 			}
-			if err := json.Unmarshal(e.Data, &data); err != nil || data.AppError == "" {
+			if err := json.Unmarshal(e.Data, &data); err != nil || data.AppError == nil {
 				return errors.New("error.data.appError must be a string")
 			}
 		}
@@ -157,4 +174,10 @@ func validateID(raw json.RawMessage) error {
 		return nil
 	}
 	return errors.New("id must be a number or string")
+}
+
+// isJSONNull reports whether raw is the JSON literal null, ignoring
+// surrounding whitespace.
+func isJSONNull(raw json.RawMessage) bool {
+	return bytes.Equal(bytes.TrimSpace(raw), []byte("null"))
 }
