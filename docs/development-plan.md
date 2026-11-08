@@ -113,11 +113,11 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - 纵向闭环未开始：`cmd/dimagent/main.go` 仍是手写 fixture，没有 supervisor → appserver → projection → UI 接线（Milestone 3）。
 - reconnect/re-attach/domain resync 未实现；Milestone 2 任务 5 仍未完成。
 - `session.create`、`session.keys`、`session.branches`、`session.input_lookup`、approval mutation 和 attachment 上传没有 Go 实现；对应入口保持 WIP。
-- 没有 real-daemon 测试：本机未找到 `dim-app-server`（`target/{debug,release}`、`../dim/target`、runtime 和 `.tmp` 路径均不存在，`DIMCODE_APP_SERVER_BIN` 未设置），不宣称 real-daemon 通过。
+- real-daemon 控制面 smoke 尚未运行：`../dim-2` 可用 `cargo build --locked -p dim-app-server` 构建独立 binary，Go 侧通过 `DIMAGENT_REAL_APP_SERVER_BIN` 显式指定；未运行前不宣称 real-daemon 通过。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 测试是 headless。
 - 交叉编译只证明能编译，Windows named pipe 和 Linux GUI 运行时未验证。
 
-**Next action**：主 agent 审查 Wave 1 diff；通过后只由一个 integration agent 接通 Wave 2 闭环。UI 手测和 real-daemon 验收在二进制和目标平台可用后单独记录。
+**Next action**：用 `../dim-2` 构建 `dim-app-server` 后运行 opt-in 的控制面 smoke；继续接通 session/UI 闭环。真实窗口、IME/VoiceOver 和跨平台 GUI 手测仍单独记录，不因控制面 smoke 通过而宣称 preview 可用。
 
 ## Wave 2 进展：Session stream、mutation helpers、input blocks 和 WIP 入口（2026-11-08）
 
@@ -160,12 +160,12 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - `session.methods` 能力门禁、`session.keys`/`session.branches`、`session.input_lookup` 和 `session.create` 没有 Go 实现；unknown-result 已能返回 submission UUID，但读回方法本身仍是 WIP。
 - approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
 - `internal/session` 的 branch 支持是“每个 branch 独立 reducer/transient/state”，没有 branch directory、cut point 或 side-chat 创建流程。
-- 没有 real-daemon 测试：本机仍缺 `dim-app-server`，不宣称 real-daemon 通过。
+- real-daemon 控制面 smoke 已有 opt-in 测试，但尚未运行；使用 `../dim-2` 构建的 binary 和 `DIMAGENT_REAL_APP_SERVER_BIN`，未运行前不宣称 real-daemon 通过。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 证据仍是 `headless`。
 - `subscription_changed` 恢复和 Windows/Linux GUI 运行时仍未验证。
 - `internal/supervisor` 的 `TestDefaultSpawnRunsDetachedAndLogs` 在并行全量 race 下出现过一次 spawn child 未退出的时序 flake；单包和复跑通过，仍应加宽等待或隔离。
 
-**Next action**：为 `cmd/dimagent` 增加会话选择、live 事件刷新和 submit/stop/approval 接线，并补窗口级验收；真实窗口手测和 real-daemon 验收在二进制和目标平台可用后单独记录，不因底层组件通过而提前标记 preview 可用。
+**Next action**：运行 `../dim-2` binary 驱动的 real-daemon 控制面 smoke，并为 `cmd/dimagent` 增加会话选择、live 事件刷新和 submit/stop/approval 接线；真实窗口手测和 real-daemon session 流程仍单独记录，不因控制面 smoke 通过而提前标记 preview 可用。
 
 ## Milestone 1：Native UI 静态壳
 
@@ -358,9 +358,9 @@ Next action
 
 - 已通过（`headless`）：MyGo v0.8.3 List/FollowEnd、Markdown、accessibility、IME 基础测试；项目 `go build ./...`、`go test -count=1 ./...`、`go test -race -count=1 ./...`、六目标 `go vet ./...`、Windows/Linux 交叉编译、`gofmt -l .` 和 `git diff --check`。
 - 已通过（`headless` + `fake-server`）：项目内 FollowEnd/Markdown/键盘/状态/AX fixtures、WIP visible-disabled fixtures、Go fake server/fake daemon、session stream/attach、四个 mutation 的成功/拒绝/unknown-result 场景、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close 测试、viewmodel 行映射、supervisor dial/spawn/close/endpoint/reconnect QA、14 个 projection golden fixtures。
-- 仍是底层证据：session stream 只到 fake peer，supervisor 只到 fake daemon；没有 `real-daemon` 证据，也不能替代真实窗口、IME 或 VoiceOver 手测。
+- 仍是底层证据：session stream 只到 fake peer；real-daemon 控制面 smoke 已定义但未运行，不能替代真实 session 流、窗口、IME 或 VoiceOver 手测。
 - 已通过 Electron 行为基线：protocol 16、shared 4、renderer IME 7、FollowEnd 64、Markdown 53，以及 typecheck/lint/boundary/docs。
-- 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon 缺 `dim-app-server`；两个浏览器 E2E 存在 bridge harness 漂移。
+- 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon 控制面 smoke 尚未运行（binary 可由 `../dim-2` 构建）；两个浏览器 E2E 存在 bridge harness 漂移。
 - 尚未满足 Wave 0 退出：真实窗口手测、真实 IME/VoiceOver、字体 fallback 和跨平台 GUI 运行时验证。
 - 证据等级固定为 `headless`、`fake-server`、`real-daemon`、`manual`、`packaged`；低等级证据不得宣称高等级能力通过。
 

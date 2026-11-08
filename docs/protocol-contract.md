@@ -428,7 +428,7 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 - 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（8 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
 - 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥和 cmd 的 opt-in 启动路径，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 session 层 re-attach/resync 未覆盖；
-- 未通过：真实 daemon 验收未运行；本机缺 `dim-app-server`（`DIMCODE_APP_SERVER_BIN` 未设置，target/runtime/.tmp 路径均不存在），因此保持 blocked，不用 fake 结果宣称 real-daemon 通过。
+- 待运行（`real-daemon`）：在 `../dim-2` 执行 `cargo build --locked -p dim-app-server`，再设置 `DIMAGENT_REAL_APP_SERVER_BIN` 运行 `TestRealDaemonSmoke`，覆盖 spawn/hello/catalog/close 控制面；未运行前保持未验证，不用 fake 结果宣称 real-daemon 通过。
 
 ## 21. 未决问题与 blocker
 
@@ -437,5 +437,5 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 3. `session.history` 的 `through` 在上游是否必填、`through < after` 是否报错，未验证。
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
-6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，但没有 real-daemon 证据。
+6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 控制面 smoke 已定义但尚未运行，不代表真实 session 流或 GUI 通过。
 7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 session 层 re-attach/resync 未实现；入口保持 WIP，不用本地替代事实。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
