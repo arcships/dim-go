@@ -85,7 +85,7 @@ Changed files：`go.mod`、`go.sum`、`cmd/dimagent/main.go`、`internal/ui/shel
 
 Task / owner：Wave 1 Protocol、Projection、Native UX agents；由 merge reviewer 按 appserver/supervisor/projection/ui/docs 分 scope 提交。
 
-Changed files：`internal/appserver/`（wire、framing、client、catalog、summaries、history、errors、catalog_refresher、fake tests、`testdata/wire/notifications.ndjson`）、`internal/supervisor/`（endpoint、dial、spawn、supervisor、wire、fake daemon/pipe tests）、`internal/projection/`（projection、transient、golden runner、12 个 `testdata/projection/*.json`）、`internal/ui/`（shell、tokens、connection、List/Markdown/composer、keyboard/status/accessibility/follow-end tests）。
+Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/appserver/`（wire、framing、client、catalog、summaries、history、errors、catalog_refresher、fake tests、`testdata/wire/notifications.ndjson`）、`internal/supervisor/`（endpoint、dial、spawn、supervisor、wire、fake daemon/pipe tests）、`internal/projection/`（projection、transient、golden runner、12 个 `testdata/projection/*.json`）、`internal/ui/`（shell、tokens、connection、List/Markdown/composer、keyboard/status/accessibility/follow-end tests）。
 
 **实现范围**
 
@@ -121,9 +121,9 @@ Changed files：`internal/appserver/`（wire、framing、client、catalog、summ
 
 ## Wave 2 进展：Session stream、mutation helpers、input blocks 和 WIP 入口（2026-11-08）
 
-Task / owner：Wave 2 App Server、Session、Viewmodel、Integration、Projection、Supervisor QA 和 Native UX agents。Projection、Supervisor QA、Native UX 与 App Server hardening 已分别提交 `6dd3be3`、`892d7b6`、`bf74da2`、`b0f853f`/`3ebfea3`；`internal/session` 为 `8c4e7e8`/`064c58a`，viewmodel 为 `36703e9`，integration 桥为 `00e3af3`/`5214293`，supervisor reconnect 为 `f41f276`/`415908c`/`2eb89f8`，UI tool/run 为 `be341f5`，appserver 流所有权修复为 `7b0e728`；窗口接线仍待同步。
+Task / owner：Wave 2 App Server、Session、Viewmodel、Integration、Projection、Supervisor QA 和 Native UX agents。Projection、Supervisor QA、Native UX 与 App Server hardening 已分别提交 `6dd3be3`、`892d7b6`、`bf74da2`、`b0f853f`/`3ebfea3`；`internal/session` 为 `8c4e7e8`/`064c58a`，viewmodel 为 `36703e9`，integration 桥为 `00e3af3`/`5214293`，窗口接线为 `e7b8e72`，supervisor reconnect 为 `f41f276`/`415908c`/`2eb89f8`，UI tool/run 为 `be341f5`，appserver 流所有权修复为 `7b0e728`；会话切换、live 刷新和 mutation UI 仍待同步。
 
-Changed files：`internal/appserver/`（`session_stream.go`、`mutations.go`、`client.go`、`wire.go`、`fake_test.go`、对应 tests）、`internal/session/`（`session.go`、`history.go`、`adapter.go`、`fake_test.go`、`session_test.go`）、`internal/viewmodel/`（`viewmodel.go`、`viewmodel_test.go`）、`internal/integration/`（`integration.go`、`integration_test.go`、`integration_unix_test.go`）、`internal/projection/`（`projection.go`、`projection_test.go`、新增 `testdata/projection/user-content-blocks.json` 和 `shell-input-raw-block.json`）、`internal/supervisor/`（`supervisor.go`、`dial.go`、`watch.go`、`reconnect_unix_test.go`、`watch_test.go`、`fake_daemon_unix_test.go` 等）、`internal/ui/`（`shell.go`、`wip.go`、`run.go`、`tool.go`、`tokens.go` 及对应 tests）、`README.md` 和 `docs/` 的四份合同/计划。
+Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/appserver/`（`session_stream.go`、`mutations.go`、`client.go`、`wire.go`、`fake_test.go`、对应 tests）、`internal/session/`（`session.go`、`history.go`、`adapter.go`、`fake_test.go`、`session_test.go`）、`internal/viewmodel/`（`viewmodel.go`、`viewmodel_test.go`）、`internal/integration/`（`integration.go`、`integration_test.go`、`integration_unix_test.go`）、`internal/projection/`（`projection.go`、`projection_test.go`、新增 `testdata/projection/user-content-blocks.json` 和 `shell-input-raw-block.json`）、`internal/supervisor/`（`supervisor.go`、`dial.go`、`watch.go`、`reconnect_unix_test.go`、`watch_test.go`、`fake_daemon_unix_test.go` 等）、`internal/ui/`（`shell.go`、`wip.go`、`run.go`、`tool.go`、`tokens.go` 及对应 tests）、`README.md` 和 `docs/` 的四份合同/计划。
 
 **实现范围**
 
@@ -134,7 +134,7 @@ Changed files：`internal/appserver/`（`session_stream.go`、`mutations.go`、`
 - Supervisor QA：补 dial/hello 超时、已分类 dial 错误保留、换行包装的 connect 错误分类、错误 network 拒绝、spawn 失败不声明 ownership、等待 listen 上限、只关闭自有 daemon、关闭时先停 stream 再 ping、按单连接重试、shutdown 错误、context 截止、endpoint 相对路径和 symlink canonicalize、按次返回 ping 连接数的 fake daemon。
 - Supervisor reconnect：`Reconnect` 单飞、每次 reconnect 重新解析 endpoint、先关闭旧 attachment、只在自有 daemon 缺失时 respawn 一次、按 backoff 重试；hello 的 `instanceId` 变化推进 generation，旧 connection 标记 stale；`watch.go` 记录 transport 终止原因；Close 期间允许在飞连接注册并在随后关闭。
 - Viewmodel：`internal/viewmodel` 把 projection snapshot 映射为 native 行（user/assistant/tool），工具卡片只保留有界 params/result 预览，`RunStateFrom` 只作为状态行提示；不读 daemon、不持有事实。
-- Integration 桥：`internal/integration` 组合 supervisor 的专用 stream、`internal/session` 和 viewmodel，提供 `OpenSession`/`Catalog`/`State`/`Close`；错误前缀、nil session 安全状态和 catalog limit=200 已校验。fake daemon 端到端测试覆盖控制连接 → 流 → 首屏 → rows → catalog → detach；`cmd/dimagent` 尚未接线。
+- Integration 桥：`internal/integration` 组合 supervisor 的专用 stream、`internal/session` 和 viewmodel，提供 `OpenSession`/`Catalog`/`State`/`Close`；错误前缀、nil session 安全状态和 catalog limit=200 已校验。fake daemon 端到端测试覆盖控制连接 → 流 → 首屏 → rows → catalog → detach。`cmd/dimagent` 在设置 `DIMAGENT_PRODUCT_HOME` 时走 supervisor → catalog → 首个 session → integration.State，未设置时显示未连接；启动/catalog/open 失败显示错误 banner，不回退 fixture。窗口暂不刷新 live 事件。
 - UI tool/run：assistant、user、approval 之外增加 tool 卡片和 `RunRunning`/`RunStopping` 状态行；Stop 入口只在 running 时以 visible-disabled WIP 出现。
 - Session follow-up：`SubmitWithID`/`SubmitBranchWithID` 返回 submission UUID，供 unknown-result 时用 `session.input_lookup` 读回而不是重发；`openFailure` 区分 closed/lost/detached，history 期间 transport loss 仍 fail-fast。
 - UI WIP affordances：`New session`、`Reconnect`（仅在非 ready 时出现）、`Attach file` 和 approval 的 `Approve`/`Deny` 保持可见、dimmed、accessibility 标记 disabled，并用描述说明等待的上游方法；WIP 入口没有点击处理，不会报告 App Server 未执行的成功。Tab 顺序包含这些入口，headless 测试验证其可发现且不伪造成功。
@@ -144,8 +144,8 @@ Changed files：`internal/appserver/`（`session_stream.go`、`mutations.go`、`
 | 命令 | 结果 |
 |---|---|
 | `go build ./...` | 通过 |
-| `go test -count=1 ./...` | 7 个包全部 `ok`（appserver、integration、session、projection、supervisor、ui、viewmodel） |
-| `go test -race -count=1 ./...` | 7 个包全部 `ok`（一次全量 race 曾出现 supervisor spawn 测试时序 flake，单包与复跑通过） |
+| `go test -count=1 ./...` | 8 个包全部 `ok`（cmd、appserver、integration、session、projection、supervisor、ui、viewmodel） |
+| `go test -race -count=1 ./...` | 8 个包全部 `ok`（一次全量 race 曾出现 supervisor spawn 测试时序 flake，单包与复跑通过） |
 | `go test -count=20 ./internal/session`、`go test -race -count=5 ./internal/session` | 通过 |
 | `go vet ./...` | 通过 |
 | `gofmt -l .`、`git diff --check` | 无输出、通过 |
@@ -155,7 +155,7 @@ Changed files：`internal/appserver/`（`session_stream.go`、`mutations.go`、`
 
 **Known gaps/blockers**
 
-- 纵向闭环仍未接通：`cmd/dimagent` 仍使用手写 fixture，`internal/integration` 虽然已把 supervisor → session → viewmodel 组合起来，但还没有接到窗口/事件循环。
+- 窗口目前只渲染启动时的一次快照：`cmd/dimagent` 在设置 `DIMAGENT_PRODUCT_HOME` 时会启动 supervisor、读 catalog 并打开第一个 session，但没有 session 切换、live 事件刷新、submit/stop 或审批决策接线。
 - session 层 re-attach/domain resync 未实现：supervisor 已提供 `Reconnect`、generation 和 `Connection.Done`/`Err`，但 `internal/session` 不会自己重开或重建 attachment，需要上层编排。
 - `session.methods` 能力门禁、`session.keys`/`session.branches`、`session.input_lookup` 和 `session.create` 没有 Go 实现；unknown-result 已能返回 submission UUID，但读回方法本身仍是 WIP。
 - approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
@@ -165,7 +165,7 @@ Changed files：`internal/appserver/`（`session_stream.go`、`mutations.go`、`
 - `subscription_changed` 恢复和 Windows/Linux GUI 运行时仍未验证。
 - `internal/supervisor` 的 `TestDefaultSpawnRunsDetachedAndLogs` 在并行全量 race 下出现过一次 spawn child 未退出的时序 flake；单包和复跑通过，仍应加宽等待或隔离。
 
-**Next action**：把 `internal/integration` 接到 `cmd/dimagent` 的窗口/事件循环，并补 supervisor 生命周期（启动、选择 session、提交、关闭）的窗口级验收；真实窗口手测和 real-daemon 验收在二进制和目标平台可用后单独记录，不因底层组件通过而提前标记 preview 可用。
+**Next action**：为 `cmd/dimagent` 增加会话选择、live 事件刷新和 submit/stop/approval 接线，并补窗口级验收；真实窗口手测和 real-daemon 验收在二进制和目标平台可用后单独记录，不因底层组件通过而提前标记 preview 可用。
 
 ## Milestone 1：Native UI 静态壳
 
@@ -352,7 +352,7 @@ Next action
 - Wave 2 Projection agent：已补 input content blocks 和 shell-input raw block，golden fixtures 增至 14 个。
 - Wave 2 Supervisor QA agent：已补 dial、spawn、close、endpoint 和 fake daemon 的失败路径测试。
 - Wave 2 Native UX agent：已补 visible-disabled WIP 入口、tool 卡片和 run 状态。
-- Wave 2 integration agent：已完成 supervisor → session → viewmodel 的 `internal/integration` 桥和 fake daemon 端到端测试（`00e3af3`/`5214293`）；尚未接到 `cmd/dimagent`。
+- Wave 2 integration agent：已完成 supervisor → session → viewmodel 的 `internal/integration` 桥、fake daemon 端到端测试和 `cmd/dimagent` opt-in 接线（`00e3af3`/`5214293`/`e7b8e72`）；session 切换、live 刷新和 mutation UI 仍未接线。
 
 ### QA 基线（2026-11-08）
 

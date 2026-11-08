@@ -57,16 +57,16 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 
 ## Milestone 3：第一个纵向闭环
 
-底层组件已实现（`headless` + `fake-server`），窗口接线未开始。
+启动路径已接入（`headless` + `fake-server`）；交互和 live 刷新未完成。
 
-- open session（`SessionStream` + `internal/session` + `internal/integration` 已有，未接入窗口）
-- render history（projection、首屏 history 和 viewmodel 已有，未接入窗口）
+- open session（`cmd/dimagent` 在 `DIMAGENT_PRODUCT_HOME` 下经 supervisor → integration 打开首个 session）
+- render history（首屏 history + viewmodel 已渲染一次快照）
 - submit（`internal/session.Submit`/`SubmitWithID` 已有，未接入窗口）
-- live event（stream 路由和 session drain 已有，未接入窗口）
+- live event（stream 路由和 session drain 已有，窗口不刷新）
 - stop（`internal/session.Stop` 已有，未接入窗口）
-- reconnect/resync（supervisor `Reconnect`/generation 已有；session re-attach/rebuild 未实现）
+- reconnect/resync（supervisor `Reconnect`/generation 已有；session re-attach/rebuild 和 UI 重连未实现）
 
-`cmd/dimagent` 仍使用手写 fixture，尚未接线 supervisor → session → viewmodel → UI 的窗口/事件循环。
+`cmd/dimagent` 未设置 `DIMAGENT_PRODUCT_HOME` 时显示未连接，不再使用手写 fixture。
 
 ## Milestone 4：核心能力
 
