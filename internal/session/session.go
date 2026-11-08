@@ -172,10 +172,9 @@ type Session struct {
 
 	done chan struct{}
 
-	closeMu      sync.Mutex
-	closeDone    chan struct{}
-	closeStarted bool
-	closeErr     error
+	closeMu   sync.Mutex
+	closeDone chan struct{}
+	closeErr  error
 }
 
 // Open opens one session stream, loads the first-screen history window, and
@@ -316,7 +315,9 @@ func (s *Session) openFailure(cause error) error {
 	if closed, ok := s.Closed(); ok {
 		return &appserver.SessionClosedError{SessionID: s.sessionID, Reason: closed.Reason}
 	}
-	switch s.stream.State() {
+	switch state := s.stream.State(); state {
+	case appserver.StreamStateClosed:
+		return &appserver.SessionClosedError{SessionID: s.sessionID, Reason: s.stream.Reason()}
 	case appserver.StreamStateLost:
 		return &appserver.LocalError{AppError: "connection_closed"}
 	case appserver.StreamStateDetached:
@@ -839,7 +840,6 @@ func (s *Session) close(ctx context.Context, detach bool) error {
 	s.closeMu.Lock()
 	if s.closeDone == nil {
 		s.closeDone = make(chan struct{})
-		s.closeStarted = true
 		done := s.closeDone
 		s.closeMu.Unlock()
 		err := s.performClose(ctx, detach)
@@ -906,26 +906,41 @@ func contextError(ctx context.Context) error {
 // Submit sends a text submission on the default branch with a fresh UUID
 // submission id. It never retries; unknown results stay observable.
 func (s *Session) Submit(ctx context.Context, text string) (appserver.SubmitResult, error) {
-	return s.SubmitBranch(ctx, s.branchID, text)
+	result, _, err := s.SubmitWithID(ctx, text)
+	return result, err
+}
+
+// SubmitWithID sends a submission and returns its UUID for unknown-result read-back.
+func (s *Session) SubmitWithID(ctx context.Context, text string) (appserver.SubmitResult, string, error) {
+	return s.SubmitBranchWithID(ctx, s.branchID, text)
 }
 
 // SubmitBranch sends a text submission on branchID with a fresh UUID
 // submission id. submissionId is the idempotency key; a caller must read the
 // input back instead of resending when the result is unknown.
 func (s *Session) SubmitBranch(ctx context.Context, branchID, text string) (appserver.SubmitResult, error) {
+	result, _, err := s.SubmitBranchWithID(ctx, branchID, text)
+	return result, err
+}
+
+// SubmitBranchWithID sends a text submission on branchID and returns the UUID
+// that was sent, so an unknown result can be read back with session.input_lookup
+// without resending.
+func (s *Session) SubmitBranchWithID(ctx context.Context, branchID, text string) (appserver.SubmitResult, string, error) {
 	if branchID == "" {
 		branchID = s.branchID
 	}
 	submissionID, err := newUUID()
 	if err != nil {
-		return appserver.SubmitResult{}, err
+		return appserver.SubmitResult{}, "", err
 	}
-	return appserver.Submit(ctx, s.client, appserver.SubmitParams{
+	result, err := appserver.Submit(ctx, s.client, appserver.SubmitParams{
 		SessionID:    s.sessionID,
 		SubmissionID: submissionID,
 		BranchID:     branchID,
 		Text:         text,
 	})
+	return result, submissionID, err
 }
 
 // Stop stops the default branch.

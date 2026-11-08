@@ -593,6 +593,24 @@ func TestOpenFailureClosesOwnedClient(t *testing.T) {
 	})
 }
 
+func TestOpenFailsWhenTransportLostDuringHistory(t *testing.T) {
+	head := int64(10)
+	var server *fakeServer
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(head)},
+		History: func(appserver.HistoryParams) (any, *fakeRPCError) {
+			server.closeConn()
+			return historyPage(t, nil, head, head, true, nil, nil), nil
+		},
+	}
+	var client *appserver.Client
+	server, client = newFakeServer(t, cfg)
+	if _, err := Open(testContext(t), client, []string{"session.history"}, "s1"); err == nil {
+		t.Fatal("Open succeeded after the transport was lost during history")
+	}
+	waitClientDone(t, client)
+}
+
 func TestTransientApprovalModelProgressAndUnknownNotices(t *testing.T) {
 	server, _, s := openTestSession(t, fakeConfig{
 		Attach:  appserver.AttachResult{Sequence: int64Ptr(1)},
@@ -760,6 +778,36 @@ func TestSubmitUsesUUIDAndDoesNotResendUnknownResults(t *testing.T) {
 		}
 		if calls := server.recorded("session.submit"); len(calls) != 1 {
 			t.Fatalf("submit calls = %d, want exactly one", len(calls))
+		}
+	})
+
+	t.Run("SubmitWithID returns the UUID for unknown-result read-back", func(t *testing.T) {
+		gate := newFakeGate()
+		t.Cleanup(gate.open)
+		server, _, s := openTestSession(t, fakeConfig{
+			Attach:       appserver.AttachResult{Sequence: int64Ptr(1)},
+			History:      emptyHistory(t, 1),
+			MutationGate: map[string]*fakeGate{"session.submit": gate},
+			Mutations:    map[string][]fakeMutation{"session.submit": {{Result: json.RawMessage(`{}`)}}},
+		}, []string{"session.history"}, OpenOptions{})
+
+		ctx, cancel := context.WithTimeout(context.Background(), 40*time.Millisecond)
+		defer cancel()
+		_, submissionID, err := s.SubmitWithID(ctx, "hello")
+		if !errors.Is(err, appserver.ErrUnknownResult) {
+			t.Fatalf("SubmitWithID error = %v, want ErrUnknownResult", err)
+		}
+		assertUUIDv4(t, submissionID)
+		calls := server.recorded("session.submit")
+		if len(calls) != 1 {
+			t.Fatalf("submit calls = %d, want exactly one", len(calls))
+		}
+		var params appserver.SubmitParams
+		if err := json.Unmarshal(calls[0].Params, &params); err != nil {
+			t.Fatalf("submit params: %v", err)
+		}
+		if params.SubmissionID != submissionID {
+			t.Fatalf("returned submission id %q != sent %q", submissionID, params.SubmissionID)
 		}
 	})
 }
