@@ -328,6 +328,76 @@ func TestAppStopReachesSession(t *testing.T) {
 
 // TestAppSelectOpensSession checks the selection callback: the sidebar's chosen
 // id reaches the opener and becomes the current session.
+// TestAppStaleSelectionCannotOverwriteNewerSelection verifies that a slower
+// attachment cannot publish its view after a newer sidebar choice. Both
+// attachments still go through the controller opener; the guard only protects
+// window state from stale results.
+func TestAppStaleSelectionCannotOverwriteNewerSelection(t *testing.T) {
+	firstStarted := make(chan struct{})
+	releaseFirst := make(chan struct{})
+	opened := make(chan string, 2)
+	first := &fakeSession{view: &dimui.State{Selected: "s1", Connection: dimui.ConnReady}}
+	second := &fakeSession{view: &dimui.State{Selected: "s2", Connection: dimui.ConnReady}}
+	b := &sessionBridge{}
+	b.openSession = func(_ context.Context, _ *supervisor.Supervisor, id string) (sessionActions, error) {
+		opened <- id
+		if id == "s1" {
+			close(firstStarted)
+			<-releaseFirst
+			return first, nil
+		}
+		return second, nil
+	}
+	a := &app{
+		state:  &dimui.State{Sessions: []dimui.Session{{ID: "s1"}, {ID: "s2"}}},
+		bridge: b,
+	}
+	updates := make(chan struct{}, 2)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		updates <- struct{}{}
+	}
+	a.bind()
+	a.state.Selected = "s1"
+	a.state.OnSelect("s1")
+	select {
+	case got := <-opened:
+		if got != "s1" {
+			t.Fatalf("first open = %q, want s1", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("first selection did not start")
+	}
+	select {
+	case <-firstStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first attachment did not reach opener")
+	}
+	// The second selection supersedes the first while its attachment is in flight.
+	a.state.Selected = "s2"
+	a.state.OnSelect("s2")
+
+	// The opener serializes attachments; release the first, then wait for the
+	// second controller's update callback, which synchronizes all state reads.
+	close(releaseFirst)
+	select {
+	case got := <-opened:
+		if got != "s2" {
+			t.Fatalf("second open = %q, want s2", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("second selection did not reach opener")
+	}
+	select {
+	case <-updates:
+	case <-time.After(2 * time.Second):
+		t.Fatal("new selection did not publish a view")
+	}
+	if b.summary.SessionID != "s2" || a.state.Selected != "s2" || a.state.Connection != dimui.ConnReady {
+		t.Fatalf("new selection did not win: state=%#v summary=%#v", a.state, b.summary)
+	}
+}
+
 func TestAppSelectOpensSession(t *testing.T) {
 	opened := make(chan string, 1)
 	live := make(chan struct{}, 1)

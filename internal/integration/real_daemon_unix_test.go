@@ -78,6 +78,15 @@ func TestRealDaemonSmoke(t *testing.T) {
 	if _, err := Catalog(ctx, sup); err != nil {
 		t.Fatalf("catalog: %v", err)
 	}
+	closeCtx, cancelClose := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancelClose()
+	report, err := sup.Close(closeCtx)
+	if err != nil {
+		t.Fatalf("close real daemon: %v", err)
+	}
+	if !report.Owned || !report.Shutdown {
+		t.Fatalf("close report = %+v, want owned and shutdown", report)
+	}
 }
 
 // TestRealDaemonSessionFlow validates the public create -> attach -> history ->
