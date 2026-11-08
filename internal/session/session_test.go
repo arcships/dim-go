@@ -978,7 +978,7 @@ func TestLatestTurnCapAndProtocolErrors(t *testing.T) {
 		if status.Mode != HistoryModeLatestTurn || status.Through != 0 || status.TurnStart != nil || status.Pages != 1 {
 			t.Fatalf("history status = %#v", status)
 		}
-		if calls := len(server.recorded("session.history")); calls != 1 {
+		if calls := len(server.callsFor("session.history")); calls != 1 {
 			t.Fatalf("history calls = %d, want 1", calls)
 		}
 	})
