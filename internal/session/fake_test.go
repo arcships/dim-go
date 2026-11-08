@@ -68,6 +68,8 @@ type fakeConfig struct {
 	History      fakeHistoryFunc
 	Keys         any
 	KeysErr      *fakeRPCError
+	Methods      any
+	MethodsErr   *fakeRPCError
 	DetachErr    *fakeRPCError
 	InputLookup  fakeInputLookupFunc
 	Mutations    map[string][]fakeMutation
@@ -188,6 +190,18 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, invalidParams()
 		}
 		return s.cfg.History(p)
+	case "session.methods":
+		var p appserver.MethodsParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.MethodsErr != nil {
+			return nil, s.cfg.MethodsErr
+		}
+		if s.cfg.Methods == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.Methods, nil
 	case "session.keys":
 		var p appserver.KeysParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {

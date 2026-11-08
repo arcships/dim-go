@@ -84,6 +84,52 @@ func TestAdaptEventBounds(t *testing.T) {
 	}
 }
 
+func TestSessionMethodsSnapshotAndCapabilityGate(t *testing.T) {
+	cfg := fakeConfig{
+		Attach:  appserver.AttachResult{Sequence: int64Ptr(0)},
+		History: emptyHistory(t, 0),
+		Methods: appserver.MethodsResult{Methods: []appserver.MethodDeclaration{{Name: "session.rename", Mutating: true}}},
+	}
+	server, _, s := openTestSession(t, cfg, []string{"session.history", "session.methods"}, OpenOptions{})
+	got := s.Methods()
+	if len(got.Methods) != 1 || got.Methods[0].Name != "session.rename" || !got.Methods[0].Mutating {
+		t.Fatalf("methods = %#v", got)
+	}
+	got.Methods[0].Name = "mutated"
+	if again := s.Methods(); again.Methods[0].Name != "session.rename" {
+		t.Fatalf("methods accessor did not copy: %#v", again)
+	}
+	found := false
+	for _, call := range server.callsSnapshot() {
+		if call.Method == "session.methods" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("session.methods was not requested with capability")
+	}
+}
+
+func TestSessionMethodsErrorFailsOpen(t *testing.T) {
+	_, client := newFakeServer(t, fakeConfig{Attach: appserver.AttachResult{Sequence: int64Ptr(0)}, History: emptyHistory(t, 0), MethodsErr: unknownMethod()})
+	_, err := OpenWithOptions(testContext(t), client, []string{"session.history", "session.methods"}, "s1", OpenOptions{})
+	if err == nil {
+		t.Fatal("Open unexpectedly succeeded after session.methods error")
+	}
+}
+
+func TestSessionMethodsCapabilityAbsentDoesNotRequest(t *testing.T) {
+	server, _, s := openTestSession(t, fakeConfig{Attach: appserver.AttachResult{Sequence: int64Ptr(0)}, History: emptyHistory(t, 0), Methods: appserver.MethodsResult{Methods: []appserver.MethodDeclaration{{Name: "session.rename"}}}}, []string{"session.history"}, OpenOptions{})
+	if got := s.Methods(); len(got.Methods) != 0 {
+		t.Fatalf("methods without capability = %#v", got)
+	}
+	for _, call := range server.callsSnapshot() {
+		if call.Method == "session.methods" {
+			t.Fatal("session.methods requested without capability")
+		}
+	}
+}
+
 func TestSessionKeysSnapshotCapabilityAndCopy(t *testing.T) {
 	through := int64(0)
 	cfg := fakeConfig{
