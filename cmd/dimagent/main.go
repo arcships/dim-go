@@ -205,7 +205,7 @@ func applyView(state, view *dimui.State) {
 	state.Run = view.Run
 	state.Messages = append([]dimui.Message(nil), view.Messages...)
 	state.ModelProgress = view.ModelProgress
-	state.Notices = append([]string(nil), view.Notices...)
+	state.Notices = append([]dimui.Notice(nil), view.Notices...)
 }
 
 func summaryForRow(row dimui.Session) appserver.SessionSummary {
