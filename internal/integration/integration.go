@@ -20,7 +20,10 @@ type SessionController struct {
 	Conn       *supervisor.Connection
 	Session    *session.Session
 
-	mu sync.Mutex
+	// mu protects the active connection/session pair. Reattach swaps both
+	// pointers atomically; readers hold the read lock for the duration of any
+	// operation that uses the pair so they cannot observe a half-swapped view.
+	mu sync.RWMutex
 }
 
 // CreateSession creates a session over the public control connection, then
@@ -73,11 +76,16 @@ func OpenSession(ctx context.Context, sup *supervisor.Supervisor, sessionID stri
 
 // Close releases the session attachment and its supervisor-tracked stream.
 func (c *SessionController) Close(ctx context.Context) error {
-	if c == nil || c.Session == nil {
+	if c == nil {
 		return nil
 	}
 	if ctx == nil {
 		return fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return nil
 	}
 	return c.Session.Detach(ctx)
 }
@@ -86,7 +94,12 @@ func (c *SessionController) Close(ctx context.Context) error {
 // Facts remain owned by App Server/projection; this function only adapts them.
 // A controller without a session returns an empty, disconnected state.
 func (c *SessionController) State(summary appserver.SessionSummary) *ui.State {
-	if c == nil || c.Session == nil {
+	if c == nil {
+		return &ui.State{Connection: ui.ConnUnknown}
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
 		return &ui.State{Connection: ui.ConnUnknown}
 	}
 	connection := ui.ConnReady
@@ -155,11 +168,16 @@ func (c *SessionController) Submit(ctx context.Context, text string) (appserver.
 // SubmitWithID is Submit with the idempotency key exposed for callers that
 // need to read back an unknown result through the App Server protocol.
 func (c *SessionController) SubmitWithID(ctx context.Context, text string) (appserver.SubmitResult, string, error) {
-	if c == nil || c.Session == nil {
+	if c == nil {
 		return appserver.SubmitResult{}, "", fmt.Errorf("integration: no session")
 	}
 	if ctx == nil {
 		return appserver.SubmitResult{}, "", fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.SubmitResult{}, "", fmt.Errorf("integration: no session")
 	}
 	return c.Session.SubmitWithID(ctx, text)
 }
@@ -168,7 +186,12 @@ func (c *SessionController) SubmitWithID(ctx context.Context, text string) (apps
 // Running state converges through the session.state stream notification.
 // Methods returns the daemon-advertised session method table captured during Open.
 func (c *SessionController) Methods() appserver.MethodsResult {
-	if c == nil || c.Session == nil {
+	if c == nil {
+		return appserver.MethodsResult{}
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
 		return appserver.MethodsResult{}
 	}
 	return c.Session.Methods()
@@ -176,18 +199,28 @@ func (c *SessionController) Methods() appserver.MethodsResult {
 
 // BranchDirectory returns the daemon branch directory captured during Open.
 func (c *SessionController) BranchDirectory() appserver.BranchesResult {
-	if c == nil || c.Session == nil {
+	if c == nil {
+		return appserver.BranchesResult{}
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
 		return appserver.BranchesResult{}
 	}
 	return c.Session.BranchDirectory()
 }
 
 func (c *SessionController) Stop(ctx context.Context) error {
-	if c == nil || c.Session == nil {
+	if c == nil {
 		return fmt.Errorf("integration: no session")
 	}
 	if ctx == nil {
 		return fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return fmt.Errorf("integration: no session")
 	}
 	return c.Session.Stop(ctx)
 }
@@ -195,7 +228,7 @@ func (c *SessionController) Stop(ctx context.Context) error {
 // Reattach reconnects the selected session after transport loss. It rebuilds
 // the view from App Server history and never uses the old projection as truth.
 func (c *SessionController) Reattach(ctx context.Context) error {
-	if c == nil || c.Supervisor == nil || c.Session == nil {
+	if c == nil {
 		return fmt.Errorf("integration: no session")
 	}
 	if ctx == nil {
@@ -203,6 +236,9 @@ func (c *SessionController) Reattach(ctx context.Context) error {
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.Supervisor == nil || c.Session == nil {
+		return fmt.Errorf("integration: no session")
+	}
 	if !c.Session.Lost() {
 		return fmt.Errorf("integration: session transport is not lost")
 	}

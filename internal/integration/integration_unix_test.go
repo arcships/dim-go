@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -262,6 +263,69 @@ func TestSessionControllerBridge(t *testing.T) {
 	}
 	if controller.Session.TerminalState() != appserver.StreamStateDetached {
 		t.Fatalf("terminal state = %s, want detached", controller.Session.TerminalState())
+	}
+}
+
+func TestSessionControllerStateReattachConcurrent(t *testing.T) {
+	home := fakeHome(t)
+	link, err := supervisor.ResolveLink(home)
+	if err != nil {
+		t.Fatalf("resolve link: %v", err)
+	}
+	_ = startFakeDaemon(t, link.Endpoint.Address)
+	sup, err := supervisor.New(supervisor.Config{ProductHome: home})
+	if err != nil {
+		t.Fatalf("supervisor: %v", err)
+	}
+	ctx, cancel := testContext(t)
+	defer cancel()
+	if _, err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	old := controller.Conn
+	old.Client().Close()
+	deadline := time.Now().Add(testWait)
+	for !controller.Session.Lost() && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !controller.Session.Lost() {
+		t.Fatal("session did not observe transport loss")
+	}
+	defer func() {
+		closeCtx, closeCancel := context.WithTimeout(context.Background(), testWait)
+		defer closeCancel()
+		_ = controller.Close(closeCtx)
+		_, _ = sup.Close(closeCtx)
+	}()
+
+	var wg sync.WaitGroup
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < 100; j++ {
+				state := controller.State(appserver.SessionSummary{SessionID: "s1"})
+				if state == nil {
+					t.Errorf("State returned nil")
+					return
+				}
+			}
+		}()
+	}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := controller.Reattach(ctx); err != nil {
+			t.Errorf("Reattach: %v", err)
+		}
+	}()
+	wg.Wait()
+	if controller.Conn == old {
+		t.Fatal("Reattach retained old connection")
 	}
 }
 
