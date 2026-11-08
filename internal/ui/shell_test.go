@@ -14,7 +14,10 @@ func fixture() *State {
 			{ID: "s2", Title: "Second session"},
 		},
 		Selected: "s1",
-		Messages: []string{"hello from the fixture", "second fixture row"},
+		Messages: []Message{
+			{ID: "m1", Author: AuthorUser, Content: "hello from the fixture"},
+			{ID: "m2", Author: AuthorAssistant, Content: "second fixture row"},
+		},
 	}
 }
 
@@ -30,7 +33,7 @@ func TestShellRenders(t *testing.T) {
 }
 
 // TestShellSelectsSession checks that the sidebar drives the header, which is
-// the only interaction the spike claims.
+// the only interaction the shell claims.
 func TestShellSelectsSession(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)

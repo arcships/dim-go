@@ -19,7 +19,10 @@ func main() {
 			{ID: "s2", Title: "Second fixture"},
 		},
 		Selected: "s1",
-		Messages: []string{"dimagent-mygo: native UI prototype"},
+		Messages: []dimui.Message{
+			{ID: "m1", Author: dimui.AuthorUser, Content: "dimagent-mygo: native UI prototype"},
+			{ID: "m2", Author: dimui.AuthorAssistant, Content: "## Native shell\n\nA keyed `ui.List` of rows, the assistant's in **Markdown**."},
+		},
 	}
 	mygo.App.WhenReady(func() {
 		mygo.NewWindow(mygo.WindowOptions{
