@@ -208,6 +208,10 @@ func TestSessionControllerBridge(t *testing.T) {
 }
 
 func TestStateWithoutSessionIsSafe(t *testing.T) {
+	var controller *SessionController
+	if err := controller.Close(context.Background()); err != nil {
+		t.Fatalf("nil controller Close: %v", err)
+	}
 	state := (&SessionController{}).State(appserver.SessionSummary{SessionID: "s1"})
 	if state == nil || state.Connection != ui.ConnUnknown || len(state.Messages) != 0 {
 		t.Fatalf("state = %#v", state)
