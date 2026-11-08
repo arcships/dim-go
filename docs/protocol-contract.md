@@ -149,7 +149,7 @@ session stream (每打开 session 1 条)
 
 - 缺 `session.catalog` feature → 列表不可用，明确报错；**不要**回退到 summaries，也不要本地伪造列表。
 - 缺 `session.catalog.origins` → 删除 `withInternal` / `withAcpSessions` 后重发。
-- 分页循环到 `nextCursor` 为空；并发刷新合并成一次遍历（Desktop 有单飞，Go 也应单飞）。
+- 分页循环到 `nextCursor` 缺失或为空字符串；两者都表示结束，不得再发请求。并发刷新合并成一次遍历（Desktop 有单飞，Go 也应单飞）。
 
 ### 7.2 `session.summaries`（仅例外）
 
@@ -171,7 +171,7 @@ session stream (每打开 session 1 条)
 4. 取 head：`attach.sequence` 存在则用它，否则 `session.history {branchId:"main", after:0, limit:1}` 的 `through`；
 5. 读最新 turn window（见 §9）；
 6. 可选 `session.branches`（feature `session.branches`）、可选 `session.keys`（feature `session.keys`）；
-7. 建 projection；把 attach 到 projection 就绪之间到达的事件/状态按**到达顺序**补放，并按 `event.id` 去重。
+7. 建 projection；把 attach 到 projection 就绪之间到达的事件/状态按**到达顺序**补放。pending buffer 按 `event.id` 去重；进入 TimelineFold 后必须再按 `(branchId, sequence)` 做幂等，不能只依赖 event.id。若同一 sequence 出现不同 id，按协议错误记录并停止盲目合并，等待上游语义确认。
 
 `session.attach` 响应：
 
@@ -215,7 +215,7 @@ session stream (每打开 session 1 条)
 
 `RawEvent`：`id:string`、`sequence:int`、`create_at:int`（epoch 毫秒，Desktop 用 `new Date(create_at)`）、`tags?:[]string`、`type:string`、`name:string`、`data?:any`。
 
-分页不变量（Go fake server 与 client 校验都要实现）：
+分页不变量（Go fake server 与 client 校验都要实现；普通 history、latest-turn、兼容扫描和 attach fallback 均适用）：
 
 1. 每个事件 `after < sequence <= through`；
 2. `after <= nextAfter <= through`；
@@ -226,7 +226,8 @@ session stream (每打开 session 1 条)
 
 - 有 `session.history.latestTurn`：`{latestTurn:true, limit:4096, through:head}`，用 `nextBefore` 往前翻到 `done`；多页的 `turnStart` 必须一致，否则放弃窗口改走兼容扫描。
 - 无该 feature：从 head 往前 512 条/页、最多 64 页，用 `{after, limit, through}` 扫到 turn 边界，并尽量带上该 turn 的 prompting input。
-- `appError === "history_too_large"`：该批原子事件无法塞进一帧。首屏降级为"空窗口 + hasOlder=true"，Session 仍可打开；不要反复重试同一批。
+- `appError === "history_too_large"`：该批原子事件无法塞进一帧。首屏降级为"空窗口 + hasOlder=true"，Session 仍可打开；不要反复重试同一批。错误映射必须显式覆盖该值。
+- `through`、`nextAfter`、`nextBefore`、`turnStart` 若缺失、非整数或违反不变量，必须 fail-fast 为 protocol/schema error；不能依赖 `NaN` 比较或静默走 fallback。多页 latest-turn 的 `turnStart` 必须存在且恒定。RawEvent 的 `id`、`sequence`、`create_at`、`type`、`name` 也需在普通 history 路径运行时校验。
 
 往回翻用 `before`，直到页首是 "turn 前的 user input" 或 `sequence === 1`。
 
@@ -303,10 +304,19 @@ Timeline 的 `type/name` 是 Rust EventKind 摊平结果；projection 需要的�
 - 收到 resync 的动作固定为：重新 `openStream` + `hello` + `attach` + 重读最新 turn window，**按 branch sequence 重建**；不要用 renderer/VM 的 cursor 当 resume token。
 - `session.closed` 不触发 resync（它是终态，不是流丢失）。
 - `instanceId` 变化视为 daemon 重启：按新 daemon 的 history 重建，旧 attachment 全部丢弃。
-- mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。
+- mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。四类 mutation 都必须各有 unknown-result fixture；不能只用 submit 覆盖。
 - 重连单飞：并发重连共享同一个进行中的尝试；关闭中的 supervisor 拒绝新重连。
 
-## 15. Capability
+## 15. 当前合同缺口与上游确认项
+
+以下项目已进入实现门禁，未确认前不得用本地推测补齐：
+
+- `session.history` 的 `through` 必填性、`through < after` 的服务端行为，以及 `session.summaries` 裸数组形状，需要 fake-server 与 Rust 上游证据确认。
+- `RawEvent` 的 `create_at`、`type`、`name` 在普通 history 路径的运行时校验需要 Go client 明确实现；TS interface 不能作为运行时验证。
+- TimelineFold 的 durable 幂等以 `(branchId, sequence)` 为准，attach pending buffer 以 `event.id` 去重；同 sequence 不同 id 的冲突处理需要上游语义确认。
+- unknown `appError` 必须统一映射为不可重试 INTERNAL；`history_too_large` 必须显式映射并走 §9 降级。
+
+## 16. Capability
 
 两层门禁都要进 capability snapshot：
 
@@ -316,7 +326,7 @@ Timeline 的 `type/name` 是 Rust EventKind 摊平结果；projection 需要的�
 
 规则：缺 feature 时功能降级或 disabled，并说明原因；不写本地替代事实。`session.catalog` 缺失是"列表不可用"，不是"空列表"。
 
-## 16. Go DTO 草案（`internal/appserver/wire`）
+## 17. Go DTO 草案（`internal/appserver/wire`）
 
 命名与字段（草案，未编译；实现时按此冻结）：
 
@@ -362,7 +372,7 @@ DTO 一律：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` | 通知 | 见 §11 |
 | `RawEvent` | 内嵌 | `id`、`sequence`、`create_at`、`type`、`name` |
 
-## 17. Transport 与 Supervisor 参数（供实现阶段使用）
+## 18. Transport 与 Supervisor 参数（供实现阶段使用）
 
 - Unix：`<productHome>/rust/daemon.sock`；`<productHome>/rust` 必须 0700、属于当前用户、canonicalize 后使用。
 - Windows：`\\.\pipe\dim-rust-<sha256("dimcode:"+canonicalNativeHome)[:32]>`。
@@ -372,7 +382,7 @@ DTO 一律：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 - 退出：只停自己 spawn 的 daemon；先 `daemon.ping` 确认 `connections == 1`，再 `daemon.shutdown {force:false}`，否则保留。
 - POSIX 以 detached 方式 spawn；子进程 stdout/stderr 只重定向到 `<nativeHome>/daemon.log`，**只写不读**。
 
-## 18. Golden fixtures 计划
+## 19. Golden fixtures 计划
 
 目录 `internal/appserver/wire/testdata/`（实现阶段建立）：
 
@@ -396,14 +406,14 @@ DTO 一律：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 
 最省事的做法：先用 `dim-electron` 的 `fake-app-server.mjs` 形状派生 fake server，再逐条把上面 case 落成表驱动测试。
 
-## 19. 验收（实现阶段）
+## 20. 验收（实现阶段）
 
 - `go test ./...`、`go vet ./...` 通过；
 - 无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
 - fake server 能确定性模拟：断线、乱序、重复通知、协议错误、分页不变量、`subscription_changed`、未知 mutation 结果；
 - 真实 daemon 验收单独记录，缺少 `dim-app-server` 时标 blocked，不用 fake 结果宣称 real-daemon 通过。
 
-## 20. 未决问题与 blocker
+## 21. 未决问题与 blocker
 
 1. 上游 Rust 源码未读（不在本仓库）。`SessionAttachResult` 除 `sequence` 外是否必返、`session.submit` 结果是否还有其它字段，wire 都标可选；实现按"可选 + 缺失兜底"。
 2. `session.summaries` 返回裸数组这一形状只有 Desktop 与 fake server 佐证；若上游变化，属 wire 修正。
