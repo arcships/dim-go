@@ -326,6 +326,33 @@ func TestAppStopReachesSession(t *testing.T) {
 	}
 }
 
+// TestAppSubmitUnknownResultKeepsDraftAndDoesNotRetry verifies that an
+// ambiguous App Server mutation is surfaced as-is: the app neither clears the
+// composer nor retries the request or invents a timeline row.
+func TestAppSubmitUnknownResultKeepsDraftAndDoesNotRetry(t *testing.T) {
+	unknown := &appserver.UnknownResultError{Method: appserver.MutationSessionSubmit}
+	sent := make(chan string, 1)
+	f := &fakeSession{submitted: sent, submitErr: unknown}
+	a := &app{state: &dimui.State{Draft: "hello"}, bridge: &sessionBridge{controller: f}}
+	a.bind()
+
+	a.state.OnSubmit("hello")
+	select {
+	case got := <-sent:
+		if got != "hello" {
+			t.Fatalf("submitted %q, want hello", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("submit did not reach the session")
+	}
+	if len(f.submitText) != 1 {
+		t.Fatalf("submit count = %d, want exactly one", len(f.submitText))
+	}
+	if a.state.Draft != "hello" {
+		t.Fatalf("draft = %q after unknown result, want it retained", a.state.Draft)
+	}
+}
+
 // TestAppSelectOpensSession checks the selection callback: the sidebar's chosen
 // id reaches the opener and becomes the current session.
 // TestAppStaleSelectionCannotOverwriteNewerSelection verifies that a slower
