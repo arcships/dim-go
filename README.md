@@ -11,16 +11,18 @@ MyGo native UI 重实现实验项目。
 
 ## 当前状态
 
-项目刚初始化，当前阶段是组件和 native UI 技术验证。现有 Electron 项目作为产品行为、视觉设计、协议语义和验收基线。
+Wave 1 已实现：`internal/appserver` 的 protocol v3 framing、JSON-RPC client、wire DTO、catalog/summaries/history helpers 和错误映射；`internal/supervisor` 的 endpoint、dial/hello、spawn 和连接生命周期；`internal/projection` 的 TimelineFold、transient projection 和 golden runner；`internal/ui` 的静态 shell、`ui.List`/`FollowEnd`、Markdown、composer、键盘和 accessibility fixtures。
+
+验证目前只到 `headless` + `fake-server`：`go build ./...`、`go test -race -count=1 ./...`、六目标 `go vet ./...` 通过，12 个 projection golden fixture 和 fake server/fake daemon 测试通过。纵向闭环尚未接通，`cmd/dimagent` 仍使用手写 fixture；没有 real-daemon、真实 IME/VoiceOver、复制粘贴/撤销或 Windows/Linux 运行时验证。证据等级约定见[开发计划](docs/development-plan.md#qa-基线2026-11-08)。
 
 ## 目录
 
 ```text
-cmd/dimagent/       应用入口
-internal/app/       生命周期与 App Shell
+cmd/dimagent/       应用入口（当前为 fixture shell）
+internal/appserver/ protocol v3 framing、client、wire DTO 和 read helpers
+internal/projection/ TimelineFold 与 transient projection
+internal/supervisor/ daemon 发现/启动、hello 和连接生命周期
 internal/ui/        native view tree
-internal/appserver/ App Server client（后续）
-internal/projection/Timeline/session 投影（后续）
 docs/               研究、设计与验收记录
 ```
 
@@ -32,7 +34,7 @@ docs/               研究、设计与验收记录
 
 ```bash
 go run ./cmd/dimagent     # 启动最小窗口
-go test ./...             # headless view 测试，不需要窗口
+go test ./...             # headless/fake 测试，不需要窗口
 go vet ./...
 ```
 
@@ -43,6 +45,6 @@ go vet ./...
 - [MyGo Native UI 组件调查](docs/mygo-native-components.md)
 - [开发计划与 Subagent 编排](docs/development-plan.md)
 - [Native UI 执行计划](docs/native-plan.md)
-- [Protocol v3 Wire 合同草案](docs/protocol-contract.md)
-- [Projection / TimelineFold 合同草案](docs/projection-contract.md)
+- [Protocol v3 Wire 合同](docs/protocol-contract.md)
+- [Projection / TimelineFold 合同](docs/projection-contract.md)
 - [dim-electron 产品基线](https://github.com/arcships/dim-electron)

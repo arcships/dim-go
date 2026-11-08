@@ -1,13 +1,13 @@
-# Protocol v3 Wire 合同草案
+# Protocol v3 Wire 合同
 
-Status: draft（仅合同与类型草案，不含实现）
+Status: active（合同已冻结；Wave 1 已实现 transport/client/DTO 子集，real-daemon 未验证）
 Last updated: 2026-11-08
 基线证据：`dim-electron` 工作树 `3339f4f`（`wire.ts` / `client.ts` / `electron-main/src/app-server` 无本地改动）
 Owner: protocol
 
-本文冻结 `dimagent-mygo` 第一阶段（Milestone 2 + Milestone 3 最小闭环）需要的 protocol v3 最小合同。它只描述 wire 事实和 Go 侧类型边界，不实现 transport、supervisor 或 projection。
+本文冻结 `dimagent-mygo` 第一阶段（Milestone 2 + Milestone 3 最小闭环）需要的 protocol v3 最小合同。它描述 wire 事实和 Go 侧类型边界；transport/client、supervisor 和 projection 的实现分别在 `internal/appserver`、`internal/supervisor`、`internal/projection`，本文不重复实现细节。
 
-实现前请先读本文的"边界"与"未决问题"两节；合同之外的能力一律 fail-closed，不用本地存储或推测补齐。
+实现或扩展能力前请先读本文的"边界"与"未决问题"两节；合同之外的能力一律 fail-closed，不用本地存储或推测补齐。
 
 ## 1. 边界
 
@@ -23,7 +23,7 @@ Owner: protocol
 
 ## 2. 证据索引
 
-全部结论来自只读代码阅读，证据等级 `source-read`（不是 real-daemon，也不是 fake-server 实测）。
+合同结论来自对 `dim-electron` 的只读代码阅读，证据等级 `source-read`。Wave 1 的 framing、client、DTO 和 read helpers 另有 `headless` + `fake-server` 测试；两者都不构成 real-daemon 证据。
 
 | 结论 | 证据（dim-electron 路径:行） |
 |---|---|
@@ -311,10 +311,10 @@ Timeline 的 `type/name` 是 Rust EventKind 摊平结果；projection 需要的�
 
 以下项目已进入实现门禁，未确认前不得用本地推测补齐：
 
-- `session.history` 的 `through` 必填性、`through < after` 的服务端行为，以及 `session.summaries` 裸数组形状，需要 fake-server 与 Rust 上游证据确认。
-- `RawEvent` 的 `create_at`、`type`、`name` 在普通 history 路径的运行时校验需要 Go client 明确实现；TS interface 不能作为运行时验证。
-- TimelineFold 的 durable 幂等以 `(branchId, sequence)` 为准，attach pending buffer 以 `event.id` 去重；同 sequence 不同 id 的冲突处理需要上游语义确认。
-- unknown `appError` 必须统一映射为不可重试 INTERNAL；`history_too_large` 必须显式映射并走 §9 降级。
+- `session.history` 的 `through` 必填性和 `through < after` 的服务端行为仍缺 Rust 上游确认；`session.summaries` 裸数组形状已由 fake server 覆盖。
+- `RawEvent` 的 `create_at`、`type`、`name` 已在普通 history 路径做运行时校验（`HistoryResult.Validate`）；TS interface 不能作为运行时验证。
+- TimelineFold 的 durable 幂等以 `(branchId, sequence)` 为准，attach pending buffer 以 `event.id` 去重；同 sequence 不同 id 的冲突处理需要上游语义确认。当前 Go reducer 按 sequence 丢弃重复项，fixture 会拒绝该输入，但 runtime 还未上报协议错误。
+- unknown `appError` 已统一映射为不可重试 INTERNAL；`history_too_large` 已显式映射，但 §9 的首屏降级窗口未实现。
 
 ## 16. Capability
 
@@ -326,53 +326,48 @@ Timeline 的 `type/name` 是 Rust EventKind 摊平结果；projection 需要的�
 
 规则：缺 feature 时功能降级或 disabled，并说明原因；不写本地替代事实。`session.catalog` 缺失是"列表不可用"，不是"空列表"。
 
-## 17. Go DTO 草案（`internal/appserver/wire`）
+当前 Go 实现只有连接级 `hello.features` 门禁（`HasFeature`/`CapabilityError`）；session 级 `session.methods` 尚未实现，插件方法入口保持 WIP。
 
-命名与字段（草案，未编译；实现时按此冻结）：
+## 17. Go DTO（`internal/appserver`）
+
+DTO 已实现在 `internal/appserver/wire.go`，编译并由 `headless` 测试覆盖。请求信封与响应关联在 `client.go`、`framing.go`：
 
 ```go
-type ID struct { Num int64; Str string; IsStr bool }   // JSON number 或 digit string
-
-type Request struct {
-    JSONRPC string          `json:"jsonrpc"`
-    ID      ID              `json:"id"`
-    Method  string          `json:"method"`
-    Params  json.RawMessage `json:"params,omitempty"`
-}
-
+// internal/appserver/client.go
 type Notification struct {
-    JSONRPC string          `json:"jsonrpc"`
-    Method  string          `json:"method"`
-    Params  json.RawMessage `json:"params,omitempty"`
+    Method string
+    Params json.RawMessage
 }
 
 type RPCError struct {
-    Code    int             `json:"code"`
-    Message string          `json:"message"`
-    Data    json.RawMessage `json:"data,omitempty"`   // 解析出 AppError 后仍保留原始 data
+    Code    int
+    Message string
+    Data    json.RawMessage // 解析出 AppError 后仍保留原始 data
 }
 ```
 
-DTO 一律：`json.RawMessage` 承载未知/未用字段；整数字段用 `int64`；可空字段用指针或 `Optional[T]`；不做"宽容别名"（例如 `provider_id` 与 `providerId` 的兼容只允许在明确的 legacy 读路径里，wire 层不加）。
+请求由 client 内部构造：id 是逐渐递增的 `int64`，`params` 为 nil 时省略字段；接收端用 `responseKey` 同时接受 JSON number 和 digit string。
 
-建议类型清单：
+DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int64`；可空字段用指针；不做"宽容别名"（例如 `provider_id` 与 `providerId` 的兼容只允许在明确的 legacy 读路径里，wire 层不加）。
 
-| Go 类型 | wire 方法 | 必需字段 |
+| Go 类型 | wire 方法 | 状态 |
 |---|---|---|
-| `HelloParams` / `HelloResult` | `hello` | 见 §6 |
-| `CatalogParams` / `CatalogResult` | `session.catalog` | 见 §7.1 |
-| `SessionSummary` | 同上 | 见 §7.1 |
-| `SummariesParams` | `session.summaries` | `includeClosed?`；响应 `[]SessionSummary` |
-| `CreateParams` / `CreateResult` | `session.create` | `sessionId` 必需 |
-| `AttachParams` / `AttachResult` | `session.attach` | 见 §8 |
-| `HistoryParams` / `HistoryResult` | `session.history` | 见 §9 |
-| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | 见 §9 |
-| `SubmitParams` / `SubmitResult` | `session.submit` | `event` 必需 |
-| `StopParams` | `session.stop` | |
-| `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` | 通知 | 见 §11 |
-| `RawEvent` | 内嵌 | `id`、`sequence`、`create_at`、`type`、`name` |
+| `HelloParams` / `HelloResult` | `hello` | 已实现；含 `daemonProfile`、`instanceId`、`features` 校验 |
+| `CatalogParams` / `CatalogResult` / `SessionSummary` | `session.catalog` | 已实现 |
+| `SummariesParams` | `session.summaries` | 已实现；响应 `[]SessionSummary` |
+| `CreateParams` / `CreateResult` | `session.create` | **未实现** |
+| `AttachParams` / `AttachResult` | `session.attach` | 已实现；缺 `sequence` 时的 head 兜底由调用方处理 |
+| `HistoryParams` / `HistoryResult` / `RawEvent` | `session.history` | 已实现；分页不变量运行时校验 |
+| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | **未实现** |
+| `SubmitParams` / `SubmitResult` | `session.submit` | 参数和 `{event}` 结果已实现 |
+| `StopParams` | `session.stop` | 已实现 |
+| `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` / `ModelProgress` | 通知 | 已实现，`DecodeNotification` 按方法解码；未知方法原样透传 |
+| `ApprovalRespondParams` / `InputLookupParams` | `approval.respond` / `session.input_lookup` | **未实现** |
+| `LocalError` / `MappedError` | 客户端本地错误 / `appError` 映射 | 已实现 |
 
-## 18. Transport 与 Supervisor 参数（供实现阶段使用）
+## 18. Transport 与 Supervisor 参数（已实现，real-daemon 未验证）
+
+以下参数已实现在 `internal/supervisor`，由 `headless` 测试和 fake daemon 覆盖；没有对真实 `dim-app-server` 运行。
 
 - Unix：`<productHome>/rust/daemon.sock`；`<productHome>/rust` 必须 0700、属于当前用户、canonicalize 后使用。
 - Windows：`\\.\pipe\dim-rust-<sha256("dimcode:"+canonicalNativeHome)[:32]>`。
@@ -382,36 +377,34 @@ DTO 一律：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 - 退出：只停自己 spawn 的 daemon；先 `daemon.ping` 确认 `connections == 1`，再 `daemon.shutdown {force:false}`，否则保留。
 - POSIX 以 detached 方式 spawn；子进程 stdout/stderr 只重定向到 `<nativeHome>/daemon.log`，**只写不读**。
 
-## 19. Golden fixtures 计划
+## 19. Golden fixtures 现状
 
-目录 `internal/appserver/wire/testdata/`（实现阶段建立）：
+实际目录是 `internal/appserver/testdata/wire/`，当前只有 `notifications.ndjson`（6 条，与 `dim-electron/packages/desktop/packages/app-server-protocol/tests/fixtures/notifications.ndjson` 逐字节相同）。其余场景目前由表驱动 `headless`/`fake-server` 测试覆盖，没有独立 fixture 文件。
 
-| 文件 | 断言 |
+| 场景 | 现状 |
 |---|---|
-| `frame-split.jsonl` | 任意 chunk 边界、CRLF、空行；输出消息数正确 |
-| `frame-too-large.jsonl` | 16 MiB+1 → 明确错误，不 OOM |
-| `frame-malformed.jsonl` | 非 JSON、reply 同时有 result/error、notification 带 id → 进错误通道且连接可用 |
-| `hello-*.json` | product / configured / mock / 三类反例 |
-| `catalog-pages.json` | 2 页 + 空页；缺 `origins` 时参数被裁掉 |
-| `summaries-closed.json` | 裸数组 + `-32602` 只回退一次 |
-| `attach-with-sequence.json` / `attach-without-sequence.json` | 不发/发 head 探测 |
-| `history-latest-turn.json` | 3 页 `nextBefore` 拼接，`turnStart` 恒定 |
-| `history-latest-turn-shift.json` | `turnStart` 变化 → 回退兼容扫描 |
-| `history-too-large-first.json` | 空窗口 + hasOlder，open 仍成功 |
-| `submit-ok.json` | `{event}` + 随后 `turn/start`；turnId 来自通知 |
-| `submit-unknown.json` | 超时后用 `session.input_lookup`，不重发 |
-| `approval-flow.json` | 重放整体替换；`-32602` → cancelled |
-| `errors.json` | 每个 `appError` 的目标语义/可重试性 |
-| `notifications.ndjson` | 直接复用真机 fixture：`dim-electron/packages/desktop/packages/app-server-protocol/tests/fixtures/notifications.ndjson` |
+| 任意 chunk 边界、CRLF、空行 | `framing_fixture_test.go`、`framing_test.go` |
+| 16 MiB 上限和 +1 拒绝 | `framing_fixture_test.go`、`framing_test.go` |
+| 非 JSON、reply 同时有 result/error、notification 带 id | `client_test.go`、`framing_test.go` |
+| hello 的 product / configured / mock / 反例 | `wire_test.go` |
+| catalog 多页、空页、缺 `origins` 裁参 | `read_helpers_test.go` + fake server |
+| summaries 裸数组和 `-32602` 只回退一次 | `read_helpers_test.go` |
+| attach 有/无 `sequence` 的 head 读取 | `wire_test.go` |
+| history 分页不变量 | `wire_test.go` |
+| latest-turn、`turnStart` 漂移、`history_too_large` | 未实现 |
+| submit 成功/未知结果 | 未实现；当前只有 `SubmitParams` 校验 |
+| approval 重放和 `-32602` | 未实现 |
+| 每个 `appError` 的语义和可重试性 | `errors_test.go` |
+| `dim-electron` 通知 fixture | `testdata/wire/notifications.ndjson` + `wire_test.go` |
 
-最省事的做法：先用 `dim-electron` 的 `fake-app-server.mjs` 形状派生 fake server，再逐条把上面 case 落成表驱动测试。
+fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，只服务 `hello`、`session.catalog`、`session.summaries`、`session.attach` 和 `session.history`；尚未从 `dim-electron` 的 `fake-app-server.mjs` 派生完整场景。
 
-## 20. 验收（实现阶段）
+## 20. 验收（当前状态）
 
-- `go test ./...`、`go vet ./...` 通过；
-- 无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
-- fake server 能确定性模拟：断线、乱序、重复通知、协议错误、分页不变量、`subscription_changed`、未知 mutation 结果；
-- 真实 daemon 验收单独记录，缺少 `dim-app-server` 时标 blocked，不用 fake 结果宣称 real-daemon 通过。
+- 已通过：`go build ./...`、`go vet ./...`、`go test ./...`、`go test -race ./...`；
+- 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
+- 部分通过：fake server 能覆盖 catalog/summaries/attach/history 和 client 层错误，但断线、重复通知、`subscription_changed`、未知 mutation 结果尚未全部覆盖；
+- 未通过：真实 daemon 验收未运行；本机缺 `dim-app-server`（`DIMCODE_APP_SERVER_BIN` 未设置，target/runtime/.tmp 路径均不存在），因此保持 blocked，不用 fake 结果宣称 real-daemon 通过。
 
 ## 21. 未决问题与 blocker
 
@@ -420,5 +413,5 @@ DTO 一律：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 3. `session.history` 的 `through` 在上游是否必填、`through < after` 是否报错，未验证。
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
-6. 本文未运行任何构建或测试；所有证据为静态阅读。
-7. 本文创建后，项目 `README.md` 的"参考"清单尚未加入本文件链接（按本轮任务边界未改其他文件）。
+6. 合同结论仍是 `source-read`；Wave 1 实现已有 `headless` + `fake-server` 证据，但没有 real-daemon 证据。
+7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、approval mutation 和 reconnect/resync 未实现，不在 Wave 1 范围；入口保持 WIP，不用本地替代事实。

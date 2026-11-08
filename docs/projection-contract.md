@@ -1,14 +1,14 @@
 # Go Projection Golden Fixture 合同
 
-Status: draft（Milestone 3 projection 合同；仅定义，不实现）  
-Last updated: 2026-11-08  
+Status: active（核心 timeline 合同已实现；session/wire 集成未开始）
+Last updated: 2026-11-08
 Owner: projection
 
 本文冻结 `dimagent-mygo` 的纯 projection 语义和 golden fixture 格式。Go projection 是可丢的 view state，不是 session/message/run/approval 的事实存储；Rust `dim-app-server` 仍是唯一事实源。fixture 只描述输入 raw event 与期望输出，不能读取 App Server 的 SQLite/JSONL/session 文件或 `daemon.log`。
 
 ## 1. 证据与范围
 
-本合同基于 `dim-electron` 既有实现的只读调研（证据等级：`source-read`，尚未在 Go 或 real daemon 验证）：
+本合同基于 `dim-electron` 既有实现的只读调研（合同证据等级 `source-read`）。核心 timeline 已按本合同实现在 `internal/projection`，并由 12 个 golden fixtures 在 `headless` 等级验证；两者都不构成 real-daemon 证据。
 
 | 语义 | 证据 |
 |---|---|
@@ -18,9 +18,10 @@ Owner: projection
 | assistant ID 为 `a:<branch>:<turn>:<request>` | `timeline-fold.ts:718-735`；`timeline-fold.test.ts:158-193` |
 | text/thinking 按工作边界形成 block，block ID 使用首个 raw event ID | `timeline-fold.ts:738-823`；`timeline-fold.test.ts:195-224` |
 | tool 以 call ID 配对，start/use 合并，result 结束生命周期 | `timeline-fold.ts:825-938`；`timeline-fold.test.ts:226-298` |
-| message `orderKey` 为 zero-padded sequence | `timeline-fold.ts:1070-1091`；共享合同 `packages/desktop/packages/shared/src/protocol/rpc.ts:3332-3353` |
+| message `orderKey` 为 zero-padded sequence | `timeline-fold.ts:1070-1091`；共享 message 形状见 `packages/desktop/packages/shared/src/protocol/rpc.ts:3332-3353` |
 | RawEventBridge 的 live 生命周期（run/message/text/thinking/tool） | `packages/desktop/packages/electron-main/src/app-server/raw-event-bridge.ts:59-169`；`packages/desktop/packages/electron-main/tests/unit/raw-event-bridge.test.ts:14-54,175-226` |
-| approval/question、model progress 不进入 TimelineFold | `dimagent-mygo/docs/development-plan.md:18-20,114-134` |
+| approval/question、model progress 不进入 TimelineFold | 本仓库 [development-plan.md](development-plan.md) 的 Milestone 3 |
+| Go 实现与 golden runner | `internal/projection/projection.go`、`transient.go`、`fixture_test.go`、`testdata/projection/*.json` |
 
 `TimelineFold` 的现有代码还包含 goal、usage、branch、exec/background task 等事实投影；本文件先冻结核心 timeline（input、text、thinking、tool），其余能力在各自 fixture 扩展中沿用相同 reducer 和时钟规则。
 
@@ -31,7 +32,7 @@ Owner: projection
 - raw event 的 `id` 是去重和 provenance ID，fixture 中必须稳定且唯一；重复 `id` 不足以替代 sequence 去重测试。
 - user message ID = `RawEvent.id`（`input/message`）。
 - assistant message ID = `a:<branchId>:<turnId>:<requestId>`；同一 turn/request 永远只有一条 assistant message。
-- tool message ID = `callId`；tool event ID 为 `tool:<callId>:call`（call）和结果 raw event 的 `id`（result）。
+- tool message ID = `callId`；tool event ID 固定为 `tool:<callId>:call`（call）和 `tool:<callId>:result`（result），与结果 raw event 的 provenance `id` 分离。
 - text/thinking block ID = 该连续 block 首个 raw event 的 `id`；后续 delta 只追加 content，不产生新 block。
 - ID 生成必须纯函数、与输入顺序（history 先或 live 先）无关；不得使用随机数或本地持久化 ID。
 
@@ -101,7 +102,7 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 
 ## 6. Golden fixture schema（v1）
 
-文件建议放在 `testdata/projection/*.json`，一文件一个 case；schema 版本必须显式：
+文件实际放在 `internal/projection/testdata/projection/*.json`，一文件一个 case（当前 12 个）；schema 版本必须显式：
 
 ```json
 {
@@ -141,15 +142,25 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 
 ## 7. 必备 fixture 矩阵
 
-1. user input → consumed：sending→complete，环境 state/raw block 不出现在 messages。
-2. one assistant：text 连续 delta；thinking→text→thinking 分成三个 block，首 event ID 稳定。
-3. tool：tool-use-start→tool-use→tool-completed；call ID 配对、input 合并、result 完成。
-4. duplicate/overlap：同一 sequence 重放不产生第二条 message/block。
-5. history/live permutation：相同事实以分页和通知两种路径输入，snapshot 相等。
-6. transient isolation：approval/question/model progress 交错但 durable snapshot 不变。
-7. injected clock：重复运行得到完全相同 JSON；不允许 wall-clock 泄漏。
-8. branch isolation：不同 `branchId` 生成不同 assistant ID/order scope，不串消息。
+1. user input → consumed：sending→complete，环境 state/raw block 不出现在 messages。（`user-input-consumed.json`）
+2. one assistant：text 连续 delta；thinking→text→thinking 分成三个 block，首 event ID 稳定。（`text-thinking-blocks.json`、`two-assistants-interleaved.json`）
+3. tool：tool-use-start→tool-use→tool-completed；call ID 配对、input 合并、result 完成。（`tool-lifecycle.json`、`tool-result-before-call.json`）
+4. duplicate/overlap：同一 sequence 重放不产生第二条 message/block。（`duplicate-sequence-idempotent.json`）
+5. history/live permutation：相同事实以分页和通知两种路径输入，snapshot 相等。（`history-live-equivalence.json`，另有 `live-attach-mid-text`、`live-attach-overlap` 子 case）
+6. transient isolation：approval/question/model progress 交错但 durable snapshot 不变。（`transient-isolation.json`）
+7. injected clock：重复运行得到完全相同 JSON；不允许 wall-clock 泄漏。（`clock-determinism.json`）
+8. branch isolation：不同 `branchId` 生成不同 assistant ID/order scope，不串消息。（`branch-isolation.json`）
 
 ## 8. 验收与 blocker
 
-验收命令（实现后）：`go test ./...`、`go vet ./...`；projection 专项应能单独运行并报告 fixture 名称。当前没有 Go projection 实现、Go RawEvent 类型或 golden runner，因此本合同尚未有 Go 测试证据；这是明确 blocker，不得以 UI placeholder 或本地存储替代。上游 wire `RawEvent` 的完整 data 形状仍以 `dim-electron` protocol v3 和 Rust App Server 为准；本文件只冻结已观测的核心事件语义。
+验收命令：`go test ./...`、`go vet ./...`；projection 专项用 `go test -run TestGoldenFixtures -v ./internal/projection` 运行并逐个报告 fixture 名称。
+
+当前状态：Go projection、Go `RawEvent` 类型和 golden runner 已实现；`go test -count=1 ./...`、`go test -race -count=1 ./...`、`go vet ./...` 通过，12 个 fixture 全部通过（`headless`）。
+
+剩余 blocker：
+
+- projection 尚未接入 session/wire/UI 闭环，history 分页、attach 顺序和 submit/live 端到端未验证；
+- goal、usage、branch directory、exec/background task 等非核心投影未实现，本合同只冻结 input/text/thinking/tool；
+- 上游 wire `RawEvent` 的完整 data 形状仍以 `dim-electron` protocol v3 和 Rust App Server 为准；真实 daemon 未运行，不能宣称 real-daemon 语义通过；
+- approval/question/permission 只有通用 transient notice fixture（`transient-isolation.json`），respond/replay 流程未实现；
+- 同一 sequence 不同 id 的运行时冲突还未按协议错误上报：reducer 当前按 sequence 丢弃重复项，fixture 会拒绝该输入；等待上游语义确认。
