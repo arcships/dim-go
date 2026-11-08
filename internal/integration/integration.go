@@ -117,13 +117,17 @@ func (c *SessionController) State(summary appserver.SessionSummary) *ui.State {
 			connectionError = "session transport lost"
 		}
 	}
+	snapshot := c.Session.Snapshot()
+	progress, notices := viewmodel.Transient(c.Session.Transient())
 	state := &ui.State{
 		Sessions:        []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary)}},
 		Selected:        summary.SessionID,
 		Connection:      connection,
 		ConnectionError: connectionError,
-		Messages:        viewmodel.Build(c.Session.Snapshot()),
+		Messages:        viewmodel.Build(snapshot),
 		Run:             ui.RunIdle,
+		ModelProgress:   progress,
+		Notices:         notices,
 	}
 	if view := c.Session.View(c.Session.BranchID()); view.State != nil {
 		if view.State.Running {

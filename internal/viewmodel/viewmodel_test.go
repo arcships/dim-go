@@ -378,6 +378,23 @@ func TestBuildEmptySnapshot(t *testing.T) {
 	}
 }
 
+func TestTransientMapping(t *testing.T) {
+	snapshot := projection.TransientSnapshot{
+		ModelProgress: &projection.ModelProgress{Text: "hello", Thinking: "plan", Tools: []projection.ModelProgressTool{{Name: "read_file"}}},
+		Notices:       []projection.TransientNotice{{Kind: "session.notice", ID: "n1"}},
+	}
+	progress, notices := Transient(snapshot)
+	if progress == nil || progress.Text != "hello" || progress.Thinking != "plan" || !reflect.DeepEqual(progress.Tools, []string{"read_file"}) {
+		t.Fatalf("progress = %#v", progress)
+	}
+	if !reflect.DeepEqual(notices, []ui.Notice{{Kind: "session.notice", ID: "n1"}}) {
+		t.Fatalf("notices = %#v", notices)
+	}
+	if rows := Build(projection.Snapshot{}); len(rows) != 0 {
+		t.Fatalf("durable rows = %#v", rows)
+	}
+}
+
 func TestRunStateFrom(t *testing.T) {
 	cases := []struct {
 		name    string

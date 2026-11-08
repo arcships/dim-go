@@ -156,6 +156,23 @@ func boundLine(s string) string {
 	return string(runes[:previewRunes]) + "…"
 }
 
+// Transient maps ephemeral session state to throwaway UI status fields.
+func Transient(snapshot projection.TransientSnapshot) (*ui.ModelProgress, []ui.Notice) {
+	var progress *ui.ModelProgress
+	if snapshot.ModelProgress != nil {
+		p := snapshot.ModelProgress
+		progress = &ui.ModelProgress{Text: p.Text, Thinking: p.Thinking}
+		for _, tool := range p.Tools {
+			progress.Tools = append(progress.Tools, tool.Name)
+		}
+	}
+	notices := make([]ui.Notice, 0, len(snapshot.Notices))
+	for _, notice := range snapshot.Notices {
+		notices = append(notices, ui.Notice{Kind: notice.Kind, ID: notice.ID})
+	}
+	return progress, notices
+}
+
 // RunStateFrom reports what the snapshot's own rows say about the session's run:
 // running while the projection still holds a message it has not closed, as an
 // input the server has not consumed or a reply still streaming.

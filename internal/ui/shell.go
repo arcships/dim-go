@@ -12,6 +12,7 @@
 package ui
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/egoist/mygo/ui"
@@ -68,6 +69,19 @@ func (a Author) String() string {
 // Message is one conversation row of the fixture. It is view state only: the
 // TimelineFold projection owns message identity, order, streaming and tool
 // facts, and this struct is replaced by its output in Milestone 3.
+// ModelProgress is the transient, non-durable model preview shown in the status row.
+type ModelProgress struct {
+	Text     string
+	Thinking string
+	Tools    []string
+}
+
+// Notice is a transient notification copied from the session projection.
+type Notice struct {
+	Kind string
+	ID   string
+}
+
 type Message struct {
 	// ID keys the list row, so a row's state and the list's place survive
 	// rows being added, removed or measured.
@@ -100,6 +114,9 @@ type State struct {
 	// The shell draws it and offers no stop while nothing runs; it never
 	// derives a run from the rows it shows.
 	Run RunState
+	// Transient model progress and notices are throwaway status-row inputs.
+	ModelProgress *ModelProgress
+	Notices       []Notice
 
 	// Messages are fixture conversation rows, not session facts.
 	Messages []Message
@@ -199,6 +216,18 @@ func (s *State) runStatus(c *ui.Context, k tokens) {
 		ui.Box(c).Size(k.statusDot, k.statusDot).Radius(k.statusDot / 2).
 			Background(k.runColor(s.Run)).Unselectable()
 		ui.Text(c, "Session: "+s.Run.String()).FontSize(k.smallSize).TextColor(k.muted)
+		if s.ModelProgress != nil {
+			text := s.ModelProgress.Text
+			if text == "" {
+				text = s.ModelProgress.Thinking
+			}
+			if text != "" {
+				ui.Text(c, text).FontSize(k.smallSize).TextColor(k.muted)
+			}
+		}
+		if len(s.Notices) > 0 {
+			ui.Text(c, "Notices: "+strconv.Itoa(len(s.Notices))).FontSize(k.smallSize).TextColor(k.muted)
+		}
 	})
 }
 
