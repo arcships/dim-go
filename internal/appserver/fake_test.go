@@ -70,6 +70,9 @@ type fakeConfig struct {
 	Summaries          []SessionSummary
 	SummariesOldDaemon bool
 
+	CreateResult json.RawMessage
+	CreateFault  *fakeRPCError
+
 	Attach map[string]AttachResult
 
 	// OnAttach runs inside the session.attach reply path, after the request is
@@ -194,6 +197,18 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		return s.catalog(params)
 	case "session.summaries":
 		return s.summaries(params)
+	case "session.create":
+		var p CreateParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+		if s.cfg.CreateFault != nil {
+			return nil, s.cfg.CreateFault
+		}
+		if len(s.cfg.CreateResult) == 0 {
+			return nil, fakeUnknownMethod()
+		}
+		return s.cfg.CreateResult, nil
 	case "session.attach":
 		var p AttachParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {

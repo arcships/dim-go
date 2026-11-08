@@ -368,7 +368,7 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `HelloParams` / `HelloResult` | `hello` | 已实现；含 `daemonProfile`、`instanceId`、`features` 校验 |
 | `CatalogParams` / `CatalogResult` / `SessionSummary` | `session.catalog` | 已实现 |
 | `SummariesParams` | `session.summaries` | 已实现；响应 `[]SessionSummary` |
-| `CreateParams` / `CreateResult` | `session.create` | **未实现** |
+| `CreateParams` / `CreateResult` | `session.create` | 已实现；`internal/integration.CreateSession` 负责创建后打开专用 stream |
 | `AttachParams` / `AttachResult` / `SessionStream` / `StreamState` | `session.attach` | 已实现；`OpenSessionStream` 负责订阅先行、head 兜底和通知路由 |
 | `DetachParams` | `session.detach` | 已实现；`Detach`/`Release` 都关闭连接 |
 | `HistoryParams` / `HistoryResult` / `RawEvent` | `session.history` | 已实现；分页不变量运行时校验 |
@@ -438,4 +438,4 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
 6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 已补充控制面 smoke（spawn/hello/catalog/close），不代表真实 session 流、projection 或 GUI 通过。
-7. `session.create`、`session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 session 层 re-attach/resync 未实现；入口保持 WIP，不用本地替代事实。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
+7. `session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 session 层 re-attach/resync 未实现；入口保持 WIP，不用本地替代事实。`session.create` client/helper 已实现，但尚未接到 UI。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。

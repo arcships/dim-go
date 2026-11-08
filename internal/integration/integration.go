@@ -23,6 +23,30 @@ type SessionController struct {
 	mu sync.Mutex
 }
 
+// CreateSession creates a session over the public control connection, then
+// opens its dedicated stream and loads history. No local session is persisted.
+func CreateSession(ctx context.Context, sup *supervisor.Supervisor, params appserver.CreateParams) (*SessionController, appserver.CreateResult, error) {
+	if ctx == nil {
+		return nil, appserver.CreateResult{}, fmt.Errorf("integration: nil context")
+	}
+	if sup == nil {
+		return nil, appserver.CreateResult{}, fmt.Errorf("integration: nil supervisor")
+	}
+	conn, ok := sup.Control()
+	if !ok {
+		return nil, appserver.CreateResult{}, supervisor.ErrNotStarted
+	}
+	result, err := appserver.Create(ctx, conn.Client(), params)
+	if err != nil {
+		return nil, appserver.CreateResult{}, err
+	}
+	controller, err := OpenSession(ctx, sup, result.SessionID)
+	if err != nil {
+		return nil, result, err
+	}
+	return controller, result, nil
+}
+
 // OpenSession opens a dedicated stream through sup and loads the first history
 // window. The returned controller owns the stream connection until Close.
 func OpenSession(ctx context.Context, sup *supervisor.Supervisor, sessionID string) (*SessionController, error) {
