@@ -49,11 +49,19 @@ const monospaceFamily = "monospace"
 // The radius ladder, as dim-electron's --radius-{sm,md,lg,xl}: an inline
 // control's corner, a field's or a chip's, a card's, and a floating surface's,
 // in DIPs.
+//
+// The reference derives the ladder from a rem base: --radius is 0.625rem and
+// each step is calc(var(--radius) ± Npx) in global.css:45-48, so at the
+// reference's default 14px root font size the ladder is 4.75 / 6.75 / 8.75 /
+// 12.75, not the 6 / 8 / 10 / 14 the 16px root happens to produce. The shell
+// draws at the reference's 14px root, so it keeps those rem-derived values;
+// scaling them again with the saved type step would be a second, unrequested
+// change.
 const (
-	radiusSM = 6
-	radiusMD = 8
-	radiusLG = 10
-	radiusXL = 14
+	radiusSM = 4.75
+	radiusMD = 6.75
+	radiusLG = 8.75
+	radiusXL = 12.75
 )
 
 // The sidebar's width in DIPs: the width it opens at, and the narrowest and
@@ -75,14 +83,31 @@ const (
 	mainFrameRadius = radiusXL
 )
 
-// The empty state's hero. dim-electron draws the product logo above the
-// heading; mygo has no image or asset pipeline, so the mark here is drawn from
-// type in the brand fill and the title carries the same words. The mark's size
-// and the title's step keep the block's proportions without shipping a fake
-// logo asset.
+// The card and conversation-row insets, converted from the reference's rem
+// utilities at its 14px root: a card's px-3 is 10.5 DIPs and a timeline row's
+// px-4 is 14, the same conversions the timeline constants already use. They are
+// kept as literals rather than Space(n) so a card and a row keep the
+// reference's converted inset instead of rounding to the theme's 4 DIP spacing
+// unit.
 const (
-	heroMark      = 44
-	heroTitleStep = 2
+	cardPadXStep = 10.5
+	rowPadXStep  = 14
+)
+
+// The empty state's hero, from NewThread.vue:294-300. The reference draws the
+// official DimAgent mark (a 45:32 filled shape) at h-14, which is 3.5rem = 49
+// DIPs high at the 14px root, with a gap-4 (14 DIP) between the mark and the
+// heading, and a p-8 (28 DIP) inset. The heading is text-2xl and semibold; the
+// reference's stylesheet puts it at 21/28, while the rendered window measures
+// about 22 high, so the step keeps the measured 22 at 14 DIPs and the line box
+// the rem-derived 28.
+const (
+	heroMarkH     = 49                      // h-14 at the reference's 14px root
+	heroMarkW     = heroMarkH * 45.0 / 32.0 // the official mark's 45:32 viewBox
+	heroTitleStep = 22.0 / 14.0             // the heading's 22 DIP at the 14 DIP body
+	heroLineStep  = 2.0                     // leading-8: the 2rem line box, 28 at 14
+	heroGap       = 14                      // gap-4
+	heroPad       = 28                      // p-8
 )
 
 // The sidebar's geometry in DIPs, from docs/ui-layout-spec.md §2.2: the
@@ -213,10 +238,14 @@ type tokens struct {
 	framePad    float32
 	frameRadius float32
 
-	// The empty state's hero: the type-drawn brand mark's size and the title's
-	// own step. See heroMark and heroTitleStep.
-	heroMark      float32
-	heroTitleSize float32
+	// The empty state's hero: the brand mark's box, the title's step and line
+	// box, and the gap and inset around them. See heroMarkH and heroTitleStep.
+	heroMarkW      float32
+	heroMarkH      float32
+	heroTitleSize  float32
+	heroTitleLineH float32
+	heroGap        float32
+	heroPad        float32
 
 	// The timeline's geometry, in DIPs: the row shell's inset, the gap
 	// between two blocks of one turn, a disclosure header and its arrow, the
@@ -486,7 +515,7 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 		gap:      t.Space(0.5),
 		gapWide:  t.Space(3),
 		rowPadY:  t.Space(1),
-		rowPadX:  t.Space(4),
+		rowPadX:  rowPadXStep * geometryScale,
 		// The reference conversation bar is 41 pt high with 30 pt entries; 5.5
 		// above and below keeps the same height instead of the theme step's 8.
 		// Compact density tightens that padding like every other room step, while
@@ -500,15 +529,19 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 		statusDot:   t.Space(2),
 		cardRadius:  radiusLG,
 		cardPadY:    t.Space(1),
-		cardPadX:    t.Space(2),
+		cardPadX:    cardPadXStep * geometryScale,
 
 		// The frame is a CSS literal, not a spacing step, so a compact density
 		// leaves it as dim-electron draws it.
 		framePad:    mainFramePad,
 		frameRadius: mainFrameRadius,
 
-		heroMark:      heroMark,
-		heroTitleSize: fontSize * heroTitleStep,
+		heroMarkW:      heroMarkW,
+		heroMarkH:      heroMarkH,
+		heroTitleSize:  fontSize * heroTitleStep,
+		heroTitleLineH: fontSize * heroLineStep,
+		heroGap:        heroGap * geometryScale,
+		heroPad:        heroPad * geometryScale,
 
 		timelinePadX:       timelinePadX * geometryScale,
 		timelineBlockGap:   timelineBlockGap * geometryScale,

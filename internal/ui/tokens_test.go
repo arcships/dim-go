@@ -242,7 +242,11 @@ func TestTooltipIsTheInversePair(t *testing.T) {
 // one of these is a deliberate decision about the shell's density, so the
 // numbers are checked here rather than discovered in a view.
 func TestTokenDimensions(t *testing.T) {
-	k := newTokens(ui.LightTheme())
+	// Pin the reference's 14px root: mygo's platform default is 13 on macOS, and
+	// the rem-derived ladder is stated at the reference's size.
+	theme := ui.LightTheme()
+	theme.FontSize = defaultUIFontSize
+	k := newTokens(theme)
 
 	if k.sidebarW != 256 || k.sidebarMinW != 200 || k.sidebarMaxW != 360 {
 		t.Errorf("sidebar width is %.0f (%.0f–%.0f), want 256 (200–360)",
@@ -264,18 +268,18 @@ func TestTokenDimensions(t *testing.T) {
 		got  float32
 		want float32
 	}{
-		{"radiusSM", radiusSM, 6},
-		{"radiusMD", radiusMD, 8},
-		{"radiusLG", radiusLG, 10},
-		{"radiusXL", radiusXL, 14},
+		{"radiusSM", radiusSM, 4.75},
+		{"radiusMD", radiusMD, 6.75},
+		{"radiusLG", radiusLG, 8.75},
+		{"radiusXL", radiusXL, 12.75},
 	}
 	for _, r := range radii {
 		if r.got != r.want {
-			t.Errorf("%s is %.0f, want %.0f", r.name, r.got, r.want)
+			t.Errorf("%s is %.2f, want %.2f", r.name, r.got, r.want)
 		}
 	}
 	if k.cardRadius < radiusMD || k.cardRadius > radiusXL {
-		t.Errorf("card radius %.0f is off the ladder", k.cardRadius)
+		t.Errorf("card radius %.2f is off the ladder", k.cardRadius)
 	}
 	if k.codeFontSize != 13 {
 		t.Errorf("code font size is %.0f, want 13", k.codeFontSize)
@@ -285,6 +289,27 @@ func TestTokenDimensions(t *testing.T) {
 	}
 	if !isFontStep(k.uiFontSize) {
 		t.Errorf("body text sits on %.0f, which is not one of the steps", k.uiFontSize)
+	}
+
+	// The hero is the reference's 45:32 mark at h-14, a 22 DIP heading on a 28
+	// DIP line box, a gap-4 between them and a p-8 inset.
+	if math.Abs(float64(k.heroMarkH-heroMarkH)) > 1e-4 || math.Abs(float64(k.heroMarkW-heroMarkW)) > 1e-4 {
+		t.Errorf("hero mark is %.2fx%.2f, want %.2f", k.heroMarkW, k.heroMarkH, heroMarkW)
+	}
+	if want := k.heroMarkH * 45.0 / 32.0; math.Abs(float64(k.heroMarkW-want)) > 1e-4 {
+		t.Errorf("hero mark is %.2f wide for a %.2f high 45:32 shape, want %.2f", k.heroMarkW, k.heroMarkH, want)
+	}
+	if math.Abs(float64(k.heroTitleSize-22)) > 1e-4 || math.Abs(float64(k.heroTitleLineH-28)) > 1e-4 {
+		t.Errorf("hero title is %.1f on a %.1f line box, want 22/28", k.heroTitleSize, k.heroTitleLineH)
+	}
+	if k.heroGap != 14 || k.heroPad != 28 {
+		t.Errorf("hero gap/inset is %.1f/%.1f, want 14/28", k.heroGap, k.heroPad)
+	}
+
+	// The card and row insets are the reference's px-3 and px-4 at its 14px root,
+	// not the theme's 4 DIP spacing unit.
+	if k.cardPadX != 10.5 || k.rowPadX != 14 {
+		t.Errorf("card/row inset is %.1f/%.1f, want 10.5/14", k.cardPadX, k.rowPadX)
 	}
 }
 
@@ -397,6 +422,8 @@ func TestCompactDensityTightensTheRoom(t *testing.T) {
 		{"panelPad", regular.panelPad, compact.panelPad},
 		{"cardPadY", regular.cardPadY, compact.cardPadY},
 		{"cardPadX", regular.cardPadX, compact.cardPadX},
+		{"heroGap", regular.heroGap, compact.heroGap},
+		{"heroPad", regular.heroPad, compact.heroPad},
 		{"timelinePadX", regular.timelinePadX, compact.timelinePadX},
 		{"timelineBlockGap", regular.timelineBlockGap, compact.timelineBlockGap},
 		{"timelinePadStart", regular.timelinePadStart, compact.timelinePadStart},
@@ -442,6 +469,9 @@ func TestCompactDensityTightensTheRoom(t *testing.T) {
 		{"uiFontSize", regular.uiFontSize, compact.uiFontSize},
 		{"titleSize", regular.titleSize, compact.titleSize},
 		{"labelSize", regular.labelSize, compact.labelSize},
+		{"heroTitleSize", regular.heroTitleSize, compact.heroTitleSize},
+		{"heroTitleLineH", regular.heroTitleLineH, compact.heroTitleLineH},
+		{"heroMarkH", regular.heroMarkH, compact.heroMarkH},
 		{"codeFontSize", regular.codeFontSize, compact.codeFontSize},
 		{"sidebarW", regular.sidebarW, compact.sidebarW},
 	}
