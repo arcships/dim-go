@@ -59,8 +59,9 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	}
 
 	for _, action := range []string{
-		"Session creation", "Branch switching", "Session keys", "Approvals",
-		"Attachments", "Connection recovery", "Turn cancellation",
+		"Session creation", "Branch switching", "Branch end", "Branch refresh",
+		"Session keys", "Approvals", "Attachments", "Connection recovery",
+		"Turn cancellation",
 	} {
 		capability, ok := cards[action]
 		if !ok {
@@ -94,6 +95,12 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	if gap := cards["Session creation"].gap; !strings.Contains(gap, "callback") {
 		t.Errorf("session creation reports %q, want the missing create callback", gap)
 	}
+	if gap := cards["Branch end"].gap; !strings.Contains(gap, "branch end callback") {
+		t.Errorf("branch end reports %q, want the missing end callback", gap)
+	}
+	if gap := cards["Branch refresh"].gap; !strings.Contains(gap, "branch refresh callback") {
+		t.Errorf("branch refresh reports %q, want the missing refresh callback", gap)
+	}
 	if !strings.Contains(reasonCreateSession, "session.create") {
 		t.Errorf("create reason does not name session.create: %q", reasonCreateSession)
 	}
@@ -112,6 +119,34 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	}
 	if !strings.Contains(reasonBranches, "switching") {
 		t.Errorf("branch reason does not name the missing switch: %q", reasonBranches)
+	}
+}
+
+// TestCapabilityCardsDropWiredBranchEndAndRefresh checks that the branch end and
+// refresh callbacks leave the unavailable list once the window wires them: the
+// branch directory's own entries are the real actions then, and a stale WIP card
+// would contradict them.
+func TestCapabilityCardsDropWiredBranchEndAndRefresh(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{{ID: "main", Label: "main", State: "open"}, {ID: "side", Label: "side", State: "open"}}
+	s.SelectedBranch = "side"
+	s.OnEndBranch = func(string) {}
+	s.OnRefreshBranches = func() {}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, capability := range wipCapabilities(s) {
+		if capability.action == "Branch end" || capability.action == "Branch refresh" {
+			t.Errorf("a wired branch action still has a WIP card: %+v", capability)
+		}
+	}
+	if tt.HasText("Branch end") || tt.HasText("Branch refresh") {
+		t.Errorf("the unavailable list still shows a wired branch action, texts %q", tt.Texts())
+	}
+	if info, ok := tt.AccessByRole(ui.RoleButton, "End branch"); !ok || info.Disabled {
+		t.Errorf("wired branch end is not an enabled action: %+v, found %v", info, ok)
+	}
+	if info, ok := tt.AccessByRole(ui.RoleButton, "Refresh"); !ok || info.Disabled {
+		t.Errorf("wired branch refresh is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 

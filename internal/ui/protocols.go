@@ -62,6 +62,22 @@ type Actions struct {
 	// HeaderView.ActionError; the region writes no branch fact and invents no
 	// branch. While this field is nil the list keeps its read-only WIP form.
 	OnSelectBranch func(branchID string)
+	// OnEndBranch is called by the sidebar's "End branch" entry with the
+	// current branch's id. The caller sends session.branch_end, then re-reads
+	// session.branches and the branch view. No row is removed here or by the
+	// caller before the App Server confirms the end: the directory entry
+	// disappears only after session.branches reports it gone, and an
+	// already-ended reply is not turned into a local delete. A failed end keeps
+	// the row and reports through HeaderView.ActionError. While this field is
+	// nil the entry stays visible, disabled and explained as WIP.
+	OnEndBranch func(branchID string)
+	// OnRefreshBranches is called by the sidebar's branch "Refresh" entry. The
+	// caller re-reads session.branches into the directory and publishes the new
+	// view; the region neither caches a directory nor invents a row. A failed
+	// read leaves the previous directory and reports through
+	// HeaderView.ActionError. While this field is nil the entry stays visible,
+	// disabled and explained as WIP.
+	OnRefreshBranches func()
 	// OnSubmit is called by the composer's Send entry and submit shortcut with
 	// the trimmed draft. The caller sends the turn and clears the draft only
 	// after the App Server accepted it; on failure the draft stays and the
@@ -115,7 +131,10 @@ type SidebarView struct {
 	// It is display only: branch switching and cut point stay unavailable.
 	SelectedBranch string
 	// Branches is read-only branch metadata for the selected session. An empty
-	// list draws no branch section at all.
+	// list draws no branch section at all. The list offers "Refresh" and, for
+	// the displayed branch while it is neither main nor ended, "End branch";
+	// both ask the window and neither writes a row, so an end removes an entry
+	// only when a later refresh reports it gone.
 	Branches []Branch
 	// Creating is the window's record that session.create is in flight. It
 	// holds no session fact; it only keeps the entry from being clicked twice
@@ -349,7 +368,9 @@ type KeyBinding struct {
 // renderSidebar draws the session sidebar: the brand row, the global entries,
 // the grouped thread list, the read-only branch list, the thread actions and the
 // WIP capability cards. It writes SidebarView.Selected on a choice, then calls
-// Actions.OnSelect; it calls Actions.OnCreateSession from "New session".
+// Actions.OnSelect; it calls Actions.OnCreateSession from "New session",
+// Actions.OnRefreshBranches from the branch directory's "Refresh" and
+// Actions.OnEndBranch from "End branch".
 func renderSidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	sidebar(c, k, v, a)
 }

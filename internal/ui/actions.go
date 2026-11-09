@@ -37,3 +37,24 @@ func selectBranch(a Actions, branchID string, current bool) {
 	}
 	a.OnSelectBranch(branchID)
 }
+
+// endBranch asks the caller to end one branch. The sidebar removes no row and
+// marks nothing ended: only the App Server's branch_end reply and the directory
+// it re-reads afterwards may remove the entry. A branch with no id, main, or a
+// window without the callback asks for nothing.
+func endBranch(a Actions, branchID string) {
+	if a.OnEndBranch == nil || branchID == "" || branchID == mainBranchID {
+		return
+	}
+	a.OnEndBranch(branchID)
+}
+
+// refreshBranches asks the caller to re-read the branch directory. The sidebar
+// passes no facts with the request and keeps its rows until the caller
+// publishes what session.branches returned.
+func refreshBranches(a Actions) {
+	if a.OnRefreshBranches == nil {
+		return
+	}
+	a.OnRefreshBranches()
+}
