@@ -162,27 +162,40 @@ type State struct {
 	ModelProgress *ModelProgress
 	Notices       []Notice
 	// ActionNotices and ActionError are window-owned outcomes of actions this
-	// shell sent (submit/stop/select/reconnect). They are not session projection
-	// facts, so a live refresh must leave them alone.
+	// shell sent (create/submit/stop/select/reconnect). They are not session
+	// projection facts, so a live refresh must leave them alone.
 	ActionNotices []Notice
 	ActionError   string
+	// ActionStatus is the window-owned line for an outcome the App Server
+	// confirmed without a session fact to show, such as a submission resolved by
+	// reading it back. It is not projection state either: a later action that
+	// settles another outcome replaces it, and a selection or a creation clears
+	// it so it never describes an older action.
+	ActionStatus string
+	// CreatingSession is the window's own record that session.create is in
+	// flight. It holds no session fact; it only keeps the entry from being
+	// clicked twice while one request is unanswered.
+	CreatingSession bool
 
 	// Messages are fixture conversation rows, not session facts.
 	Messages []Message
 	Draft    string
 
-	// OnSelect, OnSubmit, OnStop, OnReconnect and OnApproval connect the shell's
-	// actions to the caller's session controller. A nil field leaves its action
-	// in the view without an effect, as a fixture does; the callback owns the
-	// App Server call and the facts it returns, so the shell never reports an
-	// action it did not send. OnApproval receives one decision for one request:
-	// the caller sends approval.respond and lets the session projection settle
-	// the row.
-	OnSelect    func(sessionID string)
-	OnSubmit    func(text string)
-	OnStop      func()
-	OnReconnect func()
-	OnApproval  func(branchID, requestID string, decision ApprovalDecision)
+	// OnSelect, OnCreateSession, OnSubmit, OnStop, OnReconnect and OnApproval
+	// connect the shell's actions to the caller's session controller. A nil field
+	// leaves its action in the view without an effect, as a fixture does; the
+	// callback owns the App Server call and the facts it returns, so the shell
+	// never reports an action it did not send. OnCreateSession asks the caller to
+	// run session.create and to publish the new session in the catalog and the
+	// selection once the App Server returned it. OnApproval receives one decision
+	// for one request: the caller sends approval.respond and lets the session
+	// projection settle the row.
+	OnSelect        func(sessionID string)
+	OnCreateSession func()
+	OnSubmit        func(text string)
+	OnStop          func()
+	OnReconnect     func()
+	OnApproval      func(branchID, requestID string, decision ApprovalDecision)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -225,14 +238,33 @@ func (s *State) View(c *ui.Context) {
 	}
 }
 
-// sidebarActions holds the session list's actions above it. Creating a session
-// needs session.create, which the Go client exposes but the shell does not call
-// yet, so the entry stays visible and unavailable rather than disappearing.
+// sidebarActions holds the session list's actions above it. "New session" is a
+// real entry once the window supplies OnCreateSession: the callback sends
+// session.create and publishes the session the App Server returned. Without the
+// callback the entry stays visible and unavailable rather than disappearing, and
+// it is unavailable again while one creation is in flight, so a second click
+// cannot ask for a second session.
 func (s *State) sidebarActions(c *ui.Context, k tokens) {
 	ui.Row(c).PaddingX(k.sidebarPadX).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Grow(1)
-		wipAction(c, k, "New session", reasonCreateSession)
+		if s.OnCreateSession == nil {
+			wipAction(c, k, "New session", reasonCreateSession)
+			return
+		}
+		create := ui.Button(c, "New session").OnClick(s.createSession)
+		create.Disabled(s.CreatingSession)
 	})
+}
+
+// createSession asks the window to create a session. The shell adds no row and
+// selects nothing: the new session appears only when the window publishes what
+// session.create returned, so a click the App Server rejected leaves the
+// catalog as it was.
+func (s *State) createSession() {
+	if s.OnCreateSession == nil || s.CreatingSession {
+		return
+	}
+	s.OnCreateSession()
 }
 
 // branchList shows the branch metadata supplied by the App Server as read-only
@@ -309,6 +341,9 @@ func (s *State) runStatus(c *ui.Context, k tokens) {
 		}
 		if notices := len(s.Notices) + len(s.ActionNotices); notices > 0 {
 			ui.Text(c, "Notices: "+strconv.Itoa(notices)).FontSize(k.smallSize).TextColor(k.muted)
+		}
+		if s.ActionStatus != "" {
+			ui.Text(c, s.ActionStatus).FontSize(k.smallSize).TextColor(k.muted)
 		}
 	})
 }

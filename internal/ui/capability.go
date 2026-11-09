@@ -15,26 +15,31 @@ type wipCapability struct {
 	gap    string
 }
 
-// wipCapabilities is the list the cards draw. It mirrors the disabled entries;
-// keep each card's gap in step with the reason the entry passes to wipAction.
-// "No Go client helper yet" means the method really is absent from
+// wipCapabilities is the list the cards draw. It mirrors the entries that stay
+// unavailable; keep each card's gap in step with the reason the entry passes to
+// wipAction. "No Go client helper yet" means the method really is absent from
 // internal/appserver or internal/supervisor; "helper exists; ..." means the
 // capability exists there and names what this shell still lacks; "no verified
 // ... RPC" means the upstream method itself is unconfirmed, so the shell must
 // not invent one.
 //
-// The list is per shell state: reconnect is wired once State.OnReconnect is set,
-// turn cancellation once State.OnStop is set and approval decisions once
+// The list is per shell state: session creation is wired once
+// State.OnCreateSession is set, reconnect once State.OnReconnect is set, turn
+// cancellation once State.OnStop is set and approval decisions once
 // State.OnApproval is set, so each is unavailable only while its callback is
 // missing. session.branches and session.keys have read helpers, but branches
 // and keys stay read-only: this shell has no verified switch/cut-point RPC and
 // no key browser, so neither gets an action card.
 func wipCapabilities(s *State) []wipCapability {
-	capabilities := []wipCapability{
-		{"Session creation", "session.create", "helper exists; shell not wired"},
-		{"Branch switching", "session.branches", "read helper exists; no verified switch/cut-point RPC, so branches stay read-only"},
-		{"Session keys", "session.keys", "read helper exists; shell shows no key browser yet"},
+	capabilities := make([]wipCapability, 0, 7)
+	if s == nil || s.OnCreateSession == nil {
+		capabilities = append(capabilities,
+			wipCapability{"Session creation", "session.create", "helper exists; shell has no create callback"})
 	}
+	capabilities = append(capabilities,
+		wipCapability{"Branch switching", "session.branches", "read helper exists; no verified switch/cut-point RPC, so branches stay read-only"},
+		wipCapability{"Session keys", "session.keys", "read helper exists; shell shows no key browser yet"},
+	)
 	if s == nil || s.OnApproval == nil {
 		capabilities = append(capabilities,
 			wipCapability{"Approvals", "approval.respond", "helper exists; window has no approval callback"})

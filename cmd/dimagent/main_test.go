@@ -129,27 +129,33 @@ func TestSummaryForRow(t *testing.T) {
 
 // fakeSession stands in for integration.SessionController.
 type fakeSession struct {
-	view           *dimui.State
-	summary        appserver.SessionSummary
-	submitErr      error
-	stopErr        error
-	reattachErr    error
-	approvalErr    error
-	approvalResult appserver.ApprovalRespondOutcome
-	closed         bool
-	submitted      chan string
-	stopped        chan struct{}
-	approved       chan struct{}
-	liveCalls      chan struct{}
-	reconnectStart chan struct{}
-	reconnectGate  chan struct{}
-	submitText     []string
-	reattachCalls  int
-	stopCalls      int
-	approvalCalls  int
-	approvalBranch string
-	approvalID     string
-	approvalChoice string
+	view             *dimui.State
+	summary          appserver.SessionSummary
+	submitErr        error
+	submitID         string
+	stopErr          error
+	reattachErr      error
+	approvalErr      error
+	approvalResult   appserver.ApprovalRespondOutcome
+	lookupResult     appserver.InputLookupResult
+	lookupErr        error
+	closed           bool
+	submitted        chan string
+	stopped          chan struct{}
+	approved         chan struct{}
+	liveCalls        chan struct{}
+	reconnectStart   chan struct{}
+	reconnectGate    chan struct{}
+	submitText       []string
+	reattachCalls    int
+	stopCalls        int
+	approvalCalls    int
+	approvalBranch   string
+	approvalID       string
+	approvalChoice   string
+	lookupCalls      int
+	lookupBranch     string
+	lookupSubmission string
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -169,6 +175,17 @@ func (f *fakeSession) Submit(_ context.Context, text string) (appserver.SubmitRe
 		f.submitted <- text
 	}
 	return appserver.SubmitResult{}, f.submitErr
+}
+
+func (f *fakeSession) SubmitWithID(ctx context.Context, text string) (appserver.SubmitResult, string, error) {
+	result, err := f.Submit(ctx, text)
+	return result, f.submitID, err
+}
+
+func (f *fakeSession) LookupInput(_ context.Context, branchID, submissionID string) (appserver.InputLookupResult, error) {
+	f.lookupCalls++
+	f.lookupBranch, f.lookupSubmission = branchID, submissionID
+	return f.lookupResult, f.lookupErr
 }
 
 func (f *fakeSession) Reattach(context.Context) error {

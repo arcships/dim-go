@@ -26,11 +26,21 @@ import (
 type sessionActions interface {
 	LiveState(summary appserver.SessionSummary) *dimui.State
 	Submit(ctx context.Context, text string) (appserver.SubmitResult, error)
+	// SubmitWithID also returns the submission id, which is the only key
+	// session.input_lookup accepts when a submit's outcome is unknown.
+	SubmitWithID(ctx context.Context, text string) (appserver.SubmitResult, string, error)
+	// LookupInput reads a submission back through session.input_lookup. It must
+	// never resend the submission.
+	LookupInput(ctx context.Context, branchID, submissionID string) (appserver.InputLookupResult, error)
 	RespondApproval(ctx context.Context, branchID, requestID, decision string) (appserver.ApprovalRespondOutcome, error)
 	Stop(ctx context.Context) error
 	Reattach(ctx context.Context) error
 	Close(ctx context.Context) error
 }
+
+// The window's controller must be the integration one, including the read-back
+// helper an unknown submit is resolved with.
+var _ sessionActions = (*integration.SessionController)(nil)
 
 // sessionBridge owns the selected session's controller. It swaps the controller
 // when the sidebar chooses another session and guards the pointer that the UI
@@ -41,6 +51,12 @@ type sessionBridge struct {
 	// openSession opens a session through the supervisor. Tests replace it;
 	// the app uses integration.OpenSession.
 	openSession func(context.Context, *supervisor.Supervisor, string) (sessionActions, error)
+	// createSession creates a session and opens its stream. Tests replace it;
+	// the app uses integration.CreateSession.
+	createSession func(context.Context, *supervisor.Supervisor, appserver.CreateParams) (sessionActions, appserver.CreateResult, error)
+	// catalogSessions reads the authoritative catalog. Tests replace it; the
+	// app uses integration.Catalog.
+	catalogSessions func(context.Context, *supervisor.Supervisor) ([]dimui.Session, error)
 
 	mu         sync.Mutex
 	controller sessionActions
@@ -95,6 +111,28 @@ func (b *sessionBridge) SubmitFor(ctx context.Context, sessionID, text string) e
 	}
 	_, err = controller.Submit(ctx, text)
 	return err
+}
+
+// SubmitWithIDFor sends text through the controller that still belongs to
+// sessionID and keeps the submission id, so an unknown result can be read back
+// instead of resent.
+func (b *sessionBridge) SubmitWithIDFor(ctx context.Context, sessionID, text string) (appserver.SubmitResult, string, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.SubmitResult{}, "", err
+	}
+	return controller.SubmitWithID(ctx, text)
+}
+
+// LookupInputFor reads one submission back through the controller that still
+// belongs to sessionID. It asks the App Server every time and never resends the
+// submission.
+func (b *sessionBridge) LookupInputFor(ctx context.Context, sessionID, branchID, submissionID string) (appserver.InputLookupResult, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.InputLookupResult{}, err
+	}
+	return controller.LookupInput(ctx, branchID, submissionID)
 }
 
 // Submit sends text through the current controller for fixture callers.
@@ -161,6 +199,60 @@ func (b *sessionBridge) open(ctx context.Context, row dimui.Session) error {
 		_ = previous.Close(ctx)
 	}
 	return nil
+}
+
+// create asks the App Server for a new session and installs its controller, the
+// same way open installs one. The row it returns carries the App Server's own
+// session id; this layer invents no title and adds no session the daemon did not
+// return.
+func (b *sessionBridge) create(ctx context.Context, params appserver.CreateParams) (dimui.Session, error) {
+	if b == nil {
+		return dimui.Session{}, errNoSession
+	}
+	create := b.createSession
+	if create == nil {
+		create = func(ctx context.Context, sup *supervisor.Supervisor, params appserver.CreateParams) (sessionActions, appserver.CreateResult, error) {
+			return integration.CreateSession(ctx, sup, params)
+		}
+	}
+	controller, result, err := create(ctx, b.sup, params)
+	if err != nil {
+		if controller != nil {
+			_ = controller.Close(ctx)
+		}
+		return dimui.Session{}, err
+	}
+	if controller == nil || result.SessionID == "" {
+		if controller != nil {
+			_ = controller.Close(ctx)
+		}
+		return dimui.Session{}, errors.New("dimagent: session.create returned no session")
+	}
+	// A session the catalog has not titled yet shows its id, which is what
+	// integration.Catalog does for a summary without a title or preview.
+	row := dimui.Session{ID: result.SessionID, Title: result.SessionID}
+	b.mu.Lock()
+	previous := b.controller
+	b.controller, b.summary = controller, summaryForRow(row)
+	b.mu.Unlock()
+	if previous != nil {
+		_ = previous.Close(ctx)
+	}
+	return row, nil
+}
+
+// catalog reads the authoritative session list through the supervisor.
+func (b *sessionBridge) catalog(ctx context.Context) ([]dimui.Session, error) {
+	if b == nil {
+		return nil, errNoSession
+	}
+	read := b.catalogSessions
+	if read == nil {
+		read = func(ctx context.Context, sup *supervisor.Supervisor) ([]dimui.Session, error) {
+			return integration.Catalog(ctx, sup)
+		}
+	}
+	return read(ctx, b.sup)
 }
 
 // Close releases the selected session and the supervisor.
@@ -270,12 +362,17 @@ type app struct {
 	// updateHook is test-only; production updates run through Window.Update.
 	updateHook func(func(*dimui.State))
 	// selectMu keeps session opens in order: a newer choice waits for the
-	// attachment in flight, then replaces it.
+	// attachment in flight, then replaces it. A creation installs a controller
+	// the same way, so it takes the same lock.
 	selectMu sync.Mutex
+	// createParams builds session.create's request. Tests replace it; the app
+	// uses defaultCreateParams.
+	createParams func() (appserver.CreateParams, error)
 }
 
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
+	a.state.OnCreateSession = a.createSession
 	a.state.OnSubmit = a.submit
 	a.state.OnStop = a.stop
 	a.state.OnReconnect = a.reconnect
@@ -469,24 +566,147 @@ func (a *app) selectSession(id string) {
 			state.Connection = dimui.ConnReady
 			state.ConnectionError = ""
 			state.ActionError = ""
+			state.ActionStatus = ""
 			state.ConversationLoading = false
 		})
 	}()
 }
 
+// createSession asks the App Server for a new session, then republishes the
+// catalog session.create returned and selects the new session. Nothing is added
+// before the App Server answered: a rejected creation leaves the catalog and the
+// selection as they were and only records the error.
+func (a *app) createSession() {
+	if a.state == nil {
+		return
+	}
+	if a.bridge == nil {
+		// Without a supervisor there is nothing to ask; say so instead of
+		// leaving the click without an answer.
+		a.notice("create.error", "Create session: no App Server is configured; set DIMAGENT_PRODUCT_HOME.")
+		return
+	}
+	if a.state.CreatingSession {
+		return
+	}
+	params, err := a.createParamsFor()
+	if err != nil {
+		log.Printf("dimagent: create session: %v", err)
+		a.notice("create.error", fmt.Sprintf("Create session: %v", err))
+		return
+	}
+	// The creation's result must not steal a selection the user made while it
+	// was in flight; the same generation guard protects every other action.
+	gen := a.currentSelection()
+	a.state.CreatingSession = true
+	go func() {
+		a.selectMu.Lock()
+		defer a.selectMu.Unlock()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		row, createErr := a.bridge.create(ctx, params)
+		if createErr != nil {
+			log.Printf("dimagent: create session: %v", createErr)
+			a.update(func(state *dimui.State) {
+				state.CreatingSession = false
+				state.ActionStatus = ""
+				if !a.selectionCurrent(gen) {
+					return
+				}
+				state.ActionError = fmt.Sprintf("Create session: %v", createErr)
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "create.error", ID: state.ActionError})
+			})
+			return
+		}
+		rows, catalogErr := a.bridge.catalog(ctx)
+		view := a.bridge.LiveState()
+		a.update(func(state *dimui.State) {
+			state.CreatingSession = false
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			if catalogErr != nil {
+				// The session exists; only the catalog read failed, so keep the
+				// window's rows and add the created one instead of showing a session
+				// the sidebar has no place for.
+				state.Sessions = withCreatedRow(state.Sessions, row)
+			} else {
+				state.Sessions = withCreatedRow(rows, row)
+			}
+			// The new controller's view belongs to this session, so make it the
+			// selection before folding the view in: applyView discards a view for
+			// any other session, and the window still shows the previous one here.
+			state.Selected = row.ID
+			applyView(state, view)
+			state.ConversationLoading = false
+			state.ActionStatus = ""
+			if catalogErr != nil {
+				state.ActionError = fmt.Sprintf("Session %s created, but the session catalog refresh failed: %v", row.ID, catalogErr)
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "catalog.error", ID: state.ActionError})
+				return
+			}
+			state.ActionError = ""
+			state.ActionNotices = appendActionNotice(state.ActionNotices,
+				dimui.Notice{Kind: "create.accepted", ID: row.ID})
+		})
+	}()
+}
+
+// createParamsFor builds session.create's request, letting a test supply one.
+func (a *app) createParamsFor() (appserver.CreateParams, error) {
+	if a.createParams != nil {
+		return a.createParams()
+	}
+	return defaultCreateParams()
+}
+
+// defaultCreateParams asks the App Server to create a session in the directory
+// this process runs in, which is the only path the window knows without reading
+// daemon state. No model or permission preset is sent: those are the App
+// Server's to choose when the request omits them.
+func defaultCreateParams() (appserver.CreateParams, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return appserver.CreateParams{}, fmt.Errorf("working directory: %w", err)
+	}
+	return appserver.CreateParams{Cwd: cwd}, nil
+}
+
+// withCreatedRow puts a session.create result into the window's catalog. The id
+// is the App Server's own reply, so the row is a fact even while the catalog
+// read has not caught up with it; the new session goes first, where the catalog
+// puts its newest row.
+func withCreatedRow(rows []dimui.Session, row dimui.Session) []dimui.Session {
+	for _, existing := range rows {
+		if existing.ID == row.ID {
+			return rows
+		}
+	}
+	return append([]dimui.Session{row}, rows...)
+}
+
 // submit sends the composer's text in the background and clears the draft only
-// after the App Server accepted it.
+// after the App Server accepted it. An ambiguous result is read back through
+// session.input_lookup: it is never resent and never reported as accepted.
 func (a *app) submit(text string) {
 	if a.bridge == nil || a.state == nil {
 		return
 	}
 	sessionID := a.state.Selected
+	branchID := a.state.SelectedBranch
 	gen := a.currentSelection()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := a.bridge.SubmitFor(ctx, sessionID, text); err != nil {
+		_, submissionID, err := a.bridge.SubmitWithIDFor(ctx, sessionID, text)
+		if err != nil {
 			log.Printf("dimagent: submit: %v", err)
+			if errors.Is(err, appserver.ErrUnknownResult) {
+				a.resolveUnknownSubmit(sessionID, branchID, submissionID, text, err, gen)
+				return
+			}
 			if a.selectionCurrent(gen) {
 				a.notice("submit.error", err.Error())
 			}
@@ -502,11 +722,72 @@ func (a *app) submit(text string) {
 			}
 			applyView(state, view)
 			state.Draft = ""
+			state.ActionStatus = ""
 		})
 		if a.selectionCurrent(gen) {
 			a.notice("submit.accepted", "")
 		}
 	}()
+}
+
+// resolveUnknownSubmit reads an ambiguous session.submit back by its submission
+// id. The App Server's answer alone decides what the window says: "accepted"
+// means the daemon holds the input, anything else stays unknown, the draft is
+// kept and the submission is not sent again.
+func (a *app) resolveUnknownSubmit(sessionID, branchID, submissionID, text string, submitErr error, gen uint64) {
+	var (
+		result  appserver.InputLookupResult
+		lookupE error
+	)
+	switch {
+	case submissionID == "":
+		lookupE = errors.New("the App Server returned no submission id to read back")
+	case branchID == "":
+		lookupE = errors.New("no branch is known for the submission")
+	default:
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		result, lookupE = a.bridge.LookupInputFor(ctx, sessionID, branchID, submissionID)
+	}
+	if lookupE != nil {
+		detail := fmt.Sprintf("Submission result unknown (%v); read-back failed: %v", submitErr, lookupE)
+		a.unknownOutcome(gen, detail)
+		return
+	}
+	if !result.Accepted() {
+		a.unknownOutcome(gen, "Submission result unknown: the App Server does not hold this submission.")
+		return
+	}
+	view := a.bridge.LiveState()
+	a.update(func(state *dimui.State) {
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		applyView(state, view)
+		// The daemon holds this submission, so the draft it came from is sent.
+		// Text typed after the send stays.
+		if strings.TrimSpace(state.Draft) == text {
+			state.Draft = ""
+		}
+		state.ActionError = ""
+		state.ActionStatus = "Submission accepted"
+		state.ActionNotices = appendActionNotice(state.ActionNotices,
+			dimui.Notice{Kind: "submit.accepted", ID: submissionID})
+	})
+}
+
+// unknownOutcome publishes an unresolved action: it keeps the alert and the
+// notice kind so an unknown result can never read as success.
+func (a *app) unknownOutcome(gen uint64, detail string) {
+	a.update(func(state *dimui.State) {
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		state.ActionNotices = appendActionNotice(state.ActionNotices,
+			dimui.Notice{Kind: "submit.unknown", ID: detail})
+		state.ActionError = detail
+		state.ActionStatus = "Submission result unknown"
+	})
 }
 
 // reconnect re-attaches the selected session after a transport loss. The

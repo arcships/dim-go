@@ -78,6 +78,14 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	if gap := cards["Approvals"].gap; !strings.Contains(gap, "callback") {
 		t.Errorf("approvals reports %q, want the missing callback", gap)
 	}
+	// session.create has a helper, so its card may only name the shell's missing
+	// callback, never a missing client method.
+	if gap := cards["Session creation"].gap; !strings.Contains(gap, "callback") {
+		t.Errorf("session creation reports %q, want the missing create callback", gap)
+	}
+	if !strings.Contains(reasonCreateSession, "session.create") {
+		t.Errorf("create reason does not name session.create: %q", reasonCreateSession)
+	}
 
 	// Reconnect used to say the App Server had not implemented it. The
 	// supervisor now has Reconnect, so the reason must name the shell's wiring
@@ -158,6 +166,27 @@ func TestCapabilityCardsDropWiredApprovals(t *testing.T) {
 	}
 	if info, ok := tt.AccessByRole(ui.RoleButton, "Approve"); !ok || info.Disabled {
 		t.Errorf("wired approval is not an enabled action: %+v, found %v", info, ok)
+	}
+}
+
+// TestCapabilityCardsDropWiredCreateSession checks that session creation leaves
+// the unavailable list once State.OnCreateSession is set: the sidebar's entry is
+// the real action then, and a stale WIP card would contradict it.
+func TestCapabilityCardsDropWiredCreateSession(t *testing.T) {
+	s := fixture()
+	s.OnCreateSession = func() {}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, capability := range wipCapabilities(s) {
+		if capability.action == "Session creation" {
+			t.Errorf("a wired creation still has a WIP card: %+v", capability)
+		}
+	}
+	if tt.HasText("Session creation") {
+		t.Errorf("the unavailable list still shows session creation, texts %q", tt.Texts())
+	}
+	if info, ok := tt.AccessByRole(ui.RoleButton, "New session"); !ok || info.Disabled {
+		t.Errorf("wired session creation is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 
