@@ -500,3 +500,39 @@ func TestHeaderEditorMarkUsesTheVSCodeBrandBlue(t *testing.T) {
 		t.Errorf("the arrow is %d bluer than red, want it muted beside the %d mark", muted, blue)
 	}
 }
+
+// TestHeaderTruncatesTheProjectAtTheReferenceWidth checks the breadcrumb's
+// project name against window-conversation.png: the reference's workspace span
+// is max-w-[8rem] and shrinks inside the bar's flex row, so in an 800 DIP
+// window it leaves the project about 83 DIPs, draws "dimagent-m…" and starts
+// the title's ink at x≈375. The bar keeps that measured width with its
+// ellipsis, so the title starts where the reference draws it instead of being
+// pushed right by the whole project name; the slash stays between the two and
+// an empty project still draws no slash.
+func TestHeaderTruncatesTheProjectAtTheReferenceWidth(t *testing.T) {
+	v := fixture().headerView()
+	v.Project = "dimagent-mygo"
+	v.Title = "Explain what this repository does in one paragraph."
+	tt := headerTestView(v, 800, 41)
+
+	project, ok := tt.Find(v.Project)
+	if !ok {
+		t.Fatalf("the project name is not drawn, texts %q", tt.Texts())
+	}
+	if math.Abs(float64(project.W-breadcrumbProjectMaxW)) > 0.5 {
+		t.Errorf("the project box is %.1f wide, want the reference's %v DIPs", project.W, breadcrumbProjectMaxW)
+	}
+	title, ok := tt.Find(v.Title)
+	if !ok {
+		t.Fatalf("the title is not drawn, texts %q", tt.Texts())
+	}
+	// The reference's card starts at x=256.5, so its title ink at x≈375 is
+	// 118.5 DIPs inside the card, the bar's own coordinate here.
+	if math.Abs(float64(title.X-118.5)) > 3 {
+		t.Errorf("the title starts at x=%.1f, want the reference's 118.5 ±3", title.X)
+	}
+	if slash, ok := tt.Find(breadcrumbSeparator); !ok || slash.X <= project.X+project.W {
+		t.Errorf("the separator at x=%.1f does not follow the truncated project ending at %.1f",
+			slash.X, project.X+project.W)
+	}
+}
