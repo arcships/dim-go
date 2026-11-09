@@ -73,7 +73,11 @@ func (a *app) loadAppearance() {
 	if err != nil {
 		log.Printf("dimagent: load appearance preferences: %v", err)
 	}
+	// The build version is not a preference: the startup path sets it after this
+	// load, and a later load must not drop it from the About page.
+	version := a.state.Settings.AppVersion
 	a.state.Settings = settingsView(saved)
+	a.state.Settings.AppVersion = version
 	a.state.SidebarWidth = saved.SidebarWidth
 	// The baseline is the snapshot the window now holds, not the raw file: a
 	// value the shell folds to one of its choices is not a user choice, and the

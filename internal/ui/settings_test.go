@@ -1,12 +1,15 @@
 package ui
 
 import (
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/arcships/dimagent-mygo/internal/appserver"
 )
 
 // settingsHarness drives the settings route on its own: each test builds the
@@ -357,7 +360,8 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 	for _, section := range settingsSections {
 		if section == SettingsSectionAppearance || section == SettingsSectionArchivedSessions ||
-			section == SettingsSectionModels || section == SettingsSectionShortcuts {
+			section == SettingsSectionModels || section == SettingsSectionShortcuts ||
+			section == SettingsSectionAbout {
 			continue
 		}
 		name := settingsSectionName(section)
@@ -863,7 +867,7 @@ func roleName(role ui.Role) string {
 
 // TestSettingsAboutPageListsCapabilities checks where the shell's capability
 // gaps live now: the settings navigation has no "Unavailable capabilities" row,
-// and the About page carries the list beside its own WIP explanation. The
+// and the About page carries the list under its read-only build facts. The
 // sidebar itself draws none of the cards.
 func TestSettingsAboutPageListsCapabilities(t *testing.T) {
 	s := fixture()
@@ -884,9 +888,6 @@ func TestSettingsAboutPageListsCapabilities(t *testing.T) {
 	if info, ok := tt.AccessByRole(ui.RoleHeading, "About"); !ok || info.Level != 1 {
 		t.Fatalf("the About page has no level-1 heading: %+v, found %v", info, ok)
 	}
-	if !tt.HasText(settingsSectionGaps[SettingsSectionAbout]) || !tt.HasText(wipBadge) {
-		t.Errorf("the About page lost its WIP explanation, texts %q", tt.Texts())
-	}
 	if _, ok := tt.AccessByRole(ui.RoleGroup, "Unavailable capabilities"); !ok {
 		t.Fatalf("the About page does not group the capability cards, texts %q", tt.Texts())
 	}
@@ -899,6 +900,98 @@ func TestSettingsAboutPageListsCapabilities(t *testing.T) {
 	}
 	if !tt.HasText(settingsCapabilitiesNote) {
 		t.Errorf("the About page lost the capability note, texts %q", tt.Texts())
+	}
+}
+
+// TestSettingsAboutPageShowsBuildFacts checks the About page's read-only build
+// rows: the app name, the stamped version (and "dev" for a plain build), the Go
+// toolchain, the mygo library, the App Server protocol and the interface
+// language in force. The capability list still sits under them.
+func TestSettingsAboutPageShowsBuildFacts(t *testing.T) {
+	protocol := "v" + strconv.Itoa(appserver.WireProtocolVersion)
+	for _, tc := range []struct {
+		name    string
+		version string
+		want    string
+	}{
+		{name: "stamped", version: "1.2.3", want: "1.2.3"},
+		{name: "unstamped", version: "", want: "dev"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSettingsHarness(SettingsView{Section: SettingsSectionAbout, AppVersion: tc.version})
+			for _, want := range []string{
+				settingsAboutAppName,
+				tc.want,
+				runtime.Version(),
+				settingsAboutMygo,
+				protocol,
+				LocaleEN.Name(),
+				tr(LocaleEN, keySettingsAboutVersion),
+				tr(LocaleEN, keySettingsAboutNote),
+				settingsCapabilitiesNote,
+			} {
+				if !h.tt.HasText(want) {
+					t.Errorf("the About page is missing %q, texts %q", want, h.tt.Texts())
+				}
+			}
+			if h.tt.HasText(wipBadge) && !h.tt.HasText(tr(LocaleEN, keyCapabilityGroup)) {
+				t.Errorf("the About page shows a WIP badge without the capability list, texts %q", h.tt.Texts())
+			}
+			for _, role := range []ui.Role{ui.RolePopUpButton, ui.RoleSlider, ui.RoleSwitch, ui.RoleRadio} {
+				if info, ok := h.tt.AccessByRole(role, ""); ok {
+					t.Errorf("the About page offers a %v control: %+v", role, info)
+				}
+			}
+			if len(h.changes) != 0 {
+				t.Errorf("the About page reported %+v, want no change", h.changes)
+			}
+		})
+	}
+}
+
+// TestSettingsAboutPageSpeaksTheActiveLanguage checks the About rows follow the
+// shell language: the labels are translated and the language row names the
+// language in its own words.
+func TestSettingsAboutPageSpeaksTheActiveLanguage(t *testing.T) {
+	h := newSettingsHarness(SettingsView{
+		Section:    SettingsSectionAbout,
+		Locale:     LocaleZHCN,
+		AppVersion: "1.2.3",
+	})
+	for _, want := range []string{
+		tr(LocaleZHCN, keySettingsAboutBuild),
+		tr(LocaleZHCN, keySettingsAboutVersion),
+		tr(LocaleZHCN, keySettingsAboutProtocol),
+		LocaleZHCN.Name(),
+	} {
+		if !h.tt.HasText(want) {
+			t.Errorf("the zh-CN About page is missing %q, texts %q", want, h.tt.Texts())
+		}
+	}
+}
+
+// TestSettingsAboutVersionIsABuildFactNotAPreference checks that a settings
+// choice keeps the version: applySettings replaces the view and the About page
+// must still report the build the binary was stamped with.
+func TestSettingsAboutVersionIsABuildFactNotAPreference(t *testing.T) {
+	s := fixture()
+	s.Settings.AppVersion = "9.9.9"
+	s.applySettings(SettingsChange{Field: SettingsFieldLocale, Locale: LocaleZHCN})
+	if s.Settings.AppVersion != "9.9.9" {
+		t.Fatalf("a settings choice dropped the build version: %+v", s.Settings)
+	}
+
+	tt := ui.NewTester(s.View, 900, 900)
+	if err := tt.Click(tr(LocaleZHCN, keySidebarSettingsEntry)); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click(settingsSectionLabel(LocaleZHCN, SettingsSectionAbout)); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"9.9.9", LocaleZHCN.Name()} {
+		if !tt.HasText(want) {
+			t.Errorf("the About page is missing %q, texts %q", want, tt.Texts())
+		}
 	}
 }
 

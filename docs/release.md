@@ -25,10 +25,12 @@ scripts/package-macos.sh [--out DIR] [--version VERSION] [--no-sign]
 | 参数 | 默认值 | 说明 |
 |---|---|---|
 | `--out DIR` | `/tmp/dimagent-app` | 输出目录；脚本会重建 `DIR/DimAgent.app` |
-| `--version VERSION` | `0.1.0` | 写入 `CFBundleShortVersionString` 和 `CFBundleVersion`；只允许字母、数字和 `._+-` |
+| `--version VERSION` | `0.1.0` | 写入 `CFBundleShortVersionString` 和 `CFBundleVersion`，并通过 `go build -ldflags "-X main.version=$VERSION"` 写入二进制；只允许字母、数字和 `._+-` |
 | `--no-sign` | 不传 | 跳过 ad-hoc 签名 |
 
 脚本从仓库根目录执行 `go build -o DimAgent.app/Contents/MacOS/dimagent ./cmd/dimagent`，生成 `Info.plist` 和 `PkgInfo`，然后按需签名。需要 Go 1.27.3 或更新的 toolchain，见 [README 开发前提](../README.md#开发前提)。
+
+包脚本把同一个 `--version` 通过 `-ldflags "-X main.version=$VERSION"` 写入二进制，因此三个地方读到同一个值：`Info.plist` 的 `CFBundleShortVersionString` / `CFBundleVersion`、`dimagent -version`（或 `--version`）输出的一行，以及应用内 Settings → About 的 Version 行。未打包的 `go build` / `go run` 不传 ldflags，版本保持 `dev`；About 页对空版本同样显示 `dev`，不会留空行。
 
 ### 2.2 产物结构
 
@@ -89,15 +91,19 @@ open -a /tmp/dimagent-app/DimAgent.app 'dimagent://thread/<session-id>'
 - 默认只做 ad-hoc 签名（`codesign --force --deep --sign -`），没有 Developer ID，也没有公证。其他机器从网络下载后会被 Gatekeeper 拦下；本机从 `/tmp` 构建、没有 quarantine 属性时可以直接运行。
 - 没有 hardened runtime、entitlements 或安装器；重建二进制后，系统对辅助功能/屏幕录制等 TCC 授权的记录可能与新签名不再匹配，需要重新授权。
 - 只构建当前机器架构，不生成 universal binary；Intel 机器需要在 Intel 上重新构建。Windows/Linux 打包不在本脚本范围内。
-- 没有应用图标、About 版本展示、DMG、自动更新或崩溃上报；版本号只写入 `Info.plist`。
+- 没有应用图标、DMG、自动更新或崩溃上报；版本号写入 `Info.plist`、二进制的 `-version` 输出和 About 页，但没有发布通道或更新检查。
 - `/tmp/dimagent-app` 是临时路径，Launch Services 会把 bundle 标记为 in-temp-dir，并按较低优先级处理。实测它不能被 `open -b dev.dimagent.mygo` 按 bundle id 解析，也不能接管已被安装 app 声明的 `dimagent` scheme；删除或移动 bundle 后旧 handler 同样会失效。
 - 产物不是发布件，也不能作为产品验收证据；真实窗口验收仍需按 [acceptance.md](acceptance.md) 采集证据。
 
 ### 2.6 本地验证步骤
 
 ```bash
+# 0. 未打包的构建打印 dev，不启动窗口或 daemon
+go run ./cmd/dimagent -version
+
 # 1. 构建 bundle 并检查 plist/签名
 scripts/package-macos.sh --out /tmp/dimagent-app --version 0.1.0
+/tmp/dimagent-app/DimAgent.app/Contents/MacOS/dimagent --version
 plutil -lint /tmp/dimagent-app/DimAgent.app/Contents/Info.plist
 codesign -dv --verbose=4 /tmp/dimagent-app/DimAgent.app
 
@@ -138,6 +144,7 @@ DIMAGENT_MOCK_MODEL=1 \
 已实测（macOS 26.6.2 arm64，2026-11-10）：
 
 - `scripts/package-macos.sh --out /tmp/dimagent-app --version 0.1.0` 生成 `DimAgent.app`；`plutil -lint` 通过；`codesign -dv` 显示 `Signature=adhoc`、`Identifier=dev.dimagent.mygo`，`codesign --verify --deep --strict` 通过。
+- `go run ./cmd/dimagent -version`（以及 `--version`）输出 `DimAgent dev (protocol v3)` 并退出 0，不启动窗口或 daemon；用 `--no-sign` 打包后，`Contents/MacOS/dimagent -version` 输出 `DimAgent 0.1.0 (protocol v3)`，与 `--version 0.1.0` 写入的 plist 一致。
 - 用 throwaway home 预置两个真实 session 后，bundle 通过 `open -a ... --env ...` 启动，窗口显示两个会话和 `mock/deterministic` 模型，App Server 连接正常。
 - `open -a /tmp/dimagent-app/DimAgent.app 'dimagent://thread/<session-id>'` 把窗口切到 seed 的会话；stderr 记录 `open conversation "<id>" from a deep link`。
 - `lsregister -dump` 中该 bundle 的 `claimed schemes` 包含 `dimagent:`，`CFBundleURLTypes` 声明有效。

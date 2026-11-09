@@ -2191,6 +2191,11 @@ func envInt(name string) int {
 }
 
 func main() {
+	// -version answers before the daemon, the window and the bundle's URL
+	// registration: it prints one line and the process exits 0.
+	if printVersion(os.Args[1:], os.Stdout) {
+		return
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	state, bridge, err := stateFromDaemon(ctx, os.Getenv("DIMAGENT_PRODUCT_HOME"))
 	cancel()
@@ -2205,6 +2210,10 @@ func main() {
 	// what a session contains.
 	application.loadDesktop()
 	application.loadAppearance()
+	// The build version is a fact of this binary, not of the saved
+	// preferences, so it is set after the load that replaces the view. The
+	// About page draws it; an unstamped build reads "dev".
+	state.Settings.AppVersion = appVersion()
 	if bridge != nil {
 		defer func() {
 			application.stopRefresh()

@@ -72,7 +72,10 @@ mkdir -p "$CONTENTS/MacOS" "$CONTENTS/Resources"
 echo "package-macos: building $EXECUTABLE (version $VERSION)" >&2
 (
   cd "$REPO_ROOT"
-  go build -o "$CONTENTS/MacOS/$EXECUTABLE" ./cmd/dimagent
+  # Stamp the version the bundle declares into the binary, so `dimagent
+  # -version` and the About page report the same value as Info.plist. A plain
+  # go build leaves "dev".
+  go build -ldflags "-X main.version=$VERSION" -o "$CONTENTS/MacOS/$EXECUTABLE" ./cmd/dimagent
 )
 
 # CFBundleExecutable and CFBundleIdentifier must match the executable and the
