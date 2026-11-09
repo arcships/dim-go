@@ -301,6 +301,35 @@ const (
 	keySettingsArchivedNote    = "settings.archived.note"
 	keySettingsArchivedEmpty   = "settings.archived.empty"
 	keySettingsArchivedRestore = "settings.archived.restore"
+
+	// The models page: the read-only note, the missing-read and empty states,
+	// the current, enabled and limit labels, the capability names and the
+	// unavailable marker a model carries.
+	keySettingsModelsNote        = "settings.models.note"
+	keySettingsModelsMissing     = "settings.models.missing"
+	keySettingsModelsEmpty       = "settings.models.empty"
+	keySettingsModelsCurrent     = "settings.models.current"
+	keySettingsModelsEnabled     = "settings.models.enabled"
+	keySettingsModelsDisabled    = "settings.models.disabled"
+	keySettingsModelsContext     = "settings.models.context"
+	keySettingsModelsOutput      = "settings.models.output"
+	keySettingsModelsCaps        = "settings.models.caps"
+	keySettingsModelsNoCaps      = "settings.models.caps.none"
+	keySettingsModelsCapTools    = "settings.models.cap.tools"
+	keySettingsModelsCapVision   = "settings.models.cap.vision"
+	keySettingsModelsCapReason   = "settings.models.cap.reasoning"
+	keySettingsModelsUnavailable = "settings.models.unavailable"
+
+	// The shortcuts page: the wired-shortcut note, the read-only editing note,
+	// the two column headings and the action each row names.
+	keySettingsShortcutsNote    = "settings.shortcuts.note"
+	keySettingsShortcutsEdit    = "settings.shortcuts.edit"
+	keySettingsShortcutsAction  = "settings.shortcuts.action"
+	keySettingsShortcutsKeys    = "settings.shortcuts.keys"
+	keySettingsShortcutsSearch  = "settings.shortcuts.search"
+	keySettingsShortcutsFind    = "settings.shortcuts.find"
+	keySettingsShortcutsSend    = "settings.shortcuts.send"
+	keySettingsShortcutsNewline = "settings.shortcuts.newline"
 )
 
 // stringsEN is the English table, the default and the fallback. Its entries are
@@ -375,8 +404,6 @@ var stringsEN = Strings{
 	"settings.gap.usage":           "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
 	"settings.gap.personalization": "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
 	"settings.gap.general":         "Unavailable: the general settings page is not built yet; the shell has no client for its desktop preferences.",
-	"settings.gap.shortcuts":       "Unavailable: the shortcuts page is not built yet; the shell has no keybinding client or editor.",
-	"settings.gap.models":          "Unavailable: the models page is not built yet; the shell has no model-provider client or page.",
 	"settings.gap.multimodal":      "Unavailable: the multimodal page is not built yet; the shell has no multimodal client or page.",
 	"settings.gap.runtime":         "Unavailable: the runtime page is not built yet; the shell has no runtime client or page.",
 	"settings.gap.mcp":             "Unavailable: the MCP page is not built yet; the shell has no MCP server client or page.",
@@ -516,6 +543,29 @@ var stringsEN = Strings{
 	keyCapabilityConnectionGap:     "helper exists; shell not wired",
 	keyCapabilityTurnCancel:        "Turn cancellation",
 	keyCapabilityTurnCancelGap:     "helper exists; shell not wired",
+
+	keySettingsModelsNote:        "Read-only: these are the models the App Server reported for this session's catalog. Enabling, disabling or adding providers is not available in this shell yet.",
+	keySettingsModelsMissing:     "Unavailable: the model catalog has not been read, so this page cannot list any model.",
+	keySettingsModelsEmpty:       "The App Server reported no models.",
+	keySettingsModelsCurrent:     "Current",
+	keySettingsModelsEnabled:     "Enabled",
+	keySettingsModelsDisabled:    "Disabled",
+	keySettingsModelsContext:     "Context",
+	keySettingsModelsOutput:      "Output",
+	keySettingsModelsCaps:        "Capabilities",
+	keySettingsModelsNoCaps:      "None declared",
+	keySettingsModelsCapTools:    "Tools",
+	keySettingsModelsCapVision:   "Vision",
+	keySettingsModelsCapReason:   "Reasoning",
+	keySettingsModelsUnavailable: "Unavailable",
+	keySettingsShortcutsNote:     "These shortcuts are wired in this shell.",
+	keySettingsShortcutsEdit:     "Read-only: editing keybindings is not available in this shell yet.",
+	keySettingsShortcutsAction:   "Action",
+	keySettingsShortcutsKeys:     "Keys",
+	keySettingsShortcutsSearch:   "Search all chats",
+	keySettingsShortcutsFind:     "Find in conversation",
+	keySettingsShortcutsSend:     "Send message",
+	keySettingsShortcutsNewline:  "Insert a new line",
 }
 
 // stringsZHCN is the Simplified Chinese table. Protocol and method names in a
@@ -585,8 +635,6 @@ var stringsZHCN = Strings{
 	"settings.gap.usage":           "不可用：本 shell 还没有用量客户端或页面，App Server 也没有报告用量的方法。",
 	"settings.gap.personalization": "不可用：个性化页面尚未实现；本 shell 没有界面模式、ACP 会话、目标应用、助手模型或子代理模型的客户端。",
 	"settings.gap.general":         "不可用：通用设置页面尚未实现；本 shell 没有对应的桌面偏好客户端。",
-	"settings.gap.shortcuts":       "不可用：快捷键页面尚未实现；本 shell 没有键位客户端或编辑器。",
-	"settings.gap.models":          "不可用：模型页面尚未实现；本 shell 没有模型供应客户端或页面。",
 	"settings.gap.multimodal":      "不可用：多模态页面尚未实现；本 shell 没有多模态客户端或页面。",
 	"settings.gap.runtime":         "不可用：运行环境页面尚未实现；本 shell 没有运行时客户端或页面。",
 	"settings.gap.mcp":             "不可用：MCP 页面尚未实现；本 shell 没有 MCP 服务器客户端或页面。",
@@ -731,6 +779,29 @@ var stringsZHCN = Strings{
 	keyCapabilityConnectionGap:     "Go 客户端已有 helper；shell 还没有接线",
 	keyCapabilityTurnCancel:        "取消回合",
 	keyCapabilityTurnCancelGap:     "Go 客户端已有 helper；shell 还没有接线",
+
+	keySettingsModelsNote:        "只读：这里显示 App Server 为当前会话目录报告的模型。本 shell 还不支持启用、停用或添加供应商。",
+	keySettingsModelsMissing:     "不可用：模型目录尚未读取，这个页面无法列出任何模型。",
+	keySettingsModelsEmpty:       "App Server 没有报告任何模型。",
+	keySettingsModelsCurrent:     "当前",
+	keySettingsModelsEnabled:     "已启用",
+	keySettingsModelsDisabled:    "已停用",
+	keySettingsModelsContext:     "上下文",
+	keySettingsModelsOutput:      "输出",
+	keySettingsModelsCaps:        "能力",
+	keySettingsModelsNoCaps:      "未声明",
+	keySettingsModelsCapTools:    "工具",
+	keySettingsModelsCapVision:   "视觉",
+	keySettingsModelsCapReason:   "推理",
+	keySettingsModelsUnavailable: "不可用",
+	keySettingsShortcutsNote:     "这些快捷键已在本 shell 中接线。",
+	keySettingsShortcutsEdit:     "只读：本 shell 还不支持编辑键位。",
+	keySettingsShortcutsAction:   "操作",
+	keySettingsShortcutsKeys:     "按键",
+	keySettingsShortcutsSearch:   "搜索全部聊天",
+	keySettingsShortcutsFind:     "在会话中查找",
+	keySettingsShortcutsSend:     "发送消息",
+	keySettingsShortcutsNewline:  "插入换行",
 }
 
 // localeAt is the language a select option stands for.
