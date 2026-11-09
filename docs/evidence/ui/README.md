@@ -11,19 +11,25 @@ DIMAGENT_UI_SCREENSHOT_DIR="$PWD/docs/evidence/ui" go test ./internal/ui -run Te
 ```
 
 - 未设置 `DIMAGENT_UI_SCREENSHOT_DIR` 时，测试只做断言，不写任何文件（`go test ./internal/ui` 保持只读）。
-- 设置后写入本目录的 `shell-light.png` 和 `shell-dark.png`，目录不存在会自动创建。
+- 设置后写入本目录的 `shell-light.png`、`shell-dark.png`（有待审批请求，占用 composer 槽位）和 `shell-light-composer.png`、`shell-dark-composer.png`（无待审批，显示 composer 与草稿），目录不存在会自动创建。
 - 截图 API 来自 mygo v0.8.3 模块源码：`ui.NewTester(view, width, height)`、`(*Tester).SetDark(bool)`、`(*Tester).Image() *image.RGBA`。mygo 自带的 `MYGO_UI_PNG` 只服务于该模块自己的 `ui/ui_test.go`，不是公开 API，本项目不读取它。
 
 ## 产物
 
-| 文件 | 主题 | 尺寸 | 大小 |
-|---|---|---|---|
-| [`shell-light.png`](shell-light.png) | Light | 1440×900 | 160,033 B |
-| [`shell-dark.png`](shell-dark.png) | Dark | 1440×900 | 162,842 B |
+| 文件 | 主题 | 状态 | 尺寸 | 大小 |
+|---|---|---|---|---|
+| [`shell-light.png`](shell-light.png) | Light | 待审批（composer 槽位） | 1440×900 | 155,759 B |
+| [`shell-dark.png`](shell-dark.png) | Dark | 待审批（composer 槽位） | 1440×900 | 158,243 B |
+| [`shell-light-composer.png`](shell-light-composer.png) | Light | composer + 草稿 | 1440×900 | 157,433 B |
+| [`shell-dark-composer.png`](shell-dark-composer.png) | Dark | composer + 草稿 | 1440×900 | 159,977 B |
 
 ![shell light](shell-light.png)
 
 ![shell dark](shell-dark.png)
+
+![shell light composer](shell-light-composer.png)
+
+![shell dark composer](shell-dark-composer.png)
 
 文件大小随字体栅格化和压缩实现变化，不作为断言；测试断言的是尺寸、非空和两主题像素不同。
 
@@ -67,22 +73,23 @@ DIMAGENT_UI_SCREENSHOT_DIR="$PWD/docs/evidence/ui" go test ./internal/ui -run Te
 
 - 两个 session：`Fix flaky screenshot test`（选中）、`Review App Server reconnect`，`Group` 为空（shell 没有 project/日期来源，不伪造分组）。
 - 侧栏的 WIP 入口：`Update`、`Search sessions`（⌘G / Ctrl+G 提示）、`Group`、`Pin`/`Rename`/`Archive`；它们都带 `WIP` 标记和真实原因，点击不产生动作。
-- 三行对话：
+- 会话内容：
   - user：右对齐 85% 气泡；
   - assistant：一个 turn，内部按顺序是 thinking（`Thought for 5s`，默认折叠）、Markdown 文本（列表 + Go fenced code block）、两个 tool 卡片（`bash`、`read_file`，均 `Complete`）、file changes（`2 files changed`，两行文件）；
-  - approval：`exec` 待审批行，带 `BranchID`/`RequestID` 身份，渲染真实的 `Approve`/`Deny` 按钮（fixture 的回调是空实现，不发请求）。
-- composer 有草稿 `Rerun the suite and attach the new PNGs.`。
+  - 待审批状态（`shell-{light,dark}.png`）：`exec` 请求带 `BranchID`/`RequestID`，占用 composer 槽位渲染 `Approval required` 面板和真实 `Approve`/`Deny`（fixture 回调为空实现，不发请求）。
+- composer 状态（`shell-{light,dark}-composer.png`）：无待审批，显示草稿 `Rerun the suite and attach the new PNGs.`、提示行 `Enter to send · Shift+Enter for a new line`、底部 `Attach file`/`Mode`/`Model`（WIP）与 `Send`。
 - `Connection: ConnReady`、`Run: RunIdle`，让状态行和 Send 按钮处于正常态。
 
 **数据来源缺口**：file changes 在 projection 里还没有对应事实（`internal/projection` 不折叠任何 file-changes 事件），`ui.Block.Files` 目前只由 fixture 填充，adapter 不伪造。截图证明的是渲染形态，不是 daemon 已上报文件改动。tool 卡的类型化面板（command/file/search）同样还是 P0 WIP，现在只有一种通用 Params/Result 面板。
 
 ## 测试断言
 
-`TestScreenshotFrames` 对 light/dark 两个 `Tester` 分别检查：
+`TestScreenshotFrames` 对四个 frame（approval/composer × light/dark）分别检查：
 
 1. `Image()` 非 nil，尺寸严格为 1440×900；
 2. 画面不止一种颜色（非空白帧）；
-3. light 与 dark 的像素缓冲不相同。
+3. 同一状态的 light 与 dark 像素缓冲不同；
+4. approval 状态与 composer 状态在同一主题下像素不同。
 
 只有设置了 `DIMAGENT_UI_SCREENSHOT_DIR` 才额外编码 PNG。
 

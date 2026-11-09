@@ -21,7 +21,7 @@ Last updated: 2026-11-09
 | 会话区 | [conversation.go](../../internal/ui/conversation.go) | `conversationList`、`loadingConversation`、`emptyConversation`、`messageRow` 按 author 分发 | `conversation_test.go` | `ui-conversation` |
 | 审批行 | [approval.go](../../internal/ui/approval.go) | `approvalRow`、`approvalActions` | `approval_test.go` | `ui-approval` |
 | 审批面板 | [approval_panel.go](../../internal/ui/approval_panel.go) | `renderApprovalPanel`：composer 槽位的待决请求卡片（call/reason/source + 决策） | `approval_panel_test.go` | `ui-approval` |
-| 输入区 | [composer.go](../../internal/ui/composer.go) | `composer`、`canSubmit`、`submitDraft`、`stopRun`、`reconnect` | `actions_test.go`、`wip_test.go`、`run_test.go` | `ui-composer` |
+| 输入区 | [composer.go](../../internal/ui/composer.go) | `composer`：自适应多行、Enter 发送 / Shift+Enter 换行、提示行与底部操作行；`canSubmit`、`submitDraft`、`stopRun`、`reconnect` | `composer_p0_test.go`、`actions_test.go`、`wip_test.go`、`run_test.go` | `ui-composer` |
 | 会话动作 | [actions.go](../../internal/ui/actions.go) | `createSession`、`selectSession` | `create_test.go`、`actions_test.go` | `ui-actions` |
 | 侧栏 | [sidebar.go](../../internal/ui/sidebar.go) | `sidebar`、线程列表、键盘选择、`chooseSession`、侧栏页脚 | `sidebar_test.go`、`keyboard_test.go` | `ui-sidebar` |
 | 时间线 | [timeline.go](../../internal/ui/timeline.go) | 行渲染（user/assistant/error/retry）、block、文件变更、`blockOpen` | `timeline_test.go` | `ui-timeline` |

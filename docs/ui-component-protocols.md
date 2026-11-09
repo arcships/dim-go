@@ -85,7 +85,7 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions)
 
 调用方：`renderTimeline` 的按 author 分发（`AuthorApproval`）。动作：每个可寻址请求给出 Approve/Deny 各一个按钮，分别调 `OnApproval(branchID, requestID, allow/deny)`；行本身只在之后的 projection 帧里消失。
 
-**已知缺口**：`ApprovalView` 还没有 tool-input payload、approval variant、响应选项列表，所以命令/文件输入块和 `allow_once`/`reject_once` 变体无法实现（`a2cdb9b` 的 TODO）。composer 槽位面板 `renderApprovalPanel`（`approval_panel.go`）已实现，但尚未在 `shell.View` 接线。
+**已知缺口**：`ApprovalView` 还没有 tool-input payload、approval variant、响应选项列表，所以命令/文件输入块和 `allow_once`/`reject_once` 变体无法实现（`a2cdb9b` 的 TODO）。composer 槽位面板 `renderApprovalPanel`（`approval_panel.go`）已由 `shell.View` 接线：有 pending 时替换 composer（`ffa54c7`），时间线不再绘制审批行。
 
 ### 2.5 输入区 `ComposerView`
 
@@ -95,7 +95,7 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions)
 | `CanSubmit` | `bool` | 窗口的提交闸门：已接线的提交回调、ready 连接、历史已加载、会话未关闭且有选中 session。**不含草稿文本**：区域在点击/快捷键时实时读取草稿，草稿为空或全空白就不发 |
 | `Sending` | `bool` | 提交在途的窗口记录。当前没有事实来源，shell 恒传 `false`；为真时只禁用 Send，不改变其他内容 |
 | `Placeholder` | `string` | 空草稿时的占位文本 |
-| `Shortcut` | `KeyBinding` | 提交草稿的修饰键 + 键（当前 `ComposerShortcutMods` + Enter）。shell 自己的聚焦快捷键不属于该 View |
+| `Shortcut` | `KeyBinding` | 提交草稿的修饰键 + 键（当前 `ComposerShortcutMods` + Enter）。普通 Enter 也提交，Shift+Enter 换行；shell 自己的聚焦快捷键不属于该 View |
 | `Focus` | `*ui.Handle` | composer 的身份，供 shell 的聚焦快捷键使用 |
 
 调用方：`shell.View`。动作：Send 或提交快捷键 → `OnSubmit(trimmed draft)`。
