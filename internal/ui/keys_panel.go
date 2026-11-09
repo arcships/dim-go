@@ -19,8 +19,21 @@
 // Geometry: docs/ui-layout-spec.md does not measure this panel, so the numbers
 // below are this component's own. They follow the context panel's steps, which
 // are converted from dim-electron's 14px root font size: the header is h-11
-// (38.5 DIPs), the row padding is px-3 (10.5 DIPs), and a row is 28 DIPs high,
-// py-1.5 plus text-sm's leading.
+// (38.5 DIPs) and the row padding is px-3 (10.5 DIPs).
+//
+// A row is a section rather than one line: its key heading and the note that
+// names where the block came from sit on the first line, and the value takes
+// the second. The two lines are 18 DIPs each, with a 2 DIP gap and 6 DIPs of
+// padding above and below, so a row is 50 DIPs high: tall enough to read the
+// key and its value apart, short enough that a browser of many keys keeps a
+// useful density. The value is monospaced, because a keyed block is a code
+// body, not prose; the key is monospaced and bold so it reads as the heading.
+//
+// Narrow windows: no column has a fixed width. The key heading grows and the
+// note, the value and the header's texts each shrink to their room, so a narrow
+// main column clips them with an ellipsis instead of pushing the panel past the
+// window's edge. The panel keeps no width of its own to switch columns on: it
+// draws the same three parts at every width and lets the layout bound them.
 
 package ui
 
@@ -34,13 +47,13 @@ import (
 // The keys panel's geometry in DIPs. See the file comment for where each step
 // comes from.
 const (
-	keysPanelHeaderH = 38.5 // h-11: the header
-	keysPanelPadX    = 10.5 // px-3: the header, the search field and the rows
-	keysPanelRowY    = 5.25 // py-1.5: above and below a row
-	keysPanelRowH    = 28   // py-1.5 plus text-sm's leading
-	keysPanelKeyW    = 128  // the key cell, wide enough for an ordinary key
-	keysPanelSeqW    = 48   // the sequence cell, right aligned
-	keysPanelInputW  = 120  // the input id cell
+	keysPanelHeaderH    = 38.5 // h-11: the header
+	keysPanelPadX       = 10.5 // px-3: the header, the search field and the rows
+	keysPanelRowY       = 6    // above and below a row's two lines
+	keysPanelRowH       = 50   // keysPanelRowY, two 18 DIP lines and their 2 DIP gap
+	keysPanelLineH      = 18   // one line of a row: the heading and the value
+	keysPanelLineGap    = 2    // between a row's heading and its value
+	keysPanelSearchPadY = 6    // above and below the search field
 )
 
 // keysPanelTextRunes bounds the block text a row shows. A keyed block can be
@@ -149,6 +162,18 @@ func keysPanelText(s string) string {
 	return string(runes[:keysPanelTextRunes]) + "…"
 }
 
+// keysPanelNote is a row's note: which block the snapshot kept. It names the
+// input that wrote the block and the block's sequence, in that order, and the
+// sequence alone when the block names no input. The note derives nothing new:
+// both fields are the caller's, and the panel only joins them for display.
+func keysPanelNote(entry KeysPanelEntry) string {
+	note := "seq " + strconv.FormatInt(entry.Sequence, 10)
+	if entry.InputID != "" {
+		note = entry.InputID + " · " + note
+	}
+	return note
+}
+
 // keysPanel draws the session keys browser: its title and through, the local
 // filter, and one row per key the filter leaves. It writes
 // KeysPanelView.Query while the filter is edited and KeysPanelView.Selected on
@@ -185,33 +210,42 @@ func keysPanel(c *ui.Context, k tokens, v *KeysPanelView, a Actions) {
 	})
 }
 
-// keysPanelWIP draws the panel while the caller has no snapshot. It names the
-// missing field and offers no filter or row, so nothing on the panel can look
-// like a branch it was never given.
+// keysPanelWIP draws the panel while the caller has no snapshot. It keeps the
+// header's frame and names the missing field, and offers no filter or row, so
+// nothing on the panel can look like a branch it was never given.
 func keysPanelWIP(c *ui.Context, k tokens) {
-	ui.Column(c).Padding(k.space(3)).Gap(k.gap).Children(func() {
-		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "Keys").Bold().FontSize(k.titleSize)
-			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-				Unselectable().AccessHidden(true)
+	ui.Column(c).Children(func() {
+		ui.Row(c).Height(keysPanelHeaderH).PaddingX(keysPanelPadX).Gap(k.gap).
+			AlignItems(ui.Center).BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).
+			Children(func() {
+				ui.Text(c, "Keys").Bold().FontSize(k.labelSize).SingleLine().Shrink(0)
+				ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
+					Unselectable().AccessHidden(true).Shrink(0)
+				ui.Spacer(c)
+			})
+		ui.Column(c).Padding(k.space(3), keysPanelPadX, k.space(3), keysPanelPadX).
+			Gap(k.gap).Children(func() {
+			ui.Text(c, reasonKeysUnloaded).FontSize(k.smallSize).
+				TextColor(k.mutedForeground)
 		})
-		ui.Text(c, reasonKeysUnloaded).FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }
 
 // keysPanelHeader names the region, counts the entries the caller passed and
 // shows the through of the snapshot. The count is derived from Entries and
-// adds no key.
+// adds no key. The header is one line like a table's: nothing in it grows, so
+// at a narrow width its texts clip in place rather than wrapping.
 func keysPanelHeader(c *ui.Context, k tokens, v KeysPanelView) {
 	ui.Row(c).Height(keysPanelHeaderH).PaddingX(keysPanelPadX).Gap(k.gap).
 		AlignItems(ui.Center).BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).
 		Children(func() {
-			ui.Text(c, "Keys").Bold().FontSize(k.labelSize).SingleLine()
+			ui.Text(c, "Keys").Bold().FontSize(k.labelSize).SingleLine().Shrink(0)
 			ui.Text(c, keysPanelCount(len(v.Entries))).FontSize(k.smallSize).
-				TextColor(k.mutedForeground).SingleLine()
+				TextColor(k.mutedForeground).SingleLine().Shrink(1).MinWidth(0)
 			ui.Spacer(c)
 			ui.Text(c, "through "+strconv.FormatInt(v.Through, 10)).
-				FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine()
+				FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine().
+				Shrink(1).MinWidth(0).TextAlign(ui.End)
 		})
 }
 
@@ -223,29 +257,35 @@ func keysPanelCount(n int) string {
 	return strconv.Itoa(n) + " keys"
 }
 
-// keysPanelSearch draws the local filter. It edits KeysPanelView.Query in
-// place; the panel filters the display copy on the same frame the caller
-// passes the new query back, so no read is repeated.
+// keysPanelSearch draws the local filter over its own rule, so the list below
+// it reads as the panel's body rather than as another row. It edits
+// KeysPanelView.Query in place; the panel filters the display copy on the same
+// frame the caller passes the new query back, so no read is repeated.
 func keysPanelSearch(c *ui.Context, k tokens, v *KeysPanelView) {
-	ui.Row(c).Padding(k.gap, keysPanelPadX, k.gap, keysPanelPadX).Children(func() {
+	ui.Row(c).Padding(keysPanelSearchPadY, keysPanelPadX, keysPanelSearchPadY, keysPanelPadX).
+		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
 		ui.SearchField(c, &v.Query).Label("Search keys").
 			Placeholder("Filter keys").TextColor(k.foreground).FillWidth()
 	})
 }
 
 // keysPanelEmpty draws the empty state of a loaded snapshot, or of a filter
-// that leaves no row. The panel adds no invented entry to fill the room.
+// that leaves no row, centered in the room the list would take. The panel adds
+// no invented entry to fill the room.
 func keysPanelEmpty(c *ui.Context, k tokens, text string) {
 	ui.Column(c).Grow(1).Padding(k.space(3), keysPanelPadX, k.space(3), keysPanelPadX).
-		AlignItems(ui.Center).Children(func() {
-		ui.Text(c, text).FontSize(k.bodySize).TextColor(k.mutedForeground)
+		Justify(ui.Center).AlignItems(ui.Center).Children(func() {
+		ui.Text(c, text).FontSize(k.bodySize).TextColor(k.mutedForeground).
+			TextAlign(ui.Center)
 	})
 }
 
-// keysPanelList draws one row per visible entry. The list is one Tab stop per
-// row: Tab reaches the next row and Enter or Space selects it, as a button
-// does. Up and Down are not bound, because a virtualized list's keys belong to
-// its own state and this panel keeps none.
+// keysPanelList draws one row per visible entry in one scroll container. The
+// list is one Tab stop per row: Tab reaches the next row and Enter or Space
+// selects it, as a button does. The container around the focus takes the
+// scrolling keys, so Page Up and Page Down (and the arrows) move the list while
+// a row holds the keyboard; the panel binds no list keys of its own, because a
+// virtualized list's keys belong to its own state and this panel keeps none.
 func keysPanelList(c *ui.Context, k tokens, v *KeysPanelView, entries []KeysPanelEntry) {
 	ui.Scroll(c).Grow(1).Children(func() {
 		ui.Column(c).Gap(0).Role(ui.RoleList).Label("Keys").Children(func() {
@@ -256,14 +296,18 @@ func keysPanelList(c *ui.Context, k tokens, v *KeysPanelView, entries []KeysPane
 	})
 }
 
-// keysPanelRow draws one keyed block: its key, sequence, input id and a
-// bounded text. The row's accessible name is the key, so assistive technology
-// can address the row without reading the four columns.
+// keysPanelRow draws one keyed block as a section. The first line is the key
+// heading, monospaced and bold, with the note that names the block the
+// snapshot kept at the end; the second line is the block's value, monospaced
+// because it is a code body. Both lines are single lines: a long key, note or
+// value ends in an ellipsis, so a narrow panel clips its own text instead of
+// widening the row. The row's accessible name is the key, so assistive
+// technology can address the row without reading its three parts.
 func keysPanelRow(c *ui.Context, k tokens, v *KeysPanelView, entry KeysPanelEntry) {
 	selected := v.selected(entry)
-	row := ui.ButtonBase(c).Height(keysPanelRowH).FillWidth().
-		PaddingY(keysPanelRowY).PaddingX(keysPanelPadX).Radius(radiusSM).
-		Gap(k.gap).AlignItems(ui.Center).
+	row := ui.ButtonBase(c).Key("keys-row:" + entry.Key).Height(keysPanelRowH).
+		FillWidth().PaddingY(keysPanelRowY).PaddingX(keysPanelPadX).Radius(radiusSM).
+		AlignItems(ui.Center).
 		Role(ui.RoleListItem).Label(entry.Key).Selected(selected)
 	switch {
 	case selected:
@@ -275,14 +319,20 @@ func keysPanelRow(c *ui.Context, k tokens, v *KeysPanelView, entry KeysPanelEntr
 		v.choose(entry)
 	})
 	row.Children(func() {
-		ui.Text(c, entry.Key).Bold().FontSize(k.codeFontSize).TextColor(k.foreground).
-			Width(keysPanelKeyW).Shrink(0).SingleLine()
-		ui.Text(c, strconv.FormatInt(entry.Sequence, 10)).FontSize(k.smallSize).
-			TextColor(k.mutedForeground).Width(keysPanelSeqW).Shrink(0).
-			TextAlign(ui.End).SingleLine()
-		ui.Text(c, entry.InputID).FontSize(k.smallSize).
-			TextColor(k.mutedForeground).Width(keysPanelInputW).Shrink(0).SingleLine()
-		ui.Text(c, keysPanelText(entry.Text)).FontSize(k.bodySize).
-			TextColor(k.foreground).Grow(1).SingleLine()
+		ui.Column(c).FillWidth().Gap(keysPanelLineGap).Justify(ui.Center).Children(func() {
+			ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, entry.Key).Font(monospaceFamily).Bold().
+					FontSize(k.codeFontSize).TextColor(k.foreground).
+					FixedLineHeight(keysPanelLineH).SingleLine().
+					Grow(1).Shrink(1).MinWidth(0)
+				ui.Text(c, keysPanelNote(entry)).FontSize(k.smallSize).
+					TextColor(k.mutedForeground).FixedLineHeight(keysPanelLineH).
+					SingleLine().Shrink(1).MinWidth(0).TextAlign(ui.End)
+			})
+			ui.Text(c, keysPanelText(entry.Text)).Font(monospaceFamily).
+				FontSize(k.bodySize).TextColor(k.foreground).
+				FixedLineHeight(keysPanelLineH).SingleLine().
+				Grow(1).Shrink(1).MinWidth(0)
+		})
 	})
 }
