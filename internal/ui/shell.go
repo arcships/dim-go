@@ -725,9 +725,15 @@ func (s *State) composerView() ComposerView {
 		Wide:       len(s.Messages) > 0,
 		Workspace:  s.Workspace,
 		Permission: s.Permission,
-		Shortcut:   KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
-		Focus:      &s.composerFocus,
-		Locale:     s.locale(),
+		// The context row's branch is the selected session's, not the
+		// workspace's git branch: the App Server owns session branches and this
+		// shell reads no git fact. Context usage has no fact yet, so the meter
+		// stays unknown and draws its dash rather than a number.
+		Branch:       s.SelectedBranch,
+		ContextKnown: false,
+		Shortcut:     KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:        &s.composerFocus,
+		Locale:       s.locale(),
 	}
 }
 

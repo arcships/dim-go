@@ -213,6 +213,49 @@ func TestComposerContextRowIsInsideCard(t *testing.T) {
 	}
 }
 
+// TestComposerContextBranchAndMeterInsideCard checks the two right-hand entries
+// the reference adds: the session branch and the context meter sit in the
+// card's last band, inside its edges, and the branch is drawn only because the
+// view carries one.
+func TestComposerContextBranchAndMeterInsideCard(t *testing.T) {
+	k := newTokens(ui.LightTheme())
+	view := ComposerView{
+		Draft:       new(string),
+		CanSubmit:   true,
+		Placeholder: composerPlaceholder,
+		Branch:      "main",
+		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:       new(ui.Handle),
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		composer(c, newTokens(c.Theme()), view, Actions{OnSubmit: func(string) {}})
+	}, 800, 600)
+
+	card := composerCardBounds(t, tt)
+	tool, ok := tt.Find("Attach file")
+	if !ok {
+		t.Fatalf("the tool row is not drawn, texts %q", tt.Texts())
+	}
+	for _, label := range []string{composerBranchKey, composerContextUsageKey} {
+		rect, ok := tt.Find(label)
+		if !ok {
+			t.Fatalf("%s is not drawn, texts %q", label, tt.Texts())
+		}
+		if rect.Y < tool.Y+tool.H {
+			t.Errorf("%s sits at y=%.1f, above the tool row ending at %.1f", label, rect.Y, tool.Y+tool.H)
+		}
+		if rect.X < card.X+k.edgePad {
+			t.Errorf("%s starts at x=%.1f, left of the card's inset at %.1f", label, rect.X, card.X+k.edgePad)
+		}
+		if right := rect.X + rect.W; right > card.X+card.W-k.edgePad {
+			t.Errorf("%s ends at x=%.1f, past the card's inset at %.1f", label, right, card.X+card.W-k.edgePad)
+		}
+		if bottom := rect.Y + rect.H; bottom >= card.Y+card.H {
+			t.Errorf("%s ends at y=%.1f, at or past the card's bottom %.1f", label, bottom, card.Y+card.H)
+		}
+	}
+}
+
 // glyphInkBox returns the tight box of the pixels inside area that are not the
 // background, and how many there are: the drawn strokes of a glyph, without
 // asking the view how it drew them.
