@@ -489,6 +489,10 @@ type app struct {
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
+	// appearance is the desktop-local appearance preference store: the values
+	// loaded before the first frame and the snapshot the window writes when the
+	// settings surface reports a choice. See settings.go.
+	appearance appearance
 }
 
 func (a *app) bind() {
@@ -1235,6 +1239,9 @@ func main() {
 	}
 	application := &app{state: state, bridge: bridge}
 	application.bind()
+	// The appearance preferences are the desktop's own and load even without a
+	// daemon: they decide how the shell draws, not what a session contains.
+	application.loadAppearance()
 	if bridge != nil {
 		defer func() {
 			application.stopRefresh()
@@ -1245,10 +1252,12 @@ func main() {
 	}
 	mygo.App.WhenReady(func() {
 		application.win = mygo.NewWindow(mygo.WindowOptions{
-			Title:   "DimAgent",
-			Width:   1080,
-			Height:  720,
-			Content: ui.View(application.state.View),
+			Title:  "DimAgent",
+			Width:  1080,
+			Height: 720,
+			// content draws the shell and then writes an appearance choice the
+			// surface applied during that frame.
+			Content: ui.View(application.content),
 		})
 		if application.bridge != nil {
 			application.startRefresh(250 * time.Millisecond)
