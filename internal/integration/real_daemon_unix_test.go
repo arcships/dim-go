@@ -214,6 +214,50 @@ func TestRealDaemonSessionFlow(t *testing.T) {
 	head := waitForHead(t, controller.Session, result.Event.Sequence, 30*time.Second)
 	t.Logf("submit folded: event=%s sequence=%d head=%d", result.Event.ID, result.Event.Sequence, head)
 
+	// branch_create/OpenBranch/EndBranch: a real side line is created through the
+	// public method, its own first-screen history is read, and it is ended. A
+	// daemon without the branch feature skips this block instead of faking it.
+	if conn := controller.Conn; conn != nil && conn.HasFeature("session.branches") {
+		// The cut point is the parent branch's sequence the line hangs off; the
+		// accepted input's own sequence is the one point the test can prove.
+		at := result.Event.Sequence
+		createdBranch, err := appserver.BranchCreate(ctx, conn.Client(), appserver.BranchCreateParams{
+			SessionID:      created.SessionID,
+			ParentBranchID: appserver.MainBranchID,
+			At:             &at,
+			Prompt:         "side: explain the branch",
+		})
+		if err != nil {
+			t.Fatalf("session.branch_create: %v", err)
+		}
+		if createdBranch.Branch == nil || createdBranch.Branch.BranchID == "" {
+			t.Fatal("session.branch_create returned no branch id")
+		}
+		opened, err := controller.OpenBranch(ctx, createdBranch.Branch.BranchID)
+		if err != nil {
+			t.Fatalf("OpenBranch: %v", err)
+		}
+		if opened.AlreadyLoaded {
+			t.Fatal("OpenBranch reported an already loaded branch for a new line")
+		}
+		if opened.Head < 0 {
+			t.Fatalf("OpenBranch head = %d, want a non-negative sequence", opened.Head)
+		}
+		if err := controller.RefreshBranchDirectory(ctx); err != nil {
+			t.Fatalf("RefreshBranchDirectory: %v", err)
+		}
+		outcome, err := controller.EndBranch(ctx, createdBranch.Branch.BranchID)
+		if err != nil {
+			t.Fatalf("EndBranch: %v", err)
+		}
+		if outcome == "" {
+			t.Fatal("EndBranch returned an empty outcome")
+		}
+		t.Logf("branch %s opened at head %d and ended (%s)", createdBranch.Branch.BranchID, opened.Head, outcome)
+	} else {
+		t.Log("daemon does not advertise session.branches; branch round trip skipped")
+	}
+
 	// stop: session.stop is accepted and the stopped state converges through
 	// session.state. The stop reply body is intentionally ignored; only the
 	// notification is authoritative.
