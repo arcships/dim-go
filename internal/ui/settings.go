@@ -1,13 +1,13 @@
 // This file owns the settings surface: the section navigation dim-electron
 // draws on the left, and the page of the chosen section on the right. The
-// appearance page keeps the desktop's own color theme, type, sidebar-width and
-// density preferences, plus the skin and chrome entries the shell cannot offer
-// yet. The archived-sessions page lists the rows this desktop hides and offers
-// Restore; the models and shortcuts pages list read-only facts; the about page
-// reports the binary's build version, the Go/mygo/protocol facts and the
-// interface language. Every other section keeps its place in the navigation and
-// explains the client or page it waits on, so the settings surface reads as WIP
-// instead of as an empty page that saved nothing.
+// appearance page keeps the desktop's own color theme, chrome palette, type,
+// sidebar-width and density preferences, plus the custom-skin entry the shell
+// cannot offer yet. The archived-sessions page lists the rows this desktop
+// hides and offers Restore; the models and shortcuts pages list read-only
+// facts; the about page reports the binary's build version, the Go/mygo/protocol
+// facts and the interface language. Every other section keeps its place in the
+// navigation and explains the client or page it waits on, so the settings
+// surface reads as WIP instead of as an empty page that saved nothing.
 //
 // It reads SettingsView and the tokens only (see protocols.go); the App Server
 // owns every session, run, timeline and approval fact and is not read here.
@@ -128,17 +128,20 @@ func settingsSectionsBackLabel(l Locale) string {
 // them to the App Server: none of them is a session, run or approval fact.
 const settingsLocalNote = "These preferences live on this desktop. They change how the shell draws, not any session, run or approval."
 
-// settingsSkinNote says why the skin section has no control to offer. A skin
-// or a chrome theme replaces the semantic tokens themselves; system, light and
-// dark are color preferences, not stand-ins for one.
-const settingsSkinNote = "Skins are not implemented: the shell draws one semantic token set in system, light or dark. No fake skin is offered."
+// settingsSkinNote says what the skin section offers today: the reference's six
+// chrome palettes are real choices, and a custom skin still waits on the skin
+// resolver. A chrome palette recolors the semantic tokens themselves, which is
+// why the platform theme, light and dark are not stand-ins for one.
+const settingsSkinNote = "The six chrome palettes below are available. A custom skin needs dim-electron's skin.json resolver and window regions, which this shell does not have yet."
 
-// The reasons the skin and chrome entries wait on. dim-electron resolves skins
-// from a skin.json and a window region, and chrome from six historical
-// stylesheets (styles/retro-themes.css); this shell has neither, so the entries
-// stay visible, unavailable and explained instead of pretending a theme.
+// The reason the custom-skin actions wait on. dim-electron resolves a skin from
+// a skin.json and a window region; this shell has no resolver and no window
+// regions, so the two actions stay visible, unavailable and explained instead
+// of pretending a skin. The chrome palettes are a separate, real preference
+// (see settingsSkinSection); the stale chrome reason stays in i18n.go's tables
+// until that file drops it.
 const (
-	reasonSkin   = "Unavailable: skins need dim-electron's skin.json resolver and window regions; the theme row chooses only system, light or dark."
+	reasonSkin   = "Unavailable: skins need dim-electron's skin.json resolver and window regions; the chrome cards above only recolor the shell."
 	reasonChrome = "Unavailable: chrome themes need dim-electron's six historical stylesheets; this shell does not draw a fake chrome."
 )
 
@@ -183,8 +186,8 @@ const (
 	SettingsSectionAccount
 	// SettingsSectionUsage is the usage and spend page.
 	SettingsSectionUsage
-	// SettingsSectionAppearance is the color, type, layout, skin and language
-	// page.
+	// SettingsSectionAppearance is the color, chrome, type, layout, skin and
+	// language page.
 	SettingsSectionAppearance
 	// SettingsSectionGeneral is the general desktop preferences page.
 	SettingsSectionGeneral
@@ -401,6 +404,119 @@ func (t ThemeChoice) String() string {
 	}
 }
 
+// Chrome is the appearance's chrome palette: the six OS-tribute themes
+// dim-electron ships in its styles/retro-themes.css, as data-chrome-theme
+// values. It is a desktop preference like the color theme; the window folds it
+// into the frame's theme and tokens (tokens.go) rather than into a session fact.
+//
+// The palettes change colors, the corner radius and the interface family only.
+// The reference's gradients, bevelled edges, inset shadows and title-bar
+// chrome are not drawn here, because this desktop keeps the system title bar
+// and draws flat faces; see chromePalette.
+type Chrome uint8
+
+const (
+	// ChromeDefault draws the platform theme's own palette, as the shell did
+	// before chrome themes existed.
+	ChromeDefault Chrome = iota
+	// ChromeWindows98 is the Windows 98 palette: gray panels, navy selection,
+	// square corners and Tahoma.
+	ChromeWindows98
+	// ChromeWindowsXP is the Windows XP palette: sand panels, blue selection and
+	// Tahoma.
+	ChromeWindowsXP
+	// ChromeWindowsVista is the Windows Vista palette: cool panels, Segoe UI.
+	ChromeWindowsVista
+	// ChromeMacOSBigSur is the macOS Big Sur palette, in its light and dark
+	// blocks, with the platform interface font.
+	ChromeMacOSBigSur
+	// ChromeOSXTiger is the Mac OS X Tiger palette: gray panels, Lucida Grande.
+	ChromeOSXTiger
+)
+
+// chromeLast is the last valid Chrome; a saved number above it names no palette
+// and folds onto ChromeDefault, as an unknown theme choice does.
+const chromeLast = ChromeOSXTiger
+
+// String is the palette's English name, as the skin cards draw it.
+func (c Chrome) String() string {
+	switch c {
+	case ChromeWindows98:
+		return "Windows 98"
+	case ChromeWindowsXP:
+		return "Windows XP"
+	case ChromeWindowsVista:
+		return "Windows Vista"
+	case ChromeMacOSBigSur:
+		return "macOS Big Sur"
+	case ChromeOSXTiger:
+		return "OSX Tiger"
+	default:
+		return "Default"
+	}
+}
+
+// chromeChoices is the skin gallery's order: the default palette first, then
+// the reference's five tributes.
+var chromeChoices = [...]Chrome{
+	ChromeDefault,
+	ChromeWindows98,
+	ChromeWindowsXP,
+	ChromeWindowsVista,
+	ChromeMacOSBigSur,
+	ChromeOSXTiger,
+}
+
+// resolvedChrome folds an unknown saved palette onto the default, so a
+// hand-edited file cannot draw a chrome theme the surface offers no card for.
+func resolvedChrome(c Chrome) Chrome {
+	if c > chromeLast {
+		return ChromeDefault
+	}
+	return c
+}
+
+// chromeName is the palette's name in the active language. i18n.go carries no
+// settings.chrome.* keys yet, so the two tables live here; the product names
+// stay Latin in both languages, as the reference's own theme list draws them.
+func chromeName(l Locale, c Chrome) string {
+	if resolveLocale(l) == LocaleZHCN {
+		switch c {
+		case ChromeWindows98:
+			return "Windows 98"
+		case ChromeWindowsXP:
+			return "Windows XP"
+		case ChromeWindowsVista:
+			return "Windows Vista"
+		case ChromeMacOSBigSur:
+			return "macOS Big Sur"
+		case ChromeOSXTiger:
+			return "OSX Tiger"
+		default:
+			return "默认"
+		}
+	}
+	return c.String()
+}
+
+// chromeSlug is the palette's stable key stem, used for the card's key.
+func chromeSlug(c Chrome) string {
+	switch c {
+	case ChromeWindows98:
+		return "windows98"
+	case ChromeWindowsXP:
+		return "windowsXP"
+	case ChromeWindowsVista:
+		return "windowsVista"
+	case ChromeMacOSBigSur:
+		return "macosBigSur"
+	case ChromeOSXTiger:
+		return "osxTiger"
+	default:
+		return "default"
+	}
+}
+
 // FontFamily is the family the shell draws its interface and code in: the
 // system stack, or the monospace stack. It names a family, not a font file:
 // mygo resolves the system one to the platform's interface font and the
@@ -462,6 +578,8 @@ const (
 	SettingsFieldCodeFontSize
 	// SettingsFieldLocale is the interface language.
 	SettingsFieldLocale
+	// SettingsFieldChrome is the Chrome palette.
+	SettingsFieldChrome
 )
 
 // String names the field, for a caller's log or error.
@@ -479,6 +597,8 @@ func (f SettingsField) String() string {
 		return "code font size"
 	case SettingsFieldLocale:
 		return "language"
+	case SettingsFieldChrome:
+		return "chrome"
 	default:
 		return "theme"
 	}
@@ -520,6 +640,9 @@ type SettingsView struct {
 	Section SettingsSection
 	// Theme is the color-theme preference: system, light or dark.
 	Theme ThemeChoice
+	// Chrome is the chrome palette: the platform's own (ChromeDefault) or one
+	// of the reference's five tributes.
+	Chrome Chrome
 	// FontSize is the UI text step, one of fontSizeSteps.
 	FontSize float32
 	// FontFamily is the interface and code family.
@@ -562,6 +685,7 @@ type SettingsChange struct {
 	Field        SettingsField
 	Locale       Locale
 	Theme        ThemeChoice
+	Chrome       Chrome
 	FontSize     float32
 	FontFamily   FontFamily
 	SidebarWidth float32
@@ -570,9 +694,10 @@ type SettingsChange struct {
 }
 
 // defaultSettingsView is the appearance the surface opens with: the
-// personalization page, the theme following the desktop, the type sitting on the
-// tokens' own default sizes, the sidebar at its default width, and the density
-// regular. It is the same value resolveSettings derives from a zero view.
+// personalization page, the theme following the desktop, the platform chrome,
+// the type sitting on the tokens' own default sizes, the sidebar at its default
+// width, and the density regular. It is the same value resolveSettings derives
+// from a zero view.
 func defaultSettingsView(k tokens) SettingsView {
 	return resolveSettings(k, SettingsView{})
 }
@@ -589,6 +714,7 @@ func resolveSettings(k tokens, v SettingsView) SettingsView {
 	default:
 		v.Theme = ThemeSystem
 	}
+	v.Chrome = resolvedChrome(v.Chrome)
 	v.FontSize = settingsFontSize(k, v.FontSize)
 	if v.FontFamily != FontMonospace {
 		v.FontFamily = FontSystem
@@ -686,6 +812,7 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 		Field:        field,
 		Locale:       v.Locale,
 		Theme:        v.Theme,
+		Chrome:       v.Chrome,
 		FontSize:     v.FontSize,
 		FontFamily:   v.FontFamily,
 		SidebarWidth: v.SidebarWidth,
@@ -715,9 +842,10 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 // row does.
 //
 // The appearance page draws the theme, language, font, size, code-theme and
-// skin groups; the archived-sessions page lists the rows the desktop hides and
-// offers Restore; every other page keeps its navigation row and explains the
-// client or page it waits on, with a visible WIP badge and no invented control.
+// skin groups, the last one holding the six chrome palettes and the custom-skin
+// gap; the archived-sessions page lists the rows the desktop hides and offers
+// Restore; every other page keeps its navigation row and explains the client or
+// page it waits on, with a visible WIP badge and no invented control.
 // It reads SettingsView and the tokens only. It calls onChange at most once per
 // user choice, with the resolved view, and writes no preference itself; a
 // Restore click calls onRestore with the row's session id and changes no list
@@ -822,7 +950,7 @@ func settingsCompactBackRow(c *ui.Context, k tokens, l Locale, state *settingsRo
 // that has not wired the return yet.
 func settingsNavActionRow(c *ui.Context, k tokens, key, label string, action func()) {
 	row := ui.ButtonBase(c).Key(key).Height(k.sidebarRowH).FillWidth().
-		PaddingX(settingsNavPadX).Radius(radiusMD).Gap(settingsNavIconGap).
+		PaddingX(settingsNavPadX).Radius(k.radiusMD).Gap(settingsNavIconGap).
 		AlignItems(ui.Center).Role(ui.RoleButton).Label(label).
 		Transition(motionFastColors(c))
 	if row.Hovered() {
@@ -844,7 +972,7 @@ func settingsNavActionRow(c *ui.Context, k tokens, key, label string, action fun
 func settingsNavRow(c *ui.Context, k tokens, l Locale, s SettingsSection, selected bool, state *settingsRouteState, compact bool) {
 	label := settingsSectionLabel(l, s)
 	entry := ui.ButtonBase(c).Key("settings-section:" + settingsSectionSlug(s)).
-		Height(k.sidebarRowH).FillWidth().PaddingX(settingsNavPadX).Radius(radiusMD).
+		Height(k.sidebarRowH).FillWidth().PaddingX(settingsNavPadX).Radius(k.radiusMD).
 		Gap(settingsNavIconGap).AlignItems(ui.Center).Role(ui.RoleListItem).
 		Selected(selected).Transition(motionFastColors(c))
 	switch {
@@ -936,7 +1064,7 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 				settingsDivider(c, k)
 				settingsCodeThemeSection(c, k, v)
 				settingsDivider(c, k)
-				settingsSkinSection(c, k, v)
+				settingsSkinSection(c, k, v, onChange)
 				// The desktop-local note sits last so the page opening on the
 				// reference's theme, language, font and size groups matches its
 				// visible order; the note explains where the preferences live
@@ -1185,7 +1313,7 @@ func settingsModelRow(c *ui.Context, k tokens, l Locale, choice ModelChoice) {
 	if name == "" {
 		name = choice.ProviderID
 	}
-	ui.Column(c).FillWidth().Padding(k.gap, k.edgePad).Radius(radiusSM).
+	ui.Column(c).FillWidth().Padding(k.gap, k.edgePad).Radius(k.radiusSM).
 		Background(k.muted).Gap(settingsPreviewGap).Children(func() {
 		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, name).FontSize(k.bodySize).TextColor(k.foreground).
@@ -1364,7 +1492,7 @@ func settingsThemeSection(c *ui.Context, k tokens, v SettingsView, onChange func
 				c.Key("settings-theme:" + themeChoiceSlug(choice))
 				card := ui.RadioBase(c, &selected, choice).
 					Grow(1).Shrink(1).MinWidth(0).Height(settingsThemeCardH).
-					Padding(k.gapWide).Radius(radiusLG).BorderWidth(k.hairline).
+					Padding(k.gapWide).Radius(k.radiusLG).BorderWidth(k.hairline).
 					BorderColor(k.border).Background(k.card).
 					Label(themeChoiceText(l, choice)).Transition(motionFastColors(c))
 				if choice == v.Theme {
@@ -1531,7 +1659,7 @@ func settingsCodeThemeSection(c *ui.Context, k tokens, v SettingsView) {
 // rather than invented syntax colors.
 func settingsWIPPreview(c *ui.Context, k tokens, l Locale, label string) {
 	ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Height(settingsPreviewH).
-		Padding(k.gapWide).Gap(settingsPreviewGap).Radius(radiusMD).
+		Padding(k.gapWide).Gap(settingsPreviewGap).Radius(k.radiusMD).
 		BorderWidth(k.hairline).BorderColor(k.border).Background(k.card).Children(func() {
 		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, label).FontSize(k.bodySize).TextColor(k.foreground).SingleLine().
@@ -1543,22 +1671,38 @@ func settingsWIPPreview(c *ui.Context, k tokens, l Locale, label string) {
 	})
 }
 
-// settingsSkinSection is the skin gallery the reference draws. The shell has no
-// skin assets and no skin resolver, so every cover is a WIP card with only its
-// place and the visible badge, and the two actions stay unavailable with the
-// reason they wait on.
-func settingsSkinSection(c *ui.Context, k tokens, v SettingsView) {
+// settingsSkinSection is the reference's "My skin" gallery, with the six chrome
+// palettes as real choices: Default (the platform theme) and the five OS
+// tributes, two rows of three cards. Each card previews the palette's canvas,
+// panel and selection, and the chosen one is outlined and checked. A click
+// reports SettingsFieldChrome with its own palette, and the next frame draws
+// the shell in it (tokens.go).
+//
+// A custom skin — a skin.json with an image and window regions — is still
+// missing, so the two actions for one stay visible, unavailable and explained.
+// They are not stand-ins for a chrome palette.
+func settingsSkinSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
 	l := v.Locale
 	settingsSection(c, k, tr(l, keySettingsSkinSection), func() {
-		ui.Text(c, tr(l, keySettingsSkinNote)).FontSize(k.smallSize).
+		ui.Text(c, settingsChromeNoteText(l)).FontSize(k.smallSize).
 			TextColor(k.mutedForeground).Wrap()
-		for row := 0; row < 2; row++ {
-			ui.Row(c).FillWidth().Gap(k.gapWide).Children(func() {
-				for column := 0; column < 3; column++ {
-					settingsSkinCard(c, k, l, row*3+column+1)
-				}
-			})
-		}
+		selected := resolvedChrome(v.Chrome)
+		ui.Column(c).FillWidth().Gap(k.gapWide).Role(ui.RoleRadioGroup).
+			Label(tr(l, keySettingsSkinSection)).Children(func() {
+			for row := 0; row < 2; row++ {
+				row := row
+				ui.Row(c).FillWidth().Gap(k.gapWide).Children(func() {
+					for column := 0; column < 3; column++ {
+						settingsSkinCard(c, k, l, v, &selected, chromeChoices[row*3+column], onChange)
+					}
+				})
+			}
+		})
+		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Start).Children(func() {
+			ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
+			ui.Text(c, settingsSkinCustomNoteText(l)).FontSize(k.smallSize).
+				TextColor(k.mutedForeground).Wrap().Grow(1).MinWidth(0)
+		})
 		ui.Row(c).FillWidth().Gap(k.gapWide).AlignItems(ui.Center).Children(func() {
 			settingsWIPButton(c, tr(l, keySettingsSkinNew), tr(l, keyReasonSkin))
 			settingsWIPButton(c, tr(l, keySettingsSkinOpen), tr(l, keyReasonSkin))
@@ -1566,28 +1710,102 @@ func settingsSkinSection(c *ui.Context, k tokens, v SettingsView) {
 	})
 }
 
+// keySettingsSkinCustomNote is the message key the custom-skin note looks up.
+// i18n.go does not carry it yet, so the English fallback below stands in; the
+// key is listed in the surface's missing-key report.
+const keySettingsSkinCustomNote = "settings.skin.custom"
+
+// keySettingsChromeNote is the message key the chrome section's note looks up.
+// i18n.go does not carry it yet, so the English fallback below stands in; the
+// key is listed in the surface's missing-key report.
+const keySettingsChromeNote = "settings.chrome.note"
+
+// settingsChromeNote says what the gallery offers: the reference's six chrome
+// palettes, which recolor the shell. It is separate from settingsSkinNote so a
+// language that has not translated the chrome gallery yet draws this English
+// text rather than the older skin note, which no longer describes the page.
+const settingsChromeNote = "These are the reference's six chrome palettes. A palette recolors the shell, its chrome and its widgets; it is not a custom skin."
+
+// settingsChromeNoteText is the chrome note in the active language, falling
+// back to the English text rather than showing a key.
+func settingsChromeNoteText(l Locale) string {
+	if text := tr(l, keySettingsChromeNote); text != keySettingsChromeNote {
+		return text
+	}
+	return settingsChromeNote
+}
+
+// settingsSkinCustomNote says what the two skin actions still wait on. A chrome
+// palette recolors the shell's semantic tokens; a skin needs dim-electron's
+// skin.json resolver and window regions, which this shell does not have.
+const settingsSkinCustomNote = "Custom skins are still unavailable: they need dim-electron's skin.json resolver and window regions. The chrome palettes above recolor the shell; they are not skins."
+
+// settingsSkinCustomNoteText is the custom-skin note in the active language,
+// falling back to the English text rather than showing a key.
+func settingsSkinCustomNoteText(l Locale) string {
+	if text := tr(l, keySettingsSkinCustomNote); text != keySettingsSkinCustomNote {
+		return text
+	}
+	return settingsSkinCustomNote
+}
+
 // settingsWIPButton is an unavailable action that shares its row: it is disabled
 // for assistive technology, carries the reason as its description, and shrinks
 // with the row so a narrow window truncates the label instead of overflowing.
-// The group's WIP cards already show the visible badge.
 func settingsWIPButton(c *ui.Context, label, reason string) {
 	ui.Button(c, label).AccessDisabled(true).Description(reason).Opacity(wipOpacity).
 		Grow(1).Shrink(1).MinWidth(0)
 }
 
-// settingsSkinCard is one empty cover of the skin gallery: its number, the WIP
-// badge and no image, so the gallery keeps the reference's shape without
-// pretending a skin asset exists.
-func settingsSkinCard(c *ui.Context, k tokens, l Locale, index int) {
-	ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Height(settingsSkinCardH).
-		Padding(k.gapWide).Gap(settingsPreviewGap).Radius(radiusMD).
-		BorderWidth(k.hairline).BorderColor(k.border).Background(k.card).Children(func() {
-		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, tr(l, keySettingsSkinCard)+" "+strconv.Itoa(index)).FontSize(k.bodySize).
-				TextColor(k.foreground).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
-			ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
+// settingsSkinCard is one chrome palette's card: its name, a preview of the
+// palette's window, panel and selection, and the chosen card's outline and
+// check. The preview is drawn from the palette itself, not from the frame's
+// current tokens, so every card shows the colors it would apply. A click
+// reports the whole resolved view with only Chrome replaced, so the caller
+// keeps every other preference.
+func settingsSkinCard(c *ui.Context, k tokens, l Locale, v SettingsView, selected *Chrome, choice Chrome, onChange func(SettingsChange)) {
+	c.Key("settings-chrome:" + chromeSlug(choice))
+	card := ui.RadioBase(c, selected, choice).
+		Grow(1).Shrink(1).MinWidth(0).Height(settingsSkinCardH).
+		Padding(k.gapWide).Gap(settingsPreviewGap).Radius(k.radiusMD).
+		BorderWidth(k.hairline).BorderColor(k.border).Background(k.card).
+		Label(chromeName(l, choice)).Selected(choice == v.Chrome).
+		Transition(motionFastColors(c))
+	if choice == v.Chrome {
+		card.BorderWidth(1.5).BorderColor(k.primary)
+	}
+	if card.Hovered() && choice != v.Chrome {
+		card.Background(k.secondary)
+	}
+	if card.Changed() {
+		next := v
+		next.Chrome = choice
+		publishSettings(onChange, SettingsFieldChrome, next)
+	}
+	card.Children(func() {
+		ui.Column(c).FillWidth().Grow(1).Justify(ui.Center).Gap(settingsPreviewGap).Children(func() {
+			ui.Text(c, chromeName(l, choice)).FontSize(k.bodySize).TextColor(k.foreground).
+				SingleLine().Ellipsis("…")
+			ui.Row(c).FillWidth().Gap(settingsPreviewGap).AlignItems(ui.Center).Children(func() {
+				canvas, panel, selection := chromeSwatch(k, choice)
+				for _, color := range []ui.Color{canvas, panel, selection} {
+					ui.Box(c).Grow(1).Height(settingsThemeDot * 2).Radius(settingsThemeDot / 2).
+						Background(color).BorderWidth(k.hairline).BorderColor(k.border).
+						AccessHidden(true)
+				}
+			})
 		})
 	})
+}
+
+// chromeSwatch is the three colors a card previews: the palette's window,
+// panel and selection. ChromeDefault has no palette of its own, so its card
+// previews the frame's current tokens, which is exactly what choosing it draws.
+func chromeSwatch(k tokens, c Chrome) (canvas, panel, selection ui.Color) {
+	if p, ok := chromePaletteFor(c, k.theme.Dark); ok {
+		return p.canvas, p.panel, p.selection
+	}
+	return k.background, k.card, k.primary
 }
 
 // settingsSection draws one titled group of setting rows.

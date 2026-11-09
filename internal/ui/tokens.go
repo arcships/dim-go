@@ -278,6 +278,286 @@ var (
 // washed: a tint over the border has no contrast of its own.
 const washAlpha = 0.12
 
+// chromePalette is one of dim-electron's OS-tribute chrome palettes, taken from
+// its styles/retro-themes.css. The reference names thirty --chrome-* variables
+// per theme; this shell keeps the ten faces its own semantic layer needs, plus
+// the two radii and the family the theme names.
+//
+// Only what the shell can draw is imitated: the reference's gradients,
+// 3-D bevels, inset shadows, title-bar stripes and window chrome are not
+// reproduced, because this desktop uses the system title bar and draws flat
+// faces. The colors, the corner radius and the UI family are.
+type chromePalette struct {
+	// dark is whether this palette is one of the reference's dark blocks. Only
+	// macOS Big Sur has one; the other chrome themes draw their light palette in
+	// both appearances, as the reference's color-scheme: light does.
+	dark bool
+	// The semantic faces, in the reference's names: the window's canvas and
+	// ink, the panel its cards and sidebar sit on, the menu a popover uses, the
+	// muted secondary text, the edge between faces, the selection fill with the
+	// text on it, the hover face, and the tooltip's face.
+	canvas       ui.Color
+	ink          ui.Color
+	panel        ui.Color
+	menu         ui.Color
+	muted        ui.Color
+	edge         ui.Color
+	selection    ui.Color
+	selectionInk ui.Color
+	hover        ui.Color
+	tip          ui.Color
+	// radius is the reference's --chrome-radius: the corner of a card, a
+	// dialog or a popover. controlRadius is --chrome-control-radius, the corner
+	// of a button or a field; the reference clamps an input's corner to 6 DIP
+	// (min(var(--chrome-control-radius), 6px)).
+	radius        float32
+	controlRadius float32
+	// font is the reference's --chrome-ui-font-family stack. mygo resolves a
+	// comma-separated family list the way CSS does: it uses the first family
+	// the platform has, so the same stack serves every desktop.
+	font string
+}
+
+// The reference's interface stacks, from --chrome-ui-font-family. mygo resolves
+// a comma-separated list like CSS, so the whole stack is kept: the Windows
+// stacks name Tahoma, the mac ones the system face, and every stack ends at a
+// family the platform's text engine falls back to.
+const (
+	chromeTahomaStack = `Tahoma, "Microsoft Sans Serif", "Segoe UI", "Microsoft YaHei UI", "PingFang SC", sans-serif`
+	chromeSegoeStack  = `"Segoe UI", Tahoma, "Microsoft YaHei UI", "PingFang SC", sans-serif`
+	chromeLucidaStack = `"Lucida Grande", "Lucida Sans Unicode", "Hiragino Sans GB", "PingFang SC", sans-serif`
+	chromeAppleStack  = `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei UI", sans-serif`
+)
+
+// The reference's six palettes (retro-themes.css, the windows-98, windows-xp,
+// windows-vista, osx-tiger and macos-bigsur blocks). default is the absence of
+// a chrome theme and has no palette of its own.
+var (
+	chromeWindows98 = chromePalette{
+		canvas:        ui.Hex("#ffffff"),
+		ink:           ui.Hex("#000000"),
+		panel:         ui.Hex("#c0c0c0"),
+		menu:          ui.Hex("#c0c0c0"),
+		muted:         ui.Hex("#444444"),
+		edge:          ui.Hex("#808080"),
+		selection:     ui.Hex("#000080"),
+		selectionInk:  ui.Hex("#ffffff"),
+		hover:         ui.Hex("#d8d8d8"),
+		tip:           ui.Hex("#ffffe1"),
+		radius:        0,
+		controlRadius: 0,
+		font:          chromeTahomaStack,
+	}
+	chromeWindowsXP = chromePalette{
+		canvas:        ui.Hex("#ffffff"),
+		ink:           ui.Hex("#000000"),
+		panel:         ui.Hex("#ece9d8"),
+		menu:          ui.Hex("#ffffff"),
+		muted:         ui.Hex("#5a594e"),
+		edge:          ui.Hex("#aca899"),
+		selection:     ui.Hex("#316ac5"),
+		selectionInk:  ui.Hex("#ffffff"),
+		hover:         ui.Hex("#dce8fc"),
+		tip:           ui.Hex("#ffffe1"),
+		radius:        7,
+		controlRadius: 3,
+		font:          chromeTahomaStack,
+	}
+	chromeWindowsVista = chromePalette{
+		canvas:        ui.Hex("#ffffff"),
+		ink:           ui.Hex("#17232b"),
+		panel:         ui.Hex("#e8eff4"),
+		menu:          ui.Hex("#f0f0f0"),
+		muted:         ui.Hex("#52616a"),
+		edge:          ui.Hex("#8b9ba5"),
+		selection:     ui.Hex("#0078d7"),
+		selectionInk:  ui.Hex("#ffffff"),
+		hover:         ui.Hex("#d9effd"),
+		tip:           ui.Hex("#fffef4"),
+		radius:        7,
+		controlRadius: 3,
+		font:          chromeSegoeStack,
+	}
+	chromeOSXTiger = chromePalette{
+		canvas:        ui.Hex("#ffffff"),
+		ink:           ui.Hex("#171717"),
+		panel:         ui.Hex("#ececec"),
+		menu:          ui.Hex("#f8f8f8"),
+		muted:         ui.Hex("#595959"),
+		edge:          ui.Hex("#999999"),
+		selection:     ui.Hex("#3875d7"),
+		selectionInk:  ui.Hex("#ffffff"),
+		hover:         ui.Hex("#d8e6f8"),
+		tip:           ui.Hex("#ffffdf"),
+		radius:        7,
+		controlRadius: 999,
+		font:          chromeLucidaStack,
+	}
+	chromeMacOSBigSur = chromePalette{
+		canvas:        ui.Hex("#ffffff"),
+		ink:           ui.Hex("#262426"),
+		panel:         ui.Hex("#f0eeef"),
+		menu:          ui.Hex("#f6f5f5"),
+		muted:         ui.Hex("#656166"),
+		edge:          ui.Hex("#c6c3c6"),
+		selection:     ui.Hex("#007aff"),
+		selectionInk:  ui.Hex("#ffffff"),
+		hover:         ui.Hex("#e2e0e3"),
+		tip:           ui.Hex("#f5f3f5"),
+		radius:        10,
+		controlRadius: 6,
+		font:          chromeAppleStack,
+	}
+	chromeMacOSBigSurDark = chromePalette{
+		dark:          true,
+		canvas:        ui.Hex("#1e1e22"),
+		ink:           ui.Hex("#f3f1f5"),
+		panel:         ui.Hex("#29282d"),
+		menu:          ui.Hex("#353439"),
+		muted:         ui.Hex("#b9b6be"),
+		edge:          ui.Hex("#545159"),
+		selection:     ui.Hex("#0a84ff"),
+		selectionInk:  ui.Hex("#ffffff"),
+		hover:         ui.Hex("#45434b"),
+		tip:           ui.Hex("#353439"),
+		radius:        10,
+		controlRadius: 6,
+		font:          chromeAppleStack,
+	}
+)
+
+// chromePaletteFor returns the palette of c in the appearance the window is
+// in. The reference has a dark block only for macOS Big Sur, so every other
+// chrome draws its light palette in the dark appearance too, exactly as its
+// color-scheme: light does. default names no palette.
+func chromePaletteFor(c Chrome, dark bool) (chromePalette, bool) {
+	switch c {
+	case ChromeWindows98:
+		return chromeWindows98, true
+	case ChromeWindowsXP:
+		return chromeWindowsXP, true
+	case ChromeWindowsVista:
+		return chromeWindowsVista, true
+	case ChromeOSXTiger:
+		return chromeOSXTiger, true
+	case ChromeMacOSBigSur:
+		if dark {
+			return chromeMacOSBigSurDark, true
+		}
+		return chromeMacOSBigSur, true
+	default:
+		return chromePalette{}, false
+	}
+}
+
+// chromeRadiusLadder is the radius ladder a chrome palette asks for, from the
+// reference's --radius-sm: calc(var(--radius) - 4px) and its three siblings in
+// global.css. A negative step is a square corner and is held at 0.
+func chromeRadiusLadder(radius float32) (sm, md, lg, xl float32) {
+	clamp := func(r float32) float32 {
+		if r < 0 {
+			return 0
+		}
+		return r
+	}
+	return clamp(radius - 4), clamp(radius - 2), clamp(radius), clamp(radius + 4)
+}
+
+// chromeControlRadius is the corner a chrome theme gives mygo's own controls:
+// the reference's --chrome-control-radius, clamped to the 6 DIP its inputs ask
+// for (min(var(--chrome-control-radius), 6px)), so a pill theme does not turn
+// every themed widget into a pill here.
+func chromeControlRadius(radius float32) float32 {
+	if radius > 6 {
+		return 6
+	}
+	if radius < 0 {
+		return 0
+	}
+	return radius
+}
+
+// applyChromeTheme folds a chrome palette into the frame's theme, so mygo's own
+// widgets (buttons, fields, lists, scroll bars) draw the same faces as the
+// shell's views. The palette overrides the theme's colors, radius, family and
+// appearance; danger, warning and success keep the theme's, because the
+// reference's chrome blocks do not color them.
+func applyChromeTheme(t *ui.Theme, p chromePalette, family FontFamily) {
+	t.Dark = p.dark
+	t.Background = p.canvas
+	t.Text = p.ink
+	t.TextMuted = p.muted
+	t.Surface = p.panel
+	t.SurfaceHover = p.hover
+	t.SurfacePressed = p.hover
+	t.Border = p.edge
+	t.Accent = p.selection
+	t.AccentHover = p.selection
+	t.AccentPressed = p.selection
+	t.AccentText = p.selectionInk
+	t.InactiveAccent = p.selection
+	t.Focus = p.selection
+	t.Inverse = p.tip
+	t.InverseText = p.ink
+	t.Scrollbar = p.edge
+	t.Radius = chromeControlRadius(p.controlRadius)
+	// The chrome family is the reference's interface stack; an explicit
+	// Monospace preference still wins, because this shell draws the interface
+	// and code in one family and the preference names that family.
+	if family != FontMonospace {
+		t.Font = p.font
+	}
+}
+
+// applyChromeTokens replaces the faces buildTokens derived from the theme with
+// the chrome palette's, so a card is the reference's panel instead of a step
+// toward white and a popover is its menu. The radius ladder follows the
+// palette's --chrome-radius, and the tooltip is the reference's tip face.
+func applyChromeTokens(k tokens, p chromePalette) tokens {
+	k.background = p.canvas
+	k.foreground = p.ink
+	k.sidebar = p.panel
+	k.card = p.panel
+	k.cardForeground = p.ink
+	k.popover = p.menu
+	k.popoverForeground = p.ink
+
+	k.sidebarForeground = p.ink
+	k.sidebarPrimary = p.selection
+	k.sidebarPrimaryForeground = p.selectionInk
+	k.sidebarAccent = p.selection
+	k.sidebarAccentForeground = p.selectionInk
+	k.sidebarHover = p.hover
+	k.sidebarBorder = p.edge
+	k.sidebarRing = p.selection
+
+	k.primary = p.selection
+	k.onPrimary = p.selectionInk
+	k.secondary = p.panel
+	k.secondaryForeground = p.ink
+	k.muted = p.panel
+	k.mutedForeground = p.muted
+	k.accent = p.hover
+	k.accentForeground = p.ink
+
+	k.border = p.edge
+	k.input = p.edge
+	k.ring = p.selection
+
+	k.tooltip = p.tip
+	k.tooltipForeground = p.ink
+	k.tooltipMutedForeground = p.muted
+	k.tooltipBorder = p.edge
+	k.tooltipChip = p.hover
+
+	sm, md, lg, xl := chromeRadiusLadder(p.radius)
+	k.radiusSM, k.radiusMD, k.radiusLG, k.radiusXL = sm, md, lg, xl
+	k.cardRadius = lg
+	k.frameRadius = xl
+	k.timelineBubbleR = lg
+	return k
+}
+
 // tokens are the shell's design tokens: the room, type, radius and color steps
 // its views use, so that no view carries a magic number or a color of its own.
 // They are derived every frame from the window's theme and the desktop's saved
@@ -311,6 +591,17 @@ type tokens struct {
 	cardRadius  float32 // a card's corner, the middle of the radius ladder
 	cardPadY    float32 // above and below a card's parts
 	cardPadX    float32 // left and right inside a card
+
+	// The radius ladder's four steps, in DIPs: an inline control's corner, a
+	// field's or a chip's, a card's and a floating surface's. They are the
+	// reference's --radius-{sm,md,lg,xl}, derived from its --radius. A chrome
+	// theme re-derives them from its own --chrome-radius (chromeRadiusLadder),
+	// so a chosen chrome rounds the shell's own corners as the reference's
+	// stylesheet rounds its cards.
+	radiusSM float32
+	radiusMD float32
+	radiusLG float32
+	radiusXL float32
 
 	// The main column's frame: the gap between the card and the window edge,
 	// and the card's own corner. See mainFramePad and mainFrameRadius.
@@ -446,6 +737,10 @@ func newTokens(t *ui.Theme) tokens {
 // theme, and the density folds into the room both in the theme's spacing unit
 // (which mygo's own widgets read) and in the layout's literal steps; see
 // appearanceTheme and densityScale.
+//
+// A chosen chrome theme replaces the theme's own palette before the tokens are
+// derived and again on the derived faces, so every region draws the reference's
+// canvas, panel, menu, selection and edge rather than the platform theme's.
 func newTokensFor(t *ui.Theme, prefs SettingsView) tokens {
 	t = themeOrLight(t)
 	v := resolveSettings(newTokens(t), prefs)
@@ -453,6 +748,9 @@ func newTokensFor(t *ui.Theme, prefs SettingsView) tokens {
 	// The UI steps already follow the appearance theme's size; the code size
 	// is not a step of that scale, so it is folded in here.
 	k.codeFontSize = v.CodeFontSize
+	if p, ok := chromePaletteFor(v.Chrome, t.Dark); ok {
+		k = applyChromeTokens(k, p)
+	}
 	return k
 }
 
@@ -470,12 +768,19 @@ func newTokensFor(t *ui.Theme, prefs SettingsView) tokens {
 // that names one has chosen it, so it replaces the theme's own size instead of
 // scaling it again. With no saved size the resolved step is the theme's (which
 // already follows a larger system text size).
+//
+// A chosen chrome palette then replaces the theme's colors, radius and family
+// (applyChromeTheme), so mygo's widgets draw the same chrome as the shell's
+// own views. The density stays on top: compact tightens a chrome theme too.
 func appearanceTheme(t *ui.Theme, v SettingsView) *ui.Theme {
 	applied := *t
 	applied.FontSize = v.FontSize
 	applied.Font = fontFamilyStack(v.FontFamily)
 	if v.Density == DensityCompact {
 		applied.Spacing = spacingUnit(t) * densityCompactScale
+	}
+	if p, ok := chromePaletteFor(v.Chrome, t.Dark); ok {
+		applyChromeTheme(&applied, p, v.FontFamily)
 	}
 	return &applied
 }
@@ -609,6 +914,11 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 		cardRadius:  radiusLG,
 		cardPadY:    t.Space(1),
 		cardPadX:    cardPadXStep * geometryScale,
+
+		radiusSM: radiusSM,
+		radiusMD: radiusMD,
+		radiusLG: radiusLG,
+		radiusXL: radiusXL,
 
 		// The frame is a CSS literal, not a spacing step, so a compact density
 		// leaves it as dim-electron draws it.

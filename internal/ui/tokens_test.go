@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image"
 	"math"
 	"reflect"
 	"testing"
@@ -355,6 +356,166 @@ func TestFontSizeSnapsToAStep(t *testing.T) {
 	}
 }
 
+// TestChromePalettesReplaceTheTheme checks each chrome palette: the six faces
+// the reference names are the tokens' background, card, popover, primary,
+// muted secondary text, edge and sidebar, and the frame's theme carries the
+// same colors so mygo's widgets draw them too. ChromeDefault is the absence of
+// a palette and keeps the theme's tokens.
+func TestChromePalettesReplaceTheTheme(t *testing.T) {
+	for _, choice := range chromeChoices[1:] {
+		p, ok := chromePaletteFor(choice, false)
+		if !ok {
+			t.Fatalf("%s names no palette", choice)
+		}
+		k := newTokensFor(ui.LightTheme(), SettingsView{Chrome: choice})
+		cases := []struct {
+			name  string
+			token ui.Color
+			want  ui.Color
+		}{
+			{"background", k.background, p.canvas},
+			{"foreground", k.foreground, p.ink},
+			{"card", k.card, p.panel},
+			{"popover", k.popover, p.menu},
+			{"primary", k.primary, p.selection},
+			{"onPrimary", k.onPrimary, p.selectionInk},
+			{"secondary", k.secondary, p.panel},
+			{"muted", k.muted, p.panel},
+			{"mutedForeground", k.mutedForeground, p.muted},
+			{"accent", k.accent, p.hover},
+			{"border", k.border, p.edge},
+			{"input", k.input, p.edge},
+			{"ring", k.ring, p.selection},
+			{"sidebar", k.sidebar, p.panel},
+			{"sidebarHover", k.sidebarHover, p.hover},
+			{"sidebarBorder", k.sidebarBorder, p.edge},
+			{"sidebarAccent", k.sidebarAccent, p.selection},
+			{"sidebarAccentForeground", k.sidebarAccentForeground, p.selectionInk},
+			{"tooltip", k.tooltip, p.tip},
+			{"tooltipForeground", k.tooltipForeground, p.ink},
+			{"theme background", k.theme.Background, p.canvas},
+			{"theme surface", k.theme.Surface, p.panel},
+			{"theme selection", k.theme.Accent, p.selection},
+			{"theme edge", k.theme.Border, p.edge},
+		}
+		for _, tc := range cases {
+			if tc.token != tc.want {
+				t.Errorf("%s: %s = %+v, want the palette's %+v", choice, tc.name, tc.token, tc.want)
+			}
+		}
+		base := newTokens(ui.LightTheme())
+		if k.background == base.background && k.card == base.card && k.primary == base.primary {
+			t.Errorf("%s: the palette did not override the platform faces (%+v / %+v / %+v)",
+				choice, k.background, k.card, k.primary)
+		}
+		if k.theme.Dark {
+			t.Errorf("%s: the palette is light but the frame's theme stayed dark", choice)
+		}
+		// A chrome theme must still be readable: the ink stands off its canvas
+		// and the secondary text off its panel.
+		if diff := math.Abs(luminance(k.foreground) - luminance(k.background)); diff < 0.4 {
+			t.Errorf("%s: foreground is %.2f from the background", choice, diff)
+		}
+		if diff := math.Abs(luminance(k.mutedForeground) - luminance(k.muted)); diff < 0.2 {
+			t.Errorf("%s: secondary text is %.2f from its panel", choice, diff)
+		}
+		for _, token := range semanticColors(k) {
+			if token.color.A != 255 && token.name != "ring" && token.name != "sidebarRing" {
+				t.Errorf("%s: %s is translucent, alpha %d", choice, token.name, token.color.A)
+			}
+		}
+	}
+
+	base := newTokens(ui.LightTheme())
+	plain := newTokensFor(ui.LightTheme(), SettingsView{Chrome: ChromeDefault})
+	base.theme, plain.theme = nil, nil
+	if !reflect.DeepEqual(base, plain) {
+		t.Error("ChromeDefault does not draw the theme's own tokens")
+	}
+}
+
+// TestChromeAppearanceForcesTheLightPalette checks the reference's color
+// scheme: the five older chrome themes have no dark block, so they draw their
+// light palette in a dark window, while macOS Big Sur keeps its own dark block.
+func TestChromeAppearanceForcesTheLightPalette(t *testing.T) {
+	win98 := newTokensFor(ui.DarkTheme(), SettingsView{Chrome: ChromeWindows98})
+	if win98.background != ui.Hex("#ffffff") || win98.foreground != ui.Hex("#000000") {
+		t.Errorf("Windows 98 in a dark window draws %+v on %+v, want its light palette",
+			win98.foreground, win98.background)
+	}
+	if win98.theme.Dark {
+		t.Error("Windows 98 kept the dark appearance although its palette is light")
+	}
+
+	bigSur := newTokensFor(ui.DarkTheme(), SettingsView{Chrome: ChromeMacOSBigSur})
+	if bigSur.background != ui.Hex("#1e1e22") || bigSur.foreground != ui.Hex("#f3f1f5") {
+		t.Errorf("Big Sur in a dark window draws %+v on %+v, want its dark palette",
+			bigSur.foreground, bigSur.background)
+	}
+	if !bigSur.theme.Dark {
+		t.Error("Big Sur's dark palette did not keep the dark appearance")
+	}
+
+	// The theme a chrome is chosen over does not matter to the light palettes:
+	// they replace the platform colors entirely.
+	for _, choice := range chromeChoices[1:] {
+		light := newTokensFor(ui.LightTheme(), SettingsView{Chrome: choice})
+		if choice == ChromeMacOSBigSur {
+			continue
+		}
+		if darkWindow := newTokensFor(ui.DarkTheme(), SettingsView{Chrome: choice}); darkWindow.background != light.background ||
+			darkWindow.foreground != light.foreground || darkWindow.card != light.card {
+			t.Errorf("%s draws different faces on a dark window: %+v vs %+v", choice, darkWindow, light)
+		}
+	}
+}
+
+// TestChromeRadiusAndFamily checks the two other parts of a palette the shell
+// draws: the radius ladder re-derived from the reference's --chrome-radius, and
+// the UI family. macOS Big Sur names the platform font, and an explicit
+// Monospace preference keeps its family.
+func TestChromeRadiusAndFamily(t *testing.T) {
+	cases := []struct {
+		choice         Chrome
+		sm, md, lg, xl float32
+		control        float32
+		font           string
+	}{
+		{ChromeWindows98, 0, 0, 0, 4, 0, chromeTahomaStack},
+		{ChromeWindowsXP, 3, 5, 7, 11, 3, chromeTahomaStack},
+		{ChromeWindowsVista, 3, 5, 7, 11, 3, chromeSegoeStack},
+		{ChromeOSXTiger, 3, 5, 7, 11, 6, chromeLucidaStack},
+		{ChromeMacOSBigSur, 6, 8, 10, 14, 6, chromeAppleStack},
+	}
+	for _, tc := range cases {
+		k := newTokensFor(ui.LightTheme(), SettingsView{Chrome: tc.choice})
+		if k.radiusSM != tc.sm || k.radiusMD != tc.md || k.radiusLG != tc.lg || k.radiusXL != tc.xl {
+			t.Errorf("%s: the radius ladder is %.1f/%.1f/%.1f/%.1f, want %.1f/%.1f/%.1f/%.1f",
+				tc.choice, k.radiusSM, k.radiusMD, k.radiusLG, k.radiusXL, tc.sm, tc.md, tc.lg, tc.xl)
+		}
+		if k.cardRadius != tc.lg || k.frameRadius != tc.xl || k.timelineBubbleR != tc.lg {
+			t.Errorf("%s: card/frame/bubble corners are %.1f/%.1f/%.1f, want %.1f/%.1f/%.1f",
+				tc.choice, k.cardRadius, k.frameRadius, k.timelineBubbleR, tc.lg, tc.xl, tc.lg)
+		}
+		if k.theme.Radius != tc.control {
+			t.Errorf("%s: the widget corner is %.1f, want %.1f", tc.choice, k.theme.Radius, tc.control)
+		}
+		if k.theme.Font != tc.font {
+			t.Errorf("%s: the family is %q, want %q", tc.choice, k.theme.Font, tc.font)
+		}
+	}
+
+	mono := newTokensFor(ui.LightTheme(), SettingsView{Chrome: ChromeWindowsVista, FontFamily: FontMonospace})
+	if mono.theme.Font != monospaceFamily {
+		t.Errorf("a Monospace preference over Vista draws %q, want %q", mono.theme.Font, monospaceFamily)
+	}
+
+	plain := newTokensFor(ui.LightTheme(), SettingsView{})
+	if plain.theme.Font != "" || plain.theme.Radius == 0 {
+		t.Errorf("the platform palette left the family %q or the widget corner %.1f", plain.theme.Font, plain.theme.Radius)
+	}
+}
+
 // TestFontSizePreferenceSetsTheScale checks the font-size steps: each one the
 // appearance surface offers moves the body and every step of the type scale to
 // that size, with the scale keeping its order and growing from step to step.
@@ -604,4 +765,72 @@ func TestShellRendersDark(t *testing.T) {
 			t.Errorf("dark shell is missing %q, texts %q", want, tt.Texts())
 		}
 	}
+}
+
+// TestChromeChangesTheShellFrame checks the frame itself, not only the token
+// values: the same window drawn with Windows 98 chrome paints the reference's
+// gray panels over far more of the image than the platform theme does, and the
+// two frames differ.
+func TestChromeChangesTheShellFrame(t *testing.T) {
+	plain := ui.NewTester(fixture().View, 900, 600)
+	s := fixture()
+	s.Settings.Chrome = ChromeWindows98
+	win98 := ui.NewTester(s.View, 900, 600)
+
+	panel := ui.Hex("#c0c0c0")
+	if got, want := paintedShare(plain.Image(), panel), paintedShare(win98.Image(), panel); got > 0.02 || want < 0.25 {
+		t.Errorf("Windows 98 paints %.0f%% of the frame as its panel, the platform theme %.0f%%", want*100, got*100)
+	}
+	if diff := differingShare(plain.Image(), win98.Image()); diff < 0.25 {
+		t.Errorf("only %.0f%% of the frame changed with the chrome palette", diff*100)
+	}
+
+	// Every palette still draws the whole shell, including the text its family
+	// stack resolves to on this platform.
+	for _, choice := range chromeChoices[1:] {
+		s := fixture()
+		s.Settings.Chrome = choice
+		tt := ui.NewTester(s.View, 900, 600)
+		for _, want := range []string{"First session", "hello from the fixture", "Send"} {
+			if !tt.HasText(want) {
+				t.Errorf("%s is missing %q, texts %q", choice, want, tt.Texts())
+			}
+		}
+	}
+}
+
+// paintedShare is the share of an image's pixels painted exactly color.
+func paintedShare(img *image.RGBA, color ui.Color) float64 {
+	total, hits := 0, 0
+	for y := 0; y < img.Bounds().Dy(); y += 3 {
+		for x := 0; x < img.Bounds().Dx(); x += 3 {
+			total++
+			pixel := img.RGBAAt(x, y)
+			if pixel.R == color.R && pixel.G == color.G && pixel.B == color.B {
+				hits++
+			}
+		}
+	}
+	if total == 0 {
+		return 0
+	}
+	return float64(hits) / float64(total)
+}
+
+// differingShare is the share of pixels that differ between two frames of the
+// same size.
+func differingShare(a, b *image.RGBA) float64 {
+	total, hits := 0, 0
+	for y := 0; y < a.Bounds().Dy(); y += 3 {
+		for x := 0; x < a.Bounds().Dx(); x += 3 {
+			total++
+			if a.RGBAAt(x, y) != b.RGBAAt(x, y) {
+				hits++
+			}
+		}
+	}
+	if total == 0 {
+		return 0
+	}
+	return float64(hits) / float64(total)
 }
