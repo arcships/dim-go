@@ -254,7 +254,7 @@ func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // page.
 func scheduledEntry(c *ui.Context, k tokens, v SidebarView) {
 	locale := v.Locale
-	sidebarEntry(c, k, tr(locale, keySidebarScheduled), "", reasonScheduled, false, false, false, nil)
+	sidebarEntry(c, k, sidebarIcons.clock, tr(locale, keySidebarScheduled), "", reasonScheduled, false, false, false, nil)
 }
 
 // skillsEntry offers dim-electron's skills and plugins page. The shell has no
@@ -262,7 +262,7 @@ func scheduledEntry(c *ui.Context, k tokens, v SidebarView) {
 // read either, so the entry stays visible, unavailable and explained.
 func skillsEntry(c *ui.Context, k tokens, v SidebarView) {
 	locale := v.Locale
-	sidebarEntry(c, k, tr(locale, keySidebarSkills), "", reasonSkills, false, false, false, nil)
+	sidebarEntry(c, k, sidebarIcons.grid, tr(locale, keySidebarSkills), "", reasonSkills, false, false, false, nil)
 }
 
 // searchEntry toggles the sidebar's local session search. It needs no caller
@@ -271,7 +271,7 @@ func skillsEntry(c *ui.Context, k tokens, v SidebarView) {
 // place, and the thread list below narrows on the same frame.
 func searchEntry(c *ui.Context, k tokens, v SidebarView) {
 	locale := v.Locale
-	sidebarEntry(c, k, tr(locale, keySidebarSearch), searchShortcutText(), "", true, false, v.state.searching, func() {
+	sidebarEntry(c, k, sidebarIcons.search, tr(locale, keySidebarSearch), searchShortcutText(), "", true, false, v.state.searching, func() {
 		v.toggleSearch()
 	})
 	if !v.state.searching {
@@ -288,10 +288,10 @@ func searchEntry(c *ui.Context, k tokens, v SidebarView) {
 func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
 	if a.OnCreateSession == nil {
-		sidebarEntry(c, k, tr(locale, keySidebarNewSession), "", tr(locale, keyReasonCreateSession), false, false, false, nil)
+		sidebarEntry(c, k, sidebarIcons.plus, tr(locale, keySidebarNewSession), "", tr(locale, keyReasonCreateSession), false, false, false, nil)
 		return
 	}
-	sidebarEntry(c, k, tr(locale, keySidebarNewSession), "", "", true, v.Creating, false, func() {
+	sidebarEntry(c, k, sidebarIcons.plus, tr(locale, keySidebarNewSession), "", "", true, v.Creating, false, func() {
 		createSession(a, v.Creating)
 	})
 }
@@ -303,10 +303,10 @@ func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 func keysEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
 	if a.OnToggleKeys == nil {
-		sidebarEntry(c, k, tr(locale, keySidebarKeys), "", tr(locale, keyReasonKeysEntry), false, false, false, nil)
+		sidebarEntry(c, k, sidebarIcons.chevron, tr(locale, keySidebarKeys), "", tr(locale, keyReasonKeysEntry), false, false, false, nil)
 		return
 	}
-	sidebarEntry(c, k, tr(locale, keySidebarKeys), "", "", true, false, v.KeysOpen, func() {
+	sidebarEntry(c, k, sidebarIcons.chevron, tr(locale, keySidebarKeys), "", "", true, false, v.KeysOpen, func() {
 		a.OnToggleKeys()
 	})
 }
@@ -316,12 +316,13 @@ func keysEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // would hand this window a session.keys read.
 const reasonKeysEntry = "Unavailable: the shell has no key browser callback while no session.keys snapshot is loaded."
 
-// sidebarEntry draws one global entry as a menu row: its label, an optional
-// shortcut hint and, when the shell cannot carry the action out, the visible
-// WIP badge with the reason it waits on. An unavailable entry registers no
-// click, so the shell cannot report an action it did not send. selected marks
-// an entry that is showing its surface, as the keys browser does.
-func sidebarEntry(c *ui.Context, k tokens, label, hint, reason string, enabled, disabled, selected bool, on func()) {
+// sidebarEntry draws one global entry as a menu row: its icon, its label, an
+// optional shortcut hint and, when the shell cannot carry the action out, the
+// visible WIP badge with the reason it waits on. An unavailable entry registers
+// no click, so the shell cannot report an action it did not send. selected marks
+// an entry that is showing its surface, as the keys browser does. The glyph is
+// decorative: the label is the entry's accessible name.
+func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, hint, reason string, enabled, disabled, selected bool, on func()) {
 	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
 		PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center)
 	row.Label(label)
@@ -338,6 +339,7 @@ func sidebarEntry(c *ui.Context, k tokens, label, hint, reason string, enabled, 
 		row.Background(k.sidebarHover)
 	}
 	row.Children(func() {
+		sidebarGlyph(c, icon, k.sidebarForeground)
 		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.sidebarForeground).SingleLine()
 		ui.Spacer(c)
 		if hint != "" {
@@ -368,6 +370,7 @@ func searchShortcutText() string {
 func threadListHeader(c *ui.Context, k tokens, count int, locale Locale) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
+		sidebarGlyph(c, sidebarIcons.list, k.mutedForeground)
 		ui.Text(c, tr(locale, keySidebarSessions)).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
 		ui.Text(c, strconv.Itoa(count)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		ui.Spacer(c)
@@ -429,6 +432,7 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow) {
 	if row.group {
 		ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarPadX).Gap(k.sidebarGap).
 			Background(k.sidebar).AlignItems(ui.Center).Children(func() {
+			sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
 			ui.Text(c, row.label).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
 			ui.Text(c, strconv.Itoa(row.count)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 			ui.Spacer(c)
@@ -652,11 +656,37 @@ func sidebarAccount(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	ui.Row(c).MinHeight(k.sidebarFooterH).
 		Padding(0, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
 		Gap(k.sidebarGap).AlignItems(ui.Center).Children(func() {
-		wipAction(c, k, tr(locale, keySidebarAccount), reasonAccount)
+		accountEntry(c, k, locale)
 		ui.Spacer(c)
 		if a.OnOpenSettings == nil {
 			return
 		}
-		ui.Button(c, tr(locale, keySidebarSettingsEntry)).OnClick(a.OnOpenSettings)
+		label := tr(locale, keySidebarSettingsEntry)
+		settings := ui.ButtonBase(c).Height(k.sidebarFooterH).
+			PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).
+			Label(label).OnClick(a.OnOpenSettings).Shrink(1)
+		settings.Children(func() {
+			sidebarGlyph(c, sidebarIcons.gear, k.sidebarForeground)
+			ui.Text(c, label).FontSize(k.bodySize).TextColor(k.sidebarForeground).SingleLine()
+		})
 	})
+}
+
+// accountEntry is the account button on the footer row: the account glyph
+// before its label and, as wipAction draws its siblings, the visible WIP badge
+// that describes why the entry is unavailable. The label is the accessible
+// name, so the glyph is skipped by assistive technology.
+func accountEntry(c *ui.Context, k tokens, locale Locale) {
+	label := tr(locale, keySidebarAccount)
+	button := ui.ButtonBase(c).Height(k.sidebarFooterH).
+		PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).
+		Label(label).AccessDisabled(true).Description(reasonAccount).
+		Opacity(wipOpacity).Shrink(1)
+	button.Children(func() {
+		sidebarGlyph(c, sidebarIcons.user, k.sidebarForeground)
+		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.sidebarForeground).SingleLine()
+	})
+	badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
+		Unselectable().AccessHidden(true)
+	button.DescribedBy(badge)
 }
