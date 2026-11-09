@@ -1,0 +1,3 @@
+capture	docs/evidence/window-conversation.png
+note	real MyGo window at 800x720 with a seeded prompt and assistant Echo row
+driver	scripts/capture-window.sh + scripts/seed-session

@@ -175,12 +175,16 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 
 ### 5.2 首轮并排与取样（2026-11-09）
 
-- 并排图：[`evidence/ui-parity/compare-empty.png`](evidence/ui-parity/compare-empty.png)（Electron workspace ↔ MyGo 空态）、[`compare-settings.png`](evidence/ui-parity/compare-settings.png)（设置面）。
+- 并排图：[`evidence/ui-parity/compare-empty.png`](evidence/ui-parity/compare-empty.png)（Electron workspace ↔ MyGo 空态）、[`compare-settings.png`](evidence/ui-parity/compare-settings.png)（设置面）、[`compare-conversation.png`](evidence/ui-parity/compare-conversation.png)（对话态）。
 - 取样 light：Electron 侧栏 `#E9EDF2`、卡片 `#FFFFFF`；MyGo 侧栏 `#E9E9EC`、卡片 `#FFFFFF`。与参考 `#E9EDF2` 仅差冷色偏移（约 6/255），层级方向一致。
 - 取样 dark：Electron 卡片亮于背景；MyGo 背景 `#18181B`、卡片 `#343436`、popover `#424244`、侧栏 `#27272A`，方向一致。
 - 本轮修复：elevation 从“朝 foreground 混”（light 下把卡片压到背景以下）改为“朝白色提升”；侧栏列表补 `Background(k.sidebar)`，不再被 `ui.List` 默认背景覆盖。
 
-窗口尺寸也已对齐：默认从 1080×720 改为 **800×720**，与 Electron 的参考窗口一致，侧栏 256 DIP 的占比因此相同（左侧 32%）。仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome。
+窗口尺寸也已对齐：默认从 1080×720 改为 **800×720**，与 Electron 的参考窗口一致，侧栏 256 DIP 的占比因此相同（左侧 32%）。对话态又对齐了两处：顶栏改为单行标题（连接状态只留在状态栏）、助手行不再画作者行，与参考的“无头像/无角色名”一致。
+
+对话态并排：[`evidence/ui-parity/compare-conversation.png`](evidence/ui-parity/compare-conversation.png)。量到的对照（points）：Electron 顶栏 41、composer 宽 ≈520、消息列左右留白 ≈24.5/24；MyGo 顶栏仍略高（约 56），composer 宽 ≈534（与 520 接近），消息列留白一致。
+
+仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome、侧栏“工作区分组 + 相对时间”（App Server 未给 project/时间字段）。
 
 ## 6. 结论复述
 
