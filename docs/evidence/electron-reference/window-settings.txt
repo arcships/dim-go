@@ -1,0 +1,10 @@
+state	window-settings
+action	open-settings
+captured_at	2026-11-09 14:31:15 CST
+app_pid	81569
+window_id	48508
+window_row	48508 | 0 | 400,30,800,720 | Electron | DimAgent
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-settings.png
+png_pixels	1600 1440
+png_bytes	245248
+dimcode_home	/tmp/dim-electron-capture/home

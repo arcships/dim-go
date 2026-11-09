@@ -1,0 +1,10 @@
+state	window-new-session
+action	new-session
+captured_at	2026-11-09 14:32:05 CST
+app_pid	81845
+window_id	48554
+window_row	48554 | 0 | 624,152,800,720 | Electron | DimAgent
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-new-session.png
+png_pixels	1600 1440
+png_bytes	131330
+dimcode_home	/tmp/dim-electron-capture/home

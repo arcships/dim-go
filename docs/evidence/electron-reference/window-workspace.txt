@@ -1,0 +1,10 @@
+state	window-workspace
+action	dismiss-onboarding
+captured_at	2026-11-09 14:36:56 CST
+app_pid	82560
+window_id	48586
+window_row	48586 | 0 | 624,152,800,720 | Electron | DimAgent
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-workspace.png
+png_pixels	1600 1440
+png_bytes	130620
+dimcode_home	/tmp/dim-electron-capture/home

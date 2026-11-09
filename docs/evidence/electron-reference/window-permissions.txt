@@ -1,0 +1,10 @@
+state	window-permissions
+action	text:权限
+captured_at	2026-11-09 14:31:51 CST
+app_pid	81730
+window_id	48535
+window_row	48535 | 0 | 624,152,800,720 | Electron | DimAgent
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-permissions.png
+png_pixels	1600 1440
+png_bytes	230672
+dimcode_home	/tmp/dim-electron-capture/home
