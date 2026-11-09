@@ -110,16 +110,25 @@ func TestRealDaemonSessionFlow(t *testing.T) {
 	if controller.Session == nil {
 		t.Fatal("session flow returned nil session")
 	}
-	// A newly created mock session is an intentional empty window: attach/history
-	// must succeed with head=0 and no turnStart, without a compatibility retry.
-	// This assertion uses only the public session view; no daemon persistence is
-	// inspected or treated as a local source of truth.
+	// A newly created mock session is an intentional empty window: the daemon
+	// records branch/start at sequence 1, so attach head is 1 and latestTurn
+	// returns that single non-turn event with done=true and no turnStart. The
+	// session must accept it as an empty window rather than a protocol error,
+	// without a compatibility retry. These assertions use only the public
+	// session view; no daemon persistence is inspected or treated as a local
+	// source of truth.
 	if !controller.Session.Ready() {
 		t.Fatal("new session is not ready after attach/history")
 	}
 	status := controller.Session.History()
-	if status.Through != 0 || status.TurnStart != nil || status.HasOlder {
-		t.Fatalf("new session history = %#v, want empty zero-head window", status)
+	if status.TurnStart != nil || status.HasOlder || status.Degraded {
+		t.Fatalf("new session history = %#v, want empty window", status)
+	}
+	if status.Through < 1 {
+		t.Fatalf("new session history through = %d, want the branch/start head", status.Through)
+	}
+	if view := controller.Session.View(appserver.MainBranchID); view.Head < status.Through {
+		t.Fatalf("new session view head = %d, want at least history through %d", view.Head, status.Through)
 	}
 	if snapshot := controller.Session.Snapshot(); len(snapshot.Messages) != 0 {
 		t.Fatalf("new session snapshot = %#v, want empty", snapshot.Messages)

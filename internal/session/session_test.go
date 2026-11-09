@@ -348,6 +348,35 @@ func TestLatestTurnEmptySessionWithoutTurnStart(t *testing.T) {
 	}
 }
 
+func TestLatestTurnEmptySessionWithBranchStartHead(t *testing.T) {
+	// A real daemon's brand-new session has head=1 because branch/start is
+	// sequence 1. latestTurn returns that event with done=true and no turnStart.
+	const head = int64(1)
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(head)},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			if params.LatestTurn == nil || !*params.LatestTurn || params.Through == nil || *params.Through != head {
+				return nil, invalidParams()
+			}
+			return historyPage(t, []appserver.RawEvent{rawEvent(1, "branch", "start", map[string]any{})}, head, head, true, nil, nil), nil
+		},
+	}
+	server, _, s := openTestSession(t, cfg, []string{"session.history", "session.history.latestTurn"}, OpenOptions{})
+	status := s.History()
+	if status.Mode != HistoryModeLatestTurn || status.Pages != 1 || status.TurnStart != nil || status.Through != head || status.HasOlder {
+		t.Fatalf("history status = %#v, want empty latest-turn window at head %d", status, head)
+	}
+	if snapshot := s.Snapshot(); len(snapshot.Messages) != 0 {
+		t.Fatalf("empty session messages = %#v", snapshot.Messages)
+	}
+	if view := s.View(appserver.MainBranchID); !view.Ready || view.Head != head || view.History.TurnStart != nil {
+		t.Fatalf("empty session view = %#v, want ready branch-start head", view)
+	}
+	if calls := len(server.callsFor("session.history")); calls != 1 {
+		t.Fatalf("history calls = %d, want one latest-turn only", calls)
+	}
+}
+
 func TestLatestTurnMissingTurnStartNonEmptyFails(t *testing.T) {
 	cfg := fakeConfig{
 		Attach: appserver.AttachResult{Sequence: int64Ptr(1)},

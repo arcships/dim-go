@@ -34,7 +34,9 @@ type historyWindow struct {
 // readLatestTurn follows session.history.latestTurn: it starts at the attach
 // head, pages backward with nextBefore until done, and requires a stable
 // turnStart on every page. A turnStart drift is a soft signal to fall back to
-// the compatibility scan; a missing turnStart/nextBefore is a protocol error.
+// the compatibility scan; a missing turnStart/nextBefore is a protocol error,
+// except for the finished empty-session window described by
+// validateEmptyLatestTurn.
 func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow, error) {
 	limit := latestTurnPageLimit
 	through := head
@@ -49,6 +51,7 @@ func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow
 	var events []projection.RawEvent
 	var turnStart *int64
 	var lastBefore *int64
+	missingTurnStart := false
 	pages := 0
 	done := false
 	for pages < latestTurnPageCap {
@@ -64,12 +67,13 @@ func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow
 		}
 		pages++
 		if page.TurnStart == nil {
-			// The server omits turnStart for a genuinely empty session. An
-			// empty page at a non-zero head is not enough evidence: it may be a
-			// malformed latest-turn response and must remain a protocol error.
-			if !(head == 0 && page.Done && len(page.Events) == 0) {
+			// The daemon omits turnStart for a session that has no turn yet. The
+			// window is only trustworthy once the read finished; a partial page
+			// without turnStart cannot prove where the turn starts.
+			if !page.Done {
 				return historyWindow{}, &appserver.ProtocolError{Field: "turnStart", Detail: "missing in latest-turn page"}
 			}
+			missingTurnStart = true
 		} else if turnStart == nil {
 			value := *page.TurnStart
 			turnStart = &value
@@ -119,6 +123,11 @@ func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow
 	if err != nil {
 		return historyWindow{}, err
 	}
+	if missingTurnStart {
+		if err := validateEmptyLatestTurn(ordered, head); err != nil {
+			return historyWindow{}, err
+		}
+	}
 	status := HistoryStatus{
 		Mode:      HistoryModeLatestTurn,
 		Through:   head,
@@ -134,16 +143,55 @@ func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow
 	return historyWindow{events: ordered, status: status}, nil
 }
 
-// readCompatibility implements the no-latestTurn path: chunk backward from the
-// attach head with {after, limit, through}, at most 64 chunks, stopping when the
-// latest turn and its prompting input are both visible. A history_too_large
-// reply or a page-cap hit degrades the window; it never fails Open.
+// validateEmptyLatestTurn accepts the one documented shape of a latest-turn
+// window without turnStart: a finished read whose events reach the attach head
+// and contain no turn content. A non-empty turn must carry its start sequence,
+// so a missing turnStart next to any turn/input/step/tool event, or a window
+// that does not reach head, stays a protocol error.
+func validateEmptyLatestTurn(events []projection.RawEvent, head int64) error {
+	var maxSequence int64
+	for _, event := range events {
+		if isTurnContent(event) {
+			return &appserver.ProtocolError{
+				Field:  "turnStart",
+				Detail: fmt.Sprintf("missing while the window contains %s/%s at sequence %d", event.Type, event.Name, event.Sequence),
+			}
+		}
+		if event.Sequence > maxSequence {
+			maxSequence = event.Sequence
+		}
+	}
+	if maxSequence != head {
+		return &appserver.ProtocolError{
+			Field:  "turnStart",
+			Detail: fmt.Sprintf("missing for a window ending at %d, head is %d", maxSequence, head),
+		}
+	}
+	return nil
+}
+
+// isTurnContent reports whether a durable event belongs to a turn transcript.
+// Non-turn session facts (branch start, settings, title) may follow the attach
+// head of a session that has not run a turn yet.
+func isTurnContent(event projection.RawEvent) bool {
+	switch event.Type {
+	case "turn", "input", "step", "tool":
+		return true
+	default:
+		return false
+	}
+}
+
 func (s *Session) pendingFailure() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.pendingErr
 }
 
+// readCompatibility implements the no-latestTurn path: chunk backward from the
+// attach head with {after, limit, through}, at most 64 chunks, stopping when the
+// latest turn and its prompting input are both visible. A history_too_large
+// reply or a page-cap hit degrades the window; it never fails Open.
 func (s *Session) readCompatibility(ctx context.Context, head int64, fallbackReason string) (historyWindow, error) {
 	limit := compatibilityPageLimit
 	through := head
