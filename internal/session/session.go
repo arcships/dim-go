@@ -181,6 +181,14 @@ type Session struct {
 	branchesLoaded  bool
 	branchesStatus  ReadCapabilityStatus
 
+	// model is the model pair the attach reply reported. It is the session's
+	// current selection as observed from the App Server, not a local choice.
+	model    ModelSelection
+	hasModel bool
+	// modelsStatus describes the last provider.management read. A missing
+	// capability or a failed read is reported rather than synthesized.
+	modelsStatus ReadCapabilityStatus
+
 	errs       chan error
 	errMu      sync.Mutex
 	errsClosed bool
@@ -298,6 +306,14 @@ func newSession(client *appserver.Client, stream *appserver.SessionStream, sessi
 	// authoritative until live events advance it.
 	main := s.branchLocked(appserver.MainBranchID)
 	main.head = stream.Head()
+	// session.attach reports the model pair the session runs on. Both ids are
+	// optional on the wire, so a partial pair is not a usable selection.
+	if attach := stream.Attach(); attach.Model != nil {
+		if attach.Model.ProviderID != "" && attach.Model.ModelID != "" {
+			s.model = ModelSelection{ProviderID: attach.Model.ProviderID, ModelID: attach.Model.ModelID}
+			s.hasModel = true
+		}
+	}
 	return s
 }
 
