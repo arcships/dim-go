@@ -321,9 +321,12 @@ func (c *SessionController) StateForBranch(summary appserver.SessionSummary, bra
 		Notices:             notices,
 	}
 	for _, branch := range c.Session.BranchDirectory().Branches {
+		// Label from contract fields only: branchId is the stable identity, and a
+		// side chat's parent is the one relation the directory proves. There is no
+		// purpose/title field in the public entry, so none is invented.
 		label := branch.BranchID
-		if branch.Purpose != nil && *branch.Purpose != "" {
-			label = *branch.Purpose
+		if branch.ParentBranchID != "" {
+			label += " ← " + branch.ParentBranchID
 		}
 		state.Branches = append(state.Branches, ui.Branch{ID: branch.BranchID, Label: label, State: branch.State, Head: branch.Head, Selected: branch.BranchID == branchID})
 	}
@@ -457,8 +460,9 @@ func (c *SessionController) Methods() appserver.MethodsResult {
 	return c.Session.Methods()
 }
 
-// BranchDirectory is always empty: session.branches has no verified upstream
-// RPC, so no daemon branch directory is requested or fabricated.
+// BranchDirectory returns the session.branches snapshot captured by Open. It is
+// empty when hello.features did not advertise the capability or the read failed;
+// the daemon's directory is never synthesized locally.
 func (c *SessionController) BranchDirectory() appserver.BranchesResult {
 	if c == nil {
 		return appserver.BranchesResult{}

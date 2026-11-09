@@ -860,7 +860,6 @@ func cloneBranchesResult(in appserver.BranchesResult) appserver.BranchesResult {
 		out.Branches[i].BranchPoint = cloneInt64(branch.BranchPoint)
 		out.Branches[i].CreateEvent = cloneInt64(branch.CreateEvent)
 		out.Branches[i].EndEvent = cloneInt64(branch.EndEvent)
-		out.Branches[i].Purpose = cloneString(branch.Purpose)
 		if branch.Source != nil {
 			source := *branch.Source
 			out.Branches[i].Source = &source

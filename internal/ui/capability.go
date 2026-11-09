@@ -27,9 +27,9 @@ type wipCapability struct {
 // State.OnCreateSession is set, reconnect once State.OnReconnect is set, turn
 // cancellation once State.OnStop is set and approval decisions once
 // State.OnApproval is set, so each is unavailable only while its callback is
-// missing. session.branches and session.keys have read helpers, but branches
-// and keys stay read-only: this shell has no verified switch/cut-point RPC and
-// no key browser, so neither gets an action card.
+// missing. session.branches and session.keys have read helpers; switching a
+// branch has no dedicated RPC (it is a history read for that branchId) and this
+// shell has no branch selection or key browser yet, so both stay read-only.
 func wipCapabilities(s *State) []wipCapability {
 	capabilities := make([]wipCapability, 0, 7)
 	if s == nil || s.OnCreateSession == nil {
@@ -37,7 +37,7 @@ func wipCapabilities(s *State) []wipCapability {
 			wipCapability{"Session creation", "session.create", "helper exists; shell has no create callback"})
 	}
 	capabilities = append(capabilities,
-		wipCapability{"Branch switching", "session.branches", "read helper exists; no verified switch/cut-point RPC, so branches stay read-only"},
+		wipCapability{"Branch switching", "session.branches", "helper exists; the directory is read-only and the shell has no branch selection yet (switching is a history read, not an RPC)"},
 		wipCapability{"Session keys", "session.keys", "read helper exists; shell shows no key browser yet"},
 	)
 	if s == nil || s.OnApproval == nil {
