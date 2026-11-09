@@ -1,16 +1,16 @@
 state	connected
-started_at	2026-11-09 12:31:13 CST
-captured_at	2026-11-09 12:31:15 CST
-built_at	2026-11-09 12:31:10 CST
-git_head	2701701baf454dd3e823ddbfbc69983d56d4d5e5
+started_at	2026-11-09 13:31:53 CST
+captured_at	2026-11-09 13:31:55 CST
+built_at	2026-11-09 13:31:48 CST
+git_head	1c297d98b7ee48fe98af3c01ee3737089c386e2d
 git_dirty	clean
-product_home	/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.ZW26LQ
-app_pid	38610
-window_id	47456
+product_home	/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.4sRVYE
+app_pid	57149
+window_id	47693
 window_title	DimAgent
 window_bounds_points	484,116,1080,720
 png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/window-connected.png
 png_pixels	2160 1440
-png_bytes	239332
-daemon	38616 /tmp/dim-2-target/debug/dim-app-server --unix /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.ZW26LQ/rust/daemon.sock --no-ws --home /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.ZW26LQ/rust --product-home /var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.ZW26LQ
+png_bytes	232581
+daemon	57155 /tmp/dim-2-target/debug/dim-app-server --unix /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.4sRVYE/rust/daemon.sock --no-ws --home /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.4sRVYE/rust --product-home /var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.4sRVYE
 app_log	
