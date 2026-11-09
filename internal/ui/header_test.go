@@ -1244,3 +1244,236 @@ func TestSessionMenuCopyDebugWithoutModelFactsStaysWIP(t *testing.T) {
 		t.Errorf("clicking the WIP entry put %q on the clipboard", got)
 	}
 }
+
+// TestHeaderModelChipShowsTheCurrentPair checks the bar's model entry: the
+// current provider/model pair is drawn as muted text in a compact pill between
+// the session menu and the panel toggle, its accessible name opens the model
+// list, and the hover face answers the pointer.
+func TestHeaderModelChipShowsTheCurrentPair(t *testing.T) {
+	k := newTokens(ui.LightTheme())
+	calls := 0
+	v := fixture().headerView()
+	v.ModelLabel = "anthropic/claude-3"
+	tt := ui.NewTesterWith(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleModelList: func() { calls++ }})
+	}, 800, 60, ui.TesterOptions{Preferences: ui.Preferences{ReduceMotion: true}})
+
+	label, ok := tt.Find(v.ModelLabel)
+	if !ok {
+		t.Fatalf("the current pair is not drawn, texts %q", tt.Texts())
+	}
+	chip, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyModelTitle))
+	if !ok {
+		t.Fatalf("the model chip is not a named button, texts %q", tt.Texts())
+	}
+	if chip.Disabled {
+		t.Errorf("the model chip is disabled with OnToggleModelList wired")
+	}
+	if chip.Bounds.X > label.X || chip.Bounds.X+chip.Bounds.W < label.X+label.W {
+		t.Errorf("the chip's box %.1fx%.1f does not hold its label at x=%.1f",
+			chip.Bounds.W, chip.Bounds.H, label.X)
+	}
+	if _, face := colorBox(tt, label, k.mutedForeground); face == 0 {
+		t.Errorf("the model label paints no muted ink, want the toolbar's secondary text")
+	}
+
+	tt.Move(chip.Bounds.X+chip.Bounds.W/2, chip.Bounds.Y+chip.Bounds.H/2)
+	tt.Frame()
+	if _, face := colorBox(tt, chip.Bounds, k.sidebarHover); face == 0 {
+		t.Errorf("the model chip has no hover face under the pointer")
+	}
+
+	tt.ClickAt(chip.Bounds.X+chip.Bounds.W/2, chip.Bounds.Y+chip.Bounds.H/2)
+	if calls != 1 {
+		t.Errorf("one click on the model chip called the toggle %d time(s), want 1", calls)
+	}
+	tt.ClickAt(chip.Bounds.X+chip.Bounds.W/2, chip.Bounds.Y+chip.Bounds.H/2)
+	if calls != 2 {
+		t.Errorf("a second click called the toggle %d time(s) in total, want 2", calls)
+	}
+}
+
+// TestHeaderModelChipIsAKeyboardToggle checks that the chip is a real Tab stop
+// and that Enter and Space toggle the list, so a keyboard user can open it
+// without the pointer.
+func TestHeaderModelChipIsAKeyboardToggle(t *testing.T) {
+	calls := 0
+	v := fixture().headerView()
+	v.ModelLabel = "anthropic/claude-3"
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleModelList: func() { calls++ }})
+	}, 800, 60)
+
+	name := tr(LocaleEN, keyModelTitle)
+	reached := false
+	for i := 0; i < 10; i++ {
+		tt.Key(0, ui.KeyTab)
+		if tt.Focused(name) {
+			reached = true
+			break
+		}
+	}
+	if !reached {
+		t.Fatalf("Tab does not reach the model chip %q, texts %q", name, tt.Texts())
+	}
+	tt.Key(0, ui.KeyEnter)
+	if calls != 1 {
+		t.Fatalf("Enter on the model chip called the toggle %d time(s), want 1", calls)
+	}
+	tt.Key(0, ui.KeySpace)
+	if calls != 2 {
+		t.Errorf("Space on the model chip called the toggle %d time(s) in total, want 2", calls)
+	}
+}
+
+// TestHeaderModelChipWithoutTheActionIsDisabledAndExplained checks the missing
+// callback: the chip keeps its place and its label, stays unavailable, and
+// names the action it waits on instead of pretending to open a list.
+func TestHeaderModelChipWithoutTheActionIsDisabledAndExplained(t *testing.T) {
+	v := fixture().headerView()
+	v.ModelLabel = "anthropic/claude-3"
+	tt := headerTestView(v, 800, 60)
+
+	chip, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyModelTitle))
+	if !ok {
+		t.Fatalf("the model chip is not drawn without the action, texts %q", tt.Texts())
+	}
+	if !chip.Disabled {
+		t.Errorf("the chip is available without OnToggleModelList")
+	}
+	if chip.Description != reasonHeaderModel {
+		t.Errorf("the chip's description is %q, want the gap %q", chip.Description, reasonHeaderModel)
+	}
+	if !tt.HasText(v.ModelLabel) {
+		t.Errorf("the disabled chip dropped its label, texts %q", tt.Texts())
+	}
+	// A click on the disabled chip is not an action; it must not panic or
+	// report one.
+	tt.ClickAt(chip.Bounds.X+chip.Bounds.W/2, chip.Bounds.Y+chip.Bounds.H/2)
+}
+
+// TestHeaderModelChipIsAbsentWithoutACurrentPair checks the empty state: with
+// no current pair the bar draws no chip and the panel toggle keeps the trailing
+// edge it had, so an empty label costs no room.
+func TestHeaderModelChipIsAbsentWithoutACurrentPair(t *testing.T) {
+	v := fixture().headerView()
+	v.Project = "dimagent-mygo"
+	v.Title = "Explain what this repository does in one paragraph."
+	if v.ModelLabel != "" {
+		t.Fatalf("the fixture carries a model label %q", v.ModelLabel)
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleContextPanel: func() {}})
+	}, 800, 60)
+
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyModelTitle)); ok {
+		t.Errorf("a bar without a model pair draws the model chip, texts %q", tt.Texts())
+	}
+	panel, ok := tt.AccessByRole(ui.RoleButton, contextPanelToggleLabel)
+	if !ok {
+		t.Fatalf("the panel entry is not drawn, texts %q", tt.Texts())
+	}
+
+	with := v
+	with.ModelLabel = "anthropic/claude-3"
+	withTT := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), with, Actions{OnToggleContextPanel: func() {}})
+	}, 800, 60)
+	withPanel, ok := withTT.AccessByRole(ui.RoleButton, contextPanelToggleLabel)
+	if !ok {
+		t.Fatalf("the panel entry is not drawn with the model chip, texts %q", withTT.Texts())
+	}
+	if math.Abs(float64(withPanel.Bounds.X-panel.Bounds.X)) > 0.5 {
+		t.Errorf("the model chip moved the panel toggle from %.1f to %.1f",
+			panel.Bounds.X, withPanel.Bounds.X)
+	}
+}
+
+// TestHeaderModelChipTruncatesInANarrowWindow checks the narrow bar: a long
+// provider/model pair is cut with an ellipsis inside the chip instead of
+// squeezing the breadcrumb, the session menu or the panel toggle, and the full
+// pair stays the chip's tooltip.
+func TestHeaderModelChipTruncatesInANarrowWindow(t *testing.T) {
+	v := fixture().headerView()
+	v.Project = "dimagent-mygo"
+	v.Title = "Explain what this repository does in one paragraph."
+	v.ModelLabel = "provider-with-a-long-name/model-with-an-even-longer-name"
+	// A healthy connection draws no Reconnect entry: the bar carries only the
+	// breadcrumb, the session menu, the model chip and the panel toggle, as the
+	// reference's 800 DIP window does. A disconnected bar has one more WIP entry
+	// to fit, and the chip yields before the window does.
+	v.Connection = ConnReady
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{
+			OnToggleModelList:    func() {},
+			OnToggleContextPanel: func() {},
+		})
+	}, 360, 60)
+
+	label, ok := tt.Find(v.ModelLabel)
+	if !ok {
+		t.Fatalf("the model label is not drawn, texts %q", tt.Texts())
+	}
+	chip, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyModelTitle))
+	if !ok {
+		t.Fatalf("the model chip is not drawn, texts %q", tt.Texts())
+	}
+	if chip.Bounds.W > headerModelMaxW+0.5 {
+		t.Errorf("the chip is %.1f wide, past its %v DIP cap", chip.Bounds.W, headerModelMaxW)
+	}
+	if label.X < chip.Bounds.X || label.X+label.W > chip.Bounds.X+chip.Bounds.W+0.5 {
+		t.Errorf("the label at %.1f..%.1f leaves the chip's %.1f..%.1f",
+			label.X, label.X+label.W, chip.Bounds.X, chip.Bounds.X+chip.Bounds.W)
+	}
+	if label.W >= chip.Bounds.W {
+		t.Errorf("the label is %.1f wide in the %.1f chip, want it truncated by the inset",
+			label.W, chip.Bounds.W)
+	}
+	panel, ok := tt.AccessByRole(ui.RoleButton, contextPanelToggleLabel)
+	if !ok {
+		t.Fatalf("the panel entry is not drawn, texts %q", tt.Texts())
+	}
+	if chip.Bounds.X+chip.Bounds.W > panel.Bounds.X+0.5 {
+		t.Errorf("the chip ends at %.1f, past the panel's %.1f",
+			chip.Bounds.X+chip.Bounds.W, panel.Bounds.X)
+	}
+	menu, ok := tt.AccessByRole(ui.RoleMenuButton, tr(LocaleEN, keyHeaderMenu))
+	if !ok {
+		t.Fatalf("the session menu is not drawn, texts %q", tt.Texts())
+	}
+	if menu.Bounds.X+menu.Bounds.W > chip.Bounds.X+0.5 {
+		t.Errorf("the session menu ends at %.1f, past the chip's %.1f",
+			menu.Bounds.X+menu.Bounds.W, chip.Bounds.X)
+	}
+	title, ok := tt.Find(v.Title)
+	if !ok || title.W <= 0 {
+		t.Errorf("the narrow bar lost the title, texts %q", tt.Texts())
+	}
+	if title.X+title.W > menu.Bounds.X+0.5 {
+		t.Errorf("the title ends at %.1f, past the menu at %.1f", title.X+title.W, menu.Bounds.X)
+	}
+	if project, ok := tt.Find(v.Project); !ok || project.W <= 0 {
+		t.Errorf("the narrow bar lost the project name, texts %q", tt.Texts())
+	}
+}
+
+// TestHeaderModelChipYieldsToTheSurfacesWithoutTheComposer checks the chip's
+// gate: the appearance surface and the keys browser take the conversation and
+// the composer that draws the model list away, so the bar does not offer a chip
+// that would open a list nothing can draw.
+func TestHeaderModelChipYieldsToTheSurfacesWithoutTheComposer(t *testing.T) {
+	for _, state := range []string{"settings", "keys"} {
+		v := fixture().headerView()
+		v.ModelLabel = "anthropic/claude-3"
+		if state == "settings" {
+			v.SettingsOpen = true
+		} else {
+			v.KeysOpen = true
+		}
+		tt := headerTestView(v, 800, 60)
+		if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyModelTitle)); ok {
+			t.Errorf("%s: the model chip is offered while the composer is not drawn, texts %q",
+				state, tt.Texts())
+		}
+	}
+}

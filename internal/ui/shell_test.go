@@ -797,3 +797,37 @@ func TestShellConversationStartsBelowTheBarWithAReferenceTurnGap(t *testing.T) {
 		t.Errorf("the assistant line at y=%.1f runs into the bubble ending at %.1f", reply.Y, bubbleBottom)
 	}
 }
+
+// TestShellHeaderModelChipOpensTheSharedList checks the shell's assembly: the
+// bar's label is the catalog's current pair and is empty without one, and its
+// chip opens the same model list the composer's chip opens, from the one
+// State.ModelListOpen the window owns.
+func TestShellHeaderModelChipOpensTheSharedList(t *testing.T) {
+	s := modelFixtureState()
+	if got := s.headerView().ModelLabel; got != "anthropic/claude-3" {
+		t.Fatalf("the header label is %q, want the catalog's current pair", got)
+	}
+	if got := fixture().headerView().ModelLabel; got != "" {
+		t.Fatalf("a window without a current pair names %q", got)
+	}
+
+	tt := ui.NewTester(s.View, 900, 700)
+	chip, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyModelTitle))
+	if !ok {
+		t.Fatalf("the bar's model chip is not drawn, texts %q", tt.Texts())
+	}
+	if s.ModelListOpen {
+		t.Fatal("the model list opens before any click")
+	}
+	tt.ClickAt(chip.Bounds.X+chip.Bounds.W/2, chip.Bounds.Y+chip.Bounds.H/2)
+	tt.Frame()
+	if !s.ModelListOpen {
+		t.Fatal("the bar's chip did not open the shared model list")
+	}
+	if !tt.HasText("Claude 3") {
+		t.Errorf("the opened list does not carry the catalog's rows, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyModelClose)); !ok {
+		t.Errorf("the opened list has no close entry, texts %q", tt.Texts())
+	}
+}

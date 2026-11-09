@@ -1427,6 +1427,18 @@ func (s *State) pendingApprovals() []Approval {
 	return pending
 }
 
+// headerModelLabel names the current model pair on the toolbar's model chip. It
+// is the display pair the composer's chip shows, copied from ModelCatalog's
+// current pair; the shell derives nothing from the catalog's rows and invents
+// no name. With no current pair there is nothing to name, so the bar draws no
+// chip.
+func (s *State) headerModelLabel() string {
+	if !s.ModelCatalog.HasCurrent || s.ModelCatalog.Current == "" {
+		return ""
+	}
+	return s.ModelCatalog.Current
+}
+
 // headerView copies the supervisor's report, the terminal close and the
 // window-owned status into the toolbar's view. Project is the selected catalog
 // row's Group, which the catalog already carries as the cwd's base name; the
@@ -1445,6 +1457,7 @@ func (s *State) headerView() HeaderView {
 		Run:              s.Run,
 		Closed:           s.SessionClosed,
 		ClosedReason:     s.SessionClosedReason,
+		ModelLabel:       s.headerModelLabel(),
 		ModelProgress:    s.ModelProgress,
 		Notices:          s.Notices,
 		ActionNotices:    s.ActionNotices,

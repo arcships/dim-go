@@ -197,9 +197,12 @@ type Actions struct {
 	// to the conversation. It changes display state only: the selection, draft
 	// and conversation list state are untouched.
 	OnBackToChat func()
-	// OnToggleModelList is called by the composer's model chip and toggles the
-	// model list. The list displays State's ModelCatalog and ModelStatus copies;
-	// a row is selectable only while OnSelectModel is wired.
+	// OnToggleModelList is called by the toolbar's model chip and the
+	// composer's model chip and toggles the model list. The list displays
+	// State's ModelCatalog and ModelStatus copies; a row is selectable only
+	// while OnSelectModel is wired. Both chips call this one action and read the
+	// same ModelListOpen state, so the bar and the composer never disagree about
+	// whether the list is open.
 	OnToggleModelList func()
 	// OnSelectModel is called once when the model list's row is chosen: the
 	// caller writes session.model.update and reports the outcome. The list
@@ -370,6 +373,13 @@ type HeaderView struct {
 	// action error: it is shown, and no submit, stop or reconnect is offered.
 	Closed       bool
 	ClosedReason string
+	// ModelLabel is the current provider/model pair the bar's model chip draws,
+	// as the shell read it from State.ModelCatalog (already the display pair the
+	// composer's chip shows). The chip opens the same model list through
+	// Actions.OnToggleModelList. An empty label draws no chip, so a window that
+	// holds no current model keeps the bar's old shape rather than showing a
+	// name the App Server never reported.
+	ModelLabel string
 	// ModelProgress is the transient, non-durable model preview. The bar draws
 	// no status line today, so it carries the preview without presenting it; a
 	// future status surface reads it rather than inventing progress.
