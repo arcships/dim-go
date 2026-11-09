@@ -343,3 +343,53 @@ func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 		t.Errorf("the desktop-local settings entry is missing or disabled: %+v", settings)
 	}
 }
+
+// TestHeaderOffersTheEditorOpenEntryAsWIP checks the reference's editor-open
+// control: a VS Code mark and its disclosure arrow stay visible in the bar,
+// before the model entry, but take no click and no Tab stop while the shell has
+// no editor client or workspace fact. The context panel toggle stays the last
+// entry.
+func TestHeaderOffersTheEditorOpenEntryAsWIP(t *testing.T) {
+	v := fixture().headerView()
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleContextPanel: func() {}})
+	}, 900, 200)
+	label := tr(LocaleEN, keyHeaderOpenInEditor)
+	info, ok := tt.AccessByRole(ui.RoleButton, label)
+	if !ok {
+		t.Fatalf("the editor-open entry is not drawn, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("the editor-open entry is available although the shell has no editor client")
+	}
+	if info.Focusable {
+		t.Error("the editor-open entry takes a Tab stop")
+	}
+	if !strings.Contains(info.Description, tr(LocaleEN, keyReasonOpenInEditor)) {
+		t.Errorf("the entry description %q does not name the reason %q",
+			info.Description, tr(LocaleEN, keyReasonOpenInEditor))
+	}
+	entry, ok := tt.Find(label)
+	if !ok {
+		t.Fatalf("the editor-open entry has no drawn box, texts %q", tt.Texts())
+	}
+	if entry.H < newTokens(ui.LightTheme()).sidebarEntryH-0.5 {
+		t.Errorf("the entry is %.1f high, want the toolbar's 28 DIP control", entry.H)
+	}
+	model, ok := tt.Find(tr(LocaleEN, keyHeaderModelPicker))
+	if !ok {
+		t.Fatalf("the model entry is not drawn, texts %q", tt.Texts())
+	}
+	if entry.X+entry.W > model.X+0.5 {
+		t.Errorf("the editor-open entry ends at %.1f, past the model entry starting at %.1f",
+			entry.X+entry.W, model.X)
+	}
+	toggle, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyContextPanelToggle))
+	if !ok {
+		t.Fatalf("the context panel toggle is not drawn, texts %q", tt.Texts())
+	}
+	if toggle.Bounds.X < model.X {
+		t.Errorf("the context panel toggle at x=%.1f is not the last entry after the model at x=%.1f",
+			toggle.Bounds.X, model.X)
+	}
+}

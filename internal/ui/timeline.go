@@ -8,6 +8,13 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+// timelineTurnGap is the room after a user turn before the assistant turn under
+// it, in DIPs. The reference's 800×720 frame puts the bubble's top at y≈74 and
+// the assistant's first line at y≈149: the row's own rowPadY is not enough, so
+// the user row carries this measured turn gap below the bubble. It is a
+// literal, not a spacing step: the reference measures it from its own frame.
+const timelineTurnGap = 32
+
 // BlockKind decides how one block of an assistant turn renders.
 type BlockKind uint8
 
@@ -198,7 +205,8 @@ func chevron(c *ui.Context, k tokens, color ui.Color, progress float32) {
 // userRow draws what the user submitted as a right-aligned bubble: at most 85%
 // of the row, on the muted face, as docs/ui-layout-spec.md §4.2 records it.
 func userRow(c *ui.Context, k tokens, m Message) {
-	ui.Row(c).Padding(k.rowPadY, k.timelinePadX).Justify(ui.End).Children(func() {
+	ui.Row(c).Padding(k.rowPadY, k.timelinePadX, k.rowPadY+timelineTurnGap, k.timelinePadX).
+		Justify(ui.End).Children(func() {
 		ui.Column(c).MaxWidthPercent(k.timelineUserWidth).
 			Padding(k.timelineUserPadY, k.timelineUserPadX).
 			Radius(k.timelineBubbleR).Background(k.muted).Children(func() {

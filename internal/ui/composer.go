@@ -50,6 +50,11 @@ const (
 	// faint rail, not a progress widget's body, so the row stays a single band.
 	composerMeterW = 56
 	composerMeterH = 3
+	// composerStatusH is the status band's height in a conversation, in DIPs:
+	// the reference's card ends ≈34 DIPs above the main column's bottom edge,
+	// and the band fills that room under the card. It is a literal, not a
+	// spacing step, because the reference measures the gap from its own frame.
+	composerStatusH = 34
 )
 
 // composerMeterDash is what the context meter shows while no usage fact is
@@ -141,14 +146,31 @@ var composerGlyphs = struct {
 	modeChevron: sidebarIcon(`<path d="M3.5 4 6.5 8l-3 4"/><path d="M8.5 4 11.5 8l-3 4"/>`),
 }
 
-// composer draws the card dim-electron's composer is: the editor on top, the
-// tool row under it, and the context row as the card's last band. The card is
-// one group centred at the reference's measure, and it keeps the toolbar, the
-// editor and the context row inside its own border and rounded corners. Send
-// and the Enter key both submit the trimmed draft; the caller clears it once
-// the App Server accepted the submission, so a failed send keeps the text.
+// composer draws dim-electron's composer: the card with the editor and the tool
+// row, and, in a conversation, the status band that sits under the card against
+// the main column's bottom edge. The card is centred at the reference's
+// measure. The workspace's empty state keeps the context row inside the card,
+// as the reference draws it; a conversation moves the permission, branch and
+// context entries out of the card, so the card no longer repeats the permission
+// row. Send and the Enter key both submit the trimmed draft; the caller clears
+// it once the App Server accepted the submission, so a failed send keeps the
+// text.
 func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
-	ui.Column(c).Role(ui.RoleGroup).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
+	ui.Column(c).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
+		Children(func() {
+			composerCard(c, k, v, a)
+			if v.Wide {
+				composerStatusBand(c, k, v)
+			}
+		})
+}
+
+// composerCard draws the surface the composer edits in: the editor over the
+// tool row, and, in the empty state, the context row as the card's last band.
+// The card is one group centred at the reference's measure, and it keeps
+// everything it repeats inside its own border and rounded corners.
+func composerCard(c *ui.Context, k tokens, v ComposerView, a Actions) {
+	ui.Column(c).Role(ui.RoleGroup).FillWidth().
 		Radius(k.cardRadius).BorderWidth(k.hairline).BorderColor(k.border).
 		Background(k.background).Shadow(0, 1, 4, 0, composerShadow).
 		Children(func() {
@@ -162,11 +184,35 @@ func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 					composerEditor(c, k, v, a)
 				})
 			})
+			if v.Wide {
+				// A conversation's context entries sit in the status band under
+				// the card, not inside it.
+				return
+			}
 			// The divider and the context row are the card's last band, so they
 			// run to the card's edges rather than to the editor's inset.
 			composerDivider(c, k)
 			composerContextRow(c, k, v)
 		})
+}
+
+// composerStatusBand draws the conversation's status under the card: the
+// default permission mode on the left and the selected session's branch with
+// the context meter on the right, as the reference's status band lays them out.
+// It is outside the card and flush with the column's bottom, so the card keeps
+// only the editor and the tool row. The workspace entry stays in the empty
+// state's card: the reference's conversation band shows no workspace.
+func composerStatusBand(c *ui.Context, k tokens, v ComposerView) {
+	locale := v.Locale
+	ui.Row(c).FillWidth().Height(composerStatusH).
+		Padding(0, k.edgePad, k.gap*2, k.edgePad).
+		Gap(k.gapWide).AlignItems(ui.Center).
+		Role(ui.RoleGroup).Label(tr(locale, keyComposerStatus)).Children(func() {
+		composerPermissionEntry(c, k, locale, v.Permission)
+		ui.Box(c).Grow(1)
+		composerBranchEntry(c, k, locale, v.Branch)
+		composerContextMeter(c, k, locale, v.ContextKnown, v.ContextUsed)
+	})
 }
 
 // composerWidth is the card's cap: the conversation's wider measure when the
@@ -185,14 +231,15 @@ func composerDivider(c *ui.Context, k tokens) {
 	ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
 }
 
-// composerContextRow draws the card's bottom band: the workspace the next turn
-// would run in on the left, then, on the right, the session's default
-// permission mode, the selected session's branch and the context-usage meter,
-// as dim-electron's composer does. None of them is a control here: an empty
-// field draws nothing beside its label and carries the reason it waits on in
-// the group's description and tooltip rather than as visible WIP text. The
-// band keeps the reference's ≈36 DIP height, so the card does not collapse to
-// the text when every value is short.
+// composerContextRow draws the empty state's card bottom band: the workspace
+// the next turn would run in on the left, then, on the right, the session's
+// default permission mode, the selected session's branch and the context-usage
+// meter. A conversation moves the entries into composerStatusBand under the
+// card, as the reference does. None of them is a control here: an empty field
+// draws nothing beside its label and carries the reason it waits on in the
+// group's description and tooltip rather than as visible WIP text. The band
+// keeps the reference's ≈36 DIP height, so the card does not collapse to the
+// text when every value is short.
 func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
 	locale := v.Locale
 	ui.Row(c).FillWidth().MinHeight(k.space(composerContextSpan)).
@@ -375,6 +422,12 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		composerTool(c, k, composerGlyphs.cube, tr(locale, keyComposerModel),
 			tr(locale, keyReasonModel), false)
 		ui.Box(c).Grow(1)
+		// No model is configured because the shell has no model fact to show.
+		// The reference puts the muted "未配置" label beside the send disc, and
+		// this text states that absence rather than inventing a model name.
+		ui.Text(c, tr(locale, keyComposerUnconfigured)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).SingleLine().Unselectable().
+			Description(tr(locale, keyReasonModel))
 		composerSend(c, k, v, a)
 	})
 }

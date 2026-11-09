@@ -882,8 +882,10 @@ func TestSidebarEmptyCatalogKeepsTheReferenceStructure(t *testing.T) {
 
 // TestSidebarListsGroupsUnderTheWorkspaceHeading checks the populated column's
 // structure, as the reference draws it: the session heading, the workspace
-// heading, then the project group and its rows. The empty message belongs to
-// the empty column only, so a catalog with rows does not draw it as well.
+// heading, the built-in workspace's empty message and its hairline, then the
+// project group and its rows. The group heading carries its folder and its name
+// only; the reference has no count badge. The empty message is inset like the
+// reference's pl-[26px], under the group's text rather than its icon.
 func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 	s := fixture()
 	s.Sessions = []Session{
@@ -893,17 +895,47 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 	s.Selected = "s1"
 	s.Settings = SettingsView{Locale: LocaleZHCN}
 	tt := ui.NewTester(s.View, 800, 720)
+	k := newTokens(ui.LightTheme())
 
 	sessions := textBox(t, tt, "会话")
 	workspace := textBox(t, tt, "工作区")
+	empty := textBox(t, tt, "暂无会话")
 	group := textBox(t, tt, "dimagent-mygo")
 	row := textBox(t, tt, "Explain what this repository does")
-	if sessions.Y >= workspace.Y || workspace.Y >= group.Y || group.Y >= row.Y {
-		t.Errorf("the populated column's order is off: 会话 y=%.1f, 工作区 y=%.1f, dimagent-mygo y=%.1f, row y=%.1f",
-			sessions.Y, workspace.Y, group.Y, row.Y)
+	if sessions.Y >= workspace.Y || workspace.Y >= empty.Y || empty.Y >= group.Y || group.Y >= row.Y {
+		t.Errorf("the populated column's order is off: 会话 y=%.1f, 工作区 y=%.1f, 暂无会话 y=%.1f, dimagent-mygo y=%.1f, row y=%.1f",
+			sessions.Y, workspace.Y, empty.Y, group.Y, row.Y)
 	}
-	if tt.HasText("暂无会话") {
-		t.Errorf("the populated sidebar still draws the empty message, texts %q", tt.Texts())
+	if _, ok := tt.AccessByRole(ui.RoleStatus, "暂无会话"); ok {
+		t.Error("the populated column reads the built-in workspace message as the list's status")
+	}
+	if tt.HasText("2") {
+		t.Errorf("the group heading still draws its row count, texts %q", tt.Texts())
+	}
+	if want := k.sidebarPadX + sidebarEmptyIndent; math.Abs(float64(empty.X-want)) > 0.5 {
+		t.Errorf("暂无会话 starts at x=%.1f, want the reference's pl-[26px] at %.1f", empty.X, want)
+	}
+	if math.Abs(float64(empty.X-group.X-k.sidebarPadX-sidebarIconSize-k.sidebarGap)) > 0.5 {
+		t.Errorf("暂无会话 at x=%.1f does not align with the group heading's text at x=%.1f",
+			empty.X, group.X+k.sidebarPadX+sidebarIconSize+k.sidebarGap)
+	}
+	// The section closes with a hairline between the message and the group.
+	face := color.RGBA{R: k.border.R, G: k.border.G, B: k.border.B, A: k.border.A}
+	divider := false
+	for y := int(empty.Y + empty.H); y < int(group.Y); y++ {
+		run := 0
+		for x := int(k.sidebarPadX * 2); x < int(k.sidebarW-k.sidebarPadX*2); x++ {
+			if tt.Image().RGBAAt(x, y) == face {
+				run++
+			}
+		}
+		if run > int(k.sidebarW-4*k.sidebarPadX)/2 {
+			divider = true
+			break
+		}
+	}
+	if !divider {
+		t.Error("no hairline closes the built-in workspace section above the project group")
 	}
 	if !tt.HasText("5m") {
 		t.Errorf("the session row lost its relative stamp, texts %q", tt.Texts())

@@ -642,15 +642,64 @@ func TestShellEmptyStateCentresTheHeroAndComposer(t *testing.T) {
 }
 
 // TestShellConversationKeepsTheComposerAtTheBottom checks the other half of the
-// layout: once the conversation has rows the composer stays on the card's
-// bottom edge, as the reference's conversation does.
+// layout: once the conversation has rows the status band under the card reaches
+// the main card's bottom edge, as the reference's conversation band does, and
+// the card sits directly on top of it.
 func TestShellConversationKeepsTheComposerAtTheBottom(t *testing.T) {
 	const height = 720
 	tt := ui.NewTester(fixture().View, 800, height)
 	k := newTokens(ui.LightTheme())
 
-	cardBottom := composerCardBottom(t, tt, k)
-	if gap := float32(height) - k.framePad - cardBottom; math.Abs(float64(gap)) > 1 {
-		t.Errorf("the composer ends %.1f before the card's bottom, want it on the edge", gap)
+	band, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, keyComposerStatus))
+	if !ok {
+		t.Fatalf("the conversation has no status band, texts %q", tt.Texts())
+	}
+	bandBottom := band.Bounds.Y + band.Bounds.H
+	if gap := float32(height) - k.framePad - bandBottom; math.Abs(float64(gap)) > 1 {
+		t.Errorf("the status band ends %.1f before the card's bottom, want it on the edge", gap)
+	}
+	send := textBox(t, tt, "Send")
+	cardBottom := send.Y + send.H + k.edgePad + k.hairline
+	if gap := band.Bounds.Y - cardBottom; math.Abs(float64(gap)) > 1 {
+		t.Errorf("the card ends %.1f away from the status band at %.1f, want them touching",
+			gap, band.Bounds.Y)
+	}
+}
+
+// TestShellConversationStartsBelowTheBarWithAReferenceTurnGap checks the
+// conversation's vertical rhythm against the reference's 800×720 frame: the
+// first user bubble's top sits at y≈74, and the assistant line under it starts
+// ≈39 DIPs below the bubble's bottom. The top room belongs to the conversation;
+// the turn gap belongs to the user row, not to an empty filler row.
+func TestShellConversationStartsBelowTheBarWithAReferenceTurnGap(t *testing.T) {
+	const (
+		width  = 800
+		height = 720
+	)
+	s := &State{
+		Sessions:       []Session{{ID: "s1", Title: "dimagent-mygo", Group: "dimagent-mygo"}},
+		Selected:       "s1",
+		Connection:     ConnReady,
+		SelectedBranch: mainBranchID,
+		Messages: []Message{
+			{ID: "m1", Author: AuthorUser, Content: "Explain what this repository does in one paragraph."},
+			{ID: "m2", Author: AuthorAssistant, Content: "Echo: Explain what this repository does in one paragraph."},
+		},
+	}
+	tt := ui.NewTester(s.View, width, height)
+	k := newTokens(ui.LightTheme())
+
+	bubble := textBox(t, tt, "Explain what this repository does in one paragraph.")
+	reply := textBox(t, tt, "Echo: Explain what this repository does in one paragraph.")
+	bubbleTop := bubble.Y - k.timelineUserPadY
+	if math.Abs(float64(bubbleTop-74)) > 1.5 {
+		t.Errorf("the first bubble starts at y=%.1f, want the reference's ≈74", bubbleTop)
+	}
+	bubbleBottom := bubble.Y + bubble.H + k.timelineUserPadY
+	if gap := reply.Y - bubbleBottom; math.Abs(float64(gap-39)) > 2 {
+		t.Errorf("the assistant line starts %.1f below the bubble, want the reference's ≈39", gap)
+	}
+	if reply.Y < bubbleBottom {
+		t.Errorf("the assistant line at y=%.1f runs into the bubble ending at %.1f", reply.Y, bubbleBottom)
 	}
 }

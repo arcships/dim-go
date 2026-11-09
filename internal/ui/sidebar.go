@@ -23,6 +23,12 @@ import (
 // rows do carry one. It names the absence of a group; it is not a project.
 const ungroupedLabel = "No project"
 
+// sidebarEmptyIndent is the reference's pl-[26px] on the built-in workspace's
+// "No sessions yet" row: 26 DIPs from the column's 7 DIP content edge, which
+// aligns the message with the project headings' text rather than their icons.
+// It is the reference's literal, not a spacing step.
+const sidebarEmptyIndent = 26
+
 const (
 	// mainBranchID is the branch the App Server always keeps: it can be shown,
 	// but not ended.
@@ -42,9 +48,8 @@ type sidebarRow struct {
 	// group marks a heading row, which the list shows sticky and never
 	// chooses.
 	group bool
-	// label and count are the heading's text and the rows under it.
+	// label is the heading's text.
 	label string
-	count int
 	// sessionID identifies a session row, and keys the list.
 	sessionID string
 	// updatedAt is the row's catalog time in epoch milliseconds; zero draws
@@ -99,7 +104,7 @@ func threadRows(sessions []Session, locale Locale) []sidebarRow {
 		buckets[label] = append(buckets[label], sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt})
 	}
 	for _, label := range order {
-		rows = append(rows, sidebarRow{group: true, label: label, count: len(buckets[label])})
+		rows = append(rows, sidebarRow{group: true, label: label})
 		rows = append(rows, buckets[label]...)
 	}
 	return rows
@@ -382,11 +387,14 @@ func workspaceHeader(c *ui.Context, k tokens, locale Locale) {
 	})
 }
 
-// threadList draws the grouped thread rows in a keyed, virtualized list with
-// one scroll container. The list's choice is the shell's selected session:
-// a click or an arrow key moves the choice, and chooseSession publishes it.
-// sessions is the display copy the search filter left; the catalog itself is
-// never written.
+// threadList draws the workspace section and, below it, the grouped thread
+// rows in a keyed, virtualized list with one scroll container. The built-in
+// workspace always keeps its "No sessions yet" line and the hairline closing
+// the section, even while the project groups under it hold sessions: the
+// reference draws the empty built-in workspace above the project rows. The
+// list's choice is the shell's selected session: a click or an arrow key moves
+// the choice, and chooseSession publishes it. sessions is the display copy the
+// search filter left; the catalog itself is never written.
 func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Actions) {
 	locale := v.Locale
 	rows := threadRows(sessions, locale)
@@ -400,59 +408,72 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		v.state.synced = *v.Selected
 		v.state.filter = *v.searchQuery()
 	}
-	if len(rows) == 0 {
-		empty := tr(locale, keySidebarEmpty)
-		if v.state.searching && len(v.Sessions) > 0 {
-			empty = tr(locale, keySidebarEmptyFiltered)
+	ui.Column(c).Grow(1).Children(func() {
+		workspaceEmpty(c, k, v, len(rows))
+		if len(rows) == 0 {
+			return
 		}
-		// The reference's empty column keeps the structure its rows have: the
-		// workspace heading above this message and a hairline closing the
-		// section. The message stays the status region, so assistive technology
-		// hears why the list is empty.
-		ui.Column(c).Grow(1).Children(func() {
-			ui.Column(c).PaddingX(k.sidebarSectionPadX + k.sidebarGap).PaddingY(k.gap).
-				Children(func() {
-					ui.Text(c, empty).FontSize(k.smallSize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
-				})
-			// The hairline is inset like the reference's, so it closes the
-			// section without running under the sidebar's edges.
-			ui.Row(c).PaddingX(k.sidebarPadX).Children(func() {
-				ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
-			})
-		})
-		return
-	}
-	list := &v.state.list
-	list.Selected = &v.state.choice
-	list.Label = func(row int) string { return rows[row].accessLabel() }
-	list.Header = func(row int) bool { return rows[row].group }
-	list.Key = func(row int) any {
-		if rows[row].group {
-			return "group:" + rows[row].label
-		}
-		return rows[row].sessionID
-	}
-	ui.List(c, list, len(rows), func(row int) {
-		// A click on a session row publishes the choice itself: the list's own
-		// click path moves its cursor, and with only Selected bound it does not
-		// raise OnChange on every change. The row's click keeps the two in step,
-		// and a heading has no click.
-		var on func()
-		if !rows[row].group {
-			index := row
-			on = func() {
-				v.state.choice = index
-				chooseSession(v, a)
+		list := &v.state.list
+		list.Selected = &v.state.choice
+		list.Label = func(row int) string { return rows[row].accessLabel() }
+		list.Header = func(row int) bool { return rows[row].group }
+		list.Key = func(row int) any {
+			if rows[row].group {
+				return "group:" + rows[row].label
 			}
+			return rows[row].sessionID
 		}
-		threadRow(c, k, v, rows[row], on)
-	}).Grow(1).MinHeight(k.sidebarRowH*2).
-		// The list paints its own face over the column, so it takes the sidebar's
-		// tint instead of the window background.
-		Background(k.sidebar).
-		Padding(k.sidebarGap, k.sidebarPadX).
-		Label(tr(locale, keySidebarSessions)).OnChange(func() {
-		chooseSession(v, a)
+		ui.List(c, list, len(rows), func(row int) {
+			// A click on a session row publishes the choice itself: the list's own
+			// click path moves its cursor, and with only Selected bound it does not
+			// raise OnChange on every change. The row's click keeps the two in step,
+			// and a heading has no click.
+			var on func()
+			if !rows[row].group {
+				index := row
+				on = func() {
+					v.state.choice = index
+					chooseSession(v, a)
+				}
+			}
+			threadRow(c, k, v, rows[row], on)
+		}).Grow(1).MinHeight(k.sidebarRowH*2).
+			// The list paints its own face over the column, so it takes the sidebar's
+			// tint instead of the window background.
+			Background(k.sidebar).
+			Padding(k.sidebarGap, k.sidebarPadX).
+			Label(tr(locale, keySidebarSessions)).OnChange(func() {
+			chooseSession(v, a)
+		})
+	})
+}
+
+// workspaceEmpty draws the built-in workspace's message and the hairline that
+// closes its section, as the reference does above the project groups. The
+// message is inset like the reference's pl-[26px], aligned under the project
+// heading's text rather than its icon. It stays a status region while the list
+// has no row at all, so assistive technology hears why; with rows under it, it
+// describes the empty built-in workspace. A filter that leaves no row swaps in
+// the no-match text, because then the list itself is empty too.
+func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
+	locale := v.Locale
+	message := tr(locale, keySidebarEmpty)
+	if rows == 0 && v.state.searching && len(v.Sessions) > 0 {
+		message = tr(locale, keySidebarEmptyFiltered)
+	}
+	ui.Column(c).Children(func() {
+		ui.Column(c).PaddingX(k.sidebarPadX + sidebarEmptyIndent).PaddingY(k.gap).
+			Children(func() {
+				text := ui.Text(c, message).FontSize(k.smallSize).TextColor(k.mutedForeground)
+				if rows == 0 {
+					text.Role(ui.RoleStatus)
+				}
+			})
+		// The hairline is inset like the reference's, so it closes the section
+		// without running under the sidebar's edges.
+		ui.Row(c).PaddingX(k.sidebarPadX * 2).Children(func() {
+			ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
+		})
 	})
 }
 
@@ -465,7 +486,6 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 			Background(k.sidebar).AlignItems(ui.Center).Children(func() {
 			sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
 			ui.Text(c, row.label).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
-			ui.Text(c, strconv.Itoa(row.count)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 			ui.Spacer(c)
 		})
 		return
