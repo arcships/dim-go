@@ -74,7 +74,7 @@ Last updated: 2026-11-09
 
 - [`evidence/ui/mygo-chrome-win98.png`](evidence/ui/mygo-chrome-win98.png)。Windows 98 chrome 已生效：灰底、深蓝选中、方角控件、系统字体；切换后整壳立即变化并持久化。
 - 已实现 6 套（default / Windows 98 / XP / Vista / macOS Big Sur / OSX Tiger），颜色/字体/圆角来自参考 `retro-themes.css`；渐变、3D 斜角、阴影、标题栏、vibrancy、滚动条宽度未仿制，按平面绘制。
-- 部分组件仍直接用包级 radius 常量，chrome 圆角未全量生效（已列入待办）。
+- 圆角已全部改用 token（按钮/卡片/气泡/面板/搜索/审批/工具卡），切换 chrome 时一起变化；渐变/3D/阴影等仍为平面近似。
 
 ## 像素基线（辅助，不是结论）
 
