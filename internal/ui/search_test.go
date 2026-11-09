@@ -26,8 +26,9 @@ func paletteDialog(tt *ui.Tester) (ui.AccessInfo, bool) {
 	return tt.AccessByRole(ui.RoleDialog, "")
 }
 
-// openPalette opens the palette with the window's shortcut and checks that its
-// input took the focus.
+// openPalette opens the palette with the window's shortcut, checks that its
+// input took the focus, and lets the reference's 200 ms enter finish so the
+// frames and boxes the tests read are the settled ones.
 func openPalette(t *testing.T, tt *ui.Tester) {
 	t.Helper()
 	tt.Key(searchShortcutMods, searchShortcutKey)
@@ -37,6 +38,7 @@ func openPalette(t *testing.T, tt *ui.Tester) {
 	if !tt.Focused(tr(LocaleEN, keySearchPlaceholder)) {
 		t.Fatalf("the palette's input did not take the focus, texts %q", tt.Texts())
 	}
+	tt.Advance(searchMotion)
 }
 
 // paletteResult returns one result row of the open palette. The sidebar's rows
@@ -167,6 +169,233 @@ func TestSearchPaletteMatchesTheProject(t *testing.T) {
 	}
 	if _, ok := tt.AccessByRole(ui.RoleButton, "Plan release"); ok {
 		t.Errorf("the project query kept another project's chat, texts %q", tt.Texts())
+	}
+}
+
+// TestSearchPaletteMatchesTheSessionID checks the third fact the input
+// searches: a pasted session id finds its chat even when neither its title nor
+// its project carries the text.
+func TestSearchPaletteMatchesTheSessionID(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 1200, 1000)
+	openPalette(t, tt)
+
+	tt.Type("S3")
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Read notes"); !ok {
+		t.Fatalf("the session id did not match, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{"Fix flaky tests", "Plan release", "Untitled"} {
+		if _, ok := tt.AccessByRole(ui.RoleButton, gone); ok {
+			t.Errorf("the id query kept %q, texts %q", gone, tt.Texts())
+		}
+	}
+}
+
+// TestSearchPaletteHoverMovesTheSelection checks the pointer as a way to pick a
+// row before Enter: pointing at a chat moves the highlight there, and it stays
+// when the pointer leaves, while nothing is opened until Enter or a click.
+func TestSearchPaletteHoverMovesTheSelection(t *testing.T) {
+	s, chosen := searchPaletteState()
+	tt := ui.NewTester(s.View, 1200, 1000)
+	openPalette(t, tt)
+
+	if s.SearchSelected != 0 {
+		t.Fatalf("the palette highlighted %d, want the first row", s.SearchSelected)
+	}
+	row := paletteResult(t, tt, "Plan release")
+	tt.Move(row.Bounds.X+row.Bounds.W/2, row.Bounds.Y+row.Bounds.H/2)
+	tt.Frame()
+	if s.SearchSelected != 1 {
+		t.Fatalf("the pointer highlighted %d, want the second row", s.SearchSelected)
+	}
+	if s.Selected != "s1" || *chosen != "" {
+		t.Errorf("pointing at a row chose a chat: selected=%q chosen=%q", s.Selected, *chosen)
+	}
+
+	tt.Move(2, 2)
+	tt.Frame()
+	if s.SearchSelected != 1 {
+		t.Errorf("leaving the row moved the highlight to %d, want it kept", s.SearchSelected)
+	}
+	// A pointer resting over a row does not pin the highlight: the keyboard still
+	// moves it between rows.
+	tt.Move(row.Bounds.X+row.Bounds.W/2, row.Bounds.Y+row.Bounds.H/2)
+	tt.Frame()
+	tt.Key(0, ui.KeyDown)
+	tt.Key(0, ui.KeyUp)
+	if s.SearchSelected != 1 {
+		t.Errorf("the arrow keys left the highlight at %d, want the second row", s.SearchSelected)
+	}
+	tt.Key(0, ui.KeyEnter)
+	if *chosen != "s2" || s.Selected != "s2" {
+		t.Errorf("Enter opened %q and selected %q, want the pointed row s2", *chosen, s.Selected)
+	}
+}
+
+// TestSearchPaletteResultStatuses checks the 32×32 tile's three states: a row
+// with no reported work draws the chat mark, a loading row the spinner and a
+// failed row the failed mark on the danger wash. The palette derives no state:
+// every row searchResults makes from the catalog is normal, because the shell
+// holds no per-session run, unread or pin fact.
+func TestSearchPaletteResultStatuses(t *testing.T) {
+	for _, result := range searchResults(searchSessions(), "") {
+		if result.Status != SearchResultNormal {
+			t.Errorf("searchResults gave %q status %d, want the normal row", result.SessionID, result.Status)
+		}
+	}
+
+	open, query, selected := true, "", 0
+	results := []SearchResult{
+		{SessionID: "n", Title: "Normal chat", Status: SearchResultNormal},
+		{SessionID: "l", Title: "Loading chat", Status: SearchResultLoading},
+		{SessionID: "e", Title: "Failed chat", Status: SearchResultError},
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		searchPalette(c, newTokens(c.Theme()), SearchPaletteView{
+			Open: &open, Query: &query, Results: results, Selected: &selected, Locale: LocaleEN,
+		}, Actions{})
+	}, 900, 700)
+	tt.Advance(searchMotion)
+
+	patterns := make(map[string]string, len(results))
+	for _, result := range results {
+		info := paletteResult(t, tt, result.Title)
+		patterns[result.Title] = searchTilePattern(tt, info.Bounds)
+	}
+	for i, a := range results {
+		for _, b := range results[i+1:] {
+			if patterns[a.Title] == patterns[b.Title] {
+				t.Errorf("the %q and %q tiles draw the same pixels", a.Title, b.Title)
+			}
+		}
+	}
+}
+
+// searchTilePattern copies the 32×32 tile at the start of a result row, as the
+// bytes it paints, so a test can tell the three status marks apart.
+func searchTilePattern(tt *ui.Tester, row ui.Rect) string {
+	img := tt.Image()
+	out := make([]byte, 0, searchResultIcon*searchResultIcon*4)
+	for y := 0; y < searchResultIcon; y++ {
+		for x := 0; x < searchResultIcon; x++ {
+			p := img.RGBAAt(int(row.X+searchRowPadX)+x, int(row.Y)+(searchRowH-searchResultIcon)/2+y)
+			out = append(out, p.R, p.G, p.B, p.A)
+		}
+	}
+	return string(out)
+}
+
+// TestSearchPaletteFadesAndZooms checks the reference's duration-200 entry and
+// exit: the panel starts at 95% and transparent, passes through neither end at
+// 100 ms, and settles at its measured size; closing keeps the copy on screen,
+// fading and shrinking it over the same step. The scrim fades with it.
+func TestSearchPaletteFadesAndZooms(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 1000)
+	clear := tt.Image().RGBAAt(2, 2)
+
+	tt.Key(searchShortcutMods, searchShortcutKey)
+	start, ok := paletteDialog(tt)
+	if !ok {
+		t.Fatalf("the shortcut did not open the palette, texts %q", tt.Texts())
+	}
+	if want := float32(searchPanelW) * 0.95; start.Bounds.W < want-0.5 || start.Bounds.W > want+0.5 {
+		t.Errorf("the palette starts %.1f wide, want the reference's 95%% of %d", start.Bounds.W, searchPanelW)
+	}
+	if got := tt.Image().RGBAAt(2, 2); got != clear {
+		t.Errorf("the scrim is already %v on the first frame, want it to fade from the window's %v", got, clear)
+	}
+
+	tt.Advance(searchMotion / 2)
+	mid, _ := paletteDialog(tt)
+	if !(start.Bounds.W < mid.Bounds.W && mid.Bounds.W < searchPanelW) {
+		t.Errorf("the palette is %.1f wide at 100 ms, want between %.1f and %d",
+			mid.Bounds.W, start.Bounds.W, searchPanelW)
+	}
+	midScrim := tt.Image().RGBAAt(2, 2)
+	if midScrim == clear {
+		t.Errorf("the scrim at 100 ms is still the window's %v, want it on the way", midScrim)
+	}
+
+	tt.Advance(searchMotion / 2)
+	settled, _ := paletteDialog(tt)
+	if settled.Bounds.W != searchPanelW {
+		t.Errorf("the settled palette is %.1f wide, want %d", settled.Bounds.W, searchPanelW)
+	}
+	dim := tt.Image().RGBAAt(2, 2)
+	if midScrim == dim {
+		t.Errorf("the scrim at 100 ms is already the settled %v", dim)
+	}
+	panel := [2]int{int(settled.Bounds.X) + 4, int(settled.Bounds.Y) + 4}
+	shown := tt.Image().RGBAAt(panel[0], panel[1])
+
+	tt.Key(0, ui.KeyEscape)
+	if _, ok := paletteDialog(tt); ok {
+		t.Fatal("Escape left the palette open")
+	}
+	frames := []uint8{shown.R}
+	at := func() uint8 { return tt.Image().RGBAAt(panel[0], panel[1]).R }
+	for i := 0; i < 2; i++ {
+		tt.Advance(searchMotion / 2)
+		frames = append(frames, at())
+	}
+	if frames[1] == frames[0] || frames[1] == frames[2] || frames[0] == frames[2] {
+		t.Errorf("the closing panel at 0/100/200 ms is %v, want it on the way from the panel to the window", frames)
+	}
+	if got := tt.Image().RGBAAt(2, 2); got != clear {
+		t.Errorf("the scrim ended at %v, want the window's %v back", got, clear)
+	}
+}
+
+// TestSearchPaletteReducedMotionSkipsTheFade checks the reduce-motion path: with
+// the desktop asking for less motion the panel is settled and the scrim dimmed
+// on the frame the shortcut opens it, and both are gone on the frame Escape
+// closes it.
+func TestSearchPaletteReducedMotionSkipsTheFade(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTesterWith(s.View, 900, 1000, ui.TesterOptions{
+		Preferences: ui.Preferences{ReduceMotion: true},
+	})
+	clear := tt.Image().RGBAAt(2, 2)
+	tt.Key(searchShortcutMods, searchShortcutKey)
+	dialog, ok := paletteDialog(tt)
+	if !ok {
+		t.Fatalf("the shortcut did not open the palette, texts %q", tt.Texts())
+	}
+	if dialog.Bounds.W != searchPanelW {
+		t.Errorf("the reduced-motion palette is %.1f wide on its first frame, want %d", dialog.Bounds.W, searchPanelW)
+	}
+	if got := tt.Image().RGBAAt(2, 2); got == clear {
+		t.Errorf("the scrim is still the window's %v on the frame the palette opens", got)
+	}
+
+	tt.Key(0, ui.KeyEscape)
+	if _, ok := paletteDialog(tt); ok {
+		t.Fatal("Escape left the palette open")
+	}
+	if got := tt.Image().RGBAAt(2, 2); got != clear {
+		t.Errorf("the closing copy left the scrim at %v, want the window's %v at once", got, clear)
+	}
+}
+
+// TestSearchPaletteNarrowWindow checks the reference's width cap: in a window
+// too narrow for 448 DIPs the panel takes 90% of it, stays centered and keeps
+// its 42 DIP rows.
+func TestSearchPaletteNarrowWindow(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 360, 800)
+	openPalette(t, tt)
+
+	dialog, _ := paletteDialog(tt)
+	if want := float32(360) * 0.9; dialog.Bounds.W > want+0.5 || dialog.Bounds.W < want-0.5 {
+		t.Errorf("the narrow palette is %.1f wide, want the reference's 90%% of 360 (%.1f)", dialog.Bounds.W, want)
+	}
+	if want := (360 - dialog.Bounds.W) / 2; dialog.Bounds.X != want {
+		t.Errorf("the narrow palette starts at x=%.1f, want the window's centre %v", dialog.Bounds.X, want)
+	}
+	row := paletteResult(t, tt, "First session")
+	if row.Bounds.H != searchRowH {
+		t.Errorf("the narrow row is %.1f high, want %d", row.Bounds.H, searchRowH)
 	}
 }
 
@@ -403,6 +632,7 @@ func TestSearchPaletteChineseLocale(t *testing.T) {
 	if !tt.Focused(tr(LocaleZHCN, keySearchPlaceholder)) {
 		t.Fatalf("the zh-CN input did not take the focus, texts %q", tt.Texts())
 	}
+	tt.Advance(searchMotion)
 
 	if info, ok := tt.AccessByRole(ui.RoleTextField, tr(LocaleZHCN, keySearchPlaceholder)); !ok ||
 		info.Placeholder != tr(LocaleZHCN, keySearchPlaceholder) {
