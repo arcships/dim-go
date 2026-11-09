@@ -1,16 +1,16 @@
 state	disconnected
-started_at	2026-11-09 15:51:49 CST
-captured_at	2026-11-09 15:51:51 CST
-built_at	2026-11-09 15:51:49 CST
-git_head	61a52a70242a7ec91b8737067fa3f01467ab777d
-git_dirty	clean
+started_at	2026-11-09 16:43:32 CST
+captured_at	2026-11-09 16:43:34 CST
+built_at	2026-11-09 16:43:32 CST
+git_head	54146a6dd1faac9a21a9f275f7a8b20e62ee6161
+git_dirty	 M docs/evidence/ui/shell-dark-composer.png; M docs/evidence/ui/shell-dark-settings.png; M docs/evidence/ui/shell-dark.png; M docs/evidence/ui/shell-light-composer.png; M docs/evidence/ui/shell-light-settings.png; M docs/evidence/ui/shell-light.png; M internal/ui/tokens.go;
 product_home	<unset>
-app_pid	3064
-window_id	48971
+app_pid	10457
+window_id	49095
 window_title	DimAgent
-window_bounds_points	484,116,1080,720
+window_bounds_points	-1505,116,1082,720
 png	docs/evidence/window-disconnected.png
 png_pixels	2160 1440
-png_bytes	278690
+png_bytes	283967
 daemon	<none>
 app_log	

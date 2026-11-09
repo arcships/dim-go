@@ -176,7 +176,7 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 ### 5.2 首轮并排与取样（2026-11-09）
 
 - 并排图：[`evidence/ui-parity/compare-empty.png`](evidence/ui-parity/compare-empty.png)（Electron workspace ↔ MyGo 空态）、[`compare-settings.png`](evidence/ui-parity/compare-settings.png)（设置面）。
-- 取样 light：Electron 侧栏 `#E9EDF2`、卡片 `#FFFFFF`；MyGo 侧栏 `#F4F4F5`、卡片 `#FFFFFF`。侧栏仍比参考浅约 4%，层级方向一致。
+- 取样 light：Electron 侧栏 `#E9EDF2`、卡片 `#FFFFFF`；MyGo 侧栏 `#E9E9EC`、卡片 `#FFFFFF`。与参考 `#E9EDF2` 仅差冷色偏移（约 6/255），层级方向一致。
 - 取样 dark：Electron 卡片亮于背景；MyGo 背景 `#18181B`、卡片 `#343436`、popover `#424244`、侧栏 `#27272A`，方向一致。
 - 本轮修复：elevation 从“朝 foreground 混”（light 下把卡片压到背景以下）改为“朝白色提升”；侧栏列表补 `Background(k.sidebar)`，不再被 `ui.List` 默认背景覆盖。
 

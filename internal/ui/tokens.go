@@ -149,6 +149,15 @@ const (
 	tooltipBorderRise = 0.18
 	tooltipChipRise   = 0.10
 	tooltipMutedFade  = 0.30
+
+	// sidebarHoverRise is how far a sidebar row lifts under the pointer, as a
+	// mix toward the foreground; the base face is the chrome step, not the row
+	// fill.
+	sidebarHoverRise = 0.06
+
+	// sidebarSelectionRise tints the chosen row toward the brand color, so the
+	// choice reads on the chrome step instead of repeating the hover face.
+	sidebarSelectionRise = 0.18
 )
 
 // washAlpha is how strongly the shell tints a color it uses as the background
@@ -410,7 +419,15 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 	// The sidebar is the reference's tinted chrome column, not an elevated face:
 	// a gray step under the window in the light theme and the theme's own surface
 	// step in the dark one.
-	sidebarFace := t.Surface
+	// The reference's sidebar is a tinted chrome column: a gray step below the
+	// window in the light theme, the theme's surface step in the dark one.
+	sidebarFace := t.SurfaceHover
+	if t.Dark {
+		sidebarFace = t.Surface
+	}
+	if sidebarFace == ui.Transparent {
+		sidebarFace = t.Surface
+	}
 	if sidebarFace == ui.Transparent {
 		sidebarFace = background
 	}
@@ -524,9 +541,9 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 		sidebarForeground:        foreground,
 		sidebarPrimary:           primary,
 		sidebarPrimaryForeground: onPrimary,
-		sidebarAccent:            accent,
+		sidebarAccent:            accent.Mix(primary, sidebarSelectionRise),
 		sidebarAccentForeground:  foreground,
-		sidebarHover:             accent,
+		sidebarHover:             sidebar.Mix(foreground, sidebarHoverRise),
 		sidebarBorder:            t.Border.Mix(sidebar, 0.35),
 		sidebarRing:              ring,
 
