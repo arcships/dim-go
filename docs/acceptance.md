@@ -32,7 +32,7 @@ Last updated: 2026-11-09
 | F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L4：窗口输入并点击 Send，user 行与 assistant 行出现（`window-submit.png`）；增量流式未单独观察 | 未通过 |
 | F7 | stop | 真实窗口停止 → 状态收敛 | L3 通过；L4 无 | 未通过 |
 | F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | headless + fake-server（bridge 单测）；无 L3/L4 审批流证据 | 未通过 |
-| F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | UI 已接线 + integration 单测；L4 无 | 未通过 |
+| F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | L4：daemon 在 Send 前后被停/杀，窗口显示 `Submission result unknown`、保留草稿、提示 Reconnect，不重发（`window-unknown-result.png`）；`input_lookup` 的 accepted/unknown 结果展示仍缺 | 未通过 |
 | F10 | 断线 / reattach | 杀掉 daemon → 错误态 → 重连 → 历史重建 | L4：kill daemon 显示 Connection error；点击 Reconnect 后 daemon 重新 spawn、连接恢复、latest-turn history 重建（`window-transport-lost.png`、`window-reattach.png`） | **已通过（L4）** |
 | F11 | `subscription_changed` 恢复 | 真实 replay-gap 场景 | 无真实 wire 证据 | 未通过 |
 | F12 | branch switching / cut point | 真实切换 branch 并渲染 | L3 opt-in real daemon 覆盖 branch_create → open → refresh → end；真实窗口显示 `main` 与 seed 的 side branch。窗口内切换点击、cut point 与 L4 未验证 | 未通过 |
