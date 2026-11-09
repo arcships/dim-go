@@ -78,7 +78,8 @@ func (t ThemeChoice) String() string {
 
 // FontFamily is the family the shell draws its interface and code in: the
 // system stack, or the monospace stack. It names a family, not a font file:
-// the window keeps the stack and dim-electron's own fallbacks.
+// mygo resolves the system one to the platform's interface font and the
+// monospace one to the platform's monospaced font (see monospaceFamily).
 type FontFamily uint8
 
 const (
@@ -98,7 +99,9 @@ func (f FontFamily) String() string {
 
 // Density is the shell's spacing preference: regular, or compact for more rows
 // in the same room. It is a desktop preference the window applies to its own
-// layout; it changes no session fact.
+// layout: compact keeps densityCompactScale of every gap and padding (see
+// tokens.go), in the shell's views and in mygo's widgets, while type sizes and
+// row heights keep their values. It changes no session fact.
 type Density uint8
 
 const (
@@ -159,7 +162,8 @@ func (f SettingsField) String() string {
 //
 // A zero field takes the token default, so a window that has never saved a
 // preference draws the values the shell opens with. resolveSettings fills the
-// defaults and keeps a saved value on the range the surface offers.
+// defaults and keeps a saved value on the range the surface offers, and
+// newTokensFor folds the resolved view into the tokens the frame draws with.
 type SettingsView struct {
 	// Theme is the color-theme preference: system, light or dark.
 	Theme ThemeChoice

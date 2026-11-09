@@ -2,6 +2,7 @@ package ui
 
 import (
 	"math"
+	"reflect"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -320,6 +321,188 @@ func TestFontSizeSnapsToAStep(t *testing.T) {
 	if !(k.titleSize > k.bodySize && k.bodySize > k.labelSize && k.labelSize > k.smallSize) {
 		t.Errorf("type scale is not ordered: %.1f/%.1f/%.1f/%.1f",
 			k.titleSize, k.bodySize, k.labelSize, k.smallSize)
+	}
+}
+
+// TestFontSizePreferenceSetsTheScale checks the font-size steps: each one the
+// appearance surface offers moves the body and every step of the type scale to
+// that size, with the scale keeping its order and growing from step to step.
+func TestFontSizePreferenceSetsTheScale(t *testing.T) {
+	var previous float32
+	for i, step := range fontSizeSteps {
+		k := newTokensFor(ui.LightTheme(), SettingsView{FontSize: step})
+		if k.uiFontSize != step || k.bodySize != step {
+			t.Errorf("a %.0f preference draws %.0f body text on the %.0f step", step, k.bodySize, k.uiFontSize)
+		}
+		if k.codeFontSize != defaultCodeFontSize {
+			t.Errorf("a %.0f preference moved the code size to %.0f", step, k.codeFontSize)
+		}
+		if !(k.titleSize > k.bodySize && k.bodySize > k.labelSize && k.labelSize > k.smallSize) {
+			t.Errorf("a %.0f preference breaks the scale order: %.1f/%.1f/%.1f/%.1f",
+				step, k.titleSize, k.bodySize, k.labelSize, k.smallSize)
+		}
+		if i > 0 && k.titleSize <= previous {
+			t.Errorf("step %.0f draws the title at %.1f, no larger than the step below's %.1f",
+				step, k.titleSize, previous)
+		}
+		previous = k.titleSize
+	}
+}
+
+// TestFontSizePreferenceOverridesTheTheme checks which size wins when the theme
+// names one: the saved preference, which also lands on the frame's theme so
+// mygo's own widgets and text take the same size.
+func TestFontSizePreferenceOverridesTheTheme(t *testing.T) {
+	theme := ui.LightTheme()
+	theme.FontSize = 12
+
+	k := newTokensFor(theme, SettingsView{FontSize: 18})
+	if k.bodySize != 18 {
+		t.Errorf("a saved 18 over a 12 theme draws body text at %.0f", k.bodySize)
+	}
+	if k.theme.FontSize != 18 {
+		t.Errorf("the frame's theme has a %.0f type size, want the saved 18", k.theme.FontSize)
+	}
+	if theme.FontSize != 12 {
+		t.Errorf("the window's own theme was changed to %.0f", theme.FontSize)
+	}
+}
+
+// TestCompactDensityTightensTheRoom checks what compact changes: every gap and
+// padding the shell derives from the theme's spacing unit and every literal
+// layout step shrinks by densityCompactScale, in the tokens and for the widgets
+// through the theme's spacing unit, while row heights, type sizes and colors
+// keep their values.
+func TestCompactDensityTightensTheRoom(t *testing.T) {
+	regular := newTokensFor(ui.LightTheme(), SettingsView{})
+	compact := newTokensFor(ui.LightTheme(), SettingsView{Density: DensityCompact})
+
+	room := []struct {
+		name           string
+		regular, tight float32
+	}{
+		{"gap", regular.gap, compact.gap},
+		{"gapWide", regular.gapWide, compact.gapWide},
+		{"rowPadY", regular.rowPadY, compact.rowPadY},
+		{"rowPadX", regular.rowPadX, compact.rowPadX},
+		{"toolbarPadY", regular.toolbarPadY, compact.toolbarPadY},
+		{"toolbarPadX", regular.toolbarPadX, compact.toolbarPadX},
+		{"edgePad", regular.edgePad, compact.edgePad},
+		{"panelPad", regular.panelPad, compact.panelPad},
+		{"cardPadY", regular.cardPadY, compact.cardPadY},
+		{"cardPadX", regular.cardPadX, compact.cardPadX},
+		{"timelinePadX", regular.timelinePadX, compact.timelinePadX},
+		{"timelineBlockGap", regular.timelineBlockGap, compact.timelineBlockGap},
+		{"timelinePadStart", regular.timelinePadStart, compact.timelinePadStart},
+		{"timelineUserPadY", regular.timelineUserPadY, compact.timelineUserPadY},
+		{"timelineUserPadX", regular.timelineUserPadX, compact.timelineUserPadX},
+		{"timelineFileRowY", regular.timelineFileRowY, compact.timelineFileRowY},
+		{"timelineFileRowX", regular.timelineFileRowX, compact.timelineFileRowX},
+		{"timelineFileGap", regular.timelineFileGap, compact.timelineFileGap},
+		{"sidebarHeaderTop", regular.sidebarHeaderTop, compact.sidebarHeaderTop},
+		{"sidebarGap", regular.sidebarGap, compact.sidebarGap},
+		{"sidebarPadX", regular.sidebarPadX, compact.sidebarPadX},
+		{"sidebarSectionPadX", regular.sidebarSectionPadX, compact.sidebarSectionPadX},
+	}
+	for _, tc := range room {
+		if tc.tight >= tc.regular {
+			t.Errorf("compact %s is %.2f, not tighter than the regular %.2f", tc.name, tc.tight, tc.regular)
+		}
+		if want := tc.regular * densityCompactScale; math.Abs(float64(tc.tight-want)) > 1e-4 {
+			t.Errorf("compact %s is %.2f, want %.4f of the regular %.2f", tc.name, tc.tight, densityCompactScale, tc.regular)
+		}
+	}
+	if got, want := compact.space(3), regular.space(3)*densityCompactScale; math.Abs(float64(got-want)) > 1e-4 {
+		t.Errorf("compact space(3) is %.2f, want %.2f", got, want)
+	}
+	if want := regular.theme.Spacing * densityCompactScale; math.Abs(float64(compact.theme.Spacing-want)) > 1e-4 {
+		t.Errorf("the compact theme's spacing unit is %.2f, want %.2f", compact.theme.Spacing, want)
+	}
+
+	// What compact must leave alone: the parts are the same size, only the room
+	// between them is tighter.
+	unchanged := []struct {
+		name           string
+		regular, tight float32
+	}{
+		{"sidebarHeaderH", regular.sidebarHeaderH, compact.sidebarHeaderH},
+		{"sidebarSectionH", regular.sidebarSectionH, compact.sidebarSectionH},
+		{"sidebarRowH", regular.sidebarRowH, compact.sidebarRowH},
+		{"sidebarEntryH", regular.sidebarEntryH, compact.sidebarEntryH},
+		{"sidebarCell", regular.sidebarCell, compact.sidebarCell},
+		{"timelineHeaderH", regular.timelineHeaderH, compact.timelineHeaderH},
+		{"timelinePanelMaxH", regular.timelinePanelMaxH, compact.timelinePanelMaxH},
+		{"timelineUserWidth", regular.timelineUserWidth, compact.timelineUserWidth},
+		{"uiFontSize", regular.uiFontSize, compact.uiFontSize},
+		{"titleSize", regular.titleSize, compact.titleSize},
+		{"labelSize", regular.labelSize, compact.labelSize},
+		{"codeFontSize", regular.codeFontSize, compact.codeFontSize},
+		{"sidebarW", regular.sidebarW, compact.sidebarW},
+	}
+	for _, tc := range unchanged {
+		if tc.tight != tc.regular {
+			t.Errorf("compact changed %s from %.2f to %.2f", tc.name, tc.regular, tc.tight)
+		}
+	}
+	if compact.background != regular.background || compact.card != regular.card {
+		t.Error("compact changed the colors")
+	}
+}
+
+// TestCodeFontSizePreference checks the code size: the saved value is the
+// token's codeFontSize, a zero takes the default, and a value outside the
+// surface's range is held to it, exactly as the appearance surface draws it.
+func TestCodeFontSizePreference(t *testing.T) {
+	cases := []struct {
+		saved, want float32
+	}{
+		{0, defaultCodeFontSize},
+		{13, 13},
+		{16, 16},
+		{19.6, 20},
+		{5, settingsCodeMin},
+		{40, settingsCodeMax},
+	}
+	for _, tc := range cases {
+		k := newTokensFor(ui.LightTheme(), SettingsView{CodeFontSize: tc.saved})
+		if k.codeFontSize != tc.want {
+			t.Errorf("a %.1f code size draws code at %.0f, want %.0f", tc.saved, k.codeFontSize, tc.want)
+		}
+		if wantBody := newTokens(ui.LightTheme()).bodySize; k.bodySize != wantBody {
+			t.Errorf("a %.1f code size moved the body text to %.0f, want the %.0f step", tc.saved, k.bodySize, wantBody)
+		}
+	}
+}
+
+// TestFontFamilyPreferenceReachesTheTheme checks the family: the system stack
+// is mygo's empty family, the monospace one is the platform's monospaced
+// family, and neither moves the type scale.
+func TestFontFamilyPreferenceReachesTheTheme(t *testing.T) {
+	system := newTokensFor(ui.LightTheme(), SettingsView{})
+	if system.theme.Font != "" {
+		t.Errorf("the system family is %q, want mygo's platform interface font", system.theme.Font)
+	}
+
+	mono := newTokensFor(ui.LightTheme(), SettingsView{FontFamily: FontMonospace})
+	if mono.theme.Font != monospaceFamily {
+		t.Errorf("the monospace family is %q, want %q", mono.theme.Font, monospaceFamily)
+	}
+	if mono.uiFontSize != system.uiFontSize || mono.codeFontSize != system.codeFontSize {
+		t.Errorf("the family moved the type sizes to %.0f/%.0f", mono.uiFontSize, mono.codeFontSize)
+	}
+}
+
+// TestDefaultAppearanceKeepsTheThemeTokens checks the fallback: a window that
+// saved no preference draws exactly the tokens its theme alone produces, so a
+// first run after this change looks as it did before one could be saved.
+func TestDefaultAppearanceKeepsTheThemeTokens(t *testing.T) {
+	for _, tc := range themes() {
+		theme := newTokens(tc.theme)
+		saved := newTokensFor(tc.theme, SettingsView{})
+		theme.theme, saved.theme = nil, nil
+		if !reflect.DeepEqual(theme, saved) {
+			t.Errorf("%s: the default appearance differs from the theme's tokens", tc.name)
+		}
 	}
 }
 

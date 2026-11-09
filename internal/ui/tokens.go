@@ -6,9 +6,10 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// The shell's type steps, as fractions of the theme's font size: the shell's
-// own scale on top of the theme's text size, so that a larger system text size
-// grows every heading, label and row together.
+// The shell's type steps, as fractions of the UI font size: the shell's own
+// scale on top of the step in force, so that a larger theme text size or a
+// larger saved font-size preference grows every heading, label and row
+// together.
 const (
 	typeTitleStep = 1.15
 	typeLabelStep = 0.9
@@ -27,6 +28,23 @@ const (
 	defaultUIFontSize   = 14
 	defaultCodeFontSize = 13
 )
+
+// densityCompactScale is the share of the regular room compact keeps: three
+// quarters. It is mygo's own step between a roomy and a compact spacing unit,
+// where ui.Theme.Spacing 4 is the default and 3 is "compact" (theme.go:68-72),
+// so the shell tightens by the same ratio its widgets do. The factor is folded
+// into the gaps and paddings copied from dim-electron's Tailwind layout, which
+// are literals rather than multiples of the spacing unit and so do not follow
+// it; heights, widths and type sizes keep their values, so compact leaves more
+// of the window to rows without a row's text outgrowing its box.
+const densityCompactScale = 3.0 / 4.0
+
+// monospaceFamily is the family the Monospace preference draws its text in.
+// mygo resolves "monospace" to the platform's monospaced font; dim-electron
+// ships self-hosted Inter and JetBrains Mono stacks instead (global.css:10-18),
+// and this shell bundles no font file, so it names the platform families it can
+// actually reach rather than a face the desktop would have to ship.
+const monospaceFamily = "monospace"
 
 // The radius ladder, as dim-electron's --radius-{sm,md,lg,xl}: an inline
 // control's corner, a field's or a chip's, a card's, and a floating surface's,
@@ -119,17 +137,22 @@ const washAlpha = 0.12
 
 // tokens are the shell's design tokens: the room, type, radius and color steps
 // its views use, so that no view carries a magic number or a color of its own.
-// They come from the window's theme every frame, so a theme change, dark mode
-// or a larger system text size carries through the whole shell.
+// They are derived every frame from the window's theme and the desktop's saved
+// appearance, so a theme change, dark mode, a saved font size or a density
+// carries through the whole shell; see newTokensFor.
 //
 // The colors are the semantic layer dim-electron names in its stylesheet,
 // derived here from ui.Theme: a view asks for what a surface is (a card, a
 // muted face, the text on the primary fill), never for a theme field, so the
 // same view keeps its meaning when the theme's own palette changes.
 type tokens struct {
+	// theme is the theme the frame draws with, the saved appearance already
+	// folded in by appearanceTheme: space asks it for the spacing unit, so a
+	// compact density tightens a view's own steps as it tightens the widgets.
 	theme *ui.Theme
 
-	// Room, in DIPs, on the theme's Spacing unit.
+	// Room, in DIPs, on the theme's Spacing unit. A compact density scales the
+	// unit and the literal steps below by densityCompactScale.
 	hairline    float32 // a divider's width
 	gap         float32 // between the parts of a row
 	gapWide     float32 // between the parts of a toolbar row
@@ -248,8 +271,99 @@ type tokens struct {
 	tooltipChip            ui.Color
 }
 
-// newTokens builds the shell's tokens from the window's theme.
+// newTokens builds the shell's tokens from the window's theme alone: the
+// appearance a window that has saved no preference draws, with the theme's own
+// type size and spacing.
 func newTokens(t *ui.Theme) tokens {
+	return buildTokens(t, 1)
+}
+
+// newTokensFor builds the tokens for one saved appearance: the window's theme
+// for its colors, with the desktop's own type step, family and density on top.
+// The saved values are resolved against the theme first, so a zero field takes
+// the same default the appearance surface draws and a saved value outside the
+// offered range is held to it.
+//
+// The type step moves every step of the scale together through the appearance
+// theme, and the density folds into the room both in the theme's spacing unit
+// (which mygo's own widgets read) and in the layout's literal steps; see
+// appearanceTheme and densityScale.
+func newTokensFor(t *ui.Theme, prefs SettingsView) tokens {
+	t = themeOrLight(t)
+	v := resolveSettings(newTokens(t), prefs)
+	k := buildTokens(appearanceTheme(t, v), densityScale(v.Density))
+	// The UI steps already follow the appearance theme's size; the code size
+	// is not a step of that scale, so it is folded in here.
+	k.codeFontSize = v.CodeFontSize
+	return k
+}
+
+// appearanceTheme is the theme the frame draws with: the window's theme with
+// the saved type size, family and density folded in. These are the theme's own
+// two type fields and the spacing unit, so setting them keeps mygo's widgets
+// (buttons, fields, the composer's editor, list rows) in step with the shell's
+// views; without it a saved size would grow the shell's text and leave every
+// widget on the theme's default.
+//
+// Regular density leaves the spacing unit as the theme set it, and the system
+// family is mygo's empty one, the platform's interface font.
+//
+// The saved size is the step the shell draws at, not a multiplier: a desktop
+// that names one has chosen it, so it replaces the theme's own size instead of
+// scaling it again. With no saved size the resolved step is the theme's (which
+// already follows a larger system text size).
+func appearanceTheme(t *ui.Theme, v SettingsView) *ui.Theme {
+	applied := *t
+	applied.FontSize = v.FontSize
+	applied.Font = fontFamilyStack(v.FontFamily)
+	if v.Density == DensityCompact {
+		applied.Spacing = spacingUnit(t) * densityCompactScale
+	}
+	return &applied
+}
+
+// spacingUnit is the theme's spacing unit in DIPs, mygo's default of 4 when the
+// theme names none.
+func spacingUnit(t *ui.Theme) float32 {
+	if t.Spacing <= 0 {
+		return 4
+	}
+	return t.Spacing
+}
+
+// fontFamilyStack is the family a font-family preference draws in: the
+// platform's interface font for System (mygo's empty family) and the
+// platform's monospaced family for Monospace.
+func fontFamilyStack(f FontFamily) string {
+	if f == FontMonospace {
+		return monospaceFamily
+	}
+	return ""
+}
+
+// densityScale is how much of the regular room a density keeps: all of it for
+// regular, and densityCompactScale for compact.
+func densityScale(d Density) float32 {
+	if d == DensityCompact {
+		return densityCompactScale
+	}
+	return 1
+}
+
+// themeOrLight is t, or the light theme when a caller passed none.
+func themeOrLight(t *ui.Theme) *ui.Theme {
+	if t == nil {
+		return ui.LightTheme()
+	}
+	return t
+}
+
+// buildTokens derives the tokens from a theme: the type size and the spacing
+// unit come from the theme's own fields, and geometryScale tightens the literal
+// geometry steps (the Tailwind conversions of the sidebar and timeline
+// ladders), which are not multiples of the spacing unit and so do not follow a
+// compact unit on their own. 1 keeps the theme's own room.
+func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 	if t == nil {
 		t = ui.LightTheme()
 	}
@@ -311,32 +425,32 @@ func newTokens(t *ui.Theme) tokens {
 		cardPadY:    t.Space(1),
 		cardPadX:    t.Space(2),
 
-		timelinePadX:       timelinePadX,
-		timelineBlockGap:   timelineBlockGap,
+		timelinePadX:       timelinePadX * geometryScale,
+		timelineBlockGap:   timelineBlockGap * geometryScale,
 		timelineHeaderH:    timelineHeaderH,
-		timelinePadStart:   timelinePadStart,
+		timelinePadStart:   timelinePadStart * geometryScale,
 		timelineRail:       timelineRail,
 		timelinePanelMaxH:  timelinePanelMaxH,
 		timelineChevron:    timelineChevron,
 		timelineUserWidth:  timelineUserWidth,
-		timelineUserPadY:   timelineUserPadY,
-		timelineUserPadX:   timelineUserPadX,
+		timelineUserPadY:   timelineUserPadY * geometryScale,
+		timelineUserPadX:   timelineUserPadX * geometryScale,
 		timelineBubbleR:    timelineBubbleR,
-		timelineFileRowY:   timelineFileRowY,
-		timelineFileRowX:   timelineFileRowX,
-		timelineFileGap:    timelineFileGap,
+		timelineFileRowY:   timelineFileRowY * geometryScale,
+		timelineFileRowX:   timelineFileRowX * geometryScale,
+		timelineFileGap:    timelineFileGap * geometryScale,
 		timelineFileStatus: timelineFileStatus,
 
 		sidebarHeaderH:     sidebarHeaderH,
-		sidebarHeaderTop:   sidebarHeaderTop,
+		sidebarHeaderTop:   sidebarHeaderTop * geometryScale,
 		sidebarSectionH:    sidebarSectionH,
 		sidebarRowH:        sidebarRowH,
 		sidebarEntryH:      sidebarEntryH,
 		sidebarFooterH:     sidebarFooterH,
 		sidebarCell:        sidebarCell,
-		sidebarGap:         sidebarGap,
-		sidebarPadX:        sidebarPad,
-		sidebarSectionPadX: sidebarSectionPad,
+		sidebarGap:         sidebarGap * geometryScale,
+		sidebarPadX:        sidebarPad * geometryScale,
+		sidebarSectionPadX: sidebarSectionPad * geometryScale,
 
 		sidebarW:    sidebarDefaultW,
 		sidebarMinW: sidebarMinW,

@@ -246,6 +246,9 @@ type State struct {
 	OnStop          func()
 	OnReconnect     func()
 	OnApproval      func(branchID, requestID string, decision ApprovalDecision)
+	// OnSettingsChange persists the desktop-local appearance snapshot after the
+	// shell applies it for this frame. It never reaches the App Server.
+	OnSettingsChange func(SettingsChange)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -304,7 +307,13 @@ func (s *State) View(c *ui.Context) {
 	case ThemeDark:
 		c.SetTheme(ui.DarkTheme())
 	}
-	k := newTokens(c.Theme())
+	// The saved appearance builds the frame's theme and tokens: the type size,
+	// family and density are folded into the theme, so mygo's own widgets step
+	// with the shell's views, and the tokens carry the same appearance into
+	// every region. Both are read again each frame, so a choice made on the
+	// settings surface shows on the next one.
+	k := newTokensFor(c.Theme(), s.Settings)
+	c.SetTheme(k.theme)
 	// The divider writes the width it drags to; the shell keeps the sidebar
 	// inside its own bounds before every frame, so a drag can never take the
 	// session list or the conversation off the window.
@@ -380,10 +389,11 @@ func (s *State) syncKeysSession() {
 	s.keysSelected = ""
 }
 
-// applySettings stores the appearance snapshot the surface reported and applies
-// the parts this shell can: the forced theme (read on the next frame) and the
-// sidebar width. Font size, family, density and code size are kept for the
-// caller to persist; the shell does not yet re-theme its type scale from them.
+// applySettings stores the appearance snapshot the surface reported and hands it
+// to OnSettingsChange for the window to persist. The shell applies it on the
+// next frame through State.View: the forced theme is read there, newTokensFor
+// folds the type size, family, code size and density into the frame's theme and
+// tokens, and the sidebar width is held between its bounds before it is drawn.
 func (s *State) applySettings(change SettingsChange) {
 	s.Settings = SettingsView{
 		Theme:        change.Theme,
@@ -395,6 +405,9 @@ func (s *State) applySettings(change SettingsChange) {
 	}
 	if change.SidebarWidth > 0 {
 		s.SidebarWidth = change.SidebarWidth
+	}
+	if s.OnSettingsChange != nil {
+		s.OnSettingsChange(change)
 	}
 }
 
@@ -412,13 +425,14 @@ func (s *State) statusBarView() StatusBarView {
 // nil callback stays nil, which is how a region learns the action is a WIP gap.
 func (s *State) actions() Actions {
 	a := Actions{
-		OnCreateSession: s.OnCreateSession,
-		OnSelect:        s.OnSelect,
-		OnSelectBranch:  s.OnSelectBranch,
-		OnSubmit:        s.OnSubmit,
-		OnStop:          s.OnStop,
-		OnReconnect:     s.OnReconnect,
-		OnApproval:      s.OnApproval,
+		OnCreateSession:  s.OnCreateSession,
+		OnSelect:         s.OnSelect,
+		OnSelectBranch:   s.OnSelectBranch,
+		OnSubmit:         s.OnSubmit,
+		OnStop:           s.OnStop,
+		OnReconnect:      s.OnReconnect,
+		OnApproval:       s.OnApproval,
+		OnSettingsChange: s.OnSettingsChange,
 		// The settings toggle is the shell's own state, not a caller callback, so
 		// it is always wired. Opening it takes the main column from the keys
 		// browser, so the two never compete for it.
