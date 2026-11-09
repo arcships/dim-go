@@ -17,6 +17,7 @@ import (
 	"sync"
 
 	"github.com/arcships/dimagent-mygo/internal/config"
+	dimui "github.com/arcships/dimagent-mygo/internal/ui"
 )
 
 // desktopStore serializes the desktop-local file. Every change loads once,
@@ -118,9 +119,40 @@ func (d *desktopStore) setWindow(window config.Window) error {
 	return d.update(func(state *config.State) { state.Window = window })
 }
 
+// togglePinned flips sessionID's pin, which also unpins an archived id because
+// the two lists never hold the same session.
+func (d *desktopStore) togglePinned(sessionID string) error {
+	return d.update(func(state *config.State) {
+		state.SetPinned(sessionID, !state.IsPinned(sessionID))
+	})
+}
+
+// toggleArchived flips sessionID's archived mark, which also unpins it: an
+// archived session is hidden before a pin could order it.
+func (d *desktopStore) toggleArchived(sessionID string) error {
+	return d.update(func(state *config.State) {
+		state.SetArchived(sessionID, !state.IsArchived(sessionID))
+	})
+}
+
+// restoreArchived removes sessionID from the archived list, which is the
+// settings page's Restore entry.
+func (d *desktopStore) restoreArchived(sessionID string) error {
+	return d.update(func(state *config.State) { state.SetArchived(sessionID, false) })
+}
+
+// forgetSession removes sessionID from the pinned and archived lists after the
+// App Server confirmed the session's delete. It removes display state only; the
+// delete itself is the App Server's fact.
+func (d *desktopStore) forgetSession(sessionID string) error {
+	return d.update(func(state *config.State) { state.RemoveSession(sessionID) })
+}
+
 // loadDesktop loads the desktop-local state before the first frame and restores
-// the draft of the session the window already selected. A load failure is
-// reported here once; the window keeps the defaults a failed load returned.
+// the draft of the session the window already selected. The pinned and archived
+// id lists are display state for the sidebar, search palette and archived page;
+// they are not session facts. A load failure is reported here once; the window
+// keeps the defaults a failed load returned.
 func (a *app) loadDesktop() {
 	if a.desktop == nil {
 		a.desktop = newDesktopStore()
@@ -132,9 +164,79 @@ func (a *app) loadDesktop() {
 	if a.state == nil {
 		return
 	}
+	a.state.Pinned = append([]string(nil), state.Pinned...)
+	a.state.Archived = append([]string(nil), state.Archived...)
 	if draft := state.DraftFor(a.state.Selected); draft != "" {
 		a.state.Draft = draft
 	}
+}
+
+// publishHidden copies the stored pinned and archived id lists into the window
+// state. They are display state: the sidebar, search palette and archived page
+// read them, and no session fact changes.
+func (a *app) publishHidden() {
+	if a.desktop == nil || a.state == nil {
+		return
+	}
+	stored := a.desktop.current()
+	a.update(func(state *dimui.State) {
+		state.Pinned = append([]string(nil), stored.Pinned...)
+		state.Archived = append([]string(nil), stored.Archived...)
+	})
+}
+
+// togglePin flips the selected session's desktop-local pin. A write failure is
+// reported through the banner and leaves the stored list unchanged; the UI is
+// republished from what the store actually holds.
+func (a *app) togglePin(sessionID string) {
+	if a.desktop == nil || sessionID == "" {
+		return
+	}
+	if err := a.desktop.togglePinned(sessionID); err != nil {
+		log.Printf("dimagent: pin session %q: %v", sessionID, err)
+		a.notice("pin.error", "Pin session: "+err.Error())
+	}
+	a.publishHidden()
+}
+
+// toggleArchive flips the selected session's desktop-local archived mark. The
+// row leaves the sidebar on this desktop only; the App Server keeps the session.
+func (a *app) toggleArchive(sessionID string) {
+	if a.desktop == nil || sessionID == "" {
+		return
+	}
+	if err := a.desktop.toggleArchived(sessionID); err != nil {
+		log.Printf("dimagent: archive session %q: %v", sessionID, err)
+		a.notice("archive.error", "Archive session: "+err.Error())
+	}
+	a.publishHidden()
+}
+
+// restoreArchived is the archived-sessions page's Restore entry: it removes the
+// id from the archived list and republishes the sidebar.
+func (a *app) restoreArchived(sessionID string) {
+	if a.desktop == nil || sessionID == "" {
+		return
+	}
+	if err := a.desktop.restoreArchived(sessionID); err != nil {
+		log.Printf("dimagent: restore session %q: %v", sessionID, err)
+		a.notice("archive.error", "Restore session: "+err.Error())
+	}
+	a.publishHidden()
+}
+
+// forgetHiddenSession drops a deleted session from both display lists. The
+// App Server confirmed the delete before this runs; a failed save is logged and
+// leaves the stored list as it was.
+func (a *app) forgetHiddenSession(sessionID string) {
+	if a.desktop == nil || sessionID == "" {
+		return
+	}
+	if err := a.desktop.forgetSession(sessionID); err != nil {
+		log.Printf("dimagent: forget session %q display state: %v", sessionID, err)
+		return
+	}
+	a.publishHidden()
 }
 
 // loadSettings is the appearance loader the window uses when a test did not

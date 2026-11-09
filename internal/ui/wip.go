@@ -29,9 +29,9 @@ const (
 	reasonUpdate        = "Unavailable: the shell has no update check wired to the app's updater yet."
 	reasonSearch        = "Unavailable: the shell has no session search yet; dim-electron opens a search dialog over App Server history, and neither is wired here."
 	reasonGroup         = "Unavailable: session rows carry no project or updated time yet, so the shell cannot group by project or date."
-	reasonPin           = "Unavailable: no verified App Server RPC pins a session, and the shell keeps no local pin list."
+	reasonPin           = "Unavailable: the window has no desktop-local pin callback yet."
 	reasonRename        = "Unavailable: the window has no session.rename callback yet."
-	reasonArchive       = "Unavailable: the shell has no desktop-local hidden session list yet."
+	reasonArchive       = "Unavailable: the window has no desktop-local archive callback yet."
 
 	// The global entries dim-electron's sidebar carries beside sessions. None of
 	// them has a client, page or wire method here yet, so each entry keeps its

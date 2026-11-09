@@ -17,9 +17,10 @@
 // The palette draws SearchPaletteView and Actions only (see protocols.go). The
 // results are a display copy of the catalog the shell already holds: the
 // palette derives no session fact, sends no App Server request, and writes
-// nothing except its own selection through SearchPaletteView.Selected. That is
-// why the pinned grouping the reference can show is not drawn: this shell has
-// no pin fact, so the only heading is the recent chats it does have.
+// nothing except its own selection through SearchPaletteView.Selected. The
+// pinned grouping is desktop-local display state: the caller's pinned id list
+// orders those rows under the "pinned chats" heading, while archived ids are
+// left out entirely.
 
 package ui
 
@@ -142,6 +143,10 @@ type SearchResult struct {
 	SessionID string
 	Title     string
 	Group     string
+	// Pinned marks a session the window's desktop-local pinned list names. The
+	// palette draws pinned results under their own heading and before the rest;
+	// the catalog's order is kept inside each group.
+	Pinned bool
 	// Status is the state the row's 32×32 tile draws. The zero value is the
 	// ordinary chat mark; a caller with a verified loading or failed state may
 	// set it, and the palette adds no state of its own.
@@ -193,23 +198,36 @@ var searchDigitKeys = [searchMaxResults]ui.Key{
 }
 
 // searchResults is the display copy the palette draws: the catalog narrowed by
-// query, in the caller's order, at most searchMaxResults rows. An empty or
-// blank query leaves the catalog as it came, which is the reference's "recent
-// chats" list. Title, Group and SessionID are matched case-insensitively, so a
-// pasted session id finds its chat as well as a title or project does.
-func searchResults(sessions []Session, query string) []SearchResult {
+// query, with the pinned rows first and the rest in the caller's order, at most
+// searchMaxResults rows. Archived ids are omitted before the query is applied.
+// An empty or blank query leaves the visible catalog as it came, which is the
+// reference's "recent chats" list. Title, Group and SessionID are matched
+// case-insensitively, so a pasted session id finds its chat as well as a title
+// or project does.
+func searchResults(sessions []Session, query string, pinned, archived []string) []SearchResult {
 	query = strings.ToLower(strings.TrimSpace(query))
 	results := make([]SearchResult, 0, min(len(sessions), searchMaxResults))
-	for _, session := range sessions {
-		if query != "" && !searchSessionMatches(session, query) {
-			continue
-		}
-		title := session.Title
-		results = append(results, SearchResult{SessionID: session.ID, Title: title, Group: session.Group})
-		if len(results) == searchMaxResults {
-			break
+	add := func(pinnedRow bool) {
+		for _, session := range sessions {
+			if len(results) == searchMaxResults {
+				return
+			}
+			if containsID(archived, session.ID) || containsID(pinned, session.ID) != pinnedRow {
+				continue
+			}
+			if query != "" && !searchSessionMatches(session, query) {
+				continue
+			}
+			results = append(results, SearchResult{
+				SessionID: session.ID,
+				Title:     session.Title,
+				Group:     session.Group,
+				Pinned:    pinnedRow,
+			})
 		}
 	}
+	add(true)
+	add(false)
 	return results
 }
 
@@ -298,7 +316,6 @@ func searchPalette(c *ui.Context, k tokens, v SearchPaletteView, a Actions) {
 						return
 					}
 					ui.Column(c).FillWidth().Padding(0, 0, searchBottomPad, 0).Children(func() {
-						searchGroupHeading(c, k, v.Locale)
 						ui.Column(c).FillWidth().PaddingX(searchRowPadX).Children(func() {
 							searchResultRows(c, k, v, a, hover)
 						})
@@ -353,12 +370,14 @@ func searchInput(c *ui.Context, k tokens, v SearchPaletteView, a Actions) {
 	})
 }
 
-// searchGroupHeading names the results, as the reference's "最近聊天" does. The
-// shell has no pin fact, so it draws no pinned group and never names one.
-func searchGroupHeading(c *ui.Context, k tokens, locale Locale) {
-	ui.Row(c).Height(searchGroupH).FillWidth().PaddingX(searchGroupPadX).
+// searchGroupHeading names one result group: the pinned rows first and the
+// rest under "recent chats", as the reference draws them. inset is the room the
+// heading takes back from the rows' own outer padding so its text keeps the
+// reference's 12 DIP edge.
+func searchGroupHeading(c *ui.Context, k tokens, locale Locale, key string, inset float32) {
+	ui.Row(c).Height(searchGroupH).FillWidth().PaddingX(inset).
 		AlignItems(ui.Center).Children(func() {
-		ui.Text(c, tr(locale, keySearchRecent)).FontSize(k.smallSize).
+		ui.Text(c, tr(locale, key)).FontSize(k.smallSize).
 			TextColor(k.mutedForeground).FontWeight(500).SingleLine()
 		ui.Spacer(c)
 	})
@@ -376,7 +395,18 @@ type searchHoverState struct{}
 // selected, so Enter opens what the user last pointed at.
 func searchResultRows(c *ui.Context, k tokens, v SearchPaletteView, a Actions, hover *int) {
 	rows := make([]ui.Element, len(v.Results))
+	lastPinned := false
 	for i, result := range v.Results {
+		if i == 0 || result.Pinned != lastPinned {
+			lastPinned = result.Pinned
+			key := keySearchRecent
+			if result.Pinned {
+				key = keySearchPinned
+			}
+			// The rows' outer column already insets by searchRowPadX; the heading
+			// takes that back so its text keeps the reference's wider edge.
+			searchGroupHeading(c, k, v.Locale, key, searchGroupPadX-searchRowPadX)
+		}
 		rows[i] = searchResultRow(c, k, v, a, i, result)
 	}
 	if hover != nil {

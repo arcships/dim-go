@@ -14,7 +14,7 @@ import (
 func capabilityPageTester(s *State, locale Locale, width, height int) *ui.Tester {
 	v := SettingsView{Section: SettingsSectionAbout, Locale: locale}
 	return ui.NewTester(func(c *ui.Context) {
-		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil, nil)
+		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil, nil, nil)
 	}, width, height)
 }
 
@@ -307,7 +307,7 @@ func TestCapabilityCardsDrawThePopoverFace(t *testing.T) {
 	v := SettingsView{Section: SettingsSectionAbout}
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme = c.Theme()
-		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil, nil)
+		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil, nil, nil)
 	}, 900, 900)
 
 	capability := wipCapabilities(s)[0]

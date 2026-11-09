@@ -378,6 +378,22 @@ type State struct {
 	// read-back: a success updates the chip from the App Server's pair, a
 	// failure is reported through ActionError and leaves the previous pair.
 	OnSelectModel func(providerID, modelID string)
+	// OnPinSession and OnArchiveSession ask the caller to toggle the selected
+	// session in its desktop-local pinned or archived list. They are display
+	// state only: the App Server owns the session, and a failure is reported
+	// through ActionError. OnRestoreSession asks the caller to remove an id from
+	// the archived list, which is what the archived-sessions page's Restore
+	// entry does.
+	OnPinSession     func(sessionID string)
+	OnArchiveSession func(sessionID string)
+	OnRestoreSession func(sessionID string)
+
+	// Pinned and Archived are display copies of the desktop-local session id
+	// lists. They carry no session fact: the sidebar orders pinned ids first,
+	// hides archived ones, and the search palette groups the pinned ids. An id
+	// the catalog does not hold draws nothing.
+	Pinned   []string
+	Archived []string
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -557,7 +573,7 @@ func (s *State) View(c *ui.Context) {
 	if route == RouteSettings {
 		s.closeSearch()
 		s.dropThreadSearch()
-		renderSettings(c, k, s.Settings, wipCapabilities(s), s.applySettings, s.closeSettings)
+		renderSettings(c, k, s.settingsView(), wipCapabilities(s), s.applySettings, s.closeSettings, s.OnRestoreSession)
 		return
 	}
 	// The scheduled-tasks and skills pages are WIP routes: they take the whole
@@ -701,7 +717,7 @@ func (s *State) View(c *ui.Context) {
 	}
 	s.syncSearch()
 	if s.ShowSearch {
-		results := searchResults(s.Sessions, s.SearchQuery)
+		results := searchResults(s.Sessions, s.SearchQuery, s.Pinned, s.Archived)
 		s.SearchSelected = max(0, min(s.SearchSelected, len(results)-1))
 		renderSearchPalette(c, k, s.searchPaletteView(results), a)
 	}
@@ -1101,6 +1117,8 @@ func (s *State) actions() Actions {
 		OnReconnect:       s.OnReconnect,
 		OnApproval:        s.OnApproval,
 		OnDeleteSession:   s.OnDeleteSession,
+		OnPinSession:      s.OnPinSession,
+		OnArchiveSession:  s.OnArchiveSession,
 		// The settings toggle is the shell's own state, not a caller callback, so
 		// it is always wired. Opening it takes the main column from the keys
 		// browser, so the two never compete for it.
@@ -1209,9 +1227,37 @@ func (s *State) sidebarView() SidebarView {
 		Sessions: s.Sessions,
 		Selected: &s.Selected,
 		Creating: s.CreatingSession,
+		Pinned:   s.Pinned,
+		Archived: s.Archived,
 		Locale:   s.locale(),
 		state:    &s.sidebar,
 	}
+}
+
+// settingsView copies the desktop preferences and the catalog rows the
+// archived-sessions page lists. The rows are a display copy: ids the catalog no
+// longer holds draw nothing, and the catalog's title and order stay the only
+// session facts.
+func (s *State) settingsView() SettingsView {
+	v := s.Settings
+	v.ArchivedSessions = s.archivedSessionRows()
+	return v
+}
+
+// archivedSessionRows lists the archived sessions the catalog still holds, in
+// the catalog's own order. It is display state for the settings page: the id
+// list hides rows, the catalog supplies their titles.
+func (s *State) archivedSessionRows() []ArchivedSession {
+	if len(s.Archived) == 0 {
+		return nil
+	}
+	rows := make([]ArchivedSession, 0, len(s.Archived))
+	for _, session := range s.Sessions {
+		if containsID(s.Archived, session.ID) {
+			rows = append(rows, ArchivedSession{SessionID: session.ID, Title: session.Title})
+		}
+	}
+	return rows
 }
 
 // pendingApprovals collects the approval requests the current rows still show,
@@ -1246,6 +1292,8 @@ func (s *State) headerView() HeaderView {
 		SessionID:        s.Selected,
 		HasSession:       s.Selected != "",
 		SelectedBranch:   s.SelectedBranch,
+		Pinned:           containsID(s.Pinned, s.Selected),
+		Archived:         containsID(s.Archived, s.Selected),
 		Connection:       s.Connection,
 		ConnectionError:  s.ConnectionError,
 		Run:              s.Run,

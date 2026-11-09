@@ -1,11 +1,11 @@
 // This file owns the settings surface: the section navigation dim-electron
 // draws on the left, and the page of the chosen section on the right. The
-// appearance page is the one the shell built first, and it keeps the desktop's
-// own color theme, type, sidebar-width and density preferences, plus the skin
-// and chrome entries the shell cannot offer yet. Every other section keeps its
-// place in the navigation and explains the client or page it waits on, so the
-// settings surface reads as WIP instead of as an empty page that saved
-// nothing.
+// appearance page keeps the desktop's own color theme, type, sidebar-width and
+// density preferences, plus the skin and chrome entries the shell cannot offer
+// yet. The archived-sessions page lists the rows this desktop hides and offers
+// Restore. Every other section keeps its place in the navigation and explains
+// the client or page it waits on, so the settings surface reads as WIP instead
+// of as an empty page that saved nothing.
 //
 // It reads SettingsView and the tokens only (see protocols.go); the App Server
 // owns every session, run, timeline and approval fact and is not read here.
@@ -136,29 +136,28 @@ const (
 	reasonChrome = "Unavailable: chrome themes need dim-electron's six historical stylesheets; this shell does not draw a fake chrome."
 )
 
-// settingsSectionGaps says why a section other than Appearance has no page
-// here: the client or page dim-electron opens for it is missing. The reason
-// names what is absent, so a reader sees a WIP page rather than an empty one
-// whose settings appear lost or unset.
+// settingsSectionGaps says why a section other than Appearance or Archived
+// sessions has no page here: the client or page dim-electron opens for it is
+// missing. The reason names what is absent, so a reader sees a WIP page rather
+// than an empty one whose settings appear lost or unset.
 var settingsSectionGaps = map[SettingsSection]string{
-	SettingsSectionAccount:          "Unavailable: the shell has no account client or page yet, so it cannot show an account or sign in.",
-	SettingsSectionUsage:            "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
-	SettingsSectionPersonalization:  "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
-	SettingsSectionGeneral:          "Unavailable: the general settings page is not built yet; the shell has no client for its desktop preferences.",
-	SettingsSectionShortcuts:        "Unavailable: the shortcuts page is not built yet; the shell has no keybinding client or editor.",
-	SettingsSectionModels:           "Unavailable: the models page is not built yet; the shell has no model-provider client or page.",
-	SettingsSectionMultimodal:       "Unavailable: the multimodal page is not built yet; the shell has no multimodal client or page.",
-	SettingsSectionRuntime:          "Unavailable: the runtime page is not built yet; the shell has no runtime client or page.",
-	SettingsSectionMCP:              "Unavailable: the MCP page is not built yet; the shell has no MCP server client or page.",
-	SettingsSectionNotifications:    "Unavailable: the notifications page is not built yet; the shell has no notification client or page.",
-	SettingsSectionPet:              "Unavailable: the pet page is not built yet; the shell has no pet client or page.",
-	SettingsSectionPermissions:      "Unavailable: the permissions page is not built yet; the shell shows approvals but has no rule editor, permissions client or page.",
-	SettingsSectionGit:              "Unavailable: the Git page is not built yet; the shell has no Git client or page.",
-	SettingsSectionHooks:            "Unavailable: the hooks page is not built yet; the shell has no hooks client or page.",
-	SettingsSectionPlugins:          "Unavailable: the plugins page is not built yet; the shell has no plugin client or page.",
-	SettingsSectionExternalAgent:    "Unavailable: the external agent page is not built yet; the shell has no external-agent client or page.",
-	SettingsSectionArchivedSessions: "Unavailable: the archived-sessions page is not built yet; the shell has no archive client or page, and it keeps no session list of its own.",
-	SettingsSectionAbout:            "Unavailable: the about page is not built yet; the shell has no build, version or credits page to show.",
+	SettingsSectionAccount:         "Unavailable: the shell has no account client or page yet, so it cannot show an account or sign in.",
+	SettingsSectionUsage:           "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
+	SettingsSectionPersonalization: "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
+	SettingsSectionGeneral:         "Unavailable: the general settings page is not built yet; the shell has no client for its desktop preferences.",
+	SettingsSectionShortcuts:       "Unavailable: the shortcuts page is not built yet; the shell has no keybinding client or editor.",
+	SettingsSectionModels:          "Unavailable: the models page is not built yet; the shell has no model-provider client or page.",
+	SettingsSectionMultimodal:      "Unavailable: the multimodal page is not built yet; the shell has no multimodal client or page.",
+	SettingsSectionRuntime:         "Unavailable: the runtime page is not built yet; the shell has no runtime client or page.",
+	SettingsSectionMCP:             "Unavailable: the MCP page is not built yet; the shell has no MCP server client or page.",
+	SettingsSectionNotifications:   "Unavailable: the notifications page is not built yet; the shell has no notification client or page.",
+	SettingsSectionPet:             "Unavailable: the pet page is not built yet; the shell has no pet client or page.",
+	SettingsSectionPermissions:     "Unavailable: the permissions page is not built yet; the shell shows approvals but has no rule editor, permissions client or page.",
+	SettingsSectionGit:             "Unavailable: the Git page is not built yet; the shell has no Git client or page.",
+	SettingsSectionHooks:           "Unavailable: the hooks page is not built yet; the shell has no hooks client or page.",
+	SettingsSectionPlugins:         "Unavailable: the plugins page is not built yet; the shell has no plugin client or page.",
+	SettingsSectionExternalAgent:   "Unavailable: the external agent page is not built yet; the shell has no external-agent client or page.",
+	SettingsSectionAbout:           "Unavailable: the about page is not built yet; the shell has no build, version or credits page to show.",
 }
 
 // SettingsSection is one page of the settings surface. The zero value is the
@@ -481,6 +480,19 @@ func (f SettingsField) String() string {
 	}
 }
 
+// ArchivedSession is one row of the archived-sessions page: the session id the
+// Restore entry addresses and the catalog's title for it. It is a display copy;
+// the App Server owns the session, and the archived list is only the desktop's
+// own hidden set.
+type ArchivedSession struct {
+	SessionID string
+	Title     string
+}
+
+// settingsArchivedNote explains what the archived-sessions page does: it hides
+// rows on this desktop and never moves or deletes a session on the App Server.
+const settingsArchivedNote = "Archived sessions are hidden from the sidebar on this desktop; their messages stay on the App Server, and restoring a session brings its row back."
+
 // SettingsView is what the settings surface draws: the desktop's own
 // preference values, the interface language among them. It is a display copy.
 // The window owns the preferences and persists them; no field is a session, run
@@ -513,6 +525,11 @@ type SettingsView struct {
 	Density Density
 	// CodeFontSize is the code text size in DIPs, held to its range.
 	CodeFontSize float32
+	// ArchivedSessions are the catalog rows the archived-sessions page lists,
+	// in the catalog's order. The window fills them from its catalog and its
+	// desktop-local archived id list; the page reads no session fact of its own
+	// and an id the catalog does not hold draws nothing.
+	ArchivedSessions []ArchivedSession
 }
 
 // SettingsChange is one preference the user just chose. Field says which one
@@ -678,13 +695,15 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 // row does.
 //
 // The appearance page draws the theme, language, font, size, code-theme and
-// skin groups; every other page keeps its navigation row and explains the client
-// or page it waits on, with a visible WIP badge and no invented control. It reads
-// SettingsView and the tokens only. It calls onChange at most once per user choice, with the
-// resolved view, and writes no preference itself. The surface's own text is
-// drawn in the language the view names, so a language choice shows on the next
-// frame.
-func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, onChange func(SettingsChange), onBack func()) {
+// skin groups; the archived-sessions page lists the rows the desktop hides and
+// offers Restore; every other page keeps its navigation row and explains the
+// client or page it waits on, with a visible WIP badge and no invented control.
+// It reads SettingsView and the tokens only. It calls onChange at most once per
+// user choice, with the resolved view, and writes no preference itself; a
+// Restore click calls onRestore with the row's session id and changes no list
+// itself. The surface's own text is drawn in the language the view names, so a
+// language choice shows on the next frame.
+func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, onChange func(SettingsChange), onBack func(), onRestore func(sessionID string)) {
 	v = resolveSettings(k, v)
 	l := v.Locale
 	width, _ := c.Size()
@@ -719,14 +738,14 @@ func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipC
 			Transition(motionPanel(c)).Children(func() {
 			if compact {
 				if state.detail {
-					settingsCompactPage(c, k, v, capabilities, state, onChange)
+					settingsCompactPage(c, k, v, capabilities, state, onChange, onRestore)
 					return
 				}
 				settingsNavigation(c, k, l, state, onBack, true)
 				return
 			}
 			settingsNavigation(c, k, l, state, onBack, false)
-			settingsPage(c, k, v, capabilities, state.section, onChange)
+			settingsPage(c, k, v, capabilities, state.section, onChange, onRestore)
 		})
 	})
 }
@@ -838,21 +857,22 @@ func settingsNavRow(c *ui.Context, k tokens, l Locale, s SettingsSection, select
 // the section list and the chosen section's page. The route cannot draw the
 // navigation beside the page at this width, so the page takes the card and the
 // return row is the way back to the list.
-func settingsCompactPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, state *settingsRouteState, onChange func(SettingsChange)) {
+func settingsCompactPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, state *settingsRouteState, onChange func(SettingsChange), onRestore func(sessionID string)) {
 	ui.Column(c).Grow(1).FillWidth().FillHeight().MinWidth(0).Children(func() {
 		ui.Column(c).FillWidth().Padding(settingsNavPadY, settingsNavPadX).Children(func() {
 			settingsCompactBackRow(c, k, v.Locale, state)
 		})
-		settingsPage(c, k, v, capabilities, state.section, onChange)
+		settingsPage(c, k, v, capabilities, state.section, onChange, onRestore)
 	})
 }
 
-// settingsPage draws the right-hand page. The appearance page is the only one
-// with controls; the about page draws its own WIP explanation and the shell's
+// settingsPage draws the right-hand page. The appearance page is the one with
+// preferences; the archived-sessions page lists the desktop's hidden rows and
+// offers Restore; the about page draws its own WIP explanation and the shell's
 // unwired capabilities, and every other page draws its title, a WIP badge and
 // the client or page it waits on, so the section never pretends a preference
 // was read.
-func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, section SettingsSection, onChange func(SettingsChange)) {
+func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, section SettingsSection, onChange func(SettingsChange), onRestore func(sessionID string)) {
 	l := v.Locale
 	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Clip().Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(settingsPageMaxW).Padding(settingsPagePad).Gap(settingsPagePad).
@@ -868,8 +888,11 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 					settingsDivider(c, k)
 					settingsCapabilitiesPage(c, k, v, capabilities)
 					return
+				case SettingsSectionArchivedSessions:
+					settingsArchivedPage(c, k, v, onRestore)
+					return
 				case SettingsSectionAppearance:
-					// The appearance page is the one with controls.
+					// The appearance page is the one with preferences.
 				default:
 					settingsWIPPage(c, k, section, v.Locale)
 					return
@@ -931,6 +954,53 @@ func settingsWIPPage(c *ui.Context, k tokens, section SettingsSection, l Locale)
 	}
 	ui.Text(c, gap).FontSize(k.bodySize).TextColor(k.mutedForeground)
 }
+
+// settingsArchivedPage lists the sessions this desktop hides from the sidebar.
+// The rows are catalog copies the window assembled, so the page invents no
+// session and no title: an empty list says so, and a row without a catalog title
+// reads the locale's untitled placeholder. Restore reports the row's id to the
+// window and changes no list itself; while onRestore is nil the entry stays
+// visible, disabled and explained rather than looking like it restored
+// something.
+func settingsArchivedPage(c *ui.Context, k tokens, v SettingsView, onRestore func(sessionID string)) {
+	l := v.Locale
+	ui.Text(c, tr(l, keySettingsArchivedNote)).FontSize(k.bodySize).
+		TextColor(k.mutedForeground).Wrap()
+	if len(v.ArchivedSessions) == 0 {
+		ui.Text(c, tr(l, keySettingsArchivedEmpty)).FontSize(k.bodySize).
+			TextColor(k.mutedForeground).Role(ui.RoleStatus)
+		return
+	}
+	ui.Column(c).FillWidth().Gap(k.gap).Role(ui.RoleGroup).
+		Label(tr(l, keySettingsArchivedNote)).Children(func() {
+		for _, row := range v.ArchivedSessions {
+			title := sessionLabel(row.Title, l)
+			ui.Row(c).Key("archived-session:" + row.SessionID).FillWidth().
+				MinHeight(k.sidebarRowH).PaddingX(k.gap).Gap(k.gapWide).
+				AlignItems(ui.Center).Children(func() {
+				ui.Text(c, title).FontSize(k.bodySize).TextColor(k.foreground).
+					SingleLine().Grow(1).MinWidth(0)
+				restore := tr(l, keySettingsArchivedRestore)
+				button := ui.ButtonBase(c).Key("archived-restore:" + row.SessionID).
+					Label(restore + " " + title).PaddingX(k.gap).AlignItems(ui.Center).
+					Transition(motionFastColors(c))
+				if onRestore == nil {
+					button.AccessDisabled(true).
+						Description(reasonRestoreArchived).Opacity(wipOpacity)
+				} else {
+					button.OnClick(func() { onRestore(row.SessionID) })
+				}
+				button.Children(func() {
+					ui.Text(c, restore).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
+				})
+			})
+		}
+	})
+}
+
+// reasonRestoreArchived explains a Restore entry the window has not wired.
+// It is an internal reason, not a message key, like the other reason constants.
+const reasonRestoreArchived = "Unavailable: the window has no desktop-local archived-session restore callback yet."
 
 // settingsThemeSection is the color-theme choice as three cards: Light, Dark
 // and System, in the reference's order, with the chosen card outlined in the

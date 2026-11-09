@@ -646,6 +646,9 @@ type app struct {
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
 	a.state.OnDeleteSession = a.deleteSession
+	a.state.OnPinSession = a.togglePin
+	a.state.OnArchiveSession = a.toggleArchive
+	a.state.OnRestoreSession = a.restoreArchived
 	a.state.OnRename = a.renameSession
 	a.state.OnSelectModel = a.selectModel
 	a.state.OnSelectBranch = a.selectBranch
@@ -1030,6 +1033,9 @@ func (a *app) deleteSession(id string) {
 		// The session is gone, so its desktop draft is too. This touches no
 		// session fact: the App Server's confirmed delete is the fact.
 		a.clearDraft(id)
+		// The deleted id no longer names a row, so the desktop's pinned and
+		// archived display lists must not keep it.
+		a.forgetHiddenSession(id)
 		var next dimui.Session
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {

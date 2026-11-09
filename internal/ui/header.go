@@ -244,13 +244,15 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 // sessionMenu draws the "…" entry at the end of the breadcrumb and its menu.
 // The menu follows the reference's structure in two groups. The first is the
 // session's own entries: pin, rename, open in a new window, export, archive and
-// the three copy entries. This shell has no client, callback or fact for any of
-// them yet, so each stays visible, disabled and explained as WIP with the gap
-// it waits on. The second group keeps the entries the shell does have: the keys
-// browser, ending a non-main branch, refreshing the branch directory, deleting
-// the session behind a confirmation, and the desktop-local appearance surface.
-// An entry whose callback is missing stays visible, disabled and marked WIP
-// too, so the menu never pretends an action the shell cannot carry out.
+// the three copy entries. Pin and Archive are wired to the window's
+// desktop-local display lists and toggle with the state HeaderView reports;
+// Rename opens the window's title dialog when that callback exists; the rest
+// stay visible, disabled and explained as WIP with the gap they wait on. The
+// second group keeps the entries the shell does have: the keys browser, ending
+// a non-main branch, refreshing the branch directory, deleting the session
+// behind a confirmation, and the desktop-local appearance surface. An entry
+// whose callback is missing stays visible, disabled and marked WIP too, so the
+// menu never pretends an action the shell cannot carry out.
 func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	label := tr(locale, keyHeaderMenu)
@@ -264,11 +266,22 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		ui.Text(c, "…").FontSize(k.titleSize).TextColor(k.mutedForeground).AccessHidden(true)
 	})
 	button.PopoverMenuButton(func(m *ui.Menu) {
-		// The reference's first group. Pin and Archive keep their translated
-		// labels and reasons from the sidebar's table; Rename reaches the
-		// window's title dialog once the caller supplies OnRename, and the
-		// remaining five carry the menu's own keys until i18n.go picks them up.
-		menuWIP(m, menuText(locale, keySidebarPin), menuText(locale, keyReasonPin))
+		// The reference's first group. Pin and Archive are desktop-local display
+		// state: while the window wires them the entry toggles, and its label
+		// reads the state the caller reports. Rename reaches the window's title
+		// dialog once the caller supplies OnRename, and the remaining five carry
+		// the menu's own keys until i18n.go picks them up.
+		if a.OnPinSession == nil || v.SessionID == "" {
+			menuWIP(m, menuText(locale, keySidebarPin), menuText(locale, keyReasonPin))
+		} else {
+			pinKey := keySidebarPin
+			if v.Pinned {
+				pinKey = keySidebarUnpin
+			}
+			if menuItem(m, menuText(locale, pinKey)).Chosen() {
+				a.OnPinSession(v.SessionID)
+			}
+		}
 		if a.OnRequestRename == nil {
 			menuWIP(m, menuText(locale, keySidebarRename), menuText(locale, keyReasonRename))
 		} else if menuItem(m, menuText(locale, keySidebarRename)).Chosen() {
@@ -276,7 +289,17 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		}
 		menuWIP(m, menuText(locale, keyHeaderMenuOpenInNewWindow), menuText(locale, keyReasonOpenInNewWindow))
 		menuWIP(m, menuText(locale, keyHeaderMenuExport), menuText(locale, keyReasonExport))
-		menuWIP(m, menuText(locale, keySidebarArchive), menuText(locale, keyReasonArchive))
+		if a.OnArchiveSession == nil || v.SessionID == "" {
+			menuWIP(m, menuText(locale, keySidebarArchive), menuText(locale, keyReasonArchive))
+		} else {
+			archiveKey := keySidebarArchive
+			if v.Archived {
+				archiveKey = keySidebarUnarchive
+			}
+			if menuItem(m, menuText(locale, archiveKey)).Chosen() {
+				a.OnArchiveSession(v.SessionID)
+			}
+		}
 		menuWIP(m, menuText(locale, keyHeaderMenuCopyLink), menuText(locale, keyReasonCopyLink))
 		menuWIP(m, menuText(locale, keyHeaderMenuCopyID), menuText(locale, keyReasonCopyID))
 		menuWIP(m, menuText(locale, keyHeaderMenuCopyDebug), menuText(locale, keyReasonCopyDebug))

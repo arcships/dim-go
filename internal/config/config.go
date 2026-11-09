@@ -13,6 +13,12 @@
 // with the shell's own opening values (see Default and DefaultState). A file
 // that cannot be read or parsed is returned as an error together with the
 // defaults, so the window can report the problem and still open.
+//
+// The pinned and archived lists are the desktop's own display state: they name
+// session ids the sidebar orders first or hides, and they describe no session
+// content. The App Server remains the only source of sessions, titles, runs and
+// timelines; an id neither list names is simply in its catalog order, and an id
+// the catalog no longer holds draws nothing.
 package config
 
 import (
@@ -37,10 +43,11 @@ const (
 	filePerm os.FileMode = 0o600
 	// formatVersion identifies the file's shape. Version 1 held only the
 	// appearance preferences; version 2 adds the window geometry and the
-	// composer drafts. A load accepts both and ignores fields this version does
-	// not know, so a file written by an earlier or later version still yields
-	// the state it does know.
-	formatVersion = 2
+	// composer drafts; version 3 adds the desktop-local pinned and archived
+	// session id lists. A load accepts any version and ignores fields this
+	// version does not know, so a file written by an earlier or later version
+	// still yields the state it does know.
+	formatVersion = 3
 	// MaxDraftBytes bounds one saved draft. Text beyond it is cut at a rune
 	// boundary instead of writing an unbounded paste into the file.
 	MaxDraftBytes = 16 << 10
@@ -53,6 +60,12 @@ const (
 	// shorter; this only keeps a hand-edited file from making the map grow with
 	// keys instead of text.
 	maxDraftSessionID = 256
+	// MaxPinnedSessions bounds the pinned list and MaxArchivedSessions the
+	// archived one, so a hand-edited file cannot grow either list without
+	// limit. The lists hold ids, not session content, so the bounds are well
+	// above any catalog a desktop window shows at once.
+	MaxPinnedSessions   = 200
+	MaxArchivedSessions = 500
 )
 
 // Settings is the appearance preference this desktop keeps: one field per
@@ -102,21 +115,29 @@ func (w Window) Valid() bool {
 type Drafts map[string]string
 
 // State is everything the desktop keeps in its own file: appearance
-// preferences, the window geometry and the per-session drafts.
+// preferences, the window geometry, the per-session drafts and the display-only
+// pinned and archived session id lists.
 type State struct {
 	Settings Settings
 	Window   Window
 	Drafts   Drafts
+	// Pinned and Archived name session ids the sidebar orders first or hides.
+	// They are desktop-local display state: they carry no title, message or run
+	// fact, and the App Server remains the source of every session fact.
+	Pinned   []string
+	Archived []string
 }
 
 // file is the on-disk shape: the format version, the appearance preferences
-// embedded so the JSON stays one flat object, and the optional window and
-// drafts.
+// embedded so the JSON stays one flat object, and the optional window, drafts
+// and session id lists.
 type file struct {
 	Version int `json:"version"`
 	Settings
-	Window *Window `json:"window,omitempty"`
-	Drafts Drafts  `json:"drafts,omitempty"`
+	Window   *Window  `json:"window,omitempty"`
+	Drafts   Drafts   `json:"drafts,omitempty"`
+	Pinned   []string `json:"pinned,omitempty"`
+	Archived []string `json:"archived,omitempty"`
 }
 
 // Default returns the appearance preferences a first run opens with: the zero
@@ -140,18 +161,85 @@ func DefaultState() State {
 	return State{Settings: Default()}
 }
 
-// Clone returns a deep copy, so a caller can change drafts without touching the
-// state the store still holds.
+// Clone returns a deep copy, so a caller can change drafts or the pinned and
+// archived lists without touching the state the store still holds.
 func (s State) Clone() State {
 	out := s
-	if s.Drafts == nil {
-		return out
+	if s.Drafts != nil {
+		out.Drafts = make(Drafts, len(s.Drafts))
+		for id, text := range s.Drafts {
+			out.Drafts[id] = text
+		}
 	}
-	out.Drafts = make(Drafts, len(s.Drafts))
-	for id, text := range s.Drafts {
-		out.Drafts[id] = text
-	}
+	out.Pinned = append([]string(nil), s.Pinned...)
+	out.Archived = append([]string(nil), s.Archived...)
 	return out
+}
+
+// IsPinned reports whether sessionID is in the pinned list.
+func (s State) IsPinned(sessionID string) bool {
+	return containsSessionID(s.Pinned, sessionID)
+}
+
+// IsArchived reports whether sessionID is in the archived list.
+func (s State) IsArchived(sessionID string) bool {
+	return containsSessionID(s.Archived, sessionID)
+}
+
+// SetPinned adds or removes sessionID from the pinned list and reports whether
+// the state changed. Pinning also unarchives the same id: a session cannot be
+// both ordered first and hidden. An empty or oversized id is ignored, a
+// duplicate changes nothing, and a full list keeps its existing entries. The
+// state is normalized before it is returned, so the list stays deduplicated and
+// bounded.
+func (s *State) SetPinned(sessionID string, pinned bool) bool {
+	if !validSessionID(sessionID) {
+		return false
+	}
+	beforePinned := append([]string(nil), s.Pinned...)
+	beforeArchived := append([]string(nil), s.Archived...)
+	if pinned {
+		s.Archived = removeSessionID(s.Archived, sessionID)
+		if len(s.Pinned) < MaxPinnedSessions && !s.IsPinned(sessionID) {
+			s.Pinned = append(s.Pinned, sessionID)
+		}
+	} else {
+		s.Pinned = removeSessionID(s.Pinned, sessionID)
+	}
+	s.Pinned, s.Archived = normalizeHidden(s.Pinned, s.Archived)
+	return !equalSessionIDs(beforePinned, s.Pinned) || !equalSessionIDs(beforeArchived, s.Archived)
+}
+
+// SetArchived adds or removes sessionID from the archived list and reports
+// whether the state changed. Archiving also unpins the same id, because an
+// archived session never reaches the sidebar where a pin would order it. An
+// empty or oversized id is ignored, a duplicate changes nothing, and a full list
+// keeps its existing entries.
+func (s *State) SetArchived(sessionID string, archived bool) bool {
+	if !validSessionID(sessionID) {
+		return false
+	}
+	beforePinned := append([]string(nil), s.Pinned...)
+	beforeArchived := append([]string(nil), s.Archived...)
+	if archived {
+		s.Pinned = removeSessionID(s.Pinned, sessionID)
+		if len(s.Archived) < MaxArchivedSessions && !s.IsArchived(sessionID) {
+			s.Archived = append(s.Archived, sessionID)
+		}
+	} else {
+		s.Archived = removeSessionID(s.Archived, sessionID)
+	}
+	s.Pinned, s.Archived = normalizeHidden(s.Pinned, s.Archived)
+	return !equalSessionIDs(beforePinned, s.Pinned) || !equalSessionIDs(beforeArchived, s.Archived)
+}
+
+// RemoveSession forgets sessionID from both lists, for example because the App
+// Server confirmed the session's delete. It removes display state only; the
+// delete itself is the App Server's fact.
+func (s *State) RemoveSession(sessionID string) {
+	s.Pinned = removeSessionID(s.Pinned, sessionID)
+	s.Archived = removeSessionID(s.Archived, sessionID)
+	s.Pinned, s.Archived = normalizeHidden(s.Pinned, s.Archived)
 }
 
 // DraftFor returns the saved draft for sessionID, or "" when there is none.
@@ -244,6 +332,97 @@ func normalizeDrafts(in Drafts) Drafts {
 	return out
 }
 
+// validSessionID reports whether id may enter a pinned or archived list. It is
+// the same bound the drafts use, so a hand-edited file cannot grow a list with
+// keys instead of ids; a whitespace-only id names no session.
+func validSessionID(id string) bool {
+	return id != "" && len(id) <= maxDraftSessionID && strings.TrimSpace(id) != ""
+}
+
+// containsSessionID reports whether ids holds id.
+func containsSessionID(ids []string, id string) bool {
+	for _, candidate := range ids {
+		if candidate == id {
+			return true
+		}
+	}
+	return false
+}
+
+// removeSessionID returns ids without id. It returns nil when the list becomes
+// empty, which keeps the key out of the saved file.
+func removeSessionID(ids []string, id string) []string {
+	out := make([]string, 0, len(ids))
+	for _, candidate := range ids {
+		if candidate != id {
+			out = append(out, candidate)
+		}
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// equalSessionIDs reports whether two id lists are the same sequence.
+func equalSessionIDs(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// normalizeSessionIDs drops invalid and duplicate entries, keeps the first
+// occurrence order and caps the list. The order is not a pin or archive time:
+// the sidebar draws pinned rows in the catalog's own order.
+func normalizeSessionIDs(in []string, max int) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]string, 0, min(len(in), max))
+	seen := make(map[string]bool, len(in))
+	for _, id := range in {
+		if !validSessionID(id) || seen[id] {
+			continue
+		}
+		if len(out) >= max {
+			break
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// normalizeHidden normalizes both lists and resolves the overlap: an id that is
+// archived is removed from the pinned list, so the same session can never be
+// both ordered first in the sidebar and hidden from it.
+func normalizeHidden(pinned, archived []string) ([]string, []string) {
+	pinned = normalizeSessionIDs(pinned, MaxPinnedSessions)
+	archived = normalizeSessionIDs(archived, MaxArchivedSessions)
+	if len(pinned) == 0 || len(archived) == 0 {
+		return pinned, archived
+	}
+	kept := make([]string, 0, len(pinned))
+	for _, id := range pinned {
+		if !containsSessionID(archived, id) {
+			kept = append(kept, id)
+		}
+	}
+	if len(kept) == 0 {
+		return nil, archived
+	}
+	return kept, archived
+}
+
 // Path returns the state file's path:
 // <user config dir>/dimagent/settings.json.
 func Path() (string, error) {
@@ -286,9 +465,9 @@ func Save(s State) error {
 
 // loadFile reads one state file. The defaults are the starting point, so a
 // field the file leaves out keeps its default instead of being reset to
-// whatever an incomplete file omits. A version 1 file has no window or drafts;
-// it loads its appearance preferences and yields the rest as a first run does,
-// and the next save rewrites it in the current shape.
+// whatever an incomplete file omits. An older file has no window, drafts or
+// hidden lists; it loads the fields it has and yields the rest as a first run
+// does, and the next save rewrites it in the current shape.
 func loadFile(path string) (State, error) {
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
@@ -302,6 +481,7 @@ func loadFile(path string) (State, error) {
 		return DefaultState(), fmt.Errorf("parse settings %s: %w", path, err)
 	}
 	state := State{Settings: f.Settings, Drafts: normalizeDrafts(f.Drafts)}
+	state.Pinned, state.Archived = normalizeHidden(f.Pinned, f.Archived)
 	if f.Window != nil {
 		state.Window = *f.Window
 	}
@@ -317,6 +497,7 @@ func saveFile(path string, s State, rename func(oldpath, newpath string) error) 
 		return fmt.Errorf("create settings dir %s: %w", dir, err)
 	}
 	doc := file{Version: formatVersion, Settings: s.Settings, Drafts: normalizeDrafts(s.Drafts)}
+	doc.Pinned, doc.Archived = normalizeHidden(s.Pinned, s.Archived)
 	if s.Window.Valid() {
 		window := s.Window
 		doc.Window = &window

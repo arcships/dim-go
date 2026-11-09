@@ -100,6 +100,9 @@ type sidebarRow struct {
 	// group marks a heading row, which the list shows sticky and never
 	// chooses.
 	group bool
+	// pinned marks the desktop-local pinned group's heading, which draws the pin
+	// glyph instead of the folder.
+	pinned bool
 	// label is the heading's text.
 	label string
 	// sessionID identifies a session row, and keys the list.
@@ -123,28 +126,52 @@ func (r sidebarRow) accessLabel(l Locale) string {
 	return sessionLabel(r.title, l)
 }
 
-// threadRows lays the catalog out for the sidebar. When no session carries a
-// Group label the list stays flat; once one does, every heading is drawn and
-// the ungrouped sessions fall under the locale's "no project" label. The
-// catalog's order is kept inside each heading, and no row is invented.
-func threadRows(sessions []Session, locale Locale) []sidebarRow {
-	grouped := false
+// threadRows lays the catalog out for the sidebar. Archived sessions are not
+// rows at all: the desktop hides them here without touching the catalog.
+// Pinned sessions are drawn first under their own heading, in the catalog's own
+// order, because the pin carries no time and the App Server's order stays the
+// only ordering fact. The remaining rows keep the catalog's order: when no
+// session carries a Group label the list stays flat; once one does, every
+// heading is drawn and the ungrouped sessions fall under the locale's "no
+// project" label. No row is invented.
+func threadRows(sessions []Session, locale Locale, pinned, archived []string) []sidebarRow {
+	visible := make([]Session, 0, len(sessions))
 	for _, session := range sessions {
+		if !containsID(archived, session.ID) {
+			visible = append(visible, session)
+		}
+	}
+	rows := make([]sidebarRow, 0, len(visible)+4)
+	pinnedRows := make([]sidebarRow, 0, len(pinned))
+	rest := make([]Session, 0, len(visible))
+	for _, session := range visible {
+		row := sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt}
+		if containsID(pinned, session.ID) {
+			pinnedRows = append(pinnedRows, row)
+			continue
+		}
+		rest = append(rest, session)
+	}
+	if len(pinnedRows) > 0 {
+		rows = append(rows, sidebarRow{group: true, pinned: true, label: tr(locale, keySidebarPinned)})
+		rows = append(rows, pinnedRows...)
+	}
+	grouped := false
+	for _, session := range rest {
 		if session.Group != "" {
 			grouped = true
 			break
 		}
 	}
-	rows := make([]sidebarRow, 0, len(sessions))
 	if !grouped {
-		for _, session := range sessions {
+		for _, session := range rest {
 			rows = append(rows, sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt})
 		}
 		return rows
 	}
 	var order []string
-	buckets := make(map[string][]sidebarRow, len(sessions))
-	for _, session := range sessions {
+	buckets := make(map[string][]sidebarRow, len(rest))
+	for _, session := range rest {
 		label := session.Group
 		if label == "" {
 			label = tr(locale, keySidebarUngrouped)
@@ -159,6 +186,17 @@ func threadRows(sessions []Session, locale Locale) []sidebarRow {
 		rows = append(rows, buckets[label]...)
 	}
 	return rows
+}
+
+// containsID reports whether ids holds id. The pinned and archived lists are
+// small desktop-local lists, so a scan is cheaper than a map per frame.
+func containsID(ids []string, id string) bool {
+	for _, candidate := range ids {
+		if candidate == id {
+			return true
+		}
+	}
+	return false
 }
 
 // relativeStamp is the sidebar row's relative time, as the reference shows it
@@ -363,7 +401,7 @@ func workspaceHeader(c *ui.Context, k tokens, locale Locale) {
 // palette, not in this column.
 func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
-	rows := threadRows(v.Sessions, locale)
+	rows := threadRows(v.Sessions, locale, v.Pinned, v.Archived)
 	v.state.rows = rows
 	// The choice maps from the selection anew when the selection changed, so a
 	// row the catalog added or removed cannot keep the old index. An unchanged
@@ -459,7 +497,11 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 			Padding(0, k.sidebarPadX-sidebarRowInset, k.sidebarGap/2, k.sidebarPadX-sidebarRowInset).
 			Gap(k.sidebarGap).
 			Background(k.sidebar).Transition(motionLayoutColors(c)).AlignItems(ui.Center).Children(func() {
-			sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
+			icon := sidebarIcons.folder
+			if row.pinned {
+				icon = sidebarIcons.pin
+			}
+			sidebarGlyph(c, icon, k.mutedForeground)
 			ui.Text(c, row.label).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
 			ui.Spacer(c)
 		})

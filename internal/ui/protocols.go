@@ -124,6 +124,19 @@ type Actions struct {
 	// through HeaderView.ActionError/ActionNotices. The region sends nothing on
 	// Escape or Cancel and calls this at most once per confirm.
 	OnRename func(title string)
+	// OnPinSession is called by the toolbar's session menu with the selected
+	// session id when the window keeps a desktop-local pinned list. The caller
+	// toggles that id and republishes the lists; nothing here reaches the App
+	// Server, and a pinned row changes only the sidebar's display order. While
+	// this field is nil the menu entry stays visible, disabled and explained as
+	// WIP.
+	OnPinSession func(sessionID string)
+	// OnArchiveSession is called by the toolbar's session menu with the selected
+	// session id. The caller toggles the desktop-local archived list, which hides
+	// the session from the sidebar without changing any App Server fact. While
+	// this field is nil the menu entry stays visible, disabled and explained as
+	// WIP.
+	OnArchiveSession func(sessionID string)
 	// OnOpenSettings is called by the toolbar's session menu settings entry and
 	// toggles the appearance surface. The preferences it edits are desktop-local:
 	// the caller applies the theme and the sidebar width and persists what it
@@ -226,6 +239,13 @@ type SidebarView struct {
 	// holds no session fact; it only keeps the entry from being clicked twice
 	// while one request is unanswered.
 	Creating bool
+	// Pinned and Archived are the desktop-local session id lists. They are
+	// display state only: a pinned row is drawn under the pinned heading before
+	// the catalog's project groups, and an archived row is not drawn at all,
+	// while the catalog keeps its own order and no session fact changes. An id
+	// the catalog does not hold draws nothing.
+	Pinned   []string
+	Archived []string
 	// Capabilities are the read-only cards for the actions this window has not
 	// wired. The shell maps the wired Actions to them (see wipCapabilities), so
 	// a card appears exactly while its action is a WIP gap; the region draws
@@ -283,6 +303,11 @@ type HeaderView struct {
 	// entry is offered only while it names a non-main branch; the App Server
 	// owns the branch and the outcome of ending it.
 	SelectedBranch string
+	// Pinned and Archived report the selected session's desktop-local display
+	// state, so the menu's pin and archive entries read "Pin" or "Unpin" and
+	// "Archive" or "Unarchive". They are never session facts.
+	Pinned   bool
+	Archived bool
 	// Connection and ConnectionError are the supervisor's last report and the
 	// last error it raised. They are display state: the region reads no daemon
 	// state, SQLite, JSONL or log.

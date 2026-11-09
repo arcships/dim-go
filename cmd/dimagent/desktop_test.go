@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"slices"
 	"sync"
 	"testing"
 
@@ -194,4 +195,91 @@ func TestSubmitKeepsADraftTypedAfterTheSend(t *testing.T) {
 	if got := store.current().DraftFor("s1"); got != "newer text" {
 		t.Fatalf("saved draft = %q, want the newer text kept", got)
 	}
+}
+
+// TestLoadDesktopRestoresHiddenLists checks startup: the pinned and archived ids
+// load into the window's display state, and they stay copies the store does not
+// share.
+func TestLoadDesktopRestoresHiddenLists(t *testing.T) {
+	initial := config.DefaultState()
+	initial.Pinned = []string{"s2"}
+	initial.Archived = []string{"s3"}
+	store, _ := fakeDesktop(initial)
+	a := &app{state: &dimui.State{Selected: "s1"}, desktop: store}
+	a.loadDesktop()
+
+	if !slices.Equal(a.state.Pinned, []string{"s2"}) || !slices.Equal(a.state.Archived, []string{"s3"}) {
+		t.Fatalf("loaded hidden lists = %v / %v, want s2 pinned and s3 archived", a.state.Pinned, a.state.Archived)
+	}
+	a.state.Pinned[0] = "changed"
+	if store.current().Pinned[0] != "s2" {
+		t.Fatal("the window's hidden list shares storage with the store")
+	}
+}
+
+// TestAppTogglesPinnedAndArchived checks the menu callbacks: each writes the
+// desktop-local list once, publishes it to the window, and a second click
+// toggles it back. The App Server is not involved.
+func TestAppTogglesPinnedAndArchived(t *testing.T) {
+	store, writes := fakeDesktop(config.DefaultState())
+	a := &app{state: &dimui.State{Selected: "s1"}, desktop: store}
+	a.updateHook = func(fn func(*dimui.State)) { fn(a.state) }
+	a.loadDesktop()
+
+	a.togglePin("s1")
+	if !slices.Equal(a.state.Pinned, []string{"s1"}) || len(*writes) != 1 {
+		t.Fatalf("after pin: state=%v writes=%d, want s1 pinned once", a.state.Pinned, len(*writes))
+	}
+	a.togglePin("s1")
+	if len(a.state.Pinned) != 0 || len(*writes) != 2 {
+		t.Fatalf("after unpin: state=%v writes=%d, want empty and two writes", a.state.Pinned, len(*writes))
+	}
+
+	a.toggleArchive("s2")
+	if !slices.Equal(a.state.Archived, []string{"s2"}) || len(*writes) != 3 {
+		t.Fatalf("after archive: state=%v writes=%d, want s2 archived once", a.state.Archived, len(*writes))
+	}
+	a.restoreArchived("s2")
+	if len(a.state.Archived) != 0 || len(*writes) != 4 {
+		t.Fatalf("after restore: state=%v writes=%d, want empty and four writes", a.state.Archived, len(*writes))
+	}
+}
+
+// TestAppDeleteForgetsHiddenDisplayState checks the delete path: after the App
+// Server confirms, the deleted id leaves both desktop-local lists, so neither
+// store keeps naming a row that no longer exists.
+func TestAppDeleteForgetsHiddenDisplayState(t *testing.T) {
+	f := &fakeSession{summary: appserver.SessionSummary{SessionID: "s1"}}
+	initial := config.DefaultState()
+	initial.Pinned = []string{"s1"}
+	initial.Archived = []string{"s2"}
+	store, _ := fakeDesktop(initial)
+	state := &dimui.State{
+		Sessions: []dimui.Session{{ID: "s1", Title: "one"}, {ID: "s2", Title: "two"}},
+		Selected: "s1",
+	}
+	a := &app{state: state, bridge: &sessionBridge{controller: f, summary: f.summary}, desktop: store}
+	var mu sync.Mutex
+	a.updateHook = func(fn func(*dimui.State)) {
+		mu.Lock()
+		defer mu.Unlock()
+		fn(a.state)
+	}
+	a.loadDesktop()
+	a.bind()
+	a.state.OnDeleteSession("s1")
+
+	waitForState(t, a, &mu, "the deleted id removed from the hidden lists", func(state *dimui.State) bool {
+		return len(state.Sessions) == 1 && !slices.Contains(state.Pinned, "s1") && slices.Contains(state.Archived, "s2")
+	})
+	mu.Lock()
+	if store.current().IsPinned("s1") {
+		mu.Unlock()
+		t.Fatal("the store still pins the deleted session")
+	}
+	if !store.current().IsArchived("s2") {
+		mu.Unlock()
+		t.Fatal("the delete dropped another session's archived mark")
+	}
+	mu.Unlock()
 }
