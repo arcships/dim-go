@@ -62,13 +62,18 @@ MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `d0042bb579349667
 
 ## 4. 截图上实际看到的内容
 
-两张图版式一致（`1c297d9`，P0 侧栏 + composer + 状态栏 + branch 选择）：左侧栏顶部 `DimAgent` + `Update`（WIP），下面是 `New session`、`Search sessions`（⌘G，WIP）、`Sessions 0` + `Group`（WIP）、`No sessions yet`，再往下是 `Pin` / `Rename` / `Archive`（均 WIP）；右侧标题 `No session`，右上状态行 `● Session: Idle  ● App Server: <状态>` 和一个 `Settings` 按钮；中间 `No messages yet` / `The conversation fills in when the App Server projection arrives.`；底部 composer（`Message DimAgent` 草稿框、`Enter to send · Shift+Enter for a new line`、`Attach file`/`Mode`/`Model` 均 WIP、`Send`）；最底部状态栏 `Branch: WIP · Context: WIP · Model: WIP · Account: WIP · App Server: <状态>`；左下 `Unavailable capabilities` 只剩 `Session keys` 与 `Attachments` 两张 WIP 卡（session 创建、branch 选择、审批、重连、停止都已接线）。
+两张图版式一致（`3a52565`，主区卡片 + 空态 hero + composer context row + 侧栏入口）：
+
+- 左侧栏：`DimAgent` 品牌行 + `Update`（WIP）；全局入口 `New session`、`Search sessions`（⌘G）、`Scheduled tasks`（WIP）、`Skills and plugins`（WIP）、`Session keys`（WIP）；`Sessions 0` + `Group`（WIP）；`No sessions yet`；线程操作 `Pin`/`Rename`/`Archive`（WIP）；`Unavailable capabilities` 两张 WIP 卡（`Session keys`、`Attachments`）；底部账户行 `Sign in to Dim`（WIP）与 `Settings` 按钮。
+- 右主区：圆角卡片（外边距 + 1px 边框），卡片内空态 hero：蓝色 `D` 方块 + `Start building` + `Ask DimAgent to change code, run a command or explain a session.`；右上 `● App Server: <状态>` 与 `Settings`。
+- composer：草稿框、`Enter to send · Shift+Enter for a new line`、工具行 `Attach file`/`Mode`/`Model`（WIP）与圆形 `Send`（空草稿禁用）、底部 context row `Workspace WIP` / `Default permissions WIP`。
+- 状态栏：`Branch: WIP · Context: WIP · Model: WIP · Account: WIP · App Server: <状态>`。
 
 | 差异点 | 未连接（`window-disconnected.png`） | 已连接（`window-connected.png`） |
 |---|---|---|
 | 状态行 | `● App Server: Not connected`（灰点） | `● App Server: Connected`（绿点） |
 | 侧栏 session 列表 | 空 | 空 |
-| 标题 | `No session` | `No session` |
+| hero / composer | 显示 | 显示 |
 
 两张图其余像素一致，差异只在状态行的文字和圆点颜色（这也是 MD5 不同的唯一来源）。
 
