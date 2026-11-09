@@ -36,7 +36,7 @@ Last updated: 2026-11-09
 | F10 | 断线 / reattach | 杀掉 daemon → 错误态 → 重连 → 历史重建 | L4：kill daemon 显示 Connection error；点击 Reconnect 后 daemon 重新 spawn、连接恢复、latest-turn history 重建（`window-transport-lost.png`、`window-reattach.png`） | **已通过（L4）** |
 | F11 | `subscription_changed` 恢复 | 真实 replay-gap 场景 | 无真实 wire 证据 | 未通过 |
 | F12a | branch switching | 真实窗口点击 branch 并渲染该 branch 的 history | L4：点击 side branch 后状态栏显示该 branch、时间线切到其 seed 回合（`window-branch-switch.png`） | **已通过（L4）** |
-| F12b | cut point | 选择父分支 sequence 创建 side line | L1/L2：user 行 Branch from here + `session.branch_create` + 目录刷新/打开；真实 daemon branch round trip 通过；L4 窗口点击待验证 | 未通过 |
+| F12b | cut point | 选择父分支 sequence 创建 side line | L4：user 行 Branch from here → 输入 prompt → `session.branch_create` → 新分支被选中并渲染（`window-branch-from.png`） | **已通过（L4）** |
 | F13 | attachment 上传 | 真实上传并出现在 timeline | Go 侧 `attachment.put` helper 已有（L1/L2 fake-server）；shell 无文件选择器/结果读回；L3/L4 无 | 未通过 |
 | F14a | session 删除 | 真实窗口删除 → App Server 确认后行消失 | L4：`session.delete` 结果因流关闭判 unknown，按合同读回 `session.catalog` 确认后移除；删到最后一个清空为 `Sessions 0`（`window-delete-session.png`） | **已通过（L4）** |
 | F14b | 关闭终态显示 | `session.closed` 在窗口可见且不可再提交 | L4：确认删除后窗口保留 `Session closed: Deleted` banner、侧栏行移除、composer/Stop/Reconnect 禁用（`window-closed.png`） | **已通过（L4）** |
