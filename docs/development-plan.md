@@ -40,7 +40,7 @@ Last updated: 2026-11-09
 
 1. ✅ token 语义层与量纲层（`2701701` 之前的 `2c888e1`）：elevation、前景配对、sidebar/tooltip 语义集、侧栏 256/200–360、四级圆角、字号档位。
 2. ✅ 布局提取（`docs/ui-layout-spec.md`，596 行）：容器树、flex 方向、宽高/min/max/padding/gap、滚动与虚拟化、Tailwind/变量出处（file:line）、MyGo API 映射与缺口。组件实现以这份规格为验收基线。
-3. 🚧 P0 组件：✅ 侧栏（`2701701`：分组、搜索 WIP、Pin/Rename/Archive WIP、200–360 拖拽）→ ⏭ timeline 行模型（thinking/工具卡展开/文件改动）→ composer（自适应/附件 chip/模式选择）。
+3. 🚧 P0 组件：✅ 侧栏（`2701701`）→ ✅ timeline 行模型（`760413e`：thinking 折叠、tool 展开、file changes、error/retry）→ ⏭ composer（自适应/附件 chip/模式选择）与 approval 面板。
 4. ✅ 截图证据闭环（`8b05e98` + 每次 UI 改动重出）：`Tester.Image()` light/dark PNG；真实窗口证据见 [window-evidence.md](window-evidence.md)。跨端人工对照仍未做。
 
 差距清单见 [ui-parity.md](ui-parity.md)；布局规格见 [ui-layout-spec.md](ui-layout-spec.md)。

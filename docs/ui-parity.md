@@ -96,7 +96,7 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 
 | A 目录（文件数） | B 对应物 | 级别 |
 |---|---|---|
-| `sidebar/`（22）`AppSidebar.vue`、`ThreadList.vue`、`SidebarHeader.vue`、`PinnedThreads.vue`、`ProjectItem.vue`、`ChatSearchDialog.vue`、`RenameThreadDialog.vue`、`ArchiveThreadDialog.vue`、`ThreadContextMenu.vue`、`useSidebarVirtualRows.ts`、`useProjectDragReorder.ts` | 只有一个 `ui.Sidebar` + 会话标题行（[shell.go:218-222](../internal/ui/shell.go#L218-L222)） | **P0**：分组/项目/置顶/搜索/重命名/归档/右键菜单/拖拽全缺 |
+| `sidebar/`（22）`AppSidebar.vue`、`ThreadList.vue`、`SidebarHeader.vue`、`PinnedThreads.vue`、`ProjectItem.vue`、`ChatSearchDialog.vue`、`RenameThreadDialog.vue`、`ArchiveThreadDialog.vue`、`ThreadContextMenu.vue`、`useSidebarVirtualRows.ts`、`useProjectDragReorder.ts` | `internal/ui/sidebar.go`：header、全局入口、可选分组线程列表、选中/悬停、200–360 拖拽调宽、双击复位；搜索/置顶/重命名/归档/右键菜单保持 visible-disabled WIP | **部分完成**（`2701701`）：核心列表与量纲已对齐；对话框类仍是 WIP |
 | `chat-workspace/`（185；timeline 65、composer 36、interactions 20、model-selector 15、git 7、attachments 6、workflow 3） | `messageRow`（[shell.go:444-459](../internal/ui/shell.go#L444-L459)）+ `composer`（[shell.go:486-500](../internal/ui/shell.go#L486-L500)） | **P0**：见 3.2 |
 | `markdown/`（20）`FileChip.vue`、`MarkdownImageNode.vue`、`MarkdownHeadingNode.vue`、`MarkdownInlineCodeNode.vue`、`ImageLightbox.vue`、`LinkContextMenu.vue`、`useMarkdownRender.ts` | 单个 `markdown.View`（[shell.go:449](../internal/ui/shell.go#L449)），默认主题 | **P0**：文件 chip、标题锚点、图片灯箱、链接菜单、代码块运行时全缺 |
 | `settings/`（41）+ `views/SettingsView.vue`、`SettingsNav.vue`、19 个分区（`settings/sections.ts:24-43`） | 无 | **P1**：设置面整体缺失（appearance 见第 5 步计划） |
@@ -113,7 +113,7 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 | A 组件 | 现状 | B 现状 | 级别 |
 |---|---|---|---|
 | `ChatWorkspace.vue`（7,329 行）+ `ChatHeaderFrame.vue` + `ChatHeader.vue`（603） | 卡片式聊天框：`chat-workspace-frame`/`chat-workspace-card`（`global.css:20-37`），右侧面板按 margin 让位（`ChatWorkspace.vue:2003-2009`） | 普通 Column，无卡片/描边/圆角框架 | **P0** |
-| `timeline/TimelineRow.vue`（442）、`TimelineAssistantMessage.vue`、`TimelineThinkingItem.vue`、`TimelineToolCallItem.vue`、`TimelineFileChanges.vue`、`TimelineArtifacts.vue`、`TimelineRetryNotice.vue`、`TimelineErrorBoundary.vue`、`TimelineCompressionDivider.vue`、`tool-renderers/` | 行类型化、工具卡可展开、thinking 折叠、文件改动、重试、错误边界、压缩分割线 | 四种 `Author` 平铺：文本 / markdown / 审批 / 工具卡（[shell.go:49-79](../internal/ui/shell.go#L49-L79)、[444-459](../internal/ui/shell.go#L444-L459)） | **P0** |
+| `timeline/TimelineRow.vue`（442）、`TimelineAssistantMessage.vue`、`TimelineThinkingItem.vue`、`TimelineToolCallItem.vue`、`TimelineFileChanges.vue`、`TimelineArtifacts.vue`、`TimelineRetryNotice.vue`、`TimelineErrorBoundary.vue`、`TimelineCompressionDivider.vue`、`tool-renderers/` | 行类型化、工具卡可展开、thinking 折叠、文件改动、重试、错误边界、压缩分割线 | `internal/ui/timeline.go`（`760413e`）：turn 内 block 分派、thinking 默认折叠（`Thought for Ns`）、tool 卡展开（≤240 DIP 面板）、file changes 紧凑行、独立 error/retry 行 | **部分完成**：`tool-renderers/` 分类面板、压缩分割线、artifacts、用户长文折叠仍是 WIP |
 | `composer/ConversationComposer.vue`、`InputArea.vue`、`tiptap/`、`activity/`、`FollowUpMessages.vue`、`ComposerSkillsSelector.vue`、`AgentModeSelector.vue`、`model-selector/`（15） | 富输入 + 附件 + skills + slash 命令 + 模型/模式选择 + 活动条 | 单行 `TextArea` + Attach(WIP) + Send（[shell.go:486-500](../internal/ui/shell.go#L486-L500)） | **P0** |
 | `interactions/PermissionPrompt.vue`、`ApprovalInputPanel.vue`、`ElicitationPrompt.vue` | 审批/权限/追问三类面板 | 审批行两个按钮（[shell.go:468-479](../internal/ui/shell.go#L468-L479)） | **P0** |
 | `StatusBar.vue`（367）`ContextUsageMeter.vue`、`ChatHeader` 的模型/分支入口 | 底部状态栏：git 分支、上下文用量、账户用量 | 无 | **P1** |
