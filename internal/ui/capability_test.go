@@ -43,7 +43,8 @@ func TestCapabilityCardsAreReadOnly(t *testing.T) {
 // this tree: approval.respond, session.stop, session.create, session.branches,
 // session.keys and supervisor.Reconnect have helpers in the Go client, session
 // or supervisor, so no card may claim they are missing; only attachment.put has
-// no Go helper. Branch and key UI wiring is still missing.
+// no Go helper. Branches and keys are still read-only, and approval decisions
+// stay unavailable only while the window has no callback.
 func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	cards := map[string]wipCapability{}
 	for _, capability := range wipCapabilities(&State{}) {
@@ -66,6 +67,17 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	if capability := cards["Attachments"]; !strings.Contains(capability.gap, "no Go client helper") {
 		t.Errorf("attachments reports %q, want missing helper", capability.gap)
 	}
+	// The branch and key reads are wired: their cards must name the real gap
+	// (read-only display, no switch RPC or key browser), not a missing helper.
+	if gap := cards["Branch switching"].gap; !strings.Contains(gap, "read-only") {
+		t.Errorf("branch switching reports %q, want the read-only gap", gap)
+	}
+	if gap := cards["Session keys"].gap; !strings.Contains(gap, "key browser") {
+		t.Errorf("session keys reports %q, want the missing key browser", gap)
+	}
+	if gap := cards["Approvals"].gap; !strings.Contains(gap, "callback") {
+		t.Errorf("approvals reports %q, want the missing callback", gap)
+	}
 
 	// Reconnect used to say the App Server had not implemented it. The
 	// supervisor now has Reconnect, so the reason must name the shell's wiring
@@ -76,8 +88,8 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	if !strings.Contains(reasonReconnect, "supervisor") {
 		t.Errorf("reconnect reason does not name the supervisor: %q", reasonReconnect)
 	}
-	if !strings.Contains(reasonApproval, "shell") {
-		t.Errorf("approval %q reason must name the shell's wiring gap", reasonApproval)
+	if !strings.Contains(reasonApproval, "shell") || !strings.Contains(reasonApproval, "approval.respond") {
+		t.Errorf("approval %q reason must name the shell's missing approval.respond callback", reasonApproval)
 	}
 	if !strings.Contains(reasonBranches, "switching") {
 		t.Errorf("branch reason does not name the missing switch: %q", reasonBranches)
@@ -125,6 +137,27 @@ func TestCapabilityCardsDropWiredStop(t *testing.T) {
 	}
 	if info, ok := tt.AccessByRole(ui.RoleButton, "Stop"); !ok || info.Disabled {
 		t.Errorf("wired stop is not an enabled action: %+v, found %v", info, ok)
+	}
+}
+
+// TestCapabilityCardsDropWiredApprovals checks that approval decisions leave the
+// unavailable list once State.OnApproval is set: the row's own entries are the
+// real actions then, and a stale WIP card would contradict them.
+func TestCapabilityCardsDropWiredApprovals(t *testing.T) {
+	s := approvalFixture()
+	s.OnApproval = func(string, string, ApprovalDecision) {}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, capability := range wipCapabilities(s) {
+		if capability.action == "Approvals" {
+			t.Errorf("a wired approval still has a WIP card: %+v", capability)
+		}
+	}
+	if tt.HasText("Approvals") {
+		t.Errorf("the unavailable list still shows approvals, texts %q", tt.Texts())
+	}
+	if info, ok := tt.AccessByRole(ui.RoleButton, "Approve"); !ok || info.Disabled {
+		t.Errorf("wired approval is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 

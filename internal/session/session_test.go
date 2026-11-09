@@ -116,6 +116,7 @@ func TestSessionMethodsErrorFailsOpen(t *testing.T) {
 	if err == nil {
 		t.Fatal("Open unexpectedly succeeded after session.methods error")
 	}
+	waitClientDone(t, client)
 }
 
 func TestSessionMethodsCapabilityAbsentDoesNotRequest(t *testing.T) {
@@ -1000,6 +1001,27 @@ func TestOpenFailsWhenTransportLostDuringOptionalKeysRead(t *testing.T) {
 	var local *appserver.LocalError
 	if !errors.As(err, &local) || local.AppError != "connection_closed" {
 		t.Fatalf("Open error = %v, want connection_closed", err)
+	}
+	waitClientDone(t, client)
+}
+
+func TestOpenFailsWhenContextCanceledDuringOptionalKeysRead(t *testing.T) {
+	head := int64(1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	cfg := fakeConfig{
+		Attach:  appserver.AttachResult{Sequence: int64Ptr(head)},
+		History: emptyHistory(t, head),
+		OnKeys: func(*fakeServer) {
+			cancel()
+		},
+		Keys: appserver.KeysResult{Through: &head, Entries: []appserver.SessionKeyEntry{}},
+	}
+	_, client := newFakeServer(t, cfg)
+	_, err := Open(ctx, client, []string{"session.history", "session.keys"}, "s1")
+	var local *appserver.LocalError
+	if !errors.As(err, &local) || local.AppError != "request_aborted" {
+		t.Fatalf("Open error = %v, want request_aborted", err)
 	}
 	waitClientDone(t, client)
 }

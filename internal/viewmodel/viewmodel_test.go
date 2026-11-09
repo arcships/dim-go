@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver"
 	"github.com/arcships/dimagent-mygo/internal/projection"
 	"github.com/arcships/dimagent-mygo/internal/ui"
 )
@@ -372,6 +373,70 @@ func TestBuildEmptySnapshot(t *testing.T) {
 	rows := Build(projection.Snapshot{})
 	if rows == nil {
 		t.Fatal("Build returned nil for an empty snapshot")
+	}
+	if len(rows) != 0 {
+		t.Fatalf("rows = %#v, want none", rows)
+	}
+}
+
+// TestBuildApprovalsMapsPendingRequests checks that the adapter copies the
+// session's pending approvals into approval rows: the request identity and the
+// decision target come from the App Server, the row text is only a preview, and
+// the order is the session's.
+func TestBuildApprovalsMapsPendingRequests(t *testing.T) {
+	approvals := []appserver.ApprovalRequest{
+		{
+			SessionID: "s1",
+			BranchID:  "main",
+			RequestID: "req-1",
+			Source:    appserver.ApprovalSource{Kind: "tool", CallID: "c1"},
+			Call:      appserver.ApprovalCall{Name: "exec"},
+			Reason:    "deploy to production",
+		},
+		{
+			SessionID: "s1",
+			BranchID:  "side",
+			RequestID: "req-2",
+			Source:    appserver.ApprovalSource{Kind: "host"},
+			Call:      appserver.ApprovalCall{Name: "write_file"},
+		},
+	}
+	rows := BuildApprovals(approvals...)
+	if len(rows) != 2 {
+		t.Fatalf("%d approval rows, want 2", len(rows))
+	}
+
+	first := rows[0]
+	if first.ID != "approval:req-1" || first.Author != ui.AuthorApproval {
+		t.Fatalf("first row = %#v, want an approval row keyed by its request", first)
+	}
+	if first.Approval == nil {
+		t.Fatalf("first row has no decision target: %#v", first)
+	}
+	wantFirst := ui.Approval{BranchID: "main", RequestID: "req-1", Call: "exec", Reason: "deploy to production", Source: "tool"}
+	if !reflect.DeepEqual(*first.Approval, wantFirst) {
+		t.Fatalf("first approval = %#v, want %#v", *first.Approval, wantFirst)
+	}
+	if first.Content != "exec — deploy to production" {
+		t.Fatalf("first row text = %q", first.Content)
+	}
+
+	second := rows[1]
+	if second.ID != "approval:req-2" || second.Approval == nil || second.Approval.BranchID != "side" {
+		t.Fatalf("second row = %#v, want the side branch's request", second)
+	}
+	// An absent reason leaves no dangling separator in the row text.
+	if second.Content != "write_file" {
+		t.Fatalf("second row text = %q, want just the call", second.Content)
+	}
+}
+
+// TestBuildApprovalsEmpty checks that no pending approvals render as nothing
+// rather than nil, matching Build.
+func TestBuildApprovalsEmpty(t *testing.T) {
+	rows := BuildApprovals()
+	if rows == nil {
+		t.Fatal("BuildApprovals returned nil for an empty list")
 	}
 	if len(rows) != 0 {
 		t.Fatalf("rows = %#v, want none", rows)

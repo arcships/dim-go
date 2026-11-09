@@ -261,6 +261,12 @@ func OpenWithOptions(ctx context.Context, client *appserver.Client, features []s
 		s.abortOpen()
 		return nil, err
 	}
+	if ctx != nil {
+		if err := ctx.Err(); err != nil {
+			s.abortOpen()
+			return nil, contextError(ctx)
+		}
+	}
 	return s, nil
 }
 

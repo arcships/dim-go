@@ -134,15 +134,22 @@ type fakeSession struct {
 	submitErr      error
 	stopErr        error
 	reattachErr    error
+	approvalErr    error
+	approvalResult appserver.ApprovalRespondOutcome
 	closed         bool
 	submitted      chan string
 	stopped        chan struct{}
+	approved       chan struct{}
 	liveCalls      chan struct{}
 	reconnectStart chan struct{}
 	reconnectGate  chan struct{}
 	submitText     []string
 	reattachCalls  int
 	stopCalls      int
+	approvalCalls  int
+	approvalBranch string
+	approvalID     string
+	approvalChoice string
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -181,6 +188,21 @@ func (f *fakeSession) Stop(context.Context) error {
 		f.stopped <- struct{}{}
 	}
 	return f.stopErr
+}
+
+func (f *fakeSession) RespondApproval(_ context.Context, branchID, requestID, decision string) (appserver.ApprovalRespondOutcome, error) {
+	f.approvalCalls++
+	f.approvalBranch, f.approvalID, f.approvalChoice = branchID, requestID, decision
+	if f.approved != nil {
+		f.approved <- struct{}{}
+	}
+	if f.approvalErr != nil {
+		return "", f.approvalErr
+	}
+	if f.approvalResult == "" {
+		return appserver.ApprovalOutcomeResponded, nil
+	}
+	return f.approvalResult, nil
 }
 
 func (f *fakeSession) Close(context.Context) error {
@@ -244,9 +266,12 @@ func TestSessionBridgeActionsRejectStaleSession(t *testing.T) {
 	if err := b.reattachFor(ctx, "s2"); !errors.Is(err, errStaleSelection) {
 		t.Fatalf("reattachFor stale error = %v, want errStaleSelection", err)
 	}
-	if len(f.submitText) != 0 || f.stopCalls != 0 || f.reattachCalls != 0 {
-		t.Fatalf("stale actions reached the controller: submit=%q stop=%d reattach=%d",
-			f.submitText, f.stopCalls, f.reattachCalls)
+	if _, err := b.RespondApprovalFor(ctx, "s2", "main", "req-1", appserver.DecisionAllow); !errors.Is(err, errStaleSelection) {
+		t.Fatalf("RespondApprovalFor stale error = %v, want errStaleSelection", err)
+	}
+	if len(f.submitText) != 0 || f.stopCalls != 0 || f.reattachCalls != 0 || f.approvalCalls != 0 {
+		t.Fatalf("stale actions reached the controller: submit=%q stop=%d reattach=%d approvals=%d",
+			f.submitText, f.stopCalls, f.reattachCalls, f.approvalCalls)
 	}
 
 	if err := b.SubmitFor(ctx, "s1", "hello"); err != nil {
@@ -258,9 +283,12 @@ func TestSessionBridgeActionsRejectStaleSession(t *testing.T) {
 	if err := b.reattachFor(ctx, "s1"); err != nil {
 		t.Fatalf("reattachFor: %v", err)
 	}
-	if len(f.submitText) != 1 || f.stopCalls != 1 || f.reattachCalls != 1 {
-		t.Fatalf("selected actions did not reach the controller: submit=%q stop=%d reattach=%d",
-			f.submitText, f.stopCalls, f.reattachCalls)
+	if _, err := b.RespondApprovalFor(ctx, "s1", "main", "req-1", appserver.DecisionAllow); err != nil {
+		t.Fatalf("RespondApprovalFor: %v", err)
+	}
+	if len(f.submitText) != 1 || f.stopCalls != 1 || f.reattachCalls != 1 || f.approvalCalls != 1 {
+		t.Fatalf("selected actions did not reach the controller: submit=%q stop=%d reattach=%d approvals=%d",
+			f.submitText, f.stopCalls, f.reattachCalls, f.approvalCalls)
 	}
 }
 
@@ -350,7 +378,8 @@ func TestAppRefreshDoesNotClobberNewSelection(t *testing.T) {
 func TestAppBindsCallbacks(t *testing.T) {
 	a := &app{state: &dimui.State{}}
 	a.bind()
-	if a.state.OnSelect == nil || a.state.OnSubmit == nil || a.state.OnStop == nil || a.state.OnReconnect == nil {
+	if a.state.OnSelect == nil || a.state.OnSubmit == nil || a.state.OnStop == nil ||
+		a.state.OnReconnect == nil || a.state.OnApproval == nil {
 		t.Fatalf("callbacks not bound: %#v", a.state)
 	}
 }
@@ -806,5 +835,237 @@ func TestAppSubmitAndStopPublishOutcomes(t *testing.T) {
 	}
 	if a.state.Draft != "hello" {
 		t.Fatalf("draft = %q, want retained after failed submit", a.state.Draft)
+	}
+}
+
+// approvalApp builds a window whose selected session holds one pending
+// approval, plus the mutex that guards the state its background callbacks
+// update.
+func approvalApp(f *fakeSession) (*app, *sync.Mutex) {
+	bridge := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
+	a := &app{
+		state: &dimui.State{
+			Selected: "s1",
+			Messages: []dimui.Message{{
+				ID:       "approval:req-1",
+				Author:   dimui.AuthorApproval,
+				Content:  "exec — deploy",
+				Approval: &dimui.Approval{BranchID: "main", RequestID: "req-1"},
+			}},
+		},
+		bridge: bridge,
+	}
+	a.bind()
+	var mu sync.Mutex
+	a.updateHook = func(fn func(*dimui.State)) {
+		mu.Lock()
+		defer mu.Unlock()
+		fn(a.state)
+	}
+	return a, &mu
+}
+
+// waitForNotice waits until the window publishes a window-owned outcome of the
+// given kind.
+func waitForNotice(t *testing.T, a *app, mu *sync.Mutex, kind string) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		mu.Lock()
+		found := false
+		for _, notice := range a.state.ActionNotices {
+			if notice.Kind == kind {
+				found = true
+			}
+		}
+		mu.Unlock()
+		if found {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	t.Fatalf("window did not publish %q", kind)
+}
+
+// TestApprovalDecisionMapping pins the shell's decision vocabulary to the wire
+// values approval.respond accepts, and rejects anything else before a send.
+func TestApprovalDecisionMapping(t *testing.T) {
+	cases := []struct {
+		decision dimui.ApprovalDecision
+		want     string
+		ok       bool
+	}{
+		{dimui.ApprovalAllow, appserver.DecisionAllow, true},
+		{dimui.ApprovalDeny, appserver.DecisionDeny, true},
+		{dimui.ApprovalDecision("allow_all"), "", false},
+		{dimui.ApprovalDecision(""), "", false},
+	}
+	for _, tc := range cases {
+		got, ok := approvalDecision(tc.decision)
+		if got != tc.want || ok != tc.ok {
+			t.Errorf("approvalDecision(%q) = %q, %v; want %q, %v", tc.decision, got, ok, tc.want, tc.ok)
+		}
+	}
+}
+
+// TestAppRespondApprovalReachesSessionOnce checks the callback the approval
+// row invokes: one click sends exactly one folded decision through the
+// controller of the selected session, and the row survives because only the
+// session projection may resolve it.
+func TestAppRespondApprovalReachesSessionOnce(t *testing.T) {
+	f := &fakeSession{approved: make(chan struct{}, 1)}
+	a, mu := approvalApp(f)
+
+	a.state.OnApproval("main", "req-1", dimui.ApprovalAllow)
+	select {
+	case <-f.approved:
+	case <-time.After(2 * time.Second):
+		t.Fatal("approval decision did not reach the session")
+	}
+	waitForNotice(t, a, mu, "approval.responded")
+
+	if f.approvalCalls != 1 {
+		t.Fatalf("approval.respond ran %d times for one click, want once", f.approvalCalls)
+	}
+	if f.approvalBranch != "main" || f.approvalID != "req-1" || f.approvalChoice != appserver.DecisionAllow {
+		t.Fatalf("sent (%q, %q, %q), want (main, req-1, allow)",
+			f.approvalBranch, f.approvalID, f.approvalChoice)
+	}
+	mu.Lock()
+	rows, actionError := len(a.state.Messages), a.state.ActionError
+	mu.Unlock()
+	if rows != 1 {
+		t.Fatalf("%d rows after an accepted decision, want the approval kept until the projection resolves it", rows)
+	}
+	if actionError != "" {
+		t.Fatalf("action error %q after an accepted decision", actionError)
+	}
+}
+
+// TestAppRespondApprovalDenyMapsToWire checks the Deny entry's decision too.
+func TestAppRespondApprovalDenyMapsToWire(t *testing.T) {
+	f := &fakeSession{approved: make(chan struct{}, 1)}
+	a, _ := approvalApp(f)
+
+	a.state.OnApproval("main", "req-1", dimui.ApprovalDeny)
+	select {
+	case <-f.approved:
+	case <-time.After(2 * time.Second):
+		t.Fatal("deny decision did not reach the session")
+	}
+	if f.approvalChoice != appserver.DecisionDeny {
+		t.Fatalf("sent decision %q, want %q", f.approvalChoice, appserver.DecisionDeny)
+	}
+}
+
+// TestAppRespondApprovalFailureStaysVisible checks that a rejected decision is
+// published as an error and the approval stays on screen: nothing claims the
+// decision was accepted.
+func TestAppRespondApprovalFailureStaysVisible(t *testing.T) {
+	boom := errors.New("approval.respond failed")
+	f := &fakeSession{approvalErr: boom, approved: make(chan struct{}, 1)}
+	a, mu := approvalApp(f)
+
+	a.state.OnApproval("main", "req-1", dimui.ApprovalAllow)
+	select {
+	case <-f.approved:
+	case <-time.After(2 * time.Second):
+		t.Fatal("approval decision did not reach the session")
+	}
+	waitForNotice(t, a, mu, "approval.error")
+
+	mu.Lock()
+	defer mu.Unlock()
+	if a.state.ActionError == "" {
+		t.Fatal("failed decision was not surfaced")
+	}
+	if len(a.state.Messages) != 1 || a.state.Messages[0].Approval == nil {
+		t.Fatalf("approval row disappeared without a projection update: %#v", a.state.Messages)
+	}
+	for _, notice := range a.state.ActionNotices {
+		if notice.Kind == "approval.responded" {
+			t.Fatalf("a rejected decision was reported as accepted: %#v", a.state.ActionNotices)
+		}
+	}
+}
+
+// TestAppRespondApprovalCancelledIsNotSuccess checks the §12 already-resolved
+// outcome: it is recorded as cancelled, never as a decision the App Server
+// applied.
+func TestAppRespondApprovalCancelledIsNotSuccess(t *testing.T) {
+	f := &fakeSession{
+		approvalResult: appserver.ApprovalOutcomeCancelled,
+		approved:       make(chan struct{}, 1),
+	}
+	a, mu := approvalApp(f)
+
+	a.state.OnApproval("main", "req-1", dimui.ApprovalAllow)
+	select {
+	case <-f.approved:
+	case <-time.After(2 * time.Second):
+		t.Fatal("approval decision did not reach the session")
+	}
+	waitForNotice(t, a, mu, "approval.cancelled")
+
+	mu.Lock()
+	defer mu.Unlock()
+	if a.state.ActionError != "" {
+		t.Fatalf("cancelled outcome surfaced as an error: %q", a.state.ActionError)
+	}
+	for _, notice := range a.state.ActionNotices {
+		if notice.Kind == "approval.responded" {
+			t.Fatalf("a cancelled approval was reported as responded: %#v", a.state.ActionNotices)
+		}
+	}
+}
+
+// TestAppRespondApprovalRejectsStaleSelection checks that a decision clicked on
+// an older conversation cannot reach the newly attached session.
+func TestAppRespondApprovalRejectsStaleSelection(t *testing.T) {
+	f := &fakeSession{approved: make(chan struct{}, 1)}
+	a, mu := approvalApp(f)
+	a.state.Selected = "s2"
+
+	a.state.OnApproval("main", "req-1", dimui.ApprovalAllow)
+	waitForNotice(t, a, mu, "approval.error")
+
+	if f.approvalCalls != 0 {
+		t.Fatalf("stale approval reached the controller %d times", f.approvalCalls)
+	}
+}
+
+// TestAppRespondApprovalRejectsIncompleteIdentity checks that a decision with
+// no request identity or an unknown vocabulary is refused locally instead of
+// being sent as a guess.
+func TestAppRespondApprovalRejectsIncompleteIdentity(t *testing.T) {
+	f := &fakeSession{approved: make(chan struct{}, 1)}
+	a, mu := approvalApp(f)
+
+	a.state.OnApproval("", "req-1", dimui.ApprovalAllow)
+	a.state.OnApproval("main", "", dimui.ApprovalAllow)
+	a.state.OnApproval("main", "req-1", dimui.ApprovalDecision("maybe"))
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		mu.Lock()
+		count := len(a.state.ActionNotices)
+		mu.Unlock()
+		if count >= 3 {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(a.state.ActionNotices) != 3 {
+		t.Fatalf("notices = %#v, want one error per refused decision", a.state.ActionNotices)
+	}
+	for _, notice := range a.state.ActionNotices {
+		if notice.Kind != "approval.error" {
+			t.Fatalf("refused decision recorded as %q", notice.Kind)
+		}
+	}
+	if f.approvalCalls != 0 {
+		t.Fatalf("an invalid decision reached the controller %d times", f.approvalCalls)
 	}
 }
