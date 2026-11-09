@@ -7,11 +7,12 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// capabilityPageTester renders the settings surface on its capabilities page,
-// with the list the shell assembles for s. The cards are no longer part of the
-// sidebar; this is the page a reader opens to see what the shell cannot do yet.
+// capabilityPageTester renders the settings surface on its About page, with the
+// list the shell assembles for s. The cards are no longer part of the sidebar or
+// a navigation row of their own: this is the page a reader opens to see what the
+// shell cannot do yet.
 func capabilityPageTester(s *State, locale Locale, width, height int) *ui.Tester {
-	v := SettingsView{Section: SettingsSectionCapabilities, Locale: locale}
+	v := SettingsView{Section: SettingsSectionAbout, Locale: locale}
 	return ui.NewTester(func(c *ui.Context) {
 		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil, nil)
 	}, width, height)
@@ -303,7 +304,7 @@ func TestCapabilityCardsFitTheSettingsPage(t *testing.T) {
 func TestCapabilityCardsDrawThePopoverFace(t *testing.T) {
 	s := fixture()
 	var theme *ui.Theme
-	v := SettingsView{Section: SettingsSectionCapabilities}
+	v := SettingsView{Section: SettingsSectionAbout}
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme = c.Theme()
 		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil, nil)

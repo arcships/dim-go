@@ -65,6 +65,78 @@ func TestShellRenders(t *testing.T) {
 	}
 }
 
+// TestUntitledSessionDrawsTheLocalizedPlaceholder checks the three places a
+// session's name is drawn: the sidebar row, the toolbar breadcrumb and the
+// search result. A session the catalog carries no title for yet shows the
+// locale's word for an untitled session there instead of its opaque id.
+func TestUntitledSessionDrawsTheLocalizedPlaceholder(t *testing.T) {
+	const id = "a1006e8b-2f4c-4c8e-9a1f-0f1d2c3b4a59"
+	placeholder := tr(LocaleEN, keySessionUntitled)
+	s := fixture()
+	s.Sessions = []Session{{ID: id}}
+	s.Selected = id
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleListItem, placeholder); !ok {
+		t.Errorf("the sidebar row is not named %q, texts %q", placeholder, tt.Texts())
+	}
+	if tt.HasText(id) {
+		t.Errorf("the shell draws the session id %q where a name belongs, texts %q", id, tt.Texts())
+	}
+	if got := s.sessionTitleLabel(); got != placeholder {
+		t.Errorf("the breadcrumb title is %q, want the placeholder %q", got, placeholder)
+	}
+	if !tt.HasText(placeholder) {
+		t.Errorf("the breadcrumb does not draw %q, texts %q", placeholder, tt.Texts())
+	}
+	// The rename dialog seeds itself from the raw title, so an untitled session
+	// opens with an empty field rather than the placeholder as a real title.
+	if got := s.selectedTitle(); got != "" {
+		t.Errorf("the rename draft would be seeded with %q, want the session's empty title", got)
+	}
+
+	openPalette(t, tt)
+	if _, ok := tt.AccessByRole(ui.RoleButton, placeholder); !ok {
+		t.Errorf("the search result is not named %q, texts %q", placeholder, tt.Texts())
+	}
+
+	zh := fixture()
+	zh.Sessions = []Session{{ID: id}}
+	zh.Selected = id
+	zh.Settings = SettingsView{Locale: LocaleZHCN}
+	zhTT := ui.NewTester(zh.View, 900, 600)
+	if _, ok := zhTT.AccessByRole(ui.RoleListItem, tr(LocaleZHCN, keySessionUntitled)); !ok {
+		t.Errorf("the zh-CN sidebar row is not named %q, texts %q", tr(LocaleZHCN, keySessionUntitled), zhTT.Texts())
+	}
+	if got := zh.sessionTitleLabel(); got != "未命名" {
+		t.Errorf("the zh-CN breadcrumb title is %q, want %q", got, "未命名")
+	}
+}
+
+// TestTitledSessionKeepsItsOwnName checks the other side of the placeholder: a
+// session the catalog names keeps that name on the row, the breadcrumb and the
+// search result, and no surface substitutes the untitled word.
+func TestTitledSessionKeepsItsOwnName(t *testing.T) {
+	s := fixture()
+	s.Selected = "s1"
+	tt := ui.NewTester(s.View, 900, 600)
+	placeholder := tr(LocaleEN, keySessionUntitled)
+
+	if _, ok := tt.AccessByRole(ui.RoleListItem, "First session"); !ok {
+		t.Errorf("the sidebar lost the catalog's title, texts %q", tt.Texts())
+	}
+	if got := s.sessionTitleLabel(); got != "First session" {
+		t.Errorf("the breadcrumb title is %q, want the catalog's %q", got, "First session")
+	}
+	openPalette(t, tt)
+	if _, ok := tt.AccessByRole(ui.RoleButton, "First session"); !ok {
+		t.Errorf("the search result lost the catalog's title, texts %q", tt.Texts())
+	}
+	if tt.HasText(placeholder) {
+		t.Errorf("a titled session draws the placeholder %q, texts %q", placeholder, tt.Texts())
+	}
+}
+
 // TestBranchListIsNotInTheSidebar checks that the observed branch metadata is
 // no longer drawn in the reference's session column. The facts and callbacks
 // stay in State for the session header menu that will carry them.

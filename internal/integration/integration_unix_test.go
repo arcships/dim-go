@@ -776,8 +776,9 @@ func TestSessionTitlePrecedence(t *testing.T) {
 	}{
 		{"title", appserver.SessionSummary{SessionID: "s1", Title: &title, Preview: &preview}, title},
 		{"preview", appserver.SessionSummary{SessionID: "s1", Preview: &preview}, preview},
-		{"id", appserver.SessionSummary{SessionID: "s1"}, "s1"},
+		{"no label", appserver.SessionSummary{SessionID: "s1"}, ""},
 		{"empty title falls back to preview", appserver.SessionSummary{SessionID: "s1", Title: new(string), Preview: &preview}, preview},
+		{"empty title and preview", appserver.SessionSummary{SessionID: "s1", Title: new(string), Preview: new(string)}, ""},
 	}
 	for _, tc := range cases {
 		if got := sessionTitle(tc.summary, session.TitleState{}); got != tc.want {

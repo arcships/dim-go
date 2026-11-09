@@ -84,11 +84,27 @@ func tr(l Locale, key string) string {
 	return stringsFor(l).text(key)
 }
 
+// sessionLabel is a session's display title: the catalog's own text when it has
+// one, otherwise the locale's word for an untitled session. The App Server's
+// title and preview stay untouched; only the frame substitutes a placeholder
+// instead of drawing an opaque session id where a name would go.
+func sessionLabel(title string, l Locale) string {
+	if strings.TrimSpace(title) == "" {
+		return tr(l, keySessionUntitled)
+	}
+	return title
+}
+
 // The message keys. They are grouped by region and are the only names a region
 // uses to read text, so no region passes a display string as a lookup key.
 const (
 	keyNoSession           = "shell.noSession"
 	keyComposerPlaceholder = "composer.placeholder"
+
+	// keySessionUntitled stands in for a session the catalog carries no title
+	// or preview for yet. It is the shell's word, not a session fact: the row,
+	// the breadcrumb and the search result draw it instead of the opaque id.
+	keySessionUntitled = "session.untitled"
 
 	keySidebarNavigation    = "sidebar.navigation"
 	keySidebarUpdate        = "sidebar.update"
@@ -271,6 +287,7 @@ const (
 var stringsEN = Strings{
 	keyNoSession:           "No session",
 	keyComposerPlaceholder: "Send a message…",
+	keySessionUntitled:     "Untitled",
 
 	keySidebarNavigation:       "Session sidebar",
 	keySidebarUpdate:           "Update",
@@ -324,6 +341,7 @@ var stringsEN = Strings{
 	"settings.section.pet": "Pet", "settings.section.permissions": "Permissions",
 	"settings.section.git": "Git", "settings.section.hooks": "Hooks",
 	"settings.section.plugins": "Plugins", "settings.section.externalAgent": "External Agent",
+	"settings.section.archivedSessions": "Archived sessions", "settings.section.about": "About",
 	"settings.gap.account":         "Unavailable: the shell has no account client or page yet, so it cannot show an account or sign in.",
 	"settings.gap.usage":           "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
 	"settings.gap.personalization": "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
@@ -466,6 +484,7 @@ var stringsEN = Strings{
 var stringsZHCN = Strings{
 	keyNoSession:           "未选择会话",
 	keyComposerPlaceholder: "发送消息…",
+	keySessionUntitled:     "未命名",
 
 	keySidebarNavigation:       "会话侧栏",
 	keySidebarUpdate:           "更新",
@@ -515,6 +534,7 @@ var stringsZHCN = Strings{
 	"settings.section.pet": "宠物", "settings.section.permissions": "权限",
 	"settings.section.git": "Git", "settings.section.hooks": "Hooks",
 	"settings.section.plugins": "插件设置", "settings.section.externalAgent": "外部 Agent",
+	"settings.section.archivedSessions": "归档会话", "settings.section.about": "关于",
 	"settings.gap.account":         "不可用：本 shell 还没有账户客户端或页面，无法显示账户或登录。",
 	"settings.gap.usage":           "不可用：本 shell 还没有用量客户端或页面，App Server 也没有报告用量的方法。",
 	"settings.gap.personalization": "不可用：个性化页面尚未实现；本 shell 没有界面模式、ACP 会话、目标应用、助手模型或子代理模型的客户端。",
