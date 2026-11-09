@@ -38,10 +38,10 @@ Last updated: 2026-11-09
 
 **Wave 3：UI 1:1 对齐（进行中）** —— 顺序不能换：
 
-1. token 语义层与量纲层（`internal/ui/tokens.go`）：elevation、前景配对、sidebar/tooltip 语义集、侧栏 256/200–360、四级圆角、字号档位。
-2. 布局提取（`docs/ui-layout-spec.md`）：每个 P0 区域的容器树、flex 方向、宽高/min/max/padding/gap、滚动与虚拟化、Tailwind/变量出处（file:line）、MyGo API 映射与缺口。组件实现必须以这份规格为验收基线。
-3. P0 组件：侧栏（分组/搜索/置顶）→ timeline 行模型（thinking/工具卡展开/文件改动）→ composer（自适应/附件 chip/模式选择）。
-4. 截图证据闭环：用 mygo `Tester.Image()` 输出 light/dark PNG，先做同仓库稳定性回归，再做跨端人工对照。
+1. ✅ token 语义层与量纲层（`2701701` 之前的 `2c888e1`）：elevation、前景配对、sidebar/tooltip 语义集、侧栏 256/200–360、四级圆角、字号档位。
+2. ✅ 布局提取（`docs/ui-layout-spec.md`，596 行）：容器树、flex 方向、宽高/min/max/padding/gap、滚动与虚拟化、Tailwind/变量出处（file:line）、MyGo API 映射与缺口。组件实现以这份规格为验收基线。
+3. 🚧 P0 组件：✅ 侧栏（`2701701`：分组、搜索 WIP、Pin/Rename/Archive WIP、200–360 拖拽）→ ⏭ timeline 行模型（thinking/工具卡展开/文件改动）→ composer（自适应/附件 chip/模式选择）。
+4. ✅ 截图证据闭环（`8b05e98` + 每次 UI 改动重出）：`Tester.Image()` light/dark PNG；真实窗口证据见 [window-evidence.md](window-evidence.md)。跨端人工对照仍未做。
 
 差距清单见 [ui-parity.md](ui-parity.md)；布局规格见 [ui-layout-spec.md](ui-layout-spec.md)。
 

@@ -12,14 +12,14 @@
 |---|---|
 | 机器 | macOS 26.6.2（darwin/arm64） |
 | Go | go1.27.3 darwin/arm64 |
-| 源码 | `HEAD = 3fd370b6dd0aac6cfec54b706fe16023427cbfee`，**工作区不干净**（见下） |
-| 构建时间 | 2026-11-09 12:10:50 CST |
+| 源码 | `HEAD = 2701701baf454dd3e823ddbfbc69983d56d4d5e5`，工作区 clean（2026-11-09 12:31 重跑） |
+| 构建时间 | 2026-11-09 12:31:10 CST |
 | App Server 二进制 | `/tmp/dim-2-target/debug/dim-app-server`（Mach-O arm64，401 302 448 B，mtime 2026-11-08 23:38） |
 | 窗口库 | `github.com/egoist/mygo v0.8.3`（`mygo.NewWindow`，`Width: 1080`、`Height: 720`） |
 | 截图工具 | `/usr/sbin/screencapture -x -o -l <windowid>`（按窗口 ID 截取，只含该窗口，不含桌面和其它应用） |
 | 窗口 ID 来源 | `CGWindowListCopyWindowInfo`，按**本进程 PID** 过滤；脚本内用 `swiftc` 现场编译小工具读取 |
 
-采集时 `git status --short` 里已有其他人的未提交改动：`internal/ui/capability.go`、`internal/session/session.go`、`internal/integration/integration.go`、`internal/appserver/*`、`docs/protocol-contract.md`，另有未跟踪的 `internal/appserver/attachment.go`、`branch_test.go` 等。**窗口文字由这些未提交源码决定**，源码再变时截图即过期，需要重跑脚本。每个状态的完整快照记在同名 `.txt` 元数据的 `git_head` / `git_dirty` 字段里。
+2026-11-09 12:31 的这次采集在 `2701701`（P0 侧栏落地）上重跑，工作区 clean；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 记录同一事实。源码再变时截图即过期，需要重跑脚本。
 
 ## 2. 复现命令
 
@@ -37,14 +37,14 @@ cd /Users/eric8810/Code/dimagent-mygo
 4. 两种状态都在窗口拿到真实尺寸后 `sleep 1` 再截图；截图后按 PID 结束应用，并按「命令行里含本次临时 home 路径」精确结束本次 spawn 的 daemon；随后 `rm -rf` 临时 home。
 5. 全程不读写 `~/.dimcode`，不使用用户的真实 product home。结束时打印 `all requested captures done; no leftover daemon from this run`，并复查没有本次残留的 daemon。
 
-## 3. 采集结果（2026-11-09 12:10 CST）
+## 3. 采集结果（2026-11-09 12:31 CST）
 
 | 状态 | 采集时间 | 窗口 ID | 窗口位置/尺寸（points） | PNG 像素 | 字节 | PNG 路径 |
 |---|---|---|---|---|---|---|
-| 未连接 | 12:10:50 → 12:10:51 | 47309 | `486,118,1076,716` | 2160×1440（= 1080×720 @2x） | 195 357 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
-| 已连接 | 12:10:52 → 12:10:54 | 47318 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 195 551 | [`evidence/window-connected.png`](evidence/window-connected.png) |
+| 未连接 | 12:31:11 → 12:31:13 | 47447 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 239 087 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
+| 已连接 | 12:31:13 → 12:31:15 | 47456 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 239 332 | [`evidence/window-connected.png`](evidence/window-connected.png) |
 
-MD5：未连接 `afe8e1f72f381a4e3c643c7f7def6341`，已连接 `2f789c447cf38d1acc3901ddc94daca8`。
+MD5：未连接 `d57959974c9da1bb30846f12a00f9b90`，已连接 `4ed688539410f15ffda29df0fe799400`。
 
 机器可读的采集元数据（脚本生成，含源码快照、PID、窗口 ID、bounds、daemon 命令行）：
 [`evidence/window-disconnected.txt`](evidence/window-disconnected.txt)、[`evidence/window-connected.txt`](evidence/window-connected.txt)。
@@ -52,17 +52,17 @@ MD5：未连接 `afe8e1f72f381a4e3c643c7f7def6341`，已连接 `2f789c447cf38d1a
 已连接态截图时真实在跑的 daemon（取自元数据）：
 
 ```
-30243 /tmp/dim-2-target/debug/dim-app-server
-      --unix <tmp>/dimagent-product-home.SZRCzg/rust/daemon.sock --no-ws
-      --home <tmp>/dimagent-product-home.SZRCzg/rust
-      --product-home <tmp>/dimagent-product-home.SZRCzg
+38616 /tmp/dim-2-target/debug/dim-app-server
+      --unix <tmp>/dimagent-product-home.ZW26LQ/rust/daemon.sock --no-ws
+      --home <tmp>/dimagent-product-home.ZW26LQ/rust
+      --product-home <tmp>/dimagent-product-home.ZW26LQ
 ```
 
 截图结束后该进程随应用退出而消失，`ps aux | grep '[d]im-app-server'` 无输出；临时 home 已删除。
 
 ## 4. 截图上实际看到的内容
 
-两张图版式一致：左侧边栏顶部 `New session`，右侧标题 `No session`，右上状态行 `● Session: Idle  ● App Server: <状态>`；中间 `No messages yet` / `The conversation fills in when the App Server projection arrives.`；底部 composer（`Message DimAgent` + `Send`，左侧 `Attach file` 带 `WIP` 标记）；左下 `Unavailable capabilities` 三条 WIP 卡片。
+两张图版式一致（`2701701` 的 P0 侧栏）：左侧栏顶部 `DimAgent` + `Update`（WIP），下面是 `New session`、`Search sessions`（⌘G，WIP）、`Sessions 0` + `Group`（WIP）、`No sessions yet`，再往下是 `Pin` / `Rename` / `Archive`（均 WIP）；右侧标题 `No session`，右上状态行 `● Session: Idle  ● App Server: <状态>`；中间 `No messages yet` / `The conversation fills in when the App Server projection arrives.`；底部 composer（`Message DimAgent` + `Send`，左侧 `Attach file` 带 `WIP` 标记）；左下 `Unavailable capabilities` 三张 WIP 卡片。
 
 | 差异点 | 未连接（`window-disconnected.png`） | 已连接（`window-connected.png`） |
 |---|---|---|
@@ -76,7 +76,7 @@ WIP 卡片当时渲染出的文案（真实窗口内容，逐字抄录）：
 
 - `Branch switching` — `session.branches` — `helper exists; the directory is read-only and the shell has no branch selection yet (switching is a history read, not an RPC)`
 - `Session keys` — `session.keys` — `read helper exists; shell shows no key browser yet`
-- `Attachments` — `attachment.put` — `no Go client helper yet`
+- `Attachments` — `attachment.put` — `helper exists; shell has no file picker and keeps unknown upload results disabled`
 
 ## 5. L4 判定
 

@@ -1,16 +1,16 @@
 state	connected
-started_at	2026-11-09 12:10:52 CST
-captured_at	2026-11-09 12:10:54 CST
-built_at	2026-11-09 12:10:50 CST
-git_head	3fd370b6dd0aac6cfec54b706fe16023427cbfee
-git_dirty	 M docs/protocol-contract.md; M internal/appserver/branches.go; M internal/appserver/errors.go; M internal/appserver/errors_test.go; M internal/appserver/fake_test.go; M internal/appserver/mutations.go; M internal/integration/integration.go; M internal/session/session.go; M internal/ui/capability.go;?? docs/evidence/window-connected.png;?? docs/evidence/window-connected.txt;?? docs/evidence/window-disconnected.png;?? docs/evidence/window-disconnected.txt;?? docs/window-evidence.md;?? internal/appserver/attachment.go;?? internal/appserver/attachment_test.go;?? internal/appserver/branch_test.go;?? scripts/;
-product_home	/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.SZRCzg
-app_pid	30237
-window_id	47318
+started_at	2026-11-09 12:31:13 CST
+captured_at	2026-11-09 12:31:15 CST
+built_at	2026-11-09 12:31:10 CST
+git_head	2701701baf454dd3e823ddbfbc69983d56d4d5e5
+git_dirty	clean
+product_home	/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.ZW26LQ
+app_pid	38610
+window_id	47456
 window_title	DimAgent
 window_bounds_points	484,116,1080,720
 png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/window-connected.png
 png_pixels	2160 1440
-png_bytes	195551
-daemon	30243 /tmp/dim-2-target/debug/dim-app-server --unix /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.SZRCzg/rust/daemon.sock --no-ws --home /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.SZRCzg/rust --product-home /var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.SZRCzg
+png_bytes	239332
+daemon	38616 /tmp/dim-2-target/debug/dim-app-server --unix /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.ZW26LQ/rust/daemon.sock --no-ws --home /private/var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T/dimagent-product-home.ZW26LQ/rust --product-home /var/folders/z_/tfr0_4ls4b74wq5m1qm13b640000gn/T//dimagent-product-home.ZW26LQ
 app_log	
