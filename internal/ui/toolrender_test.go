@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"testing"
@@ -334,6 +335,32 @@ func TestToolTypedValuesAreBounded(t *testing.T) {
 	}
 	if tt.HasText(long) {
 		t.Errorf("the whole command is drawn, texts %q", tt.Texts())
+	}
+}
+
+// TestToolPanelIsCappedAtTheReferenceHeight checks the open panel's cap: a
+// result far taller than the reference's 240 DIPs scrolls inside that bound
+// instead of growing the card, while a short panel stays as tall as its parts.
+func TestToolPanelIsCappedAtTheReferenceHeight(t *testing.T) {
+	long := strings.Repeat("line of output\n", 200)
+	tall := openToolPanel(t, Tool{Name: "bash", Result: long, Status: ToolComplete}, "bash")
+	panel, ok := tall.AccessByRole(ui.RoleGroup, "Tool details")
+	if !ok {
+		t.Fatalf("the open panel is not a group, texts %q", tall.Texts())
+	}
+	if math.Abs(float64(panel.Bounds.H-timelinePanelMaxH)) > 0.5 {
+		t.Errorf("a long result draws the panel %.2f high, want the %d DIP cap",
+			panel.Bounds.H, timelinePanelMaxH)
+	}
+
+	short := openToolPanel(t, Tool{Name: "bash", Result: "ok", Status: ToolComplete}, "bash")
+	shortPanel, ok := short.AccessByRole(ui.RoleGroup, "Tool details")
+	if !ok {
+		t.Fatalf("the short panel is not a group, texts %q", short.Texts())
+	}
+	if shortPanel.Bounds.H >= timelinePanelMaxH {
+		t.Errorf("a short result draws the panel %.2f high: it takes the cap without needing it",
+			shortPanel.Bounds.H)
 	}
 }
 

@@ -29,8 +29,8 @@ func toolFixture(status ToolStatus, params, result string) *State {
 }
 
 // TestToolRowRendersEachStatus checks the card's parts for every status: the
-// author label, the tool's name, its status and one line each of params and
-// result.
+// author label, the tool's name, its status and a preview line each of params
+// and result.
 func TestToolRowRendersEachStatus(t *testing.T) {
 	cases := []struct {
 		status ToolStatus
@@ -54,59 +54,99 @@ func TestToolRowRendersEachStatus(t *testing.T) {
 	}
 }
 
-// TestToolRowBoundsItsPreviews checks that a long or multi-line command and
-// result stay one line each: whitespace collapses, the preview stops at the
-// card's bound, and the row is no taller than a row with a short preview.
+// TestToolPreviewTextCapsItsLines checks the preview's pure shape: at most
+// toolPreviewLines lines, each line cut at toolPreviewRunes runes, with an
+// ellipsis saying what was left out and the line breaks that were sent kept.
+func TestToolPreviewTextCapsItsLines(t *testing.T) {
+	longLine := strings.Repeat("a", 4*toolPreviewRunes)
+	cases := []struct {
+		name, in, want string
+	}{
+		{"empty", "", ""},
+		{"one line", "go test ./...", "go test ./..."},
+		{"three lines", "a\nb\nc", "a\nb\nc"},
+		{"past the bound", "a\nb\nc\nd\ne", "a\nb\nc…"},
+		{"line breaks kept", "line one\nline two\tline three", "line one\nline two line three"},
+		{"windows breaks", "a\r\nb\r\nc", "a\nb\nc"},
+		{"outer blank lines", "\n\na\nb\n\n", "a\nb"},
+		{"long line", longLine, strings.Repeat("a", toolPreviewRunes) + "…"},
+		{"long third line", "a\nb\n" + longLine, "a\nb\n" + strings.Repeat("a", toolPreviewRunes) + "…"},
+	}
+	for _, tc := range cases {
+		if got := previewText(tc.in); got != tc.want {
+			t.Errorf("%s: previewText(%q) = %q, want %q", tc.name, tc.in, got, tc.want)
+		}
+	}
+}
+
+// TestToolRowBoundsItsPreviews checks that the closed card shows at most three
+// lines of params and of result, cuts a long line at the card's bound, and
+// leaves the lines past the third out of the row entirely.
 func TestToolRowBoundsItsPreviews(t *testing.T) {
-	// The bound the card promises, pinned here: changing it is a deliberate
-	// decision about how much of a call a row shows.
-	const previewRunes = 96
+	long := strings.Repeat("a", 4*toolPreviewRunes)
+	wantParams := "Params: " + strings.Repeat("a", toolPreviewRunes) + "…"
+	sixLines := "line one\nline two\tline three\nline four\nline five\nline six"
+	wantResult := "Result: line one\nline two line three\nline four…"
 
-	long := strings.Repeat("a", 4*previewRunes)
-	wantParams := strings.Repeat("a", previewRunes) + "…"
+	tt := ui.NewTester(toolFixture(ToolComplete, long, sixLines).View, 900, 600)
 
-	short := toolFixture(ToolComplete, "ls", "two files")
-	longState := toolFixture(ToolComplete, long, "line one\nline two\tline three")
-	shortTT := ui.NewTester(short.View, 900, 600)
-	longTT := ui.NewTester(longState.View, 900, 600)
+	if !tt.HasText(wantParams) {
+		t.Fatalf("long params are not cut at %d runes, texts %q", toolPreviewRunes, tt.Texts())
+	}
+	if tt.HasText(long) {
+		t.Errorf("the whole command shows, texts %q", tt.Texts())
+	}
+	if !tt.HasText(wantResult) {
+		t.Errorf("the result is not drawn as its first %d lines, texts %q", toolPreviewLines, tt.Texts())
+	}
+	for _, absent := range []string{"line five", "line six"} {
+		if tt.HasText(absent) {
+			t.Errorf("the preview shows %q past its %d-line bound, texts %q", absent, toolPreviewLines, tt.Texts())
+		}
+	}
+	if tt.HasText("\r") {
+		t.Errorf("the preview keeps a carriage return, texts %q", tt.Texts())
+	}
+}
 
-	if !longTT.HasText("Params: " + wantParams) {
-		t.Fatalf("long params are not cut at %d runes, texts %q", previewRunes, longTT.Texts())
-	}
-	if longTT.HasText(long) {
-		t.Errorf("the whole command shows, texts %q", longTT.Texts())
-	}
-	if !longTT.HasText("Result: line one line two line three") {
-		t.Errorf("multi-line result is not one line, texts %q", longTT.Texts())
-	}
-	if longTT.HasText("line one\n") || longTT.HasText("\t") {
-		t.Errorf("the result keeps its line breaks and tabs, texts %q", longTT.Texts())
+// TestToolRowPreviewHeightIsBounded checks that the preview's height follows
+// the line budget, not the call: three lines and six lines draw the same
+// height, a one-line call draws less, and no preview is taller than its three
+// lines.
+func TestToolRowPreviewHeightIsBounded(t *testing.T) {
+	height := func(t *testing.T, result string) (paramRect, resultRect ui.Rect) {
+		t.Helper()
+		tt := ui.NewTester(toolFixture(ToolComplete, "ls", result).View, 900, 600)
+		paramRect, ok := tt.Find("Params: ls")
+		if !ok {
+			t.Fatalf("params are not drawn, texts %q", tt.Texts())
+		}
+		resultRect, ok = tt.Find("Result: " + previewText(result))
+		if !ok {
+			t.Fatalf("the result is not drawn, texts %q", tt.Texts())
+		}
+		return paramRect, resultRect
 	}
 
-	// A long preview and a short one draw the same single line, so a call
-	// cannot make its row taller.
-	shortRect, ok := shortTT.Find("Params: ls")
-	if !ok {
-		t.Fatalf("short params are not drawn, texts %q", shortTT.Texts())
+	one := "line one"
+	three := "line one\nline two\nline three"
+	six := "line one\nline two\nline three\nline four\nline five\nline six"
+	_, oneRect := height(t, one)
+	paramRect, threeRect := height(t, three)
+	_, sixRect := height(t, six)
+
+	if threeRect.H <= oneRect.H {
+		t.Errorf("three lines draw %.2f high, one line %.2f: the bound is not in use", threeRect.H, oneRect.H)
 	}
-	longRect, ok := longTT.Find("Params: " + wantParams)
-	if !ok {
-		t.Fatalf("long params are not drawn, texts %q", longTT.Texts())
+	if math.Abs(float64(threeRect.H-sixRect.H)) > 0.5 {
+		t.Errorf("six lines draw %.2f high, three lines %.2f: the preview grew past its bound", sixRect.H, threeRect.H)
 	}
-	if math.Abs(float64(shortRect.H-longRect.H)) > 0.5 {
-		t.Errorf("long params draw %.2f high, short ones %.2f: the row grew with its content",
-			longRect.H, shortRect.H)
+	if sixRect.H > 3*oneRect.H+0.5 {
+		t.Errorf("the result draws %.2f high, more than its %d lines of %.2f", sixRect.H, toolPreviewLines, oneRect.H)
 	}
-	if longRect.H > 40 {
-		t.Errorf("params line is %.2f high, so it wrapped", longRect.H)
-	}
-	resultRect, ok := longTT.Find("Result: line one line two line three")
-	if !ok {
-		t.Fatalf("the result is not drawn, texts %q", longTT.Texts())
-	}
-	if longRect.Y >= resultRect.Y {
+	if paramRect.Y >= threeRect.Y {
 		t.Errorf("params at y=%.2f are not above the result at y=%.2f: the card lost its order",
-			longRect.Y, resultRect.Y)
+			paramRect.Y, threeRect.Y)
 	}
 }
 
@@ -121,6 +161,9 @@ func TestToolRowEmptyParts(t *testing.T) {
 		if !tt.HasText(want) {
 			t.Errorf("card is missing %q, texts %q", want, tt.Texts())
 		}
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Retry"); ok {
+		t.Errorf("a finished call keeps a retry entry, texts %q", tt.Texts())
 	}
 }
 
@@ -146,6 +189,117 @@ func TestToolRowDrawsItsFace(t *testing.T) {
 		if share := faceShare(tt, item.Bounds, face); share < 0.2 {
 			t.Errorf("dark=%v: only %.0f%% of the row is the card face %+v: the card is a tint of what is under it",
 				dark, share*100, face)
+		}
+	}
+}
+
+// cardRect is the card's box inside a tool row: the row pads the card by
+// timelinePadX and rowPadY, so the list item's own box surrounds it.
+func cardRect(item ui.Rect, k tokens) ui.Rect {
+	return ui.Rect{
+		X: item.X + k.timelinePadX,
+		Y: item.Y + k.rowPadY,
+		W: item.W - 2*k.timelinePadX,
+		H: item.H - 2*k.rowPadY,
+	}
+}
+
+// edgePixels counts the pixels of face in the outermost band of r, where a
+// card's border is drawn and its inset text is not.
+func edgePixels(tt *ui.Tester, r ui.Rect, face ui.Color, band int) int {
+	img := tt.Image()
+	hits := 0
+	for y := int(r.Y); y < int(r.Y+r.H); y++ {
+		for x := int(r.X); x < int(r.X+r.W); x++ {
+			edge := x-int(r.X) < band || int(r.X+r.W)-x <= band ||
+				y-int(r.Y) < band || int(r.Y+r.H)-y <= band
+			if !edge || x < 0 || y < 0 || x >= img.Bounds().Dx() || y >= img.Bounds().Dy() {
+				continue
+			}
+			if p := img.RGBAAt(x, y); p.R == face.R && p.G == face.G && p.B == face.B && p.A == face.A {
+				hits++
+			}
+		}
+	}
+	return hits
+}
+
+// TestToolRowErrorDrawsDangerBorder checks the failed call's card: its border
+// is painted in the danger color rather than the ordinary hairline, while a
+// finished call keeps the neutral border.
+func TestToolRowErrorDrawsDangerBorder(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		cases := []struct {
+			status ToolStatus
+			want   bool
+		}{
+			{ToolError, true},
+			{ToolComplete, false},
+			{ToolCancelled, false},
+		}
+		for _, tc := range cases {
+			s := toolFixture(tc.status, "go test ./...", "FAIL")
+			var theme *ui.Theme
+			tt := ui.NewTester(func(c *ui.Context) {
+				theme = c.Theme()
+				s.View(c)
+			}, 900, 600)
+			tt.SetDark(dark)
+			k := newTokens(theme)
+
+			item, ok := tt.AccessByRole(ui.RoleListItem, "")
+			if !ok {
+				t.Fatalf("dark=%v status=%v: the row is not a list item, texts %q", dark, tc.status, tt.Texts())
+			}
+			got := edgePixels(tt, cardRect(item.Bounds, k), k.danger, 3) > 0
+			if got != tc.want {
+				t.Errorf("dark=%v: a %v card draws a danger border=%v, want %v", dark, tc.status, got, tc.want)
+			}
+		}
+	}
+}
+
+// TestToolRowErrorKeepsARetryEntry checks the retry entry of a failed call: it
+// is visible, keeps the keyboard focus so its reason is read, is disabled
+// because no callback can replay the call, and says why it cannot act. A
+// running or finished call keeps no retry entry.
+func TestToolRowErrorKeepsARetryEntry(t *testing.T) {
+	cases := []struct {
+		status ToolStatus
+		want   bool
+	}{
+		{ToolError, true},
+		{ToolRunning, false},
+		{ToolComplete, false},
+		{ToolCancelled, false},
+	}
+	for _, tc := range cases {
+		tt := ui.NewTester(toolFixture(tc.status, "go test ./...", "FAIL").View, 900, 600)
+		info, ok := tt.AccessByRole(ui.RoleButton, "Retry")
+		if ok != tc.want {
+			t.Errorf("%v: the card has a Retry button=%v, want %v, texts %q",
+				tc.status, ok, tc.want, tt.Texts())
+			continue
+		}
+		if !tc.want {
+			continue
+		}
+		if !info.Disabled {
+			t.Error("the retry entry takes a click although no callback can replay the call")
+		}
+		if !info.Focusable {
+			t.Error("the retry entry is unreachable, so its reason is never read")
+		}
+		for _, want := range []string{reasonToolRetry, wipBadge} {
+			if !strings.Contains(info.Description, want) {
+				t.Errorf("the retry entry's description %q does not carry %q", info.Description, want)
+			}
+		}
+		if err := tt.Click("Retry"); err != nil {
+			t.Fatalf("clicking the retry entry: %v", err)
+		}
+		if !tt.HasText("FAIL") {
+			t.Errorf("the card changed after a click on an unavailable retry, texts %q", tt.Texts())
 		}
 	}
 }

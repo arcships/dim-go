@@ -6,11 +6,28 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// toolPreviewRunes bounds the params and the result a tool row draws: the card
-// is one line each whatever the App Server sends, so a long command or a large
-// result cannot grow a row without limit. The shell keeps nothing but the
-// preview; the full text belongs to the tool call the projection owns.
-const toolPreviewRunes = 96
+// toolPreviewLines and toolPreviewRunes bound the params and the result a tool
+// row draws: the card previews at most three lines of each, and no line runs
+// past toolPreviewRunes runes, so a long command or a large result cannot grow
+// a row without limit. The shell keeps nothing but the preview; the full text
+// belongs to the tool call the projection owns.
+const (
+	toolPreviewLines = 3
+	toolPreviewRunes = 96
+)
+
+// The status badge's inset, a compact chip around one short word. The card's
+// own radius and border come from tokens.go (k.cardRadius, k.hairline), so the
+// badge adds no new shape to the shell.
+const (
+	toolBadgePadX = 5.25
+	toolBadgePadY = 1.75
+)
+
+// reasonToolRetry explains why a failed call's retry entry stays disabled: no
+// window callback replays a call, so the entry keeps its place instead of
+// pretending a click re-ran anything.
+const reasonToolRetry = "Unavailable: the shell has no tool retry callback yet, so this entry cannot replay the call."
 
 // Preview fallbacks: a tool call the view model leaves empty still shows the
 // line, so the card's shape does not depend on what the App Server sent.
@@ -96,16 +113,44 @@ type Tool struct {
 }
 
 // previewLine makes s a single bounded line: every run of whitespace becomes
-// one space, so a multi-line command or result stays one row, and text past
-// toolPreviewRunes runes ends in an ellipsis. The same input always gives the
-// same output, which is what a headless fixture checks.
+// one space, and text past toolPreviewRunes runes ends in an ellipsis. The same
+// input always gives the same output, which is what a headless fixture checks.
+// The open panel's typed facts use it, so a long command or path stays one row.
 func previewLine(s string) string {
-	s = strings.Join(strings.Fields(s), " ")
+	return cutRunes(strings.Join(strings.Fields(s), " "), toolPreviewRunes)
+}
+
+// cutRunes ends s in an ellipsis past limit runes, or returns it unchanged.
+func cutRunes(s string, limit int) string {
 	runes := []rune(s)
-	if len(runes) <= toolPreviewRunes {
+	if len(runes) <= limit {
 		return s
 	}
-	return string(runes[:toolPreviewRunes]) + "…"
+	return string(runes[:limit]) + "…"
+}
+
+// previewText is what the closed card draws for params or result: at most
+// toolPreviewLines lines, each one bounded by toolPreviewRunes runes, with the
+// last line ending in an ellipsis when the call sent more. Line breaks are kept
+// so a multi-line command still reads as the step sequence it was, and each
+// line's runs of spaces become one space so a tab cannot shift the layout. A
+// call that sent six lines draws three, and the fourth never reaches the row.
+func previewText(s string) string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	lines := strings.Split(strings.TrimSpace(s), "\n")
+	for i := range lines {
+		lines[i] = previewLine(lines[i])
+	}
+	if len(lines) <= toolPreviewLines {
+		return strings.Join(lines, "\n")
+	}
+	lines = lines[:toolPreviewLines]
+	last := lines[len(lines)-1]
+	if !strings.HasSuffix(last, "…") {
+		lines[len(lines)-1] = last + "…"
+	}
+	return strings.Join(lines, "\n")
 }
 
 // toolName is the name the card shows, for a row whose model left it empty.
@@ -134,22 +179,28 @@ func toolRow(c *ui.Context, k tokens, folds *blockFolds, m Message) {
 }
 
 // toolCard draws one tool call as a compact card that folds: its name and
-// status are always in the header, its params and result preview as one bounded
-// line each while closed, and its typed facts, params and result fill a panel
-// capped at 240 DIPs while open. The card is the card face of the surface
-// ladder, not a tint of the border: a call sits on the conversation as a raised
-// block with its own text color.
+// status badge are always in the header, its params and result preview as at
+// most three bounded lines each while closed, and its typed facts, params and
+// result fill a panel capped at 240 DIPs while open. A failed call draws its
+// border in the danger color and keeps a retry entry, which stays disabled until
+// the window has a callback that can replay a call. The card is the card face of
+// the surface ladder, not a tint of the border: a call sits on the conversation
+// as a raised block with its own text color.
 //
 // A running call shows its status in a live region that is busy, so it is
 // announced once and assistive technology waits for the result rather than
 // re-reading the card each frame.
 func toolCard(c *ui.Context, k tokens, folds *blockFolds, key string, tool Tool) {
 	open := folds.state(key)
+	border := k.border
+	if tool.Status == ToolError {
+		border = k.danger
+	}
 	ui.Column(c).
 		Padding(k.cardPadY, k.cardPadX).
 		Gap(k.gap).Radius(k.cardRadius).
 		Background(k.card).
-		BorderWidth(k.hairline).BorderColor(k.border).Children(func() {
+		BorderWidth(k.hairline).BorderColor(border).Children(func() {
 		var p ui.CollapsibleParts
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			// The disclosure is the arrow and the name; the status sits beside
@@ -162,23 +213,34 @@ func toolCard(c *ui.Context, k tokens, folds *blockFolds, key string, tool Tool)
 					ui.Text(c, previewLine(toolName(tool))).Bold().FontSize(k.labelSize).
 						TextColor(k.cardForeground).SingleLine()
 				})
-			toolStatusLabel(c, k, tool.Status)
+			toolStatusBadge(c, k, tool.Status)
 			ui.Spacer(c)
 		})
 		p.Panel(func() {
-			ui.Scroll(c).MaxHeight(k.timelinePanelMaxH).Children(func() {
+			ui.Scroll(c).MaxHeight(k.timelinePanelMaxH).Role(ui.RoleGroup).
+				Label("Tool details").Children(func() {
 				toolPanel(c, k, tool)
 			})
 		}).Margin(k.gap, 0, 0, 0).Radius(radiusMD).BorderWidth(k.hairline).
 			BorderColor(k.border).Clip()
-		// The closed card keeps one bounded line of each part, so it still says
-		// what the call was without being opened. NoWrap keeps each preview on
-		// its line: the card's height is bounded whatever the App Server sends.
+		// The closed card keeps at most three bounded lines of each part, so it
+		// still says what the call was without being opened. MaxLines keeps each
+		// preview at the card's line budget: the card's height is bounded
+		// whatever the App Server sends.
 		if !*open && p.Progress() == 0 {
-			ui.Text(c, previewField("Params", previewLine(tool.Params))).
-				FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
-			ui.Text(c, previewField("Result", previewLine(tool.Result))).
-				FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+			ui.Text(c, previewField("Params", previewText(tool.Params))).
+				FontSize(k.smallSize).TextColor(k.mutedForeground).MaxLines(toolPreviewLines)
+			ui.Text(c, previewField("Result", previewText(tool.Result))).
+				FontSize(k.smallSize).TextColor(k.mutedForeground).MaxLines(toolPreviewLines)
+		}
+		// A failed call keeps its retry entry in the card's body, open or
+		// closed, so the user does not have to expand the panel to find it. It
+		// stays WIP until a callback can replay the call: a disabled entry that
+		// explains itself, never a click that reports a success nobody ran.
+		if tool.Status == ToolError {
+			ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+				wipAction(c, k, "Retry", reasonToolRetry)
+			})
 		}
 	})
 }
@@ -200,18 +262,25 @@ func toolPanelSection(c *ui.Context, k tokens, title, text string) {
 	ui.Text(c, text).FontSize(k.codeFontSize).TextColor(k.cardForeground)
 }
 
-// toolStatusLabel draws a call's status in the color of its state. Only a
-// running call is a live region: it is announced as the card appears and says
-// the row is busy, while a finished call stays plain text, so the row does not
-// speak again every frame.
-func toolStatusLabel(c *ui.Context, k tokens, status ToolStatus) {
-	label := status.String()
+// toolStatusBadge draws a call's status as a chip in the color of its state: a
+// wash of that color behind the word keeps the status legible beside the tool
+// name without reading as a button. Only a running call is a live region: it is
+// announced as the card appears and says the row is busy, while a finished call
+// stays plain text, so the row does not speak again every frame.
+func toolStatusBadge(c *ui.Context, k tokens, status ToolStatus) {
+	color := k.toolStatusColor(status)
+	chip := func() {
+		ui.Row(c).Padding(toolBadgePadY, toolBadgePadX).Radius(radiusSM).
+			Background(k.wash(color)).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, status.String()).FontSize(k.smallSize).TextColor(color)
+		})
+	}
 	if status == ToolRunning {
 		ui.Row(c).Role(ui.RoleStatus).Busy(true).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c).AccessHidden(true) // the label beside it says what is happening
-			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.toolStatusColor(status))
+			chip()
 		})
 		return
 	}
-	ui.Text(c, label).FontSize(k.smallSize).TextColor(k.toolStatusColor(status))
+	chip()
 }
