@@ -360,3 +360,141 @@ func TestSidebarBranchesWithoutDirectoryDrawNothing(t *testing.T) {
 		t.Errorf("an empty branch directory shows the WIP reason, texts %q", tt.Texts())
 	}
 }
+
+// TestSidebarEndsTheCurrentBranch checks the end entry: the displayed non-main
+// branch offers it, a click asks the window to end exactly that branch, and the
+// region deletes no row and moves no selection before the App Server confirms.
+func TestSidebarEndsTheCurrentBranch(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{
+		{ID: "main", Label: "main", State: "open"},
+		{ID: "side", Label: "side", State: "open"},
+	}
+	s.SelectedBranch = "side"
+	var got []string
+	s.OnEndBranch = func(branchID string) { got = append(got, branchID) }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "End branch")
+	if !ok || info.Disabled {
+		t.Fatalf("the current branch offers no enabled End branch entry: %+v, found %v", info, ok)
+	}
+	if err := tt.Click("End branch"); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != "side" {
+		t.Fatalf("OnEndBranch ran with %q, want [side]", got)
+	}
+	if len(s.Branches) != 2 {
+		t.Fatalf("the sidebar deleted a branch row before the App Server confirmed: %#v", s.Branches)
+	}
+	if s.SelectedBranch != "side" {
+		t.Fatalf("the sidebar moved the displayed branch to %q before the App Server confirmed", s.SelectedBranch)
+	}
+}
+
+// TestSidebarEndsNoMainOrEndedBranch checks the entry's two App Server facts:
+// main is the session's own line and an ended branch is already closed, so
+// neither offers an end action.
+func TestSidebarEndsNoMainOrEndedBranch(t *testing.T) {
+	cases := []struct {
+		name     string
+		branches []Branch
+		current  string
+	}{
+		{"main", []Branch{{ID: "main", Label: "main", State: "open"}}, "main"},
+		{"ended", []Branch{
+			{ID: "main", Label: "main", State: "open"},
+			{ID: "side", Label: "side", State: "ended"},
+		}, "side"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := fixture()
+			s.Branches = tc.branches
+			s.SelectedBranch = tc.current
+			s.OnEndBranch = func(string) { t.Error("an endable row was offered where the directory does not allow it") }
+			tt := ui.NewTester(s.View, 900, 600)
+
+			if _, ok := tt.AccessByRole(ui.RoleButton, "End branch"); ok {
+				t.Errorf("the %s branch offers End branch, texts %q", tc.name, tt.Texts())
+			}
+		})
+	}
+}
+
+// TestSidebarEndBranchWithoutCallbackStaysWIP checks the WIP form: without the
+// callback the entry keeps its place, is disabled and explains the missing
+// session.branch_end wiring, so an unwired window cannot imply an end.
+func TestSidebarEndBranchWithoutCallbackStaysWIP(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{
+		{ID: "main", Label: "main", State: "open"},
+		{ID: "side", Label: "side", State: "open"},
+	}
+	s.SelectedBranch = "side"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "End branch")
+	if !ok {
+		t.Fatalf("the current branch offers no End branch entry, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("End branch is enabled without a callback")
+	}
+	if !strings.Contains(info.Description, reasonEndBranch) {
+		t.Errorf("the end entry description %q does not carry %q", info.Description, reasonEndBranch)
+	}
+	if err := tt.Click("End branch"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestSidebarRefreshesTheBranchDirectory checks the directory's refresh entry:
+// a click asks the window to re-read session.branches exactly once, and the
+// region keeps its rows for the caller to replace.
+func TestSidebarRefreshesTheBranchDirectory(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{
+		{ID: "main", Label: "main", State: "open"},
+		{ID: "side", Label: "side", State: "open"},
+	}
+	s.SelectedBranch = "main"
+	calls := 0
+	s.OnRefreshBranches = func() { calls++ }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "Refresh")
+	if !ok || info.Disabled {
+		t.Fatalf("the branch directory offers no enabled Refresh entry: %+v, found %v", info, ok)
+	}
+	if err := tt.Click("Refresh"); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Fatalf("OnRefreshBranches ran %d times, want 1", calls)
+	}
+	if len(s.Branches) != 2 {
+		t.Fatalf("the sidebar rewrote the directory itself: %#v", s.Branches)
+	}
+}
+
+// TestSidebarRefreshWithoutCallbackStaysWIP checks that the refresh entry keeps
+// its place and its reason while the window has no callback.
+func TestSidebarRefreshWithoutCallbackStaysWIP(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{{ID: "main", Label: "main", State: "open"}}
+	s.SelectedBranch = "main"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "Refresh")
+	if !ok {
+		t.Fatalf("the branch directory offers no Refresh entry, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("Refresh is enabled without a callback")
+	}
+	if !strings.Contains(info.Description, reasonRefreshBranches) {
+		t.Errorf("the refresh entry description %q does not carry %q", info.Description, reasonRefreshBranches)
+	}
+}

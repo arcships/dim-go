@@ -15,6 +15,18 @@ import (
 // rows do carry one. It names the absence of a group; it is not a project.
 const ungroupedLabel = "No project"
 
+const (
+	// mainBranchID is the branch the App Server always keeps: it can be shown,
+	// but not ended.
+	mainBranchID = "main"
+	// branchStateEnded is session.branches' terminal state. An ended branch
+	// offers no end entry, because the App Server already closed it.
+	branchStateEnded = "ended"
+
+	reasonEndBranch       = "Unavailable: the shell has no session.branch_end callback yet."
+	reasonRefreshBranches = "Unavailable: the shell has no session.branches refresh callback yet."
+)
+
 // sidebarRow is one row of the sidebar's thread list: a group heading or a
 // session. Every field is derived from SidebarView.Sessions each frame, so the
 // row holds no fact of its own and cannot outlive the catalog it came from.
@@ -323,6 +335,12 @@ func chooseSession(v SidebarView, a Actions) {
 // the WIP reason, so an unwired window offers no switch it cannot perform. The
 // region marks the displayed branch and writes nothing: a switch shows only
 // after the window publishes the branch the App Server returned.
+//
+// Refresh re-reads session.branches, so a branch the App Server ended (here or
+// in another client) leaves the directory only when that read reports it gone.
+// End branch is offered for the displayed branch while it is neither main nor
+// ended; a click asks the window to end it and leaves every row in place until
+// the App Server confirms through the refreshed directory.
 func branchList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	selectable := a.OnSelectBranch != nil
 	label := "Branches (read-only)"
@@ -337,6 +355,7 @@ func branchList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 			if !selectable {
 				ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 			}
+			branchRefreshEntry(c, k, a)
 		})
 		for _, branch := range v.Branches {
 			current := branchCurrent(branch, v.SelectedBranch)
@@ -346,10 +365,60 @@ func branchList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 			}
 			ui.Text(c, branchLabel(branch, current)).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
 		}
+		if branch, ok := currentBranch(v); ok && branchEndable(branch) {
+			branchEndEntry(c, k, branch, a)
+		}
 		if !selectable {
 			ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		}
 	})
+}
+
+// branchRefreshEntry asks the window to re-read session.branches. Without the
+// callback the entry keeps its place and its reason, so an unwired window
+// cannot imply a refresh it never sent.
+func branchRefreshEntry(c *ui.Context, k tokens, a Actions) {
+	if a.OnRefreshBranches == nil {
+		wipAction(c, k, "Refresh", reasonRefreshBranches)
+		return
+	}
+	ui.Button(c, "Refresh").OnClick(func() {
+		refreshBranches(a)
+	})
+}
+
+// branchEndEntry asks the window to end the displayed branch. The region draws
+// the entry only for a branch session.branches says is not main and not ended,
+// and it removes no row: the directory keeps its entries until the App Server
+// reports the end. Without the callback the entry stays visible, disabled and
+// explained as WIP.
+func branchEndEntry(c *ui.Context, k tokens, branch Branch, a Actions) {
+	if a.OnEndBranch == nil {
+		wipAction(c, k, "End branch", reasonEndBranch)
+		return
+	}
+	ui.Button(c, "End branch").OnClick(func() {
+		endBranch(a, branch.ID)
+	})
+}
+
+// currentBranch returns the branch the view marks as displayed, if the
+// directory still holds it. Both facts come from the App Server; the region
+// derives no current branch of its own.
+func currentBranch(v SidebarView) (Branch, bool) {
+	for _, branch := range v.Branches {
+		if branchCurrent(branch, v.SelectedBranch) {
+			return branch, true
+		}
+	}
+	return Branch{}, false
+}
+
+// branchEndable reports whether the App Server's directory allows ending the
+// branch: main is the session's own line, and an ended branch has no turn left
+// to close.
+func branchEndable(branch Branch) bool {
+	return branch.ID != "" && branch.ID != mainBranchID && branch.State != branchStateEnded
 }
 
 // branchLabel is a row's text: the caller's label, or the branch's id when the

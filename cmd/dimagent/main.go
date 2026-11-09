@@ -33,6 +33,13 @@ type sessionActions interface {
 	// OpenBranch reads one branch's first-screen history. Branch switching has
 	// no RPC of its own: the read is session.history for that branchId.
 	OpenBranch(ctx context.Context, branchID string) (session.BranchOpenResult, error)
+	// EndBranch asks the App Server to end one non-main branch. It removes no
+	// local fact: the directory and projection change only when the App Server
+	// reports the new state.
+	EndBranch(ctx context.Context, branchID string) (appserver.BranchEndOutcome, error)
+	// RefreshBranchDirectory re-reads session.branches into the read-only
+	// directory the window shows.
+	RefreshBranchDirectory(ctx context.Context) error
 	// SessionBranchID is the branch the session submits and stops on by
 	// default. A window that shows another branch names that branch explicitly;
 	// this one stays the read-back branch for a submit that named none.
@@ -149,6 +156,28 @@ func (b *sessionBridge) OpenBranchFor(ctx context.Context, sessionID, branchID s
 	}
 	_, err = controller.OpenBranch(ctx, branchID)
 	return err
+}
+
+// EndBranchFor ends one branch through the controller that still belongs to
+// sessionID. The App Server's outcome is returned unchanged; no directory entry
+// is dropped here.
+func (b *sessionBridge) EndBranchFor(ctx context.Context, sessionID, branchID string) (appserver.BranchEndOutcome, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return "", err
+	}
+	return controller.EndBranch(ctx, branchID)
+}
+
+// RefreshBranchesFor re-reads the selected session's branch directory through
+// the controller that still belongs to sessionID, so a directory read for an
+// older selection cannot land on the new one.
+func (b *sessionBridge) RefreshBranchesFor(ctx context.Context, sessionID string) error {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return err
+	}
+	return controller.RefreshBranchDirectory(ctx)
 }
 
 // SessionBranchID reports the branch the session submits and stops on when no
@@ -499,6 +528,8 @@ type app struct {
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
 	a.state.OnSelectBranch = a.selectBranch
+	a.state.OnEndBranch = a.endBranch
+	a.state.OnRefreshBranches = a.refreshBranches
 	a.state.OnCreateSession = a.createSession
 	a.state.OnSubmit = a.submit
 	a.state.OnStop = a.stop
@@ -835,6 +866,136 @@ func (a *app) selectBranch(branchID string) {
 			applyView(state, view)
 			state.ActionError = ""
 			state.ActionStatus = ""
+		})
+	}()
+}
+
+// endBranch asks the App Server to end one non-main branch, then re-reads the
+// branch directory and the displayed view. The entry is not removed here or
+// before the App Server answered: the directory keeps its rows until
+// session.branches reports the end, and an already-ended reply is followed by
+// the same read instead of a local delete. When the ended branch was the one
+// displayed, the window falls back to main, so it never keeps showing a line the
+// App Server closed. A failed end leaves the directory untouched and reports
+// through ActionError.
+func (a *app) endBranch(branchID string) {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	if branchID == "" || branchID == appserver.MainBranchID {
+		a.notice("branch.error", fmt.Sprintf("End branch %q: main cannot be ended", branchID))
+		return
+	}
+	sessionID := a.state.Selected
+	gen := a.currentSelection()
+	_, branchGen := a.displayBranch()
+	endedShown := a.state.SelectedBranch == branchID
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if _, err := a.bridge.EndBranchFor(ctx, sessionID, branchID); err != nil {
+			log.Printf("dimagent: end branch %q: %v", branchID, err)
+			if a.selectionCurrent(gen) {
+				a.notice("branch.error", fmt.Sprintf("End branch %q: %v", branchID, err))
+			}
+			return
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		// The App Server accepted the end; re-read the directory so the row
+		// leaves only when session.branches says it is gone.
+		refreshErr := a.bridge.RefreshBranchesFor(ctx, sessionID)
+		if refreshErr != nil {
+			log.Printf("dimagent: refresh branches after ending %q: %v", branchID, refreshErr)
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		target, _ := a.displayBranch()
+		if endedShown {
+			target = appserver.MainBranchID
+		}
+		view := a.bridge.LiveStateFor(sessionID, target)
+		if view == nil {
+			a.update(func(state *dimui.State) {
+				if !a.selectionCurrent(gen) {
+					return
+				}
+				if endedShown && !a.commitBranch(appserver.MainBranchID, branchGen) {
+					return
+				}
+				if endedShown {
+					state.SelectedBranch = appserver.MainBranchID
+				}
+				state.ActionError = fmt.Sprintf("End branch %q: the window could not read the branch directory back", branchID)
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "branch.error", ID: state.ActionError})
+			})
+			return
+		}
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			if endedShown {
+				if !a.commitBranch(appserver.MainBranchID, branchGen) {
+					return
+				}
+			} else if !a.branchCurrent(branchGen) {
+				return
+			}
+			applyView(state, view)
+			if endedShown {
+				state.SelectedBranch = appserver.MainBranchID
+			}
+			state.ActionStatus = ""
+		})
+		if refreshErr != nil {
+			a.notice("branch.error", fmt.Sprintf("Branch %q ended, but the branch directory refresh failed: %v", branchID, refreshErr))
+			return
+		}
+		a.notice("branch.ended", branchID)
+	}()
+}
+
+// refreshBranches re-reads session.branches and publishes the view the
+// controller builds from the new directory. The window keeps the previous rows
+// until that read returns; a failure reports through ActionError and deletes
+// nothing.
+func (a *app) refreshBranches() {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	sessionID := a.state.Selected
+	gen := a.currentSelection()
+	_, branchGen := a.displayBranch()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := a.bridge.RefreshBranchesFor(ctx, sessionID); err != nil {
+			log.Printf("dimagent: refresh branches: %v", err)
+			if a.selectionCurrent(gen) {
+				a.notice("branch.error", fmt.Sprintf("Refresh branches: %v", err))
+			}
+			return
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		branch, _ := a.displayBranch()
+		view := a.bridge.LiveStateFor(sessionID, branch)
+		if view == nil {
+			if a.selectionCurrent(gen) {
+				a.notice("branch.error", "Refresh branches: the session is no longer attached")
+			}
+			return
+		}
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) || !a.branchCurrent(branchGen) {
+				return
+			}
+			applyView(state, view)
 		})
 	}()
 }

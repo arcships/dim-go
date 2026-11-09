@@ -138,6 +138,9 @@ type fakeSession struct {
 	stopErr           error
 	reattachErr       error
 	openBranchErr     error
+	endBranchErr      error
+	endBranchOutcome  appserver.BranchEndOutcome
+	refreshBranchErr  error
 	approvalErr       error
 	approvalResult    appserver.ApprovalRespondOutcome
 	lookupResult      appserver.InputLookupResult
@@ -146,6 +149,7 @@ type fakeSession struct {
 	submitted         chan string
 	stopped           chan struct{}
 	approved          chan struct{}
+	refreshed         chan struct{}
 	liveCalls         chan struct{}
 	reconnectStart    chan struct{}
 	reconnectGate     chan struct{}
@@ -153,6 +157,8 @@ type fakeSession struct {
 	openBranchGate    chan struct{}
 	openBranchDone    chan struct{}
 	openBranch        []string
+	endedBranches     []string
+	refreshCalls      int
 	shownBranch       string
 	sessionBranch     string
 	submitText        []string
@@ -216,6 +222,29 @@ func (f *fakeSession) OpenBranch(_ context.Context, branchID string) (session.Br
 		return session.BranchOpenResult{}, f.openBranchErr
 	}
 	return session.BranchOpenResult{BranchID: branchID}, nil
+}
+
+// EndBranch records the branch it was asked to end and returns the test's
+// outcome; an empty outcome means the App Server ended it.
+func (f *fakeSession) EndBranch(_ context.Context, branchID string) (appserver.BranchEndOutcome, error) {
+	f.endedBranches = append(f.endedBranches, branchID)
+	if f.endBranchErr != nil {
+		return "", f.endBranchErr
+	}
+	if f.endBranchOutcome == "" {
+		return appserver.BranchEndOutcomeEnded, nil
+	}
+	return f.endBranchOutcome, nil
+}
+
+// RefreshBranchDirectory records the directory read and signals the test when
+// it supplied a channel.
+func (f *fakeSession) RefreshBranchDirectory(context.Context) error {
+	f.refreshCalls++
+	if f.refreshed != nil {
+		f.refreshed <- struct{}{}
+	}
+	return f.refreshBranchErr
 }
 
 // SessionBranchID is the branch the fake submits on; main unless the test says

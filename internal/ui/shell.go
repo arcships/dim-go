@@ -227,25 +227,30 @@ type State struct {
 	Messages []Message
 	Draft    string
 
-	// OnSelect, OnSelectBranch, OnCreateSession, OnSubmit, OnStop, OnReconnect
-	// and OnApproval connect the shell's actions to the caller's session
-	// controller. They are the only wiring source of the Actions a region
-	// receives; a nil field leaves its action in the view without an effect, as
-	// a fixture does, and the region keeps its WIP entry. The callback owns the
-	// App Server call and the facts it returns, so the shell never reports an
-	// action it did not send. OnCreateSession asks the caller to run
-	// session.create and to publish the new session in the catalog and the
-	// selection once the App Server returned it. OnSelectBranch asks the caller
-	// to read that branch's history and to show it only once the App Server
-	// returned it. OnApproval receives one decision for one request: the caller
+	// OnSelect, OnSelectBranch, OnEndBranch, OnRefreshBranches,
+	// OnCreateSession, OnSubmit, OnStop, OnReconnect and OnApproval connect the
+	// shell's actions to the caller's session controller. They are the only
+	// wiring source of the Actions a region receives; a nil field leaves its
+	// action in the view without an effect, as a fixture does, and the region
+	// keeps its WIP entry. The callback owns the App Server call and the facts
+	// it returns, so the shell never reports an action it did not send.
+	// OnCreateSession asks the caller to run session.create and to publish the
+	// new session in the catalog and the selection once the App Server returned
+	// it. OnSelectBranch asks the caller to read that branch's history and to
+	// show it only once the App Server returned it. OnEndBranch asks the caller
+	// to end one branch and to remove its row only after session.branches
+	// reports it gone. OnRefreshBranches asks the caller to re-read that
+	// directory. OnApproval receives one decision for one request: the caller
 	// sends approval.respond and lets the session projection settle the row.
-	OnSelect        func(sessionID string)
-	OnSelectBranch  func(branchID string)
-	OnCreateSession func()
-	OnSubmit        func(text string)
-	OnStop          func()
-	OnReconnect     func()
-	OnApproval      func(branchID, requestID string, decision ApprovalDecision)
+	OnSelect          func(sessionID string)
+	OnSelectBranch    func(branchID string)
+	OnEndBranch       func(branchID string)
+	OnRefreshBranches func()
+	OnCreateSession   func()
+	OnSubmit          func(text string)
+	OnStop            func()
+	OnReconnect       func()
+	OnApproval        func(branchID, requestID string, decision ApprovalDecision)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -412,13 +417,15 @@ func (s *State) statusBarView() StatusBarView {
 // nil callback stays nil, which is how a region learns the action is a WIP gap.
 func (s *State) actions() Actions {
 	a := Actions{
-		OnCreateSession: s.OnCreateSession,
-		OnSelect:        s.OnSelect,
-		OnSelectBranch:  s.OnSelectBranch,
-		OnSubmit:        s.OnSubmit,
-		OnStop:          s.OnStop,
-		OnReconnect:     s.OnReconnect,
-		OnApproval:      s.OnApproval,
+		OnCreateSession:   s.OnCreateSession,
+		OnSelect:          s.OnSelect,
+		OnSelectBranch:    s.OnSelectBranch,
+		OnEndBranch:       s.OnEndBranch,
+		OnRefreshBranches: s.OnRefreshBranches,
+		OnSubmit:          s.OnSubmit,
+		OnStop:            s.OnStop,
+		OnReconnect:       s.OnReconnect,
+		OnApproval:        s.OnApproval,
 		// The settings toggle is the shell's own state, not a caller callback, so
 		// it is always wired. Opening it takes the main column from the keys
 		// browser, so the two never compete for it.
