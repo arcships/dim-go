@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -1532,6 +1533,16 @@ func approvalDecision(decision dimui.ApprovalDecision) (string, bool) {
 	}
 }
 
+// envInt reads an optional integer environment value; an absent or malformed
+// one is zero, which mygo reads as "center the window".
+func envInt(name string) int {
+	value, err := strconv.Atoi(os.Getenv(name))
+	if err != nil {
+		return 0
+	}
+	return value
+}
+
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	state, bridge, err := stateFromDaemon(ctx, os.Getenv("DIMAGENT_PRODUCT_HOME"))
@@ -1560,6 +1571,10 @@ func main() {
 			// is the same, so the proportion of chrome matches the desktop app.
 			Width:  800,
 			Height: 720,
+			// A capture names its position so the window lands on the primary
+			// display; a normal launch leaves both at zero and centers itself.
+			X: envInt("DIMAGENT_WINDOW_X"),
+			Y: envInt("DIMAGENT_WINDOW_Y"),
 			// content draws the shell and then writes an appearance choice the
 			// surface applied during that frame.
 			Content: ui.View(application.content),

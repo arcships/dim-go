@@ -42,7 +42,13 @@ def main() -> None:
     args = parser.parse_args()
 
     reference = Image.open(args.reference).convert("RGB")
-    candidate = Image.open(args.candidate).convert("RGB").resize(reference.size, Image.LANCZOS)
+    candidate = Image.open(args.candidate).convert("RGB")
+    # Compare at the smaller of the two sizes: the evidence may come from a 1x
+    # or 2x display, and upscaling the lower-resolution frame would blur every
+    # region and inflate the difference.
+    target = (min(reference.width, candidate.width), min(reference.height, candidate.height))
+    reference = reference.resize(target, Image.LANCZOS)
+    candidate = candidate.resize(target, Image.LANCZOS)
     diff = ImageChops.difference(reference, candidate)
 
     report = {"reference": args.reference, "candidate": args.candidate, "size": list(reference.size), "regions": {}}

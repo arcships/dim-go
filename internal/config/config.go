@@ -84,6 +84,12 @@ func Default() Settings {
 // Path returns the preferences file's path:
 // <user config dir>/dimagent/settings.json.
 func Path() (string, error) {
+	// Acceptance runs point the desktop preferences at their own directory so a
+	// screenshot never inherits the reviewer's theme or width. A normal launch
+	// leaves the variable unset and uses the user's config directory.
+	if home := os.Getenv("DIMAGENT_CONFIG_HOME"); home != "" {
+		return filepath.Join(home, dirName, fileName), nil
+	}
 	dir, err := os.UserConfigDir()
 	if err != nil {
 		return "", fmt.Errorf("settings path: %w", err)
