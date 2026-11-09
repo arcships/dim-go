@@ -432,6 +432,34 @@ func TestAppReconnectReattachesAndRefreshes(t *testing.T) {
 	}
 }
 
+// TestAppSubmitDoesNotTargetStaleController checks that the window captures the
+// selected id before the background submit and refuses a controller that no
+// longer belongs to it.
+func TestAppSubmitDoesNotTargetStaleController(t *testing.T) {
+	f := &fakeSession{}
+	bridge := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
+	a := &app{state: &dimui.State{Selected: "s2"}, bridge: bridge}
+	updated := make(chan struct{}, 1)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		select {
+		case updated <- struct{}{}:
+		default:
+		}
+	}
+	a.bind()
+	a.state.OnSubmit("hello")
+
+	select {
+	case <-updated:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stale submit did not publish an error")
+	}
+	if len(f.submitText) != 0 {
+		t.Fatalf("stale submit reached the wrong controller: %q", f.submitText)
+	}
+}
+
 // TestAppSubmitReachesSession checks the submit callback the composer invokes.
 func TestAppSubmitReachesSession(t *testing.T) {
 	sent := make(chan string, 1)
