@@ -33,18 +33,28 @@ type sessionActions interface {
 	// OpenBranch reads one branch's first-screen history. Branch switching has
 	// no RPC of its own: the read is session.history for that branchId.
 	OpenBranch(ctx context.Context, branchID string) (session.BranchOpenResult, error)
-	// SessionBranchID is the branch the controller submits and stops on. The
-	// window may display another branch, so a read-back must name this one.
+	// SessionBranchID is the branch the session submits and stops on by
+	// default. A window that shows another branch names that branch explicitly;
+	// this one stays the read-back branch for a submit that named none.
 	SessionBranchID() string
 	Submit(ctx context.Context, text string) (appserver.SubmitResult, error)
 	// SubmitWithID also returns the submission id, which is the only key
 	// session.input_lookup accepts when a submit's outcome is unknown.
 	SubmitWithID(ctx context.Context, text string) (appserver.SubmitResult, string, error)
+	// SubmitBranchWithID sends on the explicit branch the window shows and
+	// keeps the idempotency key for a same-branch read-back.
+	SubmitBranchWithID(ctx context.Context, branchID, text string) (appserver.SubmitResult, string, error)
 	// LookupInput reads a submission back through session.input_lookup. It must
 	// never resend the submission.
 	LookupInput(ctx context.Context, branchID, submissionID string) (appserver.InputLookupResult, error)
+	// LookupInputBranch is LookupInput on the branch the submission was sent
+	// on, so a side-branch submission is not resolved against the default one.
+	LookupInputBranch(ctx context.Context, branchID, submissionID string) (appserver.InputLookupResult, error)
 	RespondApproval(ctx context.Context, branchID, requestID, decision string) (appserver.ApprovalRespondOutcome, error)
 	Stop(ctx context.Context) error
+	// StopBranch stops the branch the window shows instead of the session's
+	// default branch.
+	StopBranch(ctx context.Context, branchID string) error
 	Reattach(ctx context.Context) error
 	Close(ctx context.Context) error
 }
@@ -141,10 +151,10 @@ func (b *sessionBridge) OpenBranchFor(ctx context.Context, sessionID, branchID s
 	return err
 }
 
-// SessionBranchID reports the branch the controller submits and stops on. It is
-// the session layer's own branch: the window's displayed branch may differ until
-// branch-aware submit is wired, and a read-back must name the one the App
-// Server received.
+// SessionBranchID reports the branch the session submits and stops on when no
+// branch is named. A branch the window opened is named explicitly instead; an
+// empty displayed branch means the session's own branch, which is what this
+// reports and what a read-back must name then.
 func (b *sessionBridge) SessionBranchID() string {
 	controller, _ := b.current()
 	if controller == nil {
@@ -174,6 +184,18 @@ func (b *sessionBridge) SubmitWithIDFor(ctx context.Context, sessionID, text str
 	return controller.SubmitWithID(ctx, text)
 }
 
+// SubmitBranchWithIDFor sends text on branchID through the controller that
+// still belongs to sessionID. A submission captured for an older selection
+// never reaches the newly attached session, which is what keeps a branch of the
+// previous session from naming the new one's submit.
+func (b *sessionBridge) SubmitBranchWithIDFor(ctx context.Context, sessionID, branchID, text string) (appserver.SubmitResult, string, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.SubmitResult{}, "", err
+	}
+	return controller.SubmitBranchWithID(ctx, branchID, text)
+}
+
 // LookupInputFor reads one submission back through the controller that still
 // belongs to sessionID. It asks the App Server every time and never resends the
 // submission.
@@ -183,6 +205,16 @@ func (b *sessionBridge) LookupInputFor(ctx context.Context, sessionID, branchID,
 		return appserver.InputLookupResult{}, err
 	}
 	return controller.LookupInput(ctx, branchID, submissionID)
+}
+
+// LookupInputBranchFor reads one submission back on the branch it was sent on,
+// through the controller that still belongs to sessionID.
+func (b *sessionBridge) LookupInputBranchFor(ctx context.Context, sessionID, branchID, submissionID string) (appserver.InputLookupResult, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.InputLookupResult{}, err
+	}
+	return controller.LookupInputBranch(ctx, branchID, submissionID)
 }
 
 // Submit sends text through the current controller for fixture callers.
@@ -199,9 +231,42 @@ func (b *sessionBridge) StopFor(ctx context.Context, sessionID string) error {
 	return controller.Stop(ctx)
 }
 
+// StopBranchFor stops branchID through the controller that still belongs to
+// sessionID, so a stop captured while a side branch was shown ends that branch
+// and not another session's.
+func (b *sessionBridge) StopBranchFor(ctx context.Context, sessionID, branchID string) error {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return err
+	}
+	return controller.StopBranch(ctx, branchID)
+}
+
 // Stop stops the current controller for fixture callers.
 func (b *sessionBridge) Stop(ctx context.Context) error {
 	return b.StopFor(ctx, "")
+}
+
+// submitOn sends text on the branch the window shows. A side branch is named
+// explicitly so the App Server puts the input on the branch the user reads; the
+// default branch has no branch-specific submit to name, so it keeps the session
+// path and the session layer's own branch. Either way the branch that was named
+// here is the branch a read-back must name.
+func (b *sessionBridge) submitOn(ctx context.Context, sessionID, branchID, text string) (appserver.SubmitResult, string, error) {
+	if branchID == "" || branchID == appserver.MainBranchID {
+		return b.SubmitWithIDFor(ctx, sessionID, text)
+	}
+	return b.SubmitBranchWithIDFor(ctx, sessionID, branchID, text)
+}
+
+// stopOn stops the branch the window shows. The default branch keeps the
+// session's branch-less stop; a side branch is named so the turn the user is
+// reading is the one that ends.
+func (b *sessionBridge) stopOn(ctx context.Context, sessionID, branchID string) error {
+	if branchID == "" || branchID == appserver.MainBranchID {
+		return b.StopFor(ctx, sessionID)
+	}
+	return b.StopBranchFor(ctx, sessionID, branchID)
 }
 
 // RespondApprovalFor sends one folded decision through the controller that
@@ -545,6 +610,19 @@ func (a *app) view() *dimui.State {
 	return a.bridge.LiveStateFor("", branch)
 }
 
+// actionBranch reports the branch a submit or a stop names: the branch the
+// window shows, or the session's own branch when it shows none. A displayed
+// branch only moves after the App Server opened it, and a session selection
+// clears it, so a branch the previous session showed can never name an action on
+// the new one.
+func (a *app) actionBranch() string {
+	branch, _ := a.displayBranch()
+	if branch != "" || a.bridge == nil {
+		return branch
+	}
+	return a.bridge.SessionBranchID()
+}
+
 // startRefresh periodically rebuilds the selected view from the controller's
 // public LiveState snapshot. It does not create local session/message facts.
 // Calling it again replaces the previous loop.
@@ -883,15 +961,16 @@ func (a *app) submit(text string) {
 		return
 	}
 	sessionID := a.state.Selected
-	// A submission goes to the session's own branch, not necessarily the branch
-	// the window displays: submit is not branch-aware yet, and the read-back key
-	// must name the branch the App Server actually received.
-	branchID := a.bridge.SessionBranchID()
+	// A submission goes to the branch the window shows: the App Server opened
+	// that branch, so it is the conversation the user is reading. With no branch
+	// of its own the window shows the session's default branch, which is what
+	// the branch-less submit names. The same branch names the read-back.
+	branchID := a.actionBranch()
 	gen := a.currentSelection()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_, submissionID, err := a.bridge.SubmitWithIDFor(ctx, sessionID, text)
+		_, submissionID, err := a.bridge.submitOn(ctx, sessionID, branchID, text)
 		if err != nil {
 			log.Printf("dimagent: submit: %v", err)
 			if errors.Is(err, appserver.ErrUnknownResult) {
@@ -938,7 +1017,9 @@ func (a *app) resolveUnknownSubmit(sessionID, branchID, submissionID, text strin
 	default:
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		result, lookupE = a.bridge.LookupInputFor(ctx, sessionID, branchID, submissionID)
+		// The read-back names the branch the submission was sent on, so an
+		// unknown side-branch result is never resolved against the default one.
+		result, lookupE = a.bridge.LookupInputBranchFor(ctx, sessionID, branchID, submissionID)
 	}
 	if lookupE != nil {
 		detail := fmt.Sprintf("Submission result unknown (%v); read-back failed: %v", submitErr, lookupE)
@@ -1050,11 +1131,14 @@ func (a *app) stop() {
 		return
 	}
 	sessionID := a.state.Selected
+	// A stop names the branch the window shows, so stopping on a side branch
+	// ends that branch's turn instead of the session's default one.
+	branchID := a.actionBranch()
 	gen := a.currentSelection()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := a.bridge.StopFor(ctx, sessionID); err != nil {
+		if err := a.bridge.stopOn(ctx, sessionID, branchID); err != nil {
 			log.Printf("dimagent: stop: %v", err)
 			if a.selectionCurrent(gen) {
 				a.notice("stop.error", err.Error())

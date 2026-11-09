@@ -50,6 +50,18 @@ func TestMutationMethodsRequireSessionAndContext(t *testing.T) {
 	if err := controller.Stop(context.Background()); err == nil {
 		t.Fatal("Stop without session should fail")
 	}
+	if _, err := controller.SubmitBranch(context.Background(), "side", "text"); err == nil {
+		t.Fatal("SubmitBranch without session should fail")
+	}
+	if _, _, err := controller.SubmitBranchWithID(context.Background(), "side", "text"); err == nil {
+		t.Fatal("SubmitBranchWithID without session should fail")
+	}
+	if err := controller.StopBranch(context.Background(), "side"); err == nil {
+		t.Fatal("StopBranch without session should fail")
+	}
+	if _, err := controller.LookupInputBranch(context.Background(), "side", "sub-1"); err == nil {
+		t.Fatal("LookupInputBranch without session should fail")
+	}
 	if _, err := controller.OpenBranch(context.Background(), "side"); err == nil {
 		t.Fatal("OpenBranch without session should fail")
 	}
