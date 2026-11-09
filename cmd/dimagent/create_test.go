@@ -271,8 +271,8 @@ func TestBridgeCreateInstallsController(t *testing.T) {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if row.ID != "s3" || row.Title != "s3" {
-		t.Fatalf("row = %#v, want the App Server's id", row)
+	if row.ID != "s3" || row.Title != "" {
+		t.Fatalf("row = %#v, want the App Server's id and no title fact", row)
 	}
 	if b.controller != fresh || b.summary.SessionID != "s3" {
 		t.Fatalf("bridge did not install the created session: %#v %#v", b.controller, b.summary)

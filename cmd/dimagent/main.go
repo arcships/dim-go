@@ -478,9 +478,9 @@ func (b *sessionBridge) create(ctx context.Context, params appserver.CreateParam
 		}
 		return dimui.Session{}, errors.New("dimagent: session.create returned no session")
 	}
-	// A session the catalog has not titled yet shows its id, which is what
-	// integration.Catalog does for a summary without a title or preview.
-	row := dimui.Session{ID: result.SessionID, Title: result.SessionID}
+	// An untitled session has no title fact yet: the shell draws its localized
+	// placeholder until the catalog reports a title or preview.
+	row := dimui.Session{ID: result.SessionID}
 	b.mu.Lock()
 	previous := b.controller
 	b.controller, b.summary = controller, summaryForRow(row)
