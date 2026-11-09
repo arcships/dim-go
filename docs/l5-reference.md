@@ -84,6 +84,8 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 
 同名 `.txt` 是脚本写出的机器可读元数据（含 app PID、daemon 命令行）。
 
+`window-workspace.png` / `window-skills.png` 这两张是用归档后的 [`scripts/capture-step.sh`](evidence/electron-reference/scripts/capture-step.sh) 原样重跑生成的（14:36:56 / 14:37:00），其余几张由同一脚本的早期版本生成、逻辑相同。重跑只改了输出路径的推导方式，因此这两张也是"脚本可复现"的证据。
+
 窗口尺寸与源码一致：`DEFAULT_WINDOW_WIDTH = 800`、`DEFAULT_WINDOW_HEIGHT = 720`（`packages/desktop/packages/electron-main/src/config/constants.ts:54-55`），`vibrancy: 'hud'` + `titleBarStyle: 'hidden'`（`bootstrap.ts:3085-3092`）解释了截图里没有系统标题栏、红黄绿按钮浮在侧栏左上角。
 
 ## 5. 每张图
@@ -176,7 +178,7 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 3. **没有会话内容**：全新 home 下没有 session，应用显示「未配置」（无模型）。点了「新建会话」也没有产生会话行。因此**没有** timeline、消息气泡、tool 卡片、thinking、file changes、approval 决策、流式更新、断线重连的像素证据。要补这些，需要真实模型配置（或上游给的 fixture），本次没有伪造。
 4. **没有系统外观跟随**：主题是在设置里手切的，没有改 macOS 外观后重抓。
 5. **没有 hover / 焦点 / 菜单 / 弹窗态**：只抓了静态停留态。
-6. 截图时窗口有时被放到屏幕外（`x=-1232`）；`screencapture -l` 仍按窗口 ID 抓到完整内容，但这也说明这批图**不能**用来证明窗口定位/多屏行为。
+6. **窗口定位不可用**：早期一次采集时窗口被系统放在屏幕外（`x=-1232`），那批产物已用 800×720 在屏的重抓替换；本次交付的 9 张都是窗口完整在屏，但采集过程本身不控制窗口位置，不能用来证明多屏/定位行为。
 
 ## 8. dimagent-mygo 侧下一步该对照的区域
 

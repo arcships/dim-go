@@ -39,4 +39,4 @@ swiftc -O winlist.swift -o /tmp/dim-electron-capture/winlist   # 读窗口 ID �
 ## 证据边界
 
 - 这些图证明**这台机器、这个 commit、这个窗口尺寸**下的真实渲染结果，不证明其它平台、DPI、字体或系统外观下的样子。
-- 会话列表为空，所有截图都**没有**真实对话内容（原因见 `docs/l5-reference.md` §6）。
+- 会话列表为空，所有截图都**没有**真实对话内容（原因见 `docs/l5-reference.md` §7.3）。

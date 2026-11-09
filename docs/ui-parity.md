@@ -191,6 +191,18 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 - 加一条像素回归：用 A 已有的 `scripts/e2e/compare-png.swift` 思路（区域 + 阈值），先在 `internal/ui` 里做"同一 commit 前后"的稳定性回归，再谈跨端对比。
 - 验收：CI 里能看到 light/dark 两张图 diff 为 0；跨端对比先人工评审，不设自动阈值（技术上不同渲染器，自动阈值会误报）。
 
+## 5.1 真实像素基线（2026-11-09）
+
+`docs/evidence/electron-reference/` 已采集真实 Electron 窗口（`docs/l5-reference.md`），这是 L5 的对照基线，不是 mygo 侧结论。肉眼可见的结构差距：
+
+1. **主区是一张卡片**：Electron 的主内容在圆角卡片里（外边距 + 细边框），MyGo 目前是贴边列。
+2. **空态 hero**：Electron 空会话是居中品牌标记 + `开始构建` + 副标题，composer 浮在其下；MyGo 只有一行 `No messages yet`。
+3. **composer 结构**：Electron 是输入卡 + 工具行（+, », cube）+ 右侧模型状态 + 圆形发送 + 底部 `工作区 / 默认权限`；MyGo 缺底部 context row 和圆形发送。
+4. **侧栏**：Electron 有 `新建会话 / 搜索 / 定时任务 / 技能/插件` 四个全局入口、底部账户行与设置齿轮；MyGo 目前只有部分入口，无账户行。
+5. **语言**：参考窗口是中文界面；MyGo 已支持 en/zh-CN，但默认仍是英文。
+
+以上 1–4 已排进当前 Wave 3 的三个 worktree（main card、composer context、sidebar entries）。
+
 ## 6. 结论复述
 
 - **不是 1:1**。差距的根因是 token 语义层只有一层（7 个色）而不是三层（原始色 → 语义 → 皮肤/主题覆盖），组件层因此 16/19 个目录完全没有对应物，另 3 个（sidebar、chat-workspace、markdown）只有骨架。
