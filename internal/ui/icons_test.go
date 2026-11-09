@@ -11,16 +11,17 @@ import (
 // added without the size and drawing checks seeing it.
 func sidebarGlyphCases() map[string]*ui.SVG {
 	return map[string]*ui.SVG{
-		"plus":    sidebarIcons.plus,
-		"search":  sidebarIcons.search,
-		"clock":   sidebarIcons.clock,
-		"grid":    sidebarIcons.grid,
-		"folder":  sidebarIcons.folder,
-		"house":   sidebarIcons.house,
-		"user":    sidebarIcons.user,
-		"gear":    sidebarIcons.gear,
-		"chevron": sidebarIcons.chevron,
-		"list":    sidebarIcons.list,
+		"plus":     sidebarIcons.plus,
+		"search":   sidebarIcons.search,
+		"clock":    sidebarIcons.clock,
+		"grid":     sidebarIcons.grid,
+		"folder":   sidebarIcons.folder,
+		"house":    sidebarIcons.house,
+		"user":     sidebarIcons.user,
+		"gear":     sidebarIcons.gear,
+		"chevron":  sidebarIcons.chevron,
+		"list":     sidebarIcons.list,
+		"collapse": sidebarIcons.collapse,
 	}
 }
 
@@ -92,24 +93,27 @@ func TestSidebarGlyphDrawsAtSixteenAndStaysHidden(t *testing.T) {
 
 // glyphCase names one icon's label and whether Find names the whole row (a
 // button or a group heading) or only the heading's text. The glyph sits at the
-// row's own padding, or one gap and one icon left of a text label.
+// row's own padding, or one gap and one icon left of a text label. A group
+// heading's row is inset by the list but gives that inset back in its padding,
+// so its glyph keeps the column's edge.
 type glyphCase struct {
-	label string
-	row   bool
+	label   string
+	row     bool
+	heading bool
 }
 
 // sidebarGlyphCasesInTheFrame is every decoration the sidebar draws, with the
 // kind of label Find returns for it.
 func sidebarGlyphCasesInTheFrame() []glyphCase {
 	return []glyphCase{
-		{"New session", true},
-		{"Search", true},
-		{"Scheduled tasks", true},
-		{"Skills and plugins", true},
-		{"alpha", true},
-		{"Workspace", false},
-		{"Sign in to Dim", true},
-		{"Settings", true},
+		{label: "New session", row: true},
+		{label: "Search", row: true},
+		{label: "Scheduled tasks", row: true},
+		{label: "Skills and plugins", row: true},
+		{label: "alpha", row: true, heading: true},
+		{label: "Workspace"},
+		{label: "Sign in to Dim", row: true},
+		{label: "Settings", row: true},
 	}
 }
 
@@ -124,6 +128,9 @@ func glyphInk(tt *ui.Tester, c glyphCase, k tokens) (ui.Rect, bool, bool) {
 		return ui.Rect{}, false, false
 	}
 	left := rect.X + k.sidebarPadX
+	if c.heading {
+		left -= sidebarRowInset
+	}
 	if !c.row {
 		left = rect.X - k.sidebarGap - sidebarIconSize
 	}

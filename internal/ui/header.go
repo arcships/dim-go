@@ -42,6 +42,17 @@ const breadcrumbGap = 4
 // the title left.
 const breadcrumbProjectMaxW = 85
 
+// titleEllipsisOverlap is the room the title's text takes past its own box, in
+// DIPs. The bar's title ends where the session menu's target begins, and the
+// menu keeps its 20 DIP target and glyph position; the reference's title still
+// fits "one par…" in that room, while this shell's wider bold raster stops at
+// "one pa…". The menu's target carries about 5 DIPs of bearing before its "…",
+// so the title's text may run under that empty bearing: at 4.5 the reference's
+// last glyph fits and the truncation lands where the reference draws it,
+// without moving the menu or any control to its right. The 4 DIP estimate was
+// the gap below the threshold; half a DIP more fits the "r".
+const titleEllipsisOverlap = 4.5
+
 // breadcrumbLeftPad is the bar's leading inset, in DIPs: the reference's
 // ChatHeaderFrame keeps px-3 on the header and mx-3 on the breadcrumb's flex
 // row (10.5 + 10.5 at the 14px root), so window-conversation.png starts the
@@ -68,10 +79,10 @@ const openInEditorCell = 22
 const headerEntryGap = 6
 
 // contextPanelGlyph is the entry's two-pane mark, as the Electron reference
-// draws the panel toggle at the card's top right: a rounded frame split into
-// two panes with the right one filled. It strokes and fills currentColor, so
-// it follows the theme like the sidebar's glyphs.
-var contextPanelGlyph = sidebarIcon(`<rect x="1.8" y="2.6" width="12.4" height="10.8" rx="2"/><path d="M9.2 2.6v10.8"/><path d="M9.2 3.4h4.2a.8.8 0 0 1 .8.8v7.6a.8.8 0 0 1-.8.8H9.2Z" fill="currentColor" stroke="none"/>`)
+// draws the panel toggle at the card's top right: a 10×10 rounded frame split
+// down the middle, both panes outlined. It strokes currentColor and paints no
+// fill, so it follows the theme like the sidebar's glyphs.
+var contextPanelGlyph = sidebarIcon(`<rect x="3" y="3" width="10" height="10" rx="1.7"/><path d="M8 3v10"/>`)
 
 // reasonOpenInEditor explains the toolbar's VS Code entry while the shell has
 // no editor client and no workspace fact to hand one. The entry is the
@@ -161,7 +172,7 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 				SingleLine().Shrink(0).AccessHidden(true)
 		}
 		ui.Text(c, v.Title).Bold().FontSize(k.bodySize).SingleLine().
-			Grow(1).MinWidth(0)
+			Padding(0, -titleEllipsisOverlap, 0, 0).Grow(1).MinWidth(0)
 	})
 }
 

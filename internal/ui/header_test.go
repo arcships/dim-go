@@ -416,6 +416,106 @@ func TestHeaderDrawsNoModelEntry(t *testing.T) {
 	}
 }
 
+// TestHeaderTitleUsesTheRoomBeforeTheMenu checks where the long title stops in
+// the 537 DIP bar the reference's card leaves at an 800×720 window. The title's
+// box ends at the session menu's target, but its text may run
+// titleEllipsisOverlap DIPs under the target's empty left bearing, so the
+// truncation lands on the reference's last glyph ("one par…") without moving
+// the menu or any control to its right: the title's ink reaches its box's edge
+// and stops before the menu's "…".
+func TestHeaderTitleUsesTheRoomBeforeTheMenu(t *testing.T) {
+	v := fixture().headerView()
+	v.Project = "dimagent-mygo"
+	v.Title = "Explain what this repository does in one paragraph."
+	v.Connection = ConnReady
+	v.Run = RunIdle
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleContextPanel: func() {}})
+	}, 537, 41)
+	k := newTokens(theme)
+
+	title, ok := tt.Find(v.Title)
+	if !ok {
+		t.Fatalf("the title is not drawn, texts %q", tt.Texts())
+	}
+	menu, ok := tt.AccessByRole(ui.RoleMenuButton, tr(LocaleEN, keyHeaderMenu))
+	if !ok {
+		t.Fatalf("the session menu is not drawn, texts %q", tt.Texts())
+	}
+	glyph, ok := tt.Find("…")
+	if !ok {
+		t.Fatalf("the menu glyph is not drawn, texts %q", tt.Texts())
+	}
+	if math.Abs(float64(menu.Bounds.X-(title.X+title.W))) > 0.5 {
+		t.Errorf("the menu target starts at %.1f, want it at the title's box edge %.1f",
+			menu.Bounds.X, title.X+title.W)
+	}
+	// Read the box plus the elision room: a title that stopped at its box would
+	// leave the last few DIPs before the menu empty.
+	area := ui.Rect{X: title.X, Y: title.Y, W: title.W + titleEllipsisOverlap, H: title.H}
+	ink, pixels := glyphInkBox(tt, area, k.background)
+	if pixels == 0 {
+		t.Fatal("the title draws no ink")
+	}
+	if right := ink.X + ink.W; right < title.X+title.W-1 {
+		t.Errorf("the title's ink stops at %.1f, %.1f DIPs before its box ends at %.1f; the elision room is unused",
+			right, title.X+title.W-right, title.X+title.W)
+	}
+	if ink.X+ink.W > glyph.X {
+		t.Errorf("the title's ink ends at %.1f, running into the menu glyph at %.1f", ink.X+ink.W, glyph.X)
+	}
+}
+
+// TestHeaderPanelToggleDrawsTheOutlinedTwoPaneMark checks the toggle's mark
+// against window-conversation.png: a 10×10 rounded frame split down the middle,
+// both panes left empty and only the strokes painted. The reference's mark is
+// 12 DIPs of ink at the 16 DIP step; the earlier mark filled the right pane,
+// which shows as the toggle's ink at the pane's centre.
+func TestHeaderPanelToggleDrawsTheOutlinedTwoPaneMark(t *testing.T) {
+	v := fixture().headerView()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleContextPanel: func() {}})
+	}, 900, 41)
+	k := newTokens(theme)
+
+	entry, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyContextPanelToggle))
+	if !ok {
+		t.Fatalf("the context panel toggle is not drawn, texts %q", tt.Texts())
+	}
+	box := ui.Rect{
+		X: entry.Bounds.X + (entry.Bounds.W-sidebarIconSize)/2,
+		Y: entry.Bounds.Y + (entry.Bounds.H-sidebarIconSize)/2,
+		W: sidebarIconSize, H: sidebarIconSize,
+	}
+	ink, pixels := glyphInkBox(tt, box, k.background)
+	if pixels == 0 {
+		t.Fatal("the panel toggle draws no mark")
+	}
+	if math.Abs(float64(ink.W-12)) > 1 || math.Abs(float64(ink.H-12)) > 1 {
+		t.Errorf("the panel mark's ink is %.1fx%.1f, want the reference's 12×12", ink.W, ink.H)
+	}
+	image := tt.Image()
+	at := func(dx, dy float32) color.RGBA {
+		return image.RGBAAt(int(box.X+dx), int(box.Y+dy))
+	}
+	if left := at(5, 8); !sameColor(left, k.background) {
+		t.Errorf("the left pane's centre is %v, want the bar's face", left)
+	}
+	if right := at(11, 8); !sameColor(right, k.background) {
+		t.Errorf("the right pane's centre is %v, want the bar's face and no fill", right)
+	}
+	if border := at(8, 3); sameColor(border, k.background) {
+		t.Error("the frame's top edge draws no stroke")
+	}
+	if divider := at(8, 8); sameColor(divider, k.background) {
+		t.Error("the mark has no centre divider")
+	}
+}
+
 // TestHeaderBreadcrumbStartsAtTheReferenceInset checks the bar's left edge and
 // the room before its menu against the reference's 800×720 frame: the project
 // starts where the reference's chat header starts (px-3 plus the breadcrumb
