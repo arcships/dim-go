@@ -12,7 +12,7 @@ import (
 // unavailable model.
 func modelFixtureState() *State {
 	s := fixture()
-	s.ModelStatus = ModelStatus{Available: true}
+	s.ModelStatus = ModelStatus{Available: true, Selectable: true}
 	s.ModelCatalog = ModelCatalog{
 		Current:    "anthropic/claude-3",
 		HasCurrent: true,
@@ -143,5 +143,104 @@ func TestComposerModelChipWIPWithoutAnAction(t *testing.T) {
 	}
 	if chip.Description == "" {
 		t.Error("the unavailable chip does not explain the gap")
+	}
+}
+
+// TestComposerModelListSelectsOnce checks the wired list: an available row
+// sends exactly one OnSelectModel pair and closes the dialog before the request,
+// an unavailable row sends nothing, and Escape still closes without a request.
+func TestComposerModelListSelectsOnce(t *testing.T) {
+	s := modelFixtureState()
+	s.ModelCatalog.Choices = append(s.ModelCatalog.Choices, ModelChoice{
+		ProviderID:   "local",
+		ProviderName: "Local",
+		ModelID:      "small",
+		DisplayName:  "Small",
+		Enabled:      true,
+	})
+	var selections [][2]string
+	s.OnSelectModel = func(providerID, modelID string) {
+		selections = append(selections, [2]string{providerID, modelID})
+	}
+	tt := ui.NewTester(s.View, 900, 700)
+
+	if err := tt.Click(tr(LocaleEN, keyComposerModelChip)); err != nil {
+		t.Fatalf("open the model list: %v", err)
+	}
+	tt.Frame()
+
+	// An unavailable row is a disabled control: its click sends nothing.
+	if err := tt.Click("Tiny"); err != nil {
+		t.Fatalf("click the unavailable row: %v", err)
+	}
+	tt.Frame()
+	if len(selections) != 0 {
+		t.Fatalf("an unavailable model sent %#v", selections)
+	}
+	if !s.ModelListOpen {
+		t.Fatal("an unavailable row closed the list")
+	}
+
+	if err := tt.Click("Small"); err != nil {
+		t.Fatalf("select a model: %v", err)
+	}
+	tt.Frame()
+	if len(selections) != 1 || selections[0] != [2]string{"local", "small"} {
+		t.Fatalf("selections = %#v, want one local/small request", selections)
+	}
+	if s.ModelListOpen {
+		t.Fatal("the selected row did not close the list")
+	}
+	// A second click after the dialog closed cannot send the same selection.
+	if err := tt.Click("Small"); err == nil {
+		tt.Frame()
+	}
+	if len(selections) != 1 {
+		t.Fatalf("selections = %#v after a second click, want one", selections)
+	}
+}
+
+// TestComposerModelListEscapeSendsNothing checks the keyboard path: Escape
+// closes the list and never calls the selection action.
+func TestComposerModelListEscapeSendsNothing(t *testing.T) {
+	s := modelFixtureState()
+	calls := 0
+	s.OnSelectModel = func(string, string) { calls++ }
+	tt := ui.NewTester(s.View, 900, 700)
+
+	if err := tt.Click(tr(LocaleEN, keyComposerModelChip)); err != nil {
+		t.Fatalf("open the model list: %v", err)
+	}
+	tt.Frame()
+	tt.Key(0, ui.KeyEscape)
+	tt.Frame()
+	if s.ModelListOpen {
+		t.Fatal("Escape did not close the list")
+	}
+	if calls != 0 {
+		t.Fatalf("Escape sent %d selections, want 0", calls)
+	}
+}
+
+// TestComposerModelRowsStayDisabledWithoutASelectionAction checks that the rows
+// are not newly clickable when the caller wires no selection: they stay visible,
+// disabled and paired with the read-only note.
+func TestComposerModelRowsStayDisabledWithoutASelectionAction(t *testing.T) {
+	s := modelFixtureState()
+	s.ModelStatus = ModelStatus{Available: true, Selectable: true}
+	tt := ui.NewTester(s.View, 900, 700)
+	if err := tt.Click(tr(LocaleEN, keyComposerModelChip)); err != nil {
+		t.Fatalf("open the model list: %v", err)
+	}
+	tt.Frame()
+	row, ok := tt.AccessByRole(ui.RoleButton, "Claude 3")
+	if !ok {
+		t.Fatalf("the current model row is not a named button, texts %q", tt.Texts())
+	}
+	if !row.Disabled {
+		t.Fatalf("model row %#v is enabled without OnSelectModel", row)
+	}
+	if !tt.HasText(tr(LocaleEN, keyModelReadOnly)) {
+		t.Errorf("the list does not state the read-only gap, texts %q", tt.Texts())
 	}
 }

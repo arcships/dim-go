@@ -21,6 +21,9 @@ const (
 	// MutationSessionRename is a session method advertised by session.methods,
 	// not a hello.features capability (public SessionTitle A.1).
 	MutationSessionRename MutationMethod = "session.rename"
+	// MutationSessionModelUpdate is gated by the hello.features capability
+	// "session.model.update" (see model_update.go).
+	MutationSessionModelUpdate MutationMethod = "session.model.update"
 )
 
 // ErrUnknownResult marks a mutation whose outcome is unknown: timeout,
@@ -119,6 +122,11 @@ func mutationReadBack(method MutationMethod) string {
 		// The committed title is listed by session.summaries; a title notice
 		// also carries it, but a notice is not replayed, so the list is the
 		// read-back (public SessionTitle Appendix C).
+		return "session.summaries"
+	case MutationSessionModelUpdate:
+		// The summary row and the attach reply both carry the session's current
+		// {providerId, modelId}. session.summaries is the read-back this client
+		// uses; session.attach replays the same pair.
 		return "session.summaries"
 	default:
 		return ""

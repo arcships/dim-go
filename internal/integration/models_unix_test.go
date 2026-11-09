@@ -170,3 +170,112 @@ func TestModelsRequireSessionAndContext(t *testing.T) {
 		t.Fatal("Model on a nil controller should report no selection")
 	}
 }
+
+const modelUpdateReply = `{"model":{"providerId":"p1","modelId":"m2"},"outcome":"adopted"}`
+
+const modelSummaryReply = `[{"sessionId":"s1","cwd":"/tmp","model":{"providerId":"p1","modelId":"m2"},"createdAt":1,"running":false,"sequence":0,"attachedClients":1,"updatedAt":1}]`
+
+func TestUpdateModelWritesTheMainBranchAndReadsThePairBack(t *testing.T) {
+	daemon, sup, ctx := startModelBridge(t, "session.history", "session.model.update")
+	daemon.setAttachModel("p1", "m1")
+	daemon.setModelUpdate(json.RawMessage(modelUpdateReply))
+	daemon.setSummaries(json.RawMessage(modelSummaryReply))
+
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	if !controller.CanUpdateModel() {
+		t.Fatal("CanUpdateModel = false with session.model.update advertised")
+	}
+
+	result, err := controller.UpdateModel(ctx, "p1", "m2")
+	if err != nil {
+		t.Fatalf("UpdateModel: %v", err)
+	}
+	if result.Outcome != appserver.ModelOutcomeAdopted || result.Model.ModelID != "m2" {
+		t.Fatalf("result = %#v", result)
+	}
+	// The request's pair is not stored locally before the read-back.
+	if selection, ok := controller.Model(); !ok || selection.ModelID != "m1" {
+		t.Fatalf("Model after update = %#v (ok %v), want the attach pair", selection, ok)
+	}
+	selection, ok, err := controller.RefreshModel(ctx)
+	if err != nil || !ok {
+		t.Fatalf("RefreshModel = (%#v, %v, %v)", selection, ok, err)
+	}
+	if selection.ProviderID != "p1" || selection.ModelID != "m2" {
+		t.Fatalf("refreshed model = %#v, want p1/m2", selection)
+	}
+	if selection, ok := controller.Model(); !ok || selection.ModelID != "m2" {
+		t.Fatalf("Model = %#v (ok %v), want the summary pair", selection, ok)
+	}
+	params := daemon.lastParams("session.model.update")
+	if params["branchId"] != "main" || params["providerId"] != "p1" || params["modelId"] != "m2" {
+		t.Fatalf("session.model.update params = %#v", params)
+	}
+}
+
+func TestUpdateModelWithoutTheFeatureIsWIP(t *testing.T) {
+	daemon, sup, ctx := startModelBridge(t, "session.history")
+	daemon.setAttachModel("p1", "m1")
+
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	if controller.CanUpdateModel() {
+		t.Fatal("CanUpdateModel = true without the feature")
+	}
+	if _, err := controller.UpdateModel(ctx, "p1", "m2"); !errors.Is(err, appserver.ErrCapabilityUnavailable) {
+		t.Fatalf("error = %v, want ErrCapabilityUnavailable", err)
+	}
+	if calls := daemon.callCount("session.model.update"); calls != 0 {
+		t.Fatalf("session.model.update calls = %d, want 0", calls)
+	}
+}
+
+func TestModelUpdateIsAWriteAndReadsBackOnceOnReplayGap(t *testing.T) {
+	daemon, sup, ctx := startModelBridge(t, "session.history", "session.model.update")
+	daemon.setAttachModel("p1", "m1")
+	daemon.setModelUpdate(json.RawMessage(modelUpdateReply))
+	daemon.setSummaries(json.RawMessage(modelSummaryReply))
+	daemon.fail("session.model.update", subscriptionChangedFault())
+
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+
+	_, err = controller.UpdateModel(ctx, "p1", "m2")
+	if !errors.Is(err, ErrReplayGap) {
+		t.Fatalf("error = %v, want ErrReplayGap", err)
+	}
+	if calls := daemon.callCount("session.model.update"); calls != 1 {
+		t.Fatalf("session.model.update calls = %d, want 1 (writes are not replayed)", calls)
+	}
+}
+
+func TestRefreshModelGetsOneReplayGapRetry(t *testing.T) {
+	daemon, sup, ctx := startModelBridge(t, "session.history")
+	daemon.setAttachModel("p1", "m1")
+	daemon.setSummaries(json.RawMessage(modelSummaryReply))
+	daemon.fail("session.summaries", subscriptionChangedFault())
+
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+
+	selection, ok, err := controller.RefreshModel(ctx)
+	if err != nil || !ok || selection.ModelID != "m2" {
+		t.Fatalf("RefreshModel = (%#v, %v, %v)", selection, ok, err)
+	}
+	if calls := daemon.callCount("session.summaries"); calls != 2 {
+		t.Fatalf("session.summaries calls = %d, want exactly 2 (one retry)", calls)
+	}
+}

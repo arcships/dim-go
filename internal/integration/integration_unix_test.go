@@ -53,6 +53,10 @@ type fakeDaemon struct {
 	management  json.RawMessage
 	selection   json.RawMessage
 	attachModel *appserver.SessionModel
+	// summaries and modelUpdate are the verbatim session.summaries and
+	// session.model.update replies (nil means the method is absent).
+	summaries   json.RawMessage
+	modelUpdate json.RawMessage
 	// rename is the verbatim session.rename reply (nil means the method is
 	// absent) and renameGate, when non-nil, holds the reply until it closes.
 	rename     json.RawMessage
@@ -184,6 +188,20 @@ func (d *fakeDaemon) setAttachModel(providerID, modelID string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.attachModel = &appserver.SessionModel{ProviderID: providerID, ModelID: modelID}
+}
+
+// setSummaries scripts the verbatim session.summaries reply.
+func (d *fakeDaemon) setSummaries(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.summaries = append(json.RawMessage(nil), raw...)
+}
+
+// setModelUpdate scripts the verbatim session.model.update reply.
+func (d *fakeDaemon) setModelUpdate(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.modelUpdate = append(json.RawMessage(nil), raw...)
 }
 
 // setRename scripts the verbatim session.rename reply.
@@ -407,6 +425,22 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		}
 		if gate != nil {
 			<-gate
+		}
+		return raw, nil
+	case "session.model.update":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.modelUpdate...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "session.model.update not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
+	case "session.summaries":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.summaries...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "session.summaries not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
 		}
 		return raw, nil
 	case "session.detach":

@@ -81,10 +81,13 @@ type fakeConfig struct {
 	ManagementErr *fakeRPCError
 	Selection     any
 	SelectionErr  *fakeRPCError
-	DetachErr     *fakeRPCError
-	InputLookup   fakeInputLookupFunc
-	Mutations     map[string][]fakeMutation
-	MutationGate  map[string]*fakeGate
+	// Summaries scripts session.summaries, the read-back RefreshModel uses.
+	Summaries    any
+	SummariesErr *fakeRPCError
+	DetachErr    *fakeRPCError
+	InputLookup  fakeInputLookupFunc
+	Mutations    map[string][]fakeMutation
+	MutationGate map[string]*fakeGate
 }
 
 type fakeCall struct {
@@ -252,6 +255,18 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, s.cfg.DetachErr
 		}
 		return struct{}{}, nil
+	case "session.summaries":
+		var p appserver.SummariesParams
+		if err := json.Unmarshal(params, &p); err != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.SummariesErr != nil {
+			return nil, s.cfg.SummariesErr
+		}
+		if s.cfg.Summaries == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.Summaries, nil
 	case "provider.management":
 		var p appserver.ProviderManagementParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
@@ -285,7 +300,7 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, unknownMethod()
 		}
 		return s.cfg.InputLookup(p)
-	case "session.submit", "session.stop", "approval.respond", "session.delete", "session.branch_end", "session.rename":
+	case "session.submit", "session.stop", "approval.respond", "session.delete", "session.branch_end", "session.rename", "session.model.update":
 		return s.mutation(method, params)
 	default:
 		return nil, unknownMethod()
@@ -313,6 +328,9 @@ func (s *fakeServer) mutation(method string, params json.RawMessage) (any, *fake
 	case "session.rename":
 		var p appserver.RenameParams
 		request = &p
+	case "session.model.update":
+		var p appserver.ModelUpdateParams
+		request = &p
 	}
 	if err := json.Unmarshal(params, request); err != nil {
 		return nil, invalidParams()
@@ -339,6 +357,10 @@ func (s *fakeServer) mutation(method string, params json.RawMessage) (any, *fake
 			return nil, invalidParams()
 		}
 	case *appserver.RenameParams:
+		if value.Validate() != nil {
+			return nil, invalidParams()
+		}
+	case *appserver.ModelUpdateParams:
 		if value.Validate() != nil {
 			return nil, invalidParams()
 		}

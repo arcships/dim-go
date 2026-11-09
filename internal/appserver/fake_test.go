@@ -328,6 +328,8 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		return s.mutation(MutationAttachmentPut, params)
 	case "session.rename":
 		return s.mutation(MutationSessionRename, params)
+	case "session.model.update":
+		return s.mutation(MutationSessionModelUpdate, params)
 	default:
 		return nil, fakeUnknownMethod()
 	}
@@ -433,6 +435,11 @@ func (s *fakeServer) mutation(method MutationMethod, raw json.RawMessage) (any, 
 		}
 	case MutationSessionRename:
 		var p RenameParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	case MutationSessionModelUpdate:
+		var p ModelUpdateParams
 		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
 			return nil, fakeBadParams()
 		}

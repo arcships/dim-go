@@ -239,10 +239,13 @@ func (r Route) String() string {
 // ModelStatus is the window's record of the last model-catalog read. Available
 // is false while the App Server does not advertise provider.management or the
 // read failed, and Reason then names the gap; the composer shows the reason in
-// place of a model name rather than inventing one.
+// place of a model name rather than inventing one. Selectable records whether
+// the App Server advertises session.model.update: without it the list's rows stay
+// disabled and explained as WIP even though the catalog itself is readable.
 type ModelStatus struct {
-	Available bool
-	Reason    string
+	Available  bool
+	Selectable bool
+	Reason     string
 }
 
 // ModelChoice is one model as the App Server catalog serves it, copied for
@@ -260,9 +263,10 @@ type ModelChoice struct {
 	Current      bool
 }
 
-// ModelCatalog is the read-only model snapshot the composer displays: the
-// current provider/model pair, whether the attach reply reported one, and the
-// catalog's choices. The window writes no selection from it.
+// ModelCatalog is the model snapshot the composer displays: the current
+// provider/model pair, whether the attach reply reported one, and the catalog's
+// choices. A selection is written by the caller's OnSelectModel action; the
+// window stores the pair only from App Server facts.
 type ModelCatalog struct {
 	Current    string
 	HasCurrent bool
@@ -364,6 +368,12 @@ type State struct {
 	// the write and refreshes the catalog/title; a failure is reported through
 	// ActionError, and the shell never changes the title on its own.
 	OnRename func(title string)
+	// OnSelectModel asks the caller to switch the selected session's model
+	// through session.model.update. The list closes before this runs, so one
+	// click sends at most one request. The caller owns the write and the
+	// read-back: a success updates the chip from the App Server's pair, a
+	// failure is reported through ActionError and leaves the previous pair.
+	OnSelectModel func(providerID, modelID string)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -408,9 +418,9 @@ type State struct {
 	// the current pair and the catalog; it never writes a selection from them.
 	ModelCatalog ModelCatalog
 	ModelStatus  ModelStatus
-	// ModelListOpen is the window's own record that the composer's read-only
-	// model list is showing. It is display state only; closing it sends
-	// nothing and the list's rows are not selectable yet.
+	// ModelListOpen is the window's own record that the composer's model list
+	// is showing. It is display state only; closing it sends nothing, and a
+	// row sends a selection only through the caller's OnSelectModel.
 	ModelListOpen bool
 	// RenameConfirm is the window's own record that the toolbar's rename dialog
 	// is showing, and RenameDraft is the text its field edits. RenameConfirm is
@@ -891,8 +901,10 @@ func (s *State) actions() Actions {
 		OnOpenScheduled: func() { s.setRoute(RouteScheduled) },
 		OnOpenSkills:    func() { s.setRoute(RouteSkills) },
 		OnBackToChat:    func() { s.setRoute(RouteChat) },
-		// The model list is display-only: opening it sends no request and its
-		// rows write no selection, so the shell always wires the toggle.
+		// The model list is window-owned display state: opening it sends no
+		// request. Its rows call the caller's OnSelectModel when that callback is
+		// wired and the App Server advertises session.model.update; otherwise
+		// they stay disabled and explained.
 		OnToggleModelList: func() {
 			s.ModelListOpen = !s.ModelListOpen
 		},
@@ -910,6 +922,13 @@ func (s *State) actions() Actions {
 		// display copy of the catalog the window already holds and opening it
 		// sends nothing, so the sidebar's Search entry is always wired.
 		OnOpenSearch: s.openSearch,
+	}
+	// The model selection is wired only while the caller supplied a callback and
+	// the App Server advertised session.model.update. A daemon without the
+	// method keeps every row disabled, so the list states the WIP gap instead of
+	// sending a write the daemon would refuse.
+	if s.OnSelectModel != nil && s.ModelStatus.Selectable {
+		a.OnSelectModel = s.OnSelectModel
 	}
 	// The keys toggle is the shell's own state too, but it is wired only when the
 	// caller supplied a session.keys snapshot. The sidebar no longer draws the
@@ -1080,7 +1099,7 @@ func (s *State) composerView() ComposerView {
 		Locale:       s.locale(),
 		// The model chip displays the App Server facts the caller read. With no
 		// current pair it keeps the unconfigured label and carries the status
-		// reason; the list is read-only until a selection write is wired.
+		// reason; a row calls the caller's OnSelectModel when it is wired.
 		ModelLabel:   s.ModelCatalog.Current,
 		ModelReason:  s.modelReason(),
 		ModelOpen:    &s.ModelListOpen,
@@ -1088,12 +1107,15 @@ func (s *State) composerView() ComposerView {
 	}
 }
 
-// modelReason explains an absent model in the composer: the catalog read's
-// capability or failure reason when there is one. An empty string means either a
-// current pair is displayed or the attach reply reported no pair; the composer
-// then keeps the reference's unconfigured label and its own no-pair note.
+// modelReason explains a model the composer cannot name or change: the catalog
+// read's capability/failure reason, or the missing session.model.update
+// capability. A current pair with a selectable catalog shows no reason; the
+// chip's description carries the WIP reason when selection is unavailable.
 func (s *State) modelReason() string {
-	if s.ModelCatalog.HasCurrent && s.ModelCatalog.Current != "" {
+	if s.ModelStatus.Reason == "" {
+		return ""
+	}
+	if s.ModelCatalog.HasCurrent && s.ModelCatalog.Current != "" && s.ModelStatus.Selectable {
 		return ""
 	}
 	return s.ModelStatus.Reason

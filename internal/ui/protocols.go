@@ -143,10 +143,16 @@ type Actions struct {
 	// and conversation list state are untouched.
 	OnBackToChat func()
 	// OnToggleModelList is called by the composer's model chip and toggles the
-	// read-only model list. The list displays State's ModelCatalog and ModelStatus
-	// copies; choosing a model writes nothing yet, so the list explains the WIP
-	// gap instead of pretending a selection.
+	// model list. The list displays State's ModelCatalog and ModelStatus copies;
+	// a row is selectable only while OnSelectModel is wired.
 	OnToggleModelList func()
+	// OnSelectModel is called once when the model list's row is chosen: the
+	// caller writes session.model.update and reports the outcome. The list
+	// closes before this callback runs, so one click sends at most one request;
+	// a failure reaches the window through ActionError and the chip keeps the
+	// App Server's previous pair. While this field is nil every row stays
+	// visible, disabled and explained as WIP.
+	OnSelectModel func(providerID, modelID string)
 	// OnDismissNotices is called by the notice strip's dismiss entry. It clears
 	// the window-owned ActionError/ActionNotices and the transient Notices; those
 	// are display state, so dismissing them changes no App Server fact.
@@ -505,12 +511,12 @@ type ComposerView struct {
 	// ModelReason explains an absent model: the catalog read's capability or
 	// failure reason, or the no-pair fact. It is empty while ModelLabel is set.
 	ModelReason string
-	// ModelOpen is the window's own record that the read-only model list is
-	// showing; the chip toggles it through Actions.OnToggleModelList.
+	// ModelOpen is the window's own record that the model list is showing; the
+	// chip toggles it through Actions.OnToggleModelList.
 	ModelOpen *bool
 	// ModelChoices are the App Server catalog's models in its order, copied for
 	// display. The list marks the current pair and shows each model's
-	// availability and reason; choosing one writes nothing yet.
+	// availability and reason; a selectable row calls Actions.OnSelectModel.
 	ModelChoices []ModelChoice
 	// Locale is the language of the composer's own text: the editor's label and
 	// description, its entries' labels and reasons, and the context row.
