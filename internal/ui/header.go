@@ -6,13 +6,15 @@
 // thread_search.go's nested region, drawn through renderThreadSearch.
 //
 // The reference's conversation bar is one line with the breadcrumb and a "…"
-// menu on the left and the surface entries on the right. Its model picker lives
-// in the composer, not in the bar, so the bar draws no model entry. Its editor
-// entry is absent too: the shell has no editor client or workspace fact, so the
-// mark, its disclosure arrow and the rule before the panel toggle would only
-// pretend to open something. Run and connection status are not drawn here
-// either: the reference has no "Session: Idle" or "App Server: …" row, and this
-// shell no longer adds one.
+// menu on the left and the surface entries on the right. The bar carries a
+// compact current-model chip between the menu and the panel toggle: it names
+// the pair the App Server reported and opens the same model list the composer's
+// chip opens, through the same Actions.OnToggleModelList. Its editor entry is
+// absent: the shell has no editor client or workspace fact, so the mark, its
+// disclosure arrow and the rule before the panel toggle would only pretend to
+// open something. Run and connection status are not drawn here either: the
+// reference has no "Session: Idle" or "App Server: …" row, and this shell no
+// longer adds one.
 
 package ui
 
@@ -73,6 +75,19 @@ const breadcrumbLeftPad = 19
 // toolbar's full 28 DIP square. The target keeps the toolbar's height.
 const menuTargetW = 20
 
+// The header model chip's geometry. Its inset is one tight step of the theme's
+// spacing and its height comes from the label's line plus that inset, so it
+// stays a compact pill beside the panel toggle rather than a second toolbar
+// button. headerModelMaxW bounds the label when the provider/model pair is
+// long: the chip truncates its text with an ellipsis and shrinks inside the
+// bar's trailing group instead of pushing the breadcrumb, the session menu or
+// the panel toggle aside. It is a display measure, not a model fact.
+const (
+	headerModelPadX = 2
+	headerModelPadY = 1
+	headerModelMaxW = 160
+)
+
 // contextPanelGlyph is the entry's two-pane mark, as the Electron reference
 // draws the panel toggle at the card's top right: Lucide's panel-right, a
 // rounded frame with its split line separating the conversation from the
@@ -87,6 +102,14 @@ var contextPanelGlyph = mustLucide("panel-right")
 // stays so a real editor client can bring the entry back without inventing a
 // new reason.
 const reasonOpenInEditor = "Unavailable: the shell has no editor-open client or workspace fact for opening this session in VS Code yet."
+
+// reasonHeaderModel explains the bar's model chip while the window wired no
+// model-list action. The chip keeps its place and its name instead of
+// disappearing, so the missing action is visible rather than silent; a window
+// that wires Actions.OnToggleModelList never draws this reason. It is the
+// window's own text, not a wire error, and stays English until i18n.go carries
+// a key for it.
+const reasonHeaderModel = "Unavailable: the window has no model-list action, so the model list cannot open."
 
 // menuRowH is a session-menu item's height in the drawn menu, in DIPs: the
 // reference's 28 DIP step. The menu adds Space(1.5) above and below the label
@@ -256,12 +279,22 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 				ui.Button(c, tr(locale, keyHeaderReconnect)).OnClick(a.OnReconnect).Transition(motionFastColors(c))
 			}
 		}
+		// The current model is the conversation's, so its chip waits for the
+		// conversation like the panel entry does: with Settings or the keys
+		// browser showing, the composer that draws the model list is not on
+		// screen, and opening it would only write a flag. It sits before the
+		// panel toggle, where the reference draws its trailing model entry, and
+		// names the pair the App Server reported. An empty label draws no chip,
+		// so a window without a model fact keeps the bar's old shape.
+		if !v.SettingsOpen && !v.KeysOpen {
+			headerModelChip(c, k, v, a)
+		}
 		// The context panel is the conversation's, so its entry appears only
 		// while neither surface that replaces the conversation is showing. With
 		// no workspace to show changed files for, the entry is absent rather than
-		// disabled. It is the bar's only trailing entry: the reference's editor
-		// control and the rule it puts before the panel toggle are not drawn, as
-		// the shell has no editor client to open anything with.
+		// disabled. It is the bar's trailing entry after the model chip, and the
+		// reference's editor control and the rule it puts before the panel toggle
+		// are not drawn, as the shell has no editor client to open anything with.
 		if !v.SettingsOpen && !v.KeysOpen && a.OnToggleContextPanel != nil {
 			contextPanelToggle(c, k, v, a)
 		}
@@ -502,6 +535,54 @@ func deleteConfirmation(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			a.OnDeleteSession(v.SessionID)
 		}
 	}
+}
+
+// headerModelChip draws the bar's current-model entry: a compact pill that
+// names the pair the App Server reported, with muted text and the toolbar's
+// hover face. It is a button, so the Tab key reaches it and Enter or Space
+// toggles the list like a click does; the click calls
+// Actions.OnToggleModelList once, the same action the composer's chip calls,
+// and changes no model fact itself. A window without that action keeps the
+// chip visible, disabled and explained with the reason it waits on, rather
+// than offering a click that would do nothing. An empty label draws no chip:
+// the shell never invents a model to name.
+//
+// The label is the shell's display copy of the current provider/model pair. It
+// truncates with an ellipsis inside headerModelMaxW and gives room back to the
+// bar's other entries when the window cannot fit them all; the full pair stays
+// the chip's tooltip.
+func headerModelChip(c *ui.Context, k tokens, v HeaderView, a Actions) {
+	if v.ModelLabel == "" {
+		return
+	}
+	name := tr(v.Locale, keyModelTitle)
+	// The chip's width is the label's own, capped by headerModelMaxW, and it is
+	// set as the flex basis so a long pair does not claim the tail of the bar
+	// before the layout clamps it: the bar's leading breadcrumb keeps its room
+	// and the label truncates inside the chip. MinWidth(0) lets the chip give
+	// that room back in a narrow window instead of squeezing the menu or the
+	// panel toggle.
+	padX := k.space(headerModelPadX)
+	labelW, _ := c.MeasureText(0, ui.Span{Text: v.ModelLabel, Size: k.smallSize})
+	width := min(labelW+2*padX, headerModelMaxW)
+	chip := ui.ButtonBase(c).Key("header-model").
+		Width(width).Shrink(1).MinWidth(0).
+		Padding(k.space(headerModelPadY), padX).
+		Radius(k.radiusSM).AlignItems(ui.Center).Role(ui.RoleButton).
+		Label(name).Transition(motionFastColors(c))
+	if a.OnToggleModelList != nil {
+		chip.Tooltip(v.ModelLabel)
+		chip.OnClick(a.OnToggleModelList)
+		if chip.Hovered() {
+			chip.Background(k.sidebarHover)
+		}
+	} else {
+		chip.AccessDisabled(true).Description(reasonHeaderModel).Tooltip(reasonHeaderModel)
+	}
+	chip.Children(func() {
+		ui.Text(c, v.ModelLabel).FontSize(k.smallSize).TextColor(k.mutedForeground).
+			SingleLine().Ellipsis("…").Unselectable()
+	})
 }
 
 // contextPanelToggle is the toolbar's panel entry: an icon button at the
