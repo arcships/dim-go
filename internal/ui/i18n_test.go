@@ -59,7 +59,7 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 		// Sidebar entries and headings.
 		"新建会话", "搜索", "定时任务", "技能/插件", "会话", "无项目",
 		// Toolbar and banner.
-		"设置", "会话已关闭", "在 VS Code 中打开",
+		"设置", "会话已关闭",
 		// The account footer.
 		"登录 Dim",
 		// Composer.

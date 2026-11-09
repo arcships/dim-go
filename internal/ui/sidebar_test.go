@@ -317,62 +317,22 @@ func TestSidebarThreadRowsAreInset(t *testing.T) {
 	checkInset("the hovered row", second, float32(left), float32(right))
 }
 
-// TestSidebarOffersTheCollapseEntryAsWIP checks the reference's panel-collapse
-// target at the column's top right: a 28 DIP square whose 16 DIP mark centres
-// at y≈28, level with the traffic lights and 7 DIPs in from the column's edge.
-// The shell has no collapse behavior, so the target is unavailable, takes no
-// Tab stop and explains itself through its description; it stays drawn at the
-// reference's place rather than disappearing.
-func TestSidebarOffersTheCollapseEntryAsWIP(t *testing.T) {
+// TestSidebarDrawsNoCollapseEntry checks that the column no longer draws the
+// reference's panel-collapse target. The shell has no collapse behavior, so the
+// mark at the column's top right was a fake entry; the entries and headings it
+// floated over still start where the reference draws them.
+func TestSidebarDrawsNoCollapseEntry(t *testing.T) {
 	s := fixture()
-	tt, k := glyphTester(t, s)
+	tt := ui.NewTester(s.View, 900, 600)
 
-	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
-	if !ok {
-		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Collapse sidebar"); ok {
+		t.Error("the sidebar still exposes a collapse entry")
 	}
-	entry, ok := tt.AccessByRole(ui.RoleButton, sidebarCollapseLabel)
-	if !ok {
-		t.Fatalf("the collapse entry is not drawn, texts %q", tt.Texts())
+	if tt.HasText("Collapse sidebar") {
+		t.Errorf("the sidebar still draws the collapse label, texts %q", tt.Texts())
 	}
-	if entry.Name != sidebarCollapseLabel {
-		t.Errorf("the collapse entry's accessible name is %q, want %q", entry.Name, sidebarCollapseLabel)
-	}
-	if !entry.Disabled || entry.Focusable {
-		t.Errorf("the collapse entry is not unavailable without a Tab stop: disabled=%v focusable=%v",
-			entry.Disabled, entry.Focusable)
-	}
-	if !strings.Contains(entry.Description, reasonSidebarCollapse) {
-		t.Errorf("the entry description %q does not name the reason %q", entry.Description, reasonSidebarCollapse)
-	}
-	if math.Abs(float64(entry.Bounds.Y-sidebarCollapseTop)) > 0.5 {
-		t.Errorf("the collapse entry sits at y=%.1f, want the reference's %v", entry.Bounds.Y, sidebarCollapseTop)
-	}
-	if want := nav.Bounds.X + nav.Bounds.W - k.sidebarPadX - k.sidebarEntryH; math.Abs(float64(entry.Bounds.X-want)) > 0.5 {
-		t.Errorf("the collapse entry sits at x=%.1f, want its right edge 7 DIPs inside the column's %.1f",
-			entry.Bounds.X, nav.Bounds.X+nav.Bounds.W)
-	}
-	if math.Abs(float64(entry.Bounds.W-k.sidebarEntryH)) > 0.5 || math.Abs(float64(entry.Bounds.H-k.sidebarEntryH)) > 0.5 {
-		t.Errorf("the collapse entry is %.1fx%.1f, want the toolbar's %v DIP square",
-			entry.Bounds.W, entry.Bounds.H, k.sidebarEntryH)
-	}
-
-	// The mark is 12 DIP of ink inside the 16 DIP glyph box, inset 2 DIPs, as
-	// the reference draws it.
-	box := ui.Rect{
-		X: entry.Bounds.X + (entry.Bounds.W-sidebarIconSize)/2,
-		Y: entry.Bounds.Y + (entry.Bounds.H-sidebarIconSize)/2,
-		W: sidebarIconSize, H: sidebarIconSize,
-	}
-	ink, pixels := glyphInkBox(tt, box, k.sidebar)
-	if pixels == 0 {
-		t.Fatal("the collapse entry draws no mark")
-	}
-	if math.Abs(float64(ink.W-12)) > 1 || math.Abs(float64(ink.H-12)) > 1 {
-		t.Errorf("the collapse mark's ink is %.1fx%.1f, want the reference's 12×12", ink.W, ink.H)
-	}
-	if math.Abs(float64(ink.X-box.X-2)) > 1 {
-		t.Errorf("the collapse mark starts at %.1f, want it 2 DIPs inside the glyph box at %.1f", ink.X, box.X)
+	if !tt.HasText("New session") {
+		t.Errorf("the entries are missing above the removed mark, texts %q", tt.Texts())
 	}
 }
 
@@ -918,10 +878,17 @@ func TestSidebarStartsWithTheEntries(t *testing.T) {
 }
 
 // TestSidebarDropsTheSessionCountAndGroupEntry checks the thread heading: the
-// reference draws "Sessions" with its icons, not a count and a Group entry.
+// reference draws "Sessions", not a count and a Group entry, and the add and
+// list marks at its tail are gone too: they took no click, and the add repeated
+// the new-session entry. The heading's tail is the sidebar's own face.
 func TestSidebarDropsTheSessionCountAndGroupEntry(t *testing.T) {
 	s := fixture()
-	tt := ui.NewTester(s.View, 800, 720)
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 800, 720)
+	k := newTokens(theme)
 
 	if !tt.HasText("Sessions") {
 		t.Fatalf("the thread heading is missing, texts %q", tt.Texts())
@@ -929,6 +896,17 @@ func TestSidebarDropsTheSessionCountAndGroupEntry(t *testing.T) {
 	for _, gone := range []string{"Group", "Sessions 2", reasonGroup} {
 		if tt.HasText(gone) {
 			t.Errorf("the sidebar still draws %q, texts %q", gone, tt.Texts())
+		}
+	}
+	heading := textBox(t, tt, "Sessions")
+	image := tt.Image()
+	center := heading.Y + heading.H/2
+	top, bottom := int(center-k.sidebarSectionH/2), int(center+k.sidebarSectionH/2)
+	for y := top; y < bottom; y++ {
+		for x := int(heading.X+heading.W) + 4; x < int(k.sidebarW); x++ {
+			if got := image.RGBAAt(x, y); !sameColor(got, k.sidebar) {
+				t.Fatalf("the session heading paints %v at x=%d, y=%d: a decoration is still drawn", got, x, y)
+			}
 		}
 	}
 }
@@ -1021,11 +999,11 @@ func TestSidebarEmptyCatalogKeepsTheReferenceStructure(t *testing.T) {
 }
 
 // TestSidebarListsGroupsUnderTheWorkspaceHeading checks the populated column's
-// structure, as the reference draws it: the session heading, the workspace
-// heading, the built-in workspace's empty message and its hairline, then the
-// project group and its rows. The group heading carries its folder and its name
-// only; the reference has no count badge. The empty message is inset like the
-// reference's pl-[26px], under the group's text rather than its icon.
+// structure: the session heading, the workspace heading, the hairline closing
+// its section, then the project group and its rows. The built-in workspace's
+// "No sessions yet" message is absent above real rows: it contradicted them.
+// The group heading carries its folder and its name only; the reference has no
+// count badge.
 func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 	s := fixture()
 	s.Sessions = []Session{
@@ -1039,12 +1017,14 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 
 	sessions := textBox(t, tt, "会话")
 	workspace := textBox(t, tt, "工作区")
-	empty := textBox(t, tt, "暂无会话")
 	group := textBox(t, tt, "dimagent-mygo")
 	row := textBox(t, tt, "Explain what this repository does")
-	if sessions.Y >= workspace.Y || workspace.Y >= empty.Y || empty.Y >= group.Y || group.Y >= row.Y {
-		t.Errorf("the populated column's order is off: 会话 y=%.1f, 工作区 y=%.1f, 暂无会话 y=%.1f, dimagent-mygo y=%.1f, row y=%.1f",
-			sessions.Y, workspace.Y, empty.Y, group.Y, row.Y)
+	if sessions.Y >= workspace.Y || workspace.Y >= group.Y || group.Y >= row.Y {
+		t.Errorf("the populated column's order is off: 会话 y=%.1f, 工作区 y=%.1f, dimagent-mygo y=%.1f, row y=%.1f",
+			sessions.Y, workspace.Y, group.Y, row.Y)
+	}
+	if tt.HasText("暂无会话") {
+		t.Errorf("the populated column still draws the empty message, texts %q", tt.Texts())
 	}
 	if _, ok := tt.AccessByRole(ui.RoleStatus, "暂无会话"); ok {
 		t.Error("the populated column reads the built-in workspace message as the list's status")
@@ -1052,20 +1032,11 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 	if tt.HasText("2") {
 		t.Errorf("the group heading still draws its row count, texts %q", tt.Texts())
 	}
-	if want := k.sidebarPadX + sidebarEmptyIndent; math.Abs(float64(empty.X-want)) > 0.5 {
-		t.Errorf("暂无会话 starts at x=%.1f, want the reference's pl-[26px] at %.1f", empty.X, want)
-	}
-	// The heading's box is inset like every row, but its padding gives that
-	// inset back, so its glyph and text stay at the column's own 7 DIP edge.
-	headingText := group.X + k.sidebarPadX - sidebarRowInset + sidebarIconSize + k.sidebarGap
-	if math.Abs(float64(empty.X-headingText)) > 0.5 {
-		t.Errorf("暂无会话 at x=%.1f does not align with the group heading's text at x=%.1f",
-			empty.X, headingText)
-	}
-	// The section closes with a hairline between the message and the group.
+	// The section still closes with a hairline between the workspace heading and
+	// the first group, even though the empty message above the rows is gone.
 	face := color.RGBA{R: k.border.R, G: k.border.G, B: k.border.B, A: k.border.A}
 	divider := false
-	for y := int(empty.Y + empty.H); y < int(group.Y); y++ {
+	for y := int(workspace.Y + workspace.H); y < int(group.Y); y++ {
 		run := 0
 		for x := int(k.sidebarPadX * 2); x < int(k.sidebarW-k.sidebarPadX*2); x++ {
 			if tt.Image().RGBAAt(x, y) == face {
@@ -1078,7 +1049,7 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 		}
 	}
 	if !divider {
-		t.Error("no hairline closes the built-in workspace section above the project group")
+		t.Error("no hairline closes the workspace section above the project group")
 	}
 	if !tt.HasText("5m") {
 		t.Errorf("the session row lost its relative stamp, texts %q", tt.Texts())
@@ -1202,11 +1173,13 @@ func TestSidebarFooterKeepsOnlyTheGear(t *testing.T) {
 // TestSidebarMatchesTheReferenceRhythm checks the column's vertical rhythm
 // against the reference window. The wanted centers are the label rows measured
 // from docs/evidence/electron-reference/window-conversation.png (1600×1440 at
-// 2x, so pixels ÷ 2 are DIPs): the four entries, the two headings, the built-in
-// workspace's message, the project heading, the session row and the account
-// footer. Each must land within 3 DIPs, and the account row must still sit on
-// the sidebar's bottom edge, so the room is added above the list rather than by
-// pushing the footer up.
+// 2x, so pixels ÷ 2 are DIPs): the four entries, the two headings, the project
+// heading, the session row and the account footer. Each must land within 3 DIPs,
+// and the account row must still sit on the sidebar's bottom edge, so the room
+// is added above the list rather than by pushing the footer up. The project and
+// the row sit higher than the reference's measurement: the built-in workspace's
+// "No sessions yet" line is no longer drawn above real rows, so the section's
+// hairline closes the workspace heading directly.
 func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
 	s := fixture()
 	s.Settings = SettingsView{Locale: LocaleZHCN}
@@ -1229,9 +1202,8 @@ func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
 		{tr(LocaleZHCN, keySidebarSkills), 167.2},
 		{tr(LocaleZHCN, keySidebarSessions), 204.0},
 		{tr(LocaleZHCN, keyComposerWorkspace), 237.0},
-		{tr(LocaleZHCN, keySidebarEmpty), 272.0},
-		{"dimagent-mygo", 314.5},
-		{"Explain what this repository does in one paragraph.", 345.8},
+		{"dimagent-mygo", 276.5},
+		{"Explain what this repository does in one paragraph.", 307.5},
 		{tr(LocaleZHCN, keySidebarAccount), 698.0},
 	}
 	for _, tc := range cases {
