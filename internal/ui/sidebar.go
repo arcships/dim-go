@@ -365,13 +365,30 @@ func searchShortcutText() string {
 
 // threadListHeader names the thread list, as the reference's session column
 // does. The count and the unavailable group control are gone: the reference
-// draws the heading and its two icons, and this shell has no group mode to
-// offer yet.
+// draws the heading with its add and list icons on the right, and this shell
+// has no group mode to offer yet. The icons are decorations, so the heading's
+// text is what assistive technology reads.
 func threadListHeader(c *ui.Context, k tokens, locale Locale) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
-		sidebarGlyph(c, sidebarIcons.list, k.mutedForeground)
 		ui.Text(c, tr(locale, keySidebarSessions)).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
+		ui.Spacer(c)
+		sidebarGlyph(c, sidebarIcons.plus, k.mutedForeground)
+		sidebarGlyph(c, sidebarIcons.list, k.mutedForeground)
+	})
+}
+
+// workspaceHeader names the workspace the session rows belong to, the
+// reference's second heading in the empty column. It is a display heading, not
+// a control or a project fact: the shell has no workspace catalog, so it draws
+// the interface language's word for the group and nothing under it but the
+// empty message.
+func workspaceHeader(c *ui.Context, k tokens, locale Locale) {
+	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
+		AlignItems(ui.Center).Children(func() {
+		sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
+		ui.Text(c, tr(locale, keyComposerWorkspace)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).Bold().SingleLine()
 		ui.Spacer(c)
 	})
 }
@@ -399,8 +416,21 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		if v.state.searching && len(v.Sessions) > 0 {
 			empty = tr(locale, keySidebarEmptyFiltered)
 		}
-		ui.Column(c).Grow(1).Padding(k.sidebarPadX).Children(func() {
-			ui.Text(c, empty).FontSize(k.smallSize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
+		// The reference's empty column keeps the structure with no rows: the
+		// workspace heading under the session heading, the empty message under
+		// it, and a hairline closing the section. The message stays the status
+		// region, so assistive technology hears why the list is empty.
+		ui.Column(c).Grow(1).Children(func() {
+			workspaceHeader(c, k, locale)
+			ui.Column(c).PaddingX(k.sidebarSectionPadX + k.sidebarGap).PaddingY(k.gap).
+				Children(func() {
+					ui.Text(c, empty).FontSize(k.smallSize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
+				})
+			// The hairline is inset like the reference's, so it closes the
+			// section without running under the sidebar's edges.
+			ui.Row(c).PaddingX(k.sidebarPadX).Children(func() {
+				ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
+			})
 		})
 		return
 	}

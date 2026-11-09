@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image/color"
 	"math"
 	"strings"
 	"testing"
@@ -117,16 +118,13 @@ func TestComposerToolRowIsIcons(t *testing.T) {
 		}
 	}
 
-	// The toolbar carries no WIP badge of its own: the two badges left in the
-	// card are the context row's, which the reference draws as plain status.
-	wip := 0
+	// The toolbar carries no visible WIP text: the context row keeps only its
+	// labels, and the reasons live in the entries' descriptions, as the
+	// reference's status band shows no badge.
 	for _, text := range tt.Texts() {
 		if text == wipBadge {
-			wip++
+			t.Errorf("the card shows a visible %q badge; the gaps belong in the entries' descriptions", wipBadge)
 		}
-	}
-	if wip != 2 {
-		t.Errorf("the card shows %d %q badges, want only the context row's two", wip, wipBadge)
 	}
 
 	attach, _ := tt.Find("Attach file")
@@ -212,5 +210,66 @@ func TestComposerContextRowIsInsideCard(t *testing.T) {
 	}
 	if card.H < 145 || card.H > 165 {
 		t.Errorf("the card is %.1f high, want the reference's ≈152 with the context band inside", card.H)
+	}
+}
+
+// glyphInkBox returns the tight box of the pixels inside area that are not the
+// background, and how many there are: the drawn strokes of a glyph, without
+// asking the view how it drew them.
+func glyphInkBox(tt *ui.Tester, area ui.Rect, background ui.Color) (ui.Rect, int) {
+	img := tt.Image()
+	bg := color.RGBA{R: background.R, G: background.G, B: background.B, A: background.A}
+	x0, y0 := max(int(area.X), 0), max(int(area.Y), 0)
+	x1, y1 := min(int(area.X+area.W), img.Bounds().Dx()), min(int(area.Y+area.H), img.Bounds().Dy())
+	minX, minY, maxX, maxY := math.MaxInt, math.MaxInt, -1, -1
+	count := 0
+	for y := y0; y < y1; y++ {
+		for x := x0; x < x1; x++ {
+			if img.RGBAAt(x, y) == bg {
+				continue
+			}
+			count++
+			minX, minY = min(minX, x), min(minY, y)
+			maxX, maxY = max(maxX, x), max(maxY, y)
+		}
+	}
+	if count == 0 {
+		return ui.Rect{}, 0
+	}
+	return ui.Rect{
+		X: float32(minX), Y: float32(minY),
+		W: float32(maxX - minX + 1), H: float32(maxY - minY + 1),
+	}, count
+}
+
+// TestComposerModeGlyphIsADoubleChevron checks the Mode entry's mark: the
+// reference draws the agent-mode picker as » — a pair of chevrons — rather than
+// the single forward chevron the sidebar uses. The pair paints a wider glyph at
+// the same 16 DIP step, so the drawn ink tells the two apart without the test
+// reading the SVG.
+func TestComposerModeGlyphIsADoubleChevron(t *testing.T) {
+	k := newTokens(ui.LightTheme())
+	_, tt := composerParityView(t, true)
+	mode, ok := tt.Find("Mode")
+	if !ok {
+		t.Fatalf("the mode entry is not drawn, texts %q", tt.Texts())
+	}
+	double, doubleInk := glyphInkBox(tt, mode, k.background)
+
+	singleTT := ui.NewTester(func(c *ui.Context) {
+		ui.Box(c).Size(40, 40).Background(k.background).Center().Children(func() {
+			composerGlyph(c, k, sidebarIcons.chevron)
+		})
+	}, 40, 40)
+	single, singleInk := glyphInkBox(singleTT, ui.Rect{X: 0, Y: 0, W: 40, H: 40}, k.background)
+	if doubleInk == 0 || singleInk == 0 {
+		t.Fatalf("the marks paint no ink: mode %d pixels, single chevron %d pixels", doubleInk, singleInk)
+	}
+	if double.W <= single.W*1.4 {
+		t.Errorf("the mode mark's ink is %.1f wide, want the » pair wider than the single chevron's %.1f",
+			double.W, single.W)
+	}
+	if math.Abs(float64(double.H-single.H)) > 2 {
+		t.Errorf("the mode mark is %.1f high, want the single chevron's %.1f", double.H, single.H)
 	}
 }

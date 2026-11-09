@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"math"
 	"strings"
 	"testing"
 
@@ -588,5 +589,64 @@ func TestShellContextPanelToggleTabStop(t *testing.T) {
 	}
 	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
 		t.Errorf("the keyboard opener did not draw the panel, texts %q", tt.Texts())
+	}
+}
+
+// composerCardBottom is the composer card's bottom edge, read from the Send
+// entry and the structure the region documents: the tool row's inset, the
+// divider and the ≈36 DIP context band under it. It lets a shell test measure
+// where the card sits without naming a group the accessibility tree does not.
+func composerCardBottom(t *testing.T, tt *ui.Tester, k tokens) float32 {
+	t.Helper()
+	send := textBox(t, tt, "Send")
+	return send.Y + send.H + k.edgePad + k.hairline + k.space(composerContextSpan) + k.hairline
+}
+
+// TestShellEmptyStateCentresTheHeroAndComposer checks the reference's empty
+// workspace: the hero and the composer are one group in the middle of the card,
+// the composer directly under the hero, not pinned to the window's bottom.
+func TestShellEmptyStateCentresTheHeroAndComposer(t *testing.T) {
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	s.Messages = nil
+	const width, height = 800, 720
+	tt := ui.NewTester(s.View, width, height)
+	k := newTokens(ui.LightTheme())
+
+	title := textBox(t, tt, tr(LocaleEN, keyHeroTitle))
+	editor := textBox(t, tt, "Composer")
+	if title.Y+title.H >= editor.Y {
+		t.Errorf("the hero runs into the composer: heading ends at %.1f, the card starts at %.1f",
+			title.Y+title.H, editor.Y)
+	}
+	mark, pixels := colorBox(tt, ui.Rect{X: k.sidebarW + k.framePad, W: width - k.sidebarW, H: title.Y}, k.primary)
+	if pixels == 0 {
+		t.Fatalf("no primary-green pixels above the heading, so the brand mark is missing")
+	}
+
+	// The pair is centred: the room above the mark and the room under the card
+	// are the same, and the card is not resting on the window's bottom edge.
+	topGap := mark.Y - k.heroPad - k.framePad
+	bottomGap := float32(height) - k.framePad - composerCardBottom(t, tt, k)
+	if math.Abs(float64(topGap-bottomGap)) > 2 {
+		t.Errorf("the empty group is not centred: %.1f above the hero, %.1f below the composer", topGap, bottomGap)
+	}
+	if bottomGap < k.space(composerContextSpan)*2 {
+		t.Errorf("the composer is pinned to the bottom: only %.1f DIP under it", bottomGap)
+	}
+}
+
+// TestShellConversationKeepsTheComposerAtTheBottom checks the other half of the
+// layout: once the conversation has rows the composer stays on the card's
+// bottom edge, as the reference's conversation does.
+func TestShellConversationKeepsTheComposerAtTheBottom(t *testing.T) {
+	const height = 720
+	tt := ui.NewTester(fixture().View, 800, height)
+	k := newTokens(ui.LightTheme())
+
+	cardBottom := composerCardBottom(t, tt, k)
+	if gap := float32(height) - k.framePad - cardBottom; math.Abs(float64(gap)) > 1 {
+		t.Errorf("the composer ends %.1f before the card's bottom, want it on the edge", gap)
 	}
 }

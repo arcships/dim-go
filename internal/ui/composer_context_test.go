@@ -77,10 +77,11 @@ func TestComposerContextRowShowsFacts(t *testing.T) {
 	}
 }
 
-// TestComposerContextRowShowsWIPWithoutFacts checks the empty state: with no
-// workspace or permission fact the row draws the WIP badge and the real reason
-// it waits on, and invents no path or mode.
-func TestComposerContextRowShowsWIPWithoutFacts(t *testing.T) {
+// TestComposerContextRowShowsNoWipWithoutFacts checks the empty state: with no
+// workspace or permission fact the row keeps the reference's plain labels, shows
+// no WIP text, and carries the real reason each entry waits on in its
+// description and tooltip instead of inventing a path or mode.
+func TestComposerContextRowShowsNoWipWithoutFacts(t *testing.T) {
 	_, tt := composerContextView(t, "", "")
 
 	for _, tc := range []struct {
@@ -108,8 +109,8 @@ func TestComposerContextRowShowsWIPWithoutFacts(t *testing.T) {
 			t.Errorf("%s has no visible area: %+v", tc.label, rect)
 		}
 	}
-	if !tt.HasText(wipBadge) {
-		t.Errorf("the context row shows no %q badge, texts %q", wipBadge, tt.Texts())
+	if tt.HasText(wipBadge) {
+		t.Errorf("the context row draws the visible %q text, texts %q", wipBadge, tt.Texts())
 	}
 }
 
@@ -188,6 +189,24 @@ func TestComposerSendDisabledWithoutDraft(t *testing.T) {
 	}
 	if tt.Focused("Send") {
 		t.Fatal("a disabled Send took the focus")
+	}
+}
+
+// TestComposerSendKeepsThePrimaryDiscWhenDisabled checks the empty state's
+// Send: the reference draws a solid primary disc, so a disabled Send keeps its
+// face instead of fading out. It stays unclickable; the disabled state is what
+// assistive technology reads.
+func TestComposerSendKeepsThePrimaryDiscWhenDisabled(t *testing.T) {
+	_, tt := composerContextView(t, "", "")
+	send, ok := tt.Find("Send")
+	if !ok {
+		t.Fatalf("the composer offers no Send entry, texts %q", tt.Texts())
+	}
+	k := newTokens(ui.LightTheme())
+	_, primary := colorBox(tt, send, k.primary)
+	if area := send.W * send.H; primary < int(area/2) {
+		t.Errorf("the disabled Send shows %d primary pixels in its %.0fx%.0f disc, want the solid face",
+			primary, send.W, send.H)
 	}
 }
 

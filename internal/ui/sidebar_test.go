@@ -829,3 +829,53 @@ func TestSidebarHidesThreadActionsAtZeroSessions(t *testing.T) {
 		}
 	}
 }
+
+// TestSidebarEmptyCatalogKeepsTheReferenceStructure checks the empty column's
+// structure, as the reference draws it: the session heading with its icons, the
+// workspace heading, the empty message under it and a hairline closing the
+// section, with no WIP text or capability group.
+func TestSidebarEmptyCatalogKeepsTheReferenceStructure(t *testing.T) {
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	s.Settings = SettingsView{Locale: LocaleZHCN}
+	const width, height = 800, 720
+	tt := ui.NewTester(s.View, width, height)
+	k := newTokens(ui.LightTheme())
+
+	sessions := textBox(t, tt, "会话")
+	workspace := textBox(t, tt, "工作区")
+	empty := textBox(t, tt, "暂无会话")
+	if sessions.Y >= workspace.Y || workspace.Y >= empty.Y {
+		t.Errorf("the empty column's order is off: 会话 y=%.1f, 工作区 y=%.1f, 暂无会话 y=%.1f",
+			sessions.Y, workspace.Y, empty.Y)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleStatus, "暂无会话"); !ok {
+		t.Errorf("the empty message is not a status region, texts %q", tt.Texts())
+	}
+
+	// The section closes with a hairline under the message.
+	face := color.RGBA{R: k.border.R, G: k.border.G, B: k.border.B, A: k.border.A}
+	divider := false
+	for y := int(empty.Y + empty.H); y < min(int(empty.Y+empty.H+40), height); y++ {
+		run := 0
+		for x := 0; x < int(k.sidebarW); x++ {
+			if tt.Image().RGBAAt(x, y) == face {
+				run++
+			}
+		}
+		if run > int(k.sidebarW)/2 {
+			divider = true
+			break
+		}
+	}
+	if !divider {
+		t.Errorf("no divider closes the empty section under the message")
+	}
+
+	for _, gone := range []string{wipBadge, "Unavailable capabilities"} {
+		if tt.HasText(gone) {
+			t.Errorf("the empty sidebar still draws %q, texts %q", gone, tt.Texts())
+		}
+	}
+}
