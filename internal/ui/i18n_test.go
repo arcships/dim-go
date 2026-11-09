@@ -54,9 +54,11 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 
 	for _, want := range []string{
 		// Sidebar entries, headings and the search box.
-		"新建会话", "搜索会话", "会话键", "会话", "分组", "无项目",
+		"新建会话", "搜索会话", "定时任务", "技能/插件", "会话键", "会话", "分组", "无项目",
 		// Toolbar and banner.
 		"设置", "会话已关闭",
+		// The account footer.
+		"登录 Dim",
 		// Composer.
 		"添加附件", "模式", "模型", "发送", "Enter 发送 · Shift+Enter 换行",
 		// WIP reasons and the capability list.
@@ -66,7 +68,7 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 			t.Errorf("the zh-CN frame is missing %q, texts %q", want, tt.Texts())
 		}
 	}
-	for _, gone := range []string{"New session", "Search sessions", "Session keys", "Attach file", "Unavailable capabilities"} {
+	for _, gone := range []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins", "Sign in to Dim", "Session keys", "Attach file", "Unavailable capabilities"} {
 		if tt.HasText(gone) {
 			t.Errorf("the zh-CN frame still shows the English %q, texts %q", gone, tt.Texts())
 		}

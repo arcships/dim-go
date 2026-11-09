@@ -171,11 +171,14 @@ func TestSidebarWIPEntriesDoNothing(t *testing.T) {
 	width := s.SidebarWidth
 
 	entries := map[string]string{
-		"Update":  "updater",
-		"Group":   "project",
-		"Pin":     "pin",
-		"Rename":  "session.rename",
-		"Archive": "hidden session list",
+		"Update":             "updater",
+		"Group":              "project",
+		"Scheduled tasks":    "scheduled",
+		"Skills and plugins": "skills",
+		"Sign in to Dim":     "account",
+		"Pin":                "pin",
+		"Rename":             "session.rename",
+		"Archive":            "hidden session list",
 	}
 	for name, gap := range entries {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)
@@ -648,7 +651,11 @@ func TestSidebarSearchEscape(t *testing.T) {
 // whole catalog instead of the last filter.
 func TestSidebarSearchClosesAndClears(t *testing.T) {
 	s := searchState()
-	tt := ui.NewTester(s.View, 900, 1000)
+	// The window is taller than the fixture's: the account footer and the two
+	// management entries take room that the thread list used to have at 1000,
+	// and this test needs all four rows built to tell the closed filter from an
+	// open one.
+	tt := ui.NewTester(s.View, 900, 1100)
 	openSearch(t, tt)
 	tt.Type("plan")
 	if !sidebarRowShown(tt, "Plan release") || sidebarRowShown(tt, "Fix flaky tests") {
@@ -718,7 +725,7 @@ func TestSidebarSearchTabReachable(t *testing.T) {
 		t.Fatalf("Tab does not reach the search box, texts %q", tt.Texts())
 	}
 	tt.Key(0, ui.KeyTab)
-	if !tt.Focused("Session keys") {
+	if !tt.Focused("Scheduled tasks") {
 		t.Fatalf("Tab does not leave the search box for the next entry, texts %q", tt.Texts())
 	}
 }
@@ -798,5 +805,122 @@ func TestSidebarSearchNeedsNoCallback(t *testing.T) {
 	}
 	if s.Selected != "s1" || len(s.Sessions) != 2 {
 		t.Errorf("opening the box changed the shell: selected=%q sessions=%d", s.Selected, len(s.Sessions))
+	}
+}
+
+// TestSidebarGlobalEntryOrder checks the global entries in dim-electron's
+// order: New session, Search, Scheduled tasks, Skills and plugins, then the
+// shell's own keys entry. The account footer sits below the session content,
+// with the settings entry on its tail.
+func TestSidebarGlobalEntryOrder(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	order := []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins", "Session keys"}
+	var previous ui.Rect
+	for i, want := range order {
+		rect, ok := tt.Find(want)
+		if !ok {
+			t.Fatalf("%q is not drawn, texts %q", want, tt.Texts())
+		}
+		if i > 0 && rect.Y <= previous.Y {
+			t.Errorf("%q at y=%.1f is not below the entry before it at y=%.1f", want, rect.Y, previous.Y)
+		}
+		previous = rect
+	}
+
+	account, ok := tt.Find("Sign in to Dim")
+	if !ok {
+		t.Fatalf("the account row is not drawn, texts %q", tt.Texts())
+	}
+	archive, ok := tt.Find("Archive")
+	if !ok {
+		t.Fatalf("the thread actions are not drawn, texts %q", tt.Texts())
+	}
+	if account.Y <= archive.Y {
+		t.Errorf("the account row at y=%.1f is not below the sidebar content at y=%.1f", account.Y, archive.Y)
+	}
+	settings, ok := tt.Find("Settings")
+	if !ok {
+		t.Fatalf("the settings entry is not drawn, texts %q", tt.Texts())
+	}
+	if settings.Y < account.Y || settings.Y >= account.Y+account.H {
+		t.Errorf("the settings entry %+v is not on the account row %+v", settings, account)
+	}
+	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	if account.Y+account.H > nav.Bounds.Y+nav.Bounds.H {
+		t.Errorf("the account row %+v runs past the sidebar %+v", account, nav.Bounds)
+	}
+}
+
+// TestSidebarAccountRowStaysWIP checks the account entry: the shell has no
+// account client, so there is no identity or sign-in fact to show. The entry
+// stays visible and unavailable, names the real gap, and a click changes no
+// view state.
+func TestSidebarAccountRowStaysWIP(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "Sign in to Dim")
+	if !ok {
+		t.Fatalf("the account entry is not exposed as a button, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("the account entry is available although the shell has no account client")
+	}
+	if !info.Focusable {
+		t.Error("the account entry is unreachable, so its reason is never read")
+	}
+	if !strings.Contains(info.Description, wipBadge) {
+		t.Errorf("the account entry description %q does not include the visible %q badge", info.Description, wipBadge)
+	}
+	if !strings.Contains(info.Description, "account client") {
+		t.Errorf("the account entry description %q does not name the missing account client", info.Description)
+	}
+	if err := tt.Click("Sign in to Dim"); err != nil {
+		t.Fatal(err)
+	}
+	if s.ShowSettings || s.Selected != "s1" || s.Draft != "" || len(s.Sessions) != 2 {
+		t.Errorf("a click on the account entry changed the shell: settings=%v selected=%q draft=%q sessions=%d",
+			s.ShowSettings, s.Selected, s.Draft, len(s.Sessions))
+	}
+}
+
+// TestSidebarSettingsOpensTheSurface checks the settings entry at the account
+// row's tail: it is the sidebar's own Settings button, and clicking it opens
+// the same appearance surface the toolbar's entry toggles, with no App Server
+// request.
+func TestSidebarSettingsOpensTheSurface(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	info, ok := tt.AccessByRole(ui.RoleButton, "Settings")
+	if !ok {
+		t.Fatalf("the settings entry is not exposed as a button, texts %q", tt.Texts())
+	}
+	if info.Bounds.X < nav.Bounds.X || info.Bounds.X+info.Bounds.W > nav.Bounds.X+nav.Bounds.W {
+		t.Fatalf("the first Settings button %+v is not the sidebar's, sidebar %+v", info.Bounds, nav.Bounds)
+	}
+	if info.Disabled {
+		t.Fatal("the settings entry is unavailable although settings is desktop-local")
+	}
+
+	tt.ClickAt(info.Bounds.X+info.Bounds.W/2, info.Bounds.Y+info.Bounds.H/2)
+	if !s.ShowSettings {
+		t.Fatalf("clicking the sidebar settings entry did not open the surface: %+v", s.ShowSettings)
+	}
+	tt.Frame()
+	if !tt.HasText("Appearance") || !tt.HasText("Interface language") {
+		t.Errorf("the appearance surface is not drawn after the click, texts %q", tt.Texts())
+	}
+	if !tt.HasText("Sign in to Dim") {
+		t.Errorf("the account row disappeared behind the settings surface, texts %q", tt.Texts())
 	}
 }

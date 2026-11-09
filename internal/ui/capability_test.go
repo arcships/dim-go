@@ -349,8 +349,9 @@ func TestCapabilityCardsDoNotChangeState(t *testing.T) {
 
 	before := s.Selected
 	for _, want := range []string{
-		"Update", "New session", "Search sessions", "Session keys", "Group", "Sessions",
-		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Settings", "Attach file", "Composer",
+		"Update", "New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
+		"Session keys", "Group", "Sessions", "Pin", "Rename", "Archive",
+		"Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings", "Attach file", "Composer",
 	} {
 		tt.Key(0, ui.KeyTab)
 		if !tt.Focused(want) {

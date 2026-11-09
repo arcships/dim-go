@@ -419,8 +419,13 @@ func TestShellKeysPanelFiltersTheSnapshot(t *testing.T) {
 	if s.Keys.Query != "daemon" {
 		t.Fatalf("the filter query is %q, want daemon", s.Keys.Query)
 	}
-	if !tt.HasText("notes") || tt.HasText("task") || tt.HasText("goroutine") {
-		t.Fatalf("the filter did not narrow the list, texts %q", tt.Texts())
+	if _, ok := tt.AccessByRole(ui.RoleListItem, "notes"); !ok {
+		t.Fatalf("the filter dropped the matching key, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{"task", "goroutine"} {
+		if _, ok := tt.AccessByRole(ui.RoleListItem, gone); ok {
+			t.Fatalf("the filter kept the key %q, texts %q", gone, tt.Texts())
+		}
 	}
 	if len(s.Keys.Entries) != 3 {
 		t.Errorf("the filter rewrote the caller's snapshot: %d entries", len(s.Keys.Entries))
