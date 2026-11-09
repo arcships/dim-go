@@ -411,22 +411,22 @@ func (s *State) View(c *ui.Context) {
 								// keeps the timeline's own states, so the hero never speaks over
 								// facts that are still on screen.
 								if !timeline.Loading && !timeline.Closed && len(timeline.Messages) == 0 && len(pending) == 0 {
-									renderHero(c, k, s.locale())
+									emptyState(c, k, composer, s.locale(), a)
 								} else {
 									renderTimeline(c, k, timeline, a)
-								}
-								// A pending approval takes the composer's slot: the user answers the
-								// request before typing again, as the spec's composer replacement does.
-								// The request set comes from the rows the projection produced, never from
-								// a click.
-								if len(pending) > 0 {
-									renderApprovalPanel(c, k, ApprovalView{
-										Pending:      pending,
-										InputDisplay: pending[0].InputDisplay,
-										Variant:      pending[0].Variant,
-									}, a)
-								} else {
-									renderComposer(c, k, composer, a)
+									// A pending approval takes the composer's slot: the user answers the
+									// request before typing again, as the spec's composer replacement does.
+									// The request set comes from the rows the projection produced, never
+									// from a click.
+									if len(pending) > 0 {
+										renderApprovalPanel(c, k, ApprovalView{
+											Pending:      pending,
+											InputDisplay: pending[0].InputDisplay,
+											Variant:      pending[0].Variant,
+										}, a)
+									} else {
+										renderComposer(c, k, composer, a)
+									}
 								}
 							}
 						})
@@ -440,6 +440,31 @@ func (s *State) View(c *ui.Context) {
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
 		composer.Focus.Focus()
 	}
+}
+
+// emptyState draws the workspace's empty state: the hero and the composer as
+// one group in the middle of the card, the composer directly under the hero, as
+// the reference's NewThread lays them out. They are centred together rather
+// than the hero centred alone over a composer pinned to the bottom, so the pair
+// keeps its distance from the window's edges in every window height.
+func emptyState(c *ui.Context, k tokens, v ComposerView, locale Locale, a Actions) {
+	ui.Column(c).Grow(1).FillWidth().Justify(ui.Center).Children(func() {
+		// The hero grows to fill whatever it is given (conversation.go), so the
+		// group gives it exactly its own box: the mark, the gap, the heading and
+		// the p-8 inset. That leaves the composer to follow it inside the
+		// centered pair instead of taking the free space.
+		ui.Column(c).Height(emptyHeroHeight(k)).Shrink(1).Children(func() {
+			renderHero(c, k, locale)
+		})
+		renderComposer(c, k, v, a)
+	})
+}
+
+// emptyHeroHeight is the hero's own height: renderHero's p-8 padding, the
+// brand mark, the gap under it and the heading's line box. It mirrors that
+// region's box, so the composer follows the hero directly.
+func emptyHeroHeight(k tokens) float32 {
+	return 2*k.heroPad + k.heroMarkH + k.heroGap + k.heroTitleLineH
 }
 
 // contextPanelShown reports whether the context panel is drawn this frame. It

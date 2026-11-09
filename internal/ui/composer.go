@@ -85,19 +85,25 @@ var composerShadow = ui.Hex("#00000010")
 
 // composerGlyphs is the icon set the card's toolbar and context row draw, in
 // the same 16×16 outline frame as the sidebar's (icons.go). The cube is the
-// model entry's mark, the shield is the default permission mode's, and the down
-// chevron is the workspace picker's disclosure; they are drawn here because no
-// other region uses them yet.
+// model entry's mark, the shield is the default permission mode's, the down
+// chevron is the workspace picker's disclosure, and the double chevron is the
+// mode entry's; they are drawn here because no other region uses them yet.
 var composerGlyphs = struct {
 	cube        *ui.SVG
 	shield      *ui.SVG
 	chevronDown *ui.SVG
+	modeChevron *ui.SVG
 }{
 	cube:   sidebarIcon(`<path d="M8 1.8 13.2 4.9v6.2L8 14.2 2.8 11.1V4.9Z"/><path d="M2.8 4.9 8 8l5.2-3.1M8 8v6.2"/>`),
 	shield: sidebarIcon(`<path d="M8 1.8 13 3.6v4.3c0 3.1-2 5.4-5 6.3-3-.9-5-3.2-5-6.3V3.6Z"/>`),
 	// chevronDown is the workspace picker's disclosure, the reference's ⌄
 	// beside the workspace name rather than the sidebar's forward chevron.
 	chevronDown: sidebarIcon(`<path d="M3.5 6 8 10.5 12.5 6"/>`),
+	// modeChevron is the Mode entry's mark: the reference draws the agent-mode
+	// picker as the » pair of chevrons, not as the single forward chevron the
+	// sidebar uses for its disclosure. Two strokes, so the entry reads as a
+	// choice rather than as a link.
+	modeChevron: sidebarIcon(`<path d="M3.5 4 6.5 8l-3 4"/><path d="M8.5 4 11.5 8l-3 4"/>`),
 }
 
 // composer draws the card dim-electron's composer is: the editor on top, the
@@ -148,9 +154,10 @@ func composerDivider(c *ui.Context, k tokens) {
 // would run in on the left, the session's default permission mode on the right,
 // as dim-electron's composer does. Neither is a control here: there is no
 // workspace or permission fact and no action to change one, so an empty field
-// draws the WIP state and the reason it waits on rather than a made-up value.
-// The band keeps the reference's ≈36 DIP height, so the card does not collapse
-// to the text when both values are short.
+// draws nothing beside its label and carries the reason it waits on in the
+// group's description and tooltip rather than as visible WIP text. The band
+// keeps the reference's ≈36 DIP height, so the card does not collapse to the
+// text when both values are short.
 func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
 	locale := v.Locale
 	ui.Row(c).FillWidth().MinHeight(k.space(composerContextSpan)).
@@ -163,10 +170,11 @@ func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
 }
 
 // composerWorkspaceEntry draws the workspace's display: its icon, its label,
-// the value the window supplied or the WIP badge when it supplied none, and the
-// disclosure chevron the reference's picker shows. It is a group, not a button:
-// there is no action to open a picker yet, and it adds no Tab stop to the
-// composer's documented order.
+// the value the window supplied when it supplied one, and the disclosure
+// chevron the reference's picker shows. It is a group, not a button: there is
+// no action to open a picker yet, and it adds no Tab stop to the composer's
+// documented order. With no value the entry reads as the reference's plain
+// "Workspace ⌄" and the group's description and tooltip say why it is empty.
 func composerWorkspaceEntry(c *ui.Context, k tokens, locale Locale, value string) {
 	entry := ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
 		Role(ui.RoleGroup).Label(tr(locale, keyComposerWorkspace)).Children(func() {
@@ -177,7 +185,7 @@ func composerWorkspaceEntry(c *ui.Context, k tokens, locale Locale, value string
 		composerGlyph(c, k, composerGlyphs.chevronDown)
 	})
 	if value == "" {
-		entry.Description(reasonWorkspace)
+		entry.Description(reasonWorkspace).Tooltip(reasonWorkspace)
 	}
 }
 
@@ -193,21 +201,19 @@ func composerPermissionEntry(c *ui.Context, k tokens, locale Locale, value strin
 		composerContextValue(c, k, value)
 	})
 	if value == "" {
-		entry.Description(reasonPermission)
+		entry.Description(reasonPermission).Tooltip(reasonPermission)
 	}
 }
 
-// composerContextValue draws a context entry's value, or the muted WIP badge
-// when the window supplied none. The badge is decoration: the group's label and
-// description already say what the entry is and why it is empty, so assistive
-// technology does not read a second "WIP" beside it.
+// composerContextValue draws a context entry's value when the window supplied
+// one. An empty value draws nothing: the entry keeps its muted label, and the
+// group's description and tooltip explain the gap, so the card shows no WIP
+// text the reference does not have and nothing that looks like a fact.
 func composerContextValue(c *ui.Context, k tokens, value string) {
-	if value != "" {
-		ui.Text(c, value).FontSize(k.smallSize).TextColor(k.foreground).Unselectable()
+	if value == "" {
 		return
 	}
-	ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-		Unselectable().AccessHidden(true)
+	ui.Text(c, value).FontSize(k.smallSize).TextColor(k.foreground).Unselectable()
 }
 
 // composerGlyph draws one 16 DIP decoration of the card, in the muted ink the
@@ -268,7 +274,7 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		// the editor, changing that documented order.
 		composerTool(c, k, sidebarIcons.plus, tr(locale, keyComposerAttach),
 			tr(locale, keyReasonAttachment), true)
-		composerTool(c, k, sidebarIcons.chevron, tr(locale, keyComposerMode),
+		composerTool(c, k, composerGlyphs.modeChevron, tr(locale, keyComposerMode),
 			tr(locale, keyReasonMode), false)
 		composerTool(c, k, composerGlyphs.cube, tr(locale, keyComposerModel),
 			tr(locale, keyReasonModel), false)
@@ -303,8 +309,10 @@ func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, t
 
 // composerSend draws Send as the compact round button of the composer: a
 // primary disc with the arrow decoration, named by the localized Send text. A
-// draft that cannot be sent now leaves it disabled and dimmed, with no other
-// change, so an empty draft or a submission in flight never looks sendable.
+// draft that cannot be sent now leaves it disabled and unclickable but keeps
+// the reference's solid primary face: the empty state's Send is the green disc
+// the reference draws, not a faded one, and the disabled state is what
+// assistive technology reads.
 func composerSend(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	size := k.space(composerSendSpan)
 	send := ui.ButtonBase(c).Label(tr(v.Locale, keyComposerSend)).
@@ -316,7 +324,9 @@ func composerSend(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		submitDraft(v, a)
 	})
 	if !submitReady(v, a) {
-		send.Disabled(true).Opacity(wipOpacity)
+		// Disabled takes the click and the Tab stop; DimDisabled(false) keeps the
+		// reference's solid disc instead of mygo's half-opacity disabled face.
+		send.Disabled(true).DimDisabled(false)
 	}
 }
 
