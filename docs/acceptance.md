@@ -60,8 +60,8 @@ Last updated: 2026-11-09
 | D3 | S | 图标/阴影/状态色 | 图标集、按钮形态、hover/focus/disabled 对照 | composer 工具栏仍是文字 WIP；阴影/过渡层缺失；状态色未逐项取样 | 未通过 |
 | D4 | S | 主题/皮肤/chrome | 主题数量、切换行为、skin/chrome 覆盖 | system/light/dark 可用；6 个 chrome 与 skin 未实现 | 未通过 |
 | D5 | C | 元素内容与 Markdown | 同状态文案/顺序/可见性/数据格式 + Markdown 渲染 | 语言默认英文、WIP 徽标与额外区域（Branches/能力卡片）改变内容与顺序；Electron 对话基线只有一轮纯文本，无 Markdown 对照 | 未通过 |
-| D6 | M | 动画/过渡 | 帧序列或时长/曲线记录 | MyGo 目前没有可对比的过渡动画；Electron 有 CSS transition | 未通过 |
-| D7 | S+C | 状态覆盖 | 空/加载/错误/悬停/焦点/菜单六态截图 | 空态/错误态有并排；加载、悬停、焦点、菜单未采集 | 未通过 |
+| D6 | M | 动画/过渡 | 帧序列或时长/曲线记录 | MyGo 已实现 150ms `cubic-bezier(0.23,1,0.32,1)` / 250ms `cubic-bezier(0.4,0,0.2,1)`，帧在 `docs/evidence/ui/motion-*.png`，测试断言中间帧；参考侧尚无同操作帧序列，且 mygo 不过渡文字 ink | 未通过 |
+| D7 | S+C | 状态覆盖 | 空/加载/错误/悬停/焦点/菜单六态截图 | 空态/错误态有并排；hover 有帧证据；加载、焦点、菜单未逐一采集 | 未通过 |
 
 首轮像素基线（`scripts/parity_diff.py`；区域：sidebar/top/content/composer/bottom）：
 
