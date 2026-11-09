@@ -1,0 +1,3 @@
+capture	docs/evidence/window-focus.png
+note	real window: activate app then Tab to the composer attach button; focus ring visible, WIP tooltip explains the missing file picker
+driver	scripts/ax/axdo.swift + osascript frontmost + screencapture -l

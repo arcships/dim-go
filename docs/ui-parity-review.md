@@ -90,7 +90,7 @@ Last updated: 2026-11-09
 ## 状态证据（2026-11-10）
 
 - 已有真实窗口：空态、对话、closed、menu、hover、search、settings、pinned、branch、header model。
-- loading 已取到稳定真实帧（SIGSTOP daemon 后选择会话 → spinner + Loading conversation…）；focus ring 仍只有 headless 断言，没有窗口截图；D7 仍不能通过。
+- loading 已取到稳定真实帧；focus ring 已取到真实窗口帧（激活后 Tab 到 attach 按钮，蓝色 focus ring + WIP tooltip）。approval 真实态仍缺（mock 不产生审批），D7 仍不能通过。
 
 ## 像素基线（辅助，不是结论）
 
