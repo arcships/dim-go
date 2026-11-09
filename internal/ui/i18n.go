@@ -94,13 +94,10 @@ const (
 	keySidebarUpdate        = "sidebar.update"
 	keySidebarNewSession    = "sidebar.newSession"
 	keySidebarSearch        = "sidebar.search"
-	keySidebarSearchLabel   = "sidebar.search.label"
-	keySidebarSearchHint    = "sidebar.search.placeholder"
 	keySidebarKeys          = "sidebar.keys"
 	keySidebarSessions      = "sidebar.sessions"
 	keySidebarGroup         = "sidebar.group"
 	keySidebarEmpty         = "sidebar.empty"
-	keySidebarEmptyFiltered = "sidebar.empty.filtered"
 	keySidebarUngrouped     = "sidebar.ungrouped"
 	keySidebarBranches      = "sidebar.branches"
 	keySidebarBranchesRO    = "sidebar.branches.readOnly"
@@ -238,6 +235,12 @@ const (
 	keySidebarSkills        = "sidebar.skills"
 	keySidebarAccount       = "sidebar.account"
 	keySidebarSettingsEntry = "sidebar.settings"
+
+	// The centered search palette: its input's placeholder and accessible
+	// name, the recent-chats heading and the empty state.
+	keySearchPlaceholder = "search.placeholder"
+	keySearchRecent      = "search.recent"
+	keySearchEmpty       = "search.empty"
 )
 
 // stringsEN is the English table, the default and the fallback. Its entries are
@@ -251,13 +254,10 @@ var stringsEN = Strings{
 	keySidebarUpdate:           "Update",
 	keySidebarNewSession:       "New session",
 	keySidebarSearch:           "Search",
-	keySidebarSearchLabel:      "Filter sessions",
-	keySidebarSearchHint:       "Title or id",
 	keySidebarKeys:             "Session keys",
 	keySidebarSessions:         "Sessions",
 	keySidebarGroup:            "Group",
 	keySidebarEmpty:            "No sessions yet",
-	keySidebarEmptyFiltered:    "No matching sessions",
 	keySidebarUngrouped:        ungroupedLabel,
 	keySidebarBranches:         "Branches",
 	keySidebarBranchesRO:       "Branches (read-only)",
@@ -283,6 +283,9 @@ var stringsEN = Strings{
 	keyComposerContextUsage:    "Context usage",
 	keySettingsNavigation:      "Settings sections",
 	keyContextPanelToggle:      "Context panel",
+	keySearchPlaceholder:       "Search chats",
+	keySearchRecent:            "Recent chats",
+	keySearchEmpty:             "No chats found",
 	"settings.section.account": "Account", "settings.section.usage": "Usage",
 	"settings.section.personalization": "Personalization", "settings.section.general": "General",
 	"settings.section.shortcuts": "Shortcuts", "settings.section.models": "Models",
@@ -315,7 +318,7 @@ var stringsEN = Strings{
 	keyReasonStop:            reasonStop,
 	keyReasonBranches:        reasonBranches,
 	keyReasonUpdate:          reasonUpdate,
-	keyReasonSearch:          reasonSearch,
+	keyReasonSearch:          reasonSearchEntry,
 	keyReasonGroup:           reasonGroup,
 	keyReasonPin:             reasonPin,
 	keyReasonRename:          reasonRename,
@@ -422,13 +425,10 @@ var stringsZHCN = Strings{
 	keySidebarUpdate:           "更新",
 	keySidebarNewSession:       "新建会话",
 	keySidebarSearch:           "搜索",
-	keySidebarSearchLabel:      "筛选会话",
-	keySidebarSearchHint:       "标题或 ID",
 	keySidebarKeys:             "会话键",
 	keySidebarSessions:         "会话",
 	keySidebarGroup:            "分组",
 	keySidebarEmpty:            "暂无会话",
-	keySidebarEmptyFiltered:    "没有匹配的会话",
 	keySidebarUngrouped:        "无项目",
 	keySidebarBranches:         "分支",
 	keySidebarBranchesRO:       "分支（只读）",
@@ -450,6 +450,9 @@ var stringsZHCN = Strings{
 	keyComposerContextUsage:    "上下文占用",
 	keySettingsNavigation:      "设置分区",
 	keyContextPanelToggle:      "上下文面板",
+	keySearchPlaceholder:       "搜索聊天",
+	keySearchRecent:            "最近聊天",
+	keySearchEmpty:             "未找到聊天",
 	"settings.section.account": "账户", "settings.section.usage": "用量",
 	"settings.section.personalization": "个性化", "settings.section.general": "通用",
 	"settings.section.shortcuts": "快捷键", "settings.section.models": "模型供应",
@@ -486,7 +489,7 @@ var stringsZHCN = Strings{
 	keyReasonStop:            "不可用：shell 还没有 session.stop 回调。",
 	keyReasonBranches:        "不可用：分支切换/切点还没有接线。",
 	keyReasonUpdate:          "不可用：shell 还没有接到应用的更新检查。",
-	keyReasonSearch:          "不可用：shell 还没有会话搜索；dim-electron 会在 App Server 历史上打开搜索框，这里两者都还没接。",
+	keyReasonSearch:          "不可用：窗口还没有搜索浮层的打开回调，侧栏入口无法打开搜索对话框。",
 	keyReasonGroup:           "不可用：会话行还没有项目或更新时间，shell 无法按项目或日期分组。",
 	keyReasonPin:             "不可用：没有经过验证的 App Server RPC 可以置顶会话，shell 也不保留本地置顶列表。",
 	keyReasonRename:          "不可用：session.rename 是通过 session.methods 访问的会话方法，shell 还没有调用。",

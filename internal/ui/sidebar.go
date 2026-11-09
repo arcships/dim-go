@@ -13,7 +13,6 @@ package ui
 
 import (
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/egoist/mygo/ui"
@@ -73,6 +72,7 @@ const (
 
 	reasonEndBranch       = "Unavailable: the shell has no session.branch_end callback yet."
 	reasonRefreshBranches = "Unavailable: the shell has no session.branches refresh callback yet."
+	reasonSearchEntry     = "Unavailable: the window has no search palette callback; the sidebar entry cannot open the search dialog."
 )
 
 // sidebarRow is one row of the sidebar's thread list: a group heading or a
@@ -182,112 +182,20 @@ func rowIndex(rows []sidebarRow, sessionID string) int {
 	return -1
 }
 
-// searchShortcutKey is the shortcut that opens the search box, and
-// searchShortcutMods its modifier: Cmd+G on macOS, Ctrl+G elsewhere. The
-// reference's search row shows no hint for it, so the shortcut stays a
-// behavior only and the row stays a plain label.
-const searchShortcutKey = ui.KeyG
-
-var searchShortcutMods = ui.Cmd
-
-// filterSessions returns the sessions the query leaves, in the catalog's
-// order. It filters a display copy: the catalog itself is never written and no
-// read is requested. An empty or blank query matches every session, and the
-// title and the id are both searched, case-insensitively: a session whose
-// title is unknown is still found by its id.
-func filterSessions(sessions []Session, query string) []Session {
-	query = strings.ToLower(strings.TrimSpace(query))
-	if query == "" {
-		return sessions
-	}
-	visible := make([]Session, 0, len(sessions))
-	for _, session := range sessions {
-		if sessionMatches(session, query) {
-			visible = append(visible, session)
-		}
-	}
-	return visible
-}
-
-// sessionMatches reports whether the lower-cased query occurs in the session's
-// title or id. Group labels are not searched: they head rows, they are not
-// sessions.
-func sessionMatches(session Session, query string) bool {
-	return strings.Contains(strings.ToLower(session.Title), query) ||
-		strings.Contains(strings.ToLower(session.ID), query)
-}
-
-// adoptSearch takes the caller's SidebarView.Searching on the first frame the
-// sidebar builds, as the shell takes the caller's selection: the shell copies
-// State into a fresh SidebarView every frame, so the search box's open state
-// lives in the region's own sidebarState. After that the region owns it,
-// because a click, the shortcut and Escape all toggle it.
-func (v SidebarView) adoptSearch() {
-	if v.state.searchTaken {
-		return
-	}
-	v.state.searchTaken = true
-	v.state.searching = v.Searching
-}
-
-// searchQuery is the storage the search field edits. A caller that keeps the
-// text itself passes SearchQuery; otherwise the region keeps it in its own
-// state, which is how the window runs it while it has no field for the text.
-func (v SidebarView) searchQuery() *string {
-	if v.SearchQuery != nil {
-		return v.SearchQuery
-	}
-	return &v.state.query
-}
-
-// visibleSessions is the display copy the thread list lays out: the catalog
-// filtered by the open search box. It reorders nothing and adds no session.
-func (v SidebarView) visibleSessions() []Session {
-	if !v.state.searching {
-		return v.Sessions
-	}
-	return filterSessions(v.Sessions, *v.searchQuery())
-}
-
-// toggleSearch opens the search box, or closes it and clears its filter.
-func (v SidebarView) toggleSearch() {
-	if v.state.searching {
-		v.closeSearch()
-		return
-	}
-	v.state.searching = true
-}
-
-// closeSearch closes the box and clears the filter, so reopening it starts
-// from the whole catalog rather than the last query.
-func (v SidebarView) closeSearch() {
-	v.state.searching = false
-	*v.searchQuery() = ""
-}
-
 // sidebar draws the reference's sidebar: the global entries, the grouped thread
 // list and the account footer. Its width comes from the split divider around
-// it; the shell clamps it to the sidebar's own bounds before every frame.
+// it; the shell clamps it to the sidebar's own bounds before every frame. The
+// Search entry opens the window's palette and shows no shortcut hint, as the
+// reference's row does not.
 func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
-	v.adoptSearch()
 	locale := v.Locale
-	// The search box is the sidebar's own display state, so its shortcut and
-	// Escape are read here: the shell has no callback for either, and a
-	// filter needs none. Both write the view state and send nothing.
-	if c.Shortcut(searchShortcutMods, searchShortcutKey) {
-		v.toggleSearch()
-	}
-	if v.state.searching && c.Shortcut(0, ui.KeyEscape) {
-		v.closeSearch()
-	}
-	sessions := v.visibleSessions()
 	ui.Column(c).FillHeight().Clip().Background(k.sidebar).
 		Transition(motionLayoutColors(c)).
 		Role(ui.RoleNavigation).Label(tr(locale, keySidebarNavigation)).Children(func() {
 		sidebarEntries(c, k, v, a)
 		threadListHeader(c, k, locale)
 		workspaceHeader(c, k, locale)
-		threadList(c, k, v, sessions, a)
+		threadList(c, k, v, a)
 		sidebarAccount(c, k, v, a)
 	})
 }
@@ -296,15 +204,15 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // the session action, search, scheduled tasks and skills/plugins. The column
 // starts below the traffic lights, which float over it in the reference's
 // hidden-title-bar window; the wordmark and the update entry are not drawn.
-// Search is local: the entry expands a filter box over the catalog the sidebar
-// already draws, and nothing it does reaches the App Server. The two
-// management entries have no client or page in this shell yet, so they keep
-// their place as unavailable entries whose tooltip carries the reason.
+// Search opens the window's centered palette, where the reference puts it; it
+// changes no catalog fact. The two management entries have no client or page in
+// this shell yet, so they keep their place as unavailable entries whose tooltip
+// carries the reason.
 func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	ui.Column(c).Padding(k.sidebarHeaderH+sidebarEntriesTop*k.sidebarGap, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
 		Gap(k.sidebarGap).Children(func() {
 		newSessionEntry(c, k, v, a)
-		searchEntry(c, k, v)
+		searchEntry(c, k, v, a)
 		scheduledEntry(c, k, v)
 		skillsEntry(c, k, v)
 	})
@@ -327,20 +235,18 @@ func skillsEntry(c *ui.Context, k tokens, v SidebarView) {
 	sidebarEntry(c, k, sidebarIcons.grid, tr(locale, keySidebarSkills), reasonSkills, false, false, false, nil)
 }
 
-// searchEntry toggles the sidebar's local session search. It needs no caller
-// callback, because filtering the display copy sends nothing: the entry is real
-// while the shell has a catalog at all. The box under it edits the query in
-// place, and the thread list below narrows on the same frame.
-func searchEntry(c *ui.Context, k tokens, v SidebarView) {
+// searchEntry opens the window's centered search palette, where the reference
+// puts its search: the entry itself draws no box, and the palette filters the
+// catalog copy the window already holds. It needs no caller callback beyond the
+// shell's own open action, so it is offered while Actions.OnOpenSearch is
+// wired; a column drawn alone keeps it visible, unavailable and explained.
+func searchEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
-	sidebarEntry(c, k, sidebarIcons.search, tr(locale, keySidebarSearch), "", true, false, v.state.searching, func() {
-		v.toggleSearch()
-	})
-	if !v.state.searching {
+	if a.OnOpenSearch == nil {
+		sidebarEntry(c, k, sidebarIcons.search, tr(locale, keySidebarSearch), tr(locale, keyReasonSearch), false, false, false, nil)
 		return
 	}
-	ui.SearchField(c, v.searchQuery()).Label(tr(locale, keySidebarSearchLabel)).
-		Placeholder(tr(locale, keySidebarSearchHint)).TextColor(k.sidebarForeground).FillWidth()
+	sidebarEntry(c, k, sidebarIcons.search, tr(locale, keySidebarSearch), "", true, false, false, a.OnOpenSearch)
 }
 
 // newSessionEntry offers session.create once the window wires it. Without the
@@ -425,20 +331,18 @@ func workspaceHeader(c *ui.Context, k tokens, locale Locale) {
 // workspace's message appears only while the list has no row, and the hairline
 // closing the section stays under both states. The list's choice is the shell's
 // selected session: a click or an arrow key moves the choice, and chooseSession
-// publishes it. sessions is the display copy the search filter left; the
-// catalog itself is never written.
-func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Actions) {
+// publishes it. The full catalog is laid out; search lives in the window's
+// palette, not in this column.
+func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
-	rows := threadRows(sessions, locale)
+	rows := threadRows(v.Sessions, locale)
 	v.state.rows = rows
-	// The choice maps from the selection anew when the selection or the filter
-	// changed, so a row the filter hides cannot keep the old index and a row the
-	// filter leaves cannot be marked by one. An unchanged pair keeps the list's
-	// own choice, which the arrow keys moved.
-	if *v.Selected != v.state.synced || *v.searchQuery() != v.state.filter {
+	// The choice maps from the selection anew when the selection changed, so a
+	// row the catalog added or removed cannot keep the old index. An unchanged
+	// pair keeps the list's own choice, which the arrow keys moved.
+	if *v.Selected != v.state.synced {
 		v.state.choice = rowIndex(rows, *v.Selected)
 		v.state.synced = *v.Selected
-		v.state.filter = *v.searchQuery()
 	}
 	ui.Column(c).Grow(1).Children(func() {
 		workspaceEmpty(c, k, v, len(rows))
@@ -485,22 +389,17 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 
 // workspaceEmpty draws the built-in workspace's message while the list has no
 // row, and the hairline that closes the section. The message appears only then:
-// above session rows it contradicted the rows under it. A filter that leaves no
-// row swaps in the no-match text, because then the list itself is empty too. The
-// hairline stays in both states, as the reference closes the section with it.
+// above session rows it contradicted the rows under it. The hairline stays in
+// both states, as the reference closes the section with it.
 func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 	locale := v.Locale
 	ui.Column(c).Children(func() {
 		if rows == 0 {
-			message := tr(locale, keySidebarEmpty)
-			if v.state.searching && len(v.Sessions) > 0 {
-				message = tr(locale, keySidebarEmptyFiltered)
-			}
 			ui.Column(c).Padding(
 				sidebarEmptyPadTop*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent,
 				sidebarEmptyPadBottom*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent).
 				Children(func() {
-					ui.Text(c, message).FontSize(k.smallSize).TextColor(k.mutedForeground).
+					ui.Text(c, tr(locale, keySidebarEmpty)).FontSize(k.smallSize).TextColor(k.mutedForeground).
 						Role(ui.RoleStatus)
 				})
 		}
