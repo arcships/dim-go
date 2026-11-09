@@ -344,7 +344,7 @@ Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试
 
 规则：缺 feature 时功能降级或 disabled，并说明原因；不写本地替代事实。`session.catalog` 缺失是"列表不可用"，不是"空列表"。
 
-当前 Go 实现有连接级 `hello.features` 门禁（`HasFeature`/`CapabilityError`）；`appserver.SessionMethods`/`Session.Methods` 已实现 `session.methods` 读取（目前仍先检查 `hello.features` 是否声明 `session.methods`），插件方法入口保持 WIP。`session.keys`/`session.branches` 的 wire decoder/helper 保留用于契约测试，但 `internal/session` 不请求，accessors 返回 blocked/empty；上游 RPC 未确认，标 blocked/unverified。
+当前 Go 实现有连接级 `hello.features` 门禁（`HasFeature`/`CapabilityError`）；`appserver.SessionMethods`/`Session.Methods` 已实现 `session.methods` 读取（目前仍先检查 `hello.features` 是否声明 `session.methods`），插件方法入口保持 WIP。`session.keys`/`session.branches` 只保留 Desktop wire 形状的 decoder/types 作参考，没有 `SessionKeys`/`SessionBranches` client helper；`internal/session` 不请求，accessors 返回 blocked/empty；上游 RPC 未确认，标 blocked/unverified。
 
 ## 17. Go DTO（`internal/appserver`）
 
@@ -377,7 +377,7 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `AttachParams` / `AttachResult` / `SessionStream` / `StreamState` | `session.attach` | 已实现；`OpenSessionStream` 负责订阅先行、head 兜底和通知路由 |
 | `DetachParams` | `session.detach` | 已实现；`Detach`/`Release` 都关闭连接 |
 | `HistoryParams` / `HistoryResult` / `RawEvent` | `session.history` | 已实现；分页不变量运行时校验 |
-| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | 保留 wire decoder / `SessionBranches` helper 供契约测试；`internal/session` 不请求，`Keys`/`BranchDirectory` 返回 blocked/empty；上游 RPC 未找到，**blocked/unverified**；UI branch switching/cut point 尚未实现 |
+| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | 仅保留 Desktop wire 形状 decoder/types 作参考，无 client helper；`internal/session` 不请求，`Keys`/`BranchDirectory` 返回 blocked/empty；上游 RPC 未找到，**blocked/unverified**；UI branch switching/cut point 尚未实现 |
 | `MethodsParams` / `MethodsResult` / `MethodDeclaration` | `session.methods` | 已实现；built-in，`{methods:[{name, mutating}]}`，`mutating` 必填 |
 | `SubmitParams` / `SubmitResult` + `Submit` | `session.submit` | 已实现；unknown-result 不重发 |
 | `StopParams` + `Stop` | `session.stop` | 已实现 |
@@ -387,7 +387,7 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` / `ModelProgress` | 通知 | 已实现，`DecodeNotification` 按方法解码；未知方法原样透传 |
 | `LocalError` / `MappedError` | 客户端本地错误 / `appError` 映射 | 已实现 |
 
-`SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.input_lookup`、`session.methods` 的读取已实现；`session.keys`/`session.branches` 只有 wire decoder/helper 和 fake 契约测试，session 不请求，accessors 返回 blocked/empty；插件方法入口仍保持 WIP。
+`SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.input_lookup`、`session.methods` 的读取已实现；`session.keys`/`session.branches` 只有 Desktop wire 形状 decoder/types，没有 client helper 或 fake RPC 支持；session 不请求，accessors 返回 blocked/empty；插件方法入口仍保持 WIP。
 
 ## 18. Transport 与 Supervisor 参数（已实现，real-daemon 控制面已验证）
 
