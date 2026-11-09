@@ -59,9 +59,9 @@ func (r sidebarRow) accessLabel() string {
 
 // threadRows lays the catalog out for the sidebar. When no session carries a
 // Group label the list stays flat; once one does, every heading is drawn and
-// the ungrouped sessions fall under ungroupedLabel. The catalog's order is
-// kept inside each heading, and no row is invented.
-func threadRows(sessions []Session) []sidebarRow {
+// the ungrouped sessions fall under the locale's "no project" label. The
+// catalog's order is kept inside each heading, and no row is invented.
+func threadRows(sessions []Session, locale Locale) []sidebarRow {
 	grouped := false
 	for _, session := range sessions {
 		if session.Group != "" {
@@ -81,7 +81,7 @@ func threadRows(sessions []Session) []sidebarRow {
 	for _, session := range sessions {
 		label := session.Group
 		if label == "" {
-			label = ungroupedLabel
+			label = tr(locale, keySidebarUngrouped)
 		}
 		if _, ok := buckets[label]; !ok {
 			order = append(order, label)
@@ -194,6 +194,7 @@ func (v SidebarView) closeSearch() {
 // to the sidebar's own bounds before every frame.
 func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	v.adoptSearch()
+	locale := v.Locale
 	// The search box is the sidebar's own display state, so its shortcut and
 	// Escape are read here: the shell has no callback for either, and a
 	// filter needs none. Both write the view state and send nothing.
@@ -205,28 +206,28 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	}
 	sessions := v.visibleSessions()
 	ui.Column(c).FillHeight().Clip().Background(k.sidebar).
-		Role(ui.RoleNavigation).Label("Session sidebar").Children(func() {
-		sidebarHeader(c, k)
+		Role(ui.RoleNavigation).Label(tr(locale, keySidebarNavigation)).Children(func() {
+		sidebarHeader(c, k, locale)
 		sidebarEntries(c, k, v, a)
-		threadListHeader(c, k, len(sessions))
+		threadListHeader(c, k, len(sessions), locale)
 		threadList(c, k, v, sessions, a)
 		if len(v.Branches) > 0 {
 			branchList(c, k, v, a)
 		}
-		sidebarFooter(c, k)
-		capabilityCards(c, k, v.Capabilities)
+		sidebarFooter(c, k, locale)
+		capabilityCards(c, k, locale, v.Capabilities)
 	})
 }
 
 // sidebarHeader is the brand row, 48 DIP high as the titlebar it sits beside.
 // The update entry stays visible and unavailable until the shell is wired to
 // the app's updater.
-func sidebarHeader(c *ui.Context, k tokens) {
+func sidebarHeader(c *ui.Context, k tokens, locale Locale) {
 	ui.Row(c).Height(k.sidebarHeaderH).Margin(k.sidebarHeaderTop, 0, 0, 0).
 		PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "DimAgent").Bold().FontSize(k.titleSize).TextColor(k.sidebarForeground).SingleLine()
 		ui.Spacer(c)
-		wipAction(c, k, "Update", reasonUpdate)
+		wipAction(c, k, tr(locale, keySidebarUpdate), tr(locale, keyReasonUpdate))
 	})
 }
 
@@ -247,14 +248,15 @@ func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // while the shell has a catalog at all. The box under it edits the query in
 // place, and the thread list below narrows on the same frame.
 func searchEntry(c *ui.Context, k tokens, v SidebarView) {
-	sidebarEntry(c, k, "Search sessions", searchShortcutText(), "", true, false, v.state.searching, func() {
+	locale := v.Locale
+	sidebarEntry(c, k, tr(locale, keySidebarSearch), searchShortcutText(), "", true, false, v.state.searching, func() {
 		v.toggleSearch()
 	})
 	if !v.state.searching {
 		return
 	}
-	ui.SearchField(c, v.searchQuery()).Label("Filter sessions").
-		Placeholder("Title or id").TextColor(k.sidebarForeground).FillWidth()
+	ui.SearchField(c, v.searchQuery()).Label(tr(locale, keySidebarSearchLabel)).
+		Placeholder(tr(locale, keySidebarSearchHint)).TextColor(k.sidebarForeground).FillWidth()
 }
 
 // newSessionEntry offers session.create once the window wires it. Without the
@@ -262,11 +264,12 @@ func searchEntry(c *ui.Context, k tokens, v SidebarView) {
 // and it is unavailable again while one creation is in flight, so a second
 // click cannot ask for a second session.
 func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	locale := v.Locale
 	if a.OnCreateSession == nil {
-		sidebarEntry(c, k, "New session", "", reasonCreateSession, false, false, false, nil)
+		sidebarEntry(c, k, tr(locale, keySidebarNewSession), "", tr(locale, keyReasonCreateSession), false, false, false, nil)
 		return
 	}
-	sidebarEntry(c, k, "New session", "", "", true, v.Creating, false, func() {
+	sidebarEntry(c, k, tr(locale, keySidebarNewSession), "", "", true, v.Creating, false, func() {
 		createSession(a, v.Creating)
 	})
 }
@@ -276,11 +279,12 @@ func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // nothing to browse: the entry keeps its place, dimmed and explained, instead
 // of opening a panel that can only say it has no read.
 func keysEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	locale := v.Locale
 	if a.OnToggleKeys == nil {
-		sidebarEntry(c, k, "Session keys", "", reasonKeysEntry, false, false, false, nil)
+		sidebarEntry(c, k, tr(locale, keySidebarKeys), "", tr(locale, keyReasonKeysEntry), false, false, false, nil)
 		return
 	}
-	sidebarEntry(c, k, "Session keys", "", "", true, false, v.KeysOpen, func() {
+	sidebarEntry(c, k, tr(locale, keySidebarKeys), "", "", true, false, v.KeysOpen, func() {
 		a.OnToggleKeys()
 	})
 }
@@ -339,13 +343,13 @@ func searchShortcutText() string {
 // the search filter leaves. Grouping by project or date is a dim-electron view
 // mode fed by catalog facts this shell does not receive, so the control stays
 // visible and unavailable.
-func threadListHeader(c *ui.Context, k tokens, count int) {
+func threadListHeader(c *ui.Context, k tokens, count int, locale Locale) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "Sessions").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
+		ui.Text(c, tr(locale, keySidebarSessions)).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
 		ui.Text(c, strconv.Itoa(count)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		ui.Spacer(c)
-		wipAction(c, k, "Group", reasonGroup)
+		wipAction(c, k, tr(locale, keySidebarGroup), tr(locale, keyReasonGroup))
 	})
 }
 
@@ -355,7 +359,8 @@ func threadListHeader(c *ui.Context, k tokens, count int) {
 // sessions is the display copy the search filter left; the catalog itself is
 // never written.
 func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Actions) {
-	rows := threadRows(sessions)
+	locale := v.Locale
+	rows := threadRows(sessions, locale)
 	v.state.rows = rows
 	// The choice maps from the selection anew when the selection or the filter
 	// changed, so a row the filter hides cannot keep the old index and a row the
@@ -367,9 +372,9 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		v.state.filter = *v.searchQuery()
 	}
 	if len(rows) == 0 {
-		empty := "No sessions yet"
+		empty := tr(locale, keySidebarEmpty)
 		if v.state.searching && len(v.Sessions) > 0 {
-			empty = "No matching sessions"
+			empty = tr(locale, keySidebarEmptyFiltered)
 		}
 		ui.Column(c).Grow(1).Padding(k.sidebarPadX).Children(func() {
 			ui.Text(c, empty).FontSize(k.smallSize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
@@ -390,7 +395,7 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		threadRow(c, k, v, rows[row])
 	}).Grow(1).MinHeight(k.sidebarRowH*2).
 		Padding(k.sidebarGap, k.sidebarPadX).
-		Label("Sessions").OnChange(func() {
+		Label(tr(locale, keySidebarSessions)).OnChange(func() {
 		chooseSession(v, a)
 	})
 }
@@ -463,34 +468,35 @@ func chooseSession(v SidebarView, a Actions) {
 // ended; a click asks the window to end it and leaves every row in place until
 // the App Server confirms through the refreshed directory.
 func branchList(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	locale := v.Locale
 	selectable := a.OnSelectBranch != nil
-	label := "Branches (read-only)"
+	label := tr(locale, keySidebarBranchesRO)
 	if selectable {
-		label = "Branches"
+		label = tr(locale, keySidebarBranches)
 	}
 	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
 		Role(ui.RoleGroup).Label(label).Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().AccessHidden(true)
+			ui.Text(c, tr(locale, keySidebarBranches)).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().AccessHidden(true)
 			ui.Box(c).Grow(1)
 			if !selectable {
 				ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 			}
-			branchRefreshEntry(c, k, a)
+			branchRefreshEntry(c, k, a, locale)
 		})
 		for _, branch := range v.Branches {
 			current := branchCurrent(branch, v.SelectedBranch)
 			if selectable {
-				branchEntry(c, k, branch, current, a)
+				branchEntry(c, k, branch, current, a, locale)
 				continue
 			}
-			ui.Text(c, branchLabel(branch, current)).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+			ui.Text(c, branchLabel(branch, current, locale)).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
 		}
 		if branch, ok := currentBranch(v); ok && branchEndable(branch) {
-			branchEndEntry(c, k, branch, a)
+			branchEndEntry(c, k, branch, a, locale)
 		}
 		if !selectable {
-			ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			ui.Text(c, tr(locale, keyReasonBranches)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		}
 	})
 }
@@ -498,12 +504,12 @@ func branchList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // branchRefreshEntry asks the window to re-read session.branches. Without the
 // callback the entry keeps its place and its reason, so an unwired window
 // cannot imply a refresh it never sent.
-func branchRefreshEntry(c *ui.Context, k tokens, a Actions) {
+func branchRefreshEntry(c *ui.Context, k tokens, a Actions, locale Locale) {
 	if a.OnRefreshBranches == nil {
-		wipAction(c, k, "Refresh", reasonRefreshBranches)
+		wipAction(c, k, tr(locale, keySidebarRefresh), tr(locale, keyReasonRefreshBranches))
 		return
 	}
-	ui.Button(c, "Refresh").OnClick(func() {
+	ui.Button(c, tr(locale, keySidebarRefresh)).OnClick(func() {
 		refreshBranches(a)
 	})
 }
@@ -513,12 +519,12 @@ func branchRefreshEntry(c *ui.Context, k tokens, a Actions) {
 // and it removes no row: the directory keeps its entries until the App Server
 // reports the end. Without the callback the entry stays visible, disabled and
 // explained as WIP.
-func branchEndEntry(c *ui.Context, k tokens, branch Branch, a Actions) {
+func branchEndEntry(c *ui.Context, k tokens, branch Branch, a Actions, locale Locale) {
 	if a.OnEndBranch == nil {
-		wipAction(c, k, "End branch", reasonEndBranch)
+		wipAction(c, k, tr(locale, keySidebarEndBranch), tr(locale, keyReasonEndBranch))
 		return
 	}
-	ui.Button(c, "End branch").OnClick(func() {
+	ui.Button(c, tr(locale, keySidebarEndBranch)).OnClick(func() {
 		endBranch(a, branch.ID)
 	})
 }
@@ -544,13 +550,13 @@ func branchEndable(branch Branch) bool {
 
 // branchLabel is a row's text: the caller's label, or the branch's id when the
 // App Server gave none, with the displayed branch named.
-func branchLabel(branch Branch, current bool) string {
+func branchLabel(branch Branch, current bool, locale Locale) string {
 	label := branch.Label
 	if label == "" {
 		label = branch.ID
 	}
 	if current {
-		label += " (current)"
+		label += tr(locale, keySidebarBranchSuffix)
 	}
 	return label
 }
@@ -565,8 +571,8 @@ func branchCurrent(branch Branch, selectedBranch string) bool {
 // branchEntry draws one selectable branch row. A click on the displayed branch
 // asks for nothing; any other asks the window to open that branch, and the
 // row's selected face follows the view, so a failed read never looks switched.
-func branchEntry(c *ui.Context, k tokens, branch Branch, current bool, a Actions) {
-	label := branchLabel(branch, false)
+func branchEntry(c *ui.Context, k tokens, branch Branch, current bool, a Actions, locale Locale) {
+	label := branchLabel(branch, false, locale)
 	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
 		PaddingX(k.sidebarGap).Radius(radiusMD).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Role(ui.RoleListItem).Label(label).Selected(current)
@@ -580,7 +586,7 @@ func branchEntry(c *ui.Context, k tokens, branch Branch, current bool, a Actions
 		ui.Text(c, label).FontSize(k.smallSize).TextColor(k.sidebarForeground).
 			SingleLine().Grow(1)
 		if current {
-			ui.Text(c, "current").FontSize(k.smallSize).TextColor(k.mutedForeground).AccessHidden(true)
+			ui.Text(c, tr(locale, keySidebarBranchCurrent)).FontSize(k.smallSize).TextColor(k.mutedForeground).AccessHidden(true)
 		}
 	})
 }
@@ -589,16 +595,16 @@ func branchEntry(c *ui.Context, k tokens, branch Branch, current bool, a Actions
 // — pin, rename and archive — visible and unavailable: the App Server has no
 // verified pin or archive RPC for them, session.rename is reached through
 // session.methods, and this shell keeps no local list for any of the three.
-func sidebarFooter(c *ui.Context, k tokens) {
+func sidebarFooter(c *ui.Context, k tokens, locale Locale) {
 	ui.Row(c).MinHeight(k.sidebarFooterH).
 		Padding(0, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
 		Gap(k.sidebarGap).Wrap().AlignItems(ui.Center).
-		Role(ui.RoleGroup).Label("Thread actions (unavailable)").Children(func() {
+		Role(ui.RoleGroup).Label(tr(locale, keySidebarThreadActions)).Children(func() {
 		var actions []ui.Element
 		for _, action := range []struct{ label, reason string }{
-			{"Pin", reasonPin},
-			{"Rename", reasonRename},
-			{"Archive", reasonArchive},
+			{tr(locale, keySidebarPin), tr(locale, keyReasonPin)},
+			{tr(locale, keySidebarRename), tr(locale, keyReasonRename)},
+			{tr(locale, keySidebarArchive), tr(locale, keyReasonArchive)},
 		} {
 			actions = append(actions, ui.Button(c, action.label).AccessDisabled(true).
 				Description(action.reason).Opacity(wipOpacity))

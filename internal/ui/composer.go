@@ -57,7 +57,7 @@ func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		// it at the card's bottom, the editor first, as the spec lays it out.
 		ui.Column(c).Gap(k.gap).Reverse().Children(func() {
 			composerActions(c, k, v, a)
-			composerHintRow(c, k)
+			composerHintRow(c, k, v.Locale)
 			composerEditor(c, k, v, a)
 		})
 	})
@@ -70,7 +70,7 @@ func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 func composerEditor(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	ui.TextArea(c.Key("composer"), v.Draft).Bind(v.Focus).
 		Lines(1, composerMaxLines).MinHeight(composerMinH).MaxHeight(composerMaxH).
-		Placeholder(v.Placeholder).Label("Composer").
+		Placeholder(v.Placeholder).Label(tr(v.Locale, keyComposerLabel)).
 		OnShortcut(v.Shortcut.Mods, v.Shortcut.Key, func() {
 			submitDraft(v, a)
 		}).
@@ -95,6 +95,7 @@ func composerEditor(c *ui.Context, k tokens, v ComposerView, a Actions) {
 // composerActions draws the bottom row: the attachment entry and the mode
 // selector on the left, the model selector and Send on the right.
 func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
+	locale := v.Locale
 	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		// The attachment entry keeps wipAction's place in the Tab order, as the
 		// shell's keyboard contract documents it. The model and mode selectors
@@ -102,11 +103,11 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		// insert itself between "Attach file" and the editor, changing that
 		// documented order. They are still visible, read as disabled with their
 		// reason, and take no focus.
-		wipAction(c, k, "Attach file", reasonAttachment)
-		composerWIP(c, k, "Mode", reasonMode)
+		wipAction(c, k, tr(locale, keyComposerAttach), tr(locale, keyReasonAttachment))
+		composerWIP(c, k, tr(locale, keyComposerMode), tr(locale, keyReasonMode))
 		ui.Box(c).Grow(1)
-		composerWIP(c, k, "Model", reasonModel)
-		send := ui.Button(c, "Send").OnClick(func() {
+		composerWIP(c, k, tr(locale, keyComposerModel), tr(locale, keyReasonModel))
+		send := ui.Button(c, tr(locale, keyComposerSend)).OnClick(func() {
 			submitDraft(v, a)
 		})
 		if !submitReady(v, a) {
@@ -129,8 +130,8 @@ func composerWIP(c *ui.Context, k tokens, label, reason string) {
 
 // composerHintRow draws the shortcut hint under the editor. It is text, not a
 // control, so it adds no Tab stop.
-func composerHintRow(c *ui.Context, k tokens) {
-	ui.Text(c, composerHint).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
+func composerHintRow(c *ui.Context, k tokens, locale Locale) {
+	ui.Text(c, tr(locale, keyComposerHint)).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 }
 
 // canSubmit reports whether the window would take a submission now: a wired

@@ -160,6 +160,11 @@ type SidebarView struct {
 	// makes the region keep it in sidebarState, which is how the window runs it
 	// today. Either way the filter reads this text and never the catalog's.
 	SearchQuery *string
+	// Locale is the language of the region's own text: the entries, the search
+	// box, the branch labels, the footer and the capability cards. Group labels
+	// and session titles are catalog facts and stay as the caller sent them. An
+	// empty or unknown value draws English.
+	Locale Locale
 
 	// state is the region's own view state: the thread list's place among its
 	// rows, its choice, the selection that choice was last mapped from, the
@@ -237,6 +242,12 @@ type HeaderView struct {
 	// SettingsOpen is the window's record that the appearance surface is
 	// showing. The toolbar's entry reads "Settings" or "Conversation" from it.
 	SettingsOpen bool
+	// Locale is the language of the toolbar's own text: the Stop, Reconnect and
+	// Settings entries, the status prefixes and the terminal-close banner. The
+	// run and connection names, the session title and an error string are not
+	// the shell's words and stay as they came. An empty or unknown value draws
+	// English.
+	Locale Locale
 }
 
 // TimelineView is what the timeline region draws: the conversation rows, the
@@ -378,6 +389,10 @@ type ComposerView struct {
 	Shortcut KeyBinding
 	// Focus is the composer's identity, for the shell's focus shortcut.
 	Focus *ui.Handle
+	// Locale is the language of the composer's own text: the editor's label, the
+	// shortcut hint and the action row. Placeholder is already resolved by the
+	// shell. An empty or unknown value draws English.
+	Locale Locale
 }
 
 // KeyBinding is one keyboard shortcut as a region listens for it.

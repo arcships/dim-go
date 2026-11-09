@@ -135,6 +135,8 @@ const (
 	SettingsFieldDensity
 	// SettingsFieldCodeFontSize is the code font size, in DIPs.
 	SettingsFieldCodeFontSize
+	// SettingsFieldLocale is the interface language.
+	SettingsFieldLocale
 )
 
 // String names the field, for a caller's log or error.
@@ -150,21 +152,27 @@ func (f SettingsField) String() string {
 		return "density"
 	case SettingsFieldCodeFontSize:
 		return "code font size"
+	case SettingsFieldLocale:
+		return "language"
 	default:
 		return "theme"
 	}
 }
 
-// SettingsView is what the appearance surface draws: the desktop's own
-// preference values. It is a display copy. The window owns the preferences and
-// persists them; no field is a session, run or approval fact and none comes
-// from the App Server.
+// SettingsView is what the settings surface draws: the desktop's own
+// preference values, the interface language among them. It is a display copy.
+// The window owns the preferences and persists them; no field is a session, run
+// or approval fact and none comes from the App Server.
 //
 // A zero field takes the token default, so a window that has never saved a
-// preference draws the values the shell opens with. resolveSettings fills the
-// defaults and keeps a saved value on the range the surface offers, and
-// newTokensFor folds the resolved view into the tokens the frame draws with.
+// preference draws the values the shell opens with and English text.
+// resolveSettings fills the defaults and keeps a saved value on the range the
+// surface offers, and newTokensFor folds the resolved view into the tokens the
+// frame draws with.
 type SettingsView struct {
+	// Locale is the shell language preference. It is desktop-local and never a
+	// session or App Server fact.
+	Locale Locale
 	// Theme is the color-theme preference: system, light or dark.
 	Theme ThemeChoice
 	// FontSize is the UI text step, one of fontSizeSteps.
@@ -183,10 +191,12 @@ type SettingsView struct {
 // SettingsChange is one preference the user just chose. Field says which one
 // changed; the other fields repeat the resolved view, so a caller can take the
 // one value or store the whole snapshot. Every value is inside the range the
-// surface offers: a width is clamped and a size snapped before it is reported,
-// so a saved value outside the bounds cannot leak back through a click.
+// surface offers: a width is clamped, a size snapped and an unknown language
+// folded to English before it is reported, so a saved value outside the bounds
+// cannot leak back through a click.
 type SettingsChange struct {
 	Field        SettingsField
+	Locale       Locale
 	Theme        ThemeChoice
 	FontSize     float32
 	FontFamily   FontFamily
@@ -204,10 +214,11 @@ func defaultSettingsView(k tokens) SettingsView {
 }
 
 // resolveSettings turns a saved view into what the surface draws: an unknown
-// enum falls back to its default, a UI size snaps to the nearest offered step,
-// the code size and the sidebar width are held to their ranges, and a zero
-// value takes the token default.
+// enum or language falls back to its default, a UI size snaps to the nearest
+// offered step, the code size and the sidebar width are held to their ranges,
+// and a zero value takes the token default.
 func resolveSettings(k tokens, v SettingsView) SettingsView {
+	v.Locale = resolveLocale(v.Locale)
 	switch v.Theme {
 	case ThemeLight, ThemeDark:
 	default:
@@ -327,6 +338,36 @@ func densityAt(index int) Density {
 	return DensityRegular
 }
 
+// themeChoiceText is the theme's name in the active language. The choice's own
+// String stays the English name, for a caller's log and for the tests that pin
+// the default.
+func themeChoiceText(l Locale, t ThemeChoice) string {
+	switch t {
+	case ThemeLight:
+		return tr(l, keySettingsLight)
+	case ThemeDark:
+		return tr(l, keySettingsDark)
+	default:
+		return tr(l, keySettingsSystem)
+	}
+}
+
+// fontFamilyText is the family's name in the active language.
+func fontFamilyText(l Locale, f FontFamily) string {
+	if f == FontMonospace {
+		return tr(l, keySettingsFontMonospace)
+	}
+	return tr(l, keySettingsFontSystem)
+}
+
+// densityText is the density's name in the active language.
+func densityText(l Locale, d Density) string {
+	if d == DensityCompact {
+		return tr(l, keySettingsDensityCompact)
+	}
+	return tr(l, keySettingsDensityRegular)
+}
+
 // publishSettings reports one user choice. The nil callback is a window that
 // has not wired persistence yet: the surface stays visible with its current
 // values and reports nothing, rather than changing a preference nowhere.
@@ -336,6 +377,7 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 	}
 	onChange(SettingsChange{
 		Field:        field,
+		Locale:       v.Locale,
 		Theme:        v.Theme,
 		FontSize:     v.FontSize,
 		FontFamily:   v.FontFamily,
@@ -346,19 +388,21 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 }
 
 // renderSettings draws the appearance settings surface: the title, the theme,
-// type, layout and skin sections, one row per preference with its current value
-// and the control that changes it. It reads SettingsView and the tokens only.
-// It calls onChange at most once per user choice, with the resolved view, and
-// writes no preference itself. The skin and chrome entries stay visible and
-// unavailable.
+// type, layout, skin and language sections, one row per preference with its
+// current value and the control that changes it. It reads SettingsView and the
+// tokens only. It calls onChange at most once per user choice, with the resolved
+// view, and writes no preference itself. The skin and chrome entries stay
+// visible and unavailable. The surface's own text is drawn in the language the
+// view names, so a language choice shows on the next frame.
 func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
 	v = resolveSettings(k, v)
+	l := v.Locale
 	ui.Scroll(c).Fill().Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(settingsPageMaxW).Padding(k.panelPad).Gap(k.panelPad).
-			Role(ui.RoleRegion).Label("Appearance settings").Children(func() {
-			ui.Text(c, "Appearance").Bold().FontSize(k.titleSize).TextColor(k.foreground).
+			Role(ui.RoleRegion).Label(tr(l, keySettingsRegion)).Children(func() {
+			ui.Text(c, tr(l, keySettingsTitle)).Bold().FontSize(k.titleSize).TextColor(k.foreground).
 				Role(ui.RoleHeading).Level(1)
-			ui.Text(c, settingsLocalNote).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			ui.Text(c, tr(l, keySettingsLocalNote)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 			settingsDivider(c, k)
 			settingsThemeSection(c, k, v, onChange)
 			settingsDivider(c, k)
@@ -366,7 +410,12 @@ func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(Setti
 			settingsDivider(c, k)
 			settingsLayoutSection(c, k, v, onChange)
 			settingsDivider(c, k)
-			settingsSkinSection(c, k)
+			settingsSkinSection(c, k, v)
+			// The language row sits last so a reader who changes it has already
+			// passed the preferences whose labels it switches; the rest of the page
+			// is redrawn in the new language on the next frame.
+			settingsDivider(c, k)
+			settingsLanguageSection(c, k, v, onChange)
 		})
 	})
 }
@@ -374,11 +423,12 @@ func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(Setti
 // settingsThemeSection is the color-theme row: one choice among System, Light
 // and Dark, with the chosen one named beside it.
 func settingsThemeSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
-	settingsSection(c, k, "Color", func() {
-		settingsRow(c, k, "Theme", "Current: "+v.Theme.String(), func() {
+	l := v.Locale
+	settingsSection(c, k, tr(l, keySettingsColor), func() {
+		settingsRow(c, k, tr(l, keySettingsTheme), tr(l, keySettingsCurrentPrefix)+themeChoiceText(l, v.Theme), func() {
 			selected := themeIndex(v.Theme)
 			segmented := ui.Segmented(c, &selected,
-				ThemeSystem.String(), ThemeLight.String(), ThemeDark.String()).Label("Theme")
+				tr(l, keySettingsSystem), tr(l, keySettingsLight), tr(l, keySettingsDark)).Label(tr(l, keySettingsTheme))
 			if segmented.Changed() {
 				next := v
 				next.Theme = themeAt(selected)
@@ -392,33 +442,34 @@ func settingsThemeSection(c *ui.Context, k tokens, v SettingsView, onChange func
 // the code size. The UI steps are a radio group, so the arrows step through
 // them and wrap at either end; the code size steps by one between its bounds.
 func settingsTypeSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
-	settingsSection(c, k, "Text", func() {
-		settingsRow(c, k, "Font size", "Current: "+settingsPx(v.FontSize), func() {
+	l := v.Locale
+	settingsSection(c, k, tr(l, keySettingsText), func() {
+		settingsRow(c, k, tr(l, keySettingsFontSize), tr(l, keySettingsCurrentPrefix)+settingsPx(v.FontSize), func() {
 			labels := make([]string, len(fontSizeSteps))
 			for i, step := range fontSizeSteps {
 				labels[i] = strconv.Itoa(int(step))
 			}
 			selected := fontStepIndex(v.FontSize)
-			segmented := ui.Segmented(c, &selected, labels...).Label("Font size")
+			segmented := ui.Segmented(c, &selected, labels...).Label(tr(l, keySettingsFontSize))
 			if segmented.Changed() {
 				next := v
 				next.FontSize = fontSizeSteps[selected]
 				publishSettings(onChange, SettingsFieldFontSize, next)
 			}
 		})
-		settingsRow(c, k, "Font family", "Current: "+v.FontFamily.String(), func() {
+		settingsRow(c, k, tr(l, keySettingsFontFamily), tr(l, keySettingsCurrentPrefix)+fontFamilyText(l, v.FontFamily), func() {
 			selected := fontFamilyIndex(v.FontFamily)
 			segmented := ui.Segmented(c, &selected,
-				FontSystem.String(), FontMonospace.String()).Label("Font family")
+				tr(l, keySettingsFontSystem), tr(l, keySettingsFontMonospace)).Label(tr(l, keySettingsFontFamily))
 			if segmented.Changed() {
 				next := v
 				next.FontFamily = fontFamilyAt(selected)
 				publishSettings(onChange, SettingsFieldFontFamily, next)
 			}
 		})
-		settingsRow(c, k, "Code font size", "Current: "+settingsPx(v.CodeFontSize), func() {
+		settingsRow(c, k, tr(l, keySettingsCodeFontSize), tr(l, keySettingsCurrentPrefix)+settingsPx(v.CodeFontSize), func() {
 			ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-				smaller := ui.Button(c, "Smaller code").Disabled(v.CodeFontSize <= settingsCodeMin)
+				smaller := ui.Button(c, tr(l, keySettingsSmallerCode)).Disabled(v.CodeFontSize <= settingsCodeMin)
 				smaller.OnClick(func() {
 					next := v
 					next.CodeFontSize = clampCodeFontSize(v.CodeFontSize - settingsCodeStep)
@@ -426,7 +477,7 @@ func settingsTypeSection(c *ui.Context, k tokens, v SettingsView, onChange func(
 						publishSettings(onChange, SettingsFieldCodeFontSize, next)
 					}
 				})
-				larger := ui.Button(c, "Larger code").Disabled(v.CodeFontSize >= settingsCodeMax)
+				larger := ui.Button(c, tr(l, keySettingsLargerCode)).Disabled(v.CodeFontSize >= settingsCodeMax)
 				larger.OnClick(func() {
 					next := v
 					next.CodeFontSize = clampCodeFontSize(v.CodeFontSize + settingsCodeStep)
@@ -442,10 +493,11 @@ func settingsTypeSection(c *ui.Context, k tokens, v SettingsView, onChange func(
 // settingsLayoutSection is the room the shell keeps: the sidebar's width, one
 // step per press and held to its bounds, and the compact or regular density.
 func settingsLayoutSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
-	settingsSection(c, k, "Layout", func() {
-		settingsRow(c, k, "Sidebar width", "Current: "+settingsPx(v.SidebarWidth), func() {
+	l := v.Locale
+	settingsSection(c, k, tr(l, keySettingsLayout), func() {
+		settingsRow(c, k, tr(l, keySettingsSidebarWidth), tr(l, keySettingsCurrentPrefix)+settingsPx(v.SidebarWidth), func() {
 			ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-				narrower := ui.Button(c, "Narrower sidebar").Disabled(v.SidebarWidth <= k.sidebarMinW)
+				narrower := ui.Button(c, tr(l, keySettingsNarrowerSidebar)).Disabled(v.SidebarWidth <= k.sidebarMinW)
 				narrower.OnClick(func() {
 					next := v
 					next.SidebarWidth = k.clampSidebarWidth(v.SidebarWidth - settingsWidthStep)
@@ -453,7 +505,7 @@ func settingsLayoutSection(c *ui.Context, k tokens, v SettingsView, onChange fun
 						publishSettings(onChange, SettingsFieldSidebarWidth, next)
 					}
 				})
-				wider := ui.Button(c, "Wider sidebar").Disabled(v.SidebarWidth >= k.sidebarMaxW)
+				wider := ui.Button(c, tr(l, keySettingsWiderSidebar)).Disabled(v.SidebarWidth >= k.sidebarMaxW)
 				wider.OnClick(func() {
 					next := v
 					next.SidebarWidth = k.clampSidebarWidth(v.SidebarWidth + settingsWidthStep)
@@ -463,10 +515,10 @@ func settingsLayoutSection(c *ui.Context, k tokens, v SettingsView, onChange fun
 				})
 			})
 		})
-		settingsRow(c, k, "Density", "Current: "+v.Density.String(), func() {
+		settingsRow(c, k, tr(l, keySettingsDensity), tr(l, keySettingsCurrentPrefix)+densityText(l, v.Density), func() {
 			selected := densityIndex(v.Density)
 			segmented := ui.Segmented(c, &selected,
-				DensityCompact.String(), DensityRegular.String()).Label("Density")
+				tr(l, keySettingsDensityCompact), tr(l, keySettingsDensityRegular)).Label(tr(l, keySettingsDensity))
 			if segmented.Changed() {
 				next := v
 				next.Density = densityAt(selected)
@@ -479,12 +531,33 @@ func settingsLayoutSection(c *ui.Context, k tokens, v SettingsView, onChange fun
 // settingsSkinSection names the appearance layer the shell does not have. Its
 // two entries stay visible, unavailable and explained; the surface has no
 // third color theme and no skin to preview.
-func settingsSkinSection(c *ui.Context, k tokens) {
-	settingsSection(c, k, "Skin and chrome", func() {
-		ui.Text(c, settingsSkinNote).FontSize(k.smallSize).TextColor(k.mutedForeground)
+func settingsSkinSection(c *ui.Context, k tokens, v SettingsView) {
+	l := v.Locale
+	settingsSection(c, k, tr(l, keySettingsSkinSection), func() {
+		ui.Text(c, tr(l, keySettingsSkinNote)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		ui.Row(c).Gap(k.gapWide).AlignItems(ui.Center).Children(func() {
-			wipAction(c, k, "Skin", reasonSkin)
-			wipAction(c, k, "Chrome theme", reasonChrome)
+			wipAction(c, k, tr(l, keySettingsSkin), tr(l, keyReasonSkin))
+			wipAction(c, k, tr(l, keySettingsChrome), tr(l, keyReasonChrome))
+		})
+	})
+}
+
+// settingsLanguageSection is the interface-language row. The control's labels
+// are each language's own name, so a reader finds their language written the
+// way they write it; choosing one reports SettingsFieldLocale and the shell
+// draws the next frame in it.
+func settingsLanguageSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
+	l := v.Locale
+	settingsSection(c, k, tr(l, keySettingsLanguage), func() {
+		settingsRow(c, k, tr(l, keySettingsLanguageRow), tr(l, keySettingsCurrentPrefix)+l.Name(), func() {
+			selected := localeIndex(l)
+			segmented := ui.Segmented(c, &selected,
+				LocaleEN.Name(), LocaleZHCN.Name()).Label(tr(l, keySettingsLanguageRow))
+			if segmented.Changed() {
+				next := v
+				next.Locale = localeAt(selected)
+				publishSettings(onChange, SettingsFieldLocale, next)
+			}
 		})
 	})
 }

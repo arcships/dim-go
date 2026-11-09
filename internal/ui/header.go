@@ -15,6 +15,7 @@ import (
 // the banner that belongs under it. It draws no region of its own beyond those
 // two rows.
 func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
+	locale := v.Locale
 	ui.Row(c).Gap(k.gapWide).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
 		ui.Text(c, v.Title).Bold().FontSize(k.titleSize)
@@ -25,9 +26,9 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		// so the entry belongs beside the status only while a turn still runs.
 		if v.HasSession && !v.Closed && v.Run == RunRunning {
 			if a.OnStop == nil {
-				wipAction(c, k, "Stop", reasonStop)
+				wipAction(c, k, tr(locale, keyHeaderStop), tr(locale, keyReasonStop))
 			} else {
-				ui.Button(c, "Stop").OnClick(a.OnStop)
+				ui.Button(c, tr(locale, keyHeaderStop)).OnClick(a.OnStop)
 			}
 		}
 		// A healthy connection has nothing to reconnect, a reconnect in flight
@@ -35,17 +36,17 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		// no attachment to re-open.
 		if v.HasSession && !v.Closed && v.Connection != ConnReady && !v.Loading {
 			if a.OnReconnect == nil {
-				wipAction(c, k, "Reconnect", reasonReconnect)
+				wipAction(c, k, tr(locale, keyHeaderReconnect), tr(locale, keyReasonReconnect))
 			} else {
-				ui.Button(c, "Reconnect").OnClick(a.OnReconnect)
+				ui.Button(c, tr(locale, keyHeaderReconnect)).OnClick(a.OnReconnect)
 			}
 		}
 		// The appearance surface is one toggle away from the conversation; its
 		// label says where the entry goes, so the same button always returns.
 		if a.OnOpenSettings != nil {
-			label := "Settings"
+			label := tr(locale, keyHeaderSettings)
 			if v.SettingsOpen {
-				label = "Conversation"
+				label = tr(locale, keyHeaderConversation)
 			}
 			ui.Button(c, label).OnClick(a.OnOpenSettings)
 		}
@@ -66,7 +67,7 @@ func runStatus(c *ui.Context, k tokens, v HeaderView) {
 		}
 		ui.Box(c).Size(k.statusDot, k.statusDot).Radius(k.statusDot / 2).
 			Background(dot).Unselectable()
-		ui.Text(c, "Session: "+runLabel(v)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+		ui.Text(c, tr(v.Locale, keyHeaderSessionPrefix)+runLabel(v)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		if v.ModelProgress != nil {
 			text := v.ModelProgress.Text
 			if text == "" {
@@ -77,7 +78,7 @@ func runStatus(c *ui.Context, k tokens, v HeaderView) {
 			}
 		}
 		if notices := len(v.Notices) + len(v.ActionNotices); notices > 0 {
-			ui.Text(c, "Notices: "+strconv.Itoa(notices)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			ui.Text(c, tr(v.Locale, keyHeaderNoticesPrefix)+strconv.Itoa(notices)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		}
 		if v.ActionStatus != "" {
 			ui.Text(c, v.ActionStatus).FontSize(k.smallSize).TextColor(k.mutedForeground)
@@ -90,7 +91,7 @@ func runStatus(c *ui.Context, k tokens, v HeaderView) {
 // still running.
 func runLabel(v HeaderView) string {
 	if v.Closed {
-		return "Closed"
+		return tr(v.Locale, keyHeaderClosed)
 	}
 	return v.Run.String()
 }
@@ -101,7 +102,7 @@ func status(c *ui.Context, k tokens, v HeaderView) {
 	ui.Row(c).Role(ui.RoleStatus).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Size(k.statusDot, k.statusDot).Radius(k.statusDot / 2).
 			Background(k.connectionColor(v.Connection)).Unselectable()
-		ui.Text(c, "App Server: "+v.Connection.String()).FontSize(k.smallSize).TextColor(k.mutedForeground)
+		ui.Text(c, tr(v.Locale, keyHeaderConnectionPrefix)+v.Connection.String()).FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }
 
@@ -114,7 +115,7 @@ func banner(c *ui.Context, k tokens, v HeaderView) {
 	message := ""
 	switch {
 	case v.Closed:
-		message = "Session closed"
+		message = tr(v.Locale, keyHeaderSessionClosed)
 		if v.ClosedReason != "" {
 			message += ": " + v.ClosedReason
 		}

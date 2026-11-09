@@ -9,10 +9,29 @@ import "github.com/egoist/mygo/ui"
 // It is product status, not session state. Its text is fixed and holds no
 // session, run or approval fact; only whether a capability is present varies
 // with the shell's callback wiring.
+//
+// action and gap are the English text the tests and the default frame pin;
+// actionKey and gapKey are the message keys the active locale reads. method is
+// the wire name behind the card and stays literal in every language.
 type wipCapability struct {
-	action string
-	method string
-	gap    string
+	action    string
+	method    string
+	gap       string
+	actionKey string
+	gapKey    string
+}
+
+// wipCapabilityOf builds one card from its message keys. The English fields are
+// read from the English table, so the card the tests inspect and the card an
+// English frame draws cannot drift apart.
+func wipCapabilityOf(actionKey, method, gapKey string) wipCapability {
+	return wipCapability{
+		action:    stringsEN.text(actionKey),
+		method:    method,
+		gap:       stringsEN.text(gapKey),
+		actionKey: actionKey,
+		gapKey:    gapKey,
+	}
 }
 
 // wipCapabilities is the list the cards draw. It mirrors the entries that stay
@@ -37,37 +56,37 @@ func wipCapabilities(s *State) []wipCapability {
 	capabilities := make([]wipCapability, 0, 9)
 	if s == nil || s.OnCreateSession == nil {
 		capabilities = append(capabilities,
-			wipCapability{"Session creation", "session.create", "helper exists; shell has no create callback"})
+			wipCapabilityOf(keyCapabilityCreate, "session.create", keyCapabilityCreateGap))
 	}
 	if s == nil || s.OnSelectBranch == nil {
 		capabilities = append(capabilities,
-			wipCapability{"Branch switching", "session.branches", "helper exists; shell has no branch selection callback"})
+			wipCapabilityOf(keyCapabilityBranchSwitch, "session.branches", keyCapabilityBranchSwitchGap))
 	}
 	if s == nil || s.OnEndBranch == nil {
 		capabilities = append(capabilities,
-			wipCapability{"Branch end", "session.branch_end", "helper exists; shell has no branch end callback"})
+			wipCapabilityOf(keyCapabilityBranchEnd, "session.branch_end", keyCapabilityBranchEndGap))
 	}
 	if s == nil || s.OnRefreshBranches == nil {
 		capabilities = append(capabilities,
-			wipCapability{"Branch refresh", "session.branches", "helper exists; shell has no branch refresh callback"})
+			wipCapabilityOf(keyCapabilityBranchRefresh, "session.branches", keyCapabilityBranchRefreshGap))
 	}
 	if s == nil || !s.Keys.Loaded {
 		capabilities = append(capabilities,
-			wipCapability{"Session keys", "session.keys", "helper exists; shell has no key browser callback"})
+			wipCapabilityOf(keyCapabilityKeys, "session.keys", keyCapabilityKeysGap))
 	}
 	if s == nil || s.OnApproval == nil {
 		capabilities = append(capabilities,
-			wipCapability{"Approvals", "approval.respond", "helper exists; window has no approval callback"})
+			wipCapabilityOf(keyCapabilityApprovals, "approval.respond", keyCapabilityApprovalsGap))
 	}
 	capabilities = append(capabilities,
-		wipCapability{"Attachments", "attachment.put", "helper exists; shell has no file picker and keeps unknown upload results disabled"})
+		wipCapabilityOf(keyCapabilityAttachments, "attachment.put", keyCapabilityAttachmentsGap))
 	if s == nil || s.OnReconnect == nil {
 		capabilities = append(capabilities,
-			wipCapability{"Connection recovery", "supervisor.Reconnect", "helper exists; shell not wired"})
+			wipCapabilityOf(keyCapabilityConnectionRecover, "supervisor.Reconnect", keyCapabilityConnectionGap))
 	}
 	if s == nil || s.OnStop == nil {
 		capabilities = append(capabilities,
-			wipCapability{"Turn cancellation", "session.stop", "helper exists; shell not wired"})
+			wipCapabilityOf(keyCapabilityTurnCancel, "session.stop", keyCapabilityTurnCancelGap))
 	}
 	return capabilities
 }
@@ -78,17 +97,17 @@ func wipCapabilities(s *State) []wipCapability {
 // session sidebar, which is its only consumer. It takes the room the thread
 // list leaves and scrolls when the window is too short for every card, so the
 // catalog above it keeps its rows.
-func capabilityCards(c *ui.Context, k tokens, capabilities []wipCapability) {
+func capabilityCards(c *ui.Context, k tokens, locale Locale, capabilities []wipCapability) {
 	ui.Scroll(c).Shrink(1).Children(func() {
 		ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).
 			BorderWidth(k.hairline, 0, 0, 0).BorderColor(k.border).
-			Role(ui.RoleGroup).Label("Unavailable capabilities").Children(func() {
+			Role(ui.RoleGroup).Label(tr(locale, keyCapabilityGroup)).Children(func() {
 			// The group's label names the list, so the visible heading stays out of
 			// the accessibility tree rather than being read twice.
-			ui.Text(c, "Unavailable capabilities").FontSize(k.smallSize).TextColor(k.mutedForeground).
+			ui.Text(c, tr(locale, keyCapabilityGroup)).FontSize(k.smallSize).TextColor(k.mutedForeground).
 				Unselectable().AccessHidden(true)
 			for _, capability := range capabilities {
-				capabilityCard(c, k, capability)
+				capabilityCard(c, k, locale, capability)
 			}
 		})
 	})
@@ -98,16 +117,17 @@ func capabilityCards(c *ui.Context, k tokens, capabilities []wipCapability) {
 // it, and the gap. Every part is text; the card has no button, link or field,
 // so a user can read the status but cannot act on it. It is drawn as a popover
 // rather than a card because it floats over the session list instead of
-// belonging to the conversation.
-func capabilityCard(c *ui.Context, k tokens, capability wipCapability) {
+// belonging to the conversation. The method is the wire name and stays literal;
+// action and gap are read in the active locale.
+func capabilityCard(c *ui.Context, k tokens, locale Locale, capability wipCapability) {
 	ui.Column(c).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).Radius(k.cardRadius).
 		Background(k.popover).BorderWidth(k.hairline).BorderColor(k.border).Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, capability.action).Bold().FontSize(k.smallSize).TextColor(k.popoverForeground)
+			ui.Text(c, tr(locale, capability.actionKey)).Bold().FontSize(k.smallSize).TextColor(k.popoverForeground)
 			ui.Box(c).Grow(1)
 			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		})
 		ui.Text(c, capability.method).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
-		ui.Text(c, capability.gap).FontSize(k.smallSize).TextColor(k.mutedForeground)
+		ui.Text(c, tr(locale, capability.gapKey)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }

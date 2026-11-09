@@ -35,7 +35,9 @@ var ComposerShortcutMods = ui.Cmd
 // composerSubmitKey is the key that submits the draft from inside the composer.
 const composerSubmitKey = ui.KeyEnter
 
-// composerPlaceholder is the composer's empty-state text.
+// composerPlaceholder is the composer's empty-state text in the default
+// language. The frame draws the active locale's text, whose English entry is
+// this constant.
 const composerPlaceholder = "Message DimAgent"
 
 // Session is a sidebar row. The fixture fills it by hand until the App Server
@@ -271,9 +273,10 @@ type State struct {
 	// ShowSettings is the window's own record that the appearance surface is
 	// showing instead of the conversation. It is display state only.
 	ShowSettings bool
-	// Settings holds the desktop-local appearance preferences the surface
-	// reports. They are the desktop's, not a session's: nothing here is sent to
-	// the App Server or stored as a session fact.
+	// Settings holds the desktop-local appearance and language preferences the
+	// surface reports. They are the desktop's, not a session's: nothing here is
+	// sent to the App Server or stored as a session fact. Settings.Locale is the
+	// language every region draws on the frame after a choice.
 	Settings SettingsView
 	// ShowKeys is the window's own record that the session keys browser is
 	// showing instead of the conversation. It is display state only.
@@ -404,10 +407,18 @@ func (s *State) applySettings(change SettingsChange) {
 		SidebarWidth: change.SidebarWidth,
 		Density:      change.Density,
 		CodeFontSize: change.CodeFontSize,
+		Locale:       change.Locale,
 	}
 	if change.SidebarWidth > 0 {
 		s.SidebarWidth = change.SidebarWidth
 	}
+}
+
+// locale is the language the frame draws: the saved preference, or English
+// while none is saved. It is read at the top of the frame, so a language chosen
+// on the settings surface reaches every region on the next one.
+func (s *State) locale() Locale {
+	return resolveLocale(s.Settings.Locale)
 }
 
 // statusBarView copies the readings the bottom bar shows. Only the branch name
@@ -469,6 +480,7 @@ func (s *State) sidebarView() SidebarView {
 		Creating:       s.CreatingSession,
 		Capabilities:   wipCapabilities(s),
 		KeysOpen:       s.ShowKeys,
+		Locale:         s.locale(),
 		state:          &s.sidebar,
 	}
 }
@@ -512,6 +524,7 @@ func (s *State) headerView() HeaderView {
 		ActionStatus:    s.ActionStatus,
 		Loading:         s.ConversationLoading,
 		SettingsOpen:    s.ShowSettings,
+		Locale:          s.locale(),
 	}
 }
 
@@ -543,9 +556,10 @@ func (s *State) composerView() ComposerView {
 	return ComposerView{
 		Draft:       &s.Draft,
 		CanSubmit:   s.canSubmit(),
-		Placeholder: composerPlaceholder,
+		Placeholder: tr(s.locale(), keyComposerPlaceholder),
 		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
 		Focus:       &s.composerFocus,
+		Locale:      s.locale(),
 	}
 }
 
@@ -566,5 +580,5 @@ func (s *State) selectedTitle() string {
 			return session.Title
 		}
 	}
-	return "No session"
+	return tr(s.locale(), keyNoSession)
 }
