@@ -39,7 +39,7 @@ Last updated: 2026-11-09
 | F12b | cut point | 选择父分支 sequence 创建 side line | L1/L2：user 行 Branch from here + `session.branch_create` + 目录刷新/打开；真实 daemon branch round trip 通过；L4 窗口点击待验证 | 未通过 |
 | F13 | attachment 上传 | 真实上传并出现在 timeline | Go 侧 `attachment.put` helper 已有（L1/L2 fake-server）；shell 无文件选择器/结果读回；L3/L4 无 | 未通过 |
 | F14a | session 删除 | 真实窗口删除 → App Server 确认后行消失 | L4：`session.delete` 结果因流关闭判 unknown，按合同读回 `session.catalog` 确认后移除；删到最后一个清空为 `Sessions 0`（`window-delete-session.png`） | **已通过（L4）** |
-| F14b | 关闭终态显示 | `session.closed` 在窗口可见且不可再提交 | 删除瞬间短暂出现 `Session closed`，未单独留存证据；删除成功后选择被清空 | 未通过 |
+| F14b | 关闭终态显示 | `session.closed` 在窗口可见且不可再提交 | L4：确认删除后窗口保留 `Session closed: Deleted` banner、侧栏行移除、composer/Stop/Reconnect 禁用（`window-closed.png`） | **已通过（L4）** |
 
 ## 设计 1:1 验收（样式 / 内容 / 动画）
 
