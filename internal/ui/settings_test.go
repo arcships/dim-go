@@ -208,14 +208,16 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 }
 
 // TestSettingsSectionsOrder checks the left column against the reference: the
-// 17 reference sections in order, then the shell's own capability page, with
-// the Back row above them and the appearance page marked as selected.
+// 17 reference sections in order, then the shell's own archived-sessions and
+// about pages, then the capability page last, with the Back row above them and
+// the appearance page marked as selected.
 func TestSettingsSectionsOrder(t *testing.T) {
 	want := []string{
 		"Account", "Usage", "Personalization", "Appearance", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
-		"External Agent", "Unavailable capabilities",
+		"External Agent", "Archived sessions", "About",
+		"Unavailable capabilities",
 	}
 	if len(settingsSections) != len(want) {
 		t.Fatalf("the navigation has %d sections, want %d", len(settingsSections), len(want))
@@ -318,7 +320,7 @@ func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 			if !h.tt.HasText(gap) {
 				t.Fatalf("the %s page does not show its gap %q, texts %q", name, gap, h.tt.Texts())
 			}
-			if !strings.Contains(gap, "Unavailable") || !strings.Contains(gap, "client") || !strings.Contains(gap, "page") {
+			if !strings.Contains(gap, "Unavailable") || !strings.Contains(gap, "page") {
 				t.Errorf("the %s gap %q does not name the missing client or page", name, gap)
 			}
 			if !h.tt.HasText(wipBadge) {
@@ -337,19 +339,25 @@ func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 }
 
 // TestSettingsNarrowNavigationFits checks the settings route in a narrow
-// window: the section column shrinks with the room instead of pushing the page
-// off the right edge, its rows stay inside it, and the column and page scroll
-// rather than overflowing vertically.
+// window: it shows one level at a time instead of squeezing the section column
+// and the page together. The section list takes the card first and every row
+// stays inside the window; a row click opens that section's page as the second
+// level, with a return row above it and its controls inside the window. The
+// return row goes back to the list, Escape from the page does the same, and a
+// second Escape closes the route.
 func TestSettingsNarrowNavigationFits(t *testing.T) {
 	const width, height = 320, 640
 	h := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), width, height)
 
 	nav, ok := h.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel)
 	if !ok {
-		t.Fatalf("the section column is not exposed, texts %q", h.tt.Texts())
+		t.Fatalf("the section list is not exposed in a narrow window, texts %q", h.tt.Texts())
 	}
 	if nav.Bounds.X < 0 || nav.Bounds.X+nav.Bounds.W > width+0.5 || nav.Bounds.W <= 0 {
-		t.Fatalf("the section column %+v does not fit the %d-wide window", nav.Bounds, width)
+		t.Fatalf("the section list %+v does not fit the %d-wide window", nav.Bounds, width)
+	}
+	if nav.Bounds.W < width/2 {
+		t.Errorf("the section list takes %.0f of the %d-wide window, want the first level to fill it", nav.Bounds.W, width)
 	}
 	for _, section := range settingsSections {
 		name := settingsSectionName(section)
@@ -358,11 +366,22 @@ func TestSettingsNarrowNavigationFits(t *testing.T) {
 			t.Fatalf("the %s row is missing in a narrow window, texts %q", name, h.tt.Texts())
 		}
 		if info.Bounds.X < nav.Bounds.X-0.5 || info.Bounds.X+info.Bounds.W > nav.Bounds.X+nav.Bounds.W+0.5 {
-			t.Errorf("the %s row %+v spills outside the column %+v", name, info.Bounds, nav.Bounds)
+			t.Errorf("the %s row %+v spills outside the list %+v", name, info.Bounds, nav.Bounds)
 		}
 	}
 	if _, ok := h.tt.AccessByRole(ui.RoleScroll, ""); !ok {
 		t.Errorf("the settings route has no scroll area, texts %q", h.tt.Texts())
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleHeading, "Appearance"); ok {
+		t.Errorf("the appearance page is drawn beside the list in a narrow window, texts %q", h.tt.Texts())
+	}
+
+	// A row click opens that section's page as the second level.
+	if err := h.tt.Click("Appearance"); err != nil {
+		t.Fatalf("click Appearance: %v", err)
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); ok {
+		t.Errorf("the section list stayed beside the page in a narrow window, texts %q", h.tt.Texts())
 	}
 	heading, ok := h.tt.AccessByRole(ui.RoleHeading, "Appearance")
 	if !ok {
@@ -397,6 +416,75 @@ func TestSettingsNarrowNavigationFits(t *testing.T) {
 		if info.Bounds.X+info.Bounds.W > width+0.5 {
 			t.Errorf("the %s action %+v spills past the %d-wide window", name, info.Bounds, width)
 		}
+	}
+	if len(h.changes) != 0 {
+		t.Errorf("opening a section page reported %+v, want no preference change", h.changes)
+	}
+
+	// Tab in the compact page starts at its return row.
+	h.tt.Key(0, ui.KeyTab)
+	if !h.tt.Focused(settingsSectionsBack) {
+		t.Errorf("the first Tab in the section page reached %q, want the %q return row", focusedName(h.tt), settingsSectionsBack)
+	}
+
+	// The return row is the way back to the list; it is not the route's Back.
+	backToList, ok := h.tt.AccessByRole(ui.RoleButton, settingsSectionsBack)
+	if !ok {
+		t.Fatalf("the section page has no %q return row, texts %q", settingsSectionsBack, h.tt.Texts())
+	}
+	if backToList.Bounds.X+backToList.Bounds.W > width+0.5 {
+		t.Errorf("the return row %+v spills past the %d-wide window", backToList.Bounds, width)
+	}
+	if err := h.tt.Click(settingsSectionsBack); err != nil {
+		t.Fatalf("click %s: %v", settingsSectionsBack, err)
+	}
+	if h.backs != 0 {
+		t.Errorf("the return row closed the route %d times, want only the list back", h.backs)
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); !ok {
+		t.Fatalf("the return row did not bring the section list back, texts %q", h.tt.Texts())
+	}
+	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Appearance"); !ok || !info.Selected {
+		t.Errorf("the returned-to list lost the Appearance selection: %+v, found %v", info, ok)
+	}
+
+	// Escape from the page returns to the list first and closes the route only
+	// from the list.
+	if err := h.tt.Click("Appearance"); err != nil {
+		t.Fatalf("click Appearance: %v", err)
+	}
+	h.tt.Key(0, ui.KeyEscape)
+	if h.backs != 0 {
+		t.Errorf("Escape closed the route from the section page, want the return to the list")
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); !ok {
+		t.Fatalf("Escape did not bring the section list back, texts %q", h.tt.Texts())
+	}
+	h.tt.Key(0, ui.KeyEscape)
+	if h.backs != 1 {
+		t.Errorf("Escape from the section list called the back callback %d times, want 1", h.backs)
+	}
+}
+
+// TestSettingsCompactBreakpoint pins where the route changes layout: a window
+// at settingsCompactW still gives the section column and the page their
+// side-by-side room, and one DIP narrower shows the section list alone with the
+// page behind a row click.
+func TestSettingsCompactBreakpoint(t *testing.T) {
+	wide := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), settingsCompactW, 900)
+	if _, ok := wide.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); !ok {
+		t.Fatalf("the section column is missing at the breakpoint, texts %q", wide.tt.Texts())
+	}
+	if _, ok := wide.tt.AccessByRole(ui.RoleHeading, "Appearance"); !ok {
+		t.Errorf("the page is not drawn beside the column at %d wide, texts %q", settingsCompactW, wide.tt.Texts())
+	}
+
+	narrow := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), settingsCompactW-1, 900)
+	if _, ok := narrow.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); !ok {
+		t.Fatalf("the section list is missing just below the breakpoint, texts %q", narrow.tt.Texts())
+	}
+	if _, ok := narrow.tt.AccessByRole(ui.RoleHeading, "Appearance"); ok {
+		t.Errorf("the page still shares the card just below %d, texts %q", settingsCompactW, narrow.tt.Texts())
 	}
 }
 
@@ -603,7 +691,8 @@ func TestSettingsKeyboardReachable(t *testing.T) {
 		"Account", "Usage", "Personalization", "Appearance", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
-		"External Agent", "Unavailable capabilities",
+		"External Agent", "Archived sessions", "About",
+		"Unavailable capabilities",
 		"System", "Light", "Dark",
 		tr(LocaleEN, keySettingsLanguageRow),
 		tr(LocaleEN, keySettingsFontFamily),
@@ -631,7 +720,8 @@ func focusedName(tt *ui.Tester) string {
 		"Account", "Usage", "Personalization", "Appearance", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
-		"External Agent", "Unavailable capabilities",
+		"External Agent", "Archived sessions", "About",
+		"Unavailable capabilities",
 		"System", "Light", "Dark",
 		tr(LocaleEN, keySettingsLanguageRow),
 		tr(LocaleEN, keySettingsFontFamily),
@@ -639,6 +729,7 @@ func focusedName(tt *ui.Tester) string {
 		tr(LocaleEN, keySettingsCodeFontSize),
 		tr(LocaleEN, keySettingsSkinNew),
 		tr(LocaleEN, keySettingsSkinOpen),
+		settingsSectionsBack,
 	} {
 		if tt.Focused(name) {
 			return name
