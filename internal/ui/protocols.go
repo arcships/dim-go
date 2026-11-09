@@ -159,6 +159,15 @@ type Actions struct {
 	// While this field is nil the entry still copies the id, because the
 	// clipboard write needs no window callback; only the status line is missing.
 	OnCopySessionID func(sessionID string)
+	// OnCopyDebugInfo is called by the toolbar's session menu "Copy debug info"
+	// entry after the region has written HeaderView.DebugInfo to the system
+	// clipboard. The region does the copy itself, through the window's clipboard
+	// service: the text is built from model facts the shell already displays, and
+	// a clipboard write reaches no App Server. The shell records the outcome as a
+	// muted HeaderView.ActionStatus ("Copied debug info") and sends nothing.
+	// While this field is nil the entry still copies the text, because the write
+	// needs no window callback; only the status line is missing.
+	OnCopyDebugInfo func()
 	// OnOpenSettings is called by the toolbar's session menu settings entry and
 	// toggles the appearance surface. The preferences it edits are desktop-local:
 	// the caller applies the theme and the sidebar width and persists what it
@@ -318,6 +327,14 @@ type HeaderView struct {
 	// confirmation and the copy entry address. The region never invents one;
 	// while it is empty the copy entry is the menu's WIP statement.
 	SessionID string
+	// DebugInfo is the session menu's "Copy debug info" text: the current
+	// model's public runtime facts, one labeled line each, as the shell built
+	// them from the model facts State.ModelCatalog displays. The region writes
+	// the string to the system clipboard and sends nothing. It is not a private
+	// snapshot, and it is empty when the window holds no current model pair; the
+	// menu then keeps the entry visible, disabled and explained as WIP instead
+	// of copying an empty text.
+	DebugInfo string
 	// HasSession is true while a session is selected. The toolbar, its menu and
 	// the banner belong to a selected session; the stop and reconnect entries
 	// are offered only with one to attach to.

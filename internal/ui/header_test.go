@@ -930,3 +930,203 @@ func TestSessionMenuCopyIDWithoutAnIdentityStaysWIP(t *testing.T) {
 		t.Errorf("clicking the WIP entry put %q on the clipboard", got)
 	}
 }
+
+// TestHeaderDebugInfoDescribesTheCurrentModel checks the text the menu copies:
+// the reference's title and its public model rows, one per line, with the pair's
+// name and id, the declared limits, the declared capabilities and the catalog's
+// source. The shell builds it from the facts it already displays, so no App
+// Server read is behind it.
+func TestHeaderDebugInfoDescribesTheCurrentModel(t *testing.T) {
+	s := modelFixtureState()
+	contextWindow, maxOutput := int64(200000), int64(8192)
+	current := &s.ModelCatalog.Choices[0]
+	current.ContextWindow = &contextWindow
+	current.MaxOutputTokens = &maxOutput
+	current.ToolCalling = true
+	current.Vision = false
+	current.Reasoning = true
+	current.Source = "default"
+
+	v := s.headerView()
+	lines := strings.Split(v.DebugInfo, "\n")
+	want := []string{
+		"Model runtime config",
+		"Provider  Anthropic (anthropic)",
+		"Model     Claude 3 (claude-3)",
+		"Context   200000 / output 8192",
+		"Caps      tools yes, vision no, reasoning yes",
+		"Source    default",
+	}
+	if !slices.Equal(lines, want) {
+		t.Errorf("the debug info reads %q, want %q", lines, want)
+	}
+}
+
+// TestHeaderDebugInfoWritesNForUnknownFacts checks that a field the window does
+// not hold is written n/a instead of being guessed: a current pair with no
+// catalog row keeps the names n/a, a nil limit is n/a, and a row that declared
+// no capability reads "no" rather than n/a.
+func TestHeaderDebugInfoWritesNForUnknownFacts(t *testing.T) {
+	t.Run("pair without a catalog row", func(t *testing.T) {
+		s := fixture()
+		s.ModelCatalog = ModelCatalog{
+			Current:           "anthropic/claude-3",
+			HasCurrent:        true,
+			CurrentProviderID: "anthropic",
+			CurrentModelID:    "claude-3",
+		}
+		v := s.headerView()
+		for _, want := range []string{
+			"Provider  anthropic",
+			"Model     claude-3",
+			"Context   n/a / output n/a",
+			"Caps      tools n/a, vision n/a, reasoning n/a",
+			"Source    n/a",
+		} {
+			if !strings.Contains(v.DebugInfo, want) {
+				t.Errorf("the debug info is missing %q, text %q", want, v.DebugInfo)
+			}
+		}
+	})
+	t.Run("row without limits or source", func(t *testing.T) {
+		s := fixture()
+		s.ModelCatalog = ModelCatalog{
+			Current:           "anthropic/claude-3",
+			HasCurrent:        true,
+			CurrentProviderID: "anthropic",
+			CurrentModelID:    "claude-3",
+			Choices: []ModelChoice{{
+				ProviderID:   "anthropic",
+				ProviderName: "Anthropic",
+				ModelID:      "claude-3",
+				DisplayName:  "Claude 3",
+				Current:      true,
+			}},
+		}
+		v := s.headerView()
+		for _, want := range []string{
+			"Context   n/a / output n/a",
+			"Caps      tools no, vision no, reasoning no",
+			"Source    n/a",
+		} {
+			if !strings.Contains(v.DebugInfo, want) {
+				t.Errorf("the debug info is missing %q, text %q", want, v.DebugInfo)
+			}
+		}
+	})
+}
+
+// TestSessionMenuCopiesTheDebugInfo checks the entry end to end: it is usable
+// while the window holds a current model pair, a click puts exactly that text
+// on the clipboard, the menu closes, and the banner shows the muted "Copied
+// debug info" outcome. The text is built from facts the shell already displays,
+// so no App Server request is behind the click.
+func TestSessionMenuCopiesTheDebugInfo(t *testing.T) {
+	s := modelFixtureState()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 600)
+	want := s.headerView().DebugInfo
+	if want == "" {
+		t.Fatal("the model fixture produced no debug info")
+	}
+
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	label := menuText(LocaleEN, keyHeaderMenuCopyDebug)
+	info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+	if !ok {
+		t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+	}
+	if info.Disabled {
+		t.Fatalf("%q is disabled although the window holds model facts", label)
+	}
+	clickMenuItem(t, tt, label)
+	if got := tt.Clipboard(); got != want {
+		t.Errorf("copying put %q on the clipboard, want %q", got, want)
+	}
+	tt.Frame()
+	if s.ActionStatus != copyDebugStatus {
+		t.Errorf("the copy recorded %q as the action status, want %q", s.ActionStatus, copyDebugStatus)
+	}
+	if !tt.HasText(copyDebugStatus) {
+		t.Errorf("the banner does not say %q, texts %q", copyDebugStatus, tt.Texts())
+	}
+	k := newTokens(theme)
+	status := textBox(t, tt, copyDebugStatus)
+	if _, muted := colorBox(tt, status, k.mutedForeground); muted == 0 {
+		t.Error("the copy notice is not drawn muted")
+	}
+	if _, danger := colorBox(tt, status, k.danger); danger != 0 {
+		t.Error("the copy notice is drawn as a failure")
+	}
+	if got := tt.Menu(); len(got) != 0 {
+		t.Errorf("choosing the entry left the menu open: %q", got)
+	}
+}
+
+// TestSessionMenuCopiesDebugInfoOnce checks the region on its own: one click
+// calls the outcome callback exactly once and writes the whole text, and the
+// write needs no window callback, so a region without one still copies.
+func TestSessionMenuCopiesDebugInfoOnce(t *testing.T) {
+	v := modelFixtureState().headerView()
+	copies := 0
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{OnCopyDebugInfo: func() { copies++ }})
+	}, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	clickMenuItem(t, tt, menuText(LocaleEN, keyHeaderMenuCopyDebug))
+	if copies != 1 {
+		t.Errorf("one click ran the copy outcome %d time(s), want 1", copies)
+	}
+	if got := tt.Clipboard(); got != v.DebugInfo {
+		t.Errorf("copying put %q on the clipboard, want %q", got, v.DebugInfo)
+	}
+	if tt.HasText(copyDebugStatus) {
+		t.Errorf("a region without the shell drew the outcome %q", copyDebugStatus)
+	}
+
+	bare := modelFixtureState().headerView()
+	bareTT := headerTestView(bare, 900, 600)
+	if err := bareTT.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	clickMenuItem(t, bareTT, menuText(LocaleEN, keyHeaderMenuCopyDebug))
+	if got := bareTT.Clipboard(); got != bare.DebugInfo {
+		t.Errorf("a region without callbacks put %q on the clipboard, want %q", got, bare.DebugInfo)
+	}
+}
+
+// TestSessionMenuCopyDebugWithoutModelFactsStaysWIP checks the entry's empty
+// state: with no current model pair there is no runtime config to copy, so the
+// item keeps its WIP mark and reason and a click writes nothing.
+func TestSessionMenuCopyDebugWithoutModelFactsStaysWIP(t *testing.T) {
+	v := fixture().headerView()
+	if v.DebugInfo != "" {
+		t.Fatalf("the fixture built debug info without model facts: %q", v.DebugInfo)
+	}
+	tt := headerTestView(v, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	label := menuText(LocaleEN, keyHeaderMenuCopyDebug)
+	info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+	if !ok {
+		t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+	}
+	if !info.Disabled {
+		t.Errorf("%q is available without model facts", label)
+	}
+	if reason := menuText(LocaleEN, keyReasonCopyDebug); !strings.Contains(info.Description, reason) {
+		t.Errorf("%q description %q does not name %q", label, info.Description, reason)
+	}
+	clickMenuItem(t, tt, label)
+	if got := tt.Clipboard(); got != "" {
+		t.Errorf("clicking the WIP entry put %q on the clipboard", got)
+	}
+}

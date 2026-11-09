@@ -19,6 +19,9 @@
 package ui
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -267,9 +270,24 @@ type ModelChoice struct {
 	ProviderName string
 	ModelID      string
 	DisplayName  string
-	Enabled      bool
-	Reason       string
-	Current      bool
+	// ContextWindow and MaxOutputTokens are the model's declared limits, nil
+	// when the App Server declared none. They are display facts copied from the
+	// wire; a reader prints n/a for a nil value rather than guessing one.
+	ContextWindow   *int64
+	MaxOutputTokens *int64
+	// ToolCalling, Vision and Reasoning are the model's declared capabilities,
+	// as the catalog serves them. A model whose row the catalog did not carry
+	// has no such fact, so the debug text writes n/a there instead of reading
+	// this struct's zero value.
+	ToolCalling bool
+	Vision      bool
+	Reasoning   bool
+	// Source is the catalog's source label for the model, empty when the App
+	// Server named none.
+	Source  string
+	Enabled bool
+	Reason  string
+	Current bool
 }
 
 // ModelCatalog is the model snapshot the composer displays: the current
@@ -279,7 +297,13 @@ type ModelChoice struct {
 type ModelCatalog struct {
 	Current    string
 	HasCurrent bool
-	Choices    []ModelChoice
+	// CurrentProviderID and CurrentModelID are the pair Current is made from,
+	// so a reader can name the two halves separately even when the catalog
+	// carries no row for it. They are empty while HasCurrent is false. Current
+	// stays the display string the composer chip shows.
+	CurrentProviderID string
+	CurrentModelID    string
+	Choices           []ModelChoice
 }
 
 // State is the view state of the shell. It is the window's own record plus
@@ -1200,6 +1224,12 @@ func (s *State) actions() Actions {
 		OnCopySessionID: func(string) {
 			s.ActionStatus = copyIDStatus
 		},
+		// Copying the debug info is the window's own action too: the region
+		// writes the text it built from the model facts, and the shell records
+		// the muted outcome line. It sends no request.
+		OnCopyDebugInfo: func() {
+			s.ActionStatus = copyDebugStatus
+		},
 		// The context panel toggle is the shell's own state too: the panel
 		// displays the caller's ContextPanel copy and sends no request, so the
 		// entry needs no caller callback. It stays wired and the toolbar offers
@@ -1387,6 +1417,7 @@ func (s *State) headerView() HeaderView {
 		KeysOpen:         s.ShowKeys,
 		ContextPanelOpen: s.contextPanelShown(),
 		ThreadSearch:     s.threadSearchView(),
+		DebugInfo:        s.debugInfoText(),
 		Locale:           s.locale(),
 	}
 	// The confirmation belongs to the selection it was opened for. A selection
@@ -1403,6 +1434,122 @@ func (s *State) headerView() HeaderView {
 		v.RenameDraft = &s.RenameDraft
 	}
 	return v
+}
+
+// The session menu's "Copy debug info" text. Its title and row labels follow
+// the reference's ChatHeader.buildDebugInfoText, one labeled value per line
+// with the labels padded to one width. The text carries only the public model
+// facts the window already displays: it is built from ModelCatalog's current
+// pair and catalog row here, never from a private snapshot or a new App Server
+// read. ModelStatus explains a catalog the window could not read, which leaves
+// the row-specific facts n/a rather than turning them into guesses.
+const (
+	debugInfoTitle      = "Model runtime config"
+	debugInfoLabelWidth = 9
+	debugInfoMissing    = "n/a"
+)
+
+// debugInfoText builds the menu's copy payload from the current model's public
+// facts. A field the window does not hold is written n/a rather than guessed;
+// a model the catalog carries no row for still names the pair the session
+// reported, and its limits, capabilities and source stay n/a. With no current
+// pair there is no runtime config to report, so the text is empty and the menu
+// keeps the entry as a WIP statement.
+func (s *State) debugInfoText() string {
+	providerID, modelID := s.ModelCatalog.CurrentProviderID, s.ModelCatalog.CurrentModelID
+	choice, hasChoice := debugInfoChoice(s.ModelCatalog)
+	if hasChoice {
+		providerID, modelID = choice.ProviderID, choice.ModelID
+	}
+	if providerID == "" && modelID == "" {
+		return ""
+	}
+	providerName, modelName := "", ""
+	contextLimits := debugInfoMissing + " / output " + debugInfoMissing
+	caps := "tools " + debugInfoMissing + ", vision " + debugInfoMissing + ", reasoning " + debugInfoMissing
+	source := debugInfoMissing
+	if hasChoice {
+		providerName, modelName = choice.ProviderName, choice.DisplayName
+		contextLimits = debugInfoNumber(choice.ContextWindow) + " / output " + debugInfoNumber(choice.MaxOutputTokens)
+		caps = "tools " + debugInfoYesNo(choice.ToolCalling) +
+			", vision " + debugInfoYesNo(choice.Vision) +
+			", reasoning " + debugInfoYesNo(choice.Reasoning)
+		if choice.Source != "" {
+			source = choice.Source
+		}
+	}
+	rows := []string{
+		debugInfoRow("Provider", debugInfoPair(providerName, providerID)),
+		debugInfoRow("Model", debugInfoPair(modelName, modelID)),
+		debugInfoRow("Context", contextLimits),
+		debugInfoRow("Caps", caps),
+		debugInfoRow("Source", source),
+	}
+	return strings.Join(append([]string{debugInfoTitle}, rows...), "\n")
+}
+
+// debugInfoChoice finds the catalog row for the current pair: the row the
+// caller flagged current, or the row matching the reported pair when a caller
+// set the ids without the flag. It returns false when the catalog carries no
+// row, which leaves the row's own facts n/a.
+func debugInfoChoice(catalog ModelCatalog) (ModelChoice, bool) {
+	for _, choice := range catalog.Choices {
+		if choice.Current {
+			return choice, true
+		}
+	}
+	if catalog.CurrentProviderID == "" || catalog.CurrentModelID == "" {
+		return ModelChoice{}, false
+	}
+	for _, choice := range catalog.Choices {
+		if choice.ProviderID == catalog.CurrentProviderID && choice.ModelID == catalog.CurrentModelID {
+			return choice, true
+		}
+	}
+	return ModelChoice{}, false
+}
+
+// debugInfoPair names one provider or model by its display name and its id, as
+// the reference does. A missing half is left out instead of drawn empty, and
+// two missing halves are n/a.
+func debugInfoPair(name, id string) string {
+	if name == "" {
+		if id == "" {
+			return debugInfoMissing
+		}
+		return id
+	}
+	if id == "" {
+		return name
+	}
+	return name + " (" + id + ")"
+}
+
+// debugInfoNumber prints a declared limit, or n/a when the wire declared none.
+// A non-positive value is no limit the shell can report.
+func debugInfoNumber(value *int64) string {
+	if value == nil || *value <= 0 {
+		return debugInfoMissing
+	}
+	return strconv.FormatInt(*value, 10)
+}
+
+// debugInfoYesNo prints one declared capability. A model whose row is missing
+// never reaches it; the caller writes n/a instead of reading the false zero.
+func debugInfoYesNo(value bool) string {
+	if value {
+		return "yes"
+	}
+	return "no"
+}
+
+// debugInfoRow puts one label and its value on a line, padded to the label
+// column the reference uses so the values line up in a plain-text clipboard.
+func debugInfoRow(label, value string) string {
+	if pad := debugInfoLabelWidth - len(label); pad > 0 {
+		return label + strings.Repeat(" ", pad) + " " + value
+	}
+	return label + " " + value
 }
 
 // timelineView copies the rows and the window's loading and close facts into
