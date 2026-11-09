@@ -45,12 +45,12 @@ Last updated: 2026-11-09
 
 | # | 项目 | 要求证据 | 当前 | 结论 |
 |---|---|---|---|---|
-| D1 | 语义 token 层 | token 对照表 + 与 Electron 变量一一映射 | 35 个颜色字段 + 88 个几何/排版字段（`tokens.go:169-330`）；尚未与 Electron 变量逐项对照 | 未通过 |
+| D1 | 语义 token 层 | token 对照表 + 与 Electron 变量一一映射 | L0：`docs/ui-token-map.md` 覆盖 35/35 颜色字段与 53/53 几何/排版字段，给出 A 侧 light/dark 行号与对应/部分判定；值差异（圆角 rem、Space 刻度、ring 色相）逐项记录 | **已通过（L0 文档映射）** |
 | D2 | 主题/皮肤 | 与 Electron 主题数量、切换行为一致 | system/light/dark 已实现并持久化；skin/chrome 明确 WIP | 未通过 |
 | D3 | 区域组件 | sidebar、chat-workspace、composer、context-panel、right-panel、settings 等逐一对照 | sidebar/chat-workspace/composer/context-panel/right-panel（渲染与切换）/keys/settings（导航 + Appearance）/statusbar 部分实现；其余组件域未做 | 未通过 |
 | D4 | 字体/密度/间距 | 截图叠加对照 | Electron 参考窗口已采集（`docs/evidence/electron-reference/`）；MyGo 侧尚未同状态叠加 | 未通过 |
 | D5 | Markdown/代码块渲染 | 真实内容对照 | 内容层已有代码块头/Copy、行内代码、链接、表格、任务列表和文件 chip；未与 Electron 真实内容对照 | 未通过 |
-| D6 | 空态/加载/错误态 | 三种状态截图对照 | headless 断言 | 未通过 |
+| D6 | 空态/加载/错误态 | 三种状态截图对照 | 空态（compare-empty）与错误态（compare-error）已并排；加载态未采集 | 未通过 |
 
 ## 无障碍与平台
 
