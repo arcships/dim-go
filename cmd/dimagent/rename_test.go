@@ -178,6 +178,7 @@ func TestAppRenameCatalogFailureKeepsTheCommittedTitle(t *testing.T) {
 // the current marker, with no selection invented.
 func TestReadSessionModelsMapsTheCatalog(t *testing.T) {
 	f := &fakeSession{
+		canUpdateModel: true,
 		modelSelection: session.ModelSelection{ProviderID: "anthropic", ModelID: "claude-3"},
 		hasModel:       true,
 		modelsCatalog: session.ModelCatalog{
@@ -218,6 +219,7 @@ func TestReadSessionModelsMapsTheCatalog(t *testing.T) {
 // and carries the capability reason, never an empty catalog presented as real.
 func TestReadSessionModelsReportsAMissingCapability(t *testing.T) {
 	f := &fakeSession{
+		canUpdateModel: true,
 		modelSelection: session.ModelSelection{ProviderID: "anthropic", ModelID: "claude-3"},
 		hasModel:       true,
 		modelsErr:      &appserver.CapabilityError{Feature: "provider.management"},
@@ -267,6 +269,7 @@ func TestReadSessionModelsWithoutAPair(t *testing.T) {
 // the new session's model rather than the previous one's.
 func TestSelectSessionFillsTheModelFacts(t *testing.T) {
 	selected := &fakeSession{
+		canUpdateModel: true,
 		view:           &dimui.State{Selected: "s2", Connection: dimui.ConnReady},
 		modelSelection: session.ModelSelection{ProviderID: "p", ModelID: "m"},
 		hasModel:       true,

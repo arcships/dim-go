@@ -130,64 +130,77 @@ func TestSummaryForRow(t *testing.T) {
 
 // fakeSession stands in for integration.SessionController.
 type fakeSession struct {
-	view              *dimui.State
-	branchViews       map[string]*dimui.State
-	summary           appserver.SessionSummary
-	submitErr         error
-	submitID          string
-	stopErr           error
-	reattachErr       error
-	openBranchErr     error
-	endBranchErr      error
-	endBranchOutcome  appserver.BranchEndOutcome
-	refreshBranchErr  error
-	deleteErr         error
-	deleted           []string
-	renameErr         error
-	renameResult      appserver.RenameResult
-	renamed           []*string
-	titleState        session.TitleState
-	modelsCatalog     session.ModelCatalog
-	modelsErr         error
-	modelSelection    session.ModelSelection
-	hasModel          bool
-	modelsCalls       int
-	approvalErr       error
-	approvalResult    appserver.ApprovalRespondOutcome
-	lookupResult      appserver.InputLookupResult
-	lookupErr         error
-	closed            bool
-	submitted         chan string
-	stopped           chan struct{}
-	approved          chan struct{}
-	refreshed         chan struct{}
-	liveCalls         chan struct{}
-	reconnectStart    chan struct{}
-	reconnectGate     chan struct{}
-	openBranchStart   chan struct{}
-	openBranchGate    chan struct{}
-	openBranchDone    chan struct{}
-	openBranch        []string
-	endedBranches     []string
-	refreshCalls      int
-	shownBranch       string
-	sessionBranch     string
-	submitText        []string
-	submitBranch      string
-	submitBranchText  []string
-	submitBranchCalls int
-	stopBranch        string
-	stopBranchCalls   int
-	lookupBranchCalls int
-	reattachCalls     int
-	stopCalls         int
-	approvalCalls     int
-	approvalBranch    string
-	approvalID        string
-	approvalChoice    string
-	lookupCalls       int
-	lookupBranch      string
-	lookupSubmission  string
+	view             *dimui.State
+	branchViews      map[string]*dimui.State
+	summary          appserver.SessionSummary
+	submitErr        error
+	submitID         string
+	stopErr          error
+	reattachErr      error
+	openBranchErr    error
+	endBranchErr     error
+	endBranchOutcome appserver.BranchEndOutcome
+	refreshBranchErr error
+	deleteErr        error
+	deleted          []string
+	renameErr        error
+	renameResult     appserver.RenameResult
+	renamed          []*string
+	titleState       session.TitleState
+	modelsCatalog    session.ModelCatalog
+	modelsErr        error
+	modelSelection   session.ModelSelection
+	hasModel         bool
+	modelsCalls      int
+	// updateModelErr/updateModelResult script session.model.update, and
+	// refreshModelSelection/refreshModelErr script the session.summaries
+	// read-back. The calls are recorded so a test can assert one write.
+	updateModelErr        error
+	updateModelResult     appserver.ModelUpdateResult
+	updateModelCalls      int
+	updateModelProvider   string
+	updateModelID         string
+	refreshModelSelection session.ModelSelection
+	refreshModelHasModel  bool
+	refreshModelErr       error
+	refreshModelCalls     int
+	canUpdateModel        bool
+	approvalErr           error
+	approvalResult        appserver.ApprovalRespondOutcome
+	lookupResult          appserver.InputLookupResult
+	lookupErr             error
+	closed                bool
+	submitted             chan string
+	stopped               chan struct{}
+	approved              chan struct{}
+	refreshed             chan struct{}
+	liveCalls             chan struct{}
+	reconnectStart        chan struct{}
+	reconnectGate         chan struct{}
+	openBranchStart       chan struct{}
+	openBranchGate        chan struct{}
+	openBranchDone        chan struct{}
+	openBranch            []string
+	endedBranches         []string
+	refreshCalls          int
+	shownBranch           string
+	sessionBranch         string
+	submitText            []string
+	submitBranch          string
+	submitBranchText      []string
+	submitBranchCalls     int
+	stopBranch            string
+	stopBranchCalls       int
+	lookupBranchCalls     int
+	reattachCalls         int
+	stopCalls             int
+	approvalCalls         int
+	approvalBranch        string
+	approvalID            string
+	approvalChoice        string
+	lookupCalls           int
+	lookupBranch          string
+	lookupSubmission      string
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -385,6 +398,32 @@ func (f *fakeSession) Models(context.Context) (session.ModelCatalog, error) {
 func (f *fakeSession) Model() (session.ModelSelection, bool) {
 	return f.modelSelection, f.hasModel
 }
+
+// UpdateModel records the requested pair and returns the test's reply or error.
+func (f *fakeSession) UpdateModel(_ context.Context, providerID, modelID string) (appserver.ModelUpdateResult, error) {
+	f.updateModelCalls++
+	f.updateModelProvider, f.updateModelID = providerID, modelID
+	if f.updateModelErr != nil {
+		return appserver.ModelUpdateResult{}, f.updateModelErr
+	}
+	return f.updateModelResult, nil
+}
+
+// RefreshModel returns the read-back pair the test supplied.
+func (f *fakeSession) RefreshModel(context.Context) (session.ModelSelection, bool, error) {
+	f.refreshModelCalls++
+	if f.refreshModelErr != nil {
+		return session.ModelSelection{}, false, f.refreshModelErr
+	}
+	// The real session stores the summary pair, so Model() reflects it after a
+	// read-back. The fake keeps the same fact for the window's next read.
+	f.modelSelection = f.refreshModelSelection
+	f.hasModel = true
+	return f.refreshModelSelection, f.refreshModelHasModel, nil
+}
+
+// CanUpdateModel reports the capability the test supplied.
+func (f *fakeSession) CanUpdateModel() bool { return f.canUpdateModel }
 
 func (f *fakeSession) Close(context.Context) error {
 	f.closed = true

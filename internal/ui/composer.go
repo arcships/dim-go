@@ -126,10 +126,10 @@ const composerHint = "Enter to send · Shift+Enter for a new line"
 // The reasons the composer's entries show while no data source is wired. The
 // model toolbar glyph has no selection action and the agent mode has no fact in
 // ComposerView, so both stay visible, disabled and explained rather than
-// inventing a selection. The model chip is the display surface; choosing from its
-// read-only catalog is not wired yet.
+// inventing a selection. The model chip is the selection surface: it shows the
+// current App Server pair and opens the model list.
 const (
-	reasonModel = "Unavailable: choosing a model from this entry is not wired; the chip beside Send shows the current model and opens the read-only catalog."
+	reasonModel = "Unavailable: this toolbar entry has no model picker; the chip beside Send shows the current model and opens the list, where a model can be selected."
 	reasonMode  = "Unavailable: ComposerView carries no agent mode; the shell exposes no agent-mode fact to the composer yet."
 	// reasonModelPair explains an absent current model: the attach reply
 	// reported no complete provider/model pair, so the chip shows the localized
@@ -516,8 +516,9 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 			tr(locale, keyReasonModel), false)
 		ui.Box(c).Grow(1)
 		// The chip shows the current App Server model pair, or the localized
-		// unconfigured label with the read's reason. It opens the read-only model
-		// list; nothing here invents a model, and a click writes no selection.
+		// unconfigured label with the read's reason. It opens the model list,
+		// where a selectable row calls the caller's OnSelectModel; nothing here
+		// invents a model or stores a selection.
 		composerModelChip(c, k, v, a)
 		composerSend(c, k, v, a)
 	})
@@ -525,11 +526,11 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 
 // composerModelChip draws the model status beside Send: the current
 // provider/model the App Server reported, or the reference's muted "未配置"
-// while no complete pair is known. The chip is a button that opens the read-only
-// model list through Actions.OnToggleModelList; a caller without that action
-// keeps it visible and unavailable with the reason it waits on. It sits left of
-// the send disc, where the reference draws the label, and the tool row's gap
-// keeps that distance.
+// while no complete pair is known. The chip is a button that opens the model
+// list through Actions.OnToggleModelList; a caller without that action keeps it
+// visible and unavailable with the reason it waits on. It sits left of the send
+// disc, where the reference draws the label, and the tool row's gap keeps that
+// distance.
 func composerModelChip(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	label := v.ModelLabel
 	reason := v.ModelReason
@@ -564,11 +565,13 @@ func composerModelChip(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	})
 }
 
-// composerModelDialog draws the read-only model list over the window while
+// composerModelDialog draws the model list over the window while
 // ComposerView.ModelOpen is set: the current pair and, for every model the
 // catalog carries, its provider/model name, availability and the reason it is
-// unavailable. Choosing a row writes nothing yet; the dialog states that gap and
-// offers only Close. Escape and a click outside the dialog close it through
+// unavailable. A row is selectable while Actions.OnSelectModel is wired; the
+// row closes the list first and then calls it once, so one click sends at most
+// one request. A caller that wires no selection keeps every row visible,
+// disabled and explained. Escape and a click outside the dialog close it through
 // DialogBase, so no request is sent.
 func composerModelDialog(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	if v.ModelOpen == nil || !*v.ModelOpen {
@@ -593,10 +596,12 @@ func composerModelDialog(c *ui.Context, k tokens, v ComposerView, a Actions) {
 			}
 			ui.Column(c).FillWidth().Gap(k.gap).Children(func() {
 				for _, choice := range v.ModelChoices {
-					modelChoiceRow(c, k, v.Locale, choice)
+					modelChoiceRow(c, k, v, a, choice)
 				}
 			})
-			ui.Text(c, tr(v.Locale, keyModelReadOnly)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			if a.OnSelectModel == nil {
+				ui.Text(c, tr(v.Locale, keyModelReadOnly)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			}
 			ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
 				ui.Button(c, tr(v.Locale, keyModelClose)).OnClick(func() {
 					*v.ModelOpen = false
@@ -606,11 +611,15 @@ func composerModelDialog(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	})
 }
 
-// modelChoiceRow draws one model in the read-only list: its provider and model
-// names, the current marker, and its availability or the reason it is not
-// selectable. It is text, not a control: choosing a model is not wired, and a
-// row that took a click would pretend a selection the window cannot write.
-func modelChoiceRow(c *ui.Context, k tokens, locale Locale, choice ModelChoice) {
+// modelChoiceRow draws one model: its provider and model names, the current
+// marker, and its availability or the reason it is not selectable. With
+// Actions.OnSelectModel wired and the model available the row is a button that
+// closes the list and then calls the action once; an unavailable model stays a
+// disabled row with its App Server reason. A caller without the action keeps
+// every row disabled, because a click would pretend a selection it cannot
+// write.
+func modelChoiceRow(c *ui.Context, k tokens, v ComposerView, a Actions, choice ModelChoice) {
+	locale := v.Locale
 	name := choice.DisplayName
 	if name == "" {
 		name = choice.ModelID
@@ -618,25 +627,53 @@ func modelChoiceRow(c *ui.Context, k tokens, locale Locale, choice ModelChoice) 
 	if name == "" {
 		name = choice.ProviderID
 	}
-	ui.Column(c).FillWidth().Padding(k.gap, k.edgePad).Radius(radiusSM).
-		Background(k.muted).Children(func() {
-		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, name).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
-			ui.Box(c).Grow(1)
-			if choice.Current {
-				ui.Text(c, tr(locale, keyModelCurrent)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+	selectable := a.OnSelectModel != nil && choice.Enabled && choice.Reason == ""
+	row := ui.ButtonBase(c).Key("composer-model:"+choice.ProviderID+"/"+choice.ModelID).
+		FillWidth().Padding(k.gap, k.edgePad).Radius(radiusSM).
+		Background(k.muted).AlignItems(ui.Center).
+		Role(ui.RoleButton).Label(name).Selected(choice.Current)
+	if selectable {
+		row.OnClick(func() {
+			// Close first: the dialog is gone before the request starts, so a
+			// second click cannot send the same selection twice.
+			if v.ModelOpen != nil {
+				*v.ModelOpen = false
 			}
+			a.OnSelectModel(choice.ProviderID, choice.ModelID)
 		})
-		ui.Text(c, choice.ProviderID+"/"+choice.ModelID).FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine()
-		if choice.Enabled && choice.Reason == "" {
-			ui.Text(c, tr(locale, keyModelAvailable)).FontSize(k.smallSize).TextColor(k.mutedForeground)
-			return
+		if row.Hovered() {
+			row.Background(k.sidebarHover)
 		}
-		reason := tr(locale, keyModelUnavailable)
-		if choice.Reason != "" {
-			reason += ": " + choice.Reason
+	} else {
+		row.AccessDisabled(true)
+		if !choice.Enabled || choice.Reason != "" {
+			reason := tr(locale, keyModelUnavailable)
+			if choice.Reason != "" {
+				reason += ": " + choice.Reason
+			}
+			row.Description(reason).Tooltip(reason)
 		}
-		ui.Text(c, reason).FontSize(k.smallSize).TextColor(k.danger)
+	}
+	row.Children(func() {
+		ui.Column(c).FillWidth().Children(func() {
+			ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, name).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
+				ui.Box(c).Grow(1)
+				if choice.Current {
+					ui.Text(c, tr(locale, keyModelCurrent)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+				}
+			})
+			ui.Text(c, choice.ProviderID+"/"+choice.ModelID).FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine()
+			if choice.Enabled && choice.Reason == "" {
+				ui.Text(c, tr(locale, keyModelAvailable)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+				return
+			}
+			reason := tr(locale, keyModelUnavailable)
+			if choice.Reason != "" {
+				reason += ": " + choice.Reason
+			}
+			ui.Text(c, reason).FontSize(k.smallSize).TextColor(k.danger)
+		})
 	})
 }
 

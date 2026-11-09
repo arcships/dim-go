@@ -61,6 +61,66 @@ func (s *Session) Model() (ModelSelection, bool) {
 	return s.model, s.hasModel
 }
 
+// CanUpdateModel reports whether the connection advertises the public
+// session.model.update capability. A daemon without it keeps model selection
+// visible-disabled WIP; this is a read of hello.features, not a local guess.
+func (s *Session) CanUpdateModel() bool {
+	if s == nil {
+		return false
+	}
+	return appserver.HasFeature(s.features, appserver.ModelUpdateFeature)
+}
+
+// UpdateModel switches the session's main-branch model through
+// session.model.update. The selection is never stored from the request: the
+// reply is the daemon's adopted pair and a caller refreshes the current model
+// with RefreshModel, which reads the next session.summaries row. The write is
+// not retried; a lost result is read back, never resent.
+func (s *Session) UpdateModel(ctx context.Context, providerID, modelID string) (appserver.ModelUpdateResult, error) {
+	if s == nil {
+		return appserver.ModelUpdateResult{}, fmt.Errorf("session: nil session")
+	}
+	if s.client == nil {
+		return appserver.ModelUpdateResult{}, fmt.Errorf("session: nil client")
+	}
+	return appserver.ModelUpdate(ctx, s.client, appserver.ModelUpdateParams{
+		SessionID:  s.sessionID,
+		BranchID:   appserver.MainBranchID,
+		ProviderID: providerID,
+		ModelID:    modelID,
+	}, s.features)
+}
+
+// RefreshModel reads the session's current model pair from session.summaries
+// and stores it. It is the read-back after a model update (and after an unknown
+// result): the summary row is the App Server's fact, while the request's pair is
+// never used as a local selection. ok is false when the daemon does not list the
+// session; the previous pair is left untouched in that case.
+func (s *Session) RefreshModel(ctx context.Context) (ModelSelection, bool, error) {
+	if s == nil {
+		return ModelSelection{}, false, fmt.Errorf("session: nil session")
+	}
+	if s.client == nil {
+		return ModelSelection{}, false, fmt.Errorf("session: nil client")
+	}
+	summaries, err := appserver.Summaries(ctx, s.client, appserver.SummariesParams{})
+	if err != nil {
+		return ModelSelection{}, false, err
+	}
+	for _, summary := range summaries {
+		if summary.SessionID != s.sessionID {
+			continue
+		}
+		selection := ModelSelection{ProviderID: summary.Model.ProviderID, ModelID: summary.Model.ModelID}
+		s.mu.Lock()
+		s.model = selection
+		s.hasModel = true
+		s.mu.Unlock()
+		return selection, true, nil
+	}
+	return ModelSelection{}, false, fmt.Errorf("session: %s is absent from session.summaries", s.sessionID)
+}
+
 // Models reads the model catalog through provider.management and the stored
 // default through provider.selection. The read is non-mutating and always asks
 // the App Server; this package keeps no second catalog.

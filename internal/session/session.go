@@ -182,8 +182,9 @@ type Session struct {
 	branchesLoaded  bool
 	branchesStatus  ReadCapabilityStatus
 
-	// model is the model pair the attach reply reported. It is the session's
-	// current selection as observed from the App Server, not a local choice.
+	// model is the model pair the attach reply, or a later session.summaries
+	// read-back after a model update, reported. It is the session's current
+	// selection as observed from the App Server, not a local choice.
 	model    ModelSelection
 	hasModel bool
 	// modelsStatus describes the last provider.management read. A missing

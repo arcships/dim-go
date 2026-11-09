@@ -77,6 +77,14 @@ type sessionActions interface {
 	Models(ctx context.Context) (session.ModelCatalog, error)
 	// Model is the provider/model pair the attach reply reported, if any.
 	Model() (session.ModelSelection, bool)
+	// UpdateModel switches the session's main-branch model through
+	// session.model.update. The caller never resends an unknown result.
+	UpdateModel(ctx context.Context, providerID, modelID string) (appserver.ModelUpdateResult, error)
+	// RefreshModel reads the current model pair back from session.summaries.
+	RefreshModel(ctx context.Context) (session.ModelSelection, bool, error)
+	// CanUpdateModel reports whether the App Server advertises
+	// session.model.update, so the window can keep the picker WIP.
+	CanUpdateModel() bool
 	Reattach(ctx context.Context) error
 	Close(ctx context.Context) error
 }
@@ -305,6 +313,37 @@ func (b *sessionBridge) ModelFor(sessionID string) (session.ModelSelection, bool
 		return session.ModelSelection{}, false
 	}
 	return controller.Model()
+}
+
+// UpdateModelFor writes the model switch through the controller that still
+// belongs to sessionID. It never retries: an unknown result is returned so the
+// window can read the pair back instead.
+func (b *sessionBridge) UpdateModelFor(ctx context.Context, sessionID, providerID, modelID string) (appserver.ModelUpdateResult, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.ModelUpdateResult{}, err
+	}
+	return controller.UpdateModel(ctx, providerID, modelID)
+}
+
+// RefreshModelFor reads the current model pair back through the controller that
+// still belongs to sessionID.
+func (b *sessionBridge) RefreshModelFor(ctx context.Context, sessionID string) (session.ModelSelection, bool, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return session.ModelSelection{}, false, err
+	}
+	return controller.RefreshModel(ctx)
+}
+
+// CanUpdateModelFor reports whether the controller that belongs to sessionID
+// advertises session.model.update. It sends no request.
+func (b *sessionBridge) CanUpdateModelFor(sessionID string) bool {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return false
+	}
+	return controller.CanUpdateModel()
 }
 
 // TitleFor merges the session's live title metadata against the catalog
@@ -608,6 +647,7 @@ func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
 	a.state.OnDeleteSession = a.deleteSession
 	a.state.OnRename = a.renameSession
+	a.state.OnSelectModel = a.selectModel
 	a.state.OnSelectBranch = a.selectBranch
 	a.state.OnEndBranch = a.endBranch
 	a.state.OnRefreshBranches = a.refreshBranches
@@ -1122,10 +1162,136 @@ func (a *app) renameSession(title string) {
 	}()
 }
 
+// selectModel switches the selected session's model through session.model.update.
+// The write is sent once and never retried. Success is published only from the
+// App Server: RefreshModel reads the next session.summaries pair, and the reply's
+// adopted pair is the fallback when that read fails. An unknown result is read
+// back, never resent; a definitive failure keeps the previous chip and reports
+// ActionError.
+func (a *app) selectModel(providerID, modelID string) {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	sessionID := a.state.Selected
+	if sessionID == "" {
+		a.notice("model.error", "Select model: no session is selected.")
+		return
+	}
+	if providerID == "" || modelID == "" {
+		a.notice("model.error", "Select model: the App Server did not name both a provider and a model.")
+		return
+	}
+	gen := a.currentSelection()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		result, err := a.bridge.UpdateModelFor(ctx, sessionID, providerID, modelID)
+		if err != nil {
+			log.Printf("dimagent: select model %s/%s for %q: %v", providerID, modelID, sessionID, err)
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			if errors.Is(err, appserver.ErrUnknownResult) {
+				// The daemon may have applied the write. Resolve the doubt by
+				// reading the current pair back; never resend the update.
+				selection, ok, readErr := a.bridge.RefreshModelFor(ctx, sessionID)
+				catalog, status := a.readModels(ctx, sessionID)
+				a.update(func(state *dimui.State) {
+					if !a.selectionCurrent(gen) {
+						return
+					}
+					message := fmt.Sprintf("Select model: the App Server did not confirm the change (%v); the current model was read back from the App Server and the request was not resent.", err)
+					if readErr != nil || !ok {
+						message = fmt.Sprintf("Select model: the App Server did not confirm the change (%v) and reading the current model back failed (%v); the request was not resent.", err, readBackReason(readErr, ok))
+					} else {
+						state.ModelCatalog = catalog
+						state.ModelStatus = status
+						message = fmt.Sprintf("Select model: the App Server did not confirm the change (%v); the current model was read back as %s/%s and the request was not resent.", err, selection.ProviderID, selection.ModelID)
+					}
+					state.ActionError = message
+					state.ActionStatus = ""
+					state.ActionNotices = appendActionNotice(state.ActionNotices,
+						dimui.Notice{Kind: "model.unknown", ID: message})
+				})
+				return
+			}
+			message := fmt.Sprintf("Select model: %v", err)
+			if errors.Is(err, appserver.ErrCapabilityUnavailable) {
+				// The Hello features or the session method table lacks
+				// session.model.update: keep the entry WIP instead of pretending
+				// the window can switch the model.
+				message = fmt.Sprintf("Select model: session.model.update is unavailable on this App Server (unknown_method); the model was not changed. This entry stays WIP until the App Server offers the method. %v", err)
+			}
+			a.update(func(state *dimui.State) {
+				if !a.selectionCurrent(gen) {
+					return
+				}
+				state.ActionError = message
+				state.ActionStatus = ""
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "model.error", ID: message})
+			})
+			return
+		}
+		// Success. The chip follows the App Server's current pair; the reply is
+		// the fallback only when the read-back itself failed, and the requested
+		// pair is never used as a local selection.
+		selection, ok, readErr := a.bridge.RefreshModelFor(ctx, sessionID)
+		catalog, status := a.readModels(ctx, sessionID)
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			if readErr != nil || !ok {
+				outcome := result.Model.ProviderID + "/" + result.Model.ModelID
+				catalog = markCurrentModel(catalog, result.Model.ProviderID, result.Model.ModelID)
+				state.ModelCatalog = catalog
+				state.ModelStatus = status
+				state.ActionError = fmt.Sprintf("Model changed, but reading the current model back failed: %v", readBackReason(readErr, ok))
+				state.ActionStatus = ""
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "model.selected", ID: outcome})
+				return
+			}
+			outcome := selection.ProviderID + "/" + selection.ModelID
+			state.ModelCatalog = catalog
+			state.ModelStatus = status
+			state.ActionError = ""
+			state.ActionStatus = ""
+			state.ActionNotices = appendActionNotice(state.ActionNotices,
+				dimui.Notice{Kind: "model.selected", ID: outcome})
+		})
+	}()
+}
+
+// readBackReason explains why the model read-back did not produce a pair.
+func readBackReason(err error, ok bool) string {
+	if err != nil {
+		return err.Error()
+	}
+	if !ok {
+		return "session.summaries did not list this session"
+	}
+	return "no current pair was reported"
+}
+
+// markCurrentModel makes a catalog copy name the given pair as current. It is
+// used only after the App Server's update reply adopted that pair but the
+// session.summaries read-back failed; the reply is still a daemon fact.
+func markCurrentModel(catalog dimui.ModelCatalog, providerID, modelID string) dimui.ModelCatalog {
+	catalog.Current = providerID + "/" + modelID
+	catalog.HasCurrent = providerID != "" && modelID != ""
+	for i := range catalog.Choices {
+		catalog.Choices[i].Current = catalog.Choices[i].ProviderID == providerID && catalog.Choices[i].ModelID == modelID
+	}
+	return catalog
+}
+
 // readModels reads the selected session's model pair and catalog for display.
-// The pair comes from the attach reply; the catalog and its capability status
-// come from provider.management/provider.selection. A failed catalog read leaves
-// an empty list and a status that names the reason, never a made-up model.
+// The pair comes from the attach reply or a later session.summaries read-back;
+// the catalog and its capability status come from
+// provider.management/provider.selection. A failed catalog read leaves an empty
+// list and a status that names the reason, never a made-up model.
 func (a *app) readModels(ctx context.Context, sessionID string) (dimui.ModelCatalog, dimui.ModelStatus) {
 	return readSessionModels(ctx, a.bridge, sessionID)
 }
@@ -1136,10 +1302,11 @@ func readSessionModels(ctx context.Context, bridge *sessionBridge, sessionID str
 	if bridge == nil {
 		return dimui.ModelCatalog{}, dimui.ModelStatus{Reason: reasonNoModelClient}
 	}
+	selectable := bridge.CanUpdateModelFor(sessionID)
 	current, hasCurrent := bridge.ModelFor(sessionID)
 	catalog, err := bridge.ModelsFor(ctx, sessionID)
 	if err != nil {
-		status := dimui.ModelStatus{Reason: err.Error()}
+		status := dimui.ModelStatus{Selectable: selectable, Reason: err.Error()}
 		out := dimui.ModelCatalog{}
 		if hasCurrent && current.ProviderID != "" && current.ModelID != "" {
 			out.Current = current.ProviderID + "/" + current.ModelID
@@ -1147,17 +1314,27 @@ func readSessionModels(ctx context.Context, bridge *sessionBridge, sessionID str
 		}
 		return out, status
 	}
-	status := dimui.ModelStatus{Available: true}
+	status := dimui.ModelStatus{Available: true, Selectable: selectable}
+	if !selectable {
+		// The catalog is readable but session.model.update is not advertised:
+		// the list stays disabled and names the missing method as the WIP gap.
+		status.Reason = reasonModelUpdateMissing
+	}
 	return modelCatalogView(catalog, current, hasCurrent), status
 }
+
+// reasonModelUpdateMissing explains the model list while the App Server does not
+// advertise session.model.update. It is the window's own text; the wire method
+// name is stated literally.
+const reasonModelUpdateMissing = "Unavailable: this App Server does not advertise session.model.update, so choosing a model stays WIP."
 
 // reasonNoModelClient explains the model chip while no session is attached to
 // read the catalog from. It is the window's own text, not a wire error.
 const reasonNoModelClient = "Unavailable: no session is attached to read the model catalog."
 
 // modelCatalogView maps the session layer's model snapshot onto the shell's
-// display copy. The current pair is the attach reply's; the catalog's own pair is
-// shown only when the attach reply carried none.
+// display copy. The current pair is the session's latest App Server pair; the
+// catalog's own pair is shown only when the session reported none.
 func modelCatalogView(catalog session.ModelCatalog, current session.ModelSelection, hasCurrent bool) dimui.ModelCatalog {
 	if catalog.HasCurrent {
 		current, hasCurrent = catalog.Current, true

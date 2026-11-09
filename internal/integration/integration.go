@@ -736,6 +736,75 @@ func (c *SessionController) Model() (session.ModelSelection, bool) {
 	return c.Session.Model()
 }
 
+// CanUpdateModel reports whether this session's App Server connection advertises
+// session.model.update. The window keeps the picker WIP while it is false.
+func (c *SessionController) CanUpdateModel() bool {
+	if c == nil {
+		return false
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return false
+	}
+	return c.Session.CanUpdateModel()
+}
+
+// UpdateModel switches the selected session's main-branch model. The write is
+// never retried: a subscription_changed reply fails closed as a replay gap, and
+// an unknown result is reported so the caller can read the pair back through
+// RefreshModel instead of resending.
+func (c *SessionController) UpdateModel(ctx context.Context, providerID, modelID string) (appserver.ModelUpdateResult, error) {
+	if c == nil {
+		return appserver.ModelUpdateResult{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.ModelUpdateResult{}, fmt.Errorf("integration: nil context")
+	}
+	if providerID == "" || modelID == "" {
+		return appserver.ModelUpdateResult{}, fmt.Errorf("integration: empty model target")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.ModelUpdateResult{}, fmt.Errorf("integration: no session")
+	}
+	result, err := c.Session.UpdateModel(ctx, providerID, modelID)
+	return result, replayGapWrite("session.model.update", err)
+}
+
+// RefreshModel reads the selected session's current model pair back from
+// session.summaries and stores it. It is the read side of a model switch and of
+// an unknown model.update result; the request's pair is never used as a local
+// selection. The read is non-mutating, so subscription_changed gets the
+// contract's single retry.
+func (c *SessionController) RefreshModel(ctx context.Context) (session.ModelSelection, bool, error) {
+	if c == nil {
+		return session.ModelSelection{}, false, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return session.ModelSelection{}, false, fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return session.ModelSelection{}, false, fmt.Errorf("integration: no session")
+	}
+	var (
+		selection session.ModelSelection
+		ok        bool
+	)
+	err := retryReadOnce(ctx, "session.summaries", func() error {
+		var attemptErr error
+		selection, ok, attemptErr = c.Session.RefreshModel(ctx)
+		return attemptErr
+	})
+	if err != nil {
+		return session.ModelSelection{}, false, err
+	}
+	return selection, ok, nil
+}
+
 // OpenBranch loads one branch's first-screen history into that branch's own
 // projection. Branch switching is not its own RPC (docs/branch-attachment-plan.md
 // §1.2): it is the session.history {branchId} read, and the session layer bounds
