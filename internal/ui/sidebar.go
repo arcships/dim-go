@@ -189,9 +189,9 @@ func (v SidebarView) closeSearch() {
 }
 
 // sidebar draws the P0 sidebar: the brand header, the global entries, the
-// grouped thread list and the footer of actions the shell cannot carry out
-// yet. Its width comes from the split divider around it; the shell clamps it
-// to the sidebar's own bounds before every frame.
+// grouped thread list, the thread actions, the WIP capability cards and the
+// account footer. Its width comes from the split divider around it; the shell
+// clamps it to the sidebar's own bounds before every frame.
 func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	v.adoptSearch()
 	locale := v.Locale
@@ -216,6 +216,7 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		}
 		sidebarFooter(c, k, locale)
 		capabilityCards(c, k, locale, v.Capabilities)
+		sidebarAccount(c, k, v, a)
 	})
 }
 
@@ -231,16 +232,37 @@ func sidebarHeader(c *ui.Context, k tokens, locale Locale) {
 	})
 }
 
-// sidebarEntries are the sidebar's global entries: the session action, then
-// the search entry, then the keys browser. Search is local: the entry expands a
-// filter box over the catalog the sidebar already draws, and nothing it does
-// reaches the App Server.
+// sidebarEntries are the sidebar's global entries, in dim-electron's order:
+// the session action, search, scheduled tasks and skills/plugins, then the keys
+// browser. Search is local: the entry expands a filter box over the catalog the
+// sidebar already draws, and nothing it does reaches the App Server. The two
+// management entries have no client or page in this shell yet, so they keep
+// their place as visible WIP entries.
 func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).Children(func() {
 		newSessionEntry(c, k, v, a)
 		searchEntry(c, k, v)
+		scheduledEntry(c, k, v)
+		skillsEntry(c, k, v)
 		keysEntry(c, k, v, a)
 	})
+}
+
+// scheduledEntry offers dim-electron's scheduled-task page. The shell has no
+// scheduled-task client, no page and no App Server method to read one, so the
+// entry stays visible, unavailable and explained rather than opening an empty
+// page.
+func scheduledEntry(c *ui.Context, k tokens, v SidebarView) {
+	locale := v.Locale
+	sidebarEntry(c, k, tr(locale, keySidebarScheduled), "", reasonScheduled, false, false, false, nil)
+}
+
+// skillsEntry offers dim-electron's skills and plugins page. The shell has no
+// skills or plugins client, no marketplace page and no App Server method to
+// read either, so the entry stays visible, unavailable and explained.
+func skillsEntry(c *ui.Context, k tokens, v SidebarView) {
+	locale := v.Locale
+	sidebarEntry(c, k, tr(locale, keySidebarSkills), "", reasonSkills, false, false, false, nil)
 }
 
 // searchEntry toggles the sidebar's local session search. It needs no caller
@@ -616,5 +638,25 @@ func sidebarFooter(c *ui.Context, k tokens, locale Locale) {
 		for _, action := range actions {
 			action.DescribedBy(badge)
 		}
+	})
+}
+
+// sidebarAccount is the footer pinned to the sidebar's bottom, as dim-electron's
+// AccountEntry is: the account row under the session content, with the settings
+// entry at its tail. The account is WIP — this shell has no account client, so
+// it has no identity, session or sign-in fact to show — while settings is
+// desktop-local and opens the same appearance surface the toolbar's entry
+// toggles.
+func sidebarAccount(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	locale := v.Locale
+	ui.Row(c).MinHeight(k.sidebarFooterH).
+		Padding(0, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
+		Gap(k.sidebarGap).AlignItems(ui.Center).Children(func() {
+		wipAction(c, k, tr(locale, keySidebarAccount), reasonAccount)
+		ui.Spacer(c)
+		if a.OnOpenSettings == nil {
+			return
+		}
+		ui.Button(c, tr(locale, keySidebarSettingsEntry)).OnClick(a.OnOpenSettings)
 	})
 }

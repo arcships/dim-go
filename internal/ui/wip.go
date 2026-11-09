@@ -28,6 +28,14 @@ const (
 	reasonPin           = "Unavailable: no verified App Server RPC pins a session, and the shell keeps no local pin list."
 	reasonRename        = "Unavailable: session.rename is a session method reached through session.methods, which the shell does not call yet."
 	reasonArchive       = "Unavailable: the shell has no desktop-local hidden session list yet."
+
+	// The global entries dim-electron's sidebar carries beside sessions. None of
+	// them has a client, page or wire method here yet, so each entry keeps its
+	// place, dimmed and explained, instead of opening a page that would only be
+	// empty.
+	reasonScheduled = "Unavailable: the shell has no scheduled-task client or page yet, and no public App Server method lists scheduled tasks."
+	reasonSkills    = "Unavailable: the shell has no skills or plugins client or page yet, and no public App Server method lists skills or plugins."
+	reasonAccount   = "Unavailable: the shell has no account client yet, so it cannot show an account or sign in."
 )
 
 // wipAction draws one entry for an action the shell cannot carry out yet. It

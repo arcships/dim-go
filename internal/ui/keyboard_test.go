@@ -45,20 +45,24 @@ func TestSidebarKeyboardNavigation(t *testing.T) {
 }
 
 // TestTabOrder checks the shell's Tab stops in tree order: the sidebar's
-// header, entries and thread actions, the thread list, the split divider, the
-// main toolbar's reconnect entry, the attachment entry, then the composer,
-// round again. The send entry is unavailable—the fixture's draft is empty and
-// it has no submit callback—and so skipped. The WIP entries stay in the order
-// on purpose: a keyboard or screen-reader user finds them, reads that they are
-// unavailable and why, and moves on.
+// header, entries, thread actions and account footer, the thread list, the
+// split divider, the main toolbar's reconnect entry, the attachment entry, then
+// the composer, round again. The send entry is unavailable—the fixture's draft
+// is empty and it has no submit callback—and so skipped. The WIP entries stay
+// in the order on purpose: a keyboard or screen-reader user finds them, reads
+// that they are unavailable and why, and moves on.
+//
+// The sidebar's settings entry and the toolbar's share the label "Settings";
+// the tab order visits the sidebar's first because the sidebar is drawn first.
 func TestTabOrder(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
 
 	for _, want := range []string{
-		"Update", "New session", "Search sessions", "Session keys", "Group", "Sessions",
-		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Settings", "Attach file",
-		"Composer", "Update",
+		"Update", "New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
+		"Session keys", "Group", "Sessions", "Pin", "Rename", "Archive",
+		"Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings",
+		"Attach file", "Composer", "Update",
 	} {
 		tt.Key(0, ui.KeyTab)
 		if !tt.Focused(want) {
