@@ -185,7 +185,10 @@ func toolRow(c *ui.Context, k tokens, folds *blockFolds, m Message) {
 // border in the danger color and keeps a retry entry, which stays disabled until
 // the window has a callback that can replay a call. The card is the card face of
 // the surface ladder, not a tint of the border: a call sits on the conversation
-// as a raised block with its own text color.
+// as a raised block with its own text color. It keeps its hairline edge and
+// takes no shadow: a turn draws a run of calls one under another, and a stack of
+// lifted cards would read as separate surfaces rather than the blocks of one
+// turn.
 //
 // A running call shows its status in a live region that is busy, so it is
 // announced once and assistive technology waits for the result rather than

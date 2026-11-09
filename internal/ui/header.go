@@ -306,6 +306,10 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 // session behind a confirmation, and the desktop-local appearance surface. An
 // entry whose callback is missing stays visible, disabled and marked WIP too, so
 // the menu never pretends an action the shell cannot carry out.
+//
+// The menu's panel is mygo's own popover, which lifts by its theme's shadow; the
+// shell's popover step is not applied here because the panel is not this view's
+// element, and mygo offers no hook for its shadow.
 func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	label := tr(locale, keyHeaderMenu)

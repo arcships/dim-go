@@ -185,6 +185,10 @@ func TestShellFramesTheMainArea(t *testing.T) {
 
 	img := tt.Image()
 	inside := img.RGBAAt(int(card.X+card.W-8), int(card.Y+card.H-8))
+	// The window's own face above the card, sampled high enough to be clear of
+	// the card's shadow: it reaches three DIPs up from the top edge
+	// (the 1 DIP offset and 2 DIP blur of the card step), so the top row is the
+	// window and not the shadowed band the frame paints.
 	outside := img.RGBAAt(int(card.X+card.W/2), 1)
 	border := img.RGBAAt(int(card.X), int(card.Y+card.H/2))
 	// The reference card is white on a white window in the light theme (this

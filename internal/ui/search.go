@@ -68,10 +68,6 @@ const searchMotion = 200 * time.Millisecond
 // through dimmed, and a click on it closes the palette.
 var searchScrim = ui.RGBA(0, 0, 0, 0.8)
 
-// searchShadow is the reference's shadow-2xl under the panel: a wide, soft,
-// downward shadow that lifts the dialog off the scrim.
-var searchShadow = ui.RGBA(0, 0, 0, 0.45)
-
 // searchFade is the scrim's own motion: it starts and ends transparent, as the
 // reference's overlay fade-in-0/fade-out-0 does. searchZoom is the panel's: it
 // starts and ends at 95% of its size with no opacity, the reference's
@@ -298,8 +294,10 @@ func searchPalette(c *ui.Context, k tokens, v SearchPaletteView, a Actions) {
 		backdrop.Children(func() {
 			panel := ui.Box(c).Role(ui.RoleDialog).Width(searchPanelW).MaxWidthPercent(90).
 				Radius(searchPanelRadius).Background(k.background).
-				BorderWidth(k.hairline).BorderColor(k.border).
-				Shadow(0, 24, 48, 0, searchShadow).Clip()
+				BorderWidth(k.hairline).BorderColor(k.border).Clip()
+			// The dialog lifts by the dialog shadow step, the strongest the
+			// shell draws: the reference's shadow-2xl under the same panel.
+			panel = k.shadowDialog.paint(panel)
 			// The pointer's row moves the highlight when the pointer enters it,
 			// not on every frame: with the pointer resting over a row, the arrow
 			// keys still move the highlight between rows.

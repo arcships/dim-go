@@ -110,16 +110,19 @@ const reasonApprovalGrant = "Unavailable: always-allow needs session.grants.add,
 //
 // The panel is capped and centred at the composer's 520 DIP measure, so it sits
 // where the composer sat and narrows with the window instead of overflowing the
-// slot.
+// slot. It lifts by the card step, the same shadow the composer it replaces
+// carries, so a pending request reads as the surface in the slot rather than a
+// second, flat section of the conversation.
 func renderApprovalPanel(c *ui.Context, k tokens, v ApprovalView, a Actions) {
 	if len(v.Pending) == 0 {
 		return
 	}
 	ui.Column(c).FillWidth().Padding(0, approvalPanelPadX, approvalPanelPadY, approvalPanelPadX).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(approvalPanelWidth).AlignSelf(ui.Center).
+		card := ui.Column(c).FillWidth().MaxWidth(approvalPanelWidth).AlignSelf(ui.Center).
 			Padding(approvalCardPad).Radius(k.radiusMD).
 			Background(k.card).Border(k.hairline, k.border).
-			Role(ui.RoleGroup).Label("Approval request").Children(func() {
+			Role(ui.RoleGroup).Label("Approval request")
+		k.shadowCard.paint(card).Children(func() {
 			ui.Column(c).Gap(approvalCardGap).Children(func() {
 				ui.Text(c, "Approval required").Bold().FontSize(k.titleSize)
 				if v.Text != "" {
