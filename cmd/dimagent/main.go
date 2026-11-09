@@ -978,6 +978,16 @@ func (a *app) selectSession(id string) {
 			if !a.selectionCurrent(gen) {
 				return
 			}
+			// The new selection is published before the view is folded in, so
+			// applyView cannot discard the view of the session just opened when the
+			// caller (the search palette, for example) did not write the sidebar's
+			// choice first. The terminal state of the session being left is not
+			// carried over: the new controller's view reports whether it is closed.
+			state.Selected = row.ID
+			state.SessionClosed = false
+			state.SessionClosedReason = ""
+			state.ClosedSessionTitle = ""
+			state.ClosedSessionProject = ""
 			applyView(state, view)
 			state.Selected = row.ID
 			state.ModelCatalog = modelCatalog
@@ -995,10 +1005,18 @@ func (a *app) selectSession(id string) {
 	}()
 }
 
+// closedReasonDeleted is the reason the main area shows for a session whose
+// session.delete the App Server confirmed. The row leaves the catalog, so the
+// window keeps the confirmed outcome as terminal display state instead of
+// inventing a session fact.
+const closedReasonDeleted = "Deleted"
+
 // deleteSession deletes one session through the App Server. The catalog row is
 // removed only after the daemon confirmed; a failure keeps the row and reports
-// through the banner. Deleting the displayed session closes its controller and
-// selects the next remaining row, or clears the selection when none is left.
+// through the banner. Deleting the displayed session closes its controller but
+// keeps the selection and its rows on screen as the terminal closed state until
+// the user chooses another session or creates one; the sidebar row is gone
+// because the App Server confirmed the delete.
 func (a *app) deleteSession(id string) {
 	if a.bridge == nil || a.state == nil || id == "" {
 		return
@@ -1034,6 +1052,7 @@ func (a *app) deleteSession(id string) {
 						return
 					}
 					state.ActionError = fmt.Sprintf("Delete session %q: %v", id, err)
+					state.ActionStatus = ""
 					state.ActionNotices = appendActionNotice(state.ActionNotices,
 						dimui.Notice{Kind: "delete.error", ID: state.ActionError})
 				})
@@ -1052,37 +1071,44 @@ func (a *app) deleteSession(id string) {
 		// The deleted id no longer names a row, so the desktop's pinned and
 		// archived display lists must not keep it.
 		a.forgetHiddenSession(id)
-		var next dimui.Session
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
 				return
 			}
 			remaining := make([]dimui.Session, 0, len(state.Sessions))
+			var deleted dimui.Session
 			for _, row := range state.Sessions {
 				if row.ID == id {
+					deleted = row
 					continue
 				}
 				remaining = append(remaining, row)
 			}
-			if state.Selected == id {
-				state.Selected = ""
-				state.SelectedBranch = ""
-				state.Draft = ""
-				state.Keys = dimui.KeysPanelView{}
-				state.Messages = nil
-				state.Branches = nil
-				state.ModelCatalog = dimui.ModelCatalog{}
-				state.ModelStatus = dimui.ModelStatus{}
-				state.ModelListOpen = false
-			}
 			state.Sessions = remaining
-			if len(remaining) > 0 {
-				next = remaining[0]
+			if state.Selected != id {
+				return
 			}
+			// The confirmed delete leaves the main area in the terminal closed
+			// state instead of switching to another row: the selection stays, so
+			// the conversation and the closed banner remain until the user chooses
+			// another session or creates one. The deleted session owns no branch,
+			// draft, keys, model or run any more; its rows stay as history, and its
+			// catalog labels stay for the toolbar to name it.
+			state.ClosedSessionTitle = deleted.Title
+			state.ClosedSessionProject = deleted.Group
+			state.SelectedBranch = ""
+			state.Draft = ""
+			state.Keys = dimui.KeysPanelView{}
+			state.Branches = nil
+			state.ModelCatalog = dimui.ModelCatalog{}
+			state.ModelStatus = dimui.ModelStatus{}
+			state.ModelListOpen = false
+			state.Run = dimui.RunIdle
+			state.SessionClosed = true
+			state.SessionClosedReason = closedReasonDeleted
+			state.ActionError = ""
+			state.ActionStatus = ""
 		})
-		if next.ID != "" {
-			a.selectSession(next.ID)
-		}
 	}()
 }
 
@@ -1782,10 +1808,15 @@ func (a *app) createSession() {
 			// The new controller's view belongs to this session, so make it the
 			// selection before folding the view in: applyView discards a view for
 			// any other session, and the window still shows the previous one here.
-			// A new session has no chosen branch, so drop the previous session's.
+			// A new session has no chosen branch, so drop the previous session's,
+			// and it cannot carry the terminal state of the session being left.
 			state.Selected = row.ID
 			state.Draft = a.draftFor(row.ID)
 			a.resetBranch()
+			state.SessionClosed = false
+			state.SessionClosedReason = ""
+			state.ClosedSessionTitle = ""
+			state.ClosedSessionProject = ""
 			applyView(state, view)
 			state.ModelCatalog = modelCatalog
 			state.ModelStatus = modelStatus

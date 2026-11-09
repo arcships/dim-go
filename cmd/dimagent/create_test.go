@@ -108,6 +108,51 @@ func TestAppCreateSessionSelectsNewSession(t *testing.T) {
 	}
 }
 
+// TestAppCreateSessionClearsTheClosedTerminalState checks that a creation is a
+// normal way out of the closed terminal state: the new session's view replaces
+// the previous selection's rows and open health.
+func TestAppCreateSessionClearsTheClosedTerminalState(t *testing.T) {
+	fresh := &fakeSession{view: &dimui.State{
+		Selected:   "s3",
+		Connection: dimui.ConnReady,
+		Messages:   []dimui.Message{{ID: "m3", Content: "new session row"}},
+	}}
+	b := &sessionBridge{}
+	b.createSession = func(context.Context, *supervisor.Supervisor, appserver.CreateParams) (sessionActions, appserver.CreateResult, error) {
+		return fresh, appserver.CreateResult{SessionID: "s3"}, nil
+	}
+	b.catalogSessions = func(context.Context, *supervisor.Supervisor) ([]dimui.Session, error) {
+		return []dimui.Session{{ID: "s3", Title: "Third"}}, nil
+	}
+	a, mu := createApp(b, &dimui.State{
+		Selected:            "s1",
+		SessionClosed:       true,
+		SessionClosedReason: closedReasonDeleted,
+		Messages:            []dimui.Message{{ID: "m1", Content: "closed session row"}},
+	})
+	a.createParams = func() (appserver.CreateParams, error) {
+		return appserver.CreateParams{Cwd: "/work"}, nil
+	}
+
+	a.state.OnCreateSession()
+	waitForState(t, a, mu, "the closed state cleared by the created session", func(state *dimui.State) bool {
+		return state.Selected == "s3" && !state.SessionClosed && !state.CreatingSession
+	})
+
+	mu.Lock()
+	defer mu.Unlock()
+	if a.state.SessionClosedReason != "" {
+		t.Fatalf("closed reason = %q after creating a session", a.state.SessionClosedReason)
+	}
+	if a.state.ClosedSessionTitle != "" || a.state.ClosedSessionProject != "" {
+		t.Fatalf("closed labels = %q / %q after creating a session",
+			a.state.ClosedSessionTitle, a.state.ClosedSessionProject)
+	}
+	if len(a.state.Messages) != 1 || a.state.Messages[0].ID != "m3" {
+		t.Fatalf("messages = %#v, want the created session's rows", a.state.Messages)
+	}
+}
+
 // TestAppCreateSessionFailureDoesNotSelect checks that a rejected session.create
 // adds no row, moves no selection and keeps the error visible: the shell never
 // shows a session the App Server did not return.

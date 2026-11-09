@@ -714,16 +714,19 @@ func TestAppReconnectReattachesAndRefreshes(t *testing.T) {
 	}
 }
 
-// TestAppDeleteRemovesTheConfirmedRow checks that a delete removes the catalog
-// row only after the controller reports success, and leaves the selection alone
-// when another session is displayed.
-func TestAppDeleteRemovesTheConfirmedRow(t *testing.T) {
+// TestAppDeleteKeepsTheClosedTerminalState checks that a confirmed delete removes
+// the catalog row but keeps the displayed session on screen as the terminal
+// closed state: the selection and its rows stay, the reason names the confirmed
+// delete, and the window does not switch to another session behind the user.
+func TestAppDeleteKeepsTheClosedTerminalState(t *testing.T) {
 	f := &fakeSession{summary: appserver.SessionSummary{SessionID: "s1"}}
 	bridge := &sessionBridge{controller: f, summary: f.summary}
 	a := &app{
 		state: &dimui.State{
 			Sessions: []dimui.Session{{ID: "s1", Title: "one"}, {ID: "s2", Title: "two"}},
 			Selected: "s1",
+			Messages: []dimui.Message{{ID: "m1", Content: "one's row"}},
+			Draft:    "unsent",
 		},
 		bridge: bridge,
 	}
@@ -744,24 +747,47 @@ func TestAppDeleteRemovesTheConfirmedRow(t *testing.T) {
 	for {
 		select {
 		case state := <-states:
-			if len(state.Sessions) == 1 && state.Sessions[0].ID == "s2" {
-				if state.Selected == "s1" {
-					t.Fatalf("selection = %q after deleting s1", state.Selected)
-				}
-				return
+			if len(state.Sessions) != 1 || state.Sessions[0].ID != "s2" {
+				continue
 			}
+			if state.Selected != "s1" {
+				t.Fatalf("selection = %q after deleting s1, want the closed session kept", state.Selected)
+			}
+			if !state.SessionClosed || state.SessionClosedReason != closedReasonDeleted {
+				t.Fatalf("terminal state = %v / %q, want closed with the delete's reason",
+					state.SessionClosed, state.SessionClosedReason)
+			}
+			if state.ClosedSessionTitle != "one" {
+				t.Fatalf("closed title = %q, want the deleted row's label", state.ClosedSessionTitle)
+			}
+			if len(state.Messages) != 1 || state.Messages[0].ID != "m1" {
+				t.Fatalf("messages = %#v, want the closed session's rows kept", state.Messages)
+			}
+			if state.Draft != "" {
+				t.Fatalf("draft = %q, want the deleted session's draft cleared", state.Draft)
+			}
+			if controller, _ := bridge.current(); controller != nil {
+				t.Fatal("the deleted session's controller was not closed")
+			}
+			return
 		case <-deadline:
-			t.Fatal("delete did not remove the row")
+			t.Fatal("delete did not publish the closed terminal state")
 		}
 	}
 }
 
-// TestAppDeleteFailureKeepsTheRow checks that a rejected delete keeps the row
-// and reports the failure through the banner.
+// TestAppDeleteFailureKeepsTheRow checks that a rejected delete changes nothing
+// on the window — the row, the selection, the rows on screen and the open state
+// stay — and reports the failure through the banner.
 func TestAppDeleteFailureKeepsTheRow(t *testing.T) {
 	f := &fakeSession{summary: appserver.SessionSummary{SessionID: "s1"}, deleteErr: errors.New("session active")}
 	a := &app{
-		state:  &dimui.State{Sessions: []dimui.Session{{ID: "s1", Title: "one"}}, Selected: "s1"},
+		state: &dimui.State{
+			Sessions: []dimui.Session{{ID: "s1", Title: "one"}},
+			Selected: "s1",
+			Messages: []dimui.Message{{ID: "m1", Content: "one's row"}},
+			Draft:    "unsent",
+		},
 		bridge: &sessionBridge{controller: f, summary: f.summary},
 	}
 	states := make(chan dimui.State, 8)
@@ -783,11 +809,59 @@ func TestAppDeleteFailureKeepsTheRow(t *testing.T) {
 				if len(state.Sessions) != 1 || state.Selected != "s1" {
 					t.Fatalf("failed delete changed the window: sessions=%d selected=%q", len(state.Sessions), state.Selected)
 				}
+				if state.SessionClosed || state.SessionClosedReason != "" {
+					t.Fatalf("failed delete closed the session: %v / %q",
+						state.SessionClosed, state.SessionClosedReason)
+				}
+				if len(state.Messages) != 1 || state.Messages[0].ID != "m1" || state.Draft != "unsent" {
+					t.Fatalf("failed delete changed the open session: rows=%#v draft=%q",
+						state.Messages, state.Draft)
+				}
 				return
 			}
 		case <-deadline:
 			t.Fatal("failed delete reported nothing")
 		}
+	}
+}
+
+// TestAppSelectClearsTheClosedTerminalState checks that choosing another
+// session after a confirmed delete leaves the closed terminal state: the new
+// session's own view replaces it, including its rows and its open health.
+func TestAppSelectClearsTheClosedTerminalState(t *testing.T) {
+	next := &fakeSession{view: &dimui.State{
+		Selected:   "s2",
+		Connection: dimui.ConnReady,
+		Messages:   []dimui.Message{{ID: "m2", Content: "two's row"}},
+	}}
+	b := &sessionBridge{}
+	b.openSession = func(context.Context, *supervisor.Supervisor, string) (sessionActions, error) {
+		return next, nil
+	}
+	a, mu := createApp(b, &dimui.State{
+		Sessions:            []dimui.Session{{ID: "s2", Title: "two"}},
+		Selected:            "s1",
+		SessionClosed:       true,
+		SessionClosedReason: closedReasonDeleted,
+		Messages:            []dimui.Message{{ID: "m1", Content: "one's row"}},
+	})
+
+	a.state.OnSelect("s2")
+	waitForState(t, a, mu, "the closed state cleared by the new selection", func(state *dimui.State) bool {
+		return state.Selected == "s2" && !state.SessionClosed && !state.ConversationLoading
+	})
+
+	mu.Lock()
+	defer mu.Unlock()
+	if a.state.SessionClosedReason != "" {
+		t.Fatalf("closed reason = %q after selecting another session", a.state.SessionClosedReason)
+	}
+	if a.state.ClosedSessionTitle != "" || a.state.ClosedSessionProject != "" {
+		t.Fatalf("closed labels = %q / %q after selecting another session",
+			a.state.ClosedSessionTitle, a.state.ClosedSessionProject)
+	}
+	if len(a.state.Messages) != 1 || a.state.Messages[0].ID != "m2" {
+		t.Fatalf("messages = %#v, want the chosen session's rows", a.state.Messages)
 	}
 }
 

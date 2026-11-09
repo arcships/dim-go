@@ -156,6 +156,56 @@ func TestClosedSessionGatesActions(t *testing.T) {
 	}
 }
 
+// TestClosedDeletedSessionKeepsTheTerminalView checks the state a confirmed
+// delete leaves: the catalog no longer holds the selected row, but the main area
+// keeps its terminal closed banner and rows, and Send, Stop and Reconnect stay
+// unavailable.
+func TestClosedDeletedSessionKeepsTheTerminalView(t *testing.T) {
+	s := fixture()
+	s.Sessions = []Session{{ID: "s2", Title: "Second session"}}
+	s.Selected = "s1"
+	s.SessionClosed = true
+	s.SessionClosedReason = "Deleted"
+	s.ClosedSessionTitle = "First session"
+	s.ClosedSessionProject = "workspace"
+	s.Draft = "hello"
+	s.Run = RunRunning
+	submits, stops, reconnects := 0, 0, 0
+	s.OnSubmit = func(string) { submits++ }
+	s.OnStop = func() { stops++ }
+	s.OnReconnect = func() { reconnects++ }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if !tt.HasText("Session closed: Deleted") {
+		t.Fatalf("closed banner is missing after the delete, texts %q", tt.Texts())
+	}
+	if !tt.HasText("First session") {
+		t.Errorf("the toolbar no longer names the closed session, texts %q", tt.Texts())
+	}
+	if !tt.HasText("hello from the fixture") {
+		t.Errorf("the closed session's rows left the frame, texts %q", tt.Texts())
+	}
+	info, ok := tt.AccessByRole(ui.RoleButton, "Send")
+	if !ok {
+		t.Fatalf("the composer offers no Send entry, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("Send is available after the session was deleted")
+	}
+	for _, label := range []string{"Stop", "Reconnect"} {
+		if _, ok := tt.AccessByRole(ui.RoleButton, label); ok {
+			t.Errorf("%q is available after the session was deleted", label)
+		}
+	}
+	if err := tt.Click("Composer"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Key(ComposerShortcutMods, ui.KeyEnter)
+	if submits != 0 || stops != 0 || reconnects != 0 {
+		t.Fatalf("the closed view ran actions: submit=%d stop=%d reconnect=%d", submits, stops, reconnects)
+	}
+}
+
 // TestLoadingConversation checks the loading state: its text and busy region
 // show, and the rows wait for history.
 func TestLoadingConversation(t *testing.T) {
