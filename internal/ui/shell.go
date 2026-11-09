@@ -645,11 +645,14 @@ func (s *State) composerView() ComposerView {
 		Draft:       &s.Draft,
 		CanSubmit:   s.canSubmit(),
 		Placeholder: tr(s.locale(), keyComposerPlaceholder),
-		Workspace:   s.Workspace,
-		Permission:  s.Permission,
-		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
-		Focus:       &s.composerFocus,
-		Locale:      s.locale(),
+		// The card widens once the conversation has rows: the reference's empty
+		// state is 461 DIPs and its conversation 520.
+		Wide:       len(s.Messages) > 0,
+		Workspace:  s.Workspace,
+		Permission: s.Permission,
+		Shortcut:   KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:      &s.composerFocus,
+		Locale:     s.locale(),
 	}
 }
 

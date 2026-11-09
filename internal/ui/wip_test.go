@@ -15,10 +15,11 @@ type wipCase struct {
 }
 
 // TestWIPEntriesAreVisibleDisabledAndExplainThemselves checks the shape of
-// every WIP entry: it is drawn, its name is the action, assistive technology
-// reads it as unavailable but still reaches it, and its description and tooltip
-// say what upstream work it waits on. The sidebar carries no persistent badge;
-// the composer and header entries keep the visible badge the tests below find.
+// every WIP entry the shell draws: it is drawn, its name is the action,
+// assistive technology reads it as unavailable but still reaches it, and its
+// description says what upstream work it waits on. The sidebar carries no
+// persistent badge; the composer's icon entries drop it too and are covered by
+// the composer tests.
 func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
@@ -26,7 +27,6 @@ func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 	cases := []wipCase{
 		{"New session", "session.create"},
 		{"Reconnect", "reconnect"},
-		{"Attach file", "attachment.put"},
 	}
 	for _, tc := range cases {
 		info, ok := tt.AccessByRole(ui.RoleButton, tc.label)

@@ -27,9 +27,24 @@ const (
 	// the spec's h-7 w-7 (28 DIPs at the 4 DIP unit), so a compact density
 	// shrinks the round button with the rest of the frame.
 	composerSendSpan = 7
+	// composerToolSpan is one toolbar glyph button's square in theme spacing
+	// units: h-7 w-7, the reference's icon-button size beside the send disc
+	// (ConversationComposer.vue:79-90).
+	composerToolSpan = 7
 	// composerContextSpan is the context row's minimum height in theme spacing
 	// units: the reference card's last band is ≈36 DIPs (h-9 at the 4 DIP unit).
 	composerContextSpan = 9
+	// composerEmptyWidth and composerWideWidth are the card's measures in
+	// DIPs, as the reference draws them: the workspace's empty state keeps the
+	// 461 DIP card of window-workspace.png, and a conversation follows the
+	// wider 520 DIP card of window-conversation.png. Both are caps, not
+	// filler: a narrower column draws the card across its own width, and the
+	// card is centred in the room it has rather than running edge to edge.
+	composerEmptyWidth = 461
+	composerWideWidth  = 520
+	// composerIconSize is the square every toolbar glyph is drawn at, the same
+	// 16 DIP artwork the sidebar and the toolbar use.
+	composerIconSize = 16
 )
 
 // composerSendGlyph is what the round Send button shows. It is a decoration:
@@ -37,11 +52,13 @@ const (
 // hidden from assistive technology and the entry is never read as "up arrow".
 const composerSendGlyph = "↑"
 
-// composerHint is the shortcut hint under the editor. The plain Enter and
+// composerHint is the shortcut help the editor carries. The plain Enter and
 // Shift+Enter pair is the region's own: Enter submits when the window's gate
 // and a non-empty draft allow it, and Shift+Enter always falls through to the
 // editor's newline. ComposerView.Shortcut (Cmd/Ctrl+Enter, from the shell) also
-// submits, so the shell's documented shortcut keeps working.
+// submits, so the shell's documented shortcut keeps working. The reference has
+// no hint line under the editor, so the pair is the editor's Description and
+// its KeyShortcuts rather than a visible row that takes room from the card.
 const composerHint = "Enter to send · Shift+Enter for a new line"
 
 // The reasons the composer's entries show while no data source is wired. The
@@ -54,39 +71,71 @@ const (
 	reasonMode  = "Unavailable: ComposerView carries no agent mode; the shell exposes no agent-mode fact to the composer yet."
 	// reasonWorkspace and reasonPermission explain the context row's WIP
 	// entries. The shell passes the facts it read, and has none today, so the
-	// region draws the badge and this reason instead of a path or a mode it
+	// region draws the WIP state and this reason instead of a path or a mode it
 	// invented.
 	reasonWorkspace  = "Unavailable: ComposerView carries no workspace; the shell has no App Server workspace fact for the composer yet."
 	reasonPermission = "Unavailable: ComposerView carries no default permission mode; the shell has no App Server permission fact for the composer yet."
 )
 
-// composer draws the draft editor, the action row under it and the context row
-// at the card's bottom: the attachment entry and the mode selector on the left,
-// the model selector and Send on the right, then the workspace and the default
-// permission mode, as dim-electron's composer does (ConversationComposer.vue,
-// InputArea.vue:2456-2488; the context row is the card's last band, ≈36 DIPs in
-// the reference). Send and the Enter key both submit the trimmed draft; the
-// caller clears it once the App Server accepted the submission, so a failed
-// send keeps the text.
+// composerShadow is the card's soft outer shadow, the reference's low-alpha
+// ring under the composer (ConversationComposer.vue:61-65). It is a black wash
+// at about 6%, so it stays a lift in both appearances instead of a second
+// border.
+var composerShadow = ui.Hex("#00000010")
+
+// composerGlyphs is the icon set the card's toolbar and context row draw, in
+// the same 16×16 outline frame as the sidebar's (icons.go). The cube is the
+// model entry's mark, the shield is the default permission mode's, and the down
+// chevron is the workspace picker's disclosure; they are drawn here because no
+// other region uses them yet.
+var composerGlyphs = struct {
+	cube        *ui.SVG
+	shield      *ui.SVG
+	chevronDown *ui.SVG
+}{
+	cube:   sidebarIcon(`<path d="M8 1.8 13.2 4.9v6.2L8 14.2 2.8 11.1V4.9Z"/><path d="M2.8 4.9 8 8l5.2-3.1M8 8v6.2"/>`),
+	shield: sidebarIcon(`<path d="M8 1.8 13 3.6v4.3c0 3.1-2 5.4-5 6.3-3-.9-5-3.2-5-6.3V3.6Z"/>`),
+	// chevronDown is the workspace picker's disclosure, the reference's ⌄
+	// beside the workspace name rather than the sidebar's forward chevron.
+	chevronDown: sidebarIcon(`<path d="M3.5 6 8 10.5 12.5 6"/>`),
+}
+
+// composer draws the card dim-electron's composer is: the editor on top, the
+// tool row under it, and the context row as the card's last band. The card is
+// one group centred at the reference's measure, and it keeps the toolbar, the
+// editor and the context row inside its own border and rounded corners. Send
+// and the Enter key both submit the trimmed draft; the caller clears it once
+// the App Server accepted the submission, so a failed send keeps the text.
 func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
-	ui.Column(c).Radius(k.cardRadius).BorderWidth(k.hairline).BorderColor(k.border).
-		Background(k.background).Children(func() {
-		// The editor, hint and tool row keep the card's inset; the divider and
-		// the context row below it run to the card's edges, as the reference's
-		// bottom band does.
-		ui.Column(c).Padding(k.edgePad).Gap(k.gap).Children(func() {
-			// The row is built first so the keyboard order stays the one the shell
-			// contract documents (Attach file, then the editor), while Reverse draws
-			// it at the card's bottom, the editor first, as the spec lays it out.
-			ui.Column(c).Gap(k.gap).Reverse().Children(func() {
-				composerActions(c, k, v, a)
-				composerHintRow(c, k, v.Locale)
-				composerEditor(c, k, v, a)
+	ui.Column(c).Role(ui.RoleGroup).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
+		Radius(k.cardRadius).BorderWidth(k.hairline).BorderColor(k.border).
+		Background(k.background).Shadow(0, 1, 4, 0, composerShadow).
+		Children(func() {
+			// The editor and the tool row keep the card's inset. The row is built
+			// first so the keyboard order stays the one the shell contract
+			// documents (Attach file, then the editor), while Reverse draws it at
+			// the card's bottom, the editor first, as the spec lays it out.
+			ui.Column(c).Padding(k.edgePad).Gap(k.gap).Children(func() {
+				ui.Column(c).Gap(k.gap).Reverse().Children(func() {
+					composerActions(c, k, v, a)
+					composerEditor(c, k, v, a)
+				})
 			})
+			// The divider and the context row are the card's last band, so they
+			// run to the card's edges rather than to the editor's inset.
+			composerDivider(c, k)
+			composerContextRow(c, k, v)
 		})
-		composerDivider(c, k)
-		composerContextRow(c, k, v)
-	})
+}
+
+// composerWidth is the card's cap: the conversation's wider measure when the
+// shell says a conversation is showing, and the workspace's narrower one in the
+// empty state. Both stay under the column's width until it is narrower still.
+func composerWidth(wide bool) float32 {
+	if wide {
+		return composerWideWidth
+	}
+	return composerEmptyWidth
 }
 
 // composerDivider is the hairline between the tool row and the context row. It
@@ -99,7 +148,7 @@ func composerDivider(c *ui.Context, k tokens) {
 // would run in on the left, the session's default permission mode on the right,
 // as dim-electron's composer does. Neither is a control here: there is no
 // workspace or permission fact and no action to change one, so an empty field
-// draws the WIP badge and the reason it waits on rather than a made-up value.
+// draws the WIP state and the reason it waits on rather than a made-up value.
 // The band keeps the reference's ≈36 DIP height, so the card does not collapse
 // to the text when both values are short.
 func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
@@ -107,40 +156,81 @@ func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
 	ui.Row(c).FillWidth().MinHeight(k.space(composerContextSpan)).
 		PaddingX(k.edgePad).PaddingY(k.gap).Gap(k.gapWide).
 		AlignItems(ui.Center).Children(func() {
-		composerContextEntry(c, k, tr(locale, keyComposerWorkspace), v.Workspace, reasonWorkspace)
+		composerWorkspaceEntry(c, k, locale, v.Workspace)
 		ui.Box(c).Grow(1)
-		composerContextEntry(c, k, tr(locale, keyComposerPermission), v.Permission, reasonPermission)
+		composerPermissionEntry(c, k, locale, v.Permission)
 	})
 }
 
-// composerContextEntry draws one label and the value the window supplied, or
-// the WIP badge and the reason it waits on when it supplied none. It is a
-// group, not a button: there is no action to take, and it adds no Tab stop to
-// the composer's documented order.
-func composerContextEntry(c *ui.Context, k tokens, label, value, reason string) {
+// composerWorkspaceEntry draws the workspace's display: its icon, its label,
+// the value the window supplied or the WIP badge when it supplied none, and the
+// disclosure chevron the reference's picker shows. It is a group, not a button:
+// there is no action to open a picker yet, and it adds no Tab stop to the
+// composer's documented order.
+func composerWorkspaceEntry(c *ui.Context, k tokens, locale Locale, value string) {
 	entry := ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
-		Role(ui.RoleGroup).Label(label).Children(func() {
-		ui.Text(c, label).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
-		if value != "" {
-			ui.Text(c, value).FontSize(k.smallSize).TextColor(k.foreground).Unselectable()
-			return
-		}
-		ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-			Unselectable().AccessHidden(true)
+		Role(ui.RoleGroup).Label(tr(locale, keyComposerWorkspace)).Children(func() {
+		composerGlyph(c, k, sidebarIcons.folder)
+		ui.Text(c, tr(locale, keyComposerWorkspace)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).Unselectable()
+		composerContextValue(c, k, value)
+		composerGlyph(c, k, composerGlyphs.chevronDown)
 	})
 	if value == "" {
-		entry.Description(reason)
+		entry.Description(reasonWorkspace)
 	}
+}
+
+// composerPermissionEntry draws the session's default permission mode beside
+// its shield, as the reference's status band does. Like the workspace it is a
+// display group: the composer offers no control that would change the mode.
+func composerPermissionEntry(c *ui.Context, k tokens, locale Locale, value string) {
+	entry := ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
+		Role(ui.RoleGroup).Label(tr(locale, keyComposerPermission)).Children(func() {
+		composerGlyph(c, k, composerGlyphs.shield)
+		ui.Text(c, tr(locale, keyComposerPermission)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).Unselectable()
+		composerContextValue(c, k, value)
+	})
+	if value == "" {
+		entry.Description(reasonPermission)
+	}
+}
+
+// composerContextValue draws a context entry's value, or the muted WIP badge
+// when the window supplied none. The badge is decoration: the group's label and
+// description already say what the entry is and why it is empty, so assistive
+// technology does not read a second "WIP" beside it.
+func composerContextValue(c *ui.Context, k tokens, value string) {
+	if value != "" {
+		ui.Text(c, value).FontSize(k.smallSize).TextColor(k.foreground).Unselectable()
+		return
+	}
+	ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
+		Unselectable().AccessHidden(true)
+}
+
+// composerGlyph draws one 16 DIP decoration of the card, in the muted ink the
+// reference uses for its toolbar and status glyphs. The row's label already
+// names the entry beside it, so assistive technology skips the glyph.
+func composerGlyph(c *ui.Context, k tokens, icon *ui.SVG) {
+	ui.Icon(c, icon).Size(composerIconSize, composerIconSize).
+		TextColor(k.mutedForeground).AccessHidden(true)
 }
 
 // composerEditor draws the draft field, as high as its wrapped text between
 // the spec's 60 and 300 DIPs, scrolling inside past the cap. Enter submits, and
 // Shift+Enter inserts a newline; a modified Enter stays for ComposerView's own
-// shortcut, which the shell wires to Cmd/Ctrl+Enter.
+// shortcut, which the shell wires to Cmd/Ctrl+Enter. The shortcut pair is the
+// field's description and key shortcut rather than a visible hint row, which
+// the reference does not draw.
 func composerEditor(c *ui.Context, k tokens, v ComposerView, a Actions) {
-	ui.TextArea(c.Key("composer"), v.Draft).Bind(v.Focus).
+	ui.TextAreaBase(c.Key("composer"), v.Draft).Bind(v.Focus).
 		Lines(1, composerMaxLines).MinHeight(composerMinH).MaxHeight(composerMaxH).
 		Placeholder(v.Placeholder).Label(tr(v.Locale, keyComposerLabel)).
+		Description(tr(v.Locale, keyComposerHint)).
+		KeyShortcuts(0, composerSubmitKey).
+		KeyShortcuts(v.Shortcut.Mods, v.Shortcut.Key).
 		OnShortcut(v.Shortcut.Mods, v.Shortcut.Key, func() {
 			submitDraft(v, a)
 		}).
@@ -162,23 +252,52 @@ func composerEditor(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		})
 }
 
-// composerActions draws the bottom row: the attachment entry and the mode
-// selector on the left, the model selector and the round Send entry on the
-// right.
+// composerActions draws the tool row: the attachment, mode and model entries as
+// icon buttons on the left and the round Send entry on the right, as the
+// reference's composer toolbar does. No entry shows a visible WIP badge or a
+// text label: the glyph names it, and its Label, Description and Tooltip carry
+// the accessible name and the reason it cannot run yet.
 func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	locale := v.Locale
 	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-		// The attachment entry keeps wipAction's place in the Tab order, as the
-		// shell's keyboard contract documents it. The model and mode selectors
-		// below use Disabled instead: they are new entries, and a tab stop would
-		// insert itself between "Attach file" and the editor, changing that
-		// documented order. They are still visible, read as disabled with their
-		// reason, and take no focus.
-		wipAction(c, k, tr(locale, keyComposerAttach), tr(locale, keyReasonAttachment))
-		composerWIP(c, k, tr(locale, keyComposerMode), tr(locale, keyReasonMode))
+		// The attachment entry keeps the first place in the Tab order, as the
+		// shell's keyboard contract documents it: it stays focusable and reads
+		// as unavailable, while a click reports nothing the App Server did not
+		// do. The mode and model entries use Disabled instead: they are new
+		// entries, and a tab stop would insert itself between "Attach file" and
+		// the editor, changing that documented order.
+		composerTool(c, k, sidebarIcons.plus, tr(locale, keyComposerAttach),
+			tr(locale, keyReasonAttachment), true)
+		composerTool(c, k, sidebarIcons.chevron, tr(locale, keyComposerMode),
+			tr(locale, keyReasonMode), false)
+		composerTool(c, k, composerGlyphs.cube, tr(locale, keyComposerModel),
+			tr(locale, keyReasonModel), false)
 		ui.Box(c).Grow(1)
-		composerWIP(c, k, tr(locale, keyComposerModel), tr(locale, keyReasonModel))
 		composerSend(c, k, v, a)
+	})
+}
+
+// composerTool draws one toolbar glyph button: a square, borderless button that
+// carries no action, because the shell has no attachment picker, agent mode or
+// model list to open yet. Its accessible name is the localized label, and its
+// Description and Tooltip say what it waits on. It keeps the reference's glyph
+// weight rather than dimming to the old WIP opacity, so the toolbar still looks
+// like the one it copies; the unavailable state is what assistive technology
+// reads and every click is ignored. tabStop decides whether it keeps a place in
+// the Tab order: only the attachment entry does, so the documented order does
+// not change.
+func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, tabStop bool) {
+	size := k.space(composerToolSpan)
+	button := ui.ButtonBase(c).Size(size, size).Radius(radiusSM).
+		AlignItems(ui.Center).Justify(ui.Center).
+		Label(label).Description(reason).Tooltip(reason)
+	if tabStop {
+		button.AccessDisabled(true)
+	} else {
+		button.Disabled(true).AccessDisabled(true)
+	}
+	button.Children(func() {
+		composerGlyph(c, k, icon)
 	})
 }
 
@@ -199,24 +318,6 @@ func composerSend(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	if !submitReady(v, a) {
 		send.Disabled(true).Opacity(wipOpacity)
 	}
-}
-
-// composerWIP draws one composer entry the region cannot offer yet: visible,
-// disabled, with the reason it waits on, and a badge that says so without being
-// read as a control of its own. Disabled keeps it out of the Tab order, unlike
-// wipAction's sidebar entries, because the composer's order is pinned by the
-// shell contract; a click cannot report anything the App Server did not do.
-func composerWIP(c *ui.Context, k tokens, label, reason string) {
-	button := ui.Button(c, label).Disabled(true).AccessDisabled(true).Description(reason)
-	badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-		Unselectable().AccessHidden(true)
-	button.DescribedBy(badge)
-}
-
-// composerHintRow draws the shortcut hint under the editor. It is text, not a
-// control, so it adds no Tab stop.
-func composerHintRow(c *ui.Context, k tokens, locale Locale) {
-	ui.Text(c, tr(locale, keyComposerHint)).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 }
 
 // canSubmit reports whether the window would take a submission now: a wired

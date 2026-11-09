@@ -404,6 +404,12 @@ type ComposerView struct {
 	Sending bool
 	// Placeholder is the composer's empty-state text.
 	Placeholder string
+	// Wide is the card's width state, as the shell knows it: true while a
+	// conversation is showing, false in the workspace's empty state. It is
+	// layout only, read by the region to pick the reference's wider 520 DIP
+	// card or the narrower 461 DIP one; the composer reads no message or
+	// timeline fact itself.
+	Wide bool
 	// Workspace is the workspace the next turn would run in, as the shell read
 	// it from an App Server fact. Empty means the shell has no such fact yet;
 	// the context row then draws the WIP badge and its reason rather than a
@@ -419,9 +425,10 @@ type ComposerView struct {
 	Shortcut KeyBinding
 	// Focus is the composer's identity, for the shell's focus shortcut.
 	Focus *ui.Handle
-	// Locale is the language of the composer's own text: the editor's label, the
-	// shortcut hint and the action row. Placeholder is already resolved by the
-	// shell. An empty or unknown value draws English.
+	// Locale is the language of the composer's own text: the editor's label and
+	// description, its entries' labels and reasons, and the context row.
+	// Placeholder is already resolved by the shell. An empty or unknown value
+	// draws English.
 	Locale Locale
 }
 
