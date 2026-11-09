@@ -1,3 +1,3 @@
 capture	docs/evidence/window-conversation.png
-note	real MyGo window at 800x720 light zh-CN, after motion merge
+note	real MyGo window 800x720 light zh-CN, after row inset and icon outlines
 driver	scripts/capture-window.sh + scripts/seed-session
