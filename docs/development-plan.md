@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划与 Subagent 编排
 
-Status: active（Wave 1 已实现；Wave 2 底层组件已实现，real-daemon 控制面已验收，真实 session/GUI 运行验收仍未开始）
+Status: active（Wave 1 已实现；Wave 2 底层组件已实现，real-daemon 控制面与 session create/attach/history/submit 已验收，GUI 运行验收仍未开始）
 Last updated: 2026-11-09
 
 ## 目标与边界
@@ -161,12 +161,37 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
 - `internal/session` 的 branch 支持是“每个 branch 独立 reducer/transient/state”，没有 branch directory、cut point 或 side-chat 创建流程。
 - real-daemon 控制面 smoke 已有 opt-in 测试并已通过：使用 `../dim-2` 构建的 binary 验证 spawn/hello/catalog/close；不覆盖真实 session 流、GUI 或 IME。
-- real-daemon session 流尚未验收：空 session 的 `session.history.latestTurn` 可能没有 `turnStart`，当前 `OpenSession` 会按协议错误失败；需要先定义空窗口语义再扩展 attach/history/submit smoke。
+- real-daemon session 流已验收（2026-11-09，`TestRealDaemonSessionFlow`）：空 session 的 `branch/start` 占 sequence 1，attach head 为 1，latestTurn 返回该单事件且无 `turnStart`；`internal/session` 已按“done + 覆盖到 head + 无 turn/input/step/tool 事件”接受为空窗口，real-daemon 的 create → attach → history → submit 全流程通过。审批 replay、断线重连和 GUI 仍未在该证据内。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 证据仍是 `headless`。
 - `subscription_changed` 恢复和 Windows/Linux GUI 运行时仍未验证。
 - `internal/supervisor` 的 `TestDefaultSpawnRunsDetachedAndLogs` 在并行全量 race 下出现过一次 spawn child 未退出的时序 flake；单包和复跑通过，仍应加宽等待或隔离。
 
-**Next action**：继续运行 real-daemon session attach/history/submit 流程验收；补 session re-attach/domain resync 与 branch switching/cut point 设计，真实窗口手测仍单独记录，不因控制面 smoke 通过而提前标记 preview 可用。
+**Next action**：补 session re-attach/domain resync 编排与审批决策 UI 接线，再做 branch switching/cut point 设计；真实窗口手测仍单独记录，不因 real-daemon session 流程通过而提前标记 preview 可用。
+
+### Wave 2 修复：real-daemon 空 session latest-turn（2026-11-09）
+
+Task / owner：主 agent（session vertical slice repair）。提交：`fix: accept empty latest-turn window`。
+
+Changed files：`internal/session/history.go`、`internal/session/session_test.go`、`internal/integration/real_daemon_unix_test.go`、`docs/protocol-contract.md`、`docs/development-plan.md`。
+
+**问题**：`TestRealDaemonSessionFlow` 在真实 daemon 上失败为 `protocol error: turnStart: missing in latest-turn page`。新 session 的 `branch/start` 占 sequence 1，attach head 为 1；`session.history {latestTurn:true, through:1}` 返回 `{events:[branch/start], through:1, done:true, nextBefore:1}`，没有 `turnStart`。旧实现只允许 `head==0` 的缺少 `turnStart`，把真实空窗口当成协议错误。
+
+**修复**：缺 `turnStart` 只在“本页 `done=true`、窗口事件覆盖到 head、窗口内没有任何 `turn`/`input`/`step`/`tool` 事件”时接受为空窗口；`!done` 缺 `turnStart`、窗口含 turn 内容或窗口未到 head 仍是 protocol error。新增 `TestLatestTurnEmptySessionWithBranchStartHead`，既有 `TestLatestTurnMissingTurnStartNonEmptyFails` / `missing turnStart fails fast` 保持失败语义。
+
+**Verification（实际命令和结果）**
+
+| 命令 | 结果 |
+|---|---|
+| `go build ./...`、`go vet ./...` | 通过 |
+| `go test -count=1 ./...` | 8 个包全部 `ok` |
+| `go test -race -count=1 ./...` | 8 个包全部 `ok` |
+| `go test -count=1 ./internal/session` | `ok`（含新增空窗口用例） |
+| `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server DIMAGENT_REAL_SESSION_FLOW=1 go test -run TestRealDaemon -v ./internal/integration` | `TestRealDaemonSmoke`、`TestRealDaemonSessionFlow` 均 PASS（real-daemon，mock model） |
+| `gofmt -l .`、`git diff --check` | 无输出、通过 |
+
+**Contract impact**：`protocol-contract.md` §9 增加空 session 的 `turnStart` 省略规则（实测 wire 形状）；没有新增本地事实，没有读取 App Server 私有文件。
+
+**Known gaps/blockers**：real-daemon 证据只覆盖 create/attach/history/submit 的一次成功路径；live 流、审批 replay、断线重连、GUI、IME 与 VoiceOver 仍未验证。
 
 ## Milestone 1：Native UI 静态壳
 
@@ -291,7 +316,7 @@ Electron 继续作为行为基线，MyGo 作为 preview；双方使用同一 App
 - Native UX：已实现静态 AppFrame、Sidebar、Conversation fixture、Composer；
 - Protocol：已实现 framing/client/read helpers、Supervisor 和受限 fake server；
 - Projection：已实现纯 Go TimelineFold/transient projection 和 12 个 golden fixtures（Wave 2 增至 14）；
-- QA：已补 headless/fake tests；real-daemon 控制面 smoke 已通过，真实 session 流和窗口验收仍未做。
+- QA：已补 headless/fake tests；real-daemon 控制面 smoke 和空 session 的 create/attach/history/submit 流程已通过，窗口验收仍未做。
 
 ### Wave 2：纵向闭环组件（底层已实现，接线未开始）
 
@@ -359,9 +384,9 @@ Next action
 
 - 已通过（`headless`）：MyGo v0.8.3 List/FollowEnd、Markdown、accessibility、IME 基础测试；项目 `go build ./...`、`go test -count=1 ./...`、`go test -race -count=1 ./...`、六目标 `go vet ./...`、Windows/Linux 交叉编译、`gofmt -l .` 和 `git diff --check`。
 - 已通过（`headless` + `fake-server`）：项目内 FollowEnd/Markdown/键盘/状态/AX fixtures、WIP visible-disabled fixtures、Go fake server/fake daemon、session stream/attach、四个 mutation 的成功/拒绝/unknown-result 场景、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close 测试、viewmodel 行映射、supervisor dial/spawn/close/endpoint/reconnect QA、14 个 projection golden fixtures。
-- 仍是分层证据：real-daemon 控制面 smoke 已通过 spawn/hello/catalog/close，但 session stream 仍只到 fake peer；不能替代真实 session 流、窗口、IME 或 VoiceOver 手测。
+- 仍是分层证据：real-daemon 已通过 spawn/hello/catalog/close 和新 session 的 create/attach/history/submit；但 live 流、审批、重连和窗口仍只到 fake/headless 或未运行，不能替代真实窗口、IME 或 VoiceOver 手测。
 - 已通过 Electron 行为基线：protocol 16、shared 4、renderer IME 7、FollowEnd 64、Markdown 53，以及 typecheck/lint/boundary/docs。
-- 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon session 流和窗口验收仍未运行（控制面 smoke 已通过）；两个浏览器 E2E 存在 bridge harness 漂移。
+- 阻断而非产品失败：electron-main 测试缺 Electron binary；real-daemon live session 流、重连和窗口验收仍未运行（控制面与空 session 流程已通过）；两个浏览器 E2E 存在 bridge harness 漂移。
 - 尚未满足 Wave 0 退出：真实窗口手测、真实 IME/VoiceOver、字体 fallback 和跨平台 GUI 运行时验证。
 - 证据等级固定为 `headless`、`fake-server`、`real-daemon`、`manual`、`packaged`；低等级证据不得宣称高等级能力通过。
 
