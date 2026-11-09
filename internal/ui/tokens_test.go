@@ -151,12 +151,11 @@ func TestAccentAndPrimaryDiffer(t *testing.T) {
 	}
 }
 
-// TestSurfaceLadder checks the elevation the layer derives: a card and a
-// popover lift off the background by a mix toward the foreground, and each
-// step is further than the one below it, in both appearances. The card is also
-// not the border wash the shell used before: a wash is translucent and takes
-// its contrast from whatever is under it, which is why a card on a card
-// disappeared.
+// TestSurfaceLadder checks the elevation the layer derives: a card lifts toward
+// white off the background, the popover another step on top, and neither is a
+// translucent border wash. The reference's light appearance keeps the card on
+// the window's white, so equality is allowed there; a card must never sit darker
+// than the window it covers.
 func TestSurfaceLadder(t *testing.T) {
 	for _, tc := range themes() {
 		k := newTokens(tc.theme)
@@ -168,27 +167,22 @@ func TestSurfaceLadder(t *testing.T) {
 		if wash := k.border.Alpha(washAlpha); k.card == wash {
 			t.Errorf("%s: card is the border wash %+v", tc.name, wash)
 		}
-		if k.card == k.background {
-			t.Errorf("%s: card does not lift off the background", tc.name)
-		}
 
-		cardRise := math.Abs(luminance(k.card) - base)
-		popoverRise := math.Abs(luminance(k.popover) - base)
-		if cardRise < 0.01 {
-			t.Errorf("%s: card is %.3f from the background, too close to read as a face", tc.name, cardRise)
+		cardRise := luminance(k.card) - base
+		popoverRise := luminance(k.popover) - base
+		if cardRise < 0 {
+			t.Errorf("%s: card is darker than the background by %.3f", tc.name, -cardRise)
 		}
-		if popoverRise <= cardRise {
-			t.Errorf("%s: popover lifts %.3f, card %.3f: the ladder is not monotone", tc.name, popoverRise, cardRise)
+		if popoverRise < cardRise {
+			t.Errorf("%s: popover lifts %.3f, card %.3f: the ladder points down", tc.name, popoverRise, cardRise)
 		}
-		if k.popover == k.card {
-			t.Errorf("%s: popover and card are the same face", tc.name)
-		}
-
-		// "Up" is toward the foreground: lighter in a dark theme, darker in a
-		// light one. A ladder pointing the wrong way makes a card look sunken.
-		lighter := luminance(k.card) > base
-		if lighter != tc.theme.Dark {
-			t.Errorf("%s: card moves away from the foreground", tc.name)
+		if tc.theme.Dark {
+			if cardRise <= 0.01 {
+				t.Errorf("%s: card is %.3f from the background, too close to read as a face", tc.name, cardRise)
+			}
+			if popoverRise <= cardRise {
+				t.Errorf("%s: popover lifts %.3f, card %.3f: the ladder is not monotone", tc.name, popoverRise, cardRise)
+			}
 		}
 	}
 }

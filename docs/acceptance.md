@@ -59,7 +59,7 @@ Last updated: 2026-11-09
 | A1 | 键盘可达性 / Tab 顺序 | 真实窗口 Tab 依次到达侧栏入口与会话行（AX 焦点序列） | **已通过（L4）** |
 | A2 | VoiceOver | 无 | 未通过 |
 | A3 | 中文/emoji IME | 无 | 未通过 |
-| A4 | 复制/粘贴/撤销 | 无 | 未通过 |
+| A4 | 复制/粘贴/撤销 | 真实窗口 Cmd+V 粘贴、Cmd+Z 撤销（`window-clipboard-undo.txt`） | **已通过（L4）** |
 | A5 | Windows / Linux 运行时 | 只交叉编译 | 未通过 |
 
 ## 通过规则

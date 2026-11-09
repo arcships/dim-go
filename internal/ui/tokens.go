@@ -138,8 +138,8 @@ const (
 // popover sits on top of them.
 const (
 	sidebarRise = 0.03
-	cardRise    = 0.06
-	popoverRise = 0.10
+	cardRise    = 0.12
+	popoverRise = 0.18
 )
 
 // The tooltip's own steps: its edge and its chips lift off its face, and its
@@ -400,13 +400,24 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 	}
 	fontSize := snapFontSize(t.FontSize)
 
-	// The elevation steps mix the background toward the foreground, so the
-	// ladder points the same way in both themes: a card is a step away from
-	// the window, a popover another one on top of it.
+	// Elevation lifts a surface toward white, the way the reference does in both
+	// appearances: a card is a step off the window and a popover another step on
+	// top. Mixing toward the foreground was the opposite direction in the light
+	// theme (it darkened the card below the window), so the ladder now points to
+	// white and the light theme keeps its cards on the window's white while the
+	// dark theme lightens them.
 	background, foreground := t.Background, t.Text
-	sidebar := background.Mix(foreground, sidebarRise)
-	card := background.Mix(foreground, cardRise)
-	popover := background.Mix(foreground, popoverRise)
+	// The sidebar is the reference's tinted chrome column, not an elevated face:
+	// a gray step under the window in the light theme and the theme's own surface
+	// step in the dark one.
+	sidebarFace := t.Surface
+	if sidebarFace == ui.Transparent {
+		sidebarFace = background
+	}
+	white := ui.Hex("#ffffff")
+	sidebar := sidebarFace
+	card := background.Mix(white, cardRise)
+	popover := background.Mix(white, popoverRise)
 
 	primary := t.Accent
 	onPrimary := t.AccentText

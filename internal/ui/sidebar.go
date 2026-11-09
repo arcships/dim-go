@@ -431,6 +431,9 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		}
 		threadRow(c, k, v, rows[row], on)
 	}).Grow(1).MinHeight(k.sidebarRowH*2).
+		// The list paints its own face over the column, so it takes the sidebar's
+		// tint instead of the window background.
+		Background(k.sidebar).
 		Padding(k.sidebarGap, k.sidebarPadX).
 		Label(tr(locale, keySidebarSessions)).OnChange(func() {
 		chooseSession(v, a)

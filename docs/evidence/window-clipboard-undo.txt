@@ -1,0 +1,4 @@
+command	focus composer -> Cmd+V -> Cmd+Z
+observed	clipboard text pasted into composer, Cmd+Z undid it back to empty
+source	/tmp/axdo keymod <pid> 9 cmd; /tmp/axdo read <pid> Composer
+git_head	fad01ce
