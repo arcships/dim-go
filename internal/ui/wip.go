@@ -15,6 +15,10 @@ const wipOpacity = 0.5
 // instead of pretending the action worked. Keep them in step with
 // docs/protocol-contract.md and docs/development-plan.md; the App Server
 // remains the only source of the facts those actions would change.
+// reasonDelete is what the delete entry says while the window has no delete
+// callback: the client helper exists, but no window action is wired.
+const reasonDelete = "Unavailable: the window has no session delete callback."
+
 const (
 	reasonCreateSession = "Unavailable: the window has no session.create callback yet."
 	reasonApproval      = "Unavailable: the shell has no approval callback wired to approval.respond."

@@ -95,6 +95,7 @@ macOS 的 Accessibility 已授权（`AXIsProcessTrusted() == true`），因此�
 | F10 重连恢复 | 点击 `Reconnect` | supervisor 重新 spawn `--mock-model` daemon，`App Server: Connected`，latest-turn history 重建 | [`evidence/window-reattach.png`](evidence/window-reattach.png) |
 | F12a branch 切换 | 点击 side branch 行 | 状态栏 `Branch: 8bd478fc…`，时间线切到该 branch 的 seed 回合，`End branch` 可用 | [`evidence/window-branch-switch.png`](evidence/window-branch-switch.png) |
 | branch 结束 | 点击 `End branch` | App Server 确认后目录刷新，显示切回 `main` | [`evidence/window-branch-end.png`](evidence/window-branch-end.png) |
+| F14a 删除会话 | 点击 `Delete session` | `session.delete` 的结果因流关闭被判 unknown，读回 `session.catalog` 确认后移除；最后一个删除后 `Sessions 0`、composer 不可提交 | [`evidence/window-delete-session.png`](evidence/window-delete-session.png) |
 
 这一组同时暴露并修复了两个真实缺陷：
 

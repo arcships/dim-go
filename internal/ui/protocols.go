@@ -98,6 +98,11 @@ type Actions struct {
 	// row; the region never removes the row or claims an outcome on its own,
 	// and a row without a request identity never reaches this field.
 	OnApproval func(branchID, requestID string, decision ApprovalDecision)
+	// OnDeleteSession is called by the sidebar's thread actions with the selected
+	// session id. The caller sends session.delete and removes the row only after
+	// the App Server confirmed; a rejected delete leaves the row and reports
+	// through HeaderView.ActionError.
+	OnDeleteSession func(sessionID string)
 	// OnOpenSettings is called by the toolbar's Settings entry and toggles the
 	// appearance surface. The preferences it edits are desktop-local: the caller
 	// applies the theme and the sidebar width and persists what it can; nothing

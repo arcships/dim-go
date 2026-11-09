@@ -260,6 +260,9 @@ type State struct {
 	OnStop            func()
 	OnReconnect       func()
 	OnApproval        func(branchID, requestID string, decision ApprovalDecision)
+	// OnDeleteSession asks the caller to delete one session. The row leaves the
+	// catalog only after the App Server confirmed the delete.
+	OnDeleteSession func(sessionID string)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -517,6 +520,7 @@ func (s *State) actions() Actions {
 		OnStop:            s.OnStop,
 		OnReconnect:       s.OnReconnect,
 		OnApproval:        s.OnApproval,
+		OnDeleteSession:   s.OnDeleteSession,
 		// The settings toggle is the shell's own state, not a caller callback, so
 		// it is always wired. Opening it takes the main column from the keys
 		// browser, so the two never compete for it.

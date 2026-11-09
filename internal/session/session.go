@@ -1132,6 +1132,14 @@ func (s *Session) StopBranch(ctx context.Context, branchID string) error {
 	return appserver.Stop(ctx, s.client, appserver.StopParams{SessionID: s.sessionID, BranchID: branchID})
 }
 
+// Delete asks the App Server to delete this session. The row disappears only
+// after the daemon confirms: a rejected delete (session_active) leaves the
+// session and its view untouched, and the caller reports the error. The stream's
+// own session.closed notification remains the terminal fact.
+func (s *Session) Delete(ctx context.Context) error {
+	return appserver.Delete(ctx, s.client, appserver.DeleteParams{SessionID: s.sessionID})
+}
+
 // RespondApproval sends an approval decision. An empty BranchID defaults to the
 // session's branch. A -32602 reply is reported as cancelled by the appserver
 // helper, not as a local success.

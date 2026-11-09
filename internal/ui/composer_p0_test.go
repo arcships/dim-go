@@ -216,7 +216,7 @@ func TestComposerTabOrder(t *testing.T) {
 
 	for _, want := range []string{
 		"Update", "New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
-		"Session keys", "Group", "Sessions", "Pin", "Rename", "Archive",
+		"Session keys", "Group", "Sessions", "Pin", "Rename", "Archive", "Delete session",
 		"Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings", "Context panel",
 	} {
 		tt.Key(0, ui.KeyTab)

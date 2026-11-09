@@ -141,6 +141,8 @@ type fakeSession struct {
 	endBranchErr      error
 	endBranchOutcome  appserver.BranchEndOutcome
 	refreshBranchErr  error
+	deleteErr         error
+	deleted           []string
 	approvalErr       error
 	approvalResult    appserver.ApprovalRespondOutcome
 	lookupResult      appserver.InputLookupResult
@@ -331,6 +333,14 @@ func (f *fakeSession) RespondApproval(_ context.Context, branchID, requestID, de
 		return appserver.ApprovalOutcomeResponded, nil
 	}
 	return f.approvalResult, nil
+}
+
+func (f *fakeSession) Delete(context.Context) error {
+	if f.deleteErr != nil {
+		return f.deleteErr
+	}
+	f.deleted = append(f.deleted, f.summary.SessionID)
+	return nil
 }
 
 func (f *fakeSession) Close(context.Context) error {
@@ -600,6 +610,89 @@ func TestAppReconnectReattachesAndRefreshes(t *testing.T) {
 	}
 	if a.state.Connection != dimui.ConnReady {
 		t.Fatalf("connection = %v, want ready", a.state.Connection)
+	}
+}
+
+// TestAppDeleteRemovesTheConfirmedRow checks that a delete removes the catalog
+// row only after the controller reports success, and leaves the selection alone
+// when another session is displayed.
+func TestAppDeleteRemovesTheConfirmedRow(t *testing.T) {
+	f := &fakeSession{summary: appserver.SessionSummary{SessionID: "s1"}}
+	bridge := &sessionBridge{controller: f, summary: f.summary}
+	a := &app{
+		state: &dimui.State{
+			Sessions: []dimui.Session{{ID: "s1", Title: "one"}, {ID: "s2", Title: "two"}},
+			Selected: "s1",
+		},
+		bridge: bridge,
+	}
+	updated := make(chan struct{}, 8)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		select {
+		case updated <- struct{}{}:
+		default:
+		}
+	}
+	a.bind()
+	// The thread action always names the displayed session; deleting another
+	// row would target a controller the window does not hold.
+	a.state.OnDeleteSession("s1")
+
+	deadline := time.After(2 * time.Second)
+	for {
+		select {
+		case <-updated:
+			if len(a.state.Sessions) == 1 {
+				if a.state.Sessions[0].ID != "s2" {
+					t.Fatalf("remaining row = %q, want s2", a.state.Sessions[0].ID)
+				}
+				if a.state.Selected == "s1" {
+					t.Fatalf("selection = %q after deleting s1", a.state.Selected)
+				}
+				if !f.closed {
+					t.Fatal("the deleted session's controller was not closed")
+				}
+				return
+			}
+		case <-deadline:
+			t.Fatalf("delete did not remove the row; sessions=%d error=%q", len(a.state.Sessions), a.state.ActionError)
+		}
+	}
+}
+
+// TestAppDeleteFailureKeepsTheRow checks that a rejected delete keeps the row
+// and reports the failure through the banner.
+func TestAppDeleteFailureKeepsTheRow(t *testing.T) {
+	f := &fakeSession{summary: appserver.SessionSummary{SessionID: "s1"}, deleteErr: errors.New("session active")}
+	a := &app{
+		state:  &dimui.State{Sessions: []dimui.Session{{ID: "s1", Title: "one"}}, Selected: "s1"},
+		bridge: &sessionBridge{controller: f, summary: f.summary},
+	}
+	updated := make(chan struct{}, 8)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		select {
+		case updated <- struct{}{}:
+		default:
+		}
+	}
+	a.bind()
+	a.state.OnDeleteSession("s1")
+
+	deadline := time.After(2 * time.Second)
+	for {
+		select {
+		case <-updated:
+			if a.state.ActionError != "" {
+				if len(a.state.Sessions) != 1 || a.state.Selected != "s1" {
+					t.Fatalf("failed delete changed the window: sessions=%d selected=%q", len(a.state.Sessions), a.state.Selected)
+				}
+				return
+			}
+		case <-deadline:
+			t.Fatal("failed delete reported nothing")
+		}
 	}
 }
 

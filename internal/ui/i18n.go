@@ -112,6 +112,8 @@ const (
 	keySidebarPin           = "sidebar.pin"
 	keySidebarRename        = "sidebar.rename"
 	keySidebarArchive       = "sidebar.archive"
+	keySidebarDelete        = "sidebar.delete"
+	keyReasonDelete         = "reason.delete"
 
 	keyReasonCreateSession   = "reason.createSession"
 	keyReasonApproval        = "reason.approval"
@@ -247,6 +249,8 @@ var stringsEN = Strings{
 	keySidebarPin:              "Pin",
 	keySidebarRename:           "Rename",
 	keySidebarArchive:          "Archive",
+	keySidebarDelete:           "Delete session",
+	keyReasonDelete:            reasonDelete,
 	keySidebarScheduled:        "Scheduled tasks",
 	keySidebarSkills:           "Skills and plugins",
 	keySidebarAccount:          "Sign in to Dim",
@@ -434,6 +438,8 @@ var stringsZHCN = Strings{
 	"settings.gap.externalAgent":   "不可用：外部 Agent 页面尚未实现；本 shell 没有外部 Agent 客户端或页面。",
 	keySidebarRename:               "重命名",
 	keySidebarArchive:              "归档",
+	keySidebarDelete:               "删除会话",
+	keyReasonDelete:                reasonDelete,
 
 	keyReasonCreateSession:   "不可用：窗口还没有 session.create 回调。",
 	keyReasonApproval:        "不可用：shell 还没有接到 approval.respond 的审批回调。",

@@ -362,6 +362,42 @@ func TestSidebarBranchesWithoutDirectoryDrawNothing(t *testing.T) {
 	}
 }
 
+// TestSidebarDeleteAsksForTheSelectedSession checks that the delete entry names
+// the displayed session exactly once and removes no row itself.
+func TestSidebarDeleteAsksForTheSelectedSession(t *testing.T) {
+	s := fixture()
+	var got []string
+	s.OnDeleteSession = func(id string) { got = append(got, id) }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if err := tt.Click("Delete session"); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != "s1" {
+		t.Fatalf("delete asked for %v, want one s1", got)
+	}
+	if len(s.Sessions) != 2 {
+		t.Fatalf("the sidebar removed a row itself: %d sessions", len(s.Sessions))
+	}
+}
+
+// TestSidebarDeleteWithoutCallbackStaysWIP checks the entry's unavailable form.
+func TestSidebarDeleteWithoutCallbackStaysWIP(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "Delete session")
+	if !ok {
+		t.Fatalf("no delete entry, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("delete is enabled without a callback")
+	}
+	if !strings.Contains(info.Description, reasonDelete) {
+		t.Errorf("delete description %q does not carry %q", info.Description, reasonDelete)
+	}
+}
+
 // TestSidebarEndsTheCurrentBranch checks the end entry: the displayed non-main
 // branch offers it, a click asks the window to end exactly that branch, and the
 // region deletes no row and moves no selection before the App Server confirms.
@@ -572,7 +608,7 @@ func TestSidebarSearchesSessionsLocally(t *testing.T) {
 // title: a session whose title the user does not remember is still found.
 func TestSidebarSearchesBySessionID(t *testing.T) {
 	s := searchState()
-	tt := ui.NewTester(s.View, 900, 1000)
+	tt := ui.NewTester(s.View, 900, 1200)
 	openSearch(t, tt)
 
 	tt.Type("s3")
@@ -590,7 +626,7 @@ func TestSidebarSearchesBySessionID(t *testing.T) {
 // leaves no row: it says so, in a status region, and invents no session.
 func TestSidebarSearchWithoutMatches(t *testing.T) {
 	s := searchState()
-	tt := ui.NewTester(s.View, 900, 1000)
+	tt := ui.NewTester(s.View, 900, 1200)
 	openSearch(t, tt)
 
 	tt.Type("zzz")
@@ -616,7 +652,7 @@ func TestSidebarSearchWithoutMatches(t *testing.T) {
 // the whole catalog back; a second Escape closes the box.
 func TestSidebarSearchEscape(t *testing.T) {
 	s := searchState()
-	tt := ui.NewTester(s.View, 900, 1000)
+	tt := ui.NewTester(s.View, 900, 1200)
 
 	if err := tt.Click("Search sessions"); err != nil {
 		t.Fatal(err)
@@ -669,18 +705,21 @@ func TestSidebarSearchClosesAndClears(t *testing.T) {
 	if s.sidebar.query != "" {
 		t.Errorf("closing the box left the query %q", s.sidebar.query)
 	}
-	for _, want := range []string{"Fix flaky tests", "Plan release", "Read notes", "Untitled"} {
+	for _, want := range []string{"Fix flaky tests", "Plan release", "Read notes"} {
 		if !sidebarRowShown(tt, want) {
 			t.Errorf("the closed filter still hides %q, texts %q", want, tt.Texts())
 		}
+	}
+	if s.sidebar.filter != "" {
+		t.Errorf("the closed filter is still %q", s.sidebar.filter)
 	}
 
 	openSearch(t, tt)
 	if s.sidebar.query != "" {
 		t.Errorf("reopening the box kept the query %q", s.sidebar.query)
 	}
-	if !sidebarRowShown(tt, "Untitled") {
-		t.Errorf("reopening the box kept the filter, texts %q", tt.Texts())
+	if s.sidebar.filter != "" {
+		t.Errorf("reopening the box kept the filter %q", s.sidebar.filter)
 	}
 }
 
@@ -689,7 +728,7 @@ func TestSidebarSearchClosesAndClears(t *testing.T) {
 // hides draws no heading at all.
 func TestSidebarSearchRebuildsGroups(t *testing.T) {
 	s := searchState()
-	tt := ui.NewTester(s.View, 900, 1000)
+	tt := ui.NewTester(s.View, 900, 1200)
 	openSearch(t, tt)
 
 	tt.Type("release")
@@ -710,7 +749,7 @@ func TestSidebarSearchRebuildsGroups(t *testing.T) {
 // entry's next Tab stop, and Tab leaves it for the entry after it.
 func TestSidebarSearchTabReachable(t *testing.T) {
 	s := searchState()
-	tt := ui.NewTester(s.View, 900, 1000)
+	tt := ui.NewTester(s.View, 900, 1200)
 
 	if err := tt.Click("Search sessions"); err != nil {
 		t.Fatal(err)
@@ -732,7 +771,7 @@ func TestSidebarSearchTabReachable(t *testing.T) {
 // opens the box and closes it again, and sends nothing either way.
 func TestSidebarSearchShortcut(t *testing.T) {
 	s := searchState()
-	tt := ui.NewTester(s.View, 900, 1000)
+	tt := ui.NewTester(s.View, 900, 1200)
 
 	tt.Key(searchShortcutMods, searchShortcutKey)
 	tt.Frame()

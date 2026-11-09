@@ -1,0 +1,4 @@
+capture	docs/evidence/window-delete-session.png
+git_head	44594f4
+driver	scripts/ax/axdo.swift
+note	real window Delete session; row leaves only after session.delete + catalog read-back; last session clears to Sessions 0

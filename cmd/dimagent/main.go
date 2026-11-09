@@ -62,6 +62,9 @@ type sessionActions interface {
 	// StopBranch stops the branch the window shows instead of the session's
 	// default branch.
 	StopBranch(ctx context.Context, branchID string) error
+	// Delete asks the App Server to delete the session. The row leaves the
+	// catalog only after a nil error.
+	Delete(ctx context.Context) error
 	Reattach(ctx context.Context) error
 	Close(ctx context.Context) error
 }
@@ -249,6 +252,16 @@ func (b *sessionBridge) LookupInputBranchFor(ctx context.Context, sessionID, bra
 // Submit sends text through the current controller for fixture callers.
 func (b *sessionBridge) Submit(ctx context.Context, text string) error {
 	return b.SubmitFor(ctx, "", text)
+}
+
+// DeleteFor deletes the session through the controller that still belongs to
+// sessionID. The bridge removes no row: the window does that after a nil error.
+func (b *sessionBridge) DeleteFor(ctx context.Context, sessionID string) error {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return err
+	}
+	return controller.Delete(ctx)
 }
 
 // StopFor stops the controller that still belongs to sessionID.
@@ -533,6 +546,7 @@ type app struct {
 
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
+	a.state.OnDeleteSession = a.deleteSession
 	a.state.OnSelectBranch = a.selectBranch
 	a.state.OnEndBranch = a.endBranch
 	a.state.OnRefreshBranches = a.refreshBranches
@@ -811,6 +825,113 @@ func (a *app) selectSession(id string) {
 			state.ConversationLoading = false
 		})
 	}()
+}
+
+// deleteSession deletes one session through the App Server. The catalog row is
+// removed only after the daemon confirmed; a failure keeps the row and reports
+// through the banner. Deleting the displayed session closes its controller and
+// selects the next remaining row, or clears the selection when none is left.
+func (a *app) deleteSession(id string) {
+	if a.bridge == nil || a.state == nil || id == "" {
+		return
+	}
+	gen := a.currentSelection()
+	a.update(func(state *dimui.State) {
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		state.ActionError = ""
+	})
+	go func() {
+		a.selectMu.Lock()
+		defer a.selectMu.Unlock()
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		err := a.bridge.DeleteFor(ctx, id)
+		if err != nil {
+			// Deleting a session closes its stream, so the reply can be lost to
+			// the very close it caused (§13 unknown result). The contract says to
+			// read the catalog back, not to resend: a row the catalog no longer
+			// lists is a confirmed delete.
+			confirmed := false
+			if errors.Is(err, appserver.ErrUnknownResult) {
+				if rows, catalogErr := a.bridge.catalog(ctx); catalogErr == nil {
+					confirmed = true
+					for _, row := range rows {
+						if row.ID == id {
+							confirmed = false
+							break
+						}
+					}
+				}
+			}
+			if !confirmed {
+				log.Printf("dimagent: delete session %q: %v", id, err)
+				a.update(func(state *dimui.State) {
+					if !a.selectionCurrent(gen) {
+						return
+					}
+					state.ActionError = fmt.Sprintf("Delete session %q: %v", id, err)
+					state.ActionNotices = appendActionNotice(state.ActionNotices,
+						dimui.Notice{Kind: "delete.error", ID: state.ActionError})
+				})
+				return
+			}
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		var next dimui.Session
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			remaining := make([]dimui.Session, 0, len(state.Sessions))
+			for _, row := range state.Sessions {
+				if row.ID == id {
+					continue
+				}
+				remaining = append(remaining, row)
+			}
+			if state.Selected == id {
+				state.Selected = ""
+				state.SelectedBranch = ""
+				state.Keys = dimui.KeysPanelView{}
+				state.Messages = nil
+				state.Branches = nil
+			}
+			state.Sessions = remaining
+			if len(remaining) > 0 {
+				next = remaining[0]
+			}
+		})
+		// The deleted session's attachment is of no further use; closing it only
+		// releases the stream, never the supervisor.
+		a.bridge.closeSessionFor(id)
+		if next.ID != "" {
+			a.selectSession(next.ID)
+		}
+	}()
+}
+
+// closeSessionFor closes the controller of sessionID when it is the current
+// one. It detaches that session's stream and leaves the supervisor running.
+func (b *sessionBridge) closeSessionFor(sessionID string) {
+	if b == nil {
+		return
+	}
+	b.mu.Lock()
+	controller := b.controller
+	if controller == nil || b.summary.SessionID != sessionID {
+		b.mu.Unlock()
+		return
+	}
+	b.controller = nil
+	b.summary = appserver.SessionSummary{}
+	b.mu.Unlock()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	_ = controller.Close(ctx)
 }
 
 // selectBranch opens one branch of the selected session. Branch switching has

@@ -214,7 +214,7 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		if len(v.Branches) > 0 {
 			branchList(c, k, v, a)
 		}
-		sidebarFooter(c, k, locale)
+		sidebarFooter(c, k, v, a)
 		capabilityCards(c, k, locale, v.Capabilities)
 		sidebarAccount(c, k, v, a)
 	})
@@ -636,27 +636,40 @@ func branchEntry(c *ui.Context, k tokens, branch Branch, current bool, a Actions
 // — pin, rename and archive — visible and unavailable: the App Server has no
 // verified pin or archive RPC for them, session.rename is reached through
 // session.methods, and this shell keeps no local list for any of the three.
-func sidebarFooter(c *ui.Context, k tokens, locale Locale) {
-	ui.Row(c).MinHeight(k.sidebarFooterH).
-		Padding(0, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
-		Gap(k.sidebarGap).Wrap().AlignItems(ui.Center).
-		Role(ui.RoleGroup).Label(tr(locale, keySidebarThreadActions)).Children(func() {
-		var actions []ui.Element
-		for _, action := range []struct{ label, reason string }{
-			{tr(locale, keySidebarPin), tr(locale, keyReasonPin)},
-			{tr(locale, keySidebarRename), tr(locale, keyReasonRename)},
-			{tr(locale, keySidebarArchive), tr(locale, keyReasonArchive)},
-		} {
-			actions = append(actions, ui.Button(c, action.label).AccessDisabled(true).
-				Description(action.reason).Opacity(wipOpacity))
+func sidebarFooter(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	locale := v.Locale
+	ui.Column(c).Padding(0, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
+		Gap(k.sidebarGap).Children(func() {
+		ui.Row(c).MinHeight(k.sidebarFooterH).Gap(k.sidebarGap).
+			Wrap().AlignItems(ui.Center).
+			Role(ui.RoleGroup).Label(tr(locale, keySidebarThreadActions)).Children(func() {
+			var actions []ui.Element
+			for _, action := range []struct{ label, reason string }{
+				{tr(locale, keySidebarPin), tr(locale, keyReasonPin)},
+				{tr(locale, keySidebarRename), tr(locale, keyReasonRename)},
+				{tr(locale, keySidebarArchive), tr(locale, keyReasonArchive)},
+			} {
+				actions = append(actions, ui.Button(c, action.label).AccessDisabled(true).
+					Description(action.reason).Opacity(wipOpacity))
+			}
+			// One visible badge after the unavailable entries describes them all,
+			// so the row reads "Pin Rename Archive WIP" rather than repeating it.
+			badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
+				Unselectable().AccessHidden(true)
+			for _, action := range actions {
+				action.DescribedBy(badge)
+			}
+		})
+		// Deleting is a real action once the window wires it; it names the
+		// displayed session and removes nothing locally. It gets its own row so a
+		// wrapped badge cannot cover its target and the two states read apart.
+		selected := *v.Selected
+		deleteButton := ui.Button(c, tr(locale, keySidebarDelete))
+		if a.OnDeleteSession == nil || selected == "" {
+			deleteButton.AccessDisabled(true).Description(tr(locale, keyReasonDelete)).Opacity(wipOpacity)
+			return
 		}
-		// One visible badge after the three entries describes them all, so the
-		// row reads "Pin Rename Archive WIP" rather than repeating the badge.
-		badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-			Unselectable().AccessHidden(true)
-		for _, action := range actions {
-			action.DescribedBy(badge)
-		}
+		deleteButton.OnClick(func() { a.OnDeleteSession(selected) })
 	})
 }
 

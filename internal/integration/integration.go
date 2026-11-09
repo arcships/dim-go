@@ -567,6 +567,24 @@ func (c *SessionController) BranchDirectory() appserver.BranchesResult {
 	return c.Session.BranchDirectory()
 }
 
+// Delete asks the App Server to delete the selected session. The controller
+// keeps its view until the daemon confirms; the caller removes the row only
+// after a nil error.
+func (c *SessionController) Delete(ctx context.Context) error {
+	if c == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	return c.Session.Delete(ctx)
+}
+
 // Keys returns the session.keys snapshot captured by Open. It is empty when the
 // daemon did not advertise the capability or the optional read failed; the
 // snapshot is never synthesized locally. The read lock keeps the copy from
