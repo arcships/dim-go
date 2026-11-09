@@ -58,7 +58,7 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 
 ## Milestone 3：第一个纵向闭环
 
-启动路径、session 切换、submit/stop/reconnect 和 approval 决策已接入（`headless` + `fake-server`，真实 daemon session 流已验收）；持续 live ticker 和真实窗口手测未完成。
+启动路径、session 切换、submit/stop/reconnect 和 approval 决策已接入（只有 `headless` + `fake-server` 测试级证据，real-daemon session 流仅覆盖协议路径，**产品验收未通过**）；持续 live ticker、真实窗口手测、IME/VoiceOver 和设计与组件 1:1 对齐都未完成。
 
 - open session（`cmd/dimagent` 在 `DIMAGENT_PRODUCT_HOME` 下经 supervisor → integration 打开首个 session）
 - render history（首屏 history + viewmodel 渲染快照）

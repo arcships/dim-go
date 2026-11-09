@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划与 Subagent 编排
 
-Status: active（Wave 1 已实现；Wave 2 底层组件已实现，real-daemon 控制面与 session create/attach/history/submit 已验收，GUI 运行验收仍未开始）
+Status: active（Wave 1 已实现；Wave 2 底层组件已实现，real-daemon 控制面与 session create/attach/history/submit 只有测试级证据；产品验收未通过：GUI 运行、真实窗口交互、IME/VoiceOver、设计与组件 1:1 对齐均未验收）
 Last updated: 2026-11-09
 
 ## 目标与边界
@@ -161,7 +161,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - approval mutation 已接通 UI（`approval.respond`），`-32602` 从 pending 集合移除该 request 且不重放；attachment 上传和 approval replay 集合替换仍未实现。
 - `internal/session` 的 branch 支持是“每个 branch 独立 reducer/transient/state”，没有 branch directory、cut point 或 side-chat 创建流程。
 - real-daemon 控制面 smoke 已有 opt-in 测试并已通过：使用 `../dim-2` 构建的 binary 验证 spawn/hello/catalog/close；GUI 或 IME 不在该证据内，真实 session 流另由 `TestRealDaemonSessionFlow` 覆盖（见下）。
-- real-daemon session 流已验收（2026-11-09，`TestRealDaemonSessionFlow`，`DIMAGENT_REAL_SESSION_FLOW=1`）：空 session 的 `branch/start` 占 sequence 1，attach head 为 1，latestTurn 返回该单事件且无 `turnStart`；`internal/session` 已按“done + 覆盖到 head + 无 turn/input/step/tool 事件”接受为空窗口。create → attach → history → submit → `session.state` 收敛 → stop → detach → 自有 daemon shutdown 全流程通过，末尾 `Running=false Stopping=false`。审批 replay、`subscription_changed` 恢复和 GUI 仍未在该证据内。
+- real-daemon session 流的测试级证据（2026-11-09，`TestRealDaemonSessionFlow`，`DIMAGENT_REAL_SESSION_FLOW=1`；**不是产品验收**）：空 session 的 `branch/start` 占 sequence 1，attach head 为 1，latestTurn 返回该单事件且无 `turnStart`；`internal/session` 已按“done + 覆盖到 head + 无 turn/input/step/tool 事件”接受为空窗口。create → attach → history → submit → `session.state` 收敛 → stop → detach → 自有 daemon shutdown 在 mock model 下通过，末尾 `Running=false Stopping=false`。该测试不打开真实窗口、不验证视觉/IME/无障碍，也不覆盖审批 replay、`subscription_changed` 恢复或 GUI。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 证据仍是 `headless`。
 - `subscription_changed` 恢复的真实 wire 语义和 Windows/Linux GUI 运行时仍未验证；当前只做只读单次重试与写操作 fail-closed。
 - `internal/supervisor` 的 `TestDefaultSpawnRunsDetachedAndLogs` 时序 flake 已修复：改为 `<-process.Done()` 事件驱动并删除固定 2s 窗口，`-count=100` 通过。
