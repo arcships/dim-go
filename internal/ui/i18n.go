@@ -204,6 +204,7 @@ const (
 	// Settings navigation: the section names and the WIP reason of each page the
 	// shell cannot open yet.
 	keySettingsNavigation = "settings.navigation"
+	keyContextPanelToggle = "header.contextPanel"
 
 	// Layout pieces the shell draws around the conversation: the empty-state
 	// hero, the composer's context row and the sidebar's account footer.
@@ -255,6 +256,7 @@ var stringsEN = Strings{
 	keyComposerWorkspace:       "Workspace",
 	keyComposerPermission:      "Default permissions",
 	keySettingsNavigation:      "Settings sections",
+	keyContextPanelToggle:      "Context panel",
 	"settings.section.account": "Account", "settings.section.usage": "Usage",
 	"settings.section.personalization": "Personalization", "settings.section.general": "General",
 	"settings.section.shortcuts": "Shortcuts", "settings.section.models": "Models",
@@ -405,6 +407,7 @@ var stringsZHCN = Strings{
 	keyComposerWorkspace:       "工作区",
 	keyComposerPermission:      "默认权限",
 	keySettingsNavigation:      "设置分区",
+	keyContextPanelToggle:      "上下文面板",
 	"settings.section.account": "账户", "settings.section.usage": "用量",
 	"settings.section.personalization": "个性化", "settings.section.general": "通用",
 	"settings.section.shortcuts": "快捷键", "settings.section.models": "模型供应",

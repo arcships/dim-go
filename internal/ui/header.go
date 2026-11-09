@@ -13,8 +13,8 @@ import (
 
 // contextPanelToggleLabel is the toolbar's context panel entry: its accessible
 // name, its tooltip, and the text the tests and assistive technology look for.
-// The shell has no i18n key for it yet; the panel's own headings ("Changes",
-// "No changed files") are literals for the same reason.
+// The panel's own headings ("Changes", "No changed files") stay English until
+// the panel takes a Locale like the other regions.
 const contextPanelToggleLabel = "Context panel"
 
 // contextPanelGlyph is the entry's two-pane mark, as the Electron reference
@@ -91,7 +91,7 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 func contextPanelToggle(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	toggle := ui.ButtonBase(c).Size(k.sidebarEntryH, k.sidebarEntryH).
 		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
-		Label(contextPanelToggleLabel).Tooltip(contextPanelToggleLabel)
+		Label(tr(v.Locale, keyContextPanelToggle)).Tooltip(tr(v.Locale, keyContextPanelToggle))
 	if v.ContextPanelOpen || toggle.Hovered() {
 		toggle.Background(k.sidebarHover)
 	}
