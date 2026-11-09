@@ -42,7 +42,8 @@ Last updated: 2026-11-09
 2. ✅ 布局提取（`docs/ui-layout-spec.md`，596 行）：容器树、flex 方向、宽高/min/max/padding/gap、滚动与虚拟化、Tailwind/变量出处（file:line）、MyGo API 映射与缺口。组件实现以这份规格为验收基线。
 3. ✅ P0 组件：侧栏（`2701701`）→ timeline 行模型（`760413e`）→ composer（`f157797`）→ approval 面板（`a2cdb9b` + `ffa54c7`，占用 composer 槽位）。
 4. ✅ P1 组件：branch 选择接线（`5d7ae60` + `697ed25`）、外观设置面（`3d473c9` + `697ed25`）、状态栏（`b15be1d` + `697ed25`）。
-5. ✅ 截图证据闭环（`8b05e98` + 每次 UI 改动重出）：`Tester.Image()` 输出 approval/composer/settings 三态 × light/dark；真实窗口证据见 [window-evidence.md](window-evidence.md)。跨端人工对照仍未做。
+5. ✅ 内容层：工具类型化面板（`b1f73a0`）、Markdown 内容层与代码块 Copy（`d5bbcb5`，已接入 assistant 行）、context panel 组件（`c05bf50`，等待 changed-file 数据源）。
+6. ✅ 截图证据闭环（`8b05e98` + 每次 UI 改动重出）：`Tester.Image()` 输出 approval/composer/settings 三态 × light/dark；真实窗口证据见 [window-evidence.md](window-evidence.md)。跨端人工对照仍未做。
 
 差距清单见 [ui-parity.md](ui-parity.md)；布局规格见 [ui-layout-spec.md](ui-layout-spec.md)。
 

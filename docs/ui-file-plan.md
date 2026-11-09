@@ -25,7 +25,10 @@ Last updated: 2026-11-09
 | 会话动作 | [actions.go](../../internal/ui/actions.go) | `createSession`、`selectSession` | `create_test.go`、`actions_test.go` | `ui-actions` |
 | 侧栏 | [sidebar.go](../../internal/ui/sidebar.go) | `sidebar`、线程列表、键盘选择、`chooseSession`、侧栏页脚 | `sidebar_test.go`、`keyboard_test.go` | `ui-sidebar` |
 | 时间线 | [timeline.go](../../internal/ui/timeline.go) | 行渲染（user/assistant/error/retry）、block、文件变更、`blockOpen` | `timeline_test.go` | `ui-timeline` |
-| 工具卡 | [tool.go](../../internal/ui/tool.go) | `toolRow`、`toolCard`、tool 预览与状态 | `tool_test.go` | `ui-tool` |
+| 工具卡 | [tool.go](../../internal/ui/tool.go) | `toolRow`、`toolCard`、disclosure 与状态 | `tool_test.go` | `ui-tool` |
+| 工具面板 | [toolrender.go](../../internal/ui/toolrender.go) | `toolKindOf`、command/file/search/generic 面板，缺失事实不伪造 | `toolrender_test.go` | `ui-tool` |
+| Markdown 内容层 | [markdown_render.go](../../internal/ui/markdown_render.go) | `MarkdownOptions`、`renderMarkdownContent`、代码块头与 Copy、内容层 token | `markdown_render_test.go` | `ui-markdown` |
+| 上下文面板 | [context_panel.go](../../internal/ui/context_panel.go) | `ContextPanelView`、文件树、diff/预览、空态与 WIP | `context_panel_test.go` | `ui-context` |
 | 设计 token | [tokens.go](../../internal/ui/tokens.go) | 颜色/间距/字号 token、`newTokens`、`k.*` 取色辅助 | `tokens_test.go` | `ui-tokens` |
 | WIP 入口 | [wip.go](../../internal/ui/wip.go) | `wipAction`、WIP 徽标与 reason 文本 | `wip_test.go` | `ui-wip` |
 | 外观设置 | [settings.go](../../internal/ui/settings.go) | `SettingsView`、`renderSettings`、主题/字号/字体/宽度/密度/代码字号；skin/chrome WIP | `settings_test.go` | `ui-settings` |

@@ -98,9 +98,9 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 |---|---|---|
 | `sidebar/`（22）`AppSidebar.vue`、`ThreadList.vue`、`SidebarHeader.vue`、`PinnedThreads.vue`、`ProjectItem.vue`、`ChatSearchDialog.vue`、`RenameThreadDialog.vue`、`ArchiveThreadDialog.vue`、`ThreadContextMenu.vue`、`useSidebarVirtualRows.ts`、`useProjectDragReorder.ts` | `internal/ui/sidebar.go`：header、全局入口、可选分组线程列表、选中/悬停、200–360 拖拽调宽、双击复位；搜索/置顶/重命名/归档/右键菜单保持 visible-disabled WIP | **部分完成**（`2701701`）：核心列表与量纲已对齐；对话框类仍是 WIP |
 | `chat-workspace/`（185；timeline 65、composer 36、interactions 20、model-selector 15、git 7、attachments 6、workflow 3） | `messageRow`（[shell.go:444-459](../internal/ui/shell.go#L444-L459)）+ `composer`（[shell.go:486-500](../internal/ui/shell.go#L486-L500)） | **P0**：见 3.2 |
-| `markdown/`（20）`FileChip.vue`、`MarkdownImageNode.vue`、`MarkdownHeadingNode.vue`、`MarkdownInlineCodeNode.vue`、`ImageLightbox.vue`、`LinkContextMenu.vue`、`useMarkdownRender.ts` | 单个 `markdown.View`（[shell.go:449](../internal/ui/shell.go#L449)），默认主题 | **P0**：文件 chip、标题锚点、图片灯箱、链接菜单、代码块运行时全缺 |
+| `markdown/`（20）`FileChip.vue`、`MarkdownImageNode.vue`、`MarkdownHeadingNode.vue`、`MarkdownInlineCodeNode.vue`、`ImageLightbox.vue`、`LinkContextMenu.vue`、`useMarkdownRender.ts` | `markdown_render.go`（`d5bbcb5`）：内容层 token、代码块头 + 语言 + Copy、行内代码、链接、表格、任务列表；assistant 行已接入 | **部分完成**：文件 chip、图片灯箱、链接右键菜单、代码高亮主题仍缺 |
 | `settings/`（41）+ `views/SettingsView.vue`、`SettingsNav.vue`、19 个分区（`settings/sections.ts:24-43`） | 无 | **P1**：设置面整体缺失（appearance 见第 5 步计划） |
-| `context-panel/`（16）文件树、`DiffView.vue`、`FilePreviewView.vue`、`OfficeFilePreview.vue`、`PptxSurfacePreview.vue`、`XlsxPreview.vue` | 无 | **P1** |
+| `context-panel/`（16）文件树、`DiffView.vue`、`FilePreviewView.vue`、`OfficeFilePreview.vue`、`PptxSurfacePreview.vue`、`XlsxPreview.vue` | `context_panel.go`（`c05bf50`）：文件树、diff、预览、空态与 WIP；尚未接线（无 changed-file 数据源） | **部分完成** |
 | `right-panel/`（1）+ `ChatWorkspace.vue` 承载（`ChatWorkspace.vue:1973-2009`） | 无 | **P1** |
 | `app/`（6）`AppTitlebar.vue`、`WindowControls.vue`、`BrandMark.vue`、`StartupOverlay.vue` | 无 | **P2** |
 | `scheduled/`（10）+ `ScheduledView.vue` | 无 | **P2** |
