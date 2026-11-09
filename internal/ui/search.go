@@ -6,10 +6,13 @@
 // window-search-results.png: a 448 DIP panel rounded by 12, lifted by a strong
 // shadow over a black 80% scrim, a 56 DIP input row with a magnifier and the
 // "搜索聊天" placeholder that takes the focus as the dialog opens, then the
-// "最近聊天" heading and 42 DIP rows. Each row is a 32 DIP icon tile, the
-// session's title over its project, and the shortcut that opens it (Cmd+1 to
-// Cmd+8 on macOS, Ctrl+1 to Ctrl+8 elsewhere). Escape and a click on the scrim
-// close it, and the focus returns to the control that opened it.
+// "最近聊天" heading and 42 DIP rows. Each row is a 32 DIP icon tile that
+// follows the status its caller reports, the session's title over its project,
+// and the shortcut that opens it (Cmd+1 to Cmd+8 on macOS, Ctrl+1 to Ctrl+8
+// elsewhere). The query matches a title, a project or a session id; the pointer
+// moves the highlight to its row as it enters it. The panel fades and zooms
+// over the reference's duration-200 as it opens and closes. Escape and a click
+// on the scrim close it, and the focus returns to the control that opened it.
 //
 // The palette draws SearchPaletteView and Actions only (see protocols.go). The
 // results are a display copy of the catalog the shell already holds: the
@@ -24,6 +27,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -53,6 +57,12 @@ const (
 	searchMaxResults  = 8
 )
 
+// searchMotion is the reference dialog's duration-200: the panel fades in and
+// out over 200 ms and zooms from 95%, and the scrim fades with it. It is the
+// dialog's own step, not the 250 ms layout step (tokens.go) the reference gives
+// panels that take room in the layout.
+const searchMotion = 200 * time.Millisecond
+
 // searchScrim is the reference's bg-black/80 behind the panel: the window shows
 // through dimmed, and a click on it closes the palette.
 var searchScrim = ui.RGBA(0, 0, 0, 0.8)
@@ -61,9 +71,43 @@ var searchScrim = ui.RGBA(0, 0, 0, 0.8)
 // downward shadow that lifts the dialog off the scrim.
 var searchShadow = ui.RGBA(0, 0, 0, 0.45)
 
+// searchFade is the scrim's own motion: it starts and ends transparent, as the
+// reference's overlay fade-in-0/fade-out-0 does. searchZoom is the panel's: it
+// starts and ends at 95% of its size with no opacity, the reference's
+// zoom-in-95/zoom-out-95 over the same 200 ms.
+var (
+	searchFade = ui.Motion{Opacity: 0}
+	searchZoom = ui.Motion{Opacity: 0, Scale: 0.95}
+)
+
+// searchPaletteTransition is the dialog's enter and exit: 200 ms on the shell's
+// layout curve, with the reduce-motion path the other motion helpers take. It
+// is declared here because the reference gives this dialog duration-200 rather
+// than the 250 ms panel step in tokens.go. The colors flag lets the panel follow
+// a theme switch without animating its size as the results change.
+func searchPaletteTransition(c *ui.Context, enter, exit ui.Motion) ui.ElementTransition {
+	t := ui.ElementTransition{
+		Duration: searchMotion,
+		Ease:     motionEaseInOut,
+		Colors:   true,
+		Enter:    &enter,
+		Exit:     &exit,
+	}
+	if c.Preferences().ReduceMotion {
+		t.Duration = -1
+		t.ExitDuration = -1
+	}
+	return t
+}
+
 // searchChatIcon is the speech-bubble mark of a result row's tile, drawn in
 // the same 16×16 outline frame as the sidebar's glyphs.
 var searchChatIcon = sidebarIcon(`<path d="M2 4.2A1.7 1.7 0 0 1 3.7 2.5h8.6A1.7 1.7 0 0 1 14 4.2v5.6a1.7 1.7 0 0 1-1.7 1.7H7.6L4.3 14v-2.5H3.7A1.7 1.7 0 0 1 2 9.8Z"/>`)
+
+// searchErrorIcon is the tile's failed mark: the same 16×16 outline frame with
+// an exclamation in a circle, so a row whose caller reported a failure reads
+// apart from a chat still loading.
+var searchErrorIcon = sidebarIcon(`<circle cx="8" cy="8" r="5.6"/><path d="M8 4.9v3.7"/><circle cx="8" cy="11.2" r=".8" fill="currentColor" stroke="none"/>`)
 
 // searchShortcutKey is the shortcut that opens the palette, and
 // searchShortcutMods its modifier: Cmd+G on macOS, Ctrl+G elsewhere, as the
@@ -72,6 +116,25 @@ const searchShortcutKey = ui.KeyG
 
 var searchShortcutMods = ui.Cmd
 
+// SearchResultStatus is the state a result's icon tile draws: the ordinary
+// chat mark, a spinner while the caller reports work in flight, or the failed
+// mark. It is the caller's report, never the palette's inference: the catalog
+// this shell holds carries no per-session run state, so searchResults leaves
+// every row normal rather than inventing unread or pinned facts the shell does
+// not have.
+type SearchResultStatus uint8
+
+const (
+	// SearchResultNormal is a session with no reported work: the chat mark.
+	SearchResultNormal SearchResultStatus = iota
+	// SearchResultLoading is a session the caller reports as still working: a
+	// spinner in the tile.
+	SearchResultLoading
+	// SearchResultError is a session the caller reports as failed: the failed
+	// mark in the danger color.
+	SearchResultError
+)
+
 // SearchResult is one row of the palette: the session the window would open,
 // its title and the project label the catalog carries as Group. Every field is
 // a display copy of a catalog row; the palette adds no session and no project.
@@ -79,6 +142,10 @@ type SearchResult struct {
 	SessionID string
 	Title     string
 	Group     string
+	// Status is the state the row's 32×32 tile draws. The zero value is the
+	// ordinary chat mark; a caller with a verified loading or failed state may
+	// set it, and the palette adds no state of its own.
+	Status SearchResultStatus
 }
 
 // SearchPaletteView is what the search palette draws: whether it is open, the
@@ -128,8 +195,8 @@ var searchDigitKeys = [searchMaxResults]ui.Key{
 // searchResults is the display copy the palette draws: the catalog narrowed by
 // query, in the caller's order, at most searchMaxResults rows. An empty or
 // blank query leaves the catalog as it came, which is the reference's "recent
-// chats" list. Title and Group are matched case-insensitively; the id is not
-// searched, because the palette shows titles and projects, not identities.
+// chats" list. Title, Group and SessionID are matched case-insensitively, so a
+// pasted session id finds its chat as well as a title or project does.
 func searchResults(sessions []Session, query string) []SearchResult {
 	query = strings.ToLower(strings.TrimSpace(query))
 	results := make([]SearchResult, 0, min(len(sessions), searchMaxResults))
@@ -150,10 +217,11 @@ func searchResults(sessions []Session, query string) []SearchResult {
 }
 
 // searchSessionMatches reports whether the lower-cased query occurs in the
-// session's title or its project label.
+// session's title, its project label or its id.
 func searchSessionMatches(session Session, query string) bool {
 	return strings.Contains(strings.ToLower(session.Title), query) ||
-		strings.Contains(strings.ToLower(session.Group), query)
+		strings.Contains(strings.ToLower(session.Group), query) ||
+		strings.Contains(strings.ToLower(session.ID), query)
 }
 
 // moveSearchSelection moves the highlight by delta and keeps it inside the
@@ -183,33 +251,60 @@ func openSearchResult(v SearchPaletteView, a Actions, index int) {
 	}
 }
 
-// searchPalette draws the centered palette over the window's content. The
-// dialog's scrim takes the presses outside the panel, Escape and a click on the
-// scrim close it, and the focus goes back to the control that opened it when it
-// goes. The panel is the reference's: 448 DIPs wide, rounded 12, a hairline
-// edge and the strong shadow, with the input over the grouped results.
+// searchPalette draws the centered palette over the window's content. It is
+// an overlay of two children, both direct children of the window's overlay
+// layer: the scrim, and a centered backdrop holding the panel. They are not
+// DialogBase's backdrop-with-panel because the dialog has to keep a copy on
+// the frame it closes: mygo keeps a copy of an element that goes with an Exit
+// while its parent still is, and DialogBase's panel leaves with the backdrop
+// that holds it. As siblings, the scrim fades and the backdrop fades and zooms
+// with the panel it centers, each over the reference's 200 ms.
+//
+// The backdrop carries the modal scope and the dialog's ways out, as
+// DialogBase's does: Escape and a click on it outside the panel set Open false,
+// the focus enters the panel as it opens and returns to the control that opened
+// it as it goes, and the panel absorbs a click inside it. The panel is the
+// reference's: 448 DIPs wide up to 90% of a narrow window, rounded 12, a
+// hairline edge and the strong shadow, with the input over the grouped results.
 func searchPalette(c *ui.Context, k tokens, v SearchPaletteView, a Actions) {
 	if v.Open == nil || !*v.Open || v.Query == nil || v.Selected == nil {
 		return
 	}
-	ui.DialogBase(c, v.Open, func(backdrop, panel ui.Element) {
-		backdrop.Background(searchScrim)
-		panel.Width(searchPanelW).MaxWidthPercent(90).Radius(searchPanelRadius).
-			Background(k.background).BorderWidth(k.hairline).BorderColor(k.border).
-			Shadow(0, 24, 48, 0, searchShadow).Clip()
-		panel.Children(func() {
-			ui.Column(c).FillWidth().Children(func() {
-				searchInput(c, k, v, a)
-				if len(v.Results) == 0 {
-					searchEmpty(c, k, v.Locale)
-					return
-				}
-				ui.Column(c).FillWidth().Padding(0, 0, searchBottomPad, 0).Children(func() {
-					searchGroupHeading(c, k, v.Locale)
-					ui.Column(c).FillWidth().PaddingX(searchRowPadX).Children(func() {
-						for i, result := range v.Results {
-							searchResultRow(c, k, v, a, i, result)
-						}
+	ui.Overlay(c, func() {
+		// The scrim is its own overlay child so it fades even though the panel's
+		// backdrop is a sibling: a click lands on the backdrop above it.
+		ui.Box(c).Absolute().Left(0).Top(0).Right(0).Bottom(0).
+			Background(searchScrim).AccessHidden(true).
+			Transition(searchPaletteTransition(c, searchFade, searchFade))
+		backdrop := ui.Box(c).Absolute().Left(0).Top(0).Right(0).Bottom(0).
+			Center().Modal().Transition(searchPaletteTransition(c, searchZoom, searchZoom))
+		if backdrop.Clicked() || backdrop.OverlayShortcut(0, ui.KeyEscape) {
+			*v.Open = false
+		}
+		backdrop.Children(func() {
+			panel := ui.Box(c).Role(ui.RoleDialog).Width(searchPanelW).MaxWidthPercent(90).
+				Radius(searchPanelRadius).Background(k.background).
+				BorderWidth(k.hairline).BorderColor(k.border).
+				Shadow(0, 24, 48, 0, searchShadow).Clip()
+			// The pointer's row moves the highlight when the pointer enters it,
+			// not on every frame: with the pointer resting over a row, the arrow
+			// keys still move the highlight between rows.
+			hover := ui.Local(backdrop, searchHoverState{}, func() int { return -1 })
+			// A click inside the panel is not a click on the scrim. DialogBase
+			// marks its panel clickable for the same reason.
+			panel.OnClick(func() {})
+			panel.Children(func() {
+				ui.Column(c).FillWidth().Children(func() {
+					searchInput(c, k, v, a)
+					if len(v.Results) == 0 {
+						searchEmpty(c, k, v.Locale)
+						return
+					}
+					ui.Column(c).FillWidth().Padding(0, 0, searchBottomPad, 0).Children(func() {
+						searchGroupHeading(c, k, v.Locale)
+						ui.Column(c).FillWidth().PaddingX(searchRowPadX).Children(func() {
+							searchResultRows(c, k, v, a, hover)
+						})
 					})
 				})
 			})
@@ -272,32 +367,55 @@ func searchGroupHeading(c *ui.Context, k tokens, locale Locale) {
 	})
 }
 
+// searchHoverState is the palette's own record of the row under the pointer,
+// kept on the backdrop across frames with ui.Local. A pointer that stays over a
+// row does not keep the highlight there, so the arrow keys still move it.
+type searchHoverState struct{}
+
+// searchResultRows builds the result rows and moves the highlight to a row the
+// pointer just entered. All rows are built before the highlight moves, so one
+// frame never paints two highlighted rows: the pointer's row and the row the
+// keyboard had. When the pointer leaves, the last row it touched stays
+// selected, so Enter opens what the user last pointed at.
+func searchResultRows(c *ui.Context, k tokens, v SearchPaletteView, a Actions, hover *int) {
+	rows := make([]ui.Element, len(v.Results))
+	for i, result := range v.Results {
+		rows[i] = searchResultRow(c, k, v, a, i, result)
+	}
+	if hover != nil {
+		at := -1
+		for i, row := range rows {
+			if row.Hovered() {
+				at = i
+				break
+			}
+		}
+		if at >= 0 && at != *hover {
+			*v.Selected = at
+		}
+		*hover = at
+	}
+	for i, row := range rows {
+		if i == *v.Selected {
+			row.Background(k.muted)
+		}
+	}
+}
+
 // searchResultRow draws one session: its tile, its title over its project, and
-// the shortcut that opens it. The highlighted row takes the reference's
-// bg-muted face; the pointer's row takes the same face lighter. A click opens
-// the row immediately, as the reference's rows do.
-func searchResultRow(c *ui.Context, k tokens, v SearchPaletteView, a Actions, index int, result SearchResult) {
-	selected := *v.Selected == index
+// the shortcut that opens it. searchResultRows paints the highlighted row with
+// the reference's bg-muted face. A click opens the row immediately, as the
+// reference's rows do.
+func searchResultRow(c *ui.Context, k tokens, v SearchPaletteView, a Actions, index int, result SearchResult) ui.Element {
 	row := ui.ButtonBase(c).Key("search-result:" + result.SessionID).
 		Height(searchRowH).FillWidth().PaddingX(searchRowPadX).Gap(searchRowGap).
 		Radius(radiusMD).AlignItems(ui.Center).TabStop(false).
 		Label(result.Title)
-	switch {
-	case selected:
-		row.Background(k.muted)
-	case row.Hovered():
-		row.Background(k.muted.Alpha(0.7))
-	}
 	row.OnClick(func() {
 		openSearchResult(v, a, index)
 	})
 	row.Children(func() {
-		ui.Row(c).Size(searchResultIcon, searchResultIcon).Shrink(0).
-			Radius(radiusMD).Background(k.muted).Justify(ui.Center).
-			AlignItems(ui.Center).Children(func() {
-			ui.Icon(c, searchChatIcon).Size(sidebarIconSize, sidebarIconSize).
-				TextColor(k.mutedForeground).AccessHidden(true)
-		})
+		searchResultTile(c, k, result.Status)
 		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
 			ui.Text(c, result.Title).FontSize(k.bodySize).TextColor(k.foreground).
 				FontWeight(500).SingleLine()
@@ -309,6 +427,33 @@ func searchResultRow(c *ui.Context, k tokens, v SearchPaletteView, a Actions, in
 		ui.Text(c, searchShortcutHint(index)).FontSize(k.smallSize).
 			TextColor(k.mutedForeground).Shrink(0).SingleLine()
 	})
+	return row
+}
+
+// searchResultTile draws the reference's 32×32 icon block by the row's status:
+// the ordinary chat mark, a spinner for a row the caller reports as working, or
+// the failed mark on the danger wash. The tile is decoration; the row's label
+// names the chat, so nothing here is announced twice.
+func searchResultTile(c *ui.Context, k tokens, status SearchResultStatus) {
+	tile := ui.Row(c).Size(searchResultIcon, searchResultIcon).Shrink(0).
+		Radius(radiusMD).Background(k.muted).Justify(ui.Center).
+		AlignItems(ui.Center).AccessHidden(true)
+	switch status {
+	case SearchResultLoading:
+		tile.Children(func() {
+			ui.Spinner(c).AccessHidden(true)
+		})
+	case SearchResultError:
+		tile.Background(k.wash(k.danger)).Children(func() {
+			ui.Icon(c, searchErrorIcon).Size(sidebarIconSize, sidebarIconSize).
+				TextColor(k.danger)
+		})
+	default:
+		tile.Children(func() {
+			ui.Icon(c, searchChatIcon).Size(sidebarIconSize, sidebarIconSize).
+				TextColor(k.mutedForeground)
+		})
+	}
 }
 
 // searchEmpty draws the reference's "未找到聊天" state: the panel keeps its
