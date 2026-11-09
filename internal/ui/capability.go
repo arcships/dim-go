@@ -63,7 +63,7 @@ func wipCapabilities(s *State) []wipCapability {
 // session sidebar, which is its only consumer. It takes the room the thread
 // list leaves and scrolls when the window is too short for every card, so the
 // catalog above it keeps its rows.
-func (s *State) capabilityCards(c *ui.Context, k tokens) {
+func capabilityCards(c *ui.Context, k tokens, capabilities []wipCapability) {
 	ui.Scroll(c).Shrink(1).Children(func() {
 		ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).
 			BorderWidth(k.hairline, 0, 0, 0).BorderColor(k.border).
@@ -72,7 +72,7 @@ func (s *State) capabilityCards(c *ui.Context, k tokens) {
 			// the accessibility tree rather than being read twice.
 			ui.Text(c, "Unavailable capabilities").FontSize(k.smallSize).TextColor(k.mutedForeground).
 				Unselectable().AccessHidden(true)
-			for _, capability := range wipCapabilities(s) {
+			for _, capability := range capabilities {
 				capabilityCard(c, k, capability)
 			}
 		})

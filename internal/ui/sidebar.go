@@ -1,3 +1,7 @@
+// This file owns the session sidebar: the brand row, the global entries, the
+// grouped thread list, the read-only branch list, the thread actions and the WIP
+// capability cards. It reads SidebarView and Actions only (see protocols.go).
+
 package ui
 
 import (
@@ -12,8 +16,8 @@ import (
 const ungroupedLabel = "No project"
 
 // sidebarRow is one row of the sidebar's thread list: a group heading or a
-// session. Every field is derived from State.Sessions each frame, so the row
-// holds no fact of its own and cannot outlive the catalog it came from.
+// session. Every field is derived from SidebarView.Sessions each frame, so the
+// row holds no fact of its own and cannot outlive the catalog it came from.
 type sidebarRow struct {
 	// group marks a heading row, which the list shows sticky and never
 	// chooses.
@@ -44,24 +48,24 @@ func (r sidebarRow) accessLabel() string {
 // Group label the list stays flat; once one does, every heading is drawn and
 // the ungrouped sessions fall under ungroupedLabel. The catalog's order is
 // kept inside each heading, and no row is invented.
-func (s *State) threadRows() []sidebarRow {
+func threadRows(sessions []Session) []sidebarRow {
 	grouped := false
-	for _, session := range s.Sessions {
+	for _, session := range sessions {
 		if session.Group != "" {
 			grouped = true
 			break
 		}
 	}
-	rows := make([]sidebarRow, 0, len(s.Sessions))
+	rows := make([]sidebarRow, 0, len(sessions))
 	if !grouped {
-		for _, session := range s.Sessions {
+		for _, session := range sessions {
 			rows = append(rows, sidebarRow{sessionID: session.ID, title: session.Title})
 		}
 		return rows
 	}
 	var order []string
-	buckets := make(map[string][]sidebarRow, len(s.Sessions))
-	for _, session := range s.Sessions {
+	buckets := make(map[string][]sidebarRow, len(sessions))
+	for _, session := range sessions {
 		label := session.Group
 		if label == "" {
 			label = ungroupedLabel
@@ -93,25 +97,25 @@ func rowIndex(rows []sidebarRow, sessionID string) int {
 // grouped thread list and the footer of actions the shell cannot carry out
 // yet. Its width comes from the split divider around it; the shell clamps it
 // to the sidebar's own bounds before every frame.
-func (s *State) sidebar(c *ui.Context, k tokens) {
+func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	ui.Column(c).FillHeight().Clip().Background(k.sidebar).
 		Role(ui.RoleNavigation).Label("Session sidebar").Children(func() {
-		s.sidebarHeader(c, k)
-		s.sidebarEntries(c, k)
-		s.threadListHeader(c, k)
-		s.threadList(c, k)
-		if len(s.Branches) > 0 {
-			s.branchList(c, k)
+		sidebarHeader(c, k)
+		sidebarEntries(c, k, v, a)
+		threadListHeader(c, k, v)
+		threadList(c, k, v, a)
+		if len(v.Branches) > 0 {
+			branchList(c, k, v)
 		}
-		s.sidebarFooter(c, k)
-		s.capabilityCards(c, k)
+		sidebarFooter(c, k)
+		capabilityCards(c, k, v.Capabilities)
 	})
 }
 
 // sidebarHeader is the brand row, 48 DIP high as the titlebar it sits beside.
 // The update entry stays visible and unavailable until the shell is wired to
 // the app's updater.
-func (s *State) sidebarHeader(c *ui.Context, k tokens) {
+func sidebarHeader(c *ui.Context, k tokens) {
 	ui.Row(c).Height(k.sidebarHeaderH).Margin(k.sidebarHeaderTop, 0, 0, 0).
 		PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "DimAgent").Bold().FontSize(k.titleSize).TextColor(k.sidebarForeground).SingleLine()
@@ -124,9 +128,9 @@ func (s *State) sidebarHeader(c *ui.Context, k tokens) {
 // the search entry. Search opens a dialog in dim-electron; this shell has no
 // search, so the entry keeps its place, its shortcut hint and the reason it
 // waits on rather than disappearing.
-func (s *State) sidebarEntries(c *ui.Context, k tokens) {
+func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).Children(func() {
-		s.newSessionEntry(c, k)
+		newSessionEntry(c, k, v, a)
 		sidebarEntry(c, k, "Search sessions", searchShortcutText(), reasonSearch, false, false, nil)
 	})
 }
@@ -135,12 +139,14 @@ func (s *State) sidebarEntries(c *ui.Context, k tokens) {
 // callback the entry stays visible and unavailable rather than disappearing,
 // and it is unavailable again while one creation is in flight, so a second
 // click cannot ask for a second session.
-func (s *State) newSessionEntry(c *ui.Context, k tokens) {
-	if s.OnCreateSession == nil {
+func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	if a.OnCreateSession == nil {
 		sidebarEntry(c, k, "New session", "", reasonCreateSession, false, false, nil)
 		return
 	}
-	sidebarEntry(c, k, "New session", "", "", true, s.CreatingSession, s.createSession)
+	sidebarEntry(c, k, "New session", "", "", true, v.Creating, func() {
+		createSession(a, v.Creating)
+	})
 }
 
 // sidebarEntry draws one global entry as a menu row: its label, an optional
@@ -187,11 +193,11 @@ func searchShortcutText() string {
 // threadListHeader names the thread list and its size. Grouping by project or
 // date is a dim-electron view mode fed by catalog facts this shell does not
 // receive, so the control stays visible and unavailable.
-func (s *State) threadListHeader(c *ui.Context, k tokens) {
+func threadListHeader(c *ui.Context, k tokens, v SidebarView) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Sessions").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
-		ui.Text(c, strconv.Itoa(len(s.Sessions))).FontSize(k.smallSize).TextColor(k.mutedForeground)
+		ui.Text(c, strconv.Itoa(len(v.Sessions))).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		ui.Spacer(c)
 		wipAction(c, k, "Group", reasonGroup)
 	})
@@ -200,12 +206,12 @@ func (s *State) threadListHeader(c *ui.Context, k tokens) {
 // threadList draws the grouped thread rows in a keyed, virtualized list with
 // one scroll container. The list's choice is the shell's selected session:
 // a click or an arrow key moves the choice, and chooseSession publishes it.
-func (s *State) threadList(c *ui.Context, k tokens) {
-	rows := s.threadRows()
-	s.sidebarRows = rows
-	if s.Selected != s.sidebarSynced {
-		s.sidebarChoice = rowIndex(rows, s.Selected)
-		s.sidebarSynced = s.Selected
+func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	rows := threadRows(v.Sessions)
+	v.state.rows = rows
+	if *v.Selected != v.state.synced {
+		v.state.choice = rowIndex(rows, *v.Selected)
+		v.state.synced = *v.Selected
 	}
 	if len(rows) == 0 {
 		ui.Column(c).Grow(1).Padding(k.sidebarPadX).Children(func() {
@@ -213,8 +219,8 @@ func (s *State) threadList(c *ui.Context, k tokens) {
 		})
 		return
 	}
-	list := &s.sidebarList
-	list.Selected = &s.sidebarChoice
+	list := &v.state.list
+	list.Selected = &v.state.choice
 	list.Label = func(row int) string { return rows[row].accessLabel() }
 	list.Header = func(row int) bool { return rows[row].group }
 	list.Key = func(row int) any {
@@ -224,16 +230,18 @@ func (s *State) threadList(c *ui.Context, k tokens) {
 		return rows[row].sessionID
 	}
 	ui.List(c, list, len(rows), func(row int) {
-		s.threadRow(c, k, rows[row])
+		threadRow(c, k, v, rows[row])
 	}).Grow(1).MinHeight(k.sidebarRowH*2).
 		Padding(k.sidebarGap, k.sidebarPadX).
-		Label("Sessions").OnChange(s.chooseSession)
+		Label("Sessions").OnChange(func() {
+		chooseSession(v, a)
+	})
 }
 
 // threadRow draws a group heading or a session row. A session row shows the
 // selected and hovered faces from the sidebar's own tokens; the heading stays
 // sticky over the rows it names, so it paints the sidebar's face.
-func (s *State) threadRow(c *ui.Context, k tokens, row sidebarRow) {
+func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow) {
 	if row.group {
 		ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarPadX).Gap(k.sidebarGap).
 			Background(k.sidebar).AlignItems(ui.Center).Children(func() {
@@ -243,7 +251,7 @@ func (s *State) threadRow(c *ui.Context, k tokens, row sidebarRow) {
 		})
 		return
 	}
-	selected := row.sessionID == s.Selected
+	selected := row.sessionID == *v.Selected
 	line := ui.Row(c).Height(k.sidebarRowH).PaddingX(k.sidebarGap).Gap(k.sidebarGap).
 		Radius(radiusMD).AlignItems(ui.Center)
 	switch {
@@ -272,24 +280,49 @@ func (s *State) threadRow(c *ui.Context, k tokens, row sidebarRow) {
 // chooseSession publishes the list's choice. A heading is never chosen, and a
 // row already selected asks for nothing, so the callback fires only for a new
 // session.
-func (s *State) chooseSession() {
-	if s.sidebarChoice < 0 || s.sidebarChoice >= len(s.sidebarRows) {
+func chooseSession(v SidebarView, a Actions) {
+	if v.state.choice < 0 || v.state.choice >= len(v.state.rows) {
 		return
 	}
-	row := s.sidebarRows[s.sidebarChoice]
-	if row.group || row.sessionID == "" || row.sessionID == s.Selected {
+	row := v.state.rows[v.state.choice]
+	if row.group || row.sessionID == "" || row.sessionID == *v.Selected {
 		return
 	}
-	s.Selected = row.sessionID
-	s.sidebarSynced = row.sessionID
-	s.selectSession()
+	*v.Selected = row.sessionID
+	v.state.synced = row.sessionID
+	selectSession(a, row.sessionID)
+}
+
+// branchList shows the branch metadata supplied by the App Server as read-only
+// rows. Branch switching and cut point remain disabled, so the list offers no
+// switch or side-chat action.
+func branchList(c *ui.Context, k tokens, v SidebarView) {
+	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
+		Role(ui.RoleGroup).Label("Branches (read-only)").Children(func() {
+		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().AccessHidden(true)
+			ui.Box(c).Grow(1)
+			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
+		})
+		for _, branch := range v.Branches {
+			label := branch.Label
+			if label == "" {
+				label = branch.ID
+			}
+			if branch.Selected || branch.ID == v.SelectedBranch {
+				label += " (current)"
+			}
+			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+		}
+		ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.mutedForeground)
+	})
 }
 
 // sidebarFooter keeps the thread actions dim-electron offers in a row's tail
 // — pin, rename and archive — visible and unavailable: the App Server has no
 // verified pin or archive RPC for them, session.rename is reached through
 // session.methods, and this shell keeps no local list for any of the three.
-func (s *State) sidebarFooter(c *ui.Context, k tokens) {
+func sidebarFooter(c *ui.Context, k tokens) {
 	ui.Row(c).MinHeight(k.sidebarFooterH).
 		Padding(0, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
 		Gap(k.sidebarGap).Wrap().AlignItems(ui.Center).

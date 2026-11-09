@@ -100,22 +100,6 @@ type FileChange struct {
 	HasStats   bool
 }
 
-// blockOpen returns the fold state of one block, creating it closed. The
-// pointer stays valid across frames, which is what ui.CollapsibleBase binds:
-// whether a user opened a fold is the shell's own view state, not a timeline
-// fact.
-func (s *State) blockOpen(key string) *bool {
-	if s.expandedBlocks == nil {
-		s.expandedBlocks = map[string]*bool{}
-	}
-	if open, ok := s.expandedBlocks[key]; ok {
-		return open
-	}
-	open := new(bool)
-	s.expandedBlocks[key] = open
-	return open
-}
-
 // blockKey names one block's fold: the row it belongs to and the block's own
 // identity, falling back to its place for a fixture block that carries none.
 func blockKey(rowID string, block Block, index int) string {
@@ -214,7 +198,7 @@ func chevron(c *ui.Context, k tokens, color ui.Color, progress float32) {
 
 // userRow draws what the user submitted as a right-aligned bubble: at most 85%
 // of the row, on the muted face, as docs/ui-layout-spec.md §4.2 records it.
-func (s *State) userRow(c *ui.Context, k tokens, m Message) {
+func userRow(c *ui.Context, k tokens, m Message) {
 	ui.Row(c).Padding(k.rowPadY, k.timelinePadX).Justify(ui.End).Children(func() {
 		ui.Column(c).MaxWidthPercent(k.timelineUserWidth).
 			Padding(k.timelineUserPadY, k.timelineUserPadX).
@@ -228,18 +212,18 @@ func (s *State) userRow(c *ui.Context, k tokens, m Message) {
 // the projection's order. A row with no blocks falls back to Content as one
 // Markdown block, which is what a fixture and an adapter that keeps only text
 // hand it.
-func (s *State) assistantRow(c *ui.Context, k tokens, m Message) {
+func assistantRow(c *ui.Context, k tokens, v TimelineView, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		if len(m.Blocks) == 0 {
 			if m.Content != "" {
-				markdown.View(c, m.Content, &s.markdown)
+				markdown.View(c, m.Content, v.markdown)
 			}
 			return
 		}
 		ui.Column(c).Gap(k.timelineBlockGap).Children(func() {
 			for i, block := range m.Blocks {
-				s.blockView(c, k, m.ID, i, block)
+				blockView(c, k, v, m.ID, i, block)
 			}
 		})
 	})
@@ -247,18 +231,18 @@ func (s *State) assistantRow(c *ui.Context, k tokens, m Message) {
 
 // blockView draws one block of a turn. The fold key joins the row and the
 // block, so two turns with the same block identity keep separate folds.
-func (s *State) blockView(c *ui.Context, k tokens, rowID string, index int, block Block) {
+func blockView(c *ui.Context, k tokens, v TimelineView, rowID string, index int, block Block) {
 	key := blockKey(rowID, block, index)
 	switch block.Kind {
 	case BlockThinking:
-		s.thinkingBlock(c, k, key, block)
+		thinkingBlock(c, k, v, key, block)
 	case BlockTool:
-		s.toolCard(c, k, key, block.Tool)
+		toolCard(c, k, v.folds, key, block.Tool)
 	case BlockFileChanges:
-		s.fileChangesBlock(c, k, block.Files)
+		fileChangesBlock(c, k, block.Files)
 	default:
 		if block.Content != "" {
-			markdown.View(c, block.Content, &s.markdown)
+			markdown.View(c, block.Content, v.markdown)
 		}
 	}
 }
@@ -266,8 +250,8 @@ func (s *State) blockView(c *ui.Context, k tokens, rowID string, index int, bloc
 // thinkingBlock draws a folded thinking block: a disclosure header reading
 // "Thinking" or "Thought for Ns", and, while open, the reasoning behind a 2px
 // rail in a panel capped at 240 DIPs, as the spec's max-h-[240px] does.
-func (s *State) thinkingBlock(c *ui.Context, k tokens, key string, block Block) {
-	p := ui.CollapsibleBase(c, s.blockOpen(key))
+func thinkingBlock(c *ui.Context, k tokens, v TimelineView, key string, block Block) {
+	p := ui.CollapsibleBase(c, v.folds.state(key))
 	p.Trigger.MinHeight(k.timelineHeaderH).Gap(k.gap).AlignItems(ui.Center).
 		Children(func() {
 			chevron(c, k, k.mutedForeground, p.Progress())
@@ -285,7 +269,7 @@ func (s *State) thinkingBlock(c *ui.Context, k tokens, key string, block Block) 
 // fileChangesBlock draws the turn's file changes as the compact block the spec
 // describes: one header line, then one line per file inside a bordered box.
 // There is no per-file fold: a file row is a line of text, not an action.
-func (s *State) fileChangesBlock(c *ui.Context, k tokens, files []FileChange) {
+func fileChangesBlock(c *ui.Context, k tokens, files []FileChange) {
 	if len(files) == 0 {
 		return
 	}
@@ -326,7 +310,7 @@ func fileChangeRow(c *ui.Context, k tokens, file FileChange, last bool) {
 // keeps the terminal notice in the turn's tail, and this shell gives it a row
 // and an alert region instead. The text comes from the caller; the shell adds
 // no reason of its own.
-func (s *State) errorRow(c *ui.Context, k tokens, m Message) {
+func errorRow(c *ui.Context, k tokens, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		ui.Row(c).Role(ui.RoleAlert).Label(m.Content).Children(func() {
@@ -337,7 +321,7 @@ func (s *State) errorRow(c *ui.Context, k tokens, m Message) {
 
 // retryRow draws a retry notice as its own row: a retried turn's line, in the
 // warning color, so it reads apart from the rows that follow it.
-func (s *State) retryRow(c *ui.Context, k tokens, m Message) {
+func retryRow(c *ui.Context, k tokens, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		ui.Text(c, m.Content).FontSize(k.labelSize).TextColor(k.warning)

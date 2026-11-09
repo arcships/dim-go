@@ -99,9 +99,9 @@ func previewField(label, value string) string {
 
 // toolRow builds the card of a tool row: the same card a BlockTool uses, keyed
 // by the row's own ID so its fold survives a rebuild.
-func (s *State) toolRow(c *ui.Context, k tokens, m Message) {
+func toolRow(c *ui.Context, k tokens, folds *blockFolds, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Children(func() {
-		s.toolCard(c, k, blockKey(m.ID, Block{Kind: BlockTool}, 0), m.Tool)
+		toolCard(c, k, folds, blockKey(m.ID, Block{Kind: BlockTool}, 0), m.Tool)
 	})
 }
 
@@ -115,8 +115,8 @@ func (s *State) toolRow(c *ui.Context, k tokens, m Message) {
 // A running call shows its status in a live region that is busy, so it is
 // announced once and assistive technology waits for the result rather than
 // re-reading the card each frame.
-func (s *State) toolCard(c *ui.Context, k tokens, key string, tool Tool) {
-	open := s.blockOpen(key)
+func toolCard(c *ui.Context, k tokens, folds *blockFolds, key string, tool Tool) {
+	open := folds.state(key)
 	ui.Column(c).
 		Padding(k.cardPadY, k.cardPadX).
 		Gap(k.gap).Radius(k.cardRadius).

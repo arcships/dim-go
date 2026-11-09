@@ -460,15 +460,6 @@ func (k tokens) runColor(state RunState) ui.Color {
 	}
 }
 
-// runColorFor a shell state: a terminal closed session has no active run to
-// color, even if the last state notice said running.
-func (k tokens) runColorFor(s *State) ui.Color {
-	if s.SessionClosed {
-		return k.mutedForeground
-	}
-	return k.runColor(s.Run)
-}
-
 // toolStatusColor is the color of a tool call's status label.
 func (k tokens) toolStatusColor(status ToolStatus) ui.Color {
 	switch status {

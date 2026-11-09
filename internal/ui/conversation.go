@@ -1,35 +1,46 @@
-// This file owns the conversation region between the banner and the
-// composer: the keyed list that follows its end, the loading and empty states, and
-// the per-author row dispatch.
+// This file owns the timeline region: the keyed conversation list that follows
+// its end, the loading and empty states, and the per-author row dispatch. It
+// reads TimelineView and Actions only (see protocols.go).
 
 package ui
 
 import "github.com/egoist/mygo/ui"
 
-// conversationList shows the fixture rows in a keyed, virtualized list that
+// timeline shows the projection's rows in a keyed, virtualized list that
 // follows its end, the shape the TimelineFold-driven conversation takes: only
 // the rows in view are built, a row keeps its state by message ID, and a
 // streaming append stays in view until the user scrolls away from the end.
-func (s *State) conversationList(c *ui.Context, k tokens) {
+func timeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 	switch {
-	case s.ConversationLoading:
-		s.loadingConversation(c, k)
-	case len(s.Messages) == 0:
-		s.emptyConversation(c, k)
+	case v.Loading:
+		loadingConversation(c, k)
+	case len(v.Messages) == 0:
+		emptyConversation(c, k)
 	default:
-		list := &s.conversation
+		list := v.list
 		list.FollowEnd = true
-		list.Key = func(row int) any { return s.Messages[row].ID }
-		ui.List(c, list, len(s.Messages), func(row int) {
-			s.messageRow(c, k, s.Messages[row])
+		list.Key = func(row int) any { return v.Messages[row].ID }
+		ui.List(c, list, len(v.Messages), func(row int) {
+			messageRow(c, k, v, a, v.Messages[row])
 		}).Grow(1).Label("Conversation")
 	}
+}
+
+// pendingRequests is the approval row's pending list: the transient projection
+// gives one request per row today, and a row without one keeps its decisions
+// visible, disabled and explained instead of sending a decision nobody can
+// address.
+func pendingRequests(request *Approval) []Approval {
+	if request == nil {
+		return nil
+	}
+	return []Approval{*request}
 }
 
 // loadingConversation is what shows while history is still coming. The row is a
 // busy status region, so assistive technology waits for the rows rather than
 // reading the placeholder, and reads the one label of the work.
-func (s *State) loadingConversation(c *ui.Context, k tokens) {
+func loadingConversation(c *ui.Context, k tokens) {
 	ui.Column(c).Grow(1).Padding(k.panelPad).Gap(k.gap).Children(func() {
 		ui.Row(c).Role(ui.RoleStatus).Busy(true).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c).AccessHidden(true) // the text beside it says what the work is
@@ -41,7 +52,7 @@ func (s *State) loadingConversation(c *ui.Context, k tokens) {
 // emptyConversation is what shows once history has loaded and holds no row.
 // Its one line is a status region, so assistive technology hears the end of
 // loading rather than finding the busy region gone and nothing said.
-func (s *State) emptyConversation(c *ui.Context, k tokens) {
+func emptyConversation(c *ui.Context, k tokens) {
 	ui.Column(c).Grow(1).Padding(k.panelPad).Gap(k.gap).Children(func() {
 		ui.Text(c, "No messages yet").FontSize(k.bodySize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
 		ui.Text(c, "The conversation fills in when the App Server projection arrives.").
@@ -54,20 +65,20 @@ func (s *State) emptyConversation(c *ui.Context, k tokens) {
 // blocks in order, a tool card, an approval row with its decisions, or an
 // error/retry notice. A row's own text stands in for an unknown author, so a
 // caller cannot lose text to a row type the shell does not know.
-func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
+func messageRow(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 	switch m.Author {
 	case AuthorUser:
-		s.userRow(c, k, m)
+		userRow(c, k, m)
 	case AuthorAssistant:
-		s.assistantRow(c, k, m)
+		assistantRow(c, k, v, m)
 	case AuthorTool:
-		s.toolRow(c, k, m)
+		toolRow(c, k, v.folds, m)
 	case AuthorApproval:
-		s.approvalRow(c, k, m)
+		renderApproval(c, k, ApprovalView{Text: m.Content, Pending: pendingRequests(m.Approval)}, a)
 	case AuthorError:
-		s.errorRow(c, k, m)
+		errorRow(c, k, m)
 	case AuthorRetry:
-		s.retryRow(c, k, m)
+		retryRow(c, k, m)
 	default:
 		ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Children(func() {
 			ui.Text(c, m.Content).FontSize(k.bodySize)

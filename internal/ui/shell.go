@@ -6,6 +6,13 @@
 // Server and its supervisor, so everything here is throwaway view state that
 // the fixture fills by hand.
 //
+// The window is drawn by five regions — sidebar, header, timeline, approval row
+// and composer — and this file is the only assembler: it copies State into each
+// region's view struct, builds the Actions, and calls the render entries in
+// draw order. A region reads its own view and the tokens, never State; the
+// contract and its invariants are in protocols.go and
+// docs/ui-component-protocols.md.
+//
 // Actions the shell cannot carry out yet stay visible and unavailable: they are
 // marked in the accessibility tree, dimmed, and explained with the upstream
 // method they wait on, and no view reports a click on one. See wipAction.
@@ -25,6 +32,12 @@ const ComposerShortcutKey = ui.KeyL
 // ComposerShortcutMods is the modifier of ComposerShortcutKey: the platform's
 // own shortcut modifier.
 var ComposerShortcutMods = ui.Cmd
+
+// composerSubmitKey is the key that submits the draft from inside the composer.
+const composerSubmitKey = ui.KeyEnter
+
+// composerPlaceholder is the composer's empty-state text.
+const composerPlaceholder = "Message DimAgent"
 
 // Session is a sidebar row. The fixture fills it by hand until the App Server
 // session catalog lands.
@@ -152,7 +165,10 @@ type Message struct {
 	Approval *Approval
 }
 
-// State is the view state of the shell.
+// State is the view state of the shell. It is the window's own record plus
+// display copies of what the App Server reported; no region reads it directly.
+// The shell copies it into a view struct per region and builds the Actions from
+// the callbacks below (see protocols.go).
 type State struct {
 	Sessions []Session
 	Selected string
@@ -206,14 +222,15 @@ type State struct {
 	Draft    string
 
 	// OnSelect, OnCreateSession, OnSubmit, OnStop, OnReconnect and OnApproval
-	// connect the shell's actions to the caller's session controller. A nil field
-	// leaves its action in the view without an effect, as a fixture does; the
-	// callback owns the App Server call and the facts it returns, so the shell
-	// never reports an action it did not send. OnCreateSession asks the caller to
-	// run session.create and to publish the new session in the catalog and the
-	// selection once the App Server returned it. OnApproval receives one decision
-	// for one request: the caller sends approval.respond and lets the session
-	// projection settle the row.
+	// connect the shell's actions to the caller's session controller. They are
+	// the only wiring source of the Actions a region receives; a nil field
+	// leaves its action in the view without an effect, as a fixture does, and
+	// the region keeps its WIP entry. The callback owns the App Server call and
+	// the facts it returns, so the shell never reports an action it did not
+	// send. OnCreateSession asks the caller to run session.create and to publish
+	// the new session in the catalog and the selection once the App Server
+	// returned it. OnApproval receives one decision for one request: the caller
+	// sends approval.respond and lets the session projection settle the row.
 	OnSelect        func(sessionID string)
 	OnCreateSession func()
 	OnSubmit        func(text string)
@@ -225,78 +242,139 @@ type State struct {
 	// row, kept across frames so that appended rows follow the end and rows keep
 	// their state as the conversation changes.
 	conversation ui.ListState
-	// sidebarList is the thread list's place and focus, sidebarChoice is the
-	// row it shows as chosen, sidebarSynced is the session that choice was
-	// last mapped from, and sidebarRows is the layout the choice indexes into.
-	// They are the list's own view state, not session facts.
-	sidebarList   ui.ListState
-	sidebarChoice int
-	sidebarSynced string
-	sidebarRows   []sidebarRow
+	// sidebar is the thread list's place, choice and row layout: the list's own
+	// view state, not session facts. See sidebarState.
+	sidebar sidebarState
 	// markdown is the shared Markdown options of every assistant row, whose
 	// theme follows the window's.
 	markdown markdown.Options
 	// composerFocus is the composer's identity, for the shortcut that moves the
 	// keyboard focus to it.
 	composerFocus ui.Handle
-	// expandedBlocks is the shell's own fold state of thinking and tool blocks,
-	// keyed by row and block (see blockOpen). It holds no timeline fact: the
-	// projection does not own whether a user opened a fold, so a rebuild keeps
-	// it here. It lives as long as the window; a fold left behind by a row that
-	// left the timeline stays as one unused entry and is never re-keyed.
-	expandedBlocks map[string]*bool
+	// folds is the shell's own fold state of thinking and tool blocks, keyed by
+	// row and block (see blockFolds.state). It holds no timeline fact: the
+	// projection does not own whether a user opened a fold, so a rebuild keeps it
+	// here. It lives as long as the window; a fold left behind by a row that left
+	// the timeline stays as one unused entry and is never re-keyed.
+	folds blockFolds
 }
 
 // View builds one frame of the AppFrame: sidebar, toolbar, banner, conversation
-// and composer.
+// and composer. It only assembles each region's view and the Actions, then
+// calls the region's render entry; it draws no region itself.
 func (s *State) View(c *ui.Context) {
 	k := newTokens(c.Theme())
 	// The divider writes the width it drags to; the shell keeps the sidebar
 	// inside its own bounds before every frame, so a drag can never take the
 	// session list or the conversation off the window.
 	s.SidebarWidth = k.resolveSidebarWidth(s.SidebarWidth)
+	a := s.actions()
+	composer := s.composerView()
 	ui.Split(c, &s.SidebarWidth, func() {
-		s.sidebar(c, k)
+		renderSidebar(c, k, s.sidebarView(), a)
 	}, func() {
-		s.main(c, k)
+		ui.Column(c).FillHeight().Children(func() {
+			renderHeader(c, k, s.headerView(), a)
+			renderTimeline(c, k, s.timelineView(), a)
+			renderComposer(c, k, composer, a)
+		})
 	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
-		s.composerFocus.Focus()
+		composer.Focus.Focus()
 	}
 }
 
-// main is the conversation area beside the sidebar: toolbar, banner,
-// conversation list and composer.
-func (s *State) main(c *ui.Context, k tokens) {
-	ui.Column(c).FillHeight().Children(func() {
-		s.header(c, k)
-		s.banner(c, k)
-		s.conversationList(c, k)
-		s.composer(c, k)
-	})
+// actions copies the window's callbacks into the Actions a region receives. A
+// nil callback stays nil, which is how a region learns the action is a WIP gap.
+func (s *State) actions() Actions {
+	return Actions{
+		OnCreateSession: s.OnCreateSession,
+		OnSelect:        s.OnSelect,
+		OnSubmit:        s.OnSubmit,
+		OnStop:          s.OnStop,
+		OnReconnect:     s.OnReconnect,
+		OnApproval:      s.OnApproval,
+	}
 }
 
-// branchList shows the branch metadata supplied by the App Server as read-only
-// rows. Branch switching and cut point remain disabled, so the list offers no
-// switch or side-chat action.
-func (s *State) branchList(c *ui.Context, k tokens) {
-	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
-		Role(ui.RoleGroup).Label("Branches (read-only)").Children(func() {
-		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().AccessHidden(true)
-			ui.Box(c).Grow(1)
-			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
-		})
-		for _, branch := range s.Branches {
-			label := branch.Label
-			if label == "" {
-				label = branch.ID
-			}
-			if branch.Selected || branch.ID == s.SelectedBranch {
-				label += " (current)"
-			}
-			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+// sidebarView copies the catalog, the read-only branch metadata and the
+// window-owned entry state into the sidebar's view. Selected is a pointer: the
+// sidebar writes the choice it made, and the shell reads it on the next frame.
+func (s *State) sidebarView() SidebarView {
+	return SidebarView{
+		Sessions:       s.Sessions,
+		Selected:       &s.Selected,
+		SelectedBranch: s.SelectedBranch,
+		Branches:       s.Branches,
+		Creating:       s.CreatingSession,
+		Capabilities:   wipCapabilities(s),
+		state:          &s.sidebar,
+	}
+}
+
+// headerView copies the supervisor's report, the terminal close and the
+// window-owned status into the toolbar's view.
+func (s *State) headerView() HeaderView {
+	return HeaderView{
+		Title:           s.selectedTitle(),
+		HasSession:      s.Selected != "",
+		Connection:      s.Connection,
+		ConnectionError: s.ConnectionError,
+		Run:             s.Run,
+		Closed:          s.SessionClosed,
+		ClosedReason:    s.SessionClosedReason,
+		ModelProgress:   s.ModelProgress,
+		Notices:         s.Notices,
+		ActionNotices:   s.ActionNotices,
+		ActionError:     s.ActionError,
+		ActionStatus:    s.ActionStatus,
+		Loading:         s.ConversationLoading,
+	}
+}
+
+// timelineView copies the rows and the window's loading and close facts into
+// the timeline's view, with pointers to the list, fold and Markdown state the
+// region keeps across frames.
+func (s *State) timelineView() TimelineView {
+	return TimelineView{
+		Messages: s.Messages,
+		Loading:  s.ConversationLoading,
+		Closed:   s.SessionClosed,
+		list:     &s.conversation,
+		folds:    &s.folds,
+		markdown: &s.markdown,
+	}
+}
+
+// composerView copies the draft and the window's submission gate into the
+// composer's view. CanSubmit leaves the draft's text to the region, which reads
+// it live when the shortcut or Send fires.
+func (s *State) composerView() ComposerView {
+	return ComposerView{
+		Draft:       &s.Draft,
+		CanSubmit:   s.canSubmit(),
+		Placeholder: composerPlaceholder,
+		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:       &s.composerFocus,
+	}
+}
+
+// canSubmit reports whether the window would accept a submission from the
+// selected session right now: a wired submit callback, a ready connection,
+// loaded history, an open session and a selection. It says nothing about the
+// draft: the composer reads that live. A fixture without those cannot pretend a
+// submission the App Server never received.
+func (s *State) canSubmit() bool {
+	return s.OnSubmit != nil && s.Connection == ConnReady && !s.ConversationLoading &&
+		!s.SessionClosed && s.Selected != ""
+}
+
+// selectedTitle returns the title of the selected session, or a placeholder.
+func (s *State) selectedTitle() string {
+	for _, session := range s.Sessions {
+		if session.ID == s.Selected {
+			return session.Title
 		}
-		ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.mutedForeground)
-	})
+	}
+	return "No session"
 }
