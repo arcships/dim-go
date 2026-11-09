@@ -100,8 +100,8 @@ type sidebarRow struct {
 	// group marks a heading row, which the list shows sticky and never
 	// chooses.
 	group bool
-	// pinned marks the desktop-local pinned group's heading, which draws the pin
-	// glyph instead of the folder.
+	// pinned marks a session row the desktop-local pinned list holds. The row
+	// stays in its project group and draws the pin glyph at its tail.
 	pinned bool
 	// label is the heading's text.
 	label string
@@ -128,12 +128,14 @@ func (r sidebarRow) accessLabel(l Locale) string {
 
 // threadRows lays the catalog out for the sidebar. Archived sessions are not
 // rows at all: the desktop hides them here without touching the catalog.
-// Pinned sessions are drawn first under their own heading, in the catalog's own
-// order, because the pin carries no time and the App Server's order stays the
-// only ordering fact. The remaining rows keep the catalog's order: when no
-// session carries a Group label the list stays flat; once one does, every
-// heading is drawn and the ungrouped sessions fall under the locale's "no
-// project" label. No row is invented.
+// Pinned sessions stay in their project group, moved to the front of it in the
+// catalog's own order, because the pin carries no time and the App Server's
+// order stays the only ordering fact. A pinned row keeps its place inside its
+// group and draws the pin glyph at its tail (see threadRow). The remaining rows
+// keep the catalog's order: when no session carries a Group label the list
+// stays flat, with the pinned rows first; once one does, every heading is drawn
+// and the ungrouped sessions fall under the locale's "no project" label. No row
+// is invented.
 func threadRows(sessions []Session, locale Locale, pinned, archived []string) []sidebarRow {
 	visible := make([]Session, 0, len(sessions))
 	for _, session := range sessions {
@@ -142,36 +144,22 @@ func threadRows(sessions []Session, locale Locale, pinned, archived []string) []
 		}
 	}
 	rows := make([]sidebarRow, 0, len(visible)+4)
-	pinnedRows := make([]sidebarRow, 0, len(pinned))
-	rest := make([]Session, 0, len(visible))
-	for _, session := range visible {
-		row := sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt}
-		if containsID(pinned, session.ID) {
-			pinnedRows = append(pinnedRows, row)
-			continue
-		}
-		rest = append(rest, session)
-	}
-	if len(pinnedRows) > 0 {
-		rows = append(rows, sidebarRow{group: true, pinned: true, label: tr(locale, keySidebarPinned)})
-		rows = append(rows, pinnedRows...)
-	}
 	grouped := false
-	for _, session := range rest {
+	for _, session := range visible {
 		if session.Group != "" {
 			grouped = true
 			break
 		}
 	}
 	if !grouped {
-		for _, session := range rest {
-			rows = append(rows, sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt})
+		for _, session := range pinnedFirst(visible, pinned) {
+			rows = append(rows, sidebarSessionRow(session, pinned))
 		}
 		return rows
 	}
 	var order []string
-	buckets := make(map[string][]sidebarRow, len(rest))
-	for _, session := range rest {
+	buckets := make(map[string][]Session, len(visible))
+	for _, session := range visible {
 		label := session.Group
 		if label == "" {
 			label = tr(locale, keySidebarUngrouped)
@@ -179,13 +167,46 @@ func threadRows(sessions []Session, locale Locale, pinned, archived []string) []
 		if _, ok := buckets[label]; !ok {
 			order = append(order, label)
 		}
-		buckets[label] = append(buckets[label], sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt})
+		buckets[label] = append(buckets[label], session)
 	}
 	for _, label := range order {
 		rows = append(rows, sidebarRow{group: true, label: label})
-		rows = append(rows, buckets[label]...)
+		for _, session := range pinnedFirst(buckets[label], pinned) {
+			rows = append(rows, sidebarSessionRow(session, pinned))
+		}
 	}
 	return rows
+}
+
+// pinnedFirst moves the desktop-local pinned rows to the front of one group and
+// keeps the catalog's order inside both halves. The pin carries no time of its
+// own, so the catalog stays the only ordering fact and a stable partition is
+// enough: a group of one kind or the other is returned unchanged.
+func pinnedFirst(sessions []Session, pinned []string) []Session {
+	ordered := make([]Session, 0, len(sessions))
+	for _, session := range sessions {
+		if containsID(pinned, session.ID) {
+			ordered = append(ordered, session)
+		}
+	}
+	for _, session := range sessions {
+		if !containsID(pinned, session.ID) {
+			ordered = append(ordered, session)
+		}
+	}
+	return ordered
+}
+
+// sidebarSessionRow is the row one catalog session draws. The pinned mark comes
+// from the desktop-local id list and changes only the row's order and tail; the
+// title and time stay the catalog's.
+func sidebarSessionRow(session Session, pinned []string) sidebarRow {
+	return sidebarRow{
+		sessionID: session.ID,
+		title:     session.Title,
+		updatedAt: session.UpdatedAt,
+		pinned:    containsID(pinned, session.ID),
+	}
 }
 
 // containsID reports whether ids holds id. The pinned and archived lists are
@@ -486,7 +507,10 @@ func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 // heading keeps the reference's project row: 28 DIPs around its text plus the
 // gap-0.5 before its first row, so the session rows under it sit where
 // window-conversation.png draws them. A session row keeps the reference's
-// leading cell empty: this shell has no status or icon fact for a row.
+// leading cell empty: this shell has no status or icon fact for a row. A pinned
+// row draws the muted pin glyph at its tail, after the relative stamp, as the
+// desktop-local pin's only mark; the glyph changes no row fact and stays out of
+// the accessible name.
 func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()) {
 	if row.group {
 		// The list insets every row by sidebarRowInset, but the reference keeps
@@ -497,11 +521,7 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 			Padding(0, k.sidebarPadX-sidebarRowInset, k.sidebarGap/2, k.sidebarPadX-sidebarRowInset).
 			Gap(k.sidebarGap).
 			Background(k.sidebar).Transition(motionLayoutColors(c)).AlignItems(ui.Center).Children(func() {
-			icon := sidebarIcons.folder
-			if row.pinned {
-				icon = sidebarIcons.pin
-			}
-			sidebarGlyph(c, icon, k.mutedForeground)
+			sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
 			ui.Text(c, row.label).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
 			ui.Spacer(c)
 		})
@@ -530,6 +550,9 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 		if stamp := relativeStamp(row.updatedAt, time.Now()); stamp != "" {
 			ui.Text(c, stamp).FontSize(k.smallSize).TextColor(k.sidebarForeground).
 				SingleLine()
+		}
+		if row.pinned {
+			sidebarGlyph(c, sidebarIcons.pin, k.mutedForeground)
 		}
 	})
 }

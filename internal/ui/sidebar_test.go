@@ -1063,18 +1063,22 @@ func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
 	}
 }
 
-// TestSidebarPinsBeforeProjectGroups checks the desktop-local pinned order: the
-// pinned rows are drawn under their own heading before every project group, in
-// the catalog's order, and the remaining rows keep the catalog's grouping. The
-// pinned ids carry no title or time of their own; the catalog still supplies
-// both.
-func TestSidebarPinsBeforeProjectGroups(t *testing.T) {
+// TestSidebarKeepsPinnedSessionsInline checks the desktop-local pinned order:
+// a pinned session keeps its project group and moves to the front of it in the
+// catalog's order, with no separate "Pinned" heading above the groups. A pinned
+// row carries the marker that draws the pin glyph; the remaining rows keep the
+// catalog's order.
+func TestSidebarKeepsPinnedSessionsInline(t *testing.T) {
 	sessions := []Session{
 		{ID: "s1", Title: "First session", Group: "alpha"},
 		{ID: "s2", Title: "Second session", Group: "beta"},
-		{ID: "s3", Title: "Third session"},
+		{ID: "s3", Title: "Third session", Group: "alpha"},
+		{ID: "s4", Title: "Fourth session"},
+		{ID: "s5", Title: "Fifth session", Group: "beta"},
+		{ID: "s6", Title: "Sixth session", Group: "alpha"},
 	}
-	rows := threadRows(sessions, LocaleEN, []string{"s3", "s2"}, nil)
+	pinned := []string{"s6", "s5", "s1"}
+	rows := threadRows(sessions, LocaleEN, pinned, nil)
 
 	var got []string
 	for _, row := range rows {
@@ -1084,31 +1088,119 @@ func TestSidebarPinsBeforeProjectGroups(t *testing.T) {
 		}
 		got = append(got, row.sessionID)
 	}
-	want := []string{"[" + tr(LocaleEN, keySidebarPinned) + "]", "s2", "s3", "[alpha]", "s1"}
+	want := []string{"[alpha]", "s1", "s6", "s3", "[beta]", "s5", "s2", "[" + ungroupedLabel + "]", "s4"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("pinned rows = %v, want %v", got, want)
 	}
-	if !rows[0].pinned {
-		t.Error("the pinned heading is not marked as the pinned group")
+	wantPinned := map[string]bool{"s1": true, "s5": true, "s6": true}
+	for _, row := range rows {
+		if row.group {
+			if row.label == tr(LocaleEN, keySidebarPinned) {
+				t.Errorf("the pinned rows still draw their own %q heading", row.label)
+			}
+			continue
+		}
+		if row.pinned != wantPinned[row.sessionID] {
+			t.Errorf("row %s pinned = %v, want %v", row.sessionID, row.pinned, wantPinned[row.sessionID])
+		}
 	}
 
-	// The frame draws that order: the pinned heading sits above the project
-	// heading and both pinned rows.
+	// The frame draws that order: every pinned row stays inside its project
+	// group, in front of the rows the catalog put before it.
 	s := fixture()
 	s.Sessions = sessions
 	s.Selected = "s1"
-	s.Pinned = []string{"s3", "s2"}
+	s.Pinned = pinned
 	tt := ui.NewTester(s.View, 900, 800)
-	pinned, ok := tt.Find(tr(LocaleEN, keySidebarPinned))
-	if !ok {
-		t.Fatalf("the pinned heading is not drawn, texts %q", tt.Texts())
+	if tt.HasText(tr(LocaleEN, keySidebarPinned)) {
+		t.Errorf("the sidebar still draws a %q heading, texts %q", tr(LocaleEN, keySidebarPinned), tt.Texts())
 	}
-	alpha, _ := tt.Find("alpha")
-	second, _ := tt.Find("Second session")
-	third, _ := tt.Find("Third session")
-	if !(pinned.Y < second.Y && second.Y < third.Y && third.Y < alpha.Y) {
-		t.Errorf("pinned rows are not before the project group: pinned %+v second %+v third %+v alpha %+v",
-			pinned, second, third, alpha)
+	alpha := textBox(t, tt, "alpha")
+	beta := textBox(t, tt, "beta")
+	noProject := textBox(t, tt, ungroupedLabel)
+	first := textBox(t, tt, "First session")
+	sixth := textBox(t, tt, "Sixth session")
+	third := textBox(t, tt, "Third session")
+	fifth := textBox(t, tt, "Fifth session")
+	second := textBox(t, tt, "Second session")
+	fourth := textBox(t, tt, "Fourth session")
+	if !(alpha.Y < first.Y && first.Y < sixth.Y && sixth.Y < third.Y && third.Y < beta.Y &&
+		beta.Y < fifth.Y && fifth.Y < second.Y && second.Y < noProject.Y && noProject.Y < fourth.Y) {
+		t.Errorf("pinned rows are not inline within their groups: alpha %+v first %+v sixth %+v third %+v "+
+			"beta %+v fifth %+v second %+v no-project %+v fourth %+v",
+			alpha, first, sixth, third, beta, fifth, second, noProject, fourth)
+	}
+}
+
+// TestSidebarDrawsThePinGlyphOnPinnedRows checks the inline mark: a pinned
+// session draws the muted pin at its tail, after the title, and a session
+// without the pin draws nothing there.
+func TestSidebarDrawsThePinGlyphOnPinnedRows(t *testing.T) {
+	s := fixture()
+	s.Sessions = []Session{
+		{ID: "s1", Title: "Pinned session", Group: "alpha"},
+		{ID: "s2", Title: "Plain session", Group: "alpha"},
+	}
+	s.Selected = ""
+	s.Pinned = []string{"s1"}
+	tt, k := glyphTester(t, s)
+
+	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	rowRight := nav.Bounds.X + nav.Bounds.W - k.sidebarPadX - sidebarRowEndInset
+	boxFor := func(title string) ui.Rect {
+		row := textBox(t, tt, title)
+		return ui.Rect{
+			X: rowRight - k.sidebarPadX - sidebarIconSize,
+			Y: row.Y + row.H/2 - sidebarIconSize/2,
+			W: sidebarIconSize,
+			H: sidebarIconSize,
+		}
+	}
+	hasInk := func(box ui.Rect, want ui.Color) bool {
+		image := tt.Image()
+		for y := int(box.Y); y < int(box.Y+box.H); y++ {
+			for x := int(box.X); x < int(box.X+box.W); x++ {
+				if sameColor(image.RGBAAt(x, y), want) {
+					return true
+				}
+			}
+		}
+		return false
+	}
+	if !hasInk(boxFor("Pinned session"), k.mutedForeground) {
+		t.Errorf("the pinned row draws no muted pin glyph at its tail, texts %q", tt.Texts())
+	}
+	if hasInk(boxFor("Plain session"), k.mutedForeground) {
+		t.Errorf("a row without the pin draws a glyph at its tail, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarDrawsNoGroupForEmptyOrMissingRows checks the empty side: a project
+// whose only sessions are hidden draws no heading, and a pinned id the catalog
+// does not hold draws neither a row nor a heading.
+func TestSidebarDrawsNoGroupForEmptyOrMissingRows(t *testing.T) {
+	sessions := []Session{
+		{ID: "s1", Group: "alpha"},
+		{ID: "s2", Group: "beta"},
+	}
+	rows := threadRows(sessions, LocaleEN, []string{"s1", "missing"}, []string{"s1", "s2"})
+	if len(rows) != 0 {
+		t.Fatalf("hidden sessions produced rows %+v, want none", rows)
+	}
+
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	s.Pinned = []string{"missing"}
+	tt := ui.NewTester(s.View, 900, 600)
+	if tt.HasText(tr(LocaleEN, keySidebarPinned)) {
+		t.Errorf("a missing pinned id draws the %q heading, texts %q", tr(LocaleEN, keySidebarPinned), tt.Texts())
+	}
+	if !tt.HasText(tr(LocaleEN, keySidebarEmpty)) {
+		t.Errorf("the empty catalog draws no %q message, texts %q", tr(LocaleEN, keySidebarEmpty), tt.Texts())
 	}
 }
 
