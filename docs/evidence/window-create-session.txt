@@ -1,0 +1,5 @@
+capture	docs/evidence/window-create-session.png
+git_head	127ab02
+git_dirty	see repository state at capture
+driver	scripts/ax/axdo.swift
+note	real window, Accessibility-driven click/type, not headless

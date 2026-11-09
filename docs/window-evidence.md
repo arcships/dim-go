@@ -80,6 +80,27 @@ go run ./scripts/seed-session -home "$HOME_DIR" \
 - 状态栏 `Branch: main`、`App Server: Connected`。
 - 这组证据支撑 F2（真实 daemon + 会话列表）、F5（首屏 history 渲染）和 F12 的侧栏 branch 目录展示；它不覆盖窗口内点击创建/切换/提交，也不覆盖 cut point。
 
+### 3.2 真实窗口交互（Accessibility 驱动，2026-11-09）
+
+macOS 的 Accessibility 已授权（`AXIsProcessTrusted() == true`），因此窗口内的点击、输入和截图都是真实事件，不是 mock。驱动工具 `scripts/ax/axdo.swift`、窗口 ID 工具 `scripts/ax/windowid.swift` 已入库，可重跑。
+
+在 `596ad67` 之后、配合 `fix(ui): select sessions on row clicks and respawn on reconnect` 的窗口里依次验证：
+
+| 验收 | 操作 | 结果 | 截图 |
+|---|---|---|---|
+| F3 创建会话 | 点击侧栏 `New session` | `Sessions 2`，新会话被选中，标题是 App Server 返回的 session id，`Notices: 1` | [`evidence/window-create-session.png`](evidence/window-create-session.png) |
+| F4 切换会话 | 点击第二个会话行 | 标题切到该会话，首屏 history（user + assistant 行）渲染 | [`evidence/window-switch-session.png`](evidence/window-switch-session.png) |
+| F6 提交 | 在 composer 输入 `Acceptance: reply with one short sentence.`，点击圆形 Send | 出现 user 气泡与 assistant `Echo:` 行 | [`evidence/window-submit.png`](evidence/window-submit.png) |
+| F10 断线重连 | `kill` 掉本次 daemon | 窗口保持打开，显示 `App Server: Connection error` 与 `Reconnect` | [`evidence/window-transport-lost.png`](evidence/window-transport-lost.png) |
+| F10 重连恢复 | 点击 `Reconnect` | supervisor 重新 spawn `--mock-model` daemon，`App Server: Connected`，latest-turn history 重建 | [`evidence/window-reattach.png`](evidence/window-reattach.png) |
+
+这一组同时暴露并修复了两个真实缺陷：
+
+1. 侧栏行点击只移动 List 光标、不触发 `OnChange`（只绑 `Selected` 时），真实窗口无法切换会话；现在行自身也发布选择。
+2. `Reconnect` 只重建 session stream，不先重连控制面；daemon 已退出时永远无法恢复。现在先 `Supervisor.Reconnect()`（自有 daemon 会被重新 spawn），再 `Reattach`。
+
+仍未由窗口点击覆盖：stop（mock model 立即结束，没有可停止的窗口）、approval 决策（mock model 不发审批）、unknown-result 读回（需注入故障）、附件（无文件选择 API）、cut point。这些不写成通过。
+
 ## 4. 截图上实际看到的内容
 
 两张图都来自 `596ad67`：未连接是空 catalog，已连接是 seed 会话 + side branch。共同部分是主区卡片、hero/composer 结构和侧栏入口。

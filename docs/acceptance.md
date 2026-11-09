@@ -26,14 +26,14 @@ Last updated: 2026-11-09
 |---|---|---|---|---|
 | F1 | 应用启动（无 daemon） | 真实窗口截图 + 未连接状态可见 | L4：`docs/evidence/window-disconnected.png`（`Not connected`） | **已通过（L4）** |
 | F2 | 应用启动（真实 daemon，`DIMAGENT_PRODUCT_HOME`） | L3 + 真实窗口 + session 列表可见 | L4：`docs/evidence/window-connected.png` + `scripts/seed-session` 预置会话后，窗口显示 `Sessions 1`、选中行、`main (current)`、side branch、`App Server: Connected`（`596ad67`） | **已通过（L4）** |
-| F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | UI 已接线（headless/fake 测试通过）；L4 无 | 未通过 |
-| F4 | session 切换 | 真实窗口切换 + 历史正确 | headless 覆盖，L4 无 | 未通过 |
+| F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | L4：窗口点击 `New session`，`Sessions 2` 且新会话被选中（`window-create-session.png`） | **已通过（L4）** |
+| F4 | session 切换 | 真实窗口切换 + 历史正确 | L4：窗口点击第二个会话，标题与首屏 history 均切换（`window-switch-session.png`） | **已通过（L4）** |
 | F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L4：`window-connected.png`（seed 会话的 user/assistant 行，`596ad67`） | **已通过（L4）** |
-| F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L3 通过；无持续 ticker；L4 无 | 未通过 |
+| F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L4：窗口输入并点击 Send，user 行与 assistant 行出现（`window-submit.png`）；增量流式未单独观察 | 未通过 |
 | F7 | stop | 真实窗口停止 → 状态收敛 | L3 通过；L4 无 | 未通过 |
 | F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | headless + fake-server（bridge 单测）；无 L3/L4 审批流证据 | 未通过 |
 | F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | UI 已接线 + integration 单测；L4 无 | 未通过 |
-| F10 | 断线 / reattach | 杀掉 daemon → 错误态 → 重连 → 历史重建 | 单测；L4 无 | 未通过 |
+| F10 | 断线 / reattach | 杀掉 daemon → 错误态 → 重连 → 历史重建 | L4：kill daemon 显示 Connection error；点击 Reconnect 后 daemon 重新 spawn、连接恢复、latest-turn history 重建（`window-transport-lost.png`、`window-reattach.png`） | **已通过（L4）** |
 | F11 | `subscription_changed` 恢复 | 真实 replay-gap 场景 | 无真实 wire 证据 | 未通过 |
 | F12 | branch switching / cut point | 真实切换 branch 并渲染 | L3 opt-in real daemon 覆盖 branch_create → open → refresh → end；真实窗口显示 `main` 与 seed 的 side branch。窗口内切换点击、cut point 与 L4 未验证 | 未通过 |
 | F13 | attachment 上传 | 真实上传并出现在 timeline | Go 侧 `attachment.put` helper 已有（L1/L2 fake-server）；shell 无文件选择器/结果读回；L3/L4 无 | 未通过 |
