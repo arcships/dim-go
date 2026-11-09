@@ -39,6 +39,12 @@ def main() -> None:
     parser.add_argument("reference")
     parser.add_argument("candidate")
     parser.add_argument("--out", default="")
+    parser.add_argument(
+        "--blur",
+        type=float,
+        default=0.0,
+        help="blur radius before comparing (tolerates font raster and anti-aliasing)",
+    )
     args = parser.parse_args()
 
     reference = Image.open(args.reference).convert("RGB")
@@ -49,9 +55,14 @@ def main() -> None:
     target = (min(reference.width, candidate.width), min(reference.height, candidate.height))
     reference = reference.resize(target, Image.LANCZOS)
     candidate = candidate.resize(target, Image.LANCZOS)
+    if args.blur > 0:
+        from PIL import ImageFilter
+
+        reference = reference.filter(ImageFilter.GaussianBlur(args.blur))
+        candidate = candidate.filter(ImageFilter.GaussianBlur(args.blur))
     diff = ImageChops.difference(reference, candidate)
 
-    report = {"reference": args.reference, "candidate": args.candidate, "size": list(reference.size), "regions": {}}
+    report = {"reference": args.reference, "candidate": args.candidate, "size": list(reference.size), "blur": args.blur, "regions": {}}
     for name, box in REGIONS.items():
         rect = crop(reference.size, box)
         ref = reference.crop(rect)
