@@ -19,7 +19,20 @@ Last updated: 2026-11-09
 **五条会影响所有区域的事实**，后面不再重复解释：
 
 1. **根字号是 14px，不是 16px。** `html { font-size: var(--dimcode-ui-font-size) }`（`A/styles/global.css:389-391`），默认 `--dimcode-ui-font-size: 14px`（`A/styles/global.css:166`），档位 `[12, 13, 14, 16, 18]`（`A/appearance/index.ts:12`）。所以 **所有 rem 类（`text-sm`、`max-w-4xl`、`rounded-xl`、`h-9`）都随字号档位缩放**。
-2. **间距类不能用 4px 网格换算。** 仓库没有覆盖 Tailwind 的 `--spacing`（`A/styles/global.css` 中无该变量），`p-3` / `gap-2` / `px-4` 走 Tailwind 默认的 `0.25rem` 刻度；在 14px 根字号下每档 **3.5px**。MyGo `theme.Space(n)` 是 `n × Spacing`，`Spacing` 默认 **4**（`mygo ui/theme.go:86-92`）。直接对档号调参会有约 14% 偏差，映射时要按 DIP 换算，不要照抄档号。
+2. **间距类不能用 4px 网格换算。** 仓库没有覆盖 Tailwind 的 `--spacing`（`A/styles/global.css` 中无该变量），`p-3` / `gap-2` / `px-4` 走 Tailwind 默认的 `0.25rem` 刻度；在 14px 根字号下每档 **3.5px**。MyGo `theme.Space(n)` 是 `n × Spacing`，`Spacing` 默认 **4**（`mygo ui/theme.go:86-92`）。直接对档号调参会有约 14% 偏差，映射时要按 DIP 换算，不要照抄档号。常用换算（**推导值**，随字号档位变化，不是常量）：
+
+   | A 的表达 | rem | 14px 根字号下的 DIP |
+   |---|---|---|
+   | `px-2` / `p-2` / `gap-2` | 0.5rem | 7 |
+   | `px-3` / `p-3` / `gap-3` | 0.75rem | 10.5 |
+   | `px-4` / `p-4` | 1rem | 14 |
+   | `h-7` | 1.75rem | 24.5 |
+   | `h-8` | 2rem | 28 |
+   | `h-9` | 2.25rem | 31.5 |
+   | `h-10` | 2.5rem | 35 |
+   | `--win-titlebar-height` | 2.5rem | 35 |
+   | `max-w-4xl` | 56rem | 784 |
+
 3. **px 字面量是刻意不缩放的。** `--titlebar-height: 48px`（`A/styles/global.css:174`）承载 macOS 红绿灯（同文件 `170-173` 的注释），`--win-titlebar-height: 2.5rem`（`A/styles/global.css:168`）则是 rem，会缩放。
 4. **断点按内容宽度，不按媒体查询。** `contentWidth < 720` → `compact`，`< 960` → `regular`，否则 `wide`（`A/stores/layout.ts:6-13`）；`contentWidth` 由 `App.vue` 的 `ResizeObserver` 写入（`A/app/App.vue:72-74`）。
 5. **布局层级有固定 z 契约。** `--z-sidebar-base: 0`、`--z-content: 10`、`--z-content-frame: 20`、`--z-overlay-scrim: 40`、`--z-sidebar-floating: 50`（`A/styles/global.css:250-254`），统一过渡 `--layout-transition-ms: 250ms`（`A/styles/global.css:259`，常量见 `A/composables/useLayoutTransition.ts:8`）。
@@ -93,9 +106,10 @@ Last updated: 2026-11-09
 
 ```go
 // 外壳：A 的 flex 行要求子项纵向拉伸，MyGo Row 默认居中（mygo ui/api_gen.go:2110-2111），必须显式 Stretch。
+// 下面的 48 / 7 / 4.5 是 DIP：48 与 4.5 来自 px 字面量，7 是 px-2（0.5rem）在 14px 根字号下的换算，见 §0 事实 2。
 ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
-    // 标题栏：px 值固定 48（A 的 --titlebar-height 是 48px 字面量）
-    ui.Row(c).Height(48).PaddingX(k.space(0.5)).AlignItems(ui.Center).Children(/* brand, spacer */)
+    // 标题栏：h=(--titlebar-height)=48px，px-2
+    ui.Row(c).Height(48).PaddingX(7).AlignItems(ui.Center).Children(/* brand, spacer */)
 
     // 侧栏：不参与流 + inset 用 margin-left 让位（A 是遮挡式 wipe）
     sidebarView(c, k)                       // Width(k.sidebarW).Shrink(0)
@@ -114,7 +128,7 @@ ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 - **没有 `overflow: visible` 与滚动容器之外的可裁剪容器区分。** `Clip()` 只裁子节点绘制（`mygo ui/api_gen.go:4155-4156`），`Scroll` 才是滚动容器（`mygo ui/api_gen.go:2123-2124`）。A 的 `overflow-hidden` 多数是"裁剪"，对应 `Clip()`。
 - **没有 `-webkit-app-region: drag`。** A 用 `window-drag` 类把标题栏交给系统拖动（`A/components/app/AppTitlebar.vue:16`）。MyGo 窗口拖动属于窗口/标题栏模型，不是视图属性（`TesterOptions.TitleBar`、`Tester.SetTitleBar`），不在 P0 布局范围，但会影响像素对照的窗口外框。
 - **`z-[calc(var(--z-overlay-scrim)+2)]` 这类表达式无法表达。** `ZIndex(int)` 在（`mygo ui/api_gen.go:8316`），但没有变量加法的写法；契约值要在 Go 里算好再传。
-- **没有 `inert`。** A 在折叠/被遮挡时设 `inert` + `aria-hidden`（`Sidebar.vue:166-167`；`ChatWorkspace.vue:6489-6490`）。MyGo 有 `Disabled`、`AccessHidden`、`IgnoreInput`，语义要分开选：`IgnoreInput(true)` 最接近 inert 的输入语义。
+- **没有 `inert`。** A 在折叠/被遮挡时设 `inert` + `aria-hidden`（`A/components/ui/sidebar/Sidebar.vue:166-167`；`A/components/chat-workspace/ChatWorkspace.vue:6489-6490`）。MyGo 有 `Disabled`（`mygo ui/api_gen.go:4573`）、`AccessHidden`（`:3384`）、`IgnoreInput`（`:5531`），语义要分开选：`IgnoreInput(true)` 最接近 inert 的输入语义，`AccessHidden(true)` 对应 `aria-hidden`。
 
 ---
 
@@ -176,6 +190,8 @@ aside                    absolute, flex column, overflow hidden               A/
 | 拖入提示层 | `absolute inset-1 z-30 rounded-lg border-dashed px-4 gap-2` | `A/components/sidebar/AppSidebar.vue:116` |
 | 项目间分隔线 | `mx-2 my-1 h-px` | `A/components/sidebar/ProjectItem.vue:511-515` |
 
+**"搜索"不是内联输入框。** 侧栏里的搜索是一个普通菜单项（`h-8`，右侧在 hover/focus 时显示快捷键 chip `px-2 py-0.5 rounded-full text-xs`），点击打开 `ChatSearchDialog`（`A/components/sidebar/GlobalEntries.vue:78-92`；`A/app/App.vue:306`；快捷键 ⌘G / Ctrl+G 见 `GlobalEntries.vue:32`）。所以侧栏布局里**没有**搜索框的宽度/高度约束；搜索对话框是弹层，不在 P0 区域布局内（B 侧按 WIP 入口处理即可）。
+
 ### 2.3 响应式与折叠条件
 
 | 条件 | 行为 | 来源 |
@@ -183,7 +199,7 @@ aside                    absolute, flex column, overflow hidden               A/
 | compact（<720） | 抽屉：`fixed inset-0`，`max-w-[85vw]`，`rounded-lg shadow-2xl`，z=`--z-sidebar-floating`；点 `[data-sidebar-destination]` 或 Esc 关闭 | `A/components/ui/sidebar/Sidebar.vue:145,94-99`；`A/app/App.vue:180-188` |
 | 用户拖宽 | `setWidth(clamp(width))`，松手写回 layout-state | `A/components/ui/sidebar/Sidebar.vue:103-107`；`SidebarProvider.vue:122-131` |
 | `regular` 下超宽 | 侧栏有效宽被 `contentWidth - 408` 压 | `SidebarProvider.vue:117` |
-| 项目折叠 | 子列表 `v-if="isNearViewport || hasProjectFocus"`，折叠时不建 DOM；折叠期间有线程在跑则显示 loading 点 | `A/components/sidebar/ProjectItem.vue:448`；`:136-137,349-356` |
+| 项目折叠 | 子列表只在"接近视口或有焦点"时渲染，折叠时不建 DOM；折叠期间有线程在跑则显示 loading 点 | `A/components/sidebar/ProjectItem.vue:448`；`:136-137,349-356` |
 | 项目数超过 5（默认阈值） | 出现"显示更多"，每次 +20 | `A/components/sidebar/AppSidebar.vue:30-34`；`ProjectItem.vue:139,180-188` |
 | flat 视图 | 首次 20 条，每次 +20；日期分段随可见片计算 | `A/components/sidebar/ThreadList.vue:66-70,92-99` |
 | 办公模式 | flat/group 切换器隐藏，强制 group | `A/components/sidebar/ThreadList.vue:62-64`；`ThreadListHeader.vue:109` |
@@ -193,7 +209,7 @@ aside                    absolute, flex column, overflow hidden               A/
 | 项 | 事实 | 来源 |
 |---|---|---|
 | 滚动容器归属 | 唯一：`ScrollArea`（`flex-1 min-h-0`），viewport 高 100% | `A/components/sidebar/AppSidebar.vue:87,142-144` |
-| 虚拟化实现 | `useSidebarVirtualRows(items, rowHeight)`：手势/尺寸变化时重算窗口 | `A/components/sidebar/useSidebarVirtualRows.ts:4-31` |
+| 虚拟化实现 | `useSidebarVirtualRows(items, rowHeight)`：滚动与视口尺寸变化时重算窗口 | `A/components/sidebar/useSidebarVirtualRows.ts:4-31` |
 | 视口探测 | `element.closest('[data-slot="scroll-area-viewport"]')` | 同上 `:24` |
 | 过扫（overscan） | 上下各 8 行；`end` 初值 40 | 同上 `:7,15-16` |
 | 行高 | flat 36；项目内 34；置顶 34 | `ThreadList.vue:109`；`ProjectItem.vue:153`；`PinnedThreads.vue:39` |
@@ -204,13 +220,14 @@ aside                    absolute, flex column, overflow hidden               A/
 ### 2.5 MyGo 映射
 
 ```go
+// DIP 换算按 §0 事实 2：px-2 = 7、gap-1 = 3.5、h-8 = 28；h-[30px] 与 48 是 px 字面量，原样使用。
 ui.Column(c).Width(k.sidebarW).Shrink(0).Clip().Children(func() {
-    header(c, k)                                  // Height(48).PaddingX(k.space(0.5))
-    entries(c, k)                                 // Padding(k.space(0.5)) + Column().Gap(GapY)
+    header(c, k)                                  // Row().Height(48).PaddingX(7)
+    entries(c, k)                                 // Padding(7) + Column().GapY(3.5)
     ui.List(c, &s.threads, len(s.rows), func(i int) {
-        threadRow(c, k, s.rows[i])                // h 32：Row().Height(32).Gap(...).PaddingX(...)
+        threadRow(c, k, s.rows[i])                // Row().Height(28).Gap(3.5).PaddingX(3.5)
     }).Grow(1).ItemKey(func(i int) any { return s.rows[i].ID })
-    footer(c, k)                                  // Height(30) 行 + Padding(k.space(0.5))
+    footer(c, k)                                  // 行 Height(30)，容器 Padding(0, 7, 7, 7)
 })
 ```
 
@@ -234,7 +251,7 @@ chat-workspace-frame     flex column, h-full w-full, overflow hidden, rounded-xl
                          framed 时 padding 4.5px，且侧栏打开时 padding-left 0        A/styles/global.css:20-25
 └─ body                  relative, flex row, min-h-0, flex-1                        A/components/chat-workspace/ChatWorkspace.vue:6469-6472
    ├─ chat card          flex-1, flex column, h-full, min-w-0, bg-background,
-   │                     rounded-xl, z=(--z-content)                                global.css:27-37；ChatWorkspace.vue:6479-6492
+   │                     rounded-xl, z=(--z-content)                                A/styles/global.css:27-37；ChatWorkspace.vue:6479-6492
    │  ├─ ChatHeaderFrame <header> h=(--titlebar-height), px-3, shrink-0,
    │  │                     overflow-visible                                        A/components/chat-workspace/ChatHeaderFrame.vue:42-43
    │  ├─ timeline 容器    relative flex column, min-h-0 flex-1, overflow hidden,
@@ -249,7 +266,7 @@ chat-workspace-frame     flex column, h-full w-full, overflow hidden, rounded-xl
    │  │        ├─ 活动条  mx-3 mb-2                                                 ChatWorkspace.vue:6633-6637
    │  │        ├─ 追问面板 FollowUpMessages（可折叠）                                  ChatWorkspace.vue:6652-6662
    │  │        ├─ 审批面板 或 InputArea（二选一）                                       ChatWorkspace.vue:6665-6688
-   │  │        └─ StatusBar  .chat-status-bar h-10 px-5                              global.css:39-41；ChatWorkspace.vue:6689-6692
+   │  │        └─ StatusBar  .chat-status-bar h-10 px-5                              A/styles/global.css:39-41；ChatWorkspace.vue:6689-6692
    │  └─ right panel aside（P0 之外）
 ```
 
@@ -280,7 +297,7 @@ chat-workspace-frame     flex column, h-full w-full, overflow hidden, rounded-xl
 | 底部栈 | `relative z-10 shrink-0` + 内层 `mx-auto w-full max-w-4xl` | `ChatWorkspace.vue:6625-6631` |
 | 活动条 | `mx-3 mb-2` | `ChatWorkspace.vue:6637` |
 | 输入区外层 | `px-3`（compact overlay / 全宽面板时 `px-0`） | `ChatWorkspace.vue:6675-6680` |
-| composer 卡片 | `flex-col gap-2 p-3 rounded-xl border` + 外 0.5px shadow | `A/components/chat-workspace/composer/ConversationComposer.vue:61-65` |
+| composer 卡片 | `flex-col gap-2 p-3 rounded-xl border` + 外 1px 低透明描边（light `rgba(0,0,0,0.04)` / dark `rgba(0,0,0,0.25)`） | `A/components/chat-workspace/composer/ConversationComposer.vue:61-65` |
 | composer 背景 | `bg-background/70 backdrop-blur-xl`（不透明面板时换 `right-panel-chat-opaque-surface`） | `ConversationComposer.vue:64` |
 | 编辑器高度 | `.ProseMirror { min-height: 60px; max-height: 300px; overflow-y: auto }` | `A/components/chat-workspace/composer/tiptap/ComposerEditor.vue:1491-1497` |
 | 编辑器（compact） | `min-height: 0; max-height: 240px` | `ComposerEditor.vue:1499-1502` |
@@ -312,7 +329,7 @@ chat-workspace-frame     flex column, h-full w-full, overflow hidden, rounded-xl
 | 占位 | 顶/底 spacer = 未渲染行的估算高度累加 | `PlainTimeline.vue:673-690` |
 | 逐行跳过渲染 | `content-visibility: auto` + `contain-intrinsic-size: auto var(--tl-row-estimate-height, 180px)` | `PlainTimeline.vue:3707-3712` |
 | 高度来源 | 已测高度缓存 + 未测估算，按 layout state 失效 | `PlainTimeline.vue:410-435` |
-| FollowEnd | 状态机 `'following' | 'detached'`；距底 ≤80px 恢复跟随 | `PlainTimeline.vue:79,227,75-76,3127-3131` |
+| FollowEnd | 状态机两种取值 `following` / `detached`；距底 ≤80px 恢复跟随 | `PlainTimeline.vue:79,227,75-76,3127-3131` |
 | 回底按钮阈值 | 距底 >300px 才显示 | `PlainTimeline.vue:75,1636` |
 | 恢复期 | cover 覆盖 + 滚动条宽度归零 + 关闭过渡动画 | `PlainTimeline.vue:3589-3599,3647-3664,3741-3744` |
 | 历史加载指示 | `sticky top-0 h-0`，轨道 `min(560px, 100% - 64px)`、高 2px | `PlainTimeline.vue:3746-3763` |
@@ -321,15 +338,16 @@ chat-workspace-frame     flex column, h-full w-full, overflow hidden, rounded-xl
 ### 3.5 MyGo 映射
 
 ```go
+// DIP：header 的 px-3 = 10.5，状态栏 h-10 = 35（2.5rem × 14px）、px-5 = 17.5；48 是 px 字面量。
 ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
     ui.Column(c).Grow(1).Clip().Radius(radiusXL).Background(k.card).Children(func() {
-        header(c, k)                                    // Height(48).PaddingX(k.space(3))
+        header(c, k)                                    // Height(48).PaddingX(10.5)
         ui.Column(c).Grow(1).Clip().AlignItems(ui.Stretch).Children(func() {
             ui.List(c, &s.conversation, len(s.rows), func(i int) {
-                rowView(c, k, s.rows[i])                // 6 类行，见 §4
+                rowView(c, k, s.rows[i])                // turn 行 + 内部 block 分派，见 §4
             }).Grow(1).ItemKey(func(i int) any { return s.rows[i].Key })
             composer(c, k)                              // 不在 List 内，Grow(0)
-            statusBar(c, k)                             // Height(40).PaddingX(k.space(5))
+            statusBar(c, k)                             // Height(35).PaddingX(17.5)
         })
     })
 })
@@ -349,11 +367,22 @@ ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
 
 ## 4. 消息行（user / assistant / thinking / tool / approval-inline / file-changes）
 
+**先纠正一个粒度事实：A 的 timeline 行只有 4 种 `kind`** —— `turn` / `message` / `display` / `running`，每行带 `key`（`A/components/chat-workspace/timeline/timeline-rows.ts:16-38`）。用户气泡、助手 markdown、thinking、tool、文件改动都在**同一个 `turn` 行内部**按 block 分派（`TimelineRow.vue:286-418`；`TimelineAssistantMessage.vue:917-1164`），审批则完全不是时间线行，而是 composer 槽位的替换面板（§5）。
+
+这决定了 B 的两个选择，必须先定，因为它影响 `FollowEnd`、行高缓存和键盘导航：
+
+| 选择 | 做法 | 代价 |
+|---|---|---|
+| A 式（推荐起步） | 一行 = 一个 turn；行内再分派 block | 与 A 的行高/跟随行为一致，但单行可能几千像素，`List` 的一次测量会很贵（A 自己也在用 `content-visibility` 和 block 预算规避，`PlainTimeline.vue:523`） |
+| B 式（可选） | 把 thinking / tool / file-changes 提升为独立行 | 滚动定位更细，但 turn 的视觉分组（缩进导轨、`space-y-4`）要自己重建，且与 A 的像素对照会逐行错位 |
+
+下面的容器树按 A 的真实结构（turn 行 + 内部 block）写。
+
 ### 4.1 容器树
 
 ```text
 timeline-row-shell            w-full px-4（turn 行内 space-y-4）                  PlainTimeline.vue:3515-3517
-└─ TimelineRow                row.kind === 'turn'                                 A/.../TimelineRow.vue:286-382
+└─ TimelineRow                row.kind === 'turn'                                 A/components/chat-workspace/timeline/TimelineRow.vue:286-382
    └─ div.group               block；子项靠各自 mb 堆叠
       ├─ TimelineUserMessage  flex column, items-end, gap-2                       TimelineUserMessage.vue:893-900
       │  └─ 内层              ml-auto, max-w-[85%], flex column, items-end, gap-2   :901
@@ -376,27 +405,27 @@ timeline-row-shell            w-full px-4（turn 行内 space-y-4）            
 
 | 行类型 | 属性 | 来源 |
 |---|---|---|
-| 用户行 | 外层 `flex flex-col items-end gap-2`；内层 `ml-auto max-w-[85%]` | `A/.../TimelineUserMessage.vue:895,901` |
-| 用户气泡 | `rounded-lg bg-muted px-4 py-2 text-base leading-relaxed` | `A/.../TimelineUserBubble.vue:5` |
+| 用户行 | 外层 `flex flex-col items-end gap-2`；内层 `ml-auto max-w-[85%]` | `A/components/chat-workspace/timeline/TimelineUserMessage.vue:895,901` |
+| 用户气泡 | `rounded-lg bg-muted px-4 py-2 text-base leading-relaxed` | `A/components/chat-workspace/timeline/TimelineUserBubble.vue:5` |
 | 用户长文折叠 | `max-height: 300px; overflow: hidden` + 底部 3rem 渐隐 mask | `TimelineUserMessage.vue:1272-1279` |
 | 用户行滚动留白 | `scroll-margin-block-start: 72px`（rail 跳转用） | `TimelineUserMessage.vue:1253` |
 | 附件 chip 架 | `flex flex-wrap justify-end gap-2` | `TimelineUserMessage.vue:911` |
 | mark 注释卡 | `rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm` | `TimelineUserMessage.vue:935` |
-| 助手行根 | `min-w-0`，无背景/无内边距（贴列宽） | `A/.../TimelineAssistantMessage.vue:886-888` |
+| 助手行根 | `min-w-0`，无背景/无内边距（贴列宽） | `A/components/chat-workspace/timeline/TimelineAssistantMessage.vue:886-888` |
 | 工作摘要行 | `my-2 grid min-h-7 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2` | `TimelineAssistantMessage.vue:897-899` |
 | 摘要按钮 | `h-7 grid-cols-[1fr_14px] gap-1.5 rounded px-2 text-base` | `:904-906` |
 | blocks 容器 | `mb-2`；每块 `mb-3` | `:917`；`TimelineThinkingItem.vue:96`、`TimelineToolCallItem.vue:730` |
 | thinking 行 | 头 `h-auto w-full justify-start gap-1 p-0 text-base`；正文 `max-h-[240px] overflow-auto border-l-2 pl-3 text-base` | `TimelineThinkingItem.vue:97-99,123-127` |
-| tool 行 | 头 `flex min-w-0 items-center gap-1`，按钮 `p-0 gap-1 text-base` | `TimelineToolCallItem.vue:736-739,749-752` |
+| tool 行 | 头 `flex min-w-0 items-center gap-1`，按钮 `p-0 gap-1 text-base` | `TimelineToolCallItem.vue:736-739` |
 | tool 展开面板 | `mt-1 max-h-[240px] overflow-auto rounded-md border bg-card` | `TimelineToolCallItem.vue:812` |
 | tool 面板小标题 | `sticky top-0 px-3 pt-2 pb-1 text-[11px]` | `:815,822` |
 | tool 面板正文 | `px-3 pb-2 font-mono text-xs leading-5` | `:816,826` |
 | 工具组头 | `h-auto w-full justify-start gap-1 p-0 text-base` | `TimelineBlockGroup.vue:295-298` |
 | 工具组导轨 | `border-l border-border/60 pt-1 pl-3 ml-1.5 overflow-hidden` | `TimelineBlockGroup.vue:334-338` |
-| 文件改动头 | `flex items-center justify-between gap-2`，文字 `text-sm` | `A/.../TimelineFileChangesView.vue:53-58` |
+| 文件改动头 | `flex items-center justify-between gap-2`，文字 `text-sm` | `A/components/chat-workspace/timeline/TimelineFileChangesView.vue:53-58` |
 | 文件改动列表 | `mt-0.5 overflow-hidden rounded-md border` | `:95-99` |
 | 文件改动行 | `gap-3 border-b px-2 py-1.5 text-sm`，状态字母 `w-5 font-mono text-xs` | `:103-119` |
-| 折叠机制 | `grid-template-rows: 0fr → 1fr`，`300ms cubic-bezier(0.16,1,0.3,1)` | `A/.../TimelineDetailsRegion.vue:34-49` |
+| 折叠机制 | `grid-template-rows: 0fr → 1fr`，`300ms cubic-bezier(0.16,1,0.3,1)` | `A/components/chat-workspace/timeline/TimelineDetailsRegion.vue:34-49` |
 
 ### 4.3 响应式与折叠条件
 
@@ -418,12 +447,13 @@ timeline-row-shell            w-full px-4（turn 行内 space-y-4）            
 ### 4.5 MyGo 映射
 
 ```go
+// DIP：px-4 = 14、py-2 = 7、gap-2 = 7、pl-3 = 10.5、border-l-2 = 2；240 是 px 字面量上限。
 func rowView(c *ui.Context, k tokens, r Row) {
     switch r.Kind {
     case RowUser:
         // 右对齐 85% 气泡：Row().Justify(ui.End) + MaxWidthPercent(85)
         ui.Row(c).Justify(ui.End).Children(func() {
-            ui.Column(c).MaxWidthPercent(85).Padding(k.space(4), k.space(4)).Radius(radiusMD).
+            ui.Column(c).MaxWidthPercent(85).Padding(7, 14).Radius(radiusMD).
                 Background(k.muted).Children(func() { ui.Text(c, r.Text) })
         })
     case RowAssistant:
@@ -431,15 +461,15 @@ func rowView(c *ui.Context, k tokens, r Row) {
     case RowThinking:
         // 折叠头 + 240 DIP 上限的滚动正文
         ui.Column(c).Children(func() {
-            ui.Row(c).Gap(k.gap).Children(/* lightbulb, label, chevron */)
+            ui.Row(c).Gap(7).Children(/* lightbulb, label, chevron */)
             if r.Expanded {
-                ui.Scroll(c).MaxHeight(k.space(60)).PaddingStart(k.space(3)).
-                    BorderStartWidth(k.hairline).Children(/* thinking text */)
+                ui.Scroll(c).MaxHeight(240).PaddingStart(10.5).
+                    BorderStartWidth(2).Children(/* thinking text */)
             }
         })
     case RowTool:
         ui.Column(c).Children(func() {
-            ui.Row(c).Gap(k.gap).Children(/* icon, summary, chevron */)
+            ui.Row(c).Gap(7).Children(/* icon, summary, chevron */)
         })
     }
 }
@@ -449,8 +479,8 @@ func rowView(c *ui.Context, k tokens, r Row) {
 
 - **`ml-auto max-w-[85%]` 语义可表达，但需要换算。** `MaxWidthPercent(85)` 是相对父宽（`mygo ui/api_gen.go:6196`），与 A 一致；但 A 的 300px 折叠上限（`TimelineUserMessage.vue:1273`）要写成 `MaxHeight(300)`，**不随字号缩放**，而 A 的 300px 是 px 字面量，恰好一致。
 - **渐隐 mask 无 API。** `mask-image: linear-gradient(...)`（`TimelineUserMessage.vue:1278-1279`）在 MyGo 里只有 `Masks(layers...)` / `MaskLinearGradient`（`mygo ui/api_gen.go:6128,6080`）。首片可以只做截断，把"没有渐隐"写进视觉差异清单。
-- **折叠动画的 `0fr → 1fr` 网格技巧没有对应物。** MyGo 的动画是"对某个数值属性做 `Animate`/`Keyframes`"（`mygo ui/api_gen.go` 的 `Animate`, `Keyframes`），没有 `grid-template-rows` 这种结构性过渡。P0 用显隐（`Hidden`）或对 `Height` 做动画，并接受与 A 不同的缓动。
-- **9 种工具面板 + 10 种审批 renderer 需要逐个映射。** A 的工具面板按 `isCommand/isSearch/isFile/isWeb` 分支（`TimelineToolCallItem.vue:811-880`），渲染器注册在 `A/components/chat-workspace/timeline/tool-renderers/`；B 现在只有一种工具卡（[ui-parity.md](ui-parity.md) §3.2）。P0 只做 command / file / search / generic 四种，其余 WIP。
+- **折叠动画的 `0fr → 1fr` 网格技巧没有对应物。** MyGo 的动画是"对某个数值属性做 `Animate`/`Keyframes`"（`mygo ui/api_gen.go:3477,5805`），没有 `grid-template-rows` 这种结构性过渡。P0 用显隐（`Hidden`，`mygo ui/api_gen.go:5410`）或对 `Height` 做动画，并接受与 A 不同的缓动。
+- **工具面板要按类型分支自建。** A 的工具面板按 `isCommand/isSearch/isFile/isWeb` 分支（`TimelineToolCallItem.vue:811-880`），渲染器注册在 `A/components/chat-workspace/timeline/tool-renderers/`；B 现在只有一种工具卡（[ui-parity.md](ui-parity.md) §3.2）。P0 只做 command / file / search / generic 四种，其余 WIP。
 - **任意字号（`text-[13px]`、`text-[11px]`、`text-[10px]`）没有档位。** 同 §2.5。
 - **无障碍可以比 A 更强，不要照抄 A 的空白。** A 只在部分节点有 `data-testid`，行级 role/label 不完整；MyGo 有 `Role`/`Label`/`Access*`（`B/internal/ui/capability.go`、`wip.go:35-40` 的既有用法），turn 行应标 `RoleGroup` + 用户/助手标签。
 
@@ -463,7 +493,7 @@ func rowView(c *ui.Context, k tokens, r Row) {
 ```text
 底部栈 → mx-auto max-w-4xl                                                ChatWorkspace.vue:6628-6631
 └─ InlinePermissionPrompt（优先于 InputArea，二者互斥）                      ChatWorkspace.vue:6665-6688
-   └─ PermissionPrompt 根   shrink-0, bg-background, px-3, pb-3             A/.../PermissionPrompt.vue:214-221
+   └─ PermissionPrompt 根   shrink-0, bg-background, px-3, pb-3             A/components/chat-workspace/interactions/PermissionPrompt.vue:214-221
       └─ 卡片              rounded-lg, border, bg-card, p-4                :223-226
          ├─ 标题           text-base font-semibold                        :227
          ├─ 成员审批块     mt-3, rounded-md, bg-muted/30, px-3 py-2        :229-258
@@ -512,12 +542,14 @@ func rowView(c *ui.Context, k tokens, r Row) {
 ### 5.5 MyGo 映射
 
 ```go
-ui.Column(c).Padding(k.space(3)).PaddingY(0).Children(func() {
-    ui.Column(c).Padding(k.space(4)).Radius(radiusMD).Background(k.card).
+// DIP：px-3 / pb-3 = 10.5、p-4 = 14、gap-2 = 7；240 是 px 字面量。
+// Padding 走 CSS 简写：4 个值 = 上右下左（mygo ui/element.go:936-948），所以 px-3 pb-3 = Padding(0, 10.5, 10.5, 10.5)。
+ui.Column(c).Padding(0, 10.5, 10.5, 10.5).Children(func() {
+    ui.Column(c).Padding(14).Radius(radiusMD).Background(k.card).
         Border(k.hairline, k.border).Children(func() {
             ui.Text(c, title).Bold()
             approvalInput(c, k, req)                                  // §5.1 的输入面板
-            ui.Row(c).Justify(ui.End).Gap(k.gap).Children(func() {
+            ui.Row(c).Justify(ui.End).Gap(7).Children(func() {
                 for _, opt := range orderedOptions {                  // reject → allow_once → 其余
                     ui.Button(c, opt.Label).OnClick(...)
                 }
@@ -528,7 +560,7 @@ ui.Column(c).Padding(k.space(3)).PaddingY(0).Children(func() {
 
 **缺口：**
 
-- **`max-h-[240px]` 的滚动块要给尺寸。** `ui.Scroll` 要求给尺寸或 `Grow`（`mygo ui/api_gen.go:2123-2124`），所以写 `ui.Scroll(c).MaxHeight(k.space(60))`，`60 × 4 = 240`（`mygo ui/theme.go:86-92`）。
+- **`max-h-[240px]` 的滚动块要给尺寸。** `ui.Scroll` 要求给尺寸或 `Grow`（`mygo ui/api_gen.go:2123-2124`），所以写 `ui.Scroll(c).MaxHeight(240)`——A 的 240 是 px 字面量，直接写字面值比 `k.space(60)`（= 240，但随 `Spacing` 变化）更忠实。
 - **sticky 小标题要验证。** `Sticky()` 存在（`mygo ui/api_gen.go:7705`），但在 `Scroll` 内的行为需要 spike，不能假定等同 CSS `position: sticky`（`CommandApprovalPanel.vue:23`）。
 - **"全局键盘但忽略输入控件"要自己实现。** A 的判断是：事件目标不是 body、不在面板内、或落在 button/input/textarea/contenteditable 上就不处理（`PermissionPrompt.vue:187-193`）。MyGo 需要自己组合 `Focused()` / `FocusWithin()` / `KeyShortcuts`。
 - **产物差异要先声明。** A 有 10 种 approval renderer（`A/components/chat-workspace/interactions/ApprovalInputPanel.vue:25-34`），B 目前只有"两个按钮"（[ui-parity.md](ui-parity.md) §3.2）。P0 只做 command / file / generic，其余标 WIP，不要用假面板顶上（`B/docs/workflow.md` 的 WIP 规则）。
@@ -541,17 +573,17 @@ ui.Column(c).Padding(k.space(3)).PaddingY(0).Children(func() {
 
 | # | P0 区域 | 实现顺序 | 前置 | 验收方式（headless 断言） | 验收方式（截图对照） |
 |---|---|---|---|---|---|
-| 1 | 应用外壳（窗口行、侧栏让位、卡片外框） | 1 | 无 | `Tester.NewTester(view, 1440, 900)` 后 `Tester.Find("Sessions")` 的 `Rect.X ≈ 0`、卡片左缘 ≈ 256；`Tester.SetSize(700, 900)` 后侧栏不再占位（抽屉关时 `Find` 不到会话行） | 与 A 的 1440×900 header 截图并排；卡片 4.5px 缝隙、0.5px 描边可见 |
-| 2 | Sidebar（header / 全局入口 / 滚动列表 / footer） | 2 | 1 | `AccessByRole(ui.RoleTreeItem, ...)` 计数 = 行数；`Find("← 折叠")` 在展开时存在；footer 贴底：footer 的 `Rect.Y + H ≈ 窗口高`；`Tester.Scroll` 后 footer 不动 | 侧栏 256 / 200 / 360 三档截图；含置顶段、含"显示更多" |
-| 3 | Timeline 行模型（6 类行 + List/FollowEnd） | 3 | 1 | 追加一行后 `Tester.Find(最后一行)` 仍在视口内（FollowEnd）；`Tester.Scroll` 离底后追加不再拉回；thinking 头文本 = "Thought for Ns" 形态；tool 行点击后展开面板且高度 ≤ 240 | 固定 fixture（user/assistant/thinking/tool/approval/file-changes 各 1）light/dark 各一张 |
-| 4 | Composer（卡片 + 自动高度 + 状态栏） | 4 | 3 | 空态编辑器高 = 60；输入 20 行后高 = 300 且内部滚动；`Tester.Type` 后发送键可点；状态栏高 = 40 | composer 空态 / 3 行 / 上限三张；与 A 的 `chat-status-bar` 对齐 |
-| 5 | Approval 面板（command/file/generic） | 5 | 4 | 有交互时 composer 文本不存在（`HasText(placeholder) == false`）；按钮顺序 = reject 在首位；`Tester.Key` Enter 触发 allow_once；Esc 触发 reject | 三种面板各一张；240px 上限与 sticky 标题 |
-| 6 | 响应式收口（compact 抽屉、<960 rail、auto-collapse） | 6 | 1–5 | `SetSize(700,900)` 后 `AccessByRole(ui.RoleDialog, ...)` 存在、按 Esc 后消失；宽 1000 + 右面板开时侧栏自动收起；`SetSize` 回 1440 后（带 40px 迟滞）恢复 | 700 / 1000 / 1440 三档；抽屉态与展开态各一张 |
+| 1 | 应用外壳（窗口行、侧栏让位、卡片外框） | 1 | 无 | `ui.NewTester(view, 1440, 900)`：侧栏首行的 `Rect.X` ≈ 面板内边距，主卡片 `Rect.X` ≈ 侧栏宽；`Tester.SetSize(700, 900)` 后主卡片 `Rect.X` ≈ 0（抽屉关时侧栏不占位） | 与 A 的 1440×900 header 截图并排；卡片 4.5px 缝隙、0.5px 描边可见 |
+| 2 | Sidebar（header / 全局入口 / 滚动列表 / footer） | 2 | 1 | `Tester.AccessAll()` 里会话行计数 = 数据行数；展开时折叠入口可按 label 找到，收起后找不到；footer 贴底：`Rect.Y + Rect.H ≈ 窗口高`；`Tester.Scroll` 后 footer 的 `Rect` 不变 | 侧栏 256 / 200 / 360 三档截图；含置顶段、含"显示更多" |
+| 3 | Timeline 行模型（turn 行 + block 分派 + FollowEnd） | 3 | 1 | 追加一行后最后一行的 `Rect` 仍在视口内（FollowEnd）；滚动离底后追加不再拉回（行 `Rect` 不动）；thinking 头文本匹配"Thought for N"形态；展开 tool 行后面板高 ≤ 240 | 固定 fixture（user＋assistant＋thinking＋tool＋file-changes 各 1，另加 approval 面板一张）light/dark 各一张 |
+| 4 | Composer（卡片 + 自动高度 + 状态栏） | 4 | 3 | 空态编辑器高 = 60；输入 20 行后高 = 300 且内部滚动（该元素 `TrackScroll` 的偏移 > 0）；`Tester.Type` 后发送键可点；状态栏高 = 35（`h-10` = 2.5rem @14px） | composer 空态 / 3 行 / 上限三张；与 A 的 `chat-status-bar` 对齐 |
+| 5 | Approval 面板（command/file/generic） | 5 | 4 | 有交互时 composer 占位符文本不存在（`HasText(placeholder) == false`）；按钮顺序 = reject 在首位；`Tester.Key` Enter 触发 allow_once；Esc 触发 reject | 三种面板各一张；240px 上限与 sticky 标题 |
+| 6 | 响应式收口（compact 抽屉、<960 rail、auto-collapse） | 6 | 1–5 | `SetSize(700,900)` 后点开抽屉：`AccessAll()` 里出现 role=dialog 的节点，Esc 后消失；`SetSize(900,900)`（regular）+ 右面板开：侧栏自动收起；`SetSize` 回 1440 后（wide，带 40px 迟滞）恢复 | 700 / 900 / 1440 三档；抽屉态与展开态各一张 |
 
 **验收的硬约束（不要跳过）：**
 
 1. 每一行的 headless 断言都必须是几何或文本事实（`Tester.Find` / `Tester.Texts` / `Tester.Access`），不要用"渲染没崩"当通过（对齐 `B/docs/acceptance.md` 的证据等级：L1 只是测试级）。
-2. 截图对照的 A 侧产出用现成脚本：`packages/desktop/scripts/test-electron-chat-windows.mjs:238-241`（`page.screenshot({ animations: 'disabled' })`）与 `packages/desktop/scripts/test-electron-chat-workspace-structure-e2e.mjs`（用 `getBoundingClientRect` 做结构断言，`:721,745` 是同类写法）。B 侧用 `Tester.Image()` + `MYGO_UI_PNG`。
+2. 截图对照的 A 侧产出用现成脚本：`dim-electron/packages/desktop/scripts/test-electron-chat-windows.mjs:238-241`（`page.screenshot({ animations: 'disabled' })`）与 `dim-electron/packages/desktop/scripts/test-electron-chat-workspace-structure-e2e.mjs`（用 `getBoundingClientRect` 做结构断言，`:721,745` 是同类写法）。B 侧用 `Tester.Image()` + `MYGO_UI_PNG`。
 3. 像素对照先人工评审，不设自动阈值；两边渲染器不同，自动阈值会误报（同 [ui-parity.md](ui-parity.md) §5 第 5 步）。
 
 ## 7. 事实边界
@@ -561,3 +593,4 @@ ui.Column(c).Padding(k.space(3)).PaddingY(0).Children(func() {
 - 已发现的两处 A 侧内部不一致，实现时不要照抄：
   1. flat 侧栏行用 `h-9`（rem，随字号缩放），虚拟化按 36px 常量算（`A/components/sidebar/ThreadList.vue:109` vs `:248`）。
   2. 侧栏 header 与 chat header 都用 `--titlebar-height`（48px 固定），但 compact 抽屉的顶边用 `--win-titlebar-height`（2.5rem，随字号缩放）（`A/components/ui/sidebar/Sidebar.vue:164` vs `A/styles/global.css:168,174`）——非 mac 上字号非 14px 时两者会差几像素。
+- **与既有文档的一处口径冲突**：[ui-parity.md](ui-parity.md) §2.4 把状态栏写成"高 40px、左右 20px、12px 字"，那是按 16px 根字号折算的；`.chat-status-bar` 的 `h-10 / px-5 / text-xs` 都是 rem（`A/styles/global.css:39-41`），在默认 14px 根字号下分别是 **35 / 17.5 / 10.5 DIP**。本文按 14px 根字号写，实现时以实际根字号为准；`ui-parity.md` 那一行需要后续修正。

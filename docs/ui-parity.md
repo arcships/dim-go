@@ -81,7 +81,7 @@
 | 项 | A | B |
 |---|---|---|
 | 侧栏宽度 | 默认 256、最小 200、最大 360、可拖拽（`components/ui/sidebar/utils.ts:4-6`） | 固定 `Space(55)` = 220 DIP，不可拖拽（[tokens.go:72](../internal/ui/tokens.go#L72)） |
-| 状态栏 | `.chat-status-bar` 高 40px、左右 20px、12px 字（`styles/global.css:39-41`） | 无独立状态栏；连接/运行状态塞进 header（[shell.go:295-322](../internal/ui/shell.go#L295-L322)） |
+| 状态栏 | `.chat-status-bar` 高 40px、左右 20px、12px 字（`styles/global.css:39-41`）；另有 `h-10`=2.5rem@14px=35 DIP 的读数（见 [ui-layout-spec.md](ui-layout-spec.md) §7，待窗口量测确认） | 无独立状态栏；连接/运行状态塞进 header（[shell.go:295-322](../internal/ui/shell.go#L295-L322)） |
 | 标题栏 | 固定 48px，自绘窗口控件（`global.css:174`、`components/app/AppTitlebar.vue`） | 原生系统标题栏 |
 | 卡片圆角 | 10 / 8 / 6 / 14 px 四级（`global.css:44-47`、`244`） | 6 px 单档（[tokens.go:75](../internal/ui/tokens.go#L75)） |
 | 基础字号 | 14px UI、13px 代码、5 档可选、⌘+/⌘- 缩放（`appearance/index.ts:11-16`、`appearance/zoom-shortcuts.ts`） | 系统字号 13(darwin)/14，四档相对比例 1.15/0.9/0.8（[tokens.go:8-12](../internal/ui/tokens.go#L8-L12)、[79-82](../internal/ui/tokens.go#L79-L82)） |
