@@ -1,16 +1,16 @@
 state	disconnected
-started_at	2026-11-09 21:10:08 CST
-captured_at	2026-11-09 21:10:10 CST
-built_at	2026-11-09 21:10:08 CST
-git_head	460f78bac2e83dcebdc6885730d99ccbe32b1a48
+started_at	2026-11-10 04:14:02 CST
+captured_at	2026-11-10 04:14:04 CST
+built_at	2026-11-10 04:14:02 CST
+git_head	d9617397a76ffc0ae8a63b50e9abeaafb884e651
 git_dirty	clean
 product_home	<unset>
-app_pid	63587
-window_id	50140
+app_pid	51388
+window_id	51544
 window_title	DimAgent
-window_bounds_points	45,40,790,712
+window_bounds_points	39,39,802,722
 png	docs/evidence/window-disconnected.png
-png_pixels	800 720
-png_bytes	45846
+png_pixels	1600 1440
+png_bytes	129995
 daemon	<none>
-app_log	
+app_log	2026/11/10 04:14:03 dimagent: register the "dimagent" URL scheme: mygo: the app does not declare the URL scheme "dimagent": list it in urlSchemes in mygo.config.ts 

@@ -12,14 +12,14 @@
 |---|---|
 | 机器 | macOS 26.6.2（darwin/arm64） |
 | Go | go1.27.3 darwin/arm64 |
-| 源码 | 两种状态都来自 HEAD `66fe35d` + 窗口宽度改 800（工作区未提交），2026-11-09 16:53 |
-| 构建时间 | 2026-11-09 16:53 CST |
+| 源码 | 两种状态来自 HEAD `d961739`，2026-11-10 04:10；工作区 clean |
+| 构建时间 | 2026-11-10 04:10 CST |
 | App Server 二进制 | `/tmp/dim-2-target/debug/dim-app-server`（Mach-O arm64，401 302 448 B，mtime 2026-11-08 23:38） |
 | 窗口库 | `github.com/egoist/mygo v0.8.3`（`mygo.NewWindow`，`Width: 1080`、`Height: 720`） |
 | 截图工具 | `/usr/sbin/screencapture -x -o -l <windowid>`（按窗口 ID 截取，只含该窗口，不含桌面和其它应用） |
 | 窗口 ID 来源 | `CGWindowListCopyWindowInfo`，按**本进程 PID** 过滤；脚本内用 `swiftc` 现场编译小工具读取 |
 
-2026-11-09 15:51 的最终采集在 `61a52a7` 上重跑，两种状态都记录 `git_dirty = clean`；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 是同一事实。源码再变时截图即过期，需要重跑脚本。
+2026-11-10 04:10 的采集在 `d961739` 上重跑 disconnected / connected / conversation，`git_dirty = clean`。此前 `window-*` 的历史图（transport-lost、unknown-result、menu 等）仍是各自采集时的源码状态；源码再变时截图即过期，需要重跑脚本。
 
 ## 2. 复现命令
 

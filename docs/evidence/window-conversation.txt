@@ -1,3 +1,3 @@
 capture	docs/evidence/window-conversation.png
-note	real MyGo window 800x720 light zh-CN, after row inset and icon outlines
+note	real MyGo window at 800x720 light zh-CN, after chrome/icons/shadows
 driver	scripts/capture-window.sh + scripts/seed-session
