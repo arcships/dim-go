@@ -67,9 +67,12 @@ func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow
 		}
 		pages++
 		if page.TurnStart == nil {
-			// The daemon omits turnStart for a session that has no turn yet. The
-			// window is only trustworthy once the read finished; a partial page
-			// without turnStart cannot prove where the turn starts.
+			// A multi-page latest-turn read must keep turnStart on every page. The
+			// one allowed nil case is the finished empty-session window; it cannot
+			// follow a page that already supplied turnStart.
+			if turnStart != nil {
+				return historyWindow{}, &appserver.ProtocolError{Field: "turnStart", Detail: "missing after a page that supplied turnStart"}
+			}
 			if !page.Done {
 				return historyWindow{}, &appserver.ProtocolError{Field: "turnStart", Detail: "missing in latest-turn page"}
 			}

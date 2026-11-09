@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
+	"github.com/arcships/dimagent-mygo/internal/session"
 	"github.com/arcships/dimagent-mygo/internal/supervisor"
 )
 
@@ -55,6 +56,49 @@ func startRealDaemon(t *testing.T, binary string) (*supervisor.Supervisor, *supe
 	return sup, conn
 }
 
+// waitForHead polls the session's public in-memory view until the branch head
+// reaches at least want. It never reads daemon persistence.
+func waitForHead(t *testing.T, s *session.Session, want int64, timeout time.Duration) int64 {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	var head int64
+	for {
+		head = s.View(appserver.MainBranchID).Head
+		if head >= want {
+			return head
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("branch head did not reach %d within %s (last head %d)", want, timeout, head)
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
+// waitSettled polls the public session.state notice until it reports a settled
+// (not running, not stopping) branch, or fails when a running state never
+// converges. It exercises the contract that stop converges through
+// session.state. A daemon that never emits a state notice is reported, not
+// treated as success.
+func waitSettled(t *testing.T, s *session.Session, timeout time.Duration) appserver.StateNotice {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	last, seen := s.BranchState(appserver.MainBranchID)
+	t.Logf("post-stop state: %+v (seen=%v)", last, seen)
+	for {
+		state, ok := s.BranchState(appserver.MainBranchID)
+		if ok && !state.Running && !state.Stopping {
+			return state
+		}
+		if time.Now().After(deadline) {
+			if !ok {
+				t.Fatalf("daemon emitted no session.state for %s within %s; stop convergence cannot be observed", appserver.MainBranchID, timeout)
+			}
+			t.Fatalf("session.state did not settle within %s: %+v", timeout, state)
+		}
+		time.Sleep(25 * time.Millisecond)
+	}
+}
+
 // TestRealDaemonSmoke is opt-in because it starts a real Rust daemon. It checks
 // only the public control plane; no daemon files or private state are read.
 func TestRealDaemonSmoke(t *testing.T) {
@@ -90,16 +134,21 @@ func TestRealDaemonSmoke(t *testing.T) {
 }
 
 // TestRealDaemonSessionFlow validates the public create -> attach -> history ->
-// submit path. It is separately opt-in because a daemon may be configured with
-// no usable model/provider. The test never inspects daemon persistence.
+// submit -> stop -> cleanup path. It is separately opt-in because a daemon may
+// be configured with no usable model/provider. The test never inspects daemon
+// persistence; every fact comes from protocol replies or the session's public
+// in-memory projection.
 func TestRealDaemonSessionFlow(t *testing.T) {
 	if os.Getenv("DIMAGENT_REAL_SESSION_FLOW") == "" {
 		t.Skip("set DIMAGENT_REAL_SESSION_FLOW=1 to run real session acceptance")
 	}
 	binary := realDaemonBinary(t)
 	sup, _ := startRealDaemon(t, binary)
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
+
+	// create: session.create over the control connection, then session.attach
+	// and the first session.history window on a dedicated stream.
 	controller, created, err := CreateSession(ctx, sup, appserver.CreateParams{Cwd: os.TempDir()})
 	if err != nil {
 		t.Fatalf("session.create/attach/history: %v", err)
@@ -110,13 +159,21 @@ func TestRealDaemonSessionFlow(t *testing.T) {
 	if controller.Session == nil {
 		t.Fatal("session flow returned nil session")
 	}
-	// A newly created mock session is an intentional empty window: the daemon
-	// records branch/start at sequence 1, so attach head is 1 and latestTurn
-	// returns that single non-turn event with done=true and no turnStart. The
-	// session must accept it as an empty window rather than a protocol error,
-	// without a compatibility retry. These assertions use only the public
-	// session view; no daemon persistence is inspected or treated as a local
-	// source of truth.
+	t.Cleanup(func() { _ = controller.Close(context.Background()) })
+
+	// attach: the dedicated stream was opened against the created session.
+	if got := controller.Session.SessionID(); got != created.SessionID {
+		t.Fatalf("attached session id = %q, want created id %q", got, created.SessionID)
+	}
+	if got := controller.Session.AttachHead(); got < 1 {
+		t.Fatalf("attach head = %d, want the branch/start head", got)
+	}
+
+	// history: a newly created mock session is an intentional empty window. The
+	// daemon records branch/start at sequence 1, so attach head is 1 and
+	// latestTurn returns that single non-turn event with done=true and no
+	// turnStart. The session must accept it as an empty window rather than a
+	// protocol error, without a compatibility retry.
 	if !controller.Session.Ready() {
 		t.Fatal("new session is not ready after attach/history")
 	}
@@ -133,19 +190,58 @@ func TestRealDaemonSessionFlow(t *testing.T) {
 	if snapshot := controller.Session.Snapshot(); len(snapshot.Messages) != 0 {
 		t.Fatalf("new session snapshot = %#v, want empty", snapshot.Messages)
 	}
-	if got := controller.Session.SessionID(); got != created.SessionID {
-		t.Fatalf("attached session id = %q, want created id %q", got, created.SessionID)
-	}
-	t.Cleanup(func() { _ = controller.Close(context.Background()) })
+	initialHead := controller.Session.View(appserver.MainBranchID).Head
+
+	// submit: the daemon accepts the input and returns the durable event. The
+	// session stream must fold that event into the same public projection.
 	text := os.Getenv("DIMAGENT_REAL_SUBMIT_TEXT")
 	if text == "" {
 		text = "hello from real-daemon acceptance"
 	}
-	result, err := controller.Submit(ctx, text)
+	result, submissionID, err := controller.SubmitWithID(ctx, text)
 	if err != nil {
 		t.Fatalf("session.submit: %v", err)
 	}
 	if result.Event.ID == "" {
 		t.Fatal("session.submit returned empty event id")
+	}
+	if submissionID == "" {
+		t.Fatal("session.submit returned empty submission id")
+	}
+	if result.Event.Sequence <= initialHead {
+		t.Fatalf("submit event sequence = %d, want above initial head %d", result.Event.Sequence, initialHead)
+	}
+	head := waitForHead(t, controller.Session, result.Event.Sequence, 30*time.Second)
+	t.Logf("submit folded: event=%s sequence=%d head=%d", result.Event.ID, result.Event.Sequence, head)
+
+	// stop: session.stop is accepted and the stopped state converges through
+	// session.state. The stop reply body is intentionally ignored; only the
+	// notification is authoritative.
+	if err := controller.Stop(ctx); err != nil {
+		t.Fatalf("session.stop: %v", err)
+	}
+	settled := waitSettled(t, controller.Session, 30*time.Second)
+	if settled.BranchID != appserver.MainBranchID {
+		t.Fatalf("settled state branch = %q, want %q", settled.BranchID, appserver.MainBranchID)
+	}
+	if settled.SessionID != created.SessionID {
+		t.Fatalf("settled state session = %q, want %q", settled.SessionID, created.SessionID)
+	}
+
+	// cleanup: detach the session stream, then close the owned daemon and assert
+	// it actually shut down. The supervisor cleanup is a no-op after this.
+	detachCtx, cancelDetach := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancelDetach()
+	if err := controller.Close(detachCtx); err != nil {
+		t.Fatalf("session detach: %v", err)
+	}
+	closeCtx, cancelClose := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelClose()
+	report, err := sup.Close(closeCtx)
+	if err != nil {
+		t.Fatalf("close real daemon: %v", err)
+	}
+	if !report.Owned || !report.Shutdown {
+		t.Fatalf("close report = %+v, want owned and shutdown", report)
 	}
 }

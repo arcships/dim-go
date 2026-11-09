@@ -187,7 +187,7 @@ func (c *SessionController) StateForBranch(summary appserver.SessionSummary, bra
 		ConnectionError:     connectionError,
 		SessionClosed:       sessionClosed,
 		SessionClosedReason: closedReason,
-		Messages:            viewmodel.Build(snapshot),
+		Messages:            append(viewmodel.Build(snapshot), viewmodel.BuildApprovals(c.Session.PendingApprovals(branchID)...)...),
 		Run:                 ui.RunIdle,
 		ModelProgress:       progress,
 		Notices:             notices,
@@ -229,6 +229,22 @@ func sessionTitle(s appserver.SessionSummary) string {
 // tick or event notification to refresh the UI.
 func (c *SessionController) LiveState(summary appserver.SessionSummary) *ui.State {
 	return c.State(summary)
+}
+
+// RespondApproval sends one folded approval decision. It never retries; a cancelled outcome is authoritative.
+func (c *SessionController) RespondApproval(ctx context.Context, branchID, requestID string, decision string) (appserver.ApprovalRespondOutcome, error) {
+	if c == nil || c.Session == nil {
+		return "", fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return "", fmt.Errorf("integration: nil context")
+	}
+	if branchID == "" || requestID == "" {
+		return "", fmt.Errorf("integration: empty approval identity")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.Session.RespondApproval(ctx, appserver.ApprovalRespondParams{SessionID: c.Session.SessionID(), BranchID: branchID, RequestID: requestID, Decision: decision})
 }
 
 // Submit sends text through the selected session's dedicated App Server

@@ -225,7 +225,7 @@ func TestSessionKeysSnapshotCapabilityAndFailure(t *testing.T) {
 func TestBranchDirectorySnapshotFallbackAndObservedBranches(t *testing.T) {
 	sideText := assistantEventWithID("side-2", 2, "t-side", "r-side", "side text")
 	directory := appserver.BranchesResult{Branches: []appserver.BranchInfo{
-		{BranchID: "main", State: "open", Head: 2},
+		{BranchID: "main", State: "open", Head: 2, BranchPoint: int64Ptr(1)},
 		{BranchID: "side", ParentBranchID: "main", State: "open", Head: 2},
 	}}
 	onAttach := func(server *fakeServer) {
@@ -246,8 +246,13 @@ func TestBranchDirectorySnapshotFallbackAndObservedBranches(t *testing.T) {
 			t.Fatalf("branch directory = %#v", got)
 		}
 		got.Branches[0].BranchID = "mutated"
-		if again := s.BranchDirectory(); again.Branches[0].BranchID != "main" {
-			t.Fatalf("branch directory accessor did not copy: %#v", again)
+		if got.Branches[0].BranchPoint == nil {
+			t.Fatal("branch point missing from copied directory")
+		}
+		*got.Branches[0].BranchPoint = 99
+		again := s.BranchDirectory()
+		if again.Branches[0].BranchID != "main" || again.Branches[0].BranchPoint == nil || *again.Branches[0].BranchPoint != 1 {
+			t.Fatalf("branch directory accessor did not deep-copy: %#v", again.Branches[0])
 		}
 		status := s.BranchDirectoryStatus()
 		if !status.Available || status.Reason != "" {
@@ -389,6 +394,34 @@ func TestLatestTurnMissingTurnStartNonEmptyFails(t *testing.T) {
 	if err == nil || !errors.Is(err, appserver.ErrProtocol) {
 		t.Fatalf("Open error = %v, want protocol error", err)
 	}
+}
+
+func TestLatestTurnMissingTurnStartOnLaterPageFails(t *testing.T) {
+	head := int64(100)
+	calls := 0
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(head)},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			calls++
+			switch calls {
+			case 1:
+				// A multi-page read that supplied turnStart once must keep it on
+				// every later page, even if the events themselves are non-turn facts.
+				return historyPage(t, []appserver.RawEvent{ignoredEvent(head)}, head, head, false, int64Ptr(80), int64Ptr(99)), nil
+			case 2:
+				return historyPage(t, []appserver.RawEvent{ignoredEvent(head)}, head, head, true, nil, nil), nil
+			default:
+				t.Fatalf("unexpected history call %#v", params)
+				return nil, invalidParams()
+			}
+		},
+	}
+	_, client := newFakeServer(t, cfg)
+	_, err := OpenWithOptions(testContext(t), client, []string{"session.history", "session.history.latestTurn"}, "s1", OpenOptions{})
+	if err == nil || !errors.Is(err, appserver.ErrProtocol) {
+		t.Fatalf("Open error = %v, want protocol error for a later page without turnStart", err)
+	}
+	waitClientDone(t, client)
 }
 
 func TestOpenMultiPageHistoryAttachOverlapAndFreshHead(t *testing.T) {
@@ -948,6 +981,25 @@ func TestOpenFailsWhenTransportLostDuringHistory(t *testing.T) {
 	server, client = newFakeServer(t, cfg)
 	if _, err := Open(testContext(t), client, []string{"session.history"}, "s1"); err == nil {
 		t.Fatal("Open succeeded after the transport was lost during history")
+	}
+	waitClientDone(t, client)
+}
+
+func TestOpenFailsWhenTransportLostDuringOptionalKeysRead(t *testing.T) {
+	head := int64(1)
+	cfg := fakeConfig{
+		Attach:  appserver.AttachResult{Sequence: int64Ptr(head)},
+		History: emptyHistory(t, head),
+		OnKeys: func(server *fakeServer) {
+			server.closeConn()
+		},
+		Keys: appserver.KeysResult{Through: &head, Entries: []appserver.SessionKeyEntry{}},
+	}
+	_, client := newFakeServer(t, cfg)
+	_, err := Open(testContext(t), client, []string{"session.history", "session.keys"}, "s1")
+	var local *appserver.LocalError
+	if !errors.As(err, &local) || local.AppError != "connection_closed" {
+		t.Fatalf("Open error = %v, want connection_closed", err)
 	}
 	waitClientDone(t, client)
 }

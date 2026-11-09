@@ -68,6 +68,7 @@ type fakeConfig struct {
 	History      fakeHistoryFunc
 	Methods      any
 	MethodsErr   *fakeRPCError
+	OnKeys       func(*fakeServer)
 	Keys         any
 	KeysErr      *fakeRPCError
 	Branches     any
@@ -214,6 +215,9 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		}
 		if s.cfg.Keys == nil {
 			return nil, unknownMethod()
+		}
+		if s.cfg.OnKeys != nil {
+			s.cfg.OnKeys(s)
 		}
 		return s.cfg.Keys, nil
 	case "session.branches":

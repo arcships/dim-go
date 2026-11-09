@@ -18,22 +18,29 @@ type wipCapability struct {
 // wipCapabilities is the list the cards draw. It mirrors the disabled entries;
 // keep each card's gap in step with the reason the entry passes to wipAction.
 // "No Go client helper yet" means the method really is absent from
-// internal/appserver or internal/supervisor; "helper exists; shell not wired"
-// means the capability exists there and only this view has not called it;
-// "blocked: upstream RPC unverified" means the wire method itself is unconfirmed.
+// internal/appserver or internal/supervisor; "helper exists; ..." means the
+// capability exists there and names what this shell still lacks; "no verified
+// ... RPC" means the upstream method itself is unconfirmed, so the shell must
+// not invent one.
 //
-// The list is per shell state: reconnect is wired once State.OnReconnect is set
-// and turn cancellation once State.OnStop is set, so each is unavailable only
-// while its callback is missing. Branch and key reads exist behind the
-// appserver/session helpers; this shell still has no switching/key UI for them.
+// The list is per shell state: reconnect is wired once State.OnReconnect is set,
+// turn cancellation once State.OnStop is set and approval decisions once
+// State.OnApproval is set, so each is unavailable only while its callback is
+// missing. session.branches and session.keys have read helpers, but branches
+// and keys stay read-only: this shell has no verified switch/cut-point RPC and
+// no key browser, so neither gets an action card.
 func wipCapabilities(s *State) []wipCapability {
 	capabilities := []wipCapability{
 		{"Session creation", "session.create", "helper exists; shell not wired"},
-		{"Branch switching", "session.branches", "helper exists; shell not wired"},
-		{"Session keys", "session.keys", "helper exists; shell not wired"},
-		{"Approvals", "approval.respond", "helper exists; shell not wired"},
-		{"Attachments", "attachment.put", "no Go client helper yet"},
+		{"Branch switching", "session.branches", "read helper exists; no verified switch/cut-point RPC, so branches stay read-only"},
+		{"Session keys", "session.keys", "read helper exists; shell shows no key browser yet"},
 	}
+	if s == nil || s.OnApproval == nil {
+		capabilities = append(capabilities,
+			wipCapability{"Approvals", "approval.respond", "helper exists; window has no approval callback"})
+	}
+	capabilities = append(capabilities,
+		wipCapability{"Attachments", "attachment.put", "no Go client helper yet"})
 	if s == nil || s.OnReconnect == nil {
 		capabilities = append(capabilities,
 			wipCapability{"Connection recovery", "supervisor.Reconnect", "helper exists; shell not wired"})

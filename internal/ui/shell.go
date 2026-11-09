@@ -55,7 +55,9 @@ const (
 	// AuthorAssistant is a row of agent output, shown as Markdown.
 	AuthorAssistant
 	// AuthorApproval is a pending approval request from the transient
-	// projection: plain text with the decisions the shell cannot take yet.
+	// projection: plain text with its two decisions. The decisions are real
+	// actions only while the window supplies OnApproval and the request keeps
+	// its App Server identity; otherwise they stay visible WIP entries.
 	AuthorApproval
 	// AuthorTool is a tool call, drawn as a compact card with its name, its
 	// status and one bounded line each of its params and its result.
@@ -92,6 +94,28 @@ type Notice struct {
 	ID   string
 }
 
+// ApprovalDecision is the shell's decision vocabulary for one pending
+// approval. It is not the wire value: the session layer folds it onto
+// approval.respond's allow/deny and reports what the App Server answered.
+type ApprovalDecision string
+
+const (
+	ApprovalAllow ApprovalDecision = "allow"
+	ApprovalDeny  ApprovalDecision = "deny"
+)
+
+// Approval is what an AuthorApproval row needs to offer its decisions: the
+// App Server's identity of the request, copied from the session projection.
+// The row holds no state of its own; whether the request is still pending comes
+// from the next projection frame, not from a click.
+type Approval struct {
+	BranchID  string
+	RequestID string
+	Call      string
+	Reason    string
+	Source    string
+}
+
 type Message struct {
 	// ID keys the list row, so a row's state and the list's place survive
 	// rows being added, removed or measured.
@@ -104,7 +128,8 @@ type Message struct {
 	// Tool is the call of an AuthorTool row: its name, previews and status.
 	// It stays a pure view model, filled by the fixture, and is zero on a row
 	// of any other author.
-	Tool Tool
+	Tool     Tool
+	Approval *Approval
 }
 
 // State is the view state of the shell.
@@ -146,15 +171,18 @@ type State struct {
 	Messages []Message
 	Draft    string
 
-	// OnSelect, OnSubmit, OnStop and OnReconnect connect the shell's actions to
-	// the caller's session controller. A nil field leaves its action in the view
-	// without an effect, as a fixture does; the callback owns the App Server call
-	// and the facts it returns, so the shell never reports an action it did not
-	// send.
+	// OnSelect, OnSubmit, OnStop, OnReconnect and OnApproval connect the shell's
+	// actions to the caller's session controller. A nil field leaves its action
+	// in the view without an effect, as a fixture does; the callback owns the
+	// App Server call and the facts it returns, so the shell never reports an
+	// action it did not send. OnApproval receives one decision for one request:
+	// the caller sends approval.respond and lets the session projection settle
+	// the row.
 	OnSelect    func(sessionID string)
 	OnSubmit    func(text string)
 	OnStop      func()
 	OnReconnect func()
+	OnApproval  func(branchID, requestID string, decision ApprovalDecision)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -377,8 +405,8 @@ func (s *State) emptyConversation(c *ui.Context, k tokens) {
 }
 
 // messageRow builds one row: the author's name, then the content as Markdown
-// for the assistant, as plain text for the user, as an approval request with the
-// decisions the shell cannot take yet, or as a tool call's card.
+// for the assistant, as plain text for the user, as an approval request with its
+// decisions, or as a tool call's card.
 func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.rowPadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
@@ -387,7 +415,7 @@ func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 			markdown.View(c, m.Content, &s.markdown)
 		case AuthorApproval:
 			ui.Text(c, m.Content).FontSize(k.bodySize)
-			s.approvalActions(c, k)
+			s.approvalActions(c, k, m)
 		case AuthorTool:
 			s.toolRow(c, k, m)
 		default:
@@ -396,13 +424,23 @@ func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 	})
 }
 
-// approvalActions are the decisions an approval row asks for. The shell does
-// not call approval.respond yet, so both entries stay visible, dimmed and
-// unavailable: a click cannot report a decision the App Server never received.
-func (s *State) approvalActions(c *ui.Context, k tokens) {
+// approvalActions are the decisions an approval row asks for. Both are real
+// actions only when the window wires OnApproval and the row still carries the
+// App Server's request identity; otherwise they stay visible, dimmed and
+// unavailable, so a click cannot report a decision the App Server never
+// received. The callback sends one decision and the row stays until the
+// session projection reports the resolution: the shell never removes it or
+// claims an outcome on its own.
+func (s *State) approvalActions(c *ui.Context, k tokens, m Message) {
 	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-		wipAction(c, k, "Approve", reasonApproval)
-		wipAction(c, k, "Deny", reasonApproval)
+		if m.Approval == nil || m.Approval.RequestID == "" || s.OnApproval == nil {
+			wipAction(c, k, "Approve", reasonApproval)
+			wipAction(c, k, "Deny", reasonApproval)
+			return
+		}
+		approval, decide := *m.Approval, s.OnApproval
+		ui.Button(c, "Approve").OnClick(func() { decide(approval.BranchID, approval.RequestID, ApprovalAllow) })
+		ui.Button(c, "Deny").OnClick(func() { decide(approval.BranchID, approval.RequestID, ApprovalDeny) })
 	})
 }
 

@@ -21,11 +21,12 @@ import (
 )
 
 // sessionActions is the part of integration.SessionController the window uses:
-// the live view it adapts and the three mutations the shell's callbacks send.
-// Keeping it small lets tests substitute a session without a daemon.
+// the live view it adapts and the mutations the shell's callbacks send. Keeping
+// it small lets tests substitute a session without a daemon.
 type sessionActions interface {
 	LiveState(summary appserver.SessionSummary) *dimui.State
 	Submit(ctx context.Context, text string) (appserver.SubmitResult, error)
+	RespondApproval(ctx context.Context, branchID, requestID, decision string) (appserver.ApprovalRespondOutcome, error)
 	Stop(ctx context.Context) error
 	Reattach(ctx context.Context) error
 	Close(ctx context.Context) error
@@ -113,6 +114,18 @@ func (b *sessionBridge) StopFor(ctx context.Context, sessionID string) error {
 // Stop stops the current controller for fixture callers.
 func (b *sessionBridge) Stop(ctx context.Context) error {
 	return b.StopFor(ctx, "")
+}
+
+// RespondApprovalFor sends one folded decision through the controller that
+// still belongs to sessionID, so a click on an older conversation's approval
+// cannot reach a newly attached session. It returns the App Server's own
+// outcome; the caller reports it instead of assuming success.
+func (b *sessionBridge) RespondApprovalFor(ctx context.Context, sessionID, branchID, requestID, decision string) (appserver.ApprovalRespondOutcome, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return "", err
+	}
+	return controller.RespondApproval(ctx, branchID, requestID, decision)
 }
 
 // reattachFor reconnects the controller that still belongs to sessionID.
@@ -266,6 +279,7 @@ func (a *app) bind() {
 	a.state.OnSubmit = a.submit
 	a.state.OnStop = a.stop
 	a.state.OnReconnect = a.reconnect
+	a.state.OnApproval = a.respondApproval
 }
 
 // update applies fn to the window's state on the main thread. It does nothing
@@ -589,6 +603,70 @@ func (a *app) stop() {
 			a.notice("stop.accepted", "")
 		}
 	}()
+}
+
+// respondApproval sends one decision for one pending approval through the
+// controller that still belongs to the selected session. The shell keeps the
+// row: only the session projection's approval.resolved or approval.cancelled
+// removes it. A failure is published as an error and the row stays available,
+// so nothing here reports a success the App Server did not return.
+func (a *app) respondApproval(branchID, requestID string, decision dimui.ApprovalDecision) {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	wireDecision, ok := approvalDecision(decision)
+	if !ok {
+		a.notice("approval.error", fmt.Sprintf("unsupported approval decision %q", decision))
+		return
+	}
+	if branchID == "" || requestID == "" {
+		a.notice("approval.error", "approval request is missing its branch or request id")
+		return
+	}
+	sessionID := a.state.Selected
+	gen := a.currentSelection()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		outcome, err := a.bridge.RespondApprovalFor(ctx, sessionID, branchID, requestID, wireDecision)
+		if err != nil {
+			log.Printf("dimagent: approval.respond: %v", err)
+			if a.selectionCurrent(gen) {
+				a.notice("approval.error", err.Error())
+			}
+			return
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		view := a.bridge.LiveState()
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			applyView(state, view)
+		})
+		if outcome == appserver.ApprovalOutcomeCancelled {
+			// The App Server no longer holds this approval; the decision was not
+			// applied and must not read as one.
+			a.notice("approval.cancelled", "The approval was already resolved on the App Server.")
+			return
+		}
+		a.notice("approval.responded", "")
+	}()
+}
+
+// approvalDecision maps the shell's decision onto approval.respond's wire value.
+// An unknown decision is rejected before anything is sent.
+func approvalDecision(decision dimui.ApprovalDecision) (string, bool) {
+	switch decision {
+	case dimui.ApprovalAllow:
+		return appserver.DecisionAllow, true
+	case dimui.ApprovalDeny:
+		return appserver.DecisionDeny, true
+	default:
+		return "", false
+	}
 }
 
 func main() {

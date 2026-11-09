@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver"
 	"github.com/arcships/dimagent-mygo/internal/projection"
 	"github.com/arcships/dimagent-mygo/internal/ui"
 )
@@ -72,6 +73,45 @@ func Build(snapshot projection.Snapshot) []ui.Message {
 		}
 	}
 	return rows
+}
+
+// BuildApprovals adapts the session's daemon-owned pending approvals into rows
+// after the durable ones. A pending approval is not a durable message: the
+// session projection holds it only until the App Server sends approval.resolved
+// or approval.cancelled, so callers must rebuild these rows on every frame
+// instead of keeping or editing them.
+//
+// An empty list gives an empty slice, never nil, matching Build.
+func BuildApprovals(approvals ...appserver.ApprovalRequest) []ui.Message {
+	rows := make([]ui.Message, 0, len(approvals))
+	for _, approval := range approvals {
+		parts := make([]string, 0, 2)
+		if approval.Call.Name != "" {
+			parts = append(parts, approval.Call.Name)
+		}
+		if approval.Reason != "" {
+			parts = append(parts, approval.Reason)
+		}
+		rows = append(rows, ui.Message{
+			ID:      approvalRowID(approval.RequestID),
+			Author:  ui.AuthorApproval,
+			Content: strings.Join(parts, " — "),
+			Approval: &ui.Approval{
+				BranchID:  approval.BranchID,
+				RequestID: approval.RequestID,
+				Call:      approval.Call.Name,
+				Reason:    approval.Reason,
+				Source:    approval.Source.Kind,
+			},
+		})
+	}
+	return rows
+}
+
+// approvalRowID keys an approval row by its request id. The prefix keeps it
+// apart from durable message ids, which the projection owns.
+func approvalRowID(requestID string) string {
+	return "approval:" + requestID
 }
 
 // buildTool maps one tool message: its name and params come from the call event

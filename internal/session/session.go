@@ -255,6 +255,12 @@ func OpenWithOptions(ctx context.Context, client *appserver.Client, features []s
 			Reason:     "hello.features does not advertise session.keys",
 		})
 	}
+	// Optional read failures degrade, but a transport that ended while they were
+	// in flight is still an Open failure; never hand out a half-attached session.
+	if err := s.openFailure(nil); err != nil {
+		s.abortOpen()
+		return nil, err
+	}
 	return s, nil
 }
 
@@ -366,6 +372,14 @@ func (s *Session) openFailure(cause error) error {
 		return &appserver.LocalError{AppError: "connection_closed"}
 	case appserver.StreamStateDetached:
 		return &appserver.LocalError{AppError: "request_aborted"}
+	}
+	// The stream router may not have published lost yet while the transport is
+	// already gone. Client.Done is the wire-level signal; do not return a session
+	// whose attachment can no longer receive notifications.
+	select {
+	case <-s.client.Done():
+		return &appserver.LocalError{AppError: "connection_closed"}
+	default:
 	}
 	return cause
 }
@@ -770,7 +784,9 @@ func (s *Session) PendingApprovals(branchID string) []appserver.ApprovalRequest 
 	}
 	out := make([]appserver.ApprovalRequest, 0, len(branch.approvals))
 	for _, approval := range branch.approvals {
-		out = append(out, approval)
+		copy := approval
+		copy.Call.Input = append(json.RawMessage(nil), approval.Call.Input...)
+		out = append(out, copy)
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].RequestID < out[j].RequestID })
 	return out
@@ -828,9 +844,31 @@ func (s *Session) BranchDirectory() appserver.BranchesResult {
 	if !s.branchesLoaded {
 		return appserver.BranchesResult{}
 	}
-	return appserver.BranchesResult{
-		Branches: append([]appserver.BranchInfo(nil), s.branchDirectory.Branches...),
+	return cloneBranchesResult(s.branchDirectory)
+}
+
+func cloneBranchesResult(in appserver.BranchesResult) appserver.BranchesResult {
+	out := appserver.BranchesResult{Branches: make([]appserver.BranchInfo, len(in.Branches))}
+	for i, branch := range in.Branches {
+		out.Branches[i] = branch
+		out.Branches[i].BranchPoint = cloneInt64(branch.BranchPoint)
+		out.Branches[i].CreateEvent = cloneInt64(branch.CreateEvent)
+		out.Branches[i].EndEvent = cloneInt64(branch.EndEvent)
+		out.Branches[i].Purpose = cloneString(branch.Purpose)
+		if branch.Source != nil {
+			source := *branch.Source
+			out.Branches[i].Source = &source
+		}
 	}
+	return out
+}
+
+func cloneString(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	copy := *value
+	return &copy
 }
 
 // BranchDirectoryStatus reports whether session.branches is available and, if

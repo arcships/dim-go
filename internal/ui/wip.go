@@ -17,7 +17,7 @@ const wipOpacity = 0.5
 // remains the only source of the facts those actions would change.
 const (
 	reasonCreateSession = "Unavailable: the shell is not wired to session.create yet."
-	reasonApproval      = "Unavailable: the shell does not call approval.respond yet."
+	reasonApproval      = "Unavailable: the shell has no approval callback wired to approval.respond."
 	reasonAttachment    = "Unavailable: the Go client has no attachment.put helper yet."
 	reasonReconnect     = "Unavailable: the shell is not wired to supervisor reconnect yet."
 	reasonStop          = "Unavailable: the shell has no session.stop callback yet."
