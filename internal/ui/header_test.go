@@ -221,12 +221,15 @@ func TestSessionMenuItemsAndCallbacks(t *testing.T) {
 	openMenu()
 	clickMenuItem(t, tt, tr(LocaleEN, keyHeaderSettings))
 	if !s.ShowSettings {
-		t.Fatal("the settings entry did not open the appearance surface")
+		t.Fatal("the settings entry did not open the appearance route")
 	}
-	openMenu()
-	clickMenuItem(t, tt, tr(LocaleEN, keyHeaderConversation))
+	// The route replaces the whole window, so the return is its Back row rather
+	// than a second header-menu item.
+	if err := tt.Click(tr(LocaleEN, keySettingsBack)); err != nil {
+		t.Fatal(err)
+	}
 	if s.ShowSettings {
-		t.Fatal("the conversation entry did not return from the appearance surface")
+		t.Fatal("Back did not return from the appearance route")
 	}
 }
 

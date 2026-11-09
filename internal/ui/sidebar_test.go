@@ -817,11 +817,12 @@ func TestSidebarAccountRowStaysWIP(t *testing.T) {
 }
 
 // TestSidebarSettingsOpensTheSurface checks the settings entry at the account
-// row's tail: it is the sidebar's own Settings button, and clicking it opens
-// the same appearance surface the toolbar's entry toggles, with no App Server
-// request.
+// row's tail: it is the sidebar's own Settings button, and clicking it opens the
+// full-window appearance route with no App Server request. The route replaces
+// the sidebar, and Back brings the same selection and draft back.
 func TestSidebarSettingsOpensTheSurface(t *testing.T) {
 	s := fixture()
+	s.Draft = "keep me"
 	tt := ui.NewTester(s.View, 900, 600)
 
 	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
@@ -841,14 +842,27 @@ func TestSidebarSettingsOpensTheSurface(t *testing.T) {
 
 	tt.ClickAt(info.Bounds.X+info.Bounds.W/2, info.Bounds.Y+info.Bounds.H/2)
 	if !s.ShowSettings {
-		t.Fatalf("clicking the sidebar settings entry did not open the surface: %+v", s.ShowSettings)
+		t.Fatalf("clicking the sidebar settings entry did not open the route: %+v", s.ShowSettings)
 	}
 	tt.Frame()
 	if !tt.HasText("Appearance") || !tt.HasText("Interface language") {
-		t.Errorf("the appearance surface is not drawn after the click, texts %q", tt.Texts())
+		t.Errorf("the appearance route is not drawn after the click, texts %q", tt.Texts())
+	}
+	if tt.HasText("Sign in to Dim") {
+		t.Errorf("the account row is still drawn behind the whole-window route, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar"); ok {
+		t.Errorf("the session sidebar is still drawn behind the route, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click(tr(LocaleEN, keySettingsBack)); err != nil {
+		t.Fatal(err)
 	}
 	if !tt.HasText("Sign in to Dim") {
-		t.Errorf("the account row disappeared behind the settings surface, texts %q", tt.Texts())
+		t.Errorf("the account row did not return with the sidebar, texts %q", tt.Texts())
+	}
+	if s.Selected != "s1" || s.Draft != "keep me" {
+		t.Errorf("closing the route changed the window: selected=%q draft=%q", s.Selected, s.Draft)
 	}
 }
 

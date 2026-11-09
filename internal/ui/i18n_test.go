@@ -192,10 +192,10 @@ func TestProtocolNamesStayLiteral(t *testing.T) {
 	}
 }
 
-// TestSettingsLanguageChoiceShowsOnTheNextFrame checks the settings row end to
-// end: the page names the current language, a choice reports the preference
-// and the same window draws the next frame in it, without the caller
-// rebuilding the state.
+// TestSettingsLanguageChoiceShowsOnTheNextFrame checks the language select end
+// to end: the page shows the current language, a choice reports the preference
+// and the same window draws the next frame in it, without the caller rebuilding
+// the state.
 func TestSettingsLanguageChoiceShowsOnTheNextFrame(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 900)
@@ -203,19 +203,18 @@ func TestSettingsLanguageChoiceShowsOnTheNextFrame(t *testing.T) {
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"Interface language", "Current: English", "English", "简体中文"} {
-		if !tt.HasText(want) {
-			t.Fatalf("the language row is missing %q, texts %q", want, tt.Texts())
-		}
+	if info, ok := tt.AccessByRole(ui.RolePopUpButton, "Interface language"); !ok || info.Value != "English" {
+		t.Fatalf("the language select is %+v, want English, texts %q", info, tt.Texts())
+	}
+	if tt.HasText("Current:") {
+		t.Errorf("the language row still draws a Current: value, texts %q", tt.Texts())
 	}
 
-	if err := tt.Click("简体中文"); err != nil {
-		t.Fatal(err)
-	}
+	chooseOption(t, tt, "Interface language", "简体中文")
 	if s.Settings.Locale != LocaleZHCN {
 		t.Fatalf("the surface reported locale %q, want %q", s.Settings.Locale, LocaleZHCN)
 	}
-	for _, want := range []string{"外观", "语言", "界面语言", "当前：简体中文"} {
+	for _, want := range []string{"外观", "程序语言", "界面语言", "简体中文"} {
 		if !tt.HasText(want) {
 			t.Errorf("the next frame is missing %q, texts %q", want, tt.Texts())
 		}
@@ -224,23 +223,21 @@ func TestSettingsLanguageChoiceShowsOnTheNextFrame(t *testing.T) {
 		t.Errorf("the next frame still draws the English language row, texts %q", tt.Texts())
 	}
 
-	// Another preference carries the language along: choosing a font size must
-	// not silently switch the page back to English.
-	if err := tt.Click("12"); err != nil {
+	// Another preference carries the language along: choosing a UI size must not
+	// silently switch the page back to English.
+	if err := tt.Click(tr(LocaleZHCN, keySettingsSizeXS)); err != nil {
 		t.Fatal(err)
 	}
-	if s.Settings.Locale != LocaleZHCN || s.Settings.FontSize != 12 {
-		t.Fatalf("after choosing 12 the settings are %+v, want zh-CN at 12", s.Settings)
+	if s.Settings.Locale != LocaleZHCN || s.Settings.FontSize != fontSizeSteps[0] {
+		t.Fatalf("after choosing the smallest size the settings are %+v, want zh-CN at %.0f", s.Settings, fontSizeSteps[0])
 	}
 	if !tt.HasText("界面语言") {
-		t.Errorf("choosing a font size dropped the Chinese language, texts %q", tt.Texts())
+		t.Errorf("choosing a size dropped the Chinese language, texts %q", tt.Texts())
 	}
 
 	// The control carries each language's own name, so the way back needs no
-	// translation: the English segment stays "English" on a Chinese page.
-	if err := tt.Click("English"); err != nil {
-		t.Fatal(err)
-	}
+	// translation: the English option stays "English" on a Chinese page.
+	chooseOption(t, tt, "界面语言", "English")
 	if s.Settings.Locale != LocaleEN {
 		t.Fatalf("the surface reported locale %q after choosing English, want %q", s.Settings.Locale, LocaleEN)
 	}

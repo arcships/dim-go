@@ -163,36 +163,43 @@ const (
 	keyComposerUnconfigured = "composer.model.unconfigured"
 	keyComposerStatus       = "composer.status"
 
-	keySettingsRegion          = "settings.region"
-	keySettingsTitle           = "settings.title"
-	keySettingsLocalNote       = "settings.localNote"
-	keySettingsCurrentPrefix   = "settings.currentPrefix"
-	keySettingsColor           = "settings.color"
-	keySettingsTheme           = "settings.theme"
-	keySettingsSystem          = "settings.theme.system"
-	keySettingsLight           = "settings.theme.light"
-	keySettingsDark            = "settings.theme.dark"
-	keySettingsText            = "settings.text"
-	keySettingsFontSize        = "settings.fontSize"
-	keySettingsFontFamily      = "settings.fontFamily"
-	keySettingsFontSystem      = "settings.font.system"
-	keySettingsFontMonospace   = "settings.font.monospace"
-	keySettingsCodeFontSize    = "settings.codeFontSize"
-	keySettingsSmallerCode     = "settings.code.smaller"
-	keySettingsLargerCode      = "settings.code.larger"
-	keySettingsLayout          = "settings.layout"
-	keySettingsSidebarWidth    = "settings.sidebarWidth"
-	keySettingsNarrowerSidebar = "settings.sidebar.narrower"
-	keySettingsWiderSidebar    = "settings.sidebar.wider"
-	keySettingsDensity         = "settings.density"
-	keySettingsDensityCompact  = "settings.density.compact"
-	keySettingsDensityRegular  = "settings.density.regular"
-	keySettingsSkinSection     = "settings.skin.section"
-	keySettingsSkinNote        = "settings.skin.note"
-	keySettingsSkin            = "settings.skin"
-	keySettingsChrome          = "settings.chrome"
-	keySettingsLanguage        = "settings.language"
-	keySettingsLanguageRow     = "settings.language.row"
+	keySettingsRegion           = "settings.region"
+	keySettingsTitle            = "settings.title"
+	keySettingsLocalNote        = "settings.localNote"
+	keySettingsBack             = "settings.back"
+	keySettingsThemeGroup       = "settings.theme.group"
+	keySettingsSystem           = "settings.theme.system"
+	keySettingsLight            = "settings.theme.light"
+	keySettingsDark             = "settings.theme.dark"
+	keySettingsLanguage         = "settings.language"
+	keySettingsLanguageNote     = "settings.language.note"
+	keySettingsLanguageRow      = "settings.language.row"
+	keySettingsText             = "settings.text"
+	keySettingsFontFamily       = "settings.fontFamily"
+	keySettingsFontNote         = "settings.font.note"
+	keySettingsFontSystem       = "settings.font.system"
+	keySettingsFontMonospace    = "settings.font.monospace"
+	keySettingsCodeFont         = "settings.codeFont"
+	keySettingsCodeFontSame     = "settings.codeFont.same"
+	keySettingsCodeFontGap      = "settings.codeFont.gap"
+	keySettingsFontSize         = "settings.fontSize"
+	keySettingsSizeXS           = "settings.size.xs"
+	keySettingsSizeSmall        = "settings.size.small"
+	keySettingsSizeMedium       = "settings.size.medium"
+	keySettingsSizeLarge        = "settings.size.large"
+	keySettingsSizeXL           = "settings.size.xl"
+	keySettingsCodeFontSize     = "settings.codeFontSize"
+	keySettingsCodeTheme        = "settings.codeTheme"
+	keySettingsCodeThemeNote    = "settings.codeTheme.note"
+	keySettingsCodeThemeSame    = "settings.codeTheme.same"
+	keySettingsCodePreviewLight = "settings.codeTheme.preview.light"
+	keySettingsCodePreviewDark  = "settings.codeTheme.preview.dark"
+	keySettingsPreviewGap       = "settings.preview.gap"
+	keySettingsSkinSection      = "settings.skin.section"
+	keySettingsSkinNote         = "settings.skin.note"
+	keySettingsSkinCard         = "settings.skin.card"
+	keySettingsSkinNew          = "settings.skin.new"
+	keySettingsSkinOpen         = "settings.skin.open"
 
 	keyCapabilityGroup             = "capability.group"
 	keyCapabilityCreate            = "capability.create.action"
@@ -345,36 +352,43 @@ var stringsEN = Strings{
 	keyComposerStatus:       "Composer status",
 	keyComposerSend:         "Send",
 
-	keySettingsRegion:          "Appearance settings",
-	keySettingsTitle:           "Appearance",
-	keySettingsLocalNote:       settingsLocalNote,
-	keySettingsCurrentPrefix:   "Current: ",
-	keySettingsColor:           "Color",
-	keySettingsTheme:           "Theme",
-	keySettingsSystem:          "System",
-	keySettingsLight:           "Light",
-	keySettingsDark:            "Dark",
-	keySettingsText:            "Text",
-	keySettingsFontSize:        "Font size",
-	keySettingsFontFamily:      "Font family",
-	keySettingsFontSystem:      "System font",
-	keySettingsFontMonospace:   "Monospace",
-	keySettingsCodeFontSize:    "Code font size",
-	keySettingsSmallerCode:     "Smaller code",
-	keySettingsLargerCode:      "Larger code",
-	keySettingsLayout:          "Layout",
-	keySettingsSidebarWidth:    "Sidebar width",
-	keySettingsNarrowerSidebar: "Narrower sidebar",
-	keySettingsWiderSidebar:    "Wider sidebar",
-	keySettingsDensity:         "Density",
-	keySettingsDensityCompact:  "Compact",
-	keySettingsDensityRegular:  "Regular",
-	keySettingsSkinSection:     "Skin and chrome",
-	keySettingsSkinNote:        settingsSkinNote,
-	keySettingsSkin:            "Skin",
-	keySettingsChrome:          "Chrome theme",
-	keySettingsLanguage:        "Language",
-	keySettingsLanguageRow:     "Interface language",
+	keySettingsRegion:           "Settings",
+	keySettingsTitle:            "Appearance",
+	keySettingsLocalNote:        settingsLocalNote,
+	keySettingsBack:             "Back",
+	keySettingsThemeGroup:       "Theme",
+	keySettingsSystem:           "System",
+	keySettingsLight:            "Light",
+	keySettingsDark:             "Dark",
+	keySettingsLanguage:         "Language",
+	keySettingsLanguageNote:     "The language of the shell's own text.",
+	keySettingsLanguageRow:      "Interface language",
+	keySettingsText:             "Font",
+	keySettingsFontFamily:       "UI font",
+	keySettingsFontNote:         "Used for interface text and Markdown.",
+	keySettingsFontSystem:       "System font",
+	keySettingsFontMonospace:    "Monospace",
+	keySettingsCodeFont:         "Code font",
+	keySettingsCodeFontSame:     "Follows the UI font",
+	keySettingsCodeFontGap:      "Read-only: this shell draws the interface and code in one family; a separate code font needs a theme preference the tokens do not carry.",
+	keySettingsFontSize:         "UI size",
+	keySettingsSizeXS:           "XS",
+	keySettingsSizeSmall:        "S",
+	keySettingsSizeMedium:       "M",
+	keySettingsSizeLarge:        "L",
+	keySettingsSizeXL:           "XL",
+	keySettingsCodeFontSize:     "Code size",
+	keySettingsCodeTheme:        "Code theme",
+	keySettingsCodeThemeNote:    "Unavailable: this shell draws code with the interface theme and keeps no separate code-theme preference.",
+	keySettingsCodeThemeSame:    "Same as interface",
+	keySettingsCodePreviewLight: "Light code",
+	keySettingsCodePreviewDark:  "Dark code",
+	keySettingsPreviewGap:       "Preview unavailable: no code theme is stored.",
+	keySettingsSkinSection:      "My skin",
+	keySettingsSkinNote:         settingsSkinNote,
+	keySettingsSkinCard:         "Skin",
+	keySettingsSkinNew:          "New from image",
+	keySettingsSkinOpen:         "Open folder",
 
 	keyCapabilityGroup:             "Unavailable capabilities",
 	keyCapabilityCreate:            "Session creation",
@@ -509,36 +523,43 @@ var stringsZHCN = Strings{
 	keyComposerStatus:       "输入框状态",
 	keyComposerSend:         "发送",
 
-	keySettingsRegion:          "外观设置",
-	keySettingsTitle:           "外观",
-	keySettingsLocalNote:       "这些偏好保存在本机桌面端。它们只改变 shell 的绘制方式，不改变任何会话、运行或审批。",
-	keySettingsCurrentPrefix:   "当前：",
-	keySettingsColor:           "颜色",
-	keySettingsTheme:           "主题",
-	keySettingsSystem:          "跟随系统",
-	keySettingsLight:           "浅色",
-	keySettingsDark:            "深色",
-	keySettingsText:            "文字",
-	keySettingsFontSize:        "字号",
-	keySettingsFontFamily:      "字体",
-	keySettingsFontSystem:      "系统字体",
-	keySettingsFontMonospace:   "等宽字体",
-	keySettingsCodeFontSize:    "代码字号",
-	keySettingsSmallerCode:     "缩小代码字号",
-	keySettingsLargerCode:      "放大代码字号",
-	keySettingsLayout:          "布局",
-	keySettingsSidebarWidth:    "侧栏宽度",
-	keySettingsNarrowerSidebar: "收窄侧栏",
-	keySettingsWiderSidebar:    "加宽侧栏",
-	keySettingsDensity:         "密度",
-	keySettingsDensityCompact:  "紧凑",
-	keySettingsDensityRegular:  "常规",
-	keySettingsSkinSection:     "皮肤与窗口外观",
-	keySettingsSkinNote:        "皮肤和窗口外观主题尚未实现：shell 只绘制一套语义 token，可选 system、light 或 dark。不提供假皮肤。",
-	keySettingsSkin:            "皮肤",
-	keySettingsChrome:          "窗口外观主题",
-	keySettingsLanguage:        "语言",
-	keySettingsLanguageRow:     "界面语言",
+	keySettingsRegion:           "设置",
+	keySettingsTitle:            "外观",
+	keySettingsLocalNote:        "这些偏好保存在本机桌面端。它们只改变 shell 的绘制方式，不改变任何会话、运行或审批。",
+	keySettingsBack:             "返回",
+	keySettingsThemeGroup:       "主题",
+	keySettingsSystem:           "跟随系统",
+	keySettingsLight:            "浅色",
+	keySettingsDark:             "深色",
+	keySettingsLanguage:         "程序语言",
+	keySettingsLanguageNote:     "shell 自身文字的语言。",
+	keySettingsLanguageRow:      "界面语言",
+	keySettingsText:             "字体",
+	keySettingsFontFamily:       "界面字体",
+	keySettingsFontNote:         "用于界面文字与 Markdown 正文。",
+	keySettingsFontSystem:       "系统字体",
+	keySettingsFontMonospace:    "等宽字体",
+	keySettingsCodeFont:         "代码字体",
+	keySettingsCodeFontSame:     "跟随界面字体",
+	keySettingsCodeFontGap:      "只读：本 shell 的界面与代码共用一种字体族；独立代码字体需要 tokens 尚未携带的主题偏好。",
+	keySettingsFontSize:         "UI 字号",
+	keySettingsSizeXS:           "特小",
+	keySettingsSizeSmall:        "小",
+	keySettingsSizeMedium:       "中",
+	keySettingsSizeLarge:        "大",
+	keySettingsSizeXL:           "特大",
+	keySettingsCodeFontSize:     "代码字号",
+	keySettingsCodeTheme:        "代码主题",
+	keySettingsCodeThemeNote:    "不可用：本 shell 的代码跟随界面主题，没有单独的代码主题偏好。",
+	keySettingsCodeThemeSame:    "跟随界面主题",
+	keySettingsCodePreviewLight: "浅色代码",
+	keySettingsCodePreviewDark:  "深色代码",
+	keySettingsPreviewGap:       "预览不可用：没有保存代码主题。",
+	keySettingsSkinSection:      "我的皮肤",
+	keySettingsSkinNote:         "皮肤尚未实现：shell 只绘制一套语义 token，可选 system、light 或 dark。不提供假皮肤。",
+	keySettingsSkinCard:         "皮肤",
+	keySettingsSkinNew:          "用图片新建",
+	keySettingsSkinOpen:         "打开目录",
 
 	keyCapabilityGroup:             "不可用的能力",
 	keyCapabilityCreate:            "创建会话",
@@ -561,16 +582,7 @@ var stringsZHCN = Strings{
 	keyCapabilityTurnCancelGap:     "Go 客户端已有 helper；shell 还没有接线",
 }
 
-// localeIndex is the selected segment of the language control: English, then
-// Simplified Chinese.
-func localeIndex(l Locale) int {
-	if resolveLocale(l) == LocaleZHCN {
-		return 1
-	}
-	return 0
-}
-
-// localeAt is the language a segment stands for.
+// localeAt is the language a select option stands for.
 func localeAt(index int) Locale {
 	if index == 1 {
 		return LocaleZHCN

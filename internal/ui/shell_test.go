@@ -126,9 +126,10 @@ func TestShellFramesTheMainArea(t *testing.T) {
 	}
 }
 
-// TestShellFrameSurroundsTheMainColumnPanels checks that the frame is the main
-// column's, not the conversation's: the appearance surface and the keys browser
-// draw inside the same card.
+// TestShellFrameSurroundsTheMainColumnPanels checks the framed card of the
+// conversation surfaces: the keys browser draws inside the main column's card,
+// while the settings route takes the window and draws its own card. Neither
+// surface is left without a framed face.
 func TestShellFrameSurroundsTheMainColumnPanels(t *testing.T) {
 	assertFramed := func(t *testing.T, tt *ui.Tester) {
 		t.Helper()
@@ -142,7 +143,12 @@ func TestShellFrameSurroundsTheMainColumnPanels(t *testing.T) {
 	if err := settingsTT.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
-	assertFramed(t, settingsTT)
+	if _, ok := settingsTT.AccessByRole(ui.RoleRegion, tr(LocaleEN, keySettingsRegion)); !ok {
+		t.Errorf("the settings route lost its own card, texts %q", settingsTT.Texts())
+	}
+	if _, ok := settingsTT.Find("Main area"); ok {
+		t.Errorf("the settings route still draws the main column's card, texts %q", settingsTT.Texts())
+	}
 	if !settingsTT.HasText("Appearance") {
 		t.Errorf("the settings surface is not drawn, texts %q", settingsTT.Texts())
 	}
@@ -258,28 +264,34 @@ func TestShellAppliesSavedFontSize(t *testing.T) {
 }
 
 // TestShellSettingsChoiceShowsOnTheNextFrame checks the wiring the appearance
-// surface has into the frame: a choice made on the page changes what the next
+// route has into the frame: a choice made on the page changes what the next
 // frame draws, in the same window, without the caller rebuilding the state.
 func TestShellSettingsChoiceShowsOnTheNextFrame(t *testing.T) {
 	s := fixture()
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
 	entryBefore := textBox(t, tt, "Sessions")
 
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
 	titleBefore := textBox(t, tt, "Appearance")
-	if err := tt.Click("18"); err != nil {
+	if err := tt.Click(tr(LocaleEN, keySettingsSizeXL)); err != nil {
 		t.Fatal(err)
 	}
-	if s.Settings.FontSize != 18 {
-		t.Fatalf("the surface reported %.0f, want 18", s.Settings.FontSize)
-	}
-	if got := textBox(t, tt, "Sessions"); got.H <= entryBefore.H {
-		t.Errorf("the entry is %.1f high after choosing 18, no taller than %.1f", got.H, entryBefore.H)
+	if s.Settings.FontSize != fontSizeSteps[len(fontSizeSteps)-1] {
+		t.Fatalf("the route reported %.0f, want %.0f", s.Settings.FontSize, fontSizeSteps[len(fontSizeSteps)-1])
 	}
 	if got := textBox(t, tt, "Appearance"); got.H <= titleBefore.H {
-		t.Errorf("the page title is %.1f high after choosing 18, no taller than %.1f", got.H, titleBefore.H)
+		t.Errorf("the page title is %.1f high after choosing the largest size, no taller than %.1f", got.H, titleBefore.H)
+	}
+
+	// The sidebar only comes back with the conversation, so the entry's new
+	// height is measured after the route returns.
+	if err := tt.Click(tr(LocaleEN, keySettingsBack)); err != nil {
+		t.Fatal(err)
+	}
+	if got := textBox(t, tt, "Sessions"); got.H <= entryBefore.H {
+		t.Errorf("the entry is %.1f high after choosing the largest size, no taller than %.1f", got.H, entryBefore.H)
 	}
 }
 
@@ -550,10 +562,9 @@ func TestShellContextPanelYieldsToSettingsAndKeys(t *testing.T) {
 		t.Error("opening the appearance surface dropped the window's panel toggle")
 	}
 
-	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+	if err := tt.Click(tr(LocaleEN, keySettingsBack)); err != nil {
 		t.Fatal(err)
 	}
-	clickMenuItem(t, tt, tr(LocaleEN, keyHeaderConversation))
 	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
 		t.Fatalf("the panel did not return with the conversation, texts %q", tt.Texts())
 	}

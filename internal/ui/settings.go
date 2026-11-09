@@ -30,26 +30,43 @@ import (
 // The settings surface's own steps, in DIPs. Padding, gaps, type sizes, radii
 // and colors come from the tokens; these are the values only this surface has:
 // the width of its reading column (dim-electron's max-w-4xl is 784 DIP at the
-// 14px root size), the sidebar-width step a keyboard press takes, and the code
-// size range dim-electron's slider offers (AppearanceSettings.vue, 12–20).
+// 14px root size), the code size range dim-electron's slider offers
+// (AppearanceSettings.vue, 12–20), and the width of a select so the choice
+// column does not jump between rows.
 const (
-	settingsPageMaxW  = 784
-	settingsWidthStep = 8
-	settingsCodeMin   = 12
-	settingsCodeMax   = 20
-	settingsCodeStep  = 1
+	settingsPageMaxW = 784
+	settingsCodeMin  = 12
+	settingsCodeMax  = 20
+	settingsCodeStep = 1
+	settingsSelectW  = 200
+
+	// The theme cards, code previews and skin covers keep the reference's
+	// proportions: a theme card is a wide, short tile, and the two galleries are
+	// rows of small cards.
+	settingsThemeCardH   = 64
+	settingsThemeDot     = 7
+	settingsThemeIconGap = 6
+	settingsPreviewH     = 64
+	settingsPreviewGap   = 4
+	settingsSkinCardH    = 56
 )
 
-// The navigation column's geometry, in DIPs, from docs/l5-reference.md §5.5:
-// the reference window is 800 wide and its section column's divider sits at
-// x≈228.5, so the column takes 30% of the surface and never grows past 200
-// DIPs. The share keeps the column inside a narrow window instead of pushing
-// the page off its right edge, and the cap gives the page its reading room on
-// a wide one. A section row keeps the sidebar's entry height so the two
-// navigations read as one shell.
+// The navigation column's geometry, in DIPs, from
+// docs/evidence/electron-reference/window-settings.png: the reference's card
+// starts 4.5 DIPs inside an 800-wide window, its section column's divider sits
+// at x≈228, a row is about 34.5 high, and a selected row's pill is inset 7 DIPs
+// from the card edge. The share keeps the column inside a narrow window instead
+// of pushing the page off its right edge, and the cap gives the page its
+// reading room on a wide one. A section row keeps the sidebar's row height so
+// the two navigations read as one shell.
 const (
-	settingsNavW     = 200
-	settingsNavShare = 30
+	settingsNavW       = 228
+	settingsNavShare   = 30
+	settingsNavPadX    = 7
+	settingsNavPadY    = 14
+	settingsNavIconGap = 6
+	settingsNavBackGap = 14
+	settingsPagePad    = 28
 )
 
 // settingsNavigationLabel names the section column for assistive technology.
@@ -70,7 +87,7 @@ const settingsLocalNote = "These preferences live on this desktop. They change h
 // settingsSkinNote says why the skin section has no control to offer. A skin
 // or a chrome theme replaces the semantic tokens themselves; system, light and
 // dark are color preferences, not stand-ins for one.
-const settingsSkinNote = "Skins and chrome themes are not implemented: the shell draws one semantic token set in system, light or dark. No fake skin is offered."
+const settingsSkinNote = "Skins are not implemented: the shell draws one semantic token set in system, light or dark. No fake skin is offered."
 
 // The reasons the skin and chrome entries wait on. dim-electron resolves skins
 // from a skin.json and a window region, and chrome from six historical
@@ -156,16 +173,16 @@ const (
 	SettingsSectionExternalAgent
 )
 
-// settingsSections is the navigation's order, as the reference's left column
-// lists it (docs/l5-reference.md §5.5): Account, Usage, Personalization,
-// Appearance, General, Shortcuts, Models, Multimodal, Runtime, MCP,
-// Notifications, Pet, Permissions, Git, Hooks, Plugins, External Agent.
+// settingsSections is the navigation's order: the reference's 17 entries
+// (docs/evidence/electron-reference/window-settings.png), from Account to
+// External Agent, then this shell's own unavailable-capabilities page. The
+// extra page is appended rather than placed inside the reference's list so the
+// 17 reference rows keep their order.
 var settingsSections = [...]SettingsSection{
 	SettingsSectionAccount,
 	SettingsSectionUsage,
 	SettingsSectionPersonalization,
 	SettingsSectionAppearance,
-	SettingsSectionCapabilities,
 	SettingsSectionGeneral,
 	SettingsSectionShortcuts,
 	SettingsSectionModels,
@@ -179,6 +196,7 @@ var settingsSections = [...]SettingsSection{
 	SettingsSectionHooks,
 	SettingsSectionPlugins,
 	SettingsSectionExternalAgent,
+	SettingsSectionCapabilities,
 }
 
 // resolvedSection folds an unknown saved section onto the default, as
@@ -530,62 +548,12 @@ func fontStepIndex(size float32) int {
 	return 0
 }
 
-// themeIndex is the selected segment of the theme control: System, Light, Dark.
-func themeIndex(theme ThemeChoice) int {
-	switch theme {
-	case ThemeLight:
-		return 1
-	case ThemeDark:
-		return 2
-	default:
-		return 0
-	}
-}
-
-// themeAt is the choice a theme segment stands for.
-func themeAt(index int) ThemeChoice {
-	switch index {
-	case 1:
-		return ThemeLight
-	case 2:
-		return ThemeDark
-	default:
-		return ThemeSystem
-	}
-}
-
-// fontFamilyIndex is the selected segment of the family control: System font,
-// Monospace.
-func fontFamilyIndex(family FontFamily) int {
-	if family == FontMonospace {
-		return 1
-	}
-	return 0
-}
-
-// fontFamilyAt is the family a segment stands for.
+// fontFamilyAt is the family a select option stands for.
 func fontFamilyAt(index int) FontFamily {
 	if index == 1 {
 		return FontMonospace
 	}
 	return FontSystem
-}
-
-// densityIndex is the selected segment of the density control: Compact,
-// Regular.
-func densityIndex(density Density) int {
-	if density == DensityCompact {
-		return 0
-	}
-	return 1
-}
-
-// densityAt is the density a segment stands for.
-func densityAt(index int) Density {
-	if index == 0 {
-		return DensityCompact
-	}
-	return DensityRegular
 }
 
 // themeChoiceText is the theme's name in the active language. The choice's own
@@ -610,14 +578,6 @@ func fontFamilyText(l Locale, f FontFamily) string {
 	return tr(l, keySettingsFontSystem)
 }
 
-// densityText is the density's name in the active language.
-func densityText(l Locale, d Density) string {
-	if d == DensityCompact {
-		return tr(l, keySettingsDensityCompact)
-	}
-	return tr(l, keySettingsDensityRegular)
-}
-
 // publishSettings reports one user choice. The nil callback is a window that
 // has not wired persistence yet: the surface stays visible with its current
 // values and reports nothing, rather than changing a preference nowhere.
@@ -637,72 +597,129 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 	})
 }
 
-// renderSettings draws the settings surface: the section navigation on the
-// left and the chosen section's page on the right. The navigation is one
-// focusable row per section, marked selected for the page on screen; a click
-// moves the surface's own *Section and reports no SettingsChange, because the
-// page is display state, not a desktop preference.
+// renderSettings draws the settings route: one card filling the window, the
+// section navigation on the left and the chosen section's page on the right.
+// The shell draws no sidebar, toolbar, conversation or composer while it shows,
+// so a preference change is read on a page of its own rather than beside the
+// chat it changes. The card's 4.5 DIP inset and rounded face match the framed
+// workspace (mainFramePad/mainFrameRadius), so the route opens as the same
+// window with a different card.
 //
-// The appearance page draws the theme, type, layout, skin and language
-// sections, one row per preference with its current value and the control that
-// changes it. Every other page keeps its navigation row and explains the client
-// or page it waits on, with a visible WIP badge and no invented control. It
-// reads SettingsView and the tokens only. It calls onChange at most once per
-// user choice, with the resolved view, and writes no preference itself. The
-// surface's own text is drawn in the language the view names, so a language
-// choice shows on the next frame.
-func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, onChange func(SettingsChange)) {
+// The navigation is one focusable row per section, marked selected for the page
+// on screen, and a Back row above it. A click moves the surface's own *Section
+// and reports no SettingsChange, because the page is display state, not a
+// desktop preference. Back and Escape call onBack, which the window wires to the
+// same state change the settings entry toggles.
+//
+// The appearance page draws the theme, language, font, size, code-theme and
+// skin groups; every other page keeps its navigation row and explains the client
+// or page it waits on, with a visible WIP badge and no invented control. It reads
+// SettingsView and the tokens only. It calls onChange at most once per user choice, with the
+// resolved view, and writes no preference itself. The surface's own text is
+// drawn in the language the view names, so a language choice shows on the next
+// frame.
+func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, onChange func(SettingsChange), onBack func()) {
 	v = resolveSettings(k, v)
 	l := v.Locale
-	row := ui.Row(c).Key("settings-panel").Fill().Role(ui.RoleRegion).Label(tr(l, keyHeaderSettings)).
-		Transition(motionPanel(c))
+	if c.Shortcut(0, ui.KeyEscape) && onBack != nil {
+		onBack()
+	}
 	// The chosen section is the surface's own state: the view names where the
 	// surface opens, and ui.Local keeps the reader's click from frame to frame.
-	// A frame that does not build this row drops it, so reopening the surface
+	// A frame that does not build this row drops it, so reopening the route
 	// starts on the section the view names.
-	section := ui.Local(row, settingsSectionLocalKey{}, func() SettingsSection { return v.Section })
-	if section == nil {
+	root := ui.Row(c).Fill().Padding(k.framePad).Background(k.background)
+	row := ui.Local(root, settingsSectionLocalKey{}, func() SettingsSection { return v.Section })
+	if row == nil {
 		opened := v.Section
-		section = &opened
+		row = &opened
 	}
-	*section = resolvedSection(*section)
-	row.Children(func() {
-		settingsNavigation(c, k, l, section)
-		settingsPage(c, k, v, capabilities, *section, onChange)
+	section := resolvedSection(*row)
+	*row = section
+
+	root.Children(func() {
+		ui.Row(c).Key("settings-route").Grow(1).FillWidth().FillHeight().
+			Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
+			Background(k.card).Clip().Role(ui.RoleRegion).Label(tr(l, keySettingsRegion)).
+			Transition(motionPanel(c)).Children(func() {
+			settingsNavigation(c, k, l, row, onBack)
+			settingsPage(c, k, v, capabilities, section, onChange)
+		})
 	})
 }
 
-// settingsNavigation draws the section column: every section the reference
-// lists, in its order, as one focusable row. The selected row carries the
-// accent face and the Selected state; a click only moves *section.
-func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSection) {
+// settingsNavigation draws the section column: a Back row, then every section
+// the reference lists in its order, followed by the shell's own capability
+// page. Each row is one focusable entry with its 16×16 outline glyph, and the
+// selected row carries the sidebar's selection pill. The column scrolls when
+// the window is too short for every row, and a click only moves *section; the
+// Back row calls onBack, which is the same callback Escape takes.
+func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSection, onBack func()) {
 	nav := ui.Column(c).BasisPercent(settingsNavShare).Shrink(0).MaxWidth(settingsNavW).
-		FillHeight().Padding(k.gapWide, k.gapWide).Gap(0).Clip().
-		BorderEndWidth(k.hairline).BorderColor(k.border).
+		FillHeight().Clip().BorderEndWidth(k.hairline).BorderColor(k.border).
 		Role(ui.RoleNavigation).Label(tr(l, keySettingsNavigation))
 	nav.Children(func() {
-		for _, s := range settingsSections {
-			selected := s == *section
-			entry := ui.ButtonBase(c).Key("settings-section:" + settingsSectionSlug(s)).Height(k.sidebarEntryH).FillWidth().
-				PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.gap).
-				AlignItems(ui.Center).Role(ui.RoleListItem).
-				Selected(selected).Transition(motionFastColors(c))
-			switch {
-			case selected:
-				entry.Background(k.accent)
-			case entry.Hovered():
-				entry.Background(k.sidebarHover)
-			}
-			entry.OnClick(func() {
-				*section = s
-			})
-			entry.Children(func() {
-				text := ui.Text(c, settingsSectionLabel(l, s)).FontSize(k.bodySize).
-					TextColor(k.foreground).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
-				if selected {
-					text.Bold()
+		ui.Scroll(c).Grow(1).FillWidth().Children(func() {
+			ui.Column(c).FillWidth().Padding(settingsNavPadY, settingsNavPadX).Children(func() {
+				settingsBackRow(c, k, l, onBack)
+				ui.Box(c).FillWidth().Height(settingsNavBackGap).AccessHidden(true)
+				for _, s := range settingsSections {
+					settingsNavRow(c, k, l, s, s == *section, section)
 				}
 			})
+		})
+	})
+}
+
+// settingsBackRow is the route's return entry: the arrow and label the
+// reference puts above the sections. It is the first Tab stop and the same
+// action Escape takes.
+func settingsBackRow(c *ui.Context, k tokens, l Locale, onBack func()) {
+	label := tr(l, keySettingsBack)
+	back := ui.ButtonBase(c).Key("settings-back").Height(k.sidebarRowH).FillWidth().
+		PaddingX(settingsNavPadX).Radius(radiusMD).Gap(settingsNavIconGap).
+		AlignItems(ui.Center).Role(ui.RoleButton).Label(label).
+		Transition(motionFastColors(c))
+	if back.Hovered() {
+		back.Background(k.sidebarHover)
+	}
+	if onBack != nil {
+		back.OnClick(onBack)
+	}
+	back.Children(func() {
+		sidebarGlyph(c, settingsIcons.back, k.foreground)
+		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
+	})
+}
+
+// settingsNavRow is one section entry: its glyph, its label and, when chosen,
+// the neutral selection pill and the Selected state. The glyph is a decoration;
+// the row's label names the section for assistive technology.
+func settingsNavRow(c *ui.Context, k tokens, l Locale, s SettingsSection, selected bool, section *SettingsSection) {
+	label := settingsSectionLabel(l, s)
+	entry := ui.ButtonBase(c).Key("settings-section:" + settingsSectionSlug(s)).
+		Height(k.sidebarRowH).FillWidth().PaddingX(settingsNavPadX).Radius(radiusMD).
+		Gap(settingsNavIconGap).AlignItems(ui.Center).Role(ui.RoleListItem).
+		Selected(selected).Transition(motionFastColors(c))
+	switch {
+	case selected:
+		entry.Background(k.sidebarAccent)
+	case entry.Hovered():
+		entry.Background(k.sidebarHover)
+	}
+	entry.OnClick(func() {
+		*section = s
+	})
+	entry.Children(func() {
+		color := k.foreground
+		if selected {
+			color = k.sidebarAccentForeground
+		}
+		sidebarGlyph(c, settingsIcon(s), color)
+		text := ui.Text(c, label).FontSize(k.bodySize).TextColor(color).
+			SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+		if selected {
+			text.Bold()
 		}
 	})
 }
@@ -713,10 +730,10 @@ func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSect
 // on, so the section never pretends a preference was read.
 func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, section SettingsSection, onChange func(SettingsChange)) {
 	l := v.Locale
-	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(settingsPageMaxW).Padding(k.panelPad).Gap(k.panelPad).
+	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Clip().Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(settingsPageMaxW).Padding(settingsPagePad).Gap(settingsPagePad).
 			Children(func() {
-				ui.Text(c, settingsSectionLabel(l, section)).Bold().FontSize(k.titleSize).
+				ui.Text(c, settingsSectionLabel(l, section)).Bold().FontSize(k.heroTitleSize).
 					TextColor(k.foreground).Role(ui.RoleHeading).Level(1)
 				switch section {
 				case SettingsSectionCapabilities:
@@ -728,20 +745,25 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 					settingsWIPPage(c, k, section, v.Locale)
 					return
 				}
-				ui.Text(c, tr(l, keySettingsLocalNote)).FontSize(k.smallSize).TextColor(k.mutedForeground)
-				settingsDivider(c, k)
 				settingsThemeSection(c, k, v, onChange)
 				settingsDivider(c, k)
-				settingsTypeSection(c, k, v, onChange)
+				settingsLanguageSection(c, k, v, onChange)
 				settingsDivider(c, k)
-				settingsLayoutSection(c, k, v, onChange)
+				settingsFontSection(c, k, v, onChange)
+				settingsDivider(c, k)
+				settingsUISizeSection(c, k, v, onChange)
+				settingsDivider(c, k)
+				settingsCodeSizeSection(c, k, v, onChange)
+				settingsDivider(c, k)
+				settingsCodeThemeSection(c, k, v)
 				settingsDivider(c, k)
 				settingsSkinSection(c, k, v)
-				// The language row sits last so a reader who changes it has already
-				// passed the preferences whose labels it switches; the rest of the page
-				// is redrawn in the new language on the next frame.
-				settingsDivider(c, k)
-				settingsLanguageSection(c, k, v, onChange)
+				// The desktop-local note sits last so the page opening on the
+				// reference's theme, language, font and size groups matches its
+				// visible order; the note explains where the preferences live
+				// without pushing the controls below the fold.
+				ui.Text(c, tr(l, keySettingsLocalNote)).FontSize(k.smallSize).
+					TextColor(k.mutedForeground).Wrap()
 			})
 	})
 }
@@ -781,36 +803,127 @@ func settingsWIPPage(c *ui.Context, k tokens, section SettingsSection, l Locale)
 	ui.Text(c, gap).FontSize(k.bodySize).TextColor(k.mutedForeground)
 }
 
-// settingsThemeSection is the color-theme row: one choice among System, Light
-// and Dark, with the chosen one named beside it.
+// settingsThemeSection is the color-theme choice as three cards: System, Light
+// and Dark, in the reference's order, with the chosen card outlined in the
+// brand color and marked by a dot. They form a radio group, so the arrows move
+// between the cards and a click selects one; a choice reports
+// SettingsFieldTheme.
 func settingsThemeSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
 	l := v.Locale
-	settingsSection(c, k, tr(l, keySettingsColor), func() {
-		settingsRow(c, k, tr(l, keySettingsTheme), tr(l, keySettingsCurrentPrefix)+themeChoiceText(l, v.Theme), func() {
-			selected := themeIndex(v.Theme)
-			segmented := ui.Segmented(c, &selected,
-				tr(l, keySettingsSystem), tr(l, keySettingsLight), tr(l, keySettingsDark)).Label(tr(l, keySettingsTheme))
-			if segmented.Changed() {
-				next := v
-				next.Theme = themeAt(selected)
-				publishSettings(onChange, SettingsFieldTheme, next)
+	settingsSection(c, k, tr(l, keySettingsThemeGroup), func() {
+		selected := v.Theme
+		ui.Row(c).FillWidth().Gap(k.gapWide).Role(ui.RoleRadioGroup).
+			Label(tr(l, keySettingsThemeGroup)).Children(func() {
+			for _, choice := range []ThemeChoice{ThemeSystem, ThemeLight, ThemeDark} {
+				choice := choice
+				c.Key("settings-theme:" + themeChoiceSlug(choice))
+				card := ui.RadioBase(c, &selected, choice).
+					Grow(1).Shrink(1).MinWidth(0).Height(settingsThemeCardH).
+					Padding(k.gapWide).Radius(radiusLG).BorderWidth(k.hairline).
+					BorderColor(k.border).Background(k.card).
+					Label(themeChoiceText(l, choice)).Transition(motionFastColors(c))
+				if choice == v.Theme {
+					card.BorderWidth(1.5).BorderColor(k.primary)
+				}
+				if card.Hovered() && choice != v.Theme {
+					card.Background(k.secondary)
+				}
+				if card.Changed() {
+					next := v
+					next.Theme = choice
+					publishSettings(onChange, SettingsFieldTheme, next)
+				}
+				card.Children(func() {
+					ui.Column(c).FillWidth().Gap(settingsThemeIconGap).Children(func() {
+						ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
+							dot := ui.Box(c).Size(settingsThemeDot, settingsThemeDot).Radius(settingsThemeDot / 2)
+							if choice == v.Theme {
+								dot.Background(k.primary)
+							}
+							dot.AccessHidden(true)
+						})
+						ui.Column(c).Grow(1).FillWidth().Justify(ui.Center).AlignItems(ui.Center).
+							Gap(settingsThemeIconGap).Children(func() {
+							sidebarGlyph(c, settingsThemeIcon(choice), k.foreground)
+							ui.Text(c, themeChoiceText(l, choice)).FontSize(k.bodySize).
+								Bold().TextColor(k.foreground).SingleLine().Ellipsis("…")
+						})
+					})
+				})
 			}
 		})
 	})
 }
 
-// settingsTypeSection is the type set: the UI font-size steps, the family, and
-// the code size. The UI steps are a radio group, so the arrows step through
-// them and wrap at either end; the code size steps by one between its bounds.
-func settingsTypeSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
+// settingsLanguageSection is the interface-language choice. The control's
+// options are each language's own name, so a reader finds their language
+// written the way they write it; choosing one reports SettingsFieldLocale and
+// the shell draws the next frame in it.
+func settingsLanguageSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
 	l := v.Locale
-	settingsSection(c, k, tr(l, keySettingsText), func() {
-		settingsRow(c, k, tr(l, keySettingsFontSize), tr(l, keySettingsCurrentPrefix)+settingsPx(v.FontSize), func() {
-			labels := make([]string, len(fontSizeSteps))
-			for i, step := range fontSizeSteps {
-				labels[i] = strconv.Itoa(int(step))
+	options := []string{LocaleEN.Name(), LocaleZHCN.Name()}
+	selected := l.Name()
+	settingsSection(c, k, tr(l, keySettingsLanguage), func() {
+		settingsControlRow(c, k, tr(l, keySettingsLanguageRow), tr(l, keySettingsLanguageNote), func() {
+			sel := ui.Select(c, &selected, options).Label(tr(l, keySettingsLanguageRow)).
+				Width(settingsSelectW).Shrink(1)
+			if sel.Changed() {
+				if index := optionIndex(selected, options); index >= 0 {
+					next := v
+					next.Locale = localeAt(index)
+					publishSettings(onChange, SettingsFieldLocale, next)
+				}
 			}
-			selected := fontStepIndex(v.FontSize)
+		})
+	})
+}
+
+// settingsFontSection is the family pair: a UI-font select the shell can
+// change, and a code-font select that is read-only because this shell draws the
+// interface and code in one family. The second select names that limitation in
+// its description instead of offering a separate family the tokens cannot
+// apply.
+func settingsFontSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
+	l := v.Locale
+	options := []string{tr(l, keySettingsFontSystem), tr(l, keySettingsFontMonospace)}
+	selected := fontFamilyText(l, v.FontFamily)
+	settingsSection(c, k, tr(l, keySettingsText), func() {
+		settingsControlRow(c, k, tr(l, keySettingsFontFamily), tr(l, keySettingsFontNote), func() {
+			sel := ui.Select(c, &selected, options).Label(tr(l, keySettingsFontFamily)).
+				Width(settingsSelectW).Shrink(1)
+			if sel.Changed() {
+				if index := optionIndex(selected, options); index >= 0 {
+					next := v
+					next.FontFamily = fontFamilyAt(index)
+					publishSettings(onChange, SettingsFieldFontFamily, next)
+				}
+			}
+		})
+		settingsControlRow(c, k, tr(l, keySettingsCodeFont), tr(l, keySettingsCodeFontGap), func() {
+			same := tr(l, keySettingsCodeFontSame)
+			ui.Select(c, &same, []string{same}).Label(tr(l, keySettingsCodeFont)).
+				Width(settingsSelectW).Shrink(1).Disabled(true).AccessDisabled(true).
+				Opacity(wipOpacity)
+		})
+	})
+}
+
+// settingsUISizeSection is the UI text size as five segments, from the
+// smallest to the largest step the theme offers. A choice reports
+// SettingsFieldFontSize; the next frame folds it into every type step.
+func settingsUISizeSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
+	l := v.Locale
+	labels := []string{
+		tr(l, keySettingsSizeXS),
+		tr(l, keySettingsSizeSmall),
+		tr(l, keySettingsSizeMedium),
+		tr(l, keySettingsSizeLarge),
+		tr(l, keySettingsSizeXL),
+	}
+	selected := fontStepIndex(v.FontSize)
+	settingsSection(c, k, tr(l, keySettingsFontSize), func() {
+		ui.Row(c).FillWidth().Children(func() {
+			ui.Box(c).Grow(1)
 			segmented := ui.Segmented(c, &selected, labels...).Label(tr(l, keySettingsFontSize))
 			if segmented.Changed() {
 				next := v
@@ -818,107 +931,116 @@ func settingsTypeSection(c *ui.Context, k tokens, v SettingsView, onChange func(
 				publishSettings(onChange, SettingsFieldFontSize, next)
 			}
 		})
-		settingsRow(c, k, tr(l, keySettingsFontFamily), tr(l, keySettingsCurrentPrefix)+fontFamilyText(l, v.FontFamily), func() {
-			selected := fontFamilyIndex(v.FontFamily)
-			segmented := ui.Segmented(c, &selected,
-				tr(l, keySettingsFontSystem), tr(l, keySettingsFontMonospace)).Label(tr(l, keySettingsFontFamily))
-			if segmented.Changed() {
-				next := v
-				next.FontFamily = fontFamilyAt(selected)
-				publishSettings(onChange, SettingsFieldFontFamily, next)
-			}
-		})
-		settingsRow(c, k, tr(l, keySettingsCodeFontSize), tr(l, keySettingsCurrentPrefix)+settingsPx(v.CodeFontSize), func() {
-			ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-				smaller := ui.Button(c, tr(l, keySettingsSmallerCode)).Disabled(v.CodeFontSize <= settingsCodeMin)
-				smaller.OnClick(func() {
-					next := v
-					next.CodeFontSize = clampCodeFontSize(v.CodeFontSize - settingsCodeStep)
-					if next.CodeFontSize != v.CodeFontSize {
-						publishSettings(onChange, SettingsFieldCodeFontSize, next)
-					}
-				})
-				larger := ui.Button(c, tr(l, keySettingsLargerCode)).Disabled(v.CodeFontSize >= settingsCodeMax)
-				larger.OnClick(func() {
-					next := v
-					next.CodeFontSize = clampCodeFontSize(v.CodeFontSize + settingsCodeStep)
-					if next.CodeFontSize != v.CodeFontSize {
-						publishSettings(onChange, SettingsFieldCodeFontSize, next)
-					}
-				})
-			})
-		})
 	})
 }
 
-// settingsLayoutSection is the room the shell keeps: the sidebar's width, one
-// step per press and held to its bounds, and the compact or regular density.
-func settingsLayoutSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
+// settingsCodeSizeSection is the code text size as a 12–20 px slider. The
+// slider snaps to whole DIPs, so a drag reports an integer; the current value
+// and the range are written around it as text, not as another control.
+func settingsCodeSizeSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
 	l := v.Locale
-	settingsSection(c, k, tr(l, keySettingsLayout), func() {
-		settingsRow(c, k, tr(l, keySettingsSidebarWidth), tr(l, keySettingsCurrentPrefix)+settingsPx(v.SidebarWidth), func() {
-			ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-				narrower := ui.Button(c, tr(l, keySettingsNarrowerSidebar)).Disabled(v.SidebarWidth <= k.sidebarMinW)
-				narrower.OnClick(func() {
-					next := v
-					next.SidebarWidth = k.clampSidebarWidth(v.SidebarWidth - settingsWidthStep)
-					if next.SidebarWidth != v.SidebarWidth {
-						publishSettings(onChange, SettingsFieldSidebarWidth, next)
-					}
-				})
-				wider := ui.Button(c, tr(l, keySettingsWiderSidebar)).Disabled(v.SidebarWidth >= k.sidebarMaxW)
-				wider.OnClick(func() {
-					next := v
-					next.SidebarWidth = k.clampSidebarWidth(v.SidebarWidth + settingsWidthStep)
-					if next.SidebarWidth != v.SidebarWidth {
-						publishSettings(onChange, SettingsFieldSidebarWidth, next)
-					}
-				})
-			})
+	code := float64(clampCodeFontSize(v.CodeFontSize))
+	settingsSection(c, k, tr(l, keySettingsCodeFontSize), func() {
+		ui.Row(c).FillWidth().Children(func() {
+			ui.Box(c).Grow(1)
+			ui.Text(c, settingsPx(float32(code))).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		})
-		settingsRow(c, k, tr(l, keySettingsDensity), tr(l, keySettingsCurrentPrefix)+densityText(l, v.Density), func() {
-			selected := densityIndex(v.Density)
-			segmented := ui.Segmented(c, &selected,
-				tr(l, keySettingsDensityCompact), tr(l, keySettingsDensityRegular)).Label(tr(l, keySettingsDensity))
-			if segmented.Changed() {
-				next := v
-				next.Density = densityAt(selected)
-				publishSettings(onChange, SettingsFieldDensity, next)
+		slider := ui.StepSlider(c, &code, settingsCodeMin, settingsCodeMax, settingsCodeStep).
+			Label(tr(l, keySettingsCodeFontSize)).FillWidth()
+		if slider.Changed() {
+			next := v
+			next.CodeFontSize = clampCodeFontSize(float32(code))
+			publishSettings(onChange, SettingsFieldCodeFontSize, next)
+		}
+		ui.Row(c).FillWidth().Justify(ui.SpaceBetween).Children(func() {
+			for _, value := range []float32{settingsCodeMin, (settingsCodeMin + settingsCodeMax) / 2, settingsCodeMax} {
+				ui.Text(c, settingsPx(value)).FontSize(k.smallSize).TextColor(k.mutedForeground).
+					SingleLine()
 			}
 		})
 	})
 }
 
-// settingsSkinSection names the appearance layer the shell does not have. Its
-// two entries stay visible, unavailable and explained; the surface has no
-// third color theme and no skin to preview.
+// settingsCodeThemeSection names the code theme the shell does not have. The
+// select is read-only and says the code follows the interface theme, which is
+// what the shell really does; the two preview cards stay WIP and draw no fake
+// syntax colors.
+func settingsCodeThemeSection(c *ui.Context, k tokens, v SettingsView) {
+	l := v.Locale
+	settingsSection(c, k, tr(l, keySettingsCodeTheme), func() {
+		ui.Text(c, tr(l, keySettingsCodeThemeNote)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).Wrap()
+		same := tr(l, keySettingsCodeThemeSame)
+		ui.Select(c, &same, []string{same}).Label(tr(l, keySettingsCodeTheme)).
+			Width(settingsSelectW).Shrink(1).Disabled(true).AccessDisabled(true).
+			Opacity(wipOpacity)
+		ui.Row(c).FillWidth().Gap(k.gapWide).Children(func() {
+			settingsWIPPreview(c, k, l, tr(l, keySettingsCodePreviewLight))
+			settingsWIPPreview(c, k, l, tr(l, keySettingsCodePreviewDark))
+		})
+	})
+}
+
+// settingsWIPPreview is one preview card the shell cannot fill: a bordered
+// face with its name and the WIP badge, and a note that no preview exists
+// rather than invented syntax colors.
+func settingsWIPPreview(c *ui.Context, k tokens, l Locale, label string) {
+	ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Height(settingsPreviewH).
+		Padding(k.gapWide).Gap(settingsPreviewGap).Radius(radiusMD).
+		BorderWidth(k.hairline).BorderColor(k.border).Background(k.card).Children(func() {
+		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, label).FontSize(k.bodySize).TextColor(k.foreground).SingleLine().
+				Ellipsis("…").Grow(1).MinWidth(0)
+			ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
+		})
+		ui.Text(c, tr(l, keySettingsPreviewGap)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).Wrap()
+	})
+}
+
+// settingsSkinSection is the skin gallery the reference draws. The shell has no
+// skin assets and no skin resolver, so every cover is a WIP card with only its
+// place and the visible badge, and the two actions stay unavailable with the
+// reason they wait on.
 func settingsSkinSection(c *ui.Context, k tokens, v SettingsView) {
 	l := v.Locale
 	settingsSection(c, k, tr(l, keySettingsSkinSection), func() {
-		ui.Text(c, tr(l, keySettingsSkinNote)).FontSize(k.smallSize).TextColor(k.mutedForeground)
-		ui.Row(c).Gap(k.gapWide).AlignItems(ui.Center).Children(func() {
-			wipAction(c, k, tr(l, keySettingsSkin), tr(l, keyReasonSkin))
-			wipAction(c, k, tr(l, keySettingsChrome), tr(l, keyReasonChrome))
+		ui.Text(c, tr(l, keySettingsSkinNote)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).Wrap()
+		for row := 0; row < 2; row++ {
+			ui.Row(c).FillWidth().Gap(k.gapWide).Children(func() {
+				for column := 0; column < 3; column++ {
+					settingsSkinCard(c, k, l, row*3+column+1)
+				}
+			})
+		}
+		ui.Row(c).FillWidth().Gap(k.gapWide).AlignItems(ui.Center).Children(func() {
+			settingsWIPButton(c, tr(l, keySettingsSkinNew), tr(l, keyReasonSkin))
+			settingsWIPButton(c, tr(l, keySettingsSkinOpen), tr(l, keyReasonSkin))
 		})
 	})
 }
 
-// settingsLanguageSection is the interface-language row. The control's labels
-// are each language's own name, so a reader finds their language written the
-// way they write it; choosing one reports SettingsFieldLocale and the shell
-// draws the next frame in it.
-func settingsLanguageSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
-	l := v.Locale
-	settingsSection(c, k, tr(l, keySettingsLanguage), func() {
-		settingsRow(c, k, tr(l, keySettingsLanguageRow), tr(l, keySettingsCurrentPrefix)+l.Name(), func() {
-			selected := localeIndex(l)
-			segmented := ui.Segmented(c, &selected,
-				LocaleEN.Name(), LocaleZHCN.Name()).Label(tr(l, keySettingsLanguageRow))
-			if segmented.Changed() {
-				next := v
-				next.Locale = localeAt(selected)
-				publishSettings(onChange, SettingsFieldLocale, next)
-			}
+// settingsWIPButton is an unavailable action that shares its row: it is disabled
+// for assistive technology, carries the reason as its description, and shrinks
+// with the row so a narrow window truncates the label instead of overflowing.
+// The group's WIP cards already show the visible badge.
+func settingsWIPButton(c *ui.Context, label, reason string) {
+	ui.Button(c, label).AccessDisabled(true).Description(reason).Opacity(wipOpacity).
+		Grow(1).Shrink(1).MinWidth(0)
+}
+
+// settingsSkinCard is one empty cover of the skin gallery: its number, the WIP
+// badge and no image, so the gallery keeps the reference's shape without
+// pretending a skin asset exists.
+func settingsSkinCard(c *ui.Context, k tokens, l Locale, index int) {
+	ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Height(settingsSkinCardH).
+		Padding(k.gapWide).Gap(settingsPreviewGap).Radius(radiusMD).
+		BorderWidth(k.hairline).BorderColor(k.border).Background(k.card).Children(func() {
+		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, tr(l, keySettingsSkinCard)+" "+strconv.Itoa(index)).FontSize(k.bodySize).
+				TextColor(k.foreground).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+			ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
 		})
 	})
 }
@@ -926,21 +1048,24 @@ func settingsLanguageSection(c *ui.Context, k tokens, v SettingsView, onChange f
 // settingsSection draws one titled group of setting rows.
 func settingsSection(c *ui.Context, k tokens, title string, body func()) {
 	ui.Column(c).FillWidth().Gap(k.gapWide).Children(func() {
-		ui.Text(c, title).Bold().FontSize(k.labelSize).TextColor(k.foreground).
+		ui.Text(c, title).Bold().FontSize(k.bodySize).TextColor(k.foreground).
 			Role(ui.RoleHeading).Level(2)
 		body()
 	})
 }
 
-// settingsRow draws one setting: its label on the left, its current value, and
-// the control that changes it on the right. The current value is text, not a
-// control, so assistive technology reads the setting and its value before the
-// choice.
-func settingsRow(c *ui.Context, k tokens, label, current string, control func()) {
+// settingsControlRow draws one setting: its label and explanation on the left,
+// the control that changes it on the right. The control carries the setting's
+// name for assistive technology, so the row's text is not a second, unrelated
+// label.
+func settingsControlRow(c *ui.Context, k tokens, label, note string, control func()) {
 	ui.Row(c).FillWidth().Gap(k.gapWide).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
-		ui.Box(c).Grow(1)
-		ui.Text(c, current).FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine()
+		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Gap(settingsPreviewGap).Children(func() {
+			ui.Text(c, label).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
+			if note != "" {
+				ui.Text(c, note).FontSize(k.smallSize).TextColor(k.mutedForeground).Wrap()
+			}
+		})
 		control()
 	})
 }
@@ -950,7 +1075,43 @@ func settingsDivider(c *ui.Context, k tokens) {
 	ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
 }
 
-// settingsPx writes a size for a row's current-value text.
+// settingsPx writes a size for the code-size readout.
 func settingsPx(size float32) string {
 	return strconv.Itoa(int(size)) + " px"
+}
+
+// optionIndex is the position of a chosen option in its select's list, or -1
+// when the select carries a value the list does not offer.
+func optionIndex(value string, options []string) int {
+	for i, option := range options {
+		if option == value {
+			return i
+		}
+	}
+	return -1
+}
+
+// themeChoiceSlug is the theme card's stable key stem.
+func themeChoiceSlug(choice ThemeChoice) string {
+	switch choice {
+	case ThemeLight:
+		return "light"
+	case ThemeDark:
+		return "dark"
+	default:
+		return "system"
+	}
+}
+
+// settingsThemeIcon is the mark each theme card carries: a sun for light, a
+// moon for dark, and a display for following the desktop.
+func settingsThemeIcon(choice ThemeChoice) *ui.SVG {
+	switch choice {
+	case ThemeLight:
+		return settingsIcons.sun
+	case ThemeDark:
+		return settingsIcons.moon
+	default:
+		return settingsIcons.system
+	}
 }

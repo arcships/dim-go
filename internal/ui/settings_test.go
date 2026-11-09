@@ -8,18 +8,20 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// settingsHarness drives the settings surface on its own: each test builds the
-// region and folds the one change it reports back into the view, as the window
-// will. The surface's section selection is its own frame-to-frame state, so it
-// is not part of the view the harness folds.
+// settingsHarness drives the settings route on its own: each test builds the
+// route and folds the one change it reports back into the view, as the window
+// will. The route's section selection is its own frame-to-frame state, so it is
+// not part of the view the harness folds; backs counts the Back row and the
+// Escape key, which both call the same callback.
 type settingsHarness struct {
 	view         SettingsView
 	capabilities []wipCapability
 	changes      []SettingsChange
+	backs        int
 	tt           *ui.Tester
 }
 
-// newSettingsHarness draws view and records every change the surface reports.
+// newSettingsHarness draws view and records every change the route reports.
 func newSettingsHarness(view SettingsView) *settingsHarness {
 	return newSettingsHarnessAt(view, 900, 900)
 }
@@ -32,6 +34,8 @@ func newSettingsHarnessAt(view SettingsView, width, height int) *settingsHarness
 		renderSettings(c, newTokens(c.Theme()), h.view, h.capabilities, func(change SettingsChange) {
 			h.changes = append(h.changes, change)
 			h.view = applySettingsChange(h.view, change)
+		}, func() {
+			h.backs++
 		})
 	}, width, height)
 	return h
@@ -53,14 +57,44 @@ func applySettingsChange(v SettingsView, change SettingsChange) SettingsView {
 		v.Density = change.Density
 	case SettingsFieldCodeFontSize:
 		v.CodeFontSize = change.CodeFontSize
+	case SettingsFieldLocale:
+		v.Locale = change.Locale
 	}
 	return v
+}
+
+// chooseOption opens a select by its accessible name and chooses one option. It
+// clicks the select trigger's bounds rather than the row's label text, since
+// both are found by the same name; callers choose an option other than the
+// current one, as a reader would.
+func chooseOption(t *testing.T, tt *ui.Tester, control, option string) {
+	t.Helper()
+	info, ok := tt.AccessByRole(ui.RolePopUpButton, control)
+	if !ok {
+		t.Fatalf("the %q select is missing, texts %q", control, tt.Texts())
+	}
+	tt.ClickAt(info.Bounds.X+info.Bounds.W/2, info.Bounds.Y+info.Bounds.H/2)
+	if err := tt.Click(option); err != nil {
+		t.Fatalf("choose %q in %q: %v", option, control, err)
+	}
+}
+
+// clickAccess clicks the center of the first element with the role and
+// accessible name. It reaches a control whose visible row label shares its name,
+// as the code-size slider's group heading does.
+func clickAccess(t *testing.T, tt *ui.Tester, role ui.Role, name string) {
+	t.Helper()
+	info, ok := tt.AccessByRole(role, name)
+	if !ok {
+		t.Fatalf("the %q %v control is missing, texts %q", name, role, tt.Texts())
+	}
+	tt.ClickAt(info.Bounds.X+info.Bounds.W/2, info.Bounds.Y+info.Bounds.H/2)
 }
 
 // TestSettingsDefaultsMatchTokens checks the appearance a window that has not
 // saved a preference draws: the theme follows the desktop, the type sits on the
 // tokens' own default steps, the sidebar is its default width, and the density
-// is regular. The surface must draw those values, not empty rows.
+// is regular. The page must draw those values, not empty controls.
 func TestSettingsDefaultsMatchTokens(t *testing.T) {
 	k := newTokens(ui.LightTheme())
 	v := defaultSettingsView(k)
@@ -91,38 +125,97 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 	for _, want := range []string{
 		"Appearance",
 		settingsLocalNote,
-		"Color", "Theme", "Current: System",
-		"Text", "Font size", "Current: " + settingsPx(k.uiFontSize),
-		"Font family", "Current: System font",
-		"Code font size", "Current: " + settingsPx(k.codeFontSize),
-		"Layout", "Sidebar width", "Current: " + settingsPx(k.sidebarW),
-		"Density", "Current: Regular",
-		"Skin and chrome", settingsSkinNote,
+		"Theme", "System", "Light", "Dark",
+		"Language", "Interface language", "English",
+		"Font", "UI font", "System font", "Code font", "Follows the UI font",
+		"UI size",
+		"Code size",
+		"Code theme", "Same as interface",
+		"My skin", settingsSkinNote, "Skin 1", "Skin 6",
+		wipBadge,
 	} {
 		if !h.tt.HasText(want) {
-			t.Errorf("the default surface is missing %q, texts %q", want, h.tt.Texts())
+			t.Errorf("the default page is missing %q, texts %q", want, h.tt.Texts())
 		}
 	}
-	if info, ok := h.tt.AccessByRole(ui.RoleRadio, "System"); !ok || !info.Checked {
-		t.Errorf("the default theme's System choice is not selected: %+v, found %v", info, ok)
+	if h.tt.HasText("Current:") {
+		t.Errorf("the page still draws a Current: value, texts %q", h.tt.Texts())
 	}
-	if info, ok := h.tt.AccessByRole(ui.RoleRadio, strconv.Itoa(int(k.uiFontSize))); !ok || !info.Checked {
-		t.Errorf("the default font-size choice is not selected: %+v, found %v", info, ok)
+	if h.tt.HasText("Density") {
+		t.Errorf("the page still draws the density control, texts %q", h.tt.Texts())
+	}
+	if info, ok := h.tt.AccessByRole(ui.RoleHeading, "Appearance"); !ok || info.Level != 1 {
+		t.Errorf("the page has no level-1 Appearance heading: %+v, found %v", info, ok)
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleRadioGroup, "Theme"); !ok {
+		t.Errorf("the theme cards are not a radio group, texts %q", h.tt.Texts())
+	}
+	for _, name := range []string{"System", "Light", "Dark"} {
+		info, ok := h.tt.AccessByRole(ui.RoleRadio, name)
+		if !ok {
+			t.Errorf("the %s theme card is not a radio, texts %q", name, h.tt.Texts())
+			continue
+		}
+		if info.Checked != (name == "System") {
+			t.Errorf("the %s theme card is checked=%v, want only System checked", name, info.Checked)
+		}
+	}
+	if info, ok := h.tt.AccessByRole(ui.RoleRadio, "S"); !ok || !info.Checked {
+		t.Errorf("the default UI size's S segment is not selected: %+v, found %v", info, ok)
+	}
+	for _, tc := range []struct{ label, value string }{
+		{"Interface language", "English"},
+		{"UI font", "System font"},
+	} {
+		info, ok := h.tt.AccessByRole(ui.RolePopUpButton, tc.label)
+		if !ok {
+			t.Errorf("the %s select is missing, texts %q", tc.label, h.tt.Texts())
+			continue
+		}
+		if info.Value != tc.value {
+			t.Errorf("the %s select shows %q, want %q", tc.label, info.Value, tc.value)
+		}
+		if info.Disabled {
+			t.Errorf("the %s select is disabled although its preference is settable", tc.label)
+		}
+	}
+	for _, tc := range []struct{ label, value string }{
+		{"Code font", "Follows the UI font"},
+		{"Code theme", "Same as interface"},
+	} {
+		info, ok := h.tt.AccessByRole(ui.RolePopUpButton, tc.label)
+		if !ok {
+			t.Errorf("the read-only %s select is missing, texts %q", tc.label, h.tt.Texts())
+			continue
+		}
+		if info.Value != tc.value {
+			t.Errorf("the %s select shows %q, want %q", tc.label, info.Value, tc.value)
+		}
+		if !info.Disabled {
+			t.Errorf("the read-only %s select is available although the shell has no such preference", tc.label)
+		}
+	}
+	slider, ok := h.tt.AccessByRole(ui.RoleSlider, "Code size")
+	if !ok {
+		t.Fatalf("the code-size slider is missing, texts %q", h.tt.Texts())
+	}
+	if slider.Now != float64(k.codeFontSize) || slider.Min != settingsCodeMin || slider.Max != settingsCodeMax {
+		t.Errorf("the code-size slider is %+v, want %.0f between %d and %d", slider, k.codeFontSize, settingsCodeMin, settingsCodeMax)
 	}
 	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Appearance"); !ok || !info.Selected {
 		t.Errorf("the default section's navigation row is not selected: %+v, found %v", info, ok)
 	}
 }
 
-// TestSettingsSectionsOrder checks the left column against the reference: all
-// 17 sections, in the reference's order, from Account to External Agent, with
-// the appearance page open and marked as the selected row.
+// TestSettingsSectionsOrder checks the left column against the reference: the
+// 17 reference sections in order, then the shell's own capability page, with
+// the Back row above them and the appearance page marked as selected.
 func TestSettingsSectionsOrder(t *testing.T) {
 	want := []string{
-		"Account", "Usage", "Personalization", "Appearance", "Unavailable capabilities", "General",
+		"Account", "Usage", "Personalization", "Appearance", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
-		"External Agent",
+		"External Agent", "Unavailable capabilities",
 	}
 	if len(settingsSections) != len(want) {
 		t.Fatalf("the navigation has %d sections, want %d", len(settingsSections), len(want))
@@ -137,7 +230,11 @@ func TestSettingsSectionsOrder(t *testing.T) {
 	if _, ok := h.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); !ok {
 		t.Fatalf("the section column is not exposed as a navigation, texts %q", h.tt.Texts())
 	}
-	lastY := float32(-1)
+	back, ok := h.tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySettingsBack))
+	if !ok {
+		t.Fatalf("the navigation has no Back row, texts %q", h.tt.Texts())
+	}
+	lastY := back.Bounds.Y
 	for i, name := range want {
 		info, ok := h.tt.AccessByRole(ui.RoleListItem, name)
 		if !ok {
@@ -154,7 +251,7 @@ func TestSettingsSectionsOrder(t *testing.T) {
 }
 
 // TestSettingsNavigationSwitchesSection checks a click on a navigation row:
-// it changes only the surface's chosen section, reports no preference change,
+// it changes only the route's chosen section, reports no preference change,
 // and the page below switches from the appearance controls to the WIP
 // explanation and back.
 func TestSettingsNavigationSwitchesSection(t *testing.T) {
@@ -179,14 +276,14 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 	if !h.tt.HasText(settingsSectionGaps[SettingsSectionGeneral]) {
 		t.Errorf("the General page does not explain its gap, texts %q", h.tt.Texts())
 	}
-	if h.tt.HasText(tr(LocaleEN, keySettingsFontSize)) {
-		t.Errorf("the General page still draws the appearance font-size row, texts %q", h.tt.Texts())
+	if h.tt.HasText(tr(LocaleEN, keySettingsFontFamily)) {
+		t.Errorf("the General page still draws the appearance font row, texts %q", h.tt.Texts())
 	}
 
 	if err := h.tt.Click("Appearance"); err != nil {
 		t.Fatalf("click Appearance: %v", err)
 	}
-	if !h.tt.HasText(tr(LocaleEN, keySettingsFontSize)) {
+	if !h.tt.HasText(tr(LocaleEN, keySettingsFontFamily)) {
 		t.Fatalf("the appearance page did not come back, texts %q", h.tt.Texts())
 	}
 
@@ -201,7 +298,7 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 
 // TestSettingsWIPPagesOfferNoControls checks every section without a page: it
 // keeps its navigation row and title, shows the WIP badge and the missing
-// client or page, and draws no control, current value or fake data that could
+// client or page, and draws no select, slider, radio or fake data that could
 // look like a saved preference.
 func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 	for _, section := range settingsSections {
@@ -227,14 +324,10 @@ func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 			if !h.tt.HasText(wipBadge) {
 				t.Errorf("the %s page shows no visible %q badge, texts %q", name, wipBadge, h.tt.Texts())
 			}
-			if info, ok := h.tt.AccessByRole(ui.RoleRadio, ""); ok {
-				t.Errorf("the %s page offers a radio control: %+v", name, info)
-			}
-			if info, ok := h.tt.AccessByRole(ui.RoleButton, ""); ok {
-				t.Errorf("the %s page offers a button: %+v", name, info)
-			}
-			if h.tt.HasText(tr(LocaleEN, keySettingsCurrentPrefix)) {
-				t.Errorf("the %s page draws a current-value row, texts %q", name, h.tt.Texts())
+			for _, role := range []ui.Role{ui.RolePopUpButton, ui.RoleSlider, ui.RoleSwitch, ui.RoleRadio} {
+				if info, ok := h.tt.AccessByRole(role, ""); ok {
+					t.Errorf("the %s page offers a %v control: %+v", name, role, info)
+				}
 			}
 			if len(h.changes) != 0 {
 				t.Errorf("the %s page reported %+v, want no change", name, h.changes)
@@ -243,9 +336,10 @@ func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 	}
 }
 
-// TestSettingsNarrowNavigationFits checks the section column in a narrow
-// window: it shrinks with the room instead of pushing the page off the right
-// edge, and every row stays inside the column.
+// TestSettingsNarrowNavigationFits checks the settings route in a narrow
+// window: the section column shrinks with the room instead of pushing the page
+// off the right edge, its rows stay inside it, and the column and page scroll
+// rather than overflowing vertically.
 func TestSettingsNarrowNavigationFits(t *testing.T) {
 	const width, height = 320, 640
 	h := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), width, height)
@@ -267,6 +361,9 @@ func TestSettingsNarrowNavigationFits(t *testing.T) {
 			t.Errorf("the %s row %+v spills outside the column %+v", name, info.Bounds, nav.Bounds)
 		}
 	}
+	if _, ok := h.tt.AccessByRole(ui.RoleScroll, ""); !ok {
+		t.Errorf("the settings route has no scroll area, texts %q", h.tt.Texts())
+	}
 	heading, ok := h.tt.AccessByRole(ui.RoleHeading, "Appearance")
 	if !ok {
 		t.Fatalf("the appearance page heading is missing, texts %q", h.tt.Texts())
@@ -274,9 +371,36 @@ func TestSettingsNarrowNavigationFits(t *testing.T) {
 	if heading.Bounds.X+heading.Bounds.W > width+0.5 {
 		t.Errorf("the page heading %+v spills past the %d-wide window", heading.Bounds, width)
 	}
+	for _, name := range []string{"System", "Light", "Dark"} {
+		info, ok := h.tt.AccessByRole(ui.RoleRadio, name)
+		if !ok {
+			t.Fatalf("the %s theme card is missing in a narrow window, texts %q", name, h.tt.Texts())
+		}
+		if info.Bounds.X+info.Bounds.W > width+0.5 {
+			t.Errorf("the %s theme card %+v spills past the %d-wide window", name, info.Bounds, width)
+		}
+	}
+	for _, name := range []string{"XS", "S", "M", "L", "XL"} {
+		info, ok := h.tt.AccessByRole(ui.RoleRadio, name)
+		if !ok {
+			t.Fatalf("the %s size segment is missing in a narrow window, texts %q", name, h.tt.Texts())
+		}
+		if info.Bounds.X+info.Bounds.W > width+0.5 {
+			t.Errorf("the %s size segment %+v spills past the %d-wide window", name, info.Bounds, width)
+		}
+	}
+	for _, name := range []string{tr(LocaleEN, keySettingsSkinNew), tr(LocaleEN, keySettingsSkinOpen)} {
+		info, ok := h.tt.AccessByRole(ui.RoleButton, name)
+		if !ok {
+			t.Fatalf("the %s action is missing in a narrow window, texts %q", name, h.tt.Texts())
+		}
+		if info.Bounds.X+info.Bounds.W > width+0.5 {
+			t.Errorf("the %s action %+v spills past the %d-wide window", name, info.Bounds, width)
+		}
+	}
 }
 
-// TestSettingsReportsOneChangePerChoice checks each control: one click reports
+// TestSettingsReportsOneChangePerChoice checks each control: one choice reports
 // exactly one change, with the field and value the user chose. A redraw does
 // not report the choice again, and the change carries the resolved view, so the
 // window can store either the one value or the whole snapshot.
@@ -284,194 +408,150 @@ func TestSettingsReportsOneChangePerChoice(t *testing.T) {
 	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
 
 	cases := []struct {
-		label string
-		field SettingsField
-		check func(SettingsChange) bool
+		choose func()
+		field  SettingsField
+		check  func(SettingsChange) bool
 	}{
-		{"Dark", SettingsFieldTheme, func(c SettingsChange) bool { return c.Theme == ThemeDark }},
-		{"Monospace", SettingsFieldFontFamily, func(c SettingsChange) bool { return c.FontFamily == FontMonospace }},
-		{"Compact", SettingsFieldDensity, func(c SettingsChange) bool { return c.Density == DensityCompact }},
-		{"18", SettingsFieldFontSize, func(c SettingsChange) bool { return c.FontSize == 18 }},
-		{"Larger code", SettingsFieldCodeFontSize, func(c SettingsChange) bool { return c.CodeFontSize == defaultCodeFontSize+settingsCodeStep }},
-		{"Narrower sidebar", SettingsFieldSidebarWidth, func(c SettingsChange) bool {
-			return c.SidebarWidth == sidebarDefaultW-settingsWidthStep
+		{func() { h.tt.Click("Dark") }, SettingsFieldTheme, func(c SettingsChange) bool { return c.Theme == ThemeDark }},
+		{func() { chooseOption(t, h.tt, "UI font", "Monospace") }, SettingsFieldFontFamily, func(c SettingsChange) bool { return c.FontFamily == FontMonospace }},
+		{func() { h.tt.Click("L") }, SettingsFieldFontSize, func(c SettingsChange) bool { return c.FontSize == 16 }},
+		{func() { clickAccess(t, h.tt, ui.RoleSlider, "Code size") }, SettingsFieldCodeFontSize, func(c SettingsChange) bool {
+			return c.CodeFontSize >= settingsCodeMin && c.CodeFontSize <= settingsCodeMax
 		}},
 	}
-	for _, tc := range cases {
+	for i, tc := range cases {
 		before := len(h.changes)
-		if err := h.tt.Click(tc.label); err != nil {
-			t.Fatalf("click %q: %v", tc.label, err)
-		}
+		tc.choose()
 		if got := len(h.changes); got != before+1 {
-			t.Fatalf("click %q reported %d changes, want exactly 1", tc.label, got-before)
+			t.Fatalf("choice %d reported %d changes, want exactly 1", i+1, got-before)
 		}
 		change := h.changes[len(h.changes)-1]
 		if change.Field != tc.field {
-			t.Errorf("click %q reported field %v, want %v", tc.label, change.Field, tc.field)
+			t.Errorf("choice %d reported field %v, want %v", i+1, change.Field, tc.field)
 		}
 		if !tc.check(change) {
-			t.Errorf("click %q reported %+v", tc.label, change)
+			t.Errorf("choice %d reported %+v", i+1, change)
 		}
-		// The callback carries the whole resolved view, and applying it leaves
-		// the other preferences alone.
-		if change.Theme != h.view.Theme || change.FontSize != h.view.FontSize ||
-			change.FontFamily != h.view.FontFamily || change.SidebarWidth != h.view.SidebarWidth ||
-			change.Density != h.view.Density || change.CodeFontSize != h.view.CodeFontSize {
-			t.Errorf("click %q reported %+v, which does not match the applied view %+v", tc.label, change, h.view)
-		}
-
 		h.tt.Frame()
 		if got := len(h.changes); got != before+1 {
-			t.Errorf("click %q reported %d changes after a redraw, want 1", tc.label, got-before)
+			t.Errorf("choice %d reported %d changes after a redraw, want 1", i+1, got-before)
 		}
+	}
+
+	// The language select is last because it redraws the page in the chosen
+	// language; choosing it reports one change and the next frame is Chinese.
+	before := len(h.changes)
+	chooseOption(t, h.tt, "Interface language", "简体中文")
+	if got := len(h.changes); got != before+1 {
+		t.Fatalf("the language choice reported %d changes, want 1", got-before)
+	}
+	change := h.changes[len(h.changes)-1]
+	if change.Field != SettingsFieldLocale || change.Locale != LocaleZHCN {
+		t.Errorf("the language choice reported %+v, want zh-CN", change)
+	}
+	if !h.tt.HasText("外观") || !h.tt.HasText("界面语言") {
+		t.Errorf("the next frame is not Chinese, texts %q", h.tt.Texts())
 	}
 }
 
-// TestSettingsFontSizeStepsCycle checks the UI font-size control as one radio
-// group: the arrows step through the offered sizes and wrap at either end, and
-// each step reports its own value once. The surface never lands between steps.
-func TestSettingsFontSizeStepsCycle(t *testing.T) {
+// TestSettingsUISizeSegmentsChooseEachStep checks the five UI-size segments:
+// each one reports its own step, and the chosen segment is the one selected on
+// the next frame.
+func TestSettingsUISizeSegmentsChooseEachStep(t *testing.T) {
 	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
-	h.view.FontSize = fontSizeSteps[len(fontSizeSteps)-1]
-	h.tt.Frame()
-
-	// Put the keyboard focus on the group's chosen step, then step with the
-	// arrows, as a keyboard user does.
-	if err := h.tt.Click(strconv.Itoa(int(h.view.FontSize))); err != nil {
-		t.Fatal(err)
+	labels := []string{
+		tr(LocaleEN, keySettingsSizeXS),
+		tr(LocaleEN, keySettingsSizeSmall),
+		tr(LocaleEN, keySettingsSizeMedium),
+		tr(LocaleEN, keySettingsSizeLarge),
+		tr(LocaleEN, keySettingsSizeXL),
 	}
-	if len(h.changes) != 0 {
-		t.Fatalf("clicking the chosen step reported %d changes, want 0", len(h.changes))
-	}
-
-	steps := []struct {
-		key  ui.Key
-		want float32
-	}{
-		{ui.KeyRight, fontSizeSteps[0]},                   // wraps past the largest
-		{ui.KeyRight, fontSizeSteps[1]},                   // the next step
-		{ui.KeyLeft, fontSizeSteps[0]},                    // back one
-		{ui.KeyLeft, fontSizeSteps[len(fontSizeSteps)-1]}, // wraps past the smallest
-	}
-	for i, step := range steps {
+	for i, label := range labels {
 		before := len(h.changes)
-		h.tt.Key(0, step.key)
+		if err := h.tt.Click(label); err != nil {
+			t.Fatalf("click %q: %v", label, err)
+		}
 		if got := len(h.changes); got != before+1 {
-			t.Fatalf("step %d (%v) reported %d changes, want exactly 1", i+1, step.key, got-before)
+			t.Fatalf("segment %q reported %d changes, want 1", label, got-before)
 		}
 		change := h.changes[len(h.changes)-1]
-		if change.Field != SettingsFieldFontSize || change.FontSize != step.want {
-			t.Errorf("step %d (%v) reported %+v, want font size %.0f", i+1, step.key, change, step.want)
+		if change.Field != SettingsFieldFontSize || change.FontSize != fontSizeSteps[i] {
+			t.Errorf("segment %q reported %+v, want font size %.0f", label, change, fontSizeSteps[i])
 		}
-		h.tt.Frame()
+		if info, ok := h.tt.AccessByRole(ui.RoleRadio, label); !ok || !info.Checked {
+			t.Errorf("segment %q is not selected after its click: %+v, found %v", label, info, ok)
+		}
 	}
 }
 
-// TestSettingsSidebarWidthStaysInBounds checks the width control: a saved
-// width outside 200–360 is drawn at the nearest bound, the button past that
-// bound is unavailable, and every step the surface reports stays inside it
-// even when a press would pass an edge.
-func TestSettingsSidebarWidthStaysInBounds(t *testing.T) {
-	t.Run("above the widest", func(t *testing.T) {
-		h := newSettingsHarness(SettingsView{SidebarWidth: 999})
-		if !h.tt.HasText("Current: " + settingsPx(sidebarMaxW)) {
-			t.Fatalf("an out-of-range width is not drawn at %d, texts %q", sidebarMaxW, h.tt.Texts())
-		}
-		if info, ok := h.tt.AccessByRole(ui.RoleButton, "Wider sidebar"); !ok || !info.Disabled {
-			t.Errorf("Wider sidebar is available at the widest width: %+v, found %v", info, ok)
-		}
-		if err := h.tt.Click("Wider sidebar"); err != nil {
-			t.Fatal(err)
-		}
-		if len(h.changes) != 0 {
-			t.Fatalf("a press past the widest reported %d changes, want 0", len(h.changes))
-		}
-		if err := h.tt.Click("Narrower sidebar"); err != nil {
-			t.Fatal(err)
-		}
-		if len(h.changes) != 1 {
-			t.Fatalf("a press inside the range reported %d changes, want 1", len(h.changes))
-		}
-		if got := h.changes[0].SidebarWidth; got != sidebarMaxW-settingsWidthStep {
-			t.Errorf("narrowing from the widest reported %.0f, want %.0f", got, float32(sidebarMaxW-settingsWidthStep))
-		}
-	})
-
-	t.Run("below the narrowest", func(t *testing.T) {
-		h := newSettingsHarness(SettingsView{SidebarWidth: 120})
-		if !h.tt.HasText("Current: " + settingsPx(sidebarMinW)) {
-			t.Fatalf("an out-of-range width is not drawn at %d, texts %q", sidebarMinW, h.tt.Texts())
-		}
-		if info, ok := h.tt.AccessByRole(ui.RoleButton, "Narrower sidebar"); !ok || !info.Disabled {
-			t.Errorf("Narrower sidebar is available at the narrowest width: %+v, found %v", info, ok)
-		}
-		if err := h.tt.Click("Narrower sidebar"); err != nil {
-			t.Fatal(err)
-		}
-		if len(h.changes) != 0 {
-			t.Fatalf("a press past the narrowest reported %d changes, want 0", len(h.changes))
-		}
-		if err := h.tt.Click("Wider sidebar"); err != nil {
-			t.Fatal(err)
-		}
-		if len(h.changes) != 1 {
-			t.Fatalf("a press inside the range reported %d changes, want 1", len(h.changes))
-		}
-		if got := h.changes[0].SidebarWidth; got != sidebarMinW+settingsWidthStep {
-			t.Errorf("widening from the narrowest reported %.0f, want %.0f", got, float32(sidebarMinW+settingsWidthStep))
-		}
-	})
-
-	t.Run("a step past the edge", func(t *testing.T) {
-		h := newSettingsHarness(SettingsView{SidebarWidth: sidebarMaxW - 5})
-		if err := h.tt.Click("Wider sidebar"); err != nil {
-			t.Fatal(err)
-		}
-		if len(h.changes) != 1 {
-			t.Fatalf("a press inside the range reported %d changes, want 1", len(h.changes))
-		}
-		if got := h.changes[0].SidebarWidth; got != sidebarMaxW {
-			t.Errorf("a step past the widest reported %.0f, want it converged at %d", got, sidebarMaxW)
-		}
-	})
+// TestSettingsCodeSizeSliderStaysInRange checks the code-size slider: a saved
+// value outside 12–20 is drawn at the nearest bound, and the slider exposes
+// that range and step to assistive technology.
+func TestSettingsCodeSizeSliderStaysInRange(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		saved float32
+		want  float64
+	}{
+		{"above the largest", 99, settingsCodeMax},
+		{"below the smallest", 1, settingsCodeMin},
+		{"inside the range", 16, 16},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			h := newSettingsHarnessAt(SettingsView{CodeFontSize: tc.saved}, 900, 900)
+			slider, ok := h.tt.AccessByRole(ui.RoleSlider, "Code size")
+			if !ok {
+				t.Fatalf("the code-size slider is missing, texts %q", h.tt.Texts())
+			}
+			if slider.Now != tc.want {
+				t.Errorf("the slider shows %.0f, want %.0f", slider.Now, tc.want)
+			}
+			if slider.Min != settingsCodeMin || slider.Max != settingsCodeMax || slider.Step != settingsCodeStep {
+				t.Errorf("the slider range is %+v, want %d–%d step %d", slider, settingsCodeMin, settingsCodeMax, settingsCodeStep)
+			}
+			if len(h.changes) != 0 {
+				t.Errorf("drawing the slider reported %+v, want no change", h.changes)
+			}
+		})
+	}
 }
 
-// TestSettingsWIPEntriesDoNothing checks the skin and chrome entries: they stay
-// visible, are marked unavailable, explain the real gap, and a click changes no
-// preference. The surface offers no fake skin or third color theme.
+// TestSettingsWIPEntriesDoNothing checks the WIP parts of the appearance page:
+// the gallery's covers and its two actions stay visible, unavailable and
+// explained, the read-only code controls are disabled, and a click changes no
+// preference. The page offers no fake skin, no fake code preview and no third
+// color theme.
 func TestSettingsWIPEntriesDoNothing(t *testing.T) {
-	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
+	// The gallery sits below the fold of a 900-high window, so this test draws
+	// a tall window and can click every cover and action.
+	h := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), 900, 1600)
 
-	for _, tc := range []struct{ label, gap string }{
-		{"Skin", "skin"},
-		{"Chrome theme", "chrome"},
-	} {
-		info, ok := h.tt.AccessByRole(ui.RoleButton, tc.label)
+	for _, label := range []string{"New from image", "Open folder"} {
+		info, ok := h.tt.AccessByRole(ui.RoleButton, label)
 		if !ok {
-			t.Errorf("%q is not exposed as an entry, texts %q", tc.label, h.tt.Texts())
+			t.Errorf("%q is not exposed as an entry, texts %q", label, h.tt.Texts())
 			continue
 		}
 		if !info.Disabled {
-			t.Errorf("%q is available although the shell cannot draw a skin", tc.label)
+			t.Errorf("%q is available although the shell cannot open a skin", label)
 		}
-		if !info.Focusable {
-			t.Errorf("%q is unreachable, so its reason is never read", tc.label)
+		if !strings.Contains(info.Description, "skin") {
+			t.Errorf("%q description %q does not name the missing skin support", label, info.Description)
 		}
-		if !strings.Contains(info.Description, "Unavailable") {
-			t.Errorf("%q description %q does not say it is unavailable", tc.label, info.Description)
-		}
-		if !strings.Contains(strings.ToLower(info.Description), tc.gap) {
-			t.Errorf("%q description %q does not name %q", tc.label, info.Description, tc.gap)
-		}
-		if err := h.tt.Click(tc.label); err != nil {
-			t.Fatalf("click %q: %v", tc.label, err)
+		if err := h.tt.Click(label); err != nil {
+			t.Fatalf("click %q: %v", label, err)
 		}
 	}
 	if len(h.changes) != 0 {
 		t.Errorf("a WIP click reported %+v, want no change", h.changes)
 	}
+	for i := 1; i <= 6; i++ {
+		if !h.tt.HasText(tr(LocaleEN, keySettingsSkinCard) + " " + strconv.Itoa(i)) {
+			t.Errorf("skin cover %d is missing, texts %q", i, h.tt.Texts())
+		}
+	}
 	if !h.tt.HasText(wipBadge) {
-		t.Errorf("the skin entries show no visible %q badge, texts %q", wipBadge, h.tt.Texts())
+		t.Errorf("the WIP entries show no visible %q badge, texts %q", wipBadge, h.tt.Texts())
 	}
 	for _, fake := range []string{"Windows 98", "Windows XP", "Windows Vista", "macOS Big Sur", "OSX Tiger"} {
 		if h.tt.HasText(fake) {
@@ -481,7 +561,7 @@ func TestSettingsWIPEntriesDoNothing(t *testing.T) {
 }
 
 // TestSettingsNavigationWorksInShell checks the navigation inside the shell's
-// own frame, not just the surface's harness: opening settings starts on the
+// own frame, not just the route's harness: opening settings starts on the
 // appearance page, a click on another section replaces the page, and the
 // selection survives the next frame.
 func TestSettingsNavigationWorksInShell(t *testing.T) {
@@ -490,8 +570,8 @@ func TestSettingsNavigationWorksInShell(t *testing.T) {
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
-	if !tt.HasText(tr(LocaleEN, keySettingsFontSize)) {
-		t.Fatalf("the settings surface did not open on the appearance page, texts %q", tt.Texts())
+	if !tt.HasText(tr(LocaleEN, keySettingsFontFamily)) {
+		t.Fatalf("the settings route did not open on the appearance page, texts %q", tt.Texts())
 	}
 	if err := tt.Click("General"); err != nil {
 		t.Fatal(err)
@@ -506,39 +586,86 @@ func TestSettingsNavigationWorksInShell(t *testing.T) {
 	if err := tt.Click("Appearance"); err != nil {
 		t.Fatal(err)
 	}
-	if !tt.HasText(tr(LocaleEN, keySettingsFontSize)) {
+	if !tt.HasText(tr(LocaleEN, keySettingsFontFamily)) {
 		t.Fatalf("the appearance page did not come back in the shell, texts %q", tt.Texts())
 	}
 }
 
-// TestSettingsKeyboardReachable checks the Tab order: the section navigation
-// comes first, in the reference's order, then every control of the appearance
-// page in reading order, including the unavailable skin entries whose reasons
-// a screen-reader user must still find.
+// TestSettingsKeyboardReachable checks the Tab order: the Back row, then the
+// section navigation in the reference's order, then the appearance controls in
+// reading order, including the read-only controls whose reasons a screen-reader
+// user must still find. Escape calls the same callback as Back.
 func TestSettingsKeyboardReachable(t *testing.T) {
-	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
+	h := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), 900, 1600)
 
 	want := []string{
-		"Account", "Usage", "Personalization", "Appearance", "Unavailable capabilities", "General",
+		tr(LocaleEN, keySettingsBack),
+		"Account", "Usage", "Personalization", "Appearance", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
-		"External Agent",
-		ThemeSystem.String(),
-		strconv.Itoa(int(h.view.FontSize)),
-		FontSystem.String(),
-		"Smaller code",
-		"Larger code",
-		"Narrower sidebar",
-		"Wider sidebar",
-		DensityRegular.String(),
-		"Skin",
-		"Chrome theme",
+		"External Agent", "Unavailable capabilities",
+		"System", "Light", "Dark",
+		tr(LocaleEN, keySettingsLanguageRow),
+		tr(LocaleEN, keySettingsFontFamily),
+		"S",
+		tr(LocaleEN, keySettingsCodeFontSize),
+		tr(LocaleEN, keySettingsSkinNew),
+		tr(LocaleEN, keySettingsSkinOpen),
 	}
 	for i, name := range want {
 		h.tt.Key(0, ui.KeyTab)
 		if !h.tt.Focused(name) {
-			t.Fatalf("Tab %d did not reach %q, texts %q", i+1, name, h.tt.Texts())
+			t.Fatalf("Tab %d did not reach %q, texts %q; focused %q", i+1, name, h.tt.Texts(), focusedName(h.tt))
 		}
+	}
+	h.tt.Key(0, ui.KeyEscape)
+	if h.backs != 1 {
+		t.Fatalf("Escape called the back callback %d times, want 1", h.backs)
+	}
+}
+
+// focusedName reports the focused accessible name, for a failed Tab assertion.
+func focusedName(tt *ui.Tester) string {
+	for _, name := range []string{
+		tr(LocaleEN, keySettingsBack),
+		"Account", "Usage", "Personalization", "Appearance", "General",
+		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
+		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
+		"External Agent", "Unavailable capabilities",
+		"System", "Light", "Dark",
+		tr(LocaleEN, keySettingsLanguageRow),
+		tr(LocaleEN, keySettingsFontFamily),
+		"S", "XS", "M", "L", "XL",
+		tr(LocaleEN, keySettingsCodeFontSize),
+		tr(LocaleEN, keySettingsSkinNew),
+		tr(LocaleEN, keySettingsSkinOpen),
+	} {
+		if tt.Focused(name) {
+			return name
+		}
+	}
+	for _, role := range []ui.Role{ui.RoleButton, ui.RoleListItem, ui.RoleRadio, ui.RolePopUpButton, ui.RoleSlider, ui.RoleSwitch} {
+		if info, ok := tt.AccessByRole(role, ""); ok && info.Focused {
+			return string(roleName(role)) + ":" + info.Name
+		}
+	}
+	return ""
+}
+
+// roleName keeps focusedName's failure text short without depending on the
+// platform's role name.
+func roleName(role ui.Role) string {
+	switch role {
+	case ui.RoleListItem:
+		return "listitem"
+	case ui.RolePopUpButton:
+		return "select"
+	case ui.RoleRadio:
+		return "radio"
+	case ui.RoleSlider:
+		return "slider"
+	default:
+		return "control"
 	}
 }
 
@@ -573,5 +700,64 @@ func TestSettingsCapabilitiesPage(t *testing.T) {
 	}
 	if !tt.HasText(settingsCapabilitiesNote) {
 		t.Errorf("the capabilities page lost its note, texts %q", tt.Texts())
+	}
+}
+
+// TestSettingsRouteTakesTheWholeWindow checks the route boundary: while
+// settings is open the frame has no session sidebar, conversation header,
+// conversation rows or composer, and closing it through Back restores the frame
+// with the selection and draft untouched.
+func TestSettingsRouteTakesTheWholeWindow(t *testing.T) {
+	s := fixture()
+	s.Draft = "keep this draft"
+	tt := ui.NewTester(s.View, 900, 600)
+	if !tt.HasText("hello from the fixture") {
+		t.Fatalf("the fixture has no conversation, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click("Settings"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleNavigation, tr(LocaleEN, keySidebarNavigation)); ok {
+		t.Errorf("the session sidebar is still drawn behind the settings route, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleToolbar, tr(LocaleEN, keyHeaderRegion)); ok {
+		t.Errorf("the conversation header is still drawn behind the settings route, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleTextField, tr(LocaleEN, keyComposerLabel)); ok {
+		t.Errorf("the composer is still drawn behind the settings route, texts %q", tt.Texts())
+	}
+	if tt.HasText("hello from the fixture") {
+		t.Errorf("the conversation is still drawn behind the settings route, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, tr(LocaleEN, keySettingsRegion)); !ok {
+		t.Errorf("the settings route is not the window's region, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click(tr(LocaleEN, keySettingsBack)); err != nil {
+		t.Fatal(err)
+	}
+	if s.ShowSettings {
+		t.Fatal("Back did not close the settings route")
+	}
+	for _, want := range []string{"hello from the fixture", tr(LocaleEN, keyComposerLabel)} {
+		if !tt.HasText(want) {
+			t.Errorf("the conversation did not return with %q, texts %q", want, tt.Texts())
+		}
+	}
+	if s.Selected != "s1" || s.Draft != "keep this draft" {
+		t.Errorf("closing settings changed the window: selected=%q draft=%q", s.Selected, s.Draft)
+	}
+
+	// Escape is the same return.
+	if err := tt.Click("Settings"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Key(0, ui.KeyEscape)
+	if s.ShowSettings {
+		t.Fatal("Escape did not close the settings route")
+	}
+	if !tt.HasText("hello from the fixture") {
+		t.Errorf("Escape did not restore the conversation, texts %q", tt.Texts())
 	}
 }
