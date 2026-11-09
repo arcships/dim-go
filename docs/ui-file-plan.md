@@ -29,6 +29,7 @@ Last updated: 2026-11-09
 | 工具面板 | [toolrender.go](../../internal/ui/toolrender.go) | `toolKindOf`、command/file/search/generic 面板，缺失事实不伪造 | `toolrender_test.go` | `ui-tool` |
 | Markdown 内容层 | [markdown_render.go](../../internal/ui/markdown_render.go) | `MarkdownOptions`、`renderMarkdownContent`、代码块头与 Copy、内容层 token | `markdown_render_test.go` | `ui-markdown` |
 | 上下文面板 | [context_panel.go](../../internal/ui/context_panel.go) | `ContextPanelView`、文件树、diff/预览、空态与 WIP | `context_panel_test.go` | `ui-context` |
+| Keys 面板 | [keys_panel.go](../../internal/ui/keys_panel.go) | `KeysPanelView`、本地过滤、只读行、未加载 WIP | `keys_panel_test.go` | `ui-keys` |
 | 设计 token | [tokens.go](../../internal/ui/tokens.go) | 颜色/间距/字号 token、`newTokens`、`k.*` 取色辅助 | `tokens_test.go` | `ui-tokens` |
 | WIP 入口 | [wip.go](../../internal/ui/wip.go) | `wipAction`、WIP 徽标与 reason 文本 | `wip_test.go` | `ui-wip` |
 | 外观设置 | [settings.go](../../internal/ui/settings.go) | `SettingsView`、`renderSettings`、主题/字号/字体/宽度/密度/代码字号；skin/chrome WIP | `settings_test.go` | `ui-settings` |

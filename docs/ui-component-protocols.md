@@ -86,11 +86,13 @@ func renderStatusBar(c *ui.Context, k tokens, v StatusBarView)
 | 字段 | 类型 | 含义与不变量 |
 |---|---|---|
 | `Text` | `string` | transient projection 给的行文本；区域不补原因 |
-| `Pending` | `[]Approval` | 该行仍待决的请求。当前 projection 一行一个请求；没有请求或请求缺 App Server identity 时，两个决策保持可见、禁用并说明原因 |
+| `Pending` | `[]Approval` | 该面板仍待决的请求；第一条为主。没有请求时面板不占位；请求缺 App Server identity 时两个决策保持可见、禁用并说明原因 |
+| `InputDisplay` | `string` | 主请求的工具输入，只读等宽块；空字符串不占位。来自 `approval.request` 的 `call.input`（`viewmodel.BuildApprovals` 格式化） |
+| `Variant` | `ApprovalVariant` | 响应选项的展示变体：`allow_once`/`allow_all`/`reject_once`；wire 没有 options 列表，未知一律回落 Approve/Deny，`allow_all` 在 `session.grants.add` 未实现前是 WIP |
 
 调用方：`renderTimeline` 的按 author 分发（`AuthorApproval`）。动作：每个可寻址请求给出 Approve/Deny 各一个按钮，分别调 `OnApproval(branchID, requestID, allow/deny)`；行本身只在之后的 projection 帧里消失。
 
-**已知缺口**：`ApprovalView` 还没有 tool-input payload、approval variant、响应选项列表，所以命令/文件输入块和 `allow_once`/`reject_once` 变体无法实现（`a2cdb9b` 的 TODO）。composer 槽位面板 `renderApprovalPanel`（`approval_panel.go`）已由 `shell.View` 接线：有 pending 时替换 composer（`ffa54c7`），时间线不再绘制审批行。
+**已知缺口**：wire 仍没有响应选项列表，变体只能由调用方按公开合同传入；`session.grants.add`（always allow）仍未实现。composer 槽位面板 `renderApprovalPanel`（`approval_panel.go`）已由 `shell.View` 接线：有 pending 时替换 composer（`ffa54c7`），时间线不再绘制审批行。
 
 ### 2.5 输入区 `ComposerView`
 
