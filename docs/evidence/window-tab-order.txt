@@ -1,0 +1,4 @@
+command	AX Tab sequence in a real window
+observed	Update -> New session -> Search sessions -> Scheduled tasks -> Skills and plugins -> Session keys -> Group -> session row
+source	/tmp/axdo key <pid> 48; /tmp/axdo focused <pid>
+git_head	e63a7cb
