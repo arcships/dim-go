@@ -70,6 +70,36 @@ func TestApplyViewKeepsWindowState(t *testing.T) {
 	}
 }
 
+// TestApplyViewRejectsStaleSelection checks the refresh guard: a view built
+// from an older controller must not replace the window's newer selection or its
+// rows, even if a tick obtained it before the selection changed.
+func TestApplyViewRejectsStaleSelection(t *testing.T) {
+	state := &dimui.State{
+		Selected:   "s2",
+		Connection: dimui.ConnReady,
+		Messages:   []dimui.Message{{ID: "m2"}},
+		Draft:      "keep",
+		OnSubmit:   func(string) {},
+	}
+	view := &dimui.State{
+		Selected:        "s1",
+		Connection:      dimui.ConnError,
+		ConnectionError: "old session lost",
+		Messages:        []dimui.Message{{ID: "m1"}},
+	}
+	applyView(state, view)
+
+	if state.Selected != "s2" || state.Connection != dimui.ConnReady || state.ConnectionError != "" {
+		t.Fatalf("stale view changed selection/connection: %#v", state)
+	}
+	if len(state.Messages) != 1 || state.Messages[0].ID != "m2" {
+		t.Fatalf("stale view changed rows: %#v", state.Messages)
+	}
+	if state.Draft != "keep" || state.OnSubmit == nil {
+		t.Fatalf("stale view changed window state: %#v", state)
+	}
+}
+
 func TestSummaryForRow(t *testing.T) {
 	summary := summaryForRow(dimui.Session{ID: "s1", Title: "Title"})
 	if summary.SessionID != "s1" {
@@ -180,6 +210,43 @@ func TestSessionBridgeSubmitAndStop(t *testing.T) {
 	}
 	if err := b.Stop(ctx); !errors.Is(err, boom) {
 		t.Fatalf("Stop error = %v, want boom", err)
+	}
+}
+
+// TestSessionBridgeActionsRejectStaleSession checks that submit, stop and
+// reattach carry the selected session id through the bridge: an action captured
+// for an older selection must not reach the newly attached controller.
+func TestSessionBridgeActionsRejectStaleSession(t *testing.T) {
+	f := &fakeSession{}
+	b := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
+	ctx := context.Background()
+
+	if err := b.SubmitFor(ctx, "s2", "hello"); !errors.Is(err, errStaleSelection) {
+		t.Fatalf("SubmitFor stale error = %v, want errStaleSelection", err)
+	}
+	if err := b.StopFor(ctx, "s2"); !errors.Is(err, errStaleSelection) {
+		t.Fatalf("StopFor stale error = %v, want errStaleSelection", err)
+	}
+	if err := b.reattachFor(ctx, "s2"); !errors.Is(err, errStaleSelection) {
+		t.Fatalf("reattachFor stale error = %v, want errStaleSelection", err)
+	}
+	if len(f.submitText) != 0 || f.stopCalls != 0 || f.reattachCalls != 0 {
+		t.Fatalf("stale actions reached the controller: submit=%q stop=%d reattach=%d",
+			f.submitText, f.stopCalls, f.reattachCalls)
+	}
+
+	if err := b.SubmitFor(ctx, "s1", "hello"); err != nil {
+		t.Fatalf("SubmitFor: %v", err)
+	}
+	if err := b.StopFor(ctx, "s1"); err != nil {
+		t.Fatalf("StopFor: %v", err)
+	}
+	if err := b.reattachFor(ctx, "s1"); err != nil {
+		t.Fatalf("reattachFor: %v", err)
+	}
+	if len(f.submitText) != 1 || f.stopCalls != 1 || f.reattachCalls != 1 {
+		t.Fatalf("selected actions did not reach the controller: submit=%q stop=%d reattach=%d",
+			f.submitText, f.stopCalls, f.reattachCalls)
 	}
 }
 
