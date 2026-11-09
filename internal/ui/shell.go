@@ -1070,14 +1070,16 @@ func (s *State) syncDeleteConfirm() {
 // applySettings stores the appearance snapshot the surface reported and hands it
 // to OnSettingsChange for the window to persist. The shell applies it on the
 // next frame through State.View: the forced theme is read there, newTokensFor
-// folds the type size, family, code size and density into the frame's theme and
-// tokens, and the sidebar width is held between its bounds before it is drawn.
+// folds the type size, family, code size, density and chrome palette into the
+// frame's theme and tokens, and the sidebar width is held between its bounds
+// before it is drawn.
 func (s *State) applySettings(change SettingsChange) {
 	// The build version is a fact of this binary, not a preference, so a
 	// settings choice keeps it for the About page.
 	appVersion := s.Settings.AppVersion
 	s.Settings = SettingsView{
 		Theme:        change.Theme,
+		Chrome:       change.Chrome,
 		FontSize:     change.FontSize,
 		FontFamily:   change.FontFamily,
 		SidebarWidth: change.SidebarWidth,

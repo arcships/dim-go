@@ -49,6 +49,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	want := State{
 		Settings: Settings{
 			Theme:        2,
+			Chrome:       4,
 			FontSize:     18,
 			FontFamily:   1,
 			SidebarWidth: 320,
@@ -207,6 +208,74 @@ func TestLoadVersion2FileKeepsItsState(t *testing.T) {
 	}
 	if version != formatVersion {
 		t.Errorf("migrated file version = %d, want %d", version, formatVersion)
+	}
+}
+
+// TestLoadVersion3FileMigrates checks the shape before the chrome palette
+// existed: its theme, window, drafts and hidden lists still load, chrome starts
+// at the platform palette, and the next save writes the current version with the
+// new key.
+func TestLoadVersion3FileMigrates(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	old := `{
+  "version": 3,
+  "theme": 1,
+  "fontSize": 16,
+  "window": {"x": 10, "y": 20, "width": 900, "height": 640},
+  "drafts": {"s1": "still here"},
+  "pinned": ["s1"],
+  "archived": ["s2"]
+}
+`
+	if err := os.WriteFile(path, []byte(old), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := loadFile(path)
+	if err != nil {
+		t.Fatalf("loadFile of a version 3 file: %v", err)
+	}
+	if got.Settings.Theme != 1 || got.Settings.FontSize != 16 {
+		t.Fatalf("version 3 file lost its appearance: %+v", got.Settings)
+	}
+	if got.Settings.Chrome != 0 {
+		t.Fatalf("version 3 file invented a chrome palette: %d", got.Settings.Chrome)
+	}
+	if got.Window.Width != 900 || got.DraftFor("s1") != "still here" {
+		t.Fatalf("version 3 file lost known state: %+v", got)
+	}
+	if !reflect.DeepEqual(got.Pinned, []string{"s1"}) || !reflect.DeepEqual(got.Archived, []string{"s2"}) {
+		t.Fatalf("version 3 hidden lists = %v / %v", got.Pinned, got.Archived)
+	}
+
+	got.Settings.Chrome = 5
+	if err := saveFile(path, got, os.Rename); err != nil {
+		t.Fatalf("saveFile after migrating: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	var version, chrome int
+	if err := json.Unmarshal(doc["version"], &version); err != nil {
+		t.Fatalf("version key: %v", err)
+	}
+	if err := json.Unmarshal(doc["chrome"], &chrome); err != nil {
+		t.Fatalf("chrome key: %v", err)
+	}
+	if version != formatVersion {
+		t.Errorf("migrated file version = %d, want %d", version, formatVersion)
+	}
+	if chrome != 5 {
+		t.Errorf("migrated file chrome = %d, want 5", chrome)
+	}
+	if again, err := loadFile(path); err != nil {
+		t.Fatalf("loadFile after migrating: %v", err)
+	} else if again.Settings.Chrome != 5 {
+		t.Errorf("migrated chrome loads as %d, want 5", again.Settings.Chrome)
 	}
 }
 
@@ -475,7 +544,7 @@ func TestSavedFileHoldsOnlyDesktopState(t *testing.T) {
 		got = append(got, key)
 	}
 	sort.Strings(got)
-	want := []string{"codeFontSize", "density", "fontFamily", "fontSize", "sidebarWidth", "theme", "version"}
+	want := []string{"chrome", "codeFontSize", "density", "fontFamily", "fontSize", "sidebarWidth", "theme", "version"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("saved keys = %v, want %v", got, want)
 	}

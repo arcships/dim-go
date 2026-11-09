@@ -24,6 +24,7 @@ func appearanceApp(state *dimui.State, load func() (config.Settings, error), sav
 func TestLoadAppearanceAppliesSavedPreferences(t *testing.T) {
 	saved := config.Settings{
 		Theme:        2,
+		Chrome:       3,
 		FontSize:     18,
 		FontFamily:   1,
 		SidebarWidth: 320,
@@ -40,6 +41,7 @@ func TestLoadAppearanceAppliesSavedPreferences(t *testing.T) {
 
 	want := dimui.SettingsView{
 		Theme:        dimui.ThemeDark,
+		Chrome:       dimui.ChromeWindowsVista,
 		FontSize:     18,
 		FontFamily:   dimui.FontMonospace,
 		SidebarWidth: 320,
@@ -140,6 +142,7 @@ func TestSaveAppearanceWritesOneSnapshotPerChoice(t *testing.T) {
 	// What State.applySettings stores for a choice the surface reported.
 	state.Settings = dimui.SettingsView{
 		Theme:        dimui.ThemeDark,
+		Chrome:       dimui.ChromeWindows98,
 		FontSize:     16,
 		FontFamily:   dimui.FontMonospace,
 		SidebarWidth: 288,
@@ -149,7 +152,7 @@ func TestSaveAppearanceWritesOneSnapshotPerChoice(t *testing.T) {
 	state.SidebarWidth = 288
 	a.saveAppearance()
 
-	want := config.Settings{Theme: 2, FontSize: 16, FontFamily: 1, SidebarWidth: 288, Density: 1, CodeFontSize: 15}
+	want := config.Settings{Theme: 2, Chrome: 1, FontSize: 16, FontFamily: 1, SidebarWidth: 288, Density: 1, CodeFontSize: 15}
 	if len(saved) != 1 {
 		t.Fatalf("one choice wrote %d snapshot(s): %+v", len(saved), saved)
 	}
@@ -163,6 +166,32 @@ func TestSaveAppearanceWritesOneSnapshotPerChoice(t *testing.T) {
 	a.saveAppearance()
 	if len(saved) != 1 {
 		t.Fatalf("a redraw wrote the unchanged snapshot again: %+v", saved)
+	}
+}
+
+// TestSaveAppearancePersistsTheChromeChoice checks that a chrome choice is a
+// saved preference like the theme: it reaches the stored snapshot and loads
+// back as the same palette, so the next launch opens in it.
+func TestSaveAppearancePersistsTheChromeChoice(t *testing.T) {
+	state := &dimui.State{Settings: settingsView(config.Default())}
+	var saved []config.Settings
+	a := appearanceApp(state, nil, func(s config.Settings) error {
+		saved = append(saved, s)
+		return nil
+	})
+	a.appearance.last = config.Default()
+
+	state.Settings.Chrome = dimui.ChromeOSXTiger
+	a.saveAppearance()
+
+	if len(saved) != 1 {
+		t.Fatalf("the chrome choice wrote %d snapshot(s), want 1", len(saved))
+	}
+	if saved[0].Chrome != int(dimui.ChromeOSXTiger) {
+		t.Fatalf("saved chrome = %d, want %d", saved[0].Chrome, dimui.ChromeOSXTiger)
+	}
+	if got := settingsView(saved[0]).Chrome; got != dimui.ChromeOSXTiger {
+		t.Fatalf("the saved chrome loads as %v, want OSX Tiger", got)
 	}
 }
 

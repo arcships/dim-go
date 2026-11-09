@@ -1,6 +1,6 @@
 // Package config stores the desktop's own local state: the color theme, the
-// interface and code type sizes, the font family, the sidebar width, the
-// density, the window's geometry and the composer drafts.
+// chrome palette, the interface and code type sizes, the font family, the
+// sidebar width, the density, the window's geometry and the composer drafts.
 //
 // All of it is desktop-local. The App Server owns every session, run, timeline
 // and approval fact, and nothing of that kind is read or written here: a draft
@@ -44,10 +44,10 @@ const (
 	// formatVersion identifies the file's shape. Version 1 held only the
 	// appearance preferences; version 2 adds the window geometry and the
 	// composer drafts; version 3 adds the desktop-local pinned and archived
-	// session id lists. A load accepts any version and ignores fields this
-	// version does not know, so a file written by an earlier or later version
-	// still yields the state it does know.
-	formatVersion = 3
+	// session id lists; version 4 adds the chrome palette. A load accepts any
+	// version and ignores fields this version does not know, so a file written
+	// by an earlier or later version still yields the state it does know.
+	formatVersion = 4
 	// MaxDraftBytes bounds one saved draft. Text beyond it is cut at a rune
 	// boundary instead of writing an unbounded paste into the file.
 	MaxDraftBytes = 16 << 10
@@ -76,6 +76,10 @@ type Settings struct {
 	// Theme is the color-theme preference: 0 follows the desktop, 1 light,
 	// 2 dark.
 	Theme int `json:"theme"`
+	// Chrome is the chrome palette: 0 is the platform theme's own, 1 Windows
+	// 98, 2 Windows XP, 3 Windows Vista, 4 macOS Big Sur and 5 OSX Tiger. It
+	// recolors the shell; it is not a session fact.
+	Chrome int `json:"chrome"`
 	// FontSize is the UI text step in DIPs. 0 takes the shell's default.
 	FontSize float32 `json:"fontSize"`
 	// FontFamily is 0 for the platform's interface font, 1 for monospace.

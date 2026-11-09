@@ -67,6 +67,8 @@ func applySettingsChange(v SettingsView, change SettingsChange) SettingsView {
 		v.CodeFontSize = change.CodeFontSize
 	case SettingsFieldLocale:
 		v.Locale = change.Locale
+	case SettingsFieldChrome:
+		v.Chrome = change.Chrome
 	}
 	return v
 }
@@ -128,6 +130,9 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 	if v.Density != DensityRegular {
 		t.Errorf("default density is %v, want regular", v.Density)
 	}
+	if v.Chrome != ChromeDefault {
+		t.Errorf("default chrome is %v, want the platform palette", v.Chrome)
+	}
 }
 
 // TestSettingsOpensOnPersonalization checks the route's opening page: the
@@ -177,7 +182,9 @@ func TestSettingsAppearancePageDrawsDefaults(t *testing.T) {
 		"UI size",
 		"Code size",
 		"Code theme", "Same as interface",
-		"My skin", settingsSkinNote, "Skin 1", "Skin 6",
+		"My skin", settingsChromeNote, "Default", "Windows 98", "Windows XP",
+		"Windows Vista", "macOS Big Sur", "OSX Tiger",
+		settingsSkinCustomNote,
 		wipBadge,
 	} {
 		if !h.tt.HasText(want) {
@@ -648,6 +655,85 @@ func TestSettingsThemeCardsFollowReferenceOrder(t *testing.T) {
 	}
 }
 
+// TestSettingsChromeCardsOfferEveryPalette checks the "My skin" gallery: the
+// six palettes are real radio cards in the reference's order, Default is the
+// checked one on a fresh view, each card saves its own Chrome rather than its
+// position, and the chosen card is checked on the next frame.
+func TestSettingsChromeCardsOfferEveryPalette(t *testing.T) {
+	// The gallery sits below the fold of a 900-high window.
+	h := newSettingsHarnessAt(SettingsView{Section: SettingsSectionAppearance}, 900, 1600)
+
+	if _, ok := h.tt.AccessByRole(ui.RoleRadioGroup, tr(LocaleEN, keySettingsSkinSection)); !ok {
+		t.Fatalf("the chrome cards are not a radio group, texts %q", h.tt.Texts())
+	}
+	lastRight, lastY := float32(-1), float32(-1)
+	for _, choice := range chromeChoices {
+		name := choice.String()
+		info, ok := h.tt.AccessByRole(ui.RoleRadio, name)
+		if !ok {
+			t.Fatalf("the %s chrome card is missing, texts %q", name, h.tt.Texts())
+		}
+		if info.Bounds.Y > lastY+1 {
+			lastRight = -1
+		}
+		if info.Bounds.X < lastRight-1 {
+			t.Errorf("the %s card starts at x=%.1f, left of the card before it ending at %.1f", name, info.Bounds.X, lastRight)
+		}
+		lastRight, lastY = info.Bounds.X+info.Bounds.W, info.Bounds.Y
+		if got := info.Checked; got != (choice == ChromeDefault) {
+			t.Errorf("the %s card is checked=%v, want only Default checked", name, got)
+		}
+	}
+
+	// Every palette is reachable, and the last click returns to the default.
+	order := []Chrome{
+		ChromeWindows98, ChromeWindowsXP, ChromeWindowsVista,
+		ChromeMacOSBigSur, ChromeOSXTiger, ChromeDefault,
+	}
+	for _, want := range order {
+		before := len(h.changes)
+		if err := h.tt.Click(want.String()); err != nil {
+			t.Fatalf("click %s: %v", want, err)
+		}
+		if got := len(h.changes); got != before+1 {
+			t.Fatalf("clicking %s reported %d changes, want 1", want, got-before)
+		}
+		change := h.changes[len(h.changes)-1]
+		if change.Field != SettingsFieldChrome || change.Chrome != want {
+			t.Errorf("clicking %s reported %+v, want %v", want, change, want)
+		}
+		if info, ok := h.tt.AccessByRole(ui.RoleRadio, want.String()); !ok || !info.Checked {
+			t.Errorf("the %s card is not checked after its click: %+v, found %v", want, info, ok)
+		}
+	}
+}
+
+// TestSettingsChromeCardsSpeakTheActiveLanguage checks the gallery's Chinese
+// names: the heading is 我的皮肤 and the default palette is 默认, while the
+// product names stay as their makers write them.
+func TestSettingsChromeCardsSpeakTheActiveLanguage(t *testing.T) {
+	h := newSettingsHarnessAt(SettingsView{Section: SettingsSectionAppearance, Locale: LocaleZHCN}, 900, 1600)
+
+	if !h.tt.HasText("我的皮肤") || !h.tt.HasText("默认") {
+		t.Fatalf("the chrome gallery is not Chinese, texts %q", h.tt.Texts())
+	}
+	for _, want := range []string{"Windows 98", "Windows XP", "Windows Vista", "macOS Big Sur", "OSX Tiger"} {
+		if !h.tt.HasText(want) {
+			t.Errorf("the chrome gallery is missing %q, texts %q", want, h.tt.Texts())
+		}
+	}
+	before := len(h.changes)
+	if err := h.tt.Click("Windows XP"); err != nil {
+		t.Fatalf("click Windows XP: %v", err)
+	}
+	if got := len(h.changes); got != before+1 {
+		t.Fatalf("the chrome click reported %d changes, want 1", got-before)
+	}
+	if change := h.changes[len(h.changes)-1]; change.Field != SettingsFieldChrome || change.Chrome != ChromeWindowsXP {
+		t.Errorf("the chrome click reported %+v, want Windows XP", change)
+	}
+}
+
 // TestSettingsUISizeSegmentsChooseEachStep checks the five UI-size segments:
 // each one reports its own step, and the chosen segment is the one selected on
 // the next frame.
@@ -710,17 +796,14 @@ func TestSettingsCodeSizeSliderStaysInRange(t *testing.T) {
 	}
 }
 
-// TestSettingsWIPEntriesDoNothing checks the WIP parts of the appearance page:
-// the gallery's covers and its two actions stay visible, unavailable and
-// explained, the read-only code controls are disabled, and a click changes no
-// preference. The page offers no fake skin, no fake code preview and no third
-// color theme.
+// TestSettingsWIPEntriesDoNothing checks the WIP part of the appearance page:
+// a custom skin's two actions stay visible, unavailable and explained, and a
+// click changes no preference. The chrome cards above them are real choices and
+// are covered by their own tests.
 func TestSettingsWIPEntriesDoNothing(t *testing.T) {
-	// The gallery sits below the fold of a 900-high window, so this test draws
-	// a tall window and can click every cover and action.
 	h := newSettingsHarnessAt(SettingsView{Section: SettingsSectionAppearance}, 900, 1600)
 
-	for _, label := range []string{"New from image", "Open folder"} {
+	for _, label := range []string{tr(LocaleEN, keySettingsSkinNew), tr(LocaleEN, keySettingsSkinOpen)} {
 		info, ok := h.tt.AccessByRole(ui.RoleButton, label)
 		if !ok {
 			t.Errorf("%q is not exposed as an entry, texts %q", label, h.tt.Texts())
@@ -739,18 +822,11 @@ func TestSettingsWIPEntriesDoNothing(t *testing.T) {
 	if len(h.changes) != 0 {
 		t.Errorf("a WIP click reported %+v, want no change", h.changes)
 	}
-	for i := 1; i <= 6; i++ {
-		if !h.tt.HasText(tr(LocaleEN, keySettingsSkinCard) + " " + strconv.Itoa(i)) {
-			t.Errorf("skin cover %d is missing, texts %q", i, h.tt.Texts())
-		}
-	}
 	if !h.tt.HasText(wipBadge) {
 		t.Errorf("the WIP entries show no visible %q badge, texts %q", wipBadge, h.tt.Texts())
 	}
-	for _, fake := range []string{"Windows 98", "Windows XP", "Windows Vista", "macOS Big Sur", "OSX Tiger"} {
-		if h.tt.HasText(fake) {
-			t.Errorf("the surface offers the fake chrome theme %q", fake)
-		}
+	if !h.tt.HasText(settingsSkinCustomNote) {
+		t.Errorf("the custom-skin note is missing, texts %q", h.tt.Texts())
 	}
 }
 
@@ -804,6 +880,7 @@ func TestSettingsKeyboardReachable(t *testing.T) {
 		tr(LocaleEN, keySettingsFontFamily),
 		"S",
 		tr(LocaleEN, keySettingsCodeFontSize),
+		"Default", "Windows 98", "Windows XP", "Windows Vista", "macOS Big Sur", "OSX Tiger",
 		tr(LocaleEN, keySettingsSkinNew),
 		tr(LocaleEN, keySettingsSkinOpen),
 	}
@@ -832,6 +909,7 @@ func focusedName(tt *ui.Tester) string {
 		tr(LocaleEN, keySettingsFontFamily),
 		"S", "XS", "M", "L", "XL",
 		tr(LocaleEN, keySettingsCodeFontSize),
+		"Default", "Windows 98", "Windows XP", "Windows Vista", "macOS Big Sur", "OSX Tiger",
 		tr(LocaleEN, keySettingsSkinNew),
 		tr(LocaleEN, keySettingsSkinOpen),
 		settingsSectionsBack,

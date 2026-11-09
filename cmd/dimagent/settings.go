@@ -2,9 +2,9 @@
 // them before the first frame and writes them when the settings surface reports
 // a choice.
 //
-// The preferences are the shell's own: theme, type sizes, font family, sidebar
-// width and density. The App Server owns every session, run, timeline and
-// approval fact, and none of those is read or written here. The shell reports a
+// The preferences are the shell's own: theme, chrome palette, type sizes, font
+// family, sidebar width and density. The App Server owns every session, run,
+// timeline and approval fact, and none of those is read or written here. The shell reports a
 // choice into State and has no storage dependency (internal/ui/settings.go
 // leaves persisting to the window), so the window draws a frame through
 // content, compares the appearance State now holds with the last snapshot, and
@@ -131,6 +131,7 @@ func (a *app) saveAppearance() bool {
 func appearanceSnapshot(state *dimui.State) config.Settings {
 	return config.Settings{
 		Theme:        int(state.Settings.Theme),
+		Chrome:       int(state.Settings.Chrome),
 		FontSize:     state.Settings.FontSize,
 		FontFamily:   int(state.Settings.FontFamily),
 		SidebarWidth: state.Settings.SidebarWidth,
@@ -147,6 +148,7 @@ func appearanceSnapshot(state *dimui.State) config.Settings {
 func settingsView(saved config.Settings) dimui.SettingsView {
 	return dimui.SettingsView{
 		Theme:        dimui.ThemeChoice(saved.Theme),
+		Chrome:       dimui.Chrome(saved.Chrome),
 		FontSize:     saved.FontSize,
 		FontFamily:   dimui.FontFamily(saved.FontFamily),
 		SidebarWidth: saved.SidebarWidth,
