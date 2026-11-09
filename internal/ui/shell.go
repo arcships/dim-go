@@ -317,8 +317,10 @@ type State struct {
 	// the panel draws its WIP statement instead of inventing files. A live
 	// refresh replaces the copy and leaves ShowContextPanel alone.
 	ContextPanel ContextPanelView
-	// ShowSettings is the window's own record that the appearance surface is
-	// showing instead of the conversation. It is display state only.
+	// ShowSettings is the window's own record that the settings route is
+	// showing instead of the shell. It is display state only: while it is set,
+	// View draws the route in the whole window and no sidebar, toolbar,
+	// conversation or composer. Closing it restores the frame the window held.
 	ShowSettings bool
 	// DeleteConfirm is the window's own record that the toolbar's delete
 	// confirmation is showing. It holds no session fact: the alert is confirmed
@@ -382,6 +384,14 @@ func (s *State) View(c *ui.Context) {
 	s.syncKeysSession()
 	s.syncDeleteConfirm()
 	a := s.actions()
+	// The settings route takes the whole window: no sidebar, toolbar,
+	// conversation, composer or status band is drawn while it is open, and a
+	// close returns to the frame the window held, with its selection, draft and
+	// conversation list state untouched.
+	if s.ShowSettings {
+		renderSettings(c, k, s.Settings, wipCapabilities(s), s.applySettings, s.closeSettings)
+		return
+	}
 	composer := s.composerView()
 	// Escape leaves the keys browser wherever the keyboard focus is. It is read
 	// before the regions build so the frame already shows the conversation the
@@ -427,13 +437,6 @@ func (s *State) View(c *ui.Context) {
 							timeline := s.timelineView()
 							pending := s.pendingApprovals()
 							switch {
-							case s.ShowSettings:
-								// The appearance surface takes the conversation's place; the
-								// sidebar and toolbar stay, so a preference change is
-								// visible around it. The capability list is assembled here,
-								// from the window's own callback wiring, so the surface only
-								// draws it.
-								renderSettings(c, k, s.Settings, wipCapabilities(s), s.applySettings)
 							case s.ShowKeys:
 								// The keys browser takes the conversation's place. It reads the
 								// snapshot the caller supplied and sends no request.
@@ -595,6 +598,14 @@ func (s *State) applySettings(change SettingsChange) {
 	if change.SidebarWidth > 0 {
 		s.SidebarWidth = change.SidebarWidth
 	}
+}
+
+// closeSettings is the route's return: the Back row and Escape both call it,
+// and so does the toolbar's Settings entry through its own toggle. It only
+// clears the window's route flag; the selection, draft, catalog and conversation
+// list state stay where they were.
+func (s *State) closeSettings() {
+	s.ShowSettings = false
 }
 
 // locale is the language the frame draws: the saved preference, or English
