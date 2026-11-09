@@ -31,6 +31,24 @@ const (
 	// units: h-7 w-7, the reference's icon-button size beside the send disc
 	// (ConversationComposer.vue:79-90).
 	composerToolSpan = 7
+	// composerModelChipPadX and composerModelChipPadY are the model chip's
+	// inset in theme spacing units: the chip is a muted pill on the tool row,
+	// and its padding keeps the label's ink on the reference's x, where
+	// "未配置" runs into the right side of the card a few DIPs before the send
+	// disc (window-conversation.png: the label ends at x≈741 and the disc
+	// starts at x≈745 in the 800 DIP window).
+	composerModelChipPadX = 1
+	composerModelChipPadY = 0.5
+	// composerSendSpinner is the in-flight indicator's square in DIPs, drawn
+	// inside the reference's 28 DIP disc: one toolbar glyph's 16 DIP frame
+	// would crowd the disc's rim, so the spinner keeps the arrow's optical
+	// size instead.
+	composerSendSpinner = 14
+	// composerSendHoverShare is how far the Send disc's face moves under the
+	// pointer: the reference's density/hover step for its primary button, a
+	// slight darkening in the light theme and a slight lightening in the dark
+	// one, so the disc still reads as the same solid primary.
+	composerSendHoverShare = 0.12
 	// composerContextSpan is the context row's minimum height in theme spacing
 	// units: the reference card's last band is ≈36 DIPs (h-9 at the 4 DIP unit).
 	composerContextSpan = 9
@@ -124,15 +142,19 @@ const (
 	reasonBranch = "The selected session's branch, as the App Server reports it; this is a session branch, not the workspace's git branch."
 )
 
-// composerBranchKey and composerContextUsageKey are the message keys for the
-// branch entry's and the context meter's accessible names. i18n.go does not
-// carry them yet; the composer owner reports them as needed entries, and each
-// lookup falls back to its key until the table has the localized name. The
-// branch key is deliberately not keySidebarBranches: the sidebar's list and the
-// composer's single session branch are different things.
+// composerBranchKey, composerContextUsageKey and composerSendBusyKey are the
+// message keys for the branch entry's and the context meter's accessible names
+// and for the in-flight Send's description. i18n.go does not carry them yet;
+// the composer owner reports them as needed entries, and each lookup falls back
+// to its key until the table has the localized name. The branch key is
+// deliberately not keySidebarBranches: the sidebar's list and the composer's
+// single session branch are different things. The busy key tells assistive
+// technology what a disabled, in-flight Send is doing; the disc keeps the
+// localized Send name.
 const (
 	composerBranchKey       = "composer.branch"
 	composerContextUsageKey = "composer.contextUsage"
+	composerSendBusyKey     = "composer.busy"
 )
 
 // composerShadow is the card's soft outer shadow, the reference's low-alpha
@@ -484,12 +506,27 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 			tr(locale, keyReasonModel), false)
 		ui.Box(c).Grow(1)
 		// No model is configured because the shell has no model fact to show.
-		// The reference puts the muted "未配置" label beside the send disc, and
-		// this text states that absence rather than inventing a model name.
-		ui.Text(c, tr(locale, keyComposerUnconfigured)).FontSize(k.smallSize).
-			TextColor(k.mutedForeground).SingleLine().Unselectable().
-			Description(tr(locale, keyReasonModel))
+		// The reference puts the muted "未配置" beside the send disc, and this
+		// chip states that absence rather than inventing a model name.
+		composerModelChip(c, k, locale)
 		composerSend(c, k, v, a)
+	})
+}
+
+// composerModelChip draws the model status beside Send: the reference's muted
+// "未配置" on a short pill, so the tool row says the session has no model
+// without naming one. The chip is a display group, not a control: the composer
+// has no model fact and no model list to choose from, so the group's
+// description and tooltip carry the reason it waits on, and a click does
+// nothing. It sits left of the send disc, where the reference draws the label,
+// and the tool row's gap keeps that distance.
+func composerModelChip(c *ui.Context, k tokens, locale Locale) {
+	ui.Row(c).Padding(k.space(composerModelChipPadY), k.space(composerModelChipPadX)).
+		Radius(radiusSM).Background(k.muted).AlignItems(ui.Center).
+		Role(ui.RoleGroup).Label(tr(locale, keyComposerModel)).
+		Description(reasonModel).Tooltip(reasonModel).Children(func() {
+		ui.Text(c, tr(locale, keyComposerUnconfigured)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).SingleLine().Unselectable()
 	})
 }
 
@@ -518,26 +555,63 @@ func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, t
 }
 
 // composerSend draws Send as the compact round button of the composer: a
-// primary disc with the arrow decoration, named by the localized Send text. A
-// draft that cannot be sent now leaves it disabled and unclickable but keeps
-// the reference's solid primary face: the empty state's Send is the green disc
-// the reference draws, not a faded one, and the disabled state is what
-// assistive technology reads.
+// primary disc around the arrow decoration, named by the localized Send text.
+// It has three faces, all of them the reference's solid primary disc rather
+// than a faded one:
+//
+//   - a draft that cannot be sent (empty or whitespace-only text, no submit
+//     gate) keeps the solid face and takes no hover, so the disc still matches
+//     window-conversation.png while it is disabled;
+//   - a draft that can be sent keeps the same face and darkens slightly under
+//     the pointer, which is the reference's hover step for its primary button;
+//   - a submission in flight swaps the arrow for a spinner and stays disabled,
+//     so the row shows work rather than a second send.
+//
+// The disabled state is what assistive technology reads; DimDisabled(false)
+// keeps the disc solid instead of mygo's half-opacity disabled face.
 func composerSend(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	size := k.space(composerSendSpan)
+	ready := submitReady(v, a)
 	send := ui.ButtonBase(c).Key("composer-send").Label(tr(v.Locale, keyComposerSend)).
 		Width(size).Height(size).Radius(size / 2).Padding(0).
 		Background(k.primary).Transition(motionFastColors(c)).Children(func() {
+		if v.Sending {
+			// A button's children are not separate nodes in the accessible
+			// tree, so the spinner is a decoration: the disc itself carries the
+			// busy state and the reason for assistive technology.
+			ui.Spinner(c).Size(composerSendSpinner, composerSendSpinner).
+				TextColor(k.onPrimary).AccessHidden(true)
+			return
+		}
 		ui.Text(c, composerSendGlyph).FontSize(k.bodySize).TextColor(k.onPrimary).
 			Unselectable().AccessHidden(true)
 	}).OnClick(func() {
 		submitDraft(v, a)
 	})
-	if !submitReady(v, a) {
-		// Disabled takes the click and the Tab stop; DimDisabled(false) keeps the
-		// reference's solid disc instead of mygo's half-opacity disabled face.
+	switch {
+	case v.Sending:
+		send.Disabled(true).DimDisabled(false).Busy(true).
+			Description(tr(v.Locale, composerSendBusyKey))
+	case !ready:
 		send.Disabled(true).DimDisabled(false)
+	case send.Hovered():
+		// Only a disc that can be pressed answers the pointer: a disabled or
+		// in-flight Send keeps the face the reference draws.
+		send.Background(composerSendHover(k))
 	}
+}
+
+// composerSendHover is the Send disc's face under the pointer: the solid
+// primary moved one slight step, darker in the light theme and lighter in the
+// dark one, so the reference's hover reads as a shade of the same button
+// rather than a second color. It starts from the primary fill, not a theme
+// field, so a theme with its own brand still gets the same step.
+func composerSendHover(k tokens) ui.Color {
+	step := ui.Hex("#000000")
+	if k.theme != nil && k.theme.Dark {
+		step = ui.Hex("#ffffff")
+	}
+	return k.primary.Mix(step, composerSendHoverShare)
 }
 
 // canSubmit reports whether the window would take a submission now: a wired
