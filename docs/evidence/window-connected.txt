@@ -1,16 +1,16 @@
 state	connected
-started_at	2026-11-09 16:43:34 CST
-captured_at	2026-11-09 16:43:36 CST
-built_at	2026-11-09 16:43:32 CST
-git_head	54146a6dd1faac9a21a9f275f7a8b20e62ee6161
-git_dirty	 M docs/evidence/ui/shell-dark-composer.png; M docs/evidence/ui/shell-dark-settings.png; M docs/evidence/ui/shell-dark.png; M docs/evidence/ui/shell-light-composer.png; M docs/evidence/ui/shell-light-settings.png; M docs/evidence/ui/shell-light.png; M internal/ui/tokens.go;
+started_at	2026-11-09 16:53:43 CST
+captured_at	2026-11-09 16:53:45 CST
+built_at	2026-11-09 16:53:41 CST
+git_head	66fe35d41e6293aa6e338609cc5fc48961defadf
+git_dirty	 M cmd/dimagent/main.go;
 product_home	/tmp/dimagent-seeded-home.eClAW8
-app_pid	10482
-window_id	49128
+app_pid	11866
+window_id	49161
 window_title	DimAgent
-window_bounds_points	483,116,1082,720
+window_bounds_points	623,115,802,722
 png	docs/evidence/window-connected.png
-png_pixels	2160 1440
-png_bytes	294797
-daemon	10488 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dimagent-seeded-home.eClAW8/rust/daemon.sock --no-ws --home /private/tmp/dimagent-seeded-home.eClAW8/rust --product-home /tmp/dimagent-seeded-home.eClAW8
+png_pixels	1600 1440
+png_bytes	275701
+daemon	11872 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dimagent-seeded-home.eClAW8/rust/daemon.sock --no-ws --home /private/tmp/dimagent-seeded-home.eClAW8/rust --product-home /tmp/dimagent-seeded-home.eClAW8
 app_log	

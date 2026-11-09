@@ -1555,8 +1555,10 @@ func main() {
 	}
 	mygo.App.WhenReady(func() {
 		application.win = mygo.NewWindow(mygo.WindowOptions{
-			Title:  "DimAgent",
-			Width:  1080,
+			Title: "DimAgent",
+			// The reference window opens at 800×720 points; the sidebar's 256 DIP
+			// is the same, so the proportion of chrome matches the desktop app.
+			Width:  800,
 			Height: 720,
 			// content draws the shell and then writes an appearance choice the
 			// surface applied during that frame.

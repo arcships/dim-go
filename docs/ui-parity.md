@@ -180,7 +180,7 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 - 取样 dark：Electron 卡片亮于背景；MyGo 背景 `#18181B`、卡片 `#343436`、popover `#424244`、侧栏 `#27272A`，方向一致。
 - 本轮修复：elevation 从“朝 foreground 混”（light 下把卡片压到背景以下）改为“朝白色提升”；侧栏列表补 `Background(k.sidebar)`，不再被 `ui.List` 默认背景覆盖。
 
-仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome。
+窗口尺寸也已对齐：默认从 1080×720 改为 **800×720**，与 Electron 的参考窗口一致，侧栏 256 DIP 的占比因此相同（左侧 32%）。仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome。
 
 ## 6. 结论复述
 

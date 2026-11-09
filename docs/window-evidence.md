@@ -12,8 +12,8 @@
 |---|---|
 | 机器 | macOS 26.6.2（darwin/arm64） |
 | Go | go1.27.3 darwin/arm64 |
-| 源码 | 两种状态都来自 `HEAD = 54146a6` + token 调整的工作区（未提交），2026-11-09 16:43 |
-| 构建时间 | 2026-11-09 16:43:32 CST |
+| 源码 | 两种状态都来自 HEAD `66fe35d` + 窗口宽度改 800（工作区未提交），2026-11-09 16:53 |
+| 构建时间 | 2026-11-09 16:53 CST |
 | App Server 二进制 | `/tmp/dim-2-target/debug/dim-app-server`（Mach-O arm64，401 302 448 B，mtime 2026-11-08 23:38） |
 | 窗口库 | `github.com/egoist/mygo v0.8.3`（`mygo.NewWindow`，`Width: 1080`、`Height: 720`） |
 | 截图工具 | `/usr/sbin/screencapture -x -o -l <windowid>`（按窗口 ID 截取，只含该窗口，不含桌面和其它应用） |
@@ -41,10 +41,10 @@ cd /Users/eric8810/Code/dimagent-mygo
 
 | 状态 | 采集时间 | 窗口 ID | 窗口位置/尺寸（points） | PNG 像素 | 字节 | PNG 路径 |
 |---|---|---|---|---|---|---|
-| 未连接 | 16:43:28 → 16:43:30 | 49095 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 283 967 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
-| 已连接（seed 会话） | 16:43:34 → 16:43:36 | 49128 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 294 797 | [`evidence/window-connected.png`](evidence/window-connected.png) |
+| 未连接 | 16:53 → 16:53 | — | `484,116,800,720` | 1600×1440（= 800×720 @2x） | 见元数据 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
+| 已连接（seed 会话） | 16:53 → 16:53 | — | `484,116,800,720` | 1600×1440（= 800×720 @2x） | 见元数据 | [`evidence/window-connected.png`](evidence/window-connected.png) |
 
-MD5：未连接 `2f1f4c170f49459181c7fb8d825a2b7f`，已连接 `6d81ae9d71b9407746f78ea0a5cffbb1`。
+MD5 与窗口 ID 见 `docs/evidence/window-*.txt`（每次采集重写）。
 
 机器可读的采集元数据（脚本生成，含源码快照、PID、窗口 ID、bounds、daemon 命令行）：
 [`evidence/window-disconnected.txt`](evidence/window-disconnected.txt)、[`evidence/window-connected.txt`](evidence/window-connected.txt)。
