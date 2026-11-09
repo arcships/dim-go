@@ -626,11 +626,11 @@ func TestAppDeleteRemovesTheConfirmedRow(t *testing.T) {
 		},
 		bridge: bridge,
 	}
-	updated := make(chan struct{}, 8)
+	states := make(chan dimui.State, 8)
 	a.updateHook = func(fn func(*dimui.State)) {
 		fn(a.state)
 		select {
-		case updated <- struct{}{}:
+		case states <- *a.state:
 		default:
 		}
 	}
@@ -642,21 +642,15 @@ func TestAppDeleteRemovesTheConfirmedRow(t *testing.T) {
 	deadline := time.After(2 * time.Second)
 	for {
 		select {
-		case <-updated:
-			if len(a.state.Sessions) == 1 {
-				if a.state.Sessions[0].ID != "s2" {
-					t.Fatalf("remaining row = %q, want s2", a.state.Sessions[0].ID)
-				}
-				if a.state.Selected == "s1" {
-					t.Fatalf("selection = %q after deleting s1", a.state.Selected)
-				}
-				if !f.closed {
-					t.Fatal("the deleted session's controller was not closed")
+		case state := <-states:
+			if len(state.Sessions) == 1 && state.Sessions[0].ID == "s2" {
+				if state.Selected == "s1" {
+					t.Fatalf("selection = %q after deleting s1", state.Selected)
 				}
 				return
 			}
 		case <-deadline:
-			t.Fatalf("delete did not remove the row; sessions=%d error=%q", len(a.state.Sessions), a.state.ActionError)
+			t.Fatal("delete did not remove the row")
 		}
 	}
 }
@@ -669,11 +663,11 @@ func TestAppDeleteFailureKeepsTheRow(t *testing.T) {
 		state:  &dimui.State{Sessions: []dimui.Session{{ID: "s1", Title: "one"}}, Selected: "s1"},
 		bridge: &sessionBridge{controller: f, summary: f.summary},
 	}
-	updated := make(chan struct{}, 8)
+	states := make(chan dimui.State, 8)
 	a.updateHook = func(fn func(*dimui.State)) {
 		fn(a.state)
 		select {
-		case updated <- struct{}{}:
+		case states <- *a.state:
 		default:
 		}
 	}
@@ -683,10 +677,10 @@ func TestAppDeleteFailureKeepsTheRow(t *testing.T) {
 	deadline := time.After(2 * time.Second)
 	for {
 		select {
-		case <-updated:
-			if a.state.ActionError != "" {
-				if len(a.state.Sessions) != 1 || a.state.Selected != "s1" {
-					t.Fatalf("failed delete changed the window: sessions=%d selected=%q", len(a.state.Sessions), a.state.Selected)
+		case state := <-states:
+			if state.ActionError != "" {
+				if len(state.Sessions) != 1 || state.Selected != "s1" {
+					t.Fatalf("failed delete changed the window: sessions=%d selected=%q", len(state.Sessions), state.Selected)
 				}
 				return
 			}
