@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
+	"github.com/arcships/dimagent-mygo/internal/session"
 	"github.com/arcships/dimagent-mygo/internal/supervisor"
 	"github.com/arcships/dimagent-mygo/internal/ui"
 )
@@ -21,9 +22,18 @@ const testWait = 3 * time.Second
 
 // fakeDaemon is a minimal protocol-v3 peer for the bridge test. It serves the
 // control and stream methods the integration controller uses and nothing else.
+// Fault queues and the hello instanceId are test-controlled so replay-gap and
+// daemon-restart paths can be driven deterministically.
 type fakeDaemon struct {
 	t  *testing.T
 	ln net.Listener
+
+	mu       sync.Mutex
+	instance string
+	faults   map[string][]*appserver.RPCError
+	calls    map[string]int
+	attached map[net.Conn]struct{}
+	writeMu  sync.Mutex
 }
 
 func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
@@ -32,10 +42,74 @@ func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
 	if err != nil {
 		t.Fatalf("fake daemon listen %s: %v", address, err)
 	}
-	daemon := &fakeDaemon{t: t, ln: listener}
+	daemon := &fakeDaemon{
+		t:        t,
+		ln:       listener,
+		instance: "integration-fake",
+		faults:   map[string][]*appserver.RPCError{},
+		calls:    map[string]int{},
+		attached: map[net.Conn]struct{}{},
+	}
 	go daemon.accept()
 	t.Cleanup(func() { _ = listener.Close() })
 	return daemon
+}
+
+// subscriptionChangedFault is the daemon's §13 replay-gap error.
+func subscriptionChangedFault() *appserver.RPCError {
+	return &appserver.RPCError{Code: -32000, Message: "subscription changed", Data: json.RawMessage(`{"appError":"subscription_changed"}`)}
+}
+
+// setInstance changes the instanceId reported by the next hello. A different
+// value is what the supervisor treats as a daemon restart.
+func (d *fakeDaemon) setInstance(id string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.instance = id
+}
+
+// fail queues one reply fault per call for method.
+func (d *fakeDaemon) fail(method string, faults ...*appserver.RPCError) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.faults[method] = append(d.faults[method], faults...)
+}
+
+// callCount reports how many requests were received for method.
+func (d *fakeDaemon) callCount(method string) int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.calls[method]
+}
+
+// beginCall records a request and returns its scripted fault, if any.
+func (d *fakeDaemon) beginCall(method string) *appserver.RPCError {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.calls[method]++
+	queue := d.faults[method]
+	if len(queue) == 0 {
+		return nil
+	}
+	fault := queue[0]
+	d.faults[method] = queue[1:]
+	return fault
+}
+
+// emit writes one server notification to every connection that served a
+// session.attach. The test drives session.closed with it instead of sleeping.
+func (d *fakeDaemon) emit(method string, params any) {
+	d.t.Helper()
+	d.mu.Lock()
+	conns := make([]net.Conn, 0, len(d.attached))
+	for conn := range d.attached {
+		conns = append(conns, conn)
+	}
+	d.mu.Unlock()
+	value := map[string]any{"jsonrpc": "2.0", "method": method, "params": params}
+	for _, conn := range conns {
+		d.write(conn, value)
+	}
 }
 
 func (d *fakeDaemon) accept() {
@@ -49,7 +123,12 @@ func (d *fakeDaemon) accept() {
 }
 
 func (d *fakeDaemon) serve(conn net.Conn) {
-	defer func() { _ = conn.Close() }()
+	defer func() {
+		d.mu.Lock()
+		delete(d.attached, conn)
+		d.mu.Unlock()
+		_ = conn.Close()
+	}()
 	frames := appserver.NewFrameReader(conn)
 	for {
 		raw, err := frames.ReadFrame()
@@ -67,6 +146,11 @@ func (d *fakeDaemon) serve(conn net.Conn) {
 			return
 		}
 		d.respond(conn, request.ID, request.Method)
+		if request.Method == "session.attach" {
+			d.mu.Lock()
+			d.attached[conn] = struct{}{}
+			d.mu.Unlock()
+		}
 	}
 }
 
@@ -81,10 +165,16 @@ func (d *fakeDaemon) respond(conn net.Conn, id json.RawMessage, method string) {
 }
 
 func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
+	if fault := d.beginCall(method); fault != nil {
+		return nil, fault
+	}
 	switch method {
 	case "hello":
+		d.mu.Lock()
+		instance := d.instance
+		d.mu.Unlock()
 		return appserver.HelloResult{
-			InstanceID:      "integration-fake",
+			InstanceID:      instance,
 			ServerVersion:   "0.0.0-fake",
 			ProtocolVersion: appserver.WireProtocolVersion,
 			DaemonProfile:   appserver.DaemonProfile{Kind: appserver.DaemonProfileProduct},
@@ -131,6 +221,9 @@ func (d *fakeDaemon) write(conn net.Conn, value any) {
 	if err != nil {
 		return
 	}
+	// Serialize frames: serve goroutines and emit can write to the same stream.
+	d.writeMu.Lock()
+	defer d.writeMu.Unlock()
 	_, _ = conn.Write(append(payload, '\n'))
 }
 
@@ -148,6 +241,57 @@ func fakeHome(t *testing.T) string {
 func testContext(t *testing.T) (context.Context, context.CancelFunc) {
 	t.Helper()
 	return context.WithTimeout(context.Background(), 5*time.Second)
+}
+
+// startBridge starts a fake daemon and a supervisor linked to it, and registers
+// cleanup. It is the shared fixture for replay-gap and re-attach tests.
+func startBridge(t *testing.T) (*fakeDaemon, *supervisor.Supervisor, context.Context) {
+	t.Helper()
+	home := fakeHome(t)
+	link, err := supervisor.ResolveLink(home)
+	if err != nil {
+		t.Fatalf("resolve link: %v", err)
+	}
+	daemon := startFakeDaemon(t, link.Endpoint.Address)
+	sup, err := supervisor.New(supervisor.Config{ProductHome: home})
+	if err != nil {
+		t.Fatalf("supervisor: %v", err)
+	}
+	ctx, cancel := testContext(t)
+	t.Cleanup(func() {
+		cancel()
+		closeCtx, closeCancel := context.WithTimeout(context.Background(), testWait)
+		defer closeCancel()
+		_, _ = sup.Close(closeCtx)
+	})
+	if _, err := sup.Start(ctx); err != nil {
+		t.Fatalf("Start: %v", err)
+	}
+	return daemon, sup, ctx
+}
+
+// waitSessionDone waits for the session drain goroutine to finish. It is a
+// channel wait, not a sleep-poll: Done closes exactly once, after the stream
+// reached its terminal state and the terminal error was published.
+func waitSessionDone(t *testing.T, s *session.Session) {
+	t.Helper()
+	timer := time.NewTimer(testWait)
+	defer timer.Stop()
+	select {
+	case <-s.Done():
+	case <-timer.C:
+		t.Fatalf("session did not observe a transport end within %s", testWait)
+	}
+}
+
+// closeControllerOnCleanup detaches the controller with a bounded context.
+func closeControllerOnCleanup(t *testing.T, controller *SessionController) {
+	t.Helper()
+	t.Cleanup(func() {
+		closeCtx, closeCancel := context.WithTimeout(context.Background(), testWait)
+		defer closeCancel()
+		_ = controller.Close(closeCtx)
+	})
 }
 
 // TestSessionControllerBridge drives the bridge end to end over a fake daemon:
@@ -185,10 +329,7 @@ func TestSessionControllerBridge(t *testing.T) {
 		t.Fatal("failed Reattach mutated the existing controller")
 	}
 	oldConn.Client().Close()
-	deadline := time.Now().Add(testWait)
-	for !controller.Session.Lost() && time.Now().Before(deadline) {
-		time.Sleep(5 * time.Millisecond)
-	}
+	waitSessionDone(t, controller.Session)
 	if !controller.Session.Lost() {
 		t.Fatal("session did not observe transport loss")
 	}
@@ -288,10 +429,7 @@ func TestSessionControllerStateReattachConcurrent(t *testing.T) {
 	}
 	old := controller.Conn
 	old.Client().Close()
-	deadline := time.Now().Add(testWait)
-	for !controller.Session.Lost() && time.Now().Before(deadline) {
-		time.Sleep(5 * time.Millisecond)
-	}
+	waitSessionDone(t, controller.Session)
 	if !controller.Session.Lost() {
 		t.Fatal("session did not observe transport loss")
 	}
@@ -361,5 +499,251 @@ func TestSessionTitlePrecedence(t *testing.T) {
 		if got := sessionTitle(tc.summary); got != tc.want {
 			t.Errorf("%s: sessionTitle = %q, want %q", tc.name, got, tc.want)
 		}
+	}
+}
+
+// TestOpenSessionRetriesSubscriptionChangedReadOnce pins the contract's only
+// allowed replay-gap recovery: attach + first history is a read, so it may
+// re-attach and retry exactly once.
+func TestOpenSessionRetriesSubscriptionChangedReadOnce(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	daemon.fail("session.history", subscriptionChangedFault())
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession after one replay gap: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	if got := daemon.callCount("session.attach"); got != 2 {
+		t.Fatalf("session.attach calls = %d, want 2 (initial + one retry)", got)
+	}
+	if got := daemon.callCount("session.history"); got != 2 {
+		t.Fatalf("session.history calls = %d, want 2", got)
+	}
+	state := controller.State(appserver.SessionSummary{SessionID: "s1"})
+	if state.Connection != ui.ConnReady || len(state.Messages) != 1 {
+		t.Fatalf("state after retry = %#v", state)
+	}
+}
+
+// TestOpenSessionSubscriptionChangedFailsClosedAfterSingleRetry proves the retry
+// is bounded: a second replay gap is surfaced as a WIP error, not a loop.
+func TestOpenSessionSubscriptionChangedFailsClosedAfterSingleRetry(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	daemon.fail("session.history", subscriptionChangedFault(), subscriptionChangedFault(), subscriptionChangedFault())
+	controller, err := OpenSession(ctx, sup, "s1")
+	if controller != nil {
+		t.Fatal("OpenSession returned a controller for a persistent replay gap")
+	}
+	if !errors.Is(err, ErrReplayGap) {
+		t.Fatalf("error = %v, want %v", err, ErrReplayGap)
+	}
+	var gap *ReplayGapError
+	if !errors.As(err, &gap) || !gap.ReadOnly || !gap.Retried {
+		t.Fatalf("error = %#v, want a retried read-only ReplayGapError", err)
+	}
+	if !appserver.IsAppError(err, appserver.AppErrorSubscriptionChanged) {
+		t.Fatalf("error = %v, want the daemon subscription_changed preserved", err)
+	}
+	if got := daemon.callCount("session.history"); got != 2 {
+		t.Fatalf("session.history calls = %d, want exactly 2 attempts", got)
+	}
+	if got := daemon.callCount("session.attach"); got != 2 {
+		t.Fatalf("session.attach calls = %d, want exactly 2 attempts", got)
+	}
+}
+
+// TestCatalogRetriesSubscriptionChangedReadOnce covers the control-connection
+// read path: session.catalog is read-only and gets the same single retry.
+func TestCatalogRetriesSubscriptionChangedReadOnce(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	daemon.fail("session.catalog", subscriptionChangedFault())
+	rows, err := Catalog(ctx, sup)
+	if err != nil {
+		t.Fatalf("Catalog after one replay gap: %v", err)
+	}
+	if len(rows) != 1 || rows[0].ID != "s1" {
+		t.Fatalf("rows = %#v", rows)
+	}
+	if got := daemon.callCount("session.catalog"); got != 2 {
+		t.Fatalf("session.catalog calls = %d, want 2", got)
+	}
+}
+
+// TestCatalogSubscriptionChangedFailsClosedAfterSingleRetry checks the bounded
+// read retry does not become an unbounded catalog loop.
+func TestCatalogSubscriptionChangedFailsClosedAfterSingleRetry(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	daemon.fail("session.catalog", subscriptionChangedFault(), subscriptionChangedFault(), subscriptionChangedFault())
+	if _, err := Catalog(ctx, sup); !errors.Is(err, ErrReplayGap) {
+		t.Fatalf("Catalog error = %v, want %v", err, ErrReplayGap)
+	}
+	if got := daemon.callCount("session.catalog"); got != 2 {
+		t.Fatalf("session.catalog calls = %d, want exactly 2 attempts", got)
+	}
+}
+
+// TestSubmitSubscriptionChangedIsNotReplayed pins the write rule: a mutation
+// that hits a replay gap is reported once and never resent.
+func TestSubmitSubscriptionChangedIsNotReplayed(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	daemon.fail("session.submit", subscriptionChangedFault(), subscriptionChangedFault())
+	_, submissionID, err := controller.SubmitWithID(ctx, "hello again")
+	if submissionID == "" {
+		t.Fatal("SubmitWithID lost the idempotency key on a replay gap")
+	}
+	if !errors.Is(err, ErrReplayGap) {
+		t.Fatalf("SubmitWithID error = %v, want %v", err, ErrReplayGap)
+	}
+	var gap *ReplayGapError
+	if !errors.As(err, &gap) || gap.ReadOnly {
+		t.Fatalf("error = %#v, want a fail-closed write ReplayGapError", err)
+	}
+	if got := daemon.callCount("session.submit"); got != 1 {
+		t.Fatalf("session.submit calls = %d, want 1 (no replay)", got)
+	}
+}
+
+// TestReattachFailsClosedWhenDaemonGenerationAdvanced covers two facts at once:
+// a newer hello instanceId advances the supervisor generation, and an old but
+// still-live attachment must not be replaced (that would double-attach).
+func TestReattachFailsClosedWhenDaemonGenerationAdvanced(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	oldConn, oldSession := controller.Conn, controller.Session
+	daemon.setInstance("integration-fake-2")
+	observed, err := sup.OpenStream(ctx)
+	if err != nil {
+		t.Fatalf("OpenStream for the restarted instance: %v", err)
+	}
+	observed.Close()
+	if observed.Generation() != oldConn.Generation()+1 || !oldConn.Stale() {
+		t.Fatalf("generation = %d old = %d stale = %v, want generation advanced and old stale", observed.Generation(), oldConn.Generation(), oldConn.Stale())
+	}
+	err = controller.Reattach(ctx)
+	if !errors.Is(err, ErrSessionNotLost) {
+		t.Fatalf("Reattach error = %v, want %v", err, ErrSessionNotLost)
+	}
+	if controller.Conn != oldConn || controller.Session != oldSession {
+		t.Fatal("fail-closed Reattach mutated the controller")
+	}
+}
+
+// TestReattachAfterDaemonRestartRebuildsFromNewInstance pins the verified
+// instanceId rule: a restart is not an error, the attachment is rebuilt from the
+// new instance's history and the identity change is reported.
+func TestReattachAfterDaemonRestartRebuildsFromNewInstance(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	oldSession := controller.Session
+	daemon.setInstance("integration-fake-2")
+	controller.Conn.Client().Close()
+	waitSessionDone(t, oldSession)
+	if err := controller.Reattach(ctx); err != nil {
+		t.Fatalf("Reattach after daemon restart: %v", err)
+	}
+	info, ok := controller.LastReattach()
+	if !ok {
+		t.Fatal("LastReattach has no record after a successful Reattach")
+	}
+	want := ReattachResult{
+		SessionID:          "s1",
+		PreviousGeneration: 1,
+		Generation:         2,
+		PreviousInstanceID: "integration-fake",
+		InstanceID:         "integration-fake-2",
+		Restarted:          true,
+	}
+	if info != want {
+		t.Fatalf("LastReattach = %#v, want %#v", info, want)
+	}
+	if controller.Session == oldSession || controller.Session.Lost() {
+		t.Fatal("Reattach kept the stale or lost session")
+	}
+	state := controller.State(appserver.SessionSummary{SessionID: "s1"})
+	if state.Connection != ui.ConnReady || len(state.Messages) != 1 {
+		t.Fatalf("state after restart re-attach = %#v", state)
+	}
+}
+
+// TestReattachRetriesSubscriptionChangedOnce covers the replay-gap retry on the
+// re-attach path and pins that a plain re-attach is not reported as a restart.
+func TestReattachRetriesSubscriptionChangedOnce(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	controller.Conn.Client().Close()
+	waitSessionDone(t, controller.Session)
+	daemon.fail("session.attach", subscriptionChangedFault())
+	if err := controller.Reattach(ctx); err != nil {
+		t.Fatalf("Reattach after one replay gap: %v", err)
+	}
+	if got := daemon.callCount("session.attach"); got != 3 {
+		t.Fatalf("session.attach calls = %d, want 3 (initial + failed retry + retry)", got)
+	}
+	info, ok := controller.LastReattach()
+	if !ok || info.Restarted || info.InstanceID != info.PreviousInstanceID {
+		t.Fatalf("LastReattach = %#v, want a same-instance re-attach", info)
+	}
+}
+
+// TestReattachRejectsClosedSession pins session.closed as terminal: no re-attach
+// may turn a closed session back into a live one.
+func TestReattachRejectsClosedSession(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	oldConn, oldSession := controller.Conn, controller.Session
+	daemon.emit("session.closed", appserver.ClosedNotice{SessionID: "s1", Reason: "finished"})
+	waitSessionDone(t, oldSession)
+	closed, ok := oldSession.Closed()
+	if !ok || closed.Reason != "finished" {
+		t.Fatalf("closed notice = %#v/%v, want reason finished", closed, ok)
+	}
+	if oldSession.TerminalState() != appserver.StreamStateClosed {
+		t.Fatalf("terminal state = %s, want closed", oldSession.TerminalState())
+	}
+	if err := controller.Reattach(ctx); !errors.Is(err, ErrSessionClosed) {
+		t.Fatalf("Reattach error = %v, want %v", err, ErrSessionClosed)
+	}
+	if controller.Conn != oldConn || controller.Session != oldSession {
+		t.Fatal("closed-session Reattach mutated the controller")
+	}
+}
+
+// TestReattachAfterCloseFailsClosed pins that a closed controller cannot be
+// resurrected by a racing re-attach.
+func TestReattachAfterCloseFailsClosed(t *testing.T) {
+	_, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	if err := controller.Close(ctx); err != nil {
+		t.Fatalf("Close: %v", err)
+	}
+	if controller.Session.TerminalState() != appserver.StreamStateDetached {
+		t.Fatalf("terminal state = %s, want detached", controller.Session.TerminalState())
+	}
+	if err := controller.Reattach(ctx); !errors.Is(err, ErrSessionClosed) {
+		t.Fatalf("Reattach after Close error = %v, want %v", err, ErrSessionClosed)
 	}
 }

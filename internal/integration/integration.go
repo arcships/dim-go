@@ -38,8 +38,8 @@ var (
 
 // ReplayGapError reports a subscription_changed that was not recovered. A
 // read-only request may re-attach and retry exactly once (contract §13); a
-// write is never replayed (contract §14). Anything that survives that allowance
-// is surfaced here so the UI can show the WIP boundary.
+// write is never replayed. Anything that survives that allowance is surfaced
+// here so the UI can show the WIP boundary.
 type ReplayGapError struct {
 	Op       string
 	ReadOnly bool
@@ -146,7 +146,9 @@ func CreateSession(ctx context.Context, sup *supervisor.Supervisor, params appse
 	}
 	result, err := appserver.Create(ctx, conn.Client(), params)
 	if err != nil {
-		return nil, appserver.CreateResult{}, err
+		// session.create is a write: a subscription_changed reply is reported, not
+		// retried, so a duplicate session can never be created silently.
+		return nil, appserver.CreateResult{}, replayGapWrite("session.create", err)
 	}
 	controller, err := OpenSession(ctx, sup, result.SessionID)
 	if err != nil {
