@@ -63,10 +63,10 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 ### P3 接线轮（已完成第一部分）
 
 - ✅ Rename：真实输入框 + controller.Rename + 标题刷新（其余 Pin/Archive/Export/Copy 仍 WIP）
-- ✅ 模型展示：composer chip 显示 provider/model，只读列表；选择写入仍 WIP
+- ✅ 模型展示与写入：`session.model.update` + 读回；chip/list 走 App Server 事实
 - ✅ 路由：Scheduled、Skills WIP 页 + Back；设置 19 分区
 - ✅ 通知中心：ActionError/ActionNotices/Notices 顶部 banner、可关闭
-- 会话内消息搜索（ThreadSearchBar，区别于全局 ⌘G）
+- 会话内消息搜索（ThreadSearchBar，进行中）
 - F9：unknown submit 的 `input_lookup` 结果展示
 - 清理：未使用 glyph/key、protocols 注释、组件协议文档
 
