@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"image/color"
 	"math"
 	"strings"
 	"testing"
@@ -415,12 +416,14 @@ func TestHeaderDrawsNoModelEntry(t *testing.T) {
 	}
 }
 
-// TestHeaderBreadcrumbStartsAtTheContentInset checks the bar's left edge and
+// TestHeaderBreadcrumbStartsAtTheReferenceInset checks the bar's left edge and
 // the room before its menu against the reference's 800×720 frame: the project
-// starts on the conversation's 25 DIP content edge, and the menu's target
-// begins where the truncated title's box ends, so "…" sits about 13 DIPs after
-// the last glyph instead of at the far end of an elastic breadcrumb.
-func TestHeaderBreadcrumbStartsAtTheContentInset(t *testing.T) {
+// starts where the reference's chat header starts (px-3 plus the breadcrumb
+// row's mx-3, x≈277.5 in the window, 19 DIPs inside the shell's frame), and the
+// menu's target begins where the truncated title's box ends, so "…" sits about
+// 13 DIPs after the last glyph instead of at the far end of an elastic
+// breadcrumb.
+func TestHeaderBreadcrumbStartsAtTheReferenceInset(t *testing.T) {
 	v := fixture().headerView()
 	v.Project = "dimagent-mygo"
 	v.Title = "Explain what this repository does in one paragraph."
@@ -434,9 +437,9 @@ func TestHeaderBreadcrumbStartsAtTheContentInset(t *testing.T) {
 	if !ok {
 		t.Fatalf("the project is not drawn, texts %q", tt.Texts())
 	}
-	if math.Abs(float64(project.X-conversationInsetX)) > 1 {
+	if math.Abs(float64(project.X-breadcrumbLeftPad)) > 1 {
 		t.Errorf("the breadcrumb starts at x=%.1f, want the reference's %v DIP inset",
-			project.X, conversationInsetX)
+			project.X, breadcrumbLeftPad)
 	}
 	title, ok := tt.Find(v.Title)
 	if !ok {
@@ -463,29 +466,44 @@ func TestHeaderBreadcrumbStartsAtTheContentInset(t *testing.T) {
 
 // TestHeaderEditorMarkUsesTheVSCodeBrandBlue checks the drawn editor entry: the
 // VS Code mark keeps the brand's blue even though the WIP entry is unavailable,
-// while the disclosure arrow beside it stays the bar's muted ink. The frame has
-// no internal rule between the two cells.
+// while the disclosure arrow beside it stays the bar's muted ink. The entry is
+// unavailable without dimming: it takes no click and no Tab stop, and the mark
+// paints the reference's #2563EB exactly instead of a half-opacity tint. The
+// frame has no internal rule between the two cells.
 func TestHeaderEditorMarkUsesTheVSCodeBrandBlue(t *testing.T) {
 	v := fixture().headerView()
 	tt := ui.NewTester(func(c *ui.Context) {
 		header(c, newTokens(c.Theme()), v, Actions{})
 	}, 800, 41)
-	entry, ok := tt.Find(tr(LocaleEN, keyHeaderOpenInEditor))
+	label := tr(LocaleEN, keyHeaderOpenInEditor)
+	entry, ok := tt.Find(label)
 	if !ok {
 		t.Fatalf("the editor entry is not drawn, texts %q", tt.Texts())
 	}
+	info, ok := tt.AccessByRole(ui.RoleButton, label)
+	if !ok {
+		t.Fatalf("the editor entry is not a named button, texts %q", tt.Texts())
+	}
+	if !info.Disabled || info.Focusable {
+		t.Errorf("the editor entry is not unavailable without a Tab stop: disabled=%v focusable=%v",
+			info.Disabled, info.Focusable)
+	}
 	image := tt.Image()
-	blue := 0
+	brand := color.RGBA{R: openInEditorBrand.R, G: openInEditorBrand.G, B: openInEditorBrand.B, A: openInEditorBrand.A}
+	blue, exact := 0, 0
 	for y := int(entry.Y) + 2; y < int(entry.Y+entry.H)-2; y++ {
 		for x := int(entry.X) + 1; x < int(entry.X+openInEditorCell); x++ {
 			p := image.RGBAAt(x, y)
 			if d := int(p.B) - int(p.R); d > blue {
 				blue = d
 			}
+			if p == brand {
+				exact++
+			}
 		}
 	}
-	if blue < 40 {
-		t.Errorf("the mark's strongest pixel is only %d bluer than red, want the VS Code brand blue", blue)
+	if exact == 0 {
+		t.Errorf("the mark never paints the reference's %v brand blue, strongest pixel is %d bluer than red", brand, blue)
 	}
 	muted := 0
 	for y := int(entry.Y) + 2; y < int(entry.Y+entry.H)-2; y++ {
@@ -504,7 +522,7 @@ func TestHeaderEditorMarkUsesTheVSCodeBrandBlue(t *testing.T) {
 // TestHeaderTruncatesTheProjectAtTheReferenceWidth checks the breadcrumb's
 // project name against window-conversation.png: the reference's workspace span
 // is max-w-[8rem] and shrinks inside the bar's flex row, so in an 800 DIP
-// window it leaves the project about 83 DIPs, draws "dimagent-m…" and starts
+// window it leaves the project about 85 DIPs, draws "dimagent-m…" and starts
 // the title's ink at x≈375. The bar keeps that measured width with its
 // ellipsis, so the title starts where the reference draws it instead of being
 // pushed right by the whole project name; the slash stays between the two and
@@ -514,6 +532,7 @@ func TestHeaderTruncatesTheProjectAtTheReferenceWidth(t *testing.T) {
 	v.Project = "dimagent-mygo"
 	v.Title = "Explain what this repository does in one paragraph."
 	tt := headerTestView(v, 800, 41)
+	k := newTokens(ui.LightTheme())
 
 	project, ok := tt.Find(v.Project)
 	if !ok {
@@ -522,14 +541,30 @@ func TestHeaderTruncatesTheProjectAtTheReferenceWidth(t *testing.T) {
 	if math.Abs(float64(project.W-breadcrumbProjectMaxW)) > 0.5 {
 		t.Errorf("the project box is %.1f wide, want the reference's %v DIPs", project.W, breadcrumbProjectMaxW)
 	}
+	// The 85 DIP cap leaves the reference's one extra glyph: the drawn ink runs
+	// past the old 83 DIP cap's "dimagent-…" (≈70 DIPs at this type step) to the
+	// reference's "dimagent-m…", and still stops short of the whole name (≈96).
+	ink, pixels := glyphInkBox(tt, project, k.background)
+	if pixels == 0 {
+		t.Fatal("the project name draws no ink")
+	}
+	if ink.W < 78 || ink.W > project.W {
+		t.Errorf("the project's ink is %.1f wide in a %.1f box, want the reference's truncated name", ink.W, project.W)
+	}
 	title, ok := tt.Find(v.Title)
 	if !ok {
 		t.Fatalf("the title is not drawn, texts %q", tt.Texts())
 	}
 	// The reference's card starts at x=256.5, so its title ink at x≈375 is
-	// 118.5 DIPs inside the card, the bar's own coordinate here.
-	if math.Abs(float64(title.X-118.5)) > 3 {
-		t.Errorf("the title starts at x=%.1f, want the reference's 118.5 ±3", title.X)
+	// 118.5 DIPs inside the card. This bar is measured from the shell's own
+	// frame edge, about 1.5 DIPs right of the reference card's, so the same ink
+	// lands at ≈117 here; the ±3 covers that offset and the glyph's bearing.
+	titleInk, titlePixels := glyphInkBox(tt, title, k.background)
+	if titlePixels == 0 {
+		t.Fatal("the title draws no ink")
+	}
+	if math.Abs(float64(titleInk.X-118.5)) > 3 {
+		t.Errorf("the title's ink starts at x=%.1f, want the reference's 118.5 ±3", titleInk.X)
 	}
 	if slash, ok := tt.Find(breadcrumbSeparator); !ok || slash.X <= project.X+project.W {
 		t.Errorf("the separator at x=%.1f does not follow the truncated project ending at %.1f",

@@ -256,6 +256,106 @@ func TestComposerContextBranchAndMeterInsideCard(t *testing.T) {
 	}
 }
 
+// TestComposerStatusBandMeasuresAgainstTheReference checks the conversation's
+// status band against window-conversation.png: the band spans the main column
+// while the card keeps its 520 DIP measure, the band's entries keep the
+// reference's px-5 footer inset and px-2 entry inset, and an unknown context
+// share draws the reference's h-1 w-10 muted rail before a right-aligned dash
+// instead of the dash alone.
+func TestComposerStatusBandMeasuresAgainstTheReference(t *testing.T) {
+	const width = 800
+	k := newTokens(ui.LightTheme())
+	view := ComposerView{
+		Draft:       new(string),
+		CanSubmit:   true,
+		Placeholder: composerPlaceholder,
+		Wide:        true,
+		Branch:      "main",
+		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:       new(ui.Handle),
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		composer(c, newTokens(c.Theme()), view, Actions{OnSubmit: func(string) {}})
+	}, width, 600)
+
+	band, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, keyComposerStatus))
+	if !ok {
+		t.Fatalf("the status band is not drawn, texts %q", tt.Texts())
+	}
+	if math.Abs(float64(band.Bounds.W-width)) > 0.5 {
+		t.Errorf("the status band is %.1f wide, want the main column's %d", band.Bounds.W, width)
+	}
+	if card := composerCardBounds(t, tt); math.Abs(float64(card.W-composerWideWidth)) > 0.5 {
+		t.Errorf("the card is %.1f wide, want the reference's %d inside the wider band", card.W, composerWideWidth)
+	}
+
+	permission, ok := tt.Find("Default permissions")
+	if !ok {
+		t.Fatalf("the permission entry is not drawn, texts %q", tt.Texts())
+	}
+	meter, ok := tt.Find(tr(LocaleEN, composerContextUsageKey))
+	if !ok {
+		t.Fatalf("the context meter is not drawn, texts %q", tt.Texts())
+	}
+	// The footer's px-5 sits the left entry on the band's inset and the meter's
+	// box on the matching inset at the right.
+	if inset := permission.X - band.Bounds.X; math.Abs(float64(inset-composerStatusPadX)) > 0.5 {
+		t.Errorf("the permission entry starts %.1f inside the band, want the reference's %v",
+			inset, composerStatusPadX)
+	}
+	if inset := band.Bounds.X + band.Bounds.W - (meter.X + meter.W); math.Abs(float64(inset-composerStatusPadX)) > 0.5 {
+		t.Errorf("the meter ends %.1f before the band's edge, want the reference's %v", inset, composerStatusPadX)
+	}
+	// Each entry keeps its own px-2, so the shield's ink starts at the inner
+	// edge, as the reference's button does; the 16 DIP glyph carries its own
+	// ≈2.5 DIP bearing inside that box.
+	ink, pixels := glyphInkBox(tt, permission, k.background)
+	if pixels == 0 {
+		t.Fatal("the permission shield draws no ink")
+	}
+	if want := permission.X + composerStatusEntryPadX + 2.5; math.Abs(float64(ink.X-want)) > 1.5 {
+		t.Errorf("the shield's ink starts at x=%.1f, want %.1f inside the entry's px-2 box", ink.X, want)
+	}
+
+	// The unknown meter draws the rail first: the reference's w-10 h-1 muted
+	// track, inside the entry's px-2, with the dash right-aligned in the cell
+	// after it. The rounded ends leave the measured face a DIP short of the box.
+	track, trackPixels := colorBox(tt, meter, k.muted)
+	if trackPixels == 0 {
+		t.Fatal("the unknown context meter draws no rail")
+	}
+	if math.Abs(float64(track.W-composerMeterW)) > 2 || math.Abs(float64(track.H-composerMeterH)) > 1 {
+		t.Errorf("the rail is %.1fx%.1f, want the reference's %.1fx%.1f",
+			track.W, track.H, float32(composerMeterW), float32(composerMeterH))
+	}
+	if want := meter.X + composerStatusEntryPadX; math.Abs(float64(track.X-want)) > 0.5 {
+		t.Errorf("the rail starts at x=%.1f, want the entry's px-2 edge at %.1f", track.X, want)
+	}
+	dash, dashPixels := glyphInkBox(tt, ui.Rect{
+		X: track.X + track.W, Y: meter.Y,
+		W: meter.X + meter.W - (track.X + track.W), H: meter.H,
+	}, k.background)
+	if dashPixels == 0 {
+		t.Fatal("the unknown context meter draws no dash after the rail")
+	}
+	if dash.X < track.X+track.W {
+		t.Errorf("the dash at x=%.1f sits on the rail ending at %.1f", dash.X, track.X+track.W)
+	}
+	if right, want := dash.X+dash.W, meter.X+meter.W-composerStatusEntryPadX; math.Abs(float64(right-want)) > 3 {
+		t.Errorf("the dash ends at x=%.1f, want it right-aligned at %.1f", right, want)
+	}
+
+	// The branch stays between the two, to the right of the permission entry.
+	branch, ok := tt.Find(tr(LocaleEN, composerBranchKey))
+	if !ok {
+		t.Fatalf("the branch entry is not drawn, texts %q", tt.Texts())
+	}
+	if !(permission.X+permission.W < branch.X && branch.X+branch.W < meter.X) {
+		t.Errorf("the band's right-hand entries run permission %.1f..%.1f, branch %.1f..%.1f, meter %.1f..%.1f",
+			permission.X, permission.X+permission.W, branch.X, branch.X+branch.W, meter.X, meter.X+meter.W)
+	}
+}
+
 // glyphInkBox returns the tight box of the pixels inside area that are not the
 // background, and how many there are: the drawn strokes of a glyph, without
 // asking the view how it drew them.

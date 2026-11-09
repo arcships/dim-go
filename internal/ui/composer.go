@@ -46,15 +46,39 @@ const (
 	// 16 DIP artwork the sidebar and the toolbar use.
 	composerIconSize = 16
 	// composerMeterW and composerMeterH are the context meter's track, in DIPs:
-	// the thin line the reference draws beside the branch. The height is a
-	// faint rail, not a progress widget's body, so the row stays a single band.
-	composerMeterW = 56
-	composerMeterH = 3
+	// the thin line the reference draws beside the branch. They are its h-1
+	// w-10 at the 14px root font size, 3.5 × 35 DIPs (ContextUsageMeter.vue:30),
+	// the same element the shell's status bar draws: a faint rail, not a
+	// progress widget's body, so the status band stays one line.
+	composerMeterW = 35
+	composerMeterH = 3.5
+	// composerMeterGap and composerMeterLabelW are the room the meter's reading
+	// keeps beside its track, in DIPs: the reference's gap-1.5 between the rail
+	// and the reading, and its min-w-7 cell (5.25 and 24.5 at the 14px root).
+	// The reading is right-aligned in that cell, so the dash ends at the band's
+	// inset no matter how many digits a known share prints.
+	composerMeterGap    = 5.25
+	composerMeterLabelW = 24.5
 	// composerStatusH is the status band's height in a conversation, in DIPs:
-	// the reference's card ends ≈34 DIPs above the main column's bottom edge,
-	// and the band fills that room under the card. It is a literal, not a
-	// spacing step, because the reference measures the gap from its own frame.
-	composerStatusH = 34
+	// the reference's h-10 at the 14px root (35), the room the card leaves above
+	// the main column's bottom edge. It is a literal, not a spacing step,
+	// because the reference measures the gap from its own frame.
+	composerStatusH = 35
+	// composerStatusPadX and composerStatusEntryPadX are the status band's
+	// horizontal insets, in DIPs: the reference's px-5 on the footer (17.5 at
+	// the 14px root) and its px-2 on each entry inside the band (7). The band
+	// spans the main column, not the card, so in the reference's 800 DIP window
+	// the permission shield's ink starts at x≈284 and the meter's dash ends at
+	// x≈771 while the composer card itself runs from x≈266 to x≈785. See
+	// docs/l5-reference.md §6.
+	composerStatusPadX      = 17.5
+	composerStatusEntryPadX = 7
+	// composerStatusGap is the room between the band's entries, in DIPs. The
+	// reference's row gap-1 is 3.5, but its branch label and brand mark are
+	// slightly wider than this shell's 13 DIP type and 16 DIP glyph frame, so 6
+	// keeps the branch's ink on the reference's x≈646 instead of drifting right
+	// against the fixed meter.
+	composerStatusGap = 6
 )
 
 // composerMeterDash is what the context meter shows while no usage fact is
@@ -156,13 +180,24 @@ var composerGlyphs = struct {
 // it once the App Server accepted the submission, so a failed send keeps the
 // text.
 func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
-	ui.Column(c).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
-		Children(func() {
-			composerCard(c, k, v, a)
-			if v.Wide {
-				composerStatusBand(c, k, v)
-			}
-		})
+	if !v.Wide {
+		ui.Column(c).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
+			Children(func() {
+				composerCard(c, k, v, a)
+			})
+		return
+	}
+	// A conversation's card keeps the reference's 520 DIP measure, while the
+	// status band under it spans the main column, as the reference's footer
+	// does: its px-5 inset is measured from the column's edge, not the card's,
+	// so the band's entries sit further in than the card's own border.
+	ui.Column(c).FillWidth().Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
+			Children(func() {
+				composerCard(c, k, v, a)
+			})
+		composerStatusBand(c, k, v)
+	})
 }
 
 // composerCard draws the surface the composer edits in: the editor over the
@@ -199,19 +234,20 @@ func composerCard(c *ui.Context, k tokens, v ComposerView, a Actions) {
 // composerStatusBand draws the conversation's status under the card: the
 // default permission mode on the left and the selected session's branch with
 // the context meter on the right, as the reference's status band lays them out.
-// It is outside the card and flush with the column's bottom, so the card keeps
-// only the editor and the tool row. The workspace entry stays in the empty
+// It is outside the card and flush with the column's bottom, and spans the
+// main column rather than the card's 520 DIP measure, so it keeps only the
+// editor and the tool row above it. The workspace entry stays in the empty
 // state's card: the reference's conversation band shows no workspace.
 func composerStatusBand(c *ui.Context, k tokens, v ComposerView) {
 	locale := v.Locale
 	ui.Row(c).FillWidth().Height(composerStatusH).
-		Padding(0, k.edgePad, k.gap*2, k.edgePad).
-		Gap(k.gapWide).AlignItems(ui.Center).
+		Padding(0, composerStatusPadX, 0, composerStatusPadX).
+		Gap(composerStatusGap).AlignItems(ui.Center).
 		Role(ui.RoleGroup).Label(tr(locale, keyComposerStatus)).Children(func() {
-		composerPermissionEntry(c, k, locale, v.Permission)
+		composerPermissionEntry(c, k, locale, v.Permission, composerStatusEntryPadX)
 		ui.Box(c).Grow(1)
-		composerBranchEntry(c, k, locale, v.Branch)
-		composerContextMeter(c, k, locale, v.ContextKnown, v.ContextUsed)
+		composerBranchEntry(c, k, locale, v.Branch, composerStatusEntryPadX)
+		composerContextMeter(c, k, locale, v.ContextKnown, v.ContextUsed, composerStatusEntryPadX, true)
 	})
 }
 
@@ -247,9 +283,9 @@ func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
 		AlignItems(ui.Center).Children(func() {
 		composerWorkspaceEntry(c, k, locale, v.Workspace)
 		ui.Box(c).Grow(1)
-		composerPermissionEntry(c, k, locale, v.Permission)
-		composerBranchEntry(c, k, locale, v.Branch)
-		composerContextMeter(c, k, locale, v.ContextKnown, v.ContextUsed)
+		composerPermissionEntry(c, k, locale, v.Permission, 0)
+		composerBranchEntry(c, k, locale, v.Branch, 0)
+		composerContextMeter(c, k, locale, v.ContextKnown, v.ContextUsed, 0, false)
 	})
 }
 
@@ -276,8 +312,11 @@ func composerWorkspaceEntry(c *ui.Context, k tokens, locale Locale, value string
 // composerPermissionEntry draws the session's default permission mode beside
 // its shield, as the reference's status band does. Like the workspace it is a
 // display group: the composer offers no control that would change the mode.
-func composerPermissionEntry(c *ui.Context, k tokens, locale Locale, value string) {
-	entry := ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
+// padX is the entry's own horizontal inset: the status band's entries keep the
+// reference's px-2 (7 DIPs) inside the band, while the empty state's card row
+// already sits on the card's inset and passes none.
+func composerPermissionEntry(c *ui.Context, k tokens, locale Locale, value string, padX float32) {
+	entry := ui.Row(c).Gap(k.gap).AlignItems(ui.Center).PaddingX(padX).
 		Role(ui.RoleGroup).Label(tr(locale, keyComposerPermission)).Children(func() {
 		composerGlyph(c, k, composerGlyphs.shield)
 		ui.Text(c, tr(locale, keyComposerPermission)).FontSize(k.smallSize).
@@ -294,12 +333,13 @@ func composerPermissionEntry(c *ui.Context, k tokens, locale Locale, value strin
 // the workspace's git branch; this shell has no git fact, so the entry shows
 // the session branch the App Server reports and says so in its description. An
 // empty branch draws no entry at all rather than the reference's "main", which
-// would be a git branch the shell never read.
-func composerBranchEntry(c *ui.Context, k tokens, locale Locale, branch string) {
+// would be a git branch the shell never read. padX is the band entry's inset,
+// as above.
+func composerBranchEntry(c *ui.Context, k tokens, locale Locale, branch string, padX float32) {
 	if branch == "" {
 		return
 	}
-	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
+	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).PaddingX(padX).
 		Role(ui.RoleGroup).Label(tr(locale, composerBranchKey)).
 		Description(reasonBranch).Tooltip(reasonBranch).Children(func() {
 		composerGlyph(c, k, composerGlyphs.branch)
@@ -307,17 +347,28 @@ func composerBranchEntry(c *ui.Context, k tokens, locale Locale, branch string) 
 	})
 }
 
-// composerContextMeter draws the context-usage meter: a thin track filled to
-// the known share, or the reference's dash while no usage fact is known. The
-// dash is a decoration and stays out of the accessible tree; the group's
-// description says what the entry waits on, and no percentage is drawn until
-// the shell passes one. used is a fraction of the context window in 0..1 and is
-// read only when known.
-func composerContextMeter(c *ui.Context, k tokens, locale Locale, known bool, used float32) {
-	entry := ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
+// composerContextMeter draws the context-usage meter: the reference's thin
+// rail, filled to the known share, and the reading's cell beside it. With rail
+// set — the conversation's status band — an unknown share still draws the empty
+// rail and the reference's dash in a right-aligned cell, so the band reads as a
+// meter waiting for a fact. The empty state's card row keeps only the dash,
+// because the reference's NewThread row has no meter there. The dash is a
+// decoration and stays out of the accessible tree; the group's description says
+// what the entry waits on, and no percentage is drawn until the shell formats
+// one. used is a fraction of the context window in 0..1 and is read only when
+// known. padX is the band entry's inset, as above.
+func composerContextMeter(c *ui.Context, k tokens, locale Locale, known bool, used float32, padX float32, rail bool) {
+	entry := ui.Row(c).Gap(composerMeterGap).AlignItems(ui.Center).PaddingX(padX).
 		Role(ui.RoleGroup).Label(tr(locale, composerContextUsageKey))
 	if !known {
 		entry.Description(reasonContext).Tooltip(reasonContext).Children(func() {
+			if rail {
+				composerMeterRail(c, k)
+				ui.Text(c, composerMeterDash).FontSize(k.smallSize).
+					TextColor(k.mutedForeground).Width(composerMeterLabelW).TextAlign(ui.End).
+					Unselectable().AccessHidden(true)
+				return
+			}
 			ui.Text(c, composerMeterDash).FontSize(k.smallSize).
 				TextColor(k.mutedForeground).Unselectable().AccessHidden(true)
 		})
@@ -326,13 +377,22 @@ func composerContextMeter(c *ui.Context, k tokens, locale Locale, known bool, us
 	fill := composerMeterW * clampShare(used)
 	entry.Children(func() {
 		ui.Box(c).Width(composerMeterW).Height(composerMeterH).
-			Radius(composerMeterH / 2).Background(k.border).Clip().Children(func() {
+			Radius(composerMeterH / 2).Background(k.muted).Clip().Children(func() {
 			if fill <= 0 {
 				return
 			}
 			ui.Box(c).Width(fill).Height(composerMeterH).Background(k.primary)
 		})
 	})
+}
+
+// composerMeterRail draws the meter's empty track: the reference's h-1 w-10
+// rail in the muted face, which window-conversation.png measures at x 706.5–741
+// and 3.5 DIPs high beside the dash. It is the rail alone, so an unknown share
+// reads as "no reading yet" rather than as a zero-filled bar.
+func composerMeterRail(c *ui.Context, k tokens) {
+	ui.Box(c).Width(composerMeterW).Height(composerMeterH).
+		Radius(composerMeterH / 2).Background(k.muted)
 }
 
 // clampShare keeps a meter's fill inside its track: a share below zero reads as
