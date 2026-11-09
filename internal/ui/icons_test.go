@@ -16,6 +16,7 @@ func sidebarGlyphCases() map[string]*ui.SVG {
 		"clock":    sidebarIcons.clock,
 		"grid":     sidebarIcons.grid,
 		"folder":   sidebarIcons.folder,
+		"pin":      sidebarIcons.pin,
 		"house":    sidebarIcons.house,
 		"user":     sidebarIcons.user,
 		"gear":     sidebarIcons.gear,
