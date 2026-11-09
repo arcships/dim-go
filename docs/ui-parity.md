@@ -188,6 +188,8 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 
 对话态并排：[`evidence/ui-parity/compare-conversation.png`](evidence/ui-parity/compare-conversation.png)。量到的对照（points）：Electron 顶栏 41、composer 宽 ≈520、消息列左右留白 ≈24.5/24；MyGo 顶栏设了 41 的最小高度（实测到分隔线约 46，含边框与内距），composer 宽 ≈534（与 520 接近），消息列留白一致。
 
+错误态对照：[`evidence/ui-parity/compare-error.png`](evidence/ui-parity/compare-error.png)。Electron 在 daemon 被杀后**没有任何可见提示**（截图与正常对话只有相对时间差），恢复靠内部 resync 失败后用户点“新建会话”；MyGo 显示 `Connection error` banner 与 `Reconnect`，且能重连恢复。这是两边可见行为的明确差异，MyGo 的行为有意保留（F10 已验收），不为了对齐而隐藏错误。
+
 仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome、侧栏“工作区分组 + 相对时间”（App Server 未给 project/时间字段）。
 
 ## 6. 结论复述

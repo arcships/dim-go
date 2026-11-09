@@ -1,0 +1,31 @@
+state	window-error-send
+action	enter conversation (light, click sidebar row) -> kill -TERM <own daemon> -> wait 4s+2s -> type probe sentence -> click send (disabled) -> +1s -> capture
+command	PRODUCT_HOME=/tmp/dim-error-capture/home /Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/scripts/capture-error.sh window-error-send
+captured_at	2026-11-09 17:44:14 CST
+app_pid	21520
+window_id	49408
+window_row	49408 | 0 | 624,152,800,720 | Electron | DimAgent
+window_bounds_points	624,152,800,720
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-error-send.png
+png_pixels	1600 1440
+png_bytes	170319
+png_md5	35da19fecc76ba6eb4ecc45f3e44cc29
+dimcode_home	/tmp/dim-error-capture/home
+user_data	/tmp/dim-error-loss/userdata
+killed_daemon_pid	21525
+killed_daemon_command	/tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dim-error-capture/home/rust/daemon.sock --no-ws --home /private/tmp/dim-error-capture/home/rust --product-home /tmp/dim-error-capture/home
+kill_signal	TERM
+kill_started_at	2026-11-09 17:44:02 CST
+kill_exit	0
+daemon_pids_after_wait	<none>
+daemon_pids_at_capture	<none>
+app_log	/tmp/dim-error-loss/app-error.log
+console_log	/tmp/dim-error-loss/renderer-console.log
+probe_json	/tmp/dim-error-loss/probe-error.json
+send_probe	1
+probe_after_send_json	/tmp/dim-error-loss/probe-error-after-send.json
+git_head	88dbf109a48ca488bf4a3a713fda8ccb94f4e248
+reference_head	3339f4fd47f7b0569e185f1a9d81b82d16447306
+seed_session	46ff1c6a-b6f6-4aa6-98bd-30b9568acd3b
+seed_side_branch	476259a1-03fc-49de-90e8-154bb7c1bbdc
+seed_prompt	Explain what this repository does in one paragraph.

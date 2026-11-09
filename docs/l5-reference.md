@@ -195,6 +195,32 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 seed 数据本身是可信的：`seed-session` 走 `supervisor` + 公开协议（`session.create` → `session.submit` → `session.branch_create`），side branch 的 ID 由 App Server 返回；只是这一版 Electron UI 没有把已有分支列出来。
 
 
+### 5.12 `window-error.png` / `window-error-send.png` / `window-error-recovery.png` — 断线态（2026-11-09 17:44–17:47 CST）
+
+采集方法与对话态共用同一份 seed：在同一个临时 home 里用公开协议建会话并提交一轮输入（§5.9），拉起 Electron、点侧栏会话行进入对话，然后**只杀本次 Electron 自己 spawn 的 `dim-app-server`**——按临时 `PRODUCT_HOME` 匹配命令行，不碰用户的 daemon。驱动脚本：[`scripts/capture-error.sh`](evidence/electron-reference/scripts/capture-error.sh)，DOM/控制台探针是 [`scripts/probe-error.mjs`](evidence/electron-reference/scripts/probe-error.mjs) 和 [`scripts/watch-console.mjs`](evidence/electron-reference/scripts/watch-console.mjs)。
+
+| 图 | 动作 | kill 时间 / daemon PID | 截图时间 | 窗口 ID / bounds（points） | PNG | MD5 |
+|---|---|---|---|---|---|---|
+| [`window-error.png`](evidence/electron-reference/window-error.png) | kill → 等 4 s + 2 s → 截图 | 17:44:44 / 21952 | 17:44:55 | 49427 / `624,152,800,720` | 1600×1440，166 740 B | `2af87daeb38c981a0607152ca0d2bc0b` |
+| [`window-error-send.png`](evidence/electron-reference/window-error-send.png) | kill → 等 6 s → 输入一句话 → 点发送 → 截图 | 17:44:02 / 21525 | 17:44:14 | 49408 / `624,152,800,720` | 1600×1440，170 319 B | `35da19fecc76ba6eb4ecc45f3e44cc29` |
+| [`window-error-recovery.png`](evidence/electron-reference/window-error-recovery.png) | kill → 等 6 s → 点「新建会话」→ 截图 | 17:47:09 / 22942 | 17:47:20 | 49464 / `624,152,800,720` | 1600×1440，147 460 B | `3e24499bcc2adcee03aedf270498ea7f` |
+
+看到：
+
+1. **没有任何可见错误态。** `window-error.png` 与 `window-conversation.png` 逐像素比较，差异只有侧栏那一行的相对时间（bbox `449,681–490,699`，即「5m」→「10m」）；整窗其余区域完全一致。没有 banner、toast、dialog、红色描边或灰色遮罩。
+2. **侧栏和时间线原样保留。** 工作区分组、会话行、user 气泡、`Echo: …` 回复都还在；标题栏仍显示仓库名 / 会话标题。
+3. **composer 仍可编辑，草稿不丢。** `window-error-send.png` 里输入框有光标和已输入的 `After daemon loss: does this send?`；探针读到编辑器 `contenteditable=true`，草稿保留。发送按钮仍是浅绿色（禁用态），点击没有任何反应：没有错误文案、没有 toast、没有重试入口。
+4. **DOM 里没有错误提示，也没有重试入口。** `document.body.innerText` 不含「错误 / 失败 / 断开 / 连接 / 重试 / error / disconnect / retry」；`[data-testid="session-send-unavailable"]`（源码里的「会话忙碌或正在同步…」提示 + 重试链接）不存在。整个窗口只剩可编辑输入框和一个点不动的发送按钮。
+5. **发送按钮的禁用不是断线造成的。** 同一份 seed 会话本身是「未配置」（没有可选模型）。用 `SKIP_KILL=1` 做对照——daemon 存活、同样输入这句话、同样点发送——得到的截图与 `window-error-send.png` **逐字节相同**（MD5 同为 `35da19fecc76ba6eb4ecc45f3e44cc29`），发送按钮同样禁用。因此这张图能证明「断线后 UI 外观不变」，不能证明「断线使发送被禁用」。
+6. **唯一能观察到断线的地方是日志。** 主进程日志打出 `[dimcode][app-server] session stream closed { sessionId: '46ff1c6a-…' }`；渲染进程随后请求 `[dimcode][session] resync requested`，紧接着两次失败：`[dimcode][sidebar] resync failed Error: BUSY: App Server exited before listen (1)` 和 `[dimcode][sidebar] session page failed Error: BUSY: App Server exited before listen (1)`。4 份保留的控制台日志（idle / loss / recovery ×2）都是同一条失败。截图时 `ps` 已无本次 daemon，Electron 主进程仍在。原因未查证；按仓库规则没有读 `daemon.log`。
+7. **断线后用户动作可以静默恢复。** 点「新建会话」后，`ps` 里出现新的 `dim-app-server`（PID 23237），窗口切到新会话空态（logo +「开始构建」+ composer，见 `window-error-recovery.png`），侧栏保留；全程仍无任何提示或状态条。说明 daemon 并非永久失联，但"丢失—恢复"对使用者不可见。
+
+能证明：在这个 commit、这个窗口尺寸下，**杀掉 Electron 自己的 App Server 后，窗口没有用户可见的断线态**——没有文案、没有重试入口、没有禁用遮罩；侧栏和已加载历史保留，composer 可继续输入并保留草稿，发送按钮保持原本的禁用状态；自动 resync 失败只出现在 console / 主进程日志；下一次用户动作会静默拉起新 daemon。
+
+不能证明：其它错误类型（模型报错、工具失败、流式中断、submit 超时 / unknown-result）、已配置模型时点发送会发生什么（本会话是「未配置」，发送路径没有真正跑过）、自动重连是否总能成功（本次 kill 后立即 resync 都失败，原因未查证）、Windows / 命名管道、以及重连后同一会话历史重建的像素（`window-error-recovery.png` 是新会话空态，不是 reattach 回原会话）。
+
+与 mygo 的关系：按 mygo 自己的记录，F10 在真实窗口里显示 `App Server: Connection error` 和 `Reconnect`（[`docs/acceptance.md`](acceptance.md) F10、[`docs/window-evidence.md`](window-evidence.md)、`evidence/window-transport-lost.png`）。那是 mygo 侧的一次独立采集，**本文件不复核、也不宣称两边已对齐**。就本次像素而言，Electron 端并没有这类可见错误 UI；MyGo 的 banner + Reconnect 是比这份基线多出来的行为，保留还是调整由 D6 / MyGo 侧决定，本文件不改 acceptance 状态。
+
 ## 6. 从像素量到的几何（points = PNG 像素 ÷ 2）
 
 用 PIL 在截图上取颜色转折量出来的，误差约 ±1 pt：
@@ -212,6 +238,7 @@ seed 数据本身是可信的：`seed-session` 走 `supervisor` + 公开协议�
 | 用户气泡 | x 403.5–771（宽 ≈367.5），y 73.5–110.5（高 ≈37），圆角浅灰 | 同图边框/填充扫描 |
 | 对话态 composer 卡 | x 265.5–785.5（宽 ≈520），y 562–681（高 ≈119） | 同图 |
 | composer 下方状态条 | y 681–716（高 ≈35）：默认权限 x≈274、git 分支 x≈636、上下文条 x≈699–778 | 同图 + CDP |
+| 断线态 | 与对话态无位移；新增可见元素 0 | `window-error.png` 与 `window-conversation.png` 的 diff bbox 只有 `449,681–490,699`（侧栏相对时间） |
 
 侧栏 256 pt 与 mygo 侧规格的 256 DIP（[`docs/ui-layout-spec.md`](ui-layout-spec.md) §1.2）一致，这是目前唯一一个有像素直接对上的数值；其余数值只能说明"Electron 端长这样"，不能反推 mygo 应该取多少。
 
@@ -227,14 +254,15 @@ seed 数据本身是可信的：`seed-session` 走 `supervisor` + 公开协议�
 
    加上 `DIMCODE_USER_DATA_PATH` 指向临时目录后，同样的非 dev 模式一次成功。**原因未查证**：可能是单实例锁（用户的 `/Applications/DimAgent.app` 正在跑），也可能是别的路径问题；本文件不把它写成结论。
 2. **每次启动都会打出一条 `Bundled dim is unavailable`（FEATURE_STATE_INVALID）**。它没有阻止窗口出现，`feature-runtimes` 回落到 `<userData>/feature-runtimes/unavailable`；这会影响功能运行时（如 OCR）相关能力，本次没有验证。
-3. **对话内容只有一轮 seed 历史**：14:30–14:37 那批图是全新 home，应用显示「未配置」（无模型），点「新建会话」也没有产生会话行，因此那 9 张里**没有** timeline / 消息气泡。16:55–16:59 补的对话态（§5.9–§5.11）确实有 user 行和 assistant 行，但只有一轮：输入是 `seed-session` 提交的一句话，回复是 mock 模型的 `Echo: …`。仍然**没有**真实模型回答、多轮滚动、tool 卡片、thinking、file changes、approval 决策、流式更新、断线重连的像素证据。这些要么需要真实模型配置，要么需要上游 fixture；本次没有伪造。
+3. **对话内容只有一轮 seed 历史**：14:30–14:37 那批图是全新 home，应用显示「未配置」（无模型），点「新建会话」也没有产生会话行，因此那 9 张里**没有** timeline / 消息气泡。16:55–16:59 补的对话态（§5.9–§5.11）确实有 user 行和 assistant 行，但只有一轮：输入是 `seed-session` 提交的一句话，回复是 mock 模型的 `Echo: …`。仍然**没有**真实模型回答、多轮滚动、tool 卡片、thinking、file changes、approval 决策、流式更新的像素证据。断线态本身已补（§5.12），但**没有** reattach 回同一会话、历史重建的像素；`window-error-recovery.png` 是新会话空态。这些要么需要真实模型配置，要么需要上游 fixture；本次没有伪造。
 4. **没有系统外观跟随**：主题是在设置里手切的，没有改 macOS 外观后重抓。
 5. **没有 hover / 焦点 / 菜单 / 弹窗态截图**：只抓了静态停留态（唯一的焦点痕迹是 `window-conversation-dark.png` 里 composer 的文本光标）。菜单内容（会话头「…」、git 分支下拉、右面板加 tab）是 CDP 读文本得到的，没有对应截图。
-6. **窗口定位不可用**：早期一次采集时窗口被系统放在屏幕外（`x=-1232`），那批产物已用 800×720 在屏的重抓替换；这批交付的 11 张都是窗口完整在屏，但采集过程本身不控制窗口位置，不能用来证明多屏/定位行为。
+6. **窗口定位不可用**：早期一次采集时窗口被系统放在屏幕外（`x=-1232`），那批产物已用 800×720 在屏的重抓替换；这批交付的 14 张都是窗口完整在屏，但采集过程本身不控制窗口位置，不能用来证明多屏/定位行为。
 7. **对话态采集返工两次**（都已修正，目录里只留修正后的图）：
    - 第一次把「浅色」拍成了深色：主题偏好存在 product home 里、跨启动保留（新 home 首启是浅色，切过深色后同 home 再启动就是深色）。修正：截图前显式走「设置 → 外观 → 浅色 → 返回」。
    - 第二次同一 home 的 `DIMCODE_USER_DATA_PATH` 里留着上一轮的右面板/侧栏折叠状态，侧栏被收起后 CDP 点「设置」被 `chat-status-bar` 拦截并超时，拍成了「侧栏收起 + 文件面板展开」而不是对话态。修正：`capture-conversation.sh` 默认清空临时 userData（`KEEP_USER_DATA=1` 可保留），product home 不动。
 8. **side branch 在 UI 里不可见**（§5.11）：seed 成功返回了分支 ID，但侧栏、会话头菜单、状态条都没有列出 session branch，所以没有第三张 `window-conversation-branches.png`。
+9. **断线态只覆盖了一种触发方式**（§5.12）：kill -TERM 掉自有 daemon 是唯一测过的错误；kill 后立即 resync 在 4 份保留日志里都失败（`App Server exited before listen (1)`），原因未查证；没有测已配置模型下的发送失败、submit 超时 / unknown-result、流式中断，也没有测 Windows。`window-error-send.png` 的发送按钮禁用有对照实验排除断线因素（会话本身就是「未配置」），不能读成"断线导致禁用"。
 
 ## 8. dimagent-mygo 侧下一步该对照的区域
 
@@ -246,7 +274,8 @@ seed 数据本身是可信的：`seed-session` 走 `supervisor` + 公开协议�
 4. **主题**：`window-workspace.png` ↔ `window-workspace-dark.png`、`window-appearance.png` ↔ `window-settings-dark.png` 是同一状态的成对图，适合做 mygo Light/Dark 的逐区域比对（侧栏底色、卡片底色、描边、主按钮绿色、选中行）。
 5. **权限/审批语义**：「deny 优先、exact/prefix 匹配」的规则表（`window-permissions.png`）是 mygo approval 相关 UI 的对照物；但 approval 面板本身**没有像素证据**，不要用权限设置页冒充审批态。
 6. **技能/插件**（`window-skills.png`）：mygo 侧对应入口仍标 WIP（`docs/ui-layout-spec.md` 的侧栏 WIP 入口）；对照前先确认是否要保留入口。
-7. **对话态整体**：`window-conversation.png` / `window-conversation-dark.png` 补上了同状态的成对基线（§5.9–§5.11）。可直接对的有三点：侧栏把会话放在「工作区 → 仓库名」分组下、而「会话」小节仍可能是空态；user 消息右对齐浅灰气泡 + assistant 纯文本无容器；composer 是底部大卡 + 独立状态条（不是空态那种居中卡）。`docs/evidence/ui/` 的 headless 图和 `window-connected.png` 仍是 mygo 侧内容，还不能代替同状态并排；先做 MyGo ↔ Electron 的并排与差异记录，再谈 1:1。不要凭 seed 的分支 ID 去设计侧栏分支列表——Electron 这一版侧栏没有分支层（§5.11）。
+7. **错误 / 断线态**：Electron 的基线是"没有错误 UI"（§5.12）：杀 daemon 后侧栏、历史、composer 全保留，无文案、无重试、发送按钮保持原有禁用状态。mygo 的 F10 记录的是 `App Server: Connection error` + `Reconnect`，两边的可见行为**不同**；对照时不要把 Electron 的静默当成目标形态，也不要把 mygo 的 banner 当成已对齐。先记录差异、确认 D6 要哪种用户可见语义，再谈像素对齐。`window-error-recovery.png` 还说明 Electron 的恢复依赖下一次用户动作，不能拿它冒充 reattach 证据。
+8. **对话态整体**：`window-conversation.png` / `window-conversation-dark.png` 补上了同状态的成对基线（§5.9–§5.11）。可直接对的有三点：侧栏把会话放在「工作区 → 仓库名」分组下、而「会话」小节仍可能是空态；user 消息右对齐浅灰气泡 + assistant 纯文本无容器；composer 是底部大卡 + 独立状态条（不是空态那种居中卡）。`docs/evidence/ui/` 的 headless 图和 `window-connected.png` 仍是 mygo 侧内容，还不能代替同状态并排；先做 MyGo ↔ Electron 的并排与差异记录，再谈 1:1。不要凭 seed 的分支 ID 去设计侧栏分支列表——Electron 这一版侧栏没有分支层（§5.11）。
 
 ## 9. 复现
 
@@ -268,6 +297,20 @@ swiftc -O winlist.swift -o /tmp/dim-electron-capture/winlist
                   text:深色 window-settings-dark text:返回 window-workspace-dark
 ./capture-step.sh dismiss-onboarding tmp-1 open-settings tmp-2 text:权限 window-permissions
 rm -f tmp-*.png tmp-*.txt
+
+# 4) 断线态（复用同一份 seed 后的 home；只杀本次 daemon）
+#    home 的 seed 步骤见本文件 §5.9 与 evidence/electron-reference/README.md，这里不重复
+cd docs/evidence/electron-reference/scripts
+PRODUCT_HOME=/tmp/dim-error-capture/home \
+  DIMCODE_USER_DATA_PATH=/tmp/dim-error-idle/userdata \
+  ELECTRON_ERROR_WORK=/tmp/dim-error-idle ./capture-error.sh window-error
+PRODUCT_HOME=/tmp/dim-error-capture/home \
+  DIMCODE_USER_DATA_PATH=/tmp/dim-error-loss/userdata \
+  ELECTRON_ERROR_WORK=/tmp/dim-error-loss SEND_PROBE=1 ./capture-error.sh window-error-send
+PRODUCT_HOME=/tmp/dim-error-capture/home \
+  DIMCODE_USER_DATA_PATH=/tmp/dim-error-recovery/userdata \
+  ELECTRON_ERROR_WORK=/tmp/dim-error-recovery POST_LOSS_ACTION=new-session \
+  ./capture-error.sh window-error-recovery
 ```
 
 脚本里固定了本机的 Electron 路径、dim-electron 路径和 `/tmp/dim-2-target/debug/dim-app-server`；换机器要改这几处常量（`ELECTRON` / `MAIN` / `DIMCODE_APP_SERVER_BIN`）。
@@ -276,4 +319,4 @@ rm -f tmp-*.png tmp-*.txt
 
 - 本文件只提供参考基线，不改变 [`docs/acceptance.md`](acceptance.md) 里任何一行的验收状态；mygo 侧要达到 L5，仍需要它自己的对照记录。
 - 截图对应的 dim-electron 工作树包含未提交的 docs 变更，源码未改；源码一变（尤其 renderer 的 `styles/global.css` 与侧栏组件），这批图就过期，需要重跑。
-- 没有使用、也没有写入用户的真实 `~/.dimcode`；两次采集都用了临时 `DIMCODE_HOME`（`/tmp/dim-electron-capture/home`、`/tmp/dim-conversation-capture/home`）和临时 userData。采集结束后 `ps` 复查：无残留 Electron 主进程，无本次临时 home 的 `dim-app-server`；对话态那两个临时目录随后删除。
+- 没有使用、也没有写入用户的真实 `~/.dimcode`；四批采集都用了临时 `DIMCODE_HOME`（`/tmp/dim-electron-capture/home`、`/tmp/dim-conversation-capture/home`、`/tmp/dim-error-capture/home`）和临时 userData。采集结束后 `ps` 复查：无残留 Electron 主进程，无本次临时 home 的 `dim-app-server`；对话态和断线态用的临时目录随后删除。

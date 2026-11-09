@@ -1,0 +1,33 @@
+state	window-error-recovery
+action	enter conversation (light, click sidebar row) -> kill -TERM <own daemon> -> wait 4s+2s -> new-session -> +1s -> capture
+command	PRODUCT_HOME=/tmp/dim-error-capture/home /Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/scripts/capture-error.sh window-error-recovery
+captured_at	2026-11-09 17:47:20 CST
+app_pid	22937
+window_id	49464
+window_row	49464 | 0 | 624,152,800,720 | Electron | DimAgent
+window_bounds_points	624,152,800,720
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-error-recovery.png
+png_pixels	1600 1440
+png_bytes	147460
+png_md5	3e24499bcc2adcee03aedf270498ea7f
+dimcode_home	/tmp/dim-error-capture/home
+user_data	/tmp/dim-error-recovery2/userdata
+killed_daemon_pid	22942
+killed_daemon_command	/tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dim-error-capture/home/rust/daemon.sock --no-ws --home /private/tmp/dim-error-capture/home/rust --product-home /tmp/dim-error-capture/home
+kill_signal	TERM
+kill_started_at	2026-11-09 17:47:09 CST
+kill_exit	0
+daemon_pids_after_wait	<none>
+daemon_pids_at_capture	<none>
+app_log	/tmp/dim-error-recovery2/app-error.log
+console_log	/tmp/dim-error-recovery2/renderer-console.log
+probe_json	/tmp/dim-error-recovery2/probe-error.json
+send_probe	0
+post_loss_action	new-session
+daemon_pids_after_action	23237 
+probe_after_action_json	/tmp/dim-error-recovery2/probe-error-after-action.json
+git_head	88dbf109a48ca488bf4a3a713fda8ccb94f4e248
+reference_head	3339f4fd47f7b0569e185f1a9d81b82d16447306
+seed_session	46ff1c6a-b6f6-4aa6-98bd-30b9568acd3b
+seed_side_branch	476259a1-03fc-49de-90e8-154bb7c1bbdc
+seed_prompt	Explain what this repository does in one paragraph.
