@@ -38,9 +38,36 @@ func loadingConversation(c *ui.Context, k tokens) {
 	})
 }
 
-// emptyConversation is what shows once history has loaded and holds no row.
-// Its one line is a status region, so assistive technology hears the end of
-// loading rather than finding the busy region gone and nothing said.
+// renderHero draws the empty conversation's hero: the type-drawn brand mark,
+// the heading and the subtitle, centered in the room above the composer, as
+// window-workspace.png lays out the empty main area. dim-electron draws its
+// logo image there; mygo has no asset pipeline, so the mark is a filled square
+// with the product's initial in type rather than a fake image asset.
+//
+// The title is a status region: assistive technology hears the end of loading
+// rather than finding the busy region gone and nothing said. The locale is the
+// frame's, so the hero follows the interface language like every other region.
+func renderHero(c *ui.Context, k tokens, locale Locale) {
+	ui.Column(c).Grow(1).Center().Gap(k.gapWide).Padding(k.panelPad).Children(func() {
+		ui.Column(c).Size(k.heroMark, k.heroMark).Radius(k.cardRadius).
+			Background(k.primary).AlignItems(ui.Center).Justify(ui.Center).
+			Children(func() {
+				// The mark is decorative: the title beside it carries the words.
+				ui.Text(c, "D").FontSize(k.titleSize).Bold().TextColor(k.onPrimary).
+					Unselectable().AccessHidden(true)
+			})
+		ui.Text(c, tr(locale, keyHeroTitle)).FontSize(k.heroTitleSize).Bold().
+			TextAlign(ui.Center).Role(ui.RoleStatus)
+		ui.Text(c, tr(locale, keyHeroSubtitle)).FontSize(k.bodySize).
+			TextColor(k.mutedForeground).TextAlign(ui.Center).MaxWidth(520)
+	})
+}
+
+// emptyConversation is what shows once history has loaded and holds no row
+// while the window keeps a state the hero must not speak over, such as a
+// terminal session.closed. Its one line is a status region, so assistive
+// technology hears the end of loading rather than finding the busy region gone
+// and nothing said.
 func emptyConversation(c *ui.Context, k tokens) {
 	ui.Column(c).Grow(1).Padding(k.panelPad).Gap(k.gap).Children(func() {
 		ui.Text(c, "No messages yet").FontSize(k.bodySize).TextColor(k.mutedForeground).Role(ui.RoleStatus)

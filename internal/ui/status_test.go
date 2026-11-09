@@ -179,8 +179,8 @@ func TestLoadingConversation(t *testing.T) {
 	if !tt.HasText("Loading conversation…") {
 		t.Fatalf("loading state is missing, texts %q", tt.Texts())
 	}
-	if tt.HasText("hello from the fixture") || tt.HasText("No messages yet") {
-		t.Errorf("rows or the empty state show while loading, texts %q", tt.Texts())
+	if tt.HasText("hello from the fixture") || tt.HasText(tr(LocaleEN, keyHeroTitle)) || tt.HasText("No messages yet") {
+		t.Errorf("rows or an empty state show while loading, texts %q", tt.Texts())
 	}
 	status, ok := tt.AccessByRole(ui.RoleStatus, "Loading conversation…")
 	if !ok {

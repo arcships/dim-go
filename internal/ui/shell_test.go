@@ -63,6 +63,117 @@ func TestBranchListIsReadOnly(t *testing.T) {
 	}
 }
 
+// TestShellFramesTheMainArea checks the main column's frame: the card sits
+// 4.5 DIPs in from the window's top, right and bottom edges and against the
+// sidebar on the left, and it draws a face, a hairline outline and a rounded
+// corner rather than one flat window. The numbers come from
+// docs/l5-reference.md §6 and dim-electron's chat-workspace utilities
+// (global.css:19-31).
+func TestShellFramesTheMainArea(t *testing.T) {
+	const width, height = 900, 600
+	tt := ui.NewTester(fixture().View, width, height)
+
+	card, ok := tt.Find("Main area")
+	if !ok {
+		t.Fatalf("the main area is not framed, texts %q", tt.Texts())
+	}
+	if card.X < 255 || card.X > 257 {
+		t.Errorf("the card starts at %.1f, want the sidebar's 256", card.X)
+	}
+	if top := card.Y; top < 4 || top > 5 {
+		t.Errorf("the card starts %.1f below the top, want the 4.5 DIP frame", top)
+	}
+	if right := width - (card.X + card.W); right < 4 || right > 5 {
+		t.Errorf("the card leaves %.1f at the right, want the 4.5 DIP frame", right)
+	}
+	if bottom := height - (card.Y + card.H); bottom < 4 || bottom > 5 {
+		t.Errorf("the card leaves %.1f at the bottom, want the 4.5 DIP frame", bottom)
+	}
+
+	img := tt.Image()
+	inside := img.RGBAAt(int(card.X+card.W-8), int(card.Y+card.H-8))
+	outside := img.RGBAAt(int(card.X+card.W/2), 1)
+	border := img.RGBAAt(int(card.X), int(card.Y+card.H/2))
+	corner := img.RGBAAt(int(card.X)+1, int(card.Y)+1)
+	if inside == outside {
+		t.Errorf("the card face is the window background %v, so no card is drawn", inside)
+	}
+	if border == inside || border == outside {
+		t.Errorf("the card outline is %v, the face %v and the background %v: no hairline is drawn", border, inside, outside)
+	}
+	if corner == inside {
+		t.Errorf("the top-left corner is card face %v, so the corner is not rounded", corner)
+	}
+}
+
+// TestShellFrameSurroundsTheMainColumnPanels checks that the frame is the main
+// column's, not the conversation's: the appearance surface and the keys browser
+// draw inside the same card.
+func TestShellFrameSurroundsTheMainColumnPanels(t *testing.T) {
+	assertFramed := func(t *testing.T, tt *ui.Tester) {
+		t.Helper()
+		if _, ok := tt.Find("Main area"); !ok {
+			t.Errorf("the main column lost its frame, texts %q", tt.Texts())
+		}
+	}
+
+	settings := fixture()
+	settingsTT := ui.NewTester(settings.View, 900, 600)
+	if err := settingsTT.Click("Settings"); err != nil {
+		t.Fatal(err)
+	}
+	assertFramed(t, settingsTT)
+	if !settingsTT.HasText("Appearance") {
+		t.Errorf("the settings surface is not drawn, texts %q", settingsTT.Texts())
+	}
+
+	keys := shellKeysState()
+	keysTT := ui.NewTester(keys.View, 900, 600)
+	if err := keysTT.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	assertFramed(t, keysTT)
+	if _, ok := keysTT.AccessByRole(ui.RoleRegion, "Keys panel"); !ok {
+		t.Errorf("the keys browser is not drawn, texts %q", keysTT.Texts())
+	}
+}
+
+// TestShellHeaderWeakensWithoutASession checks the toolbar's empty form: with
+// no selected session it repeats no title and reports no run, and keeps the
+// connection status and the appearance entry.
+func TestShellHeaderWeakensWithoutASession(t *testing.T) {
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	s.Messages = nil
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.Find(tr(LocaleEN, keyNoSession)); ok {
+		t.Errorf("the toolbar repeats the no-session title, texts %q", tt.Texts())
+	}
+	if tt.HasText("Session: Idle") {
+		t.Errorf("the toolbar reports a run with no session, texts %q", tt.Texts())
+	}
+	if !tt.HasText("App Server: Not connected") {
+		t.Errorf("the toolbar lost the connection status, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyHeaderSettings)); !ok {
+		t.Errorf("the toolbar lost the settings entry, texts %q", tt.Texts())
+	}
+}
+
+// TestShellHeaderKeepsTheSessionTitle checks that the toolbar is unchanged
+// while a session is selected.
+func TestShellHeaderKeepsTheSessionTitle(t *testing.T) {
+	tt := ui.NewTester(fixture().View, 900, 600)
+	if !tt.HasText("First session") {
+		t.Errorf("the toolbar lost the selected title, texts %q", tt.Texts())
+	}
+	if !tt.HasText("Session: Idle") {
+		t.Errorf("the toolbar lost the run row, texts %q", tt.Texts())
+	}
+}
+
 func TestShellSelectsSession(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
