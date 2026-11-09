@@ -114,7 +114,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 
 ### P8 发布与质量
 
-- 打包：macOS .app（签名/公证）、Windows/Linux、版本/更新通道
+- 打包：macOS .app 最小 bundle + ad-hoc 签名 ✅（`scripts/package-macos.sh`，scheme `dimagent`；系统默认 handler 被已安装 `com.dimcode.app` 占用）；公证/Windows/Linux/更新通道未做
 - 安全：日志脱敏、崩溃报告 opt-in、无本地 session 存储审计
 - 性能：大 session 滚动/虚拟化、内存、首屏、重连抖动
 - 测试基建：真实模型 fixture、故障注入、动画帧对比、视觉回归 CI、跨 DPI
