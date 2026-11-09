@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/ui"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
 	"github.com/arcships/dimagent-mygo/internal/integration"
@@ -543,6 +542,11 @@ type app struct {
 	// loaded before the first frame and the snapshot the window writes when the
 	// settings surface reports a choice. See settings.go.
 	appearance appearance
+	// desktop is the desktop-local state file: appearance preferences, window
+	// geometry and drafts. It is not session truth; see desktop.go.
+	desktop *desktopStore
+	// window is the window geometry bookkeeping; see window.go.
+	window windowBookkeeping
 }
 
 func (a *app) bind() {
@@ -770,6 +774,13 @@ func (a *app) selectSession(id string) {
 	if !ok {
 		return
 	}
+	// The draft belongs to the session the window is leaving. Save it before the
+	// selection moves, so switching back restores it instead of showing the new
+	// session's text.
+	outgoing := a.state.Selected
+	if outgoing != id {
+		a.rememberDraft(outgoing)
+	}
 	gen := a.beginSelect()
 	a.state.ConversationLoading = true
 	go func() {
@@ -819,6 +830,10 @@ func (a *app) selectSession(id string) {
 			}
 			applyView(state, view)
 			state.Selected = row.ID
+			if row.ID != outgoing {
+				// Restore the draft saved for the session the window now shows.
+				state.Draft = a.draftFor(row.ID)
+			}
 			state.Connection = dimui.ConnReady
 			state.ConnectionError = ""
 			state.ActionError = ""
@@ -879,6 +894,9 @@ func (a *app) deleteSession(id string) {
 		// Close before publishing the catalog change so observers that react to the
 		// update cannot race the controller teardown.
 		a.bridge.closeSessionFor(id)
+		// The session is gone, so its desktop draft is too. This touches no
+		// session fact: the App Server's confirmed delete is the fact.
+		a.clearDraft(id)
 		var next dimui.Session
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
@@ -894,6 +912,7 @@ func (a *app) deleteSession(id string) {
 			if state.Selected == id {
 				state.Selected = ""
 				state.SelectedBranch = ""
+				state.Draft = ""
 				state.Keys = dimui.KeysPanelView{}
 				state.Messages = nil
 				state.Branches = nil
@@ -1145,6 +1164,9 @@ func (a *app) createSession() {
 		a.notice("create.error", fmt.Sprintf("Create session: %v", err))
 		return
 	}
+	// A creation moves the window to a new session, so the composer text
+	// belongs to the session being left; save it before the selection moves.
+	a.rememberDraft(a.state.Selected)
 	// The creation's result must not steal a selection the user made while it
 	// was in flight; the same generation guard protects every other action.
 	gen := a.currentSelection()
@@ -1191,6 +1213,7 @@ func (a *app) createSession() {
 			// any other session, and the window still shows the previous one here.
 			// A new session has no chosen branch, so drop the previous session's.
 			state.Selected = row.ID
+			state.Draft = a.draftFor(row.ID)
 			a.resetBranch()
 			applyView(state, view)
 			state.ConversationLoading = false
@@ -1270,6 +1293,10 @@ func (a *app) submit(text string) {
 			}
 			return
 		}
+		// The App Server holds this text, so its saved draft is done. Only the
+		// draft that matches what was sent is cleared: text typed after the send
+		// stays.
+		a.clearDraftIfMatches(sessionID, text)
 		if !a.selectionCurrent(gen) {
 			return
 		}
@@ -1318,6 +1345,9 @@ func (a *app) resolveUnknownSubmit(sessionID, branchID, submissionID, text strin
 		a.unknownOutcome(gen, "Submission result unknown: the App Server does not hold this submission.")
 		return
 	}
+	// The read-back proves the App Server holds this text, so its saved draft is
+	// done, exactly as for a direct acceptance.
+	a.clearDraftIfMatches(sessionID, text)
 	view := a.view()
 	a.update(func(state *dimui.State) {
 		if !a.selectionCurrent(gen) {
@@ -1551,10 +1581,12 @@ func main() {
 		state = &dimui.State{Connection: dimui.ConnError, ConnectionError: fmt.Sprintf("%v", err)}
 		log.Printf("dimagent: %v", err)
 	}
-	application := &app{state: state, bridge: bridge}
+	application := &app{state: state, bridge: bridge, desktop: newDesktopStore()}
 	application.bind()
-	// The appearance preferences are the desktop's own and load even without a
-	// daemon: they decide how the shell draws, not what a session contains.
+	// The desktop's own state loads even without a daemon: it decides how the
+	// shell draws, where the window opens and what draft each session keeps, not
+	// what a session contains.
+	application.loadDesktop()
 	application.loadAppearance()
 	if bridge != nil {
 		defer func() {
@@ -1565,29 +1597,20 @@ func main() {
 		}()
 	}
 	mygo.App.WhenReady(func() {
-		application.win = mygo.NewWindow(mygo.WindowOptions{
-			Title: "DimAgent",
-			// The reference window opens at 800×720 points; the sidebar's 256 DIP
-			// is the same, so the proportion of chrome matches the desktop app.
-			Width:  800,
-			Height: 720,
-			// The reference hides the native title bar: the shell draws from y=0
-			// and the traffic lights float over the sidebar. Without this the
-			// window keeps a dark system title bar above the light shell.
-			TitleBarStyle: mygo.TitleBarHiddenInset,
-			// A capture names its position so the window lands on the primary
-			// display; a normal launch leaves both at zero and centers itself.
-			X: envInt("DIMAGENT_WINDOW_X"),
-			Y: envInt("DIMAGENT_WINDOW_Y"),
-			// content draws the shell and then writes an appearance choice the
-			// surface applied during that frame.
-			Content: ui.View(application.content),
-		})
+		application.win = mygo.NewWindow(application.windowOptions())
+		application.bindWindow()
 		if application.bridge != nil {
 			application.startRefresh(250 * time.Millisecond)
 		}
 	})
-	if err := mygo.App.Run(); err != nil {
-		log.Fatal(err)
+	runErr := mygo.App.Run()
+	// A quit that did not close the window still keeps the user's draft and the
+	// window's last geometry. Both saves are idempotent, so the close handler
+	// having run already costs nothing.
+	application.stopWindowTimer()
+	application.saveWindowNow()
+	application.saveCurrentDraft()
+	if runErr != nil {
+		log.Fatal(runErr)
 	}
 }

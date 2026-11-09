@@ -67,7 +67,7 @@ func (a *app) loadAppearance() {
 	}
 	load := a.appearance.load
 	if load == nil {
-		load = config.Load
+		load = a.loadSettings
 	}
 	saved, err := load()
 	if err != nil {
@@ -103,7 +103,7 @@ func (a *app) saveAppearance() bool {
 	a.appearance.last = snapshot
 	save := a.appearance.save
 	if save == nil {
-		save = config.Save
+		save = a.saveSettings
 	}
 	if err := save(snapshot); err != nil {
 		a.appearance.err = "Save appearance preferences: " + err.Error()
