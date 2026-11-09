@@ -2,9 +2,9 @@
 
 本目录保存 **dim-electron 真实窗口**的截图，作为 [`docs/l5-reference.md`](../../l5-reference.md) 的像素证据。截图由 `screencapture -x -o -l <windowid>` 按窗口 ID 截取，只含该窗口，不含桌面和其它应用。
 
-- 采集时间：2026-11-09 14:30–14:37 CST（空态/设置）；2026-11-09 16:55–16:59 CST（对话态）；2026-11-09 17:44–17:47 CST（断线态）
+- 采集时间：2026-11-09 14:30–14:37 CST（空态/设置）；2026-11-09 16:55–16:59 CST（对话态）；2026-11-09 17:44–17:47 CST（断线态）；2026-11-09 21:47 CST（设置 · 外观）；2026-11-09 22:02 CST（搜索浮层 / 设置 route·返回）
 - 源码：dim-electron `HEAD = 3339f4fd47f7b0569e185f1a9d81b82d16447306`（未改动，详见 [`docs/l5-reference.md`](../../l5-reference.md)）
-- 窗口：800×720 points @2x → PNG 1600×1440
+- 窗口：800×720 points @2x → PNG 1600×1440（窗口落在 1x 显示器时 PNG 为 800×720，见证据边界）
 - 运行环境：临时 `DIMCODE_HOME` 与临时 `DIMCODE_USER_DATA_PATH`，**未读写用户的 `~/.dimcode`**
 
 ## 文件
@@ -25,8 +25,21 @@
 | [`window-error.png`](window-error.png) | 断线态 | 杀掉本次 daemon 后 6 s；与对话态只差侧栏相对时间 |
 | [`window-error-send.png`](window-error-send.png) | 断线态 + 已输入草稿 | 点发送无反应、无错误提示；与 daemon 存活时的同状态截图逐字节相同 |
 | [`window-error-recovery.png`](window-error-recovery.png) | 断线后点「新建会话」 | 新 daemon 被静默拉起，窗口切到新会话空态，仍无提示 |
+| [`window-search.png`](window-search.png) | 搜索浮层 | 侧栏「搜索」打开居中 Dialog：搜索框 + 「最近聊天」2 行（首行选中、⌘1/⌘2），背景 80% 黑遮罩 |
+| [`window-search-results.png`](window-search-results.png) | 搜索过滤 | 输入 `Explain` 后只剩 1 行「Explain what this repository…」，选中态仍为行内 `bg-muted` |
+| [`window-settings-route.png`](window-settings-route.png) | 设置路由 `#/settings` | 聊天侧栏被设置导航替换（返回 + 20 项），内容区默认「个性化」，无顶栏 |
+| [`window-settings-back.png`](window-settings-back.png) | 从设置返回 `#/chat` | 原会话「Draft a release checklist…」时间线与 composer 都在，侧栏两个会话恢复 |
+| [`window-settings-appearance.png`](window-settings-appearance.png) | 设置 · 外观 | 主题卡片/语言下拉/字体 combobox/UI 字号分段/代码字号滑杆/代码主题下拉 + 预览（appearance 采集产出） |
+| [`window-settings-appearance-2.png`](window-settings-appearance-2.png) | 设置 · 外观（滚到底） | 代码主题预览与「我的皮肤」卡片（appearance 采集产出） |
 
 每个 PNG 旁边的同名 `.txt` 是采集元数据（状态、动作、时间、app PID、窗口 ID、窗口 bounds、像素尺寸、字节数、MD5、临时 home 路径，对话态两张另有 dim-electron / mygo 的 git HEAD 与 seed 会话 ID）。断线态三张额外记录被杀 daemon 的 PID/命令行、kill 信号与时间、kill 后是否还有 daemon；`window-error-send.txt` 还记录发送探针，`window-error-recovery.txt` 记录 post-loss 动作与新 daemon PID。
+
+搜索/设置四张另有 CDP 抓的 DOM 快照：同名 `.json`（`window-search.json`、`window-search-results.json`、`window-settings-route.json`、`window-settings-back.json`）保存命中节点的 rect、class、testid、route；`window-search.txt` 末尾追加 `interaction_*` 行，`window-search-interactions.json` 保存 ⌘G 打开、Esc 关闭、空态和点遮罩关闭的原始结果。
+
+## 文件归属
+
+- 本目录的 **search / settings-route / settings-back** 四组（`window-search*`、`window-settings-route*`、`window-settings-back*`、`window-search-interactions.json`）连同 [`scripts/capture-search-settings.sh`](scripts/capture-search-settings.sh)、[`scripts/interact-search-settings.mjs`](scripts/interact-search-settings.mjs) 和本 README 由搜索/路由采集维护。
+- **settings · appearance** 两组（`window-settings-appearance*`、`window-settings-appearance-2*`）由 appearance 采集用同一脚本的 `APPEARANCE_ONLY=1` 分支产出（21:47，独立 seed home `/tmp/dim-appearance-capture/home`，单会话）；本 README 只做索引，默认流程不会再写这两个文件名。
 
 ## 复现
 
@@ -71,8 +84,34 @@ PRODUCT_HOME="$WORK/home" DIMCODE_USER_DATA_PATH="$WORK/loss-recovery/userdata" 
 
 `SKIP_KILL=1` 是 daemon 存活时的对照（控制变量），`EVIDENCE_OUT_DIR` 可把产物写到 `/tmp`。脚本只结束自己启动的 Electron PID，以及命令行里含本次临时 home 的 `dim-app-server`。完整命令、环境变量和失败记录见 [`docs/l5-reference.md`](../../l5-reference.md)。
 
+搜索浮层与设置路由复用同一个 seed 后的 home（两个会话，搜索才有过滤可看）：
+
+```bash
+WORK=/tmp/dim-search-settings-capture
+mkdir -p "$WORK/home"
+(cd /Users/eric8810/Code/dimagent-mygo && go run ./scripts/seed-session \
+  -home "$WORK/home" -server /tmp/dim-2-target/debug/dim-app-server \
+  -cwd /Users/eric8810/Code/dimagent-mygo \
+  -prompt "Draft a release checklist for the desktop client.")
+(cd /Users/eric8810/Code/dimagent-mygo && go run ./scripts/seed-session \
+  -home "$WORK/home" -server /tmp/dim-2-target/debug/dim-app-server \
+  -cwd /Users/eric8810/Code/dimagent-mygo \
+  -prompt "Explain what this repository does in one paragraph." -side-branch)
+cd docs/evidence/electron-reference/scripts
+PRODUCT_HOME="$WORK/home" DIMCODE_USER_DATA_PATH="$WORK/userdata" \
+  SEARCH_QUERY=Explain SEED_PROMPT="Draft a release checklist for the desktop client." \
+  ./capture-search-settings.sh
+```
+
+`capture-search-settings.sh` 等窗口出现后先等 bounds 连续 3 次不变再开始驱动（窗口启动后会被重新摆放、DPR 可能从 1x 变 2x），然后：点侧栏会话行 → hover「搜索」→ 点「搜索」→ 截图 → 输入 `SEARCH_QUERY` → 截图 → Esc → ⌘G 再开 / 空态 / 点遮罩关闭（只记事实）→ 点左下齿轮 → 截图 → 点「外观」→ 点「返回」→ 截图。`SEARCH_QUERY`、`CDP_PORT`、`APPEARANCE_ONLY`、`APPEARANCE_SHOT` 是脚本的环境变量开关；设置 · 外观只在 `APPEARANCE_ONLY=1`（或 `APPEARANCE_SHOT=1`）时才截图，避免覆盖 appearance 采集的产物。
+
 ## 证据边界
 
 - 这些图证明**这台机器、这个 commit、这个窗口尺寸**下的真实渲染结果，不证明其它平台、DPI、字体或系统外观下的样子。
-- 9 张空态/设置图里会话列表为空；2 张对话态图里只有 `seed-session` 种进 App Server 的**一轮**输入 + mock 模型的 `Echo: …` 回复（原因和边界见 `docs/l5-reference.md` §5.9–§5.11）。两组图都不能用来证明真实模型回答、多轮滚动、工具卡片、流式更新或审批态。
+- 9 张空态/设置图（14:30–14:37）里会话列表为空；2 张对话态图里只有 `seed-session` 种进 App Server 的**一轮**输入 + mock 模型的 `Echo: …` 回复（原因和边界见 `docs/l5-reference.md` §5.9–§5.11）。两组图都不能用来证明真实模型回答、多轮滚动、工具卡片、流式更新或审批态。
 - 3 张断线图只证明"本次 daemon 被杀后窗口长什么样"：没有可见错误 UI，输入框仍可编辑，点发送无反应，下一次用户动作会静默拉起新 daemon。它们不证明其它错误类型（模型/工具/提交失败）、已配置模型下的发送路径或自动重连的确定性；细节见 `docs/l5-reference.md` §5.12。
+- 搜索/设置四张来自**一次** run（同一 `window_id`、同一个 2 会话 seed home、`PNG 1600×1440`）；搜索浮层不改变 route（仍是 `#/chat`），打开结果也是 `openThread`，所以「搜索是否换页」这个问题的答案是不换。没有置顶会话，因此看不到「置顶聊天」分组；⌘1–⌘8 的实际跳转与真实模型/多轮搜索都没验证。
+- 设置路由：齿轮进入后 URL 是 `#/settings`（section 不写进 URL），内容默认「个性化」；只有点「外观」才 `router.replace` 成 `#/settings/appearance`。返回是 `[data-testid=settings-back]` → `#/chat` 并 `selectSession` 恢复原会话；紧凑布局下才走 `settings-detail-back` 与「返回列表」两级行为，本窗口（800×720）未触发紧凑布局。
+- 搜索的交互事实（`⌘G` 能打开同一浮层、Esc 与点遮罩都能关闭、关闭后焦点回到打开前的元素、空查询文案是「未找到聊天」、结果行 42px 带 ⌘1…⌘8 序号）与两张图同源记录在 `window-search.txt` 的 `interaction_*` 行和 `window-search-interactions.json`；置顶分组没测到（没有置顶会话），⌘n 的实际跳转、↑↓ 移动选中（只在一次性探针里验过，未落盘）和真实模型/多轮搜索都没验证。
+- 设置 · 外观两张来自**另一次** run（21:47，独立 home、单会话），因此侧栏会话数与四张不同；它们的控件清单在 `window-settings-appearance.txt` 里，不要拿它们和四张做像素级对照。
+- 截图分辨率取决于窗口所在显示器：同一脚本在 1x 显示器上会产出 800×720 的 PNG，2x 上是 1600×1440（21:47 的中间产物是 1x，已被 2x 版替换掉同名文件）。窗口启动后会被重新摆放（本次从 `240,30` 移到 `624,152`），脚本因此先等 bounds 稳定，避免一组图混用两种 DPR。

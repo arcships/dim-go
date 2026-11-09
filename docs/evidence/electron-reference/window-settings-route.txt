@@ -1,0 +1,35 @@
+state	window-settings-route
+action	click [data-testid=sidebar-account-settings-shortcut] (left-bottom gear) from the conversation
+command	PRODUCT_HOME=/tmp/dim-search-settings-capture/home DIMCODE_USER_DATA_PATH=/tmp/dim-search-settings-capture/userdata /Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/scripts/capture-search-settings.sh
+captured_at	2026-11-09 22:02:29 CST
+app_pid	75797
+window_id	50701
+window_row	50701 | 0 | 624,152,800,720 | Electron | DimAgent
+window_bounds_points	624,152,800,720
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-settings-route.png
+png_pixels	1600 1440
+png_bytes	240359
+png_md5	c35e19e4bbcd4c2a141dc74e212d2a86
+dimcode_home	/tmp/dim-search-settings-capture/home
+user_data	/tmp/dim-search-settings-capture/userdata
+daemon	75805 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dim-search-settings-capture/home/rust/daemon.sock --no-ws --home /private/tmp/dim-search-settings-capture/home/rust --product-home /tmp/dim-search-settings-capture/home
+git_head	e7b9c35388c4c4fc65f09d74f5dcdd4598b80498
+reference_head	3339f4fd47f7b0569e185f1a9d81b82d16447306
+seed_session	4766a2e9-c736-419c-88a6-3641d5d1aaba
+seed_side_branch	22ffa93b-e07f-4601-997a-c6a428ad25c1
+seed_prompt	Draft a release checklist for the desktop client.
+dom_route	{"hash":"#/settings","pathname":"/Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/dist/index.html"}
+route_before	#/chat
+route_after	#/settings
+facts.chromeRoot	window
+facts.chromeNodes	["window","workspace","settings","settings-sidebar","legacy-titlebar-spacer","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item","nav-item"]
+facts.sidebarReplaced	true
+facts.appSidebarPresent	false
+facts.titlebarText	
+facts.contentPaneTestId	true
+facts.backButtonTestId	false
+facts.backButtonRect	null
+facts.navCount	20
+facts.navItems	[{"text":"返回","testid":"settings-back","rect":{"x":15,"y":59,"w":202,"h":28}},{"text":"账户","testid":"settings-nav-account","rect":{"x":12,"y":105,"w":209,"h":35}},{"text":"用量","testid":"settings-nav-usage","rect":{"x":12,"y":140,"w":209,"h":35}},{"text":"个性化","testid":"settings-nav-personalization","rect":{"x":12,"y":175,"w":209,"h":35}},{"text":"外观","testid":"settings-nav-appearance","rect":{"x":12,"y":210,"w":209,"h":35}},{"text":"通用","testid":"settings-nav-general","rect":{"x":12,"y":245,"w":209,"h":35}},{"text":"快捷键","testid":"settings-nav-keybindings","rect":{"x":12,"y":280,"w":209,"h":35}},{"text":"模型供应","testid":"settings-nav-configuration","rect":{"x":12,"y":315,"w":209,"h":35}},{"text":"多模态","testid":"settings-nav-modality","rect":{"x":12,"y":350,"w":209,"h":35}},{"text":"运行环境","testid":"settings-nav-runtime","rect":{"x":12,"y":385,"w":209,"h":35}},{"text":"MCP","testid":"settings-nav-mcp","rect":{"x":12,"y":420,"w":209,"h":35}},{"text":"通知","testid":"settings-nav-notifications","rect":{"x":12,"y":455,"w":209,"h":35}},{"text":"宠物","testid":"settings-nav-pets","rect":{"x":12,"y":490,"w":209,"h":35}},{"text":"权限","testid":"settings-nav-sandbox","rect":{"x":12,"y":525,"w":209,"h":35}},{"text":"Git","testid":"settings-nav-git","rect":{"x":12,"y":560,"w":209,"h":35}},{"text":"Hooks","testid":"settings-nav-hooks","rect":{"x":12,"y":595,"w":209,"h":35}},{"text":"插件设置","testid":"settings-nav-pluginSettings","rect":{"x":12,"y":630,"w":209,"h":35}},{"text":"外部 Agent","testid":"settings-nav-externalAgents","rect":{"x":12,"y":665,"w":209,"h":35}},{"text":"归档会话","testid":"settings-nav-archived","rect":{"x":12,"y":700,"w":209,"h":35}},{"text":"关于","testid":"settings-nav-about","rect":{"x":12,"y":735,"w":209,"h":35}}]
+facts.heading	个性化
+facts.compactLayout	false

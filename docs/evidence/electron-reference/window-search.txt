@@ -1,0 +1,47 @@
+state	window-search
+action	click [data-testid=sidebar-search] (⌘G entry) from the seeded conversation
+command	PRODUCT_HOME=/tmp/dim-search-settings-capture/home DIMCODE_USER_DATA_PATH=/tmp/dim-search-settings-capture/userdata /Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/scripts/capture-search-settings.sh
+captured_at	2026-11-09 22:02:15 CST
+app_pid	75797
+window_id	50701
+window_row	50701 | 0 | 624,152,800,720 | Electron | DimAgent
+window_bounds_points	624,152,800,720
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-search.png
+png_pixels	1600 1440
+png_bytes	168571
+png_md5	09be280db2720f27181f44e9a1e475e7
+dimcode_home	/tmp/dim-search-settings-capture/home
+user_data	/tmp/dim-search-settings-capture/userdata
+daemon	75805 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dim-search-settings-capture/home/rust/daemon.sock --no-ws --home /private/tmp/dim-search-settings-capture/home/rust --product-home /tmp/dim-search-settings-capture/home
+git_head	e7b9c35388c4c4fc65f09d74f5dcdd4598b80498
+reference_head	3339f4fd47f7b0569e185f1a9d81b82d16447306
+seed_session	4766a2e9-c736-419c-88a6-3641d5d1aaba
+seed_side_branch	22ffa93b-e07f-4601-997a-c6a428ad25c1
+seed_prompt	Draft a release checklist for the desktop client.
+dom_route	{"hash":"#/chat","pathname":"/Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/dist/index.html"}
+dialog.dialogPresent	true
+dialog.dialogRole	dialog
+dialog.dialogAriaModal	null
+dialog.dialogDataState	open
+dialog.dialogRect	{"x":176,"y":273,"w":448,"h":174}
+dialog.dialogClasses	data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl
+dialog.overlayPresent	true
+dialog.overlayClasses	data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80
+dialog.overlayBackground	oklab(0 0 0 / 0.8)
+dialog.overlayZIndex	50
+dialog.overlayRect	{"x":0,"y":0,"w":800,"h":720}
+dialog.inputPlaceholder	搜索聊天
+dialog.inputValue	
+dialog.focusedTestId	chat-search-input
+dialog.groupLabels	["最近聊天"]
+dialog.rowCount	2
+dialog.rows	[{"text":"Explain what this repository does in one paragraph.dimagent-mygo⌘1","cls":"flex h-12 w-full items-center gap-3 rounded-md px-2 text-left text-sm outline-hidden transition-colors bg-muted text-foreground","sessionId":"831f9f04-2441-49b5-a316-d18631cb2a76","rect":{"x":184,"y":351,"w":432,"h":42}},{"text":"Draft a release checklist for the desktop client.dimagent-mygo⌘2","cls":"flex h-12 w-full items-center gap-3 rounded-md px-2 text-left text-sm outline-hidden transition-colors text-foreground hover:bg-muted/70","sessionId":"4766a2e9-c736-419c-88a6-3641d5d1aaba","rect":{"x":184,"y":393,"w":432,"h":42}}]
+dialog.emptyState	null
+dialog.moreButton	null
+dialog.sidebarTestId	null
+dialog.mainChrome	window
+dialog.bodyOverflow	hidden
+interaction_shortcut_open	{"hash":"#/chat","dialog":true,"focused":"chat-search-input","rowCount":2,"highlightedFirst":true}
+interaction_escape	{"dialogCount":0,"focused":"sidebar-search","hash":"#/chat"}
+interaction_empty_state	{"hash":"#/chat","rowCount":0,"groups":[],"emptyText":"未找到聊天"}
+interaction_backdrop_click	{"dialogCount":0,"focused":"sidebar-search","hash":"#/chat"}

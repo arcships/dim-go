@@ -1,0 +1,75 @@
+state	window-settings-appearance
+action	click settings nav 外观 ([data-testid=settings-nav-appearance]) from #/settings
+command	PRODUCT_HOME=/tmp/dim-appearance-capture/home DIMCODE_USER_DATA_PATH=/tmp/dim-appearance-capture/userdata /Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/scripts/capture-search-settings.sh
+captured_at	2026-11-09 21:47:27 CST
+app_pid	70107
+window_id	50476
+window_row	50476 | 0 | 240,30,800,720 | Electron | DimAgent
+window_bounds_points	240,30,800,720
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/electron-reference/window-settings-appearance.png
+png_pixels	800 720
+png_bytes	67588
+png_md5	af029988bdaaa7a9f78eef1dce672859
+dimcode_home	/tmp/dim-appearance-capture/home
+user_data	/tmp/dim-appearance-capture/userdata
+daemon	70142 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dim-appearance-capture/home/rust/daemon.sock --no-ws --home /private/tmp/dim-appearance-capture/home/rust --product-home /tmp/dim-appearance-capture/home
+git_head	e7b9c35388c4c4fc65f09d74f5dcdd4598b80498
+reference_head	3339f4fd47f7b0569e185f1a9d81b82d16447306
+seed_session	523f6d48-202d-41cd-8246-e984131b4539
+seed_side_branch	4893a838-a45f-41e9-ad97-87fb17a867ce
+seed_prompt	Explain what this repository does in one paragraph.
+dom_route	{"hash":"#/settings/appearance","pathname":"/Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/dist/index.html"}
+controls.heading	外观
+controls.scroll	{"scrollTop":0,"scrollHeight":1306,"clientHeight":711,"scrollable":true}
+controls.sectionCount	7
+controls.sections	[{"label":"主题","description":[],"controlCount":3,"controls":[{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"浅色","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":257,"y":113,"w":163,"h":69}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"深色","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":430,"y":113,"w":163,"h":69}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"跟随系统","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":604,"y":113,"w":163,"h":69}}]},{"label":"程序语言","description":[],"controlCount":1,"controls":[{"tag":"button","role":"combobox","slot":"select-trigger","testid":null,"type":"button","text":"简体中文","ariaChecked":null,"ariaPressed":null,"ariaExpanded":"false","ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":257,"y":267,"w":168,"h":32}}]},{"label":"字体","description":["用于应用界面和 Markdown 正文","用于终端、代码块和差异内容"],"controlCount":2,"controls":[{"tag":"button","role":null,"slot":"combobox-trigger","testid":"font-picker-ui","type":"button","text":"默认","ariaChecked":null,"ariaPressed":null,"ariaExpanded":"false","ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":544,"y":387,"w":224,"h":32}},{"tag":"button","role":null,"slot":"combobox-trigger","testid":"font-picker-code","type":"button","text":"默认","ariaChecked":null,"ariaPressed":null,"ariaExpanded":"false","ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":544,"y":435,"w":224,"h":32}}]},{"label":"UI 字号","description":[],"controlCount":5,"controls":[{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"特小","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":596,"y":524,"w":28,"h":25}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"小","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":628,"y":524,"w":28,"h":25}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"中","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":659,"y":524,"w":28,"h":25}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"大","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":691,"y":524,"w":28,"h":25}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"特大","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":722,"y":524,"w":28,"h":25}}]},{"label":"代码字号","description":[],"controlCount":1,"controls":[{"tag":"span","role":null,"slot":"slider","testid":null,"type":null,"text":"","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":null,"disabled":false,"rect":{"x":257,"y":637,"w":511,"h":5}}]},{"label":"代码主题","description":[],"controlCount":1,"controls":[{"tag":"button","role":"combobox","slot":"select-trigger","testid":null,"type":"button","text":"Vitesse","ariaChecked":null,"ariaPressed":null,"ariaExpanded":"false","ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":257,"y":759,"w":511,"h":32}}]},{"label":"我的皮肤","description":["暂无自定义皮肤。可用图片新建或导入已有皮肤。"],"controlCount":8,"controls":[{"tag":"button","role":null,"slot":null,"testid":"chrome-theme-windows-98","type":"button","text":"Windows 98","ariaChecked":null,"ariaPressed":"false","ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":257,"y":1013,"w":163,"h":98}},{"tag":"button","role":null,"slot":null,"testid":"chrome-theme-windows-xp","type":"button","text":"Windows XP","ariaChecked":null,"ariaPressed":"false","ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":430,"y":1013,"w":163,"h":98}},{"tag":"button","role":null,"slot":null,"testid":"chrome-theme-windows-vista","type":"button","text":"Windows Vista","ariaChecked":null,"ariaPressed":"false","ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":604,"y":1013,"w":163,"h":98}},{"tag":"button","role":null,"slot":null,"testid":"chrome-theme-macos-bigsur","type":"button","text":"macOS Big Sur","ariaChecked":null,"ariaPressed":"false","ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":257,"y":1121,"w":163,"h":98}},{"tag":"button","role":null,"slot":null,"testid":"chrome-theme-osx-tiger","type":"button","text":"OS X Tiger","ariaChecked":null,"ariaPressed":"false","ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":430,"y":1121,"w":163,"h":98}},{"tag":"button","role":null,"slot":null,"testid":null,"type":null,"text":"默认","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":604,"y":1121,"w":163,"h":98}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"用图片新建","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":257,"y":1254,"w":105,"h":28}},{"tag":"button","role":null,"slot":"button","testid":null,"type":null,"text":"打开目录","ariaChecked":null,"ariaPressed":null,"ariaExpanded":null,"ariaValueNow":null,"ariaValueMin":null,"ariaValueMax":null,"value":"","disabled":false,"rect":{"x":369,"y":1254,"w":93,"h":28}}]}]
+controls.dividers	6
+controls.selectedTheme	{"label":"跟随系统","disabled":false}
+controls.resolvedTheme	dark
+controls.prefersDark	false
+controls.slider	{"ariaValueNow":"13","ariaValueMin":"12","ariaValueMax":"20"}
+controls.pageText	外观
+主题
+浅色
+深色
+跟随系统
+程序语言
+简体中文
+字体
+UI 字体
+
+用于应用界面和 Markdown 正文
+
+默认
+代码字体
+
+用于终端、代码块和差异内容
+
+默认
+UI 字号
+小
+特小
+小
+中
+大
+特大
+大
+代码字号
+13px
+12px
+16px
+20px
+代码主题
+Vitesse
+我的皮肤
+Windows 98
+Windows XP
+Windows Vista
+macOS Big Sur
+OS X Tiger
+默认
+
+暂无自定义皮肤。可用图片新建或导入已有皮肤。
+
+用图片新建
+打开目录

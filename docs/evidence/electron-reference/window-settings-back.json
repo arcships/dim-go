@@ -1,0 +1,25 @@
+{
+  "before": {
+    "url": "file:///Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/dist/index.html#/settings/appearance",
+    "hash": "#/settings/appearance",
+    "pathname": "/Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/dist/index.html"
+  },
+  "after": {
+    "url": "file:///Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/dist/index.html#/chat",
+    "hash": "#/chat",
+    "pathname": "/Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/dist/index.html"
+  },
+  "sessionsBefore": {
+    "sessionRowCount": 0,
+    "activeRowText": null,
+    "timelineNodes": 0,
+    "composerPresent": false
+  },
+  "sessionsAfter": {
+    "sessionRowCount": 2,
+    "activeRowText": "Explain what this repository does in one paragraph.Explain what this repository does in one paragraph.now",
+    "timelineNodes": 1,
+    "composerPresent": true
+  },
+  "backControl": "settings-back"
+}
