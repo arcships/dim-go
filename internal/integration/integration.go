@@ -409,6 +409,41 @@ func (c *SessionController) SubmitWithID(ctx context.Context, text string) (apps
 	return result, submissionID, replayGapWrite("session.submit", err)
 }
 
+// LookupInput reads a submission back by its idempotency key after an unknown
+// submit result (§10). It never resends the submission and never caches the
+// answer: every call asks the App Server and decodes the tagged union, so an
+// unverified payload can never be mistaken for an accepted input. An accepted
+// lookup means the daemon found the submitted input, not that the turn
+// succeeded.
+func (c *SessionController) LookupInput(ctx context.Context, branchID, submissionID string) (appserver.InputLookupResult, error) {
+	if c == nil {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: nil context")
+	}
+	if branchID == "" {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: empty branch id")
+	}
+	if submissionID == "" {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: empty submission id")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: no session")
+	}
+	raw, err := c.Session.LookupInput(ctx, branchID, submissionID)
+	if err != nil {
+		return appserver.InputLookupResult{}, err
+	}
+	result, err := appserver.DecodeInputLookupResult(raw)
+	if err != nil {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: session.input_lookup: %w", err)
+	}
+	return result, nil
+}
+
 // Methods returns the daemon-advertised session method table captured during Open.
 func (c *SessionController) Methods() appserver.MethodsResult {
 	if c == nil {

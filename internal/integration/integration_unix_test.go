@@ -34,6 +34,10 @@ type fakeDaemon struct {
 	calls    map[string]int
 	attached map[net.Conn]struct{}
 	writeMu  sync.Mutex
+
+	// inputLookup is the verbatim session.input_lookup reply. Tests set it to a
+	// typed accepted event, an unknown result or a malformed payload.
+	inputLookup json.RawMessage
 }
 
 func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
@@ -73,6 +77,13 @@ func (d *fakeDaemon) fail(method string, faults ...*appserver.RPCError) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.faults[method] = append(d.faults[method], faults...)
+}
+
+// setInputLookup scripts the verbatim session.input_lookup reply.
+func (d *fakeDaemon) setInputLookup(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.inputLookup = append(json.RawMessage(nil), raw...)
 }
 
 // callCount reports how many requests were received for method.
@@ -199,6 +210,14 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		return appserver.SubmitResult{Event: appserver.RawEvent{ID: "submitted", Sequence: 3, CreateAt: 1700000000002, Type: "input", Name: "message", Data: json.RawMessage(`{"text":"submitted"}`)}}, nil
 	case "session.stop":
 		return json.RawMessage(`{}`), nil
+	case "session.input_lookup":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.inputLookup...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "session.input_lookup not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
 	case "approval.respond":
 		return json.RawMessage(`{}`), nil
 	case "session.catalog":
@@ -607,6 +626,130 @@ func TestSubmitSubscriptionChangedIsNotReplayed(t *testing.T) {
 	}
 	if got := daemon.callCount("session.submit"); got != 1 {
 		t.Fatalf("session.submit calls = %d, want 1 (no replay)", got)
+	}
+}
+
+// TestLookupInputReturnsTypedAccepted drives §10 read-back over the fake daemon:
+// the accepted tagged union is decoded into the typed result, the submission is
+// never resent, and the reply is not cached across calls.
+func TestLookupInputReturnsTypedAccepted(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	daemon.setInputLookup(json.RawMessage(`{"status":"accepted","event":{"id":"e3","sequence":3,"create_at":1700000000002,"type":"input","name":"message","data":{"text":"hello again"}}}`))
+
+	result, err := controller.LookupInput(ctx, "main", "sub-1")
+	if err != nil {
+		t.Fatalf("LookupInput: %v", err)
+	}
+	if !result.Accepted() || result.Status != appserver.InputLookupAccepted {
+		t.Fatalf("result = %#v, want accepted", result)
+	}
+	if result.Event == nil || result.Event.ID != "e3" || result.Event.Sequence != 3 {
+		t.Fatalf("accepted event = %#v", result.Event)
+	}
+	if got := daemon.callCount("session.submit"); got != 0 {
+		t.Fatalf("session.submit calls = %d, want 0 (lookup never resends)", got)
+	}
+	if got := daemon.callCount("session.input_lookup"); got != 1 {
+		t.Fatalf("session.input_lookup calls = %d, want 1", got)
+	}
+
+	// A second lookup must ask the daemon again instead of replaying a cached
+	// accepted answer.
+	daemon.setInputLookup(json.RawMessage(`{"status":"unknown"}`))
+	again, err := controller.LookupInput(ctx, "main", "sub-1")
+	if err != nil {
+		t.Fatalf("second LookupInput: %v", err)
+	}
+	if again.Accepted() || again.Status != appserver.InputLookupUnknown {
+		t.Fatalf("second result = %#v, want unknown (not cached)", again)
+	}
+	if got := daemon.callCount("session.input_lookup"); got != 2 {
+		t.Fatalf("session.input_lookup calls = %d, want 2", got)
+	}
+}
+
+// TestLookupInputReturnsTypedUnknown pins that an unknown read-back is a final
+// typed answer, not an error and never an accepted result.
+func TestLookupInputReturnsTypedUnknown(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	daemon.setInputLookup(json.RawMessage(`{"status":"unknown"}`))
+
+	result, err := controller.LookupInput(ctx, "main", "sub-1")
+	if err != nil {
+		t.Fatalf("LookupInput: %v", err)
+	}
+	if result.Status != appserver.InputLookupUnknown || result.Accepted() || result.Event != nil {
+		t.Fatalf("result = %#v, want typed unknown with no event", result)
+	}
+}
+
+// TestLookupInputMalformedRejectsReply covers the fail-closed decode: a status
+// outside the tagged union, an accepted status without its event and invalid
+// JSON are errors whose zero result is never accepted.
+func TestLookupInputMalformedRejectsReply(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+
+	for _, raw := range []json.RawMessage{
+		json.RawMessage(`{"status":"accepted"}`),
+		json.RawMessage(`{"status":"pending","event":{"id":"e3","sequence":3,"create_at":1700000000002,"type":"input","name":"message"}}`),
+		json.RawMessage(`{"status":`),
+	} {
+		daemon.setInputLookup(raw)
+		result, err := controller.LookupInput(ctx, "main", "sub-1")
+		if err == nil {
+			t.Fatalf("malformed reply %s: expected an error", raw)
+		}
+		if result.Accepted() || result.Status == appserver.InputLookupAccepted {
+			t.Fatalf("malformed reply %s: result = %#v, want a non-accepted zero result", raw, result)
+		}
+	}
+}
+
+// TestLookupInputFailsFastWithoutCall pins the parameter checks: nil context,
+// empty branch or submission ids and no session all fail before any request.
+func TestLookupInputFailsFastWithoutCall(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+
+	cases := []struct {
+		name         string
+		controller   *SessionController
+		ctx          context.Context
+		branchID     string
+		submissionID string
+	}{
+		{"nil controller", nil, ctx, "main", "sub-1"},
+		{"nil context", controller, nil, "main", "sub-1"},
+		{"empty branch", controller, ctx, "", "sub-1"},
+		{"empty submission", controller, ctx, "main", ""},
+		{"no session", &SessionController{}, ctx, "main", "sub-1"},
+	}
+	for _, tc := range cases {
+		if _, err := tc.controller.LookupInput(tc.ctx, tc.branchID, tc.submissionID); err == nil {
+			t.Errorf("%s: expected an error", tc.name)
+		}
+	}
+	if got := daemon.callCount("session.input_lookup"); got != 0 {
+		t.Fatalf("session.input_lookup calls = %d, want 0", got)
 	}
 }
 
