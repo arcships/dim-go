@@ -5,6 +5,8 @@
 - A = `/Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/src`
 - B = `/Users/eric8810/Code/dimagent-mygo/internal/ui`
 
+逐项 token 映射（35 个颜色字段、53 个几何/排版字段、单边缺项与 D1 结论）见 [ui-token-map.md](ui-token-map.md)；本文 §2 只保留结论性摘要。
+
 ## 结论
 
 **当前不是 1:1。** B 已补上语义 token 层和 P0/P1 聊天壳，但 A 的皮肤/chrome 覆盖层、剩余组件域和跨端像素对照仍未完成。
@@ -35,6 +37,8 @@
 
 ### 2.2 语义 token ↔ B tokens 字段（当前）
 
+逐项表（A 的 light/dark 行号、B 的字段/赋值行号、值差异与单边缺项）见 [ui-token-map.md](ui-token-map.md)；下表是摘要。
+
 | A 语义组（global.css 行号） | B `tokens` 字段 | 判定 |
 |---|---|---|
 | `--background` / `--foreground` (183-184) | `background`、`foreground` | **有** |
@@ -43,7 +47,7 @@
 | `--border` / `--input` / `--ring` (219, 227-228) | `border`、`input`、`ring` | **有** |
 | `--sidebar*` 10 个 (234-243) | `sidebar` 及 8 个子字段 | **9/10**：缺 `--sidebar-overlay` |
 | `--tooltip*` 7 个 (192-204) | `tooltip`、`tooltipForeground`、`tooltipMutedForeground`、`tooltipBorder`、`tooltipChip` | **5/7**：缺 backdrop 与多层阴影 |
-| `--radius` + `-sm/-md/-lg/-xl` (44-47, 244) | `radiusSM=6`、`radiusMD=8`、`radiusLG=10`、`radiusXL=14` | **有** |
+| `--radius` + `-sm/-md/-lg/-xl` (44-47, 244) | `radiusSM=6`、`radiusMD=8`、`radiusLG=10`、`radiusXL=14` | **部分**：A 是 rem，14px 根字号下 4.75/6.75/8.75/12.75；见 [ui-token-map.md](ui-token-map.md) |
 | 字体族 (157-165) | `fontFamilyStack`：系统字体或 `monospace` 平台栈 | **部分**：未自托管 Inter / JetBrains Mono |
 | 字号 (166-167) | 5 档 UI 字号 `[12,13,14,16,18]` + 独立 `codeFontSize` | **有**（默认值可能不同） |
 | `--meter-track` (224) | 复用 `muted` | **有（复用）** |
@@ -71,9 +75,9 @@
 | 侧栏宽度 | 默认 256、最小 200、最大 360、可拖拽（`components/ui/sidebar/utils.ts:4-6`） | 默认 256、200–360、可拖拽调宽、双击复位（[tokens.go:70-73](../internal/ui/tokens.go#L70-L73)、`sidebar.go`） |
 | 状态栏 | `.chat-status-bar` 高 40px、左右 20px、12px 字（`styles/global.css:39-41`）；另一读数为 35 DIP（见 [ui-layout-spec.md](ui-layout-spec.md) §7） | 已实现底部状态栏，按 14px 根字号取 35 DIP（[statusbar.go:19-31](../internal/ui/statusbar.go#L19-L31)）；branch + 连接已接，context/model/account 是 WIP |
 | 标题栏 | 固定 48px，自绘窗口控件（`global.css:174`、`components/app/AppTitlebar.vue`） | 原生系统标题栏 |
-| 卡片圆角 | 10 / 8 / 6 / 14 px 四级（`global.css:44-47`、`244`） | 6 / 8 / 10 / 14 四级（[tokens.go:49-54](../internal/ui/tokens.go#L49-L54)） |
+| 卡片圆角 | 按 16px 根字号读是 10 / 8 / 6 / 14 px 四级（`global.css:44-47`、`244`）；默认 14px 根字号下实际是 4.75 / 6.75 / 8.75 / 12.75，因为 `--radius` 是 rem（见 [ui-token-map.md](ui-token-map.md) §0） | 6 / 8 / 10 / 14 四级固定 DIP（[tokens.go:53-56](../internal/ui/tokens.go#L53-L56)） |
 | 基础字号 | 14px UI、13px 代码、5 档可选、⌘+/⌘- 缩放（`appearance/index.ts:11-16`、`appearance/zoom-shortcuts.ts`） | 5 档 UI 字号 + 代码字号，可在外观设置里选并持久化；无缩放快捷键 |
-| 间距单位 | Tailwind 4px 刻度 + 具名 utility | `theme.Space(n)` = n×4 DIP + 具名几何字段；compact 密度按 3/4 收紧 |
+| 间距单位 | Tailwind 默认 `0.25rem` 刻度 + 具名 utility（14px 根字号下每档 3.5 DIP，见 [ui-token-map.md](ui-token-map.md) §0） | `theme.Space(n)` = n×4 DIP + 具名几何字段；compact 密度按 3/4 收紧 |
 | 密度 | 可切换（字号档位 + 侧栏宽度 + 面板宽度持久化，`ChatWorkspace.vue:217-220`） | regular/compact + 侧栏宽度已持久化；面板宽度未做 |
 
 ## 3. 组件清单差异
@@ -180,7 +184,7 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 - 取样 dark：Electron 卡片亮于背景；MyGo 背景 `#18181B`、卡片 `#343436`、popover `#424244`、侧栏 `#27272A`，方向一致。
 - 本轮修复：elevation 从“朝 foreground 混”（light 下把卡片压到背景以下）改为“朝白色提升”；侧栏列表补 `Background(k.sidebar)`，不再被 `ui.List` 默认背景覆盖。
 
-窗口尺寸也已对齐：默认从 1080×720 改为 **800×720**，与 Electron 的参考窗口一致，侧栏 256 DIP 的占比因此相同（左侧 32%）。对话态又对齐了两处：顶栏改为单行标题（连接状态只留在状态栏）、助手行不再画作者行，与参考的“无头像/无角色名”一致。
+窗口尺寸也已对齐：默认从 1080×720 改为 **800×720**，与 Electron 的参考窗口一致，侧栏 256 DIP 的占比因此相同（左侧 32%）。对话态又对齐了三处：顶栏改为单行标题（连接状态只留在状态栏）、助手行不再画作者行、品牌色改为参考的 green（`#349651`/`#64cb7b`），与参考的“无头像/无角色名、绿色主按钮”一致。
 
 对话态并排：[`evidence/ui-parity/compare-conversation.png`](evidence/ui-parity/compare-conversation.png)。量到的对照（points）：Electron 顶栏 41、composer 宽 ≈520、消息列左右留白 ≈24.5/24；MyGo 顶栏设了 41 的最小高度（实测到分隔线约 46，含边框与内距），composer 宽 ≈534（与 520 接近），消息列留白一致。
 

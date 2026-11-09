@@ -157,7 +157,16 @@ const (
 
 	// sidebarSelectionRise tints the chosen row toward the brand color, so the
 	// choice reads on the chrome step instead of repeating the hover face.
-	sidebarSelectionRise = 0.18
+	sidebarSelectionRise = 0.08
+)
+
+// The reference's brand fills, from `--brand-green` in global.css:
+// oklch(0.60 0.138 150) in the light appearance and oklch(0.76 0.15 149) in the
+// dark one. They are constants because the reference's brand is not the
+// platform theme's accent.
+var (
+	brandGreenLight = ui.Hex("#349651")
+	brandGreenDark  = ui.Hex("#64cb7b")
 )
 
 // washAlpha is how strongly the shell tints a color it uses as the background
@@ -437,10 +446,13 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 	card := background.Mix(white, cardRise)
 	popover := background.Mix(white, popoverRise)
 
-	primary := t.Accent
-	onPrimary := t.AccentText
-	if onPrimary == ui.Transparent {
-		onPrimary = readableOn(primary)
+	// The reference's primary is its brand green, not the theme's blue accent:
+	// white ink on the light green and near-black moss ink on the dark one.
+	primary := brandGreenLight
+	onPrimary := ui.Hex("#ffffff")
+	if t.Dark {
+		primary = brandGreenDark
+		onPrimary = ui.Hex("#07140a")
 	}
 	danger := t.Danger
 	onDanger := readableOn(danger)
@@ -547,7 +559,7 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 		sidebarForeground:        foreground,
 		sidebarPrimary:           primary,
 		sidebarPrimaryForeground: onPrimary,
-		sidebarAccent:            accent.Mix(primary, sidebarSelectionRise),
+		sidebarAccent:            sidebar.Mix(foreground, sidebarSelectionRise),
 		sidebarAccentForeground:  foreground,
 		sidebarHover:             sidebar.Mix(foreground, sidebarHoverRise),
 		sidebarBorder:            t.Border.Mix(sidebar, 0.35),

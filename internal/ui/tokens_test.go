@@ -102,9 +102,9 @@ func TestSemanticTokensExist(t *testing.T) {
 }
 
 // TestSemanticTokensComeFromTheTheme checks that the layer derives from the
-// theme rather than carrying colors of its own: the brand fill, the focus ring
-// and the neutral faces are the theme's, so a theme swap reaches every view
-// through the tokens.
+// theme rather than carrying colors of its own, except the reference's brand
+// green: the focus ring and the neutral faces are the theme's, so a theme swap
+// reaches every view through the tokens.
 func TestSemanticTokensComeFromTheTheme(t *testing.T) {
 	for _, tc := range themes() {
 		k := newTokens(tc.theme)
@@ -113,8 +113,8 @@ func TestSemanticTokensComeFromTheTheme(t *testing.T) {
 			token ui.Color
 			want  ui.Color
 		}{
-			{"primary", k.primary, tc.theme.Accent},
-			{"onPrimary", k.onPrimary, tc.theme.AccentText},
+			{"primary", k.primary, brandGreenLight},
+			{"onPrimary", k.onPrimary, ui.Hex("#ffffff")},
 			{"accent", k.accent, tc.theme.SurfaceHover},
 			{"secondary", k.secondary, tc.theme.Surface},
 			{"muted", k.muted, tc.theme.Surface},
@@ -124,6 +124,18 @@ func TestSemanticTokensComeFromTheTheme(t *testing.T) {
 			{"ring", k.ring, tc.theme.Focus},
 			{"foreground", k.foreground, tc.theme.Text},
 			{"background", k.background, tc.theme.Background},
+		}
+		if tc.theme.Dark {
+			cases[0] = struct {
+				name  string
+				token ui.Color
+				want  ui.Color
+			}{"primary", k.primary, brandGreenDark}
+			cases[1] = struct {
+				name  string
+				token ui.Color
+				want  ui.Color
+			}{"onPrimary", k.onPrimary, ui.Hex("#07140a")}
 		}
 		for _, c := range cases {
 			if c.token != c.want {
