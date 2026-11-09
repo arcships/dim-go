@@ -30,6 +30,23 @@
 // (DiffView.vue:520), and the empty state is py-12 (DiffView.vue:498-506). The
 // diff gutter is this file's own, because dim-electron draws the diff with
 // markstream rather than with sized rows.
+//
+// Width: the panel asks for the reference's 320 DIPs and keeps any caller's
+// request between 240 and 400 (clampContextPanelWidth); a zero or unmeasured
+// width falls back to 320. The panel cannot see its laid-out width from a
+// ui.Context, so ContextPanelView.Width is the only measure it has, and below
+// contextPanelNarrowW the diff drops its two line-number columns.
+//
+// States: a file row shows the pointer's hover tint under the pointer and the
+// keyboard's focus, and the accent under the selection, so a keyboard user sees
+// where the focus is. A directory says how many files it holds to assistive
+// technology, which is what a collapsed fold no longer shows. The panel keeps
+// the reference's two-line empty state, the WIP badge beside the header's
+// title, and the diff's +/− tints from the success and danger tokens.
+//
+// Copy: ContextPanelView carries no Locale yet, so the region cannot call tr.
+// The constants below hold the panel's English copy and name the i18n key each
+// needs, to be added with the field by whoever owns i18n.go.
 
 package ui
 
@@ -75,8 +92,15 @@ const (
 )
 
 // clampContextPanelWidth keeps a width the layout asks for between the panel's
-// bounds, as the sidebar's clamp does for the session list.
+// bounds, as the sidebar's clamp does for the session list. An unmeasured width
+// (zero, negative or NaN) draws at the reference's 320 rather than at the
+// floor, so a caller with no preference gets the panel the reference shows,
+// while a caller that asks for less room than the floor still gets a panel
+// that reads.
 func clampContextPanelWidth(w float32) float32 {
+	if !(w > 0) {
+		return contextPanelW
+	}
 	if w < contextPanelMinW {
 		return contextPanelMinW
 	}
@@ -98,6 +122,23 @@ const contextPanelTreeShare = 45
 const (
 	reasonContextFiles  = "Unavailable: ContextPanelView.FilesReported is false; the window has not passed changed-file facts to the context panel yet."
 	reasonContextDetail = "Unavailable: the window has passed no diff or preview for the selected file yet."
+)
+
+// The panel's own copy. ContextPanelView carries no Locale yet, so the region
+// cannot call tr: each text is its English copy and names the i18n key it needs
+// beside it, to be added with the field rather than drawn as a bare literal.
+const (
+	contextPanelTitleText    = "Changes"                        // contextPanel.title
+	contextPanelTreeLabel    = "Changed files"                  // contextPanel.tree
+	contextPanelDetailLabel  = "Selected file"                  // contextPanel.selectedFile
+	contextPanelRegionLabel  = "Context panel"                  // contextPanel.region
+	contextPanelEmptyTitle   = "No changed files"               // contextPanel.empty.title
+	contextPanelEmptyDetail  = "The workspace is clean."        // contextPanel.empty.detail
+	contextPanelSelectHint   = "Select a file to see its diff." // contextPanel.selectFile
+	contextPanelNoDiffText   = "No diff lines."                 // contextPanel.diff.empty
+	contextPanelNoPreview    = "The preview is empty."          // contextPanel.preview.empty
+	contextPanelDiffLabel    = "Diff"                           // contextPanel.diff
+	contextPanelPreviewLabel = "Preview"                        // contextPanel.preview
 )
 
 // ContextPanelStatus is a changed file's status, as the caller's tree reports
@@ -168,6 +209,21 @@ type ContextPanelFile struct {
 // Directory reports whether the node has children, and so is drawn as a
 // directory rather than a file.
 func (f ContextPanelFile) Directory() bool { return len(f.Children) > 0 }
+
+// fileCount is how many files the node holds: one for a file and the sum of its
+// children for a directory. It is counted from the caller's nodes and adds no
+// file, so a collapsed directory can say what it holds without the panel
+// inventing a row.
+func (f ContextPanelFile) fileCount() int {
+	if !f.Directory() {
+		return 1
+	}
+	total := 0
+	for _, child := range f.Children {
+		total += child.fileCount()
+	}
+	return total
+}
 
 // Name is the node's display text: the last element of its path, as
 // dim-electron's FileTreeNode.name is. A path with no element is drawn as it
@@ -268,19 +324,11 @@ type ContextPanelView struct {
 // fileCount is the number of files under the view's tree, counted from the
 // caller's nodes; it names the header's count and holds no fact of its own.
 func (v ContextPanelView) fileCount() int {
-	var count func(nodes []ContextPanelFile) int
-	count = func(nodes []ContextPanelFile) int {
-		total := 0
-		for _, node := range nodes {
-			if node.Directory() {
-				total += count(node.Children)
-				continue
-			}
-			total++
-		}
-		return total
+	total := 0
+	for _, node := range v.Files {
+		total += node.fileCount()
 	}
-	return count(v.Files)
+	return total
 }
 
 // find returns the selected path's node, so the detail can name its status
@@ -362,7 +410,7 @@ func renderContextPanel(c *ui.Context, k tokens, v ContextPanelView, a Actions) 
 
 	ui.Column(c).FillHeight().FillWidth().Clip().Background(k.background).
 		BorderStartWidth(k.hairline).BorderColor(k.border).
-		Role(ui.RoleRegion).Label("Context panel").Children(func() {
+		Role(ui.RoleRegion).Label(contextPanelRegionLabel).Children(func() {
 		if !v.FilesReported {
 			contextPanelWIP(c, k)
 			return
@@ -378,12 +426,13 @@ func renderContextPanel(c *ui.Context, k tokens, v ContextPanelView, a Actions) 
 }
 
 // contextPanelWIP draws the panel while the caller has no changed-file facts.
-// It names the missing field and offers no control, so nothing on the panel can
-// look like a workspace it was never given.
+// It keeps the header's title and the WIP badge, then names the missing field,
+// and offers no control, so nothing on the panel can look like a workspace it
+// was never given.
 func contextPanelWIP(c *ui.Context, k tokens) {
 	ui.Column(c).Padding(k.space(3)).Gap(k.gap).Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "Context panel").Bold().FontSize(k.titleSize)
+			ui.Text(c, contextPanelTitleText).Bold().FontSize(k.labelSize)
 			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
 				Unselectable().AccessHidden(true)
 		})
@@ -397,7 +446,7 @@ func contextPanelHeader(c *ui.Context, k tokens, v ContextPanelView) {
 	ui.Row(c).Height(contextPanelHeaderH).PaddingX(contextPanelPadX).Gap(k.gap).
 		AlignItems(ui.Center).BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).
 		Children(func() {
-			ui.Text(c, "Changes").Bold().FontSize(k.labelSize).SingleLine()
+			ui.Text(c, contextPanelTitleText).Bold().FontSize(k.labelSize).SingleLine()
 			ui.Spacer(c)
 			ui.Text(c, contextPanelCount(v.fileCount())).FontSize(k.smallSize).
 				TextColor(k.mutedForeground).SingleLine()
@@ -412,13 +461,14 @@ func contextPanelCount(n int) string {
 	return strconv.Itoa(n) + " files"
 }
 
-// contextPanelEmpty draws the empty state of a reported, unchanged workspace.
-// The text is dim-electron's contextPanel.noUncommittedChanges equivalent; the
-// panel adds no row and no fabricated file to fill the room.
+// contextPanelEmpty draws the empty state of a reported, unchanged workspace:
+// the reference's two lines, a title over the muted detail, with no row and no
+// fabricated file filling the room.
 func contextPanelEmpty(c *ui.Context, k tokens) {
 	ui.Column(c).Grow(1).Padding(k.space(3), contextPanelPadX, contextPanelEmptyY, contextPanelPadX).
-		AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "No changed files").FontSize(k.bodySize).TextColor(k.mutedForeground)
+		AlignItems(ui.Center).Justify(ui.Center).Gap(k.gap).Children(func() {
+		ui.Text(c, contextPanelEmptyTitle).FontSize(k.bodySize).TextColor(k.foreground)
+		ui.Text(c, contextPanelEmptyDetail).FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }
 
@@ -429,7 +479,7 @@ func contextPanelEmpty(c *ui.Context, k tokens) {
 func contextPanelTree(c *ui.Context, k tokens, v ContextPanelView) {
 	ui.Scroll(c).Shrink(1).MaxHeightPercent(contextPanelTreeShare).Children(func() {
 		tree := ui.TreeBase(c)
-		tree.Root.Label("Changed files").Gap(k.gap).
+		tree.Root.Label(contextPanelTreeLabel).Gap(k.gap).
 			Padding(k.gap, contextPanelPadX, k.gap, contextPanelPadX)
 		tree.Root.Children(func() {
 			for _, node := range v.Files {
@@ -442,6 +492,12 @@ func contextPanelTree(c *ui.Context, k tokens, v ContextPanelView) {
 // contextPanelNode draws one tree node and, while its fold is open, its
 // children. The row's level is the tree's; the indent follows it, as
 // dim-electron's nested lists do.
+//
+// A row has three faces: the selected file takes the accent, the row under the
+// pointer and the row the keyboard focus is on take the hover tint, so a
+// keyboard user can see where the focus is without the pointer. A directory
+// says how many files it holds to assistive technology, which is what a
+// collapsed fold no longer shows.
 func contextPanelNode(c *ui.Context, k tokens, v ContextPanelView, tree ui.TreeParts, node ContextPanelFile, depth int) {
 	directory := node.Directory()
 	var open *bool
@@ -458,10 +514,12 @@ func contextPanelNode(c *ui.Context, k tokens, v ContextPanelView, tree ui.TreeP
 	switch {
 	case selected:
 		row.Background(k.accent)
-	case row.Hovered():
+	case row.FocusVisible() || row.Hovered():
 		row.Background(k.sidebarHover)
 	}
-	if !directory {
+	if directory {
+		row.Description(contextPanelCount(node.fileCount()))
+	} else {
 		row.Description(node.Status.String())
 	}
 	row.Children(func() {
@@ -500,10 +558,10 @@ func contextPanelNode(c *ui.Context, k tokens, v ContextPanelView, tree ui.TreeP
 func contextPanelDetail(c *ui.Context, k tokens, v ContextPanelView) {
 	ui.Column(c).Grow(1).MinHeight(contextPanelRowH*2).Clip().
 		Padding(k.gap, contextPanelPadX, k.gap, contextPanelPadX).Gap(k.gap).
-		Role(ui.RoleGroup).Label("Selected file").Children(func() {
+		Role(ui.RoleGroup).Label(contextPanelDetailLabel).Children(func() {
 		selected := v.currentNode()
 		if selected == "" {
-			ui.Text(c, "Select a file to see its diff.").FontSize(k.smallSize).
+			ui.Text(c, contextPanelSelectHint).FontSize(k.smallSize).
 				TextColor(k.mutedForeground)
 			return
 		}
@@ -534,13 +592,17 @@ func contextPanelDetail(c *ui.Context, k tokens, v ContextPanelView) {
 // line-number gutters while the panel has room, the sign, then the line. A
 // reported diff with no lines says so rather than falling back to a preview,
 // because the caller reported the diff as this file's detail.
+//
+// The narrow step is decided from the width the view carries, resolved through
+// the panel's bounds: a caller that asks for less than the floor is judged at
+// the floor, and an unmeasured view keeps every column.
 func contextPanelDiff(c *ui.Context, k tokens, v ContextPanelView) {
 	if len(v.Diff) == 0 {
-		ui.Text(c, "No diff lines.").FontSize(k.smallSize).TextColor(k.mutedForeground)
+		ui.Text(c, contextPanelNoDiffText).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		return
 	}
-	showNumbers := v.Width <= 0 || v.Width >= contextPanelNarrowW
-	ui.Scroll(c).Grow(1).Children(func() {
+	showNumbers := clampContextPanelWidth(v.Width) >= contextPanelNarrowW
+	ui.Scroll(c).Grow(1).Role(ui.RoleGroup).Label(contextPanelDiffLabel).Children(func() {
 		ui.Column(c).Gap(0).Children(func() {
 			for _, line := range v.Diff {
 				contextPanelDiffRow(c, k, line, showNumbers)
@@ -596,11 +658,11 @@ func contextPanelLineNo(c *ui.Context, k tokens, n int) {
 // given, as one string, and the panel adds no line number it does not have.
 func contextPanelPreview(c *ui.Context, k tokens, v ContextPanelView) {
 	if v.Preview == "" {
-		ui.Text(c, "The preview is empty.").FontSize(k.smallSize).
+		ui.Text(c, contextPanelNoPreview).FontSize(k.smallSize).
 			TextColor(k.mutedForeground)
 		return
 	}
-	ui.ScrollBoth(c).Grow(1).Children(func() {
+	ui.ScrollBoth(c).Grow(1).Role(ui.RoleGroup).Label(contextPanelPreviewLabel).Children(func() {
 		ui.Text(c, v.Preview).FontSize(k.codeFontSize).TextColor(k.foreground).NoWrap()
 	})
 }
