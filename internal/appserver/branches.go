@@ -1,30 +1,71 @@
 package appserver
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 )
 
-// This file retains only the Desktop wire.ts shape for reference. The upstream
-// dim app-server method table has no verified session.branches RPC, so there is
-// no request type and no client helper: callers must treat the capability as
-// blocked rather than sending a guessed request.
+// session.branches is a public protocol-v3 read. Desktop's app-server-protocol
+// wire.ts declares SessionBranchesParams/SessionBranchesResult and
+// session-reader.ts opens it on the session stream when hello.features
+// advertises session.branches. It is an optional read: a failure degrades the
+// caller instead of failing Session open, and this layer never synthesizes a
+// directory.
 
-// BranchInfo is one session.branches directory entry. Source and end retain
-// their protocol JSON shape because branch provenance is not interpreted by
-// the read helper.
+// BranchesParams is the public request shape: {sessionId}.
+type BranchesParams struct {
+	SessionID string `json:"sessionId"`
+}
+
+func (p BranchesParams) Validate() error {
+	return requireNonEmpty("sessionId", p.SessionID)
+}
+
+// BranchSource is the public wire.ts branch provenance union: a tool call or a
+// host operation. The union fields are snake_case on the wire.
+type BranchSource struct {
+	Kind        string `json:"kind"`
+	TurnID      string `json:"turn_id,omitempty"`
+	RequestID   string `json:"request_id,omitempty"`
+	CallID      string `json:"call_id,omitempty"`
+	OperationID string `json:"operation_id,omitempty"`
+}
+
+func (s BranchSource) Validate() error {
+	switch s.Kind {
+	case "tool":
+		if err := requireNonEmpty("source.turn_id", s.TurnID); err != nil {
+			return err
+		}
+		if err := requireNonEmpty("source.request_id", s.RequestID); err != nil {
+			return err
+		}
+		return requireNonEmpty("source.call_id", s.CallID)
+	case "host":
+		return requireNonEmpty("source.operation_id", s.OperationID)
+	default:
+		return protocolErrorf("source.kind", "got %q, want tool or host", s.Kind)
+	}
+}
+
+// BranchInfo is one session.branches directory entry from wire.ts. State is
+// "open", "ending" or "ended"; Head is live while open/ending and fixed once
+// ended; EndEvent is absent while open.
+//
+// Purpose is not part of the public wire.ts entry. It is retained only because
+// internal/integration currently renders it as a branch label; do not treat it
+// as contract.
 type BranchInfo struct {
-	BranchID       string          `json:"branchId"`
-	ParentBranchID string          `json:"parentBranchId,omitempty"`
-	BranchPoint    *int64          `json:"branchPoint,omitempty"`
-	CreateEvent    *int64          `json:"createEvent,omitempty"`
-	Source         json.RawMessage `json:"source,omitempty"`
-	State          string          `json:"state"`
-	Purpose        *string         `json:"purpose,omitempty"`
-	CutMessages    *int64          `json:"cutMessages,omitempty"`
-	End            json.RawMessage `json:"end,omitempty"`
-	Head           int64           `json:"head"`
-	EndEvent       *int64          `json:"endEvent,omitempty"`
+	BranchID       string        `json:"branchId"`
+	ParentBranchID string        `json:"parentBranchId,omitempty"`
+	BranchPoint    *int64        `json:"branchPoint,omitempty"`
+	CreateEvent    *int64        `json:"createEvent,omitempty"`
+	Source         *BranchSource `json:"source,omitempty"`
+	State          string        `json:"state"`
+	Head           int64         `json:"head"`
+	EndEvent       *int64        `json:"endEvent,omitempty"`
+	Purpose        *string       `json:"purpose,omitempty"`
 }
 
 func (b BranchInfo) Validate() error {
@@ -43,16 +84,16 @@ func (b BranchInfo) Validate() error {
 	if b.CreateEvent != nil && *b.CreateEvent < 0 {
 		return protocolErrorf("createEvent", "got %d, want a non-negative integer", *b.CreateEvent)
 	}
-	if b.CutMessages != nil && *b.CutMessages < 0 {
-		return protocolErrorf("cutMessages", "got %d, want a non-negative integer", *b.CutMessages)
-	}
 	if b.EndEvent != nil && *b.EndEvent < 0 {
 		return protocolErrorf("endEvent", "got %d, want a non-negative integer", *b.EndEvent)
+	}
+	if b.Source != nil {
+		return b.Source.Validate()
 	}
 	return nil
 }
 
-// BranchesResult is the session.branches response.
+// BranchesResult is the public session.branches response.
 type BranchesResult struct {
 	Branches []BranchInfo `json:"branches"`
 }
@@ -69,12 +110,39 @@ func (r BranchesResult) Validate() error {
 	return nil
 }
 
-// DecodeBranchesResult validates the Desktop-shaped response for callers that
-// need to inspect a captured fixture. It does not make the RPC available.
+// DecodeBranchesResult decodes and validates one session.branches response.
 func DecodeBranchesResult(raw json.RawMessage) (BranchesResult, error) {
 	var r BranchesResult
 	if err := decodeValidated("session.branches result", raw, &r); err != nil {
 		return r, err
 	}
 	return r, nil
+}
+
+// SessionBranches reads the branch directory for one session. Desktop gates the
+// same request on hello.features "session.branches" (session-reader.ts), so a
+// missing feature returns *CapabilityError instead of sending a request.
+//
+// It is an optional read: one request, no retry, and no local fallback. On any
+// error the result is zero so a malformed directory cannot be presented as a
+// complete one.
+func SessionBranches(ctx context.Context, client *Client, params BranchesParams, features []string) (BranchesResult, error) {
+	if !HasFeature(features, "session.branches") {
+		return BranchesResult{}, &CapabilityError{Feature: "session.branches"}
+	}
+	if err := params.Validate(); err != nil {
+		return BranchesResult{}, err
+	}
+	if client == nil {
+		return BranchesResult{}, protocolErrorf("session.branches", "nil client")
+	}
+	raw, err := client.Call(ctx, "session.branches", params)
+	if err != nil {
+		return BranchesResult{}, err
+	}
+	result, err := DecodeBranchesResult(raw)
+	if err != nil {
+		return BranchesResult{}, err
+	}
+	return result, nil
 }

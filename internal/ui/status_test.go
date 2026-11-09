@@ -122,6 +122,53 @@ func TestConnectionErrorBannerTakesPrecedence(t *testing.T) {
 	}
 }
 
+// TestClosedSessionGatesActions checks the terminal session.closed health
+// state: it is shown, and submit/stop/reconnect are all unavailable even though
+// the transport may still say connected.
+func TestClosedSessionGatesActions(t *testing.T) {
+	s := fixture()
+	s.Connection = ConnReady
+	s.Selected = "s1"
+	s.Draft = "hello"
+	s.Run = RunRunning
+	s.SessionClosed = true
+	s.SessionClosedReason = "done"
+	submits, stops, reconnects := 0, 0, 0
+	s.OnSubmit = func(string) { submits++ }
+	s.OnStop = func() { stops++ }
+	s.OnReconnect = func() { reconnects++ }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if !tt.HasText("Session closed: done") {
+		t.Fatalf("closed banner is missing, texts %q", tt.Texts())
+	}
+	if !tt.HasText("Session: Closed") {
+		t.Errorf("closed run label is missing, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); !ok {
+		t.Fatalf("closed session is not an alert region, texts %q", tt.Texts())
+	}
+	info, ok := tt.AccessByRole(ui.RoleButton, "Send")
+	if !ok {
+		t.Fatalf("the composer offers no Send entry, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("Send is available after session.closed")
+	}
+	for _, label := range []string{"Stop", "Reconnect"} {
+		if _, ok := tt.AccessByRole(ui.RoleButton, label); ok {
+			t.Errorf("%q is available after session.closed", label)
+		}
+	}
+	if err := tt.Click("Composer"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Key(ComposerShortcutMods, ui.KeyEnter)
+	if submits != 0 || stops != 0 || reconnects != 0 {
+		t.Fatalf("closed session ran actions: submit=%d stop=%d reconnect=%d", submits, stops, reconnects)
+	}
+}
+
 // TestLoadingConversation checks the loading state: its text and busy region
 // show, and the rows wait for history.
 func TestLoadingConversation(t *testing.T) {

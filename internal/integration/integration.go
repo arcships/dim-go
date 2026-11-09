@@ -74,7 +74,9 @@ func OpenSession(ctx context.Context, sup *supervisor.Supervisor, sessionID stri
 	return &SessionController{Supervisor: sup, Conn: conn, Session: s}, nil
 }
 
-// Close releases the session attachment and its supervisor-tracked stream.
+// Close releases the session attachment and its supervisor-tracked stream. It
+// takes the write lock so it cannot race with an in-flight Submit/Stop read or
+// a Reattach swap; the session is detached only after those holders finish.
 func (c *SessionController) Close(ctx context.Context) error {
 	if c == nil {
 		return nil
@@ -82,8 +84,8 @@ func (c *SessionController) Close(ctx context.Context) error {
 	if ctx == nil {
 		return fmt.Errorf("integration: nil context")
 	}
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.Session == nil {
 		return nil
 	}
@@ -108,6 +110,30 @@ func (c *SessionController) SessionBranchID() string {
 		return ""
 	}
 	return c.Session.BranchID()
+}
+
+// terminalStatus is the public session lifecycle surface the bridge reads. It
+// is intentionally narrow so a session stub can test the closed health state.
+type terminalStatus interface {
+	Closed() (appserver.ClosedNotice, bool)
+	TerminalState() appserver.StreamState
+	TerminalReason() string
+}
+
+// terminalClosed reports the terminal session.closed health. A transport loss is
+// not closed: it is a resync trigger, while session.closed is final.
+func terminalClosed(s terminalStatus) (bool, string) {
+	if closed, ok := s.Closed(); ok {
+		reason := closed.Reason
+		if reason == "" {
+			reason = s.TerminalReason()
+		}
+		return true, reason
+	}
+	if s.TerminalState() == appserver.StreamStateClosed {
+		return true, s.TerminalReason()
+	}
+	return false, ""
 }
 
 // StateForBranch builds UI state from an existing session branch view/reducer.
@@ -152,16 +178,19 @@ func (c *SessionController) StateForBranch(summary appserver.SessionSummary, bra
 	branchView := c.Session.View(branchID)
 	snapshot := branchView.Snapshot
 	progress, notices := viewmodel.Transient(branchView.Transient)
+	sessionClosed, closedReason := terminalClosed(c.Session)
 	state := &ui.State{
-		Sessions:        []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary)}},
-		Selected:        summary.SessionID,
-		SelectedBranch:  branchID,
-		Connection:      connection,
-		ConnectionError: connectionError,
-		Messages:        viewmodel.Build(snapshot),
-		Run:             ui.RunIdle,
-		ModelProgress:   progress,
-		Notices:         notices,
+		Sessions:            []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary)}},
+		Selected:            summary.SessionID,
+		SelectedBranch:      branchID,
+		Connection:          connection,
+		ConnectionError:     connectionError,
+		SessionClosed:       sessionClosed,
+		SessionClosedReason: closedReason,
+		Messages:            viewmodel.Build(snapshot),
+		Run:                 ui.RunIdle,
+		ModelProgress:       progress,
+		Notices:             notices,
 	}
 	for _, branch := range c.Session.BranchDirectory().Branches {
 		label := branch.BranchID

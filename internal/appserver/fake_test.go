@@ -95,6 +95,13 @@ type fakeConfig struct {
 	// MethodsRaw scripts the session.methods read helper response.
 	MethodsRaw json.RawMessage
 
+	// KeysRaw/KeysFault script session.keys; BranchesRaw/BranchesFault script
+	// session.branches. The params are validated before a reply is served.
+	KeysRaw       json.RawMessage
+	KeysFault     *fakeRPCError
+	BranchesRaw   json.RawMessage
+	BranchesFault *fakeRPCError
+
 	// Mutations is served in order per mutation method. Tests that script a
 	// request assert the queue was consumed exactly once.
 	Mutations map[string][]fakeMutation
@@ -250,6 +257,30 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, fakeBadParams()
 		}
 		return s.cfg.MethodsRaw, nil
+	case "session.keys":
+		var p KeysParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+		if s.cfg.KeysFault != nil {
+			return nil, s.cfg.KeysFault
+		}
+		if len(s.cfg.KeysRaw) == 0 {
+			return nil, fakeBadParams()
+		}
+		return s.cfg.KeysRaw, nil
+	case "session.branches":
+		var p BranchesParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+		if s.cfg.BranchesFault != nil {
+			return nil, s.cfg.BranchesFault
+		}
+		if len(s.cfg.BranchesRaw) == 0 {
+			return nil, fakeBadParams()
+		}
+		return s.cfg.BranchesRaw, nil
 	case "session.submit":
 		return s.mutation(MutationSessionSubmit, params)
 	case "session.stop":

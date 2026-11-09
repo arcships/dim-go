@@ -162,3 +162,18 @@ func TestReconnectEntryHidesWhileLoading(t *testing.T) {
 		t.Errorf("the reconnect entry is missing after loading, texts %q", tt.Texts())
 	}
 }
+
+// TestReconnectEntryHidesWithoutSelection checks that no reconnect action is
+// offered when there is no selected session to re-open, even if the connection
+// is not ready.
+func TestReconnectEntryHidesWithoutSelection(t *testing.T) {
+	s := fixture()
+	s.Selected = ""
+	s.Connection = ConnError
+	s.OnReconnect = func() {}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Reconnect"); ok {
+		t.Error("the reconnect entry shows without a selected session")
+	}
+}

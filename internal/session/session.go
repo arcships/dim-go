@@ -153,6 +153,7 @@ type Session struct {
 	branchID      string
 	clock         projection.Clock
 	pendingLimit  int
+	features      []string
 	transientSess *projection.TransientReducer
 
 	mu          sync.Mutex
@@ -165,10 +166,16 @@ type Session struct {
 	closed      *appserver.ClosedNotice
 	terminalErr error
 
-	// methods is an optional daemon capability snapshot read once during Open.
-	// session.keys/session.branches are not read: upstream dim has no verified
-	// RPC for either, so their accessors stay explicitly blocked.
-	methods appserver.MethodsResult
+	// Optional daemon-provided snapshots read once during Open when the
+	// connection advertises the capability. They are only enrichment; a failed
+	// optional read never fabricates a local snapshot.
+	methods         appserver.MethodsResult
+	keySnapshot     appserver.KeysResult
+	keysLoaded      bool
+	keysStatus      ReadCapabilityStatus
+	branchDirectory appserver.BranchesResult
+	branchesLoaded  bool
+	branchesStatus  ReadCapabilityStatus
 
 	errs       chan error
 	errMu      sync.Mutex
@@ -211,14 +218,17 @@ func OpenWithOptions(ctx context.Context, client *appserver.Client, features []s
 		return nil, err
 	}
 	s := newSession(client, stream, sessionID, opts)
+	s.features = append([]string(nil), features...)
 	go s.drain()
 	if err := s.loadHistory(ctx, features); err != nil {
 		s.abortOpen()
 		return nil, err
 	}
-	// These are optional read paths. A daemon that does not advertise either
-	// capability is left untouched; advertised capabilities are authoritative and
-	// malformed/error replies fail Open rather than inventing local state.
+	// These are optional read paths. A daemon that does not advertise a
+	// capability is left untouched; advertised optional reads are best-effort
+	// enrichment, so a failure degrades to empty state and never fabricates a
+	// local snapshot. session.methods remains fail-fast because callers use it as
+	// a capability table rather than display enrichment.
 	if appserver.HasFeature(features, "session.methods") {
 		methods, err := appserver.SessionMethods(ctx, client, appserver.MethodsParams{SessionID: sessionID}, features)
 		if err != nil {
@@ -227,10 +237,24 @@ func OpenWithOptions(ctx context.Context, client *appserver.Client, features []s
 		}
 		s.methods = methods
 	}
-	// session.keys and session.branches are intentionally not requested. The
-	// only evidence for them is Desktop wire.ts; the upstream dim app-server
-	// method table has no verified RPC, so treating hello.features as capability
-	// would fabricate support.
+	if appserver.HasFeature(features, "session.branches") {
+		s.readBranchDirectory(ctx)
+	} else {
+		s.setBranchesStatus(ReadCapabilityStatus{
+			Capability: "session.branches",
+			Available:  false,
+			Reason:     "hello.features does not advertise session.branches",
+		})
+	}
+	if appserver.HasFeature(features, "session.keys") {
+		s.readSessionKeys(ctx)
+	} else {
+		s.setKeysStatus(ReadCapabilityStatus{
+			Capability: "session.keys",
+			Available:  false,
+			Reason:     "hello.features does not advertise session.keys",
+		})
+	}
 	return s, nil
 }
 
@@ -760,53 +784,65 @@ func (s *Session) Methods() appserver.MethodsResult {
 	return appserver.MethodsResult{Methods: append([]appserver.MethodDeclaration(nil), s.methods.Methods...)}
 }
 
-// ReadCapabilityStatus describes a protocol read that must not be treated as
-// available. Blocked means the upstream App Server has no verified RPC or the
-// method is not in the frozen contract; callers must disable the feature rather
-// than synthesize local state.
+// ReadCapabilityStatus describes an optional capability read. Available is true
+// only after a successful validated reply. Reason is empty on success and
+// otherwise names the missing hello.features gate or the read/decoder failure.
 type ReadCapabilityStatus struct {
 	Capability string
 	Available  bool
-	Blocked    bool
 	Reason     string
 }
 
-const (
-	sessionKeysBlockedReason     = "blocked: upstream dim has no verified session.keys RPC"
-	sessionBranchesBlockedReason = "blocked: upstream dim has no verified session.branches RPC"
-)
-
-// Keys is retained for callers that need the historical signature, but it is
-// always unavailable. session.keys is not requested during Open and no local
-// snapshot is synthesized.
+// Keys returns the session.keys snapshot captured during Open. Entries are
+// copied; ok is false when the feature was not advertised or the optional read
+// failed. No local snapshot is synthesized.
 func (s *Session) Keys() (appserver.KeysResult, bool) {
-	return appserver.KeysResult{}, false
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.keysLoaded {
+		return appserver.KeysResult{}, false
+	}
+	out := appserver.KeysResult{
+		Through: cloneInt64(s.keySnapshot.Through),
+		Entries: append([]appserver.SessionKeyEntry(nil), s.keySnapshot.Entries...),
+	}
+	return out, true
 }
 
-// KeysStatus reports why Keys is empty.
+// KeysStatus reports whether session.keys is available and, if not, why.
 func (s *Session) KeysStatus() ReadCapabilityStatus {
-	return ReadCapabilityStatus{
-		Capability: "session.keys",
-		Available:  false,
-		Blocked:    true,
-		Reason:     sessionKeysBlockedReason,
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	status := s.keysStatus
+	if status.Capability == "" {
+		status.Capability = "session.keys"
 	}
+	return status
 }
 
-// BranchDirectory returns an empty directory. session.branches has no verified
-// upstream RPC, so Open no longer requests it and no branch metadata is fabricated.
+// BranchDirectory returns the session.branches snapshot captured during Open.
+// The value is copied; an unavailable or failed read yields an empty directory.
 func (s *Session) BranchDirectory() appserver.BranchesResult {
-	return appserver.BranchesResult{}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.branchesLoaded {
+		return appserver.BranchesResult{}
+	}
+	return appserver.BranchesResult{
+		Branches: append([]appserver.BranchInfo(nil), s.branchDirectory.Branches...),
+	}
 }
 
-// BranchDirectoryStatus reports why BranchDirectory is empty.
+// BranchDirectoryStatus reports whether session.branches is available and, if
+// not, why. Branches() remains the event-derived fallback.
 func (s *Session) BranchDirectoryStatus() ReadCapabilityStatus {
-	return ReadCapabilityStatus{
-		Capability: "session.branches",
-		Available:  false,
-		Blocked:    true,
-		Reason:     sessionBranchesBlockedReason,
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	status := s.branchesStatus
+	if status.Capability == "" {
+		status.Capability = "session.branches"
 	}
+	return status
 }
 
 // Branches returns the branches observed so far from attach notifications, sorted.

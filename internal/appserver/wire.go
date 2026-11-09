@@ -547,11 +547,36 @@ func DecodeHistoryResult(raw json.RawMessage, req HistoryParams) (HistoryResult,
 	return r, nil
 }
 
-// ----- session.keys (unverified Desktop shape) -----
+// ----- session.keys (public Desktop wire shape) -----
 
-// session.keys appears only in Desktop wire.ts. The upstream dim app-server
-// method table has no verified RPC, so these types are retained only as an
-// unverified decode shape: there is no request type and no client helper.
+// session.keys is a public protocol-v3 read: Desktop's app-server-protocol
+// wire.ts declares SessionKeyEntry/SessionKeysResult and session-reader.ts
+// opens it on the session stream when hello.features advertises "session.keys".
+
+// KeysParams is the request session-reader.ts issues: {sessionId, branchId,
+// through}. Desktop always supplies all three, so nothing is defaulted here; a
+// guessed branch or window would seed a different branch's keys.
+type KeysParams struct {
+	SessionID string `json:"sessionId"`
+	BranchID  string `json:"branchId"`
+	Through   *int64 `json:"through"`
+}
+
+func (p KeysParams) Validate() error {
+	if err := requireNonEmpty("sessionId", p.SessionID); err != nil {
+		return err
+	}
+	if err := requireNonEmpty("branchId", p.BranchID); err != nil {
+		return err
+	}
+	if p.Through == nil {
+		return protocolErrorf("through", "missing")
+	}
+	if *p.Through < 0 {
+		return protocolErrorf("through", "got %d, want a non-negative integer", *p.Through)
+	}
+	return nil
+}
 
 // SessionKeyEntry is the latest live keyed block for one key on a branch. Text
 // is the block body and may be empty; the wire layer does not interpret it.
@@ -562,8 +587,9 @@ type SessionKeyEntry struct {
 	Text     string `json:"text"`
 }
 
-// Validate enforces the §9 shape. Entry order and per-key uniqueness are daemon
-// guarantees the client consumes as-is, so they are not client-side checks.
+// Validate enforces the wire.ts entry shape. Entry order and per-key uniqueness
+// are daemon guarantees the client consumes as-is, so they are not client-side
+// checks.
 func (e SessionKeyEntry) Validate() error {
 	if err := requireNonEmpty("key", e.Key); err != nil {
 		return err

@@ -53,17 +53,22 @@ func TestApplyViewKeepsWindowState(t *testing.T) {
 		ActionError:   "window-owned error",
 	}
 	view := &dimui.State{
-		Selected:        "s1",
-		Connection:      dimui.ConnReady,
-		ConnectionError: "",
-		Run:             dimui.RunRunning,
-		Messages:        []dimui.Message{{ID: "m1"}},
-		Notices:         []dimui.Notice{{Kind: "approval"}},
+		Selected:            "s1",
+		Connection:          dimui.ConnReady,
+		ConnectionError:     "",
+		SessionClosed:       true,
+		SessionClosedReason: "done",
+		Run:                 dimui.RunRunning,
+		Messages:            []dimui.Message{{ID: "m1"}},
+		Notices:             []dimui.Notice{{Kind: "approval"}},
 	}
 	applyView(state, view)
 
 	if state.Selected != "s1" || state.Connection != dimui.ConnReady || state.Run != dimui.RunRunning {
 		t.Fatalf("session facts were not applied: %#v", state)
+	}
+	if !state.SessionClosed || state.SessionClosedReason != "done" {
+		t.Fatalf("terminal session health was not applied: %#v", state)
 	}
 	if len(state.Messages) != 1 || state.Messages[0].ID != "m1" {
 		t.Fatalf("messages were not applied: %#v", state.Messages)
@@ -606,6 +611,71 @@ func TestAppStaleSelectionCannotOverwriteNewerSelection(t *testing.T) {
 // open does not leave the new title over the previous conversation: the
 // controller still holds the old session, so its view is restored and the error
 // is surfaced separately.
+// TestAppExpiredOpenFailureRestoresCurrentController covers an older open that
+// completes while a newer selection is in flight: when the newer open fails, the
+// window must restore the controller that is actually current, not a view
+// captured before that older open swapped it.
+func TestAppExpiredOpenFailureRestoresCurrentController(t *testing.T) {
+	started := make(chan struct{})
+	release := make(chan struct{})
+	first := &fakeSession{view: &dimui.State{
+		Selected:   "s1",
+		Connection: dimui.ConnReady,
+		Messages:   []dimui.Message{{ID: "m1"}},
+	}}
+	openErr := errors.New("s2 open failed")
+	b := &sessionBridge{}
+	b.openSession = func(_ context.Context, _ *supervisor.Supervisor, id string) (sessionActions, error) {
+		if id == "s1" {
+			close(started)
+			<-release
+			return first, nil
+		}
+		return nil, openErr
+	}
+	a := &app{
+		state: &dimui.State{
+			Sessions: []dimui.Session{{ID: "s1"}, {ID: "s2"}},
+		},
+		bridge: b,
+	}
+	updated := make(chan struct{}, 1)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		select {
+		case updated <- struct{}{}:
+		default:
+		}
+	}
+	a.bind()
+
+	a.state.Selected = "s1"
+	a.state.OnSelect("s1")
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first open did not start")
+	}
+	a.state.Selected = "s2"
+	a.state.OnSelect("s2")
+	close(release)
+
+	select {
+	case <-updated:
+	case <-time.After(2 * time.Second):
+		t.Fatal("failed newer open did not publish")
+	}
+	if a.state.Selected != "s1" || len(a.state.Messages) != 1 || a.state.Messages[0].ID != "m1" {
+		t.Fatalf("expired open failure left a mismatched view: %#v", a.state)
+	}
+	if a.state.ActionError == "" {
+		t.Fatal("failed newer open was not surfaced")
+	}
+	if len(a.state.ActionNotices) != 1 || a.state.ActionNotices[0].Kind != "select.error" {
+		t.Fatalf("selection failure was not recorded: %#v", a.state.ActionNotices)
+	}
+}
+
 func TestAppSelectFailureRestoresPreviousSelection(t *testing.T) {
 	previous := &dimui.State{
 		Selected:   "s1",

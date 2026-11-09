@@ -130,59 +130,179 @@ func TestSessionMethodsCapabilityAbsentDoesNotRequest(t *testing.T) {
 	}
 }
 
-func TestSessionKeysIsBlockedAndNotRequested(t *testing.T) {
-	server, _, s := openTestSession(t, fakeConfig{
-		Attach:  appserver.AttachResult{Sequence: int64Ptr(0)},
-		History: emptyHistory(t, 0),
-	}, []string{"session.history", "session.keys"}, OpenOptions{})
+func TestSessionKeysSnapshotCapabilityAndFailure(t *testing.T) {
+	t.Run("reads and copies the capability-gated snapshot", func(t *testing.T) {
+		through := int64(5)
+		server, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(through)},
+			History: emptyHistory(t, through),
+			Keys: appserver.KeysResult{
+				Through: &through,
+				Entries: []appserver.SessionKeyEntry{{Key: "k", Sequence: 1, InputID: "i", Text: "v"}},
+			},
+		}, []string{"session.history", "session.keys"}, OpenOptions{})
 
-	if got, ok := s.Keys(); ok || got.Through != nil || len(got.Entries) != 0 {
-		t.Fatalf("keys = %#v, loaded=%v; want blocked/empty", got, ok)
-	}
-	status := s.KeysStatus()
-	if status.Capability != "session.keys" || status.Available || !status.Blocked || status.Reason == "" {
-		t.Fatalf("keys status = %#v", status)
-	}
-	for _, call := range server.callsSnapshot() {
-		if call.Method == "session.keys" {
-			t.Fatal("session.keys was requested despite being blocked/unverified")
+		got, ok := s.Keys()
+		if !ok || got.Through == nil || *got.Through != through || len(got.Entries) != 1 || got.Entries[0].Text != "v" {
+			t.Fatalf("keys = %#v, loaded=%v", got, ok)
 		}
-	}
+		got.Entries[0].Text = "mutated"
+		again, ok := s.Keys()
+		if !ok || again.Entries[0].Text != "v" {
+			t.Fatalf("keys accessor did not copy entries: %#v", again)
+		}
+		status := s.KeysStatus()
+		if !status.Available || status.Reason != "" {
+			t.Fatalf("keys status = %#v", status)
+		}
+		calls := server.callsFor("session.keys")
+		if len(calls) != 1 {
+			t.Fatalf("session.keys calls = %d, want 1", len(calls))
+		}
+		var params appserver.KeysParams
+		if err := json.Unmarshal(calls[0].Params, &params); err != nil {
+			t.Fatalf("keys params: %v", err)
+		}
+		if params.SessionID != "s1" || params.BranchID != "main" || params.Through == nil || *params.Through != through {
+			t.Fatalf("keys params = %#v", params)
+		}
+	})
+
+	t.Run("absent capability is not requested", func(t *testing.T) {
+		server, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(0)},
+			History: emptyHistory(t, 0),
+		}, []string{"session.history"}, OpenOptions{})
+
+		if _, ok := s.Keys(); ok {
+			t.Fatal("keys unexpectedly loaded without capability")
+		}
+		status := s.KeysStatus()
+		if status.Available || !strings.Contains(status.Reason, "does not advertise") {
+			t.Fatalf("keys status = %#v", status)
+		}
+		if calls := server.callsFor("session.keys"); len(calls) != 0 {
+			t.Fatalf("session.keys calls = %d without capability", len(calls))
+		}
+	})
+
+	t.Run("read failure degrades without failing open", func(t *testing.T) {
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(0)},
+			History: emptyHistory(t, 0),
+			KeysErr: unknownMethod(),
+		}, []string{"session.history", "session.keys"}, OpenOptions{})
+
+		if !s.Ready() {
+			t.Fatal("session is not ready after a keys read failure")
+		}
+		if _, ok := s.Keys(); ok {
+			t.Fatal("keys unexpectedly loaded after a read failure")
+		}
+		status := s.KeysStatus()
+		if status.Available || status.Reason == "" {
+			t.Fatalf("keys status = %#v", status)
+		}
+	})
+
+	t.Run("malformed snapshot fails closed", func(t *testing.T) {
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:  appserver.AttachResult{Sequence: int64Ptr(0)},
+			History: emptyHistory(t, 0),
+			Keys:    map[string]any{"through": 0, "entries": nil},
+		}, []string{"session.history", "session.keys"}, OpenOptions{})
+
+		if _, ok := s.Keys(); ok {
+			t.Fatal("keys unexpectedly loaded from a malformed snapshot")
+		}
+		status := s.KeysStatus()
+		if status.Available || status.Reason == "" {
+			t.Fatalf("keys status = %#v", status)
+		}
+	})
 }
 
-func TestBranchDirectoryIsBlockedAndObservedBranchesRemain(t *testing.T) {
+func TestBranchDirectorySnapshotFallbackAndObservedBranches(t *testing.T) {
 	sideText := assistantEventWithID("side-2", 2, "t-side", "r-side", "side text")
-	server, _, s := openTestSession(t, fakeConfig{
-		Attach: appserver.AttachResult{Sequence: int64Ptr(2)},
-		OnAttach: func(server *fakeServer) {
-			server.emit("session.event", appserver.EventNotice{SessionID: "s1", BranchID: "side", Event: sideText})
-		},
-		History: emptyHistory(t, 2),
-	}, []string{"session.history", "session.branches"}, OpenOptions{})
+	directory := appserver.BranchesResult{Branches: []appserver.BranchInfo{
+		{BranchID: "main", State: "open", Head: 2},
+		{BranchID: "side", ParentBranchID: "main", State: "open", Head: 2},
+	}}
+	onAttach := func(server *fakeServer) {
+		server.emit("session.event", appserver.EventNotice{SessionID: "s1", BranchID: "side", Event: sideText})
+	}
 
-	waitFor(t, func() bool {
-		return len(s.BranchSnapshot("side").Messages) == 1
-	}, "observed side branch")
+	t.Run("reads and copies the capability-gated directory", func(t *testing.T) {
+		server, _, s := openTestSession(t, fakeConfig{
+			Attach:   appserver.AttachResult{Sequence: int64Ptr(2)},
+			OnAttach: onAttach,
+			History:  emptyHistory(t, 2),
+			Branches: directory,
+		}, []string{"session.history", "session.branches"}, OpenOptions{})
 
-	if dir := s.BranchDirectory(); len(dir.Branches) != 0 {
-		t.Fatalf("branch directory = %#v, want empty/blocked", dir)
-	}
-	status := s.BranchDirectoryStatus()
-	if status.Capability != "session.branches" || status.Available || !status.Blocked || status.Reason == "" {
-		t.Fatalf("branch directory status = %#v", status)
-	}
-	branches := s.Branches()
-	if len(branches) != 2 || branches[0] != "main" || branches[1] != "side" {
-		t.Fatalf("observed branches = %v, want [main side]", branches)
-	}
-	if len(s.BranchSnapshot("side").Messages) != 1 {
-		t.Fatal("observed side-branch projection was lost")
-	}
-	for _, call := range server.callsSnapshot() {
-		if call.Method == "session.branches" {
-			t.Fatal("session.branches was requested despite being blocked/unverified")
+		waitFor(t, func() bool { return len(s.BranchSnapshot("side").Messages) == 1 }, "observed side branch")
+		got := s.BranchDirectory()
+		if len(got.Branches) != 2 || got.Branches[1].BranchID != "side" {
+			t.Fatalf("branch directory = %#v", got)
 		}
-	}
+		got.Branches[0].BranchID = "mutated"
+		if again := s.BranchDirectory(); again.Branches[0].BranchID != "main" {
+			t.Fatalf("branch directory accessor did not copy: %#v", again)
+		}
+		status := s.BranchDirectoryStatus()
+		if !status.Available || status.Reason != "" {
+			t.Fatalf("branch directory status = %#v", status)
+		}
+		calls := server.callsFor("session.branches")
+		if len(calls) != 1 {
+			t.Fatalf("session.branches calls = %d, want 1", len(calls))
+		}
+	})
+
+	t.Run("absent capability keeps observed branches only", func(t *testing.T) {
+		server, _, s := openTestSession(t, fakeConfig{
+			Attach:   appserver.AttachResult{Sequence: int64Ptr(2)},
+			OnAttach: onAttach,
+			History:  emptyHistory(t, 2),
+		}, []string{"session.history"}, OpenOptions{})
+
+		waitFor(t, func() bool { return len(s.BranchSnapshot("side").Messages) == 1 }, "observed side branch")
+		if dir := s.BranchDirectory(); len(dir.Branches) != 0 {
+			t.Fatalf("branch directory = %#v, want empty", dir)
+		}
+		status := s.BranchDirectoryStatus()
+		if status.Available || !strings.Contains(status.Reason, "does not advertise") {
+			t.Fatalf("branch directory status = %#v", status)
+		}
+		branches := s.Branches()
+		if len(branches) != 2 || branches[0] != "main" || branches[1] != "side" {
+			t.Fatalf("observed branches = %v, want [main side]", branches)
+		}
+		if calls := server.callsFor("session.branches"); len(calls) != 0 {
+			t.Fatalf("session.branches calls = %d without capability", len(calls))
+		}
+	})
+
+	t.Run("read failure falls back to observed branches", func(t *testing.T) {
+		_, _, s := openTestSession(t, fakeConfig{
+			Attach:      appserver.AttachResult{Sequence: int64Ptr(2)},
+			OnAttach:    onAttach,
+			History:     emptyHistory(t, 2),
+			BranchesErr: unknownMethod(),
+		}, []string{"session.history", "session.branches"}, OpenOptions{})
+
+		waitFor(t, func() bool { return len(s.BranchSnapshot("side").Messages) == 1 }, "observed side branch")
+		if dir := s.BranchDirectory(); len(dir.Branches) != 0 {
+			t.Fatalf("branch directory = %#v after failure, want empty", dir)
+		}
+		status := s.BranchDirectoryStatus()
+		if status.Available || status.Reason == "" {
+			t.Fatalf("branch directory status = %#v", status)
+		}
+		if branches := s.Branches(); len(branches) != 2 {
+			t.Fatalf("observed branches = %v, want main+side", branches)
+		}
+	})
 }
 
 func TestLatestTurnEmptySessionWithoutTurnStart(t *testing.T) {

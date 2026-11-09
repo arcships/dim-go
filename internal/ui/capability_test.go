@@ -40,17 +40,20 @@ func TestCapabilityCardsAreReadOnly(t *testing.T) {
 }
 
 // TestCapabilityCardsReportTheActualGap pins each card's gap to the fact in
-// this tree: approval.respond, session.stop, session.create and
-// supervisor.Reconnect exist in the Go client, session or supervisor, so no
-// card may claim they are missing; session.branches/session.keys are upstream
-// blocked/unverified; attachment.put has no Go helper.
+// this tree: approval.respond, session.stop, session.create, session.branches,
+// session.keys and supervisor.Reconnect have helpers in the Go client, session
+// or supervisor, so no card may claim they are missing; only attachment.put has
+// no Go helper. Branch and key UI wiring is still missing.
 func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	cards := map[string]wipCapability{}
 	for _, capability := range wipCapabilities(&State{}) {
 		cards[capability.action] = capability
 	}
 
-	for _, action := range []string{"Session creation", "Approvals", "Connection recovery", "Turn cancellation"} {
+	for _, action := range []string{
+		"Session creation", "Branch switching", "Session keys", "Approvals",
+		"Connection recovery", "Turn cancellation",
+	} {
 		capability, ok := cards[action]
 		if !ok {
 			t.Errorf("no card for %q", action)
@@ -58,16 +61,6 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 		}
 		if !strings.Contains(capability.gap, "helper exists") {
 			t.Errorf("%q reports %q, but its helper exists", action, capability.gap)
-		}
-	}
-	for _, action := range []string{"Branches", "Session keys"} {
-		capability, ok := cards[action]
-		if !ok {
-			t.Errorf("no card for %q", action)
-			continue
-		}
-		if !strings.Contains(capability.gap, "blocked") {
-			t.Errorf("%q reports %q, want blocked", action, capability.gap)
 		}
 	}
 	if capability := cards["Attachments"]; !strings.Contains(capability.gap, "no Go client helper") {
@@ -85,6 +78,9 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	}
 	if !strings.Contains(reasonApproval, "shell") {
 		t.Errorf("approval %q reason must name the shell's wiring gap", reasonApproval)
+	}
+	if !strings.Contains(reasonBranches, "switching") {
+		t.Errorf("branch reason does not name the missing switch: %q", reasonBranches)
 	}
 }
 

@@ -227,6 +227,8 @@ func applyView(state, view *dimui.State) {
 	state.Connection = view.Connection
 	state.ConnectionError = view.ConnectionError
 	state.ConversationLoading = view.ConversationLoading
+	state.SessionClosed = view.SessionClosed
+	state.SessionClosedReason = view.SessionClosedReason
 	state.Run = view.Run
 	state.Messages = append([]dimui.Message(nil), view.Messages...)
 	state.ModelProgress = view.ModelProgress
@@ -401,9 +403,6 @@ func (a *app) selectSession(id string) {
 	if !ok {
 		return
 	}
-	// Keep the last good view so a failed switch restores the session it was
-	// showing instead of leaving the new title over the old conversation.
-	previousView := a.bridge.LiveState()
 	gen := a.beginSelect()
 	a.state.ConversationLoading = true
 	go func() {
@@ -419,16 +418,19 @@ func (a *app) selectSession(id string) {
 				return
 			}
 			log.Printf("dimagent: open session %q: %v", id, err)
+			// Restore the controller that is current now, not the one captured
+			// before this open: an older open may have completed while this
+			// attempt was in flight. If there is none, clear the selection but
+			// keep the catalog's connection state.
+			restore := a.bridge.LiveState()
 			a.update(func(state *dimui.State) {
-				// The controller open failed, so the bridge still holds the
-				// previous session. Restore its view; with no previous session,
-				// clear the stale selection rather than inventing one.
-				if previousView != nil {
-					state.Selected = previousView.Selected
-					applyView(state, previousView)
+				if !a.selectionCurrent(gen) {
+					return
+				}
+				if restore != nil {
+					state.Selected = restore.Selected
+					applyView(state, restore)
 				} else {
-					// No previous session: clear the stale selection, but keep
-					// the connection state the catalog already established.
 					connection, connectionError := state.Connection, state.ConnectionError
 					applyView(state, &dimui.State{})
 					state.Connection, state.ConnectionError = connection, connectionError
@@ -445,6 +447,9 @@ func (a *app) selectSession(id string) {
 		}
 		view := a.bridge.LiveState()
 		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
 			applyView(state, view)
 			state.Selected = row.ID
 			state.Connection = dimui.ConnReady
@@ -478,10 +483,15 @@ func (a *app) submit(text string) {
 		}
 		view := a.bridge.LiveState()
 		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
 			applyView(state, view)
 			state.Draft = ""
 		})
-		a.notice("submit.accepted", "")
+		if a.selectionCurrent(gen) {
+			a.notice("submit.accepted", "")
+		}
 	}()
 }
 
@@ -495,6 +505,9 @@ func (a *app) reconnect() {
 	sessionID := a.state.Selected
 	gen := a.currentSelection()
 	a.update(func(state *dimui.State) {
+		if !a.selectionCurrent(gen) {
+			return
+		}
 		state.ConversationLoading = true
 		state.ConnectionError = ""
 	})
@@ -514,6 +527,9 @@ func (a *app) reconnect() {
 			}
 			log.Printf("dimagent: reconnect: %v", err)
 			a.update(func(state *dimui.State) {
+				if !a.selectionCurrent(gen) {
+					return
+				}
 				// Another attempt may have healed the connection while this one
 				// was in flight; do not turn a ready session back into an error.
 				if state.Connection == dimui.ConnReady {
@@ -531,6 +547,9 @@ func (a *app) reconnect() {
 		}
 		view := a.bridge.LiveState()
 		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
 			applyView(state, view)
 			state.ActionError = ""
 			state.ConversationLoading = false
@@ -560,8 +579,15 @@ func (a *app) stop() {
 			return
 		}
 		view := a.bridge.LiveState()
-		a.update(func(state *dimui.State) { applyView(state, view) })
-		a.notice("stop.accepted", "")
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			applyView(state, view)
+		})
+		if a.selectionCurrent(gen) {
+			a.notice("stop.accepted", "")
+		}
 	}()
 }
 

@@ -68,6 +68,10 @@ type fakeConfig struct {
 	History      fakeHistoryFunc
 	Methods      any
 	MethodsErr   *fakeRPCError
+	Keys         any
+	KeysErr      *fakeRPCError
+	Branches     any
+	BranchesErr  *fakeRPCError
 	DetachErr    *fakeRPCError
 	InputLookup  fakeInputLookupFunc
 	Mutations    map[string][]fakeMutation
@@ -200,6 +204,30 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, unknownMethod()
 		}
 		return s.cfg.Methods, nil
+	case "session.keys":
+		var p appserver.KeysParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.KeysErr != nil {
+			return nil, s.cfg.KeysErr
+		}
+		if s.cfg.Keys == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.Keys, nil
+	case "session.branches":
+		var p appserver.BranchesParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.BranchesErr != nil {
+			return nil, s.cfg.BranchesErr
+		}
+		if s.cfg.Branches == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.Branches, nil
 	case "session.detach":
 		var p appserver.DetachParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {

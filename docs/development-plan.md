@@ -112,7 +112,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 
 - 纵向闭环未开始：`cmd/dimagent/main.go` 仍是手写 fixture，没有 supervisor → appserver → projection → UI 接线（Milestone 3）。
 - reconnect/re-attach/domain resync 未实现；Milestone 2 任务 5 仍未完成。
-- `session.create`、`session.methods` 和 `session.input_lookup` 已有 Go client/session helper，并由 fake/headless 测试覆盖；其中 `session.methods` 和 `session.input_lookup` 有公开合同依据（`{methods:[{name, mutating}]}`、`{status:"accepted",event}`/`{status:"unknown"}`）。`session.keys`/`session.branches` 未在 public protocol contract 中声明，标 blocked/unverified；`internal/session` 不请求它们，`Keys`/`BranchDirectory` 返回 blocked/empty。`session.create` 尚未接到 UI，input lookup 尚未接到 unknown-result UI；approval mutation UI 和 attachment 上传仍未完成。
+- `session.create`、`session.methods` 和 `session.input_lookup` 已有 Go client/session helper，并由 fake/headless 测试覆盖；其中 `session.methods` 和 `session.input_lookup` 有公开合同依据（`{methods:[{name, mutating}]}`、`{status:"accepted",event}`/`{status:"unknown"}`）。`session.keys`/`session.branches` 的公开 Desktop protocol contract 已有（`session-reader.ts:1041-1074` 调用，`wire.ts:267-303` 定义 DTO）；MyGo 已有 decoder/helper，`internal/session.Open` 已按 capability gate 读取并暴露只读 snapshot；UI branch switching/cut point 与真实验收仍未完成。`session.create` 尚未接到 UI，input lookup 尚未接到 unknown-result UI；approval mutation UI 和 attachment 上传仍未完成。
 - real-daemon 控制面 smoke 已运行：在 `../dim-2` 用 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server` 构建独立 binary，并用 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 驱动 `TestRealDaemonSmoke`；spawn/hello/catalog/close 通过。该证据不覆盖真实 session 流、GUI 或 IME。
 - 真实窗口、中文/emoji IME、复制粘贴/撤销、VoiceOver 和字体 fallback 未验证；`internal/ui` 测试是 headless。
 - 交叉编译只证明能编译，Windows named pipe 和 Linux GUI 运行时未验证。
@@ -136,7 +136,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - Viewmodel：`internal/viewmodel` 把 projection snapshot 映射为 native 行（user/assistant/tool），工具卡片只保留有界 params/result 预览，`RunStateFrom` 只作为状态行提示；不读 daemon、不持有事实。
 - Integration 桥：`internal/integration` 组合 supervisor 的专用 stream、`internal/session` 和 viewmodel，提供 `OpenSession`/`Catalog`/`State`/`Close`；错误前缀、nil session 安全状态和 catalog limit=200 已校验。fake daemon 端到端测试覆盖控制连接 → 流 → 首屏 → rows → catalog → detach。`cmd/dimagent` 在设置 `DIMAGENT_PRODUCT_HOME` 时走 supervisor → catalog → 首个 session → integration.State，未设置时显示未连接；启动/catalog/open 失败显示错误 banner，不回退 fixture。窗口暂不刷新 live 事件。
 - UI tool/run：assistant、user、approval 之外增加 tool 卡片和 `RunRunning`/`RunStopping` 状态行；Stop 入口只在 running 时以 visible-disabled WIP 出现。
-- Session follow-up：`SubmitWithID`/`SubmitBranchWithID` 返回 submission UUID；`Session.LookupInput`/`appserver.InputLookup` 通过 `session.input_lookup` 读回 App Server 结果而不是重发，参数 fail-fast 且不自动重试；wire 响应为 `{status:"accepted",event}` 或 `{status:"unknown"}`，helper 原样返回 JSON。`openFailure` 区分 closed/lost/detached，history 期间 transport loss 仍 fail-fast。`session.keys`/`session.branches` 未在 public protocol contract 中声明，标 blocked/unverified；`internal/session.Open` 不请求它们，`Keys`/`BranchDirectory` 返回 blocked/empty，不合成 snapshot。
+- Session follow-up：`SubmitWithID`/`SubmitBranchWithID` 返回 submission UUID；`Session.LookupInput`/`appserver.InputLookup` 通过 `session.input_lookup` 读回 App Server 结果而不是重发，参数 fail-fast 且不自动重试；wire 响应为 `{status:"accepted",event}` 或 `{status:"unknown"}`，helper 原样返回 JSON。`openFailure` 区分 closed/lost/detached，history 期间 transport loss 仍 fail-fast。`session.keys`/`session.branches` 的公开 Desktop protocol contract 已有；`internal/session.Open` 已按 capability gate 读取，`Keys`/`BranchDirectory` 暴露只读 snapshot，失败降级为空；UI branch switching/cut point 与真实验收仍未完成。
 - UI WIP affordances：`New session`、`Reconnect`（仅在非 ready 时出现）、`Attach file` 和 approval 的 `Approve`/`Deny` 保持可见、dimmed、accessibility 标记 disabled，并用描述说明等待的上游方法；WIP 入口没有点击处理，不会报告 App Server 未执行的成功。Tab 顺序包含这些入口，headless 测试验证其可发现且不伪造成功。
 
 **Verification（实际命令和结果）**
@@ -157,7 +157,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 
 - 窗口目前只渲染启动时的一次快照：`cmd/dimagent` 在设置 `DIMAGENT_PRODUCT_HOME` 时会启动 supervisor、读 catalog 并打开第一个 session，但没有 session 切换、live 事件刷新、submit/stop 或审批决策接线。
 - session 层 re-attach/domain resync 未实现：supervisor 已提供 `Reconnect`、generation 和 `Connection.Done`/`Err`，但 `internal/session` 不会自己重开或重建 attachment，需要上层编排。
-- `session.methods` 读取 helper 已实现（built-in `{name, mutating}`），插件入口和 UI 接线仍未完成；`session.branches`/`session.keys` 未在 public protocol contract 中声明（blocked/unverified），`internal/session` 不请求，accessors 返回 blocked/empty；`session.input_lookup` 已提供 typed/raw read-back helper，响应为 `{status:"accepted",event}`/`{status:"unknown"}`，由调用方按 `status` 解码；`session.create` 已有 client/helper，但尚未接到 UI。unknown-result 仍只返回 submission UUID，调用方需显式读回，绝不自动重发。
+- `session.methods` 读取 helper 已实现（built-in `{name, mutating}`），插件入口和 UI 接线仍未完成；`session.branches`/`session.keys` 的公开 Desktop protocol contract 已有，`internal/session` 已 capability-gated 读取并暴露只读 snapshot，UI 接线与真实验收未完成；`session.input_lookup` 已提供 typed/raw read-back helper，响应为 `{status:"accepted",event}`/`{status:"unknown"}`，由调用方按 `status` 解码；`session.create` 已有 client/helper，但尚未接到 UI。unknown-result 仍只返回 submission UUID，调用方需显式读回，绝不自动重发。
 - approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
 - `internal/session` 的 branch 支持是“每个 branch 独立 reducer/transient/state”，没有 branch directory、cut point 或 side-chat 创建流程。
 - real-daemon 控制面 smoke 已有 opt-in 测试并已通过：使用 `../dim-2` 构建的 binary 验证 spawn/hello/catalog/close；不覆盖真实 session 流、GUI 或 IME。
@@ -297,7 +297,7 @@ Electron 继续作为行为基线，MyGo 作为 preview；双方使用同一 App
 
 已实现的底层组件：
 
-- App Server：`SessionStream` 覆盖订阅先行 attach、head 兜底、通知缓冲/路由、事件幂等和 detach/closed/lost 生命周期；`Submit`/`Stop`/`ApprovalRespond`/`Delete` mutation helpers 覆盖成功、拒绝和 unknown-result 分类；`session.create`、`session.methods`、`session.input_lookup` 已有 client/helper（fake/headless 覆盖）；`session.keys` 仅保留既有 decoder/types（public protocol 未确认）；`session.branches` 保留 decoder 和 `SessionBranches` helper（只用于契约测试）；两者都没有接入 session 读路径。public protocol 未确认，session 不请求且 accessors 返回 blocked/empty；UI 接线仍待完成。
+- App Server：`SessionStream` 覆盖订阅先行 attach、head 兜底、通知缓冲/路由、事件幂等和 detach/closed/lost 生命周期；`Submit`/`Stop`/`ApprovalRespond`/`Delete` mutation helpers 覆盖成功、拒绝和 unknown-result 分类；`session.create`、`session.methods`、`session.input_lookup` 已有 client/helper（fake/headless 覆盖）；`session.keys`/`session.branches` 已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper；`internal/session.Open` 已 capability-gated 读取并暴露只读 snapshot。公开 Desktop protocol contract 已有，UI branch switching/cut point 与真实验收仍待完成。
 - Projection：input text blocks 和 `dim-shell-input` raw block 解码，14 个 golden fixtures；
 - Supervisor QA：dial、spawn、close、endpoint 和 fake daemon 的失败路径与生命周期测试；
 - Native UX：create session、reconnect、attachment 和 approval 决策的 visible-disabled WIP 入口。
@@ -346,7 +346,7 @@ Next action
 - Wave 1 Protocol/Supervisor agent：已实现 `internal/appserver` + `internal/supervisor` 的 headless/fake 子集，见 [Wave 1 进展](#wave-1-进展协议supervisorprojection-和静态壳2026-11-08)。
 - Wave 1 Projection agent：已实现 `internal/projection` 和 12 个 golden fixtures；Wave 2 增至 14 个，见 [Wave 1 进展](#wave-1-进展协议supervisorprojection-和静态壳2026-11-08)。
 - Wave 1 Native UX agent：已实现 `internal/ui` 静态壳和 fixtures，见 [Wave 1 进展](#wave-1-进展协议supervisorprojection-和静态壳2026-11-08)。
-- Wave 2 App Server agent：已实现 `SessionStream`、detach 和四个 mutation helper，以及流所有权/pre-attach 丢弃计数修复（`b0f853f`/`3ebfea3`/`7b0e728`）；`session.create`、`session.methods` 和 `session.input_lookup` 已有 client/helper 与 fake/headless 覆盖；`session.keys`/`session.branches` 保留既有 decoder/types（`SessionBranches` helper 只用于契约测试），没有接入 session 读路径；public protocol 未确认（blocked/unverified），session 不请求且 accessors 返回 blocked/empty，UI 接线仍未完成，见 [Wave 2 进展](#wave-2-进展session-streammutation-helpersinput-blocks-和-wip-入口2026-11-08)。
+- Wave 2 App Server agent：已实现 `SessionStream`、detach 和四个 mutation helper，以及流所有权/pre-attach 丢弃计数修复（`b0f853f`/`3ebfea3`/`7b0e728`）；`session.create`、`session.methods` 和 `session.input_lookup` 已有 client/helper 与 fake/headless 覆盖；`session.keys`/`session.branches` 已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper，`internal/session` 已 capability-gated 读取并暴露只读 snapshot；公开 Desktop protocol contract 已有，UI branch switching/cut point 与真实验收仍未完成，见 [Wave 2 进展](#wave-2-进展session-streammutation-helpersinput-blocks-和-wip-入口2026-11-08)。
 - Wave 2 Session agent：已实现 `internal/session` 组合层（首屏 history + 按 branch projection + transient/terminal 状态）和 `SubmitWithID`，提交 `8c4e7e8`/`064c58a`；尚未接到 UI。
 - Wave 2 Viewmodel agent：已实现 projection snapshot → native 行映射，提交 `36703e9`；尚未接到 UI。
 - Wave 2 Supervisor reconnect agent：已实现 reconnect 单飞、generation、transport 终止原因和 close 竞争修复，提交 `f41f276`/`415908c`/`2eb89f8`。

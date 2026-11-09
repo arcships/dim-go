@@ -24,13 +24,13 @@ type wipCapability struct {
 //
 // The list is per shell state: reconnect is wired once State.OnReconnect is set
 // and turn cancellation once State.OnStop is set, so each is unavailable only
-// while its callback is missing. Branch switching and keys stay blocked because
-// the upstream RPCs are unverified, not because this view forgot to wire them.
+// while its callback is missing. Branch and key reads exist behind the
+// appserver/session helpers; this shell still has no switching/key UI for them.
 func wipCapabilities(s *State) []wipCapability {
 	capabilities := []wipCapability{
 		{"Session creation", "session.create", "helper exists; shell not wired"},
-		{"Branches", "session.branches", "blocked: upstream RPC unverified"},
-		{"Session keys", "session.keys", "blocked: upstream RPC unverified"},
+		{"Branch switching", "session.branches", "helper exists; shell not wired"},
+		{"Session keys", "session.keys", "helper exists; shell not wired"},
 		{"Approvals", "approval.respond", "helper exists; shell not wired"},
 		{"Attachments", "attachment.put", "no Go client helper yet"},
 	}
