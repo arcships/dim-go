@@ -755,3 +755,81 @@ func TestHeaderTruncatesTheProjectAtTheReferenceWidth(t *testing.T) {
 			slash.X, project.X+project.W)
 	}
 }
+
+// TestSessionMenuTogglesPinAndArchive checks the two desktop-local entries: with
+// the window's callbacks wired they are usable, each click reaches the callback
+// exactly once with the selected id, and the label follows the state the next
+// frame reports ("Pin"/"Unpin", "Archive"/"Unarchive"). Nothing here is a
+// session fact; the App Server is not addressed at all.
+func TestSessionMenuTogglesPinAndArchive(t *testing.T) {
+	s := fixture()
+	pins, archives := 0, 0
+	s.OnPinSession = func(sessionID string) {
+		if sessionID != "s1" {
+			t.Errorf("pin got %q, want s1", sessionID)
+		}
+		pins++
+		if len(s.Pinned) == 0 {
+			s.Pinned = []string{sessionID}
+		} else {
+			s.Pinned = nil
+		}
+	}
+	s.OnArchiveSession = func(sessionID string) {
+		if sessionID != "s1" {
+			t.Errorf("archive got %q, want s1", sessionID)
+		}
+		archives++
+		if len(s.Archived) == 0 {
+			s.Archived = []string{sessionID}
+		} else {
+			s.Archived = nil
+		}
+	}
+	tt := ui.NewTester(s.View, 900, 600)
+	openMenu := func() {
+		t.Helper()
+		if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+			t.Fatalf("open the session menu: %v", err)
+		}
+	}
+	item := func(label string) ui.AccessInfo {
+		t.Helper()
+		info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+		if !ok {
+			t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+		}
+		if info.Disabled {
+			t.Errorf("%q is disabled although its callback is wired", label)
+		}
+		return info
+	}
+
+	openMenu()
+	item(tr(LocaleEN, keySidebarPin))
+	clickMenuItem(t, tt, tr(LocaleEN, keySidebarPin))
+	if pins != 1 || len(s.Pinned) != 1 {
+		t.Fatalf("Pin ran %d time(s), pinned=%v, want one pin", pins, s.Pinned)
+	}
+
+	openMenu()
+	item(tr(LocaleEN, keySidebarUnpin))
+	clickMenuItem(t, tt, tr(LocaleEN, keySidebarUnpin))
+	if pins != 2 || len(s.Pinned) != 0 {
+		t.Fatalf("Unpin ran %d time(s) total, pinned=%v, want the second toggle", pins, s.Pinned)
+	}
+
+	openMenu()
+	item(tr(LocaleEN, keySidebarArchive))
+	clickMenuItem(t, tt, tr(LocaleEN, keySidebarArchive))
+	if archives != 1 || len(s.Archived) != 1 {
+		t.Fatalf("Archive ran %d time(s), archived=%v, want one archive", archives, s.Archived)
+	}
+
+	openMenu()
+	item(tr(LocaleEN, keySidebarUnarchive))
+	clickMenuItem(t, tt, tr(LocaleEN, keySidebarUnarchive))
+	if archives != 2 || len(s.Archived) != 0 {
+		t.Fatalf("Unarchive ran %d time(s) total, archived=%v, want the second toggle", archives, s.Archived)
+	}
+}

@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 	"math"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -1059,5 +1060,80 @@ func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
 	account := textBox(t, tt, tr(LocaleZHCN, keySidebarAccount))
 	if gap := height - (account.Y + account.H); math.Abs(float64(gap-k.sidebarPadX)) > 0.5 {
 		t.Errorf("the account row leaves %.1f below it, want the sidebar's %.1f DIP edge", gap, k.sidebarPadX)
+	}
+}
+
+// TestSidebarPinsBeforeProjectGroups checks the desktop-local pinned order: the
+// pinned rows are drawn under their own heading before every project group, in
+// the catalog's order, and the remaining rows keep the catalog's grouping. The
+// pinned ids carry no title or time of their own; the catalog still supplies
+// both.
+func TestSidebarPinsBeforeProjectGroups(t *testing.T) {
+	sessions := []Session{
+		{ID: "s1", Title: "First session", Group: "alpha"},
+		{ID: "s2", Title: "Second session", Group: "beta"},
+		{ID: "s3", Title: "Third session"},
+	}
+	rows := threadRows(sessions, LocaleEN, []string{"s3", "s2"}, nil)
+
+	var got []string
+	for _, row := range rows {
+		if row.group {
+			got = append(got, "["+row.label+"]")
+			continue
+		}
+		got = append(got, row.sessionID)
+	}
+	want := []string{"[" + tr(LocaleEN, keySidebarPinned) + "]", "s2", "s3", "[alpha]", "s1"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("pinned rows = %v, want %v", got, want)
+	}
+	if !rows[0].pinned {
+		t.Error("the pinned heading is not marked as the pinned group")
+	}
+
+	// The frame draws that order: the pinned heading sits above the project
+	// heading and both pinned rows.
+	s := fixture()
+	s.Sessions = sessions
+	s.Selected = "s1"
+	s.Pinned = []string{"s3", "s2"}
+	tt := ui.NewTester(s.View, 900, 800)
+	pinned, ok := tt.Find(tr(LocaleEN, keySidebarPinned))
+	if !ok {
+		t.Fatalf("the pinned heading is not drawn, texts %q", tt.Texts())
+	}
+	alpha, _ := tt.Find("alpha")
+	second, _ := tt.Find("Second session")
+	third, _ := tt.Find("Third session")
+	if !(pinned.Y < second.Y && second.Y < third.Y && third.Y < alpha.Y) {
+		t.Errorf("pinned rows are not before the project group: pinned %+v second %+v third %+v alpha %+v",
+			pinned, second, third, alpha)
+	}
+}
+
+// TestSidebarHidesArchivedRows checks the display filter: an archived session
+// stays in the catalog but is not drawn in the sidebar, so the desktop's hidden
+// list never becomes a second session store.
+func TestSidebarHidesArchivedRows(t *testing.T) {
+	s := fixture()
+	s.Archived = []string{"s2"}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if sidebarRowShown(tt, "Second session") {
+		t.Errorf("the archived session is still a sidebar row, texts %q", tt.Texts())
+	}
+	if !sidebarRowShown(tt, "First session") {
+		t.Errorf("hiding one session dropped another, texts %q", tt.Texts())
+	}
+	if len(s.Sessions) != 2 {
+		t.Fatalf("the desktop hide changed the catalog: %+v", s.Sessions)
+	}
+
+	// The catalog id the list no longer holds draws nothing; the remaining row
+	// is still where it was.
+	rows := threadRows(s.Sessions, LocaleEN, nil, []string{"s2", "missing"})
+	if len(rows) != 1 || rows[0].sessionID != "s1" {
+		t.Fatalf("archived/missing ids produced rows %+v, want s1 only", rows)
 	}
 }

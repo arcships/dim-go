@@ -58,6 +58,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		},
 		Window: Window{X: -1200, Y: 40, Width: 1100, Height: 760, Maximized: true},
 		Drafts: Drafts{"s1": "unfinished message", "s2": "second draft"},
+		Pinned: []string{"s2", "s3"}, Archived: []string{"s4"},
 	}
 	if err := saveFile(path, want, os.Rename); err != nil {
 		t.Fatalf("saveFile: %v", err)
@@ -74,6 +75,10 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got.Drafts, want.Drafts) {
 		t.Fatalf("round trip drafts = %+v, want %+v", got.Drafts, want.Drafts)
+	}
+	if !reflect.DeepEqual(got.Pinned, want.Pinned) || !reflect.DeepEqual(got.Archived, want.Archived) {
+		t.Fatalf("round trip hidden lists = %+v / %+v, want %+v / %+v",
+			got.Pinned, got.Archived, want.Pinned, want.Archived)
 	}
 
 	if info, err := os.Stat(filepath.Dir(path)); err != nil {
@@ -126,8 +131,12 @@ func TestLoadVersion1FileMigrates(t *testing.T) {
 	if got.Window != (Window{}) || got.Drafts != nil {
 		t.Fatalf("version 1 file invented window/drafts: %+v", got)
 	}
+	if got.Pinned != nil || got.Archived != nil {
+		t.Fatalf("version 1 file invented pinned/archived ids: %+v", got)
+	}
 
-	// A save from the older shape keeps the preferences and writes version 2.
+	// A save from the older shape keeps the preferences and writes the current
+	// version.
 	got.Drafts = Drafts{"s1": "typed but not sent"}
 	if err := saveFile(path, got, os.Rename); err != nil {
 		t.Fatalf("saveFile after migrating: %v", err)
@@ -153,6 +162,138 @@ func TestLoadVersion1FileMigrates(t *testing.T) {
 	}
 	if migrated.Settings != wantSettings || migrated.DraftFor("s1") != "typed but not sent" {
 		t.Fatalf("migrated file = %+v, want the preferences and the draft", migrated)
+	}
+}
+
+// TestLoadVersion2FileKeepsItsState checks the shape before the pinned and
+// archived lists existed: its window and drafts still load, the new lists start
+// empty, and the next save rewrites the file in the current shape.
+func TestLoadVersion2FileKeepsItsState(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "settings.json")
+	old := `{
+  "version": 2,
+  "theme": 1,
+  "window": {"x": 10, "y": 20, "width": 900, "height": 640},
+  "drafts": {"s1": "still here"}
+}
+`
+	if err := os.WriteFile(path, []byte(old), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := loadFile(path)
+	if err != nil {
+		t.Fatalf("loadFile of a version 2 file: %v", err)
+	}
+	if got.Settings.Theme != 1 || got.Window.Width != 900 || got.DraftFor("s1") != "still here" {
+		t.Fatalf("version 2 file lost known state: %+v", got)
+	}
+	if got.Pinned != nil || got.Archived != nil {
+		t.Fatalf("version 2 file invented pinned/archived ids: %+v", got)
+	}
+	if err := saveFile(path, got, os.Rename); err != nil {
+		t.Fatalf("saveFile after migrating: %v", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]json.RawMessage
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	var version int
+	if err := json.Unmarshal(doc["version"], &version); err != nil {
+		t.Fatalf("version key: %v", err)
+	}
+	if version != formatVersion {
+		t.Errorf("migrated file version = %d, want %d", version, formatVersion)
+	}
+}
+
+// TestHiddenListsNormalize checks the pinned and archived bounds: duplicates,
+// empty and oversized ids drop, each list is capped, and an id in both lists
+// stays archived because a hidden session never reaches the sidebar where a pin
+// would order it.
+func TestHiddenListsNormalize(t *testing.T) {
+	manyPinned := make([]string, 0, MaxPinnedSessions+5)
+	for i := 0; i < MaxPinnedSessions+5; i++ {
+		manyPinned = append(manyPinned, draftID(i))
+	}
+	manyPinned = append(manyPinned, manyPinned[0], "", strings.Repeat("x", maxDraftSessionID+1))
+	pinned, archived := normalizeHidden(manyPinned, []string{"s1", "s1", ""})
+	if len(pinned) != MaxPinnedSessions {
+		t.Fatalf("pinned count = %d, want at most %d", len(pinned), MaxPinnedSessions)
+	}
+	if len(archived) != 1 || archived[0] != "s1" {
+		t.Fatalf("archived list = %v, want the deduplicated s1", archived)
+	}
+
+	pinned, archived = normalizeHidden([]string{"s1", "s2", "s1"}, []string{"s2"})
+	if !reflect.DeepEqual(pinned, []string{"s1"}) || !reflect.DeepEqual(archived, []string{"s2"}) {
+		t.Fatalf("overlap normalized to %v / %v, want s1 pinned and s2 archived", pinned, archived)
+	}
+
+	manyArchived := make([]string, 0, MaxArchivedSessions+5)
+	for i := 0; i < MaxArchivedSessions+5; i++ {
+		manyArchived = append(manyArchived, draftID(i))
+	}
+	_, archived = normalizeHidden(nil, manyArchived)
+	if len(archived) != MaxArchivedSessions {
+		t.Fatalf("archived count = %d, want at most %d", len(archived), MaxArchivedSessions)
+	}
+}
+
+// TestSetPinnedAndArchived checks the toggles the window calls: pinning and
+// archiving are idempotent, they move an id out of the other list, and removing
+// a session clears both.
+func TestSetPinnedAndArchived(t *testing.T) {
+	state := DefaultState()
+	if !state.SetPinned("s1", true) || !state.IsPinned("s1") {
+		t.Fatalf("SetPinned did not pin s1: %+v", state)
+	}
+	if state.SetPinned("s1", true) {
+		t.Fatal("pinning a pinned session reported a change")
+	}
+	if !state.SetPinned("s1", false) || state.IsPinned("s1") {
+		t.Fatalf("SetPinned(false) did not unpin s1: %+v", state)
+	}
+	if state.Pinned != nil {
+		t.Fatalf("an emptied pinned list is %+v, want nil", state.Pinned)
+	}
+
+	state.SetPinned("s1", true)
+	if !state.SetArchived("s1", true) || state.IsPinned("s1") || !state.IsArchived("s1") {
+		t.Fatalf("archiving did not move s1 out of the pinned list: %+v", state)
+	}
+	if !state.SetPinned("s1", true) || state.IsArchived("s1") || !state.IsPinned("s1") {
+		t.Fatalf("pinning did not move s1 out of the archived list: %+v", state)
+	}
+
+	state.SetArchived("s2", true)
+	state.SetPinned("s2", true)
+	state.Pinned = append(state.Pinned, "s2")
+	state.Archived = append(state.Archived, "s2")
+	state.RemoveSession("s2")
+	if state.IsPinned("s2") || state.IsArchived("s2") {
+		t.Fatalf("RemoveSession left s2 in a list: %+v", state)
+	}
+
+	if state.SetPinned("", true) || state.SetArchived(strings.Repeat("x", maxDraftSessionID+1), true) {
+		t.Fatal("an invalid session id entered a list")
+	}
+}
+
+// TestCloneIsDeepHandler checks that a clone's pinned and archived lists do not
+// share storage with the state the store holds.
+func TestCloneIsDeepHandler(t *testing.T) {
+	state := DefaultState()
+	state.Pinned = []string{"s1"}
+	state.Archived = []string{"s2"}
+	clone := state.Clone()
+	clone.SetPinned("s1", false)
+	clone.SetArchived("s2", false)
+	if !state.IsPinned("s1") || !state.IsArchived("s2") {
+		t.Fatalf("clone changed the original lists: %+v", state)
 	}
 }
 
@@ -354,6 +495,8 @@ func TestSavedFileHoldsWindowAndDrafts(t *testing.T) {
 	state := DefaultState()
 	state.Window = Window{X: 4, Y: 5, Width: 640, Height: 480}
 	state.Drafts = Drafts{"s1": "hello"}
+	state.Pinned = []string{"s1"}
+	state.Archived = []string{"s2"}
 	if err := saveFile(path, state, os.Rename); err != nil {
 		t.Fatalf("saveFile: %v", err)
 	}
@@ -365,7 +508,7 @@ func TestSavedFileHoldsWindowAndDrafts(t *testing.T) {
 	if err := json.Unmarshal(data, &doc); err != nil {
 		t.Fatal(err)
 	}
-	for _, key := range []string{"window", "drafts"} {
+	for _, key := range []string{"window", "drafts", "pinned", "archived"} {
 		if _, ok := doc[key]; !ok {
 			t.Errorf("saved file has no %q key: %s", key, data)
 		}
@@ -474,6 +617,7 @@ func TestPathNamesTheDesktopFile(t *testing.T) {
 // a disk round trip.
 func normalizeState(state State) State {
 	state.Drafts = normalizeDrafts(state.Drafts)
+	state.Pinned, state.Archived = normalizeHidden(state.Pinned, state.Archived)
 	return state
 }
 

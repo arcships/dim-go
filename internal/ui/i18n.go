@@ -123,8 +123,11 @@ const (
 	keySidebarEndBranch     = "sidebar.branch.end"
 	keySidebarThreadActions = "sidebar.threadActions"
 	keySidebarPin           = "sidebar.pin"
+	keySidebarUnpin         = "sidebar.unpin"
+	keySidebarPinned        = "sidebar.pinned"
 	keySidebarRename        = "sidebar.rename"
 	keySidebarArchive       = "sidebar.archive"
+	keySidebarUnarchive     = "sidebar.unarchive"
 	keySidebarDelete        = "sidebar.delete"
 	keyReasonDelete         = "reason.delete"
 
@@ -275,10 +278,17 @@ const (
 	keySidebarSettingsEntry = "sidebar.settings"
 
 	// The centered search palette: its input's placeholder and accessible
-	// name, the recent-chats heading and the empty state.
+	// name, the pinned and recent-chats headings and the empty state.
 	keySearchPlaceholder = "search.placeholder"
+	keySearchPinned      = "search.pinned"
 	keySearchRecent      = "search.recent"
 	keySearchEmpty       = "search.empty"
+
+	// The archived-sessions page: its note, its empty state and the Restore
+	// entry each row carries.
+	keySettingsArchivedNote    = "settings.archived.note"
+	keySettingsArchivedEmpty   = "settings.archived.empty"
+	keySettingsArchivedRestore = "settings.archived.restore"
 )
 
 // stringsEN is the English table, the default and the fallback. Its entries are
@@ -306,8 +316,11 @@ var stringsEN = Strings{
 	keySidebarEndBranch:        "End branch",
 	keySidebarThreadActions:    "Thread actions (unavailable)",
 	keySidebarPin:              "Pin",
+	keySidebarUnpin:            "Unpin",
+	keySidebarPinned:           "Pinned",
 	keySidebarRename:           "Rename",
 	keySidebarArchive:          "Archive",
+	keySidebarUnarchive:        "Unarchive",
 	keySidebarDelete:           "Delete session",
 	keyReasonDelete:            reasonDelete,
 	keySidebarScheduled:        "Scheduled tasks",
@@ -331,8 +344,12 @@ var stringsEN = Strings{
 	keySettingsNavigation:      "Settings sections",
 	keyContextPanelToggle:      "Context panel",
 	keySearchPlaceholder:       "Search chats",
+	keySearchPinned:            "Pinned chats",
 	keySearchRecent:            "Recent chats",
 	keySearchEmpty:             "No chats found",
+	keySettingsArchivedNote:    settingsArchivedNote,
+	keySettingsArchivedEmpty:   "No archived sessions.",
+	keySettingsArchivedRestore: "Restore",
 	"settings.section.account": "Account", "settings.section.usage": "Usage",
 	"settings.section.personalization": "Personalization", "settings.section.general": "General",
 	"settings.section.shortcuts": "Shortcuts", "settings.section.models": "Models",
@@ -503,6 +520,8 @@ var stringsZHCN = Strings{
 	keySidebarEndBranch:        "结束分支",
 	keySidebarThreadActions:    "会话操作（不可用）",
 	keySidebarPin:              "置顶",
+	keySidebarUnpin:            "取消置顶",
+	keySidebarPinned:           "置顶",
 	keySidebarScheduled:        "定时任务",
 	keySidebarSkills:           "技能/插件",
 	keySidebarAccount:          "登录 Dim",
@@ -524,8 +543,12 @@ var stringsZHCN = Strings{
 	keySettingsNavigation:      "设置分区",
 	keyContextPanelToggle:      "上下文面板",
 	keySearchPlaceholder:       "搜索聊天",
+	keySearchPinned:            "置顶聊天",
 	keySearchRecent:            "最近聊天",
 	keySearchEmpty:             "未找到聊天",
+	keySettingsArchivedNote:    "归档只在本机隐藏侧栏里的这一行，不会改动 App Server 上的会话内容；恢复后它会回到侧栏。",
+	keySettingsArchivedEmpty:   "没有已归档的会话。",
+	keySettingsArchivedRestore: "恢复",
 	"settings.section.account": "账户", "settings.section.usage": "用量",
 	"settings.section.personalization": "个性化", "settings.section.general": "通用",
 	"settings.section.shortcuts": "快捷键", "settings.section.models": "模型供应",
@@ -553,6 +576,7 @@ var stringsZHCN = Strings{
 	"settings.gap.externalAgent":   "不可用：外部 Agent 页面尚未实现；本 shell 没有外部 Agent 客户端或页面。",
 	keySidebarRename:               "重命名",
 	keySidebarArchive:              "归档",
+	keySidebarUnarchive:            "取消归档",
 	keySidebarDelete:               "删除会话",
 	keyReasonDelete:                reasonDelete,
 
@@ -565,9 +589,9 @@ var stringsZHCN = Strings{
 	keyReasonUpdate:          "不可用：shell 还没有接到应用的更新检查。",
 	keyReasonSearch:          "不可用：窗口还没有搜索浮层的打开回调，侧栏入口无法打开搜索对话框。",
 	keyReasonGroup:           "不可用：会话行还没有项目或更新时间，shell 无法按项目或日期分组。",
-	keyReasonPin:             "不可用：没有经过验证的 App Server RPC 可以置顶会话，shell 也不保留本地置顶列表。",
+	keyReasonPin:             "不可用：窗口还没有桌面本地的置顶回调。",
 	keyReasonRename:          "不可用：窗口还没有 session.rename 回调。",
-	keyReasonArchive:         "不可用：shell 还没有桌面本地的隐藏会话列表。",
+	keyReasonArchive:         "不可用：窗口还没有桌面本地的归档回调。",
 	keyReasonKeysEntry:       "不可用：没有载入 session.keys 快照时，shell 还没有键浏览器回调。",
 	keyReasonEndBranch:       "不可用：shell 还没有 session.branch_end 回调。",
 	keyReasonRefreshBranches: "不可用：shell 还没有 session.branches 刷新回调。",

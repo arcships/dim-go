@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -238,7 +239,7 @@ func TestSearchPaletteHoverMovesTheSelection(t *testing.T) {
 // every row searchResults makes from the catalog is normal, because the shell
 // holds no per-session run, unread or pin fact.
 func TestSearchPaletteResultStatuses(t *testing.T) {
-	for _, result := range searchResults(searchSessions(), "") {
+	for _, result := range searchResults(searchSessions(), "", nil, nil) {
 		if result.Status != SearchResultNormal {
 			t.Errorf("searchResults gave %q status %d, want the normal row", result.SessionID, result.Status)
 		}
@@ -605,7 +606,7 @@ func TestSearchPaletteLimitsToEight(t *testing.T) {
 	for i := 0; i < 12; i++ {
 		sessions = append(sessions, Session{ID: "s" + strconv.Itoa(i), Title: "Session " + strconv.Itoa(i)})
 	}
-	results := searchResults(sessions, "")
+	results := searchResults(sessions, "", nil, nil)
 	if len(results) != searchMaxResults {
 		t.Fatalf("the palette lists %d recent chats, want %d", len(results), searchMaxResults)
 	}
@@ -678,4 +679,50 @@ func rowShowsText(tt *ui.Tester, box ui.Rect, s string) bool {
 		}
 	}
 	return false
+}
+
+// TestSearchPalettePinsAndHides checks the palette's desktop-local grouping:
+// pinned sessions come first under the pinned heading, the rest stay in the
+// catalog's order under the recent heading, and archived ids are not results at
+// all even though the catalog still holds them.
+func TestSearchPalettePinsAndHides(t *testing.T) {
+	sessions := searchSessions()
+	results := searchResults(sessions, "", []string{"s3", "s1"}, []string{"s2"})
+	var order []string
+	for _, result := range results {
+		order = append(order, result.SessionID)
+	}
+	want := []string{"s1", "s3", "s4"}
+	if !slices.Equal(order, want) {
+		t.Fatalf("results = %v, want %v", order, want)
+	}
+	if !results[0].Pinned || !results[1].Pinned || results[2].Pinned {
+		t.Fatalf("pinned flags = %v/%v/%v, want true/true/false",
+			results[0].Pinned, results[1].Pinned, results[2].Pinned)
+	}
+
+	// The rendered palette draws both headings, pinned first, and never draws
+	// the archived session.
+	s := searchState()
+	s.Pinned = []string{"s2"}
+	s.Archived = []string{"s3"}
+	tt := ui.NewTester(s.View, 900, 1000)
+	openPalette(t, tt)
+	if !tt.HasText(tr(LocaleEN, keySearchPinned)) {
+		t.Errorf("the palette has no pinned heading, texts %q", tt.Texts())
+	}
+	if !tt.HasText(tr(LocaleEN, keySearchRecent)) {
+		t.Errorf("the palette has no recent heading, texts %q", tt.Texts())
+	}
+	pinned, _ := tt.Find(tr(LocaleEN, keySearchPinned))
+	recent, _ := tt.Find(tr(LocaleEN, keySearchRecent))
+	plan := paletteResult(t, tt, "Plan release")
+	fix := paletteResult(t, tt, "Fix flaky tests")
+	if !(pinned.Y < plan.Bounds.Y && plan.Bounds.Y < recent.Y && recent.Y < fix.Bounds.Y) {
+		t.Errorf("pinned result is not above the recent group: pinned %+v plan %+v recent %+v fix %+v",
+			pinned, plan.Bounds, recent, fix.Bounds)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Read notes"); ok {
+		t.Errorf("the archived session is still a palette result, texts %q", tt.Texts())
+	}
 }

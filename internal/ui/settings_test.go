@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -12,11 +13,13 @@ import (
 // route and folds the one change it reports back into the view, as the window
 // will. The route's section selection is its own frame-to-frame state, so it is
 // not part of the view the harness folds; backs counts the Back row and the
-// Escape key, which both call the same callback.
+// Escape key, which both call the same callback, and restores records the
+// archived page's Restore clicks.
 type settingsHarness struct {
 	view         SettingsView
 	capabilities []wipCapability
 	changes      []SettingsChange
+	restores     []string
 	backs        int
 	tt           *ui.Tester
 }
@@ -36,6 +39,8 @@ func newSettingsHarnessAt(view SettingsView, width, height int) *settingsHarness
 			h.view = applySettingsChange(h.view, change)
 		}, func() {
 			h.backs++
+		}, func(sessionID string) {
+			h.restores = append(h.restores, sessionID)
 		})
 	}, width, height)
 	return h
@@ -306,7 +311,11 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 	if len(h.changes) != 0 {
 		t.Fatalf("a navigation click reported %+v, want no preference change", h.changes)
 	}
-	if h.view != before {
+	if h.view.Locale != before.Locale || h.view.Section != before.Section ||
+		h.view.Theme != before.Theme || h.view.FontSize != before.FontSize ||
+		h.view.FontFamily != before.FontFamily || h.view.SidebarWidth != before.SidebarWidth ||
+		h.view.Density != before.Density || h.view.CodeFontSize != before.CodeFontSize ||
+		len(h.view.ArchivedSessions) != len(before.ArchivedSessions) {
 		t.Errorf("a navigation click changed the view to %+v, want %+v", h.view, before)
 	}
 	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "General"); !ok || !info.Selected {
@@ -347,7 +356,7 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 // look like a saved preference.
 func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 	for _, section := range settingsSections {
-		if section == SettingsSectionAppearance {
+		if section == SettingsSectionAppearance || section == SettingsSectionArchivedSessions {
 			continue
 		}
 		name := settingsSectionName(section)
@@ -948,5 +957,83 @@ func TestSettingsRouteTakesTheWholeWindow(t *testing.T) {
 	}
 	if !tt.HasText("hello from the fixture") {
 		t.Errorf("Escape did not restore the conversation, texts %q", tt.Texts())
+	}
+}
+
+// TestSettingsArchivedSessionsPage checks the page that replaced the archived
+// section's WIP card: an empty list explains itself, a list draws the catalog's
+// titles (an untitled session reads the locale's placeholder), and Restore
+// reports the row's id exactly once without changing the list itself.
+func TestSettingsArchivedSessionsPage(t *testing.T) {
+	h := newSettingsHarness(SettingsView{Section: SettingsSectionArchivedSessions})
+	if !h.tt.HasText(tr(LocaleEN, keySettingsArchivedEmpty)) {
+		t.Errorf("the empty archived page does not explain its state, texts %q", h.tt.Texts())
+	}
+	if !h.tt.HasText(tr(LocaleEN, keySettingsArchivedNote)) {
+		t.Errorf("the archived page is missing its note, texts %q", h.tt.Texts())
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySettingsArchivedRestore)); ok {
+		t.Error("the empty archived page offers a Restore entry")
+	}
+
+	h = newSettingsHarness(SettingsView{
+		Section: SettingsSectionArchivedSessions,
+		ArchivedSessions: []ArchivedSession{
+			{SessionID: "s1", Title: "First session"},
+			{SessionID: "s2"},
+		},
+	})
+	if h.tt.HasText(tr(LocaleEN, keySettingsArchivedEmpty)) {
+		t.Errorf("a populated archived page still draws the empty state, texts %q", h.tt.Texts())
+	}
+	if !h.tt.HasText("First session") || !h.tt.HasText(tr(LocaleEN, keySessionUntitled)) {
+		t.Errorf("the archived rows do not show their titles, texts %q", h.tt.Texts())
+	}
+	restore, ok := h.tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySettingsArchivedRestore)+" First session")
+	if !ok {
+		t.Fatalf("the first archived row has no Restore entry, texts %q", h.tt.Texts())
+	}
+	if restore.Disabled {
+		t.Error("the Restore entry is disabled although the window wired it")
+	}
+	h.tt.ClickAt(restore.Bounds.X+restore.Bounds.W/2, restore.Bounds.Y+restore.Bounds.H/2)
+	if !slices.Equal(h.restores, []string{"s1"}) {
+		t.Fatalf("Restore reported %v, want one click on s1", h.restores)
+	}
+	if len(h.view.ArchivedSessions) != 2 {
+		t.Errorf("the page removed the row itself: %+v", h.view.ArchivedSessions)
+	}
+}
+
+// TestArchivedPageListsTheCatalogRows checks the window wiring behind the page:
+// opening Settings > Archived sessions draws exactly the catalog rows its
+// desktop list names, an id the catalog no longer holds draws nothing, and a
+// Restore click reaches the window's callback with that row's id.
+func TestArchivedPageListsTheCatalogRows(t *testing.T) {
+	s := fixture()
+	s.Sessions = append(s.Sessions, Session{ID: "s3"})
+	s.Archived = []string{"s2", "gone", "s3"}
+	restored := []string{}
+	s.OnRestoreSession = func(sessionID string) { restored = append(restored, sessionID) }
+	tt := ui.NewTester(s.View, 900, 900)
+
+	if err := tt.Click(tr(LocaleEN, keySidebarSettingsEntry)); err != nil {
+		t.Fatalf("open Settings: %v", err)
+	}
+	if err := tt.Click(settingsSectionName(SettingsSectionArchivedSessions)); err != nil {
+		t.Fatalf("open Archived sessions: %v", err)
+	}
+	for _, want := range []string{"Second session", tr(LocaleEN, keySessionUntitled)} {
+		if !tt.HasText(want) {
+			t.Errorf("the archived page is missing %q, texts %q", want, tt.Texts())
+		}
+	}
+	restore, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySettingsArchivedRestore)+" Second session")
+	if !ok {
+		t.Fatalf("the archived row has no Restore entry, texts %q", tt.Texts())
+	}
+	tt.ClickAt(restore.Bounds.X+restore.Bounds.W/2, restore.Bounds.Y+restore.Bounds.H/2)
+	if !slices.Equal(restored, []string{"s2"}) {
+		t.Fatalf("Restore reported %v, want one click on s2", restored)
 	}
 }

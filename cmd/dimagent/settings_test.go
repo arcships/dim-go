@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestLoadAppearanceAppliesSavedPreferences(t *testing.T) {
 		Density:      dimui.DensityCompact,
 		CodeFontSize: 16,
 	}
-	if state.Settings != want {
+	if !reflect.DeepEqual(state.Settings, want) {
 		t.Fatalf("settings = %+v, want %+v", state.Settings, want)
 	}
 	if state.SidebarWidth != 320 {
@@ -90,7 +91,7 @@ func TestLoadAppearanceKeepsDefaultsOnError(t *testing.T) {
 	}, nil)
 	a.loadAppearance()
 
-	if state.Settings != settingsView(config.Default()) {
+	if !reflect.DeepEqual(state.Settings, settingsView(config.Default())) {
 		t.Fatalf("settings = %+v, want the defaults %+v", state.Settings, settingsView(config.Default()))
 	}
 	if state.SidebarWidth != config.Default().SidebarWidth {
