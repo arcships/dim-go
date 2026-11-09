@@ -237,10 +237,42 @@ func (f *blockFolds) state(key string) *bool {
 	return open
 }
 
-// ApprovalView is what one approval row draws: the projection's text and the
-// request identities the row still asks about. The decisions go through
-// Actions.OnApproval; the row itself stays until the session projection reports
-// its resolution.
+// ApprovalVariant is the UI option a pending request is drawn with. It names
+// the option, not a wire decision: docs/protocol-contract.md §12 collapses
+// allow_once and allow_all onto approval.respond's "allow" and everything else
+// onto "deny", so the variant changes the region's wording and nothing it
+// sends.
+//
+// The names are the ones the contract and docs/ui-layout-spec.md §5.2 use.
+// approval.request carries no option list (appserver's ApprovalRequest has
+// source, call, reason and no options), so a view may only carry a variant the
+// shell was told about; it derives none from the call name or the source kind.
+// An empty or unknown variant means the options were not named, and the region
+// falls back to plain Approve/Deny instead of inventing allow_once/allow_all.
+type ApprovalVariant string
+
+const (
+	// ApprovalVariantUnspecified is a request whose options the window was not
+	// told: the region draws plain Approve/Deny.
+	ApprovalVariantUnspecified ApprovalVariant = ""
+	// ApprovalVariantAllowOnce is the allow-once option: one approval, no
+	// persisted grant. It collapses to approval.respond's "allow".
+	ApprovalVariantAllowOnce ApprovalVariant = "allow_once"
+	// ApprovalVariantAllowAll is the always-allow option. It collapses to the
+	// same "allow" on the wire, but the persistent grant it promises goes
+	// through session.grants.add, which the shell does not call yet. The
+	// region draws it as a WIP entry rather than answering once in its place.
+	ApprovalVariantAllowAll ApprovalVariant = "allow_all"
+	// ApprovalVariantRejectOnce is the reject-once option. It collapses to
+	// approval.respond's "deny".
+	ApprovalVariantRejectOnce ApprovalVariant = "reject_once"
+)
+
+// ApprovalView is what one approval row draws: the projection's text, the
+// request identities the row still asks about, the primary request's input as
+// a read-only block, and the UI option the requests are drawn with. The
+// decisions go through Actions.OnApproval; the row itself stays until the
+// session projection reports its resolution.
 type ApprovalView struct {
 	// Text is the row's body, as the transient projection gives it. The region
 	// adds no reason of its own.
@@ -251,6 +283,19 @@ type ApprovalView struct {
 	// visible, disabled and explained instead of sending a decision nobody can
 	// address.
 	Pending []Approval
+	// InputDisplay is the primary request's tool input already rendered for
+	// display: the command line or arguments of ApprovalRequest.Call.Input,
+	// copied by the shell. The region draws it read-only, monospaced and
+	// bounded; it parses no JSON and adds no field of its own. Empty means the
+	// request had no input payload, and the region draws no block rather than an
+	// empty one.
+	InputDisplay string
+	// Variant is the UI option the pending requests are drawn with, as named by
+	// docs/protocol-contract.md §12 and docs/ui-layout-spec.md §5.2. It changes
+	// the decisions' labels only; a click always sends the same allow/deny
+	// decision through Actions.OnApproval, and allow_all stays a WIP entry since
+	// its grant needs session.grants.add (not implemented).
+	Variant ApprovalVariant
 }
 
 // ComposerView is what the composer region draws: the draft it edits and the
