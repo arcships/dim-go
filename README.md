@@ -57,9 +57,21 @@ DIMAGENT_PRODUCT_HOME="$HOME/.dimcode/v2" go run ./cmd/dimagent
 
 版本决策和实测结果见 [进度归档](docs/archive/progress-2026-11.md#milestone-0-进展toolchain-和最小窗口2026-11-08)。
 
+## 打包
+
+macOS 本地 `.app`（开发件，未公证）：
+
+```bash
+scripts/package-macos.sh --out /tmp/dimagent-app --version 0.1.0
+open -a /tmp/dimagent-app/DimAgent.app
+```
+
+产物在 `/tmp/dimagent-app/DimAgent.app`，`Info.plist` 声明 `dimagent://thread/<session-id>` 深链。默认 ad-hoc 签名，没有 Developer ID、公证和安装器，不能当发布件；如果系统里已安装同样声明 `dimagent` 的 DimAgent，默认 handler 仍归它，本地 bundle 用 `open -a <路径>` 验证。命令参数、产物结构、深链注册方式和本地验证步骤见[发布与打包](docs/release.md)。
+
 ## 参考
 
 - [MyGo Native UI 组件调查](docs/mygo-native-components.md)
+- [发布与打包](docs/release.md)
 - [项目流程](docs/workflow.md)
 - [验收矩阵](docs/acceptance.md)
 - [开发计划](docs/development-plan.md)
