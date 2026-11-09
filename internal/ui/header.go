@@ -89,7 +89,7 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	ui.Row(c).Role(ui.RoleToolbar).Label(tr(locale, keyHeaderRegion)).
 		Gap(k.gapWide).MinHeight(k.headerH).Padding(k.toolbarPadY, k.toolbarPadX, k.toolbarPadY, breadcrumbLeftPad).AlignItems(ui.Center).
-		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
+		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Transition(motionLayoutColors(c)).Children(func() {
 		if !v.HasSession {
 			// No session: no breadcrumb, no menu and no run row, only the space
 			// that keeps what remains at the toolbar's end.
@@ -111,7 +111,7 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			if a.OnStop == nil {
 				wipAction(c, k, tr(locale, keyHeaderStop), tr(locale, keyReasonStop))
 			} else {
-				ui.Button(c, tr(locale, keyHeaderStop)).OnClick(a.OnStop)
+				ui.Button(c, tr(locale, keyHeaderStop)).OnClick(a.OnStop).Transition(motionFastColors(c))
 			}
 		}
 		// A healthy connection has nothing to reconnect, a reconnect in flight
@@ -121,7 +121,7 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			if a.OnReconnect == nil {
 				wipAction(c, k, tr(locale, keyHeaderReconnect), tr(locale, keyReasonReconnect))
 			} else {
-				ui.Button(c, tr(locale, keyHeaderReconnect)).OnClick(a.OnReconnect)
+				ui.Button(c, tr(locale, keyHeaderReconnect)).OnClick(a.OnReconnect).Transition(motionFastColors(c))
 			}
 		}
 		// The reference draws its editor-open control at the bar's right end: a
@@ -175,9 +175,9 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	label := tr(locale, keyHeaderMenu)
-	button := ui.ButtonBase(c).Size(menuTargetW, k.sidebarEntryH).
+	button := ui.ButtonBase(c).Key("header-menu").Size(menuTargetW, k.sidebarEntryH).
 		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
-		Label(label).Tooltip(label)
+		Label(label).Tooltip(label).Transition(motionFastColors(c))
 	if button.Hovered() {
 		button.Background(k.sidebarHover)
 	}
@@ -237,8 +237,8 @@ func menuWIP(m *ui.Menu, label, reason string) {
 // headerDivider is the hairline between the editor entry and the context panel
 // toggle, as the reference draws a vertical rule before its panel switch.
 func headerDivider(c *ui.Context, k tokens) {
-	ui.Box(c).Width(k.hairline).Height(k.sidebarEntryH).Shrink(0).
-		Background(k.border).AccessHidden(true)
+	ui.Box(c).Key("header-divider").Width(k.hairline).Height(k.sidebarEntryH).Shrink(0).
+		Background(k.border).Transition(motionLayoutColors(c)).AccessHidden(true)
 }
 
 // openInEditorEntry draws the reference's editor-open control as a visible WIP
@@ -252,10 +252,11 @@ func headerDivider(c *ui.Context, k tokens) {
 func openInEditorEntry(c *ui.Context, k tokens, locale Locale) {
 	label := tr(locale, keyHeaderOpenInEditor)
 	reason := tr(locale, keyReasonOpenInEditor)
-	entry := ui.ButtonBase(c).Height(k.sidebarEntryH).Radius(radiusSM).
+	entry := ui.ButtonBase(c).Key("header-editor").Height(k.sidebarEntryH).Radius(radiusSM).
 		BorderWidth(k.hairline).BorderColor(k.border).AlignItems(ui.Center).
 		Label(label).Description(reason).Tooltip(reason).
-		Disabled(true).DimDisabled(false).AccessDisabled(true).Shrink(0)
+		Disabled(true).DimDisabled(false).AccessDisabled(true).Shrink(0).
+		Transition(motionFastColors(c))
 	entry.Children(func() {
 		ui.Box(c).Width(openInEditorCell).Height(k.sidebarEntryH).Center().Children(func() {
 			ui.Icon(c, openInEditorGlyph).Size(sidebarIconSize, sidebarIconSize).
@@ -293,9 +294,10 @@ func deleteConfirmation(c *ui.Context, k tokens, v HeaderView, a Actions) {
 // and the next frame draws the state it wrote. The entry keeps the hover face
 // while the panel is open, so its state is visible without a tooltip.
 func contextPanelToggle(c *ui.Context, k tokens, v HeaderView, a Actions) {
-	toggle := ui.ButtonBase(c).Size(k.sidebarEntryH, k.sidebarEntryH).
+	toggle := ui.ButtonBase(c).Key("header-context-panel").Size(k.sidebarEntryH, k.sidebarEntryH).
 		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
-		Label(tr(v.Locale, keyContextPanelToggle)).Tooltip(tr(v.Locale, keyContextPanelToggle))
+		Label(tr(v.Locale, keyContextPanelToggle)).Tooltip(tr(v.Locale, keyContextPanelToggle)).
+		Transition(motionFastColors(c))
 	if v.ContextPanelOpen || toggle.Hovered() {
 		toggle.Background(k.sidebarHover)
 	}

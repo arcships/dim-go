@@ -2,9 +2,88 @@ package ui
 
 import (
 	"math"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
+
+// The shell's motion steps, from dim-electron's stylesheet: a layout or panel
+// change takes 250 ms on cubic-bezier(0.4, 0, 0.2, 1), and a control's colors
+// 150 ms on cubic-bezier(0.23, 1, 0.32, 1). They are the reference's
+// --layout-transition-ms and --ease-in-out, and the transition Tailwind
+// attaches to its buttons
+// (transition-[color,background-color,border-color,box-shadow,transform]).
+// The reference's 300 ms image fade is not here: the shell draws no image that
+// fades in.
+const (
+	motionFast   = 150 * time.Millisecond
+	motionLayout = 250 * time.Millisecond
+)
+
+// The curves are CSS cubic-bezier() through mygo's solver, so a fraction of
+// the elapsed time maps to the same progress the reference's CSS asks for.
+var (
+	motionEaseOut   = ui.CubicBezier(0.23, 1, 0.32, 1)
+	motionEaseInOut = ui.CubicBezier(0.4, 0, 0.2, 1)
+)
+
+// motionColors is a transition of an element's colors: a control's hover face
+// at the fast step, or a surface's theme change at the layout step. While the
+// desktop asks for less motion mygo keeps color fades going, so the Duration
+// is negative instead: a negative Duration shows the new colors at once, which
+// is the shell's motion-reduce path.
+func motionColors(c *ui.Context, d time.Duration, ease ui.Easing) ui.ElementTransition {
+	if c.Preferences().ReduceMotion {
+		d = -1
+	}
+	return ui.ElementTransition{Duration: d, Ease: ease, Colors: true}
+}
+
+// motionFastColors is the 150 ms color step of a sidebar row, a toolbar entry
+// or a composer control under the pointer.
+func motionFastColors(c *ui.Context) ui.ElementTransition {
+	return motionColors(c, motionFast, motionEaseOut)
+}
+
+// motionLayoutColors is the 250 ms color step of a surface that changes with
+// the theme, as the reference transitions every color on a theme switch.
+func motionLayoutColors(c *ui.Context) ui.ElementTransition {
+	return motionColors(c, motionLayout, motionEaseInOut)
+}
+
+// motionPanel is the appearance and disappearance of a panel that takes the
+// main column or sits beside it: the layout timing and curve, position, size
+// and colors so the room it takes moves with it, and a small fade-and-lift so
+// it does not pop. The caller keeps the panel's identity with a Key, so mygo
+// animates the same panel from frame to frame instead of replacing it.
+func motionPanel(c *ui.Context) ui.ElementTransition {
+	t := ui.ElementTransition{
+		Duration: motionLayout,
+		Ease:     motionEaseInOut,
+		Position: true,
+		Size:     true,
+		Colors:   true,
+		Enter:    &ui.Motion{Opacity: 0, Y: 4},
+		Exit:     &ui.Motion{Opacity: 0, Y: 4},
+	}
+	if c.Preferences().ReduceMotion {
+		t.Duration = -1
+		t.ExitDuration = -1
+	}
+	return t
+}
+
+// motionSidePanel is motionPanel for a panel beside the conversation, whose
+// room the layout gives it in a row: it opens by collapsing its width, so the
+// conversation gives the room up smoothly instead of jumping narrow, and goes
+// the same way. The enter starts transparent as well, so the content does not
+// pop into a zero-width box.
+func motionSidePanel(c *ui.Context) ui.ElementTransition {
+	t := motionPanel(c)
+	t.Enter = &ui.Motion{Opacity: 0, Collapse: true}
+	t.Exit = &ui.Motion{Opacity: 0, Collapse: true}
+	return t
+}
 
 // The shell's type steps, as fractions of the UI font size: the shell's own
 // scale on top of the step in force, so that a larger theme text size or a

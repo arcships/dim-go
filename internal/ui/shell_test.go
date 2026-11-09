@@ -5,6 +5,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -397,6 +398,9 @@ func TestShellTogglesTheContextPanel(t *testing.T) {
 	if !tt.HasText("hello from the fixture") {
 		t.Errorf("the conversation left the main column when the panel opened, texts %q", tt.Texts())
 	}
+	// The panel opens by collapsing its width, so give it the layout step
+	// before its rows have a visible area to click.
+	tt.Advance(motionLayout + time.Millisecond)
 	// The panel still writes the caller's own view state: a file click lands
 	// in the pointer the caller passed and the detail follows it.
 	if err := tt.Click("client.go"); err != nil {

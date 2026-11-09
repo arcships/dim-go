@@ -404,7 +404,7 @@ func (s *State) View(c *ui.Context) {
 		ui.Column(c).FillHeight().Padding(k.framePad, k.framePad, k.framePad, 0).Children(func() {
 			ui.Column(c).Grow(1).FillWidth().
 				Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
-				Background(k.card).Role(ui.RoleGroup).Label("Main area").
+				Background(k.card).Transition(motionLayoutColors(c)).Role(ui.RoleGroup).Label("Main area").
 				Children(func() {
 					// The reference has no application bar in the empty state: the
 					// session column's card starts at the frame and the hero carries
@@ -438,7 +438,10 @@ func (s *State) View(c *ui.Context) {
 								// The keys browser takes the conversation's place. It reads the
 								// snapshot the caller supplied and sends no request.
 								s.Keys.Selected = &s.keysSelected
-								renderKeysPanel(c, k, &s.Keys, a)
+								ui.Column(c).Key("keys-panel").Grow(1).FillHeight().FillWidth().
+									Transition(motionPanel(c)).Children(func() {
+									renderKeysPanel(c, k, &s.Keys, a)
+								})
 							default:
 								// An empty, loaded and open session shows the hero instead of the
 								// projection's empty row; a closed session or a pending approval
@@ -532,7 +535,8 @@ func (s *State) contextPanelShown() bool {
 // selection and folds.
 func (s *State) contextPanelColumn(c *ui.Context, k tokens, a Actions) {
 	width := clampContextPanelWidth(contextPanelW)
-	ui.Column(c).Width(width).Shrink(1).MinWidth(0).FillHeight().Clip().Children(func() {
+	ui.Column(c).Key("context-panel").Width(width).Shrink(1).MinWidth(0).FillHeight().Clip().
+		Transition(motionSidePanel(c)).Children(func() {
 		v := s.ContextPanel
 		v.Width = width
 		renderContextPanel(c, k, v, a)

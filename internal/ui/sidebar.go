@@ -270,6 +270,7 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	}
 	sessions := v.visibleSessions()
 	ui.Column(c).FillHeight().Clip().Background(k.sidebar).
+		Transition(motionLayoutColors(c)).
 		Role(ui.RoleNavigation).Label(tr(locale, keySidebarNavigation)).Children(func() {
 		sidebarEntries(c, k, v, a)
 		threadListHeader(c, k, locale)
@@ -357,8 +358,9 @@ const reasonKeysEntry = "Unavailable: the shell has no key browser callback whil
 // its surface. The glyph is decorative: the label is the entry's accessible
 // name.
 func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, enabled, disabled, selected bool, on func()) {
-	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
-		PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center)
+	row := ui.ButtonBase(c).Key("sidebar-entry:" + label).Height(k.sidebarEntryH).FillWidth().
+		PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center).
+		Transition(motionFastColors(c))
 	row.Label(label)
 	if enabled {
 		row.OnClick(on)
@@ -462,7 +464,7 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		}).Grow(1).MinHeight(k.sidebarRowH*2).
 			// The list paints its own face over the column, so it takes the sidebar's
 			// tint instead of the window background.
-			Background(k.sidebar).
+			Background(k.sidebar).Transition(motionLayoutColors(c)).
 			Padding(k.sidebarGap, k.sidebarPadX).
 			Label(tr(locale, keySidebarSessions)).OnChange(func() {
 			chooseSession(v, a)
@@ -509,8 +511,8 @@ func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 // where window-conversation.png draws them.
 func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()) {
 	if row.group {
-		ui.Row(c).Height(k.sidebarEntryH).PaddingX(k.sidebarPadX).Gap(k.sidebarGap).
-			Background(k.sidebar).AlignItems(ui.Center).Children(func() {
+		ui.Row(c).Key("thread-group:" + row.label).Height(k.sidebarEntryH).PaddingX(k.sidebarPadX).Gap(k.sidebarGap).
+			Background(k.sidebar).Transition(motionLayoutColors(c)).AlignItems(ui.Center).Children(func() {
 			sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
 			ui.Text(c, row.label).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
 			ui.Spacer(c)
@@ -518,8 +520,8 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 		return
 	}
 	selected := row.sessionID == *v.Selected
-	line := ui.Row(c).Height(k.sidebarRowH).PaddingX(k.sidebarGap).Gap(k.sidebarGap).
-		Radius(radiusMD).AlignItems(ui.Center)
+	line := ui.Row(c).Key("thread:" + row.sessionID).Height(k.sidebarRowH).PaddingX(k.sidebarGap).Gap(k.sidebarGap).
+		Radius(radiusMD).AlignItems(ui.Center).Transition(motionFastColors(c))
 	if on != nil {
 		line.OnClick(on)
 	}
@@ -577,9 +579,10 @@ func sidebarAccount(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		// button's accessible name and tooltip, but no visible word sits beside
 		// the glyph.
 		label := tr(locale, keySidebarSettingsEntry)
-		settings := ui.ButtonBase(c).Height(k.sidebarFooterH).
+		settings := ui.ButtonBase(c).Key("sidebar-settings").Height(k.sidebarFooterH).
 			PaddingX(k.sidebarPadX).AlignItems(ui.Center).
-			Label(label).Tooltip(label).OnClick(a.OnOpenSettings).Shrink(1)
+			Label(label).Tooltip(label).OnClick(a.OnOpenSettings).Shrink(1).
+			Transition(motionFastColors(c))
 		settings.Children(func() {
 			sidebarGlyph(c, sidebarIcons.gear, k.sidebarForeground)
 		})
@@ -593,10 +596,10 @@ func sidebarAccount(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // assistive technology.
 func accountEntry(c *ui.Context, k tokens, locale Locale) {
 	label := tr(locale, keySidebarAccount)
-	button := ui.ButtonBase(c).Height(k.sidebarFooterH).
+	button := ui.ButtonBase(c).Key("sidebar-account").Height(k.sidebarFooterH).
 		PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).
 		Label(label).AccessDisabled(true).Description(reasonAccount).Tooltip(reasonAccount).
-		Opacity(wipOpacity).Shrink(1)
+		Opacity(wipOpacity).Shrink(1).Transition(motionFastColors(c))
 	button.Children(func() {
 		sidebarGlyph(c, sidebarIcons.user, k.sidebarForeground)
 		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.sidebarForeground).SingleLine()
