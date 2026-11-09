@@ -110,6 +110,12 @@ type Actions struct {
 	// only displays what the caller already read. While this field is nil the
 	// entry stays a WIP statement and opening the browser sends no request.
 	OnToggleKeys func()
+	// OnToggleContextPanel is called by the toolbar's context panel entry and
+	// toggles the changed-file panel beside the conversation. The shell owns the
+	// entry and the panel's visibility, so this field carries no caller callback:
+	// the panel displays the caller's ContextPanelView copy and starts no App
+	// Server read. While this field is nil the entry is absent.
+	OnToggleContextPanel func()
 }
 
 // SidebarView is what the sidebar region draws: the session catalog, the
@@ -242,6 +248,14 @@ type HeaderView struct {
 	// SettingsOpen is the window's record that the appearance surface is
 	// showing. The toolbar's entry reads "Settings" or "Conversation" from it.
 	SettingsOpen bool
+	// KeysOpen is the window's record that the keys browser is showing in the
+	// main column. The context panel entry is absent while it is set, since the
+	// conversation the panel sits beside is not on screen.
+	KeysOpen bool
+	// ContextPanelOpen is the window's record that the context panel is showing
+	// beside the conversation. The toolbar's entry reads its state from it and
+	// toggles it through Actions.OnToggleContextPanel.
+	ContextPanelOpen bool
 	// Locale is the language of the toolbar's own text: the Stop, Reconnect and
 	// Settings entries, the status prefixes and the terminal-close banner. The
 	// run and connection names, the session title and an error string are not
@@ -461,3 +475,10 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 func renderKeysPanel(c *ui.Context, k tokens, v *KeysPanelView, a Actions) {
 	keysPanel(c, k, v, a)
 }
+
+// renderContextPanel, in context_panel.go, is the frozen entry of the context
+// panel: the changed-file tree and the selected file's diff or preview, drawn
+// beside the conversation while the shell's own toggle is on. It writes
+// ContextPanelView.Selected on a file click and the directory's fold through
+// ContextPanelView.Expanded; it calls no Actions field, because the panel
+// displays the caller's copy and starts no App Server read.

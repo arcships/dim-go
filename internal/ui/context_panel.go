@@ -13,12 +13,14 @@
 // the region contract (see protocols.go and docs/ui-component-protocols.md §1)
 // if one is added.
 //
-// TODO(protocol): this branch adds the region on its own. protocols.go has no
-// renderContextPanel wrapper and no view in its contract yet, and nothing in
-// the shell reads changed files, diffs or previews to fill ContextPanelView
-// from, so shell.View does not call the entry yet. It is ready to be called
-// directly once the protocol owner registers the wrapper and records the view
-// in docs/ui-component-protocols.md §2.
+// Protocol note: shell.View draws this entry beside the conversation while
+// State.ShowContextPanel is on, through the State.contextPanelColumn helper,
+// and protocols.go records the entry. The shell still reads no changed files,
+// diffs or previews of its own, so State.ContextPanel stays a caller-supplied
+// display copy and starts as a zero view, which the panel draws as its WIP
+// statement. docs/ui-component-protocols.md §2 does not list the view yet;
+// that page is owned elsewhere and is reported as a follow-up rather than
+// edited here.
 //
 // Geometry: docs/ui-layout-spec.md §7 puts the context panel out of its
 // measured scope, so the numbers below are this component's own. Where
@@ -60,6 +62,30 @@ const (
 // content width from a ui.Context, so ContextPanelView.Width carries the room
 // it was given, and a zero Width means unmeasured and draws every column.
 const contextPanelNarrowW = 280
+
+// The context panel's own width in DIPs, as the layout gives it beside the
+// conversation: 320 is the reference's right panel, and the bounds keep a
+// future resize or preference from taking the conversation's room. The shell
+// draws the panel at contextPanelW; the row shrinks it below that when the
+// window is too narrow to show both, rather than pushing the card past the
+// window's edge.
+const (
+	contextPanelW    = 320
+	contextPanelMinW = 240
+	contextPanelMaxW = 400
+)
+
+// clampContextPanelWidth keeps a width the layout asks for between the panel's
+// bounds, as the sidebar's clamp does for the session list.
+func clampContextPanelWidth(w float32) float32 {
+	if w < contextPanelMinW {
+		return contextPanelMinW
+	}
+	if w > contextPanelMaxW {
+		return contextPanelMaxW
+	}
+	return w
+}
 
 // contextPanelTreeShare caps the file tree's height as a percentage of the
 // panel, so the detail below it keeps its place in a short window. The tree
