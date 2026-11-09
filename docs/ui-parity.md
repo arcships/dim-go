@@ -173,6 +173,15 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 
 这些只说明结构已补上，不等于像素对齐：还没有把两边同状态截图并排比较，也没有逐区域记录差异。
 
+### 5.2 首轮并排与取样（2026-11-09）
+
+- 并排图：[`evidence/ui-parity/compare-empty.png`](evidence/ui-parity/compare-empty.png)（Electron workspace ↔ MyGo 空态）、[`compare-settings.png`](evidence/ui-parity/compare-settings.png)（设置面）。
+- 取样 light：Electron 侧栏 `#E9EDF2`、卡片 `#FFFFFF`；MyGo 侧栏 `#F4F4F5`、卡片 `#FFFFFF`。侧栏仍比参考浅约 4%，层级方向一致。
+- 取样 dark：Electron 卡片亮于背景；MyGo 背景 `#18181B`、卡片 `#343436`、popover `#424244`、侧栏 `#27272A`，方向一致。
+- 本轮修复：elevation 从“朝 foreground 混”（light 下把卡片压到背景以下）改为“朝白色提升”；侧栏列表补 `Background(k.sidebar)`，不再被 `ui.List` 默认背景覆盖。
+
+仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome。
+
 ## 6. 结论复述
 
 - **不是 1:1**。B 已有 35 个颜色字段的语义层，但没有 A 的 skin/chrome 第三层；约 13/19 个组件目录仍无对应物，sidebar、chat-workspace、markdown、settings、context-panel/right-panel、statusbar 为部分完成。
