@@ -221,17 +221,20 @@ type State struct {
 	Messages []Message
 	Draft    string
 
-	// OnSelect, OnCreateSession, OnSubmit, OnStop, OnReconnect and OnApproval
-	// connect the shell's actions to the caller's session controller. They are
-	// the only wiring source of the Actions a region receives; a nil field
-	// leaves its action in the view without an effect, as a fixture does, and
-	// the region keeps its WIP entry. The callback owns the App Server call and
-	// the facts it returns, so the shell never reports an action it did not
-	// send. OnCreateSession asks the caller to run session.create and to publish
-	// the new session in the catalog and the selection once the App Server
+	// OnSelect, OnSelectBranch, OnCreateSession, OnSubmit, OnStop, OnReconnect
+	// and OnApproval connect the shell's actions to the caller's session
+	// controller. They are the only wiring source of the Actions a region
+	// receives; a nil field leaves its action in the view without an effect, as
+	// a fixture does, and the region keeps its WIP entry. The callback owns the
+	// App Server call and the facts it returns, so the shell never reports an
+	// action it did not send. OnCreateSession asks the caller to run
+	// session.create and to publish the new session in the catalog and the
+	// selection once the App Server returned it. OnSelectBranch asks the caller
+	// to read that branch's history and to show it only once the App Server
 	// returned it. OnApproval receives one decision for one request: the caller
 	// sends approval.respond and lets the session projection settle the row.
 	OnSelect        func(sessionID string)
+	OnSelectBranch  func(branchID string)
 	OnCreateSession func()
 	OnSubmit        func(text string)
 	OnStop          func()
@@ -298,6 +301,7 @@ func (s *State) actions() Actions {
 	return Actions{
 		OnCreateSession: s.OnCreateSession,
 		OnSelect:        s.OnSelect,
+		OnSelectBranch:  s.OnSelectBranch,
 		OnSubmit:        s.OnSubmit,
 		OnStop:          s.OnStop,
 		OnReconnect:     s.OnReconnect,

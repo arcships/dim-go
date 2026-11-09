@@ -16,6 +16,7 @@ import (
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
 	"github.com/arcships/dimagent-mygo/internal/integration"
+	"github.com/arcships/dimagent-mygo/internal/session"
 	"github.com/arcships/dimagent-mygo/internal/supervisor"
 	dimui "github.com/arcships/dimagent-mygo/internal/ui"
 )
@@ -25,6 +26,16 @@ import (
 // it small lets tests substitute a session without a daemon.
 type sessionActions interface {
 	LiveState(summary appserver.SessionSummary) *dimui.State
+	// StateForBranch builds the view of one branch from the session's own
+	// projection, so a branch the window opened shows that branch's history
+	// instead of the default one.
+	StateForBranch(summary appserver.SessionSummary, branchID string) *dimui.State
+	// OpenBranch reads one branch's first-screen history. Branch switching has
+	// no RPC of its own: the read is session.history for that branchId.
+	OpenBranch(ctx context.Context, branchID string) (session.BranchOpenResult, error)
+	// SessionBranchID is the branch the controller submits and stops on. The
+	// window may display another branch, so a read-back must name this one.
+	SessionBranchID() string
 	Submit(ctx context.Context, text string) (appserver.SubmitResult, error)
 	// SubmitWithID also returns the submission id, which is the only key
 	// session.input_lookup accepts when a submit's outcome is unknown.
@@ -101,6 +112,45 @@ func (b *sessionBridge) LiveState() *dimui.State {
 		return nil
 	}
 	return controller.LiveState(summary)
+}
+
+// LiveStateFor returns the controller's view for one branch of the selected
+// session. A sessionID that no longer belongs to the attached controller yields
+// nil, so a view read for an older selection is never published; an empty
+// branchID asks for the session's default branch.
+func (b *sessionBridge) LiveStateFor(sessionID, branchID string) *dimui.State {
+	controller, summary := b.current()
+	if controller == nil {
+		return nil
+	}
+	if sessionID != "" && summary.SessionID != sessionID {
+		return nil
+	}
+	return controller.StateForBranch(summary, branchID)
+}
+
+// OpenBranchFor opens one branch through the controller that still belongs to
+// sessionID. The read is the App Server's; the result is not turned into local
+// branch state here.
+func (b *sessionBridge) OpenBranchFor(ctx context.Context, sessionID, branchID string) error {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return err
+	}
+	_, err = controller.OpenBranch(ctx, branchID)
+	return err
+}
+
+// SessionBranchID reports the branch the controller submits and stops on. It is
+// the session layer's own branch: the window's displayed branch may differ until
+// branch-aware submit is wired, and a read-back must name the one the App
+// Server received.
+func (b *sessionBridge) SessionBranchID() string {
+	controller, _ := b.current()
+	if controller == nil {
+		return ""
+	}
+	return controller.SessionBranchID()
 }
 
 // SubmitFor sends text through the controller that still belongs to sessionID.
@@ -356,8 +406,14 @@ type app struct {
 	bridge *sessionBridge
 	win    *mygo.Window
 
-	mu            sync.Mutex
-	selectGen     uint64
+	mu        sync.Mutex
+	selectGen uint64
+	// branchGen and branch are the window's branch display choice: branchGen
+	// grows on every branch request and on every session selection, so a read
+	// that belongs to an older choice is dropped, and branch is the branch the
+	// window shows, moved only after the App Server opened it.
+	branchGen     uint64
+	branch        string
 	refreshCancel context.CancelFunc
 	// updateHook is test-only; production updates run through Window.Update.
 	updateHook func(func(*dimui.State))
@@ -372,6 +428,7 @@ type app struct {
 
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
+	a.state.OnSelectBranch = a.selectBranch
 	a.state.OnCreateSession = a.createSession
 	a.state.OnSubmit = a.submit
 	a.state.OnStop = a.stop
@@ -404,11 +461,15 @@ func (a *app) session(id string) (dimui.Session, bool) {
 	return dimui.Session{}, false
 }
 
-// beginSelect records a new selection and returns its generation.
+// beginSelect records a new selection and returns its generation. It also
+// forgets the branch the previous session displayed: a branch read still in
+// flight belongs to that session and must not land on the new one.
 func (a *app) beginSelect() uint64 {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.selectGen++
+	a.branchGen++
+	a.branch = ""
 	return a.selectGen
 }
 
@@ -424,6 +485,64 @@ func (a *app) selectionCurrent(gen uint64) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return a.selectGen == gen
+}
+
+// displayBranch reports the branch the window shows and the generation a view
+// of it belongs to.
+func (a *app) displayBranch() (string, uint64) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.branch, a.branchGen
+}
+
+// beginBranchSelect records a branch request and returns its generation. It does
+// not move the displayed branch: only a branch the App Server opened may
+// replace it.
+func (a *app) beginBranchSelect() uint64 {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.branchGen++
+	return a.branchGen
+}
+
+// branchCurrent reports whether gen is still the newest branch request.
+func (a *app) branchCurrent(gen uint64) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.branchGen == gen
+}
+
+// commitBranch moves the displayed branch to the one the App Server opened and
+// starts a new view generation, so a refresh that read the previous branch is
+// dropped instead of painting over the new one. It refuses a request a newer
+// choice already replaced.
+func (a *app) commitBranch(branchID string, gen uint64) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.branchGen != gen {
+		return false
+	}
+	a.branch = branchID
+	a.selectGen++
+	return true
+}
+
+// resetBranch forgets the displayed branch for a selection that has none of its
+// own, such as a newly created session: the session's default branch is the
+// fact, and no branch read of the previous session may land on it.
+func (a *app) resetBranch() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.branchGen++
+	a.branch = ""
+}
+
+// view reads the selected controller's view for the branch the window displays.
+// A branch the session layer has not loaded still comes from the controller,
+// which falls back to the session's default branch; no branch is synthesized.
+func (a *app) view() *dimui.State {
+	branch, _ := a.displayBranch()
+	return a.bridge.LiveStateFor("", branch)
 }
 
 // startRefresh periodically rebuilds the selected view from the controller's
@@ -452,14 +571,16 @@ func (a *app) startRefresh(interval time.Duration) {
 					continue
 				}
 				gen := a.currentSelection()
-				view := a.bridge.LiveState()
+				branch, branchGen := a.displayBranch()
+				view := a.bridge.LiveStateFor("", branch)
 				if view == nil {
 					continue
 				}
 				a.update(func(state *dimui.State) {
-					// A selection may complete while LiveState is rebuilding; do
-					// not let that older snapshot overwrite the new conversation.
-					if !a.selectionCurrent(gen) {
+					// A selection or branch choice may complete while the view is
+					// rebuilding; do not let that older snapshot overwrite the new
+					// conversation.
+					if !a.selectionCurrent(gen) || !a.branchCurrent(branchGen) {
 						return
 					}
 					applyView(state, view)
@@ -533,7 +654,7 @@ func (a *app) selectSession(id string) {
 			// before this open: an older open may have completed while this
 			// attempt was in flight. If there is none, clear the selection but
 			// keep the catalog's connection state.
-			restore := a.bridge.LiveState()
+			restore := a.view()
 			a.update(func(state *dimui.State) {
 				if !a.selectionCurrent(gen) {
 					return
@@ -556,7 +677,7 @@ func (a *app) selectSession(id string) {
 		if !a.selectionCurrent(gen) {
 			return
 		}
-		view := a.bridge.LiveState()
+		view := a.view()
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
 				return
@@ -568,6 +689,69 @@ func (a *app) selectSession(id string) {
 			state.ActionError = ""
 			state.ActionStatus = ""
 			state.ConversationLoading = false
+		})
+	}()
+}
+
+// selectBranch opens one branch of the selected session. Branch switching has
+// no RPC of its own (docs/branch-attachment-plan.md §1.2): the controller reads
+// that branch's first-screen history through session.history, and the window
+// moves the displayed branch only after the App Server answered. A failed read
+// keeps the current branch and reports through ActionError; a session selection
+// or branch choice that changed while the read was in flight is dropped.
+func (a *app) selectBranch(branchID string) {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	if branchID == "" || branchID == a.state.SelectedBranch {
+		return
+	}
+	sessionID := a.state.Selected
+	gen := a.currentSelection()
+	branchGen := a.beginBranchSelect()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := a.bridge.OpenBranchFor(ctx, sessionID, branchID); err != nil {
+			log.Printf("dimagent: open branch %q: %v", branchID, err)
+			a.update(func(state *dimui.State) {
+				if !a.selectionCurrent(gen) || !a.branchCurrent(branchGen) {
+					return
+				}
+				state.ActionError = fmt.Sprintf("Open branch %q: %v", branchID, err)
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "branch.error", ID: state.ActionError})
+			})
+			return
+		}
+		if !a.selectionCurrent(gen) || !a.branchCurrent(branchGen) {
+			return
+		}
+		view := a.bridge.LiveStateFor(sessionID, branchID)
+		if view == nil {
+			a.update(func(state *dimui.State) {
+				if !a.selectionCurrent(gen) || !a.branchCurrent(branchGen) {
+					return
+				}
+				state.ActionError = fmt.Sprintf("Open branch %q: the session is no longer attached", branchID)
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "branch.error", ID: state.ActionError})
+			})
+			return
+		}
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			// The view may fall back to the session's default branch when the
+			// directory no longer proves this one; the displayed branch follows
+			// what the controller returned, never the request.
+			if !a.commitBranch(view.SelectedBranch, branchGen) {
+				return
+			}
+			applyView(state, view)
+			state.ActionError = ""
+			state.ActionStatus = ""
 		})
 	}()
 }
@@ -620,6 +804,8 @@ func (a *app) createSession() {
 			return
 		}
 		rows, catalogErr := a.bridge.catalog(ctx)
+		// A new session has no chosen branch: read its default view, and reset the
+		// window's branch choice before folding it in.
 		view := a.bridge.LiveState()
 		a.update(func(state *dimui.State) {
 			state.CreatingSession = false
@@ -637,7 +823,9 @@ func (a *app) createSession() {
 			// The new controller's view belongs to this session, so make it the
 			// selection before folding the view in: applyView discards a view for
 			// any other session, and the window still shows the previous one here.
+			// A new session has no chosen branch, so drop the previous session's.
 			state.Selected = row.ID
+			a.resetBranch()
 			applyView(state, view)
 			state.ConversationLoading = false
 			state.ActionStatus = ""
@@ -695,7 +883,10 @@ func (a *app) submit(text string) {
 		return
 	}
 	sessionID := a.state.Selected
-	branchID := a.state.SelectedBranch
+	// A submission goes to the session's own branch, not necessarily the branch
+	// the window displays: submit is not branch-aware yet, and the read-back key
+	// must name the branch the App Server actually received.
+	branchID := a.bridge.SessionBranchID()
 	gen := a.currentSelection()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -715,7 +906,7 @@ func (a *app) submit(text string) {
 		if !a.selectionCurrent(gen) {
 			return
 		}
-		view := a.bridge.LiveState()
+		view := a.view()
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
 				return
@@ -758,7 +949,7 @@ func (a *app) resolveUnknownSubmit(sessionID, branchID, submissionID, text strin
 		a.unknownOutcome(gen, "Submission result unknown: the App Server does not hold this submission.")
 		return
 	}
-	view := a.bridge.LiveState()
+	view := a.view()
 	a.update(func(state *dimui.State) {
 		if !a.selectionCurrent(gen) {
 			return
@@ -840,7 +1031,7 @@ func (a *app) reconnect() {
 		if !a.selectionCurrent(gen) {
 			return
 		}
-		view := a.bridge.LiveState()
+		view := a.view()
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
 				return
@@ -873,7 +1064,7 @@ func (a *app) stop() {
 		if !a.selectionCurrent(gen) {
 			return
 		}
-		view := a.bridge.LiveState()
+		view := a.view()
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
 				return
@@ -920,7 +1111,7 @@ func (a *app) respondApproval(branchID, requestID string, decision dimui.Approva
 		if !a.selectionCurrent(gen) {
 			return
 		}
-		view := a.bridge.LiveState()
+		view := a.view()
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
 				return
