@@ -319,15 +319,19 @@ func TestComposerSendKeepsThePrimaryDiscWhenDisabled(t *testing.T) {
 	}
 }
 
-// TestComposerContextRowKeepsTabOrder checks that the row adds no Tab stop: the
-// documented order, Attach file then the editor, is unchanged with an empty
-// draft, and neither context entry is focusable.
+// TestComposerContextRowKeepsTabOrder checks the row adds no Tab stop of its
+// own: with an empty draft the order is Attach file, the model chip and the
+// editor, and neither context entry is focusable.
 func TestComposerContextRowKeepsTabOrder(t *testing.T) {
 	_, tt := composerContextView(t, "", "", "main")
 
 	tt.Key(0, ui.KeyTab)
 	if !tt.Focused("Attach file") {
 		t.Fatalf("Tab does not reach Attach file first, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyTab)
+	if !tt.Focused(tr(LocaleEN, keyComposerModelChip)) {
+		t.Fatalf("Tab does not reach the model chip next, texts %q", tt.Texts())
 	}
 	tt.Key(0, ui.KeyTab)
 	if !tt.Focused("Composer") {

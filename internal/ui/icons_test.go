@@ -233,7 +233,10 @@ func TestSidebarGlyphsKeepTheAccessibleNames(t *testing.T) {
 	if search.Disabled {
 		t.Error("the search entry is unavailable although its filter is local")
 	}
-	for _, name := range []string{"New session", "Scheduled tasks", "Skills and plugins", "Sign in to Dim"} {
+	// The scheduled-tasks and skills entries are real routes now: the shell
+	// opens a WIP page for each, so they are available without a caller
+	// callback. The remaining entries still wait on a client the shell lacks.
+	for _, name := range []string{"New session", "Sign in to Dim"} {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)
 		if !ok {
 			t.Errorf("%q is not exposed as a button, texts %q", name, tt.Texts())
@@ -247,6 +250,16 @@ func TestSidebarGlyphsKeepTheAccessibleNames(t *testing.T) {
 		}
 		if info.Description == "" {
 			t.Errorf("%q lost the reason it waits on", name)
+		}
+	}
+	for _, name := range []string{"Scheduled tasks", "Skills and plugins"} {
+		info, ok := tt.AccessByRole(ui.RoleButton, name)
+		if !ok {
+			t.Errorf("%q is not exposed as a button, texts %q", name, tt.Texts())
+			continue
+		}
+		if info.Disabled {
+			t.Errorf("%q is disabled although the shell opens its WIP route", name)
 		}
 	}
 }

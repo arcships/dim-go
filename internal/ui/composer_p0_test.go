@@ -229,6 +229,10 @@ func TestComposerTabOrder(t *testing.T) {
 		t.Fatalf("Tab does not reach Attach file, texts %q", tt.Texts())
 	}
 	tt.Key(0, ui.KeyTab)
+	if !tt.Focused(tr(LocaleEN, keyComposerModelChip)) {
+		t.Fatalf("Tab does not reach the model chip next, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyTab)
 	if !tt.Focused("Composer") {
 		t.Fatalf("Tab does not reach the editor next, texts %q", tt.Texts())
 	}

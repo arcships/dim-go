@@ -231,26 +231,35 @@ func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		Gap(k.sidebarGap).Children(func() {
 		newSessionEntry(c, k, v, a)
 		searchEntry(c, k, v, a)
-		scheduledEntry(c, k, v)
-		skillsEntry(c, k, v)
+		scheduledEntry(c, k, v, a)
+		skillsEntry(c, k, v, a)
 	})
 }
 
 // scheduledEntry offers dim-electron's scheduled-task page. The shell has no
-// scheduled-task client, no page and no App Server method to read one, so the
-// entry stays visible, unavailable and explained rather than opening an empty
-// page.
-func scheduledEntry(c *ui.Context, k tokens, v SidebarView) {
+// scheduled-task client or App Server method to read one, so the entry opens a
+// WIP page that states the gap rather than an empty page. A caller that wires
+// no route keeps the entry visible, unavailable and explained.
+func scheduledEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
-	sidebarEntry(c, k, sidebarIcons.clock, tr(locale, keySidebarScheduled), reasonScheduled, false, false, false, nil)
+	if a.OnOpenScheduled == nil {
+		sidebarEntry(c, k, sidebarIcons.clock, tr(locale, keySidebarScheduled), reasonScheduled, false, false, false, nil)
+		return
+	}
+	sidebarEntry(c, k, sidebarIcons.clock, tr(locale, keySidebarScheduled), "", true, false, false, a.OnOpenScheduled)
 }
 
 // skillsEntry offers dim-electron's skills and plugins page. The shell has no
-// skills or plugins client, no marketplace page and no App Server method to
-// read either, so the entry stays visible, unavailable and explained.
-func skillsEntry(c *ui.Context, k tokens, v SidebarView) {
+// skills or plugins client or App Server method to read either, so the entry
+// opens a WIP page that states the gap rather than an empty page. A caller that
+// wires no route keeps the entry visible, unavailable and explained.
+func skillsEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
-	sidebarEntry(c, k, sidebarIcons.grid, tr(locale, keySidebarSkills), reasonSkills, false, false, false, nil)
+	if a.OnOpenSkills == nil {
+		sidebarEntry(c, k, sidebarIcons.grid, tr(locale, keySidebarSkills), reasonSkills, false, false, false, nil)
+		return
+	}
+	sidebarEntry(c, k, sidebarIcons.grid, tr(locale, keySidebarSkills), "", true, false, false, a.OnOpenSkills)
 }
 
 // searchEntry opens the window's centered search palette, where the reference

@@ -39,6 +39,11 @@ const (
 	// starts at x≈745 in the 800 DIP window).
 	composerModelChipPadX = 1
 	composerModelChipPadY = 0.5
+	// composerModelChipMaxW bounds the chip when it carries a capability reason:
+	// the reachable models still name the current pair, and a degraded read shows
+	// its reason as one truncated line with the full text in the tooltip and the
+	// model list.
+	composerModelChipMaxW = 300
 	// composerSendSpinner is the in-flight indicator's square in DIPs, drawn
 	// inside the reference's 28 DIP disc: one toolbar glyph's 16 DIP frame
 	// would crowd the disc's rim, so the spinner keeps the arrow's optical
@@ -119,13 +124,17 @@ const composerSendGlyph = "↑"
 const composerHint = "Enter to send · Shift+Enter for a new line"
 
 // The reasons the composer's entries show while no data source is wired. The
-// model and mode selectors have no field in ComposerView: App Server model
-// facts and the agent mode are not passed to the region, so it has nothing true
-// to list and no choice to write. They stay visible, disabled and explained
-// rather than inventing a model list or a mode.
+// model toolbar glyph has no selection action and the agent mode has no fact in
+// ComposerView, so both stay visible, disabled and explained rather than
+// inventing a selection. The model chip is the display surface; choosing from its
+// read-only catalog is not wired yet.
 const (
-	reasonModel = "Unavailable: ComposerView carries no model list or current model; App Server model facts are not passed to the composer yet."
+	reasonModel = "Unavailable: choosing a model from this entry is not wired; the chip beside Send shows the current model and opens the read-only catalog."
 	reasonMode  = "Unavailable: ComposerView carries no agent mode; the shell exposes no agent-mode fact to the composer yet."
+	// reasonModelPair explains an absent current model: the attach reply
+	// reported no complete provider/model pair, so the chip shows the localized
+	// unconfigured label rather than naming one.
+	reasonModelPair = "Unavailable: the App Server reported no current provider/model pair for this session."
 	// reasonWorkspace and reasonPermission explain the context row's WIP
 	// entries. The shell passes the facts it read, and has none today, so the
 	// region draws the WIP state and this reason instead of a path or a mode it
@@ -207,19 +216,20 @@ func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 			Children(func() {
 				composerCard(c, k, v, a)
 			})
-		return
+	} else {
+		// A conversation's card keeps the reference's 520 DIP measure, while the
+		// status band under it spans the main column, as the reference's footer
+		// does: its px-5 inset is measured from the column's edge, not the card's,
+		// so the band's entries sit further in than the card's own border.
+		ui.Column(c).FillWidth().Children(func() {
+			ui.Column(c).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
+				Children(func() {
+					composerCard(c, k, v, a)
+				})
+			composerStatusBand(c, k, v)
+		})
 	}
-	// A conversation's card keeps the reference's 520 DIP measure, while the
-	// status band under it spans the main column, as the reference's footer
-	// does: its px-5 inset is measured from the column's edge, not the card's,
-	// so the band's entries sit further in than the card's own border.
-	ui.Column(c).FillWidth().Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(composerWidth(v.Wide)).AlignSelf(ui.Center).
-			Children(func() {
-				composerCard(c, k, v, a)
-			})
-		composerStatusBand(c, k, v)
-	})
+	composerModelDialog(c, k, v, a)
 }
 
 // composerCard draws the surface the composer edits in: the editor over the
@@ -505,28 +515,128 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		composerTool(c, k, composerGlyphs.cube, tr(locale, keyComposerModel),
 			tr(locale, keyReasonModel), false)
 		ui.Box(c).Grow(1)
-		// No model is configured because the shell has no model fact to show.
-		// The reference puts the muted "未配置" beside the send disc, and this
-		// chip states that absence rather than inventing a model name.
-		composerModelChip(c, k, locale)
+		// The chip shows the current App Server model pair, or the localized
+		// unconfigured label with the read's reason. It opens the read-only model
+		// list; nothing here invents a model, and a click writes no selection.
+		composerModelChip(c, k, v, a)
 		composerSend(c, k, v, a)
 	})
 }
 
-// composerModelChip draws the model status beside Send: the reference's muted
-// "未配置" on a short pill, so the tool row says the session has no model
-// without naming one. The chip is a display group, not a control: the composer
-// has no model fact and no model list to choose from, so the group's
-// description and tooltip carry the reason it waits on, and a click does
-// nothing. It sits left of the send disc, where the reference draws the label,
-// and the tool row's gap keeps that distance.
-func composerModelChip(c *ui.Context, k tokens, locale Locale) {
-	ui.Row(c).Padding(k.space(composerModelChipPadY), k.space(composerModelChipPadX)).
-		Radius(radiusSM).Background(k.muted).AlignItems(ui.Center).
-		Role(ui.RoleGroup).Label(tr(locale, keyComposerModel)).
-		Description(reasonModel).Tooltip(reasonModel).Children(func() {
-		ui.Text(c, tr(locale, keyComposerUnconfigured)).FontSize(k.smallSize).
-			TextColor(k.mutedForeground).SingleLine().Unselectable()
+// composerModelChip draws the model status beside Send: the current
+// provider/model the App Server reported, or the reference's muted "未配置"
+// while no complete pair is known. The chip is a button that opens the read-only
+// model list through Actions.OnToggleModelList; a caller without that action
+// keeps it visible and unavailable with the reason it waits on. It sits left of
+// the send disc, where the reference draws the label, and the tool row's gap
+// keeps that distance.
+func composerModelChip(c *ui.Context, k tokens, v ComposerView, a Actions) {
+	label := v.ModelLabel
+	reason := v.ModelReason
+	if label == "" {
+		// No current pair: the chip states the read's reason when there is one,
+		// so a missing capability is visible on the frame and not only in the
+		// list. A session whose attach reply carried no pair keeps the
+		// reference's unconfigured label.
+		label = reason
+		if label == "" {
+			label = tr(v.Locale, keyComposerUnconfigured)
+			reason = reasonModelPair
+		}
+	}
+	chip := ui.ButtonBase(c).Key("composer-model").Padding(k.space(composerModelChipPadY), k.space(composerModelChipPadX)).
+		Radius(radiusSM).Background(k.muted).AlignItems(ui.Center).MaxWidth(composerModelChipMaxW).
+		Role(ui.RoleButton).Label(tr(v.Locale, keyComposerModelChip)).
+		Transition(motionFastColors(c))
+	if reason != "" {
+		chip.Description(reason).Tooltip(reason)
+	}
+	if a.OnToggleModelList != nil {
+		chip.OnClick(a.OnToggleModelList)
+		if chip.Hovered() {
+			chip.Background(k.muted)
+		}
+	} else {
+		chip.AccessDisabled(true)
+	}
+	chip.Children(func() {
+		ui.Text(c, label).FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine().Ellipsis("…").Unselectable()
+	})
+}
+
+// composerModelDialog draws the read-only model list over the window while
+// ComposerView.ModelOpen is set: the current pair and, for every model the
+// catalog carries, its provider/model name, availability and the reason it is
+// unavailable. Choosing a row writes nothing yet; the dialog states that gap and
+// offers only Close. Escape and a click outside the dialog close it through
+// DialogBase, so no request is sent.
+func composerModelDialog(c *ui.Context, k tokens, v ComposerView, a Actions) {
+	if v.ModelOpen == nil || !*v.ModelOpen {
+		return
+	}
+	ui.DialogBase(c, v.ModelOpen, func(backdrop, panel ui.Element) {
+		backdrop.Background(renameScrim)
+		panel.Width(renameDialogMaxW).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).
+			Radius(k.cardRadius).Background(k.background).
+			BorderWidth(k.hairline).BorderColor(k.border).MaxHeightPercent(80).Clip()
+		panel.Children(func() {
+			ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
+				ui.Text(c, tr(v.Locale, keyModelTitle)).Bold().FontSize(k.titleSize).TextColor(k.foreground)
+				ui.Box(c).Grow(1)
+				ui.Text(c, v.ModelLabel).FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine()
+			})
+			if v.ModelReason != "" {
+				ui.Text(c, v.ModelReason).FontSize(k.smallSize).TextColor(k.danger)
+			}
+			if len(v.ModelChoices) == 0 {
+				ui.Text(c, tr(v.Locale, keyModelEmpty)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			}
+			ui.Column(c).FillWidth().Gap(k.gap).Children(func() {
+				for _, choice := range v.ModelChoices {
+					modelChoiceRow(c, k, v.Locale, choice)
+				}
+			})
+			ui.Text(c, tr(v.Locale, keyModelReadOnly)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			ui.Row(c).FillWidth().Justify(ui.End).Children(func() {
+				ui.Button(c, tr(v.Locale, keyModelClose)).OnClick(func() {
+					*v.ModelOpen = false
+				}).Transition(motionFastColors(c))
+			})
+		})
+	})
+}
+
+// modelChoiceRow draws one model in the read-only list: its provider and model
+// names, the current marker, and its availability or the reason it is not
+// selectable. It is text, not a control: choosing a model is not wired, and a
+// row that took a click would pretend a selection the window cannot write.
+func modelChoiceRow(c *ui.Context, k tokens, locale Locale, choice ModelChoice) {
+	name := choice.DisplayName
+	if name == "" {
+		name = choice.ModelID
+	}
+	if name == "" {
+		name = choice.ProviderID
+	}
+	ui.Column(c).FillWidth().Padding(k.gap, k.edgePad).Radius(radiusSM).
+		Background(k.muted).Children(func() {
+		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, name).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
+			ui.Box(c).Grow(1)
+			if choice.Current {
+				ui.Text(c, tr(locale, keyModelCurrent)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			}
+		})
+		ui.Text(c, choice.ProviderID+"/"+choice.ModelID).FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine()
+		if choice.Enabled && choice.Reason == "" {
+			ui.Text(c, tr(locale, keyModelAvailable)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			return
+		}
+		reason := tr(locale, keyModelUnavailable)
+		if choice.Reason != "" {
+			reason += ": " + choice.Reason
+		}
+		ui.Text(c, reason).FontSize(k.smallSize).TextColor(k.danger)
 	})
 }
 
