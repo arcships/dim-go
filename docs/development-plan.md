@@ -110,7 +110,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 
 **Known gaps/blockers**
 
-- 纵向闭环未开始：`cmd/dimagent/main.go` 仍是手写 fixture，没有 supervisor → appserver → projection → UI 接线（Milestone 3）。
+- 纵向闭环已接入首个 session：`cmd/dimagent/main.go` 在配置 product home 时走 supervisor → appserver → session → viewmodel → UI，并支持会话选择、live 刷新、submit/stop/reconnect 的 generation 防陈旧更新；真实 session 流与窗口验收仍未完成。
 - reconnect/re-attach/domain resync 未实现；Milestone 2 任务 5 仍未完成。
 - `session.create`、`session.methods` 和 `session.input_lookup` 已有 Go client/session helper，并由 fake/headless 测试覆盖；其中 `session.methods` 和 `session.input_lookup` 有公开合同依据（`{methods:[{name, mutating}]}`、`{status:"accepted",event}`/`{status:"unknown"}`）。`session.keys`/`session.branches` 的公开 Desktop protocol contract 已有（`session-reader.ts:1041-1074` 调用，`wire.ts:267-303` 定义 DTO）；MyGo 已有 decoder/helper，`internal/session.Open` 已按 capability gate 读取并暴露只读 snapshot；UI branch switching/cut point 与真实验收仍未完成。`session.create` 尚未接到 UI，input lookup 尚未接到 unknown-result UI；approval mutation UI 和 attachment 上传仍未完成。
 - real-daemon 控制面 smoke 已运行：在 `../dim-2` 用 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server` 构建独立 binary，并用 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 驱动 `TestRealDaemonSmoke`；spawn/hello/catalog/close 通过。该证据不覆盖真实 session 流、GUI 或 IME。
@@ -155,7 +155,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 
 **Known gaps/blockers**
 
-- 窗口目前只渲染启动时的一次快照：`cmd/dimagent` 在设置 `DIMAGENT_PRODUCT_HOME` 时会启动 supervisor、读 catalog 并打开第一个 session，但没有 session 切换、live 事件刷新、submit/stop 或审批决策接线。
+- 窗口已接入 session 选择、live 事件刷新和 submit/stop/reconnect；审批决策仍是 visible-disabled WIP，session 切换与 action outcome 通过 generation 防止陈旧结果覆盖当前视图。
 - session 层 re-attach/domain resync 未实现：supervisor 已提供 `Reconnect`、generation 和 `Connection.Done`/`Err`，但 `internal/session` 不会自己重开或重建 attachment，需要上层编排。
 - `session.methods` 读取 helper 已实现（built-in `{name, mutating}`），插件入口和 UI 接线仍未完成；`session.branches`/`session.keys` 的公开 Desktop protocol contract 已有，`internal/session` 已 capability-gated 读取并暴露只读 snapshot，UI 接线与真实验收未完成；`session.input_lookup` 已提供 typed/raw read-back helper，响应为 `{status:"accepted",event}`/`{status:"unknown"}`，由调用方按 `status` 解码；`session.create` 已有 client/helper，但尚未接到 UI。unknown-result 仍只返回 submission UUID，调用方需显式读回，绝不自动重发。
 - approval mutation 已有 client helper，但 UI 的 approve/deny 仍是 visible-disabled WIP；attachment 上传和 approval replay 集合替换未实现。
@@ -166,7 +166,7 @@ Changed files：`cmd/dimagent/`（`main.go`、`main_test.go`）、`internal/apps
 - `subscription_changed` 恢复和 Windows/Linux GUI 运行时仍未验证。
 - `internal/supervisor` 的 `TestDefaultSpawnRunsDetachedAndLogs` 在并行全量 race 下出现过一次 spawn child 未退出的时序 flake；单包和复跑通过，仍应加宽等待或隔离。
 
-**Next action**：为 `cmd/dimagent` 增加会话选择、live 事件刷新和 submit/stop/approval 接线；继续运行 real-daemon session 流程验收，真实窗口手测仍单独记录，不因控制面 smoke 通过而提前标记 preview 可用。
+**Next action**：继续运行 real-daemon session attach/history/submit 流程验收；补 session re-attach/domain resync 与 branch switching/cut point 设计，真实窗口手测仍单独记录，不因控制面 smoke 通过而提前标记 preview 可用。
 
 ## Milestone 1：Native UI 静态壳
 

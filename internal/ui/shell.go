@@ -37,7 +37,7 @@ type Session struct {
 }
 
 // Branch is read-only branch metadata supplied by the App Server. Branch
-// switching and cut point are not wired yet, so this is not an action list.
+// switching and cut point remain disabled, so this is not an action list.
 type Branch struct {
 	ID       string
 	Label    string
@@ -112,8 +112,7 @@ type State struct {
 	Sessions []Session
 	Selected string
 	// Branches is read-only observed branch metadata for the selected session.
-	// The daemon branch directory RPC is blocked/unverified, so this view does
-	// not switch or create branches.
+	// The directory is displayed, while switching and cut point remain disabled.
 	Branches       []Branch
 	SelectedBranch string
 
@@ -209,7 +208,7 @@ func (s *State) sidebarActions(c *ui.Context, k tokens) {
 }
 
 // branchList shows the branch metadata supplied by the App Server as read-only
-// rows. Branch switching and cut point are not wired yet, so the list offers no
+// rows. Branch switching and cut point remain disabled, so the list offers no
 // switch or side-chat action.
 func (s *State) branchList(c *ui.Context, k tokens) {
 	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
