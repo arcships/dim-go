@@ -200,6 +200,17 @@ const (
 	keyCapabilityConnectionGap     = "capability.connectionRecovery.gap"
 	keyCapabilityTurnCancel        = "capability.turnCancellation.action"
 	keyCapabilityTurnCancelGap     = "capability.turnCancellation.gap"
+
+	// Layout pieces the shell draws around the conversation: the empty-state
+	// hero, the composer's context row and the sidebar's account footer.
+	keyHeroTitle            = "hero.title"
+	keyHeroSubtitle         = "hero.subtitle"
+	keyComposerWorkspace    = "composer.workspace"
+	keyComposerPermission   = "composer.permission"
+	keySidebarScheduled     = "sidebar.scheduled"
+	keySidebarSkills        = "sidebar.skills"
+	keySidebarAccount       = "sidebar.account"
+	keySidebarSettingsEntry = "sidebar.settings"
 )
 
 // stringsEN is the English table, the default and the fallback. Its entries are
@@ -231,6 +242,14 @@ var stringsEN = Strings{
 	keySidebarPin:           "Pin",
 	keySidebarRename:        "Rename",
 	keySidebarArchive:       "Archive",
+	keySidebarScheduled:     "Scheduled tasks",
+	keySidebarSkills:        "Skills and plugins",
+	keySidebarAccount:       "Sign in to Dim",
+	keySidebarSettingsEntry: "Settings",
+	keyHeroTitle:            "Start building",
+	keyHeroSubtitle:         "Ask DimAgent to change code, run a command or explain a session.",
+	keyComposerWorkspace:    "Workspace",
+	keyComposerPermission:   "Default permissions",
 
 	keyReasonCreateSession:   reasonCreateSession,
 	keyReasonApproval:        reasonApproval,
@@ -348,6 +367,14 @@ var stringsZHCN = Strings{
 	keySidebarEndBranch:     "结束分支",
 	keySidebarThreadActions: "会话操作（不可用）",
 	keySidebarPin:           "置顶",
+	keySidebarScheduled:     "定时任务",
+	keySidebarSkills:        "技能/插件",
+	keySidebarAccount:       "登录 Dim",
+	keySidebarSettingsEntry: "设置",
+	keyHeroTitle:            "开始构建",
+	keyHeroSubtitle:         "让 DimAgent 改代码、跑命令，或解释一个会话。",
+	keyComposerWorkspace:    "工作区",
+	keyComposerPermission:   "默认权限",
 	keySidebarRename:        "重命名",
 	keySidebarArchive:       "归档",
 
