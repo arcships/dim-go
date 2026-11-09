@@ -83,6 +83,75 @@ var contextPanelGlyph = sidebarIcon(`<rect x="3" y="3" width="10" height="10" rx
 // new reason.
 const reasonOpenInEditor = "Unavailable: the shell has no editor-open client or workspace fact for opening this session in VS Code yet."
 
+// menuRowH is a session-menu item's height in the drawn menu, in DIPs: the
+// reference's 28 DIP step. The menu adds Space(1.5) above and below the label
+// line, so menuRowTextH is the line box that leaves the row at that height; the
+// theme's own 15.3 DIP line would make it 27.3.
+const (
+	menuRowH     = 28
+	menuRowTextH = 16
+)
+
+// The session menu's entries the App Server does not offer yet. The menu draws
+// them as WIP so the reference's structure is visible without pretending an
+// action the shell cannot carry out. Their message entries belong in i18n.go
+// beside the other header and reason keys; until that table carries them,
+// menuText falls back to the English constants below rather than drawing a raw
+// key, and the fallback goes away with the table entries.
+const (
+	keyHeaderMenuOpenInNewWindow = "header.menu.openInNewWindow"
+	keyHeaderMenuExport          = "header.menu.export"
+	keyHeaderMenuCopyLink        = "header.menu.copyLink"
+	keyHeaderMenuCopyID          = "header.menu.copyId"
+	keyHeaderMenuCopyDebug       = "header.menu.copyDebug"
+
+	keyReasonOpenInNewWindow = "reason.openInNewWindow"
+	keyReasonExport          = "reason.export"
+	keyReasonCopyLink        = "reason.copyLink"
+	keyReasonCopyID          = "reason.copyId"
+	keyReasonCopyDebug       = "reason.copyDebug"
+)
+
+// The English text of the entries above: the labels the reference's menu draws
+// and the reason each one waits on. Pin, Rename and Archive already have their
+// text in i18n.go; only these five entries and their reasons are new.
+const (
+	reasonOpenInNewWindow = "Unavailable: the shell has no second-window client for opening a session yet."
+	reasonExport          = "Unavailable: the shell has no conversation export client or App Server export method yet."
+	reasonCopyLink        = "Unavailable: the shell has no conversation-link fact for the selected session yet."
+	reasonCopyID          = "Unavailable: the window has no copy action for the selected session yet."
+	reasonCopyDebug       = "Unavailable: the shell keeps no debug snapshot of the selected session yet."
+)
+
+// headerMenuFallbacks is the English text of the menu keys i18n.go does not
+// carry yet. It is a stand-in for the table entries, not a second language
+// table: menuText consults it only when tr reports a missing key.
+var headerMenuFallbacks = map[string]string{
+	keyHeaderMenuOpenInNewWindow: "Open in new window",
+	keyHeaderMenuExport:          "Export",
+	keyHeaderMenuCopyLink:        "Copy conversation link",
+	keyHeaderMenuCopyID:          "Copy conversation ID",
+	keyHeaderMenuCopyDebug:       "Copy debug info",
+	keyReasonOpenInNewWindow:     reasonOpenInNewWindow,
+	keyReasonExport:              reasonExport,
+	keyReasonCopyLink:            reasonCopyLink,
+	keyReasonCopyID:              reasonCopyID,
+	keyReasonCopyDebug:           reasonCopyDebug,
+}
+
+// menuText resolves one session-menu label or reason. The lookup goes through
+// the locale table first, so a translated entry wins as soon as i18n.go carries
+// the key; a missing entry draws the English fallback instead of the key.
+func menuText(locale Locale, key string) string {
+	if text := tr(locale, key); text != key {
+		return text
+	}
+	if text, ok := headerMenuFallbacks[key]; ok {
+		return text
+	}
+	return key
+}
+
 // header shows the selected session's breadcrumb and entries, then the banner
 // that belongs under them. It draws no region of its own beyond those rows.
 //
@@ -162,12 +231,15 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 }
 
 // sessionMenu draws the "…" entry at the end of the breadcrumb and its menu.
-// The items are the entries the sidebar no longer draws but the session still
-// has: the keys browser, ending a non-main branch, refreshing the branch
-// directory, deleting the session behind a confirmation, and the desktop-local
-// appearance surface as a fallback. An entry whose callback is missing stays
-// visible, disabled and marked WIP with the reason it waits on, so the menu
-// never pretends an action the shell cannot carry out.
+// The menu follows the reference's structure in two groups. The first is the
+// session's own entries: pin, rename, open in a new window, export, archive and
+// the three copy entries. This shell has no client, callback or fact for any of
+// them yet, so each stays visible, disabled and explained as WIP with the gap
+// it waits on. The second group keeps the entries the shell does have: the keys
+// browser, ending a non-main branch, refreshing the branch directory, deleting
+// the session behind a confirmation, and the desktop-local appearance surface.
+// An entry whose callback is missing stays visible, disabled and marked WIP
+// too, so the menu never pretends an action the shell cannot carry out.
 func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	label := tr(locale, keyHeaderMenu)
@@ -181,31 +253,45 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		ui.Text(c, "…").FontSize(k.titleSize).TextColor(k.mutedForeground).AccessHidden(true)
 	})
 	button.PopoverMenuButton(func(m *ui.Menu) {
+		// The reference's first group. Pin, Rename and Archive keep their
+		// translated labels and reasons from the sidebar's table; the remaining
+		// five carry the menu's own keys until i18n.go picks them up.
+		menuWIP(m, menuText(locale, keySidebarPin), menuText(locale, keyReasonPin))
+		menuWIP(m, menuText(locale, keySidebarRename), menuText(locale, keyReasonRename))
+		menuWIP(m, menuText(locale, keyHeaderMenuOpenInNewWindow), menuText(locale, keyReasonOpenInNewWindow))
+		menuWIP(m, menuText(locale, keyHeaderMenuExport), menuText(locale, keyReasonExport))
+		menuWIP(m, menuText(locale, keySidebarArchive), menuText(locale, keyReasonArchive))
+		menuWIP(m, menuText(locale, keyHeaderMenuCopyLink), menuText(locale, keyReasonCopyLink))
+		menuWIP(m, menuText(locale, keyHeaderMenuCopyID), menuText(locale, keyReasonCopyID))
+		menuWIP(m, menuText(locale, keyHeaderMenuCopyDebug), menuText(locale, keyReasonCopyDebug))
+		m.Separator()
 		if a.OnToggleKeys == nil {
 			menuWIP(m, tr(locale, keySidebarKeys), tr(locale, keyReasonKeysEntry))
-		} else if m.Item(tr(locale, keySidebarKeys)).Chosen() {
+		} else if menuItem(m, tr(locale, keySidebarKeys)).Chosen() {
 			a.OnToggleKeys()
 		}
-		m.Separator()
 		// Only a non-main branch can be ended: main is the branch the App
 		// Server always keeps, and with no branch reported there is nothing to
 		// address. A missing callback keeps the visible entry explained as WIP.
 		if v.SelectedBranch != "" && v.SelectedBranch != mainBranchID {
 			if a.OnEndBranch == nil {
 				menuWIP(m, tr(locale, keySidebarEndBranch), tr(locale, keyReasonEndBranch))
-			} else if m.Item(tr(locale, keySidebarEndBranch)).Chosen() {
+			} else if menuItem(m, tr(locale, keySidebarEndBranch)).Chosen() {
 				a.OnEndBranch(v.SelectedBranch)
 			}
 		}
 		if a.OnRefreshBranches == nil {
 			menuWIP(m, tr(locale, keyHeaderMenuRefresh), tr(locale, keyReasonRefreshBranches))
-		} else if m.Item(tr(locale, keyHeaderMenuRefresh)).Chosen() {
+		} else if menuItem(m, tr(locale, keyHeaderMenuRefresh)).Chosen() {
 			a.OnRefreshBranches()
 		}
+		// The rule between the branch entries and the destructive pair, as the
+		// reference separates what acts on the branch from what acts on the
+		// session.
 		m.Separator()
 		if a.OnRequestDelete == nil || a.OnDeleteSession == nil || v.SessionID == "" {
 			menuWIP(m, tr(locale, keySidebarDelete), tr(locale, keyReasonDelete))
-		} else if m.Item(tr(locale, keySidebarDelete)).Danger().Chosen() {
+		} else if menuItem(m, tr(locale, keySidebarDelete)).Danger().Chosen() {
 			// The menu item only opens the confirmation; the session is deleted
 			// from the alert's confirm button, through Actions.OnDeleteSession.
 			a.OnRequestDelete()
@@ -215,19 +301,29 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			if v.SettingsOpen {
 				settingsKey = keyHeaderConversation
 			}
-			if m.Item(tr(locale, settingsKey)).Chosen() {
+			if menuItem(m, tr(locale, settingsKey)).Chosen() {
 				a.OnOpenSettings()
 			}
 		}
 	})
 }
 
+// menuItem adds one session-menu entry with the reference's row height. The
+// label is drawn through Content so its line box takes menuRowTextH instead of
+// the theme's default line, which leaves the drawn row at 28 DIPs; the label
+// stays the item's accessible name and the system's menus still show it.
+func menuItem(m *ui.Menu, label string) *ui.MenuItem {
+	return m.Item(label).Content(func(content ui.MenuItemContent) {
+		ui.Text(content.Context, label).SingleLine().FixedLineHeight(menuRowTextH)
+	})
+}
+
 // menuWIP adds one menu entry the shell cannot carry out yet: disabled, marked
-// WIP, and explained with the upstream method it waits on. The subtitle is the
-// reason, so both a reader and assistive technology see it rather than a
-// silently inert item.
+// WIP, and explained with the upstream method it waits on. The reason is the
+// tooltip, which assistive technology also reads as the item's description, so
+// it explains the entry without a second line that would break the 28 DIP row.
 func menuWIP(m *ui.Menu, label, reason string) {
-	m.Item(label).Disabled(true).Trailing(wipBadge).Subtitle(reason)
+	menuItem(m, label).Disabled(true).Trailing(wipBadge).Tooltip(reason)
 }
 
 // deleteConfirmation draws the alert the menu's delete entry opens. The alert

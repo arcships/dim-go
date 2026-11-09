@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 	"math"
+	"slices"
 	"strings"
 	"testing"
 
@@ -156,6 +157,14 @@ func TestSessionMenuItemsAndCallbacks(t *testing.T) {
 
 	openMenu()
 	labels := []string{
+		menuText(LocaleEN, keySidebarPin),
+		menuText(LocaleEN, keySidebarRename),
+		menuText(LocaleEN, keyHeaderMenuOpenInNewWindow),
+		menuText(LocaleEN, keyHeaderMenuExport),
+		menuText(LocaleEN, keySidebarArchive),
+		menuText(LocaleEN, keyHeaderMenuCopyLink),
+		menuText(LocaleEN, keyHeaderMenuCopyID),
+		menuText(LocaleEN, keyHeaderMenuCopyDebug),
 		tr(LocaleEN, keySidebarKeys),
 		tr(LocaleEN, keySidebarEndBranch),
 		tr(LocaleEN, keyHeaderMenuRefresh),
@@ -318,7 +327,9 @@ func TestSessionMenuEndsOnlyANonMainBranch(t *testing.T) {
 
 // TestSessionMenuMarksMissingCallbacksAsWIP checks every menu entry the shell
 // cannot carry out: it stays visible, disabled, marked WIP and explained with
-// the method it waits on, while the desktop-local settings entry stays usable.
+// the method or fact it waits on, while the desktop-local settings entry stays
+// usable. The first group's entries wait on a client or callback the shell does
+// not have at all; Pin, Rename and Archive reuse the sidebar's reasons.
 func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 	s := fixture()
 	s.SelectedBranch = "side"
@@ -328,6 +339,14 @@ func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 	}
 
 	for _, tc := range []struct{ label, reason string }{
+		{menuText(LocaleEN, keySidebarPin), tr(LocaleEN, keyReasonPin)},
+		{menuText(LocaleEN, keySidebarRename), tr(LocaleEN, keyReasonRename)},
+		{menuText(LocaleEN, keyHeaderMenuOpenInNewWindow), menuText(LocaleEN, keyReasonOpenInNewWindow)},
+		{menuText(LocaleEN, keyHeaderMenuExport), menuText(LocaleEN, keyReasonExport)},
+		{menuText(LocaleEN, keySidebarArchive), tr(LocaleEN, keyReasonArchive)},
+		{menuText(LocaleEN, keyHeaderMenuCopyLink), menuText(LocaleEN, keyReasonCopyLink)},
+		{menuText(LocaleEN, keyHeaderMenuCopyID), menuText(LocaleEN, keyReasonCopyID)},
+		{menuText(LocaleEN, keyHeaderMenuCopyDebug), menuText(LocaleEN, keyReasonCopyDebug)},
 		{tr(LocaleEN, keySidebarKeys), tr(LocaleEN, keyReasonKeysEntry)},
 		{tr(LocaleEN, keySidebarEndBranch), tr(LocaleEN, keyReasonEndBranch)},
 		{tr(LocaleEN, keyHeaderMenuRefresh), tr(LocaleEN, keyReasonRefreshBranches)},
@@ -343,9 +362,134 @@ func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 		if !strings.Contains(info.Description, tc.reason) {
 			t.Errorf("%q description %q does not name %q", tc.label, info.Description, tc.reason)
 		}
+		if math.Abs(float64(info.Bounds.H-menuRowH)) > 0.5 {
+			t.Errorf("%q is %.1f high, want the reference's %v DIP row", tc.label, info.Bounds.H, menuRowH)
+		}
 	}
 	if settings, ok := tt.AccessByRole(ui.RoleMenuItem, tr(LocaleEN, keyHeaderSettings)); !ok || settings.Disabled {
 		t.Errorf("the desktop-local settings entry is missing or disabled: %+v", settings)
+	}
+	if !tt.HasText(wipBadge) {
+		t.Errorf("the WIP entries carry no visible badge, texts %q", tt.Texts())
+	}
+}
+
+// TestSessionMenuFollowsTheReferenceStructure checks the menu's two groups and
+// the rule between them against the reference: pin, rename, open in a new
+// window, export, archive, the three copy entries, then the keys, branch and
+// delete/settings entries the shell has. Separators sit between the groups, not
+// between every item.
+func TestSessionMenuFollowsTheReferenceStructure(t *testing.T) {
+	s := fixture()
+	s.SelectedBranch = "side"
+	tt := ui.NewTester(s.View, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{
+		menuText(LocaleEN, keySidebarPin),
+		menuText(LocaleEN, keySidebarRename),
+		menuText(LocaleEN, keyHeaderMenuOpenInNewWindow),
+		menuText(LocaleEN, keyHeaderMenuExport),
+		menuText(LocaleEN, keySidebarArchive),
+		menuText(LocaleEN, keyHeaderMenuCopyLink),
+		menuText(LocaleEN, keyHeaderMenuCopyID),
+		menuText(LocaleEN, keyHeaderMenuCopyDebug),
+		"-",
+		tr(LocaleEN, keySidebarKeys),
+		tr(LocaleEN, keySidebarEndBranch),
+		tr(LocaleEN, keyHeaderMenuRefresh),
+		"-",
+		tr(LocaleEN, keySidebarDelete),
+		tr(LocaleEN, keyHeaderSettings),
+	}
+	if got := tt.Menu(); !slices.Equal(got, want) {
+		t.Errorf("the session menu draws %q, want %q", got, want)
+	}
+	// The rule keeps every row, usable or not, on the reference's 28 DIP step.
+	for _, label := range want {
+		if label == "-" {
+			continue
+		}
+		info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+		if !ok {
+			t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+		}
+		if math.Abs(float64(info.Bounds.H-menuRowH)) > 0.5 {
+			t.Errorf("%q is %.1f high, want the reference's %v DIP row", label, info.Bounds.H, menuRowH)
+		}
+	}
+}
+
+// TestSessionMenuClosesOnAnOutsideClick checks that pressing outside the menu
+// closes it without choosing an entry: no callback runs and the menu's items
+// leave the frame.
+func TestSessionMenuClosesOnAnOutsideClick(t *testing.T) {
+	s := fixture()
+	refreshes := 0
+	s.OnRefreshBranches = func() { refreshes++ }
+	tt := ui.NewTester(s.View, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	if len(tt.Menu()) == 0 {
+		t.Fatal("the menu did not open")
+	}
+	tt.ClickAt(20, 560)
+	if got := tt.Menu(); len(got) != 0 {
+		t.Errorf("an outside click left the menu open: %q", got)
+	}
+	if refreshes != 0 {
+		t.Errorf("an outside click chose Refresh branches %d times", refreshes)
+	}
+}
+
+// TestSessionMenuIsKeyboardReachable checks the menu's keys: Escape closes it
+// and returns the focus to the button, Enter on the focused button opens it
+// again, and Down moves the highlight onto the first usable entry, where Enter
+// chooses it and closes the menu.
+func TestSessionMenuIsKeyboardReachable(t *testing.T) {
+	s := fixture()
+	refreshes := 0
+	s.OnRefreshBranches = func() { refreshes++ }
+	tt := ui.NewTester(s.View, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	tt.Key(0, ui.KeyEscape)
+	if got := tt.Menu(); len(got) != 0 {
+		t.Fatalf("Escape left the menu open: %q", got)
+	}
+	if !tt.Focused(tr(LocaleEN, keyHeaderMenu)) {
+		t.Fatalf("Escape did not return the focus to the session menu button, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyEnter)
+	if got := tt.Menu(); len(got) == 0 {
+		t.Fatal("Enter on the focused session menu button did not open the menu")
+	}
+	// Walk the highlight with Down until it reaches the entry the shell can
+	// run: the drawn menu may open on its first or last item, so the test
+	// follows the keys instead of assuming one step.
+	refreshLabel := tr(LocaleEN, keyHeaderMenuRefresh)
+	found := false
+	for range 12 {
+		tt.Key(0, ui.KeyDown)
+		info, ok := tt.AccessByRole(ui.RoleMenuItem, refreshLabel)
+		if ok && info.Focused {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Down did not reach Refresh branches, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyEnter)
+	if refreshes != 1 {
+		t.Errorf("Enter on the highlighted entry ran Refresh branches %d times, want 1", refreshes)
+	}
+	if got := tt.Menu(); len(got) != 0 {
+		t.Errorf("choosing an entry left the menu open: %q", got)
 	}
 }
 
