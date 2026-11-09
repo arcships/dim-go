@@ -35,7 +35,7 @@ Last updated: 2026-11-09
 | F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | UI 已接线 + integration 单测；L4 无 | 未通过 |
 | F10 | 断线 / reattach | 杀掉 daemon → 错误态 → 重连 → 历史重建 | 单测；L4 无 | 未通过 |
 | F11 | `subscription_changed` 恢复 | 真实 replay-gap 场景 | 无真实 wire 证据 | 未通过 |
-| F12 | branch switching / cut point | 真实切换 branch 并渲染 | 只有只读 branch 列表 | 未通过 |
+| F12 | branch switching / cut point | 真实切换 branch 并渲染 | 真实窗口已显示 main + side branch 目录（seed 产出）；切换点击与 cut point 未验证 | 未通过 |
 | F13 | attachment 上传 | 真实上传并出现在 timeline | 无 helper | 未通过 |
 | F14 | session 关闭/删除 | 终态显示 + 不再可提交 | 单测；L4 无 | 未通过 |
 

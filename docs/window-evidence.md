@@ -77,6 +77,7 @@ go run ./scripts/seed-session -home "$HOME_DIR" \
 - 侧栏 `Sessions 1`，选中行标题是 prompt 的前缀；`Branches` 显示 `main (current)` 与 `Refresh`。
 - 主区显示 user 气泡（完整 prompt）与 assistant 行（mock model 的 `Echo: ...`），即首屏 history 来自真实 daemon。
 - 状态栏 `Branch: main`、`App Server: Connected`。
+- 再加 `-side-branch` 时（2026-11-09 15:07），`Branches` 区在 `main (current)` 下显示真实 `session.branch_create` 产出的 side branch（`8bd478fc-…`，`Refresh` 可用）；切换仍需窗口内点击。
 - 这组证据支撑 F2（真实 daemon + 会话列表）与 F5（首屏 history 渲染）；它不覆盖窗口内点击创建/切换/提交。
 
 ## 4. 截图上实际看到的内容
