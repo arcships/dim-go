@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -142,12 +143,17 @@ func screenshotFrames(t *testing.T) map[string]*ui.Tester {
 	light := ui.NewTester(screenshotFixture(true).View, screenshotWidth, screenshotHeight)
 	dark := ui.NewTester(screenshotFixture(true).View, screenshotWidth, screenshotHeight)
 	dark.SetDark(true)
+	// The dark frame settles its theme fade before it is evidence; otherwise
+	// the first 250 ms would still show the light surfaces.
+	dark.Advance(motionLayout + time.Millisecond)
 	lightComposer := ui.NewTester(screenshotFixture(false).View, screenshotWidth, screenshotHeight)
 	darkComposer := ui.NewTester(screenshotFixture(false).View, screenshotWidth, screenshotHeight)
 	darkComposer.SetDark(true)
+	darkComposer.Advance(motionLayout + time.Millisecond)
 	lightSettings := ui.NewTester(screenshotSettingsFixture().View, screenshotWidth, screenshotHeight)
 	darkSettings := ui.NewTester(screenshotSettingsFixture().View, screenshotWidth, screenshotHeight)
 	darkSettings.SetDark(true)
+	darkSettings.Advance(motionLayout + time.Millisecond)
 	return map[string]*ui.Tester{
 		"light":          light,
 		"dark":           dark,

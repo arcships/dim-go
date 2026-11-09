@@ -208,6 +208,7 @@ func composerCard(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	ui.Column(c).Role(ui.RoleGroup).FillWidth().
 		Radius(k.cardRadius).BorderWidth(k.hairline).BorderColor(k.border).
 		Background(k.background).Shadow(0, 1, 4, 0, composerShadow).
+		Transition(motionLayoutColors(c)).
 		Children(func() {
 			// The editor and the tool row keep the card's inset. The row is built
 			// first so the keyboard order stays the one the shell contract
@@ -264,7 +265,7 @@ func composerWidth(wide bool) float32 {
 // composerDivider is the hairline between the tool row and the context row. It
 // spans the card, so it is drawn outside the editor's padded column.
 func composerDivider(c *ui.Context, k tokens) {
-	ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
+	ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).Transition(motionLayoutColors(c)).AccessHidden(true)
 }
 
 // composerContextRow draws the empty state's card bottom band: the workspace
@@ -503,9 +504,9 @@ func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 // not change.
 func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, tabStop bool) {
 	size := k.space(composerToolSpan)
-	button := ui.ButtonBase(c).Size(size, size).Radius(radiusSM).
+	button := ui.ButtonBase(c).Key("composer-tool:"+label).Size(size, size).Radius(radiusSM).
 		AlignItems(ui.Center).Justify(ui.Center).
-		Label(label).Description(reason).Tooltip(reason)
+		Label(label).Description(reason).Tooltip(reason).Transition(motionFastColors(c))
 	if tabStop {
 		button.AccessDisabled(true)
 	} else {
@@ -524,9 +525,9 @@ func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, t
 // assistive technology reads.
 func composerSend(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	size := k.space(composerSendSpan)
-	send := ui.ButtonBase(c).Label(tr(v.Locale, keyComposerSend)).
+	send := ui.ButtonBase(c).Key("composer-send").Label(tr(v.Locale, keyComposerSend)).
 		Width(size).Height(size).Radius(size / 2).Padding(0).
-		Background(k.primary).Children(func() {
+		Background(k.primary).Transition(motionFastColors(c)).Children(func() {
 		ui.Text(c, composerSendGlyph).FontSize(k.bodySize).TextColor(k.onPrimary).
 			Unselectable().AccessHidden(true)
 	}).OnClick(func() {

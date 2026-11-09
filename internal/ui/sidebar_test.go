@@ -230,6 +230,9 @@ func TestSidebarRowFaces(t *testing.T) {
 	second, _ := tt.Find("Second session")
 	tt.Move(second.X+second.W/2, second.Y+second.H/2)
 	tt.Frame()
+	// The face eases from the sidebar's tint to the hover tint over the fast
+	// step, as the reference's button transition does; sample it arrived.
+	tt.Advance(motionFast + time.Millisecond)
 	hovered := rowFace("Second session")
 	if !sameColor(hovered, k.sidebarHover) {
 		t.Errorf("the hovered row's face is %v, want the sidebar hover face %+v", hovered, k.sidebarHover)

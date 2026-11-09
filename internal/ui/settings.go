@@ -654,7 +654,8 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, onChange func(SettingsChange)) {
 	v = resolveSettings(k, v)
 	l := v.Locale
-	row := ui.Row(c).Fill().Role(ui.RoleRegion).Label(tr(l, keyHeaderSettings))
+	row := ui.Row(c).Key("settings-panel").Fill().Role(ui.RoleRegion).Label(tr(l, keyHeaderSettings)).
+		Transition(motionPanel(c))
 	// The chosen section is the surface's own state: the view names where the
 	// surface opens, and ui.Local keeps the reader's click from frame to frame.
 	// A frame that does not build this row drops it, so reopening the surface
@@ -682,10 +683,10 @@ func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSect
 	nav.Children(func() {
 		for _, s := range settingsSections {
 			selected := s == *section
-			entry := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
+			entry := ui.ButtonBase(c).Key("settings-section:" + settingsSectionSlug(s)).Height(k.sidebarEntryH).FillWidth().
 				PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.gap).
 				AlignItems(ui.Center).Role(ui.RoleListItem).
-				Selected(selected)
+				Selected(selected).Transition(motionFastColors(c))
 			switch {
 			case selected:
 				entry.Background(k.accent)
