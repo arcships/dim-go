@@ -6,6 +6,10 @@ Last updated: 2026-11-09
 
 脚本只能量“差多少像素”，不能判断“内容是不是同一件东西”。这份记录是逐张打开原图看出来的结论；`docs/evidence/ui-parity/parity-*.diff.png` 与 `scripts/parity_diff.py` 的数字只作辅助。
 
+## 布局与内容差异
+
+用 ASCII 并排图和编号标注图沟通差异，见 [ui-parity-layout-diff.md](ui-parity-layout-diff.md)（`layout-annotated-*.png`）。复核时先看这张图，再逐区域看原图。
+
 ## 复核方法
 
 - 同状态、同尺寸：Electron 参考与 MyGo 截图都缩放到 **800×720**，浅色主题。
