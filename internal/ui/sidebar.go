@@ -29,6 +29,28 @@ const ungroupedLabel = "No project"
 // It is the reference's literal, not a spacing step.
 const sidebarEmptyIndent = 26
 
+// sidebarEntriesTop is the room above the first global entry, in multiples of
+// the sidebar's own 3.5 DIP step. In window-workspace.png the first entry's
+// label ink sits at y≈67-78.5 (center 72.8), while the same 28 DIP row drawn at
+// the 48 DIP header's edge centres its label at 62; three steps put the entry
+// where the reference draws it and carry the session heading below within a DIP.
+// The extra room belongs to the entries block, not the header: the header still
+// reserves the 48 DIPs the traffic lights float over.
+const sidebarEntriesTop = 3
+
+// sidebarEmptyPadTop and sidebarEmptyPadBottom are the room above the built-in
+// workspace's message and below it before the section's hairline, in multiples
+// of the sidebar's 3.5 DIP step. window-conversation.png measures the message's
+// ink at y≈267.5-277 (center 272), under the "Workspace" heading's center at
+// 237, and the hairline closing the section at y≈295.5. The message keeps 14
+// DIPs over its line and 17.5 below it, so the heading, the message and the
+// hairline stand where the reference draws them instead of on the 2 DIP gap
+// the section used to keep.
+const (
+	sidebarEmptyPadTop    = 4
+	sidebarEmptyPadBottom = 5
+)
+
 const (
 	// mainBranchID is the branch the App Server always keeps: it can be shown,
 	// but not ended.
@@ -266,7 +288,7 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // management entries have no client or page in this shell yet, so they keep
 // their place as unavailable entries whose tooltip carries the reason.
 func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
-	ui.Column(c).Padding(k.sidebarHeaderH, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
+	ui.Column(c).Padding(k.sidebarHeaderH+sidebarEntriesTop*k.sidebarGap, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
 		Gap(k.sidebarGap).Children(func() {
 		newSessionEntry(c, k, v, a)
 		searchEntry(c, k, v)
@@ -462,7 +484,9 @@ func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 		message = tr(locale, keySidebarEmptyFiltered)
 	}
 	ui.Column(c).Children(func() {
-		ui.Column(c).PaddingX(k.sidebarPadX + sidebarEmptyIndent).PaddingY(k.gap).
+		ui.Column(c).Padding(
+			sidebarEmptyPadTop*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent,
+			sidebarEmptyPadBottom*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent).
 			Children(func() {
 				text := ui.Text(c, message).FontSize(k.smallSize).TextColor(k.mutedForeground)
 				if rows == 0 {
@@ -479,10 +503,13 @@ func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 
 // threadRow draws a group heading or a session row. A session row shows the
 // selected and hovered faces from the sidebar's own tokens; the heading stays
-// sticky over the rows it names, so it paints the sidebar's face.
+// sticky over the rows it names, so it paints the sidebar's face. The group
+// heading keeps the reference's project row: py-1 around its text, 28 DIPs
+// high, rather than the section heading's h-9, so the session rows under it sit
+// where window-conversation.png draws them.
 func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()) {
 	if row.group {
-		ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarPadX).Gap(k.sidebarGap).
+		ui.Row(c).Height(k.sidebarEntryH).PaddingX(k.sidebarPadX).Gap(k.sidebarGap).
 			Background(k.sidebar).AlignItems(ui.Center).Children(func() {
 			sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
 			ui.Text(c, row.label).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()

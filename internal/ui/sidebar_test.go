@@ -1055,3 +1055,52 @@ func TestSidebarFooterKeepsOnlyTheGear(t *testing.T) {
 		t.Errorf("the account row is missing from the footer, texts %q", tt.Texts())
 	}
 }
+
+// TestSidebarMatchesTheReferenceRhythm checks the column's vertical rhythm
+// against the reference window. The wanted centers are the label rows measured
+// from docs/evidence/electron-reference/window-conversation.png (1600×1440 at
+// 2x, so pixels ÷ 2 are DIPs): the four entries, the two headings, the built-in
+// workspace's message, the project heading, the session row and the account
+// footer. Each must land within 3 DIPs, and the account row must still sit on
+// the sidebar's bottom edge, so the room is added above the list rather than by
+// pushing the footer up.
+func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
+	s := fixture()
+	s.Settings = SettingsView{Locale: LocaleZHCN}
+	s.Sessions = []Session{
+		{ID: "s1", Title: "Explain what this repository does in one paragraph.", Group: "dimagent-mygo", UpdatedAt: time.Now().Add(-5 * time.Minute).UnixMilli()},
+	}
+	s.Selected = "s1"
+	const width, height = 800, 720
+	tt := ui.NewTester(s.View, width, height)
+
+	// The sidebar is drawn before the bar, so a label the breadcrumb repeats,
+	// such as the project, is found in the column first.
+	cases := []struct {
+		label string
+		want  float64
+	}{
+		{tr(LocaleZHCN, keySidebarNewSession), 72.8},
+		{tr(LocaleZHCN, keySidebarSearch), 104.2},
+		{tr(LocaleZHCN, keySidebarScheduled), 135.8},
+		{tr(LocaleZHCN, keySidebarSkills), 167.2},
+		{tr(LocaleZHCN, keySidebarSessions), 204.0},
+		{tr(LocaleZHCN, keyComposerWorkspace), 237.0},
+		{tr(LocaleZHCN, keySidebarEmpty), 272.0},
+		{"dimagent-mygo", 314.5},
+		{"Explain what this repository does in one paragraph.", 345.8},
+		{tr(LocaleZHCN, keySidebarAccount), 698.0},
+	}
+	for _, tc := range cases {
+		box := textBox(t, tt, tc.label)
+		if center := float64(box.Y + box.H/2); math.Abs(center-tc.want) > 3 {
+			t.Errorf("%q centers at %.1f, want the reference's %.1f ±3", tc.label, center, tc.want)
+		}
+	}
+
+	k := newTokens(ui.LightTheme())
+	account := textBox(t, tt, tr(LocaleZHCN, keySidebarAccount))
+	if gap := height - (account.Y + account.H); math.Abs(float64(gap-k.sidebarPadX)) > 0.5 {
+		t.Errorf("the account row leaves %.1f below it, want the sidebar's %.1f DIP edge", gap, k.sidebarPadX)
+	}
+}

@@ -32,6 +32,15 @@ const breadcrumbSeparator = "/"
 // breadcrumb keeps one tight step between them rather than the toolbar's gap.
 const breadcrumbGap = 4
 
+// breadcrumbProjectMaxW is the room the reference gives the project name before
+// it truncates, in DIPs. Its span is max-w-[8rem] and shrinks inside the
+// breadcrumb's flex row; at an 800 DIP window the flex row leaves it about 83
+// DIPs, so window-conversation.png draws "dimagent-m…" and starts the title's
+// ink at x≈375, 15 DIPs right of where the whole name would leave it. The shell
+// has no flex shrink in the bar, so it keeps the measured width as a literal
+// rather than letting the full project name push the title left.
+const breadcrumbProjectMaxW = 83
+
 // menuTargetW is the session menu's target width, in DIPs: a compact step that
 // keeps the "…" close to the truncated title instead of pushing it into the
 // toolbar's full 28 DIP square. The target keeps the toolbar's height.
@@ -135,7 +144,7 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 	ui.Row(c).Grow(1).MinWidth(0).Gap(breadcrumbGap).AlignItems(ui.Center).Children(func() {
 		if v.Project != "" {
 			ui.Text(c, v.Project).FontSize(k.bodySize).TextColor(k.mutedForeground).
-				SingleLine().Shrink(1).MinWidth(0)
+				SingleLine().Ellipsis("…").MaxWidth(breadcrumbProjectMaxW).Shrink(1).MinWidth(0)
 			// The separator is punctuation between two labels, so assistive
 			// technology reads the two names rather than a bare slash.
 			ui.Text(c, breadcrumbSeparator).FontSize(k.bodySize).TextColor(k.mutedForeground).
