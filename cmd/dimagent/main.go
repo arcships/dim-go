@@ -451,6 +451,7 @@ func applyView(state, view *dimui.State) {
 	state.SessionClosedReason = view.SessionClosedReason
 	state.Run = view.Run
 	state.Messages = append([]dimui.Message(nil), view.Messages...)
+	state.Keys = view.Keys
 	state.ModelProgress = view.ModelProgress
 	state.Notices = append([]dimui.Notice(nil), view.Notices...)
 }

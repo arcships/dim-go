@@ -319,6 +319,7 @@ func (c *SessionController) StateForBranch(summary appserver.SessionSummary, bra
 		Run:                 ui.RunIdle,
 		ModelProgress:       progress,
 		Notices:             notices,
+		Keys:                keysPanelView(c.Session),
 	}
 	for _, branch := range c.Session.BranchDirectory().Branches {
 		// Label from contract fields only: branchId is the stable identity, and a
@@ -341,6 +342,34 @@ func (c *SessionController) StateForBranch(summary appserver.SessionSummary, bra
 		state.Run = viewmodel.RunStateFrom(branchView.Snapshot)
 	}
 	return state
+}
+
+// keysPanelView adapts the session's session.keys snapshot to the panel's
+// display type. Only a snapshot the session actually read counts as loaded; a
+// failed or unavailable read leaves Loaded false so the panel says WIP instead
+// of drawing an empty list as if the branch had no keys.
+func keysPanelView(s *session.Session) ui.KeysPanelView {
+	if s == nil {
+		return ui.KeysPanelView{}
+	}
+	result, ok := s.Keys()
+	if !ok {
+		return ui.KeysPanelView{}
+	}
+	view := ui.KeysPanelView{Loaded: true}
+	if result.Through != nil {
+		view.Through = *result.Through
+	}
+	view.Entries = make([]ui.KeysPanelEntry, 0, len(result.Entries))
+	for _, entry := range result.Entries {
+		view.Entries = append(view.Entries, ui.KeysPanelEntry{
+			Key:      entry.Key,
+			Sequence: entry.Sequence,
+			InputID:  entry.InputID,
+			Text:     entry.Text,
+		})
+	}
+	return view
 }
 
 func sessionTitle(s appserver.SessionSummary) string {
