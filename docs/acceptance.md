@@ -28,7 +28,7 @@ Last updated: 2026-11-09
 | F2 | 应用启动（真实 daemon，`DIMAGENT_PRODUCT_HOME`） | L3 + 真实窗口 + session 列表可见 | L4：`docs/evidence/window-connected.png` + `scripts/seed-session` 预置会话后，窗口显示 `Sessions 1`、选中行、`Branches: main (current)`、`App Server: Connected` | **已通过（L4）** |
 | F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | UI 已接线（headless/fake 测试通过）；L4 无 | 未通过 |
 | F4 | session 切换 | 真实窗口切换 + 历史正确 | headless 覆盖，L4 无 | 未通过 |
-| F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L3 协议路径通过；L4 无 | 未通过 |
+| F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L4：`window-connected.png`（seed 会话的 user/assistant 行，`fa62267`） | **已通过（L4）** |
 | F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L3 通过；无持续 ticker；L4 无 | 未通过 |
 | F7 | stop | 真实窗口停止 → 状态收敛 | L3 通过；L4 无 | 未通过 |
 | F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | headless + L3 协议；真实 approval 流未验收 | 未通过 |

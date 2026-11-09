@@ -1,16 +1,16 @@
 state	connected
-started_at	2026-11-09 14:58:22 CST
-captured_at	2026-11-09 14:58:25 CST
-built_at	2026-11-09 14:58:22 CST
-git_head	564f438e7fe383a1ae7defeb75588231bcfa2030
-git_dirty	 M docs/evidence/window-connected.png; M docs/evidence/window-connected.txt;
+started_at	2026-11-09 15:00:39 CST
+captured_at	2026-11-09 15:00:42 CST
+built_at	2026-11-09 15:00:39 CST
+git_head	fa622676551e235086ddf12e023159ead581efe5
+git_dirty	clean
 product_home	/tmp/dimagent-seeded-home.I6vyBe
-app_pid	90949
-window_id	48667
+app_pid	91530
+window_id	48678
 window_title	DimAgent
 window_bounds_points	484,116,1080,720
 png	docs/evidence/window-connected.png
 png_pixels	2160 1440
 png_bytes	291075
-daemon	90955 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dimagent-seeded-home.I6vyBe/rust/daemon.sock --no-ws --home /private/tmp/dimagent-seeded-home.I6vyBe/rust --product-home /tmp/dimagent-seeded-home.I6vyBe
+daemon	91536 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dimagent-seeded-home.I6vyBe/rust/daemon.sock --no-ws --home /private/tmp/dimagent-seeded-home.I6vyBe/rust --product-home /tmp/dimagent-seeded-home.I6vyBe
 app_log	

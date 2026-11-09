@@ -53,6 +53,7 @@ Last updated: 2026-11-09
 - branch switching 已接线（读 branch history）；branch-aware submit/stop 已落地（`2768791`）；cut point、end branch UI、branch 目录刷新入口仍未做。
 - attachment 上传：没有 Go helper，保持 visible-disabled WIP。
 - `subscription_changed` 真实 wire 恢复：当前只读单次重试、写操作 fail-closed。
+- latestTurn 无 `turnStart` 的真实形状已修正（排队 input、窗口不覆盖 head），见 `protocol-contract.md` §9。
 - `session.methods` 插件入口接线。
 
 ## 验收与证据

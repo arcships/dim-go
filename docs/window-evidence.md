@@ -60,6 +60,25 @@ MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `d0042bb579349667
 
 截图结束后该进程随应用退出而消失，`ps aux | grep '[d]im-app-server'` 无输出；临时 home 已删除。
 
+### 3.1 预置会话（seed → 窗口）
+
+空 home 只能证明"连接成功"，不能证明会话列表与首屏 history。为此增加了 `scripts/seed-session`：用公开 `session.create`（可选 `session.submit`）在临时 home 里预置一个会话，再让窗口连接同一 home。
+
+```bash
+HOME_DIR=$(mktemp -d /tmp/dimagent-seeded-home.XXXXXX)
+go run ./scripts/seed-session -home "$HOME_DIR" \
+  -server /tmp/dim-2-target/debug/dim-app-server \
+  -prompt "Explain what this repository does in one paragraph."
+./scripts/capture-window.sh --state connected --product-home "$HOME_DIR"
+```
+
+2026-11-09 15:00 的结果（`git_head = fa62267`，`git_dirty = clean`）：
+
+- 侧栏 `Sessions 1`，选中行标题是 prompt 的前缀；`Branches` 显示 `main (current)` 与 `Refresh`。
+- 主区显示 user 气泡（完整 prompt）与 assistant 行（mock model 的 `Echo: ...`），即首屏 history 来自真实 daemon。
+- 状态栏 `Branch: main`、`App Server: Connected`。
+- 这组证据支撑 F2（真实 daemon + 会话列表）与 F5（首屏 history 渲染）；它不覆盖窗口内点击创建/切换/提交。
+
 ## 4. 截图上实际看到的内容
 
 两张图版式一致（`3a52565`，主区卡片 + 空态 hero + composer context row + 侧栏入口）：
