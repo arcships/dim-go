@@ -640,6 +640,17 @@ type app struct {
 	refreshCancel context.CancelFunc
 	// updateHook is test-only; production updates run through Window.Update.
 	updateHook func(func(*dimui.State))
+	// lookupRetries, lookupInterval and lookupBudget override the read-back
+	// retry policy; zero values use the submitLookup* defaults. Tests shrink the
+	// interval so a retry sequence runs in milliseconds.
+	lookupRetries  int
+	lookupInterval time.Duration
+	lookupBudget   time.Duration
+	// selectionCtx is cancelled when the selection moves or its session closes,
+	// so a read-back tied to the old selection stops waiting and never publishes
+	// into the new one.
+	selectionCtx    context.Context
+	selectionCancel context.CancelFunc
 	// selectMu keeps session opens in order: a newer choice waits for the
 	// attachment in flight, then replaces it. A creation installs a controller
 	// the same way, so it takes the same lock.
@@ -704,14 +715,46 @@ func (a *app) session(id string) (dimui.Session, bool) {
 
 // beginSelect records a new selection and returns its generation. It also
 // forgets the branch the previous session displayed: a branch read still in
-// flight belongs to that session and must not land on the new one.
+// flight belongs to that session and must not land on the new one, and it stops
+// any read-back waiting on the replaced selection.
 func (a *app) beginSelect() uint64 {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.selectGen++
 	a.branchGen++
 	a.branch = ""
+	a.resetSelectionContext()
 	return a.selectGen
+}
+
+// resetSelectionContext cancels work tied to the previous selection and gives
+// the current one a fresh context. The caller holds a.mu.
+func (a *app) resetSelectionContext() {
+	if a.selectionCancel != nil {
+		a.selectionCancel()
+	}
+	a.selectionCtx, a.selectionCancel = context.WithCancel(context.Background())
+}
+
+// selectionContext returns the context cancelled when the current selection
+// moves or closes. A read-back waits on it so a session switch stops the retry
+// instead of publishing the old submission's outcome on the new session.
+func (a *app) selectionContext() context.Context {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.selectionCtx == nil {
+		a.selectionCtx, a.selectionCancel = context.WithCancel(context.Background())
+	}
+	return a.selectionCtx
+}
+
+// closeSelection stops background work tied to the current selection without
+// moving it. A closed session has nothing left to resolve, so its pending
+// read-back must stop waiting for a late App Server answer.
+func (a *app) closeSelection() {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	a.resetSelectionContext()
 }
 
 // currentSelection reports the latest selection generation.
@@ -1022,6 +1065,7 @@ func (a *app) deleteSession(id string) {
 		return
 	}
 	gen := a.currentSelection()
+	selected := a.state.Selected
 	go func() {
 		a.selectMu.Lock()
 		defer a.selectMu.Unlock()
@@ -1065,6 +1109,11 @@ func (a *app) deleteSession(id string) {
 		// Close before publishing the catalog change so observers that react to the
 		// update cannot race the controller teardown.
 		a.bridge.closeSessionFor(id)
+		if selected == id {
+			// The displayed session is closed, so a pending read-back has nothing
+			// left to resolve and must not publish into the terminal state.
+			a.closeSelection()
+		}
 		// The session is gone, so its desktop draft is too. This touches no
 		// session fact: the App Server's confirmed delete is the fact.
 		a.clearDraft(id)
@@ -1881,9 +1930,25 @@ func withCreatedRow(rows []dimui.Session, row dimui.Session) []dimui.Session {
 	return append([]dimui.Session{row}, rows...)
 }
 
+// A submission whose result is unknown is read back, never sent again (§10).
+// The App Server may finish it after the request timed out, so the read-only
+// lookup is retried within a small budget before the window calls the result
+// unknown. Every retry names the same submission id and branch.
+const (
+	// submitLookupRetries is the number of read-only retries after the first
+	// lookup did not confirm the submission. With submitLookupInterval that
+	// stays inside submitLookupBudget.
+	submitLookupRetries = 3
+	// submitLookupInterval separates two read-backs.
+	submitLookupInterval = 2 * time.Second
+	// submitLookupBudget bounds the whole read-back, retries included.
+	submitLookupBudget = 8 * time.Second
+)
+
 // submit sends the composer's text in the background and clears the draft only
 // after the App Server accepted it. An ambiguous result is read back through
-// session.input_lookup: it is never resent and never reported as accepted.
+// session.input_lookup: it is never resent, and only the App Server's accepted
+// answer reports it accepted.
 func (a *app) submit(text string) {
 	if a.bridge == nil || a.state == nil {
 		return
@@ -1933,41 +1998,115 @@ func (a *app) submit(text string) {
 }
 
 // resolveUnknownSubmit reads an ambiguous session.submit back by its submission
-// id. The App Server's answer alone decides what the window says: "accepted"
-// means the daemon holds the input, anything else stays unknown, the draft is
-// kept and the submission is not sent again.
+// id. The App Server may finish the submission after the request timed out, so
+// the read-only lookup is retried within a small budget: only an "accepted"
+// answer resolves it, anything else stays unknown, the draft is kept and the
+// submission is never sent again. A selection change or a closed session stops
+// the retries before they can publish into another session.
 func (a *app) resolveUnknownSubmit(sessionID, branchID, submissionID, text string, submitErr error, gen uint64) {
+	switch {
+	case submissionID == "":
+		detail := fmt.Sprintf("Submission result unknown (%v); read-back failed: %v",
+			submitErr, errors.New("the App Server returned no submission id to read back"))
+		a.unknownOutcome(gen, sessionID, detail)
+		return
+	case branchID == "":
+		detail := fmt.Sprintf("Submission result unknown (%v); read-back failed: %v",
+			submitErr, errors.New("no branch is known for the submission"))
+		a.unknownOutcome(gen, sessionID, detail)
+		return
+	}
+	// Capture the selection's context before the first read so a switch while
+	// this function is between attempts cancels the wait below.
+	selCtx := a.selectionContext()
+	retries, interval, budget := a.lookupPolicy()
+	deadline := time.Now().Add(budget)
 	var (
 		result  appserver.InputLookupResult
 		lookupE error
 	)
-	switch {
-	case submissionID == "":
-		lookupE = errors.New("the App Server returned no submission id to read back")
-	case branchID == "":
-		lookupE = errors.New("no branch is known for the submission")
-	default:
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
+	for attempt := 0; ; attempt++ {
+		if selCtx.Err() != nil || !a.selectionCurrent(gen) {
+			return
+		}
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			break
+		}
+		ctx, cancel := context.WithTimeout(selCtx, remaining)
 		// The read-back names the branch the submission was sent on, so an
 		// unknown side-branch result is never resolved against the default one.
 		result, lookupE = a.bridge.LookupInputBranchFor(ctx, sessionID, branchID, submissionID)
+		cancel()
+		if selCtx.Err() != nil || !a.selectionCurrent(gen) {
+			return
+		}
+		if lookupE == nil && result.Accepted() {
+			a.acceptResolvedSubmit(sessionID, submissionID, text, gen)
+			return
+		}
+		if attempt >= retries {
+			break
+		}
+		if !a.waitLookupRetry(selCtx, interval, deadline) {
+			return
+		}
 	}
 	if lookupE != nil {
-		detail := fmt.Sprintf("Submission result unknown (%v); read-back failed: %v", submitErr, lookupE)
-		a.unknownOutcome(gen, detail)
+		a.unknownOutcome(gen, sessionID, fmt.Sprintf("Submission result unknown (%v); read-back failed: %v", submitErr, lookupE))
 		return
 	}
-	if !result.Accepted() {
-		a.unknownOutcome(gen, "Submission result unknown: the App Server does not hold this submission.")
-		return
+	a.unknownOutcome(gen, sessionID, "Submission result unknown: the App Server does not hold this submission.")
+}
+
+// lookupPolicy returns the read-back retry policy: how many retries follow the
+// first lookup, the pause between attempts, and the budget for all of them.
+func (a *app) lookupPolicy() (retries int, interval, budget time.Duration) {
+	retries, interval, budget = a.lookupRetries, a.lookupInterval, a.lookupBudget
+	if retries <= 0 {
+		retries = submitLookupRetries
 	}
-	// The read-back proves the App Server holds this text, so its saved draft is
-	// done, exactly as for a direct acceptance.
+	if interval <= 0 {
+		interval = submitLookupInterval
+	}
+	if budget <= 0 {
+		budget = submitLookupBudget
+	}
+	return retries, interval, budget
+}
+
+// waitLookupRetry pauses between two read-backs without outliving the budget,
+// and reports whether another attempt may run. A selection change or a closed
+// session wakes the wait and ends the retries.
+func (a *app) waitLookupRetry(selCtx context.Context, interval time.Duration, deadline time.Time) bool {
+	wait := interval
+	if remaining := time.Until(deadline); remaining < wait {
+		wait = remaining
+	}
+	if wait <= 0 {
+		return false
+	}
+	timer := time.NewTimer(wait)
+	defer timer.Stop()
+	select {
+	case <-timer.C:
+		return true
+	case <-selCtx.Done():
+		return false
+	}
+}
+
+// acceptResolvedSubmit publishes a submission the read-back proved the App
+// Server holds, exactly as a direct acceptance: the saved draft is done, any
+// unknown outcome it superseded is cleared, and the window says accepted.
+func (a *app) acceptResolvedSubmit(sessionID, submissionID, text string, gen uint64) {
 	a.clearDraftIfMatches(sessionID, text)
 	view := a.view()
 	a.update(func(state *dimui.State) {
-		if !a.selectionCurrent(gen) {
+		// The read-back belongs to one session: a state that no longer shows it
+		// must not receive its outcome, even when the generation did not move
+		// (session.create selects a new session without a new open).
+		if !a.selectionCurrent(gen) || state.Selected != sessionID {
 			return
 		}
 		applyView(state, view)
@@ -1978,16 +2117,30 @@ func (a *app) resolveUnknownSubmit(sessionID, branchID, submissionID, text strin
 		}
 		state.ActionError = ""
 		state.ActionStatus = "Submission accepted"
+		state.ActionNotices = withoutActionNotice(state.ActionNotices, "submit.unknown")
 		state.ActionNotices = appendActionNotice(state.ActionNotices,
 			dimui.Notice{Kind: "submit.accepted", ID: submissionID})
 	})
 }
 
+// withoutActionNotice drops every notice of one kind, so an outcome a later
+// read-back proves wrong cannot stay visible beside the corrected one.
+func withoutActionNotice(notices []dimui.Notice, kind string) []dimui.Notice {
+	kept := make([]dimui.Notice, 0, len(notices))
+	for _, notice := range notices {
+		if notice.Kind != kind {
+			kept = append(kept, notice)
+		}
+	}
+	return kept
+}
+
 // unknownOutcome publishes an unresolved action: it keeps the alert and the
-// notice kind so an unknown result can never read as success.
-func (a *app) unknownOutcome(gen uint64, detail string) {
+// notice kind so an unknown result can never read as success. Like the accepted
+// path, it only writes into the session the submission belonged to.
+func (a *app) unknownOutcome(gen uint64, sessionID, detail string) {
 	a.update(func(state *dimui.State) {
-		if !a.selectionCurrent(gen) {
+		if !a.selectionCurrent(gen) || state.Selected != sessionID {
 			return
 		}
 		state.ActionNotices = appendActionNotice(state.ActionNotices,

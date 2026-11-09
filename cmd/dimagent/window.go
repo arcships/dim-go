@@ -159,13 +159,18 @@ func (a *app) windowOptions() mygo.WindowOptions {
 
 // bindWindow records the window's geometry when it moves, resizes or changes
 // its maximized state, and saves it once more when the window closes. The
-// close handler also saves the composer draft, so closing the window keeps both
-// pieces of desktop state even before the process exits.
+// close handler also stops selection-scoped background work and saves the
+// composer draft, so closing the window keeps both pieces of desktop state even
+// before the process exits.
 func (a *app) bindWindow() {
 	if a.win == nil {
 		return
 	}
 	a.win.OnClose(func(*mygo.CloseEvent) {
+		// A closing window has no selection left to resolve, so a pending
+		// read-back stops waiting instead of publishing into a frame that is
+		// already gone.
+		a.closeSelection()
 		a.saveWindowNow()
 		a.saveCurrentDraft()
 	})

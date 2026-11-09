@@ -397,18 +397,34 @@ func TestWithCreatedRow(t *testing.T) {
 }
 
 // submitApp builds a window with one selected session on branch main and a
-// draft, plus the mutex guarding the state its background callbacks update.
+// draft, plus the mutex guarding the state its background callbacks update. The
+// read-back retry interval is shrunk so a retried lookup resolves in
+// milliseconds instead of seconds.
 func submitApp(f *fakeSession) (*app, *sync.Mutex) {
+	a, mu, _ := submitAppWithUpdates(f)
+	return a, mu
+}
+
+// submitAppWithUpdates is submitApp plus a signal per published update, so a
+// test can prove a stale read-back published nothing.
+func submitAppWithUpdates(f *fakeSession) (*app, *sync.Mutex, <-chan struct{}) {
 	bridge := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
 	a := &app{state: &dimui.State{Selected: "s1", SelectedBranch: "main", Draft: "hello"}, bridge: bridge}
+	a.lookupInterval = time.Millisecond
+	a.lookupBudget = 2 * time.Second
 	a.bind()
 	var mu sync.Mutex
+	updates := make(chan struct{}, 16)
 	a.updateHook = func(fn func(*dimui.State)) {
 		mu.Lock()
-		defer mu.Unlock()
 		fn(a.state)
+		mu.Unlock()
+		select {
+		case updates <- struct{}{}:
+		default:
+		}
 	}
-	return a, &mu
+	return a, &mu, updates
 }
 
 // TestAppSubmitUnknownResultReadsBackAccepted checks that an ambiguous submit is
@@ -443,24 +459,28 @@ func TestAppSubmitUnknownResultReadsBackAccepted(t *testing.T) {
 	}
 }
 
-// TestAppSubmitUnknownResultStaysUnknown checks that a read-back the App Server
-// answers as unknown is not reported as success: the draft stays, the alert
-// stays and nothing is resent.
+// TestAppSubmitUnknownResultStaysUnknown checks that read-backs the App Server
+// keeps answering as unknown are not reported as success: the draft stays, the
+// alert stays, the lookup retries stay inside the read-back budget and nothing
+// is resent.
 func TestAppSubmitUnknownResultStaysUnknown(t *testing.T) {
 	cases := []struct {
 		name string
 		edit func(*fakeSession)
-		want string
+		// lookups is the expected read-back count: the first lookup plus the
+		// retries, or none when there is no submission id to name.
+		lookups int
+		want    string
 	}{
 		{"daemon has no record", func(f *fakeSession) {
 			f.lookupResult = appserver.InputLookupResult{Status: appserver.InputLookupUnknown}
-		}, "does not hold this submission"},
+		}, 1 + submitLookupRetries, "does not hold this submission"},
 		{"read-back fails", func(f *fakeSession) {
 			f.lookupErr = errors.New("daemon went away")
-		}, "read-back failed"},
+		}, 1 + submitLookupRetries, "read-back failed"},
 		{"no submission id", func(f *fakeSession) {
 			f.submitID = ""
-		}, "no submission id"},
+		}, 0, "no submission id"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -480,8 +500,8 @@ func TestAppSubmitUnknownResultStaysUnknown(t *testing.T) {
 			}
 			mu.Lock()
 			defer mu.Unlock()
-			if f.lookupCalls > 1 {
-				t.Errorf("read-back ran %d times, want at most one", f.lookupCalls)
+			if f.lookupCalls != tc.lookups {
+				t.Errorf("read-back ran %d times, want %d", f.lookupCalls, tc.lookups)
 			}
 			if a.state.Draft != "hello" {
 				t.Errorf("draft = %q after an unknown result, want it kept", a.state.Draft)
@@ -498,5 +518,136 @@ func TestAppSubmitUnknownResultStaysUnknown(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestAppSubmitUnknownResultRetriesLateAcceptance checks the late App Server
+// answer: an unknown read-back is retried, and the retry's accepted answer
+// resolves the submission through the same success path. The submission is
+// still sent once and the earlier unknown outcome is cleared.
+func TestAppSubmitUnknownResultRetriesLateAcceptance(t *testing.T) {
+	f := &fakeSession{
+		submitErr: &appserver.UnknownResultError{Method: appserver.MutationSessionSubmit},
+		submitID:  "sub-1",
+		lookupResults: []appserver.InputLookupResult{
+			{Status: appserver.InputLookupUnknown},
+			{Status: appserver.InputLookupAccepted},
+		},
+		view: &dimui.State{Selected: "s1", Connection: dimui.ConnReady},
+	}
+	a, mu := submitApp(f)
+	// An earlier unknown outcome must not survive the accepted retry.
+	a.state.ActionError = "an earlier unknown result"
+	a.state.ActionStatus = "Submission result unknown"
+	a.state.ActionNotices = []dimui.Notice{{Kind: "submit.unknown", ID: "an earlier unknown result"}}
+
+	a.state.OnSubmit("hello")
+	waitForNotice(t, a, mu, "submit.accepted")
+
+	if len(f.submitText) != 1 {
+		t.Fatalf("submit count = %d after the retried read-back, want 1", len(f.submitText))
+	}
+	if f.lookupCalls != 2 {
+		t.Fatalf("read-back ran %d times, want the unknown answer retried once", f.lookupCalls)
+	}
+	if f.lookupBranch != "main" || f.lookupSubmission != "sub-1" {
+		t.Fatalf("read-back = (%q, %q), want the original submission on main", f.lookupBranch, f.lookupSubmission)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if a.state.Draft != "" {
+		t.Errorf("draft = %q after the accepted retry, want it cleared", a.state.Draft)
+	}
+	if a.state.ActionStatus != "Submission accepted" || a.state.ActionError != "" {
+		t.Errorf("outcome = %q / %q, want the accepted read-back", a.state.ActionStatus, a.state.ActionError)
+	}
+	for _, notice := range a.state.ActionNotices {
+		if notice.Kind == "submit.unknown" {
+			t.Fatalf("a superseded unknown outcome stayed visible: %#v", a.state.ActionNotices)
+		}
+	}
+}
+
+// TestAppSubmitUnknownResultRetriesLookupError checks that a transient
+// read-back error is retried read-only: the next lookup's accepted answer
+// resolves the submission without resending it.
+func TestAppSubmitUnknownResultRetriesLookupError(t *testing.T) {
+	f := &fakeSession{
+		submitErr: &appserver.UnknownResultError{Method: appserver.MutationSessionSubmit},
+		submitID:  "sub-1",
+		lookupResults: []appserver.InputLookupResult{
+			{Status: appserver.InputLookupUnknown},
+			{Status: appserver.InputLookupAccepted},
+		},
+		lookupErrs: []error{errors.New("daemon went away")},
+		view:       &dimui.State{Selected: "s1", Connection: dimui.ConnReady},
+	}
+	a, mu := submitApp(f)
+
+	a.state.OnSubmit("hello")
+	waitForNotice(t, a, mu, "submit.accepted")
+
+	if len(f.submitText) != 1 {
+		t.Fatalf("submit count = %d after a failed read-back, want the submission not resent", len(f.submitText))
+	}
+	if f.lookupCalls != 2 {
+		t.Fatalf("read-back ran %d times, want one retry after the error", f.lookupCalls)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if a.state.Draft != "" || a.state.ActionStatus != "Submission accepted" || a.state.ActionError != "" {
+		t.Errorf("outcome = draft %q / %q / %q, want the accepted read-back",
+			a.state.Draft, a.state.ActionStatus, a.state.ActionError)
+	}
+}
+
+// TestAppSubmitUnknownResultStopsOnSessionSwitch checks that a read-back
+// waiting to retry stops when the window moves to another session: its late
+// accepted answer must not clear the new session's draft or publish an outcome
+// there, and the submission is never resent.
+func TestAppSubmitUnknownResultStopsOnSessionSwitch(t *testing.T) {
+	started := make(chan struct{}, 1)
+	f := &fakeSession{
+		submitErr: &appserver.UnknownResultError{Method: appserver.MutationSessionSubmit},
+		submitID:  "sub-1",
+		lookupResults: []appserver.InputLookupResult{
+			{Status: appserver.InputLookupUnknown},
+			{Status: appserver.InputLookupAccepted},
+		},
+		lookupStarted: started,
+		view:          &dimui.State{Selected: "s1", Connection: dimui.ConnReady},
+	}
+	a, mu, updates := submitAppWithUpdates(f)
+	// Long enough that only the selection change can end the wait.
+	a.lookupInterval = 10 * time.Second
+	a.lookupBudget = 20 * time.Second
+
+	a.state.OnSubmit("hello")
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("read-back did not start")
+	}
+	a.beginSelect() // the user moves to another session while the retry waits
+
+	select {
+	case <-updates:
+		t.Fatal("a stale read-back published an outcome into the new selection")
+	case <-time.After(50 * time.Millisecond):
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if f.lookupCalls != 1 {
+		t.Errorf("read-back ran %d times after the session switch, want the retry stopped", f.lookupCalls)
+	}
+	if len(f.submitText) != 1 {
+		t.Errorf("submit count = %d, want the submission not resent", len(f.submitText))
+	}
+	if a.state.Draft != "hello" {
+		t.Errorf("draft = %q after the session switch, want it untouched", a.state.Draft)
+	}
+	if a.state.ActionStatus != "" || a.state.ActionError != "" || len(a.state.ActionNotices) != 0 {
+		t.Errorf("a stale read-back changed the new selection: %q / %q / %#v",
+			a.state.ActionStatus, a.state.ActionError, a.state.ActionNotices)
 	}
 }
