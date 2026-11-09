@@ -265,7 +265,7 @@ func TestEnglishTableMatchesConstants(t *testing.T) {
 		{keyReasonStop, reasonStop},
 		{keyReasonBranches, reasonBranches},
 		{keyReasonUpdate, reasonUpdate},
-		{keyReasonSearch, reasonSearch},
+		{keyReasonSearch, reasonSearchEntry},
 		{keyReasonGroup, reasonGroup},
 		{keyReasonPin, reasonPin},
 		{keyReasonRename, reasonRename},

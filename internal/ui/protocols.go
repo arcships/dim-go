@@ -131,6 +131,12 @@ type Actions struct {
 	// the panel displays the caller's ContextPanelView copy and starts no App
 	// Server read. While this field is nil the entry is absent.
 	OnToggleContextPanel func()
+	// OnOpenSearch is called by the sidebar's Search entry and opens the
+	// window's search palette, the same palette Cmd+G opens. The palette filters
+	// the catalog copy the window already holds and sends no App Server request,
+	// so the shell always wires this field; a nil field leaves the sidebar entry
+	// a WIP statement for a caller that draws the column alone.
+	OnOpenSearch func()
 }
 
 // SidebarView is what the sidebar region draws: the session catalog, the
@@ -172,29 +178,17 @@ type SidebarView struct {
 	// "Session keys" entry reports itself expanded from it; it is display state,
 	// not a key fact.
 	KeysOpen bool
-	// Searching is the caller's record that the sidebar's search box is open.
-	// The shell has no field to pass it back every frame, so the region adopts
-	// it on the first frame and keeps the box's state in sidebarState from then
-	// on: the entry, its shortcut and Escape toggle it. It filters the display
-	// copy of Sessions and sends no request, so it needs no Actions callback.
-	Searching bool
-	// SearchQuery is the text the search box edits in place. A caller that
-	// keeps the text itself passes a pointer and the box writes there; nil
-	// makes the region keep it in sidebarState, which is how the window runs it
-	// today. Either way the filter reads this text and never the catalog's.
-	SearchQuery *string
-	// Locale is the language of the region's own text: the entries, the search
-	// box, the branch labels, the footer and the capability cards. Group labels
-	// and session titles are catalog facts and stay as the caller sent them. An
-	// empty or unknown value draws English.
+	// Locale is the language of the region's own text: the entries, the branch
+	// labels, the footer and the capability cards. Group labels and session
+	// titles are catalog facts and stay as the caller sent them. An empty or
+	// unknown value draws English.
 	Locale Locale
 
 	// state is the region's own view state: the thread list's place among its
-	// rows, its choice, the selection that choice was last mapped from, the
-	// rows that choice indexes into and the search box's open state and text.
-	// The shell owns it for the window's lifetime so a frame does not lose the
-	// list's scroll position; it holds no session fact and cannot outlive the
-	// catalog it was laid out from.
+	// rows, its choice, the selection that choice was last mapped from and the
+	// rows that choice indexes into. The shell owns it for the window's lifetime
+	// so a frame does not lose the list's scroll position; it holds no session
+	// fact and cannot outlive the catalog it was laid out from.
 	state *sidebarState
 }
 
@@ -205,17 +199,6 @@ type sidebarState struct {
 	choice int
 	synced string
 	rows   []sidebarRow
-	// filter is the query the rows were last laid out for. The choice is mapped
-	// from the selection anew when the query changes, so a row the filter hides
-	// never keeps the index of the row it replaced.
-	filter string
-	// searchTaken says the caller's SidebarView.Searching and SearchQuery have
-	// been adopted, and searching and query are the search box's own state
-	// after that. Searching is whether the box is open; query is the filter
-	// text when the caller keeps none of its own.
-	searchTaken bool
-	searching   bool
-	query       string
 }
 
 // HeaderView is what the conversation bar and its banner draw: the selected
@@ -489,14 +472,11 @@ type KeyBinding struct {
 	Key ui.Key
 }
 
-// renderSidebar draws the session sidebar: the brand row, the global entries,
-// the grouped thread list, the read-only branch list, the thread actions and the
-// WIP capability cards. It writes SidebarView.Selected on a choice, then calls
-// Actions.OnSelect; it calls Actions.OnCreateSession from "New session",
-// Actions.OnRefreshBranches from the branch directory's "Refresh" and
-// Actions.OnEndBranch from "End branch". Its search entry filters the display
-// copy of the catalog in place and calls no Actions field: the box needs no
-// callback and sends no request.
+// renderSidebar draws the session sidebar: the global entries, the grouped
+// thread list and the account footer. It writes SidebarView.Selected on a
+// choice, then calls Actions.OnSelect; it calls Actions.OnCreateSession from
+// "New session" and Actions.OnOpenSearch from the Search entry, which opens the
+// window's search palette and sends no request of its own.
 func renderSidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	sidebar(c, k, v, a)
 }
@@ -546,6 +526,17 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 // because the snapshot is a read and the panel starts no request.
 func renderKeysPanel(c *ui.Context, k tokens, v *KeysPanelView, a Actions) {
 	keysPanel(c, k, v, a)
+}
+
+// renderSearchPalette draws the centered search palette over the window's
+// content while SearchPaletteView.Open is set: the input over the scrim, the
+// recent-chat heading and one row per result. It writes the palette's own
+// highlight through SearchPaletteView.Selected, closes the palette when Escape,
+// the scrim or a result asks it to, and calls Actions.OnSelect with the chosen
+// session. The results are a display copy of the catalog the shell already
+// holds: the palette starts no App Server read.
+func renderSearchPalette(c *ui.Context, k tokens, v SearchPaletteView, a Actions) {
+	searchPalette(c, k, v, a)
 }
 
 // renderContextPanel, in context_panel.go, is the frozen entry of the context

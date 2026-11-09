@@ -322,6 +322,22 @@ type State struct {
 	// View draws the route in the whole window and no sidebar, toolbar,
 	// conversation or composer. Closing it restores the frame the window held.
 	ShowSettings bool
+	// ShowSearch is the window's own record that the centered search palette is
+	// showing over the frame. It is display state only: the palette draws above
+	// the sidebar and main column without replacing them, and Cmd+G or the
+	// sidebar's Search entry opens it. SearchQuery is the text its input edits
+	// and SearchSelected the result its arrows highlight; both are view state
+	// the palette writes in place, and a closed palette clears them so the next
+	// open starts from the whole recent list. No field here is a session fact:
+	// the results are filtered from Sessions and a chosen row goes through
+	// OnSelect.
+	ShowSearch     bool
+	SearchQuery    string
+	SearchSelected int
+	// searchSynced is the query SearchSelected was last held against: when the
+	// input's text changes, the highlight returns to the first result instead of
+	// pointing into a list the query no longer produces.
+	searchSynced string
 	// DeleteConfirm is the window's own record that the toolbar's delete
 	// confirmation is showing. It holds no session fact: the alert is confirmed
 	// through OnDeleteSession, and the row leaves the catalog only after the App
@@ -387,8 +403,10 @@ func (s *State) View(c *ui.Context) {
 	// The settings route takes the whole window: no sidebar, toolbar,
 	// conversation, composer or status band is drawn while it is open, and a
 	// close returns to the frame the window held, with its selection, draft and
-	// conversation list state untouched.
+	// conversation list state untouched. The search palette never shows over the
+	// settings route, so a palette that was open is dropped here.
 	if s.ShowSettings {
+		s.closeSearch()
 		renderSettings(c, k, s.Settings, wipCapabilities(s), s.applySettings, s.closeSettings)
 		return
 	}
@@ -494,6 +512,71 @@ func (s *State) View(c *ui.Context) {
 	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
 		composer.Focus.Focus()
+	}
+	// The search palette is the window's own display state: Cmd+G and the
+	// sidebar's Search entry open it, the results come from the catalog it
+	// already holds, and it starts no App Server read. It is built last so it
+	// paints over the frame it opened from rather than replacing it, and it is
+	// absent while the settings route is showing.
+	if c.Shortcut(searchShortcutMods, searchShortcutKey) {
+		s.openSearch()
+	}
+	s.syncSearch()
+	if s.ShowSearch {
+		results := searchResults(s.Sessions, s.SearchQuery)
+		s.SearchSelected = max(0, min(s.SearchSelected, len(results)-1))
+		renderSearchPalette(c, k, s.searchPaletteView(results), a)
+	}
+}
+
+// openSearch opens the palette from the shortcut or the sidebar entry. It
+// starts from an empty query, as the reference's reopened dialog does, and
+// highlights the first result; the list itself is filtered on every frame from
+// State.Sessions.
+func (s *State) openSearch() {
+	s.ShowSearch = true
+	s.SearchQuery = ""
+	s.SearchSelected = 0
+	s.searchSynced = ""
+}
+
+// closeSearch drops the palette and its query, so closing it leaves no filter
+// behind and the next open starts from the whole recent list. The focus returns
+// to the control that opened the palette by itself: the dialog is an overlay,
+// and mygo gives the focus back to the element that had it as it opened.
+func (s *State) closeSearch() {
+	s.ShowSearch = false
+	s.SearchQuery = ""
+	s.SearchSelected = 0
+	s.searchSynced = ""
+}
+
+// syncSearch keeps the highlight on a row the current results still have: a
+// changed query returns it to the first row, and a closed palette clears the
+// text and the highlight. The input edits the query while the frame builds, so
+// this runs at the top of the next one.
+func (s *State) syncSearch() {
+	if !s.ShowSearch {
+		s.closeSearch()
+		return
+	}
+	if s.SearchQuery != s.searchSynced {
+		s.searchSynced = s.SearchQuery
+		s.SearchSelected = 0
+	}
+}
+
+// searchPaletteView copies the palette's view state and the results the shell
+// filtered. Open, Query and Selected are pointers: the dialog writes Open when
+// it is dismissed, the input writes Query, and the arrows write Selected, so
+// the shell reads them on the next frame without a second copy.
+func (s *State) searchPaletteView(results []SearchResult) SearchPaletteView {
+	return SearchPaletteView{
+		Open:     &s.ShowSearch,
+		Query:    &s.SearchQuery,
+		Results:  results,
+		Selected: &s.SearchSelected,
+		Locale:   s.locale(),
 	}
 }
 
@@ -645,6 +728,10 @@ func (s *State) actions() Actions {
 		OnToggleContextPanel: func() {
 			s.ShowContextPanel = !s.ShowContextPanel
 		},
+		// The search palette is the shell's own state: its results are a
+		// display copy of the catalog the window already holds and opening it
+		// sends nothing, so the sidebar's Search entry is always wired.
+		OnOpenSearch: s.openSearch,
 	}
 	// The keys toggle is the shell's own state too, but it is wired only when the
 	// caller supplied a session.keys snapshot. The sidebar no longer draws the
