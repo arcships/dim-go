@@ -383,6 +383,15 @@ type ComposerView struct {
 	Sending bool
 	// Placeholder is the composer's empty-state text.
 	Placeholder string
+	// Workspace is the workspace the next turn would run in, as the shell read
+	// it from an App Server fact. Empty means the shell has no such fact yet;
+	// the context row then draws the WIP badge and its reason rather than a
+	// made-up path.
+	Workspace string
+	// Permission is the session's default permission mode, as the shell read it
+	// from an App Server fact. Empty draws the context row's WIP state rather
+	// than an invented mode. The composer offers no control to change it.
+	Permission string
 	// Shortcut is the modifier and key that submit the draft. The shell's own
 	// focus shortcut (ComposerShortcutMods with ComposerShortcutKey) is not part
 	// of this view: it focuses Focus and is handled by the shell.
