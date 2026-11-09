@@ -1,16 +1,16 @@
 state	disconnected
-started_at	2026-11-09 13:31:48 CST
-captured_at	2026-11-09 13:31:52 CST
-built_at	2026-11-09 13:31:48 CST
-git_head	1c297d98b7ee48fe98af3c01ee3737089c386e2d
+started_at	2026-11-09 14:49:54 CST
+captured_at	2026-11-09 14:49:56 CST
+built_at	2026-11-09 14:49:54 CST
+git_head	3a5256519ea9832968f6e67e646072869eed1465
 git_dirty	clean
 product_home	<unset>
-app_pid	56999
-window_id	47683
+app_pid	87019
+window_id	48603
 window_title	DimAgent
 window_bounds_points	484,116,1080,720
 png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/window-disconnected.png
 png_pixels	2160 1440
-png_bytes	233937
+png_bytes	276010
 daemon	<none>
 app_log	

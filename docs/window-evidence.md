@@ -12,14 +12,14 @@
 |---|---|
 | 机器 | macOS 26.6.2（darwin/arm64） |
 | Go | go1.27.3 darwin/arm64 |
-| 源码 | `HEAD = 1c297d98b7ee48fe98af3c01ee3737089c386e2d`，工作区 clean（2026-11-09 13:31 重跑） |
-| 构建时间 | 2026-11-09 13:31:48 CST |
+| 源码 | `HEAD = 3a5256519ea9832968f6e67e646072869eed1465`，工作区 clean（2026-11-09 14:49 重跑） |
+| 构建时间 | 2026-11-09 14:49:54 CST |
 | App Server 二进制 | `/tmp/dim-2-target/debug/dim-app-server`（Mach-O arm64，401 302 448 B，mtime 2026-11-08 23:38） |
 | 窗口库 | `github.com/egoist/mygo v0.8.3`（`mygo.NewWindow`，`Width: 1080`、`Height: 720`） |
 | 截图工具 | `/usr/sbin/screencapture -x -o -l <windowid>`（按窗口 ID 截取，只含该窗口，不含桌面和其它应用） |
 | 窗口 ID 来源 | `CGWindowListCopyWindowInfo`，按**本进程 PID** 过滤；脚本内用 `swiftc` 现场编译小工具读取 |
 
-2026-11-09 13:31 的这次采集在 `1c297d9`（P0+部分 P1 组件与 branch 选择落地）上重跑，工作区 clean；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 记录同一事实。源码再变时截图即过期，需要重跑脚本。
+2026-11-09 14:49 的这次采集在 `3a52565`（主区卡片、空态 hero、composer context row、侧栏入口落地）上重跑，工作区 clean；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 记录同一事实。源码再变时截图即过期，需要重跑脚本。
 
 ## 2. 复现命令
 
@@ -37,14 +37,14 @@ cd /Users/eric8810/Code/dimagent-mygo
 4. 两种状态都在窗口拿到真实尺寸后 `sleep 1` 再截图；截图后按 PID 结束应用，并按「命令行里含本次临时 home 路径」精确结束本次 spawn 的 daemon；随后 `rm -rf` 临时 home。
 5. 全程不读写 `~/.dimcode`，不使用用户的真实 product home。结束时打印 `all requested captures done; no leftover daemon from this run`，并复查没有本次残留的 daemon。
 
-## 3. 采集结果（2026-11-09 13:31 CST）
+## 3. 采集结果（2026-11-09 14:49 CST）
 
 | 状态 | 采集时间 | 窗口 ID | 窗口位置/尺寸（points） | PNG 像素 | 字节 | PNG 路径 |
 |---|---|---|---|---|---|---|
-| 未连接 | 13:31:48 → 13:31:52 | 47683 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 233 937 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
-| 已连接 | 13:31:53 → 13:31:55 | 47693 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 232 581 | [`evidence/window-connected.png`](evidence/window-connected.png) |
+| 未连接 | 14:49:54 → 14:49:56 | 87019 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 276 010 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
+| 已连接 | 14:49:56 → 14:49:58 | 87108 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 275 619 | [`evidence/window-connected.png`](evidence/window-connected.png) |
 
-MD5：未连接 `5633351daee0524feab0534da928b67b`，已连接 `b57b3e2f949c7726c14103b354db0cc6`。
+MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `d0042bb57934966762cd214381f54eea`。
 
 机器可读的采集元数据（脚本生成，含源码快照、PID、窗口 ID、bounds、daemon 命令行）：
 [`evidence/window-disconnected.txt`](evidence/window-disconnected.txt)、[`evidence/window-connected.txt`](evidence/window-connected.txt)。
