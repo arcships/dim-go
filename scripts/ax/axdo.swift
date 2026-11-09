@@ -118,6 +118,23 @@ func main() {
         usleep(80_000)
         up?.post(tap: .cghidEventTap)
         print("clicked \(x),\(y)")
+    case "focused":
+        if let f = attr(app, kAXFocusedUIElementAttribute) {
+            let el = f as! AXUIElement
+            let role = attr(el, kAXRoleAttribute) as? String ?? ""
+            let title = attr(el, kAXTitleAttribute) as? String ?? ""
+            let desc = attr(el, kAXDescriptionAttribute) as? String ?? ""
+            print("\(role) | \(title) | \(desc)")
+        } else { print("no focused element") }
+    case "move":
+        guard args.count >= 5, let x = Double(args[3]), let y = Double(args[4]) else {
+            print("move needs x y")
+            exit(2)
+        }
+        CGEvent(mouseEventSource: nil, mouseType: .mouseMoved,
+                mouseCursorPosition: CGPoint(x: x, y: y), mouseButton: .left)?
+            .post(tap: .cghidEventTap)
+        print("moved \(x),\(y)")
     case "key":
         guard args.count >= 4, let code = UInt16(args[3]) else { print("key needs a keycode"); exit(2) }
         let down = CGEvent(keyboardEventSource: nil, virtualKey: code, keyDown: true)

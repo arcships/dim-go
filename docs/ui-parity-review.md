@@ -87,6 +87,11 @@ Last updated: 2026-11-09
 - [`evidence/window-header-model.png`](evidence/window-header-model.png)。顶栏 trailing 顺序 `… → 模型 chip → panel`，chip 显示当前 provider/model，点击打开与 composer 相同的模型列表；参考的 VS Code 入口未做（无对应功能）。
 - 窄窗截断，Settings/Keys 路由打开时不画。
 
+## 状态证据（2026-11-10）
+
+- 已有真实窗口：空态、对话、closed、menu、hover、search、settings、pinned、branch、header model。
+- loading 仍无稳定真实帧（本地 mock 过快）；focus ring 只有 headless 断言，没有窗口截图；D7 仍不能通过。
+
 ## 像素基线（辅助，不是结论）
 
 同尺寸 800×720，区域按 sidebar/top/content/composer/bottom：
