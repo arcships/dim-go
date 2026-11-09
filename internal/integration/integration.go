@@ -422,12 +422,12 @@ func (c *SessionController) LookupInput(ctx context.Context, branchID, submissio
 	if ctx == nil {
 		return appserver.InputLookupResult{}, fmt.Errorf("integration: nil context")
 	}
-	if branchID == "" {
-		return appserver.InputLookupResult{}, fmt.Errorf("integration: empty branch id")
-	}
 	if submissionID == "" {
 		return appserver.InputLookupResult{}, fmt.Errorf("integration: empty submission id")
 	}
+	// An empty branchID is not an error: Session.LookupInput supplies the
+	// session's current branch, matching how Submit does. The window has no
+	// reliable branch id of its own, and inventing one would be a local fact.
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.Session == nil {

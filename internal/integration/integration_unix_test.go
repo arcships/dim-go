@@ -32,6 +32,7 @@ type fakeDaemon struct {
 	instance string
 	faults   map[string][]*appserver.RPCError
 	calls    map[string]int
+	params   map[string]json.RawMessage
 	attached map[net.Conn]struct{}
 	writeMu  sync.Mutex
 
@@ -52,6 +53,7 @@ func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
 		instance: "integration-fake",
 		faults:   map[string][]*appserver.RPCError{},
 		calls:    map[string]int{},
+		params:   map[string]json.RawMessage{},
 		attached: map[net.Conn]struct{}{},
 	}
 	go daemon.accept()
@@ -91,6 +93,29 @@ func (d *fakeDaemon) callCount(method string) int {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.calls[method]
+}
+
+// recordParams keeps the last request params per method so tests can assert
+// what the controller actually sent, not just that it sent something.
+func (d *fakeDaemon) recordParams(method string, params json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.params[method] = append(json.RawMessage(nil), params...)
+}
+
+// lastParams decodes the last request params for method into a plain map.
+func (d *fakeDaemon) lastParams(method string) map[string]any {
+	d.mu.Lock()
+	raw := append(json.RawMessage(nil), d.params[method]...)
+	d.mu.Unlock()
+	params := map[string]any{}
+	if len(raw) == 0 {
+		return params
+	}
+	if err := json.Unmarshal(raw, &params); err != nil {
+		d.t.Fatalf("decode %s params: %v", method, err)
+	}
+	return params
 }
 
 // beginCall records a request and returns its scripted fault, if any.
@@ -152,10 +177,12 @@ func (d *fakeDaemon) serve(conn net.Conn) {
 		var request struct {
 			ID     json.RawMessage `json:"id"`
 			Method string          `json:"method"`
+			Params json.RawMessage `json:"params"`
 		}
 		if err := json.Unmarshal(raw, &request); err != nil {
 			return
 		}
+		d.recordParams(request.Method, request.Params)
 		d.respond(conn, request.ID, request.Method)
 		if request.Method == "session.attach" {
 			d.mu.Lock()
@@ -721,7 +748,8 @@ func TestLookupInputMalformedRejectsReply(t *testing.T) {
 }
 
 // TestLookupInputFailsFastWithoutCall pins the parameter checks: nil context,
-// empty branch or submission ids and no session all fail before any request.
+// empty submission id and no session all fail before any request. An empty
+// branch id is valid and defaults to the session's current branch.
 func TestLookupInputFailsFastWithoutCall(t *testing.T) {
 	daemon, sup, ctx := startBridge(t)
 	controller, err := OpenSession(ctx, sup, "s1")
@@ -739,7 +767,6 @@ func TestLookupInputFailsFastWithoutCall(t *testing.T) {
 	}{
 		{"nil controller", nil, ctx, "main", "sub-1"},
 		{"nil context", controller, nil, "main", "sub-1"},
-		{"empty branch", controller, ctx, "", "sub-1"},
 		{"empty submission", controller, ctx, "main", ""},
 		{"no session", &SessionController{}, ctx, "main", "sub-1"},
 	}
@@ -750,6 +777,30 @@ func TestLookupInputFailsFastWithoutCall(t *testing.T) {
 	}
 	if got := daemon.callCount("session.input_lookup"); got != 0 {
 		t.Fatalf("session.input_lookup calls = %d, want 0", got)
+	}
+}
+
+// TestLookupInputDefaultsBranch keeps the empty-branch case usable from the
+// window: it must ask the daemon with the session's current branch instead of
+// failing locally or inventing a branch id.
+func TestLookupInputDefaultsBranch(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	daemon.setInputLookup(json.RawMessage(`{"status":"unknown"}`))
+
+	if _, err := controller.LookupInput(ctx, "", "sub-1"); err != nil {
+		t.Fatalf("LookupInput with default branch: %v", err)
+	}
+	if got := daemon.callCount("session.input_lookup"); got != 1 {
+		t.Fatalf("session.input_lookup calls = %d, want 1", got)
+	}
+	params := daemon.lastParams("session.input_lookup")
+	if params["branchId"] != "main" {
+		t.Fatalf("branchId = %v, want the session's current branch main", params["branchId"])
 	}
 }
 
