@@ -7,28 +7,19 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// TestRunStatusLabels checks the toolbar's run row for each state, and that it
-// is a live region so a turn starting or settling is read out once.
-func TestRunStatusLabels(t *testing.T) {
-	cases := []struct {
-		run   RunState
-		label string
-	}{
-		{RunIdle, "Idle"},
-		{RunRunning, "Running"},
-		{RunStopping, "Stopping…"},
-	}
-	for _, tc := range cases {
+// TestRunStatusRowLeavesTheToolbar checks that the toolbar no longer repeats
+// the session lifecycle: the reference's conversation bar has a breadcrumb and
+// a menu, not a "Session: Idle" row. The Stop entry stays conditional on a
+// running turn.
+func TestRunStatusRowLeavesTheToolbar(t *testing.T) {
+	for _, run := range []RunState{RunIdle, RunRunning, RunStopping} {
 		s := fixture()
-		s.Run = tc.run
+		s.Run = run
 		tt := ui.NewTester(s.View, 900, 600)
-		want := "Session: " + tc.label
-		if !tt.HasText(want) {
-			t.Errorf("%v: run row does not show %q, texts %q", tc.run, want, tt.Texts())
-			continue
-		}
-		if _, ok := tt.AccessByRole(ui.RoleStatus, want); !ok {
-			t.Errorf("%v: run row %q is not a status region", tc.run, want)
+		for _, gone := range []string{"Session: Idle", "Session: Running", "Session: Stopping…"} {
+			if tt.HasText(gone) {
+				t.Errorf("%v: the toolbar still draws the run row %q, texts %q", run, gone, tt.Texts())
+			}
 		}
 	}
 }

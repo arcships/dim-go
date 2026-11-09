@@ -54,29 +54,31 @@ type Actions struct {
 	// invents no history. A session that fails to open is shown through the
 	// connection and banner fields, never as a local placeholder session.
 	OnSelect func(sessionID string)
-	// OnSelectBranch is called by the sidebar's branch list with the branch the
-	// user chose. Branch switching is not its own RPC: the caller reads that
-	// branch's history through the session controller's OpenBranch and moves
-	// SidebarView.SelectedBranch only after the App Server answered. A failed
-	// read leaves the current branch shown and reports through
-	// HeaderView.ActionError; the region writes no branch fact and invents no
-	// branch. While this field is nil the list keeps its read-only WIP form.
+	// OnSelectBranch is the branch-switch request a branch list calls with the
+	// branch the user chose. No region draws a branch list today: the session
+	// menu offers End branch and Refresh branches, which neither switch the
+	// displayed branch. When a branch list returns, switching is not its own
+	// RPC: the caller reads that branch's history through the session
+	// controller's OpenBranch and moves the displayed branch only after the App
+	// Server answered. A failed read leaves the current branch shown and reports
+	// through HeaderView.ActionError; the region writes no branch fact and
+	// invents no branch.
 	OnSelectBranch func(branchID string)
-	// OnEndBranch is called by the sidebar's "End branch" entry with the
-	// current branch's id. The caller sends session.branch_end, then re-reads
+	// OnEndBranch is called by the toolbar's session menu with the displayed
+	// branch's id. The caller sends session.branch_end, then re-reads
 	// session.branches and the branch view. No row is removed here or by the
 	// caller before the App Server confirms the end: the directory entry
 	// disappears only after session.branches reports it gone, and an
 	// already-ended reply is not turned into a local delete. A failed end keeps
 	// the row and reports through HeaderView.ActionError. While this field is
-	// nil the entry stays visible, disabled and explained as WIP.
+	// nil the menu entry stays visible, disabled and explained as WIP.
 	OnEndBranch func(branchID string)
-	// OnRefreshBranches is called by the sidebar's branch "Refresh" entry. The
-	// caller re-reads session.branches into the directory and publishes the new
-	// view; the region neither caches a directory nor invents a row. A failed
-	// read leaves the previous directory and reports through
-	// HeaderView.ActionError. While this field is nil the entry stays visible,
-	// disabled and explained as WIP.
+	// OnRefreshBranches is called by the toolbar's session menu "Refresh
+	// branches" entry. The caller re-reads session.branches into the directory
+	// and publishes the new view; the region neither caches a directory nor
+	// invents a row. A failed read leaves the previous directory and reports
+	// through HeaderView.ActionError. While this field is nil the entry stays
+	// visible, disabled and explained as WIP.
 	OnRefreshBranches func()
 	// OnSubmit is called by the composer's Send entry and submit shortcut with
 	// the trimmed draft. The caller sends the turn and clears the draft only
@@ -98,22 +100,30 @@ type Actions struct {
 	// row; the region never removes the row or claims an outcome on its own,
 	// and a row without a request identity never reaches this field.
 	OnApproval func(branchID, requestID string, decision ApprovalDecision)
-	// OnDeleteSession is called by the sidebar's thread actions with the selected
-	// session id. The caller sends session.delete and removes the row only after
-	// the App Server confirmed; a rejected delete leaves the row and reports
-	// through HeaderView.ActionError.
+	// OnDeleteSession is called by the toolbar's delete confirmation with the
+	// selected session id. The caller sends session.delete and removes the row
+	// only after the App Server confirmed; a rejected delete leaves the row and
+	// reports through HeaderView.ActionError. The region calls it only after the
+	// user confirmed the alert, never from the menu item itself.
 	OnDeleteSession func(sessionID string)
-	// OnOpenSettings is called by the toolbar's Settings entry and toggles the
-	// appearance surface. The preferences it edits are desktop-local: the caller
-	// applies the theme and the sidebar width and persists what it can; nothing
-	// here reaches the App Server. While this field is nil the entry is absent.
+	// OnRequestDelete is called by the toolbar's "Delete session" menu item. It
+	// opens the window's delete confirmation; the session is deleted only when
+	// the user confirms, through OnDeleteSession. While this field is nil the
+	// menu entry stays visible, disabled and explained as WIP.
+	OnRequestDelete func()
+	// OnOpenSettings is called by the toolbar's session menu settings entry and
+	// toggles the appearance surface. The preferences it edits are desktop-local:
+	// the caller applies the theme and the sidebar width and persists what it
+	// can; nothing here reaches the App Server. While this field is nil the
+	// entry is absent.
 	OnOpenSettings func()
-	// OnToggleKeys is called by the sidebar's "Session keys" entry and toggles
-	// the session.keys browser in the main column. The shell owns both the entry
-	// and the panel's visibility, so this field carries no caller callback: it is
-	// wired exactly while a session.keys snapshot is present, and the browser
-	// only displays what the caller already read. While this field is nil the
-	// entry stays a WIP statement and opening the browser sends no request.
+	// OnToggleKeys is called by the toolbar's session menu "Session keys" entry
+	// and toggles the session.keys browser in the main column. The shell owns
+	// both the entry and the panel's visibility, so this field carries no caller
+	// callback: it is wired exactly while a session.keys snapshot is present, and
+	// the browser only displays what the caller already read. While this field is
+	// nil the menu entry stays a WIP statement and opening the browser sends no
+	// request.
 	OnToggleKeys func()
 	// OnToggleContextPanel is called by the toolbar's context panel entry and
 	// toggles the changed-file panel beside the conversation. The shell owns the
@@ -208,17 +218,31 @@ type sidebarState struct {
 	query       string
 }
 
-// HeaderView is what the toolbar and its banner draw: the selected session's
-// title, the connection and run the supervisor reported, the transient status
-// line and the window's own action outcomes.
+// HeaderView is what the conversation bar and its banner draw: the selected
+// session's project and title, the connection and run the supervisor reported,
+// the window's own action outcomes, and the menu entries for the actions the
+// reference keeps behind the bar's "…" button.
 type HeaderView struct {
+	// Project is the selected session's project label, as the catalog's Group
+	// carries it (a cwd base name). The toolbar draws it before the title with
+	// a separator while it is set; an empty Project draws no project name and
+	// no separator, rather than an invented one.
+	Project string
 	// Title is the selected session's title, already resolved by the shell:
 	// "No session" stands in when the catalog has none. The region does no
 	// lookup of its own.
 	Title string
-	// HasSession is true while a session is selected. The stop and reconnect
-	// entries are offered only with a selected session to attach to.
+	// SessionID is the selected session's identity, which the delete
+	// confirmation addresses. The region never invents one.
+	SessionID string
+	// HasSession is true while a session is selected. The toolbar, its menu and
+	// the banner belong to a selected session; the stop and reconnect entries
+	// are offered only with one to attach to.
 	HasSession bool
+	// SelectedBranch is the branch the window displays. The menu's "End branch"
+	// entry is offered only while it names a non-main branch; the App Server
+	// owns the branch and the outcome of ending it.
+	SelectedBranch string
 	// Connection and ConnectionError are the supervisor's last report and the
 	// last error it raised. They are display state: the region reads no daemon
 	// state, SQLite, JSONL or log.
@@ -232,12 +256,15 @@ type HeaderView struct {
 	// action error: it is shown, and no submit, stop or reconnect is offered.
 	Closed       bool
 	ClosedReason string
-	// ModelProgress is the transient, non-durable model preview.
+	// ModelProgress is the transient, non-durable model preview. The bar draws
+	// no status line today, so it carries the preview without presenting it; a
+	// future status surface reads it rather than inventing progress.
 	ModelProgress *ModelProgress
 	// Notices and ActionNotices are transient notifications: projection notices
-	// and the window's own outcomes of actions it sent. The status row shows
-	// their total only. They are not projection facts, so a live refresh must
-	// leave the window-owned ones alone.
+	// and the window's own outcomes of actions it sent. The bar draws no count
+	// today; they stay in the contract for the status surface that reads them.
+	// They are not projection facts, so a live refresh must leave the
+	// window-owned ones alone.
 	Notices       []Notice
 	ActionNotices []Notice
 	// ActionError is the window-owned failure of the last action it sent. It
@@ -246,14 +273,17 @@ type HeaderView struct {
 	ActionError string
 	// ActionStatus is the window-owned line for an outcome the App Server
 	// confirmed without a session fact to show, such as a submission resolved by
-	// reading it back. A later action that settles another outcome replaces it.
+	// reading it back. The bar draws no status line today; it stays in the
+	// contract for the surface that reads it. A later action that settles
+	// another outcome replaces it.
 	ActionStatus string
 	// Loading is the window's record that history or a reconnect is still
 	// loading. It hides the reconnect entry so one attempt cannot be started
 	// twice; it never stands in for history.
 	Loading bool
 	// SettingsOpen is the window's record that the appearance surface is
-	// showing. The toolbar's entry reads "Settings" or "Conversation" from it.
+	// showing. The menu's settings entry reads "Settings" or "Conversation"
+	// from it, so the same entry always returns.
 	SettingsOpen bool
 	// KeysOpen is the window's record that the keys browser is showing in the
 	// main column. The context panel entry is absent while it is set, since the
@@ -263,11 +293,16 @@ type HeaderView struct {
 	// beside the conversation. The toolbar's entry reads its state from it and
 	// toggles it through Actions.OnToggleContextPanel.
 	ContextPanelOpen bool
-	// Locale is the language of the toolbar's own text: the Stop, Reconnect and
-	// Settings entries, the status prefixes and the terminal-close banner. The
-	// run and connection names, the session title and an error string are not
-	// the shell's words and stay as they came. An empty or unknown value draws
-	// English.
+	// DeleteConfirm is the window's own record that the delete confirmation is
+	// showing. The toolbar draws the alert while *DeleteConfirm is true and
+	// writes false as the alert closes; its confirm button calls
+	// Actions.OnDeleteSession with SessionID. A nil pointer draws no alert.
+	DeleteConfirm *bool
+	// Locale is the language of the toolbar's own text: the breadcrumb's
+	// accessible name, the menu entries, the model entry, the Stop and Reconnect
+	// entries and the terminal-close banner. The run and connection names, the
+	// session title and an error string are not the shell's words and stay as
+	// they came. An empty or unknown value draws English.
 	Locale Locale
 }
 
@@ -452,10 +487,15 @@ func renderSidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	sidebar(c, k, v, a)
 }
 
-// renderHeader draws the toolbar (title, run, connection, Stop, Reconnect) and
-// the banner below it (a terminal close, the connection error, or the window's
-// action error). It calls Actions.OnStop and Actions.OnReconnect from the
-// entries, and only when HeaderView says the entry applies.
+// renderHeader draws the conversation bar and the banner below it. The bar is
+// the reference's one line: the project and title breadcrumb, the session menu,
+// the conditional Stop and Reconnect entries, the model entry, a divider and the
+// context panel toggle. It calls Actions.OnToggleKeys, Actions.OnEndBranch,
+// Actions.OnRefreshBranches, Actions.OnRequestDelete and Actions.OnOpenSettings
+// from its menu, Actions.OnDeleteSession from the delete alert's confirm
+// button, and Actions.OnStop and Actions.OnReconnect from the entries, each only
+// when HeaderView says the entry applies. The banner shows a terminal close, the
+// connection error, or the window's action error.
 func renderHeader(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	header(c, k, v, a)
 }

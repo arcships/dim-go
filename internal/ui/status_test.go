@@ -92,9 +92,6 @@ func TestActionErrorBanner(t *testing.T) {
 	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); !ok {
 		t.Fatalf("action error is not an alert region, texts %q", tt.Texts())
 	}
-	if !tt.HasText("Notices: 1") {
-		t.Errorf("window action outcome count is missing, texts %q", tt.Texts())
-	}
 }
 
 func TestConnectionErrorBannerTakesPrecedence(t *testing.T) {
@@ -132,8 +129,8 @@ func TestClosedSessionGatesActions(t *testing.T) {
 	if !tt.HasText("Session closed: done") {
 		t.Fatalf("closed banner is missing, texts %q", tt.Texts())
 	}
-	if !tt.HasText("Session: Closed") {
-		t.Errorf("closed run label is missing, texts %q", tt.Texts())
+	if tt.HasText("Session: Closed") {
+		t.Errorf("the toolbar still repeats the closed run label, texts %q", tt.Texts())
 	}
 	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); !ok {
 		t.Fatalf("closed session is not an alert region, texts %q", tt.Texts())

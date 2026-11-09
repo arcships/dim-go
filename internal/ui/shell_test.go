@@ -178,15 +178,18 @@ func TestShellHasNoHeaderWithoutASession(t *testing.T) {
 	}
 }
 
-// TestShellHeaderKeepsTheSessionTitle checks that the toolbar is unchanged
-// while a session is selected.
+// TestShellHeaderKeepsTheSessionTitle checks that the conversation bar keeps
+// the selected title and no longer repeats the run row.
 func TestShellHeaderKeepsTheSessionTitle(t *testing.T) {
 	tt := ui.NewTester(fixture().View, 900, 600)
 	if !tt.HasText("First session") {
 		t.Errorf("the toolbar lost the selected title, texts %q", tt.Texts())
 	}
-	if !tt.HasText("Session: Idle") {
-		t.Errorf("the toolbar lost the run row, texts %q", tt.Texts())
+	if tt.HasText("Session: Idle") {
+		t.Errorf("the toolbar still draws the run row, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleMenuButton, tr(LocaleEN, keyHeaderMenu)); !ok {
+		t.Errorf("the toolbar has no session menu, texts %q", tt.Texts())
 	}
 }
 
@@ -543,9 +546,10 @@ func TestShellContextPanelYieldsToSettingsAndKeys(t *testing.T) {
 		t.Error("opening the appearance surface dropped the window's panel toggle")
 	}
 
-	if err := tt.Click("Conversation"); err != nil {
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
 		t.Fatal(err)
 	}
+	clickMenuItem(t, tt, tr(LocaleEN, keyHeaderConversation))
 	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
 		t.Fatalf("the panel did not return with the conversation, texts %q", tt.Texts())
 	}

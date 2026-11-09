@@ -56,7 +56,7 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 		// Sidebar entries and headings.
 		"新建会话", "搜索会话", "定时任务", "技能/插件", "会话", "无项目",
 		// Toolbar and banner.
-		"设置", "会话已关闭",
+		"设置", "会话已关闭", "模型 ▾",
 		// The account footer.
 		"登录 Dim",
 		// Composer.
@@ -65,6 +65,9 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 		if !tt.HasText(want) {
 			t.Errorf("the zh-CN frame is missing %q, texts %q", want, tt.Texts())
 		}
+	}
+	if _, ok := tt.AccessByRole(ui.RoleMenuButton, tr(LocaleZHCN, keyHeaderMenu)); !ok {
+		t.Errorf("the zh-CN conversation bar has no session menu, texts %q", tt.Texts())
 	}
 	// The shortcut pair is the composer's description, not a visible row, so it
 	// is read by assistive technology rather than drawn.
@@ -155,6 +158,8 @@ func TestProtocolNamesStayLiteral(t *testing.T) {
 		keyReasonStop, keyReasonBranches, keyReasonUpdate, keyReasonSearch, keyReasonGroup,
 		keyReasonPin, keyReasonRename, keyReasonArchive, keyReasonKeysEntry, keyReasonEndBranch,
 		keyReasonRefreshBranches, keyReasonModel, keyReasonMode, keyReasonSkin, keyReasonChrome,
+		keyHeaderRegion, keyHeaderMenu, keyHeaderMenuRefresh, keyHeaderModel, keyHeaderModelPicker,
+		keyHeaderDeleteTitle, keyHeaderDeleteMessage, keyHeaderDeleteConfirm, keyHeaderDeleteCancel,
 	}
 	for _, key := range translated {
 		if tr(LocaleZHCN, key) == tr(LocaleEN, key) {
