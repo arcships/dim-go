@@ -251,9 +251,6 @@ type State struct {
 	OnStop            func()
 	OnReconnect       func()
 	OnApproval        func(branchID, requestID string, decision ApprovalDecision)
-	// OnSettingsChange persists the desktop-local appearance snapshot after the
-	// shell applies it for this frame. It never reaches the App Server.
-	OnSettingsChange func(SettingsChange)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -411,9 +408,6 @@ func (s *State) applySettings(change SettingsChange) {
 	if change.SidebarWidth > 0 {
 		s.SidebarWidth = change.SidebarWidth
 	}
-	if s.OnSettingsChange != nil {
-		s.OnSettingsChange(change)
-	}
 }
 
 // statusBarView copies the readings the bottom bar shows. Only the branch name
@@ -439,7 +433,6 @@ func (s *State) actions() Actions {
 		OnStop:            s.OnStop,
 		OnReconnect:       s.OnReconnect,
 		OnApproval:        s.OnApproval,
-		OnSettingsChange:  s.OnSettingsChange,
 		// The settings toggle is the shell's own state, not a caller callback, so
 		// it is always wired. Opening it takes the main column from the keys
 		// browser, so the two never compete for it.
