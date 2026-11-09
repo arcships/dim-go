@@ -169,44 +169,50 @@ type fakeSession struct {
 	approvalResult        appserver.ApprovalRespondOutcome
 	lookupResult          appserver.InputLookupResult
 	lookupErr             error
-	closed                bool
-	submitted             chan string
-	stopped               chan struct{}
-	approved              chan struct{}
-	refreshed             chan struct{}
-	liveCalls             chan struct{}
-	reconnectStart        chan struct{}
-	reconnectGate         chan struct{}
-	openBranchStart       chan struct{}
-	openBranchGate        chan struct{}
-	openBranchDone        chan struct{}
-	openBranch            []string
-	endedBranches         []string
-	createBranchCalls     int
-	createBranchParent    string
-	createBranchAt        int64
-	createBranchPrompt    string
-	createBranchResult    appserver.BranchCreateResult
-	createBranchErr       error
-	refreshCalls          int
-	shownBranch           string
-	sessionBranch         string
-	submitText            []string
-	submitBranch          string
-	submitBranchText      []string
-	submitBranchCalls     int
-	stopBranch            string
-	stopBranchCalls       int
-	lookupBranchCalls     int
-	reattachCalls         int
-	stopCalls             int
-	approvalCalls         int
-	approvalBranch        string
-	approvalID            string
-	approvalChoice        string
-	lookupCalls           int
-	lookupBranch          string
-	lookupSubmission      string
+	// lookupResults and lookupErrs script one read-back per call; once the
+	// script runs out, lookupResult/lookupErr apply. lookupStarted receives one
+	// signal per read-back when a test set it.
+	lookupResults      []appserver.InputLookupResult
+	lookupErrs         []error
+	lookupStarted      chan struct{}
+	closed             bool
+	submitted          chan string
+	stopped            chan struct{}
+	approved           chan struct{}
+	refreshed          chan struct{}
+	liveCalls          chan struct{}
+	reconnectStart     chan struct{}
+	reconnectGate      chan struct{}
+	openBranchStart    chan struct{}
+	openBranchGate     chan struct{}
+	openBranchDone     chan struct{}
+	openBranch         []string
+	endedBranches      []string
+	createBranchCalls  int
+	createBranchParent string
+	createBranchAt     int64
+	createBranchPrompt string
+	createBranchResult appserver.BranchCreateResult
+	createBranchErr    error
+	refreshCalls       int
+	shownBranch        string
+	sessionBranch      string
+	submitText         []string
+	submitBranch       string
+	submitBranchText   []string
+	submitBranchCalls  int
+	stopBranch         string
+	stopBranchCalls    int
+	lookupBranchCalls  int
+	reattachCalls      int
+	stopCalls          int
+	approvalCalls      int
+	approvalBranch     string
+	approvalID         string
+	approvalChoice     string
+	lookupCalls        int
+	lookupBranch       string
+	lookupSubmission   string
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -325,7 +331,21 @@ func (f *fakeSession) SubmitBranchWithID(ctx context.Context, branchID, text str
 func (f *fakeSession) LookupInput(_ context.Context, branchID, submissionID string) (appserver.InputLookupResult, error) {
 	f.lookupCalls++
 	f.lookupBranch, f.lookupSubmission = branchID, submissionID
-	return f.lookupResult, f.lookupErr
+	if f.lookupStarted != nil {
+		select {
+		case f.lookupStarted <- struct{}{}:
+		default:
+		}
+	}
+	result, err := f.lookupResult, f.lookupErr
+	index := f.lookupCalls - 1
+	if index < len(f.lookupResults) {
+		result = f.lookupResults[index]
+	}
+	if index < len(f.lookupErrs) {
+		err = f.lookupErrs[index]
+	}
+	return result, err
 }
 
 // LookupInputBranch records that the read-back named an explicit branch.
@@ -929,12 +949,14 @@ func TestAppStopReachesSession(t *testing.T) {
 
 // TestAppSubmitUnknownResultKeepsDraftAndDoesNotRetry verifies that an
 // ambiguous App Server mutation is surfaced as-is: the app neither clears the
-// composer nor retries the request or invents a timeline row.
+// composer nor resends the submission or invents a timeline row.
 func TestAppSubmitUnknownResultKeepsDraftAndDoesNotRetry(t *testing.T) {
 	unknown := &appserver.UnknownResultError{Method: appserver.MutationSessionSubmit}
 	sent := make(chan string, 1)
 	f := &fakeSession{submitted: sent, submitErr: unknown}
 	a := &app{state: &dimui.State{Draft: "hello"}, bridge: &sessionBridge{controller: f}}
+	a.lookupInterval = time.Millisecond
+	a.lookupBudget = 100 * time.Millisecond
 	a.bind()
 
 	a.state.OnSubmit("hello")
