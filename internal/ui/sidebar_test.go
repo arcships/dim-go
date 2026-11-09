@@ -217,7 +217,9 @@ func TestSidebarRowFaces(t *testing.T) {
 		if !ok {
 			t.Fatalf("%q is not drawn, texts %q", name, tt.Texts())
 		}
-		return tt.Image().RGBAAt(int(rect.X)+3, int(rect.Y+rect.H/2))
+		// The list insets its rows by sidebarRowInset, so the sample sits just
+		// inside the row's face, left of the title's ink.
+		return tt.Image().RGBAAt(int(rect.X)+2, int(rect.Y+rect.H/2))
 	}
 	selected := rowFace("First session")
 	if !sameColor(selected, k.sidebarAccent) {
@@ -236,6 +238,141 @@ func TestSidebarRowFaces(t *testing.T) {
 	hovered := rowFace("Second session")
 	if !sameColor(hovered, k.sidebarHover) {
 		t.Errorf("the hovered row's face is %v, want the sidebar hover face %+v", hovered, k.sidebarHover)
+	}
+}
+
+// TestSidebarThreadRowsAreInset checks the reference's session row face: it
+// does not run edge to edge in the column. window-conversation.png draws the
+// selected row from x≈11.5 to 248.5, so its face starts 4.5 DIPs inside the
+// list's own 7 DIP padding and stops half a DIP inside it on the right; the
+// hover face of an unselected row is inset the same way. The row's title and
+// relative stamp move with the face.
+func TestSidebarThreadRowsAreInset(t *testing.T) {
+	s := fixture()
+	tt, k := glyphTester(t, s)
+	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	insetLeft := nav.Bounds.X + k.sidebarPadX + sidebarRowInset
+	insetRight := nav.Bounds.X + nav.Bounds.W - k.sidebarPadX - sidebarRowEndInset
+
+	// faceSpan returns the first and last pixel of the face on row y, scanning
+	// the row's width in the rendered frame.
+	faceSpan := func(row ui.Rect, y int, face ui.Color) (int, int, bool) {
+		img := tt.Image()
+		left, right := -1, -1
+		for x := int(row.X) - 1; x <= int(row.X+row.W); x++ {
+			if x < 0 || x >= img.Bounds().Dx() {
+				continue
+			}
+			if sameColor(img.RGBAAt(x, y), face) {
+				if left < 0 {
+					left = x
+				}
+				right = x
+			}
+		}
+		return left, right, left >= 0
+	}
+	// checkInset compares the face's edges with the column's content edge plus
+	// the reference's row inset.
+	checkInset := func(name string, row ui.Rect, left, right float32) {
+		t.Helper()
+		if math.Abs(float64(left-insetLeft)) > 1 {
+			t.Errorf("%s's face starts at %.1f, want it %.1f DIPs inside the column's edge", name, left, insetLeft)
+		}
+		if math.Abs(float64(right-insetRight)) > 1 {
+			t.Errorf("%s's face ends at %.1f, want it %.1f DIPs inside the column's other edge", name, right, insetRight)
+		}
+		if math.Abs(float64(row.X-insetLeft)) > 0.5 {
+			t.Errorf("%s's box starts at %.1f, want the inset edge at %.1f so the list's own choice face stays under the row", name, row.X, insetLeft)
+		}
+		if math.Abs(float64(row.X+row.W-insetRight)) > 0.5 {
+			t.Errorf("%s's box ends at %.1f, want the inset edge at %.1f", name, row.X+row.W, insetRight)
+		}
+	}
+
+	first, ok := tt.Find(s.Sessions[0].Title)
+	if !ok {
+		t.Fatalf("%q is not drawn, texts %q", s.Sessions[0].Title, tt.Texts())
+	}
+	left, right, ok := faceSpan(first, int(first.Y+first.H/2), k.sidebarAccent)
+	if !ok {
+		t.Fatalf("the selected row paints no accent face, texts %q", tt.Texts())
+	}
+	checkInset("the selected row", first, float32(left), float32(right))
+
+	second, ok := tt.Find(s.Sessions[1].Title)
+	if !ok {
+		t.Fatalf("%q is not drawn, texts %q", s.Sessions[1].Title, tt.Texts())
+	}
+	tt.Move(second.X+second.W/2, second.Y+second.H/2)
+	tt.Frame()
+	tt.Advance(motionFast + time.Millisecond)
+	left, right, ok = faceSpan(second, int(second.Y+second.H/2), k.sidebarHover)
+	if !ok {
+		t.Fatalf("the hovered row paints no hover face, texts %q", tt.Texts())
+	}
+	checkInset("the hovered row", second, float32(left), float32(right))
+}
+
+// TestSidebarOffersTheCollapseEntryAsWIP checks the reference's panel-collapse
+// target at the column's top right: a 28 DIP square whose 16 DIP mark centres
+// at y≈28, level with the traffic lights and 7 DIPs in from the column's edge.
+// The shell has no collapse behavior, so the target is unavailable, takes no
+// Tab stop and explains itself through its description; it stays drawn at the
+// reference's place rather than disappearing.
+func TestSidebarOffersTheCollapseEntryAsWIP(t *testing.T) {
+	s := fixture()
+	tt, k := glyphTester(t, s)
+
+	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	entry, ok := tt.AccessByRole(ui.RoleButton, sidebarCollapseLabel)
+	if !ok {
+		t.Fatalf("the collapse entry is not drawn, texts %q", tt.Texts())
+	}
+	if entry.Name != sidebarCollapseLabel {
+		t.Errorf("the collapse entry's accessible name is %q, want %q", entry.Name, sidebarCollapseLabel)
+	}
+	if !entry.Disabled || entry.Focusable {
+		t.Errorf("the collapse entry is not unavailable without a Tab stop: disabled=%v focusable=%v",
+			entry.Disabled, entry.Focusable)
+	}
+	if !strings.Contains(entry.Description, reasonSidebarCollapse) {
+		t.Errorf("the entry description %q does not name the reason %q", entry.Description, reasonSidebarCollapse)
+	}
+	if math.Abs(float64(entry.Bounds.Y-sidebarCollapseTop)) > 0.5 {
+		t.Errorf("the collapse entry sits at y=%.1f, want the reference's %v", entry.Bounds.Y, sidebarCollapseTop)
+	}
+	if want := nav.Bounds.X + nav.Bounds.W - k.sidebarPadX - k.sidebarEntryH; math.Abs(float64(entry.Bounds.X-want)) > 0.5 {
+		t.Errorf("the collapse entry sits at x=%.1f, want its right edge 7 DIPs inside the column's %.1f",
+			entry.Bounds.X, nav.Bounds.X+nav.Bounds.W)
+	}
+	if math.Abs(float64(entry.Bounds.W-k.sidebarEntryH)) > 0.5 || math.Abs(float64(entry.Bounds.H-k.sidebarEntryH)) > 0.5 {
+		t.Errorf("the collapse entry is %.1fx%.1f, want the toolbar's %v DIP square",
+			entry.Bounds.W, entry.Bounds.H, k.sidebarEntryH)
+	}
+
+	// The mark is 12 DIP of ink inside the 16 DIP glyph box, inset 2 DIPs, as
+	// the reference draws it.
+	box := ui.Rect{
+		X: entry.Bounds.X + (entry.Bounds.W-sidebarIconSize)/2,
+		Y: entry.Bounds.Y + (entry.Bounds.H-sidebarIconSize)/2,
+		W: sidebarIconSize, H: sidebarIconSize,
+	}
+	ink, pixels := glyphInkBox(tt, box, k.sidebar)
+	if pixels == 0 {
+		t.Fatal("the collapse entry draws no mark")
+	}
+	if math.Abs(float64(ink.W-12)) > 1 || math.Abs(float64(ink.H-12)) > 1 {
+		t.Errorf("the collapse mark's ink is %.1fx%.1f, want the reference's 12×12", ink.W, ink.H)
+	}
+	if math.Abs(float64(ink.X-box.X-2)) > 1 {
+		t.Errorf("the collapse mark starts at %.1f, want it 2 DIPs inside the glyph box at %.1f", ink.X, box.X)
 	}
 }
 
@@ -918,9 +1055,12 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 	if want := k.sidebarPadX + sidebarEmptyIndent; math.Abs(float64(empty.X-want)) > 0.5 {
 		t.Errorf("暂无会话 starts at x=%.1f, want the reference's pl-[26px] at %.1f", empty.X, want)
 	}
-	if math.Abs(float64(empty.X-group.X-k.sidebarPadX-sidebarIconSize-k.sidebarGap)) > 0.5 {
+	// The heading's box is inset like every row, but its padding gives that
+	// inset back, so its glyph and text stay at the column's own 7 DIP edge.
+	headingText := group.X + k.sidebarPadX - sidebarRowInset + sidebarIconSize + k.sidebarGap
+	if math.Abs(float64(empty.X-headingText)) > 0.5 {
 		t.Errorf("暂无会话 at x=%.1f does not align with the group heading's text at x=%.1f",
-			empty.X, group.X+k.sidebarPadX+sidebarIconSize+k.sidebarGap)
+			empty.X, headingText)
 	}
 	// The section closes with a hairline between the message and the group.
 	face := color.RGBA{R: k.border.R, G: k.border.G, B: k.border.B, A: k.border.A}
@@ -968,7 +1108,7 @@ func TestSidebarSessionRowStartsWithItsTitle(t *testing.T) {
 	}
 	y := int(row.Y + row.H/2)
 	ink := -1
-	for x := int(row.X); x < int(row.X+row.W); x++ {
+	for x := int(row.X) + 1; x < int(row.X+row.W); x++ {
 		if got := tt.Image().RGBAAt(x, y); !sameColor(got, k.sidebarAccent) {
 			ink = x
 			break

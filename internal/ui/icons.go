@@ -18,16 +18,17 @@ const sidebarIconSize = 16
 // sidebarGlyphs is the sidebar's inline icon set. The SVGs are parsed once, at
 // start-up, and the same value is drawn every frame.
 type sidebarGlyphs struct {
-	plus    *ui.SVG
-	search  *ui.SVG
-	clock   *ui.SVG
-	grid    *ui.SVG
-	folder  *ui.SVG
-	house   *ui.SVG
-	user    *ui.SVG
-	gear    *ui.SVG
-	chevron *ui.SVG
-	list    *ui.SVG
+	plus     *ui.SVG
+	search   *ui.SVG
+	clock    *ui.SVG
+	grid     *ui.SVG
+	folder   *ui.SVG
+	house    *ui.SVG
+	user     *ui.SVG
+	gear     *ui.SVG
+	chevron  *ui.SVG
+	list     *ui.SVG
+	collapse *ui.SVG
 }
 
 // sidebarIcon wraps the shapes of one 16×16 glyph in the common SVG frame:
@@ -52,6 +53,11 @@ var sidebarIcons = sidebarGlyphs{
 	gear:    sidebarIcon(`<path d="M6.8 1.5h2.4l.35 1.9a5 5 0 0 1 1.2.7l1.85-.6 1.2 2.1-1.45 1.3a5 5 0 0 1 0 1.4l1.45 1.3-1.2 2.1-1.85-.6a5 5 0 0 1-1.2.7l-.35 1.9H6.8l-.35-1.9a5 5 0 0 1-1.2-.7l-1.85.6-1.2-2.1 1.45-1.3a5 5 0 0 1 0-1.4L2.2 5.6l1.2-2.1 1.85.6a5 5 0 0 1 1.2-.7Z"/><circle cx="8" cy="8" r="1.9"/>`),
 	chevron: sidebarIcon(`<path d="M6 3.5 10.5 8 6 12.5"/>`),
 	list:    sidebarIcon(`<path d="M5.5 4h8M5.5 8h8M5.5 12h8"/><circle cx="2.9" cy="4" r=".7" fill="currentColor" stroke="none"/><circle cx="2.9" cy="8" r=".7" fill="currentColor" stroke="none"/><circle cx="2.9" cy="12" r=".7" fill="currentColor" stroke="none"/>`),
+	// collapse is the reference's panel-collapse mark at the sidebar's top
+	// right: a 10×10 rounded frame split 3.5 DIPs from its left edge, with the
+	// arrow in the wide pane pointing back over the narrow one, as lucide's
+	// panel-left-close draws it.
+	collapse: sidebarIcon(`<rect x="3" y="3" width="10" height="10" rx="1.7"/><path d="M6.4 3v10"/><path d="M10.4 5.7 8 8l2.4 2.3"/>`),
 }
 
 // sidebarGlyph draws one icon of the set at the sidebar's 16 DIP step, in
