@@ -81,7 +81,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 | F8 approval | mock 无审批 | 审批 → Approve/Deny → 行消失 | 同上 |
 | F9 lookup | 只显示 unknown | lookup 结果（accepted/unknown）呈现 | P3 |
 | F11 subscription_changed | 无真实 wire | 真实断流恢复或 fail-closed | 上游/故障注入 |
-| F12b cut point | 无 UI | 选择父 sequence 创建 side line | 协议 + UI |
+| F12b cut point | 实现完成（user 行 Branch from here + branch_create），L4 待验证 | 选择父 sequence 创建 side line | 真实窗口点击 + 目录刷新 |
 | F13 附件 | mygo 无文件选择 | 选择 → attachment.put → timeline | MyGo 上游 |
 | F14b closed 终态 | 仅瞬时 | 稳定展示、不可提交 | P3 |
 
