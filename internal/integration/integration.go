@@ -309,7 +309,7 @@ func (c *SessionController) StateForBranch(summary appserver.SessionSummary, bra
 	progress, notices := viewmodel.Transient(branchView.Transient)
 	sessionClosed, closedReason := terminalClosed(c.Session)
 	state := &ui.State{
-		Sessions:            []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary)}},
+		Sessions:            []ui.Session{{ID: summary.SessionID, Title: sessionTitle(summary, c.Session.Title())}},
 		Selected:            summary.SessionID,
 		SelectedBranch:      branchID,
 		Connection:          connection,
@@ -373,14 +373,57 @@ func keysPanelView(s *session.Session) ui.KeysPanelView {
 	return view
 }
 
-func sessionTitle(s appserver.SessionSummary) string {
-	if s.Title != nil && *s.Title != "" {
-		return *s.Title
+// sessionTitle picks the display label. The session's observed title wins when
+// it is newer than the catalog summary's, so a rename reply or a title notice
+// updates the row without waiting for the next catalog read; the summary is
+// otherwise the seed.
+func sessionTitle(summary appserver.SessionSummary, live session.TitleState) string {
+	title := mergeTitle(summary, live)
+	if title.Known && title.Text != nil && *title.Text != "" {
+		return *title.Text
 	}
-	if s.Preview != nil && *s.Preview != "" {
-		return *s.Preview
+	if summary.Preview != nil && *summary.Preview != "" {
+		return *summary.Preview
 	}
-	return s.SessionID
+	return summary.SessionID
+}
+
+// mergeTitle orders the catalog entry's title triple against the live title
+// metadata by revision. The public contract keeps whichever revision is higher:
+// a list can be read before a commit and still reach the client after that
+// commit's notice.
+func mergeTitle(summary appserver.SessionSummary, live session.TitleState) session.TitleState {
+	base := summaryTitleState(summary)
+	if live.Known && (!base.Known || live.Revision > base.Revision) {
+		return live
+	}
+	return base
+}
+
+// summaryTitleState converts the optional v3 title fields of a summary entry. A
+// daemon that predates the fields omits all three; that is unknown, not a
+// cleared title.
+func summaryTitleState(summary appserver.SessionSummary) session.TitleState {
+	if summary.Title == nil && summary.TitleSource == nil && summary.TitleRevision == nil {
+		return session.TitleState{}
+	}
+	state := session.TitleState{
+		Text:   cloneString(summary.Title),
+		Source: cloneString(summary.TitleSource),
+		Known:  true,
+	}
+	if summary.TitleRevision != nil {
+		state.Revision = *summary.TitleRevision
+	}
+	return state
+}
+
+func cloneString(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	copy := *value
+	return &copy
 }
 
 // LiveState returns a fresh view of the selected session. Session's drain
@@ -551,6 +594,47 @@ func (c *SessionController) Methods() appserver.MethodsResult {
 		return appserver.MethodsResult{}
 	}
 	return c.Session.Methods()
+}
+
+// Rename sets or clears the selected session's manual title through
+// session.rename. The write is never retried and never turned into a local
+// title: an unsupported method (unknown_method), invalid input, a conflicting
+// revision or an unknown result is reported, and a subscription_changed reply
+// fails closed as a replay gap.
+//
+// The title the daemon committed is authoritative: the returned revision orders
+// it against the catalog summary and any title notice, and Title/State use that
+// order.
+func (c *SessionController) Rename(ctx context.Context, title *string) (appserver.RenameResult, error) {
+	if c == nil {
+		return appserver.RenameResult{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.RenameResult{}, fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.RenameResult{}, fmt.Errorf("integration: no session")
+	}
+	result, err := c.Session.Rename(ctx, title)
+	return result, replayGapWrite("session.rename", err)
+}
+
+// Title returns the selected session's newest known title metadata, ordered
+// against the catalog summary by revision. It reads only what the daemon
+// supplied through a rename reply, a SessionStore title notice, or the summary
+// entry; a session that has observed none returns Known=false.
+func (c *SessionController) Title(summary appserver.SessionSummary) session.TitleState {
+	live := session.TitleState{}
+	if c != nil {
+		c.mu.RLock()
+		if c.Session != nil {
+			live = c.Session.Title()
+		}
+		c.mu.RUnlock()
+	}
+	return mergeTitle(summary, live)
 }
 
 // BranchDirectory returns the session.branches snapshot captured by Open. It is
@@ -935,7 +1019,7 @@ func Catalog(ctx context.Context, sup *supervisor.Supervisor) ([]ui.Session, err
 		}
 		rows = append(rows, ui.Session{
 			ID:        summary.SessionID,
-			Title:     sessionTitle(summary),
+			Title:     sessionTitle(summary, session.TitleState{}),
 			Group:     group,
 			UpdatedAt: summary.UpdatedAt,
 		})

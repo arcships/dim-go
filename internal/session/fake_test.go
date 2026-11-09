@@ -256,7 +256,7 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, unknownMethod()
 		}
 		return s.cfg.InputLookup(p)
-	case "session.submit", "session.stop", "approval.respond", "session.delete", "session.branch_end":
+	case "session.submit", "session.stop", "approval.respond", "session.delete", "session.branch_end", "session.rename":
 		return s.mutation(method, params)
 	default:
 		return nil, unknownMethod()
@@ -281,6 +281,9 @@ func (s *fakeServer) mutation(method string, params json.RawMessage) (any, *fake
 	case "session.branch_end":
 		var p appserver.BranchEndParams
 		request = &p
+	case "session.rename":
+		var p appserver.RenameParams
+		request = &p
 	}
 	if err := json.Unmarshal(params, request); err != nil {
 		return nil, invalidParams()
@@ -303,6 +306,10 @@ func (s *fakeServer) mutation(method string, params json.RawMessage) (any, *fake
 			return nil, invalidParams()
 		}
 	case *appserver.BranchEndParams:
+		if value.Validate() != nil {
+			return nil, invalidParams()
+		}
+	case *appserver.RenameParams:
 		if value.Validate() != nil {
 			return nil, invalidParams()
 		}

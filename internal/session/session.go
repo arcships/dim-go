@@ -174,6 +174,7 @@ type Session struct {
 	// connection advertises the capability. They are only enrichment; a failed
 	// optional read never fabricates a local snapshot.
 	methods         appserver.MethodsResult
+	title           TitleState
 	keySnapshot     appserver.KeysResult
 	keysLoaded      bool
 	keysStatus      ReadCapabilityStatus
@@ -606,6 +607,14 @@ func (s *Session) handleSessionNotice(notice appserver.SessionNotice, params jso
 	s.mu.Unlock()
 	if err != nil {
 		s.report(err)
+	}
+	if appserver.IsTitleNotice(notice) {
+		// Title metadata is session state carried by the notice, not only a
+		// transient row: keep the newest revision so a later list read or
+		// rename reply can be ordered against it.
+		if err := s.applyTitleNotice(notice.Data); err != nil {
+			s.report(err)
+		}
 	}
 }
 
