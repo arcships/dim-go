@@ -66,7 +66,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 - ✅ 模型展示与写入：`session.model.update` + 读回；chip/list 走 App Server 事实
 - ✅ 路由：Scheduled、Skills WIP 页 + Back；设置 19 分区
 - ✅ 通知中心：ActionError/ActionNotices/Notices 顶部 banner、可关闭
-- 会话内消息搜索（ThreadSearchBar，进行中）
+- ✅ 会话内消息搜索（⌘F 查找条、计数、上一个/下一个、高亮与滚动）
 - F9：unknown submit 的 `input_lookup` 结果展示
 - 清理：未使用 glyph/key、protocols 注释、组件协议文档
 
