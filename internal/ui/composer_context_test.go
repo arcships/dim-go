@@ -531,7 +531,7 @@ func TestComposerConversationBandIsOutsideTheCard(t *testing.T) {
 	if tt.HasText(tr(LocaleEN, keyComposerWorkspace)) {
 		t.Errorf("the conversation band still draws the workspace entry, texts %q", tt.Texts())
 	}
-	for _, label := range []string{composerBranchKey, composerContextUsageKey} {
+	for _, label := range []string{tr(LocaleEN, composerBranchKey), tr(LocaleEN, composerContextUsageKey)} {
 		rect, ok := tt.Find(label)
 		if !ok {
 			t.Fatalf("%s is not drawn in the status band, texts %q", label, tt.Texts())
