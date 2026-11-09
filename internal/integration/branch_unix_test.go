@@ -17,13 +17,20 @@ import (
 // the given directory, plus a started supervisor linked to it.
 func startBranchBridge(t *testing.T, directory json.RawMessage) (*fakeDaemon, *supervisor.Supervisor, context.Context) {
 	t.Helper()
+	return startBranchBridgeWithFeatures(t, directory, "session.catalog", "session.history", "session.branches")
+}
+
+// startBranchBridgeWithFeatures is startBranchBridge with an explicit feature
+// list, so a test can open a session without the branch directory capability.
+func startBranchBridgeWithFeatures(t *testing.T, directory json.RawMessage, features ...string) (*fakeDaemon, *supervisor.Supervisor, context.Context) {
+	t.Helper()
 	home := fakeHome(t)
 	link, err := supervisor.ResolveLink(home)
 	if err != nil {
 		t.Fatalf("resolve link: %v", err)
 	}
 	daemon := startFakeDaemon(t, link.Endpoint.Address)
-	daemon.setFeatures("session.catalog", "session.history", "session.branches")
+	daemon.setFeatures(features...)
 	daemon.setBranches(directory)
 	sup, err := supervisor.New(supervisor.Config{ProductHome: home})
 	if err != nil {
@@ -237,5 +244,77 @@ func TestControllerBranchPassThrough(t *testing.T) {
 	}
 	if _, err := controller.EndBranch(ctx, appserver.MainBranchID); !errors.Is(err, session.ErrMainBranchEnd) {
 		t.Fatalf("EndBranch(main) error = %v, want ErrMainBranchEnd", err)
+	}
+}
+
+// TestControllerBranchCreatePassThrough drives session.branch_create over the
+// fake daemon: the cut point, parent branch and prompt are what the window
+// resolved, the reply's branch is returned, and an unknown result is reported
+// once instead of being resent.
+func TestControllerBranchCreatePassThrough(t *testing.T) {
+	directory := json.RawMessage(`{"branches":[
+		{"branchId":"main","state":"open","head":2}
+	]}`)
+	daemon, sup, ctx := startBranchBridge(t, directory)
+	daemon.setBranchCreate(json.RawMessage(`{"branch":{"branchId":"side","parentBranchId":"main","branchPoint":4,"createEvent":5}}`))
+
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+
+	result, err := controller.BranchCreate(ctx, appserver.MainBranchID, 4, "why?")
+	if err != nil {
+		t.Fatalf("BranchCreate: %v", err)
+	}
+	if result.Branch == nil || result.Branch.BranchID != "side" {
+		t.Fatalf("created branch = %#v", result.Branch)
+	}
+	params := daemon.lastParams("session.branch_create")
+	if params["sessionId"] != "s1" || params["parentBranchId"] != appserver.MainBranchID {
+		t.Fatalf("session.branch_create params = %#v", params)
+	}
+	if at, _ := params["at"].(float64); at != 4 {
+		t.Fatalf("session.branch_create at = %#v, want 4", params["at"])
+	}
+	if params["prompt"] != "why?" {
+		t.Fatalf("session.branch_create prompt = %#v", params["prompt"])
+	}
+	if calls := daemon.callCount("session.branch_create"); calls != 1 {
+		t.Fatalf("session.branch_create calls = %d, want one", calls)
+	}
+
+	// A reply without a branch id is an unknown result, and the write is not
+	// resent.
+	daemon.setBranchCreate(json.RawMessage(`{}`))
+	if _, err := controller.BranchCreate(ctx, appserver.MainBranchID, 4, "again"); err == nil {
+		t.Fatal("BranchCreate accepted a reply without a branch id")
+	}
+	if calls := daemon.callCount("session.branch_create"); calls != 2 {
+		t.Fatalf("session.branch_create calls = %d, want exactly two (never resent)", calls)
+	}
+}
+
+// TestControllerBranchCreateRequiresTheDirectoryCapability checks the gate: a
+// session without session.branches cannot present a created line, so the write
+// is refused before the daemon sees it.
+func TestControllerBranchCreateRequiresTheDirectoryCapability(t *testing.T) {
+	daemon, sup, ctx := startBranchBridgeWithFeatures(t, json.RawMessage(`{"branches":[]}`), "session.catalog", "session.history")
+	daemon.setBranchCreate(json.RawMessage(`{"branch":{"branchId":"side"}}`))
+
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+
+	_, err = controller.BranchCreate(ctx, appserver.MainBranchID, 4, "prompt")
+	var capability *appserver.CapabilityError
+	if !errors.As(err, &capability) || capability.Feature != "session.branches" {
+		t.Fatalf("BranchCreate error = %v, want a session.branches capability error", err)
+	}
+	if calls := daemon.callCount("session.branch_create"); calls != 0 {
+		t.Fatalf("session.branch_create calls = %d without the capability", calls)
 	}
 }

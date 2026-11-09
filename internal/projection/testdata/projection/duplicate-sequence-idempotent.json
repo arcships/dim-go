@@ -64,6 +64,7 @@
       {
         "id": "a:main:t-1:r-1",
         "orderKey": "00000000000000000001",
+        "sequence": 1,
         "role": "assistant",
         "content": "hello!",
         "status": "complete",
@@ -72,6 +73,7 @@
         "events": [
           {
             "id": "e-2",
+            "sequence": 2,
             "type": "text_delta",
             "status": "complete",
             "content": "hello!",

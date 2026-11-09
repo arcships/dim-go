@@ -87,6 +87,7 @@
       {
         "id": "a:main:t-1:r-1",
         "orderKey": "00000000000000000001",
+        "sequence": 1,
         "role": "assistant",
         "content": "A",
         "status": "complete",
@@ -95,6 +96,7 @@
         "events": [
           {
             "id": "e-3",
+            "sequence": 3,
             "type": "thinking",
             "status": "complete",
             "content": "thinkA",
@@ -103,6 +105,7 @@
           },
           {
             "id": "e-5",
+            "sequence": 5,
             "type": "text_delta",
             "status": "complete",
             "content": "A",
@@ -114,6 +117,7 @@
       {
         "id": "a:main:t-1:r-2",
         "orderKey": "00000000000000000002",
+        "sequence": 2,
         "role": "assistant",
         "content": "BB2",
         "status": "complete",
@@ -122,6 +126,7 @@
         "events": [
           {
             "id": "e-4",
+            "sequence": 4,
             "type": "text_delta",
             "status": "complete",
             "content": "B",
@@ -130,6 +135,7 @@
           },
           {
             "id": "e-6",
+            "sequence": 6,
             "type": "thinking",
             "status": "complete",
             "content": "thinkB",
@@ -138,6 +144,7 @@
           },
           {
             "id": "e-7",
+            "sequence": 7,
             "type": "text_delta",
             "status": "complete",
             "content": "B2",

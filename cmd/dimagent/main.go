@@ -37,6 +37,10 @@ type sessionActions interface {
 	// local fact: the directory and projection change only when the App Server
 	// reports the new state.
 	EndBranch(ctx context.Context, branchID string) (appserver.BranchEndOutcome, error)
+	// BranchCreate asks the App Server to create a side branch from a parent
+	// sequence. The returned branch is the App Server's; the window opens it
+	// before showing it and never invents a local branch.
+	BranchCreate(ctx context.Context, parentBranchID string, at int64, prompt string) (appserver.BranchCreateResult, error)
 	// RefreshBranchDirectory re-reads session.branches into the read-only
 	// directory the window shows.
 	RefreshBranchDirectory(ctx context.Context) error
@@ -201,6 +205,17 @@ func (b *sessionBridge) RefreshBranchesFor(ctx context.Context, sessionID string
 		return err
 	}
 	return controller.RefreshBranchDirectory(ctx)
+}
+
+// BranchFromFor creates a side branch through the controller that still belongs
+// to sessionID. The reply is the App Server's branch; nothing is cached or
+// invented here.
+func (b *sessionBridge) BranchFromFor(ctx context.Context, sessionID, parentBranchID string, at int64, prompt string) (appserver.BranchCreateResult, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.BranchCreateResult{}, err
+	}
+	return controller.BranchCreate(ctx, parentBranchID, at, prompt)
 }
 
 // SessionBranchID reports the branch the session submits and stops on when no
@@ -652,6 +667,7 @@ func (a *app) bind() {
 	a.state.OnRename = a.renameSession
 	a.state.OnSelectModel = a.selectModel
 	a.state.OnSelectBranch = a.selectBranch
+	a.state.OnBranchFrom = a.branchFrom
 	a.state.OnEndBranch = a.endBranch
 	a.state.OnRefreshBranches = a.refreshBranches
 	a.state.OnCreateSession = a.createSession
@@ -1457,6 +1473,111 @@ func (a *app) selectBranch(branchID string) {
 			state.ActionError = ""
 			state.ActionStatus = ""
 		})
+	}()
+}
+
+// branchFrom creates a side branch from the cut point a user row resolved,
+// then re-reads the branch directory and opens the branch the App Server
+// returned. Nothing is created locally: the row's sequence only names the cut
+// point, the returned branch id is the new fact, and the window switches to it
+// only after OpenBranch read that line's history. A failure leaves the displayed
+// branch and rows untouched and reports through ActionError; a created branch
+// that cannot be opened is reported as created-but-not-shown instead of being
+// presented as the selected line.
+func (a *app) branchFrom(sessionID, branchID string, at int64, prompt string) {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	if sessionID == "" {
+		sessionID = a.state.Selected
+	}
+	if branchID == "" {
+		branchID = a.actionBranch()
+	}
+	if branchID == "" {
+		a.notice("branch.error", "Branch from this message: the window has no parent branch")
+		return
+	}
+	if at < 0 {
+		a.notice("branch.error", fmt.Sprintf("Branch from this message: invalid cut point %d", at))
+		return
+	}
+	if strings.TrimSpace(prompt) == "" {
+		a.notice("branch.error", "Branch from this message: the prompt is empty")
+		return
+	}
+	gen := a.currentSelection()
+	branchGen := a.beginBranchSelect()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		created, err := a.bridge.BranchFromFor(ctx, sessionID, branchID, at, prompt)
+		if err != nil {
+			log.Printf("dimagent: branch from message at %d: %v", at, err)
+			if a.selectionCurrent(gen) {
+				a.notice("branch.error", fmt.Sprintf("Branch from this message: %v", err))
+			}
+			return
+		}
+		if created.Branch == nil || created.Branch.BranchID == "" {
+			// appserver.BranchCreate already rejects a reply without an id; this
+			// guard keeps a caller from switching to a branch the reply did not
+			// name, even if that validation is bypassed.
+			if a.selectionCurrent(gen) {
+				a.notice("branch.error", "Branch from this message: the App Server returned no branch id")
+			}
+			return
+		}
+		newBranchID := created.Branch.BranchID
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		// The directory is re-read before the new line is opened, so the sidebar
+		// row and the selected branch come from the same daemon state. A failed
+		// read does not undo the create: the branch still opens from its own
+		// history, and the failure is reported after the switch.
+		refreshErr := a.bridge.RefreshBranchesFor(ctx, sessionID)
+		if refreshErr != nil {
+			log.Printf("dimagent: refresh branches after creating %q: %v", newBranchID, refreshErr)
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		if err := a.bridge.OpenBranchFor(ctx, sessionID, newBranchID); err != nil {
+			log.Printf("dimagent: open created branch %q: %v", newBranchID, err)
+			if a.selectionCurrent(gen) {
+				a.notice("branch.error", fmt.Sprintf("Branch %q was created, but it could not be opened: %v", newBranchID, err))
+			}
+			return
+		}
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		view := a.bridge.LiveStateFor(sessionID, newBranchID)
+		if view == nil {
+			if a.selectionCurrent(gen) {
+				a.notice("branch.error", fmt.Sprintf("Branch %q was created, but the session is no longer attached", newBranchID))
+			}
+			return
+		}
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			// The displayed branch follows what the controller returned, never the
+			// request: the App Server's reply is the new line's identity.
+			if !a.commitBranch(view.SelectedBranch, branchGen) {
+				return
+			}
+			applyView(state, view)
+			state.ActionError = ""
+			state.ActionStatus = ""
+		})
+		if refreshErr != nil {
+			a.notice("branch.error", fmt.Sprintf("Branch %q was created, but the branch directory refresh failed: %v", newBranchID, refreshErr))
+			return
+		}
+		a.notice("branch.created", newBranchID)
 	}()
 }
 

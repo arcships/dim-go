@@ -82,6 +82,19 @@ type Actions struct {
 	// through HeaderView.ActionError. While this field is nil the entry stays
 	// visible, disabled and explained as WIP.
 	OnRefreshBranches func()
+	// OnRequestBranchFrom is called by a user row's "Branch from here" entry
+	// with the parent-branch sequence the cut point resolves to. It opens the
+	// window's prompt dialog; the branch is created only when the user confirms,
+	// through OnBranchFrom. While this field is nil the entry stays visible,
+	// disabled and explained as WIP.
+	OnRequestBranchFrom func(at int64)
+	// OnBranchFrom is called by the prompt dialog's confirm entry with the cut
+	// point it was opened for and the prompt text. The window sends
+	// session.branch_create once and switches to the branch the App Server
+	// returned after re-reading session.branches; it never creates a local
+	// branch. The dialog closes before this runs, so one confirm sends at most
+	// one request. While this field is nil no dialog is drawn.
+	OnBranchFrom func(at int64, prompt string)
 	// OnSubmit is called by the composer's Send entry and submit shortcut with
 	// the trimmed draft. The caller sends the turn and clears the draft only
 	// after the App Server accepted it; on failure the draft stays and the
@@ -452,6 +465,21 @@ type TimelineView struct {
 	// claiming one; nothing branches on it today.
 	Closed bool
 
+	// BranchFromConfirm and BranchFromDraft are the window's own record of the
+	// "Branch from here" dialog: while *BranchFromConfirm is true the timeline
+	// draws it over the list, its prompt field edits *BranchFromDraft, and
+	// BranchFromAt is the parent sequence the row resolved. Escape or Cancel only
+	// writes the open flag false; confirm calls Actions.OnBranchFrom once with
+	// the cut point and the trimmed prompt. A nil pointer draws no dialog.
+	BranchFromConfirm *bool
+	BranchFromDraft   *string
+	BranchFromAt      int64
+	// Locale is the language of the timeline's own text: the row entries and the
+	// branch-from dialog. Message content, tool output and error strings are not
+	// the shell's words and stay as they came. An empty or unknown value draws
+	// English.
+	Locale Locale
+
 	// list is the conversation list's place among its rows and the identity of
 	// each row, kept across frames so appended rows follow the end and rows keep
 	// their state as the conversation changes. It holds no timeline fact.
@@ -673,9 +701,11 @@ func renderThreadSearch(c *ui.Context, k tokens, v ThreadSearchView, a Actions) 
 	threadSearchBar(c, k, v, a)
 }
 
-// renderTimeline draws the conversation list, or the loading or empty state. It
-// calls Actions.OnApproval for an approval row's decisions; no other action
-// starts from the timeline.
+// renderTimeline draws the conversation list, or the loading or empty state, and
+// the "Branch from here" prompt dialog while the window says it is open. It
+// calls Actions.OnRequestBranchFrom for a user row's entry (the row's own input
+// sequence less one is the cut point) and Actions.OnBranchFrom once from the
+// dialog's confirm entry; no other action starts from the timeline.
 func renderTimeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 	timeline(c, k, v, a)
 }

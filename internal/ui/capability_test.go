@@ -69,8 +69,8 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 
 	for _, action := range []string{
 		"Session creation", "Branch switching", "Branch end", "Branch refresh",
-		"Session keys", "Approvals", "Attachments", "Connection recovery",
-		"Turn cancellation",
+		"Branch from message", "Session keys", "Approvals", "Attachments",
+		"Connection recovery", "Turn cancellation",
 	} {
 		capability, ok := cards[action]
 		if !ok {
@@ -149,6 +149,24 @@ func TestCapabilityCardsDropWiredBranchEndAndRefresh(t *testing.T) {
 	tt := capabilityPageTester(s, LocaleEN, 900, 900)
 	if tt.HasText("Branch end") || tt.HasText("Branch refresh") {
 		t.Errorf("the unavailable list still shows a wired branch action, texts %q", tt.Texts())
+	}
+}
+
+// TestCapabilityCardsDropWiredBranchFrom checks that wiring the cut point
+// callback leaves the unavailable list: the row entry is the real action then,
+// and a stale WIP card would contradict it.
+func TestCapabilityCardsDropWiredBranchFrom(t *testing.T) {
+	s := fixture()
+	s.OnBranchFrom = func(string, string, int64, string) {}
+
+	for _, capability := range wipCapabilities(s) {
+		if capability.action == "Branch from message" {
+			t.Errorf("a wired cut point still has a WIP card: %+v", capability)
+		}
+	}
+	page := capabilityPageTester(s, LocaleEN, 900, 900)
+	if page.HasText("Branch from message") {
+		t.Errorf("the unavailable list still shows the cut point, texts %q", page.Texts())
 	}
 }
 
@@ -285,7 +303,9 @@ func TestCapabilityCardsFitTheSettingsPage(t *testing.T) {
 		previous, lastLabel = card, capability.action
 	}
 	if previous.Y+previous.H > 700 {
-		tt.Scroll(previous.X+4, previous.Y+4, 0, 2000)
+		// Scroll from a point the window still shows: the last card may start
+		// below the fold, and a wheel event there would miss the page.
+		tt.Scroll(previous.X+4, 690, 0, 4000)
 		tt.Frame()
 		last, ok := tt.Find(lastLabel)
 		if !ok {

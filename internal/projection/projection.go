@@ -30,8 +30,13 @@ type RawEvent struct {
 }
 
 // Event is one timeline block owned by a Message.
+//
+// Sequence is the raw App Server event's sequence the block was opened from.
+// It is a durable fact, not a display counter: the block keeps the sequence of
+// the event that created it even as later deltas extend it.
 type Event struct {
 	ID         string         `json:"id"`
+	Sequence   int64          `json:"sequence,omitempty"`
 	Type       string         `json:"type"`
 	Status     string         `json:"status"`
 	Content    string         `json:"content,omitempty"`
@@ -42,9 +47,15 @@ type Event struct {
 }
 
 // Message is durable timeline view state. It is never persisted locally.
+//
+// Sequence is the raw event sequence that first created the message: for a
+// user turn that is the input/message event the cut point is resolved from.
+// OrderKey repeats it as the sort key; the typed field keeps callers from
+// parsing a display key.
 type Message struct {
 	ID        string  `json:"id"`
 	OrderKey  string  `json:"orderKey"`
+	Sequence  int64   `json:"sequence,omitempty"`
 	Role      string  `json:"role"`
 	Content   string  `json:"content"`
 	Status    string  `json:"status"`
@@ -415,6 +426,7 @@ func (f *foldState) openBlock(m *Message, e RawEvent, typ string) *Event {
 	}
 	m.Events = append(m.Events, Event{
 		ID:        e.ID,
+		Sequence:  e.Sequence,
 		Type:      typ,
 		Status:    "running",
 		StartTime: e.CreateAt,
@@ -548,6 +560,7 @@ func (f *foldState) ensureTool(e RawEvent, call map[string]any) *Message {
 	m.Status = "streaming"
 	m.Events = append(m.Events, Event{
 		ID:         "tool:" + callID + ":call",
+		Sequence:   e.Sequence,
 		Type:       "tool_call",
 		Status:     "running",
 		ToolName:   name,
@@ -604,6 +617,7 @@ func (f *foldState) appendToolResult(m *Message, callID string, sequence, at int
 	end := at
 	event := Event{
 		ID:        "tool:" + callID + ":result",
+		Sequence:  sequence,
 		Type:      "tool_result",
 		Status:    status,
 		Content:   content,
@@ -664,6 +678,7 @@ func (f *foldState) ensure(id, role string, seq, at int64) *Message {
 	m := &Message{
 		ID:        id,
 		OrderKey:  OrderKey(seq),
+		Sequence:  seq,
 		Role:      role,
 		Status:    "streaming",
 		CreatedAt: at,

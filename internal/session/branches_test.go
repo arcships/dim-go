@@ -428,3 +428,134 @@ func TestEndBranchOutcomes(t *testing.T) {
 		}
 	})
 }
+
+// TestBranchCreateSendsTheCutPoint checks the write's request facts: the parent
+// branch, the resolved sequence and the prompt reach session.branch_create once,
+// and the reply's branch is returned without any local branch being made.
+func TestBranchCreateSendsTheCutPoint(t *testing.T) {
+	server, _, s := openTestSession(t, fakeConfig{
+		Attach:   appserver.AttachResult{Sequence: int64Ptr(2)},
+		Branches: branchTestDirectory(2, 2),
+		History:  emptyHistory(t, 2),
+		Mutations: map[string][]fakeMutation{
+			"session.branch_create": {{Result: json.RawMessage(`{"branch":{"branchId":"side","parentBranchId":"main","branchPoint":4,"createEvent":5}}`)}},
+		},
+	}, []string{"session.history", "session.branches"}, OpenOptions{})
+
+	result, err := s.BranchCreate(testContext(t), appserver.MainBranchID, 4, "why does this fail?")
+	if err != nil {
+		t.Fatalf("BranchCreate: %v", err)
+	}
+	branch := result.Branch
+	if branch == nil || branch.BranchID != "side" || branch.ParentBranchID != appserver.MainBranchID {
+		t.Fatalf("created branch = %#v", branch)
+	}
+	if branch.BranchPoint == nil || *branch.BranchPoint != 4 || branch.CreateEvent == nil || *branch.CreateEvent != 5 {
+		t.Fatalf("created branch facts = %#v", branch)
+	}
+	calls := server.callsFor("session.branch_create")
+	if len(calls) != 1 {
+		t.Fatalf("session.branch_create calls = %d, want exactly one", len(calls))
+	}
+	var params appserver.BranchCreateParams
+	if err := json.Unmarshal(calls[0].Params, &params); err != nil {
+		t.Fatalf("decode params: %v", err)
+	}
+	if params.SessionID != "s1" || params.ParentBranchID != appserver.MainBranchID {
+		t.Fatalf("params = %#v", params)
+	}
+	if params.At == nil || *params.At != 4 {
+		t.Fatalf("params.At = %#v, want the resolved cut point 4", params.At)
+	}
+	if params.Prompt != "why does this fail?" {
+		t.Fatalf("params.Prompt = %q", params.Prompt)
+	}
+	if dir := s.BranchDirectory(); len(dir.Branches) != 2 {
+		t.Fatalf("the session invented a directory entry: %#v", dir)
+	}
+}
+
+// TestBranchCreateValidatesBeforeSending checks the local gates: a missing
+// parent, a negative cut point, a blank prompt or a connection without the
+// branch directory capability sends no request.
+func TestBranchCreateValidatesBeforeSending(t *testing.T) {
+	server, _, s := openTestSession(t, fakeConfig{
+		Attach:   appserver.AttachResult{Sequence: int64Ptr(2)},
+		Branches: branchTestDirectory(2, 2),
+		History:  emptyHistory(t, 2),
+		Mutations: map[string][]fakeMutation{
+			"session.branch_create": {{Result: json.RawMessage(`{"branch":{"branchId":"side"}}`)}},
+		},
+	}, []string{"session.history", "session.branches"}, OpenOptions{})
+
+	for _, tc := range []struct {
+		name   string
+		parent string
+		at     int64
+		prompt string
+	}{
+		{"empty parent", "", 4, "prompt"},
+		{"negative cut", appserver.MainBranchID, -1, "prompt"},
+		{"blank prompt", appserver.MainBranchID, 4, "   "},
+	} {
+		if _, err := s.BranchCreate(testContext(t), tc.parent, tc.at, tc.prompt); err == nil {
+			t.Errorf("%s: BranchCreate unexpectedly succeeded", tc.name)
+		}
+	}
+	if calls := server.callsFor("session.branch_create"); len(calls) != 0 {
+		t.Fatalf("rejected requests reached the daemon: %d", len(calls))
+	}
+
+	// A connection without the branch directory capability cannot present the
+	// created line, so the write is refused before it is sent.
+	gated := &Session{sessionID: "s1", features: []string{"session.history"}}
+	_, err := gated.BranchCreate(testContext(t), appserver.MainBranchID, 4, "prompt")
+	var capability *appserver.CapabilityError
+	if !errors.As(err, &capability) || capability.Feature != "session.branches" {
+		t.Fatalf("BranchCreate error = %v, want a session.branches capability error", err)
+	}
+}
+
+// TestBranchCreateUnknownResultIsNotResent checks the write's fail-closed rule:
+// a reply without a branchId is an unknown result, reported once, and the
+// session never sends the create again.
+func TestBranchCreateUnknownResultIsNotResent(t *testing.T) {
+	server, _, s := openTestSession(t, fakeConfig{
+		Attach:   appserver.AttachResult{Sequence: int64Ptr(2)},
+		Branches: branchTestDirectory(2, 2),
+		History:  emptyHistory(t, 2),
+		Mutations: map[string][]fakeMutation{
+			"session.branch_create": {{Result: json.RawMessage(`{}`)}},
+		},
+	}, []string{"session.history", "session.branches"}, OpenOptions{})
+
+	_, err := s.BranchCreate(testContext(t), appserver.MainBranchID, 4, "prompt")
+	var unknown *appserver.UnknownResultError
+	if !errors.As(err, &unknown) {
+		t.Fatalf("BranchCreate error = %v, want an unknown-result error", err)
+	}
+	if calls := server.callsFor("session.branch_create"); len(calls) != 1 {
+		t.Fatalf("session.branch_create calls = %d, want exactly one", len(calls))
+	}
+}
+
+// TestBranchCreateUnknownMethodKeepsWIP checks an older host: unknown_method is
+// a capability gap for the caller, not a creation the session may retry.
+func TestBranchCreateUnknownMethodKeepsWIP(t *testing.T) {
+	server, _, s := openTestSession(t, fakeConfig{
+		Attach:   appserver.AttachResult{Sequence: int64Ptr(2)},
+		Branches: branchTestDirectory(2, 2),
+		History:  emptyHistory(t, 2),
+		Mutations: map[string][]fakeMutation{
+			"session.branch_create": {{Fault: unknownMethod()}},
+		},
+	}, []string{"session.history", "session.branches"}, OpenOptions{})
+
+	_, err := s.BranchCreate(testContext(t), appserver.MainBranchID, 4, "prompt")
+	if !errors.Is(err, appserver.ErrCapabilityUnavailable) {
+		t.Fatalf("BranchCreate error = %v, want a capability-unavailable mutation error", err)
+	}
+	if calls := server.callsFor("session.branch_create"); len(calls) != 1 {
+		t.Fatalf("session.branch_create calls = %d, want exactly one", len(calls))
+	}
+}

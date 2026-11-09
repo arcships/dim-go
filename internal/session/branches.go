@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
 )
@@ -230,5 +231,43 @@ func (s *Session) EndBranch(ctx context.Context, branchID string) (appserver.Bra
 	return appserver.BranchEnd(ctx, s.client, appserver.BranchEndParams{
 		SessionID: s.sessionID,
 		BranchID:  branchID,
+	})
+}
+
+// BranchCreate asks the App Server to create a host branch (side chat) from
+// parentBranchID at the given parent-branch sequence. At is the cut point the
+// window resolved from a user input's sequence; the App Server remains the
+// final validator of the boundary.
+//
+// session.branch_create has no documented hello.features gate of its own. The
+// window cannot present the created line without session.branches, so this
+// layer gates on that directory capability and reports a missing one as
+// *appserver.CapabilityError instead of sending a request whose result could not
+// be shown. The call is a write: it is performed exactly once, and an unknown
+// result or subscription_changed reply is reported to the caller, never resent.
+func (s *Session) BranchCreate(ctx context.Context, parentBranchID string, at int64, prompt string) (appserver.BranchCreateResult, error) {
+	if s == nil {
+		return appserver.BranchCreateResult{}, fmt.Errorf("session: nil session")
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if !appserver.HasFeature(s.features, "session.branches") {
+		return appserver.BranchCreateResult{}, &appserver.CapabilityError{Feature: "session.branches"}
+	}
+	if parentBranchID == "" {
+		return appserver.BranchCreateResult{}, fmt.Errorf("session: empty parent branch id")
+	}
+	if at < 0 {
+		return appserver.BranchCreateResult{}, fmt.Errorf("session: branch cut point %d is negative", at)
+	}
+	if strings.TrimSpace(prompt) == "" {
+		return appserver.BranchCreateResult{}, fmt.Errorf("session: empty branch prompt")
+	}
+	return appserver.BranchCreate(ctx, s.client, appserver.BranchCreateParams{
+		SessionID:      s.sessionID,
+		ParentBranchID: parentBranchID,
+		At:             &at,
+		Prompt:         prompt,
 	})
 }

@@ -43,8 +43,9 @@ type fakeDaemon struct {
 
 	// features overrides the hello.features list when non-nil, and branches is
 	// the verbatim session.branches reply (nil means the method is absent).
-	features []string
-	branches json.RawMessage
+	features     []string
+	branches     json.RawMessage
+	branchCreate json.RawMessage
 	// keys is the verbatim session.keys reply (nil means the method is absent).
 	keys json.RawMessage
 	// management and selection are the verbatim provider.management and
@@ -160,6 +161,13 @@ func (d *fakeDaemon) setBranches(raw json.RawMessage) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.branches = append(json.RawMessage(nil), raw...)
+}
+
+// setBranchCreate scripts the verbatim session.branch_create reply.
+func (d *fakeDaemon) setBranchCreate(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.branchCreate = append(json.RawMessage(nil), raw...)
 }
 
 // setKeys scripts the verbatim session.keys reply.
@@ -415,6 +423,14 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		return raw, nil
 	case "session.branch_end":
 		return json.RawMessage(`{}`), nil
+	case "session.branch_create":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.branchCreate...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "session.branch_create not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
 	case "session.rename":
 		d.mu.Lock()
 		raw := append(json.RawMessage(nil), d.rename...)
