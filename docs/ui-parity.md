@@ -1,27 +1,27 @@
 # UI 1:1 对齐审计（dim-electron renderer ↔ dimagent-mygo internal/ui）
 
-审计日期：2026-11-09。只读审计，未改动任何源码。
+审计日期：2026-11-09（首轮只读审计）。复核：2026-11-09 Wave 3 落地后按当前代码和已有截图更新数字与状态；本轮没有重做跨端像素对比。
 
 - A = `/Users/eric8810/Code/dim-electron/packages/desktop/packages/renderer/src`
 - B = `/Users/eric8810/Code/dimagent-mygo/internal/ui`
 
 ## 结论
 
-**当前不是 1:1，差距在第一层（design token 语义层）就已经成立。**
+**当前不是 1:1。** B 已补上语义 token 层和 P0/P1 聊天壳，但 A 的皮肤/chrome 覆盖层、剩余组件域和跨端像素对照仍未完成。
 
 | 维度 | A | B | 判定 |
 |---|---|---|---|
-| 语义 token 数量 | 156 个 CSS 变量（`styles/global.css` 全文件），其中 118 个非 `--color-*` 语义变量 | `tokens struct` 29 个字段，其中颜色 7 个（[tokens.go:21-51](../internal/ui/tokens.go#L21-L51)） | 不成比例 |
-| 颜色语义层 | 三层：原始色 `--skin-tone-*`(20) → 语义 `--background/--card/...`(45) → skin 覆盖层（带 alpha） | 一层：直接从 `ui.Theme` 取 7 个色 | B 缺 2 层 |
-| 组件目录 | 19 个顶层组件目录 + 2 个图标组件，601 个 `.vue`、93,133 行 | 7 个 Go 文件、1,035 行（非测试） | B 有部分对应物的只有 3 个目录（sidebar、chat-workspace、markdown），其余 16 个无对应 |
-| 主题/皮肤 | 3 主题偏好 × 6 chrome 主题 × 任意 skin.json 皮肤 × 可配代码主题 | mygo Light/Dark，跟随系统，shell 从不设置 | B 缺整套外观层 |
-| 视觉证据 | 31 个 Playwright Electron e2e 脚本产出真实窗口截图 | 只有 headless `ui.NewTester`，无一处 golden 图 | B 无像素证据 |
+| 语义 token 数量 | 156 个 CSS 变量（`styles/global.css` 全文件），其中 118 个非 `--color-*` 语义变量 | `tokens struct` 88 个字段，其中 `ui.Color` 35 个（[tokens.go:169-330](../internal/ui/tokens.go#L169-L330)） | 数量接近，但组织方式不同 |
+| 颜色语义层 | 三层：原始色 `--skin-tone-*`(20) → 语义 `--background/--card/...`(45) → skin 覆盖层（带 alpha） | 两层：从 mygo 的 light/dark `ui.Theme` 派生 surface 梯度、前景配对、sidebar/tooltip 语义集；没有 skin/chrome 覆盖层 | B 缺第三层 |
+| 组件目录 | 19 个顶层组件目录 + 2 个图标组件，601 个 `.vue`、93,133 行 | 23 个 Go 文件、7,594 行（非测试） | B 部分对应 sidebar、chat-workspace、markdown、settings、context-panel/right-panel、statusbar 与 mygo 基础件；约 13 个目录仍无对应物 |
+| 主题/皮肤 | 3 主题偏好 × 6 chrome 主题 × 任意 skin.json 皮肤 × 可配代码主题 | system/light/dark + 外观设置（字号/字体/密度/代码字号，已持久化）；chrome/skin 明确 WIP | B 缺 chrome/skin |
+| 视觉证据 | 31 个 Playwright Electron e2e 脚本产出真实窗口截图 | 6 张 headless 截图（`docs/evidence/ui/`）+ 2 张真实窗口截图（`docs/evidence/window-*.png`）+ Electron 参考基线；没有跨端叠加对照 | B 有像素证据，但未做 L5 对照 |
 
-一句话：B 是"能跑通会话闭环的静态壳"，A 是"带语义 token 体系、外观系统和 19 个组件域的完整产品 UI"。B 的 token 语义层目前只有 A 的约 1/6，且缺少 A 用来组织视觉层级的 surface/elevation 概念。
+一句话：B 已从"只有一层颜色的静态壳"推进到"有语义 token、P0/P1 组件和截图证据的聊天壳"，但皮肤系统、剩余组件域和跨端视觉对照仍缺，不能称为 1:1。
 
 ## 1. 审计方法与证据边界
 
-- 只读源码，不做像素对比：本次审计没有运行 A 的 Electron 构建，也没有为 B 出图。本文的结论全部落在可 grep 的源码事实（文件 + 行号）上；第 5 步给出补像素证据的具体做法。
+- 首轮只读源码，不做像素对比；本轮复核同样不重做跨端对照，只把与代码矛盾的旧状态改成当前事实。B 侧截图见 §4。
 - "1:1" 这里指**聊天壳的视觉与交互对齐**，不是代码对齐。两侧技术栈不同（Vue 3 + CSS ↔ Go + mygo retained-mode），不可能也不应该共享实现，只能共享**语义层 + 组件契约**。
 - 不评价业务能力差异（session/approval/timeline 真相都在 App Server，见 `AGENTS.md` 第 2 节），只评价"同一个会话界面看起来/用起来是否一致"。
 
@@ -33,90 +33,80 @@
 2. **语义 token**（45 个：核心 28 + tooltip 7 + sidebar 10）：`styles/global.css:183-256` 浅色，`272-330` 深色；由 `@theme inline`（`styles/global.css:44-95`）映射成 Tailwind 颜色工具类。
 3. **skin / chrome 覆盖层**：`.skin-active.skin-host` 把同一批语义 token 重新以 alpha 绑定到 `--skin-tone-*`（`styles/global.css:923-950`、`1060`）；chrome 主题见 `styles/retro-themes.css`（955 行，`data-chrome-theme` 共 6 个值：`default`、`macos-bigsur`、`osx-tiger`、`windows-98`、`windows-vista`、`windows-xp`）。
 
-### 2.2 语义 token ↔ B tokens 字段
+### 2.2 语义 token ↔ B tokens 字段（当前）
 
-| A 变量（global.css 行号 / 浅色值） | B `tokens` 字段 | 判定 |
+| A 语义组（global.css 行号） | B `tokens` 字段 | 判定 |
 |---|---|---|
-| `--background` (183, `oklch(1 0 0)`) | 无字段。窗口底色由 mygo `Theme.Background` 提供，shell 未设置（`cmd/dimagent/main.go:958-963` 只传 Title/Width/Height/Content） | **缺** |
-| `--foreground` (184, `oklch(0.145 0 0)`) | 无字段。文字靠 `ui.Text` 默认 `Theme.Text` | **缺**（不可寻址，无法按区域覆盖） |
-| `--card` / `--card-foreground` (185-186) | 无。卡片用 `k.wash(k.border)` = border@12%（[tokens.go:99](../internal/ui/tokens.go#L99)、[tool.go:109](../internal/ui/tool.go#L109)、[capability.go:83](../internal/ui/capability.go#L83)） | **缺**（用 12% tint 冒充 elevated surface） |
-| `--popover` / `--popover-foreground` (187-188) | 无。WIP 卡与工具卡同为 border tint | **缺** |
-| `--primary` / `--primary-foreground` (205-206) | `accent = theme.Accent`；`theme.AccentText` 从未读取（[tokens.go:87](../internal/ui/tokens.go#L87)） | **部分**：缺 on-primary 前景配对 |
-| `--secondary` / `--secondary-foreground` (211-212) | 无 | **缺** |
-| `--muted` / `--muted-foreground` (213-214) | `muted = theme.TextMuted`，只有"次级前景"，没有 muted 填充面 | **名实不符**：A 的 muted 是面，B 的是字 |
-| `--accent` / `--accent-foreground` (215-216) | `accent = theme.Accent`（品牌色） | **冲突**：同名不同义。A 的 accent 是中性 hover 填充，品牌色叫 `--primary` |
-| `--destructive` / `--destructive-foreground` (217-218) | `danger = theme.Danger`；无 danger-foreground | **部分** |
-| `--border` (219) | `border = theme.Border` | **有** |
-| `--meter-track` (224) | 无 | **缺** |
-| `--card-frame-outer` (226) | 无 | **缺** |
-| `--input` (227) | 无（输入框由 mygo `TextArea` 自绘 `Theme.Surface/Border`） | **缺** |
-| `--ring` (228) | 无（`theme.Focus` 只在 mygo widget 内部生效） | **缺** |
-| `--chart-1..5` (229-233) | 无 | **缺** |
+| `--background` / `--foreground` (183-184) | `background`、`foreground` | **有** |
+| `--card` / `--popover` + 前景 (185-188) | `card`、`cardForeground`、`popover`、`popoverForeground` | **有** |
+| `--primary` / `--secondary` / `--muted` / `--accent` / `--destructive` + 前景 (205-218) | `primary`/`onPrimary`、`secondary`/`secondaryForeground`、`muted`/`mutedForeground`、`accent`/`accentForeground`、`danger`/`onDanger` | **有**；`accent` 已改回中性 hover，品牌色在 `primary` |
+| `--border` / `--input` / `--ring` (219, 227-228) | `border`、`input`、`ring` | **有** |
+| `--sidebar*` 10 个 (234-243) | `sidebar` 及 8 个子字段 | **9/10**：缺 `--sidebar-overlay` |
+| `--tooltip*` 7 个 (192-204) | `tooltip`、`tooltipForeground`、`tooltipMutedForeground`、`tooltipBorder`、`tooltipChip` | **5/7**：缺 backdrop 与多层阴影 |
+| `--radius` + `-sm/-md/-lg/-xl` (44-47, 244) | `radiusSM=6`、`radiusMD=8`、`radiusLG=10`、`radiusXL=14` | **有** |
+| 字体族 (157-165) | `fontFamilyStack`：系统字体或 `monospace` 平台栈 | **部分**：未自托管 Inter / JetBrains Mono |
+| 字号 (166-167) | 5 档 UI 字号 `[12,13,14,16,18]` + 独立 `codeFontSize` | **有**（默认值可能不同） |
+| `--meter-track` (224) | 复用 `muted` | **有（复用）** |
 | `--mark` / `--mark-soft` (209-210) | 无 | **缺** |
-| `--tooltip` / `-foreground` / `-muted-foreground` / `-border` / `-chip` / `-backdrop` / `-shadow` (192-204；深色 279-291) | 无。mygo 有 `Theme.Inverse/InverseText`，shell 未暴露 | **缺**（7 个 token + `backdrop-filter` + 5 层阴影） |
-| `--sidebar` / `-overlay` / `-foreground` / `-primary` / `-primary-foreground` / `-accent` / `-accent-foreground` / `-hover` / `-border` / `-ring` (234-243；深色 316-326) | 无。侧栏底色直接用 `k.surface`（[shell.go:216](../internal/ui/shell.go#L216)），图标/悬停交给 `ui.Sidebar` 自带主题 | **缺**（10 个变量整套） |
-| `--radius` + `-sm/-md/-lg/-xl` (44-47, 244) | `cardRadius = theme.Radius`（6，mygo `theme.go:188`），单一档位 | **缺**（A：6/8/10/14 四级） |
-| `--dimcode-ui-font-family` (157-161)、`--dimcode-code-font-family` (162-165) | 无。`theme.Font` 未设置（空 = 系统字体） | **缺** |
-| `--dimcode-ui-font-size` 14px / `--dimcode-code-font-size` 13px (166-167) | `bodySize = theme.FontSize`（darwin 13 / 其他 14，mygo `theme.go:158-164`） | **部分**：无代码字号概念 |
-| `--titlebar-height` 48px (174)、`--win-titlebar-height` 2.5rem | 无（原生系统标题栏） | **缺** |
-| `--layout-transition-ms` 250ms (259)、`--ease-*`、`--animate-*` (88-114) | 无 | **缺**（B 无动效 token） |
-| `--z-sidebar-base` … `--z-sidebar-floating` (250-254) | 不适用（retained-mode 单一绘制列表） | 合理差异 |
-| `--activity-info/-violet/-success/-warning/-shimmer-highlight` (336-340) | 无 | **缺** |
-| `--markdown-table-*`/`-link`/`-inline-code-bg`/`-code-block-*`/`-hr`/`-checkbox-*` (18 个，342-359；深色 369-385) | 无。`markdown.Options{Theme: nil}`（[shell.go:205](../internal/ui/shell.go#L205)、[shell.go:449](../internal/ui/shell.go#L449)），走 mygo 默认 Markdown 主题 | **缺**（内容层完全不可主题化） |
+| `--chart-1..5` (229-233) | 无 | **缺** |
+| `--activity-info/-violet/-success/-warning/-shimmer-highlight` (336-340) | `success`、`warning`；info/violet/shimmer 无 | **部分** |
+| `--markdown-table-*`/`-link`/`-inline-code-bg`/`-code-block-*`/`-hr`/`-checkbox-*` (18 个) | `markdown_render.go` 的 `contentTheme(k)` 从 tokens 派生链接、表格、代码块、复选框和分割线 | **部分**：代码高亮主题、图片/右键菜单仍缺 |
+| `--titlebar-height`、`--layout-transition-ms`、`--ease-*` (174, 259, 88-114) | 无（原生系统标题栏，无动效 token） | **缺** |
+| `--z-sidebar-*` (250-254) | 不适用（retained-mode 单一绘制列表） | 合理差异 |
 
-### 2.3 B 缺失的语义层（按层计）
+### 2.3 B 仍缺的语义层
 
-1. **Surface 层级梯度**：background → card → popover 三级明度关系（A 深色下 `0.16 → 0.25 → 0.25`，`global.css:272-277`），B 只有一个 `surface` 加 12% border wash，层级靠 tint 近似。
-2. **前景配对**：所有 `*-foreground`（primary/secondary/accent/destructive/card/popover/sidebar-primary/sidebar-accent）在 B 中缺失，导致"按钮上的字"只能靠 widget 默认色。
-3. **Sidebar 语义集**：10 个变量全缺，侧栏与主区共用一个 `surface`。
-4. **Tooltip 玻璃层**：7 个 token + blur/saturate + 多层阴影。
-5. **Markdown 内容层**：18 个 token（表格、代码块、行内代码、链接、复选框、hr）。
-6. **状态/活动色**：info/violet/success/warning/shimmer 5 个。
-7. **排版层**：双字体族（Inter + JetBrains Mono，`global.css:10-18` 自托管）、离散字号档位（12/13/14/16/18，`appearance/index.ts:11-13`）、代码字号 13。
-8. **几何/动效层**：radius 四级、间距刻度、过渡时长、缓动、面板进出动画。
-9. **状态化表面**：`non-vibrant-window`（`global.css:425-431`）、`prefers-reduced-transparency`（`433-460`）、skin 强制 tone（`867-911`）三套降级/覆盖路径。
+1. **皮肤/chrome 覆盖层**：没有 A 的 `skin.json` / 6 个 chrome 主题 / 原始色 → 语义 → 覆盖层的第三级；当前只有 system/light/dark 两套 theme。
+2. **状态化表面**：`non-vibrant-window`（`global.css:425-431`）、`prefers-reduced-transparency`（`433-460`）和 skin 强制 tone（`867-911`）没有对应路径。
+3. **剩余色槽**：chart 1–5、mark/mark-soft、activity info/violet/shimmer。
+4. **Tooltip 玻璃层**：backdrop-filter 与多层阴影未做；sidebar overlay 也没有单独字段。
+5. **排版**：没有自托管 Inter / JetBrains Mono，字体选择只有系统字体和 monospace。
+6. **几何/动效**：标题栏高度、过渡时长、缓动和面板进出动画仍无 token。
+7. **Markdown 内容层**：图像灯箱、链接右键菜单和代码高亮主题仍缺。
 
 ### 2.4 度量差异（会直接影响观感）
 
 | 项 | A | B |
 |---|---|---|
-| 侧栏宽度 | 默认 256、最小 200、最大 360、可拖拽（`components/ui/sidebar/utils.ts:4-6`） | 固定 `Space(55)` = 220 DIP，不可拖拽（[tokens.go:72](../internal/ui/tokens.go#L72)） |
-| 状态栏 | `.chat-status-bar` 高 40px、左右 20px、12px 字（`styles/global.css:39-41`）；另有 `h-10`=2.5rem@14px=35 DIP 的读数（见 [ui-layout-spec.md](ui-layout-spec.md) §7，待窗口量测确认） | 无独立状态栏；连接/运行状态塞进 header（[shell.go:295-322](../internal/ui/shell.go#L295-L322)） |
+| 侧栏宽度 | 默认 256、最小 200、最大 360、可拖拽（`components/ui/sidebar/utils.ts:4-6`） | 默认 256、200–360、可拖拽调宽、双击复位（[tokens.go:70-73](../internal/ui/tokens.go#L70-L73)、`sidebar.go`） |
+| 状态栏 | `.chat-status-bar` 高 40px、左右 20px、12px 字（`styles/global.css:39-41`）；另一读数为 35 DIP（见 [ui-layout-spec.md](ui-layout-spec.md) §7） | 已实现底部状态栏，按 14px 根字号取 35 DIP（[statusbar.go:19-31](../internal/ui/statusbar.go#L19-L31)）；branch + 连接已接，context/model/account 是 WIP |
 | 标题栏 | 固定 48px，自绘窗口控件（`global.css:174`、`components/app/AppTitlebar.vue`） | 原生系统标题栏 |
-| 卡片圆角 | 10 / 8 / 6 / 14 px 四级（`global.css:44-47`、`244`） | 6 px 单档（[tokens.go:75](../internal/ui/tokens.go#L75)） |
-| 基础字号 | 14px UI、13px 代码、5 档可选、⌘+/⌘- 缩放（`appearance/index.ts:11-16`、`appearance/zoom-shortcuts.ts`） | 系统字号 13(darwin)/14，四档相对比例 1.15/0.9/0.8（[tokens.go:8-12](../internal/ui/tokens.go#L8-L12)、[79-82](../internal/ui/tokens.go#L79-L82)） |
-| 间距单位 | Tailwind 4px 刻度 + 具名 utility | `theme.Space(n)` = n×4 DIP，具名几何字段 17 个（[tokens.go:62-77](../internal/ui/tokens.go#L62-L77)） |
-| 密度 | 可切换（字号档位 + 侧栏宽度 + 面板宽度持久化，`ChatWorkspace.vue:217-220`） | 无密度概念 |
+| 卡片圆角 | 10 / 8 / 6 / 14 px 四级（`global.css:44-47`、`244`） | 6 / 8 / 10 / 14 四级（[tokens.go:49-54](../internal/ui/tokens.go#L49-L54)） |
+| 基础字号 | 14px UI、13px 代码、5 档可选、⌘+/⌘- 缩放（`appearance/index.ts:11-16`、`appearance/zoom-shortcuts.ts`） | 5 档 UI 字号 + 代码字号，可在外观设置里选并持久化；无缩放快捷键 |
+| 间距单位 | Tailwind 4px 刻度 + 具名 utility | `theme.Space(n)` = n×4 DIP + 具名几何字段；compact 密度按 3/4 收紧 |
+| 密度 | 可切换（字号档位 + 侧栏宽度 + 面板宽度持久化，`ChatWorkspace.vue:217-220`） | regular/compact + 侧栏宽度已持久化；面板宽度未做 |
 
 ## 3. 组件清单差异
 
-A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B 的全部 UI 是 7 个 Go 文件。
+A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B 的 UI 是 23 个 Go 文件（非测试）。
 
 ### 3.1 逐目录对照
 
 | A 目录（文件数） | B 对应物 | 级别 |
 |---|---|---|
-| `sidebar/`（22）`AppSidebar.vue`、`ThreadList.vue`、`SidebarHeader.vue`、`PinnedThreads.vue`、`ProjectItem.vue`、`ChatSearchDialog.vue`、`RenameThreadDialog.vue`、`ArchiveThreadDialog.vue`、`ThreadContextMenu.vue`、`useSidebarVirtualRows.ts`、`useProjectDragReorder.ts` | `internal/ui/sidebar.go`：header、全局入口、可选分组线程列表、选中/悬停、200–360 拖拽调宽、双击复位；搜索/置顶/重命名/归档/右键菜单保持 visible-disabled WIP | **部分完成**（`2701701`）：核心列表与量纲已对齐；对话框类仍是 WIP |
-| `chat-workspace/`（185；timeline 65、composer 36、interactions 20、model-selector 15、git 7、attachments 6、workflow 3） | `messageRow`（[shell.go:444-459](../internal/ui/shell.go#L444-L459)）+ `composer`（[shell.go:486-500](../internal/ui/shell.go#L486-L500)） | **P0**：见 3.2 |
-| `markdown/`（20）`FileChip.vue`、`MarkdownImageNode.vue`、`MarkdownHeadingNode.vue`、`MarkdownInlineCodeNode.vue`、`ImageLightbox.vue`、`LinkContextMenu.vue`、`useMarkdownRender.ts` | `markdown_render.go`（`d5bbcb5`）：内容层 token、代码块头 + 语言 + Copy、行内代码、链接、表格、任务列表；assistant 行已接入 | **部分完成**：文件 chip、图片灯箱、链接右键菜单、代码高亮主题仍缺 |
-| `settings/`（41）+ `views/SettingsView.vue`、`SettingsNav.vue`、19 个分区（`settings/sections.ts:24-43`） | 无 | **P1**：设置面整体缺失（appearance 见第 5 步计划） |
-| `context-panel/`（16）文件树、`DiffView.vue`、`FilePreviewView.vue`、`OfficeFilePreview.vue`、`PptxSurfacePreview.vue`、`XlsxPreview.vue` | `context_panel.go`（`c05bf50`）：文件树、diff、预览、空态与 WIP；尚未接线（无 changed-file 数据源） | **部分完成** |
-| `right-panel/`（1）+ `ChatWorkspace.vue` 承载（`ChatWorkspace.vue:1973-2009`） | 无 | **P1** |
-| `app/`（6）`AppTitlebar.vue`、`WindowControls.vue`、`BrandMark.vue`、`StartupOverlay.vue` | 无 | **P2** |
+| `sidebar/`（22）`AppSidebar.vue`、`ThreadList.vue`、`SidebarHeader.vue`、`PinnedThreads.vue`、`ProjectItem.vue`、`ChatSearchDialog.vue`、`RenameThreadDialog.vue`、`ArchiveThreadDialog.vue`、`ThreadContextMenu.vue`、`useSidebarVirtualRows.ts`、`useProjectDragReorder.ts` | `internal/ui/sidebar.go`：header、全局入口、可选分组线程列表、本地会话搜索、选中/悬停、200–360 拖拽调宽、双击复位；置顶/重命名/归档/右键菜单保持 visible-disabled WIP | **部分完成**：核心列表、搜索与量纲已对齐；对话框类仍是 WIP |
+| `chat-workspace/`（185；timeline 65、composer 36、interactions 20、model-selector 15、git 7、attachments 6、workflow 3） | `timeline.go` + `conversation.go` + `composer.go` + `header.go` + `approval_panel.go`；主区卡片框架已实现（`aaac7b6`） | **部分完成**：见 3.2 |
+| `markdown/`（20）`FileChip.vue`、`MarkdownImageNode.vue`、`MarkdownHeadingNode.vue`、`MarkdownInlineCodeNode.vue`、`ImageLightbox.vue`、`LinkContextMenu.vue`、`useMarkdownRender.ts` | `markdown_render.go`（`d5bbcb5` + `302efea`）：内容层 token、代码块头 + 语言 + Copy、行内代码、链接、表格、任务列表、文件 chip；assistant 行已接入 | **部分完成**：图片灯箱、链接右键菜单、代码高亮主题仍缺 |
+| `settings/`（41）+ `views/SettingsView.vue`、`SettingsNav.vue`、19 个分区（`settings/sections.ts:24-43`） | `settings.go`（`697ed25` + `925f071`）：17 个分区的导航；Appearance 页可编辑（主题/字号/字体/宽度/密度/代码字号/语言），其余 16 个分区是说明缺口原因的 WIP 页 | **部分完成**：导航与外观页已落地；其余分区未做 |
+| `context-panel/`（16）文件树、`DiffView.vue`、`FilePreviewView.vue`、`OfficeFilePreview.vue`、`PptxSurfacePreview.vue`、`XlsxPreview.vue` | `context_panel.go`（`c05bf50` + `d16b27d`）：文件树、diff、预览、空态与 WIP，已作为右侧栏绘制并可由工具栏切换；仍无 changed-file/diff 数据源 | **部分完成** |
+| `right-panel/`（1）+ `ChatWorkspace.vue` 承载（`ChatWorkspace.vue:1973-2009`） | 右侧 context panel 已按 320 DIP 绘制，窄窗口让位；面板内容仍是调用方传入的 `ContextPanelView` | **部分完成** |
+| `app/`（6）`AppTitlebar.vue`、`WindowControls.vue`、`BrandMark.vue`、`StartupOverlay.vue` | 无（原生系统标题栏） | **P2** |
 | `scheduled/`（10）+ `ScheduledView.vue` | 无 | **P2** |
 | `ui/`（406，shadcn 基础件） | mygo `ui` 提供 button/input/list/markdown 等；缺 dialog/popover/menu/command/toast/tooltip 的 shell 接入 | **P1**（按需接） |
 | `market/`（7）、`plugins/`（28）、`skills/`（7）、`provider/`（1） | 无 | **P2** |
 | `browser-panel/`（4）、`ui-extensions/`（4）、`mcp-apps/`、`pet/`（2）、`onboarding/`（4）、`account/`（1）、`selection/`（1） | 无 | **P2** |
+| 状态栏（`chat-workspace/StatusBar.vue`） | `statusbar.go`（`697ed25`）：branch、连接、context 用量条、model/account WIP、窄宽度省略 | **部分完成** |
+| keys 面板 | `keys_panel.go`（`3fef65f` + `a2ce8b8`）：`session.keys` 快照、过滤、选中、未加载 WIP | **有** |
 
-### 3.2 chat-workspace 内部差距（P0 明细）
+### 3.2 chat-workspace 内部差距
 
 | A 组件 | 现状 | B 现状 | 级别 |
 |---|---|---|---|
-| `ChatWorkspace.vue`（7,329 行）+ `ChatHeaderFrame.vue` + `ChatHeader.vue`（603） | 卡片式聊天框：`chat-workspace-frame`/`chat-workspace-card`（`global.css:20-37`），右侧面板按 margin 让位（`ChatWorkspace.vue:2003-2009`） | 普通 Column，无卡片/描边/圆角框架 | **P0** |
-| `timeline/TimelineRow.vue`（442）、`TimelineAssistantMessage.vue`、`TimelineThinkingItem.vue`、`TimelineToolCallItem.vue`、`TimelineFileChanges.vue`、`TimelineArtifacts.vue`、`TimelineRetryNotice.vue`、`TimelineErrorBoundary.vue`、`TimelineCompressionDivider.vue`、`tool-renderers/` | 行类型化、工具卡可展开、thinking 折叠、文件改动、重试、错误边界、压缩分割线 | `internal/ui/timeline.go`（`760413e`）：turn 内 block 分派、thinking 默认折叠（`Thought for Ns`）、tool 卡展开（≤240 DIP 面板）、file changes 紧凑行、独立 error/retry 行 | **部分完成**：`tool-renderers/` 分类面板、压缩分割线、artifacts、用户长文折叠仍是 WIP |
-| `composer/ConversationComposer.vue`、`InputArea.vue`、`tiptap/`、`activity/`、`FollowUpMessages.vue`、`ComposerSkillsSelector.vue`、`AgentModeSelector.vue`、`model-selector/`（15） | 富输入 + 附件 + skills + slash 命令 + 模型/模式选择 + 活动条 | `composer.go`（`f157797`）：自适应多行（1–64 行，60–300 DIP）、Enter 发送 / Shift+Enter 换行、提示行、Attach/Mode/Model 的 visible-disabled WIP、Send；缺富文本、skills、slash 命令、活动条 | **部分完成** |
-| `interactions/PermissionPrompt.vue`、`ApprovalInputPanel.vue`、`ElicitationPrompt.vue` | 审批/权限/追问三类面板 | `approval_panel.go`（`a2cdb9b`）+ composer 槽位替换（`ffa54c7`）：待审批卡片、call/reason/source、Approve/Deny；缺权限范围、追问、输入块与变体 | **部分完成** |
-| `StatusBar.vue`（367）`ContextUsageMeter.vue`、`ChatHeader` 的模型/分支入口 | 底部状态栏：git 分支、上下文用量、账户用量 | 无 | **P1** |
+| `ChatWorkspace.vue`（7,329 行）+ `ChatHeaderFrame.vue` + `ChatHeader.vue`（603） | 卡片式聊天框：`chat-workspace-frame`/`chat-workspace-card`（`global.css:20-37`），右侧面板按 margin 让位（`ChatWorkspace.vue:2003-2009`） | 主区圆角卡片 + 外边距 + 描边（`aaac7b6`）；右侧 context panel 按 320 DIP 绘制并在窄窗口让位（`d16b27d`） | **部分完成** |
+| `timeline/TimelineRow.vue`（442）、`TimelineAssistantMessage.vue`、`TimelineThinkingItem.vue`、`TimelineToolCallItem.vue`、`TimelineFileChanges.vue`、`TimelineArtifacts.vue`、`TimelineRetryNotice.vue`、`TimelineErrorBoundary.vue`、`TimelineCompressionDivider.vue`、`tool-renderers/` | 行类型化、工具卡可展开、thinking 折叠、文件改动、重试、错误边界、压缩分割线 | `internal/ui/timeline.go`（`760413e`）+ `toolrender.go`（`b1f73a0`）：turn 内 block 分派、thinking 默认折叠、tool 卡展开、command/file/search/generic 分类面板、file changes、独立 error/retry 行 | **部分完成**：压缩分割线、artifacts、用户长文折叠仍是 WIP |
+| `composer/ConversationComposer.vue`、`InputArea.vue`、`tiptap/`、`activity/`、`FollowUpMessages.vue`、`ComposerSkillsSelector.vue`、`AgentModeSelector.vue`、`model-selector/`（15） | 富输入 + 附件 + skills + slash 命令 + 模型/模式选择 + 活动条 | `composer.go`（`f157797` + `cd5cc8c`）：自适应多行、Enter 发送 / Shift+Enter 换行、提示行、工具行、底部 context row、圆形 Send；Attach/Mode/Model 是 WIP | **部分完成**：缺富文本、skills、slash 命令、活动条 |
+| `interactions/PermissionPrompt.vue`、`ApprovalInputPanel.vue`、`ElicitationPrompt.vue` | 审批/权限/追问三类面板 | `approval_panel.go`（`a2cdb9b` + `ffa54c7`）：待审批卡片、call/reason/source、输入块与变体、Approve/Deny | **部分完成**：缺权限范围、追问、always-allow |
+| `StatusBar.vue`（367）`ContextUsageMeter.vue`、`ChatHeader` 的模型/分支入口 | 底部状态栏：git 分支、上下文用量、账户用量 | `statusbar.go`：branch 与连接已接；context/model/account 用 WIP 徽标，不伪造读数 | **部分完成** |
 | `SessionTasksPanel.vue`、`BackgroundTaskTerminal.vue`、`TerminalDrawer.vue`、`ProcessDetail.vue` | 后台任务与终端面板 | 无 | **P2** |
 | `SideChatPanel.vue`、`SubagentChatPanel.vue` | 侧聊/子代理 | 无 | **P1** |
 | `workflow/`、`WakeupDetail.vue` | 工作流/wakeup 详情 | 无 | **P2** |
@@ -130,81 +120,61 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 
 | 证据类型 | A | B |
 |---|---|---|
-| 真实窗口截图 | 31 个 `scripts/test-electron-*.mjs` e2e，Playwright `page.screenshot()` 落盘（如 `scripts/test-electron-appshots-e2e.mjs:172`、`scripts/test-electron-chat-windows.mjs:241`） | 无。`ui.NewWindow` 只传 Title/Width/Height/Content（`cmd/dimagent/main.go:958-963`），仓库内无截图产物 |
-| Headless 像素 | 无（Electron + jsdom 不做像素） | 有 `ui.Tester.Image()` 与 `MYGO_UI_PNG` 导出 PNG（mygo `ui/ui_test.go:17-31`），但**仓库里没有一条用例使用它** |
-| 像素回归 | 无 golden；仅 appshots e2e 里用 `scripts/e2e/compare-png.swift` 比较"拍照前后同一个区域" | 无 |
-| 关键路径测试 | 230 个 renderer 测试文件 | 12 个测试文件，全是文本/无障碍断言（`shell_test.go:31` 起） |
-| 深色模式覆盖 | `styles/global.css:262-330` 全套深色值 + 6 个 chrome 主题各自的深色块 | 无测试、无强制深色用例（mygo 支持 `Tester.SetDark`，mygo `ui/headless.go:483`，B 未用） |
-| 主题/皮肤数量 | 3 主题偏好 × 6 chrome（`packages/shared/src/theme.ts:5-12`、`styles/retro-themes.css`）× skin.json 任意皮肤（1 个 window region + 4 个 surface + variants，`packages/shared/src/constants/skin.ts:19,28`、`skin-schema.ts`）× 代码主题（Vitesse 默认，`appearance/code-theme-bg.ts:21-33`） | 2（mygo Light/Dark，跟随系统，`runtime.go:615-630`）；shell 从不 `SetTheme`，也没有外观设置入口 |
-| 字体 | 自托管 Inter + JetBrains Mono（`global.css:10-18`），5 档 UI 字号、代码字号、可自定义字体族（`appearance/index.ts:11-22`） | 系统字体，单档字号 |
-| 密度 | 侧栏宽度/右侧面板宽度持久化（`ChatWorkspace.vue:217-220`）、`--layout-transition-ms` 统一过渡、zoom 快捷键 | 全部固定常量 |
-| i18n | 11 个 locale（`renderer/src/i18n/config.ts`） | 全英文硬编码（`shell.go`、`wip.go`、`capability.go` 全文） |
+| 真实窗口截图 | 31 个 `scripts/test-electron-*.mjs` e2e，Playwright `page.screenshot()` 落盘（如 `scripts/test-electron-appshots-e2e.mjs:172`、`scripts/test-electron-chat-windows.mjs:241`） | `docs/evidence/window-disconnected.png` 与 `window-connected.png` 两张真实窗口截图（`scripts/capture-window.sh`，见 [window-evidence.md](window-evidence.md)） |
+| Headless 像素 | 无（Electron + jsdom 不做像素） | `screenshot_test.go` 用 `Tester.Image()` 输出 light/dark × shell/composer/settings 六张 PNG（`DIMAGENT_UI_SCREENSHOT_DIR`，存于 `docs/evidence/ui/`） |
+| 像素回归 | 无 golden；仅 appshots e2e 里用 `scripts/e2e/compare-png.swift` 比较"拍照前后同一个区域" | 无 golden/自动 diff；截图用例只断言"非空且 light/dark 不同" |
+| 关键路径测试 | 230 个 renderer 测试文件 | 27 个测试文件、244 个 top-level 测试（`internal/ui`） |
+| 深色模式覆盖 | `styles/global.css:262-330` 全套深色值 + 6 个 chrome 主题各自的深色块 | 3 张 dark 截图（shell/composer/settings）+ `Tester.SetDark` 用例 + Markdown 深色断言 |
+| 主题/皮肤数量 | 3 主题偏好 × 6 chrome（`packages/shared/src/theme.ts:5-12`、`styles/retro-themes.css`）× skin.json 任意皮肤（1 个 window region + 4 个 surface + variants，`packages/shared/src/constants/skin.ts:19,28`、`skin-schema.ts`）× 代码主题（Vitesse 默认，`appearance/code-theme-bg.ts:21-33`） | system/light/dark + 外观设置（字号/字体/密度/代码字号/语言，已持久化）；chrome 与 skin 明确 WIP |
+| 字体 | 自托管 Inter + JetBrains Mono（`global.css:10-18`），5 档 UI 字号、代码字号、可自定义字体族（`appearance/index.ts:11-22`） | 系统字体或平台 monospace，5 档 UI 字号 + 代码字号 |
+| 密度 | 侧栏宽度/右侧面板宽度持久化（`ChatWorkspace.vue:217-220`）、`--layout-transition-ms` 统一过渡、zoom 快捷键 | regular/compact + 侧栏宽度持久化；无面板宽度、过渡和 zoom |
+| i18n | 11 个 locale（`renderer/src/i18n/config.ts`） | en + zh-CN（`i18n.go`，已持久化语言选择；默认英文） |
 | 无障碍 | 部分组件有 aria；无统一契约 | 明显更强：Role/Status/Busy/Description/DescribedBy/AccessHidden 成体系（`shell.go:327-348`、`tool.go:129-139`、`wip.go:35-40`） |
 
-结论：A 的"证据"是截图产物（人看），B 的"证据"是无障碍树断言（机器看）。两边都没有像素回归，所以**任何"已 1:1"的说法目前都没有证据支撑**。
+结论：A 的"证据"是大量真实窗口截图（人看），B 现在同时有 headless 截图、两张真实窗口截图和无障碍树断言；但两边仍没有跨端像素回归，所以**任何"已 1:1"的说法目前都没有证据支撑**。
 
-## 5. 最小可执行 5 步对齐计划
+## 5. 对齐计划与当前进度
 
-顺序不能换：token 语义层不做，后面每一步都会在组件里写死颜色，返工成本最高。
+### 第 1 步：token 语义层（已完成）
 
-### 第 1 步：补 token 语义层（P0，1 个 PR）
+- `internal/ui/tokens.go` 已派生 surface 梯度（background → sidebar → card → popover）、前景配对、sidebar/tooltip 语义集、中性 accent 和四级圆角。
+- 验收：`tokens_test.go` 断言浅/深两套的明度关系，并断言 `accent` 与 `primary` 不再同值。
 
-- 文件：`internal/ui/tokens.go`。
-- 做法：把 `ui.Theme` 已经有但没用上的字段接出来（mygo `ui/theme.go:10-83`：`Background`、`Text`、`SurfaceHover`、`SurfacePressed`、`AccentText`、`AccentHover`、`AccentPressed`、`Selection`、`Focus`、`Inverse`、`InverseText`、`Scrollbar`），在 `newTokens` 里派生 A 的语义名：
-  - `background/foreground/card/cardForeground/popover/popoverForeground`（elevation 用 `Color.Mix` 从 background 往 foreground 走，替代现在 `wash(border)` 的 12% tint）；
-  - `primary/onPrimary`（现 `accent` 改名，`AccentText` 补上）、`secondary/secondaryForeground`、`muted/mutedForeground`（拆分"面"和"字"）、`accent/accentForeground`（**改回中性 hover 语义**）、`danger/onDanger`；
-  - `input`、`ring`（取 `theme.Focus`）、`meterTrack`、`mark` 可选；
-  - `sidebar` 10 项 + `tooltip` 7 项（mygo `Inverse/InverseText` 是它的底座）。
-- 验收：新增 `internal/ui/tokens_test.go`，对浅/深两套断言"A 的同名 token 落在同一明度区间"（阈值建议 ΔL ≤ 0.03），并断言 `--accent` 与 `--primary` 不再同值。
-- 风险：`accent` 语义变更是 breaking，需要同时改 `tool.go:129-139`、`tokens.go:102-148` 的用例。
+### 第 2 步：量纲层（已完成）
 
-### 第 2 步：量纲层（P0，同一 PR 或紧随）
+- 侧栏默认 256、min 200、max 360，可拖拽；字号 5 档 + 代码字号；圆角 6/8/10/14；状态栏 35 DIP；compact 密度 3/4。
+- 验收：`tokens_test.go` 数值断言；侧栏宽度和外观偏好写入 `internal/config`。
 
-- 文件：`internal/ui/tokens.go`。
-- 做法：把 A 的量纲搬成结构字段，消灭现在散落的魔数：
-  - 侧栏 `Space(55)`=220 → 默认 256、min 200、max 360（对齐 `components/ui/sidebar/utils.ts:4-6`），并加拖拽；
-  - 字体：`fontFamily`（Inter 栈）、`monoFamily`（JetBrains Mono 栈）、`uiFontSize` 5 档 `[12,13,14,16,18]`、`codeFontSize` 13（对齐 `appearance/index.ts:11-16`）；
-  - 圆角四级（6/8/10/14）；状态栏高 40、标题栏 48；`layoutTransitionMs` 250。
-- 验收：`tokens_test.go` 断言数值表；侧栏拖拽后宽度写入配置（沿用现有 config 通道，不新建存储）。
-- 风险：字号档位要接设置面，否则第 4 步之前只有常量。
+### 第 3 步：组件契约 + P0 组件（已完成）
 
-### 第 3 步：组件契约 + P0 组件（2–3 个 PR）
+- 侧栏（分组、搜索、选中/悬停、拖拽）、timeline 行模型、composer、审批面板均已落地；区域合同见 [ui-component-protocols.md](ui-component-protocols.md)。
+- 验收：每个区域有 `*_test.go`，并有 headless 截图。
 
-- 先在 `internal/ui` 落一份组件映射（与 A 的 19 个目录一一对应，标注 已实现/部分/WIP/not-planned），作为后续 PR 的验收基线。
-- P0 实现顺序（按首屏可见度）：
-  1. 侧栏：线程分组（项目/日期段）、搜索框、置顶、悬停态、选中态（对齐 `sidebar/ThreadList.vue`、`PinnedThreads.vue`、`SidebarHeader.vue`）；重命名/归档/拖拽先按 WIP 入口 + `wipAction` 处理。
-  2. timeline 行模型：把 `Author` 四值枚举（`shell.go:49-79`）升级成行类型（user / assistant / thinking / tool / approval / file-changes / retry / error），至少补 thinking 折叠、工具卡可展开、代码块带语言头。
-  3. composer：多行自适应高度、附件 chip、模型/模式选择器占位、快捷键提示行。
-  4. 审批/权限面板：补权限范围与 elicit 追问两种形态。
-- 验收：每个组件补 `*_test.go`（`ui.NewTester` 文本 + Role 断言），并在第 5 步出图。
+### 第 4 步：外观设置面（部分完成）
 
-### 第 4 步：外观设置面（P1，1 个 PR）
+- `settings.go` 已提供 17 个分区的导航；Appearance 页支持主题、字号档位、字体族、密度、侧栏宽度、代码字号和语言，并通过 `internal/config` 持久化。
+- chrome 主题（6 个）与 skin 成本高，仍是 WIP；其余 16 个设置分区只显示缺口说明。
+- 验收：设置改动生效并在重启后保持；深色用例用 `Tester.SetDark` 覆盖。
 
-- 新增 appearance 设置页（对齐 `settings/AppearanceSettings.vue` 513 行 + `SkinSettings.vue` 833 行），先只做：主题（system/light/dark）、字号档位、字体族、密度（侧栏宽度）。
-- chrome 主题（6 个）与 skin（`skin-schema.ts` 的 region/variants/淡入淡出 300ms，`skin/skin-resolver.ts`）成本极高，**明确标 WIP 入口**，不要先用假主题顶上。
-- 验收：设置改动能通过 `ui.Context.SetTheme`（mygo `ui/api_gen.go:585`）生效并持久化到自有配置，重启后保持；深色用例用 `Tester.SetDark`（mygo `ui/headless.go:483`）覆盖。
+### 第 5 步：视觉证据闭环（部分完成）
 
-### 第 5 步：视觉证据闭环（P1，持续）
+- 已用 `Tester.Image()` 输出 6 张 1440×900 PNG；真实窗口已有 disconnected/connected 两张截图；Electron 参考窗口已采集（`docs/evidence/electron-reference/`）。
+- 仍未做：把 MyGo 与 Electron 同状态图并排存档、跨端像素对比、CI 中的稳定性 diff。现有截图不能当作 L5 通过证据。
 
-- 用 mygo 现成能力出图：`Tester.Image()` + `MYGO_UI_PNG`（mygo `ui/ui_test.go:17-31`），固定 fixture（两个会话、6 类行）输出 1440×900 的 light/dark 两张 PNG。
-- 参照物：从 A 用 e2e 脚本抓同一状态（`pnpm test:e2e:*`，脚本模式见 `scripts/test-electron-chat-windows.mjs:238-241`），把两张图并排存档到 `docs/evidence/ui-parity/`。
-- 加一条像素回归：用 A 已有的 `scripts/e2e/compare-png.swift` 思路（区域 + 阈值），先在 `internal/ui` 里做"同一 commit 前后"的稳定性回归，再谈跨端对比。
-- 验收：CI 里能看到 light/dark 两张图 diff 为 0；跨端对比先人工评审，不设自动阈值（技术上不同渲染器，自动阈值会误报）。
+## 5.1 真实像素基线对照（2026-11-09）
 
-## 5.1 真实像素基线（2026-11-09）
+`docs/evidence/electron-reference/` 已采集真实 Electron 窗口（`docs/l5-reference.md`），这是 L5 的对照基线，不是 mygo 侧结论。首轮指出的结构差距中，前四项已在 Wave 3 落地：
 
-`docs/evidence/electron-reference/` 已采集真实 Electron 窗口（`docs/l5-reference.md`），这是 L5 的对照基线，不是 mygo 侧结论。肉眼可见的结构差距：
+1. **主区是一张卡片**：已实现（`aaac7b6`）。
+2. **空态 hero**：已实现（`aaac7b6`，品牌方块 + `Start building` + 副标题）。
+3. **composer 结构**：底部 context row 与圆形 Send 已实现（`cd5cc8c`）；工具行仍是 WIP 入口。
+4. **侧栏**：全局入口、账户行与设置按钮已实现（`6788846`）。
+5. **语言**：MyGo 已支持 en/zh-CN，默认仍是英文；参考窗口是中文界面。
 
-1. **主区是一张卡片**：Electron 的主内容在圆角卡片里（外边距 + 细边框），MyGo 目前是贴边列。
-2. **空态 hero**：Electron 空会话是居中品牌标记 + `开始构建` + 副标题，composer 浮在其下；MyGo 只有一行 `No messages yet`。
-3. **composer 结构**：Electron 是输入卡 + 工具行（+, », cube）+ 右侧模型状态 + 圆形发送 + 底部 `工作区 / 默认权限`；MyGo 缺底部 context row 和圆形发送。
-4. **侧栏**：Electron 有 `新建会话 / 搜索 / 定时任务 / 技能/插件` 四个全局入口、底部账户行与设置齿轮；MyGo 目前只有部分入口，无账户行。
-5. **语言**：参考窗口是中文界面；MyGo 已支持 en/zh-CN，但默认仍是英文。
-
-以上 1–4 已排进当前 Wave 3 的三个 worktree（main card、composer context、sidebar entries）。
+这些只说明结构已补上，不等于像素对齐：还没有把两边同状态截图并排比较，也没有逐区域记录差异。
 
 ## 6. 结论复述
 
-- **不是 1:1**。差距的根因是 token 语义层只有一层（7 个色）而不是三层（原始色 → 语义 → 皮肤/主题覆盖），组件层因此 16/19 个目录完全没有对应物，另 3 个（sidebar、chat-workspace、markdown）只有骨架。
-- 最省力的路径不是"补组件"，而是"先补语义 + 量纲，再补 3 个 P0 组件（侧栏、timeline、composer），最后用截图闭环验证"。前两步不做，后面每加一个组件都会新增一批硬编码色值。
-- 已具备的有利条件：mygo 的 `ui.Theme` 已经覆盖 A 需要的绝大部分原始色槽（`Background/Text/SurfaceHover/Selection/Focus/Inverse/...`），B 只是没接线；mygo 的 headless tester 已经能出 PNG，证据闭环不缺工具，缺的是用例。
+- **不是 1:1**。B 已有 35 个颜色字段的语义层，但没有 A 的 skin/chrome 第三层；约 13/19 个组件目录仍无对应物，sidebar、chat-workspace、markdown、settings、context-panel/right-panel、statusbar 为部分完成。
+- 下一步不是重做 token，而是补剩余组件域（right-panel 的 changed-file 数据源、scheduled、market/plugins/skills、app titlebar 等）并完成跨端像素对照。
+- 已具备的有利条件：token 语义层、P0/P1 组件、headless 截图和真实窗口截图都已存在；缺的是跨端对照和剩余组件，而不是工具链。

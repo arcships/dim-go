@@ -185,12 +185,12 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 按"有像素、能立即对照"的顺序：
 
 1. **侧栏**（`internal/ui/sidebar.go`）：固定 256 pt、入口行（新建会话/搜索/定时任务/技能/插件）、分组标题行 + 两个图标、空态「暂无会话」、底部署名行 + 齿轮。对照 `window-workspace*.png`。
-2. **空状态主区**（`internal/ui/shell.go` 的 chat 空态）：logo + 「开始构建」的垂直位置、composer 卡片 ≈461×168 的尺寸与三段结构（输入区 / 图标行 / 权限行）、「未配置」与发送按钮的关系。对照 `window-workspace*.png`。
-3. **设置面**：mygo 现在完全没有（[`ui-parity.md`](ui-parity.md) 判为 P1）。Electron 的做法是"整窗替换 + 左导航 17 个分区"，最小子集建议先做「外观 + 权限」两页，直接用 `window-appearance.png`、`window-permissions.png`、`window-settings.png` 当视觉基线。
+2. **空状态主区**（`internal/ui/shell.go` 的 chat 空态）：logo + 「开始构建」的垂直位置、composer 卡片 ≈461×168 的尺寸与三段结构（输入区 / 图标行 / 权限行）、「未配置」与发送按钮的关系。MyGo 已实现卡片 + hero + context row（`aaac7b6`、`cd5cc8c`）；对照 `window-workspace*.png` 的像素差仍未记录。
+3. **设置面**：MyGo 已实现 17 分区导航 + Appearance 页（`697ed25`、`925f071`），其余分区是 WIP 页；权限页仍未做（[`ui-parity.md`](ui-parity.md)）。Electron 的做法是"整窗替换 + 左导航 17 个分区"，可直接用 `window-appearance.png`、`window-permissions.png`、`window-settings.png` 当视觉基线。
 4. **主题**：`window-workspace.png` ↔ `window-workspace-dark.png`、`window-appearance.png` ↔ `window-settings-dark.png` 是同一状态的成对图，适合做 mygo Light/Dark 的逐区域比对（侧栏底色、卡片底色、描边、主按钮绿色、选中行）。
 5. **权限/审批语义**：「deny 优先、exact/prefix 匹配」的规则表（`window-permissions.png`）是 mygo approval 相关 UI 的对照物；但 approval 面板本身**没有像素证据**，不要用权限设置页冒充审批态。
 6. **技能/插件**（`window-skills.png`）：mygo 侧对应入口仍标 WIP（`docs/ui-layout-spec.md` 的侧栏 WIP 入口）；对照前先确认是否要保留入口。
-7. **对话态整体（P0 缺口）**：先补"有内容的 timeline"像素基线，再谈 1:1。可选做法是用上游 fixture 或真实模型跑一次，再按同样脚本重抓。
+7. **对话态整体**：`docs/evidence/ui/` 的 headless 图与 `window-connected.png` 已有内容行，但还没有把 MyGo 与 Electron 同状态并排对照；先补成对基线和差异记录，再谈 1:1。
 
 ## 9. 复现
 

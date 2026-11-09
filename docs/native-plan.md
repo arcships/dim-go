@@ -1,6 +1,6 @@
 # Native UI 执行计划
 
-Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP 入口已实现，证据等级 `headless`；纵向闭环和真实窗口手测未开始）
+Status: active（Wave 1 静态壳与 Wave 2/3 组件、接线已实现，证据以 `headless`/`fake-server` 为主；F1/F2/F5 已有 L4 窗口证据，纵向闭环交互与 IME/AX 手测未完成）
 
 ## Milestone 0：组件验证
 
@@ -32,7 +32,7 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - ComposerView（`ui.TextArea`）；
 - Markdown/代码块 fixture；
 - 长列表和滚动行为的 headless fixture；
-- visible-disabled WIP 入口：`New session`、`Reconnect`（仅非 ready 时显示）、`Attach file`；入口保留位置和可访问名称，标记 disabled、dimmed，并以描述说明等待的上游方法，不处理点击、不报告成功；
+- visible-disabled WIP 入口：`Attach file`；`New session` 和 `Reconnect` 在有对应回调时是真实按钮（见下表），无回调时退回 visible-disabled WIP；入口保留位置和可访问名称，标记 disabled、dimmed，并以描述说明等待的上游方法，不处理点击、不报告成功；
 - approval 的 `Approve`/`Deny` 已接通 `approval.respond`：有 pending request 和回调时是真实按钮，无回调或无 requestID 时退回 visible-disabled WIP；点击只发送一次 decision，`-32602`/cancelled 显示为 notice 而不是成功；
 - Tab 顺序覆盖上述入口，screen reader/keyboard 用户能发现并读到不可用原因。
 
@@ -49,16 +49,16 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - `SessionStream`：订阅先行 attach、head 兜底、通知缓冲/路由、事件幂等、detach/closed/lost 生命周期；
 - submit/stop/approval.respond/session.delete mutation helpers 和 unknown-result 分类；
 - fake App Server（`net.Pipe`）和 fake daemon 测试；
-- `internal/session` 组合层：首屏 latest-turn/兼容扫描/history 降级、按 branch 的 durable/transient projection、bounded pending buffer、terminal/close 语义；`BranchDirectory` 已按公开 Desktop protocol contract 的 `session.branches` capability-gated 读取并暴露只读 snapshot；`Branches()` 只含从事件观察到的 branch id，尚未接入 UI 切换或 cut point。
+- `internal/session` 组合层：首屏 latest-turn/兼容扫描/history 降级、按 branch 的 durable/transient projection、bounded pending buffer、terminal/close 语义；`BranchDirectory` 已按公开 Desktop protocol contract 的 `session.branches` capability-gated 读取并暴露只读 snapshot；UI 已接 branch 列表、切换、end 和目录刷新，cut point 未做。
 - `internal/viewmodel`：projection snapshot → native 行（user/assistant/tool）；
 - `internal/integration`：supervisor → session → viewmodel 的 `SessionController`（Open/Catalog/State/Close），fake daemon 端到端测试；
 - Supervisor reconnect：单飞、generation、旧 attachment 失效、transport 终止原因和 close 竞争处理。
 
-未完成：UI branch switching/cut point（`BranchDirectory` 已有只读 snapshot，`Branches()` 仅含事件观察到的 branch id）、`session.methods` 插件入口接线、approval replay 集合替换、附件上传、`session.create` 与 unknown-result UI 接线。`Reattach` 已实现：只在 transport 终止时重建 attachment 和投影，replay gap 时只读路径单次重试、写操作 fail-closed，不再依赖上层临时编排。`session.create`、`session.methods`、`session.input_lookup` 已有 Go client/helper；`session.methods` 和 `session.input_lookup` 有公开合同依据（后者响应 `{status:"accepted",event}` 或 `{status:"unknown"}`）。`session.keys`/`session.branches` 已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper；`internal/session.Open` 已 capability-gated 读取并暴露只读 snapshot。UI branch switching/cut point 仍未完成。真实 daemon 已有 opt-in 的 `TestRealDaemonSmoke` 和 `TestRealDaemonSessionFlow`，后者覆盖 create → attach → history → submit → stop → cleanup；两者都不覆盖审批 replay、`subscription_changed` 恢复、GUI 或 IME。
+未完成：cut point（`BranchDirectory` 已有 snapshot）、`session.methods` 插件入口接线、approval replay 集合替换、附件上传的文件选择器与结果读回。`session.create` 和 unknown-result 读回已接 UI，branch 切换/end/目录刷新与 keys 面板也已接线。`Reattach` 已实现：只在 transport 终止时重建 attachment 和投影，replay gap 时只读路径单次重试、写操作 fail-closed，不再依赖上层临时编排。`session.create`、`session.methods`、`session.input_lookup` 已有 Go client/helper；`session.methods` 和 `session.input_lookup` 有公开合同依据（后者响应 `{status:"accepted",event}` 或 `{status:"unknown"}`）。`session.keys`/`session.branches` 已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper；`internal/session.Open` 已 capability-gated 读取并暴露只读 snapshot。真实 daemon 已有 opt-in 的 `TestRealDaemonSmoke` 和 `TestRealDaemonSessionFlow`，后者覆盖 create → attach → history → submit → stop → cleanup；两者都不覆盖审批 replay、`subscription_changed` 恢复、GUI 或 IME。
 
 ## Milestone 3：第一个纵向闭环
 
-启动路径、session 切换、submit/stop/reconnect 和 approval 决策已接入（只有 `headless` + `fake-server` 测试级证据，real-daemon session 流仅覆盖协议路径，**产品验收未通过**）；持续 live ticker、真实窗口手测、IME/VoiceOver 和设计与组件 1:1 对齐都未完成。
+启动路径、session 切换、submit/stop/reconnect 和 approval 决策已接入（只有 `headless` + `fake-server` 测试级证据，real-daemon session 流仅覆盖协议路径，**产品验收未通过**）；F1/F2/F5 有真实窗口截图，但持续 live ticker、真实窗口交互手测、IME/VoiceOver 和设计与组件 1:1 对齐都未完成。
 
 - open session（`cmd/dimagent` 在 `DIMAGENT_PRODUCT_HOME` 下经 supervisor → integration 打开首个 session）
 - render history（首屏 history + viewmodel 渲染快照）
@@ -71,11 +71,11 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 
 ## Milestone 4：核心能力
 
-未开始。
+进行中（approval、model progress 和 branch end 已接 UI；其余未开始）。
 
-- branch/side chat
+- branch/side chat（branch end 已接；side chat 未做）
 - approval/question（`approval.respond` 已接到 UI：`allow`/`deny` 折叠、`-32602` 按 cancelled 处理并移除 pending、不重放；question/elicitation 和 replay 集合替换未实现）
-- model progress（Go transient projection 已实现，未接入 UI）
+- model progress（transient projection 已接入状态行）
 - goal/title
 - tasks/workflows
 
@@ -94,8 +94,8 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 |---|---|---|
 | `New session` | 已接线：有 `OnCreateSession` 时是真实按钮，创建中禁用；无回调时可见、dimmed、disabled | 无（`session.create` + catalog 刷新已实现） |
 | `Reconnect` | 仅在连接非 ready 时出现；有 `OnReconnect` 时是真实按钮 | 持续 resync 语义（replay gap 已 fail-closed） |
-| `Attach file` | 可见但不可用，描述 `attachment.put` 未接通 | attachment 上传 |
+| `Attach file` | 可见但不可用：Go 侧 `attachment.put` helper 已有，shell 还没有文件选择器和上传结果读回 | 文件选择器与结果读回 |
 | `Approve` / `Deny` | 已接线：有 pending request 时是真实按钮，`-32602` 按 cancelled 处理 | question/always-allow、replay |
-| approval 行本身 | 已接线：`viewmodel.BuildApprovals` 从 daemon pending approvals 生成行 | approval replay 集合替换 |
+| approval 面板 | 已接线：`viewmodel.BuildApprovals` 从 daemon pending approvals 生成面板内容 | approval replay 集合替换 |
 
 这些入口在 headless 测试中验证：存在、accessible name 保留、disabled 状态和原因可读、点击不产生成功状态。真实窗口、IME、VoiceOver 和视觉检查仍未完成。

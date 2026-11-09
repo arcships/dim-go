@@ -1,7 +1,7 @@
 # Go Projection Golden Fixture 合同
 
-Status: active（核心 timeline 和 input blocks 已实现；session/wire 集成未开始）
-Last updated: 2026-11-08
+Status: active（核心 timeline 和 input blocks 已实现并接入 session/viewmodel/UI；真实运行与非核心投影仍未验收）
+Last updated: 2026-11-09
 Owner: projection
 
 本文冻结 `dimagent-mygo` 的纯 projection 语义和 golden fixture 格式。Go projection 是可丢的 view state，不是 session/message/run/approval 的事实存储；Rust `dim-app-server` 仍是唯一事实源。fixture 只描述输入 raw event 与期望输出，不能读取 App Server 的 SQLite/JSONL/session 文件或 `daemon.log`。
@@ -172,8 +172,8 @@ raw event 的 `create_at` 是 App Server 事实，用于 message `createdAt`/`up
 
 剩余 blocker：
 
-- `internal/session` 和 `internal/viewmodel` 已组合 stream、history、projection 和行映射，但还没有接到 UI；session/viewmodel UI 接线、submit/live 端到端和真实运行验收未验证；
+- `internal/session` 和 `internal/viewmodel` 已组合 stream、history、projection 和行映射，并已接到 UI；submit/live 端到端和真实运行验收仍未验证；
 - goal、usage、branch directory、exec/background task 等非核心投影未实现，本合同只冻结 input/text/thinking/tool；
 - 上游 wire `RawEvent` 的完整 data 形状仍以 `dim-electron` protocol v3 和 Rust App Server 为准；real-daemon 控制面 smoke 已通过，但不覆盖 projection data shape，因此不能宣称 real-daemon projection 语义通过；
-- approval/question/permission 只有通用 transient notice fixture（`transient-isolation.json`）；`approval.respond` mutation 已有 client helper，但 replay 集合替换和 UI 决策流程未实现；
+- approval/question/permission 只有通用 transient notice fixture（`transient-isolation.json`）；`approval.respond` 已接到 UI 决策面板，但 replay 集合替换未实现；
 - 同一 sequence 不同 id 的冲突已由 `SessionStream` 在路由层报告为协议错误并丢弃第二个事件；projection reducer 仍按 sequence 丢弃重复项，fixture 会拒绝该输入；上游语义仍待确认。

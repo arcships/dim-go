@@ -105,17 +105,19 @@ Scope: 只回答两件事——(1) branch switching / cut point / side chat 有�
 
 ## 3. MyGo 现状
 
+> 本节是接线前的审计快照。下列 DTO/helper、session 方法与 UI 接线在后续提交中已落地；当前状态以 `protocol-contract.md` §17/§20 和 `acceptance.md` 为准。
+
 | 层 | 已有 | 证据（B） | 缺口 |
 |---|---|---|---|
-| `internal/appserver` | `session.branches` helper：`BranchesParams{sessionId}`、`BranchesResult`、逐项 Validate、`hello.features` gate、单次读不重试、不合成目录 | [`branches.go`](../internal/appserver/branches.go) `:16-23`、`:52-111`、`:122-147` | 无 `branch_create`/`branch_end`/`attachment.put` DTO 与 helper |
+| `internal/appserver` | `session.branches` helper：`BranchesParams{sessionId}`、`BranchesResult`、逐项 Validate、`hello.features` gate、单次读不重试、不合成目录；`branch_create`/`branch_end`/`attachment.put` 已有 DTO/helper（`fbe9559`） | [`branches.go`](../internal/appserver/branches.go) `:16-23`、`:52-111`、`:122-147`；`branch*.go`、`attachment.go` | `branch_create`/`attachment.put` 未接 UI；`attachment.put` 无 real-daemon 证据 |
 | 同上 | `session.keys` helper；`session.history` 分页不变量；`session.methods` / `input_lookup` / submit / stop / approval / delete | [`keys.go`](../internal/appserver/keys.go) `:13`；[`wire.go`](../internal/appserver/wire.go) `:418-426`、`:559-563`、`:639-665`、`:700-705`；[`methods.go`](../internal/appserver/methods.go) `:59-71` | `session.methods` 的 helper 注释（`methods.go:53-57`）说没有可支持的 gate，但 `session.Open` 仍按 `hello.features` 门禁（见下行），两处说明不一致 |
-| `internal/session` | `Open` 在 `hello.features` 门禁下读 `session.methods` / `session.branches` / `session.keys`；branch/keys 失败只降级并记录原因 | [`session.go`](../internal/session/session.go) `:225-256`；[`optional_reads.go`](../internal/session/optional_reads.go) `:20-88` | `HistoryStatus`/首屏窗口只有 main 的；没有"读某个 branch 的 history"入口 |
-| 同上 | 只读快照：`Keys()`、`KeysStatus()`、`BranchDirectory()`、`BranchDirectoryStatus()`、`Branches()`（只含观察到的 branch id）、`View(branchID)`、`BranchSnapshot`、`BranchTransient`、`BranchState` | `session.go:821-901`、`:895-901`、`:920-940` | `View(branchID)` 读不到历史：未加载的 branch 返回空 reducer（`snapshotLocked`），所以"切过去"会看到空会话 |
-| 同上 | `SubmitBranch`/`SubmitBranchWithID`/`StopBranch` 已带 `branchId`；submission UUID 供 unknown-result 读回 | `session.go:1078-1125` | 没有 create/end/attachment 方法 |
-| `internal/integration` | `StateForBranch(summary, branchID)` 按 branch 出 UI state；`BranchDirectory()` 转发 session 快照 | [`integration.go`](../internal/integration/integration.go) `:269-335`、`:460-471` | 注释 `:460-461` 仍写 "BranchDirectory is always empty / no verified upstream RPC"，与实现和公开合同矛盾；`:325` 用非合同的 `Purpose` 作 label |
-| `internal/ui` | 只读 branch 列表（id/state/head/current），无切换/切点操作 | [`shell.go`](../internal/ui/shell.go) `:41-47`、`:273-292` | 没有 branch 选择、branch 发送、end branch；"Attach file" 仍是 WIP 按钮（`:490`） |
-| WIP 文案 | `reasonBranches`、`reasonAttachment`、capability 卡片 | [`wip.go`](../internal/ui/wip.go) `:19-25`；[`capability.go`](../internal/ui/capability.go) `:31`、`:40`、`:48` | `capability.go:31/40` 的 "no verified switch/cut-point RPC" 是**错误结论**：公开合同与 public client 都有 `branch_create`/`branch_end`，缺的只是 MyGo helper/接线 |
-| 文档 | `protocol-contract.md` 的 branch/attachment 段；`development-plan.md:49-51` 的并行待办；`acceptance.md:38-39` 的 F12/F13 | [`protocol-contract.md`](protocol-contract.md) `:162`、`:167`、`:236`、`:254`、`:329`、`:334`、`:367`、`:377`、`:423`、`:429-435` | `development-plan.md:49` "没有已验证的切换 RPC" 同样需要改成"helper 未接" |
+| `internal/session` | `Open` 在 `hello.features` 门禁下读 `session.methods` / `session.branches` / `session.keys`；branch/keys 失败只降级并记录原因 | [`session.go`](../internal/session/session.go) `:225-256`；[`optional_reads.go`](../internal/session/optional_reads.go) `:20-88` | `HistoryStatus`/首屏窗口只有 main 的 |
+| 同上 | 只读快照：`Keys()`、`KeysStatus()`、`BranchDirectory()`、`BranchDirectoryStatus()`、`Branches()`（只含观察到的 branch id）、`View(branchID)`、`BranchSnapshot`、`BranchTransient`、`BranchState` | `session.go:821-901`、`:895-901`、`:920-940` | `View(branchID)` 对未加载 branch 返回空 reducer；窗口切 branch 时另有 `OpenBranch` 读取入口 |
+| 同上 | `SubmitBranch`/`SubmitBranchWithID`/`StopBranch` 已带 `branchId`；submission UUID 供 unknown-result 读回 | `session.go:1078-1125` | 没有 attachment 方法 |
+| `internal/integration` | `StateForBranch(summary, branchID)` 按 branch 出 UI state；`BranchDirectory()` 转发 session 快照；`OpenBranch`/`EndBranch`/`RefreshBranchDirectory` 已实现 | [`integration.go`](../internal/integration/integration.go) `:269-335`、`:460-471`、`:643-664` | 注释 `:460-461` 仍写 "BranchDirectory is always empty / no verified upstream RPC"，与实现和公开合同矛盾 |
+| `internal/ui` | 侧栏 branch 列表（id/state/head/current）已接选择、end、目录刷新；`Attach file` 仍是 WIP 按钮 | [`sidebar.go`](../internal/ui/sidebar.go)、[`actions.go`](../internal/ui/actions.go) | cut point 未做；attachment 上传的文件选择器与结果读回未接 |
+| WIP 文案 | `reasonBranches`、`reasonAttachment`、capability 卡片 | [`wip.go`](../internal/ui/wip.go) `:19-25`；[`capability.go`](../internal/ui/capability.go) `:31`、`:40`、`:48` | `capability.go:31/40` 的 "no verified switch/cut-point RPC" 是**错误结论**，后续已改为按回调接线；cut point 仍缺 |
+| 文档 | `protocol-contract.md` 的 branch/attachment 段；`development-plan.md` 的并行待办；`acceptance.md` 的 F12/F13 | [`protocol-contract.md`](protocol-contract.md)、[`development-plan.md`](development-plan.md)、[`acceptance.md`](acceptance.md) | 已按当前状态更新；cut point 和 attachment UI 仍是缺口 |
 
 ## 4. 可安全接线的最小范围
 
@@ -160,7 +162,7 @@ Scope: 只回答两件事——(1) branch switching / cut point / side chat 有�
 
 ### 4.5 附件（只做文本）
 
-- 入口可用：`mygo.Dialog.Open`（框架公开 API，`mygo@v0.8.3/dialog.go:140`）选文件 → 读取 → 只接受文本（UTF-8/扩展名白名单；对齐 A `attachments.ts:36-40`）→ 检查 10 MiB → `attachment.put` → 把 `[name](path)` 拼进 draft → 走现有 `session.submit`。
+- 入口可用：`mygo.Dialog.Open`（框架公开 API，`mygo@v0.8.3/dialog.go:140`）选文件 → 读取 → 只接受文本（UTF-8/扩展名白名单；对齐 A `attachments.ts:36-40`）→ 检查 10 MiB → `attachment.put` → 把 `[name]` 加 `(path)` 拼进 draft → 走现有 `session.submit`。
 - gate：`Session.Methods()` 里出现 `attachment.put` 才启用；没有 `session.methods` 或没声明 → 保持 WIP（host 无 Attachments 会是 `unknown_method`，C `design/plugins/Attachments.md:44`、`155`）。
 - 图片、URL、非文本文件保持 WIP：没有上传方法，且 inline image block 会触碰 `user.content` 构造与模型图片能力（C `design/plugins/Attachments.md:5`、`228`、`378`）。
 

@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划
 
-Status: active（Wave 1/2 的底层组件已实现并有测试级证据；**产品验收未通过**，见 [acceptance.md](acceptance.md)）
+Status: active（Wave 1/2 的底层组件已实现并有测试级证据；F1/F2/F5 已达 L4，**产品验收未通过**，见 [acceptance.md](acceptance.md)）
 Last updated: 2026-11-09
 流程与角色见 [workflow.md](workflow.md)；逐日记录见 [archive/progress-2026-11.md](archive/progress-2026-11.md)。
 
@@ -27,9 +27,9 @@ Last updated: 2026-11-09
 | M0 工具链与组件 Spike | 已完成 | 窗口可启动；核心组件有可复现实测；版本锁定 |
 | M1 Native UI 静态壳 | 已完成（headless） | AppFrame/Sidebar/List/Composer/Markdown + 键盘与无障碍 fixture；真实窗口视觉未验收 |
 | M2 协议、Transport、Supervisor | 已完成 | framing/correlation/错误映射、dial/hello/spawn/reconnect；fake + real-daemon 控制面证据 |
-| M3 Projection 与 Session 纵向闭环 | 已打通（测试级） | 首屏 history、branch 隔离、stream 折叠、submit/stop/approval、reattach；真实窗口 L4 未验收 |
-| M4 核心 Agent 能力 | 进行中 | approval（已接 UI）、model progress、goal/title、tasks/workflows；question/always-allow 未做 |
-| M5 管理面与 Desktop 服务 | 未开始 | 设置、skills/market、scheduled、多窗口/托盘 |
+| M3 Projection 与 Session 纵向闭环 | 已打通（测试级） | 首屏 history、branch 隔离、stream 折叠、submit/stop/approval、reattach；F5 首屏已有 L4，其余交互 L4 未验收 |
+| M4 核心 Agent 能力 | 进行中 | approval（已接 UI）、model progress（已接状态行）、branch end；goal/title、tasks/workflows 未做；question/always-allow 未做 |
+| M5 管理面与 Desktop 服务 | 未开始 | 设置剩余分区、skills/market、scheduled、多窗口/托盘 |
 | M6 发布与并行 | 未开始 | 打包、跨平台运行时、退役 Electron 路径 |
 
 各里程碑的详细组件草图：M1 见 [native-plan.md](native-plan.md)；wire 合同见 [protocol-contract.md](protocol-contract.md)；projection 见 [projection-contract.md](projection-contract.md)。
@@ -42,19 +42,19 @@ Last updated: 2026-11-09
 2. ✅ 布局提取（`docs/ui-layout-spec.md`，596 行）：容器树、flex 方向、宽高/min/max/padding/gap、滚动与虚拟化、Tailwind/变量出处（file:line）、MyGo API 映射与缺口。组件实现以这份规格为验收基线。
 3. ✅ P0 组件：侧栏（`2701701`）→ timeline 行模型（`760413e`）→ composer（`f157797`）→ approval 面板（`a2cdb9b` + `ffa54c7`，占用 composer 槽位）。
 4. ✅ P1 组件：branch 选择接线（`5d7ae60` + `697ed25`）、外观设置面（`3d473c9` + `697ed25`）、状态栏（`b15be1d` + `697ed25`）、branch end/目录刷新（`e161ea0`）、本地会话搜索（`5ac00e5`）、外观偏好真正作用到 token 比例（`bd94428`）。
-5. ✅ 内容层：工具类型化面板（`b1f73a0`）、Markdown 内容层与代码块 Copy（`d5bbcb5`，已接入 assistant 行）、context panel 组件（`c05bf50`，等待 changed-file 数据源）、keys 面板（`3fef65f`，等待接线）、approval 输入块与变体（`23b3742` + `6c08d54`）。
-6. ✅ 桌面偏好持久化（`75e642e`：`internal/config` 存 settings.json，仅六项外观偏好）。
+5. ✅ 内容层：工具类型化面板（`b1f73a0`）、Markdown 内容层与代码块 Copy（`d5bbcb5`，已接入 assistant 行）、context panel 组件（`c05bf50`，等待 changed-file 数据源）、keys 面板（`3fef65f`，已由 `a2ce8b8`/`eebf6c5` 接线）、approval 输入块与变体（`23b3742` + `6c08d54`）。
+6. ✅ 桌面偏好持久化（`75e642e`：`internal/config` 存 settings.json，六项外观偏好；`f7d9629` 增加界面语言）。
 7. ✅ 截图证据闭环（`8b05e98` + 每次 UI 改动重出）：`Tester.Image()` 输出 approval/composer/settings 三态 × light/dark；真实窗口证据见 [window-evidence.md](window-evidence.md)。跨端人工对照仍未做。
 
 差距清单见 [ui-parity.md](ui-parity.md)；布局规格见 [ui-layout-spec.md](ui-layout-spec.md)。
 
 并行待办（不阻塞 Wave 3）：
 
-- branch switching 已接线（读 branch history）；branch-aware submit/stop 已落地（`2768791`）；cut point、end branch UI、branch 目录刷新入口仍未做。
-- attachment 上传：没有 Go helper，保持 visible-disabled WIP。
+- branch switching 已接线（读 branch history）；branch-aware submit/stop 已落地（`2768791`）；branch end 与目录刷新已接线（`e161ea0`）；cut point 仍未做。
+- attachment 上传：Go 侧已有 `attachment.put` helper（L1/L2），shell 仍缺文件选择器和上传结果读回，保持 visible-disabled WIP。
 - `subscription_changed` 真实 wire 恢复：当前只读单次重试、写操作 fail-closed。
 - latestTurn 无 `turnStart` 的真实形状已修正（排队 input、窗口不覆盖 head），见 `protocol-contract.md` §9。
-- `session.methods` 插件入口接线。
+- `session.methods` 插件入口接线（Go helper 已有，UI 未接）。
 
 ## 验收与证据
 

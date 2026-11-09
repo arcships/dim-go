@@ -12,14 +12,14 @@
 |---|---|
 | 机器 | macOS 26.6.2（darwin/arm64） |
 | Go | go1.27.3 darwin/arm64 |
-| 源码 | `HEAD = 3a5256519ea9832968f6e67e646072869eed1465`，工作区 clean（2026-11-09 14:49 重跑） |
-| 构建时间 | 2026-11-09 14:49:54 CST |
+| 源码 | 未连接：`HEAD = 3a5256519ea9832968f6e67e646072869eed1465`，clean（14:49）；已连接：`HEAD = 0e16ca45c4d050d38bba0c270f67cc93ee60227c`，工作区 dirty（15:07，见元数据） |
+| 构建时间 | 未连接 2026-11-09 14:49:54 CST；已连接 2026-11-09 15:07:14 CST |
 | App Server 二进制 | `/tmp/dim-2-target/debug/dim-app-server`（Mach-O arm64，401 302 448 B，mtime 2026-11-08 23:38） |
 | 窗口库 | `github.com/egoist/mygo v0.8.3`（`mygo.NewWindow`，`Width: 1080`、`Height: 720`） |
 | 截图工具 | `/usr/sbin/screencapture -x -o -l <windowid>`（按窗口 ID 截取，只含该窗口，不含桌面和其它应用） |
 | 窗口 ID 来源 | `CGWindowListCopyWindowInfo`，按**本进程 PID** 过滤；脚本内用 `swiftc` 现场编译小工具读取 |
 
-2026-11-09 14:49 的这次采集在 `3a52565`（主区卡片、空态 hero、composer context row、侧栏入口落地）上重跑，工作区 clean；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 记录同一事实。源码再变时截图即过期，需要重跑脚本。
+2026-11-09 14:49 的未连接采集在 `3a52565`（主区卡片、空态 hero、composer context row、侧栏入口落地）上重跑，工作区 clean；15:07 的已连接采集在 `0e16ca4` 上重跑，工作区因 seed 脚本与证据文件更新而 dirty。`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 记录同一事实。源码再变时截图即过期，需要重跑脚本。
 
 ## 2. 复现命令
 
@@ -33,18 +33,18 @@ cd /Users/eric8810/Code/dimagent-mygo
 
 1. `go build -o $TMP/dimagent ./cmd/dimagent`，不改动仓库内文件。
 2. 未连接态：`env DIMAGENT_PRODUCT_HOME=` 启动，窗口必须显示 `App Server: Not connected`。
-3. 已连接态：`DIMAGENT_PRODUCT_HOME=$(mktemp -d)`，`PATH` 前置 `/tmp/dim-2-target/debug`，由 supervisor 自行 spawn 真实 `dim-app-server`；窗口必须显示 `App Server: Connected`。
-4. 两种状态都在窗口拿到真实尺寸后 `sleep 1` 再截图；截图后按 PID 结束应用，并按「命令行里含本次临时 home 路径」精确结束本次 spawn 的 daemon；随后 `rm -rf` 临时 home。
+3. 已连接态：默认 `DIMAGENT_PRODUCT_HOME=$(mktemp -d)`；带 `--product-home DIR` 时改用调用方提供的 home（例如 `scripts/seed-session` 预置过的目录）。`PATH` 前置 `/tmp/dim-2-target/debug`，由 supervisor 自行 spawn 真实 `dim-app-server`；窗口必须显示 `App Server: Connected`。
+4. 两种状态都在窗口拿到真实尺寸后 `sleep 1` 再截图；截图后按 PID 结束应用，并按「命令行里含本次 home 路径」精确结束本次 spawn 的 daemon；脚本只删除自己 `mktemp` 出来的空 home，`--product-home` 目录由调用方清理。
 5. 全程不读写 `~/.dimcode`，不使用用户的真实 product home。结束时打印 `all requested captures done; no leftover daemon from this run`，并复查没有本次残留的 daemon。
 
-## 3. 采集结果（2026-11-09 14:49 CST）
+## 3. 采集结果（2026-11-09）
 
 | 状态 | 采集时间 | 窗口 ID | 窗口位置/尺寸（points） | PNG 像素 | 字节 | PNG 路径 |
 |---|---|---|---|---|---|---|
 | 未连接 | 14:49:54 → 14:49:56 | 87019 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 276 010 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
-| 已连接 | 14:49:56 → 14:49:58 | 87108 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 275 619 | [`evidence/window-connected.png`](evidence/window-connected.png) |
+| 已连接（seed + side branch） | 15:07:14 → 15:07:19 | 48699 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 299 475 | [`evidence/window-connected.png`](evidence/window-connected.png) |
 
-MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `d0042bb57934966762cd214381f54eea`。
+MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `8c3e0849c0dcaf4c3b5c48eb50457fd1`。
 
 机器可读的采集元数据（脚本生成，含源码快照、PID、窗口 ID、bounds、daemon 命令行）：
 [`evidence/window-disconnected.txt`](evidence/window-disconnected.txt)、[`evidence/window-connected.txt`](evidence/window-connected.txt)。
@@ -52,10 +52,10 @@ MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `d0042bb579349667
 已连接态截图时真实在跑的 daemon（取自元数据）：
 
 ```
-57155 /tmp/dim-2-target/debug/dim-app-server
-      --unix <tmp>/dimagent-product-home.4sRVYE/rust/daemon.sock --no-ws
-      --home <tmp>/dimagent-product-home.4sRVYE/rust
-      --product-home <tmp>/dimagent-product-home.4sRVYE
+94135 /tmp/dim-2-target/debug/dim-app-server
+      --unix <tmp>/dimagent-seeded-home.eClAW8/rust/daemon.sock --no-ws
+      --home <tmp>/dimagent-seeded-home.eClAW8/rust
+      --product-home <tmp>/dimagent-seeded-home.eClAW8
 ```
 
 截图结束后该进程随应用退出而消失，`ps aux | grep '[d]im-app-server'` 无输出；临时 home 已删除。
@@ -68,39 +68,42 @@ MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `d0042bb579349667
 HOME_DIR=$(mktemp -d /tmp/dimagent-seeded-home.XXXXXX)
 go run ./scripts/seed-session -home "$HOME_DIR" \
   -server /tmp/dim-2-target/debug/dim-app-server \
-  -prompt "Explain what this repository does in one paragraph."
+  -prompt "Explain what this repository does in one paragraph." \
+  -side-branch
 ./scripts/capture-window.sh --state connected --product-home "$HOME_DIR"
 ```
 
-2026-11-09 15:00 的结果（`git_head = fa62267`，`git_dirty = clean`）：
+2026-11-09 15:07 的结果（`git_head = 0e16ca4`，`git_dirty` 见元数据）：
 
-- 侧栏 `Sessions 1`，选中行标题是 prompt 的前缀；`Branches` 显示 `main (current)` 与 `Refresh`。
+- 侧栏 `Sessions 1`，选中行标题是 prompt 的前缀；`Branches` 显示 `main (current)`、真实 `session.branch_create` 产出的 side branch（`8bd478fc-…`）与 `Refresh`。
 - 主区显示 user 气泡（完整 prompt）与 assistant 行（mock model 的 `Echo: ...`），即首屏 history 来自真实 daemon。
 - 状态栏 `Branch: main`、`App Server: Connected`。
-- 再加 `-side-branch` 时（2026-11-09 15:07），`Branches` 区在 `main (current)` 下显示真实 `session.branch_create` 产出的 side branch（`8bd478fc-…`，`Refresh` 可用）；切换仍需窗口内点击。
-- 这组证据支撑 F2（真实 daemon + 会话列表）与 F5（首屏 history 渲染）；它不覆盖窗口内点击创建/切换/提交。
+- 这组证据支撑 F2（真实 daemon + 会话列表）、F5（首屏 history 渲染）和 F12 的侧栏 branch 目录展示；它不覆盖窗口内点击创建/切换/提交，也不覆盖 cut point。
 
 ## 4. 截图上实际看到的内容
 
-两张图版式一致（`3a52565`，主区卡片 + 空态 hero + composer context row + 侧栏入口）：
+两张图的源码状态不同：未连接是 `3a52565` 的空 catalog，已连接是 `0e16ca4` 的 seed 会话 + side branch。共同部分是主区卡片、hero/composer 结构和侧栏入口。
+
+未连接（`window-disconnected.png`）：
 
 - 左侧栏：`DimAgent` 品牌行 + `Update`（WIP）；全局入口 `New session`、`Search sessions`（⌘G）、`Scheduled tasks`（WIP）、`Skills and plugins`（WIP）、`Session keys`（WIP）；`Sessions 0` + `Group`（WIP）；`No sessions yet`；线程操作 `Pin`/`Rename`/`Archive`（WIP）；`Unavailable capabilities` 两张 WIP 卡（`Session keys`、`Attachments`）；底部账户行 `Sign in to Dim`（WIP）与 `Settings` 按钮。
-- 右主区：圆角卡片（外边距 + 1px 边框），卡片内空态 hero：蓝色 `D` 方块 + `Start building` + `Ask DimAgent to change code, run a command or explain a session.`；右上 `● App Server: <状态>` 与 `Settings`。
+- 右主区：圆角卡片（外边距 + 1px 边框），卡片内空态 hero：蓝色 `D` 方块 + `Start building` + `Ask DimAgent to change code, run a command or explain a session.`；右上 `● App Server: Not connected`（灰点）与 `Settings`。
 - composer：草稿框、`Enter to send · Shift+Enter for a new line`、工具行 `Attach file`/`Mode`/`Model`（WIP）与圆形 `Send`（空草稿禁用）、底部 context row `Workspace WIP` / `Default permissions WIP`。
-- 状态栏：`Branch: WIP · Context: WIP · Model: WIP · Account: WIP · App Server: <状态>`。
+- 状态栏：`Branch: WIP · Context: WIP · Model: WIP · Account: WIP · App Server: Not connected`。
 
-| 差异点 | 未连接（`window-disconnected.png`） | 已连接（`window-connected.png`） |
-|---|---|---|
-| 状态行 | `● App Server: Not connected`（灰点） | `● App Server: Connected`（绿点） |
-| 侧栏 session 列表 | 空 | 空 |
-| hero / composer | 显示 | 显示 |
+已连接（`window-connected.png`）：
 
-两张图其余像素一致，差异只在状态行的文字和圆点颜色（这也是 MD5 不同的唯一来源）。
+- 左侧栏：`Sessions 1` + 选中的 seed 会话；`Branches` 显示 `main (current)`、side branch（`8bd478fc-…`）与 `Refresh`；`Session keys` 不再是 WIP 卡（keys 面板已接线），`Unavailable capabilities` 只剩 `Attachments`。
+- 主区：标题是 prompt 前缀；user 气泡 + assistant `Echo: ...` 行来自真实 daemon 的首屏 history；右上 `Session: Idle`、`● App Server: Connected`（绿点）。
+- 状态栏：`Branch: main`、`Context: WIP`、`Model: WIP`、`Account: WIP`、`App Server: Connected`。
+- composer 与 WIP 入口与未连接图一致。
 
 WIP 卡片当时渲染出的文案（真实窗口内容，逐字抄录）：
 
-- `Session keys` — `session.keys` — `read helper exists; shell shows no key browser yet`
+- `Session keys`（仅未连接图）— `session.keys` — `helper exists; shell has no key browser callback`
 - `Attachments` — `attachment.put` — `helper exists; shell has no file picker and keeps unknown upload results disabled`
+
+两张图除连接状态外还差会话列表、history、branch 目录和 WIP 卡片数量，不能只用状态行解释 MD5 差异。
 
 ## 5. L4 判定
 
@@ -108,12 +111,16 @@ WIP 卡片当时渲染出的文案（真实窗口内容，逐字抄录）：
 
 - **L4（窗口真实存在）**：`mygo.NewWindow` 在真实 macOS 桌面创建了 `DimAgent` 窗口，窗口服务器按 PID 归属本次启动的进程，截图来自窗口服务器本身，不是渲染器/单测产物。
 - **连接状态的窗口化呈现**：不设 `DIMAGENT_PRODUCT_HOME` → `Not connected`；设临时 home 后 supervisor 真实 spawn `/tmp/dim-2-target/debug/dim-app-server` 并握手成功 → `Connected`。这是 `acceptance.md` F2「应用启动（真实 daemon）」的窗口侧证据。
-- **WIP 入口在真实窗口里可见且带说明**：三条 `Unavailable capabilities` 与 `Attach file` 的 WIP 标记确实渲染出来，文案与当时源码一致。
+- **F2 的 session 列表可见**：seed 后侧栏显示 `Sessions 1`、选中行和 branch 目录。
+- **F5 的首屏 history 渲染**：user 气泡与 assistant `Echo: ...` 行来自真实 daemon 的 history。
+- **F12 的 branch 目录展示**：`main (current)` 与 `session.branch_create` 产出的 side branch 同时可见，`Refresh` 可用。
+- **WIP 入口在真实窗口里可见且带说明**：未连接图有 `Session keys` 和 `Attachments` 两张卡，已连接图只剩 `Attachments`；`Attach file` 的 WIP 标记也渲染出来，文案与当时源码一致。
 
 不能证明的（这里不写成通过）：
 
-- **F2 要求的「session 列表可见」未证明**：临时 home 是全新的，catalog 为空，截图里侧栏为空。要让列表非空需要先创建 session（属 F3 的点击路径），本次未执行。
-- **F3–F14 全部未验证**：没有真实窗口里的点击、输入、submit、stop、approval、断线重连，因此不能据此改动 `acceptance.md` 的任何行。
+- **F3 / F4 的窗口内点击路径未验证**：没有在真实窗口里点击 New session 或切换 session/branch，只看到了 seed 数据。
+- **F6–F11、F13、F14 未验证**：没有真实窗口里的输入、submit、stop、approval、断线重连、附件上传或删除操作。
+- **F12 的 cut point 未验证**：窗口里能看到 branch 目录，但没有在窗口内切换并渲染另一个 branch，也没有 cut point 入口。
 - **L5（视觉/设计对照）未做**：本次只有 L4 窗口截图，没有与 Electron 设计稿逐项对照。
 - 只覆盖浅色外观；深色外观、拖拽缩放、多显示器、菜单栏未采集。
 
@@ -123,4 +130,4 @@ WIP 卡片当时渲染出的文案（真实窗口内容，逐字抄录）：
 - 采集需要 `swiftc`（Xcode command line tools）读窗口 ID；缺失时脚本直接报错，不退回整屏截图，避免把桌面内容截进证据。
 - 采集期间窗口会真实弹出并短暂获得焦点，约 2 秒后关闭。
 - 窗口服务器报的 bounds 两次不完全相同（`1080×720` 与 `1076×716`），PNG 始终是 1080×720 points @2x；差异原因未查，不影响状态行比对。
-- 已连接只到握手 + 空 catalog，未触发任何模型调用，因此不覆盖 F6 的流式更新。
+- 已连接截图证明 seed 的会话列表、首屏 history 和 branch 目录，但没有触发窗口内交互或持续模型流，因此不覆盖 F4/F6 的点击与流式更新。

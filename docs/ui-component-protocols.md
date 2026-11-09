@@ -1,13 +1,13 @@
 # internal/ui 组件协议
 
-Status: active（纯契约提取：渲染结果、视觉和测试断言均未改动）
+Status: active（契约提取记录；后续 Wave 3 的接线已按当前代码同步，见各区域表）
 Last updated: 2026-11-09
 适用范围：`internal/ui` 各区域之间、区域与 `shell.go` 之间的输入与动作合同。文件划分见 [ui-file-plan.md](ui-file-plan.md)，布局与设计 token 见 [ui-layout-spec.md](ui-layout-spec.md)，整体流程见 [workflow.md](workflow.md)。
 
 ## 1. 结构
 
-- [`protocols.go`](../../internal/ui/protocols.go) 冻结合同：`Actions`、五个 View struct、`blockFolds`，以及每个区域的渲染入口。
-- [`shell.go`](../../internal/ui/shell.go) 是唯一装配点：把 `State` 复制成 View struct，用 `State` 的回调构造 `Actions`，再按绘制顺序调用入口。它不画任何区域。
+- [`protocols.go`](../internal/ui/protocols.go) 冻结合同：`Actions`、各区域 View struct、`blockFolds`，以及每个区域的渲染入口。
+- [`shell.go`](../internal/ui/shell.go) 是唯一装配点：把 `State` 复制成 View struct，用 `State` 的回调构造 `Actions`，再按绘制顺序调用入口。它不画任何区域。
 - 区域文件只读三样东西：自己的 View struct、`tokens`、`Actions`。不引用 `State`，不读 App Server/supervisor/projection/存储/日志，不改会话事实。
 
 入口签名（`protocols.go` 中是薄包装，实现在对应区域文件）：
@@ -21,6 +21,8 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions)
 func renderApprovalPanel(c *ui.Context, k tokens, v ApprovalView, a Actions)
 func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange))
 func renderStatusBar(c *ui.Context, k tokens, v StatusBarView)
+func renderContextPanel(c *ui.Context, k tokens, v ContextPanelView, a Actions)
+func renderKeysPanel(c *ui.Context, k tokens, v *KeysPanelView, a Actions)
 ```
 
 包装函数是刻意的：区域可以改自己的 helper 和内部结构，但入口名、参数顺序和 `Actions` 的类型不能在区域文件里单方面改掉；要改先改 `protocols.go` 和本文档。
@@ -29,12 +31,14 @@ func renderStatusBar(c *ui.Context, k tokens, v StatusBarView)
 
 | 区域 | 入口 | 输入 | 调用方 | 可调用的 Actions |
 |---|---|---|---|---|
-| 侧栏 | `renderSidebar` | `SidebarView` | `shell.View`（`ui.Split` 左格） | `OnSelect`、`OnCreateSession` |
-| 顶栏 + banner | `renderHeader` | `HeaderView` | `shell.View`（主列第一项） | `OnStop`、`OnReconnect` |
-| 时间线 | `renderTimeline` | `TimelineView` | `shell.View`（主列第二项） | `OnApproval`（经审批面板） |
+| 侧栏 | `renderSidebar` | `SidebarView` | `shell.View`（`ui.Split` 左格） | `OnSelect`、`OnCreateSession`、`OnSelectBranch`、`OnEndBranch`、`OnRefreshBranches`、`OnToggleKeys`、`OnOpenSettings` |
+| 顶栏 + banner | `renderHeader` | `HeaderView` | `shell.View`（主列第一项） | `OnStop`、`OnReconnect`、`OnOpenSettings` |
+| 时间线 | `renderTimeline` | `TimelineView` | `shell.View`（主列第二项） | 无；审批请求不在时间线里 |
 | 外观设置 | `renderSettings` | `SettingsView` | `shell.View`（`ShowSettings` 时替换会话区） | 桌面本地偏好回调，不进 App Server |
 | 状态栏 | `renderStatusBar` | `StatusBarView` | `shell.View`（主列底部） | 无，纯读数 |
-| 审批行 | `renderApproval` | `ApprovalView` | `renderTimeline` 的按 author 分发 | `OnApproval` |
+| 审批面板 | `renderApproval` → `renderApprovalPanel` | `ApprovalView` | `shell.View`（有 pending 时替换 composer） | `OnApproval` |
+| 上下文面板 | `renderContextPanel` | `ContextPanelView` | `shell.View`（主列右侧，工具栏切换） | 无，纯读数 |
+| Keys 面板 | `renderKeysPanel` | `KeysPanelView` | `shell.View`（`ShowKeys` 时替换会话区） | 无，纯读数 |
 | 输入区 | `renderComposer` | `ComposerView` | `shell.View`（主列第三项） | `OnSubmit` |
 
 ### 2.1 侧栏 `SidebarView`
@@ -43,13 +47,13 @@ func renderStatusBar(c *ui.Context, k tokens, v StatusBarView)
 |---|---|---|
 | `Sessions` | `[]Session` | App Server catalog 的顺序；`Session.Group` 是窗口从 catalog 事实派生的展示分组，不发明项目名。全空时是一个平铺列表 |
 | `Selected` | `*string` | 选中的 session id。指针是因为侧栏拥有“显示上的选择”：点击或方向键写入这里，再调 `OnSelect`；这是区域唯一会写的字段 |
-| `SelectedBranch` | `string` | 观察到的当前 branch，只读展示；切换和 cut point 仍是 WIP |
+| `SelectedBranch` | `string` | 观察到的当前 branch，只读展示；切换、end、目录刷新已接线，cut point 仍是 WIP |
 | `Branches` | `[]Branch` | App Server 的只读 branch 元数据；为空时不画分支区 |
 | `Creating` | `bool` | `session.create` 在途的窗口记录，不包含会话事实；为真时入口禁用，不能重复创建 |
 | `Capabilities` | `[]wipCapability` | 只读 WIP 能力卡。shell 按已接线的 `Actions` 生成（`wipCapabilities`），区域原样绘制，不提供控件 |
 | `state` | `*sidebarState` | 区域的列表位置、choice、上次映射的选中项和行布局；窗口生命周期内归 shell 持有，不含会话事实 |
 
-调用方：`shell.View`。动作：选择行 → 写 `Selected` 再 `OnSelect(sessionID)`；“New session” → `OnCreateSession()`。
+调用方：`shell.View`。动作：选择行 → 写 `Selected` 再 `OnSelect(sessionID)`；搜索框只过滤显示副本，不发请求；“New session” → `OnCreateSession()`；branch 行 → `OnSelectBranch()`；“End branch” → `OnEndBranch()`；“Refresh” → `OnRefreshBranches()`；“Session keys” → `OnToggleKeys()`；“Settings” → `OnOpenSettings()`。
 
 ### 2.2 顶栏 `HeaderView`
 
@@ -117,7 +121,7 @@ func renderStatusBar(c *ui.Context, k tokens, v StatusBarView)
 4. **视图状态的归属。** `Selected *string`、`sidebarState`、`blockFolds`、`ui.ListState`、`markdown.Options` 和 `ui.Handle` 都是窗口/视图状态，放在 `State` 里由窗口保活，通过 View 以字段或指针传入区域。它们永远不是会话事实，也不参与投影。
 5. **区域不反向引用 `State`。** 唯一的例外是 `capability.go` 的 `wipCapabilities(s *State)`：它把“哪些回调已接线”映射成只读能力卡，是 shell 的装配输入而不是渲染器；`capability_test.go` 直接以 `*State` 调用它，所以签名保持不动。区域渲染函数本身不接收 `State`。
 6. **颜色、间距、字号只来自 `tokens`。** 区域不得硬编码视觉常量；新增 token 属于共享合同（见 §4）。
-7. **入口包装不可绕过。** `shell.go` 只调 `renderX`；区域之间不互相调用，审批行是唯一例外（时间线把 `AuthorApproval` 行交给 `renderApproval`，因为审批行的位置由时间线决定）。
+7. **入口包装不可绕过。** `shell.go` 只调 `renderX`；区域之间不互相调用。审批请求不画在时间线里，而是由 shell 在 pending approval 时用 `renderApprovalPanel` 替换 composer 槽位。
 
 ## 4. 并行 worktree 规则
 
@@ -139,7 +143,7 @@ go test -count=1 ./internal/ui
 go test -count=1 ./...
 ```
 
-结果：全部通过；8 个包测试通过。
+结果：全部通过（提取当时为 8 个包；当前为 10 个包，其中 9 个有测试）。
 
 视觉零变化证据：在 `HEAD` 和本次工作树上分别用 `DIMAGENT_UI_SCREENSHOT_DIR` 生成 `shell-light.png` / `shell-dark.png`（1440×900），四个 PNG 逐字节相同（light `4d4f74…`，dark `e8c850…`）。测试文件未改动。
 
@@ -147,5 +151,5 @@ go test -count=1 ./...
 
 ## 6. 相关文档与待同步
 
-- [`ui-file-plan.md`](ui-file-plan.md) 的区域表记录的是拆分时的函数名（`main`、`branchList` 在 `shell.go`）；契约提取后 `main` 并入 `View`、`branchList` 移到侧栏区域、新增 `protocols.go`。该表的同步是纯文档改动，留给 owner 统一处理。
-- 新文件需要在 [README](../../README.md) 的“参考”列表加一条入口（本次未改，避免与并行任务冲突）。
+- [`ui-file-plan.md`](ui-file-plan.md) 的区域表已同步：`main` 并入 `View`、`branchList` 移到侧栏区域、`protocols.go`/`i18n.go`/`icons.go` 已补入；`ContextPanelView` 由 `context_panel.go` 定义，`protocols.go` 记录入口。
+- 本文档目前只被区域合同相关文档引用；若要在 README 的“参考”列表直接暴露，作为独立 `docs` 改动处理。
