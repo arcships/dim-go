@@ -143,6 +143,15 @@ type fakeSession struct {
 	refreshBranchErr  error
 	deleteErr         error
 	deleted           []string
+	renameErr         error
+	renameResult      appserver.RenameResult
+	renamed           []*string
+	titleState        session.TitleState
+	modelsCatalog     session.ModelCatalog
+	modelsErr         error
+	modelSelection    session.ModelSelection
+	hasModel          bool
+	modelsCalls       int
 	approvalErr       error
 	approvalResult    appserver.ApprovalRespondOutcome
 	lookupResult      appserver.InputLookupResult
@@ -341,6 +350,40 @@ func (f *fakeSession) Delete(context.Context) error {
 	}
 	f.deleted = append(f.deleted, f.summary.SessionID)
 	return nil
+}
+
+// Rename records the title it was asked to set (nil clears) and returns the
+// test's reply, as session.rename does.
+func (f *fakeSession) Rename(_ context.Context, title *string) (appserver.RenameResult, error) {
+	if f.renameErr != nil {
+		return appserver.RenameResult{}, f.renameErr
+	}
+	if title == nil {
+		f.renamed = append(f.renamed, nil)
+	} else {
+		copy := *title
+		f.renamed = append(f.renamed, &copy)
+	}
+	return f.renameResult, nil
+}
+
+// Title returns the metadata the test supplied, as the session layer would.
+func (f *fakeSession) Title(appserver.SessionSummary) session.TitleState {
+	return f.titleState
+}
+
+// Models records the catalog read and returns the test's snapshot.
+func (f *fakeSession) Models(context.Context) (session.ModelCatalog, error) {
+	f.modelsCalls++
+	if f.modelsErr != nil {
+		return session.ModelCatalog{}, f.modelsErr
+	}
+	return f.modelsCatalog, nil
+}
+
+// Model reports the pair the test supplied.
+func (f *fakeSession) Model() (session.ModelSelection, bool) {
+	return f.modelSelection, f.hasModel
 }
 
 func (f *fakeSession) Close(context.Context) error {

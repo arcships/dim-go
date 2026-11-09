@@ -200,6 +200,75 @@ type Message struct {
 	Approval *Approval
 }
 
+// Route is the page the window shows in place of the conversation. Chat is the
+// normal shell; the other routes take the whole window, as the reference's
+// settings and management pages do. A route is display state only: switching it
+// sends no App Server request and leaves the selection, draft and conversation
+// list state untouched.
+type Route uint8
+
+const (
+	// RouteChat is the conversation shell: sidebar, toolbar, timeline and
+	// composer.
+	RouteChat Route = iota
+	// RouteSettings is the desktop-local appearance surface. It is the only
+	// route that edits anything; the others are WIP pages.
+	RouteSettings
+	// RouteScheduled is the scheduled-tasks page. The shell has no client or
+	// App Server method for it, so the page states the gap.
+	RouteScheduled
+	// RouteSkills is the skills and plugins page. The shell has no client or
+	// App Server method for it, so the page states the gap.
+	RouteSkills
+)
+
+// String is the route's name, for a log or a test.
+func (r Route) String() string {
+	switch r {
+	case RouteSettings:
+		return "settings"
+	case RouteScheduled:
+		return "scheduled"
+	case RouteSkills:
+		return "skills"
+	default:
+		return "chat"
+	}
+}
+
+// ModelStatus is the window's record of the last model-catalog read. Available
+// is false while the App Server does not advertise provider.management or the
+// read failed, and Reason then names the gap; the composer shows the reason in
+// place of a model name rather than inventing one.
+type ModelStatus struct {
+	Available bool
+	Reason    string
+}
+
+// ModelChoice is one model as the App Server catalog serves it, copied for
+// display. Enabled is the wire's enabled flag folded with the model's missing
+// limits: a model whose declared limits are incomplete is drawn as unavailable,
+// because the picker must not present it as selectable. Reason names why.
+// Current marks the pair the attached session reported.
+type ModelChoice struct {
+	ProviderID   string
+	ProviderName string
+	ModelID      string
+	DisplayName  string
+	Enabled      bool
+	Reason       string
+	Current      bool
+}
+
+// ModelCatalog is the read-only model snapshot the composer displays: the
+// current provider/model pair, whether the attach reply reported one, and the
+// catalog's choices. The window writes no selection from it.
+type ModelCatalog struct {
+	Current    string
+	HasCurrent bool
+	Choices    []ModelChoice
+}
+
 // State is the view state of the shell. It is the window's own record plus
 // display copies of what the App Server reported; no region reads it directly.
 // The shell copies it into a view struct per region and builds the Actions from
@@ -290,6 +359,11 @@ type State struct {
 	// OnDeleteSession asks the caller to delete one session. The row leaves the
 	// catalog only after the App Server confirmed the delete.
 	OnDeleteSession func(sessionID string)
+	// OnRename asks the caller to rename the selected session through
+	// session.rename. An empty title clears the manual title. The caller sends
+	// the write and refreshes the catalog/title; a failure is reported through
+	// ActionError, and the shell never changes the title on its own.
+	OnRename func(title string)
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -321,7 +395,32 @@ type State struct {
 	// showing instead of the shell. It is display state only: while it is set,
 	// View draws the route in the whole window and no sidebar, toolbar,
 	// conversation or composer. Closing it restores the frame the window held.
+	// It mirrors RouteSettings for callers that predate Route; setting it alone
+	// still opens the appearance surface.
 	ShowSettings bool
+	// Route is the page the window shows. RouteChat is the shell, RouteSettings
+	// the appearance surface, and RouteScheduled/RouteSkills the WIP pages the
+	// sidebar's management entries open. It is display state only: the
+	// selection, draft and conversation list state survive every switch.
+	Route Route
+	// ModelCatalog and ModelStatus are display copies of the App Server model
+	// facts the caller read through the session controller. The composer draws
+	// the current pair and the catalog; it never writes a selection from them.
+	ModelCatalog ModelCatalog
+	ModelStatus  ModelStatus
+	// ModelListOpen is the window's own record that the composer's read-only
+	// model list is showing. It is display state only; closing it sends
+	// nothing and the list's rows are not selectable yet.
+	ModelListOpen bool
+	// RenameConfirm is the window's own record that the toolbar's rename dialog
+	// is showing, and RenameDraft is the text its field edits. RenameConfirm is
+	// dropped when the selection changes, so one session's dialog never renames
+	// another.
+	RenameConfirm bool
+	RenameDraft   string
+	// renameFor is the selection RenameConfirm was opened for. See
+	// syncRenameConfirm.
+	renameFor string
 	// ShowSearch is the window's own record that the centered search palette is
 	// showing over the frame. It is display state only: the palette draws above
 	// the sidebar and main column without replacing them, and Cmd+G or the
@@ -399,15 +498,27 @@ func (s *State) View(c *ui.Context) {
 	s.SidebarWidth = k.resolveSidebarWidth(s.SidebarWidth)
 	s.syncKeysSession()
 	s.syncDeleteConfirm()
+	s.syncRenameConfirm()
 	a := s.actions()
 	// The settings route takes the whole window: no sidebar, toolbar,
 	// conversation, composer or status band is drawn while it is open, and a
 	// close returns to the frame the window held, with its selection, draft and
 	// conversation list state untouched. The search palette never shows over the
 	// settings route, so a palette that was open is dropped here.
-	if s.ShowSettings {
+	route := s.currentRoute()
+	if route == RouteSettings {
 		s.closeSearch()
 		renderSettings(c, k, s.Settings, wipCapabilities(s), s.applySettings, s.closeSettings)
+		return
+	}
+	// The scheduled-tasks and skills pages are WIP routes: they take the whole
+	// window like settings, explain the missing client or method, and keep the
+	// selection and draft for the conversation the Back entry returns to. The
+	// window's notices stay visible on top so an action outcome is never hidden
+	// behind a page.
+	if route != RouteChat {
+		s.closeSearch()
+		renderWIPRoute(c, k, route, s.headerView(), a)
 		return
 	}
 	composer := s.composerView()
@@ -443,7 +554,7 @@ func (s *State) View(c *ui.Context) {
 					if s.Selected != "" {
 						renderHeader(c, k, s.headerView(), a)
 					} else {
-						banner(c, k, s.headerView())
+						banner(c, k, s.headerView(), a)
 					}
 					// The conversation and the context panel share the row below
 					// the toolbar, so the panel sits beside the session column
@@ -612,7 +723,7 @@ func emptyHeroHeight(k tokens) float32 {
 // closed while either is showing even though its toggle keeps the choice for
 // the conversation the user returns to.
 func (s *State) contextPanelShown() bool {
-	return s.ShowContextPanel && s.Selected != "" && !s.ShowSettings && !s.ShowKeys
+	return s.ShowContextPanel && s.Selected != "" && s.currentRoute() == RouteChat && !s.ShowKeys
 }
 
 // contextPanelColumn draws the context panel beside the conversation in the
@@ -688,7 +799,59 @@ func (s *State) applySettings(change SettingsChange) {
 // clears the window's route flag; the selection, draft, catalog and conversation
 // list state stay where they were.
 func (s *State) closeSettings() {
-	s.ShowSettings = false
+	s.setRoute(RouteChat)
+}
+
+// currentRoute is the page the frame draws. RouteSettings is the canonical
+// value for the appearance surface, but callers that predate Route set
+// ShowSettings alone; such a window still opens settings rather than chat.
+func (s *State) currentRoute() Route {
+	if s.Route != RouteChat {
+		return s.Route
+	}
+	if s.ShowSettings {
+		return RouteSettings
+	}
+	return RouteChat
+}
+
+// setRoute moves the window to one page. The route is display state only: the
+// selection, draft, catalog and conversation list state are untouched, so a WIP
+// page's Back entry returns to the conversation the user left. Opening a page
+// also closes the palette and the keys browser, which belong to the shell.
+func (s *State) setRoute(route Route) {
+	s.Route = route
+	s.ShowSettings = route == RouteSettings
+	s.ModelListOpen = false
+	if route != RouteChat {
+		s.ShowKeys = false
+		s.closeSearch()
+	}
+}
+
+// syncRenameConfirm drops the rename dialog when the selected session changed
+// under it. The dialog addresses one session; keeping it open would let its
+// confirm button rename a different selection.
+func (s *State) syncRenameConfirm() {
+	if !s.RenameConfirm {
+		s.renameFor = ""
+		return
+	}
+	if s.renameFor != s.Selected {
+		s.RenameConfirm = false
+		s.renameFor = ""
+		s.RenameDraft = ""
+	}
+}
+
+// dismissNotices clears the window's notice strip: the last action error, the
+// action-outcome list and the transient projection notices. They are display
+// state only, so dismissing them changes no App Server fact; a later projection
+// frame or action publishes new ones.
+func (s *State) dismissNotices() {
+	s.ActionError = ""
+	s.ActionNotices = nil
+	s.Notices = nil
 }
 
 // locale is the language the frame draws: the saved preference, or English
@@ -716,11 +879,26 @@ func (s *State) actions() Actions {
 		// it is always wired. Opening it takes the main column from the keys
 		// browser, so the two never compete for it.
 		OnOpenSettings: func() {
-			s.ShowSettings = !s.ShowSettings
-			if s.ShowSettings {
-				s.ShowKeys = false
+			if s.currentRoute() == RouteSettings {
+				s.setRoute(RouteChat)
+				return
 			}
+			s.setRoute(RouteSettings)
 		},
+		// The scheduled-tasks and skills entries are the shell's own WIP routes:
+		// they open a whole-window page that states the missing client or App
+		// Server method and sends no request, so both entries are always wired.
+		OnOpenScheduled: func() { s.setRoute(RouteScheduled) },
+		OnOpenSkills:    func() { s.setRoute(RouteSkills) },
+		OnBackToChat:    func() { s.setRoute(RouteChat) },
+		// The model list is display-only: opening it sends no request and its
+		// rows write no selection, so the shell always wires the toggle.
+		OnToggleModelList: func() {
+			s.ModelListOpen = !s.ModelListOpen
+		},
+		// Notices are window-owned display state; dismissing them clears the
+		// banner without touching any App Server fact.
+		OnDismissNotices: s.dismissNotices,
 		// The context panel toggle is the shell's own state too: the panel
 		// displays the caller's ContextPanel copy and sends no request, so the
 		// entry needs no caller callback. It stays wired and the toolbar offers
@@ -741,9 +919,27 @@ func (s *State) actions() Actions {
 		a.OnToggleKeys = func() {
 			s.ShowKeys = !s.ShowKeys
 			if s.ShowKeys {
-				s.ShowSettings = false
+				s.setRoute(RouteChat)
 			}
 		}
+	}
+	// The rename dialog is the window's own state too: the menu item only opens
+	// it, and the dialog's confirm button calls the caller's OnRename. It is
+	// wired exactly while that callback exists, so a fixture without one keeps
+	// the entry explained as WIP.
+	if s.OnRename != nil {
+		a.OnRequestRename = func() {
+			if s.Selected == "" {
+				return
+			}
+			s.renameFor = s.Selected
+			s.RenameDraft = s.selectedTitle()
+			if s.RenameDraft == tr(s.locale(), keyNoSession) {
+				s.RenameDraft = ""
+			}
+			s.RenameConfirm = true
+		}
+		a.OnRename = s.OnRename
 	}
 	// The delete confirmation is the window's own state too: the menu item only
 	// opens it, and the alert's confirm button calls the caller's
@@ -818,7 +1014,7 @@ func (s *State) headerView() HeaderView {
 		ActionError:      s.ActionError,
 		ActionStatus:     s.ActionStatus,
 		Loading:          s.ConversationLoading,
-		SettingsOpen:     s.ShowSettings,
+		SettingsOpen:     s.currentRoute() == RouteSettings,
 		KeysOpen:         s.ShowKeys,
 		ContextPanelOpen: s.contextPanelShown(),
 		Locale:           s.locale(),
@@ -828,6 +1024,13 @@ func (s *State) headerView() HeaderView {
 	// keeps a stale alert out of a frame that has not run it.
 	if s.DeleteConfirm && s.deleteFor == s.Selected {
 		v.DeleteConfirm = &s.DeleteConfirm
+	}
+	// The rename dialog belongs to its selection the same way. The region writes
+	// only the text field and the open flag, and the confirm button calls
+	// OnRename with the text it holds.
+	if s.RenameConfirm && s.renameFor == s.Selected {
+		v.RenameConfirm = &s.RenameConfirm
+		v.RenameDraft = &s.RenameDraft
 	}
 	return v
 }
@@ -875,7 +1078,25 @@ func (s *State) composerView() ComposerView {
 		Shortcut:     KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
 		Focus:        &s.composerFocus,
 		Locale:       s.locale(),
+		// The model chip displays the App Server facts the caller read. With no
+		// current pair it keeps the unconfigured label and carries the status
+		// reason; the list is read-only until a selection write is wired.
+		ModelLabel:   s.ModelCatalog.Current,
+		ModelReason:  s.modelReason(),
+		ModelOpen:    &s.ModelListOpen,
+		ModelChoices: s.ModelCatalog.Choices,
 	}
+}
+
+// modelReason explains an absent model in the composer: the catalog read's
+// capability or failure reason when there is one. An empty string means either a
+// current pair is displayed or the attach reply reported no pair; the composer
+// then keeps the reference's unconfigured label and its own no-pair note.
+func (s *State) modelReason() string {
+	if s.ModelCatalog.HasCurrent && s.ModelCatalog.Current != "" {
+		return ""
+	}
+	return s.ModelStatus.Reason
 }
 
 // canSubmit reports whether the window would accept a submission from the

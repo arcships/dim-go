@@ -80,12 +80,12 @@ func TestComposerModelChip(t *testing.T) {
 					labelCenter, sendCenter)
 			}
 
-			chip, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, keyComposerModel))
+			chip, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyComposerModelChip))
 			if !ok {
-				t.Fatalf("the model chip is not a named group, texts %q", tt.Texts())
+				t.Fatalf("the model chip is not a named button, texts %q", tt.Texts())
 			}
-			if chip.Description != reasonModel {
-				t.Errorf("the model chip's description is %q, want the gap %q", chip.Description, reasonModel)
+			if chip.Description != reasonModelPair {
+				t.Errorf("the model chip's description is %q, want the gap %q", chip.Description, reasonModelPair)
 			}
 			if chip.Bounds.X > label.X || chip.Bounds.X+chip.Bounds.W < label.X+label.W {
 				t.Errorf("the chip's box %.1fx%.1f does not hold its label at x=%.1f",

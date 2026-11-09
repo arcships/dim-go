@@ -207,8 +207,9 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			contextPanelToggle(c, k, v, a)
 		}
 	})
-	banner(c, k, v)
+	banner(c, k, v, a)
 	deleteConfirmation(c, k, v, a)
+	renameDialog(c, k, v, a)
 }
 
 // breadcrumb draws "Project / Title" as the reference's one line: each part is
@@ -253,11 +254,16 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		ui.Text(c, "…").FontSize(k.titleSize).TextColor(k.mutedForeground).AccessHidden(true)
 	})
 	button.PopoverMenuButton(func(m *ui.Menu) {
-		// The reference's first group. Pin, Rename and Archive keep their
-		// translated labels and reasons from the sidebar's table; the remaining
-		// five carry the menu's own keys until i18n.go picks them up.
+		// The reference's first group. Pin and Archive keep their translated
+		// labels and reasons from the sidebar's table; Rename reaches the
+		// window's title dialog once the caller supplies OnRename, and the
+		// remaining five carry the menu's own keys until i18n.go picks them up.
 		menuWIP(m, menuText(locale, keySidebarPin), menuText(locale, keyReasonPin))
-		menuWIP(m, menuText(locale, keySidebarRename), menuText(locale, keyReasonRename))
+		if a.OnRequestRename == nil {
+			menuWIP(m, menuText(locale, keySidebarRename), menuText(locale, keyReasonRename))
+		} else if menuItem(m, menuText(locale, keySidebarRename)).Chosen() {
+			a.OnRequestRename()
+		}
 		menuWIP(m, menuText(locale, keyHeaderMenuOpenInNewWindow), menuText(locale, keyReasonOpenInNewWindow))
 		menuWIP(m, menuText(locale, keyHeaderMenuExport), menuText(locale, keyReasonExport))
 		menuWIP(m, menuText(locale, keySidebarArchive), menuText(locale, keyReasonArchive))
@@ -363,30 +369,8 @@ func contextPanelToggle(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	})
 }
 
-// banner shows the terminal session.closed state, the last window-owned action
-// error, or the supervisor's last connection error, in a live region assistive
-// technology reads out as it appears. A closed session outranks transport
-// errors because it is terminal; connection failures outrank older action
-// failures. Live refreshes still leave ActionError alone.
-func banner(c *ui.Context, k tokens, v HeaderView) {
-	message := ""
-	switch {
-	case v.Closed:
-		message = tr(v.Locale, keyHeaderSessionClosed)
-		if v.ClosedReason != "" {
-			message += ": " + v.ClosedReason
-		}
-	case v.Connection == ConnError && v.ConnectionError != "":
-		message = v.Connection.String() + ": " + v.ConnectionError
-	default:
-		message = v.ActionError
-	}
-	if message == "" {
-		return
-	}
-	ui.Row(c).Role(ui.RoleAlert).Gap(k.gap).Padding(k.gap, k.edgePad).
-		Background(k.wash(k.danger)).
-		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.danger).Children(func() {
-		ui.Text(c, message).FontSize(k.labelSize).TextColor(k.danger).Bold()
-	})
-}
+// banner, in notices.go, draws the window's notice strip: the terminal close,
+// connection and action failures, the transient action and projection notices,
+// and their dismiss entry. A closed session outranks transport errors because
+// it is terminal; connection failures outrank older action failures. Live
+// refreshes still leave ActionError alone.

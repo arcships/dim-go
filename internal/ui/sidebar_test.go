@@ -161,7 +161,8 @@ func TestSidebarResizeClamps(t *testing.T) {
 
 // TestSidebarWIPEntriesDoNothing checks every sidebar entry the shell cannot
 // carry out yet: it keeps its accessible name, is marked unavailable, explains
-// the real gap, and a click changes no view state.
+// the real gap, and a click changes no view state. The scheduled-tasks and
+// skills entries are real routes now; their own test checks the pages they open.
 func TestSidebarWIPEntriesDoNothing(t *testing.T) {
 	s := fixture()
 	s.OnCreateSession = nil
@@ -169,9 +170,7 @@ func TestSidebarWIPEntriesDoNothing(t *testing.T) {
 	width := s.SidebarWidth
 
 	entries := map[string]string{
-		"Scheduled tasks":    "scheduled",
-		"Skills and plugins": "skills",
-		"Sign in to Dim":     "account",
+		"Sign in to Dim": "account",
 	}
 	for name, gap := range entries {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)

@@ -65,6 +65,18 @@ type sessionActions interface {
 	// Delete asks the App Server to delete the session. The row leaves the
 	// catalog only after a nil error.
 	Delete(ctx context.Context) error
+	// Rename sets or clears the selected session's manual title through
+	// session.rename. A nil title clears it; the title the daemon committed is
+	// authoritative.
+	Rename(ctx context.Context, title *string) (appserver.RenameResult, error)
+	// Title returns the newest title metadata the session observed, ordered
+	// against the catalog summary by revision.
+	Title(summary appserver.SessionSummary) session.TitleState
+	// Models reads the App Server model catalog and stored default for the
+	// attached session. It sends no mutation and keeps no local catalog.
+	Models(ctx context.Context) (session.ModelCatalog, error)
+	// Model is the provider/model pair the attach reply reported, if any.
+	Model() (session.ModelSelection, bool)
 	Reattach(ctx context.Context) error
 	Close(ctx context.Context) error
 }
@@ -262,6 +274,48 @@ func (b *sessionBridge) DeleteFor(ctx context.Context, sessionID string) error {
 		return err
 	}
 	return controller.Delete(ctx)
+}
+
+// RenameFor sets or clears the title through the controller that still belongs
+// to sessionID. The bridge changes no local title: the window refreshes the
+// catalog and lets the daemon's reply order the title.
+func (b *sessionBridge) RenameFor(ctx context.Context, sessionID string, title *string) (appserver.RenameResult, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.RenameResult{}, err
+	}
+	return controller.Rename(ctx, title)
+}
+
+// ModelsFor reads the model catalog through the controller that still belongs
+// to sessionID. The read is non-mutating and returns the daemon's current
+// answer; a missing capability is an error the window shows in place of a model.
+func (b *sessionBridge) ModelsFor(ctx context.Context, sessionID string) (session.ModelCatalog, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return session.ModelCatalog{}, err
+	}
+	return controller.Models(ctx)
+}
+
+// ModelFor reports the model pair the attached session reported.
+func (b *sessionBridge) ModelFor(sessionID string) (session.ModelSelection, bool) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return session.ModelSelection{}, false
+	}
+	return controller.Model()
+}
+
+// TitleFor merges the session's live title metadata against the catalog
+// summary. The window uses it after a rename so a committed title shows without
+// waiting for the next catalog read.
+func (b *sessionBridge) TitleFor(sessionID string, summary appserver.SessionSummary) session.TitleState {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return session.TitleState{}
+	}
+	return controller.Title(summary)
 }
 
 // StopFor stops the controller that still belongs to sessionID.
@@ -468,6 +522,7 @@ func stateFromDaemon(ctx context.Context, productHome string) (*dimui.State, *se
 	// The controller's session drain folds stream events into memory; this
 	// adapter only reads that in-memory projection, never a daemon file.
 	applyView(state, bridge.LiveState())
+	state.ModelCatalog, state.ModelStatus = readSessionModels(ctx, bridge, rows[0].ID)
 	return state, bridge, nil
 }
 
@@ -552,6 +607,7 @@ type app struct {
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
 	a.state.OnDeleteSession = a.deleteSession
+	a.state.OnRename = a.renameSession
 	a.state.OnSelectBranch = a.selectBranch
 	a.state.OnEndBranch = a.endBranch
 	a.state.OnRefreshBranches = a.refreshBranches
@@ -701,6 +757,11 @@ func (a *app) startRefresh(interval time.Duration) {
 	go func() {
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
+		// The model catalog is a remote, non-mutating read. It is refreshed on a
+		// slower cadence than the in-memory projection so the window follows a
+		// provider change without asking provider.management on every tick.
+		const modelRefresh = 2 * time.Second
+		lastModels := time.Time{}
 		for {
 			select {
 			case <-ctx.Done():
@@ -715,6 +776,16 @@ func (a *app) startRefresh(interval time.Duration) {
 				if view == nil {
 					continue
 				}
+				var (
+					modelCatalog dimui.ModelCatalog
+					modelStatus  dimui.ModelStatus
+					readModels   bool
+				)
+				if view.Selected != "" && time.Since(lastModels) >= modelRefresh {
+					lastModels = time.Now()
+					modelCatalog, modelStatus = a.readModels(ctx, view.Selected)
+					readModels = true
+				}
 				a.update(func(state *dimui.State) {
 					// A selection or branch choice may complete while the view is
 					// rebuilding; do not let that older snapshot overwrite the new
@@ -723,6 +794,10 @@ func (a *app) startRefresh(interval time.Duration) {
 						return
 					}
 					applyView(state, view)
+					if readModels {
+						state.ModelCatalog = modelCatalog
+						state.ModelStatus = modelStatus
+					}
 				})
 			}
 		}
@@ -783,6 +858,12 @@ func (a *app) selectSession(id string) {
 	}
 	gen := a.beginSelect()
 	a.state.ConversationLoading = true
+	// The model facts belong to the session being left. Drop them while the new
+	// attachment is in flight so the chip never shows one session's model under
+	// another; the read below fills them once the App Server answered.
+	a.state.ModelCatalog = dimui.ModelCatalog{}
+	a.state.ModelStatus = dimui.ModelStatus{}
+	a.state.ModelListOpen = false
 	go func() {
 		a.selectMu.Lock()
 		defer a.selectMu.Unlock()
@@ -801,6 +882,13 @@ func (a *app) selectSession(id string) {
 			// attempt was in flight. If there is none, clear the selection but
 			// keep the catalog's connection state.
 			restore := a.view()
+			var (
+				modelCatalog dimui.ModelCatalog
+				modelStatus  dimui.ModelStatus
+			)
+			if restore != nil && restore.Selected != "" {
+				modelCatalog, modelStatus = a.readModels(ctx, restore.Selected)
+			}
 			a.update(func(state *dimui.State) {
 				if !a.selectionCurrent(gen) {
 					return
@@ -813,6 +901,8 @@ func (a *app) selectSession(id string) {
 					applyView(state, &dimui.State{})
 					state.Connection, state.ConnectionError = connection, connectionError
 				}
+				state.ModelCatalog = modelCatalog
+				state.ModelStatus = modelStatus
 				state.ConversationLoading = false
 				state.ActionError = fmt.Sprintf("Open session %q: %v", id, err)
 				state.ActionNotices = appendActionNotice(state.ActionNotices,
@@ -824,12 +914,15 @@ func (a *app) selectSession(id string) {
 			return
 		}
 		view := a.view()
+		modelCatalog, modelStatus := a.readModels(ctx, row.ID)
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
 				return
 			}
 			applyView(state, view)
 			state.Selected = row.ID
+			state.ModelCatalog = modelCatalog
+			state.ModelStatus = modelStatus
 			if row.ID != outgoing {
 				// Restore the draft saved for the session the window now shows.
 				state.Draft = a.draftFor(row.ID)
@@ -916,6 +1009,9 @@ func (a *app) deleteSession(id string) {
 				state.Keys = dimui.KeysPanelView{}
 				state.Messages = nil
 				state.Branches = nil
+				state.ModelCatalog = dimui.ModelCatalog{}
+				state.ModelStatus = dimui.ModelStatus{}
+				state.ModelListOpen = false
 			}
 			state.Sessions = remaining
 			if len(remaining) > 0 {
@@ -926,6 +1022,176 @@ func (a *app) deleteSession(id string) {
 			a.selectSession(next.ID)
 		}
 	}()
+}
+
+// renameSession sets or clears the selected session's manual title through
+// session.rename, then re-reads the catalog so the row shows the committed
+// title. The request is sent once and never retried: an unsupported method
+// (unknown_method) stays a visible WIP failure, and an unknown result is
+// reported rather than guessed at. The title is never changed locally.
+func (a *app) renameSession(title string) {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	sessionID := a.state.Selected
+	if sessionID == "" {
+		a.notice("rename.error", "Rename session: no session is selected.")
+		return
+	}
+	trimmed := strings.TrimSpace(title)
+	var request *string
+	if trimmed != "" {
+		request = &trimmed
+	}
+	gen := a.currentSelection()
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		result, err := a.bridge.RenameFor(ctx, sessionID, request)
+		if err != nil {
+			log.Printf("dimagent: rename session %q: %v", sessionID, err)
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			message := fmt.Sprintf("Rename session: %v", err)
+			if errors.Is(err, appserver.ErrCapabilityUnavailable) {
+				// unknown_method: session.rename is absent upstream, so the
+				// entry stays a WIP gap instead of looking like a bad title.
+				message = fmt.Sprintf("Rename session: session.rename is unavailable on this App Server (unknown_method); the title was not changed. This entry stays WIP until the App Server offers the method. %v", err)
+			}
+			a.update(func(state *dimui.State) {
+				if !a.selectionCurrent(gen) {
+					return
+				}
+				state.ActionError = message
+				state.ActionStatus = ""
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "rename.error", ID: message})
+			})
+			return
+		}
+		rows, catalogErr := a.bridge.catalog(ctx)
+		// The daemon's reply orders the title against the catalog summary. Read
+		// the merged metadata for the selected row so the committed revision
+		// shows even when the list read raced the rename.
+		titleKnown := false
+		titleText := ""
+		if catalogErr == nil {
+			for _, row := range rows {
+				if row.ID != sessionID {
+					continue
+				}
+				state := a.bridge.TitleFor(sessionID, summaryForRow(row))
+				if state.Known {
+					titleKnown = true
+					if state.Text != nil {
+						titleText = *state.Text
+					}
+				}
+				break
+			}
+		}
+		outcome := "cleared"
+		if result.Title != nil && *result.Title != "" {
+			outcome = *result.Title
+		}
+		a.update(func(state *dimui.State) {
+			if !a.selectionCurrent(gen) {
+				return
+			}
+			if catalogErr != nil {
+				state.ActionError = fmt.Sprintf("Session renamed, but the session catalog refresh failed: %v", catalogErr)
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "catalog.error", ID: state.ActionError})
+				return
+			}
+			state.Sessions = rows
+			if titleKnown {
+				for i := range state.Sessions {
+					if state.Sessions[i].ID == sessionID {
+						state.Sessions[i].Title = titleText
+						break
+					}
+				}
+			}
+			state.ActionError = ""
+			state.ActionStatus = ""
+			state.ActionNotices = appendActionNotice(state.ActionNotices,
+				dimui.Notice{Kind: "rename.accepted", ID: outcome})
+		})
+	}()
+}
+
+// readModels reads the selected session's model pair and catalog for display.
+// The pair comes from the attach reply; the catalog and its capability status
+// come from provider.management/provider.selection. A failed catalog read leaves
+// an empty list and a status that names the reason, never a made-up model.
+func (a *app) readModels(ctx context.Context, sessionID string) (dimui.ModelCatalog, dimui.ModelStatus) {
+	return readSessionModels(ctx, a.bridge, sessionID)
+}
+
+// readSessionModels is readModels for a bridge the caller holds directly; the
+// first frame reads it before the app exists.
+func readSessionModels(ctx context.Context, bridge *sessionBridge, sessionID string) (dimui.ModelCatalog, dimui.ModelStatus) {
+	if bridge == nil {
+		return dimui.ModelCatalog{}, dimui.ModelStatus{Reason: reasonNoModelClient}
+	}
+	current, hasCurrent := bridge.ModelFor(sessionID)
+	catalog, err := bridge.ModelsFor(ctx, sessionID)
+	if err != nil {
+		status := dimui.ModelStatus{Reason: err.Error()}
+		out := dimui.ModelCatalog{}
+		if hasCurrent && current.ProviderID != "" && current.ModelID != "" {
+			out.Current = current.ProviderID + "/" + current.ModelID
+			out.HasCurrent = true
+		}
+		return out, status
+	}
+	status := dimui.ModelStatus{Available: true}
+	return modelCatalogView(catalog, current, hasCurrent), status
+}
+
+// reasonNoModelClient explains the model chip while no session is attached to
+// read the catalog from. It is the window's own text, not a wire error.
+const reasonNoModelClient = "Unavailable: no session is attached to read the model catalog."
+
+// modelCatalogView maps the session layer's model snapshot onto the shell's
+// display copy. The current pair is the attach reply's; the catalog's own pair is
+// shown only when the attach reply carried none.
+func modelCatalogView(catalog session.ModelCatalog, current session.ModelSelection, hasCurrent bool) dimui.ModelCatalog {
+	if catalog.HasCurrent {
+		current, hasCurrent = catalog.Current, true
+	}
+	out := dimui.ModelCatalog{HasCurrent: hasCurrent}
+	if hasCurrent && current.ProviderID != "" && current.ModelID != "" {
+		out.Current = current.ProviderID + "/" + current.ModelID
+	} else {
+		out.HasCurrent = false
+	}
+	for _, model := range catalog.Models {
+		enabled := model.Enabled
+		reason := model.UnavailableReason
+		if len(model.MissingLimits) > 0 {
+			// The picker must not present a model whose declared limits are
+			// incomplete as selectable, even when the provider enables it.
+			enabled = false
+			if reason == "" {
+				reason = "missing limits: " + strings.Join(model.MissingLimits, ", ")
+			}
+		}
+		choice := dimui.ModelChoice{
+			ProviderID:   model.ProviderID,
+			ProviderName: model.ProviderName,
+			ModelID:      model.ModelID,
+			DisplayName:  model.DisplayName,
+			Enabled:      enabled,
+			Reason:       reason,
+			Current: out.HasCurrent &&
+				model.ProviderID == current.ProviderID && model.ModelID == current.ModelID,
+		}
+		out.Choices = append(out.Choices, choice)
+	}
+	return out
 }
 
 // closeSessionFor closes the controller of sessionID when it is the current
@@ -1195,6 +1461,7 @@ func (a *app) createSession() {
 		// A new session has no chosen branch: read its default view, and reset the
 		// window's branch choice before folding it in.
 		view := a.bridge.LiveState()
+		modelCatalog, modelStatus := a.readModels(ctx, row.ID)
 		a.update(func(state *dimui.State) {
 			state.CreatingSession = false
 			if !a.selectionCurrent(gen) {
@@ -1216,6 +1483,9 @@ func (a *app) createSession() {
 			state.Draft = a.draftFor(row.ID)
 			a.resetBranch()
 			applyView(state, view)
+			state.ModelCatalog = modelCatalog
+			state.ModelStatus = modelStatus
+			state.ModelListOpen = false
 			state.ConversationLoading = false
 			state.ActionStatus = ""
 			if catalogErr != nil {

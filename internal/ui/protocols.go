@@ -111,12 +111,46 @@ type Actions struct {
 	// the user confirms, through OnDeleteSession. While this field is nil the
 	// menu entry stays visible, disabled and explained as WIP.
 	OnRequestDelete func()
+	// OnRequestRename is called by the toolbar's "Rename" menu item. It opens
+	// the window's title dialog, prefilled from HeaderView.RenameDraft; the
+	// rename is sent only when the user confirms, through OnRename. While this
+	// field is nil the menu entry stays visible, disabled and explained as WIP.
+	OnRequestRename func()
+	// OnRename is called by the rename dialog's confirm button with the field's
+	// text. An empty (or whitespace-only) title asks the caller to clear the
+	// manual title; the caller sends session.rename and reports the outcome
+	// through HeaderView.ActionError/ActionNotices. The region sends nothing on
+	// Escape or Cancel and calls this at most once per confirm.
+	OnRename func(title string)
 	// OnOpenSettings is called by the toolbar's session menu settings entry and
 	// toggles the appearance surface. The preferences it edits are desktop-local:
 	// the caller applies the theme and the sidebar width and persists what it
 	// can; nothing here reaches the App Server. While this field is nil the
 	// entry is absent.
 	OnOpenSettings func()
+	// OnOpenScheduled is called by the sidebar's scheduled-tasks entry and opens
+	// the whole-window WIP page. The page sends no App Server request: no public
+	// method lists scheduled tasks. While this field is nil the entry stays
+	// visible, disabled and explained as WIP.
+	OnOpenScheduled func()
+	// OnOpenSkills is called by the sidebar's skills entry and opens the
+	// whole-window WIP page. The page sends no App Server request: no public
+	// method lists skills or plugins. While this field is nil the entry stays
+	// visible, disabled and explained as WIP.
+	OnOpenSkills func()
+	// OnBackToChat is called by a WIP route's Back entry and returns the window
+	// to the conversation. It changes display state only: the selection, draft
+	// and conversation list state are untouched.
+	OnBackToChat func()
+	// OnToggleModelList is called by the composer's model chip and toggles the
+	// read-only model list. The list displays State's ModelCatalog and ModelStatus
+	// copies; choosing a model writes nothing yet, so the list explains the WIP
+	// gap instead of pretending a selection.
+	OnToggleModelList func()
+	// OnDismissNotices is called by the notice strip's dismiss entry. It clears
+	// the window-owned ActionError/ActionNotices and the transient Notices; those
+	// are display state, so dismissing them changes no App Server fact.
+	OnDismissNotices func()
 	// OnToggleKeys is called by the toolbar's session menu "Session keys" entry
 	// and toggles the session.keys browser in the main column. The shell owns
 	// both the entry and the panel's visibility, so this field carries no caller
@@ -281,6 +315,13 @@ type HeaderView struct {
 	// writes false as the alert closes; its confirm button calls
 	// Actions.OnDeleteSession with SessionID. A nil pointer draws no alert.
 	DeleteConfirm *bool
+	// RenameConfirm and RenameDraft are the window's own record of the rename
+	// dialog: while *RenameConfirm is true the toolbar draws it over the frame,
+	// its text field edits *RenameDraft (prefilled with the current title), and
+	// Escape or Cancel only writes false. Its confirm button calls
+	// Actions.OnRename with the draft text. A nil pointer draws no dialog.
+	RenameConfirm *bool
+	RenameDraft   *string
 	// Locale is the language of the toolbar's own text: the breadcrumb's
 	// accessible name, the menu entries, the editor-open entry, the Stop and
 	// Reconnect entries and the terminal-close banner. The run and connection
@@ -457,6 +498,20 @@ type ComposerView struct {
 	Shortcut KeyBinding
 	// Focus is the composer's identity, for the shell's focus shortcut.
 	Focus *ui.Handle
+	// ModelLabel is the current model's display name, provider/model as the
+	// shell read the attach reply, or empty when no complete pair was reported.
+	// The chip draws the localized unconfigured label in its place.
+	ModelLabel string
+	// ModelReason explains an absent model: the catalog read's capability or
+	// failure reason, or the no-pair fact. It is empty while ModelLabel is set.
+	ModelReason string
+	// ModelOpen is the window's own record that the read-only model list is
+	// showing; the chip toggles it through Actions.OnToggleModelList.
+	ModelOpen *bool
+	// ModelChoices are the App Server catalog's models in its order, copied for
+	// display. The list marks the current pair and shows each model's
+	// availability and reason; choosing one writes nothing yet.
+	ModelChoices []ModelChoice
 	// Locale is the language of the composer's own text: the editor's label and
 	// description, its entries' labels and reasons, and the context row.
 	// Placeholder is already resolved by the shell. An empty or unknown value

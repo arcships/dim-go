@@ -146,6 +146,11 @@ const (
 	keyHeaderDeleteConfirm = "header.delete.confirm"
 	keyHeaderDeleteCancel  = "header.delete.cancel"
 	keyHeaderSessionClosed = "header.sessionClosed"
+	keyHeaderRenameTitle   = "header.rename.title"
+	keyHeaderRenameMessage = "header.rename.message"
+	keyHeaderRenameLabel   = "header.rename.label"
+	keyHeaderRenameConfirm = "header.rename.confirm"
+	keyHeaderRenameCancel  = "header.rename.cancel"
 
 	keyComposerHint   = "composer.hint"
 	keyComposerLabel  = "composer.label"
@@ -160,6 +165,21 @@ const (
 	keyComposerUnconfigured = "composer.model.unconfigured"
 	keyComposerBusy         = "composer.busy"
 	keyComposerStatus       = "composer.status"
+	keyComposerModelChip    = "composer.model.chip"
+
+	// The composer's read-only model list: its title, its close entry, the
+	// current marker, each model's availability and the WIP note that explains
+	// why choosing a model writes nothing yet.
+	keyModelTitle       = "model.title"
+	keyModelClose       = "model.close"
+	keyModelCurrent     = "model.current"
+	keyModelAvailable   = "model.available"
+	keyModelUnavailable = "model.unavailable"
+	keyModelEmpty       = "model.empty"
+	keyModelReadOnly    = "model.readOnly"
+
+	// keyNoticesDismiss closes the window's notice strip.
+	keyNoticesDismiss = "notices.dismiss"
 
 	keySettingsRegion           = "settings.region"
 	keySettingsTitle            = "settings.title"
@@ -347,6 +367,11 @@ var stringsEN = Strings{
 	keyHeaderDeleteConfirm: "Delete",
 	keyHeaderDeleteCancel:  "Cancel",
 	keyHeaderSessionClosed: "Session closed",
+	keyHeaderRenameTitle:   "Rename session",
+	keyHeaderRenameMessage: "Sets the session's manual title through session.rename. An empty title clears it.",
+	keyHeaderRenameLabel:   "Title",
+	keyHeaderRenameConfirm: "Rename",
+	keyHeaderRenameCancel:  "Cancel",
 
 	keyComposerHint:         composerHint,
 	keyComposerLabel:        "Composer",
@@ -356,6 +381,17 @@ var stringsEN = Strings{
 	keyComposerUnconfigured: "Not configured",
 	keyComposerStatus:       "Composer status",
 	keyComposerSend:         "Send",
+	keyComposerModelChip:    "Current model",
+
+	keyModelTitle:       "Models",
+	keyModelClose:       "Close",
+	keyModelCurrent:     "Current",
+	keyModelAvailable:   "Available",
+	keyModelUnavailable: "Unavailable",
+	keyModelEmpty:       "The App Server reported no models.",
+	keyModelReadOnly:    "Read-only: choosing a model is not wired yet, so this list does not change the session's model.",
+
+	keyNoticesDismiss: "Dismiss",
 
 	keySettingsRegion:           "Settings",
 	keySettingsTitle:            "Appearance",
@@ -494,7 +530,7 @@ var stringsZHCN = Strings{
 	keyReasonSearch:          "不可用：窗口还没有搜索浮层的打开回调，侧栏入口无法打开搜索对话框。",
 	keyReasonGroup:           "不可用：会话行还没有项目或更新时间，shell 无法按项目或日期分组。",
 	keyReasonPin:             "不可用：没有经过验证的 App Server RPC 可以置顶会话，shell 也不保留本地置顶列表。",
-	keyReasonRename:          "不可用：session.rename 是通过 session.methods 访问的会话方法，shell 还没有调用。",
+	keyReasonRename:          "不可用：窗口还没有 session.rename 回调。",
 	keyReasonArchive:         "不可用：shell 还没有桌面本地的隐藏会话列表。",
 	keyReasonKeysEntry:       "不可用：没有载入 session.keys 快照时，shell 还没有键浏览器回调。",
 	keyReasonEndBranch:       "不可用：shell 还没有 session.branch_end 回调。",
@@ -518,6 +554,11 @@ var stringsZHCN = Strings{
 	keyHeaderDeleteConfirm: "删除",
 	keyHeaderDeleteCancel:  "取消",
 	keyHeaderSessionClosed: "会话已关闭",
+	keyHeaderRenameTitle:   "重命名会话",
+	keyHeaderRenameMessage: "通过 session.rename 设置会话的手动标题；留空会清除标题。",
+	keyHeaderRenameLabel:   "标题",
+	keyHeaderRenameConfirm: "重命名",
+	keyHeaderRenameCancel:  "取消",
 
 	keyComposerHint:         "Enter 发送 · Shift+Enter 换行",
 	keyComposerLabel:        "输入框",
@@ -527,6 +568,17 @@ var stringsZHCN = Strings{
 	keyComposerUnconfigured: "未配置",
 	keyComposerStatus:       "输入框状态",
 	keyComposerSend:         "发送",
+	keyComposerModelChip:    "当前模型",
+
+	keyModelTitle:       "模型",
+	keyModelClose:       "关闭",
+	keyModelCurrent:     "当前",
+	keyModelAvailable:   "可用",
+	keyModelUnavailable: "不可用",
+	keyModelEmpty:       "App Server 没有报告任何模型。",
+	keyModelReadOnly:    "只读：选择模型还没有接线，这个列表不会改变会话的模型。",
+
+	keyNoticesDismiss: "关闭通知",
 
 	keySettingsRegion:           "设置",
 	keySettingsTitle:            "外观",

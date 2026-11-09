@@ -30,15 +30,15 @@ const (
 	reasonSearch        = "Unavailable: the shell has no session search yet; dim-electron opens a search dialog over App Server history, and neither is wired here."
 	reasonGroup         = "Unavailable: session rows carry no project or updated time yet, so the shell cannot group by project or date."
 	reasonPin           = "Unavailable: no verified App Server RPC pins a session, and the shell keeps no local pin list."
-	reasonRename        = "Unavailable: session.rename is a session method reached through session.methods, which the shell does not call yet."
+	reasonRename        = "Unavailable: the window has no session.rename callback yet."
 	reasonArchive       = "Unavailable: the shell has no desktop-local hidden session list yet."
 
 	// The global entries dim-electron's sidebar carries beside sessions. None of
 	// them has a client, page or wire method here yet, so each entry keeps its
 	// place, dimmed and explained, instead of opening a page that would only be
 	// empty.
-	reasonScheduled = "Unavailable: the shell has no scheduled-task client or page yet, and no public App Server method lists scheduled tasks."
-	reasonSkills    = "Unavailable: the shell has no skills or plugins client or page yet, and no public App Server method lists skills or plugins."
+	reasonScheduled = "Unavailable: the shell has no scheduled-task client yet, and no public App Server method lists scheduled tasks."
+	reasonSkills    = "Unavailable: the shell has no skills or plugins client yet, and no public App Server method lists skills or plugins."
 	reasonAccount   = "Unavailable: the shell has no account client yet, so it cannot show an account or sign in."
 )
 
