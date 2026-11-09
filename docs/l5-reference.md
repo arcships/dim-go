@@ -148,6 +148,53 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 能证明：Electron 端权限设置的完整视觉形态，以及"deny 优先 / exact / prefix"这套规则模型就摆在使用者面前。
 不能证明：规则是否真的生效（本次没有改设置，也没有产生 approval 流量）。
 
+### 5.9 `window-conversation.png` — 对话态（浅色，2026-11-09 16:59:09 CST）
+
+采集方法与前九张不同：先用 `seed-session` 在**同一个临时 home** 里通过公开协议建一个会话、提交一轮输入并建一个 side branch，再用同一个 home 拉起窗口，通过 CDP 点侧栏的会话行进入对话。完整命令见 [`scripts/capture-conversation.sh`](evidence/electron-reference/scripts/capture-conversation.sh) 和 [`docs/evidence/electron-reference/README.md`](evidence/electron-reference/README.md)；会话本身是 App Server 的持久历史，客户端没有本地造行。
+
+看到（自上而下）：
+
+- 侧栏：`+ 新建会话` / `搜索` / `定时任务` / `技能/插件`（四行入口）→「会话」小节（标题右侧两个图标）→「工作区」标题 → 一行「暂无会话」→ 分隔线 → 工作区分组「dimagent-mygo」→ 一条会话行，标题被省略号截断（"Explain what this repository do…"），右侧相对时间「5m」，行有选中底色。会话**只出现在工作区分组下**，上面那个「会话」小节仍写着「暂无会话」。
+- 主区顶栏（高约 41 pt，下边有 1 px 分隔线）：左侧工作区名被截断为「dimagent-m…」+「/」+ 加粗会话标题（同样截断）+「…」菜单；右侧「在 VS Code 中打开」图标 + 下拉箭头、竖分隔线、右面板开关图标。
+- 时间线：右侧一条浅灰圆角气泡装用户输入；气泡下方左侧是助手回复，**纯文本、无头像、无角色名、无卡片外壳**，文字直接落在内容列上，内容是 `Echo: Explain what this repository does in one paragraph.`。
+- composer：卡片式输入区，占位「发送消息…」；左下 `+`、`»`、立方体三个图标；右下「未配置」+ 绿色发送箭头。
+- composer 下方是**独立的状态条**（不在输入卡内）：左「默认权限」盾牌图标；右「main」+ git 分支图标、上下文占用条（空，右侧显示「—」）、一个短横。
+
+能证明：真实对话态的一轮 user/assistant 排版（气泡方向、助手无容器、消息列左右留白）、侧栏"工作区分组 + 相对时间"的组织方式、composer 在对话态变为"底部大卡 + 独立状态条"（与空态的居中大卡不同）、`未配置`（没有可选模型）时发送箭头仍显示为绿色。
+不能证明：多轮内容与滚动、markdown 复杂块（代码块/表格/列表/链接）、工具调用卡片、thinking、流式更新、错误/重试态、审批面板、真实模型输出——这次助手文本来自 seed 时的 mock 模型（`Echo: …`）。
+
+### 5.10 `window-conversation-dark.png` — 对话态（深色，2026-11-09 16:59:18 CST）
+
+看到：与 5.9 完全相同的会话、相同的窗口 ID 和窗口 bounds，只把主题切到深色（设置 → 外观 → 深色 → 返回）。侧栏变深灰、主区近黑、用户气泡深灰、描边转暗，绿色发送箭头保持；composer 里能看到文本光标（从设置返回后输入框自动聚焦）。
+
+能证明：同一对话态下亮/暗两套色板的对应关系，可以直接拿来做 mygo 对话态 Light/Dark 的逐区域比对；主题切换不丢当前会话（返回后仍是同一轮对话）。
+不能证明：系统外观跟随（手切）、其它皮肤、深色下的 hover/焦点视觉（光标是唯一焦点痕迹）。
+
+### 5.11 对话态的结构结论与分支可见性
+
+两张图的机器可读元数据：
+
+| 项 | 浅色 | 深色 |
+|---|---|---|
+| 截图 | [`window-conversation.png`](evidence/electron-reference/window-conversation.png) | [`window-conversation-dark.png`](evidence/electron-reference/window-conversation-dark.png) |
+| 时间 | 16:59:09 | 16:59:18 |
+| 窗口 ID / bounds（points） | 49253 / `624,152,800,720` | 49253 / `624,152,800,720` |
+| PNG | 1600×1440，166 467 B，`0258c2afe21e1a337ead009b6f16e309` | 1600×1440，158 269 B，`74d704831618837d3986fdb88195896a` |
+| dim-electron HEAD | `3339f4fd47f7b0569e185f1a9d81b82d16447306` | 同左 |
+| mygo HEAD（采集时） | `18c7f503910ac7fa6e4885d9dd4dc4225afb102e` | 同左 |
+| seed 会话 / side branch | `4382674a-c079-49eb-a683-704b6f24b523` / `d0fad377-6a4c-4185-a0ed-d4d91655beee` | 同左 |
+
+结构结论：
+
+1. **侧栏没有 session branch 层。** 侧栏只有「会话」/「工作区」两个分组标题和一行会话；side branch 没有独立条目，也没有展开箭头。
+2. **会话头「…」菜单不含分支项。** 实测菜单项：置顶、重命名（正在检查 SessionTitle…）、在新窗口中打开、导出、归档、复制会话链接、复制会话 ID、复制会话路径、复制调试信息。
+3. **状态条的「main」是 git 分支，不是 session branch。** 它的 `data-testid` 是 `status-bar-branch-trigger`，下拉列的是仓库 git 分支（`feat/approval-panel`、`feat/approval-variants` 等），不是 seed 出来的 side branch。对照时不要把它当成会话分支。
+4. **session branch 只以右面板 tab 的形式存在。** 右面板加 tab 菜单是 Review / 浏览器 / 终端 / 侧边对话；源码里 `session-branch` 是右面板 tab 的一种（`ChatWorkspace.vue:3285`），由 UI 里的分支动作创建，本次 seed 出来的分支没有对应 tab。
+5. `probe-branch` 在 DOM 里查 `seed: side branch` / `分支` 字样，命中 0 个节点。因此**没有**采集 `window-conversation-branches.png`：条件"side branch 在侧栏可见"不成立，不补一张名不副实的图。
+
+seed 数据本身是可信的：`seed-session` 走 `supervisor` + 公开协议（`session.create` → `session.submit` → `session.branch_create`），side branch 的 ID 由 App Server 返回；只是这一版 Electron UI 没有把已有分支列出来。
+
+
 ## 6. 从像素量到的几何（points = PNG 像素 ÷ 2）
 
 用 PIL 在截图上取颜色转折量出来的，误差约 ±1 pt：
@@ -160,6 +207,11 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 | 空状态 composer 卡片 | x 295–756.5（宽 ≈461）、y 365.5–533（高 ≈167.5） | 同图边框扫描；水平方向左右各留 ≈39 |
 | composer 底部「工作区 / 默认权限」行 | 卡片内最后 ≈36 高 | 同图 |
 | 设置面 | 整窗白板 x 4.5–796；左导航与内容分隔线在 x≈228.5 | `window-settings.png` |
+| 对话态顶栏高 | 0–41（41–42 是 1 px 分隔线） | `window-conversation.png` 列扫描 |
+| 对话态消息列 | 助手文本左边界 281；用户气泡右边界 771；即卡片左右各留 ≈24.5 / 24 | 同图 + CDP `getBoundingClientRect` |
+| 用户气泡 | x 403.5–771（宽 ≈367.5），y 73.5–110.5（高 ≈37），圆角浅灰 | 同图边框/填充扫描 |
+| 对话态 composer 卡 | x 265.5–785.5（宽 ≈520），y 562–681（高 ≈119） | 同图 |
+| composer 下方状态条 | y 681–716（高 ≈35）：默认权限 x≈274、git 分支 x≈636、上下文条 x≈699–778 | 同图 + CDP |
 
 侧栏 256 pt 与 mygo 侧规格的 256 DIP（[`docs/ui-layout-spec.md`](ui-layout-spec.md) §1.2）一致，这是目前唯一一个有像素直接对上的数值；其余数值只能说明"Electron 端长这样"，不能反推 mygo 应该取多少。
 
@@ -175,10 +227,14 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 
    加上 `DIMCODE_USER_DATA_PATH` 指向临时目录后，同样的非 dev 模式一次成功。**原因未查证**：可能是单实例锁（用户的 `/Applications/DimAgent.app` 正在跑），也可能是别的路径问题；本文件不把它写成结论。
 2. **每次启动都会打出一条 `Bundled dim is unavailable`（FEATURE_STATE_INVALID）**。它没有阻止窗口出现，`feature-runtimes` 回落到 `<userData>/feature-runtimes/unavailable`；这会影响功能运行时（如 OCR）相关能力，本次没有验证。
-3. **没有会话内容**：全新 home 下没有 session，应用显示「未配置」（无模型）。点了「新建会话」也没有产生会话行。因此**没有** timeline、消息气泡、tool 卡片、thinking、file changes、approval 决策、流式更新、断线重连的像素证据。要补这些，需要真实模型配置（或上游给的 fixture），本次没有伪造。
+3. **对话内容只有一轮 seed 历史**：14:30–14:37 那批图是全新 home，应用显示「未配置」（无模型），点「新建会话」也没有产生会话行，因此那 9 张里**没有** timeline / 消息气泡。16:55–16:59 补的对话态（§5.9–§5.11）确实有 user 行和 assistant 行，但只有一轮：输入是 `seed-session` 提交的一句话，回复是 mock 模型的 `Echo: …`。仍然**没有**真实模型回答、多轮滚动、tool 卡片、thinking、file changes、approval 决策、流式更新、断线重连的像素证据。这些要么需要真实模型配置，要么需要上游 fixture；本次没有伪造。
 4. **没有系统外观跟随**：主题是在设置里手切的，没有改 macOS 外观后重抓。
-5. **没有 hover / 焦点 / 菜单 / 弹窗态**：只抓了静态停留态。
-6. **窗口定位不可用**：早期一次采集时窗口被系统放在屏幕外（`x=-1232`），那批产物已用 800×720 在屏的重抓替换；本次交付的 9 张都是窗口完整在屏，但采集过程本身不控制窗口位置，不能用来证明多屏/定位行为。
+5. **没有 hover / 焦点 / 菜单 / 弹窗态截图**：只抓了静态停留态（唯一的焦点痕迹是 `window-conversation-dark.png` 里 composer 的文本光标）。菜单内容（会话头「…」、git 分支下拉、右面板加 tab）是 CDP 读文本得到的，没有对应截图。
+6. **窗口定位不可用**：早期一次采集时窗口被系统放在屏幕外（`x=-1232`），那批产物已用 800×720 在屏的重抓替换；这批交付的 11 张都是窗口完整在屏，但采集过程本身不控制窗口位置，不能用来证明多屏/定位行为。
+7. **对话态采集返工两次**（都已修正，目录里只留修正后的图）：
+   - 第一次把「浅色」拍成了深色：主题偏好存在 product home 里、跨启动保留（新 home 首启是浅色，切过深色后同 home 再启动就是深色）。修正：截图前显式走「设置 → 外观 → 浅色 → 返回」。
+   - 第二次同一 home 的 `DIMCODE_USER_DATA_PATH` 里留着上一轮的右面板/侧栏折叠状态，侧栏被收起后 CDP 点「设置」被 `chat-status-bar` 拦截并超时，拍成了「侧栏收起 + 文件面板展开」而不是对话态。修正：`capture-conversation.sh` 默认清空临时 userData（`KEEP_USER_DATA=1` 可保留），product home 不动。
+8. **side branch 在 UI 里不可见**（§5.11）：seed 成功返回了分支 ID，但侧栏、会话头菜单、状态条都没有列出 session branch，所以没有第三张 `window-conversation-branches.png`。
 
 ## 8. dimagent-mygo 侧下一步该对照的区域
 
@@ -190,7 +246,7 @@ cd /Users/eric8810/Code/dim-electron/packages/desktop
 4. **主题**：`window-workspace.png` ↔ `window-workspace-dark.png`、`window-appearance.png` ↔ `window-settings-dark.png` 是同一状态的成对图，适合做 mygo Light/Dark 的逐区域比对（侧栏底色、卡片底色、描边、主按钮绿色、选中行）。
 5. **权限/审批语义**：「deny 优先、exact/prefix 匹配」的规则表（`window-permissions.png`）是 mygo approval 相关 UI 的对照物；但 approval 面板本身**没有像素证据**，不要用权限设置页冒充审批态。
 6. **技能/插件**（`window-skills.png`）：mygo 侧对应入口仍标 WIP（`docs/ui-layout-spec.md` 的侧栏 WIP 入口）；对照前先确认是否要保留入口。
-7. **对话态整体**：`docs/evidence/ui/` 的 headless 图与 `window-connected.png` 已有内容行，但还没有把 MyGo 与 Electron 同状态并排对照；先补成对基线和差异记录，再谈 1:1。
+7. **对话态整体**：`window-conversation.png` / `window-conversation-dark.png` 补上了同状态的成对基线（§5.9–§5.11）。可直接对的有三点：侧栏把会话放在「工作区 → 仓库名」分组下、而「会话」小节仍可能是空态；user 消息右对齐浅灰气泡 + assistant 纯文本无容器；composer 是底部大卡 + 独立状态条（不是空态那种居中卡）。`docs/evidence/ui/` 的 headless 图和 `window-connected.png` 仍是 mygo 侧内容，还不能代替同状态并排；先做 MyGo ↔ Electron 的并排与差异记录，再谈 1:1。不要凭 seed 的分支 ID 去设计侧栏分支列表——Electron 这一版侧栏没有分支层（§5.11）。
 
 ## 9. 复现
 
@@ -220,4 +276,4 @@ rm -f tmp-*.png tmp-*.txt
 
 - 本文件只提供参考基线，不改变 [`docs/acceptance.md`](acceptance.md) 里任何一行的验收状态；mygo 侧要达到 L5，仍需要它自己的对照记录。
 - 截图对应的 dim-electron 工作树包含未提交的 docs 变更，源码未改；源码一变（尤其 renderer 的 `styles/global.css` 与侧栏组件），这批图就过期，需要重跑。
-- 没有使用、也没有写入用户的真实 `~/.dimcode`；采集结束后 `ps` 复查：无残留 Electron 主进程，无本次临时 home 的 `dim-app-server`。
+- 没有使用、也没有写入用户的真实 `~/.dimcode`；两次采集都用了临时 `DIMCODE_HOME`（`/tmp/dim-electron-capture/home`、`/tmp/dim-conversation-capture/home`）和临时 userData。采集结束后 `ps` 复查：无残留 Electron 主进程，无本次临时 home 的 `dim-app-server`；对话态那两个临时目录随后删除。
