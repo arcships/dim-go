@@ -551,27 +551,7 @@ func DecodeHistoryResult(raw json.RawMessage, req HistoryParams) (HistoryResult,
 
 // session.keys appears only in Desktop wire.ts. The upstream dim app-server
 // method table has no verified RPC, so these types are retained only as an
-// unverified shape and there is no client helper.
-
-// KeysParams is the Desktop-shaped keyed-block snapshot request.
-type KeysParams struct {
-	SessionID string `json:"sessionId"`
-	BranchID  string `json:"branchId,omitempty"`
-	Through   *int64 `json:"through"`
-}
-
-func (p KeysParams) Validate() error {
-	if err := requireNonEmpty("sessionId", p.SessionID); err != nil {
-		return err
-	}
-	if p.Through == nil {
-		return protocolErrorf("through", "missing")
-	}
-	if *p.Through < 0 {
-		return protocolErrorf("through", "got %d, want a non-negative integer", *p.Through)
-	}
-	return nil
-}
+// unverified decode shape: there is no request type and no client helper.
 
 // SessionKeyEntry is the latest live keyed block for one key on a branch. Text
 // is the block body and may be empty; the wire layer does not interpret it.

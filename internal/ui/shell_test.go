@@ -32,20 +32,32 @@ func TestShellRenders(t *testing.T) {
 	}
 }
 
-// TestShellSelectsSession checks that the sidebar drives the header, which is
-// the only interaction the shell claims.
-func TestShellSelectsBranch(t *testing.T) {
+// TestBranchListIsReadOnly checks that observed branches are shown as metadata
+// only: the session.branches RPC is blocked/unverified, so there is no branch
+// switch, cut point or side-chat action to click.
+func TestBranchListIsReadOnly(t *testing.T) {
 	s := fixture()
 	s.Branches = []Branch{{ID: "main", Label: "main"}, {ID: "side", Label: "side"}}
 	s.SelectedBranch = "main"
-	var got string
-	s.OnBranchSelect = func(id string) { got = id }
 	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Branches (read-only)"); !ok {
+		t.Fatalf("branches are not grouped as read-only, texts %q", tt.Texts())
+	}
+	if !tt.HasText("main (current)") || !tt.HasText("side") {
+		t.Errorf("branches are missing, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, "side"); ok {
+		t.Error("a branch is exposed as an action")
+	}
+	if !tt.HasText(reasonBranches) {
+		t.Errorf("branch WIP reason is missing, texts %q", tt.Texts())
+	}
 	if err := tt.Click("side"); err != nil {
 		t.Fatal(err)
 	}
-	if got != "side" {
-		t.Fatalf("branch callback = %q, want side", got)
+	if s.SelectedBranch != "main" {
+		t.Errorf("branch selection changed to %q without a branch action", s.SelectedBranch)
 	}
 }
 

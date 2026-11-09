@@ -50,13 +50,13 @@ func DecodeMethodsResult(raw json.RawMessage) (MethodsResult, error) {
 	return r, nil
 }
 
-// SessionMethods reads the session-scoped capability table. The connection
-// feature gate is checked before the request and malformed results are never
-// returned as a partial table.
-func SessionMethods(ctx context.Context, client *Client, params MethodsParams, features []string) (MethodsResult, error) {
-	if !HasFeature(features, "session.methods") {
-		return MethodsResult{}, &CapabilityError{Feature: "session.methods"}
-	}
+// SessionMethods reads the session-scoped capability table. §16 defines
+// session.methods as a built-in session-level method: it is not one of the
+// connection-level hello.features, so there is no supportable feature gate and
+// the features argument is accepted only for call-site compatibility.
+//
+// Malformed results are never returned as a partial table.
+func SessionMethods(ctx context.Context, client *Client, params MethodsParams, _ []string) (MethodsResult, error) {
 	if err := params.Validate(); err != nil {
 		return MethodsResult{}, err
 	}

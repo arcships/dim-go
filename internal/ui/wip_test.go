@@ -142,3 +142,23 @@ func TestReconnectEntryHidesWhenConnected(t *testing.T) {
 		t.Errorf("the reconnect entry is drawn while connected, texts %q", tt.Texts())
 	}
 }
+
+// TestReconnectEntryHidesWhileLoading checks that a reconnect in flight cannot
+// be started twice: the loading state owns the one attempt until it settles.
+func TestReconnectEntryHidesWhileLoading(t *testing.T) {
+	s := fixture()
+	s.Connection = ConnError
+	s.ConversationLoading = true
+	s.OnReconnect = func() {}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Reconnect"); ok {
+		t.Error("the reconnect entry shows while a reconnect is loading")
+	}
+
+	s.ConversationLoading = false
+	tt.Frame()
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Reconnect"); !ok {
+		t.Errorf("the reconnect entry is missing after loading, texts %q", tt.Texts())
+	}
+}

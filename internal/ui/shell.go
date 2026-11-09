@@ -110,8 +110,9 @@ type Message struct {
 type State struct {
 	Sessions []Session
 	Selected string
-	// Branches is the daemon branch directory for the selected session. It is
-	// display-only metadata; branch switching is delegated through OnBranchSelect.
+	// Branches is read-only observed branch metadata for the selected session.
+	// The daemon branch directory RPC is blocked/unverified, so this view does
+	// not switch or create branches.
 	Branches       []Branch
 	SelectedBranch string
 
@@ -139,11 +140,10 @@ type State struct {
 	// session controller. A nil field leaves its action in the view without an
 	// effect, as a fixture does; the callback owns the App Server call and the
 	// facts it returns, so the shell never reports an action it did not send.
-	OnSelect       func(sessionID string)
-	OnBranchSelect func(branchID string)
-	OnSubmit       func(text string)
-	OnStop         func()
-	OnReconnect    func()
+	OnSelect    func(sessionID string)
+	OnSubmit    func(text string)
+	OnStop      func()
+	OnReconnect func()
 
 	// conversation is the list's place among its rows and the identity of each
 	// row, kept across frames so that appended rows follow the end and rows keep
@@ -170,15 +170,7 @@ func (s *State) View(c *ui.Context) {
 				}
 			}).Grow(1).Label("Sessions").OnChange(s.selectSession)
 			if len(s.Branches) > 0 {
-				ui.Sidebar(c, &s.SelectedBranch, func() {
-					for _, branch := range s.Branches {
-						label := branch.Label
-						if label == "" {
-							label = branch.ID
-						}
-						ui.SidebarItem(c, branch.ID, nil, label)
-					}
-				}).Label("Branches").OnChange(s.selectBranch)
+				s.branchList(c, k)
 			}
 			s.capabilityCards(c, k)
 		})
@@ -204,6 +196,31 @@ func (s *State) sidebarActions(c *ui.Context, k tokens) {
 	})
 }
 
+// branchList shows the branches observed from App Server events as read-only
+// metadata. The session.branches directory RPC is blocked/unverified, so the
+// list offers no switch, cut point or side-chat action.
+func (s *State) branchList(c *ui.Context, k tokens) {
+	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
+		Role(ui.RoleGroup).Label("Branches (read-only)").Children(func() {
+		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.muted).Bold()
+			ui.Box(c).Grow(1)
+			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
+		})
+		for _, branch := range s.Branches {
+			label := branch.Label
+			if label == "" {
+				label = branch.ID
+			}
+			if branch.ID == s.SelectedBranch {
+				label += " (current)"
+			}
+			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.muted).NoWrap()
+		}
+		ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.muted)
+	})
+}
+
 // header shows the selected session's title beside the connection status.
 func (s *State) header(c *ui.Context, k tokens) {
 	ui.Row(c).Gap(k.gapWide).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
@@ -221,9 +238,9 @@ func (s *State) header(c *ui.Context, k tokens) {
 				ui.Button(c, "Stop").OnClick(s.stopRun)
 			}
 		}
-		// A healthy connection has nothing to reconnect: the entry belongs
-		// beside the status only while the connection is missing or failed.
-		if s.Connection != ConnReady {
+		// A healthy connection has nothing to reconnect, and a reconnect in
+		// flight already shows its loading state: do not offer a second one.
+		if s.Connection != ConnReady && !s.ConversationLoading {
 			if s.OnReconnect == nil {
 				wipAction(c, k, "Reconnect", reasonReconnect)
 			} else {
@@ -380,13 +397,6 @@ func (s *State) composer(c *ui.Context, k tokens) {
 func (s *State) selectSession() {
 	if s.OnSelect != nil {
 		s.OnSelect(s.Selected)
-	}
-}
-
-// selectBranch delegates branch switching to the session view/reducer owner.
-func (s *State) selectBranch() {
-	if s.OnBranchSelect != nil {
-		s.OnBranchSelect(s.SelectedBranch)
 	}
 }
 

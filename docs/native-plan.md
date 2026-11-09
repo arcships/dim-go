@@ -48,12 +48,12 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - `SessionStream`：订阅先行 attach、head 兜底、通知缓冲/路由、事件幂等、detach/closed/lost 生命周期；
 - submit/stop/approval.respond/session.delete mutation helpers 和 unknown-result 分类；
 - fake App Server（`net.Pipe`）和 fake daemon 测试；
-- `internal/session` 组合层：首屏 latest-turn/兼容扫描/history 降级、按 branch 的 durable/transient projection、bounded pending buffer、terminal/close 语义；`BranchDirectory` 返回 blocked/empty（上游 `session.branches` RPC 未确认），`Branches()` 只含从事件观察到的 branch id，尚未接入 UI 切换或 cut point。
+- `internal/session` 组合层：首屏 latest-turn/兼容扫描/history 降级、按 branch 的 durable/transient projection、bounded pending buffer、terminal/close 语义；`BranchDirectory` 返回 blocked/empty（public protocol contract 未声明 `session.branches`），`Branches()` 只含从事件观察到的 branch id，尚未接入 UI 切换或 cut point。
 - `internal/viewmodel`：projection snapshot → native 行（user/assistant/tool）；
 - `internal/integration`：supervisor → session → viewmodel 的 `SessionController`（Open/Catalog/State/Close），fake daemon 端到端测试；
 - Supervisor reconnect：单飞、generation、旧 attachment 失效、transport 终止原因和 close 竞争处理。
 
-未完成：session 层 re-attach/domain resync、UI branch switching/cut point（当前 `BranchDirectory` 返回 blocked/empty，`Branches()` 仅含事件观察到的 branch id）、`session.methods` 插件入口接线、approval replay 集合替换、附件上传、approval UI 接线和 session/viewmodel/integration 窗口接线。`session.create`、`session.methods`、`session.input_lookup` 已有 Go client/helper；`session.input_lookup` 的 wire 响应为 `{status:"accepted",event}` 或 `{status:"unknown"}`。`session.keys`/`session.branches` 仅保留 Desktop wire 形状的 decoder/types，没有 client helper；`internal/session` 不请求，accessors 返回 blocked/empty；其 RPC 未在当前只读检查的 Rust app-server 中找到，标 blocked/unverified。以上均由 fake/headless 覆盖，尚未接入 UI。真实 daemon 控制面 smoke 已有 opt-in 测试，并已用 `../dim-2` 构建的 `dim-app-server` 实测通过；它不覆盖真实 session 流、GUI 或 IME。
+未完成：session 层 re-attach/domain resync、UI branch switching/cut point（当前 `BranchDirectory` 返回 blocked/empty，`Branches()` 仅含事件观察到的 branch id）、`session.methods` 插件入口接线、approval replay 集合替换、附件上传、approval UI 接线和 session/viewmodel/integration 窗口接线。`session.create`、`session.methods`、`session.input_lookup` 已有 Go client/helper；`session.methods` 和 `session.input_lookup` 有公开合同依据（后者响应 `{status:"accepted",event}` 或 `{status:"unknown"}`）。`session.keys`/`session.branches` 保留既有 decoder/types（`SessionBranches` helper 只用于契约测试），没有接入 session 读路径；`internal/session` 不请求，accessors 返回 blocked/empty；public protocol contract 未声明，标 blocked/unverified。以上均由 fake/headless 覆盖，尚未接入 UI。真实 daemon 控制面 smoke 已有 opt-in 测试，并已用 `../dim-2` 构建的 `dim-app-server` 实测通过；它不覆盖真实 session 流、GUI 或 IME。
 
 ## Milestone 3：第一个纵向闭环
 

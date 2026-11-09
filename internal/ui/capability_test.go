@@ -40,17 +40,17 @@ func TestCapabilityCardsAreReadOnly(t *testing.T) {
 }
 
 // TestCapabilityCardsReportTheActualGap pins each card's gap to the fact in
-// this tree: approval.respond, session.stop and supervisor.Reconnect exist in
-// the Go client or supervisor, so no card may claim they are missing;
-// session.create and attachment.put do not exist, so no card may claim the
-// shell could wire them.
+// this tree: approval.respond, session.stop, session.create and
+// supervisor.Reconnect exist in the Go client, session or supervisor, so no
+// card may claim they are missing; session.branches/session.keys are upstream
+// blocked/unverified; attachment.put has no Go helper.
 func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	cards := map[string]wipCapability{}
 	for _, capability := range wipCapabilities(&State{}) {
 		cards[capability.action] = capability
 	}
 
-	for _, action := range []string{"Approvals", "Connection recovery", "Turn cancellation"} {
+	for _, action := range []string{"Session creation", "Approvals", "Connection recovery", "Turn cancellation"} {
 		capability, ok := cards[action]
 		if !ok {
 			t.Errorf("no card for %q", action)
@@ -60,8 +60,15 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 			t.Errorf("%q reports %q, but its helper exists", action, capability.gap)
 		}
 	}
-	if capability := cards["Session creation"]; !strings.Contains(capability.gap, "helper exists") {
-		t.Errorf("session creation reports %q, want helper exists", capability.gap)
+	for _, action := range []string{"Branches", "Session keys"} {
+		capability, ok := cards[action]
+		if !ok {
+			t.Errorf("no card for %q", action)
+			continue
+		}
+		if !strings.Contains(capability.gap, "blocked") {
+			t.Errorf("%q reports %q, want blocked", action, capability.gap)
+		}
 	}
 	if capability := cards["Attachments"]; !strings.Contains(capability.gap, "no Go client helper") {
 		t.Errorf("attachments reports %q, want missing helper", capability.gap)
@@ -78,6 +85,28 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	}
 	if !strings.Contains(reasonApproval, "shell") {
 		t.Errorf("approval %q reason must name the shell's wiring gap", reasonApproval)
+	}
+}
+
+// TestCapabilityCardsDropWiredReconnect checks that connection recovery leaves
+// the unavailable list once State.OnReconnect is set: the Reconnect entry is the
+// real action then, and a stale WIP card would contradict the toolbar.
+func TestCapabilityCardsDropWiredReconnect(t *testing.T) {
+	s := fixture()
+	s.Connection = ConnError
+	s.OnReconnect = func() {}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, capability := range wipCapabilities(s) {
+		if capability.action == "Connection recovery" {
+			t.Errorf("a wired reconnect still has a WIP card: %+v", capability)
+		}
+	}
+	if tt.HasText("Connection recovery") {
+		t.Errorf("the unavailable list still shows connection recovery, texts %q", tt.Texts())
+	}
+	if info, ok := tt.AccessByRole(ui.RoleButton, "Reconnect"); !ok || info.Disabled {
+		t.Errorf("wired reconnect is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 

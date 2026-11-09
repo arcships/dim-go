@@ -7,17 +7,8 @@ import (
 
 // This file retains only the Desktop wire.ts shape for reference. The upstream
 // dim app-server method table has no verified session.branches RPC, so there is
-// deliberately no client helper: callers must treat the capability as blocked
-// rather than sending a guessed request.
-
-// BranchesParams selects the branch directory for one session.
-type BranchesParams struct {
-	SessionID string `json:"sessionId"`
-}
-
-func (p BranchesParams) Validate() error {
-	return requireNonEmpty("sessionId", p.SessionID)
-}
+// no request type and no client helper: callers must treat the capability as
+// blocked rather than sending a guessed request.
 
 // BranchInfo is one session.branches directory entry. Source and end retain
 // their protocol JSON shape because branch provenance is not interpreted by

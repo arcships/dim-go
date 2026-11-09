@@ -15,18 +15,8 @@ const (
 )
 
 // InputLookupParams identifies a submission for outcome read-back after an
-// unknown session.submit result (§10).
-//
-// BranchID is optional in the request type and omitted from the wire when
-// empty. Note that protocol v3 still rejects a missing branchId for every
-// session method (dim-app-server connection.rs: "branchId is required in v2/v3
-// and absent in v1"), so callers must send a branch id on v3. It is not
-// defaulted here: guessing "main" would read the wrong timeline for a child
-// branch.
-//
-// Upstream also parses submissionId as a UUID before dispatch; callers must use
-// the UUID returned by session.submit. This layer only requires a non-empty
-// string so fixtures and opaque replay paths keep working.
+// unknown session.submit result (§10). BranchID is optional for the low-level
+// helper; session.LookupInput supplies the current branch when it is omitted.
 type InputLookupParams struct {
 	SessionID    string `json:"sessionId"`
 	BranchID     string `json:"branchId,omitempty"`

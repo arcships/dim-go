@@ -37,3 +37,24 @@ func TestSessionMethods(t *testing.T) {
 		t.Fatalf("methods = %#v", methods.Methods)
 	}
 }
+
+// session.methods is a built-in session-level method (§16), not one of the
+// connection-level hello.features. An absent feature entry must not turn it into
+// a capability error.
+func TestSessionMethodsIsNotFeatureGated(t *testing.T) {
+	ctx := testContext(t)
+	server, client := newFakeServer(t, fakeConfig{
+		Hello:      fakeHello(),
+		MethodsRaw: rawJSON(t, map[string]any{"methods": []any{}}),
+	})
+	result, err := SessionMethods(ctx, client, MethodsParams{SessionID: "s1"}, nil)
+	if err != nil {
+		t.Fatalf("SessionMethods without the feature: %v", err)
+	}
+	if result.Methods == nil || len(result.Methods) != 0 {
+		t.Fatalf("methods = %#v", result.Methods)
+	}
+	if calls := server.recordedCalls("session.methods"); len(calls) != 1 {
+		t.Fatalf("session.methods calls = %d, want 1", len(calls))
+	}
+}

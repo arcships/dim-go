@@ -21,6 +21,7 @@ const (
 	reasonAttachment    = "Unavailable: the Go client has no attachment.put helper yet."
 	reasonReconnect     = "Unavailable: the shell is not wired to supervisor reconnect yet."
 	reasonStop          = "Unavailable: the shell has no session.stop callback yet."
+	reasonBranches      = "Unavailable: the session.branches RPC is blocked/unverified."
 )
 
 // wipAction draws one entry for an action the shell cannot carry out yet. It

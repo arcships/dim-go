@@ -46,7 +46,83 @@ type sessionBridge struct {
 	summary    appserver.SessionSummary
 }
 
-var errNoSession = errors.New("dimagent: no session selected")
+var (
+	errNoSession      = errors.New("dimagent: no session selected")
+	errStaleSelection = errors.New("dimagent: selection changed before the action")
+)
+
+// current returns the controller and summary together, so an action cannot
+// observe a half-swapped session selection.
+func (b *sessionBridge) current() (sessionActions, appserver.SessionSummary) {
+	if b == nil {
+		return nil, appserver.SessionSummary{}
+	}
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.controller, b.summary
+}
+
+// controllerFor returns the current controller only when it belongs to the
+// selected session. An empty id keeps the legacy fixture behavior of using the
+// current controller; the window always passes the selected id.
+func (b *sessionBridge) controllerFor(sessionID string) (sessionActions, error) {
+	controller, summary := b.current()
+	if controller == nil {
+		return nil, errNoSession
+	}
+	if sessionID != "" && summary.SessionID != sessionID {
+		return nil, errStaleSelection
+	}
+	return controller, nil
+}
+
+// LiveState returns a fresh view of the selected controller, or nil without one.
+// It never reads a branch other than the controller's current branch.
+func (b *sessionBridge) LiveState() *dimui.State {
+	controller, summary := b.current()
+	if controller == nil {
+		return nil
+	}
+	return controller.LiveState(summary)
+}
+
+// SubmitFor sends text through the controller that still belongs to sessionID.
+func (b *sessionBridge) SubmitFor(ctx context.Context, sessionID, text string) error {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return err
+	}
+	_, err = controller.Submit(ctx, text)
+	return err
+}
+
+// Submit sends text through the current controller for fixture callers.
+func (b *sessionBridge) Submit(ctx context.Context, text string) error {
+	return b.SubmitFor(ctx, "", text)
+}
+
+// StopFor stops the controller that still belongs to sessionID.
+func (b *sessionBridge) StopFor(ctx context.Context, sessionID string) error {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return err
+	}
+	return controller.Stop(ctx)
+}
+
+// Stop stops the current controller for fixture callers.
+func (b *sessionBridge) Stop(ctx context.Context) error {
+	return b.StopFor(ctx, "")
+}
+
+// reattachFor reconnects the controller that still belongs to sessionID.
+func (b *sessionBridge) reattachFor(ctx context.Context, sessionID string) error {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return err
+	}
+	return controller.Reattach(ctx)
+}
 
 // open attaches row's session and makes it the current one, closing the
 // previous controller once the new attachment succeeded.
@@ -72,80 +148,6 @@ func (b *sessionBridge) open(ctx context.Context, row dimui.Session) error {
 		_ = previous.Close(ctx)
 	}
 	return nil
-}
-
-// LiveState returns a fresh view of the selected session, or nil without one.
-func (b *sessionBridge) LiveState() *dimui.State {
-	return b.liveStateForBranch("")
-}
-
-// liveStateForBranch adapts the selected controller's authoritative projection
-// for one branch. An empty branch preserves the controller's current branch.
-// The branch is read from the session view, never invented or persisted by the
-// UI; this keeps periodic refreshes from resetting a user's branch selection.
-func (b *sessionBridge) liveStateForBranch(branchID string) *dimui.State {
-	if b == nil {
-		return nil
-	}
-	b.mu.Lock()
-	controller, summary := b.controller, b.summary
-	b.mu.Unlock()
-	if controller == nil {
-		return nil
-	}
-	if branchViewer, ok := controller.(interface {
-		StateForBranch(appserver.SessionSummary, string) *dimui.State
-	}); ok {
-		return branchViewer.StateForBranch(summary, branchID)
-	}
-	return controller.LiveState(summary)
-}
-
-// LiveStateForBranch returns a fresh view for the requested branch.
-func (b *sessionBridge) LiveStateForBranch(branchID string) *dimui.State {
-	return b.liveStateForBranch(branchID)
-}
-
-// Submit sends text through the selected session.
-func (b *sessionBridge) Submit(ctx context.Context, text string) error {
-	if b == nil {
-		return errNoSession
-	}
-	b.mu.Lock()
-	controller := b.controller
-	b.mu.Unlock()
-	if controller == nil {
-		return errNoSession
-	}
-	_, err := controller.Submit(ctx, text)
-	return err
-}
-
-// Stop asks the selected session to stop its running turn.
-func (b *sessionBridge) reattach(ctx context.Context) error {
-	if b == nil {
-		return errNoSession
-	}
-	b.mu.Lock()
-	controller := b.controller
-	b.mu.Unlock()
-	if controller == nil {
-		return errNoSession
-	}
-	return controller.Reattach(ctx)
-}
-
-func (b *sessionBridge) Stop(ctx context.Context) error {
-	if b == nil {
-		return errNoSession
-	}
-	b.mu.Lock()
-	controller := b.controller
-	b.mu.Unlock()
-	if controller == nil {
-		return errNoSession
-	}
-	return controller.Stop(ctx)
 }
 
 // Close releases the selected session and the supervisor.
@@ -209,9 +211,14 @@ func stateFromDaemon(ctx context.Context, productHome string) (*dimui.State, *se
 
 // applyView copies what the selected session's live view owns into state. It
 // leaves the catalog, the draft and the callbacks alone: those belong to the
-// window, not to one session's projection.
+// window, not to one session's projection. A view for another session is stale
+// (for example an old controller while a new attachment is still in flight) and
+// must not overwrite the window's current selection.
 func applyView(state, view *dimui.State) {
 	if state == nil || view == nil {
+		return
+	}
+	if state.Selected != "" && view.Selected != "" && state.Selected != view.Selected {
 		return
 	}
 	state.Selected = view.Selected
@@ -254,7 +261,6 @@ type app struct {
 
 func (a *app) bind() {
 	a.state.OnSelect = a.selectSession
-	a.state.OnBranchSelect = a.selectBranch
 	a.state.OnSubmit = a.submit
 	a.state.OnStop = a.stop
 	a.state.OnReconnect = a.reconnect
@@ -382,6 +388,9 @@ func (a *app) selectSession(id string) {
 	if !ok {
 		return
 	}
+	// Keep the last good view so a failed switch restores the session it was
+	// showing instead of leaving the new title over the old conversation.
+	previousView := a.bridge.LiveState()
 	gen := a.beginSelect()
 	a.state.ConversationLoading = true
 	go func() {
@@ -398,6 +407,15 @@ func (a *app) selectSession(id string) {
 			}
 			log.Printf("dimagent: open session %q: %v", id, err)
 			a.update(func(state *dimui.State) {
+				// The controller open failed, so the bridge still holds the
+				// previous session. Restore its view; with no previous session,
+				// clear the stale selection rather than inventing one.
+				if previousView != nil {
+					state.Selected = previousView.Selected
+					applyView(state, previousView)
+				} else {
+					applyView(state, &dimui.State{})
+				}
 				state.ConversationLoading = false
 				state.Connection = dimui.ConnError
 				state.ConnectionError = fmt.Sprintf("%v", err)
@@ -418,38 +436,18 @@ func (a *app) selectSession(id string) {
 	}()
 }
 
-// selectBranch refreshes the selected branch through the controller's existing
-// session view/reducer. No branch mutation or local facts are created.
-func (a *app) selectBranch(branchID string) {
-	if a == nil || a.bridge == nil || a.state == nil || branchID == "" {
-		return
-	}
-	a.bridge.mu.Lock()
-	controller, summary := a.bridge.controller, a.bridge.summary
-	a.bridge.mu.Unlock()
-	branchViewer, ok := controller.(interface {
-		StateForBranch(appserver.SessionSummary, string) *dimui.State
-	})
-	if !ok {
-		return
-	}
-	view := branchViewer.StateForBranch(summary, branchID)
-	a.update(func(state *dimui.State) {
-		applyView(state, view)
-	})
-}
-
 // submit sends the composer's text in the background and clears the draft only
 // after the App Server accepted it.
 func (a *app) submit(text string) {
-	if a.bridge == nil {
+	if a.bridge == nil || a.state == nil {
 		return
 	}
+	sessionID := a.state.Selected
 	gen := a.currentSelection()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := a.bridge.Submit(ctx, text); err != nil {
+		if err := a.bridge.SubmitFor(ctx, sessionID, text); err != nil {
 			log.Printf("dimagent: submit: %v", err)
 			if a.selectionCurrent(gen) {
 				a.notice("submit.error", err.Error())
@@ -477,6 +475,7 @@ func (a *app) reconnect() {
 	if a.bridge == nil || a.state == nil {
 		return
 	}
+	sessionID := a.state.Selected
 	gen := a.currentSelection()
 	a.update(func(state *dimui.State) {
 		state.ConversationLoading = true
@@ -492,12 +491,18 @@ func (a *app) reconnect() {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := a.bridge.reattach(ctx); err != nil {
+		if err := a.bridge.reattachFor(ctx, sessionID); err != nil {
 			if !a.selectionCurrent(gen) {
 				return
 			}
 			log.Printf("dimagent: reconnect: %v", err)
 			a.update(func(state *dimui.State) {
+				// Another attempt may have healed the connection while this one
+				// was in flight; do not turn a ready session back into an error.
+				if state.Connection == dimui.ConnReady {
+					state.ConversationLoading = false
+					return
+				}
 				state.ConversationLoading = false
 				state.Connection = dimui.ConnError
 				state.ConnectionError = fmt.Sprintf("%v", err)
@@ -516,14 +521,15 @@ func (a *app) reconnect() {
 }
 
 func (a *app) stop() {
-	if a.bridge == nil {
+	if a.bridge == nil || a.state == nil {
 		return
 	}
+	sessionID := a.state.Selected
 	gen := a.currentSelection()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := a.bridge.Stop(ctx); err != nil {
+		if err := a.bridge.StopFor(ctx, sessionID); err != nil {
 			log.Printf("dimagent: stop: %v", err)
 			if a.selectionCurrent(gen) {
 				a.notice("stop.error", err.Error())

@@ -97,6 +97,8 @@ type fakeSession struct {
 	reconnectStart chan struct{}
 	reconnectGate  chan struct{}
 	submitText     []string
+	reattachCalls  int
+	stopCalls      int
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -119,6 +121,7 @@ func (f *fakeSession) Submit(_ context.Context, text string) (appserver.SubmitRe
 }
 
 func (f *fakeSession) Reattach(context.Context) error {
+	f.reattachCalls++
 	if f.reconnectStart != nil {
 		close(f.reconnectStart)
 	}
@@ -129,6 +132,7 @@ func (f *fakeSession) Reattach(context.Context) error {
 }
 
 func (f *fakeSession) Stop(context.Context) error {
+	f.stopCalls++
 	if f.stopped != nil {
 		f.stopped <- struct{}{}
 	}
@@ -242,7 +246,8 @@ func TestAppReconnectStaleFailureDoesNotOverwriteNewSelection(t *testing.T) {
 	started := make(chan struct{})
 	gate := make(chan struct{})
 	f := &fakeSession{reattachErr: boom, reconnectStart: started, reconnectGate: gate}
-	a := &app{state: &dimui.State{Connection: dimui.ConnError, Selected: "s1"}, bridge: &sessionBridge{controller: f}}
+	bridge := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
+	a := &app{state: &dimui.State{Connection: dimui.ConnError, Selected: "s1"}, bridge: bridge}
 	a.bind()
 	updates := make(chan struct{}, 2)
 	a.updateHook = func(fn func(*dimui.State)) { fn(a.state); updates <- struct{}{} }
@@ -272,7 +277,8 @@ func TestAppReconnectStaleFailureDoesNotOverwriteNewSelection(t *testing.T) {
 
 func TestAppReconnectReattachesAndRefreshes(t *testing.T) {
 	f := &fakeSession{view: &dimui.State{Connection: dimui.ConnReady, Selected: "s1"}}
-	a := &app{state: &dimui.State{Connection: dimui.ConnError, Selected: "s1"}, bridge: &sessionBridge{controller: f}}
+	bridge := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
+	a := &app{state: &dimui.State{Connection: dimui.ConnError, Selected: "s1"}, bridge: bridge}
 	a.bind()
 	updates := make(chan struct{}, 2)
 	a.updateHook = func(fn func(*dimui.State)) {

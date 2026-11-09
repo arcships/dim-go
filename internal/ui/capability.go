@@ -19,16 +19,24 @@ type wipCapability struct {
 // keep each card's gap in step with the reason the entry passes to wipAction.
 // "No Go client helper yet" means the method really is absent from
 // internal/appserver or internal/supervisor; "helper exists; shell not wired"
-// means the capability exists there and only this view has not called it.
+// means the capability exists there and only this view has not called it;
+// "blocked: upstream RPC unverified" means the wire method itself is unconfirmed.
 //
-// The list is per shell state: turn cancellation is wired once State.OnStop is
-// set, so it is unavailable only while that callback is missing.
+// The list is per shell state: reconnect is wired once State.OnReconnect is set
+// and turn cancellation once State.OnStop is set, so each is unavailable only
+// while its callback is missing. Branch switching and keys stay blocked because
+// the upstream RPCs are unverified, not because this view forgot to wire them.
 func wipCapabilities(s *State) []wipCapability {
 	capabilities := []wipCapability{
 		{"Session creation", "session.create", "helper exists; shell not wired"},
+		{"Branches", "session.branches", "blocked: upstream RPC unverified"},
+		{"Session keys", "session.keys", "blocked: upstream RPC unverified"},
 		{"Approvals", "approval.respond", "helper exists; shell not wired"},
 		{"Attachments", "attachment.put", "no Go client helper yet"},
-		{"Connection recovery", "supervisor.Reconnect", "helper exists; shell not wired"},
+	}
+	if s == nil || s.OnReconnect == nil {
+		capabilities = append(capabilities,
+			wipCapability{"Connection recovery", "supervisor.Reconnect", "helper exists; shell not wired"})
 	}
 	if s == nil || s.OnStop == nil {
 		capabilities = append(capabilities,

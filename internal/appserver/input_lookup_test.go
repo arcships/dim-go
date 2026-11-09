@@ -17,7 +17,10 @@ func acceptedLookup(t *testing.T) json.RawMessage {
 
 func TestInputLookupParamsValidate(t *testing.T) {
 	valid := []InputLookupParams{
+		// §10 wraps branchId in the request, but the contract documents the
+		// low-level omission: Session.LookupInput supplies the current branch.
 		{SessionID: "s1", SubmissionID: "sub-1"},
+		{SessionID: "s1", BranchID: "main", SubmissionID: "sub-1"},
 		{SessionID: "s1", BranchID: "child", SubmissionID: "sub-1"},
 	}
 	for _, params := range valid {
@@ -26,8 +29,8 @@ func TestInputLookupParamsValidate(t *testing.T) {
 		}
 	}
 	invalid := []InputLookupParams{
-		{SubmissionID: "sub-1"},
-		{SessionID: "s1"},
+		{BranchID: "main", SubmissionID: "sub-1"},
+		{SessionID: "s1", BranchID: "main"},
 		{SessionID: "s1", BranchID: "child"},
 	}
 	for _, params := range invalid {
@@ -38,21 +41,21 @@ func TestInputLookupParamsValidate(t *testing.T) {
 }
 
 func TestInputLookupParamsWireShape(t *testing.T) {
-	// branchId is optional upstream, so omitting it must omit the member
-	// instead of sending "" and inventing a branch.
-	data, err := json.Marshal(InputLookupParams{SessionID: "s1", SubmissionID: "sub-1"})
+	data, err := json.Marshal(InputLookupParams{SessionID: "s1", BranchID: "main", SubmissionID: "sub-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != `{"sessionId":"s1","branchId":"main","submissionId":"sub-1"}` {
+		t.Fatalf("params = %s", data)
+	}
+
+	// An empty branchId is omitted rather than sent as "": a v3 caller must
+	// supply it, and Session.LookupInput does so before calling.
+	data, err = json.Marshal(InputLookupParams{SessionID: "s1", SubmissionID: "sub-1"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if string(data) != `{"sessionId":"s1","submissionId":"sub-1"}` {
-		t.Fatalf("params = %s", data)
-	}
-
-	data, err = json.Marshal(InputLookupParams{SessionID: "s1", BranchID: "child", SubmissionID: "sub-1"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(data) != `{"sessionId":"s1","branchId":"child","submissionId":"sub-1"}` {
 		t.Fatalf("params = %s", data)
 	}
 }
@@ -133,7 +136,7 @@ func TestDecodeInputLookupResult(t *testing.T) {
 }
 
 func TestInputLookupOutcomeHelper(t *testing.T) {
-	t.Run("accepted without branchId", func(t *testing.T) {
+	t.Run("accepted result and exact request", func(t *testing.T) {
 		ctx := testContext(t)
 		server, client := newFakeServer(t, fakeConfig{
 			Hello:          fakeHello("session.input_lookup"),
@@ -141,6 +144,7 @@ func TestInputLookupOutcomeHelper(t *testing.T) {
 		})
 		result, err := InputLookupOutcome(ctx, client, InputLookupParams{
 			SessionID:    "s1",
+			BranchID:     "main",
 			SubmissionID: "sub-1",
 		})
 		if err != nil {
@@ -154,10 +158,10 @@ func TestInputLookupOutcomeHelper(t *testing.T) {
 			t.Fatalf("session.input_lookup calls = %d, want 1", len(calls))
 		}
 		params := rawParams(t, calls[0])
-		if len(params) != 2 {
-			t.Fatalf("params = %s, want exactly sessionId and submissionId", calls[0].Params)
+		if len(params) != 3 {
+			t.Fatalf("params = %s, want sessionId, branchId and submissionId", calls[0].Params)
 		}
-		if string(params["sessionId"]) != `"s1"` || string(params["submissionId"]) != `"sub-1"` {
+		if string(params["sessionId"]) != `"s1"` || string(params["branchId"]) != `"main"` || string(params["submissionId"]) != `"sub-1"` {
 			t.Fatalf("params = %s", calls[0].Params)
 		}
 	})
@@ -189,13 +193,38 @@ func TestInputLookupOutcomeHelper(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid params never reach the daemon", func(t *testing.T) {
+	t.Run("empty branchId is omitted on the wire", func(t *testing.T) {
 		ctx := testContext(t)
 		server, client := newFakeServer(t, fakeConfig{
 			Hello:          fakeHello("session.input_lookup"),
 			InputLookupRaw: acceptedLookup(t),
 		})
-		if _, err := InputLookupOutcome(ctx, client, InputLookupParams{SessionID: "s1"}); !errors.Is(err, ErrProtocol) {
+		result, err := InputLookupOutcome(ctx, client, InputLookupParams{
+			SessionID:    "s1",
+			SubmissionID: "sub-1",
+		})
+		if err != nil {
+			t.Fatalf("InputLookupOutcome: %v", err)
+		}
+		if !result.Accepted() {
+			t.Fatalf("result = %#v", result)
+		}
+		calls := server.recordedCalls("session.input_lookup")
+		if len(calls) != 1 {
+			t.Fatalf("session.input_lookup calls = %d, want 1", len(calls))
+		}
+		if params := rawParams(t, calls[0]); len(params) != 2 {
+			t.Fatalf("params = %s, want branchId omitted", calls[0].Params)
+		}
+	})
+
+	t.Run("missing submissionId never reaches the daemon", func(t *testing.T) {
+		ctx := testContext(t)
+		server, client := newFakeServer(t, fakeConfig{
+			Hello:          fakeHello("session.input_lookup"),
+			InputLookupRaw: acceptedLookup(t),
+		})
+		if _, err := InputLookupOutcome(ctx, client, InputLookupParams{SessionID: "s1", BranchID: "main"}); !errors.Is(err, ErrProtocol) {
 			t.Fatalf("error = %v, want ErrProtocol", err)
 		}
 		if calls := server.recordedCalls("session.input_lookup"); len(calls) != 0 {
@@ -211,6 +240,7 @@ func TestInputLookupOutcomeHelper(t *testing.T) {
 		})
 		result, err := InputLookupOutcome(ctx, client, InputLookupParams{
 			SessionID:    "s1",
+			BranchID:     "main",
 			SubmissionID: "sub-1",
 		})
 		if !errors.Is(err, ErrProtocol) {
@@ -229,6 +259,7 @@ func TestInputLookupOutcomeHelper(t *testing.T) {
 		})
 		_, err := InputLookupOutcome(ctx, client, InputLookupParams{
 			SessionID:    "s1",
+			BranchID:     "main",
 			SubmissionID: "sub-1",
 		})
 		var rpcErr *RPCError
@@ -243,6 +274,7 @@ func TestInputLookupOutcomeHelper(t *testing.T) {
 	t.Run("nil client is a protocol error", func(t *testing.T) {
 		if _, err := InputLookupOutcome(context.Background(), nil, InputLookupParams{
 			SessionID:    "s1",
+			BranchID:     "main",
 			SubmissionID: "sub-1",
 		}); !errors.Is(err, ErrProtocol) {
 			t.Fatalf("error = %v, want ErrProtocol", err)
@@ -258,7 +290,7 @@ func TestInputLookupRawStillReturnsVerbatim(t *testing.T) {
 		Hello:          fakeHello("session.input_lookup"),
 		InputLookupRaw: verbatim,
 	})
-	raw, err := InputLookup(ctx, client, InputLookupParams{SessionID: "s1", SubmissionID: "sub-1"})
+	raw, err := InputLookup(ctx, client, InputLookupParams{SessionID: "s1", BranchID: "main", SubmissionID: "sub-1"})
 	if err != nil {
 		t.Fatalf("InputLookup: %v", err)
 	}
