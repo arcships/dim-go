@@ -44,7 +44,7 @@ Last updated: 2026-11-09
 | # | 项目 | 要求证据 | 当前 | 结论 |
 |---|---|---|---|---|
 | D1 | 语义 token 层 | token 对照表 + 与 Electron 变量一一映射 | 只有 7 个颜色 + 比例间距；对照见 [ui-parity.md](ui-parity.md) | 未通过 |
-| D2 | 主题/皮肤 | 与 Electron 主题数量、切换行为一致 | MyGo 单主题 | 未通过 |
+| D2 | 主题/皮肤 | 与 Electron 主题数量、切换行为一致 | system/light/dark 已实现并持久化；skin/chrome 明确 WIP | 未通过 |
 | D3 | 区域组件 | sidebar、chat-workspace、composer、context-panel、right-panel、settings 等逐一对照 | 只实现前 3 类的一部分 | 未通过 |
 | D4 | 字体/密度/间距 | 截图叠加对照 | 无 | 未通过 |
 | D5 | Markdown/代码块渲染 | 真实内容对照 | 基础 Markdown | 未通过 |
