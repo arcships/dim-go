@@ -352,7 +352,7 @@ func fileChangesBlock(c *ui.Context, k tokens, files []FileChange) {
 	ui.Column(c).Gap(k.gap).Children(func() {
 		ui.Text(c, fileChangesLabel(len(files))).FontSize(k.labelSize).Bold().
 			TextColor(k.mutedForeground)
-		ui.Column(c).Radius(radiusMD).BorderWidth(k.hairline).BorderColor(k.border).
+		ui.Column(c).Radius(k.radiusMD).BorderWidth(k.hairline).BorderColor(k.border).
 			Clip().Children(func() {
 			for i, file := range files {
 				fileChangeRow(c, k, file, i == len(files)-1)

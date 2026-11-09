@@ -306,7 +306,7 @@ func keysPanelList(c *ui.Context, k tokens, v *KeysPanelView, entries []KeysPane
 func keysPanelRow(c *ui.Context, k tokens, v *KeysPanelView, entry KeysPanelEntry) {
 	selected := v.selected(entry)
 	row := ui.ButtonBase(c).Key("keys-row:" + entry.Key).Height(keysPanelRowH).
-		FillWidth().PaddingY(keysPanelRowY).PaddingX(keysPanelPadX).Radius(radiusSM).
+		FillWidth().PaddingY(keysPanelRowY).PaddingX(keysPanelPadX).Radius(k.radiusSM).
 		AlignItems(ui.Center).
 		Role(ui.RoleListItem).Label(entry.Key).Selected(selected)
 	switch {

@@ -95,7 +95,7 @@ func messageRow(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 		messageRowBody(c, k, v, a, m)
 		return
 	}
-	ui.Column(c).Background(k.wash(k.primary)).Radius(radiusSM).Children(func() {
+	ui.Column(c).Background(k.wash(k.primary)).Radius(k.radiusSM).Children(func() {
 		messageRowBody(c, k, v, a, m)
 	})
 }

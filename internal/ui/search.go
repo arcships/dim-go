@@ -437,7 +437,7 @@ func searchResultRow(c *ui.Context, k tokens, v SearchPaletteView, a Actions, in
 	label := sessionLabel(result.Title, v.Locale)
 	row := ui.ButtonBase(c).Key("search-result:" + result.SessionID).
 		Height(searchRowH).FillWidth().PaddingX(searchRowPadX).Gap(searchRowGap).
-		Radius(radiusMD).AlignItems(ui.Center).TabStop(false).
+		Radius(k.radiusMD).AlignItems(ui.Center).TabStop(false).
 		Label(label)
 	row.OnClick(func() {
 		openSearchResult(v, a, index)
@@ -464,7 +464,7 @@ func searchResultRow(c *ui.Context, k tokens, v SearchPaletteView, a Actions, in
 // names the chat, so nothing here is announced twice.
 func searchResultTile(c *ui.Context, k tokens, status SearchResultStatus) {
 	tile := ui.Row(c).Size(searchResultIcon, searchResultIcon).Shrink(0).
-		Radius(radiusMD).Background(k.muted).Justify(ui.Center).
+		Radius(k.radiusMD).Background(k.muted).Justify(ui.Center).
 		AlignItems(ui.Center).AccessHidden(true)
 	switch status {
 	case SearchResultLoading:

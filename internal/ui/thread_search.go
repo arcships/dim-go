@@ -108,7 +108,7 @@ func threadSearchBar(c *ui.Context, k tokens, v ThreadSearchView, a Actions) {
 	bar := ui.Row(c).Key("thread-search").Width(threadSearchW).MaxWidth(threadSearchW).
 		Shrink(1).MinWidth(0).Height(k.sidebarEntryH).AlignItems(ui.Center).
 		Gap(threadSearchGap).Padding(0, threadSearchPadX, 0, threadSearchPadX).
-		Radius(radiusMD).Background(k.muted).BorderWidth(k.hairline).BorderColor(k.border).
+		Radius(k.radiusMD).Background(k.muted).BorderWidth(k.hairline).BorderColor(k.border).
 		Role(ui.RoleGroup).Label(threadSearchLabel(locale, keyThreadSearchRegion)).
 		Transition(motionLayoutColors(c))
 	bar.Children(func() {
@@ -225,7 +225,7 @@ func threadSearchStep(c *ui.Context, k tokens, v ThreadSearchView, a Actions, de
 // assistive technology skips it.
 func threadSearchButton(c *ui.Context, k tokens, key string, icon *ui.SVG, label string, disabled bool, click func()) {
 	button := ui.ButtonBase(c).Key(key).Size(threadSearchEntry, threadSearchEntry).Shrink(0).
-		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
+		Radius(k.radiusSM).AlignItems(ui.Center).Justify(ui.Center).
 		Label(label).Tooltip(label).Transition(motionFastColors(c))
 	if disabled {
 		button.Disabled(true)
