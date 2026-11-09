@@ -28,10 +28,11 @@ const screenshotEnv = "DIMAGENT_UI_SCREENSHOT_DIR"
 
 // screenshotFixture is a fixed shell state for the evidence images: two
 // sessions, one user row, one assistant turn with every timeline block kind —
-// thinking, text, two tool calls and file changes — and one approval row, plus a
-// composer draft. It is view state only, hand-filled exactly as the shell's
-// Milestone 1 fixture is; no App Server, storage or log is read.
-func screenshotFixture() *State {
+// thinking, text, two tool calls and file changes — and, when withApproval is
+// set, one pending approval that takes the composer's slot. Otherwise the frame
+// shows the composer and its draft. It is view state only, hand-filled exactly
+// as the shell's Milestone 1 fixture is; no App Server, storage or log is read.
+func screenshotFixture(withApproval bool) *State {
 	s := &State{
 		Sessions: []Session{
 			{ID: "s1", Title: "Fix flaky screenshot test"},
@@ -101,35 +102,47 @@ func screenshotFixture() *State {
 					},
 				},
 			},
-			{
-				ID:      "m3",
-				Author:  AuthorApproval,
-				Content: "exec — run the screenshot test and write both PNGs",
-				Approval: &Approval{
-					BranchID:  "main",
-					RequestID: "req-screenshot-1",
-					Call:      "exec",
-					Reason:    "run the screenshot test and write both PNGs",
-				},
-			},
 		},
 		Draft: "Rerun the suite and attach the new PNGs.",
 	}
-	// A wired callback turns the approval row's decisions into real buttons;
-	// the fixture records nothing because it sends nothing.
+	if withApproval {
+		s.Messages = append(s.Messages, Message{
+			ID:      "m3",
+			Author:  AuthorApproval,
+			Content: "exec — run the screenshot test and write both PNGs",
+			Approval: &Approval{
+				BranchID:  "main",
+				RequestID: "req-screenshot-1",
+				Call:      "exec",
+				Reason:    "run the screenshot test and write both PNGs",
+			},
+		})
+	}
+	// A wired callback turns the approval decisions into real buttons; the
+	// fixture records nothing because it sends nothing.
 	s.OnApproval = func(string, string, ApprovalDecision) {}
 	s.OnSubmit = func(string) {}
 	return s
 }
 
-// screenshotFrames renders the fixture in both appearances. The two testers
-// are separate, so a click or a draft edit in one cannot leak into the other.
+// screenshotFrames renders both evidence states in both appearances: the
+// approval state (a pending request takes the composer's slot) and the composer
+// state (no pending request, the draft field is visible). Every tester is
+// separate, so a click or a draft edit in one cannot leak into another.
 func screenshotFrames(t *testing.T) map[string]*ui.Tester {
 	t.Helper()
-	light := ui.NewTester(screenshotFixture().View, screenshotWidth, screenshotHeight)
-	dark := ui.NewTester(screenshotFixture().View, screenshotWidth, screenshotHeight)
+	light := ui.NewTester(screenshotFixture(true).View, screenshotWidth, screenshotHeight)
+	dark := ui.NewTester(screenshotFixture(true).View, screenshotWidth, screenshotHeight)
 	dark.SetDark(true)
-	return map[string]*ui.Tester{"light": light, "dark": dark}
+	lightComposer := ui.NewTester(screenshotFixture(false).View, screenshotWidth, screenshotHeight)
+	darkComposer := ui.NewTester(screenshotFixture(false).View, screenshotWidth, screenshotHeight)
+	darkComposer.SetDark(true)
+	return map[string]*ui.Tester{
+		"light":          light,
+		"dark":           dark,
+		"light-composer": lightComposer,
+		"dark-composer":  darkComposer,
+	}
 }
 
 // imageHasContent reports whether the frame draws more than one color, which a
@@ -147,13 +160,14 @@ func imageHasContent(img *image.RGBA) bool {
 	return false
 }
 
-// TestScreenshotFrames checks the evidence frame at rest: it renders the
-// fixture's rows in both themes at 1440×900, it is not blank, and light and
-// dark differ. When DIMAGENT_UI_SCREENSHOT_DIR is set it also writes the two
-// PNGs the docs/evidence/ui README points at; otherwise it touches no file.
+// TestScreenshotFrames checks the evidence frames at rest: both states render in
+// both themes at 1440×900, none is blank, and light and dark differ. When
+// DIMAGENT_UI_SCREENSHOT_DIR is set it also writes the PNGs the
+// docs/evidence/ui README points at; otherwise it touches no file.
 func TestScreenshotFrames(t *testing.T) {
 	frames := screenshotFrames(t)
-	for _, name := range []string{"light", "dark"} {
+	names := []string{"light", "dark", "light-composer", "dark-composer"}
+	for _, name := range names {
 		tt := frames[name]
 		img := tt.Image()
 		if img == nil {
@@ -168,8 +182,13 @@ func TestScreenshotFrames(t *testing.T) {
 		}
 	}
 
-	if bytes.Equal(frames["light"].Image().Pix, frames["dark"].Image().Pix) {
-		t.Error("light and dark frames are pixel-identical")
+	for _, pair := range [][2]string{{"light", "dark"}, {"light-composer", "dark-composer"}} {
+		if bytes.Equal(frames[pair[0]].Image().Pix, frames[pair[1]].Image().Pix) {
+			t.Errorf("%s and %s frames are pixel-identical", pair[0], pair[1])
+		}
+	}
+	if bytes.Equal(frames["light"].Image().Pix, frames["light-composer"].Image().Pix) {
+		t.Error("approval and composer frames are pixel-identical")
 	}
 
 	dir := os.Getenv(screenshotEnv)
@@ -179,8 +198,14 @@ func TestScreenshotFrames(t *testing.T) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("create %s: %v", dir, err)
 	}
-	for _, name := range []string{"light", "dark"} {
-		path := filepath.Join(dir, "shell-"+name+".png")
+	files := map[string]string{
+		"light":          "shell-light.png",
+		"dark":           "shell-dark.png",
+		"light-composer": "shell-light-composer.png",
+		"dark-composer":  "shell-dark-composer.png",
+	}
+	for _, name := range names {
+		path := filepath.Join(dir, files[name])
 		file, err := os.Create(path)
 		if err != nil {
 			t.Fatalf("create %s: %v", path, err)
