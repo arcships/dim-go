@@ -56,6 +56,9 @@ type Settings struct {
 	Density int `json:"density"`
 	// CodeFontSize is the code text size in DIPs. 0 takes the shell's default.
 	CodeFontSize float32 `json:"codeFontSize"`
+	// Locale is the interface language tag ("en" or "zh-CN"). Empty takes the
+	// shell's default language; an unknown tag falls back the same way.
+	Locale string `json:"locale,omitempty"`
 }
 
 // file is the on-disk shape: the format version plus the preferences

@@ -45,6 +45,7 @@ func TestSaveLoadRoundTrip(t *testing.T) {
 		SidebarWidth: 320,
 		Density:      1,
 		CodeFontSize: 16,
+		Locale:       "zh-CN",
 	}
 	if err := saveFile(path, want, os.Rename); err != nil {
 		t.Fatalf("saveFile: %v", err)

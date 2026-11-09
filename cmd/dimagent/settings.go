@@ -132,6 +132,7 @@ func appearanceSnapshot(state *dimui.State) config.Settings {
 		SidebarWidth: state.Settings.SidebarWidth,
 		Density:      int(state.Settings.Density),
 		CodeFontSize: state.Settings.CodeFontSize,
+		Locale:       string(state.Settings.Locale),
 	}
 }
 
@@ -147,5 +148,6 @@ func settingsView(saved config.Settings) dimui.SettingsView {
 		SidebarWidth: saved.SidebarWidth,
 		Density:      dimui.Density(saved.Density),
 		CodeFontSize: saved.CodeFontSize,
+		Locale:       dimui.Locale(saved.Locale),
 	}
 }
