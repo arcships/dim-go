@@ -209,15 +209,14 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 
 // TestSettingsSectionsOrder checks the left column against the reference: the
 // 17 reference sections in order, then the shell's own archived-sessions and
-// about pages, then the capability page last, with the Back row above them and
-// the appearance page marked as selected.
+// about pages, with the Back row above them, the appearance page marked as
+// selected and no capability row of its own.
 func TestSettingsSectionsOrder(t *testing.T) {
 	want := []string{
 		"Account", "Usage", "Personalization", "Appearance", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
 		"External Agent", "Archived sessions", "About",
-		"Unavailable capabilities",
 	}
 	if len(settingsSections) != len(want) {
 		t.Fatalf("the navigation has %d sections, want %d", len(settingsSections), len(want))
@@ -304,7 +303,7 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 // look like a saved preference.
 func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 	for _, section := range settingsSections {
-		if section == SettingsSectionAppearance || section == SettingsSectionCapabilities {
+		if section == SettingsSectionAppearance {
 			continue
 		}
 		name := settingsSectionName(section)
@@ -692,7 +691,6 @@ func TestSettingsKeyboardReachable(t *testing.T) {
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
 		"External Agent", "Archived sessions", "About",
-		"Unavailable capabilities",
 		"System", "Light", "Dark",
 		tr(LocaleEN, keySettingsLanguageRow),
 		tr(LocaleEN, keySettingsFontFamily),
@@ -721,7 +719,6 @@ func focusedName(tt *ui.Tester) string {
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
 		"External Agent", "Archived sessions", "About",
-		"Unavailable capabilities",
 		"System", "Light", "Dark",
 		tr(LocaleEN, keySettingsLanguageRow),
 		tr(LocaleEN, keySettingsFontFamily),
@@ -760,10 +757,11 @@ func roleName(role ui.Role) string {
 	}
 }
 
-// TestSettingsCapabilitiesPage checks the page the sidebar's cards moved to: the
-// settings navigation carries "Unavailable capabilities", the page lists every
-// gap the shell has, and the sidebar itself draws none of them.
-func TestSettingsCapabilitiesPage(t *testing.T) {
+// TestSettingsAboutPageListsCapabilities checks where the shell's capability
+// gaps live now: the settings navigation has no "Unavailable capabilities" row,
+// and the About page carries the list beside its own WIP explanation. The
+// sidebar itself draws none of the cards.
+func TestSettingsAboutPageListsCapabilities(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 900)
 
@@ -773,24 +771,30 @@ func TestSettingsCapabilitiesPage(t *testing.T) {
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.Click("Unavailable capabilities"); err != nil {
+	if _, ok := tt.AccessByRole(ui.RoleListItem, "Unavailable capabilities"); ok {
+		t.Fatalf("the navigation still carries an unavailable-capabilities row, texts %q", tt.Texts())
+	}
+	if err := tt.Click("About"); err != nil {
 		t.Fatal(err)
 	}
-	if info, ok := tt.AccessByRole(ui.RoleHeading, "Unavailable capabilities"); !ok || info.Level != 1 {
-		t.Fatalf("the capabilities page has no level-1 heading: %+v, found %v", info, ok)
+	if info, ok := tt.AccessByRole(ui.RoleHeading, "About"); !ok || info.Level != 1 {
+		t.Fatalf("the About page has no level-1 heading: %+v, found %v", info, ok)
+	}
+	if !tt.HasText(settingsSectionGaps[SettingsSectionAbout]) || !tt.HasText(wipBadge) {
+		t.Errorf("the About page lost its WIP explanation, texts %q", tt.Texts())
 	}
 	if _, ok := tt.AccessByRole(ui.RoleGroup, "Unavailable capabilities"); !ok {
-		t.Fatalf("the capabilities page does not group its cards, texts %q", tt.Texts())
+		t.Fatalf("the About page does not group the capability cards, texts %q", tt.Texts())
 	}
 	for _, capability := range wipCapabilities(s) {
 		for _, want := range []string{capability.action, capability.method, capability.gap} {
 			if !tt.HasText(want) {
-				t.Errorf("the capabilities page is missing %q, texts %q", want, tt.Texts())
+				t.Errorf("the About page is missing %q, texts %q", want, tt.Texts())
 			}
 		}
 	}
 	if !tt.HasText(settingsCapabilitiesNote) {
-		t.Errorf("the capabilities page lost its note, texts %q", tt.Texts())
+		t.Errorf("the About page lost the capability note, texts %q", tt.Texts())
 	}
 }
 

@@ -45,8 +45,9 @@ func TestLocaleDefaultsToEnglish(t *testing.T) {
 
 // TestChineseLocaleDrawsChinese checks that a saved zh-CN preference reaches
 // every region: the sidebar entries and headings, the toolbar, the composer,
-// the WIP reasons and the capability page. Nothing on the frame is a session
-// fact in this fixture, so the comparison is only the shell's own words.
+// the WIP reasons and the About page's capability list. Nothing on the frame is
+// a session fact in this fixture, so the comparison is only the shell's own
+// words.
 func TestChineseLocaleDrawsChinese(t *testing.T) {
 	s := fixture()
 	s.Settings = SettingsView{Locale: LocaleZHCN}
@@ -90,18 +91,21 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 		t.Error("the zh-CN frame dropped the caller's session title")
 	}
 
-	// The capability cards live on the settings page now. Opening it shows the
+	// The capability cards live on the About page now. Opening it shows the
 	// translated group, the action and the gap, while the wire method stays
 	// literal.
 	if err := tt.Click("设置"); err != nil {
 		t.Fatal(err)
 	}
-	if err := tt.Click("不可用的能力"); err != nil {
+	if _, ok := tt.AccessByRole(ui.RoleListItem, tr(LocaleZHCN, keyCapabilityGroup)); ok {
+		t.Errorf("the zh-CN navigation still carries the capability group as a row, texts %q", tt.Texts())
+	}
+	if err := tt.Click("关于"); err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{"不可用的能力", "创建会话", "会话键", "session.create"} {
 		if !tt.HasText(want) {
-			t.Errorf("the zh-CN capability page is missing %q, texts %q", want, tt.Texts())
+			t.Errorf("the zh-CN About page is missing %q, texts %q", want, tt.Texts())
 		}
 	}
 	if _, ok := tt.AccessByRole(ui.RoleText, "创建会话"); !ok {

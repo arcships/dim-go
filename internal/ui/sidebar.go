@@ -113,15 +113,14 @@ type sidebarRow struct {
 }
 
 // accessLabel is what assistive technology reads for the row: the heading's
-// text, or the session's title falling back to its ID.
-func (r sidebarRow) accessLabel() string {
+// text, or the session's title, with an untitled session named by the locale's
+// placeholder. A session id is an opaque wire value, so it never becomes the
+// row's name.
+func (r sidebarRow) accessLabel(l Locale) string {
 	if r.group {
 		return r.label
 	}
-	if r.title != "" {
-		return r.title
-	}
-	return r.sessionID
+	return sessionLabel(r.title, l)
 }
 
 // threadRows lays the catalog out for the sidebar. When no session carries a
@@ -380,7 +379,7 @@ func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		}
 		list := &v.state.list
 		list.Selected = &v.state.choice
-		list.Label = func(row int) string { return rows[row].accessLabel() }
+		list.Label = func(row int) string { return rows[row].accessLabel(locale) }
 		list.Header = func(row int) bool { return rows[row].group }
 		list.Key = func(row int) any {
 			if rows[row].group {
@@ -481,8 +480,10 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 	}
 	line.Children(func() {
 		// The reference's session row carries its title and relative stamp only:
-		// no status dot, because the shell has no run fact for a session row.
-		ui.Text(c, row.title).FontSize(k.bodySize).TextColor(k.sidebarForeground).
+		// no status dot, because the shell has no run fact for a session row. A
+		// session the catalog has no title for yet draws the locale's word for an
+		// untitled session rather than its opaque id.
+		ui.Text(c, sessionLabel(row.title, v.Locale)).FontSize(k.bodySize).TextColor(k.sidebarForeground).
 			SingleLine().Grow(1)
 		if stamp := relativeStamp(row.updatedAt, time.Now()); stamp != "" {
 			ui.Text(c, stamp).FontSize(k.smallSize).TextColor(k.sidebarForeground).

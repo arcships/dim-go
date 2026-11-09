@@ -175,10 +175,6 @@ const (
 	// SettingsSectionAppearance is the color, type, layout, skin and language
 	// page. It is the zero value and the surface's default.
 	SettingsSectionAppearance SettingsSection = iota
-	// SettingsSectionCapabilities is the read-only list of capabilities this
-	// shell has not wired yet. It moved here from the sidebar, which the
-	// reference keeps free of product-status cards.
-	SettingsSectionCapabilities
 	// SettingsSectionAccount is the account and sign-in page.
 	SettingsSectionAccount
 	// SettingsSectionUsage is the usage and spend page.
@@ -225,10 +221,10 @@ const settingsSectionLast = SettingsSectionAbout
 
 // settingsSections is the navigation's order: the reference's 17 entries
 // (docs/evidence/electron-reference/window-settings.png), from Account to
-// External Agent, then this shell's own archived-sessions and about entries,
-// then the unavailable-capabilities page last. The extra pages are appended
-// rather than placed inside the reference's list so the 17 reference rows keep
-// their order.
+// External Agent, then this shell's own archived-sessions and about entries.
+// The two extra pages are appended rather than placed inside the reference's
+// list so the 17 reference rows keep their order. The shell's capability gaps
+// are content of the About page, not a navigation row of their own.
 var settingsSections = [...]SettingsSection{
 	SettingsSectionAccount,
 	SettingsSectionUsage,
@@ -249,7 +245,6 @@ var settingsSections = [...]SettingsSection{
 	SettingsSectionExternalAgent,
 	SettingsSectionArchivedSessions,
 	SettingsSectionAbout,
-	SettingsSectionCapabilities,
 }
 
 // resolvedSection folds an unknown saved section onto the default, as
@@ -263,9 +258,9 @@ func resolvedSection(s SettingsSection) SettingsSection {
 }
 
 // settingsSectionName is the section's English name, used for the page heading
-// and the navigation row. Only Appearance and the capability list have pages
-// today; the other pages are not built, so their names stay English until
-// i18n.go carries the settings.section.* keys.
+// and the navigation row. Only Appearance and About have content today; the
+// other pages are not built, so their names stay English until i18n.go carries
+// the settings.section.* keys.
 func settingsSectionName(s SettingsSection) string {
 	switch s {
 	case SettingsSectionAccount:
@@ -274,8 +269,6 @@ func settingsSectionName(s SettingsSection) string {
 		return "Usage"
 	case SettingsSectionPersonalization:
 		return "Personalization"
-	case SettingsSectionCapabilities:
-		return "Unavailable capabilities"
 	case SettingsSectionGeneral:
 		return "General"
 	case SettingsSectionShortcuts:
@@ -319,10 +312,6 @@ func settingsSectionLabel(l Locale, s SettingsSection) string {
 	switch s {
 	case SettingsSectionAppearance:
 		return tr(l, keySettingsTitle)
-	case SettingsSectionCapabilities:
-		// The shell has no settings.section.capabilities key yet; the
-		// capability group's existing label names the page in both languages.
-		return tr(l, keyCapabilityGroup)
 	}
 	slug := settingsSectionSlug(s)
 	if slug == "" {
@@ -345,8 +334,6 @@ func settingsSectionSlug(s SettingsSection) string {
 		return "usage"
 	case SettingsSectionPersonalization:
 		return "personalization"
-	case SettingsSectionCapabilities:
-		return "capabilities"
 	case SettingsSectionGeneral:
 		return "general"
 	case SettingsSectionShortcuts:
@@ -743,7 +730,7 @@ func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipC
 
 // settingsNavigation draws the section column: a Back row, then every section
 // the reference lists in its order, then the shell's own archived-sessions and
-// about pages, then the capability page. Each row is one focusable entry with
+// about pages. Each row is one focusable entry with
 // its 16×16 outline glyph, and the selected row carries the sidebar's selection
 // pill. The column scrolls when the window is too short for every row, and a
 // click only moves the route's section; the Back row calls onBack, which is the
@@ -858,9 +845,10 @@ func settingsCompactPage(c *ui.Context, k tokens, v SettingsView, capabilities [
 }
 
 // settingsPage draws the right-hand page. The appearance page is the only one
-// with controls; the capability page lists the shell's unwired actions, and
-// every other page draws its title, a WIP badge and the client or page it waits
-// on, so the section never pretends a preference was read.
+// with controls; the about page draws its own WIP explanation and the shell's
+// unwired capabilities, and every other page draws its title, a WIP badge and
+// the client or page it waits on, so the section never pretends a preference
+// was read.
 func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, section SettingsSection, onChange func(SettingsChange)) {
 	l := v.Locale
 	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Clip().Children(func() {
@@ -869,7 +857,12 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 				ui.Text(c, settingsSectionLabel(l, section)).Bold().FontSize(k.heroTitleSize).
 					TextColor(k.foreground).Role(ui.RoleHeading).Level(1)
 				switch section {
-				case SettingsSectionCapabilities:
+				case SettingsSectionAbout:
+					// The about page has no build or version fact to show, so it
+					// keeps the WIP explanation and, under it, the capability list
+					// the reference keeps off its navigation.
+					settingsWIPPage(c, k, section, v.Locale)
+					settingsDivider(c, k)
 					settingsCapabilitiesPage(c, k, v, capabilities)
 					return
 				case SettingsSectionAppearance:
@@ -901,14 +894,14 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 	})
 }
 
-// settingsCapabilitiesNote explains the capabilities page. There is no message
-// key for it yet, so it stays English in every language; the section heading
-// reuses the capability group's translated label.
+// settingsCapabilitiesNote explains the capability list the About page carries.
+// There is no message key for it yet, so it stays English in every language.
 const settingsCapabilitiesNote = "These actions have no client, page or callback wired in this shell yet. Each card names the entry it waits on; nothing here can be clicked."
 
-// settingsCapabilitiesPage lists the actions the shell has not wired, as the
-// sidebar used to. It reads the list the shell assembled and offers no control,
-// so a reader can learn what is missing without a click that could imply the
+// settingsCapabilitiesPage lists the actions the shell has not wired, as part
+// of the About page: the reference has no capabilities entry of its own in the
+// navigation. It reads the list the shell assembled and offers no control, so a
+// reader can learn what is missing without a click that could imply the
 // capability exists. The server-owned facts behind each card stay in the App
 // Server; only the product status is drawn here.
 func settingsCapabilitiesPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability) {
@@ -1251,7 +1244,7 @@ func settingsThemeIcon(choice ThemeChoice) *ui.SVG {
 
 // settingsExtraIcons holds the two glyphs this shell adds to the reference's
 // navigation: the archived-sessions and about entries. icons.go owns the
-// reference's marks and the capability page's generic one, so the shell's own
+// reference's marks and the About page's list, so the shell's own
 // pages carry their own shapes here instead of changing that set.
 var settingsExtraIcons = struct {
 	archive *ui.SVG

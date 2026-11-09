@@ -385,7 +385,9 @@ func sessionTitle(summary appserver.SessionSummary, live session.TitleState) str
 	if summary.Preview != nil && *summary.Preview != "" {
 		return *summary.Preview
 	}
-	return summary.SessionID
+	// No observed label yet: the UI localizes the placeholder. Returning the
+	// session id here would leak a truncated opaque id into the shell.
+	return ""
 }
 
 // mergeTitle orders the catalog entry's title triple against the live title

@@ -100,8 +100,8 @@ func TestSessionControllerRenameRoundTrip(t *testing.T) {
 	if !title.Known || title.Text != nil || title.Source != nil || title.Revision != 3 {
 		t.Fatalf("title after clear = %#v", title)
 	}
-	if got := controller.State(summary).Sessions[0].Title; got != "s1" {
-		t.Fatalf("row title after clear = %q, want the id fallback", got)
+	if got := controller.State(summary).Sessions[0].Title; got != "" {
+		t.Fatalf("row title after clear = %q, want no label for the UI's untitled placeholder", got)
 	}
 }
 

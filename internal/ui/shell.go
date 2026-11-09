@@ -1242,7 +1242,7 @@ func (s *State) pendingApprovals() []Approval {
 func (s *State) headerView() HeaderView {
 	v := HeaderView{
 		Project:          s.selectedProject(),
-		Title:            s.selectedTitle(),
+		Title:            s.sessionTitleLabel(),
 		SessionID:        s.Selected,
 		HasSession:       s.Selected != "",
 		SelectedBranch:   s.SelectedBranch,
@@ -1422,6 +1422,19 @@ func (s *State) selectedTitle() string {
 	for _, session := range s.Sessions {
 		if session.ID == s.Selected {
 			return session.Title
+		}
+	}
+	return tr(s.locale(), keyNoSession)
+}
+
+// sessionTitleLabel is the title the toolbar's breadcrumb draws. Unlike
+// selectedTitle, which also seeds the rename dialog and must stay empty for a
+// session without a title, this one names an untitled session with the locale's
+// placeholder: the breadcrumb never shows an opaque id in place of a name.
+func (s *State) sessionTitleLabel() string {
+	for _, session := range s.Sessions {
+		if session.ID == s.Selected {
+			return sessionLabel(session.Title, s.locale())
 		}
 	}
 	return tr(s.locale(), keyNoSession)

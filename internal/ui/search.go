@@ -205,9 +205,6 @@ func searchResults(sessions []Session, query string) []SearchResult {
 			continue
 		}
 		title := session.Title
-		if title == "" {
-			title = session.ID
-		}
 		results = append(results, SearchResult{SessionID: session.ID, Title: title, Group: session.Group})
 		if len(results) == searchMaxResults {
 			break
@@ -407,17 +404,18 @@ func searchResultRows(c *ui.Context, k tokens, v SearchPaletteView, a Actions, h
 // the reference's bg-muted face. A click opens the row immediately, as the
 // reference's rows do.
 func searchResultRow(c *ui.Context, k tokens, v SearchPaletteView, a Actions, index int, result SearchResult) ui.Element {
+	label := sessionLabel(result.Title, v.Locale)
 	row := ui.ButtonBase(c).Key("search-result:" + result.SessionID).
 		Height(searchRowH).FillWidth().PaddingX(searchRowPadX).Gap(searchRowGap).
 		Radius(radiusMD).AlignItems(ui.Center).TabStop(false).
-		Label(result.Title)
+		Label(label)
 	row.OnClick(func() {
 		openSearchResult(v, a, index)
 	})
 	row.Children(func() {
 		searchResultTile(c, k, result.Status)
 		ui.Column(c).Grow(1).Shrink(1).MinWidth(0).Children(func() {
-			ui.Text(c, result.Title).FontSize(k.bodySize).TextColor(k.foreground).
+			ui.Text(c, label).FontSize(k.bodySize).TextColor(k.foreground).
 				FontWeight(500).SingleLine()
 			if result.Group != "" {
 				ui.Text(c, result.Group).FontSize(k.smallSize).

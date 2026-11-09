@@ -33,7 +33,9 @@ func settingsGlyphCases() map[string]*ui.SVG {
 		"externalAgent":   settingsIcons.externalAgent,
 		"archived":        settingsExtraIcons.archive,
 		"about":           settingsExtraIcons.about,
-		"capabilities":    settingsIcons.capabilities,
+		// capabilities stays the generic fallback mark settingsIcon draws for a
+		// value outside the enum; no navigation row uses it.
+		"capabilities": settingsIcons.capabilities,
 	}
 }
 
@@ -55,8 +57,8 @@ func TestSettingsGlyphsAreSixteenSquares(t *testing.T) {
 		}
 		seen[glyph] = name
 	}
-	if len(settingsSections) != 20 {
-		t.Errorf("the navigation lists %d sections, want the reference's 17, the shell's archived-sessions and about pages, and the capability page", len(settingsSections))
+	if len(settingsSections) != 19 {
+		t.Errorf("the navigation lists %d sections, want the reference's 17 plus the shell's archived-sessions and about pages", len(settingsSections))
 	}
 	bySection := map[*ui.SVG]string{}
 	for _, section := range settingsSections {
