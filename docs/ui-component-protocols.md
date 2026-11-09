@@ -85,6 +85,8 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions)
 
 调用方：`renderTimeline` 的按 author 分发（`AuthorApproval`）。动作：每个可寻址请求给出 Approve/Deny 各一个按钮，分别调 `OnApproval(branchID, requestID, allow/deny)`；行本身只在之后的 projection 帧里消失。
 
+**已知缺口**：`ApprovalView` 还没有 tool-input payload、approval variant、响应选项列表，所以命令/文件输入块和 `allow_once`/`reject_once` 变体无法实现（`a2cdb9b` 的 TODO）。composer 槽位面板 `renderApprovalPanel`（`approval_panel.go`）已实现，但尚未在 `shell.View` 接线。
+
 ### 2.5 输入区 `ComposerView`
 
 | 字段 | 类型 | 含义与不变量 |
