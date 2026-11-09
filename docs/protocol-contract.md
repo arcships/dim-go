@@ -1,6 +1,6 @@
 # Protocol v3 Wire 合同
 
-Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper 和 supervisor reconnect；real-daemon 控制面已验证，session re-attach/resync、UI 接线与真实 session 流仍未验证）
+Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper、supervisor reconnect 和 UI approval 接线；real-daemon 控制面与 session 流已验收，session domain resync、`subscription_changed` 恢复和真实 GUI/IME 仍未验证）
 Last updated: 2026-11-09
 协议依据：upstream 公开设计合同（`session-boundary.md`、`session-access.md`）与 public protocol v3；不引用 Rust 内部源码或 Desktop private wire 作为实现合同。
 Owner: protocol
@@ -29,7 +29,7 @@ Owner: protocol
 - `session-access.md`：`session.input_lookup`/`lookup` 的提交标识查找回答 `accepted` 或 `unknown`，不写入；`accepted` 找到已提交输入，不等于 turn 成功。
 - `session.keys` / `session.branches`：公开 Desktop protocol contract 已有；`dim-electron` 的 `session-reader.ts:1041-1074` 正式调用，`app-server-protocol/src/wire.ts:267-303` 定义 DTO。MyGo helper 和 session 读取已落地，UI 接线与真实验收仍未完成。
 
-本仓库的 `headless`/`fake-server` 测试只证明本地实现行为，不构成上游合同；real-daemon 目前只有控制面 smoke 证据，不覆盖真实 session 流。本文不引用 Rust 内部源码；Desktop 证据仅限公开 client 调用和 public protocol DTO。
+本仓库的 `headless`/`fake-server` 测试只证明本地实现行为，不构成上游合同；real-daemon 证据目前覆盖控制面（spawn/hello/catalog/close）和 opt-in 的 session 流（create/attach/history/submit/stop/cleanup），不覆盖 GUI 或 IME。本文不引用 Rust 内部源码；Desktop 证据仅限公开 client 调用和 public protocol DTO。
 
 ## 3. 传输与帧
 
@@ -277,7 +277,7 @@ Timeline 的 `type/name` 由 App Server 事件定义；projection 需要的组�
 - 持久化授权（always allow）走 `session.grants.add`，且必须先由 `session.methods` advertise；本阶段可不做。
 - pending question 不在 attach replay 里，需从当前 turn 的 `step/tool-call` 缺少对应 `step/tool-result` 推导；本阶段不做。
 
-Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返回 cancelled 而不报错或重试；always-allow（`session.grants.add`）和 question 仍未实现。UI 的 approve/deny 仍是 visible-disabled WIP，不报告未发送的决策。
+Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返回 cancelled 而不报错或重试，`Session.RespondApproval` 同步把该 request 从 pending 集合移除；UI 的 `Approve`/`Deny` 已接到 `approval.respond`，只有 App Server 接受才更新状态，cancelled 显示为 notice 而不是成功。always-allow（`session.grants.add`）和 question 仍未实现。
 
 ## 13. 错误
 
@@ -310,7 +310,7 @@ Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返�
 - mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。四类 mutation 都必须各有 unknown-result fixture；不能只用 submit 覆盖。
 - 重连单飞：并发重连共享同一个进行中的尝试；关闭中的 supervisor 拒绝新重连。
 
-Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；`internal/session.SubmitWithID` 返回已发送的 submission UUID，`Session.LookupInput`/`appserver.InputLookup` 可按该 UUID 原样读回 `{status:"accepted",event}` 或 `{status:"unknown"}`，绝不自动重发。supervisor 已实现 `Reconnect`（单飞、重新解析 endpoint、关闭旧 attachment、按 backoff 重试、generation/stale 标记、transport 终止原因和 close 竞争处理）；`Client.Done`、`SessionStream` 的 `lost`/`transport_closed` 和 `Connection.Done`/`Err` 提供 resync 触发信号。session 层的 re-attach/domain resync 仍由上层编排，`internal/session` 不会自己重开或重建 attachment。
+Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；`internal/session.SubmitWithID` 返回已发送的 submission UUID，`Session.LookupInput`/`appserver.InputLookup` 可按该 UUID 原样读回 `{status:"accepted",event}` 或 `{status:"unknown"}`，绝不自动重发。supervisor 已实现 `Reconnect`（单飞、重新解析 endpoint、关闭旧 attachment、按 backoff 重试、generation/stale 标记、transport 终止原因和 close 竞争处理）；`Client.Done`、`SessionStream` 的 `lost`/`transport_closed` 和 `Connection.Done`/`Err` 提供 resync 触发信号。`integration.SessionController.Reattach` 只对 transport 终止（`Lost()` 或 `Connection.Done`）的 session 重建 attachment 和投影，generation 前进/daemon 重启时丢弃新 attachment（`ErrDaemonRestarted`）；`subscription_changed` 的只读路径最多重试一次，写操作 fail-closed 返回 `ErrReplayGap`，不重放、不本地补事实。`internal/session` 自身仍不主动重开 attachment。
 
 ## 15. 当前合同缺口与上游确认项
 
@@ -420,8 +420,9 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 
 - 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（8 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
-- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥和 cmd 的 opt-in 启动路径，以及 client 层错误；`subscription_changed` 恢复、`session.create` 的 UI 接线、`session.keys`/`session.branches` 的 MyGo UI 接线（公开 Desktop protocol contract 已有；session 已读取只读 snapshot，UI branch switching/cut point 未接）、`session.input_lookup` 的真实 daemon 读回和 session 层 re-attach/resync 未覆盖；
-- 已通过（`real-daemon` 控制面）：在 `../dim-2` 执行 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server`，再设置 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 运行 `TestRealDaemonSmoke`，覆盖 spawn/hello/catalog/close；该证据不覆盖真实 session 流、projection 或 GUI。
+- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥、`Reattach` 的 transport 终止重建与 replay-gap fail-closed，以及 cmd 的 opt-in 启动路径；未覆盖的是 `session.create` 的 UI 接线、`session.keys`/`session.branches` 的 UI 接线（公开 Desktop protocol contract 已有；session 已读取只读 snapshot，UI branch switching/cut point 未接）、`session.input_lookup` 的真实 daemon 读回，以及 `subscription_changed` 的真实 wire 恢复；
+- 已通过（`real-daemon` 控制面）：在 `../dim-2` 执行 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server`，再设置 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 运行 `TestRealDaemonSmoke`，覆盖 spawn/hello/catalog/close；
+- 已通过（`real-daemon` session 流，opt-in）：设置 `DIMAGENT_REAL_SESSION_FLOW=1` 运行 `TestRealDaemonSessionFlow`，覆盖 create → attach → history → submit → `session.state` 收敛 → stop → detach → 自有 daemon shutdown；该证据不含审批 replay、`subscription_changed` 恢复、projection 或 GUI。
 
 ## 21. 未决问题与 blocker
 
@@ -430,5 +431,5 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 3. `session.history` 的 `through` 在上游是否必填、`through < after` 是否报错，未验证。
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
-6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 已补充控制面 smoke（spawn/hello/catalog/close），不代表真实 session 流、projection 或 GUI 通过。
-7. `session.keys` / `session.branches` 的公开 Desktop protocol contract 已有；`internal/session` 已 capability-gated 读取，`Keys`/`BranchDirectory` 暴露只读 snapshot，`Branches()` 只含观察到的 branch id，UI branch switching/cut point 与真实验收仍未完成。`session.input_lookup` 已有 typed/raw helper（公开合同响应 `accepted`/`unknown`），`session.methods` helper 按公开 `{name, mutating}` 实现，但仍未接到 UI/真实 daemon 验收；session 层 re-attach/resync 未实现。`session.create` client/helper 已实现，但尚未接到 UI。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
+6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 已补充控制面（spawn/hello/catalog/close）和 opt-in session 流（create/attach/history/submit/stop/cleanup）证据，不代表审批 replay、`subscription_changed` 恢复、projection 或 GUI 通过。
+7. `session.keys` / `session.branches` 的公开 Desktop protocol contract 已有；`internal/session` 已 capability-gated 读取，`Keys`/`BranchDirectory` 暴露只读 snapshot，`Branches()` 只含观察到的 branch id，UI branch switching/cut point 仍未完成。`session.input_lookup` 已有 typed/raw helper（公开合同响应 `accepted`/`unknown`），`session.methods` helper 按公开 `{name, mutating}` 实现，但都未接到 UI 或真实 daemon 读回。`session.create` client/helper 已实现，但尚未接到 UI。supervisor 的 `Reconnect`/generation、`integration.SessionController.Reattach`（transport 终止重建、replay-gap 写操作 fail-closed）和 `internal/session.SubmitWithID` 已落地并接到窗口。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现并显示。`approval.respond` 已接到 UI：`allow`/`deny` 折叠、`-32602` 按 cancelled 处理并移出 pending、绝不重放；question 和 always-allow 仍未实现。

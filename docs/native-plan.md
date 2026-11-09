@@ -32,7 +32,8 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - ComposerView（`ui.TextArea`）；
 - Markdown/代码块 fixture；
 - 长列表和滚动行为的 headless fixture；
-- visible-disabled WIP 入口：`New session`、`Reconnect`（仅非 ready 时显示）、`Attach file`、approval 的 `Approve`/`Deny`；入口保留位置和可访问名称，标记 disabled、dimmed，并以描述说明等待的上游方法，不处理点击、不报告成功；
+- visible-disabled WIP 入口：`New session`、`Reconnect`（仅非 ready 时显示）、`Attach file`；入口保留位置和可访问名称，标记 disabled、dimmed，并以描述说明等待的上游方法，不处理点击、不报告成功；
+- approval 的 `Approve`/`Deny` 已接通 `approval.respond`：有 pending request 和回调时是真实按钮，无回调或无 requestID 时退回 visible-disabled WIP；点击只发送一次 decision，`-32602`/cancelled 显示为 notice 而不是成功；
 - Tab 顺序覆盖上述入口，screen reader/keyboard 用户能发现并读到不可用原因。
 
 未完成：真实窗口截图验收、流式增长下的人工视觉检查、真实 IME/AX 验收。
@@ -53,18 +54,18 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 - `internal/integration`：supervisor → session → viewmodel 的 `SessionController`（Open/Catalog/State/Close），fake daemon 端到端测试；
 - Supervisor reconnect：单飞、generation、旧 attachment 失效、transport 终止原因和 close 竞争处理。
 
-未完成：session 层 re-attach/domain resync、UI branch switching/cut point（`BranchDirectory` 已有只读 snapshot，`Branches()` 仅含事件观察到的 branch id）、`session.methods` 插件入口接线、approval replay 集合替换、附件上传、approval UI 接线和 session/viewmodel/integration 窗口接线。`session.create`、`session.methods`、`session.input_lookup` 已有 Go client/helper；`session.methods` 和 `session.input_lookup` 有公开合同依据（后者响应 `{status:"accepted",event}` 或 `{status:"unknown"}`）。`session.keys`/`session.branches` 已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper；`internal/session.Open` 已 capability-gated 读取并暴露只读 snapshot。公开 Desktop protocol contract 已有，UI branch switching/cut point 与真实验收仍未完成。以上均由 fake/headless 覆盖，尚未接入 UI。真实 daemon 控制面 smoke 已有 opt-in 测试，并已用 `../dim-2` 构建的 `dim-app-server` 实测通过；它不覆盖真实 session 流、GUI 或 IME。
+未完成：UI branch switching/cut point（`BranchDirectory` 已有只读 snapshot，`Branches()` 仅含事件观察到的 branch id）、`session.methods` 插件入口接线、approval replay 集合替换、附件上传、`session.create` 与 unknown-result UI 接线。`Reattach` 已实现：只在 transport 终止时重建 attachment 和投影，replay gap 时只读路径单次重试、写操作 fail-closed，不再依赖上层临时编排。`session.create`、`session.methods`、`session.input_lookup` 已有 Go client/helper；`session.methods` 和 `session.input_lookup` 有公开合同依据（后者响应 `{status:"accepted",event}` 或 `{status:"unknown"}`）。`session.keys`/`session.branches` 已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper；`internal/session.Open` 已 capability-gated 读取并暴露只读 snapshot。UI branch switching/cut point 仍未完成。真实 daemon 已有 opt-in 的 `TestRealDaemonSmoke` 和 `TestRealDaemonSessionFlow`，后者覆盖 create → attach → history → submit → stop → cleanup；两者都不覆盖审批 replay、`subscription_changed` 恢复、GUI 或 IME。
 
 ## Milestone 3：第一个纵向闭环
 
-启动路径已接入（`headless` + `fake-server`）；交互和 live 刷新未完成。
+启动路径、session 切换、submit/stop/reconnect 和 approval 决策已接入（`headless` + `fake-server`，真实 daemon session 流已验收）；持续 live ticker 和真实窗口手测未完成。
 
 - open session（`cmd/dimagent` 在 `DIMAGENT_PRODUCT_HOME` 下经 supervisor → integration 打开首个 session）
-- render history（首屏 history + viewmodel 已渲染一次快照）
-- submit（`internal/session.Submit`/`SubmitWithID` 已有，未接入窗口）
-- live event（stream 路由和 session drain 已有，窗口不刷新）
-- stop（`internal/session.Stop` 已有，未接入窗口）
-- reconnect/resync（supervisor `Reconnect`/generation 已有；session re-attach/rebuild 和 UI 重连未实现）
+- render history（首屏 history + viewmodel 渲染快照）
+- submit（`SubmitWithID` 接到窗口，未知结果只读回不重发）
+- live event（stream 路由和 session drain 已有，窗口没有持续 ticker，按动作/选中后刷新）
+- stop（`session.stop` 接到窗口，只在 running 时出现）
+- reconnect/resync（supervisor `Reconnect`/generation 已接入窗口；`SessionController.Reattach` 在 transport 终止时重建 attachment，`subscription_changed` 写操作 fail-closed）
 
 `cmd/dimagent` 未设置 `DIMAGENT_PRODUCT_HOME` 时显示未连接，不再使用手写 fixture。
 
@@ -73,7 +74,7 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 未开始。
 
 - branch/side chat
-- approval/question（`approval.respond` client helper 和 `-32602` 映射已实现；UI 的 `Approve`/`Deny` 仍是 visible-disabled WIP，replay 集合替换未实现）
+- approval/question（`approval.respond` 已接到 UI：`allow`/`deny` 折叠、`-32602` 按 cancelled 处理并移除 pending、不重放；question/elicitation 和 replay 集合替换未实现）
 - model progress（Go transient projection 已实现，未接入 UI）
 - goal/title
 - tasks/workflows
