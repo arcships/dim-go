@@ -1,0 +1,4 @@
+capture	docs/evidence/window-branch-switch.png
+git_head	38c0cc1
+driver	scripts/ax/axdo.swift
+note	real window click on the side branch; status bar and timeline follow it
