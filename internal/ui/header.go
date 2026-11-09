@@ -34,12 +34,22 @@ const breadcrumbGap = 4
 
 // breadcrumbProjectMaxW is the room the reference gives the project name before
 // it truncates, in DIPs. Its span is max-w-[8rem] and shrinks inside the
-// breadcrumb's flex row; at an 800 DIP window the flex row leaves it about 83
-// DIPs, so window-conversation.png draws "dimagent-m…" and starts the title's
-// ink at x≈375, 15 DIPs right of where the whole name would leave it. The shell
-// has no flex shrink in the bar, so it keeps the measured width as a literal
-// rather than letting the full project name push the title left.
-const breadcrumbProjectMaxW = 83
+// breadcrumb's flex row; at an 800 DIP window the flex row leaves it about 85
+// DIPs, so window-conversation.png draws "dimagent-m…" with its last dot at
+// x≈355 and starts the title's ink at x≈375, 15 DIPs right of where the whole
+// name would leave it. The shell has no flex shrink in the bar, so it keeps the
+// measured width as a literal rather than letting the full project name push
+// the title left.
+const breadcrumbProjectMaxW = 85
+
+// breadcrumbLeftPad is the bar's leading inset, in DIPs: the reference's
+// ChatHeaderFrame keeps px-3 on the header and mx-3 on the breadcrumb's flex
+// row (10.5 + 10.5 at the 14px root), so window-conversation.png starts the
+// project's ink at x≈277.5, about 21 inside the main card's edge and 3.5 DIPs
+// left of the conversation's own 24.5 DIP content inset. The shell's frame puts
+// the bar's content edge at x≈258, so 19 keeps the project where the reference
+// draws it while the 85 DIP cap keeps the title at x≈375.
+const breadcrumbLeftPad = 19
 
 // menuTargetW is the session menu's target width, in DIPs: a compact step that
 // keeps the "…" close to the truncated title instead of pushing it into the
@@ -78,7 +88,7 @@ const reasonOpenInEditor = "Unavailable: the shell has no editor-open client or 
 func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	ui.Row(c).Role(ui.RoleToolbar).Label(tr(locale, keyHeaderRegion)).
-		Gap(k.gapWide).MinHeight(k.headerH).Padding(k.toolbarPadY, k.toolbarPadX, k.toolbarPadY, k.conversationPadX()).AlignItems(ui.Center).
+		Gap(k.gapWide).MinHeight(k.headerH).Padding(k.toolbarPadY, k.toolbarPadX, k.toolbarPadY, breadcrumbLeftPad).AlignItems(ui.Center).
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
 		if !v.HasSession {
 			// No session: no breadcrumb, no menu and no run row, only the space
@@ -236,14 +246,16 @@ func headerDivider(c *ui.Context, k tokens) {
 // The shell has no editor-open client and no workspace fact to hand one, so the
 // entry takes no click and no Tab stop and carries the reason it waits on in its
 // description and tooltip. The marks are decorations; the localized label names
-// the entry.
+// the entry. DimDisabled(false) keeps the mark's brand blue solid: a disabled
+// entry that dimmed itself would wash the reference's #2563EB to a pale tint,
+// and the unavailability is what assistive technology reads, not a faded look.
 func openInEditorEntry(c *ui.Context, k tokens, locale Locale) {
 	label := tr(locale, keyHeaderOpenInEditor)
 	reason := tr(locale, keyReasonOpenInEditor)
 	entry := ui.ButtonBase(c).Height(k.sidebarEntryH).Radius(radiusSM).
 		BorderWidth(k.hairline).BorderColor(k.border).AlignItems(ui.Center).
 		Label(label).Description(reason).Tooltip(reason).
-		Disabled(true).AccessDisabled(true).Shrink(0)
+		Disabled(true).DimDisabled(false).AccessDisabled(true).Shrink(0)
 	entry.Children(func() {
 		ui.Box(c).Width(openInEditorCell).Height(k.sidebarEntryH).Center().Children(func() {
 			ui.Icon(c, openInEditorGlyph).Size(sidebarIconSize, sidebarIconSize).
