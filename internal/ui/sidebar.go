@@ -49,18 +49,36 @@ const (
 // reserves the 48 DIPs the traffic lights float over.
 const sidebarEntriesTop = 3
 
+// sidebarThreadRowH is the reference's session row height, in DIPs:
+// window-conversation.png draws the selected row's fill from y≈331.5 to 359.5,
+// which is h-8 at its 14px root. The theme's sidebarRowH belongs to the
+// settings navigation and is not this column's row.
+const sidebarThreadRowH = 28
+
+// sidebarThreadCell is the leading cell a session row keeps before its title,
+// in DIPs: the reference's row holds a status mark or icon there, w-5 at its
+// 14px root, 17.5 DIPs. This shell has no status or icon fact for a session
+// row, so the cell stays empty rather than carrying a mark the App Server did
+// not send.
+const sidebarThreadCell = 17.5
+
 // sidebarEmptyPadTop and sidebarEmptyPadBottom are the room above the built-in
 // workspace's message and below it before the section's hairline, in multiples
 // of the sidebar's 3.5 DIP step. window-conversation.png measures the message's
 // ink at y≈267.5-277 (center 272), under the "Workspace" heading's center at
-// 237, and the hairline closing the section at y≈295.5. The message keeps 14
-// DIPs over its line and 17.5 below it, so the heading, the message and the
-// hairline stand where the reference draws them instead of on the 2 DIP gap
-// the section used to keep.
+// 237, and the hairline closing the section at y≈295.5.
 const (
 	sidebarEmptyPadTop    = 4
 	sidebarEmptyPadBottom = 5
 )
+
+// sidebarEmptyRoomH is the room the built-in workspace section keeps between
+// its heading and the hairline that closes it, in DIPs: the reference's
+// workspace heading ends at y=252.75 and its hairline sits at y≈295.5. The
+// message draws only while the catalog has no row, but the room stays in both
+// states, without a made-up message, so the rule and the project groups below
+// it keep the reference's place.
+const sidebarEmptyRoomH = 42.75
 
 const (
 	// mainBranchID is the branch the App Server always keeps: it can be shown,
@@ -316,9 +334,11 @@ func threadListHeader(c *ui.Context, k tokens, locale Locale) {
 // holds rows or not, and the project groups or the empty message sit under it.
 // It is a display heading, not a control or a project fact: the shell has no
 // workspace catalog, so it draws the interface language's word for the group.
+// The reference keeps a gap-0.5 between the two heading rows; without it the
+// workspace heading and everything under it sat a step high.
 func workspaceHeader(c *ui.Context, k tokens, locale Locale) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
-		AlignItems(ui.Center).Children(func() {
+		Margin(k.sidebarGap/2, 0, 0, 0).AlignItems(ui.Center).Children(func() {
 		sidebarGlyph(c, sidebarIcons.house, k.mutedForeground)
 		ui.Text(c, tr(locale, keyComposerWorkspace)).FontSize(k.smallSize).
 			TextColor(k.mutedForeground).Bold().SingleLine()
@@ -373,13 +393,14 @@ func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 				}
 			}
 			threadRow(c, k, v, rows[row], on)
-		}).Grow(1).MinHeight(k.sidebarRowH*2).
+		}).Grow(1).MinHeight(sidebarThreadRowH*2).
 			// The list paints its own face over the column, so it takes the sidebar's
 			// tint instead of the window background. Its rows are inset by the
 			// sidebar's padding plus the reference's row inset, so a session row's
 			// selected or hover face, and the list's own choice face under it, stop
-			// inside the column instead of running edge to edge.
-			Background(k.sidebar).Transition(motionLayoutColors(c)).
+			// inside the column instead of running edge to edge. The gap is the
+			// reference's gap-0.5 between the rows of one project.
+			Background(k.sidebar).Transition(motionLayoutColors(c)).Gap(k.sidebarGap/2).
 			Padding(k.sidebarGap, k.sidebarPadX+sidebarRowEndInset, k.sidebarGap, k.sidebarPadX+sidebarRowInset).
 			Label(tr(locale, keySidebarSessions)).OnChange(func() {
 			chooseSession(v, a)
@@ -387,31 +408,27 @@ func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	})
 }
 
-// workspaceEmpty draws the built-in workspace's message while the list has no
-// row, and the hairline that closes the section. The message appears only then:
-// above session rows it contradicted the rows under it. The hairline stays in
-// both states, as the reference closes the section with it.
+// workspaceEmpty draws the built-in workspace's message room while the list has
+// no row, and the hairline that closes the section. The room stays whether or
+// not the message draws: the reference's section keeps the message's line above
+// the rule, and the project groups start under it, so with rows present the
+// room is empty rather than carrying a message that would contradict them. The
+// hairline stays in both states, as the reference closes the section with it.
 func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 	locale := v.Locale
 	ui.Column(c).Children(func() {
-		if rows == 0 {
-			ui.Column(c).Padding(
-				sidebarEmptyPadTop*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent,
-				sidebarEmptyPadBottom*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent).
-				Children(func() {
+		ui.Column(c).Height(sidebarEmptyRoomH).Padding(
+			sidebarEmptyPadTop*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent,
+			sidebarEmptyPadBottom*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent).
+			Children(func() {
+				if rows == 0 {
 					ui.Text(c, tr(locale, keySidebarEmpty)).FontSize(k.smallSize).TextColor(k.mutedForeground).
 						Role(ui.RoleStatus)
-				})
-		}
+				}
+			})
 		// The hairline is inset like the reference's, so it closes the section
-		// without running under the sidebar's edges. With rows under it the
-		// message's room is gone, so a small step keeps the rule off both the
-		// workspace heading and the first group.
-		padY := k.sidebarGap
-		if rows == 0 {
-			padY = 0
-		}
-		ui.Row(c).Padding(padY, k.sidebarPadX*2, padY, k.sidebarPadX*2).Children(func() {
+		// without running under the sidebar's edges.
+		ui.Row(c).Padding(0, k.sidebarPadX*2, 0, k.sidebarPadX*2).Children(func() {
 			ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
 		})
 	})
@@ -420,16 +437,19 @@ func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 // threadRow draws a group heading or a session row. A session row shows the
 // selected and hovered faces from the sidebar's own tokens; the heading stays
 // sticky over the rows it names, so it paints the sidebar's face. The group
-// heading keeps the reference's project row: py-1 around its text, 28 DIPs
-// high, rather than the section heading's h-9, so the session rows under it sit
-// where window-conversation.png draws them.
+// heading keeps the reference's project row: 28 DIPs around its text plus the
+// gap-0.5 before its first row, so the session rows under it sit where
+// window-conversation.png draws them. A session row keeps the reference's
+// leading cell empty: this shell has no status or icon fact for a row.
 func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()) {
 	if row.group {
 		// The list insets every row by sidebarRowInset, but the reference keeps
 		// the project heading's glyph at the column's own 7 DIP edge, so the
 		// heading takes that inset back in its padding. Its face is the column's,
 		// so only the ink's place changes.
-		ui.Row(c).Key("thread-group:" + row.label).Height(k.sidebarEntryH).PaddingX(k.sidebarPadX - sidebarRowInset).Gap(k.sidebarGap).
+		ui.Row(c).Key("thread-group:"+row.label).Height(sidebarThreadRowH+k.sidebarGap/2).
+			Padding(0, k.sidebarPadX-sidebarRowInset, k.sidebarGap/2, k.sidebarPadX-sidebarRowInset).
+			Gap(k.sidebarGap).
 			Background(k.sidebar).Transition(motionLayoutColors(c)).AlignItems(ui.Center).Children(func() {
 			sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
 			ui.Text(c, row.label).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
@@ -438,8 +458,8 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 		return
 	}
 	selected := row.sessionID == *v.Selected
-	line := ui.Row(c).Key("thread:" + row.sessionID).Height(k.sidebarRowH).
-		PaddingX(k.sidebarGap).Gap(k.sidebarGap).
+	line := ui.Row(c).Key("thread:"+row.sessionID).Height(sidebarThreadRowH).
+		Padding(0, k.sidebarPadX, 0, k.sidebarPadX+sidebarThreadCell).Gap(k.sidebarGap).
 		Radius(radiusMD).AlignItems(ui.Center).Transition(motionFastColors(c))
 	if on != nil {
 		line.OnClick(on)

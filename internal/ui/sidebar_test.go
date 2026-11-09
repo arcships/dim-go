@@ -855,9 +855,11 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 		t.Errorf("the group heading still draws its row count, texts %q", tt.Texts())
 	}
 	// The section still closes with a hairline between the workspace heading and
-	// the first group, even though the empty message above the rows is gone.
+	// the first group, even though the empty message above the rows is gone: the
+	// message's room stays, without a made-up message, so the rule keeps the
+	// reference's y≈295.5 and the project group starts under it.
 	face := color.RGBA{R: k.border.R, G: k.border.G, B: k.border.B, A: k.border.A}
-	divider := false
+	dividerY := -1
 	for y := int(workspace.Y + workspace.H); y < int(group.Y); y++ {
 		run := 0
 		for x := int(k.sidebarPadX * 2); x < int(k.sidebarW-k.sidebarPadX*2); x++ {
@@ -866,12 +868,14 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 			}
 		}
 		if run > int(k.sidebarW-4*k.sidebarPadX)/2 {
-			divider = true
+			dividerY = y
 			break
 		}
 	}
-	if !divider {
+	if dividerY < 0 {
 		t.Error("no hairline closes the workspace section above the project group")
+	} else if math.Abs(float64(dividerY)-295.5) > 1 {
+		t.Errorf("the hairline closes the workspace section at y=%d, want the reference's 295.5", dividerY)
 	}
 	if !tt.HasText("5m") {
 		t.Errorf("the session row lost its relative stamp, texts %q", tt.Texts())
@@ -879,9 +883,10 @@ func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
 }
 
 // TestSidebarSessionRowStartsWithItsTitle checks the reference's row: the title
-// begins at the row's own padding, with no status dot in a leading cell. The
-// selected row's face runs into the title's first glyph, so a dot would show as
-// a colored block before the text.
+// begins after the row's leading cell, px-2 plus the cell's 17.5 DIPs, which is
+// 24.5 DIPs inside the row's face. This shell has no status or icon fact for a
+// session, so the cell stays empty: no ink sits in it, and no made-up dot is
+// drawn at the face's edge.
 func TestSidebarSessionRowStartsWithItsTitle(t *testing.T) {
 	s := fixture()
 	var theme *ui.Theme
@@ -899,6 +904,9 @@ func TestSidebarSessionRowStartsWithItsTitle(t *testing.T) {
 	if row.X < nav.Bounds.X || row.X+row.W > nav.Bounds.X+nav.Bounds.W {
 		t.Fatalf("the session row %+v is not inside the sidebar %+v", row, nav.Bounds)
 	}
+	if math.Abs(float64(row.H-sidebarThreadRowH)) > 0.5 {
+		t.Errorf("the session row is %.1f high, want the reference's %d", row.H, sidebarThreadRowH)
+	}
 	y := int(row.Y + row.H/2)
 	ink := -1
 	for x := int(row.X) + 1; x < int(row.X+row.W); x++ {
@@ -910,9 +918,10 @@ func TestSidebarSessionRowStartsWithItsTitle(t *testing.T) {
 	if ink < 0 {
 		t.Fatalf("the selected row paints no title")
 	}
-	if inset := float32(ink) - row.X; inset > k.sidebarGap+2 {
-		t.Errorf("the row's first ink is %.1f DIPs in, want the title at the row's %.1f padding: a leading status cell is still drawn",
-			inset, k.sidebarGap)
+	want := row.X + k.sidebarPadX + sidebarThreadCell
+	if math.Abs(float64(float32(ink)-want)) > 1 {
+		t.Errorf("the row's first ink is at x=%d, want the title after its %.1f leading cell at x=%.1f: the slot is not the reference's",
+			ink, k.sidebarPadX+sidebarThreadCell, want)
 	}
 }
 
@@ -997,11 +1006,11 @@ func TestSidebarFooterKeepsOnlyTheGear(t *testing.T) {
 // from docs/evidence/electron-reference/window-conversation.png (1600×1440 at
 // 2x, so pixels ÷ 2 are DIPs): the four entries, the two headings, the project
 // heading, the session row and the account footer. Each must land within 3 DIPs,
-// and the account row must still sit on the sidebar's bottom edge, so the room
-// is added above the list rather than by pushing the footer up. The project and
-// the row sit higher than the reference's measurement: the built-in workspace's
-// "No sessions yet" line is no longer drawn above real rows, so the section's
-// hairline closes the workspace heading directly.
+// the session row keeps the reference's 28 DIP face, and the account row must
+// still sit on the sidebar's bottom edge, so the room is added above the list
+// rather than by pushing the footer up. The built-in workspace's message room
+// stays above the project group even though this shell draws no message there:
+// without it the rule and the projects would sit a message's height high.
 func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
 	s := fixture()
 	s.Settings = SettingsView{Locale: LocaleZHCN}
@@ -1024,8 +1033,8 @@ func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
 		{tr(LocaleZHCN, keySidebarSkills), 167.2},
 		{tr(LocaleZHCN, keySidebarSessions), 204.0},
 		{tr(LocaleZHCN, keyComposerWorkspace), 237.0},
-		{"dimagent-mygo", 276.5},
-		{"Explain what this repository does in one paragraph.", 307.5},
+		{"dimagent-mygo", 314.0},
+		{"Explain what this repository does in one paragraph.", 345.8},
 		{tr(LocaleZHCN, keySidebarAccount), 698.0},
 	}
 	for _, tc := range cases {
@@ -1033,6 +1042,15 @@ func TestSidebarMatchesTheReferenceRhythm(t *testing.T) {
 		if center := float64(box.Y + box.H/2); math.Abs(center-tc.want) > 3 {
 			t.Errorf("%q centers at %.1f, want the reference's %.1f ±3", tc.label, center, tc.want)
 		}
+	}
+
+	// The selected session keeps the reference's row face: 28 DIPs from y≈331.5.
+	row := textBox(t, tt, "Explain what this repository does in one paragraph.")
+	if math.Abs(float64(row.H-sidebarThreadRowH)) > 0.5 {
+		t.Errorf("the session row is %.1f high, want the reference's %d", row.H, sidebarThreadRowH)
+	}
+	if math.Abs(float64(row.Y-331.5)) > 0.5 {
+		t.Errorf("the session row starts at y=%.1f, want the reference's 331.5", row.Y)
 	}
 
 	k := newTokens(ui.LightTheme())
