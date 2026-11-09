@@ -113,6 +113,21 @@ func TestMapRPCError(t *testing.T) {
 			want: mapped(AppErrorHistoryTooLarge, ErrorClassHistoryTooLarge, false, false),
 		},
 		{
+			name: "branch_ended",
+			err:  &RPCError{Code: -32000, Message: "x", Data: appErrorData(AppErrorBranchEnded)},
+			want: mapped(AppErrorBranchEnded, ErrorClassBranchEnded, false, false),
+		},
+		{
+			name: "attachment_invalid",
+			err:  &RPCError{Code: -32000, Message: "x", Data: appErrorData(AppErrorAttachmentInvalid)},
+			want: mapped(AppErrorAttachmentInvalid, ErrorClassBadRequest, false, false),
+		},
+		{
+			name: "attachment_too_large",
+			err:  &RPCError{Code: -32000, Message: "x", Data: appErrorData(AppErrorAttachmentTooLarge)},
+			want: mapped(AppErrorAttachmentTooLarge, ErrorClassBadRequest, false, false),
+		},
+		{
 			name: "missing appError",
 			err:  &RPCError{Code: -32000, Message: "x"},
 			want: mapped(AppErrorInternal, ErrorClassInternal, false, false),

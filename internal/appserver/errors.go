@@ -25,6 +25,9 @@ const (
 	AppErrorOperationInterrupted    = "operation_interrupted"
 	AppErrorLocalTransportRequired  = "local_transport_required"
 	AppErrorHistoryTooLarge         = "history_too_large"
+	AppErrorBranchEnded             = "branch_ended"
+	AppErrorAttachmentInvalid       = "attachment_invalid"
+	AppErrorAttachmentTooLarge      = "attachment_too_large"
 	AppErrorInternal                = "internal"
 )
 
@@ -48,6 +51,7 @@ const (
 	ErrorClassInterrupted
 	ErrorClassLocalTransport
 	ErrorClassHistoryTooLarge
+	ErrorClassBranchEnded
 )
 
 func (c ErrorClass) String() string {
@@ -82,6 +86,8 @@ func (c ErrorClass) String() string {
 		return "local_transport"
 	case ErrorClassHistoryTooLarge:
 		return "history_too_large"
+	case ErrorClassBranchEnded:
+		return "branch_ended"
 	default:
 		return "internal"
 	}
@@ -155,6 +161,12 @@ func MapRPCError(err *RPCError) MappedError {
 		return MappedError{AppError: AppErrorLocalTransportRequired, Class: ErrorClassLocalTransport}
 	case AppErrorHistoryTooLarge:
 		return MappedError{AppError: AppErrorHistoryTooLarge, Class: ErrorClassHistoryTooLarge}
+	case AppErrorBranchEnded:
+		return MappedError{AppError: AppErrorBranchEnded, Class: ErrorClassBranchEnded}
+	case AppErrorAttachmentInvalid, AppErrorAttachmentTooLarge:
+		// Definitive rejections of the attachment payload: the same request
+		// would fail again, so they map to a non-retryable bad request.
+		return MappedError{AppError: rpcAppError(err.Data), Class: ErrorClassBadRequest}
 	default:
 		return internalError()
 	}

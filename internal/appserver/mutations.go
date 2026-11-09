@@ -11,10 +11,13 @@ import (
 type MutationMethod string
 
 const (
-	MutationSessionSubmit   MutationMethod = "session.submit"
-	MutationSessionStop     MutationMethod = "session.stop"
-	MutationApprovalRespond MutationMethod = "approval.respond"
-	MutationSessionDelete   MutationMethod = "session.delete"
+	MutationSessionSubmit       MutationMethod = "session.submit"
+	MutationSessionStop         MutationMethod = "session.stop"
+	MutationApprovalRespond     MutationMethod = "approval.respond"
+	MutationSessionDelete       MutationMethod = "session.delete"
+	MutationSessionBranchCreate MutationMethod = "session.branch_create"
+	MutationSessionBranchEnd    MutationMethod = "session.branch_end"
+	MutationAttachmentPut       MutationMethod = "attachment.put"
 )
 
 // ErrUnknownResult marks a mutation whose outcome is unknown: timeout,
@@ -101,6 +104,14 @@ func mutationReadBack(method MutationMethod) string {
 		return "session.attach"
 	case MutationSessionDelete:
 		return "session.catalog"
+	case MutationSessionBranchCreate, MutationSessionBranchEnd:
+		// The directory shows whether a line appeared or reached ending/ended;
+		// it cannot prove that a timed-out create did not happen.
+		return "session.branches"
+	case MutationAttachmentPut:
+		// docs/protocol-contract.md §10: attachment has no list/get method, so
+		// an unknown result can only be reported, never read back.
+		return ""
 	default:
 		return ""
 	}

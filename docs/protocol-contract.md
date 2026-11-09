@@ -1,6 +1,6 @@
 # Protocol v3 Wire 合同
 
-Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper、supervisor reconnect 和 UI approval 接线；real-daemon 控制面与 session 流已验收，session domain resync、`subscription_changed` 恢复和真实 GUI/IME 仍未验证）
+Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper、supervisor reconnect 和 UI approval 接线，Wave 3 补 `session.branch_create`、`session.branch_end`、`attachment.put` 的 DTO/helper 与 fake-server 覆盖；real-daemon 控制面与 session 流已验收，新三个方法只有 L1/L2 测试级证据，session domain resync、`subscription_changed` 恢复和真实 GUI/IME 仍未验证）
 Last updated: 2026-11-09
 协议依据：upstream 公开设计合同（`session-boundary.md`、`session-access.md`）与 public protocol v3；不引用 Rust 内部源码或 Desktop private wire 作为实现合同。
 Owner: protocol
@@ -19,7 +19,7 @@ Owner: protocol
 4. 能力缺失时 visible-disabled 并说明原因；不伪造成功、不返回空列表冒充真相。
 5. wire 类型以公开 protocol v3 合同为准；公开合同没有声明的字段/方法默认 fail-closed，不用 Rust 内部源码或 Desktop private wire 反推合同。
 
-本阶段不做：branch/side chat、question、MCP、skills、workflow、scheduler、account、plugin、UI extensions、modality、runtime 管理。
+本阶段只做到 helper 层，不做 UI：`session.branch_create` / `session.branch_end` / `attachment.put` 已有 DTO/helper 和 fake-server 覆盖，但没有 UI 接线和 real-daemon 证据；branch compare/adopt、每消息精确 cut、branch 级 resync、图片/二进制附件、附件列表/读取/删除仍不做。question、MCP、skills、workflow、scheduler、account、plugin、UI extensions、modality、runtime 管理不做。
 
 ## 2. 公开协议依据
 
@@ -251,7 +251,7 @@ MyGo 已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper；`internal
 
 `session.stop {sessionId, branchId, reason?}`，响应内容忽略；停止状态由 `session.state` 收敛。
 
-Go 实现：`internal/appserver/mutations.go` 的 `Submit`/`Stop` 发送这两个方法。`Submit` 校验 `submissionId`、`branchId` 和 `text|user`，按最小 `{event}` 解码；`Submit` 遇到 timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 或畸形结果时返回 unknown-result 并注明读回方法，绝不自动重发。`internal/session` 的 `SubmitWithID`/`SubmitBranchWithID` 额外返回已发送的 UUID，供调用方在 unknown-result 时读取 `submissionId`；`appserver.InputLookupOutcome` 已按上述 tagged union 解码并校验；`appserver.InputLookup`/`Session.LookupInput` 仍原样返回 JSON。v3 调用必须带 `branchId`；`InputLookupParams` 的空值会省略该字段，`Session.LookupInput` 默认当前 branch。attachment 上传尚未实现。
+Go 实现：`internal/appserver/mutations.go` 的 `Submit`/`Stop` 发送这两个方法。`Submit` 校验 `submissionId`、`branchId` 和 `text|user`，按最小 `{event}` 解码；`Submit` 遇到 timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 或畸形结果时返回 unknown-result 并注明读回方法，绝不自动重发。`internal/session` 的 `SubmitWithID`/`SubmitBranchWithID` 额外返回已发送的 UUID，供调用方在 unknown-result 时读取 `submissionId`；`appserver.InputLookupOutcome` 已按上述 tagged union 解码并校验；`appserver.InputLookup`/`Session.LookupInput` 仍原样返回 JSON。v3 调用必须带 `branchId`；`InputLookupParams` 的空值会省略该字段，`Session.LookupInput` 默认当前 branch。文本附件 helper 已实现（`attachment.put` DTO/helper，见 §17）：`text` 非空且 ≤10 MiB UTF-8，编码后还必须落在 16 MiB 帧内；没有 attachment list/get，所以 timeout/断线/畸形结果只能报 unknown-result、不重发。`session.branch_create`/`session.branch_end` 同批实现，均不接 UI，也没有 real-daemon 证据。
 
 ## 11. 通知（只出现在 session stream 上）
 
@@ -297,6 +297,8 @@ Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返�
 | `permission_conflict` / `permission_rules_conflict` | 重读 permission，让用户确认 |
 | `question_not_pending` | 用 tool-result 判断是否已 settle |
 | `operation_interrupted` | 先读当前状态，不盲重试 |
+| `branch_ended` | 分支已结束：`BranchEnd` 返回 `BranchEndOutcomeAlreadyEnded`，确定拒绝、不重试（§17） |
+| `attachment_invalid` / `attachment_too_large` | 附件载荷无效/超限：确定拒绝，保留 appError，不重试（§17） |
 | `local_transport_required` | 本地启动/配置错误 |
 | `history_too_large` | 见 §9 降级 |
 
@@ -320,6 +322,8 @@ Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试
 - `RawEvent` 的 `create_at`、`type`、`name` 已在普通 history 路径做运行时校验（`HistoryResult.Validate`）；TS interface 不能作为运行时验证。
 - TimelineFold 的 durable 幂等以 `(branchId, sequence)` 为准，attach pending buffer 以 `event.id` 去重；同 sequence 不同 id 的冲突处理仍需要上游语义确认。`SessionStream` 已在路由层把该冲突报告为协议错误并丢弃第二个事件；projection reducer 仍按 sequence 丢弃重复项，fixture 会拒绝该输入。
 - unknown `appError` 已统一映射为不可重试 INTERNAL；`history_too_large` 已显式映射，但 §9 的首屏降级窗口未实现。
+- `session.branch_create` 的响应形状只有 public client 解码证据（Desktop `wire.ts` 无 DTO），缺 `branch`/`branchId` 按 protocol error；`attachment.put` 的 `attachmentId`/`bytes` 也来自上游设计合同而非 wire.ts DTO。MyGo 当前只到 L1/L2 测试级证据（headless 参数/解码 + fake-server helper），需 real-daemon（L3）核对。
+- `session.branch_create` 和 `attachment.put` 都没有幂等键：超时后 `branch_create` 只能用 `session.branches` 观察是否出现新 line，`attachment.put` 无任何读回方法，只能如实报告 unknown。
 
 ## 16. Capability
 
@@ -331,7 +335,7 @@ Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试
 
 规则：缺 feature 时功能降级或 disabled，并说明原因；不写本地替代事实。`session.catalog` 缺失是"列表不可用"，不是"空列表"。
 
-当前 Go 实现有连接级 `hello.features` 门禁（`HasFeature`/`CapabilityError`）；`appserver.SessionMethods`/`Session.Methods` 按公开合同实现 `session.methods` 读取（目前仍先检查 `hello.features` 是否声明 `session.methods`），插件方法入口保持 WIP。`session.keys` / `session.branches` 的公开 Desktop protocol contract 已有；Go 侧已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper，`session.Open` 已按 capability gate 读取并暴露只读 snapshot，失败降级为空；UI 接线与真实验收未完成。
+当前 Go 实现有连接级 `hello.features` 门禁（`HasFeature`/`CapabilityError`）；`appserver.SessionMethods`/`Session.Methods` 按公开合同实现 `session.methods` 读取（目前仍先检查 `hello.features` 是否声明 `session.methods`），插件方法入口保持 WIP。`session.keys` / `session.branches` 的公开 Desktop protocol contract 已有；Go 侧已有 decoder/types 和 `SessionKeys`/`SessionBranches` helper，`session.Open` 已按 capability gate 读取并暴露只读 snapshot，失败降级为空；UI 接线与真实验收未完成。`session.branch_create` / `session.branch_end` / `attachment.put` 没有可用的 `hello.features` gate（`branch_create` 无文档化 feature，`branch_end` 的 feature 广告不保证 built-in 可用，`attachment.put` 由 host 插件决定），因此 helper 不发明 gate，只在 daemon 回 `unknown_method` 时映射为 capability error（visible-disabled WIP，不重试）。
 
 ## 17. Go DTO（`internal/appserver`）
 
@@ -371,6 +375,9 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `ApprovalRespondParams` + `ApprovalRespond` | `approval.respond` | 已实现；`-32602` 映射为 cancelled |
 | `DeleteParams` + `Delete` | `session.delete` | 已实现；响应体被忽略，需用 catalog 读回 |
 | `InputLookupParams` | `session.input_lookup` | 已实现；响应 `{status:"accepted",event}` 或 `{status:"unknown"}`；`InputLookupOutcome` 解码校验，`InputLookup` 原样返回 JSON，不自动重发 |
+| `BranchCreateParams` / `BranchCreateInfo` / `BranchCreateResult` + `BranchCreate` | `session.branch_create` | 已实现（证据 L1/L2：headless 参数/解码 + fake-server）；Desktop `wire.ts` 无 DTO，请求形状来自 public client 调用点和上游设计合同；缺 `branch`/`branchId` 按 `ProtocolError` 并包装为 unknown-result；timeout/断线读回 `session.branches`；未接 UI，无 real-daemon 证据 |
+| `BranchEndParams` + `BranchEnd` | `session.branch_end` | 已实现（L1/L2）；成功返回 `BranchEndOutcomeEnded`，`branch_ended` 返回 `BranchEndOutcomeAlreadyEnded` 且不重试，`unknown_method` 映射为 capability WIP；timeout/断线读回 `session.branches`；响应体忽略 |
+| `AttachmentPutParams` / `AttachmentPutResult` + `AttachmentPut` | `attachment.put` | 已实现（L1/L2）；`text` 非空、≤10 MiB UTF-8 且编码后 ≤16 MiB，`name` 可省略但不能是空白；`attachmentId`/`path` 必填、`bytes` 可选非负；没有 list/read，unknown-result 无读回且不重发；未接 UI，无 real-daemon 证据 |
 | `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` / `ModelProgress` | 通知 | 已实现，`DecodeNotification` 按方法解码；未知方法原样透传 |
 | `LocalError` / `MappedError` | 客户端本地错误 / `appError` 映射 | 已实现 |
 
@@ -411,16 +418,20 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | approval `-32602` 映射；attach 期间 approval 到达顺序 | `mutations_test.go`、`session_stream_test.go`；完整 replay 集合替换未实现 |
 | delete 成功/`session_active` | `mutations_test.go` + fake server |
 | unknown_method、timeout、断线的 visible WIP/unknown-result | `mutations_test.go` |
+| `session.branch_create` 成功、参数拒绝、缺 branchId、`-32602`、`unknown_method`、断线 | `branch_test.go` + fake server |
+| `session.branch_end` 成功、参数拒绝、`branch_ended`、`-32602`（优先于 branch_ended）、`unknown_method`、断线 | `branch_test.go` + fake server |
+| `attachment.put` 成功、参数/帧拒绝、malformed result、`-32602`、`attachment_invalid`/`attachment_too_large`、`unknown_method`、断线 | `attachment_test.go` + fake server |
 | 每个 `appError` 的语义和可重试性 | `errors_test.go` |
 | `dim-electron` 通知 fixture | `testdata/wire/notifications.ndjson` + `wire_test.go` |
 
-fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`、`session.catalog`、`session.summaries`、`session.attach`、`session.detach`、`session.history`、`session.submit`、`session.stop`、`approval.respond` 和 `session.delete`，并支持 scripted mutation fault、gate 和主动断线；`subscription_changed` 和完整 history 分页场景仍未从 `dim-electron` 的 `fake-app-server.mjs` 派生。latest-turn 和兼容扫描由 `internal/session` 自己的 fake history 覆盖，不依赖 appserver fake server。
+fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`、`session.catalog`、`session.summaries`、`session.attach`、`session.detach`、`session.history`、`session.submit`、`session.stop`、`approval.respond`、`session.delete`、`session.branch_create`、`session.branch_end` 和 `attachment.put`，并支持 scripted mutation fault、gate 和主动断线；`subscription_changed` 和完整 history 分页场景仍未从 `dim-electron` 的 `fake-app-server.mjs` 派生。latest-turn 和兼容扫描由 `internal/session` 自己的 fake history 覆盖，不依赖 appserver fake server。
 
 ## 20. 验收（当前状态）
 
 - 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（8 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
 - 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥、`Reattach` 的 transport 终止重建与 replay-gap fail-closed，以及 cmd 的 opt-in 启动路径；未覆盖的是 `session.keys`/`session.branches` 的 UI 接线（公开 Desktop protocol contract 已有；session 已读取只读 snapshot，UI branch switching/cut point 未接）、`session.input_lookup` 的真实 daemon 读回，以及 `subscription_changed` 的真实 wire 恢复；
+- 已通过（L1/L2 测试级）：`session.branch_create`、`session.branch_end`、`attachment.put` 的 Validate/Decode/helper 与 fake-server 成功、参数拒绝、`-32602`、`unknown_method`、`branch_ended`、`attachment_invalid`/`attachment_too_large`、malformed result 和断线 unknown-result 覆盖（`branch_test.go`、`attachment_test.go`）；未接 UI，也没有 real-daemon（L3）证据；
 - 已通过（`real-daemon` 控制面）：在 `../dim-2` 执行 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server`，再设置 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 运行 `TestRealDaemonSmoke`，覆盖 spawn/hello/catalog/close；
 - 已通过（`real-daemon` session 流，opt-in）：设置 `DIMAGENT_REAL_SESSION_FLOW=1` 运行 `TestRealDaemonSessionFlow`，覆盖 create → attach → history → submit → `session.state` 收敛 → stop → detach → 自有 daemon shutdown；该证据不含审批 replay、`subscription_changed` 恢复、projection 或 GUI。
 
@@ -433,3 +444,4 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
 6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 已补充控制面（spawn/hello/catalog/close）和 opt-in session 流（create/attach/history/submit/stop/cleanup）证据，不代表审批 replay、`subscription_changed` 恢复、projection 或 GUI 通过。
 7. `session.keys` / `session.branches` 的公开 Desktop protocol contract 已有；`internal/session` 已 capability-gated 读取，`Keys`/`BranchDirectory` 暴露只读 snapshot，`Branches()` 只含观察到的 branch id，UI branch switching/cut point 仍未完成。`session.input_lookup` 已有 typed/raw helper（公开合同响应 `accepted`/`unknown`）并接到窗口的 unknown-result 路径，`session.methods` helper 按公开 `{name, mutating}` 实现但未接到 UI。`session.create` client/helper 已接到窗口（New session → catalog 刷新并选中）。supervisor 的 `Reconnect`/generation、`integration.SessionController.Reattach`（transport 终止重建、replay-gap 写操作 fail-closed）和 `internal/session.SubmitWithID` 已落地并接到窗口。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现并显示。`approval.respond` 已接到 UI：`allow`/`deny` 折叠、`-32602` 按 cancelled 处理并移出 pending、绝不重放；question 和 always-allow 仍未实现。
+8. `session.branch_create` 的响应形状、`session.branch_end` 的 `branch_ended` 语义、`attachment.put` 的 `attachmentId`/`bytes` 都没有 Desktop `wire.ts` DTO，依据只有 public client 调用点和上游设计合同；MyGo 目前只有 L1/L2 测试级证据，需 real-daemon（L3）核对。`attachment.put` 无幂等键且没有 list/get 读回方法，超时只能报告 unknown，由用户决定是否重试。

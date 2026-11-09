@@ -3,6 +3,7 @@ package appserver
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 )
 
@@ -52,10 +53,6 @@ func (s BranchSource) Validate() error {
 // BranchInfo is one session.branches directory entry from wire.ts. State is
 // "open", "ending" or "ended"; Head is live while open/ending and fixed once
 // ended; EndEvent is absent while open.
-//
-// Purpose is not part of the public wire.ts entry. It is retained only because
-// internal/integration currently renders it as a branch label; do not treat it
-// as contract.
 type BranchInfo struct {
 	BranchID       string        `json:"branchId"`
 	ParentBranchID string        `json:"parentBranchId,omitempty"`
@@ -65,7 +62,6 @@ type BranchInfo struct {
 	State          string        `json:"state"`
 	Head           int64         `json:"head"`
 	EndEvent       *int64        `json:"endEvent,omitempty"`
-	Purpose        *string       `json:"purpose,omitempty"`
 }
 
 func (b BranchInfo) Validate() error {
@@ -145,4 +141,170 @@ func SessionBranches(ctx context.Context, client *Client, params BranchesParams,
 		return BranchesResult{}, err
 	}
 	return result, nil
+}
+
+// ----- session.branch_create / session.branch_end -----
+//
+// Neither method has a DTO in Desktop's app-server-protocol wire.ts. The request
+// shapes come from the public client call sites (service.ts) and the upstream
+// design contract; the branch_create response shape has public-client evidence
+// only. Evidence is fake-server (acceptance.md L1): no real-daemon exchange has
+// been observed yet. Do not add compatibility aliases if upstream returns a
+// different shape; that is a wire fix.
+
+// BranchCreateParams creates a host branch (side chat) from an existing branch.
+// At is the parent branch sequence the line is cut from; a pointer keeps a
+// missing field distinct from the valid cut point 0.
+type BranchCreateParams struct {
+	SessionID      string `json:"sessionId"`
+	ParentBranchID string `json:"parentBranchId"`
+	At             *int64 `json:"at"`
+	Prompt         string `json:"prompt"`
+}
+
+func (p BranchCreateParams) Validate() error {
+	if err := requireNonEmpty("sessionId", p.SessionID); err != nil {
+		return err
+	}
+	if err := requireNonEmpty("parentBranchId", p.ParentBranchID); err != nil {
+		return err
+	}
+	if p.At == nil {
+		return protocolErrorf("at", "missing")
+	}
+	if *p.At < 0 {
+		return protocolErrorf("at", "got %d, want a non-negative integer", *p.At)
+	}
+	return requireNonEmpty("prompt", p.Prompt)
+}
+
+// BranchCreateInfo is the branch object the public client decodes from
+// session.branch_create. BranchID is required: the public client treats a reply
+// without it as an error instead of guessing which line was created.
+type BranchCreateInfo struct {
+	BranchID       string `json:"branchId"`
+	ParentBranchID string `json:"parentBranchId,omitempty"`
+	BranchPoint    *int64 `json:"branchPoint,omitempty"`
+	CreateEvent    *int64 `json:"createEvent,omitempty"`
+}
+
+func (b BranchCreateInfo) Validate() error {
+	if err := requireNonEmpty("branchId", b.BranchID); err != nil {
+		return err
+	}
+	if b.BranchPoint != nil && *b.BranchPoint < 0 {
+		return protocolErrorf("branchPoint", "got %d, want a non-negative integer", *b.BranchPoint)
+	}
+	if b.CreateEvent != nil && *b.CreateEvent < 0 {
+		return protocolErrorf("createEvent", "got %d, want a non-negative integer", *b.CreateEvent)
+	}
+	return nil
+}
+
+// BranchCreateResult is the public-client response shape
+// {branch?:{branchId?, parentBranchId?, branchPoint?, createEvent?}}. The
+// pointer keeps "branch omitted" distinguishable from an empty object; both are
+// protocol errors.
+type BranchCreateResult struct {
+	Branch *BranchCreateInfo `json:"branch"`
+}
+
+func (r BranchCreateResult) Validate() error {
+	if r.Branch == nil {
+		return protocolErrorf("branch", "missing")
+	}
+	return r.Branch.Validate()
+}
+
+// DecodeBranchCreateResult decodes and validates one session.branch_create
+// response.
+func DecodeBranchCreateResult(raw json.RawMessage) (BranchCreateResult, error) {
+	var r BranchCreateResult
+	if err := decodeValidated("session.branch_create result", raw, &r); err != nil {
+		return r, err
+	}
+	return r, nil
+}
+
+// BranchCreate sends session.branch_create. It performs exactly one request and
+// never resends: a timeout or disconnect is an *UnknownResultError whose
+// read-back is session.branches (the directory can show the new line, but cannot
+// prove that a timed-out create did not happen). A reply that omits branchId is
+// also an unknown result wrapping the *ProtocolError.
+//
+// branch_create has no documented hello.features gate; callers detect an older
+// host through *MutationError.Unsupported (appError unknown_method) and keep the
+// entry visible-disabled.
+func BranchCreate(ctx context.Context, client *Client, params BranchCreateParams) (BranchCreateResult, error) {
+	if err := params.Validate(); err != nil {
+		return BranchCreateResult{}, err
+	}
+	if client == nil {
+		return BranchCreateResult{}, protocolErrorf("session.branch_create", "nil client")
+	}
+	raw, err := client.Call(ctx, string(MutationSessionBranchCreate), params)
+	if err != nil {
+		return BranchCreateResult{}, mapMutationError(MutationSessionBranchCreate, err)
+	}
+	result, err := DecodeBranchCreateResult(raw)
+	if err != nil {
+		return BranchCreateResult{}, &UnknownResultError{
+			Method:   MutationSessionBranchCreate,
+			ReadBack: mutationReadBack(MutationSessionBranchCreate),
+			Err:      err,
+		}
+	}
+	return result, nil
+}
+
+// BranchEndParams ends one non-main branch.
+type BranchEndParams struct {
+	SessionID string `json:"sessionId"`
+	BranchID  string `json:"branchId"`
+}
+
+func (p BranchEndParams) Validate() error {
+	if err := requireNonEmpty("sessionId", p.SessionID); err != nil {
+		return err
+	}
+	return requireNonEmpty("branchId", p.BranchID)
+}
+
+// BranchEndOutcome is the typed result of session.branch_end.
+type BranchEndOutcome string
+
+const (
+	// BranchEndOutcomeEnded means the daemon accepted the end request. The
+	// authoritative state still converges through session.branches/session.state.
+	BranchEndOutcomeEnded BranchEndOutcome = "ended"
+	// BranchEndOutcomeAlreadyEnded is the definitive branch_ended reply: the line
+	// was already closed, nothing changed, and the request must not be retried.
+	BranchEndOutcomeAlreadyEnded BranchEndOutcome = "already_ended"
+)
+
+// BranchEnd sends session.branch_end and maps the two contract-defined outcomes
+// to typed values instead of an error:
+//
+//   - success -> BranchEndOutcomeEnded
+//   - appError branch_ended -> BranchEndOutcomeAlreadyEnded, nil (no retry)
+//
+// appError unknown_method stays a *MutationError matching
+// ErrCapabilityUnavailable (visible-disabled WIP). Timeout/disconnect is an
+// *UnknownResultError with session.branches as the read-back. -32602 keeps the
+// §13 precedence: invalid params, never "already ended".
+func BranchEnd(ctx context.Context, client *Client, params BranchEndParams) (BranchEndOutcome, error) {
+	if err := params.Validate(); err != nil {
+		return "", err
+	}
+	if client == nil {
+		return "", protocolErrorf("session.branch_end", "nil client")
+	}
+	if _, err := client.Call(ctx, string(MutationSessionBranchEnd), params); err != nil {
+		var rpcErr *RPCError
+		if errors.As(err, &rpcErr) && rpcErr.Code != -32602 && rpcAppError(rpcErr.Data) == AppErrorBranchEnded {
+			return BranchEndOutcomeAlreadyEnded, nil
+		}
+		return "", mapMutationError(MutationSessionBranchEnd, err)
+	}
+	return BranchEndOutcomeEnded, nil
 }

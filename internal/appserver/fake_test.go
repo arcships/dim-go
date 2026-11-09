@@ -289,6 +289,12 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		return s.mutation(MutationApprovalRespond, params)
 	case "session.delete":
 		return s.mutation(MutationSessionDelete, params)
+	case "session.branch_create":
+		return s.mutation(MutationSessionBranchCreate, params)
+	case "session.branch_end":
+		return s.mutation(MutationSessionBranchEnd, params)
+	case "attachment.put":
+		return s.mutation(MutationAttachmentPut, params)
 	default:
 		return nil, fakeUnknownMethod()
 	}
@@ -374,6 +380,21 @@ func (s *fakeServer) mutation(method MutationMethod, raw json.RawMessage) (any, 
 		}
 	case MutationSessionDelete:
 		var p DeleteParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	case MutationSessionBranchCreate:
+		var p BranchCreateParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	case MutationSessionBranchEnd:
+		var p BranchEndParams
+		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+	case MutationAttachmentPut:
+		var p AttachmentPutParams
 		if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
 			return nil, fakeBadParams()
 		}
