@@ -26,13 +26,13 @@ Last updated: 2026-11-09
 |---|---|---|---|---|
 | F1 | 应用启动（无 daemon） | 真实窗口截图 + 未连接状态可见 | 无 | 未通过 |
 | F2 | 应用启动（真实 daemon，`DIMAGENT_PRODUCT_HOME`） | L3 + 真实窗口 + session 列表可见 | L3 测试通过；L4 无 | 未通过 |
-| F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | `session.create` 尚未接 UI | 未通过 |
+| F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | UI 已接线（headless/fake 测试通过）；L4 无 | 未通过 |
 | F4 | session 切换 | 真实窗口切换 + 历史正确 | headless 覆盖，L4 无 | 未通过 |
 | F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L3 协议路径通过；L4 无 | 未通过 |
 | F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L3 通过；无持续 ticker；L4 无 | 未通过 |
 | F7 | stop | 真实窗口停止 → 状态收敛 | L3 通过；L4 无 | 未通过 |
 | F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | headless + L3 协议；真实 approval 流未验收 | 未通过 |
-| F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | integration 单测；UI 未接 | 未通过 |
+| F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | UI 已接线 + integration 单测；L4 无 | 未通过 |
 | F10 | 断线 / reattach | 杀掉 daemon → 错误态 → 重连 → 历史重建 | 单测；L4 无 | 未通过 |
 | F11 | `subscription_changed` 恢复 | 真实 replay-gap 场景 | 无真实 wire 证据 | 未通过 |
 | F12 | branch switching / cut point | 真实切换 branch 并渲染 | 只有只读 branch 列表 | 未通过 |
@@ -43,7 +43,7 @@ Last updated: 2026-11-09
 
 | # | 项目 | 要求证据 | 当前 | 结论 |
 |---|---|---|---|---|
-| D1 | 语义 token 层 | token 对照表 + 与 Electron 变量一一映射 | 只有 7 个颜色 + 比例间距 | 未通过 |
+| D1 | 语义 token 层 | token 对照表 + 与 Electron 变量一一映射 | 只有 7 个颜色 + 比例间距；对照见 [ui-parity.md](ui-parity.md) | 未通过 |
 | D2 | 主题/皮肤 | 与 Electron 主题数量、切换行为一致 | MyGo 单主题 | 未通过 |
 | D3 | 区域组件 | sidebar、chat-workspace、composer、context-panel、right-panel、settings 等逐一对照 | 只实现前 3 类的一部分 | 未通过 |
 | D4 | 字体/密度/间距 | 截图叠加对照 | 无 | 未通过 |

@@ -92,10 +92,10 @@ Status: active（Wave 1 静态壳与组件验证、Wave 2 visible-disabled WIP �
 
 | 入口 | 当前行为 | 等待的能力 |
 |---|---|---|
-| `New session` | 可见、dimmed、标记 disabled，描述 `session.create` 未接通 | `session.create` client helper 和 UI 接线 |
-| `Reconnect` | 仅在连接非 ready 时出现，不处理点击 | reconnect/re-attach/domain resync |
+| `New session` | 已接线：有 `OnCreateSession` 时是真实按钮，创建中禁用；无回调时可见、dimmed、disabled | 无（`session.create` + catalog 刷新已实现） |
+| `Reconnect` | 仅在连接非 ready 时出现；有 `OnReconnect` 时是真实按钮 | 持续 resync 语义（replay gap 已 fail-closed） |
 | `Attach file` | 可见但不可用，描述 `attachment.put` 未接通 | attachment 上传 |
-| `Approve` / `Deny` | approval 行保留两个决策，不可用，不报告决策成功 | `approval.respond` UI 接线和 replay |
-| approval 行本身 | UI 有 `AuthorApproval` fixture；transient projection 只有通用 notice，未接线 | approval 专用 transient 投影和接线 |
+| `Approve` / `Deny` | 已接线：有 pending request 时是真实按钮，`-32602` 按 cancelled 处理 | question/always-allow、replay |
+| approval 行本身 | 已接线：`viewmodel.BuildApprovals` 从 daemon pending approvals 生成行 | approval replay 集合替换 |
 
 这些入口在 headless 测试中验证：存在、accessible name 保留、disabled 状态和原因可读、点击不产生成功状态。真实窗口、IME、VoiceOver 和视觉检查仍未完成。
