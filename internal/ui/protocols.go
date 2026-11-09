@@ -103,6 +103,10 @@ type Actions struct {
 	// applies the theme and the sidebar width and persists what it can; nothing
 	// here reaches the App Server. While this field is nil the entry is absent.
 	OnOpenSettings func()
+	// OnSettingsChange is called after a desktop-local appearance choice has
+	// been resolved. The window persists the snapshot and may apply platform
+	// preferences; it never sends this callback to the App Server.
+	OnSettingsChange func(SettingsChange)
 	// OnToggleKeys is called by the sidebar's "Session keys" entry and toggles
 	// the session.keys browser in the main column. The shell owns both the entry
 	// and the panel's visibility, so this field carries no caller callback: it is
