@@ -328,9 +328,9 @@ func TestSessionMenuEndsOnlyANonMainBranch(t *testing.T) {
 // TestSessionMenuMarksMissingCallbacksAsWIP checks every menu entry the shell
 // cannot carry out: it stays visible, disabled, marked WIP and explained with
 // the method or fact it waits on, while the desktop-local settings entry and
-// the local Copy conversation ID entry stay usable. The first group's entries
-// wait on a client or callback the shell does not have at all; Pin, Rename and
-// Archive reuse the sidebar's reasons.
+// the local copy entries stay usable. The first group's entries wait on a client
+// or callback the shell does not have at all; Pin, Rename and Archive reuse the
+// sidebar's reasons.
 func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 	s := fixture()
 	s.SelectedBranch = "side"
@@ -345,7 +345,6 @@ func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 		{menuText(LocaleEN, keyHeaderMenuOpenInNewWindow), menuText(LocaleEN, keyReasonOpenInNewWindow)},
 		{menuText(LocaleEN, keyHeaderMenuExport), menuText(LocaleEN, keyReasonExport)},
 		{menuText(LocaleEN, keySidebarArchive), tr(LocaleEN, keyReasonArchive)},
-		{menuText(LocaleEN, keyHeaderMenuCopyLink), menuText(LocaleEN, keyReasonCopyLink)},
 		{menuText(LocaleEN, keyHeaderMenuCopyDebug), menuText(LocaleEN, keyReasonCopyDebug)},
 		{tr(LocaleEN, keySidebarKeys), tr(LocaleEN, keyReasonKeysEntry)},
 		{tr(LocaleEN, keySidebarEndBranch), tr(LocaleEN, keyReasonEndBranch)},
@@ -923,6 +922,121 @@ func TestSessionMenuCopyIDWithoutAnIdentityStaysWIP(t *testing.T) {
 		t.Errorf("%q is available without a session identity", label)
 	}
 	if reason := menuText(LocaleEN, keyReasonCopyID); !strings.Contains(info.Description, reason) {
+		t.Errorf("%q description %q does not name %q", label, info.Description, reason)
+	}
+	clickMenuItem(t, tt, label)
+	if got := tt.Clipboard(); got != "" {
+		t.Errorf("clicking the WIP entry put %q on the clipboard", got)
+	}
+}
+
+// TestConversationLinkIsTheDeepLinkTheAppRegisters checks the text the menu
+// copies: the app's registered scheme, the thread route and the selected id as
+// one path segment. The link is built from the id alone, so it carries no
+// session fact of its own.
+func TestConversationLinkIsTheDeepLinkTheAppRegisters(t *testing.T) {
+	const id = "8a1e5b6c-7d8f-4a90-b1c2-d3e4f5061728"
+	want := ConversationLinkScheme + "://" + ConversationLinkHost + "/" + id
+	if got := ConversationLink(id); got != want {
+		t.Errorf("ConversationLink(%q) = %q, want %q", id, got, want)
+	}
+	// An id that is not a plain token stays one path segment, so the link the
+	// clipboard holds is still one URL.
+	if got, want := ConversationLink("a/b"), "dimagent://thread/a%2Fb"; got != want {
+		t.Errorf("ConversationLink(%q) = %q, want %q", "a/b", got, want)
+	}
+}
+
+// TestSessionMenuCopiesTheConversationLink checks the menu's link entry end to
+// end: Copy conversation link is usable while a session identity is selected, a
+// click puts exactly dimagent://thread/<id> on the system clipboard, the menu
+// closes, and the banner shows the muted "Copied conversation link" outcome.
+// The link is built from the id the shell already displays, so no App Server
+// request is behind it.
+func TestSessionMenuCopiesTheConversationLink(t *testing.T) {
+	s := fixture()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 600)
+	if got := tt.Clipboard(); got != "" {
+		t.Fatalf("the clipboard starts with %q", got)
+	}
+
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	label := menuText(LocaleEN, keyHeaderMenuCopyLink)
+	info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+	if !ok {
+		t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+	}
+	if info.Disabled {
+		t.Fatalf("%q is disabled although a session identity is selected", label)
+	}
+	clickMenuItem(t, tt, label)
+	if got, want := tt.Clipboard(), "dimagent://thread/"+s.Selected; got != want {
+		t.Errorf("copying put %q on the clipboard, want %q", got, want)
+	}
+	tt.Frame()
+	if s.ActionStatus != copyLinkStatus {
+		t.Errorf("the copy recorded %q as the action status, want %q", s.ActionStatus, copyLinkStatus)
+	}
+	if !tt.HasText(copyLinkStatus) {
+		t.Errorf("the banner does not say %q, texts %q", copyLinkStatus, tt.Texts())
+	}
+	k := newTokens(theme)
+	status := textBox(t, tt, copyLinkStatus)
+	if _, muted := colorBox(tt, status, k.mutedForeground); muted == 0 {
+		t.Error("the copy notice is not drawn muted")
+	}
+	if _, danger := colorBox(tt, status, k.danger); danger != 0 {
+		t.Error("the copy notice is drawn as a failure")
+	}
+	if got := tt.Menu(); len(got) != 0 {
+		t.Errorf("choosing the entry left the menu open: %q", got)
+	}
+}
+
+// TestSessionMenuCopiesTheConversationLinkWithoutAWindowCallback checks the
+// region on its own: the clipboard write needs no window callback, so the entry
+// copies the link even when Actions carries no copy action, and the missing
+// status line is the only difference.
+func TestSessionMenuCopiesTheConversationLinkWithoutAWindowCallback(t *testing.T) {
+	v := fixture().headerView()
+	tt := headerTestView(v, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	clickMenuItem(t, tt, menuText(LocaleEN, keyHeaderMenuCopyLink))
+	if got, want := tt.Clipboard(), ConversationLink(v.SessionID); got != want {
+		t.Errorf("copying put %q on the clipboard, want %q", got, want)
+	}
+	if tt.HasText(copyLinkStatus) {
+		t.Errorf("a region without copy callbacks drew the outcome %q", copyLinkStatus)
+	}
+}
+
+// TestSessionMenuCopyLinkWithoutAnIdentityStaysWIP checks the entry's visible
+// state with no selected identity: there is no id to build a link from, so the
+// item keeps its WIP mark and reason and a click writes nothing.
+func TestSessionMenuCopyLinkWithoutAnIdentityStaysWIP(t *testing.T) {
+	v := fixture().headerView()
+	v.SessionID = ""
+	tt := headerTestView(v, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	label := menuText(LocaleEN, keyHeaderMenuCopyLink)
+	info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+	if !ok {
+		t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+	}
+	if !info.Disabled {
+		t.Errorf("%q is available without a session identity", label)
+	}
+	if reason := menuText(LocaleEN, keyReasonCopyLink); !strings.Contains(info.Description, reason) {
 		t.Errorf("%q description %q does not name %q", label, info.Description, reason)
 	}
 	clickMenuItem(t, tt, label)

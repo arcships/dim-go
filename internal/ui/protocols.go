@@ -159,6 +159,15 @@ type Actions struct {
 	// While this field is nil the entry still copies the id, because the
 	// clipboard write needs no window callback; only the status line is missing.
 	OnCopySessionID func(sessionID string)
+	// OnCopyConversationLink is called by the toolbar's session menu "Copy
+	// conversation link" entry after the region has written the selected
+	// session's deep link to the system clipboard. The region builds the link
+	// from the id the App Server already reported and the scheme cmd/dimagent
+	// registers, and writes it itself, so no request is behind the click. The
+	// shell records the outcome as a muted HeaderView.ActionStatus ("Copied
+	// conversation link") and sends nothing. While this field is nil the entry
+	// still copies the link; only the status line is missing.
+	OnCopyConversationLink func()
 	// OnCopyDebugInfo is called by the toolbar's session menu "Copy debug info"
 	// entry after the region has written HeaderView.DebugInfo to the system
 	// clipboard. The region does the copy itself, through the window's clipboard
@@ -324,8 +333,8 @@ type HeaderView struct {
 	// lookup of its own.
 	Title string
 	// SessionID is the selected session's identity, which the delete
-	// confirmation and the copy entry address. The region never invents one;
-	// while it is empty the copy entry is the menu's WIP statement.
+	// confirmation and the copy entries address. The region never invents one;
+	// while it is empty the copy entries are the menu's WIP statement.
 	SessionID string
 	// DebugInfo is the session menu's "Copy debug info" text: the current
 	// model's public runtime facts, one labeled line each, as the shell built

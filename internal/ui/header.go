@@ -17,6 +17,8 @@
 package ui
 
 import (
+	"net/url"
+
 	"github.com/egoist/mygo/ui"
 )
 
@@ -96,14 +98,15 @@ const (
 
 // The session menu's entries the App Server does not offer yet. The menu draws
 // them as WIP so the reference's structure is visible without pretending an
-// action the shell cannot carry out. The two copy entries are not among them:
-// the id is a fact the App Server already reported and the debug text is built
-// from the model facts the window displays, so both are copied locally. Only
-// their empty states are WIP: no selected identity, and no current model pair.
-// The message entries belong in i18n.go beside the other header and reason keys;
-// until that table carries them, menuText falls back to the English constants
-// below rather than drawing a raw key, and the fallback goes away with the table
-// entries.
+// action the shell cannot carry out. The three copy entries are not among them:
+// the id is a fact the App Server already reported, the link is that id in the
+// scheme the app registers, and the debug text is built from the model facts the
+// window displays, so all three are copied locally. Only their empty states are
+// WIP: no selected identity for the link and the id, and no current model pair
+// for the debug text. The message entries belong in i18n.go beside the other
+// header and reason keys; until that table carries them, menuText falls back to
+// the English constants below rather than drawing a raw key, and the fallback
+// goes away with the table entries.
 const (
 	keyHeaderMenuOpenInNewWindow = "header.menu.openInNewWindow"
 	keyHeaderMenuExport          = "header.menu.export"
@@ -120,13 +123,13 @@ const (
 
 // The English text of the entries above: the labels the reference's menu draws
 // and the reason each one waits on. Pin, Rename and Archive already have their
-// text in i18n.go; only these entries and their reasons are new. Copy
-// conversation ID's reason is what its no-identity state says: the entry itself
-// is a local action now, so its reason names the only gap left.
+// text in i18n.go; only these entries and their reasons are new. The link's and
+// the id's reasons are what their no-identity state says: both entries are local
+// actions now, so their reasons name the only gap left.
 const (
 	reasonOpenInNewWindow = "Unavailable: the shell has no second-window client for opening a session yet."
 	reasonExport          = "Unavailable: the shell has no conversation export client or App Server export method yet."
-	reasonCopyLink        = "Unavailable: the shell has no conversation-link fact for the selected session yet."
+	reasonCopyLink        = "Unavailable: no session identity is selected, so there is no conversation link to copy."
 	reasonCopyID          = "Unavailable: no session identity is selected, so there is no conversation id to copy."
 	reasonCopyDebug       = "Unavailable: no model facts are selected, so there is no runtime config to copy."
 )
@@ -137,6 +140,31 @@ const (
 // Actions.OnCopySessionID, which records this line and sends nothing. It stays
 // an English constant until i18n.go carries a key for it.
 const copyIDStatus = "Copied conversation ID"
+
+// copyLinkStatus is the muted line the notice strip shows after the menu copied
+// the selected session's conversation link. Like copyIDStatus it is the window's
+// own outcome: the region writes the clipboard and tells the shell through
+// Actions.OnCopyConversationLink, which records this line and sends nothing. It
+// stays an English constant until i18n.go carries a key for it.
+const copyLinkStatus = "Copied conversation link"
+
+// ConversationLinkScheme is the URL scheme the app registers for its
+// conversation deep links. cmd/dimagent registers this scheme with the system
+// and parses the same shape back, so the menu and the handler cannot disagree
+// about what a link is.
+const ConversationLinkScheme = "dimagent"
+
+// ConversationLinkHost is the route that names a conversation in a deep link.
+// Any other host is a different entry point and is not a conversation link.
+const ConversationLinkHost = "thread"
+
+// ConversationLink is the deep link that opens one session. The id is an opaque
+// App Server fact, so it is escaped as one path segment and the link stays a
+// single token the system hands back as a URL. An empty id is not a link; the
+// menu keeps the entry as its WIP statement instead.
+func ConversationLink(sessionID string) string {
+	return ConversationLinkScheme + "://" + ConversationLinkHost + "/" + url.PathEscape(sessionID)
+}
 
 // copyDebugStatus is the muted line the notice strip shows after the menu
 // copied the model's public runtime facts. Like copyIDStatus it is the window's
@@ -324,7 +352,16 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 				a.OnArchiveSession(v.SessionID)
 			}
 		}
-		menuWIP(m, menuText(locale, keyHeaderMenuCopyLink), menuText(locale, keyReasonCopyLink))
+		// The conversation link is the selected id in the scheme the app
+		// registers, so it is a window action like the copy entries: the region
+		// writes the clipboard itself and tells the shell, which shows the muted
+		// outcome. With no selected identity there is no link to build, and the
+		// entry stays the menu's WIP statement.
+		if v.SessionID == "" {
+			menuWIP(m, menuText(locale, keyHeaderMenuCopyLink), menuText(locale, keyReasonCopyLink))
+		} else if menuItem(m, menuText(locale, keyHeaderMenuCopyLink)).Chosen() {
+			copyConversationLink(c, v.SessionID, a)
+		}
 		// Copying the id is the window's own action: the id is a fact the App
 		// Server already reported, so the region writes it to the system
 		// clipboard itself and tells the shell, which shows the muted outcome.
@@ -412,6 +449,21 @@ func copyConversationID(c *ui.Context, sessionID string, a Actions) {
 	c.Services().WriteClipboard(sessionID)
 	if a.OnCopySessionID != nil {
 		a.OnCopySessionID(sessionID)
+	}
+}
+
+// copyConversationLink copies the selected session's deep link to the system
+// clipboard. The link is ConversationLink's own text built from the id the App
+// Server already reported and the scheme cmd/dimagent registers, so this is a
+// window action with no request behind it: the region writes the clipboard and
+// the shell records the muted "Copied conversation link" outcome through
+// Actions.OnCopyConversationLink. A window without that callback still copies;
+// only the status line is missing. The menu offers the entry only while a
+// session identity is selected.
+func copyConversationLink(c *ui.Context, sessionID string, a Actions) {
+	c.Services().WriteClipboard(ConversationLink(sessionID))
+	if a.OnCopyConversationLink != nil {
+		a.OnCopyConversationLink()
 	}
 }
 

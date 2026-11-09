@@ -2213,6 +2213,15 @@ func main() {
 			_ = bridge.Close(closeCtx)
 		}()
 	}
+	// Conversation links are the app's own scheme. Registration is best effort:
+	// on macOS the scheme must also be declared for the bundle (urlSchemes in
+	// mygo.config.ts), so a plain development binary cannot claim it. The failure
+	// is recorded and the window still starts; a copied link is still the link
+	// the handler below parses once the system delivers it.
+	if err := mygo.App.RegisterURLScheme(dimui.ConversationLinkScheme); err != nil {
+		log.Printf("dimagent: register the %q URL scheme: %v", dimui.ConversationLinkScheme, err)
+	}
+	mygo.App.OnOpenURL(application.openURL)
 	mygo.App.WhenReady(func() {
 		application.win = mygo.NewWindow(application.windowOptions())
 		application.bindWindow()
