@@ -75,7 +75,7 @@ Last updated: 2026-11-09
 - [`evidence/ui/mygo-chrome-win98.png`](evidence/ui/mygo-chrome-win98.png)。Windows 98 chrome 已生效：灰底、深蓝选中、方角控件、系统字体；切换后整壳立即变化并持久化。
 - 已实现 6 套（default / Windows 98 / XP / Vista / macOS Big Sur / OSX Tiger），颜色/字体/圆角来自参考 `retro-themes.css`；渐变、3D 斜角、阴影、标题栏、vibrancy、滚动条宽度未仿制，按平面绘制。
 - 圆角已全部改用 token；图标改为与参考同源的 Lucide 0.577.0（sidebar/settings/header/composer/search/find bar），品牌 mark 与 VS Code 仍为自有/近似。
-- 渐变/3D/inset 阴影、窗口阴影、vibrancy、滚动条宽度仍为平面近似。
+- Elevation 阴影已加：主卡片/settings/composer/approval/context/search/model 对话框；会话菜单与 keys 面板沿用 mygo 自带阴影/发丝线；渐变/3D/inset 阴影、vibrancy、滚动条宽度仍为平面近似。
 
 ## 图标集（真实窗口，2026-11-10）
 
