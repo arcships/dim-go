@@ -655,6 +655,9 @@ func TestAppSelectFailureRestoresPreviousSelection(t *testing.T) {
 	if a.state.ActionError == "" {
 		t.Fatalf("selection error was not surfaced: %#v", a.state)
 	}
+	if len(a.state.ActionNotices) != 1 || a.state.ActionNotices[0].Kind != "select.error" {
+		t.Fatalf("selection outcome was not recorded: %#v", a.state.ActionNotices)
+	}
 	if a.state.Draft != "keep" || a.state.OnSubmit == nil || len(a.state.Sessions) != 2 {
 		t.Fatalf("window state was lost: %#v", a.state)
 	}

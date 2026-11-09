@@ -36,9 +36,8 @@ type Session struct {
 	Title string
 }
 
-// Branch is read-only branch metadata observed from App Server events. The
-// session.branches directory RPC is blocked/unverified, so this is not a
-// switchable branch list.
+// Branch is read-only branch metadata supplied by the App Server. Branch
+// switching and cut point are not wired yet, so this is not an action list.
 type Branch struct {
 	ID       string
 	Label    string
@@ -143,10 +142,11 @@ type State struct {
 	Messages []Message
 	Draft    string
 
-	// OnSelect, OnSubmit and OnStop connect the shell's actions to the caller's
-	// session controller. A nil field leaves its action in the view without an
-	// effect, as a fixture does; the callback owns the App Server call and the
-	// facts it returns, so the shell never reports an action it did not send.
+	// OnSelect, OnSubmit, OnStop and OnReconnect connect the shell's actions to
+	// the caller's session controller. A nil field leaves its action in the view
+	// without an effect, as a fixture does; the callback owns the App Server call
+	// and the facts it returns, so the shell never reports an action it did not
+	// send.
 	OnSelect    func(sessionID string)
 	OnSubmit    func(text string)
 	OnStop      func()
@@ -203,9 +203,9 @@ func (s *State) sidebarActions(c *ui.Context, k tokens) {
 	})
 }
 
-// branchList shows the branches observed from App Server events as read-only
-// metadata. The session.branches directory RPC is blocked/unverified, so the
-// list offers no switch, cut point or side-chat action.
+// branchList shows the branch metadata supplied by the App Server as read-only
+// rows. Branch switching and cut point are not wired yet, so the list offers no
+// switch or side-chat action.
 func (s *State) branchList(c *ui.Context, k tokens) {
 	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
 		Role(ui.RoleGroup).Label("Branches (read-only)").Children(func() {

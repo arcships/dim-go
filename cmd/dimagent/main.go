@@ -372,16 +372,22 @@ func (a *app) stopRefresh() {
 // refresh cannot erase them.
 func (a *app) notice(kind, id string) {
 	a.update(func(state *dimui.State) {
-		state.ActionNotices = append(state.ActionNotices, dimui.Notice{Kind: kind, ID: id})
-		if len(state.ActionNotices) > 8 {
-			state.ActionNotices = append([]dimui.Notice(nil), state.ActionNotices[len(state.ActionNotices)-8:]...)
-		}
+		state.ActionNotices = appendActionNotice(state.ActionNotices, dimui.Notice{Kind: kind, ID: id})
 		if strings.HasSuffix(kind, ".error") {
 			state.ActionError = id
 		} else {
 			state.ActionError = ""
 		}
 	})
+}
+
+// appendActionNotice bounds the window-owned action outcome log.
+func appendActionNotice(notices []dimui.Notice, notice dimui.Notice) []dimui.Notice {
+	notices = append(notices, notice)
+	if len(notices) > 8 {
+		notices = append([]dimui.Notice(nil), notices[len(notices)-8:]...)
+	}
+	return notices
 }
 
 // selectSession opens the chosen session in the background and publishes its
@@ -421,10 +427,16 @@ func (a *app) selectSession(id string) {
 					state.Selected = previousView.Selected
 					applyView(state, previousView)
 				} else {
+					// No previous session: clear the stale selection, but keep
+					// the connection state the catalog already established.
+					connection, connectionError := state.Connection, state.ConnectionError
 					applyView(state, &dimui.State{})
+					state.Connection, state.ConnectionError = connection, connectionError
 				}
 				state.ConversationLoading = false
 				state.ActionError = fmt.Sprintf("Open session %q: %v", id, err)
+				state.ActionNotices = appendActionNotice(state.ActionNotices,
+					dimui.Notice{Kind: "select.error", ID: state.ActionError})
 			})
 			return
 		}
@@ -473,8 +485,6 @@ func (a *app) submit(text string) {
 	}()
 }
 
-// stop asks the App Server to stop the running turn; the run state converges
-// through the session stream rather than a local guess.
 // reconnect re-attaches the selected session after a transport loss. The
 // controller rebuilds its projection from authoritative App Server history;
 // this callback only coordinates the UI and never invents local facts.
@@ -528,6 +538,8 @@ func (a *app) reconnect() {
 	}()
 }
 
+// stop asks the App Server to stop the running turn; the run state converges
+// through the session stream rather than a local guess.
 func (a *app) stop() {
 	if a.bridge == nil || a.state == nil {
 		return
