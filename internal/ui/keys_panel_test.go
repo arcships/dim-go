@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -15,6 +16,17 @@ func keysPanelTester(v *KeysPanelView, width, height int) *ui.Tester {
 	return ui.NewTester(func(c *ui.Context) {
 		renderKeysPanel(c, newTokens(c.Theme()), v, Actions{})
 	}, width, height)
+}
+
+// keysPanelTextInfo returns what assistive technology sees of the text s in
+// tt's last frame, failing the test when the frame does not draw it.
+func keysPanelTextInfo(t *testing.T, tt *ui.Tester, s string) ui.AccessInfo {
+	t.Helper()
+	info, ok := tt.AccessByRole(ui.RoleText, s)
+	if !ok {
+		t.Fatalf("the text %q is not drawn, texts %q", s, tt.Texts())
+	}
+	return info
 }
 
 // keysPanelEntries is the snapshot the tests draw: three keys whose names,
@@ -39,7 +51,7 @@ func fullKeysPanelView(selected *string) *KeysPanelView {
 
 // TestKeysPanelDrawsTheSnapshot checks the reading the panel exists for: its
 // title, the through of the read, the local filter, and one row per key with
-// the sequence, the input id and the block text.
+// the key heading, the block's value and the note that names the block.
 func TestKeysPanelDrawsTheSnapshot(t *testing.T) {
 	selected := ""
 	tt := keysPanelTester(fullKeysPanelView(&selected), 900, 600)
@@ -53,11 +65,12 @@ func TestKeysPanelDrawsTheSnapshot(t *testing.T) {
 	if _, ok := tt.AccessByRole(ui.RoleList, "Keys"); !ok {
 		t.Fatalf("the keys are not a named list, texts %q", tt.Texts())
 	}
+	entries := keysPanelEntries()
 	for _, want := range []string{
 		"Keys", "3 keys", "through 12",
-		"task", "12", "input-1", "implement the keys panel",
-		"notes", "9", "input-2", "the daemon owns the snapshot",
-		"goroutine", "4", "input-3", "check the scheduler",
+		entries[0].Key, keysPanelNote(entries[0]), entries[0].Text,
+		entries[1].Key, keysPanelNote(entries[1]), entries[1].Text,
+		entries[2].Key, keysPanelNote(entries[2]), entries[2].Text,
 	} {
 		if !tt.HasText(want) {
 			t.Errorf("keys panel is missing %q, texts %q", want, tt.Texts())
@@ -67,10 +80,131 @@ func TestKeysPanelDrawsTheSnapshot(t *testing.T) {
 		t.Errorf("a loaded snapshot is drawn as a WIP gap, texts %q", tt.Texts())
 	}
 
-	for _, key := range []string{"task", "notes", "goroutine"} {
-		if _, ok := tt.AccessByRole(ui.RoleListItem, key); !ok {
-			t.Errorf("%q is not a list item, texts %q", key, tt.Texts())
+	for _, entry := range entries {
+		row, ok := tt.AccessByRole(ui.RoleListItem, entry.Key)
+		if !ok {
+			t.Errorf("%q is not a list item, texts %q", entry.Key, tt.Texts())
+			continue
 		}
+		if row.Bounds.H != keysPanelRowH {
+			t.Errorf("%q is %.1f high, want the %d DIP row", entry.Key, row.Bounds.H, keysPanelRowH)
+		}
+	}
+}
+
+// TestKeysPanelRowSections checks the row's three parts and their places: the
+// key heading and the note share the first line, the note ends at the row's
+// right edge, and the value takes the second line inside the row's padding.
+func TestKeysPanelRowSections(t *testing.T) {
+	selected := ""
+	tt := keysPanelTester(fullKeysPanelView(&selected), 900, 600)
+
+	row, ok := tt.AccessByRole(ui.RoleListItem, "task")
+	if !ok {
+		t.Fatalf("the row is not a list item, texts %q", tt.Texts())
+	}
+	note, ok := tt.AccessByRole(ui.RoleText, keysPanelNote(keysPanelEntries()[0]))
+	if !ok {
+		t.Fatalf("the row's note is not drawn, texts %q", tt.Texts())
+	}
+	value, ok := tt.AccessByRole(ui.RoleText, "implement the keys panel")
+	if !ok {
+		t.Fatalf("the row's value is not drawn, texts %q", tt.Texts())
+	}
+	key, ok := tt.AccessByRole(ui.RoleText, "task")
+	if !ok {
+		t.Fatalf("the row's key heading is not drawn, texts %q", tt.Texts())
+	}
+
+	if key.Bounds.Y != note.Bounds.Y {
+		t.Errorf("the heading is at y=%.1f and the note at y=%.1f, want one line",
+			key.Bounds.Y, note.Bounds.Y)
+	}
+	if value.Bounds.Y <= note.Bounds.Y {
+		t.Errorf("the value is at y=%.1f, not below the note's y=%.1f",
+			value.Bounds.Y, note.Bounds.Y)
+	}
+	if key.Bounds.X < row.Bounds.X+keysPanelPadX || value.Bounds.X != key.Bounds.X {
+		t.Errorf("the parts do not start at the row's %.1f DIP inset: key x=%.1f value x=%.1f row x=%.1f",
+			float32(keysPanelPadX), key.Bounds.X, value.Bounds.X, row.Bounds.X)
+	}
+	if right := row.Bounds.X + row.Bounds.W - keysPanelPadX; note.Bounds.X+note.Bounds.W > right+0.5 {
+		t.Errorf("the note ends at %.1f, past the row's right edge %.1f", note.Bounds.X+note.Bounds.W, right)
+	}
+	if value.Bounds.W != row.Bounds.W-2*keysPanelPadX {
+		t.Errorf("the value is %.1f wide in a %.1f-wide row, want the row less its padding",
+			value.Bounds.W, row.Bounds.W)
+	}
+}
+
+// TestKeysPanelNarrowWindowClips checks a narrow main column: the row, the
+// heading, the note and the value all stay inside the window and clip their
+// single lines instead of widening the panel or wrapping onto a second row.
+func TestKeysPanelNarrowWindowClips(t *testing.T) {
+	const width = 320
+	longKey := "a-rather-long-key-name-that-cannot-fit-into-a-narrow-keys-panel"
+	longText := strings.Repeat("value ", 80) + "end"
+	v := &KeysPanelView{
+		Entries: []KeysPanelEntry{{
+			Key: longKey, Sequence: 12345, InputID: "input-that-never-ends", Text: longText,
+		}},
+		Through: 12345,
+		Loaded:  true,
+	}
+	tt := keysPanelTester(v, width, 600)
+
+	row, ok := tt.AccessByRole(ui.RoleListItem, longKey)
+	if !ok {
+		t.Fatalf("the row is not a list item, texts %q", tt.Texts())
+	}
+	if row.Bounds.X < 0 || row.Bounds.X+row.Bounds.W > width {
+		t.Errorf("the row spans %.1f–%.1f in a %d-wide window", row.Bounds.X, row.Bounds.X+row.Bounds.W, width)
+	}
+	if row.Bounds.H != keysPanelRowH {
+		t.Errorf("the narrow row is %.1f high, want the %d DIP row", row.Bounds.H, keysPanelRowH)
+	}
+
+	key, ok := tt.AccessByRole(ui.RoleText, longKey)
+	if !ok {
+		t.Fatalf("the key heading is not drawn, texts %q", tt.Texts())
+	}
+	parts := []struct {
+		name string
+		text string
+		info ui.AccessInfo
+	}{
+		{"key", longKey, key},
+		{"note", keysPanelNote(v.Entries[0]), keysPanelTextInfo(t, tt, keysPanelNote(v.Entries[0]))},
+		{"value", keysPanelText(longText), keysPanelTextInfo(t, tt, keysPanelText(longText))},
+	}
+	for _, part := range parts {
+		if part.info.Bounds.X < row.Bounds.X || part.info.Bounds.X+part.info.Bounds.W > row.Bounds.X+row.Bounds.W {
+			t.Errorf("the %s spans %.1f–%.1f, outside the row at %.1f–%.1f",
+				part.name, part.info.Bounds.X, part.info.Bounds.X+part.info.Bounds.W,
+				row.Bounds.X, row.Bounds.X+row.Bounds.W)
+		}
+		if part.info.Bounds.H != keysPanelLineH {
+			t.Errorf("the %s is %.1f high, want one %d DIP line", part.name, part.info.Bounds.H, keysPanelLineH)
+		}
+	}
+
+	// The same snapshot in a roomy window draws the whole key heading; the
+	// narrow one clips it rather than pushing the note off the row.
+	wideKey := keysPanelTextInfo(t, keysPanelTester(v, 900, 600), longKey)
+	if key.Bounds.W >= wideKey.Bounds.W {
+		t.Errorf("the narrow key heading is %.1f wide, not clipped from the wide %.1f",
+			key.Bounds.W, wideKey.Bounds.W)
+	}
+
+	// The narrow row is still one click away, and the click still writes only
+	// the caller's selection.
+	selected := ""
+	v.Selected = &selected
+	if err := tt.Click(longKey); err != nil {
+		t.Fatal(err)
+	}
+	if selected != longKey {
+		t.Errorf("the narrow row's click selected %q, want %q", selected, longKey)
 	}
 }
 
@@ -271,6 +405,86 @@ func TestKeysPanelTruncatesLongText(t *testing.T) {
 	}
 	if row.W > 900 {
 		t.Errorf("the bounded text is %.1f wide in a 900-wide panel", row.W)
+	}
+}
+
+// TestKeysPanelNoteNamesTheBlock checks the note's two forms: the input that
+// wrote the block and the block's sequence while the block names an input, and
+// the sequence alone when it does not. The note joins the caller's fields and
+// invents no third one.
+func TestKeysPanelNoteNamesTheBlock(t *testing.T) {
+	withInput := keysPanelNote(KeysPanelEntry{Sequence: 12, InputID: "input-1"})
+	if withInput != "input-1 · seq 12" {
+		t.Errorf("the note is %q, want the input and the sequence", withInput)
+	}
+	withoutInput := keysPanelNote(KeysPanelEntry{Sequence: 9})
+	if withoutInput != "seq 9" {
+		t.Errorf("the note without an input is %q, want the sequence alone", withoutInput)
+	}
+}
+
+// keysPanelScrollEntries is a snapshot longer than a short panel: enough rows
+// that the last ones start below the window and only the keyboard reaches them.
+func keysPanelScrollEntries(n int) []KeysPanelEntry {
+	entries := make([]KeysPanelEntry, 0, n)
+	for i := 0; i < n; i++ {
+		entries = append(entries, KeysPanelEntry{
+			Key:      "key-" + strconv.Itoa(i),
+			Sequence: int64(i + 1),
+			InputID:  "input-" + strconv.Itoa(i),
+			Text:     "value " + strconv.Itoa(i),
+		})
+	}
+	return entries
+}
+
+// TestKeysPanelKeyboardScrollsTheList checks the keyboard path through a list
+// taller than the panel: Tab reaches a row below the edge and brings it into
+// view, Page Down, End and Home scroll the list while the keyboard has it.
+func TestKeysPanelKeyboardScrollsTheList(t *testing.T) {
+	v := &KeysPanelView{Entries: keysPanelScrollEntries(20), Through: 20, Loaded: true}
+	tt := keysPanelTester(v, 900, 320)
+
+	// The last key starts below the panel: its box is clipped to nothing.
+	if rect, ok := tt.Find("key-19"); !ok || rect.W != 0 {
+		t.Fatalf("the last key is already on screen: %+v, found %v", rect, ok)
+	}
+
+	// Tab: the filter, then the first row, and on to a row the first frame did
+	// not show. Focusing it scrolls the list instead of leaving it out of view.
+	tt.Key(0, ui.KeyTab)
+	for i := 0; i < len(v.Entries) && !tt.Focused("key-12"); i++ {
+		tt.Key(0, ui.KeyTab)
+	}
+	if !tt.Focused("key-12") {
+		t.Fatalf("Tab did not reach key-12, texts %q", tt.Texts())
+	}
+	if rect, ok := tt.Find("key-12"); !ok || rect.W == 0 || rect.Y+rect.H > 320 {
+		t.Fatalf("the focused key-12 is not in view: %+v, found %v", rect, ok)
+	}
+
+	// End: the last row comes into view, the first leaves it.
+	tt.Key(0, ui.KeyEnd)
+	last, ok := tt.Find("key-19")
+	if !ok || last.W == 0 || last.Y+last.H > 320 {
+		t.Fatalf("End did not bring the last key into view: %+v, found %v", last, ok)
+	}
+	if first, ok := tt.Find("key-0"); !ok || first.W != 0 {
+		t.Fatalf("End left the first key in view: %+v, found %v", first, ok)
+	}
+
+	// Home: back to the top.
+	tt.Key(0, ui.KeyHome)
+	if first, ok := tt.Find("key-0"); !ok || first.W == 0 || first.Y < 0 {
+		t.Fatalf("Home did not return to the first key: %+v, found %v", first, ok)
+	}
+
+	// Page Down scrolls a page while the row holds the keyboard.
+	before, _ := tt.Find("key-19")
+	tt.Key(0, ui.KeyPageDown)
+	after, _ := tt.Find("key-19")
+	if after.Y >= before.Y {
+		t.Fatalf("Page Down did not scroll the list: last key y %.1f -> %.1f", before.Y, after.Y)
 	}
 }
 
