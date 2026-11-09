@@ -475,6 +475,84 @@ func (c *SessionController) BranchDirectory() appserver.BranchesResult {
 	return c.Session.BranchDirectory()
 }
 
+// OpenBranch loads one branch's first-screen history into that branch's own
+// projection. Branch switching is not its own RPC (docs/branch-attachment-plan.md
+// §1.2): it is the session.history {branchId} read, and the session layer bounds
+// it with the daemon-reported branch head.
+//
+// The known-branch check, idempotency and capability handling live in
+// session.OpenBranch. The attach/history read is read-only, so a
+// subscription_changed reply gets the contract's single retry before failing
+// closed as a replay gap.
+func (c *SessionController) OpenBranch(ctx context.Context, branchID string) (session.BranchOpenResult, error) {
+	if c == nil {
+		return session.BranchOpenResult{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return session.BranchOpenResult{}, fmt.Errorf("integration: nil context")
+	}
+	if branchID == "" {
+		return session.BranchOpenResult{}, fmt.Errorf("integration: empty branch id")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return session.BranchOpenResult{}, fmt.Errorf("integration: no session")
+	}
+	var result session.BranchOpenResult
+	err := retryReadOnce(ctx, "session.open_branch", func() error {
+		var attemptErr error
+		result, attemptErr = c.Session.OpenBranch(ctx, branchID)
+		return attemptErr
+	})
+	return result, err
+}
+
+// RefreshBranchDirectory re-reads session.branches into the read-only snapshot.
+// A missing capability or a failed read is reported; no local directory is
+// synthesized and previously read entries are not deleted by the caller.
+func (c *SessionController) RefreshBranchDirectory(ctx context.Context) error {
+	if c == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	return retryReadOnce(ctx, "session.branches", func() error {
+		return c.Session.RefreshBranchDirectory(ctx)
+	})
+}
+
+// EndBranch asks the App Server to end one non-main branch. The reply is not
+// translated into local branch state: the directory, projection and head are
+// dropped or updated only when the daemon reports the new state. An already
+// ended branch returns AlreadyEnded with a nil error (do not retry); an older
+// host reports an *appserver.MutationError matching ErrCapabilityUnavailable so
+// the entry can stay visible-disabled WIP.
+func (c *SessionController) EndBranch(ctx context.Context, branchID string) (appserver.BranchEndOutcome, error) {
+	if c == nil {
+		return "", fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return "", fmt.Errorf("integration: nil context")
+	}
+	if branchID == "" {
+		return "", fmt.Errorf("integration: empty branch id")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return "", fmt.Errorf("integration: no session")
+	}
+	outcome, err := c.Session.EndBranch(ctx, branchID)
+	return outcome, replayGapWrite("session.branch_end", err)
+}
+
 // Stop asks the App Server to stop the selected session's default branch.
 // Running state converges through the session.state notification. A
 // subscription_changed reply is reported, never replayed.

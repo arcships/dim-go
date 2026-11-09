@@ -58,26 +58,9 @@ func (s *Session) setKeysStatus(status ReadCapabilityStatus) {
 }
 
 func (s *Session) readBranchDirectory(ctx context.Context) {
-	params := appserver.BranchesParams{SessionID: s.sessionID}
-	branches, err := appserver.SessionBranches(ctx, s.client, params, s.features)
-	if err != nil {
-		s.failBranchDirectory(err)
-		return
+	if err := s.RefreshBranchDirectory(ctx); err != nil {
+		s.report(fmt.Errorf("session: session.branches unavailable: %w", err))
 	}
-	s.mu.Lock()
-	s.branchDirectory = branches
-	s.branchesLoaded = true
-	s.branchesStatus = ReadCapabilityStatus{Capability: "session.branches", Available: true}
-	s.mu.Unlock()
-}
-
-func (s *Session) failBranchDirectory(err error) {
-	s.setBranchesStatus(ReadCapabilityStatus{
-		Capability: "session.branches",
-		Available:  false,
-		Reason:     err.Error(),
-	})
-	s.report(fmt.Errorf("session: session.branches unavailable: %w", err))
 }
 
 func (s *Session) setBranchesStatus(status ReadCapabilityStatus) {

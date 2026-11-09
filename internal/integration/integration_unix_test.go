@@ -39,6 +39,11 @@ type fakeDaemon struct {
 	// inputLookup is the verbatim session.input_lookup reply. Tests set it to a
 	// typed accepted event, an unknown result or a malformed payload.
 	inputLookup json.RawMessage
+
+	// features overrides the hello.features list when non-nil, and branches is
+	// the verbatim session.branches reply (nil means the method is absent).
+	features []string
+	branches json.RawMessage
 }
 
 func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
@@ -86,6 +91,20 @@ func (d *fakeDaemon) setInputLookup(raw json.RawMessage) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.inputLookup = append(json.RawMessage(nil), raw...)
+}
+
+// setFeatures replaces the hello.features list. It must run before Start.
+func (d *fakeDaemon) setFeatures(features ...string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.features = append([]string(nil), features...)
+}
+
+// setBranches scripts the verbatim session.branches reply.
+func (d *fakeDaemon) setBranches(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.branches = append(json.RawMessage(nil), raw...)
 }
 
 // callCount reports how many requests were received for method.
@@ -210,27 +229,59 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 	case "hello":
 		d.mu.Lock()
 		instance := d.instance
+		features := d.features
 		d.mu.Unlock()
+		if features == nil {
+			features = []string{"session.catalog", "session.history"}
+		}
 		return appserver.HelloResult{
 			InstanceID:      instance,
 			ServerVersion:   "0.0.0-fake",
 			ProtocolVersion: appserver.WireProtocolVersion,
 			DaemonProfile:   appserver.DaemonProfile{Kind: appserver.DaemonProfileProduct},
-			Features:        []string{"session.catalog", "session.history"},
+			Features:        features,
 		}, nil
 	case "session.attach":
 		sequence := int64(2)
 		return appserver.AttachResult{Sequence: &sequence}, nil
 	case "session.history":
-		return json.RawMessage(`{
-			"events": [
-				{"id": "e1", "sequence": 1, "create_at": 1700000000000, "type": "input", "name": "message", "data": {"user": {"content": [{"type": "text", "text": "hello from the fake daemon"}]}}},
-				{"id": "e2", "sequence": 2, "create_at": 1700000000001, "type": "input", "name": "consumed", "data": {"input_id": "e1"}}
-			],
-			"through": 2,
-			"nextAfter": 2,
-			"done": true
-		}`), nil
+		// Echo the requested bound and window so main-branch and per-branch
+		// first-screen reads both satisfy the §9 paging invariants.
+		d.mu.Lock()
+		rawParams := append(json.RawMessage(nil), d.params[method]...)
+		d.mu.Unlock()
+		var params appserver.HistoryParams
+		_ = json.Unmarshal(rawParams, &params)
+		through := int64(2)
+		if params.Through != nil {
+			through = *params.Through
+		}
+		after := int64(0)
+		if params.After != nil {
+			after = *params.After
+		}
+		all := []appserver.RawEvent{
+			{ID: "e1", Sequence: 1, CreateAt: 1700000000000, Type: "input", Name: "message", Data: json.RawMessage(`{"user": {"content": [{"type": "text", "text": "hello from the fake daemon"}]}}`)},
+			{ID: "e2", Sequence: 2, CreateAt: 1700000000001, Type: "input", Name: "consumed", Data: json.RawMessage(`{"input_id": "e1"}`)},
+		}
+		events := make([]appserver.RawEvent, 0, len(all))
+		for _, event := range all {
+			if event.Sequence > after && event.Sequence <= through {
+				events = append(events, event)
+			}
+		}
+		nextAfter := through
+		return appserver.HistoryResult{Events: events, Through: &through, NextAfter: &nextAfter, Done: true}, nil
+	case "session.branches":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.branches...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "session.branches not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
+	case "session.branch_end":
+		return json.RawMessage(`{}`), nil
 	case "session.detach":
 		return json.RawMessage(`{}`), nil
 	case "session.submit":

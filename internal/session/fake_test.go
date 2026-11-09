@@ -62,17 +62,20 @@ type fakeHistoryFunc func(appserver.HistoryParams) (any, *fakeRPCError)
 type fakeInputLookupFunc func(InputLookupParams) (any, *fakeRPCError)
 
 type fakeConfig struct {
-	Attach       appserver.AttachResult
-	AttachErr    *fakeRPCError
-	OnAttach     func(*fakeServer)
-	History      fakeHistoryFunc
-	Methods      any
-	MethodsErr   *fakeRPCError
-	OnKeys       func(*fakeServer)
-	Keys         any
-	KeysErr      *fakeRPCError
-	Branches     any
-	BranchesErr  *fakeRPCError
+	Attach      appserver.AttachResult
+	AttachErr   *fakeRPCError
+	OnAttach    func(*fakeServer)
+	History     fakeHistoryFunc
+	Methods     any
+	MethodsErr  *fakeRPCError
+	OnKeys      func(*fakeServer)
+	Keys        any
+	KeysErr     *fakeRPCError
+	Branches    any
+	BranchesErr *fakeRPCError
+	// BranchesFn, when set, answers every session.branches request instead of
+	// the fixed Branches value, so tests can change the directory between reads.
+	BranchesFn   func(appserver.BranchesParams) (any, *fakeRPCError)
 	DetachErr    *fakeRPCError
 	InputLookup  fakeInputLookupFunc
 	Mutations    map[string][]fakeMutation
@@ -225,6 +228,9 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
 			return nil, invalidParams()
 		}
+		if s.cfg.BranchesFn != nil {
+			return s.cfg.BranchesFn(p)
+		}
 		if s.cfg.BranchesErr != nil {
 			return nil, s.cfg.BranchesErr
 		}
@@ -250,7 +256,7 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, unknownMethod()
 		}
 		return s.cfg.InputLookup(p)
-	case "session.submit", "session.stop", "approval.respond", "session.delete":
+	case "session.submit", "session.stop", "approval.respond", "session.delete", "session.branch_end":
 		return s.mutation(method, params)
 	default:
 		return nil, unknownMethod()
@@ -272,6 +278,9 @@ func (s *fakeServer) mutation(method string, params json.RawMessage) (any, *fake
 	case "session.delete":
 		var p appserver.DeleteParams
 		request = &p
+	case "session.branch_end":
+		var p appserver.BranchEndParams
+		request = &p
 	}
 	if err := json.Unmarshal(params, request); err != nil {
 		return nil, invalidParams()
@@ -290,6 +299,10 @@ func (s *fakeServer) mutation(method string, params json.RawMessage) (any, *fake
 			return nil, invalidParams()
 		}
 	case *appserver.DeleteParams:
+		if value.Validate() != nil {
+			return nil, invalidParams()
+		}
+	case *appserver.BranchEndParams:
 		if value.Validate() != nil {
 			return nil, invalidParams()
 		}

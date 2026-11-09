@@ -131,6 +131,10 @@ type branchView struct {
 	state     *appserver.StateNotice
 	approvals map[string]appserver.ApprovalRequest
 	head      int64
+	// loaded marks a finished first-screen history read for this branch.
+	// OpenBranch uses it to stay idempotent; live events alone do not load.
+	loaded  bool
+	history HistoryStatus
 }
 
 type pendingEvent struct {
@@ -321,18 +325,18 @@ func (s *Session) loadHistory(ctx context.Context, features []string) error {
 	var window historyWindow
 	var err error
 	if appserver.HasFeature(features, "session.history.latestTurn") {
-		window, err = s.readLatestTurn(ctx, head)
+		window, err = s.readLatestTurn(ctx, appserver.MainBranchID, head)
 		if err != nil {
 			return s.openFailure(err)
 		}
 		if window.fallback {
-			window, err = s.readCompatibility(ctx, head, "latest_turn_turn_start_drift")
+			window, err = s.readCompatibility(ctx, appserver.MainBranchID, head, "latest_turn_turn_start_drift")
 			if err != nil {
 				return s.openFailure(err)
 			}
 		}
 	} else {
-		window, err = s.readCompatibility(ctx, head, "")
+		window, err = s.readCompatibility(ctx, appserver.MainBranchID, head, "")
 		if err != nil {
 			return s.openFailure(err)
 		}
@@ -345,6 +349,9 @@ func (s *Session) loadHistory(ctx context.Context, features []string) error {
 			return s.openFailure(err)
 		}
 	}
+	main := s.branchLocked(appserver.MainBranchID)
+	main.loaded = true
+	main.history = window.status
 	s.history = window.status
 	pending := s.pending
 	s.pending = nil
@@ -915,7 +922,9 @@ type View struct {
 }
 
 // View returns an atomic read, including the current head, so a timer render
-// and an event-driven render cannot observe a half-updated projection.
+// and an event-driven render cannot observe a half-updated projection. History
+// is the branch's own first-screen window: zero until OpenBranch (or Open for
+// main) finished its read.
 func (s *Session) View(branchID string) View {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -925,10 +934,10 @@ func (s *Session) View(branchID string) View {
 		Transient: projection.NewTransientReducer(s.sessionID, branchID, s.clock).Snapshot(),
 		Head:      s.headLocked(branchID),
 		Ready:     s.ready,
-		History:   cloneHistoryStatus(s.history),
 	}
 	if branch := s.branches[branchID]; branch != nil {
 		view.Transient = branch.transient.Snapshot()
+		view.History = cloneHistoryStatus(branch.history)
 		if branch.state != nil {
 			copy := *branch.state
 			view.State = &copy

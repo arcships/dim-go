@@ -50,6 +50,18 @@ func TestMutationMethodsRequireSessionAndContext(t *testing.T) {
 	if err := controller.Stop(context.Background()); err == nil {
 		t.Fatal("Stop without session should fail")
 	}
+	if _, err := controller.OpenBranch(context.Background(), "side"); err == nil {
+		t.Fatal("OpenBranch without session should fail")
+	}
+	if _, err := controller.OpenBranch(nil, "side"); err == nil {
+		t.Fatal("OpenBranch without context should fail")
+	}
+	if err := controller.RefreshBranchDirectory(context.Background()); err == nil {
+		t.Fatal("RefreshBranchDirectory without session should fail")
+	}
+	if _, err := controller.EndBranch(context.Background(), "side"); err == nil {
+		t.Fatal("EndBranch without session should fail")
+	}
 }
 
 func TestCatalogRequiresStartedSupervisor(t *testing.T) {

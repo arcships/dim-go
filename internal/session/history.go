@@ -31,19 +31,19 @@ type historyWindow struct {
 	fallback bool
 }
 
-// readLatestTurn follows session.history.latestTurn: it starts at the attach
-// head, pages backward with nextBefore until done, and requires a stable
-// turnStart on every page. A turnStart drift is a soft signal to fall back to
-// the compatibility scan; a missing turnStart/nextBefore is a protocol error,
-// except for the finished empty-session window described by
+// readLatestTurn follows session.history.latestTurn for one branch: it starts
+// at the branch head, pages backward with nextBefore until done, and requires a
+// stable turnStart on every page. A turnStart drift is a soft signal to fall
+// back to the compatibility scan; a missing turnStart/nextBefore is a protocol
+// error, except for the finished empty-session window described by
 // validateEmptyLatestTurn.
-func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow, error) {
+func (s *Session) readLatestTurn(ctx context.Context, branchID string, head int64) (historyWindow, error) {
 	limit := latestTurnPageLimit
 	through := head
 	latestTurn := true
 	params := appserver.HistoryParams{
 		SessionID:  s.sessionID,
-		BranchID:   appserver.MainBranchID,
+		BranchID:   branchID,
 		Limit:      &limit,
 		Through:    &through,
 		LatestTurn: &latestTurn,
@@ -115,7 +115,7 @@ func (s *Session) readLatestTurn(ctx context.Context, head int64) (historyWindow
 		before := *page.NextBefore
 		params = appserver.HistoryParams{
 			SessionID:  s.sessionID,
-			BranchID:   appserver.MainBranchID,
+			BranchID:   branchID,
 			Limit:      &limit,
 			Through:    &through,
 			Before:     &before,
@@ -192,10 +192,10 @@ func (s *Session) pendingFailure() error {
 }
 
 // readCompatibility implements the no-latestTurn path: chunk backward from the
-// attach head with {after, limit, through}, at most 64 chunks, stopping when the
+// branch head with {after, limit, through}, at most 64 chunks, stopping when the
 // latest turn and its prompting input are both visible. A history_too_large
 // reply or a page-cap hit degrades the window; it never fails Open.
-func (s *Session) readCompatibility(ctx context.Context, head int64, fallbackReason string) (historyWindow, error) {
+func (s *Session) readCompatibility(ctx context.Context, branchID string, head int64, fallbackReason string) (historyWindow, error) {
 	limit := compatibilityPageLimit
 	through := head
 	var events []projection.RawEvent
@@ -213,7 +213,7 @@ func (s *Session) readCompatibility(ctx context.Context, head int64, fallbackRea
 		windowThrough := through
 		params := appserver.HistoryParams{
 			SessionID: s.sessionID,
-			BranchID:  appserver.MainBranchID,
+			BranchID:  branchID,
 			After:     &after,
 			Limit:     &limit,
 			Through:   &windowThrough,
