@@ -93,6 +93,8 @@ macOS 的 Accessibility 已授权（`AXIsProcessTrusted() == true`），因此�
 | F6 提交 | 在 composer 输入 `Acceptance: reply with one short sentence.`，点击圆形 Send | 出现 user 气泡与 assistant `Echo:` 行 | [`evidence/window-submit.png`](evidence/window-submit.png) |
 | F10 断线重连 | `kill` 掉本次 daemon | 窗口保持打开，显示 `App Server: Connection error` 与 `Reconnect` | [`evidence/window-transport-lost.png`](evidence/window-transport-lost.png) |
 | F10 重连恢复 | 点击 `Reconnect` | supervisor 重新 spawn `--mock-model` daemon，`App Server: Connected`，latest-turn history 重建 | [`evidence/window-reattach.png`](evidence/window-reattach.png) |
+| F12a branch 切换 | 点击 side branch 行 | 状态栏 `Branch: 8bd478fc…`，时间线切到该 branch 的 seed 回合，`End branch` 可用 | [`evidence/window-branch-switch.png`](evidence/window-branch-switch.png) |
+| branch 结束 | 点击 `End branch` | App Server 确认后目录刷新，显示切回 `main` | [`evidence/window-branch-end.png`](evidence/window-branch-end.png) |
 
 这一组同时暴露并修复了两个真实缺陷：
 

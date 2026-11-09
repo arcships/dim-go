@@ -1,0 +1,4 @@
+capture	docs/evidence/window-branch-end.png
+git_head	7723f8e
+driver	scripts/ax/axdo.swift
+note	real window click on End branch; status bar returns to main
