@@ -34,6 +34,7 @@ type fakeDaemon struct {
 	calls    map[string]int
 	params   map[string]json.RawMessage
 	attached map[net.Conn]struct{}
+	gates    map[string]*daemonGate
 	writeMu  sync.Mutex
 
 	// inputLookup is the verbatim session.input_lookup reply. Tests set it to a
@@ -62,6 +63,7 @@ func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
 		calls:    map[string]int{},
 		params:   map[string]json.RawMessage{},
 		attached: map[net.Conn]struct{}{},
+		gates:    map[string]*daemonGate{},
 	}
 	go daemon.accept()
 	t.Cleanup(func() { _ = listener.Close() })
@@ -86,6 +88,42 @@ func (d *fakeDaemon) fail(method string, faults ...*appserver.RPCError) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.faults[method] = append(d.faults[method], faults...)
+}
+
+// daemonGate holds one reply until the test releases it. It turns an in-flight
+// request into a deterministic event instead of a sleep: entered fires after the
+// call is counted and the reply is ready to be written.
+type daemonGate struct {
+	entered chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+// Release lets the held reply continue. It is safe to call more than once.
+func (g *daemonGate) Release() {
+	if g == nil {
+		return
+	}
+	g.once.Do(func() { close(g.release) })
+}
+
+// hold makes the next reply for method wait for Release. It is used to drive
+// unknown-result and superseded-generation races deterministically.
+func (d *fakeDaemon) hold(method string) *daemonGate {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	gate := &daemonGate{entered: make(chan struct{}, 1), release: make(chan struct{})}
+	d.gates[method] = gate
+	return gate
+}
+
+// takeGate removes and returns the pending gate for method.
+func (d *fakeDaemon) takeGate(method string) *daemonGate {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	gate := d.gates[method]
+	delete(d.gates, method)
+	return gate
 }
 
 // setInputLookup scripts the verbatim session.input_lookup reply.
@@ -220,9 +258,17 @@ func (d *fakeDaemon) serve(conn net.Conn) {
 	}
 }
 
-// respond writes one reply for a request.
+// respond writes one reply for a request. A held method is counted, then the
+// reply waits for the test's gate so the request is observably in flight.
 func (d *fakeDaemon) respond(conn net.Conn, id json.RawMessage, method string) {
 	result, fault := d.result(method)
+	if gate := d.takeGate(method); gate != nil {
+		select {
+		case gate.entered <- struct{}{}:
+		default:
+		}
+		<-gate.release
+	}
 	if fault != nil {
 		d.write(conn, map[string]any{"jsonrpc": "2.0", "id": id, "error": fault})
 		return
@@ -300,6 +346,8 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 	case "session.branch_end":
 		return json.RawMessage(`{}`), nil
 	case "session.detach":
+		return json.RawMessage(`{}`), nil
+	case "session.delete":
 		return json.RawMessage(`{}`), nil
 	case "session.submit":
 		return appserver.SubmitResult{Event: appserver.RawEvent{ID: "submitted", Sequence: 3, CreateAt: 1700000000002, Type: "input", Name: "message", Data: json.RawMessage(`{"text":"submitted"}`)}}, nil
