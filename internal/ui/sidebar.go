@@ -41,18 +41,6 @@ const (
 	sidebarRowEndInset = 0.5
 )
 
-// The sidebar's collapse control, as window-conversation.png draws it at the
-// column's top right: a 28 DIP target whose 16 DIP glyph is centred at y≈28,
-// level with the traffic lights, with the sidebar's 7 DIP padding holding it in
-// from the column's right edge. The shell has no collapse behavior, so the
-// target is unavailable and explains itself instead of pretending to fold the
-// column; it is still drawn at the reference's place rather than hidden.
-const (
-	sidebarCollapseTop    = 14
-	sidebarCollapseLabel  = "Collapse sidebar"
-	reasonSidebarCollapse = "Unavailable: the shell has no sidebar-collapse behavior yet."
-)
-
 // sidebarEntriesTop is the room above the first global entry, in multiples of
 // the sidebar's own 3.5 DIP step. In window-workspace.png the first entry's
 // label ink sits at y≈67-78.5 (center 72.8), while the same 28 DIP row drawn at
@@ -301,7 +289,6 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		workspaceHeader(c, k, locale)
 		threadList(c, k, v, sessions, a)
 		sidebarAccount(c, k, v, a)
-		sidebarCollapse(c, k)
 	})
 }
 
@@ -407,17 +394,14 @@ func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, e
 }
 
 // threadListHeader names the thread list, as the reference's session column
-// does. The count and the unavailable group control are gone: the reference
-// draws the heading with its add and list icons on the right, and this shell
-// has no group mode to offer yet. The icons are decorations, so the heading's
-// text is what assistive technology reads.
+// does. The count, the unavailable group control and the heading's add and list
+// decorations are gone: the decorations took no click, and the add mark repeated
+// the new-session entry above. The heading is text alone.
 func threadListHeader(c *ui.Context, k tokens, locale Locale) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
 		ui.Text(c, tr(locale, keySidebarSessions)).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
 		ui.Spacer(c)
-		sidebarGlyph(c, sidebarIcons.plus, k.mutedForeground)
-		sidebarGlyph(c, sidebarIcons.list, k.mutedForeground)
 	})
 }
 
@@ -438,12 +422,11 @@ func workspaceHeader(c *ui.Context, k tokens, locale Locale) {
 
 // threadList draws the workspace section and, below it, the grouped thread
 // rows in a keyed, virtualized list with one scroll container. The built-in
-// workspace always keeps its "No sessions yet" line and the hairline closing
-// the section, even while the project groups under it hold sessions: the
-// reference draws the empty built-in workspace above the project rows. The
-// list's choice is the shell's selected session: a click or an arrow key moves
-// the choice, and chooseSession publishes it. sessions is the display copy the
-// search filter left; the catalog itself is never written.
+// workspace's message appears only while the list has no row, and the hairline
+// closing the section stays under both states. The list's choice is the shell's
+// selected session: a click or an arrow key moves the choice, and chooseSession
+// publishes it. sessions is the display copy the search filter left; the
+// catalog itself is never written.
 func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Actions) {
 	locale := v.Locale
 	rows := threadRows(sessions, locale)
@@ -500,32 +483,36 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 	})
 }
 
-// workspaceEmpty draws the built-in workspace's message and the hairline that
-// closes its section, as the reference does above the project groups. The
-// message is inset like the reference's pl-[26px], aligned under the project
-// heading's text rather than its icon. It stays a status region while the list
-// has no row at all, so assistive technology hears why; with rows under it, it
-// describes the empty built-in workspace. A filter that leaves no row swaps in
-// the no-match text, because then the list itself is empty too.
+// workspaceEmpty draws the built-in workspace's message while the list has no
+// row, and the hairline that closes the section. The message appears only then:
+// above session rows it contradicted the rows under it. A filter that leaves no
+// row swaps in the no-match text, because then the list itself is empty too. The
+// hairline stays in both states, as the reference closes the section with it.
 func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 	locale := v.Locale
-	message := tr(locale, keySidebarEmpty)
-	if rows == 0 && v.state.searching && len(v.Sessions) > 0 {
-		message = tr(locale, keySidebarEmptyFiltered)
-	}
 	ui.Column(c).Children(func() {
-		ui.Column(c).Padding(
-			sidebarEmptyPadTop*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent,
-			sidebarEmptyPadBottom*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent).
-			Children(func() {
-				text := ui.Text(c, message).FontSize(k.smallSize).TextColor(k.mutedForeground)
-				if rows == 0 {
-					text.Role(ui.RoleStatus)
-				}
-			})
+		if rows == 0 {
+			message := tr(locale, keySidebarEmpty)
+			if v.state.searching && len(v.Sessions) > 0 {
+				message = tr(locale, keySidebarEmptyFiltered)
+			}
+			ui.Column(c).Padding(
+				sidebarEmptyPadTop*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent,
+				sidebarEmptyPadBottom*k.sidebarGap, k.sidebarPadX+sidebarEmptyIndent).
+				Children(func() {
+					ui.Text(c, message).FontSize(k.smallSize).TextColor(k.mutedForeground).
+						Role(ui.RoleStatus)
+				})
+		}
 		// The hairline is inset like the reference's, so it closes the section
-		// without running under the sidebar's edges.
-		ui.Row(c).PaddingX(k.sidebarPadX * 2).Children(func() {
+		// without running under the sidebar's edges. With rows under it the
+		// message's room is gone, so a small step keeps the rule off both the
+		// workspace heading and the first group.
+		padY := k.sidebarGap
+		if rows == 0 {
+			padY = 0
+		}
+		ui.Row(c).Padding(padY, k.sidebarPadX*2, padY, k.sidebarPadX*2).Children(func() {
 			ui.Box(c).FillWidth().Height(k.hairline).Background(k.border).AccessHidden(true)
 		})
 	})
@@ -573,26 +560,6 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 			ui.Text(c, stamp).FontSize(k.smallSize).TextColor(k.sidebarForeground).
 				SingleLine()
 		}
-	})
-}
-
-// sidebarCollapse draws the reference's panel-collapse target at the column's
-// top right, level with the traffic lights. It is absolute over the entries, so
-// it keeps its place while the list scrolls and the column resizes. The shell
-// has no collapse behavior, so the target takes no click and no Tab stop and
-// carries the reason in its description and tooltip; its glyph stays at full
-// ink, because the reference draws a live control there and the unavailability
-// is what assistive technology reads. The mark is a decoration; its label names
-// the target.
-func sidebarCollapse(c *ui.Context, k tokens) {
-	button := ui.ButtonBase(c).Key("sidebar-collapse").Absolute().
-		Top(sidebarCollapseTop).Right(k.sidebarPadX).Size(k.sidebarEntryH, k.sidebarEntryH).
-		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
-		Label(sidebarCollapseLabel).Description(reasonSidebarCollapse).Tooltip(reasonSidebarCollapse).
-		Disabled(true).DimDisabled(false).AccessDisabled(true).
-		Transition(motionFastColors(c))
-	button.Children(func() {
-		sidebarGlyph(c, sidebarIcons.collapse, k.sidebarForeground)
 	})
 }
 

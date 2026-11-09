@@ -182,10 +182,10 @@ func TestSidebarGlyphsAreDrawnBeforeTheirLabels(t *testing.T) {
 	}
 }
 
-// TestSidebarHeadingGlyphsSitAtTheRight checks the thread heading's add and
-// list icons: the reference draws them at the heading's trailing edge, after
-// the text, so the heading keeps its label at the start of the row.
-func TestSidebarHeadingGlyphsSitAtTheRight(t *testing.T) {
+// TestSidebarHeadingDrawsNoGlyphsAtTheRight checks the thread heading's tail:
+// the reference's add and list decorations are gone, so the room after the
+// label is the sidebar's own face and nothing pretends to be a control.
+func TestSidebarHeadingDrawsNoGlyphsAtTheRight(t *testing.T) {
 	s := glyphFixtureState()
 	tt, k := glyphTester(t, s)
 
@@ -199,30 +199,14 @@ func TestSidebarHeadingGlyphsSitAtTheRight(t *testing.T) {
 	}
 	image := tt.Image()
 	face := color.RGBA{R: k.sidebar.R, G: k.sidebar.G, B: k.sidebar.B, A: k.sidebar.A}
-	right := nav.Bounds.X + nav.Bounds.W - k.sidebarSectionPadX
-	for i := 0; i < 2; i++ {
-		box := ui.Rect{
-			X: right - float32(i+1)*sidebarIconSize - float32(i)*k.sidebarGap,
-			Y: heading.Y + heading.H/2 - sidebarIconSize/2,
-			W: sidebarIconSize, H: sidebarIconSize,
-		}
-		ink := false
-		for y := int(box.Y); y < int(box.Y+box.H); y++ {
-			for x := int(box.X); x < int(box.X+box.W); x++ {
-				if image.RGBAAt(x, y) != face {
-					ink = true
-				}
+	center := heading.Y + heading.H/2
+	top, bottom := int(center-k.sidebarSectionH/2), int(center+k.sidebarSectionH/2)
+	for y := top; y < bottom; y++ {
+		for x := int(heading.X+heading.W) + 4; x < int(nav.Bounds.X+nav.Bounds.W); x++ {
+			if image.RGBAAt(x, y) != face {
+				t.Fatalf("the heading paints %v at x=%d, y=%d: a decoration is still drawn",
+					image.RGBAAt(x, y), x, y)
 			}
-		}
-		if !ink {
-			t.Errorf("heading icon %d paints no ink in %+v", i, box)
-		}
-		if box.X <= heading.X+heading.W {
-			t.Errorf("heading icon %d at x=%.1f sits at or left of the text ending at %.1f",
-				i, box.X, heading.X+heading.W)
-		}
-		if box.X+box.W > nav.Bounds.X+nav.Bounds.W {
-			t.Errorf("heading icon %d at %+v runs outside the sidebar %+v", i, box, nav.Bounds)
 		}
 	}
 }

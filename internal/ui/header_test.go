@@ -346,47 +346,38 @@ func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 	}
 }
 
-// TestHeaderOffersTheEditorOpenEntryAsWIP checks the reference's editor-open
-// control: a VS Code mark and its disclosure arrow stay visible at the bar's
-// right end, before the divider and the panel toggle, but take no click and no
-// Tab stop while the shell has no editor client or workspace fact.
-func TestHeaderOffersTheEditorOpenEntryAsWIP(t *testing.T) {
+// TestHeaderDrawsNoEditorEntry checks the bar's trailing group: the reference's
+// VS Code mark, its disclosure arrow and the rule before the panel toggle are
+// gone, because the shell has no editor client or workspace fact to open
+// anything with. The panel toggle stays; it is a real entry.
+func TestHeaderDrawsNoEditorEntry(t *testing.T) {
 	v := fixture().headerView()
+	var theme *ui.Theme
 	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
 		header(c, newTokens(c.Theme()), v, Actions{OnToggleContextPanel: func() {}})
 	}, 900, 200)
-	label := tr(LocaleEN, keyHeaderOpenInEditor)
-	info, ok := tt.AccessByRole(ui.RoleButton, label)
-	if !ok {
-		t.Fatalf("the editor-open entry is not drawn, texts %q", tt.Texts())
+	k := newTokens(theme)
+
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyHeaderOpenInEditor)); ok {
+		t.Error("the bar still exposes the editor-open entry")
 	}
-	if !info.Disabled {
-		t.Error("the editor-open entry is available although the shell has no editor client")
-	}
-	if info.Focusable {
-		t.Error("the editor-open entry takes a Tab stop")
-	}
-	if !strings.Contains(info.Description, tr(LocaleEN, keyReasonOpenInEditor)) {
-		t.Errorf("the entry description %q does not name the reason %q",
-			info.Description, tr(LocaleEN, keyReasonOpenInEditor))
-	}
-	entry, ok := tt.Find(label)
-	if !ok {
-		t.Fatalf("the editor-open entry has no drawn box, texts %q", tt.Texts())
-	}
-	if entry.H < newTokens(ui.LightTheme()).sidebarEntryH-0.5 {
-		t.Errorf("the entry is %.1f high, want the toolbar's 28 DIP control", entry.H)
-	}
-	if want := float32(2*openInEditorCell) + 2*newTokens(ui.LightTheme()).hairline; entry.W > want+0.5 {
-		t.Errorf("the entry is %.1f wide, want the reference's %v DIP frame", entry.W, want)
+	if tt.HasText(tr(LocaleEN, keyHeaderOpenInEditor)) {
+		t.Errorf("the bar still draws the editor-open label, texts %q", tt.Texts())
 	}
 	toggle, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyContextPanelToggle))
 	if !ok {
-		t.Fatalf("the context panel toggle is not drawn, texts %q", tt.Texts())
+		t.Fatalf("the bar lost the panel toggle, texts %q", tt.Texts())
 	}
-	if toggle.Bounds.X < entry.X+entry.W-0.5 {
-		t.Errorf("the context panel toggle at x=%.1f is not after the editor entry ending at %.1f",
-			toggle.Bounds.X, entry.X+entry.W)
+	// The divider went with the editor entry: the room before the toggle is the
+	// bar's own face, not a vertical rule.
+	image := tt.Image()
+	y := int(toggle.Bounds.Y + toggle.Bounds.H/2)
+	for x := int(toggle.Bounds.X) - 12; x < int(toggle.Bounds.X); x++ {
+		if got := image.RGBAAt(x, y); !sameColor(got, k.background) {
+			t.Errorf("the bar paints %v at x=%d, before the panel toggle: the divider is still drawn", got, x)
+			break
+		}
 	}
 }
 
@@ -407,26 +398,27 @@ func TestHeaderDrawsNoModelEntry(t *testing.T) {
 	if _, ok := tt.AccessByRole(ui.RoleButton, "Model picker"); ok {
 		t.Error("the bar still exposes a model picker entry")
 	}
-	// The editor entry and the panel toggle stay; only the model entry left the bar.
-	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyHeaderOpenInEditor)); !ok {
-		t.Errorf("the bar lost the editor entry, texts %q", tt.Texts())
-	}
+	// The panel toggle stays; only the model entry left the bar.
 	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyContextPanelToggle)); !ok {
 		t.Errorf("the bar lost the panel toggle, texts %q", tt.Texts())
 	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyHeaderOpenInEditor)); ok {
+		t.Error("the bar still exposes the editor entry")
+	}
 }
 
-// TestHeaderTitleUsesTheRoomBeforeTheMenu checks where the long title stops in
+// TestHeaderTitleUsesTheRoomBeforeTheMenu checks where a long title stops in
 // the 537 DIP bar the reference's card leaves at an 800×720 window. The title's
 // box ends at the session menu's target, but its text may run
 // titleEllipsisOverlap DIPs under the target's empty left bearing, so the
-// truncation lands on the reference's last glyph ("one par…") without moving
-// the menu or any control to its right: the title's ink reaches its box's edge
-// and stops before the menu's "…".
+// truncation reaches the box's edge without moving the menu or any control to
+// its right: the title's ink reaches its box's edge and stops before the menu's
+// "…". The title is longer than the bar so the check still exercises the cut
+// now that the editor entry no longer takes room from the breadcrumb.
 func TestHeaderTitleUsesTheRoomBeforeTheMenu(t *testing.T) {
 	v := fixture().headerView()
 	v.Project = "dimagent-mygo"
-	v.Title = "Explain what this repository does in one paragraph."
+	v.Title = "Explain what this repository does in one paragraph, then keep going until the bar cuts it."
 	v.Connection = ConnReady
 	v.Run = RunIdle
 	var theme *ui.Theme
@@ -561,61 +553,6 @@ func TestHeaderBreadcrumbStartsAtTheReferenceInset(t *testing.T) {
 	}
 	if button.Bounds.W > menuTargetW+0.5 {
 		t.Errorf("the menu target is %.1f wide, want the compact %v DIP step", button.Bounds.W, menuTargetW)
-	}
-}
-
-// TestHeaderEditorMarkUsesTheVSCodeBrandBlue checks the drawn editor entry: the
-// VS Code mark keeps the brand's blue even though the WIP entry is unavailable,
-// while the disclosure arrow beside it stays the bar's muted ink. The entry is
-// unavailable without dimming: it takes no click and no Tab stop, and the mark
-// paints the reference's #2563EB exactly instead of a half-opacity tint. The
-// frame has no internal rule between the two cells.
-func TestHeaderEditorMarkUsesTheVSCodeBrandBlue(t *testing.T) {
-	v := fixture().headerView()
-	tt := ui.NewTester(func(c *ui.Context) {
-		header(c, newTokens(c.Theme()), v, Actions{})
-	}, 800, 41)
-	label := tr(LocaleEN, keyHeaderOpenInEditor)
-	entry, ok := tt.Find(label)
-	if !ok {
-		t.Fatalf("the editor entry is not drawn, texts %q", tt.Texts())
-	}
-	info, ok := tt.AccessByRole(ui.RoleButton, label)
-	if !ok {
-		t.Fatalf("the editor entry is not a named button, texts %q", tt.Texts())
-	}
-	if !info.Disabled || info.Focusable {
-		t.Errorf("the editor entry is not unavailable without a Tab stop: disabled=%v focusable=%v",
-			info.Disabled, info.Focusable)
-	}
-	image := tt.Image()
-	brand := color.RGBA{R: openInEditorBrand.R, G: openInEditorBrand.G, B: openInEditorBrand.B, A: openInEditorBrand.A}
-	blue, exact := 0, 0
-	for y := int(entry.Y) + 2; y < int(entry.Y+entry.H)-2; y++ {
-		for x := int(entry.X) + 1; x < int(entry.X+openInEditorCell); x++ {
-			p := image.RGBAAt(x, y)
-			if d := int(p.B) - int(p.R); d > blue {
-				blue = d
-			}
-			if p == brand {
-				exact++
-			}
-		}
-	}
-	if exact == 0 {
-		t.Errorf("the mark never paints the reference's %v brand blue, strongest pixel is %d bluer than red", brand, blue)
-	}
-	muted := 0
-	for y := int(entry.Y) + 2; y < int(entry.Y+entry.H)-2; y++ {
-		for x := int(entry.X+openInEditorCell) + 1; x < int(entry.X+entry.W); x++ {
-			p := image.RGBAAt(x, y)
-			if d := int(p.B) - int(p.R); d > muted {
-				muted = d
-			}
-		}
-	}
-	if muted >= blue/2 {
-		t.Errorf("the arrow is %d bluer than red, want it muted beside the %d mark", muted, blue)
 	}
 }
 

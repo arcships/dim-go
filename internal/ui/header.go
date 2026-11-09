@@ -1,14 +1,16 @@
 // This file owns the main area's conversation bar and banner: the project and
 // session-title breadcrumb, the session menu, the conditional Stop and Reconnect
-// entries, the editor-open entry, the divider, the context panel toggle, the
-// delete confirmation and the error banner below them. It reads HeaderView and
-// Actions only (see protocols.go).
+// entries, the context panel toggle, the delete confirmation and the error
+// banner below them. It reads HeaderView and Actions only (see protocols.go).
 //
 // The reference's conversation bar is one line with the breadcrumb and a "…"
 // menu on the left and the surface entries on the right. Its model picker lives
-// in the composer, not in the bar, so the bar draws no model entry. Run and
-// connection status are not drawn here either: the reference has no
-// "Session: Idle" or "App Server: …" row, and this shell no longer adds one.
+// in the composer, not in the bar, so the bar draws no model entry. Its editor
+// entry is absent too: the shell has no editor client or workspace fact, so the
+// mark, its disclosure arrow and the rule before the panel toggle would only
+// pretend to open something. Run and connection status are not drawn here
+// either: the reference has no "Session: Idle" or "App Server: …" row, and this
+// shell no longer adds one.
 
 package ui
 
@@ -67,27 +69,18 @@ const breadcrumbLeftPad = 19
 // toolbar's full 28 DIP square. The target keeps the toolbar's height.
 const menuTargetW = 20
 
-// openInEditorCell is the width of each half of the editor-open control: the
-// reference's 44 DIP frame splits into the brand mark's cell and the disclosure
-// arrow's cell. It is a measured literal, like the control's height.
-const openInEditorCell = 22
-
-// headerEntryGap is the room inside the bar's trailing cluster — the editor
-// entry, its divider and the panel toggle — in DIPs. The reference keeps those
-// three closer together than the bar's toolbar gap, so the cluster reads as one
-// control group at the right end.
-const headerEntryGap = 6
-
 // contextPanelGlyph is the entry's two-pane mark, as the Electron reference
 // draws the panel toggle at the card's top right: a 10×10 rounded frame split
 // down the middle, both panes outlined. It strokes currentColor and paints no
 // fill, so it follows the theme like the sidebar's glyphs.
 var contextPanelGlyph = sidebarIcon(`<rect x="3" y="3" width="10" height="10" rx="1.7"/><path d="M8 3v10"/>`)
 
-// reasonOpenInEditor explains the toolbar's VS Code entry while the shell has
-// no editor client and no workspace fact to hand one. The entry is the
-// reference's segmented open control, kept visible and unavailable rather than
-// pretending it could open anything.
+// reasonOpenInEditor is the explanation the localization table still carries
+// for the reference's editor-open entry. The bar no longer draws that entry:
+// with no editor client and no workspace fact, the mark, its arrow and the rule
+// before the panel toggle were a fake entry rather than a usable one. The text
+// stays so a real editor client can bring the entry back without inventing a
+// new reason.
 const reasonOpenInEditor = "Unavailable: the shell has no editor-open client or workspace fact for opening this session in VS Code yet."
 
 // header shows the selected session's breadcrumb and entries, then the banner
@@ -135,23 +128,15 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 				ui.Button(c, tr(locale, keyHeaderReconnect)).OnClick(a.OnReconnect).Transition(motionFastColors(c))
 			}
 		}
-		// The reference draws its editor-open control at the bar's right end: a
-		// VS Code mark and a disclosure arrow. The shell has no editor client
-		// and no workspace fact to open, so the entry stays visible, unavailable
-		// and explained instead of pretending it could open the session. The
-		// editor entry, its divider and the panel toggle sit in one tighter
-		// cluster, as the reference's trailing controls do.
-		ui.Row(c).Gap(headerEntryGap).AlignItems(ui.Center).Shrink(0).Children(func() {
-			openInEditorEntry(c, k, locale)
-			headerDivider(c, k)
-			// The context panel is the conversation's, so its entry appears only
-			// while neither surface that replaces the conversation is showing. With
-			// no workspace to show changed files for, the entry is absent rather than
-			// disabled.
-			if !v.SettingsOpen && !v.KeysOpen && a.OnToggleContextPanel != nil {
-				contextPanelToggle(c, k, v, a)
-			}
-		})
+		// The context panel is the conversation's, so its entry appears only
+		// while neither surface that replaces the conversation is showing. With
+		// no workspace to show changed files for, the entry is absent rather than
+		// disabled. It is the bar's only trailing entry: the reference's editor
+		// control and the rule it puts before the panel toggle are not drawn, as
+		// the shell has no editor client to open anything with.
+		if !v.SettingsOpen && !v.KeysOpen && a.OnToggleContextPanel != nil {
+			contextPanelToggle(c, k, v, a)
+		}
 	})
 	banner(c, k, v)
 	deleteConfirmation(c, k, v, a)
@@ -243,41 +228,6 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 // silently inert item.
 func menuWIP(m *ui.Menu, label, reason string) {
 	m.Item(label).Disabled(true).Trailing(wipBadge).Subtitle(reason)
-}
-
-// headerDivider is the hairline between the editor entry and the context panel
-// toggle, as the reference draws a vertical rule before its panel switch.
-func headerDivider(c *ui.Context, k tokens) {
-	ui.Box(c).Key("header-divider").Width(k.hairline).Height(k.sidebarEntryH).Shrink(0).
-		Background(k.border).Transition(motionLayoutColors(c)).AccessHidden(true)
-}
-
-// openInEditorEntry draws the reference's editor-open control as a visible WIP
-// entry: the VS Code brand mark and the disclosure arrow in one rounded frame.
-// The shell has no editor-open client and no workspace fact to hand one, so the
-// entry takes no click and no Tab stop and carries the reason it waits on in its
-// description and tooltip. The marks are decorations; the localized label names
-// the entry. DimDisabled(false) keeps the mark's brand blue solid: a disabled
-// entry that dimmed itself would wash the reference's #2563EB to a pale tint,
-// and the unavailability is what assistive technology reads, not a faded look.
-func openInEditorEntry(c *ui.Context, k tokens, locale Locale) {
-	label := tr(locale, keyHeaderOpenInEditor)
-	reason := tr(locale, keyReasonOpenInEditor)
-	entry := ui.ButtonBase(c).Key("header-editor").Height(k.sidebarEntryH).Radius(radiusSM).
-		BorderWidth(k.hairline).BorderColor(k.border).AlignItems(ui.Center).
-		Label(label).Description(reason).Tooltip(reason).
-		Disabled(true).DimDisabled(false).AccessDisabled(true).Shrink(0).
-		Transition(motionFastColors(c))
-	entry.Children(func() {
-		ui.Box(c).Width(openInEditorCell).Height(k.sidebarEntryH).Center().Children(func() {
-			ui.Icon(c, openInEditorGlyph).Size(sidebarIconSize, sidebarIconSize).
-				TextColor(openInEditorBrand).AccessHidden(true)
-		})
-		ui.Box(c).Width(openInEditorCell).Height(k.sidebarEntryH).Center().Children(func() {
-			ui.Icon(c, sidebarIcons.chevron).Size(10, 10).Rotate(90).
-				TextColor(k.mutedForeground).AccessHidden(true)
-		})
-	})
 }
 
 // deleteConfirmation draws the alert the menu's delete entry opens. The alert
