@@ -158,6 +158,7 @@ const (
 	// model fact, so the composer states that none is configured instead of
 	// naming one. keyComposerStatus names the conversation's status band.
 	keyComposerUnconfigured = "composer.model.unconfigured"
+	keyComposerBusy         = "composer.busy"
 	keyComposerStatus       = "composer.status"
 
 	keySettingsRegion           = "settings.region"
@@ -221,6 +222,7 @@ const (
 	// Settings navigation: the section names and the WIP reason of each page the
 	// shell cannot open yet.
 	keySettingsNavigation = "settings.navigation"
+	keySettingsBackToList = "settings.backToList"
 	keyContextPanelToggle = "header.contextPanel"
 
 	// Layout pieces the shell draws around the conversation: the empty-state
