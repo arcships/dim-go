@@ -150,6 +150,15 @@ type Actions struct {
 	// this field is nil the menu entry stays visible, disabled and explained as
 	// WIP.
 	OnArchiveSession func(sessionID string)
+	// OnCopySessionID is called by the toolbar's session menu "Copy conversation
+	// ID" entry after the region has written the selected session's id to the
+	// system clipboard. The region does the copy itself, through the window's
+	// clipboard service: the id is a fact the App Server already reported, and a
+	// clipboard write reaches no App Server. The shell records the outcome as a
+	// muted HeaderView.ActionStatus ("Copied conversation ID") and sends nothing.
+	// While this field is nil the entry still copies the id, because the
+	// clipboard write needs no window callback; only the status line is missing.
+	OnCopySessionID func(sessionID string)
 	// OnOpenSettings is called by the toolbar's session menu settings entry and
 	// toggles the appearance surface. The preferences it edits are desktop-local:
 	// the caller applies the theme and the sidebar width and persists what it
@@ -306,7 +315,8 @@ type HeaderView struct {
 	// lookup of its own.
 	Title string
 	// SessionID is the selected session's identity, which the delete
-	// confirmation addresses. The region never invents one.
+	// confirmation and the copy entry address. The region never invents one;
+	// while it is empty the copy entry is the menu's WIP statement.
 	SessionID string
 	// HasSession is true while a session is selected. The toolbar, its menu and
 	// the banner belong to a selected session; the stop and reconnect entries
