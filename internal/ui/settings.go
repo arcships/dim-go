@@ -1,14 +1,22 @@
-// This file owns the appearance settings surface: the desktop's own color
-// theme, type, sidebar-width and density preferences, plus the skin and chrome
-// entries the shell cannot offer yet. It reads SettingsView and the tokens only
-// (see protocols.go); the App Server owns every session, run, timeline and
-// approval fact and is not read here.
+// This file owns the settings surface: the section navigation dim-electron
+// draws on the left, and the page of the chosen section on the right. The
+// appearance page is the one the shell built first, and it keeps the desktop's
+// own color theme, type, sidebar-width and density preferences, plus the skin
+// and chrome entries the shell cannot offer yet. Every other section keeps its
+// place in the navigation and explains the client or page it waits on, so the
+// settings surface reads as WIP instead of as an empty page that saved
+// nothing.
+//
+// It reads SettingsView and the tokens only (see protocols.go); the App Server
+// owns every session, run, timeline and approval fact and is not read here.
 //
 // These are desktop-local preferences, the kind dim-electron keeps in its own
 // config (appearance/index.ts): they change how the shell draws, not what a
 // session contains. renderSettings writes nothing itself. It reports one
 // SettingsChange per user choice and leaves applying and persisting it to the
 // window, so the surface cannot claim a preference the desktop did not save.
+// The chosen section is display state of this surface alone: a navigation click
+// moves the surface's own *Section and reports no SettingsChange.
 
 package ui
 
@@ -19,7 +27,7 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// The appearance page's own steps, in DIPs. Padding, gaps, type sizes, radii
+// The settings surface's own steps, in DIPs. Padding, gaps, type sizes, radii
 // and colors come from the tokens; these are the values only this surface has:
 // the width of its reading column (dim-electron's max-w-4xl is 784 DIP at the
 // 14px root size), the sidebar-width step a keyboard press takes, and the code
@@ -31,6 +39,28 @@ const (
 	settingsCodeMax   = 20
 	settingsCodeStep  = 1
 )
+
+// The navigation column's geometry, in DIPs, from docs/l5-reference.md §5.5:
+// the reference window is 800 wide and its section column's divider sits at
+// x≈228.5, so the column takes 30% of the surface and never grows past 200
+// DIPs. The share keeps the column inside a narrow window instead of pushing
+// the page off its right edge, and the cap gives the page its reading room on
+// a wide one. A section row keeps the sidebar's entry height so the two
+// navigations read as one shell.
+const (
+	settingsNavW     = 200
+	settingsNavShare = 30
+)
+
+// settingsNavigationLabel names the section column for assistive technology.
+// The reference has no message key for it yet, so the label stays English;
+// see the missing-key list in the surface's report.
+const settingsNavigationLabel = "Settings sections"
+
+// settingsSectionLocalKey is the local key the surface keeps its chosen
+// section under (ui.Local). It is a type, not a string, so the state cannot
+// collide with another element's.
+type settingsSectionLocalKey struct{}
 
 // settingsLocalNote says where these preferences live. The surface never sends
 // them to the App Server: none of them is a session, run or approval fact.
@@ -49,6 +79,164 @@ const (
 	reasonSkin   = "Unavailable: skins need dim-electron's skin.json resolver and window regions; the theme row chooses only system, light or dark."
 	reasonChrome = "Unavailable: chrome themes need dim-electron's six historical stylesheets; this shell does not draw a fake chrome."
 )
+
+// settingsSectionGaps says why a section other than Appearance has no page
+// here: the client or page dim-electron opens for it is missing. The reason
+// names what is absent, so a reader sees a WIP page rather than an empty one
+// whose settings appear lost or unset.
+var settingsSectionGaps = map[SettingsSection]string{
+	SettingsSectionAccount:         "Unavailable: the shell has no account client or page yet, so it cannot show an account or sign in.",
+	SettingsSectionUsage:           "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
+	SettingsSectionPersonalization: "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
+	SettingsSectionGeneral:         "Unavailable: the general settings page is not built yet; the shell has no client for its desktop preferences.",
+	SettingsSectionShortcuts:       "Unavailable: the shortcuts page is not built yet; the shell has no keybinding client or editor.",
+	SettingsSectionModels:          "Unavailable: the models page is not built yet; the shell has no model-provider client or page.",
+	SettingsSectionMultimodal:      "Unavailable: the multimodal page is not built yet; the shell has no multimodal client or page.",
+	SettingsSectionRuntime:         "Unavailable: the runtime page is not built yet; the shell has no runtime client or page.",
+	SettingsSectionMCP:             "Unavailable: the MCP page is not built yet; the shell has no MCP server client or page.",
+	SettingsSectionNotifications:   "Unavailable: the notifications page is not built yet; the shell has no notification client or page.",
+	SettingsSectionPet:             "Unavailable: the pet page is not built yet; the shell has no pet client or page.",
+	SettingsSectionPermissions:     "Unavailable: the permissions page is not built yet; the shell shows approvals but has no rule editor, permissions client or page.",
+	SettingsSectionGit:             "Unavailable: the Git page is not built yet; the shell has no Git client or page.",
+	SettingsSectionHooks:           "Unavailable: the hooks page is not built yet; the shell has no hooks client or page.",
+	SettingsSectionPlugins:         "Unavailable: the plugins page is not built yet; the shell has no plugin client or page.",
+	SettingsSectionExternalAgent:   "Unavailable: the external agent page is not built yet; the shell has no external-agent client or page.",
+}
+
+// SettingsSection is one page of the settings surface. The zero value is the
+// appearance page, which is the one the shell can draw today: a saved view that
+// names no section opens there, and a window that has never saved a section
+// draws it without extra state.
+//
+// The numbers are not the navigation's order; settingsSections is, so that the
+// reference's 17 entries keep their order while the zero value keeps the built
+// page.
+type SettingsSection uint8
+
+const (
+	// SettingsSectionAppearance is the color, type, layout, skin and language
+	// page. It is the zero value and the surface's default.
+	SettingsSectionAppearance SettingsSection = iota
+	// SettingsSectionAccount is the account and sign-in page.
+	SettingsSectionAccount
+	// SettingsSectionUsage is the usage and spend page.
+	SettingsSectionUsage
+	// SettingsSectionPersonalization is the interface-mode and workspace page.
+	SettingsSectionPersonalization
+	// SettingsSectionGeneral is the general desktop preferences page.
+	SettingsSectionGeneral
+	// SettingsSectionShortcuts is the keyboard-shortcut page.
+	SettingsSectionShortcuts
+	// SettingsSectionModels is the model-provider page.
+	SettingsSectionModels
+	// SettingsSectionMultimodal is the multimodal-settings page.
+	SettingsSectionMultimodal
+	// SettingsSectionRuntime is the runtime page.
+	SettingsSectionRuntime
+	// SettingsSectionMCP is the MCP-server page.
+	SettingsSectionMCP
+	// SettingsSectionNotifications is the notification page.
+	SettingsSectionNotifications
+	// SettingsSectionPet is the pet page.
+	SettingsSectionPet
+	// SettingsSectionPermissions is the permission-rules page.
+	SettingsSectionPermissions
+	// SettingsSectionGit is the Git page.
+	SettingsSectionGit
+	// SettingsSectionHooks is the hooks page.
+	SettingsSectionHooks
+	// SettingsSectionPlugins is the plugin-settings page.
+	SettingsSectionPlugins
+	// SettingsSectionExternalAgent is the external-agent page.
+	SettingsSectionExternalAgent
+)
+
+// settingsSections is the navigation's order, as the reference's left column
+// lists it (docs/l5-reference.md §5.5): Account, Usage, Personalization,
+// Appearance, General, Shortcuts, Models, Multimodal, Runtime, MCP,
+// Notifications, Pet, Permissions, Git, Hooks, Plugins, External Agent.
+var settingsSections = [...]SettingsSection{
+	SettingsSectionAccount,
+	SettingsSectionUsage,
+	SettingsSectionPersonalization,
+	SettingsSectionAppearance,
+	SettingsSectionGeneral,
+	SettingsSectionShortcuts,
+	SettingsSectionModels,
+	SettingsSectionMultimodal,
+	SettingsSectionRuntime,
+	SettingsSectionMCP,
+	SettingsSectionNotifications,
+	SettingsSectionPet,
+	SettingsSectionPermissions,
+	SettingsSectionGit,
+	SettingsSectionHooks,
+	SettingsSectionPlugins,
+	SettingsSectionExternalAgent,
+}
+
+// resolvedSection folds an unknown saved section onto the default, as
+// resolveSettings does for the enum preferences. Every value from Appearance
+// through ExternalAgent is valid.
+func resolvedSection(s SettingsSection) SettingsSection {
+	if int(s) > int(SettingsSectionExternalAgent) {
+		return SettingsSectionAppearance
+	}
+	return s
+}
+
+// settingsSectionName is the section's English name, used for the page heading
+// and the navigation row. Only Appearance has a message key today; the other
+// pages are not built, so their names stay English until i18n.go carries the
+// settings.section.* keys.
+func settingsSectionName(s SettingsSection) string {
+	switch s {
+	case SettingsSectionAccount:
+		return "Account"
+	case SettingsSectionUsage:
+		return "Usage"
+	case SettingsSectionPersonalization:
+		return "Personalization"
+	case SettingsSectionGeneral:
+		return "General"
+	case SettingsSectionShortcuts:
+		return "Shortcuts"
+	case SettingsSectionModels:
+		return "Models"
+	case SettingsSectionMultimodal:
+		return "Multimodal"
+	case SettingsSectionRuntime:
+		return "Runtime"
+	case SettingsSectionMCP:
+		return "MCP"
+	case SettingsSectionNotifications:
+		return "Notifications"
+	case SettingsSectionPet:
+		return "Pet"
+	case SettingsSectionPermissions:
+		return "Permissions"
+	case SettingsSectionGit:
+		return "Git"
+	case SettingsSectionHooks:
+		return "Hooks"
+	case SettingsSectionPlugins:
+		return "Plugins"
+	case SettingsSectionExternalAgent:
+		return "External Agent"
+	default:
+		return tr(DefaultLocale, keySettingsTitle)
+	}
+}
+
+// settingsSectionLabel is the section's name in the active language. The
+// appearance page keeps its existing key, so a Chinese surface names it 外观;
+// the pages without keys stay English rather than showing an internal key.
+func settingsSectionLabel(l Locale, s SettingsSection) string {
+	if s == SettingsSectionAppearance {
+		return tr(l, keySettingsTitle)
+	}
+	return settingsSectionName(s)
+}
 
 // ThemeChoice is the appearance's color-theme preference: follow the desktop,
 // or force light or dark. It is a preference, not the theme in force; the
@@ -173,6 +361,11 @@ type SettingsView struct {
 	// Locale is the shell language preference. It is desktop-local and never a
 	// session or App Server fact.
 	Locale Locale
+	// Section is the page the surface opens on. The surface keeps the reader's
+	// selection itself once it is open, so this is a starting point, not a
+	// preference and not a session fact; a zero value opens the appearance
+	// page.
+	Section SettingsSection
 	// Theme is the color-theme preference: system, light or dark.
 	Theme ThemeChoice
 	// FontSize is the UI text step, one of fontSizeSteps.
@@ -219,6 +412,7 @@ func defaultSettingsView(k tokens) SettingsView {
 // and a zero value takes the token default.
 func resolveSettings(k tokens, v SettingsView) SettingsView {
 	v.Locale = resolveLocale(v.Locale)
+	v.Section = resolvedSection(v.Section)
 	switch v.Theme {
 	case ThemeLight, ThemeDark:
 	default:
@@ -387,37 +581,113 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 	})
 }
 
-// renderSettings draws the appearance settings surface: the title, the theme,
-// type, layout, skin and language sections, one row per preference with its
-// current value and the control that changes it. It reads SettingsView and the
-// tokens only. It calls onChange at most once per user choice, with the resolved
-// view, and writes no preference itself. The skin and chrome entries stay
-// visible and unavailable. The surface's own text is drawn in the language the
-// view names, so a language choice shows on the next frame.
+// renderSettings draws the settings surface: the section navigation on the
+// left and the chosen section's page on the right. The navigation is one
+// focusable row per section, marked selected for the page on screen; a click
+// moves the surface's own *Section and reports no SettingsChange, because the
+// page is display state, not a desktop preference.
+//
+// The appearance page draws the theme, type, layout, skin and language
+// sections, one row per preference with its current value and the control that
+// changes it. Every other page keeps its navigation row and explains the client
+// or page it waits on, with a visible WIP badge and no invented control. It
+// reads SettingsView and the tokens only. It calls onChange at most once per
+// user choice, with the resolved view, and writes no preference itself. The
+// surface's own text is drawn in the language the view names, so a language
+// choice shows on the next frame.
 func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
 	v = resolveSettings(k, v)
 	l := v.Locale
-	ui.Scroll(c).Fill().Children(func() {
-		ui.Column(c).FillWidth().MaxWidth(settingsPageMaxW).Padding(k.panelPad).Gap(k.panelPad).
-			Role(ui.RoleRegion).Label(tr(l, keySettingsRegion)).Children(func() {
-			ui.Text(c, tr(l, keySettingsTitle)).Bold().FontSize(k.titleSize).TextColor(k.foreground).
-				Role(ui.RoleHeading).Level(1)
-			ui.Text(c, tr(l, keySettingsLocalNote)).FontSize(k.smallSize).TextColor(k.mutedForeground)
-			settingsDivider(c, k)
-			settingsThemeSection(c, k, v, onChange)
-			settingsDivider(c, k)
-			settingsTypeSection(c, k, v, onChange)
-			settingsDivider(c, k)
-			settingsLayoutSection(c, k, v, onChange)
-			settingsDivider(c, k)
-			settingsSkinSection(c, k, v)
-			// The language row sits last so a reader who changes it has already
-			// passed the preferences whose labels it switches; the rest of the page
-			// is redrawn in the new language on the next frame.
-			settingsDivider(c, k)
-			settingsLanguageSection(c, k, v, onChange)
-		})
+	row := ui.Row(c).Fill().Role(ui.RoleRegion).Label(tr(l, keyHeaderSettings))
+	// The chosen section is the surface's own state: the view names where the
+	// surface opens, and ui.Local keeps the reader's click from frame to frame.
+	// A frame that does not build this row drops it, so reopening the surface
+	// starts on the section the view names.
+	section := ui.Local(row, settingsSectionLocalKey{}, func() SettingsSection { return v.Section })
+	if section == nil {
+		opened := v.Section
+		section = &opened
+	}
+	*section = resolvedSection(*section)
+	row.Children(func() {
+		settingsNavigation(c, k, l, section)
+		settingsPage(c, k, v, *section, onChange)
 	})
+}
+
+// settingsNavigation draws the section column: every section the reference
+// lists, in its order, as one focusable row. The selected row carries the
+// accent face and the Selected state; a click only moves *section.
+func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSection) {
+	nav := ui.Column(c).BasisPercent(settingsNavShare).Shrink(0).MaxWidth(settingsNavW).
+		FillHeight().Padding(k.gapWide, k.gapWide).Gap(0).Clip().
+		BorderEndWidth(k.hairline).BorderColor(k.border).
+		Role(ui.RoleNavigation).Label(settingsNavigationLabel)
+	nav.Children(func() {
+		for _, s := range settingsSections {
+			selected := s == *section
+			entry := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
+				PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.gap).
+				AlignItems(ui.Center).Role(ui.RoleListItem).
+				Selected(selected)
+			switch {
+			case selected:
+				entry.Background(k.accent)
+			case entry.Hovered():
+				entry.Background(k.sidebarHover)
+			}
+			entry.OnClick(func() {
+				*section = s
+			})
+			entry.Children(func() {
+				text := ui.Text(c, settingsSectionLabel(l, s)).FontSize(k.bodySize).
+					TextColor(k.foreground).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+				if selected {
+					text.Bold()
+				}
+			})
+		}
+	})
+}
+
+// settingsPage draws the right-hand page. The appearance page is the only one
+// with controls; every other page draws its title, a WIP badge and the client
+// or page it waits on, so the section never pretends a preference was read.
+func settingsPage(c *ui.Context, k tokens, v SettingsView, section SettingsSection, onChange func(SettingsChange)) {
+	l := v.Locale
+	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(settingsPageMaxW).Padding(k.panelPad).Gap(k.panelPad).
+			Children(func() {
+				ui.Text(c, settingsSectionLabel(l, section)).Bold().FontSize(k.titleSize).
+					TextColor(k.foreground).Role(ui.RoleHeading).Level(1)
+				if section != SettingsSectionAppearance {
+					settingsWIPPage(c, k, section)
+					return
+				}
+				ui.Text(c, tr(l, keySettingsLocalNote)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+				settingsDivider(c, k)
+				settingsThemeSection(c, k, v, onChange)
+				settingsDivider(c, k)
+				settingsTypeSection(c, k, v, onChange)
+				settingsDivider(c, k)
+				settingsLayoutSection(c, k, v, onChange)
+				settingsDivider(c, k)
+				settingsSkinSection(c, k, v)
+				// The language row sits last so a reader who changes it has already
+				// passed the preferences whose labels it switches; the rest of the page
+				// is redrawn in the new language on the next frame.
+				settingsDivider(c, k)
+				settingsLanguageSection(c, k, v, onChange)
+			})
+	})
+}
+
+// settingsWIPPage explains a section the shell has no page for: the visible
+// badge, then the missing client or page. It offers no control, so nothing on
+// the page can report a preference the desktop never saved.
+func settingsWIPPage(c *ui.Context, k tokens, section SettingsSection) {
+	ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
+	ui.Text(c, settingsSectionGaps[section]).FontSize(k.bodySize).TextColor(k.mutedForeground)
 }
 
 // settingsThemeSection is the color-theme row: one choice among System, Light
