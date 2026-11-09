@@ -73,7 +73,7 @@ go run ./scripts/seed-session -home "$HOME_DIR" \
 ./scripts/capture-window.sh --state connected --product-home "$HOME_DIR"
 ```
 
-2026-11-09 15:07 的结果（`git_head = 0e16ca4`，`git_dirty` 见元数据）：
+2026-11-09 15:21 的结果（`git_head = 596ad67`，`git_dirty = clean`）：
 
 - 侧栏 `Sessions 1`，选中行标题是 prompt 的前缀；`Branches` 显示 `main (current)`、真实 `session.branch_create` 产出的 side branch（`8bd478fc-…`）与 `Refresh`。
 - 主区显示 user 气泡（完整 prompt）与 assistant 行（mock model 的 `Echo: ...`），即首屏 history 来自真实 daemon。
@@ -82,7 +82,7 @@ go run ./scripts/seed-session -home "$HOME_DIR" \
 
 ## 4. 截图上实际看到的内容
 
-两张图的源码状态不同：未连接是 `3a52565` 的空 catalog，已连接是 `0e16ca4` 的 seed 会话 + side branch。共同部分是主区卡片、hero/composer 结构和侧栏入口。
+两张图都来自 `596ad67`：未连接是空 catalog，已连接是 seed 会话 + side branch。共同部分是主区卡片、hero/composer 结构和侧栏入口。
 
 未连接（`window-disconnected.png`）：
 
