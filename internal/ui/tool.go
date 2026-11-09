@@ -65,6 +65,34 @@ type Tool struct {
 	Result string
 	// Status decides the card's label, color and whether it is live.
 	Status ToolStatus
+
+	// The typed facts of the call's own kind, which the open card's panel draws
+	// ahead of the raw params and result (toolrender.go). The projection folds
+	// no typed tool-call shape yet — the view model forwards the name, the
+	// formatted params and the formatted result only — so an adapter leaves
+	// these zero and the panel names the gap instead of guessing. A fact whose
+	// Has flag is false is absent, never zero: an unreported exit code must not
+	// read as success, nor an unreported count as none.
+	//
+	// Command and ExitCode describe a command call. ExitCode is only meaningful
+	// with HasExit, so a call that has not settled cannot show 0.
+	Command  string
+	ExitCode int
+	HasExit  bool
+	// Path and the changed-line counts describe a file call. HasStats is false
+	// for a read, or for a change whose source reported no counts, so the panel
+	// leaves them out rather than claiming +0/-0.
+	Path       string
+	Insertions int
+	Deletions  int
+	HasStats   bool
+	// Pattern, Matches and MatchCount describe a search. MatchCount is the hit
+	// count the source reported, which may be larger than the paths it listed;
+	// HasMatchCount is false when it reported none.
+	Pattern       string
+	Matches       []string
+	MatchCount    int
+	HasMatchCount bool
 }
 
 // previewLine makes s a single bounded line: every run of whitespace becomes
@@ -107,10 +135,10 @@ func toolRow(c *ui.Context, k tokens, folds *blockFolds, m Message) {
 
 // toolCard draws one tool call as a compact card that folds: its name and
 // status are always in the header, its params and result preview as one bounded
-// line each while closed, and its params and result fill a panel capped at 240
-// DIPs while open. The card is the card face of the surface ladder, not a tint
-// of the border: a call sits on the conversation as a raised block with its own
-// text color.
+// line each while closed, and its typed facts, params and result fill a panel
+// capped at 240 DIPs while open. The card is the card face of the surface
+// ladder, not a tint of the border: a call sits on the conversation as a raised
+// block with its own text color.
 //
 // A running call shows its status in a live region that is busy, so it is
 // announced once and assistive technology waits for the result rather than
@@ -139,10 +167,7 @@ func toolCard(c *ui.Context, k tokens, folds *blockFolds, key string, tool Tool)
 		})
 		p.Panel(func() {
 			ui.Scroll(c).MaxHeight(k.timelinePanelMaxH).Children(func() {
-				ui.Column(c).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).Children(func() {
-					toolPanelSection(c, k, "Params", panelValue(tool.Params))
-					toolPanelSection(c, k, "Result", panelValue(tool.Result))
-				})
+				toolPanel(c, k, tool)
 			})
 		}).Margin(k.gap, 0, 0, 0).Radius(radiusMD).BorderWidth(k.hairline).
 			BorderColor(k.border).Clip()
