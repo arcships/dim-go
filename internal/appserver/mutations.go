@@ -18,6 +18,9 @@ const (
 	MutationSessionBranchCreate MutationMethod = "session.branch_create"
 	MutationSessionBranchEnd    MutationMethod = "session.branch_end"
 	MutationAttachmentPut       MutationMethod = "attachment.put"
+	// MutationSessionRename is a session method advertised by session.methods,
+	// not a hello.features capability (public SessionTitle A.1).
+	MutationSessionRename MutationMethod = "session.rename"
 )
 
 // ErrUnknownResult marks a mutation whose outcome is unknown: timeout,
@@ -112,6 +115,11 @@ func mutationReadBack(method MutationMethod) string {
 		// docs/protocol-contract.md §10: attachment has no list/get method, so
 		// an unknown result can only be reported, never read back.
 		return ""
+	case MutationSessionRename:
+		// The committed title is listed by session.summaries; a title notice
+		// also carries it, but a notice is not replayed, so the list is the
+		// read-back (public SessionTitle Appendix C).
+		return "session.summaries"
 	default:
 		return ""
 	}

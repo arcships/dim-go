@@ -29,6 +29,12 @@ const (
 	AppErrorAttachmentInvalid       = "attachment_invalid"
 	AppErrorAttachmentTooLarge      = "attachment_too_large"
 	AppErrorInternal                = "internal"
+
+	// Title-method errors from the public SessionTitle A.1 contract. They are
+	// classified here so a caller never has to match raw strings.
+	AppErrorInvalidParams   = "invalid_params"
+	AppErrorSessionNotFound = "session_not_found"
+	AppErrorStorageFailed   = "storage_failed"
 )
 
 // ErrorClass groups §13 rows by the action they require.
@@ -52,6 +58,7 @@ const (
 	ErrorClassLocalTransport
 	ErrorClassHistoryTooLarge
 	ErrorClassBranchEnded
+	ErrorClassNotFound
 )
 
 func (c ErrorClass) String() string {
@@ -88,6 +95,8 @@ func (c ErrorClass) String() string {
 		return "history_too_large"
 	case ErrorClassBranchEnded:
 		return "branch_ended"
+	case ErrorClassNotFound:
+		return "not_found"
 	default:
 		return "internal"
 	}
@@ -167,6 +176,16 @@ func MapRPCError(err *RPCError) MappedError {
 		// Definitive rejections of the attachment payload: the same request
 		// would fail again, so they map to a non-retryable bad request.
 		return MappedError{AppError: rpcAppError(err.Data), Class: ErrorClassBadRequest}
+	case AppErrorInvalidParams:
+		// The title-method contract answers invalid input with appError
+		// invalid_params as well as with -32602; both are definitive.
+		return MappedError{AppError: AppErrorInvalidParams, Class: ErrorClassBadRequest}
+	case AppErrorSessionNotFound:
+		return MappedError{AppError: AppErrorSessionNotFound, Class: ErrorClassNotFound}
+	case AppErrorStorageFailed:
+		// Nothing was written; retrying the same rename re-decides a user write,
+		// so the caller reports the failure instead.
+		return MappedError{AppError: AppErrorStorageFailed, Class: ErrorClassInternal}
 	default:
 		return internalError()
 	}

@@ -53,6 +53,11 @@ type fakeDaemon struct {
 	management  json.RawMessage
 	selection   json.RawMessage
 	attachModel *appserver.SessionModel
+	// rename is the verbatim session.rename reply (nil means the method is
+	// absent) and renameGate, when non-nil, holds the reply until it closes.
+	rename     json.RawMessage
+	renameGate chan struct{}
+	renameOnce sync.Once
 }
 
 func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
@@ -179,6 +184,23 @@ func (d *fakeDaemon) setAttachModel(providerID, modelID string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.attachModel = &appserver.SessionModel{ProviderID: providerID, ModelID: modelID}
+}
+
+// setRename scripts the verbatim session.rename reply.
+func (d *fakeDaemon) setRename(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.rename = append(json.RawMessage(nil), raw...)
+}
+
+// holdRename makes session.rename wait before replying and returns the release
+// function, so a test can prove a call is in flight without sleeping.
+func (d *fakeDaemon) holdRename() func() {
+	d.mu.Lock()
+	gate := make(chan struct{})
+	d.renameGate = gate
+	d.mu.Unlock()
+	return func() { d.renameOnce.Do(func() { close(gate) }) }
 }
 
 // callCount reports how many requests were received for method.
@@ -375,6 +397,18 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		return raw, nil
 	case "session.branch_end":
 		return json.RawMessage(`{}`), nil
+	case "session.rename":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.rename...)
+		gate := d.renameGate
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "session.rename not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		if gate != nil {
+			<-gate
+		}
+		return raw, nil
 	case "session.detach":
 		return json.RawMessage(`{}`), nil
 	case "session.delete":
@@ -712,7 +746,7 @@ func TestSessionTitlePrecedence(t *testing.T) {
 		{"empty title falls back to preview", appserver.SessionSummary{SessionID: "s1", Title: new(string), Preview: &preview}, preview},
 	}
 	for _, tc := range cases {
-		if got := sessionTitle(tc.summary); got != tc.want {
+		if got := sessionTitle(tc.summary, session.TitleState{}); got != tc.want {
 			t.Errorf("%s: sessionTitle = %q, want %q", tc.name, got, tc.want)
 		}
 	}

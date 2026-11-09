@@ -128,6 +128,21 @@ func TestMapRPCError(t *testing.T) {
 			want: mapped(AppErrorAttachmentTooLarge, ErrorClassBadRequest, false, false),
 		},
 		{
+			name: "invalid_params",
+			err:  &RPCError{Code: -32000, Message: "x", Data: appErrorData(AppErrorInvalidParams)},
+			want: mapped(AppErrorInvalidParams, ErrorClassBadRequest, false, false),
+		},
+		{
+			name: "session_not_found",
+			err:  &RPCError{Code: -32000, Message: "x", Data: appErrorData(AppErrorSessionNotFound)},
+			want: mapped(AppErrorSessionNotFound, ErrorClassNotFound, false, false),
+		},
+		{
+			name: "storage_failed",
+			err:  &RPCError{Code: -32000, Message: "x", Data: appErrorData(AppErrorStorageFailed)},
+			want: mapped(AppErrorStorageFailed, ErrorClassInternal, false, false),
+		},
+		{
 			name: "missing appError",
 			err:  &RPCError{Code: -32000, Message: "x"},
 			want: mapped(AppErrorInternal, ErrorClassInternal, false, false),
