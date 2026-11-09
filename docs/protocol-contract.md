@@ -222,11 +222,11 @@ Go 实现：`internal/appserver/session_stream.go` 的 `OpenSessionStream` 假�
 - 无该 feature：从 head 往前 512 条/页、最多 64 页，用 `{after, limit, through}` 扫到 turn 边界，并尽量带上该 turn 的 prompting input。
 - `appError === "history_too_large"`：该批原子事件无法塞进一帧。首屏降级为"空窗口 + hasOlder=true"，Session 仍可打开；不要反复重试同一批。错误映射必须显式覆盖该值。
 - `through`、`nextAfter`、`nextBefore`、`turnStart` 若缺失、非整数或违反不变量，必须 fail-fast 为 protocol/schema error；不能依赖 `NaN` 比较或静默走 fallback。多页 latest-turn 的 `turnStart` 必须存在且恒定。RawEvent 的 `id`、`sequence`、`create_at`、`type`、`name` 也需在普通 history 路径运行时校验。
-- 空 session 例外：还没有任何 turn 时 daemon 省略 `turnStart`。实测新 session 的 `branch/start` 占 sequence 1，attach head 为 1，`session.history {latestTurn:true, through:1}` 返回 `{events:[branch/start], through:1, done:true, nextBefore:1}` 且无 `turnStart`。只有"`done=true`、窗口覆盖到 head、且窗口内没有任何 `turn`/`input`/`step`/`tool` 事件"时才接受为无 turn 的空窗口（`turnStart=nil`、`hasOlder=false`）；其余缺 `turnStart` 仍按 protocol error 处理。
+- 无 turn 窗口例外：还没有任何 turn 时 daemon 省略 `turnStart`。实测新 session 的 `branch/start` 占 sequence 1，attach head 为 1，`session.history {latestTurn:true, through:1}` 返回 `{events:[branch/start], through:1, done:true, nextBefore:1}` 且无 `turnStart`。2026-11-09 又实测到两种真实形状：(a) 窗口含排队中的 `input/message` 但无 `turnStart`；(b) 窗口结束在 21 而 attach head 是 22（latestTurn 之后仍有非 turn 事件）。因此接受条件改为：`done=true` 且窗口内没有任何 `turn`/`step`/`tool` 事件（`input`、`branch/start`、settings/title 等非 turn 事实允许），`turnStart=nil`、`hasOlder=false`；窗口不必恰好覆盖到 head。含 turn/step/tool 事件仍按 protocol error 处理。
 
 往回翻用 `before`，直到页首是 "turn 前的 user input" 或 `sequence === 1`。
 
-Go 实现：`internal/session/history.go` 实现 latest-turn 反向分页、`turnStart` 漂移回退兼容扫描、`history_too_large` 和 page-cap 降级；缺 `turnStart`/`nextBefore` 或 `nextBefore` 非递减仍是 protocol error，空 session 的 `turnStart` 省略按上一条例外验收（`TestLatestTurnEmptySessionWithBranchStartHead` 与 real-daemon `TestRealDaemonSessionFlow`）。首屏窗口只覆盖 main branch，side branch 的 durable event 走各自 reducer。
+Go 实现：`internal/session/history.go` 实现 latest-turn 反向分页、`turnStart` 漂移回退兼容扫描、`history_too_large` 和 page-cap 降级；缺 `turnStart`/`nextBefore` 或 `nextBefore` 非递减仍是 protocol error；`turnStart` 省略按上一条的“无 turn 窗口”例外验收（`TestLatestTurnEmptySessionWithBranchStartHead`、`TestLatestTurnMissingTurnStartQueuedInputAccepted`、`TestLatestTurnCapAndProtocolErrors` 与 real-daemon `TestRealDaemonSessionFlow`）。首屏窗口只覆盖 main branch，side branch 的 durable event 走各自 reducer。
 
 可选读（公开 Desktop protocol contract 已有）：
 
