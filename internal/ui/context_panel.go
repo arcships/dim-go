@@ -1,8 +1,7 @@
 // This file owns the context panel: the changed-file tree above the selected
-// file's diff or preview. docs/ui-parity.md §3.1 lists the P1 gap this region
-// fills: dim-electron's 16-file context-panel/ directory has no counterpart in
-// this shell yet, so this is the first one, and it draws only what the caller
-// passes in.
+// file's diff or preview. It is this shell's counterpart of dim-electron's
+// context-panel/ directory, and it draws only what the caller passes in: no
+// changed files, diff or preview is read here.
 //
 // The panel reads ContextPanelView and Actions only. A selection and a fold are
 // view state the caller owns: a click writes the selected path through

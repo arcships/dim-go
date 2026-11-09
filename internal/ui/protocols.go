@@ -134,7 +134,9 @@ type SidebarView struct {
 	// session. It is the only field the region writes.
 	Selected *string
 	// SelectedBranch is the observed current branch of the selected session.
-	// It is display only: branch switching and cut point stay unavailable.
+	// Switching and ending a branch are wired through Actions.OnSelectBranch and
+	// Actions.OnEndBranch; a cut point (the parent sequence a side line hangs
+	// off) is still not offered here.
 	SelectedBranch string
 	// Branches is read-only branch metadata for the selected session. An empty
 	// list draws no branch section at all. The list offers "Refresh" and, for
