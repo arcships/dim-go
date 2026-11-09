@@ -7,13 +7,23 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// TestCapabilityCardsAreReadOnly checks the sidebar's unavailable-capabilities
-// list: every card is drawn with its action, method and gap, and none of them
-// is a control. A reader can learn what is missing, but there is nothing to
-// click that could imply the shell has the capability.
+// capabilityPageTester renders the settings surface on its capabilities page,
+// with the list the shell assembles for s. The cards are no longer part of the
+// sidebar; this is the page a reader opens to see what the shell cannot do yet.
+func capabilityPageTester(s *State, locale Locale, width, height int) *ui.Tester {
+	v := SettingsView{Section: SettingsSectionCapabilities, Locale: locale}
+	return ui.NewTester(func(c *ui.Context) {
+		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil)
+	}, width, height)
+}
+
+// TestCapabilityCardsAreReadOnly checks the settings page's unavailable-
+// capabilities list: every card is drawn with its action, method and gap, and
+// none of them is a control. A reader can learn what is missing, but there is
+// nothing to click that could imply the shell has the capability.
 func TestCapabilityCardsAreReadOnly(t *testing.T) {
 	s := fixture()
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := capabilityPageTester(s, LocaleEN, 900, 900)
 
 	if _, ok := tt.AccessByRole(ui.RoleGroup, "Unavailable capabilities"); !ok {
 		t.Fatalf("the cards are not grouped for assistive technology, texts %q", tt.Texts())
@@ -24,14 +34,12 @@ func TestCapabilityCardsAreReadOnly(t *testing.T) {
 				t.Errorf("%q: card is missing %q, texts %q", capability.action, want, tt.Texts())
 			}
 		}
-		if _, ok := tt.AccessByRole(ui.RoleText, capability.action); !ok {
-			t.Errorf("%q is not exposed as read-only text", capability.action)
+		info, ok := tt.AccessByRole(ui.RoleText, capability.method)
+		if !ok {
+			t.Errorf("%q method %q is not exposed as read-only text", capability.action, capability.method)
 		}
-		// The sidebar's own "Session keys" entry shares the card's name; it is
-		// a button, so the name alone no longer proves the card is not one. Its
-		// method and gap stay text-only.
-		if capability.action == "Session keys" {
-			continue
+		if ok && info.Focusable {
+			t.Errorf("%q method %q takes focus, so it reads as a control", capability.action, capability.method)
 		}
 		if _, ok := tt.AccessByRole(ui.RoleButton, capability.action); ok {
 			t.Errorf("%q is an action, not a read-only card", capability.action)
@@ -123,49 +131,43 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 }
 
 // TestCapabilityCardsDropWiredBranchEndAndRefresh checks that the branch end and
-// refresh callbacks leave the unavailable list once the window wires them: the
-// branch directory's own entries are the real actions then, and a stale WIP card
-// would contradict them.
+// refresh callbacks leave the unavailable list once the window wires them. The
+// sidebar no longer draws a branch directory; the list itself is the check.
 func TestCapabilityCardsDropWiredBranchEndAndRefresh(t *testing.T) {
 	s := fixture()
 	s.Branches = []Branch{{ID: "main", Label: "main", State: "open"}, {ID: "side", Label: "side", State: "open"}}
 	s.SelectedBranch = "side"
 	s.OnEndBranch = func(string) {}
 	s.OnRefreshBranches = func() {}
-	tt := ui.NewTester(s.View, 900, 600)
 
 	for _, capability := range wipCapabilities(s) {
 		if capability.action == "Branch end" || capability.action == "Branch refresh" {
 			t.Errorf("a wired branch action still has a WIP card: %+v", capability)
 		}
 	}
+	tt := capabilityPageTester(s, LocaleEN, 900, 900)
 	if tt.HasText("Branch end") || tt.HasText("Branch refresh") {
 		t.Errorf("the unavailable list still shows a wired branch action, texts %q", tt.Texts())
-	}
-	if info, ok := tt.AccessByRole(ui.RoleButton, "End branch"); !ok || info.Disabled {
-		t.Errorf("wired branch end is not an enabled action: %+v, found %v", info, ok)
-	}
-	if info, ok := tt.AccessByRole(ui.RoleButton, "Refresh"); !ok || info.Disabled {
-		t.Errorf("wired branch refresh is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 
 // TestCapabilityCardsDropWiredReconnect checks that connection recovery leaves
-// the unavailable list once State.OnReconnect is set: the Reconnect entry is the
-// real action then, and a stale WIP card would contradict the toolbar.
+// the unavailable list once State.OnReconnect is set: the toolbar's Reconnect
+// entry is the real action then, and a stale WIP card would contradict it.
 func TestCapabilityCardsDropWiredReconnect(t *testing.T) {
 	s := fixture()
 	s.Connection = ConnError
 	s.OnReconnect = func() {}
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
 
 	for _, capability := range wipCapabilities(s) {
 		if capability.action == "Connection recovery" {
 			t.Errorf("a wired reconnect still has a WIP card: %+v", capability)
 		}
 	}
-	if tt.HasText("Connection recovery") {
-		t.Errorf("the unavailable list still shows connection recovery, texts %q", tt.Texts())
+	page := capabilityPageTester(s, LocaleEN, 900, 900)
+	if page.HasText("Connection recovery") {
+		t.Errorf("the unavailable list still shows connection recovery, texts %q", page.Texts())
 	}
 	if info, ok := tt.AccessByRole(ui.RoleButton, "Reconnect"); !ok || info.Disabled {
 		t.Errorf("wired reconnect is not an enabled action: %+v, found %v", info, ok)
@@ -173,13 +175,12 @@ func TestCapabilityCardsDropWiredReconnect(t *testing.T) {
 }
 
 // TestCapabilityCardsDropWiredKeys checks that the session keys browser leaves
-// the unavailable list once the window has a session.keys snapshot: the
-// sidebar's own entry is the real action then, and a stale WIP card would
-// contradict it.
+// the unavailable list once the window has a session.keys snapshot. The sidebar
+// entry is gone, so only the list is checked.
 func TestCapabilityCardsDropWiredKeys(t *testing.T) {
 	s := fixture()
 	s.Keys = KeysPanelView{Loaded: true, Through: 12, Entries: keysPanelEntries()}
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := capabilityPageTester(s, LocaleEN, 900, 900)
 
 	for _, capability := range wipCapabilities(s) {
 		if capability.action == "Session keys" {
@@ -188,10 +189,6 @@ func TestCapabilityCardsDropWiredKeys(t *testing.T) {
 	}
 	if tt.HasText("session.keys") {
 		t.Errorf("the unavailable list still shows session.keys, texts %q", tt.Texts())
-	}
-	info, ok := tt.AccessByRole(ui.RoleButton, "Session keys")
-	if !ok || info.Disabled {
-		t.Errorf("wired keys entry is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 
@@ -202,15 +199,16 @@ func TestCapabilityCardsDropWiredStop(t *testing.T) {
 	s := fixture()
 	s.Run = RunRunning
 	s.OnStop = func() {}
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
+	page := capabilityPageTester(s, LocaleEN, 900, 900)
 
 	for _, capability := range wipCapabilities(s) {
 		if capability.action == "Turn cancellation" {
 			t.Errorf("a wired stop still has a WIP card: %+v", capability)
 		}
 	}
-	if tt.HasText("Turn cancellation") {
-		t.Errorf("the unavailable list still shows turn cancellation, texts %q", tt.Texts())
+	if page.HasText("Turn cancellation") {
+		t.Errorf("the unavailable list still shows turn cancellation, texts %q", page.Texts())
 	}
 	if info, ok := tt.AccessByRole(ui.RoleButton, "Stop"); !ok || info.Disabled {
 		t.Errorf("wired stop is not an enabled action: %+v, found %v", info, ok)
@@ -223,15 +221,16 @@ func TestCapabilityCardsDropWiredStop(t *testing.T) {
 func TestCapabilityCardsDropWiredApprovals(t *testing.T) {
 	s := approvalFixture()
 	s.OnApproval = func(string, string, ApprovalDecision) {}
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
+	page := capabilityPageTester(s, LocaleEN, 900, 900)
 
 	for _, capability := range wipCapabilities(s) {
 		if capability.action == "Approvals" {
 			t.Errorf("a wired approval still has a WIP card: %+v", capability)
 		}
 	}
-	if tt.HasText("Approvals") {
-		t.Errorf("the unavailable list still shows approvals, texts %q", tt.Texts())
+	if page.HasText("Approvals") {
+		t.Errorf("the unavailable list still shows approvals, texts %q", page.Texts())
 	}
 	if info, ok := tt.AccessByRole(ui.RoleButton, "Approve"); !ok || info.Disabled {
 		t.Errorf("wired approval is not an enabled action: %+v, found %v", info, ok)
@@ -244,89 +243,71 @@ func TestCapabilityCardsDropWiredApprovals(t *testing.T) {
 func TestCapabilityCardsDropWiredCreateSession(t *testing.T) {
 	s := fixture()
 	s.OnCreateSession = func() {}
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
+	page := capabilityPageTester(s, LocaleEN, 900, 900)
 
 	for _, capability := range wipCapabilities(s) {
 		if capability.action == "Session creation" {
 			t.Errorf("a wired creation still has a WIP card: %+v", capability)
 		}
 	}
-	if tt.HasText("Session creation") {
-		t.Errorf("the unavailable list still shows session creation, texts %q", tt.Texts())
+	if page.HasText("Session creation") {
+		t.Errorf("the unavailable list still shows session creation, texts %q", page.Texts())
 	}
 	if info, ok := tt.AccessByRole(ui.RoleButton, "New session"); !ok || info.Disabled {
 		t.Errorf("wired session creation is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 
-// TestCapabilityCardsFitTheSidebar checks that the cards are actually placed
-// under the thread list and inside the window, not merely present in the label
-// list: the list above them keeps its rows, the cards follow one another, and
-// the cards' own scroll keeps the last one reachable when the window is too
-// short to show every card at once.
-func TestCapabilityCardsFitTheSidebar(t *testing.T) {
+// TestCapabilityCardsFitTheSettingsPage checks that every card is actually laid
+// out on the capabilities page and inside the window, not merely present in the
+// label list: the cards follow one another and the page scrolls when the window
+// is too short for them all.
+func TestCapabilityCardsFitTheSettingsPage(t *testing.T) {
 	s := fixture()
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := capabilityPageTester(s, LocaleEN, 900, 700)
 
 	cards := wipCapabilities(s)
-	// cardText is the text a card is found by. The "Session keys" card shares
-	// its action name with the sidebar's own entry, so it is found by its
-	// method: the check must measure the card, not the entry above it.
-	cardText := func(capability wipCapability) string {
-		if capability.action == "Session keys" {
-			return capability.method
-		}
-		return capability.action
-	}
-	first, ok := tt.Find(cardText(cards[0]))
+	previous, ok := tt.Find(cards[0].action)
 	if !ok {
 		t.Fatalf("first card %q is not drawn, texts %q", cards[0].action, tt.Texts())
 	}
-	session, ok := tt.Find("Second session")
-	if !ok {
-		t.Fatalf("second session row is not drawn above the cards, texts %q", tt.Texts())
-	}
-	if session.Y+session.H > first.Y {
-		t.Errorf("session row %+v overlaps the first card %+v", session, first)
-	}
-
-	previous, lastLabel := first, cardText(cards[0])
+	lastLabel := cards[0].action
 	for _, capability := range cards[1:] {
-		card, ok := tt.Find(cardText(capability))
+		card, ok := tt.Find(capability.action)
 		if !ok {
 			t.Fatalf("card %q is not drawn, texts %q", capability.action, tt.Texts())
 		}
 		if card.Y < previous.Y+previous.H {
 			t.Errorf("card %q at %+v overlaps the card before it at %+v", capability.action, card, previous)
 		}
-		previous, lastLabel = card, cardText(capability)
+		previous, lastLabel = card, capability.action
 	}
-	// The card area is a scroll container bounded by the sidebar, so a short
-	// window clips the last card instead of pushing it past the window.
-	if previous.Y+previous.H > 600 {
-		tt.Scroll(first.X+4, first.Y+4, 0, 2000)
+	if previous.Y+previous.H > 700 {
+		tt.Scroll(previous.X+4, previous.Y+4, 0, 2000)
 		tt.Frame()
 		last, ok := tt.Find(lastLabel)
 		if !ok {
 			t.Fatalf("last card %q is not drawn after scrolling", lastLabel)
 		}
-		if last.Y+last.H > 600 {
-			t.Errorf("the last card still ends at %.2f, below the 600-high window", last.Y+last.H)
+		if last.Y+last.H > 700 {
+			t.Errorf("the last card still ends at %.2f, below the 700-high window", last.Y+last.H)
 		}
 	}
 }
 
 // TestCapabilityCardsDrawThePopoverFace checks that a capability card is
-// painted with the popover face rather than the border tint it used to be: the
-// padding beside its action text is the opaque face, so the card's parts read
-// against a surface of their own instead of whatever happens to be under it.
+// painted with the popover face rather than the page's backdrop: the padding
+// beside its action text is the opaque face, so the card's parts read against a
+// surface of their own.
 func TestCapabilityCardsDrawThePopoverFace(t *testing.T) {
 	s := fixture()
 	var theme *ui.Theme
+	v := SettingsView{Section: SettingsSectionCapabilities}
 	tt := ui.NewTester(func(c *ui.Context) {
 		theme = c.Theme()
-		s.View(c)
-	}, 900, 600)
+		renderSettings(c, newTokens(c.Theme()), v, wipCapabilities(s), nil)
+	}, 900, 900)
 
 	capability := wipCapabilities(s)[0]
 	rect, ok := tt.Find(capability.action)
@@ -340,28 +321,20 @@ func TestCapabilityCardsDrawThePopoverFace(t *testing.T) {
 	}
 }
 
-// TestCapabilityCardsDoNotChangeState checks that the read-only cards add no
-// focus stop and leave the shell's view state alone: only the sidebar's own
-// entries and the composer take the keyboard.
-func TestCapabilityCardsDoNotChangeState(t *testing.T) {
+// TestCapabilityCardsAddNoFocusStop checks that the read-only cards add no
+// focus stop: no card's text is focusable, so only the settings navigation and
+// its controls take the keyboard.
+func TestCapabilityCardsAddNoFocusStop(t *testing.T) {
 	s := fixture()
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := capabilityPageTester(s, LocaleEN, 900, 900)
 
-	before := s.Selected
-	for _, want := range []string{
-		"Update", "New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
-		"Session keys", "Group", "Sessions", "Pin", "Rename", "Archive", "Delete session",
-		"Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings", "Context panel", "Attach file", "Composer",
-	} {
-		tt.Key(0, ui.KeyTab)
-		if !tt.Focused(want) {
-			t.Fatalf("Tab does not reach %q, texts %q", want, tt.Texts())
+	for _, capability := range wipCapabilities(s) {
+		info, ok := tt.AccessByRole(ui.RoleText, capability.method)
+		if !ok {
+			t.Fatalf("card %q is not drawn as text, texts %q", capability.action, tt.Texts())
 		}
-	}
-	if s.Selected != before {
-		t.Errorf("selected %q while tabbing through the shell, want %q", s.Selected, before)
-	}
-	if s.Draft != "" {
-		t.Errorf("draft %q while tabbing through the shell, want empty", s.Draft)
+		if info.Focusable {
+			t.Errorf("card %q takes a focus stop", capability.action)
+		}
 	}
 }

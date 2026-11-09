@@ -33,7 +33,7 @@ func TestLocaleDefaultsToEnglish(t *testing.T) {
 
 	// The shell itself opens in English: the fixture saves no language.
 	tt := ui.NewTester(fixture().View, 900, 600)
-	for _, want := range []string{"New session", "Search sessions", "Session keys", "Send", "Attach file"} {
+	for _, want := range []string{"New session", "Search sessions", "Send", "Attach file"} {
 		if !tt.HasText(want) {
 			t.Errorf("the default frame is missing the English %q, texts %q", want, tt.Texts())
 		}
@@ -42,7 +42,7 @@ func TestLocaleDefaultsToEnglish(t *testing.T) {
 
 // TestChineseLocaleDrawsChinese checks that a saved zh-CN preference reaches
 // every region: the sidebar entries and headings, the toolbar, the composer,
-// the WIP reasons and the capability cards. Nothing on the frame is a session
+// the WIP reasons and the capability page. Nothing on the frame is a session
 // fact in this fixture, so the comparison is only the shell's own words.
 func TestChineseLocaleDrawsChinese(t *testing.T) {
 	s := fixture()
@@ -50,19 +50,17 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 	s.Sessions = append(s.Sessions, Session{ID: "s3", Title: "Third session", Group: "alpha"})
 	s.SessionClosed = true
 	s.SessionClosedReason = "done"
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
 
 	for _, want := range []string{
-		// Sidebar entries, headings and the search box.
-		"新建会话", "搜索会话", "定时任务", "技能/插件", "会话键", "会话", "分组", "无项目",
+		// Sidebar entries and headings.
+		"新建会话", "搜索会话", "定时任务", "技能/插件", "会话", "无项目",
 		// Toolbar and banner.
 		"设置", "会话已关闭",
 		// The account footer.
 		"登录 Dim",
 		// Composer.
 		"添加附件", "模式", "模型", "发送", "Enter 发送 · Shift+Enter 换行",
-		// WIP reasons and the capability list.
-		"会话操作（不可用）", "不可用的能力", "创建会话", "会话键",
 	} {
 		if !tt.HasText(want) {
 			t.Errorf("the zh-CN frame is missing %q, texts %q", want, tt.Texts())
@@ -77,13 +75,20 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 	if !tt.HasText("First session") {
 		t.Error("the zh-CN frame dropped the caller's session title")
 	}
-	if !tt.HasText("session.create") {
-		t.Error("the zh-CN frame translated the wire method session.create")
+
+	// The capability cards live on the settings page now. Opening it shows the
+	// translated group, the action and the gap, while the wire method stays
+	// literal.
+	if err := tt.Click("设置"); err != nil {
+		t.Fatal(err)
 	}
-	// The sidebar's own entry and the capability card both carry "会话键"; the
-	// entry must still be a button, the card read-only text.
-	if _, ok := tt.AccessByRole(ui.RoleButton, "会话键"); !ok {
-		t.Error("the zh-CN sidebar lost its keys entry")
+	if err := tt.Click("不可用的能力"); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"不可用的能力", "创建会话", "会话键", "session.create"} {
+		if !tt.HasText(want) {
+			t.Errorf("the zh-CN capability page is missing %q, texts %q", want, tt.Texts())
+		}
 	}
 	if _, ok := tt.AccessByRole(ui.RoleText, "创建会话"); !ok {
 		t.Error("the zh-CN capability card is not read-only text")
@@ -153,8 +158,7 @@ func TestProtocolNamesStayLiteral(t *testing.T) {
 	}
 
 	s := fixture()
-	s.Settings = SettingsView{Locale: LocaleZHCN}
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := capabilityPageTester(s, LocaleZHCN, 900, 900)
 	for _, capability := range wipCapabilities(s) {
 		if !tt.HasText(capability.method) {
 			t.Errorf("the zh-CN card for %q is missing the literal method %q, texts %q",

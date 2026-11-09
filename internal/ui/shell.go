@@ -1,7 +1,7 @@
 // Package ui builds the DimAgent native view tree from plain Go view state.
 //
-// It is the static shell of Milestone 1: a session sidebar, a status row, a
-// keyed conversation list and a composer. It holds no session, run, timeline or
+// It is the static shell of Milestone 1: a session sidebar, a keyed conversation
+// list and a composer. It holds no session, run, timeline or
 // approval facts; the real catalog, timeline and connection come from the App
 // Server and its supervisor, so everything here is throwaway view state that
 // the fixture fills by hand.
@@ -372,7 +372,17 @@ func (s *State) View(c *ui.Context) {
 				Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
 				Background(k.card).Role(ui.RoleGroup).Label("Main area").
 				Children(func() {
-					renderHeader(c, k, s.headerView(), a)
+					// The reference has no application bar in the empty state: the
+					// session column's card starts at the frame and the hero carries
+					// the heading. With a session the toolbar is its own region, built
+					// from HeaderView. An action or connection failure still gets its
+					// banner in either state, so an empty window never hides why a
+					// preference save or a request failed.
+					if s.Selected != "" {
+						renderHeader(c, k, s.headerView(), a)
+					} else {
+						banner(c, k, s.headerView())
+					}
 					// The conversation and the context panel share the row below
 					// the toolbar, so the panel sits beside the session column
 					// and under the same card. The conversation takes the room
@@ -385,9 +395,11 @@ func (s *State) View(c *ui.Context) {
 							switch {
 							case s.ShowSettings:
 								// The appearance surface takes the conversation's place; the
-								// sidebar, toolbar and status bar stay, so a preference change is
-								// visible around it.
-								renderSettings(c, k, s.Settings, s.applySettings)
+								// sidebar and toolbar stay, so a preference change is
+								// visible around it. The capability list is assembled here,
+								// from the window's own callback wiring, so the surface only
+								// draws it.
+								renderSettings(c, k, s.Settings, wipCapabilities(s), s.applySettings)
 							case s.ShowKeys:
 								// The keys browser takes the conversation's place. It reads the
 								// snapshot the caller supplied and sends no request.
@@ -417,7 +429,6 @@ func (s *State) View(c *ui.Context) {
 									renderComposer(c, k, composer, a)
 								}
 							}
-							renderStatusBar(c, k, s.statusBarView())
 						})
 						if s.contextPanelShown() {
 							s.contextPanelColumn(c, k, a)
@@ -500,16 +511,6 @@ func (s *State) locale() Locale {
 	return resolveLocale(s.Settings.Locale)
 }
 
-// statusBarView copies the readings the bottom bar shows. Only the branch name
-// and the connection are known today; context usage, model and account stay
-// empty, which the bar draws as WIP instead of inventing numbers.
-func (s *State) statusBarView() StatusBarView {
-	return StatusBarView{
-		Branch:     s.SelectedBranch,
-		Connection: s.Connection,
-	}
-}
-
 // actions copies the window's callbacks into the Actions a region receives. A
 // nil callback stays nil, which is how a region learns the action is a WIP gap.
 func (s *State) actions() Actions {
@@ -542,8 +543,9 @@ func (s *State) actions() Actions {
 		},
 	}
 	// The keys toggle is the shell's own state too, but it is wired only when the
-	// caller supplied a session.keys snapshot: without one the sidebar keeps its
-	// WIP statement instead of opening a browser with nothing to read.
+	// caller supplied a session.keys snapshot. The sidebar no longer draws the
+	// entry the reference lacks; the toggle stays for a caller that sets
+	// State.ShowKeys or re-introduces an entry elsewhere.
 	if s.Keys.Loaded {
 		a.OnToggleKeys = func() {
 			s.ShowKeys = !s.ShowKeys
@@ -555,20 +557,17 @@ func (s *State) actions() Actions {
 	return a
 }
 
-// sidebarView copies the catalog, the read-only branch metadata and the
-// window-owned entry state into the sidebar's view. Selected is a pointer: the
-// sidebar writes the choice it made, and the shell reads it on the next frame.
+// sidebarView copies the catalog and the window-owned entry state into the
+// sidebar's view. Selected is a pointer: the sidebar writes the choice it made,
+// and the shell reads it on the next frame. Branch metadata stays in State for
+// the session header menu; this column no longer draws it.
 func (s *State) sidebarView() SidebarView {
 	return SidebarView{
-		Sessions:       s.Sessions,
-		Selected:       &s.Selected,
-		SelectedBranch: s.SelectedBranch,
-		Branches:       s.Branches,
-		Creating:       s.CreatingSession,
-		Capabilities:   wipCapabilities(s),
-		KeysOpen:       s.ShowKeys,
-		Locale:         s.locale(),
-		state:          &s.sidebar,
+		Sessions: s.Sessions,
+		Selected: &s.Selected,
+		Creating: s.CreatingSession,
+		Locale:   s.locale(),
+		state:    &s.sidebar,
 	}
 }
 

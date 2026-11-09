@@ -1,6 +1,12 @@
-// This file owns the session sidebar: the brand row, the global entries, the
-// grouped thread list, the branch list, the thread actions and the WIP
-// capability cards. It reads SidebarView and Actions only (see protocols.go).
+// This file owns the session sidebar: the global entries, the grouped thread
+// list and the account footer. It reads SidebarView and Actions only (see
+// protocols.go).
+//
+// The reference has no wordmark, no branch directory, no thread-action row and
+// no capability cards in this column: the entries begin below the traffic
+// lights, the catalog follows them, and the account row sits at the bottom.
+// Branch and delete callbacks stay in State and Actions for the session header
+// menu that will carry them, but this column draws neither today.
 
 package ui
 
@@ -219,10 +225,9 @@ func (v SidebarView) closeSearch() {
 	*v.searchQuery() = ""
 }
 
-// sidebar draws the P0 sidebar: the brand header, the global entries, the
-// grouped thread list, the thread actions, the WIP capability cards and the
-// account footer. Its width comes from the split divider around it; the shell
-// clamps it to the sidebar's own bounds before every frame.
+// sidebar draws the reference's sidebar: the global entries, the grouped thread
+// list and the account footer. Its width comes from the split divider around
+// it; the shell clamps it to the sidebar's own bounds before every frame.
 func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	v.adoptSearch()
 	locale := v.Locale
@@ -238,44 +243,28 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	sessions := v.visibleSessions()
 	ui.Column(c).FillHeight().Clip().Background(k.sidebar).
 		Role(ui.RoleNavigation).Label(tr(locale, keySidebarNavigation)).Children(func() {
-		sidebarHeader(c, k, locale)
 		sidebarEntries(c, k, v, a)
-		threadListHeader(c, k, len(sessions), locale)
+		threadListHeader(c, k, locale)
 		threadList(c, k, v, sessions, a)
-		if len(v.Branches) > 0 {
-			branchList(c, k, v, a)
-		}
-		sidebarFooter(c, k, v, a)
-		capabilityCards(c, k, locale, v.Capabilities)
 		sidebarAccount(c, k, v, a)
 	})
 }
 
-// sidebarHeader is the brand row, 48 DIP high as the titlebar it sits beside.
-// The update entry stays visible and unavailable until the shell is wired to
-// the app's updater.
-func sidebarHeader(c *ui.Context, k tokens, locale Locale) {
-	ui.Row(c).Height(k.sidebarHeaderH).Margin(k.sidebarHeaderTop, 0, 0, 0).
-		PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).Children(func() {
-		ui.Text(c, "DimAgent").Bold().FontSize(k.titleSize).TextColor(k.sidebarForeground).SingleLine()
-		ui.Spacer(c)
-		wipAction(c, k, tr(locale, keySidebarUpdate), tr(locale, keyReasonUpdate))
-	})
-}
-
 // sidebarEntries are the sidebar's global entries, in dim-electron's order:
-// the session action, search, scheduled tasks and skills/plugins, then the keys
-// browser. Search is local: the entry expands a filter box over the catalog the
-// sidebar already draws, and nothing it does reaches the App Server. The two
+// the session action, search, scheduled tasks and skills/plugins. The column
+// starts below the traffic lights, which float over it in the reference's
+// hidden-title-bar window; the wordmark and the update entry are not drawn.
+// Search is local: the entry expands a filter box over the catalog the sidebar
+// already draws, and nothing it does reaches the App Server. The two
 // management entries have no client or page in this shell yet, so they keep
-// their place as visible WIP entries.
+// their place as unavailable entries whose tooltip carries the reason.
 func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
-	ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).Children(func() {
+	ui.Column(c).Padding(k.sidebarHeaderH, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
+		Gap(k.sidebarGap).Children(func() {
 		newSessionEntry(c, k, v, a)
 		searchEntry(c, k, v)
 		scheduledEntry(c, k, v)
 		skillsEntry(c, k, v)
-		keysEntry(c, k, v, a)
 	})
 }
 
@@ -327,32 +316,17 @@ func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	})
 }
 
-// keysEntry offers the session.keys browser once the window has a snapshot.
-// The shell wires its toggle exactly then, so a missing toggle means there is
-// nothing to browse: the entry keeps its place, dimmed and explained, instead
-// of opening a panel that can only say it has no read.
-func keysEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
-	locale := v.Locale
-	if a.OnToggleKeys == nil {
-		sidebarEntry(c, k, sidebarIcons.chevron, tr(locale, keySidebarKeys), "", tr(locale, keyReasonKeysEntry), false, false, false, nil)
-		return
-	}
-	sidebarEntry(c, k, sidebarIcons.chevron, tr(locale, keySidebarKeys), "", "", true, false, v.KeysOpen, func() {
-		a.OnToggleKeys()
-	})
-}
-
-// reasonKeysEntry is what the keys entry says while the window has no snapshot
-// to browse. The helper and the panel exist; what is missing is the wiring that
-// would hand this window a session.keys read.
+// reasonKeysEntry is what the keys browser said while the window had no
+// snapshot to browse. The entry is gone from the sidebar, as the reference has
+// none; the browser stays in the main column for a caller that sets ShowKeys.
 const reasonKeysEntry = "Unavailable: the shell has no key browser callback while no session.keys snapshot is loaded."
 
-// sidebarEntry draws one global entry as a menu row: its icon, its label, an
-// optional shortcut hint and, when the shell cannot carry the action out, the
-// visible WIP badge with the reason it waits on. An unavailable entry registers
-// no click, so the shell cannot report an action it did not send. selected marks
-// an entry that is showing its surface, as the keys browser does. The glyph is
-// decorative: the label is the entry's accessible name.
+// sidebarEntry draws one global entry as a menu row: its icon, its label and an
+// optional shortcut hint. An unavailable entry registers no click and carries
+// its reason in the description and the tooltip instead of a visible badge, so
+// the column keeps the reference's clean rows. selected marks an entry that is
+// showing its surface. The glyph is decorative: the label is the entry's
+// accessible name.
 func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, hint, reason string, enabled, disabled, selected bool, on func()) {
 	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
 		PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center)
@@ -364,7 +338,7 @@ func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, hint, reason str
 		// button does; assistive technology reads it as expanded, not selected.
 		row.Expanded(selected)
 	} else {
-		row.AccessDisabled(true).Description(reason).Opacity(wipOpacity)
+		row.AccessDisabled(true).Description(reason).Tooltip(reason).Opacity(wipOpacity)
 	}
 	if row.Hovered() {
 		row.Background(k.sidebarHover)
@@ -376,11 +350,6 @@ func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, hint, reason str
 		if hint != "" {
 			ui.Text(c, hint).FontSize(k.smallSize).TextColor(k.mutedForeground).
 				Unselectable().AccessHidden(true)
-		}
-		if !enabled {
-			badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-				Unselectable().AccessHidden(true)
-			row.DescribedBy(badge)
 		}
 	})
 }
@@ -394,18 +363,16 @@ func searchShortcutText() string {
 	return "Ctrl+G"
 }
 
-// threadListHeader names the thread list and its size. The count is the rows
-// the search filter leaves. Grouping by project or date is a dim-electron view
-// mode fed by catalog facts this shell does not receive, so the control stays
-// visible and unavailable.
-func threadListHeader(c *ui.Context, k tokens, count int, locale Locale) {
+// threadListHeader names the thread list, as the reference's session column
+// does. The count and the unavailable group control are gone: the reference
+// draws the heading and its two icons, and this shell has no group mode to
+// offer yet.
+func threadListHeader(c *ui.Context, k tokens, locale Locale) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
 		sidebarGlyph(c, sidebarIcons.list, k.mutedForeground)
 		ui.Text(c, tr(locale, keySidebarSessions)).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
-		ui.Text(c, strconv.Itoa(count)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		ui.Spacer(c)
-		wipAction(c, k, tr(locale, keySidebarGroup), tr(locale, keyReasonGroup))
 	})
 }
 
@@ -534,183 +501,6 @@ func chooseSession(v SidebarView, a Actions) {
 	selectSession(a, row.sessionID)
 }
 
-// branchList draws the branch directory the App Server supplied. With
-// Actions.OnSelectBranch wired each row asks the window to open that branch's
-// history; without the callback the list keeps the read-only metadata form and
-// the WIP reason, so an unwired window offers no switch it cannot perform. The
-// region marks the displayed branch and writes nothing: a switch shows only
-// after the window publishes the branch the App Server returned.
-//
-// Refresh re-reads session.branches, so a branch the App Server ended (here or
-// in another client) leaves the directory only when that read reports it gone.
-// End branch is offered for the displayed branch while it is neither main nor
-// ended; a click asks the window to end it and leaves every row in place until
-// the App Server confirms through the refreshed directory.
-func branchList(c *ui.Context, k tokens, v SidebarView, a Actions) {
-	locale := v.Locale
-	selectable := a.OnSelectBranch != nil
-	label := tr(locale, keySidebarBranchesRO)
-	if selectable {
-		label = tr(locale, keySidebarBranches)
-	}
-	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
-		Role(ui.RoleGroup).Label(label).Children(func() {
-		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, tr(locale, keySidebarBranches)).FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().AccessHidden(true)
-			ui.Box(c).Grow(1)
-			if !selectable {
-				ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
-			}
-			branchRefreshEntry(c, k, a, locale)
-		})
-		for _, branch := range v.Branches {
-			current := branchCurrent(branch, v.SelectedBranch)
-			if selectable {
-				branchEntry(c, k, branch, current, a, locale)
-				continue
-			}
-			ui.Text(c, branchLabel(branch, current, locale)).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
-		}
-		if branch, ok := currentBranch(v); ok && branchEndable(branch) {
-			branchEndEntry(c, k, branch, a, locale)
-		}
-		if !selectable {
-			ui.Text(c, tr(locale, keyReasonBranches)).FontSize(k.smallSize).TextColor(k.mutedForeground)
-		}
-	})
-}
-
-// branchRefreshEntry asks the window to re-read session.branches. Without the
-// callback the entry keeps its place and its reason, so an unwired window
-// cannot imply a refresh it never sent.
-func branchRefreshEntry(c *ui.Context, k tokens, a Actions, locale Locale) {
-	if a.OnRefreshBranches == nil {
-		wipAction(c, k, tr(locale, keySidebarRefresh), tr(locale, keyReasonRefreshBranches))
-		return
-	}
-	ui.Button(c, tr(locale, keySidebarRefresh)).OnClick(func() {
-		refreshBranches(a)
-	})
-}
-
-// branchEndEntry asks the window to end the displayed branch. The region draws
-// the entry only for a branch session.branches says is not main and not ended,
-// and it removes no row: the directory keeps its entries until the App Server
-// reports the end. Without the callback the entry stays visible, disabled and
-// explained as WIP.
-func branchEndEntry(c *ui.Context, k tokens, branch Branch, a Actions, locale Locale) {
-	if a.OnEndBranch == nil {
-		wipAction(c, k, tr(locale, keySidebarEndBranch), tr(locale, keyReasonEndBranch))
-		return
-	}
-	ui.Button(c, tr(locale, keySidebarEndBranch)).OnClick(func() {
-		endBranch(a, branch.ID)
-	})
-}
-
-// currentBranch returns the branch the view marks as displayed, if the
-// directory still holds it. Both facts come from the App Server; the region
-// derives no current branch of its own.
-func currentBranch(v SidebarView) (Branch, bool) {
-	for _, branch := range v.Branches {
-		if branchCurrent(branch, v.SelectedBranch) {
-			return branch, true
-		}
-	}
-	return Branch{}, false
-}
-
-// branchEndable reports whether the App Server's directory allows ending the
-// branch: main is the session's own line, and an ended branch has no turn left
-// to close.
-func branchEndable(branch Branch) bool {
-	return branch.ID != "" && branch.ID != mainBranchID && branch.State != branchStateEnded
-}
-
-// branchLabel is a row's text: the caller's label, or the branch's id when the
-// App Server gave none, with the displayed branch named.
-func branchLabel(branch Branch, current bool, locale Locale) string {
-	label := branch.Label
-	if label == "" {
-		label = branch.ID
-	}
-	if current {
-		label += tr(locale, keySidebarBranchSuffix)
-	}
-	return label
-}
-
-// branchCurrent reports whether the branch is the one the shell displays. Both
-// inputs are App Server facts the shell copied into the view; neither is
-// written here.
-func branchCurrent(branch Branch, selectedBranch string) bool {
-	return branch.Selected || branch.ID == selectedBranch
-}
-
-// branchEntry draws one selectable branch row. A click on the displayed branch
-// asks for nothing; any other asks the window to open that branch, and the
-// row's selected face follows the view, so a failed read never looks switched.
-func branchEntry(c *ui.Context, k tokens, branch Branch, current bool, a Actions, locale Locale) {
-	label := branchLabel(branch, false, locale)
-	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
-		PaddingX(k.sidebarGap).Radius(radiusMD).Gap(k.sidebarGap).
-		AlignItems(ui.Center).Role(ui.RoleListItem).Label(label).Selected(current)
-	row.OnClick(func() {
-		selectBranch(a, branch.ID, current)
-	})
-	if !current && row.Hovered() {
-		row.Background(k.sidebarHover)
-	}
-	row.Children(func() {
-		ui.Text(c, label).FontSize(k.smallSize).TextColor(k.sidebarForeground).
-			SingleLine().Grow(1)
-		if current {
-			ui.Text(c, tr(locale, keySidebarBranchCurrent)).FontSize(k.smallSize).TextColor(k.mutedForeground).AccessHidden(true)
-		}
-	})
-}
-
-// sidebarFooter keeps the thread actions dim-electron offers in a row's tail
-// — pin, rename and archive — visible and unavailable: the App Server has no
-// verified pin or archive RPC for them, session.rename is reached through
-// session.methods, and this shell keeps no local list for any of the three.
-func sidebarFooter(c *ui.Context, k tokens, v SidebarView, a Actions) {
-	locale := v.Locale
-	ui.Column(c).Padding(0, k.sidebarPadX, k.sidebarPadX, k.sidebarPadX).
-		Gap(k.sidebarGap).Children(func() {
-		ui.Row(c).MinHeight(k.sidebarFooterH).Gap(k.sidebarGap).
-			Wrap().AlignItems(ui.Center).
-			Role(ui.RoleGroup).Label(tr(locale, keySidebarThreadActions)).Children(func() {
-			var actions []ui.Element
-			for _, action := range []struct{ label, reason string }{
-				{tr(locale, keySidebarPin), tr(locale, keyReasonPin)},
-				{tr(locale, keySidebarRename), tr(locale, keyReasonRename)},
-				{tr(locale, keySidebarArchive), tr(locale, keyReasonArchive)},
-			} {
-				actions = append(actions, ui.Button(c, action.label).AccessDisabled(true).
-					Description(action.reason).Opacity(wipOpacity))
-			}
-			// One visible badge after the unavailable entries describes them all,
-			// so the row reads "Pin Rename Archive WIP" rather than repeating it.
-			badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-				Unselectable().AccessHidden(true)
-			for _, action := range actions {
-				action.DescribedBy(badge)
-			}
-		})
-		// Deleting is a real action once the window wires it; it names the
-		// displayed session and removes nothing locally. It gets its own row so a
-		// wrapped badge cannot cover its target and the two states read apart.
-		selected := *v.Selected
-		deleteButton := ui.Button(c, tr(locale, keySidebarDelete))
-		if a.OnDeleteSession == nil || selected == "" {
-			deleteButton.AccessDisabled(true).Description(tr(locale, keyReasonDelete)).Opacity(wipOpacity)
-			return
-		}
-		deleteButton.OnClick(func() { a.OnDeleteSession(selected) })
-	})
-}
-
 // sidebarAccount is the footer pinned to the sidebar's bottom, as dim-electron's
 // AccountEntry is: the account row under the session content, with the settings
 // entry at its tail. The account is WIP — this shell has no account client, so
@@ -739,20 +529,18 @@ func sidebarAccount(c *ui.Context, k tokens, v SidebarView, a Actions) {
 }
 
 // accountEntry is the account button on the footer row: the account glyph
-// before its label and, as wipAction draws its siblings, the visible WIP badge
-// that describes why the entry is unavailable. The label is the accessible
-// name, so the glyph is skipped by assistive technology.
+// before its label. The shell has no account client, so the entry is
+// unavailable and carries the reason in its description and tooltip rather than
+// a visible badge. The label is the accessible name, so the glyph is skipped by
+// assistive technology.
 func accountEntry(c *ui.Context, k tokens, locale Locale) {
 	label := tr(locale, keySidebarAccount)
 	button := ui.ButtonBase(c).Height(k.sidebarFooterH).
 		PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).
-		Label(label).AccessDisabled(true).Description(reasonAccount).
+		Label(label).AccessDisabled(true).Description(reasonAccount).Tooltip(reasonAccount).
 		Opacity(wipOpacity).Shrink(1)
 	button.Children(func() {
 		sidebarGlyph(c, sidebarIcons.user, k.sidebarForeground)
 		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.sidebarForeground).SingleLine()
 	})
-	badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
-		Unselectable().AccessHidden(true)
-	button.DescribedBy(badge)
 }

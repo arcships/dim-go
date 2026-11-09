@@ -275,40 +275,26 @@ func TestKeysPanelTruncatesLongText(t *testing.T) {
 }
 
 // shellKeysState is the shell fixture with a loaded session.keys snapshot for
-// the selected session, so the sidebar's "Session keys" entry is a real action.
+// the selected session and the browser showing. The sidebar's Session keys entry
+// is gone, as the reference has none, so the window's own ShowKeys is the state
+// the panel reads.
 func shellKeysState() *State {
 	s := fixture()
 	s.Keys = KeysPanelView{Entries: keysPanelEntries(), Through: 12, Loaded: true}
+	s.ShowKeys = true
 	return s
 }
 
-// TestShellOpensAndClosesTheKeysPanel checks the wiring: the sidebar entry is a
-// real action while the window holds a snapshot, opening it swaps the main
-// column for the browser, a row click writes only the shell's view state, and a
-// second click returns to the conversation.
-func TestShellOpensAndClosesTheKeysPanel(t *testing.T) {
+// TestShellDrawsAndClosesTheKeysPanel checks the wiring: a loaded snapshot with
+// ShowKeys swaps the main column for the browser, a row click writes only the
+// shell's view state, and clearing ShowKeys returns to the conversation. The
+// sidebar entry is gone because the reference's column has none.
+func TestShellDrawsAndClosesTheKeysPanel(t *testing.T) {
 	s := shellKeysState()
 	tt := ui.NewTester(s.View, 900, 600)
 
-	if tt.HasText("implement the keys panel") {
-		t.Fatalf("the keys rows are drawn before the browser opens, texts %q", tt.Texts())
-	}
-	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
-		t.Fatalf("the keys panel is drawn before it is opened, texts %q", tt.Texts())
-	}
-	info, ok := tt.AccessByRole(ui.RoleButton, "Session keys")
-	if !ok || info.Disabled {
-		t.Fatalf("the keys entry is not an enabled action: %+v, found %v", info, ok)
-	}
-
-	if err := tt.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
-	if !s.ShowKeys {
-		t.Fatal("the keys entry did not open the browser")
-	}
 	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); !ok {
-		t.Fatalf("the opener did not draw the keys panel, texts %q", tt.Texts())
+		t.Fatalf("the keys panel is not drawn, texts %q", tt.Texts())
 	}
 	for _, want := range []string{"3 keys", "through 12", "implement the keys panel"} {
 		if !tt.HasText(want) {
@@ -317,9 +303,6 @@ func TestShellOpensAndClosesTheKeysPanel(t *testing.T) {
 	}
 	if tt.HasText("hello from the fixture") {
 		t.Errorf("the conversation is still drawn under the browser, texts %q", tt.Texts())
-	}
-	if entry, ok := tt.AccessByRole(ui.RoleButton, "Session keys"); !ok || !entry.Expanded {
-		t.Errorf("the keys entry does not report its surface expanded: %+v, found %v", entry, ok)
 	}
 
 	// A row click moves the shell's selection and nothing else.
@@ -333,13 +316,8 @@ func TestShellOpensAndClosesTheKeysPanel(t *testing.T) {
 		t.Errorf("the row click changed the session view: selected=%q showing=%v", s.Selected, s.ShowKeys)
 	}
 
-	// Clicking the entry again returns to the conversation.
-	if err := tt.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
-	if s.ShowKeys {
-		t.Fatal("the second click left the browser open")
-	}
+	// Clearing the window's state returns to the conversation.
+	s.ShowKeys = false
 	tt.Frame()
 	if !tt.HasText("hello from the fixture") {
 		t.Errorf("the conversation did not come back, texts %q", tt.Texts())
@@ -354,12 +332,6 @@ func TestShellOpensAndClosesTheKeysPanel(t *testing.T) {
 func TestKeysPanelClosesOnEscape(t *testing.T) {
 	s := shellKeysState()
 	tt := ui.NewTester(s.View, 900, 600)
-	if err := tt.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
-	if !s.ShowKeys {
-		t.Fatal("the keys entry did not open the browser")
-	}
 
 	tt.Key(0, ui.KeyEscape)
 	if s.ShowKeys {
@@ -374,32 +346,26 @@ func TestKeysPanelClosesOnEscape(t *testing.T) {
 	}
 }
 
-// TestShellKeysEntryIsWIPWithoutSnapshot checks the unwired state: without a
-// session.keys read the entry keeps its place, dimmed, explained and inert, and
-// no browser opens.
-func TestShellKeysEntryIsWIPWithoutSnapshot(t *testing.T) {
-	s := fixture()
-	tt := ui.NewTester(s.View, 900, 600)
+// TestShellHasNoKeysEntry checks the reference's column: no Session keys entry
+// is drawn, with or without a snapshot, and nothing opens a browser the window
+// did not already show.
+func TestShellHasNoKeysEntry(t *testing.T) {
+	for _, withSnapshot := range []bool{false, true} {
+		s := fixture()
+		if withSnapshot {
+			s.Keys = KeysPanelView{Entries: keysPanelEntries(), Through: 12, Loaded: true}
+		}
+		tt := ui.NewTester(s.View, 900, 600)
 
-	info, ok := tt.AccessByRole(ui.RoleButton, "Session keys")
-	if !ok {
-		t.Fatalf("the keys entry is not drawn, texts %q", tt.Texts())
-	}
-	if !info.Disabled {
-		t.Error("the keys entry is enabled without a session.keys snapshot")
-	}
-	if !strings.Contains(info.Description, "key browser callback") {
-		t.Errorf("the keys entry description %q does not name the missing wiring", info.Description)
-	}
-	if err := tt.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
-	tt.Frame()
-	if s.ShowKeys {
-		t.Error("clicking the WIP entry opened a browser with no snapshot")
-	}
-	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
-		t.Errorf("a browser opened without a session.keys read, texts %q", tt.Texts())
+		if _, ok := tt.AccessByRole(ui.RoleButton, "Session keys"); ok {
+			t.Errorf("snapshot=%v: the sidebar still exposes a Session keys entry, texts %q", withSnapshot, tt.Texts())
+		}
+		if tt.HasText("Session keys") {
+			t.Errorf("snapshot=%v: the sidebar still draws Session keys, texts %q", withSnapshot, tt.Texts())
+		}
+		if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
+			t.Errorf("snapshot=%v: a browser opened by itself, texts %q", withSnapshot, tt.Texts())
+		}
 	}
 }
 
@@ -409,9 +375,6 @@ func TestShellKeysEntryIsWIPWithoutSnapshot(t *testing.T) {
 func TestShellKeysPanelFiltersTheSnapshot(t *testing.T) {
 	s := shellKeysState()
 	tt := ui.NewTester(s.View, 900, 600)
-	if err := tt.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
 	if err := tt.Click("Search keys"); err != nil {
 		t.Fatal(err)
 	}
@@ -438,9 +401,6 @@ func TestShellKeysPanelFiltersTheSnapshot(t *testing.T) {
 func TestKeysPanelClosesOnSessionSwitch(t *testing.T) {
 	s := shellKeysState()
 	tt := ui.NewTester(s.View, 900, 600)
-	if err := tt.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
 
 	clickRow(t, tt, "Second session")
 	if s.Selected != "s2" {
@@ -459,8 +419,8 @@ func TestKeysPanelClosesOnSessionSwitch(t *testing.T) {
 	if tt.HasText("implement the keys panel") {
 		t.Errorf("the previous session's keys are drawn for s2, texts %q", tt.Texts())
 	}
-	if info, ok := tt.AccessByRole(ui.RoleButton, "Session keys"); !ok || !info.Disabled {
-		t.Errorf("the keys entry is a real action for a session with no snapshot: %+v, found %v", info, ok)
+	if info, ok := tt.AccessByRole(ui.RoleButton, "Session keys"); ok {
+		t.Errorf("the keys entry returned for a session with no snapshot: %+v", info)
 	}
 
 	// The window's read for the new session fills the browser again, and only
@@ -470,13 +430,8 @@ func TestKeysPanelClosesOnSessionSwitch(t *testing.T) {
 		Through: 2,
 		Loaded:  true,
 	}
+	s.ShowKeys = true
 	tt.Frame()
-	if err := tt.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
-	if !s.ShowKeys {
-		t.Fatal("the keys entry did not open the new session's browser")
-	}
 	if !tt.HasText("second session key") {
 		t.Errorf("the new session's key is missing, texts %q", tt.Texts())
 	}

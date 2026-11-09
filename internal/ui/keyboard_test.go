@@ -57,10 +57,9 @@ func TestTabOrder(t *testing.T) {
 	tt := ui.NewTester(s.View, 900, 600)
 
 	for _, want := range []string{
-		"Update", "New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
-		"Session keys", "Group", "Sessions", "Pin", "Rename", "Archive", "Delete session",
-		"Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings", "Context panel",
-		"Attach file", "Composer", "Update",
+		"New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
+		"Sessions", "Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings",
+		"Context panel", "Attach file", "Composer", "New session",
 	} {
 		tt.Key(0, ui.KeyTab)
 		if !tt.Focused(want) {

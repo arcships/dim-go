@@ -2,9 +2,9 @@ package ui
 
 import "github.com/egoist/mygo/ui"
 
-// wipCapability is one read-only card in the sidebar's unavailable-capabilities
-// list: the action it would back, the App Server or supervisor entry behind it,
-// and which side of the gap is missing.
+// wipCapability is one read-only card in the settings surface's
+// unavailable-capabilities list: the action it would back, the App Server or
+// supervisor entry behind it, and which side of the gap is missing.
 //
 // It is product status, not session state. Its text is fixed and holds no
 // session, run or approval fact; only whether a capability is present varies
@@ -89,28 +89,6 @@ func wipCapabilities(s *State) []wipCapability {
 			wipCapabilityOf(keyCapabilityTurnCancel, "session.stop", keyCapabilityTurnCancelGap))
 	}
 	return capabilities
-}
-
-// capabilityCards draws the read-only list of actions the shell cannot carry
-// out yet. The cards say what is missing without offering a control, so no
-// click can imply a capability the shell does not have. The list sits under the
-// session sidebar, which is its only consumer. It takes the room the thread
-// list leaves and scrolls when the window is too short for every card, so the
-// catalog above it keeps its rows.
-func capabilityCards(c *ui.Context, k tokens, locale Locale, capabilities []wipCapability) {
-	ui.Scroll(c).Shrink(1).Children(func() {
-		ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).
-			BorderWidth(k.hairline, 0, 0, 0).BorderColor(k.border).
-			Role(ui.RoleGroup).Label(tr(locale, keyCapabilityGroup)).Children(func() {
-			// The group's label names the list, so the visible heading stays out of
-			// the accessibility tree rather than being read twice.
-			ui.Text(c, tr(locale, keyCapabilityGroup)).FontSize(k.smallSize).TextColor(k.mutedForeground).
-				Unselectable().AccessHidden(true)
-			for _, capability := range capabilities {
-				capabilityCard(c, k, locale, capability)
-			}
-		})
-	})
 }
 
 // capabilityCard draws one capability's status: its action, the method behind

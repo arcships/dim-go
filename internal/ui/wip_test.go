@@ -16,9 +16,9 @@ type wipCase struct {
 
 // TestWIPEntriesAreVisibleDisabledAndExplainThemselves checks the shape of
 // every WIP entry: it is drawn, its name is the action, assistive technology
-// reads it as unavailable but still reaches it, and its description says what
-// upstream work it waits on. The badge beside it makes the gap visible to
-// sighted users too.
+// reads it as unavailable but still reaches it, and its description and tooltip
+// say what upstream work it waits on. The sidebar carries no persistent badge;
+// the composer and header entries keep the visible badge the tests below find.
 func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
@@ -42,9 +42,6 @@ func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 		}
 		if !strings.Contains(info.Description, tc.reason) {
 			t.Errorf("%q description %q does not name %q", tc.label, info.Description, tc.reason)
-		}
-		if !strings.Contains(info.Description, wipBadge) {
-			t.Errorf("%q description %q does not include the visible %q badge", tc.label, info.Description, wipBadge)
 		}
 		if !tt.HasText(tc.label) {
 			t.Errorf("%q is not drawn, texts %q", tc.label, tt.Texts())

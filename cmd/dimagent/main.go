@@ -1571,6 +1571,10 @@ func main() {
 			// is the same, so the proportion of chrome matches the desktop app.
 			Width:  800,
 			Height: 720,
+			// The reference hides the native title bar: the shell draws from y=0
+			// and the traffic lights float over the sidebar. Without this the
+			// window keeps a dark system title bar above the light shell.
+			TitleBarStyle: mygo.TitleBarHiddenInset,
 			// A capture names its position so the window lands on the primary
 			// display; a normal launch leaves both at zero and centers itself.
 			X: envInt("DIMAGENT_WINDOW_X"),

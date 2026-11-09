@@ -315,3 +315,25 @@ func TestStatusBarNarrowKeepsTheEndsApart(t *testing.T) {
 		}
 	}
 }
+
+// TestShellDrawsNoGlobalStatusBar checks the reference's bottom edge: the shell
+// no longer paints the 35-DIP bar, and its branch, context, model, account and
+// connection readings are absent from the frame. The statusbar renderer remains
+// available for the composer's context row work, which is owned elsewhere.
+func TestShellDrawsNoGlobalStatusBar(t *testing.T) {
+	s := fixture()
+	s.SelectedBranch = "feat/chrome-parity"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Status bar"); ok {
+		t.Errorf("the shell still draws the global status bar, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{
+		"Branch: feat/chrome-parity", "Branch: WIP", "Context: WIP",
+		"Model: WIP", "Account: WIP", "App Server: Not connected",
+	} {
+		if tt.HasText(gone) {
+			t.Errorf("the shell still draws the status reading %q, texts %q", gone, tt.Texts())
+		}
+	}
+}

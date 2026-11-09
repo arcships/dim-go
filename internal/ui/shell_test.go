@@ -63,32 +63,22 @@ func TestShellRenders(t *testing.T) {
 	}
 }
 
-// TestBranchListIsReadOnly checks that observed branches are shown as metadata
-// only: the session.branches RPC is blocked/unverified, so there is no branch
-// switch, cut point or side-chat action to click.
-func TestBranchListIsReadOnly(t *testing.T) {
+// TestBranchListIsNotInTheSidebar checks that the observed branch metadata is
+// no longer drawn in the reference's session column. The facts and callbacks
+// stay in State for the session header menu that will carry them.
+func TestBranchListIsNotInTheSidebar(t *testing.T) {
 	s := fixture()
 	s.Branches = []Branch{{ID: "main", Label: "main"}, {ID: "side", Label: "side"}}
 	s.SelectedBranch = "main"
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
 
-	if _, ok := tt.AccessByRole(ui.RoleGroup, "Branches (read-only)"); !ok {
-		t.Fatalf("branches are not grouped as read-only, texts %q", tt.Texts())
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Branches (read-only)"); ok {
+		t.Errorf("the sidebar still groups a branch list, texts %q", tt.Texts())
 	}
-	if !tt.HasText("main (current)") || !tt.HasText("side") {
-		t.Errorf("branches are missing, texts %q", tt.Texts())
-	}
-	if _, ok := tt.AccessByRole(ui.RoleButton, "side"); ok {
-		t.Error("a branch is exposed as an action")
-	}
-	if !tt.HasText(reasonBranches) {
-		t.Errorf("branch WIP reason is missing, texts %q", tt.Texts())
-	}
-	if err := tt.Click("side"); err != nil {
-		t.Fatal(err)
-	}
-	if s.SelectedBranch != "main" {
-		t.Errorf("branch selection changed to %q without a branch action", s.SelectedBranch)
+	for _, gone := range []string{"main (current)", reasonBranches} {
+		if tt.HasText(gone) {
+			t.Errorf("the sidebar still draws %q, texts %q", gone, tt.Texts())
+		}
 	}
 }
 
@@ -156,37 +146,34 @@ func TestShellFrameSurroundsTheMainColumnPanels(t *testing.T) {
 	}
 
 	keys := shellKeysState()
+	keys.ShowKeys = true
 	keysTT := ui.NewTester(keys.View, 900, 600)
-	if err := keysTT.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
 	assertFramed(t, keysTT)
 	if _, ok := keysTT.AccessByRole(ui.RoleRegion, "Keys panel"); !ok {
 		t.Errorf("the keys browser is not drawn, texts %q", keysTT.Texts())
 	}
 }
 
-// TestShellHeaderWeakensWithoutASession checks the toolbar's empty form: with
-// no selected session it repeats no title and reports no run, and keeps the
-// connection status and the appearance entry.
-func TestShellHeaderWeakensWithoutASession(t *testing.T) {
+// TestShellHasNoHeaderWithoutASession checks the reference's empty state: no
+// application bar with the connection or a Settings entry, just the hero. The
+// sidebar's own Settings entry and the composer stay.
+func TestShellHasNoHeaderWithoutASession(t *testing.T) {
 	s := fixture()
 	s.Sessions = nil
 	s.Selected = ""
 	s.Messages = nil
-	tt := ui.NewTester(s.View, 900, 600)
+	tt := ui.NewTester(s.View, 900, 900)
 
-	if _, ok := tt.Find(tr(LocaleEN, keyNoSession)); ok {
-		t.Errorf("the toolbar repeats the no-session title, texts %q", tt.Texts())
+	for _, gone := range []string{"App Server: Not connected", "Session: Idle"} {
+		if tt.HasText(gone) {
+			t.Errorf("the empty state draws the application bar text %q, texts %q", gone, tt.Texts())
+		}
 	}
-	if tt.HasText("Session: Idle") {
-		t.Errorf("the toolbar reports a run with no session, texts %q", tt.Texts())
+	if !tt.HasText(tr(LocaleEN, keyHeroTitle)) {
+		t.Errorf("the empty state lost the hero, texts %q", tt.Texts())
 	}
-	if !tt.HasText("App Server: Not connected") {
-		t.Errorf("the toolbar lost the connection status, texts %q", tt.Texts())
-	}
-	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyHeaderSettings)); !ok {
-		t.Errorf("the toolbar lost the settings entry, texts %q", tt.Texts())
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySidebarSettingsEntry)); !ok {
+		t.Errorf("the sidebar lost its settings entry, texts %q", tt.Texts())
 	}
 }
 
@@ -240,7 +227,7 @@ func textBox(t *testing.T, tt *ui.Tester, text string) ui.Rect {
 }
 
 // TestShellAppliesSavedFontSize checks that a saved UI size reaches the frame:
-// the sidebar's brand and a wrapped body paragraph are drawn larger on a larger
+// a sidebar entry and a wrapped body paragraph are drawn larger on a larger
 // step, so the scale moves rather than one label.
 func TestShellAppliesSavedFontSize(t *testing.T) {
 	body := strings.Repeat("word ", 40) + "tail"
@@ -252,10 +239,10 @@ func TestShellAppliesSavedFontSize(t *testing.T) {
 	}
 	small, large := render(12), render(18)
 
-	smallBrand := textBox(t, small, "DimAgent")
-	largeBrand := textBox(t, large, "DimAgent")
-	if largeBrand.H <= smallBrand.H {
-		t.Errorf("an 18 title is %.1f high, no taller than a 12 title's %.1f", largeBrand.H, smallBrand.H)
+	smallEntry := textBox(t, small, "Sessions")
+	largeEntry := textBox(t, large, "Sessions")
+	if largeEntry.H <= smallEntry.H {
+		t.Errorf("an 18 entry is %.1f high, no taller than a 12 entry's %.1f", largeEntry.H, smallEntry.H)
 	}
 	smallBody := textBox(t, small, body)
 	largeBody := textBox(t, large, body)
@@ -271,7 +258,7 @@ func TestShellAppliesSavedFontSize(t *testing.T) {
 func TestShellSettingsChoiceShowsOnTheNextFrame(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
-	brandBefore := textBox(t, tt, "DimAgent")
+	entryBefore := textBox(t, tt, "Sessions")
 
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
@@ -283,8 +270,8 @@ func TestShellSettingsChoiceShowsOnTheNextFrame(t *testing.T) {
 	if s.Settings.FontSize != 18 {
 		t.Fatalf("the surface reported %.0f, want 18", s.Settings.FontSize)
 	}
-	if got := textBox(t, tt, "DimAgent"); got.H <= brandBefore.H {
-		t.Errorf("the brand is %.1f high after choosing 18, no taller than %.1f", got.H, brandBefore.H)
+	if got := textBox(t, tt, "Sessions"); got.H <= entryBefore.H {
+		t.Errorf("the entry is %.1f high after choosing 18, no taller than %.1f", got.H, entryBefore.H)
 	}
 	if got := textBox(t, tt, "Appearance"); got.H <= titleBefore.H {
 		t.Errorf("the page title is %.1f high after choosing 18, no taller than %.1f", got.H, titleBefore.H)
@@ -564,10 +551,8 @@ func TestShellContextPanelYieldsToSettingsAndKeys(t *testing.T) {
 
 	keys := shellKeysState()
 	keys.ShowContextPanel = true
+	keys.ShowKeys = true
 	keysTT := ui.NewTester(keys.View, 900, 600)
-	if err := keysTT.Click("Session keys"); err != nil {
-		t.Fatal(err)
-	}
 	if _, ok := keysTT.AccessByRole(ui.RoleRegion, "Keys panel"); !ok {
 		t.Fatalf("the keys browser did not open, texts %q", keysTT.Texts())
 	}

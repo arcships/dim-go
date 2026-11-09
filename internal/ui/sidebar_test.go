@@ -170,14 +170,9 @@ func TestSidebarWIPEntriesDoNothing(t *testing.T) {
 	width := s.SidebarWidth
 
 	entries := map[string]string{
-		"Update":             "updater",
-		"Group":              "project",
 		"Scheduled tasks":    "scheduled",
 		"Skills and plugins": "skills",
 		"Sign in to Dim":     "account",
-		"Pin":                "pin",
-		"Rename":             "session.rename",
-		"Archive":            "hidden session list",
 	}
 	for name, gap := range entries {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)
@@ -262,140 +257,50 @@ func sameColor(pixel color.RGBA, token ui.Color) bool {
 	return pixel.R == token.R && pixel.G == token.G && pixel.B == token.B && pixel.A == token.A
 }
 
-// TestSidebarSelectsABranch checks the branch rows once the window wires the
-// action: a click on another branch asks for it exactly once, the region writes
-// no selection of its own, and the rows mark the branch the view names. The
-// caller moves SelectedBranch only after the App Server opened it.
-func TestSidebarSelectsABranch(t *testing.T) {
+// TestSidebarHidesTheBranchDirectory checks the reference's session column:
+// it draws no branch section, so no branch row, switch, refresh or end entry can
+// appear there. The callbacks stay in State and Actions for the session header
+// menu that will carry them.
+func TestSidebarHidesTheBranchDirectory(t *testing.T) {
 	s := fixture()
-	s.Branches = []Branch{{ID: "main", Label: "main"}, {ID: "side", Label: "side"}}
-	s.SelectedBranch = "main"
-	var got []string
-	s.OnSelectBranch = func(branchID string) { got = append(got, branchID) }
-	tt := ui.NewTester(s.View, 900, 600)
-
-	mainRow, ok := tt.AccessByRole(ui.RoleListItem, "main")
-	if !ok {
-		t.Fatalf("the current branch is not exposed as a row, texts %q", tt.Texts())
+	s.Branches = []Branch{
+		{ID: "main", Label: "main", State: "open"},
+		{ID: "side", Label: "side", State: "open"},
 	}
-	if !mainRow.Selected {
-		t.Error("the current branch is not marked selected")
-	}
-	sideRow, ok := tt.AccessByRole(ui.RoleListItem, "side")
-	if !ok {
-		t.Fatalf("the other branch is not exposed as a row, texts %q", tt.Texts())
-	}
-	if sideRow.Selected {
-		t.Error("an unselected branch is marked selected")
-	}
-
-	if err := tt.Click("side"); err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 1 || got[0] != "side" {
-		t.Fatalf("OnSelectBranch ran with %q, want [side]", got)
-	}
-	if s.SelectedBranch != "main" {
-		t.Fatalf("the region moved SelectedBranch to %q before the App Server opened it", s.SelectedBranch)
-	}
-	if info, ok := tt.AccessByRole(ui.RoleListItem, "side"); !ok || info.Selected {
-		t.Errorf("the clicked row is marked selected before the open: %+v, found %v", info, ok)
-	}
-
-	// The caller publishes the opened branch; the rows follow it.
 	s.SelectedBranch = "side"
-	tt.Frame()
-	if info, ok := tt.AccessByRole(ui.RoleListItem, "side"); !ok || !info.Selected {
-		t.Errorf("the opened branch is not marked selected: %+v, found %v", info, ok)
-	}
-	if info, ok := tt.AccessByRole(ui.RoleListItem, "main"); !ok || info.Selected {
-		t.Errorf("the previous branch is still marked selected: %+v, found %v", info, ok)
+	s.OnSelectBranch = func(string) { t.Error("the sidebar offered a branch switch") }
+	s.OnEndBranch = func(string) { t.Error("the sidebar offered a branch end") }
+	s.OnRefreshBranches = func() { t.Error("the sidebar offered a branch refresh") }
+	tt := ui.NewTester(s.View, 900, 900)
+
+	for _, gone := range []string{"Branches", "Branches (read-only)", "main (current)", "Refresh", "End branch", reasonBranches} {
+		if tt.HasText(gone) {
+			t.Errorf("the sidebar still draws %q, texts %q", gone, tt.Texts())
+		}
 	}
 
-	// A click on the branch already shown asks for no read.
-	if err := tt.Click("side"); err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 1 {
-		t.Fatalf("a click on the shown branch ran OnSelectBranch %d times, want 1", len(got))
+	actions := s.actions()
+	if actions.OnSelectBranch == nil || actions.OnEndBranch == nil || actions.OnRefreshBranches == nil {
+		t.Errorf("the branch callbacks were dropped: %+v", actions)
 	}
 }
 
-// TestSidebarBranchWithoutCallbackStaysReadOnly checks the WIP form: without
-// the callback the branch list keeps its read-only group, its reason and no
-// selectable row, so an unwired window offers no switch it cannot perform.
-func TestSidebarBranchWithoutCallbackStaysReadOnly(t *testing.T) {
+// TestSidebarHidesTheThreadActions checks that the reference's column carries
+// no pin, rename, archive or delete row: the first three have no verified App
+// Server RPC, and delete moves to the session header menu later. The delete
+// callback stays wired in Actions.
+func TestSidebarHidesTheThreadActions(t *testing.T) {
 	s := fixture()
-	s.Branches = []Branch{{ID: "main", Label: "main"}, {ID: "side", Label: "side"}}
-	s.SelectedBranch = "main"
-	tt := ui.NewTester(s.View, 900, 600)
+	s.OnDeleteSession = func(string) { t.Error("the sidebar offered a delete") }
+	tt := ui.NewTester(s.View, 900, 900)
 
-	if _, ok := tt.AccessByRole(ui.RoleGroup, "Branches (read-only)"); !ok {
-		t.Errorf("branches are not grouped as read-only, texts %q", tt.Texts())
+	for _, gone := range []string{"Pin", "Rename", "Archive", "Delete session", "Thread actions (unavailable)"} {
+		if tt.HasText(gone) {
+			t.Errorf("the sidebar still draws %q, texts %q", gone, tt.Texts())
+		}
 	}
-	if !tt.HasText(reasonBranches) {
-		t.Errorf("branch WIP reason is missing, texts %q", tt.Texts())
-	}
-	if _, ok := tt.AccessByRole(ui.RoleListItem, "side"); ok {
-		t.Error("an unwired branch list exposes a selectable row")
-	}
-	if err := tt.Click("side"); err != nil {
-		t.Fatal(err)
-	}
-	if s.SelectedBranch != "main" {
-		t.Fatalf("a read-only branch click changed SelectedBranch to %q", s.SelectedBranch)
-	}
-}
-
-// TestSidebarBranchesWithoutDirectoryDrawNothing checks that a session with no
-// branch directory draws no branch section: the shell invents no branch row and
-// offers no switch for a directory the App Server has not supplied.
-func TestSidebarBranchesWithoutDirectoryDrawNothing(t *testing.T) {
-	s := fixture()
-	s.OnSelectBranch = func(string) { t.Error("a branch row was offered without a directory") }
-	tt := ui.NewTester(s.View, 900, 600)
-
-	if _, ok := tt.AccessByRole(ui.RoleGroup, "Branches"); ok {
-		t.Errorf("an empty branch directory draws a section, texts %q", tt.Texts())
-	}
-	if tt.HasText(reasonBranches) {
-		t.Errorf("an empty branch directory shows the WIP reason, texts %q", tt.Texts())
-	}
-}
-
-// TestSidebarDeleteAsksForTheSelectedSession checks that the delete entry names
-// the displayed session exactly once and removes no row itself.
-func TestSidebarDeleteAsksForTheSelectedSession(t *testing.T) {
-	s := fixture()
-	var got []string
-	s.OnDeleteSession = func(id string) { got = append(got, id) }
-	tt := ui.NewTester(s.View, 900, 600)
-
-	if err := tt.Click("Delete session"); err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 1 || got[0] != "s1" {
-		t.Fatalf("delete asked for %v, want one s1", got)
-	}
-	if len(s.Sessions) != 2 {
-		t.Fatalf("the sidebar removed a row itself: %d sessions", len(s.Sessions))
-	}
-}
-
-// TestSidebarDeleteWithoutCallbackStaysWIP checks the entry's unavailable form.
-func TestSidebarDeleteWithoutCallbackStaysWIP(t *testing.T) {
-	s := fixture()
-	tt := ui.NewTester(s.View, 900, 600)
-
-	info, ok := tt.AccessByRole(ui.RoleButton, "Delete session")
-	if !ok {
-		t.Fatalf("no delete entry, texts %q", tt.Texts())
-	}
-	if !info.Disabled {
-		t.Error("delete is enabled without a callback")
-	}
-	if !strings.Contains(info.Description, reasonDelete) {
-		t.Errorf("delete description %q does not carry %q", info.Description, reasonDelete)
+	if s.actions().OnDeleteSession == nil {
+		t.Error("the delete callback was dropped")
 	}
 }
 
@@ -418,144 +323,6 @@ func TestSidebarRelativeTime(t *testing.T) {
 		if got := relativeStamp(tc.in, now); got != tc.want {
 			t.Errorf("%s: relativeStamp(%d) = %q, want %q", tc.name, tc.in, got, tc.want)
 		}
-	}
-}
-
-// TestSidebarEndsTheCurrentBranch checks the end entry: the displayed non-main
-// branch offers it, a click asks the window to end exactly that branch, and the
-// region deletes no row and moves no selection before the App Server confirms.
-func TestSidebarEndsTheCurrentBranch(t *testing.T) {
-	s := fixture()
-	s.Branches = []Branch{
-		{ID: "main", Label: "main", State: "open"},
-		{ID: "side", Label: "side", State: "open"},
-	}
-	s.SelectedBranch = "side"
-	var got []string
-	s.OnEndBranch = func(branchID string) { got = append(got, branchID) }
-	tt := ui.NewTester(s.View, 900, 600)
-
-	info, ok := tt.AccessByRole(ui.RoleButton, "End branch")
-	if !ok || info.Disabled {
-		t.Fatalf("the current branch offers no enabled End branch entry: %+v, found %v", info, ok)
-	}
-	if err := tt.Click("End branch"); err != nil {
-		t.Fatal(err)
-	}
-	if len(got) != 1 || got[0] != "side" {
-		t.Fatalf("OnEndBranch ran with %q, want [side]", got)
-	}
-	if len(s.Branches) != 2 {
-		t.Fatalf("the sidebar deleted a branch row before the App Server confirmed: %#v", s.Branches)
-	}
-	if s.SelectedBranch != "side" {
-		t.Fatalf("the sidebar moved the displayed branch to %q before the App Server confirmed", s.SelectedBranch)
-	}
-}
-
-// TestSidebarEndsNoMainOrEndedBranch checks the entry's two App Server facts:
-// main is the session's own line and an ended branch is already closed, so
-// neither offers an end action.
-func TestSidebarEndsNoMainOrEndedBranch(t *testing.T) {
-	cases := []struct {
-		name     string
-		branches []Branch
-		current  string
-	}{
-		{"main", []Branch{{ID: "main", Label: "main", State: "open"}}, "main"},
-		{"ended", []Branch{
-			{ID: "main", Label: "main", State: "open"},
-			{ID: "side", Label: "side", State: "ended"},
-		}, "side"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			s := fixture()
-			s.Branches = tc.branches
-			s.SelectedBranch = tc.current
-			s.OnEndBranch = func(string) { t.Error("an endable row was offered where the directory does not allow it") }
-			tt := ui.NewTester(s.View, 900, 600)
-
-			if _, ok := tt.AccessByRole(ui.RoleButton, "End branch"); ok {
-				t.Errorf("the %s branch offers End branch, texts %q", tc.name, tt.Texts())
-			}
-		})
-	}
-}
-
-// TestSidebarEndBranchWithoutCallbackStaysWIP checks the WIP form: without the
-// callback the entry keeps its place, is disabled and explains the missing
-// session.branch_end wiring, so an unwired window cannot imply an end.
-func TestSidebarEndBranchWithoutCallbackStaysWIP(t *testing.T) {
-	s := fixture()
-	s.Branches = []Branch{
-		{ID: "main", Label: "main", State: "open"},
-		{ID: "side", Label: "side", State: "open"},
-	}
-	s.SelectedBranch = "side"
-	tt := ui.NewTester(s.View, 900, 600)
-
-	info, ok := tt.AccessByRole(ui.RoleButton, "End branch")
-	if !ok {
-		t.Fatalf("the current branch offers no End branch entry, texts %q", tt.Texts())
-	}
-	if !info.Disabled {
-		t.Error("End branch is enabled without a callback")
-	}
-	if !strings.Contains(info.Description, reasonEndBranch) {
-		t.Errorf("the end entry description %q does not carry %q", info.Description, reasonEndBranch)
-	}
-	if err := tt.Click("End branch"); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// TestSidebarRefreshesTheBranchDirectory checks the directory's refresh entry:
-// a click asks the window to re-read session.branches exactly once, and the
-// region keeps its rows for the caller to replace.
-func TestSidebarRefreshesTheBranchDirectory(t *testing.T) {
-	s := fixture()
-	s.Branches = []Branch{
-		{ID: "main", Label: "main", State: "open"},
-		{ID: "side", Label: "side", State: "open"},
-	}
-	s.SelectedBranch = "main"
-	calls := 0
-	s.OnRefreshBranches = func() { calls++ }
-	tt := ui.NewTester(s.View, 900, 600)
-
-	info, ok := tt.AccessByRole(ui.RoleButton, "Refresh")
-	if !ok || info.Disabled {
-		t.Fatalf("the branch directory offers no enabled Refresh entry: %+v, found %v", info, ok)
-	}
-	if err := tt.Click("Refresh"); err != nil {
-		t.Fatal(err)
-	}
-	if calls != 1 {
-		t.Fatalf("OnRefreshBranches ran %d times, want 1", calls)
-	}
-	if len(s.Branches) != 2 {
-		t.Fatalf("the sidebar rewrote the directory itself: %#v", s.Branches)
-	}
-}
-
-// TestSidebarRefreshWithoutCallbackStaysWIP checks that the refresh entry keeps
-// its place and its reason while the window has no callback.
-func TestSidebarRefreshWithoutCallbackStaysWIP(t *testing.T) {
-	s := fixture()
-	s.Branches = []Branch{{ID: "main", Label: "main", State: "open"}}
-	s.SelectedBranch = "main"
-	tt := ui.NewTester(s.View, 900, 600)
-
-	info, ok := tt.AccessByRole(ui.RoleButton, "Refresh")
-	if !ok {
-		t.Fatalf("the branch directory offers no Refresh entry, texts %q", tt.Texts())
-	}
-	if !info.Disabled {
-		t.Error("Refresh is enabled without a callback")
-	}
-	if !strings.Contains(info.Description, reasonRefreshBranches) {
-		t.Errorf("the refresh entry description %q does not carry %q", info.Description, reasonRefreshBranches)
 	}
 }
 
@@ -869,14 +636,14 @@ func TestSidebarSearchNeedsNoCallback(t *testing.T) {
 }
 
 // TestSidebarGlobalEntryOrder checks the global entries in dim-electron's
-// order: New session, Search, Scheduled tasks, Skills and plugins, then the
-// shell's own keys entry. The account footer sits below the session content,
-// with the settings entry on its tail.
+// order: New session, Search, Scheduled tasks and Skills and plugins. The
+// account footer sits below the session content, with the settings entry on its
+// tail.
 func TestSidebarGlobalEntryOrder(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
 
-	order := []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins", "Session keys"}
+	order := []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins"}
 	var previous ui.Rect
 	for i, want := range order {
 		rect, ok := tt.Find(want)
@@ -893,12 +660,12 @@ func TestSidebarGlobalEntryOrder(t *testing.T) {
 	if !ok {
 		t.Fatalf("the account row is not drawn, texts %q", tt.Texts())
 	}
-	archive, ok := tt.Find("Archive")
+	content, ok := tt.Find("Sessions")
 	if !ok {
-		t.Fatalf("the thread actions are not drawn, texts %q", tt.Texts())
+		t.Fatalf("the thread list heading is not drawn, texts %q", tt.Texts())
 	}
-	if account.Y <= archive.Y {
-		t.Errorf("the account row at y=%.1f is not below the sidebar content at y=%.1f", account.Y, archive.Y)
+	if account.Y <= content.Y {
+		t.Errorf("the account row at y=%.1f is not below the sidebar content at y=%.1f", account.Y, content.Y)
 	}
 	settings, ok := tt.Find("Settings")
 	if !ok {
@@ -934,8 +701,8 @@ func TestSidebarAccountRowStaysWIP(t *testing.T) {
 	if !info.Focusable {
 		t.Error("the account entry is unreachable, so its reason is never read")
 	}
-	if !strings.Contains(info.Description, wipBadge) {
-		t.Errorf("the account entry description %q does not include the visible %q badge", info.Description, wipBadge)
+	if strings.Contains(info.Description, wipBadge) {
+		t.Errorf("the account entry still carries a visible %q badge in its description: %q", wipBadge, info.Description)
 	}
 	if !strings.Contains(info.Description, "account client") {
 		t.Errorf("the account entry description %q does not name the missing account client", info.Description)
@@ -982,5 +749,83 @@ func TestSidebarSettingsOpensTheSurface(t *testing.T) {
 	}
 	if !tt.HasText("Sign in to Dim") {
 		t.Errorf("the account row disappeared behind the settings surface, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarStartsWithTheEntries checks the reference's top of the column:
+// there is no wordmark and no update entry, and the first entry begins below
+// the traffic lights rather than at the window's top edge.
+func TestSidebarStartsWithTheEntries(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 800, 720)
+
+	if tt.HasText("DimAgent") {
+		t.Errorf("the sidebar still draws its wordmark, texts %q", tt.Texts())
+	}
+	if tt.HasText("Update") {
+		t.Errorf("the sidebar still draws the update entry, texts %q", tt.Texts())
+	}
+	first, ok := tt.Find("New session")
+	if !ok {
+		t.Fatalf("the first entry is not drawn, texts %q", tt.Texts())
+	}
+	if first.Y < 40 {
+		t.Errorf("the first entry starts at y=%.1f, under the traffic lights", first.Y)
+	}
+	if first.Y > 80 {
+		t.Errorf("the first entry starts at y=%.1f, too far below the reference's ~64", first.Y)
+	}
+}
+
+// TestSidebarDropsTheSessionCountAndGroupEntry checks the thread heading: the
+// reference draws "Sessions" with its icons, not a count and a Group entry.
+func TestSidebarDropsTheSessionCountAndGroupEntry(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 800, 720)
+
+	if !tt.HasText("Sessions") {
+		t.Fatalf("the thread heading is missing, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{"Group", "Sessions 2", reasonGroup} {
+		if tt.HasText(gone) {
+			t.Errorf("the sidebar still draws %q, texts %q", gone, tt.Texts())
+		}
+	}
+}
+
+// TestSidebarDrawsNoCapabilityCards checks that the unavailable capabilities
+// moved to settings: the sidebar itself exposes no capability group, method or
+// gap.
+func TestSidebarDrawsNoCapabilityCards(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 900)
+
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Unavailable capabilities"); ok {
+		t.Error("the sidebar still groups the capability cards")
+	}
+	for _, gone := range []string{"session.create", "attachment.put", "Turn cancellation"} {
+		if tt.HasText(gone) {
+			t.Errorf("the sidebar still draws the capability %q, texts %q", gone, tt.Texts())
+		}
+	}
+}
+
+// TestSidebarHidesThreadActionsAtZeroSessions checks the empty catalog: the
+// delete and thread-action rows never appear, whichever callbacks the window
+// wires.
+func TestSidebarHidesThreadActionsAtZeroSessions(t *testing.T) {
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	s.OnDeleteSession = func(string) { t.Error("a delete entry was offered with no session") }
+	tt := ui.NewTester(s.View, 900, 900)
+
+	if !tt.HasText("No sessions yet") {
+		t.Errorf("the empty catalog lost its message, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{"Delete session", "Pin", "Rename", "Archive"} {
+		if tt.HasText(gone) {
+			t.Errorf("the empty sidebar draws %q, texts %q", gone, tt.Texts())
+		}
 	}
 }

@@ -6,29 +6,19 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
-// TestStatusRowLabels checks that the toolbar's status row shows each
-// connection state, and that assistive technology reads it as a live status.
-func TestStatusRowLabels(t *testing.T) {
-	cases := []struct {
-		conn  Connection
-		label string
-	}{
-		{ConnUnknown, "Not connected"},
-		{ConnConnecting, "Connecting…"},
-		{ConnReady, "Connected"},
-		{ConnError, "Connection error"},
-	}
-	for _, tc := range cases {
+// TestStatusRowLeavesTheShell checks that the global status row is gone: a
+// healthy or unknown connection draws no "App Server" reading in the frame, as
+// the reference shows none. The composer's context row will carry status later;
+// this shell no longer paints a bottom bar or a connection line in the toolbar.
+func TestStatusRowLeavesTheShell(t *testing.T) {
+	for _, conn := range []Connection{ConnUnknown, ConnConnecting, ConnReady, ConnError} {
 		s := fixture()
-		s.Connection = tc.conn
+		s.Connection = conn
 		tt := ui.NewTester(s.View, 900, 600)
-		want := "App Server: " + tc.label
-		if !tt.HasText(want) {
-			t.Errorf("%v: status row does not show %q, texts %q", tc.conn, want, tt.Texts())
-			continue
-		}
-		if _, ok := tt.AccessByRole(ui.RoleStatus, want); !ok {
-			t.Errorf("%v: status %q is not a live status region", tc.conn, want)
+		for _, gone := range []string{"App Server:", "Branch: WIP", "Context: WIP", "Model: WIP", "Account: WIP"} {
+			if tt.HasText(gone) {
+				t.Errorf("%v: the shell still draws the status text %q, texts %q", conn, gone, tt.Texts())
+			}
 		}
 	}
 }
@@ -191,11 +181,20 @@ func TestLoadingConversation(t *testing.T) {
 	}
 }
 
-// TestStatusDefaultsToUnknown checks that a shell built without a supervisor, as
-// the fixture is, says so instead of claiming a connection.
-func TestStatusDefaultsToUnknown(t *testing.T) {
-	tt := ui.NewTester(fixture().View, 900, 600)
-	if !tt.HasText("App Server: Not connected") {
-		t.Fatalf("a shell without a supervisor does not say it is not connected, texts %q", tt.Texts())
+// TestNoConnectionClaimInTheEmptyState checks that a shell built without a
+// supervisor makes no connection claim when no session is selected: the empty
+// state has no application bar, and the banner stays empty until a real error.
+func TestNoConnectionClaimInTheEmptyState(t *testing.T) {
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	s.Messages = nil
+	tt := ui.NewTester(s.View, 900, 900)
+
+	if tt.HasText("App Server: Not connected") {
+		t.Fatalf("the empty state claims a connection state, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); ok {
+		t.Error("the empty state draws an alert without an error")
 	}
 }
