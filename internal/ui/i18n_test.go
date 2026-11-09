@@ -60,13 +60,18 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 		// The account footer.
 		"登录 Dim",
 		// Composer.
-		"添加附件", "模式", "模型", "发送", "Enter 发送 · Shift+Enter 换行",
+		"添加附件", "模式", "模型", "发送",
 		// WIP reasons and the capability list.
 		"会话操作（不可用）", "不可用的能力", "创建会话", "会话键",
 	} {
 		if !tt.HasText(want) {
 			t.Errorf("the zh-CN frame is missing %q, texts %q", want, tt.Texts())
 		}
+	}
+	// The shortcut pair is the composer's description, not a visible row, so it
+	// is read by assistive technology rather than drawn.
+	if info, ok := tt.Access("输入框"); !ok || info.Description != tr(LocaleZHCN, keyComposerHint) {
+		t.Errorf("the composer's localized shortcut help is %q, drawn %v", info.Description, ok)
 	}
 	for _, gone := range []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins", "Sign in to Dim", "Session keys", "Attach file", "Unavailable capabilities"} {
 		if tt.HasText(gone) {

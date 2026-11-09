@@ -206,10 +206,10 @@ func TestComposerWIPEntriesDoNothing(t *testing.T) {
 	}
 }
 
-// TestComposerTabOrder checks the composer's Tab stops after the P0 layout: the
-// attachment entry, then the editor, with the disabled model and mode entries
-// and the hint skipped. The order is the shell's documented one, so adding the
-// two selectors did not insert a stop into it.
+// TestComposerTabOrder checks the composer's Tab stops after the layout: the
+// attachment icon, then the editor, with the disabled mode and model icons
+// skipped. The order is the shell's documented one, so iconifying the entries
+// did not insert a stop into it.
 func TestComposerTabOrder(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
@@ -237,10 +237,10 @@ func TestComposerTabOrder(t *testing.T) {
 	}
 }
 
-// TestComposerActionRowSitsBelowEditor checks the P0 layout: the editor is on
-// top, the shortcut hint under it, and the action row at the card's bottom with
-// the attachment and mode entries on the left and the model entry and Send on
-// the right.
+// TestComposerActionRowSitsBelowEditor checks the layout the reference draws:
+// the editor is on top, the tool row under it, and no visible shortcut hint
+// between them. The attachment, mode and model entries are icons on the left
+// and Send is the only entry on the right.
 func TestComposerActionRowSitsBelowEditor(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
@@ -249,11 +249,11 @@ func TestComposerActionRowSitsBelowEditor(t *testing.T) {
 	if !ok {
 		t.Fatalf("the editor is not drawn, texts %q", tt.Texts())
 	}
-	if !tt.HasText(composerHint) {
-		t.Errorf("the shortcut hint %q is missing, texts %q", composerHint, tt.Texts())
+	if tt.HasText(composerHint) {
+		t.Errorf("the shortcut hint %q is still drawn, texts %q", composerHint, tt.Texts())
 	}
-	left := []string{"Attach file", "Mode"}
-	right := []string{"Model", "Send"}
+	left := []string{"Attach file", "Mode", "Model"}
+	right := []string{"Send"}
 	for _, label := range append(append([]string{}, left...), right...) {
 		rect, ok := tt.Find(label)
 		if !ok {
@@ -264,9 +264,9 @@ func TestComposerActionRowSitsBelowEditor(t *testing.T) {
 		}
 	}
 	attach, _ := tt.Find("Attach file")
-	model, _ := tt.Find("Model")
-	if attach.X > editor.X+editor.W/2 || model.X < editor.X+editor.W/2 {
-		t.Errorf("the action row is not split left tools / right model: attach x=%.1f, model x=%.1f, editor %.1f..%.1f",
-			attach.X, model.X, editor.X, editor.X+editor.W)
+	send, _ := tt.Find("Send")
+	if attach.X > editor.X+editor.W/2 || send.X < editor.X+editor.W/2 {
+		t.Errorf("the action row is not split icons left / Send right: attach x=%.1f, send x=%.1f, editor %.1f..%.1f",
+			attach.X, send.X, editor.X, editor.X+editor.W)
 	}
 }

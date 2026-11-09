@@ -15,10 +15,11 @@ type wipCase struct {
 }
 
 // TestWIPEntriesAreVisibleDisabledAndExplainThemselves checks the shape of
-// every WIP entry: it is drawn, its name is the action, assistive technology
-// reads it as unavailable but still reaches it, and its description says what
-// upstream work it waits on. The badge beside it makes the gap visible to
-// sighted users too.
+// every WIP entry the shell's wipAction draws: it is drawn, its name is the
+// action, assistive technology reads it as unavailable but still reaches it,
+// and its description says what upstream work it waits on. The badge beside it
+// makes the gap visible to sighted users too. The composer's icon entries drop
+// the badge and are covered by the composer tests.
 func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
@@ -26,7 +27,6 @@ func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 	cases := []wipCase{
 		{"New session", "session.create"},
 		{"Reconnect", "reconnect"},
-		{"Attach file", "attachment.put"},
 	}
 	for _, tc := range cases {
 		info, ok := tt.AccessByRole(ui.RoleButton, tc.label)
