@@ -52,9 +52,10 @@ func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 	}
 }
 
-// TestApprovalWIPEntries checks that a pending approval keeps the two
+// TestApprovalWIPEntries checks that a pending approval keeps the reference's
 // decisions, visible and unavailable, with the reason approval.respond is
-// missing. The request and its decision stay the App Server's.
+// missing; the always-allow entry names its own missing grant method instead.
+// The request and its decision stay the App Server's.
 func TestApprovalWIPEntries(t *testing.T) {
 	s := fixture()
 	s.Messages = append(s.Messages, Message{
@@ -68,7 +69,12 @@ func TestApprovalWIPEntries(t *testing.T) {
 	if !tt.HasText("Approval required") || !tt.HasText("exec") {
 		t.Fatalf("approval panel is not drawn, texts %q", tt.Texts())
 	}
-	for _, label := range []string{"Approve", "Deny"} {
+	wantReasons := map[string]string{
+		approvalLabelReject:   reasonApproval,
+		approvalLabelAllow:    reasonApproval,
+		approvalLabelAllowAll: reasonApprovalGrant,
+	}
+	for label, reason := range wantReasons {
 		info, ok := tt.AccessByRole(ui.RoleButton, label)
 		if !ok {
 			t.Errorf("%q is not exposed as a button, texts %q", label, tt.Texts())
@@ -80,8 +86,8 @@ func TestApprovalWIPEntries(t *testing.T) {
 		if !info.Focusable {
 			t.Errorf("%q is unreachable, so its reason is never read", label)
 		}
-		if !strings.Contains(info.Description, "approval.respond") {
-			t.Errorf("%q description %q does not name approval.respond", label, info.Description)
+		if !strings.Contains(info.Description, reason) {
+			t.Errorf("%q description %q does not name %q", label, info.Description, reason)
 		}
 		if !strings.Contains(info.Description, wipBadge) {
 			t.Errorf("%q description %q does not include the visible %q badge", label, info.Description, wipBadge)

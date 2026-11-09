@@ -232,7 +232,7 @@ func TestCapabilityCardsDropWiredApprovals(t *testing.T) {
 	if page.HasText("Approvals") {
 		t.Errorf("the unavailable list still shows approvals, texts %q", page.Texts())
 	}
-	if info, ok := tt.AccessByRole(ui.RoleButton, "Approve"); !ok || info.Disabled {
+	if info, ok := tt.AccessByRole(ui.RoleButton, approvalLabelAllow); !ok || info.Disabled {
 		t.Errorf("wired approval is not an enabled action: %+v, found %v", info, ok)
 	}
 }

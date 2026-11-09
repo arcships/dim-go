@@ -28,9 +28,10 @@ func approvalFixture() *State {
 	return s
 }
 
-// TestApprovalPanelSendsOneDecision checks the wired panel: both decisions are
-// real, available buttons, each click sends exactly one decision with the
-// request's branch and id, and the request is not resolved locally.
+// TestApprovalPanelThroughShellSendsOneDecision checks the wired panel: the
+// one-off decisions are real, available buttons, each click sends exactly one
+// decision with the request's branch and id, and the request is not resolved
+// locally. The always-allow entry stays a visible WIP entry.
 func TestApprovalPanelThroughShellSendsOneDecision(t *testing.T) {
 	s := approvalFixture()
 	var got []approvalCall
@@ -39,7 +40,7 @@ func TestApprovalPanelThroughShellSendsOneDecision(t *testing.T) {
 	}
 	tt := ui.NewTester(s.View, 900, 600)
 
-	for _, label := range []string{"Approve", "Deny"} {
+	for _, label := range []string{approvalLabelReject, approvalLabelAllow} {
 		info, ok := tt.AccessByRole(ui.RoleButton, label)
 		if !ok {
 			t.Fatalf("%q is not exposed as a button, texts %q", label, tt.Texts())
@@ -54,21 +55,28 @@ func TestApprovalPanelThroughShellSendsOneDecision(t *testing.T) {
 			t.Errorf("%q still describes the WIP gap: %q", label, info.Description)
 		}
 	}
+	grant, ok := tt.AccessByRole(ui.RoleButton, approvalLabelAllowAll)
+	if !ok {
+		t.Fatalf("%q is not exposed as a button, texts %q", approvalLabelAllowAll, tt.Texts())
+	}
+	if !grant.Disabled {
+		t.Errorf("%q is available without session.grants.add", approvalLabelAllowAll)
+	}
 
-	if err := tt.Click("Approve"); err != nil {
+	if err := tt.Click(approvalLabelAllow); err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 1 || got[0].decision != ApprovalAllow {
-		t.Fatalf("approve sent %+v, want one allow", got)
+		t.Fatalf("allow sent %+v, want one allow", got)
 	}
 	if got[0].branchID != "main" || got[0].requestID != "req-1" {
-		t.Fatalf("approve identity = %+v, want main/req-1", got[0])
+		t.Fatalf("allow identity = %+v, want main/req-1", got[0])
 	}
-	if err := tt.Click("Deny"); err != nil {
+	if err := tt.Click(approvalLabelReject); err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 2 || got[1].decision != ApprovalDeny {
-		t.Fatalf("deny sent %+v, want a second deny", got)
+		t.Fatalf("reject sent %+v, want a second deny", got)
 	}
 	if len(s.Messages) != 3 {
 		t.Fatalf("%d rows after decisions, want the request kept until a projection frame removes it", len(s.Messages))
@@ -76,7 +84,7 @@ func TestApprovalPanelThroughShellSendsOneDecision(t *testing.T) {
 }
 
 // TestApprovalPanelWithoutCallbackStaysWIP checks that a pending request with no
-// wired callback keeps both decisions visible, dimmed and explained, and that a
+// wired callback keeps every decision visible, dimmed and explained, and that a
 // click reports nothing.
 func TestApprovalPanelWithoutCallbackStaysWIP(t *testing.T) {
 	s := approvalFixture()
@@ -85,7 +93,12 @@ func TestApprovalPanelWithoutCallbackStaysWIP(t *testing.T) {
 	if !tt.HasText("Approval required") {
 		t.Fatalf("approval panel is not drawn, texts %q", tt.Texts())
 	}
-	for _, label := range []string{"Approve", "Deny"} {
+	wantReasons := map[string]string{
+		approvalLabelReject:   reasonApproval,
+		approvalLabelAllow:    reasonApproval,
+		approvalLabelAllowAll: reasonApprovalGrant,
+	}
+	for label, reason := range wantReasons {
 		info, ok := tt.AccessByRole(ui.RoleButton, label)
 		if !ok {
 			t.Fatalf("%q is not exposed as a button, texts %q", label, tt.Texts())
@@ -93,7 +106,10 @@ func TestApprovalPanelWithoutCallbackStaysWIP(t *testing.T) {
 		if !info.Disabled {
 			t.Errorf("%q is available without an approval callback", label)
 		}
-		if !strings.Contains(info.Description, "approval.respond") {
+		if !strings.Contains(info.Description, reason) {
+			t.Errorf("%q description %q does not carry %q", label, info.Description, reason)
+		}
+		if label != approvalLabelAllowAll && !strings.Contains(info.Description, "approval.respond") {
 			t.Errorf("%q description %q does not name approval.respond", label, info.Description)
 		}
 		if !strings.Contains(info.Description, wipBadge) {
@@ -121,8 +137,8 @@ func TestApprovalWithoutRequestIDTakesNoSlot(t *testing.T) {
 	if tt.HasText("Approval required") {
 		t.Errorf("an unaddressable request took the composer slot, texts %q", tt.Texts())
 	}
-	if _, ok := tt.AccessByRole(ui.RoleButton, "Approve"); ok {
-		t.Error("an unaddressable request still offers Approve")
+	if _, ok := tt.AccessByRole(ui.RoleButton, approvalLabelReject); ok {
+		t.Error("an unaddressable request still offers a reject decision")
 	}
 	if calls != 0 {
 		t.Fatalf("an unaddressable request sent %d decisions", calls)

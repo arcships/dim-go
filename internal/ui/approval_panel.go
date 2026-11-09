@@ -1,27 +1,39 @@
 // This file owns the approval decision panel: the prompt the window shows in
 // the composer slot while the App Server has a request pending. It reads
-// ApprovalView and Actions only (see protocols.go), like the inline approval
-// row in approval.go, and it keeps the same click contract: one decision per
-// click, sent through Actions.OnApproval with the App Server's request
-// identity, and no local claim that the request was resolved.
+// ApprovalView and Actions only (see protocols.go), and it keeps the click
+// contract: one decision per click, sent through Actions.OnApproval with the
+// App Server's request identity, and no local claim that the request was
+// resolved.
 //
-// The view now carries the primary request's rendered input (InputDisplay) and
-// the UI option it is drawn with (Variant), both described in protocols.go. Two
-// gaps remain outside this file: shell.View still passes only Pending, and
-// viewmodel.BuildApprovals copies neither Call.Input nor an option, so the app
-// shows neither the input block nor a variant label until those owners wire
-// them. The region must not read the request itself to fill them.
+// The panel follows the reference prompt (docs/ui-layout-spec.md §5). It takes
+// the composer's slot at the conversation card's 520 DIP measure, states the
+// title and the reason, draws the primary request's input as a read-only
+// monospaced block, and ends in the reference's three decisions with reject
+// first. Reject is the danger-colored decision. The actions wrap onto a new
+// line in a narrow window, so the card never grows past the slot it is given,
+// and Tab reaches every decision and Enter sends the focused one.
 //
-// TODO(grants): allow_all promises a persistent grant, which §12 routes through
-// session.grants.add. The shell does not call that method, so the panel keeps
-// "Always allow" visible, dimmed and explained instead of sending the one-off
-// allow that would silently be a different decision. See reasonApprovalGrant.
+// The always-allow decision is a WIP entry: its persistent grant is
+// session.grants.add, which the shell does not call, so it stays visible,
+// dimmed and explained instead of sending the one-off allow under a label that
+// promises more. See reasonApprovalGrant.
 //
-// TODO(keyboard): the panel keeps its decisions reachable with Tab and Enter,
-// which is what mygo buttons expose without a global key handler. The prompt's
-// Enter/y = allow and Esc/n = deny shortcuts (docs/ui-layout-spec.md §5.2) need
-// a verified way to ignore shortcuts while an input has the focus; until then
-// they stay unavailable rather than firing a decision from anywhere.
+// Residual gaps outside this file:
+//   - The panel draws the reference's whole option set instead of selecting a
+//     pair of labels from ApprovalView.Variant. The wire carries no option
+//     list (docs/protocol-contract.md §12) and viewmodel.BuildApprovals passes
+//     ApprovalVariantUnspecified today, so the variant cannot say which
+//     entries a request really offers; the panel keeps the entries it can send
+//     (deny, allow) and marks the grant entry WIP. protocols.go's field comment
+//     still describes the old label fallback and needs its owner to reconcile
+//     it.
+//   - ApprovalView has no in-flight state, so a decision that was sent cannot
+//     be disabled until the next projection frame. Only that frame may settle
+//     the request; this region must not claim the decision was accepted.
+//   - The reference's Enter/y = allow and Esc/n = deny shortcuts need a
+//     verified way to ignore shortcuts while an input has focus. Tab and Enter
+//     stay the reachable decisions, which is what mygo buttons expose without
+//     a global key handler.
 
 package ui
 
@@ -48,9 +60,28 @@ const (
 	approvalCardGap   = 10.5 // mt-3: between the card's parts
 	approvalActionGap = 7    // gap-2: between two decisions
 
+	// approvalPanelWidth is the card's measure in DIPs, the same 520 DIP
+	// conversation card the composer draws (composerWideWidth): the panel takes
+	// the composer's slot, so it keeps the slot's measure and is centred in the
+	// room it has. It is a cap, not a filler, so a narrower window draws the
+	// card across that window instead of overflowing it.
+	approvalPanelWidth = 520
+
 	approvalInputPadX = 10.5 // px-3: inside the input block
 	approvalInputPadY = 7    // py-2: above and below the input block's body
 	approvalInputMaxH = 240  // max-h-[240px]: the input block's cap
+)
+
+// The decisions the reference's prompt offers, in its order: reject first, then
+// the one-off allow, then the always-allow entry (docs/ui-layout-spec.md §5.2,
+// "选项顺序 = reject → allow_once → 其余"). The first two collapse onto
+// approval.respond's deny and allow. The last one would persist a grant through
+// session.grants.add, which the shell does not call, so it is always drawn as a
+// WIP entry and sends nothing.
+const (
+	approvalLabelReject   = "Reject once"
+	approvalLabelAllow    = "Allow once"
+	approvalLabelAllowAll = "Allow all"
 )
 
 // approvalInputFont is the monospaced family the input block uses, as §5.1's
@@ -64,24 +95,29 @@ const approvalInputFont = "monospace"
 // all of it. The cap is a display bound, not a protocol one.
 const approvalInputMaxRunes = 2000
 
-// reasonApprovalGrant is the gap behind "Always allow": §12 sends a durable
-// grant through session.grants.add, after session.methods advertises it. The
-// shell calls neither, so the option stays visible and dimmed rather than
-// answering allow_once under the always-allow label.
+// reasonApprovalGrant is the gap behind "Allow all": §12 sends a durable grant
+// through session.grants.add, after session.methods advertises it. The shell
+// calls neither, so the option stays visible and dimmed rather than answering
+// allow_once under the always-allow label.
 const reasonApprovalGrant = "Unavailable: always-allow needs session.grants.add, which the shell does not call yet."
 
 // renderApprovalPanel draws the pending approval requests in the composer's
 // slot. A view with no pending request draws nothing at all: the slot is free
 // for the composer, not an empty card. The first pending request is the primary
-// one: its call name is the heading, its input is the view's input block, and
-// every request keeps its own call, reason, source and decisions so a click can
-// never address a different request than the one it belongs to.
+// one: its input is the view's input block, and every request keeps its own
+// call, reason, source and decisions so a click can never address a different
+// request than the one it belongs to.
+//
+// The panel is capped and centred at the composer's 520 DIP measure, so it sits
+// where the composer sat and narrows with the window instead of overflowing the
+// slot.
 func renderApprovalPanel(c *ui.Context, k tokens, v ApprovalView, a Actions) {
 	if len(v.Pending) == 0 {
 		return
 	}
-	ui.Column(c).Padding(0, approvalPanelPadX, approvalPanelPadY, approvalPanelPadX).Children(func() {
-		ui.Column(c).Padding(approvalCardPad).Radius(radiusMD).
+	ui.Column(c).FillWidth().Padding(0, approvalPanelPadX, approvalPanelPadY, approvalPanelPadX).Children(func() {
+		ui.Column(c).FillWidth().MaxWidth(approvalPanelWidth).AlignSelf(ui.Center).
+			Padding(approvalCardPad).Radius(radiusMD).
 			Background(k.card).Border(k.hairline, k.border).
 			Role(ui.RoleGroup).Label("Approval request").Children(func() {
 			ui.Column(c).Gap(approvalCardGap).Children(func() {
@@ -94,7 +130,7 @@ func renderApprovalPanel(c *ui.Context, k tokens, v ApprovalView, a Actions) {
 					if i == 0 {
 						input = v.InputDisplay
 					}
-					approvalPanelRequest(c, k, request, a, i == 0, input, v.Variant)
+					approvalPanelRequest(c, k, request, a, input)
 				}
 			})
 		})
@@ -103,28 +139,25 @@ func renderApprovalPanel(c *ui.Context, k tokens, v ApprovalView, a Actions) {
 
 // approvalPanelRequest draws one pending request: its call name, its input when
 // the view carries the primary one, why it asks, where it came from, and the
-// two decisions. The first request is the primary one and names the panel with
-// its call; the rest are drawn the same way so a request the projection still
-// reports is never silently dropped. Only the primary request has an input
-// payload in the view, so the block appears once.
-func approvalPanelRequest(c *ui.Context, k tokens, request Approval, a Actions, primary bool, input string, variant ApprovalVariant) {
+// reference's three decisions. The first request's call names the panel's
+// action and the others are drawn the same way, so a request the projection
+// still reports is never silently dropped. Only the primary request has an
+// input payload in the view, so the block appears once.
+func approvalPanelRequest(c *ui.Context, k tokens, request Approval, a Actions, input string) {
 	ui.Column(c).Gap(k.gap).Children(func() {
 		if request.Call != "" {
-			name := ui.Text(c, request.Call).FontSize(k.bodySize).Bold()
-			if primary {
-				name.FontSize(k.titleSize)
-			}
+			ui.Text(c, request.Call).FontSize(k.bodySize).Bold()
 		}
 		if input != "" {
 			approvalPanelInput(c, k, input)
 		}
 		if request.Reason != "" {
-			ui.Text(c, request.Reason).FontSize(k.bodySize)
+			ui.Text(c, request.Reason).FontSize(k.bodySize).TextColor(k.mutedForeground)
 		}
 		if request.Source != "" {
 			ui.Text(c, "Source: "+request.Source).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		}
-		approvalPanelActions(c, k, request, a, variant)
+		approvalPanelActions(c, k, request, a)
 	})
 }
 
@@ -161,53 +194,51 @@ func approvalInputText(input string) string {
 	return string(runes[:approvalInputMaxRunes]) + "…"
 }
 
-// approvalLabels are the two decisions' labels for a variant. Only the option
-// names the contract documents change the wording; an empty or unknown variant
-// keeps plain Approve/Deny rather than guessing at allow_once or allow_all.
-func approvalLabels(variant ApprovalVariant) (allow, deny string) {
-	switch variant {
-	case ApprovalVariantAllowOnce:
-		return "Allow once", "Deny"
-	case ApprovalVariantAllowAll:
-		return "Always allow", "Deny"
-	case ApprovalVariantRejectOnce:
-		return "Approve", "Deny once"
-	default:
-		return "Approve", "Deny"
-	}
-}
-
-// approvalPanelActions are one request's decisions. They are real only when the
-// window wired OnApproval and the request carries the App Server's request
+// approvalPanelActions are one request's decisions, in the reference's order:
+// reject, allow once, and the always-allow WIP entry. They are real only when
+// the window wired OnApproval and the request carries the App Server's request
 // identity; otherwise they stay visible, dimmed and explained, so a click
 // cannot report a decision nobody sent. A click sends exactly one decision; the
 // panel never removes the request or shows a success, because only the next
 // session projection frame may settle it.
 //
-// The variant changes the labels, not the decision: allow_once and allow_all
-// both send ApprovalAllow, reject_once sends ApprovalDeny. allow_all's allow
-// entry is the one exception: its persistent grant is session.grants.add, which
-// is not implemented, so it stays a WIP entry instead of sending the one-off
-// allow that would not keep the promise its label makes.
-func approvalPanelActions(c *ui.Context, k tokens, request Approval, a Actions, variant ApprovalVariant) {
-	allowLabel, denyLabel := approvalLabels(variant)
-	ui.Row(c).Gap(approvalActionGap).Justify(ui.End).Children(func() {
-		if a.OnApproval == nil || request.RequestID == "" {
-			wipAction(c, k, allowLabel, reasonApproval)
-			wipAction(c, k, denyLabel, reasonApproval)
-			return
-		}
-		decide := a.OnApproval
-		branchID, requestID := request.BranchID, request.RequestID
-		if variant == ApprovalVariantAllowAll {
-			wipAction(c, k, allowLabel, reasonApprovalGrant)
-		} else {
-			ui.Button(c, allowLabel).OnClick(func() {
-				decide(branchID, requestID, ApprovalAllow)
-			})
-		}
-		ui.Button(c, denyLabel).OnClick(func() {
+// Reject is drawn in the danger color: it is the decision that refuses the
+// request, and the color is the shell's token for that meaning, not a second
+// claim about the request. The row wraps and stays end-aligned, so the three
+// decisions keep their order on one line at the composer's measure and stack
+// in a narrow window without running past the card.
+func approvalPanelActions(c *ui.Context, k tokens, request Approval, a Actions) {
+	enabled := a.OnApproval != nil && request.RequestID != ""
+	decide := a.OnApproval
+	branchID, requestID := request.BranchID, request.RequestID
+	ui.Row(c).Gap(approvalActionGap).AlignItems(ui.Center).Justify(ui.End).Wrap().Children(func() {
+		approvalDecision(c, k, approvalLabelReject, reasonApproval, enabled, true, func() {
 			decide(branchID, requestID, ApprovalDeny)
 		})
+		approvalDecision(c, k, approvalLabelAllow, reasonApproval, enabled, false, func() {
+			decide(branchID, requestID, ApprovalAllow)
+		})
+		// Always a WIP entry: the grant it promises needs session.grants.add,
+		// even while the two one-off decisions are wired.
+		approvalDecision(c, k, approvalLabelAllowAll, reasonApprovalGrant, false, false, nil)
+	})
+}
+
+// approvalDecision draws one decision as one unit of the wrapping action row:
+// a real button when the decision can be sent, or the visible-disabled WIP
+// entry with its badge when it cannot. The row around it keeps the badge beside
+// its button when the actions wrap, instead of leaving it alone on the next
+// line. danger draws the button's text and outline in the shell's danger color.
+func approvalDecision(c *ui.Context, k tokens, label, reason string, enabled, danger bool, decide func()) {
+	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+		if !enabled {
+			wipAction(c, k, label, reason)
+			return
+		}
+		button := ui.Button(c, label)
+		if danger {
+			button.TextColor(k.danger).BorderColor(k.danger)
+		}
+		button.OnClick(decide)
 	})
 }
