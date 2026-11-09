@@ -96,12 +96,14 @@ const (
 
 // The session menu's entries the App Server does not offer yet. The menu draws
 // them as WIP so the reference's structure is visible without pretending an
-// action the shell cannot carry out. Copy conversation ID is not one of them:
-// the id is a fact the App Server already reported, so the menu copies it
-// locally and only its no-identity state is WIP. The message entries belong in
-// i18n.go beside the other header and reason keys; until that table carries
-// them, menuText falls back to the English constants below rather than drawing
-// a raw key, and the fallback goes away with the table entries.
+// action the shell cannot carry out. The two copy entries are not among them:
+// the id is a fact the App Server already reported and the debug text is built
+// from the model facts the window displays, so both are copied locally. Only
+// their empty states are WIP: no selected identity, and no current model pair.
+// The message entries belong in i18n.go beside the other header and reason keys;
+// until that table carries them, menuText falls back to the English constants
+// below rather than drawing a raw key, and the fallback goes away with the table
+// entries.
 const (
 	keyHeaderMenuOpenInNewWindow = "header.menu.openInNewWindow"
 	keyHeaderMenuExport          = "header.menu.export"
@@ -126,7 +128,7 @@ const (
 	reasonExport          = "Unavailable: the shell has no conversation export client or App Server export method yet."
 	reasonCopyLink        = "Unavailable: the shell has no conversation-link fact for the selected session yet."
 	reasonCopyID          = "Unavailable: no session identity is selected, so there is no conversation id to copy."
-	reasonCopyDebug       = "Unavailable: the shell keeps no debug snapshot of the selected session yet."
+	reasonCopyDebug       = "Unavailable: no model facts are selected, so there is no runtime config to copy."
 )
 
 // copyIDStatus is the muted line the notice strip shows after the menu copied
@@ -135,6 +137,13 @@ const (
 // Actions.OnCopySessionID, which records this line and sends nothing. It stays
 // an English constant until i18n.go carries a key for it.
 const copyIDStatus = "Copied conversation ID"
+
+// copyDebugStatus is the muted line the notice strip shows after the menu
+// copied the model's public runtime facts. Like copyIDStatus it is the window's
+// own outcome: the region writes the clipboard and tells the shell through
+// Actions.OnCopyDebugInfo, which records this line and sends nothing. It stays
+// an English constant until i18n.go carries a key for it.
+const copyDebugStatus = "Copied debug info"
 
 // headerMenuFallbacks is the English text of the menu keys i18n.go does not
 // carry yet. It is a stand-in for the table entries, not a second language
@@ -258,14 +267,16 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 // the three copy entries. Pin and Archive are wired to the window's
 // desktop-local display lists and toggle with the state HeaderView reports;
 // Rename opens the window's title dialog when that callback exists; Copy
-// conversation ID copies the selected id to the system clipboard and records a
-// muted outcome, because the id is a fact the shell already displays. The rest
-// stay visible, disabled and explained as WIP with the gap they wait on. The
-// second group keeps the entries the shell does have: the keys browser, ending
-// a non-main branch, refreshing the branch directory, deleting the session
-// behind a confirmation, and the desktop-local appearance surface. An entry
-// whose callback is missing stays visible, disabled and marked WIP too, so the
-// menu never pretends an action the shell cannot carry out.
+// conversation ID copies the selected id to the system clipboard and Copy debug
+// info copies the model's public runtime facts. Both record a muted outcome,
+// because the id and the model config are facts the shell already displays. An
+// empty id or an empty debug text leaves the entry as the menu's WIP statement.
+// The rest stay visible, disabled and explained as WIP with the gap they wait
+// on. The second group keeps the entries the shell does have: the keys browser,
+// ending a non-main branch, refreshing the branch directory, deleting the
+// session behind a confirmation, and the desktop-local appearance surface. An
+// entry whose callback is missing stays visible, disabled and marked WIP too, so
+// the menu never pretends an action the shell cannot carry out.
 func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	label := tr(locale, keyHeaderMenu)
@@ -324,7 +335,11 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		} else if menuItem(m, menuText(locale, keyHeaderMenuCopyID)).Chosen() {
 			copyConversationID(c, v.SessionID, a)
 		}
-		menuWIP(m, menuText(locale, keyHeaderMenuCopyDebug), menuText(locale, keyReasonCopyDebug))
+		if v.DebugInfo == "" {
+			menuWIP(m, menuText(locale, keyHeaderMenuCopyDebug), menuText(locale, keyReasonCopyDebug))
+		} else if menuItem(m, menuText(locale, keyHeaderMenuCopyDebug)).Chosen() {
+			copyDebugInfo(c, v.DebugInfo, a)
+		}
 		m.Separator()
 		if a.OnToggleKeys == nil {
 			menuWIP(m, tr(locale, keySidebarKeys), tr(locale, keyReasonKeysEntry))
@@ -397,6 +412,19 @@ func copyConversationID(c *ui.Context, sessionID string, a Actions) {
 	c.Services().WriteClipboard(sessionID)
 	if a.OnCopySessionID != nil {
 		a.OnCopySessionID(sessionID)
+	}
+}
+
+// copyDebugInfo copies the model's public runtime facts. The text is already in
+// HeaderView.DebugInfo, built by the shell from the catalog facts the window
+// displays, so the region writes it and sends nothing. The shell records the
+// muted "Copied debug info" outcome through Actions.OnCopyDebugInfo; a window
+// without that callback still copies, and only the status line is missing. The
+// menu offers the entry only while the text is non-empty.
+func copyDebugInfo(c *ui.Context, text string, a Actions) {
+	c.Services().WriteClipboard(text)
+	if a.OnCopyDebugInfo != nil {
+		a.OnCopyDebugInfo()
 	}
 }
 

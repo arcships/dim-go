@@ -1328,6 +1328,8 @@ func readBackReason(err error, ok bool) string {
 // session.summaries read-back failed; the reply is still a daemon fact.
 func markCurrentModel(catalog dimui.ModelCatalog, providerID, modelID string) dimui.ModelCatalog {
 	catalog.Current = providerID + "/" + modelID
+	catalog.CurrentProviderID = providerID
+	catalog.CurrentModelID = modelID
 	catalog.HasCurrent = providerID != "" && modelID != ""
 	for i := range catalog.Choices {
 		catalog.Choices[i].Current = catalog.Choices[i].ProviderID == providerID && catalog.Choices[i].ModelID == modelID
@@ -1358,6 +1360,8 @@ func readSessionModels(ctx context.Context, bridge *sessionBridge, sessionID str
 		out := dimui.ModelCatalog{}
 		if hasCurrent && current.ProviderID != "" && current.ModelID != "" {
 			out.Current = current.ProviderID + "/" + current.ModelID
+			out.CurrentProviderID = current.ProviderID
+			out.CurrentModelID = current.ModelID
 			out.HasCurrent = true
 		}
 		return out, status
@@ -1390,6 +1394,8 @@ func modelCatalogView(catalog session.ModelCatalog, current session.ModelSelecti
 	out := dimui.ModelCatalog{HasCurrent: hasCurrent}
 	if hasCurrent && current.ProviderID != "" && current.ModelID != "" {
 		out.Current = current.ProviderID + "/" + current.ModelID
+		out.CurrentProviderID = current.ProviderID
+		out.CurrentModelID = current.ModelID
 	} else {
 		out.HasCurrent = false
 	}
@@ -1405,12 +1411,18 @@ func modelCatalogView(catalog session.ModelCatalog, current session.ModelSelecti
 			}
 		}
 		choice := dimui.ModelChoice{
-			ProviderID:   model.ProviderID,
-			ProviderName: model.ProviderName,
-			ModelID:      model.ModelID,
-			DisplayName:  model.DisplayName,
-			Enabled:      enabled,
-			Reason:       reason,
+			ProviderID:      model.ProviderID,
+			ProviderName:    model.ProviderName,
+			ModelID:         model.ModelID,
+			DisplayName:     model.DisplayName,
+			ContextWindow:   model.ContextWindow,
+			MaxOutputTokens: model.MaxOutputTokens,
+			ToolCalling:     model.ToolCalling,
+			Vision:          model.Vision,
+			Reasoning:       model.Reasoning,
+			Source:          model.Source,
+			Enabled:         enabled,
+			Reason:          reason,
 			Current: out.HasCurrent &&
 				model.ProviderID == current.ProviderID && model.ModelID == current.ModelID,
 		}
