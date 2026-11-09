@@ -64,6 +64,27 @@ const (
 	sidebarMaxW     = 360
 )
 
+// The main column's frame, from dim-electron's chat-workspace utilities
+// (packages/desktop/packages/renderer/src/styles/global.css:19-31): the framed
+// workspace is `padding: 4.5px` with `padding-left: 0` while the sidebar is
+// open, and its card is `rounded-xl`. docs/l5-reference.md §6 measures the same
+// frame on window-workspace.png as a 5 DIP top gap and 4 DIP right and bottom
+// gaps at an 800×720 window; 4.5 is the CSS literal those measurements round.
+const (
+	mainFramePad    = 4.5
+	mainFrameRadius = radiusXL
+)
+
+// The empty state's hero. dim-electron draws the product logo above the
+// heading; mygo has no image or asset pipeline, so the mark here is drawn from
+// type in the brand fill and the title carries the same words. The mark's size
+// and the title's step keep the block's proportions without shipping a fake
+// logo asset.
+const (
+	heroMark      = 44
+	heroTitleStep = 2
+)
+
 // The sidebar's geometry in DIPs, from docs/ui-layout-spec.md §2.2: the
 // header is a 48px literal, the table title is h-9 with px-3, a global entry is
 // h-8 with px-2, the footer row h-[30px], and the gaps and inner cells are
@@ -167,6 +188,16 @@ type tokens struct {
 	cardRadius  float32 // a card's corner, the middle of the radius ladder
 	cardPadY    float32 // above and below a card's parts
 	cardPadX    float32 // left and right inside a card
+
+	// The main column's frame: the gap between the card and the window edge,
+	// and the card's own corner. See mainFramePad and mainFrameRadius.
+	framePad    float32
+	frameRadius float32
+
+	// The empty state's hero: the type-drawn brand mark's size and the title's
+	// own step. See heroMark and heroTitleStep.
+	heroMark      float32
+	heroTitleSize float32
 
 	// The timeline's geometry, in DIPs: the row shell's inset, the gap
 	// between two blocks of one turn, a disclosure header and its arrow, the
@@ -424,6 +455,14 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 		cardRadius:  radiusLG,
 		cardPadY:    t.Space(1),
 		cardPadX:    t.Space(2),
+
+		// The frame is a CSS literal, not a spacing step, so a compact density
+		// leaves it as dim-electron draws it.
+		framePad:    mainFramePad,
+		frameRadius: mainFrameRadius,
+
+		heroMark:      heroMark,
+		heroTitleSize: fontSize * heroTitleStep,
 
 		timelinePadX:       timelinePadX * geometryScale,
 		timelineBlockGap:   timelineBlockGap * geometryScale,

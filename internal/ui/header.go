@@ -14,13 +14,23 @@ import (
 // header shows the selected session's title beside the connection status, then
 // the banner that belongs under it. It draws no region of its own beyond those
 // two rows.
+//
+// With no selected session there is no title to repeat and no run to report, so
+// the toolbar keeps only what still applies: the connection status and the
+// appearance entry. The conversation's empty state carries the heading instead.
 func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	ui.Row(c).Gap(k.gapWide).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
-		ui.Text(c, v.Title).Bold().FontSize(k.titleSize)
-		ui.Box(c).Grow(1)
-		runStatus(c, k, v)
+		if v.HasSession {
+			ui.Text(c, v.Title).Bold().FontSize(k.titleSize)
+			ui.Box(c).Grow(1)
+			runStatus(c, k, v)
+		} else {
+			// No session: no title and no run row, only the space that keeps the
+			// remaining entries at the toolbar's end.
+			ui.Box(c).Grow(1)
+		}
 		status(c, k, v)
 		// Stopping is the App Server's to do once the callback sends session.stop,
 		// so the entry belongs beside the status only while a turn still runs.

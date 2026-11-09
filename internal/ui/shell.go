@@ -338,36 +338,57 @@ func (s *State) View(c *ui.Context) {
 		// checking again here drops the old snapshot before the main column draws.
 		s.syncKeysSession()
 	}, func() {
-		ui.Column(c).FillHeight().Children(func() {
-			renderHeader(c, k, s.headerView(), a)
-			switch {
-			case s.ShowSettings:
-				// The appearance surface takes the conversation's place; the
-				// sidebar, toolbar and status bar stay, so a preference change is
-				// visible around it.
-				renderSettings(c, k, s.Settings, s.applySettings)
-			case s.ShowKeys:
-				// The keys browser takes the conversation's place. It reads the
-				// snapshot the caller supplied and sends no request.
-				s.Keys.Selected = &s.keysSelected
-				renderKeysPanel(c, k, &s.Keys, a)
-			default:
-				renderTimeline(c, k, s.timelineView(), a)
-				// A pending approval takes the composer's slot: the user answers the
-				// request before typing again, as the spec's composer replacement does.
-				// The request set comes from the rows the projection produced, never from
-				// a click.
-				if pending := s.pendingApprovals(); len(pending) > 0 {
-					renderApprovalPanel(c, k, ApprovalView{
-						Pending:      pending,
-						InputDisplay: pending[0].InputDisplay,
-						Variant:      pending[0].Variant,
-					}, a)
-				} else {
-					renderComposer(c, k, composer, a)
-				}
-			}
-			renderStatusBar(c, k, s.statusBarView())
+		// The main column is a card inset from the window edge, as
+		// dim-electron's framed chat workspace draws it: 4.5 DIPs on the top,
+		// right and bottom, none on the left while the sidebar is open, and a
+		// rounded face with a hairline outline. Every surface the column shows
+		// (the conversation, the approval panel, the keys browser and the
+		// appearance surface) is drawn inside it, so they share the frame.
+		ui.Column(c).FillHeight().Padding(k.framePad, k.framePad, k.framePad, 0).Children(func() {
+			ui.Column(c).Grow(1).FillWidth().
+				Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
+				Background(k.card).Role(ui.RoleGroup).Label("Main area").
+				Children(func() {
+					renderHeader(c, k, s.headerView(), a)
+					timeline := s.timelineView()
+					pending := s.pendingApprovals()
+					switch {
+					case s.ShowSettings:
+						// The appearance surface takes the conversation's place; the
+						// sidebar, toolbar and status bar stay, so a preference change is
+						// visible around it.
+						renderSettings(c, k, s.Settings, s.applySettings)
+					case s.ShowKeys:
+						// The keys browser takes the conversation's place. It reads the
+						// snapshot the caller supplied and sends no request.
+						s.Keys.Selected = &s.keysSelected
+						renderKeysPanel(c, k, &s.Keys, a)
+					default:
+						// An empty, loaded and open session shows the hero instead of the
+						// projection's empty row; a closed session or a pending approval
+						// keeps the timeline's own states, so the hero never speaks over
+						// facts that are still on screen.
+						if !timeline.Loading && !timeline.Closed && len(timeline.Messages) == 0 && len(pending) == 0 {
+							renderHero(c, k, s.locale())
+						} else {
+							renderTimeline(c, k, timeline, a)
+						}
+						// A pending approval takes the composer's slot: the user answers the
+						// request before typing again, as the spec's composer replacement does.
+						// The request set comes from the rows the projection produced, never from
+						// a click.
+						if len(pending) > 0 {
+							renderApprovalPanel(c, k, ApprovalView{
+								Pending:      pending,
+								InputDisplay: pending[0].InputDisplay,
+								Variant:      pending[0].Variant,
+							}, a)
+						} else {
+							renderComposer(c, k, composer, a)
+						}
+					}
+					renderStatusBar(c, k, s.statusBarView())
+				})
 		})
 	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {

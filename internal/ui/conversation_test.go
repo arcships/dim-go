@@ -162,20 +162,82 @@ func TestAssistantRowRendersMarkdown(t *testing.T) {
 	}
 }
 
-// TestEmptyConversation checks the empty state shown before any row arrives.
+// TestEmptyConversation checks the hero shown once history has loaded and holds
+// no row: the heading and subtitle, with the heading as the status region so
+// assistive technology hears the end of loading. The old placeholder row is
+// gone from this state.
 func TestEmptyConversation(t *testing.T) {
 	s := fixture()
 	s.Messages = nil
 	tt := ui.NewTester(s.View, 900, 600)
 
-	if !tt.HasText("No messages yet") {
-		t.Fatalf("empty state is missing, texts %q", tt.Texts())
+	title := tr(LocaleEN, keyHeroTitle)
+	subtitle := tr(LocaleEN, keyHeroSubtitle)
+	for _, want := range []string{title, subtitle} {
+		if !tt.HasText(want) {
+			t.Fatalf("empty state is missing %q, texts %q", want, tt.Texts())
+		}
 	}
-	if _, ok := tt.AccessByRole(ui.RoleStatus, "No messages yet"); !ok {
-		t.Fatalf("the empty state is not a status region, texts %q", tt.Texts())
+	if _, ok := tt.AccessByRole(ui.RoleStatus, title); !ok {
+		t.Fatalf("the hero heading is not a status region, texts %q", tt.Texts())
+	}
+	if tt.HasText("No messages yet") {
+		t.Errorf("the placeholder row still shows under the hero, texts %q", tt.Texts())
 	}
 	if first, last := s.conversation.Visible(); last >= first {
 		t.Fatalf("an empty conversation shows rows %d..%d", first, last)
+	}
+}
+
+// TestEmptyConversationFollowsTheLocale checks that the hero is the shell's own
+// text and follows the interface language, not a fixed English string.
+func TestEmptyConversationFollowsTheLocale(t *testing.T) {
+	s := fixture()
+	s.Messages = nil
+	s.Settings = SettingsView{Locale: LocaleZHCN}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, want := range []string{tr(LocaleZHCN, keyHeroTitle), tr(LocaleZHCN, keyHeroSubtitle)} {
+		if !tt.HasText(want) {
+			t.Fatalf("Chinese hero is missing %q, texts %q", want, tt.Texts())
+		}
+	}
+	if tt.HasText(tr(LocaleEN, keyHeroTitle)) {
+		t.Errorf("the English heading still shows in a Chinese frame, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleStatus, tr(LocaleZHCN, keyHeroTitle)); !ok {
+		t.Errorf("the Chinese hero heading is not a status region, texts %q", tt.Texts())
+	}
+}
+
+// TestHeroHidesWithRows checks that the hero belongs to the empty state alone: a
+// session with rows draws them instead.
+func TestHeroHidesWithRows(t *testing.T) {
+	tt := ui.NewTester(fixture().View, 900, 600)
+	for _, want := range []string{tr(LocaleEN, keyHeroTitle), tr(LocaleEN, keyHeroSubtitle)} {
+		if tt.HasText(want) {
+			t.Errorf("the hero shows over a conversation with rows: %q, texts %q", want, tt.Texts())
+		}
+	}
+}
+
+// TestHeroFitsANarrowWindow checks that the hero wraps inside a narrow main
+// column instead of pushing the composer or the status bar out of the window.
+func TestHeroFitsANarrowWindow(t *testing.T) {
+	const width, height = 560, 420
+	s := fixture()
+	s.Messages = nil
+	tt := ui.NewTester(s.View, width, height)
+
+	title := textBox(t, tt, tr(LocaleEN, keyHeroTitle))
+	subtitle := textBox(t, tt, tr(LocaleEN, keyHeroSubtitle))
+	for _, r := range []ui.Rect{title, subtitle} {
+		if r.X < 0 || r.Y < 0 || r.X+r.W > width || r.Y+r.H > height {
+			t.Errorf("hero text at %.1f,%.1f %.1fx%.1f leaves the %dx%d window", r.X, r.Y, r.W, r.H, width, height)
+		}
+	}
+	if !tt.HasText("Composer") {
+		t.Errorf("the composer is missing from the narrow frame, texts %q", tt.Texts())
 	}
 }
 
