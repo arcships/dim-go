@@ -15,7 +15,8 @@ type approvalCall struct {
 }
 
 // approvalFixture is the shell's placeholder state with one pending approval
-// row that carries the App Server's request identity.
+// that carries the App Server's request identity. A pending approval takes the
+// composer's slot, so the row count matters: the panel is not a timeline row.
 func approvalFixture() *State {
 	s := fixture()
 	s.Messages = append(s.Messages, Message{
@@ -27,11 +28,10 @@ func approvalFixture() *State {
 	return s
 }
 
-// TestApprovalRowSendsOneDecision checks the wired approval row: both decisions
-// are real, available buttons, and each click sends exactly one decision with
-// the row's branch and request identity. The row itself is not resolved
-// locally; only a later session projection frame may remove it.
-func TestApprovalRowSendsOneDecision(t *testing.T) {
+// TestApprovalPanelSendsOneDecision checks the wired panel: both decisions are
+// real, available buttons, each click sends exactly one decision with the
+// request's branch and id, and the request is not resolved locally.
+func TestApprovalPanelThroughShellSendsOneDecision(t *testing.T) {
 	s := approvalFixture()
 	var got []approvalCall
 	s.OnApproval = func(branchID, requestID string, decision ApprovalDecision) {
@@ -45,10 +45,10 @@ func TestApprovalRowSendsOneDecision(t *testing.T) {
 			t.Fatalf("%q is not exposed as a button, texts %q", label, tt.Texts())
 		}
 		if info.Disabled {
-			t.Errorf("%q is disabled on a wired approval row", label)
+			t.Errorf("%q is disabled on a wired approval panel", label)
 		}
 		if !info.Focusable {
-			t.Errorf("%q is not reachable on a wired approval row", label)
+			t.Errorf("%q is not reachable on a wired approval panel", label)
 		}
 		if strings.Contains(info.Description, reasonApproval) {
 			t.Errorf("%q still describes the WIP gap: %q", label, info.Description)
@@ -58,32 +58,33 @@ func TestApprovalRowSendsOneDecision(t *testing.T) {
 	if err := tt.Click("Approve"); err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0] != (approvalCall{branchID: "main", requestID: "req-1", decision: ApprovalAllow}) {
-		t.Fatalf("Approve sent %#v, want one allow for main/req-1", got)
+	if len(got) != 1 || got[0].decision != ApprovalAllow {
+		t.Fatalf("approve sent %+v, want one allow", got)
 	}
-
+	if got[0].branchID != "main" || got[0].requestID != "req-1" {
+		t.Fatalf("approve identity = %+v, want main/req-1", got[0])
+	}
 	if err := tt.Click("Deny"); err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 2 || got[1] != (approvalCall{branchID: "main", requestID: "req-1", decision: ApprovalDeny}) {
-		t.Fatalf("Deny sent %#v, want one deny after the allow", got)
+	if len(got) != 2 || got[1].decision != ApprovalDeny {
+		t.Fatalf("deny sent %+v, want a second deny", got)
 	}
-
-	if len(s.Messages) != 3 || s.Messages[2].Approval == nil {
-		t.Fatalf("the shell resolved the approval row locally: %#v", s.Messages)
-	}
-	if a, ok := tt.AccessByRole(ui.RoleAlert, ""); ok {
-		t.Errorf("an accepted click raised an alert: %#v", a)
+	if len(s.Messages) != 3 {
+		t.Fatalf("%d rows after decisions, want the request kept until a projection frame removes it", len(s.Messages))
 	}
 }
 
-// TestApprovalRowStaysWIPWithoutCallback checks that an approval row in a
-// fixture without OnApproval keeps both decisions visible, dimmed, unreachable
-// as actions and explained: a click cannot report a decision nobody sent.
-func TestApprovalRowStaysWIPWithoutCallback(t *testing.T) {
+// TestApprovalPanelWithoutCallbackStaysWIP checks that a pending request with no
+// wired callback keeps both decisions visible, dimmed and explained, and that a
+// click reports nothing.
+func TestApprovalPanelWithoutCallbackStaysWIP(t *testing.T) {
 	s := approvalFixture()
 	tt := ui.NewTester(s.View, 900, 600)
 
+	if !tt.HasText("Approval required") {
+		t.Fatalf("approval panel is not drawn, texts %q", tt.Texts())
+	}
 	for _, label := range []string{"Approve", "Deny"} {
 		info, ok := tt.AccessByRole(ui.RoleButton, label)
 		if !ok {
@@ -92,64 +93,38 @@ func TestApprovalRowStaysWIPWithoutCallback(t *testing.T) {
 		if !info.Disabled {
 			t.Errorf("%q is available without an approval callback", label)
 		}
-		if !info.Focusable {
-			t.Errorf("%q is unreachable, so its reason is never read", label)
-		}
 		if !strings.Contains(info.Description, "approval.respond") {
 			t.Errorf("%q description %q does not name approval.respond", label, info.Description)
 		}
 		if !strings.Contains(info.Description, wipBadge) {
 			t.Errorf("%q description %q does not include the visible %q badge", label, info.Description, wipBadge)
 		}
-	}
-	if err := tt.Click("Approve"); err != nil {
-		t.Fatal(err)
-	}
-	if err := tt.Click("Deny"); err != nil {
-		t.Fatal(err)
+		if err := tt.Click(label); err != nil {
+			t.Fatalf("click %q: %v", label, err)
+		}
 	}
 	if len(s.Messages) != 3 {
-		t.Fatalf("%d rows after clicking unavailable decisions, want 3", len(s.Messages))
+		t.Fatalf("%d rows after unavailable decisions, want 3", len(s.Messages))
 	}
 }
 
-// TestApprovalRowWithoutRequestIDStaysWIP checks that a row without the App
-// Server's request identity keeps the decisions unavailable even when the
-// window has a callback: there is no approval.respond request to address.
-func TestApprovalRowWithoutRequestIDStaysWIP(t *testing.T) {
-	cases := []struct {
-		name     string
-		approval *Approval
-	}{
-		{"missing approval", nil},
-		{"empty request id", &Approval{BranchID: "main"}},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			s := fixture()
-			s.Messages = append(s.Messages, Message{ID: "m3", Author: AuthorApproval, Content: "Run it?", Approval: tc.approval})
-			calls := 0
-			s.OnApproval = func(string, string, ApprovalDecision) { calls++ }
-			tt := ui.NewTester(s.View, 900, 600)
+// TestApprovalWithoutRequestIDTakesNoSlot checks that a request without the App
+// Server's identity neither takes the composer's slot nor offers a decision
+// nobody can address.
+func TestApprovalWithoutRequestIDTakesNoSlot(t *testing.T) {
+	s := fixture()
+	s.Messages = append(s.Messages, Message{ID: "m3", Author: AuthorApproval, Content: "Run it?"})
+	calls := 0
+	s.OnApproval = func(string, string, ApprovalDecision) { calls++ }
+	tt := ui.NewTester(s.View, 900, 600)
 
-			for _, label := range []string{"Approve", "Deny"} {
-				info, ok := tt.AccessByRole(ui.RoleButton, label)
-				if !ok {
-					t.Fatalf("%q is not exposed as a button, texts %q", label, tt.Texts())
-				}
-				if !info.Disabled {
-					t.Errorf("%q is available without a request identity", label)
-				}
-				if !strings.Contains(info.Description, "approval.respond") {
-					t.Errorf("%q description %q does not name approval.respond", label, info.Description)
-				}
-				if err := tt.Click(label); err != nil {
-					t.Fatalf("click %q: %v", label, err)
-				}
-			}
-			if calls != 0 {
-				t.Fatalf("a row without a request identity sent %d decisions", calls)
-			}
-		})
+	if tt.HasText("Approval required") {
+		t.Errorf("an unaddressable request took the composer slot, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Approve"); ok {
+		t.Error("an unaddressable request still offers Approve")
+	}
+	if calls != 0 {
+		t.Fatalf("an unaddressable request sent %d decisions", calls)
 	}
 }

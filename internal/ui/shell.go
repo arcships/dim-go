@@ -276,7 +276,15 @@ func (s *State) View(c *ui.Context) {
 		ui.Column(c).FillHeight().Children(func() {
 			renderHeader(c, k, s.headerView(), a)
 			renderTimeline(c, k, s.timelineView(), a)
-			renderComposer(c, k, composer, a)
+			// A pending approval takes the composer's slot: the user answers the
+			// request before typing again, as the spec's composer replacement does.
+			// The request set comes from the rows the projection produced, never from
+			// a click.
+			if pending := s.pendingApprovals(); len(pending) > 0 {
+				renderApprovalPanel(c, k, ApprovalView{Pending: pending}, a)
+			} else {
+				renderComposer(c, k, composer, a)
+			}
 		})
 	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
@@ -312,6 +320,27 @@ func (s *State) sidebarView() SidebarView {
 	}
 }
 
+// pendingApprovals collects the approval requests the current rows still show,
+// keyed by request id so a duplicated row cannot offer the same decision twice.
+// It copies from the rows the projection produced; a click never adds or removes
+// an entry here.
+func (s *State) pendingApprovals() []Approval {
+	var pending []Approval
+	seen := map[string]bool{}
+	for _, m := range s.Messages {
+		if m.Author != AuthorApproval || m.Approval == nil {
+			continue
+		}
+		approval := *m.Approval
+		if approval.RequestID == "" || seen[approval.RequestID] {
+			continue
+		}
+		seen[approval.RequestID] = true
+		pending = append(pending, approval)
+	}
+	return pending
+}
+
 // headerView copies the supervisor's report, the terminal close and the
 // window-owned status into the toolbar's view.
 func (s *State) headerView() HeaderView {
@@ -334,10 +363,18 @@ func (s *State) headerView() HeaderView {
 
 // timelineView copies the rows and the window's loading and close facts into
 // the timeline's view, with pointers to the list, fold and Markdown state the
-// region keeps across frames.
+// region keeps across frames. Pending approvals are not rows: they take the
+// composer's slot, so they are left out here and read by pendingApprovals.
 func (s *State) timelineView() TimelineView {
+	rows := make([]Message, 0, len(s.Messages))
+	for _, m := range s.Messages {
+		if m.Author == AuthorApproval {
+			continue
+		}
+		rows = append(rows, m)
+	}
 	return TimelineView{
-		Messages: s.Messages,
+		Messages: rows,
 		Loading:  s.ConversationLoading,
 		Closed:   s.SessionClosed,
 		list:     &s.conversation,

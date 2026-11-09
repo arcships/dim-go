@@ -55,20 +55,21 @@ func TestWIPEntriesAreVisibleDisabledAndExplainThemselves(t *testing.T) {
 	}
 }
 
-// TestApprovalWIPEntries checks that an approval row keeps the two decisions,
-// visible and unavailable, with the reason approval.respond is missing. The
-// row itself is view state; the request and its decision stay the App Server's.
+// TestApprovalWIPEntries checks that a pending approval keeps the two
+// decisions, visible and unavailable, with the reason approval.respond is
+// missing. The request and its decision stay the App Server's.
 func TestApprovalWIPEntries(t *testing.T) {
 	s := fixture()
 	s.Messages = append(s.Messages, Message{
-		ID:      "m3",
-		Author:  AuthorApproval,
-		Content: "Run the deployment?",
+		ID:       "m3",
+		Author:   AuthorApproval,
+		Content:  "Run the deployment?",
+		Approval: &Approval{BranchID: "main", RequestID: "req-1", Call: "exec"},
 	})
 	tt := ui.NewTester(s.View, 900, 600)
 
-	if !tt.HasText("Approval request") || !tt.HasText("Run the deployment?") {
-		t.Fatalf("approval row is not drawn, texts %q", tt.Texts())
+	if !tt.HasText("Approval required") || !tt.HasText("exec") {
+		t.Fatalf("approval panel is not drawn, texts %q", tt.Texts())
 	}
 	for _, label := range []string{"Approve", "Deny"} {
 		info, ok := tt.AccessByRole(ui.RoleButton, label)
@@ -98,10 +99,9 @@ func TestApprovalWIPEntries(t *testing.T) {
 // perform.
 func TestWIPEntriesDoNotPretendSuccess(t *testing.T) {
 	s := fixture()
-	s.Messages = append(s.Messages, Message{ID: "m3", Author: AuthorApproval, Content: "Run it?"})
 	tt := ui.NewTester(s.View, 900, 600)
 
-	for _, label := range []string{"New session", "Reconnect", "Attach file", "Approve", "Deny"} {
+	for _, label := range []string{"New session", "Reconnect", "Attach file"} {
 		if err := tt.Click(label); err != nil {
 			t.Fatalf("click %q: %v", label, err)
 		}
@@ -113,8 +113,8 @@ func TestWIPEntriesDoNotPretendSuccess(t *testing.T) {
 	if s.Draft != "" {
 		t.Errorf("draft %q after clicking WIP entries, want empty", s.Draft)
 	}
-	if len(s.Messages) != 3 {
-		t.Errorf("%d rows after clicking WIP entries, want 3", len(s.Messages))
+	if len(s.Messages) != 2 {
+		t.Errorf("%d rows after clicking WIP entries, want the fixture's 2", len(s.Messages))
 	}
 	if s.Connection != ConnUnknown || s.ConnectionError != "" {
 		t.Errorf("connection %v %q after clicking WIP entries, want it untouched",

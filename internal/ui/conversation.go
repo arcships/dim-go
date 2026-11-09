@@ -26,17 +26,6 @@ func timeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 	}
 }
 
-// pendingRequests is the approval row's pending list: the transient projection
-// gives one request per row today, and a row without one keeps its decisions
-// visible, disabled and explained instead of sending a decision nobody can
-// address.
-func pendingRequests(request *Approval) []Approval {
-	if request == nil {
-		return nil
-	}
-	return []Approval{*request}
-}
-
 // loadingConversation is what shows while history is still coming. The row is a
 // busy status region, so assistive technology waits for the rows rather than
 // reading the placeholder, and reads the one label of the work.
@@ -62,9 +51,10 @@ func emptyConversation(c *ui.Context, k tokens) {
 
 // messageRow builds one row by its author, the way docs/ui-layout-spec.md §4
 // splits dim-electron's timeline: a user bubble, an assistant turn with its
-// blocks in order, a tool card, an approval row with its decisions, or an
-// error/retry notice. A row's own text stands in for an unknown author, so a
-// caller cannot lose text to a row type the shell does not know.
+// blocks in order, a tool card, or an error/retry notice. A pending approval is
+// not a row: it takes the composer's slot (renderApprovalPanel). A row's own text
+// stands in for an unknown author, so a caller cannot lose text to a row type the
+// shell does not know.
 func messageRow(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 	switch m.Author {
 	case AuthorUser:
@@ -73,8 +63,6 @@ func messageRow(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 		assistantRow(c, k, v, m)
 	case AuthorTool:
 		toolRow(c, k, v.folds, m)
-	case AuthorApproval:
-		renderApproval(c, k, ApprovalView{Text: m.Content, Pending: pendingRequests(m.Approval)}, a)
 	case AuthorError:
 		errorRow(c, k, m)
 	case AuthorRetry:

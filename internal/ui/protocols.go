@@ -297,11 +297,11 @@ func renderTimeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 	timeline(c, k, v, a)
 }
 
-// renderApproval draws one approval row: its text and one pair of decisions per
-// pending request. It calls Actions.OnApproval, and only for a request that
-// carries the App Server's identity.
+// renderApproval draws the pending-approval panel that takes the composer's
+// slot. It calls Actions.OnApproval, and only for a request that carries the
+// App Server's identity.
 func renderApproval(c *ui.Context, k tokens, v ApprovalView, a Actions) {
-	approval(c, k, v, a)
+	renderApprovalPanel(c, k, v, a)
 }
 
 // renderComposer draws the attachment entry, the Send entry and the draft
