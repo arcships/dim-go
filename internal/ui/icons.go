@@ -23,6 +23,7 @@ type sidebarGlyphs struct {
 	clock   *ui.SVG
 	grid    *ui.SVG
 	folder  *ui.SVG
+	house   *ui.SVG
 	user    *ui.SVG
 	gear    *ui.SVG
 	chevron *ui.SVG
@@ -37,15 +38,16 @@ func sidebarIcon(shapes string) *ui.SVG {
 }
 
 // sidebarIcons holds the glyphs in the order the sidebar uses them: the four
-// global entries, the thread list, the project groups, the account row and the
-// settings entry. The chevron marks the keys entry's disclosure, whose panel
-// opens in the main column.
+// global entries, the thread list, the workspace heading, the project groups,
+// the account row and the settings entry. The chevron marks the keys entry's
+// disclosure, whose panel opens in the main column.
 var sidebarIcons = sidebarGlyphs{
 	plus:    sidebarIcon(`<path d="M8 3v10M3 8h10"/>`),
 	search:  sidebarIcon(`<circle cx="7" cy="7" r="4.1"/><path d="M10.1 10.1 13.5 13.5"/>`),
 	clock:   sidebarIcon(`<circle cx="8" cy="8" r="5.6"/><path d="M8 4.6V8l2.4 1.5"/>`),
 	grid:    sidebarIcon(`<rect x="2.2" y="2.2" width="4.7" height="4.7" rx="1"/><rect x="9.1" y="2.2" width="4.7" height="4.7" rx="1"/><rect x="2.2" y="9.1" width="4.7" height="4.7" rx="1"/><rect x="9.1" y="9.1" width="4.7" height="4.7" rx="1"/>`),
 	folder:  sidebarIcon(`<path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h2.6l1.5 2h4.9A1.5 1.5 0 0 1 14 6.5v5A1.5 1.5 0 0 1 12.5 13h-9A1.5 1.5 0 0 1 2 11.5Z"/>`),
+	house:   sidebarIcon(`<path d="M2.4 7.1 8 2.6l5.6 4.5"/><path d="M3.9 6.2v5.5c0 .7.6 1.3 1.3 1.3h5.6c.7 0 1.3-.6 1.3-1.3V6.2"/><path d="M6.5 13V9.5h3V13"/>`),
 	user:    sidebarIcon(`<circle cx="8" cy="5.2" r="2.4"/><path d="M3.5 13c.4-2.6 2.2-4 4.5-4s4.1 1.4 4.5 4"/>`),
 	gear:    sidebarIcon(`<path d="M6.8 1.5h2.4l.35 1.9a5 5 0 0 1 1.2.7l1.85-.6 1.2 2.1-1.45 1.3a5 5 0 0 1 0 1.4l1.45 1.3-1.2 2.1-1.85-.6a5 5 0 0 1-1.2.7l-.35 1.9H6.8l-.35-1.9a5 5 0 0 1-1.2-.7l-1.85.6-1.2-2.1 1.45-1.3a5 5 0 0 1 0-1.4L2.2 5.6l1.2-2.1 1.85.6a5 5 0 0 1 1.2-.7Z"/><circle cx="8" cy="8" r="1.9"/>`),
 	chevron: sidebarIcon(`<path d="M6 3.5 10.5 8 6 12.5"/>`),

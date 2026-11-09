@@ -16,6 +16,7 @@ func sidebarGlyphCases() map[string]*ui.SVG {
 		"clock":   sidebarIcons.clock,
 		"grid":    sidebarIcons.grid,
 		"folder":  sidebarIcons.folder,
+		"house":   sidebarIcons.house,
 		"user":    sidebarIcons.user,
 		"gear":    sidebarIcons.gear,
 		"chevron": sidebarIcons.chevron,
@@ -102,10 +103,11 @@ type glyphCase struct {
 func sidebarGlyphCasesInTheFrame() []glyphCase {
 	return []glyphCase{
 		{"New session", true},
-		{"Search sessions", true},
+		{"Search", true},
 		{"Scheduled tasks", true},
 		{"Skills and plugins", true},
 		{"alpha", true},
+		{"Workspace", false},
 		{"Sign in to Dim", true},
 		{"Settings", true},
 	}
@@ -226,7 +228,7 @@ func TestSidebarGlyphsKeepTheAccessibleNames(t *testing.T) {
 	s := glyphFixtureState()
 	tt, _ := glyphTester(t, s)
 
-	for _, name := range []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins"} {
+	for _, name := range []string{"New session", "Search", "Scheduled tasks", "Skills and plugins"} {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)
 		if !ok {
 			t.Errorf("%q is not exposed as a button, texts %q", name, tt.Texts())
@@ -236,7 +238,7 @@ func TestSidebarGlyphsKeepTheAccessibleNames(t *testing.T) {
 			t.Errorf("%q is exposed as %q", name, info.Name)
 		}
 	}
-	search, _ := tt.AccessByRole(ui.RoleButton, "Search sessions")
+	search, _ := tt.AccessByRole(ui.RoleButton, "Search")
 	if search.Disabled {
 		t.Error("the search entry is unavailable although its filter is local")
 	}
@@ -266,7 +268,7 @@ func TestSidebarGlyphsAddNoTabStop(t *testing.T) {
 	tt, _ := glyphTester(t, s)
 
 	for _, want := range []string{
-		"New session", "Search sessions", "Scheduled tasks",
+		"New session", "Search", "Scheduled tasks",
 		"Skills and plugins", "Sessions",
 	} {
 		tt.Key(0, ui.KeyTab)

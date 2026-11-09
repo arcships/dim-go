@@ -215,7 +215,7 @@ func TestComposerTabOrder(t *testing.T) {
 	tt := ui.NewTester(s.View, 900, 600)
 
 	for _, want := range []string{
-		"New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
+		"New session", "Search", "Scheduled tasks", "Skills and plugins",
 		"Sessions", "Sign in to Dim", "Settings", "Divider", "Session menu", "Reconnect",
 		"Context panel",
 	} {

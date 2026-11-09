@@ -33,10 +33,13 @@ func TestLocaleDefaultsToEnglish(t *testing.T) {
 
 	// The shell itself opens in English: the fixture saves no language.
 	tt := ui.NewTester(fixture().View, 900, 600)
-	for _, want := range []string{"New session", "Search sessions", "Send", "Attach file"} {
+	for _, want := range []string{"New session", "Search", "Send", "Attach file"} {
 		if !tt.HasText(want) {
 			t.Errorf("the default frame is missing the English %q, texts %q", want, tt.Texts())
 		}
+	}
+	if info, ok := tt.Access(tr(LocaleEN, keyComposerLabel)); !ok || info.Placeholder != "Send a message…" {
+		t.Errorf("the empty composer shows %q as its placeholder, want %q", info.Placeholder, "Send a message…")
 	}
 }
 
@@ -54,7 +57,7 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 
 	for _, want := range []string{
 		// Sidebar entries and headings.
-		"新建会话", "搜索会话", "定时任务", "技能/插件", "会话", "无项目",
+		"新建会话", "搜索", "定时任务", "技能/插件", "会话", "无项目",
 		// Toolbar and banner.
 		"设置", "会话已关闭", "模型 ▾",
 		// The account footer.
@@ -74,7 +77,10 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 	if info, ok := tt.Access("输入框"); !ok || info.Description != tr(LocaleZHCN, keyComposerHint) {
 		t.Errorf("the composer's localized shortcut help is %q, drawn %v", info.Description, ok)
 	}
-	for _, gone := range []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins", "Sign in to Dim", "Session keys", "Attach file", "Unavailable capabilities"} {
+	if info, ok := tt.Access(tr(LocaleZHCN, keyComposerLabel)); !ok || info.Placeholder != "发送消息…" {
+		t.Errorf("the zh-CN empty composer shows %q as its placeholder, want %q", info.Placeholder, "发送消息…")
+	}
+	for _, gone := range []string{"New session", "Search", "Scheduled tasks", "Skills and plugins", "Sign in to Dim", "Session keys", "Attach file", "Unavailable capabilities"} {
 		if tt.HasText(gone) {
 			t.Errorf("the zh-CN frame still shows the English %q, texts %q", gone, tt.Texts())
 		}
@@ -243,11 +249,14 @@ func TestSettingsLanguageChoiceShowsOnTheNextFrame(t *testing.T) {
 
 // TestEnglishTableMatchesConstants pins the English table to the shell's
 // constants, so the default frame keeps exactly the text the rest of the tests
-// assert and a constant cannot drift from its message entry.
+// assert and a constant cannot drift from its message entry. The composer
+// placeholder is the one entry the table owns itself: the empty composer names
+// the action rather than the product, so its copy is written here instead of
+// the shell's first-run constant.
 func TestEnglishTableMatchesConstants(t *testing.T) {
 	for _, tc := range []struct{ key, want string }{
 		{keyNoSession, "No session"},
-		{keyComposerPlaceholder, composerPlaceholder},
+		{keyComposerPlaceholder, "Send a message…"},
 		{keyComposerHint, composerHint},
 		{keySidebarUngrouped, ungroupedLabel},
 		{keyReasonCreateSession, reasonCreateSession},
