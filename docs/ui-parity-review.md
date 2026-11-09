@@ -54,6 +54,11 @@ Last updated: 2026-11-09
 - 全局搜索：[`evidence/ui/mygo-search.png`](evidence/ui/mygo-search.png)。⌘G 居中浮层、遮罩、最近聊天、行图标/标题/项目/⌘n；与参考 `window-search.png` 同构。差异：占位文案语言、无置顶分组。
 - 会话内查找：[`evidence/ui/mygo-thread-search.png`](evidence/ui/mygo-thread-search.png)。⌘F 顶栏查找条、0/0 计数、上/下/关闭；参考 ThreadSearchBar 未采集截图，结构按源码实现，待参考帧。
 
+## Pin / Archive（真实窗口，2026-11-10）
+
+- 置顶：[`evidence/ui/mygo-pinned.png`](evidence/ui/mygo-pinned.png)。置顶会话排在项目组内最前，行尾 pin glyph；参考没有独立 Pinned 分组，这里保持同一结构。
+- 归档：`Settings → Archived sessions` 列出并恢复；侧栏隐藏、搜索不显示；archived/pinned 只存 session id，属桌面本地展示状态（config v3）。
+
 ## 像素基线（辅助，不是结论）
 
 同尺寸 800×720，区域按 sidebar/top/content/composer/bottom：
