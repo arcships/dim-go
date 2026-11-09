@@ -92,7 +92,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 | D1 颜色/表面 | 字体栅格、图标资产、vibrancy | 平面取样 + 视觉复核；差异进豁免表 |
 | D2 排版/间距 | 行高 28/缩进、字体度量、compact | 坐标 ≤2 DIP；字号/行高一致 |
 | D3 图标/状态色 | 官方资产或等价图形、hover/focus/disabled | 状态截图 + 视觉复核 |
-| D4 主题/皮肤 | 6 chrome、skin 封面/导入、代码主题 | 数量/切换一致；资产就位 |
+| D4 主题/皮肤 | 6 chrome 已实现（色/字/圆角），skin 自定义与代码主题未做；形状/阴影/vibrancy 为平面近似 | 数量/切换一致；资产就位 |
 | D5 内容 | WIP vs 参考可用、菜单文案、真实 Markdown | 同语言截图 + 文本快照；逐条豁免 |
 | D6 动画 | 参考帧序列、文字 ink、search enter/exit | 两边同操作帧序列 |
 | D7 状态 | loading/hover/focus/menu/approval/unknown | 每态截图 + 复核 |
