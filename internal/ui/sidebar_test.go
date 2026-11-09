@@ -3,6 +3,7 @@ package ui
 import (
 	"image/color"
 	"math"
+	"slices"
 	"strings"
 	"testing"
 
@@ -170,12 +171,11 @@ func TestSidebarWIPEntriesDoNothing(t *testing.T) {
 	width := s.SidebarWidth
 
 	entries := map[string]string{
-		"Update":          "updater",
-		"Search sessions": "search",
-		"Group":           "project",
-		"Pin":             "pin",
-		"Rename":          "session.rename",
-		"Archive":         "hidden session list",
+		"Update":  "updater",
+		"Group":   "project",
+		"Pin":     "pin",
+		"Rename":  "session.rename",
+		"Archive": "hidden session list",
 	}
 	for name, gap := range entries {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)
@@ -358,5 +358,307 @@ func TestSidebarBranchesWithoutDirectoryDrawNothing(t *testing.T) {
 	}
 	if tt.HasText(reasonBranches) {
 		t.Errorf("an empty branch directory shows the WIP reason, texts %q", tt.Texts())
+	}
+}
+
+// searchSessions is the catalog the search tests filter: the titles, the ids
+// and the groups each give a query something different to match.
+func searchSessions() []Session {
+	return []Session{
+		{ID: "s1", Title: "Fix flaky tests", Group: "dim-electron"},
+		{ID: "s2", Title: "Plan release", Group: "dim-electron"},
+		{ID: "s3", Title: "Read notes", Group: "docs"},
+		{ID: "s4", Title: "Untitled"},
+	}
+}
+
+// searchState is a shell holding that catalog, with the first session selected.
+func searchState() *State {
+	s := fixture()
+	s.Sessions = searchSessions()
+	s.Selected = "s1"
+	return s
+}
+
+// sidebarRowShown reports whether the thread list exposes a row for the
+// session title. Rows are list items; the window's title bar shows the same
+// title, so a plain text search would not tell them apart.
+func sidebarRowShown(tt *ui.Tester, title string) bool {
+	_, ok := tt.AccessByRole(ui.RoleListItem, title)
+	return ok
+}
+
+// openSearch opens the sidebar's local filter box, as a user does before
+// typing.
+func openSearch(t *testing.T, tt *ui.Tester) {
+	t.Helper()
+	if err := tt.Click("Search sessions"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); !ok {
+		t.Fatalf("the search entry did not open its box, texts %q", tt.Texts())
+	}
+	if err := tt.Click("Filter sessions"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// TestSidebarSearchesSessionsLocally checks the local filter: the box narrows
+// the thread list to the sessions whose title contains the query, ignoring
+// case, and the catalog the window passed is left exactly as it was.
+func TestSidebarSearchesSessionsLocally(t *testing.T) {
+	s := searchState()
+	before := slices.Clone(s.Sessions)
+	tt := ui.NewTester(s.View, 900, 1000)
+	openSearch(t, tt)
+
+	tt.Type("PLAN")
+	if !sidebarRowShown(tt, "Plan release") {
+		t.Fatalf("the filter dropped the matching session, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{"Fix flaky tests", "Read notes", "Untitled"} {
+		if sidebarRowShown(tt, gone) {
+			t.Errorf("the filter kept %q, texts %q", gone, tt.Texts())
+		}
+	}
+	if !slices.Equal(before, s.Sessions) {
+		t.Errorf("the filter rewrote the catalog: %+v, want %+v", s.Sessions, before)
+	}
+	if s.Selected != "s1" {
+		t.Errorf("the filter moved the selection to %q", s.Selected)
+	}
+}
+
+// TestSidebarSearchesBySessionID checks that the id is searched as well as the
+// title: a session whose title the user does not remember is still found.
+func TestSidebarSearchesBySessionID(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 900, 1000)
+	openSearch(t, tt)
+
+	tt.Type("s3")
+	if !sidebarRowShown(tt, "Read notes") {
+		t.Fatalf("the filter did not match the session id, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{"Plan release", "Fix flaky tests"} {
+		if sidebarRowShown(tt, gone) {
+			t.Errorf("the id filter kept %q, texts %q", gone, tt.Texts())
+		}
+	}
+}
+
+// TestSidebarSearchWithoutMatches checks the empty state of a filter that
+// leaves no row: it says so, in a status region, and invents no session.
+func TestSidebarSearchWithoutMatches(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 900, 1000)
+	openSearch(t, tt)
+
+	tt.Type("zzz")
+	if !tt.HasText("No matching sessions") {
+		t.Fatalf("a filter with no match says nothing, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleStatus, "No matching sessions"); !ok {
+		t.Errorf("the no-match state is not a status region, texts %q", tt.Texts())
+	}
+	if tt.HasText("No sessions yet") {
+		t.Errorf("a filtered catalog reads as an empty catalog, texts %q", tt.Texts())
+	}
+	if sidebarRowShown(tt, "Plan release") {
+		t.Error("a filter with no match still shows a row")
+	}
+	if len(s.Sessions) != len(searchSessions()) {
+		t.Errorf("the filter dropped catalog rows: %+v", s.Sessions)
+	}
+}
+
+// TestSidebarSearchEscape checks the ways out: Escape with an empty box closes
+// it, and with text in the focused box it first clears the filter, which brings
+// the whole catalog back; a second Escape closes the box.
+func TestSidebarSearchEscape(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 900, 1000)
+
+	if err := tt.Click("Search sessions"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Key(0, ui.KeyEscape)
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); ok {
+		t.Fatalf("Escape left an empty search box open, texts %q", tt.Texts())
+	}
+
+	openSearch(t, tt)
+	tt.Type("plan")
+	if !sidebarRowShown(tt, "Plan release") || sidebarRowShown(tt, "Fix flaky tests") {
+		t.Fatalf("the filter did not narrow the list, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyEscape)
+	if s.sidebar.query != "" {
+		t.Errorf("Escape left the query %q", s.sidebar.query)
+	}
+	if !sidebarRowShown(tt, "Plan release") || !sidebarRowShown(tt, "Fix flaky tests") {
+		t.Fatalf("Escape did not clear the filter, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyEscape)
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); ok {
+		t.Fatalf("a second Escape did not close the box, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarSearchClosesAndClears checks the entry as a toggle: a second
+// click closes the box and clears the query, so reopening it starts from the
+// whole catalog instead of the last filter.
+func TestSidebarSearchClosesAndClears(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 900, 1000)
+	openSearch(t, tt)
+	tt.Type("plan")
+	if !sidebarRowShown(tt, "Plan release") || sidebarRowShown(tt, "Fix flaky tests") {
+		t.Fatalf("the filter did not narrow the list, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click("Search sessions"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); ok {
+		t.Fatalf("a second click left the box open, texts %q", tt.Texts())
+	}
+	if s.sidebar.query != "" {
+		t.Errorf("closing the box left the query %q", s.sidebar.query)
+	}
+	for _, want := range []string{"Fix flaky tests", "Plan release", "Read notes", "Untitled"} {
+		if !sidebarRowShown(tt, want) {
+			t.Errorf("the closed filter still hides %q, texts %q", want, tt.Texts())
+		}
+	}
+
+	openSearch(t, tt)
+	if s.sidebar.query != "" {
+		t.Errorf("reopening the box kept the query %q", s.sidebar.query)
+	}
+	if !sidebarRowShown(tt, "Untitled") {
+		t.Errorf("reopening the box kept the filter, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarSearchRebuildsGroups checks that the headings are laid out from
+// the filtered copy: a group the query leaves keeps its heading, and a group it
+// hides draws no heading at all.
+func TestSidebarSearchRebuildsGroups(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 900, 1000)
+	openSearch(t, tt)
+
+	tt.Type("release")
+	if !tt.HasText("dim-electron") {
+		t.Fatalf("the filtered heading is missing, texts %q", tt.Texts())
+	}
+	for _, gone := range []string{"docs", ungroupedLabel} {
+		if tt.HasText(gone) {
+			t.Errorf("the filter kept the %q heading, texts %q", gone, tt.Texts())
+		}
+	}
+	if !sidebarRowShown(tt, "Plan release") || sidebarRowShown(tt, "Read notes") {
+		t.Errorf("the filtered group still shows other rows, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarSearchTabReachable checks the keyboard: the opened box is the
+// entry's next Tab stop, and Tab leaves it for the entry after it.
+func TestSidebarSearchTabReachable(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 900, 1000)
+
+	if err := tt.Click("Search sessions"); err != nil {
+		t.Fatal(err)
+	}
+	if !tt.Focused("Search sessions") {
+		t.Fatalf("the clicked entry did not take the focus, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyTab)
+	if !tt.Focused("Filter sessions") {
+		t.Fatalf("Tab does not reach the search box, texts %q", tt.Texts())
+	}
+	tt.Key(0, ui.KeyTab)
+	if !tt.Focused("Session keys") {
+		t.Fatalf("Tab does not leave the search box for the next entry, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarSearchShortcut checks the shortcut the entry's hint names: it
+// opens the box and closes it again, and sends nothing either way.
+func TestSidebarSearchShortcut(t *testing.T) {
+	s := searchState()
+	tt := ui.NewTester(s.View, 900, 1000)
+
+	tt.Key(searchShortcutMods, searchShortcutKey)
+	tt.Frame()
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); !ok {
+		t.Fatalf("the shortcut did not open the box, texts %q", tt.Texts())
+	}
+	tt.Key(searchShortcutMods, searchShortcutKey)
+	tt.Frame()
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); ok {
+		t.Fatalf("the shortcut did not close the box, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarSearchUsesTheCallerQuery checks the view contract for a caller
+// that keeps the text itself: Searching opens the box, SearchQuery seeds it and
+// takes the edits in place, and the filter reads that text.
+func TestSidebarSearchUsesTheCallerQuery(t *testing.T) {
+	selected := "s1"
+	query := "notes"
+	v := SidebarView{
+		Sessions:    searchSessions(),
+		Selected:    &selected,
+		Searching:   true,
+		SearchQuery: &query,
+		state:       &sidebarState{},
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		renderSidebar(c, newTokens(c.Theme()), v, Actions{})
+	}, 900, 1000)
+
+	if !sidebarRowShown(tt, "Read notes") || sidebarRowShown(tt, "Plan release") {
+		t.Fatalf("the caller's query did not filter, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); !ok {
+		t.Fatalf("Searching did not open the box, texts %q", tt.Texts())
+	}
+	if err := tt.Click("Filter sessions"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("!")
+	if query != "notes!" {
+		t.Errorf("the box did not edit the caller's query: %q", query)
+	}
+}
+
+// TestSidebarSearchNeedsNoCallback checks the entry without any Actions wired:
+// local filtering asks the window for nothing, so the entry is offered and the
+// box opens, unlike the shell's WIP entries.
+func TestSidebarSearchNeedsNoCallback(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 1000)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "Search sessions")
+	if !ok {
+		t.Fatalf("the search entry is not exposed, texts %q", tt.Texts())
+	}
+	if info.Disabled {
+		t.Error("the search entry is unavailable although the filter is local")
+	}
+	if info.Description != "" {
+		t.Errorf("the search entry still carries a WIP reason %q", info.Description)
+	}
+	if err := tt.Click("Search sessions"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); !ok {
+		t.Errorf("the entry did not open the box without a callback, texts %q", tt.Texts())
+	}
+	if s.Selected != "s1" || len(s.Sessions) != 2 {
+		t.Errorf("opening the box changed the shell: selected=%q sessions=%d", s.Selected, len(s.Sessions))
 	}
 }

@@ -7,6 +7,7 @@ package ui
 import (
 	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -93,17 +94,110 @@ func rowIndex(rows []sidebarRow, sessionID string) int {
 	return -1
 }
 
+// searchShortcutKey is the shortcut the search entry's hint names, and
+// searchShortcutMods its modifier: Cmd+G on macOS, Ctrl+G elsewhere, as
+// searchShortcutText writes it.
+const searchShortcutKey = ui.KeyG
+
+var searchShortcutMods = ui.Cmd
+
+// filterSessions returns the sessions the query leaves, in the catalog's
+// order. It filters a display copy: the catalog itself is never written and no
+// read is requested. An empty or blank query matches every session, and the
+// title and the id are both searched, case-insensitively: a session whose
+// title is unknown is still found by its id.
+func filterSessions(sessions []Session, query string) []Session {
+	query = strings.ToLower(strings.TrimSpace(query))
+	if query == "" {
+		return sessions
+	}
+	visible := make([]Session, 0, len(sessions))
+	for _, session := range sessions {
+		if sessionMatches(session, query) {
+			visible = append(visible, session)
+		}
+	}
+	return visible
+}
+
+// sessionMatches reports whether the lower-cased query occurs in the session's
+// title or id. Group labels are not searched: they head rows, they are not
+// sessions.
+func sessionMatches(session Session, query string) bool {
+	return strings.Contains(strings.ToLower(session.Title), query) ||
+		strings.Contains(strings.ToLower(session.ID), query)
+}
+
+// adoptSearch takes the caller's SidebarView.Searching on the first frame the
+// sidebar builds, as the shell takes the caller's selection: the shell copies
+// State into a fresh SidebarView every frame, so the search box's open state
+// lives in the region's own sidebarState. After that the region owns it,
+// because a click, the shortcut and Escape all toggle it.
+func (v SidebarView) adoptSearch() {
+	if v.state.searchTaken {
+		return
+	}
+	v.state.searchTaken = true
+	v.state.searching = v.Searching
+}
+
+// searchQuery is the storage the search field edits. A caller that keeps the
+// text itself passes SearchQuery; otherwise the region keeps it in its own
+// state, which is how the window runs it while it has no field for the text.
+func (v SidebarView) searchQuery() *string {
+	if v.SearchQuery != nil {
+		return v.SearchQuery
+	}
+	return &v.state.query
+}
+
+// visibleSessions is the display copy the thread list lays out: the catalog
+// filtered by the open search box. It reorders nothing and adds no session.
+func (v SidebarView) visibleSessions() []Session {
+	if !v.state.searching {
+		return v.Sessions
+	}
+	return filterSessions(v.Sessions, *v.searchQuery())
+}
+
+// toggleSearch opens the search box, or closes it and clears its filter.
+func (v SidebarView) toggleSearch() {
+	if v.state.searching {
+		v.closeSearch()
+		return
+	}
+	v.state.searching = true
+}
+
+// closeSearch closes the box and clears the filter, so reopening it starts
+// from the whole catalog rather than the last query.
+func (v SidebarView) closeSearch() {
+	v.state.searching = false
+	*v.searchQuery() = ""
+}
+
 // sidebar draws the P0 sidebar: the brand header, the global entries, the
 // grouped thread list and the footer of actions the shell cannot carry out
 // yet. Its width comes from the split divider around it; the shell clamps it
 // to the sidebar's own bounds before every frame.
 func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	v.adoptSearch()
+	// The search box is the sidebar's own display state, so its shortcut and
+	// Escape are read here: the shell has no callback for either, and a
+	// filter needs none. Both write the view state and send nothing.
+	if c.Shortcut(searchShortcutMods, searchShortcutKey) {
+		v.toggleSearch()
+	}
+	if v.state.searching && c.Shortcut(0, ui.KeyEscape) {
+		v.closeSearch()
+	}
+	sessions := v.visibleSessions()
 	ui.Column(c).FillHeight().Clip().Background(k.sidebar).
 		Role(ui.RoleNavigation).Label("Session sidebar").Children(func() {
 		sidebarHeader(c, k)
 		sidebarEntries(c, k, v, a)
-		threadListHeader(c, k, v)
-		threadList(c, k, v, a)
+		threadListHeader(c, k, len(sessions))
+		threadList(c, k, v, sessions, a)
 		if len(v.Branches) > 0 {
 			branchList(c, k, v, a)
 		}
@@ -125,15 +219,30 @@ func sidebarHeader(c *ui.Context, k tokens) {
 }
 
 // sidebarEntries are the sidebar's global entries: the session action, then
-// the search entry. Search opens a dialog in dim-electron; this shell has no
-// search, so the entry keeps its place, its shortcut hint and the reason it
-// waits on rather than disappearing.
+// the search entry, then the keys browser. Search is local: the entry expands a
+// filter box over the catalog the sidebar already draws, and nothing it does
+// reaches the App Server.
 func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).Children(func() {
 		newSessionEntry(c, k, v, a)
-		sidebarEntry(c, k, "Search sessions", searchShortcutText(), reasonSearch, false, false, false, nil)
+		searchEntry(c, k, v)
 		keysEntry(c, k, v, a)
 	})
+}
+
+// searchEntry toggles the sidebar's local session search. It needs no caller
+// callback, because filtering the display copy sends nothing: the entry is real
+// while the shell has a catalog at all. The box under it edits the query in
+// place, and the thread list below narrows on the same frame.
+func searchEntry(c *ui.Context, k tokens, v SidebarView) {
+	sidebarEntry(c, k, "Search sessions", searchShortcutText(), "", true, false, v.state.searching, func() {
+		v.toggleSearch()
+	})
+	if !v.state.searching {
+		return
+	}
+	ui.SearchField(c, v.searchQuery()).Label("Filter sessions").
+		Placeholder("Title or id").TextColor(k.sidebarForeground).FillWidth()
 }
 
 // newSessionEntry offers session.create once the window wires it. Without the
@@ -214,14 +323,15 @@ func searchShortcutText() string {
 	return "Ctrl+G"
 }
 
-// threadListHeader names the thread list and its size. Grouping by project or
-// date is a dim-electron view mode fed by catalog facts this shell does not
-// receive, so the control stays visible and unavailable.
-func threadListHeader(c *ui.Context, k tokens, v SidebarView) {
+// threadListHeader names the thread list and its size. The count is the rows
+// the search filter leaves. Grouping by project or date is a dim-electron view
+// mode fed by catalog facts this shell does not receive, so the control stays
+// visible and unavailable.
+func threadListHeader(c *ui.Context, k tokens, count int) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
 		ui.Text(c, "Sessions").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().SingleLine()
-		ui.Text(c, strconv.Itoa(len(v.Sessions))).FontSize(k.smallSize).TextColor(k.mutedForeground)
+		ui.Text(c, strconv.Itoa(count)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		ui.Spacer(c)
 		wipAction(c, k, "Group", reasonGroup)
 	})
@@ -230,16 +340,27 @@ func threadListHeader(c *ui.Context, k tokens, v SidebarView) {
 // threadList draws the grouped thread rows in a keyed, virtualized list with
 // one scroll container. The list's choice is the shell's selected session:
 // a click or an arrow key moves the choice, and chooseSession publishes it.
-func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
-	rows := threadRows(v.Sessions)
+// sessions is the display copy the search filter left; the catalog itself is
+// never written.
+func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Actions) {
+	rows := threadRows(sessions)
 	v.state.rows = rows
-	if *v.Selected != v.state.synced {
+	// The choice maps from the selection anew when the selection or the filter
+	// changed, so a row the filter hides cannot keep the old index and a row the
+	// filter leaves cannot be marked by one. An unchanged pair keeps the list's
+	// own choice, which the arrow keys moved.
+	if *v.Selected != v.state.synced || *v.searchQuery() != v.state.filter {
 		v.state.choice = rowIndex(rows, *v.Selected)
 		v.state.synced = *v.Selected
+		v.state.filter = *v.searchQuery()
 	}
 	if len(rows) == 0 {
+		empty := "No sessions yet"
+		if v.state.searching && len(v.Sessions) > 0 {
+			empty = "No matching sessions"
+		}
 		ui.Column(c).Grow(1).Padding(k.sidebarPadX).Children(func() {
-			ui.Text(c, "No sessions yet").FontSize(k.smallSize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
+			ui.Text(c, empty).FontSize(k.smallSize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
 		})
 		return
 	}
