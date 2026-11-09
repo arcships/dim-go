@@ -1,0 +1,16 @@
+state	disconnected
+started_at	2026-11-09 12:10:50 CST
+captured_at	2026-11-09 12:10:51 CST
+built_at	2026-11-09 12:10:50 CST
+git_head	3fd370b6dd0aac6cfec54b706fe16023427cbfee
+git_dirty	 M docs/protocol-contract.md; M internal/appserver/branches.go; M internal/appserver/errors.go; M internal/appserver/errors_test.go; M internal/appserver/fake_test.go; M internal/appserver/mutations.go; M internal/integration/integration.go; M internal/session/session.go; M internal/ui/capability.go;?? docs/evidence/window-connected.png;?? docs/evidence/window-connected.txt;?? docs/evidence/window-disconnected.png;?? docs/evidence/window-disconnected.txt;?? docs/window-evidence.md;?? internal/appserver/attachment.go;?? internal/appserver/attachment_test.go;?? internal/appserver/branch_test.go;?? scripts/;
+product_home	<unset>
+app_pid	30210
+window_id	47309
+window_title	DimAgent
+window_bounds_points	486,118,1076,716
+png	/Users/eric8810/Code/dimagent-mygo/docs/evidence/window-disconnected.png
+png_pixels	2160 1440
+png_bytes	195357
+daemon	<none>
+app_log	

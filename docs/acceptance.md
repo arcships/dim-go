@@ -25,7 +25,7 @@ Last updated: 2026-11-09
 | # | 项目 | 要求证据 | 当前 | 结论 |
 |---|---|---|---|---|
 | F1 | 应用启动（无 daemon） | 真实窗口截图 + 未连接状态可见 | 无 | 未通过 |
-| F2 | 应用启动（真实 daemon，`DIMAGENT_PRODUCT_HOME`） | L3 + 真实窗口 + session 列表可见 | L3 测试通过；L4 无 | 未通过 |
+| F2 | 应用启动（真实 daemon，`DIMAGENT_PRODUCT_HOME`） | L3 + 真实窗口 + session 列表可见 | L4 窗口已连真实 daemon（空 catalog，无 session 列表，见 [window-evidence.md](window-evidence.md)） | 未通过 |
 | F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | UI 已接线（headless/fake 测试通过）；L4 无 | 未通过 |
 | F4 | session 切换 | 真实窗口切换 + 历史正确 | headless 覆盖，L4 无 | 未通过 |
 | F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L3 协议路径通过；L4 无 | 未通过 |
