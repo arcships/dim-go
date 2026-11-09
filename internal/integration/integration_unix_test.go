@@ -46,6 +46,12 @@ type fakeDaemon struct {
 	branches json.RawMessage
 	// keys is the verbatim session.keys reply (nil means the method is absent).
 	keys json.RawMessage
+	// management and selection are the verbatim provider.management and
+	// provider.selection replies (nil means the method is absent), and
+	// attachModel is the model pair the attach reply reports.
+	management  json.RawMessage
+	selection   json.RawMessage
+	attachModel *appserver.SessionModel
 }
 
 func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
@@ -114,6 +120,27 @@ func (d *fakeDaemon) setKeys(raw json.RawMessage) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.keys = append(json.RawMessage(nil), raw...)
+}
+
+// setManagement scripts the verbatim provider.management reply.
+func (d *fakeDaemon) setManagement(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.management = append(json.RawMessage(nil), raw...)
+}
+
+// setSelection scripts the verbatim provider.selection reply.
+func (d *fakeDaemon) setSelection(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.selection = append(json.RawMessage(nil), raw...)
+}
+
+// setAttachModel sets the model pair reported by session.attach.
+func (d *fakeDaemon) setAttachModel(providerID, modelID string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.attachModel = &appserver.SessionModel{ProviderID: providerID, ModelID: modelID}
 }
 
 // callCount reports how many requests were received for method.
@@ -252,7 +279,10 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		}, nil
 	case "session.attach":
 		sequence := int64(2)
-		return appserver.AttachResult{Sequence: &sequence}, nil
+		d.mu.Lock()
+		model := d.attachModel
+		d.mu.Unlock()
+		return appserver.AttachResult{Sequence: &sequence, Model: model}, nil
 	case "session.history":
 		// Echo the requested bound and window so main-branch and per-branch
 		// first-screen reads both satisfy the §9 paging invariants.
@@ -315,6 +345,22 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		return raw, nil
 	case "approval.respond":
 		return json.RawMessage(`{}`), nil
+	case "provider.management":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.management...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "provider.management not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
+	case "provider.selection":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.selection...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "provider.selection not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
 	case "session.catalog":
 		title := "Fake session"
 		return appserver.CatalogResult{Sessions: []appserver.SessionSummary{{

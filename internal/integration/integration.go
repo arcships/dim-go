@@ -606,6 +606,51 @@ func (c *SessionController) Keys() appserver.KeysResult {
 	return keys
 }
 
+// Models reads the model catalog through the selected session's App Server
+// connection. provider.management/provider.selection are process-owned
+// non-mutating reads, so this bridge adds no cache and no local choice: every
+// call returns the daemon's current answer. A missing capability is reported as
+// *appserver.CapabilityError so the picker stays visible-disabled with a reason;
+// a subscription_changed reply gets the read-only single retry.
+func (c *SessionController) Models(ctx context.Context) (session.ModelCatalog, error) {
+	if c == nil {
+		return session.ModelCatalog{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return session.ModelCatalog{}, fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return session.ModelCatalog{}, fmt.Errorf("integration: no session")
+	}
+	var catalog session.ModelCatalog
+	err := retryReadOnce(ctx, "provider.management", func() error {
+		var attemptErr error
+		catalog, attemptErr = c.Session.Models(ctx)
+		return attemptErr
+	})
+	if err != nil {
+		return session.ModelCatalog{}, err
+	}
+	return catalog, nil
+}
+
+// Model returns the model pair the attach reply reported for the selected
+// session. It never falls back to the default selection; a picker shows the
+// session pair and the default as separate facts.
+func (c *SessionController) Model() (session.ModelSelection, bool) {
+	if c == nil {
+		return session.ModelSelection{}, false
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return session.ModelSelection{}, false
+	}
+	return c.Session.Model()
+}
+
 // OpenBranch loads one branch's first-screen history into that branch's own
 // projection. Branch switching is not its own RPC (docs/branch-attachment-plan.md
 // §1.2): it is the session.history {branchId} read, and the session layer bounds

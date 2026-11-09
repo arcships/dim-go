@@ -102,6 +102,13 @@ type fakeConfig struct {
 	BranchesRaw   json.RawMessage
 	BranchesFault *fakeRPCError
 
+	// ManagementRaw/ManagementFault script provider.management, and
+	// SelectionRaw/SelectionFault script provider.selection.
+	ManagementRaw   json.RawMessage
+	ManagementFault *fakeRPCError
+	SelectionRaw    json.RawMessage
+	SelectionFault  *fakeRPCError
+
 	// Mutations is served in order per mutation method. Tests that script a
 	// request assert the queue was consumed exactly once.
 	Mutations map[string][]fakeMutation
@@ -281,6 +288,30 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, fakeBadParams()
 		}
 		return s.cfg.BranchesRaw, nil
+	case "provider.management":
+		var p ProviderManagementParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+		if s.cfg.ManagementFault != nil {
+			return nil, s.cfg.ManagementFault
+		}
+		if len(s.cfg.ManagementRaw) == 0 {
+			return nil, fakeBadParams()
+		}
+		return s.cfg.ManagementRaw, nil
+	case "provider.selection":
+		var p ProviderSelectionParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+		if s.cfg.SelectionFault != nil {
+			return nil, s.cfg.SelectionFault
+		}
+		if len(s.cfg.SelectionRaw) == 0 {
+			return nil, fakeBadParams()
+		}
+		return s.cfg.SelectionRaw, nil
 	case "session.submit":
 		return s.mutation(MutationSessionSubmit, params)
 	case "session.stop":

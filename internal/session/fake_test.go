@@ -75,11 +75,16 @@ type fakeConfig struct {
 	BranchesErr *fakeRPCError
 	// BranchesFn, when set, answers every session.branches request instead of
 	// the fixed Branches value, so tests can change the directory between reads.
-	BranchesFn   func(appserver.BranchesParams) (any, *fakeRPCError)
-	DetachErr    *fakeRPCError
-	InputLookup  fakeInputLookupFunc
-	Mutations    map[string][]fakeMutation
-	MutationGate map[string]*fakeGate
+	BranchesFn func(appserver.BranchesParams) (any, *fakeRPCError)
+	// Management/Selection script provider.management and provider.selection.
+	Management    any
+	ManagementErr *fakeRPCError
+	Selection     any
+	SelectionErr  *fakeRPCError
+	DetachErr     *fakeRPCError
+	InputLookup   fakeInputLookupFunc
+	Mutations     map[string][]fakeMutation
+	MutationGate  map[string]*fakeGate
 }
 
 type fakeCall struct {
@@ -247,6 +252,30 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, s.cfg.DetachErr
 		}
 		return struct{}{}, nil
+	case "provider.management":
+		var p appserver.ProviderManagementParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.ManagementErr != nil {
+			return nil, s.cfg.ManagementErr
+		}
+		if s.cfg.Management == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.Management, nil
+	case "provider.selection":
+		var p appserver.ProviderSelectionParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, invalidParams()
+		}
+		if s.cfg.SelectionErr != nil {
+			return nil, s.cfg.SelectionErr
+		}
+		if s.cfg.Selection == nil {
+			return nil, unknownMethod()
+		}
+		return s.cfg.Selection, nil
 	case "session.input_lookup":
 		var p InputLookupParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
