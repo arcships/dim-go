@@ -570,7 +570,8 @@ func (c *SessionController) BranchDirectory() appserver.BranchesResult {
 
 // Delete asks the App Server to delete the selected session. The controller
 // keeps its view until the daemon confirms; the caller removes the row only
-// after a nil error.
+// after a nil error. A subscription_changed reply is a fail-closed replay gap
+// like every other mutation: the delete is never resent.
 func (c *SessionController) Delete(ctx context.Context) error {
 	if c == nil {
 		return fmt.Errorf("integration: no session")
@@ -583,7 +584,7 @@ func (c *SessionController) Delete(ctx context.Context) error {
 	if c.Session == nil {
 		return fmt.Errorf("integration: no session")
 	}
-	return c.Session.Delete(ctx)
+	return replayGapWrite("session.delete", c.Session.Delete(ctx))
 }
 
 // Keys returns the session.keys snapshot captured by Open. It is empty when the
