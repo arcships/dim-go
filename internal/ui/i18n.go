@@ -135,15 +135,20 @@ const (
 	keyReasonSkin            = "reason.skin"
 	keyReasonChrome          = "reason.chrome"
 
-	keyHeaderStop             = "header.stop"
-	keyHeaderReconnect        = "header.reconnect"
-	keyHeaderSettings         = "header.settings"
-	keyHeaderConversation     = "header.conversation"
-	keyHeaderSessionPrefix    = "header.sessionPrefix"
-	keyHeaderNoticesPrefix    = "header.noticesPrefix"
-	keyHeaderConnectionPrefix = "header.connectionPrefix"
-	keyHeaderClosed           = "header.closed"
-	keyHeaderSessionClosed    = "header.sessionClosed"
+	keyHeaderStop          = "header.stop"
+	keyHeaderReconnect     = "header.reconnect"
+	keyHeaderSettings      = "header.settings"
+	keyHeaderConversation  = "header.conversation"
+	keyHeaderRegion        = "header.region"
+	keyHeaderMenu          = "header.menu"
+	keyHeaderMenuRefresh   = "header.menu.refreshBranches"
+	keyHeaderModel         = "header.model"
+	keyHeaderModelPicker   = "header.model.picker"
+	keyHeaderDeleteTitle   = "header.delete.title"
+	keyHeaderDeleteMessage = "header.delete.message"
+	keyHeaderDeleteConfirm = "header.delete.confirm"
+	keyHeaderDeleteCancel  = "header.delete.cancel"
+	keyHeaderSessionClosed = "header.sessionClosed"
 
 	keyComposerHint   = "composer.hint"
 	keyComposerLabel  = "composer.label"
@@ -306,15 +311,20 @@ var stringsEN = Strings{
 	keyReasonSkin:            reasonSkin,
 	keyReasonChrome:          reasonChrome,
 
-	keyHeaderStop:             "Stop",
-	keyHeaderReconnect:        "Reconnect",
-	keyHeaderSettings:         "Settings",
-	keyHeaderConversation:     "Conversation",
-	keyHeaderSessionPrefix:    "Session: ",
-	keyHeaderNoticesPrefix:    "Notices: ",
-	keyHeaderConnectionPrefix: "App Server: ",
-	keyHeaderClosed:           "Closed",
-	keyHeaderSessionClosed:    "Session closed",
+	keyHeaderStop:          "Stop",
+	keyHeaderReconnect:     "Reconnect",
+	keyHeaderSettings:      "Settings",
+	keyHeaderConversation:  "Conversation",
+	keyHeaderRegion:        "Conversation header",
+	keyHeaderMenu:          "Session menu",
+	keyHeaderMenuRefresh:   "Refresh branches",
+	keyHeaderModel:         "Model",
+	keyHeaderModelPicker:   "Model picker",
+	keyHeaderDeleteTitle:   "Delete session?",
+	keyHeaderDeleteMessage: "This asks the App Server to delete the selected session. It cannot be undone here.",
+	keyHeaderDeleteConfirm: "Delete",
+	keyHeaderDeleteCancel:  "Cancel",
+	keyHeaderSessionClosed: "Session closed",
 
 	keyComposerHint:   composerHint,
 	keyComposerLabel:  "Composer",
@@ -461,15 +471,20 @@ var stringsZHCN = Strings{
 	keyReasonSkin:            "不可用：皮肤需要 dim-electron 的 skin.json 解析器和窗口区域；主题行只能选择 system、light 或 dark。",
 	keyReasonChrome:          "不可用：chrome 主题需要 dim-electron 的六套历史样式表；shell 不会绘制假的 chrome。",
 
-	keyHeaderStop:             "停止",
-	keyHeaderReconnect:        "重新连接",
-	keyHeaderSettings:         "设置",
-	keyHeaderConversation:     "会话",
-	keyHeaderSessionPrefix:    "会话：",
-	keyHeaderNoticesPrefix:    "通知：",
-	keyHeaderConnectionPrefix: "App Server：",
-	keyHeaderClosed:           "已关闭",
-	keyHeaderSessionClosed:    "会话已关闭",
+	keyHeaderStop:          "停止",
+	keyHeaderReconnect:     "重新连接",
+	keyHeaderSettings:      "设置",
+	keyHeaderConversation:  "会话",
+	keyHeaderRegion:        "会话顶栏",
+	keyHeaderMenu:          "会话菜单",
+	keyHeaderMenuRefresh:   "刷新分支",
+	keyHeaderModel:         "模型",
+	keyHeaderModelPicker:   "模型选择",
+	keyHeaderDeleteTitle:   "删除会话？",
+	keyHeaderDeleteMessage: "这会请求 App Server 删除选中的会话，无法在这里撤销。",
+	keyHeaderDeleteConfirm: "删除",
+	keyHeaderDeleteCancel:  "取消",
+	keyHeaderSessionClosed: "会话已关闭",
 
 	keyComposerHint:   "Enter 发送 · Shift+Enter 换行",
 	keyComposerLabel:  "输入框",

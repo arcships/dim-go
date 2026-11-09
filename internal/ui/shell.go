@@ -296,6 +296,15 @@ type State struct {
 	// ShowSettings is the window's own record that the appearance surface is
 	// showing instead of the conversation. It is display state only.
 	ShowSettings bool
+	// DeleteConfirm is the window's own record that the toolbar's delete
+	// confirmation is showing. It holds no session fact: the alert is confirmed
+	// through OnDeleteSession, and the row leaves the catalog only after the App
+	// Server confirmed the delete. It is dropped when the selection changes, so
+	// one session's confirmation never addresses another.
+	DeleteConfirm bool
+	// deleteFor is the selection DeleteConfirm was opened for. See
+	// syncDeleteConfirm.
+	deleteFor string
 	// Settings holds the desktop-local appearance and language preferences the
 	// surface reports. They are the desktop's, not a session's: nothing here is
 	// sent to the App Server or stored as a session fact. Settings.Locale is the
@@ -347,6 +356,7 @@ func (s *State) View(c *ui.Context) {
 	// session list or the conversation off the window.
 	s.SidebarWidth = k.resolveSidebarWidth(s.SidebarWidth)
 	s.syncKeysSession()
+	s.syncDeleteConfirm()
 	a := s.actions()
 	composer := s.composerView()
 	// Escape leaves the keys browser wherever the keyboard focus is. It is read
@@ -509,6 +519,21 @@ func (s *State) syncKeysSession() {
 	s.keysSelected = ""
 }
 
+// syncDeleteConfirm drops the delete confirmation when the selected session
+// changed under it. The alert addresses one session; keeping it open would let
+// its confirm button delete a different selection. A closed alert clears the
+// identity it was opened for.
+func (s *State) syncDeleteConfirm() {
+	if !s.DeleteConfirm {
+		s.deleteFor = ""
+		return
+	}
+	if s.deleteFor != s.Selected {
+		s.DeleteConfirm = false
+		s.deleteFor = ""
+	}
+}
+
 // applySettings stores the appearance snapshot the surface reported and hands it
 // to OnSettingsChange for the window to persist. The shell applies it on the
 // next frame through State.View: the forced theme is read there, newTokensFor
@@ -579,6 +604,19 @@ func (s *State) actions() Actions {
 			}
 		}
 	}
+	// The delete confirmation is the window's own state too: the menu item only
+	// opens it, and the alert's confirm button calls the caller's
+	// OnDeleteSession. It is wired exactly while that callback exists, so a
+	// fixture without one keeps the entry explained as WIP.
+	if s.OnDeleteSession != nil {
+		a.OnRequestDelete = func() {
+			if s.Selected == "" {
+				return
+			}
+			s.deleteFor = s.Selected
+			s.DeleteConfirm = true
+		}
+	}
 	return a
 }
 
@@ -618,11 +656,16 @@ func (s *State) pendingApprovals() []Approval {
 }
 
 // headerView copies the supervisor's report, the terminal close and the
-// window-owned status into the toolbar's view.
+// window-owned status into the toolbar's view. Project is the selected catalog
+// row's Group, which the catalog already carries as the cwd's base name; the
+// shell adds no project fact of its own.
 func (s *State) headerView() HeaderView {
-	return HeaderView{
+	v := HeaderView{
+		Project:          s.selectedProject(),
 		Title:            s.selectedTitle(),
+		SessionID:        s.Selected,
 		HasSession:       s.Selected != "",
+		SelectedBranch:   s.SelectedBranch,
 		Connection:       s.Connection,
 		ConnectionError:  s.ConnectionError,
 		Run:              s.Run,
@@ -639,6 +682,13 @@ func (s *State) headerView() HeaderView {
 		ContextPanelOpen: s.contextPanelShown(),
 		Locale:           s.locale(),
 	}
+	// The confirmation belongs to the selection it was opened for. A selection
+	// change is dropped by syncDeleteConfirm before the frame builds; the guard
+	// keeps a stale alert out of a frame that has not run it.
+	if s.DeleteConfirm && s.deleteFor == s.Selected {
+		v.DeleteConfirm = &s.DeleteConfirm
+	}
+	return v
 }
 
 // timelineView copies the rows and the window's loading and close facts into
@@ -699,4 +749,17 @@ func (s *State) selectedTitle() string {
 		}
 	}
 	return tr(s.locale(), keyNoSession)
+}
+
+// selectedProject returns the selected session's project label, as the catalog
+// carries it in Group (a cwd base name), or "" when the catalog has none. The
+// toolbar draws no project name or separator for an empty value; it never
+// invents a project.
+func (s *State) selectedProject() string {
+	for _, session := range s.Sessions {
+		if session.ID == s.Selected {
+			return session.Group
+		}
+	}
+	return ""
 }
