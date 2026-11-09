@@ -652,8 +652,11 @@ func TestSidebarSettingsOpensTheSurface(t *testing.T) {
 		t.Fatalf("clicking the sidebar settings entry did not open the route: %+v", s.ShowSettings)
 	}
 	tt.Frame()
-	if !tt.HasText("Appearance") || !tt.HasText("Interface language") {
-		t.Errorf("the appearance route is not drawn after the click, texts %q", tt.Texts())
+	if info, ok := tt.AccessByRole(ui.RoleHeading, "Personalization"); !ok || info.Level != 1 {
+		t.Errorf("the settings route did not open on the personalization page after the click: %+v, found %v, texts %q", info, ok, tt.Texts())
+	}
+	if !tt.HasText(settingsSectionGaps[SettingsSectionPersonalization]) {
+		t.Errorf("the personalization route is not drawn after the click, texts %q", tt.Texts())
 	}
 	if tt.HasText("Sign in to Dim") {
 		t.Errorf("the account row is still drawn behind the whole-window route, texts %q", tt.Texts())
