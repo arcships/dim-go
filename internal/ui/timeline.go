@@ -58,6 +58,13 @@ type Block struct {
 	EndedAt   int64
 	// Tool is the call of a BlockTool block.
 	Tool Tool
+	// Match is the run of this block's text that the find bar's current match is,
+	// or nil when the match is elsewhere. The shell fills it on the copies it
+	// builds for the frame; the projection reports no such fact. A thinking block
+	// draws the text itself and marks the run; a Markdown text block and a tool
+	// card are drawn by the content layer and the card, so only the row is
+	// washed there.
+	Match *TextHighlight
 	// Files are the changes of a BlockFileChanges block.
 	//
 	// Data-source gap: the timeline projection folds no file-change facts
@@ -203,13 +210,19 @@ func chevron(c *ui.Context, k tokens, color ui.Color, progress float32) {
 }
 
 // userRow draws what the user submitted as a right-aligned bubble: at most 85%
-// of the row, on the muted face, as docs/ui-layout-spec.md §4.2 records it.
+// of the row, on the muted face, as docs/ui-layout-spec.md §4.2 records it. The
+// find bar's current match, when it falls in this bubble's text, is drawn as the
+// highlighted run inside the words.
 func userRow(c *ui.Context, k tokens, m Message) {
 	ui.Row(c).Padding(k.rowPadY, k.timelinePadX, k.rowPadY+timelineTurnGap, k.timelinePadX).
 		Justify(ui.End).Children(func() {
 		ui.Column(c).MaxWidthPercent(k.timelineUserWidth).
 			Padding(k.timelineUserPadY, k.timelineUserPadX).
 			Radius(k.timelineBubbleR).Background(k.muted).Children(func() {
+			if m.Search != nil && m.Search.Match != nil {
+				highlightText(c, k, m.Content, *m.Search.Match, k.bodySize, k.foreground)
+				return
+			}
 			ui.Text(c, m.Content).FontSize(k.bodySize).TextColor(k.foreground)
 		})
 	})
@@ -256,7 +269,9 @@ func blockView(c *ui.Context, k tokens, v TimelineView, rowID string, index int,
 
 // thinkingBlock draws a folded thinking block: a disclosure header reading
 // "Thinking" or "Thought for Ns", and, while open, the reasoning behind a 2px
-// rail in a panel capped at 240 DIPs, as the spec's max-h-[240px] does.
+// rail in a panel capped at 240 DIPs, as the spec's max-h-[240px] does. The find
+// bar's current match, when it falls in the reasoning, is drawn as the
+// highlighted run; the bar opens the fold so that run is on screen.
 func thinkingBlock(c *ui.Context, k tokens, v TimelineView, key string, block Block) {
 	p := ui.CollapsibleBase(c, v.folds.state(key))
 	p.Trigger.MinHeight(k.timelineHeaderH).Gap(k.gap).AlignItems(ui.Center).
@@ -267,6 +282,10 @@ func thinkingBlock(c *ui.Context, k tokens, v TimelineView, key string, block Bl
 		})
 	p.Panel(func() {
 		ui.Scroll(c).MaxHeight(k.timelinePanelMaxH).Children(func() {
+			if block.Match != nil {
+				highlightText(c, k, block.Content, *block.Match, k.bodySize, k.mutedForeground)
+				return
+			}
 			ui.Text(c, block.Content).FontSize(k.bodySize).TextColor(k.mutedForeground)
 		})
 	}).Margin(k.gap, 0, 0, 0).PaddingStart(k.timelinePadStart).

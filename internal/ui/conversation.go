@@ -84,7 +84,23 @@ func emptyConversation(c *ui.Context, k tokens) {
 // not a row: it takes the composer's slot (renderApprovalPanel). A row's own text
 // stands in for an unknown author, so a caller cannot lose text to a row type the
 // shell does not know.
+//
+// The row the find bar's current match is in is drawn washed, so the match shows
+// even where the row's text is Markdown or a tool card that the shell does not
+// lay out itself; a row the shell draws as plain text marks the run as well
+// (userRow, thinkingBlock).
 func messageRow(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
+	if m.Search == nil {
+		messageRowBody(c, k, v, a, m)
+		return
+	}
+	ui.Column(c).Background(k.wash(k.primary)).Radius(radiusSM).Children(func() {
+		messageRowBody(c, k, v, a, m)
+	})
+}
+
+// messageRowBody draws one row's own content, by the author that wrote it.
+func messageRowBody(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 	switch m.Author {
 	case AuthorUser:
 		userRow(c, k, m)
