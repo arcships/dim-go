@@ -7,8 +7,10 @@
 // reaches back into State, calls another region, or reads the App Server. The
 // shell (shell.go) is the only assembler: it copies State into the view structs,
 // builds the Actions from State's callbacks, and calls each render entry below
-// in draw order. The approval row is the one nested region: the timeline owns
-// its place in the row list and calls renderApproval for the row's body.
+// in draw order. Two regions are nested: the approval row belongs to the
+// timeline, which calls renderApproval for the row's body, and the find bar
+// belongs to the toolbar, which calls renderThreadSearch at its trailing end
+// while the window says it is open.
 //
 // This is what lets regions be worked on in parallel worktrees: a region may
 // change its own internals and helpers freely, but the fields it reads, its
@@ -177,6 +179,21 @@ type Actions struct {
 	// so the shell always wires this field; a nil field leaves the sidebar entry
 	// a WIP statement for a caller that draws the column alone.
 	OnOpenSearch func()
+	// OnThreadSearchNext is called by the find bar's next entry and its Enter
+	// key. The shell moves the highlight to the next match, wrapping to the first
+	// one after the last, and the timeline scrolls to the row it lands on. The bar
+	// counts the matches itself, so this field sends no request and rewrites no
+	// row.
+	OnThreadSearchNext func()
+	// OnThreadSearchPrevious is called by the find bar's previous entry and its
+	// Shift+Enter key. It moves the highlight back, wrapping to the last match
+	// before the first, as OnThreadSearchNext moves it forward.
+	OnThreadSearchPrevious func()
+	// OnThreadSearchClose is called by the find bar's close entry, its Escape key
+	// and the window's own Escape while the bar is open. The shell drops the
+	// query and the highlight and gives the focus back to the control the bar took
+	// it from. It sends nothing: the bar holds no fact the App Server owns.
+	OnThreadSearchClose func()
 }
 
 // SidebarView is what the sidebar region draws: the session catalog, the
@@ -328,12 +345,70 @@ type HeaderView struct {
 	// Actions.OnRename with the draft text. A nil pointer draws no dialog.
 	RenameConfirm *bool
 	RenameDraft   *string
+	// ThreadSearch is the conversation's find bar, drawn at the end of the bar
+	// while the window says it is open. The bar is a nested region of the
+	// toolbar, as the approval row is one of the timeline: header.go draws it
+	// through renderThreadSearch, and it reads the matches the shell counted from
+	// the rows the window already displays. It is display state only and starts
+	// no App Server read.
+	ThreadSearch ThreadSearchView
 	// Locale is the language of the toolbar's own text: the breadcrumb's
 	// accessible name, the menu entries, the editor-open entry, the Stop and
 	// Reconnect entries and the terminal-close banner. The run and connection
 	// names, the session title and an error string are not the shell's words and
 	// stay as they came. An empty or unknown value draws English.
 	Locale Locale
+}
+
+// ThreadSearchView is what the conversation bar's find bar draws: the text it
+// edits, the match the timeline highlights and the two entries that step through
+// the matches.
+type ThreadSearchView struct {
+	// Open is the window's record that the bar is showing. A nil pointer draws
+	// nothing, so a window that never opened the bar draws the toolbar the
+	// reference shows.
+	Open *bool
+	// Query is the search text the field edits in place. The shell passes a
+	// pointer, so the text survives the next frame while the matches are counted
+	// from it; a nil pointer draws nothing.
+	Query *string
+	// Current is the one-based number of the match the timeline highlights, and
+	// Total is how many the query found in the loaded rows. Both are zero while
+	// nothing matches, and the bar then reads "0/0". The count is a display copy:
+	// it numbers matches in the rows the window shows and claims no history the
+	// App Server has not sent.
+	Current int
+	Total   int
+	// Focus is the field's identity, so the shortcut that opens the bar again and
+	// the entries that step through the matches put the keyboard focus back in it.
+	// A nil pointer leaves the field without one.
+	Focus *ui.Handle
+	// Locale is the language of the bar's own text: the field's label and
+	// placeholder, the counter's description and the three entries. The query
+	// itself is the user's text and stays as typed.
+	Locale Locale
+}
+
+// IsOpen reports whether the window's find bar is showing.
+func (v ThreadSearchView) IsOpen() bool { return v.Open != nil && *v.Open }
+
+// TextHighlight is one run of a text the find bar's query matched, in byte
+// offsets of that text, as the shell's own matching produced them.
+type TextHighlight struct {
+	Start int
+	End   int
+}
+
+// MessageSearch marks a conversation row the find bar's current match is in. The
+// timeline draws a marked row washed, so the match shows even where the row's
+// text is Markdown or a tool card; Match holds the run of the row's own text when
+// that text is drawn as plain text, and is nil for a match in a block or in text
+// the shell does not draw itself.
+//
+// The shell fills it on the copies it builds for the frame; it is never a fact
+// the projection reports.
+type MessageSearch struct {
+	Match *TextHighlight
 }
 
 // TimelineView is what the timeline region draws: the conversation rows, the
@@ -554,8 +629,23 @@ func renderSidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // Actions.OnStop and Actions.OnReconnect from the entries, each only when
 // HeaderView says the entry applies. The banner shows a terminal close, the
 // connection error, or the window's action error.
+//
+// While HeaderView says the find bar is open, the bar draws it at its trailing
+// end through renderThreadSearch, and the Stop, Reconnect and context-panel
+// entries step aside for it.
 func renderHeader(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	header(c, k, v, a)
+}
+
+// renderThreadSearch draws the conversation bar's find bar: the field, the "n/m"
+// counter and the entries that step through the matches and close the bar. It
+// edits ThreadSearchView.Query in place and calls Actions.OnThreadSearchNext,
+// Actions.OnThreadSearchPrevious and Actions.OnThreadSearchClose; it starts no
+// App Server read, because the matches are the shell's display copy of the rows
+// on screen. It is a nested region of the toolbar: header.go calls it at the
+// bar's trailing end while the window says the bar is open.
+func renderThreadSearch(c *ui.Context, k tokens, v ThreadSearchView, a Actions) {
+	threadSearchBar(c, k, v, a)
 }
 
 // renderTimeline draws the conversation list, or the loading or empty state. It

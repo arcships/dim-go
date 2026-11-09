@@ -1,7 +1,9 @@
 // This file owns the main area's conversation bar and banner: the project and
 // session-title breadcrumb, the session menu, the conditional Stop and Reconnect
-// entries, the context panel toggle, the delete confirmation and the error
-// banner below them. It reads HeaderView and Actions only (see protocols.go).
+// entries, the context panel toggle, the delete confirmation, the find bar's
+// place at the bar's trailing end and the error banner below them. It reads
+// HeaderView and Actions only (see protocols.go). The find bar itself is
+// thread_search.go's nested region, drawn through renderThreadSearch.
 //
 // The reference's conversation bar is one line with the breadcrumb and a "…"
 // menu on the left and the surface entries on the right. Its model picker lives
@@ -178,6 +180,14 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			breadcrumb(c, k, v, locale)
 			sessionMenu(c, k, v, a)
 		})
+		// The find bar takes the toolbar's trailing room while it shows, so its
+		// field, count and entries stay on the bar instead of competing with the
+		// entries below for a narrow window's last DIPs. Closing it brings them
+		// back; nothing about the session changes while it is open.
+		if v.ThreadSearch.IsOpen() {
+			renderThreadSearch(c, k, v.ThreadSearch, a)
+			return
+		}
 		// Stopping is the App Server's to do once the callback sends session.stop,
 		// so the entry belongs beside the status only while a turn still runs.
 		if !v.Closed && v.Run == RunRunning {

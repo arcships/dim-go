@@ -198,6 +198,10 @@ type Message struct {
 	// of any other author.
 	Tool     Tool
 	Approval *Approval
+	// Search is the find bar's mark on this row, or nil when the query's current
+	// match is elsewhere. The shell fills it on the copy it builds for the frame;
+	// the projection reports no such fact, and no region searches the rows itself.
+	Search *MessageSearch
 }
 
 // Route is the page the window shows in place of the conversation. Chat is the
@@ -447,6 +451,38 @@ type State struct {
 	// input's text changes, the highlight returns to the first result instead of
 	// pointing into a list the query no longer produces.
 	searchSynced string
+	// ShowThreadSearch is the window's own record that the conversation's find
+	// bar is showing in the toolbar, and ThreadSearchQuery is the text its field
+	// edits. They are display state only: Cmd+F opens the bar, its matches are
+	// counted from the rows the window already displays, and closing it forgets
+	// the query and the highlight. No field here is a session fact, and nothing
+	// is sent to the App Server.
+	ShowThreadSearch  bool
+	ThreadSearchQuery string
+	// ThreadSearchIndex is the match the timeline highlights, as an index into
+	// threadSearchFound; -1 while the query matches nothing, so the bar reads
+	// "0/0" rather than pointing at a match that is not there.
+	ThreadSearchIndex int
+	// threadSearchSynced is the query ThreadSearchIndex was last held against:
+	// changed text returns the highlight to the first match instead of pointing
+	// into matches the query no longer produces. threadSearchFound is the match
+	// list counted for the frame the bar and the timeline draw from, and
+	// threadSearchRow the row it was last scrolled to, so a frame that keeps the
+	// same match does not fight the user's scrolling.
+	threadSearchSynced string
+	threadSearchFound  []threadMatch
+	threadSearchRow    int
+	// threadSearchFocus is the field's identity, so Cmd+F again and a step entry
+	// put the keyboard focus back in it. threadSearchReturn is the control the
+	// bar took the focus from, to give it back as the bar closes.
+	threadSearchFocus  ui.Handle
+	threadSearchReturn *ui.Handle
+	// threadSearchFor is the selection the bar was opened on and
+	// threadSearchTracked says whether that comparison has started: a change of
+	// session closes the bar, so one session's matches never highlight another's
+	// rows. See syncThreadSearchSession.
+	threadSearchFor     string
+	threadSearchTracked bool
 	// DeleteConfirm is the window's own record that the toolbar's delete
 	// confirmation is showing. It holds no session fact: the alert is confirmed
 	// through OnDeleteSession, and the row leaves the catalog only after the App
@@ -509,15 +545,18 @@ func (s *State) View(c *ui.Context) {
 	s.syncKeysSession()
 	s.syncDeleteConfirm()
 	s.syncRenameConfirm()
+	s.syncThreadSearchSession()
 	a := s.actions()
 	// The settings route takes the whole window: no sidebar, toolbar,
 	// conversation, composer or status band is drawn while it is open, and a
 	// close returns to the frame the window held, with its selection, draft and
 	// conversation list state untouched. The search palette never shows over the
-	// settings route, so a palette that was open is dropped here.
+	// settings route, so a palette that was open is dropped here, and the find
+	// bar, which belongs to the conversation, goes with it.
 	route := s.currentRoute()
 	if route == RouteSettings {
 		s.closeSearch()
+		s.dropThreadSearch()
 		renderSettings(c, k, s.Settings, wipCapabilities(s), s.applySettings, s.closeSettings)
 		return
 	}
@@ -528,6 +567,7 @@ func (s *State) View(c *ui.Context) {
 	// behind a page.
 	if route != RouteChat {
 		s.closeSearch()
+		s.dropThreadSearch()
 		renderWIPRoute(c, k, route, s.headerView(), a)
 		return
 	}
@@ -538,6 +578,23 @@ func (s *State) View(c *ui.Context) {
 	if s.ShowKeys && c.Shortcut(0, ui.KeyEscape) {
 		s.ShowKeys = false
 	}
+	// The find bar belongs to the conversation. The keys browser and the search
+	// palette take the conversation away, so they close it; Cmd+F opens it on the
+	// selected session and, pressed again, puts the focus back in its field;
+	// Escape leaves it wherever the focus is. The states are the window's own and
+	// the matches are counted from the rows it already displays, so nothing here
+	// sends a request. s.syncThreadSearch then holds the highlight against the
+	// current text and scrolls the timeline to it.
+	if s.ShowKeys || s.ShowSearch || s.Selected == "" {
+		s.dropThreadSearch()
+	}
+	if s.Selected != "" && !s.ShowKeys && !s.ShowSearch && c.Shortcut(ui.Cmd, ui.KeyF) {
+		s.openThreadSearch()
+	}
+	if s.ShowThreadSearch && c.Shortcut(0, ui.KeyEscape) {
+		s.closeThreadSearch()
+	}
+	s.syncThreadSearch()
 	ui.Split(c, &s.SidebarWidth, func() {
 		renderSidebar(c, k, s.sidebarView(), a)
 		// A click on a session row moves the selection while the sidebar builds;
@@ -648,13 +705,23 @@ func (s *State) View(c *ui.Context) {
 		s.SearchSelected = max(0, min(s.SearchSelected, len(results)-1))
 		renderSearchPalette(c, k, s.searchPaletteView(results), a)
 	}
+	// The control the find bar gives the focus back to is recorded here, at the
+	// end of every frame the bar is closed and the conversation is showing: the
+	// bar opens at the top of a frame, before the regions are built, and mygo
+	// answers which control has the focus from the frame that is committed, so
+	// the answer has to be taken while that frame is still the last one.
+	if !s.ShowThreadSearch && s.Selected != "" {
+		s.threadSearchReturn = s.threadSearchReturnTarget(c)
+	}
 }
 
 // openSearch opens the palette from the shortcut or the sidebar entry. It
 // starts from an empty query, as the reference's reopened dialog does, and
 // highlights the first result; the list itself is filtered on every frame from
-// State.Sessions.
+// State.Sessions. The find bar belongs to the conversation the palette covers,
+// so the palette closes it rather than leaving it behind the dialog.
 func (s *State) openSearch() {
+	s.dropThreadSearch()
 	s.ShowSearch = true
 	s.SearchQuery = ""
 	s.SearchSelected = 0
@@ -750,6 +817,154 @@ func (s *State) contextPanelColumn(c *ui.Context, k tokens, a Actions) {
 	})
 }
 
+// syncThreadSearchSession drops the find bar and its highlight when the selected
+// session changed under it. The bar counts one session's rows, so keeping it
+// would search one session's text against another's conversation; the window
+// opens the next session with no bar, as it opens it with no query. The focus is
+// left where the new frame puts it, since the control the bar took it from
+// belonged to the conversation that is gone.
+func (s *State) syncThreadSearchSession() {
+	if !s.threadSearchTracked {
+		s.threadSearchTracked = true
+		s.threadSearchFor = s.Selected
+		return
+	}
+	if s.threadSearchFor == s.Selected {
+		return
+	}
+	s.threadSearchFor = s.Selected
+	s.dropThreadSearch()
+}
+
+// openThreadSearch shows the find bar, or puts the focus back in its field when
+// it already shows, as Cmd+F does: the query it holds stays, so a second press
+// carries on where the first left off. The control the bar gives the focus back
+// to is the one threadSearchReturn recorded on the last frame the bar was closed,
+// taken in State.View once the regions of that frame were built: mygo answers
+// which control has the focus from the frame that is committed, so it cannot be
+// asked here, before this frame's regions exist.
+func (s *State) openThreadSearch() {
+	s.threadSearchFor = s.Selected
+	s.threadSearchTracked = true
+	s.ShowThreadSearch = true
+	s.threadSearchFocus.Focus()
+}
+
+// threadSearchReturnTarget is the control the find bar gives the focus back to as
+// it closes: the conversation's list, the sidebar's thread list, or the composer.
+// Those are the three the shell can name, and they are where the keyboard usually
+// was when Cmd+F came; a row they hold counts, so a click on a session row hands
+// the focus back to the list around it. The composer is the fallback, since it is
+// the shell's own text entry and the bar opens from the keyboard.
+func (s *State) threadSearchReturnTarget(c *ui.Context) *ui.Handle {
+	switch {
+	case s.conversation.FocusWithin(c):
+		return &s.conversation.Handle
+	case s.sidebar.list.FocusWithin(c):
+		return &s.sidebar.list.Handle
+	default:
+		return &s.composerFocus
+	}
+}
+
+// closeThreadSearch leaves the find bar: it forgets the query and the highlight
+// and gives the focus back to the control the bar took it from, or to the
+// composer when there was none to record. Escape, the bar's close entry and the
+// window's own Escape while the bar is open all end here. The conversation is
+// drawn again from the rows it held, so the frame after the close is the frame
+// before the open.
+func (s *State) closeThreadSearch() {
+	target := s.threadSearchReturn
+	s.dropThreadSearch()
+	if target == nil {
+		target = &s.composerFocus
+	}
+	target.Focus()
+}
+
+// dropThreadSearch forgets the bar, its query and the highlight without touching
+// the keyboard focus. It is what a change of session, page or surface uses: the
+// control the bar took the focus from belongs to a frame that is no longer
+// drawn, so there is nothing to give the focus back to.
+func (s *State) dropThreadSearch() {
+	s.ShowThreadSearch = false
+	s.ThreadSearchQuery = ""
+	s.ThreadSearchIndex = -1
+	s.threadSearchSynced = ""
+	s.threadSearchFound = nil
+	s.threadSearchRow = -1
+	s.threadSearchReturn = nil
+}
+
+// stepThreadSearch moves the highlight by delta through the matches the current
+// query finds, wrapping from the last back to the first and from the first back
+// to the last. A query that matches nothing leaves the highlight where it is, so
+// an entry that cannot step claims nothing. The request to scroll to the row is
+// taken again on the next frame, even when the match stays in the same row.
+func (s *State) stepThreadSearch(delta int) {
+	count := len(threadSearchMatches(s.timelineRows(), s.ThreadSearchQuery))
+	if count == 0 {
+		return
+	}
+	index := s.ThreadSearchIndex
+	switch {
+	case index < 0:
+		index = 0
+	case index+delta < 0:
+		index = count - 1
+	case index+delta >= count:
+		index = 0
+	default:
+		index += delta
+	}
+	s.ThreadSearchIndex = index
+	s.threadSearchRow = -1
+}
+
+// syncThreadSearch holds the highlight against the text the timeline shows. It
+// counts the query's occurrences once a frame, keeps the highlight on a match
+// that still exists and returns it to the first when the text changes, opens a
+// folded thinking block the current match sits in so the match is on screen, and
+// asks the conversation to scroll to its row. The count is a display copy of the
+// loaded rows: it holds no App Server fact and starts no read.
+func (s *State) syncThreadSearch() {
+	if !s.ShowThreadSearch {
+		s.ThreadSearchIndex = -1
+		s.threadSearchSynced = ""
+		s.threadSearchFound = nil
+		s.threadSearchRow = -1
+		return
+	}
+	if s.ThreadSearchQuery != s.threadSearchSynced {
+		s.threadSearchSynced = s.ThreadSearchQuery
+		s.ThreadSearchIndex = 0
+		s.threadSearchRow = -1
+	}
+	rows := s.timelineRows()
+	s.threadSearchFound = threadSearchMatches(rows, s.ThreadSearchQuery)
+	if len(s.threadSearchFound) == 0 {
+		s.ThreadSearchIndex = -1
+		s.threadSearchRow = -1
+		return
+	}
+	s.ThreadSearchIndex = max(0, min(s.ThreadSearchIndex, len(s.threadSearchFound)-1))
+	match := s.threadSearchFound[s.ThreadSearchIndex]
+	// A match inside a thinking block is only on screen while the block shows its
+	// text, so the bar opens that fold. It stays open afterwards, as a fold the
+	// user opened does: the shell keeps the fold state, not the search.
+	if match.Block >= 0 && match.Row < len(rows) && match.Block < len(rows[match.Row].Blocks) {
+		row := rows[match.Row]
+		block := row.Blocks[match.Block]
+		if block.Kind == BlockThinking {
+			*s.folds.state(blockKey(row.ID, block, match.Block)) = true
+		}
+	}
+	if match.Row != s.threadSearchRow {
+		s.conversation.ScrollTo(match.Row, ui.Center)
+		s.threadSearchRow = match.Row
+	}
+}
+
 // syncKeysSession drops the keys snapshot and closes the browser when the
 // selected session changed. The snapshot belongs to one session, so keeping it
 // would show one session's keys under another; the caller re-reads session.keys
@@ -836,6 +1051,7 @@ func (s *State) setRoute(route Route) {
 	if route != RouteChat {
 		s.ShowKeys = false
 		s.closeSearch()
+		s.dropThreadSearch()
 	}
 }
 
@@ -922,6 +1138,13 @@ func (s *State) actions() Actions {
 		// display copy of the catalog the window already holds and opening it
 		// sends nothing, so the sidebar's Search entry is always wired.
 		OnOpenSearch: s.openSearch,
+		// The find bar is the window's own state too: it counts the rows the
+		// conversation already shows and sends no request, so its entries are
+		// always wired. A step moves the highlight and asks for the row it lands
+		// on; closing forgets the query and the highlight and gives the focus back.
+		OnThreadSearchNext:     func() { s.stepThreadSearch(1) },
+		OnThreadSearchPrevious: func() { s.stepThreadSearch(-1) },
+		OnThreadSearchClose:    s.closeThreadSearch,
 	}
 	// The model selection is wired only while the caller supplied a callback and
 	// the App Server advertised session.model.update. A daemon without the
@@ -938,6 +1161,7 @@ func (s *State) actions() Actions {
 		a.OnToggleKeys = func() {
 			s.ShowKeys = !s.ShowKeys
 			if s.ShowKeys {
+				s.dropThreadSearch()
 				s.setRoute(RouteChat)
 			}
 		}
@@ -1036,6 +1260,7 @@ func (s *State) headerView() HeaderView {
 		SettingsOpen:     s.currentRoute() == RouteSettings,
 		KeysOpen:         s.ShowKeys,
 		ContextPanelOpen: s.contextPanelShown(),
+		ThreadSearch:     s.threadSearchView(),
 		Locale:           s.locale(),
 	}
 	// The confirmation belongs to the selection it was opened for. A selection
@@ -1057,14 +1282,13 @@ func (s *State) headerView() HeaderView {
 // timelineView copies the rows and the window's loading and close facts into
 // the timeline's view, with pointers to the list, fold and Markdown state the
 // region keeps across frames. Pending approvals are not rows: they take the
-// composer's slot, so they are left out here and read by pendingApprovals.
+// composer's slot, so they are left out here and read by pendingApprovals. The
+// rows are the shell's own copies, so the find bar's mark on the current match is
+// written here without reaching the display copies the window holds.
 func (s *State) timelineView() TimelineView {
-	rows := make([]Message, 0, len(s.Messages))
-	for _, m := range s.Messages {
-		if m.Author == AuthorApproval {
-			continue
-		}
-		rows = append(rows, m)
+	rows := s.timelineRows()
+	if s.ShowThreadSearch && s.ThreadSearchIndex >= 0 && s.ThreadSearchIndex < len(s.threadSearchFound) {
+		highlightThreadMatch(rows, s.threadSearchFound[s.ThreadSearchIndex])
 	}
 	return TimelineView{
 		Messages: rows,
@@ -1073,6 +1297,68 @@ func (s *State) timelineView() TimelineView {
 		list:     &s.conversation,
 		folds:    &s.folds,
 	}
+}
+
+// timelineRows is the rows the timeline draws, in the projection's order: every
+// conversation row but the pending approvals, which take the composer's slot
+// instead of a row. The find bar numbers its matches in this same list, so a
+// match's row is the index the timeline builds.
+func (s *State) timelineRows() []Message {
+	rows := make([]Message, 0, len(s.Messages))
+	for _, m := range s.Messages {
+		if m.Author == AuthorApproval {
+			continue
+		}
+		rows = append(rows, m)
+	}
+	return rows
+}
+
+// highlightThreadMatch marks the row the find bar's current match is in, and the
+// block within it when the match is in one. The row is marked washed either way,
+// because a Markdown turn and a tool card draw text the shell does not lay out
+// itself; Match carries the run where the shell does draw the text. The block
+// slice is cloned before it is marked: the row copies share it with the display
+// copies the window holds.
+func highlightThreadMatch(rows []Message, match threadMatch) {
+	if match.Row < 0 || match.Row >= len(rows) {
+		return
+	}
+	row := &rows[match.Row]
+	highlight := &TextHighlight{Start: match.Start, End: match.End}
+	row.Search = &MessageSearch{}
+	if match.Block < 0 {
+		row.Search.Match = highlight
+		return
+	}
+	if match.Block >= len(row.Blocks) {
+		return
+	}
+	blocks := make([]Block, len(row.Blocks))
+	copy(blocks, row.Blocks)
+	blocks[match.Block].Match = highlight
+	row.Blocks = blocks
+}
+
+// threadSearchView copies the bar's own state and the count the last frame
+// found. Open and Query are pointers: the bar's field writes the text in place
+// and the close entry asks the window through Actions, so the shell reads them
+// on the next frame without a second copy.
+func (s *State) threadSearchView() ThreadSearchView {
+	v := ThreadSearchView{
+		Query:  &s.ThreadSearchQuery,
+		Focus:  &s.threadSearchFocus,
+		Locale: s.locale(),
+	}
+	if !s.ShowThreadSearch {
+		return v
+	}
+	v.Open = &s.ShowThreadSearch
+	if total := len(s.threadSearchFound); total > 0 && s.ThreadSearchIndex >= 0 {
+		v.Current = s.ThreadSearchIndex + 1
+		v.Total = total
+	}
+	return v
 }
 
 // composerView copies the draft and the window's submission gate into the
