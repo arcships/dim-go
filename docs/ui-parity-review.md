@@ -68,6 +68,7 @@ Last updated: 2026-11-09
 
 - Models：[`evidence/ui/mygo-settings-models.png`](evidence/ui/mygo-settings-models.png)。读取 `provider.management` catalog；mock daemon 未声明该能力时显示 WIP 原因，不伪造列表。
 - Shortcuts：[`evidence/ui/mygo-settings-shortcuts.png`](evidence/ui/mygo-settings-shortcuts.png)。列出真实接线的 ⌘G/⌘F/Enter/Shift+Enter；编辑键位仍 WIP。
+- About：[`evidence/ui/mygo-settings-about.png`](evidence/ui/mygo-settings-about.png)。真实构建信息（版本/Go/MyGo/协议/语言）+ 剩余能力缺口。
 
 ## 像素基线（辅助，不是结论）
 
