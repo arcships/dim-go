@@ -53,6 +53,7 @@ const (
 )
 
 // settingsNavigationLabel names the section column for assistive technology.
+// It stays the English fallback for a table that does not carry the key.
 // The reference has no message key for it yet, so the label stays English;
 // see the missing-key list in the surface's report.
 const settingsNavigationLabel = "Settings sections"
@@ -235,7 +236,48 @@ func settingsSectionLabel(l Locale, s SettingsSection) string {
 	if s == SettingsSectionAppearance {
 		return tr(l, keySettingsTitle)
 	}
-	return settingsSectionName(s)
+	return tr(l, "settings.section."+settingsSectionSlug(s))
+}
+
+// settingsSectionSlug is the message-key stem of a section. The appearance page
+// keeps its own key (settings.title), so it has no slug.
+func settingsSectionSlug(s SettingsSection) string {
+	switch s {
+	case SettingsSectionAccount:
+		return "account"
+	case SettingsSectionUsage:
+		return "usage"
+	case SettingsSectionPersonalization:
+		return "personalization"
+	case SettingsSectionGeneral:
+		return "general"
+	case SettingsSectionShortcuts:
+		return "shortcuts"
+	case SettingsSectionModels:
+		return "models"
+	case SettingsSectionMultimodal:
+		return "multimodal"
+	case SettingsSectionRuntime:
+		return "runtime"
+	case SettingsSectionMCP:
+		return "mcp"
+	case SettingsSectionNotifications:
+		return "notifications"
+	case SettingsSectionPet:
+		return "pet"
+	case SettingsSectionPermissions:
+		return "permissions"
+	case SettingsSectionGit:
+		return "git"
+	case SettingsSectionHooks:
+		return "hooks"
+	case SettingsSectionPlugins:
+		return "plugins"
+	case SettingsSectionExternalAgent:
+		return "externalAgent"
+	default:
+		return ""
+	}
 }
 
 // ThemeChoice is the appearance's color-theme preference: follow the desktop,
@@ -622,7 +664,7 @@ func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSect
 	nav := ui.Column(c).BasisPercent(settingsNavShare).Shrink(0).MaxWidth(settingsNavW).
 		FillHeight().Padding(k.gapWide, k.gapWide).Gap(0).Clip().
 		BorderEndWidth(k.hairline).BorderColor(k.border).
-		Role(ui.RoleNavigation).Label(settingsNavigationLabel)
+		Role(ui.RoleNavigation).Label(tr(l, keySettingsNavigation))
 	nav.Children(func() {
 		for _, s := range settingsSections {
 			selected := s == *section
@@ -661,7 +703,7 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, section SettingsSecti
 				ui.Text(c, settingsSectionLabel(l, section)).Bold().FontSize(k.titleSize).
 					TextColor(k.foreground).Role(ui.RoleHeading).Level(1)
 				if section != SettingsSectionAppearance {
-					settingsWIPPage(c, k, section)
+					settingsWIPPage(c, k, section, v.Locale)
 					return
 				}
 				ui.Text(c, tr(l, keySettingsLocalNote)).FontSize(k.smallSize).TextColor(k.mutedForeground)
@@ -685,9 +727,15 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, section SettingsSecti
 // settingsWIPPage explains a section the shell has no page for: the visible
 // badge, then the missing client or page. It offers no control, so nothing on
 // the page can report a preference the desktop never saved.
-func settingsWIPPage(c *ui.Context, k tokens, section SettingsSection) {
+func settingsWIPPage(c *ui.Context, k tokens, section SettingsSection, l Locale) {
 	ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
-	ui.Text(c, settingsSectionGaps[section]).FontSize(k.bodySize).TextColor(k.mutedForeground)
+	gap := settingsSectionGaps[section]
+	if key := "settings.gap." + settingsSectionSlug(section); key != "settings.gap." {
+		if translated := tr(l, key); translated != key {
+			gap = translated
+		}
+	}
+	ui.Text(c, gap).FontSize(k.bodySize).TextColor(k.mutedForeground)
 }
 
 // settingsThemeSection is the color-theme row: one choice among System, Light
