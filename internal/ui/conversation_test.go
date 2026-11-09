@@ -2,11 +2,41 @@ package ui
 
 import (
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
 )
+
+// colorBox returns the tight box of the pixels painted exactly face inside
+// area, and how many there are. It reads the rendered frame, so it checks the
+// shape a view actually draws rather than the element it asked for.
+func colorBox(tt *ui.Tester, area ui.Rect, face ui.Color) (ui.Rect, int) {
+	img := tt.Image()
+	x0, y0 := max(int(area.X), 0), max(int(area.Y), 0)
+	x1, y1 := min(int(area.X+area.W), img.Bounds().Dx()), min(int(area.Y+area.H), img.Bounds().Dy())
+	minX, minY, maxX, maxY := math.MaxInt, math.MaxInt, -1, -1
+	count := 0
+	for y := y0; y < y1; y++ {
+		for x := x0; x < x1; x++ {
+			pixel := img.RGBAAt(x, y)
+			if pixel.R != face.R || pixel.G != face.G || pixel.B != face.B || pixel.A != face.A {
+				continue
+			}
+			count++
+			minX, minY = min(minX, x), min(minY, y)
+			maxX, maxY = max(maxX, x), max(maxY, y)
+		}
+	}
+	if count == 0 {
+		return ui.Rect{}, 0
+	}
+	return ui.Rect{
+		X: float32(minX), Y: float32(minY),
+		W: float32(maxX - minX + 1), H: float32(maxY - minY + 1),
+	}, count
+}
 
 // indexOfText returns the index in texts of the first text containing s, or -1.
 func indexOfText(texts []string, s string) int {
@@ -163,22 +193,26 @@ func TestAssistantRowRendersMarkdown(t *testing.T) {
 }
 
 // TestEmptyConversation checks the hero shown once history has loaded and holds
-// no row: the heading and subtitle, with the heading as the status region so
-// assistive technology hears the end of loading. The old placeholder row is
-// gone from this state.
+// no row: the official brand mark and the heading, with the heading as the
+// status region so assistive technology hears the end of loading. The reference
+// has no subtitle in this state and no letter tile.
 func TestEmptyConversation(t *testing.T) {
 	s := fixture()
 	s.Messages = nil
-	tt := ui.NewTester(s.View, 900, 600)
+	const width, height = 900, 600
+	tt := ui.NewTester(s.View, width, height)
 
-	title := tr(LocaleEN, keyHeroTitle)
-	subtitle := tr(LocaleEN, keyHeroSubtitle)
-	for _, want := range []string{title, subtitle} {
-		if !tt.HasText(want) {
-			t.Fatalf("empty state is missing %q, texts %q", want, tt.Texts())
+	k := newTokens(ui.LightTheme())
+	title := textBox(t, tt, tr(LocaleEN, keyHeroTitle))
+	if tt.HasText(tr(LocaleEN, keyHeroSubtitle)) {
+		t.Errorf("the hero still shows the reference's old subtitle")
+	}
+	for _, text := range tt.Texts() {
+		if text == "D" {
+			t.Errorf("the old letter tile still draws %q", text)
 		}
 	}
-	if _, ok := tt.AccessByRole(ui.RoleStatus, title); !ok {
+	if _, ok := tt.AccessByRole(ui.RoleStatus, tr(LocaleEN, keyHeroTitle)); !ok {
 		t.Fatalf("the hero heading is not a status region, texts %q", tt.Texts())
 	}
 	if tt.HasText("No messages yet") {
@@ -186,6 +220,40 @@ func TestEmptyConversation(t *testing.T) {
 	}
 	if first, last := s.conversation.Visible(); last >= first {
 		t.Fatalf("an empty conversation shows rows %d..%d", first, last)
+	}
+
+	// The mark is a filled brand shape, not a tile with a letter: it is the
+	// primary green, wider than it is tall (the reference's 45:32), centered over
+	// the heading and a gap-4 above it.
+	mark, pixels := colorBox(tt, ui.Rect{X: k.sidebarW + k.framePad, W: width - k.sidebarW, H: title.Y}, k.primary)
+	if pixels == 0 {
+		t.Fatalf("no primary-green pixels above the heading, so the brand mark is missing")
+	}
+	if math.Abs(float64(mark.H-k.heroMarkH)) > 2 {
+		t.Errorf("the brand mark is %.1f high, want the reference's %.1f", mark.H, k.heroMarkH)
+	}
+	if got, want := mark.W/mark.H, float32(45.0/32.0); math.Abs(float64(got-want)) > 0.08 {
+		t.Errorf("the brand mark's %.2f width-to-height is not the 45:32 official shape (%.2f)", got, want)
+	}
+	if math.Abs(float64(mark.X+mark.W/2-(title.X+title.W/2))) > 2 {
+		t.Errorf("the brand mark is centered at %.1f, the heading at %.1f", mark.X+mark.W/2, title.X+title.W/2)
+	}
+	if gap := title.Y - (mark.Y + mark.H); math.Abs(float64(gap-k.heroGap)) > 2 {
+		t.Errorf("the brand mark sits %.1f above the heading, want a gap-4 of %.1f", gap, k.heroGap)
+	}
+	if math.Abs(float64(title.H-k.heroTitleLineH)) > 1 {
+		t.Errorf("the heading's line box is %.1f high, want the reference's %.1f", title.H, k.heroTitleLineH)
+	}
+
+	// The block sits in the middle of the card but above its centre, because the
+	// composer takes the room below it, and it never overlaps the composer.
+	composer := textBox(t, tt, "Composer")
+	if title.Y+title.H >= composer.Y {
+		t.Errorf("the hero runs into the composer: heading ends at %.1f, composer starts at %.1f",
+			title.Y+title.H, composer.Y)
+	}
+	if center := (mark.Y + title.Y + title.H) / 2; center >= height/2 {
+		t.Errorf("the hero is centred at %.1f in a %d high card, want it in the upper half", center, height)
 	}
 }
 
@@ -197,10 +265,11 @@ func TestEmptyConversationFollowsTheLocale(t *testing.T) {
 	s.Settings = SettingsView{Locale: LocaleZHCN}
 	tt := ui.NewTester(s.View, 900, 600)
 
-	for _, want := range []string{tr(LocaleZHCN, keyHeroTitle), tr(LocaleZHCN, keyHeroSubtitle)} {
-		if !tt.HasText(want) {
-			t.Fatalf("Chinese hero is missing %q, texts %q", want, tt.Texts())
-		}
+	if !tt.HasText(tr(LocaleZHCN, keyHeroTitle)) {
+		t.Fatalf("Chinese hero is missing %q, texts %q", tr(LocaleZHCN, keyHeroTitle), tt.Texts())
+	}
+	if tt.HasText(tr(LocaleZHCN, keyHeroSubtitle)) {
+		t.Errorf("the Chinese hero still shows the reference's old subtitle")
 	}
 	if tt.HasText(tr(LocaleEN, keyHeroTitle)) {
 		t.Errorf("the English heading still shows in a Chinese frame, texts %q", tt.Texts())
@@ -230,11 +299,11 @@ func TestHeroFitsANarrowWindow(t *testing.T) {
 	tt := ui.NewTester(s.View, width, height)
 
 	title := textBox(t, tt, tr(LocaleEN, keyHeroTitle))
-	subtitle := textBox(t, tt, tr(LocaleEN, keyHeroSubtitle))
-	for _, r := range []ui.Rect{title, subtitle} {
-		if r.X < 0 || r.Y < 0 || r.X+r.W > width || r.Y+r.H > height {
-			t.Errorf("hero text at %.1f,%.1f %.1fx%.1f leaves the %dx%d window", r.X, r.Y, r.W, r.H, width, height)
-		}
+	if title.X < 0 || title.Y < 0 || title.X+title.W > width || title.Y+title.H > height {
+		t.Errorf("hero text at %.1f,%.1f %.1fx%.1f leaves the %dx%d window", title.X, title.Y, title.W, title.H, width, height)
+	}
+	if tt.HasText(tr(LocaleEN, keyHeroSubtitle)) {
+		t.Errorf("the narrow hero still shows the reference's old subtitle")
 	}
 	if !tt.HasText("Composer") {
 		t.Errorf("the composer is missing from the narrow frame, texts %q", tt.Texts())
