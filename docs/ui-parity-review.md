@@ -48,6 +48,12 @@ Last updated: 2026-11-09
 
 未采集帧序列。已知事实：Electron 的样式表定义了 hover/主题/面板过渡；MyGo 目前没有过渡 token，主题切换是整帧重绘。**没有帧证据，M 轴不通过。**
 
+## 新路由与浮层（真实窗口，2026-11-10）
+
+- 设置路由：[`evidence/ui/mygo-settings-route.png`](evidence/ui/mygo-settings-route.png)。整窗替换侧栏/聊天壳，Back + 19 项图标导航 + Appearance 卡片/Select/Segmented/Slider；与参考 `window-settings-route.png` 结构一致。差异：导航多 Capabilities 行、图标为近似线条、字体栅格、内容宽度。
+- 全局搜索：[`evidence/ui/mygo-search.png`](evidence/ui/mygo-search.png)。⌘G 居中浮层、遮罩、最近聊天、行图标/标题/项目/⌘n；与参考 `window-search.png` 同构。差异：占位文案语言、无置顶分组。
+- 会话内查找：[`evidence/ui/mygo-thread-search.png`](evidence/ui/mygo-thread-search.png)。⌘F 顶栏查找条、0/0 计数、上/下/关闭；参考 ThreadSearchBar 未采集截图，结构按源码实现，待参考帧。
+
 ## 像素基线（辅助，不是结论）
 
 同尺寸 800×720，区域按 sidebar/top/content/composer/bottom：
