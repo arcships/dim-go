@@ -674,86 +674,90 @@ func (s *State) View(c *ui.Context) {
 		// right and bottom, none on the left while the sidebar is open, and a
 		// rounded face with a hairline outline. Every surface the column shows
 		// (the conversation, the approval panel, the keys browser and the
-		// appearance surface) is drawn inside it, so they share the frame.
+		// appearance surface) is drawn inside it, so they share the frame. The
+		// reference frames the same card with a 0.5 DIP outer edge
+		// (global.css:35), which the shell draws as the card step of its shadow
+		// scale: a shadow outside the box, so the frame keeps its measured 4.5
+		// DIP gap.
 		ui.Column(c).FillHeight().Padding(k.framePad, k.framePad, k.framePad, 0).Children(func() {
-			ui.Column(c).Grow(1).FillWidth().
-				Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
-				Background(k.card).Transition(motionLayoutColors(c)).Role(ui.RoleGroup).Label("Main area").
-				Children(func() {
-					// The reference has no application bar in the empty state: the
-					// session column's card starts at the frame and the hero carries
-					// the heading. With a session the toolbar is its own region, built
-					// from HeaderView. An action or connection failure still gets its
-					// banner in either state, so an empty window never hides why a
-					// preference save or a request failed.
-					if s.Selected != "" {
-						renderHeader(c, k, s.headerView(), a)
-					} else {
-						banner(c, k, s.headerView(), a)
-					}
-					// The conversation and the context panel share the row below
-					// the toolbar, so the panel sits beside the session column
-					// and under the same card. The conversation takes the room
-					// that is left; the panel keeps its own width and gives way
-					// when the window cannot show both.
-					ui.Row(c).Grow(1).FillWidth().Children(func() {
-						ui.Column(c).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
-							timeline := s.timelineView()
-							pending := s.pendingApprovals()
-							switch {
-							case s.ShowKeys:
-								// The keys browser takes the conversation's place. It reads the
-								// snapshot the caller supplied and sends no request.
-								s.Keys.Selected = &s.keysSelected
-								ui.Column(c).Key("keys-panel").Grow(1).FillHeight().FillWidth().
-									Transition(motionPanel(c)).Children(func() {
-									renderKeysPanel(c, k, &s.Keys, a)
-								})
-							default:
-								// An empty, loaded and open session shows the hero instead of the
-								// projection's empty row; a closed session or a pending approval
-								// keeps the timeline's own states, so the hero never speaks over
-								// facts that are still on screen.
-								if !timeline.Loading && !timeline.Closed && len(timeline.Messages) == 0 && len(pending) == 0 {
-									emptyState(c, k, composer, s.locale(), a)
+			mainFrame(c, k, func() {
+				// The reference has no application bar in the empty state: the
+				// session column's card starts at the frame and the hero carries
+				// the heading. With a session the toolbar is its own region, built
+				// from HeaderView. An action or connection failure still gets its
+				// banner in either state, so an empty window never hides why a
+				// preference save or a request failed.
+				if s.Selected != "" {
+					renderHeader(c, k, s.headerView(), a)
+				} else {
+					banner(c, k, s.headerView(), a)
+				}
+				// The conversation and the context panel share the row below
+				// the toolbar, so the panel sits beside the session column
+				// and under the same card. The conversation takes the room
+				// that is left; the panel keeps its own width and gives way
+				// when the window cannot show both.
+				ui.Row(c).Grow(1).FillWidth().Children(func() {
+					ui.Column(c).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
+						timeline := s.timelineView()
+						pending := s.pendingApprovals()
+						switch {
+						case s.ShowKeys:
+							// The keys browser takes the conversation's place. It reads the
+							// snapshot the caller supplied and sends no request. It keeps
+							// its hairline edge rather than the popover shadow: its box is
+							// the frame's own inner edge, so an outer shadow would paint
+							// over the frame's outline and onto the sidebar.
+							s.Keys.Selected = &s.keysSelected
+							ui.Column(c).Key("keys-panel").Grow(1).FillHeight().FillWidth().
+								Transition(motionPanel(c)).Children(func() {
+								renderKeysPanel(c, k, &s.Keys, a)
+							})
+						default:
+							// An empty, loaded and open session shows the hero instead of the
+							// projection's empty row; a closed session or a pending approval
+							// keeps the timeline's own states, so the hero never speaks over
+							// facts that are still on screen.
+							if !timeline.Loading && !timeline.Closed && len(timeline.Messages) == 0 && len(pending) == 0 {
+								emptyState(c, k, composer, s.locale(), a)
+							} else {
+								// The reference's conversation starts 23 DIPs lower than
+								// this shell did: its first user bubble sits at y≈74 in an
+								// 800×720 window, below the 41 DIP bar and the frame. The
+								// room is the conversation's, so it is added around the
+								// timeline only; the composer below keeps its place.
+								//
+								// The timeline rows keep their own 14 DIP px-4 inset, so
+								// the conversation adds only the difference to the
+								// reference's 25 DIP content edge. That covers every row
+								// kind, including the tool card, which is built outside
+								// this file.
+								ui.Column(c).Grow(1).
+									Padding(conversationTopPad, k.conversationPadX()-k.timelinePadX, 0, k.conversationPadX()-k.timelinePadX).
+									Children(func() {
+										renderTimeline(c, k, timeline, a)
+									})
+								// A pending approval takes the composer's slot: the user answers the
+								// request before typing again, as the spec's composer replacement does.
+								// The request set comes from the rows the projection produced, never
+								// from a click.
+								if len(pending) > 0 {
+									renderApprovalPanel(c, k, ApprovalView{
+										Pending:      pending,
+										InputDisplay: pending[0].InputDisplay,
+										Variant:      pending[0].Variant,
+									}, a)
 								} else {
-									// The reference's conversation starts 23 DIPs lower than
-									// this shell did: its first user bubble sits at y≈74 in an
-									// 800×720 window, below the 41 DIP bar and the frame. The
-									// room is the conversation's, so it is added around the
-									// timeline only; the composer below keeps its place.
-									//
-									// The timeline rows keep their own 14 DIP px-4 inset, so
-									// the conversation adds only the difference to the
-									// reference's 25 DIP content edge. That covers every row
-									// kind, including the tool card, which is built outside
-									// this file.
-									ui.Column(c).Grow(1).
-										Padding(conversationTopPad, k.conversationPadX()-k.timelinePadX, 0, k.conversationPadX()-k.timelinePadX).
-										Children(func() {
-											renderTimeline(c, k, timeline, a)
-										})
-									// A pending approval takes the composer's slot: the user answers the
-									// request before typing again, as the spec's composer replacement does.
-									// The request set comes from the rows the projection produced, never
-									// from a click.
-									if len(pending) > 0 {
-										renderApprovalPanel(c, k, ApprovalView{
-											Pending:      pending,
-											InputDisplay: pending[0].InputDisplay,
-											Variant:      pending[0].Variant,
-										}, a)
-									} else {
-										renderComposer(c, k, composer, a)
-									}
+									renderComposer(c, k, composer, a)
 								}
 							}
-						})
-						if s.contextPanelShown() {
-							s.contextPanelColumn(c, k, a)
 						}
 					})
+					if s.contextPanelShown() {
+						s.contextPanelColumn(c, k, a)
+					}
 				})
+			})
 		})
 	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
@@ -781,6 +785,19 @@ func (s *State) View(c *ui.Context) {
 	if !s.ShowThreadSearch && s.Selected != "" {
 		s.threadSearchReturn = s.threadSearchReturnTarget(c)
 	}
+}
+
+// mainFrame draws the card the main column's surfaces sit in: the framed
+// workspace, its hairline outline and its corner, lifted by the card step of
+// the shadow scale. The reference frames the same card with a 0.5 DIP outer edge
+// (global.css:35); mygo paints that as a soft shadow outside the box, so the
+// frame keeps its measured 4.5 DIP gap and takes no room in the layout. body
+// draws the column's own surfaces inside the card.
+func mainFrame(c *ui.Context, k tokens, body func()) {
+	frame := ui.Column(c).Grow(1).FillWidth().
+		Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
+		Background(k.card).Transition(motionLayoutColors(c)).Role(ui.RoleGroup).Label("Main area")
+	k.shadowCard.paint(frame).Children(body)
 }
 
 // openSearch opens the palette from the shortcut or the sidebar entry. It
@@ -877,8 +894,13 @@ func (s *State) contextPanelShown() bool {
 // selection and folds.
 func (s *State) contextPanelColumn(c *ui.Context, k tokens, a Actions) {
 	width := clampContextPanelWidth(contextPanelW)
-	ui.Column(c).Key("context-panel").Width(width).Shrink(1).MinWidth(0).FillHeight().Clip().
-		Transition(motionSidePanel(c)).Children(func() {
+	// The panel is a side surface over the conversation, so it lifts by the
+	// popover step: its shadow falls left onto the conversation, while its own
+	// start hairline stays the edge the reference draws. The shadow paints
+	// outside the panel's box and takes no room, so the panel keeps its width.
+	panel := ui.Column(c).Key("context-panel").Width(width).Shrink(1).MinWidth(0).FillHeight().Clip().
+		Transition(motionSidePanel(c))
+	k.shadowPopover.paint(panel).Children(func() {
 		v := s.ContextPanel
 		v.Width = width
 		renderContextPanel(c, k, v, a)

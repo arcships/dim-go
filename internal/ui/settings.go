@@ -880,10 +880,15 @@ func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipC
 	}
 
 	root.Children(func() {
-		ui.Row(c).Key("settings-route").Grow(1).FillWidth().FillHeight().
+		// The route's card is the same framed surface the chat column draws (the
+		// reference gives both the card-frame edge at global.css:35), so it lifts
+		// by the card step. The shadow paints outside the card, in the frame's
+		// 4.5 DIP inset, so the route keeps its size.
+		route := ui.Row(c).Key("settings-route").Grow(1).FillWidth().FillHeight().
 			Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
 			Background(k.card).Clip().Role(ui.RoleRegion).Label(tr(l, keySettingsRegion)).
-			Transition(motionPanel(c)).Children(func() {
+			Transition(motionPanel(c))
+		k.shadowCard.paint(route).Children(func() {
 			if compact {
 				if state.detail {
 					settingsCompactPage(c, k, v, capabilities, state, onChange, onRestore)

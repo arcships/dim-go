@@ -246,6 +246,86 @@ const (
 	popoverRise = 0.18
 )
 
+// The shadow steps, as dim-electron's Tailwind shadows: the composer's card
+// and the main column's frame lift by shadow-sm, a menu, a popover or a side
+// panel by shadow-md, and a dialog by shadow-lg or shadow-2xl. The reference
+// draws the composer as a 1 DIP ring rather than a blur
+// (ConversationComposer.vue:63, 4% in the light appearance and 25% in the dark
+// one) and a card frame as a 0.5 DIP outer edge (global.css:35; 10% light, 30%
+// dark). mygo paints a box shadow, so the shell keeps that direction and depth
+// as a soft, downward wash with no gradient instead of a second hairline. A
+// dark window has less luminance between its faces, so every step carries more
+// ink there to read as the same lift.
+const (
+	shadowCardY     = 1
+	shadowCardBlur  = 2
+	shadowCardAlpha = 0.05
+
+	shadowPopoverY     = 4
+	shadowPopoverBlur  = 12
+	shadowPopoverAlpha = 0.12
+
+	shadowDialogY     = 8
+	shadowDialogBlur  = 24
+	shadowDialogAlpha = 0.18
+)
+
+// The dark appearance's alphas: stronger than the light ones by the ratio of
+// the reference's own dark shadows to its light ones, which is where its
+// composer ring goes from 4% to 25% and the card frame from 10% to 30%. The
+// geometry stays the same, as a Tailwind dark: variant changes only the ink.
+const (
+	shadowCardDarkAlpha    = 0.10
+	shadowPopoverDarkAlpha = 0.20
+	shadowDialogDarkAlpha  = 0.28
+)
+
+// shadow is one shadow step: mygo's outer box shadow, offset straight down
+// by y, blurred by blur and grown by spread DIPs around a wash of the shadow
+// ink. It is a value, so the tokens stay comparable in tests and a view cannot
+// carry a lift of its own.
+type shadow struct {
+	y      float32
+	blur   float32
+	spread float32
+	color  ui.Color
+}
+
+// paint adds the step to e. A box shadow paints outside its element and takes
+// no room in the layout, so a shadowed surface keeps the same size, the same
+// place and the same clickable area as an unshadowed one.
+func (s shadow) paint(e ui.Element) ui.Element {
+	if s.color.A == 0 {
+		return e
+	}
+	return e.Shadow(0, s.y, s.blur, s.spread, s.color)
+}
+
+// shadowScale is the three shadow steps one appearance draws.
+type shadowScale struct {
+	card    shadow
+	popover shadow
+	dialog  shadow
+}
+
+// shadowsFor derives the shadow steps of an appearance: the same geometry,
+// with the dark ink when the window is dark. The wash is black in both
+// appearances, as the reference's rgba(0,0,0,…) shadows are. A chrome palette
+// picks the appearance the tokens are built from (appearanceTheme), so Big
+// Sur's dark block takes the dark steps and the five light retro palettes keep
+// the light ones even in a dark window.
+func shadowsFor(dark bool) shadowScale {
+	card, popover, dialog := float32(shadowCardAlpha), float32(shadowPopoverAlpha), float32(shadowDialogAlpha)
+	if dark {
+		card, popover, dialog = shadowCardDarkAlpha, shadowPopoverDarkAlpha, shadowDialogDarkAlpha
+	}
+	return shadowScale{
+		card:    shadow{y: shadowCardY, blur: shadowCardBlur, color: ui.RGBA(0, 0, 0, card)},
+		popover: shadow{y: shadowPopoverY, blur: shadowPopoverBlur, color: ui.RGBA(0, 0, 0, popover)},
+		dialog:  shadow{y: shadowDialogY, blur: shadowDialogBlur, color: ui.RGBA(0, 0, 0, dialog)},
+	}
+}
+
 // The tooltip's own steps: its edge and its chips lift off its face, and its
 // secondary text fades toward it. The face itself is the theme's inverse pair,
 // the theme turned over so a tip stands out from whatever it covers.
@@ -608,6 +688,13 @@ type tokens struct {
 	framePad    float32
 	frameRadius float32
 
+	// The shadows a surface lifts by: a card (the composer, the main frame, an
+	// approval request), a popover (a side panel) and a dialog (the search
+	// palette, the model list). See shadowsFor.
+	shadowCard    shadow
+	shadowPopover shadow
+	shadowDialog  shadow
+
 	// The empty state's hero: the brand mark's box, the title's step and line
 	// box, and the gap and inset around them. See heroMarkH and heroTitleStep.
 	heroMarkW      float32
@@ -859,6 +946,10 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 	card := background.Mix(white, cardRise)
 	popover := background.Mix(white, popoverRise)
 
+	// The shadows are the appearance's: the same three steps in both themes,
+	// with the dark ink where the window is dark.
+	shadows := shadowsFor(t.Dark)
+
 	// The reference's primary is its brand green, not the theme's blue accent:
 	// white ink on the light green and near-black moss ink on the dark one.
 	primary := brandGreenLight
@@ -924,6 +1015,10 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 		// leaves it as dim-electron draws it.
 		framePad:    mainFramePad,
 		frameRadius: mainFrameRadius,
+
+		shadowCard:    shadows.card,
+		shadowPopover: shadows.popover,
+		shadowDialog:  shadows.dialog,
 
 		heroMarkW:      heroMarkW,
 		heroMarkH:      heroMarkH,

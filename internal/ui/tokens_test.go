@@ -834,3 +834,112 @@ func differingShare(a, b *image.RGBA) float64 {
 	}
 	return float64(hits) / float64(total)
 }
+
+// TestShadowTokens checks the three shadow steps: a card, a popover and a
+// dialog, each offset straight down, with no spread and a black wash rather than
+// a gradient or a tint. The light alphas are the reference's approximations of
+// shadow-sm, shadow-md and shadow-lg, and the dark appearance carries more ink
+// per step, as the reference's dark shadows do.
+func TestShadowTokens(t *testing.T) {
+	light := newTokens(ui.LightTheme())
+	dark := newTokens(ui.DarkTheme())
+
+	steps := []struct {
+		name      string
+		light     shadow
+		dark      shadow
+		y, blur   float32
+		alpha     float32
+		darkAlpha float32
+	}{
+		{"shadowCard", light.shadowCard, dark.shadowCard, 1, 2, 0.05, 0.10},
+		{"shadowPopover", light.shadowPopover, dark.shadowPopover, 4, 12, 0.12, 0.20},
+		{"shadowDialog", light.shadowDialog, dark.shadowDialog, 8, 24, 0.18, 0.28},
+	}
+	for _, step := range steps {
+		wantAlpha := uint8(step.alpha*255 + 0.5)
+		wantDark := uint8(step.darkAlpha*255 + 0.5)
+		if step.light.y != step.y || step.light.blur != step.blur || step.light.spread != 0 {
+			t.Errorf("%s is (y %.0f, blur %.0f, spread %.0f), want (y %.0f, blur %.0f, spread 0)",
+				step.name, step.light.y, step.light.blur, step.light.spread, step.y, step.blur)
+		}
+		if step.light.color.A != wantAlpha {
+			t.Errorf("%s washes at alpha %d, want the light %d", step.name, step.light.color.A, wantAlpha)
+		}
+		if c := step.light.color; c.R != 0 || c.G != 0 || c.B != 0 {
+			t.Errorf("%s is tinted %+v, want a black wash", step.name, c)
+		}
+		if step.dark.y != step.y || step.dark.blur != step.blur || step.dark.spread != 0 {
+			t.Errorf("%s keeps (y %.0f, blur %.0f, spread %.0f) in the dark, want the light geometry",
+				step.name, step.dark.y, step.dark.blur, step.dark.spread)
+		}
+		if step.dark.color.A != wantDark {
+			t.Errorf("%s washes at alpha %d in the dark, want %d", step.name, step.dark.color.A, wantDark)
+		}
+		if step.dark.color.A <= step.light.color.A {
+			t.Errorf("%s is %d in the dark, not stronger than the light %d",
+				step.name, step.dark.color.A, step.light.color.A)
+		}
+	}
+
+	// The ladder points up: a dialog is deeper and softer than a popover, and a
+	// popover deeper than the card it sits on.
+	if light.shadowCard.color.A >= light.shadowPopover.color.A ||
+		light.shadowPopover.color.A >= light.shadowDialog.color.A {
+		t.Errorf("the light steps are not ordered: %d/%d/%d",
+			light.shadowCard.color.A, light.shadowPopover.color.A, light.shadowDialog.color.A)
+	}
+	if light.shadowCard.blur >= light.shadowPopover.blur || light.shadowPopover.blur >= light.shadowDialog.blur {
+		t.Errorf("the light blurs are not ordered: %.0f/%.0f/%.0f",
+			light.shadowCard.blur, light.shadowPopover.blur, light.shadowDialog.blur)
+	}
+	if light.shadowCard.y >= light.shadowPopover.y || light.shadowPopover.y >= light.shadowDialog.y {
+		t.Errorf("the light offsets are not ordered: %.0f/%.0f/%.0f",
+			light.shadowCard.y, light.shadowPopover.y, light.shadowDialog.y)
+	}
+}
+
+// TestShadowTokensFollowTheAppearanceAndChrome checks where the steps come
+// from: a dark window takes the dark ink, and a chrome palette takes the
+// appearance its own block names — Big Sur's dark palette the dark steps, the
+// light retro palettes the light ones even in a dark window, because their
+// faces are the light ones.
+func TestShadowTokensFollowTheAppearanceAndChrome(t *testing.T) {
+	light := newTokens(ui.LightTheme())
+	dark := newTokens(ui.DarkTheme())
+
+	lightWindow := newTokensFor(ui.LightTheme(), SettingsView{Chrome: ChromeMacOSBigSur})
+	if lightWindow.theme.Dark {
+		t.Fatal("Big Sur in a light window chose the dark palette")
+	}
+	if lightWindow.shadowDialog.color.A != light.shadowDialog.color.A {
+		t.Errorf("Big Sur's light palette washes at %d, want the light %d",
+			lightWindow.shadowDialog.color.A, light.shadowDialog.color.A)
+	}
+
+	darkWindow := newTokensFor(ui.DarkTheme(), SettingsView{Chrome: ChromeMacOSBigSur})
+	if !darkWindow.theme.Dark {
+		t.Fatal("Big Sur in a dark window is not the dark palette")
+	}
+	if darkWindow.shadowCard.color.A != dark.shadowCard.color.A ||
+		darkWindow.shadowPopover.color.A != dark.shadowPopover.color.A ||
+		darkWindow.shadowDialog.color.A != dark.shadowDialog.color.A {
+		t.Errorf("Big Sur's dark palette draws %d/%d/%d, want the dark steps %d/%d/%d",
+			darkWindow.shadowCard.color.A, darkWindow.shadowPopover.color.A, darkWindow.shadowDialog.color.A,
+			dark.shadowCard.color.A, dark.shadowPopover.color.A, dark.shadowDialog.color.A)
+	}
+
+	// Windows 98 names a light palette, so it keeps the light steps in a dark
+	// window: its faces are the light ones, and a dark shadow would be a lift
+	// the palette does not have.
+	win98 := newTokensFor(ui.DarkTheme(), SettingsView{Chrome: ChromeWindows98})
+	if win98.theme.Dark {
+		t.Fatal("Windows 98 in a dark window became the dark appearance")
+	}
+	if win98.shadowCard.color.A != light.shadowCard.color.A ||
+		win98.shadowDialog.color.A != light.shadowDialog.color.A {
+		t.Errorf("Windows 98 draws %d/%d, want the light steps %d/%d",
+			win98.shadowCard.color.A, win98.shadowDialog.color.A,
+			light.shadowCard.color.A, light.shadowDialog.color.A)
+	}
+}

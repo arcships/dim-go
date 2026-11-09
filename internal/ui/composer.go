@@ -166,12 +166,6 @@ const (
 	composerSendBusyKey     = "composer.busy"
 )
 
-// composerShadow is the card's soft outer shadow, the reference's low-alpha
-// ring under the composer (ConversationComposer.vue:61-65). It is a black wash
-// at about 6%, so it stays a lift in both appearances instead of a second
-// border.
-var composerShadow = ui.Hex("#00000010")
-
 // composerGlyphs is the icon set the card's toolbar and context row draw, in
 // the same Lucide frame as the sidebar's (lucide_icons.go). The box is the
 // model entry's mark, the shield is the default permission mode's, the branch
@@ -237,10 +231,14 @@ func composer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 // The card is one group centred at the reference's measure, and it keeps
 // everything it repeats inside its own border and rounded corners.
 func composerCard(c *ui.Context, k tokens, v ComposerView, a Actions) {
-	ui.Column(c).Role(ui.RoleGroup).FillWidth().
+	// The card lifts by the card shadow step: the reference rings the
+	// composer with a 1 DIP low-alpha edge (ConversationComposer.vue:63), which
+	// the shell draws as the same soft, downward shadow a card carries, so the
+	// border stays the edge and the shadow only reads as a lift off the column.
+	card := ui.Column(c).Role(ui.RoleGroup).FillWidth().
 		Radius(k.cardRadius).BorderWidth(k.hairline).BorderColor(k.border).
-		Background(k.background).Shadow(0, 1, 4, 0, composerShadow).
-		Transition(motionLayoutColors(c)).
+		Background(k.background).Transition(motionLayoutColors(c))
+	k.shadowCard.paint(card).
 		Children(func() {
 			// The editor and the tool row keep the card's inset. The row is built
 			// first so the keyboard order stays the one the shell contract
@@ -579,9 +577,12 @@ func composerModelDialog(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	}
 	ui.DialogBase(c, v.ModelOpen, func(backdrop, panel ui.Element) {
 		backdrop.Background(renameScrim)
-		panel.Width(renameDialogMaxW).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).
+		panel = panel.Width(renameDialogMaxW).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).
 			Radius(k.cardRadius).Background(k.background).
 			BorderWidth(k.hairline).BorderColor(k.border).MaxHeightPercent(80).Clip()
+		// The list is a dialog over a dimmed window, so it lifts by the dialog
+		// step, as the reference's DialogContent does with shadow-lg.
+		panel = k.shadowDialog.paint(panel)
 		panel.Children(func() {
 			ui.Row(c).FillWidth().AlignItems(ui.Center).Children(func() {
 				ui.Text(c, tr(v.Locale, keyModelTitle)).Bold().FontSize(k.titleSize).TextColor(k.foreground)
