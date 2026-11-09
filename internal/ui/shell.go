@@ -1348,13 +1348,17 @@ func (s *State) sidebarView() SidebarView {
 	}
 }
 
-// settingsView copies the desktop preferences and the catalog rows the
-// archived-sessions page lists. The rows are a display copy: ids the catalog no
-// longer holds draw nothing, and the catalog's title and order stay the only
-// session facts.
+// settingsView copies the desktop preferences, the catalog rows the
+// archived-sessions page lists and the model catalog the models page lists. The
+// rows are a display copy: ids the catalog no longer holds draw nothing, and the
+// catalog's title and order stay the only session facts. The model fields are
+// the same snapshot the composer's model list reads; carrying them here adds no
+// read and no second source.
 func (s *State) settingsView() SettingsView {
 	v := s.Settings
 	v.ArchivedSessions = s.archivedSessionRows()
+	v.ModelCatalog = s.ModelCatalog
+	v.ModelStatus = s.ModelStatus
 	return v
 }
 

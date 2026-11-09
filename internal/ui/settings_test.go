@@ -356,7 +356,8 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 // look like a saved preference.
 func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 	for _, section := range settingsSections {
-		if section == SettingsSectionAppearance || section == SettingsSectionArchivedSessions {
+		if section == SettingsSectionAppearance || section == SettingsSectionArchivedSessions ||
+			section == SettingsSectionModels || section == SettingsSectionShortcuts {
 			continue
 		}
 		name := settingsSectionName(section)
@@ -1035,5 +1036,234 @@ func TestArchivedPageListsTheCatalogRows(t *testing.T) {
 	tt.ClickAt(restore.Bounds.X+restore.Bounds.W/2, restore.Bounds.Y+restore.Bounds.H/2)
 	if !slices.Equal(restored, []string{"s2"}) {
 		t.Fatalf("Restore reported %v, want one click on s2", restored)
+	}
+}
+
+// TestSettingsModelsPageGroupsProviders checks the models page against the
+// catalog the shell copied in: one group per provider in the catalog's order,
+// each model's name and id, the current marker, the enabled flag, the declared
+// context and output limits, the declared capabilities and the catalog's
+// unavailable reason. The page is read-only, so it draws no switch.
+func TestSettingsModelsPageGroupsProviders(t *testing.T) {
+	contextWindow, maxOutput := int64(200000), int64(8192)
+	h := newSettingsHarness(SettingsView{
+		Section:     SettingsSectionModels,
+		ModelStatus: ModelStatus{Available: true},
+		ModelCatalog: ModelCatalog{
+			Current:    "anthropic/claude-3",
+			HasCurrent: true,
+			Choices: []ModelChoice{
+				{
+					ProviderID:      "anthropic",
+					ProviderName:    "Anthropic",
+					ModelID:         "claude-3",
+					DisplayName:     "Claude 3",
+					ContextWindow:   &contextWindow,
+					MaxOutputTokens: &maxOutput,
+					ToolCalling:     true,
+					Vision:          true,
+					Reasoning:       true,
+					Enabled:         true,
+					Current:         true,
+				},
+				{
+					ProviderID:   "anthropic",
+					ProviderName: "Anthropic",
+					ModelID:      "claude-2",
+					DisplayName:  "Claude 2",
+					Enabled:      false,
+					Reason:       "missing context limits",
+				},
+				{
+					ProviderID:   "local",
+					ProviderName: "Local",
+					ModelID:      "tiny",
+					DisplayName:  "Tiny",
+					Enabled:      true,
+				},
+			},
+		},
+	})
+
+	for _, want := range []string{
+		tr(LocaleEN, keySettingsModelsNote),
+		tr(LocaleEN, keySettingsModelsCurrent) + ": anthropic/claude-3",
+		"Anthropic (anthropic)",
+		"Local (local)",
+		"Claude 3",
+		"anthropic/claude-3",
+		"Claude 2",
+		"Tiny",
+		"local/tiny",
+		tr(LocaleEN, keySettingsModelsEnabled),
+		tr(LocaleEN, keySettingsModelsDisabled),
+		"Context 200.0K · Output 8.1K",
+		"Context n/a · Output n/a",
+		tr(LocaleEN, keySettingsModelsCaps) + ": Tools · Vision · Reasoning",
+		tr(LocaleEN, keySettingsModelsCaps) + ": " + tr(LocaleEN, keySettingsModelsNoCaps),
+		tr(LocaleEN, keySettingsModelsUnavailable) + ": missing context limits",
+	} {
+		if !h.tt.HasText(want) {
+			t.Errorf("the models page is missing %q, texts %q", want, h.tt.Texts())
+		}
+	}
+	// The current row draws the marker next to its own name; the pair line above
+	// the groups is the catalog's fact, not a second model.
+	if info, ok := h.tt.AccessByRole(ui.RoleGroup, "Anthropic (anthropic)"); !ok {
+		t.Errorf("the Anthropic group is not exposed, texts %q", h.tt.Texts())
+	} else if info.Name != "Anthropic (anthropic)" {
+		t.Errorf("the Anthropic group is named %q", info.Name)
+	}
+	for _, role := range []ui.Role{ui.RoleSwitch, ui.RoleCheckBox} {
+		if info, ok := h.tt.AccessByRole(role, ""); ok {
+			t.Errorf("the models page offers a %v control: %+v", role, info)
+		}
+	}
+	if info, ok := h.tt.AccessByRole(ui.RoleButton, "Claude 3"); ok {
+		t.Errorf("a model row is a button, so the page is not read-only: %+v", info)
+	}
+	if len(h.changes) != 0 {
+		t.Errorf("the models page reported %+v, want no change", h.changes)
+	}
+}
+
+// TestSettingsModelsPageExplainsAnUnreadCatalog checks the WIP state: without a
+// catalog the page shows the window's own reason and the visible badge, draws
+// no model it could not read, and still offers no switch.
+func TestSettingsModelsPageExplainsAnUnreadCatalog(t *testing.T) {
+	const reason = "Unavailable: no session is attached to read the model catalog."
+	h := newSettingsHarness(SettingsView{
+		Section:     SettingsSectionModels,
+		ModelStatus: ModelStatus{Reason: reason},
+	})
+
+	for _, want := range []string{reason, wipBadge, tr(LocaleEN, keySettingsModelsNote)} {
+		if !h.tt.HasText(want) {
+			t.Errorf("the unread models page is missing %q, texts %q", want, h.tt.Texts())
+		}
+	}
+	if h.tt.HasText(tr(LocaleEN, keySettingsModelsEmpty)) {
+		t.Errorf("an unread catalog draws the empty state, texts %q", h.tt.Texts())
+	}
+	for _, role := range []ui.Role{ui.RoleSwitch, ui.RoleCheckBox} {
+		if info, ok := h.tt.AccessByRole(role, ""); ok {
+			t.Errorf("the unread models page offers a %v control: %+v", role, info)
+		}
+	}
+
+	// A status with no reason still explains itself rather than showing nothing.
+	h = newSettingsHarness(SettingsView{Section: SettingsSectionModels})
+	if !h.tt.HasText(tr(LocaleEN, keySettingsModelsMissing)) || !h.tt.HasText(wipBadge) {
+		t.Errorf("the unread models page invents no fallback reason, texts %q", h.tt.Texts())
+	}
+}
+
+// TestSettingsModelsPageShowsAnEmptyCatalog checks the readable-but-empty
+// catalog: it says the App Server reported no models instead of reusing the
+// unread WIP state.
+func TestSettingsModelsPageShowsAnEmptyCatalog(t *testing.T) {
+	h := newSettingsHarness(SettingsView{
+		Section:     SettingsSectionModels,
+		ModelStatus: ModelStatus{Available: true},
+	})
+	if !h.tt.HasText(tr(LocaleEN, keySettingsModelsEmpty)) {
+		t.Errorf("the empty catalog draws no empty state, texts %q", h.tt.Texts())
+	}
+	if h.tt.HasText(tr(LocaleEN, keySettingsModelsMissing)) {
+		t.Errorf("a readable catalog draws the unread reason, texts %q", h.tt.Texts())
+	}
+}
+
+// TestSettingsModelsPageReadsTheShellCatalog checks the wiring: opening
+// Settings > Models draws the same catalog the composer's model list reads from
+// State, with its unavailable reason, so the page has no fact of its own.
+func TestSettingsModelsPageReadsTheShellCatalog(t *testing.T) {
+	s := modelFixtureState()
+	tt := ui.NewTester(s.View, 900, 900)
+	if err := tt.Click(tr(LocaleEN, keySidebarSettingsEntry)); err != nil {
+		t.Fatalf("open Settings: %v", err)
+	}
+	if err := tt.Click(settingsSectionName(SettingsSectionModels)); err != nil {
+		t.Fatalf("open Models: %v", err)
+	}
+	for _, want := range []string{
+		"Claude 3",
+		"Tiny",
+		"anthropic/claude-3",
+		"local/tiny",
+		"missing context limits",
+	} {
+		if !tt.HasText(want) {
+			t.Errorf("the shell catalog is missing %q, texts %q", want, tt.Texts())
+		}
+	}
+
+	// The page never writes the catalog: a frame with no model report draws the
+	// WIP reason instead of the previous catalog.
+	s.ModelCatalog = ModelCatalog{}
+	s.ModelStatus = ModelStatus{Reason: "Unavailable: no session is attached to read the model catalog."}
+	tt.Frame()
+	if tt.HasText("Claude 3") {
+		t.Errorf("the models page keeps a stale catalog, texts %q", tt.Texts())
+	}
+	if !tt.HasText(s.ModelStatus.Reason) {
+		t.Errorf("the models page does not show the new reason, texts %q", tt.Texts())
+	}
+}
+
+// TestSettingsShortcutsPageListsWiredShortcuts checks the shortcuts page: every
+// row names a real, wired action and the keys the shell listens for, the page
+// stays read-only behind a visible WIP badge, and it claims no Settings
+// shortcut, because this shell wires none.
+func TestSettingsShortcutsPageListsWiredShortcuts(t *testing.T) {
+	h := newSettingsHarness(SettingsView{Section: SettingsSectionShortcuts})
+	for _, want := range []string{
+		tr(LocaleEN, keySettingsShortcutsNote),
+		tr(LocaleEN, keySettingsShortcutsAction),
+		tr(LocaleEN, keySettingsShortcutsKeys),
+		tr(LocaleEN, keySettingsShortcutsEdit),
+		wipBadge,
+	} {
+		if !h.tt.HasText(want) {
+			t.Errorf("the shortcuts page is missing %q, texts %q", want, h.tt.Texts())
+		}
+	}
+	for _, row := range settingsShortcutRows() {
+		if !h.tt.HasText(tr(LocaleEN, row.actionKey)) {
+			t.Errorf("the shortcuts page is missing the action %q, texts %q",
+				tr(LocaleEN, row.actionKey), h.tt.Texts())
+		}
+		if row.keys == "" || !h.tt.HasText(row.keys) {
+			t.Errorf("the shortcut %q draws no keys %q, texts %q",
+				tr(LocaleEN, row.actionKey), row.keys, h.tt.Texts())
+		}
+	}
+	if !h.tt.HasText(settingsShortcutKeys(searchShortcutMods, searchShortcutKey)) {
+		t.Errorf("the search shortcut is missing, texts %q", h.tt.Texts())
+	}
+	if !h.tt.HasText(settingsShortcutKeys(ui.Cmd, ui.KeyF)) {
+		t.Errorf("the find shortcut is missing, texts %q", h.tt.Texts())
+	}
+	if !h.tt.HasText("Enter") || !h.tt.HasText("Shift+Enter") {
+		t.Errorf("the composer shortcuts are missing, texts %q", h.tt.Texts())
+	}
+	if h.tt.HasText("⌘,") || h.tt.HasText("Ctrl+,") {
+		t.Errorf("the page claims a Settings shortcut this shell does not wire, texts %q", h.tt.Texts())
+	}
+	if len(h.changes) != 0 {
+		t.Errorf("the shortcuts page reported %+v, want no change", h.changes)
+	}
+
+	zh := newSettingsHarness(SettingsView{Section: SettingsSectionShortcuts, Locale: LocaleZHCN})
+	for _, want := range []string{
+		tr(LocaleZHCN, keySettingsShortcutsSearch),
+		tr(LocaleZHCN, keySettingsShortcutsFind),
+		tr(LocaleZHCN, keySettingsShortcutsSend),
+		tr(LocaleZHCN, keySettingsShortcutsNewline),
+		tr(LocaleZHCN, keySettingsShortcutsEdit),
+	} {
+		if !zh.tt.HasText(want) {
+			t.Errorf("the zh-CN shortcuts page is missing %q, texts %q", want, zh.tt.Texts())
+		}
 	}
 }

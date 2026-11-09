@@ -22,7 +22,9 @@ package ui
 
 import (
 	"math"
+	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -136,17 +138,16 @@ const (
 	reasonChrome = "Unavailable: chrome themes need dim-electron's six historical stylesheets; this shell does not draw a fake chrome."
 )
 
-// settingsSectionGaps says why a section other than Appearance or Archived
-// sessions has no page here: the client or page dim-electron opens for it is
-// missing. The reason names what is absent, so a reader sees a WIP page rather
-// than an empty one whose settings appear lost or unset.
+// settingsSectionGaps says why a section without a page of its own has no
+// page here: the client or page dim-electron opens for it is missing. The
+// reason names what is absent, so a reader sees a WIP page rather than an empty
+// one whose settings appear lost or unset. The sections this shell does draw —
+// Appearance, Models, Shortcuts, Archived sessions and About — have no entry.
 var settingsSectionGaps = map[SettingsSection]string{
 	SettingsSectionAccount:         "Unavailable: the shell has no account client or page yet, so it cannot show an account or sign in.",
 	SettingsSectionUsage:           "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
 	SettingsSectionPersonalization: "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
 	SettingsSectionGeneral:         "Unavailable: the general settings page is not built yet; the shell has no client for its desktop preferences.",
-	SettingsSectionShortcuts:       "Unavailable: the shortcuts page is not built yet; the shell has no keybinding client or editor.",
-	SettingsSectionModels:          "Unavailable: the models page is not built yet; the shell has no model-provider client or page.",
 	SettingsSectionMultimodal:      "Unavailable: the multimodal page is not built yet; the shell has no multimodal client or page.",
 	SettingsSectionRuntime:         "Unavailable: the runtime page is not built yet; the shell has no runtime client or page.",
 	SettingsSectionMCP:             "Unavailable: the MCP page is not built yet; the shell has no MCP server client or page.",
@@ -494,9 +495,11 @@ type ArchivedSession struct {
 const settingsArchivedNote = "Archived sessions are hidden from the sidebar on this desktop; their messages stay on the App Server, and restoring a session brings its row back."
 
 // SettingsView is what the settings surface draws: the desktop's own
-// preference values, the interface language among them. It is a display copy.
-// The window owns the preferences and persists them; no field is a session, run
-// or approval fact and none comes from the App Server.
+// preference values, the interface language among them, plus the display
+// copies of the catalog rows the archived-sessions and models pages list. The
+// window owns the preferences and persists them; the session and model fields
+// are copies of App Server facts, never a second source, and no field is a run
+// or approval fact.
 //
 // A zero field takes the token default, so a window that has never saved a
 // preference draws the values the shell opens with and English text.
@@ -530,6 +533,15 @@ type SettingsView struct {
 	// desktop-local archived id list; the page reads no session fact of its own
 	// and an id the catalog does not hold draws nothing.
 	ArchivedSessions []ArchivedSession
+	// ModelCatalog is the App Server's model snapshot the models page lists:
+	// the same display copy the composer's model list reads, not a second
+	// source. The page groups its choices by provider and draws them read-only.
+	ModelCatalog ModelCatalog
+	// ModelStatus records whether that catalog was read. Available is false
+	// while the App Server does not advertise provider.management or the read
+	// failed, and Reason then names the gap; the page shows the reason instead
+	// of an empty list that would look like "no models".
+	ModelStatus ModelStatus
 }
 
 // SettingsChange is one preference the user just chose. Field says which one
@@ -868,10 +880,11 @@ func settingsCompactPage(c *ui.Context, k tokens, v SettingsView, capabilities [
 
 // settingsPage draws the right-hand page. The appearance page is the one with
 // preferences; the archived-sessions page lists the desktop's hidden rows and
-// offers Restore; the about page draws its own WIP explanation and the shell's
-// unwired capabilities, and every other page draws its title, a WIP badge and
-// the client or page it waits on, so the section never pretends a preference
-// was read.
+// offers Restore; the models page lists the App Server's model catalog read-only;
+// the shortcuts page lists the shortcuts this shell wires; the about page draws
+// its own WIP explanation and the shell's unwired capabilities, and every other
+// page draws its title, a WIP badge and the client or page it waits on, so the
+// section never pretends a preference was read.
 func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, section SettingsSection, onChange func(SettingsChange), onRestore func(sessionID string)) {
 	l := v.Locale
 	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Clip().Children(func() {
@@ -890,6 +903,12 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 					return
 				case SettingsSectionArchivedSessions:
 					settingsArchivedPage(c, k, v, onRestore)
+					return
+				case SettingsSectionModels:
+					settingsModelsPage(c, k, v)
+					return
+				case SettingsSectionShortcuts:
+					settingsShortcutsPage(c, k, v)
 					return
 				case SettingsSectionAppearance:
 					// The appearance page is the one with preferences.
@@ -1001,6 +1020,270 @@ func settingsArchivedPage(c *ui.Context, k tokens, v SettingsView, onRestore fun
 // reasonRestoreArchived explains a Restore entry the window has not wired.
 // It is an internal reason, not a message key, like the other reason constants.
 const reasonRestoreArchived = "Unavailable: the window has no desktop-local archived-session restore callback yet."
+
+// settingsModelsPage lists the App Server's model catalog, grouped by
+// provider, read-only. It draws the catalog the shell copied into the view; the
+// page starts no read of its own and offers no switch, so it cannot enable or
+// disable a model. When the window could not read the catalog, the page shows
+// the window's reason behind the visible WIP badge rather than an empty list,
+// which would read as "no models".
+func settingsModelsPage(c *ui.Context, k tokens, v SettingsView) {
+	l := v.Locale
+	ui.Text(c, tr(l, keySettingsModelsNote)).FontSize(k.smallSize).
+		TextColor(k.mutedForeground).Wrap()
+	if !v.ModelStatus.Available {
+		reason := v.ModelStatus.Reason
+		if reason == "" {
+			reason = tr(l, keySettingsModelsMissing)
+		}
+		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Start).Children(func() {
+			ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
+			ui.Text(c, reason).FontSize(k.bodySize).TextColor(k.mutedForeground).
+				Wrap().Grow(1).MinWidth(0)
+		})
+		return
+	}
+	if v.ModelCatalog.HasCurrent && v.ModelCatalog.Current != "" {
+		ui.Text(c, tr(l, keySettingsModelsCurrent)+": "+v.ModelCatalog.Current).
+			FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine()
+	}
+	if len(v.ModelCatalog.Choices) == 0 {
+		ui.Text(c, tr(l, keySettingsModelsEmpty)).FontSize(k.bodySize).
+			TextColor(k.mutedForeground).Role(ui.RoleStatus)
+		return
+	}
+	for _, group := range settingsModelGroups(v.ModelCatalog) {
+		settingsModelGroupSection(c, k, l, group)
+	}
+}
+
+// settingsModelGroup is one provider's models, in the catalog's order. The
+// grouping is display only: it keeps ProviderName from the last row that names
+// one and appends every choice unchanged.
+type settingsModelGroup struct {
+	ProviderID   string
+	ProviderName string
+	Choices      []ModelChoice
+}
+
+// settingsModelGroups groups the catalog's choices by provider without
+// reordering them: the first provider keeps the first place, and every choice
+// stays in the order the App Server served it.
+func settingsModelGroups(catalog ModelCatalog) []settingsModelGroup {
+	groups := make([]settingsModelGroup, 0, len(catalog.Choices))
+	index := make(map[string]int, len(catalog.Choices))
+	for _, choice := range catalog.Choices {
+		at, ok := index[choice.ProviderID]
+		if !ok {
+			at = len(groups)
+			index[choice.ProviderID] = at
+			groups = append(groups, settingsModelGroup{
+				ProviderID:   choice.ProviderID,
+				ProviderName: choice.ProviderName,
+			})
+		}
+		if groups[at].ProviderName == "" {
+			groups[at].ProviderName = choice.ProviderName
+		}
+		groups[at].Choices = append(groups[at].Choices, choice)
+	}
+	return groups
+}
+
+// settingsModelGroupSection draws one provider heading and its models.
+func settingsModelGroupSection(c *ui.Context, k tokens, l Locale, group settingsModelGroup) {
+	title := group.ProviderName
+	if title == "" {
+		title = group.ProviderID
+	}
+	if group.ProviderID != "" && group.ProviderID != title {
+		title += " (" + group.ProviderID + ")"
+	}
+	settingsSection(c, k, title, func() {
+		ui.Column(c).FillWidth().Gap(k.gap).Role(ui.RoleGroup).Label(title).
+			Children(func() {
+				for _, choice := range group.Choices {
+					settingsModelRow(c, k, l, choice)
+				}
+			})
+	})
+}
+
+// settingsModelRow is one model's card: its name and id, the current marker,
+// whether the provider enabled it, its declared context and output limits, its
+// capabilities and, when it is unavailable, the catalog's reason. Every value
+// comes from the copied ModelChoice; a missing limit reads n/a and a model that
+// declared no capability says so instead of leaving the line blank.
+func settingsModelRow(c *ui.Context, k tokens, l Locale, choice ModelChoice) {
+	name := choice.DisplayName
+	if name == "" {
+		name = choice.ModelID
+	}
+	if name == "" {
+		name = choice.ProviderID
+	}
+	ui.Column(c).FillWidth().Padding(k.gap, k.edgePad).Radius(radiusSM).
+		Background(k.muted).Gap(settingsPreviewGap).Children(func() {
+		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
+			ui.Text(c, name).FontSize(k.bodySize).TextColor(k.foreground).
+				SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+			if choice.Current {
+				ui.Text(c, tr(l, keySettingsModelsCurrent)).FontSize(k.smallSize).
+					TextColor(k.mutedForeground).SingleLine()
+			}
+			state, color := tr(l, keySettingsModelsDisabled), k.mutedForeground
+			if choice.Enabled {
+				state = tr(l, keySettingsModelsEnabled)
+			} else {
+				color = k.danger
+			}
+			ui.Text(c, state).FontSize(k.smallSize).TextColor(color).SingleLine()
+		})
+		ui.Text(c, choice.ProviderID+"/"+choice.ModelID).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).SingleLine()
+		ui.Text(c, settingsModelLimits(l, choice)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).SingleLine().Ellipsis("…")
+		ui.Text(c, tr(l, keySettingsModelsCaps)+": "+settingsModelCapabilities(l, choice)).
+			FontSize(k.smallSize).TextColor(k.mutedForeground).SingleLine().Ellipsis("…")
+		if !choice.Enabled || choice.Reason != "" {
+			reason := tr(l, keySettingsModelsUnavailable)
+			if choice.Reason != "" {
+				reason += ": " + choice.Reason
+			}
+			ui.Text(c, reason).FontSize(k.smallSize).TextColor(k.danger).Wrap()
+		}
+	})
+}
+
+// settingsModelLimits prints the model's declared context and output limits,
+// with n/a where the App Server declared none.
+func settingsModelLimits(l Locale, choice ModelChoice) string {
+	return tr(l, keySettingsModelsContext) + " " + settingsModelCount(choice.ContextWindow) +
+		" · " + tr(l, keySettingsModelsOutput) + " " + settingsModelCount(choice.MaxOutputTokens)
+}
+
+// settingsModelCount is one declared limit: the token count formatted like the
+// status bar's usage readout, or n/a for a missing value.
+func settingsModelCount(value *int64) string {
+	if value == nil || *value <= 0 {
+		return debugInfoMissing
+	}
+	return formatTokenCount(*value)
+}
+
+// settingsModelCapabilities lists the capabilities the catalog declared, or the
+// locale's "none declared" when the model declared none.
+func settingsModelCapabilities(l Locale, choice ModelChoice) string {
+	caps := make([]string, 0, 3)
+	if choice.ToolCalling {
+		caps = append(caps, tr(l, keySettingsModelsCapTools))
+	}
+	if choice.Vision {
+		caps = append(caps, tr(l, keySettingsModelsCapVision))
+	}
+	if choice.Reasoning {
+		caps = append(caps, tr(l, keySettingsModelsCapReason))
+	}
+	if len(caps) == 0 {
+		return tr(l, keySettingsModelsNoCaps)
+	}
+	return strings.Join(caps, " · ")
+}
+
+// settingsShortcutRow is one shortcut the shortcuts page lists: the message key
+// of its action and the keys as they are drawn. Both come from the shell's own
+// wiring, so the page cannot list a shortcut this window does not listen for.
+type settingsShortcutRow struct {
+	actionKey string
+	keys      string
+}
+
+// settingsShortcutRows is the shortcuts this shell wires, read from the same
+// constants the regions listen with: Cmd+G opens the search palette, Cmd+F
+// opens the find bar, Enter submits the composer and Shift+Enter inserts a
+// line. Settings has no keyboard shortcut in this shell, so no row claims one.
+func settingsShortcutRows() []settingsShortcutRow {
+	return []settingsShortcutRow{
+		{actionKey: keySettingsShortcutsSearch, keys: settingsShortcutKeys(searchShortcutMods, searchShortcutKey)},
+		{actionKey: keySettingsShortcutsFind, keys: settingsShortcutKeys(ui.Cmd, ui.KeyF)},
+		{actionKey: keySettingsShortcutsSend, keys: settingsShortcutKeys(0, composerSubmitKey)},
+		{actionKey: keySettingsShortcutsNewline, keys: settingsShortcutKeys(ui.Shift, ui.KeyEnter)},
+	}
+}
+
+// settingsShortcutKeys draws one wired shortcut: the platform's own modifier
+// glyph on macOS, the words elsewhere, as the palette's hints do. It is a
+// platform label rather than shell text, so the i18n table carries no entry.
+func settingsShortcutKeys(mods ui.Modifiers, key ui.Key) string {
+	name := settingsShortcutKeyName(key)
+	if name == "" {
+		return ""
+	}
+	switch mods {
+	case 0:
+		return name
+	case ui.Cmd:
+		if runtime.GOOS == "darwin" {
+			return "⌘" + name
+		}
+		return "Ctrl+" + name
+	case ui.Shift:
+		return "Shift+" + name
+	default:
+		return name
+	}
+}
+
+// settingsShortcutKeyName is the key's name in a shortcut label. The page only
+// lists the shell's wired shortcuts, so the letters and keys below are the
+// whole set it can draw; an unknown key returns no label rather than a guess.
+func settingsShortcutKeyName(key ui.Key) string {
+	switch key {
+	case ui.KeyG:
+		return "G"
+	case ui.KeyF:
+		return "F"
+	case ui.KeyEnter:
+		return "Enter"
+	default:
+		return ""
+	}
+}
+
+// settingsShortcutsPage lists the shortcuts this shell wires. Each row names an
+// action and its keys; the page is read-only, so it offers no editor and says
+// the editing gap behind the visible WIP badge. The rows are derived from the
+// shell's constants, so no row names a shortcut this window does not listen
+// for.
+func settingsShortcutsPage(c *ui.Context, k tokens, v SettingsView) {
+	l := v.Locale
+	ui.Text(c, tr(l, keySettingsShortcutsNote)).FontSize(k.bodySize).
+		TextColor(k.mutedForeground).Wrap()
+	rows := settingsShortcutRows()
+	ui.Column(c).FillWidth().Gap(k.gap).Role(ui.RoleGroup).
+		Label(tr(l, keySettingsShortcutsNote)).Children(func() {
+		ui.Row(c).FillWidth().PaddingX(k.gap).Gap(k.gapWide).Children(func() {
+			ui.Text(c, tr(l, keySettingsShortcutsAction)).Bold().FontSize(k.smallSize).
+				TextColor(k.mutedForeground).Grow(1)
+			ui.Text(c, tr(l, keySettingsShortcutsKeys)).Bold().FontSize(k.smallSize).
+				TextColor(k.mutedForeground)
+		})
+		for _, row := range rows {
+			ui.Row(c).FillWidth().MinHeight(k.sidebarRowH).PaddingX(k.gap).
+				Gap(k.gapWide).AlignItems(ui.Center).Children(func() {
+				ui.Text(c, tr(l, row.actionKey)).FontSize(k.bodySize).
+					TextColor(k.foreground).SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
+				ui.Text(c, row.keys).FontSize(k.bodySize).
+					TextColor(k.mutedForeground).SingleLine()
+			})
+		}
+	})
+	ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Start).Children(func() {
+		ui.Text(c, wipBadge).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
+		ui.Text(c, tr(l, keySettingsShortcutsEdit)).FontSize(k.smallSize).
+			TextColor(k.mutedForeground).Wrap().Grow(1).MinWidth(0)
+	})
+}
 
 // settingsThemeSection is the color-theme choice as three cards: Light, Dark
 // and System, in the reference's order, with the chosen card outlined in the
