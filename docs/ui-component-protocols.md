@@ -18,6 +18,9 @@ func renderHeader(c *ui.Context, k tokens, v HeaderView, a Actions)
 func renderTimeline(c *ui.Context, k tokens, v TimelineView, a Actions)
 func renderApproval(c *ui.Context, k tokens, v ApprovalView, a Actions)
 func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions)
+func renderApprovalPanel(c *ui.Context, k tokens, v ApprovalView, a Actions)
+func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange))
+func renderStatusBar(c *ui.Context, k tokens, v StatusBarView)
 ```
 
 包装函数是刻意的：区域可以改自己的 helper 和内部结构，但入口名、参数顺序和 `Actions` 的类型不能在区域文件里单方面改掉；要改先改 `protocols.go` 和本文档。
@@ -28,7 +31,9 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions)
 |---|---|---|---|---|
 | 侧栏 | `renderSidebar` | `SidebarView` | `shell.View`（`ui.Split` 左格） | `OnSelect`、`OnCreateSession` |
 | 顶栏 + banner | `renderHeader` | `HeaderView` | `shell.View`（主列第一项） | `OnStop`、`OnReconnect` |
-| 时间线 | `renderTimeline` | `TimelineView` | `shell.View`（主列第二项） | `OnApproval`（经审批行） |
+| 时间线 | `renderTimeline` | `TimelineView` | `shell.View`（主列第二项） | `OnApproval`（经审批面板） |
+| 外观设置 | `renderSettings` | `SettingsView` | `shell.View`（`ShowSettings` 时替换会话区） | 桌面本地偏好回调，不进 App Server |
+| 状态栏 | `renderStatusBar` | `StatusBarView` | `shell.View`（主列底部） | 无，纯读数 |
 | 审批行 | `renderApproval` | `ApprovalView` | `renderTimeline` 的按 author 分发 | `OnApproval` |
 | 输入区 | `renderComposer` | `ComposerView` | `shell.View`（主列第三项） | `OnSubmit` |
 
@@ -97,6 +102,8 @@ func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions)
 | `Placeholder` | `string` | 空草稿时的占位文本 |
 | `Shortcut` | `KeyBinding` | 提交草稿的修饰键 + 键（当前 `ComposerShortcutMods` + Enter）。普通 Enter 也提交，Shift+Enter 换行；shell 自己的聚焦快捷键不属于该 View |
 | `Focus` | `*ui.Handle` | composer 的身份，供 shell 的聚焦快捷键使用 |
+
+设置与状态栏的 View/回调不在 `Actions` 里：`SettingsView` 由 `renderSettings` 直接接收 `onChange`，`StatusBarView` 是纯读数。`Actions.OnOpenSettings` 是工具栏的设置入口开关。
 
 调用方：`shell.View`。动作：Send 或提交快捷键 → `OnSubmit(trimmed draft)`。
 

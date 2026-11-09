@@ -28,6 +28,8 @@ Last updated: 2026-11-09
 | 工具卡 | [tool.go](../../internal/ui/tool.go) | `toolRow`、`toolCard`、tool 预览与状态 | `tool_test.go` | `ui-tool` |
 | 设计 token | [tokens.go](../../internal/ui/tokens.go) | 颜色/间距/字号 token、`newTokens`、`k.*` 取色辅助 | `tokens_test.go` | `ui-tokens` |
 | WIP 入口 | [wip.go](../../internal/ui/wip.go) | `wipAction`、WIP 徽标与 reason 文本 | `wip_test.go` | `ui-wip` |
+| 外观设置 | [settings.go](../../internal/ui/settings.go) | `SettingsView`、`renderSettings`、主题/字号/字体/宽度/密度/代码字号；skin/chrome WIP | `settings_test.go` | `ui-settings` |
+| 状态栏 | [statusbar.go](../../internal/ui/statusbar.go) | `StatusBarView`、`renderStatusBar`、context 用量条、窄宽度省略 | `statusbar_test.go` | `ui-statusbar` |
 | 能力卡 | [capability.go](../../internal/ui/capability.go) | `wipCapabilities`、`capabilityCards`、`capabilityCard` | `capability_test.go` | `ui-capability` |
 | Run 状态 | [run.go](../../internal/ui/run.go) | `RunState` 及其 `String` | `run_test.go` | `ui-run` |
 | 连接状态 | [connection.go](../../internal/ui/connection.go) | `Connection` 及其 `String` | `status_test.go` | `ui-connection` |
