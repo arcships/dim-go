@@ -199,6 +199,8 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		return appserver.SubmitResult{Event: appserver.RawEvent{ID: "submitted", Sequence: 3, CreateAt: 1700000000002, Type: "input", Name: "message", Data: json.RawMessage(`{"text":"submitted"}`)}}, nil
 	case "session.stop":
 		return json.RawMessage(`{}`), nil
+	case "approval.respond":
+		return json.RawMessage(`{}`), nil
 	case "session.catalog":
 		title := "Fake session"
 		return appserver.CatalogResult{Sessions: []appserver.SessionSummary{{
@@ -746,4 +748,120 @@ func TestReattachAfterCloseFailsClosed(t *testing.T) {
 	if err := controller.Reattach(ctx); !errors.Is(err, ErrSessionClosed) {
 		t.Fatalf("Reattach after Close error = %v, want %v", err, ErrSessionClosed)
 	}
+}
+
+// countApprovalRows counts the pending-approval rows in a bridge frame.
+func countApprovalRows(rows []ui.Message) int {
+	count := 0
+	for _, row := range rows {
+		if row.Author == ui.AuthorApproval {
+			count++
+		}
+	}
+	return count
+}
+
+// waitForApprovalRows polls the bridge frames until the approval-row count
+// matches. The session applies notifications on its drain goroutine, so there is
+// no channel to wait on without reaching into its projection; the poll is
+// bounded by the test context, not an open-ended sleep.
+func waitForApprovalRows(t *testing.T, controller *SessionController, summary appserver.SessionSummary, want int) []ui.Message {
+	t.Helper()
+	deadline := time.Now().Add(testWait)
+	var rows []ui.Message
+	for time.Now().Before(deadline) {
+		rows = controller.StateForBranch(summary, "main").Messages
+		if countApprovalRows(rows) == want {
+			return rows
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	t.Fatalf("approval rows = %d, want %d (messages %#v)", countApprovalRows(rows), want, rows)
+	return nil
+}
+
+// TestApprovalDecisionRoundTripThroughBridge drives the approval vertical slice
+// over the fake daemon: approval.request becomes a row with the daemon's
+// identity, RespondApproval sends the folded decision, the row stays until the
+// daemon settles it, and approval.resolved removes it. Nothing is resolved
+// locally before the App Server answers.
+func TestApprovalDecisionRoundTripThroughBridge(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	summary := appserver.SessionSummary{SessionID: "s1"}
+
+	daemon.emit("approval.request", appserver.ApprovalRequest{
+		SessionID: "s1",
+		BranchID:  "main",
+		RequestID: "req-1",
+		Source:    appserver.ApprovalSource{Kind: "tool"},
+		Call:      appserver.ApprovalCall{Name: "exec", Input: json.RawMessage(`{"cmd":"deploy"}`)},
+		Reason:    "deploy to production",
+	})
+	rows := waitForApprovalRows(t, controller, summary, 1)
+	row := rows[len(rows)-1]
+	if row.Approval == nil || row.Approval.RequestID != "req-1" || row.Approval.BranchID != "main" {
+		t.Fatalf("approval row identity = %#v", row.Approval)
+	}
+	if row.Content != "exec — deploy to production" {
+		t.Fatalf("approval row content = %q", row.Content)
+	}
+
+	outcome, err := controller.RespondApproval(ctx, "main", "req-1", appserver.DecisionAllow)
+	if err != nil || outcome != appserver.ApprovalOutcomeResponded {
+		t.Fatalf("RespondApproval = %q, %v; want responded", outcome, err)
+	}
+	if got := daemon.callCount("approval.respond"); got != 1 {
+		t.Fatalf("approval.respond calls = %d, want 1", got)
+	}
+	if rows := controller.StateForBranch(summary, "main").Messages; countApprovalRows(rows) != 1 {
+		t.Fatalf("approval row was resolved locally before the daemon settled it: %#v", rows)
+	}
+
+	daemon.emit("approval.resolved", appserver.ApprovalResolved{
+		SessionID: "s1",
+		BranchID:  "main",
+		RequestID: "req-1",
+		Decision:  appserver.DecisionAllow,
+	})
+	waitForApprovalRows(t, controller, summary, 0)
+}
+
+// TestApprovalAlreadyGoneIsCancelledNotResent covers §12's -32602 rule through
+// the bridge: the outcome is cancelled, the daemon's answer is not resent, and
+// the stale pending row is dropped because the daemon said it no longer exists.
+func TestApprovalAlreadyGoneIsCancelledNotResent(t *testing.T) {
+	daemon, sup, ctx := startBridge(t)
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+	summary := appserver.SessionSummary{SessionID: "s1"}
+
+	daemon.emit("approval.request", appserver.ApprovalRequest{
+		SessionID: "s1",
+		BranchID:  "main",
+		RequestID: "req-1",
+		Source:    appserver.ApprovalSource{Kind: "tool"},
+		Call:      appserver.ApprovalCall{Name: "exec"},
+	})
+	waitForApprovalRows(t, controller, summary, 1)
+
+	daemon.fail("approval.respond", &appserver.RPCError{Code: -32602, Message: "invalid params"})
+	outcome, err := controller.RespondApproval(ctx, "main", "req-1", appserver.DecisionDeny)
+	if err != nil {
+		t.Fatalf("RespondApproval error = %v, want cancelled without an error", err)
+	}
+	if outcome != appserver.ApprovalOutcomeCancelled {
+		t.Fatalf("outcome = %q, want cancelled", outcome)
+	}
+	if got := daemon.callCount("approval.respond"); got != 1 {
+		t.Fatalf("approval.respond calls = %d, want 1 (never resent)", got)
+	}
+	waitForApprovalRows(t, controller, summary, 0)
 }
