@@ -1224,6 +1224,12 @@ func (s *State) actions() Actions {
 		OnCopySessionID: func(string) {
 			s.ActionStatus = copyIDStatus
 		},
+		// The conversation link is the window's own text too: it is the selected
+		// id in the scheme the app registers, so the region builds and copies it
+		// and the shell records the muted outcome line. It sends no request.
+		OnCopyConversationLink: func() {
+			s.ActionStatus = copyLinkStatus
+		},
 		// Copying the debug info is the window's own action too: the region
 		// writes the text it built from the model facts, and the shell records
 		// the muted outcome line. It sends no request.
