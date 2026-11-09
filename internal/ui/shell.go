@@ -46,6 +46,24 @@ const composerPlaceholder = "Message DimAgent"
 // step, and belongs to the conversation rather than to every row.
 const conversationTopPad = 23
 
+// conversationInsetX is the room from the card's inner edge to the
+// conversation's content, in DIPs: the reference's card runs from x=256.5 to
+// x=796, starts its assistant text at x≈281 and ends its user bubble at x≈771,
+// 24.5 DIPs inside the card's outer edge. One DIP of that is the card's own
+// hairline, so the bar's breadcrumb and the timeline rows keep 23.5. The bar's
+// trailing buttons keep their own px-3 inset, as the reference's do. The
+// timeline rows already carry their own 14 DIP px-4 step, so the shell adds only
+// the difference around the list. It is a measured literal, not a spacing step.
+const conversationInsetX = 23.5
+
+// conversationPadX is conversationInsetX at the window's density: it keeps the
+// reference's 24.5 DIP edge at the regular step and tightens it with the timeline's
+// own px-4 step in a compact window, so a density change keeps the bar and the
+// rows in step instead of pinning one of them.
+func (k tokens) conversationPadX() float32 {
+	return k.timelinePadX * conversationInsetX / timelinePadX
+}
+
 // Session is a sidebar row. The fixture fills it by hand until the App Server
 // session catalog lands.
 type Session struct {
@@ -434,9 +452,17 @@ func (s *State) View(c *ui.Context) {
 									// 800×720 window, below the 41 DIP bar and the frame. The
 									// room is the conversation's, so it is added around the
 									// timeline only; the composer below keeps its place.
-									ui.Column(c).Grow(1).Padding(conversationTopPad, 0, 0, 0).Children(func() {
-										renderTimeline(c, k, timeline, a)
-									})
+									//
+									// The timeline rows keep their own 14 DIP px-4 inset, so
+									// the conversation adds only the difference to the
+									// reference's 25 DIP content edge. That covers every row
+									// kind, including the tool card, which is built outside
+									// this file.
+									ui.Column(c).Grow(1).
+										Padding(conversationTopPad, k.conversationPadX()-k.timelinePadX, 0, k.conversationPadX()-k.timelinePadX).
+										Children(func() {
+											renderTimeline(c, k, timeline, a)
+										})
 									// A pending approval takes the composer's slot: the user answers the
 									// request before typing again, as the spec's composer replacement does.
 									// The request set comes from the rows the projection produced, never

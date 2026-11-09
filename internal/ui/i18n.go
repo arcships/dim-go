@@ -143,8 +143,6 @@ const (
 	keyHeaderRegion        = "header.region"
 	keyHeaderMenu          = "header.menu"
 	keyHeaderMenuRefresh   = "header.menu.refreshBranches"
-	keyHeaderModel         = "header.model"
-	keyHeaderModelPicker   = "header.model.picker"
 	keyHeaderOpenInEditor  = "header.openInEditor"
 	keyHeaderDeleteTitle   = "header.delete.title"
 	keyHeaderDeleteMessage = "header.delete.message"
@@ -331,8 +329,6 @@ var stringsEN = Strings{
 	keyHeaderRegion:        "Conversation header",
 	keyHeaderMenu:          "Session menu",
 	keyHeaderMenuRefresh:   "Refresh branches",
-	keyHeaderModel:         "Model",
-	keyHeaderModelPicker:   "Model picker",
 	keyHeaderOpenInEditor:  "Open in VS Code",
 	keyHeaderDeleteTitle:   "Delete session?",
 	keyHeaderDeleteMessage: "This asks the App Server to delete the selected session. It cannot be undone here.",
@@ -497,8 +493,6 @@ var stringsZHCN = Strings{
 	keyHeaderRegion:        "会话顶栏",
 	keyHeaderMenu:          "会话菜单",
 	keyHeaderMenuRefresh:   "刷新分支",
-	keyHeaderModel:         "模型",
-	keyHeaderModelPicker:   "模型选择",
 	keyHeaderOpenInEditor:  "在 VS Code 中打开",
 	keyHeaderDeleteTitle:   "删除会话？",
 	keyHeaderDeleteMessage: "这会请求 App Server 删除选中的会话，无法在这里撤销。",
