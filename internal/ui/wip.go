@@ -34,7 +34,7 @@ const (
 // that describes the button without being read as a control of its own.
 func wipAction(c *ui.Context, k tokens, label, reason string) {
 	button := ui.Button(c, label).AccessDisabled(true).Description(reason).Opacity(wipOpacity)
-	badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.muted).
+	badge := ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).
 		Unselectable().AccessHidden(true)
 	button.DescribedBy(badge)
 }

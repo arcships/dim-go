@@ -214,7 +214,7 @@ type State struct {
 func (s *State) View(c *ui.Context) {
 	k := newTokens(c.Theme())
 	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Width(k.sidebarW).Shrink(0).PaddingY(k.sidebarPadY).Background(k.surface).Children(func() {
+		ui.Column(c).Width(k.sidebarW).Shrink(0).PaddingY(k.sidebarPadY).Background(k.sidebar).Children(func() {
 			s.sidebarActions(c, k)
 			ui.Sidebar(c, &s.Selected, func() {
 				for _, session := range s.Sessions {
@@ -274,9 +274,9 @@ func (s *State) branchList(c *ui.Context, k tokens) {
 	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
 		Role(ui.RoleGroup).Label("Branches (read-only)").Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.muted).Bold().AccessHidden(true)
+			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().AccessHidden(true)
 			ui.Box(c).Grow(1)
-			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
+			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		})
 		for _, branch := range s.Branches {
 			label := branch.Label
@@ -286,9 +286,9 @@ func (s *State) branchList(c *ui.Context, k tokens) {
 			if branch.Selected || branch.ID == s.SelectedBranch {
 				label += " (current)"
 			}
-			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.muted).NoWrap()
+			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
 		}
-		ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.muted)
+		ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }
 
@@ -329,21 +329,21 @@ func (s *State) runStatus(c *ui.Context, k tokens) {
 	ui.Row(c).Role(ui.RoleStatus).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Size(k.statusDot, k.statusDot).Radius(k.statusDot / 2).
 			Background(k.runColorFor(s)).Unselectable()
-		ui.Text(c, "Session: "+s.runLabel()).FontSize(k.smallSize).TextColor(k.muted)
+		ui.Text(c, "Session: "+s.runLabel()).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		if s.ModelProgress != nil {
 			text := s.ModelProgress.Text
 			if text == "" {
 				text = s.ModelProgress.Thinking
 			}
 			if text != "" {
-				ui.Text(c, text).FontSize(k.smallSize).TextColor(k.muted)
+				ui.Text(c, text).FontSize(k.smallSize).TextColor(k.mutedForeground)
 			}
 		}
 		if notices := len(s.Notices) + len(s.ActionNotices); notices > 0 {
-			ui.Text(c, "Notices: "+strconv.Itoa(notices)).FontSize(k.smallSize).TextColor(k.muted)
+			ui.Text(c, "Notices: "+strconv.Itoa(notices)).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		}
 		if s.ActionStatus != "" {
-			ui.Text(c, s.ActionStatus).FontSize(k.smallSize).TextColor(k.muted)
+			ui.Text(c, s.ActionStatus).FontSize(k.smallSize).TextColor(k.mutedForeground)
 		}
 	})
 }
@@ -364,7 +364,7 @@ func (s *State) status(c *ui.Context, k tokens) {
 	ui.Row(c).Role(ui.RoleStatus).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		ui.Box(c).Size(k.statusDot, k.statusDot).Radius(k.statusDot / 2).
 			Background(k.connectionColor(s.Connection)).Unselectable()
-		ui.Text(c, "App Server: "+s.Connection.String()).FontSize(k.smallSize).TextColor(k.muted)
+		ui.Text(c, "App Server: "+s.Connection.String()).FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }
 
@@ -423,7 +423,7 @@ func (s *State) loadingConversation(c *ui.Context, k tokens) {
 	ui.Column(c).Grow(1).Padding(k.panelPad).Gap(k.gap).Children(func() {
 		ui.Row(c).Role(ui.RoleStatus).Busy(true).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			ui.Spinner(c).AccessHidden(true) // the text beside it says what the work is
-			ui.Text(c, "Loading conversation…").FontSize(k.bodySize).TextColor(k.muted)
+			ui.Text(c, "Loading conversation…").FontSize(k.bodySize).TextColor(k.mutedForeground)
 		})
 	})
 }
@@ -433,9 +433,9 @@ func (s *State) loadingConversation(c *ui.Context, k tokens) {
 // loading rather than finding the busy region gone and nothing said.
 func (s *State) emptyConversation(c *ui.Context, k tokens) {
 	ui.Column(c).Grow(1).Padding(k.panelPad).Gap(k.gap).Children(func() {
-		ui.Text(c, "No messages yet").FontSize(k.bodySize).TextColor(k.muted).Role(ui.RoleStatus)
+		ui.Text(c, "No messages yet").FontSize(k.bodySize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
 		ui.Text(c, "The conversation fills in when the App Server projection arrives.").
-			FontSize(k.smallSize).TextColor(k.muted)
+			FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }
 
@@ -444,7 +444,7 @@ func (s *State) emptyConversation(c *ui.Context, k tokens) {
 // decisions, or as a tool call's card.
 func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.rowPadX).Gap(k.gap).Children(func() {
-		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
+		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		switch m.Author {
 		case AuthorAssistant:
 			markdown.View(c, m.Content, &s.markdown)

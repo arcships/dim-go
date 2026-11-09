@@ -227,6 +227,30 @@ func TestCapabilityCardsFitTheSidebar(t *testing.T) {
 	}
 }
 
+// TestCapabilityCardsDrawThePopoverFace checks that a capability card is
+// painted with the popover face rather than the border tint it used to be: the
+// padding beside its action text is the opaque face, so the card's parts read
+// against a surface of their own instead of whatever happens to be under it.
+func TestCapabilityCardsDrawThePopoverFace(t *testing.T) {
+	s := fixture()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 600)
+
+	capability := wipCapabilities(s)[0]
+	rect, ok := tt.Find(capability.action)
+	if !ok {
+		t.Fatalf("card %q is not drawn, texts %q", capability.action, tt.Texts())
+	}
+	face := newTokens(theme).popover
+	pixel := tt.Image().RGBAAt(int(rect.X)-4, int(rect.Y+rect.H/2))
+	if pixel.R != face.R || pixel.G != face.G || pixel.B != face.B || pixel.A != face.A {
+		t.Errorf("the padding beside %q is %v, want the popover face %+v", capability.action, pixel, face)
+	}
+}
+
 // TestCapabilityCardsDoNotChangeState checks that the read-only cards add no
 // focus stop and leave the shell's view state alone: only the existing WIP
 // actions and the composer take the keyboard.

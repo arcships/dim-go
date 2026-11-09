@@ -121,6 +121,32 @@ func TestToolRowEmptyParts(t *testing.T) {
 	}
 }
 
+// TestToolRowDrawsItsFace checks that the card is painted with the semantic
+// card face rather than the border tint it used to be: an opaque face covers
+// the card's padding and the gaps between its lines, while a 12% tint of the
+// border leaves every pixel the color of whatever is under it.
+func TestToolRowDrawsItsFace(t *testing.T) {
+	for _, dark := range []bool{false, true} {
+		s := toolFixture(ToolComplete, "ls", "ok")
+		var theme *ui.Theme
+		tt := ui.NewTester(func(c *ui.Context) {
+			theme = c.Theme()
+			s.View(c)
+		}, 900, 600)
+		tt.SetDark(dark)
+
+		item, ok := tt.AccessByRole(ui.RoleListItem, "")
+		if !ok {
+			t.Fatalf("dark=%v: the tool row is not a list item, texts %q", dark, tt.Texts())
+		}
+		face := newTokens(theme).card
+		if share := faceShare(tt, item.Bounds, face); share < 0.2 {
+			t.Errorf("dark=%v: only %.0f%% of the row is the card face %+v: the card is a tint of what is under it",
+				dark, share*100, face)
+		}
+	}
+}
+
 // TestToolRowAccessibility checks what assistive technology reads of a tool
 // row: the list item's name holds the tool and its status, and only a running
 // call is a live, busy status region.

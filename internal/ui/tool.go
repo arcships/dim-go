@@ -98,27 +98,30 @@ func previewField(label, value string) string {
 }
 
 // toolRow builds the compact card of one tool call: its name and status, then
-// one bounded line of params and one of result. A running call shows its status
-// in a live region that is busy, so it is announced once and assistive
-// technology waits for the result rather than re-reading the card each frame.
+// one bounded line of params and one of result. The card is the card face of
+// the surface ladder, not a tint of the border: a call sits on the conversation
+// as a raised block with its own text color. A running call shows its status in
+// a live region that is busy, so it is announced once and assistive technology
+// waits for the result rather than re-reading the card each frame.
 func (s *State) toolRow(c *ui.Context, k tokens, m Message) {
 	tool := m.Tool
 	ui.Column(c).
 		Padding(k.cardPadY, k.cardPadX).
 		Gap(k.gap).Radius(k.cardRadius).
-		Background(k.wash(k.border)).
+		Background(k.card).
 		BorderWidth(k.hairline).BorderColor(k.border).Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, previewLine(toolName(tool))).Bold().FontSize(k.labelSize).NoWrap()
+			ui.Text(c, previewLine(toolName(tool))).Bold().FontSize(k.labelSize).
+				TextColor(k.cardForeground).NoWrap()
 			ui.Box(c).Grow(1)
 			toolStatusLabel(c, k, tool.Status)
 		})
 		// NoWrap keeps each preview on its line: the card's height is bounded
 		// whatever the App Server sends, and the preview is already cut.
 		ui.Text(c, previewField("Params", previewLine(tool.Params))).
-			FontSize(k.smallSize).TextColor(k.muted).NoWrap()
+			FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
 		ui.Text(c, previewField("Result", previewLine(tool.Result))).
-			FontSize(k.smallSize).TextColor(k.muted).NoWrap()
+			FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
 	})
 }
 

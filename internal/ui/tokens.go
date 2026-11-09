@@ -1,6 +1,10 @@
 package ui
 
-import "github.com/egoist/mygo/ui"
+import (
+	"math"
+
+	"github.com/egoist/mygo/ui"
+)
 
 // The shell's type steps, as fractions of the theme's font size: the shell's
 // own scale on top of the theme's text size, so that a larger system text size
@@ -11,13 +15,72 @@ const (
 	typeSmallStep = 0.8
 )
 
-// washAlpha is how strongly the shell tints a color it uses as a background.
+// fontSizeSteps are the UI font sizes the appearance settings offer, in DIPs.
+// The shell's body text sits on one of the steps, so a theme size between two
+// of them snaps to the nearer one and every step of the type scale moves with
+// it.
+var fontSizeSteps = [...]float32{12, 13, 14, 16, 18}
+
+// The type sizes the shell falls back to when the theme names none, in DIPs:
+// the UI's default step, and the code size one step below it.
+const (
+	defaultUIFontSize   = 14
+	defaultCodeFontSize = 13
+)
+
+// The radius ladder, as dim-electron's --radius-{sm,md,lg,xl}: an inline
+// control's corner, a field's or a chip's, a card's, and a floating surface's,
+// in DIPs.
+const (
+	radiusSM = 6
+	radiusMD = 8
+	radiusLG = 10
+	radiusXL = 14
+)
+
+// The sidebar's width in DIPs: the width it opens at, and the narrowest and
+// widest a resize may leave it.
+const (
+	sidebarDefaultW = 256
+	sidebarMinW     = 200
+	sidebarMaxW     = 360
+)
+
+// The surface ladder: how far each face lifts off the background, as the share
+// of the way from the background to the foreground. A face is a mix of two
+// theme colors, not a wash of the border, so an elevated surface keeps a tint
+// of its own in both themes instead of reading as the border at 12%: the
+// background is the window, the sidebar and the cards step out of it, and a
+// popover sits on top of them.
+const (
+	sidebarRise = 0.03
+	cardRise    = 0.06
+	popoverRise = 0.10
+)
+
+// The tooltip's own steps: its edge and its chips lift off its face, and its
+// secondary text fades toward it. The face itself is the theme's inverse pair,
+// the theme turned over so a tip stands out from whatever it covers.
+const (
+	tooltipBorderRise = 0.18
+	tooltipChipRise   = 0.10
+	tooltipMutedFade  = 0.30
+)
+
+// washAlpha is how strongly the shell tints a color it uses as the background
+// of a banner or a status area. Faces are mixed (see the surface ladder), not
+// washed: a tint over the border has no contrast of its own.
 const washAlpha = 0.12
 
-// tokens are the shell's design tokens: the room, type and color steps its
-// views use, so that no view carries a magic number of its own. They come from
-// the window's theme every frame, so a theme change, dark mode or a larger
-// system text size carries through the whole shell.
+// tokens are the shell's design tokens: the room, type, radius and color steps
+// its views use, so that no view carries a magic number or a color of its own.
+// They come from the window's theme every frame, so a theme change, dark mode
+// or a larger system text size carries through the whole shell.
+//
+// The colors are the semantic layer dim-electron names in its stylesheet,
+// derived here from ui.Theme: a view asks for what a surface is (a card, a
+// muted face, the text on the primary fill), never for a theme field, so the
+// same view keeps its meaning when the theme's own palette changes.
 type tokens struct {
 	theme *ui.Theme
 
@@ -33,29 +96,126 @@ type tokens struct {
 	panelPad    float32 // inside the empty state and the loading row
 	sidebarPadY float32
 	sidebarPadX float32
-	sidebarW    float32
 	composerH   float32
 	statusDot   float32
-	cardRadius  float32
+	cardRadius  float32 // a card's corner, the middle of the radius ladder
 	cardPadY    float32 // above and below a card's parts
 	cardPadX    float32 // left and right inside a card
 
-	// Type sizes, in DIPs.
-	titleSize float32
-	bodySize  float32
-	labelSize float32
-	smallSize float32
+	// The sidebar's width in DIPs: the width it opens at, and the narrowest and
+	// widest a resize may leave it.
+	sidebarW    float32
+	sidebarMinW float32
+	sidebarMaxW float32
 
-	// Colors: the theme's, named for what the shell uses them for.
-	muted, border, surface, accent, success, warning, danger ui.Color
+	// Type sizes, in DIPs.
+	uiFontSize   float32 // the appearance step the body sits on
+	codeFontSize float32 // the size of code
+	titleSize    float32
+	bodySize     float32
+	labelSize    float32
+	smallSize    float32
+
+	// Surfaces, from the window out to the faces that lift off it:
+	// background → sidebar → card → popover.
+	background        ui.Color
+	foreground        ui.Color
+	sidebar           ui.Color
+	card              ui.Color
+	cardForeground    ui.Color
+	popover           ui.Color
+	popoverForeground ui.Color
+
+	// The sidebar's own set: its shape above, its text, the brand mark it
+	// carries, and the faces of a hovered or selected row.
+	sidebarForeground        ui.Color
+	sidebarPrimary           ui.Color
+	sidebarPrimaryForeground ui.Color
+	sidebarAccent            ui.Color
+	sidebarAccentForeground  ui.Color
+	sidebarHover             ui.Color
+	sidebarBorder            ui.Color
+	sidebarRing              ui.Color
+
+	// Interactive faces and the text that sits on them. primary is the brand
+	// fill with its paired onPrimary; secondary and muted are neutral faces,
+	// with mutedForeground as the secondary text that sits on any face; accent
+	// is a neutral hover face, not the brand color.
+	primary             ui.Color
+	onPrimary           ui.Color
+	secondary           ui.Color
+	secondaryForeground ui.Color
+	muted               ui.Color
+	mutedForeground     ui.Color
+	accent              ui.Color
+	accentForeground    ui.Color
+	danger              ui.Color
+	onDanger            ui.Color
+
+	// Chrome: the outline between faces, the edge of a field, the keyboard
+	// focus ring, and the colors a run, a tool call or a connection is drawn
+	// in.
+	border  ui.Color
+	input   ui.Color
+	ring    ui.Color
+	success ui.Color
+	warning ui.Color
+
+	// The tooltip: a face turned over from the window's, the text on it, its
+	// secondary text, its edge and the chips inside it.
+	tooltip                ui.Color
+	tooltipForeground      ui.Color
+	tooltipMutedForeground ui.Color
+	tooltipBorder          ui.Color
+	tooltipChip            ui.Color
 }
 
 // newTokens builds the shell's tokens from the window's theme.
 func newTokens(t *ui.Theme) tokens {
-	fontSize := t.FontSize
-	if fontSize <= 0 {
-		fontSize = 14
+	if t == nil {
+		t = ui.LightTheme()
 	}
+	fontSize := snapFontSize(t.FontSize)
+
+	// The elevation steps mix the background toward the foreground, so the
+	// ladder points the same way in both themes: a card is a step away from
+	// the window, a popover another one on top of it.
+	background, foreground := t.Background, t.Text
+	sidebar := background.Mix(foreground, sidebarRise)
+	card := background.Mix(foreground, cardRise)
+	popover := background.Mix(foreground, popoverRise)
+
+	primary := t.Accent
+	onPrimary := t.AccentText
+	if onPrimary == ui.Transparent {
+		onPrimary = readableOn(primary)
+	}
+	danger := t.Danger
+	onDanger := readableOn(danger)
+
+	// accent is a neutral face: SurfaceHover is what a row or a menu item tints
+	// to under the pointer. The brand color is primary.
+	accent := t.SurfaceHover
+	if accent == ui.Transparent {
+		accent = t.Surface
+	}
+
+	ring := t.Focus
+	if ring == ui.Transparent {
+		ring = primary
+	}
+
+	// The theme's inverse pair is the tooltip's base: dark on a light theme,
+	// light on a dark one. A theme that leaves it zero gets the foreground and
+	// background pair, the theme turned over, as mygo's own tooltip does.
+	tooltip, tooltipForeground := t.Inverse, t.InverseText
+	if tooltip == ui.Transparent {
+		tooltip = foreground
+	}
+	if tooltipForeground == ui.Transparent {
+		tooltipForeground = background
+	}
+
 	return tokens{
 		theme:       t,
 		hairline:    1,
@@ -69,44 +229,122 @@ func newTokens(t *ui.Theme) tokens {
 		panelPad:    t.Space(6),
 		sidebarPadY: t.Space(2),
 		sidebarPadX: t.Space(2),
-		sidebarW:    t.Space(55),
 		composerH:   t.Space(18),
 		statusDot:   t.Space(2),
-		cardRadius:  t.Radius,
+		cardRadius:  radiusLG,
 		cardPadY:    t.Space(1),
 		cardPadX:    t.Space(2),
 
-		titleSize: fontSize * typeTitleStep,
-		bodySize:  fontSize,
-		labelSize: fontSize * typeLabelStep,
-		smallSize: fontSize * typeSmallStep,
+		sidebarW:    sidebarDefaultW,
+		sidebarMinW: sidebarMinW,
+		sidebarMaxW: sidebarMaxW,
 
-		muted:   t.TextMuted,
+		uiFontSize:   fontSize,
+		codeFontSize: defaultCodeFontSize,
+		titleSize:    fontSize * typeTitleStep,
+		bodySize:     fontSize,
+		labelSize:    fontSize * typeLabelStep,
+		smallSize:    fontSize * typeSmallStep,
+
+		background:        background,
+		foreground:        foreground,
+		sidebar:           sidebar,
+		card:              card,
+		cardForeground:    foreground,
+		popover:           popover,
+		popoverForeground: foreground,
+
+		sidebarForeground:        foreground,
+		sidebarPrimary:           primary,
+		sidebarPrimaryForeground: onPrimary,
+		sidebarAccent:            accent,
+		sidebarAccentForeground:  foreground,
+		sidebarHover:             accent,
+		sidebarBorder:            t.Border.Mix(sidebar, 0.35),
+		sidebarRing:              ring,
+
+		primary:             primary,
+		onPrimary:           onPrimary,
+		secondary:           t.Surface,
+		secondaryForeground: foreground,
+		muted:               t.Surface,
+		mutedForeground:     t.TextMuted,
+		accent:              accent,
+		accentForeground:    foreground,
+		danger:              danger,
+		onDanger:            onDanger,
+
 		border:  t.Border,
-		surface: t.Surface,
-		accent:  t.Accent,
+		input:   t.Border,
+		ring:    ring,
 		success: t.Success,
 		warning: t.Warning,
-		danger:  t.Danger,
+
+		tooltip:                tooltip,
+		tooltipForeground:      tooltipForeground,
+		tooltipMutedForeground: tooltipForeground.Mix(tooltip, tooltipMutedFade),
+		tooltipBorder:          tooltip.Mix(tooltipForeground, tooltipBorderRise),
+		tooltipChip:            tooltip.Mix(tooltipForeground, tooltipChipRise),
 	}
+}
+
+// snapFontSize returns the font-size step nearest size, so the shell's body
+// text always sits on one of the steps the appearance settings offer.
+func snapFontSize(size float32) float32 {
+	if size <= 0 {
+		return defaultUIFontSize
+	}
+	best := fontSizeSteps[0]
+	for _, step := range fontSizeSteps {
+		if math.Abs(float64(step-size)) < math.Abs(float64(best-size)) {
+			best = step
+		}
+	}
+	return best
+}
+
+// readableOn is the text color legible on fill: near-white on a dark fill and
+// near-black on a light one. It fills in an *-on token whose theme color is
+// missing, so text on a filled control never disappears into it.
+func readableOn(fill ui.Color) ui.Color {
+	luminance := (0.2126*float32(fill.R) + 0.7152*float32(fill.G) + 0.0722*float32(fill.B)) / 255
+	if luminance < 0.6 {
+		return ui.RGB(0xfa, 0xfa, 0xfa)
+	}
+	return ui.RGB(0x18, 0x18, 0x1b)
+}
+
+// clampSidebarWidth keeps a width a resize asks for between the sidebar's
+// narrowest and widest, so a drag can never hide the session list nor take the
+// room the conversation needs.
+func (k tokens) clampSidebarWidth(w float32) float32 {
+	if w < k.sidebarMinW {
+		return k.sidebarMinW
+	}
+	if w > k.sidebarMaxW {
+		return k.sidebarMaxW
+	}
+	return w
 }
 
 // space is n units of the theme's Spacing, for a view that needs a step this
 // set does not name.
 func (k tokens) space(n float32) float32 { return k.theme.Space(n) }
 
-// wash tints a color as the background of a banner or a status area.
+// wash tints a color as the background of a banner or a status area. Card and
+// popover faces are not washes: they are steps of the surface ladder, so the
+// text on them keeps its contrast.
 func (k tokens) wash(color ui.Color) ui.Color { return color.Alpha(washAlpha) }
 
 // runColor is the color of the run status row and its dot.
 func (k tokens) runColor(state RunState) ui.Color {
 	switch state {
 	case RunRunning:
-		return k.accent
+		return k.primary
 	case RunStopping:
 		return k.warning
 	default:
-		return k.muted
+		return k.mutedForeground
 	}
 }
 
@@ -114,7 +352,7 @@ func (k tokens) runColor(state RunState) ui.Color {
 // color, even if the last state notice said running.
 func (k tokens) runColorFor(s *State) ui.Color {
 	if s.SessionClosed {
-		return k.muted
+		return k.mutedForeground
 	}
 	return k.runColor(s.Run)
 }
@@ -123,13 +361,13 @@ func (k tokens) runColorFor(s *State) ui.Color {
 func (k tokens) toolStatusColor(status ToolStatus) ui.Color {
 	switch status {
 	case ToolRunning:
-		return k.accent
+		return k.primary
 	case ToolComplete:
 		return k.success
 	case ToolError:
 		return k.danger
 	default:
-		return k.muted
+		return k.mutedForeground
 	}
 }
 
@@ -141,8 +379,8 @@ func (k tokens) connectionColor(conn Connection) ui.Color {
 	case ConnError:
 		return k.danger
 	case ConnConnecting:
-		return k.accent
+		return k.primary
 	default:
-		return k.muted
+		return k.mutedForeground
 	}
 }

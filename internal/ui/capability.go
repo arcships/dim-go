@@ -67,7 +67,7 @@ func (s *State) capabilityCards(c *ui.Context, k tokens) {
 		Role(ui.RoleGroup).Label("Unavailable capabilities").Children(func() {
 		// The group's label names the list, so the visible heading stays out of
 		// the accessibility tree rather than being read twice.
-		ui.Text(c, "Unavailable capabilities").FontSize(k.smallSize).TextColor(k.muted).
+		ui.Text(c, "Unavailable capabilities").FontSize(k.smallSize).TextColor(k.mutedForeground).
 			Unselectable().AccessHidden(true)
 		for _, capability := range wipCapabilities(s) {
 			capabilityCard(c, k, capability)
@@ -77,16 +77,18 @@ func (s *State) capabilityCards(c *ui.Context, k tokens) {
 
 // capabilityCard draws one capability's status: its action, the method behind
 // it, and the gap. Every part is text; the card has no button, link or field,
-// so a user can read the status but cannot act on it.
+// so a user can read the status but cannot act on it. It is drawn as a popover
+// rather than a card because it floats over the session list instead of
+// belonging to the conversation.
 func capabilityCard(c *ui.Context, k tokens, capability wipCapability) {
 	ui.Column(c).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).Radius(k.cardRadius).
-		Background(k.wash(k.border)).BorderWidth(k.hairline).BorderColor(k.border).Children(func() {
+		Background(k.popover).BorderWidth(k.hairline).BorderColor(k.border).Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, capability.action).Bold().FontSize(k.smallSize)
+			ui.Text(c, capability.action).Bold().FontSize(k.smallSize).TextColor(k.popoverForeground)
 			ui.Box(c).Grow(1)
-			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
+			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		})
-		ui.Text(c, capability.method).FontSize(k.smallSize).TextColor(k.muted).NoWrap()
-		ui.Text(c, capability.gap).FontSize(k.smallSize).TextColor(k.muted)
+		ui.Text(c, capability.method).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+		ui.Text(c, capability.gap).FontSize(k.smallSize).TextColor(k.mutedForeground)
 	})
 }
