@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/egoist/mygo/ui"
@@ -61,12 +62,83 @@ func TestNoticeStripDismissClearsTheWindowOwnedState(t *testing.T) {
 		t.Fatalf("dismiss the notices: %v", err)
 	}
 	tt.Frame()
-	if s.ActionError != "" || len(s.ActionNotices) != 0 || len(s.Notices) != 0 {
-		t.Errorf("dismiss left state: error=%q notices=%v projection=%v",
-			s.ActionError, s.ActionNotices, s.Notices)
+	if s.ActionError != "" || s.ActionStatus != "" || len(s.ActionNotices) != 0 || len(s.Notices) != 0 {
+		t.Errorf("dismiss left state: error=%q status=%q notices=%v projection=%v",
+			s.ActionError, s.ActionStatus, s.ActionNotices, s.Notices)
 	}
 	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); ok {
 		t.Error("the notice strip is still drawn after dismiss")
+	}
+}
+
+// TestNoticeStripShowsTheActionStatusAsMuted checks the window's confirmed
+// outcome line: ActionStatus is drawn as its own muted status row and its
+// dismiss entry clears it without touching an App Server fact.
+func TestNoticeStripShowsTheActionStatusAsMuted(t *testing.T) {
+	s := fixture()
+	s.ActionStatus = "Submission accepted"
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 700)
+	k := newTokens(theme)
+
+	if !tt.HasText(s.ActionStatus) {
+		t.Fatalf("the action status is missing, texts %q", tt.Texts())
+	}
+	status := textBox(t, tt, s.ActionStatus)
+	if _, muted := colorBox(tt, status, k.mutedForeground); muted == 0 {
+		t.Error("the action status is not drawn muted")
+	}
+	if _, danger := colorBox(tt, status, k.danger); danger != 0 {
+		t.Error("the action status is drawn in the danger color")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); !ok {
+		t.Fatalf("the action status is not a live-region alert, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click(tr(LocaleEN, keyNoticesDismiss)); err != nil {
+		t.Fatalf("dismiss the action status: %v", err)
+	}
+	tt.Frame()
+	if s.ActionStatus != "" {
+		t.Errorf("dismiss left the action status %q", s.ActionStatus)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); ok {
+		t.Error("the notice strip is still drawn after dismissing the status")
+	}
+}
+
+// TestNoticeStripKeepsTheUnknownStatusOutOfTheDangerRow checks the unknown-result
+// pair: the failure detail is the danger row and the bare "Submission result
+// unknown" status is the muted line under it, so the status never reads as a
+// second error.
+func TestNoticeStripKeepsTheUnknownStatusOutOfTheDangerRow(t *testing.T) {
+	s := fixture()
+	s.ActionError = "Submission result unknown: the App Server does not hold this submission."
+	s.ActionStatus = "Submission result unknown"
+	s.ActionNotices = []Notice{{Kind: "submit.unknown", ID: s.ActionError}}
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 700)
+	k := newTokens(theme)
+
+	failure := textBox(t, tt, s.ActionError)
+	if _, danger := colorBox(tt, failure, k.danger); danger == 0 {
+		t.Error("the unknown result's failure is not drawn in the danger color")
+	}
+	status := textBox(t, tt, s.ActionStatus)
+	if _, muted := colorBox(tt, status, k.mutedForeground); muted == 0 {
+		t.Error("the unknown result's status is not drawn muted")
+	}
+	if _, danger := colorBox(tt, status, k.danger); danger != 0 {
+		t.Error("the unknown result's status is drawn in the danger color")
+	}
+	if strings.Count(strings.Join(tt.Texts(), "\n"), s.ActionError) != 1 {
+		t.Errorf("the unknown result's failure is repeated, texts %q", tt.Texts())
 	}
 }
 

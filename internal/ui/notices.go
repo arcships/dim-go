@@ -1,13 +1,15 @@
 // This file owns the window's notice strip: the terminal close, connection and
-// action failures, and the transient projection and action notices. It reads
-// HeaderView and Actions only (see protocols.go).
+// action failures, the window's confirmed action status, and the transient
+// projection and action notices. It reads HeaderView and Actions only (see
+// protocols.go).
 //
 // The strip keeps the precedence the shell already had: a terminal session
 // close outranks a connection error, which outranks the last action error. The
-// remaining action and projection notices follow as their own lines. A failure
-// is drawn in the danger color and a confirmed outcome in the muted one, so a
-// success never reads like an error, and one dismiss entry clears the
-// window-owned display state without writing any App Server fact.
+// confirmed action status and the remaining action and projection notices
+// follow as their own lines. A failure is drawn in the danger color and a
+// confirmed outcome in the muted one, so a success or an unresolved status never
+// reads like an error, and one dismiss entry clears the window-owned display
+// state without writing any App Server fact.
 
 package ui
 
@@ -59,11 +61,20 @@ func noticeDanger(kind string) bool {
 }
 
 // noticeLines splits the strip into its leading message and the lines under it.
-// The action error that leads the strip is not repeated from ActionNotices, and
-// the projection notices keep their order after the window's outcomes.
+// The window's confirmed action status comes first as a muted outcome, then the
+// action notices; the action error that leads the strip is not repeated from
+// ActionNotices, and the projection notices keep their order after the window's
+// outcomes.
 func noticeLines(v HeaderView) (string, []noticeLine) {
 	primary := noticePrimary(v)
-	extras := make([]noticeLine, 0, len(v.ActionNotices)+len(v.Notices))
+	extras := make([]noticeLine, 0, 1+len(v.ActionNotices)+len(v.Notices))
+	if v.ActionStatus != "" && v.ActionStatus != primary {
+		// ActionStatus is an outcome the App Server confirmed without a session
+		// fact to show, such as a submission read back as accepted. It is always
+		// muted: an unknown result still has its failure in ActionError, so the
+		// status line never doubles as the danger row.
+		extras = append(extras, noticeLine{text: v.ActionStatus})
+	}
 	for _, notice := range v.ActionNotices {
 		if notice.ID != "" && notice.ID == v.ActionError {
 			// The action error leads the strip when nothing outranks it; showing
@@ -88,7 +99,7 @@ func banner(c *ui.Context, k tokens, v HeaderView, a Actions) {
 		return
 	}
 	dismissible := a.OnDismissNotices != nil &&
-		(v.ActionError != "" || len(v.ActionNotices) > 0 || len(v.Notices) > 0)
+		(v.ActionError != "" || v.ActionStatus != "" || len(v.ActionNotices) > 0 || len(v.Notices) > 0)
 	ui.Column(c).Role(ui.RoleAlert).FillWidth().Children(func() {
 		if primary != "" {
 			noticeRow(c, k, primary, true)

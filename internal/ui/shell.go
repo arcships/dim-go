@@ -312,6 +312,12 @@ type State struct {
 	// but no submit, stop or reconnect is valid.
 	SessionClosed       bool
 	SessionClosedReason string
+	// ClosedSessionTitle and ClosedSessionProject are display copies of the
+	// catalog labels of a session whose delete was confirmed. The row leaves the
+	// catalog, but the toolbar keeps naming the session while the main area shows
+	// its terminal closed state. They are display state, never session facts.
+	ClosedSessionTitle   string
+	ClosedSessionProject string
 	// Run is what the selected session is doing, as the supervisor reports it.
 	// The shell draws it and offers no stop while nothing runs; it never
 	// derives a run from the rows it shows.
@@ -1128,11 +1134,12 @@ func (s *State) syncBranchFrom() {
 }
 
 // dismissNotices clears the window's notice strip: the last action error, the
-// action-outcome list and the transient projection notices. They are display
-// state only, so dismissing them changes no App Server fact; a later projection
-// frame or action publishes new ones.
+// confirmed action status, the action-outcome list and the transient projection
+// notices. They are display state only, so dismissing them changes no App Server
+// fact; a later projection frame or action publishes new ones.
 func (s *State) dismissNotices() {
 	s.ActionError = ""
+	s.ActionStatus = ""
 	s.ActionNotices = nil
 	s.Notices = nil
 }
@@ -1575,6 +1582,12 @@ func (s *State) sessionTitleLabel() string {
 			return sessionLabel(session.Title, s.locale())
 		}
 	}
+	if s.SessionClosed && s.Selected != "" {
+		// The row left the catalog with the confirmed delete, so the toolbar
+		// keeps naming it from the labels it last read instead of claiming no
+		// session is selected.
+		return sessionLabel(s.ClosedSessionTitle, s.locale())
+	}
 	return tr(s.locale(), keyNoSession)
 }
 
@@ -1587,6 +1600,9 @@ func (s *State) selectedProject() string {
 		if session.ID == s.Selected {
 			return session.Group
 		}
+	}
+	if s.SessionClosed && s.Selected != "" {
+		return s.ClosedSessionProject
 	}
 	return ""
 }
