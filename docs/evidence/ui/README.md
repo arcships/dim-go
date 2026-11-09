@@ -18,8 +18,8 @@ DIMAGENT_UI_SCREENSHOT_DIR="$PWD/docs/evidence/ui" go test ./internal/ui -run Te
 
 | 文件 | 主题 | 尺寸 | 大小 |
 |---|---|---|---|
-| [`shell-light.png`](shell-light.png) | Light | 1440×900 | 124,523 B |
-| [`shell-dark.png`](shell-dark.png) | Dark | 1440×900 | 126,932 B |
+| [`shell-light.png`](shell-light.png) | Light | 1440×900 | 141,272 B |
+| [`shell-dark.png`](shell-dark.png) | Dark | 1440×900 | 144,092 B |
 
 ![shell light](shell-light.png)
 
@@ -27,11 +27,28 @@ DIMAGENT_UI_SCREENSHOT_DIR="$PWD/docs/evidence/ui" go test ./internal/ui -run Te
 
 文件大小随字体栅格化和压缩实现变化，不作为断言；测试断言的是尺寸、非空和两主题像素不同。
 
+## 侧栏布局（P0，规格见 [`docs/ui-layout-spec.md`](../../ui-layout-spec.md) §2）
+
+截图里的侧栏按 256 DIP 默认宽绘制，左侧内容与主区之间是可拖的分隔条（MyGo `ui.Split`，`internal/ui/shell.go` 的 `View`）：
+
+| 区域 | 高度 / 宽度 | 数值来源 |
+|---|---|---|
+| 侧栏宽 | 256（拖拽 200–360） | `docs/ui-layout-spec.md` §1.2；`internal/ui/tokens.go` |
+| Header | 48，上边距 4，左右内距 7 | `h-(--titlebar-height)=48px`、`mt-[4px]`、`px-2` |
+| 全局入口 | 每条 28 高，间距 3.5，区块内距 7 | `h-8`、`gap-1`、`p-2` |
+| 表标题行 | 31.5 高，左右内距 7 | `h-9`、`px-3` |
+| 线程行 | 34 高，圆角 8 | `h-[34px]`、`rounded-md`（分组视图） |
+| 行内状态格 | 21×21 | `h-6 w-6` |
+| 底部署名行（Pin/Rename/Archive） | 最小 30 高 | `h-[30px]`（footer 行高） |
+
+这些 Tailwind 档位都按规格换算成 14px 根字号下的 DIP，而不是照抄 4px 网格。侧栏本身是唯一滚动区（`ui.List`），底部的只读 capability cards 在窗口高度不够时在自己的区域滚动。截图里的两个 session 都没有 `Group` 标签，所以线程列表保持 flat；分组标题、选中态和 hover 态由 [`internal/ui/sidebar_test.go`](../../../internal/ui/sidebar_test.go) 的 headless 断言覆盖。
+
 ## Fixture 内容
 
 固定 fixture 是手填的视图状态，不连 App Server，不读 SQLite/JSONL/session 文件/daemon.log：
 
-- 两个 session：`Fix flaky screenshot test`（选中）、`Review App Server reconnect`。
+- 两个 session：`Fix flaky screenshot test`（选中）、`Review App Server reconnect`，`Group` 为空（shell 没有 project/日期来源，不伪造分组）。
+- 侧栏的 WIP 入口：`Update`、`Search sessions`（⌘G / Ctrl+G 提示）、`Group`、`Pin`/`Rename`/`Archive`；它们都带 `WIP` 标记和真实原因，点击不产生动作。
 - 四行对话，覆盖四种 `Author`：
   - user：纯文本；
   - assistant：Markdown（列表 + Go fenced code block）；

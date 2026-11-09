@@ -18,10 +18,16 @@ const wipOpacity = 0.5
 const (
 	reasonCreateSession = "Unavailable: the window has no session.create callback yet."
 	reasonApproval      = "Unavailable: the shell has no approval callback wired to approval.respond."
-	reasonAttachment    = "Unavailable: the Go client has no attachment.put helper yet."
+	reasonAttachment    = "Unavailable: attachment.put is not wired to a file picker yet; upload results may be unknown."
 	reasonReconnect     = "Unavailable: the shell is not wired to supervisor reconnect yet."
 	reasonStop          = "Unavailable: the shell has no session.stop callback yet."
 	reasonBranches      = "Unavailable: branch switching/cut point is not wired yet."
+	reasonUpdate        = "Unavailable: the shell has no update check wired to the app's updater yet."
+	reasonSearch        = "Unavailable: the shell has no session search yet; dim-electron opens a search dialog over App Server history, and neither is wired here."
+	reasonGroup         = "Unavailable: session rows carry no project or updated time yet, so the shell cannot group by project or date."
+	reasonPin           = "Unavailable: no verified App Server RPC pins a session, and the shell keeps no local pin list."
+	reasonRename        = "Unavailable: session.rename is a session method reached through session.methods, which the shell does not call yet."
+	reasonArchive       = "Unavailable: the shell has no desktop-local hidden session list yet."
 )
 
 // wipAction draws one entry for an action the shell cannot carry out yet. It

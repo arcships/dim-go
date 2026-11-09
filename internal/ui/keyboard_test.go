@@ -44,17 +44,22 @@ func TestSidebarKeyboardNavigation(t *testing.T) {
 	}
 }
 
-// TestTabOrder checks the shell's Tab stops in tree order: the new-session
-// entry, the sidebar, the reconnect entry, the attachment entry, then the
-// composer, round again. The send entry is unavailable—the fixture's draft is
-// empty and it has no submit callback—and so skipped. The WIP entries stay in
-// the order on purpose: a keyboard or screen-reader user finds them, reads that
-// they are unavailable and why, and moves on.
+// TestTabOrder checks the shell's Tab stops in tree order: the sidebar's
+// header, entries and thread actions, the thread list, the split divider, the
+// main toolbar's reconnect entry, the attachment entry, then the composer,
+// round again. The send entry is unavailable—the fixture's draft is empty and
+// it has no submit callback—and so skipped. The WIP entries stay in the order
+// on purpose: a keyboard or screen-reader user finds them, reads that they are
+// unavailable and why, and moves on.
 func TestTabOrder(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
 
-	for _, want := range []string{"New session", "Sessions", "Reconnect", "Attach file", "Composer", "New session"} {
+	for _, want := range []string{
+		"Update", "New session", "Search sessions", "Group", "Sessions",
+		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Attach file",
+		"Composer", "Update",
+	} {
 		tt.Key(0, ui.KeyTab)
 		if !tt.Focused(want) {
 			t.Fatalf("Tab does not reach %q, texts %q", want, tt.Texts())

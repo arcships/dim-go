@@ -41,10 +41,11 @@ func TestCapabilityCardsAreReadOnly(t *testing.T) {
 
 // TestCapabilityCardsReportTheActualGap pins each card's gap to the fact in
 // this tree: approval.respond, session.stop, session.create, session.branches,
-// session.keys and supervisor.Reconnect have helpers in the Go client, session
-// or supervisor, so no card may claim they are missing; only attachment.put has
-// no Go helper. Branches and keys are still read-only, and approval decisions
-// stay unavailable only while the window has no callback.
+// session.keys, attachment.put and supervisor.Reconnect have helpers in the Go
+// client, session or supervisor, so no card may claim they are missing; an
+// attachment card names the missing file picker instead. Branches and keys are
+// still read-only, and approval decisions stay unavailable only while the
+// window has no callback.
 func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 	cards := map[string]wipCapability{}
 	for _, capability := range wipCapabilities(&State{}) {
@@ -53,7 +54,7 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 
 	for _, action := range []string{
 		"Session creation", "Branch switching", "Session keys", "Approvals",
-		"Connection recovery", "Turn cancellation",
+		"Attachments", "Connection recovery", "Turn cancellation",
 	} {
 		capability, ok := cards[action]
 		if !ok {
@@ -64,8 +65,11 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 			t.Errorf("%q reports %q, but its helper exists", action, capability.gap)
 		}
 	}
-	if capability := cards["Attachments"]; !strings.Contains(capability.gap, "no Go client helper") {
-		t.Errorf("attachments reports %q, want missing helper", capability.gap)
+	// attachment.put has a Go helper, so its card must name what the shell
+	// still lacks: a file picker, and a way to be honest about an upload whose
+	// result is unknown.
+	if gap := cards["Attachments"].gap; !strings.Contains(gap, "file picker") || !strings.Contains(gap, "unknown") {
+		t.Errorf("attachments reports %q, want the missing file picker and unknown results", gap)
 	}
 	// The branch and key reads are wired: their cards must name the real gap
 	// (read-only display, no switch RPC or key browser), not a missing helper.
@@ -191,9 +195,10 @@ func TestCapabilityCardsDropWiredCreateSession(t *testing.T) {
 }
 
 // TestCapabilityCardsFitTheSidebar checks that the cards are actually placed
-// under the session list and inside the window, not merely present in the
-// label list: the list above them keeps its rows and the last card's bottom
-// stays on screen.
+// under the thread list and inside the window, not merely present in the label
+// list: the list above them keeps its rows, the cards follow one another, and
+// the cards' own scroll keeps the last one reachable when the window is too
+// short to show every card at once.
 func TestCapabilityCardsFitTheSidebar(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
@@ -211,7 +216,7 @@ func TestCapabilityCardsFitTheSidebar(t *testing.T) {
 		t.Errorf("session row %+v overlaps the first card %+v", session, first)
 	}
 
-	previous := first
+	previous, lastLabel := first, cards[0].action
 	for _, capability := range cards[1:] {
 		card, ok := tt.Find(capability.action)
 		if !ok {
@@ -220,10 +225,20 @@ func TestCapabilityCardsFitTheSidebar(t *testing.T) {
 		if card.Y < previous.Y+previous.H {
 			t.Errorf("card %q at %+v overlaps the card before it at %+v", capability.action, card, previous)
 		}
-		previous = card
+		previous, lastLabel = card, capability.action
 	}
+	// The card area is a scroll container bounded by the sidebar, so a short
+	// window clips the last card instead of pushing it past the window.
 	if previous.Y+previous.H > 600 {
-		t.Errorf("the last card ends at %.2f, below the 600-high window", previous.Y+previous.H)
+		tt.Scroll(first.X+4, first.Y+4, 0, 2000)
+		tt.Frame()
+		last, ok := tt.Find(lastLabel)
+		if !ok {
+			t.Fatalf("last card %q is not drawn after scrolling", lastLabel)
+		}
+		if last.Y+last.H > 600 {
+			t.Errorf("the last card still ends at %.2f, below the 600-high window", last.Y+last.H)
+		}
 	}
 }
 
@@ -252,14 +267,17 @@ func TestCapabilityCardsDrawThePopoverFace(t *testing.T) {
 }
 
 // TestCapabilityCardsDoNotChangeState checks that the read-only cards add no
-// focus stop and leave the shell's view state alone: only the existing WIP
-// actions and the composer take the keyboard.
+// focus stop and leave the shell's view state alone: only the sidebar's own
+// entries and the composer take the keyboard.
 func TestCapabilityCardsDoNotChangeState(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
 
 	before := s.Selected
-	for _, want := range []string{"New session", "Sessions", "Reconnect", "Attach file", "Composer"} {
+	for _, want := range []string{
+		"Update", "New session", "Search sessions", "Group", "Sessions",
+		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Attach file", "Composer",
+	} {
 		tt.Key(0, ui.KeyTab)
 		if !tt.Focused(want) {
 			t.Fatalf("Tab does not reach %q, texts %q", want, tt.Texts())

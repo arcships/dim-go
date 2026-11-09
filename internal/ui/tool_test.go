@@ -9,9 +9,12 @@ import (
 )
 
 // toolFixture is one tool row with the given status, params and result, and
-// nothing else in the conversation.
+// nothing else in the conversation. The catalog is left out because its rows
+// are list items too, and these tests read the conversation list's items.
 func toolFixture(status ToolStatus, params, result string) *State {
 	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
 	s.Messages = []Message{{
 		ID:     "t1",
 		Author: AuthorTool,

@@ -1,0 +1,261 @@
+package ui
+
+import (
+	"image/color"
+	"math"
+	"strings"
+	"testing"
+
+	"github.com/egoist/mygo/ui"
+)
+
+// TestSidebarGroupsThreads checks the grouped view: rows keep the catalog's
+// order inside the group the caller labelled, each heading counts its rows, and
+// a session the caller left ungrouped falls under the explicit "No project"
+// heading instead of being dropped or given an invented project.
+func TestSidebarGroupsThreads(t *testing.T) {
+	s := fixture()
+	s.Sessions = []Session{
+		{ID: "s1", Title: "First session", Group: "alpha"},
+		{ID: "s2", Title: "Second session", Group: "beta"},
+		{ID: "s3", Title: "Third session", Group: "beta"},
+		{ID: "s4", Title: "Fourth session"},
+	}
+	s.Selected = "s1"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, want := range []string{"alpha", "beta", ungroupedLabel, "First session", "Second session", "Third session", "Fourth session"} {
+		if !tt.HasText(want) {
+			t.Errorf("grouped sidebar is missing %q, texts %q", want, tt.Texts())
+		}
+	}
+	heading, ok := tt.Find("alpha")
+	if !ok {
+		t.Fatalf("alpha heading is not drawn, texts %q", tt.Texts())
+	}
+	first, ok := tt.Find("First session")
+	if !ok {
+		t.Fatalf("first row is not drawn, texts %q", tt.Texts())
+	}
+	if first.Y < heading.Y+heading.H {
+		t.Errorf("row %+v is not under its heading %+v", first, heading)
+	}
+	second, _ := tt.Find("Second session")
+	third, _ := tt.Find("Third session")
+	fourth, _ := tt.Find("Fourth session")
+	if !(first.Y < second.Y && second.Y < third.Y && third.Y < fourth.Y) {
+		t.Errorf("rows are out of catalog order: %+v %+v %+v %+v", first, second, third, fourth)
+	}
+}
+
+// TestSidebarStaysFlatWithoutGroups checks that the shell draws no headings
+// while the catalog carries no group label: it has no project or date fact of
+// its own and must not invent the "No project" heading for everyone.
+func TestSidebarStaysFlatWithoutGroups(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if tt.HasText(ungroupedLabel) {
+		t.Errorf("an ungrouped catalog draws a %q heading, texts %q", ungroupedLabel, tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleListItem, "First session"); !ok {
+		t.Errorf("flat sidebar does not expose its rows, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarSelectsASession checks the row's selected state and the choice it
+// publishes: the list marks the shell's selection for assistive technology, a
+// click on another row moves it, and the header follows.
+func TestSidebarSelectsASession(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	first, ok := tt.AccessByRole(ui.RoleListItem, "First session")
+	if !ok {
+		t.Fatalf("first row is not exposed, texts %q", tt.Texts())
+	}
+	if !first.Selected {
+		t.Error("the selected session is not marked selected")
+	}
+	second, ok := tt.AccessByRole(ui.RoleListItem, "Second session")
+	if !ok {
+		t.Fatalf("second row is not exposed, texts %q", tt.Texts())
+	}
+	if second.Selected {
+		t.Error("an unselected session is marked selected")
+	}
+
+	if err := tt.Click("Second session"); err != nil {
+		t.Fatal(err)
+	}
+	if s.Selected != "s2" {
+		t.Fatalf("selected %q after the click, want s2", s.Selected)
+	}
+	if info, ok := tt.AccessByRole(ui.RoleListItem, "Second session"); !ok || !info.Selected {
+		t.Errorf("the clicked row is not marked selected: %+v, found %v", info, ok)
+	}
+	if info, ok := tt.AccessByRole(ui.RoleListItem, "First session"); !ok || info.Selected {
+		t.Errorf("the first row is still marked selected: %+v, found %v", info, ok)
+	}
+	if !tt.HasText("Second session") {
+		t.Errorf("the header does not follow the choice, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarDefaultWidth checks the width the sidebar opens at: 256 DIPs, the
+// value docs/ui-layout-spec.md gives, not the theme's spacing unit.
+func TestSidebarDefaultWidth(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 1440, 900)
+
+	info, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	if math.Abs(float64(info.Bounds.W-sidebarDefaultW)) > 0.5 {
+		t.Errorf("sidebar width is %.2f, want %d", info.Bounds.W, sidebarDefaultW)
+	}
+}
+
+// TestSidebarResizeClamps checks the drag handle: a drag inside the bounds
+// sets the width, and a drag past either bound leaves the sidebar at 200 or
+// 360 DIPs instead of letting it collapse or take the conversation's room.
+func TestSidebarResizeClamps(t *testing.T) {
+	cases := []struct {
+		name string
+		dx   float32
+		want float32
+	}{
+		{"inside", 40, sidebarDefaultW + 40},
+		{"past the widest", 400, sidebarMaxW},
+		{"past the narrowest", -400, sidebarMinW},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := fixture()
+			tt := ui.NewTester(s.View, 1440, 900)
+
+			divider, ok := tt.AccessByRole(ui.RoleSplitter, "")
+			if !ok {
+				t.Fatalf("the split divider is not exposed, texts %q", tt.Texts())
+			}
+			x := float32(divider.Bounds.X + divider.Bounds.W/2)
+			y := float32(divider.Bounds.Y + divider.Bounds.H/2)
+			tt.Press(x, y)
+			tt.Move(x+tc.dx, y)
+			tt.Release(x+tc.dx, y)
+			tt.Frame()
+
+			if s.SidebarWidth != tc.want {
+				t.Errorf("sidebar width after dragging %+.0f is %.0f, want %.0f", tc.dx, s.SidebarWidth, tc.want)
+			}
+			info, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+			if !ok {
+				t.Fatalf("the sidebar is not exposed after the drag, texts %q", tt.Texts())
+			}
+			if math.Abs(float64(info.Bounds.W-tc.want)) > 0.5 {
+				t.Errorf("the drawn sidebar is %.2f wide, want %.0f", info.Bounds.W, tc.want)
+			}
+		})
+	}
+}
+
+// TestSidebarWIPEntriesDoNothing checks every sidebar entry the shell cannot
+// carry out yet: it keeps its accessible name, is marked unavailable, explains
+// the real gap, and a click changes no view state.
+func TestSidebarWIPEntriesDoNothing(t *testing.T) {
+	s := fixture()
+	s.OnCreateSession = nil
+	tt := ui.NewTester(s.View, 900, 600)
+	width := s.SidebarWidth
+
+	entries := map[string]string{
+		"Update":          "updater",
+		"Search sessions": "search",
+		"Group":           "project",
+		"Pin":             "pin",
+		"Rename":          "session.rename",
+		"Archive":         "hidden session list",
+	}
+	for name, gap := range entries {
+		info, ok := tt.AccessByRole(ui.RoleButton, name)
+		if !ok {
+			t.Errorf("%q is not exposed as an entry, texts %q", name, tt.Texts())
+			continue
+		}
+		if !info.Disabled {
+			t.Errorf("%q is available although the shell cannot carry it out", name)
+		}
+		if !strings.Contains(info.Description, "Unavailable") {
+			t.Errorf("%q description %q does not say it is unavailable", name, info.Description)
+		}
+		if !strings.Contains(info.Description, gap) {
+			t.Errorf("%q description %q does not name %q", name, info.Description, gap)
+		}
+		if err := tt.Click(name); err != nil {
+			t.Fatalf("click %q: %v", name, err)
+		}
+	}
+
+	if s.Selected != "s1" || s.Draft != "" || len(s.Sessions) != 2 || s.SidebarWidth != width {
+		t.Errorf("a WIP click changed the shell: selected=%q draft=%q sessions=%d width=%.0f (was %.0f)",
+			s.Selected, s.Draft, len(s.Sessions), s.SidebarWidth, width)
+	}
+}
+
+// TestSidebarRowFaces checks the row states the spec names: the selected row
+// is painted with the sidebar's accent face, and the row under the pointer with
+// its hover face. Both are sampled beside the title, in the row's own padding.
+func TestSidebarRowFaces(t *testing.T) {
+	s := fixture()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 600)
+	k := newTokens(theme)
+
+	rowFace := func(name string) color.RGBA {
+		rect, ok := tt.Find(name)
+		if !ok {
+			t.Fatalf("%q is not drawn, texts %q", name, tt.Texts())
+		}
+		return tt.Image().RGBAAt(int(rect.X)+3, int(rect.Y+rect.H/2))
+	}
+	selected := rowFace("First session")
+	if !sameColor(selected, k.sidebarAccent) {
+		t.Errorf("the selected row's face is %v, want the sidebar accent %+v", selected, k.sidebarAccent)
+	}
+
+	if hovered := rowFace("Second session"); sameColor(hovered, k.sidebarAccent) {
+		t.Fatalf("the unselected row already paints the selected face")
+	}
+	second, _ := tt.Find("Second session")
+	tt.Move(second.X+second.W/2, second.Y+second.H/2)
+	tt.Frame()
+	hovered := rowFace("Second session")
+	if !sameColor(hovered, k.sidebarHover) {
+		t.Errorf("the hovered row's face is %v, want the sidebar hover face %+v", hovered, k.sidebarHover)
+	}
+}
+
+// TestSidebarEmptyCatalog checks the empty state: an empty catalog says so in a
+// status region and offers no thread list, rather than an empty focus stop.
+func TestSidebarEmptyCatalog(t *testing.T) {
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if !tt.HasText("No sessions yet") {
+		t.Fatalf("the empty sidebar says nothing, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleStatus, "No sessions yet"); !ok {
+		t.Errorf("the empty sidebar is not a status region, texts %q", tt.Texts())
+	}
+}
+
+// sameColor reports whether a sampled pixel is exactly the token's color.
+func sameColor(pixel color.RGBA, token ui.Color) bool {
+	return pixel.R == token.R && pixel.G == token.G && pixel.B == token.B && pixel.A == token.A
+}

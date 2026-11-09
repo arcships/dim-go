@@ -46,6 +46,25 @@ const (
 	sidebarMaxW     = 360
 )
 
+// The sidebar's geometry in DIPs, from docs/ui-layout-spec.md §2.2: the
+// header is a 48px literal, the table title is h-9 with px-3, a global entry is
+// h-8 with px-2, the footer row h-[30px], and the gaps and inner cells are
+// px-2 / gap-1 / h-6. Under the 14px root font size those Tailwind steps are
+// 31.5, 10.5, 28, 7, 30, 3.5 and 21 DIPs, so they are kept as their converted
+// values instead of being copied as steps on the 4 DIP spacing grid.
+const (
+	sidebarHeaderH    = 48
+	sidebarHeaderTop  = 4
+	sidebarSectionH   = 31.5
+	sidebarRowH       = 34
+	sidebarEntryH     = 28
+	sidebarFooterH    = 30
+	sidebarCell       = 21
+	sidebarGap        = 3.5
+	sidebarPad        = 7
+	sidebarSectionPad = 10.5
+)
+
 // The surface ladder: how far each face lifts off the background, as the share
 // of the way from the background to the foreground. A face is a mix of two
 // theme colors, not a wash of the border, so an elevated surface keeps a tint
@@ -94,13 +113,26 @@ type tokens struct {
 	toolbarPadX float32 // left and right of the toolbar
 	edgePad     float32 // inside the composer
 	panelPad    float32 // inside the empty state and the loading row
-	sidebarPadY float32
-	sidebarPadX float32
 	composerH   float32
 	statusDot   float32
 	cardRadius  float32 // a card's corner, the middle of the radius ladder
 	cardPadY    float32 // above and below a card's parts
 	cardPadX    float32 // left and right inside a card
+
+	// The sidebar's geometry, in DIPs: the header's height and top margin,
+	// the table title, a thread row, a global entry, the footer row, the
+	// status cell and the gaps between them, plus the padding the header,
+	// entries and footer keep from the sidebar's edges.
+	sidebarHeaderH     float32
+	sidebarHeaderTop   float32
+	sidebarSectionH    float32
+	sidebarRowH        float32
+	sidebarEntryH      float32
+	sidebarFooterH     float32
+	sidebarCell        float32
+	sidebarGap         float32
+	sidebarPadX        float32
+	sidebarSectionPadX float32
 
 	// The sidebar's width in DIPs: the width it opens at, and the narrowest and
 	// widest a resize may leave it.
@@ -227,13 +259,22 @@ func newTokens(t *ui.Theme) tokens {
 		toolbarPadX: t.Space(3),
 		edgePad:     t.Space(3),
 		panelPad:    t.Space(6),
-		sidebarPadY: t.Space(2),
-		sidebarPadX: t.Space(2),
 		composerH:   t.Space(18),
 		statusDot:   t.Space(2),
 		cardRadius:  radiusLG,
 		cardPadY:    t.Space(1),
 		cardPadX:    t.Space(2),
+
+		sidebarHeaderH:     sidebarHeaderH,
+		sidebarHeaderTop:   sidebarHeaderTop,
+		sidebarSectionH:    sidebarSectionH,
+		sidebarRowH:        sidebarRowH,
+		sidebarEntryH:      sidebarEntryH,
+		sidebarFooterH:     sidebarFooterH,
+		sidebarCell:        sidebarCell,
+		sidebarGap:         sidebarGap,
+		sidebarPadX:        sidebarPad,
+		sidebarSectionPadX: sidebarSectionPad,
 
 		sidebarW:    sidebarDefaultW,
 		sidebarMinW: sidebarMinW,
@@ -325,6 +366,15 @@ func (k tokens) clampSidebarWidth(w float32) float32 {
 		return k.sidebarMaxW
 	}
 	return w
+}
+
+// resolveSidebarWidth is the width the sidebar draws at: the default until a
+// resize sets one, and always inside the sidebar's bounds.
+func (k tokens) resolveSidebarWidth(w float32) float32 {
+	if w <= 0 {
+		return k.sidebarW
+	}
+	return k.clampSidebarWidth(w)
 }
 
 // space is n units of the theme's Spacing, for a view that needs a step this

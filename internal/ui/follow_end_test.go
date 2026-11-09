@@ -78,7 +78,7 @@ func TestAppFrameAccessibilityFixture(t *testing.T) {
 	if info, ok := tt.AccessByRole(ui.RoleTextField, "Composer"); !ok || info.Value != "" {
 		t.Fatalf("composer accessibility: %+v, found=%v", info, ok)
 	}
-	if _, ok := tt.AccessByRole(ui.RoleTreeItem, "First session"); !ok {
+	if _, ok := tt.AccessByRole(ui.RoleListItem, "First session"); !ok {
 		t.Fatal("session sidebar item is not exposed to accessibility")
 	}
 }

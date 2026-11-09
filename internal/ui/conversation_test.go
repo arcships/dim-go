@@ -115,6 +115,10 @@ func TestConversationFollowsAppend(t *testing.T) {
 // syntax, while a user row stays literal.
 func TestAssistantRowRendersMarkdown(t *testing.T) {
 	s := fixture()
+	// The sidebar's rows are list items too; this test reads the conversation
+	// list's items, so the fixture leaves the catalog out.
+	s.Sessions = nil
+	s.Selected = ""
 	s.Messages = []Message{
 		{ID: "m1", Author: AuthorAssistant, Content: "# Result\n\nSome **bold** and `inline code` text.\n\n```go\nfmt.Println(\"hi\")\n```\n"},
 		{ID: "m2", Author: AuthorUser, Content: "plain **not** markdown"},

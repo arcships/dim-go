@@ -45,7 +45,7 @@ func wipCapabilities(s *State) []wipCapability {
 			wipCapability{"Approvals", "approval.respond", "helper exists; window has no approval callback"})
 	}
 	capabilities = append(capabilities,
-		wipCapability{"Attachments", "attachment.put", "no Go client helper yet"})
+		wipCapability{"Attachments", "attachment.put", "helper exists; shell has no file picker and keeps unknown upload results disabled"})
 	if s == nil || s.OnReconnect == nil {
 		capabilities = append(capabilities,
 			wipCapability{"Connection recovery", "supervisor.Reconnect", "helper exists; shell not wired"})
@@ -60,18 +60,22 @@ func wipCapabilities(s *State) []wipCapability {
 // capabilityCards draws the read-only list of actions the shell cannot carry
 // out yet. The cards say what is missing without offering a control, so no
 // click can imply a capability the shell does not have. The list sits under the
-// session sidebar, which is its only consumer.
+// session sidebar, which is its only consumer. It takes the room the thread
+// list leaves and scrolls when the window is too short for every card, so the
+// catalog above it keeps its rows.
 func (s *State) capabilityCards(c *ui.Context, k tokens) {
-	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
-		BorderWidth(k.hairline, 0, 0, 0).BorderColor(k.border).
-		Role(ui.RoleGroup).Label("Unavailable capabilities").Children(func() {
-		// The group's label names the list, so the visible heading stays out of
-		// the accessibility tree rather than being read twice.
-		ui.Text(c, "Unavailable capabilities").FontSize(k.smallSize).TextColor(k.mutedForeground).
-			Unselectable().AccessHidden(true)
-		for _, capability := range wipCapabilities(s) {
-			capabilityCard(c, k, capability)
-		}
+	ui.Scroll(c).Shrink(1).Children(func() {
+		ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).
+			BorderWidth(k.hairline, 0, 0, 0).BorderColor(k.border).
+			Role(ui.RoleGroup).Label("Unavailable capabilities").Children(func() {
+			// The group's label names the list, so the visible heading stays out of
+			// the accessibility tree rather than being read twice.
+			ui.Text(c, "Unavailable capabilities").FontSize(k.smallSize).TextColor(k.mutedForeground).
+				Unselectable().AccessHidden(true)
+			for _, capability := range wipCapabilities(s) {
+				capabilityCard(c, k, capability)
+			}
+		})
 	})
 }
 

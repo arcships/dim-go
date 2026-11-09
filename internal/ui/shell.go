@@ -34,6 +34,12 @@ var ComposerShortcutMods = ui.Cmd
 type Session struct {
 	ID    string
 	Title string
+	// Group is the heading the sidebar draws the row under, as a display
+	// label the window derives from a catalog fact, such as the project of
+	// session.catalog's cwd or a date bucket of updatedAt. The shell keeps
+	// no grouping fact of its own and renders one flat list while every
+	// Group is empty; it never invents a project name.
+	Group string
 }
 
 // Branch is read-only branch metadata supplied by the App Server. Branch
@@ -136,6 +142,10 @@ type Message struct {
 type State struct {
 	Sessions []Session
 	Selected string
+	// SidebarWidth is the width the sidebar opens at and the width a drag
+	// leaves it: a desktop-local preference in DIPs, 256 by default and held
+	// between 200 and 360. Zero means the default. It is not a session fact.
+	SidebarWidth float32
 	// Branches is read-only observed branch metadata for the selected session.
 	// The directory is displayed, while switching and cut point remain disabled.
 	Branches       []Branch
@@ -201,6 +211,14 @@ type State struct {
 	// row, kept across frames so that appended rows follow the end and rows keep
 	// their state as the conversation changes.
 	conversation ui.ListState
+	// sidebarList is the thread list's place and focus, sidebarChoice is the
+	// row it shows as chosen, sidebarSynced is the session that choice was
+	// last mapped from, and sidebarRows is the layout the choice indexes into.
+	// They are the list's own view state, not session facts.
+	sidebarList   ui.ListState
+	sidebarChoice int
+	sidebarSynced string
+	sidebarRows   []sidebarRow
 	// markdown is the shared Markdown options of every assistant row, whose
 	// theme follows the window's.
 	markdown markdown.Options
@@ -213,46 +231,28 @@ type State struct {
 // and composer.
 func (s *State) View(c *ui.Context) {
 	k := newTokens(c.Theme())
-	ui.Row(c).Fill().AlignItems(ui.Stretch).Children(func() {
-		ui.Column(c).Width(k.sidebarW).Shrink(0).PaddingY(k.sidebarPadY).Background(k.sidebar).Children(func() {
-			s.sidebarActions(c, k)
-			ui.Sidebar(c, &s.Selected, func() {
-				for _, session := range s.Sessions {
-					ui.SidebarItem(c, session.ID, nil, session.Title)
-				}
-			}).Grow(1).Label("Sessions").OnChange(s.selectSession)
-			if len(s.Branches) > 0 {
-				s.branchList(c, k)
-			}
-			s.capabilityCards(c, k)
-		})
-		ui.Column(c).Grow(1).FillHeight().Children(func() {
-			s.header(c, k)
-			s.banner(c, k)
-			s.conversationList(c, k)
-			s.composer(c, k)
-		})
-	})
+	// The divider writes the width it drags to; the shell keeps the sidebar
+	// inside its own bounds before every frame, so a drag can never take the
+	// session list or the conversation off the window.
+	s.SidebarWidth = k.resolveSidebarWidth(s.SidebarWidth)
+	ui.Split(c, &s.SidebarWidth, func() {
+		s.sidebar(c, k)
+	}, func() {
+		s.main(c, k)
+	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
 		s.composerFocus.Focus()
 	}
 }
 
-// sidebarActions holds the session list's actions above it. "New session" is a
-// real entry once the window supplies OnCreateSession: the callback sends
-// session.create and publishes the session the App Server returned. Without the
-// callback the entry stays visible and unavailable rather than disappearing, and
-// it is unavailable again while one creation is in flight, so a second click
-// cannot ask for a second session.
-func (s *State) sidebarActions(c *ui.Context, k tokens) {
-	ui.Row(c).PaddingX(k.sidebarPadX).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-		ui.Box(c).Grow(1)
-		if s.OnCreateSession == nil {
-			wipAction(c, k, "New session", reasonCreateSession)
-			return
-		}
-		create := ui.Button(c, "New session").OnClick(s.createSession)
-		create.Disabled(s.CreatingSession)
+// main is the conversation area beside the sidebar: toolbar, banner,
+// conversation list and composer.
+func (s *State) main(c *ui.Context, k tokens) {
+	ui.Column(c).FillHeight().Children(func() {
+		s.header(c, k)
+		s.banner(c, k)
+		s.conversationList(c, k)
+		s.composer(c, k)
 	})
 }
 
