@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
@@ -925,7 +926,19 @@ func Catalog(ctx context.Context, sup *supervisor.Supervisor) ([]ui.Session, err
 	}
 	rows := make([]ui.Session, 0, len(result.Sessions))
 	for _, summary := range result.Sessions {
-		rows = append(rows, ui.Session{ID: summary.SessionID, Title: sessionTitle(summary)})
+		// The project heading and the row's relative time are catalog facts, not
+		// a local list: cwd's base name and updatedAt, as the daemon returned
+		// them. An empty cwd stays ungrouped instead of inventing a name.
+		group := ""
+		if summary.Cwd != "" {
+			group = filepath.Base(summary.Cwd)
+		}
+		rows = append(rows, ui.Session{
+			ID:        summary.SessionID,
+			Title:     sessionTitle(summary),
+			Group:     group,
+			UpdatedAt: summary.UpdatedAt,
+		})
 	}
 	return rows, nil
 }

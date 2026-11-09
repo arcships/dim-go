@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -40,6 +41,9 @@ type sidebarRow struct {
 	count int
 	// sessionID identifies a session row, and keys the list.
 	sessionID string
+	// updatedAt is the row's catalog time in epoch milliseconds; zero draws
+	// no time.
+	updatedAt int64
 	// title is the session row's display text; empty when the catalog has
 	// none.
 	title string
@@ -72,7 +76,7 @@ func threadRows(sessions []Session, locale Locale) []sidebarRow {
 	rows := make([]sidebarRow, 0, len(sessions))
 	if !grouped {
 		for _, session := range sessions {
-			rows = append(rows, sidebarRow{sessionID: session.ID, title: session.Title})
+			rows = append(rows, sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt})
 		}
 		return rows
 	}
@@ -86,13 +90,40 @@ func threadRows(sessions []Session, locale Locale) []sidebarRow {
 		if _, ok := buckets[label]; !ok {
 			order = append(order, label)
 		}
-		buckets[label] = append(buckets[label], sidebarRow{sessionID: session.ID, title: session.Title})
+		buckets[label] = append(buckets[label], sidebarRow{sessionID: session.ID, title: session.Title, updatedAt: session.UpdatedAt})
 	}
 	for _, label := range order {
 		rows = append(rows, sidebarRow{group: true, label: label, count: len(buckets[label])})
 		rows = append(rows, buckets[label]...)
 	}
 	return rows
+}
+
+// relativeStamp is the sidebar row's relative time, as the reference shows it
+// ("5m", "2h", "3d"). The value is session.catalog's updatedAt: epoch
+// milliseconds when it looks like one, epoch seconds otherwise; zero or a
+// future time draws nothing rather than a made-up stamp.
+func relativeStamp(updatedAt int64, now time.Time) string {
+	if updatedAt <= 0 {
+		return ""
+	}
+	stamp := updatedAt
+	if stamp < 1_000_000_000_000 {
+		stamp *= 1000
+	}
+	delta := now.Sub(time.UnixMilli(stamp))
+	switch {
+	case delta < 0:
+		return ""
+	case delta < time.Minute:
+		return "now"
+	case delta < time.Hour:
+		return strconv.Itoa(int(delta/time.Minute)) + "m"
+	case delta < 24*time.Hour:
+		return strconv.Itoa(int(delta/time.Hour)) + "h"
+	default:
+		return strconv.Itoa(int(delta/(24*time.Hour))) + "d"
+	}
 }
 
 // rowIndex returns the index of the session's row, or -1 when the catalog no
@@ -480,6 +511,10 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 		})
 		ui.Text(c, row.title).FontSize(k.bodySize).TextColor(k.sidebarForeground).
 			SingleLine().Grow(1)
+		if stamp := relativeStamp(row.updatedAt, time.Now()); stamp != "" {
+			ui.Text(c, stamp).FontSize(k.smallSize).TextColor(k.sidebarForeground).
+				SingleLine()
+		}
 	})
 }
 

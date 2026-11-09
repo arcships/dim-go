@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -395,6 +396,28 @@ func TestSidebarDeleteWithoutCallbackStaysWIP(t *testing.T) {
 	}
 	if !strings.Contains(info.Description, reasonDelete) {
 		t.Errorf("delete description %q does not carry %q", info.Description, reasonDelete)
+	}
+}
+
+// TestSidebarRelativeTime checks the row stamp the reference shows: catalog
+// milliseconds become minutes, hours and days, and a zero time draws nothing.
+func TestSidebarRelativeTime(t *testing.T) {
+	now := time.Date(2026, 11, 9, 12, 0, 0, 0, time.UTC)
+	cases := []struct {
+		name string
+		in   int64
+		want string
+	}{
+		{"zero", 0, ""},
+		{"seconds", now.Add(-5 * time.Minute).Unix(), "5m"},
+		{"millis", now.Add(-2 * time.Hour).UnixMilli(), "2h"},
+		{"days", now.Add(-3 * 24 * time.Hour).UnixMilli(), "3d"},
+		{"future", now.Add(time.Minute).UnixMilli(), ""},
+	}
+	for _, tc := range cases {
+		if got := relativeStamp(tc.in, now); got != tc.want {
+			t.Errorf("%s: relativeStamp(%d) = %q, want %q", tc.name, tc.in, got, tc.want)
+		}
 	}
 }
 

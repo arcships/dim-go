@@ -190,7 +190,9 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 
 错误态对照：[`evidence/ui-parity/compare-error.png`](evidence/ui-parity/compare-error.png)。Electron 在 daemon 被杀后**没有任何可见提示**（截图与正常对话只有相对时间差），恢复靠内部 resync 失败后用户点“新建会话”；MyGo 显示 `Connection error` banner 与 `Reconnect`，且能重连恢复。这是两边可见行为的明确差异，MyGo 的行为有意保留（F10 已验收），不为了对齐而隐藏错误。
 
-仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome、侧栏“工作区分组 + 相对时间”（App Server 未给 project/时间字段）。
+侧栏分组与相对时间也已对齐：`session.catalog` 的 `cwd` 取 basename 作为工作区分组，`updatedAt` 渲染为 `49m/2h/3d`，与参考的“工作区分组 + 相对时间”一致。
+
+仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome。
 
 ## 6. 结论复述
 

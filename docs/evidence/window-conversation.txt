@@ -1,3 +1,3 @@
 capture	docs/evidence/window-conversation.png
-note	real MyGo window at 800x720 with a seeded prompt and assistant Echo row
+note	real MyGo window at 800x720 with a seeded prompt; rows group by cwd base name and show catalog relative time
 driver	scripts/capture-window.sh + scripts/seed-session

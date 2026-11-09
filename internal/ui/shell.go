@@ -51,6 +51,9 @@ type Session struct {
 	// no grouping fact of its own and renders one flat list while every
 	// Group is empty; it never invents a project name.
 	Group string
+	// UpdatedAt is session.catalog's updatedAt in epoch milliseconds, shown as
+	// the row's relative time. Zero draws no time.
+	UpdatedAt int64
 }
 
 // Branch is read-only branch metadata supplied by the App Server. Branch

@@ -514,6 +514,12 @@ func TestSessionControllerBridge(t *testing.T) {
 	if len(rows) != 1 || rows[0].ID != "s1" || rows[0].Title != "Fake session" {
 		t.Fatalf("catalog rows = %#v", rows)
 	}
+	if rows[0].Group != "tmp" {
+		t.Errorf("catalog group = %q, want the cwd's base name tmp", rows[0].Group)
+	}
+	if rows[0].UpdatedAt != 1700000000001 {
+		t.Errorf("catalog updatedAt = %d, want the daemon's value", rows[0].UpdatedAt)
+	}
 
 	if err := controller.Close(ctx); err != nil {
 		t.Fatalf("Close: %v", err)
