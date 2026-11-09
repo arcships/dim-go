@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划
 
-Status: active（设置全窗口路由、搜索浮层已合并；10 个 UI 组件 + 4 个主逻辑 worktree 并行中。产品验收 **11 通过 / 16 未通过**，见 [acceptance.md](acceptance.md)）
+Status: active（波次已完成：10 个 UI 组件 + 4 个主逻辑 worktree 全部合并，进入接线与验收轮。产品验收 **11 通过 / 16 未通过**，见 [acceptance.md](acceptance.md)）
 Last updated: 2026-11-09
 流程与角色见 [workflow.md](workflow.md)；逐日记录见 [archive/progress-2026-11.md](archive/progress-2026-11.md)。
 
@@ -19,7 +19,7 @@ Last updated: 2026-11-09
       D1–D7、F6–F9、F11、F12b、F13、F14b、A2/A3/A5 未通过（16）
 UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮层、keys/context/approval 面板
 主逻辑：catalog/create/select/submit/stop/approval/delete/branch/reconnect/unknown-result 读回
-并行：10 个 UI 组件 worktree + 4 个主逻辑 worktree（§2/§3）
+波次：10 个 UI 组件 + 4 个主逻辑 worktree 已完成并合并（§2/§3）
 ```
 
 ---
@@ -34,7 +34,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 
 退出：`gofmt`/`build`/`vet`/`test` 绿，无死代码引用。
 
-### P1 组件并行（进行中，10 个 worktree）
+### P1 组件并行（已合并，10 个 worktree；待接线与视觉验收）
 
 | # | 组件 | 分支 | 退出条件 |
 |---|---|---|---|
@@ -51,7 +51,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 
 合并顺序：1/2/3/4 → 5/6/7/8/9 → 10；每个合并后全量 test/race → 真窗口截图 → 逐区域看图。
 
-### P2 主逻辑并行（进行中，4 个 worktree）
+### P2 主逻辑并行（已合并，4 个 worktree；UI 接线在 P3）
 
 | 逻辑 | 分支 | 退出条件 | 缺口 |
 |---|---|---|---|
