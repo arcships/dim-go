@@ -228,6 +228,13 @@ type State struct {
 	// Messages are fixture conversation rows, not session facts.
 	Messages []Message
 	Draft    string
+	// Workspace and Permission are the composer context row's display copies:
+	// the workspace the next turn would run in and the session's default
+	// permission mode, as the App Server reported them. The shell has no such
+	// fact yet, so they stay empty and the composer draws its WIP state; they
+	// are never filled from a local guess.
+	Workspace  string
+	Permission string
 
 	// OnSelect, OnSelectBranch, OnEndBranch, OnRefreshBranches,
 	// OnCreateSession, OnSubmit, OnStop, OnReconnect and OnApproval connect the
@@ -578,6 +585,8 @@ func (s *State) composerView() ComposerView {
 		Draft:       &s.Draft,
 		CanSubmit:   s.canSubmit(),
 		Placeholder: tr(s.locale(), keyComposerPlaceholder),
+		Workspace:   s.Workspace,
+		Permission:  s.Permission,
 		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
 		Focus:       &s.composerFocus,
 		Locale:      s.locale(),
