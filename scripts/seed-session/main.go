@@ -22,6 +22,7 @@ func main() {
 	server := flag.String("server", "", "dim-app-server binary (default: supervisor lookup)")
 	cwd := flag.String("cwd", "", "working directory for the new session (default: current)")
 	prompt := flag.String("prompt", "", "optional first message to submit after session.create")
+	sideBranch := flag.Bool("side-branch", false, "also create one side branch off the submitted input")
 	flag.Parse()
 
 	if *home == "" {
@@ -58,23 +59,50 @@ func main() {
 		_, _ = sup.Close(context.Background())
 		os.Exit(1)
 	}
+	submitSequence := int64(0)
 	if *prompt != "" {
 		// Submit on the control connection: session.submit is a session method,
 		// and the daemon folds the turn into the same durable history a window
 		// reads later. It never derives a local row from this reply.
-		if _, err := appserver.Submit(ctx, conn.Client(), appserver.SubmitParams{
+		submitted, err := appserver.Submit(ctx, conn.Client(), appserver.SubmitParams{
 			SessionID:    result.SessionID,
 			SubmissionID: newSubmissionID(),
 			BranchID:     appserver.MainBranchID,
 			Text:         *prompt,
-		}); err != nil {
+		})
+		if err != nil {
 			fmt.Fprintf(os.Stderr, "seed-session: session.submit: %v\n", err)
 			_, _ = sup.Close(context.Background())
 			os.Exit(1)
 		}
+		submitSequence = submitted.Event.Sequence
 		// Give the mock model a moment to fold its turn before the daemon closes;
 		// the history read later only sees durable events either way.
 		time.Sleep(1500 * time.Millisecond)
+	}
+	if *sideBranch {
+		if submitSequence == 0 {
+			fmt.Fprintln(os.Stderr, "seed-session: -side-branch needs -prompt: the cut point is the submitted input")
+			_, _ = sup.Close(context.Background())
+			os.Exit(2)
+		}
+		// A side line hangs off the submitted input's sequence: that is the one
+		// cut point this tool can prove without reading daemon state.
+		created, err := appserver.BranchCreate(ctx, conn.Client(), appserver.BranchCreateParams{
+			SessionID:      result.SessionID,
+			ParentBranchID: appserver.MainBranchID,
+			At:             &submitSequence,
+			Prompt:         "seed: side branch",
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "seed-session: session.branch_create: %v\n", err)
+			_, _ = sup.Close(context.Background())
+			os.Exit(1)
+		}
+		if created.Branch != nil {
+			fmt.Fprintf(os.Stderr, "seed-session: side branch %s\n", created.Branch.BranchID)
+		}
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	closeCtx, closeCancel := context.WithTimeout(context.Background(), 15*time.Second)
