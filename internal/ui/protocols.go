@@ -503,13 +503,15 @@ func renderSidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 
 // renderHeader draws the conversation bar and the banner below it. The bar is
 // the reference's one line: the project and title breadcrumb, the session menu,
-// the conditional Stop and Reconnect entries, the model entry, a divider and the
-// context panel toggle. It calls Actions.OnToggleKeys, Actions.OnEndBranch,
-// Actions.OnRefreshBranches, Actions.OnRequestDelete and Actions.OnOpenSettings
-// from its menu, Actions.OnDeleteSession from the delete alert's confirm
-// button, and Actions.OnStop and Actions.OnReconnect from the entries, each only
-// when HeaderView says the entry applies. The banner shows a terminal close, the
-// connection error, or the window's action error.
+// the conditional Stop and Reconnect entries, the editor-open entry, the model
+// entry, a divider and the context panel toggle. The editor-open and model
+// entries are WIP: the shell has no editor client, workspace or model fact, so
+// they stay visible, unavailable and explained. It calls Actions.OnToggleKeys,
+// Actions.OnEndBranch, Actions.OnRefreshBranches, Actions.OnRequestDelete and
+// Actions.OnOpenSettings from its menu, Actions.OnDeleteSession from the delete
+// alert's confirm button, and Actions.OnStop and Actions.OnReconnect from the
+// entries, each only when HeaderView says the entry applies. The banner shows a
+// terminal close, the connection error, or the window's action error.
 func renderHeader(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	header(c, k, v, a)
 }
@@ -529,8 +531,9 @@ func renderApproval(c *ui.Context, k tokens, v ApprovalView, a Actions) {
 }
 
 // renderComposer draws the attachment entry, the Send entry and the draft
-// field. It calls Actions.OnSubmit with the trimmed draft when the window's gate
-// and the live draft both allow a send.
+// field, with the empty state's context row inside the card and a conversation's
+// status band under it. It calls Actions.OnSubmit with the trimmed draft when
+// the window's gate and the live draft both allow a send.
 func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	composer(c, k, v, a)
 }

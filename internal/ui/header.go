@@ -1,8 +1,8 @@
 // This file owns the main area's conversation bar and banner: the project and
 // session-title breadcrumb, the session menu, the conditional Stop and Reconnect
-// entries, the model entry, the context panel toggle, the delete confirmation
-// and the error banner below them. It reads HeaderView and Actions only (see
-// protocols.go).
+// entries, the editor-open entry, the model entry, the context panel toggle, the
+// delete confirmation and the error banner below them. It reads HeaderView and
+// Actions only (see protocols.go).
 //
 // The reference's conversation bar is one line with the breadcrumb and a "…"
 // menu on the left and the surface entries on the right. Run and connection
@@ -31,6 +31,12 @@ const breadcrumbSeparator = "/"
 // two panes with the right one filled. It strokes and fills currentColor, so
 // it follows the theme like the sidebar's glyphs.
 var contextPanelGlyph = sidebarIcon(`<rect x="1.8" y="2.6" width="12.4" height="10.8" rx="2"/><path d="M9.2 2.6v10.8"/><path d="M9.2 3.4h4.2a.8.8 0 0 1 .8.8v7.6a.8.8 0 0 1-.8.8H9.2Z" fill="currentColor" stroke="none"/>`)
+
+// reasonOpenInEditor explains the toolbar's VS Code entry while the shell has
+// no editor client and no workspace fact to hand one. The entry is the
+// reference's segmented open control, kept visible and unavailable rather than
+// pretending it could open anything.
+const reasonOpenInEditor = "Unavailable: the shell has no editor-open client or workspace fact for opening this session in VS Code yet."
 
 // header shows the selected session's breadcrumb and entries, then the banner
 // that belongs under them. It draws no region of its own beyond those rows.
@@ -73,6 +79,11 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 				ui.Button(c, tr(locale, keyHeaderReconnect)).OnClick(a.OnReconnect)
 			}
 		}
+		// The reference draws its editor-open control beside the model entry:
+		// a VS Code mark and a disclosure arrow. The shell has no editor client
+		// and no workspace fact to open, so the entry stays visible, unavailable
+		// and explained instead of pretending it could open the session.
+		openInEditorEntry(c, k, locale)
 		// The model entry is a picker the reference draws beside the editor
 		// entry. The shell has no model list or current-model fact from the App
 		// Server, so it stays a visible, unavailable entry that explains the gap
@@ -202,6 +213,32 @@ func modelEntry(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 func headerDivider(c *ui.Context, k tokens) {
 	ui.Box(c).Width(k.hairline).Height(k.sidebarEntryH).Shrink(0).
 		Background(k.border).AccessHidden(true)
+}
+
+// openInEditorEntry draws the reference's editor-open control as a visible WIP
+// entry: the VS Code mark at its 16 DIP step, a vertical rule and the disclosure
+// arrow, in one rounded frame. The shell has no editor-open client and no
+// workspace fact to hand one, so the entry takes no click and no Tab stop and
+// carries the reason it waits on in its description and tooltip. The marks are
+// decorations; the localized label names the entry.
+func openInEditorEntry(c *ui.Context, k tokens, locale Locale) {
+	label := tr(locale, keyHeaderOpenInEditor)
+	reason := tr(locale, keyReasonOpenInEditor)
+	entry := ui.ButtonBase(c).Height(k.sidebarEntryH).Radius(radiusSM).
+		BorderWidth(k.hairline).BorderColor(k.border).AlignItems(ui.Center).
+		Label(label).Description(reason).Tooltip(reason).
+		Disabled(true).AccessDisabled(true).Shrink(0)
+	entry.Children(func() {
+		ui.Box(c).Width(k.sidebarEntryH).Height(k.sidebarEntryH).Center().Children(func() {
+			ui.Icon(c, openInEditorGlyph).Size(sidebarIconSize, sidebarIconSize).
+				TextColor(k.mutedForeground).AccessHidden(true)
+		})
+		ui.Box(c).Width(k.hairline).Height(sidebarIconSize).Background(k.border).AccessHidden(true)
+		ui.Box(c).Width(k.sidebarCell).Height(k.sidebarEntryH).Center().Children(func() {
+			ui.Icon(c, sidebarIcons.chevron).Size(10, 10).Rotate(90).
+				TextColor(k.mutedForeground).AccessHidden(true)
+		})
+	})
 }
 
 // deleteConfirmation draws the alert the menu's delete entry opens. The alert

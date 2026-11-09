@@ -132,6 +132,7 @@ const (
 	keyReasonRefreshBranches = "reason.refreshBranches"
 	keyReasonModel           = "reason.model"
 	keyReasonMode            = "reason.mode"
+	keyReasonOpenInEditor    = "reason.openInEditor"
 	keyReasonSkin            = "reason.skin"
 	keyReasonChrome          = "reason.chrome"
 
@@ -144,6 +145,7 @@ const (
 	keyHeaderMenuRefresh   = "header.menu.refreshBranches"
 	keyHeaderModel         = "header.model"
 	keyHeaderModelPicker   = "header.model.picker"
+	keyHeaderOpenInEditor  = "header.openInEditor"
 	keyHeaderDeleteTitle   = "header.delete.title"
 	keyHeaderDeleteMessage = "header.delete.message"
 	keyHeaderDeleteConfirm = "header.delete.confirm"
@@ -156,6 +158,12 @@ const (
 	keyComposerMode   = "composer.mode"
 	keyComposerModel  = "composer.model"
 	keyComposerSend   = "composer.send"
+
+	// keyComposerUnconfigured is the muted label beside Send: the shell has no
+	// model fact, so the composer states that none is configured instead of
+	// naming one. keyComposerStatus names the conversation's status band.
+	keyComposerUnconfigured = "composer.model.unconfigured"
+	keyComposerStatus       = "composer.status"
 
 	keySettingsRegion          = "settings.region"
 	keySettingsTitle           = "settings.title"
@@ -308,6 +316,7 @@ var stringsEN = Strings{
 	keyReasonRefreshBranches: reasonRefreshBranches,
 	keyReasonModel:           reasonModel,
 	keyReasonMode:            reasonMode,
+	keyReasonOpenInEditor:    reasonOpenInEditor,
 	keyReasonSkin:            reasonSkin,
 	keyReasonChrome:          reasonChrome,
 
@@ -320,18 +329,21 @@ var stringsEN = Strings{
 	keyHeaderMenuRefresh:   "Refresh branches",
 	keyHeaderModel:         "Model",
 	keyHeaderModelPicker:   "Model picker",
+	keyHeaderOpenInEditor:  "Open in VS Code",
 	keyHeaderDeleteTitle:   "Delete session?",
 	keyHeaderDeleteMessage: "This asks the App Server to delete the selected session. It cannot be undone here.",
 	keyHeaderDeleteConfirm: "Delete",
 	keyHeaderDeleteCancel:  "Cancel",
 	keyHeaderSessionClosed: "Session closed",
 
-	keyComposerHint:   composerHint,
-	keyComposerLabel:  "Composer",
-	keyComposerAttach: "Attach file",
-	keyComposerMode:   "Mode",
-	keyComposerModel:  "Model",
-	keyComposerSend:   "Send",
+	keyComposerHint:         composerHint,
+	keyComposerLabel:        "Composer",
+	keyComposerAttach:       "Attach file",
+	keyComposerMode:         "Mode",
+	keyComposerModel:        "Model",
+	keyComposerUnconfigured: "Not configured",
+	keyComposerStatus:       "Composer status",
+	keyComposerSend:         "Send",
 
 	keySettingsRegion:          "Appearance settings",
 	keySettingsTitle:           "Appearance",
@@ -468,6 +480,7 @@ var stringsZHCN = Strings{
 	keyReasonRefreshBranches: "不可用：shell 还没有 session.branches 刷新回调。",
 	keyReasonModel:           "不可用：ComposerView 没有模型列表或当前模型；App Server 的模型信息还没有传给输入框。",
 	keyReasonMode:            "不可用：ComposerView 没有 agent 模式；shell 还没有向输入框提供模式信息。",
+	keyReasonOpenInEditor:    "不可用：shell 还没有用于在 VS Code 中打开会话的编辑器客户端或工作区信息。",
 	keyReasonSkin:            "不可用：皮肤需要 dim-electron 的 skin.json 解析器和窗口区域；主题行只能选择 system、light 或 dark。",
 	keyReasonChrome:          "不可用：chrome 主题需要 dim-electron 的六套历史样式表；shell 不会绘制假的 chrome。",
 
@@ -480,18 +493,21 @@ var stringsZHCN = Strings{
 	keyHeaderMenuRefresh:   "刷新分支",
 	keyHeaderModel:         "模型",
 	keyHeaderModelPicker:   "模型选择",
+	keyHeaderOpenInEditor:  "在 VS Code 中打开",
 	keyHeaderDeleteTitle:   "删除会话？",
 	keyHeaderDeleteMessage: "这会请求 App Server 删除选中的会话，无法在这里撤销。",
 	keyHeaderDeleteConfirm: "删除",
 	keyHeaderDeleteCancel:  "取消",
 	keyHeaderSessionClosed: "会话已关闭",
 
-	keyComposerHint:   "Enter 发送 · Shift+Enter 换行",
-	keyComposerLabel:  "输入框",
-	keyComposerAttach: "添加附件",
-	keyComposerMode:   "模式",
-	keyComposerModel:  "模型",
-	keyComposerSend:   "发送",
+	keyComposerHint:         "Enter 发送 · Shift+Enter 换行",
+	keyComposerLabel:        "输入框",
+	keyComposerAttach:       "添加附件",
+	keyComposerMode:         "模式",
+	keyComposerModel:        "模型",
+	keyComposerUnconfigured: "未配置",
+	keyComposerStatus:       "输入框状态",
+	keyComposerSend:         "发送",
 
 	keySettingsRegion:          "外观设置",
 	keySettingsTitle:           "外观",

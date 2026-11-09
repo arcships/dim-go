@@ -59,11 +59,11 @@ func TestChineseLocaleDrawsChinese(t *testing.T) {
 		// Sidebar entries and headings.
 		"新建会话", "搜索", "定时任务", "技能/插件", "会话", "无项目",
 		// Toolbar and banner.
-		"设置", "会话已关闭", "模型 ▾",
+		"设置", "会话已关闭", "模型 ▾", "在 VS Code 中打开",
 		// The account footer.
 		"登录 Dim",
 		// Composer.
-		"发送",
+		"发送", "未配置", "默认权限",
 	} {
 		if !tt.HasText(want) {
 			t.Errorf("the zh-CN frame is missing %q, texts %q", want, tt.Texts())
@@ -163,8 +163,10 @@ func TestProtocolNamesStayLiteral(t *testing.T) {
 		keyReasonCreateSession, keyReasonApproval, keyReasonAttachment, keyReasonReconnect,
 		keyReasonStop, keyReasonBranches, keyReasonUpdate, keyReasonSearch, keyReasonGroup,
 		keyReasonPin, keyReasonRename, keyReasonArchive, keyReasonKeysEntry, keyReasonEndBranch,
-		keyReasonRefreshBranches, keyReasonModel, keyReasonMode, keyReasonSkin, keyReasonChrome,
+		keyReasonRefreshBranches, keyReasonModel, keyReasonMode, keyReasonOpenInEditor,
+		keyReasonSkin, keyReasonChrome,
 		keyHeaderRegion, keyHeaderMenu, keyHeaderMenuRefresh, keyHeaderModel, keyHeaderModelPicker,
+		keyHeaderOpenInEditor, keyComposerUnconfigured, keyComposerStatus,
 		keyHeaderDeleteTitle, keyHeaderDeleteMessage, keyHeaderDeleteConfirm, keyHeaderDeleteCancel,
 	}
 	for _, key := range translated {
@@ -276,6 +278,7 @@ func TestEnglishTableMatchesConstants(t *testing.T) {
 		{keyReasonRefreshBranches, reasonRefreshBranches},
 		{keyReasonModel, reasonModel},
 		{keyReasonMode, reasonMode},
+		{keyReasonOpenInEditor, reasonOpenInEditor},
 		{keyReasonSkin, reasonSkin},
 		{keyReasonChrome, reasonChrome},
 		{keySettingsLocalNote, settingsLocalNote},

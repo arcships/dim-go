@@ -414,10 +414,11 @@ func TestComposerContextRowFitsNarrowWindow(t *testing.T) {
 }
 
 // TestShellComposerContextRowIsWIP checks the shell's assembly: the window has
-// no workspace or permission fact today, so the context row draws its WIP state
+// no workspace or permission fact today, so the entries draw their WIP state
 // rather than a local guess. The branch is the selected session's, which the
 // shell does have, and the context meter has no usage fact, so it draws its
-// dash rather than a number.
+// dash rather than a number. A conversation moves the workspace out of the
+// status band; the workspace's empty state keeps it in the card.
 func TestShellComposerContextRowIsWIP(t *testing.T) {
 	s := fixture()
 	if s.Workspace != "" || s.Permission != "" {
@@ -429,7 +430,6 @@ func TestShellComposerContextRowIsWIP(t *testing.T) {
 	for _, tc := range []struct {
 		label, reason string
 	}{
-		{"Workspace", reasonWorkspace},
 		{"Default permissions", reasonPermission},
 		{composerContextUsageKey, reasonContext},
 	} {
@@ -442,11 +442,35 @@ func TestShellComposerContextRowIsWIP(t *testing.T) {
 				tc.label, info.Description, tc.reason)
 		}
 	}
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Workspace"); ok {
+		t.Error("the conversation's status band still draws the workspace entry")
+	}
 	if !tt.HasText(composerMeterDash) {
 		t.Errorf("the unknown context meter draws no dash, texts %q", tt.Texts())
 	}
 	if _, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey); ok {
 		t.Error("the shell draws a branch entry although no branch is selected")
+	}
+
+	empty := fixture()
+	empty.Sessions = nil
+	empty.Selected = ""
+	empty.Messages = nil
+	ttEmpty := ui.NewTester(empty.View, 900, 600)
+	for _, tc := range []struct {
+		label, reason string
+	}{
+		{"Workspace", reasonWorkspace},
+		{"Default permissions", reasonPermission},
+	} {
+		info, ok := ttEmpty.AccessByRole(ui.RoleGroup, tc.label)
+		if !ok {
+			t.Fatalf("the empty state does not draw %s, texts %q", tc.label, ttEmpty.Texts())
+		}
+		if !strings.Contains(info.Description, tc.reason) {
+			t.Errorf("%s description %q does not explain the gap %q",
+				tc.label, info.Description, tc.reason)
+		}
 	}
 }
 
@@ -472,5 +496,120 @@ func TestShellComposerShowsSelectedBranch(t *testing.T) {
 	}
 	if branch.W <= 0 || branch.H <= 0 {
 		t.Errorf("the selected branch value has no visible area: %+v", branch)
+	}
+}
+
+// TestComposerConversationBandIsOutsideTheCard checks the conversation's
+// layout: the card keeps the editor and the tool row only, and the status band
+// sits under it with the default permission mode on the left and the session
+// branch and context meter on the right. The workspace entry belongs to the
+// empty state's card, as the reference's conversation band shows none.
+func TestComposerConversationBandIsOutsideTheCard(t *testing.T) {
+	view := ComposerView{
+		Draft:       new(string),
+		CanSubmit:   true,
+		Placeholder: composerPlaceholder,
+		Wide:        true,
+		Permission:  "workspace-write",
+		Branch:      "main",
+		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:       new(ui.Handle),
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		composer(c, newTokens(c.Theme()), view, Actions{OnSubmit: func(string) {}})
+	}, 720, 480)
+	card := composerCardBounds(t, tt)
+
+	permission, ok := tt.Find("Default permissions")
+	if !ok {
+		t.Fatalf("the status band has no permission entry, texts %q", tt.Texts())
+	}
+	if permission.Y < card.Y+card.H {
+		t.Errorf("the permission entry starts at y=%.1f, inside the card ending at %.1f",
+			permission.Y, card.Y+card.H)
+	}
+	if tt.HasText(tr(LocaleEN, keyComposerWorkspace)) {
+		t.Errorf("the conversation band still draws the workspace entry, texts %q", tt.Texts())
+	}
+	for _, label := range []string{composerBranchKey, composerContextUsageKey} {
+		rect, ok := tt.Find(label)
+		if !ok {
+			t.Fatalf("%s is not drawn in the status band, texts %q", label, tt.Texts())
+		}
+		if rect.Y < card.Y+card.H {
+			t.Errorf("%s at y=%.1f sits inside the card ending at %.1f", label, rect.Y, card.Y+card.H)
+		}
+		if rect.X < permission.X {
+			t.Errorf("%s at x=%.1f is not right of the permission entry at %.1f", label, rect.X, permission.X)
+		}
+	}
+	if band, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, keyComposerStatus)); !ok {
+		t.Error("the status band is not a named group")
+	} else if band.Bounds.Y < card.Y+card.H {
+		t.Errorf("the status band at y=%.1f overlaps the card ending at %.1f", band.Bounds.Y, card.Y+card.H)
+	}
+}
+
+// TestComposerUnconfiguredLabel checks the muted label beside Send: both states
+// draw it, because the shell has no model fact and states that none is
+// configured instead of naming one, and it sits left of the send disc in the
+// same row.
+func TestComposerUnconfiguredLabel(t *testing.T) {
+	for _, wide := range []bool{false, true} {
+		name := "empty"
+		if wide {
+			name = "conversation"
+		}
+		t.Run(name, func(t *testing.T) {
+			view := ComposerView{
+				Draft:       new(string),
+				CanSubmit:   true,
+				Placeholder: composerPlaceholder,
+				Wide:        wide,
+				Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+				Focus:       new(ui.Handle),
+			}
+			tt := ui.NewTester(func(c *ui.Context) {
+				composer(c, newTokens(c.Theme()), view, Actions{})
+			}, 720, 480)
+			label := textBox(t, tt, tr(LocaleEN, keyComposerUnconfigured))
+			send, ok := tt.Find(tr(LocaleEN, keyComposerSend))
+			if !ok {
+				t.Fatalf("Send is not drawn, texts %q", tt.Texts())
+			}
+			if label.X+label.W > send.X {
+				t.Errorf("the unconfigured label ends at %.1f, past Send starting at %.1f",
+					label.X+label.W, send.X)
+			}
+			if label.Y < send.Y-1 || label.Y+label.H > send.Y+send.H+1 {
+				t.Errorf("the label at y=%.1f is not on the send row at y=%.1f", label.Y, send.Y)
+			}
+		})
+	}
+}
+
+// TestComposerNewCopyLocalizes checks that the new composer copy follows the
+// interface language like the rest of the region.
+func TestComposerNewCopyLocalizes(t *testing.T) {
+	view := ComposerView{
+		Draft:       new(string),
+		CanSubmit:   true,
+		Placeholder: composerPlaceholder,
+		Wide:        true,
+		Branch:      "main",
+		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:       new(ui.Handle),
+		Locale:      LocaleZHCN,
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		composer(c, newTokens(c.Theme()), view, Actions{})
+	}, 720, 480)
+	for _, want := range []string{"未配置", "默认权限", "输入框状态"} {
+		if !tt.HasText(want) {
+			t.Errorf("the zh-CN composer is missing %q, texts %q", want, tt.Texts())
+		}
+	}
+	if tt.HasText("Not configured") || tt.HasText("Composer status") {
+		t.Errorf("the zh-CN composer still draws English copy, texts %q", tt.Texts())
 	}
 }

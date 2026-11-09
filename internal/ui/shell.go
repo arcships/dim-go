@@ -40,6 +40,12 @@ const composerSubmitKey = ui.KeyEnter
 // this constant.
 const composerPlaceholder = "Message DimAgent"
 
+// conversationTopPad is the room above the first conversation row, in DIPs:
+// the reference's first user bubble sits at y≈74 in an 800×720 window, 23 DIPs
+// below this shell's old first row. It is a measured literal, not a spacing
+// step, and belongs to the conversation rather than to every row.
+const conversationTopPad = 23
+
 // Session is a sidebar row. The fixture fills it by hand until the App Server
 // session catalog lands.
 type Session struct {
@@ -423,7 +429,14 @@ func (s *State) View(c *ui.Context) {
 								if !timeline.Loading && !timeline.Closed && len(timeline.Messages) == 0 && len(pending) == 0 {
 									emptyState(c, k, composer, s.locale(), a)
 								} else {
-									renderTimeline(c, k, timeline, a)
+									// The reference's conversation starts 23 DIPs lower than
+									// this shell did: its first user bubble sits at y≈74 in an
+									// 800×720 window, below the 41 DIP bar and the frame. The
+									// room is the conversation's, so it is added around the
+									// timeline only; the composer below keeps its place.
+									ui.Column(c).Grow(1).Padding(conversationTopPad, 0, 0, 0).Children(func() {
+										renderTimeline(c, k, timeline, a)
+									})
 									// A pending approval takes the composer's slot: the user answers the
 									// request before typing again, as the spec's composer replacement does.
 									// The request set comes from the rows the projection produced, never
