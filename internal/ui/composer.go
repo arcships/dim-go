@@ -45,7 +45,17 @@ const (
 	// composerIconSize is the square every toolbar glyph is drawn at, the same
 	// 16 DIP artwork the sidebar and the toolbar use.
 	composerIconSize = 16
+	// composerMeterW and composerMeterH are the context meter's track, in DIPs:
+	// the thin line the reference draws beside the branch. The height is a
+	// faint rail, not a progress widget's body, so the row stays a single band.
+	composerMeterW = 56
+	composerMeterH = 3
 )
+
+// composerMeterDash is what the context meter shows while no usage fact is
+// known. It is a dash rather than a zero or a filled track: an empty bar would
+// read as "0 used", a number the composer has not been given.
+const composerMeterDash = "—"
 
 // composerSendGlyph is what the round Send button shows. It is a decoration:
 // the button's accessible name is the localized Send text, so the arrow is
@@ -75,6 +85,25 @@ const (
 	// invented.
 	reasonWorkspace  = "Unavailable: ComposerView carries no workspace; the shell has no App Server workspace fact for the composer yet."
 	reasonPermission = "Unavailable: ComposerView carries no default permission mode; the shell has no App Server permission fact for the composer yet."
+	// reasonContext explains the context meter while no token-usage fact is
+	// known. The row draws "—" and keeps the number out rather than filling the
+	// track with a guess.
+	reasonContext = "Unavailable: ComposerView carries no context-usage fact; the shell has no App Server token-usage fact for the composer yet."
+	// reasonBranch names what the branch entry is: the selected session's
+	// branch, which the App Server owns, not the workspace's git branch. It is
+	// not a gap, so it reads as a description rather than an unavailable note.
+	reasonBranch = "The selected session's branch, as the App Server reports it; this is a session branch, not the workspace's git branch."
+)
+
+// composerBranchKey and composerContextUsageKey are the message keys for the
+// branch entry's and the context meter's accessible names. i18n.go does not
+// carry them yet; the composer owner reports them as needed entries, and each
+// lookup falls back to its key until the table has the localized name. The
+// branch key is deliberately not keySidebarBranches: the sidebar's list and the
+// composer's single session branch are different things.
+const (
+	composerBranchKey       = "composer.branch"
+	composerContextUsageKey = "composer.contextUsage"
 )
 
 // composerShadow is the card's soft outer shadow, the reference's low-alpha
@@ -85,17 +114,23 @@ var composerShadow = ui.Hex("#00000010")
 
 // composerGlyphs is the icon set the card's toolbar and context row draw, in
 // the same 16×16 outline frame as the sidebar's (icons.go). The cube is the
-// model entry's mark, the shield is the default permission mode's, the down
-// chevron is the workspace picker's disclosure, and the double chevron is the
-// mode entry's; they are drawn here because no other region uses them yet.
+// model entry's mark, the shield is the default permission mode's, the branch
+// mark is the session branch's, the down chevron is the workspace picker's
+// disclosure, and the double chevron is the mode entry's; they are drawn here
+// because no other region uses them yet.
 var composerGlyphs = struct {
 	cube        *ui.SVG
 	shield      *ui.SVG
+	branch      *ui.SVG
 	chevronDown *ui.SVG
 	modeChevron *ui.SVG
 }{
 	cube:   sidebarIcon(`<path d="M8 1.8 13.2 4.9v6.2L8 14.2 2.8 11.1V4.9Z"/><path d="M2.8 4.9 8 8l5.2-3.1M8 8v6.2"/>`),
 	shield: sidebarIcon(`<path d="M8 1.8 13 3.6v4.3c0 3.1-2 5.4-5 6.3-3-.9-5-3.2-5-6.3V3.6Z"/>`),
+	// branch is the reference's branch mark: two stacked nodes on the left and
+	// one offset node on the right, joined by the branch's rail. It is drawn
+	// beside the selected session branch, not a git branch.
+	branch: sidebarIcon(`<circle cx="4.4" cy="3.6" r="1.7"/><circle cx="4.4" cy="12.4" r="1.7"/><circle cx="11.6" cy="5.6" r="1.7"/><path d="M4.4 5.3v5.4M11.6 7.3c0 2.3-2.1 2.8-3.8 3.3"/>`),
 	// chevronDown is the workspace picker's disclosure, the reference's ⌄
 	// beside the workspace name rather than the sidebar's forward chevron.
 	chevronDown: sidebarIcon(`<path d="M3.5 6 8 10.5 12.5 6"/>`),
@@ -151,13 +186,13 @@ func composerDivider(c *ui.Context, k tokens) {
 }
 
 // composerContextRow draws the card's bottom band: the workspace the next turn
-// would run in on the left, the session's default permission mode on the right,
-// as dim-electron's composer does. Neither is a control here: there is no
-// workspace or permission fact and no action to change one, so an empty field
-// draws nothing beside its label and carries the reason it waits on in the
-// group's description and tooltip rather than as visible WIP text. The band
-// keeps the reference's ≈36 DIP height, so the card does not collapse to the
-// text when both values are short.
+// would run in on the left, then, on the right, the session's default
+// permission mode, the selected session's branch and the context-usage meter,
+// as dim-electron's composer does. None of them is a control here: an empty
+// field draws nothing beside its label and carries the reason it waits on in
+// the group's description and tooltip rather than as visible WIP text. The
+// band keeps the reference's ≈36 DIP height, so the card does not collapse to
+// the text when every value is short.
 func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
 	locale := v.Locale
 	ui.Row(c).FillWidth().MinHeight(k.space(composerContextSpan)).
@@ -166,6 +201,8 @@ func composerContextRow(c *ui.Context, k tokens, v ComposerView) {
 		composerWorkspaceEntry(c, k, locale, v.Workspace)
 		ui.Box(c).Grow(1)
 		composerPermissionEntry(c, k, locale, v.Permission)
+		composerBranchEntry(c, k, locale, v.Branch)
+		composerContextMeter(c, k, locale, v.ContextKnown, v.ContextUsed)
 	})
 }
 
@@ -202,6 +239,65 @@ func composerPermissionEntry(c *ui.Context, k tokens, locale Locale, value strin
 	})
 	if value == "" {
 		entry.Description(reasonPermission).Tooltip(reasonPermission)
+	}
+}
+
+// composerBranchEntry draws the selected session's branch beside its branch
+// mark, as the reference's status band draws "main". The reference's value is
+// the workspace's git branch; this shell has no git fact, so the entry shows
+// the session branch the App Server reports and says so in its description. An
+// empty branch draws no entry at all rather than the reference's "main", which
+// would be a git branch the shell never read.
+func composerBranchEntry(c *ui.Context, k tokens, locale Locale, branch string) {
+	if branch == "" {
+		return
+	}
+	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
+		Role(ui.RoleGroup).Label(tr(locale, composerBranchKey)).
+		Description(reasonBranch).Tooltip(reasonBranch).Children(func() {
+		composerGlyph(c, k, composerGlyphs.branch)
+		ui.Text(c, branch).FontSize(k.smallSize).TextColor(k.foreground).Unselectable().SingleLine()
+	})
+}
+
+// composerContextMeter draws the context-usage meter: a thin track filled to
+// the known share, or the reference's dash while no usage fact is known. The
+// dash is a decoration and stays out of the accessible tree; the group's
+// description says what the entry waits on, and no percentage is drawn until
+// the shell passes one. used is a fraction of the context window in 0..1 and is
+// read only when known.
+func composerContextMeter(c *ui.Context, k tokens, locale Locale, known bool, used float32) {
+	entry := ui.Row(c).Gap(k.gap).AlignItems(ui.Center).
+		Role(ui.RoleGroup).Label(tr(locale, composerContextUsageKey))
+	if !known {
+		entry.Description(reasonContext).Tooltip(reasonContext).Children(func() {
+			ui.Text(c, composerMeterDash).FontSize(k.smallSize).
+				TextColor(k.mutedForeground).Unselectable().AccessHidden(true)
+		})
+		return
+	}
+	fill := composerMeterW * clampShare(used)
+	entry.Children(func() {
+		ui.Box(c).Width(composerMeterW).Height(composerMeterH).
+			Radius(composerMeterH / 2).Background(k.border).Clip().Children(func() {
+			if fill <= 0 {
+				return
+			}
+			ui.Box(c).Width(fill).Height(composerMeterH).Background(k.primary)
+		})
+	})
+}
+
+// clampShare keeps a meter's fill inside its track: a share below zero reads as
+// empty and one above one as full, so a bad caller cannot draw past the rail.
+func clampShare(share float32) float32 {
+	switch {
+	case share < 0:
+		return 0
+	case share > 1:
+		return 1
+	default:
+		return share
 	}
 }
 

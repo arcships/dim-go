@@ -12,7 +12,7 @@ import (
 // display copies, so a test can check the row with and without the facts the
 // shell has not received yet. The harness owns the draft pointer, the focus
 // handle and the submit callback, as the shell does.
-func composerContextView(t *testing.T, workspace, permission string) (ComposerView, *ui.Tester) {
+func composerContextView(t *testing.T, workspace, permission, branch string) (ComposerView, *ui.Tester) {
 	t.Helper()
 	view := ComposerView{
 		Draft:       new(string),
@@ -20,6 +20,7 @@ func composerContextView(t *testing.T, workspace, permission string) (ComposerVi
 		Placeholder: composerPlaceholder,
 		Workspace:   workspace,
 		Permission:  permission,
+		Branch:      branch,
 		Shortcut:    KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
 		Focus:       new(ui.Handle),
 	}
@@ -30,20 +31,23 @@ func composerContextView(t *testing.T, workspace, permission string) (ComposerVi
 }
 
 // TestComposerContextRowShowsFacts checks the row's data state: the workspace
-// on the left and the default permission mode on the right are drawn as the
-// window supplied them, with no WIP badge standing in for a fact the view has.
+// on the left and, on the right, the default permission mode and the session
+// branch are drawn as the window supplied them, with no WIP badge standing in
+// for a fact the view has. The context meter has no fact here, so it draws its
+// dash rather than a number.
 func TestComposerContextRowShowsFacts(t *testing.T) {
-	_, tt := composerContextView(t, "/code/dim-electron", "workspace-write")
+	_, tt := composerContextView(t, "/code/dim-electron", "workspace-write", "main")
 
 	for _, want := range []string{
 		"Workspace", "/code/dim-electron", "Default permissions", "workspace-write",
+		"main", composerMeterDash,
 	} {
 		if !tt.HasText(want) {
 			t.Errorf("%q is missing from the context row, texts %q", want, tt.Texts())
 		}
 	}
 
-	for _, label := range []string{"Workspace", "Default permissions"} {
+	for _, label := range []string{"Workspace", "Default permissions", composerBranchKey} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, label)
 		if !ok {
 			t.Fatalf("%s is not a named group, texts %q", label, tt.Texts())
@@ -52,6 +56,17 @@ func TestComposerContextRowShowsFacts(t *testing.T) {
 			t.Errorf("%s is an entry of the row, not a control: disabled=%v focusable=%v",
 				label, info.Disabled, info.Focusable)
 		}
+	}
+	branch, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey)
+	if !ok {
+		t.Fatalf("the session branch is not a named group, texts %q", tt.Texts())
+	}
+	if !strings.Contains(branch.Description, "not the workspace's git branch") {
+		t.Errorf("the branch description %q does not say it is a session branch, not a git branch",
+			branch.Description)
+	}
+	for _, label := range []string{"Workspace", "Default permissions"} {
+		info, _ := tt.AccessByRole(ui.RoleGroup, label)
 		if strings.Contains(info.Description, "Unavailable") {
 			t.Errorf("%s has a fact but still explains a gap: %q", label, info.Description)
 		}
@@ -80,15 +95,18 @@ func TestComposerContextRowShowsFacts(t *testing.T) {
 // TestComposerContextRowShowsNoWipWithoutFacts checks the empty state: with no
 // workspace or permission fact the row keeps the reference's plain labels, shows
 // no WIP text, and carries the real reason each entry waits on in its
-// description and tooltip instead of inventing a path or mode.
+// description and tooltip instead of inventing a path or mode. The branch entry
+// draws nothing at all, because the shell never fills it with a git branch it
+// did not read, and the context meter shows its dash rather than a number.
 func TestComposerContextRowShowsNoWipWithoutFacts(t *testing.T) {
-	_, tt := composerContextView(t, "", "")
+	_, tt := composerContextView(t, "", "", "")
 
 	for _, tc := range []struct {
 		label, reason string
 	}{
 		{"Workspace", reasonWorkspace},
 		{"Default permissions", reasonPermission},
+		{composerContextUsageKey, reasonContext},
 	} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, tc.label)
 		if !ok {
@@ -109,6 +127,17 @@ func TestComposerContextRowShowsNoWipWithoutFacts(t *testing.T) {
 			t.Errorf("%s has no visible area: %+v", tc.label, rect)
 		}
 	}
+	if _, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey); ok {
+		t.Error("the row draws a branch entry although the view carries no branch")
+	}
+	if tt.HasText("main") {
+		t.Errorf("the row invents the reference's git branch, texts %q", tt.Texts())
+	}
+	// The dash is a decoration: it paints, and assistive technology does not
+	// read it as a value.
+	if _, ok := tt.AccessByRole(ui.RoleText, composerMeterDash); ok {
+		t.Error("the unknown context meter exposes its dash as accessible text")
+	}
 	if tt.HasText(wipBadge) {
 		t.Errorf("the context row draws the visible %q text, texts %q", wipBadge, tt.Texts())
 	}
@@ -117,7 +146,7 @@ func TestComposerContextRowShowsNoWipWithoutFacts(t *testing.T) {
 // TestComposerContextRowLocalizes checks that the row's labels are the
 // locale's, not the region's English constants.
 func TestComposerContextRowLocalizes(t *testing.T) {
-	view, _ := composerContextView(t, "", "")
+	view, _ := composerContextView(t, "", "", "main")
 	view.Locale = LocaleZHCN
 	tt := ui.NewTester(func(c *ui.Context) {
 		composer(c, newTokens(c.Theme()), view, Actions{})
@@ -127,6 +156,86 @@ func TestComposerContextRowLocalizes(t *testing.T) {
 		if !tt.HasText(want) {
 			t.Errorf("%q is missing from the localized context row, texts %q", want, tt.Texts())
 		}
+	}
+}
+
+// TestComposerContextMeterDrawsKnownUsage checks the meter's data state: a
+// known share fills the reference's thin track and drops the dash, while no
+// percentage is drawn and the entry stays a read-only display group.
+func TestComposerContextMeterDrawsKnownUsage(t *testing.T) {
+	view := ComposerView{
+		Draft:        new(string),
+		CanSubmit:    true,
+		Placeholder:  composerPlaceholder,
+		ContextKnown: true,
+		ContextUsed:  0.5,
+		Shortcut:     KeyBinding{Mods: ComposerShortcutMods, Key: composerSubmitKey},
+		Focus:        new(ui.Handle),
+	}
+	tt := ui.NewTester(func(c *ui.Context) {
+		composer(c, newTokens(c.Theme()), view, Actions{})
+	}, 720, 480)
+
+	entry, ok := tt.AccessByRole(ui.RoleGroup, composerContextUsageKey)
+	if !ok {
+		t.Fatalf("the context meter is not a named group, texts %q", tt.Texts())
+	}
+	if entry.Disabled || entry.Focusable {
+		t.Errorf("the context meter is a control: disabled=%v focusable=%v",
+			entry.Disabled, entry.Focusable)
+	}
+	if entry.Description != "" {
+		t.Errorf("a known meter still explains a gap: %q", entry.Description)
+	}
+	if tt.HasText(composerMeterDash) {
+		t.Errorf("a known meter still draws the unknown dash, texts %q", tt.Texts())
+	}
+	k := newTokens(ui.LightTheme())
+	fill, pixels := colorBox(tt, entry.Bounds, k.primary)
+	if pixels == 0 {
+		t.Fatal("the known meter draws no primary fill")
+	}
+	if math.Abs(float64(fill.W-composerMeterW/2)) > 3 {
+		t.Errorf("the half-full meter fills %.1f DIPs, want ≈%.0f", fill.W, float32(composerMeterW)/2)
+	}
+	if fill.W > composerMeterW {
+		t.Errorf("the fill is %.1f wide, past the meter's %.0f track", fill.W, float32(composerMeterW))
+	}
+}
+
+// TestComposerContextRowOrder checks the band's order: the workspace stays on
+// the left, and the default permission mode, the session branch and the context
+// meter follow on the right, as the reference draws its status band.
+func TestComposerContextRowOrder(t *testing.T) {
+	_, tt := composerContextView(t, "dim-electron", "workspace-write", "main")
+
+	workspace, ok := tt.Find("Workspace")
+	if !ok {
+		t.Fatalf("the workspace entry is not drawn, texts %q", tt.Texts())
+	}
+	permission, ok := tt.Find("Default permissions")
+	if !ok {
+		t.Fatalf("the permission entry is not drawn, texts %q", tt.Texts())
+	}
+	branch, ok := tt.Find(composerBranchKey)
+	if !ok {
+		t.Fatalf("the branch entry is not drawn, texts %q", tt.Texts())
+	}
+	meter, ok := tt.Find(composerContextUsageKey)
+	if !ok {
+		t.Fatalf("the context meter is not drawn, texts %q", tt.Texts())
+	}
+	if workspace.X+workspace.W > permission.X {
+		t.Errorf("the workspace ends at %.1f, past the right-hand entries starting at %.1f",
+			workspace.X+workspace.W, permission.X)
+	}
+	if permission.X+permission.W > branch.X {
+		t.Errorf("the permission entry ends at %.1f, past the branch starting at %.1f",
+			permission.X+permission.W, branch.X)
+	}
+	if branch.X+branch.W > meter.X {
+		t.Errorf("the branch ends at %.1f, past the meter starting at %.1f",
+			branch.X+branch.W, meter.X)
 	}
 }
 
@@ -178,7 +287,7 @@ func TestComposerSendIsRoundAndCompact(t *testing.T) {
 // TestComposerSendDisabledWithoutDraft checks that the round button follows the
 // same gate as before: an empty draft leaves it disabled and unpressable.
 func TestComposerSendDisabledWithoutDraft(t *testing.T) {
-	_, tt := composerContextView(t, "", "")
+	_, tt := composerContextView(t, "", "", "")
 
 	info, ok := tt.AccessByRole(ui.RoleButton, "Send")
 	if !ok {
@@ -197,7 +306,7 @@ func TestComposerSendDisabledWithoutDraft(t *testing.T) {
 // face instead of fading out. It stays unclickable; the disabled state is what
 // assistive technology reads.
 func TestComposerSendKeepsThePrimaryDiscWhenDisabled(t *testing.T) {
-	_, tt := composerContextView(t, "", "")
+	_, tt := composerContextView(t, "", "", "")
 	send, ok := tt.Find("Send")
 	if !ok {
 		t.Fatalf("the composer offers no Send entry, texts %q", tt.Texts())
@@ -214,7 +323,7 @@ func TestComposerSendKeepsThePrimaryDiscWhenDisabled(t *testing.T) {
 // documented order, Attach file then the editor, is unchanged with an empty
 // draft, and neither context entry is focusable.
 func TestComposerContextRowKeepsTabOrder(t *testing.T) {
-	_, tt := composerContextView(t, "", "")
+	_, tt := composerContextView(t, "", "", "main")
 
 	tt.Key(0, ui.KeyTab)
 	if !tt.Focused("Attach file") {
@@ -224,7 +333,7 @@ func TestComposerContextRowKeepsTabOrder(t *testing.T) {
 	if !tt.Focused("Composer") {
 		t.Fatalf("Tab does not reach the editor next, texts %q", tt.Texts())
 	}
-	for _, label := range []string{"Workspace", "Default permissions"} {
+	for _, label := range []string{"Workspace", "Default permissions", composerBranchKey, composerContextUsageKey} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, label)
 		if !ok {
 			t.Fatalf("%s is not drawn, texts %q", label, tt.Texts())
@@ -267,6 +376,10 @@ func TestComposerContextRowFitsNarrowWindow(t *testing.T) {
 	if !ok {
 		t.Fatalf("the permission entry is not drawn, texts %q", tt.Texts())
 	}
+	meter, ok := tt.Find(composerContextUsageKey)
+	if !ok {
+		t.Fatalf("the context meter is not drawn, texts %q", tt.Texts())
+	}
 	if workspace.X < 0 || workspace.X+workspace.W > inner {
 		t.Errorf("the workspace entry %.1f..%.1f runs outside the card's inner edge at %.1f",
 			workspace.X, workspace.X+workspace.W, inner)
@@ -275,9 +388,17 @@ func TestComposerContextRowFitsNarrowWindow(t *testing.T) {
 		t.Errorf("the permission entry ends at %.1f, past the card's inner edge at %.1f",
 			permission.X+permission.W, inner)
 	}
+	if meter.X+meter.W > inner {
+		t.Errorf("the context meter ends at %.1f, past the card's inner edge at %.1f",
+			meter.X+meter.W, inner)
+	}
 	if workspace.X+workspace.W > permission.X {
 		t.Errorf("the context entries overlap: workspace ends at %.1f, permission starts at %.1f",
 			workspace.X+workspace.W, permission.X)
+	}
+	if permission.X+permission.W > meter.X {
+		t.Errorf("the permission entry ends at %.1f, past the context meter at %.1f",
+			permission.X+permission.W, meter.X)
 	}
 
 	send, ok := tt.Find("Send")
@@ -294,7 +415,9 @@ func TestComposerContextRowFitsNarrowWindow(t *testing.T) {
 
 // TestShellComposerContextRowIsWIP checks the shell's assembly: the window has
 // no workspace or permission fact today, so the context row draws its WIP state
-// rather than a local guess.
+// rather than a local guess. The branch is the selected session's, which the
+// shell does have, and the context meter has no usage fact, so it draws its
+// dash rather than a number.
 func TestShellComposerContextRowIsWIP(t *testing.T) {
 	s := fixture()
 	if s.Workspace != "" || s.Permission != "" {
@@ -308,6 +431,7 @@ func TestShellComposerContextRowIsWIP(t *testing.T) {
 	}{
 		{"Workspace", reasonWorkspace},
 		{"Default permissions", reasonPermission},
+		{composerContextUsageKey, reasonContext},
 	} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, tc.label)
 		if !ok {
@@ -317,5 +441,36 @@ func TestShellComposerContextRowIsWIP(t *testing.T) {
 			t.Errorf("%s description %q does not explain the gap %q",
 				tc.label, info.Description, tc.reason)
 		}
+	}
+	if !tt.HasText(composerMeterDash) {
+		t.Errorf("the unknown context meter draws no dash, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey); ok {
+		t.Error("the shell draws a branch entry although no branch is selected")
+	}
+}
+
+// TestShellComposerShowsSelectedBranch checks the wiring: the context row's
+// branch value is State.SelectedBranch, the App Server's session branch, and
+// the shell adds no git branch of its own when there is none.
+func TestShellComposerShowsSelectedBranch(t *testing.T) {
+	s := fixture()
+	s.SelectedBranch = "feat/composer-context"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey)
+	if !ok {
+		t.Fatalf("the branch entry is not drawn by the shell, texts %q", tt.Texts())
+	}
+	if !strings.Contains(info.Description, "session branch") ||
+		!strings.Contains(info.Description, "not the workspace's git branch") {
+		t.Errorf("the branch description %q does not name the session branch", info.Description)
+	}
+	branch, ok := tt.Find("feat/composer-context")
+	if !ok {
+		t.Fatalf("the selected branch value is not drawn, texts %q", tt.Texts())
+	}
+	if branch.W <= 0 || branch.H <= 0 {
+		t.Errorf("the selected branch value has no visible area: %+v", branch)
 	}
 }

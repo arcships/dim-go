@@ -454,6 +454,20 @@ type ComposerView struct {
 	// from an App Server fact. Empty draws the context row's WIP state rather
 	// than an invented mode. The composer offers no control to change it.
 	Permission string
+	// Branch is the selected session's branch id, as the App Server reports it.
+	// It is a session branch, not the workspace's git branch: the shell reads
+	// no git fact here, and the region labels it as the session's. Empty draws
+	// no branch entry rather than the reference's git "main".
+	Branch string
+	// ContextKnown reports whether ContextUsed is a real App Server usage fact.
+	// The shell has no token-usage fact for the composer yet, so it always
+	// passes false and the meter draws the reference's dash instead of a
+	// filled track or a percentage.
+	ContextKnown bool
+	// ContextUsed is the share of the context window the session has used, in
+	// 0..1, as the shell read it from an App Server fact. It is read only while
+	// ContextKnown is true; an unknown share is never drawn as zero.
+	ContextUsed float32
 	// Shortcut is the modifier and key that submit the draft. The shell's own
 	// focus shortcut (ComposerShortcutMods with ComposerShortcutKey) is not part
 	// of this view: it focuses Focus and is handled by the shell.
