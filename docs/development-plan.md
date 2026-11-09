@@ -62,7 +62,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 
 ### P3 接线轮（已完成第一部分）
 
-- ✅ Rename：真实输入框 + controller.Rename + 标题刷新（其余 Pin/Archive/Export/Copy 仍 WIP）
+- ✅ Rename；✅ Pin/Archive（本地列表）；✅ Copy ID/debug/link（`dimagent://thread/<id>`）；Export/Open in new window 仍 WIP
 - ✅ 模型展示与写入：`session.model.update` + 读回；chip/list 走 App Server 事实
 - ✅ 路由：Scheduled、Skills WIP 页 + Back；设置 19 分区
 - ✅ 通知中心：ActionError/ActionNotices/Notices 顶部 banner、可关闭
