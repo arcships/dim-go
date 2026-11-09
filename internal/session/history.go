@@ -146,13 +146,14 @@ func (s *Session) readLatestTurn(ctx context.Context, branchID string, head int6
 	return historyWindow{events: ordered, status: status}, nil
 }
 
-// validateEmptyLatestTurn accepts the one documented shape of a latest-turn
-// window without turnStart: a finished read whose events reach the attach head
-// and contain no turn content. A non-empty turn must carry its start sequence,
-// so a missing turnStart next to any turn/input/step/tool event, or a window
-// that does not reach head, stays a protocol error.
+// validateEmptyLatestTurn accepts the documented shape of a latest-turn window
+// without turnStart: a finished read that contains no turn content (turn, step
+// or tool). Queued inputs and other non-turn session facts are allowed, and the
+// window does not have to end exactly at the attach head: the real daemon can
+// hold trailing non-turn events after the latest window it returns. A turn,
+// step or tool event without turnStart still means the daemon hid a turn's
+// anchor and stays a protocol error.
 func validateEmptyLatestTurn(events []projection.RawEvent, head int64) error {
-	var maxSequence int64
 	for _, event := range events {
 		if isTurnContent(event) {
 			return &appserver.ProtocolError{
@@ -160,25 +161,21 @@ func validateEmptyLatestTurn(events []projection.RawEvent, head int64) error {
 				Detail: fmt.Sprintf("missing while the window contains %s/%s at sequence %d", event.Type, event.Name, event.Sequence),
 			}
 		}
-		if event.Sequence > maxSequence {
-			maxSequence = event.Sequence
-		}
-	}
-	if maxSequence != head {
-		return &appserver.ProtocolError{
-			Field:  "turnStart",
-			Detail: fmt.Sprintf("missing for a window ending at %d, head is %d", maxSequence, head),
-		}
 	}
 	return nil
 }
 
-// isTurnContent reports whether a durable event belongs to a turn transcript.
+// isTurnContent reports whether a durable event proves a turn has started.
+// A queued input is deliberately excluded: the real daemon can hold an input
+// at the branch head before any turn exists (the window then has input/message
+// but no turnStart), and that is not protocol drift. A turn, step or tool event
+// without turnStart still is.
+//
 // Non-turn session facts (branch start, settings, title) may follow the attach
 // head of a session that has not run a turn yet.
 func isTurnContent(event projection.RawEvent) bool {
 	switch event.Type {
-	case "turn", "input", "step", "tool":
+	case "turn", "step", "tool":
 		return true
 	default:
 		return false

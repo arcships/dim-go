@@ -383,11 +383,38 @@ func TestLatestTurnEmptySessionWithBranchStartHead(t *testing.T) {
 	}
 }
 
-func TestLatestTurnMissingTurnStartNonEmptyFails(t *testing.T) {
+// A queued input with no turnStart is a real daemon shape: an input can sit at
+// the branch head before any turn exists. The window is accepted as a
+// not-yet-started turn and the input is shown; it is not protocol drift.
+func TestLatestTurnMissingTurnStartQueuedInputAccepted(t *testing.T) {
 	cfg := fakeConfig{
 		Attach: appserver.AttachResult{Sequence: int64Ptr(1)},
 		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
 			return historyPage(t, []appserver.RawEvent{userEvent(1, "hello")}, 1, 1, true, nil, nil), nil
+		},
+	}
+	server, _, s := openTestSession(t, cfg, []string{"session.history", "session.history.latestTurn"}, OpenOptions{})
+	status := s.History()
+	if status.Mode != HistoryModeLatestTurn || status.TurnStart != nil || status.Pages != 1 {
+		t.Fatalf("history status = %#v, want latest-turn window without turnStart", status)
+	}
+	if snapshot := s.Snapshot(); len(snapshot.Messages) != 1 {
+		t.Fatalf("queued input messages = %d, want 1", len(snapshot.Messages))
+	}
+	if calls := len(server.callsFor("session.history")); calls != 1 {
+		t.Fatalf("history calls = %d, want one latest-turn only", calls)
+	}
+}
+
+// A step or tool event without turnStart still proves a turn the window cannot
+// anchor: that stays a protocol error.
+func TestLatestTurnMissingTurnStartTurnContentFails(t *testing.T) {
+	cfg := fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(1)},
+		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
+			return historyPage(t, []appserver.RawEvent{
+				rawEvent(1, "step", "tool-call", map[string]any{}),
+			}, 1, 1, true, nil, nil), nil
 		},
 	}
 	_, client := newFakeServer(t, cfg)
@@ -1562,19 +1589,25 @@ func TestLatestTurnCapAndProtocolErrors(t *testing.T) {
 		}
 	})
 
-	t.Run("missing turnStart fails fast", func(t *testing.T) {
+	t.Run("missing turnStart with only non-turn facts is valid", func(t *testing.T) {
 		head := int64(10)
-		_, client := newFakeServer(t, fakeConfig{
+		server, client := newFakeServer(t, fakeConfig{
 			Attach: appserver.AttachResult{Sequence: int64Ptr(head)},
 			History: func(appserver.HistoryParams) (any, *fakeRPCError) {
 				return historyPage(t, nil, head, head, true, nil, nil), nil
 			},
 		})
-		_, err := Open(testContext(t), client, []string{"session.history", "session.history.latestTurn"}, "s1")
-		if !errors.Is(err, appserver.ErrProtocol) {
-			t.Fatalf("Open error = %v, want ErrProtocol", err)
+		s, err := Open(testContext(t), client, []string{"session.history", "session.history.latestTurn"}, "s1")
+		if err != nil {
+			t.Fatalf("Open error = %v, want a window without a turn", err)
 		}
-		waitClientDone(t, client)
+		t.Cleanup(func() { _ = s.Close(context.Background()) })
+		if status := s.History(); status.TurnStart != nil || status.Through != head {
+			t.Fatalf("history status = %#v, want head %d without turnStart", status, head)
+		}
+		if calls := len(server.callsFor("session.history")); calls != 1 {
+			t.Fatalf("history calls = %d, want 1", calls)
+		}
 	})
 
 	t.Run("missing nextBefore fails fast", func(t *testing.T) {

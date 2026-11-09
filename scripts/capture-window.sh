@@ -28,6 +28,7 @@ STATE="both"
 OUT_DIR="$REPO_ROOT/docs/evidence"
 SERVER_DIR="${DIMAGENT_APP_SERVER_DIR:-/tmp/dim-2-target/debug}"
 WAIT_SECONDS=30
+PRODUCT_HOME_DIR=""
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -35,6 +36,7 @@ while [ "$#" -gt 0 ]; do
     --out) OUT_DIR="${2:?--out needs a value}"; shift 2 ;;
     --server-dir) SERVER_DIR="${2:?--server-dir needs a value}"; shift 2 ;;
     --wait) WAIT_SECONDS="${2:?--wait needs a value}"; shift 2 ;;
+    --product-home) PRODUCT_HOME_DIR="${2:?--product-home needs a value}"; shift 2 ;;
     -h|--help) sed -n '2,30p' "${BASH_SOURCE[0]}"; exit 0 ;;
     *) echo "capture-window: unknown argument: $1" >&2; exit 2 ;;
   esac
@@ -299,9 +301,15 @@ fi
 if [ "$STATE" = "connected" ] || [ "$STATE" = "both" ]; then
   # capture_state clears RUN_HOME when it finishes, so the directory to delete
   # is kept in its own variable.
-  connected_home="$(mktemp -d "${TMPDIR:-/tmp}/dimagent-product-home.XXXXXX")"
-  capture_state connected "$connected_home"
-  rm -rf "$connected_home"
+  if [ -n "$PRODUCT_HOME_DIR" ]; then
+    # A caller-provided home is reused as-is (for example a seeded one) and is
+    # never deleted here: it belongs to the caller.
+    capture_state connected "$PRODUCT_HOME_DIR"
+  else
+    connected_home="$(mktemp -d "${TMPDIR:-/tmp}/dimagent-product-home.XXXXXX")"
+    capture_state connected "$connected_home"
+    rm -rf "$connected_home"
+  fi
 fi
 
 # Final honesty check: no daemon of ours may survive the run.
