@@ -300,6 +300,39 @@ func TestAppRefreshesLiveState(t *testing.T) {
 	}
 }
 
+// TestAppRefreshDoesNotClobberNewSelection checks that a tick which read the old
+// controller before a new selection was recorded cannot publish that old view
+// over the new conversation.
+func TestAppRefreshDoesNotClobberNewSelection(t *testing.T) {
+	f := &fakeSession{view: &dimui.State{
+		Selected:   "s1",
+		Connection: dimui.ConnReady,
+		Messages:   []dimui.Message{{ID: "m1"}},
+	}}
+	a := &app{
+		state:  &dimui.State{Selected: "s2", Messages: []dimui.Message{{ID: "m2"}}},
+		bridge: &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}},
+	}
+	updated := make(chan struct{}, 1)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		select {
+		case updated <- struct{}{}:
+		default:
+		}
+	}
+	a.startRefresh(5 * time.Millisecond)
+	defer a.stopRefresh()
+	select {
+	case <-updated:
+	case <-time.After(200 * time.Millisecond):
+		t.Fatal("refresh did not tick")
+	}
+	if a.state.Selected != "s2" || len(a.state.Messages) != 1 || a.state.Messages[0].ID != "m2" {
+		t.Fatalf("old controller overwrote the new selection: %#v", a.state)
+	}
+}
+
 func TestAppBindsCallbacks(t *testing.T) {
 	a := &app{state: &dimui.State{}}
 	a.bind()
@@ -339,6 +372,39 @@ func TestAppReconnectStaleFailureDoesNotOverwriteNewSelection(t *testing.T) {
 	}
 	if a.state.Connection != dimui.ConnReady || a.state.ConnectionError != "" {
 		t.Fatalf("stale failure changed state: %#v", a.state)
+	}
+}
+
+// TestAppReconnectFailureDoesNotOverwriteReady checks that a stale reconnect
+// failure cannot turn a session that another attempt already healed back into
+// an error.
+func TestAppReconnectFailureDoesNotOverwriteReady(t *testing.T) {
+	boom := errors.New("stale reconnect")
+	started := make(chan struct{})
+	gate := make(chan struct{})
+	f := &fakeSession{reattachErr: boom, reconnectStart: started, reconnectGate: gate}
+	bridge := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
+	a := &app{state: &dimui.State{Connection: dimui.ConnError, Selected: "s1"}, bridge: bridge}
+	a.bind()
+	updates := make(chan struct{}, 2)
+	a.updateHook = func(fn func(*dimui.State)) { fn(a.state); updates <- struct{}{} }
+	a.state.OnReconnect()
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("reattach did not start")
+	}
+	a.state.Connection = dimui.ConnReady
+	close(gate)
+	for i := 0; i < 2; i++ {
+		select {
+		case <-updates:
+		case <-time.After(2 * time.Second):
+			t.Fatal("reconnect updates missing")
+		}
+	}
+	if a.state.Connection != dimui.ConnReady || a.state.ConnectionError != "" || a.state.ConversationLoading {
+		t.Fatalf("stale reconnect failure changed a ready session: %#v", a.state)
 	}
 }
 
@@ -496,6 +562,61 @@ func TestAppStaleSelectionCannotOverwriteNewerSelection(t *testing.T) {
 	}
 	if b.summary.SessionID != "s2" || a.state.Selected != "s2" || a.state.Connection != dimui.ConnReady {
 		t.Fatalf("new selection did not win: state=%#v summary=%#v", a.state, b.summary)
+	}
+}
+
+// TestAppSelectFailureRestoresPreviousSelection checks that a failed session
+// open does not leave the new title over the previous conversation: the
+// controller still holds the old session, so its view is restored and the error
+// is surfaced separately.
+func TestAppSelectFailureRestoresPreviousSelection(t *testing.T) {
+	previous := &dimui.State{
+		Selected:   "s1",
+		Connection: dimui.ConnReady,
+		Messages:   []dimui.Message{{ID: "m1"}},
+	}
+	f := &fakeSession{view: previous}
+	b := &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}
+	b.openSession = func(context.Context, *supervisor.Supervisor, string) (sessionActions, error) {
+		return nil, errors.New("open failed")
+	}
+	a := &app{
+		state: &dimui.State{
+			Sessions:   []dimui.Session{{ID: "s1", Title: "One"}, {ID: "s2", Title: "Two"}},
+			Selected:   "s2",
+			Connection: dimui.ConnReady,
+			Messages:   []dimui.Message{{ID: "m2"}},
+			Draft:      "keep",
+		},
+		bridge: b,
+	}
+	updated := make(chan struct{}, 1)
+	a.updateHook = func(fn func(*dimui.State)) {
+		fn(a.state)
+		select {
+		case updated <- struct{}{}:
+		default:
+		}
+	}
+	a.bind()
+	a.state.OnSelect("s2")
+
+	select {
+	case <-updated:
+	case <-time.After(2 * time.Second):
+		t.Fatal("failed selection did not publish its error")
+	}
+	if a.state.Selected != "s1" || len(a.state.Messages) != 1 || a.state.Messages[0].ID != "m1" {
+		t.Fatalf("failed selection left a mismatched view: %#v", a.state)
+	}
+	if a.state.ConversationLoading {
+		t.Error("loading is still true after a failed selection")
+	}
+	if a.state.Connection != dimui.ConnError || a.state.ConnectionError == "" {
+		t.Fatalf("selection error was not surfaced: %#v", a.state)
+	}
+	if a.state.Draft != "keep" || a.state.OnSubmit == nil || len(a.state.Sessions) != 2 {
+		t.Fatalf("window state was lost: %#v", a.state)
 	}
 }
 
