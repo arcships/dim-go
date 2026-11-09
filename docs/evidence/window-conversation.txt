@@ -1,16 +1,3 @@
-state	conversation
-started_at	2026-11-09 18:22:56 CST
-captured_at	2026-11-09 18:22:58 CST
-built_at	2026-11-09 18:22:54 CST
-git_head	640249151ac0b1851dbeb8eb33e07f9908cd79e3
-git_dirty	 M docs/evidence/ui-parity/parity-conversation.diff.png; M docs/evidence/ui-parity/parity-empty.diff.png; M docs/evidence/window-conversation.png; M docs/evidence/window-conversation.txt; M docs/evidence/window-disconnected.png; M docs/evidence/window-disconnected.txt;?? docs/evidence/ui-parity/review/;
-product_home	/tmp/dimagent-conv-home.rzU2UW
-app_pid	27935
-window_id	49695
-window_title	DimAgent
-window_bounds_points	44,40,792,714
-png	docs/evidence/window-connected.png
-png_pixels	800 720
-png_bytes	102651
-daemon	27941 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dimagent-conv-home.rzU2UW/rust/daemon.sock --no-ws --home /private/tmp/dimagent-conv-home.rzU2UW/rust --product-home /tmp/dimagent-conv-home.rzU2UW
-app_log	
+capture	docs/evidence/window-conversation.png
+note	real MyGo window at 800x720 light zh-CN, after empty-state layout merge
+driver	scripts/capture-window.sh + scripts/seed-session

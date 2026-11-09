@@ -1,16 +1,16 @@
 state	disconnected
-started_at	2026-11-09 18:22:54 CST
-captured_at	2026-11-09 18:22:56 CST
-built_at	2026-11-09 18:22:54 CST
-git_head	640249151ac0b1851dbeb8eb33e07f9908cd79e3
-git_dirty	 M docs/evidence/ui-parity/parity-conversation.diff.png; M docs/evidence/ui-parity/parity-empty.diff.png; M docs/evidence/window-conversation.png; M docs/evidence/window-conversation.txt; M docs/evidence/window-disconnected.png; M docs/evidence/window-disconnected.txt;?? docs/evidence/ui-parity/review/;
+started_at	2026-11-09 18:52:50 CST
+captured_at	2026-11-09 18:52:52 CST
+built_at	2026-11-09 18:52:50 CST
+git_head	fc8218a59dcaa472d920bac694101c91d727b11e
+git_dirty	 M docs/evidence/ui-parity/compare-conversation.png; M docs/evidence/ui-parity/compare-empty.png; M docs/evidence/ui-parity/parity-conversation.diff.png; M docs/evidence/ui-parity/parity-empty.diff.png; M docs/evidence/ui-parity/review/conv-mygo-bottom.png; M docs/evidence/ui-parity/review/conv-mygo-composer.png; M docs/evidence/ui-parity/review/conv-mygo-content.png; M docs/evidence/ui-parity/review/conv-mygo-sidebar.png; M docs/evidence/ui-parity/review/conv-mygo-top.png; M docs/evidence/ui-parity/review/empty-mygo-bottom.png; M docs/evidence/ui-parity/review/empty-mygo-composer.png; M docs/evidence/ui-parity/review/empty-mygo-content.png; M docs/evidence/ui-parity/review/empty-mygo-sidebar.png; M docs/evidence/ui-parity/review/empty-mygo-top.png; M docs/evidence/window-conversation.png; M docs/evidence/window-conversation.txt; M docs/evidence/window-disconnected.png; M docs/evidence/window-disconnected.txt; M scripts/capture-window.sh;
 product_home	<unset>
-app_pid	27865
-window_id	49688
+app_pid	35793
+window_id	49782
 window_title	DimAgent
-window_bounds_points	41,38,798,718
+window_bounds_points	44,41,792,712
 png	docs/evidence/window-disconnected.png
 png_pixels	800 720
-png_bytes	93172
+png_bytes	47253
 daemon	<none>
 app_log	

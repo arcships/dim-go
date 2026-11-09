@@ -53,7 +53,7 @@ WORK="$(mktemp -d "${TMPDIR:-/tmp}/dimagent-capture.XXXXXX")"
 # window on the primary display so every capture has the same geometry.
 CAPTURE_CONFIG="$WORK/config"
 mkdir -p "$CAPTURE_CONFIG/dimagent"
-printf '{"version":1,"theme":1}\n' >"$CAPTURE_CONFIG/dimagent/settings.json"
+printf '{"version":1,"theme":1,"locale":"zh-CN"}\n' >"$CAPTURE_CONFIG/dimagent/settings.json"
 APP_PID=""
 RUN_HOME=""
 HELPER=""
