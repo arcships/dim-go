@@ -189,6 +189,7 @@ type tokens struct {
 	rowPadY     float32 // above and below a conversation row
 	rowPadX     float32 // left and right of a conversation row
 	toolbarPadY float32 // above and below the toolbar
+	headerH     float32 // the conversation bar's height, as the reference's 41
 	toolbarPadX float32 // left and right of the toolbar
 	edgePad     float32 // inside the composer
 	panelPad    float32 // inside the empty state and the loading row
@@ -468,13 +469,18 @@ func buildTokens(t *ui.Theme, geometryScale float32) tokens {
 	}
 
 	return tokens{
-		theme:       t,
-		hairline:    1,
-		gap:         t.Space(0.5),
-		gapWide:     t.Space(3),
-		rowPadY:     t.Space(1),
-		rowPadX:     t.Space(4),
-		toolbarPadY: t.Space(2),
+		theme:    t,
+		hairline: 1,
+		gap:      t.Space(0.5),
+		gapWide:  t.Space(3),
+		rowPadY:  t.Space(1),
+		rowPadX:  t.Space(4),
+		// The reference conversation bar is 41 pt high with 30 pt entries; 5.5
+		// above and below keeps the same height instead of the theme step's 8.
+		// Compact density tightens that padding like every other room step, while
+		// the bar's minimum height stays the reference's.
+		toolbarPadY: 5.5 * geometryScale,
+		headerH:     41,
 		toolbarPadX: t.Space(3),
 		edgePad:     t.Space(3),
 		panelPad:    t.Space(6),

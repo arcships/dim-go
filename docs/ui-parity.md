@@ -182,7 +182,7 @@ A 顶层：19 个组件目录 + 2 个独立图标组件（`components/`）。B �
 
 窗口尺寸也已对齐：默认从 1080×720 改为 **800×720**，与 Electron 的参考窗口一致，侧栏 256 DIP 的占比因此相同（左侧 32%）。对话态又对齐了两处：顶栏改为单行标题（连接状态只留在状态栏）、助手行不再画作者行，与参考的“无头像/无角色名”一致。
 
-对话态并排：[`evidence/ui-parity/compare-conversation.png`](evidence/ui-parity/compare-conversation.png)。量到的对照（points）：Electron 顶栏 41、composer 宽 ≈520、消息列左右留白 ≈24.5/24；MyGo 顶栏仍略高（约 56），composer 宽 ≈534（与 520 接近），消息列留白一致。
+对话态并排：[`evidence/ui-parity/compare-conversation.png`](evidence/ui-parity/compare-conversation.png)。量到的对照（points）：Electron 顶栏 41、composer 宽 ≈520、消息列左右留白 ≈24.5/24；MyGo 顶栏已改为 41（与参考一致），composer 宽 ≈534（与 520 接近），消息列留白一致。
 
 仍未做：逐区域像素叠加、字体度量对照、hover/focus/弹窗态、skin/chrome、侧栏“工作区分组 + 相对时间”（App Server 未给 project/时间字段）。
 

@@ -32,7 +32,7 @@ var contextPanelGlyph = sidebarIcon(`<rect x="1.8" y="2.6" width="12.4" height="
 // appearance entry. The conversation's empty state carries the heading instead.
 func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
-	ui.Row(c).Gap(k.gapWide).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
+	ui.Row(c).Gap(k.gapWide).MinHeight(k.headerH).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
 		if v.HasSession {
 			// The reference's conversation bar is one line: a truncated title, the
