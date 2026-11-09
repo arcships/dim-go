@@ -46,9 +46,11 @@ func TestApplyViewNilIsNoop(t *testing.T) {
 // window and stay as they are.
 func TestApplyViewKeepsWindowState(t *testing.T) {
 	state := &dimui.State{
-		Sessions: []dimui.Session{{ID: "s1"}},
-		Draft:    "draft",
-		OnSubmit: func(string) {},
+		Sessions:      []dimui.Session{{ID: "s1"}},
+		Draft:         "draft",
+		OnSubmit:      func(string) {},
+		ActionNotices: []dimui.Notice{{Kind: "submit.accepted"}},
+		ActionError:   "window-owned error",
 	}
 	view := &dimui.State{
 		Selected:        "s1",
@@ -56,6 +58,7 @@ func TestApplyViewKeepsWindowState(t *testing.T) {
 		ConnectionError: "",
 		Run:             dimui.RunRunning,
 		Messages:        []dimui.Message{{ID: "m1"}},
+		Notices:         []dimui.Notice{{Kind: "approval"}},
 	}
 	applyView(state, view)
 
@@ -67,6 +70,12 @@ func TestApplyViewKeepsWindowState(t *testing.T) {
 	}
 	if len(state.Sessions) != 1 || state.Sessions[0].ID != "s1" || state.Draft != "draft" || state.OnSubmit == nil {
 		t.Fatalf("window state was overwritten: %#v", state)
+	}
+	if len(state.ActionNotices) != 1 || state.ActionNotices[0].Kind != "submit.accepted" || state.ActionError != "window-owned error" {
+		t.Fatalf("window-owned action outcomes were overwritten: %#v", state)
+	}
+	if len(state.Notices) != 1 || state.Notices[0].Kind != "approval" {
+		t.Fatalf("projection notices were not applied: %#v", state.Notices)
 	}
 }
 
@@ -640,7 +649,10 @@ func TestAppSelectFailureRestoresPreviousSelection(t *testing.T) {
 	if a.state.ConversationLoading {
 		t.Error("loading is still true after a failed selection")
 	}
-	if a.state.Connection != dimui.ConnError || a.state.ConnectionError == "" {
+	if a.state.Connection != dimui.ConnReady || a.state.ConnectionError != "" {
+		t.Fatalf("failed selection changed the previous connection: %#v", a.state)
+	}
+	if a.state.ActionError == "" {
 		t.Fatalf("selection error was not surfaced: %#v", a.state)
 	}
 	if a.state.Draft != "keep" || a.state.OnSubmit == nil || len(a.state.Sessions) != 2 {
@@ -697,7 +709,7 @@ func TestAppSubmitAndStopPublishOutcomes(t *testing.T) {
 	deadline := time.Now().Add(2 * time.Second)
 	for time.Now().Before(deadline) {
 		stateMu.Lock()
-		count := len(a.state.Notices)
+		count := len(a.state.ActionNotices)
 		stateMu.Unlock()
 		if count >= 2 {
 			break
@@ -706,15 +718,18 @@ func TestAppSubmitAndStopPublishOutcomes(t *testing.T) {
 	}
 	stateMu.Lock()
 	defer stateMu.Unlock()
-	if len(a.state.Notices) < 2 {
-		t.Fatalf("notices = %#v, want submit and stop errors", a.state.Notices)
+	if len(a.state.ActionNotices) < 2 {
+		t.Fatalf("action notices = %#v, want submit and stop errors", a.state.ActionNotices)
 	}
 	kinds := map[string]bool{}
-	for _, notice := range a.state.Notices {
+	for _, notice := range a.state.ActionNotices {
 		kinds[notice.Kind] = true
 	}
 	if !kinds["submit.error"] || !kinds["stop.error"] {
 		t.Fatalf("notice kinds = %#v", kinds)
+	}
+	if a.state.ActionError == "" {
+		t.Fatal("action error was not surfaced")
 	}
 	if a.state.Draft != "hello" {
 		t.Fatalf("draft = %q, want retained after failed submit", a.state.Draft)

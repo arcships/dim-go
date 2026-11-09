@@ -366,13 +366,20 @@ func (a *app) stopRefresh() {
 	}
 }
 
-// notice publishes a bounded, inspectable UI outcome. It is deliberately a
-// throwaway view fact: daemon/session remains the source of timeline truth.
+// notice publishes a bounded, inspectable window action outcome. It is
+// deliberately a throwaway view fact: daemon/session remains the source of
+// timeline truth. Action outcomes live apart from projection Notices so a live
+// refresh cannot erase them.
 func (a *app) notice(kind, id string) {
 	a.update(func(state *dimui.State) {
-		state.Notices = append(state.Notices, dimui.Notice{Kind: kind, ID: id})
-		if len(state.Notices) > 8 {
-			state.Notices = append([]dimui.Notice(nil), state.Notices[len(state.Notices)-8:]...)
+		state.ActionNotices = append(state.ActionNotices, dimui.Notice{Kind: kind, ID: id})
+		if len(state.ActionNotices) > 8 {
+			state.ActionNotices = append([]dimui.Notice(nil), state.ActionNotices[len(state.ActionNotices)-8:]...)
+		}
+		if strings.HasSuffix(kind, ".error") {
+			state.ActionError = id
+		} else {
+			state.ActionError = ""
 		}
 	})
 }
@@ -417,8 +424,7 @@ func (a *app) selectSession(id string) {
 					applyView(state, &dimui.State{})
 				}
 				state.ConversationLoading = false
-				state.Connection = dimui.ConnError
-				state.ConnectionError = fmt.Sprintf("%v", err)
+				state.ActionError = fmt.Sprintf("Open session %q: %v", id, err)
 			})
 			return
 		}
@@ -431,6 +437,7 @@ func (a *app) selectSession(id string) {
 			state.Selected = row.ID
 			state.Connection = dimui.ConnReady
 			state.ConnectionError = ""
+			state.ActionError = ""
 			state.ConversationLoading = false
 		})
 	}()
@@ -515,6 +522,7 @@ func (a *app) reconnect() {
 		view := a.bridge.LiveState()
 		a.update(func(state *dimui.State) {
 			applyView(state, view)
+			state.ActionError = ""
 			state.ConversationLoading = false
 		})
 	}()

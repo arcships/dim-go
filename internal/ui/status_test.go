@@ -86,6 +86,42 @@ func TestNoBannerWithoutError(t *testing.T) {
 	}
 }
 
+// TestActionErrorBanner checks that a window-owned action error is shown even
+// when the connection itself is ready, and survives a live view that has no
+// connection error.
+func TestActionErrorBanner(t *testing.T) {
+	s := fixture()
+	s.Connection = ConnReady
+	s.ActionError = `Open session "s2": boom`
+	s.ActionNotices = []Notice{{Kind: "select.error", ID: "boom"}}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if !tt.HasText(`Open session "s2": boom`) {
+		t.Fatalf("action error banner is missing, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleAlert, ""); !ok {
+		t.Fatalf("action error is not an alert region, texts %q", tt.Texts())
+	}
+	if !tt.HasText("Notices: 1") {
+		t.Errorf("window action outcome count is missing, texts %q", tt.Texts())
+	}
+}
+
+func TestConnectionErrorBannerTakesPrecedence(t *testing.T) {
+	s := fixture()
+	s.Connection = ConnError
+	s.ConnectionError = "transport lost"
+	s.ActionError = "submit failed earlier"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if !tt.HasText("Connection error: transport lost") {
+		t.Fatalf("connection error banner is missing, texts %q", tt.Texts())
+	}
+	if tt.HasText("submit failed earlier") {
+		t.Fatalf("stale action error obscures the connection error, texts %q", tt.Texts())
+	}
+}
+
 // TestLoadingConversation checks the loading state: its text and busy region
 // show, and the rows wait for history.
 func TestLoadingConversation(t *testing.T) {

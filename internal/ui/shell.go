@@ -36,7 +36,9 @@ type Session struct {
 	Title string
 }
 
-// Branch is a read-only branch directory row supplied by the App Server.
+// Branch is read-only branch metadata observed from App Server events. The
+// session.branches directory RPC is blocked/unverified, so this is not a
+// switchable branch list.
 type Branch struct {
 	ID       string
 	Label    string
@@ -131,6 +133,11 @@ type State struct {
 	// Transient model progress and notices are throwaway status-row inputs.
 	ModelProgress *ModelProgress
 	Notices       []Notice
+	// ActionNotices and ActionError are window-owned outcomes of actions this
+	// shell sent (submit/stop/select/reconnect). They are not session projection
+	// facts, so a live refresh must leave them alone.
+	ActionNotices []Notice
+	ActionError   string
 
 	// Messages are fixture conversation rows, not session facts.
 	Messages []Message
@@ -203,7 +210,7 @@ func (s *State) branchList(c *ui.Context, k tokens) {
 	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
 		Role(ui.RoleGroup).Label("Branches (read-only)").Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.muted).Bold()
+			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.muted).Bold().AccessHidden(true)
 			ui.Box(c).Grow(1)
 			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.muted).Unselectable()
 		})
@@ -212,7 +219,7 @@ func (s *State) branchList(c *ui.Context, k tokens) {
 			if label == "" {
 				label = branch.ID
 			}
-			if branch.ID == s.SelectedBranch {
+			if branch.Selected || branch.ID == s.SelectedBranch {
 				label += " (current)"
 			}
 			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.muted).NoWrap()
@@ -231,16 +238,17 @@ func (s *State) header(c *ui.Context, k tokens) {
 		s.status(c, k)
 		// Stopping is the App Server's to do once the callback sends session.stop,
 		// so the entry belongs beside the status only while a turn still runs.
-		if s.Run == RunRunning {
+		if s.Selected != "" && s.Run == RunRunning {
 			if s.OnStop == nil {
 				wipAction(c, k, "Stop", reasonStop)
 			} else {
 				ui.Button(c, "Stop").OnClick(s.stopRun)
 			}
 		}
-		// A healthy connection has nothing to reconnect, and a reconnect in
-		// flight already shows its loading state: do not offer a second one.
-		if s.Connection != ConnReady && !s.ConversationLoading {
+		// A healthy connection has nothing to reconnect, a reconnect in flight
+		// already shows its loading state, and with no selected session there is
+		// no attachment to re-open.
+		if s.Selected != "" && s.Connection != ConnReady && !s.ConversationLoading {
 			if s.OnReconnect == nil {
 				wipAction(c, k, "Reconnect", reasonReconnect)
 			} else {
@@ -267,8 +275,8 @@ func (s *State) runStatus(c *ui.Context, k tokens) {
 				ui.Text(c, text).FontSize(k.smallSize).TextColor(k.muted)
 			}
 		}
-		if len(s.Notices) > 0 {
-			ui.Text(c, "Notices: "+strconv.Itoa(len(s.Notices))).FontSize(k.smallSize).TextColor(k.muted)
+		if notices := len(s.Notices) + len(s.ActionNotices); notices > 0 {
+			ui.Text(c, "Notices: "+strconv.Itoa(notices)).FontSize(k.smallSize).TextColor(k.muted)
 		}
 	})
 }
@@ -283,17 +291,25 @@ func (s *State) status(c *ui.Context, k tokens) {
 	})
 }
 
-// banner shows the supervisor's last error, in a live region assistive
-// technology reads out as it appears.
+// banner shows the last window-owned action error, or the supervisor's last
+// connection error, in a live region assistive technology reads out as it
+// appears. Connection failures take precedence over older action failures so
+// the latest transport problem remains visible; live refreshes still leave
+// ActionError alone.
 func (s *State) banner(c *ui.Context, k tokens) {
-	if s.Connection != ConnError || s.ConnectionError == "" {
+	message := ""
+	if s.Connection == ConnError && s.ConnectionError != "" {
+		message = s.Connection.String() + ": " + s.ConnectionError
+	} else {
+		message = s.ActionError
+	}
+	if message == "" {
 		return
 	}
 	ui.Row(c).Role(ui.RoleAlert).Gap(k.gap).Padding(k.gap, k.edgePad).
 		Background(k.wash(k.danger)).
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.danger).Children(func() {
-		ui.Text(c, s.Connection.String()+": "+s.ConnectionError).
-			FontSize(k.labelSize).TextColor(k.danger).Bold()
+		ui.Text(c, message).FontSize(k.labelSize).TextColor(k.danger).Bold()
 	})
 }
 
