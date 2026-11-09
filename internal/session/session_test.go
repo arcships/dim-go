@@ -1118,6 +1118,50 @@ func TestTransientApprovalModelProgressAndUnknownNotices(t *testing.T) {
 	waitFor(t, func() bool { return s.Transient().ModelProgress == nil }, "empty model progress clearing")
 }
 
+// TestRespondApprovalCancelledDropsPending pins §12's -32602 rule at the session
+// layer: the daemon no longer holds the approval, so the cached pending request
+// is cancelled instead of leaving a row whose decision can never apply. The
+// decision is never resent.
+func TestRespondApprovalCancelledDropsPending(t *testing.T) {
+	server, _, s := openTestSession(t, fakeConfig{
+		Attach:  appserver.AttachResult{Sequence: int64Ptr(1)},
+		History: emptyHistory(t, 1),
+	}, []string{"session.history"}, OpenOptions{})
+
+	server.emit("approval.request", appserver.ApprovalRequest{
+		SessionID: "s1",
+		BranchID:  "main",
+		RequestID: "r1",
+		Source:    appserver.ApprovalSource{Kind: "tool"},
+		Call:      appserver.ApprovalCall{Name: "shell", Input: json.RawMessage(`{"cmd":"ls"}`)},
+	})
+	waitFor(t, func() bool { return len(s.PendingApprovals("main")) == 1 }, "pending approval")
+
+	// The fake server replies -32602 when no mutation result is scripted, which
+	// is exactly the "approval already gone" case.
+	outcome, err := s.RespondApproval(testContext(t), appserver.ApprovalRespondParams{BranchID: "main", RequestID: "r1", Decision: appserver.DecisionAllow})
+	if err != nil {
+		t.Fatalf("RespondApproval error = %v, want cancelled without an error", err)
+	}
+	if outcome != appserver.ApprovalOutcomeCancelled {
+		t.Fatalf("outcome = %q, want %q", outcome, appserver.ApprovalOutcomeCancelled)
+	}
+	if got := len(s.PendingApprovals("main")); got != 0 {
+		t.Fatalf("pending approvals = %d after -32602, want the row cancelled", got)
+	}
+	calls := server.recorded("approval.respond")
+	if len(calls) != 1 {
+		t.Fatalf("approval.respond calls = %d, want 1 (never resent)", len(calls))
+	}
+	var params appserver.ApprovalRespondParams
+	if err := json.Unmarshal(calls[0].Params, &params); err != nil {
+		t.Fatalf("approval params: %v", err)
+	}
+	if params.SessionID != "s1" || params.BranchID != "main" || params.RequestID != "r1" || params.Decision != appserver.DecisionAllow {
+		t.Fatalf("approval params = %#v", params)
+	}
+}
+
 func hasTransientKind(snapshot projection.TransientSnapshot, kind, id string) bool {
 	for _, notice := range snapshot.Notices {
 		if notice.Kind == kind && notice.ID == id {

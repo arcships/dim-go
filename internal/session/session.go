@@ -1132,7 +1132,18 @@ func (s *Session) RespondApproval(ctx context.Context, params appserver.Approval
 	if params.BranchID == "" {
 		params.BranchID = s.branchID
 	}
-	return appserver.ApprovalRespond(ctx, s.client, params)
+	outcome, err := appserver.ApprovalRespond(ctx, s.client, params)
+	// A -32602 reply means the daemon no longer holds the approval (§12). That
+	// is the daemon's authoritative answer, so the cached pending request is
+	// cancelled too: leaving it would show a row whose decision can never apply.
+	if outcome == appserver.ApprovalOutcomeCancelled {
+		s.mu.Lock()
+		if branch := s.branches[params.BranchID]; branch != nil {
+			delete(branch.approvals, params.RequestID)
+		}
+		s.mu.Unlock()
+	}
+	return outcome, err
 }
 
 func newUUID() (string, error) {
