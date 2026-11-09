@@ -50,7 +50,7 @@ Last updated: 2026-11-09
 
 ## 新路由与浮层（真实窗口，2026-11-10）
 
-- 设置路由：[`evidence/ui/mygo-settings-route.png`](evidence/ui/mygo-settings-route.png)。整窗替换侧栏/聊天壳，Back + 19 项图标导航 + Appearance 卡片/Select/Segmented/Slider；与参考 `window-settings-route.png` 结构一致。导航已对齐参考 19 项（Capabilities 内容并入 About）；差异：图标为近似线条、字体栅格、内容宽度。未命名会话在侧栏/面包屑/搜索显示本地化 Untitled。
+- 设置路由：[`evidence/ui/mygo-settings-route.png`](evidence/ui/mygo-settings-route.png)。整窗替换侧栏/聊天壳，Back + 19 项图标导航，默认落“个性化”；Appearance 卡片/Select/Segmented/Slider 与参考同构。导航已对齐参考 19 项（Capabilities 内容并入 About）；差异：图标为近似线条、字体栅格、内容宽度。未命名会话在侧栏/面包屑/搜索显示本地化 Untitled。
 - 全局搜索：[`evidence/ui/mygo-search.png`](evidence/ui/mygo-search.png)。⌘G 居中浮层、遮罩、最近聊天、行图标/标题/项目/⌘n；与参考 `window-search.png` 同构。差异：占位文案语言、无置顶分组。
 - 会话内查找：[`evidence/ui/mygo-thread-search.png`](evidence/ui/mygo-thread-search.png)。⌘F 顶栏查找条、0/0 计数、上/下/关闭；参考 ThreadSearchBar 未采集截图，结构按源码实现，待参考帧。
 
