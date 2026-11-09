@@ -60,12 +60,12 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 | Resync hardening | `feat/resync-hardening` | subscription_changed/generation/closed/unknown-result | F11 |
 | Cmd state | `feat/cmd-state` | 每会话草稿、窗口位置/尺寸、迁移 | 草稿/窗口 |
 
-### P3 接线轮（P1/P2 后，leader 改 shell.go）
+### P3 接线轮（已完成第一部分）
 
-- 顶栏菜单回调：Pin/Rename/Archive/Export/Copy/Open in new window（有合同才接）
-- 模型选择器：catalog → 顶栏/Composer；无事实显示“未配置”
-- 路由：Scheduled、Skills 两个 WIP 页面；设置 19 分区
-- 通知/错误中心：ActionError/ActionNotices/Notice 统一展示、可关闭/复制
+- ✅ Rename：真实输入框 + controller.Rename + 标题刷新（其余 Pin/Archive/Export/Copy 仍 WIP）
+- ✅ 模型展示：composer chip 显示 provider/model，只读列表；选择写入仍 WIP
+- ✅ 路由：Scheduled、Skills WIP 页 + Back；设置 19 分区
+- ✅ 通知中心：ActionError/ActionNotices/Notices 顶部 banner、可关闭
 - 会话内消息搜索（ThreadSearchBar，区别于全局 ⌘G）
 - F9：unknown submit 的 `input_lookup` 结果展示
 - 清理：未使用 glyph/key、protocols 注释、组件协议文档
