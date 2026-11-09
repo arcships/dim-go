@@ -246,7 +246,7 @@ Go 实现：`internal/session/history.go` 实现 latest-turn 反向分页、`tur
 - `session.keys` → `{through, entries:[{key, sequence, inputId, text}]}`。
 - `session.branches` → `{branches:[{branchId, parentBranchId?, branchPoint?, createEvent?, source?, state:"open"|"ending"|"ended", head, endEvent?}]}`。
 
-Go 侧只保留 `KeysResult`/`BranchesResult` 的 Desktop wire 形状 decoder 作参考，不提供 `SessionKeys`/`SessionBranches` client helper；`internal/session.Open` 不请求这两个方法，`Session.Keys`/`BranchDirectory` 返回 blocked/empty，不合成 snapshot。
+Go 侧保留 `KeysResult`/`BranchesResult` 的 Desktop wire 形状 decoder，并保留 `SessionBranches` helper 供契约测试；没有 `SessionKeys` client helper。`internal/session.Open` 不请求这两个方法，`Session.Keys`/`BranchDirectory` 返回 blocked/empty，不合成 snapshot。
 
 ## 10. `session.submit` / `session.stop`
 
