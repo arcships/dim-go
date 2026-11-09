@@ -836,12 +836,6 @@ func (a *app) deleteSession(id string) {
 		return
 	}
 	gen := a.currentSelection()
-	a.update(func(state *dimui.State) {
-		if !a.selectionCurrent(gen) {
-			return
-		}
-		state.ActionError = ""
-	})
 	go func() {
 		a.selectMu.Lock()
 		defer a.selectMu.Unlock()
@@ -881,6 +875,9 @@ func (a *app) deleteSession(id string) {
 		if !a.selectionCurrent(gen) {
 			return
 		}
+		// Close before publishing the catalog change so observers that react to the
+		// update cannot race the controller teardown.
+		a.bridge.closeSessionFor(id)
 		var next dimui.Session
 		a.update(func(state *dimui.State) {
 			if !a.selectionCurrent(gen) {
@@ -905,9 +902,6 @@ func (a *app) deleteSession(id string) {
 				next = remaining[0]
 			}
 		})
-		// The deleted session's attachment is of no further use; closing it only
-		// releases the stream, never the supervisor.
-		a.bridge.closeSessionFor(id)
 		if next.ID != "" {
 			a.selectSession(next.ID)
 		}
