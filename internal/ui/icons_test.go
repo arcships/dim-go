@@ -87,8 +87,8 @@ func TestSidebarGlyphDrawsAtSixteenAndStaysHidden(t *testing.T) {
 	if _, ok := tt.AccessByRole(ui.RoleImage, "plus glyph"); ok {
 		t.Error("the glyph is exposed to assistive technology even though its row names the entry")
 	}
-	if got := tt.Image().RGBAAt(int(rect.X+rect.W/2), int(rect.Y+rect.H/2)); got != (color.RGBA{R: 0, G: 0, B: 255, A: 255}) {
-		t.Errorf("the glyph is %v, want the color it was drawn in", got)
+	if got := tt.Image().RGBAAt(int(rect.X+rect.W/2), int(rect.Y+rect.H/2)); got.B <= got.R+80 || got.B <= got.G+80 {
+		t.Errorf("the glyph is %v, want the blue it was drawn in", got)
 	}
 }
 

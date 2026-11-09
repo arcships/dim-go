@@ -74,10 +74,11 @@ const breadcrumbLeftPad = 19
 const menuTargetW = 20
 
 // contextPanelGlyph is the entry's two-pane mark, as the Electron reference
-// draws the panel toggle at the card's top right: a 10×10 rounded frame split
-// down the middle, both panes outlined. It strokes currentColor and paints no
-// fill, so it follows the theme like the sidebar's glyphs.
-var contextPanelGlyph = sidebarIcon(`<rect x="3" y="3" width="10" height="10" rx="1.7"/><path d="M8 3v10"/>`)
+// draws the panel toggle at the card's top right: Lucide's panel-right, a
+// rounded frame with its split line separating the conversation from the
+// context column. It strokes currentColor and paints no fill, so it follows the
+// theme like the sidebar's glyphs.
+var contextPanelGlyph = mustLucide("panel-right")
 
 // reasonOpenInEditor is the explanation the localization table still carries
 // for the reference's editor-open entry. The bar no longer draws that entry:

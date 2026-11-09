@@ -101,14 +101,13 @@ func searchPaletteTransition(c *ui.Context, enter, exit ui.Motion) ui.ElementTra
 	return t
 }
 
-// searchChatIcon is the speech-bubble mark of a result row's tile, drawn in
-// the same 16×16 outline frame as the sidebar's glyphs.
-var searchChatIcon = sidebarIcon(`<path d="M2 4.2A1.7 1.7 0 0 1 3.7 2.5h8.6A1.7 1.7 0 0 1 14 4.2v5.6a1.7 1.7 0 0 1-1.7 1.7H7.6L4.3 14v-2.5H3.7A1.7 1.7 0 0 1 2 9.8Z"/>`)
+// searchChatIcon is the speech-bubble mark of a result row's tile, Lucide's
+// message-square.
+var searchChatIcon = mustLucide("message-square")
 
-// searchErrorIcon is the tile's failed mark: the same 16×16 outline frame with
-// an exclamation in a circle, so a row whose caller reported a failure reads
-// apart from a chat still loading.
-var searchErrorIcon = sidebarIcon(`<circle cx="8" cy="8" r="5.6"/><path d="M8 4.9v3.7"/><circle cx="8" cy="11.2" r=".8" fill="currentColor" stroke="none"/>`)
+// searchErrorIcon is the tile's failed mark: a circle with an exclamation, so a
+// row whose caller reported a failure reads apart from a chat still loading.
+var searchErrorIcon = mustLucide("circle-alert")
 
 // searchShortcutKey is the shortcut that opens the palette, and
 // searchShortcutMods its modifier: Cmd+G on macOS, Ctrl+G elsewhere, as the

@@ -607,10 +607,10 @@ func TestHeaderTitleUsesTheRoomBeforeTheMenu(t *testing.T) {
 }
 
 // TestHeaderPanelToggleDrawsTheOutlinedTwoPaneMark checks the toggle's mark
-// against window-conversation.png: a 10×10 rounded frame split down the middle,
-// both panes left empty and only the strokes painted. The reference's mark is
-// 12 DIPs of ink at the 16 DIP step; the earlier mark filled the right pane,
-// which shows as the toggle's ink at the pane's centre.
+// against window-conversation.png: a rounded frame split into two panes, both
+// pane interiors left empty and only the strokes painted. The mark is Lucide's
+// panel-right, whose 18-unit frame and 2-unit stroke span 20 of 24 units, so it
+// covers about 13.3 DIPs at the 16 DIP step and rasterizes to 14.
 func TestHeaderPanelToggleDrawsTheOutlinedTwoPaneMark(t *testing.T) {
 	v := fixture().headerView()
 	var theme *ui.Theme
@@ -633,23 +633,23 @@ func TestHeaderPanelToggleDrawsTheOutlinedTwoPaneMark(t *testing.T) {
 	if pixels == 0 {
 		t.Fatal("the panel toggle draws no mark")
 	}
-	if math.Abs(float64(ink.W-12)) > 1 || math.Abs(float64(ink.H-12)) > 1 {
-		t.Errorf("the panel mark's ink is %.1fx%.1f, want the reference's 12×12", ink.W, ink.H)
+	if ink.W < 13 || ink.W > 14 || ink.H < 13 || ink.H > 14 {
+		t.Errorf("the panel mark's ink is %.1fx%.1f, want the Lucide frame's 13–14 DIPs", ink.W, ink.H)
 	}
 	image := tt.Image()
 	at := func(dx, dy float32) color.RGBA {
 		return image.RGBAAt(int(box.X+dx), int(box.Y+dy))
 	}
-	if left := at(5, 8); !sameColor(left, k.background) {
+	if left := at(4, 8); !sameColor(left, k.background) {
 		t.Errorf("the left pane's centre is %v, want the bar's face", left)
 	}
-	if right := at(11, 8); !sameColor(right, k.background) {
+	if right := at(12, 8); !sameColor(right, k.background) {
 		t.Errorf("the right pane's centre is %v, want the bar's face and no fill", right)
 	}
-	if border := at(8, 3); sameColor(border, k.background) {
+	if border := at(8, 2); sameColor(border, k.background) {
 		t.Error("the frame's top edge draws no stroke")
 	}
-	if divider := at(8, 8); sameColor(divider, k.background) {
+	if divider := at(10, 8); sameColor(divider, k.background) {
 		t.Error("the mark has no centre divider")
 	}
 }

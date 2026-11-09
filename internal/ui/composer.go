@@ -173,7 +173,7 @@ const (
 var composerShadow = ui.Hex("#00000010")
 
 // composerGlyphs is the icon set the card's toolbar and context row draw, in
-// the same 16×16 outline frame as the sidebar's (icons.go). The cube is the
+// the same Lucide frame as the sidebar's (lucide_icons.go). The box is the
 // model entry's mark, the shield is the default permission mode's, the branch
 // mark is the session branch's, the down chevron is the workspace picker's
 // disclosure, and the double chevron is the mode entry's; they are drawn here
@@ -185,20 +185,20 @@ var composerGlyphs = struct {
 	chevronDown *ui.SVG
 	modeChevron *ui.SVG
 }{
-	cube:   sidebarIcon(`<path d="M8 1.8 13.2 4.9v6.2L8 14.2 2.8 11.1V4.9Z"/><path d="M2.8 4.9 8 8l5.2-3.1M8 8v6.2"/>`),
-	shield: sidebarIcon(`<path d="M8 1.8 13 3.6v4.3c0 3.1-2 5.4-5 6.3-3-.9-5-3.2-5-6.3V3.6Z"/>`),
-	// branch is the reference's branch mark: two stacked nodes on the left and
-	// one offset node on the right, joined by the branch's rail. It is drawn
-	// beside the selected session branch, not a git branch.
-	branch: sidebarIcon(`<circle cx="4.4" cy="3.6" r="1.7"/><circle cx="4.4" cy="12.4" r="1.7"/><circle cx="11.6" cy="5.6" r="1.7"/><path d="M4.4 5.3v5.4M11.6 7.3c0 2.3-2.1 2.8-3.8 3.3"/>`),
+	cube:   mustLucide("box"),
+	shield: mustLucide("shield"),
+	// branch is the reference's branch mark: two stacked nodes and one offset
+	// node, joined by the branch's rail. It is drawn beside the selected
+	// session branch, not a git branch.
+	branch: mustLucide("git-branch"),
 	// chevronDown is the workspace picker's disclosure, the reference's ⌄
 	// beside the workspace name rather than the sidebar's forward chevron.
-	chevronDown: sidebarIcon(`<path d="M3.5 6 8 10.5 12.5 6"/>`),
+	chevronDown: mustLucide("chevron-down"),
 	// modeChevron is the Mode entry's mark: the reference draws the agent-mode
 	// picker as the » pair of chevrons, not as the single forward chevron the
 	// sidebar uses for its disclosure. Two strokes, so the entry reads as a
 	// choice rather than as a link.
-	modeChevron: sidebarIcon(`<path d="M3.5 4 6.5 8l-3 4"/><path d="M8.5 4 11.5 8l-3 4"/>`),
+	modeChevron: mustLucide("chevrons-right"),
 }
 
 // composer draws dim-electron's composer: the card with the editor and the tool
