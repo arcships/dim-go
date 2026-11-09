@@ -25,10 +25,10 @@ Last updated: 2026-11-09
 | # | 项目 | 要求证据 | 当前 | 结论 |
 |---|---|---|---|---|
 | F1 | 应用启动（无 daemon） | 真实窗口截图 + 未连接状态可见 | L4：`docs/evidence/window-disconnected.png`（`Not connected`） | **已通过（L4）** |
-| F2 | 应用启动（真实 daemon，`DIMAGENT_PRODUCT_HOME`） | L3 + 真实窗口 + session 列表可见 | L4：`docs/evidence/window-connected.png` + `scripts/seed-session` 预置会话后，窗口显示 `Sessions 1`、选中行、`main (current)`、side branch、`App Server: Connected`（`596ad67`） | **已通过（L4）** |
+| F2 | 应用启动（真实 daemon，`DIMAGENT_PRODUCT_HOME`） | L3 + 真实窗口 + session 列表可见 | L4：`docs/evidence/window-connected.png` + `scripts/seed-session` 预置会话后，窗口显示 `Sessions 1`、选中行、`main (current)`、side branch、`App Server: Connected`（`61a52a7`） | **已通过（L4）** |
 | F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | L4：窗口点击 `New session`，`Sessions 2` 且新会话被选中（`window-create-session.png`） | **已通过（L4）** |
 | F4 | session 切换 | 真实窗口切换 + 历史正确 | L4：窗口点击第二个会话，标题与首屏 history 均切换（`window-switch-session.png`） | **已通过（L4）** |
-| F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L4：`window-connected.png`（seed 会话的 user/assistant 行，`596ad67`） | **已通过（L4）** |
+| F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L4：`window-connected.png`（seed 会话的 user/assistant 行，`61a52a7`） | **已通过（L4）** |
 | F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L4：窗口输入并点击 Send，user 行与 assistant 行出现（`window-submit.png`）；增量流式未单独观察 | 未通过 |
 | F7 | stop | 真实窗口停止 → 状态收敛 | L3 通过；L4 无 | 未通过 |
 | F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | headless + fake-server（bridge 单测）；无 L3/L4 审批流证据 | 未通过 |

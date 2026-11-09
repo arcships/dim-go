@@ -1,12 +1,12 @@
 state	disconnected
-started_at	2026-11-09 15:21:20 CST
-captured_at	2026-11-09 15:21:25 CST
-built_at	2026-11-09 15:21:20 CST
-git_head	596ad67008a4e19cac3227ea5f7bd6e5ac573f1f
+started_at	2026-11-09 15:51:49 CST
+captured_at	2026-11-09 15:51:51 CST
+built_at	2026-11-09 15:51:49 CST
+git_head	61a52a70242a7ec91b8737067fa3f01467ab777d
 git_dirty	clean
 product_home	<unset>
-app_pid	97387
-window_id	48715
+app_pid	3064
+window_id	48971
 window_title	DimAgent
 window_bounds_points	484,116,1080,720
 png	docs/evidence/window-disconnected.png

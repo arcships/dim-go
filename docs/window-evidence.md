@@ -12,14 +12,14 @@
 |---|---|
 | 机器 | macOS 26.6.2（darwin/arm64） |
 | Go | go1.27.3 darwin/arm64 |
-| 源码 | 两种状态都来自 `HEAD = 596ad67008a4e19cac3227ea5f7bd6e5ac573f1f`，工作区 clean（2026-11-09 15:21） |
-| 构建时间 | 2026-11-09 15:21:20 CST |
+| 源码 | 两种状态都来自 `HEAD = 61a52a70242a7ec91b8737067fa3f01467ab777d`，工作区 clean（2026-11-09 15:51） |
+| 构建时间 | 2026-11-09 15:51:49 CST |
 | App Server 二进制 | `/tmp/dim-2-target/debug/dim-app-server`（Mach-O arm64，401 302 448 B，mtime 2026-11-08 23:38） |
 | 窗口库 | `github.com/egoist/mygo v0.8.3`（`mygo.NewWindow`，`Width: 1080`、`Height: 720`） |
 | 截图工具 | `/usr/sbin/screencapture -x -o -l <windowid>`（按窗口 ID 截取，只含该窗口，不含桌面和其它应用） |
 | 窗口 ID 来源 | `CGWindowListCopyWindowInfo`，按**本进程 PID** 过滤；脚本内用 `swiftc` 现场编译小工具读取 |
 
-2026-11-09 15:21 的这次采集在 `596ad67`（右侧 context panel、i18n、seed side branch 落地）上重跑，两种状态都记录 `git_dirty = clean`；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 是同一事实。源码再变时截图即过期，需要重跑脚本。
+2026-11-09 15:51 的最终采集在 `61a52a7` 上重跑，两种状态都记录 `git_dirty = clean`；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 是同一事实。源码再变时截图即过期，需要重跑脚本。
 
 ## 2. 复现命令
 
@@ -41,10 +41,10 @@ cd /Users/eric8810/Code/dimagent-mygo
 
 | 状态 | 采集时间 | 窗口 ID | 窗口位置/尺寸（points） | PNG 像素 | 字节 | PNG 路径 |
 |---|---|---|---|---|---|---|
-| 未连接 | 15:21:20 → 15:21:25 | 48715 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 278 690 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
-| 已连接（seed + side branch） | 15:21:25 → 15:21:27 | 48725 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 300 056 | [`evidence/window-connected.png`](evidence/window-connected.png) |
+| 未连接 | 15:51:49 → 15:51:51 | 48971 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 278 690 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
+| 已连接（seed 会话） | 15:51:51 → 15:51:53 | 48980 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 304 996 | [`evidence/window-connected.png`](evidence/window-connected.png) |
 
-MD5：未连接 `5ede22ebcef8e276f0411047290ad29a`，已连接 `b5c1fd84d122c549a7b447215f8f62ec`。
+MD5：未连接 `5ede22ebcef8e276f0411047290ad29a`，已连接 `342613dc283eed42bfcbdc2bcb1db481`。
 
 机器可读的采集元数据（脚本生成，含源码快照、PID、窗口 ID、bounds、daemon 命令行）：
 [`evidence/window-disconnected.txt`](evidence/window-disconnected.txt)、[`evidence/window-connected.txt`](evidence/window-connected.txt)。
