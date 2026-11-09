@@ -59,6 +59,11 @@ Last updated: 2026-11-09
 - 置顶：[`evidence/ui/mygo-pinned.png`](evidence/ui/mygo-pinned.png)。置顶会话排在项目组内最前，行尾 pin glyph；参考没有独立 Pinned 分组，这里保持同一结构。
 - 归档：`Settings → Archived sessions` 列出并恢复；侧栏隐藏、搜索不显示；archived/pinned 只存 session id，属桌面本地展示状态（config v3）。
 
+## 会话菜单（真实窗口，2026-11-10）
+
+- [`evidence/window-menu.png`](evidence/window-menu.png)。第一组按参考顺序：Pin、Rename、Open in new window、Export、Archive、Copy link/ID/debug（无合同的保持 WIP）；分隔线后是本项目已有能力：Session keys、End branch、Refresh branches、Delete session、Settings。
+- 与参考差异：参考还有“复制路径/复制调试信息”等本地动作我们没有系统剪贴板入口；菜单多出 branch/settings 组（功能需要，非参考原文）。
+
 ## 像素基线（辅助，不是结论）
 
 同尺寸 800×720，区域按 sidebar/top/content/composer/bottom：
