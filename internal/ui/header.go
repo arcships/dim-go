@@ -11,6 +11,18 @@ import (
 	"github.com/egoist/mygo/ui"
 )
 
+// contextPanelToggleLabel is the toolbar's context panel entry: its accessible
+// name, its tooltip, and the text the tests and assistive technology look for.
+// The shell has no i18n key for it yet; the panel's own headings ("Changes",
+// "No changed files") are literals for the same reason.
+const contextPanelToggleLabel = "Context panel"
+
+// contextPanelGlyph is the entry's two-pane mark, as the Electron reference
+// draws the panel toggle at the card's top right: a rounded frame split into
+// two panes with the right one filled. It strokes and fills currentColor, so
+// it follows the theme like the sidebar's glyphs.
+var contextPanelGlyph = sidebarIcon(`<rect x="1.8" y="2.6" width="12.4" height="10.8" rx="2"/><path d="M9.2 2.6v10.8"/><path d="M9.2 3.4h4.2a.8.8 0 0 1 .8.8v7.6a.8.8 0 0 1-.8.8H9.2Z" fill="currentColor" stroke="none"/>`)
+
 // header shows the selected session's title beside the connection status, then
 // the banner that belongs under it. It draws no region of its own beyond those
 // two rows.
@@ -60,8 +72,32 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			}
 			ui.Button(c, label).OnClick(a.OnOpenSettings)
 		}
+		// The context panel is the conversation's, so its entry appears only
+		// while a session is selected and neither surface that replaces the
+		// conversation is showing. With no session there is no workspace to
+		// show changed files for, and the entry is absent rather than disabled.
+		if v.HasSession && !v.SettingsOpen && !v.KeysOpen && a.OnToggleContextPanel != nil {
+			contextPanelToggle(c, k, v, a)
+		}
 	})
 	banner(c, k, v)
+}
+
+// contextPanelToggle is the toolbar's panel entry: an icon button at the
+// toolbar's end, so the mark sits where the reference draws it. Its accessible
+// name and tooltip are the label; a click asks the window to toggle the panel,
+// and the next frame draws the state it wrote. The entry keeps the hover face
+// while the panel is open, so its state is visible without a tooltip.
+func contextPanelToggle(c *ui.Context, k tokens, v HeaderView, a Actions) {
+	toggle := ui.ButtonBase(c).Size(k.sidebarEntryH, k.sidebarEntryH).
+		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
+		Label(contextPanelToggleLabel).Tooltip(contextPanelToggleLabel)
+	if v.ContextPanelOpen || toggle.Hovered() {
+		toggle.Background(k.sidebarHover)
+	}
+	toggle.OnClick(a.OnToggleContextPanel).Children(func() {
+		sidebarGlyph(c, contextPanelGlyph, k.mutedForeground)
+	})
 }
 
 // runStatus is the toolbar's run row: what the selected session is doing, as a

@@ -277,6 +277,16 @@ type State struct {
 	// here. It lives as long as the window; a fold left behind by a row that left
 	// the timeline stays as one unused entry and is never re-keyed.
 	folds blockFolds
+	// ShowContextPanel is the window's own record that the context panel is
+	// showing beside the conversation. It is display state only and holds no
+	// workspace, file or diff fact.
+	ShowContextPanel bool
+	// ContextPanel is the changed-file tree and the selected file's detail, as
+	// the caller read them. It is a display copy: every node, diff line and
+	// preview is the caller's, and a zero view keeps FilesReported false, so
+	// the panel draws its WIP statement instead of inventing files. A live
+	// refresh replaces the copy and leaves ShowContextPanel alone.
+	ContextPanel ContextPanelView
 	// ShowSettings is the window's own record that the appearance surface is
 	// showing instead of the conversation. It is display state only.
 	ShowSettings bool
@@ -357,50 +367,85 @@ func (s *State) View(c *ui.Context) {
 				Background(k.card).Role(ui.RoleGroup).Label("Main area").
 				Children(func() {
 					renderHeader(c, k, s.headerView(), a)
-					timeline := s.timelineView()
-					pending := s.pendingApprovals()
-					switch {
-					case s.ShowSettings:
-						// The appearance surface takes the conversation's place; the
-						// sidebar, toolbar and status bar stay, so a preference change is
-						// visible around it.
-						renderSettings(c, k, s.Settings, s.applySettings)
-					case s.ShowKeys:
-						// The keys browser takes the conversation's place. It reads the
-						// snapshot the caller supplied and sends no request.
-						s.Keys.Selected = &s.keysSelected
-						renderKeysPanel(c, k, &s.Keys, a)
-					default:
-						// An empty, loaded and open session shows the hero instead of the
-						// projection's empty row; a closed session or a pending approval
-						// keeps the timeline's own states, so the hero never speaks over
-						// facts that are still on screen.
-						if !timeline.Loading && !timeline.Closed && len(timeline.Messages) == 0 && len(pending) == 0 {
-							renderHero(c, k, s.locale())
-						} else {
-							renderTimeline(c, k, timeline, a)
+					// The conversation and the context panel share the row below
+					// the toolbar, so the panel sits beside the session column
+					// and under the same card. The conversation takes the room
+					// that is left; the panel keeps its own width and gives way
+					// when the window cannot show both.
+					ui.Row(c).Grow(1).FillWidth().Children(func() {
+						ui.Column(c).Grow(1).Shrink(1).MinWidth(0).FillHeight().Children(func() {
+							timeline := s.timelineView()
+							pending := s.pendingApprovals()
+							switch {
+							case s.ShowSettings:
+								// The appearance surface takes the conversation's place; the
+								// sidebar, toolbar and status bar stay, so a preference change is
+								// visible around it.
+								renderSettings(c, k, s.Settings, s.applySettings)
+							case s.ShowKeys:
+								// The keys browser takes the conversation's place. It reads the
+								// snapshot the caller supplied and sends no request.
+								s.Keys.Selected = &s.keysSelected
+								renderKeysPanel(c, k, &s.Keys, a)
+							default:
+								// An empty, loaded and open session shows the hero instead of the
+								// projection's empty row; a closed session or a pending approval
+								// keeps the timeline's own states, so the hero never speaks over
+								// facts that are still on screen.
+								if !timeline.Loading && !timeline.Closed && len(timeline.Messages) == 0 && len(pending) == 0 {
+									renderHero(c, k, s.locale())
+								} else {
+									renderTimeline(c, k, timeline, a)
+								}
+								// A pending approval takes the composer's slot: the user answers the
+								// request before typing again, as the spec's composer replacement does.
+								// The request set comes from the rows the projection produced, never from
+								// a click.
+								if len(pending) > 0 {
+									renderApprovalPanel(c, k, ApprovalView{
+										Pending:      pending,
+										InputDisplay: pending[0].InputDisplay,
+										Variant:      pending[0].Variant,
+									}, a)
+								} else {
+									renderComposer(c, k, composer, a)
+								}
+							}
+							renderStatusBar(c, k, s.statusBarView())
+						})
+						if s.contextPanelShown() {
+							s.contextPanelColumn(c, k, a)
 						}
-						// A pending approval takes the composer's slot: the user answers the
-						// request before typing again, as the spec's composer replacement does.
-						// The request set comes from the rows the projection produced, never from
-						// a click.
-						if len(pending) > 0 {
-							renderApprovalPanel(c, k, ApprovalView{
-								Pending:      pending,
-								InputDisplay: pending[0].InputDisplay,
-								Variant:      pending[0].Variant,
-							}, a)
-						} else {
-							renderComposer(c, k, composer, a)
-						}
-					}
-					renderStatusBar(c, k, s.statusBarView())
+					})
 				})
 		})
 	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
 		composer.Focus.Focus()
 	}
+}
+
+// contextPanelShown reports whether the context panel is drawn this frame. It
+// is the window's own toggle, and it needs a selected session because the
+// panel shows that session's changed files. The appearance surface and the
+// keys browser take the main column from the conversation, so the panel stays
+// closed while either is showing even though its toggle keeps the choice for
+// the conversation the user returns to.
+func (s *State) contextPanelShown() bool {
+	return s.ShowContextPanel && s.Selected != "" && !s.ShowSettings && !s.ShowKeys
+}
+
+// contextPanelColumn draws the context panel beside the conversation in the
+// width the layout gives it. The view keeps the caller's pointers and fold map,
+// and only its Width is filled here, so a click still writes the caller's
+// selection and folds.
+func (s *State) contextPanelColumn(c *ui.Context, k tokens, a Actions) {
+	width := clampContextPanelWidth(contextPanelW)
+	ui.Column(c).Width(width).Shrink(1).MinWidth(0).FillHeight().Clip().Children(func() {
+		v := s.ContextPanel
+		v.Width = width
+		renderContextPanel(c, k, v, a)
+	})
 }
 
 // syncKeysSession drops the keys snapshot and closes the browser when the
@@ -481,6 +526,13 @@ func (s *State) actions() Actions {
 				s.ShowKeys = false
 			}
 		},
+		// The context panel toggle is the shell's own state too: the panel
+		// displays the caller's ContextPanel copy and sends no request, so the
+		// entry needs no caller callback. It stays wired and the toolbar offers
+		// it only while a session is selected and the conversation is showing.
+		OnToggleContextPanel: func() {
+			s.ShowContextPanel = !s.ShowContextPanel
+		},
 	}
 	// The keys toggle is the shell's own state too, but it is wired only when the
 	// caller supplied a session.keys snapshot: without one the sidebar keeps its
@@ -538,21 +590,23 @@ func (s *State) pendingApprovals() []Approval {
 // window-owned status into the toolbar's view.
 func (s *State) headerView() HeaderView {
 	return HeaderView{
-		Title:           s.selectedTitle(),
-		HasSession:      s.Selected != "",
-		Connection:      s.Connection,
-		ConnectionError: s.ConnectionError,
-		Run:             s.Run,
-		Closed:          s.SessionClosed,
-		ClosedReason:    s.SessionClosedReason,
-		ModelProgress:   s.ModelProgress,
-		Notices:         s.Notices,
-		ActionNotices:   s.ActionNotices,
-		ActionError:     s.ActionError,
-		ActionStatus:    s.ActionStatus,
-		Loading:         s.ConversationLoading,
-		SettingsOpen:    s.ShowSettings,
-		Locale:          s.locale(),
+		Title:            s.selectedTitle(),
+		HasSession:       s.Selected != "",
+		Connection:       s.Connection,
+		ConnectionError:  s.ConnectionError,
+		Run:              s.Run,
+		Closed:           s.SessionClosed,
+		ClosedReason:     s.SessionClosedReason,
+		ModelProgress:    s.ModelProgress,
+		Notices:          s.Notices,
+		ActionNotices:    s.ActionNotices,
+		ActionError:      s.ActionError,
+		ActionStatus:     s.ActionStatus,
+		Loading:          s.ConversationLoading,
+		SettingsOpen:     s.ShowSettings,
+		KeysOpen:         s.ShowKeys,
+		ContextPanelOpen: s.contextPanelShown(),
+		Locale:           s.locale(),
 	}
 }
 

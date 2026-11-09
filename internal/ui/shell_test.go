@@ -23,6 +23,22 @@ func fixture() *State {
 	}
 }
 
+// shellContextPanelState is the fixture with the changed-file facts the panel
+// displays, as the caller read them. The selection and the fold map are the
+// caller's view state, so a click in the shell test writes back into this
+// state, exactly as a window's controller would keep it.
+func shellContextPanelState() (*State, *string) {
+	selected := "internal/ui/context_panel.go"
+	s := fixture()
+	s.ContextPanel = ContextPanelView{
+		Files:         contextPanelFiles(),
+		FilesReported: true,
+		Selected:      &selected,
+		Expanded:      map[string]*bool{},
+	}
+	return s, &selected
+}
+
 // TestShellRenders runs the whole view without a window and checks the shell's
 // static parts.
 func TestShellRenders(t *testing.T) {
@@ -342,5 +358,240 @@ func TestShellThemePreferenceForcesTheTheme(t *testing.T) {
 	light, dark := render(ThemeLight, false), render(ThemeDark, false)
 	if bytes.Equal(light.Image().Pix, dark.Image().Pix) {
 		t.Error("the light and dark choices draw the same frame")
+	}
+}
+
+// TestShellTogglesTheContextPanel checks the toolbar entry end to end: it is
+// named "Context panel", it is absent while the panel is closed, one click
+// draws the panel with the caller's changed-file facts, and the next click
+// returns the room to the conversation.
+func TestShellTogglesTheContextPanel(t *testing.T) {
+	s, selected := shellContextPanelState()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleButton, contextPanelToggleLabel); !ok {
+		t.Fatalf("the toolbar has no context panel entry, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); ok {
+		t.Fatalf("the panel is drawn before it is opened, texts %q", tt.Texts())
+	}
+	if tt.HasText("context_panel.go") {
+		t.Fatalf("the changed files are drawn before the panel opens, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click(contextPanelToggleLabel); err != nil {
+		t.Fatal(err)
+	}
+	if !s.ShowContextPanel {
+		t.Fatal("the entry did not open the panel")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
+		t.Fatalf("the opener did not draw the panel, texts %q", tt.Texts())
+	}
+	for _, want := range []string{"Changes", "3 files", "context_panel.go", "README.md", "internal/ui/context_panel.go"} {
+		if !tt.HasText(want) {
+			t.Errorf("the panel is missing %q, texts %q", want, tt.Texts())
+		}
+	}
+	if !tt.HasText("hello from the fixture") {
+		t.Errorf("the conversation left the main column when the panel opened, texts %q", tt.Texts())
+	}
+	// The panel still writes the caller's own view state: a file click lands
+	// in the pointer the caller passed and the detail follows it.
+	if err := tt.Click("client.go"); err != nil {
+		t.Fatal(err)
+	}
+	if *selected != "internal/appserver/client.go" {
+		t.Errorf("the file click wrote %q, want internal/appserver/client.go", *selected)
+	}
+	if !tt.HasText("internal/appserver/client.go") || !tt.HasText("added") {
+		t.Errorf("the detail did not follow the shell's selection, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click(contextPanelToggleLabel); err != nil {
+		t.Fatal(err)
+	}
+	if s.ShowContextPanel {
+		t.Fatal("the entry did not close the panel")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); ok {
+		t.Fatalf("the panel is still drawn after it was closed, texts %q", tt.Texts())
+	}
+}
+
+// TestShellContextPanelWIPWithoutFacts checks the panel's missing-data state
+// inside the shell: a zero ContextPanel draws the WIP statement and its reason,
+// never an empty tree or a fabricated file.
+func TestShellContextPanelWIPWithoutFacts(t *testing.T) {
+	s := fixture()
+	s.ShowContextPanel = true
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
+		t.Fatalf("the panel is not drawn, texts %q", tt.Texts())
+	}
+	if !tt.HasText("WIP") || !tt.HasText(reasonContextFiles) {
+		t.Errorf("the panel does not explain its missing data, texts %q", tt.Texts())
+	}
+	if tt.HasText("No changed files") {
+		t.Errorf("the panel claims a clean workspace without facts, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleTree, "Changed files"); ok {
+		t.Errorf("the panel draws a tree without facts, texts %q", tt.Texts())
+	}
+}
+
+// TestShellContextPanelHiddenWithoutSession checks that the panel is the
+// conversation's: with no selected session the toolbar offers no entry and the
+// panel stays out of the frame, whatever the window's own toggle says.
+func TestShellContextPanelHiddenWithoutSession(t *testing.T) {
+	s := fixture()
+	s.Sessions = nil
+	s.Selected = ""
+	s.Messages = nil
+	s.ShowContextPanel = true
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleButton, contextPanelToggleLabel); ok {
+		t.Errorf("the toolbar offers the panel with no session, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); ok {
+		t.Errorf("the panel is drawn with no session, texts %q", tt.Texts())
+	}
+}
+
+// contextPanelBounds is the panel region's box, failing the test when the panel
+// is not drawn.
+func contextPanelBounds(t *testing.T, tt *ui.Tester) ui.Rect {
+	t.Helper()
+	info, ok := tt.AccessByRole(ui.RoleRegion, "Context panel")
+	if !ok {
+		t.Fatalf("the panel is not drawn, texts %q", tt.Texts())
+	}
+	return info.Bounds
+}
+
+// TestShellContextPanelWidth checks the panel's place and width: 320 DIPs wide
+// against the main card's right edge, with the conversation left of it. A
+// window too narrow for both shrinks the panel instead of pushing the card past
+// the window's edge.
+func TestShellContextPanelWidth(t *testing.T) {
+	width := func(w int) (ui.Rect, ui.Rect, *ui.Tester) {
+		s, _ := shellContextPanelState()
+		s.ShowContextPanel = true
+		tt := ui.NewTester(s.View, w, 600)
+		card, ok := tt.Find("Main area")
+		if !ok {
+			t.Fatalf("%d-wide window: the main area is not framed, texts %q", w, tt.Texts())
+		}
+		return contextPanelBounds(t, tt), card, tt
+	}
+
+	panel, card, tt := width(900)
+	if panel.W < contextPanelW-1 || panel.W > contextPanelW+1 {
+		t.Errorf("the panel is %.1f wide, want the reference's %d", panel.W, contextPanelW)
+	}
+	if right := card.X + card.W; panel.X+panel.W > right+0.5 {
+		t.Errorf("the panel ends at %.1f, past the card's %.1f", panel.X+panel.W, right)
+	}
+	if conversation := textBox(t, tt, "hello from the fixture"); conversation.X >= panel.X {
+		t.Errorf("the conversation starts at %.1f, not left of the panel's %.1f", conversation.X, panel.X)
+	}
+
+	narrow, narrowCard, narrowTT := width(480)
+	if narrow.W >= panel.W {
+		t.Errorf("a 480-wide window keeps the panel at %.1f, no narrower than %.1f", narrow.W, panel.W)
+	}
+	if narrow.X+narrow.W > narrowCard.X+narrowCard.W+0.5 {
+		t.Errorf("the narrow panel ends at %.1f, past the card's %.1f", narrow.X+narrow.W, narrowCard.X+narrowCard.W)
+	}
+	if narrowCard.X+narrowCard.W > 480.5 {
+		t.Errorf("the card ends at %.1f, past the 480-wide window", narrowCard.X+narrowCard.W)
+	}
+	if narrow.W <= 0 || narrow.H <= 0 {
+		t.Errorf("the narrow panel has no room: %+v", narrow)
+	}
+	if !narrowTT.HasText(contextPanelToggleLabel) {
+		t.Errorf("the narrow window lost the panel entry, texts %q", narrowTT.Texts())
+	}
+}
+
+// TestShellContextPanelYieldsToSettingsAndKeys checks the mutual exclusion: the
+// appearance surface and the keys browser take the main column from the
+// conversation, so the panel is not drawn and the toolbar hides its entry while
+// either is open. The window's own toggle is kept, and the panel returns with
+// the conversation.
+func TestShellContextPanelYieldsToSettingsAndKeys(t *testing.T) {
+	s, _ := shellContextPanelState()
+	s.ShowContextPanel = true
+	tt := ui.NewTester(s.View, 900, 600)
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
+		t.Fatalf("the panel is not drawn before Settings opens, texts %q", tt.Texts())
+	}
+
+	if err := tt.Click("Settings"); err != nil {
+		t.Fatal(err)
+	}
+	if !s.ShowSettings {
+		t.Fatal("the appearance surface did not open")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); ok {
+		t.Errorf("the panel is drawn over the appearance surface, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, contextPanelToggleLabel); ok {
+		t.Errorf("the panel entry is offered while the appearance surface shows, texts %q", tt.Texts())
+	}
+	if !s.ShowContextPanel {
+		t.Error("opening the appearance surface dropped the window's panel toggle")
+	}
+
+	if err := tt.Click("Conversation"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
+		t.Fatalf("the panel did not return with the conversation, texts %q", tt.Texts())
+	}
+
+	keys := shellKeysState()
+	keys.ShowContextPanel = true
+	keysTT := ui.NewTester(keys.View, 900, 600)
+	if err := keysTT.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := keysTT.AccessByRole(ui.RoleRegion, "Keys panel"); !ok {
+		t.Fatalf("the keys browser did not open, texts %q", keysTT.Texts())
+	}
+	if _, ok := keysTT.AccessByRole(ui.RoleRegion, "Context panel"); ok {
+		t.Errorf("the panel is drawn over the keys browser, texts %q", keysTT.Texts())
+	}
+	if _, ok := keysTT.AccessByRole(ui.RoleButton, contextPanelToggleLabel); ok {
+		t.Errorf("the panel entry is offered while the keys browser shows, texts %q", keysTT.Texts())
+	}
+}
+
+// TestShellContextPanelToggleTabStop checks that the toolbar entry is a real
+// Tab stop: Tab reaches it, and Enter opens the panel, so a keyboard user does
+// not need the pointer.
+func TestShellContextPanelToggleTabStop(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	reached := false
+	for i := 0; i < 40; i++ {
+		tt.Key(0, ui.KeyTab)
+		if tt.Focused(contextPanelToggleLabel) {
+			reached = true
+			break
+		}
+	}
+	if !reached {
+		t.Fatalf("Tab does not reach %q, texts %q", contextPanelToggleLabel, tt.Texts())
+	}
+	tt.Key(0, ui.KeyEnter)
+	if !s.ShowContextPanel {
+		t.Fatalf("Enter on the entry did not open the panel, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Context panel"); !ok {
+		t.Errorf("the keyboard opener did not draw the panel, texts %q", tt.Texts())
 	}
 }

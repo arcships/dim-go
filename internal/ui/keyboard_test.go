@@ -46,8 +46,8 @@ func TestSidebarKeyboardNavigation(t *testing.T) {
 
 // TestTabOrder checks the shell's Tab stops in tree order: the sidebar's
 // header, entries, thread actions and account footer, the thread list, the
-// split divider, the main toolbar's reconnect entry, the attachment entry, then
-// the composer, round again. The send entry is unavailable—the fixture's draft
+// split divider, the main toolbar's reconnect, settings and context panel
+// entries, the attachment entry, then the composer, round again. The send entry is unavailable—the fixture's draft
 // is empty and it has no submit callback—and so skipped. The WIP entries stay
 // in the order on purpose: a keyboard or screen-reader user finds them, reads
 // that they are unavailable and why, and moves on.
@@ -61,7 +61,7 @@ func TestTabOrder(t *testing.T) {
 	for _, want := range []string{
 		"Update", "New session", "Search sessions", "Scheduled tasks", "Skills and plugins",
 		"Session keys", "Group", "Sessions", "Pin", "Rename", "Archive",
-		"Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings",
+		"Sign in to Dim", "Settings", "Divider", "Reconnect", "Settings", "Context panel",
 		"Attach file", "Composer", "Update",
 	} {
 		tt.Key(0, ui.KeyTab)
