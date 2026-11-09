@@ -273,3 +273,211 @@ func TestKeysPanelTruncatesLongText(t *testing.T) {
 		t.Errorf("the bounded text is %.1f wide in a 900-wide panel", row.W)
 	}
 }
+
+// shellKeysState is the shell fixture with a loaded session.keys snapshot for
+// the selected session, so the sidebar's "Session keys" entry is a real action.
+func shellKeysState() *State {
+	s := fixture()
+	s.Keys = KeysPanelView{Entries: keysPanelEntries(), Through: 12, Loaded: true}
+	return s
+}
+
+// TestShellOpensAndClosesTheKeysPanel checks the wiring: the sidebar entry is a
+// real action while the window holds a snapshot, opening it swaps the main
+// column for the browser, a row click writes only the shell's view state, and a
+// second click returns to the conversation.
+func TestShellOpensAndClosesTheKeysPanel(t *testing.T) {
+	s := shellKeysState()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if tt.HasText("implement the keys panel") {
+		t.Fatalf("the keys rows are drawn before the browser opens, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
+		t.Fatalf("the keys panel is drawn before it is opened, texts %q", tt.Texts())
+	}
+	info, ok := tt.AccessByRole(ui.RoleButton, "Session keys")
+	if !ok || info.Disabled {
+		t.Fatalf("the keys entry is not an enabled action: %+v, found %v", info, ok)
+	}
+
+	if err := tt.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	if !s.ShowKeys {
+		t.Fatal("the keys entry did not open the browser")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); !ok {
+		t.Fatalf("the opener did not draw the keys panel, texts %q", tt.Texts())
+	}
+	for _, want := range []string{"3 keys", "through 12", "implement the keys panel"} {
+		if !tt.HasText(want) {
+			t.Errorf("the browser is missing %q, texts %q", want, tt.Texts())
+		}
+	}
+	if tt.HasText("hello from the fixture") {
+		t.Errorf("the conversation is still drawn under the browser, texts %q", tt.Texts())
+	}
+	if entry, ok := tt.AccessByRole(ui.RoleButton, "Session keys"); !ok || !entry.Expanded {
+		t.Errorf("the keys entry does not report its surface expanded: %+v, found %v", entry, ok)
+	}
+
+	// A row click moves the shell's selection and nothing else.
+	if err := tt.Click("notes"); err != nil {
+		t.Fatal(err)
+	}
+	if s.Keys.Selected == nil || *s.Keys.Selected != "notes" {
+		t.Fatalf("the row click selected %v, want notes", s.Keys.Selected)
+	}
+	if s.Selected != "s1" || !s.ShowKeys {
+		t.Errorf("the row click changed the session view: selected=%q showing=%v", s.Selected, s.ShowKeys)
+	}
+
+	// Clicking the entry again returns to the conversation.
+	if err := tt.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	if s.ShowKeys {
+		t.Fatal("the second click left the browser open")
+	}
+	tt.Frame()
+	if !tt.HasText("hello from the fixture") {
+		t.Errorf("the conversation did not come back, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
+		t.Errorf("the browser is still drawn after closing, texts %q", tt.Texts())
+	}
+}
+
+// TestKeysPanelClosesOnEscape checks the keyboard way back: Escape closes the
+// browser and the frame that follows shows the conversation again.
+func TestKeysPanelClosesOnEscape(t *testing.T) {
+	s := shellKeysState()
+	tt := ui.NewTester(s.View, 900, 600)
+	if err := tt.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	if !s.ShowKeys {
+		t.Fatal("the keys entry did not open the browser")
+	}
+
+	tt.Key(0, ui.KeyEscape)
+	if s.ShowKeys {
+		t.Fatal("Escape left the keys browser open")
+	}
+	tt.Frame()
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
+		t.Errorf("Escape did not return to the conversation, texts %q", tt.Texts())
+	}
+	if !tt.HasText("hello from the fixture") {
+		t.Errorf("the conversation is missing after Escape, texts %q", tt.Texts())
+	}
+}
+
+// TestShellKeysEntryIsWIPWithoutSnapshot checks the unwired state: without a
+// session.keys read the entry keeps its place, dimmed, explained and inert, and
+// no browser opens.
+func TestShellKeysEntryIsWIPWithoutSnapshot(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	info, ok := tt.AccessByRole(ui.RoleButton, "Session keys")
+	if !ok {
+		t.Fatalf("the keys entry is not drawn, texts %q", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Error("the keys entry is enabled without a session.keys snapshot")
+	}
+	if !strings.Contains(info.Description, "key browser callback") {
+		t.Errorf("the keys entry description %q does not name the missing wiring", info.Description)
+	}
+	if err := tt.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Frame()
+	if s.ShowKeys {
+		t.Error("clicking the WIP entry opened a browser with no snapshot")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
+		t.Errorf("a browser opened without a session.keys read, texts %q", tt.Texts())
+	}
+}
+
+// TestShellKeysPanelFiltersTheSnapshot checks the filter through the shell: the
+// panel edits State.Keys.Query in place, so the narrowed list survives the next
+// frame and the caller's entries are untouched.
+func TestShellKeysPanelFiltersTheSnapshot(t *testing.T) {
+	s := shellKeysState()
+	tt := ui.NewTester(s.View, 900, 600)
+	if err := tt.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("Search keys"); err != nil {
+		t.Fatal(err)
+	}
+	tt.Type("daemon")
+	if s.Keys.Query != "daemon" {
+		t.Fatalf("the filter query is %q, want daemon", s.Keys.Query)
+	}
+	if !tt.HasText("notes") || tt.HasText("task") || tt.HasText("goroutine") {
+		t.Fatalf("the filter did not narrow the list, texts %q", tt.Texts())
+	}
+	if len(s.Keys.Entries) != 3 {
+		t.Errorf("the filter rewrote the caller's snapshot: %d entries", len(s.Keys.Entries))
+	}
+}
+
+// TestKeysPanelClosesOnSessionSwitch checks that a selection change closes the
+// browser and drops its snapshot: one session's keys are never drawn for
+// another, and the entry stays WIP until the window reads the new session's.
+func TestKeysPanelClosesOnSessionSwitch(t *testing.T) {
+	s := shellKeysState()
+	tt := ui.NewTester(s.View, 900, 600)
+	if err := tt.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := tt.Click("Second session"); err != nil {
+		t.Fatal(err)
+	}
+	if s.Selected != "s2" {
+		t.Fatalf("selected %q, want s2", s.Selected)
+	}
+	if s.ShowKeys {
+		t.Error("the browser stayed open after the session changed")
+	}
+	if s.Keys.Loaded || len(s.Keys.Entries) != 0 {
+		t.Errorf("the previous session's snapshot survived the switch: %+v", s.Keys)
+	}
+	tt.Frame()
+	if _, ok := tt.AccessByRole(ui.RoleRegion, "Keys panel"); ok {
+		t.Errorf("the previous session's browser is drawn, texts %q", tt.Texts())
+	}
+	if tt.HasText("implement the keys panel") {
+		t.Errorf("the previous session's keys are drawn for s2, texts %q", tt.Texts())
+	}
+	if info, ok := tt.AccessByRole(ui.RoleButton, "Session keys"); !ok || !info.Disabled {
+		t.Errorf("the keys entry is a real action for a session with no snapshot: %+v, found %v", info, ok)
+	}
+
+	// The window's read for the new session fills the browser again, and only
+	// that session's keys are shown.
+	s.Keys = KeysPanelView{
+		Entries: []KeysPanelEntry{{Key: "other", Sequence: 2, InputID: "input-9", Text: "second session key"}},
+		Through: 2,
+		Loaded:  true,
+	}
+	tt.Frame()
+	if err := tt.Click("Session keys"); err != nil {
+		t.Fatal(err)
+	}
+	if !s.ShowKeys {
+		t.Fatal("the keys entry did not open the new session's browser")
+	}
+	if !tt.HasText("second session key") {
+		t.Errorf("the new session's key is missing, texts %q", tt.Texts())
+	}
+	if tt.HasText("implement the keys panel") {
+		t.Errorf("the old session's key is drawn for s2, texts %q", tt.Texts())
+	}
+}

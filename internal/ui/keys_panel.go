@@ -10,11 +10,11 @@
 // Both are view state the caller owns, like the sidebar's selection: a click
 // marks a row, it never changes a session.
 //
-// TODO(protocol): this branch adds the region on its own. protocols.go has no
-// renderKeysPanel wrapper and no KeysPanelView in its contract yet, so
-// shell.View does not call the entry yet. It is ready to be called directly
-// once the protocol owner registers the wrapper and records the view in
-// docs/ui-component-protocols.md §2.
+// The shell is the caller: State.Keys carries the snapshot and
+// State.ShowKeys says whether the browser takes the main column, and
+// protocols.go's renderKeysPanel is the frozen entry. The panel has no
+// callback of its own, because session.keys is read once, when the session
+// opens, and the snapshot is what the caller supplies.
 //
 // Geometry: docs/ui-layout-spec.md does not measure this panel, so the numbers
 // below are this component's own. They follow the context panel's steps, which
@@ -149,8 +149,8 @@ func keysPanelText(s string) string {
 	return string(runes[:keysPanelTextRunes]) + "…"
 }
 
-// renderKeysPanel draws the session keys browser: its title and through, the
-// local filter, and one row per key the filter leaves. It writes
+// keysPanel draws the session keys browser: its title and through, the local
+// filter, and one row per key the filter leaves. It writes
 // KeysPanelView.Query while the filter is edited and KeysPanelView.Selected on
 // a row click or Enter; it calls no Actions field, because the snapshot is a
 // read and the panel starts no request.
@@ -159,7 +159,7 @@ func keysPanelText(s string) string {
 // survives the next frame without the panel keeping a second copy. With
 // Loaded false the whole panel is a WIP statement, not an empty list: the
 // panel cannot tell a branch with no keys from a read it never received.
-func renderKeysPanel(c *ui.Context, k tokens, v *KeysPanelView, a Actions) {
+func keysPanel(c *ui.Context, k tokens, v *KeysPanelView, a Actions) {
 	// The region contract keeps Actions in every entry, but there is no key
 	// request to send: session.keys is read once, when the session opens.
 	_ = a

@@ -270,6 +270,25 @@ type State struct {
 	// reports. They are the desktop's, not a session's: nothing here is sent to
 	// the App Server or stored as a session fact.
 	Settings SettingsView
+	// ShowKeys is the window's own record that the session keys browser is
+	// showing instead of the conversation. It is display state only.
+	ShowKeys bool
+	// Keys is the session.keys snapshot the caller read for the selected
+	// session, plus the browser's own selection and filter. The shell passes it
+	// to the panel and draws no key of its own; the panel writes only Selected
+	// and Query, which are view state. Nothing here is sent to the App Server.
+	Keys KeysPanelView
+	// keysSelected is the browser's selected key. Keys.Selected points at it on
+	// every frame, so the panel's click writes here and the selection survives
+	// the caller refreshing the snapshot.
+	keysSelected string
+	// keysSession is the selection the Keys snapshot was last assembled for and
+	// keysTracked says whether that comparison has started. The first frame
+	// adopts the caller's selection together with the snapshot it supplied; a
+	// later selection change drops the snapshot and closes the browser, so one
+	// session's keys are never shown for another.
+	keysSession string
+	keysTracked bool
 }
 
 // View builds one frame of the AppFrame: sidebar, toolbar, banner, conversation
@@ -290,19 +309,35 @@ func (s *State) View(c *ui.Context) {
 	// inside its own bounds before every frame, so a drag can never take the
 	// session list or the conversation off the window.
 	s.SidebarWidth = k.resolveSidebarWidth(s.SidebarWidth)
+	s.syncKeysSession()
 	a := s.actions()
 	composer := s.composerView()
+	// Escape leaves the keys browser wherever the keyboard focus is. It is read
+	// before the regions build so the frame already shows the conversation the
+	// key returns to.
+	if s.ShowKeys && c.Shortcut(0, ui.KeyEscape) {
+		s.ShowKeys = false
+	}
 	ui.Split(c, &s.SidebarWidth, func() {
 		renderSidebar(c, k, s.sidebarView(), a)
+		// A click on a session row moves the selection while the sidebar builds;
+		// checking again here drops the old snapshot before the main column draws.
+		s.syncKeysSession()
 	}, func() {
 		ui.Column(c).FillHeight().Children(func() {
 			renderHeader(c, k, s.headerView(), a)
-			if s.ShowSettings {
+			switch {
+			case s.ShowSettings:
 				// The appearance surface takes the conversation's place; the
 				// sidebar, toolbar and status bar stay, so a preference change is
 				// visible around it.
 				renderSettings(c, k, s.Settings, s.applySettings)
-			} else {
+			case s.ShowKeys:
+				// The keys browser takes the conversation's place. It reads the
+				// snapshot the caller supplied and sends no request.
+				s.Keys.Selected = &s.keysSelected
+				renderKeysPanel(c, k, &s.Keys, a)
+			default:
 				renderTimeline(c, k, s.timelineView(), a)
 				// A pending approval takes the composer's slot: the user answers the
 				// request before typing again, as the spec's composer replacement does.
@@ -324,6 +359,25 @@ func (s *State) View(c *ui.Context) {
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
 		composer.Focus.Focus()
 	}
+}
+
+// syncKeysSession drops the keys snapshot and closes the browser when the
+// selected session changed. The snapshot belongs to one session, so keeping it
+// would show one session's keys under another; the caller re-reads session.keys
+// and supplies a new KeysPanelView for the selection it shows.
+func (s *State) syncKeysSession() {
+	if !s.keysTracked {
+		s.keysTracked = true
+		s.keysSession = s.Selected
+		return
+	}
+	if s.keysSession == s.Selected {
+		return
+	}
+	s.keysSession = s.Selected
+	s.ShowKeys = false
+	s.Keys = KeysPanelView{}
+	s.keysSelected = ""
 }
 
 // applySettings stores the appearance snapshot the surface reported and applies
@@ -357,7 +411,7 @@ func (s *State) statusBarView() StatusBarView {
 // actions copies the window's callbacks into the Actions a region receives. A
 // nil callback stays nil, which is how a region learns the action is a WIP gap.
 func (s *State) actions() Actions {
-	return Actions{
+	a := Actions{
 		OnCreateSession: s.OnCreateSession,
 		OnSelect:        s.OnSelect,
 		OnSelectBranch:  s.OnSelectBranch,
@@ -366,9 +420,27 @@ func (s *State) actions() Actions {
 		OnReconnect:     s.OnReconnect,
 		OnApproval:      s.OnApproval,
 		// The settings toggle is the shell's own state, not a caller callback, so
-		// it is always wired.
-		OnOpenSettings: func() { s.ShowSettings = !s.ShowSettings },
+		// it is always wired. Opening it takes the main column from the keys
+		// browser, so the two never compete for it.
+		OnOpenSettings: func() {
+			s.ShowSettings = !s.ShowSettings
+			if s.ShowSettings {
+				s.ShowKeys = false
+			}
+		},
 	}
+	// The keys toggle is the shell's own state too, but it is wired only when the
+	// caller supplied a session.keys snapshot: without one the sidebar keeps its
+	// WIP statement instead of opening a browser with nothing to read.
+	if s.Keys.Loaded {
+		a.OnToggleKeys = func() {
+			s.ShowKeys = !s.ShowKeys
+			if s.ShowKeys {
+				s.ShowSettings = false
+			}
+		}
+	}
+	return a
 }
 
 // sidebarView copies the catalog, the read-only branch metadata and the
@@ -382,6 +454,7 @@ func (s *State) sidebarView() SidebarView {
 		Branches:       s.Branches,
 		Creating:       s.CreatingSession,
 		Capabilities:   wipCapabilities(s),
+		KeysOpen:       s.ShowKeys,
 		state:          &s.sidebar,
 	}
 }

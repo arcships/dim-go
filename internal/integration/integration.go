@@ -538,6 +538,26 @@ func (c *SessionController) BranchDirectory() appserver.BranchesResult {
 	return c.Session.BranchDirectory()
 }
 
+// Keys returns the session.keys snapshot captured by Open. It is empty when the
+// daemon did not advertise the capability or the optional read failed; the
+// snapshot is never synthesized locally. The read lock keeps the copy from
+// racing a Reattach swap.
+func (c *SessionController) Keys() appserver.KeysResult {
+	if c == nil {
+		return appserver.KeysResult{}
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.KeysResult{}
+	}
+	keys, ok := c.Session.Keys()
+	if !ok {
+		return appserver.KeysResult{}
+	}
+	return keys
+}
+
 // OpenBranch loads one branch's first-screen history into that branch's own
 // projection. Branch switching is not its own RPC (docs/branch-attachment-plan.md
 // §1.2): it is the session.history {branchId} read, and the session layer bounds

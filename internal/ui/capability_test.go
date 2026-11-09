@@ -24,14 +24,20 @@ func TestCapabilityCardsAreReadOnly(t *testing.T) {
 				t.Errorf("%q: card is missing %q, texts %q", capability.action, want, tt.Texts())
 			}
 		}
+		if _, ok := tt.AccessByRole(ui.RoleText, capability.action); !ok {
+			t.Errorf("%q is not exposed as read-only text", capability.action)
+		}
+		// The sidebar's own "Session keys" entry shares the card's name; it is
+		// a button, so the name alone no longer proves the card is not one. Its
+		// method and gap stay text-only.
+		if capability.action == "Session keys" {
+			continue
+		}
 		if _, ok := tt.AccessByRole(ui.RoleButton, capability.action); ok {
 			t.Errorf("%q is an action, not a read-only card", capability.action)
 		}
 		if _, ok := tt.AccessByRole(ui.RoleButton, capability.method); ok {
 			t.Errorf("%q is an action, not a read-only card", capability.method)
-		}
-		if _, ok := tt.AccessByRole(ui.RoleText, capability.action); !ok {
-			t.Errorf("%q is not exposed as read-only text", capability.action)
 		}
 	}
 	if !tt.HasText(wipBadge) {
@@ -72,12 +78,13 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 		t.Errorf("attachments reports %q, want the missing file picker and unknown results", gap)
 	}
 	// The branch and key reads are wired: their cards must name the real gap
-	// (no branch-selection callback, no key browser), not a missing helper.
+	// (no branch-selection callback, no key browser callback), not a missing
+	// helper.
 	if gap := cards["Branch switching"].gap; !strings.Contains(gap, "branch selection callback") {
 		t.Errorf("branch switching reports %q, want the missing selection callback", gap)
 	}
-	if gap := cards["Session keys"].gap; !strings.Contains(gap, "key browser") {
-		t.Errorf("session keys reports %q, want the missing key browser", gap)
+	if gap := cards["Session keys"].gap; !strings.Contains(gap, "key browser callback") {
+		t.Errorf("session keys reports %q, want the missing key browser callback", gap)
 	}
 	if gap := cards["Approvals"].gap; !strings.Contains(gap, "callback") {
 		t.Errorf("approvals reports %q, want the missing callback", gap)
@@ -127,6 +134,29 @@ func TestCapabilityCardsDropWiredReconnect(t *testing.T) {
 	}
 	if info, ok := tt.AccessByRole(ui.RoleButton, "Reconnect"); !ok || info.Disabled {
 		t.Errorf("wired reconnect is not an enabled action: %+v, found %v", info, ok)
+	}
+}
+
+// TestCapabilityCardsDropWiredKeys checks that the session keys browser leaves
+// the unavailable list once the window has a session.keys snapshot: the
+// sidebar's own entry is the real action then, and a stale WIP card would
+// contradict it.
+func TestCapabilityCardsDropWiredKeys(t *testing.T) {
+	s := fixture()
+	s.Keys = KeysPanelView{Loaded: true, Through: 12, Entries: keysPanelEntries()}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, capability := range wipCapabilities(s) {
+		if capability.action == "Session keys" {
+			t.Errorf("a wired keys browser still has a WIP card: %+v", capability)
+		}
+	}
+	if tt.HasText("session.keys") {
+		t.Errorf("the unavailable list still shows session.keys, texts %q", tt.Texts())
+	}
+	info, ok := tt.AccessByRole(ui.RoleButton, "Session keys")
+	if !ok || info.Disabled {
+		t.Errorf("wired keys entry is not an enabled action: %+v, found %v", info, ok)
 	}
 }
 
@@ -204,7 +234,16 @@ func TestCapabilityCardsFitTheSidebar(t *testing.T) {
 	tt := ui.NewTester(s.View, 900, 600)
 
 	cards := wipCapabilities(s)
-	first, ok := tt.Find(cards[0].action)
+	// cardText is the text a card is found by. The "Session keys" card shares
+	// its action name with the sidebar's own entry, so it is found by its
+	// method: the check must measure the card, not the entry above it.
+	cardText := func(capability wipCapability) string {
+		if capability.action == "Session keys" {
+			return capability.method
+		}
+		return capability.action
+	}
+	first, ok := tt.Find(cardText(cards[0]))
 	if !ok {
 		t.Fatalf("first card %q is not drawn, texts %q", cards[0].action, tt.Texts())
 	}
@@ -216,16 +255,16 @@ func TestCapabilityCardsFitTheSidebar(t *testing.T) {
 		t.Errorf("session row %+v overlaps the first card %+v", session, first)
 	}
 
-	previous, lastLabel := first, cards[0].action
+	previous, lastLabel := first, cardText(cards[0])
 	for _, capability := range cards[1:] {
-		card, ok := tt.Find(capability.action)
+		card, ok := tt.Find(cardText(capability))
 		if !ok {
 			t.Fatalf("card %q is not drawn, texts %q", capability.action, tt.Texts())
 		}
 		if card.Y < previous.Y+previous.H {
 			t.Errorf("card %q at %+v overlaps the card before it at %+v", capability.action, card, previous)
 		}
-		previous, lastLabel = card, capability.action
+		previous, lastLabel = card, cardText(capability)
 	}
 	// The card area is a scroll container bounded by the sidebar, so a short
 	// window clips the last card instead of pushing it past the window.
@@ -275,7 +314,7 @@ func TestCapabilityCardsDoNotChangeState(t *testing.T) {
 
 	before := s.Selected
 	for _, want := range []string{
-		"Update", "New session", "Search sessions", "Group", "Sessions",
+		"Update", "New session", "Search sessions", "Session keys", "Group", "Sessions",
 		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Settings", "Attach file", "Composer",
 	} {
 		tt.Key(0, ui.KeyTab)
