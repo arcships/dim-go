@@ -46,11 +46,12 @@ func TestSidebarKeyboardNavigation(t *testing.T) {
 // header, entries, thread actions and account footer, the thread list, the
 // split divider, the conversation bar's session menu, its conditional
 // reconnect entry and its context panel toggle, the composer's attachment
-// entry, then the composer, round again. The model entry is unavailable and
-// takes no focus, and so is skipped; the send entry is unavailable too—the
-// fixture's draft is empty and it has no submit callback. The WIP entries stay
-// in the order on purpose: a keyboard or screen-reader user finds them, reads
-// that they are unavailable and why, and moves on.
+// entry, then the composer, round again. The editor entry is unavailable and
+// takes no focus, so it is skipped; the reconnect WIP entry stays a Tab stop so
+// its reason is read, and the send entry is unavailable too—the fixture's draft
+// is empty and it has no submit callback. The WIP entries stay in the order on
+// purpose: a keyboard or screen-reader user finds them, reads that they are
+// unavailable and why, and moves on.
 //
 // The sidebar's settings entry and the conversation menu's share no label; the
 // tab order visits the sidebar's first because the sidebar is drawn first.

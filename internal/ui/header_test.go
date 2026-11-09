@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"math"
 	"strings"
 	"testing"
 
@@ -57,7 +58,7 @@ func TestHeaderBreadcrumbShowsProjectThenTitle(t *testing.T) {
 
 // TestHeaderBreadcrumbTruncatesBeforeTheMenu checks that a long project and
 // title stay on one line in a narrow bar: both end before the session menu
-// rather than pushing it, the model entry or the panel toggle out of the
+// rather than pushing it, the editor entry or the panel toggle out of the
 // window.
 func TestHeaderBreadcrumbTruncatesBeforeTheMenu(t *testing.T) {
 	v := fixture().headerView()
@@ -345,10 +346,9 @@ func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 }
 
 // TestHeaderOffersTheEditorOpenEntryAsWIP checks the reference's editor-open
-// control: a VS Code mark and its disclosure arrow stay visible in the bar,
-// before the model entry, but take no click and no Tab stop while the shell has
-// no editor client or workspace fact. The context panel toggle stays the last
-// entry.
+// control: a VS Code mark and its disclosure arrow stay visible at the bar's
+// right end, before the divider and the panel toggle, but take no click and no
+// Tab stop while the shell has no editor client or workspace fact.
 func TestHeaderOffersTheEditorOpenEntryAsWIP(t *testing.T) {
 	v := fixture().headerView()
 	tt := ui.NewTester(func(c *ui.Context) {
@@ -376,20 +376,127 @@ func TestHeaderOffersTheEditorOpenEntryAsWIP(t *testing.T) {
 	if entry.H < newTokens(ui.LightTheme()).sidebarEntryH-0.5 {
 		t.Errorf("the entry is %.1f high, want the toolbar's 28 DIP control", entry.H)
 	}
-	model, ok := tt.Find(tr(LocaleEN, keyHeaderModelPicker))
-	if !ok {
-		t.Fatalf("the model entry is not drawn, texts %q", tt.Texts())
-	}
-	if entry.X+entry.W > model.X+0.5 {
-		t.Errorf("the editor-open entry ends at %.1f, past the model entry starting at %.1f",
-			entry.X+entry.W, model.X)
+	if want := float32(2*openInEditorCell) + 2*newTokens(ui.LightTheme()).hairline; entry.W > want+0.5 {
+		t.Errorf("the entry is %.1f wide, want the reference's %v DIP frame", entry.W, want)
 	}
 	toggle, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyContextPanelToggle))
 	if !ok {
 		t.Fatalf("the context panel toggle is not drawn, texts %q", tt.Texts())
 	}
-	if toggle.Bounds.X < model.X {
-		t.Errorf("the context panel toggle at x=%.1f is not the last entry after the model at x=%.1f",
-			toggle.Bounds.X, model.X)
+	if toggle.Bounds.X < entry.X+entry.W-0.5 {
+		t.Errorf("the context panel toggle at x=%.1f is not after the editor entry ending at %.1f",
+			toggle.Bounds.X, entry.X+entry.W)
+	}
+}
+
+// TestHeaderDrawsNoModelEntry checks the reference's bar: the model picker is
+// the composer's entry, not the toolbar's, so the bar draws no "Model ▾" and no
+// model picker button.
+func TestHeaderDrawsNoModelEntry(t *testing.T) {
+	v := fixture().headerView()
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleContextPanel: func() {}})
+	}, 800, 41)
+
+	for _, gone := range []string{"Model", "Model picker"} {
+		if tt.HasText(gone) {
+			t.Errorf("the bar still draws %q, texts %q", gone, tt.Texts())
+		}
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, "Model picker"); ok {
+		t.Error("the bar still exposes a model picker entry")
+	}
+	// The editor entry and the panel toggle stay; only the model entry left the bar.
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyHeaderOpenInEditor)); !ok {
+		t.Errorf("the bar lost the editor entry, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keyContextPanelToggle)); !ok {
+		t.Errorf("the bar lost the panel toggle, texts %q", tt.Texts())
+	}
+}
+
+// TestHeaderBreadcrumbStartsAtTheContentInset checks the bar's left edge and
+// the room before its menu against the reference's 800×720 frame: the project
+// starts on the conversation's 25 DIP content edge, and the menu's target
+// begins where the truncated title's box ends, so "…" sits about 13 DIPs after
+// the last glyph instead of at the far end of an elastic breadcrumb.
+func TestHeaderBreadcrumbStartsAtTheContentInset(t *testing.T) {
+	v := fixture().headerView()
+	v.Project = "dimagent-mygo"
+	v.Title = "Explain what this repository does in one paragraph."
+	v.Connection = ConnReady
+	v.Run = RunIdle
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{OnToggleContextPanel: func() {}})
+	}, 537, 41)
+
+	project, ok := tt.Find(v.Project)
+	if !ok {
+		t.Fatalf("the project is not drawn, texts %q", tt.Texts())
+	}
+	if math.Abs(float64(project.X-conversationInsetX)) > 1 {
+		t.Errorf("the breadcrumb starts at x=%.1f, want the reference's %v DIP inset",
+			project.X, conversationInsetX)
+	}
+	title, ok := tt.Find(v.Title)
+	if !ok {
+		t.Fatalf("the title is not drawn, texts %q", tt.Texts())
+	}
+	menu, ok := tt.Find("…")
+	if !ok {
+		t.Fatalf("the menu glyph is not drawn, texts %q", tt.Texts())
+	}
+	if gap := menu.X - (title.X + title.W); gap < 0 || gap > 8 {
+		t.Errorf("the menu glyph sits %.1f after the title's box, want the menu to hug the title", gap)
+	}
+	button, ok := tt.AccessByRole(ui.RoleMenuButton, tr(LocaleEN, keyHeaderMenu))
+	if !ok {
+		t.Fatalf("the menu target is not drawn, texts %q", tt.Texts())
+	}
+	if gap := button.Bounds.X - (title.X + title.W); math.Abs(float64(gap)) > 0.5 {
+		t.Errorf("the menu target sits %.1f after the title, want it at the title's edge", gap)
+	}
+	if button.Bounds.W > menuTargetW+0.5 {
+		t.Errorf("the menu target is %.1f wide, want the compact %v DIP step", button.Bounds.W, menuTargetW)
+	}
+}
+
+// TestHeaderEditorMarkUsesTheVSCodeBrandBlue checks the drawn editor entry: the
+// VS Code mark keeps the brand's blue even though the WIP entry is unavailable,
+// while the disclosure arrow beside it stays the bar's muted ink. The frame has
+// no internal rule between the two cells.
+func TestHeaderEditorMarkUsesTheVSCodeBrandBlue(t *testing.T) {
+	v := fixture().headerView()
+	tt := ui.NewTester(func(c *ui.Context) {
+		header(c, newTokens(c.Theme()), v, Actions{})
+	}, 800, 41)
+	entry, ok := tt.Find(tr(LocaleEN, keyHeaderOpenInEditor))
+	if !ok {
+		t.Fatalf("the editor entry is not drawn, texts %q", tt.Texts())
+	}
+	image := tt.Image()
+	blue := 0
+	for y := int(entry.Y) + 2; y < int(entry.Y+entry.H)-2; y++ {
+		for x := int(entry.X) + 1; x < int(entry.X+openInEditorCell); x++ {
+			p := image.RGBAAt(x, y)
+			if d := int(p.B) - int(p.R); d > blue {
+				blue = d
+			}
+		}
+	}
+	if blue < 40 {
+		t.Errorf("the mark's strongest pixel is only %d bluer than red, want the VS Code brand blue", blue)
+	}
+	muted := 0
+	for y := int(entry.Y) + 2; y < int(entry.Y+entry.H)-2; y++ {
+		for x := int(entry.X+openInEditorCell) + 1; x < int(entry.X+entry.W); x++ {
+			p := image.RGBAAt(x, y)
+			if d := int(p.B) - int(p.R); d > muted {
+				muted = d
+			}
+		}
+	}
+	if muted >= blue/2 {
+		t.Errorf("the arrow is %d bluer than red, want it muted beside the %d mark", muted, blue)
 	}
 }

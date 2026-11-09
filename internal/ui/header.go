@@ -1,13 +1,14 @@
 // This file owns the main area's conversation bar and banner: the project and
 // session-title breadcrumb, the session menu, the conditional Stop and Reconnect
-// entries, the editor-open entry, the model entry, the context panel toggle, the
+// entries, the editor-open entry, the divider, the context panel toggle, the
 // delete confirmation and the error banner below them. It reads HeaderView and
 // Actions only (see protocols.go).
 //
 // The reference's conversation bar is one line with the breadcrumb and a "…"
-// menu on the left and the surface entries on the right. Run and connection
-// status are not drawn here: the reference has no "Session: Idle" or
-// "App Server: …" row, and this shell no longer adds one.
+// menu on the left and the surface entries on the right. Its model picker lives
+// in the composer, not in the bar, so the bar draws no model entry. Run and
+// connection status are not drawn here either: the reference has no
+// "Session: Idle" or "App Server: …" row, and this shell no longer adds one.
 
 package ui
 
@@ -25,6 +26,27 @@ const contextPanelToggleLabel = "Context panel"
 // the reference draws it. It is punctuation, not a translatable word; an empty
 // project draws neither it nor a project name.
 const breadcrumbSeparator = "/"
+
+// breadcrumbGap is the room around the separator, in DIPs: the reference draws
+// the project, the slash and the title as one run of adjacent text, so the
+// breadcrumb keeps one tight step between them rather than the toolbar's gap.
+const breadcrumbGap = 4
+
+// menuTargetW is the session menu's target width, in DIPs: a compact step that
+// keeps the "…" close to the truncated title instead of pushing it into the
+// toolbar's full 28 DIP square. The target keeps the toolbar's height.
+const menuTargetW = 20
+
+// openInEditorCell is the width of each half of the editor-open control: the
+// reference's 44 DIP frame splits into the brand mark's cell and the disclosure
+// arrow's cell. It is a measured literal, like the control's height.
+const openInEditorCell = 22
+
+// headerEntryGap is the room inside the bar's trailing cluster — the editor
+// entry, its divider and the panel toggle — in DIPs. The reference keeps those
+// three closer together than the bar's toolbar gap, so the cluster reads as one
+// control group at the right end.
+const headerEntryGap = 6
 
 // contextPanelGlyph is the entry's two-pane mark, as the Electron reference
 // draws the panel toggle at the card's top right: a rounded frame split into
@@ -47,7 +69,7 @@ const reasonOpenInEditor = "Unavailable: the shell has no editor-open client or 
 func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	ui.Row(c).Role(ui.RoleToolbar).Label(tr(locale, keyHeaderRegion)).
-		Gap(k.gapWide).MinHeight(k.headerH).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
+		Gap(k.gapWide).MinHeight(k.headerH).Padding(k.toolbarPadY, k.toolbarPadX, k.toolbarPadY, k.conversationPadX()).AlignItems(ui.Center).
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
 		if !v.HasSession {
 			// No session: no breadcrumb, no menu and no run row, only the space
@@ -55,11 +77,15 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			ui.Box(c).Grow(1)
 			return
 		}
-		// The breadcrumb takes the room left of the right-hand entries and
-		// truncates each part on one line, as the reference truncates its project
-		// and title.
-		breadcrumb(c, k, v, locale)
-		sessionMenu(c, k, v, a)
+		// The breadcrumb and its "…" menu are the bar's leading group: the title
+		// truncates against the menu, whose target starts where the title's box
+		// ends, as the reference draws them. The menu's own glyph bearing and the
+		// room a cut title keeps after its ellipsis make the visible step of about
+		// 13 DIPs; the trailing entries keep the bar's wider toolbar gap.
+		ui.Row(c).Grow(1).MinWidth(0).AlignItems(ui.Center).Children(func() {
+			breadcrumb(c, k, v, locale)
+			sessionMenu(c, k, v, a)
+		})
 		// Stopping is the App Server's to do once the callback sends session.stop,
 		// so the entry belongs beside the status only while a turn still runs.
 		if !v.Closed && v.Run == RunRunning {
@@ -79,24 +105,23 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 				ui.Button(c, tr(locale, keyHeaderReconnect)).OnClick(a.OnReconnect)
 			}
 		}
-		// The reference draws its editor-open control beside the model entry:
-		// a VS Code mark and a disclosure arrow. The shell has no editor client
+		// The reference draws its editor-open control at the bar's right end: a
+		// VS Code mark and a disclosure arrow. The shell has no editor client
 		// and no workspace fact to open, so the entry stays visible, unavailable
-		// and explained instead of pretending it could open the session.
-		openInEditorEntry(c, k, locale)
-		// The model entry is a picker the reference draws beside the editor
-		// entry. The shell has no model list or current-model fact from the App
-		// Server, so it stays a visible, unavailable entry that explains the gap
-		// instead of opening an empty picker.
-		modelEntry(c, k, v, locale)
-		headerDivider(c, k)
-		// The context panel is the conversation's, so its entry appears only
-		// while neither surface that replaces the conversation is showing. With
-		// no workspace to show changed files for, the entry is absent rather than
-		// disabled.
-		if !v.SettingsOpen && !v.KeysOpen && a.OnToggleContextPanel != nil {
-			contextPanelToggle(c, k, v, a)
-		}
+		// and explained instead of pretending it could open the session. The
+		// editor entry, its divider and the panel toggle sit in one tighter
+		// cluster, as the reference's trailing controls do.
+		ui.Row(c).Gap(headerEntryGap).AlignItems(ui.Center).Shrink(0).Children(func() {
+			openInEditorEntry(c, k, locale)
+			headerDivider(c, k)
+			// The context panel is the conversation's, so its entry appears only
+			// while neither surface that replaces the conversation is showing. With
+			// no workspace to show changed files for, the entry is absent rather than
+			// disabled.
+			if !v.SettingsOpen && !v.KeysOpen && a.OnToggleContextPanel != nil {
+				contextPanelToggle(c, k, v, a)
+			}
+		})
 	})
 	banner(c, k, v)
 	deleteConfirmation(c, k, v, a)
@@ -107,7 +132,7 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 // empty project draws no project name and no separator, because the shell has
 // no project fact to show and never invents one.
 func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
-	ui.Row(c).Grow(1).MinWidth(0).Gap(k.gap).AlignItems(ui.Center).Children(func() {
+	ui.Row(c).Grow(1).MinWidth(0).Gap(breadcrumbGap).AlignItems(ui.Center).Children(func() {
 		if v.Project != "" {
 			ui.Text(c, v.Project).FontSize(k.bodySize).TextColor(k.mutedForeground).
 				SingleLine().Shrink(1).MinWidth(0)
@@ -131,7 +156,7 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	label := tr(locale, keyHeaderMenu)
-	button := ui.ButtonBase(c).Size(k.sidebarEntryH, k.sidebarEntryH).
+	button := ui.ButtonBase(c).Size(menuTargetW, k.sidebarEntryH).
 		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
 		Label(label).Tooltip(label)
 	if button.Hovered() {
@@ -190,25 +215,7 @@ func menuWIP(m *ui.Menu, label, reason string) {
 	m.Item(label).Disabled(true).Trailing(wipBadge).Subtitle(reason)
 }
 
-// modelEntry draws the reference's model picker position as an unavailable
-// entry: the model label with a disclosure arrow, dimmed and explained with the
-// missing App Server model fact. It takes no keyboard focus, like the
-// composer's mode and model entries, so the documented Tab order stays short.
-func modelEntry(c *ui.Context, k tokens, v HeaderView, locale Locale) {
-	reason := tr(locale, keyReasonModel)
-	button := ui.ButtonBase(c).Height(k.sidebarEntryH).Padding(0, k.gapWide).
-		Radius(radiusSM).Gap(k.gap).AlignItems(ui.Center).
-		Label(tr(locale, keyHeaderModelPicker)).Description(reason).Tooltip(reason).
-		Disabled(true).AccessDisabled(true)
-	button.Children(func() {
-		// The arrow is part of the same text run, so the model label stays one
-		// node and does not read as a second "Model" beside the composer's.
-		ui.Text(c, tr(locale, keyHeaderModel)+" ▾").FontSize(k.bodySize).
-			TextColor(k.mutedForeground).SingleLine()
-	})
-}
-
-// headerDivider is the hairline between the model entry and the context panel
+// headerDivider is the hairline between the editor entry and the context panel
 // toggle, as the reference draws a vertical rule before its panel switch.
 func headerDivider(c *ui.Context, k tokens) {
 	ui.Box(c).Width(k.hairline).Height(k.sidebarEntryH).Shrink(0).
@@ -216,11 +223,11 @@ func headerDivider(c *ui.Context, k tokens) {
 }
 
 // openInEditorEntry draws the reference's editor-open control as a visible WIP
-// entry: the VS Code mark at its 16 DIP step, a vertical rule and the disclosure
-// arrow, in one rounded frame. The shell has no editor-open client and no
-// workspace fact to hand one, so the entry takes no click and no Tab stop and
-// carries the reason it waits on in its description and tooltip. The marks are
-// decorations; the localized label names the entry.
+// entry: the VS Code brand mark and the disclosure arrow in one rounded frame.
+// The shell has no editor-open client and no workspace fact to hand one, so the
+// entry takes no click and no Tab stop and carries the reason it waits on in its
+// description and tooltip. The marks are decorations; the localized label names
+// the entry.
 func openInEditorEntry(c *ui.Context, k tokens, locale Locale) {
 	label := tr(locale, keyHeaderOpenInEditor)
 	reason := tr(locale, keyReasonOpenInEditor)
@@ -229,12 +236,11 @@ func openInEditorEntry(c *ui.Context, k tokens, locale Locale) {
 		Label(label).Description(reason).Tooltip(reason).
 		Disabled(true).AccessDisabled(true).Shrink(0)
 	entry.Children(func() {
-		ui.Box(c).Width(k.sidebarEntryH).Height(k.sidebarEntryH).Center().Children(func() {
+		ui.Box(c).Width(openInEditorCell).Height(k.sidebarEntryH).Center().Children(func() {
 			ui.Icon(c, openInEditorGlyph).Size(sidebarIconSize, sidebarIconSize).
-				TextColor(k.mutedForeground).AccessHidden(true)
+				TextColor(openInEditorBrand).AccessHidden(true)
 		})
-		ui.Box(c).Width(k.hairline).Height(sidebarIconSize).Background(k.border).AccessHidden(true)
-		ui.Box(c).Width(k.sidebarCell).Height(k.sidebarEntryH).Center().Children(func() {
+		ui.Box(c).Width(openInEditorCell).Height(k.sidebarEntryH).Center().Children(func() {
 			ui.Icon(c, sidebarIcons.chevron).Size(10, 10).Rotate(90).
 				TextColor(k.mutedForeground).AccessHidden(true)
 		})

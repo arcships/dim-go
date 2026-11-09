@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -344,5 +345,50 @@ func TestUserRowIsARightAlignedBubble(t *testing.T) {
 	// it by 14 DIPs and the sidebar is 256 wide.
 	if right := text.X + text.W; right < 900-256-30 {
 		t.Errorf("the user bubble ends at x=%.1f, not against the conversation's right edge", right)
+	}
+}
+
+// TestTimelineKeepsTheReferenceContentInset checks the message column's
+// horizontal room against the reference's 800×720 frame: the assistant text
+// starts 25 DIPs inside the card and the user bubble ends 25 DIPs inside it,
+// while the bubble keeps its 85% cap.
+func TestTimelineKeepsTheReferenceContentInset(t *testing.T) {
+	const (
+		width  = 800
+		height = 720
+	)
+	s := &State{
+		Sessions:       []Session{{ID: "s1", Title: "Polish the screenshot shell", Group: "dimagent-mygo"}},
+		Selected:       "s1",
+		Connection:     ConnReady,
+		SelectedBranch: mainBranchID,
+		Messages: []Message{
+			{ID: "m1", Author: AuthorUser, Content: "Explain what this repository does in one paragraph."},
+			{ID: "m2", Author: AuthorAssistant, Content: "Echo: Explain what this repository does in one paragraph."},
+		},
+	}
+	tt := ui.NewTester(s.View, width, height)
+	k := newTokens(ui.LightTheme())
+
+	card, ok := tt.AccessByRole(ui.RoleGroup, "Main area")
+	if !ok {
+		t.Fatalf("the conversation has no card, texts %q", tt.Texts())
+	}
+	// The card's outer edge is what the reference measures from; the hairline
+	// and the inner edge make up the rest of the 24.5 DIP inset.
+	inset := conversationInsetX + k.hairline
+	reply := textBox(t, tt, "Echo: Explain what this repository does in one paragraph.")
+	if left := reply.X - card.Bounds.X; math.Abs(float64(left-inset)) > 1 {
+		t.Errorf("the assistant text starts %.1f inside the card, want the reference's ≈%v",
+			left, inset)
+	}
+	bubble := textBox(t, tt, "Explain what this repository does in one paragraph.")
+	right := card.Bounds.X + card.Bounds.W - (bubble.X + bubble.W + k.timelineUserPadX)
+	if math.Abs(float64(right-inset)) > 1 {
+		t.Errorf("the user bubble ends %.1f inside the card, want the reference's ≈%v",
+			right, inset)
+	}
+	if bubble.W > width*k.timelineUserWidth/100 {
+		t.Errorf("the bubble text is %.1f wide, beyond the 85%% cap", bubble.W)
 	}
 }
