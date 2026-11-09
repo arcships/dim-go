@@ -42,6 +42,105 @@ func startBranchBridge(t *testing.T, directory json.RawMessage) (*fakeDaemon, *s
 	return daemon, sup, ctx
 }
 
+// TestControllerBranchSubmitStopAndLookupPassThrough drives the branch-aware
+// mutations over the fake daemon: a submit, a stop and a read-back name the
+// branch the window shows, the idempotency key survives, and an empty branch is
+// refused before any request is sent.
+func TestControllerBranchSubmitStopAndLookupPassThrough(t *testing.T) {
+	directory := json.RawMessage(`{"branches":[
+		{"branchId":"main","state":"open","head":2},
+		{"branchId":"side","parentBranchId":"main","state":"open","head":2}
+	]}`)
+	daemon, sup, ctx := startBranchBridge(t, directory)
+
+	controller, err := OpenSession(ctx, sup, "s1")
+	if err != nil {
+		t.Fatalf("OpenSession: %v", err)
+	}
+	closeControllerOnCleanup(t, controller)
+
+	// A missing branch id is refused before the bridge touches the daemon: the
+	// branch is not something the integration layer may guess.
+	if _, err := controller.SubmitBranch(ctx, "", "hello"); err == nil {
+		t.Fatal("SubmitBranch without a branch should fail")
+	}
+	if _, _, err := controller.SubmitBranchWithID(ctx, "", "hello"); err == nil {
+		t.Fatal("SubmitBranchWithID without a branch should fail")
+	}
+	if _, err := controller.SubmitBranch(nil, "side", "hello"); err == nil {
+		t.Fatal("SubmitBranch without a context should fail")
+	}
+	if err := controller.StopBranch(ctx, ""); err == nil {
+		t.Fatal("StopBranch without a branch should fail")
+	}
+	if err := controller.StopBranch(nil, "side"); err == nil {
+		t.Fatal("StopBranch without a context should fail")
+	}
+	if _, err := controller.LookupInputBranch(ctx, "", "sub-1"); err == nil {
+		t.Fatal("LookupInputBranch without a branch should fail")
+	}
+	if _, err := controller.LookupInputBranch(ctx, "side", ""); err == nil {
+		t.Fatal("LookupInputBranch without a submission id should fail")
+	}
+	if got := daemon.callCount("session.submit") + daemon.callCount("session.stop") + daemon.callCount("session.input_lookup"); got != 0 {
+		t.Fatalf("rejected calls reached the daemon: %d", got)
+	}
+
+	// A branch submit names the branch and carries the submission id.
+	result, err := controller.SubmitBranch(ctx, "side", "hello side")
+	if err != nil {
+		t.Fatalf("SubmitBranch: %v", err)
+	}
+	if result.Event.ID != "submitted" {
+		t.Fatalf("submit result = %#v", result)
+	}
+	params := daemon.lastParams("session.submit")
+	if params["sessionId"] != "s1" || params["branchId"] != "side" {
+		t.Fatalf("session.submit params = %#v, want s1 on side", params)
+	}
+	if id, _ := params["submissionId"].(string); id == "" {
+		t.Fatalf("session.submit params lost the idempotency key: %#v", params)
+	}
+
+	_, submissionID, err := controller.SubmitBranchWithID(ctx, "side", "hello again")
+	if err != nil {
+		t.Fatalf("SubmitBranchWithID: %v", err)
+	}
+	if submissionID == "" {
+		t.Fatal("SubmitBranchWithID lost the idempotency key")
+	}
+	params = daemon.lastParams("session.submit")
+	if params["branchId"] != "side" || params["submissionId"] != submissionID {
+		t.Fatalf("session.submit params = %#v, want side with %q", params, submissionID)
+	}
+
+	// The read-back names the same branch and never resends the submission.
+	daemon.setInputLookup(json.RawMessage(`{"status":"accepted","event":{"id":"e3","sequence":3,"create_at":1700000000002,"type":"input","name":"message","data":{"text":"hello again"}}}`))
+	lookup, err := controller.LookupInputBranch(ctx, "side", submissionID)
+	if err != nil {
+		t.Fatalf("LookupInputBranch: %v", err)
+	}
+	if !lookup.Accepted() {
+		t.Fatalf("lookup result = %#v, want accepted", lookup)
+	}
+	params = daemon.lastParams("session.input_lookup")
+	if params["sessionId"] != "s1" || params["branchId"] != "side" || params["submissionId"] != submissionID {
+		t.Fatalf("session.input_lookup params = %#v", params)
+	}
+	if got := daemon.callCount("session.submit"); got != 2 {
+		t.Fatalf("session.submit calls = %d, want 2 (the read-back never resends)", got)
+	}
+
+	// A stop names the shown branch instead of the session's default one.
+	if err := controller.StopBranch(ctx, "side"); err != nil {
+		t.Fatalf("StopBranch: %v", err)
+	}
+	params = daemon.lastParams("session.stop")
+	if params["sessionId"] != "s1" || params["branchId"] != "side" {
+		t.Fatalf("session.stop params = %#v, want s1 on side", params)
+	}
+}
+
 // TestControllerBranchPassThrough drives OpenBranch/RefreshBranchDirectory/
 // EndBranch over the fake daemon: the branch read must name the branchId, stay
 // idempotent, and never invent branch rows the daemon did not report.

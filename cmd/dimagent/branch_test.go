@@ -151,20 +151,95 @@ func TestAppSelectBranchSkipsTheShownBranch(t *testing.T) {
 	}
 }
 
-// TestAppSubmitReadsBackOnTheSessionsBranch checks that an ambiguous submission
-// is read back on the branch the controller submits to, not the branch the
-// window displays: branch-aware submit is not wired yet, so the displayed branch
-// must not name the read-back.
-func TestAppSubmitReadsBackOnTheSessionsBranch(t *testing.T) {
+// TestAppSubmitNamesTheShownBranch checks that a submission on a branch the
+// window opened is sent on that branch: the App Server opened it and it is the
+// conversation the user reads, so the session's default branch must not receive
+// the input.
+func TestAppSubmitNamesTheShownBranch(t *testing.T) {
+	f := &fakeSession{
+		sessionBranch: appserver.MainBranchID,
+		submitted:     make(chan string, 1),
+		view: &dimui.State{Selected: "s1", SelectedBranch: "main", Connection: dimui.ConnReady,
+			Messages: []dimui.Message{{ID: "m-main"}}},
+		branchViews: map[string]*dimui.State{
+			"side": {Selected: "s1", SelectedBranch: "side", Connection: dimui.ConnReady,
+				Messages: []dimui.Message{{ID: "m-side"}}},
+		},
+	}
+	a, _, mu := branchApp(f)
+	a.state.OnSelectBranch("side")
+	waitForState(t, a, mu, "the opened branch shown", func(state *dimui.State) bool {
+		return state.SelectedBranch == "side"
+	})
+
+	a.state.OnSubmit("hello")
+	select {
+	case <-f.submitted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("submit did not reach the session")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if f.submitBranchCalls != 1 || f.submitBranch != "side" {
+		t.Fatalf("submit named %q %d times, want one submit on side",
+			f.submitBranch, f.submitBranchCalls)
+	}
+}
+
+// TestAppStopNamesTheShownBranch checks that a stop on the shown branch names
+// that branch, so the turn the user reads ends instead of the default branch's.
+func TestAppStopNamesTheShownBranch(t *testing.T) {
+	f := &fakeSession{
+		stopped: make(chan struct{}, 1),
+		view: &dimui.State{Selected: "s1", SelectedBranch: "main", Connection: dimui.ConnReady,
+			Messages: []dimui.Message{{ID: "m-main"}}},
+		branchViews: map[string]*dimui.State{
+			"side": {Selected: "s1", SelectedBranch: "side", Connection: dimui.ConnReady,
+				Messages: []dimui.Message{{ID: "m-side"}}},
+		},
+	}
+	a, _, mu := branchApp(f)
+	a.state.OnSelectBranch("side")
+	waitForState(t, a, mu, "the opened branch shown", func(state *dimui.State) bool {
+		return state.SelectedBranch == "side"
+	})
+
+	a.state.OnStop()
+	select {
+	case <-f.stopped:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stop did not reach the session")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if f.stopBranchCalls != 1 || f.stopBranch != "side" {
+		t.Fatalf("stop named %q %d times, want one stop on side",
+			f.stopBranch, f.stopBranchCalls)
+	}
+}
+
+// TestAppSubmitReadsBackOnTheShownBranch checks that an ambiguous submission on a
+// side branch is read back on that same branch. The read-back key is the branch
+// the App Server received; naming the default branch would ask about an input
+// that was never sent there.
+func TestAppSubmitReadsBackOnTheShownBranch(t *testing.T) {
 	f := &fakeSession{
 		sessionBranch: appserver.MainBranchID,
 		submitErr:     &appserver.UnknownResultError{Method: appserver.MutationSessionSubmit},
 		submitID:      "sub-1",
 		lookupResult:  appserver.InputLookupResult{Status: appserver.InputLookupAccepted},
-		view:          &dimui.State{Selected: "s1", SelectedBranch: "side", Connection: dimui.ConnReady},
+		view: &dimui.State{Selected: "s1", SelectedBranch: "main", Connection: dimui.ConnReady,
+			Messages: []dimui.Message{{ID: "m-main"}}},
+		branchViews: map[string]*dimui.State{
+			"side": {Selected: "s1", SelectedBranch: "side", Connection: dimui.ConnReady,
+				Messages: []dimui.Message{{ID: "m-side"}}},
+		},
 	}
 	a, _, mu := branchApp(f)
-	a.state.SelectedBranch = "side"
+	a.state.OnSelectBranch("side")
+	waitForState(t, a, mu, "the opened branch shown", func(state *dimui.State) bool {
+		return state.SelectedBranch == "side"
+	})
 	a.state.Draft = "hello"
 
 	a.state.OnSubmit("hello")
@@ -172,8 +247,81 @@ func TestAppSubmitReadsBackOnTheSessionsBranch(t *testing.T) {
 
 	mu.Lock()
 	defer mu.Unlock()
-	if f.lookupCalls != 1 || f.lookupBranch != appserver.MainBranchID {
+	if f.submitBranchCalls != 1 || f.submitBranch != "side" {
+		t.Fatalf("submit named %q %d times, want one submit on side",
+			f.submitBranch, f.submitBranchCalls)
+	}
+	if f.lookupBranchCalls != 1 || f.lookupBranch != "side" || f.lookupSubmission != "sub-1" {
+		t.Fatalf("read-back = %d on %q for %q, want one lookup on the shown branch side for sub-1",
+			f.lookupBranchCalls, f.lookupBranch, f.lookupSubmission)
+	}
+}
+
+// TestAppSubmitWithoutShownBranchUsesTheSessionBranch checks the default path: a
+// window that opened no branch has none of its own to name, so the submit and
+// the stop keep the session's own branch and the read-back names that branch.
+func TestAppSubmitWithoutShownBranchUsesTheSessionBranch(t *testing.T) {
+	f := &fakeSession{
+		sessionBranch: appserver.MainBranchID,
+		submitErr:     &appserver.UnknownResultError{Method: appserver.MutationSessionSubmit},
+		submitID:      "sub-1",
+		lookupResult:  appserver.InputLookupResult{Status: appserver.InputLookupAccepted},
+		stopped:       make(chan struct{}, 1),
+		view:          &dimui.State{Selected: "s1", SelectedBranch: "main", Connection: dimui.ConnReady},
+	}
+	a, _, mu := branchApp(f)
+	a.state.Draft = "hello"
+
+	a.state.OnSubmit("hello")
+	waitForNotice(t, a, mu, "submit.accepted")
+	a.state.OnStop()
+	select {
+	case <-f.stopped:
+	case <-time.After(2 * time.Second):
+		t.Fatal("stop did not reach the session")
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if f.submitBranchCalls != 0 || f.stopBranchCalls != 0 {
+		t.Fatalf("the default path named a branch: submits %d, stops %d",
+			f.submitBranchCalls, f.stopBranchCalls)
+	}
+	if f.lookupBranchCalls != 1 || f.lookupBranch != appserver.MainBranchID {
 		t.Fatalf("read-back = %d on %q, want one lookup on the session's branch %q",
-			f.lookupCalls, f.lookupBranch, appserver.MainBranchID)
+			f.lookupBranchCalls, f.lookupBranch, appserver.MainBranchID)
+	}
+}
+
+// TestAppSubmitAfterSessionSwitchForgetsTheOldBranch checks that a branch the
+// previous session showed cannot name an action on the new one: a selection
+// clears the displayed branch, so the submit falls back to the session's own and
+// the old side branch receives nothing.
+func TestAppSubmitAfterSessionSwitchForgetsTheOldBranch(t *testing.T) {
+	f := &fakeSession{
+		sessionBranch: appserver.MainBranchID,
+		submitted:     make(chan string, 1),
+		view:          &dimui.State{Selected: "s1", SelectedBranch: "main", Connection: dimui.ConnReady},
+	}
+	a, _, mu := branchApp(f)
+	if !a.commitBranch("side", a.beginBranchSelect()) {
+		t.Fatal("the test could not show the side branch")
+	}
+	// A newer session selection forgets the branch the previous one showed.
+	a.beginSelect()
+
+	a.state.OnSubmit("hello")
+	select {
+	case <-f.submitted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("submit did not reach the session")
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if branch, _ := a.displayBranch(); branch != "" {
+		t.Fatalf("displayed branch = %q after a session switch, want none", branch)
+	}
+	if f.submitBranchCalls != 0 {
+		t.Fatalf("submit named %q, want the session's own branch", f.submitBranch)
 	}
 }

@@ -412,6 +412,37 @@ func (c *SessionController) SubmitWithID(ctx context.Context, text string) (apps
 	return result, submissionID, replayGapWrite("session.submit", err)
 }
 
+// SubmitBranch sends text on one explicit branch of the selected session, which
+// is what the window shows after it opened that branch. A caller that already
+// knows the branch must not rely on the session's default: the displayed branch
+// and the submitted branch have to be the same App Server fact.
+func (c *SessionController) SubmitBranch(ctx context.Context, branchID, text string) (appserver.SubmitResult, error) {
+	result, _, err := c.SubmitBranchWithID(ctx, branchID, text)
+	return result, err
+}
+
+// SubmitBranchWithID is SubmitBranch with the idempotency key exposed, so an
+// unknown result is read back on the same branch through session.input_lookup
+// instead of being resent. A subscription_changed reply is never replayed.
+func (c *SessionController) SubmitBranchWithID(ctx context.Context, branchID, text string) (appserver.SubmitResult, string, error) {
+	if c == nil {
+		return appserver.SubmitResult{}, "", fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.SubmitResult{}, "", fmt.Errorf("integration: nil context")
+	}
+	if branchID == "" {
+		return appserver.SubmitResult{}, "", fmt.Errorf("integration: empty branch id")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.SubmitResult{}, "", fmt.Errorf("integration: no session")
+	}
+	result, submissionID, err := c.Session.SubmitBranchWithID(ctx, branchID, text)
+	return result, submissionID, replayGapWrite("session.submit", err)
+}
+
 // LookupInput reads a submission back by its idempotency key after an unknown
 // submit result (§10). It never resends the submission and never caches the
 // answer: every call asks the App Server and decodes the tagged union, so an
@@ -429,14 +460,46 @@ func (c *SessionController) LookupInput(ctx context.Context, branchID, submissio
 		return appserver.InputLookupResult{}, fmt.Errorf("integration: empty submission id")
 	}
 	// An empty branchID is not an error: Session.LookupInput supplies the
-	// session's current branch, matching how Submit does. The window has no
-	// reliable branch id of its own, and inventing one would be a local fact.
+	// session's current branch, matching how Submit does. A caller that knows
+	// the branch it submitted on uses LookupInputBranch instead.
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if c.Session == nil {
 		return appserver.InputLookupResult{}, fmt.Errorf("integration: no session")
 	}
-	raw, err := c.Session.LookupInput(ctx, branchID, submissionID)
+	return decodeInputLookup(c.Session, ctx, branchID, submissionID)
+}
+
+// LookupInputBranch reads a submission back on one explicit branch. It is the
+// read-back a branch-aware submit needs: the window names the branch the App
+// Server received, so a side-branch submission is never resolved against the
+// session's default branch. The branch id is required and the submission is
+// never resent.
+func (c *SessionController) LookupInputBranch(ctx context.Context, branchID, submissionID string) (appserver.InputLookupResult, error) {
+	if c == nil {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: nil context")
+	}
+	if branchID == "" {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: empty branch id")
+	}
+	if submissionID == "" {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: empty submission id")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.InputLookupResult{}, fmt.Errorf("integration: no session")
+	}
+	return decodeInputLookup(c.Session, ctx, branchID, submissionID)
+}
+
+// decodeInputLookup asks the App Server for one submission and decodes the
+// tagged union. The caller holds the read lock.
+func decodeInputLookup(s *session.Session, ctx context.Context, branchID, submissionID string) (appserver.InputLookupResult, error) {
+	raw, err := s.LookupInput(ctx, branchID, submissionID)
 	if err != nil {
 		return appserver.InputLookupResult{}, err
 	}
@@ -569,6 +632,29 @@ func (c *SessionController) Stop(ctx context.Context) error {
 		return fmt.Errorf("integration: no session")
 	}
 	return replayGapWrite("session.stop", c.Session.Stop(ctx))
+}
+
+// StopBranch asks the App Server to stop one explicit branch, which is the
+// branch the window shows after it opened it. A stop names the branch the user
+// is reading instead of the session's default, so a side-branch turn is the one
+// that ends. Running state still converges through session.state; nothing here
+// is replayed or cached.
+func (c *SessionController) StopBranch(ctx context.Context, branchID string) error {
+	if c == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return fmt.Errorf("integration: nil context")
+	}
+	if branchID == "" {
+		return fmt.Errorf("integration: empty branch id")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return fmt.Errorf("integration: no session")
+	}
+	return replayGapWrite("session.stop", c.Session.StopBranch(ctx, branchID))
 }
 
 // ReattachResult reports the daemon identity observed by a successful

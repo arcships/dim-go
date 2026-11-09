@@ -130,41 +130,47 @@ func TestSummaryForRow(t *testing.T) {
 
 // fakeSession stands in for integration.SessionController.
 type fakeSession struct {
-	view             *dimui.State
-	branchViews      map[string]*dimui.State
-	summary          appserver.SessionSummary
-	submitErr        error
-	submitID         string
-	stopErr          error
-	reattachErr      error
-	openBranchErr    error
-	approvalErr      error
-	approvalResult   appserver.ApprovalRespondOutcome
-	lookupResult     appserver.InputLookupResult
-	lookupErr        error
-	closed           bool
-	submitted        chan string
-	stopped          chan struct{}
-	approved         chan struct{}
-	liveCalls        chan struct{}
-	reconnectStart   chan struct{}
-	reconnectGate    chan struct{}
-	openBranchStart  chan struct{}
-	openBranchGate   chan struct{}
-	openBranchDone   chan struct{}
-	openBranch       []string
-	shownBranch      string
-	sessionBranch    string
-	submitText       []string
-	reattachCalls    int
-	stopCalls        int
-	approvalCalls    int
-	approvalBranch   string
-	approvalID       string
-	approvalChoice   string
-	lookupCalls      int
-	lookupBranch     string
-	lookupSubmission string
+	view              *dimui.State
+	branchViews       map[string]*dimui.State
+	summary           appserver.SessionSummary
+	submitErr         error
+	submitID          string
+	stopErr           error
+	reattachErr       error
+	openBranchErr     error
+	approvalErr       error
+	approvalResult    appserver.ApprovalRespondOutcome
+	lookupResult      appserver.InputLookupResult
+	lookupErr         error
+	closed            bool
+	submitted         chan string
+	stopped           chan struct{}
+	approved          chan struct{}
+	liveCalls         chan struct{}
+	reconnectStart    chan struct{}
+	reconnectGate     chan struct{}
+	openBranchStart   chan struct{}
+	openBranchGate    chan struct{}
+	openBranchDone    chan struct{}
+	openBranch        []string
+	shownBranch       string
+	sessionBranch     string
+	submitText        []string
+	submitBranch      string
+	submitBranchText  []string
+	submitBranchCalls int
+	stopBranch        string
+	stopBranchCalls   int
+	lookupBranchCalls int
+	reattachCalls     int
+	stopCalls         int
+	approvalCalls     int
+	approvalBranch    string
+	approvalID        string
+	approvalChoice    string
+	lookupCalls       int
+	lookupBranch      string
+	lookupSubmission  string
 }
 
 func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
@@ -234,10 +240,27 @@ func (f *fakeSession) SubmitWithID(ctx context.Context, text string) (appserver.
 	return result, f.submitID, err
 }
 
+// SubmitBranchWithID records the branch it was asked to send on and delegates to
+// the same submission path, so a test sees which branch the window named and the
+// same submit result the App Server would give.
+func (f *fakeSession) SubmitBranchWithID(ctx context.Context, branchID, text string) (appserver.SubmitResult, string, error) {
+	f.submitBranchCalls++
+	f.submitBranch = branchID
+	f.submitBranchText = append(f.submitBranchText, text)
+	result, err := f.Submit(ctx, text)
+	return result, f.submitID, err
+}
+
 func (f *fakeSession) LookupInput(_ context.Context, branchID, submissionID string) (appserver.InputLookupResult, error) {
 	f.lookupCalls++
 	f.lookupBranch, f.lookupSubmission = branchID, submissionID
 	return f.lookupResult, f.lookupErr
+}
+
+// LookupInputBranch records that the read-back named an explicit branch.
+func (f *fakeSession) LookupInputBranch(ctx context.Context, branchID, submissionID string) (appserver.InputLookupResult, error) {
+	f.lookupBranchCalls++
+	return f.LookupInput(ctx, branchID, submissionID)
 }
 
 func (f *fakeSession) Reattach(context.Context) error {
@@ -257,6 +280,13 @@ func (f *fakeSession) Stop(context.Context) error {
 		f.stopped <- struct{}{}
 	}
 	return f.stopErr
+}
+
+// StopBranch records the branch the stop named and takes the same stop path.
+func (f *fakeSession) StopBranch(ctx context.Context, branchID string) error {
+	f.stopBranchCalls++
+	f.stopBranch = branchID
+	return f.Stop(ctx)
 }
 
 func (f *fakeSession) RespondApproval(_ context.Context, branchID, requestID, decision string) (appserver.ApprovalRespondOutcome, error) {
