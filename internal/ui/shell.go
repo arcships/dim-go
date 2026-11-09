@@ -20,7 +20,6 @@ package ui
 
 import (
 	"github.com/egoist/mygo/ui"
-	"github.com/egoist/mygo/ui/markdown"
 )
 
 // ComposerShortcutKey is the key of the shell's shortcut that moves the
@@ -248,9 +247,6 @@ type State struct {
 	// sidebar is the thread list's place, choice and row layout: the list's own
 	// view state, not session facts. See sidebarState.
 	sidebar sidebarState
-	// markdown is the shared Markdown options of every assistant row, whose
-	// theme follows the window's.
-	markdown markdown.Options
 	// composerFocus is the composer's identity, for the shortcut that moves the
 	// keyboard focus to it.
 	composerFocus ui.Handle
@@ -439,7 +435,6 @@ func (s *State) timelineView() TimelineView {
 		Closed:   s.SessionClosed,
 		list:     &s.conversation,
 		folds:    &s.folds,
-		markdown: &s.markdown,
 	}
 }
 

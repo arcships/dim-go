@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/egoist/mygo/ui"
-	"github.com/egoist/mygo/ui/markdown"
 )
 
 // BlockKind decides how one block of an assistant turn renders.
@@ -217,7 +216,7 @@ func assistantRow(c *ui.Context, k tokens, v TimelineView, m Message) {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		if len(m.Blocks) == 0 {
 			if m.Content != "" {
-				markdown.View(c, m.Content, v.markdown)
+				renderMarkdownContent(c, k, m.Content, MarkdownOptions{})
 			}
 			return
 		}
@@ -242,7 +241,7 @@ func blockView(c *ui.Context, k tokens, v TimelineView, rowID string, index int,
 		fileChangesBlock(c, k, block.Files)
 	default:
 		if block.Content != "" {
-			markdown.View(c, block.Content, v.markdown)
+			renderMarkdownContent(c, k, block.Content, MarkdownOptions{})
 		}
 	}
 }
