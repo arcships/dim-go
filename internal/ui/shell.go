@@ -1193,6 +1193,13 @@ func (s *State) actions() Actions {
 		// Notices are window-owned display state; dismissing them clears the
 		// banner without touching any App Server fact.
 		OnDismissNotices: s.dismissNotices,
+		// Copying the conversation id is the window's own action too: the
+		// region writes the clipboard, since only a frame has the window's
+		// services, and the shell records the muted outcome line here. It sends
+		// no request and stores no session fact.
+		OnCopySessionID: func(string) {
+			s.ActionStatus = copyIDStatus
+		},
 		// The context panel toggle is the shell's own state too: the panel
 		// displays the caller's ContextPanel copy and sends no request, so the
 		// entry needs no caller callback. It stays wired and the toolbar offers

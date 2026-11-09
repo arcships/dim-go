@@ -327,9 +327,10 @@ func TestSessionMenuEndsOnlyANonMainBranch(t *testing.T) {
 
 // TestSessionMenuMarksMissingCallbacksAsWIP checks every menu entry the shell
 // cannot carry out: it stays visible, disabled, marked WIP and explained with
-// the method or fact it waits on, while the desktop-local settings entry stays
-// usable. The first group's entries wait on a client or callback the shell does
-// not have at all; Pin, Rename and Archive reuse the sidebar's reasons.
+// the method or fact it waits on, while the desktop-local settings entry and
+// the local Copy conversation ID entry stay usable. The first group's entries
+// wait on a client or callback the shell does not have at all; Pin, Rename and
+// Archive reuse the sidebar's reasons.
 func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 	s := fixture()
 	s.SelectedBranch = "side"
@@ -345,7 +346,6 @@ func TestSessionMenuMarksMissingCallbacksAsWIP(t *testing.T) {
 		{menuText(LocaleEN, keyHeaderMenuExport), menuText(LocaleEN, keyReasonExport)},
 		{menuText(LocaleEN, keySidebarArchive), tr(LocaleEN, keyReasonArchive)},
 		{menuText(LocaleEN, keyHeaderMenuCopyLink), menuText(LocaleEN, keyReasonCopyLink)},
-		{menuText(LocaleEN, keyHeaderMenuCopyID), menuText(LocaleEN, keyReasonCopyID)},
 		{menuText(LocaleEN, keyHeaderMenuCopyDebug), menuText(LocaleEN, keyReasonCopyDebug)},
 		{tr(LocaleEN, keySidebarKeys), tr(LocaleEN, keyReasonKeysEntry)},
 		{tr(LocaleEN, keySidebarEndBranch), tr(LocaleEN, keyReasonEndBranch)},
@@ -831,5 +831,102 @@ func TestSessionMenuTogglesPinAndArchive(t *testing.T) {
 	clickMenuItem(t, tt, tr(LocaleEN, keySidebarUnarchive))
 	if archives != 2 || len(s.Archived) != 0 {
 		t.Fatalf("Unarchive ran %d time(s) total, archived=%v, want the second toggle", archives, s.Archived)
+	}
+}
+
+// TestSessionMenuCopiesTheConversationID checks the menu's one local entry end
+// to end: Copy conversation ID is usable while a session identity is selected,
+// a click puts exactly that id on the system clipboard, the menu closes, and
+// the banner shows the muted "Copied conversation ID" outcome. The id is a fact
+// the shell already displays, so no App Server request is behind it.
+func TestSessionMenuCopiesTheConversationID(t *testing.T) {
+	s := fixture()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 600)
+	if got := tt.Clipboard(); got != "" {
+		t.Fatalf("the clipboard starts with %q", got)
+	}
+
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	label := menuText(LocaleEN, keyHeaderMenuCopyID)
+	info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+	if !ok {
+		t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+	}
+	if info.Disabled {
+		t.Fatalf("%q is disabled although a session identity is selected", label)
+	}
+	clickMenuItem(t, tt, label)
+	if got, want := tt.Clipboard(), s.Selected; got != want {
+		t.Errorf("copying put %q on the clipboard, want the selected session's id %q", got, want)
+	}
+	tt.Frame()
+	if s.ActionStatus != copyIDStatus {
+		t.Errorf("the copy recorded %q as the action status, want %q", s.ActionStatus, copyIDStatus)
+	}
+	if !tt.HasText(copyIDStatus) {
+		t.Errorf("the banner does not say %q, texts %q", copyIDStatus, tt.Texts())
+	}
+	k := newTokens(theme)
+	status := textBox(t, tt, copyIDStatus)
+	if _, muted := colorBox(tt, status, k.mutedForeground); muted == 0 {
+		t.Error("the copy notice is not drawn muted")
+	}
+	if _, danger := colorBox(tt, status, k.danger); danger != 0 {
+		t.Error("the copy notice is drawn as a failure")
+	}
+	if got := tt.Menu(); len(got) != 0 {
+		t.Errorf("choosing the entry left the menu open: %q", got)
+	}
+}
+
+// TestSessionMenuCopiesWithoutAWindowCallback checks the region on its own: the
+// clipboard write needs no window callback, so the entry copies the id even
+// when Actions carries no copy action, and the missing status line is the only
+// difference.
+func TestSessionMenuCopiesWithoutAWindowCallback(t *testing.T) {
+	v := fixture().headerView()
+	tt := headerTestView(v, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	clickMenuItem(t, tt, menuText(LocaleEN, keyHeaderMenuCopyID))
+	if got, want := tt.Clipboard(), v.SessionID; got != want {
+		t.Errorf("copying put %q on the clipboard, want the selected session's id %q", got, want)
+	}
+	if tt.HasText(copyIDStatus) {
+		t.Errorf("a region without copy callbacks drew the outcome %q", copyIDStatus)
+	}
+}
+
+// TestSessionMenuCopyIDWithoutAnIdentityStaysWIP checks the entry's visible
+// state with no selected identity: there is no id to copy, so the item keeps
+// its WIP mark and reason and a click writes nothing.
+func TestSessionMenuCopyIDWithoutAnIdentityStaysWIP(t *testing.T) {
+	v := fixture().headerView()
+	v.SessionID = ""
+	tt := headerTestView(v, 900, 600)
+	if err := tt.Click(tr(LocaleEN, keyHeaderMenu)); err != nil {
+		t.Fatal(err)
+	}
+	label := menuText(LocaleEN, keyHeaderMenuCopyID)
+	info, ok := tt.AccessByRole(ui.RoleMenuItem, label)
+	if !ok {
+		t.Fatalf("the menu has no %q item, texts %q", label, tt.Texts())
+	}
+	if !info.Disabled {
+		t.Errorf("%q is available without a session identity", label)
+	}
+	if reason := menuText(LocaleEN, keyReasonCopyID); !strings.Contains(info.Description, reason) {
+		t.Errorf("%q description %q does not name %q", label, info.Description, reason)
+	}
+	clickMenuItem(t, tt, label)
+	if got := tt.Clipboard(); got != "" {
+		t.Errorf("clicking the WIP entry put %q on the clipboard", got)
 	}
 }

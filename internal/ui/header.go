@@ -96,10 +96,12 @@ const (
 
 // The session menu's entries the App Server does not offer yet. The menu draws
 // them as WIP so the reference's structure is visible without pretending an
-// action the shell cannot carry out. Their message entries belong in i18n.go
-// beside the other header and reason keys; until that table carries them,
-// menuText falls back to the English constants below rather than drawing a raw
-// key, and the fallback goes away with the table entries.
+// action the shell cannot carry out. Copy conversation ID is not one of them:
+// the id is a fact the App Server already reported, so the menu copies it
+// locally and only its no-identity state is WIP. The message entries belong in
+// i18n.go beside the other header and reason keys; until that table carries
+// them, menuText falls back to the English constants below rather than drawing
+// a raw key, and the fallback goes away with the table entries.
 const (
 	keyHeaderMenuOpenInNewWindow = "header.menu.openInNewWindow"
 	keyHeaderMenuExport          = "header.menu.export"
@@ -116,14 +118,23 @@ const (
 
 // The English text of the entries above: the labels the reference's menu draws
 // and the reason each one waits on. Pin, Rename and Archive already have their
-// text in i18n.go; only these five entries and their reasons are new.
+// text in i18n.go; only these entries and their reasons are new. Copy
+// conversation ID's reason is what its no-identity state says: the entry itself
+// is a local action now, so its reason names the only gap left.
 const (
 	reasonOpenInNewWindow = "Unavailable: the shell has no second-window client for opening a session yet."
 	reasonExport          = "Unavailable: the shell has no conversation export client or App Server export method yet."
 	reasonCopyLink        = "Unavailable: the shell has no conversation-link fact for the selected session yet."
-	reasonCopyID          = "Unavailable: the window has no copy action for the selected session yet."
+	reasonCopyID          = "Unavailable: no session identity is selected, so there is no conversation id to copy."
 	reasonCopyDebug       = "Unavailable: the shell keeps no debug snapshot of the selected session yet."
 )
+
+// copyIDStatus is the muted line the notice strip shows after the menu copied
+// the selected session's id. It is the window's own outcome, not an App Server
+// fact: the region writes the clipboard and tells the shell through
+// Actions.OnCopySessionID, which records this line and sends nothing. It stays
+// an English constant until i18n.go carries a key for it.
+const copyIDStatus = "Copied conversation ID"
 
 // headerMenuFallbacks is the English text of the menu keys i18n.go does not
 // carry yet. It is a stand-in for the table entries, not a second language
@@ -246,7 +257,9 @@ func breadcrumb(c *ui.Context, k tokens, v HeaderView, locale Locale) {
 // session's own entries: pin, rename, open in a new window, export, archive and
 // the three copy entries. Pin and Archive are wired to the window's
 // desktop-local display lists and toggle with the state HeaderView reports;
-// Rename opens the window's title dialog when that callback exists; the rest
+// Rename opens the window's title dialog when that callback exists; Copy
+// conversation ID copies the selected id to the system clipboard and records a
+// muted outcome, because the id is a fact the shell already displays. The rest
 // stay visible, disabled and explained as WIP with the gap they wait on. The
 // second group keeps the entries the shell does have: the keys browser, ending
 // a non-main branch, refreshing the branch directory, deleting the session
@@ -301,7 +314,16 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			}
 		}
 		menuWIP(m, menuText(locale, keyHeaderMenuCopyLink), menuText(locale, keyReasonCopyLink))
-		menuWIP(m, menuText(locale, keyHeaderMenuCopyID), menuText(locale, keyReasonCopyID))
+		// Copying the id is the window's own action: the id is a fact the App
+		// Server already reported, so the region writes it to the system
+		// clipboard itself and tells the shell, which shows the muted outcome.
+		// With no selected identity there is nothing to copy, and the entry
+		// stays the menu's WIP statement.
+		if v.SessionID == "" {
+			menuWIP(m, menuText(locale, keyHeaderMenuCopyID), menuText(locale, keyReasonCopyID))
+		} else if menuItem(m, menuText(locale, keyHeaderMenuCopyID)).Chosen() {
+			copyConversationID(c, v.SessionID, a)
+		}
 		menuWIP(m, menuText(locale, keyHeaderMenuCopyDebug), menuText(locale, keyReasonCopyDebug))
 		m.Separator()
 		if a.OnToggleKeys == nil {
@@ -363,6 +385,19 @@ func menuItem(m *ui.Menu, label string) *ui.MenuItem {
 // it explains the entry without a second line that would break the 28 DIP row.
 func menuWIP(m *ui.Menu, label, reason string) {
 	menuItem(m, label).Disabled(true).Trailing(wipBadge).Tooltip(reason)
+}
+
+// copyConversationID copies the selected session's id to the system clipboard.
+// The id is a fact the App Server already reported, so this is a window action
+// with no request behind it: the region writes the clipboard through the
+// window's service and the shell records the muted outcome line through
+// Actions.OnCopySessionID. It sends nothing and changes no session fact. A
+// window without that callback still copies; only the status line is missing.
+func copyConversationID(c *ui.Context, sessionID string, a Actions) {
+	c.Services().WriteClipboard(sessionID)
+	if a.OnCopySessionID != nil {
+		a.OnCopySessionID(sessionID)
+	}
 }
 
 // deleteConfirmation draws the alert the menu's delete entry opens. The alert
