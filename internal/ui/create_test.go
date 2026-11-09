@@ -77,8 +77,8 @@ func TestCreateSessionDisabledWhileCreating(t *testing.T) {
 }
 
 // TestCreateSessionWithoutCallbackStaysWIP checks the unwired shell: the entry
-// keeps its place, stays unavailable, and names session.create as the missing
-// piece instead of disappearing or pretending the action ran.
+// keeps its place, stays unavailable, and names session.create in its
+// description and tooltip instead of a visible badge.
 func TestCreateSessionWithoutCallbackStaysWIP(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
@@ -92,9 +92,6 @@ func TestCreateSessionWithoutCallbackStaysWIP(t *testing.T) {
 	}
 	if !strings.Contains(info.Description, "session.create") {
 		t.Errorf("description %q does not name session.create", info.Description)
-	}
-	if !strings.Contains(info.Description, wipBadge) {
-		t.Errorf("description %q does not include the visible %q badge", info.Description, wipBadge)
 	}
 	if err := tt.Click("New session"); err != nil {
 		t.Fatal(err)

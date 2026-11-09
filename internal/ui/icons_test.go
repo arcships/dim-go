@@ -105,7 +105,6 @@ func sidebarGlyphCasesInTheFrame() []glyphCase {
 		{"Search sessions", true},
 		{"Scheduled tasks", true},
 		{"Skills and plugins", true},
-		{"Session keys", true},
 		{"Sessions", false},
 		{"alpha", true},
 		{"Sign in to Dim", true},
@@ -183,7 +182,7 @@ func TestSidebarGlyphsKeepTheAccessibleNames(t *testing.T) {
 	s := glyphFixtureState()
 	tt, _ := glyphTester(t, s)
 
-	for _, name := range []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins", "Session keys"} {
+	for _, name := range []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins"} {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)
 		if !ok {
 			t.Errorf("%q is not exposed as a button, texts %q", name, tt.Texts())
@@ -197,7 +196,7 @@ func TestSidebarGlyphsKeepTheAccessibleNames(t *testing.T) {
 	if search.Disabled {
 		t.Error("the search entry is unavailable although its filter is local")
 	}
-	for _, name := range []string{"New session", "Scheduled tasks", "Skills and plugins", "Session keys", "Sign in to Dim"} {
+	for _, name := range []string{"New session", "Scheduled tasks", "Skills and plugins", "Sign in to Dim"} {
 		info, ok := tt.AccessByRole(ui.RoleButton, name)
 		if !ok {
 			t.Errorf("%q is not exposed as a button, texts %q", name, tt.Texts())
@@ -223,8 +222,8 @@ func TestSidebarGlyphsAddNoTabStop(t *testing.T) {
 	tt, _ := glyphTester(t, s)
 
 	for _, want := range []string{
-		"Update", "New session", "Search sessions", "Scheduled tasks",
-		"Skills and plugins", "Session keys", "Group", "Sessions",
+		"New session", "Search sessions", "Scheduled tasks",
+		"Skills and plugins", "Sessions",
 	} {
 		tt.Key(0, ui.KeyTab)
 		if !tt.Focused(want) {

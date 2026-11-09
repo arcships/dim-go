@@ -118,6 +118,10 @@ const (
 	// SettingsSectionAppearance is the color, type, layout, skin and language
 	// page. It is the zero value and the surface's default.
 	SettingsSectionAppearance SettingsSection = iota
+	// SettingsSectionCapabilities is the read-only list of capabilities this
+	// shell has not wired yet. It moved here from the sidebar, which the
+	// reference keeps free of product-status cards.
+	SettingsSectionCapabilities
 	// SettingsSectionAccount is the account and sign-in page.
 	SettingsSectionAccount
 	// SettingsSectionUsage is the usage and spend page.
@@ -161,6 +165,7 @@ var settingsSections = [...]SettingsSection{
 	SettingsSectionUsage,
 	SettingsSectionPersonalization,
 	SettingsSectionAppearance,
+	SettingsSectionCapabilities,
 	SettingsSectionGeneral,
 	SettingsSectionShortcuts,
 	SettingsSectionModels,
@@ -187,9 +192,9 @@ func resolvedSection(s SettingsSection) SettingsSection {
 }
 
 // settingsSectionName is the section's English name, used for the page heading
-// and the navigation row. Only Appearance has a message key today; the other
-// pages are not built, so their names stay English until i18n.go carries the
-// settings.section.* keys.
+// and the navigation row. Only Appearance and the capability list have pages
+// today; the other pages are not built, so their names stay English until
+// i18n.go carries the settings.section.* keys.
 func settingsSectionName(s SettingsSection) string {
 	switch s {
 	case SettingsSectionAccount:
@@ -198,6 +203,8 @@ func settingsSectionName(s SettingsSection) string {
 		return "Usage"
 	case SettingsSectionPersonalization:
 		return "Personalization"
+	case SettingsSectionCapabilities:
+		return "Unavailable capabilities"
 	case SettingsSectionGeneral:
 		return "General"
 	case SettingsSectionShortcuts:
@@ -236,6 +243,11 @@ func settingsSectionLabel(l Locale, s SettingsSection) string {
 	if s == SettingsSectionAppearance {
 		return tr(l, keySettingsTitle)
 	}
+	if s == SettingsSectionCapabilities {
+		// The shell has no settings.section.capabilities key yet; the
+		// capability group's existing label names the page in both languages.
+		return tr(l, keyCapabilityGroup)
+	}
 	return tr(l, "settings.section."+settingsSectionSlug(s))
 }
 
@@ -249,6 +261,8 @@ func settingsSectionSlug(s SettingsSection) string {
 		return "usage"
 	case SettingsSectionPersonalization:
 		return "personalization"
+	case SettingsSectionCapabilities:
+		return "capabilities"
 	case SettingsSectionGeneral:
 		return "general"
 	case SettingsSectionShortcuts:
@@ -637,7 +651,7 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 // user choice, with the resolved view, and writes no preference itself. The
 // surface's own text is drawn in the language the view names, so a language
 // choice shows on the next frame.
-func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
+func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, onChange func(SettingsChange)) {
 	v = resolveSettings(k, v)
 	l := v.Locale
 	row := ui.Row(c).Fill().Role(ui.RoleRegion).Label(tr(l, keyHeaderSettings))
@@ -653,7 +667,7 @@ func renderSettings(c *ui.Context, k tokens, v SettingsView, onChange func(Setti
 	*section = resolvedSection(*section)
 	row.Children(func() {
 		settingsNavigation(c, k, l, section)
-		settingsPage(c, k, v, *section, onChange)
+		settingsPage(c, k, v, capabilities, *section, onChange)
 	})
 }
 
@@ -693,16 +707,23 @@ func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSect
 }
 
 // settingsPage draws the right-hand page. The appearance page is the only one
-// with controls; every other page draws its title, a WIP badge and the client
-// or page it waits on, so the section never pretends a preference was read.
-func settingsPage(c *ui.Context, k tokens, v SettingsView, section SettingsSection, onChange func(SettingsChange)) {
+// with controls; the capability page lists the shell's unwired actions, and
+// every other page draws its title, a WIP badge and the client or page it waits
+// on, so the section never pretends a preference was read.
+func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, section SettingsSection, onChange func(SettingsChange)) {
 	l := v.Locale
 	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(settingsPageMaxW).Padding(k.panelPad).Gap(k.panelPad).
 			Children(func() {
 				ui.Text(c, settingsSectionLabel(l, section)).Bold().FontSize(k.titleSize).
 					TextColor(k.foreground).Role(ui.RoleHeading).Level(1)
-				if section != SettingsSectionAppearance {
+				switch section {
+				case SettingsSectionCapabilities:
+					settingsCapabilitiesPage(c, k, v, capabilities)
+					return
+				case SettingsSectionAppearance:
+					// The appearance page is the one with controls.
+				default:
 					settingsWIPPage(c, k, section, v.Locale)
 					return
 				}
@@ -722,6 +743,27 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, section SettingsSecti
 				settingsLanguageSection(c, k, v, onChange)
 			})
 	})
+}
+
+// settingsCapabilitiesNote explains the capabilities page. There is no message
+// key for it yet, so it stays English in every language; the section heading
+// reuses the capability group's translated label.
+const settingsCapabilitiesNote = "These actions have no client, page or callback wired in this shell yet. Each card names the entry it waits on; nothing here can be clicked."
+
+// settingsCapabilitiesPage lists the actions the shell has not wired, as the
+// sidebar used to. It reads the list the shell assembled and offers no control,
+// so a reader can learn what is missing without a click that could imply the
+// capability exists. The server-owned facts behind each card stay in the App
+// Server; only the product status is drawn here.
+func settingsCapabilitiesPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability) {
+	l := v.Locale
+	ui.Text(c, settingsCapabilitiesNote).FontSize(k.smallSize).TextColor(k.mutedForeground)
+	ui.Column(c).FillWidth().Gap(k.gap).Role(ui.RoleGroup).Label(tr(l, keyCapabilityGroup)).
+		Children(func() {
+			for _, capability := range capabilities {
+				capabilityCard(c, k, l, capability)
+			}
+		})
 }
 
 // settingsWIPPage explains a section the shell has no page for: the visible

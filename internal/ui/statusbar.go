@@ -2,6 +2,10 @@
 // current context usage, the model, the account's plan usage and the App Server
 // connection. It reads StatusBarView only (see statusbar.go's own contract
 // below) and draws no fact of its own.
+//
+// The shell no longer draws this bar: the reference has none, and the status
+// readings move to the composer's context row, which another owner is changing.
+// The renderer and its tests stay for that work.
 package ui
 
 import (

@@ -13,9 +13,10 @@ import (
 // will. The surface's section selection is its own frame-to-frame state, so it
 // is not part of the view the harness folds.
 type settingsHarness struct {
-	view    SettingsView
-	changes []SettingsChange
-	tt      *ui.Tester
+	view         SettingsView
+	capabilities []wipCapability
+	changes      []SettingsChange
+	tt           *ui.Tester
 }
 
 // newSettingsHarness draws view and records every change the surface reports.
@@ -28,7 +29,7 @@ func newSettingsHarness(view SettingsView) *settingsHarness {
 func newSettingsHarnessAt(view SettingsView, width, height int) *settingsHarness {
 	h := &settingsHarness{view: view}
 	h.tt = ui.NewTester(func(c *ui.Context) {
-		renderSettings(c, newTokens(c.Theme()), h.view, func(change SettingsChange) {
+		renderSettings(c, newTokens(c.Theme()), h.view, h.capabilities, func(change SettingsChange) {
 			h.changes = append(h.changes, change)
 			h.view = applySettingsChange(h.view, change)
 		})
@@ -118,7 +119,7 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 // the appearance page open and marked as the selected row.
 func TestSettingsSectionsOrder(t *testing.T) {
 	want := []string{
-		"Account", "Usage", "Personalization", "Appearance", "General",
+		"Account", "Usage", "Personalization", "Appearance", "Unavailable capabilities", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
 		"External Agent",
@@ -204,7 +205,7 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 // look like a saved preference.
 func TestSettingsWIPPagesOfferNoControls(t *testing.T) {
 	for _, section := range settingsSections {
-		if section == SettingsSectionAppearance {
+		if section == SettingsSectionAppearance || section == SettingsSectionCapabilities {
 			continue
 		}
 		name := settingsSectionName(section)
@@ -518,7 +519,7 @@ func TestSettingsKeyboardReachable(t *testing.T) {
 	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
 
 	want := []string{
-		"Account", "Usage", "Personalization", "Appearance", "General",
+		"Account", "Usage", "Personalization", "Appearance", "Unavailable capabilities", "General",
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
 		"External Agent",
@@ -538,5 +539,39 @@ func TestSettingsKeyboardReachable(t *testing.T) {
 		if !h.tt.Focused(name) {
 			t.Fatalf("Tab %d did not reach %q, texts %q", i+1, name, h.tt.Texts())
 		}
+	}
+}
+
+// TestSettingsCapabilitiesPage checks the page the sidebar's cards moved to: the
+// settings navigation carries "Unavailable capabilities", the page lists every
+// gap the shell has, and the sidebar itself draws none of them.
+func TestSettingsCapabilitiesPage(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 900)
+
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Unavailable capabilities"); ok {
+		t.Fatalf("the sidebar still draws the capability cards, texts %q", tt.Texts())
+	}
+	if err := tt.Click("Settings"); err != nil {
+		t.Fatal(err)
+	}
+	if err := tt.Click("Unavailable capabilities"); err != nil {
+		t.Fatal(err)
+	}
+	if info, ok := tt.AccessByRole(ui.RoleHeading, "Unavailable capabilities"); !ok || info.Level != 1 {
+		t.Fatalf("the capabilities page has no level-1 heading: %+v, found %v", info, ok)
+	}
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Unavailable capabilities"); !ok {
+		t.Fatalf("the capabilities page does not group its cards, texts %q", tt.Texts())
+	}
+	for _, capability := range wipCapabilities(s) {
+		for _, want := range []string{capability.action, capability.method, capability.gap} {
+			if !tt.HasText(want) {
+				t.Errorf("the capabilities page is missing %q, texts %q", want, tt.Texts())
+			}
+		}
+	}
+	if !tt.HasText(settingsCapabilitiesNote) {
+		t.Errorf("the capabilities page lost its note, texts %q", tt.Texts())
 	}
 }
