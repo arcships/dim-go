@@ -12,14 +12,14 @@
 |---|---|
 | 机器 | macOS 26.6.2（darwin/arm64） |
 | Go | go1.27.3 darwin/arm64 |
-| 源码 | 未连接：`HEAD = 3a5256519ea9832968f6e67e646072869eed1465`，clean（14:49）；已连接：`HEAD = 0e16ca45c4d050d38bba0c270f67cc93ee60227c`，工作区 dirty（15:07，见元数据） |
-| 构建时间 | 未连接 2026-11-09 14:49:54 CST；已连接 2026-11-09 15:07:14 CST |
+| 源码 | 两种状态都来自 `HEAD = 596ad67008a4e19cac3227ea5f7bd6e5ac573f1f`，工作区 clean（2026-11-09 15:21） |
+| 构建时间 | 2026-11-09 15:21:20 CST |
 | App Server 二进制 | `/tmp/dim-2-target/debug/dim-app-server`（Mach-O arm64，401 302 448 B，mtime 2026-11-08 23:38） |
 | 窗口库 | `github.com/egoist/mygo v0.8.3`（`mygo.NewWindow`，`Width: 1080`、`Height: 720`） |
 | 截图工具 | `/usr/sbin/screencapture -x -o -l <windowid>`（按窗口 ID 截取，只含该窗口，不含桌面和其它应用） |
 | 窗口 ID 来源 | `CGWindowListCopyWindowInfo`，按**本进程 PID** 过滤；脚本内用 `swiftc` 现场编译小工具读取 |
 
-2026-11-09 14:49 的未连接采集在 `3a52565`（主区卡片、空态 hero、composer context row、侧栏入口落地）上重跑，工作区 clean；15:07 的已连接采集在 `0e16ca4` 上重跑，工作区因 seed 脚本与证据文件更新而 dirty。`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 记录同一事实。源码再变时截图即过期，需要重跑脚本。
+2026-11-09 15:21 的这次采集在 `596ad67`（右侧 context panel、i18n、seed side branch 落地）上重跑，两种状态都记录 `git_dirty = clean`；`docs/evidence/window-*.txt` 的 `git_head` / `git_dirty` 是同一事实。源码再变时截图即过期，需要重跑脚本。
 
 ## 2. 复现命令
 
@@ -41,10 +41,10 @@ cd /Users/eric8810/Code/dimagent-mygo
 
 | 状态 | 采集时间 | 窗口 ID | 窗口位置/尺寸（points） | PNG 像素 | 字节 | PNG 路径 |
 |---|---|---|---|---|---|---|
-| 未连接 | 14:49:54 → 14:49:56 | 87019 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 276 010 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
-| 已连接（seed + side branch） | 15:07:14 → 15:07:19 | 48699 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 299 475 | [`evidence/window-connected.png`](evidence/window-connected.png) |
+| 未连接 | 15:21:20 → 15:21:25 | 48715 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 278 690 | [`evidence/window-disconnected.png`](evidence/window-disconnected.png) |
+| 已连接（seed + side branch） | 15:21:25 → 15:21:27 | 48725 | `484,116,1080,720` | 2160×1440（= 1080×720 @2x） | 300 056 | [`evidence/window-connected.png`](evidence/window-connected.png) |
 
-MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `8c3e0849c0dcaf4c3b5c48eb50457fd1`。
+MD5：未连接 `5ede22ebcef8e276f0411047290ad29a`，已连接 `b5c1fd84d122c549a7b447215f8f62ec`。
 
 机器可读的采集元数据（脚本生成，含源码快照、PID、窗口 ID、bounds、daemon 命令行）：
 [`evidence/window-disconnected.txt`](evidence/window-disconnected.txt)、[`evidence/window-connected.txt`](evidence/window-connected.txt)。
@@ -52,7 +52,7 @@ MD5：未连接 `98e01aacf375773dacb6691c40f28be0`，已连接 `8c3e0849c0dcaf4c
 已连接态截图时真实在跑的 daemon（取自元数据）：
 
 ```
-94135 /tmp/dim-2-target/debug/dim-app-server
+97432 /tmp/dim-2-target/debug/dim-app-server
       --unix <tmp>/dimagent-seeded-home.eClAW8/rust/daemon.sock --no-ws
       --home <tmp>/dimagent-seeded-home.eClAW8/rust
       --product-home <tmp>/dimagent-seeded-home.eClAW8

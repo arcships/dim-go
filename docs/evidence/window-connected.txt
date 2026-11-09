@@ -1,16 +1,16 @@
 state	connected
-started_at	2026-11-09 15:07:14 CST
-captured_at	2026-11-09 15:07:19 CST
-built_at	2026-11-09 15:07:14 CST
-git_head	0e16ca45c4d050d38bba0c270f67cc93ee60227c
-git_dirty	 M docs/evidence/window-connected.png; M docs/evidence/window-connected.txt; M scripts/seed-session/main.go;
+started_at	2026-11-09 15:21:25 CST
+captured_at	2026-11-09 15:21:27 CST
+built_at	2026-11-09 15:21:20 CST
+git_head	596ad67008a4e19cac3227ea5f7bd6e5ac573f1f
+git_dirty	clean
 product_home	/tmp/dimagent-seeded-home.eClAW8
-app_pid	94124
-window_id	48699
+app_pid	97426
+window_id	48725
 window_title	DimAgent
 window_bounds_points	484,116,1080,720
 png	docs/evidence/window-connected.png
 png_pixels	2160 1440
-png_bytes	299475
-daemon	94135 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dimagent-seeded-home.eClAW8/rust/daemon.sock --no-ws --home /private/tmp/dimagent-seeded-home.eClAW8/rust --product-home /tmp/dimagent-seeded-home.eClAW8
+png_bytes	300056
+daemon	97432 /tmp/dim-2-target/debug/dim-app-server --unix /private/tmp/dimagent-seeded-home.eClAW8/rust/daemon.sock --no-ws --home /private/tmp/dimagent-seeded-home.eClAW8/rust --product-home /tmp/dimagent-seeded-home.eClAW8
 app_log	
