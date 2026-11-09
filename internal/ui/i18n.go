@@ -219,6 +219,8 @@ const (
 	keyHeroSubtitle         = "hero.subtitle"
 	keyComposerWorkspace    = "composer.workspace"
 	keyComposerPermission   = "composer.permission"
+	keyComposerBranch       = "composer.branch"
+	keyComposerContextUsage = "composer.contextUsage"
 	keySidebarScheduled     = "sidebar.scheduled"
 	keySidebarSkills        = "sidebar.skills"
 	keySidebarAccount       = "sidebar.account"
@@ -264,6 +266,8 @@ var stringsEN = Strings{
 	keyHeroSubtitle:            "Ask DimAgent to change code, run a command or explain a session.",
 	keyComposerWorkspace:       "Workspace",
 	keyComposerPermission:      "Default permissions",
+	keyComposerBranch:          "Session branch",
+	keyComposerContextUsage:    "Context usage",
 	keySettingsNavigation:      "Settings sections",
 	keyContextPanelToggle:      "Context panel",
 	"settings.section.account": "Account", "settings.section.usage": "Usage",
@@ -420,6 +424,8 @@ var stringsZHCN = Strings{
 	keyHeroSubtitle:            "让 DimAgent 改代码、跑命令，或解释一个会话。",
 	keyComposerWorkspace:       "工作区",
 	keyComposerPermission:      "默认权限",
+	keyComposerBranch:          "会话分支",
+	keyComposerContextUsage:    "上下文占用",
 	keySettingsNavigation:      "设置分区",
 	keyContextPanelToggle:      "上下文面板",
 	"settings.section.account": "账户", "settings.section.usage": "用量",

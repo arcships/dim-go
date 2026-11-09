@@ -236,7 +236,7 @@ func TestComposerContextBranchAndMeterInsideCard(t *testing.T) {
 	if !ok {
 		t.Fatalf("the tool row is not drawn, texts %q", tt.Texts())
 	}
-	for _, label := range []string{composerBranchKey, composerContextUsageKey} {
+	for _, label := range []string{tr(LocaleEN, composerBranchKey), tr(LocaleEN, composerContextUsageKey)} {
 		rect, ok := tt.Find(label)
 		if !ok {
 			t.Fatalf("%s is not drawn, texts %q", label, tt.Texts())

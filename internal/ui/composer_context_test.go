@@ -47,7 +47,7 @@ func TestComposerContextRowShowsFacts(t *testing.T) {
 		}
 	}
 
-	for _, label := range []string{"Workspace", "Default permissions", composerBranchKey} {
+	for _, label := range []string{"Workspace", "Default permissions", tr(LocaleEN, composerBranchKey)} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, label)
 		if !ok {
 			t.Fatalf("%s is not a named group, texts %q", label, tt.Texts())
@@ -57,7 +57,7 @@ func TestComposerContextRowShowsFacts(t *testing.T) {
 				label, info.Disabled, info.Focusable)
 		}
 	}
-	branch, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey)
+	branch, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, composerBranchKey))
 	if !ok {
 		t.Fatalf("the session branch is not a named group, texts %q", tt.Texts())
 	}
@@ -106,7 +106,7 @@ func TestComposerContextRowShowsNoWipWithoutFacts(t *testing.T) {
 	}{
 		{"Workspace", reasonWorkspace},
 		{"Default permissions", reasonPermission},
-		{composerContextUsageKey, reasonContext},
+		{tr(LocaleEN, composerContextUsageKey), reasonContext},
 	} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, tc.label)
 		if !ok {
@@ -127,7 +127,7 @@ func TestComposerContextRowShowsNoWipWithoutFacts(t *testing.T) {
 			t.Errorf("%s has no visible area: %+v", tc.label, rect)
 		}
 	}
-	if _, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey); ok {
+	if _, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, composerBranchKey)); ok {
 		t.Error("the row draws a branch entry although the view carries no branch")
 	}
 	if tt.HasText("main") {
@@ -176,7 +176,7 @@ func TestComposerContextMeterDrawsKnownUsage(t *testing.T) {
 		composer(c, newTokens(c.Theme()), view, Actions{})
 	}, 720, 480)
 
-	entry, ok := tt.AccessByRole(ui.RoleGroup, composerContextUsageKey)
+	entry, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, composerContextUsageKey))
 	if !ok {
 		t.Fatalf("the context meter is not a named group, texts %q", tt.Texts())
 	}
@@ -217,11 +217,11 @@ func TestComposerContextRowOrder(t *testing.T) {
 	if !ok {
 		t.Fatalf("the permission entry is not drawn, texts %q", tt.Texts())
 	}
-	branch, ok := tt.Find(composerBranchKey)
+	branch, ok := tt.Find(tr(LocaleEN, composerBranchKey))
 	if !ok {
 		t.Fatalf("the branch entry is not drawn, texts %q", tt.Texts())
 	}
-	meter, ok := tt.Find(composerContextUsageKey)
+	meter, ok := tt.Find(tr(LocaleEN, composerContextUsageKey))
 	if !ok {
 		t.Fatalf("the context meter is not drawn, texts %q", tt.Texts())
 	}
@@ -333,7 +333,7 @@ func TestComposerContextRowKeepsTabOrder(t *testing.T) {
 	if !tt.Focused("Composer") {
 		t.Fatalf("Tab does not reach the editor next, texts %q", tt.Texts())
 	}
-	for _, label := range []string{"Workspace", "Default permissions", composerBranchKey, composerContextUsageKey} {
+	for _, label := range []string{"Workspace", "Default permissions", tr(LocaleEN, composerBranchKey), tr(LocaleEN, composerContextUsageKey)} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, label)
 		if !ok {
 			t.Fatalf("%s is not drawn, texts %q", label, tt.Texts())
@@ -376,7 +376,7 @@ func TestComposerContextRowFitsNarrowWindow(t *testing.T) {
 	if !ok {
 		t.Fatalf("the permission entry is not drawn, texts %q", tt.Texts())
 	}
-	meter, ok := tt.Find(composerContextUsageKey)
+	meter, ok := tt.Find(tr(LocaleEN, composerContextUsageKey))
 	if !ok {
 		t.Fatalf("the context meter is not drawn, texts %q", tt.Texts())
 	}
@@ -431,7 +431,7 @@ func TestShellComposerContextRowIsWIP(t *testing.T) {
 	}{
 		{"Workspace", reasonWorkspace},
 		{"Default permissions", reasonPermission},
-		{composerContextUsageKey, reasonContext},
+		{tr(LocaleEN, composerContextUsageKey), reasonContext},
 	} {
 		info, ok := tt.AccessByRole(ui.RoleGroup, tc.label)
 		if !ok {
@@ -445,7 +445,7 @@ func TestShellComposerContextRowIsWIP(t *testing.T) {
 	if !tt.HasText(composerMeterDash) {
 		t.Errorf("the unknown context meter draws no dash, texts %q", tt.Texts())
 	}
-	if _, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey); ok {
+	if _, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, composerBranchKey)); ok {
 		t.Error("the shell draws a branch entry although no branch is selected")
 	}
 }
@@ -458,7 +458,7 @@ func TestShellComposerShowsSelectedBranch(t *testing.T) {
 	s.SelectedBranch = "feat/composer-context"
 	tt := ui.NewTester(s.View, 900, 600)
 
-	info, ok := tt.AccessByRole(ui.RoleGroup, composerBranchKey)
+	info, ok := tt.AccessByRole(ui.RoleGroup, tr(LocaleEN, composerBranchKey))
 	if !ok {
 		t.Fatalf("the branch entry is not drawn by the shell, texts %q", tt.Texts())
 	}
