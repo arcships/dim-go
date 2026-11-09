@@ -43,10 +43,28 @@ const noCodeLanguage = "text"
 
 // The content layer's own steps.
 const (
+	// bodyLineHeight is how many times its size a line of body text is, as
+	// markstream-vue's --ms-leading-body sets 1.75 and the renderer's
+	// timeline-markdown.css leaves at the package default. mygo's own
+	// default is 1.5, which reads tighter than the reference.
+	bodyLineHeight = 1.75
+
+	// codeLineHeight is how many times its size a line of code is: the
+	// renderer lays code out in a 20 DIP line box on 13 DIP code
+	// (useMarkdownRender.ts: codeBlockLineHeight), 1.54 rounded to 1.5.
+	// The code size itself is a separate gap (inlineCodeSize).
+	codeLineHeight = 1.5
+
 	// codeHeadRise is how far a code block's head lifts off the block's
 	// face, as the renderer's --code-header-bg mixes 8% of the foreground
 	// into the code background (styles/timeline-markdown.css:48).
 	codeHeadRise = 0.08
+
+	// codeHeadLabelSize and codeHeadLabelWeight are the head's language
+	// label: the renderer's .code-header-title sets --ms-text-label,
+	// 0.75rem, at font-weight 500, over the muted color of --code-action-fg.
+	codeHeadLabelSize   = 0.75
+	codeHeadLabelWeight = 500
 
 	// inlineCodeSize is an inline code span's size in ems, as the
 	// renderer's .inline-code sets 0.875em (styles/timeline-markdown.css).
@@ -55,10 +73,25 @@ const (
 	// separate 13px of --dimcode-code-font-size; see contentTheme's gaps.
 	inlineCodeSize = 0.875
 
-	// tableHeaderRise is how far a table's header row lifts off the table's
-	// face. mygo has no table face of its own, so the header row is the one
-	// cell face the theme can name.
-	tableHeaderRise = 0.05
+	// inlineCodeBgAlpha is the strength of an inline code span's face, as
+	// the renderer mixes its secondary face at --inline-code-bg-strength
+	// over the content: 55% in the light appearance, 50% in the dark one
+	// (styles/timeline-markdown.css:85,122). The reference face is a wash,
+	// not a solid pill.
+	inlineCodeBgAlpha     = 0.55
+	inlineCodeBgAlphaDark = 0.50
+
+	// inlineCodeTextFade is how far an inline code span's text is mixed
+	// toward the window face, as the renderer draws the foreground at
+	// --inline-code-fg-strength: 75% in the light appearance, 70% in the
+	// dark one (styles/timeline-markdown.css:86,123).
+	inlineCodeTextFade     = 0.25
+	inlineCodeTextFadeDark = 0.30
+
+	// tableStripeAlpha is the strength of a striped table row's face, as
+	// the renderer tints tbody tr:nth-child(2n) with the muted face at 35%
+	// (markstream-vue's table-node).
+	tableStripeAlpha = 0.35
 )
 
 // MarkdownOptions are one content view's choices beyond the shell's tokens.
@@ -223,9 +256,9 @@ func contentSource(text string, linked bool) (src string, demoted bool) {
 }
 
 // contentTheme is the Markdown theme of the shell's tokens: the semantic faces
-// and colors the renderer's --markdown-* tokens name, derived from tokens here
-// so that a theme or dark-mode change carries through the content, and so that
-// no view carries a color of its own.
+// and colors the renderer's --markdown-* and markstream --ms-* tokens name,
+// derived from tokens here so that a theme or dark-mode change carries through
+// the content, and so that no view carries a color of its own.
 //
 // What mygo's public theme cannot express is kept as a documented gap rather
 // than faked with a color that would pass for it:
@@ -234,48 +267,72 @@ func contentSource(text string, linked bool) (src string, demoted bool) {
 //     corner (Size/4), but no padding and no hairline inset ring: it is a
 //     tinted run, where the renderer gives it padding 0.1em 0.35em, radius
 //     0.375em and a 0.5px inset ring (styles/timeline-markdown.css:154-163).
-//     A file chip is that run: the renderer's FileChip.vue also sets a file
-//     icon and padding, which no public option reaches inside a paragraph.
-//   - A link has one color and one weight floor for every state. The
-//     renderer's hover color and underline, and its link icon hook
-//     (Options.LinkIcon is public, the icon a view builds is not), have no
-//     slot here.
+//     A file chip is that run: the renderer's FileChip.vue instead draws a
+//     link-colored label with a file icon and no face, which no public option
+//     reaches inside a paragraph.
+//   - A link has one color and one weight floor for every state: the theme
+//     accent stands in for the renderer's --markdown-link, since the shell's
+//     tokens carry no link slot. The renderer's hover underline and its link
+//     icon hook (Options.LinkIcon is public, the icon a view builds is not)
+//     have no slot here.
 //   - A table has a border, a header face and a stripe, but no face of its
-//     own and no row hover: --markdown-table-surface and
-//     --markdown-table-row-hover stay unimplemented. The header takes a step
-//     up from the card (tableHeaderRise) because there is no table surface to
-//     tint.
+//     own and no row hover: --markdown-table-surface and the renderer's
+//     tbody tr:hover stay unimplemented, and the cell text is Text where the
+//     renderer fades it to 90%. The stripe is mygo's, which tints the first,
+//     third, … body rows where the renderer's nth-child(2n) tints the second,
+//     fourth, …
 //   - The rule color is shared by thematic breaks, heading rules and the
 //     footnote separator, so --markdown-hr cannot differ from a heading's
 //     rule.
 //   - A task list's check box draws its checked fill from Theme.Checkbox but
 //     its unchecked outline from Theme.Muted, which list markers and a code
 //     block's language share: --markdown-checkbox-border, -bg and -ring have
-//     no slots.
-//   - Headings keep mygo's scale (1.6/1.35/1.15/1/0.95/0.9em), where the
-//     renderer's timeline sets 1.25/1.1875/1.125/1.0625rem for h1–h4 and
-//     leaves h5–h6 to its own defaults (styles/timeline-markdown.css:19-24).
+//     no slots, so an unchecked box reads darker than the renderer's input
+//     border.
 //   - Code coloring is mygo's editor default, since no code theme is wired;
 //     the renderer's six code themes are deferred with the appearance
 //     surface (docs/ui-parity.md §5, step 4).
 //
-// The quote bar, its text and the strong weight follow the renderer's defaults,
-// and the muted text, the list markers and a code block's language label all
-// read from Theme.Muted, so they are tokens rather than mygo's own palette.
+// The quote bar, its text and the strong weight follow the renderer's
+// defaults, the headings keep the renderer's scale (the timeline sets
+// 1.25/1.1875/1.125/1.0625rem for h1–h4 and leaves h5–h6 at body size, all at
+// its own leading), and the muted text, the list markers and a code block's
+// language label all read from Theme.Muted, so they are tokens rather than
+// mygo's own palette.
 func contentTheme(k tokens) *markdown.Theme {
+	// The reference's inline code steps differ by appearance: its light
+	// palette keeps a slightly stronger face and text than its dark one.
+	codeBgAlpha, codeTextFade := float32(inlineCodeBgAlpha), float32(inlineCodeTextFade)
+	if k.theme.Dark {
+		codeBgAlpha, codeTextFade = inlineCodeBgAlphaDark, inlineCodeTextFadeDark
+	}
+
+	// The renderer's heading scale: h1–h4 from styles/timeline-markdown.css
+	// (1.25/1.1875/1.125/1.0625rem), h5–h6 at body size as the renderer
+	// leaves them, every level at its foreground weight of 700 for h1 and
+	// 600 for the rest, with the renderer's own room above and below.
+	headings := [6]markdown.HeadingStyle{
+		{Size: 1.25, Weight: 700, Color: k.foreground, Top: 1.5, Bottom: 0.75},
+		{Size: 1.1875, Weight: 600, Color: k.foreground, Top: 1.5, Bottom: 0.75},
+		{Size: 1.125, Weight: 600, Color: k.foreground, Top: 1, Bottom: 0.25},
+		{Size: 1.0625, Weight: 600, Color: k.foreground, Top: 1, Bottom: 0.25},
+		{Size: 1, Weight: 600, Color: k.foreground, Top: 1, Bottom: 0.25},
+		{Size: 1, Weight: 600, Color: k.foreground, Top: 1, Bottom: 0.25},
+	}
+
 	return &markdown.Theme{
-		FontSize: k.bodySize,
+		FontSize:   k.bodySize,
+		LineHeight: bodyLineHeight,
 
 		Text:   k.foreground,
 		Muted:  k.mutedForeground,
-		Link:   k.primary,
+		Link:   k.theme.Accent,
 		Strong: k.foreground,
 
-		// Inline code: the renderer's --inline-code-bg is the secondary face
-		// at about half strength; mygo has one color and no per-span alpha
-		// compositing control, so the muted face stands in for it.
-		Code:           k.foreground,
-		CodeBackground: k.muted,
+		// Inline code: the renderer's secondary face at 55%/50% strength
+		// over the content, and its foreground at 75%/70% for the text.
+		Code:           k.foreground.Mix(k.background, codeTextFade),
+		CodeBackground: k.muted.Alpha(codeBgAlpha),
 		CodeSize:       inlineCodeSize,
 
 		QuoteBar:  k.border,
@@ -295,18 +352,22 @@ func contentTheme(k tokens) *markdown.Theme {
 		// 0.85em of room inside a block: mygo's default, kept, since the
 		// renderer's pre padding is not a token.
 		CodeBlockPadding: 0.85,
+		CodeLineHeight:   codeLineHeight,
 
 		// A table's cells are a foreground at 90% in the renderer; mygo
-		// colors them with Text, so the cell text is the body text. A
-		// header row is a step up from the card, and no row is striped, as
-		// the renderer stripes none.
+		// colors them with Text, so the cell text is the body text. The
+		// header row is the muted face the renderer tints, and every other
+		// row a wash of it; see the phase gap above.
 		TableBorder:      k.border,
-		TableHeader:      k.card.Mix(k.foreground, tableHeaderRise),
-		TableCellPadding: [2]float32{0.6, 0.4},
+		TableHeader:      k.muted,
+		TableStripe:      k.muted.Alpha(tableStripeAlpha),
+		TableCellPadding: [2]float32{0.625, 0.375},
 		TableMaxColumn:   24,
 
 		// The renderer's --markdown-checkbox-checked is --primary.
 		Checkbox: k.primary,
+
+		Headings: headings,
 	}
 }
 
@@ -338,7 +399,8 @@ func codeBlock(c *ui.Context, k tokens, b *markdown.CodeBlockView) {
 		ui.Row(c).AlignItems(ui.Center).AlignSelf(ui.Stretch).
 			Background(k.card.Mix(k.foreground, codeHeadRise)).
 			Padding(k.space(1), k.space(2)).Children(func() {
-			ui.Text(c, lang).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
+			ui.Text(c, lang).FontSize(k.bodySize * codeHeadLabelSize).
+				FontWeight(codeHeadLabelWeight).TextColor(k.mutedForeground).Unselectable()
 			ui.Spacer(c)
 			b.CopyButton(c)
 		})
