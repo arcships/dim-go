@@ -362,7 +362,7 @@ const reasonKeysEntry = "Unavailable: the shell has no key browser callback whil
 // name.
 func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, enabled, disabled, selected bool, on func()) {
 	row := ui.ButtonBase(c).Key("sidebar-entry:" + label).Height(k.sidebarEntryH).FillWidth().
-		PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center).
+		PaddingX(k.sidebarPadX).Radius(k.radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center).
 		Transition(motionFastColors(c))
 	row.Label(label)
 	if enabled {
@@ -530,7 +530,7 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 	selected := row.sessionID == *v.Selected
 	line := ui.Row(c).Key("thread:"+row.sessionID).Height(sidebarThreadRowH).
 		Padding(0, k.sidebarPadX, 0, k.sidebarPadX+sidebarThreadCell).Gap(k.sidebarGap).
-		Radius(radiusMD).AlignItems(ui.Center).Transition(motionFastColors(c))
+		Radius(k.radiusMD).AlignItems(ui.Center).Transition(motionFastColors(c))
 	if on != nil {
 		line.OnClick(on)
 	}

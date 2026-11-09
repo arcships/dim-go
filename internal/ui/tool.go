@@ -221,7 +221,7 @@ func toolCard(c *ui.Context, k tokens, folds *blockFolds, key string, tool Tool)
 				Label("Tool details").Children(func() {
 				toolPanel(c, k, tool)
 			})
-		}).Margin(k.gap, 0, 0, 0).Radius(radiusMD).BorderWidth(k.hairline).
+		}).Margin(k.gap, 0, 0, 0).Radius(k.radiusMD).BorderWidth(k.hairline).
 			BorderColor(k.border).Clip()
 		// The closed card keeps at most three bounded lines of each part, so it
 		// still says what the call was without being opened. MaxLines keeps each
@@ -270,7 +270,7 @@ func toolPanelSection(c *ui.Context, k tokens, title, text string) {
 func toolStatusBadge(c *ui.Context, k tokens, status ToolStatus) {
 	color := k.toolStatusColor(status)
 	chip := func() {
-		ui.Row(c).Padding(toolBadgePadY, toolBadgePadX).Radius(radiusSM).
+		ui.Row(c).Padding(toolBadgePadY, toolBadgePadX).Radius(k.radiusSM).
 			Background(k.wash(color)).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, status.String()).FontSize(k.smallSize).TextColor(color)
 		})

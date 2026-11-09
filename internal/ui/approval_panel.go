@@ -117,7 +117,7 @@ func renderApprovalPanel(c *ui.Context, k tokens, v ApprovalView, a Actions) {
 	}
 	ui.Column(c).FillWidth().Padding(0, approvalPanelPadX, approvalPanelPadY, approvalPanelPadX).Children(func() {
 		ui.Column(c).FillWidth().MaxWidth(approvalPanelWidth).AlignSelf(ui.Center).
-			Padding(approvalCardPad).Radius(radiusMD).
+			Padding(approvalCardPad).Radius(k.radiusMD).
 			Background(k.card).Border(k.hairline, k.border).
 			Role(ui.RoleGroup).Label("Approval request").Children(func() {
 			ui.Column(c).Gap(approvalCardGap).Children(func() {
@@ -174,7 +174,7 @@ func approvalPanelInput(c *ui.Context, k tokens, input string) {
 		return
 	}
 	ui.Column(c).Padding(approvalInputPadY, approvalInputPadX, approvalInputPadY, approvalInputPadX).
-		Radius(radiusMD).Border(k.hairline, k.border).Background(k.card).Clip().
+		Radius(k.radiusMD).Border(k.hairline, k.border).Background(k.card).Clip().
 		Role(ui.RoleGroup).Label("Approval input").Children(func() {
 		ui.Scroll(c).MaxHeight(approvalInputMaxH).Children(func() {
 			ui.Text(c, text).Font(approvalInputFont).FontSize(k.codeFontSize).TextColor(k.cardForeground)

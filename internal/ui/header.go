@@ -309,7 +309,7 @@ func sessionMenu(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	locale := v.Locale
 	label := tr(locale, keyHeaderMenu)
 	button := ui.ButtonBase(c).Key("header-menu").Size(menuTargetW, k.sidebarEntryH).
-		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
+		Radius(k.radiusSM).AlignItems(ui.Center).Justify(ui.Center).
 		Label(label).Tooltip(label).Transition(motionFastColors(c))
 	if button.Hovered() {
 		button.Background(k.sidebarHover)
@@ -506,7 +506,7 @@ func deleteConfirmation(c *ui.Context, k tokens, v HeaderView, a Actions) {
 // while the panel is open, so its state is visible without a tooltip.
 func contextPanelToggle(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	toggle := ui.ButtonBase(c).Key("header-context-panel").Size(k.sidebarEntryH, k.sidebarEntryH).
-		Radius(radiusSM).AlignItems(ui.Center).Justify(ui.Center).
+		Radius(k.radiusSM).AlignItems(ui.Center).Justify(ui.Center).
 		Label(tr(v.Locale, keyContextPanelToggle)).Tooltip(tr(v.Locale, keyContextPanelToggle)).
 		Transition(motionFastColors(c))
 	if v.ContextPanelOpen || toggle.Hovered() {

@@ -546,7 +546,7 @@ func composerModelChip(c *ui.Context, k tokens, v ComposerView, a Actions) {
 		}
 	}
 	chip := ui.ButtonBase(c).Key("composer-model").Padding(k.space(composerModelChipPadY), k.space(composerModelChipPadX)).
-		Radius(radiusSM).Background(k.muted).AlignItems(ui.Center).MaxWidth(composerModelChipMaxW).
+		Radius(k.radiusSM).Background(k.muted).AlignItems(ui.Center).MaxWidth(composerModelChipMaxW).
 		Role(ui.RoleButton).Label(tr(v.Locale, keyComposerModelChip)).
 		Transition(motionFastColors(c))
 	if reason != "" {
@@ -629,7 +629,7 @@ func modelChoiceRow(c *ui.Context, k tokens, v ComposerView, a Actions, choice M
 	}
 	selectable := a.OnSelectModel != nil && choice.Enabled && choice.Reason == ""
 	row := ui.ButtonBase(c).Key("composer-model:"+choice.ProviderID+"/"+choice.ModelID).
-		FillWidth().Padding(k.gap, k.edgePad).Radius(radiusSM).
+		FillWidth().Padding(k.gap, k.edgePad).Radius(k.radiusSM).
 		Background(k.muted).AlignItems(ui.Center).
 		Role(ui.RoleButton).Label(name).Selected(choice.Current)
 	if selectable {
@@ -688,7 +688,7 @@ func modelChoiceRow(c *ui.Context, k tokens, v ComposerView, a Actions, choice M
 // not change.
 func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, tabStop bool) {
 	size := k.space(composerToolSpan)
-	button := ui.ButtonBase(c).Key("composer-tool:"+label).Size(size, size).Radius(radiusSM).
+	button := ui.ButtonBase(c).Key("composer-tool:"+label).Size(size, size).Radius(k.radiusSM).
 		AlignItems(ui.Center).Justify(ui.Center).
 		Label(label).Description(reason).Tooltip(reason).Transition(motionFastColors(c))
 	if tabStop {

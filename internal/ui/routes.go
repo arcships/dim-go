@@ -38,7 +38,7 @@ func renderWIPRoute(c *ui.Context, k tokens, route Route, v HeaderView, a Action
 	ui.Column(c).Fill().Padding(k.framePad).Gap(k.gapWide).Background(k.background).Children(func() {
 		ui.Row(c).FillWidth().Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			back := ui.ButtonBase(c).Key("wip-route-back").Height(k.sidebarRowH).
-				PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.gap).AlignItems(ui.Center).
+				PaddingX(k.sidebarPadX).Radius(k.radiusMD).Gap(k.gap).AlignItems(ui.Center).
 				Role(ui.RoleButton).Label(tr(locale, keySettingsBack)).
 				Transition(motionFastColors(c))
 			if a.OnBackToChat != nil {
