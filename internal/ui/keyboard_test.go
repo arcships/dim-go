@@ -56,7 +56,7 @@ func TestTabOrder(t *testing.T) {
 	tt := ui.NewTester(s.View, 900, 600)
 
 	for _, want := range []string{
-		"Update", "New session", "Search sessions", "Group", "Sessions",
+		"Update", "New session", "Search sessions", "Session keys", "Group", "Sessions",
 		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Settings", "Attach file",
 		"Composer", "Update",
 	} {

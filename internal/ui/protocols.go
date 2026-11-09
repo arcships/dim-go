@@ -87,6 +87,13 @@ type Actions struct {
 	// applies the theme and the sidebar width and persists what it can; nothing
 	// here reaches the App Server. While this field is nil the entry is absent.
 	OnOpenSettings func()
+	// OnToggleKeys is called by the sidebar's "Session keys" entry and toggles
+	// the session.keys browser in the main column. The shell owns both the entry
+	// and the panel's visibility, so this field carries no caller callback: it is
+	// wired exactly while a session.keys snapshot is present, and the browser
+	// only displays what the caller already read. While this field is nil the
+	// entry stays a WIP statement and opening the browser sends no request.
+	OnToggleKeys func()
 }
 
 // SidebarView is what the sidebar region draws: the session catalog, the
@@ -119,6 +126,10 @@ type SidebarView struct {
 	// a card appears exactly while its action is a WIP gap; the region draws
 	// them verbatim and offers no control on them.
 	Capabilities []wipCapability
+	// KeysOpen is the window's record that the keys browser is showing. The
+	// "Session keys" entry reports itself expanded from it; it is display state,
+	// not a key fact.
+	KeysOpen bool
 
 	// state is the region's own view state: the thread list's place among its
 	// rows, its choice, the selection that choice was last mapped from and the
@@ -370,4 +381,13 @@ func renderApproval(c *ui.Context, k tokens, v ApprovalView, a Actions) {
 // and the live draft both allow a send.
 func renderComposer(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	composer(c, k, v, a)
+}
+
+// renderKeysPanel draws the session.keys browser in the main column: the
+// snapshot the caller read, its through, the local filter and one row per key.
+// It writes KeysPanelView.Query while the filter is edited and
+// KeysPanelView.Selected on a row click or Enter; it calls no Actions field,
+// because the snapshot is a read and the panel starts no request.
+func renderKeysPanel(c *ui.Context, k tokens, v *KeysPanelView, a Actions) {
+	keysPanel(c, k, v, a)
 }

@@ -29,7 +29,9 @@ type wipCapability struct {
 // State.OnApproval is set, so each is unavailable only while its callback is
 // missing. session.branches and session.keys have read helpers; switching a
 // branch reads that branch's history and is wired once State.OnSelectBranch is
-// set, while the shell still has no key browser.
+// set, while the keys browser is wired once State.Keys carries a session.keys
+// snapshot (the shell then wires Actions.OnToggleKeys and the sidebar entry
+// replaces this card).
 func wipCapabilities(s *State) []wipCapability {
 	capabilities := make([]wipCapability, 0, 7)
 	if s == nil || s.OnCreateSession == nil {
@@ -40,9 +42,10 @@ func wipCapabilities(s *State) []wipCapability {
 		capabilities = append(capabilities,
 			wipCapability{"Branch switching", "session.branches", "helper exists; shell has no branch selection callback"})
 	}
-	capabilities = append(capabilities,
-		wipCapability{"Session keys", "session.keys", "read helper exists; shell shows no key browser yet"},
-	)
+	if s == nil || !s.Keys.Loaded {
+		capabilities = append(capabilities,
+			wipCapability{"Session keys", "session.keys", "helper exists; shell has no key browser callback"})
+	}
 	if s == nil || s.OnApproval == nil {
 		capabilities = append(capabilities,
 			wipCapability{"Approvals", "approval.respond", "helper exists; window has no approval callback"})

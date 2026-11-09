@@ -131,7 +131,8 @@ func sidebarHeader(c *ui.Context, k tokens) {
 func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	ui.Column(c).Padding(k.sidebarPadX).Gap(k.sidebarGap).Children(func() {
 		newSessionEntry(c, k, v, a)
-		sidebarEntry(c, k, "Search sessions", searchShortcutText(), reasonSearch, false, false, nil)
+		sidebarEntry(c, k, "Search sessions", searchShortcutText(), reasonSearch, false, false, false, nil)
+		keysEntry(c, k, v, a)
 	})
 }
 
@@ -141,25 +142,48 @@ func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // click cannot ask for a second session.
 func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	if a.OnCreateSession == nil {
-		sidebarEntry(c, k, "New session", "", reasonCreateSession, false, false, nil)
+		sidebarEntry(c, k, "New session", "", reasonCreateSession, false, false, false, nil)
 		return
 	}
-	sidebarEntry(c, k, "New session", "", "", true, v.Creating, func() {
+	sidebarEntry(c, k, "New session", "", "", true, v.Creating, false, func() {
 		createSession(a, v.Creating)
 	})
 }
 
+// keysEntry offers the session.keys browser once the window has a snapshot.
+// The shell wires its toggle exactly then, so a missing toggle means there is
+// nothing to browse: the entry keeps its place, dimmed and explained, instead
+// of opening a panel that can only say it has no read.
+func keysEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	if a.OnToggleKeys == nil {
+		sidebarEntry(c, k, "Session keys", "", reasonKeysEntry, false, false, false, nil)
+		return
+	}
+	sidebarEntry(c, k, "Session keys", "", "", true, false, v.KeysOpen, func() {
+		a.OnToggleKeys()
+	})
+}
+
+// reasonKeysEntry is what the keys entry says while the window has no snapshot
+// to browse. The helper and the panel exist; what is missing is the wiring that
+// would hand this window a session.keys read.
+const reasonKeysEntry = "Unavailable: the shell has no key browser callback while no session.keys snapshot is loaded."
+
 // sidebarEntry draws one global entry as a menu row: its label, an optional
 // shortcut hint and, when the shell cannot carry the action out, the visible
 // WIP badge with the reason it waits on. An unavailable entry registers no
-// click, so the shell cannot report an action it did not send.
-func sidebarEntry(c *ui.Context, k tokens, label, hint, reason string, enabled, disabled bool, on func()) {
+// click, so the shell cannot report an action it did not send. selected marks
+// an entry that is showing its surface, as the keys browser does.
+func sidebarEntry(c *ui.Context, k tokens, label, hint, reason string, enabled, disabled, selected bool, on func()) {
 	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
 		PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center)
 	row.Label(label)
 	if enabled {
 		row.OnClick(on)
 		row.Disabled(disabled)
+		// The entry expands its surface in the main column, as a disclosure
+		// button does; assistive technology reads it as expanded, not selected.
+		row.Expanded(selected)
 	} else {
 		row.AccessDisabled(true).Description(reason).Opacity(wipOpacity)
 	}

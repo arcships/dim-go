@@ -44,6 +44,8 @@ type fakeDaemon struct {
 	// the verbatim session.branches reply (nil means the method is absent).
 	features []string
 	branches json.RawMessage
+	// keys is the verbatim session.keys reply (nil means the method is absent).
+	keys json.RawMessage
 }
 
 func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
@@ -105,6 +107,13 @@ func (d *fakeDaemon) setBranches(raw json.RawMessage) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.branches = append(json.RawMessage(nil), raw...)
+}
+
+// setKeys scripts the verbatim session.keys reply.
+func (d *fakeDaemon) setKeys(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.keys = append(json.RawMessage(nil), raw...)
 }
 
 // callCount reports how many requests were received for method.
@@ -278,6 +287,14 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		d.mu.Unlock()
 		if raw == nil {
 			return nil, &appserver.RPCError{Code: -32601, Message: "session.branches not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
+	case "session.keys":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.keys...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "session.keys not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
 		}
 		return raw, nil
 	case "session.branch_end":
