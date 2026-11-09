@@ -57,7 +57,7 @@ func TestTabOrder(t *testing.T) {
 
 	for _, want := range []string{
 		"Update", "New session", "Search sessions", "Group", "Sessions",
-		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Attach file",
+		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Settings", "Attach file",
 		"Composer", "Update",
 	} {
 		tt.Key(0, ui.KeyTab)

@@ -82,6 +82,11 @@ type Actions struct {
 	// row; the region never removes the row or claims an outcome on its own,
 	// and a row without a request identity never reaches this field.
 	OnApproval func(branchID, requestID string, decision ApprovalDecision)
+	// OnOpenSettings is called by the toolbar's Settings entry and toggles the
+	// appearance surface. The preferences it edits are desktop-local: the caller
+	// applies the theme and the sidebar width and persists what it can; nothing
+	// here reaches the App Server. While this field is nil the entry is absent.
+	OnOpenSettings func()
 }
 
 // SidebarView is what the sidebar region draws: the session catalog, the
@@ -176,6 +181,9 @@ type HeaderView struct {
 	// loading. It hides the reconnect entry so one attempt cannot be started
 	// twice; it never stands in for history.
 	Loading bool
+	// SettingsOpen is the window's record that the appearance surface is
+	// showing. The toolbar's entry reads "Settings" or "Conversation" from it.
+	SettingsOpen bool
 }
 
 // TimelineView is what the timeline region draws: the conversation rows, the

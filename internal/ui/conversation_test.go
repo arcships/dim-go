@@ -84,8 +84,14 @@ func TestConversationFollowsAppend(t *testing.T) {
 		t.Fatalf("appended row is not visible, texts %q", tt.Texts())
 	}
 
-	// Scrolling up, in the conversation's area, leaves the end.
-	tt.Scroll(320, 150, 0, -300)
+	// Scrolling up, in the conversation's area, leaves the end. The list's own
+	// rect is used so the point stays inside it whatever the other rows take
+	// (the status bar changed the available height).
+	rect, ok := tt.Find("Conversation")
+	if !ok {
+		t.Fatalf("conversation list is not drawn, texts %q", tt.Texts())
+	}
+	tt.Scroll(rect.X+rect.W/2, rect.Y+rect.H/2, 0, -300)
 	if s.conversation.AtEnd() {
 		t.Fatalf("the list still shows its end after scrolling away from it")
 	}
@@ -100,7 +106,7 @@ func TestConversationFollowsAppend(t *testing.T) {
 	}
 
 	// Scrolling back to the end follows it again.
-	tt.Scroll(320, 150, 0, 3000)
+	tt.Scroll(rect.X+rect.W/2, rect.Y+rect.H/2, 0, 3000)
 	if !s.conversation.AtEnd() {
 		first, last := s.conversation.Visible()
 		t.Fatalf("the list does not follow its end again: visible=%d..%d", first, last)

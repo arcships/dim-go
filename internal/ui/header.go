@@ -40,6 +40,15 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 				ui.Button(c, "Reconnect").OnClick(a.OnReconnect)
 			}
 		}
+		// The appearance surface is one toggle away from the conversation; its
+		// label says where the entry goes, so the same button always returns.
+		if a.OnOpenSettings != nil {
+			label := "Settings"
+			if v.SettingsOpen {
+				label = "Conversation"
+			}
+			ui.Button(c, label).OnClick(a.OnOpenSettings)
+		}
 	})
 	banner(c, k, v)
 }

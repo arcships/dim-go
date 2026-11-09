@@ -260,12 +260,28 @@ type State struct {
 	// here. It lives as long as the window; a fold left behind by a row that left
 	// the timeline stays as one unused entry and is never re-keyed.
 	folds blockFolds
+	// ShowSettings is the window's own record that the appearance surface is
+	// showing instead of the conversation. It is display state only.
+	ShowSettings bool
+	// Settings holds the desktop-local appearance preferences the surface
+	// reports. They are the desktop's, not a session's: nothing here is sent to
+	// the App Server or stored as a session fact.
+	Settings SettingsView
 }
 
 // View builds one frame of the AppFrame: sidebar, toolbar, banner, conversation
 // and composer. It only assembles each region's view and the Actions, then
 // calls the region's render entry; it draws no region itself.
 func (s *State) View(c *ui.Context) {
+	// The appearance preference forces a theme when it is light or dark; system
+	// leaves the window's own appearance alone. The tokens are then read from the
+	// theme in force, so a forced theme carries through every region.
+	switch s.Settings.Theme {
+	case ThemeLight:
+		c.SetTheme(ui.LightTheme())
+	case ThemeDark:
+		c.SetTheme(ui.DarkTheme())
+	}
 	k := newTokens(c.Theme())
 	// The divider writes the width it drags to; the shell keeps the sidebar
 	// inside its own bounds before every frame, so a drag can never take the
@@ -278,20 +294,56 @@ func (s *State) View(c *ui.Context) {
 	}, func() {
 		ui.Column(c).FillHeight().Children(func() {
 			renderHeader(c, k, s.headerView(), a)
-			renderTimeline(c, k, s.timelineView(), a)
-			// A pending approval takes the composer's slot: the user answers the
-			// request before typing again, as the spec's composer replacement does.
-			// The request set comes from the rows the projection produced, never from
-			// a click.
-			if pending := s.pendingApprovals(); len(pending) > 0 {
-				renderApprovalPanel(c, k, ApprovalView{Pending: pending}, a)
+			if s.ShowSettings {
+				// The appearance surface takes the conversation's place; the
+				// sidebar, toolbar and status bar stay, so a preference change is
+				// visible around it.
+				renderSettings(c, k, s.Settings, s.applySettings)
 			} else {
-				renderComposer(c, k, composer, a)
+				renderTimeline(c, k, s.timelineView(), a)
+				// A pending approval takes the composer's slot: the user answers the
+				// request before typing again, as the spec's composer replacement does.
+				// The request set comes from the rows the projection produced, never from
+				// a click.
+				if pending := s.pendingApprovals(); len(pending) > 0 {
+					renderApprovalPanel(c, k, ApprovalView{Pending: pending}, a)
+				} else {
+					renderComposer(c, k, composer, a)
+				}
 			}
+			renderStatusBar(c, k, s.statusBarView())
 		})
 	}).SplitReset(k.sidebarW).Fill()
 	if c.Shortcut(ComposerShortcutMods, ComposerShortcutKey) {
 		composer.Focus.Focus()
+	}
+}
+
+// applySettings stores the appearance snapshot the surface reported and applies
+// the parts this shell can: the forced theme (read on the next frame) and the
+// sidebar width. Font size, family, density and code size are kept for the
+// caller to persist; the shell does not yet re-theme its type scale from them.
+func (s *State) applySettings(change SettingsChange) {
+	s.Settings = SettingsView{
+		Theme:        change.Theme,
+		FontSize:     change.FontSize,
+		FontFamily:   change.FontFamily,
+		SidebarWidth: change.SidebarWidth,
+		Density:      change.Density,
+		CodeFontSize: change.CodeFontSize,
+	}
+	if change.SidebarWidth > 0 {
+		s.SidebarWidth = change.SidebarWidth
+	}
+}
+
+// statusBarView copies the readings the bottom bar shows. Only the branch name
+// and the connection are known today; context usage, model and account stay
+// empty, which the bar draws as WIP instead of inventing numbers.
+func (s *State) statusBarView() StatusBarView {
+	return StatusBarView{
+		Branch:     s.SelectedBranch,
+		Connection: s.Connection,
 	}
 }
 
@@ -306,6 +358,9 @@ func (s *State) actions() Actions {
 		OnStop:          s.OnStop,
 		OnReconnect:     s.OnReconnect,
 		OnApproval:      s.OnApproval,
+		// The settings toggle is the shell's own state, not a caller callback, so
+		// it is always wired.
+		OnOpenSettings: func() { s.ShowSettings = !s.ShowSettings },
 	}
 }
 
@@ -362,6 +417,7 @@ func (s *State) headerView() HeaderView {
 		ActionError:     s.ActionError,
 		ActionStatus:    s.ActionStatus,
 		Loading:         s.ConversationLoading,
+		SettingsOpen:    s.ShowSettings,
 	}
 }
 

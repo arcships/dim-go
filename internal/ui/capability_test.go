@@ -72,9 +72,9 @@ func TestCapabilityCardsReportTheActualGap(t *testing.T) {
 		t.Errorf("attachments reports %q, want the missing file picker and unknown results", gap)
 	}
 	// The branch and key reads are wired: their cards must name the real gap
-	// (read-only display, no switch RPC or key browser), not a missing helper.
-	if gap := cards["Branch switching"].gap; !strings.Contains(gap, "read-only") {
-		t.Errorf("branch switching reports %q, want the read-only gap", gap)
+	// (no branch-selection callback, no key browser), not a missing helper.
+	if gap := cards["Branch switching"].gap; !strings.Contains(gap, "branch selection callback") {
+		t.Errorf("branch switching reports %q, want the missing selection callback", gap)
 	}
 	if gap := cards["Session keys"].gap; !strings.Contains(gap, "key browser") {
 		t.Errorf("session keys reports %q, want the missing key browser", gap)
@@ -276,7 +276,7 @@ func TestCapabilityCardsDoNotChangeState(t *testing.T) {
 	before := s.Selected
 	for _, want := range []string{
 		"Update", "New session", "Search sessions", "Group", "Sessions",
-		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Attach file", "Composer",
+		"Pin", "Rename", "Archive", "Divider", "Reconnect", "Settings", "Attach file", "Composer",
 	} {
 		tt.Key(0, ui.KeyTab)
 		if !tt.Focused(want) {

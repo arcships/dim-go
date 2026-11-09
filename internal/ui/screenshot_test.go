@@ -125,7 +125,15 @@ func screenshotFixture(withApproval bool) *State {
 	return s
 }
 
-// screenshotFrames renders both evidence states in both appearances: the
+// screenshotSettingsFixture is the appearance surface on the same catalog, so the
+// settings frame differs from the conversation frame in the main column only.
+func screenshotSettingsFixture() *State {
+	s := screenshotFixture(false)
+	s.ShowSettings = true
+	return s
+}
+
+// screenshotFrames renders the evidence states in both appearances: the
 // approval state (a pending request takes the composer's slot) and the composer
 // state (no pending request, the draft field is visible). Every tester is
 // separate, so a click or a draft edit in one cannot leak into another.
@@ -137,11 +145,16 @@ func screenshotFrames(t *testing.T) map[string]*ui.Tester {
 	lightComposer := ui.NewTester(screenshotFixture(false).View, screenshotWidth, screenshotHeight)
 	darkComposer := ui.NewTester(screenshotFixture(false).View, screenshotWidth, screenshotHeight)
 	darkComposer.SetDark(true)
+	lightSettings := ui.NewTester(screenshotSettingsFixture().View, screenshotWidth, screenshotHeight)
+	darkSettings := ui.NewTester(screenshotSettingsFixture().View, screenshotWidth, screenshotHeight)
+	darkSettings.SetDark(true)
 	return map[string]*ui.Tester{
 		"light":          light,
 		"dark":           dark,
 		"light-composer": lightComposer,
 		"dark-composer":  darkComposer,
+		"light-settings": lightSettings,
+		"dark-settings":  darkSettings,
 	}
 }
 
@@ -166,7 +179,7 @@ func imageHasContent(img *image.RGBA) bool {
 // docs/evidence/ui README points at; otherwise it touches no file.
 func TestScreenshotFrames(t *testing.T) {
 	frames := screenshotFrames(t)
-	names := []string{"light", "dark", "light-composer", "dark-composer"}
+	names := []string{"light", "dark", "light-composer", "dark-composer", "light-settings", "dark-settings"}
 	for _, name := range names {
 		tt := frames[name]
 		img := tt.Image()
@@ -182,7 +195,7 @@ func TestScreenshotFrames(t *testing.T) {
 		}
 	}
 
-	for _, pair := range [][2]string{{"light", "dark"}, {"light-composer", "dark-composer"}} {
+	for _, pair := range [][2]string{{"light", "dark"}, {"light-composer", "dark-composer"}, {"light-settings", "dark-settings"}} {
 		if bytes.Equal(frames[pair[0]].Image().Pix, frames[pair[1]].Image().Pix) {
 			t.Errorf("%s and %s frames are pixel-identical", pair[0], pair[1])
 		}
@@ -203,6 +216,8 @@ func TestScreenshotFrames(t *testing.T) {
 		"dark":           "shell-dark.png",
 		"light-composer": "shell-light-composer.png",
 		"dark-composer":  "shell-dark-composer.png",
+		"light-settings": "shell-light-settings.png",
+		"dark-settings":  "shell-dark-settings.png",
 	}
 	for _, name := range names {
 		path := filepath.Join(dir, files[name])
