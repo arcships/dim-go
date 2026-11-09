@@ -15,9 +15,7 @@ func TestSelectCallsCallback(t *testing.T) {
 	s.OnSelect = func(id string) { got = append(got, id) }
 	tt := ui.NewTester(s.View, 900, 600)
 
-	if err := tt.Click("Second session"); err != nil {
-		t.Fatal(err)
-	}
+	clickRow(t, tt, "Second session")
 	tt.Key(0, ui.KeyHome)
 
 	want := []string{"s2", "s1"}

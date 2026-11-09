@@ -86,9 +86,7 @@ func TestSidebarSelectsASession(t *testing.T) {
 		t.Error("an unselected session is marked selected")
 	}
 
-	if err := tt.Click("Second session"); err != nil {
-		t.Fatal(err)
-	}
+	clickRow(t, tt, "Second session")
 	if s.Selected != "s2" {
 		t.Fatalf("selected %q after the click, want s2", s.Selected)
 	}

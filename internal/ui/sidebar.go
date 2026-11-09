@@ -417,7 +417,19 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		return rows[row].sessionID
 	}
 	ui.List(c, list, len(rows), func(row int) {
-		threadRow(c, k, v, rows[row])
+		// A click on a session row publishes the choice itself: the list's own
+		// click path moves its cursor, and with only Selected bound it does not
+		// raise OnChange on every change. The row's click keeps the two in step,
+		// and a heading has no click.
+		var on func()
+		if !rows[row].group {
+			index := row
+			on = func() {
+				v.state.choice = index
+				chooseSession(v, a)
+			}
+		}
+		threadRow(c, k, v, rows[row], on)
 	}).Grow(1).MinHeight(k.sidebarRowH*2).
 		Padding(k.sidebarGap, k.sidebarPadX).
 		Label(tr(locale, keySidebarSessions)).OnChange(func() {
@@ -428,7 +440,7 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 // threadRow draws a group heading or a session row. A session row shows the
 // selected and hovered faces from the sidebar's own tokens; the heading stays
 // sticky over the rows it names, so it paints the sidebar's face.
-func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow) {
+func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()) {
 	if row.group {
 		ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarPadX).Gap(k.sidebarGap).
 			Background(k.sidebar).AlignItems(ui.Center).Children(func() {
@@ -442,6 +454,9 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow) {
 	selected := row.sessionID == *v.Selected
 	line := ui.Row(c).Height(k.sidebarRowH).PaddingX(k.sidebarGap).Gap(k.sidebarGap).
 		Radius(radiusMD).AlignItems(ui.Center)
+	if on != nil {
+		line.OnClick(on)
+	}
 	switch {
 	case selected:
 		line.Background(k.sidebarAccent)

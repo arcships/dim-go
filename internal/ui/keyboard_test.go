@@ -18,9 +18,7 @@ func TestSidebarKeyboardNavigation(t *testing.T) {
 	}
 	s.Selected = "s1"
 	tt := ui.NewTester(s.View, 900, 600)
-	if err := tt.Click("First session"); err != nil {
-		t.Fatal(err)
-	}
+	clickRow(t, tt, "First session")
 
 	steps := []struct {
 		key  ui.Key
@@ -92,9 +90,7 @@ func TestComposerShortcut(t *testing.T) {
 	}
 
 	// From the sidebar, where the arrows move the choice.
-	if err := tt.Click("Second session"); err != nil {
-		t.Fatal(err)
-	}
+	clickRow(t, tt, "Second session")
 	tt.Key(0, ui.KeyUp)
 	if s.Selected != "s1" {
 		t.Fatalf("selected %q after the arrow, want s1", s.Selected)

@@ -442,9 +442,7 @@ func TestKeysPanelClosesOnSessionSwitch(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := tt.Click("Second session"); err != nil {
-		t.Fatal(err)
-	}
+	clickRow(t, tt, "Second session")
 	if s.Selected != "s2" {
 		t.Fatalf("selected %q, want s2", s.Selected)
 	}

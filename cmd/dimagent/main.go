@@ -490,7 +490,13 @@ func summaryForRow(row dimui.Session) appserver.SessionSummary {
 }
 
 func newSupervisor(productHome string) (*supervisor.Supervisor, error) {
-	return supervisor.New(supervisor.Config{ProductHome: productHome})
+	return supervisor.New(supervisor.Config{
+		ProductHome: productHome,
+		// The mock model is the daemon's own flag for acceptance runs: it echoes
+		// turns without a provider. It is opt-in through the environment so a
+		// normal launch never hides a missing model.
+		MockModel: os.Getenv("DIMAGENT_MOCK_MODEL") == "1",
+	})
 }
 
 // app owns the window's state and the callbacks the shell calls. State writes
@@ -1254,6 +1260,26 @@ func (a *app) reconnect() {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		// Reconnect the control plane first: a daemon this window owns is
+		// respawned here when its socket is gone, and every stale attachment is
+		// closed. Only then can the session's own stream be rebuilt.
+		if a.bridge.sup != nil {
+			if _, err := a.bridge.sup.Reconnect(ctx); err != nil {
+				if !a.selectionCurrent(gen) {
+					return
+				}
+				log.Printf("dimagent: reconnect: %v", err)
+				a.update(func(state *dimui.State) {
+					if !a.selectionCurrent(gen) {
+						return
+					}
+					state.ConversationLoading = false
+					state.Connection = dimui.ConnError
+					state.ConnectionError = fmt.Sprintf("%v", err)
+				})
+				return
+			}
+		}
 		if err := a.bridge.reattachFor(ctx, sessionID); err != nil {
 			if !a.selectionCurrent(gen) {
 				return

@@ -9,6 +9,19 @@ import (
 )
 
 // fixture is the shell's placeholder state: no App Server, no session facts.
+
+// clickRow clicks the center of a sidebar row by the text it shows. The row is
+// the input target for a click, so Click on the inner text is rejected; the
+// coordinates reach the row's own click handler.
+func clickRow(t *testing.T, tt *ui.Tester, label string) {
+	t.Helper()
+	rect, ok := tt.Find(label)
+	if !ok {
+		t.Fatalf("row %q is not drawn, texts %q", label, tt.Texts())
+	}
+	tt.ClickAt(rect.X+rect.W/2, rect.Y+rect.H/2)
+}
+
 func fixture() *State {
 	return &State{
 		Sessions: []Session{
@@ -193,9 +206,7 @@ func TestShellHeaderKeepsTheSessionTitle(t *testing.T) {
 func TestShellSelectsSession(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
-	if err := tt.Click("Second session"); err != nil {
-		t.Fatal(err)
-	}
+	clickRow(t, tt, "Second session")
 	if s.Selected != "s2" {
 		t.Fatalf("selected %q, want s2", s.Selected)
 	}
