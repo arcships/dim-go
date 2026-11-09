@@ -27,7 +27,8 @@ const (
 const screenshotEnv = "DIMAGENT_UI_SCREENSHOT_DIR"
 
 // screenshotFixture is a fixed shell state for the evidence images: two
-// sessions, one row of each author (user, assistant, tool, approval) and a
+// sessions, one user row, one assistant turn with every timeline block kind —
+// thinking, text, two tool calls and file changes — and one approval row, plus a
 // composer draft. It is view state only, hand-filled exactly as the shell's
 // Milestone 1 fixture is; no App Server, storage or log is read.
 func screenshotFixture() *State {
@@ -53,19 +54,55 @@ func screenshotFixture() *State {
 					"- no timers or animation\n" +
 					"- one fixture for both themes\n\n" +
 					"```go\nimg := tt.Image()\n```",
-			},
-			{
-				ID:     "m3",
-				Author: AuthorTool,
-				Tool: Tool{
-					Name:   "bash",
-					Params: "go test ./internal/ui -run TestScreenshotFrames",
-					Result: "ok  github.com/arcships/dimagent-mygo/internal/ui",
-					Status: ToolComplete,
+				Blocks: []Block{
+					{
+						ID:        "b-thinking",
+						Kind:      BlockThinking,
+						Content:   "The flake comes from measuring the frame before fonts settle. Capture only after two frames with no pending work.",
+						StartedAt: 1_000,
+						EndedAt:   6_000,
+					},
+					{
+						ID:   "b-text",
+						Kind: BlockText,
+						Content: "The frame is settled before capture:\n\n" +
+							"- fixed 1440×900 view\n" +
+							"- no timers or animation\n" +
+							"- one fixture for both themes\n\n" +
+							"```go\nimg := tt.Image()\n```",
+					},
+					{
+						ID:   "b-tool-bash",
+						Kind: BlockTool,
+						Tool: Tool{
+							Name:   "bash",
+							Params: "go test ./internal/ui -run TestScreenshotFrames",
+							Result: "ok  github.com/arcships/dimagent-mygo/internal/ui",
+							Status: ToolComplete,
+						},
+					},
+					{
+						ID:   "b-tool-read",
+						Kind: BlockTool,
+						Tool: Tool{
+							Name:   "read_file",
+							Params: `{"path":"internal/ui/screenshot_test.go"}`,
+							Result: "screenshot_test.go, 160 lines",
+							Status: ToolComplete,
+						},
+					},
+					{
+						ID:   "b-files",
+						Kind: BlockFileChanges,
+						Files: []FileChange{
+							{Path: "internal/ui/screenshot_test.go", Status: FileModified, Insertions: 42, Deletions: 6, HasStats: true},
+							{Path: "docs/evidence/ui/shell-light.png", Status: FileModified, Insertions: 0, Deletions: 0},
+						},
+					},
 				},
 			},
 			{
-				ID:      "m4",
+				ID:      "m3",
 				Author:  AuthorApproval,
 				Content: "exec — run the screenshot test and write both PNGs",
 				Approval: &Approval{

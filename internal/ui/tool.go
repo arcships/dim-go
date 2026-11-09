@@ -97,32 +97,82 @@ func previewField(label, value string) string {
 	return label + ": " + value
 }
 
-// toolRow builds the compact card of one tool call: its name and status, then
-// one bounded line of params and one of result. The card is the card face of
-// the surface ladder, not a tint of the border: a call sits on the conversation
-// as a raised block with its own text color. A running call shows its status in
-// a live region that is busy, so it is announced once and assistive technology
-// waits for the result rather than re-reading the card each frame.
+// toolRow builds the card of a tool row: the same card a BlockTool uses, keyed
+// by the row's own ID so its fold survives a rebuild.
 func (s *State) toolRow(c *ui.Context, k tokens, m Message) {
-	tool := m.Tool
+	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Children(func() {
+		s.toolCard(c, k, blockKey(m.ID, Block{Kind: BlockTool}, 0), m.Tool)
+	})
+}
+
+// toolCard draws one tool call as a compact card that folds: its name and
+// status are always in the header, its params and result preview as one bounded
+// line each while closed, and its params and result fill a panel capped at 240
+// DIPs while open. The card is the card face of the surface ladder, not a tint
+// of the border: a call sits on the conversation as a raised block with its own
+// text color.
+//
+// A running call shows its status in a live region that is busy, so it is
+// announced once and assistive technology waits for the result rather than
+// re-reading the card each frame.
+func (s *State) toolCard(c *ui.Context, k tokens, key string, tool Tool) {
+	open := s.blockOpen(key)
 	ui.Column(c).
 		Padding(k.cardPadY, k.cardPadX).
 		Gap(k.gap).Radius(k.cardRadius).
 		Background(k.card).
 		BorderWidth(k.hairline).BorderColor(k.border).Children(func() {
+		var p ui.CollapsibleParts
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, previewLine(toolName(tool))).Bold().FontSize(k.labelSize).
-				TextColor(k.cardForeground).NoWrap()
-			ui.Box(c).Grow(1)
+			// The disclosure is the arrow and the name; the status sits beside
+			// it, outside the button, so a running call keeps its own live
+			// region instead of being flattened into the button's name.
+			p = ui.CollapsibleBase(c, open)
+			p.Trigger.MinHeight(k.timelineHeaderH).Gap(k.gap).AlignItems(ui.Center).
+				Children(func() {
+					chevron(c, k, k.mutedForeground, p.Progress())
+					ui.Text(c, previewLine(toolName(tool))).Bold().FontSize(k.labelSize).
+						TextColor(k.cardForeground).SingleLine()
+				})
 			toolStatusLabel(c, k, tool.Status)
+			ui.Spacer(c)
 		})
-		// NoWrap keeps each preview on its line: the card's height is bounded
-		// whatever the App Server sends, and the preview is already cut.
-		ui.Text(c, previewField("Params", previewLine(tool.Params))).
-			FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
-		ui.Text(c, previewField("Result", previewLine(tool.Result))).
-			FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+		p.Panel(func() {
+			ui.Scroll(c).MaxHeight(k.timelinePanelMaxH).Children(func() {
+				ui.Column(c).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).Children(func() {
+					toolPanelSection(c, k, "Params", panelValue(tool.Params))
+					toolPanelSection(c, k, "Result", panelValue(tool.Result))
+				})
+			})
+		}).Margin(k.gap, 0, 0, 0).Radius(radiusMD).BorderWidth(k.hairline).
+			BorderColor(k.border).Clip()
+		// The closed card keeps one bounded line of each part, so it still says
+		// what the call was without being opened. NoWrap keeps each preview on
+		// its line: the card's height is bounded whatever the App Server sends.
+		if !*open && p.Progress() == 0 {
+			ui.Text(c, previewField("Params", previewLine(tool.Params))).
+				FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+			ui.Text(c, previewField("Result", previewLine(tool.Result))).
+				FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+		}
 	})
+}
+
+// panelValue is what a tool card's open panel shows for a part: the value the
+// view model kept, or the same "(none)" fallback the closed card uses, so an
+// empty part reads the same open or closed.
+func panelValue(value string) string {
+	if value == "" {
+		return emptyPreview
+	}
+	return value
+}
+
+// toolPanelSection draws one titled part of a tool card's open panel, as
+// dim-electron's tool panel does: a small muted title, then the call's code.
+func toolPanelSection(c *ui.Context, k tokens, title, text string) {
+	ui.Text(c, title).FontSize(k.smallSize).Bold().TextColor(k.mutedForeground)
+	ui.Text(c, text).FontSize(k.codeFontSize).TextColor(k.cardForeground)
 }
 
 // toolStatusLabel draws a call's status in the color of its state. Only a

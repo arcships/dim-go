@@ -18,8 +18,8 @@ DIMAGENT_UI_SCREENSHOT_DIR="$PWD/docs/evidence/ui" go test ./internal/ui -run Te
 
 | 文件 | 主题 | 尺寸 | 大小 |
 |---|---|---|---|
-| [`shell-light.png`](shell-light.png) | Light | 1440×900 | 141,272 B |
-| [`shell-dark.png`](shell-dark.png) | Dark | 1440×900 | 144,092 B |
+| [`shell-light.png`](shell-light.png) | Light | 1440×900 | 160,033 B |
+| [`shell-dark.png`](shell-dark.png) | Dark | 1440×900 | 162,842 B |
 
 ![shell light](shell-light.png)
 
@@ -43,19 +43,38 @@ DIMAGENT_UI_SCREENSHOT_DIR="$PWD/docs/evidence/ui" go test ./internal/ui -run Te
 
 这些 Tailwind 档位都按规格换算成 14px 根字号下的 DIP，而不是照抄 4px 网格。侧栏本身是唯一滚动区（`ui.List`），底部的只读 capability cards 在窗口高度不够时在自己的区域滚动。截图里的两个 session 都没有 `Group` 标签，所以线程列表保持 flat；分组标题、选中态和 hover 态由 [`internal/ui/sidebar_test.go`](../../../internal/ui/sidebar_test.go) 的 headless 断言覆盖。
 
+## 时间线行（P0，规格见 [`docs/ui-layout-spec.md`](../../ui-layout-spec.md) §4）
+
+截图里的会话按行模型渲染：一行一个 `turn`，turn 内部再按 block 分派。档位同样按 14px 根字号换算成 DIP，全部来自 `internal/ui/tokens.go` 的 `timeline*` 字段：
+
+| 区域 | 高度 / 内距 / 圆角 | 数值来源 |
+|---|---|---|
+| 行外壳 | 左右 14（`px-4`）；上下沿用壳层行距 4（`rowPadY`，§4.2 没有对应内距） | §4.2；`timelinePadX` |
+| block 间距 | 10.5（`mb-3`） | `timelineBlockGap` |
+| 折叠头 | 最小 24.5 高（`h-7`，字号更大时随内容长高），箭头 14（`h-4`） | `timelineHeaderH`、`timelineChevron` |
+| thinking 正文 | 左缩进 10.5（`pl-3`），左侧 2px 导轨，上限 240（`max-h-[240px]`） | `timelinePadStart`、`timelineRail`、`timelinePanelMaxH` |
+| tool 展开面板 | 上限 240，圆角 8，1px 描边 | §4.2；`timelinePanelMaxH` |
+| 用户气泡 | 最宽 85%（`max-w-[85%]`），内距 7/14（`py-2 px-4`），圆角 10（`rounded-lg`），右对齐 | `timelineUser*`、`timelineBubbleR` |
+| 文件改动行 | 上下 5.25、左右 7（`py-1.5 px-2`），状态字母格 17.5（`w-5`），行距 10.5（`gap-3`） | `timelineFile*` |
+
+行模型的四个 block 类型（`internal/ui/timeline.go`）：`BlockText`（Markdown）、`BlockThinking`（默认折叠，头文本 `Thinking` / `Thought for Ns`）、`BlockTool`（可展开卡片）、`BlockFileChanges`（紧凑行，无折叠）。错误与重试是独立行类型（`AuthorError` / `AuthorRetry`），不是 block。
+
+折叠状态是 shell 自己的视图状态（`State.expandedBlocks`），按「行 ID + block ID」存在内存里；daemon 不拥有「用户是否展开过」，所以它也不会被当作会话事实。
+
 ## Fixture 内容
 
 固定 fixture 是手填的视图状态，不连 App Server，不读 SQLite/JSONL/session 文件/daemon.log：
 
 - 两个 session：`Fix flaky screenshot test`（选中）、`Review App Server reconnect`，`Group` 为空（shell 没有 project/日期来源，不伪造分组）。
 - 侧栏的 WIP 入口：`Update`、`Search sessions`（⌘G / Ctrl+G 提示）、`Group`、`Pin`/`Rename`/`Archive`；它们都带 `WIP` 标记和真实原因，点击不产生动作。
-- 四行对话，覆盖四种 `Author`：
-  - user：纯文本；
-  - assistant：Markdown（列表 + Go fenced code block）；
-  - tool：`bash` 卡片，`Complete` 状态，含 Params/Result 单行预览；
+- 三行对话：
+  - user：右对齐 85% 气泡；
+  - assistant：一个 turn，内部按顺序是 thinking（`Thought for 5s`，默认折叠）、Markdown 文本（列表 + Go fenced code block）、两个 tool 卡片（`bash`、`read_file`，均 `Complete`）、file changes（`2 files changed`，两行文件）；
   - approval：`exec` 待审批行，带 `BranchID`/`RequestID` 身份，渲染真实的 `Approve`/`Deny` 按钮（fixture 的回调是空实现，不发请求）。
 - composer 有草稿 `Rerun the suite and attach the new PNGs.`。
 - `Connection: ConnReady`、`Run: RunIdle`，让状态行和 Send 按钮处于正常态。
+
+**数据来源缺口**：file changes 在 projection 里还没有对应事实（`internal/projection` 不折叠任何 file-changes 事件），`ui.Block.Files` 目前只由 fixture 填充，adapter 不伪造。截图证明的是渲染形态，不是 daemon 已上报文件改动。tool 卡的类型化面板（command/file/search）同样还是 P0 WIP，现在只有一种通用 Params/Result 面板。
 
 ## 测试断言
 
@@ -66,6 +85,8 @@ DIMAGENT_UI_SCREENSHOT_DIR="$PWD/docs/evidence/ui" go test ./internal/ui -run Te
 3. light 与 dark 的像素缓冲不相同。
 
 只有设置了 `DIMAGENT_UI_SCREENSHOT_DIR` 才额外编码 PNG。
+
+时间线的行为断言（thinking 折叠/展开、tool 展开、file changes 紧凑行、多 block 顺序、Tab/Space/Enter 可达性）在 [`internal/ui/timeline_test.go`](../../../internal/ui/timeline_test.go)；截图只负责「同一 commit 前后看起来没坏」。
 
 ## 证据边界
 

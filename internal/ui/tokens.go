@@ -65,6 +65,32 @@ const (
 	sidebarSectionPad = 10.5
 )
 
+// The timeline's geometry in DIPs, from docs/ui-layout-spec.md §4.2: the row
+// shell is px-4, a block sits mb-3 below the block before it, a disclosure's
+// header is a h-7 summary button with px-0, thinking text is pl-3 behind a 2px
+// rail, the thinking and tool panels cap at 240px, the user bubble is 85% wide
+// with px-4 py-2 and rounded-lg, and a file-change row is px-2 py-1.5 with a
+// w-5 status letter. Under the 14px root font size those Tailwind steps are 14,
+// 10.5, 24.5, 10.5, 2, 240, 85, 14, 7, 10, 7, 5.25 and 17.5 DIPs; the px
+// literals (240, 85) stay literal, as dim-electron's own CSS keeps them.
+const (
+	timelinePadX       = 14   // px-4: the row shell's left and right
+	timelineBlockGap   = 10.5 // mb-3: between two blocks of one turn
+	timelineHeaderH    = 24.5 // h-7: a summary or disclosure header's height
+	timelinePadStart   = 10.5 // pl-3: thinking text and tool panel inset
+	timelineRail       = 2    // border-l-2: thinking text's rail
+	timelinePanelMaxH  = 240  // max-h-[240px]: a thinking or tool panel's cap
+	timelineChevron    = 14   // h-4: a disclosure's arrow box
+	timelineUserWidth  = 85   // max-w-[85%]: the user bubble's widest
+	timelineUserPadY   = 7    // py-2: the user bubble's top and bottom
+	timelineUserPadX   = 14   // px-4: the user bubble's left and right
+	timelineBubbleR    = radiusLG
+	timelineFileRowY   = 5.25 // py-1.5: a file-change row's top and bottom
+	timelineFileRowX   = 7    // px-2: a file-change row's left and right
+	timelineFileGap    = 10.5 // gap-3: between a file row's parts
+	timelineFileStatus = 17.5 // w-5: the file row's status letter cell
+)
+
 // The surface ladder: how far each face lifts off the background, as the share
 // of the way from the background to the foreground. A face is a mix of two
 // theme colors, not a wash of the border, so an elevated surface keeps a tint
@@ -118,6 +144,26 @@ type tokens struct {
 	cardRadius  float32 // a card's corner, the middle of the radius ladder
 	cardPadY    float32 // above and below a card's parts
 	cardPadX    float32 // left and right inside a card
+
+	// The timeline's geometry, in DIPs: the row shell's inset, the gap
+	// between two blocks of one turn, a disclosure header and its arrow, the
+	// thinking rail and panel cap, the user bubble, and a file-change row.
+	// See docs/ui-layout-spec.md §4.2.
+	timelinePadX       float32
+	timelineBlockGap   float32
+	timelineHeaderH    float32
+	timelinePadStart   float32
+	timelineRail       float32
+	timelinePanelMaxH  float32
+	timelineChevron    float32
+	timelineUserWidth  float32
+	timelineUserPadY   float32
+	timelineUserPadX   float32
+	timelineBubbleR    float32
+	timelineFileRowY   float32
+	timelineFileRowX   float32
+	timelineFileGap    float32
+	timelineFileStatus float32
 
 	// The sidebar's geometry, in DIPs: the header's height and top margin,
 	// the table title, a thread row, a global entry, the footer row, the
@@ -264,6 +310,22 @@ func newTokens(t *ui.Theme) tokens {
 		cardRadius:  radiusLG,
 		cardPadY:    t.Space(1),
 		cardPadX:    t.Space(2),
+
+		timelinePadX:       timelinePadX,
+		timelineBlockGap:   timelineBlockGap,
+		timelineHeaderH:    timelineHeaderH,
+		timelinePadStart:   timelinePadStart,
+		timelineRail:       timelineRail,
+		timelinePanelMaxH:  timelinePanelMaxH,
+		timelineChevron:    timelineChevron,
+		timelineUserWidth:  timelineUserWidth,
+		timelineUserPadY:   timelineUserPadY,
+		timelineUserPadX:   timelineUserPadX,
+		timelineBubbleR:    timelineBubbleR,
+		timelineFileRowY:   timelineFileRowY,
+		timelineFileRowX:   timelineFileRowX,
+		timelineFileGap:    timelineFileGap,
+		timelineFileStatus: timelineFileStatus,
 
 		sidebarHeaderH:     sidebarHeaderH,
 		sidebarHeaderTop:   sidebarHeaderTop,

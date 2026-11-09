@@ -65,9 +65,16 @@ const (
 	// actions only while the window supplies OnApproval and the request keeps
 	// its App Server identity; otherwise they stay visible WIP entries.
 	AuthorApproval
-	// AuthorTool is a tool call, drawn as a compact card with its name, its
-	// status and one bounded line each of its params and its result.
+	// AuthorTool is a tool call, drawn as a compact, expandable card with its
+	// name, its status, and its params and result in a bounded panel.
 	AuthorTool
+	// AuthorError is a turn that ended in failure, drawn as its own row in the
+	// danger color inside an alert region. The row's text is the caller's; the
+	// shell adds no reason of its own.
+	AuthorError
+	// AuthorRetry is a retry notice, drawn as its own row in the warning color:
+	// a turn was retried after it failed.
+	AuthorRetry
 )
 
 // String is the author's name, as a row shows it.
@@ -79,6 +86,10 @@ func (a Author) String() string {
 		return "Approval request"
 	case AuthorTool:
 		return "Tool"
+	case AuthorError:
+		return "Error"
+	case AuthorRetry:
+		return "Retry"
 	default:
 		return "You"
 	}
@@ -129,8 +140,14 @@ type Message struct {
 	// Author decides whether the row renders as Markdown, plain text or an
 	// approval request with its decisions.
 	Author Author
-	// Content is the row's text: Markdown for an assistant row.
+	// Content is the row's text: Markdown for an assistant row whose Blocks are
+	// empty, plain text for a user, approval, error or retry row.
 	Content string
+	// Blocks are an assistant turn's parts in the projection's order: text,
+	// thinking, tools and file changes. A row with no blocks renders Content as
+	// one Markdown block, so a fixture or an adapter that keeps only text still
+	// draws the turn.
+	Blocks []Block
 	// Tool is the call of an AuthorTool row: its name, previews and status.
 	// It stays a pure view model, filled by the fixture, and is zero on a row
 	// of any other author.
@@ -225,6 +242,12 @@ type State struct {
 	// composerFocus is the composer's identity, for the shortcut that moves the
 	// keyboard focus to it.
 	composerFocus ui.Handle
+	// expandedBlocks is the shell's own fold state of thinking and tool blocks,
+	// keyed by row and block (see blockOpen). It holds no timeline fact: the
+	// projection does not own whether a user opened a fold, so a rebuild keeps
+	// it here. It lives as long as the window; a fold left behind by a row that
+	// left the timeline stays as one unused entry and is never re-keyed.
+	expandedBlocks map[string]*bool
 }
 
 // View builds one frame of the AppFrame: sidebar, toolbar, banner, conversation
@@ -439,23 +462,39 @@ func (s *State) emptyConversation(c *ui.Context, k tokens) {
 	})
 }
 
-// messageRow builds one row: the author's name, then the content as Markdown
-// for the assistant, as plain text for the user, as an approval request with its
-// decisions, or as a tool call's card.
+// messageRow builds one row by its author, the way docs/ui-layout-spec.md §4
+// splits dim-electron's timeline: a user bubble, an assistant turn with its
+// blocks in order, a tool card, an approval row with its decisions, or an
+// error/retry notice. A row's own text stands in for an unknown author, so a
+// caller cannot lose text to a row type the shell does not know.
 func (s *State) messageRow(c *ui.Context, k tokens, m Message) {
-	ui.Column(c).Padding(k.rowPadY, k.rowPadX).Gap(k.gap).Children(func() {
+	switch m.Author {
+	case AuthorUser:
+		s.userRow(c, k, m)
+	case AuthorAssistant:
+		s.assistantRow(c, k, m)
+	case AuthorTool:
+		s.toolRow(c, k, m)
+	case AuthorApproval:
+		s.approvalRow(c, k, m)
+	case AuthorError:
+		s.errorRow(c, k, m)
+	case AuthorRetry:
+		s.retryRow(c, k, m)
+	default:
+		ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Children(func() {
+			ui.Text(c, m.Content).FontSize(k.bodySize)
+		})
+	}
+}
+
+// approvalRow draws a pending approval request: its author line, its text and
+// the two decisions it asks for.
+func (s *State) approvalRow(c *ui.Context, k tokens, m Message) {
+	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
-		switch m.Author {
-		case AuthorAssistant:
-			markdown.View(c, m.Content, &s.markdown)
-		case AuthorApproval:
-			ui.Text(c, m.Content).FontSize(k.bodySize)
-			s.approvalActions(c, k, m)
-		case AuthorTool:
-			s.toolRow(c, k, m)
-		default:
-			ui.Text(c, m.Content).FontSize(k.bodySize)
-		}
+		ui.Text(c, m.Content).FontSize(k.bodySize)
+		s.approvalActions(c, k, m)
 	})
 }
 

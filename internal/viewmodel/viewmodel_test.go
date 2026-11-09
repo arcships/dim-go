@@ -92,7 +92,21 @@ func TestBuildUserAndAssistantRows(t *testing.T) {
 	rows := Build(snapshot)
 	want := []ui.Message{
 		{ID: "u1", Author: ui.AuthorUser, Content: "hello"},
-		{ID: assistantID, Author: ui.AuthorAssistant, Content: "Hi there"},
+		{
+			ID:      assistantID,
+			Author:  ui.AuthorAssistant,
+			Content: "Hi there",
+			// The two deltas share one text block, which the projection
+			// closed at the model output end: its identity is the first
+			// delta's event.
+			Blocks: []ui.Block{{
+				ID:        "e4",
+				Kind:      ui.BlockText,
+				Content:   "Hi there",
+				StartedAt: 4,
+				EndedAt:   6,
+			}},
+		},
 	}
 	if !reflect.DeepEqual(rows, want) {
 		t.Fatalf("rows = %#v, want %#v", rows, want)
@@ -126,19 +140,83 @@ func TestBuildKeepsProjectionOrder(t *testing.T) {
 	}
 }
 
-// TestBuildThinkingIsNotVisibleContent checks the choice this adapter makes: the
-// projection keeps a thinking-only turn as a message, so the shell keeps its row
-// with empty content rather than dropping the turn or showing the thinking text.
-func TestBuildThinkingIsNotVisibleContent(t *testing.T) {
+// TestBuildThinkingIsAFoldedBlock checks what the adapter does with reasoning:
+// the projection keeps a thinking-only turn as a message, so the shell keeps its
+// row, with the reasoning in a thinking block the view folds rather than in the
+// row's visible content.
+func TestBuildThinkingIsAFoldedBlock(t *testing.T) {
 	snapshot := snapshotOf(t,
 		modelStart("e1", 1),
 		thinkingDelta("e2", 2, "weighing the options"),
 		outputEnd("e3", 3, "completed"),
 	)
 	rows := Build(snapshot)
-	want := []ui.Message{{ID: assistantID, Author: ui.AuthorAssistant, Content: ""}}
+	want := []ui.Message{{
+		ID:      assistantID,
+		Author:  ui.AuthorAssistant,
+		Content: "",
+		Blocks: []ui.Block{{
+			ID:        "e2",
+			Kind:      ui.BlockThinking,
+			Content:   "weighing the options",
+			StartedAt: 2,
+			EndedAt:   3,
+		}},
+	}}
 	if !reflect.DeepEqual(rows, want) {
-		t.Fatalf("rows = %#v, want one assistant row with empty content", rows)
+		t.Fatalf("rows = %#v, want one assistant row with one thinking block", rows)
+	}
+}
+
+// TestBuildKeepsBlockOrder checks that a turn's blocks keep the projection's
+// order: the text before the reasoning, the reasoning, then the text after it.
+// Reordering here would reorder the turn on screen.
+func TestBuildKeepsBlockOrder(t *testing.T) {
+	snapshot := snapshotOf(t,
+		modelStart("e1", 1),
+		textDelta("e2", 2, "first"),
+		thinkingDelta("e3", 3, "second"),
+		textDelta("e4", 4, "third"),
+		outputEnd("e5", 5, "completed"),
+	)
+	rows := Build(snapshot)
+	if len(rows) != 1 {
+		t.Fatalf("rows = %#v, want the one assistant turn", rows)
+	}
+	var kinds []ui.BlockKind
+	var texts []string
+	for _, block := range rows[0].Blocks {
+		kinds = append(kinds, block.Kind)
+		texts = append(texts, block.Content)
+	}
+	wantKinds := []ui.BlockKind{ui.BlockText, ui.BlockThinking, ui.BlockText}
+	wantTexts := []string{"first", "second", "third"}
+	if !reflect.DeepEqual(kinds, wantKinds) {
+		t.Fatalf("block kinds = %v, want %v", kinds, wantKinds)
+	}
+	if !reflect.DeepEqual(texts, wantTexts) {
+		t.Fatalf("block texts = %v, want %v", texts, wantTexts)
+	}
+}
+
+// TestBuildBlocksCarryStreamingStatus checks the status and end time the view
+// needs to say "Thinking" while a block runs and "Thought for Ns" once it
+// settles.
+func TestBuildBlocksCarryStreamingStatus(t *testing.T) {
+	snapshot := snapshotOf(t,
+		modelStart("e1", 1),
+		thinkingDelta("e2", 2, "still running"),
+	)
+	rows := Build(snapshot)
+	if len(rows) != 1 || len(rows[0].Blocks) != 1 {
+		t.Fatalf("rows = %#v, want one thinking block", rows)
+	}
+	block := rows[0].Blocks[0]
+	if !block.Running {
+		t.Errorf("a running thinking block is not marked running: %#v", block)
+	}
+	if block.EndedAt != 0 {
+		t.Errorf("a running thinking block has an end time %d", block.EndedAt)
 	}
 }
 

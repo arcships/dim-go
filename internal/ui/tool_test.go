@@ -46,7 +46,7 @@ func TestToolRowRendersEachStatus(t *testing.T) {
 		s := toolFixture(tc.status, "go test ./...", "ok dimagent")
 		tt := ui.NewTester(s.View, 900, 600)
 
-		for _, want := range []string{"Tool", "bash", tc.label, "Params: go test ./...", "Result: ok dimagent"} {
+		for _, want := range []string{"bash", tc.label, "Params: go test ./...", "Result: ok dimagent"} {
 			if !tt.HasText(want) {
 				t.Errorf("%v: card is missing %q, texts %q", tc.status, want, tt.Texts())
 			}

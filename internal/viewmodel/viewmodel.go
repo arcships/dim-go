@@ -36,12 +36,17 @@ const unnamedTool = "(unnamed tool)"
 // Roles map as the shell draws them:
 //
 //   - "user" becomes an AuthorUser row of the input's visible text;
-//   - "assistant" becomes an AuthorAssistant row of the reply's Markdown. The
-//     projection keeps thinking blocks in the message's events, not in its
-//     content, so a thinking-only turn is a row with empty content rather than
-//     an invented one: the projection kept the message, so the shell keeps it.
-//   - "tool" becomes an AuthorTool row of a compact card: the call's name, a
-//     one-line params preview, a one-line result preview and its status.
+//   - "assistant" becomes an AuthorAssistant row of the reply's blocks, in the
+//     projection's own order: a thinking block for every reasoning block the
+//     projection kept, a text block for every text block, with the status and
+//     timestamps it folded. The row's Content stays the concatenated reply, so a
+//     caller that ignores blocks still has the turn's text, and a turn with no
+//     blocks renders it as one Markdown block. A thinking-only turn keeps its
+//     row: the projection kept the message, so the shell keeps it, with the
+//     reasoning folded in a thinking block rather than dropped or shown as the
+//     reply.
+//   - "tool" becomes an AuthorTool row of a compact, expandable card: the
+//     call's name, its params and result previews and its status.
 //
 // Any other role draws no row: the projection emits approvals as transient
 // notices, not durable messages, and the shell invents none of them.
@@ -63,6 +68,7 @@ func Build(snapshot projection.Snapshot) []ui.Message {
 				ID:      message.ID,
 				Author:  ui.AuthorAssistant,
 				Content: message.Content,
+				Blocks:  buildBlocks(message),
 			})
 		case "tool":
 			rows = append(rows, ui.Message{
@@ -73,6 +79,41 @@ func Build(snapshot projection.Snapshot) []ui.Message {
 		}
 	}
 	return rows
+}
+
+// buildBlocks maps one assistant message's blocks, in the order the projection
+// kept them. Only the block types the projection folds are mapped: text and
+// thinking. Tool calls are separate "tool" messages in the projection, so they
+// stay rows of their own instead of being guessed into a turn, and file changes
+// have no projection fact at all (internal/projection folds no file-changes
+// event), so this adapter invents none.
+//
+// A message with no text or thinking block gives an empty slice, never nil, so
+// the row falls back to its Content instead of rendering nothing.
+func buildBlocks(message projection.Message) []ui.Block {
+	blocks := make([]ui.Block, 0, len(message.Events))
+	for _, event := range message.Events {
+		block := ui.Block{
+			ID:        event.ID,
+			Running:   event.Status == "running",
+			StartedAt: event.StartTime,
+		}
+		if event.EndTime != nil {
+			block.EndedAt = *event.EndTime
+		}
+		switch event.Type {
+		case "thinking":
+			block.Kind = ui.BlockThinking
+			block.Content = event.Content
+		case "text_delta":
+			block.Kind = ui.BlockText
+			block.Content = event.Content
+		default:
+			continue
+		}
+		blocks = append(blocks, block)
+	}
+	return blocks
 }
 
 // BuildApprovals adapts the session's daemon-owned pending approvals into rows
