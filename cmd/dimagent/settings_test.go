@@ -60,6 +60,24 @@ func TestLoadAppearanceAppliesSavedPreferences(t *testing.T) {
 	}
 }
 
+// TestLoadAppearanceKeepsTheBuildVersion checks the About page's version across
+// startup: the preferences load replaces the view, and a version the window
+// already stamped must survive that load.
+func TestLoadAppearanceKeepsTheBuildVersion(t *testing.T) {
+	state := &dimui.State{Settings: dimui.SettingsView{AppVersion: "1.2.3"}}
+	a := appearanceApp(state, func() (config.Settings, error) {
+		return config.Default(), nil
+	}, nil)
+	a.loadAppearance()
+
+	if state.Settings.AppVersion != "1.2.3" {
+		t.Fatalf("the loaded settings dropped the build version: %+v", state.Settings)
+	}
+	if state.Settings.Theme != settingsView(config.Default()).Theme {
+		t.Fatalf("the loaded settings lost the saved theme: %+v", state.Settings)
+	}
+}
+
 // TestLoadAppearanceDoesNotWriteBackAHandEditedValue checks that a file value
 // the shell folds to one of its own choices is the baseline, not a choice: the
 // first frame after such a load writes nothing.

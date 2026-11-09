@@ -1073,6 +1073,9 @@ func (s *State) syncDeleteConfirm() {
 // folds the type size, family, code size and density into the frame's theme and
 // tokens, and the sidebar width is held between its bounds before it is drawn.
 func (s *State) applySettings(change SettingsChange) {
+	// The build version is a fact of this binary, not a preference, so a
+	// settings choice keeps it for the About page.
+	appVersion := s.Settings.AppVersion
 	s.Settings = SettingsView{
 		Theme:        change.Theme,
 		FontSize:     change.FontSize,
@@ -1081,6 +1084,7 @@ func (s *State) applySettings(change SettingsChange) {
 		Density:      change.Density,
 		CodeFontSize: change.CodeFontSize,
 		Locale:       change.Locale,
+		AppVersion:   appVersion,
 	}
 	if change.SidebarWidth > 0 {
 		s.SidebarWidth = change.SidebarWidth

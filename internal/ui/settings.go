@@ -3,9 +3,11 @@
 // appearance page keeps the desktop's own color theme, type, sidebar-width and
 // density preferences, plus the skin and chrome entries the shell cannot offer
 // yet. The archived-sessions page lists the rows this desktop hides and offers
-// Restore. Every other section keeps its place in the navigation and explains
-// the client or page it waits on, so the settings surface reads as WIP instead
-// of as an empty page that saved nothing.
+// Restore; the models and shortcuts pages list read-only facts; the about page
+// reports the binary's build version, the Go/mygo/protocol facts and the
+// interface language. Every other section keeps its place in the navigation and
+// explains the client or page it waits on, so the settings surface reads as WIP
+// instead of as an empty page that saved nothing.
 //
 // It reads SettingsView and the tokens only (see protocols.go); the App Server
 // owns every session, run, timeline and approval fact and is not read here.
@@ -27,6 +29,8 @@ import (
 	"strings"
 
 	"github.com/egoist/mygo/ui"
+
+	"github.com/arcships/dimagent-mygo/internal/appserver"
 )
 
 // The settings surface's own steps, in DIPs. Padding, gaps, type sizes, radii
@@ -158,7 +162,6 @@ var settingsSectionGaps = map[SettingsSection]string{
 	SettingsSectionHooks:           "Unavailable: the hooks page is not built yet; the shell has no hooks client or page.",
 	SettingsSectionPlugins:         "Unavailable: the plugins page is not built yet; the shell has no plugin client or page.",
 	SettingsSectionExternalAgent:   "Unavailable: the external agent page is not built yet; the shell has no external-agent client or page.",
-	SettingsSectionAbout:           "Unavailable: the about page is not built yet; the shell has no build, version or credits page to show.",
 }
 
 // SettingsSection is one page of the settings surface. The zero value is the
@@ -261,9 +264,9 @@ func resolvedSection(s SettingsSection) SettingsSection {
 }
 
 // settingsSectionName is the section's English name, used for the page heading
-// and the navigation row. Only Appearance and About have content today; the
-// other pages are not built, so their names stay English until i18n.go carries
-// the settings.section.* keys.
+// and the navigation row. Appearance, Models, Shortcuts, Archived sessions and
+// About have content today; the other pages are not built, so their names stay
+// English until i18n.go carries the settings.section.* keys.
 func settingsSectionName(s SettingsSection) string {
 	switch s {
 	case SettingsSectionAccount:
@@ -542,6 +545,11 @@ type SettingsView struct {
 	// failed, and Reason then names the gap; the page shows the reason instead
 	// of an empty list that would look like "no models".
 	ModelStatus ModelStatus
+	// AppVersion is the build version this binary reports on the About page:
+	// the window sets it from the linker-stamped value at startup. It is a
+	// build fact, not a preference, so resolveSettings leaves it alone; an
+	// empty value draws "dev" rather than a blank row.
+	AppVersion string
 }
 
 // SettingsChange is one preference the user just chose. Field says which one
@@ -881,10 +889,10 @@ func settingsCompactPage(c *ui.Context, k tokens, v SettingsView, capabilities [
 // settingsPage draws the right-hand page. The appearance page is the one with
 // preferences; the archived-sessions page lists the desktop's hidden rows and
 // offers Restore; the models page lists the App Server's model catalog read-only;
-// the shortcuts page lists the shortcuts this shell wires; the about page draws
-// its own WIP explanation and the shell's unwired capabilities, and every other
-// page draws its title, a WIP badge and the client or page it waits on, so the
-// section never pretends a preference was read.
+// the shortcuts page lists the shortcuts this shell wires; the about page
+// reports the binary's build facts and the shell's unwired capabilities, and
+// every other page draws its title, a WIP badge and the client or page it waits
+// on, so the section never pretends a preference was read.
 func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, section SettingsSection, onChange func(SettingsChange), onRestore func(sessionID string)) {
 	l := v.Locale
 	ui.Scroll(c).Grow(1).FillHeight().MinWidth(0).Clip().Children(func() {
@@ -894,10 +902,10 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 					TextColor(k.foreground).Role(ui.RoleHeading).Level(1)
 				switch section {
 				case SettingsSectionAbout:
-					// The about page has no build or version fact to show, so it
-					// keeps the WIP explanation and, under it, the capability list
-					// the reference keeps off its navigation.
-					settingsWIPPage(c, k, section, v.Locale)
+					// The About page reports the build facts this binary can
+					// know and, under them, the capability list the reference
+					// keeps off its navigation. Every value is read-only.
+					settingsAboutPage(c, k, v)
 					settingsDivider(c, k)
 					settingsCapabilitiesPage(c, k, v, capabilities)
 					return
@@ -937,6 +945,61 @@ func settingsPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCap
 					TextColor(k.mutedForeground).Wrap()
 			})
 	})
+}
+
+// The About page's own facts. The app name is the product's fixed name. mygo
+// exposes no version accessor, so settingsAboutMygo mirrors the go.mod
+// requirement; the Go version and the App Server protocol are read from the
+// build and the wire package, so they cannot drift from what this binary
+// speaks.
+const (
+	settingsAboutAppName = "DimAgent"
+	settingsAboutMygo    = "v0.8.3"
+)
+
+// settingsAboutVersion is the version the About page draws: the one the window
+// stamped at startup, and "dev" for a binary built without a version, so an
+// unstamped build says so instead of drawing a blank row.
+func settingsAboutVersion(stamped string) string {
+	if strings.TrimSpace(stamped) == "" {
+		return "dev"
+	}
+	return stamped
+}
+
+// settingsAboutPage draws the build facts this binary can report: the app name,
+// its linker-stamped version, the Go toolchain, the mygo library, the App
+// Server protocol and the interface language in force. Every row is a read-only
+// display copy of a build fact; the page starts no read and offers no edit, so
+// nothing here can claim a preference the desktop did not save.
+func settingsAboutPage(c *ui.Context, k tokens, v SettingsView) {
+	l := v.Locale
+	rows := []struct{ label, value string }{
+		{tr(l, keySettingsAboutApp), settingsAboutAppName},
+		{tr(l, keySettingsAboutVersion), settingsAboutVersion(v.AppVersion)},
+		{tr(l, keySettingsAboutGo), runtime.Version()},
+		{tr(l, keySettingsAboutMygo), settingsAboutMygo},
+		{tr(l, keySettingsAboutProtocol), "v" + strconv.Itoa(appserver.WireProtocolVersion)},
+		{tr(l, keySettingsAboutLanguage), resolveLocale(l).Name()},
+	}
+	title := tr(l, keySettingsAboutBuild)
+	settingsSection(c, k, title, func() {
+		ui.Column(c).FillWidth().Gap(k.gap).Role(ui.RoleGroup).Label(title).
+			Children(func() {
+				for _, row := range rows {
+					ui.Row(c).FillWidth().MinHeight(k.sidebarRowH).PaddingX(k.gap).
+						Gap(k.gapWide).AlignItems(ui.Center).Children(func() {
+						ui.Text(c, row.label).FontSize(k.bodySize).
+							TextColor(k.mutedForeground).SingleLine().Ellipsis("…").
+							Grow(1).MinWidth(0)
+						ui.Text(c, row.value).FontSize(k.bodySize).
+							TextColor(k.foreground).SingleLine()
+					})
+				}
+			})
+	})
+	ui.Text(c, tr(l, keySettingsAboutNote)).FontSize(k.smallSize).
+		TextColor(k.mutedForeground).Wrap()
 }
 
 // settingsCapabilitiesNote explains the capability list the About page carries.

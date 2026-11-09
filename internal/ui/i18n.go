@@ -248,6 +248,17 @@ const (
 	keySettingsSkinNew          = "settings.skin.new"
 	keySettingsSkinOpen         = "settings.skin.open"
 
+	// The About page's build facts. They label read-only rows; the values come
+	// from the binary, the toolchain and the protocol, not from the table.
+	keySettingsAboutBuild    = "settings.about.build"
+	keySettingsAboutApp      = "settings.about.app"
+	keySettingsAboutVersion  = "settings.about.version"
+	keySettingsAboutGo       = "settings.about.go"
+	keySettingsAboutMygo     = "settings.about.mygo"
+	keySettingsAboutProtocol = "settings.about.protocol"
+	keySettingsAboutLanguage = "settings.about.language"
+	keySettingsAboutNote     = "settings.about.note"
+
 	keyCapabilityGroup             = "capability.group"
 	keyCapabilityCreate            = "capability.create.action"
 	keyCapabilityCreateGap         = "capability.create.gap"
@@ -522,6 +533,15 @@ var stringsEN = Strings{
 	keySettingsSkinNew:          "New from image",
 	keySettingsSkinOpen:         "Open folder",
 
+	keySettingsAboutBuild:    "Build",
+	keySettingsAboutApp:      "Application",
+	keySettingsAboutVersion:  "Version",
+	keySettingsAboutGo:       "Go",
+	keySettingsAboutMygo:     "MyGo",
+	keySettingsAboutProtocol: "App Server protocol",
+	keySettingsAboutLanguage: "Interface language",
+	keySettingsAboutNote:     "Read-only build facts: this page reports what the binary was built with; it reads no session and stores no preference.",
+
 	keyCapabilityGroup:             "Unavailable capabilities",
 	keyCapabilityCreate:            "Session creation",
 	keyCapabilityCreateGap:         "helper exists; shell has no create callback",
@@ -757,6 +777,15 @@ var stringsZHCN = Strings{
 	keySettingsSkinCard:         "皮肤",
 	keySettingsSkinNew:          "用图片新建",
 	keySettingsSkinOpen:         "打开目录",
+
+	keySettingsAboutBuild:    "构建信息",
+	keySettingsAboutApp:      "应用",
+	keySettingsAboutVersion:  "版本",
+	keySettingsAboutGo:       "Go",
+	keySettingsAboutMygo:     "MyGo",
+	keySettingsAboutProtocol: "App Server 协议",
+	keySettingsAboutLanguage: "界面语言",
+	keySettingsAboutNote:     "只读的构建事实：本页只报告二进制的构建信息，不读取会话，也不保存任何偏好。",
 
 	keyCapabilityGroup:             "不可用的能力",
 	keyCapabilityCreate:            "创建会话",
