@@ -82,6 +82,11 @@ Last updated: 2026-11-09
 - [`evidence/ui/mygo-lucide-icons.png`](evidence/ui/mygo-lucide-icons.png)。图标来自本地 `lucide-vue-next@0.577.0`（ISC），统一 24×24 viewBox → 16 DIP，currentColor；覆盖侧栏、设置导航、顶栏、composer、搜索与查找条。
 - 品牌 mark 保留自有图形；VS Code 入口为近似 mark（未使用第三方 logo 资产）。
 
+## 顶栏模型入口（真实窗口，2026-11-10）
+
+- [`evidence/window-header-model.png`](evidence/window-header-model.png)。顶栏 trailing 顺序 `… → 模型 chip → panel`，chip 显示当前 provider/model，点击打开与 composer 相同的模型列表；参考的 VS Code 入口未做（无对应功能）。
+- 窄窗截断，Settings/Keys 路由打开时不画。
+
 ## 像素基线（辅助，不是结论）
 
 同尺寸 800×720，区域按 sidebar/top/content/composer/bottom：
