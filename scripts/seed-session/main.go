@@ -6,6 +6,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"os"
@@ -19,6 +21,7 @@ func main() {
 	home := flag.String("home", "", "product home to seed (required)")
 	server := flag.String("server", "", "dim-app-server binary (default: supervisor lookup)")
 	cwd := flag.String("cwd", "", "working directory for the new session (default: current)")
+	prompt := flag.String("prompt", "", "optional first message to submit after session.create")
 	flag.Parse()
 
 	if *home == "" {
@@ -55,6 +58,24 @@ func main() {
 		_, _ = sup.Close(context.Background())
 		os.Exit(1)
 	}
+	if *prompt != "" {
+		// Submit on the control connection: session.submit is a session method,
+		// and the daemon folds the turn into the same durable history a window
+		// reads later. It never derives a local row from this reply.
+		if _, err := appserver.Submit(ctx, conn.Client(), appserver.SubmitParams{
+			SessionID:    result.SessionID,
+			SubmissionID: newSubmissionID(),
+			BranchID:     appserver.MainBranchID,
+			Text:         *prompt,
+		}); err != nil {
+			fmt.Fprintf(os.Stderr, "seed-session: session.submit: %v\n", err)
+			_, _ = sup.Close(context.Background())
+			os.Exit(1)
+		}
+		// Give the mock model a moment to fold its turn before the daemon closes;
+		// the history read later only sees durable events either way.
+		time.Sleep(1500 * time.Millisecond)
+	}
 
 	closeCtx, closeCancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer closeCancel()
@@ -63,4 +84,15 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Println(result.SessionID)
+}
+
+// newSubmissionID makes the idempotency key session.submit needs. The seed tool
+// only needs one unique key per run; the window's own submit path owns the real
+// read-back semantics.
+func newSubmissionID() string {
+	var raw [16]byte
+	if _, err := rand.Read(raw[:]); err != nil {
+		return fmt.Sprintf("seed-%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(raw[:])
 }
