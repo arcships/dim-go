@@ -70,6 +70,12 @@ Last updated: 2026-11-09
 - Shortcuts：[`evidence/ui/mygo-settings-shortcuts.png`](evidence/ui/mygo-settings-shortcuts.png)。列出真实接线的 ⌘G/⌘F/Enter/Shift+Enter；编辑键位仍 WIP。
 - About：[`evidence/ui/mygo-settings-about.png`](evidence/ui/mygo-settings-about.png)。真实构建信息（版本/Go/MyGo/协议/语言）+ 剩余能力缺口。
 
+## Chrome 主题（真实窗口，2026-11-10）
+
+- [`evidence/ui/mygo-chrome-win98.png`](evidence/ui/mygo-chrome-win98.png)。Windows 98 chrome 已生效：灰底、深蓝选中、方角控件、系统字体；切换后整壳立即变化并持久化。
+- 已实现 6 套（default / Windows 98 / XP / Vista / macOS Big Sur / OSX Tiger），颜色/字体/圆角来自参考 `retro-themes.css`；渐变、3D 斜角、阴影、标题栏、vibrancy、滚动条宽度未仿制，按平面绘制。
+- 部分组件仍直接用包级 radius 常量，chrome 圆角未全量生效（已列入待办）。
+
 ## 像素基线（辅助，不是结论）
 
 同尺寸 800×720，区域按 sidebar/top/content/composer/bottom：
