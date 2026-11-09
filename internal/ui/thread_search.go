@@ -85,13 +85,13 @@ func threadSearchLabel(locale Locale, key string) string {
 	return key
 }
 
-// The bar's glyphs, in the sidebar's 16×16 outline frame: the two arrows that
-// step through the matches and the cross that closes the bar. Each strokes
+// The bar's glyphs, in Lucide's 24×24 outline frame: the two arrows that step
+// through the matches and the cross that closes the bar. Each strokes
 // currentColor, so the theme and the muted ink carry through.
 var (
-	threadSearchUpIcon    = sidebarIcon(`<path d="M8 12.5V3.5"/><path d="M4.6 7 8 3.5 11.4 7"/>`)
-	threadSearchDownIcon  = sidebarIcon(`<path d="M8 3.5v9"/><path d="M4.6 9 8 12.5 11.4 9"/>`)
-	threadSearchCloseIcon = sidebarIcon(`<path d="M4.6 4.6 11.4 11.4"/><path d="M11.4 4.6 4.6 11.4"/>`)
+	threadSearchUpIcon    = mustLucide("arrow-up")
+	threadSearchDownIcon  = mustLucide("arrow-down")
+	threadSearchCloseIcon = mustLucide("x")
 )
 
 // threadSearchBar draws the find bar at the end of the toolbar while the window

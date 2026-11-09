@@ -1880,15 +1880,15 @@ func settingsThemeIcon(choice ThemeChoice) *ui.SVG {
 }
 
 // settingsExtraIcons holds the two glyphs this shell adds to the reference's
-// navigation: the archived-sessions and about entries. icons.go owns the
-// reference's marks and the About page's list, so the shell's own
-// pages carry their own shapes here instead of changing that set.
+// navigation: the archived-sessions and about entries. Both are Lucide marks
+// (lucide_icons.go), so the shell's own pages share the reference's stroke
+// weight instead of carrying separate shapes.
 var settingsExtraIcons = struct {
 	archive *ui.SVG
 	about   *ui.SVG
 }{
-	archive: sidebarIcon(`<rect x="2.2" y="2.8" width="11.6" height="2.8" rx="0.9"/><path d="M3.6 5.6v6.2c0 1 .8 1.8 1.8 1.8h5.2c1 0 1.8-.8 1.8-1.8V5.6"/><path d="M6.4 8.4h3.2"/>`),
-	about:   sidebarIcon(`<circle cx="8" cy="8" r="5.7"/><path d="M8 7.4v4.2"/><circle cx="8" cy="5.1" r=".7" fill="currentColor" stroke="none"/>`),
+	archive: mustLucide("archive"),
+	about:   mustLucide("info"),
 }
 
 // settingsSectionIcon is the glyph a navigation row draws for its section: the
