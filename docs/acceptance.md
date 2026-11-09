@@ -1,6 +1,6 @@
 # 产品验收矩阵
 
-Status: draft（F1/F2/F5 已达 L4；F3/F4/F6–F14、D1–D6、A1–A5 未通过）
+Status: active（F1–F5、F10、F12a、F14a、A1、A4 已达 L4；D1–D7、其余 F/A 未通过）
 Last updated: 2026-11-09
 
 本文回答一个具体问题：**什么才算验收通过**。它和 `go test` 通过是两件事。
@@ -41,16 +41,34 @@ Last updated: 2026-11-09
 | F14a | session 删除 | 真实窗口删除 → App Server 确认后行消失 | L4：`session.delete` 结果因流关闭判 unknown，按合同读回 `session.catalog` 确认后移除；删到最后一个清空为 `Sessions 0`（`window-delete-session.png`） | **已通过（L4）** |
 | F14b | 关闭终态显示 | `session.closed` 在窗口可见且不可再提交 | 删除瞬间短暂出现 `Session closed`，未单独留存证据；删除成功后选择被清空 | 未通过 |
 
-## 设计 1:1 验收
+## 设计 1:1 验收（样式 / 内容 / 动画）
 
-| # | 项目 | 要求证据 | 当前 | 结论 |
-|---|---|---|---|---|
-| D1 | 语义 token 层 | token 对照表 + 与 Electron 变量一一映射 | L0：`docs/ui-token-map.md` 覆盖 35/35 颜色字段与 53/53 几何/排版字段，给出 A 侧 light/dark 行号与对应/部分判定；值差异（圆角 rem、Space 刻度、ring 色相）逐项记录 | **已通过（L0 文档映射）** |
-| D2 | 主题/皮肤 | 与 Electron 主题数量、切换行为一致 | system/light/dark 已实现并持久化；skin/chrome 明确 WIP | 未通过 |
-| D3 | 区域组件 | sidebar、chat-workspace、composer、context-panel、right-panel、settings 等逐一对照 | 并排图覆盖空态/设置/对话/错误四态（`docs/evidence/ui-parity/`）；sidebar 分组+相对时间、composer 宽度、品牌绿、助手行已对齐；composer 工具栏仍是带 WIP 徽标的文字入口 | 未通过 |
-| D4 | 字体/密度/间距 | 截图叠加对照 | 已量到并记录：顶栏 41/实测 46、composer 534 vs 520、消息列留白 24.5、侧栏 256；`docs/ui-token-map.md` 记录字号/间距/圆角差异；未做同位置像素叠加 | 未通过 |
-| D5 | Markdown/代码块渲染 | 真实内容对照 | 内容层已有代码块头/Copy、行内代码、链接、表格、任务列表和文件 chip；Electron 对话基线只有一轮纯文本 Echo，没有 Markdown 可对照 | 未通过 |
-| D6 | 空态/加载/错误态 | 三种状态截图对照 | 空态（compare-empty）与错误态（compare-error）已并排；加载态未采集 | 未通过 |
+判定分三条轴，三条轴都满足才算通过。**token 映射表只是输入，不是通过证据**：样式必须在真实界面上与参考一致。
+
+| 轴 | 通过条件 | 证据门槛 |
+|---|---|---|
+| S 样式 | 颜色、表面、描边、字体、圆角、间距、图标、阴影、状态色在真实界面与参考一致 | 同窗口尺寸/同状态/同主题截图；逐区域 MAE ≤ 3（0–255）且 delta>16 的像素占比 ≤ 2%，文本区扣除文字差异后同样达标 |
+| C 内容 | 同状态下文案、元素顺序、可见性、数据格式一致；Markdown/代码/工具卡内容一致 | 同语言截图 + 文本快照对照；差异必须逐条列出并有理由 |
+| M 动画 | hover、面板开合、主题切换、composer 展开、流式文本、折叠动画的时间线与缓动一致 | 帧序列/录屏或可重复的时长与曲线记录；不接受“瞬间重绘” |
+
+| # | 轴 | 项目 | 要求证据 | 当前 | 结论 |
+|---|---|---|---|---|---|
+| D1 | S | 颜色/表面/描边 | 逐区域取样与像素差 | `docs/ui-token-map.md` 只是 L0 映射；真实界面取样仍有差异（侧栏 `#E9E9EC` vs `#E9EDF2`、圆角与 ring 不同）；首轮差异：sidebar MAE 15.0 / 25.7% 像素超阈值，conversation sidebar MAE 20.3 | 未通过 |
+| D2 | S | 排版/间距/圆角/密度 | 字号/行高/内距/圆角逐项测量 | A 根字号 14px、圆角按 rem 得 4.75/6.75/8.75/12.75、间距 10.5 刻度；B 是 6/8/10/14 与 `Space(3)=12`；顶栏 41 目标实测 46 | 未通过 |
+| D3 | S | 图标/阴影/状态色 | 图标集、按钮形态、hover/focus/disabled 对照 | composer 工具栏仍是文字 WIP；阴影/过渡层缺失；状态色未逐项取样 | 未通过 |
+| D4 | S | 主题/皮肤/chrome | 主题数量、切换行为、skin/chrome 覆盖 | system/light/dark 可用；6 个 chrome 与 skin 未实现 | 未通过 |
+| D5 | C | 元素内容与 Markdown | 同状态文案/顺序/可见性/数据格式 + Markdown 渲染 | 语言默认英文、WIP 徽标与额外区域（Branches/能力卡片）改变内容与顺序；Electron 对话基线只有一轮纯文本，无 Markdown 对照 | 未通过 |
+| D6 | M | 动画/过渡 | 帧序列或时长/曲线记录 | MyGo 目前没有可对比的过渡动画；Electron 有 CSS transition | 未通过 |
+| D7 | S+C | 状态覆盖 | 空/加载/错误/悬停/焦点/菜单六态截图 | 空态/错误态有并排；加载、悬停、焦点、菜单未采集 | 未通过 |
+
+首轮像素基线（`scripts/parity_diff.py`；区域：sidebar/top/content/composer/bottom）：
+
+| 对照 | sidebar MAE / >16% | top | content | composer | bottom |
+|---|---|---|---|---|---|
+| 空态：Electron workspace ↔ MyGo disconnected | 15.0 / 25.7% | 4.8 / 17.5% | 6.6 / 6.7% | 9.0 / 8.2% | 11.2 / 21.8% |
+| 对话态：Electron conversation ↔ MyGo conversation | 20.3 / 25.0% | 15.9 / 24.2% | 6.4 / 4.9% | 10.5 / 11.0% | 12.3 / 22.9% |
+
+diff 图存于 `docs/evidence/ui-parity/parity-*.diff.png`。这些数字说明现状远未达标，只作为下一轮修改的基线，不是通过证据。
 
 ## 无障碍与平台
 
