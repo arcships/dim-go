@@ -547,12 +547,13 @@ func DecodeHistoryResult(raw json.RawMessage, req HistoryParams) (HistoryResult,
 	return r, nil
 }
 
-// ----- session.keys (§9) -----
+// ----- session.keys (unverified Desktop shape) -----
 
-// KeysParams is the optional keyed-block snapshot read (§9). It runs on a
-// session stream. Through is required: the seed must be anchored at the same
-// head as the history window, otherwise a wrong window would seed state that
-// contradicts the replayed events.
+// session.keys appears only in Desktop wire.ts. The upstream dim app-server
+// method table has no verified RPC, so these types are retained only as an
+// unverified shape and there is no client helper.
+
+// KeysParams is the Desktop-shaped keyed-block snapshot request.
 type KeysParams struct {
 	SessionID string `json:"sessionId"`
 	BranchID  string `json:"branchId,omitempty"`

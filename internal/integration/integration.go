@@ -242,7 +242,8 @@ func (c *SessionController) Methods() appserver.MethodsResult {
 	return c.Session.Methods()
 }
 
-// BranchDirectory returns the daemon branch directory captured during Open.
+// BranchDirectory is always empty: session.branches has no verified upstream
+// RPC, so no daemon branch directory is requested or fabricated.
 func (c *SessionController) BranchDirectory() appserver.BranchesResult {
 	if c == nil {
 		return appserver.BranchesResult{}

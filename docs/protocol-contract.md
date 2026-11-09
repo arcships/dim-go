@@ -1,7 +1,7 @@
 # Protocol v3 Wire 合同
 
 Status: active（合同已冻结；Wave 1 实现 transport/client/DTO 子集，Wave 2 实现 session stream/attach、detach、四个 mutation helper 和 supervisor reconnect；real-daemon 控制面已验证，session re-attach/resync、UI 接线与真实 session 流仍未验证）
-Last updated: 2026-11-08
+Last updated: 2026-11-09
 基线证据：`dim-electron` 工作树 `3339f4f`（`wire.ts` / `client.ts` / `electron-main/src/app-server` 无本地改动）
 Owner: protocol
 
@@ -25,7 +25,7 @@ Owner: protocol
 
 合同结论来自对 `dim-electron` 的只读代码阅读，证据等级 `source-read`。Wave 1 的 framing、client、DTO 和 read helpers，以及 Wave 2 的 session stream、mutation helpers 另有 `headless` + `fake-server` 测试；real-daemon 目前只有控制面 smoke 证据，不覆盖真实 session 流。
 
-| 结论 | 证据（dim-electron 路径:行） |
+| 结论 | 证据（Desktop/Rust 路径:行） |
 |---|---|
 | wire 类型唯一来源 | `packages/desktop/packages/app-server-protocol/src/wire.ts` |
 | JSON-RPC 信封与解析 | `wire.ts:8-45`、`wire.ts:540-567` |
@@ -41,6 +41,9 @@ Owner: protocol
 | 错误映射 | `packages/desktop/packages/electron-main/src/app-server/error-mapping.ts:1-157` |
 | resync 是 Desktop domain event | `packages/desktop/packages/electron-main/src/app/bootstrap.ts:852-860`、`packages/desktop/packages/shared/src/protocol/base.ts:184-219` |
 | 连接语义文档 | `docs/architecture/app-server.md:21-66` |
+| `session.methods` built-in 及形状 | `crates/dim-app-server/src/protocol.rs:471-475`、`crates/dim-agent-capabilities/src/methods.rs:217-220` |
+| `session.input_lookup` 响应 | `crates/dim-app-server/src/protocol.rs:1196`、`crates/dim-app-server/src/connection/tree.rs:90-105` |
+| `session.keys` / `session.branches` 仅有 Desktop 形状 | `packages/desktop/packages/app-server-protocol/src/wire.ts:267-301`；`crates/dim-app-server/src/protocol.rs` 方法表未找到 |
 
 ## 3. 传输与帧
 
@@ -170,12 +173,12 @@ session stream (每打开 session 1 条)
 3. 发 `session.attach {sessionId}`；
 4. 取 head：`attach.sequence` 存在则用它，否则 `session.history {branchId:"main", after:0, limit:1}` 的 `through`；
 5. 读最新 turn window（见 §9）；
-6. 可选 `session.branches`（feature `session.branches`）、可选 `session.keys`（feature `session.keys`）；
+6. 可选 `session.branches`（feature `session.branches`）、可选 `session.keys`（feature `session.keys`）。**上游状态未确认**：这两个方法只出现在 Desktop `wire.ts:267-301` 和 session-reader 中；本次只读检查的 `../dim` `crates/dim-app-server` 方法表没有对应 call，按 blocked/unverified 处理，不能当作已确认合同。
 7. 建 projection；把 attach 到 projection 就绪之间到达的事件/状态按**到达顺序**补放。pending buffer 按 `event.id` 去重；进入 TimelineFold 后必须再按 `(branchId, sequence)` 做幂等，不能只依赖 event.id。若同一 sequence 出现不同 id，按协议错误记录并停止盲目合并，等待上游语义确认。
 
 Go 实现：`internal/appserver/session_stream.go` 的 `OpenSessionStream` 假定 supervisor 已完成步骤 1 的连接与 hello，实现步骤 2–4 以及步骤 7 的订阅先行、到达顺序缓冲和 `event.id`/`(branchId, sequence)` 冲突检查；它不构建 projection，也不读 latest turn 或 `session.branches`/`session.keys`。`Detach` 与 `Release` 按本节超时语义发送 `session.detach` 并关闭连接。
 
-`internal/session` 在 stream 之上实现步骤 5–7 的会话组合：首屏 history（latest-turn / 兼容扫描）、按 branch 的 projection、attach 期间有界 pending buffer，以及 remote closed / transport lost / local release 的区分。Open 在 capability gate 下读取可选的 `session.branches`/`session.keys` snapshot，并通过 `BranchDirectory`/`Keys` 暴露只读副本；它不自动 reconnect/resync，也不把投影写入本地存储。
+`internal/session` 在 stream 之上实现步骤 5–7 的会话组合：首屏 history（latest-turn / 兼容扫描）、按 branch 的 projection、attach 期间有界 pending buffer，以及 remote closed / transport lost / local release 的区分。Open 不请求 `session.branches`/`session.keys`；`Session.Keys`/`BranchDirectory` 返回空值并带 `KeysStatus`/`BranchDirectoryStatus` 的 blocked 原因，`Session.Branches()` 只返回从 attach/event 观察到的 branch id，不是 daemon directory。它不自动 reconnect/resync，也不把投影写入本地存储。
 
 `session.attach` 响应：
 
@@ -238,10 +241,12 @@ Go 实现：`internal/appserver/session_stream.go` 的 `OpenSessionStream` 假�
 
 Go 实现：`internal/session/history.go` 实现 latest-turn 反向分页、`turnStart` 漂移回退兼容扫描、`history_too_large` 和 page-cap 降级；缺 `turnStart`/`nextBefore` 或 `nextBefore` 非递减仍是 protocol error。首屏窗口只覆盖 main branch，side branch 的 durable event 走各自 reducer。
 
-可选读（失败只降级，不影响 open）：
+可选读（失败只降级，不影响 open；**上游 blocked/unverified**：Desktop `wire.ts` 声明了形状，但当前只读检查的 Rust app-server 方法表未找到 `session.keys`/`session.branches`，以下形状只属于 Desktop 证据，不能作为已确认 contract）：
 
 - `session.keys` → `{through, entries:[{key, sequence, inputId, text}]}`。
 - `session.branches` → `{branches:[{branchId, parentBranchId?, branchPoint?, createEvent?, source?, state:"open"|"ending"|"ended", head, endEvent?}]}`。
+
+Go 侧只保留 `KeysResult`/`BranchesResult` 的 Desktop wire 形状 decoder 作参考，不提供 `SessionKeys`/`SessionBranches` client helper；`internal/session.Open` 不请求这两个方法，`Session.Keys`/`BranchDirectory` 返回 blocked/empty，不合成 snapshot。
 
 ## 10. `session.submit` / `session.stop`
 
@@ -255,11 +260,11 @@ Go 实现：`internal/session/history.go` 实现 latest-turn 反向分页、`tur
 - `mode` 仅分支/steering 使用；`steer` 不等待 `turn/start`。
 - 响应至少含 `{event: RawEvent}`。`turnId` **不是** wire 字段：Desktop 从随后 `session.event` 的 `turn/start` 取 `data.turn_id ?? data.turnId`，最多等 2s，超时则不带。
 - 附件：文本走 `attachment.put {sessionId, name, text}` → `{path}` 后拼进 text；图片作为 inline `image` base64 block 放进 `user.content`；两者不能与显式 `user` 混用。第一阶段只做 text 即可。
-- 结果未知（超时/断线）时用 `session.input_lookup {sessionId, branchId, submissionId}` 读回，**不重发**。
+- 结果未知（超时/断线）时用 `session.input_lookup {sessionId, branchId, submissionId}` 读回，**不重发**。`branchId` 在 v3 必填（缺失会被 connection 校验拒绝，`crates/dim-app-server/src/connection.rs:514-522`）；`Session.LookupInput` 在 Go 调用侧默认当前 branch。响应只有两种：`{status:"accepted", event:RawEvent}` 或 `{status:"unknown"}`（`crates/dim-app-server/src/protocol.rs:1196`）。`accepted` 只表示按 `submissionId` 找到已接受的输入，不代表 turn 成功；`unknown` 是最终未找到，不能据此自动重试 submit。
 
 `session.stop {sessionId, branchId, reason?}`，响应内容忽略；停止状态由 `session.state` 收敛。
 
-Go 实现：`internal/appserver/mutations.go` 的 `Submit`/`Stop` 发送这两个方法。`Submit` 校验 `submissionId`、`branchId` 和 `text|user`，按最小 `{event}` 解码；`Submit` 遇到 timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 或畸形结果时返回 unknown-result 并注明读回方法，绝不自动重发。`internal/session` 的 `SubmitWithID`/`SubmitBranchWithID` 额外返回已发送的 UUID，供调用方在 unknown-result 时读取 `submissionId`；`session.input_lookup` 本身和 attachment 上传尚未实现，入口保持 WIP。
+Go 实现：`internal/appserver/mutations.go` 的 `Submit`/`Stop` 发送这两个方法。`Submit` 校验 `submissionId`、`branchId` 和 `text|user`，按最小 `{event}` 解码；`Submit` 遇到 timeout、断线、`request_aborted`、`submission_unknown`、`submission_ambiguous` 或畸形结果时返回 unknown-result 并注明读回方法，绝不自动重发。`internal/session` 的 `SubmitWithID`/`SubmitBranchWithID` 额外返回已发送的 UUID，供调用方在 unknown-result 时读取 `submissionId`；`appserver.InputLookupOutcome` 已按上述 tagged union 解码并校验；`appserver.InputLookup`/`Session.LookupInput` 仍原样返回 JSON。v3 调用必须带 `branchId`；`InputLookupParams` 的空值会省略该字段，`Session.LookupInput` 默认当前 branch。attachment 上传尚未实现。
 
 ## 11. 通知（只出现在 session stream 上）
 
@@ -318,7 +323,7 @@ Go 实现：`ApprovalRespond` 发送折叠后的 `allow`/`deny`，`-32602` 返�
 - mutation（submit/stop/approval.respond/session.delete）结果未知时：只读回或提示，绝不自动重发。四类 mutation 都必须各有 unknown-result fixture；不能只用 submit 覆盖。
 - 重连单飞：并发重连共享同一个进行中的尝试；关闭中的 supervisor 拒绝新重连。
 
-Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；`internal/session.SubmitWithID` 返回已发送的 submission UUID，`Session.LookupInput`/`appserver.InputLookup` 可按该 UUID opaque 读回，绝不自动重发。supervisor 已实现 `Reconnect`（单飞、重新解析 endpoint、关闭旧 attachment、按 backoff 重试、generation/stale 标记、transport 终止原因和 close 竞争处理）；`Client.Done`、`SessionStream` 的 `lost`/`transport_closed` 和 `Connection.Done`/`Err` 提供 resync 触发信号。session 层的 re-attach/domain resync 仍由上层编排，`internal/session` 不会自己重开或重建 attachment。
+Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试覆盖四类的 timeout/断线 unknown-result，`submit` 另有 `submission_unknown`/`submission_ambiguous`；`internal/session.SubmitWithID` 返回已发送的 submission UUID，`Session.LookupInput`/`appserver.InputLookup` 可按该 UUID 原样读回 `{status:"accepted",event}` 或 `{status:"unknown"}`，绝不自动重发。supervisor 已实现 `Reconnect`（单飞、重新解析 endpoint、关闭旧 attachment、按 backoff 重试、generation/stale 标记、transport 终止原因和 close 竞争处理）；`Client.Done`、`SessionStream` 的 `lost`/`transport_closed` 和 `Connection.Done`/`Err` 提供 resync 触发信号。session 层的 re-attach/domain resync 仍由上层编排，`internal/session` 不会自己重开或重建 attachment。
 
 ## 15. 当前合同缺口与上游确认项
 
@@ -334,12 +339,12 @@ Go 实现现状：四个 mutation helper 已实现，fake-server 表驱动测试
 两层门禁都要进 capability snapshot：
 
 1. 连接级 `hello.features`（每条连接各一份）。第一阶段相关：
-   `session.catalog`、`session.catalog.origins`、`session.catalog.workspaces`、`session.history`、`session.history.latestTurn`、`session.keys`、`session.branches`。
-2. session 级 `session.methods {sessionId}` → `{methods:[{name, mutating?}]}`，用于插件方法（`session.rename`、`shell.run`、`session.goal.*`、`session.grants.add`、`session.collaboration.*`）。Desktop 在 session stream 上调用。
+   `session.catalog`、`session.catalog.origins`、`session.catalog.workspaces`、`session.history`、`session.history.latestTurn`、`session.keys`、`session.branches`。后两者在 Desktop `wire.ts` 中声明，但当前只读检查的 Rust app-server 方法表未找到，标 blocked/unverified。
+2. session 级 `session.methods {sessionId}` 是 built-in，响应 `{methods:[{name:string, mutating:bool}]}`（`mutating` 必填，见 `crates/dim-agent-capabilities/src/methods.rs:217`），用于插件方法（`session.rename`、`shell.run`、`session.goal.*`、`session.grants.add`、`session.collaboration.*`）。Desktop 在 session stream 上调用。
 
 规则：缺 feature 时功能降级或 disabled，并说明原因；不写本地替代事实。`session.catalog` 缺失是"列表不可用"，不是"空列表"。
 
-当前 Go 实现只有连接级 `hello.features` 门禁（`HasFeature`/`CapabilityError`）；session 级 `session.methods` 尚未实现，插件方法入口保持 WIP。
+当前 Go 实现有连接级 `hello.features` 门禁（`HasFeature`/`CapabilityError`）；`appserver.SessionMethods`/`Session.Methods` 已实现 `session.methods` 读取（目前仍先检查 `hello.features` 是否声明 `session.methods`），插件方法入口保持 WIP。`session.keys`/`session.branches` 的 wire decoder/helper 保留用于契约测试，但 `internal/session` 不请求，accessors 返回 blocked/empty；上游 RPC 未确认，标 blocked/unverified。
 
 ## 17. Go DTO（`internal/appserver`）
 
@@ -372,16 +377,17 @@ DTO 规则：`json.RawMessage` 承载未知/未用字段；整数字段用 `int6
 | `AttachParams` / `AttachResult` / `SessionStream` / `StreamState` | `session.attach` | 已实现；`OpenSessionStream` 负责订阅先行、head 兜底和通知路由 |
 | `DetachParams` | `session.detach` | 已实现；`Detach`/`Release` 都关闭连接 |
 | `HistoryParams` / `HistoryResult` / `RawEvent` | `session.history` | 已实现；分页不变量运行时校验 |
-| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | 已实现；`internal/session.Open` 按 capability 可选读取并暴露只读 snapshot，UI branch switching/cut point 尚未实现 |
+| `KeysResult` / `BranchesResult` | `session.keys` / `session.branches` | 保留 wire decoder / `SessionBranches` helper 供契约测试；`internal/session` 不请求，`Keys`/`BranchDirectory` 返回 blocked/empty；上游 RPC 未找到，**blocked/unverified**；UI branch switching/cut point 尚未实现 |
+| `MethodsParams` / `MethodsResult` / `MethodDeclaration` | `session.methods` | 已实现；built-in，`{methods:[{name, mutating}]}`，`mutating` 必填 |
 | `SubmitParams` / `SubmitResult` + `Submit` | `session.submit` | 已实现；unknown-result 不重发 |
 | `StopParams` + `Stop` | `session.stop` | 已实现 |
 | `ApprovalRespondParams` + `ApprovalRespond` | `approval.respond` | 已实现；`-32602` 映射为 cancelled |
 | `DeleteParams` + `Delete` | `session.delete` | 已实现；响应体被忽略，需用 catalog 读回 |
-| `InputLookupParams` | `session.input_lookup` | 已实现；`Session.LookupInput`/`appserver.InputLookup` 返回 opaque read-back 结果，不自动重发 |
+| `InputLookupParams` | `session.input_lookup` | 已实现；响应 `{status:"accepted",event}` 或 `{status:"unknown"}`；`InputLookupOutcome` 解码校验，`InputLookup` 原样返回 JSON，不自动重发 |
 | `EventNotice` / `StateNotice` / `ApprovalRequest` / `ApprovalResolved` / `ApprovalCancelled` / `ClosedNotice` / `SessionNotice` / `ModelProgress` | 通知 | 已实现，`DecodeNotification` 按方法解码；未知方法原样透传 |
 | `LocalError` / `MappedError` | 客户端本地错误 / `appError` 映射 | 已实现 |
 
-`SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.keys`/`session.branches`、`session.input_lookup` 的读取已由 `internal/session`/`appserver` 实现并受 capability/只读语义约束；`session.methods` 的读取已实现，插件方法入口仍保持 WIP。
+`SessionStream` 不构建 projection，也不自动 reconnect/resync；它只把意外结束报告为 `lost`。latest-turn、`session.input_lookup`、`session.methods` 的读取已实现；`session.keys`/`session.branches` 只有 wire decoder/helper 和 fake 契约测试，session 不请求，accessors 返回 blocked/empty；插件方法入口仍保持 WIP。
 
 ## 18. Transport 与 Supervisor 参数（已实现，real-daemon 控制面已验证）
 
@@ -427,15 +433,15 @@ fake server 是 `fake_test.go` 内的 test-only `net.Pipe` peer，服务 `hello`
 
 - 已通过：`go build ./...`、`go vet ./...`、`go test -count=1 ./...`（8 个包）、`go test -race -count=1 ./...`、`gofmt -l .`、`git diff --check`；
 - 已通过：无 `internal/mygo` 复制、无 socket 直连 UI、无本地 session 存储；
-- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥和 cmd 的 opt-in 启动路径，以及 client 层错误；`subscription_changed` 恢复、`session.create`、`session.keys`/`session.branches`、`session.input_lookup` 和 session 层 re-attach/resync 未覆盖；
+- 部分通过：fake server 已覆盖 catalog/summaries/attach/detach/history、session stream 的订阅先行/事件冲突/closed/transport loss、四个 mutation 的拒绝与 unknown-result、`internal/session` 的 latest-turn/兼容扫描/降级/branch 隔离/terminal/close、supervisor reconnect/generation/close 竞争、integration 的 supervisor → session → viewmodel 桥和 cmd 的 opt-in 启动路径，以及 client 层错误；`subscription_changed` 恢复、`session.create` 的 UI 接线、`session.keys`/`session.branches`（上游 RPC 未确认，blocked/unverified；session 不请求，accessors 返回 blocked/empty）、`session.input_lookup` 的真实 daemon 读回和 session 层 re-attach/resync 未覆盖；
 - 已通过（`real-daemon` 控制面）：在 `../dim-2` 执行 `CARGO_TARGET_DIR=/tmp/dim-2-target cargo build --locked -p dim-app-server --bin dim-app-server`，再设置 `DIMAGENT_REAL_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server` 运行 `TestRealDaemonSmoke`，覆盖 spawn/hello/catalog/close；该证据不覆盖真实 session 流、projection 或 GUI。
 
 ## 21. 未决问题与 blocker
 
-1. 上游 Rust 源码未读（不在本仓库）。`SessionAttachResult` 除 `sequence` 外是否必返、`session.submit` 结果是否还有其它字段，wire 都标可选；实现按"可选 + 缺失兜底"。
+1. 本次只读检查了 `../dim` 的 `crates/dim-app-server/src/protocol.rs`、`crates/dim-app-server/src/connection/tree.rs` 和 `crates/dim-agent-capabilities/src/methods.rs`：`session.input_lookup` 与 `session.methods` 已确认，`session.keys`/`session.branches` 未找到。`SessionAttachResult` 除 `sequence` 外是否必返、`session.submit` 结果是否还有其它字段，wire 都标可选；实现按"可选 + 缺失兜底"。
 2. `session.summaries` 返回裸数组这一形状只有 Desktop 与 fake server 佐证；若上游变化，属 wire 修正。
 3. `session.history` 的 `through` 在上游是否必填、`through < after` 是否报错，未验证。
 4. `session.question.respond` 的 `answers` 字段级 schema 未展开（本阶段不做）。
 5. Windows named pipe 与父进程退出行为在上游文档中标注未验证。
 6. 合同结论仍是 `source-read`；Wave 1/2 实现已有 `headless` + `fake-server` 证据，real-daemon 已补充控制面 smoke（spawn/hello/catalog/close），不代表真实 session 流、projection 或 GUI 通过。
-7. `session.keys`/`session.branches`、`session.input_lookup`、`session.methods` 和 session 层 re-attach/resync 未实现；入口保持 WIP，不用本地替代事实。`session.create` client/helper 已实现，但尚未接到 UI。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。
+7. `session.keys`/`session.branches` 的 RPC 未在当前只读检查的 Rust app-server 中找到，标 blocked/unverified；`internal/session` 不请求它们，`Keys`/`BranchDirectory` 返回 blocked/empty，`Branches()` 只含观察到的 branch id。`session.input_lookup` 已有 typed/raw helper（响应 `accepted`/`unknown`），`session.methods` helper 已实现（built-in `{name, mutating}`），但仍未接到 UI/真实 daemon 验收；session 层 re-attach/resync 未实现。`session.create` client/helper 已实现，但尚未接到 UI。supervisor 的 `Reconnect`/generation 和 `internal/session.SubmitWithID` 已落地，但仍未接到 UI。latest-turn 首屏窗口和兼容扫描已由 `internal/session` 实现，但尚未接到 UI。`approval.respond` 已有 client helper 和 `-32602` 映射，但 UI 决策入口仍是 visible-disabled WIP。

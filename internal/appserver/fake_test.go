@@ -87,14 +87,13 @@ type fakeConfig struct {
 	// request. Tests script exactly the pages they expect to be requested.
 	HistoryRaw []json.RawMessage
 
-	// KeysRaw is the session.keys result, and KeysFault an optional error that
-	// replaces it. The params are validated before either is served.
-	KeysRaw   json.RawMessage
-	KeysFault *fakeRPCError
+	// InputLookupRaw is the session.input_lookup reply, and InputLookupFault an
+	// optional error that replaces it.
+	InputLookupRaw   json.RawMessage
+	InputLookupFault *fakeRPCError
 
-	// MethodsRaw and BranchesRaw script optional read helper responses.
-	MethodsRaw  json.RawMessage
-	BranchesRaw json.RawMessage
+	// MethodsRaw scripts the session.methods read helper response.
+	MethodsRaw json.RawMessage
 
 	// Mutations is served in order per mutation method. Tests that script a
 	// request assert the queue was consumed exactly once.
@@ -233,20 +232,24 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 		return struct{}{}, nil
 	case "session.history":
 		return s.history(params)
-	case "session.keys":
-		return s.keys(params)
+	case "session.input_lookup":
+		var p InputLookupParams
+		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
+			return nil, fakeBadParams()
+		}
+		if s.cfg.InputLookupFault != nil {
+			return nil, s.cfg.InputLookupFault
+		}
+		if len(s.cfg.InputLookupRaw) == 0 {
+			return nil, fakeBadParams()
+		}
+		return s.cfg.InputLookupRaw, nil
 	case "session.methods":
 		var p MethodsParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil || len(s.cfg.MethodsRaw) == 0 {
 			return nil, fakeBadParams()
 		}
 		return s.cfg.MethodsRaw, nil
-	case "session.branches":
-		var p BranchesParams
-		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil || len(s.cfg.BranchesRaw) == 0 {
-			return nil, fakeBadParams()
-		}
-		return s.cfg.BranchesRaw, nil
 	case "session.submit":
 		return s.mutation(MutationSessionSubmit, params)
 	case "session.stop":
@@ -316,23 +319,6 @@ func (s *fakeServer) history(raw json.RawMessage) (any, *fakeRPCError) {
 	result := s.cfg.HistoryRaw[s.historyIndex]
 	s.historyIndex++
 	return result, nil
-}
-
-// keys validates the request and serves the scripted session.keys result. The
-// params check is deliberate: a request without the required through is a test
-// typo, not a daemon result.
-func (s *fakeServer) keys(raw json.RawMessage) (any, *fakeRPCError) {
-	var p KeysParams
-	if err := json.Unmarshal(raw, &p); err != nil || p.Validate() != nil {
-		return nil, fakeBadParams()
-	}
-	if s.cfg.KeysFault != nil {
-		return nil, s.cfg.KeysFault
-	}
-	if len(s.cfg.KeysRaw) == 0 {
-		return nil, fakeBadParams()
-	}
-	return s.cfg.KeysRaw, nil
 }
 
 // mutation validates the request, optionally blocks on the method gate, then

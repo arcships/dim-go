@@ -5,37 +5,9 @@ import (
 	"testing"
 )
 
-func TestSessionBranches(t *testing.T) {
-	ctx := testContext(t)
-	server, client := newFakeServer(t, fakeConfig{
-		Hello:   fakeHello("session.branches"),
-		KeysRaw: rawJSON(t, map[string]any{}),
-		BranchesRaw: rawJSON(t, map[string]any{
-			"branches": []any{map[string]any{"branchId": "main", "state": "open", "head": 4}},
-		}),
-	})
-	result, err := SessionBranches(ctx, client, BranchesParams{SessionID: "s1"}, []string{"session.branches"})
-	if err != nil || len(result.Branches) != 1 {
-		t.Fatalf("SessionBranches = %#v, %v", result, err)
-	}
-	if calls := server.recordedCalls("session.branches"); len(calls) != 1 {
-		t.Fatalf("session.branches calls = %d, want 1", len(calls))
-	}
-
-	branches, err := DecodeBranchesResult(rawJSON(t, map[string]any{
-		"branches": []any{
-			map[string]any{"branchId": "main", "state": "open", "head": 4},
-			map[string]any{"branchId": "child", "parentBranchId": "main", "branchPoint": 2, "createEvent": 3, "state": "ended", "head": 5, "endEvent": 5},
-		},
-	}))
-	if err != nil {
-		t.Fatalf("DecodeBranchesResult: %v", err)
-	}
-	if len(branches.Branches) != 2 || branches.Branches[1].ParentBranchID != "main" {
-		t.Fatalf("branches = %#v", branches.Branches)
-	}
-}
-
+// session.keys/session.branches have no verified upstream RPC. Their Desktop
+// wire shapes stay only as unverified decode fixtures; there is intentionally no
+// client helper or fake-server method coverage for them.
 func TestSessionMethods(t *testing.T) {
 	ctx := context.Background()
 	server, client := newFakeServer(t, fakeConfig{

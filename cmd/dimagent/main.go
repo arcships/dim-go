@@ -76,6 +76,14 @@ func (b *sessionBridge) open(ctx context.Context, row dimui.Session) error {
 
 // LiveState returns a fresh view of the selected session, or nil without one.
 func (b *sessionBridge) LiveState() *dimui.State {
+	return b.liveStateForBranch("")
+}
+
+// liveStateForBranch adapts the selected controller's authoritative projection
+// for one branch. An empty branch preserves the controller's current branch.
+// The branch is read from the session view, never invented or persisted by the
+// UI; this keeps periodic refreshes from resetting a user's branch selection.
+func (b *sessionBridge) liveStateForBranch(branchID string) *dimui.State {
 	if b == nil {
 		return nil
 	}
@@ -85,7 +93,17 @@ func (b *sessionBridge) LiveState() *dimui.State {
 	if controller == nil {
 		return nil
 	}
+	if branchViewer, ok := controller.(interface {
+		StateForBranch(appserver.SessionSummary, string) *dimui.State
+	}); ok {
+		return branchViewer.StateForBranch(summary, branchID)
+	}
 	return controller.LiveState(summary)
+}
+
+// LiveStateForBranch returns a fresh view for the requested branch.
+func (b *sessionBridge) LiveStateForBranch(branchID string) *dimui.State {
+	return b.liveStateForBranch(branchID)
 }
 
 // Submit sends text through the selected session.

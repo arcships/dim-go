@@ -66,8 +66,6 @@ type fakeConfig struct {
 	AttachErr    *fakeRPCError
 	OnAttach     func(*fakeServer)
 	History      fakeHistoryFunc
-	Keys         any
-	KeysErr      *fakeRPCError
 	Methods      any
 	MethodsErr   *fakeRPCError
 	DetachErr    *fakeRPCError
@@ -202,18 +200,6 @@ func (s *fakeServer) dispatch(method string, params json.RawMessage) (any, *fake
 			return nil, unknownMethod()
 		}
 		return s.cfg.Methods, nil
-	case "session.keys":
-		var p appserver.KeysParams
-		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {
-			return nil, invalidParams()
-		}
-		if s.cfg.KeysErr != nil {
-			return nil, s.cfg.KeysErr
-		}
-		if s.cfg.Keys == nil {
-			return nil, unknownMethod()
-		}
-		return s.cfg.Keys, nil
 	case "session.detach":
 		var p appserver.DetachParams
 		if err := json.Unmarshal(params, &p); err != nil || p.Validate() != nil {

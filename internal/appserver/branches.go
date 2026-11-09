@@ -1,10 +1,14 @@
 package appserver
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 )
+
+// This file retains only the Desktop wire.ts shape for reference. The upstream
+// dim app-server method table has no verified session.branches RPC, so there is
+// deliberately no client helper: callers must treat the capability as blocked
+// rather than sending a guessed request.
 
 // BranchesParams selects the branch directory for one session.
 type BranchesParams struct {
@@ -74,31 +78,12 @@ func (r BranchesResult) Validate() error {
 	return nil
 }
 
+// DecodeBranchesResult validates the Desktop-shaped response for callers that
+// need to inspect a captured fixture. It does not make the RPC available.
 func DecodeBranchesResult(raw json.RawMessage) (BranchesResult, error) {
 	var r BranchesResult
 	if err := decodeValidated("session.branches result", raw, &r); err != nil {
 		return r, err
 	}
 	return r, nil
-}
-
-// SessionBranches reads the optional branch directory. It performs one
-// request and never substitutes a local branch list when the capability is
-// absent or the result is malformed.
-func SessionBranches(ctx context.Context, client *Client, params BranchesParams, features []string) (BranchesResult, error) {
-	if !HasFeature(features, "session.branches") {
-		return BranchesResult{}, &CapabilityError{Feature: "session.branches"}
-	}
-	if err := params.Validate(); err != nil {
-		return BranchesResult{}, err
-	}
-	raw, err := client.Call(ctx, "session.branches", params)
-	if err != nil {
-		return BranchesResult{}, err
-	}
-	result, err := DecodeBranchesResult(raw)
-	if err != nil {
-		return BranchesResult{}, err
-	}
-	return result, nil
 }

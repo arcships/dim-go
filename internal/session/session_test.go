@@ -130,56 +130,57 @@ func TestSessionMethodsCapabilityAbsentDoesNotRequest(t *testing.T) {
 	}
 }
 
-func TestSessionKeysSnapshotCapabilityAndCopy(t *testing.T) {
-	through := int64(0)
-	cfg := fakeConfig{
-		Attach: appserver.AttachResult{Sequence: &through},
-		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
-			return historyPage(t, nil, 0, 0, true, nil, nil), nil
-		},
-		Keys: appserver.KeysResult{Through: &through, Entries: []appserver.SessionKeyEntry{{Key: "k", Sequence: 1, InputID: "i", Text: "v"}}},
-	}
-	_, _, s := openTestSession(t, cfg, []string{"session.history", "session.keys"}, OpenOptions{})
-	got, ok := s.Keys()
-	if !ok || len(got.Entries) != 1 || got.Entries[0].Text != "v" {
-		t.Fatalf("keys = %#v, loaded=%v", got, ok)
-	}
-	got.Entries[0].Text = "mutated"
-	again, ok := s.Keys()
-	if !ok || again.Entries[0].Text != "v" {
-		t.Fatalf("keys accessor did not copy entries: %#v", again)
-	}
-}
+func TestSessionKeysIsBlockedAndNotRequested(t *testing.T) {
+	server, _, s := openTestSession(t, fakeConfig{
+		Attach:  appserver.AttachResult{Sequence: int64Ptr(0)},
+		History: emptyHistory(t, 0),
+	}, []string{"session.history", "session.keys"}, OpenOptions{})
 
-func TestSessionKeysErrorIsBestEffort(t *testing.T) {
-	cfg := fakeConfig{
-		Attach: appserver.AttachResult{Sequence: int64Ptr(0)},
-		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
-			return historyPage(t, nil, 0, 0, true, nil, nil), nil
-		},
-		KeysErr: unknownMethod(),
+	if got, ok := s.Keys(); ok || got.Through != nil || len(got.Entries) != 0 {
+		t.Fatalf("keys = %#v, loaded=%v; want blocked/empty", got, ok)
 	}
-	_, _, s := openTestSession(t, cfg, []string{"session.history", "session.keys"}, OpenOptions{})
-	if _, ok := s.Keys(); ok {
-		t.Fatal("keys unexpectedly loaded after daemon error")
-	}
-}
-
-func TestSessionKeysCapabilityAbsentDoesNotRequest(t *testing.T) {
-	cfg := fakeConfig{
-		Attach: appserver.AttachResult{Sequence: int64Ptr(0)},
-		History: func(params appserver.HistoryParams) (any, *fakeRPCError) {
-			return historyPage(t, nil, 0, 0, true, nil, nil), nil
-		},
-		KeysErr: unknownMethod(),
-	}
-	server, _, s := openTestSession(t, cfg, []string{"session.history"}, OpenOptions{})
-	if _, ok := s.Keys(); ok {
-		t.Fatal("keys unexpectedly loaded without capability")
+	status := s.KeysStatus()
+	if status.Capability != "session.keys" || status.Available || !status.Blocked || status.Reason == "" {
+		t.Fatalf("keys status = %#v", status)
 	}
 	for _, call := range server.callsSnapshot() {
 		if call.Method == "session.keys" {
-			t.Fatal("session.keys requested without capability")
+			t.Fatal("session.keys was requested despite being blocked/unverified")
+		}
+	}
+}
+
+func TestBranchDirectoryIsBlockedAndObservedBranchesRemain(t *testing.T) {
+	sideText := assistantEventWithID("side-2", 2, "t-side", "r-side", "side text")
+	server, _, s := openTestSession(t, fakeConfig{
+		Attach: appserver.AttachResult{Sequence: int64Ptr(2)},
+		OnAttach: func(server *fakeServer) {
+			server.emit("session.event", appserver.EventNotice{SessionID: "s1", BranchID: "side", Event: sideText})
+		},
+		History: emptyHistory(t, 2),
+	}, []string{"session.history", "session.branches"}, OpenOptions{})
+
+	waitFor(t, func() bool {
+		return len(s.BranchSnapshot("side").Messages) == 1
+	}, "observed side branch")
+
+	if dir := s.BranchDirectory(); len(dir.Branches) != 0 {
+		t.Fatalf("branch directory = %#v, want empty/blocked", dir)
+	}
+	status := s.BranchDirectoryStatus()
+	if status.Capability != "session.branches" || status.Available || !status.Blocked || status.Reason == "" {
+		t.Fatalf("branch directory status = %#v", status)
+	}
+	branches := s.Branches()
+	if len(branches) != 2 || branches[0] != "main" || branches[1] != "side" {
+		t.Fatalf("observed branches = %v, want [main side]", branches)
+	}
+	if len(s.BranchSnapshot("side").Messages) != 1 {
+		t.Fatal("observed side-branch projection was lost")
+	}
+	for _, call := range server.callsSnapshot() {
+		if call.Method == "session.branches" {
+			t.Fatal("session.branches was requested despite being blocked/unverified")
 		}
 	}
 }

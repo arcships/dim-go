@@ -165,12 +165,10 @@ type Session struct {
 	closed      *appserver.ClosedNotice
 	terminalErr error
 
-	// methods and branches are optional daemon capability snapshots. They are
-	// read once during Open and never treated as a local source of session truth.
-	methods         appserver.MethodsResult
-	branchDirectory appserver.BranchesResult
-	keySnapshot     appserver.KeysResult
-	keysLoaded      bool
+	// methods is an optional daemon capability snapshot read once during Open.
+	// session.keys/session.branches are not read: upstream dim has no verified
+	// RPC for either, so their accessors stay explicitly blocked.
+	methods appserver.MethodsResult
 
 	errs       chan error
 	errMu      sync.Mutex
@@ -229,32 +227,10 @@ func OpenWithOptions(ctx context.Context, client *appserver.Client, features []s
 		}
 		s.methods = methods
 	}
-	if appserver.HasFeature(features, "session.branches") {
-		branches, err := appserver.SessionBranches(ctx, client, appserver.BranchesParams{SessionID: sessionID}, features)
-		if err != nil {
-			s.abortOpen()
-			return nil, err
-		}
-		s.branchDirectory = branches
-	}
-	if appserver.HasFeature(features, "session.keys") {
-		through := s.History().Through
-		keys, err := appserver.SessionKeys(ctx, client, appserver.KeysParams{
-			SessionID: sessionID,
-			BranchID:  appserver.MainBranchID,
-			Through:   &through,
-		}, features)
-		if err != nil {
-			// Keys are optional enrichment; preserve the authoritative session view
-			// and surface the degradation through the existing error channel.
-			s.report(err)
-		} else {
-			s.mu.Lock()
-			s.keySnapshot = keys
-			s.keysLoaded = true
-			s.mu.Unlock()
-		}
-	}
+	// session.keys and session.branches are intentionally not requested. The
+	// only evidence for them is Desktop wire.ts; the upstream dim app-server
+	// method table has no verified RPC, so treating hello.features as capability
+	// would fabricate support.
 	return s, nil
 }
 
@@ -784,28 +760,58 @@ func (s *Session) Methods() appserver.MethodsResult {
 	return appserver.MethodsResult{Methods: append([]appserver.MethodDeclaration(nil), s.methods.Methods...)}
 }
 
-// Keys returns the optional daemon-provided keyed-block snapshot captured during
-// Open. The returned entries are copied and the boolean reports whether the
-// capability read succeeded; an unavailable snapshot is never synthesized.
+// ReadCapabilityStatus describes a protocol read that must not be treated as
+// available. Blocked means the upstream App Server has no verified RPC or the
+// method is not in the frozen contract; callers must disable the feature rather
+// than synthesize local state.
+type ReadCapabilityStatus struct {
+	Capability string
+	Available  bool
+	Blocked    bool
+	Reason     string
+}
+
+const (
+	sessionKeysBlockedReason     = "blocked: upstream dim has no verified session.keys RPC"
+	sessionBranchesBlockedReason = "blocked: upstream dim has no verified session.branches RPC"
+)
+
+// Keys is retained for callers that need the historical signature, but it is
+// always unavailable. session.keys is not requested during Open and no local
+// snapshot is synthesized.
 func (s *Session) Keys() (appserver.KeysResult, bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if !s.keysLoaded {
-		return appserver.KeysResult{}, false
+	return appserver.KeysResult{}, false
+}
+
+// KeysStatus reports why Keys is empty.
+func (s *Session) KeysStatus() ReadCapabilityStatus {
+	return ReadCapabilityStatus{
+		Capability: "session.keys",
+		Available:  false,
+		Blocked:    true,
+		Reason:     sessionKeysBlockedReason,
 	}
-	out := appserver.KeysResult{Through: cloneInt64(s.keySnapshot.Through), Entries: append([]appserver.SessionKeyEntry(nil), s.keySnapshot.Entries...)}
-	return out, true
 }
 
-// BranchDirectory returns the daemon branch directory captured during Open.
+// BranchDirectory returns an empty directory. session.branches has no verified
+// upstream RPC, so Open no longer requests it and no branch metadata is fabricated.
 func (s *Session) BranchDirectory() appserver.BranchesResult {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return appserver.BranchesResult{Branches: append([]appserver.BranchInfo(nil), s.branchDirectory.Branches...)}
+	return appserver.BranchesResult{}
 }
 
-// Branches returns the branches observed so far, sorted. Main is always present
-// after Open.
+// BranchDirectoryStatus reports why BranchDirectory is empty.
+func (s *Session) BranchDirectoryStatus() ReadCapabilityStatus {
+	return ReadCapabilityStatus{
+		Capability: "session.branches",
+		Available:  false,
+		Blocked:    true,
+		Reason:     sessionBranchesBlockedReason,
+	}
+}
+
+// Branches returns the branches observed so far from attach notifications, sorted.
+// This is projection-local observation, not a daemon branch directory. Main is
+// always present after Open.
 func (s *Session) Branches() []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
