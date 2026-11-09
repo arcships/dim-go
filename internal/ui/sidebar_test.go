@@ -259,3 +259,104 @@ func TestSidebarEmptyCatalog(t *testing.T) {
 func sameColor(pixel color.RGBA, token ui.Color) bool {
 	return pixel.R == token.R && pixel.G == token.G && pixel.B == token.B && pixel.A == token.A
 }
+
+// TestSidebarSelectsABranch checks the branch rows once the window wires the
+// action: a click on another branch asks for it exactly once, the region writes
+// no selection of its own, and the rows mark the branch the view names. The
+// caller moves SelectedBranch only after the App Server opened it.
+func TestSidebarSelectsABranch(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{{ID: "main", Label: "main"}, {ID: "side", Label: "side"}}
+	s.SelectedBranch = "main"
+	var got []string
+	s.OnSelectBranch = func(branchID string) { got = append(got, branchID) }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	mainRow, ok := tt.AccessByRole(ui.RoleListItem, "main")
+	if !ok {
+		t.Fatalf("the current branch is not exposed as a row, texts %q", tt.Texts())
+	}
+	if !mainRow.Selected {
+		t.Error("the current branch is not marked selected")
+	}
+	sideRow, ok := tt.AccessByRole(ui.RoleListItem, "side")
+	if !ok {
+		t.Fatalf("the other branch is not exposed as a row, texts %q", tt.Texts())
+	}
+	if sideRow.Selected {
+		t.Error("an unselected branch is marked selected")
+	}
+
+	if err := tt.Click("side"); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0] != "side" {
+		t.Fatalf("OnSelectBranch ran with %q, want [side]", got)
+	}
+	if s.SelectedBranch != "main" {
+		t.Fatalf("the region moved SelectedBranch to %q before the App Server opened it", s.SelectedBranch)
+	}
+	if info, ok := tt.AccessByRole(ui.RoleListItem, "side"); !ok || info.Selected {
+		t.Errorf("the clicked row is marked selected before the open: %+v, found %v", info, ok)
+	}
+
+	// The caller publishes the opened branch; the rows follow it.
+	s.SelectedBranch = "side"
+	tt.Frame()
+	if info, ok := tt.AccessByRole(ui.RoleListItem, "side"); !ok || !info.Selected {
+		t.Errorf("the opened branch is not marked selected: %+v, found %v", info, ok)
+	}
+	if info, ok := tt.AccessByRole(ui.RoleListItem, "main"); !ok || info.Selected {
+		t.Errorf("the previous branch is still marked selected: %+v, found %v", info, ok)
+	}
+
+	// A click on the branch already shown asks for no read.
+	if err := tt.Click("side"); err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 {
+		t.Fatalf("a click on the shown branch ran OnSelectBranch %d times, want 1", len(got))
+	}
+}
+
+// TestSidebarBranchWithoutCallbackStaysReadOnly checks the WIP form: without
+// the callback the branch list keeps its read-only group, its reason and no
+// selectable row, so an unwired window offers no switch it cannot perform.
+func TestSidebarBranchWithoutCallbackStaysReadOnly(t *testing.T) {
+	s := fixture()
+	s.Branches = []Branch{{ID: "main", Label: "main"}, {ID: "side", Label: "side"}}
+	s.SelectedBranch = "main"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Branches (read-only)"); !ok {
+		t.Errorf("branches are not grouped as read-only, texts %q", tt.Texts())
+	}
+	if !tt.HasText(reasonBranches) {
+		t.Errorf("branch WIP reason is missing, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleListItem, "side"); ok {
+		t.Error("an unwired branch list exposes a selectable row")
+	}
+	if err := tt.Click("side"); err != nil {
+		t.Fatal(err)
+	}
+	if s.SelectedBranch != "main" {
+		t.Fatalf("a read-only branch click changed SelectedBranch to %q", s.SelectedBranch)
+	}
+}
+
+// TestSidebarBranchesWithoutDirectoryDrawNothing checks that a session with no
+// branch directory draws no branch section: the shell invents no branch row and
+// offers no switch for a directory the App Server has not supplied.
+func TestSidebarBranchesWithoutDirectoryDrawNothing(t *testing.T) {
+	s := fixture()
+	s.OnSelectBranch = func(string) { t.Error("a branch row was offered without a directory") }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if _, ok := tt.AccessByRole(ui.RoleGroup, "Branches"); ok {
+		t.Errorf("an empty branch directory draws a section, texts %q", tt.Texts())
+	}
+	if tt.HasText(reasonBranches) {
+		t.Errorf("an empty branch directory shows the WIP reason, texts %q", tt.Texts())
+	}
+}

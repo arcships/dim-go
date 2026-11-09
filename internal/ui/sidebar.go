@@ -1,5 +1,5 @@
 // This file owns the session sidebar: the brand row, the global entries, the
-// grouped thread list, the read-only branch list, the thread actions and the WIP
+// grouped thread list, the branch list, the thread actions and the WIP
 // capability cards. It reads SidebarView and Actions only (see protocols.go).
 
 package ui
@@ -105,7 +105,7 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		threadListHeader(c, k, v)
 		threadList(c, k, v, a)
 		if len(v.Branches) > 0 {
-			branchList(c, k, v)
+			branchList(c, k, v, a)
 		}
 		sidebarFooter(c, k)
 		capabilityCards(c, k, v.Capabilities)
@@ -293,28 +293,81 @@ func chooseSession(v SidebarView, a Actions) {
 	selectSession(a, row.sessionID)
 }
 
-// branchList shows the branch metadata supplied by the App Server as read-only
-// rows. Branch switching and cut point remain disabled, so the list offers no
-// switch or side-chat action.
-func branchList(c *ui.Context, k tokens, v SidebarView) {
+// branchList draws the branch directory the App Server supplied. With
+// Actions.OnSelectBranch wired each row asks the window to open that branch's
+// history; without the callback the list keeps the read-only metadata form and
+// the WIP reason, so an unwired window offers no switch it cannot perform. The
+// region marks the displayed branch and writes nothing: a switch shows only
+// after the window publishes the branch the App Server returned.
+func branchList(c *ui.Context, k tokens, v SidebarView, a Actions) {
+	selectable := a.OnSelectBranch != nil
+	label := "Branches (read-only)"
+	if selectable {
+		label = "Branches"
+	}
 	ui.Column(c).Padding(k.gap, k.sidebarPadX).Gap(k.gap).
-		Role(ui.RoleGroup).Label("Branches (read-only)").Children(func() {
+		Role(ui.RoleGroup).Label(label).Children(func() {
 		ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 			ui.Text(c, "Branches").FontSize(k.smallSize).TextColor(k.mutedForeground).Bold().AccessHidden(true)
 			ui.Box(c).Grow(1)
-			ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
+			if !selectable {
+				ui.Text(c, wipBadge).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
+			}
 		})
 		for _, branch := range v.Branches {
-			label := branch.Label
-			if label == "" {
-				label = branch.ID
+			current := branchCurrent(branch, v.SelectedBranch)
+			if selectable {
+				branchEntry(c, k, branch, current, a)
+				continue
 			}
-			if branch.Selected || branch.ID == v.SelectedBranch {
-				label += " (current)"
-			}
-			ui.Text(c, label).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
+			ui.Text(c, branchLabel(branch, current)).FontSize(k.smallSize).TextColor(k.mutedForeground).NoWrap()
 		}
-		ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.mutedForeground)
+		if !selectable {
+			ui.Text(c, reasonBranches).FontSize(k.smallSize).TextColor(k.mutedForeground)
+		}
+	})
+}
+
+// branchLabel is a row's text: the caller's label, or the branch's id when the
+// App Server gave none, with the displayed branch named.
+func branchLabel(branch Branch, current bool) string {
+	label := branch.Label
+	if label == "" {
+		label = branch.ID
+	}
+	if current {
+		label += " (current)"
+	}
+	return label
+}
+
+// branchCurrent reports whether the branch is the one the shell displays. Both
+// inputs are App Server facts the shell copied into the view; neither is
+// written here.
+func branchCurrent(branch Branch, selectedBranch string) bool {
+	return branch.Selected || branch.ID == selectedBranch
+}
+
+// branchEntry draws one selectable branch row. A click on the displayed branch
+// asks for nothing; any other asks the window to open that branch, and the
+// row's selected face follows the view, so a failed read never looks switched.
+func branchEntry(c *ui.Context, k tokens, branch Branch, current bool, a Actions) {
+	label := branchLabel(branch, false)
+	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
+		PaddingX(k.sidebarGap).Radius(radiusMD).Gap(k.sidebarGap).
+		AlignItems(ui.Center).Role(ui.RoleListItem).Label(label).Selected(current)
+	row.OnClick(func() {
+		selectBranch(a, branch.ID, current)
+	})
+	if !current && row.Hovered() {
+		row.Background(k.sidebarHover)
+	}
+	row.Children(func() {
+		ui.Text(c, label).FontSize(k.smallSize).TextColor(k.sidebarForeground).
+			SingleLine().Grow(1)
+		if current {
+			ui.Text(c, "current").FontSize(k.smallSize).TextColor(k.mutedForeground).AccessHidden(true)
+		}
 	})
 }
 

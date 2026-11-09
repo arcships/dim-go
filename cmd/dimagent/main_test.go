@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
+	"github.com/arcships/dimagent-mygo/internal/session"
 	"github.com/arcships/dimagent-mygo/internal/supervisor"
 	dimui "github.com/arcships/dimagent-mygo/internal/ui"
 )
@@ -130,11 +131,13 @@ func TestSummaryForRow(t *testing.T) {
 // fakeSession stands in for integration.SessionController.
 type fakeSession struct {
 	view             *dimui.State
+	branchViews      map[string]*dimui.State
 	summary          appserver.SessionSummary
 	submitErr        error
 	submitID         string
 	stopErr          error
 	reattachErr      error
+	openBranchErr    error
 	approvalErr      error
 	approvalResult   appserver.ApprovalRespondOutcome
 	lookupResult     appserver.InputLookupResult
@@ -146,6 +149,12 @@ type fakeSession struct {
 	liveCalls        chan struct{}
 	reconnectStart   chan struct{}
 	reconnectGate    chan struct{}
+	openBranchStart  chan struct{}
+	openBranchGate   chan struct{}
+	openBranchDone   chan struct{}
+	openBranch       []string
+	shownBranch      string
+	sessionBranch    string
 	submitText       []string
 	reattachCalls    int
 	stopCalls        int
@@ -167,6 +176,49 @@ func (f *fakeSession) LiveState(summary appserver.SessionSummary) *dimui.State {
 		}
 	}
 	return f.view
+}
+
+// StateForBranch returns the branch's view when the test supplied one and the
+// session's default view otherwise, as integration.StateForBranch falls back to
+// the session's own branch.
+func (f *fakeSession) StateForBranch(summary appserver.SessionSummary, branchID string) *dimui.State {
+	f.shownBranch = branchID
+	if branchID == "" {
+		return f.LiveState(summary)
+	}
+	f.summary = summary
+	if view, ok := f.branchViews[branchID]; ok {
+		return view
+	}
+	return f.view
+}
+
+// OpenBranch records the read and, when the test gates it, holds it until the
+// test releases the gate so a selection can change while it is in flight.
+func (f *fakeSession) OpenBranch(_ context.Context, branchID string) (session.BranchOpenResult, error) {
+	f.openBranch = append(f.openBranch, branchID)
+	if f.openBranchStart != nil {
+		close(f.openBranchStart)
+	}
+	if f.openBranchGate != nil {
+		<-f.openBranchGate
+	}
+	if f.openBranchDone != nil {
+		close(f.openBranchDone)
+	}
+	if f.openBranchErr != nil {
+		return session.BranchOpenResult{}, f.openBranchErr
+	}
+	return session.BranchOpenResult{BranchID: branchID}, nil
+}
+
+// SessionBranchID is the branch the fake submits on; main unless the test says
+// otherwise.
+func (f *fakeSession) SessionBranchID() string {
+	if f.sessionBranch != "" {
+		return f.sessionBranch
+	}
+	return appserver.MainBranchID
 }
 
 func (f *fakeSession) Submit(_ context.Context, text string) (appserver.SubmitResult, error) {
@@ -395,7 +447,7 @@ func TestAppRefreshDoesNotClobberNewSelection(t *testing.T) {
 func TestAppBindsCallbacks(t *testing.T) {
 	a := &app{state: &dimui.State{}}
 	a.bind()
-	if a.state.OnSelect == nil || a.state.OnSubmit == nil || a.state.OnStop == nil ||
+	if a.state.OnSelect == nil || a.state.OnSelectBranch == nil || a.state.OnSubmit == nil || a.state.OnStop == nil ||
 		a.state.OnReconnect == nil || a.state.OnApproval == nil {
 		t.Fatalf("callbacks not bound: %#v", a.state)
 	}

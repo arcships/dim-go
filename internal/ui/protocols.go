@@ -54,6 +54,14 @@ type Actions struct {
 	// invents no history. A session that fails to open is shown through the
 	// connection and banner fields, never as a local placeholder session.
 	OnSelect func(sessionID string)
+	// OnSelectBranch is called by the sidebar's branch list with the branch the
+	// user chose. Branch switching is not its own RPC: the caller reads that
+	// branch's history through the session controller's OpenBranch and moves
+	// SidebarView.SelectedBranch only after the App Server answered. A failed
+	// read leaves the current branch shown and reports through
+	// HeaderView.ActionError; the region writes no branch fact and invents no
+	// branch. While this field is nil the list keeps its read-only WIP form.
+	OnSelectBranch func(branchID string)
 	// OnSubmit is called by the composer's Send entry and submit shortcut with
 	// the trimmed draft. The caller sends the turn and clears the draft only
 	// after the App Server accepted it; on failure the draft stays and the

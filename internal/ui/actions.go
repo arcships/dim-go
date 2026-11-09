@@ -1,7 +1,7 @@
 // This file owns the shell's session actions: the entry that asks the
-// window to create a session and the entry that reports a sidebar choice. Both
-// take the region's Actions rather than State, so a region can call them without
-// reaching back into the window.
+// window to create a session, the entry that reports a sidebar choice and the
+// entry that asks for another branch. All take the region's Actions rather than
+// State, so a region can call them without reaching back into the window.
 
 package ui
 
@@ -24,4 +24,16 @@ func selectSession(a Actions, sessionID string) {
 	if a.OnSelect != nil {
 		a.OnSelect(sessionID)
 	}
+}
+
+// selectBranch tells the caller the sidebar chose another branch. Unlike a
+// session choice, the sidebar writes nothing first: SidebarView.SelectedBranch
+// moves only when the window publishes a branch the App Server opened, and a
+// failed read keeps the current one. The branch already shown asks for no read,
+// so the callback fires once for a new branch.
+func selectBranch(a Actions, branchID string, current bool) {
+	if a.OnSelectBranch == nil || branchID == "" || current {
+		return
+	}
+	a.OnSelectBranch(branchID)
 }
