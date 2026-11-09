@@ -346,6 +346,9 @@ func TestShellSettingsChoiceShowsOnTheNextFrame(t *testing.T) {
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
+	if err := tt.Click("Appearance"); err != nil {
+		t.Fatal(err)
+	}
 	titleBefore := textBox(t, tt, "Appearance")
 	if err := tt.Click(tr(LocaleEN, keySettingsSizeXL)); err != nil {
 		t.Fatal(err)

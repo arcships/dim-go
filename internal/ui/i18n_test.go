@@ -207,6 +207,9 @@ func TestSettingsLanguageChoiceShowsOnTheNextFrame(t *testing.T) {
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
+	if err := tt.Click("Appearance"); err != nil {
+		t.Fatal(err)
+	}
 	if info, ok := tt.AccessByRole(ui.RolePopUpButton, "Interface language"); !ok || info.Value != "English" {
 		t.Fatalf("the language select is %+v, want English, texts %q", info, tt.Texts())
 	}

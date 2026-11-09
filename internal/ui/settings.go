@@ -162,25 +162,27 @@ var settingsSectionGaps = map[SettingsSection]string{
 }
 
 // SettingsSection is one page of the settings surface. The zero value is the
-// appearance page, which is the one the shell can draw today: a saved view that
-// names no section opens there, and a window that has never saved a section
-// draws it without extra state.
+// personalization page, which is where the reference opens the route: a view
+// that names no section opens there, and a window that has never saved a
+// section draws it without extra state. The appearance page stays a normal
+// section the navigation reaches.
 //
 // The numbers are not the navigation's order; settingsSections is, so that the
-// reference's 17 entries keep their order while the zero value keeps the built
-// page.
+// reference's 19 entries keep their order while the zero value names the
+// opening page.
 type SettingsSection uint8
 
 const (
-	// SettingsSectionAppearance is the color, type, layout, skin and language
-	// page. It is the zero value and the surface's default.
-	SettingsSectionAppearance SettingsSection = iota
+	// SettingsSectionPersonalization is the interface-mode and workspace page.
+	// It is the zero value and the surface's default.
+	SettingsSectionPersonalization SettingsSection = iota
 	// SettingsSectionAccount is the account and sign-in page.
 	SettingsSectionAccount
 	// SettingsSectionUsage is the usage and spend page.
 	SettingsSectionUsage
-	// SettingsSectionPersonalization is the interface-mode and workspace page.
-	SettingsSectionPersonalization
+	// SettingsSectionAppearance is the color, type, layout, skin and language
+	// page.
+	SettingsSectionAppearance
 	// SettingsSectionGeneral is the general desktop preferences page.
 	SettingsSectionGeneral
 	// SettingsSectionShortcuts is the keyboard-shortcut page.
@@ -216,7 +218,7 @@ const (
 )
 
 // settingsSectionLast is the last valid SettingsSection; a saved number above
-// it names no page and folds onto the appearance page.
+// it names no page and folds onto the opening page.
 const settingsSectionLast = SettingsSectionAbout
 
 // settingsSections is the navigation's order: the reference's 17 entries
@@ -248,11 +250,12 @@ var settingsSections = [...]SettingsSection{
 }
 
 // resolvedSection folds an unknown saved section onto the default, as
-// resolveSettings does for the enum preferences. Every value from Appearance
-// through About is valid.
+// resolveSettings does for the enum preferences. Every value from
+// Personalization through About is valid, and a view that names no page opens
+// on Personalization, as the reference does.
 func resolvedSection(s SettingsSection) SettingsSection {
 	if int(s) > int(settingsSectionLast) {
-		return SettingsSectionAppearance
+		return SettingsSectionPersonalization
 	}
 	return s
 }
@@ -494,8 +497,8 @@ type SettingsView struct {
 	Locale Locale
 	// Section is the page the surface opens on. The surface keeps the reader's
 	// selection itself once it is open, so this is a starting point, not a
-	// preference and not a session fact; a zero value opens the appearance
-	// page.
+	// preference and not a session fact; a zero value opens the personalization
+	// page, as the reference does.
 	Section SettingsSection
 	// Theme is the color-theme preference: system, light or dark.
 	Theme ThemeChoice
@@ -529,10 +532,10 @@ type SettingsChange struct {
 	CodeFontSize float32
 }
 
-// defaultSettingsView is the appearance the surface opens with: the theme
-// follows the desktop, the type sits on the tokens' own default sizes, the
-// sidebar is its default width, and the density is regular. It is the same
-// value resolveSettings derives from a zero view.
+// defaultSettingsView is the appearance the surface opens with: the
+// personalization page, the theme following the desktop, the type sitting on the
+// tokens' own default sizes, the sidebar at its default width, and the density
+// regular. It is the same value resolveSettings derives from a zero view.
 func defaultSettingsView(k tokens) SettingsView {
 	return resolveSettings(k, SettingsView{})
 }
@@ -929,18 +932,18 @@ func settingsWIPPage(c *ui.Context, k tokens, section SettingsSection, l Locale)
 	ui.Text(c, gap).FontSize(k.bodySize).TextColor(k.mutedForeground)
 }
 
-// settingsThemeSection is the color-theme choice as three cards: System, Light
-// and Dark, in the reference's order, with the chosen card outlined in the
+// settingsThemeSection is the color-theme choice as three cards: Light, Dark
+// and System, in the reference's order, with the chosen card outlined in the
 // brand color and marked by a dot. They form a radio group, so the arrows move
 // between the cards and a click selects one; a choice reports
-// SettingsFieldTheme.
+// SettingsFieldTheme with its own ThemeChoice, never a card position.
 func settingsThemeSection(c *ui.Context, k tokens, v SettingsView, onChange func(SettingsChange)) {
 	l := v.Locale
 	settingsSection(c, k, tr(l, keySettingsThemeGroup), func() {
 		selected := v.Theme
 		ui.Row(c).FillWidth().Gap(k.gapWide).Role(ui.RoleRadioGroup).
 			Label(tr(l, keySettingsThemeGroup)).Children(func() {
-			for _, choice := range []ThemeChoice{ThemeSystem, ThemeLight, ThemeDark} {
+			for _, choice := range []ThemeChoice{ThemeLight, ThemeDark, ThemeSystem} {
 				choice := choice
 				c.Key("settings-theme:" + themeChoiceSlug(choice))
 				card := ui.RadioBase(c, &selected, choice).

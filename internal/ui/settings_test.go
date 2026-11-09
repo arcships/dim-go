@@ -99,8 +99,8 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 	k := newTokens(ui.LightTheme())
 	v := defaultSettingsView(k)
 
-	if v.Section != SettingsSectionAppearance {
-		t.Errorf("default section is %v, want the appearance page", v.Section)
+	if v.Section != SettingsSectionPersonalization {
+		t.Errorf("default section is %v, want the personalization page", v.Section)
 	}
 	if v.Theme != ThemeSystem {
 		t.Errorf("default theme is %v, want the desktop's (System)", v.Theme)
@@ -120,8 +120,46 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 	if v.Density != DensityRegular {
 		t.Errorf("default density is %v, want regular", v.Density)
 	}
+}
 
+// TestSettingsOpensOnPersonalization checks the route's opening page: the
+// reference opens settings on Personalization, so a view that names no section
+// draws that page, its navigation row is the selected one, and the appearance
+// controls stay on the appearance page behind their own navigation row.
+func TestSettingsOpensOnPersonalization(t *testing.T) {
 	h := newSettingsHarness(SettingsView{})
+
+	if info, ok := h.tt.AccessByRole(ui.RoleHeading, "Personalization"); !ok || info.Level != 1 {
+		t.Errorf("the opening page has no level-1 Personalization heading: %+v, found %v", info, ok)
+	}
+	if !h.tt.HasText(settingsSectionGaps[SettingsSectionPersonalization]) {
+		t.Errorf("the personalization page does not explain its gap, texts %q", h.tt.Texts())
+	}
+	if !h.tt.HasText(wipBadge) {
+		t.Errorf("the personalization page shows no visible %q badge, texts %q", wipBadge, h.tt.Texts())
+	}
+	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Personalization"); !ok || !info.Selected {
+		t.Errorf("the opening section's navigation row is not selected: %+v, found %v", info, ok)
+	}
+	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Appearance"); !ok || info.Selected {
+		t.Errorf("the Appearance row is selected although the route opened on Personalization: %+v, found %v", info, ok)
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleRadioGroup, "Theme"); ok {
+		t.Errorf("the opening page draws the appearance theme cards, texts %q", h.tt.Texts())
+	}
+	for _, want := range []string{"Interface language", "UI font", "Code size"} {
+		if h.tt.HasText(want) {
+			t.Errorf("the opening page draws the appearance control %q, texts %q", want, h.tt.Texts())
+		}
+	}
+}
+
+// TestSettingsAppearancePageDrawsDefaults checks the appearance page a reader
+// reaches from the navigation: it draws the resolved preference values, not
+// empty controls, and keeps its own navigation row selected.
+func TestSettingsAppearancePageDrawsDefaults(t *testing.T) {
+	k := newTokens(ui.LightTheme())
+	h := newSettingsHarness(SettingsView{Section: SettingsSectionAppearance})
 	for _, want := range []string{
 		"Appearance",
 		settingsLocalNote,
@@ -135,7 +173,7 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 		wipBadge,
 	} {
 		if !h.tt.HasText(want) {
-			t.Errorf("the default page is missing %q, texts %q", want, h.tt.Texts())
+			t.Errorf("the appearance page is missing %q, texts %q", want, h.tt.Texts())
 		}
 	}
 	if h.tt.HasText("Current:") {
@@ -203,14 +241,14 @@ func TestSettingsDefaultsMatchTokens(t *testing.T) {
 		t.Errorf("the code-size slider is %+v, want %.0f between %d and %d", slider, k.codeFontSize, settingsCodeMin, settingsCodeMax)
 	}
 	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Appearance"); !ok || !info.Selected {
-		t.Errorf("the default section's navigation row is not selected: %+v, found %v", info, ok)
+		t.Errorf("the appearance page's navigation row is not selected: %+v, found %v", info, ok)
 	}
 }
 
 // TestSettingsSectionsOrder checks the left column against the reference: the
 // 17 reference sections in order, then the shell's own archived-sessions and
-// about pages, with the Back row above them, the appearance page marked as
-// selected and no capability row of its own.
+// about pages, with the Back row above them, the personalization page marked as
+// the opening selection and no capability row of its own.
 func TestSettingsSectionsOrder(t *testing.T) {
 	want := []string{
 		"Account", "Usage", "Personalization", "Appearance", "General",
@@ -245,20 +283,23 @@ func TestSettingsSectionsOrder(t *testing.T) {
 			t.Errorf("row %d (%q) sits at y=%.1f, not below the row before it at %.1f", i+1, name, info.Bounds.Y, lastY)
 		}
 		lastY = info.Bounds.Y
-		if got := info.Selected; got != (name == "Appearance") {
-			t.Errorf("row %q is selected=%v, want only Appearance selected", name, got)
+		if got := info.Selected; got != (name == "Personalization") {
+			t.Errorf("row %q is selected=%v, want only Personalization selected", name, got)
 		}
 	}
 }
 
 // TestSettingsNavigationSwitchesSection checks a click on a navigation row:
 // it changes only the route's chosen section, reports no preference change,
-// and the page below switches from the appearance controls to the WIP
-// explanation and back.
+// and the page below switches from the opening personalization page to another
+// WIP explanation and then to the appearance controls.
 func TestSettingsNavigationSwitchesSection(t *testing.T) {
 	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
 	before := h.view
 
+	if !h.tt.HasText(settingsSectionGaps[SettingsSectionPersonalization]) {
+		t.Fatalf("the route did not open on the personalization page, texts %q", h.tt.Texts())
+	}
 	if err := h.tt.Click("General"); err != nil {
 		t.Fatalf("click General: %v", err)
 	}
@@ -271,8 +312,8 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "General"); !ok || !info.Selected {
 		t.Errorf("the General row is not selected after its click: %+v, found %v", info, ok)
 	}
-	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Appearance"); !ok || info.Selected {
-		t.Errorf("the Appearance row stayed selected after choosing General: %+v, found %v", info, ok)
+	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Personalization"); !ok || info.Selected {
+		t.Errorf("the Personalization row stayed selected after choosing General: %+v, found %v", info, ok)
 	}
 	if !h.tt.HasText(settingsSectionGaps[SettingsSectionGeneral]) {
 		t.Errorf("the General page does not explain its gap, texts %q", h.tt.Texts())
@@ -285,7 +326,10 @@ func TestSettingsNavigationSwitchesSection(t *testing.T) {
 		t.Fatalf("click Appearance: %v", err)
 	}
 	if !h.tt.HasText(tr(LocaleEN, keySettingsFontFamily)) {
-		t.Fatalf("the appearance page did not come back, texts %q", h.tt.Texts())
+		t.Fatalf("the appearance page did not open, texts %q", h.tt.Texts())
+	}
+	if h.tt.HasText(settingsSectionGaps[SettingsSectionPersonalization]) {
+		t.Errorf("the appearance page still draws the personalization gap, texts %q", h.tt.Texts())
 	}
 
 	// The controls still work after the round trip: one choice, one change.
@@ -371,8 +415,11 @@ func TestSettingsNarrowNavigationFits(t *testing.T) {
 	if _, ok := h.tt.AccessByRole(ui.RoleScroll, ""); !ok {
 		t.Errorf("the settings route has no scroll area, texts %q", h.tt.Texts())
 	}
-	if _, ok := h.tt.AccessByRole(ui.RoleHeading, "Appearance"); ok {
-		t.Errorf("the appearance page is drawn beside the list in a narrow window, texts %q", h.tt.Texts())
+	if info, ok := h.tt.AccessByRole(ui.RoleListItem, "Personalization"); !ok || !info.Selected {
+		t.Errorf("the narrow list does not open on the personalization selection: %+v, found %v", info, ok)
+	}
+	if _, ok := h.tt.AccessByRole(ui.RoleHeading, "Personalization"); ok {
+		t.Errorf("the personalization page is drawn beside the list in a narrow window, texts %q", h.tt.Texts())
 	}
 
 	// A row click opens that section's page as the second level.
@@ -389,7 +436,7 @@ func TestSettingsNarrowNavigationFits(t *testing.T) {
 	if heading.Bounds.X+heading.Bounds.W > width+0.5 {
 		t.Errorf("the page heading %+v spills past the %d-wide window", heading.Bounds, width)
 	}
-	for _, name := range []string{"System", "Light", "Dark"} {
+	for _, name := range []string{"Light", "Dark", "System"} {
 		info, ok := h.tt.AccessByRole(ui.RoleRadio, name)
 		if !ok {
 			t.Fatalf("the %s theme card is missing in a narrow window, texts %q", name, h.tt.Texts())
@@ -474,7 +521,7 @@ func TestSettingsCompactBreakpoint(t *testing.T) {
 	if _, ok := wide.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); !ok {
 		t.Fatalf("the section column is missing at the breakpoint, texts %q", wide.tt.Texts())
 	}
-	if _, ok := wide.tt.AccessByRole(ui.RoleHeading, "Appearance"); !ok {
+	if _, ok := wide.tt.AccessByRole(ui.RoleHeading, "Personalization"); !ok {
 		t.Errorf("the page is not drawn beside the column at %d wide, texts %q", settingsCompactW, wide.tt.Texts())
 	}
 
@@ -482,7 +529,7 @@ func TestSettingsCompactBreakpoint(t *testing.T) {
 	if _, ok := narrow.tt.AccessByRole(ui.RoleNavigation, settingsNavigationLabel); !ok {
 		t.Fatalf("the section list is missing just below the breakpoint, texts %q", narrow.tt.Texts())
 	}
-	if _, ok := narrow.tt.AccessByRole(ui.RoleHeading, "Appearance"); ok {
+	if _, ok := narrow.tt.AccessByRole(ui.RoleHeading, "Personalization"); ok {
 		t.Errorf("the page still shares the card just below %d, texts %q", settingsCompactW, narrow.tt.Texts())
 	}
 }
@@ -492,7 +539,7 @@ func TestSettingsCompactBreakpoint(t *testing.T) {
 // not report the choice again, and the change carries the resolved view, so the
 // window can store either the one value or the whole snapshot.
 func TestSettingsReportsOneChangePerChoice(t *testing.T) {
-	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
+	h := newSettingsHarness(SettingsView{Section: SettingsSectionAppearance})
 
 	cases := []struct {
 		choose func()
@@ -541,11 +588,57 @@ func TestSettingsReportsOneChangePerChoice(t *testing.T) {
 	}
 }
 
+// TestSettingsThemeCardsFollowReferenceOrder checks the appearance page's theme
+// cards: Light, Dark and System from left to right, as the reference draws them,
+// and each card saving its own ThemeChoice rather than its position. Light is
+// the first card and still saves ThemeLight, and System is the last and saves
+// the enum's zero value.
+func TestSettingsThemeCardsFollowReferenceOrder(t *testing.T) {
+	h := newSettingsHarness(SettingsView{Section: SettingsSectionAppearance})
+
+	order := []string{"Light", "Dark", "System"}
+	lastRight := float32(-1)
+	for _, name := range order {
+		info, ok := h.tt.AccessByRole(ui.RoleRadio, name)
+		if !ok {
+			t.Fatalf("the %s theme card is missing, texts %q", name, h.tt.Texts())
+		}
+		if info.Bounds.X < lastRight {
+			t.Errorf("the %s card starts at x=%.1f, left of the card before it ending at %.1f", name, info.Bounds.X, lastRight)
+		}
+		lastRight = info.Bounds.X + info.Bounds.W
+	}
+
+	for _, tc := range []struct {
+		name string
+		want ThemeChoice
+	}{
+		{"Light", ThemeLight},
+		{"Dark", ThemeDark},
+		{"System", ThemeSystem},
+	} {
+		before := len(h.changes)
+		if err := h.tt.Click(tc.name); err != nil {
+			t.Fatalf("click %s: %v", tc.name, err)
+		}
+		if got := len(h.changes); got != before+1 {
+			t.Fatalf("clicking %s reported %d changes, want 1", tc.name, got-before)
+		}
+		change := h.changes[len(h.changes)-1]
+		if change.Field != SettingsFieldTheme || change.Theme != tc.want {
+			t.Errorf("clicking %s reported %+v, want %v", tc.name, change, tc.want)
+		}
+		if info, ok := h.tt.AccessByRole(ui.RoleRadio, tc.name); !ok || !info.Checked {
+			t.Errorf("the %s card is not checked after its click: %+v, found %v", tc.name, info, ok)
+		}
+	}
+}
+
 // TestSettingsUISizeSegmentsChooseEachStep checks the five UI-size segments:
 // each one reports its own step, and the chosen segment is the one selected on
 // the next frame.
 func TestSettingsUISizeSegmentsChooseEachStep(t *testing.T) {
-	h := newSettingsHarness(defaultSettingsView(newTokens(ui.LightTheme())))
+	h := newSettingsHarness(SettingsView{Section: SettingsSectionAppearance})
 	labels := []string{
 		tr(LocaleEN, keySettingsSizeXS),
 		tr(LocaleEN, keySettingsSizeSmall),
@@ -585,7 +678,7 @@ func TestSettingsCodeSizeSliderStaysInRange(t *testing.T) {
 		{"inside the range", 16, 16},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			h := newSettingsHarnessAt(SettingsView{CodeFontSize: tc.saved}, 900, 900)
+			h := newSettingsHarnessAt(SettingsView{Section: SettingsSectionAppearance, CodeFontSize: tc.saved}, 900, 900)
 			slider, ok := h.tt.AccessByRole(ui.RoleSlider, "Code size")
 			if !ok {
 				t.Fatalf("the code-size slider is missing, texts %q", h.tt.Texts())
@@ -611,7 +704,7 @@ func TestSettingsCodeSizeSliderStaysInRange(t *testing.T) {
 func TestSettingsWIPEntriesDoNothing(t *testing.T) {
 	// The gallery sits below the fold of a 900-high window, so this test draws
 	// a tall window and can click every cover and action.
-	h := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), 900, 1600)
+	h := newSettingsHarnessAt(SettingsView{Section: SettingsSectionAppearance}, 900, 1600)
 
 	for _, label := range []string{"New from image", "Open folder"} {
 		info, ok := h.tt.AccessByRole(ui.RoleButton, label)
@@ -649,16 +742,17 @@ func TestSettingsWIPEntriesDoNothing(t *testing.T) {
 
 // TestSettingsNavigationWorksInShell checks the navigation inside the shell's
 // own frame, not just the route's harness: opening settings starts on the
-// appearance page, a click on another section replaces the page, and the
-// selection survives the next frame.
+// personalization page, a click on another section replaces the page, the
+// appearance page is still reachable, and the selection survives the next
+// frame.
 func TestSettingsNavigationWorksInShell(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
 	if err := tt.Click("Settings"); err != nil {
 		t.Fatal(err)
 	}
-	if !tt.HasText(tr(LocaleEN, keySettingsFontFamily)) {
-		t.Fatalf("the settings route did not open on the appearance page, texts %q", tt.Texts())
+	if !tt.HasText(settingsSectionGaps[SettingsSectionPersonalization]) {
+		t.Fatalf("the settings route did not open on the personalization page, texts %q", tt.Texts())
 	}
 	if err := tt.Click("General"); err != nil {
 		t.Fatal(err)
@@ -674,7 +768,7 @@ func TestSettingsNavigationWorksInShell(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !tt.HasText(tr(LocaleEN, keySettingsFontFamily)) {
-		t.Fatalf("the appearance page did not come back in the shell, texts %q", tt.Texts())
+		t.Fatalf("the appearance page did not open in the shell, texts %q", tt.Texts())
 	}
 }
 
@@ -683,7 +777,7 @@ func TestSettingsNavigationWorksInShell(t *testing.T) {
 // reading order, including the read-only controls whose reasons a screen-reader
 // user must still find. Escape calls the same callback as Back.
 func TestSettingsKeyboardReachable(t *testing.T) {
-	h := newSettingsHarnessAt(defaultSettingsView(newTokens(ui.LightTheme())), 900, 1600)
+	h := newSettingsHarnessAt(SettingsView{Section: SettingsSectionAppearance}, 900, 1600)
 
 	want := []string{
 		tr(LocaleEN, keySettingsBack),
@@ -691,7 +785,7 @@ func TestSettingsKeyboardReachable(t *testing.T) {
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
 		"External Agent", "Archived sessions", "About",
-		"System", "Light", "Dark",
+		"Light", "Dark", "System",
 		tr(LocaleEN, keySettingsLanguageRow),
 		tr(LocaleEN, keySettingsFontFamily),
 		"S",
@@ -719,7 +813,7 @@ func focusedName(tt *ui.Tester) string {
 		"Shortcuts", "Models", "Multimodal", "Runtime", "MCP",
 		"Notifications", "Pet", "Permissions", "Git", "Hooks", "Plugins",
 		"External Agent", "Archived sessions", "About",
-		"System", "Light", "Dark",
+		"Light", "Dark", "System",
 		tr(LocaleEN, keySettingsLanguageRow),
 		tr(LocaleEN, keySettingsFontFamily),
 		"S", "XS", "M", "L", "XL",
