@@ -69,16 +69,54 @@ const (
 	settingsPagePad    = 28
 )
 
+// settingsCompactW is the width below which the route stops drawing the
+// section column beside the page. The reference always has the two columns
+// because its window is 800 wide; a narrower window cannot give the page its
+// reading column beside a 228-wide navigation, so the route shows one level at
+// a time instead: the section list, or the chosen page with a return row above
+// it. The share above still keeps the column inside a mid-sized window, so the
+// two levels only take over when the side-by-side layout stops fitting.
+const settingsCompactW = 560
+
 // settingsNavigationLabel names the section column for assistive technology.
 // It stays the English fallback for a table that does not carry the key.
 // The reference has no message key for it yet, so the label stays English;
 // see the missing-key list in the surface's report.
 const settingsNavigationLabel = "Settings sections"
 
-// settingsSectionLocalKey is the local key the surface keeps its chosen
-// section under (ui.Local). It is a type, not a string, so the state cannot
+// settingsRouteLocalKey is the local key the surface keeps its chosen section
+// and level under (ui.Local). It is a type, not a string, so the state cannot
 // collide with another element's.
-type settingsSectionLocalKey struct{}
+type settingsRouteLocalKey struct{}
+
+// settingsRouteState is the surface's own state between frames: the section
+// the reader chose, and whether a narrow window shows that section's page.
+// Neither field is a preference: a click moves this state and reports no
+// SettingsChange. A wide window draws both levels at once, so it ignores
+// detail; a narrow one starts on the list, opens the page on a row click, and
+// returns to the list from the page's own return row.
+type settingsRouteState struct {
+	section SettingsSection
+	detail  bool
+}
+
+// settingsSectionsBack is the compact layout's return from a section page to
+// the section list. i18n.go has no key for it yet, so it stays English; see
+// the missing-key list in the surface's report.
+const settingsSectionsBack = "All settings"
+
+// keySettingsSectionsBack is the message key the compact return row looks up.
+// The English fallback above stands in until i18n.go carries it.
+const keySettingsSectionsBack = "settings.backToList"
+
+// settingsSectionsBackLabel is the compact return row's text in the active
+// language, falling back to the English name rather than showing a key.
+func settingsSectionsBackLabel(l Locale) string {
+	if text := tr(l, keySettingsSectionsBack); text != keySettingsSectionsBack {
+		return text
+	}
+	return settingsSectionsBack
+}
 
 // settingsLocalNote says where these preferences live. The surface never sends
 // them to the App Server: none of them is a session, run or approval fact.
@@ -103,22 +141,24 @@ const (
 // names what is absent, so a reader sees a WIP page rather than an empty one
 // whose settings appear lost or unset.
 var settingsSectionGaps = map[SettingsSection]string{
-	SettingsSectionAccount:         "Unavailable: the shell has no account client or page yet, so it cannot show an account or sign in.",
-	SettingsSectionUsage:           "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
-	SettingsSectionPersonalization: "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
-	SettingsSectionGeneral:         "Unavailable: the general settings page is not built yet; the shell has no client for its desktop preferences.",
-	SettingsSectionShortcuts:       "Unavailable: the shortcuts page is not built yet; the shell has no keybinding client or editor.",
-	SettingsSectionModels:          "Unavailable: the models page is not built yet; the shell has no model-provider client or page.",
-	SettingsSectionMultimodal:      "Unavailable: the multimodal page is not built yet; the shell has no multimodal client or page.",
-	SettingsSectionRuntime:         "Unavailable: the runtime page is not built yet; the shell has no runtime client or page.",
-	SettingsSectionMCP:             "Unavailable: the MCP page is not built yet; the shell has no MCP server client or page.",
-	SettingsSectionNotifications:   "Unavailable: the notifications page is not built yet; the shell has no notification client or page.",
-	SettingsSectionPet:             "Unavailable: the pet page is not built yet; the shell has no pet client or page.",
-	SettingsSectionPermissions:     "Unavailable: the permissions page is not built yet; the shell shows approvals but has no rule editor, permissions client or page.",
-	SettingsSectionGit:             "Unavailable: the Git page is not built yet; the shell has no Git client or page.",
-	SettingsSectionHooks:           "Unavailable: the hooks page is not built yet; the shell has no hooks client or page.",
-	SettingsSectionPlugins:         "Unavailable: the plugins page is not built yet; the shell has no plugin client or page.",
-	SettingsSectionExternalAgent:   "Unavailable: the external agent page is not built yet; the shell has no external-agent client or page.",
+	SettingsSectionAccount:          "Unavailable: the shell has no account client or page yet, so it cannot show an account or sign in.",
+	SettingsSectionUsage:            "Unavailable: the shell has no usage client or page yet; no App Server method reports usage here.",
+	SettingsSectionPersonalization:  "Unavailable: the personalization page is not built yet; the shell has no client for the interface-mode, ACP-session, target-app, assistant-model or subagent-model settings it shows.",
+	SettingsSectionGeneral:          "Unavailable: the general settings page is not built yet; the shell has no client for its desktop preferences.",
+	SettingsSectionShortcuts:        "Unavailable: the shortcuts page is not built yet; the shell has no keybinding client or editor.",
+	SettingsSectionModels:           "Unavailable: the models page is not built yet; the shell has no model-provider client or page.",
+	SettingsSectionMultimodal:       "Unavailable: the multimodal page is not built yet; the shell has no multimodal client or page.",
+	SettingsSectionRuntime:          "Unavailable: the runtime page is not built yet; the shell has no runtime client or page.",
+	SettingsSectionMCP:              "Unavailable: the MCP page is not built yet; the shell has no MCP server client or page.",
+	SettingsSectionNotifications:    "Unavailable: the notifications page is not built yet; the shell has no notification client or page.",
+	SettingsSectionPet:              "Unavailable: the pet page is not built yet; the shell has no pet client or page.",
+	SettingsSectionPermissions:      "Unavailable: the permissions page is not built yet; the shell shows approvals but has no rule editor, permissions client or page.",
+	SettingsSectionGit:              "Unavailable: the Git page is not built yet; the shell has no Git client or page.",
+	SettingsSectionHooks:            "Unavailable: the hooks page is not built yet; the shell has no hooks client or page.",
+	SettingsSectionPlugins:          "Unavailable: the plugins page is not built yet; the shell has no plugin client or page.",
+	SettingsSectionExternalAgent:    "Unavailable: the external agent page is not built yet; the shell has no external-agent client or page.",
+	SettingsSectionArchivedSessions: "Unavailable: the archived-sessions page is not built yet; the shell has no archive client or page, and it keeps no session list of its own.",
+	SettingsSectionAbout:            "Unavailable: the about page is not built yet; the shell has no build, version or credits page to show.",
 }
 
 // SettingsSection is one page of the settings surface. The zero value is the
@@ -171,13 +211,24 @@ const (
 	SettingsSectionPlugins
 	// SettingsSectionExternalAgent is the external-agent page.
 	SettingsSectionExternalAgent
+	// SettingsSectionArchivedSessions is the archived-session page. The record
+	// of an archived session belongs to the App Server; this page waits on a
+	// list the shell does not have.
+	SettingsSectionArchivedSessions
+	// SettingsSectionAbout is the about page.
+	SettingsSectionAbout
 )
+
+// settingsSectionLast is the last valid SettingsSection; a saved number above
+// it names no page and folds onto the appearance page.
+const settingsSectionLast = SettingsSectionAbout
 
 // settingsSections is the navigation's order: the reference's 17 entries
 // (docs/evidence/electron-reference/window-settings.png), from Account to
-// External Agent, then this shell's own unavailable-capabilities page. The
-// extra page is appended rather than placed inside the reference's list so the
-// 17 reference rows keep their order.
+// External Agent, then this shell's own archived-sessions and about entries,
+// then the unavailable-capabilities page last. The extra pages are appended
+// rather than placed inside the reference's list so the 17 reference rows keep
+// their order.
 var settingsSections = [...]SettingsSection{
 	SettingsSectionAccount,
 	SettingsSectionUsage,
@@ -196,14 +247,16 @@ var settingsSections = [...]SettingsSection{
 	SettingsSectionHooks,
 	SettingsSectionPlugins,
 	SettingsSectionExternalAgent,
+	SettingsSectionArchivedSessions,
+	SettingsSectionAbout,
 	SettingsSectionCapabilities,
 }
 
 // resolvedSection folds an unknown saved section onto the default, as
 // resolveSettings does for the enum preferences. Every value from Appearance
-// through ExternalAgent is valid.
+// through About is valid.
 func resolvedSection(s SettingsSection) SettingsSection {
-	if int(s) > int(SettingsSectionExternalAgent) {
+	if int(s) > int(settingsSectionLast) {
 		return SettingsSectionAppearance
 	}
 	return s
@@ -249,6 +302,10 @@ func settingsSectionName(s SettingsSection) string {
 		return "Plugins"
 	case SettingsSectionExternalAgent:
 		return "External Agent"
+	case SettingsSectionArchivedSessions:
+		return "Archived sessions"
+	case SettingsSectionAbout:
+		return "About"
 	default:
 		return tr(DefaultLocale, keySettingsTitle)
 	}
@@ -256,17 +313,26 @@ func settingsSectionName(s SettingsSection) string {
 
 // settingsSectionLabel is the section's name in the active language. The
 // appearance page keeps its existing key, so a Chinese surface names it 外观;
-// the pages without keys stay English rather than showing an internal key.
+// a section whose settings.section.* key is still missing keeps its English
+// name rather than showing an internal key.
 func settingsSectionLabel(l Locale, s SettingsSection) string {
-	if s == SettingsSectionAppearance {
+	switch s {
+	case SettingsSectionAppearance:
 		return tr(l, keySettingsTitle)
-	}
-	if s == SettingsSectionCapabilities {
+	case SettingsSectionCapabilities:
 		// The shell has no settings.section.capabilities key yet; the
 		// capability group's existing label names the page in both languages.
 		return tr(l, keyCapabilityGroup)
 	}
-	return tr(l, "settings.section."+settingsSectionSlug(s))
+	slug := settingsSectionSlug(s)
+	if slug == "" {
+		return settingsSectionName(s)
+	}
+	key := "settings.section." + slug
+	if text := tr(l, key); text != key {
+		return text
+	}
+	return settingsSectionName(s)
 }
 
 // settingsSectionSlug is the message-key stem of a section. The appearance page
@@ -307,6 +373,10 @@ func settingsSectionSlug(s SettingsSection) string {
 		return "plugins"
 	case SettingsSectionExternalAgent:
 		return "externalAgent"
+	case SettingsSectionArchivedSessions:
+		return "archivedSessions"
+	case SettingsSectionAbout:
+		return "about"
 	default:
 		return ""
 	}
@@ -605,11 +675,17 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 // workspace (mainFramePad/mainFrameRadius), so the route opens as the same
 // window with a different card.
 //
+// A narrow window (settingsCompactW) shows one level at a time instead: the
+// section list first, then the chosen page with a return row above it, because
+// the reading column does not fit beside the navigation there.
+//
 // The navigation is one focusable row per section, marked selected for the page
-// on screen, and a Back row above it. A click moves the surface's own *Section
-// and reports no SettingsChange, because the page is display state, not a
-// desktop preference. Back and Escape call onBack, which the window wires to the
-// same state change the settings entry toggles.
+// on screen, and a Back row above it. A click moves the surface's own
+// settingsRouteState and reports no SettingsChange, because the page is display
+// state, not a desktop preference. Back and Escape call onBack, which the
+// window wires to the same state change the settings entry toggles; on a narrow
+// window's section page Escape returns to the list first, as the page's return
+// row does.
 //
 // The appearance page draws the theme, language, font, size, code-theme and
 // skin groups; every other page keeps its navigation row and explains the client
@@ -621,50 +697,75 @@ func publishSettings(onChange func(SettingsChange), field SettingsField, v Setti
 func renderSettings(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, onChange func(SettingsChange), onBack func()) {
 	v = resolveSettings(k, v)
 	l := v.Locale
-	if c.Shortcut(0, ui.KeyEscape) && onBack != nil {
-		onBack()
-	}
-	// The chosen section is the surface's own state: the view names where the
-	// surface opens, and ui.Local keeps the reader's click from frame to frame.
-	// A frame that does not build this row drops it, so reopening the route
-	// starts on the section the view names.
+	width, _ := c.Size()
+	compact := width < settingsCompactW
+	// The chosen section and level are the surface's own state: the view names
+	// where the surface opens, and ui.Local keeps the reader's click from frame
+	// to frame. A frame that does not build this row drops it, so reopening the
+	// route starts on the section the view names and, in a narrow window, on
+	// the list.
 	root := ui.Row(c).Fill().Padding(k.framePad).Background(k.background)
-	row := ui.Local(root, settingsSectionLocalKey{}, func() SettingsSection { return v.Section })
-	if row == nil {
-		opened := v.Section
-		row = &opened
+	state := ui.Local(root, settingsRouteLocalKey{}, func() settingsRouteState {
+		return settingsRouteState{section: v.Section}
+	})
+	if state == nil {
+		opened := settingsRouteState{section: v.Section}
+		state = &opened
 	}
-	section := resolvedSection(*row)
-	*row = section
+	state.section = resolvedSection(state.section)
+	if c.Shortcut(0, ui.KeyEscape) {
+		switch {
+		case compact && state.detail:
+			state.detail = false
+		case onBack != nil:
+			onBack()
+		}
+	}
 
 	root.Children(func() {
 		ui.Row(c).Key("settings-route").Grow(1).FillWidth().FillHeight().
 			Radius(k.frameRadius).BorderWidth(k.hairline).BorderColor(k.border).
 			Background(k.card).Clip().Role(ui.RoleRegion).Label(tr(l, keySettingsRegion)).
 			Transition(motionPanel(c)).Children(func() {
-			settingsNavigation(c, k, l, row, onBack)
-			settingsPage(c, k, v, capabilities, section, onChange)
+			if compact {
+				if state.detail {
+					settingsCompactPage(c, k, v, capabilities, state, onChange)
+					return
+				}
+				settingsNavigation(c, k, l, state, onBack, true)
+				return
+			}
+			settingsNavigation(c, k, l, state, onBack, false)
+			settingsPage(c, k, v, capabilities, state.section, onChange)
 		})
 	})
 }
 
 // settingsNavigation draws the section column: a Back row, then every section
-// the reference lists in its order, followed by the shell's own capability
-// page. Each row is one focusable entry with its 16×16 outline glyph, and the
-// selected row carries the sidebar's selection pill. The column scrolls when
-// the window is too short for every row, and a click only moves *section; the
-// Back row calls onBack, which is the same callback Escape takes.
-func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSection, onBack func()) {
-	nav := ui.Column(c).BasisPercent(settingsNavShare).Shrink(0).MaxWidth(settingsNavW).
-		FillHeight().Clip().BorderEndWidth(k.hairline).BorderColor(k.border).
-		Role(ui.RoleNavigation).Label(tr(l, keySettingsNavigation))
+// the reference lists in its order, then the shell's own archived-sessions and
+// about pages, then the capability page. Each row is one focusable entry with
+// its 16×16 outline glyph, and the selected row carries the sidebar's selection
+// pill. The column scrolls when the window is too short for every row, and a
+// click only moves the route's section; the Back row calls onBack, which is the
+// same callback Escape takes. In a narrow window the column takes the whole card
+// and a row click opens that section's page instead of switching the page
+// beside it.
+func settingsNavigation(c *ui.Context, k tokens, l Locale, state *settingsRouteState, onBack func(), compact bool) {
+	nav := ui.Column(c).FillHeight()
+	if compact {
+		nav.FillWidth()
+	} else {
+		nav.BasisPercent(settingsNavShare).Shrink(0).MaxWidth(settingsNavW).
+			Clip().BorderEndWidth(k.hairline).BorderColor(k.border)
+	}
+	nav.Role(ui.RoleNavigation).Label(tr(l, keySettingsNavigation))
 	nav.Children(func() {
 		ui.Scroll(c).Grow(1).FillWidth().Children(func() {
 			ui.Column(c).FillWidth().Padding(settingsNavPadY, settingsNavPadX).Children(func() {
 				settingsBackRow(c, k, l, onBack)
 				ui.Box(c).FillWidth().Height(settingsNavBackGap).AccessHidden(true)
 				for _, s := range settingsSections {
-					settingsNavRow(c, k, l, s, s == *section, section)
+					settingsNavRow(c, k, l, s, s == state.section, state, compact)
 				}
 			})
 		})
@@ -675,18 +776,33 @@ func settingsNavigation(c *ui.Context, k tokens, l Locale, section *SettingsSect
 // reference puts above the sections. It is the first Tab stop and the same
 // action Escape takes.
 func settingsBackRow(c *ui.Context, k tokens, l Locale, onBack func()) {
-	label := tr(l, keySettingsBack)
-	back := ui.ButtonBase(c).Key("settings-back").Height(k.sidebarRowH).FillWidth().
+	settingsNavActionRow(c, k, "settings-back", tr(l, keySettingsBack), onBack)
+}
+
+// settingsCompactBackRow is the narrow window's return from a section page to
+// the section list. It keeps the Back row's shape and focus ring, so the two
+// levels read as the same surface.
+func settingsCompactBackRow(c *ui.Context, k tokens, l Locale, state *settingsRouteState) {
+	settingsNavActionRow(c, k, "settings-sections-back", settingsSectionsBackLabel(l), func() {
+		state.detail = false
+	})
+}
+
+// settingsNavActionRow is one navigation action above the sections: the arrow
+// glyph and a label. A nil action draws the row without a click, as a window
+// that has not wired the return yet.
+func settingsNavActionRow(c *ui.Context, k tokens, key, label string, action func()) {
+	row := ui.ButtonBase(c).Key(key).Height(k.sidebarRowH).FillWidth().
 		PaddingX(settingsNavPadX).Radius(radiusMD).Gap(settingsNavIconGap).
 		AlignItems(ui.Center).Role(ui.RoleButton).Label(label).
 		Transition(motionFastColors(c))
-	if back.Hovered() {
-		back.Background(k.sidebarHover)
+	if row.Hovered() {
+		row.Background(k.sidebarHover)
 	}
-	if onBack != nil {
-		back.OnClick(onBack)
+	if action != nil {
+		row.OnClick(action)
 	}
-	back.Children(func() {
+	row.Children(func() {
 		sidebarGlyph(c, settingsIcons.back, k.foreground)
 		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.foreground).SingleLine()
 	})
@@ -694,8 +810,9 @@ func settingsBackRow(c *ui.Context, k tokens, l Locale, onBack func()) {
 
 // settingsNavRow is one section entry: its glyph, its label and, when chosen,
 // the neutral selection pill and the Selected state. The glyph is a decoration;
-// the row's label names the section for assistive technology.
-func settingsNavRow(c *ui.Context, k tokens, l Locale, s SettingsSection, selected bool, section *SettingsSection) {
+// the row's label names the section for assistive technology. In a narrow
+// window the click also opens the page, which is the second level there.
+func settingsNavRow(c *ui.Context, k tokens, l Locale, s SettingsSection, selected bool, state *settingsRouteState, compact bool) {
 	label := settingsSectionLabel(l, s)
 	entry := ui.ButtonBase(c).Key("settings-section:" + settingsSectionSlug(s)).
 		Height(k.sidebarRowH).FillWidth().PaddingX(settingsNavPadX).Radius(radiusMD).
@@ -708,19 +825,35 @@ func settingsNavRow(c *ui.Context, k tokens, l Locale, s SettingsSection, select
 		entry.Background(k.sidebarHover)
 	}
 	entry.OnClick(func() {
-		*section = s
+		state.section = s
+		if compact {
+			state.detail = true
+		}
 	})
 	entry.Children(func() {
 		color := k.foreground
 		if selected {
 			color = k.sidebarAccentForeground
 		}
-		sidebarGlyph(c, settingsIcon(s), color)
+		sidebarGlyph(c, settingsSectionIcon(s), color)
 		text := ui.Text(c, label).FontSize(k.bodySize).TextColor(color).
 			SingleLine().Ellipsis("…").Grow(1).MinWidth(0)
 		if selected {
 			text.Bold()
 		}
+	})
+}
+
+// settingsCompactPage draws the narrow window's second level: the return row to
+// the section list and the chosen section's page. The route cannot draw the
+// navigation beside the page at this width, so the page takes the card and the
+// return row is the way back to the list.
+func settingsCompactPage(c *ui.Context, k tokens, v SettingsView, capabilities []wipCapability, state *settingsRouteState, onChange func(SettingsChange)) {
+	ui.Column(c).Grow(1).FillWidth().FillHeight().MinWidth(0).Children(func() {
+		ui.Column(c).FillWidth().Padding(settingsNavPadY, settingsNavPadX).Children(func() {
+			settingsCompactBackRow(c, k, v.Locale, state)
+		})
+		settingsPage(c, k, v, capabilities, state.section, onChange)
 	})
 }
 
@@ -1113,5 +1246,32 @@ func settingsThemeIcon(choice ThemeChoice) *ui.SVG {
 		return settingsIcons.moon
 	default:
 		return settingsIcons.system
+	}
+}
+
+// settingsExtraIcons holds the two glyphs this shell adds to the reference's
+// navigation: the archived-sessions and about entries. icons.go owns the
+// reference's marks and the capability page's generic one, so the shell's own
+// pages carry their own shapes here instead of changing that set.
+var settingsExtraIcons = struct {
+	archive *ui.SVG
+	about   *ui.SVG
+}{
+	archive: sidebarIcon(`<rect x="2.2" y="2.8" width="11.6" height="2.8" rx="0.9"/><path d="M3.6 5.6v6.2c0 1 .8 1.8 1.8 1.8h5.2c1 0 1.8-.8 1.8-1.8V5.6"/><path d="M6.4 8.4h3.2"/>`),
+	about:   sidebarIcon(`<circle cx="8" cy="8" r="5.7"/><path d="M8 7.4v4.2"/><circle cx="8" cy="5.1" r=".7" fill="currentColor" stroke="none"/>`),
+}
+
+// settingsSectionIcon is the glyph a navigation row draws for its section: the
+// shell's own two marks first, then the reference's set from icons.go. Every
+// section still draws a 16×16 outline glyph, so no row falls back to text
+// alone.
+func settingsSectionIcon(s SettingsSection) *ui.SVG {
+	switch s {
+	case SettingsSectionArchivedSessions:
+		return settingsExtraIcons.archive
+	case SettingsSectionAbout:
+		return settingsExtraIcons.about
+	default:
+		return settingsIcon(s)
 	}
 }
