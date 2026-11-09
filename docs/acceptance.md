@@ -55,13 +55,13 @@ Last updated: 2026-11-09
 
 | # | 轴 | 项目 | 要求证据 | 当前 | 结论 |
 |---|---|---|---|---|---|
-| D1 | S | 颜色/表面/描边 | 逐区域视觉复核 + 像素差 | 复核：`docs/ui-parity-review.md`；同尺寸基线 sidebar MAE 19.5/25.97%（空态）、24.97/26.87%（对话），top 164/77% 主要来自原生标题栏；`docs/ui-token-map.md` 只是 L0 映射 | 未通过 |
-| D2 | S | 排版/间距/圆角/密度 | 字号/行高/内距/圆角逐项测量 | A 根字号 14px、圆角按 rem 得 4.75/6.75/8.75/12.75、间距 10.5 刻度；B 是 6/8/10/14 与 `Space(3)=12`；顶栏 41 目标实测 46 | 未通过 |
-| D3 | S | 图标/阴影/状态色 | 图标集、按钮形态、hover/focus/disabled 对照 | composer 工具栏仍是文字 WIP；阴影/过渡层缺失；状态色未逐项取样 | 未通过 |
-| D4 | S | 主题/皮肤/chrome | 主题数量、切换行为、skin/chrome 覆盖 | system/light/dark 可用；6 个 chrome 与 skin 未实现 | 未通过 |
-| D5 | C | 元素内容与 Markdown | 同状态文案/顺序/可见性/数据格式 + Markdown 渲染 | 语言默认英文、WIP 徽标与额外区域（Branches/能力卡片）改变内容与顺序；Electron 对话基线只有一轮纯文本，无 Markdown 对照 | 未通过 |
-| D6 | M | 动画/过渡 | 帧序列或时长/曲线记录 | MyGo 已实现 150ms `cubic-bezier(0.23,1,0.32,1)` / 250ms `cubic-bezier(0.4,0,0.2,1)`，帧在 `docs/evidence/ui/motion-*.png`，测试断言中间帧；参考侧尚无同操作帧序列，且 mygo 不过渡文字 ink | 未通过 |
-| D7 | S+C | 状态覆盖 | 空/加载/错误/悬停/焦点/菜单六态截图 | 空态/错误态有并排；hover 有帧证据；加载、焦点、菜单未逐一采集 | 未通过 |
+| D1 | S | 颜色/表面/描边 | 逐区域视觉复核 + 像素差 | 复核：`docs/ui-parity-review.md`；2026-11-10 基线 composer MAE 0.35/4.15，top 4.35/24.91（字体栅格+顶部控件），sidebar/content 含会话数量与 Branch from here 等内容差异；elevation 阴影已加。仍缺跨渲染器字体栅格与 cap 外的表面差异确认 | 未通过 |
+| D2 | S | 排版/间距/圆角/密度 | 字号/行高/内距/圆角逐项测量 | 侧栏行高 28/缩进 24.5、settings 导航 34.5、composer 461/520、顶栏约 46；圆角已 token 化并随 chrome 变化。仍缺字体度量（AppKit vs Chromium）与全页逐项坐标复核 | 未通过 |
+| D3 | S | 图标/阴影/状态色 | 图标集、按钮形态、hover/focus/disabled 对照 | 已换 Lucide 0.577 图标集、加三级 elevation 阴影；composer 工具栏图标已为图形，Send/disabled/hover 有像素测试。仍缺逐项状态色取样与参考无资产项（VS Code mark） | 未通过 |
+| D4 | S | 主题/皮肤/chrome | 主题数量、切换行为、skin/chrome 覆盖 | system/light/dark + 6 套 chrome（Win98/XP/Vista/Big Sur/Tiger + default）已实现并持久化，颜色/字体/圆角生效；skin 自定义、代码主题、渐变/3D/vibrancy 未做 | 未通过 |
+| D5 | C | 元素内容与 Markdown | 同状态文案/顺序/可见性/数据格式 + Markdown 渲染 | 搜索/设置/菜单/状态内容已对齐；置顶/归档/模型 chip/cut point 为产品扩展；仍缺 Markdown 真实内容参考、VS Code 入口、自定义皮肤内容，WIP 文案需逐页对照 | 未通过 |
+| D6 | M | 动画/过渡 | 帧序列或时长/曲线记录 | MyGo：150ms/250ms 过渡 + 搜索 200ms 淡入缩放，帧在 `docs/evidence/ui/motion-*.png` 与搜索中间帧。参考侧仍无同操作帧序列，mygo 不过渡文字 ink | 未通过 |
+| D7 | S+C | 状态覆盖 | 空/加载/错误/悬停/焦点/菜单六态截图 | 真实窗口已采：空态、加载、错误、hover、focus、menu、search、settings、closed、pinned、branch；approval 真实态仍缺（mock 不产生审批），参考侧 hover/loading/focus 对照未采 | 未通过 |
 
 首轮像素基线（`scripts/parity_diff.py`；区域：sidebar/top/content/composer/bottom）：
 
