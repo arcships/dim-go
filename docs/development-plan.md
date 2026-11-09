@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划
 
-Status: active（波次已完成：10 个 UI 组件 + 4 个主逻辑 worktree 全部合并，进入接线与验收轮。产品验收 **12 通过 / 16 未通过**，见 [acceptance.md](acceptance.md)）
+Status: active（波次已完成：10 个 UI 组件 + 4 个主逻辑 worktree 全部合并，进入接线与验收轮。产品验收 **13 通过 / 15 未通过**，见 [acceptance.md](acceptance.md)）
 Last updated: 2026-11-09
 流程与角色见 [workflow.md](workflow.md)；逐日记录见 [archive/progress-2026-11.md](archive/progress-2026-11.md)。
 
@@ -15,7 +15,7 @@ Last updated: 2026-11-09
 ## 当前基线
 
 ```text
-验收：F1–F5、F10、F12a、F12b、F14a、F14b、A1、A4 通过（12）
+验收：F1–F5、F9、F10、F12a、F12b、F14a、F14b、A1、A4 通过（13）
       D1–D7、F6–F9、F11、F12b、F13、F14b、A2/A3/A5 未通过（16）
 UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮层、keys/context/approval 面板
 主逻辑：catalog/create/select/submit/stop/approval/delete/branch/reconnect/unknown-result 读回
