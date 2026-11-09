@@ -81,6 +81,21 @@ func Build(snapshot projection.Snapshot) []ui.Message {
 	return rows
 }
 
+// approvalInputDisplay formats a request's tool input for the read-only block.
+// It is the daemon's payload, pretty-printed for reading; an absent, empty or
+// non-JSON input gives an empty string, and the panel then draws no block.
+func approvalInputDisplay(raw json.RawMessage) string {
+	trimmed := bytes.TrimSpace(raw)
+	if len(trimmed) == 0 || bytes.Equal(trimmed, []byte("null")) {
+		return ""
+	}
+	var buf bytes.Buffer
+	if err := json.Indent(&buf, trimmed, "", "  "); err != nil {
+		return string(trimmed)
+	}
+	return buf.String()
+}
+
 // buildBlocks maps one assistant message's blocks, in the order the projection
 // kept them. Only the block types the projection folds are mapped: text and
 // thinking. Tool calls are separate "tool" messages in the projection, so they
@@ -138,11 +153,15 @@ func BuildApprovals(approvals ...appserver.ApprovalRequest) []ui.Message {
 			Author:  ui.AuthorApproval,
 			Content: strings.Join(parts, " — "),
 			Approval: &ui.Approval{
-				BranchID:  approval.BranchID,
-				RequestID: approval.RequestID,
-				Call:      approval.Call.Name,
-				Reason:    approval.Reason,
-				Source:    approval.Source.Kind,
+				BranchID:     approval.BranchID,
+				RequestID:    approval.RequestID,
+				Call:         approval.Call.Name,
+				Reason:       approval.Reason,
+				Source:       approval.Source.Kind,
+				InputDisplay: approvalInputDisplay(approval.Call.Input),
+				// The wire has no response-option list, so no variant is proven
+				// for a daemon request; the panel falls back to Approve/Deny.
+				Variant: ui.ApprovalVariantUnspecified,
 			},
 		})
 	}

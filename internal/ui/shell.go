@@ -140,6 +140,13 @@ type Approval struct {
 	Call      string
 	Reason    string
 	Source    string
+	// InputDisplay is the request's tool input, formatted for reading. It is
+	// empty when the App Server sent no input; the panel then draws no block.
+	InputDisplay string
+	// Variant is the response option the request offers, when the window was
+	// told one. The wire carries no options list, so this stays Unspecified
+	// unless a caller proves a shape from the public contract.
+	Variant ApprovalVariant
 }
 
 type Message struct {
@@ -302,7 +309,11 @@ func (s *State) View(c *ui.Context) {
 				// The request set comes from the rows the projection produced, never from
 				// a click.
 				if pending := s.pendingApprovals(); len(pending) > 0 {
-					renderApprovalPanel(c, k, ApprovalView{Pending: pending}, a)
+					renderApprovalPanel(c, k, ApprovalView{
+						Pending:      pending,
+						InputDisplay: pending[0].InputDisplay,
+						Variant:      pending[0].Variant,
+					}, a)
 				} else {
 					renderComposer(c, k, composer, a)
 				}
