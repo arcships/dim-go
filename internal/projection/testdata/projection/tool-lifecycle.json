@@ -82,6 +82,7 @@
       {
         "id": "a:main:t-1:r-1",
         "orderKey": "00000000000000000001",
+        "sequence": 1,
         "role": "assistant",
         "content": "done",
         "status": "complete",
@@ -90,6 +91,7 @@
         "events": [
           {
             "id": "e-2",
+            "sequence": 2,
             "type": "thinking",
             "status": "complete",
             "content": "need file",
@@ -98,6 +100,7 @@
           },
           {
             "id": "e-6",
+            "sequence": 6,
             "type": "text_delta",
             "status": "complete",
             "content": "done",
@@ -109,6 +112,7 @@
       {
         "id": "c-1",
         "orderKey": "00000000000000000003",
+        "sequence": 3,
         "role": "tool",
         "content": "# Title",
         "status": "complete",
@@ -117,6 +121,7 @@
         "events": [
           {
             "id": "tool:c-1:call",
+            "sequence": 3,
             "type": "tool_call",
             "status": "complete",
             "toolName": "read_file",
@@ -126,6 +131,7 @@
           },
           {
             "id": "tool:c-1:result",
+            "sequence": 5,
             "type": "tool_result",
             "status": "complete",
             "content": "# Title",

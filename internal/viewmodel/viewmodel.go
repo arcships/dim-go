@@ -35,7 +35,9 @@ const unnamedTool = "(unnamed tool)"
 //
 // Roles map as the shell draws them:
 //
-//   - "user" becomes an AuthorUser row of the input's visible text;
+//   - "user" becomes an AuthorUser row of the input's visible text. The row
+//     also carries the input event's sequence as Sequence, the durable fact a
+//     cut point addresses; no other role carries one.
 //   - "assistant" becomes an AuthorAssistant row of the reply's blocks, in the
 //     projection's own order: a thinking block for every reasoning block the
 //     projection kept, a text block for every text block, with the status and
@@ -59,9 +61,10 @@ func Build(snapshot projection.Snapshot) []ui.Message {
 		switch message.Role {
 		case "user":
 			rows = append(rows, ui.Message{
-				ID:      message.ID,
-				Author:  ui.AuthorUser,
-				Content: message.Content,
+				ID:       message.ID,
+				Author:   ui.AuthorUser,
+				Content:  message.Content,
+				Sequence: message.Sequence,
 			})
 		case "assistant":
 			rows = append(rows, ui.Message{

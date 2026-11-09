@@ -80,8 +80,8 @@ type Session struct {
 	UpdatedAt int64
 }
 
-// Branch is read-only branch metadata supplied by the App Server. Branch
-// switching and cut point remain disabled, so this is not an action list.
+// Branch is read-only branch metadata supplied by the App Server. Switching,
+// ending and cut point are separate actions; this struct carries no control.
 type Branch struct {
 	ID       string
 	Label    string
@@ -188,6 +188,11 @@ type Message struct {
 	// Content is the row's text: Markdown for an assistant row whose Blocks are
 	// empty, plain text for a user, approval, error or retry row.
 	Content string
+	// Sequence is the raw App Server event sequence that created a user row's
+	// input. It is the durable fact a "Branch from here" cut point resolves
+	// from: the row offers the entry only when it carries one. Rows of other
+	// authors carry zero.
+	Sequence int64
 	// Blocks are an assistant turn's parts in the projection's order: text,
 	// thinking, tools and file changes. A row with no blocks renders Content as
 	// one Markdown block, so a fixture or an adapter that keeps only text still
@@ -289,7 +294,8 @@ type State struct {
 	// between 200 and 360. Zero means the default. It is not a session fact.
 	SidebarWidth float32
 	// Branches is read-only observed branch metadata for the selected session.
-	// The directory is displayed, while switching and cut point remain disabled.
+	// The directory is displayed; switching, ending and cut point are requests
+	// the window sends through the callbacks below, never local edits.
 	Branches       []Branch
 	SelectedBranch string
 
@@ -340,7 +346,7 @@ type State struct {
 	Workspace  string
 	Permission string
 
-	// OnSelect, OnSelectBranch, OnEndBranch, OnRefreshBranches,
+	// OnSelect, OnSelectBranch, OnBranchFrom, OnEndBranch, OnRefreshBranches,
 	// OnCreateSession, OnSubmit, OnStop, OnReconnect and OnApproval connect the
 	// shell's actions to the caller's session controller. They are the only
 	// wiring source of the Actions a region receives; a nil field leaves its
@@ -350,13 +356,17 @@ type State struct {
 	// OnCreateSession asks the caller to run session.create and to publish the
 	// new session in the catalog and the selection once the App Server returned
 	// it. OnSelectBranch asks the caller to read that branch's history and to
-	// show it only once the App Server returned it. OnEndBranch asks the caller
-	// to end one branch and to remove its row only after session.branches
-	// reports it gone. OnRefreshBranches asks the caller to re-read that
-	// directory. OnApproval receives one decision for one request: the caller
-	// sends approval.respond and lets the session projection settle the row.
+	// show it only once the App Server returned it. OnBranchFrom asks the caller
+	// to run session.branch_create for a cut point on the displayed branch and
+	// to switch to the created branch only after the App Server returned it.
+	// OnEndBranch asks the caller to end one branch and to remove its row only
+	// after session.branches reports it gone. OnRefreshBranches asks the caller
+	// to re-read that directory. OnApproval receives one decision for one
+	// request: the caller sends approval.respond and lets the session projection
+	// settle the row.
 	OnSelect          func(sessionID string)
 	OnSelectBranch    func(branchID string)
+	OnBranchFrom      func(sessionID, branchID string, at int64, prompt string)
 	OnEndBranch       func(branchID string)
 	OnRefreshBranches func()
 	OnCreateSession   func()
@@ -451,6 +461,17 @@ type State struct {
 	// renameFor is the selection RenameConfirm was opened for. See
 	// syncRenameConfirm.
 	renameFor string
+	// BranchFromConfirm is the window's own record that a user row's "Branch
+	// from here" dialog is showing, and BranchFromDraft is the prompt its field
+	// edits. branchFromAt is the parent sequence the row resolved and
+	// branchFromFor/branchFromBranch are the row's session and displayed branch;
+	// a window that changes either drops the dialog so one branch's cut point is
+	// never sent for another.
+	BranchFromConfirm bool
+	BranchFromDraft   string
+	branchFromAt      int64
+	branchFromFor     string
+	branchFromBranch  string
 	// ShowSearch is the window's own record that the centered search palette is
 	// showing over the frame. It is display state only: the palette draws above
 	// the sidebar and main column without replacing them, and Cmd+G or the
@@ -561,6 +582,7 @@ func (s *State) View(c *ui.Context) {
 	s.syncKeysSession()
 	s.syncDeleteConfirm()
 	s.syncRenameConfirm()
+	s.syncBranchFrom()
 	s.syncThreadSearchSession()
 	a := s.actions()
 	// The settings route takes the whole window: no sidebar, toolbar,
@@ -1086,6 +1108,25 @@ func (s *State) syncRenameConfirm() {
 	}
 }
 
+// syncBranchFrom drops the "Branch from here" dialog when the selected session
+// or displayed branch changed under it. The cut point is a parent-branch
+// sequence, so sending it after either moved would create a line from another
+// branch than the row belongs to. Closing clears the identity and the prompt.
+func (s *State) syncBranchFrom() {
+	if !s.BranchFromConfirm {
+		s.branchFromFor = ""
+		s.branchFromBranch = ""
+		return
+	}
+	if s.branchFromFor != s.Selected || s.branchFromBranch != s.SelectedBranch {
+		s.BranchFromConfirm = false
+		s.branchFromFor = ""
+		s.branchFromBranch = ""
+		s.branchFromAt = 0
+		s.BranchFromDraft = ""
+	}
+}
+
 // dismissNotices clears the window's notice strip: the last action error, the
 // action-outcome list and the transient projection notices. They are display
 // state only, so dismissing them changes no App Server fact; a later projection
@@ -1163,6 +1204,29 @@ func (s *State) actions() Actions {
 		OnThreadSearchNext:     func() { s.stepThreadSearch(1) },
 		OnThreadSearchPrevious: func() { s.stepThreadSearch(-1) },
 		OnThreadSearchClose:    s.closeThreadSearch,
+	}
+	// "Branch from here" is the window's own dialog: a row asks for it with the
+	// cut point it resolved, and the dialog's confirm calls the caller once. It
+	// is wired exactly while the caller supplied OnBranchFrom; without it the
+	// row keeps a disabled WIP entry, so no region can claim a branch the window
+	// never asked for.
+	if s.OnBranchFrom != nil {
+		a.OnRequestBranchFrom = func(at int64) {
+			if s.Selected == "" || at < 0 {
+				return
+			}
+			s.branchFromAt = at
+			s.branchFromFor = s.Selected
+			s.branchFromBranch = s.SelectedBranch
+			s.BranchFromDraft = ""
+			s.BranchFromConfirm = true
+		}
+		a.OnBranchFrom = func(at int64, prompt string) {
+			if at < 0 {
+				return
+			}
+			s.OnBranchFrom(s.Selected, s.SelectedBranch, at, prompt)
+		}
 	}
 	// The model selection is wired only while the caller supplied a callback and
 	// the App Server advertised session.model.update. A daemon without the
@@ -1344,7 +1408,33 @@ func (s *State) timelineView() TimelineView {
 		Closed:   s.SessionClosed,
 		list:     &s.conversation,
 		folds:    &s.folds,
+		Locale:   s.locale(),
+		// The branch-from dialog belongs to the row it was opened from: the view
+		// carries its open flag, prompt and resolved cut point only while the
+		// selection and displayed branch are still the ones it was opened on.
+		BranchFromConfirm: s.branchFromConfirmView(),
+		BranchFromDraft:   s.branchFromDraftView(),
+		BranchFromAt:      s.branchFromAt,
 	}
+}
+
+// branchFromConfirmView returns the open flag the timeline draws the
+// "Branch from here" dialog from, or nil while the dialog is closed or belongs
+// to another session or branch.
+func (s *State) branchFromConfirmView() *bool {
+	if !s.BranchFromConfirm || s.branchFromFor != s.Selected || s.branchFromBranch != s.SelectedBranch {
+		return nil
+	}
+	return &s.BranchFromConfirm
+}
+
+// branchFromDraftView returns the prompt field the dialog edits, or nil while
+// the dialog is not drawn.
+func (s *State) branchFromDraftView() *string {
+	if s.branchFromConfirmView() == nil {
+		return nil
+	}
+	return &s.BranchFromDraft
 }
 
 // timelineRows is the rows the timeline draws, in the projection's order: every

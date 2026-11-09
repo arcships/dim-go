@@ -74,6 +74,7 @@
       {
         "id": "e-2",
         "orderKey": "00000000000000000002",
+        "sequence": 2,
         "role": "user",
         "content": "$ printf '<x>'\n<x> & done",
         "status": "complete",
@@ -84,6 +85,7 @@
       {
         "id": "a:main:t-1:r-1",
         "orderKey": "00000000000000000004",
+        "sequence": 4,
         "role": "assistant",
         "content": "done",
         "status": "complete",
@@ -92,6 +94,7 @@
         "events": [
           {
             "id": "e-5",
+            "sequence": 5,
             "type": "text_delta",
             "status": "complete",
             "content": "done",

@@ -24,6 +24,7 @@ func timeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 			messageRow(c, k, v, a, v.Messages[row])
 		}).Grow(1).Label("Conversation")
 	}
+	branchFromDialog(c, k, v, a)
 }
 
 // loadingConversation is what shows while history is still coming. The row is a
@@ -103,7 +104,7 @@ func messageRow(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 func messageRowBody(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 	switch m.Author {
 	case AuthorUser:
-		userRow(c, k, m)
+		userRow(c, k, v, a, m)
 	case AuthorAssistant:
 		assistantRow(c, k, v, m)
 	case AuthorTool:

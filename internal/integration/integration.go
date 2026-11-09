@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver"
@@ -883,6 +884,40 @@ func (c *SessionController) EndBranch(ctx context.Context, branchID string) (app
 	}
 	outcome, err := c.Session.EndBranch(ctx, branchID)
 	return outcome, replayGapWrite("session.branch_end", err)
+}
+
+// BranchCreate asks the App Server to create a host branch (side chat) from
+// parentBranchID at the parent sequence a row resolved. It never creates a
+// local branch: the returned branch is the App Server's, and the caller opens it
+// through OpenBranch before showing it.
+//
+// session.branch_create is a write. A subscription_changed reply is reported as
+// a fail-closed replay gap, and an unknown result stays an
+// *appserver.UnknownResultError for the caller to resolve through
+// session.branches; neither is resent.
+func (c *SessionController) BranchCreate(ctx context.Context, parentBranchID string, at int64, prompt string) (appserver.BranchCreateResult, error) {
+	if c == nil {
+		return appserver.BranchCreateResult{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.BranchCreateResult{}, fmt.Errorf("integration: nil context")
+	}
+	if parentBranchID == "" {
+		return appserver.BranchCreateResult{}, fmt.Errorf("integration: empty parent branch id")
+	}
+	if at < 0 {
+		return appserver.BranchCreateResult{}, fmt.Errorf("integration: branch cut point %d is negative", at)
+	}
+	if strings.TrimSpace(prompt) == "" {
+		return appserver.BranchCreateResult{}, fmt.Errorf("integration: empty branch prompt")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.BranchCreateResult{}, fmt.Errorf("integration: no session")
+	}
+	result, err := c.Session.BranchCreate(ctx, parentBranchID, at, prompt)
+	return result, replayGapWrite("session.branch_create", err)
 }
 
 // Stop asks the App Server to stop the selected session's default branch.

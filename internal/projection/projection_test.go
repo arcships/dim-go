@@ -801,3 +801,55 @@ func TestInputDeletedRemovesMessage(t *testing.T) {
 		t.Fatalf("deleted input resurrected: %+v", r.Snapshot().Messages)
 	}
 }
+
+// TestFoldedFactsCarryRawSequences checks the cut point facts: a message keeps
+// the sequence of the event that created it, and every block keeps the sequence
+// of the event that opened it. The user turn's sequence is the input event the
+// window resolves a "Branch from here" cut point from; nothing is derived from
+// the injected clock or the insertion order.
+func TestFoldedFactsCarryRawSequences(t *testing.T) {
+	r := NewReducer("main", FixedClock(1700000000999))
+	events := []RawEvent{
+		testEvent("e-us", 3, "input", "message", map[string]any{
+			"user": map[string]any{"content": []any{map[string]any{"type": "text", "text": "branch here"}}},
+		}),
+		testEvent("e-start", 4, "step", "model-start", map[string]any{"turn_id": "t", "request_id": "r"}),
+		testEvent("e-think", 5, "step", "thinking", map[string]any{"delta": "plan"}),
+		testEvent("e-text", 6, "step", "text", map[string]any{"delta": "hi"}),
+		testEvent("e-tool", 7, "step", "tool-use", map[string]any{
+			"call": map[string]any{"id": "c-1", "name": "bash", "input": map[string]any{"command": "pwd"}},
+		}),
+		testEvent("e-result", 8, "step", "tool-completed", map[string]any{
+			"call_id": "c-1",
+			"result":  map[string]any{"content": "/workspace"},
+		}),
+		testEvent("e-end", 9, "step", "model-output-end", map[string]any{"status": "completed"}),
+	}
+	if err := r.ApplyHistory(events); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := r.Snapshot()
+	user := messageByID(t, snapshot, "e-us")
+	if user.Sequence != 3 || user.OrderKey != OrderKey(3) {
+		t.Fatalf("user message = %+v, want sequence 3", user)
+	}
+	assistant := messageByID(t, snapshot, "a:main:t:r")
+	if assistant.Sequence != 4 {
+		t.Fatalf("assistant sequence = %d, want the model-start event's 4", assistant.Sequence)
+	}
+	thinking := assistant.Events[0]
+	if thinking.Sequence != 5 || thinking.ID != "e-think" {
+		t.Fatalf("thinking block = %+v, want sequence 5", thinking)
+	}
+	text := assistant.Events[1]
+	if text.Sequence != 6 || text.ID != "e-text" {
+		t.Fatalf("text block = %+v, want sequence 6", text)
+	}
+	tool := messageByID(t, snapshot, "c-1")
+	if tool.Sequence != 7 {
+		t.Fatalf("tool message sequence = %d, want the call event's 7", tool.Sequence)
+	}
+	if tool.Events[0].Sequence != 7 || tool.Events[1].Sequence != 8 {
+		t.Fatalf("tool block sequences = %d/%d, want 7/8", tool.Events[0].Sequence, tool.Events[1].Sequence)
+	}
+}

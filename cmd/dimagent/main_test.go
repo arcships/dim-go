@@ -182,6 +182,12 @@ type fakeSession struct {
 	openBranchDone        chan struct{}
 	openBranch            []string
 	endedBranches         []string
+	createBranchCalls     int
+	createBranchParent    string
+	createBranchAt        int64
+	createBranchPrompt    string
+	createBranchResult    appserver.BranchCreateResult
+	createBranchErr       error
 	refreshCalls          int
 	shownBranch           string
 	sessionBranch         string
@@ -269,6 +275,18 @@ func (f *fakeSession) RefreshBranchDirectory(context.Context) error {
 		f.refreshed <- struct{}{}
 	}
 	return f.refreshBranchErr
+}
+
+// BranchCreate records the cut point the window sent and returns the branch the
+// test scripted. An empty result is an error so a test that forgot to script one
+// fails loudly instead of switching to a branch the App Server never named.
+func (f *fakeSession) BranchCreate(_ context.Context, parentBranchID string, at int64, prompt string) (appserver.BranchCreateResult, error) {
+	f.createBranchCalls++
+	f.createBranchParent, f.createBranchAt, f.createBranchPrompt = parentBranchID, at, prompt
+	if f.createBranchErr != nil {
+		return appserver.BranchCreateResult{}, f.createBranchErr
+	}
+	return f.createBranchResult, nil
 }
 
 // SessionBranchID is the branch the fake submits on; main unless the test says
@@ -598,7 +616,8 @@ func TestAppRefreshDoesNotClobberNewSelection(t *testing.T) {
 func TestAppBindsCallbacks(t *testing.T) {
 	a := &app{state: &dimui.State{}}
 	a.bind()
-	if a.state.OnSelect == nil || a.state.OnSelectBranch == nil || a.state.OnSubmit == nil || a.state.OnStop == nil ||
+	if a.state.OnSelect == nil || a.state.OnSelectBranch == nil || a.state.OnBranchFrom == nil ||
+		a.state.OnSubmit == nil || a.state.OnStop == nil ||
 		a.state.OnReconnect == nil || a.state.OnApproval == nil {
 		t.Fatalf("callbacks not bound: %#v", a.state)
 	}

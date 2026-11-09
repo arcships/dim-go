@@ -91,7 +91,7 @@ func TestBuildUserAndAssistantRows(t *testing.T) {
 
 	rows := Build(snapshot)
 	want := []ui.Message{
-		{ID: "u1", Author: ui.AuthorUser, Content: "hello"},
+		{ID: "u1", Author: ui.AuthorUser, Content: "hello", Sequence: 1},
 		{
 			ID:      assistantID,
 			Author:  ui.AuthorAssistant,
@@ -110,6 +110,38 @@ func TestBuildUserAndAssistantRows(t *testing.T) {
 	}
 	if !reflect.DeepEqual(rows, want) {
 		t.Fatalf("rows = %#v, want %#v", rows, want)
+	}
+}
+
+// TestBuildUserRowCarriesInputSequence checks the cut point fact: a user row
+// carries the sequence of the input event the projection created it from, while
+// assistant and tool rows carry none. The adapter adds no sequence of its own.
+func TestBuildUserRowCarriesInputSequence(t *testing.T) {
+	snapshot := snapshotOf(t,
+		userInput("u1", 4, "first"),
+		modelStart("e5", 5),
+		textDelta("e6", 6, "one"),
+		outputEnd("e7", 7, "completed"),
+		userInput("u2", 9, "second"),
+		toolUse("e10", 10, "c1", "bash", map[string]any{"command": "pwd"}),
+		toolResult("e11", 11, "c1", "ok", false),
+	)
+	rows := Build(snapshot)
+	sequences := map[string]int64{}
+	for _, row := range rows {
+		sequences[row.ID] = row.Sequence
+	}
+	if got := sequences["u1"]; got != 4 {
+		t.Errorf("u1 sequence = %d, want the input event's 4", got)
+	}
+	if got := sequences["u2"]; got != 9 {
+		t.Errorf("u2 sequence = %d, want the input event's 9", got)
+	}
+	if got := sequences[assistantID]; got != 0 {
+		t.Errorf("assistant sequence = %d, want no cut point", got)
+	}
+	if got := sequences["c1"]; got != 0 {
+		t.Errorf("tool sequence = %d, want no cut point", got)
 	}
 }
 

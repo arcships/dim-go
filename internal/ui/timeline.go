@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -213,18 +214,67 @@ func chevron(c *ui.Context, k tokens, color ui.Color, progress float32) {
 // of the row, on the muted face, as docs/ui-layout-spec.md §4.2 records it. The
 // find bar's current match, when it falls in this bubble's text, is drawn as the
 // highlighted run inside the words.
-func userRow(c *ui.Context, k tokens, m Message) {
+//
+// A row whose projection carries the input's sequence also carries the
+// "Branch from here" entry under the bubble: the cut point is the parent
+// sequence immediately before that input, as dim-electron's
+// branchCutBeforeMessage resolves it (session-reader.ts), so the new line starts
+// before the message the user chose. The entry is a request only; the prompt
+// dialog and the session.branch_create call belong to the window.
+func userRow(c *ui.Context, k tokens, v TimelineView, a Actions, m Message) {
 	ui.Row(c).Padding(k.rowPadY, k.timelinePadX, k.rowPadY+timelineTurnGap, k.timelinePadX).
 		Justify(ui.End).Children(func() {
-		ui.Column(c).MaxWidthPercent(k.timelineUserWidth).
-			Padding(k.timelineUserPadY, k.timelineUserPadX).
-			Radius(k.timelineBubbleR).Background(k.muted).Children(func() {
-			if m.Search != nil && m.Search.Match != nil {
-				highlightText(c, k, m.Content, *m.Search.Match, k.bodySize, k.foreground)
-				return
+		ui.Column(c).MaxWidthPercent(k.timelineUserWidth).Children(func() {
+			ui.Column(c).Padding(k.timelineUserPadY, k.timelineUserPadX).
+				Radius(k.timelineBubbleR).Background(k.muted).Children(func() {
+				if m.Search != nil && m.Search.Match != nil {
+					highlightText(c, k, m.Content, *m.Search.Match, k.bodySize, k.foreground)
+					return
+				}
+				ui.Text(c, m.Content).FontSize(k.bodySize).TextColor(k.foreground)
+			})
+			at, ok := branchCutAt(m.Sequence)
+			// A row with no cut fact still shows the entry as WIP while the
+			// window wires the action, so the gap is explained; an unwired
+			// window with no cut fact draws nothing, and the About page's
+			// capability card explains the missing callback.
+			if ok || a.OnRequestBranchFrom != nil {
+				branchFromEntry(c, k, v, a, at, ok)
 			}
-			ui.Text(c, m.Content).FontSize(k.bodySize).TextColor(k.foreground)
 		})
+	})
+}
+
+// branchCutAt resolves a user row's cut point from the input event's sequence.
+// The branch is cut immediately before that input, matching the reference
+// client's bindEnd rule; a row without a positive sequence has no verified cut
+// and offers no entry.
+func branchCutAt(sequence int64) (int64, bool) {
+	if sequence <= 0 {
+		return 0, false
+	}
+	return sequence - 1, true
+}
+
+// branchFromEntry draws the user row's "Branch from here" entry. With a wired
+// request callback and a verified sequence it is an enabled action that asks the
+// window for its prompt dialog; an unwired callback or a missing sequence keeps
+// it visible, disabled and explained, so the row never pretends a branch the
+// window cannot create or the projection cannot locate. The entry is a button,
+// so Tab reaches it and Enter opens the dialog.
+func branchFromEntry(c *ui.Context, k tokens, v TimelineView, a Actions, at int64, ok bool) {
+	label := tr(v.Locale, keyTimelineBranchFrom)
+	ui.Row(c).Padding(k.timelineUserPadY, 0, 0, 0).Justify(ui.End).Children(func() {
+		switch {
+		case !ok:
+			wipAction(c, k, label, tr(v.Locale, keyReasonBranchCut))
+		case a.OnRequestBranchFrom == nil:
+			wipAction(c, k, label, tr(v.Locale, keyReasonBranchFrom))
+		default:
+			ui.Button(c, label).OnClick(func() {
+				a.OnRequestBranchFrom(at)
+			}).Transition(motionFastColors(c))
+		}
 	})
 }
 
@@ -351,5 +401,57 @@ func retryRow(c *ui.Context, k tokens, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Gap(k.gap).Children(func() {
 		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		ui.Text(c, m.Content).FontSize(k.labelSize).TextColor(k.warning)
+	})
+}
+
+// branchFromDialogMaxW is the dialog panel's width in DIPs: the same compact
+// step as the title dialog, wide enough for a sentence of prompt text.
+const branchFromDialogMaxW = 380
+
+// branchFromScrim is the dialog's backdrop: the same dimmed window the theme's
+// own modal uses, so the prompt reads as modal over the conversation.
+var branchFromScrim = ui.RGBA(0, 0, 0, 0.4)
+
+// branchFromDialog draws the "Branch from this message" prompt dialog while
+// the window says it is open. The field edits TimelineView.BranchFromDraft in
+// place; the confirm entry closes the dialog first and then calls
+// Actions.OnBranchFrom once with the resolved cut point and the trimmed prompt.
+// Escape or Cancel only closes it and sends nothing, and an empty prompt leaves
+// the confirm entry disabled because session.branch_create requires one.
+func branchFromDialog(c *ui.Context, k tokens, v TimelineView, a Actions) {
+	if v.BranchFromConfirm == nil || !*v.BranchFromConfirm || v.BranchFromDraft == nil {
+		return
+	}
+	locale := v.Locale
+	prompt := strings.TrimSpace(*v.BranchFromDraft)
+	ui.DialogBase(c, v.BranchFromConfirm, func(backdrop, panel ui.Element) {
+		backdrop.Background(branchFromScrim)
+		panel.Width(branchFromDialogMaxW).Padding(k.cardPadY, k.cardPadX).Gap(k.gap).
+			Radius(k.cardRadius).Background(k.background).
+			BorderWidth(k.hairline).BorderColor(k.border)
+		panel.Children(func() {
+			ui.Text(c, tr(locale, keyBranchFromTitle)).Bold().FontSize(k.titleSize).TextColor(k.foreground)
+			ui.Text(c, tr(locale, keyBranchFromMessage)).FontSize(k.smallSize).TextColor(k.mutedForeground)
+			ui.TextInput(c, v.BranchFromDraft).Label(tr(locale, keyBranchFromPromptLabel)).
+				Placeholder(tr(locale, keyBranchFromPromptLabel)).FillWidth()
+			ui.Row(c).FillWidth().Gap(k.gap).Justify(ui.End).Children(func() {
+				ui.Button(c, tr(locale, keyBranchFromCancel)).OnClick(func() {
+					*v.BranchFromConfirm = false
+				}).Transition(motionFastColors(c))
+				confirm := ui.Button(c, tr(locale, keyBranchFromConfirm)).OnClick(func() {
+					// Close first: the request is sent once, and the next frame
+					// already shows the dialog gone even while the App Server
+					// call is in flight. The draft is read at click time.
+					text := strings.TrimSpace(*v.BranchFromDraft)
+					*v.BranchFromConfirm = false
+					if text != "" && a.OnBranchFrom != nil {
+						a.OnBranchFrom(v.BranchFromAt, text)
+					}
+				}).Transition(motionFastColors(c))
+				if prompt == "" {
+					confirm.Disabled(true).AccessDisabled(true)
+				}
+			})
+		})
 	})
 }

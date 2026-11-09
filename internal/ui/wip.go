@@ -26,6 +26,8 @@ const (
 	reasonReconnect     = "Unavailable: the shell is not wired to supervisor reconnect yet."
 	reasonStop          = "Unavailable: the shell has no session.stop callback yet."
 	reasonBranches      = "Unavailable: branch switching/cut point is not wired yet."
+	reasonBranchCut     = "Unavailable: this row carries no App Server sequence to cut from yet."
+	reasonBranchFrom    = "Unavailable: the window has no branch-from-message callback yet."
 	reasonUpdate        = "Unavailable: the shell has no update check wired to the app's updater yet."
 	reasonSearch        = "Unavailable: the shell has no session search yet; dim-electron opens a search dialog over App Server history, and neither is wired here."
 	reasonGroup         = "Unavailable: session rows carry no project or updated time yet, so the shell cannot group by project or date."

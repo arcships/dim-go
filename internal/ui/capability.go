@@ -49,11 +49,12 @@ func wipCapabilityOf(actionKey, method, gapKey string) wipCapability {
 // missing. session.branches and session.keys have read helpers; switching a
 // branch reads that branch's history and is wired once State.OnSelectBranch is
 // set, ending one is wired once State.OnEndBranch is set, refreshing the
-// directory once State.OnRefreshBranches is set, while the keys browser is
-// wired once State.Keys carries a session.keys snapshot (the shell then wires
+// directory once State.OnRefreshBranches is set, cutting a side branch from a
+// message once State.OnBranchFrom is set, while the keys browser is wired once
+// State.Keys carries a session.keys snapshot (the shell then wires
 // Actions.OnToggleKeys and the sidebar entry replaces this card).
 func wipCapabilities(s *State) []wipCapability {
-	capabilities := make([]wipCapability, 0, 9)
+	capabilities := make([]wipCapability, 0, 10)
 	if s == nil || s.OnCreateSession == nil {
 		capabilities = append(capabilities,
 			wipCapabilityOf(keyCapabilityCreate, "session.create", keyCapabilityCreateGap))
@@ -69,6 +70,10 @@ func wipCapabilities(s *State) []wipCapability {
 	if s == nil || s.OnRefreshBranches == nil {
 		capabilities = append(capabilities,
 			wipCapabilityOf(keyCapabilityBranchRefresh, "session.branches", keyCapabilityBranchRefreshGap))
+	}
+	if s == nil || s.OnBranchFrom == nil {
+		capabilities = append(capabilities,
+			wipCapabilityOf(keyCapabilityBranchCut, "session.branch_create", keyCapabilityBranchCutGap))
 	}
 	if s == nil || !s.Keys.Loaded {
 		capabilities = append(capabilities,

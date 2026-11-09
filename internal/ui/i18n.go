@@ -146,6 +146,8 @@ const (
 	keyReasonKeysEntry       = "reason.keysEntry"
 	keyReasonEndBranch       = "reason.endBranch"
 	keyReasonRefreshBranches = "reason.refreshBranches"
+	keyReasonBranchCut       = "reason.branchCut"
+	keyReasonBranchFrom      = "reason.branchFrom"
 	keyReasonModel           = "reason.model"
 	keyReasonMode            = "reason.mode"
 	keyReasonOpenInEditor    = "reason.openInEditor"
@@ -170,6 +172,14 @@ const (
 	keyHeaderRenameLabel   = "header.rename.label"
 	keyHeaderRenameConfirm = "header.rename.confirm"
 	keyHeaderRenameCancel  = "header.rename.cancel"
+
+	// The timeline's per-row cut point entry and the prompt dialog it opens.
+	keyTimelineBranchFrom    = "timeline.branchFrom"
+	keyBranchFromTitle       = "branchFrom.title"
+	keyBranchFromMessage     = "branchFrom.message"
+	keyBranchFromPromptLabel = "branchFrom.promptLabel"
+	keyBranchFromConfirm     = "branchFrom.confirm"
+	keyBranchFromCancel      = "branchFrom.cancel"
 
 	keyComposerHint   = "composer.hint"
 	keyComposerLabel  = "composer.label"
@@ -247,6 +257,8 @@ const (
 	keyCapabilityBranchEndGap      = "capability.branchEnd.gap"
 	keyCapabilityBranchRefresh     = "capability.branchRefresh.action"
 	keyCapabilityBranchRefreshGap  = "capability.branchRefresh.gap"
+	keyCapabilityBranchCut         = "capability.branchCut.action"
+	keyCapabilityBranchCutGap      = "capability.branchCut.gap"
 	keyCapabilityKeys              = "capability.keys.action"
 	keyCapabilityKeysGap           = "capability.keys.gap"
 	keyCapabilityApprovals         = "capability.approvals.action"
@@ -391,6 +403,8 @@ var stringsEN = Strings{
 	keyReasonKeysEntry:       reasonKeysEntry,
 	keyReasonEndBranch:       reasonEndBranch,
 	keyReasonRefreshBranches: reasonRefreshBranches,
+	keyReasonBranchCut:       reasonBranchCut,
+	keyReasonBranchFrom:      reasonBranchFrom,
 	keyReasonModel:           reasonModel,
 	keyReasonMode:            reasonMode,
 	keyReasonOpenInEditor:    reasonOpenInEditor,
@@ -415,6 +429,13 @@ var stringsEN = Strings{
 	keyHeaderRenameLabel:   "Title",
 	keyHeaderRenameConfirm: "Rename",
 	keyHeaderRenameCancel:  "Cancel",
+
+	keyTimelineBranchFrom:    "Branch from here",
+	keyBranchFromTitle:       "Branch from this message",
+	keyBranchFromMessage:     "Creates a side branch cut before this message through session.branch_create. The prompt seeds the new branch.",
+	keyBranchFromPromptLabel: "Branch prompt",
+	keyBranchFromConfirm:     "Create branch",
+	keyBranchFromCancel:      "Cancel",
 
 	keyComposerHint:         composerHint,
 	keyComposerLabel:        "Composer",
@@ -483,6 +504,8 @@ var stringsEN = Strings{
 	keyCapabilityBranchEndGap:      "helper exists; shell has no branch end callback",
 	keyCapabilityBranchRefresh:     "Branch refresh",
 	keyCapabilityBranchRefreshGap:  "helper exists; shell has no branch refresh callback",
+	keyCapabilityBranchCut:         "Branch from message",
+	keyCapabilityBranchCutGap:      "helper exists; shell has no branch-from-message callback",
 	keyCapabilityKeys:              "Session keys",
 	keyCapabilityKeysGap:           "helper exists; shell has no key browser callback",
 	keyCapabilityApprovals:         "Approvals",
@@ -595,6 +618,8 @@ var stringsZHCN = Strings{
 	keyReasonKeysEntry:       "不可用：没有载入 session.keys 快照时，shell 还没有键浏览器回调。",
 	keyReasonEndBranch:       "不可用：shell 还没有 session.branch_end 回调。",
 	keyReasonRefreshBranches: "不可用：shell 还没有 session.branches 刷新回调。",
+	keyReasonBranchCut:       "不可用：这一行还没有可切分的 App Server sequence。",
+	keyReasonBranchFrom:      "不可用：窗口还没有从消息创建分支的回调。",
 	keyReasonModel:           "不可用：ComposerView 没有模型列表或当前模型；App Server 的模型信息还没有传给输入框。",
 	keyReasonMode:            "不可用：ComposerView 没有 agent 模式；shell 还没有向输入框提供模式信息。",
 	keyReasonOpenInEditor:    "不可用：shell 还没有用于在 VS Code 中打开会话的编辑器客户端或工作区信息。",
@@ -619,6 +644,13 @@ var stringsZHCN = Strings{
 	keyHeaderRenameLabel:   "标题",
 	keyHeaderRenameConfirm: "重命名",
 	keyHeaderRenameCancel:  "取消",
+
+	keyTimelineBranchFrom:    "从这里分支",
+	keyBranchFromTitle:       "从这条消息分支",
+	keyBranchFromMessage:     "通过 session.branch_create 在这条消息之前切开一条旁支；下面的提示词会作为新分支的起始内容。",
+	keyBranchFromPromptLabel: "分支提示词",
+	keyBranchFromConfirm:     "创建分支",
+	keyBranchFromCancel:      "取消",
 
 	keyComposerHint:         "Enter 发送 · Shift+Enter 换行",
 	keyComposerLabel:        "输入框",
@@ -687,6 +719,8 @@ var stringsZHCN = Strings{
 	keyCapabilityBranchEndGap:      "Go 客户端已有 helper；shell 还没有分支结束回调",
 	keyCapabilityBranchRefresh:     "刷新分支",
 	keyCapabilityBranchRefreshGap:  "Go 客户端已有 helper；shell 还没有分支刷新回调",
+	keyCapabilityBranchCut:         "从消息创建分支",
+	keyCapabilityBranchCutGap:      "Go 客户端已有 helper；shell 还没有从消息创建分支的回调",
 	keyCapabilityKeys:              "会话键",
 	keyCapabilityKeysGap:           "Go 客户端已有 helper；shell 还没有键浏览器回调",
 	keyCapabilityApprovals:         "审批",
