@@ -207,13 +207,13 @@ func userRow(c *ui.Context, k tokens, m Message) {
 	})
 }
 
-// assistantRow draws one assistant turn: the author line, then its blocks in
-// the projection's order. A row with no blocks falls back to Content as one
-// Markdown block, which is what a fixture and an adapter that keeps only text
-// hand it.
+// assistantRow draws one assistant turn: its blocks in the projection's order.
+// A row with no blocks falls back to Content as one Markdown block, which is
+// what a fixture and an adapter that keeps only text hand it. The reference
+// draws no author line on an assistant turn, so neither does this row; the
+// conversation list exposes the rendered text as the row's name.
 func assistantRow(c *ui.Context, k tokens, v TimelineView, m Message) {
 	ui.Column(c).Padding(k.rowPadY, k.timelinePadX).Gap(k.gap).Children(func() {
-		ui.Text(c, m.Author.String()).FontSize(k.smallSize).TextColor(k.mutedForeground).Unselectable()
 		if len(m.Blocks) == 0 {
 			if m.Content != "" {
 				renderMarkdownContent(c, k, m.Content, MarkdownOptions{})

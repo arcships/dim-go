@@ -154,7 +154,7 @@ func TestAssistantRowRendersMarkdown(t *testing.T) {
 	if !ok {
 		t.Fatalf("assistant row is not exposed to accessibility, texts %q", tt.Texts())
 	}
-	if !strings.HasPrefix(row.Name, "DimAgent Result Some bold and inline code text.") {
+	if !strings.HasPrefix(row.Name, "Result Some bold and inline code text.") {
 		t.Errorf("assistant row name %q is not its rendered text", row.Name)
 	}
 	if strings.ContainsAny(row.Name, "#`*") {

@@ -35,7 +35,10 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	ui.Row(c).Gap(k.gapWide).Padding(k.toolbarPadY, k.toolbarPadX).AlignItems(ui.Center).
 		BorderWidth(0, 0, k.hairline, 0).BorderColor(k.border).Children(func() {
 		if v.HasSession {
-			ui.Text(c, v.Title).Bold().FontSize(k.titleSize)
+			// The reference's conversation bar is one line: a truncated title, the
+			// run state and the surface entries. Connection state lives in the
+			// status bar alone, so the title cannot be pushed onto a second line.
+			ui.Text(c, v.Title).Bold().FontSize(k.titleSize).SingleLine()
 			ui.Box(c).Grow(1)
 			runStatus(c, k, v)
 		} else {
@@ -43,7 +46,6 @@ func header(c *ui.Context, k tokens, v HeaderView, a Actions) {
 			// remaining entries at the toolbar's end.
 			ui.Box(c).Grow(1)
 		}
-		status(c, k, v)
 		// Stopping is the App Server's to do once the callback sends session.stop,
 		// so the entry belongs beside the status only while a turn still runs.
 		if v.HasSession && !v.Closed && v.Run == RunRunning {
