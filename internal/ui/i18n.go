@@ -230,12 +230,12 @@ const (
 // name and a key added to one table cannot silently drift from the other.
 var stringsEN = Strings{
 	keyNoSession:           "No session",
-	keyComposerPlaceholder: composerPlaceholder,
+	keyComposerPlaceholder: "Send a message…",
 
 	keySidebarNavigation:       "Session sidebar",
 	keySidebarUpdate:           "Update",
 	keySidebarNewSession:       "New session",
-	keySidebarSearch:           "Search sessions",
+	keySidebarSearch:           "Search",
 	keySidebarSearchLabel:      "Filter sessions",
 	keySidebarSearchHint:       "Title or id",
 	keySidebarKeys:             "Session keys",
@@ -390,12 +390,12 @@ var stringsEN = Strings{
 // wire entry the entry waits on, not a phrase to translate.
 var stringsZHCN = Strings{
 	keyNoSession:           "未选择会话",
-	keyComposerPlaceholder: "给 DimAgent 发消息",
+	keyComposerPlaceholder: "发送消息…",
 
 	keySidebarNavigation:       "会话侧栏",
 	keySidebarUpdate:           "更新",
 	keySidebarNewSession:       "新建会话",
-	keySidebarSearch:           "搜索会话",
+	keySidebarSearch:           "搜索",
 	keySidebarSearchLabel:      "筛选会话",
 	keySidebarSearchHint:       "标题或 ID",
 	keySidebarKeys:             "会话键",

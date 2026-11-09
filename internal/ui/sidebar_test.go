@@ -357,7 +357,7 @@ func sidebarRowShown(tt *ui.Tester, title string) bool {
 // typing.
 func openSearch(t *testing.T, tt *ui.Tester) {
 	t.Helper()
-	if err := tt.Click("Search sessions"); err != nil {
+	if err := tt.Click("Search"); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); !ok {
@@ -444,7 +444,7 @@ func TestSidebarSearchEscape(t *testing.T) {
 	s := searchState()
 	tt := ui.NewTester(s.View, 900, 1200)
 
-	if err := tt.Click("Search sessions"); err != nil {
+	if err := tt.Click("Search"); err != nil {
 		t.Fatal(err)
 	}
 	tt.Key(0, ui.KeyEscape)
@@ -486,7 +486,7 @@ func TestSidebarSearchClosesAndClears(t *testing.T) {
 		t.Fatalf("the filter did not narrow the list, texts %q", tt.Texts())
 	}
 
-	if err := tt.Click("Search sessions"); err != nil {
+	if err := tt.Click("Search"); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); ok {
@@ -541,10 +541,10 @@ func TestSidebarSearchTabReachable(t *testing.T) {
 	s := searchState()
 	tt := ui.NewTester(s.View, 900, 1200)
 
-	if err := tt.Click("Search sessions"); err != nil {
+	if err := tt.Click("Search"); err != nil {
 		t.Fatal(err)
 	}
-	if !tt.Focused("Search sessions") {
+	if !tt.Focused("Search") {
 		t.Fatalf("the clicked entry did not take the focus, texts %q", tt.Texts())
 	}
 	tt.Key(0, ui.KeyTab)
@@ -614,7 +614,7 @@ func TestSidebarSearchNeedsNoCallback(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 1000)
 
-	info, ok := tt.AccessByRole(ui.RoleButton, "Search sessions")
+	info, ok := tt.AccessByRole(ui.RoleButton, "Search")
 	if !ok {
 		t.Fatalf("the search entry is not exposed, texts %q", tt.Texts())
 	}
@@ -624,7 +624,7 @@ func TestSidebarSearchNeedsNoCallback(t *testing.T) {
 	if info.Description != "" {
 		t.Errorf("the search entry still carries a WIP reason %q", info.Description)
 	}
-	if err := tt.Click("Search sessions"); err != nil {
+	if err := tt.Click("Search"); err != nil {
 		t.Fatal(err)
 	}
 	if _, ok := tt.AccessByRole(ui.RoleTextField, "Filter sessions"); !ok {
@@ -643,7 +643,7 @@ func TestSidebarGlobalEntryOrder(t *testing.T) {
 	s := fixture()
 	tt := ui.NewTester(s.View, 900, 600)
 
-	order := []string{"New session", "Search sessions", "Scheduled tasks", "Skills and plugins"}
+	order := []string{"New session", "Search", "Scheduled tasks", "Skills and plugins"}
 	var previous ui.Rect
 	for i, want := range order {
 		rect, ok := tt.Find(want)
@@ -877,5 +877,149 @@ func TestSidebarEmptyCatalogKeepsTheReferenceStructure(t *testing.T) {
 		if tt.HasText(gone) {
 			t.Errorf("the empty sidebar still draws %q, texts %q", gone, tt.Texts())
 		}
+	}
+}
+
+// TestSidebarListsGroupsUnderTheWorkspaceHeading checks the populated column's
+// structure, as the reference draws it: the session heading, the workspace
+// heading, then the project group and its rows. The empty message belongs to
+// the empty column only, so a catalog with rows does not draw it as well.
+func TestSidebarListsGroupsUnderTheWorkspaceHeading(t *testing.T) {
+	s := fixture()
+	s.Sessions = []Session{
+		{ID: "s1", Title: "Explain what this repository does", Group: "dimagent-mygo", UpdatedAt: time.Now().Add(-5 * time.Minute).UnixMilli()},
+		{ID: "s2", Title: "Plan the next sidebar step", Group: "dimagent-mygo"},
+	}
+	s.Selected = "s1"
+	s.Settings = SettingsView{Locale: LocaleZHCN}
+	tt := ui.NewTester(s.View, 800, 720)
+
+	sessions := textBox(t, tt, "会话")
+	workspace := textBox(t, tt, "工作区")
+	group := textBox(t, tt, "dimagent-mygo")
+	row := textBox(t, tt, "Explain what this repository does")
+	if sessions.Y >= workspace.Y || workspace.Y >= group.Y || group.Y >= row.Y {
+		t.Errorf("the populated column's order is off: 会话 y=%.1f, 工作区 y=%.1f, dimagent-mygo y=%.1f, row y=%.1f",
+			sessions.Y, workspace.Y, group.Y, row.Y)
+	}
+	if tt.HasText("暂无会话") {
+		t.Errorf("the populated sidebar still draws the empty message, texts %q", tt.Texts())
+	}
+	if !tt.HasText("5m") {
+		t.Errorf("the session row lost its relative stamp, texts %q", tt.Texts())
+	}
+}
+
+// TestSidebarSessionRowStartsWithItsTitle checks the reference's row: the title
+// begins at the row's own padding, with no status dot in a leading cell. The
+// selected row's face runs into the title's first glyph, so a dot would show as
+// a colored block before the text.
+func TestSidebarSessionRowStartsWithItsTitle(t *testing.T) {
+	s := fixture()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 600)
+	k := newTokens(theme)
+
+	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	row := textBox(t, tt, "First session")
+	if row.X < nav.Bounds.X || row.X+row.W > nav.Bounds.X+nav.Bounds.W {
+		t.Fatalf("the session row %+v is not inside the sidebar %+v", row, nav.Bounds)
+	}
+	y := int(row.Y + row.H/2)
+	ink := -1
+	for x := int(row.X); x < int(row.X+row.W); x++ {
+		if got := tt.Image().RGBAAt(x, y); !sameColor(got, k.sidebarAccent) {
+			ink = x
+			break
+		}
+	}
+	if ink < 0 {
+		t.Fatalf("the selected row paints no title")
+	}
+	if inset := float32(ink) - row.X; inset > k.sidebarGap+2 {
+		t.Errorf("the row's first ink is %.1f DIPs in, want the title at the row's %.1f padding: a leading status cell is still drawn",
+			inset, k.sidebarGap)
+	}
+}
+
+// TestSidebarSearchRowShowsNoHint checks the reference's search entry: it is
+// the word alone, with no shortcut hint at the row's tail. The shortcut itself
+// stays wired, as TestSidebarSearchShortcut checks.
+func TestSidebarSearchRowShowsNoHint(t *testing.T) {
+	s := fixture()
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, hint := range []string{"⌘G", "Ctrl+G"} {
+		if tt.HasText(hint) {
+			t.Errorf("the search row still draws the shortcut hint %q, texts %q", hint, tt.Texts())
+		}
+	}
+	info, ok := tt.AccessByRole(ui.RoleButton, "Search")
+	if !ok {
+		t.Fatalf("the search entry is not exposed, texts %q", tt.Texts())
+	}
+	if info.Name != "Search" {
+		t.Errorf("the search entry is exposed as %q, want %q", info.Name, "Search")
+	}
+	if info.Disabled {
+		t.Error("the search entry is unavailable although its filter is local")
+	}
+}
+
+// TestSidebarFooterKeepsOnlyTheGear checks the reference's footer: the gear
+// alone opens the settings surface. Its label stays the accessible name and the
+// tooltip, and no word is drawn beside the glyph.
+func TestSidebarFooterKeepsOnlyTheGear(t *testing.T) {
+	s := fixture()
+	var theme *ui.Theme
+	tt := ui.NewTester(func(c *ui.Context) {
+		theme = c.Theme()
+		s.View(c)
+	}, 900, 600)
+	k := newTokens(theme)
+
+	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	if !ok {
+		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+	}
+	info, ok := tt.AccessByRole(ui.RoleButton, "Settings")
+	if !ok {
+		t.Fatalf("the settings entry is not exposed, texts %q", tt.Texts())
+	}
+	if info.Bounds.X < nav.Bounds.X || info.Bounds.X+info.Bounds.W > nav.Bounds.X+nav.Bounds.W {
+		t.Fatalf("the settings button %+v is not the sidebar's, sidebar %+v", info.Bounds, nav.Bounds)
+	}
+	if want := 2*k.sidebarPadX + sidebarIconSize; info.Bounds.W > want+0.5 {
+		t.Errorf("the settings button is %.1f wide, want the gear's %.1f: a word is still drawn beside it",
+			info.Bounds.W, want)
+	}
+	if info.Name != tr(LocaleEN, keySidebarSettingsEntry) {
+		t.Errorf("the settings button is named %q, want %q", info.Name, tr(LocaleEN, keySidebarSettingsEntry))
+	}
+	if info.Description != info.Name {
+		t.Errorf("the settings button's description is %q, want the gear's accessible name %q", info.Description, info.Name)
+	}
+
+	// The glyph sits at the button's left padding; the rest of the row is the
+	// sidebar's face, so no label is painted there.
+	face := color.RGBA{R: k.sidebar.R, G: k.sidebar.G, B: k.sidebar.B, A: k.sidebar.A}
+	image := tt.Image()
+	glyphRight := int(info.Bounds.X+k.sidebarPadX) + sidebarIconSize
+	right := int(info.Bounds.X + info.Bounds.W)
+	y := int(info.Bounds.Y + info.Bounds.H/2)
+	for x := glyphRight + 1; x < right; x++ {
+		if got := image.RGBAAt(x, y); got != face {
+			t.Errorf("the settings row paints %v at x=%d, after the gear: a label is still drawn", got, x)
+			break
+		}
+	}
+	if !tt.HasText("Sign in to Dim") {
+		t.Errorf("the account row is missing from the footer, texts %q", tt.Texts())
 	}
 }

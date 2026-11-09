@@ -4,14 +4,14 @@
 //
 // The reference has no wordmark, no branch directory, no thread-action row and
 // no capability cards in this column: the entries begin below the traffic
-// lights, the catalog follows them, and the account row sits at the bottom.
-// Branch and delete callbacks stay in State and Actions for the session header
-// menu that will carry them, but this column draws neither today.
+// lights, the session and workspace headings follow them, the catalog sits
+// under the workspace heading, and the account row sits at the bottom. Branch
+// and delete callbacks stay in State and Actions for the session header menu
+// that will carry them, but this column draws neither today.
 
 package ui
 
 import (
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -143,9 +143,10 @@ func rowIndex(rows []sidebarRow, sessionID string) int {
 	return -1
 }
 
-// searchShortcutKey is the shortcut the search entry's hint names, and
-// searchShortcutMods its modifier: Cmd+G on macOS, Ctrl+G elsewhere, as
-// searchShortcutText writes it.
+// searchShortcutKey is the shortcut that opens the search box, and
+// searchShortcutMods its modifier: Cmd+G on macOS, Ctrl+G elsewhere. The
+// reference's search row shows no hint for it, so the shortcut stays a
+// behavior only and the row stays a plain label.
 const searchShortcutKey = ui.KeyG
 
 var searchShortcutMods = ui.Cmd
@@ -245,6 +246,7 @@ func sidebar(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		Role(ui.RoleNavigation).Label(tr(locale, keySidebarNavigation)).Children(func() {
 		sidebarEntries(c, k, v, a)
 		threadListHeader(c, k, locale)
+		workspaceHeader(c, k, locale)
 		threadList(c, k, v, sessions, a)
 		sidebarAccount(c, k, v, a)
 	})
@@ -274,7 +276,7 @@ func sidebarEntries(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // page.
 func scheduledEntry(c *ui.Context, k tokens, v SidebarView) {
 	locale := v.Locale
-	sidebarEntry(c, k, sidebarIcons.clock, tr(locale, keySidebarScheduled), "", reasonScheduled, false, false, false, nil)
+	sidebarEntry(c, k, sidebarIcons.clock, tr(locale, keySidebarScheduled), reasonScheduled, false, false, false, nil)
 }
 
 // skillsEntry offers dim-electron's skills and plugins page. The shell has no
@@ -282,7 +284,7 @@ func scheduledEntry(c *ui.Context, k tokens, v SidebarView) {
 // read either, so the entry stays visible, unavailable and explained.
 func skillsEntry(c *ui.Context, k tokens, v SidebarView) {
 	locale := v.Locale
-	sidebarEntry(c, k, sidebarIcons.grid, tr(locale, keySidebarSkills), "", reasonSkills, false, false, false, nil)
+	sidebarEntry(c, k, sidebarIcons.grid, tr(locale, keySidebarSkills), reasonSkills, false, false, false, nil)
 }
 
 // searchEntry toggles the sidebar's local session search. It needs no caller
@@ -291,7 +293,7 @@ func skillsEntry(c *ui.Context, k tokens, v SidebarView) {
 // place, and the thread list below narrows on the same frame.
 func searchEntry(c *ui.Context, k tokens, v SidebarView) {
 	locale := v.Locale
-	sidebarEntry(c, k, sidebarIcons.search, tr(locale, keySidebarSearch), searchShortcutText(), "", true, false, v.state.searching, func() {
+	sidebarEntry(c, k, sidebarIcons.search, tr(locale, keySidebarSearch), "", true, false, v.state.searching, func() {
 		v.toggleSearch()
 	})
 	if !v.state.searching {
@@ -308,10 +310,10 @@ func searchEntry(c *ui.Context, k tokens, v SidebarView) {
 func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 	locale := v.Locale
 	if a.OnCreateSession == nil {
-		sidebarEntry(c, k, sidebarIcons.plus, tr(locale, keySidebarNewSession), "", tr(locale, keyReasonCreateSession), false, false, false, nil)
+		sidebarEntry(c, k, sidebarIcons.plus, tr(locale, keySidebarNewSession), tr(locale, keyReasonCreateSession), false, false, false, nil)
 		return
 	}
-	sidebarEntry(c, k, sidebarIcons.plus, tr(locale, keySidebarNewSession), "", "", true, v.Creating, false, func() {
+	sidebarEntry(c, k, sidebarIcons.plus, tr(locale, keySidebarNewSession), "", true, v.Creating, false, func() {
 		createSession(a, v.Creating)
 	})
 }
@@ -321,13 +323,13 @@ func newSessionEntry(c *ui.Context, k tokens, v SidebarView, a Actions) {
 // none; the browser stays in the main column for a caller that sets ShowKeys.
 const reasonKeysEntry = "Unavailable: the shell has no key browser callback while no session.keys snapshot is loaded."
 
-// sidebarEntry draws one global entry as a menu row: its icon, its label and an
-// optional shortcut hint. An unavailable entry registers no click and carries
-// its reason in the description and the tooltip instead of a visible badge, so
-// the column keeps the reference's clean rows. selected marks an entry that is
-// showing its surface. The glyph is decorative: the label is the entry's
-// accessible name.
-func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, hint, reason string, enabled, disabled, selected bool, on func()) {
+// sidebarEntry draws one global entry as a menu row: its icon and its label,
+// as the reference's clean rows have no trailing shortcut hint. An unavailable
+// entry registers no click and carries its reason in the description and the
+// tooltip instead of a visible badge. selected marks an entry that is showing
+// its surface. The glyph is decorative: the label is the entry's accessible
+// name.
+func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, enabled, disabled, selected bool, on func()) {
 	row := ui.ButtonBase(c).Height(k.sidebarEntryH).FillWidth().
 		PaddingX(k.sidebarPadX).Radius(radiusMD).Gap(k.sidebarGap).AlignItems(ui.Center)
 	row.Label(label)
@@ -347,20 +349,7 @@ func sidebarEntry(c *ui.Context, k tokens, icon *ui.SVG, label, hint, reason str
 		sidebarGlyph(c, icon, k.sidebarForeground)
 		ui.Text(c, label).FontSize(k.bodySize).TextColor(k.sidebarForeground).SingleLine()
 		ui.Spacer(c)
-		if hint != "" {
-			ui.Text(c, hint).FontSize(k.smallSize).TextColor(k.mutedForeground).
-				Unselectable().AccessHidden(true)
-		}
 	})
-}
-
-// searchShortcutText is the shortcut the search entry opens its dialog with,
-// written for the platform's keyboard: Cmd+G or Ctrl+G.
-func searchShortcutText() string {
-	if runtime.GOOS == "darwin" {
-		return "⌘G"
-	}
-	return "Ctrl+G"
 }
 
 // threadListHeader names the thread list, as the reference's session column
@@ -379,14 +368,14 @@ func threadListHeader(c *ui.Context, k tokens, locale Locale) {
 }
 
 // workspaceHeader names the workspace the session rows belong to, the
-// reference's second heading in the empty column. It is a display heading, not
-// a control or a project fact: the shell has no workspace catalog, so it draws
-// the interface language's word for the group and nothing under it but the
-// empty message.
+// reference's second heading: it follows the session heading whether the column
+// holds rows or not, and the project groups or the empty message sit under it.
+// It is a display heading, not a control or a project fact: the shell has no
+// workspace catalog, so it draws the interface language's word for the group.
 func workspaceHeader(c *ui.Context, k tokens, locale Locale) {
 	ui.Row(c).Height(k.sidebarSectionH).PaddingX(k.sidebarSectionPadX).Gap(k.sidebarGap).
 		AlignItems(ui.Center).Children(func() {
-		sidebarGlyph(c, sidebarIcons.folder, k.mutedForeground)
+		sidebarGlyph(c, sidebarIcons.house, k.mutedForeground)
 		ui.Text(c, tr(locale, keyComposerWorkspace)).FontSize(k.smallSize).
 			TextColor(k.mutedForeground).Bold().SingleLine()
 		ui.Spacer(c)
@@ -416,12 +405,11 @@ func threadList(c *ui.Context, k tokens, v SidebarView, sessions []Session, a Ac
 		if v.state.searching && len(v.Sessions) > 0 {
 			empty = tr(locale, keySidebarEmptyFiltered)
 		}
-		// The reference's empty column keeps the structure with no rows: the
-		// workspace heading under the session heading, the empty message under
-		// it, and a hairline closing the section. The message stays the status
-		// region, so assistive technology hears why the list is empty.
+		// The reference's empty column keeps the structure its rows have: the
+		// workspace heading above this message and a hairline closing the
+		// section. The message stays the status region, so assistive technology
+		// hears why the list is empty.
 		ui.Column(c).Grow(1).Children(func() {
-			workspaceHeader(c, k, locale)
 			ui.Column(c).PaddingX(k.sidebarSectionPadX + k.sidebarGap).PaddingY(k.gap).
 				Children(func() {
 					ui.Text(c, empty).FontSize(k.smallSize).TextColor(k.mutedForeground).Role(ui.RoleStatus)
@@ -495,17 +483,8 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 		line.Background(k.sidebarHover)
 	}
 	line.Children(func() {
-		// The status cell is 21 DIPs square, as dim-electron's 24px cell at
-		// the 14px root size. The marker inside it is decorative: the shell
-		// has no run fact for a session row, so it must not claim one.
-		ui.Box(c).Size(k.sidebarCell, k.sidebarCell).Center().Children(func() {
-			dot := k.mutedForeground
-			if selected {
-				dot = k.sidebarPrimary
-			}
-			ui.Box(c).Size(k.sidebarGap*2, k.sidebarGap*2).Radius(k.sidebarGap).
-				Background(dot).AccessHidden(true)
-		})
+		// The reference's session row carries its title and relative stamp only:
+		// no status dot, because the shell has no run fact for a session row.
 		ui.Text(c, row.title).FontSize(k.bodySize).TextColor(k.sidebarForeground).
 			SingleLine().Grow(1)
 		if stamp := relativeStamp(row.updatedAt, time.Now()); stamp != "" {
@@ -547,13 +526,15 @@ func sidebarAccount(c *ui.Context, k tokens, v SidebarView, a Actions) {
 		if a.OnOpenSettings == nil {
 			return
 		}
+		// The reference's footer carries the gear alone: the label stays the
+		// button's accessible name and tooltip, but no visible word sits beside
+		// the glyph.
 		label := tr(locale, keySidebarSettingsEntry)
 		settings := ui.ButtonBase(c).Height(k.sidebarFooterH).
-			PaddingX(k.sidebarPadX).Gap(k.sidebarGap).AlignItems(ui.Center).
-			Label(label).OnClick(a.OnOpenSettings).Shrink(1)
+			PaddingX(k.sidebarPadX).AlignItems(ui.Center).
+			Label(label).Tooltip(label).OnClick(a.OnOpenSettings).Shrink(1)
 		settings.Children(func() {
 			sidebarGlyph(c, sidebarIcons.gear, k.sidebarForeground)
-			ui.Text(c, label).FontSize(k.bodySize).TextColor(k.sidebarForeground).SingleLine()
 		})
 	})
 }
