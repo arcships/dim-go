@@ -37,8 +37,8 @@ func markdownKind(t *testing.T, tt *ui.Tester, shown, syntax string) {
 
 // TestMarkdownContentThemeUsesShellTokens checks that the content layer is
 // themed with the shell's semantic colors rather than mygo's own palette: the
-// faces and colors the renderer names in its --markdown-* tokens map onto the
-// tokens the rest of the window uses.
+// faces and colors the renderer names in its --markdown-* and markstream
+// --ms-* tokens map onto the tokens the rest of the window uses.
 func TestMarkdownContentThemeUsesShellTokens(t *testing.T) {
 	k := newTokens(ui.LightTheme())
 	th := contentTheme(k)
@@ -50,17 +50,18 @@ func TestMarkdownContentThemeUsesShellTokens(t *testing.T) {
 	}{
 		{"text", th.Text, k.foreground},
 		{"muted", th.Muted, k.mutedForeground},
-		{"link", th.Link, k.primary},
+		{"link", th.Link, k.theme.Accent},
 		{"strong", th.Strong, k.foreground},
-		{"inline code text", th.Code, k.foreground},
-		{"inline code face", th.CodeBackground, k.muted},
+		{"inline code text", th.Code, k.foreground.Mix(k.background, inlineCodeTextFade)},
+		{"inline code face", th.CodeBackground, k.muted.Alpha(inlineCodeBgAlpha)},
 		{"quote bar", th.QuoteBar, k.border},
 		{"quote text", th.QuoteText, k.mutedForeground},
 		{"rule", th.Rule, k.border},
 		{"code block face", th.CodeBlockBackground, k.card},
 		{"code block border", th.CodeBlockBorder, k.border},
 		{"table border", th.TableBorder, k.border},
-		{"table header", th.TableHeader, k.card.Mix(k.foreground, tableHeaderRise)},
+		{"table header", th.TableHeader, k.muted},
+		{"table stripe", th.TableStripe, k.muted.Alpha(tableStripeAlpha)},
 		{"task list check", th.Checkbox, k.primary},
 	}
 	for _, tt := range cases {
@@ -79,10 +80,81 @@ func TestMarkdownContentThemeUsesShellTokens(t *testing.T) {
 	}
 
 	// The layer must follow a dark window too, and not keep the light colors:
-	// the tokens it derives from change with the theme.
-	dark := contentTheme(newTokens(ui.DarkTheme()))
+	// the tokens it derives from change with the theme, and the renderer's
+	// own steps for inline code differ by appearance.
+	darkTheme := ui.DarkTheme()
+	dk := newTokens(darkTheme)
+	dark := contentTheme(dk)
 	if dark.Text == th.Text || dark.CodeBlockBackground == th.CodeBlockBackground {
 		t.Errorf("the dark theme keeps the light text %v and code face %v", dark.Text, dark.CodeBlockBackground)
+	}
+	if dark.Link != darkTheme.Accent {
+		t.Errorf("the dark link color is %v, want the theme's accent %v", dark.Link, darkTheme.Accent)
+	}
+	if want := dk.foreground.Mix(dk.background, inlineCodeTextFadeDark); dark.Code != want {
+		t.Errorf("the dark inline code text is %v, want %v", dark.Code, want)
+	}
+	if want := dk.muted.Alpha(inlineCodeBgAlphaDark); dark.CodeBackground != want {
+		t.Errorf("the dark inline code face is %v, want %v", dark.CodeBackground, want)
+	}
+}
+
+// TestMarkdownTypographyFollowsTheReference checks the layer's type: the body
+// leading markstream-vue sets, the renderer's heading scale, and the room
+// inside a table cell, so that the content reads at the body's size and
+// leading instead of mygo's defaults.
+func TestMarkdownTypographyFollowsTheReference(t *testing.T) {
+	k := newTokens(ui.LightTheme())
+	th := contentTheme(k)
+
+	if th.LineHeight != bodyLineHeight {
+		t.Errorf("the body leading is %v, want %v", th.LineHeight, bodyLineHeight)
+	}
+	if th.CodeLineHeight != codeLineHeight {
+		t.Errorf("the code leading is %v, want %v", th.CodeLineHeight, codeLineHeight)
+	}
+	if th.TableCellPadding != [2]float32{0.625, 0.375} {
+		t.Errorf("the table cell room is %v, want the renderer's 0.625/0.375em", th.TableCellPadding)
+	}
+
+	wantSizes := [6]float32{1.25, 1.1875, 1.125, 1.0625, 1, 1}
+	wantWeights := [6]int{700, 600, 600, 600, 600, 600}
+	wantTop := [6]float32{1.5, 1.5, 1, 1, 1, 1}
+	wantBottom := [6]float32{0.75, 0.75, 0.25, 0.25, 0.25, 0.25}
+	for i, h := range th.Headings {
+		level := i + 1
+		if h.Size != wantSizes[i] {
+			t.Errorf("h%d is %vem, want the renderer's %vem", level, h.Size, wantSizes[i])
+		}
+		if h.Weight != wantWeights[i] {
+			t.Errorf("h%d weighs %d, want %d", level, h.Weight, wantWeights[i])
+		}
+		if h.Top != wantTop[i] || h.Bottom != wantBottom[i] {
+			t.Errorf("h%d leaves %v/%vem above and below, want %v/%v", level, h.Top, h.Bottom, wantTop[i], wantBottom[i])
+		}
+		if h.Color != k.foreground {
+			t.Errorf("h%d is %v, want the foreground %v", level, h.Color, k.foreground)
+		}
+	}
+
+	// The scale reaches the view: a heading's ink is taller than the body
+	// text's. The element's box is the line box mygo gives every paragraph,
+	// so only the glyphs record the step.
+	tt := markdownTester(t, 640, 320, "Body text.\n\n# Title\n", MarkdownOptions{})
+	body, ok := tt.Find("Body text.")
+	if !ok {
+		t.Fatalf("the body text is missing, texts %q", tt.Texts())
+	}
+	title, ok := tt.Find("Title")
+	if !ok {
+		t.Fatalf("the heading is missing, texts %q", tt.Texts())
+	}
+	bodyInk, titleInk := inkRows(tt, body, k.foreground), inkRows(tt, title, k.foreground)
+	if titleInk <= bodyInk {
+		t.Errorf("the heading's ink is %d rows against the body's %d: the scale is not applied", titleInk, bodyInk)
+	}
+	if want := k.bodySize * bodyLineHeight; body.H < want-1 || body.H > want+1 {
+		t.Errorf("the body line box is %v, want the %v of %vem leading", body.H, want, bodyLineHeight)
 	}
 }
 
@@ -135,6 +207,37 @@ func countText(texts []string, s string) int {
 		}
 	}
 	return n
+}
+
+// TestMarkdownCodeBlockHeadHoversTheCopyButton checks the head's hover state:
+// the copy button takes a face of its own under the pointer, over the head's
+// own step off the code block, as the renderer's --code-action-hover-bg does.
+func TestMarkdownCodeBlockHeadHoversTheCopyButton(t *testing.T) {
+	k := newTokens(ui.LightTheme())
+	tt := markdownTester(t, 640, 240, "```go\nfmt.Println(\"hi\")\n```\n", MarkdownOptions{})
+
+	copyText, ok := tt.Find("Copy")
+	if !ok {
+		t.Fatalf("the copy button is missing, texts %q", tt.Texts())
+	}
+	// The button's box is the text's and its padding around it.
+	button := grown(copyText, 4)
+	headFace := k.card.Mix(k.foreground, codeHeadRise)
+	// mygo's copy button tints its face with the text color at 8% under the
+	// pointer (markdown/code.go, CopyButton).
+	hoverFace := k.foreground.Alpha(0.08).Over(headFace)
+	if hits := facePixels(tt, button, hoverFace, 2); hits > 20 {
+		t.Errorf("%d pixels of the hover face before the pointer is over the button", hits)
+	}
+	tt.Move(copyText.X+copyText.W/2, copyText.Y+copyText.H/2)
+	if hits := facePixels(tt, button, hoverFace, 2); hits < 50 {
+		t.Errorf("%d pixels of the hover face under the pointer, want the button to tint", hits)
+	}
+}
+
+// grown returns r with by DIPs of room on every side.
+func grown(r ui.Rect, by float32) ui.Rect {
+	return ui.Rect{X: r.X - by, Y: r.Y - by, W: r.W + 2*by, H: r.H + 2*by}
 }
 
 // TestMarkdownCodeCopyButtonCopiesTheBlock checks that pressing a code block's
@@ -240,6 +343,12 @@ func TestMarkdownContentRendersInlineCodeLinkTableAndTasks(t *testing.T) {
 	if !checked.Checked {
 		t.Errorf("the checked task's box is unchecked")
 	}
+	// The checked fill is the renderer's --markdown-checkbox-checked, the
+	// shell's primary, not a mygo palette color.
+	k := newTokens(ui.LightTheme())
+	if hits := chipPixels(tt, checked.Bounds, k.primary); hits < 30 {
+		t.Errorf("the checked box has %d pixels of the primary face, want its fill", hits)
+	}
 	unchecked := markdownTester(t, 720, 320, "- [ ] open\n", MarkdownOptions{})
 	box, ok := unchecked.AccessByRole(ui.RoleCheckBox, "")
 	if !ok {
@@ -261,6 +370,37 @@ func TestMarkdownContentRendersInlineCodeLinkTableAndTasks(t *testing.T) {
 	}
 	if opened != "https://example.com" {
 		t.Errorf("the link opened %q, want https://example.com", opened)
+	}
+}
+
+// TestMarkdownTablePaintsHeaderAndStripe checks a table's faces end to end:
+// the header row is the muted face the renderer tints, and the body rows below
+// it alternate with a wash of that face, so a table reads as a grid rather
+// than as bare text between rules.
+func TestMarkdownTablePaintsHeaderAndStripe(t *testing.T) {
+	const src = "| Name | Value |\n| --- | --- |\n| alpha | 1 |\n| beta | 2 |\n"
+	const wantRows = 3 // the header and two body rows
+	k := newTokens(ui.LightTheme())
+	tt := markdownTester(t, 720, 400, src, MarkdownOptions{})
+
+	table, ok := tt.AccessByRole(ui.RoleTable, "")
+	if !ok {
+		t.Fatalf("the table is missing, texts %q", tt.Texts())
+	}
+	headerFace := k.muted
+	stripeFace := k.muted.Alpha(tableStripeAlpha).Over(k.background)
+	rowH := table.Bounds.H / wantRows
+	headerBand := ui.Rect{X: table.Bounds.X, Y: table.Bounds.Y, W: table.Bounds.W, H: rowH}
+	stripeBand := ui.Rect{X: table.Bounds.X, Y: table.Bounds.Y + rowH, W: table.Bounds.W, H: rowH}
+
+	if hits := chipPixels(tt, headerBand, headerFace); hits < 500 {
+		t.Errorf("the header row has %d pixels of the muted face, want its fill", hits)
+	}
+	if hits := facePixels(tt, stripeBand, stripeFace, 2); hits < 500 {
+		t.Errorf("the first body row has %d pixels of the stripe face, want its wash", hits)
+	}
+	if hits := facePixels(tt, headerBand, stripeFace, 2); hits > 50 {
+		t.Errorf("the header row has %d pixels of the stripe face, want it above the stripe", hits)
 	}
 }
 
@@ -297,7 +437,7 @@ func TestMarkdownCodeBlockScrollsLongLines(t *testing.T) {
 	if !ok {
 		t.Fatalf("the wrapped code line is missing, texts %q", wrapped.Texts())
 	}
-	oneLine := float32(14 * 1.4)
+	oneLine := float32(14 * inlineCodeSize * codeLineHeight)
 	if first.H <= oneLine {
 		t.Errorf("the wrapped code line is %v high, no taller than one line of %v", first.H, oneLine)
 	}
@@ -378,6 +518,14 @@ func TestMarkdownFileChipPathsCutTheWordFromTheLine(t *testing.T) {
 // a chip paints its face behind the word, so a line with a chip has some, and
 // a line of plain text none of that exact color.
 func chipPixels(tt *ui.Tester, r ui.Rect, face ui.Color) int {
+	return facePixels(tt, r, face, 0)
+}
+
+// facePixels counts the pixels of face within r, allowing each channel to
+// differ by tol: an alpha wash rounds a channel differently through the
+// painter than through Color.Over, so a face composited over another is
+// matched near rather than exactly.
+func facePixels(tt *ui.Tester, r ui.Rect, face ui.Color, tol int) int {
 	img := tt.Image()
 	hits := 0
 	for y := int(r.Y); y < int(r.Y+r.H); y++ {
@@ -385,12 +533,40 @@ func chipPixels(tt *ui.Tester, r ui.Rect, face ui.Color) int {
 			if x < 0 || y < 0 || x >= img.Bounds().Dx() || y >= img.Bounds().Dy() {
 				continue
 			}
-			if p := img.RGBAAt(x, y); p.R == face.R && p.G == face.G && p.B == face.B && p.A == face.A {
+			p := img.RGBAAt(x, y)
+			if nearByte(p.R, face.R, tol) && nearByte(p.G, face.G, tol) &&
+				nearByte(p.B, face.B, tol) && p.A == face.A {
 				hits++
 			}
 		}
 	}
 	return hits
+}
+
+// nearByte reports whether a is within tol of b.
+func nearByte(a, b uint8, tol int) bool {
+	d := int(a) - int(b)
+	return d <= tol && d >= -tol
+}
+
+// inkRows counts the rows of r that hold a pixel of color, as the height of a
+// text's ink: mygo lays every paragraph out in the line box of the body size,
+// so only the glyphs record a heading's larger size.
+func inkRows(tt *ui.Tester, r ui.Rect, color ui.Color) int {
+	img := tt.Image()
+	rows := 0
+	for y := int(r.Y); y < int(r.Y+r.H); y++ {
+		for x := int(r.X); x < int(r.X+r.W); x++ {
+			if x < 0 || y < 0 || x >= img.Bounds().Dx() || y >= img.Bounds().Dy() {
+				continue
+			}
+			if p := img.RGBAAt(x, y); p.R == color.R && p.G == color.G && p.B == color.B && p.A == color.A {
+				rows++
+				break
+			}
+		}
+	}
+	return rows
 }
 
 // TestMarkdownFileChipPaintsAPathAsCode checks a path in a line of text end to
@@ -408,7 +584,10 @@ func TestMarkdownFileChipPaintsAPathAsCode(t *testing.T) {
 	if !ok {
 		t.Fatalf("the line is missing, texts %q", tt.Texts())
 	}
-	if hits := chipPixels(tt, line, k.muted); hits < 100 {
+	// The chip's face is the muted face at the renderer's strength, washed
+	// over the content, not a solid pill.
+	chipFace := k.muted.Alpha(inlineCodeBgAlpha).Over(k.background)
+	if hits := chipPixels(tt, line, chipFace); hits < 100 {
 		t.Errorf("%d pixels of the chip face behind the paths, want the words tinted", hits)
 	}
 
@@ -420,7 +599,7 @@ func TestMarkdownFileChipPaintsAPathAsCode(t *testing.T) {
 	if !ok {
 		t.Fatalf("the plain line is missing, texts %q", plain.Texts())
 	}
-	if hits := chipPixels(plain, plainLine, k.muted); hits > 20 {
+	if hits := chipPixels(plain, plainLine, chipFace); hits > 20 {
 		t.Errorf("%d pixels of the chip face behind text with no path, want the face to come from a chip", hits)
 	}
 
@@ -498,6 +677,13 @@ func TestMarkdownLinkCallsTheHandler(t *testing.T) {
 	info, ok := tt.AccessByRole(ui.RoleLink, "the guide")
 	if !ok {
 		t.Fatalf("the link is not exposed as a link, texts %q", tt.Texts())
+	}
+	// The link's text is the theme accent (contentTheme), the closest token
+	// the shell has to the renderer's blue --markdown-link, not the brand
+	// primary the rest of the shell fills buttons with.
+	k := newTokens(ui.LightTheme())
+	if hits := chipPixels(tt, info.Bounds, k.theme.Accent); hits < 20 {
+		t.Errorf("the link has %d pixels of the accent color, want its text colored %v", hits, k.theme.Accent)
 	}
 	tt.Move(info.Bounds.X+info.Bounds.W/2, info.Bounds.Y+info.Bounds.H/2)
 	if got := tt.Cursor(); got != ui.CursorPointer {
