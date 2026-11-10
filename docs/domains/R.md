@@ -361,30 +361,30 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 - 外部内容容器 — 不做（不可行：客户端只用本机原生组件组成主体，不承载外来内容）
 ## 候选能力（按用户夜间授权开发，待确认）
 
-授权口径：用户以「开发完所有能开发的」临时授权，把下列条目纳入开发；这不是批准，最终以用户回看确认为准。本节单列，不并入上面 69 项，也不参与其统计。「做（已实现）」表示实现已存在、只缺需求条目；「待做」表示已授权、尚未开工。
+授权口径：用户以「开发完所有能开发的」临时授权，把下列条目纳入开发；这不是批准，最终以用户回看确认为准。本节单列，不并入上面 69 项，也不参与其统计。结论沿用上节四类口径。
 
 | 能力 | 状态 | 承接领域 | 依据 |
 |---|---|---|---|
-| 供应商与模型目录管理 | 待做 | D11a 设置与运行环境、D6 账号与凭据 | 附 E 第 1 项；provider.management / provider.create / provider.update / provider.probe / provider.models.* |
-| 设置来源与文档读写 | 做（已实现） | D11a 设置与运行环境 | 附 E 第 2 项；settings 来源与文档读写已实现，缺需求条目 |
-| 提示建议 | 待做 | D2 会话内容读取、D12 集成 | 附 E 第 3 项；session.suggestion.request / respond |
-| 会话分叉 | 待做 | D4 会话目录与生命周期、D3 写登记 | 附 E 第 4 项；session.fork |
-| 上下文压缩与用量 | 待做 | D2 会话内容读取 | 附 E 第 5 项；session.context.compact / usage |
-| 排队输入撤回 | 待做 | D3 写登记、D2 会话内容读取 | 附 E 第 6 项；session.input.withdraw |
-| 后台任务输出与停止 | 待做 | D2 会话内容读取、D3 写登记 | 附 E 第 7 项；session.exec.output / exec.stop |
-| 协作模型策略 | 待做 | D11a 设置与运行环境 | 附 E 第 8 项；collaboration.model_policy / set_model_policy |
-| agent 档案更新 | 待做 | D11a 设置与运行环境、D12 集成 | 附 E 第 9 项；session.agent.update |
-| 命令规则管理 | 待做 | D5 交互与审批 | 附 E 第 10 项；permission.rules / set_rules 现只有写，无列表与撤销 |
-| 会话权限读写 | 做（已实现） | D5 交互与审批、D11a 设置与运行环境 | 附 E 第 11 项；session.permission.get / update 已实现，缺需求条目 |
-| 外部工具服务器认证 | 待做 | D11b 扩展管理、D12 集成 | 附 E 第 12 项；mcp.auth.start / complete / logout、mcp.test、mcp.inspect |
-| 钩子启停 | 待做 | D11b 扩展管理 | 附 E 第 13 项；hooks.set_enabled |
-| 技能刷新 | 待做 | D11b 扩展管理 | 附 E 第 14 项；skills.refresh |
-| 目标暂停与恢复 | 待做 | D2 会话内容读取 | 附 E 第 15 项；session.goal.pause / resume / clear |
-| 供应商专属登录 | 待做 | D6 账号与凭据、D11a 设置与运行环境 | 附 E 第 16 项；account.codex / account.grok 命名空间 |
+| 供应商与模型目录管理 | 已验证 | D11a 设置与运行环境、D6 账号与凭据 | 附 E 第 1 项；alpha.21 真实验证 provider 建/改/探测/启用与模型编辑；verify-provider-admin 脚本 |
+| 设置来源与文档读写 | 已验证 | D11a 设置与运行环境 | 附 E 第 2 项；真实 settings.update 推进 revision（prompt-suggestion 1→2）；D11a §6.4 |
+| 提示建议 | 已验证 | D2 会话内容读取、D12 集成 | 附 E 第 3 项；真实 offer/cleared 通知与 dismiss 结算；TestRealDaemonExecOutputAndStop |
+| 会话分叉 | 已验证 | D4 会话目录与生命周期、D3 写登记 | 附 E 第 4 项；alpha.21 真实 session.fork；TestRealDaemonCatalogLifecycle |
+| 上下文压缩与用量 | 已实现未验证 | D2 会话内容读取 | 附 E 第 5 项；会话用量真实通过；上下文占用与压缩缺服务端事实，仍无真实证据 |
+| 排队输入撤回 | 已验证 | D3 写登记、D2 会话内容读取 | 附 E 第 6 项；真实 withdraw 回执 deleted、清单与视图同步移除；TestRealDaemonContextAndControls |
+| 后台任务输出与停止 | 已验证 | D2 会话内容读取、D3 写登记 | 附 E 第 7 项；真实分页读输出到 EOF、按任务停止后状态 cancelled；TestRealDaemonExecOutputAndStop |
+| 协作模型策略 | 已验证 | D11a 设置与运行环境 | 附 E 第 8 项；真实策略 4 次写入与 stale 冲突；verify-collaboration-agent 脚本 |
+| agent 档案更新 | 已验证 | D11a 设置与运行环境、D12 集成 | 附 E 第 9 项；真实 agent get/update，adopted 后 unchanged；verify-collaboration-agent 脚本 |
+| 命令规则管理 | 未实现 | D5 交互与审批 | 附 E 第 10 项；真实只有读 revision 与写规则，列出/编辑/撤销未实现 |
+| 会话权限读写 | 已验证 | D5 交互与审批、D11a 设置与运行环境 | 附 E 第 11 项；真实 get/update 与 permission/changed 事件；集成自检证据 H |
+| 外部工具服务器认证 | blocked | D11b 扩展管理、D12 集成 | 附 E 第 12 项；缺真实 OAuth 认证服务器，只实测到 mcp_auth_unsupported 与 mcp_auth_attempt_closed |
+| 钩子启停 | 已验证 | D11b 扩展管理 | 附 E 第 13 项；alpha.21 项目钩子 enable/disable 推进 revision、旧 revision 冲突；D11b §6.4.3 |
+| 技能刷新 | 已验证 | D11b 扩展管理 | 附 E 第 14 项；alpha.21 skills.refresh 后 catalog 版本 0→1；D11b §6.4.3 |
+| 目标暂停与恢复 | 已验证 | D2 会话内容读取 | 附 E 第 15 项；真实 set/pause(user)/resume 三态；TestRealDaemonContextAndControls |
+| 供应商专属登录 | 未实现 | D6 账号与凭据、D11a 设置与运行环境 | 附 E 第 16 项；通用浏览器登录只到发起；设备码与供应商命名空间分支未实现 |
 
 附 E 建议不纳入的 7 项仍不纳入，理由见附 E：会话空闲等待、目录读取取消、会话摘要旧接口、Web 工作区安装、宿主协作协议、执行后端配置、离线数据库维护。
 
-统计：候选能力 16 项，其中做（已实现）2 项、待做 14 项；与原 69 项分开计数。
+统计：候选能力 16 项，其中已验证 12 项、已实现未验证 1 项、blocked 1 项、未实现 2 项；与原 69 项分开计数。
 
 # 第 4 部分　验收口径
 - **证据形式**：只接受服务端请求与返回值、日志内容、数据或文件状态、进程状态、命令输出与退出码。
@@ -403,6 +403,7 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 2026-11-11 | 平台口径改为只按本机验收，其他平台不在范围、不计 blocked；验收对照新增「不在范围（不做）」类别，外部打开按本机证据升为已验证，单实例去掉其他平台备注 | 用户明确 Windows 不做验证 | 已验证 20→21，已实现未验证 16→15，不做 2 条归入不在范围；合计仍 69 |
 | 2026-11-11 | 新增附 E「CLI/TUI 能力缺口」：对照服务端仓库的命令行与交互客户端，列出 23 条缺口与建议 | 服务端已有能力多于本项目需求清单 | 16 条建议纳入、7 条建议不纳入；纳入与否待用户拍板 |
 | 2026-11-11 | 能力对照新增「候选能力」小节：附 E 建议纳入的 16 项列为候选，标明状态与承接领域；7 项不纳入的只引用附 E 理由 | §7.2 缺口盘点落成需求候选，用户在夜间授权开发但尚未确认 | 候选 16 项单列，不并入 69 项统计 |
+| 2026-11-11 | 按各领域最新证据刷新附 D 与候选能力：真实模型、alpha.21 服务端与真实账号夹具带来一批新证据，审批/提问/后台任务/目标/权限/改名/命令/模态/唤醒/账号读取/供应商管理/协作策略/agent 档案/提示建议/撤回/分叉/钩子/技能刷新全部升级 | 验收对照落后于本轮证据 | 69 项：已验证 20→41、已实现未验证 16→17、blocked 30→8；候选 16 项：已验证 12、已实现未验证 1、blocked 1、未实现 2 |
 # 附 B　未决问题
 
 | 编号 | 问题 | 需要谁回答 | 处理 |
@@ -429,10 +430,10 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 历史与实时一致 | 已验证 | RealDaemonLiveAndHistoryAgree、HistoryAndLiveConverge |
 | 行身份 | 已验证 | 真实读取行标识稳定；RowIdentityStableAcrossReads |
 | 未落库增量 | 已实现未验证 | UnlandedIncrementLandsWithoutDuplication、ProgressPreviewIsReplacedByLandedRows |
-| 排队输入 | 已实现未验证 | 本机服务端缺 input.pending，退回历史推导并实测到条目；AppliedInputStaysPendingButNotWithdrawable |
-| 待答提问 | blocked | 缺真实 ask_user 工具调用；QuestionSeedPresentsInListOrder |
-| 后台任务 | blocked | 缺真实工具调用产生的后台任务；PendingInventoriesUseCutoffAndSettleByFacts |
-| 目标状态 | 已实现未验证 | GoalRecordRetireAndCleared、GoalDeleteRecomputes |
+| 排队输入 | 已验证 | 真实模型 + alpha.21：input.pending 列出排队输入，consumed 后消失；TestRealDaemonPendingInventories |
+| 待答提问 | 已验证 | 真实模型 ask_user（序号 109）→ question.pending 批次 → respond 后由工具结果结算；TestRealDaemonPendingInventories |
+| 后台任务 | 已验证 | 真实模型 + alpha.21：exec.pending 在 started 后列出任务、ended 后清空；TestRealDaemonPendingInventories |
+| 目标状态 | 已验证 | 真实目标 set/pause/resume 全程跑通；TestRealDaemonContextAndControls |
 | 提交与投递方式 | 已实现未验证 | 真实提交成功；插话取值只有词表证据；AllKindsAreSentOnce |
 | 停止 | 已实现未验证 | StopShell 映射与意图测试；真实停止未跑 |
 | 结果未知核对 | 已实现未验证 | D1 探针验证核对方法可达，本包核对路径仅假服务端；TimeoutGoesUnknownAndVerificationHitSucceeds |
@@ -441,37 +442,37 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 分支历史 | 已实现未验证 | 分支事实分桶与结束固定头有测试；真实分支内容读取未跑；FactsAreBucketedByBranch |
 | 开分支切点 | 已验证 | 真实切点序号 17 → 服务端 branchPoint 18；RealDaemonBranchLifecycle、CreateBranchRejectsNotEndedCut |
 | 分支内提交与停止 | 已实现未验证 | 分支走会话流并做门禁；NewWriteKindsRespectGates、SenderMapsIntentKinds；真实分支内提交未跑 |
-| 分支内未完成事项 | blocked | 本机服务端不提供分区未完成清单方法；PendingInventoriesUseCutoffAndSettleByFacts |
+| 分支内未完成事项 | 已实现未验证 | 分区清单方法与主分支真实证据已有；分支分区清单未在真实模型上跑 |
 | 目录分页与过滤 | 已验证 | RealDaemonCatalogLifecycle、QueryFiltersArePassedThrough |
 | 新建 | 已验证 | RealDaemonCatalogLifecycle、CreateReturnsServerIDAndAcceptsSubmit |
-| 改名与自动标题 | blocked | 两版服务端无改名方法、标题通知未触发；RenameAppliesCommittedTitleAndReportsConflict |
+| 改名与自动标题 | 已验证 | alpha.21：改名回执 titleSource=manual revision=1，目录重读一致，标题通知同修订；TestRealDaemonCatalogLifecycle |
 | 删除 | 已验证 | RealDaemonCatalogLifecycle、DeleteReleasesThenRemovesOnlyOnSuccess |
 | 归档 | 已验证 | ArchivePersistsAcrossRestart、ArchiveHidesEntriesAndKeepsServerFacts |
 | 导出 | 已验证 | RealDaemonExportTurns、ExportReadsAllTurnsAndWritesVersionedFile |
 | 会话内 @ 文件搜索 | 已实现未验证 | 本机单次扫描已测；服务端索引分支未接；SearchLimits、SearchCreatesNoIndex |
-| 审批接收 | blocked | 路由已接线，真实审批事件未触发（缺能产生工具调用的模型）；ApprovalNoticesRouteToArbiter |
-| 审批应答 | blocked | 无真实待决审批可答；ResponseFailureAllowsRetry、UnsettledResponseIsAnsweredNotResent |
-| 长期允许 | blocked | 无真实待决审批；假服务端顺序证据 AppServerLongTermWritesRuleBeforeResponse |
+| 审批接收 | 已验证 | 真实模型触发 approval.request（pendingApprovals=1）；TestRealModelApproval |
+| 审批应答 | 已验证 | 真实 allow 得到工具结果、deny 无成功结果；TestRealModelApproval |
+| 长期允许 | 已验证 | 真实 permission.rules 读 revision → set_rules 写精确规则；TestRealModelApproval |
 | 审批重放 | 已实现未验证 | ReplayReplacesApprovalSetKeepsQuestions、RuleWrittenStateSurvivesReplay |
-| 提问应答与结算 | blocked | 真实 ask_user 未触发；QuestionSettlementByToolResultAdvances |
-| 权限档位 | blocked | 档位通知形状待冻结；PermissionIsPassedThrough、PermissionIsPerSession |
+| 提问应答与结算 | 已验证 | 真实 respond 选中选项后由 step/tool-result 结算；TestRealDaemonPendingInventories |
+| 权限档位 | 已验证 | alpha.21：session.permission.get/update 实训 full-access → read-only；集成自检证据 H |
 | 成员停止 | blocked | 缺真实成员运行标识；StopMemberOnlyStopsMember、StopMemberIsIdempotent |
-| 插件安装与配置 | blocked | 管理面方法名与回执未冻结；AppServerPluginsAndSkills、InstallSourceAcceptsEverySupportedKind |
-| 技能启停 | blocked | 同上；AppServerPluginsAndSkills |
-| 钩子写入范围 | blocked | 同上；HookSourceIsTheOnlyWritableOne（钩子删除未实现） |
-| 外部工具服务器增删改与探测 | blocked | 缺真实外部服务器与凭据；AppServerToolServersAndImport |
+| 插件安装与配置 | 已实现未验证 | alpha.21：插件列表与启停真实通过；安装缺安全真实插件源（安装路径仍 blocked） |
+| 技能启停 | 已验证 | alpha.21：技能启停往返成功；TestRealDaemonExtensionReadsAndWakeup |
+| 钩子写入范围 | 已验证 | alpha.21：hooks.save 写回 revision 2、旧 revision 返回 hooks_conflict；TestRealDaemonHooksAndMCPWrites |
+| 外部工具服务器增删改与探测 | 已验证 | alpha.21：mcp.save/configuration/test/remove 闭环（stdio 夹具）；TestRealDaemonHooksAndMCPWrites |
 | 工具服务器配置导入 | blocked | 配置来源形态未冻结；ImportPreviewSelectsOnlyCheckedCandidates |
-| 计划任务列表与变更 | blocked | 缺真实调度器；SchedulerFollowsNotificationOnceWithoutPolling |
+| 计划任务列表与变更 | 已实现未验证 | alpha.21：schedule.list/save 真实可用；变更流需真实调度器，仍缺 |
 | 运行组件安装 | blocked | 缺真实组件包；AppServerRuntimeInstallRelay、InstallRuntimeFailureAndCapabilities |
 | 首次运行组件获取 | blocked | 缺真实服务端与组件包；同运行组件安装证据 |
-| 存储读数 | blocked | 缺真实原生存储；AppServerStorageReportIsReadOnly、RefreshStorageIsReadOnlyReport |
-| 会话级唤醒 | blocked | 缺真实唤醒记录；AppServerWakeupFollowAndCancel、WakeupFollowsCancellationOnce |
-| 账号状态 | blocked | 缺真实账号；AppServerReadsStatusUsageAndModels |
-| 登录 | blocked | 缺真实授权服务端与系统浏览器拉起证据；AppServerLoginThroughLoopback |
+| 存储读数 | 已验证 | alpha.21：storage.report 返回 databaseBytes/walBytes/reclaimableBytes；D1 管理面探针 |
+| 会话级唤醒 | 已验证 | alpha.21：wakeup create/list/cancel 与两次通知触发重读；TestRealDaemonExtensionReadsAndWakeup |
+| 账号状态 | 已验证 | alpha.21 夹具：status=signed_in、身份字段齐全；TestRealAccountFixture |
+| 登录 | 已实现未验证 | 发起、环回与取消真实通过；浏览器与设备码的完成交换需真人，仍缺 |
 | 登出 | blocked | 缺真实账号；LogoutSendsOnceAndClearsOnSuccess |
-| 用量 | blocked | 缺真实用量回执；UsageItemsAndUnavailableAggregate |
+| 用量 | 已验证 | alpha.21 夹具：account.usage 逐项与聚合可用；TestRealAccountFixture。会话用量见 model/usage 真实验证 |
 | 推荐与重置 | blocked | 缺真实账号；ResetUnknownIsNotResent、ResetRetriesOnlyAfterExplicitFailure |
-| 模型可用性过滤 | blocked | 缺真实账号与真实 provider 目录；ModelsSignedInFiltersUnavailable、AppServerModelsFilteredByAccount |
+| 模型可用性过滤 | 已验证 | alpha.21 夹具：provider.catalog 返回 21 个可用模型；TestRealAccountFixture |
 | 工作区目录读取 | 已验证 | 真实文件系统；ListDirEntries、ListDirSymlinkKind |
 | 文件预览读取 | 已验证 | 真实文件；PreviewUTF8、PreviewTruncated、PreviewBinary |
 | 工作区文件搜索 | 已验证 | 真实文件系统；SearchMatches、SearchCreatesNoIndex |
@@ -480,21 +481,21 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 附件选择 | 已实现未验证 | 暂存接口接收路径并判类别；StageClassifiesByFullContent、StageImageCategory |
 | 附件暂存与去重 | 已验证 | 真实文件系统；StageDeduplicatesByDigest、RestartKeepsEntriesAndReferences |
 | 附件提交上限 | 已实现未验证 | 上限与门禁已测；真实写入缺 attachment.put；StageRejectsOversizeFile、AttachmentWriteUsesPutAndChecksMethods |
-| 会话内命令执行 | blocked | 本机两版服务端无 shell.run，门禁已在真实服务端验证；ShellRunIntentIsSentOnce、ShellRunAndStopMapping |
+| 会话内命令执行 | 已验证 | alpha.21：shell.run 返回 completed、output、exitCode=0；shell.stop 回执；D1 管理面探针 |
 | 本机 shell 进程 | 已验证 | 真实进程；PwdEqualsSessionDir、StopReapsProcessGroupTree、SmokeFullScreenPrograms |
 | 单实例 | 已验证 | 真实进程并发启动只有一个赢家：SecondLaunchForwardsArgsAndPrimaryKeepsRunning |
 | 退出回收 | 已验证 | 真实自启服务端回收 stopped=true、关停五段完成；ShutdownRunsFivePhasesInOrder |
 | 日志与诊断 | 已验证 | 真实运行产出诊断记录；RecorderOnlyWritesWhitelistFields、RecorderRejectsCredentialsAndBodies |
-| 模态任务提交与结果 | blocked | 本机服务端无 modality.task.*，门禁已在真实服务端验证；ModalWrite 映射测试 |
+| 模态任务提交与结果 | 已验证 | alpha.21：OCR 任务提交、状态、结果分页读完；模态证据脚本 |
 | 模态实时传输 | blocked | 本机服务端无 modality.realtime.*；同上映射测试 |
 | 应用更新 | 未实现 | 已拍板要做，尚无实现 |
 | 插件市场 | 不在范围 | 不做：服务端无市场接口，见附 C |
 | 外部内容容器 | 不在范围 | 不做，见附 C |
 
-统计：已验证 21 条；已实现未验证 15 条；blocked 30 条；未实现 1 条；不在范围（不做）2 条；合计 69 条。无落点 0 条。
+统计：已验证 41 条；已实现未验证 17 条；blocked 8 条；未实现 1 条；不在范围（不做）2 条；合计 69 条。无落点 0 条。
 
-总评：客户端现在能从零启动、连上真实服务端、建会话与提交、读历史并导出、开分支到结束收敛、退出时回收自启服务；卡在两处——需要真实模型产生工具调用的链路（审批、提问、后台任务）与需要真实账号的链路（登录、用量、模型过滤），另外管理面写入还等协议方法名冻结。
 
+总评：客户端现在能从零启动、连真服务端、建会话与提交、读历史并导出、开分支与分叉、改名、看审批与提问、跑会话内命令与模态任务、收回输入、暂停恢复目标，并能在退出时回收自启服务；还差需要真人或真实外部条件的三块——登录完成交换与登出/重置、真实插件安装源、MCP OAuth 成功链路，另外上下文预算与压缩、变更读取、运行组件与计划任务变更流仍缺服务端事实或实现。
 # 附 E　CLI/TUI 能力缺口
 
 对照范围：服务端仓库里的命令行与交互客户端实际调用的方法、通知与会话能力；来源只读。排序：服务端已支持而本项目未覆盖的排在前。状态中「部分」表示有实现或需求条目但覆盖不全。
