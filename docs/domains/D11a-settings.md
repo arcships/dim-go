@@ -2,9 +2,9 @@
 
 Status: 第一版实现完成，待组织评审
 Owner: D11a 设置与运行环境领域
-验证: 可执行命令与可观察输出见 §6；真实模型工具调用证据见 §6.5；其余真实服务端证据见 §6.4
+验证: 可执行命令与可观察输出见 §6；真实模型工具调用证据见 §6.5；真实模态任务证据见 §6.6；其余真实服务端证据见 §6.4
 依据: `docs/domains/R.md` 功能块 9、10「模型可用性过滤」与块 9「沿用」、`docs/domains/A.md` 的「管理面读数」与四条总规矩、`docs/domains/D1-connection.md`、`docs/domains/D3-write.md`、`docs/domains/D6-account.md`、`docs/project-organization.md` §4.2 D11
-范围: 设置来源与项目作用域读写、模型与 provider 目录及选择读取与写入、存储占用读数、运行组件状态与安装转达、模态能力状态、模态任务提交/查询/取消、实时传输打开/发送/关闭与事件接收。不含界面、连接实现、协议 wire 定义、写登记内部、插件与技能、MCP、钩子、计划任务、唤醒、账号本身、存储清理；模态方法在会话流上的路由由 D12 集成层实现。
+范围: 设置来源与项目作用域读写、模型与 provider 目录及选择读取与写入、存储占用读数、运行组件状态与安装转达、模态能力状态、模态任务提交/查询/取消、实时传输打开/发送/关闭与事件接收。不含界面、连接实现、协议 wire 定义、写登记内部、插件与技能、MCP、钩子、计划任务、唤醒、账号本身、存储清理；模态方法的路由（hello 能力、控制连接或会话流）由 D12 集成层实现。
 
 ---
 
@@ -45,6 +45,7 @@ Owner: D11a 设置与运行环境领域
 | `internal/settings/modality_realtime.go` | 实时打开/发送/关闭、连接状态、事件订阅与投递 |
 | `internal/settings/*_test.go` | 单元测试、`fakeappserver` 集成测试与会话模态替身测试（见 §6.2） |
 | `scripts/verify-real-model.sh` | 真实模型验证脚本：读取 `/tmp` 夹具，起 daemon、跑会话、断言真实工具调用与工具结果 |
+| `scripts/verify-modality.py` | 真实模态验证脚本：查询能力、提交 OCR 任务、轮询状态、分页读结果、取消；记录实时门禁 |
 | `docs/domains/D11a-settings.md` | 本文件 |
 
 **验收**
@@ -52,10 +53,12 @@ Owner: D11a 设置与运行环境领域
 - 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。
 - 本领域：73 个顶层测试、47 个子测试，共 120 个通过；语句覆盖率 84.4%。
 - 真实模型：`scripts/verify-real-model.sh --fixture /tmp/dimagent-real-model` 通过，观察到真实工具调用与工具结果（§6.5）。
+- 真实模态：`scripts/verify-modality.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server --image /tmp/dimagent-modality-ocr.png` 通过；OCR 任务 `queued → running → succeeded`，结果分页读完；取消 `queued → cancelled`；实时因 adapter 不可用标 blocked（§6.6）。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖设置来源/项目/读写/冲突、模型与账号过滤、存储读数、运行组件安装、模态能力。
   - 注入替身：各读取接口、写发送方与会话模态面在单元测试里替换，覆盖能力缺失、事实不合法、缓存隔离、冲突、重试边界、任务分页、实时事件与失败原因。
   - 真实模型：本机 `dimcode-server` + `/tmp` 夹具 + 真实 Dim 账号，观察到一次真实工具调用（`exec`）与工具结果，见 §6.5。
+  - 真实模态：真实服务端执行 OCR 任务并分页读完结果；取消成功；实时因能力不可用标 blocked，见 §6.6。
   - 本包 Go API 对真实 App Server 的设置/模态方法、真实模态任务与实时传输：**blocked**，见 §6.4。
 
 **依赖**
@@ -90,8 +93,8 @@ Owner: D11a 设置与运行环境领域
 | 设置读取 | 按来源与作用域读取完整文档与版本；结构不合法即拒绝；最近一次确认值留在内存 |
 | 设置写入 | 必须带 `expectedRevision`；本地缓存发现版本已变时直接返回冲突且不发请求；经写登记只发一次；成功后采用回执文档 |
 | 模型与 provider | 读取 provider、模型、启用模型清单与当前选择；按账号可用模型清单过滤可选性并说明原因；写入当前选择，成功后重读回填 |
-| 模态任务 | 提交、状态读取、清单分页、结果分页、取消；提交与取消经写登记，读取走会话 |
-| 实时传输 | 打开、发送帧、关闭；打开与关闭经写登记，发送走会话，接收按事件；维护本进程内的连接状态与订阅 |
+| 模态任务 | 提交、状态读取、清单分页、结果分页、取消；提交与取消经写登记，读取走集成层模态调用面（本机为 daemon 级控制方法） |
+| 实时传输 | 打开、发送帧、关闭；打开与关闭经写登记，发送走集成层模态调用面，接收按事件；维护本进程内的连接状态与订阅 |
 | 会话方法门禁 | 每个模态调用先查该会话的方法表；缺方法或方法表不可读即返回能力缺失，零请求 |
 | 存储读数 | 读取数据库、WAL 与可回收字节；只读，没有清理入口，不做本地估算 |
 | 运行组件 | 读取状态、来源、版本、路径与原因；安装只转达给服务端，成功后重读清单 |
@@ -111,7 +114,7 @@ Owner: D11a 设置与运行环境领域
 | 运行组件的下载、校验、落盘 | 服务端负责；本包只转达安装并读取状态 |
 | 模态任务的等待/轮询策略、音频编解码、媒体播放 | 本包只提供提交/查询/取消与事件投递；等待与播放由调用方按 `ReadTask` 自行收敛 |
 | 实时事件的路由与连接选择 | D12：本包只接收 `DeliverRealtimeEvent`/`DeliverRealtimeEnded` 并按连接分发 |
-| 模态方法在会话流上的 wire 参数与回执 | D1/D12：本包不定义 wire 结构，类型由集成层映射 |
+| 模态方法的 wire 参数与回执 | D1/D12：本包不定义 wire 结构，类型由集成层映射；本机服务端把模态作为 daemon 级控制方法 |
 | 设置键的业务含义、schema 解释、默认值补齐 | 服务端拥有设置事实；本包只做结构校验 |
 | 任何持久化、跨进程幂等表、重启恢复 | R8：缓存与幂等键只在内存 |
 
@@ -404,7 +407,7 @@ type StorageReading struct {
 
 任务要求：
 
-1. **能力门禁先于请求**：提交前要求会话同时声明 `modality.task.submit` 与 `modality.task.status`；取消前要求 `modality.task.cancel` 与 `modality.task.status`。缺任一方法即返回能力缺失，不发写请求。读取、清单、结果分别要求对应方法。
+1. **能力门禁先于请求**：提交前要求服务端同时声明 `modality.task.submit` 与 `modality.task.status`；取消前要求 `modality.task.cancel` 与 `modality.task.status`。缺任一方法即返回能力缺失，不发写请求。读取、清单、结果分别要求对应方法。门禁先看 `hello.features`，再看会话方法表；本机真实服务端只在 `hello.features` 声明 `modality.*`。
 2. **不猜默认参数**：`Category`、`Operation`、任务标识、结果文件名必填；`Params` 为空表示没有提供，不补 `{}`；输入文件必须且只能给 `dataBase64` 或 `nodePath`；模型引用必须同时有 provider 与模型标识。
 3. **回执只给标识**：提交与取消的写登记回执用 `InputID` 传任务标识；本包据此重读任务。回执缺标识时返回 `ErrMalformedWriteResult`，不伪造任务。
 4. **任务事实校验**：标识、类别、操作、状态、创建/更新时间必填；状态只能是 `queued`/`running`/`succeeded`/`failed`/`cancelled`/`interrupted`；结果文件与错误对象的必填字段都校验；缺字段即整份拒绝。
@@ -437,7 +440,7 @@ type StorageReading struct {
 
 要求：
 
-1. **能力门禁**：打开、发送、关闭分别要求会话声明 `modality.realtime.open`、`modality.realtime.send`、`modality.realtime.close`；缺方法即返回能力缺失，零请求。
+1. **能力门禁**：打开、发送、关闭分别要求服务端声明 `modality.realtime.open`、`modality.realtime.send`、`modality.realtime.close`；缺方法即返回能力缺失，零请求。门禁先看 `hello.features`，再看会话方法表。
 2. **连接状态**：只有打开成功且回执带连接标识才建立本地状态；发送与关闭都要求本地状态存在，否则 `ErrRealtimeNotOpen`，不向服务端猜连接。
 3. **不猜参数**：`Operation` 必填；`Params` 为空不补默认对象；帧类型只能是 `text`/`audio`/`control`，帧数据必须是合法 JSON，音频帧必须是合法 base64 字符串。
 4. **不乐观更新**：打开成功后才登记连接；关闭成功后才移除并通知订阅者。打开或关闭失败保留原状态并返回 `ErrRealtimeOpenFailed`/`ErrRealtimeCloseFailed` 与原因。
@@ -576,18 +579,18 @@ go vet ./...
 | 提供方 | 形状 | 本包消费方式 |
 |---|---|---|
 | D1 连接 | `protocol.Client.Call` / `CallInto` | 集成层实现 `SourcesReader`、`SettingsReader`、`ProjectsReader`、`ModelCatalogReader`、`StorageReader`、`RuntimeReader`、`ModalityReader`，把 wire 回执映射成领域类型；方法名不出现在本包；选择写入的 `provider.select` 由写发送方映射 |
-| D1 会话流 | `session.Subscription.Methods` / `Call` | D12 用 `Methods` 实现 `ModalitySession.SupportsModalityMethod`，用 `Call` 实现任务读取、清单、结果与实时发送；本包不定义 wire 结构 |
+| D1 连接 | `hello.features` / `protocol.Client.Call` | D12 用 `hello.features` 实现 `ModalitySession.SupportsModalityMethod`（本机真实服务端只在 hello 声明 `modality.*`），用控制连接调用任务读取、清单、结果与实时发送；若未来服务端把模态贡献为会话方法，再走 `Subscription.Methods/Call`。本包不定义 wire 结构 |
 | D1 能力声明 | `*daemon.Connection.HasFeature(name)` | 直接作为 `Config.Features`；缺失项在发请求前返回 `CapabilityError` |
 | D1 错误分类 | `protocol.RPCError.AppError()` / `Code` | 只把 `unknown_method`、`capability_unavailable`、`storage_unavailable` 归为能力缺失；其他错误保持读取失败 |
 | D3 写登记 | `*write.Manager.Register` / `Wait` | 直接满足 `Writer`；设置写入参数 `{"op":"settings.update",...}`，选择写入参数 `{"op":"provider.select",...}`，安装参数 `{"op":"runtime.install","name":...}`；模态写入用 `KindModalityWrite`，参数 `{"op":"task.submit"、"task.cancel"、"realtime.open"、"realtime.close"}`；只登记一次，不重试 |
-| D12 集成层 | `ModalitySession` 与会话通知路由 | D12 实现会话方法门禁、任务读取与实时发送；把 `modality.realtime.event` 与 `ended` 通知投递给 `DeliverRealtimeEvent`/`DeliverRealtimeEnded`；写发送方按 `KindModalityWrite` 路由到会话流并回填 `Reply.InputID` |
+| D12 集成层 | `ModalitySession` 与模态通知路由 | D12 实现 hello 能力门禁、任务读取与实时发送；把 `modality.realtime.event` 与 `ended` 通知投递给 `DeliverRealtimeEvent`/`DeliverRealtimeEnded`；写发送方按 `KindModalityWrite` 路由到会话流并回填 `Reply.InputID` |
 | D3 结果语义 | `StatusSucceeded` / `Failed` / `Unknown` / `NeedsManualConfirmation` | 只有成功采用回执；其余按失败处理，失败后只读一次文档判断冲突 |
 | D6 账号 | `*account.Account.Models() account.ModelList` | 作为唯一可用性来源；不在本包重复读取账号状态、不派生模型 |
 | D6 模型标识 | `account.Model.ID` | 与 provider 目录的 `models[].id` 完全匹配；匹配口径见 §7 第 3 条 |
 | 选择版本 | `provider.selection` 的 `version` | 集成层映射成 `Selection.Revision`；选择写入把同一值通过 `expectedRevision` 带回 |
 | U1 界面 | `Sources`、`Projects`、`Document`、`ModelSnapshot`、`StorageReport`、`[]RuntimeEntry`、`ModalityCapabilities`、`ModalityTask`/`ModalityTaskPage`、`ModalityRealtimeConnection` | 只读；写入只调 `Update` / `InstallRuntime` / `SelectModel` / `SubmitTask` / `CancelTask` / `OpenRealtime` / `SendRealtime` / `CloseRealtime` |
 
-本包只导入 `internal/write`、`internal/account` 与 `internal/appserver/protocol`（仅错误分类）；不导入 D1 的业务包。读取接口与会话模态接口都由 D12 实现，本包不感知 socket、会话流或 wire。
+本包只导入 `internal/write`、`internal/account` 与 `internal/appserver/protocol`（仅错误分类）；不导入 D1 的业务包。读取接口与模态调用接口都由 D12 实现，本包不感知 socket、控制连接、会话流或 wire。
 
 ### 6.4 blocked
 
@@ -598,9 +601,9 @@ go vet ./...
 | 真实模型选择写入与版本冲突 | blocked | 需要真实账号、真实 provider 与 `provider.select` 的版本语义；本版用假服务端验证 |
 | 真实存储读数与离线回收边界 | blocked | 需要真实服务端原生存储；本版验证只读与结构校验，未执行任何清理 |
 | 真实运行组件安装 | blocked | 需要真实服务端与组件包；本版只验证转达、状态重读与失败分类 |
-| 真实模态能力 | blocked | 需要真实服务端的能力清单；本版验证状态、原因与结构校验 |
-| 真实模态任务与实时传输 | blocked | 需要真实服务端声明任务/实时方法并提供真实任务与连接；本版用会话模态替身与真实 `write.Manager` 验证 |
-| 模态方法在会话流上的路由 | blocked | 需要 D12 实现 `ModalitySession` 与会话通知投递；本版只验证接口契约与状态机 |
+| 本包 Go API 对真实模态能力/任务/实时 | blocked | 真实 daemon 的能力、OCR 任务与取消已由脚本验证（§6.6）；但本包 Go API 仍依赖 D12 的 `ModalitySession` 适配器，尚未接通 |
+| 实时传输 | blocked | 当前 provider/adapter 没有可用实时模型：`realtime.voice/transcribe/avatar` 均为 adapter 不可用；无法验证打开→发送→关闭 |
+| 模态方法在会话流上的路由 | blocked | 本机真实服务端把 `modality.*` 声明在 `hello.features`，不贡献会话方法；D12 需按 hello 能力实现门禁与路由 |
 
 ### 6.5 真实模型接入验证（2026-11-11）
 
@@ -659,6 +662,81 @@ REAL_TOOL_CALL_OK
 - 产品代码与领域包不读取 `~/.dimcode-alpha`、Dim 源码或 dim-electron 源码。
 - 脚本只读夹具，每次运行把夹具复制到独立临时目录，不修改夹具本身。
 
+### 6.6 真实模态任务与实时证据（2026-11-11）
+
+**能力清单**
+
+`modality.capabilities`（daemon 级，`{}` 参数）返回 9 个类别，可用操作只有两个：
+
+| 操作 | 可用 | 有效模型 | 选项数 |
+|---|---|---|---|
+| `image.understand` | 是 | `dimcode-api-oauth` / `deepseek-v4.1-flash` | 19 |
+| `ocr.recognize` | 是 | `local` / `apple-vision` | 1 |
+
+其余类别不可用的原因：`image.generate/edit/enhance` 为 adapter 未提供图像模型列表；
+`video`/`speech`/`music`/`audio`/`asset`/`motion` 为 build 不含；`realtime.*` 为
+adapter 没有可用实时适配器。
+
+**方法门禁的真实形状**
+
+- `hello.features` 声明 `modality.capabilities`、`modality.task.submit/status/list/result/cancel`、
+  `modality.realtime.open/send/close`。
+- `session.methods`（新建会话）**不包含** `modality.*`；本机服务端把模态作为
+  daemon 级方法，而不是会话贡献方法。
+- 因此 `ModalitySession.SupportsModalityMethod` 必须接受 `hello.features`；
+  只查 `session.methods` 会把可用方法误判为缺失。D12 的实现已按“hello 优先、
+  会话方法表兜底”接线。
+
+**任务：OCR 成功且结果分页读完**
+
+```bash
+scripts/verify-modality.py --fixture /tmp/dimagent-real-model   --server ~/.dimcode-alpha/rust/dimcode-server   --image /tmp/dimagent-modality-ocr.png
+```
+
+观察（只记录状态、标识、字节数，未打印 OCR 文本）：
+
+```text
+available operations: ['image.understand', 'ocr.recognize']
+task: mt_b7a38d15-... states=['queued', 'running', 'succeeded'] terminal=succeeded
+  result result.json: bytes=94 declared=94 pages=2 eof=True
+  result text.txt: bytes=0 declared=0 pages=1 eof=True
+cancel: mt_eebec059-... reply=cancelled final=cancelled
+```
+
+- 状态确实经历 `queued → running → succeeded`。
+- `result.json` 用 64 字节分页读了两页并到 `EOF`；字节数与任务声明的 94 一致。
+- `text.txt` 为 0 字节，一页即 `EOF`。
+- 取消：第二个任务提交后立即取消，取消回执与最终状态都是 `cancelled`。
+
+**实时：blocked**
+
+`realtime` 类别不可用，三个操作的原因均为 adapter：
+
+```text
+voice:      No available adapter serves realtime.voice
+transcribe: No available adapter serves realtime.transcribe
+avatar:     No available adapter serves realtime.avatar
+```
+
+尝试打开 `realtime.voice` 返回 `modality_unknown_operation`；用 `voice` 打开返回
+`no_default_model`（没有模型服务该操作）。因此打开→发送→关闭无法在本机验证，
+标 blocked，原因不是客户端缺方法，而是当前 provider/adapter 没有可用实时模型。
+
+**macOS OCR 路径限制**
+
+Apple Vision 权限按可执行文件路径生效。用夹具里复制出来的
+`bin/dimcode-server` 跑 OCR 会得到
+`executor_error: Apple Vision text recognition failed ...`；用已安装路径
+`~/.dimcode-alpha/rust/dimcode-server`（或 npm 安装目录里的同一二进制）成功。
+脚本因此提供 `--server`，文档命令显式使用已安装路径；夹具仍是 `/tmp`，来源只读。
+
+**数据纪律**
+
+- 夹具与图像只在 `/tmp`；来源目录只读；未写回来源。
+- 证据只含状态、任务/文件标识、字节数、分页数、能力原因；未打印 OCR 文本、
+  图像内容或凭据。
+- 脚本每次把夹具复制到新的临时目录，运行结束后清理（`--keep` 可保留）。
+
 ## 7. 已知限制
 
 1. **wire 未冻结**：测试适配器里的方法名（`settings.sources`、`settings.projects`、`settings.read`、`settings.update`、`models.providers.list`、`provider.select`、`storage.report`、`runtime.list`、`runtime.install`、`modality.capabilities`、`modality.task.*`、`modality.realtime.*`、`account.status`、`model.list`）只是测试约定，不代表协议冻结。
@@ -687,6 +765,10 @@ REAL_TOOL_CALL_OK
 24. **真实模型夹具不入库**：夹具含真实账号凭据，只存在 `/tmp`；仓库只有脚本。换机器或令牌过期后需要人工重新准备夹具或登录。
 25. **真实模型验证依赖本机账号与网络**：脚本能证明当前账号/网络下真实工具调用可用，不证明其他账号、其他模型或离线环境；模型输出与工具选择可能变化，脚本以“工具调用 + 期望工具结果”为判据。
 26. **真实模型验证用的是 daemon CLI**：`scripts/verify-real-model.sh` 走 `dimcode-server exec` 的完整会话链路，不经过本包 Go API；本包 Go API 对真实 App Server 的验证仍在 §6.4 blocked。
+27. **模态方法不是会话方法**：本机真实服务端只在 `hello.features` 声明 `modality.*`，`session.methods` 不含；门禁必须以 hello 能力为准，否则会误报能力缺失。
+28. **实时在本机不可用**：`realtime.voice/transcribe/avatar` 均因 adapter 无可用实时模型而不可用；打开→发送→关闭没有真实证据，标 blocked，不用 mock 冒充。
+29. **OCR 依赖已安装二进制路径**：macOS Vision 权限按可执行文件路径生效；夹具内复制的二进制跑 OCR 会失败。复现时必须用 `--server ~/.dimcode-alpha/rust/dimcode-server` 或等价安装路径。
+30. **模态结果文本未打印**：证据只保留文件名字节数与分页数；OCR 文本属于任务结果内容，未写入文档或仓库。
 
 ## 8. 下一步
 
@@ -699,3 +781,5 @@ REAL_TOOL_CALL_OK
 7. 与 U1 对齐读数呈现：任务进度、结果分页、实时事件与不可用原因的展示口径；本包只提供数据与原因，不做文案。
 8. 把真实模型验证接到本包 Go API：用真实 daemon 执行 `models.providers.list`、`provider.select`、`storage.report`、`runtime.list` 与 `modality.capabilities`，把 §6.5 的“模型可用”推进到“本包读取与选择写入可用”。
 9. 为真实模型验证准备专用测试账号或可轮换凭据，避免依赖个人 `~/.dimcode-alpha`；当前只做了本机夹具。
+10. 接入可用的实时适配器/模型后，补 `realtime.voice` 打开→发送→关闭的真实证据；当前只能记录能力原因。
+11. 让 D12 的 `ModalitySession` 适配器把 `modality.*` 控制连接调用接进来，再用本包 Go API 复跑 §6.6 的任务与分页，闭合“本包 API 真实可用”。

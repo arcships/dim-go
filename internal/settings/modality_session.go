@@ -24,12 +24,15 @@ const (
 	ModalityMethodRealtimeClose = "modality.realtime.close"
 )
 
-// ModalitySession 是集成层提供的会话模态面：能力门禁、任务读取与实时帧发送。
-// 实现方只在会话自己的流上调用方法并映射回执；不解释业务、不重试、不缓存。
-// 任务提交、取消与实时打开、关闭不走本接口，它们经写登记转达。
+// ModalitySession 是集成层提供的模态调用面：能力门禁、任务读取与实时帧发送。
+// 实现方按服务端实际路由调用方法并映射回执；本机真实服务端把 modality.* 作为
+// daemon 级方法声明在 hello.features，不贡献 session 方法，因此门禁必须接受
+// hello 能力。实现方不解释业务、不重试、不缓存；任务提交、取消与实时打开、
+// 关闭不走本接口，它们经写登记转达。
 type ModalitySession interface {
 	// SupportsModalityMethod 回答该会话是否声明了某个方法。实现方应先看 hello
-	// 能力，再看会话方法表；两者都不能确认时按缺失处理。
+	// 能力，再看会话方法表；两者都不能确认时按缺失处理。本机真实服务端只在
+	// hello.features 声明 modality.*，会话方法表不含这些方法。
 	SupportsModalityMethod(ctx context.Context, sessionID, method string) (bool, error)
 	ReadModalityTask(ctx context.Context, sessionID, taskID string) (ModalityTask, error)
 	ListModalityTasks(ctx context.Context, sessionID string, query ModalityTaskQuery) (ModalityTaskPage, error)
