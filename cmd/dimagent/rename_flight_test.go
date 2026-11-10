@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -69,8 +70,8 @@ func TestRenameSingleFlightUsesWireIntent(t *testing.T) {
 					t.Fatal("duplicate normalized rename reached controller")
 				case <-time.After(30 * time.Millisecond):
 				}
-				if a.state.ActionError != "existing" || len(a.state.ActionNotices) != 0 {
-					t.Fatal("duplicate changed state")
+				if a.state.ActionError != "existing" || len(a.state.ActionNotices) != 0 || a.state.ActionStatus != "Session rename is already in progress; the duplicate request was not sent." {
+					t.Fatal("duplicate changed error or omitted visible pending status")
 				}
 				a.renameSession("Different")
 				select {
@@ -84,7 +85,7 @@ func TestRenameSingleFlightUsesWireIntent(t *testing.T) {
 				f.release <- outcome
 				f.release <- outcome
 				waitRenameFlights(t, a)
-				if a.state.ActionError != "existing" || len(a.state.ActionNotices) != 0 {
+				if a.state.ActionError != "existing" || len(a.state.ActionNotices) != 0 || a.state.ActionStatus != "Session rename is already in progress; the duplicate request was not sent." {
 					t.Fatal("stale rename published")
 				}
 				a.renameSession(duplicate)
@@ -102,6 +103,17 @@ func TestRenameSingleFlightUsesWireIntent(t *testing.T) {
 		}
 	}
 }
+func TestRenameGuardDoesNotRetainTitle(t *testing.T) {
+	typ := reflect.TypeOf(renameFlight{})
+	if _, ok := typ.FieldByName("title"); ok {
+		t.Fatal("guard retains full title")
+	}
+	field, ok := typ.FieldByName("digest")
+	if !ok || field.Type != reflect.TypeOf([32]byte{}) {
+		t.Fatal("guard must use complete SHA256 digest")
+	}
+}
+
 func waitRenameFlights(t *testing.T, a *app) {
 	t.Helper()
 	deadline := time.After(time.Second)

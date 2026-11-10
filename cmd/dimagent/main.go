@@ -1249,7 +1249,7 @@ func (a *app) deleteSession(id string) {
 
 type renameFlight struct {
 	sessionID string
-	title     string
+	digest    [sha256.Size]byte
 }
 
 // renameSession sets or clears the selected session's manual title through
@@ -1271,10 +1271,16 @@ func (a *app) renameSession(title string) {
 	if trimmed != "" {
 		request = &trimmed
 	}
-	flight := renameFlight{sessionID: sessionID, title: trimmed}
+	flight := renameFlight{sessionID: sessionID, digest: sha256.Sum256([]byte(trimmed))}
 	a.renameMu.Lock()
 	if _, pending := a.renameInFlight[flight]; pending {
 		a.renameMu.Unlock()
+		gen := a.currentSelection()
+		a.update(func(state *dimui.State) {
+			if a.selectionCurrent(gen) {
+				state.ActionStatus = "Session rename is already in progress; the duplicate request was not sent."
+			}
+		})
 		return
 	}
 	if a.renameInFlight == nil {
@@ -1293,7 +1299,7 @@ func (a *app) renameSession(title string) {
 		defer cancel()
 		result, err := a.bridge.RenameFor(ctx, sessionID, request)
 		if err != nil {
-			log.Printf("dimagent: rename session %q: %v", sessionID, err)
+			log.Printf("dimagent: rename failed for session %q", sessionID)
 			if !a.selectionCurrent(gen) {
 				return
 			}
