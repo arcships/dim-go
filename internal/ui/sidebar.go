@@ -60,8 +60,17 @@ const sidebarThreadRowH = 28
 // in DIPs: the reference's row holds a status mark or icon there, w-5 at its
 // 14px root, 17.5 DIPs. This shell has no status or icon fact for a session
 // row, so the cell stays empty rather than carrying a mark the App Server did
-// not send.
+// not send; the row's pin affordance floats in it while the row is hovered or
+// pinned (see threadRow), so the title keeps its place.
 const sidebarThreadCell = 17.5
+
+// sidebarThreadTail is the room a session row keeps at its tail, in DIPs: the
+// relative stamp draws there, and the archive affordance takes its place while
+// the row is hovered, as the reference replaces the stamp with the archive on
+// hover. The slot is always reserved, so the title's truncation does not move
+// when the affordances appear. It is wider than the 16 DIP glyph so the widest
+// stamp ("25m" is about 22 DIPs at the small type step) still draws whole.
+const sidebarThreadTail = 24
 
 // sidebarEmptyPadTop and sidebarEmptyPadBottom are the room above the built-in
 // workspace's message and below it before the section's hairline, in multiples
@@ -537,27 +546,111 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, a Actions, row sidebarRow
 		line.OnClick(on)
 	}
 	line.ContextMenu(sessionRowMenu(v, a, row))
+	hovered := line.Hovered()
 	switch {
 	case selected:
 		line.Background(k.sidebarAccent)
-	case line.Hovered():
+	case hovered:
 		line.Background(k.sidebarHover)
 	}
 	line.Children(func() {
-		// The reference's session row carries its title and relative stamp only:
-		// no status dot, because the shell has no run fact for a session row. A
-		// session the catalog has no title for yet draws the locale's word for an
-		// untitled session rather than its opaque id.
+		// The reference's session row carries its title and relative stamp
+		// only: no status dot, because the shell has no run fact for a session
+		// row. A session the catalog has no title for yet draws the locale's
+		// word for an untitled session rather than its opaque id. The pin and
+		// archive affordances take the leading cell and the stamp's tail slot,
+		// so neither moves or narrows the title; see sidebarRowPin and
+		// sidebarRowArchive.
+		if row.pinned || hovered {
+			sidebarRowPin(c, k, v, a, row)
+		}
 		ui.Text(c, sessionLabel(row.title, v.Locale)).FontSize(k.bodySize).TextColor(k.sidebarForeground).
 			SingleLine().Grow(1)
-		if stamp := relativeStamp(row.updatedAt, time.Now()); stamp != "" {
-			ui.Text(c, stamp).FontSize(k.smallSize).TextColor(k.sidebarForeground).
-				SingleLine()
-		}
-		if row.pinned {
-			sidebarGlyph(c, sidebarIcons.pin, k.mutedForeground)
+		tail := ui.Row(c).Width(sidebarThreadTail).Height(sidebarThreadRowH).
+			Justify(ui.End).AlignItems(ui.Center)
+		switch {
+		case hovered:
+			// The reference replaces the relative stamp with the archive
+			// affordance while the row is hovered; the reserved slot keeps the
+			// title's truncation where the stamp put it.
+			tail.Children(func() {
+				sidebarRowArchive(c, k, v, a, row)
+			})
+		case row.updatedAt > 0:
+			if stamp := relativeStamp(row.updatedAt, time.Now()); stamp != "" {
+				tail.Children(func() {
+					ui.Text(c, stamp).FontSize(k.smallSize).TextColor(k.sidebarForeground).
+						SingleLine()
+				})
+			}
 		}
 	})
+}
+
+// threadArchiveGlyph is the archive affordance's glyph. It is the reference's
+// Lucide archive mark, at the shell's one icon step; it stays out of
+// sidebarIcons because only a session row's hover draws it.
+var threadArchiveGlyph = mustLucide("archive")
+
+// sidebarRowPin draws a session row's pin affordance in the row's leading
+// cell: while the row is hovered, and whenever the row is pinned, so a pinned
+// row always shows the mark. It toggles through the same callback the row's
+// menu uses, and says Unpin and draws in the row's foreground while the session
+// is pinned, so the state is visible and read, not only a shape. The cell is
+// already reserved for the row's icon, and the button is placed over it, so the
+// title never moves.
+func sidebarRowPin(c *ui.Context, k tokens, v SidebarView, a Actions, row sidebarRow) {
+	label := tr(v.Locale, keySidebarPin)
+	reason := tr(v.Locale, keyReasonPin)
+	if row.pinned {
+		label = tr(v.Locale, keySidebarUnpin)
+	}
+	var on func()
+	if a.OnPinSession != nil && row.sessionID != "" {
+		on = func() { a.OnPinSession(row.sessionID) }
+	}
+	color := k.mutedForeground
+	if row.pinned {
+		color = k.sidebarForeground
+	}
+	pin := sidebarRowAction(c, k, "thread-pin:"+row.sessionID, sidebarIcons.pin, label, reason, color, on)
+	pin.AccessSelected(row.pinned)
+	pin.Absolute().
+		Left(k.sidebarPadX + (sidebarThreadCell-sidebarIconSize)/2).
+		Top((sidebarThreadRowH - sidebarIconSize) / 2)
+}
+
+// sidebarRowArchive draws a session row's archive affordance in the stamp's
+// tail slot while the row is hovered. It calls the same callback the row's menu
+// does; with none wired it stays visible, unavailable and explained, so the
+// hover never offers an action the window cannot carry out.
+func sidebarRowArchive(c *ui.Context, k tokens, v SidebarView, a Actions, row sidebarRow) {
+	var on func()
+	if a.OnArchiveSession != nil && row.sessionID != "" {
+		on = func() { a.OnArchiveSession(row.sessionID) }
+	}
+	sidebarRowAction(c, k, "thread-archive:"+row.sessionID, threadArchiveGlyph,
+		tr(v.Locale, keySidebarArchive), tr(v.Locale, keyReasonArchive), k.mutedForeground, on)
+}
+
+// sidebarRowAction is one hover affordance of a session row: a 16 DIP glyph
+// that takes no Tab stop, because the reference shows it only under the pointer
+// and the row's context menu is the keyboard path. The glyph is the button's
+// decoration; the label names the action and the tooltip repeats it. A nil on
+// leaves the button visible, unavailable and explained instead of acting.
+func sidebarRowAction(c *ui.Context, k tokens, key string, icon *ui.SVG, label, reason string, color ui.Color, on func()) ui.Element {
+	button := ui.ButtonBase(c).Key(key).Size(sidebarIconSize, sidebarIconSize).
+		Radius(k.radiusSM).AlignItems(ui.Center).Role(ui.RoleButton).Label(label).
+		TabStop(false).Transition(motionFastColors(c))
+	if on != nil {
+		button.OnClick(on).Tooltip(label)
+	} else {
+		button.AccessDisabled(true).Description(reason).Tooltip(reason).Opacity(wipOpacity)
+	}
+	button.Children(func() {
+		sidebarGlyph(c, icon, color)
+	})
+	return button
 }
 
 // sessionRowMenu fills one session row's context menu with the reference's
