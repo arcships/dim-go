@@ -417,7 +417,7 @@ go test -race ./internal/catalog/
 
 ```bash
 # 离线模型配置复制到 /tmp，来源目录不动
-cp /Users/eric8810/Code/dim-2/crates/dim-agent-aimux/examples/offline.json /tmp/d4-offline.json
+cp ~/Code/dim-2/crates/dim-agent-aimux/examples/offline.json /tmp/d4-offline.json
 DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
 DIM_APP_SERVER_ARGS=app-server \
 DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \

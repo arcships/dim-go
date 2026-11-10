@@ -351,7 +351,7 @@ go run ./cmd/dimagent-conncheck -data-dir "$D" \
 D=$(mktemp -d /tmp/d1-wire-conf-XXXXXX)
 go run ./cmd/dimagent-conncheck -data-dir "$D" \
   -server /tmp/dim-2-target/debug/dim-app-server \
-  -model-config /Users/eric8810/Code/dim-2/crates/dim-agent-aimux/examples/offline.json \
+  -model-config ~/Code/dim-2/crates/dim-agent-aimux/examples/offline.json \
   -probe -notice-seconds 0
 ```
 
