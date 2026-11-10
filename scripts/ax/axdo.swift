@@ -118,6 +118,15 @@ func main() {
         usleep(80_000)
         up?.post(tap: .cghidEventTap)
         print("clicked \(x),\(y)")
+    case "rightclickat":
+        guard args.count >= 5, let x = Double(args[3]), let y = Double(args[4]) else {
+            print("rightclickat needs x y"); exit(2)
+        }
+        let point = CGPoint(x: x, y: y)
+        CGEvent(mouseEventSource: nil, mouseType: .rightMouseDown, mouseCursorPosition: point, mouseButton: .right)?.post(tap: .cghidEventTap)
+        usleep(80_000)
+        CGEvent(mouseEventSource: nil, mouseType: .rightMouseUp, mouseCursorPosition: point, mouseButton: .right)?.post(tap: .cghidEventTap)
+        print("rightclicked \(x),\(y)")
     case "focused":
         if let f = attr(app, kAXFocusedUIElementAttribute) {
             let el = f as! AXUIElement
