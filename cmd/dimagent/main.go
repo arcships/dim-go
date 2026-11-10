@@ -689,6 +689,11 @@ type app struct {
 	// ignored, preventing duplicate runs from repeated UI events.
 	submitMu       sync.Mutex
 	submitInFlight bool
+	// Pending end requests are UI concurrency guards, not branch facts. Scope
+	// them to the selection generation and target so other branches or a new
+	// session selection remain independent.
+	endBranchMu       sync.Mutex
+	endBranchInFlight map[branchEndFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -1884,6 +1889,12 @@ func (a *app) branchFrom(sessionID, branchID string, at int64, prompt string) {
 	}()
 }
 
+type branchEndFlight struct {
+	sessionID  string
+	branchID   string
+	generation uint64
+}
+
 // endBranch asks the App Server to end one non-main branch, then re-reads the
 // branch directory and the displayed view. The entry is not removed here or
 // before the App Server answered: the directory keeps its rows until
@@ -1904,7 +1915,23 @@ func (a *app) endBranch(branchID string) {
 	gen := a.currentSelection()
 	_, branchGen := a.displayBranch()
 	endedShown := a.state.SelectedBranch == branchID
+	flight := branchEndFlight{sessionID: sessionID, branchID: branchID, generation: gen}
+	a.endBranchMu.Lock()
+	if _, pending := a.endBranchInFlight[flight]; pending {
+		a.endBranchMu.Unlock()
+		return
+	}
+	if a.endBranchInFlight == nil {
+		a.endBranchInFlight = make(map[branchEndFlight]struct{})
+	}
+	a.endBranchInFlight[flight] = struct{}{}
+	a.endBranchMu.Unlock()
 	go func() {
+		defer func() {
+			a.endBranchMu.Lock()
+			delete(a.endBranchInFlight, flight)
+			a.endBranchMu.Unlock()
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if _, err := a.bridge.EndBranchFor(ctx, sessionID, branchID); err != nil {
