@@ -218,19 +218,25 @@ func providerDetailFromWire(raw json.RawMessage, providerID string) (settings.Pr
 	}
 	for _, model := range parseProviderModels(entry.Models) {
 		detail.Models = append(detail.Models, settings.ProviderModelInfo{
-			ID: model.Model,
-			// 真实 provider.management 的模型条目不一定带显示名；为空时按标识
-			// 兜底展示（只是显示值，不回写服务端）。
-			DisplayName:       firstNonEmpty(model.DisplayName, model.Model),
+			ID:          model.id(),
+			DisplayName: model.displayName(),
+			// 设置领域要求 active/beta/deprecated 三值之一；真实回执没有该字段
+			// 时按 active 展示（不写回服务端）。
+			Status:            model.statusValue(),
 			Source:            model.Source,
 			Enabled:           model.Enabled,
 			Endpoint:          model.Endpoint,
 			MissingLimits:     append([]string(nil), model.MissingLimits...),
 			UnavailableReason: model.UnavailableReason,
 			Actions:           append([]string(nil), model.Actions...),
-			// 真实回执没有模型状态字段；设置领域要求 active/beta/deprecated
-			// 三值之一，缺省按 active 展示（不写回服务端）。
-			Status: firstNonEmpty(model.Status, "active"),
+			Capabilities: settings.ProviderModelCapabilities{
+				ContextWindow:   model.Model.Capabilities.ContextWindow,
+				MaxOutputTokens: model.Model.Capabilities.MaxOutputTokens,
+				ToolCalling:     model.Model.Capabilities.ToolCalling,
+				Vision:          model.Model.Capabilities.Vision,
+				Modalities:      append([]string(nil), model.Model.Capabilities.Modalities...),
+				Reasoning:       model.Model.Capabilities.Reasoning,
+			},
 		})
 	}
 	if len(entry.Preferences) > 0 {
@@ -245,17 +251,65 @@ func providerDetailFromWire(raw json.RawMessage, providerID string) (settings.Pr
 	return detail, nil
 }
 
-// providerModelEntry 是管理回执里的一个模型条目（数组或对象两种写法都归一）。
+// providerModelEntry 是管理回执里的一个模型条目。
+//
+// 真实回执的 `model` 是对象（`{modelId,displayName,status,capabilities}`），
+// 旧夹具是字符串标识；两种都接受。
 type providerModelEntry struct {
-	Model             string   `json:"model"`
+	Model providerModelRef `json:"model"`
+	// 扁平写法（旧夹具）的兜底字段。
+	ModelID           string   `json:"modelId"`
+	DisplayName       string   `json:"displayName"`
+	Status            string   `json:"status"`
 	Source            string   `json:"source"`
 	Enabled           bool     `json:"enabled"`
 	Endpoint          string   `json:"endpoint"`
-	DisplayName       string   `json:"displayName"`
-	Status            string   `json:"status"`
 	MissingLimits     []string `json:"missingLimits"`
 	UnavailableReason string   `json:"unavailableReason"`
 	Actions           []string `json:"actions"`
+}
+
+// providerModelRef 兼容 `model` 的字符串与对象两种写法。
+type providerModelRef struct {
+	ModelID      string `json:"modelId"`
+	DisplayName  string `json:"displayName"`
+	Status       string `json:"status"`
+	Capabilities struct {
+		ContextWindow   *int64                           `json:"contextWindow"`
+		MaxOutputTokens *int64                           `json:"maxOutputTokens"`
+		ToolCalling     *bool                            `json:"toolCalling"`
+		Vision          *bool                            `json:"vision"`
+		Modalities      []string                         `json:"modalities"`
+		Reasoning       *settings.ProviderModelReasoning `json:"reasoning"`
+	} `json:"capabilities"`
+}
+
+func (ref *providerModelRef) UnmarshalJSON(raw []byte) error {
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		ref.ModelID = text
+		return nil
+	}
+	type plain providerModelRef
+	var decoded plain
+	if err := json.Unmarshal(raw, &decoded); err != nil {
+		return err
+	}
+	*ref = providerModelRef(decoded)
+	return nil
+}
+
+// id / displayName / statusValue：嵌套对象优先，扁平字段兜底。
+func (entry providerModelEntry) id() string {
+	return firstNonEmpty(entry.Model.ModelID, entry.ModelID)
+}
+
+func (entry providerModelEntry) displayName() string {
+	return firstNonEmpty(entry.Model.DisplayName, entry.DisplayName, entry.id())
+}
+
+func (entry providerModelEntry) statusValue() string {
+	return firstNonEmpty(entry.Model.Status, entry.Status, "active")
 }
 
 // parseProviderModels 兼容 `models` 的两种形状：数组，或按模型标识索引的对象。
@@ -279,8 +333,8 @@ func parseProviderModels(raw json.RawMessage) []providerModelEntry {
 	list = make([]providerModelEntry, 0, len(keys))
 	for _, key := range keys {
 		entry := keyed[key]
-		if entry.Model == "" {
-			entry.Model = key
+		if entry.Model.ModelID == "" && entry.ModelID == "" {
+			entry.ModelID = key
 		}
 		list = append(list, entry)
 	}

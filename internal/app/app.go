@@ -138,6 +138,8 @@ type App struct {
 	changes workspace.ChangeSource
 	// accountWire 是账号域在控制连接上的适配；provider 解析结果按实例缓存。
 	accountWire *accountWire
+	// deviceAuth 是设备码登录的适配；尝试到 provider 的对应只在内存里保存。
+	deviceAuth *accountDeviceSource
 
 	// 连接与订阅。
 	supervisor *daemon.Supervisor
@@ -209,6 +211,7 @@ func New(cfg Config) (*App, error) {
 	// 变更来源只依赖本实例：按会话与 run 读工具结果声明，不持有额外状态。
 	app.changes = &changeSource{app: app}
 	app.accountWire = &accountWire{app: app}
+	app.deviceAuth = &accountDeviceSource{wire: app.accountWire}
 	return app, nil
 }
 
@@ -354,11 +357,13 @@ func (a *App) Connect(ctx context.Context) error {
 		return fmt.Errorf("创建会话目录: %w", err)
 	}
 	accountDomain, err := account.New(account.Config{
-		Status:  &accountStatusReader{wire: a.accountWire},
-		Usage:   &accountUsageReader{wire: a.accountWire},
-		Models:  &accountModelReader{wire: a.accountWire},
-		Auth:    &accountAuthSource{wire: a.accountWire},
-		Actions: writes,
+		Status:     &accountStatusReader{wire: a.accountWire},
+		Usage:      &accountUsageReader{wire: a.accountWire},
+		Models:     &accountModelReader{wire: a.accountWire},
+		Providers:  &accountProviderSource{wire: a.accountWire},
+		Auth:       &accountAuthSource{wire: a.accountWire},
+		DeviceAuth: a.deviceAuth,
+		Actions:    writes,
 	})
 	if err != nil {
 		writes.Close()
