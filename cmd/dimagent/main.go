@@ -702,6 +702,10 @@ type app struct {
 	// prompts or cut points. These are transient request guards, not branches.
 	branchCreateMu       sync.Mutex
 	branchCreateInFlight map[branchCreateFlight]struct{}
+	// Pending model requests deduplicate identical wire intent only. Selection
+	// generations control publication, not the identity of a pending mutation.
+	modelMu       sync.Mutex
+	modelInFlight map[modelFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -1488,6 +1492,12 @@ func appendAttachmentLink(draft, name, path string) string {
 	return draft + "\n\n" + link
 }
 
+type modelFlight struct {
+	sessionID  string
+	providerID string
+	modelID    string
+}
+
 // selectModel switches the selected session's model through session.model.update.
 // The write is sent once and never retried. Success is published only from the
 // App Server: RefreshModel reads the next session.summaries pair, and the reply's
@@ -1507,8 +1517,24 @@ func (a *app) selectModel(providerID, modelID string) {
 		a.notice("model.error", "Select model: the App Server did not name both a provider and a model.")
 		return
 	}
+	flight := modelFlight{sessionID: sessionID, providerID: providerID, modelID: modelID}
+	a.modelMu.Lock()
+	if _, pending := a.modelInFlight[flight]; pending {
+		a.modelMu.Unlock()
+		return
+	}
+	if a.modelInFlight == nil {
+		a.modelInFlight = make(map[modelFlight]struct{})
+	}
+	a.modelInFlight[flight] = struct{}{}
+	a.modelMu.Unlock()
 	gen := a.currentSelection()
 	go func() {
+		defer func() {
+			a.modelMu.Lock()
+			delete(a.modelInFlight, flight)
+			a.modelMu.Unlock()
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		result, err := a.bridge.UpdateModelFor(ctx, sessionID, providerID, modelID)
