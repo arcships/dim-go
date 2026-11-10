@@ -710,6 +710,10 @@ type app struct {
 	// Distinct titles remain independent, and generation only gates publishing.
 	renameMu       sync.Mutex
 	renameInFlight map[renameFlight]struct{}
+	// Pending stops are scoped to the actual session/branch target, not to
+	// selection generation. They are concurrency guards, not running facts.
+	stopMu       sync.Mutex
+	stopInFlight map[stopFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -2574,6 +2578,11 @@ func (a *app) reconnect() {
 
 // stop asks the App Server to stop the running turn; the run state converges
 // through the session stream rather than a local guess.
+type stopFlight struct {
+	sessionID string
+	branchID  string
+}
+
 func (a *app) stop() {
 	if a.bridge == nil || a.state == nil {
 		return
@@ -2582,8 +2591,29 @@ func (a *app) stop() {
 	// A stop names the branch the window shows, so stopping on a side branch
 	// ends that branch's turn instead of the session's default one.
 	branchID := a.actionBranch()
+	// stopOn sends empty and main through the same default-session target.
+	keyBranch := branchID
+	if keyBranch == "" {
+		keyBranch = appserver.MainBranchID
+	}
+	flight := stopFlight{sessionID: sessionID, branchID: keyBranch}
+	a.stopMu.Lock()
+	if _, pending := a.stopInFlight[flight]; pending {
+		a.stopMu.Unlock()
+		return
+	}
+	if a.stopInFlight == nil {
+		a.stopInFlight = make(map[stopFlight]struct{})
+	}
+	a.stopInFlight[flight] = struct{}{}
+	a.stopMu.Unlock()
 	gen := a.currentSelection()
 	go func() {
+		defer func() {
+			a.stopMu.Lock()
+			delete(a.stopInFlight, flight)
+			a.stopMu.Unlock()
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := a.bridge.stopOn(ctx, sessionID, branchID); err != nil {
