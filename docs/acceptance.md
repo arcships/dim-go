@@ -73,7 +73,7 @@ Last updated: 2026-11-09
 | D4 | S | 主题/皮肤/chrome | 主题数量、切换行为、skin/chrome 覆盖 | system/light/dark + 6 套 chrome（Win98/XP/Vista/Big Sur/Tiger + default）已实现并持久化，颜色/字体/圆角生效；skin 自定义、代码主题、渐变/3D/vibrancy 未做 | 未通过 |
 | D5 | C | 元素内容与 Markdown | 同状态文案/顺序/可见性/数据格式 + Markdown 渲染 | 搜索/设置/菜单/状态内容已对齐；置顶/归档/模型 chip/cut point 为产品扩展；仍缺 Markdown 真实内容参考、VS Code 入口、自定义皮肤内容，WIP 文案需逐页对照 | 未通过 |
 | D6 | M | 动画/过渡 | 帧序列或时长/曲线记录 | MyGo：150ms/250ms 过渡 + 搜索 200ms 淡入缩放，帧在 `docs/evidence/ui/motion-*.png` 与搜索中间帧。参考侧仍无同操作帧序列，mygo 不过渡文字 ink | 未通过 |
-| D7 | S+C | 状态覆盖 | 空/加载/错误/悬停/焦点/菜单六态截图 | 真实窗口已采：空态、加载、错误、hover、focus、menu、search、settings、closed、pinned、branch；approval 真实态仍缺（mock 不产生审批），参考侧 hover/loading/focus 对照未采 | 未通过 |
+| D7 | S+C | 状态覆盖 | 空/加载/错误/悬停/焦点/菜单六态截图 | 两侧六态齐全：空/加载/错误/hover/focus/menu；MyGo 另采 search/settings/closed/pinned/branch/approval；loading 已按参考改为 brand+文本，menu 已改为行右键。仍差：hover 行 pin/archive affordance；参考 approval 来自 fixture | 未通过 |
 
 首轮像素基线（`scripts/parity_diff.py`；区域：sidebar/top/content/composer/bottom）：
 
