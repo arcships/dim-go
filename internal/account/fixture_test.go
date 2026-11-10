@@ -147,7 +147,7 @@ func TestRealAccountFixtureReads(t *testing.T) {
 func TestRealAccountFixtureBrowserLoginBeginReleases(t *testing.T) {
 	home, bin := fixturePaths(t)
 	connection := openFixture(t, home, bin)
-	harness := &wireHarness{client: connection.Client}
+	harness := &wireHarness{client: connection.Client, rawAuthorizationURL: true}
 	browser := &stubBrowser{}
 	account := newTestAccount(t, Config{
 		Status:       harness,

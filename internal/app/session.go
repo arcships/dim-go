@@ -470,3 +470,11 @@ func (a *App) openRuntime(sessionID, method string) (*sessionRuntime, error) {
 	}
 	return runtime, nil
 }
+
+// controlSupports 回答控制连接是否在 hello.features 里声明了某个方法。
+//
+// 控制面的方法没有会话方法表可查；能力缺失时发送方据此直接拒绝，不发请求。
+func (a *App) controlSupports(method string) bool {
+	conn := a.connection()
+	return conn != nil && conn.HasFeature(method)
+}

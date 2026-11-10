@@ -607,6 +607,100 @@ func (s *appSender) sendExtensionWrite(
 			Source:          source,
 			ExpectedVersion: version,
 		})
+	case "hooks.set_enabled":
+		var payload struct {
+			Cwd              string `json:"cwd"`
+			Enabled          bool   `json:"enabled"`
+			ExpectedRevision string `json:"expectedRevision"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		if !s.app.controlSupports(methodHooksSetEnabled) {
+			return write.Reply{}, capabilityMissing(methodHooksSetEnabled)
+		}
+		return callAndReply(ctx, client, methodHooksSetEnabled, protocol.HooksSetProjectEnabledParams{
+			Cwd:              payload.Cwd,
+			Enabled:          payload.Enabled,
+			ExpectedRevision: payload.ExpectedRevision,
+		})
+	case "skills.refresh":
+		if !s.app.controlSupports(methodSkillsRefresh) {
+			return write.Reply{}, capabilityMissing(methodSkillsRefresh)
+		}
+		// 无参数：回执 `{version,issues}` 原样交回调用方。
+		return callAndReply(ctx, client, methodSkillsRefresh, map[string]any{})
+	case "skills.reload_catalog":
+		if !s.app.controlSupports(methodSkillsReloadCatalog) {
+			return write.Reply{}, capabilityMissing(methodSkillsReloadCatalog)
+		}
+		return callAndReply(ctx, client, methodSkillsReloadCatalog, map[string]any{})
+	case "mcp.auth.start":
+		var payload struct {
+			ID           string `json:"id"`
+			Source       string `json:"source"`
+			Cwd          string `json:"cwd,omitempty"`
+			ClientSecret string `json:"clientSecret,omitempty"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		if !s.app.controlSupports(methodMCPAuthStart) {
+			return write.Reply{}, capabilityMissing(methodMCPAuthStart)
+		}
+		params := map[string]any{"id": payload.ID, "source": payload.Source}
+		if payload.Cwd != "" {
+			params["cwd"] = payload.Cwd
+		}
+		if payload.ClientSecret != "" {
+			params["clientSecret"] = payload.ClientSecret
+		}
+		return callAndReply(ctx, client, methodMCPAuthStart, params)
+	case "mcp.auth.complete":
+		var payload struct {
+			AttemptID   string `json:"attemptId"`
+			CallbackURL string `json:"callbackUrl"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		if !s.app.controlSupports(methodMCPAuthComplete) {
+			return write.Reply{}, capabilityMissing(methodMCPAuthComplete)
+		}
+		return callAndReply(ctx, client, methodMCPAuthComplete, map[string]any{
+			"attemptId":   payload.AttemptID,
+			"callbackUrl": payload.CallbackURL,
+		})
+	case "mcp.auth.cancel":
+		var payload struct {
+			AttemptID string `json:"attemptId"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		if !s.app.controlSupports(methodMCPAuthCancel) {
+			return write.Reply{}, capabilityMissing(methodMCPAuthCancel)
+		}
+		return callAndReply(ctx, client, methodMCPAuthCancel, map[string]any{
+			"attemptId": payload.AttemptID,
+		})
+	case "mcp.auth.logout":
+		var payload struct {
+			ID     string `json:"id"`
+			Source string `json:"source"`
+			Cwd    string `json:"cwd,omitempty"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		if !s.app.controlSupports(methodMCPAuthLogout) {
+			return write.Reply{}, capabilityMissing(methodMCPAuthLogout)
+		}
+		params := map[string]any{"id": payload.ID, "source": payload.Source}
+		if payload.Cwd != "" {
+			params["cwd"] = payload.Cwd
+		}
+		return callAndReply(ctx, client, methodMCPAuthLogout, params)
 	case "workflow.start", "workflow.stop":
 		// workflow.* 在 alpha.21 不注册：按能力缺失处理，不发请求。
 		return write.Reply{}, workflowCapabilityMissing()

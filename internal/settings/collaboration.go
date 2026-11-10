@@ -116,6 +116,9 @@ func (m *Manager) SetCollaborationPolicy(ctx context.Context, request Collaborat
 	if err := m.requireFeature(FeatureCollaborationPolicy); err != nil {
 		return CollaborationPolicySnapshot{}, err
 	}
+	if m.cfg.Collaboration == nil {
+		return CollaborationPolicySnapshot{}, missing(FeatureCollaborationPolicy, "未提供协作策略读取接口")
+	}
 	if cached, ok := m.CollaborationPolicy(); ok && cached.Revision != expected {
 		return CollaborationPolicySnapshot{}, fmt.Errorf("%w: 期望版本 %q，本地最近确认版本 %q", ErrCollaborationConflict, expected, cached.Revision)
 	}

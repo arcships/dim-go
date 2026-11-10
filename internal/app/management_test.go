@@ -480,3 +480,191 @@ func TestManagementWritesUseRealMethods(t *testing.T) {
 		t.Fatalf("缺能力时不应请求 workflow.start（%d 次）", got)
 	}
 }
+
+// TestNewExtensionWritesUseRealMethods 核对新增的三个写意图：项目钩子启停、
+// 技能刷新/重载、MCP 认证四步；都走写登记、只发一次，hello 门禁先行。
+func TestNewExtensionWritesUseRealMethods(t *testing.T) {
+	server := startFakeServer(t, fakeappserver.Script{
+		Features: []string{
+			"hooks.set_enabled", "skills.refresh",
+			"mcp.auth.start", "mcp.auth.complete", "mcp.auth.cancel", "mcp.auth.logout",
+		},
+		Sessions: []fakeappserver.Session{{ID: testSession, Events: testEvents()}},
+		Replies: []fakeappserver.Reply{
+			{Method: "hooks.set_enabled", Result: map[string]any{"revision": "2"}},
+			{Method: "skills.refresh", Result: map[string]any{"version": 2, "issues": []any{}}},
+			{Method: "mcp.auth.start", Result: map[string]any{
+				"attemptId": "att-1", "authorizationUrl": "https://example.invalid/auth",
+			}},
+			{Method: "mcp.auth.complete", Result: map[string]any{}},
+			{Method: "mcp.auth.cancel", Result: map[string]any{}},
+			{Method: "mcp.auth.logout", Result: map[string]any{"revoked": true}},
+		},
+	})
+	result := startAssembly(t, server, assemblyOptions{session: testSession})
+	ctx := context.Background()
+	writes := result.base.Writes()
+
+	cases := []struct {
+		name   string
+		intent write.Intent
+		method string
+		check  func(t *testing.T, params map[string]any)
+	}{
+		{
+			name: "hooks project enabled",
+			intent: write.Intent{
+				Key: "hooks-enabled", Kind: write.KindManagementWrite,
+				Params: json.RawMessage(`{"op":"hooks.set_enabled","payload":{"cwd":"/w","enabled":true,"expectedRevision":"r1"}}`),
+			},
+			method: "hooks.set_enabled",
+			check: func(t *testing.T, params map[string]any) {
+				if params["cwd"] != "/w" || params["enabled"] != true || params["expectedRevision"] != "r1" {
+					t.Fatalf("项目钩子启停参数不对: %v", params)
+				}
+			},
+		},
+		{
+			name: "skills refresh",
+			intent: write.Intent{
+				Key: "skills-refresh", Kind: write.KindManagementWrite,
+				Params: json.RawMessage(`{"op":"skills.refresh","payload":{}}`),
+			},
+			method: "skills.refresh",
+			check: func(t *testing.T, params map[string]any) {
+				if len(params) != 0 {
+					t.Fatalf("技能刷新不应带参数: %v", params)
+				}
+			},
+		},
+		{
+			name: "mcp auth start",
+			intent: write.Intent{
+				Key: "mcp-auth-start", Kind: write.KindManagementWrite,
+				Params: json.RawMessage(`{"op":"mcp.auth.start","payload":{"id":"srv-1","source":"user","clientSecret":"shh"}}`),
+			},
+			method: "mcp.auth.start",
+			check: func(t *testing.T, params map[string]any) {
+				if params["id"] != "srv-1" || params["source"] != "user" || params["clientSecret"] != "shh" {
+					t.Fatalf("MCP 认证发起参数不对: %v", params)
+				}
+			},
+		},
+		{
+			name: "mcp auth complete",
+			intent: write.Intent{
+				Key: "mcp-auth-complete", Kind: write.KindManagementWrite,
+				Params: json.RawMessage(`{"op":"mcp.auth.complete","payload":{"attemptId":"att-1","callbackUrl":"http://127.0.0.1/auth/callback?code=x"}}`),
+			},
+			method: "mcp.auth.complete",
+			check: func(t *testing.T, params map[string]any) {
+				if params["attemptId"] != "att-1" || !strings.Contains(params["callbackUrl"].(string), "code=x") {
+					t.Fatalf("MCP 认证完成参数不对: %v", params)
+				}
+			},
+		},
+		{
+			name: "mcp auth cancel",
+			intent: write.Intent{
+				Key: "mcp-auth-cancel", Kind: write.KindManagementWrite,
+				Params: json.RawMessage(`{"op":"mcp.auth.cancel","payload":{"attemptId":"att-1"}}`),
+			},
+			method: "mcp.auth.cancel",
+			check: func(t *testing.T, params map[string]any) {
+				if params["attemptId"] != "att-1" {
+					t.Fatalf("MCP 认证取消参数不对: %v", params)
+				}
+			},
+		},
+		{
+			name: "mcp auth logout",
+			intent: write.Intent{
+				Key: "mcp-auth-logout", Kind: write.KindManagementWrite,
+				Params: json.RawMessage(`{"op":"mcp.auth.logout","payload":{"id":"srv-1","source":"user"}}`),
+			},
+			method: "mcp.auth.logout",
+			check: func(t *testing.T, params map[string]any) {
+				if params["id"] != "srv-1" || params["source"] != "user" {
+					t.Fatalf("MCP 登出参数不对: %v", params)
+				}
+			},
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			registered, err := writes.Register(testCase.intent)
+			if err != nil {
+				t.Fatalf("登记意图: %v", err)
+			}
+			settled, err := writes.Wait(ctx, registered.ID)
+			if err != nil || settled.Status != write.StatusSucceeded {
+				t.Fatalf("应成功: %v %+v", err, settled)
+			}
+			requests := server.RequestsFor(testCase.method)
+			if len(requests) != 1 {
+				t.Fatalf("%s 应只发一次，实际 %d", testCase.method, len(requests))
+			}
+			testCase.check(t, requestParams(t, requests[0]))
+		})
+	}
+
+	// skills.reload_catalog 不在 hello 里：能力缺失，零请求。
+	registered, err := writes.Register(write.Intent{
+		Key: "skills-reload", Kind: write.KindManagementWrite,
+		Params: json.RawMessage(`{"op":"skills.reload_catalog","payload":{}}`),
+	})
+	if err != nil {
+		t.Fatalf("登记重载: %v", err)
+	}
+	settled, err := writes.Wait(ctx, registered.ID)
+	if err != nil || settled.Status != write.StatusFailed || !strings.Contains(settled.Reason, "能力") {
+		t.Fatalf("重载应报能力缺失: %v %+v", err, settled)
+	}
+	if got := len(server.RequestsFor("skills.reload_catalog")); got != 0 {
+		t.Fatalf("缺能力时不应请求 skills.reload_catalog（%d 次）", got)
+	}
+}
+
+// TestNewExtensionWritesMissingCapability 核对 hello 未声明时不发请求。
+func TestNewExtensionWritesMissingCapability(t *testing.T) {
+	server := startFakeServer(t, fakeappserver.Script{
+		Sessions: []fakeappserver.Session{{ID: testSession, Events: testEvents()}},
+	})
+	result := startAssembly(t, server, assemblyOptions{session: testSession})
+	ctx := context.Background()
+	writes := result.base.Writes()
+
+	ops := []struct {
+		op     string
+		params string
+		method string
+	}{
+		{"hooks.set_enabled", `{"cwd":"/w","enabled":true}`, "hooks.set_enabled"},
+		{"skills.refresh", `{}`, "skills.refresh"},
+		{"mcp.auth.start", `{"id":"srv-1","source":"user"}`, "mcp.auth.start"},
+		{"mcp.auth.complete", `{"attemptId":"att-1","callbackUrl":"http://127.0.0.1/cb"}`, "mcp.auth.complete"},
+		{"mcp.auth.cancel", `{"attemptId":"att-1"}`, "mcp.auth.cancel"},
+		{"mcp.auth.logout", `{"id":"srv-1","source":"user"}`, "mcp.auth.logout"},
+	}
+	for _, item := range ops {
+		t.Run(item.op, func(t *testing.T) {
+			params, err := json.Marshal(map[string]any{"op": item.op, "payload": json.RawMessage(item.params)})
+			if err != nil {
+				t.Fatalf("编码参数: %v", err)
+			}
+			registered, err := writes.Register(write.Intent{
+				Key: "cap-" + item.op, Kind: write.KindManagementWrite, Params: params,
+			})
+			if err != nil {
+				t.Fatalf("登记意图: %v", err)
+			}
+			settled, err := writes.Wait(ctx, registered.ID)
+			if err != nil || settled.Status != write.StatusFailed || !strings.Contains(settled.Reason, "能力") {
+				t.Fatalf("缺能力应明确失败: %v %+v", err, settled)
+			}
+			if got := len(server.RequestsFor(item.method)); got != 0 {
+				t.Fatalf("缺能力时不应请求 %s（%d 次）", item.method, got)
+			}
+		})
+	}
+}

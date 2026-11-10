@@ -448,12 +448,14 @@ func (a *Account) waitDevice(ctx context.Context, attempt *loginAttempt) loginOu
 
 // waitOutcome 把等待结束归因为取消或超时。
 func (a *Account) waitOutcome(parent context.Context, attempt *loginAttempt, deviceExpiry bool) loginOutcome {
-	if attempt.ctx.Err() != nil || parent.Err() != nil {
-		reason := "登录已取消"
-		if parent.Err() != nil {
-			reason = parent.Err().Error()
+	if parent.Err() != nil {
+		if errors.Is(parent.Err(), context.DeadlineExceeded) {
+			return loginOutcome{phase: LoginTimedOut, reason: "等待登录超时", err: ErrLoginTimeout}
 		}
-		return loginOutcome{phase: LoginCanceled, reason: reason, err: ErrLoginCanceled}
+		return loginOutcome{phase: LoginCanceled, reason: parent.Err().Error(), err: ErrLoginCanceled}
+	}
+	if attempt.ctx.Err() != nil {
+		return loginOutcome{phase: LoginCanceled, reason: "登录已取消", err: ErrLoginCanceled}
 	}
 	if deviceExpiry {
 		return loginOutcome{phase: LoginTimedOut, reason: "设备码登录已过期", err: ErrLoginExpired}

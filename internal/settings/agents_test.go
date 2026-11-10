@@ -176,6 +176,9 @@ func TestUpdateSessionAgentConflictAndCapability(t *testing.T) {
 		if len(sender.snapshot()) != 0 {
 			t.Fatal("缺方法不应发请求")
 		}
+		if admin.currentCalls != 0 {
+			t.Fatal("缺更新方法不应先读当前 agent")
+		}
 	})
 
 	t.Run("方法表读取失败零请求", func(t *testing.T) {

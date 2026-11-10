@@ -163,19 +163,19 @@ func (m *Manager) UpdateSessionAgent(ctx context.Context, request SessionAgentUp
 	if !supportsGet {
 		return SessionAgentUpdateResult{}, missing(FeatureSessionAgentGet, "会话未声明 session.agent.get")
 	}
-	current, err := m.readSessionAgent(ctx, sessionID, branchID)
-	if err != nil {
-		return SessionAgentUpdateResult{}, err
-	}
-	if current.AgentID != expected {
-		return SessionAgentUpdateResult{}, fmt.Errorf("%w: 期望当前 agent %q，服务端当前 %q", ErrAgentConflict, expected, current.AgentID)
-	}
 	supported, err := m.cfg.Agents.SupportsSessionAgentUpdate(ctx, sessionID)
 	if err != nil {
 		return SessionAgentUpdateResult{}, missing(FeatureSessionAgentUpdate, "读取会话方法表失败: "+err.Error())
 	}
 	if !supported {
 		return SessionAgentUpdateResult{}, missing(FeatureSessionAgentUpdate, "会话未声明 session.agent.update")
+	}
+	current, err := m.readSessionAgent(ctx, sessionID, branchID)
+	if err != nil {
+		return SessionAgentUpdateResult{}, err
+	}
+	if current.AgentID != expected {
+		return SessionAgentUpdateResult{}, fmt.Errorf("%w: 期望当前 agent %q，服务端当前 %q", ErrAgentConflict, expected, current.AgentID)
 	}
 	if m.writer() == nil {
 		return SessionAgentUpdateResult{}, fmt.Errorf("%w: %s", ErrWriteUnavailable, "未提供写登记")

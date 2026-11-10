@@ -647,8 +647,7 @@ go test ./...
 go vet ./...
 ```
 
-本版结果：`go test ./internal/settings`、`go test -race ./internal/settings`、`go vet ./...` 通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，本机 macOS arm64）。
-全仓 `go test ./...` 当前在 `internal/account` 的 `TestLoginRejectsConcurrentAttempt` 失败（账号领域正在改，不在本领域）；`go vet ./...` 通过。该失败与本领域无关，单独说明。
+本版结果：四条命令全部通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，本机 macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -1028,7 +1027,6 @@ agent: agentId=54026405-... updateOutcome=adopted
 41. **agent 前置字段不能下发**：`expectedAgentId` 只在本包使用；真实服务端会拒绝未知字段，D12 必须只发 `sessionId`、`branchId`、`agentId`。
 42. **协作策略是全局设置**：真实 revision 是 `native:user/collaboration:n`；写入影响所有协作子代理，本包不做项目作用域。
 43. **agent 档案创建/删除不在本版**：本版只读取清单与会话采用；`agent.create` 仍由调用方/其他领域负责。
-44. **全仓 go test ./... 受账号领域影响**：当前 `internal/account` 的 `TestLoginRejectsConcurrentAttempt` 失败，与本领域无关；`go test ./internal/settings` 与 `go vet ./...` 通过。
 
 ## 8. 下一步
 
