@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"log"
@@ -718,6 +719,10 @@ type app struct {
 	// work. Different target deletes keep their existing lifecycle ordering.
 	deleteMu       sync.Mutex
 	deleteInFlight map[string]struct{}
+	// Pending uploads use the validated wire payload, not the local path or
+	// selection generation. Entries exist only for the duration of the call.
+	attachmentMu       sync.Mutex
+	attachmentInFlight map[attachmentFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -1429,6 +1434,12 @@ func (a *app) pickAttachment() (string, error) {
 // attachment.put once. An empty path is a cancelled picker and sends nothing. A
 // file that cannot be read, is too large, is not UTF-8, or is not one of the
 // text extensions is reported and never uploaded.
+type attachmentFlight struct {
+	sessionID string
+	name      string
+	digest    [sha256.Size]byte
+}
+
 func (a *app) attachSelectedFile(gen uint64, sessionID, path string) {
 	if path == "" {
 		return
@@ -1439,11 +1450,32 @@ func (a *app) attachSelectedFile(gen uint64, sessionID, path string) {
 		a.reportAttachmentFailure(gen, fmt.Sprintf("Attach file: %v", err))
 		return
 	}
+	flight := attachmentFlight{sessionID: sessionID, name: name, digest: sha256.Sum256([]byte(text))}
+	a.attachmentMu.Lock()
+	if _, pending := a.attachmentInFlight[flight]; pending {
+		a.attachmentMu.Unlock()
+		a.update(func(state *dimui.State) {
+			if a.selectionCurrent(gen) {
+				state.ActionStatus = "Attachment upload already in progress; duplicate selection was not sent."
+			}
+		})
+		return
+	}
+	if a.attachmentInFlight == nil {
+		a.attachmentInFlight = make(map[attachmentFlight]struct{})
+	}
+	a.attachmentInFlight[flight] = struct{}{}
+	a.attachmentMu.Unlock()
+	defer func() {
+		a.attachmentMu.Lock()
+		delete(a.attachmentInFlight, flight)
+		a.attachmentMu.Unlock()
+	}()
 	ctx, cancel := context.WithTimeout(context.Background(), attachmentPickerTimeout)
 	defer cancel()
 	result, err := a.bridge.AttachmentPutFor(ctx, sessionID, name, text)
 	if err != nil {
-		log.Printf("dimagent: attach %q for %q: %v", path, sessionID, err)
+		log.Printf("dimagent: attachment upload failed for path %q in session %q", path, sessionID)
 		a.reportAttachmentFailure(gen, attachmentErrorMessage(err))
 		return
 	}
