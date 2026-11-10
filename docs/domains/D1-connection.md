@@ -1,0 +1,389 @@
+# D1 连接（protocol v3 wire、daemon 生命周期、会话流）
+
+Status: 第二版（第一版 + v3 wire 形状补齐，P1-1 候选结果包）
+Owner: D1 领域 agent
+验证: 可执行命令 + 可观察输出见第 6 节；真实 daemon 证据在 6.3 与 6.4
+依据: `docs/domains/R.md` 第 1 部分功能块 1、`docs/domains/A.md`（连接状态机、会话能力归属、四条总规矩）、`docs/project-organization.md` §6 F3
+范围: 协议编解码、本地传输、daemon 发现与归属、握手、会话流与监听、重连、错误分类。不含界面投影、目录、审批、写登记、账号、文件、终端。
+
+---
+
+## 1. 输入
+
+| 输入 | 来源 | 本版使用方式 |
+|---|---|---|
+| protocol v3 wire 定义 | 产品基线 `app-server-protocol/src/{wire,ndjson,client}.ts`、`dim-app-server/src/{protocol,transport,tree_protocol}.rs` | 在 `internal/appserver/protocol` 中只定义一次；其余包只用这些类型 |
+| 连接与会话流生命周期 | `dim-electron` 的 `app-server/{supervisor,transport,session-reader,daemon-link}.ts`，`docs/architecture/app-server.md` | 端点、自启参数、hello 校验、attach/detach、按序号重读 |
+| 错误语义 | 产品基线 `app-server/error-mapping.ts` | 映射为连接领域的五种分类，供上层失败关闭 |
+| 状态机 | `docs/domains/A.md` 的「连接」「启动与退出」、多窗口共用一条订阅 | 连接状态与订阅生命周期按此实现 |
+| 本地证据 | 本机 `~/.dimcode/rust/dimcode-server`（`dimcode app-server` 子命令，0.1.0-alpha.7）与仓库外二进制 `/tmp/dim-2-target/debug/dim-app-server`（0.1.0-alpha.18） | 临时数据目录 + mock 模型跑真实握手、打开会话与回收，覆盖新旧能力分支 |
+
+## 2. 产物
+
+### 2.1 包结构
+
+| 包 | 一句话职责 |
+|---|---|
+| `internal/appserver/protocol` | JSON-RPC 2.0 over NDJSON：帧编解码与上限、消息解析、请求关联与超时、通知分发、关闭语义；v3 wire 类型（审批、会话通知、未完成事项、提交核对、附件、方法清单）只在这里出现 |
+| `internal/appserver/transport` | 本地传输入口：Unix domain socket 实现；Windows 命名管道保留接口并明确返回不支持 |
+| `internal/appserver/daemon` | 数据目录 → 端点解析、自启与归属、回收、hello 握手与版本校验、控制连接与流连接 |
+| `internal/appserver/session` | 每会话一条流、一份订阅；订阅先于 attach 与历史；持有者计数；断线按序号重读 |
+| `internal/appserver/failure` | 五种错误分类与 `errors.Is` 支持，供上层决定重试或失败关闭 |
+| `cmd/dimagent-conncheck` | 真实 daemon 验收程序：握手、打开会话、观察通知、回收自启实例 |
+
+### 2.2 关键约定
+
+- **wire 只出现一次**：方法名、参数与回执形状、通知参数、`RawEvent`、错误对象都在 `protocol` 包；`daemon` 与 `session` 不重复声明 wire 结构。
+- **不存事实**：本领域不读 daemon 的 SQLite、JSONL、session 文件与 `daemon.log`，不在本地保存会话或事件历史；自启子进程的 stdout/stderr 直接丢弃，失败只带退出状态。
+- **订阅唯一**：同一会话无论多少个持有者只有一份订阅与一条连接；最后一个持有者释放才 `session.detach` 并断开。
+- **订阅先于历史**：连接建立后先登记通知，再 `session.attach`，再读历史；attach 重放的通知在历史读取期间缓冲，不丢。
+- **按序号重读**：断线后以 `deliveredThrough` 为起点，用 `session.history {after}` 重读；序号不倒退、不重复交付。
+- **失败关闭**：能力缺失、参数错误、未知 `appError` 一律不可重试；只有超时、连接被打断、服务忙、订阅变化可重试。
+
+## 3. 设计
+
+### 3.1 帧与消息
+
+- NDJSON 增量解码：任意分块边界、空行忽略、行尾 `\r` 去掉；单帧上限默认 16 MiB。
+- 坏帧处理：超限或非法 JSON 的整行被丢弃并报错一次，解码器不失步，后续帧继续交付；超限的未结束行进入丢弃状态直到换行，避免无界缓冲。
+- 消息校验与产品基线一致：`jsonrpc` 必须是 `2.0`；带 `method` 的消息是通知且不得带 `id`；回执必须恰好有 `result` 或 `error` 之一；错误对象的 `code` 与 `message` 必填，`data.appError` 可选但类型必须正确。
+- 未知通知方法原样保留并交给监听器；未知回执标识静默忽略，与基线一致。
+
+### 3.2 请求关联与超时
+
+- 标识是 wire 原始文本（数字或字符串），`1` 与 `"1"` 不混淆；请求先登记再写出，快速回执不会漏。
+- 默认单请求超时 30 秒；`NoTimeout` 关闭超时。超时返回 `*protocol.TimeoutError`，可被 `errors.Is(err, protocol.ErrRequestTimeout)` 识别。
+- 连接关闭时所有在途请求以 `*protocol.ClosedError` 结束；关闭原因统一包成该类型，保证分类稳定。
+
+### 3.3 端点、自启与归属
+
+- 数据目录 → `<dataDir>/rust` 为 App Server home：非 Windows 要求 0700 且属于当前用户，路径按真实路径解析；Unix 端点固定为 `<home>/daemon.sock`。
+- Windows 管道名与产品基线同一规则：`\\.\pipe\dim-rust-<sha256("dimcode:"+home)[:32]>`。
+- 发现顺序：先连已有实例；只有「端点不存在/无人监听」才拉起自己的实例。权限错误等非缺失错误直接上报，不擅自替换别人的服务。
+- 自启参数：`--unix <sock> --no-ws --home <nativeHome>`；mock 测试追加 `--mock-model`，否则默认 `--product-home <dataDir>`，显式模型配置用 `--model-config`。子进程脱离子进程组、标准输入输出丢弃。
+- 归属：只有自己拉起的实例才会被回收。回收优先用 `daemon.shutdown {ifIdle:true}`（服务端声明 `daemon.shutdown.ifIdle` 时）；旧服务端用 `daemon.ping` 确认没有其他客户端后再 `daemon.shutdown {force:false}`。其他客户端、忙、非自己拉起都如实返回 `Reason`，不接管。
+- 重连：丢弃控制连接重新握手；自己拥有的实例消失时重新拉起；`instanceId` 变化返回 `Restarted`，上层据此重建而不是续接旧序号。
+
+### 3.4 握手校验
+
+`hello {protocolVersion:3, clientKind:"other", clientName}` 的回执必须满足：
+
+1. `protocolVersion == 3`，否则 `version_incompatible`，并记为终态（之后不再拨号）；
+2. `instanceId` 非空；
+3. `daemonProfile.kind` 是 `product` / `mock` / `configured`，`configured` 必须有非空 `modelConfigSha256`。
+
+服务端以 `appError=protocol_version` 拒绝时同样归为版本不兼容。
+
+### 3.5 会话流
+
+打开顺序：独立连接 → hello → 登记通知 → `session.attach` → 读历史。
+
+- 头部序号取 attach 回执的 `sequence`；旧服务端没有该字段时补一页 `session.history {after:0, limit:1}` 取 `through`。
+- 初始历史：服务端声明 `session.history.latestTurn` 时读最新一页（`through=head`）；否则从起点读一页，后续窗口与锚点归会话投影。
+- 历史之后开始投递实时通知；attach 重放中序号已被历史覆盖的 `session.event` 被丢弃，之后的按到达顺序交付。
+- 断线：调用一次 `OnResync`（带上次交付序号），按 `after=FromSequence` 重读并交给 `OnHistory`，然后恢复实时投递；版本不兼容或不可重试错误进入 `OnFatal` 终态。
+- 持有者：`Acquire` 递增计数并返回 `Lease`；首个持有者提供监听器，后续持有者共享事实分发；全部释放后 detach（2 秒上限，尽力而为）并关闭连接。
+
+### 3.6 错误分类
+
+| 分类 | 触发 | 上层动作 |
+|---|---|---|
+| `version_incompatible` | hello 版本不符、`appError=protocol_version/session_protocol_version` | 停止重试，直到进程重启或服务被替换 |
+| `connection_missing` | 端点不存在、连接被拒 | 重新发现或拉起服务，不盲目重发请求 |
+| `timeout` | 请求超时、`context.DeadlineExceeded`、`appError=request_timeout` | 恢复连接后可重试；写操作结果未知由写登记处理 |
+| `retryable` | 连接关闭/中断、`service_reloading`、`connection_busy`、`subscription_changed` | 重连后重试 |
+| `non_retryable` | 能力缺失（`unknown_method`）、参数错误、未识别错误 | 失败关闭并向用户报缺失 |
+
+### 3.7 v3 wire 形状（第二轮补齐）
+
+方法名与字段以真实服务端为准：本机 `/tmp/dim-2-target/debug/dim-app-server`（0.1.0-alpha.18）与其同版本源码 `dim-2` 的 `crates/dim-app-server/src/{protocol,tree_protocol,storage/metadata}.rs`、`crates/dim-agent-{questions,attachments}`、`crates/dim-agent-capabilities/src/{input_queue,workspace_tools}/pending.rs`。能触发的形状用真实 daemon 跑过（见 6.4），不能触发的在 6.5 标 blocked。
+
+**审批通知**（`approval.request` / `approval.cancelled` / `approval.resolved`）
+
+| 方法 | 字段 |
+|---|---|
+| `approval.request` | `sessionId`,`branchId`,`requestId`,`source`,`call`,`reason`；`source.kind=tool` 时带 `turn_id`,`request_id`,`call_id`，`kind=host` 时带 `operation_id`；`call={name,input}` |
+| `approval.cancelled` | `sessionId`,`branchId`,`requestId`,`reason`（调用未开始） |
+| `approval.resolved` | `sessionId`,`branchId`,`requestId`,`decision`（`allow`/`deny`）；同一 `requestId` 的第一条是被接受的决定 |
+
+**会话通知与标题**（`session.notice`）
+
+`{sessionId, source, kind, data}`；标题变更是 `source="SessionStore"`、`kind="title"`、`data={title|null, titleSource|null, titleRevision>=1}`。与 v3 会话摘要的标题字段相同；`titleRevision` 更高才覆盖本地条目。
+
+**提交核对**（`session.input_lookup`）
+
+请求 `{sessionId, branchId, submissionId}`：v3 要求 `branchId` 必填，`submissionId` 必须是 UUID。回执二选一：`{status:"accepted", event}` 或 `{status:"unknown"}`。写登记据此结束「结果未知」。
+
+**四类未完成事项**（共同的截止点与游标）
+
+请求 `{sessionId, branchId, through?, after?}`；`through` 是固定截止点，`after` 必须把上一页的 `next` 原样带回。回执共同部分 `{branchId, through, next}`，`next` 为 null 表示没有下一页。
+
+| 方法 | 列表字段 | 条目 |
+|---|---|---|
+| `session.input.pending` | `inputs` | `inputId`,`sequence`,`mode`(queue/steer/append),`user`(可 null，`content[]` 原样),`applied` |
+| `session.exec.pending` | `tasks` | `eventId`,`sequence`,`startedAt`,`taskId`,`turnId`,`requestId`,`callId`,`description` |
+| `session.question.pending` | `batches` | `eventId`,`sequence`,`requestId`,`calls[]`（`id`,`name`,`input`） |
+| `session.collaboration.pending` | `requests` | `eventId`,`sequence`,`startedAt`,`request`,`delivery`(可 null)；`request` 为 `turn_id`,`request_id`,`call_id`,`target`,`prompt`，`target` 以 `kind` 标记（`agent`/`member`/`temporary`）；`delivery` 以 `status` 标记（`ok`/`error`），字段 snake_case |
+
+**提问与征询没有通知**：真实服务端的通知表里没有 `question.*`/`elicitation.*`。提问是时间线事实（`step/tool-call`，`data.calls[].name="ask_user"`）加 `session.question.pending` 读取；「已决」「超时清理」属于交互裁决按事件与本地期限推导，连接领域不伪造通知。
+
+**附件**（`attachment.put`）
+
+请求 `{sessionId, name?, text}`（`name` 省略时服务端用 `paste.txt`；文本上限 10 MiB）；回执 `{attachmentId, path, bytes}`。错误码 `attachment_invalid` / `attachment_too_large` / `node_unavailable` / `storage_failed`。该方法是会话贡献方法：只在提供本地执行与原生存储的实例上存在，必须以 `session.methods` 判定，不能按版本猜。
+
+**能力清单**（`session.methods`）
+
+回执 `{methods:[{name, mutating}]}`；上表所有贡献方法（`attachment.put`、四类 pending、`session.question.respond` 等）都应先在这里判定。
+
+## 4. 状态映射
+
+| A.md 状态机 | 本领域实现 |
+|---|---|
+| 未连接 → 发现中 → 握手中 → 已连接 | `Supervisor.Connect`：先发现，缺失才自启；hello 成功即已连接 |
+| 握手中 → 版本不兼容 → 停止 | `setTerminal`；后续 `Connect`/`OpenStream`/`Reconnect` 直接返回同一错误，不再拨号 |
+| 已连接 → 断开/被替换 → 重连中 → 已连接（先重订后重读） | `Supervisor.Reconnect`（控制连接）与 `Subscription.onLost`（会话流）；会话流先 attach 再按序号读历史 |
+| 多窗口共用一份订阅 | `Manager` + `Lease` 持有者计数；连接数不随窗口增长 |
+| 启动与退出：连服务 → 订阅 → 断连接 → 回收自启服务 | `Connect` / `Acquire` / `Lease.Release`、`Supervisor.Close` / `Supervisor.Shutdown` |
+| 会话能力由会话视图持有 | 本领域只给出 `hello.features` 与 attach/历史结果；不缓存、不推导能力 |
+
+## 5. 接口（F3 冻结候选）
+
+```go
+// 连接状态
+sup, err := daemon.New(daemon.Config{DataDir: ..., ServerPath: ..., MockModel: false})
+conn, err := sup.Connect(ctx)                  // 控制连接
+stream, err := sup.OpenStream(ctx)             // 会话流连接（已 hello）
+result, err := sup.Reconnect(ctx)              // Restarted 表示实例被替换
+shutdown, err := sup.Shutdown(ctx)             // 只回收自己拉起的实例
+
+// 会话流
+manager, err := session.NewManager(session.Config{Opener: sup})
+snapshot, lease, err := manager.Acquire(ctx, sessionID, session.Listener{
+    OnEvent: func(event session.Event) {
+        // event.Method/Params 原样保留；已识别的通知另有类型化字段：
+        //   event.ApprovalRequest / ApprovalCancelled / ApprovalResolved
+        //   event.SessionNotice / event.Title
+        // 解码失败只设置 event.DecodeErr，事实仍交付。
+    },
+    OnHistory: func(session.HistoryReplay) {}, // 断线后的按序号重读
+    OnResync: func(session.Resync) {},         // 断线通知，先于重读
+    OnFatal: func(error) {},                   // 终态
+})
+sub := lease.Subscription()
+sub.Methods(ctx)                                // 能力清单
+sub.InputLookup(ctx, protocol.InputLookupParams{...}) // 写登记核对
+sub.PendingInputs(ctx, protocol.PendingQuery{...})
+sub.PendingExecTasks(ctx, ...)                  // 四类未完成事项
+sub.PendingQuestions(ctx, ...)
+sub.PendingCollaboration(ctx, ...)
+sub.PutAttachment(ctx, protocol.AttachmentPutParams{...})
+sub.Call(ctx, method, params)                   // 其它会话方法：仍走这条流
+lease.Release()                                 // 最后一个持有者才 detach
+
+// 错误分类
+failure.KindOf(err) / failure.Is(err, failure.KindTimeout) / failure.Retryable(err)
+```
+
+消费方（D2–D6、D10）只需要这些类型与 `protocol` 的 wire 结构；不需要知道 socket、NDJSON 或自启细节。
+
+## 6. 验收
+
+### 6.1 命令与结果
+
+```bash
+go test ./...
+go vet ./...
+```
+
+本版结果：`go test ./...` 全通过（连接领域 5 个包均 `ok`），`go vet ./...` 无输出；`go test -race ./internal/appserver/...` 全通过。
+
+### 6.2 覆盖
+
+| 要求 | 测试 |
+|---|---|
+| 帧编解码：分块、CRLF、空行、超大整帧、超限未结束行、坏帧后继续 | `protocol/frame_test.go` |
+| 消息校验：版本、通知/回执形状、未知通知保留、错误对象 | `protocol/message_test.go` |
+| 请求关联与超时：乱序回执、超时、RPC 错误、关闭拒绝在途 | `protocol/client_test.go` |
+| 通知分发：未知方法、坏帧不打断 | `protocol/client_test.go`、`session/session_test.go` |
+| 通知在订阅前到达不丢、历史覆盖的不重复 | `TestAcquireSubscribesBeforeHistoryAndKeepsEarlyNotification` |
+| 持有者计数：两个持有者一条流、逐个释放、最后才 detach、重复释放无效、释放后重开新流 | `TestHoldersKeepOneSubscriptionUntilAllReleased` |
+| 断线重连：resync 起点、按序号重读、实时恢复、无重复 | `TestReconnectResumesFromSequence` |
+| 会话流协议版本不符停止重试 | `TestVersionIncompatibleStopsReconnecting` |
+| 连接协议版本不符停止重试（不再拨号） | `daemon.TestVersionIncompatibleStopsRetrying` |
+| 连接缺失 → 自启 → 握手 → 回收自启实例 | `daemon.TestSpawnOwnedDaemonAndReclaimIt` |
+| 自启实例在握手始终不完成时被回收 | `daemon.TestSpawnedDaemonIsReclaimedWhenHandshakeNeverCompletes` |
+| `daemon.shutdown.ifIdle` 分支：空闲即停、忙则保留并报数量 | `daemon.TestShutdownUsesIdleDecisionWhenAdvertised` |
+| 已有实例不归自己、退出不回收外部实例 | `daemon.TestConnectToExistingDaemon`、`TestShutdownLeavesExternalDaemon` |
+| 服务被替换后恢复并报告 `Restarted` | `daemon.TestReconnectToReplacedDaemon` |
+| 自己拉起的实例退出后重连会重新拉起 | `daemon.TestReconnectRelaunchesOwnedInstance` |
+| 端点私有目录、Unix 路径、Windows 管道命名、自启参数 | `daemon/endpoint_test.go` |
+| 传输：Unix 往返、管道未实现、未知网络 | `transport/transport_test.go` |
+| 错误分类与 `errors.Is` | `failure/failure_test.go` |
+| 审批三类通知、标题通知、提交核对、四类未完成事项、附件回执、方法清单的解码（未知字段容忍 + 缺字段拒绝） | `protocol/wire_v3_test.go` |
+| 通知映射到类型化事件；坏字段保留原始 Params 并报 `DecodeErr` | `session.TestRecognizedNotificationsAreTyped` |
+| 会话方法路由：`session.methods`、`input_lookup`、pending、`attachment.put` 都带会话标识走本会话的流 | `session.TestSessionCallsRouteWithSessionID` |
+
+### 6.3 真实 daemon 证据
+
+环境：macOS arm64；均为临时数据目录 + `--mock-model`；服务端路径都在本仓库之外。
+
+**证据 A：旧版服务端（`dimcode app-server`，0.1.0-alpha.7）。**
+
+```bash
+D=$(mktemp -d /tmp/d1-check-XXXXXX)
+go run ./cmd/dimagent-conncheck -data-dir "$D" \
+  -server "$HOME/.dimcode/rust/dimcode-server" -server-arg app-server -mock
+```
+
+观察到的输出（节选；`<data>` 为临时目录）：
+
+```json
+{"event":"hello","endpoint":"unix:/private<data>/rust/daemon.sock","instanceId":"9be62dd2-...","serverVersion":"0.1.0-alpha.7","protocolVersion":3,"profile":"mock","owned":true,"features":["session.summaries","daemon.shutdown.completed","session.history","session.input_lookup","session.create","session.delete","session.model.progress","session.methods","session.fork","web.open","ui.leaf"]}
+{"event":"session.created","sessionId":"016d03d5-...","cwd":"<data>/workspace"}
+{"event":"session.opened","head":1,"historyEvents":1,"historyThrough":1,"historyDone":true}
+{"event":"notification","method":"session.state"}
+{"event":"notification","method":"session.model.progress"}
+{"event":"session.released","events":2,"resyncs":0,"fatal":null}
+{"event":"shutdown","stopped":true}
+```
+
+这条证据同时验证了兼容路径：该服务端不声明 `session.history.latestTurn` 与 `daemon.shutdown.ifIdle`，首读走 `after:0` 的一页，回收走 ping 守卫后的 `daemon.shutdown {force:false}`。
+
+**证据 B：较新服务端（仓库外构建的独立二进制，0.1.0-alpha.18）。**
+
+```bash
+D=$(mktemp -d /tmp/d1-new-XXXXXX)
+go run ./cmd/dimagent-conncheck -data-dir "$D" \
+  -server /tmp/dim-2-target/debug/dim-app-server -mock
+```
+
+观察到的输出（节选）：
+
+```json
+{"event":"hello","instanceId":"2c2a42a2-...","serverVersion":"0.1.0-alpha.18","protocolVersion":3,"profile":"mock","owned":true,"features":["session.summaries","daemon.shutdown.completed","daemon.shutdown.ifIdle","session.catalog",...,"session.history.latestTurn",...]}
+{"event":"session.created","sessionId":"155bbe47-..."}
+{"event":"session.opened","head":1,"historyEvents":1,"historyThrough":1,"historyDone":true}
+{"event":"notification","method":"session.state"}
+{"event":"notification","method":"session.model.progress"}
+{"event":"session.released","events":6,"resyncs":0,"fatal":null}
+{"event":"shutdown","stopped":true}
+```
+
+这条证据覆盖了首读 `latestTurn` 与回收 `daemon.shutdown {ifIdle:true}` 分支。
+
+**归属证据。** 同一数据目录第二次运行（服务由第一个客户端拉起并用 `-keep` 留着）：
+
+```json
+{"event":"hello",...,"owned":false,...}
+{"event":"shutdown","stopped":false,"reason":"not_owned"}
+```
+
+结论：非自己拉起的实例不被回收；两次测试结束后，两份临时目录与自启进程都已确认不存在（`ps` 按临时路径过滤为空），未触碰用户 `~/.dimcode` 下的服务与文件。
+
+失败即报：`dimagent-conncheck` 在任一步返回错误时以非零码退出。
+
+### 6.4 第二轮 wire 证据（真实 daemon）
+
+环境同上；`-probe` 会逐项读取方法清单、四类未完成事项、提交核对与附件写入。
+
+```bash
+# mock profile
+D=$(mktemp -d /tmp/d1-wire-mock-XXXXXX)
+go run ./cmd/dimagent-conncheck -data-dir "$D" \
+  -server /tmp/dim-2-target/debug/dim-app-server -mock -probe -notice-seconds 0
+
+# configured profile（离线模型配置，只用来建会话，不调用模型）
+D=$(mktemp -d /tmp/d1-wire-conf-XXXXXX)
+go run ./cmd/dimagent-conncheck -data-dir "$D" \
+  -server /tmp/dim-2-target/debug/dim-app-server \
+  -model-config /Users/eric8810/Code/dim-2/crates/dim-agent-aimux/examples/offline.json \
+  -probe -notice-seconds 0
+```
+
+mock profile 输出（节选）：
+
+```json
+{"event":"probe.methods","methods":["session.agent.get",...,"session.collaboration.pending","session.input.pending",...]}
+{"event":"probe.input_lookup.unknown","status":"unknown"}
+{"event":"probe.input_lookup.accepted","eventId":"4868e486-...","sequence":5,"status":"accepted"}
+{"event":"probe.input.pending","inputs":[{"inputId":"4868e486-...","sequence":5,"mode":"queue","user":{"content":[{"type":"text","text":"conncheck lookup probe"}]},"applied":false}],"next":null,"through":5}
+{"event":"probe.exec.pending","error":"session.exec.pending: non_retryable: rpc error -32601 (unknown_method): Unknown method"}
+{"event":"probe.question.pending","error":"session.question.pending: non_retryable: rpc error -32601 (unknown_method): Unknown method"}
+{"event":"probe.collaboration.pending","next":null,"requests":[],"through":6}
+{"event":"probe.attachment.put","error":"attachment.put: non_retryable: rpc error -32601 (unknown_method): Unknown method"}
+```
+
+configured profile 输出（节选）：
+
+```json
+{"event":"probe.methods","methods":["attachment.put",...,"session.exec.pending",...,"session.question.pending","session.question.respond",...]}
+{"event":"probe.input_lookup.unknown","status":"unknown"}
+{"event":"probe.input_lookup.accepted","eventId":"e443ca33-...","sequence":18,"status":"accepted"}
+{"event":"probe.input.pending","inputs":[...,{"inputId":"e443ca33-...","sequence":18,"mode":"queue","user":{"content":[{"type":"text","text":"conncheck lookup probe"}]},"applied":false}],"next":null,"through":18}
+{"event":"probe.exec.pending","next":null,"tasks":[],"through":19}
+{"event":"probe.question.pending","next":null,"batches":[],"through":19}
+{"event":"probe.collaboration.pending","next":null,"requests":[],"through":20}
+{"event":"probe.attachment.put","attachmentId":"2fa21d1b-...","bytes":15,"path":"/private<data>/rust/dimcode.sqlite.session-files/2fa21d1b-.../conncheck.txt"}
+```
+
+证据分级：
+
+| 形状 | 证据 |
+|---|---|
+| `session.methods`、`input_lookup`（accepted/unknown）、`input.pending`（空页与真实条目）、`exec.pending`/`question.pending`/`collaboration.pending`（空页）、`attachment.put` 成功回执 | 真实 daemon 实测（上两段输出） |
+| 审批三类通知、标题通知、四类条目的完整字段、附件错误码 | 与运行二进制同版本的源码 + 服务端自己的 wire 测试（`transport_flow/{approval,notices,titles}.rs`）；真实事件未能触发，见 6.5 |
+| 提问/征询通知 | 不存在：服务端通知表没有 `question.*`/`elicitation.*`；改用 `session.question.pending` + 时间线 `ask_user` 调用（实测空页 + 源码） |
+
+### 6.5 blocked
+
+| 项 | 状态 | 缺什么 |
+|---|---|---|
+| Windows 命名管道真实连接 | blocked | 没有 Windows 主机与 Windows 版 App Server；本版只保留 `transport.Dial(pipe)` 接口并返回 `ErrUnsupportedPlatform` |
+| 真实 daemon 版本不兼容 | blocked | 没有协议版本不符的服务端二进制；用 fake 服务端覆盖该分支 |
+| 真实 `approval.request/cancelled/resolved` 事件 | blocked | 需要模型发出需要用户同意的工具调用；本机可用的是 mock/离线模型，不产生工具调用。形状按同版本服务端源码与 wire 测试冻结 |
+| 真实 `session.notice` 标题事件 | blocked | 标题写入由 `session.rename`（SessionTitle 插件）触发，独立 `dim-app-server` 不带该插件；`dimcode app-server` 的旧版本不接受当前模型配置。形状按同版本 `storage/metadata.rs` 与 `transport_flow/titles.rs` 冻结 |
+| 真实非空 `exec/question` 清单 | blocked | 同上：mock/离线模型不产生工具调用；空页形状已实测 |
+
+## 7. 依赖与上下文需求
+
+| 依赖 | 冻结/需要 |
+|---|---|
+| D2 会话投影 | 消费 `Snapshot`、`OnEvent`、`OnHistory`；需要确认历史窗口与翻页锚点由 D2 发起（本版只给一页） |
+| D3 会话目录 | 用 `Supervisor.Connect` 的控制连接发 catalog/rename/delete；会话流用 `Manager` |
+| D4 交互与审批 | 通知原样转发；审批重放去重归 D4；`approval.respond` 走控制连接 |
+| D10 宿主外壳 | 只读连接状态与 `ShutdownResult`；诊断记录由 D10 落盘 |
+| V 验收设施 | fake App Server 的 NDJSON 脚本可复用本包 `protocol`；golden 帧样本可加入 |
+
+## 8. 已知限制
+
+1. Windows 命名管道未实现，只留接口；Windows 上没有运行证据。
+2. 旧服务端没有 `session.history.latestTurn` 时，首读是从序号 0 开始的一页；证据 A 的服务端就走这条兼容路径。窗口、锚点与向前翻页归 D2。
+3. `daemon.ping` 只看连接数；旧服务端无法用它看到已附加会话或运行中的轮次，因此「忙」判定弱于 `daemon.shutdown.ifIdle`。
+4. 会话流重连是有界重试（默认 20 次 × 500ms），用尽即终态；不做无限重连。
+5. 重连期间的通知缓冲是无上限切片，实际由服务端 attach 重放量约束；没有人为上限。
+6. 非 `session.event` 的重放通知（例如 `approval.request`）不做去重，交给上层按快照整体替换。
+7. `session.closed` 目前只作为通知交给上层；订阅不会自行结束，需要持有者释放。
+8. detach 是尽力而为（2 秒超时），失败不阻塞释放；连接关闭后服务端会自行清理附加关系。
+9. 自启子进程的 stdout/stderr 丢弃，启动失败只能看到退出状态与端点未就绪，不能从 `daemon.log` 取原因（约束禁止读写该文件）。
+10. 会话流固定主线 `main`；分支流不在本版范围（归 D2/D3 的后续工作）。
+11. 未知 `appError` 默认不可重试，属于失败关闭策略；能力扩展需要更新映射表。
+12. 审批三类通知与标题通知的**真实事件**未触发（见 6.5）；类型按与运行二进制同版本的源码冻结，字段缺失会被 `Parse*` 拒绝，未知字段被忽略。
+13. 服务端没有提问/征询通知；提问只能从 `session.question.pending` 与时间线事实推导，连接领域不生成「请求/已决/超时清理」通知。
+14. `session.input_lookup` 的 `branchId` 在 v3 必填，`submissionId` 必须是 UUID；写登记应保留这两个约束。
+15. `attachment.put`、`session.exec.pending`、`session.question.pending` 等是贡献方法：mock profile 不存在（返回 `unknown_method`），必须先用 `session.methods` 判定能力。附件回执里的 `path` 是服务端路径，本领域不读取它。
+16. `CollaborationTarget` 的 `profile` 按不透明 JSON 保留；当前服务端只有 `agent`/`member`/`temporary` 三种 kind，其它 kind 会在解析时按未知目标拒绝。
+
+## 9. 下一步建议
+
+1. D2 接入：用 `Snapshot` + `OnEvent`/`OnHistory` 做折叠，确认 `nextBefore`/`nextAfter` 的翻页接口是否够用；不够则在本包加 `Subscription.History` 的形状约定。
+2. 真实「忙」场景证据：有其他客户端或已附加会话时，确认 `ifIdle` 返回 busy 且不回收。
+3. Windows 命名管道：直接实现 `\\.\pipe\...` 连接，或在 `transport` 内用 `--connect-pipe` 桥接，保持接口不变。
+4. 订阅级 `session.closed` 处理：由 D3 决定是否在终态通知到达时自动释放全部持有者。
+5. 诊断记录（D10）：把端点、实例标识、版本、分类结果作为事件交给 D10，不在本包写文件。
+
+## 10. 变更记录
+
+| 日期 | 变更 | 原因 | 影响 |
+|---|---|---|---|
+| 2026-11-10 | 第一版：帧、传输、daemon 生命周期、会话流、错误分类与真实 daemon 证据 | 连接领域第一版交付 | D2–D6 可以接入订阅与历史 |
+| 2026-11-10 | 补齐 v3 wire：审批三类通知、`session.notice` 标题、`session.input_lookup`、四类未完成事项、`attachment.put`、`session.methods`；会话把通知映射为类型化事件并提供会话方法路由 | 集成层被六处未冻结形状挡住 | 审批、提问、标题、附件与写登记可以按已冻结形状实现；提问没有通知的结论已明确 |

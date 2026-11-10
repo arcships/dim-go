@@ -1,0 +1,90 @@
+{
+  "description": "通知样例：验证实时通知的序号约束与未知方法保留。初始历史已覆盖到序号 6（见 history-basic.json），因此序号 7 交付；重复的 7 被丢弃；乱序到达的序号 6 被丢弃（已交付序号不倒退）；序号 8 交付；未知方法原样交给上层。",
+  "sessionId": "fixture-session",
+  "notifications": [
+    {
+      "comment": "实时事实：序号 7 大于初始头部 6，应恰好交付一次。",
+      "method": "session.event",
+      "params": {
+        "sessionId": "fixture-session",
+        "branchId": "main",
+        "event": {
+          "id": "fixture-live-7",
+          "sequence": 7,
+          "create_at": 1762732806000,
+          "type": "text",
+          "name": "assistant",
+          "data": {
+            "text": "实时增量"
+          }
+        }
+      },
+      "expect": "delivered"
+    },
+    {
+      "comment": "重复通知：同一条序号 7 再发一次，应被已交付序号挡掉，不重复交给上层。",
+      "method": "session.event",
+      "params": {
+        "sessionId": "fixture-session",
+        "branchId": "main",
+        "event": {
+          "id": "fixture-live-7",
+          "sequence": 7,
+          "create_at": 1762732806000,
+          "type": "text",
+          "name": "assistant",
+          "data": {
+            "text": "实时增量"
+          }
+        }
+      },
+      "expect": "dropped"
+    },
+    {
+      "comment": "乱序到达的旧事实：序号 6 已由初始历史覆盖，应被丢弃而不是回退视图。",
+      "method": "session.event",
+      "params": {
+        "sessionId": "fixture-session",
+        "branchId": "main",
+        "event": {
+          "id": "fixture-evt-6",
+          "sequence": 6,
+          "create_at": 1762732805000,
+          "type": "text",
+          "name": "assistant",
+          "data": {
+            "text": "第二个回答"
+          }
+        }
+      },
+      "expect": "dropped"
+    },
+    {
+      "comment": "后续事实：序号 8 大于已交付序号 7，应交付。",
+      "method": "session.event",
+      "params": {
+        "sessionId": "fixture-session",
+        "branchId": "main",
+        "event": {
+          "id": "fixture-live-8",
+          "sequence": 8,
+          "create_at": 1762732807000,
+          "type": "text",
+          "name": "assistant",
+          "data": {
+            "text": "后续增量"
+          }
+        }
+      },
+      "expect": "delivered"
+    },
+    {
+      "comment": "未知通知：客户端不得解析也不得丢弃，应把方法与参数原样交给上层。",
+      "method": "vendor.unknown",
+      "params": {
+        "value": 1
+      },
+      "expect": "delivered"
+    }
+  ]
+}

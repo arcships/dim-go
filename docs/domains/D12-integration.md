@@ -1,0 +1,557 @@
+# D12 集成层（装配、宿主外壳接线、通知与清单路由、写登记适配器、自检入口）
+
+Status: 第三版实现完成（P1 集成候选结果包，待组织评审）
+Owner: D12 集成层领域
+验证: 可执行命令与可观察输出见第 7 节；真实 daemon 证据见 7.3，blocked 见第 9 节
+依据: `docs/domains/A.md`（两个平面、四条总规矩、启动与退出、模块分工）、`docs/domains/R.md`（块 1–3、6、7、12、14 与 R8）、`docs/domains/D10-host.md`（六阶段启动、五阶段退出、写闸门、诊断白名单、二次启动）、`docs/domains/D1-connection.md` §3.7 的 v3 wire 形状、各领域文档的"接口形状"章节
+范围: 把已落地的领域包装配成可运行程序，并接到宿主外壳上：连接与订阅、投影、通知与清单路由、写登记的 Sender 与 Inspector、目录、交互、账号、设置、扩展、工作区、附件、终端；启动与退出分别挂到 D10 的阶段函数；一个只读视图与意图入口；一个走完整启停的自检子命令。不含界面、各领域内部逻辑。
+
+---
+
+## 1. 结果包
+
+**领域**：D12 集成层
+
+**输入**
+
+| 输入 | 来源 | 本版使用方式 |
+|---|---|---|
+| 两个平面、四条总规矩、启动与退出 | `docs/domains/A.md` §4、§5 | 阶段划分、状态归属、退出顺序逐条对应 |
+| 六阶段启动、五阶段退出、写闸门、诊断白名单、二次启动 | `docs/domains/D10-host.md` §3、§5 | `NewHost` 把本包的步骤函数接到外壳；写闸门取 `Shell.Writable`；诊断只走 `host.Recorder` |
+| v3 wire 形状（审批、标题、核对、四类清单、附件、方法清单） | `docs/domains/D1-connection.md` §3.7 与 `internal/appserver/protocol` | 通知解码、清单读取、核对与附件写入只在这里映射一次 |
+| 写意图类型与两个注入点 | `docs/domains/D3-write.md` §3–§4 | 实现 `write.Sender` 与 `write.Inspector`；十一类意图全覆盖（含命令、模态、分支） |
+| 折叠、分页、清单注入 | `docs/domains/D2-projection.md` §2.2、§4 | 首屏折叠、向前翻页、重读尾部、`SeedPending*` 四类清单 |
+| 审批推进、提问清单与结算 | `docs/domains/D5-interaction.md` §4 与 `question.go` | 审批事实、`SeedQuestions`/`ApplyAskUser`/`SettleQuestion`、长期允许的两步顺序 |
+| 目录读取与标题合并 | `docs/domains/D4-catalog.md` §3 | `catalog.Reader`、`TitleUpdate` 按修订号合并 |
+| 账号、设置、扩展的读取方形状 | `docs/domains/D6-account.md`、`D11a-settings.md`、`D11b-extensions.md` | 逐项映射 wire 回执为领域类型 |
+| 本地能力 | `docs/domains/D7-workspace.md`、`D8-attachments.md`、`D9-terminal.md` | 工作区、暂存区、终端登记表在本地状态阶段与退出阶段打开与收尾 |
+| fake 服务端 | `internal/fakeappserver`（V） | 装配链路、通知路由、清单注入、核对与能力门禁测试 |
+
+**产物**
+
+| 路径 | 职责 |
+|---|---|
+| `internal/app/doc.go` | 包说明与装配图 |
+| `internal/app/app.go` | `Config`、`App`、`New`、五个启动阶段步骤、四个退出阶段步骤、写闸门、阶段与诊断 |
+| `internal/app/host.go` | `NewHost`：把 App 的步骤函数接进 `host.Shell`；`ClassOf` 收敛错误分类 |
+| `internal/app/session.go` | 订阅与首屏折叠分离、只读视图、翻页、重读尾部、意图入口、终端启动、会话方法清单缓存 |
+| `internal/app/approvals.go` | 会话流通知路由：审批三类、标题通知、时间线 ask_user 与工具结果；审批事实与长期允许口径 |
+| `internal/app/pending.go` | 四类未完成事项的截止点读取与注入；提问清单优先、失败退回历史推导 |
+| `internal/app/sender.go` | `write.Sender`：写意图类型 → 服务端方法；发送前过写闸门；会话贡献方法做能力门禁；附件、命令、模态、分支走会话流 |
+| `internal/app/writes.go` | 命令执行/停止、模态写入的意图入口（先过写闸门，再登记） |
+| `internal/app/inspector.go` | `write.Inspector`：优先 `session.input_lookup`，失败或未广告时退回投影 + 历史扫描 |
+| `internal/app/catalog.go` | `catalog.Reader`（`session.catalog`）、订阅释放、导出用按轮历史来源 |
+| `internal/app/account.go` | 账号状态/用量/模型读取、浏览器登录的发起与完成 |
+| `internal/app/settings.go` | 设置来源/项目/文档/模型目录/存储/运行组件/模态能力读取、能力声明转发 |
+| `internal/app/extensions.go` | 插件、技能、钩子、工具服务器、计划任务、工作流、唤醒的读取方 |
+| `internal/app/notices.go` | 控制连接的通知路由（扩展事件、标题兜底、审批丢弃） |
+| `internal/app/app_test.go` | 装配链路、宿主接线、单实例、阶段失败、退出超时、诊断白名单、写闸门 |
+| `internal/app/wire_test.go` | 审批路由、标题合并、清单注入、提问时间线路由、核对优先级、附件写入与能力门禁 |
+| `internal/app/writes_test.go` | 命令执行/停止、模态四种写入、分支开/结束的映射与门禁 |
+| `cmd/dimagent/main.go` | 无界面自检子命令 `selfcheck`：完整六阶段启动与五阶段退出 |
+| `docs/domains/D12-integration.md` | 本文件 |
+
+**验收**（详见第 7 节）
+
+- 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
+- 本领域测试：22 个顶层测试与 8 个子测试全部通过。
+- 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
+- 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
+
+**依赖**
+
+| 依赖 | 需要对方冻结/提供 | 本版处理 |
+|---|---|---|
+| D1 连接 | 控制连接、订阅、会话方法、input_lookup、pending、attachment.put 的 wire 形状 | 已按 §3.7 接线；缺方法的实例按能力缺失处理 |
+| D2 会话投影 | 折叠入口、分页、按轮来源、`SeedPending*`（已冻结） | 直接用 |
+| D3 写登记 | `Sender`/`Inspector` 契约与十一类意图（已冻结） | 命令、模态、分支三类新意图已映射；核对优先 `session.input_lookup` |
+| D4 目录 | `Reader`、`TitleUpdate`、`SubscriptionReleaser`、`HistorySource` | 标题通知按修订号合并 |
+| D5 交互裁决 | `Fact`、`SeedQuestions`、`ApplyAskUser`、`SettleQuestion`、`Settle` | 审批事实与提问清单/时间线均接入 |
+| D6/D11a/D11b | 读取方接口与回执形状（已冻结） | 逐项映射 |
+| D10 宿主外壳 | `Shell`/`StartupSteps`/`ShutdownSteps`/`Recorder`（已冻结） | 已接线 |
+| U1 原生界面 | 只读视图、待决队首与意图入口的消费方式 | 本包只提供视图与入口 |
+
+**上下文需求**
+
+- 需要需求侧确认长期允许的口径：本版按"tool 来源 + 输入只有绝对路径一个字段"判定可长期允许（比 R 块 6 的"结构简单的命令"更窄），其余一律不可长期允许。
+- 需要用户确认附件写入的文本上限是否由集成层预检（服务端上限 10 MiB，本版只依赖服务端拒绝）。
+- 需要界面阶段确认提问的应答格式：本版把 `ask_user` 输入原始保留，问题与候选项由交互裁决解析，应答原文由界面给出。
+
+## 2. 边界
+
+**做**
+
+| 能力 | 说明 |
+|---|---|
+| 装配 | 连接、订阅、投影、目录、交互、账号、设置、扩展、工作区、附件、终端按依赖顺序接起来 |
+| 宿主接线 | 五个启动阶段与四个退出阶段分别指向本包步骤函数；写闸门取外壳；诊断走 `host.Recorder` |
+| 通知路由 | 审批三类 → 交互裁决；标题通知 → 目录；时间线 ask_user 与工具结果 → 提问集合 |
+| 清单注入 | 四类未完成事项按固定截止点读取后注入投影；提问同时注入交互裁决；读取失败退回历史推导 |
+| 写登记适配 | `Sender` 按 `write.Kind` 选方法、合入会话/分支/投递方式/输入标识；附件、命令、模态、分支走会话流并做能力门禁；发送前过写闸门 |
+| 核对 | `Inspector` 优先 `session.input_lookup`（accepted/unknown），失败或未广告时退回投影 + 历史扫描 |
+| 只读视图 | `SessionView`：行、轮次、四类未完成事项、目标、分支、装载阶段、待决计数；不含可写引用 |
+| 自检 | `dimagent selfcheck`：六阶段启动 → 打开会话 → 打印行 → 提交 → 重读 → 五阶段退出 |
+
+**不做**
+
+| 不做 | 归属/原因 |
+|---|---|
+| 界面、渲染、输入法、快捷键 | U1 |
+| 各领域内部逻辑（折叠算法、状态机、暂存实现、伪终端实现） | D1–D11 |
+| 单实例端点、阶段推进、逐段超时、诊断白名单 | D10 宿主外壳 |
+| 会话内容缓存、事实落盘 | A.md：客户端不保存第二份事实 |
+| 长期允许的业务口径最终裁定 | 需求侧；本版给出更窄的可执行口径并注明 |
+| 自动重连后自动重开会话 | 需要 U1/D10 决定交互；本包提供 `Reconnect` 与重新打开的能力 |
+
+本包只用 Go 标准库与仓库内各领域包；不引第三方依赖，不改 `go.mod`。
+
+## 3. 装配图
+
+```text
+   cmd/dimagent selfcheck
+        │  ① 建 App（不装载、不连接）  ② 建 Recorder  ③ NewHost 接线
+        ▼
+   ┌──────────────────────────────── host.Shell（D10）────────────────────────────────┐
+   │ 单实例端点互斥 → 六阶段推进 → 写闸门 → 五阶段退出 → 诊断（白名单字段）            │
+   └───────────┬─────────────────────────────────────────────────────┬──────────────┘
+               │ StartupSteps（五个阶段函数）                          │ ShutdownSteps（四个阶段函数）
+               ▼                                                       ▼
+        internal/app.App                                     StopIntents / EndInteraction /
+        ├─ LoadLocalState  归档隐藏列表 + 附件暂存区 + 工作区  CloseConnection / ReclaimService
+        ├─ Connect         Supervisor.Connect → 控制连接 + 各领域装配
+        ├─ Subscribe       会话订阅（session.Manager.Acquire）
+        ├─ FirstHistory    首屏折叠 + 四类清单注入（projection.SeedPending*、interaction.SeedQuestions）
+        └─ AllowWrites     打开写入闸门
+
+   会话流通知 → routeSessionEvent：
+        ├─ approval.request   → interaction.Fact（长期允许按路径口径）→ Apply
+        ├─ approval.resolved  ┐
+        ├─ approval.cancelled ┴→ Settle（服务端结算，移出并推进）
+        ├─ session.notice     → protocol 标题变更 → catalog.ApplyTitle（按修订号合并）
+        ├─ session.event      → 折叠（投影）+ ask_user/工具结果 → ApplyAskUser / SettleQuestion
+        └─ 其余               → 记诊断，不解释
+
+   控制连接上的读适配器与发送方：
+        ├─ catalogReader / account*Reader / settings*Reader / extensionReaders（见 §4.4）
+        ├─ appSender          写意图方法（见 §4.1–4.2）；附件走会话流
+        └─ 通知路由           scheduler.changed / wakeup.changed / workflow.changed / 标题兜底
+
+   只读视图 SessionView ◄ Folder.View + Arbiter.Counts/Current
+   意图入口              → write.Manager.Register
+```
+
+要点：
+
+1. **启动与退出的驱动者只有宿主外壳**：本包只提供每个阶段的执行体；阶段重复调用是空操作，顺序由 D10 校验。
+2. **连接只有一个来源**：控制连接由 `Supervisor.Connect` 产生；会话流由 `session.Manager` 按会话共享一份。
+3. **折叠只有一处**：历史、实时、向前翻页、重读尾部全部落到 `projection.Folder`；本包只做通知分类，不解析时间线语义。
+4. **写只有一处**：所有写意图都经 `write.Manager` 登记；登记入口先过 `App.Writable()`（外壳闸门），`Sender` 只做映射、不重试。
+5. **事实只有一份**：本包不落盘会话内容；本地状态只有归档隐藏列表与附件暂存区（R8 允许的两项）。
+
+## 4. 适配器映射表
+
+### 4.1 `write.Sender`：写意图 → 服务端方法
+
+| `write.Kind` | 服务端方法 | 参数来源 | 证据档位 |
+|---|---|---|---|
+| `KindSubmitInput` | `session.submit` | 透明参数 + `sessionId` + `branchId`（空按 `main`）+ `mode`（排队 `queue`／插话 `steer`）+ `submissionId`（UUID） | 真实 daemon（两版）通过 |
+| `KindStop` | `session.stop` | 透明参数 + `sessionId` + `branchId`；`memberId` 在透明参数里 | D3/D5 假服务端证据 |
+| `KindApprovalResponse` | `approval.respond` | 透明参数（`decision`）+ `sessionId` + `branchId` + `requestId` | D5 假服务端证据 |
+| `KindLongTermAllow` | `approval.allow_always` | 长期规则参数原文 + `sessionId` + `branchId` + `requestId` | D5 假服务端证据 |
+| `KindQuestionAnswer` | `question.respond` | 透明参数（`decision`、`answer`）+ `sessionId` + `branchId` + `requestId` | D5 假服务端证据 |
+| `KindManagementWrite` | 见 4.2 | `op` + 该操作的载荷 | 设置与扩展领域的假服务端证据 |
+| `KindAccountAction` | `account.<op>` | 透明参数里的 `op`（`logout`、`reset`） | D6 假服务端证据 |
+| `KindAttachmentWrite` | `attachment.put` | `{sessionId, name?, text}`；**走会话流**，发送前按 `session.methods` 判定能力，缺方法报能力缺失且不发请求 | 假服务端全链路；真实服务端本机不可用（两个二进制都不贡献该方法） |
+| `KindSessionLifecycle` | `session.create` / `session.rename` / `session.delete` / `session.branch_create` / `session.branch_end` | `op` 取 `create`/`rename`/`delete`/`branch.create`/`branch.end`（兼容 `catalog.*` 前缀）；分支动作走会话流并过能力门禁 | 新建/删除：真实 daemon 通过；分支参数与目录领域的真实分支证据一致；改名：**blocked** |
+| `KindShellRun` | `shell.run`（`op=run`）/ `shell.stop`（`op=stop`） | `run`：`{sessionId, branchId, command, runId?}`；`stop`：`{sessionId, branchId, runId}`（缺 `runId` 时取意图的输入标识）；走会话流，缺方法报能力缺失 | 映射与门禁：假服务端；真实服务端两个二进制都不贡献 `shell.*`（见 7.3） |
+| `KindModalityWrite` | `modality.task.submit` / `modality.task.cancel` / `modality.realtime.open` / `modality.realtime.close` | 载荷原样透传（`taskId`、模型引用、`connectionId` 等）+ `sessionId` + `branchId`；`op` 是意图级字段，不下发；走会话流，缺方法报能力缺失 | 映射与门禁：假服务端；真实服务端不贡献这些方法，名称按 D3 的 op 命名与 D11a 的 `modality.capabilities` 约定，**未在真实服务端验证** |
+
+回执映射：`session.submit` 的 `inputId` 覆盖意图的输入标识；`attachment.put` 的回执原文（`attachmentId`/`path`/`bytes`）原样交回写登记；其余方法沿用意图的输入标识。
+
+### 4.2 管理写入（`KindManagementWrite`）→ 服务端方法
+
+| 参数 `op` | 服务端方法 | 载荷字段 |
+|---|---|---|
+| `plugin.install` | `plugin.install` | `source{kind, ref}` |
+| `plugin.set_enabled` | `plugin.set_enabled` | `pluginId`、`enabled` |
+| `plugin.update` | `plugin.update` | `pluginId` |
+| `skill.install` | `skill.install` | `source{kind, ref}` |
+| `skill.set_enabled` | `skill.set_enabled` | `skillId`、`enabled` |
+| `hook.write` | `hook.write` | `hook{id,name,event,command,source,enabled}` |
+| `tool_server.add` | `toolServer.add` | `name`、`transport`、`command`、`args`、`url`、`env`、可选 `importSource`/`candidateKey` |
+| `tool_server.update` | `toolServer.update` | 同上 + `serverId` |
+| `tool_server.remove` | `toolServer.remove` | `serverId` |
+| `workflow.start` | `workflow.start` | `workflowId`、`inputs` |
+| `workflow.stop` | `workflow.stop` | `runId` |
+| `wakeup.cancel` | `wakeup.cancel` | `wakeupId` |
+| `settings.update` | `settings.update` | `source`、`scope`（用户 `"user"`／项目 `{project}`）、`expectedRevision`、`document` |
+| `provider.select` | `provider.select` | `providerId`、`modelId`、`expectedVersion`（取 `expectedRevision`） |
+| `runtime.install` | `runtime.install` | `name` |
+
+### 4.3 `write.Inspector`：核对读取
+
+| 顺序 | 情况 | 判定 | 依据 |
+|---|---|---|---|
+| 1 | 提交类意图（`KindSubmitInput`）且会话方法清单声明了 `session.input_lookup`（或 hello 声明了同名能力） | 调 `session.input_lookup {sessionId, branchId, submissionId}`：`accepted` → 命中；`unknown` → 确认未发生 | 服务端查询，结果确定 |
+| 2 | 查询失败（能力缺失、超时、解析失败） | 记诊断，退回下面两条 | 不把读失败当成"发生/未发生" |
+| 3 | 投影的行里有该标识 | 命中，归属取该行分支 | `Folder.BranchView` 的行标识（服务端标识） |
+| 4 | 历史按页读完仍没有 | 确认未发生（允许重提） | `session.history {after}` 读到 `done` |
+| 5 | 读不完（出错或超过 50 页） | 无法确认 | 不把"没读全"当成"没发生" |
+| 6 | 意图没有会话标识（会话新建） | 目录里有该标识即命中 | `catalog.Entry`；目录没读过则不确认 |
+| 7 | 意图没有可核对标识 | 无法确认 | 收敛到需人工确认，不自动重发 |
+
+方法清单按会话缓存一次（`session.methods`），失败按能力缺失处理；不会对每个未知结果重复读取。
+
+### 4.4 读取方映射（节选）
+
+| 领域接口 | 服务端方法 | 文档/证据 |
+|---|---|---|
+| `catalog.Reader` | `session.catalog`（`limit`/`cursor`/`query`/`cwd` → `sessions[]`/`nextCursor`） | D4 假服务端 + 真实 daemon |
+| `account.StatusReader` / `UsageReader` / `ModelReader` | `account.status` / `account.usage` / `model.list` | D6 假服务端 |
+| `account.AuthorizationSource` | `account.login.begin` / `account.login.complete` | D6 假服务端 |
+| `settings.*Reader` | `settings.sources`/`projects`/`read`、`models.providers.list`、`storage.report`、`runtime.list`、`modality.capabilities` | D11a 假服务端 |
+| `extensions.*Reader` | `plugin.list`、`skill.list`、`hook.list`、`toolServer.list`/`probe`/`import.preview`、`scheduler.list`、`workflow.list`/`get`/`runs`、`wakeup.list` | D11b 假服务端 |
+| 四类未完成事项 | `session.input.pending` / `session.exec.pending` / `session.question.pending` / `session.collaboration.pending`（固定 `through`、`next` 原样带回，最多 5 页） | 真实 daemon（alpha.18 的 input/collaboration 返回真实条目；exec/question 退回推导） |
+| 控制连接通知 | `scheduler.changed`、`wakeup.changed`、`workflow.changed`、`session.notice`（标题兜底） | D11b 假服务端 + 本版测试 |
+
+### 4.5 会话流通知 → 领域
+
+| 通知 | 去向 | 处理 |
+|---|---|---|
+| `approval.request` | 交互裁决 `Apply` | 映射成 `Fact`：`RequestID`/`SessionID`/`BranchID`/`TurnID`（`source.turn_id`）/`Action`（工具名 + 原因）；长期允许按 4.7 口径 |
+| `approval.resolved` | 交互裁决 `Settle` | 服务端结算：移出并推进下一条 |
+| `approval.cancelled` | 交互裁决 `Settle` | 调用没有开始，按结算处理 |
+| `session.notice`（`SessionStore/title`） | 目录 `ApplyTitle` | `titleRevision` 更高才覆盖；`title` 为 null 表示清空 |
+| `session.event`（`step/tool-use`、`step/tool-call`） | 交互裁决 `ApplyAskUser` | 只认 `ask_user`；序号不晚于清单截止点的调用由清单负责，自动丢弃 |
+| `session.event`（`step/tool-completed`、`step/tool-result`） | 交互裁决 `SettleQuestion` | 按 `request_id` + `call_id` 结算，批次空了整条移出 |
+| `session.event` / `session.model.progress` | 投影折叠 | 本包不解析内容 |
+| `session.state` 与其余 | — | 不改变本版持有的状态；其余只记一条诊断 |
+
+### 4.6 会话命令与模态写入（集成层给出的边界）
+
+| 项 | 口径 |
+|---|---|
+| 命令归属 | `shell.run`/`shell.stop` 由服务端执行并写入会话历史；本机终端（D9）是另一条路径，不经本方法 |
+| 运行标识 | `run` 可带客户端生成的 `runId`；服务端回执给出 `runId` 时以服务端为准，写进意图的输入标识供结果未知时核对 |
+| 模态任务 | `task.submit`/`task.cancel` 的载荷原样透传；服务端回执给出 `taskId` 时以服务端为准 |
+| 实时传输 | `realtime.open`/`realtime.close` 的载荷原样透传（例如 `connectionId`）；回执给出 `connectionId` 时以服务端为准 |
+| 共同要求 | 会话必须已打开（走会话流）；发送前先查 `session.methods`（含 hello 能力），缺方法零请求 |
+
+### 4.7 长期允许的判定口径（集成层给出）
+
+服务端 wire 里没有"可长期允许"标记，`approval.request` 只给出 `source` 与 `call`。本版按更窄的口径推导：
+
+- 只认 `source.kind == "tool"`；`host` 来源一律不可长期允许。
+- `call.input` 必须是 JSON 对象，且**只含一个非空字符串字段 `path`、取值是绝对路径**；此时规则参数为 `{"tool":<工具名>,"path":<绝对路径>}`。
+- 其余情况（命令、多字段参数、相对路径、非字符串）一律不可长期允许——宁可不放行，也不把复杂命令长期放行。
+
+## 5. 启动与退出（接线点）
+
+### 5.1 启动：五阶段执行体 → 宿主六阶段
+
+| D10 阶段 | 本包步骤函数 | 完成含义 | 失败处理 |
+|---|---|---|---|
+| `single_instance` | —（外壳自己） | 抢到实例端点；二次启动转交后直接退出 | 外壳记录并停在 `single_instance` |
+| `local_state` | `App.LoadLocalState` | 归档隐藏列表（失败按空处理）、附件暂存区打开并清理、工作区根解析 | 暂存区或工作区不可用即返回错误 |
+| `connect` | `App.Connect` | `Supervisor.Connect` 握手；各领域依次装配；登记控制连接通知路由 | 任一步失败即释放已建对象并关闭连接 |
+| `subscribe` | `App.Subscribe` | 为 `Config.InitialSessionID` 建唯一订阅；未指定时读目录第一条；都没有时空转并记诊断 | 订阅失败停在该阶段；没有会话不算失败 |
+| `first_history` | `App.FirstHistory` | 折叠首屏，并读四类清单注入投影与交互裁决 | 订阅不存在时报错；没有会话时空转 |
+| `allow_writes` | `App.AllowWrites` | 打开本包写入闸门，阶段进入 `ready` | 首轮历史未完成则拒绝 |
+
+- 阶段函数都幂等；`App.Phase()` 只反映本包进度，进程级阶段以 `shell.State().Stage` 为准。
+- 连接探针 `App.Connected()` 交给外壳；`ObserveConnection` 只在连上/连不上时写 `connection.changed`。
+
+### 5.2 退出：四阶段执行体 → 宿主五阶段
+
+| D10 阶段 | 本包步骤函数 | 动作 |
+|---|---|---|
+| `stop_intents` | `App.StopIntents` | 置退出标记（此后 `Submit`/`Respond`/`StopMember` 一律 `ErrExiting`），把引用交给后续阶段 |
+| `end_interaction` | `App.EndInteraction` | 释放全部会话订阅、关闭写登记（未结项按"需人工确认"收尾）、关闭扩展事件跟随、停全部终端 |
+| `close_connection` | `App.CloseConnection` | 注销通知路由，关闭会话流管理器与控制连接 |
+| `reclaim_service` | `App.ReclaimService` | `Supervisor.Shutdown`：只回收自己拉起的实例 |
+| `flush_diagnostics` | —（外壳用 `Recorder.Flush`） | 冲刷诊断 |
+
+- 每段由外壳在独立 goroutine 中执行并逐段超时；超时或失败只记诊断，继续下一段。
+- 二次启动（`StartForwarded`）不进入退出五阶段：本进程没有装载本地状态、没有连接、没有订阅。
+
+### 5.3 写闸门
+
+`App.Writable()`：`closed` → `ErrClosed`；退出第一阶段已执行 → `ErrExiting`；`allow_writes` 未执行 → `ErrNotReady`；外壳闸门（`Shell.Writable`）→ `ErrNotReady`/`ErrNotConnected`/`ErrExiting`。
+
+两处使用：意图入口（`Submit`/`Respond`/`StopMember`/`RunShell`/`StopShell`/`ModalityWrite`）在登记前检查，被拒即不登记；**发送方也检查一次**，因此即使调用方绕过入口直接登记（例如目录领域的分支意图），未就绪或退出中也不会发出请求。读路径不受影响。
+
+### 5.4 诊断
+
+- 进程级诊断只走 `host.Recorder`（白名单字段，无自由文本），本包通过 `app.ObserveConnection` 追加 `connection.changed`。
+- `App.Diagnostics()` 是给人看的自由文本（例如"标题已合并""读取待答提问失败，退回历史推导"），**不写进** `host.Recorder`；`selfcheck` 默认打印到标准输出，`-log` 只装白名单记录。
+
+## 6. 只读视图与意图入口
+
+```go
+base, err := app.New(app.Config{
+    DataDir: ..., ServerPath: ..., WorkspaceRoot: ...,
+    InitialSessionID: "s-1",     // 订阅阶段要打开的会话；空则由目录第一条决定
+    Version: "0.1.0",
+})
+shell, err := app.NewHost(base, app.HostOptions{DataDir: ..., Args: os.Args[1:], Version: "0.1.0", Diag: host.NewRecorder(file)})
+outcome, err := shell.Start(ctx)               // 六阶段；StartForwarded 时本进程直接退出
+
+view, ok := base.View("s-1")                   // 只读视图（不发起请求）；含四类清单与待决队首
+intent, err := base.Submit(ctx, app.SubmitRequest{SessionID: "s-1", Text: "继续"})
+outcome2, err := base.Respond(ctx, "s-1", "req-1", interaction.Response{Decision: interaction.DecisionApprove})
+run, err := base.RunShell(ctx, app.ShellRunRequest{SessionID: "s-1", Command: "pwd"})
+stop, err := base.StopShell(ctx, app.ShellStopRequest{SessionID: "s-1", RunID: "run-1"})
+task, err := base.ModalityWrite(ctx, app.ModalityWriteRequest{SessionID: "s-1", Op: app.ModalityTaskSubmit, Params: map[string]any{"model": "m1"}})
+report, err := shell.Shutdown(ctx)             // 五阶段退出（含逐段超时）
+```
+
+`SessionView` 只含服务端事实与可丢状态：行（含服务端标识、是否未落库）、轮次、四类未完成事项、目标、分支目录、装载阶段、分页锚点、待决计数与队首。不含包内临时键、不含可写引用。
+
+## 7. 验收
+
+### 7.1 命令与结果
+
+```bash
+go test ./...
+go vet ./...
+go test -race ./internal/app/
+```
+
+本版结果：三条命令全部通过（2026-11-10，macOS arm64）。`internal/app` 的 18 个顶层测试与 8 个子测试全绿。
+
+### 7.2 覆盖
+
+| 验收要求 | 测试 |
+|---|---|
+| 六阶段启动；订阅阶段打开指定会话；写闸门放行；退出五阶段按序走完 | `TestHostWiringStartupAndShutdown` |
+| 连接 → 打开会话 → 折叠历史行 → 提交一次并收到回执 | `TestAssemblyOpenSessionAndSubmit` |
+| 实时事实进入同一份折叠；重读后尾部行换成服务端标识且不重复 | `TestLiveEventLandsIntoRows` |
+| 写意图类型 → 服务端方法（8 类） | `TestSenderMapsIntentKinds`（8 个子测试） |
+| 核对：命中、确认未发生、会话未打开时无法确认 | `TestInspectorLooksUpInputThroughProjection` |
+| 目录读取、订阅阶段按目录决定会话、生命周期核对 | `TestCatalogAssembles` |
+| 单实例二次启动：转交成功、阶段停在 idle、不进入退出五阶段 | `TestSecondLaunchForwardsAndSkipsShutdown` |
+| 启动阶段失败：停在 connect、写闸门保持拒绝 | `TestStartupStopsAtFailingStage` |
+| 退出超时：记录后继续走完五段 | `TestShutdownTimeoutContinues` |
+| 日志白名单：凭据与正文进不来、字段集合固定 | `TestDiagnosticsWhitelistOnly` |
+| 写闸门：未就绪与退出中都拒绝且不发请求 | `TestWriteGateBeforeReadyAndWhileExiting` |
+| 读路径不受写闸门影响、各领域已装配 | `TestReadPathsWorkAfterReady` |
+| 审批三类通知：请求入队（含长期允许口径）、结算与取消出队 | `TestApprovalNoticesRouteToArbiter` |
+| 标题通知按修订号合并、低修订号不覆盖 | `TestTitleNoticeMergesIntoCatalog` |
+| 四类清单注入投影；提问同时进交互裁决；单类读失败退回推导 | `TestPendingSeedingOnAttach` |
+| 核对优先 `input_lookup`（accepted/unknown），方法缺失时退回推导 | `TestInspectorPrefersInputLookup` |
+| 附件写入走 `attachment.put`；缺方法报能力缺失且不发请求 | `TestAttachmentWriteUsesPutAndChecksMethods` |
+| 时间线 ask_user 进队列、工具结果结算 | `TestAskUserTimelineRoutesToArbiter` |
+| 命令执行/停止：`shell.run`/`shell.stop`、会话与主线、命令/运行标识、回执里的运行标识 | `TestShellRunAndStopMapping` |
+| 模态四种写入：方法名、载荷透传、`op` 不下发、回执里的任务/连接标识 | `TestModalityWriteMapping` |
+| 开分支/结束分支：`session.branch_create`（会话+切点+首条输入）、`session.branch_end`（会话+分支） | `TestBranchLifecycleMapping` |
+| 三类新意图的门禁：缺方法零请求、退出中零请求（入口拒绝 + 发送方兜底） | `TestNewWriteKindsRespectGates` |
+
+### 7.3 真实 daemon 证据
+
+服务端在仓库之外，使用临时数据目录与 mock 模型。两版都不能产生工具调用，因此审批、标题与 ask_user 的真实事件**未触发**（见 7.5）。
+
+**证据 A：完整启停与清单降级（0.1.0-alpha.18，`/tmp/dim-2-target/debug/dim-app-server`）**
+
+```bash
+D=$(mktemp -d /tmp/d12w-a-XXXXXX)
+go run ./cmd/dimagent selfcheck -data-dir "$D" \
+  -server /tmp/dim-2-target/debug/dim-app-server -mock \
+  -create -submit "通知与清单接线自检" -lines 10 -log "$D/diag.log"
+```
+
+```text
+startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
+session: 3db6f611-...  branch: main  load: ready  rows: 0  turns: 0  hasOlder: false
+pending: inputs=0 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
+submit: status=succeeded  input=02b019fe-...
+after submit: rows: 2  load: ready
+[turn 1] user_message   17c8be87-... 通知与清单接线自检
+[turn 1] assistant_text 304f2993-... Echo: 通知与清单接线自检
+diagnostics:
+  - 读取未结束后台任务失败，退回历史推导: session.exec.pending: ... unknown_method
+  - 读取待答提问失败，退回历史推导: session.question.pending: ... unknown_method
+shutdown: 5 段全部完成（5 ms）
+```
+
+**证据 B：启动阶段就带会话，清单读到真实条目（同一数据目录，`-session`）**
+
+```bash
+go run ./cmd/dimagent selfcheck -data-dir "$D" -server /tmp/dim-2-target/debug/dim-app-server \
+  -mock -session 3db6f611-... -lines 10 -log "$D/c.log"
+```
+
+```text
+startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
+session: 3db6f611-...  branch: main  load: ready  rows: 2  turns: 1  hasOlder: true
+[turn 1] user_message   17c8be87-... 通知与清单接线自检
+[turn 1] assistant_text 304f2993-... Echo: 通知与清单接线自检
+pending: inputs=4 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
+```
+
+`inputs=4` 是从服务端 `session.input.pending` 读回并注入投影的真实条目（四条未消费的状态块输入）；`tasks`/`questions` 在该版服务端是 `unknown_method`，按设计退回历史推导（此时为 0）。阶段耗时：`connect` 52ms、`subscribe` 71ms、`first_history` 6ms。
+
+**证据 C：旧服务端全部降级（0.1.0-alpha.7，`dimcode app-server`）**
+
+```bash
+go run ./cmd/dimagent selfcheck -data-dir "$D" -server "$HOME/.dimcode/rust/dimcode-server" \
+  -server-arg app-server -mock -session <会话标识> -submit "旧服务端 wire 自检"
+```
+
+四类清单方法全部 `unknown_method`，逐类退回历史推导，会话与提交仍正常：
+
+```text
+submit: status=succeeded  input=08e7cb21-...
+pending: inputs=0 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
+diagnostics:
+  - 读取未消费输入失败，退回历史推导: session.input.pending: ... unknown_method
+  - 读取未结束后台任务失败，退回历史推导: session.exec.pending: ... unknown_method
+  - 读取待答提问失败，退回历史推导: session.question.pending: ... unknown_method
+  - 读取未结束协作请求失败，退回历史推导: session.collaboration.pending: ... unknown_method
+```
+
+**证据 D：附件写入的能力门禁（同一 alpha.18）**
+
+```bash
+go run ./cmd/dimagent selfcheck ... -session <会话标识> -attachment "要存成会话文件的一段文本"
+```
+
+```text
+attachment: status=failed reason="发送明确失败: attachment.put: non_retryable: 服务端缺少该能力: attachment.put" result=
+```
+
+`session.methods` 在该二进制上没有 `attachment.put`，集成层据此判定能力缺失、**不发请求**，写登记按明确失败收敛。同一台机器上用 D1 的探针程序（`dimagent-conncheck -probe`）复核，`attachment.put`、`session.exec.pending`、`session.question.pending` 三项都回 `unknown_method`，与该判定一致。
+
+**证据 E：命令执行的能力门禁（同一 alpha.18）**
+
+```bash
+go run ./cmd/dimagent selfcheck ... -session <会话标识> -shell "pwd"
+```
+
+```text
+shell: status=failed reason="发送明确失败: shell.run: non_retryable: 服务端缺少该能力: shell.run" run= result=
+```
+
+该二进制的 hello 与 `session.methods` 都没有 `shell.*`（也没有 `modality.*`），集成层据此判定能力缺失、**不发请求**。
+
+同一二进制在 hello 里声明了 `session.branch_create`/`session.branch_end`。目录领域用同一对方法、同一组参数在同一服务端上跑通了真实分支生命周期（本包 Sender 的参数与之一致）：
+
+```text
+$ DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+    go test ./internal/catalog -run TestRealDaemonBranchLifecycle -count=1 -v
+初始目录: [{ID:main ParentID: CutSequence:0 Status:open Head:1}]
+新分支:   {ID:0e335f5d-... ParentID:main CutSequence:4 Status:open Head:0}
+分支收敛：state=ended head=9
+回收自启服务端: stopped=true
+```
+
+**证据 F：两个进程并发启动，只有一个赢家**
+
+```text
+A exit=0   B exit=0
+=== A out ===
+startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
+=== B out ===
+instance: forwarded（已有实例在运行，本次启动参数已转交）
+=== instance events ===
+{"event":"instance.primary"}
+{"event":"instance.forwarded","args":13}
+```
+
+只有 A 推进了六阶段并写出 `startup.*` 与 `shutdown.done`；B 停在 `idle`，没有 `shutdown.*` 记录。
+
+### 7.4 自检子命令
+
+```bash
+dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <参数>]... [-mock] \
+  [-session <标识>] [-create] [-cwd <目录>] [-lines <条数>] [-older <页数>] [-wait <时长>] \
+  [-submit <文本>] [-attachment <文本>] [-short] [-log <文件>]
+```
+
+| 参数 | 作用 |
+|---|---|
+| `-data-dir` | 客户端数据目录（必填；单实例端点、服务端端点、归档隐藏列表、附件暂存区都在这里） |
+| `-server` / `-server-arg` / `-mock` | App Server 可执行文件、追加参数、mock 模型；缺省取 `DIMCODE_APP_SERVER_BIN` |
+| `-session` | 订阅阶段打开的会话；省略时由目录第一条决定，目录为空需 `-create` |
+| `-create` / `-cwd` | 目录为空时在允许写之后新建一个会话，工作目录缺省取当前目录 |
+| `-lines` / `-older` | 打印最近多少行；打开后向前翻多少页更早的轮次 |
+| `-submit` / `-wait` | 提交一条文本并等待写登记收敛；提交后等多久再重读尾部 |
+| `-attachment` | 用 `attachment.put` 存一段文本成会话文件（缺方法时报能力缺失） |
+| `-short` | 只打印汇总 |
+| `-log` | 进程级白名单诊断写到该文件；缺省丢弃 |
+
+退出码：0 成功（含二次启动转交成功）；1 运行失败；2 用法错误；3 blocked（缺少真实 App Server）。
+
+### 7.5 未验证
+
+| 项 | 状态 | 缺什么 |
+|---|---|---|
+| 真实 `approval.request/cancelled/resolved` 事件 | blocked（真实事件未触发） | 形状已按 D1 冻结并接线；本机 mock 模型不发工具调用，产生不了审批。需要能产生需审批工具调用的真实模型 |
+| 真实标题通知（`session.notice`） | blocked（真实事件未触发） | 需要服务端自动生成标题并推送通知；mock 模型下不产生 |
+| 真实 `ask_user` 提问事件 | blocked（真实事件未触发） | 需要模型调用 `ask_user`；本机 mock 模型不调用 |
+| 真实 `session.exec.pending` / `session.question.pending` 的非空页 | blocked（能力不可用） | 两个本机二进制都不提供这两个方法；条目形状按 wire 冻结，只在假服务端验证过 |
+| 真实 `attachment.put` | blocked（能力不可用） | 两个本机二进制都不贡献该方法；门禁行为已在真实服务端验证（证据 D），写入本身只在假服务端验证 |
+| 真实 `session.input_lookup` 由本包发出的核对 | 未验证 | D1 已用探针验证 accepted/unknown；本包的调用路径只有假服务端证据（需要一次超时或断线写入才能走到核对） |
+| 真实审批/提问写入（应答、长期允许） | blocked | 同"真实审批事件"：没有真实待决项可答 |
+| 真实改名 | blocked | 两版服务端都没有 `session.rename` |
+| 插话（`mode: steer`） | 未验证 | wire 取值只有投影词表证据 |
+| Windows | 未验证 | 无 Windows 主机（继承 D1/D9/D10） |
+
+## 8. 与 A/R 的对应
+
+| 需求或架构条目 | 本领域实现 | 不在本领域 |
+|---|---|---|
+| A 启动与退出（阶段与超时） | 五个启动阶段步骤 + 四个退出阶段步骤，接进 D10 `Shell` | 单实例判定、阶段推进、逐段超时、诊断白名单（D10） |
+| A 连接状态机、多窗口共用一份订阅 | 控制连接唯一；`Subscribe`/`OpenSession` 复用同一份订阅 | 连接内部（D1） |
+| A 两个平面、四条总规矩 | 视图只读、意图只登记、折叠唯一、发送唯一 | 各领域状态机 |
+| A「审批集合、提问集合」镜像状态 | 审批由通知驱动、提问由清单 + 时间线驱动，各自单向 | 集合与队列本身（D5） |
+| R 块 2 未完成事项与服务端一致 | 四类清单按截止点读取注入；断线后按事件结算 | 清单语义（D2/D5） |
+| R 块 3 提交与停止 | `Submit` + `Sender` 映射；写闸门拦住未就绪与退出中 | 运行状态收敛（D2） |
+| R 块 5 目录与标题 | `catalog.Reader` + 标题通知按修订号合并 | 目录页状态（D4） |
+| R 块 6 审批接收与长期允许 | 三类通知路由；长期允许按 4.7 口径给出规则参数 | 长期允许的最终业务口径（需求侧） |
+| R 块 7 提问与结算 | 清单注入 + `ask_user` 时间线 + 工具结果结算 | 应答内容（界面） |
+| R 块 4 分支 | 开分支/结束分支的写意图映射（`session.branch_create`/`session.branch_end`） | 切点选取、分支目录与内容（D4/D2） |
+| R 块 12 附件 | 暂存区阶段打开清理；`attachment.put` 写入并做能力门禁 | 暂存引用生命周期（D8） |
+| R 块 13 会话内命令 | `shell.run`/`shell.stop` 映射，命令由服务端执行 | 本机终端进程（D9） |
+| R 块 9 模态任务与实时传输 | `modality.*` 四种写入映射 | 模态能力读数（D11a） |
+| R 块 14 日志与诊断 | 进程级诊断只写白名单字段 | 落盘与冲刷（D10） |
+
+## 9. blocked
+
+| 项 | 状态 | 卡在哪个依赖、由谁解除 |
+|---|---|---|
+| 真实审批事件（request/cancelled/resolved） | blocked（真实事件未触发） | 需要能产生工具审批的真实模型；形状已冻结、接线与假服务端测试已完成 |
+| 真实标题通知 | blocked（真实事件未触发） | 需要服务端自动标题与推送；接线与合并规则已测试 |
+| 真实 ask_user 提问 | blocked（真实事件未触发） | 需要模型调用 `ask_user`；清单与时间线两条路都已接 |
+| 非空 `exec.pending` / `question.pending` | blocked（能力不可用） | 本机两个二进制都没有这两个方法 |
+| 真实 `attachment.put` 写入 | blocked（能力不可用） | 本机两个二进制都不贡献该方法；需要提供本地执行与原生存储的实例 |
+| 真实 `shell.run`/`shell.stop` | blocked（能力不可用） | 本机两个二进制都不贡献 `shell.*`；映射与门禁已用假服务端验证，真实服务端只验证到"能力缺失" |
+| 真实 `modality.*` | blocked（能力不可用 + 名称未在真实服务端验证） | 本机二进制不贡献这些方法；四个方法名按 D3 的 op 命名与 D11a 的 `modality.capabilities` 约定，缺服务端证据 |
+| 真实分支开/结束（本包发出的写） | 未验证 | 参数形状与目录领域的真实分支证据一致；本包没有在真实服务端上直接发过 `session.branch_create`/`session.branch_end` |
+| 真实核对调用 | 未验证 | 需要一次超时/断线后才进入核对；D1 已单独验证方法本身 |
+| 改名与自动标题 | blocked | 两版本服务端都没有 `session.rename`（自动标题通知已接，但真实事件未触发） |
+| 重连后自动重开会话 | 未验证 | 需要 U1/D10 决定重开策略；本包只提供 `Reconnect` 与 `OpenSession` |
+
+## 10. 已知限制
+
+1. **启动阶段没有会话时空转**：`-session` 为空且目录里没有会话（或目录能力缺失）时，`subscribe`/`first_history` 记录诊断后照常推进；会话在允许写之后由调用方打开。
+2. **清单与历史推导的合并口径**：注入清单后，投影仍会把清单未覆盖的事件事实装回去（例如历史里未消费的输入会与清单条目并存）；这一口径由 D2 决定，本包只负责注入。
+3. **提问清单整体替换**：`SeedQuestions` 用清单整体替换提问集合；清单读取失败时用已折叠历史推导，截止点取分支当前头部。重连后重新装载可能让已消失的提问重新出现，直到服务端清单或事件再次结算。
+4. **长期允许口径偏窄**：只放行"单字段绝对路径"的 tool 调用，`结构简单的命令`尚未实现；需要需求侧确认是否放宽。
+5. **核对可能读全量历史**：`input_lookup` 不可用或失败时，确认"未发生"要把历史读完（最多 50 页 × 200 条）；超限按无法确认处理。
+6. **附件写入不预检大小**：10 MiB 上限由服务端拒绝，本包只按服务端错误分类。
+7. **附件写入要求会话已打开**：`attachment.put` 是会话贡献方法，必须走会话流；会话没打开时按不可重试失败处理。
+8. **运行状态只取 attach 回执**：`session.state` 通知不消费，运行状态变化需要重开或后续接入。
+9. **命令与模态依赖会话方法**：`shell.*`、`modality.*`、`attachment.put`、`session.branch_*` 都要求会话已打开；没打开时按不可重试失败处理，不发请求。方法名以 `session.methods`/hello 为准，不按版本猜。
+10. **模态方法名缺真实服务端证据**：`modality.task.submit` 等四个名称来自意图 op 命名与 `modality.capabilities` 的约定，本机没有贡献这些方法的实例，因此只验证到门禁行为。
+11. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+12. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+13. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+
+## 11. 变更记录
+
+| 日期 | 变更 | 原因 |
+|---|---|---|
+| 2026-11-10 | 第一版：装配、Sender/Inspector 适配器、启动与退出、只读视图、自检 | 集成层结果包首次提交 |
+| 2026-11-10 | 接到 D10 宿主外壳：阶段函数、写闸门、诊断、二次启动、完整启停自检 | 组织要求覆盖宿主接线 |
+| 2026-11-10 | 接掉连接侧补齐的 wire：审批三类通知、标题通知、四类清单注入（含提问清单与时间线）、`input_lookup` 核对优先级、`attachment.put` 附件写入与能力门禁 | 组织要求把已冻结的 wire 形状接进集成层 |
+| 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |

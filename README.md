@@ -31,4 +31,5 @@ MyGo 当前主分支的 `go.mod` 声明 Go 1.27.3；本机 Go 版本低于该要
 ## 参考
 
 - [Agent 组织与开发方案](docs/organization-model.md)
+- [DimAgent MyGo 客户端组织方案](docs/project-organization.md)
 - [dim-electron 产品基线](https://github.com/arcships/dim-electron)

@@ -1,0 +1,265 @@
+# DimAgent MyGo 客户端组织方案
+
+Status: active（组织基线）
+Scope: 定义本项目的领域划分、结果包责任、依赖与接口、执行顺序和最终验收方式；不定义功能实现、协议方法表或领域内部设计。
+Last verified: 2026-11-10（对照 `dim-electron` 工作区源码与文档）
+Owner: 组织 agent。领域文档与结果包归各领域 agent。
+
+## 1. 分工
+
+| 角色 | 拥有 | 产出 |
+|---|---|---|
+| 组织 agent | 领域清单与完整性、结果包要求与评审、依赖与接口、顺序与并行、最终验收、本文件 | 领域清单、评审意见、依赖与顺序、验收判定 |
+| 领域 agent | 本领域的上下文与文档、结果包设计与实现、验收证据 | 结果包（输入/产物/验收/依赖/上下文需求）、领域文档、可执行验收 |
+
+规则：
+
+- 文档所有权归领域；组织 agent 只观察、评价、要求更新，不修改领域文档。
+- 领域之间不互相改文档；缺口以「需要 X 领域更新」回报，由组织 agent 转交。
+- 本文件只由组织 agent 修改；领域提案由组织 agent 合并。
+- 以上约定同时写入 `AGENTS.md`，对与用户对话的 agent 强制生效：组织 agent 不进行具体的领域工作。
+
+## 2. 项目定位
+
+DimAgent 的 Go 桌面客户端：Go + mygo native UI 承载宿主与界面，Rust `dim-app-server` 通过 protocol v3 提供 agent 能力与全部事实。
+
+三条承诺：
+
+1. **形态**：单一 Go 进程，主界面由 native view 组成，宿主能力取自 mygo。
+2. **事实**：session、branch、timeline、approval、model、permission 全部来自 App Server；Go 侧只保留可丢的界面状态与登记的本地状态。
+3. **行为**：功能与现役 DimAgent 类似；每项能力按情况判断搬运、保留还是重新实现，判断结果记入需求基线。
+
+阶段作用：先是同一 App Server 的并行客户端，行为对齐后替换 Electron 客户端。
+
+## 3. 范围承诺
+
+### 3.1 承诺交付（main → Go）
+
+连接与 daemon 生命周期；会话投影；会话目录与生命周期；交互与审批；管理面；账号；工作区与文件；附件；终端；宿主外壳。
+
+### 3.3 不在当前范围的能力
+
+以下能力不在当前范围：界面、宿主外观、发布与更新渠道之外的产品化内容，以及：浏览器预览与元素检查、MCP Apps 与 UI 扩展、Chrome 宿主、宠物、CUA、Web Translate、插件市场、本地 sandbox。裁剪记录与理由由 R 记入需求基线；需要时另行立项，不预设阶段。
+
+## 4. 领域
+
+### 4.1 前置与横向
+
+| ID | 领域 | 负责范围 | 上下文来源 | 依赖 |
+|---|---|---|---|---|
+| R | 需求分析与管理 | 需求条目库、裁剪判断（搬/留/实现）、变更记录、需求与领域的映射 | 本文件 §2–§3、`dim-electron/docs/acceptance/*`、`AGENTS.md`、main 盘点 | — |
+| A | 架构与集成 | Go 侧组成与边界、接口与数据流、main 各部分在 Go 的归属、集成点 | 领域清单、各领域上下文申报、main 源码 | R |
+| V | 验收设施 | fake App Server、golden fixtures、验收脚本、证据记录 | `electron-main/tests`（53,806 行 / 175 文件）、`electron-main/tests/fixtures/fake-app-server.mjs`（2,452 行） | — |
+
+### 4.2 产品能力
+
+| ID | 领域 | 负责范围 | 上下文来源 | 依赖 |
+|---|---|---|---|---|
+| D1 | 连接 | protocol v3 wire、NDJSON、daemon 发现与自启、hello、control 与 session stream、重连、错误语义 | `app-server/*` 17,002、`protocol/*` 307、`app-server-protocol/src` 1,174 | A、V |
+| D2 | 会话投影 | history/live 折叠、turn/tool/thinking、branch、compaction、goal、后台任务、模型进度 | `timeline-fold` 1,422、`raw-event-bridge` 657、`goal-fold` 347、`task-inventory` 151 | D1 |
+| D3 | 写登记 | 在途写表、一次意图一次请求、结果未知核对、幂等、草稿保留 | `protocol-service.ts` 3,658 的写路径、`run-tracker` 275 | D1、D2 |
+| D4 | 会话目录与生命周期 | catalog、创建/打开/删除/重命名、归档、草稿、导出、attention、send ownership | `session-service` 1,823、`session-reader` 2,398、`branch-directory` 296、`session-export` 632 | D1、D2、D3 |
+| D5 | 交互与审批 | approval、question、elicitation、permission、member approval | `interaction-service` 2,231、`ask-user-question-tool` 419 | D1、D2、D3 |
+| D6 | 账号 | OAuth、账号状态、usage、provider 探测 | `oauth/*` 5,150、`account-service` 1,607、`dim-account` 830 | D1、D3 |
+| D7 | 工作区与文件 | 目录与预览、文件搜索、git 只读、外部打开、路径规范化 | `workspace-rpc` 1,685、`changes-*` 1,688、`external-app-adapter` 961 | A |
+| D8 | 附件 | 选择、暂存、粘贴、文本、图片 | `file-staging` 1,526、`attachments` 104 | D3、D7 |
+| D9 | 终端 | 本地 shell、`!` shell 输入的本地侧 | `terminal-*` 632、`local-exec-shell` 264、`shell-rpc` 271 | A |
+| D10 | 宿主外壳 | 生命周期、窗口、菜单与托盘、通知、快捷键、深链、主题与字体、i18n、窗口状态、诊断 | `bootstrap` 3,354、`window-service` 1,261、`tray-icon` 231、主题字体 skin 1,640、诊断 1,140 | D1（只读连接状态） |
+| D11 | 管理面 | 设置、模型与 provider、插件、技能、MCP、hooks、scheduler、workflow、runtime、modality、storage | `app-server/{plugins,skills,hooks,scheduler,runtime,workflow}` 1,994、`config-rpc` 814、`modality-rpc` 1,128、`app-services` 插件技能 2,350 | D1、D3、D6 |
+## 5. 结果包契约
+
+每个领域提交结果包时必须回答五项：
+
+```text
+领域：<ID + 名称>
+输入：<需要的 owner 方法/通知、代码来源、fixtures、上游接口>
+产物：<Go 包与文件职责、领域文档、测试、验收脚本>
+验收：<可执行命令 + 可观察结果 + 证据类型>
+依赖：<依赖的领域与接口；需要对方冻结什么>
+上下文需求：<需要谁提供什么；不确定项与备选>
+```
+
+评审标准三条，组织 agent 只按这三条判断：
+
+1. 能否得到预期结果。
+2. 是否有缺漏。
+3. 是否可验收。
+
+证据规则：
+
+- 验收必须是可执行命令加可观察结果；没有证据的完成不计数。
+- 缺真实 App Server、真实仓库、真实账号或目标平台时标 blocked，写明卡在哪个依赖、由谁解除。
+- 裁剪判断（搬/留/实现）逐条挂到需求条目，并附理由。
+
+### 5.1 R 结果包要求（需求侧由用户验证）
+
+本要求由组织 agent 给出，产物由 R 领域提交，验收结论由用户给出。
+
+**输入**
+
+- 定位与边界（本文件 §2–§3）
+- 产品基线：`dim-electron/docs/architecture/app-server.md`、`dim-electron/docs/acceptance/*`、`AGENTS.md` 的不可违反约束
+- main 盘点（附录 A）
+- 协议方法与通知清单（以 wire 类型为准）
+
+**产物必须包含六部分**
+
+1. 条目字段定义：需求陈述、来源、裁剪、验收、承接领域、依赖、状态、决策编号；每项附一个反例。
+2. 需求条目表：每条写清来源（文件/验收文档/协议方法）、裁剪判断（搬/留/做 + 一句理由）、验收（操作步骤 + 观察结果，或命令 + 输出）、承接领域、状态。
+3. 决策项表：每条含选项、影响面、建议与理由、否决后果。决策项必须能在不追问的情况下二选一或多选一。
+4. 证据类型与判定口径：fixture、fake App Server、真实 daemon、真实仓库、真实账号、手工，各自的判定标准。
+5. 追溯映射：需求 ↔ 承接领域 ↔ 架构组成。
+6. 变更记录：日期、变更、原因、影响。
+
+**用户判定什么**
+
+- 每条需求：批准、改口径、移出本阶段。
+- 每个决策项：在给定选项里选一个，或新增一个选项。
+- 需求整体：是否覆盖十个产品领域、是否与定位一致。
+
+**退回条件（任一命中即退回，不在评审里逐条讨论）**
+
+- 验收写成「符合预期」「正常工作」这类不可观察表述。
+- 决策项没有选项，或缺否决后果。
+- 需求没有来源，或没有承接领域。
+- 十个产品领域有缺项。
+- 追溯映射无法落到架构组成。
+
+**组织 agent 评审什么**
+
+能否得到预期结果、是否有缺漏、是否可验收；评审意见以「需补哪一条」的形式给出，不改写领域内容。
+
+**开工包**
+
+| 项 | 内容 |
+|---|---|
+| 交付位置 | `docs/domains/R.md`，R 领域所有 |
+| 第一轮 R-1 | 结果包骨架：字段定义与反例、D1–D10 覆盖表、每个领域 2–3 条完整示例需求、决策项表、证据口径、追溯映射模板、变更记录、未决问题 |
+| 第二轮 R-2 | 按获批的格式与口径补齐全部需求条目 |
+| 输入 | 本文件 §2–§3 与附录 A；`dim-electron/docs/architecture/app-server.md`、`timeline.md`；`dim-electron/docs/acceptance/*`；`dim-electron/AGENTS.md`；`app-server-protocol/src/wire.ts` |
+| 流程 | R 提交 R-1 → 组织 agent 评审 → 用户判定格式与口径 → R 提交 R-2 → 组织 agent 评审 → 用户逐条判定 |
+| 边界 | R 只做需求分析与管理：不写架构、不写代码、不改组织文档与其他领域文档 |
+
+### 5.2 R 的颗粒度
+
+判定单位：一条需求 = 一个可独立验收的行为，且只挂一个承接领域。
+
+切分规则：
+
+1. 按可观察能力切，不按控件、协议方法、源文件切。
+2. 一条只写一个行为；出现「并且／以及／同时」就拆分。
+3. 用户不可见的内部步骤（帧解析、状态装载、重试）并入承载它的需求，写成验收步骤，不单独编号。
+4. 同一行为的不同证据阶段（fixture → 真实 daemon）算一条，在验收里分段写。
+5. 约束（事实归属、无第二事实、native view）不进入需求编号，单列「约束」小节，由架构与领域落实。
+
+三层：
+
+| 层 | 内容 | 是否编号 | 数量 |
+|---|---|---|---|
+| L1 能力 | D1–D10 覆盖表，一句话边界 | 否 | 每领域 1 行 |
+| L2 行为 | 需求条目，可验收 | 是 | 一个决定一条，不设条数指标 |
+| L3 细节 | 验收步骤里的具体操作 | 否 | 随条目 |
+
+数量判定：单领域超过 8 条说明切得过细，合并或下沉为验收步骤；少于 3 条说明覆盖不足。
+
+反例：
+
+- 太细「点击登录后按钮显示加载态」→ 并入登录流程的验收步骤。
+- 太粗「支持会话管理」→ 拆为目录、创建、打开、重命名、删除、归档、导出。
+- 混合「读取会话并渲染 Markdown」→ 归入打开会话，渲染作为验收观察点。
+
+### 5.3 R 的产物内容与合格判定
+
+`docs/domains/R.md` 十章：
+
+1. 头部：Status、Owner、验证人、范围、依据
+2. 字段定义与反例、状态机
+3. 覆盖表：D1–D10 边界、来源文档、需求条数
+4. 需求条目，按领域分组
+5. 约束：不进需求编号，标明由架构与领域落实
+6. 决策项：编号、决策、选项、影响面、建议与理由、否决后果
+7. 证据类型与判定口径
+8. 追溯映射：需求 → 承接领域 → 架构组成
+9. 变更记录
+10. 未决问题
+
+不写入这份产物：协议方法表（引用 wire）、实现方案与包结构、UI 视觉规格、排期。
+
+合格判定，任一不满足即退回：
+
+- 需求四要素齐全：来源、行为、证据、承接领域
+- 没有不可观察的验收表述
+- 每个决策项都能二选一
+- 一个决定一条；完备性只看能力对照是否全有结论
+- 追溯映射覆盖率 100%
+
+## 6. 接口与冻结点
+
+| ID | 冻结项 | 提供方 | 消费方 |
+|---|---|---|---|
+| F1 | 需求基线 | R | A 与全部领域 |
+| F2 | 架构结果包 | A | 全部领域 |
+| F3 | wire 类型与流生命周期 | D1 | D2–D6、D10 |
+| F4 | 折叠结果形状 | D2 | D3、D4、U1 |
+| F5 | 账号状态与 provider 列表 | D6 | D5、U1 |
+| F6 | fixtures 与验收脚本 | V | 全部领域 |
+
+集成点两处：F3（连接接口冻结后才能并行）与 F5（模型选择依赖账号状态）。
+
+接口内容由相邻两方确认，组织 agent 只记录与裁决冲突。
+
+## 7. 顺序与门禁
+
+开工前提：本方案经用户批准。批准前各领域只做上下文准备，不提交结果包、不开始实现。
+
+| 批次 | 并行工作面 | 门禁（通过条件） |
+|---|---|---|
+| 1 | R、V 开工；A 用定位与 main 盘点起步 | R 交需求基线；V 能在 fake App Server 上跑通 hello/list/history |
+| 2 | D1 | F3 冻结；真实 daemon 上 hello 通过、断线自恢复 |
+| 3 | D2、D3、D4 并行；D7、D9 同期；D5、D6 并行 | 每块结果包通过评审；D2 的 fixture 折叠结果与 Electron 一致 |
+| 4 | D8、D10 | 附件提交走通会话链路；外壳能在真实 daemon 上显示连接状态 |
+
+规则：门禁通过依据是结果包评审 + 验收证据；验收结果直接改计划，不通过的领域重排或拆包，通过后才推进下一层。
+
+## 8. 最终验收
+
+- **追溯链**：核心目标 → 需求条目 → 架构组成 → 领域结果包 → 验收证据。任何任务必须挂在一个需求条目上，任何需求条目必须落到一个架构组成和一个承接领域。
+- **验收口径**：连接与会话用真实 App Server；文件与 git 用真实仓库；账号用真实账号；缺少环境时如实标 blocked。
+- **偏离检查**：新增任务无法挂到需求条目时退回 R；需求无法落到架构组成时退回 A；领域结果包无法验收时退回该领域。
+- **对照**：与 Electron 客户端使用同一 App Server 并行运行；同一 mutation 由单一客户端发起，不做双写与自动对账。
+
+## 9. 变更与回报
+
+| 变更 | 走向 |
+|---|---|
+| 需求新增、删除、裁剪判断变化 | R 记录后更新需求基线，通知受影响领域 |
+| 架构组成、接口、数据流变化 | A 更新架构结果包，重新走评审 |
+| 接口冻结项变化 | 相邻两方确认，组织 agent 记录 |
+| 领域缺口或过时文档 | 回报组织 agent，转交对应领域更新 |
+
+## 10. 相关文档
+
+- `docs/organization-model.md`：角色与职责依据。
+- `dim-electron/docs/architecture/*`：产品与协议基线（`app-server.md`、`timeline.md`、`mygo-native-plan.md`、`mygo-reimplementation.md`）。
+- `dim-electron/docs/acceptance/*`：验收依据。
+
+## 附录 A：main 进程盘点（事实）
+
+`packages/desktop/packages/electron-main`：`src` 86,560 行（不含测试），`tests` 53,806 行 / 175 个文件。下表只列事实，判定归 R。
+
+| 能力簇 | 实现来源（≈行数） | 规模 |
+|---|---|---|
+| 宿主外壳 | `bootstrap` 3,354、`window-service` 1,261、`tray-icon` 231、快捷键/深链/单实例 270、scheme 1,026、主题字体 skin 1,640、布局 191、诊断 1,140、配置 380 | ≈9.5k |
+| 进程间合同 | `preload/*` 2,687、`ipc/*` 883、`shared/src/protocol` 10,228、`types` 114 | ≈13.9k |
+| 连接 | `app-server/*` 17,002、`protocol/*` 307、`app-server-protocol/src` 1,174 | ≈18.5k |
+| 会话与交互 | `timeline-fold` 1,422、`raw-event-bridge` 657、`goal-fold` 347、`task-inventory` 151、`compaction` 206、`session-service` 1,823、`session-reader` 2,398、`branch-directory` 296、`session-export` 632、`attention` 362、`interaction-*` 2,231、`ask-user-question` 419、run/ownership 492 | ≈11.4k |
+| 管理面 | `app-server/{plugins,skills,hooks,scheduler,runtime,workflow}` 1,994、`config-rpc` 814、`modality-rpc` 1,128、`app-services` 插件技能 2,350、`storage-root` 336 | ≈6.6k |
+| 账号 | `oauth/*` 5,150、`account-service` 1,607、`dim-account` 830、`account-provider` 222 | ≈7.8k |
+| 工作区与文件 | `workspace-rpc` 1,685、`changes-*` 1,688、`file-staging` 1,526、`external-app-adapter` 961、路径工具 226 | ≈6.1k |
+| 终端 | `terminal-*` 632、`local-exec-shell` 264、`shell-rpc` 271 | ≈1.2k |
+| 浏览器与外部内容 | 浏览器预览/检查 ≈5,775、Chrome 宿主 ≈2,060、`mcp-apps` 2,132、`ui-extensions` 1,337 | ≈11.3k |
+| 桌面集成 | 宠物 ≈6,300 + 组合适配 732、CUA 1,320、Web Translate ≈1,150、通知/截图/热键/代理 ≈1,700 | ≈11.5k |
+| 测试资产 | `electron-main/tests`、`electron-main/tests/fixtures/fake-app-server.mjs`（2,452 行） | 53.8k |
+
+各簇与目录有交叉（`app-server/service.ts` 6,287 行同时服务连接、会话与管理面），合计按上表取整。
+
