@@ -103,14 +103,17 @@ func testEndBranchNewSelection(t *testing.T, outcome error) {
 	a.mu.Lock()
 	a.selectGen++
 	a.mu.Unlock()
+	a.state.ActionError = "existing error"
 	a.endBranch("side")
 	select {
 	case <-f.started:
-	case <-time.After(time.Second):
-		t.Fatal("new selection was suppressed")
+		t.Fatal("same target reached controller again after selection changed")
+	case <-time.After(30 * time.Millisecond):
 	}
-	f.release <- errors.New("refused")
-	f.release <- errors.New("refused")
+	if a.state.ActionError != "existing error" || a.state.Selected != "s1" || a.state.SelectedBranch != "main" || len(updates) != 0 {
+		t.Fatal("suppressed request changed state or published an outcome")
+	}
+	f.release <- outcome
 	deadline := time.After(time.Second)
 	ticker := time.NewTicker(time.Millisecond)
 	defer ticker.Stop()
@@ -127,8 +130,8 @@ func testEndBranchNewSelection(t *testing.T, outcome error) {
 			t.Fatal("guards did not release")
 		}
 	}
-	if len(updates) != 1 {
-		t.Fatalf("publications = %d, want only the current selection", len(updates))
+	if len(updates) != 0 || a.state.ActionError != "existing error" {
+		t.Fatalf("stale outcome published: updates=%d, error=%q", len(updates), a.state.ActionError)
 	}
 }
 

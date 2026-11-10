@@ -690,8 +690,8 @@ type app struct {
 	submitMu       sync.Mutex
 	submitInFlight bool
 	// Pending end requests are UI concurrency guards, not branch facts. Scope
-	// them to the selection generation and target so other branches or a new
-	// session selection remain independent.
+	// them to the target identity across selection changes; generation only
+	// gates publication. Other sessions and branches remain independent.
 	endBranchMu       sync.Mutex
 	endBranchInFlight map[branchEndFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
@@ -1890,9 +1890,8 @@ func (a *app) branchFrom(sessionID, branchID string, at int64, prompt string) {
 }
 
 type branchEndFlight struct {
-	sessionID  string
-	branchID   string
-	generation uint64
+	sessionID string
+	branchID  string
 }
 
 // endBranch asks the App Server to end one non-main branch, then re-reads the
@@ -1915,7 +1914,7 @@ func (a *app) endBranch(branchID string) {
 	gen := a.currentSelection()
 	_, branchGen := a.displayBranch()
 	endedShown := a.state.SelectedBranch == branchID
-	flight := branchEndFlight{sessionID: sessionID, branchID: branchID, generation: gen}
+	flight := branchEndFlight{sessionID: sessionID, branchID: branchID}
 	a.endBranchMu.Lock()
 	if _, pending := a.endBranchInFlight[flight]; pending {
 		a.endBranchMu.Unlock()
