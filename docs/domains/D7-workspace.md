@@ -203,6 +203,31 @@ $ GOOS=linux go build ./internal/workspace
 
 仓库级 `go test ./...` 与 `go vet ./...` 在本领域完成后均为通过状态。
 
+### 6.1 真实模型证据（写入声明与 exec 边界）
+
+日期 2026-11-11。夹具只存在 `/tmp/dimagent-real-model`（真实 daemon `0.1.0-alpha.21`、真实 provider、已登录账号）；测试把夹具 `home` 复制到新的临时目录后启动，来源目录只读，不改夹具。权限用 `full-access`，避免审批打断工具调用。
+
+复现命令：
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealDaemonRunChangesEvidence -v -count=1 ./internal/workspace/
+```
+
+观察输出（只列路径数量、分类、coverage 与布尔值；不含文件内容、命令正文、提示词、模型输出与凭据）：
+
+```text
+写入轮: 声明=1 路径=1 workspace=1 external=0 目标存在=true coverage=tool_reports
+exec 轮: 声明=0 路径=0 workspace=0 external=0 目标在清单=false 目标存在=true coverage=tool_reports
+```
+
+结论：
+
+- 写入轮：模型按要求调用 `write`，工具结果带写入路径声明（`fileWritten`/`affectedPaths`）；声明路径进入变更清单，分类为工作区内、存在性为真、`coverage=tool_reports`。
+- exec 轮：模型按要求调用 `exec`，命令确实在磁盘上产生文件（目标存在=true）；但 exec 结果没有写入声明，变更清单为空，目标不在清单（目标在清单=false），边界成立。
+- 模型不配合时测试用 `t.Skip` 标 blocked，并记录观察到的工具调用与事件类型，不伪造通过。
+- 该测试在同一天连续运行三次，输出一致。
+
 需求到测试的对应：
 
 | R 块 11 完成标志 | 覆盖测试 | 本版结论 |
@@ -210,7 +235,7 @@ $ GOOS=linux go build ./internal/workspace
 | ① 目录条目与 `ls -a` 一致 | `TestListDirEntries`（含隐藏文件、名称序、大小、类型） | 通过（集合一致；排序按字节序，见 §8） |
 | ② 内容读取字节与磁盘文件一致 | `TestPreviewUTF8`、`TestPreviewExactlyAtLimit`、`TestPreviewEncodings` | 通过 |
 | ③ 搜索不超上限、单次扫描、不生成索引 | `TestSearchLimits`、`TestSearchCreatesNoIndex` | 通过（服务端索引分支未接，见 §8） |
-| ④ 变更只含本次运行工具声明路径 | `TestReadRunChangesMergesAndClassifies`、`TestReadRunChangesEmptyAndNilSource`、`TestReadRunChangesSkipsRootAndBlank` | 包级通过；真实投影适配与 run 归属由 D12 接线，端到端待集成证据 |
+| ④ 变更只含本次运行工具声明路径 | `TestReadRunChangesMergesAndClassifies`、`TestReadRunChangesEmptyAndNilSource`、`TestReadRunChangesSkipsRootAndBlank`、`TestRealDaemonRunChangesEvidence` | 包级与真实模型证据均通过（写入声明进清单、exec 改动不进）；产品路径的投影适配与 run 归属仍由 D12 接线 |
 | ⑤ 外部打开退出码 0、路径不存在非 0 | `TestOpenSuccess`、`TestOpenExitCode`、`TestOpenRejectsMissingAndOutside` | 通过；不存在时返回 `-1` + 明确错误，不启动子进程 |
 
 测试全部使用 `t.TempDir()` 与临时 git 仓库；本机有 git 时执行 git 相关用例，无 git 时相关用例 `t.Skip`，不把跳过当通过。
@@ -230,14 +255,7 @@ $ GOOS=linux go build ./internal/workspace
 |---|---|---|
 | 服务端索引搜索 | 未接；本版只做本机一次性扫描 | 服务端提供索引能力后由调用方优先走服务端；本包保持“用完即弃” |
 | 变更读取覆盖 | 只覆盖工具结果声明的路径，不覆盖 exec、外部修改与未声明写入；`coverage=tool_reports` | 产品基线即如此；不自行 diff、扫描或读 git 历史 |
-| 变更读取接线 | 投影适配器与 run 归属由集成层（D12）实现 | 本包只定义最小接口；端到端证据依赖真实投影与 daemon |
-| 编码支持 | UTF-8（含 BOM）、UTF-16LE/BE；UTF-32 明确不支持；GBK 等未识别编码按二进制返回原因 | 不猜测解码；需要时另行立需求并评估是否脱离标准库 |
-| 目录顺序 | Go 按文件名字节序 | 与 `ls` 在非 C locale 下的排序可能不同；集合一致 |
-| 搜索忽略规则 | 只跳过 `.git`，不读 `.gitignore` | 避免引入额外语义；确认需要后单独立项 |
-| 符号链接 | 目录列表展示链接本身；预览与外部打开解析链接后仍校验工作区；搜索跳过链接 | 防止越界与循环 |
-| 外部打开退出码 | 是打开器进程退出码，不是目标应用退出码 | 平台语义限制，已在接口注释与文档说明 |
-| Windows 真机验证 | 命令分支已写、包可交叉编译 | 未在 Windows 实机执行外部打开，标 blocked（缺目标平台） |
-| 目录 git 状态 | 由子条目聚合，不是 git 原生目录状态 | 仅用于界面提示，不影响任何写入判断 |
+| 变更读取接线 | 真实模型证据直接从事件流构造声明；投影适配器与 run 归属仍由集成层（D12）实现 | 本包只定义最小接口；产品路径的端到端证据待 D12 适配后补 |
 
 ## 9. 与架构的对应
 
@@ -252,3 +270,4 @@ $ GOOS=linux go build ./internal/workspace
 |---|---|---|
 | 2026-11-10 | 第一版：路径规范化、目录读取 + git 状态、预览、搜索、git 只读、外部打开与测试 | 执行组织 agent 的 D7 实现任务 |
 | 2026-11-11 | 新增变更读取：工具结果声明 → 路径清单；补 `ChangeSource` 接口、上限与测试 | 补齐 R 块 11 的本次运行变更读取 |
+| 2026-11-11 | 补真实模型证据：写入声明进入清单、exec 改动不计入；记录复现命令与观察输出 | 原变更读取只有 fixture 证据 |

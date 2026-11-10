@@ -3,7 +3,7 @@
 Status: 第一版实现完成，待组织评审
 Owner: 交互裁决领域 agent
 依据: `docs/domains/R.md` 功能块 6、功能块 7；`docs/domains/A.md` 的「交互裁决」模块、「审批推进」「提问应答」「四条总规矩」；`docs/domains/D3-write.md`；`docs/domains/D2-projection.md`
-范围: 审批与提问的待决集合、推进顺序、应答与长期允许、重放替换、权限档位读写与事实更新、成员停止。不含界面、连接实现、协议 wire 定义、会话折叠内部、目录、账号、管理面。
+范围: 审批与提问的待决集合、推进顺序、应答与长期允许、重放替换、权限档位读写与事实更新、命令规则管理、成员停止。不含界面、连接实现、协议 wire 定义、会话折叠内部、目录、账号、管理面。
 
 ---
 
@@ -20,6 +20,7 @@ Owner: 交互裁决领域 agent
 | 审批推进、提问应答、四条总规矩 | `docs/domains/A.md` | 两张迁移表逐条实现并在启动时校验；队列一次只推一条；不做乐观更新 |
 | 写意图、长期允许与审批应答两条独立意图 | `docs/domains/D3-write.md` | 所有应答、长期规则与成员停止都经写登记；成功/失败/未知/需人工确认直接消费 |
 | 审批通知 | `docs/domains/D1-connection.md` | `approval.request`/`approval.resolved`/`approval.cancelled` 映射成审批 `Fact`，重放用 `Snapshot` |
+| 命令规则 | `permission.rules` / `permission.set_rules` | 读取 revision 与规则集合；新增、编辑、撤销都以带 revision 的整集重写实现；只读缓存不落盘 |
 | 提问清单与工具事实 | D1 `session.question.pending`、`step/tool-use`/`tool-call`/`tool-completed`/`tool-result`；D2 折叠结果 | 清单按固定截止点装载；截止点之后的 `ask_user` 调用与工具结果驱动提问集合；**协议没有提问通知** |
 | 事件词表 | `docs/domains/D2-projection.md` §3.9 | `approval/*`、`permission/changed` 归本领域；本包不读折叠内部 |
 | 错误分类与连接方法 | `docs/domains/D1-connection.md` | 由集成层把通知/列表/工具事实映射成 `Fact`、`Snapshot`、`QuestionSeed`、`QuestionItem`，把 `write.Kind` 映射成 wire 方法 |
@@ -31,12 +32,15 @@ Owner: 交互裁决领域 agent
 | `internal/interaction/interaction.go` | 对外类型（`Fact`、`Snapshot`、`Item`、`Decision`、`Response`、`Outcome`、错误）、`New`、`Apply`/`Replay`/`OnDisconnect`/`Settle`、队列与视图 |
 | `internal/interaction/state.go` | 「审批推进」「提问应答」两张迁移表与启动校验 |
 | `internal/interaction/question.go` | 提问来源：清单/推导装载、`ask_user` 事实、工具结果结算、问题解析 |
+| `internal/interaction/rules.go` | 命令规则：读取、新增、编辑、撤销、只读缓存与 revision 冲突 |
 | `internal/interaction/respond.go` | 应答流程：队首约束、长期允许先写后答、写意图参数与幂等键、重复与不重发 |
 | `internal/interaction/permission.go` | 按会话的权限档位状态；无值拒绝提交；提交参数不被污染 |
 | `internal/interaction/member.go` | 成员停止意图 |
 | `internal/interaction/helpers_test.go` | 写登记测试替身与事实构造 |
 | `internal/interaction/interaction_test.go` | 审批重放、队列推进、结算、重复应答、断线与视图 |
 | `internal/interaction/question_test.go` | 提问清单顺序、批次结算、清单失败退回推导、截止点与重复结算 |
+| `internal/interaction/rules_test.go` | 规则读取、写入、编辑、撤销、冲突与能力缺失 |
+| `internal/interaction/rules_real_test.go` | 真实 daemon 的规则读取/写入/编辑/撤销证据 |
 | `internal/interaction/state_test.go` | 迁移表与文档逐条对应、坏表拒绝 |
 | `internal/interaction/respond_test.go` | 长期允许顺序、写入失败不发应答、重试与不重发 |
 | `internal/interaction/permission_test.go` | 档位取值、无值拒绝提交、按会话隔离、提交参数不被污染 |
@@ -47,7 +51,7 @@ Owner: 交互裁决领域 agent
 **验收**
 
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/interaction/`；本版全部通过（2026-11-11，macOS arm64）。
-- 本领域：49 个顶层测试、20 个子测试通过；真实模型用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
+- 本领域：57 个顶层测试、20 个子测试通过；真实模型与真实规则用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 发出长期规则、审批应答与提问应答，核对服务端收到的请求顺序与参数。
   - 注入写登记替身：覆盖成功、明确失败、需人工确认、结果未知、并发应答等分支。
@@ -57,10 +61,10 @@ Owner: 交互裁决领域 agent
 
 | 依赖 | 需要对方冻结/提供 |
 |---|---|
-| D1 连接 | 审批请求/结算/取消、`permission/changed` 时间线事实、成员状态变化的通知形状；`session.permission.get/update`；`session.question.pending` 清单与时间线工具事实；各写意图的方法名与参数形状；由集成层实现 `Fact`/`QuestionSeed` 映射与 `Sender` |
+| D1 连接 | 审批请求/结算/取消、`permission/changed` 时间线事实、成员状态变化的通知形状；`session.permission.get/update`；`permission.rules/set_rules`；`session.question.pending` 清单与时间线工具事实；各写意图的方法名与参数形状；由集成层实现 `Fact`/`QuestionSeed`/`RuleSource` 映射与 `Sender` |
 | D3 写登记 | `*write.Manager` 直接满足本包 `Writer`（`Register`/`Wait`）；长期允许、审批应答、提问应答各为一条独立意图；明确失败与未发生可重提，未知与需人工确认不重发 |
 | D2 投影 | 不导入本包；D2 已声明 `approval/*`、`permission/changed`、`collaboration/message` 不折叠，事件路由需把这些通知转给本领域 |
-| 集成层（宿主） | 每个打开的会话创建一个裁决器；权限档位随裁决器按会话一份持有；把审批事实与快照交给本包；按截止点读提问清单（失败时注入推导结果），把工具事实与工具结果交给本包 |
+| 集成层（宿主） | 每个打开的会话创建一个裁决器；权限档位随裁决器按会话一份持有；实现 `RuleSource`（把 `permission.rules/set_rules` 映射成 `RuleSet`/`CommandRule`）；把审批事实与快照交给本包；按截止点读提问清单（失败时注入推导结果），把工具事实与工具结果交给本包 |
 | U1 原生界面 | 只读 `Current`/`Items`/`Approvals`/`Questions`/`Counts`，只调 `Respond` 与 `StopMember`；不得自行发送应答或推进队列 |
 
 **上下文需求**
@@ -176,6 +180,17 @@ arbiter.ClearPermissionTier()
 intent, err := arbiter.WithPermission(write.Intent{
     Kind: write.KindSubmitInput, SessionID: "s1", ...
 })
+
+// 命令规则（RuleSource 由集成层实现，wire 不进本包）
+set, err := arbiter.LoadRules(ctx)          // 读取 revision 与规则集合
+rules, ok := arbiter.Rules()                // 只读缓存拷贝
+set, err = arbiter.AddRule(ctx, interaction.CommandRule{
+    Command: "printf ok", Match: interaction.CommandMatchExact,
+    Decision: interaction.CommandDecisionAllow,
+})
+set, err = arbiter.EditRule(ctx, 0, rule)   // 以整集重写实现编辑
+set, err = arbiter.RevokeRule(ctx, 0)       // 以整集重写实现撤销
+unavailable := arbiter.RulesUnavailable()   // 能力缺失后不再发请求
 ```
 
 `Item` 只含业务可观察字段：类型、请求标识、会话/分支/轮次、动作描述、问题与候选项、提问来源与调用清单、可长期允许标记与可用性、推进状态、已发出的决定、队列位置。不含长期规则原文、幂等键、写意图标识等内部字段。
@@ -338,6 +353,33 @@ intent, err := arbiter.WithPermission(write.Intent{
 - `inProgress` 在锁内占位、写完后释放：同一请求同一时刻只允许一次应答跨过校验。
 - 重放或结算可能发生在一次应答写入期间：写入完成后按请求标识重新查找条目，找不到就只记已答记录，不复活条目；条目被替换时把结果落到新条目上。
 
+### 4.11 命令规则管理
+
+**来源与形状**
+
+- 读：`permission.rules` → `{revision, commandRules:[{command, match, decision}]}`；`revision` 是不透明字符串，规则集合是用户级、跨会话。
+- 写：`permission.set_rules {expectedRevision, commandRules}`；新增、编辑、撤销都是**重写整个集合**，不是增量操作。
+- `match` 只有 `exact`/`prefix`，`decision` 只有 `allow`/`deny`；命令必须非空且不含服务端定义的分隔符（`;&|` 反引号、括号、重定向、`$`、换行）。
+- wire 形状只由集成层实现 `RuleSource`；本包只消费 `RuleSet` 与 `CommandRule`。
+
+**缓存**
+
+- `RuleSource.ReadRules` 的结果写入内存只读缓存；`Rules()` 返回深拷贝，调用方改不动缓存；不落盘。
+- 缓存按 `revision` 更新：revision 相同保留原缓存，revision 变化整体替换。
+- 成功写入后用回执 revision 更新缓存；真实 `permission.set_rules` 回执可能只带 revision，此时规则集合以本次提交的集合为准（写入语义就是整集替换）。
+- 读取或写入返回 `ErrRulesUnavailable` 后标记能力缺失；此后的读取/新增/编辑/撤销都直接报 `ErrRulesUnavailable`，不再发任何请求。
+- 写入返回 `ErrRulesConflict` 时返回错误、**不覆盖缓存、不自动重试**；调用方先 `LoadRules` 再决定是否重写。
+
+**新增、编辑、撤销**
+
+| 操作 | 语义 |
+|---|---|
+| `AddRule` | 缓存末尾追加；完全相同的规则已存在时直接返回缓存，不写 |
+| `EditRule(index, rule)` | 用新规则替换第 index 条；index 越界报 `ErrRuleIndex` |
+| `RevokeRule(index)` | 删除第 index 条；允许删到空集合；越界报 `ErrRuleIndex` |
+
+三者都先用缓存里的 revision 作 `expectedRevision`，写成功后更新缓存；校验失败（空命令、分隔符、未知 match/decision）在发请求前返回 `ErrRuleInvalid`。
+
 ## 5. 与 A/R 的对应
 
 | 需求或架构条目 | 本领域实现 | 不在本领域 |
@@ -351,6 +393,7 @@ intent, err := arbiter.WithPermission(write.Intent{
 | R 块 7 结算后移除且不再应答 | `SettleQuestion` 移除；已答记录拒绝重发 | 工具结果/结算事实（D1/D2） |
 | R 块 7 权限档位取值与传递 | 按会话保存 preset；`WithPermission` 校验提交前置条件；读写方法由集成层执行 | `session.permission.get/update` 的 wire（集成层/D1） |
 | R 块 7 成员停止只停成员 | `StopMember` 带 `memberId` 的停止意图 | 成员运行状态读取（D2/D1） |
+| R 块 6/7 命令规则管理 | `LoadRules`/`AddRule`/`EditRule`/`RevokeRule`；整集重写、revision 冲突不覆盖 | `permission.rules/set_rules` wire（集成层） |
 | A 审批推进 / 提问应答 | `state.go` 两张表、启动校验 | — |
 | A 「审批集合、提问集合」镜像状态 | 审批只由 `Apply`/`Replay`/`Settle` 改；提问只由 `SeedQuestions`/`ApplyAskUser`/`SettleQuestion` 改；各自整体替换 | — |
 | A 「审批推进到哪一条」「提问推进到哪一条」 | 队列与 `Position`，只由本包推进 | — |
@@ -367,7 +410,7 @@ go vet ./...
 go test -race ./internal/interaction/
 ```
 
-本版结果（2026-11-11，本机 macOS arm64）：三条命令全部通过；`internal/interaction` 49 个顶层测试、20 个子测试全绿；`TestRealModelApproval` 未设置夹具时跳过，设置后通过（§6.5）。
+本版结果（2026-11-11，本机 macOS arm64）：三条命令全部通过；`internal/interaction` 57 个顶层测试、20 个子测试全绿；`TestRealModelApproval` 与 `TestRealCommandRules` 未设置夹具时跳过，设置后通过（§6.5）。
 
 ### 6.2 覆盖
 
@@ -416,6 +459,14 @@ go test -race ./internal/interaction/
 | 清空档位回到没有值，提交再次被拒 | `TestPermissionClear` |
 | 服务端读取、带版本写入、工具列表保留、时间线 `permission/changed` 驱动同一状态 | `TestPermissionGetUpdateAndTimeline`（`internal/app`） |
 | 版本冲突按冲突处理、不覆盖本地档位 | `TestPermissionUpdateConflictIsNotOverwritten`（`internal/app`） |
+| 规则读取按 revision 缓存，视图是拷贝 | `TestLoadRulesCachesByRevisionAndReturnsCopies` |
+| 新增、编辑、撤销都以整集重写，带上一 revision | `TestAddEditRevokeRewriteRuleSet` |
+| 规则写入冲突返回错误、不覆盖、不自动重试 | `TestRulesConflictDoesNotOverwrite` |
+| 能力缺失后零请求 | `TestRulesUnavailableMakesZeroRequests` |
+| 坏规则与越界下标在发请求前被拒 | `TestRuleValidationAndIndex` |
+| 真实 set_rules 回执只带 revision 时使用提交集合 | `TestWriteReplyWithoutRulesUsesSentSet` |
+| 规则管理不经过写登记 | `TestRulesDoNotUseWriteRegistry` |
+| 真实 daemon 的规则读取、新增、编辑、撤销 | `TestRealCommandRules`（§6.5） |
 | 成员停止只停成员，主线与待决集合不变 | `TestStopMemberOnlyStopsMember` |
 | 成员停止幂等，缺成员标识被拒 | `TestStopMemberIsIdempotent`、`TestStopMemberRequiresMember` |
 
@@ -432,6 +483,7 @@ go test -race ./internal/interaction/
 | D1 通知与事实 | 审批三类通知、`permission/changed`、成员通知；提问没有通知，改用 `session.question.pending` 清单与时间线 `ask_user`/工具结果 | 由集成层映射为 `Fact`、`Snapshot`、`QuestionSeed`、`QuestionItem`；本包不 import 连接包、不复制 wire |
 | D1 发送 | `protocol.Client.CallInto(ctx, method, params, out)` | 集成层实现 `write.Sender`：按 `Kind` 选方法，合入会话、分支、`requestId`，只发一次 |
 | D2 投影 | 事件词表已声明 `approval/*`、`permission/changed` 不归投影；提问清单在投影里有推导结果 | 事件路由把审批与工具事实转给本包；清单读取失败时集成层把投影的待答提问转成推导 `QuestionSeed`；本包不 import 投影包 |
+| 集成层规则 | `RuleSource.ReadRules(ctx)` / `WriteRules(ctx, expectedRevision, rules)` | 把 `permission.rules/set_rules` 映射成 `RuleSet`/`CommandRule`；能力缺失映射 `ErrRulesUnavailable`，版冲突映射 `ErrRulesConflict` |
 
 本包只 import `internal/write`，与 D1/D2 无代码依赖；两侧可独立演进，集成层负责拼接。
 
@@ -473,6 +525,23 @@ Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call th
 1. `session.submit` 没有 permission 字段；带 `"permission"` 提交会被服务端按 `-32602 invalid_params` 拒绝。档位由会话分支 policy 携带，切换走 `session.permission.update`。
 2. 审批应答的决定是 `allow`/`deny`，不是 `approve`/`reject`；长期允许没有 `approval.allow_always` 方法，必须写 `permission.rules`/`permission.set_rules` 命令规则。
 
+**命令规则真实证据**（同一夹具、独立临时 home；只记录 revision 与规则条数，不打印命令全文）：
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealCommandRules -v -count=1 -timeout 6m ./internal/interaction/
+```
+
+```text
+rules: read   revision=native:user/permission:1 count=0
+rules: add    revision=native:user/permission:2 count=1
+rules: edit   revision=native:user/permission:3 count=1
+rules: revoke revision=native:user/permission:4 count=0
+rules: cache  revision=native:user/permission:4 count=0
+```
+
+读、写、编辑、撤销都在真实 daemon 上成功；`permission.set_rules` 的回执只带 revision，规则集合以本次提交的集合为准。夹具复制件已删除，来源未修改。
+
 ### 6.6 blocked
 
 | 项 | 状态 | 缺什么 |
@@ -486,6 +555,7 @@ Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call th
 - 跨会话队列：按会话一条队列，跨会话并行上限等于打开的会话数。
 - 提问通知：协议没有 `question.*`/`elicitation.*`。提问已改为「清单 + 时间线事实」：`session.question.pending` 按固定截止点装载，`ask_user` 调用与工具结果驱动开与结算；本包不再等待、也不伪造提问通知。
 - 真实审批链路：同意、拒绝与长期允许均已在本机真实 daemon + 真实模型上验证（§6.5）。
+- 命令规则：真实 daemon 上的读取、新增、编辑、撤销已通过（§6.5）。
 
 ## 7. 已知限制
 
@@ -508,6 +578,10 @@ Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call th
 17. **提交不携带 permission 字段**：协议没有该字段；提交由会话分支 policy 携带档位，`WithPermission` 只保证已选档位并拒绝无值提交。
 18. **`permission/changed` 不带版本号**：本包只更新 preset，不伪造版本；版本由下一次 get/update 收敛，过期写入以 `permission_conflict` 显式失败。
 19. **长期允许只覆盖简单命令**：只有 `exec`/`execute` 且不含命令分隔符的调用可长期允许；读写文件等其他工具没有对应的服务端长期规则，本版不提供。
+20. **命令规则只在内存**：规则缓存不落盘；重启后重新读取。revision 相同即保留缓存，不比较规则内容。
+21. **规则冲突不自动重试**：`EditRule`/`RevokeRule`/`AddRule` 遇到 `ErrRulesConflict` 只返回错误，必须先 `LoadRules` 再决定；不合并、不覆盖。
+22. **规则回执可能省略集合**：真实 `permission.set_rules` 只回 revision；本包以本次提交的集合更新缓存，若服务端另有裁剪，下一次 `LoadRules` 会纠正。
+23. **规则只覆盖用户级命令**：本包保存会话 preset，但不管理 `allowedTools`/`disallowedTools` 或审批 preset 的写回细节；本包只管理 `permission.rules` 的命令规则。
 
 ## 8. 下一步
 
@@ -517,3 +591,4 @@ Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call th
 4. 与 D3 对齐「需人工确认」在界面上的呈现与人工核对入口，避免应答悬空。
 5. 评估已答记录的清理与重启窗口：在不违反 R8 的前提下，用服务端清单/快照的结算时序降低重复呈现概率。
 6. 补成员停止的真实证据：成员运行标识、停止方法、停止后主线仍运行的读取。
+7. 把命令规则管理接到界面入口（列表、编辑、撤销、冲突重读）；本版只提供领域 API 与真实证据。
