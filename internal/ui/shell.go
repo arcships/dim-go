@@ -391,9 +391,11 @@ type State struct {
 	// to switch to the created branch only after the App Server returned it.
 	// OnEndBranch asks the caller to end one branch and to remove its row only
 	// after session.branches reports it gone. OnRefreshBranches asks the caller
-	// to re-read that directory. OnApproval receives one decision for one
-	// request: the caller sends approval.respond and lets the session projection
-	// settle the row.
+	// to re-read that directory. OnAttachFile asks the caller to open the native
+	// text-file picker and store the chosen file through attachment.put; the
+	// caller adds the returned path to the draft. OnApproval receives one
+	// decision for one request: the caller sends approval.respond and lets the
+	// session projection settle the row.
 	OnSelect          func(sessionID string)
 	OnSelectBranch    func(branchID string)
 	OnBranchFrom      func(sessionID, branchID string, at int64, prompt string)
@@ -401,6 +403,7 @@ type State struct {
 	OnRefreshBranches func()
 	OnCreateSession   func()
 	OnSubmit          func(text string)
+	OnAttachFile      func()
 	OnStop            func()
 	OnReconnect       func()
 	OnApproval        func(branchID, requestID string, decision ApprovalDecision)
@@ -1213,6 +1216,7 @@ func (s *State) actions() Actions {
 		OnEndBranch:       s.OnEndBranch,
 		OnRefreshBranches: s.OnRefreshBranches,
 		OnSubmit:          s.OnSubmit,
+		OnAttachFile:      s.OnAttachFile,
 		OnStop:            s.OnStop,
 		OnReconnect:       s.OnReconnect,
 		OnApproval:        s.OnApproval,

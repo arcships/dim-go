@@ -63,6 +63,9 @@ type fakeDaemon struct {
 	rename     json.RawMessage
 	renameGate chan struct{}
 	renameOnce sync.Once
+	// attachment is the verbatim attachment.put reply (nil means the method is
+	// absent).
+	attachment json.RawMessage
 }
 
 func startFakeDaemon(t *testing.T, address string) *fakeDaemon {
@@ -217,6 +220,13 @@ func (d *fakeDaemon) setRename(raw json.RawMessage) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.rename = append(json.RawMessage(nil), raw...)
+}
+
+// setAttachment scripts the verbatim attachment.put reply.
+func (d *fakeDaemon) setAttachment(raw json.RawMessage) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.attachment = append(json.RawMessage(nil), raw...)
 }
 
 // holdRename makes session.rename wait before replying and returns the release
@@ -457,6 +467,14 @@ func (d *fakeDaemon) result(method string) (any, *appserver.RPCError) {
 		d.mu.Unlock()
 		if raw == nil {
 			return nil, &appserver.RPCError{Code: -32601, Message: "session.summaries not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
+		}
+		return raw, nil
+	case "attachment.put":
+		d.mu.Lock()
+		raw := append(json.RawMessage(nil), d.attachment...)
+		d.mu.Unlock()
+		if raw == nil {
+			return nil, &appserver.RPCError{Code: -32601, Message: "attachment.put not scripted", Data: json.RawMessage(`{"appError":"unknown_method"}`)}
 		}
 		return raw, nil
 	case "session.detach":

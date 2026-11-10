@@ -164,7 +164,7 @@ func TestProtocolNamesStayLiteral(t *testing.T) {
 	}
 
 	translated := []string{
-		keyReasonCreateSession, keyReasonApproval, keyReasonAttachment, keyReasonReconnect,
+		keyReasonCreateSession, keyReasonApproval, keyReasonAttachment, keyReasonAttachmentReady, keyReasonReconnect,
 		keyReasonStop, keyReasonBranches, keyReasonUpdate, keyReasonSearch, keyReasonGroup,
 		keyReasonPin, keyReasonRename, keyReasonArchive, keyReasonKeysEntry, keyReasonEndBranch,
 		keyReasonRefreshBranches, keyReasonBranchCut, keyReasonBranchFrom,
@@ -269,6 +269,7 @@ func TestEnglishTableMatchesConstants(t *testing.T) {
 		{keyReasonCreateSession, reasonCreateSession},
 		{keyReasonApproval, reasonApproval},
 		{keyReasonAttachment, reasonAttachment},
+		{keyReasonAttachmentReady, reasonAttachmentReady},
 		{keyReasonReconnect, reasonReconnect},
 		{keyReasonStop, reasonStop},
 		{keyReasonBranches, reasonBranches},

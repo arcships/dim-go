@@ -131,6 +131,11 @@ const composerHint = "Enter to send · Shift+Enter for a new line"
 const (
 	reasonModel = "Unavailable: this toolbar entry has no model picker; the chip beside Send shows the current model and opens the list, where a model can be selected."
 	reasonMode  = "Unavailable: ComposerView carries no agent mode; the shell exposes no agent-mode fact to the composer yet."
+	// reasonAttachmentReady describes the attachment entry once the window wires
+	// Actions.OnAttachFile: the picker takes a text file and the App Server
+	// stores it, so a link can be added to the draft. Images are not offered
+	// yet; they have no upload method and would need an inline image block.
+	reasonAttachmentReady = "Add a text file: the window opens the native picker and the App Server stores the chosen file, then its link is added to the draft. Image attachments are WIP."
 	// reasonModelPair explains an absent current model: the attach reply
 	// reported no complete provider/model pair, so the chip shows the localized
 	// unconfigured label rather than naming one.
@@ -496,22 +501,28 @@ func composerEditor(c *ui.Context, k tokens, v ComposerView, a Actions) {
 // icon buttons on the left and the round Send entry on the right, as the
 // reference's composer toolbar does. No entry shows a visible WIP badge or a
 // text label: the glyph names it, and its Label, Description and Tooltip carry
-// the accessible name and the reason it cannot run yet.
+// the accessible name and either the action it starts or the reason it cannot
+// run yet.
 func composerActions(c *ui.Context, k tokens, v ComposerView, a Actions) {
 	locale := v.Locale
 	ui.Row(c).Gap(k.gap).AlignItems(ui.Center).Children(func() {
 		// The attachment entry keeps the first place in the Tab order, as the
-		// shell's keyboard contract documents it: it stays focusable and reads
-		// as unavailable, while a click reports nothing the App Server did not
-		// do. The mode and model entries use Disabled instead: they are new
-		// entries, and a tab stop would insert itself between "Attach file" and
-		// the editor, changing that documented order.
+		// shell's keyboard contract documents it. With Actions.OnAttachFile wired
+		// it is a real, keyboard-reachable button; without it, it stays visible
+		// and focusable but reads as unavailable, and a click reports nothing the
+		// App Server did not do. The mode and model entries use Disabled instead:
+		// they are new entries, and a tab stop would insert itself between
+		// "Attach file" and the editor, changing that documented order.
+		attachReason := tr(locale, keyReasonAttachment)
+		if a.OnAttachFile != nil {
+			attachReason = tr(locale, keyReasonAttachmentReady)
+		}
 		composerTool(c, k, sidebarIcons.plus, tr(locale, keyComposerAttach),
-			tr(locale, keyReasonAttachment), true)
+			attachReason, true, a.OnAttachFile)
 		composerTool(c, k, composerGlyphs.modeChevron, tr(locale, keyComposerMode),
-			tr(locale, keyReasonMode), false)
+			tr(locale, keyReasonMode), false, nil)
 		composerTool(c, k, composerGlyphs.cube, tr(locale, keyComposerModel),
-			tr(locale, keyReasonModel), false)
+			tr(locale, keyReasonModel), false, nil)
 		ui.Box(c).Grow(1)
 		// The chip shows the current App Server model pair, or the localized
 		// unconfigured label with the read's reason. It opens the model list,
@@ -678,21 +689,27 @@ func modelChoiceRow(c *ui.Context, k tokens, v ComposerView, a Actions, choice M
 	})
 }
 
-// composerTool draws one toolbar glyph button: a square, borderless button that
-// carries no action, because the shell has no attachment picker, agent mode or
-// model list to open yet. Its accessible name is the localized label, and its
-// Description and Tooltip say what it waits on. It keeps the reference's glyph
-// weight rather than dimming to the old WIP opacity, so the toolbar still looks
-// like the one it copies; the unavailable state is what assistive technology
-// reads and every click is ignored. tabStop decides whether it keeps a place in
-// the Tab order: only the attachment entry does, so the documented order does
-// not change.
-func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, tabStop bool) {
+// composerTool draws one toolbar glyph button: a square, borderless button
+// whose accessible name is the localized label and whose Description and
+// Tooltip carry either the action it starts or the reason it waits. A nil
+// onClick leaves it available to the keyboard but unavailable to assistive
+// technology: the click is ignored, so the region never reports a result the
+// App Server did not produce. A wired onClick makes it a real button. It keeps
+// the reference's glyph weight rather than dimming to the old WIP opacity, so
+// the toolbar still looks like the one it copies. tabStop decides whether it
+// keeps a place in the Tab order: only the attachment entry does, so the
+// documented order does not change.
+func composerTool(c *ui.Context, k tokens, icon *ui.SVG, label, reason string, tabStop bool, onClick func()) {
 	size := k.space(composerToolSpan)
 	button := ui.ButtonBase(c).Key("composer-tool:"+label).Size(size, size).Radius(k.radiusSM).
 		AlignItems(ui.Center).Justify(ui.Center).
 		Label(label).Description(reason).Tooltip(reason).Transition(motionFastColors(c))
-	if tabStop {
+	if onClick != nil {
+		button.OnClick(onClick)
+		if button.Hovered() {
+			button.Background(k.muted)
+		}
+	} else if tabStop {
 		button.AccessDisabled(true)
 	} else {
 		button.Disabled(true).AccessDisabled(true)

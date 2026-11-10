@@ -147,6 +147,11 @@ type fakeSession struct {
 	renameResult     appserver.RenameResult
 	renamed          []*string
 	titleState       session.TitleState
+	attachmentErr    error
+	attachmentResult appserver.AttachmentPutResult
+	attachmentCalls  int
+	attachmentName   string
+	attachmentText   string
 	modelsCatalog    session.ModelCatalog
 	modelsErr        error
 	modelSelection   session.ModelSelection
@@ -420,6 +425,18 @@ func (f *fakeSession) Rename(_ context.Context, title *string) (appserver.Rename
 		f.renamed = append(f.renamed, &copy)
 	}
 	return f.renameResult, nil
+}
+
+// AttachmentPut records the one upload the window sent and returns the test's
+// result. A test scripts a path so a successful upload never looks like an empty
+// App Server reply.
+func (f *fakeSession) AttachmentPut(_ context.Context, name, text string) (appserver.AttachmentPutResult, error) {
+	f.attachmentCalls++
+	f.attachmentName, f.attachmentText = name, text
+	if f.attachmentErr != nil {
+		return appserver.AttachmentPutResult{}, f.attachmentErr
+	}
+	return f.attachmentResult, nil
 }
 
 // Title returns the metadata the test supplied, as the session layer would.

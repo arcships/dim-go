@@ -134,6 +134,7 @@ const (
 	keyReasonCreateSession   = "reason.createSession"
 	keyReasonApproval        = "reason.approval"
 	keyReasonAttachment      = "reason.attachment"
+	keyReasonAttachmentReady = "reason.attachmentReady"
 	keyReasonReconnect       = "reason.reconnect"
 	keyReasonStop            = "reason.stop"
 	keyReasonBranches        = "reason.branches"
@@ -429,6 +430,7 @@ var stringsEN = Strings{
 	keyReasonCreateSession:   reasonCreateSession,
 	keyReasonApproval:        reasonApproval,
 	keyReasonAttachment:      reasonAttachment,
+	keyReasonAttachmentReady: reasonAttachmentReady,
 	keyReasonReconnect:       reasonReconnect,
 	keyReasonStop:            reasonStop,
 	keyReasonBranches:        reasonBranches,
@@ -558,7 +560,7 @@ var stringsEN = Strings{
 	keyCapabilityApprovals:         "Approvals",
 	keyCapabilityApprovalsGap:      "helper exists; window has no approval callback",
 	keyCapabilityAttachments:       "Attachments",
-	keyCapabilityAttachmentsGap:    "helper exists; shell has no file picker and keeps unknown upload results disabled",
+	keyCapabilityAttachmentsGap:    "helper exists; this window has no text-file picker callback and keeps unknown upload results disabled",
 	keyCapabilityConnectionRecover: "Connection recovery",
 	keyCapabilityConnectionGap:     "helper exists; shell not wired",
 	keyCapabilityTurnCancel:        "Turn cancellation",
@@ -673,7 +675,8 @@ var stringsZHCN = Strings{
 
 	keyReasonCreateSession:   "不可用：窗口还没有 session.create 回调。",
 	keyReasonApproval:        "不可用：shell 还没有接到 approval.respond 的审批回调。",
-	keyReasonAttachment:      "不可用：attachment.put 还没有接到文件选择器；上传结果可能未知。",
+	keyReasonAttachment:      "不可用：attachment.put 还没有接到本窗口的文件选择器回调；上传结果可能未知。",
+	keyReasonAttachmentReady: "添加文本文件：窗口会打开系统文件选择器，App Server 保存选中的文件，然后把链接加入草稿。图片附件仍为 WIP。",
 	keyReasonReconnect:       "不可用：shell 还没有接到 supervisor 的重连。",
 	keyReasonStop:            "不可用：shell 还没有 session.stop 回调。",
 	keyReasonBranches:        "不可用：分支切换/切点还没有接线。",
@@ -803,7 +806,7 @@ var stringsZHCN = Strings{
 	keyCapabilityApprovals:         "审批",
 	keyCapabilityApprovalsGap:      "Go 客户端已有 helper；窗口还没有审批回调",
 	keyCapabilityAttachments:       "附件",
-	keyCapabilityAttachmentsGap:    "Go 客户端已有 helper；shell 还没有文件选择器，上传结果未知时保持禁用",
+	keyCapabilityAttachmentsGap:    "Go 客户端已有 helper；本窗口还没有文本文件选择器回调，上传结果未知时保持禁用",
 	keyCapabilityConnectionRecover: "连接恢复",
 	keyCapabilityConnectionGap:     "Go 客户端已有 helper；shell 还没有接线",
 	keyCapabilityTurnCancel:        "取消回合",
