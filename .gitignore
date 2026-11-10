@@ -12,3 +12,7 @@
 # Local test artifacts
 coverage.out
 *.prof
+
+# Local build artifacts
+/dimagent
+/dimagent-conncheck
