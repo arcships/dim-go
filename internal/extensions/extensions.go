@@ -428,9 +428,71 @@ func normalizeManagementWrite(managed ManagementWrite) (ManagementWrite, error) 
 	case opWireHooksSave:
 		managed.Op = OpHookWrite
 	case opWireMCPSave:
+		var payload struct {
+			ID              string          `json:"id"`
+			ServerID        string          `json:"serverId"`
+			Source          string          `json:"source"`
+			ExpectedVersion string          `json:"expectedVersion"`
+			Configuration   json.RawMessage `json:"configuration"`
+			Server          *ToolServerSpec `json:"server"`
+		}
+		if len(managed.Payload) > 0 {
+			if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+				return ManagementWrite{}, fmt.Errorf("%w: mcp.save 载荷无法解析: %v", ErrInvalidRequest, err)
+			}
+		}
+		spec := ToolServerSpec{}
+		if payload.Server != nil {
+			spec = *payload.Server
+		}
+		id := payload.ID
+		if id == "" {
+			id = payload.ServerID
+		}
+		if spec.Name == "" {
+			spec.Name = id
+		}
+		if spec.Source == "" {
+			spec.Source = Source(payload.Source)
+		}
+		if spec.ExpectedVersion == "" {
+			spec.ExpectedVersion = payload.ExpectedVersion
+		}
+		if len(spec.Configuration) == 0 {
+			spec.Configuration = payload.Configuration
+		}
+		if spec.Name == "" {
+			return ManagementWrite{}, invalidRequest("mcp.save 缺少条目标识")
+		}
+		raw, err := json.Marshal(ToolServerAddPayload{Server: spec})
+		if err != nil {
+			return ManagementWrite{}, fmt.Errorf("编码 mcp.save 载荷: %w", err)
+		}
 		managed.Op = OpToolServerAdd
+		managed.Payload = raw
 	case opWireMCPRemove:
+		var payload struct {
+			ID       string `json:"id"`
+			ServerID string `json:"serverId"`
+		}
+		if len(managed.Payload) > 0 {
+			if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+				return ManagementWrite{}, fmt.Errorf("%w: mcp.remove 载荷无法解析: %v", ErrInvalidRequest, err)
+			}
+		}
+		id := payload.ID
+		if id == "" {
+			id = payload.ServerID
+		}
+		if id == "" {
+			return ManagementWrite{}, invalidRequest("mcp.remove 缺少条目标识")
+		}
+		raw, err := json.Marshal(ToolServerRemovePayload{ServerID: id})
+		if err != nil {
+			return ManagementWrite{}, fmt.Errorf("编码 mcp.remove 载荷: %w", err)
+		}
 		managed.Op = OpToolServerRemove
+		managed.Payload = raw
 	case opWireWakeupCancel:
 		managed.Op = OpWakeupCancel
 	case opWirePluginEnable, opWirePluginDisable:

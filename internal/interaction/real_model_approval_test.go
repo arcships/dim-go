@@ -52,6 +52,9 @@ func TestRealModelApproval(t *testing.T) {
 	})
 
 	approveScenario(t, ctx, base, sessionID)
+	if os.Getenv("DIM_APPROVAL_ONLY") == "approve" {
+		return
+	}
 	denyScenario(t, ctx, base, sessionID)
 	longTermScenario(t, ctx, base, sessionID)
 }
@@ -175,9 +178,36 @@ func longTermScenario(t *testing.T, ctx context.Context, base *app.App, sessionI
 	t.Fatal("第二次提交没有在时限内执行")
 }
 
+// describeView 只打印结构与状态，不打印任何会话正文。
+func describeView(t *testing.T, ctx context.Context, base *app.App, sessionID string) {
+	t.Helper()
+	view, ok := base.View(sessionID)
+	if !ok {
+		t.Logf("view: missing session")
+		return
+	}
+	t.Logf("view: ok=%t current=%t approvals=%d questions=%d turns=%d",
+		ok, view.HasCurrent, view.PendingCounts.Approvals, view.PendingCounts.Questions, len(view.Turns))
+	for i, turn := range view.Turns {
+		t.Logf("view: turn[%d] status=%s", i, turn.Status)
+	}
+	for i, row := range view.Rows {
+		tool := ""
+		isError := false
+		resultLen := 0
+		if row.Tool != nil {
+			tool = row.Tool.Name
+			isError = row.Tool.IsError
+			resultLen = len(row.Tool.Result)
+		}
+		t.Logf("view: row[%d] kind=%s status=%s tool=%s isError=%t resultLen=%d",
+			i, row.Kind, row.Status, tool, isError, resultLen)
+	}
+}
+
 func waitApproval(t *testing.T, ctx context.Context, base *app.App, sessionID string) interaction.Item {
 	t.Helper()
-	deadline := time.Now().Add(3 * time.Minute)
+	deadline := time.Now().Add(90 * time.Second)
 	for time.Now().Before(deadline) {
 		view, _ := base.View(sessionID)
 		if view.HasCurrent && view.Current.Kind == interaction.PendingApproval {
@@ -188,10 +218,12 @@ func waitApproval(t *testing.T, ctx context.Context, base *app.App, sessionID st
 		}
 		select {
 		case <-ctx.Done():
+			describeView(t, ctx, base, sessionID)
 			t.Fatalf("等待审批请求超时: %v", ctx.Err())
 		case <-time.After(100 * time.Millisecond):
 		}
 	}
+	describeView(t, ctx, base, sessionID)
 	t.Fatal("等待审批请求超时")
 	return interaction.Item{}
 }
@@ -295,6 +327,9 @@ func startRealApp(t *testing.T, home, fixture string) *app.App {
 		},
 		RequestTimeout: 30 * time.Second,
 		CloseTimeout:   20 * time.Second,
+		Logf: func(format string, args ...any) {
+			t.Logf("app: "+format, args...)
+		},
 	})
 	if err != nil {
 		t.Fatalf("创建集成层: %v", err)

@@ -655,9 +655,33 @@ func TestDecodeRealMethodNamesNormalizes(t *testing.T) {
 			wantOp: OpToolServerAdd,
 		},
 		{
+			name:   "mcp save",
+			params: `{"op":"mcp.save","payload":{"id":"m1","source":"user","expectedVersion":"v1","configuration":{"command":"x"}}}`,
+			wantOp: OpToolServerAdd,
+			check: func(t *testing.T, payload json.RawMessage) {
+				var decoded ToolServerAddPayload
+				if err := json.Unmarshal(payload, &decoded); err != nil {
+					t.Fatalf("解析 mcp.save 载荷: %v", err)
+				}
+				if decoded.Server.Name != "m1" || decoded.Server.Source != SourceUser ||
+					decoded.Server.ExpectedVersion != "v1" || len(decoded.Server.Configuration) == 0 {
+					t.Fatalf("mcp.save 归一不符: %+v", decoded)
+				}
+			},
+		},
+		{
 			name:   "mcp remove",
 			params: `{"op":"mcp.remove","payload":{"id":"m1","source":"user"}}`,
 			wantOp: OpToolServerRemove,
+			check: func(t *testing.T, payload json.RawMessage) {
+				var decoded ToolServerRemovePayload
+				if err := json.Unmarshal(payload, &decoded); err != nil {
+					t.Fatalf("解析 mcp.remove 载荷: %v", err)
+				}
+				if decoded.ServerID != "m1" {
+					t.Fatalf("mcp.remove 归一不符: %+v", decoded)
+				}
+			},
 		},
 		{
 			name:   "session wakeup cancel",

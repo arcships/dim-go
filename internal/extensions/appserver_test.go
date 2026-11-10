@@ -236,8 +236,11 @@ func (h *appServerHarness) ReadHooks(ctx context.Context) ([]Hook, error) {
 	hooks := make([]Hook, 0, len(result.Hooks))
 	for index, raw := range result.Hooks {
 		var hook wireHook
-		if err := json.Unmarshal(raw, &hook); err != nil || hook.ID == "" {
-			return nil, fmt.Errorf("hooks.catalog hooks[%d] 的条目形状尚未冻结: %w", index, err)
+		if err := json.Unmarshal(raw, &hook); err != nil {
+			return nil, fmt.Errorf("hooks.catalog hooks[%d] 无法解析: %w", index, err)
+		}
+		if hook.ID == "" {
+			return nil, fmt.Errorf("hooks.catalog hooks[%d] 的条目形状尚未冻结：缺少 id", index)
 		}
 		hooks = append(hooks, Hook{
 			ID:      hook.ID,
@@ -643,7 +646,8 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		return write.Reply{Result: raw}, nil
 	case OpToolServerAdd:
 		var payload ToolServerAddPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err == nil && payload.Server.Name != "" {
+		if err := json.Unmarshal(managed.Payload, &payload); err == nil &&
+			(payload.ImportSource != "" || payload.Server.Name != "") {
 			if payload.ImportSource != "" {
 				raw, err := h.client.Call(ctx, "mcp.import.apply", map[string]any{
 					"source": payload.ImportSource,
