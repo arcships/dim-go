@@ -348,10 +348,9 @@ func TestSenderMapsIntentKinds(t *testing.T) {
 		Sessions: []fakeappserver.Session{{ID: testSession}},
 		Replies: []fakeappserver.Reply{
 			{Method: "approval.respond", Result: map[string]any{"ok": true}},
-			{Method: "approval.allow_always", Result: map[string]any{"ok": true}},
 			{Method: "question.respond", Result: map[string]any{"ok": true}},
 			{Method: "session.stop", Result: map[string]any{"stopped": true}},
-			{Method: "plugin.set_enabled", Result: map[string]any{"pluginId": "demo"}},
+			{Method: "plugin.enable", Result: map[string]any{"status": "running"}},
 			{Method: "settings.update", Result: map[string]any{"revision": "r2"}},
 			{Method: "session.delete", Result: nil},
 			{Method: "account.logout", Result: map[string]any{"ok": true}},
@@ -375,22 +374,8 @@ func TestSenderMapsIntentKinds(t *testing.T) {
 			},
 			method: "approval.respond",
 			check: func(t *testing.T, params map[string]any) {
-				if params["requestId"] != "a1" || params["decision"] != "approve" || params["sessionId"] != testSession {
+				if params["requestId"] != "a1" || params["decision"] != "allow" || params["sessionId"] != testSession {
 					t.Fatalf("审批应答参数不对: %v", params)
-				}
-			},
-		},
-		{
-			name: "long term allow",
-			intent: write.Intent{
-				Key: "k-longterm", Kind: write.KindLongTermAllow,
-				SessionID: testSession, InputID: "a1",
-				Params: json.RawMessage(`{"tool":"Bash"}`),
-			},
-			method: "approval.allow_always",
-			check: func(t *testing.T, params map[string]any) {
-				if params["requestId"] != "a1" || params["tool"] != "Bash" {
-					t.Fatalf("长期规则参数不对: %v", params)
 				}
 			},
 		},
@@ -423,10 +408,10 @@ func TestSenderMapsIntentKinds(t *testing.T) {
 			intent: write.Intent{
 				Key: "k-ext", Kind: write.KindManagementWrite, Params: pluginParams,
 			},
-			method: "plugin.set_enabled",
+			method: "plugin.enable",
 			check: func(t *testing.T, params map[string]any) {
-				if params["pluginId"] != "demo" || params["enabled"] != true {
-					t.Fatalf("插件启停参数不对: %v", params)
+				if params["name"] != "demo" {
+					t.Fatalf("插件启用参数不对: %v", params)
 				}
 			},
 		},
@@ -487,6 +472,67 @@ func TestSenderMapsIntentKinds(t *testing.T) {
 			}
 			testCase.check(t, requestParams(t, requests[0]))
 		})
+	}
+}
+
+// TestSenderWritesCommandRuleForLongTerm 核对长期允许走真实的服务端命令规则：
+// permission.rules 读 revision，permission.set_rules 带 revision 追加 allow 规则。
+func TestSenderWritesCommandRuleForLongTerm(t *testing.T) {
+	server := startFakeServer(t, fakeappserver.Script{
+		Sessions: []fakeappserver.Session{{ID: testSession}},
+		Replies: []fakeappserver.Reply{
+			{Method: "permission.rules", Result: map[string]any{
+				"revision": "r1", "commandRules": []any{},
+			}},
+			{Method: "permission.set_rules", Result: map[string]any{
+				"revision": "r2",
+				"commandRules": []any{map[string]any{
+					"command": "printf DIMAGENT_APPROVAL_OK", "match": "exact", "decision": "allow",
+				}},
+			}},
+		},
+	})
+	result := startAssembly(t, server, assemblyOptions{session: testSession})
+	writes := result.base.Writes()
+
+	registered, err := writes.Register(write.Intent{
+		Key: "k-longterm", Kind: write.KindLongTermAllow,
+		SessionID: testSession, BranchID: "main", InputID: "a1",
+		Params: json.RawMessage(`{"command":"printf DIMAGENT_APPROVAL_OK","match":"exact","decision":"allow"}`),
+	})
+	if err != nil {
+		t.Fatalf("登记长期允许: %v", err)
+	}
+	settled, err := writes.Wait(context.Background(), registered.ID)
+	if err != nil {
+		t.Fatalf("等待长期允许: %v", err)
+	}
+	if settled.Status != write.StatusSucceeded {
+		t.Fatalf("长期规则应写入成功，实际 %s（%s）", settled.Status, settled.Reason)
+	}
+
+	read := server.RequestsFor("permission.rules")
+	if len(read) != 1 {
+		t.Fatalf("permission.rules 应读一次，实际 %d", len(read))
+	}
+	set := server.RequestsFor("permission.set_rules")
+	if len(set) != 1 {
+		t.Fatalf("permission.set_rules 应写一次，实际 %d", len(set))
+	}
+	params := requestParams(t, set[0])
+	if params["expectedRevision"] != "r1" {
+		t.Fatalf("规则写入缺少 revision: %v", params)
+	}
+	rules, ok := params["commandRules"].([]any)
+	if !ok || len(rules) != 1 {
+		t.Fatalf("规则列表不对: %v", params["commandRules"])
+	}
+	rule, _ := rules[0].(map[string]any)
+	if rule["command"] != "printf DIMAGENT_APPROVAL_OK" || rule["match"] != "exact" || rule["decision"] != "allow" {
+		t.Fatalf("命令规则内容不对: %v", rule)
+	}
+	if got := len(server.RequestsFor("approval.respond")); got != 0 {
+		t.Fatalf("长期允许本身不应直接发审批应答，实际 %d", got)
 	}
 }
 

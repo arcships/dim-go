@@ -11,13 +11,19 @@ import (
 type Topic string
 
 const (
-	TopicPlugins     Topic = "plugins"
-	TopicSkills      Topic = "skills"
-	TopicHooks       Topic = "hooks"
-	TopicToolServers Topic = "tool_servers"
-	TopicScheduler   Topic = "scheduler"
-	TopicWorkflows   Topic = "workflows"
-	TopicWakeups     Topic = "wakeups"
+	TopicPlugins   Topic = "plugins"
+	TopicSkills    Topic = "skills"
+	TopicHooks     Topic = "hooks"
+	TopicMCP       Topic = "mcp"
+	TopicSchedule  Topic = "schedule"
+	TopicWorkflows Topic = "workflows"
+	TopicWakeups   Topic = "wakeups"
+)
+
+// 以下别名只为兼容尚未跟随改名的集成层与测试；新代码使用上面的名称。
+const (
+	TopicToolServers = TopicMCP
+	TopicScheduler   = TopicSchedule
 )
 
 // Notice 是一条管理面变更通知。
@@ -112,11 +118,11 @@ func (s *Service) handleNotice(ctx context.Context, notice Notice) {
 		if s.cfg.Hooks != nil {
 			_, _ = s.ListHooks(ctx)
 		}
-	case TopicToolServers:
+	case TopicMCP:
 		if s.cfg.ToolServers != nil {
 			_, _ = s.ListToolServers(ctx)
 		}
-	case TopicScheduler:
+	case TopicSchedule:
 		if s.cfg.Scheduler != nil {
 			_, _ = s.ListScheduledTasks(ctx)
 		}

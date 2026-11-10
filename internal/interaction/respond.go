@@ -198,7 +198,8 @@ func (d Decision) wire() string {
 	case DecisionReject:
 		return "reject"
 	case DecisionAllowLongTerm:
-		return "allow_always"
+		// 长期规则写入成功后，应答本身只是一次普通允许。
+		return "allow"
 	case DecisionCancel:
 		return "cancel"
 	case DecisionAnswer:

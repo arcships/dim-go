@@ -42,8 +42,8 @@ func TestApprovalNoticesRouteToArbiter(t *testing.T) {
 		"source": map[string]any{
 			"kind": "tool", "turn_id": "t1", "request_id": "r1", "call_id": "c1",
 		},
-		"call":   map[string]any{"name": "read_file", "input": map[string]any{"path": "/work/a.go"}},
-		"reason": "读取文件",
+		"call":   map[string]any{"name": "exec", "input": map[string]any{"command": "printf DIMAGENT_APPROVAL_OK"}},
+		"reason": "启动进程",
 	}
 	if err := server.Notify("approval.request", approval); err != nil {
 		t.Fatalf("推送审批请求: %v", err)
@@ -54,11 +54,11 @@ func TestApprovalNoticesRouteToArbiter(t *testing.T) {
 	if view.Current.RequestID != "ap-1" || view.Current.SessionID != testSession || view.Current.BranchID != "main" {
 		t.Fatalf("审批事实归属不对: %+v", view.Current)
 	}
-	if view.Current.Action != "read_file：读取文件" {
+	if view.Current.Action != "exec：启动进程" {
 		t.Fatalf("审批动作描述不对: %q", view.Current.Action)
 	}
 	if !view.Current.AllowLongTerm {
-		t.Fatal("单字段绝对路径的读操作应可长期允许")
+		t.Fatal("简单 exec 命令应可长期允许")
 	}
 	if view.PendingCounts.Approvals != 1 {
 		t.Fatalf("待决审批条数应为 1，实际 %d", view.PendingCounts.Approvals)

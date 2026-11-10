@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver/failure"
 	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/appserver/session"
 	"github.com/arcships/dimagent-mygo/internal/catalog"
@@ -160,6 +161,8 @@ func (a *App) loadFirstHistory(ctx context.Context, runtime *sessionRuntime) {
 	runtime.historyLoaded = true
 	// 清单按 attach 之后、首轮历史之后的截止点读：之后的变化由事件结算。
 	a.seedPending(ctx, runtime)
+	// 权限档位来自服务端策略；读不到只记诊断，不补默认档位。
+	a.refreshPermission(ctx, runtime)
 }
 
 // firstCatalogSession 读目录第一页，返回第一条会话标识；读不到时返回错误与空标识。
@@ -347,15 +350,6 @@ func (a *App) Respond(
 	return runtime.arbiter.Respond(ctx, requestID, response)
 }
 
-// SetPermissionTier 保存本会话的权限档位。
-func (a *App) SetPermissionTier(sessionID string, tier interaction.PermissionTier) error {
-	runtime, ok := a.session(sessionID)
-	if !ok {
-		return ErrSessionNotOpen
-	}
-	return runtime.arbiter.SetPermissionTier(tier)
-}
-
 // StopMember 停止某个成员的运行，不触碰主线。
 func (a *App) StopMember(sessionID string, member interaction.MemberRef) (write.IntentView, error) {
 	if err := a.Writable(); err != nil {
@@ -462,4 +456,17 @@ func (a *App) sessionSupportsMethod(ctx context.Context, runtime *sessionRuntime
 		return false
 	}
 	return methods.Has(method)
+}
+
+// openRuntime 返回一个已打开会话；没有打开时按不可重试失败处理，不发请求。
+func (a *App) openRuntime(sessionID, method string) (*sessionRuntime, error) {
+	if strings.TrimSpace(sessionID) == "" {
+		return nil, fmt.Errorf("%w: %s 缺少会话标识", write.ErrInvalidIntent, method)
+	}
+	runtime, ok := a.session(sessionID)
+	if !ok {
+		return nil, failure.New(failure.KindNonRetryable, method,
+			fmt.Errorf("%w: %s 需要先打开会话", ErrSessionNotOpen, method))
+	}
+	return runtime, nil
 }

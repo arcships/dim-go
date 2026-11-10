@@ -42,8 +42,8 @@ Owner: 账号领域 agent
 
 **验收**
 
-- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/account/`；本版全部通过（2026-11-10，macOS arm64）。
-- 本领域：45 个顶层测试、14 个子测试通过；另有 2 个真实账号夹具测试在未设置夹具环境变量时跳过。覆盖见 §6.2。
+- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/account/`；本版全部通过（2026-11-11，macOS arm64）。
+- 本领域：47 个顶层测试（含 2 个真实账号夹具测试）、14 个子测试；未设置夹具环境变量时夹具测试跳过，其余 45 个通过。覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖状态读取、登录回调、登出与重置。
   - 注入替身：状态/用量/模型读取、授权来源、系统浏览器、写登记在单元测试里替换，覆盖超时、取消、拒绝、校验不一致、聚合不可用与不重发。
@@ -278,9 +278,14 @@ view, err = acct.Reset(ctx)                    // 经写登记
 go test ./...
 go vet ./...
 go test -race ./internal/account/
+
+# 真实账号夹具（需要临时 home 与真实 App Server；未设置时自动跳过）
+DIMAGENT_ACCOUNT_FIXTURE=/tmp/<fixture-home> \
+DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
+  go test ./internal/account -run TestRealAccountFixture -v
 ```
 
-本版结果：三条命令全部通过；`internal/account` 的 45 个顶层测试、14 个子测试全绿（2026-11-10，本机 macOS arm64）。
+本版结果：常规三条命令全部通过，`internal/account` 的 45 个顶层测试、14 个子测试全绿；2 个真实账号夹具测试在设置夹具环境变量后通过（2026-11-11，本机 macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -311,52 +316,118 @@ go test -race ./internal/account/
 | 重置未知不重复提交；只在明确失败后重提 | `TestResetUnknownIsNotResent`、`TestResetRetriesOnlyAfterExplicitFailure` |
 | 无写登记时动作不可用 | `TestActionsRequireWriter` |
 | 假服务端覆盖重置无回执 → 需人工确认；重启不补发 | `TestAppServerResetUnknownIsNotResent` |
+| 完成交换带上尝试标识与完整回调地址；未完成时交回服务端取消 | `TestLoginOpensBrowserReceivesCallbackAndRefreshes`、`TestLoginTimeout`、`TestLoginCancel` |
+| 真实夹具：账号状态、逐项用量、模型清单三条读取 | `TestRealAccountFixtureReads` |
+| 真实夹具：登录发起、环回 `/auth/callback`、尝试标识与取消 | `TestRealAccountFixtureLoginBeginReleases` |
 
-证据档位：`fakeappserver`（本机 Unix socket + NDJSON + 真实 `write.Manager`）与注入替身；真实账号、真实登录与真实用量未验证。
+证据档位：`fakeappserver`（本机 Unix socket + NDJSON + 真实 `write.Manager`）、注入替身，以及临时产品 home 上的真实账号夹具（见 §6.4）；真实浏览器登录完成与真实登出/重置未验证。
 
 ### 6.3 与 D1/D3 的接口形状
 
 | 提供方 | 形状 | 本包消费方式 |
 |---|---|---|
-| D1 连接 | `protocol.Client.Call` / `CallInto` | 集成层用它实现 `StatusReader`、`UsageReader`、`ModelReader` 与 `AuthorizationSource`，把 wire 回执映射成 `Fact`/`Usage`/`Model`，不把 wire 类型带进本包 |
+| D1 连接 | `protocol.Client.Call` / `CallInto` | 集成层用它实现 `StatusReader`、`UsageReader`、`ModelReader`、`AuthorizationSource` 与可选的 `AuthorizationCanceler`，把 wire 回执映射成 `Fact`/`Usage`/`Model`，不把 wire 类型带进本包 |
 | D1 错误分类 | `failure.KindOf(err)` | 读取失败原样返回；写动作的错误由 D3 分类 |
 | D1 会话流 | 与本领域无关 | 账号状态不依赖会话是否打开；本包不订阅通知、不轮询 |
 | D3 写登记 | `Register(write.Intent)` / `Wait(ctx, id)` | `*write.Manager` 直接满足 `Writer`；账号动作用 `KindAccountAction`，透明参数 `{"op":"logout"|"reset"}`，幂等键 `account:<op>:<n>` |
 | D3 结果语义 | `StatusSucceeded` / `Failed` / `NotOccurred` / `Unknown` / `NeedsManualConfirmation` | 只有成功清空登录状态；只有失败与未发生允许重提；其余只等待同一条意图 |
 | D11 管理面 / U1 界面 | `Snapshot`、`Usage`、`ModelList`、`LoginState`、`write.IntentView` | 只读；动作只调 `Login`/`CancelLogin`/`Logout`/`Reset` |
 
+真实 App Server（alpha.21）的账号方法与本领域映射：
+
+| 能力 | 真实方法 | 参数/回执要点 | 本领域对应 |
+|---|---|---|---|
+| 提供者 | `account.providers` | 返回 `providerId`、`displayName`、`loginMethods`、`defaultDirectory` | 集成层据此确认账号能力存在 |
+| 状态 | `account.status` | `{providerId}` → `{credentialEpoch, generation, account?}`；`account` 为空即未登录 | `ReadAccount` → `Fact`；`account.subject` 映射 `Identity.AccountID` |
+| 用量 | `account.usage` | `{providerId}` → `features[]`、`windows[]`、`credits`、`plan` | `ReadUsage` → `Usage`；`features`/`windows` → `Lines`，`credits` → `Aggregate` |
+| 模型 | `provider.catalog` | `{providerId}` → `catalog.models[{id,name,unavailableReason}]` | `ReadModels` → `[]Model` |
+| 登录发起 | `account.login.browser.begin` | `{providerId, directory, redirectUri}` → `{attemptId, authorizationUrl, expiresAt}` | `BeginAuthorization` → `{URL, Attempt}` |
+| 登录完成 | `account.login.browser.complete` | `{providerId, attemptId, callbackUrl}` | `CompleteAuthorization(ctx, attempt, result)`；`CallbackURL` = `callbackUrl` |
+| 登录取消 | `account.login.cancel` | `{providerId, attemptId}` | 可选 `CancelAuthorization` |
+
+回调路径必须是 `/auth/callback`；真实服务端不返回独立的 `state`，本地校验只在服务端给出 `State` 时启用。统一二进制 `dimcode-server` 需要 `app-server` 子命令（由 D1 的自启参数提供；夹具测试用 `ServerArgs: []string{"app-server"}`）。
+
 本包只导入 `internal/write`，不导入 D1 的业务包；接口实现由集成层提供，两边可独立演进。
 
-### 6.4 blocked
+### 6.4 真实账号侦察、夹具与证据
+
+**侦察（只读、脱敏）**
+
+- 产品 home 的 `auth.json` 是账号持久化的唯一来源，顶层两个字段：
+  - `dimAccountState`：`schemaVersion`、`credentialEpoch`、`generation`、`credentialRevision`、`state`、`identity{issuer,subject,email,name}`、`tokenDigest`；
+  - `nextApiOauth`：`type`、`access`、`refresh`、`expires`、`issuer`、`tokenEndpoint`、`authorizationEndpoint`、`deviceAuthorizationEndpoint`、`deviceTokenEndpoint`、`clientId`、`scope`、`relayBaseUrl`。
+- 只记录字段名、类型与档位；`access`、`refresh`、`tokenDigest`、`credentialEpoch` 的值没有打印、没有进入证据；身份字段只记录是否存在。
+- 来源 home 的 `rust/dimcode.sqlite*`、session 文件与 `daemon.log` 未读取、未复制，产品代码也不含来源路径。
+- 真实服务端暴露 `account.providers`、`account.status`、`account.usage`、`provider.catalog`；账号提供者为 `dimcode-api-oauth`（显示名 `Dim OAuth`，登录方式 `browser`/`device`），目录 `https://dimagent.cn`。
+
+**夹具流程**
+
+1. `mktemp -d /tmp/dimagent-account-fixture-XXXXXX`，目录权限 0700。
+2. 只复制 `auth.json`（0600）与 `config.json`，新建空的 `rust/`（0700）；不复制来源的 SQLite、session 文件与日志。
+3. 设置 `DIMAGENT_ACCOUNT_FIXTURE=<夹具目录>` 与 `DIMAGENT_APP_SERVER_BIN=<真实 dimcode-server>`；夹具测试只从环境变量取路径。
+4. 统一二进制用 `ServerArgs: []string{"app-server"}` 启动；`--home` 指向夹具 `rust/`，`--product-home` 指向夹具根。
+5. 运行 `go test ./internal/account -run TestRealAccountFixture -v`。
+6. 验证后删除夹具（含复制的认证文件）；夹具不进入仓库，也不作为 CI 依赖。本次夹具在取证完成后已删除。
+
+**脱敏证据（alpha.21，本机 macOS arm64）**
+
+```text
+服务端版本=0.1.0-alpha.21 能力：account.status=true account.usage=true provider.catalog=true
+账号提供者：displayName="Dim OAuth" loginMethods=[browser device] directoryConfigured=true
+账号状态：status=signed_in identity=accountIDSet=true emailSet=true nameSet=true planSet=false
+用量：lines=1 aggregateAvailable=true aggregateReason="" observedAtSet=true
+用量项[0]：key="web_search" unit="call" window="" limitSet=true resetSet=true
+模型清单：available=21 first=[deepseek-v4-flash seed-2.1-pro seed-2.1-turbo]
+登录发起：authorizationHost=dimagent.cn redirectLoopback=true attemptIssued=true expiresSet=true cancelled=1
+真实服务回收：stopped=true
+```
+
+结论：
+
+- **三条读取在真实账号上通过**：状态 `signed_in` 且带身份字段；用量有逐项 `web_search` 与服务端聚合额度；模型目录 21 条可用（登录状态下）。
+- **登录发起通过**：真实服务端接受环回 `/auth/callback`，返回授权地址与尝试标识；等待回调超时后按尝试标识取消成功。
+- **登录完成未验证**：完成交换需要真人在授权页登录（可能含验证码/二次验证），本次只验证到发起、回调地址与取消。
+- **真实 `account.status` 没有独立的「过期」字段**：过期与恢复由错误码/恢复流程表达，第一版的 `StatusExpired` 还没有真实 wire 映射。
+- **登出/重置未在真实夹具上执行**：登出会调用服务端吊销授权，可能影响来源账号的 refresh token；需要一次性测试账号或测试租户。
+- **现有集成层仍按旧猜测形状实现**：`internal/app/account.go` 目前用 `model.list`、`account.login.begin`、不带 `providerId` 的 `account.status`/`account.usage`，也没有把 `attemptId`/完整回调地址按 §6.3 传回；真实服务端不接受这些形状，集成层需要按 §6.3 更新后才能跑通真实夹具。
+
+**blocked**
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
-| 真实 App Server 的账号状态、用量与模型清单 | blocked | 需要冻结的 wire 方法名与回执形状；本版用集成层接口与假服务端验证 |
-| 真实 OAuth 登录（真实提供方、真实浏览器） | blocked | 需要真实账号、真实授权服务端与 D1 冻结的登录 wire；本版用替身浏览器验证环回回调 |
-| 系统浏览器真实拉起证据 | blocked | `systemBrowser` 已实现，但没有自动化证据证明 macOS/Windows/Linux 上能拉起授权页 |
-| 真实用量逐项与聚合边界 | blocked | 需要真实账号与服务端用量回执；本版只验证结构表达 |
-| 登出/重置的真实服务端语义 | blocked | 需要 D1/D11 冻结账号动作方法；本版用假服务端验证一次性发送与不重发 |
+| 真实浏览器登录的完成交换 | blocked | 需要真人在授权页完成登录；本次只验证发起、环回地址与取消 |
+| 过期/恢复状态映射 | blocked | 真实 `account.status` 无过期字段；需要 D1 冻结「需要恢复」的错误语义与映射 |
+| 登出/重置的真实服务端语义 | blocked | 在夹具上执行登出会吊销真实授权；需要一次性测试账号或测试租户 |
+| 系统浏览器真实拉起 | blocked | 夹具测试用替身记录授权地址，没有真正弹出浏览器；平台差异未验证 |
+| token 轮换与写回 | blocked | access token 距过期尚远，未验证 30 秒新鲜窗口内的刷新与 auth.json 写回 |
+| Windows/Linux 真实账号 | blocked | 只在 macOS arm64 上取证 |
 
 ## 7. 已知限制
 
-1. **wire 未冻结**：测试适配器里出现的方法名（`account.status`、`account.usage`、`model.list`、`account.login.begin`、`account.login.complete`、`account.logout`、`account.reset`）只是集成测试的约定，不代表协议冻结。
-2. **回调校验依赖服务端**：服务端不给校验值时不做 state 校验，只依赖随机环回端口。真实提供方应要求 state。
-3. **只绑 IPv4 环回**：回调地址固定 `127.0.0.1`；IPv6 `::1` 未覆盖。
+1. **wire 未冻结**：真实 alpha.21 的方法名见 §6.3，但仍未由 D1 写进冻结定义；`account.logout`/`account.recover` 与重置类方法还没有接入本包动作发送方。
+2. **回调路径固定**：真实服务端只接受 `/auth/callback`，本包已固定成它；改路径需要服务端同步。真实服务端不返回独立 `state`，本地校验只在给出 `State` 时启用，尝试标识由服务端校验。
+3. **只绑 IPv4 环回**：回调地址固定 `127.0.0.1`；真实服务端也接受 `localhost` 与 `::1`，本包未覆盖。
 4. **登录回执不解析身份**：身份只来自登录后的状态读取；登录成功但读取失败时返回 `ErrLoginStatusUnread`，状态保持未知。
 5. **登出后状态是未知而非未登录**：这是有意的，避免把「动作成功」当成「已确认未登录」；调用方必须重新读取。
 6. **动作无核对标识**：账号动作没有可核对输入标识，未知只能按 D3 上限收敛到需人工确认；本包不读取服务端存储自动确认。
 7. **动作不跨进程**：重启后旧意图、动作视图全部丢失，也不会补发；人工确认依赖服务端事实与外部流程。
 8. **用量数值类型**：`Used/Limit` 用 `float64`；服务端若用字符串或高精度小数，集成层需在映射时决定，本包不猜测。
-9. **模型是否需要账号由集成层映射**：本包只消费 `RequiresAccount` 与 `Unavailable`，不探测模型能力。
-10. **读取失败保留旧数据**：`Snapshot`/`Usage` 会同时带旧数据与 `ReadError`；调用方需要自己决定是否提示陈旧，本包不替它判过期。
-11. **无诊断输出**：本包不写日志、不写文件；登录失败的诊断要由调用方按错误类别交给 D10。
-12. **无自动刷新登录**：过期只作为读取结果出现；重新登录必须由用户显式发起。
+9. **模型是否需要账号由集成层映射**：真实托管提供者的模型一律 `RequiresAccount=true`；本包只消费 `RequiresAccount` 与 `Unavailable`，不探测模型能力。
+10. **真实账号标识取 subject**：真实 `account.status` 没有单独的账号标识字段，集成层用 `identity.subject` 映射 `Identity.AccountID`；没有 subject 时本包按事实不合法拒绝。
+11. **过期没有真实映射**：真实服务端不返回 `expired`；第一版只能通过读取失败或恢复要求表达，`StatusExpired` 的真实触发条件待 D1 冻结。
+12. **用量映射是集成层策略**：真实回执的 `features`/`windows` 映射成逐项、`credits` 映射成聚合；`credits.unlimited` 没有上限数值，按聚合不可用处理。
+13. **读取失败保留旧数据**：`Snapshot`/`Usage` 会同时带旧数据与 `ReadError`；调用方需要自己决定是否提示陈旧，本包不替它判过期。
+14. **无诊断输出**：本包不写日志、不写文件；登录失败的诊断要由调用方按错误类别交给 D10。
+15. **无自动刷新登录**：过期只作为读取结果出现；重新登录必须由用户显式发起。
+16. **真实登录完成未验证**：完成交换的接口已对齐，但没有真人授权证据。
+17. **夹具含真实凭据**：夹具只用于本机验证，验证后必须删除；不得提交、不得进 CI、不得打印内容。
 
 ## 8. 下一步
 
-1. D1 冻结账号与登录 wire：状态、用量、模型清单、授权发起与完成交换、登出与重置的方法名、参数与回执字段，并把测试适配器替换成真实实现。
-2. 真实账号证据：用真实 OAuth 提供方完成一次浏览器登录，记录回调、完成交换与登录后状态读取；补登出与重置的真实语义。
-3. 系统浏览器：在 macOS/Windows/Linux 各做一次真实拉起，确认失败路径的错误可诊断。
-4. 与 D11 对齐 F5：确认 `ModelList` 足以支撑模型可选范围，以及过期状态是否应允许免账号模型。
-5. 与 U1 对齐登录入口：确认取消时机、超时提示与「登录已完成但状态未知」的呈现方式。
-6. 评估是否需要在服务端支持 state 强制校验；若支持，把「服务端不给 state」从限制里去掉。
+1. D1 冻结真实账号 wire（§6.3 的方法名与参数）；集成层（`internal/app/account.go`）按此表更新，统一二进制需要 `app-server` 子命令这一点要写进 D1 的自启配置。
+2. 用一次性测试账号完成一次真实浏览器登录，记录回调、完成交换与登录后状态读取；同时验证登出/重置的吊销语义，不触碰来源账号。
+3. 映射过期/恢复：确认 `account_recovery_required` 等错误如何转为 `StatusExpired` 或 `ErrStatusRead`，并补一条真实证据。
+4. 系统浏览器：在 macOS/Windows/Linux 各做一次真实拉起，确认失败路径的错误可诊断。
+5. 与 D11 对齐 F5：确认 `ModelList` 足以支撑模型可选范围，以及过期状态是否应允许免账号模型。
+6. 与 U1 对齐登录入口：确认取消时机、超时提示与「登录已完成但状态未知」的呈现方式。
+7. 验证 token 新鲜窗口内的刷新与 auth.json 写回（只改夹具副本），确认不会把令牌写进日志或产品状态。

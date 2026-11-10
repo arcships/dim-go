@@ -57,7 +57,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：25 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：32 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -161,12 +161,12 @@ Owner: D12 集成层领域
 | `KindSubmitInput` | `session.submit` | 透明参数 + `sessionId` + `branchId`（空按 `main`）+ `mode`（排队 `queue`／插话 `steer`）+ `submissionId`（UUID） | 真实 daemon（两版）通过 |
 | `KindStop` | `session.stop` | 透明参数 + `sessionId` + `branchId`；`memberId` 在透明参数里 | D3/D5 假服务端证据 |
 | `KindApprovalResponse` | `approval.respond` | 透明参数（`decision`）+ `sessionId` + `branchId` + `requestId` | D5 假服务端证据 |
-| `KindLongTermAllow` | `approval.allow_always` | 长期规则参数原文 + `sessionId` + `branchId` + `requestId` | D5 假服务端证据 |
+| `KindLongTermAllow` | `permission.rules`（读）+ `permission.set_rules`（写） | 事实里的长期规则参数 → 一条命令规则 `{command, match, decision:"allow"}`；先读 `{revision,commandRules}`，再带 `expectedRevision` 写回完整规则表；`permission_rules_conflict` 时重读重试（最多 3 次），其它错误原样上抛 | 假服务端；真实服务端未验证 |
 | `KindQuestionAnswer` | `question.respond` | 透明参数（`decision`、`answer`）+ `sessionId` + `branchId` + `requestId` | D5 假服务端证据 |
 | `KindManagementWrite` | 见 4.2 | `op` + 该操作的载荷 | 设置与扩展领域的假服务端证据 |
-| `KindAccountAction` | `account.<op>` | 透明参数里的 `op`（`logout`、`reset`） | D6 假服务端证据 |
+| `KindAccountAction` | `account.<op>` | 透明参数里的 `op`（`logout`、`reset`） | D6 假服务端证据（真实登出/重置会影响真实授权，未执行） |
 | `KindAttachmentWrite` | `attachment.put` | `{sessionId, name?, text}`；**走会话流**，发送前按 `session.methods` 判定能力，缺方法报能力缺失且不发请求 | 假服务端全链路；真实服务端本机不可用（两个二进制都不贡献该方法） |
-| `KindSessionLifecycle` | `session.create` / `session.rename` / `session.delete` / `session.branch_create` / `session.branch_end` | `op` 取 `create`/`rename`/`delete`/`branch.create`/`branch.end`（兼容 `catalog.*` 前缀）；分支动作走会话流并过能力门禁 | 新建/删除：真实 daemon 通过；分支参数与目录领域的真实分支证据一致；改名：**blocked** |
+| `KindSessionLifecycle` | `session.create` / `session.rename` / `session.delete` / `session.branch_create` / `session.branch_end` | `op` 取 `create`/`rename`/`delete`/`branch.create`/`branch.end`（兼容 `catalog.*` 前缀）；**`session.rename` 与分支动作走会话流**（会话必须已打开），回执 `{title,titleSource,revision}` 直接交给目录合并 | 新建/删除/改名：真实 daemon（alpha.21 configured profile）通过；分支参数与目录领域的真实分支证据一致 |
 | `KindShellRun` | `shell.run`（`op=run`）/ `shell.stop`（`op=stop`） | `run`：`{sessionId, branchId, command, runId?}`；`stop`：`{sessionId, branchId, runId}`（缺 `runId` 时取意图的输入标识）；走会话流，缺方法报能力缺失 | 映射与门禁：假服务端；真实服务端两个二进制都不贡献 `shell.*`（见 7.3） |
 | `KindModalityWrite` | `modality.task.submit` / `modality.task.cancel` / `modality.realtime.open` / `modality.realtime.close` | 载荷原样透传（`taskId`、模型引用、`connectionId` 等）+ `sessionId` + `branchId`；`op` 是意图级字段，不下发；走会话流，缺方法报能力缺失 | 映射与门禁：假服务端；真实服务端不贡献这些方法，名称按 D3 的 op 命名与 D11a 的 `modality.capabilities` 约定，**未在真实服务端验证** |
 
@@ -174,23 +174,25 @@ Owner: D12 集成层领域
 
 ### 4.2 管理写入（`KindManagementWrite`）→ 服务端方法
 
-| 参数 `op` | 服务端方法 | 载荷字段 |
+管理面的真实命名以 alpha.21 实测为准（D1 §3.7）：工具服务器是 `mcp.*`、计划任务是 `schedule.*`、唤醒是会话方法 `session.wakeup.*`、技能与钩子的读取是 `skills.catalog` / `hooks.catalog`。`workflow.*` 与 `runtime.*` 在 alpha.21 不注册：**按能力缺失处理，零请求**。
+
+| 参数 `op`（领域包取值，兼容旧写法） | 服务端方法 | 载荷字段 |
 |---|---|---|
-| `plugin.install` | `plugin.install` | `source{kind, ref}` |
-| `plugin.set_enabled` | `plugin.set_enabled` | `pluginId`、`enabled` |
-| `plugin.update` | `plugin.update` | `pluginId` |
-| `skill.install` | `skill.install` | `source{kind, ref}` |
-| `skill.set_enabled` | `skill.set_enabled` | `skillId`、`enabled` |
-| `hook.write` | `hook.write` | `hook{id,name,event,command,source,enabled}` |
-| `tool_server.add` | `toolServer.add` | `name`、`transport`、`command`、`args`、`url`、`env`、可选 `importSource`/`candidateKey` |
-| `tool_server.update` | `toolServer.update` | 同上 + `serverId` |
-| `tool_server.remove` | `toolServer.remove` | `serverId` |
-| `workflow.start` | `workflow.start` | `workflowId`、`inputs` |
-| `workflow.stop` | `workflow.stop` | `runId` |
-| `wakeup.cancel` | `wakeup.cancel` | `wakeupId` |
+| `plugin.install` | `plugin.install` | `source{path}` 或 `source{git,ref?}` + `enable:true` |
+| `plugin.enable` / `plugin.disable`（旧 `plugin.set_enabled`） | `plugin.enable` / `plugin.disable` | `{name}` |
+| `plugin.update` | `plugin.update` | `{id}` |
+| `skills.install`（旧 `skill.install`） | `skills.install` | `source{path|git,ref?}` + `skills:[]` |
+| `skills.set_enabled`（旧 `skill.set_enabled`） | `skills.set_enabled` | `{id, enabled}` |
+| `hooks.save`（旧 `hook.write`） | `hooks.save` | `{expectedRevision, document:{hooks:[…]}}`；`expectedRevision` 为空时先读 `hooks.catalog` 的 `userRevision` 补齐 |
+| `mcp.import.apply` | `mcp.import.apply` | `{source, ids:[候选键]}`（一次一条，按勾选逐条写） |
+| `mcp.save` / `tool_server.add` / `tool_server.update` | `mcp.save` | `{id, source, expectedVersion, configuration}`；配置文档优先用载荷里的 `configuration`，否则按 transport/command/args/url/env 写最小文档 |
+| `mcp.set_enabled` | `mcp.set_enabled` | `{id, source, expectedVersion, enabled}` |
+| `mcp.remove` / `tool_server.remove` | `mcp.remove` | `{id, source:"user", expectedVersion}` |
+| `session.wakeup.cancel`（旧 `wakeup.cancel`） | `session.wakeup.cancel`（**会话流**） | `{sessionId, wakeupId}`；会话标识取载荷，缺失时用意图的会话标识 |
+| `workflow.start` / `workflow.stop` | —（不注册） | 能力缺失，零请求 |
 | `settings.update` | `settings.update` | `source`、`scope`（用户 `"user"`／项目 `{project}`）、`expectedRevision`、`document` |
 | `provider.select` | `provider.select` | `providerId`、`modelId`、`expectedVersion`（取 `expectedRevision`） |
-| `runtime.install` | `runtime.install` | `name` |
+| `runtime.install`（旧写法保留） | —（不注册） | 能力缺失，零请求 |
 
 ### 4.3 `write.Inspector`：核对读取
 
@@ -211,11 +213,11 @@ Owner: D12 集成层领域
 | 领域接口 | 服务端方法 | 文档/证据 |
 |---|---|---|
 | `catalog.Reader` | `session.catalog`（`limit`/`cursor`/`query`/`cwd` → `sessions[]`/`nextCursor`） | D4 假服务端 + 真实 daemon |
-| `account.StatusReader` / `UsageReader` / `ModelReader` | `account.status` / `account.usage` / `model.list` | D6 假服务端 |
-| `account.AuthorizationSource` | `account.login.begin` / `account.login.complete` | D6 假服务端 |
-| `settings.*Reader` | `settings.sources`/`projects`/`read`、`models.providers.list`、`storage.report`、`runtime.list`、`modality.capabilities` | D11a 假服务端 |
-| `extensions.*Reader` | `plugin.list`、`skill.list`、`hook.list`、`toolServer.list`/`probe`/`import.preview`、`scheduler.list`、`workflow.list`/`get`/`runs`、`wakeup.list` | D11b 假服务端 |
-| 四类未完成事项 | `session.input.pending` / `session.exec.pending` / `session.question.pending` / `session.collaboration.pending`（固定 `through`、`next` 原样带回，最多 5 页） | 真实 daemon（alpha.18 的 input/collaboration 返回真实条目；exec/question 退回推导） |
+| `account` 三个读取方 | `account.providers`（解析 providerId 与默认目录）、`account.status {providerId}`、`account.usage {providerId}`、`provider.catalog {providerId}` | D6 假服务端 + D6 真实夹具（alpha.21） |
+| `account.AuthorizationSource` | `account.login.browser.begin`（`providerId,directory,redirectUri` → `attemptId,authorizationUrl`）、`account.login.browser.complete`（`providerId,attemptId,callbackUrl`）、`account.login.cancel`（`providerId,attemptId`） | D6 §6.3 + 真实夹具（发起与取消；完成需真人登录） |
+| `settings.*Reader` | `settings.sources`/`projects`/`read`、`models.providers.list`、`storage.report`、`modality.capabilities`；`runtime.*` 不注册 → 能力缺失 | D11a 假服务端 |
+| `extensions` 读取方 | `plugin.list`（数组）、`skills.catalog`、`hooks.catalog`、`mcp.catalog`/`mcp.test`/`mcp.import.preview`、`schedule.list`、`session.wakeup.list`（会话流）；`workflow.*` 不注册 → 能力缺失 | D11b 假服务端 + D1 §3.7 |
+| 四类未完成事项 | `session.input.pending` / `session.exec.pending` / `session.question.pending` / `session.collaboration.pending`（固定 `through`、`next` 原样带回，最多 5 页） | 真实 daemon（alpha.18/alpha.21 的 input/collaboration 返回真实条目；exec/question 按实例退回推导） |
 | 控制连接通知 | `scheduler.changed`、`wakeup.changed`、`workflow.changed`、`session.notice`（标题兜底） | D11b 假服务端 + 本版测试 |
 
 ### 4.5 会话流通知 → 领域
@@ -243,11 +245,13 @@ Owner: D12 集成层领域
 
 ### 4.7 长期允许的判定口径（集成层给出）
 
-服务端 wire 里没有"可长期允许"标记，`approval.request` 只给出 `source` 与 `call`。本版按更窄的口径推导：
+服务端 wire 里没有「可长期允许」标记，`approval.request` 只给出 `source` 与 `call`；长期允许写成服务端的**命令规则**。
 
-- 只认 `source.kind == "tool"`；`host` 来源一律不可长期允许。
-- `call.input` 必须是 JSON 对象，且**只含一个非空字符串字段 `path`、取值是绝对路径**；此时规则参数为 `{"tool":<工具名>,"path":<绝对路径>}`。
-- 其余情况（命令、多字段参数、相对路径、非字符串）一律不可长期允许——宁可不放行，也不把复杂命令长期放行。
+- 只认 `source.kind == "tool"` 且工具名是 `exec`/`execute`（启动进程的命令工具）。
+- `call.input.command` 必须是非空字符串，且不含 `;&|\`()<>$` 与换行这类命令分隔符——只放行单条简单命令，复杂命令不进长期规则。
+- 规则为 `{command, match:"exact", decision:"allow"}`；`approvalFacts` 把它放进事实的 `LongTermParams`，发送方据此走 `permission.rules` → `permission.set_rules`。
+- 写入顺序仍是「先写规则、成功后才发审批应答」；规则写入失败时不发应答，条目留在待决集合（D5 的两步式）。
+- 冲突：`permission.set_rules` 回 `permission_rules_conflict` 时重读规则表并重试，最多 3 次；仍冲突则明确失败，不静默通过。
 
 ### 4.8 变更读取（`workspace.ChangeSource` 适配器）
 
@@ -263,6 +267,30 @@ Owner: D12 集成层领域
 | 错误 | 会话未打开 → 报错（`ErrSessionNotOpen`）；历史读取失败/游标不前进 → 报错；没有工作区根 → `ErrWorkspaceUnavailable` |
 
 来源适配器只在 `App` 上存一份实例引用（`app.changes`），不新增包级全局状态；`App.RunChanges(ctx, sessionID, runID)` 调用 `Workspace.ReadRunChanges`，不在集成层另做规范化。
+
+### 4.9 账号（真实 wire 形状，alpha.21）
+
+| 领域接口 | 服务端方法 | 映射 |
+|---|---|---|
+| provider 解析（内部） | `account.providers` | 取 `providerId` 与 `defaultDirectory`，优先选 `loginMethods` 含 `browser` 的提供者；结果按实例缓存一次 |
+| `StatusReader` | `account.status {providerId}` | `account` 为空 → `signed_out`；否则 `signed_in`，`subject/email/name/plan` → `Identity`。真实回执没有独立的「过期」字段 |
+| `UsageReader` | `account.usage {providerId}` | `features[]`（`key/used/allowance/unit/periodEnd`）与 `windows[]`（`durationHours/tokenUsed/tokenCap/expiresAt`）→ `Lines`；`credits`（`usedUnits/totalUnits/unlimited`）→ `Aggregate`；`unlimited` 只给原因、不伪造上限 |
+| `ModelReader` | `provider.catalog {providerId}` | `catalog.models[{id,name,unavailableReason}]` → `Model{ID, DisplayName, RequiresAccount:true, Unavailable: reason != nil}` |
+| `AuthorizationSource` | `account.login.browser.begin` / `complete` / `cancel` | begin 带 `providerId,directory,redirectUri`，回执 `attemptId,authorizationUrl`；complete 带 `providerId,attemptId,callbackUrl`；cancel 带 `providerId,attemptId`。尝试到 provider 的对应只在内存里保存 |
+
+### 4.10 权限档位（`session.permission.*`）
+
+| 项 | 口径 |
+|---|---|
+| 读取 | 打开会话、首轮历史之后调 `session.permission.get {sessionId,branchId}` → `{version,policy}`；`policy.preset` 原样装进交互裁决（`PermissionTier`），同时记下 `version` |
+| 切换 | `App.SetPermissionTier(ctx, session, preset)` 先过写闸门，再调 `session.permission.update {sessionId,branchId,expectedVersion,policy{preset,allowedTools:[],disallowedTools:[]}}`；策略列表显式给空数组（服务端不接受 null），不发的后续字段由服务端保留 |
+| 状态驱动 | 以回执与时间线事实为准：回执更新 `version` 与档位；`session.event` 的 `permission/changed`（`data.policy.preset`）同样更新档位。**没有 `permission.changed` 通知**，本包不订阅、不轮询 |
+| 透传 | 提交意图经 `WithPermission` 带上当前档位；没有值时原样返回，不补默认 |
+| 能力缺失 | `get` 失败只记诊断（不阻塞打开会话）；`update` 回 `unknown_method`／不可用时按能力缺失报错，零请求由发送方门禁保证 |
+
+### 4.11 自启参数（统一二进制）
+
+`dimcode-server` 是统一二进制，需要 `app-server` 子命令（D1 §3.7）。`App.Connect` 在 `ServerArgs` 为空且可执行文件名为 `dimcode-server` 时自动补 `["app-server"]`；调用方显式给了参数就原样使用（例如 `-server-arg app-server`）。`dim-app-server` 这类独立二进制不补参数。
 
 ## 5. 启动与退出（接线点）
 
@@ -337,7 +365,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-10，macOS arm64）。`internal/app` 的 18 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 32 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -368,6 +396,13 @@ go test -race ./internal/app/
 | 变更读取：多工具合并、去重、越界、按 run 过滤 | `TestRunChangesMergesToolDeclarations` |
 | 变更读取：声明缺失返回空、未知 run 为空、会话未打开报错、没有工作区根报错 | `TestRunChangesEmptyAndErrors` |
 | 变更读取：超过上限截断并保留总数 | `TestRunChangesTruncates` |
+| 管理面读取用 `plugin.list` / `skills.catalog` / `hooks.catalog` / `mcp.catalog` / `schedule.list` / `session.wakeup.list`，旧名字零请求 | `TestManagementReadsUseRealMethods` |
+| 管理面写入落到 `plugin.enable` / `skills.set_enabled` / `hooks.save` / `mcp.*` / `session.wakeup.cancel`；workflow 能力缺失零请求 | `TestManagementWritesUseRealMethods` |
+| `workflow.*` 与 `runtime.*` 能力缺失：读与写都零请求 | `TestWorkflowAndRuntimeMissingWithoutRequests` |
+| 改名走会话流并按回执修订号合并 | `TestRenameGoesThroughSessionStream` |
+| 权限：打开时读、切换写（带版本）、时间线 `permission/changed` 驱动状态 | `TestPermissionGetUpdateAndTimeline` |
+| 统一二进制自启参数：`dimcode-server` 自动补 `app-server`，显式参数不覆盖 | `TestServerArgsForUnifiedBinary` |
+| 长期允许写命令规则：`permission.rules` 读、`permission.set_rules` 带版本写 | `TestSenderWritesCommandRuleForLongTerm` |
 
 ### 7.3 真实 daemon 证据
 
@@ -482,6 +517,45 @@ instance: forwarded（已有实例在运行，本次启动参数已转交）
 
 只有 A 推进了六阶段并写出 `startup.*` 与 `shutdown.done`；B 停在 `idle`，没有 `shutdown.*` 记录。
 
+**证据 G：改名（alpha.21 configured profile）**
+
+mock profile 不注册管理面方法（`Management method is unavailable`），改名与权限要在 configured profile 上验证：服务端用复制到 `/tmp` 的离线模型配置启动（`-model-config`），数据目录是临时目录。
+
+```bash
+D=$(mktemp -d /tmp/d12m-real2-XXXXXX)
+go run ./cmd/dimagent selfcheck -data-dir "$D" \
+  -server "$HOME/.dimcode-alpha/rust/dimcode-server" \
+  -model-config /tmp/d12m-offline.json -create -rename "集成层改名验证" -lines 4
+```
+
+```text
+startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
+session: cf582cc8-...  branch: main  load: ready  rows: 0  turns: 0
+pending: inputs=5 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
+rename: title="集成层改名验证" source="manual" revision=1
+shutdown: 5 段全部完成（4 ms）
+```
+
+**证据 H：权限档位读取与切换（同一会话，alpha.21）**
+
+```bash
+go run ./cmd/dimagent selfcheck -data-dir "$D" \
+  -server "$HOME/.dimcode-alpha/rust/dimcode-server" \
+  -model-config /tmp/d12m-offline.json -session cf582cc8-... -permission read-only
+```
+
+```text
+startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
+permission: preset="read-only" ok=true
+diagnostics:
+  - 已建立会话订阅: cf582cc8-... 头部=35
+  - 权限档位=full-access: 会话=cf582cc8-...        # 打开时 session.permission.get
+  - 权限档位=read-only: 会话=cf582cc8-...          # session.permission.update 的回执
+shutdown: 5 段全部完成（4 ms）
+```
+
+两次运行都回收了自启的服务实例；临时数据目录与复制到 `/tmp` 的配置文件在取证后删除。
+
 ### 7.4 自检子命令
 
 ```bash
@@ -499,6 +573,8 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | `-lines` / `-older` | 打印最近多少行；打开后向前翻多少页更早的轮次 |
 | `-submit` / `-wait` | 提交一条文本并等待写登记收敛；提交后等多久再重读尾部 |
 | `-attachment` | 用 `attachment.put` 存一段文本成会话文件（缺方法时报能力缺失） |
+| `-shell` / `-rename` / `-permission` | 会话内命令、改名、权限档位切换（后两者需 configured profile） |
+| `-model-config` | 显式模型配置（configured profile；管理面方法只在非 mock 实例上可用） |
 | `-short` | 只打印汇总 |
 | `-log` | 进程级白名单诊断写到该文件；缺省丢弃 |
 
@@ -553,7 +629,12 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 真实分支开/结束（本包发出的写） | 未验证 | 参数形状与目录领域的真实分支证据一致；本包没有在真实服务端上直接发过 `session.branch_create`/`session.branch_end` |
 | 真实工具结果里的路径声明 | blocked（真实事件未触发） | 需要模型真的调用 `write`/`edit` 等工具并给出 `structuredContent`；本机 mock 模型不产生工具调用，因此变更读取的真实声明只验证到"空清单" |
 | 真实核对调用 | 未验证 | 需要一次超时/断线后才进入核对；D1 已单独验证方法本身 |
-| 改名与自动标题 | blocked | 两版本服务端都没有 `session.rename`（自动标题通知已接，但真实事件未触发） |
+| 自动标题通知 | blocked（真实事件未触发） | `session.rename` 与标题合并已真实跑通；自动生成的标题通知仍未触发 |
+| 真实登录完成交换 | blocked | 需要真人在授权页完成登录；发起与取消已由 D6 真实夹具覆盖，本包按同一形状实现 |
+| 真实登出/重置 | blocked | 会吊销真实授权；需要一次性测试账号 |
+| `hooks.save` / `mcp.save` 的真实回执与冲突语义 | 未验证 | D1 只冻结了参数形状；回执与版本冲突只在假服务端验证 |
+| 真实 `mcp.set_enabled` / `mcp.import.apply` | 未验证 | 方法与参数按 D1 冻结形状实现，未在真实服务端上执行 |
+| 真实 `permission.set_rules`（长期允许） | 未验证 | 只有假服务端证据；需要一次真实工具审批（本机模型不产生） |
 | 重连后自动重开会话 | 未验证 | 需要 U1/D10 决定重开策略；本包只提供 `Reconnect` 与 `OpenSession` |
 
 ## 10. 已知限制
@@ -568,12 +649,17 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 8. **运行状态只取 attach 回执**：`session.state` 通知不消费，运行状态变化需要重开或后续接入。
 9. **命令与模态依赖会话方法**：`shell.*`、`modality.*`、`attachment.put`、`session.branch_*` 都要求会话已打开；没打开时按不可重试失败处理，不发请求。方法名以 `session.methods`/hello 为准，不按版本猜。
 10. **模态方法名缺真实服务端证据**：`modality.task.submit` 等四个名称来自意图 op 命名与 `modality.capabilities` 的约定，本机没有贡献这些方法的实例，因此只验证到门禁行为。
-11. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-12. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-13. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-14. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-15. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-16. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+11. **管理面只在 configured profile 可用**：alpha.21 的 mock profile 对管理方法回 `Management method is unavailable`；改名、权限与 mcp/hooks 等需要在 configured profile（`-model-config`）上验证。
+12. **管理面写形状按 D1 冻结参数实现**：`hooks.save` 写 `{hooks:[…]}` 文档、`mcp.save` 写 `{transport,command,args,url,env}` 最小文档；真实服务端的文档结构与版本冲突语义未在真实服务端验证。`mcp.remove`/`mcp.set_enabled` 的 `source` 取载荷，缺省按 `user`。
+13. **唤醒取消需要会话标识**：`session.wakeup.cancel` 是会话方法；领域包的旧写法只带 `wakeupId`，集成层优先用载荷里的 `sessionId`，其次用意图的会话标识，两者都没有时报不可重试错误。
+14. **账号没有「过期」字段**：`account.status` 只区分有/无账号对象；过期与恢复仍按 D6 的 blocked 记录处理。
+15. **权限档位值是服务端 preset**：集成层把 `policy.preset`（`read-only`/`workspace-write`/`full-access`）原样当档位保存并透传，不再改写成交互裁决早期的本地常量。
+16. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+17. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+18. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+19. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+20. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+21. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -584,3 +670,4 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 接掉连接侧补齐的 wire：审批三类通知、标题通知、四类清单注入（含提问清单与时间线）、`input_lookup` 核对优先级、`attachment.put` 附件写入与能力门禁 | 组织要求把已冻结的 wire 形状接进集成层 |
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
+| 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |

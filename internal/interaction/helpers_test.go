@@ -139,7 +139,7 @@ func approvalFact(id string) Fact {
 func longTermApprovalFact(id string) Fact {
 	fact := approvalFact(id)
 	fact.AllowLongTerm = true
-	fact.LongTermParams = json.RawMessage(`{"tool":"Bash","scope":"workspace"}`)
+	fact.LongTermParams = json.RawMessage(`{"command":"printf DIMAGENT_APPROVAL_OK","match":"exact","decision":"allow"}`)
 	return fact
 }
 

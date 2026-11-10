@@ -222,43 +222,23 @@ func (r *settingsStorageReader) ReadStorage(ctx context.Context) (settings.Stora
 }
 
 // settingsRuntimeReader 读取运行组件清单。
+//
+// alpha.21 不再注册 runtime.*（D1 实测全部 unknown_method）：按能力缺失处理，
+// 不发请求、不发明方法；能力恢复后由设置领域重新读取即可。
 type settingsRuntimeReader struct {
 	app *App
 }
 
 func (r *settingsRuntimeReader) ReadRuntimes(ctx context.Context) ([]settings.RuntimeEntry, error) {
-	client, err := r.app.requireControl("读取运行组件清单")
-	if err != nil {
-		return nil, err
+	return nil, runtimeCapabilityMissing()
+}
+
+// runtimeCapabilityMissing 是运行组件面在 alpha.21 的能力缺失错误。
+func runtimeCapabilityMissing() error {
+	return &settings.CapabilityError{
+		Capability: settings.FeatureRuntimeList,
+		Reason:     "服务端未注册 runtime.*（alpha.21 实测 unknown_method）",
 	}
-	var reply []struct {
-		Name    string `json:"name"`
-		Source  string `json:"source"`
-		Auto    *bool  `json:"auto"`
-		Version string `json:"version"`
-		Path    string `json:"path"`
-		Status  string `json:"status"`
-		Reason  string `json:"reason"`
-	}
-	if err := client.CallInto(ctx, "runtime.list", nil, &reply); err != nil {
-		return nil, err
-	}
-	entries := make([]settings.RuntimeEntry, 0, len(reply))
-	for _, entry := range reply {
-		if entry.Auto == nil {
-			return nil, errors.New("运行组件缺少 auto")
-		}
-		entries = append(entries, settings.RuntimeEntry{
-			Name:    entry.Name,
-			Source:  settings.RuntimeSource(entry.Source),
-			Auto:    *entry.Auto,
-			Version: entry.Version,
-			Path:    entry.Path,
-			Status:  settings.RuntimeStatus(entry.Status),
-			Reason:  entry.Reason,
-		})
-	}
-	return entries, nil
 }
 
 // settingsModalityReader 读取模态能力状态。

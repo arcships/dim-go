@@ -18,6 +18,13 @@ type Plugin struct {
 	Enabled   bool
 	// Optional 表示随包提供、可由用户选择安装的可选插件。
 	Optional bool
+	// Use 是服务端声明的使用方式（例如 builtin）；空表示未启用。
+	Use string
+	// Locked 表示服务端锁定该插件，用户不能启停。
+	Locked bool
+	// Status 与 Error 是服务端声明的运行状态与原因。
+	Status string
+	Error  string
 	// UpdateAvailable 与 LatestVersion 由服务端声明，本端不比较版本号。
 	UpdateAvailable bool
 	LatestVersion   string
@@ -80,7 +87,8 @@ func (s *Service) InstallPlugin(ctx context.Context, source InstallSource) (writ
 	return s.write(ctx, OpPluginInstall, PluginInstallPayload{Source: source}, false)
 }
 
-// SetPluginEnabled 写入插件的启用状态。相同目标状态的重复调用只保留一条意图。
+// SetPluginEnabled 写入插件的启用状态。集成层按 Enabled 映射到真实方法
+// plugin.enable 或 plugin.disable；相同目标状态的重复调用只保留一条意图。
 func (s *Service) SetPluginEnabled(ctx context.Context, pluginID string, enabled bool) (write.IntentView, error) {
 	if err := requireText("插件标识", pluginID); err != nil {
 		return write.IntentView{}, err

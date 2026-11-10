@@ -170,7 +170,7 @@ outcome, err := arbiter.Respond(ctx, "request-1", interaction.Response{
 view, err := arbiter.StopMember(interaction.MemberRef{MemberID: "m1", BranchID: "b1"})
 
 // 权限档位（每个会话一份，随裁决器持有）
-err = arbiter.SetPermissionTier(interaction.PermissionWorkspaceAuto)
+err = arbiter.SetPermissionTier(interaction.PermissionWorkspaceWrite)
 tier, ok := arbiter.PermissionTier()
 arbiter.ClearPermissionTier()
 intent, err := arbiter.WithPermission(write.Intent{

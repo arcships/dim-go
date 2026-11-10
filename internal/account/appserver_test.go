@@ -427,6 +427,13 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	if completeParams["code"] != "login-code" || completeParams["state"] != "wire-state" {
 		t.Fatalf("完成交换参数不符：%+v", completeParams)
 	}
+	if completeParams["attemptId"] != "attempt-wire" {
+		t.Fatalf("完成交换没有带上服务端尝试标识：%+v", completeParams)
+	}
+	callbackURL, _ := completeParams["callbackUrl"].(string)
+	if !strings.HasPrefix(callbackURL, redirectURI) || !strings.Contains(callbackURL, "code=login-code") {
+		t.Fatalf("完成交换没有带上完整回调地址：%q", callbackURL)
+	}
 
 	if count := len(server.RequestsFor("account.status")); count != 1 {
 		t.Fatalf("登录后应重新读取一次账号状态：%d", count)

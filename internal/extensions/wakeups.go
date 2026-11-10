@@ -14,6 +14,7 @@ const (
 	WakeupScheduled WakeupStatus = "scheduled"
 	WakeupFired     WakeupStatus = "fired"
 	WakeupCancelled WakeupStatus = "cancelled"
+	WakeupExpired   WakeupStatus = "expired"
 	WakeupUnknown   WakeupStatus = "unknown"
 )
 
@@ -47,9 +48,26 @@ type WakeupReader interface {
 	ReadWakeups(ctx context.Context, scope WakeupScope) ([]Wakeup, error)
 }
 
-// WakeupCancelPayload 是 wakeup.cancel 意图的载荷。
+// WakeupRef 定位一条待取消的唤醒记录。真实方法 session.wakeup.cancel 需要会话
+// 标识；分支标识只用于本地读数定位。
+type WakeupRef struct {
+	SessionID string `json:"sessionId"`
+	BranchID  string `json:"branchId,omitempty"`
+	WakeupID  string `json:"wakeupId"`
+}
+
+func (r WakeupRef) validate() error {
+	if err := requireText("唤醒记录的会话标识", r.SessionID); err != nil {
+		return err
+	}
+	return requireText("唤醒记录标识", r.WakeupID)
+}
+
+// WakeupCancelPayload 是 session.wakeup.cancel 意图的载荷。
 type WakeupCancelPayload struct {
-	WakeupID string `json:"wakeupId"`
+	SessionID string `json:"sessionId"`
+	BranchID  string `json:"branchId,omitempty"`
+	WakeupID  string `json:"wakeupId"`
 }
 
 // ListWakeups 读取唤醒记录并更新该范围的镜像读数。读取过的范围会接收后续
@@ -77,10 +95,23 @@ func (s *Service) WakeupSnapshot(scope WakeupScope) Snapshot[Wakeup] {
 func (s *Service) readWakeups(ctx context.Context, scope WakeupScope) (Snapshot[Wakeup], error) {
 	target := s.wakeupTarget(scope)
 	if s.cfg.Wakeups == nil {
-		return missingReader(s, "wakeup.list", target)
+		return missingReader(s, "session.wakeup.list", target)
 	}
-	return readInto(s, ctx, "wakeup.list", target, func(readCtx context.Context) ([]Wakeup, error) {
-		return s.cfg.Wakeups.ReadWakeups(readCtx, scope)
+	return readInto(s, ctx, "session.wakeup.list", target, func(readCtx context.Context) ([]Wakeup, error) {
+		wakeups, err := s.cfg.Wakeups.ReadWakeups(readCtx, scope)
+		if err != nil {
+			return nil, err
+		}
+		// A.md：取消后记录不再出现。服务端会保留 cancelled/expired 状态，本端
+		// 只把仍然有效的记录放进读数；取消结果由写回执与通知确认。
+		active := make([]Wakeup, 0, len(wakeups))
+		for _, wakeup := range wakeups {
+			if wakeup.Status == WakeupCancelled || wakeup.Status == WakeupExpired {
+				continue
+			}
+			active = append(active, wakeup)
+		}
+		return active, nil
 	})
 }
 
@@ -104,9 +135,13 @@ func (s *Service) watchWakeups(scope WakeupScope) {
 
 // CancelWakeup 取消一条唤醒记录。写入经写登记；本包不因取消成功而自行重读，
 // 记录从读数里消失由服务端通知触发的那一次重读确认。
-func (s *Service) CancelWakeup(ctx context.Context, wakeupID string) (write.IntentView, error) {
-	if err := requireText("唤醒记录标识", wakeupID); err != nil {
+func (s *Service) CancelWakeup(ctx context.Context, ref WakeupRef) (write.IntentView, error) {
+	if err := ref.validate(); err != nil {
 		return write.IntentView{}, err
 	}
-	return s.write(ctx, OpWakeupCancel, WakeupCancelPayload{WakeupID: wakeupID}, false)
+	return s.write(ctx, OpWakeupCancel, WakeupCancelPayload{
+		SessionID: ref.SessionID,
+		BranchID:  ref.BranchID,
+		WakeupID:  ref.WakeupID,
+	}, false)
 }

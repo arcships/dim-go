@@ -2,6 +2,7 @@ package extensions
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -28,6 +29,13 @@ type ToolServerSpec struct {
 	Args      []string          `json:"args,omitempty"`
 	URL       string            `json:"url,omitempty"`
 	Env       map[string]string `json:"env,omitempty"`
+	// Source 是 mcp.save 的目标作用域（user/project/plugin）；空表示由集成层决定。
+	Source Source `json:"source,omitempty"`
+	// ExpectedVersion 是 mcp.save/mcp.remove 的版本前置条件；空表示不声明。
+	ExpectedVersion string `json:"expectedVersion,omitempty"`
+	// Configuration 是 mcp.save 的原始配置文档；非空时集成层按它写入，
+	// Name/Transport/Command/URL 只作为领域侧摘要。
+	Configuration json.RawMessage `json:"configuration,omitempty"`
 }
 
 func (spec ToolServerSpec) validate() error {
@@ -48,6 +56,7 @@ func (spec ToolServerSpec) validate() error {
 type ToolServer struct {
 	ID        string
 	Name      string
+	Source    Source
 	Transport ToolTransport
 	Command   string
 	Args      []string
@@ -56,6 +65,9 @@ type ToolServer struct {
 	Connected bool
 	EnvKeys   []string
 	ToolCount int
+	// AuthStatus 与 AuthMissingScopes 是 mcp.catalog 给出的鉴权状态。
+	AuthStatus        string
+	AuthMissingScopes []string
 }
 
 // ToolDescriptor 是探测得到的工具摘要。
@@ -95,7 +107,7 @@ type ToolServerReader interface {
 	PreviewToolServerImport(ctx context.Context, source string) (ImportPreview, error)
 }
 
-// ToolServerAddPayload 是 tool_server.add 意图的载荷。ImportSource 与 CandidateKey
+// ToolServerAddPayload 是 mcp.save 意图的载荷（新增）。ImportSource 与 CandidateKey
 // 非空时表示这次新增来自一次导入预览。
 type ToolServerAddPayload struct {
 	Server       ToolServerSpec `json:"server"`
@@ -103,13 +115,13 @@ type ToolServerAddPayload struct {
 	CandidateKey string         `json:"candidateKey,omitempty"`
 }
 
-// ToolServerUpdatePayload 是 tool_server.update 意图的载荷。
+// ToolServerUpdatePayload 是 mcp.save 意图的载荷（修改）。
 type ToolServerUpdatePayload struct {
 	ServerID string         `json:"serverId"`
 	Server   ToolServerSpec `json:"server"`
 }
 
-// ToolServerRemovePayload 是 tool_server.remove 意图的载荷。
+// ToolServerRemovePayload 是 mcp.remove 意图的载荷。
 type ToolServerRemovePayload struct {
 	ServerID string `json:"serverId"`
 }
@@ -125,9 +137,9 @@ type ImportResult struct {
 // ListToolServers 读取工具服务器清单并更新镜像读数。读取清单不探测。
 func (s *Service) ListToolServers(ctx context.Context) (Snapshot[ToolServer], error) {
 	if s.cfg.ToolServers == nil {
-		return missingReader(s, "tool_server.list", &s.toolServers)
+		return missingReader(s, "mcp.catalog", &s.toolServers)
 	}
-	return readInto(s, ctx, "tool_server.list", &s.toolServers, s.cfg.ToolServers.ReadToolServers)
+	return readInto(s, ctx, "mcp.catalog", &s.toolServers, s.cfg.ToolServers.ReadToolServers)
 }
 
 // ToolServerSnapshot 返回最近一次工具服务器读数，不发起请求。
@@ -151,7 +163,7 @@ func (s *Service) UpdateToolServer(ctx context.Context, serverID string, spec To
 	if err := spec.validate(); err != nil {
 		return write.IntentView{}, err
 	}
-	return s.write(ctx, OpToolServerUpdate, ToolServerUpdatePayload{ServerID: serverID, Server: spec}, false)
+	return s.write(ctx, OpToolServerAdd, ToolServerUpdatePayload{ServerID: serverID, Server: spec}, false)
 }
 
 // RemoveToolServer 删除一个外部工具服务器。写入经写登记。
@@ -169,7 +181,7 @@ func (s *Service) ProbeToolServer(ctx context.Context, serverID string) (ToolSer
 		return ToolServerProbe{}, err
 	}
 	if s.cfg.ToolServers == nil {
-		return ToolServerProbe{}, s.wrapReadError("tool_server.probe", ErrCapabilityMissing)
+		return ToolServerProbe{}, s.wrapReadError("mcp.test", ErrCapabilityMissing)
 	}
 	s.readMu.Lock()
 	defer s.readMu.Unlock()
@@ -178,7 +190,7 @@ func (s *Service) ProbeToolServer(ctx context.Context, serverID string) (ToolSer
 	}
 	probe, err := s.cfg.ToolServers.ProbeToolServer(ctx, serverID)
 	if err != nil {
-		return ToolServerProbe{}, s.wrapReadError("tool_server.probe", err)
+		return ToolServerProbe{}, s.wrapReadError("mcp.test", err)
 	}
 	if probe.ProbedAt.IsZero() {
 		probe.ProbedAt = s.cfg.Now()
@@ -210,7 +222,7 @@ func (s *Service) PreviewToolServerImport(ctx context.Context, source string) (I
 		return ImportPreview{}, err
 	}
 	if s.cfg.ToolServers == nil {
-		return ImportPreview{}, s.wrapReadError("tool_server.import_preview", ErrCapabilityMissing)
+		return ImportPreview{}, s.wrapReadError("mcp.import.preview", ErrCapabilityMissing)
 	}
 	s.readMu.Lock()
 	defer s.readMu.Unlock()
@@ -219,7 +231,7 @@ func (s *Service) PreviewToolServerImport(ctx context.Context, source string) (I
 	}
 	preview, err := s.cfg.ToolServers.PreviewToolServerImport(ctx, source)
 	if err != nil {
-		return ImportPreview{}, s.wrapReadError("tool_server.import_preview", err)
+		return ImportPreview{}, s.wrapReadError("mcp.import.preview", err)
 	}
 	preview.Source = source
 	if preview.ReadAt.IsZero() {

@@ -13,10 +13,12 @@ import (
 type PermissionTier string
 
 const (
-	// PermissionFullAuto 是全自动档：工作区内外的读写都不再逐条询问。
-	PermissionFullAuto PermissionTier = "full_auto"
-	// PermissionWorkspaceAuto 是工作区内自动、工作区外先问。
-	PermissionWorkspaceAuto PermissionTier = "workspace_auto"
+	// PermissionReadOnly 是只读档：写入与启动进程都需要确认或拒绝。
+	PermissionReadOnly PermissionTier = "read-only"
+	// PermissionWorkspaceWrite 是工作区可写档：启动进程与工作区外访问需要确认。
+	PermissionWorkspaceWrite PermissionTier = "workspace-write"
+	// PermissionFullAccess 是全自动档：工作区内外的读写都不再逐条询问。
+	PermissionFullAccess PermissionTier = "full-access"
 )
 
 // permissionParam 是提交意图里携带档位的字段名。取值原样透传给发送方。

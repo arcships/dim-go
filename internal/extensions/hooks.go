@@ -25,17 +25,19 @@ type HookReader interface {
 	ReadHooks(ctx context.Context) ([]Hook, error)
 }
 
-// HookWritePayload 是 hook.write 意图的载荷。
+// HookWritePayload 是 hooks.save 意图的载荷。ExpectedRevision 是目录版本前置
+// 条件；空表示由集成层按最近一次读取补齐。
 type HookWritePayload struct {
-	Hook Hook `json:"hook"`
+	Hook             Hook   `json:"hook"`
+	ExpectedRevision string `json:"expectedRevision,omitempty"`
 }
 
 // ListHooks 读取钩子清单并更新镜像读数。
 func (s *Service) ListHooks(ctx context.Context) (Snapshot[Hook], error) {
 	if s.cfg.Hooks == nil {
-		return missingReader(s, "hook.list", &s.hooks)
+		return missingReader(s, "hooks.catalog", &s.hooks)
 	}
-	return readInto(s, ctx, "hook.list", &s.hooks, s.cfg.Hooks.ReadHooks)
+	return readInto(s, ctx, "hooks.catalog", &s.hooks, s.cfg.Hooks.ReadHooks)
 }
 
 // HookSnapshot 返回最近一次钩子读数，不发起请求。

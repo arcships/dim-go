@@ -36,7 +36,7 @@ func TestLongTermWritesRuleBeforeResponse(t *testing.T) {
 
 	response := writer.intentsOf(write.KindApprovalResponse)[0]
 	params := decodeParams(t, response.Params)
-	if params["decision"] != "allow_always" {
+	if params["decision"] != "allow" {
 		t.Fatalf("应答决定不对: %v", params)
 	}
 	if response.InputID != "a1" {

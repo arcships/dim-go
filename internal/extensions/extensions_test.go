@@ -173,7 +173,7 @@ func TestCapabilityMissingIsClassifiedAndRecovers(t *testing.T) {
 		t.Fatalf("缺能力没有分类: %v", err)
 	}
 	var capability *CapabilityError
-	if !errors.As(err, &capability) || capability.Feature != "scheduler.list" {
+	if !errors.As(err, &capability) || capability.Feature != "schedule.list" {
 		t.Fatalf("能力缺失错误没有带能力名: %v", err)
 	}
 	if !snapshot.CapabilityMissing || snapshot.ReadError == "" {
@@ -461,7 +461,7 @@ func TestWakeupFollowsCancellationOnce(t *testing.T) {
 	if err != nil || len(snapshot.Items) != 1 {
 		t.Fatalf("读取唤醒: %v %+v", err, snapshot)
 	}
-	if _, err := service.CancelWakeup(context.Background(), "wake-1"); err != nil {
+	if _, err := service.CancelWakeup(context.Background(), WakeupRef{SessionID: "s-1", BranchID: "main", WakeupID: "wake-1"}); err != nil {
 		t.Fatalf("取消唤醒: %v", err)
 	}
 	if reads != 1 {
@@ -557,19 +557,19 @@ func TestEveryCapabilityReportsMissingWhenReaderIsAbsent(t *testing.T) {
 		call func() error
 	}{
 		{"plugin.list", func() error { _, err := service.ListPlugins(ctx); return err }},
-		{"skill.list", func() error { _, err := service.ListSkills(ctx); return err }},
-		{"hook.list", func() error { _, err := service.ListHooks(ctx); return err }},
-		{"tool_server.list", func() error { _, err := service.ListToolServers(ctx); return err }},
-		{"tool_server.probe", func() error { _, err := service.ProbeToolServer(ctx, "srv"); return err }},
-		{"tool_server.import_preview", func() error {
+		{"skills.catalog", func() error { _, err := service.ListSkills(ctx); return err }},
+		{"hooks.catalog", func() error { _, err := service.ListHooks(ctx); return err }},
+		{"mcp.catalog", func() error { _, err := service.ListToolServers(ctx); return err }},
+		{"mcp.test", func() error { _, err := service.ProbeToolServer(ctx, "srv"); return err }},
+		{"mcp.import.preview", func() error {
 			_, err := service.PreviewToolServerImport(ctx, "config")
 			return err
 		}},
-		{"scheduler.list", func() error { _, err := service.ListScheduledTasks(ctx); return err }},
+		{"schedule.list", func() error { _, err := service.ListScheduledTasks(ctx); return err }},
 		{"workflow.list", func() error { _, err := service.ListWorkflows(ctx); return err }},
 		{"workflow.get", func() error { _, err := service.ReadWorkflow(ctx, "wf"); return err }},
 		{"workflow.runs", func() error { _, err := service.ListWorkflowRuns(ctx, "wf"); return err }},
-		{"wakeup.list", func() error {
+		{"session.wakeup.list", func() error {
 			_, err := service.ListWakeups(ctx, WakeupScope{SessionID: "s"})
 			return err
 		}},
@@ -598,5 +598,127 @@ func TestInstallSourceAcceptsEverySupportedKind(t *testing.T) {
 		if err := source.validate(); !errors.Is(err, ErrInvalidRequest) {
 			t.Fatalf("来源 %q 没有被拒绝: %v", kind, err)
 		}
+	}
+}
+
+func TestWakeupReadingsHideCancelledAndExpired(t *testing.T) {
+	service, err := New(Config{
+		Wakeups: wakeupReaderFunc(func(context.Context, WakeupScope) ([]Wakeup, error) {
+			return []Wakeup{
+				{ID: "scheduled", Status: WakeupScheduled},
+				{ID: "fired", Status: WakeupFired},
+				{ID: "cancelled", Status: WakeupCancelled},
+				{ID: "expired", Status: WakeupExpired},
+			}, nil
+		}),
+	})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+
+	scope := WakeupScope{SessionID: "s-1"}
+	snapshot, err := service.ListWakeups(context.Background(), scope)
+	if err != nil {
+		t.Fatalf("读取唤醒: %v", err)
+	}
+	if len(snapshot.Items) != 2 {
+		t.Fatalf("取消/过期记录仍出现在读数里: %+v", snapshot.Items)
+	}
+	for _, wakeup := range snapshot.Items {
+		if wakeup.ID == "cancelled" || wakeup.ID == "expired" {
+			t.Fatalf("取消/过期记录仍出现在读数里: %+v", snapshot.Items)
+		}
+	}
+}
+
+func TestDecodeRealMethodNamesNormalizes(t *testing.T) {
+	cases := []struct {
+		name   string
+		params string
+		wantOp WriteOp
+		check  func(*testing.T, json.RawMessage)
+	}{
+		{
+			name:   "skills set enabled",
+			params: `{"op":"skills.set_enabled","payload":{"skillId":"s1","enabled":true}}`,
+			wantOp: OpSkillSetEnabled,
+		},
+		{
+			name:   "hooks save",
+			params: `{"op":"hooks.save","payload":{"hook":{"event":"pre"},"expectedRevision":"r1"}}`,
+			wantOp: OpHookWrite,
+		},
+		{
+			name:   "mcp save",
+			params: `{"op":"mcp.save","payload":{"id":"m1","source":"user","configuration":{}}}`,
+			wantOp: OpToolServerAdd,
+		},
+		{
+			name:   "mcp remove",
+			params: `{"op":"mcp.remove","payload":{"id":"m1","source":"user"}}`,
+			wantOp: OpToolServerRemove,
+		},
+		{
+			name:   "session wakeup cancel",
+			params: `{"op":"session.wakeup.cancel","payload":{"sessionId":"s1","wakeupId":"w1"}}`,
+			wantOp: OpWakeupCancel,
+		},
+		{
+			name:   "plugin enable",
+			params: `{"op":"plugin.enable","payload":{"name":"Attachments"}}`,
+			wantOp: OpPluginSetEnabled,
+			check: func(t *testing.T, payload json.RawMessage) {
+				var decoded PluginEnabledPayload
+				if err := json.Unmarshal(payload, &decoded); err != nil {
+					t.Fatalf("解析插件启停载荷: %v", err)
+				}
+				if decoded.PluginID != "Attachments" || !decoded.Enabled {
+					t.Fatalf("插件启停归一不符: %+v", decoded)
+				}
+			},
+		},
+		{
+			name:   "plugin disable",
+			params: `{"op":"plugin.disable","payload":{"name":"Attachments"}}`,
+			wantOp: OpPluginSetEnabled,
+			check: func(t *testing.T, payload json.RawMessage) {
+				var decoded PluginEnabledPayload
+				if err := json.Unmarshal(payload, &decoded); err != nil {
+					t.Fatalf("解析插件启停载荷: %v", err)
+				}
+				if decoded.PluginID != "Attachments" || decoded.Enabled {
+					t.Fatalf("插件启停归一不符: %+v", decoded)
+				}
+			},
+		},
+		{
+			name:   "mcp import apply",
+			params: `{"op":"mcp.import.apply","payload":{"source":"claude-code:user","ids":["c1"]}}`,
+			wantOp: OpToolServerAdd,
+			check: func(t *testing.T, payload json.RawMessage) {
+				var decoded ToolServerAddPayload
+				if err := json.Unmarshal(payload, &decoded); err != nil {
+					t.Fatalf("解析 MCP 导入载荷: %v", err)
+				}
+				if decoded.ImportSource != "claude-code:user" || decoded.CandidateKey != "c1" {
+					t.Fatalf("MCP 导入归一不符: %+v", decoded)
+				}
+			},
+		},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			managed, err := DecodeManagementWrite(json.RawMessage(testCase.params))
+			if err != nil {
+				t.Fatalf("解析真实方法参数: %v", err)
+			}
+			if managed.Op != testCase.wantOp {
+				t.Fatalf("归一操作不符: got %q want %q", managed.Op, testCase.wantOp)
+			}
+			if testCase.check != nil {
+				testCase.check(t, managed.Payload)
+			}
+		})
 	}
 }

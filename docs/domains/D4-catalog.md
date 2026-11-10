@@ -46,18 +46,18 @@ Owner: D4 目录领域
 
 **验收**
 
-- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/catalog/`；本版全部通过（2026-11-10，macOS arm64）。
+- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/catalog/`；本版全部通过（2026-11-11，macOS arm64）。
 - 本领域测试：54 个顶层测试（另含 4 个子测试）全部通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖过滤参数透传、新建、提交到新建标识、改名、删除、分支创建与结束、能力缺失。
   - 注入替身：`Reader`、`write.Sender`、`HistorySource`、`SubscriptionReleaser`、`BranchSource` 为测试替身，覆盖分页、标题合并、删除被拒与结果未定、导出失败路径、分支切点与状态收敛。
-  - 真实 App Server：目录读取、新建、重读、删除、回收、两轮对话后的导出、分支创建与结束都已跑通（6.3）。改名仍 **blocked**（6.5）。
+  - 真实 App Server：alpha.21 上目录读取、新建、改名与标题通知、非法标题拒绝、删除已跑通；alpha.18 上用 mock 模型跑通两轮对话后的导出与分支创建/结束（6.3）。旧版本（alpha.7 / alpha.18）的缺能力路径仍按 blocked 记录（6.5）。
 
 **依赖**
 
 | 依赖 | 需要对方冻结/提供 |
 |---|---|
-| D1 连接 | 控制连接上的目录读取、新建、删除；改名所用的连接（控制连接还是会话流）按服务端方法表选择，本机两个版本都没有该方法（6.5）；把标题通知原样交给集成层 |
+| D1 连接 | 控制连接上的目录读取、新建、改名、删除（alpha.21 实测 `session.rename` 在控制连接可用）；把标题通知（`session.notice`）原样交给集成层 |
 | D2 会话投影 | 按轮提供只读快照（轮次序号 + 该轮内容）与向前翻页游标，供导出的 `HistorySource` 实现；提供分支目录与带原因的切点查询（`Folder.CutPoint`：ready/not_ended/not_loaded/no_branch）；不要求本包折叠 |
 | D3 写登记 | `Register`/`Wait` 与 `KindSessionLifecycle`；支持 create/rename/delete 与 branch.create/branch.end；新建不要求 `SessionID`，其余要求；删除未知结果的核对由 `Inspector` 用目录读取实现 |
 | U1 原生界面 | 只读 `Snapshot`/`Entry`/`BranchDirectory`，用 `Hide`/`Unhide` 改归档，用 `Create`/`Rename`/`Delete`/`CreateBranch`/`EndBranch` 提交意图；不直接改本地集合 |
@@ -346,7 +346,7 @@ go vet ./...
 go test -race ./internal/catalog/
 ```
 
-本版结果（2026-11-10，本机 macOS arm64）：
+本版结果（2026-11-11，本机 macOS arm64）：
 
 - `go test ./...`：全部通过（含 `internal/catalog`）。
 - `go vet ./...`：无输出。
@@ -364,12 +364,14 @@ go test -race ./internal/catalog/
 | 过滤参数透传（关键字、工作目录、页大小） | `TestQueryFiltersArePassedThrough`、`TestDefaultPageSize`、`TestAppServerCatalogLifecycle` |
 | 坏页被拒绝且不破坏已有集合 | `TestMalformedPageIsRejected` |
 | 标题按修订号合并；重取页面不回退；未知会话不新增行 | `TestTitleMergesByRevision`、`TestRenameAppliesCommittedTitleAndReportsConflict` |
+| 真实改名后通知与本地一致（同修订幂等、更低修订被忽略） | `TestRealDaemonCatalogLifecycle`（6.3） |
 | 新建后用返回标识提交落于该标识 | `TestCreateReturnsServerIDAndAcceptsSubmit`、`TestAppServerCatalogLifecycle` |
 | 新建不产生未经服务端确认的字段 | `TestCreateReturnsServerIDAndAcceptsSubmit` |
 | 新建被拒不产生本地行 | `TestCreateRejectedAddsNoRow` |
 | 两次新建互相独立、幂等键不重复 | `TestTwoCreatesAreIndependent` |
 | 缺工作目录时不登记意图 | `TestCreateWithoutCwdIsRejectedBeforeSending` |
-| 改名后一致；重复改名不再发送 | `TestRenameAppliesCommittedTitleAndReportsConflict`、`TestAppServerCatalogLifecycle` |
+| 改名后一致；重复改名不再发送 | `TestRenameAppliesCommittedTitleAndReportsConflict`、`TestAppServerCatalogLifecycle`、`TestRealDaemonCatalogLifecycle` |
+| 非法标题被服务端拒绝、本地行保持不变 | `TestRealDaemonCatalogLifecycle`（6.3） |
 | 改名回执修订号落后时提示冲突、本地不变、可重读 | `TestRenameAppliesCommittedTitleAndReportsConflict` |
 | 未知会话的改名与删除在发请求前被拒绝 | `TestRenameAndDeleteRequireKnownSession` |
 | 删除顺序：先释放订阅，再发删除意图 | `TestDeleteReleasesThenRemovesOnlyOnSuccess`、`TestDeleteRejectedKeepsRowWithReason` |
@@ -409,7 +411,44 @@ go test -race ./internal/catalog/
 
 ### 6.3 真实 daemon 证据
 
-环境：macOS arm64；服务端为仓库外二进制 `/tmp/dim-2-target/debug/dim-app-server` 0.1.0-alpha.18；临时数据目录 + `--mock-model`，不触碰用户数据目录。
+夹具纪律：数据目录、离线模型配置与导出文件只放 `/tmp`；`~/.dimcode-alpha`、`/tmp/dim-2-target` 与仓库外源码只读，产品代码不读取它们。
+
+**目录、改名与标题通知（alpha.21）**
+
+```bash
+# 离线模型配置复制到 /tmp，来源目录不动
+cp /Users/eric8810/Code/dim-2/crates/dim-agent-aimux/examples/offline.json /tmp/d4-offline.json
+DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_ARGS=app-server \
+DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \
+  go test -run TestRealDaemonCatalogLifecycle -v -count=1 ./internal/catalog/
+```
+
+观察到的输出：
+
+```text
+服务端 0.1.0-alpha.21（protocol 3，profile configured，owned=true）
+新建会话 eec1c218-319b-49ab-b1c4-1c2e0ea097b2
+重读条目：title=""，titleRevision=0，workspace="/private/tmp/d4cat-1252184959/workspace"
+改名后重读：title="目录证据标题"，titleRevision=1，titleSource="manual"
+标题通知：title="目录证据标题"，revision=1，source="manual"，本地一致
+非法标题被拒：目录改名被拒绝（failed）：发送明确失败: rpc error -32602 (invalid_params): Invalid title or control character
+回收自启服务端: stopped=true
+PASS
+```
+
+这条证据验证了：
+
+1. **改名成功**：提交新标题后，回执给出 `title`、`titleSource=manual`、`revision=1`；重读目录（`session.catalog`）后本地行与标题一致，不是只在本地改。
+2. **标题通知**：`session.rename` 触发 `session.notice`（`source=SessionStore`、`kind=title`、`data={title,titleSource,titleRevision}`）；通知与回执同修订号同内容，合并后本地状态一致，更低修订号的通知不会覆盖。
+3. **非法标题**：带换行的标题被服务端以 `-32602 invalid_params: Invalid title or control character` 拒绝；目录行保持改名后的状态与修订号，写登记把拒绝原样带回。
+4. **回收**：`stopped=true`。
+
+**旧版本兼容路径（alpha.18）**
+
+导出与分支证据需要真实模型回话，仍用 alpha.18 的 `--mock-model`；alpha.21 的离线 provider 只用于目录与改名证据。
+
+环境：服务端为仓库外二进制 `/tmp/dim-2-target/debug/dim-app-server` 0.1.0-alpha.18；临时数据目录 + `--mock-model`。
 
 ```bash
 DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
@@ -436,7 +475,7 @@ PASS
 5. **能力缺失**：该版本没有 `session.rename`（`session.methods` 只列 agent/input/tool/turn/ui 等方法），本包把拒绝原样带回并保留本地行，不假装成功。
 6. **回收**：`stopped=true`，临时目录清空。
 
-**导出证据（同一版本）**：两轮真实对话后，用会话投影的按轮来源导出。
+**导出证据（alpha.18）**：两轮真实对话后，用会话投影的按轮来源导出。
 
 ```bash
 DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
@@ -454,7 +493,7 @@ PASS
 
 这条证据验证了：两轮真实提交（`session.submit` + 等 `turn/end`）之后，`projection.NewTurnHistory(sessionID, lease.Subscription())` 作为来源；每页一轮强制走了 2 页；文件 `turnCount=2` 等于真实轮次；两轮的输入文本都在各自的轮次行里；`projection.TurnHistory` 直接满足目录的 `HistorySource`，中间没有转换层或第二套折叠。
 
-**分支证据（同一版本）**：读取目录、从切点创建分支、结束后重读。
+**分支证据（alpha.18）**：读取目录、从切点创建分支、结束后重读。
 
 ```bash
 DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
@@ -494,8 +533,8 @@ SKIP
 | 提供方 | 形状 | 本包消费方式 |
 |---|---|---|
 | D1 控制连接 | 目录读取方法与回执 | 集成层实现 `Reader`：`Query` → `{limit, cursor, query, cwd}`，回执 → `Page{Entries, NextCursor}` |
-| D1 / 通知层 | 标题通知（`{title, titleSource, titleRevision}`） | 集成层解码后调用 `ApplyTitle`，本包不定义通知形状 |
-| D1 会话流 | 会话流连接 | 改名所用的连接由集成层按服务端方法表选择；本包只给 `{op: "catalog.rename", title}` 与目标会话 |
+| D1 / 通知层 | 标题通知：`session.notice`，`{sessionId, source:"SessionStore", kind:"title", data:{title, titleSource, titleRevision}}`（alpha.21 实测） | 集成层解码后调用 `ApplyTitle`，本包不定义通知形状 |
+| D1 会话流 | 会话订阅与历史读取 | 集成层把订阅交给 `projection.NewTurnHistory`；本包的改名在 alpha.21 走控制连接，不依赖会话流 |
 | D1 错误分类 | `failure.KindOf(err)` 交由 D3 使用 | 能力缺失被 D3 归为明确失败，本包看到 `StatusFailed` 与原因 |
 | D2 按轮历史 | `projection.HistoryRequest` / `HistoryPage` / `HistoryTurn` | 本包用类型别名对齐（不写转换函数）；`projection.NewTurnHistory(sessionID, subscription)` 直接满足 `HistorySource` |
 | D2 分页 | `session.history` 的 `latestTurn` / `before` 游标 | 由 `TurnHistory` 装载与切页；本包只按页推进、去重与统计，不生成轮次 |
@@ -510,7 +549,7 @@ SKIP
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
-| 真实服务端改名 | blocked | 本机两个服务端版本（0.1.0-alpha.7 / 0.1.0-alpha.18）都没有 `session.rename`；需要支持该方法的服务端版本，无法用替身冒充 |
+| 旧版本上的改名（alpha.7 / alpha.18） | blocked | 这两个版本没有 `session.rename`，按能力缺失处理；alpha.21 的真实改名与标题通知已跑通（6.3） |
 | 真实服务端自动标题通知 | blocked | 需要真实模型跑出自动标题并推送标题通知；当前只有 `--mock-model` |
 | 真实服务端目录（alpha.7） | blocked | 该版本没有 `session.catalog`，证据记为能力缺失 |
 | 真实导出（alpha.7） | blocked | 该版本没有 `session.history.latestTurn`；alpha.18 的两轮导出已跑通（6.3） |
@@ -525,7 +564,7 @@ SKIP
 3. **不本地过滤与排序**：过滤条件变化必须 `Refresh`；本地集合始终是服务端页顺序。
 4. **归档记录不清理**：删除会话不移除归档记录；记录对不存在的条目惰性无效，本版没有提供批量清理入口。
 5. **删除的核对未实现**：本包把写登记的成功视为服务端确认；删除在结果未知时依赖集成层用目录读取实现 `Inspector`，本版没有内置实现。
-6. **改名可用性依赖服务端**：服务端没有该方法时只能报拒绝，不能改本地标题；本机两个版本都没有证据。
+6. **改名可用性依赖服务端版本**：alpha.21 支持 `session.rename` 与标题通知；alpha.7 / alpha.18 没有该方法，只能报拒绝并保留本地行。
 7. **导出来源只适合导出**：服务端 wire 没有轮次序号，投影的按轮来源第一次读取会把该分支历史读全，再按轮次起点排序切成稳定的 1..N；因此它只适合导出，不适合界面实时读取。超长会话的一次全量装载是本版已知的内存与耗时成本。
 8. **导出内容由投影决定**：`Turn.Data` 的行结构与字段由 D2 的 `turnDocument` 决定；本包只保证轮次计数、去重、排序与文件格式版本。
 9. **导出路径由调用方负责**：不创建目录、不做工作区越界校验；目标目录不存在即失败且不产出文件。

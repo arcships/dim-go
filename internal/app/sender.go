@@ -19,8 +19,9 @@ import (
 //
 //	write.KindSubmitInput      → session.submit        参数 {sessionId, branchId?, mode, submissionId, text}
 //	write.KindStop             → session.stop          参数 {sessionId, branchId?, memberId?}
-//	write.KindApprovalResponse → approval.respond      参数 {sessionId, branchId?, requestId, decision}
-//	write.KindLongTermAllow    → approval.allow_always 参数 {sessionId, branchId?, requestId, <规则参数>}
+//	write.KindApprovalResponse → approval.respond      参数 {sessionId, branchId?, requestId, decision: allow|deny}
+//	write.KindLongTermAllow    → permission.rules 读、permission.set_rules 写命令规则；
+//	                             规则写成功后才由交互裁决发 approval.respond（allow）
 //	write.KindQuestionAnswer   → question.respond      参数 {sessionId, branchId?, requestId, decision, answer?}
 //	write.KindManagementWrite  → 按参数里的 op 分发：plugin.*、skill.*、hook.write、
 //	                             tool_server.*、workflow.*、wakeup.cancel（扩展与后台领域），
@@ -40,8 +41,9 @@ const (
 	methodSubmitInput        = "session.submit"
 	methodStop               = "session.stop"
 	methodApprovalResponse   = "approval.respond"
-	methodLongTermAllow      = "approval.allow_always"
 	methodQuestionAnswer     = "question.respond"
+	methodPermissionRules    = "permission.rules"
+	methodPermissionSetRule  = "permission.set_rules"
 	methodAttachmentWrite    = protocol.MethodAttachmentPut
 	methodSessionCreate      = "session.create"
 	methodSessionRename      = "session.rename"
@@ -91,9 +93,9 @@ func (s *appSender) Send(ctx context.Context, req write.Request) (write.Reply, e
 	case write.KindStop:
 		return s.sendWithRequestID(ctx, client, methodStop, req, false)
 	case write.KindApprovalResponse:
-		return s.sendWithRequestID(ctx, client, methodApprovalResponse, req, true)
+		return s.sendApprovalResponse(ctx, client, req)
 	case write.KindLongTermAllow:
-		return s.sendWithRequestID(ctx, client, methodLongTermAllow, req, true)
+		return s.sendLongTermAllow(ctx, client, req)
 	case write.KindQuestionAnswer:
 		return s.sendWithRequestID(ctx, client, methodQuestionAnswer, req, true)
 	case write.KindManagementWrite:
@@ -181,6 +183,139 @@ func (s *appSender) sendWithRequestID(
 	return write.Reply{InputID: req.InputID, Result: raw}, nil
 }
 
+// sendApprovalResponse 发一次审批应答。交互裁决使用 approve/reject，服务端只认
+// allow/deny；映射只发生在这一层。
+func (s *appSender) sendApprovalResponse(
+	ctx context.Context,
+	client *protocol.Client,
+	req write.Request,
+) (write.Reply, error) {
+	if req.SessionID == "" || req.InputID == "" {
+		return write.Reply{}, fmt.Errorf("%w: 审批应答缺少会话或请求标识", write.ErrInvalidIntent)
+	}
+	params, err := objectParams(req)
+	if err != nil {
+		return write.Reply{}, err
+	}
+	decision, _ := params["decision"].(string)
+	switch decision {
+	case "approve", "allow", "allow_long_term":
+		params["decision"] = "allow"
+	case "reject", "deny":
+		params["decision"] = "deny"
+	default:
+		return write.Reply{}, fmt.Errorf("%w: 未知审批决定 %q", write.ErrInvalidIntent, decision)
+	}
+	params["sessionId"] = req.SessionID
+	params["branchId"] = branchWireValue(req.BranchID)
+	params["requestId"] = req.InputID
+	raw, err := client.Call(ctx, methodApprovalResponse, params)
+	if err != nil {
+		return write.Reply{}, err
+	}
+	return write.Reply{InputID: req.InputID, Result: raw}, nil
+}
+
+// commandRule 是服务端用户级命令规则；字段与服务端 wire 一致。
+type commandRule struct {
+	Command  string `json:"command"`
+	Match    string `json:"match"`
+	Decision string `json:"decision"`
+}
+
+type commandRulesReply struct {
+	Revision     string        `json:"revision"`
+	CommandRules []commandRule `json:"commandRules"`
+}
+
+// sendLongTermAllow 把长期允许写成服务端命令规则：先读 permission.rules，再带
+// revision 写 permission.set_rules；revision 冲突时重读重试。规则写成功后交回
+// 交互裁决，由它发审批应答。
+func (s *appSender) sendLongTermAllow(
+	ctx context.Context,
+	client *protocol.Client,
+	req write.Request,
+) (write.Reply, error) {
+	params, err := objectParams(req)
+	if err != nil {
+		return write.Reply{}, err
+	}
+	rule, err := commandRuleFromParams(params)
+	if err != nil {
+		return write.Reply{}, err
+	}
+	for attempt := 0; attempt < 3; attempt++ {
+		current, err := readCommandRules(ctx, client)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		if hasCommandRule(current.CommandRules, rule) {
+			return write.Reply{Result: json.RawMessage(`{"status":"present"}`)}, nil
+		}
+		next := append(append([]commandRule{}, current.CommandRules...), rule)
+		raw, err := client.Call(ctx, methodPermissionSetRule, map[string]any{
+			"expectedRevision": current.Revision,
+			"commandRules":     next,
+		})
+		if err == nil {
+			return write.Reply{Result: raw}, nil
+		}
+		if appErrorOf(err) != "permission_rules_conflict" {
+			return write.Reply{}, err
+		}
+	}
+	return write.Reply{}, errors.New("命令规则持续变化，长期允许未写入")
+}
+
+func readCommandRules(ctx context.Context, client *protocol.Client) (commandRulesReply, error) {
+	var reply commandRulesReply
+	raw, err := client.Call(ctx, methodPermissionRules, map[string]any{})
+	if err != nil {
+		return reply, err
+	}
+	if err := json.Unmarshal(raw, &reply); err != nil {
+		return reply, fmt.Errorf("permission.rules 回执无法解析: %w", err)
+	}
+	if reply.Revision == "" {
+		return reply, errors.New("permission.rules 回执缺少 revision")
+	}
+	return reply, nil
+}
+
+func commandRuleFromParams(params map[string]any) (commandRule, error) {
+	command, _ := params["command"].(string)
+	command = strings.TrimSpace(command)
+	match, _ := params["match"].(string)
+	if match == "" {
+		match = "exact"
+	}
+	decision, _ := params["decision"].(string)
+	if decision == "" {
+		decision = "allow"
+	}
+	if command == "" || (match != "exact" && match != "prefix") || decision != "allow" {
+		return commandRule{}, fmt.Errorf("%w: 长期允许规则不合法", write.ErrInvalidIntent)
+	}
+	return commandRule{Command: command, Match: match, Decision: decision}, nil
+}
+
+func hasCommandRule(rules []commandRule, target commandRule) bool {
+	for _, rule := range rules {
+		if rule == target {
+			return true
+		}
+	}
+	return false
+}
+
+func appErrorOf(err error) string {
+	var rpcErr *protocol.RPCError
+	if errors.As(err, &rpcErr) {
+		return rpcErr.AppError()
+	}
+	return ""
+}
+
 // sendManagement 按参数里的 op 分发管理写入。
 func (s *appSender) sendManagement(
 	ctx context.Context,
@@ -235,17 +370,8 @@ func (s *appSender) sendManagement(
 		}
 		return write.Reply{Result: raw}, nil
 	case head.Op == "runtime.install":
-		var payload struct {
-			Name string `json:"name"`
-		}
-		if err := json.Unmarshal(req.Params, &payload); err != nil {
-			return write.Reply{}, fmt.Errorf("%w: 组件安装参数无法解析: %v", write.ErrInvalidIntent, err)
-		}
-		raw, err := client.Call(ctx, "runtime.install", map[string]any{"name": payload.Name})
-		if err != nil {
-			return write.Reply{}, err
-		}
-		return write.Reply{Result: raw}, nil
+		// runtime.* 在 alpha.21 不注册：按能力缺失处理，不发请求、不发明方法。
+		return write.Reply{}, runtimeCapabilityMissing()
 	default:
 		return write.Reply{}, fmt.Errorf("%w: 未支持的管理写入 %q", write.ErrInvalidIntent, head.Op)
 	}
@@ -255,10 +381,14 @@ func isExtensionOp(op string) bool {
 	switch {
 	case strings.HasPrefix(op, "plugin."),
 		strings.HasPrefix(op, "skill."),
-		op == "hook.write",
+		strings.HasPrefix(op, "skills."),
+		strings.HasPrefix(op, "hook."),
+		strings.HasPrefix(op, "hooks."),
+		strings.HasPrefix(op, "mcp."),
 		strings.HasPrefix(op, "tool_server."),
 		strings.HasPrefix(op, "workflow."),
-		op == "wakeup.cancel":
+		op == "wakeup.cancel",
+		op == "session.wakeup.cancel":
 		return true
 	default:
 		return false
@@ -275,108 +405,301 @@ func (s *appSender) sendExtensionWrite(
 	if err != nil {
 		return write.Reply{}, fmt.Errorf("%w: %v", write.ErrInvalidIntent, err)
 	}
-	switch managed.Op {
-	case extensions.OpPluginInstall:
-		var payload extensions.PluginInstallPayload
+	// 领域包的 WriteOp 取值在两轮 wire 对齐中变过（toolServer.* → mcp.*、scheduler.* →
+	// schedule.* 等）。这里按 wire 取值分发，同时接受旧写法，避免把集成层绑在
+	// 领域包内部的常量演进上。
+	switch string(managed.Op) {
+	case "plugin.install":
+		var payload struct {
+			Source extensions.InstallSource `json:"source"`
+		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, "plugin.install", map[string]any{
-			"source": map[string]any{"kind": string(payload.Source.Kind), "ref": payload.Source.Ref},
+		return callAndReply(ctx, client, methodPluginInstall, map[string]any{
+			"source": pluginSourceWire(payload.Source),
+			"enable": true,
 		})
-	case extensions.OpPluginSetEnabled:
-		var payload extensions.PluginEnabledPayload
+	case "plugin.enable", "plugin.set_enabled", "plugin.disable":
+		var payload struct {
+			PluginID string `json:"pluginId"`
+			Name     string `json:"name"`
+			Enabled  *bool  `json:"enabled"`
+		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, "plugin.set_enabled", map[string]any{
-			"pluginId": payload.PluginID,
-			"enabled":  payload.Enabled,
+		enabled := true
+		if payload.Enabled != nil {
+			enabled = *payload.Enabled
+		}
+		if string(managed.Op) == "plugin.disable" {
+			enabled = false
+		}
+		method := methodPluginEnable
+		if !enabled {
+			method = methodPluginDisable
+		}
+		return callAndReply(ctx, client, method, map[string]any{
+			"name": firstNonEmpty(payload.PluginID, payload.Name),
 		})
-	case extensions.OpPluginUpdate:
-		var payload extensions.PluginUpdatePayload
+	case "plugin.update":
+		var payload struct {
+			PluginID string `json:"pluginId"`
+			ID       string `json:"id"`
+		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, "plugin.update", map[string]any{"pluginId": payload.PluginID})
-	case extensions.OpSkillInstall:
-		var payload extensions.SkillInstallPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, invalidPayload(err)
-		}
-		return callAndReply(ctx, client, "skill.install", map[string]any{
-			"source": map[string]any{"kind": string(payload.Source.Kind), "ref": payload.Source.Ref},
+		return callAndReply(ctx, client, methodPluginUpdate, map[string]any{
+			"id": firstNonEmpty(payload.PluginID, payload.ID),
 		})
-	case extensions.OpSkillSetEnabled:
-		var payload extensions.SkillEnabledPayload
+	case "skills.install", "skill.install":
+		var payload struct {
+			Source extensions.InstallSource `json:"source"`
+		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, "skill.set_enabled", map[string]any{
-			"skillId": payload.SkillID,
-			"enabled": payload.Enabled,
+		return callAndReply(ctx, client, methodSkillsInstall, protocol.SkillsInstallParams{
+			Source: pluginSourceWire(payload.Source),
+			Skills: []protocol.SelectedSkill{},
 		})
-	case extensions.OpHookWrite:
-		var payload extensions.HookWritePayload
+	case "skills.set_enabled", "skill.set_enabled":
+		var payload struct {
+			SkillID string `json:"skillId"`
+			ID      string `json:"id"`
+			Enabled *bool  `json:"enabled"`
+		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, "hook.write", map[string]any{"hook": map[string]any{
+		enabled := true
+		if payload.Enabled != nil {
+			enabled = *payload.Enabled
+		}
+		return callAndReply(ctx, client, methodSkillsSetEnabled, protocol.SkillsSetEnabledParams{
+			ID:      firstNonEmpty(payload.SkillID, payload.ID),
+			Enabled: enabled,
+		})
+	case "hooks.save", "hook.write":
+		var payload struct {
+			Hook             extensions.Hook `json:"hook"`
+			ExpectedRevision string          `json:"expectedRevision"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		revision, err := s.hooksRevision(ctx, client, payload.ExpectedRevision)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		document, marshalErr := json.Marshal(map[string]any{"hooks": []any{map[string]any{
 			"id":      payload.Hook.ID,
 			"name":    payload.Hook.Name,
 			"event":   payload.Hook.Event,
 			"command": payload.Hook.Command,
 			"source":  string(payload.Hook.Source),
 			"enabled": payload.Hook.Enabled,
-		}})
-	case extensions.OpToolServerAdd:
-		var payload extensions.ToolServerAddPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, invalidPayload(err)
+		}}})
+		if marshalErr != nil {
+			return write.Reply{}, invalidPayload(marshalErr)
 		}
-		params := toolServerParams(payload.Server)
-		if payload.ImportSource != "" {
-			params["importSource"] = payload.ImportSource
-			params["candidateKey"] = payload.CandidateKey
-		}
-		return callAndReply(ctx, client, "toolServer.add", params)
-	case extensions.OpToolServerUpdate:
-		var payload extensions.ToolServerUpdatePayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, invalidPayload(err)
-		}
-		params := toolServerParams(payload.Server)
-		params["serverId"] = payload.ServerID
-		return callAndReply(ctx, client, "toolServer.update", params)
-	case extensions.OpToolServerRemove:
-		var payload extensions.ToolServerRemovePayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, invalidPayload(err)
-		}
-		return callAndReply(ctx, client, "toolServer.remove", map[string]any{"serverId": payload.ServerID})
-	case extensions.OpWorkflowStart:
-		var payload extensions.WorkflowStartPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, invalidPayload(err)
-		}
-		return callAndReply(ctx, client, "workflow.start", map[string]any{
-			"workflowId": payload.WorkflowID,
-			"inputs":     payload.Inputs,
+		return callAndReply(ctx, client, methodHooksSave, protocol.HooksSaveParams{
+			ExpectedRevision: revision,
+			Document:         document,
 		})
-	case extensions.OpWorkflowStop:
-		var payload extensions.WorkflowStopPayload
+	case "mcp.import.apply":
+		var payload struct {
+			ImportSource string   `json:"importSource"`
+			Source       string   `json:"source"`
+			CandidateKey string   `json:"candidateKey"`
+			IDs          []string `json:"ids"`
+		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, "workflow.stop", map[string]any{"runId": payload.RunID})
-	case extensions.OpWakeupCancel:
-		var payload extensions.WakeupCancelPayload
+		ids := append([]string(nil), payload.IDs...)
+		if len(ids) == 0 && payload.CandidateKey != "" {
+			ids = []string{payload.CandidateKey}
+		}
+		return callAndReply(ctx, client, methodMCPImportApply, protocol.MCPImportApplyParams{
+			Source: firstNonEmpty(payload.ImportSource, payload.Source),
+			IDs:    ids,
+		})
+	case "mcp.save", "tool_server.add", "tool_server.update":
+		var payload struct {
+			ServerID     string                    `json:"serverId"`
+			Server       extensions.ToolServerSpec `json:"server"`
+			ImportSource string                    `json:"importSource"`
+			CandidateKey string                    `json:"candidateKey"`
+			Source       string                    `json:"source"`
+			ExpectedVer  string                    `json:"expectedVersion"`
+			Config       json.RawMessage           `json:"configuration"`
+			Name         string                    `json:"name"`
+		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, "wakeup.cancel", map[string]any{"wakeupId": payload.WakeupID})
+		if payload.ImportSource != "" && payload.CandidateKey != "" {
+			return callAndReply(ctx, client, methodMCPImportApply, protocol.MCPImportApplyParams{
+				Source: payload.ImportSource,
+				IDs:    []string{payload.CandidateKey},
+			})
+		}
+		spec := payload.Server
+		if spec.Name == "" {
+			spec.Name = firstNonEmpty(payload.Name, payload.ServerID)
+		}
+		if len(spec.Configuration) == 0 && len(payload.Config) > 0 {
+			spec.Configuration = payload.Config
+		}
+		if spec.Source == "" && payload.Source != "" {
+			spec.Source = extensions.Source(payload.Source)
+		}
+		if spec.ExpectedVersion == "" {
+			spec.ExpectedVersion = payload.ExpectedVer
+		}
+		return callAndReply(ctx, client, methodMCPSave, mcpSaveParams(payload.ServerID, spec))
+	case "mcp.set_enabled":
+		var payload struct {
+			ServerID string          `json:"serverId"`
+			ID       string          `json:"id"`
+			Source   string          `json:"source"`
+			Enabled  bool            `json:"enabled"`
+			Expected string          `json:"expectedVersion"`
+			Raw      json.RawMessage `json:"-"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		source := payload.Source
+		if source == "" {
+			source = "user"
+		}
+		return callAndReply(ctx, client, methodMCPSetEnabled, protocol.MCPSetEnabledParams{
+			ID:              firstNonEmpty(payload.ServerID, payload.ID),
+			Source:          source,
+			ExpectedVersion: payload.Expected,
+			Enabled:         payload.Enabled,
+		})
+	case "mcp.remove", "tool_server.remove":
+		var payload struct {
+			ServerID string `json:"serverId"`
+			ID       string `json:"id"`
+			Source   string `json:"source"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		source := payload.Source
+		if source == "" {
+			source = "user"
+		}
+		return callAndReply(ctx, client, methodMCPRemove, protocol.MCPRemoveParams{
+			ID:     firstNonEmpty(payload.ServerID, payload.ID),
+			Source: source,
+		})
+	case "workflow.start", "workflow.stop":
+		// workflow.* 在 alpha.21 不注册：按能力缺失处理，不发请求。
+		return write.Reply{}, workflowCapabilityMissing()
+	case "session.wakeup.cancel", "wakeup.cancel":
+		var payload struct {
+			SessionID string `json:"sessionId"`
+			WakeupID  string `json:"wakeupId"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		sessionID := firstNonEmpty(payload.SessionID, req.SessionID)
+		if sessionID == "" {
+			return write.Reply{}, failure.New(failure.KindNonRetryable, methodSessionWakeupCancel,
+				fmt.Errorf("%w: 取消唤醒需要会话标识", write.ErrInvalidIntent))
+		}
+		runtime, runtimeErr := s.sessionRuntime(sessionID, methodSessionWakeupCancel)
+		if runtimeErr != nil {
+			return write.Reply{}, runtimeErr
+		}
+		if !s.app.sessionSupportsMethod(ctx, runtime, methodSessionWakeupCancel) {
+			return write.Reply{}, capabilityMissing(methodSessionWakeupCancel)
+		}
+		raw, callErr := runtime.lease.Subscription().Call(ctx, methodSessionWakeupCancel, protocol.SessionWakeupCancelParams{
+			SessionID: sessionID,
+			WakeupID:  payload.WakeupID,
+		})
+		if callErr != nil {
+			return write.Reply{}, callErr
+		}
+		return write.Reply{Result: raw}, nil
 	default:
 		return write.Reply{}, fmt.Errorf("%w: 未支持的管理写入 %q", write.ErrInvalidIntent, managed.Op)
+	}
+}
+
+// hooksRevision 取 hooks.save 的版本前置条件：调用方给了就原样使用，
+// 没给时读一次当前目录的 userRevision（D11b 的约定是「由集成层补齐」）。
+func (s *appSender) hooksRevision(
+	ctx context.Context,
+	client *protocol.Client,
+	expected string,
+) (string, error) {
+	if expected != "" {
+		return expected, nil
+	}
+	raw, err := client.Call(ctx, methodHooksCatalog, nil)
+	if err != nil {
+		return "", err
+	}
+	catalog, err := protocol.ParseHooksCatalogResult(raw)
+	if err != nil {
+		return "", fmt.Errorf("钩子目录无法解析: %w", err)
+	}
+	return catalog.UserRevision, nil
+}
+
+// pluginSourceWire 把安装来源映射成真实 wire 形状：本地路径或 Git 地址。
+func pluginSourceWire(source extensions.InstallSource) protocol.PluginSource {
+	switch source.Kind {
+	case extensions.SourceGit:
+		return protocol.PluginSource{Git: source.Ref}
+	default:
+		return protocol.PluginSource{Path: source.Ref}
+	}
+}
+
+// mcpSaveParams 把工具服务器配置映射成 `mcp.save` 参数。
+//
+// 载荷里带了原始配置文档就原样使用；否则按 transport/command/args/url/env 写一份
+// 最小文档。source 与版本前置条件优先取载荷，没给时按用户作用域与空版本。
+func mcpSaveParams(id string, spec extensions.ToolServerSpec) protocol.MCPSaveParams {
+	configuration := spec.Configuration
+	if len(configuration) == 0 {
+		document := map[string]any{
+			"transport": string(spec.Transport),
+			"command":   spec.Command,
+			"url":       spec.URL,
+		}
+		if len(spec.Args) > 0 {
+			document["args"] = append([]string(nil), spec.Args...)
+		}
+		if len(spec.Env) > 0 {
+			env := make(map[string]string, len(spec.Env))
+			for key, value := range spec.Env {
+				env[key] = value
+			}
+			document["env"] = env
+		}
+		configuration, _ = json.Marshal(document)
+	}
+	source := string(spec.Source)
+	if source == "" {
+		source = "user"
+	}
+	return protocol.MCPSaveParams{
+		ID:              firstNonEmpty(id, spec.Name),
+		Source:          source,
+		ExpectedVersion: spec.ExpectedVersion,
+		Configuration:   configuration,
 	}
 }
 
@@ -472,13 +795,15 @@ func (s *appSender) sendSessionLifecycle(
 		}
 		return write.Reply{Result: raw}, nil
 	case "rename", "catalog.rename":
-		params := map[string]any{"sessionId": req.SessionID}
-		if payload.Title == nil {
-			params["title"] = nil
-		} else {
-			params["title"] = *payload.Title
+		// 真实方法 `session.rename` 是会话方法：走本会话的流，回执带 revision。
+		runtime, err := s.sessionRuntime(req.SessionID, methodSessionRename)
+		if err != nil {
+			return write.Reply{}, err
 		}
-		raw, err := client.Call(ctx, methodSessionRename, params)
+		raw, err := runtime.lease.Subscription().Call(ctx, methodSessionRename, protocol.SessionRenameParams{
+			SessionID: req.SessionID,
+			Title:     payload.Title,
+		})
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -686,15 +1011,7 @@ func (s *appSender) sendModality(ctx context.Context, req write.Request) (write.
 
 // sessionRuntime 取已打开会话；没有打开时按不可重试失败处理，不发请求。
 func (s *appSender) sessionRuntime(sessionID, method string) (*sessionRuntime, error) {
-	if sessionID == "" {
-		return nil, fmt.Errorf("%w: 该写入缺少会话标识", write.ErrInvalidIntent)
-	}
-	runtime, ok := s.app.session(sessionID)
-	if !ok {
-		return nil, failure.New(failure.KindNonRetryable, method,
-			fmt.Errorf("%w: %s 需要先打开会话", ErrSessionNotOpen, method))
-	}
-	return runtime, nil
+	return s.app.openRuntime(sessionID, method)
 }
 
 // firstNonEmpty 返回第一个非空字符串。

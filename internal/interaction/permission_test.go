@@ -32,10 +32,10 @@ func TestPermissionHasNoDefault(t *testing.T) {
 // TestPermissionIsPassedThrough 核对：档位保存后显式透传给本会话的提交意图，已有字段保留。
 func TestPermissionIsPassedThrough(t *testing.T) {
 	arbiter, _ := newTestArbiter(t, testSession)
-	if err := arbiter.SetPermissionTier(PermissionWorkspaceAuto); err != nil {
+	if err := arbiter.SetPermissionTier(PermissionWorkspaceWrite); err != nil {
 		t.Fatalf("设置档位: %v", err)
 	}
-	if tier, ok := arbiter.PermissionTier(); !ok || tier != PermissionWorkspaceAuto {
+	if tier, ok := arbiter.PermissionTier(); !ok || tier != PermissionWorkspaceWrite {
 		t.Fatalf("档位取值不对: %q %v", tier, ok)
 	}
 
@@ -46,7 +46,7 @@ func TestPermissionIsPassedThrough(t *testing.T) {
 		t.Fatalf("透传档位: %v", err)
 	}
 	params := decodeParams(t, got.Params)
-	if params["permission"] != string(PermissionWorkspaceAuto) {
+	if params["permission"] != string(PermissionWorkspaceWrite) {
 		t.Fatalf("档位没有透传: %v", params)
 	}
 	if params["text"] != "你好" || params["mode"] != "queue" {
@@ -62,7 +62,7 @@ func TestPermissionIsPassedThrough(t *testing.T) {
 		t.Fatalf("空参数透传: %v", err)
 	}
 	emptyParams := decodeParams(t, empty.Params)
-	if emptyParams["permission"] != string(PermissionWorkspaceAuto) {
+	if emptyParams["permission"] != string(PermissionWorkspaceWrite) {
 		t.Fatalf("空参数没有合入档位: %v", emptyParams)
 	}
 }
@@ -81,13 +81,13 @@ func TestPermissionValuesAreOpaque(t *testing.T) {
 // TestPermissionRejectsEmptyAndBadParams 核对：空档位与非对象参数被拒绝。
 func TestPermissionRejectsEmptyAndBadParams(t *testing.T) {
 	arbiter, _ := newTestArbiter(t, testSession)
-	if err := arbiter.SetPermissionTier(PermissionFullAuto); err != nil {
+	if err := arbiter.SetPermissionTier(PermissionFullAccess); err != nil {
 		t.Fatalf("设置档位: %v", err)
 	}
 	if err := arbiter.SetPermissionTier(""); !errors.Is(err, ErrPermissionTierEmpty) {
 		t.Fatalf("空档位应被拒: %v", err)
 	}
-	if tier, _ := arbiter.PermissionTier(); tier != PermissionFullAuto {
+	if tier, _ := arbiter.PermissionTier(); tier != PermissionFullAccess {
 		t.Fatalf("拒绝后不应改档位: %q", tier)
 	}
 
@@ -106,7 +106,7 @@ func TestPermissionRejectsEmptyAndBadParams(t *testing.T) {
 // TestPermissionScopeMatchesSession 核对：档位只透传给提交意图，且只作用于本会话。
 func TestPermissionScopeMatchesSession(t *testing.T) {
 	arbiter, _ := newTestArbiter(t, testSession)
-	if err := arbiter.SetPermissionTier(PermissionFullAuto); err != nil {
+	if err := arbiter.SetPermissionTier(PermissionFullAccess); err != nil {
 		t.Fatalf("设置档位: %v", err)
 	}
 
@@ -129,16 +129,16 @@ func TestPermissionIsPerSession(t *testing.T) {
 	first, _ := newTestArbiter(t, "s1")
 	second, _ := newTestArbiter(t, "s2")
 
-	if err := first.SetPermissionTier(PermissionFullAuto); err != nil {
+	if err := first.SetPermissionTier(PermissionFullAccess); err != nil {
 		t.Fatalf("设置第一个会话档位: %v", err)
 	}
-	if err := second.SetPermissionTier(PermissionWorkspaceAuto); err != nil {
+	if err := second.SetPermissionTier(PermissionWorkspaceWrite); err != nil {
 		t.Fatalf("设置第二个会话档位: %v", err)
 	}
-	if tier, _ := first.PermissionTier(); tier != PermissionFullAuto {
+	if tier, _ := first.PermissionTier(); tier != PermissionFullAccess {
 		t.Fatalf("第一个会话档位不对: %q", tier)
 	}
-	if tier, _ := second.PermissionTier(); tier != PermissionWorkspaceAuto {
+	if tier, _ := second.PermissionTier(); tier != PermissionWorkspaceWrite {
 		t.Fatalf("第二个会话档位不对: %q", tier)
 	}
 
@@ -146,7 +146,7 @@ func TestPermissionIsPerSession(t *testing.T) {
 	if _, ok := first.PermissionTier(); ok {
 		t.Fatal("第一个会话清空后不应有档位")
 	}
-	if tier, ok := second.PermissionTier(); !ok || tier != PermissionWorkspaceAuto {
+	if tier, ok := second.PermissionTier(); !ok || tier != PermissionWorkspaceWrite {
 		t.Fatalf("第二个会话档位不应受影响: %q %v", tier, ok)
 	}
 }
@@ -154,7 +154,7 @@ func TestPermissionIsPerSession(t *testing.T) {
 // TestPermissionClear 核对：清空后回到没有值。
 func TestPermissionClear(t *testing.T) {
 	arbiter, _ := newTestArbiter(t, testSession)
-	if err := arbiter.SetPermissionTier(PermissionFullAuto); err != nil {
+	if err := arbiter.SetPermissionTier(PermissionFullAccess); err != nil {
 		t.Fatalf("设置档位: %v", err)
 	}
 	arbiter.ClearPermissionTier()

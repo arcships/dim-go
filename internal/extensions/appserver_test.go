@@ -45,7 +45,12 @@ type appServerHarness struct {
 	toolUpdated     map[string]ToolServerSpec
 	toolRemoved     map[string]bool
 	wakeupCancelled map[string]bool
-	addedCount      int
+	toolSources     map[string]string
+	sessionCall     func(context.Context, string, any) (json.RawMessage, error)
+	// overlayWrites 为真时，读取会在服务端回执上叠加本测试记录的写入结果；
+	// 真实 daemon 证据应关闭，直接读取服务端事实。
+	overlayWrites bool
+	addedCount    int
 }
 
 func newAppServerHarness(client *protocol.Client) *appServerHarness {
@@ -58,124 +63,155 @@ func newAppServerHarness(client *protocol.Client) *appServerHarness {
 		toolUpdated:     make(map[string]ToolServerSpec),
 		toolRemoved:     make(map[string]bool),
 		wakeupCancelled: make(map[string]bool),
+		toolSources:     make(map[string]string),
+		overlayWrites:   true,
 	}
 }
 
-// 以下六个读取实现是集成层在 wire 与本领域类型之间的映射。
+// 以下读取实现是集成层在真实 wire 与本领域类型之间的映射。方法名与主要回执
+// 形状按 alpha.21 实测；尚未冻结的条目只取本测试需要的字段。
 
+type wirePluginCandidate struct {
+	ID    string   `json:"id"`
+	Kinds []string `json:"kinds"`
+}
+
+// wirePlugin 是 `plugin.list` 的一项；alpha.21 的 list 回执是数组。
 type wirePlugin struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Version         string `json:"version"`
-	Source          string `json:"source"`
-	SourceRef       string `json:"sourceRef"`
-	Installed       bool   `json:"installed"`
-	Enabled         bool   `json:"enabled"`
-	Optional        bool   `json:"optional"`
-	UpdateAvailable bool   `json:"updateAvailable"`
-	LatestVersion   string `json:"latestVersion"`
-	Description     string `json:"description"`
+	Name       string                `json:"name"`
+	Use        *string               `json:"use"`
+	Off        bool                  `json:"off"`
+	Locked     bool                  `json:"locked"`
+	Candidates []wirePluginCandidate `json:"candidates"`
+	Status     string                `json:"status"`
+	Error      string                `json:"error"`
 }
 
 func (h *appServerHarness) ReadPlugins(ctx context.Context) ([]Plugin, error) {
-	var result struct {
-		Plugins []wirePlugin `json:"plugins"`
-	}
-	if err := h.client.CallInto(ctx, "plugin.list", nil, &result); err != nil {
+	var entries []wirePlugin
+	if err := h.client.CallInto(ctx, "plugin.list", nil, &entries); err != nil {
 		return nil, err
 	}
-	plugins := make([]Plugin, 0, len(result.Plugins))
-	for _, plugin := range result.Plugins {
+	plugins := make([]Plugin, 0, len(entries))
+	for _, plugin := range entries {
+		use := ""
+		if plugin.Use != nil {
+			use = *plugin.Use
+		}
 		plugins = append(plugins, Plugin{
-			ID:              plugin.ID,
-			Name:            plugin.Name,
-			Version:         plugin.Version,
-			Source:          sourceFromWire(plugin.Source),
-			SourceRef:       plugin.SourceRef,
-			Installed:       plugin.Installed,
-			Enabled:         plugin.Enabled,
-			Optional:        plugin.Optional,
-			UpdateAvailable: plugin.UpdateAvailable,
-			LatestVersion:   plugin.LatestVersion,
-			Description:     plugin.Description,
+			ID:        plugin.Name,
+			Name:      plugin.Name,
+			Source:    sourceFromPluginCandidates(plugin.Candidates),
+			Installed: true,
+			Enabled:   !plugin.Off,
+			Use:       use,
+			Locked:    plugin.Locked,
+			Status:    plugin.Status,
+			Error:     plugin.Error,
 		})
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	for index := range plugins {
-		if enabled, ok := h.pluginEnabled[plugins[index].ID]; ok {
-			plugins[index].Enabled = enabled
-		}
-		if h.pluginUpdated[plugins[index].ID] {
-			plugins[index].UpdateAvailable = false
-		}
-	}
-	for _, installed := range h.pluginInstalls {
-		found := false
-		for _, plugin := range plugins {
-			if plugin.ID == installed.ID {
-				found = true
-				break
+	if h.overlayWrites {
+		for index := range plugins {
+			if enabled, ok := h.pluginEnabled[plugins[index].ID]; ok {
+				plugins[index].Enabled = enabled
+			}
+			if h.pluginUpdated[plugins[index].ID] {
+				plugins[index].UpdateAvailable = false
 			}
 		}
-		if !found {
-			plugins = append(plugins, installed)
+		for _, installed := range h.pluginInstalls {
+			if !hasPluginByID(plugins, installed.ID) {
+				plugins = append(plugins, installed)
+			}
 		}
 	}
 	return plugins, nil
 }
 
+func sourceFromPluginCandidates(candidates []wirePluginCandidate) Source {
+	for _, candidate := range candidates {
+		for _, kind := range candidate.Kinds {
+			switch kind {
+			case "git":
+				return SourceGit
+			case "path", "local":
+				return SourceLocal
+			case "builtin", "bundled", "code":
+				return SourceBundled
+			}
+		}
+	}
+	return SourceUnknown
+}
+
+func hasPluginByID(plugins []Plugin, id string) bool {
+	for _, plugin := range plugins {
+		if plugin.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// wireSkill 是 `skills.catalog` 的一项。
 type wireSkill struct {
 	ID          string `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Version     string `json:"version"`
 	Source      string `json:"source"`
-	Installed   bool   `json:"installed"`
 	Enabled     bool   `json:"enabled"`
 }
 
 func (h *appServerHarness) ReadSkills(ctx context.Context) ([]Skill, error) {
 	var result struct {
-		Skills []wireSkill `json:"skills"`
+		Version uint64      `json:"version"`
+		Entries []wireSkill `json:"entries"`
+		Issues  []any       `json:"issues"`
 	}
-	if err := h.client.CallInto(ctx, "skill.list", nil, &result); err != nil {
+	if err := h.client.CallInto(ctx, "skills.catalog", nil, &result); err != nil {
 		return nil, err
 	}
-	skills := make([]Skill, 0, len(result.Skills))
-	for _, skill := range result.Skills {
+	skills := make([]Skill, 0, len(result.Entries))
+	for _, entry := range result.Entries {
 		skills = append(skills, Skill{
-			ID:          skill.ID,
-			Name:        skill.Name,
-			Description: skill.Description,
-			Version:     skill.Version,
-			Source:      sourceFromWire(skill.Source),
-			Installed:   skill.Installed,
-			Enabled:     skill.Enabled,
+			ID:          entry.ID,
+			Name:        entry.Name,
+			Description: entry.Description,
+			Source:      sourceFromWire(entry.Source),
+			Installed:   true,
+			Enabled:     entry.Enabled,
 		})
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	for index := range skills {
-		if enabled, ok := h.skillEnabled[skills[index].ID]; ok {
-			skills[index].Enabled = enabled
-		}
-	}
-	for _, installed := range h.skillInstalls {
-		found := false
-		for _, skill := range skills {
-			if skill.ID == installed.ID {
-				found = true
-				break
+	if h.overlayWrites {
+		for index := range skills {
+			if enabled, ok := h.skillEnabled[skills[index].ID]; ok {
+				skills[index].Enabled = enabled
 			}
 		}
-		if !found {
-			skills = append(skills, installed)
+		for _, installed := range h.skillInstalls {
+			if !hasSkillByID(skills, installed.ID) {
+				skills = append(skills, installed)
+			}
 		}
 	}
 	return skills, nil
 }
 
+func hasSkillByID(skills []Skill, id string) bool {
+	for _, skill := range skills {
+		if skill.ID == id {
+			return true
+		}
+	}
+	return false
+}
+
+// wireHook 是 `hooks.catalog` 里 hooks 数组的一项。真实条目形状尚未冻结；测试
+// 适配器只接受带 id 的扁平对象，非空且无法识别时明确报错。
 type wireHook struct {
 	ID      string `json:"id"`
 	Name    string `json:"name"`
@@ -187,13 +223,22 @@ type wireHook struct {
 
 func (h *appServerHarness) ReadHooks(ctx context.Context) ([]Hook, error) {
 	var result struct {
-		Hooks []wireHook `json:"hooks"`
+		UserRevision     string            `json:"userRevision"`
+		UserDocument     json.RawMessage   `json:"userDocument"`
+		ProjectsRevision string            `json:"projectsRevision"`
+		DisableAllHooks  bool              `json:"disableAllHooks"`
+		Sources          []json.RawMessage `json:"sources"`
+		Hooks            []json.RawMessage `json:"hooks"`
 	}
-	if err := h.client.CallInto(ctx, "hook.list", nil, &result); err != nil {
+	if err := h.client.CallInto(ctx, "hooks.catalog", nil, &result); err != nil {
 		return nil, err
 	}
 	hooks := make([]Hook, 0, len(result.Hooks))
-	for _, hook := range result.Hooks {
+	for index, raw := range result.Hooks {
+		var hook wireHook
+		if err := json.Unmarshal(raw, &hook); err != nil || hook.ID == "" {
+			return nil, fmt.Errorf("hooks.catalog hooks[%d] 的条目形状尚未冻结: %w", index, err)
+		}
 		hooks = append(hooks, Hook{
 			ID:      hook.ID,
 			Name:    hook.Name,
@@ -205,26 +250,31 @@ func (h *appServerHarness) ReadHooks(ctx context.Context) ([]Hook, error) {
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	for _, id := range h.hookOrder {
-		written := h.hookWrites[id]
-		replaced := false
-		for index := range hooks {
-			if hooks[index].ID == id {
-				hooks[index] = written
-				replaced = true
-				break
+	if h.overlayWrites {
+		for _, id := range h.hookOrder {
+			written := h.hookWrites[id]
+			replaced := false
+			for index := range hooks {
+				if hooks[index].ID == id {
+					hooks[index] = written
+					replaced = true
+					break
+				}
 			}
-		}
-		if !replaced {
-			hooks = append(hooks, written)
+			if !replaced {
+				hooks = append(hooks, written)
+			}
 		}
 	}
 	return hooks, nil
 }
 
+// wireToolServer 是 `mcp.catalog` 的一项。真实回执只有 id/source/enabled/
+// transport/auth；其余字段只由测试脚本给出，用于保持摘要完整。
 type wireToolServer struct {
 	ID        string   `json:"id"`
 	Name      string   `json:"name"`
+	Source    string   `json:"source"`
 	Transport string   `json:"transport"`
 	Command   string   `json:"command"`
 	Args      []string `json:"args"`
@@ -233,25 +283,40 @@ type wireToolServer struct {
 	Connected bool     `json:"connected"`
 	EnvKeys   []string `json:"envKeys"`
 	ToolCount int      `json:"toolCount"`
+	Auth      *struct {
+		Status        string   `json:"status"`
+		MissingScopes []string `json:"missingScopes"`
+	} `json:"auth"`
 }
 
 func (h *appServerHarness) ReadToolServers(ctx context.Context) ([]ToolServer, error) {
 	var result struct {
-		Servers []wireToolServer `json:"servers"`
+		UserRevision    string            `json:"userRevision"`
+		ProjectRevision *string           `json:"projectRevision"`
+		Servers         []wireToolServer  `json:"servers"`
+		Invalid         []json.RawMessage `json:"invalid"`
 	}
-	if err := h.client.CallInto(ctx, "toolServer.list", nil, &result); err != nil {
+	if err := h.client.CallInto(ctx, "mcp.catalog", nil, &result); err != nil {
 		return nil, err
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if h.toolSources == nil {
+		h.toolSources = make(map[string]string)
+	}
 	servers := make([]ToolServer, 0, len(result.Servers)+len(h.toolAdded))
 	for _, server := range result.Servers {
-		if h.toolRemoved[server.ID] {
+		if h.overlayWrites && h.toolRemoved[server.ID] {
 			continue
+		}
+		name := server.Name
+		if name == "" {
+			name = server.ID
 		}
 		mapped := ToolServer{
 			ID:        server.ID,
-			Name:      server.Name,
+			Name:      name,
+			Source:    sourceFromWire(server.Source),
 			Transport: ToolTransport(server.Transport),
 			Command:   server.Command,
 			Args:      append([]string(nil), server.Args...),
@@ -261,18 +326,39 @@ func (h *appServerHarness) ReadToolServers(ctx context.Context) ([]ToolServer, e
 			EnvKeys:   append([]string(nil), server.EnvKeys...),
 			ToolCount: server.ToolCount,
 		}
-		if spec, ok := h.toolUpdated[server.ID]; ok {
-			mapped.Name = spec.Name
-			mapped.Transport = spec.Transport
-			mapped.Command = spec.Command
-			mapped.Args = append([]string(nil), spec.Args...)
-			mapped.URL = spec.URL
-			mapped.EnvKeys = sortedEnvKeys(spec.Env)
+		if server.Auth != nil {
+			mapped.AuthStatus = server.Auth.Status
+			mapped.AuthMissingScopes = append([]string(nil), server.Auth.MissingScopes...)
 		}
+		if h.overlayWrites {
+			if spec, ok := h.toolUpdated[server.ID]; ok {
+				mapped.Name = spec.Name
+				mapped.Transport = spec.Transport
+				mapped.Command = spec.Command
+				mapped.Args = append([]string(nil), spec.Args...)
+				mapped.URL = spec.URL
+				mapped.EnvKeys = sortedEnvKeys(spec.Env)
+				if spec.Source != "" {
+					mapped.Source = spec.Source
+				}
+			}
+		}
+		h.toolSources[server.ID] = server.Source
 		servers = append(servers, mapped)
 	}
-	servers = append(servers, h.toolAdded...)
+	if h.overlayWrites {
+		servers = append(servers, h.toolAdded...)
+	}
 	return servers, nil
+}
+
+func (h *appServerHarness) sourceForTool(serverID string) string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if source := h.toolSources[serverID]; source != "" {
+		return source
+	}
+	return string(SourceUser)
 }
 
 func (h *appServerHarness) ProbeToolServer(ctx context.Context, serverID string) (ToolServerProbe, error) {
@@ -282,8 +368,12 @@ func (h *appServerHarness) ProbeToolServer(ctx context.Context, serverID string)
 		Tools     []ToolDescriptor `json:"tools"`
 		Reason    string           `json:"reason"`
 	}
-	if err := h.client.CallInto(ctx, "toolServer.probe", map[string]any{"serverId": serverID}, &result); err != nil {
+	params := map[string]any{"id": serverID, "source": h.sourceForTool(serverID)}
+	if err := h.client.CallInto(ctx, "mcp.test", params, &result); err != nil {
 		return ToolServerProbe{}, err
+	}
+	if result.ServerID == "" {
+		result.ServerID = serverID
 	}
 	return ToolServerProbe{
 		ServerID:  result.ServerID,
@@ -303,19 +393,24 @@ func (h *appServerHarness) PreviewToolServerImport(ctx context.Context, source s
 			Warnings []string       `json:"warnings"`
 		} `json:"candidates"`
 	}
-	if err := h.client.CallInto(ctx, "toolServer.import.preview", map[string]any{"source": source}, &result); err != nil {
+	if err := h.client.CallInto(ctx, "mcp.import.preview", map[string]any{"source": source}, &result); err != nil {
 		return ImportPreview{}, err
 	}
 	preview := ImportPreview{Source: result.Source, Candidates: make([]ImportCandidate, 0, len(result.Candidates))}
 	for _, candidate := range result.Candidates {
+		name := candidate.Server.Name
+		if name == "" {
+			name = candidate.Server.ID
+		}
 		preview.Candidates = append(preview.Candidates, ImportCandidate{
 			Key: candidate.Key,
 			Server: ToolServerSpec{
-				Name:      candidate.Server.Name,
+				Name:      name,
 				Transport: ToolTransport(candidate.Server.Transport),
 				Command:   candidate.Server.Command,
 				Args:      append([]string(nil), candidate.Server.Args...),
 				URL:       candidate.Server.URL,
+				Source:    sourceFromWire(candidate.Server.Source),
 			},
 			Existing: candidate.Existing,
 			Warnings: append([]string(nil), candidate.Warnings...),
@@ -324,111 +419,49 @@ func (h *appServerHarness) PreviewToolServerImport(ctx context.Context, source s
 	return preview, nil
 }
 
+// wireScheduledTask 是 `schedule.list` 的一项；wire 是 snake_case。
 type wireScheduledTask struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Schedule   string `json:"schedule"`
-	Enabled    bool   `json:"enabled"`
-	Running    bool   `json:"running"`
-	NextRunAt  int64  `json:"nextRunAt"`
-	LastRunAt  int64  `json:"lastRunAt"`
-	LastStatus string `json:"lastStatus"`
+	ID         string          `json:"id"`
+	Name       string          `json:"name"`
+	Schedule   json.RawMessage `json:"schedule"`
+	Prompt     string          `json:"prompt"`
+	Cwd        string          `json:"cwd"`
+	Mode       string          `json:"mode"`
+	Enabled    bool            `json:"enabled"`
+	Revision   int64           `json:"revision"`
+	NextWindow json.RawMessage `json:"next_window"`
+	LastRun    json.RawMessage `json:"last_run"`
 }
 
 func (h *appServerHarness) ReadScheduledTasks(ctx context.Context) ([]ScheduledTask, error) {
 	var result struct {
-		Tasks []wireScheduledTask `json:"tasks"`
+		Jobs []wireScheduledTask `json:"jobs"`
 	}
-	if err := h.client.CallInto(ctx, "scheduler.list", nil, &result); err != nil {
+	if err := h.client.CallInto(ctx, "schedule.list", nil, &result); err != nil {
 		return nil, err
 	}
-	tasks := make([]ScheduledTask, 0, len(result.Tasks))
-	for _, task := range result.Tasks {
+	tasks := make([]ScheduledTask, 0, len(result.Jobs))
+	for _, job := range result.Jobs {
 		tasks = append(tasks, ScheduledTask{
-			ID:         task.ID,
-			Name:       task.Name,
-			Schedule:   task.Schedule,
-			Enabled:    task.Enabled,
-			Running:    task.Running,
-			NextRunAt:  fromMillis(task.NextRunAt),
-			LastRunAt:  fromMillis(task.LastRunAt),
-			LastStatus: task.LastStatus,
+			ID:       job.ID,
+			Name:     job.Name,
+			Schedule: string(job.Schedule),
+			Enabled:  job.Enabled,
+			Revision: job.Revision,
+			Prompt:   job.Prompt,
+			Cwd:      job.Cwd,
+			Mode:     job.Mode,
 		})
 	}
 	return tasks, nil
 }
 
-type wireWorkflow struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Version     string `json:"version"`
-	Source      string `json:"source"`
-	Steps       []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-		Kind string `json:"kind"`
-	} `json:"steps"`
-}
-
-func (h *appServerHarness) ReadWorkflows(ctx context.Context) ([]WorkflowDefinition, error) {
-	var result struct {
-		Workflows []wireWorkflow `json:"workflows"`
-	}
-	if err := h.client.CallInto(ctx, "workflow.list", nil, &result); err != nil {
-		return nil, err
-	}
-	workflows := make([]WorkflowDefinition, 0, len(result.Workflows))
-	for _, workflow := range result.Workflows {
-		workflows = append(workflows, mapWireWorkflow(workflow))
-	}
-	return workflows, nil
-}
-
-func (h *appServerHarness) ReadWorkflow(ctx context.Context, workflowID string) (WorkflowDefinition, error) {
-	var result wireWorkflow
-	if err := h.client.CallInto(ctx, "workflow.get", map[string]any{"workflowId": workflowID}, &result); err != nil {
-		return WorkflowDefinition{}, err
-	}
-	return mapWireWorkflow(result), nil
-}
-
-func (h *appServerHarness) ReadWorkflowRuns(ctx context.Context, workflowID string) ([]WorkflowRun, error) {
-	var result struct {
-		Runs []struct {
-			ID         string `json:"id"`
-			WorkflowID string `json:"workflowId"`
-			Status     string `json:"status"`
-			StartedAt  int64  `json:"startedAt"`
-			EndedAt    int64  `json:"endedAt"`
-			Error      string `json:"error"`
-		} `json:"runs"`
-	}
-	if err := h.client.CallInto(ctx, "workflow.runs", map[string]any{"workflowId": workflowID}, &result); err != nil {
-		return nil, err
-	}
-	runs := make([]WorkflowRun, 0, len(result.Runs))
-	for _, run := range result.Runs {
-		runs = append(runs, WorkflowRun{
-			ID:         run.ID,
-			WorkflowID: run.WorkflowID,
-			Status:     WorkflowStatus(run.Status),
-			StartedAt:  fromMillis(run.StartedAt),
-			EndedAt:    fromMillis(run.EndedAt),
-			Error:      run.Error,
-		})
-	}
-	return runs, nil
-}
-
+// wireWakeup 是 `session.wakeup.list` 的一项（camelCase，时间 RFC 3339）。
 type wireWakeup struct {
-	ID        string `json:"id"`
-	SessionID string `json:"sessionId"`
-	BranchID  string `json:"branchId"`
-	Title     string `json:"title"`
-	Prompt    string `json:"prompt"`
-	TriggerAt int64  `json:"triggerAt"`
-	Status    string `json:"status"`
+	WakeupID string `json:"wakeupId"`
+	At       string `json:"at"`
+	Prompt   string `json:"prompt"`
+	State    string `json:"state"`
 }
 
 func (h *appServerHarness) ReadWakeups(ctx context.Context, scope WakeupScope) ([]Wakeup, error) {
@@ -439,30 +472,49 @@ func (h *appServerHarness) ReadWakeups(ctx context.Context, scope WakeupScope) (
 	var result struct {
 		Wakeups []wireWakeup `json:"wakeups"`
 	}
-	if err := h.client.CallInto(ctx, "wakeup.list", params, &result); err != nil {
+	raw, err := h.call(ctx, "session.wakeup.list", params)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(raw, &result); err != nil {
 		return nil, err
 	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	wakeups := make([]Wakeup, 0, len(result.Wakeups))
 	for _, wakeup := range result.Wakeups {
-		if h.wakeupCancelled[wakeup.ID] {
+		if h.overlayWrites && h.wakeupCancelled[wakeup.WakeupID] {
 			continue
 		}
+		triggerAt := time.Time{}
+		if wakeup.At != "" {
+			parsed, err := time.Parse(time.RFC3339, wakeup.At)
+			if err != nil {
+				return nil, fmt.Errorf("session.wakeup.list 的 at 无法解析: %w", err)
+			}
+			triggerAt = parsed
+		}
 		wakeups = append(wakeups, Wakeup{
-			ID:        wakeup.ID,
-			SessionID: wakeup.SessionID,
-			BranchID:  wakeup.BranchID,
-			Title:     wakeup.Title,
+			ID:        wakeup.WakeupID,
+			SessionID: scope.SessionID,
+			BranchID:  scope.BranchID,
 			Prompt:    wakeup.Prompt,
-			TriggerAt: fromMillis(wakeup.TriggerAt),
-			Status:    WakeupStatus(wakeup.Status),
+			TriggerAt: triggerAt,
+			Status:    WakeupStatus(wakeup.State),
 		})
 	}
 	return wakeups, nil
 }
 
-// Send 是写登记的发送方：按管理写入操作名映射到 wire 方法，只调用一次。
+// call 按方法路由：唤醒方法属于会话流，其余管理方法走控制连接。
+func (h *appServerHarness) call(ctx context.Context, method string, params any) (json.RawMessage, error) {
+	if h.sessionCall != nil && strings.HasPrefix(method, "session.wakeup.") {
+		return h.sessionCall(ctx, method, params)
+	}
+	return h.client.Call(ctx, method, params)
+}
+
+// Send 是写登记的发送方：按实测方法名映射到 wire，只调用一次。
 func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.Reply, error) {
 	if req.Kind != write.KindManagementWrite {
 		return write.Reply{}, fmt.Errorf("未支持的写意图 %s", req.Kind)
@@ -478,22 +530,16 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 			return write.Reply{}, err
 		}
 		raw, err := h.client.Call(ctx, "plugin.install", map[string]any{
-			"source": map[string]any{"kind": string(payload.Source.Kind), "ref": payload.Source.Ref},
+			"source": installSourceParams(payload.Source),
 		})
 		if err != nil {
 			return write.Reply{}, err
 		}
-		var result struct {
-			PluginID string `json:"pluginId"`
-		}
-		_ = json.Unmarshal(raw, &result)
-		if result.PluginID == "" {
-			result.PluginID = payload.Source.Ref
-		}
+		pluginID := installRefID(payload.Source)
 		h.mu.Lock()
 		h.pluginInstalls = append(h.pluginInstalls, Plugin{
-			ID:        result.PluginID,
-			Name:      result.PluginID,
+			ID:        pluginID,
+			Name:      pluginID,
 			Source:    payload.Source.Kind,
 			SourceRef: payload.Source.Ref,
 			Installed: true,
@@ -505,10 +551,11 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "plugin.set_enabled", map[string]any{
-			"pluginId": payload.PluginID,
-			"enabled":  payload.Enabled,
-		})
+		method := "plugin.disable"
+		if payload.Enabled {
+			method = "plugin.enable"
+		}
+		raw, err := h.client.Call(ctx, method, map[string]any{"name": payload.PluginID})
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -521,7 +568,7 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "plugin.update", map[string]any{"pluginId": payload.PluginID})
+		raw, err := h.client.Call(ctx, "plugin.update", map[string]any{"id": payload.PluginID})
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -534,23 +581,18 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "skill.install", map[string]any{
-			"source": map[string]any{"kind": string(payload.Source.Kind), "ref": payload.Source.Ref},
+		raw, err := h.client.Call(ctx, "skills.install", map[string]any{
+			"source": installSourceParams(payload.Source),
+			"skills": []any{},
 		})
 		if err != nil {
 			return write.Reply{}, err
 		}
-		var result struct {
-			SkillID string `json:"skillId"`
-		}
-		_ = json.Unmarshal(raw, &result)
-		if result.SkillID == "" {
-			result.SkillID = payload.Source.Ref
-		}
+		skillID := installRefID(payload.Source)
 		h.mu.Lock()
 		h.skillInstalls = append(h.skillInstalls, Skill{
-			ID:        result.SkillID,
-			Name:      result.SkillID,
+			ID:        skillID,
+			Name:      skillID,
 			Source:    payload.Source.Kind,
 			Installed: true,
 		})
@@ -561,8 +603,8 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "skill.set_enabled", map[string]any{
-			"skillId": payload.SkillID,
+		raw, err := h.client.Call(ctx, "skills.set_enabled", map[string]any{
+			"id":      payload.SkillID,
 			"enabled": payload.Enabled,
 		})
 		if err != nil {
@@ -577,14 +619,18 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "hook.write", map[string]any{"hook": map[string]any{
+		hook := map[string]any{
 			"id":      payload.Hook.ID,
 			"name":    payload.Hook.Name,
 			"event":   payload.Hook.Event,
 			"command": payload.Hook.Command,
 			"source":  string(payload.Hook.Source),
 			"enabled": payload.Hook.Enabled,
-		}})
+		}
+		raw, err := h.client.Call(ctx, "hooks.save", map[string]any{
+			"expectedRevision": payload.ExpectedRevision,
+			"document":         map[string]any{"hooks": []any{hook}},
+		})
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -597,44 +643,46 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		return write.Reply{Result: raw}, nil
 	case OpToolServerAdd:
 		var payload ToolServerAddPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+		if err := json.Unmarshal(managed.Payload, &payload); err == nil && payload.Server.Name != "" {
+			if payload.ImportSource != "" {
+				raw, err := h.client.Call(ctx, "mcp.import.apply", map[string]any{
+					"source": payload.ImportSource,
+					"ids":    []string{payload.CandidateKey},
+				})
+				if err != nil {
+					return write.Reply{}, err
+				}
+				return write.Reply{Result: raw}, nil
+			}
+			raw, err := h.client.Call(ctx, "mcp.save", mcpSaveParams(payload.Server.Name, payload.Server))
+			if err != nil {
+				return write.Reply{}, err
+			}
+			h.mu.Lock()
+			h.addedCount++
+			h.toolAdded = append(h.toolAdded, ToolServer{
+				ID:        fmt.Sprintf("srv-added-%d", h.addedCount),
+				Name:      payload.Server.Name,
+				Source:    payload.Server.Source,
+				Transport: payload.Server.Transport,
+				Command:   payload.Server.Command,
+				Args:      append([]string(nil), payload.Server.Args...),
+				URL:       payload.Server.URL,
+				EnvKeys:   sortedEnvKeys(payload.Server.Env),
+			})
+			h.mu.Unlock()
+			return write.Reply{Result: raw}, nil
+		}
+		var update ToolServerUpdatePayload
+		if err := json.Unmarshal(managed.Payload, &update); err != nil {
 			return write.Reply{}, err
 		}
-		params := toolServerParams(payload.Server)
-		if payload.ImportSource != "" {
-			params["importSource"] = payload.ImportSource
-			params["candidateKey"] = payload.CandidateKey
-		}
-		raw, err := h.client.Call(ctx, "toolServer.add", params)
+		raw, err := h.client.Call(ctx, "mcp.save", mcpSaveParams(update.ServerID, update.Server))
 		if err != nil {
 			return write.Reply{}, err
 		}
 		h.mu.Lock()
-		h.addedCount++
-		h.toolAdded = append(h.toolAdded, ToolServer{
-			ID:        fmt.Sprintf("srv-added-%d", h.addedCount),
-			Name:      payload.Server.Name,
-			Transport: payload.Server.Transport,
-			Command:   payload.Server.Command,
-			Args:      append([]string(nil), payload.Server.Args...),
-			URL:       payload.Server.URL,
-			EnvKeys:   sortedEnvKeys(payload.Server.Env),
-		})
-		h.mu.Unlock()
-		return write.Reply{Result: raw}, nil
-	case OpToolServerUpdate:
-		var payload ToolServerUpdatePayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, err
-		}
-		params := toolServerParams(payload.Server)
-		params["serverId"] = payload.ServerID
-		raw, err := h.client.Call(ctx, "toolServer.update", params)
-		if err != nil {
-			return write.Reply{}, err
-		}
-		h.mu.Lock()
-		h.toolUpdated[payload.ServerID] = payload.Server
+		h.toolUpdated[update.ServerID] = update.Server
 		h.mu.Unlock()
 		return write.Reply{Result: raw}, nil
 	case OpToolServerRemove:
@@ -642,7 +690,10 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "toolServer.remove", map[string]any{"serverId": payload.ServerID})
+		raw, err := h.client.Call(ctx, "mcp.remove", map[string]any{
+			"id":     payload.ServerID,
+			"source": string(SourceUser),
+		})
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -650,35 +701,15 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		h.toolRemoved[payload.ServerID] = true
 		h.mu.Unlock()
 		return write.Reply{Result: raw}, nil
-	case OpWorkflowStart:
-		var payload WorkflowStartPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, err
-		}
-		raw, err := h.client.Call(ctx, "workflow.start", map[string]any{
-			"workflowId": payload.WorkflowID,
-			"inputs":     payload.Inputs,
-		})
-		if err != nil {
-			return write.Reply{}, err
-		}
-		return write.Reply{Result: raw}, nil
-	case OpWorkflowStop:
-		var payload WorkflowStopPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return write.Reply{}, err
-		}
-		raw, err := h.client.Call(ctx, "workflow.stop", map[string]any{"runId": payload.RunID})
-		if err != nil {
-			return write.Reply{}, err
-		}
-		return write.Reply{Result: raw}, nil
 	case OpWakeupCancel:
 		var payload WakeupCancelPayload
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "wakeup.cancel", map[string]any{"wakeupId": payload.WakeupID})
+		raw, err := h.call(ctx, "session.wakeup.cancel", map[string]any{
+			"sessionId": payload.SessionID,
+			"wakeupId":  payload.WakeupID,
+		})
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -686,8 +717,62 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		h.wakeupCancelled[payload.WakeupID] = true
 		h.mu.Unlock()
 		return write.Reply{Result: raw}, nil
+	case OpWorkflowStart, OpWorkflowStop:
+		// alpha.21 不注册 workflow.*；测试适配器不发明服务端方法。
+		return write.Reply{}, fmt.Errorf("workflow 在 alpha.21 没有 wire 方法")
 	default:
 		return write.Reply{}, fmt.Errorf("未支持的管理写入 %q", managed.Op)
+	}
+}
+
+func installSourceParams(source InstallSource) map[string]any {
+	switch source.Kind {
+	case SourceGit:
+		return map[string]any{"git": source.Ref}
+	default:
+		return map[string]any{"path": source.Ref}
+	}
+}
+
+func installRefID(source InstallSource) string {
+	ref := strings.TrimSuffix(strings.TrimRight(source.Ref, "/"), ".git")
+	if index := strings.LastIndexAny(ref, "/\\"); index >= 0 && index+1 < len(ref) {
+		return ref[index+1:]
+	}
+	if ref == "" {
+		return "installed"
+	}
+	return ref
+}
+
+// mcpSaveParams 把本领域的服务器摘要映射成 mcp.save 参数；配置文档尚未冻结，
+// 测试适配器按命令/地址构造一份最小文档。
+func mcpSaveParams(id string, spec ToolServerSpec) map[string]any {
+	source := spec.Source
+	if source == "" {
+		source = SourceUser
+	}
+	configuration := map[string]any{
+		"name":      spec.Name,
+		"transport": string(spec.Transport),
+		"command":   spec.Command,
+		"url":       spec.URL,
+	}
+	if len(spec.Args) > 0 {
+		configuration["args"] = append([]string(nil), spec.Args...)
+	}
+	if len(spec.Env) > 0 {
+		env := make(map[string]string, len(spec.Env))
+		for key, value := range spec.Env {
+			env[key] = value
+		}
+		configuration["env"] = env
+	}
+	return map[string]any{
+		"id":              id,
+		"source":          string(source),
+		"expectedVersion": spec.ExpectedVersion,
+		"configuration":   configuration,
 	}
 }
 
@@ -709,20 +794,6 @@ func toolServerParams(spec ToolServerSpec) map[string]any {
 		params["env"] = env
 	}
 	return params
-}
-
-func mapWireWorkflow(workflow wireWorkflow) WorkflowDefinition {
-	definition := WorkflowDefinition{
-		ID:          workflow.ID,
-		Name:        workflow.Name,
-		Description: workflow.Description,
-		Version:     workflow.Version,
-		Source:      sourceFromWire(workflow.Source),
-	}
-	for _, step := range workflow.Steps {
-		definition.Steps = append(definition.Steps, WorkflowStep{ID: step.ID, Name: step.Name, Kind: step.Kind})
-	}
-	return definition
 }
 
 func sourceFromWire(raw string) Source {
@@ -814,25 +885,33 @@ func attachNotices(t *testing.T, client *protocol.Client, service *Service) <-ch
 	arrived := make(chan struct{}, 8)
 	client.OnNotification(func(message protocol.Message) {
 		switch message.Method {
-		case "scheduler.changed":
-			_ = service.Notify(Notice{Topic: TopicScheduler})
-		case "wakeup.changed":
+		case "management.progress":
+			var params struct {
+				Method string `json:"method"`
+			}
+			if err := json.Unmarshal(message.Params, &params); err != nil {
+				return
+			}
+			if !strings.HasPrefix(params.Method, "schedule.") {
+				return
+			}
+			_ = service.Notify(Notice{Topic: TopicSchedule})
+		case "session.notice":
 			var params struct {
 				SessionID string `json:"sessionId"`
-				BranchID  string `json:"branchId"`
+				Source    string `json:"source"`
+				Kind      string `json:"kind"`
+				Data      struct {
+					BranchID string `json:"branchId"`
+				} `json:"data"`
 			}
 			if err := json.Unmarshal(message.Params, &params); err != nil {
 				return
 			}
-			_ = service.Notify(Notice{Topic: TopicWakeups, SessionID: params.SessionID, BranchID: params.BranchID})
-		case "workflow.changed":
-			var params struct {
-				WorkflowID string `json:"workflowId"`
-			}
-			if err := json.Unmarshal(message.Params, &params); err != nil {
+			if params.Source != "Scheduler" || params.Kind != "wakeup" {
 				return
 			}
-			_ = service.Notify(Notice{Topic: TopicWorkflows, WorkflowID: params.WorkflowID})
+			_ = service.Notify(Notice{Topic: TopicWakeups, SessionID: params.SessionID, BranchID: params.Data.BranchID})
 		}
 		arrived <- struct{}{}
 	})
@@ -856,18 +935,26 @@ func methodParams(t *testing.T, server *fakeappserver.Server, method string) []m
 func TestAppServerPluginsAndSkills(t *testing.T) {
 	server, client := startFakeServer(t, fakeappserver.Script{
 		Replies: []fakeappserver.Reply{
-			{Method: "plugin.list", Result: map[string]any{"plugins": []any{
-				map[string]any{"id": "installed", "name": "已装插件", "version": "1.0.0", "source": "local", "installed": true, "enabled": false},
-				map[string]any{"id": "optional", "name": "可选插件", "version": "0.9.0", "source": "bundled", "installed": false, "optional": true},
-			}}},
-			{Method: "plugin.install", Result: map[string]any{"pluginId": "demo"}},
-			{Method: "plugin.set_enabled", Result: map[string]any{"pluginId": "demo", "enabled": true}},
+			{Method: "plugin.list", Result: []any{
+				map[string]any{
+					"name": "installed", "use": "builtin", "off": false, "locked": false,
+					"candidates": []any{map[string]any{"id": "builtin", "kinds": []string{"builtin"}}},
+					"status":     "running",
+				},
+				map[string]any{
+					"name": "optional", "use": nil, "off": true, "locked": false,
+					"candidates": []any{map[string]any{"id": "builtin", "kinds": []string{"builtin"}}},
+				},
+			}},
+			{Method: "plugin.install", Result: map[string]any{"status": "installed"}},
+			{Method: "plugin.enable", Result: map[string]any{"status": "running"}},
+			{Method: "plugin.disable", Result: map[string]any{}},
 			{Method: "plugin.update", Result: map[string]any{"updated": true}},
-			{Method: "skill.list", Result: map[string]any{"skills": []any{
-				map[string]any{"id": "skill-1", "name": "提交信息", "source": "bundled", "installed": true, "enabled": false},
-			}}},
-			{Method: "skill.install", Result: map[string]any{"skillId": "skill-new"}},
-			{Method: "skill.set_enabled", Result: map[string]any{"skillId": "skill-1", "enabled": true}},
+			{Method: "skills.catalog", Result: map[string]any{"version": uint64(1), "entries": []any{
+				map[string]any{"id": "skill-1", "name": "提交信息", "source": "bundled", "enabled": false},
+			}, "issues": []any{}}},
+			{Method: "skills.install", Result: map[string]any{"version": uint64(2), "issues": []any{}}},
+			{Method: "skills.set_enabled", Result: map[string]any{"version": uint64(3), "issues": []any{}}},
 		},
 	})
 	harness := newAppServerHarness(client)
@@ -885,8 +972,11 @@ func TestAppServerPluginsAndSkills(t *testing.T) {
 	if len(plugins.Items) != 2 {
 		t.Fatalf("插件条数不符: %+v", plugins.Items)
 	}
-	if plugins.Items[1].Installed || !plugins.Items[1].Optional {
-		t.Fatalf("可选插件没有显示为未安装: %+v", plugins.Items[1])
+	if plugins.Items[0].ID != "installed" || !plugins.Items[0].Enabled || plugins.Items[0].Status != "running" {
+		t.Fatalf("插件条目映射不符: %+v", plugins.Items[0])
+	}
+	if plugins.Items[1].ID != "optional" || plugins.Items[1].Enabled || plugins.Items[1].Locked {
+		t.Fatalf("停用插件映射不符: %+v", plugins.Items[1])
 	}
 
 	installed, err := service.InstallPlugin(ctx, InstallSource{Kind: SourceLocal, Ref: "/tmp/plugins/demo"})
@@ -901,8 +991,8 @@ func TestAppServerPluginsAndSkills(t *testing.T) {
 		t.Fatalf("安装请求次数不符: %d", len(installParams))
 	}
 	source, _ := installParams[0]["source"].(map[string]any)
-	if source["kind"] != "local" || source["ref"] != "/tmp/plugins/demo" {
-		t.Fatalf("安装来源没有透传: %+v", installParams[0])
+	if source["path"] != "/tmp/plugins/demo" {
+		t.Fatalf("安装来源没有按 plugin.install 的 path 形状透传: %+v", installParams[0])
 	}
 
 	plugins, err = service.ListPlugins(ctx)
@@ -917,16 +1007,21 @@ func TestAppServerPluginsAndSkills(t *testing.T) {
 	if err != nil || enabled.Status != write.StatusSucceeded {
 		t.Fatalf("启用插件: %v %+v", err, enabled)
 	}
-	if params := methodParams(t, server, "plugin.set_enabled"); len(params) != 1 ||
-		params[0]["pluginId"] != "demo" || params[0]["enabled"] != true {
+	if params := methodParams(t, server, "plugin.enable"); len(params) != 1 || params[0]["name"] != "demo" {
 		t.Fatalf("启用参数不符: %+v", params)
+	}
+	if _, err := service.SetPluginEnabled(ctx, "demo", false); err != nil {
+		t.Fatalf("停用插件: %v", err)
+	}
+	if params := methodParams(t, server, "plugin.disable"); len(params) != 1 || params[0]["name"] != "demo" {
+		t.Fatalf("停用参数不符: %+v", params)
 	}
 
 	updated, err := service.UpdatePlugin(ctx, "demo")
 	if err != nil || updated.Status != write.StatusSucceeded {
 		t.Fatalf("更新插件: %v %+v", err, updated)
 	}
-	if params := methodParams(t, server, "plugin.update"); len(params) != 1 || params[0]["pluginId"] != "demo" {
+	if params := methodParams(t, server, "plugin.update"); len(params) != 1 || params[0]["id"] != "demo" {
 		t.Fatalf("更新参数不符: %+v", params)
 	}
 
@@ -937,12 +1032,15 @@ func TestAppServerPluginsAndSkills(t *testing.T) {
 	if _, err := service.SetSkillEnabled(ctx, "skill-1", true); err != nil {
 		t.Fatalf("启用技能: %v", err)
 	}
-	if params := methodParams(t, server, "skill.set_enabled"); len(params) != 1 ||
-		params[0]["skillId"] != "skill-1" || params[0]["enabled"] != true {
+	if params := methodParams(t, server, "skills.set_enabled"); len(params) != 1 ||
+		params[0]["id"] != "skill-1" || params[0]["enabled"] != true {
 		t.Fatalf("技能启用参数不符: %+v", params)
 	}
 	if _, err := service.InstallSkill(ctx, InstallSource{Kind: SourceGit, Ref: "https://example.com/skill.git"}); err != nil {
 		t.Fatalf("安装技能: %v", err)
+	}
+	if params := methodParams(t, server, "skills.install"); len(params) != 1 {
+		t.Fatalf("技能安装请求次数不符: %d", len(params))
 	}
 
 	// 模拟客户端重启：新实例不依赖任何本地记录，重新读取仍是服务端保存的状态。
@@ -954,7 +1052,7 @@ func TestAppServerPluginsAndSkills(t *testing.T) {
 	if !hasSkillEnabled(skills.Items, "skill-1") {
 		t.Fatalf("重启后技能状态没有保持: %+v", skills.Items)
 	}
-	if !hasSkill(skills.Items, "skill-new") {
+	if !hasSkill(skills.Items, "skill") {
 		t.Fatalf("重启后安装的技能没有出现: %+v", skills.Items)
 	}
 }
@@ -962,12 +1060,18 @@ func TestAppServerPluginsAndSkills(t *testing.T) {
 func TestAppServerHookSourceScope(t *testing.T) {
 	server, client := startFakeServer(t, fakeappserver.Script{
 		Replies: []fakeappserver.Reply{
-			{Method: "hook.list", Result: map[string]any{"hooks": []any{
-				map[string]any{"id": "user-1", "name": "用户钩子", "event": "pre", "command": "echo user", "source": "user", "enabled": true},
-				map[string]any{"id": "project-1", "name": "项目钩子", "event": "pre", "command": "echo project", "source": "project", "enabled": true},
-				map[string]any{"id": "plugin-1", "name": "插件钩子", "event": "post", "command": "echo plugin", "source": "plugin", "enabled": true},
-			}}},
-			{Method: "hook.write", Result: nil},
+			{Method: "hooks.catalog", Result: map[string]any{
+				"userRevision": "u1", "projectsRevision": "p1",
+				"userDocument":    map[string]any{"hooks": map[string]any{}, "disableAllHooks": false},
+				"disableAllHooks": false,
+				"sources":         []any{map[string]any{"source": "user", "enabled": true, "state": "ok"}},
+				"hooks": []any{
+					map[string]any{"id": "user-1", "name": "用户钩子", "event": "pre", "command": "echo user", "source": "user", "enabled": true},
+					map[string]any{"id": "project-1", "name": "项目钩子", "event": "pre", "command": "echo project", "source": "project", "enabled": true},
+					map[string]any{"id": "plugin-1", "name": "插件钩子", "event": "post", "command": "echo plugin", "source": "plugin", "enabled": true},
+				},
+			}},
+			{Method: "hooks.save", Result: map[string]any{"revision": "u2"}},
 		},
 	})
 	harness := newAppServerHarness(client)
@@ -996,7 +1100,7 @@ func TestAppServerHookSourceScope(t *testing.T) {
 			t.Fatalf("来源 %s 没有拒绝写入: %v", source, err)
 		}
 	}
-	if requests := server.RequestsFor("hook.write"); len(requests) != 0 {
+	if requests := server.RequestsFor("hooks.save"); len(requests) != 0 {
 		t.Fatalf("只读来源发出了写请求: %d", len(requests))
 	}
 	if table := manager.Table(); len(table) != 0 {
@@ -1009,20 +1113,23 @@ func TestAppServerHookSourceScope(t *testing.T) {
 	if err != nil || view.Status != write.StatusSucceeded {
 		t.Fatalf("用户来源钩子写入: %v %+v", err, view)
 	}
-	requests := server.RequestsFor("hook.write")
+	requests := server.RequestsFor("hooks.save")
 	if len(requests) != 1 {
 		t.Fatalf("用户来源钩子请求次数不符: %d", len(requests))
 	}
 	var params struct {
-		Hook struct {
-			Source string `json:"source"`
-			Event  string `json:"event"`
-		} `json:"hook"`
+		ExpectedRevision string `json:"expectedRevision"`
+		Document         struct {
+			Hooks []struct {
+				Source string `json:"source"`
+				Event  string `json:"event"`
+			} `json:"hooks"`
+		} `json:"document"`
 	}
 	if err := json.Unmarshal(requests[0].Params, &params); err != nil {
 		t.Fatalf("解析钩子写入参数: %v", err)
 	}
-	if params.Hook.Source != "user" || params.Hook.Event != "pre" {
+	if len(params.Document.Hooks) != 1 || params.Document.Hooks[0].Source != "user" || params.Document.Hooks[0].Event != "pre" {
 		t.Fatalf("钩子写入参数不符: %+v", params)
 	}
 }
@@ -1030,28 +1137,32 @@ func TestAppServerHookSourceScope(t *testing.T) {
 func TestAppServerToolServersAndImport(t *testing.T) {
 	server, client := startFakeServer(t, fakeappserver.Script{
 		Replies: []fakeappserver.Reply{
-			{Method: "toolServer.list", Result: map[string]any{"servers": []any{
-				map[string]any{
-					"id": "srv-1", "name": "现有服务器", "transport": "stdio", "command": "srv-bin",
-					"args": []string{"--flag"}, "enabled": true, "connected": true,
-					"envKeys": []string{"TOKEN"}, "toolCount": 1,
+			{Method: "mcp.catalog", Result: map[string]any{
+				"userRevision": "u1", "projectRevision": nil,
+				"servers": []any{
+					map[string]any{
+						"id": "srv-1", "name": "现有服务器", "source": "user", "transport": "stdio",
+						"command": "srv-bin", "args": []string{"--flag"}, "enabled": true,
+						"auth": map[string]any{"status": "ready", "missingScopes": []string{}},
+					},
 				},
-			}}},
-			{Method: "toolServer.probe", Result: map[string]any{
+				"invalid": []any{},
+			}},
+			{Method: "mcp.test", Result: map[string]any{
 				"serverId": "srv-1", "reachable": true,
 				"tools": []any{
 					map[string]any{"name": "search", "description": "搜索"},
 					map[string]any{"name": "fetch"},
 				},
 			}},
-			{Method: "toolServer.import.preview", Result: map[string]any{"source": "config-a", "candidates": []any{
+			{Method: "mcp.import.preview", Result: map[string]any{"source": "config-a", "candidates": []any{
 				map[string]any{"key": "alpha", "server": map[string]any{"name": "alpha", "transport": "stdio", "command": "alpha-bin"}},
 				map[string]any{"key": "beta", "server": map[string]any{"name": "beta", "transport": "http", "url": "https://beta.example"}},
 				map[string]any{"key": "gamma", "server": map[string]any{"name": "gamma", "transport": "sse", "url": "https://gamma.example"}},
 			}}},
-			{Method: "toolServer.add", Result: map[string]any{"serverId": "srv-new"}},
-			{Method: "toolServer.update", Result: nil},
-			{Method: "toolServer.remove", Result: nil},
+			{Method: "mcp.save", Result: map[string]any{"serverId": "srv-new"}},
+			{Method: "mcp.remove", Result: map[string]any{}},
+			{Method: "mcp.import.apply", Result: map[string]any{}},
 		},
 	})
 	harness := newAppServerHarness(client)
@@ -1062,24 +1173,26 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 	if err != nil || len(servers.Items) != 1 {
 		t.Fatalf("读取工具服务器: %v %+v", err, servers)
 	}
-	if servers.Items[0].EnvKeys[0] != "TOKEN" {
-		t.Fatalf("环境变量键名不符: %+v", servers.Items[0])
+	if servers.Items[0].ID != "srv-1" || servers.Items[0].Source != SourceUser ||
+		servers.Items[0].AuthStatus != "ready" {
+		t.Fatalf("MCP 条目映射不符: %+v", servers.Items[0])
 	}
-	if requests := server.RequestsFor("toolServer.probe"); len(requests) != 0 {
+	if requests := server.RequestsFor("mcp.test"); len(requests) != 0 {
 		t.Fatalf("读取清单触发了探测: %d", len(requests))
 	}
 
 	added, err := service.AddToolServer(ctx, ToolServerSpec{
 		Name: "新服务器", Transport: ToolTransportStdio, Command: "new-bin",
-		Args: []string{"--serve"}, Env: map[string]string{"TOKEN": "secret"},
+		Args: []string{"--serve"}, Env: map[string]string{"TOKEN": "secret"}, Source: SourceUser,
 	})
 	if err != nil || added.Status != write.StatusSucceeded {
 		t.Fatalf("新增工具服务器: %v %+v", err, added)
 	}
-	if requests := server.RequestsFor("toolServer.add"); len(requests) != 1 {
-		t.Fatalf("新增请求次数不符: %d", len(requests))
+	saveParams := methodParams(t, server, "mcp.save")
+	if len(saveParams) != 1 || saveParams[0]["id"] != "新服务器" || saveParams[0]["source"] != "user" {
+		t.Fatalf("新增没有按 mcp.save 透传: %+v", saveParams)
 	}
-	if requests := server.RequestsFor("toolServer.probe"); len(requests) != 0 {
+	if requests := server.RequestsFor("mcp.test"); len(requests) != 0 {
 		t.Fatalf("新增触发了探测: %d", len(requests))
 	}
 
@@ -1087,10 +1200,11 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 	if err != nil || !probe.Reachable || len(probe.Tools) != 2 {
 		t.Fatalf("探测工具服务器: %v %+v", err, probe)
 	}
-	if requests := server.RequestsFor("toolServer.probe"); len(requests) != 1 {
-		t.Fatalf("探测请求次数不符: %d", len(requests))
+	probeParams := methodParams(t, server, "mcp.test")
+	if len(probeParams) != 1 || probeParams[0]["id"] != "srv-1" || probeParams[0]["source"] != "user" {
+		t.Fatalf("探测没有按 mcp.test 透传: %+v", probeParams)
 	}
-	if requests := server.RequestsFor("toolServer.add"); len(requests) != 1 {
+	if requests := server.RequestsFor("mcp.save"); len(requests) != 1 {
 		t.Fatalf("探测写出了配置: %d", len(requests))
 	}
 	if snapshot, ok := service.ProbeSnapshot("srv-1"); !ok || len(snapshot.Tools) != 2 {
@@ -1098,11 +1212,11 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 	}
 
 	if _, err := service.UpdateToolServer(ctx, "srv-1", ToolServerSpec{
-		Name: "改名服务器", Transport: ToolTransportHTTP, URL: "https://srv.example",
+		Name: "改名服务器", Transport: ToolTransportHTTP, URL: "https://srv.example", Source: SourceUser,
 	}); err != nil {
 		t.Fatalf("修改工具服务器: %v", err)
 	}
-	if requests := server.RequestsFor("toolServer.update"); len(requests) != 1 {
+	if requests := server.RequestsFor("mcp.save"); len(requests) != 2 {
 		t.Fatalf("修改请求次数不符: %d", len(requests))
 	}
 
@@ -1110,7 +1224,7 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 	if err != nil || len(preview.Candidates) != 3 {
 		t.Fatalf("导入预览: %v %+v", err, preview)
 	}
-	if requests := server.RequestsFor("toolServer.add"); len(requests) != 1 {
+	if requests := server.RequestsFor("mcp.save"); len(requests) != 2 {
 		t.Fatalf("预览写出了配置: %d", len(requests))
 	}
 
@@ -1121,31 +1235,29 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 	if err != nil || result.Written != 2 {
 		t.Fatalf("按勾选写入: %v %+v", err, result)
 	}
-	addParams := methodParams(t, server, "toolServer.add")
-	if len(addParams) != 3 {
-		t.Fatalf("导入写入条数不等于勾选条数: %d", len(addParams))
+	applyParams := methodParams(t, server, "mcp.import.apply")
+	if len(applyParams) != 2 {
+		t.Fatalf("导入写入条数不等于勾选条数: %d", len(applyParams))
 	}
-	imported := addParams[1:]
-	names := make([]string, 0, len(imported))
-	for _, params := range imported {
-		names = append(names, params["name"].(string))
-		if params["importSource"] != "config-a" || params["candidateKey"] == "" {
-			t.Fatalf("导入写入缺少来源或候选键: %+v", params)
+	keys := make([]string, 0, len(applyParams))
+	for _, params := range applyParams {
+		ids, _ := params["ids"].([]any)
+		if params["source"] != "config-a" || len(ids) != 1 {
+			t.Fatalf("导入写入缺少来源或候选: %+v", params)
 		}
+		keys = append(keys, ids[0].(string))
 	}
-	if strings.Join(names, ",") != "beta,gamma" {
-		t.Fatalf("导入只应写入勾选条目: %v", names)
+	if strings.Join(keys, ",") != "beta,gamma" {
+		t.Fatalf("导入只应写入勾选条目: %v", keys)
 	}
-	for _, params := range imported {
-		if params["name"] == "alpha" {
-			t.Fatalf("未勾选条目被写入: %+v", params)
-		}
+	if requests := server.RequestsFor("mcp.save"); len(requests) != 2 {
+		t.Fatalf("导入绕过了 mcp.import.apply: %d", len(requests))
 	}
 
 	if _, err := service.RemoveToolServer(ctx, "srv-1"); err != nil {
 		t.Fatalf("删除工具服务器: %v", err)
 	}
-	if requests := server.RequestsFor("toolServer.remove"); len(requests) != 1 {
+	if requests := server.RequestsFor("mcp.remove"); len(requests) != 1 {
 		t.Fatalf("删除请求次数不符: %d", len(requests))
 	}
 	servers, err = service.ListToolServers(ctx)
@@ -1161,11 +1273,17 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 
 func TestAppServerSchedulerFollowing(t *testing.T) {
 	server, client := startFakeServer(t, fakeappserver.Script{
-		Faults: []fakeappserver.Fault{{Method: "scheduler.list", Occurrence: 1, UnknownMethod: true}},
+		Faults: []fakeappserver.Fault{{Method: "schedule.list", Occurrence: 1, UnknownMethod: true}},
 		Replies: []fakeappserver.Reply{
-			{Method: "scheduler.list", Result: map[string]any{"tasks": []any{
-				map[string]any{"id": "task-1", "name": "夜间构建", "schedule": "0 2 * * *", "enabled": true},
-				map[string]any{"id": "task-2", "name": "每周清理", "schedule": "0 3 * * 0", "enabled": false},
+			{Method: "schedule.list", Result: map[string]any{"jobs": []any{
+				map[string]any{
+					"id": "task-1", "name": "夜间构建", "schedule": map[string]any{"every_minutes": 60},
+					"prompt": "构建", "cwd": "/work", "mode": "create", "enabled": true, "revision": int64(1),
+				},
+				map[string]any{
+					"id": "task-2", "name": "每周清理", "schedule": map[string]any{"cron": "0 3 * * 0"},
+					"prompt": "清理", "cwd": "/work", "mode": "create", "enabled": false, "revision": int64(1),
+				},
 			}}},
 		},
 	})
@@ -1191,26 +1309,28 @@ func TestAppServerSchedulerFollowing(t *testing.T) {
 	if err != nil || len(snapshot.Items) != 2 {
 		t.Fatalf("能力恢复后读取任务: %v %+v", err, snapshot)
 	}
-	if requests := server.RequestsFor("scheduler.list"); len(requests) != 2 {
+	if requests := server.RequestsFor("schedule.list"); len(requests) != 2 {
 		t.Fatalf("能力恢复请求次数不符: %d", len(requests))
 	}
 
 	arrived := attachNotices(t, client, service)
-	if err := server.Notify("scheduler.changed", map[string]any{"reason": "updated"}); err != nil {
+	if err := server.Notify("management.progress", map[string]any{
+		"id": 1, "method": "schedule.watch", "data": map[string]any{"kind": "changed"},
+	}); err != nil {
 		t.Fatalf("推送计划任务通知: %v", err)
 	}
 	<-arrived
 	if err := service.WaitIdle(ctx); err != nil {
 		t.Fatalf("等待计划任务跟随: %v", err)
 	}
-	if requests := server.RequestsFor("scheduler.list"); len(requests) != 3 {
+	if requests := server.RequestsFor("schedule.list"); len(requests) != 3 {
 		t.Fatalf("通知后重读次数不符: %d", len(requests))
 	}
 	time.Sleep(100 * time.Millisecond)
-	if requests := server.RequestsFor("scheduler.list"); len(requests) != 3 {
+	if requests := server.RequestsFor("schedule.list"); len(requests) != 3 {
 		t.Fatalf("计划任务出现定时轮询: %d", len(requests))
 	}
-	if stats := service.FollowStats(); stats.Reads[TopicScheduler] != 1 {
+	if stats := service.FollowStats(); stats.Reads[TopicSchedule] != 1 {
 		t.Fatalf("计划任务跟随统计不符: %+v", stats)
 	}
 }
@@ -1218,13 +1338,12 @@ func TestAppServerSchedulerFollowing(t *testing.T) {
 func TestAppServerWakeupFollowAndCancel(t *testing.T) {
 	server, client := startFakeServer(t, fakeappserver.Script{
 		Replies: []fakeappserver.Reply{
-			{Method: "wakeup.list", Result: map[string]any{"wakeups": []any{
+			{Method: "session.wakeup.list", Result: map[string]any{"wakeups": []any{
 				map[string]any{
-					"id": "wake-1", "sessionId": "s-1", "branchId": "main",
-					"title": "提醒", "prompt": "继续", "triggerAt": int64(1700000000000), "status": "scheduled",
+					"wakeupId": "wake-1", "at": "2026-11-11T10:00:00Z", "prompt": "继续", "state": "scheduled",
 				},
 			}}},
-			{Method: "wakeup.cancel", Result: nil},
+			{Method: "session.wakeup.cancel", Result: map[string]any{}},
 		},
 	})
 	harness := newAppServerHarness(client)
@@ -1245,32 +1364,35 @@ func TestAppServerWakeupFollowAndCancel(t *testing.T) {
 	}
 	arrived := attachNotices(t, client, service)
 
-	view, err := service.CancelWakeup(ctx, "wake-1")
+	view, err := service.CancelWakeup(ctx, WakeupRef{SessionID: "s-1", BranchID: "main", WakeupID: "wake-1"})
 	if err != nil || view.Status != write.StatusSucceeded {
 		t.Fatalf("取消唤醒: %v %+v", err, view)
 	}
-	if requests := server.RequestsFor("wakeup.cancel"); len(requests) != 1 {
+	if requests := server.RequestsFor("session.wakeup.cancel"); len(requests) != 1 {
 		t.Fatalf("取消请求次数不符: %d", len(requests))
 	}
-	if requests := server.RequestsFor("wakeup.list"); len(requests) != 1 {
+	if requests := server.RequestsFor("session.wakeup.list"); len(requests) != 1 {
 		t.Fatalf("取消本身不应重读: %d", len(requests))
 	}
 
-	if err := server.Notify("wakeup.changed", map[string]any{"sessionId": "s-1", "branchId": "main", "wakeupId": "wake-1"}); err != nil {
+	if err := server.Notify("session.notice", map[string]any{
+		"sessionId": "s-1", "source": "Scheduler", "kind": "wakeup",
+		"data": map[string]any{"branchId": "main", "wakeupId": "wake-1", "state": "cancelled"},
+	}); err != nil {
 		t.Fatalf("推送唤醒通知: %v", err)
 	}
 	<-arrived
 	if err := service.WaitIdle(ctx); err != nil {
 		t.Fatalf("等待唤醒跟随: %v", err)
 	}
-	if requests := server.RequestsFor("wakeup.list"); len(requests) != 2 {
+	if requests := server.RequestsFor("session.wakeup.list"); len(requests) != 2 {
 		t.Fatalf("通知后重读次数不符: %d", len(requests))
 	}
 	if snapshot := service.WakeupSnapshot(scope); len(snapshot.Items) != 0 {
 		t.Fatalf("取消后唤醒记录仍在: %+v", snapshot)
 	}
 	time.Sleep(100 * time.Millisecond)
-	if requests := server.RequestsFor("wakeup.list"); len(requests) != 2 {
+	if requests := server.RequestsFor("session.wakeup.list"); len(requests) != 2 {
 		t.Fatalf("唤醒跟随出现定时轮询: %d", len(requests))
 	}
 	stats := service.FollowStats()
@@ -1291,79 +1413,43 @@ func TestAppServerWakeupFollowAndCancel(t *testing.T) {
 	if err != nil || len(snapshot.Items) != 0 {
 		t.Fatalf("取消后再次读取仍有记录: %v %+v", err, snapshot)
 	}
-	if requests := server.RequestsFor("wakeup.list"); len(requests) != 3 {
+	if requests := server.RequestsFor("session.wakeup.list"); len(requests) != 3 {
 		t.Fatalf("再次读取请求次数不符: %d", len(requests))
 	}
 }
 
-func TestAppServerWorkflowRuns(t *testing.T) {
-	server, client := startFakeServer(t, fakeappserver.Script{
-		Replies: []fakeappserver.Reply{
-			{Method: "workflow.list", Result: map[string]any{"workflows": []any{
-				map[string]any{"id": "wf-1", "name": "发布", "version": "1", "source": "project", "steps": []any{
-					map[string]any{"id": "step-1", "name": "构建", "kind": "shell"},
-				}},
-			}}},
-			{Method: "workflow.get", Result: map[string]any{
-				"id": "wf-1", "name": "发布", "version": "1", "source": "project", "steps": []any{
-					map[string]any{"id": "step-1", "name": "构建", "kind": "shell"},
-					map[string]any{"id": "step-2", "name": "测试", "kind": "shell"},
-				},
-			}},
-			{Method: "workflow.runs", Result: map[string]any{"runs": []any{
-				map[string]any{"id": "run-1", "workflowId": "wf-1", "status": "running", "startedAt": int64(1700000000000)},
-			}}},
-			{Method: "workflow.start", Result: map[string]any{"runId": "run-2"}},
-			{Method: "workflow.stop", Result: nil},
-		},
-	})
+// TestAlpha21WorkflowCapabilityMissingMakesNoRequest 核对 alpha.21 未注册 workflow.*
+// 时的边界：类型保留，读取与启动/停止都报能力缺失，且不发出任何 wire 请求。
+func TestAlpha21WorkflowCapabilityMissingMakesNoRequest(t *testing.T) {
+	server, client := startFakeServer(t, fakeappserver.Script{})
 	harness := newAppServerHarness(client)
-	service := newService(t, Config{Workflows: harness, Writer: newWriteManager(t, harness)})
+	manager := newWriteManager(t, harness)
+	service := newService(t, Config{Writer: manager})
 	ctx := context.Background()
 
-	workflows, err := service.ListWorkflows(ctx)
-	if err != nil || len(workflows.Items) != 1 {
-		t.Fatalf("浏览工作流: %v %+v", err, workflows)
+	if _, err := service.ListWorkflows(ctx); !errors.Is(err, ErrCapabilityMissing) {
+		t.Fatalf("浏览工作流没有报能力缺失: %v", err)
 	}
-	definition, err := service.ReadWorkflow(ctx, "wf-1")
-	if err != nil || len(definition.Steps) != 2 {
-		t.Fatalf("读取工作流定义: %v %+v", err, definition)
+	if _, err := service.ReadWorkflow(ctx, "wf-1"); !errors.Is(err, ErrCapabilityMissing) {
+		t.Fatalf("读取工作流定义没有报能力缺失: %v", err)
 	}
-	runs, err := service.ListWorkflowRuns(ctx, "wf-1")
-	if err != nil || len(runs.Items) != 1 || runs.Items[0].Status != WorkflowRunning {
-		t.Fatalf("读取运行状态: %v %+v", err, runs)
+	if _, err := service.ListWorkflowRuns(ctx, "wf-1"); !errors.Is(err, ErrCapabilityMissing) {
+		t.Fatalf("读取运行状态没有报能力缺失: %v", err)
 	}
-
-	started, err := service.StartWorkflow(ctx, "wf-1", map[string]string{"target": "prod"})
-	if err != nil || started.Status != write.StatusSucceeded {
-		t.Fatalf("启动工作流: %v %+v", err, started)
+	if _, err := service.StartWorkflow(ctx, "wf-1", nil); !errors.Is(err, ErrCapabilityMissing) {
+		t.Fatalf("启动工作流没有报能力缺失: %v", err)
 	}
-	if params := methodParams(t, server, "workflow.start"); len(params) != 1 ||
-		params[0]["workflowId"] != "wf-1" {
-		t.Fatalf("启动参数不符: %+v", params)
-	}
-	stopped, err := service.StopWorkflow(ctx, "run-2")
-	if err != nil || stopped.Status != write.StatusSucceeded {
-		t.Fatalf("停止工作流: %v %+v", err, stopped)
-	}
-	if params := methodParams(t, server, "workflow.stop"); len(params) != 1 || params[0]["runId"] != "run-2" {
-		t.Fatalf("停止参数不符: %+v", params)
+	if _, err := service.StopWorkflow(ctx, "run-1"); !errors.Is(err, ErrCapabilityMissing) {
+		t.Fatalf("停止工作流没有报能力缺失: %v", err)
 	}
 
-	arrived := attachNotices(t, client, service)
-	if err := server.Notify("workflow.changed", map[string]any{"workflowId": "wf-1"}); err != nil {
-		t.Fatalf("推送工作流通知: %v", err)
+	for _, method := range server.Methods() {
+		if strings.HasPrefix(method, "workflow.") {
+			t.Fatalf("workflow 能力缺失时仍发出了请求: %s", method)
+		}
 	}
-	<-arrived
-	if err := service.WaitIdle(ctx); err != nil {
-		t.Fatalf("等待工作流跟随: %v", err)
-	}
-	if requests := server.RequestsFor("workflow.runs"); len(requests) != 2 {
-		t.Fatalf("工作流通知重读次数不符: %d", len(requests))
-	}
-	time.Sleep(100 * time.Millisecond)
-	if requests := server.RequestsFor("workflow.runs"); len(requests) != 2 {
-		t.Fatalf("工作流出现定时轮询: %d", len(requests))
+	if table := manager.Table(); len(table) != 0 {
+		t.Fatalf("workflow 能力缺失时登记了写意图: %+v", table)
 	}
 }
 

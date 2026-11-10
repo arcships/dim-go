@@ -161,6 +161,10 @@ func (s *Service) StartWorkflow(ctx context.Context, workflowID string, inputs m
 	if err := requireText("工作流标识", workflowID); err != nil {
 		return write.IntentView{}, err
 	}
+	// alpha.21 没有注册 workflow.*；没有读取方即能力缺失，写入口也不发请求。
+	if s.cfg.Workflows == nil {
+		return write.IntentView{}, s.wrapReadError("workflow.start", ErrCapabilityMissing)
+	}
 	copied := make(map[string]string, len(inputs))
 	for key, value := range inputs {
 		copied[key] = value
@@ -173,6 +177,10 @@ func (s *Service) StartWorkflow(ctx context.Context, workflowID string, inputs m
 func (s *Service) StopWorkflow(ctx context.Context, runID string) (write.IntentView, error) {
 	if err := requireText("工作流运行标识", runID); err != nil {
 		return write.IntentView{}, err
+	}
+	// 与 StartWorkflow 同理：服务端没有该能力时零请求。
+	if s.cfg.Workflows == nil {
+		return write.IntentView{}, s.wrapReadError("workflow.stop", ErrCapabilityMissing)
 	}
 	return s.write(ctx, OpWorkflowStop, WorkflowStopPayload{RunID: runID}, false)
 }

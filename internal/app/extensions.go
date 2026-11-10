@@ -1,185 +1,229 @@
 package app
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"sort"
+	"strings"
 	"time"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/extensions"
+)
+
+// 扩展与后台领域在服务端上的真实方法名（alpha.21 实测，见 D1 §3.7）。
+//
+// 与第一版的差别：工具服务器叫 mcp.*、计划任务叫 schedule.*、唤醒是会话方法
+// session.wakeup.*、技能与钩子的读取是 skills.catalog / hooks.catalog。
+// workflow.* 在 alpha.21 不注册，按能力缺失处理，不发请求。
+const (
+	methodPluginList          = "plugin.list"
+	methodPluginInstall       = "plugin.install"
+	methodPluginEnable        = "plugin.enable"
+	methodPluginDisable       = "plugin.disable"
+	methodPluginUpdate        = "plugin.update"
+	methodPluginRemove        = "plugin.remove"
+	methodSkillsCatalog       = "skills.catalog"
+	methodSkillsInstall       = "skills.install"
+	methodSkillsSetEnabled    = "skills.set_enabled"
+	methodHooksCatalog        = "hooks.catalog"
+	methodHooksSave           = "hooks.save"
+	methodMCPCatalog          = "mcp.catalog"
+	methodMCPSave             = "mcp.save"
+	methodMCPRemove           = "mcp.remove"
+	methodMCPSetEnabled       = "mcp.set_enabled"
+	methodMCPTest             = "mcp.test"
+	methodMCPImportPreview    = "mcp.import.preview"
+	methodMCPImportApply      = "mcp.import.apply"
+	methodScheduleList        = "schedule.list"
+	methodSessionWakeupList   = "session.wakeup.list"
+	methodSessionWakeupCancel = "session.wakeup.cancel"
 )
 
 // extensionReaders 是扩展与后台领域的七个读取方。
 //
 // 七个接口都落在同一个类型上：它们共用一条控制连接，wire 形状只在集成层出现一次。
-// 只有读取，不探测、不安装、不改配置；探测与导入预览由用户显式触发时才调用。
+// 只有读取，不探测、不安装、不改配置。会话方法（唤醒）走会话自己的流。
 type extensionReaders struct {
 	app *App
 }
 
-// wirePlugin 是插件清单里的条目。
-type wirePlugin struct {
-	ID              string `json:"id"`
-	Name            string `json:"name"`
-	Version         string `json:"version"`
-	Source          string `json:"source"`
-	SourceRef       string `json:"sourceRef"`
-	Installed       bool   `json:"installed"`
-	Enabled         bool   `json:"enabled"`
-	Optional        bool   `json:"optional"`
-	UpdateAvailable bool   `json:"updateAvailable"`
-	LatestVersion   string `json:"latestVersion"`
-	Description     string `json:"description"`
-}
-
-// ReadPlugins 实现 extensions.PluginReader。
+// ReadPlugins 实现 extensions.PluginReader（`plugin.list` 返回数组）。
 func (r *extensionReaders) ReadPlugins(ctx context.Context) ([]extensions.Plugin, error) {
 	client, err := r.app.requireControl("读取插件清单")
 	if err != nil {
 		return nil, err
 	}
-	var result struct {
-		Plugins []wirePlugin `json:"plugins"`
+	var entries []struct {
+		Name    string   `json:"name"`
+		ID      string   `json:"id"`
+		Use     *bool    `json:"use"`
+		Off     *bool    `json:"off"`
+		Locked  *bool    `json:"locked"`
+		Status  string   `json:"status"`
+		Version string   `json:"version"`
+		Error   string   `json:"error"`
+		Refused string   `json:"refused"`
+		Missing []string `json:"missing"`
 	}
-	if err := client.CallInto(ctx, "plugin.list", nil, &result); err != nil {
+	if err := client.CallInto(ctx, methodPluginList, nil, &entries); err != nil {
 		return nil, err
 	}
-	plugins := make([]extensions.Plugin, 0, len(result.Plugins))
-	for _, plugin := range result.Plugins {
+	plugins := make([]extensions.Plugin, 0, len(entries))
+	for _, entry := range entries {
+		id := firstNonEmpty(entry.Name, entry.ID)
+		if id == "" {
+			continue
+		}
+		enabled := true
+		if entry.Off != nil {
+			enabled = !*entry.Off
+		}
+		locked := false
+		if entry.Locked != nil {
+			locked = *entry.Locked
+		}
+		use := ""
+		if entry.Use != nil && *entry.Use {
+			use = "enabled"
+		}
 		plugins = append(plugins, extensions.Plugin{
-			ID:              plugin.ID,
-			Name:            plugin.Name,
-			Version:         plugin.Version,
-			Source:          sourceFromWire(plugin.Source),
-			SourceRef:       plugin.SourceRef,
-			Installed:       plugin.Installed,
-			Enabled:         plugin.Enabled,
-			Optional:        plugin.Optional,
-			UpdateAvailable: plugin.UpdateAvailable,
-			LatestVersion:   plugin.LatestVersion,
-			Description:     plugin.Description,
+			ID:        id,
+			Name:      firstNonEmpty(entry.Name, id),
+			Version:   entry.Version,
+			Enabled:   enabled,
+			Installed: true,
+			// 服务端清单里没有「可选但未安装」的条目，这里恒为假。
+			Optional: false,
+			Use:      use,
+			Locked:   locked,
+			Status:   entry.Status,
+			Error:    firstNonEmpty(entry.Error, entry.Refused),
 		})
 	}
 	return plugins, nil
 }
 
-// wireSkill 是技能清单里的条目。
-type wireSkill struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Version     string `json:"version"`
-	Source      string `json:"source"`
-	Installed   bool   `json:"installed"`
-	Enabled     bool   `json:"enabled"`
-}
-
-// ReadSkills 实现 extensions.SkillReader。
+// ReadSkills 实现 extensions.SkillReader（`skills.catalog`）。
 func (r *extensionReaders) ReadSkills(ctx context.Context) ([]extensions.Skill, error) {
 	client, err := r.app.requireControl("读取技能清单")
 	if err != nil {
 		return nil, err
 	}
-	var result struct {
-		Skills []wireSkill `json:"skills"`
-	}
-	if err := client.CallInto(ctx, "skill.list", nil, &result); err != nil {
+	raw, err := client.Call(ctx, methodSkillsCatalog, nil)
+	if err != nil {
 		return nil, err
 	}
-	skills := make([]extensions.Skill, 0, len(result.Skills))
-	for _, skill := range result.Skills {
+	catalog, err := protocol.ParseSkillsCatalogResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("技能目录无法解析: %w", err)
+	}
+	skills := make([]extensions.Skill, 0, len(catalog.Entries))
+	for _, entry := range catalog.Entries {
 		skills = append(skills, extensions.Skill{
-			ID:          skill.ID,
-			Name:        skill.Name,
-			Description: skill.Description,
-			Version:     skill.Version,
-			Source:      sourceFromWire(skill.Source),
-			Installed:   skill.Installed,
-			Enabled:     skill.Enabled,
+			ID:          entry.ID,
+			Name:        firstNonEmpty(entry.Name, entry.ID),
+			Description: entry.Description,
+			Source:      sourceFromWire(entry.Source),
+			Installed:   true,
+			Enabled:     entry.Enabled,
 		})
 	}
 	return skills, nil
 }
 
-// wireHook 是钩子清单里的条目。
-type wireHook struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Event   string `json:"event"`
-	Command string `json:"command"`
-	Source  string `json:"source"`
-	Enabled bool   `json:"enabled"`
-}
-
-// ReadHooks 实现 extensions.HookReader。
+// ReadHooks 实现 extensions.HookReader（`hooks.catalog`）。
+//
+// 用户文档与项目文档由服务端原样给出；本函数只把 hooks[] 里的条目映射成只读视图，
+// 认不出的字段留空，不猜结构。
 func (r *extensionReaders) ReadHooks(ctx context.Context) ([]extensions.Hook, error) {
 	client, err := r.app.requireControl("读取钩子清单")
 	if err != nil {
 		return nil, err
 	}
-	var result struct {
-		Hooks []wireHook `json:"hooks"`
-	}
-	if err := client.CallInto(ctx, "hook.list", nil, &result); err != nil {
+	raw, err := client.Call(ctx, methodHooksCatalog, nil)
+	if err != nil {
 		return nil, err
 	}
-	hooks := make([]extensions.Hook, 0, len(result.Hooks))
-	for _, hook := range result.Hooks {
+	catalog, err := protocol.ParseHooksCatalogResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("钩子目录无法解析: %w", err)
+	}
+	hooks := make([]extensions.Hook, 0, len(catalog.Hooks))
+	for index, item := range catalog.Hooks {
+		var entry struct {
+			ID      string `json:"id"`
+			Name    string `json:"name"`
+			Event   string `json:"event"`
+			Command string `json:"command"`
+			Source  string `json:"source"`
+			Enabled *bool  `json:"enabled"`
+		}
+		if err := json.Unmarshal(item, &entry); err != nil {
+			continue
+		}
+		id := firstNonEmpty(entry.ID, entry.Event+":"+entry.Command)
+		if id == "" {
+			id = fmt.Sprintf("hook-%d", index)
+		}
+		enabled := true
+		if entry.Enabled != nil {
+			enabled = *entry.Enabled
+		}
 		hooks = append(hooks, extensions.Hook{
-			ID:      hook.ID,
-			Name:    hook.Name,
-			Event:   hook.Event,
-			Command: hook.Command,
-			Source:  sourceFromWire(hook.Source),
-			Enabled: hook.Enabled,
+			ID:      id,
+			Name:    firstNonEmpty(entry.Name, id),
+			Event:   entry.Event,
+			Command: entry.Command,
+			Source:  sourceFromWire(entry.Source),
+			Enabled: enabled,
 		})
 	}
 	return hooks, nil
 }
 
-// wireToolServer 是工具服务器清单里的条目。
-type wireToolServer struct {
-	ID        string   `json:"id"`
-	Name      string   `json:"name"`
-	Transport string   `json:"transport"`
-	Command   string   `json:"command"`
-	Args      []string `json:"args"`
-	URL       string   `json:"url"`
-	Enabled   bool     `json:"enabled"`
-	Connected bool     `json:"connected"`
-	EnvKeys   []string `json:"envKeys"`
-	ToolCount int      `json:"toolCount"`
-}
-
-// ReadToolServers 实现 extensions.ToolServerReader。
+// ReadToolServers 实现 extensions.ToolServerReader 的清单读取（`mcp.catalog`）。
+//
+// 清单只给 id/source/enabled/transport/auth；命令、参数与 URL 不在清单里，
+// 因此这些字段留空，不推断。
 func (r *extensionReaders) ReadToolServers(ctx context.Context) ([]extensions.ToolServer, error) {
 	client, err := r.app.requireControl("读取工具服务器清单")
 	if err != nil {
 		return nil, err
 	}
-	var result struct {
-		Servers []wireToolServer `json:"servers"`
-	}
-	if err := client.CallInto(ctx, "toolServer.list", nil, &result); err != nil {
+	raw, err := client.Call(ctx, methodMCPCatalog, nil)
+	if err != nil {
 		return nil, err
 	}
-	servers := make([]extensions.ToolServer, 0, len(result.Servers))
-	for _, server := range result.Servers {
-		servers = append(servers, extensions.ToolServer{
-			ID:        server.ID,
-			Name:      server.Name,
-			Transport: extensions.ToolTransport(server.Transport),
-			Command:   server.Command,
-			Args:      append([]string(nil), server.Args...),
-			URL:       server.URL,
-			Enabled:   server.Enabled,
-			Connected: server.Connected,
-			EnvKeys:   append([]string(nil), server.EnvKeys...),
-			ToolCount: server.ToolCount,
-		})
+	catalog, err := protocol.ParseMCPCatalogResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("MCP 目录无法解析: %w", err)
+	}
+	servers := make([]extensions.ToolServer, 0, len(catalog.Servers))
+	for _, entry := range catalog.Servers {
+		server := extensions.ToolServer{
+			ID:        entry.ID,
+			Name:      entry.ID,
+			Source:    sourceFromWire(entry.Source),
+			Transport: extensions.ToolTransport(entry.Transport),
+			Enabled:   entry.Enabled,
+		}
+		if entry.Auth != nil {
+			server.AuthStatus = entry.Auth.Status
+			server.AuthMissingScopes = append([]string(nil), entry.Auth.MissingScopes...)
+			server.Connected = entry.Auth.Status == "authenticated"
+		}
+		servers = append(servers, server)
 	}
 	return servers, nil
 }
 
-// ProbeToolServer 实现显式探测；只读，不改配置。
+// ProbeToolServer 实现显式探测（`mcp.test`）：只读，不改配置。
+//
+// 回执形状未在 D1 冻结；这里按 `{ok|reachable, tools[], reason|error}` 宽容解析，
+// 认不出的字段留空。
 func (r *extensionReaders) ProbeToolServer(
 	ctx context.Context,
 	serverID string,
@@ -188,24 +232,42 @@ func (r *extensionReaders) ProbeToolServer(
 	if err != nil {
 		return extensions.ToolServerProbe{}, err
 	}
-	var result struct {
-		ServerID  string                      `json:"serverId"`
-		Reachable bool                        `json:"reachable"`
-		Tools     []extensions.ToolDescriptor `json:"tools"`
-		Reason    string                      `json:"reason"`
-	}
-	if err := client.CallInto(ctx, "toolServer.probe", map[string]any{"serverId": serverID}, &result); err != nil {
+	raw, err := client.Call(ctx, methodMCPTest, map[string]any{"id": serverID, "source": "user"})
+	if err != nil {
 		return extensions.ToolServerProbe{}, err
 	}
+	var reply struct {
+		ID        string                      `json:"id"`
+		OK        *bool                       `json:"ok"`
+		Reachable *bool                       `json:"reachable"`
+		Tools     []extensions.ToolDescriptor `json:"tools"`
+		Reason    *string                     `json:"reason"`
+		Error     *string                     `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &reply); err != nil {
+		return extensions.ToolServerProbe{}, fmt.Errorf("探测回执无法解析: %w", err)
+	}
+	reachable := false
+	if reply.Reachable != nil {
+		reachable = *reply.Reachable
+	} else if reply.OK != nil {
+		reachable = *reply.OK
+	}
+	reason := ""
+	if reply.Reason != nil {
+		reason = *reply.Reason
+	} else if reply.Error != nil {
+		reason = *reply.Error
+	}
 	return extensions.ToolServerProbe{
-		ServerID:  result.ServerID,
-		Reachable: result.Reachable,
-		Tools:     append([]extensions.ToolDescriptor(nil), result.Tools...),
-		Reason:    result.Reason,
+		ServerID:  firstNonEmpty(reply.ID, serverID),
+		Reachable: reachable,
+		Tools:     append([]extensions.ToolDescriptor(nil), reply.Tools...),
+		Reason:    reason,
 	}, nil
 }
 
-// PreviewToolServerImport 实现导入预览；只读，不写任何配置。
+// PreviewToolServerImport 实现导入预览（`mcp.import.preview`）：只读。
 func (r *extensionReaders) PreviewToolServerImport(
 	ctx context.Context,
 	source string,
@@ -214,204 +276,167 @@ func (r *extensionReaders) PreviewToolServerImport(
 	if err != nil {
 		return extensions.ImportPreview{}, err
 	}
-	var result struct {
-		Source     string `json:"source"`
-		Candidates []struct {
-			Key      string         `json:"key"`
-			Server   wireToolServer `json:"server"`
-			Existing bool           `json:"existing"`
-			Warnings []string       `json:"warnings"`
-		} `json:"candidates"`
-	}
-	if err := client.CallInto(ctx, "toolServer.import.preview", map[string]any{"source": source}, &result); err != nil {
+	raw, err := client.Call(ctx, methodMCPImportPreview, protocol.MCPImportPreviewParams{Source: source})
+	if err != nil {
 		return extensions.ImportPreview{}, err
 	}
-	preview := extensions.ImportPreview{
-		Source:     result.Source,
-		Candidates: make([]extensions.ImportCandidate, 0, len(result.Candidates)),
+	var reply struct {
+		Source     string `json:"source"`
+		Candidates []struct {
+			Key       string          `json:"key"`
+			ID        string          `json:"id"`
+			Server    json.RawMessage `json:"server"`
+			Name      string          `json:"name"`
+			Transport string          `json:"transport"`
+			Command   string          `json:"command"`
+			Args      []string        `json:"args"`
+			URL       string          `json:"url"`
+			Existing  *bool           `json:"existing"`
+			Warnings  []string        `json:"warnings"`
+		} `json:"candidates"`
 	}
-	for _, candidate := range result.Candidates {
+	if err := json.Unmarshal(raw, &reply); err != nil {
+		return extensions.ImportPreview{}, fmt.Errorf("导入预览回执无法解析: %w", err)
+	}
+	preview := extensions.ImportPreview{
+		Source:     firstNonEmpty(reply.Source, source),
+		Candidates: make([]extensions.ImportCandidate, 0, len(reply.Candidates)),
+	}
+	for _, candidate := range reply.Candidates {
+		spec := extensions.ToolServerSpec{
+			Name:      firstNonEmpty(candidate.Name, candidate.ID),
+			Transport: extensions.ToolTransport(candidate.Transport),
+			Command:   candidate.Command,
+			Args:      append([]string(nil), candidate.Args...),
+			URL:       candidate.URL,
+		}
+		if len(candidate.Server) > 0 {
+			var nested struct {
+				Name      string   `json:"name"`
+				Transport string   `json:"transport"`
+				Command   string   `json:"command"`
+				Args      []string `json:"args"`
+				URL       string   `json:"url"`
+			}
+			if err := json.Unmarshal(candidate.Server, &nested); err == nil {
+				if nested.Name != "" {
+					spec.Name = nested.Name
+				}
+				if nested.Transport != "" {
+					spec.Transport = extensions.ToolTransport(nested.Transport)
+				}
+				if nested.Command != "" {
+					spec.Command = nested.Command
+				}
+				if len(nested.Args) > 0 {
+					spec.Args = append([]string(nil), nested.Args...)
+				}
+				if nested.URL != "" {
+					spec.URL = nested.URL
+				}
+			}
+		}
+		existing := false
+		if candidate.Existing != nil {
+			existing = *candidate.Existing
+		}
 		preview.Candidates = append(preview.Candidates, extensions.ImportCandidate{
-			Key: candidate.Key,
-			Server: extensions.ToolServerSpec{
-				Name:      candidate.Server.Name,
-				Transport: extensions.ToolTransport(candidate.Server.Transport),
-				Command:   candidate.Server.Command,
-				Args:      append([]string(nil), candidate.Server.Args...),
-				URL:       candidate.Server.URL,
-			},
-			Existing: candidate.Existing,
+			Key:      firstNonEmpty(candidate.Key, candidate.ID, spec.Name),
+			Server:   spec,
+			Existing: existing,
 			Warnings: append([]string(nil), candidate.Warnings...),
 		})
 	}
 	return preview, nil
 }
 
-// wireScheduledTask 是计划任务清单里的条目。
-type wireScheduledTask struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	Schedule   string `json:"schedule"`
-	Enabled    bool   `json:"enabled"`
-	Running    bool   `json:"running"`
-	NextRunAt  int64  `json:"nextRunAt"`
-	LastRunAt  int64  `json:"lastRunAt"`
-	LastStatus string `json:"lastStatus"`
-}
-
-// ReadScheduledTasks 实现 extensions.SchedulerReader。
+// ReadScheduledTasks 实现 extensions.SchedulerReader（`schedule.list`）。
 func (r *extensionReaders) ReadScheduledTasks(ctx context.Context) ([]extensions.ScheduledTask, error) {
 	client, err := r.app.requireControl("读取计划任务清单")
 	if err != nil {
 		return nil, err
 	}
-	var result struct {
-		Tasks []wireScheduledTask `json:"tasks"`
-	}
-	if err := client.CallInto(ctx, "scheduler.list", nil, &result); err != nil {
+	raw, err := client.Call(ctx, methodScheduleList, nil)
+	if err != nil {
 		return nil, err
 	}
-	tasks := make([]extensions.ScheduledTask, 0, len(result.Tasks))
-	for _, task := range result.Tasks {
+	result, err := protocol.ParseScheduleListResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("计划任务清单无法解析: %w", err)
+	}
+	tasks := make([]extensions.ScheduledTask, 0, len(result.Jobs))
+	for _, job := range result.Jobs {
 		tasks = append(tasks, extensions.ScheduledTask{
-			ID:         task.ID,
-			Name:       task.Name,
-			Schedule:   task.Schedule,
-			Enabled:    task.Enabled,
-			Running:    task.Running,
-			NextRunAt:  fromMillis(task.NextRunAt),
-			LastRunAt:  fromMillis(task.LastRunAt),
-			LastStatus: task.LastStatus,
+			ID:       job.ID,
+			Name:     job.Name,
+			Schedule: compactJSON(job.Schedule),
+			Enabled:  job.Enabled,
+			// 运行状态与下次/上次运行时间不在本轮冻结的字段里，留空。
+			Revision: job.Revision,
+			Prompt:   job.Prompt,
+			Cwd:      job.Cwd,
+			Mode:     job.Mode,
 		})
 	}
 	return tasks, nil
 }
 
-// wireWorkflow 是工作流定义。
-type wireWorkflow struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Version     string `json:"version"`
-	Source      string `json:"source"`
-	Steps       []struct {
-		ID   string `json:"id"`
-		Name string `json:"name"`
-		Kind string `json:"kind"`
-	} `json:"steps"`
-}
-
-// ReadWorkflows 实现 extensions.WorkflowReader。
+// ReadWorkflows / ReadWorkflow / ReadWorkflowRuns：workflow.* 在 alpha.21 不注册，
+// 按能力缺失处理，不发请求。
 func (r *extensionReaders) ReadWorkflows(ctx context.Context) ([]extensions.WorkflowDefinition, error) {
-	client, err := r.app.requireControl("读取工作流清单")
-	if err != nil {
-		return nil, err
-	}
-	var result struct {
-		Workflows []wireWorkflow `json:"workflows"`
-	}
-	if err := client.CallInto(ctx, "workflow.list", nil, &result); err != nil {
-		return nil, err
-	}
-	workflows := make([]extensions.WorkflowDefinition, 0, len(result.Workflows))
-	for _, workflow := range result.Workflows {
-		workflows = append(workflows, mapWireWorkflow(workflow))
-	}
-	return workflows, nil
+	return nil, workflowCapabilityMissing()
 }
 
-// ReadWorkflow 实现单份工作流定义的读取。
 func (r *extensionReaders) ReadWorkflow(
 	ctx context.Context,
 	workflowID string,
 ) (extensions.WorkflowDefinition, error) {
-	client, err := r.app.requireControl("读取工作流定义")
-	if err != nil {
-		return extensions.WorkflowDefinition{}, err
-	}
-	var result wireWorkflow
-	if err := client.CallInto(ctx, "workflow.get", map[string]any{"workflowId": workflowID}, &result); err != nil {
-		return extensions.WorkflowDefinition{}, err
-	}
-	return mapWireWorkflow(result), nil
+	return extensions.WorkflowDefinition{}, workflowCapabilityMissing()
 }
 
-// ReadWorkflowRuns 实现工作流运行读数。
 func (r *extensionReaders) ReadWorkflowRuns(
 	ctx context.Context,
 	workflowID string,
 ) ([]extensions.WorkflowRun, error) {
-	client, err := r.app.requireControl("读取工作流运行")
-	if err != nil {
-		return nil, err
-	}
-	var result struct {
-		Runs []struct {
-			ID         string `json:"id"`
-			WorkflowID string `json:"workflowId"`
-			Status     string `json:"status"`
-			StartedAt  int64  `json:"startedAt"`
-			EndedAt    int64  `json:"endedAt"`
-			Error      string `json:"error"`
-		} `json:"runs"`
-	}
-	if err := client.CallInto(ctx, "workflow.runs", map[string]any{"workflowId": workflowID}, &result); err != nil {
-		return nil, err
-	}
-	runs := make([]extensions.WorkflowRun, 0, len(result.Runs))
-	for _, run := range result.Runs {
-		runs = append(runs, extensions.WorkflowRun{
-			ID:         run.ID,
-			WorkflowID: run.WorkflowID,
-			Status:     extensions.WorkflowStatus(run.Status),
-			StartedAt:  fromMillis(run.StartedAt),
-			EndedAt:    fromMillis(run.EndedAt),
-			Error:      run.Error,
-		})
-	}
-	return runs, nil
+	return nil, workflowCapabilityMissing()
 }
 
-// wireWakeup 是唤醒记录。
-type wireWakeup struct {
-	ID        string `json:"id"`
-	SessionID string `json:"sessionId"`
-	BranchID  string `json:"branchId"`
-	Title     string `json:"title"`
-	Prompt    string `json:"prompt"`
-	TriggerAt int64  `json:"triggerAt"`
-	Status    string `json:"status"`
+func workflowCapabilityMissing() error {
+	return &extensions.CapabilityError{
+		Feature: "workflow.list",
+		Err:     fmt.Errorf("服务端未注册 workflow.*（alpha.21 实测 unknown_method）"),
+	}
 }
 
-// ReadWakeups 实现某个会话或分支的唤醒记录读取。
+// ReadWakeups 实现某会话或分支的唤醒读取（`session.wakeup.list`，会话方法）。
 func (r *extensionReaders) ReadWakeups(
 	ctx context.Context,
 	scope extensions.WakeupScope,
 ) ([]extensions.Wakeup, error) {
-	client, err := r.app.requireControl("读取唤醒记录")
+	runtime, err := r.app.openRuntime(scope.SessionID, methodSessionWakeupList)
 	if err != nil {
 		return nil, err
 	}
-	params := map[string]any{"sessionId": scope.SessionID}
-	if scope.BranchID != "" {
-		params["branchId"] = scope.BranchID
-	}
-	var result struct {
-		Wakeups []wireWakeup `json:"wakeups"`
-	}
-	if err := client.CallInto(ctx, "wakeup.list", params, &result); err != nil {
+	raw, err := runtime.lease.Subscription().Call(ctx, methodSessionWakeupList, map[string]any{
+		"sessionId": scope.SessionID,
+		"branchId":  scope.BranchID,
+	})
+	if err != nil {
 		return nil, err
+	}
+	result, err := protocol.ParseSessionWakeupListResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("唤醒清单无法解析: %w", err)
 	}
 	wakeups := make([]extensions.Wakeup, 0, len(result.Wakeups))
 	for _, wakeup := range result.Wakeups {
 		wakeups = append(wakeups, extensions.Wakeup{
-			ID:        wakeup.ID,
-			SessionID: wakeup.SessionID,
-			BranchID:  wakeup.BranchID,
-			Title:     wakeup.Title,
+			ID:        wakeup.WakeupID,
+			SessionID: scope.SessionID,
+			BranchID:  scope.BranchID,
 			Prompt:    wakeup.Prompt,
-			TriggerAt: fromMillis(wakeup.TriggerAt),
-			Status:    extensions.WakeupStatus(wakeup.Status),
+			TriggerAt: parseWireTime(wakeup.At),
+			Status:    extensions.WakeupStatus(wakeup.State),
 		})
 	}
 	return wakeups, nil
@@ -428,30 +453,38 @@ func sourceFromWire(raw string) extensions.Source {
 	}
 }
 
-func mapWireWorkflow(workflow wireWorkflow) extensions.WorkflowDefinition {
-	definition := extensions.WorkflowDefinition{
-		ID:          workflow.ID,
-		Name:        workflow.Name,
-		Description: workflow.Description,
-		Version:     workflow.Version,
-		Source:      sourceFromWire(workflow.Source),
-	}
-	for _, step := range workflow.Steps {
-		definition.Steps = append(definition.Steps, extensions.WorkflowStep{
-			ID:   step.ID,
-			Name: step.Name,
-			Kind: step.Kind,
-		})
-	}
-	return definition
-}
-
-// fromMillis 把服务端的毫秒时间戳映射成 UTC 时间；0 表示服务端没有给出。
-func fromMillis(value int64) time.Time {
-	if value == 0 {
+// parseWireTime 解析服务端给的 RFC3339 时间；解析失败按未给出处理。
+func parseWireTime(raw string) time.Time {
+	if strings.TrimSpace(raw) == "" {
 		return time.Time{}
 	}
-	return time.UnixMilli(value).UTC()
+	parsed, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed.UTC()
+}
+
+// compactJSON 压缩一段 JSON 文本，失败时原样返回。
+func compactJSON(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var buffer bytes.Buffer
+	if err := json.Compact(&buffer, raw); err != nil {
+		return string(raw)
+	}
+	return buffer.String()
+}
+
+// sortedStrings 返回排序后的副本，供稳定输出。
+func sortedStrings(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	copied := append([]string(nil), values...)
+	sort.Strings(copied)
+	return copied
 }
 
 // 编译期确认：本类型同时满足扩展与后台领域需要的七个读取接口。

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -115,6 +116,8 @@ type sessionRuntime struct {
 	methodsOnce sync.Once
 	methods     protocol.SessionMethodsResult
 	methodsErr  error
+	// permissionVersion 是最近一次权限读取/写入的版本号，作 update 的前置条件。
+	permissionVersion atomic.Int64
 }
 
 // App 是集成层的对外类型。所有导出方法可并发调用。
@@ -131,6 +134,8 @@ type App struct {
 	terminals *terminal.Registry
 	// changes 是变更读取的来源适配器；随实例存在，不新增全局状态。
 	changes workspace.ChangeSource
+	// accountWire 是账号域在控制连接上的适配；provider 解析结果按实例缓存。
+	accountWire *accountWire
 
 	// 连接与订阅。
 	supervisor *daemon.Supervisor
@@ -201,7 +206,22 @@ func New(cfg Config) (*App, error) {
 	}
 	// 变更来源只依赖本实例：按会话与 run 读工具结果声明，不持有额外状态。
 	app.changes = &changeSource{app: app}
+	app.accountWire = &accountWire{app: app}
 	return app, nil
+}
+
+// serverArgsFor 补齐统一二进制的子命令。
+//
+// 统一二进制 dimcode-server 需要 `app-server` 子命令（D1 §3.7）；调用方显式给了
+// 参数就原样使用，不覆盖。
+func serverArgsFor(serverPath string, args []string) []string {
+	if len(args) > 0 {
+		return args
+	}
+	if strings.EqualFold(filepath.Base(serverPath), "dimcode-server") {
+		return []string{"app-server"}
+	}
+	return args
 }
 
 // SetWriteGate 设置宿主外壳的写闸门。闸门返回错误时，本包登记意图的入口一律拒绝。
@@ -285,7 +305,7 @@ func (a *App) Connect(ctx context.Context) error {
 	supervisor, err := daemon.New(daemon.Config{
 		DataDir:        a.cfg.DataDir,
 		ServerPath:     a.cfg.ServerPath,
-		ServerArgs:     a.cfg.ServerArgs,
+		ServerArgs:     serverArgsFor(a.cfg.ServerPath, a.cfg.ServerArgs),
 		MockModel:      a.cfg.MockModel,
 		ModelConfig:    a.cfg.ModelConfig,
 		ClientName:     a.cfg.ClientName,
@@ -332,10 +352,10 @@ func (a *App) Connect(ctx context.Context) error {
 		return fmt.Errorf("创建会话目录: %w", err)
 	}
 	accountDomain, err := account.New(account.Config{
-		Status:  &accountStatusReader{app: a},
-		Usage:   &accountUsageReader{app: a},
-		Models:  &accountModelReader{app: a},
-		Auth:    &accountAuthSource{app: a},
+		Status:  &accountStatusReader{wire: a.accountWire},
+		Usage:   &accountUsageReader{wire: a.accountWire},
+		Models:  &accountModelReader{wire: a.accountWire},
+		Auth:    &accountAuthSource{wire: a.accountWire},
 		Actions: writes,
 	})
 	if err != nil {

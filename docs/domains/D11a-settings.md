@@ -2,7 +2,7 @@
 
 Status: 第一版实现完成，待组织评审
 Owner: D11a 设置与运行环境领域
-验证: 可执行命令与可观察输出见 §6；真实 App Server 证据见 §6.4
+验证: 可执行命令与可观察输出见 §6；真实模型工具调用证据见 §6.5；其余真实服务端证据见 §6.4
 依据: `docs/domains/R.md` 功能块 9、10「模型可用性过滤」与块 9「沿用」、`docs/domains/A.md` 的「管理面读数」与四条总规矩、`docs/domains/D1-connection.md`、`docs/domains/D3-write.md`、`docs/domains/D6-account.md`、`docs/project-organization.md` §4.2 D11
 范围: 设置来源与项目作用域读写、模型与 provider 目录及选择读取与写入、存储占用读数、运行组件状态与安装转达、模态能力状态、模态任务提交/查询/取消、实时传输打开/发送/关闭与事件接收。不含界面、连接实现、协议 wire 定义、写登记内部、插件与技能、MCP、钩子、计划任务、唤醒、账号本身、存储清理；模态方法在会话流上的路由由 D12 集成层实现。
 
@@ -44,16 +44,19 @@ Owner: D11a 设置与运行环境领域
 | `internal/settings/modality_tasks.go` | 模态任务提交/取消/读取/清单/结果分页 |
 | `internal/settings/modality_realtime.go` | 实时打开/发送/关闭、连接状态、事件订阅与投递 |
 | `internal/settings/*_test.go` | 单元测试、`fakeappserver` 集成测试与会话模态替身测试（见 §6.2） |
+| `scripts/verify-real-model.sh` | 真实模型验证脚本：读取 `/tmp` 夹具，起 daemon、跑会话、断言真实工具调用与工具结果 |
 | `docs/domains/D11a-settings.md` | 本文件 |
 
 **验收**
 
 - 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。
 - 本领域：73 个顶层测试、47 个子测试，共 120 个通过；语句覆盖率 84.4%。
+- 真实模型：`scripts/verify-real-model.sh --fixture /tmp/dimagent-real-model` 通过，观察到真实工具调用与工具结果（§6.5）。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖设置来源/项目/读写/冲突、模型与账号过滤、存储读数、运行组件安装、模态能力。
   - 注入替身：各读取接口、写发送方与会话模态面在单元测试里替换，覆盖能力缺失、事实不合法、缓存隔离、冲突、重试边界、任务分页、实时事件与失败原因。
-  - 真实 App Server、真实账号、真实 provider、真实模态任务与实时传输：**blocked**，见 §6.4。
+  - 真实模型：本机 `dimcode-server` + `/tmp` 夹具 + 真实 Dim 账号，观察到一次真实工具调用（`exec`）与工具结果，见 §6.5。
+  - 本包 Go API 对真实 App Server 的设置/模态方法、真实模态任务与实时传输：**blocked**，见 §6.4。
 
 **依赖**
 
@@ -590,7 +593,7 @@ go vet ./...
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
-| 真实 App Server 的设置来源、项目根、设置读写与版本冲突 | blocked | 需要冻结的 wire 方法名、作用域形状与回执字段；本版用 `fakeappserver` 验证 |
+| 本包 Go API 对真实 App Server 的设置来源、项目根、设置读写与版本冲突 | blocked | 需要冻结的 wire 方法名、作用域形状与回执字段；本版用 `fakeappserver` 验证。真实模型工具调用已另行验证（§6.5） |
 | 真实账号与真实 provider 目录的可用性过滤 | blocked | 需要真实账号、真实 provider 目录与 D6 的模型标识口径；本版用假服务端与真实 `account` 包验证 |
 | 真实模型选择写入与版本冲突 | blocked | 需要真实账号、真实 provider 与 `provider.select` 的版本语义；本版用假服务端验证 |
 | 真实存储读数与离线回收边界 | blocked | 需要真实服务端原生存储；本版验证只读与结构校验，未执行任何清理 |
@@ -598,6 +601,63 @@ go vet ./...
 | 真实模态能力 | blocked | 需要真实服务端的能力清单；本版验证状态、原因与结构校验 |
 | 真实模态任务与实时传输 | blocked | 需要真实服务端声明任务/实时方法并提供真实任务与连接；本版用会话模态替身与真实 `write.Manager` 验证 |
 | 模态方法在会话流上的路由 | blocked | 需要 D12 实现 `ModalitySession` 与会话通知投递；本版只验证接口契约与状态机 |
+
+### 6.5 真实模型接入验证（2026-11-11）
+
+**侦察（只读）**
+
+- `~/.dimcode-alpha/config.json` 只有外观与权限开关，不含 provider/model。
+- `~/.dimcode-alpha/auth.json` 是 Dim 账号 OAuth 记录；账号已登录，subject `63`，issuer `https://dimagent.cn`。令牌不写入本文档。
+- 提供 provider 与模型事实的是原生存储 `~/.dimcode-alpha/rust/dimcode.sqlite`：
+  - `providers`：`dimcode-api-oauth`，`kind=managed`，`version=5`，模型条目 33 个。
+  - `provider_selections`：`scope=global` → `dimcode-api-oauth` / `deepseek-v4.1-flash`。
+  - 目标模型声明 `toolCalling=true`、`streaming=true`、`reasoning=true`。
+- 侦察只做 SQLite 只读查询与文本读取；未修改、未删除、未写回来源。
+
+**夹具**
+
+- 位置：`/tmp/dimagent-real-model`（只在 `/tmp`，不进入仓库）。
+- 内容：`home/config.json`、`home/auth.json`（0600）、`home/rust/dimcode.sqlite`
+  （来源 schema + `agent_store_format=36` + 1 条 provider + 1 条 selection +
+  6 条非敏感设置文档；**0 条会话/时间线/消息**）、`bin/dimcode-server`
+  （0.1.0-alpha.21）、`meta/schema.sql`、`FIXTURE.md`。
+- 权限：夹具根、`home`、`home/rust` 为 0700；`auth.json` 为 0600。
+- 形状与复制清单见夹具内 `FIXTURE.md`；真实凭据只存在 `/tmp`，不写入仓库、
+  不写回来源、不进入产品代码路径。
+
+**验证脚本**
+
+`scripts/verify-real-model.sh` 不读取 `~/.dimcode-alpha` 或任何来源目录，只读
+`--fixture`（默认 `/tmp/dimagent-real-model`）。它把 `fixture/home` 复制到新的
+临时目录，起 daemon，确认账号已登录，跑一次 `exec`，解析 `session.event`：
+
+- `step/tool-call` 必须出现，且带工具名与输入；
+- `step/tool-result` 必须出现，且包含 `--expect` 文本；
+- 两者都满足才打印 `REAL_TOOL_CALL_OK` 并以 0 退出；否则以 1 退出。
+
+用法：
+
+```bash
+scripts/verify-real-model.sh --fixture /tmp/dimagent-real-model
+```
+
+**观察到的结果**
+
+```text
+account: Signed in: 63 (https://dimagent.cn)
+{"sessionId":"40fe352f-...","toolCalls":[{"tool":"exec","input":{"command":"printf DIMAGENT_REAL_TOOL_OK","timeoutMs":10000}}],"toolResults":["DIMAGENT_REAL_TOOL_OK"],"expected":"DIMAGENT_REAL_TOOL_OK","ok":true}
+REAL_TOOL_CALL_OK
+```
+
+结论：真实 provider、真实账号、真实 daemon 产生了一次真实工具调用（`exec`
+执行 `printf DIMAGENT_REAL_TOOL_OK`，退出码 0，输出 `DIMAGENT_REAL_TOOL_OK`），
+不是纯文本回复，也不是 mock。验收通过。
+
+**数据源纪律**
+
+- 来源目录只读；只把必要配置复制到 `/tmp` 夹具，未写回来源。
+- 产品代码与领域包不读取 `~/.dimcode-alpha`、Dim 源码或 dim-electron 源码。
+- 脚本只读夹具，每次运行把夹具复制到独立临时目录，不修改夹具本身。
 
 ## 7. 已知限制
 
@@ -624,6 +684,9 @@ go vet ./...
 21. **实时状态只在内存**：本进程重启后不记得已打开的连接，`CloseRealtime` 会返回 `ErrRealtimeNotOpen`；这时应由服务端或用户侧清理残留连接。
 22. **实时事件原样透传**：事件 JSON 只校验合法性，不解析音频或控制语义；播放与编解码由调用方负责。
 23. **订阅回调同步**：`WatchRealtime` 的回调在投递路径上同步执行；慢回调会拖慢通知路由，回调里也不能调用本包的管理写入。
+24. **真实模型夹具不入库**：夹具含真实账号凭据，只存在 `/tmp`；仓库只有脚本。换机器或令牌过期后需要人工重新准备夹具或登录。
+25. **真实模型验证依赖本机账号与网络**：脚本能证明当前账号/网络下真实工具调用可用，不证明其他账号、其他模型或离线环境；模型输出与工具选择可能变化，脚本以“工具调用 + 期望工具结果”为判据。
+26. **真实模型验证用的是 daemon CLI**：`scripts/verify-real-model.sh` 走 `dimcode-server exec` 的完整会话链路，不经过本包 Go API；本包 Go API 对真实 App Server 的验证仍在 §6.4 blocked。
 
 ## 8. 下一步
 
@@ -634,3 +697,5 @@ go vet ./...
 5. 接入运行组件 `runtime.watch` 与设置变更通知：通知到达后重读一次，不做定时轮询。
 6. 补真实服务端证据：设置写入与选择写入的版本冲突、项目作用域、存储读数、运行组件安装、模态能力、任务提交/查询/取消、实时打开/发送/关闭与事件。
 7. 与 U1 对齐读数呈现：任务进度、结果分页、实时事件与不可用原因的展示口径；本包只提供数据与原因，不做文案。
+8. 把真实模型验证接到本包 Go API：用真实 daemon 执行 `models.providers.list`、`provider.select`、`storage.report`、`runtime.list` 与 `modality.capabilities`，把 §6.5 的“模型可用”推进到“本包读取与选择写入可用”。
+9. 为真实模型验证准备专用测试账号或可轮换凭据，避免依赖个人 `~/.dimcode-alpha`；当前只做了本机夹具。

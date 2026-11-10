@@ -1,6 +1,6 @@
 # D1 连接（protocol v3 wire、daemon 生命周期、会话流）
 
-Status: 第二版（第一版 + v3 wire 形状补齐，P1-1 候选结果包）
+Status: 第三版（第一版 + v3 wire + 管理面/权限档位形状，P1-1 候选结果包）
 Owner: D1 领域 agent
 验证: 可执行命令 + 可观察输出见第 6 节；真实 daemon 证据在 6.3 与 6.4
 依据: `docs/domains/R.md` 第 1 部分功能块 1、`docs/domains/A.md`（连接状态机、会话能力归属、四条总规矩）、`docs/project-organization.md` §6 F3
@@ -24,7 +24,7 @@ Owner: D1 领域 agent
 
 | 包 | 一句话职责 |
 |---|---|
-| `internal/appserver/protocol` | JSON-RPC 2.0 over NDJSON：帧编解码与上限、消息解析、请求关联与超时、通知分发、关闭语义；v3 wire 类型（审批、会话通知、未完成事项、提交核对、附件、方法清单）只在这里出现 |
+| `internal/appserver/protocol` | JSON-RPC 2.0 over NDJSON：帧编解码与上限、消息解析、请求关联与超时、通知分发、关闭语义；v3 wire 类型（审批、会话通知、未完成事项、提交核对、附件、方法清单、管理面、权限档位、shell、唤醒、计划任务、模态）只在这里出现 |
 | `internal/appserver/transport` | 本地传输入口：Unix domain socket 实现；Windows 命名管道保留接口并明确返回不支持 |
 | `internal/appserver/daemon` | 数据目录 → 端点解析、自启与归属、回收、hello 握手与版本校验、控制连接与流连接 |
 | `internal/appserver/session` | 每会话一条流、一份订阅；订阅先于 attach 与历史；持有者计数；断线按序号重读 |
@@ -96,7 +96,7 @@ Owner: D1 领域 agent
 
 ### 3.7 v3 wire 形状（第二轮补齐）
 
-方法名与字段以真实服务端为准：本机 `/tmp/dim-2-target/debug/dim-app-server`（0.1.0-alpha.18）与其同版本源码 `dim-2` 的 `crates/dim-app-server/src/{protocol,tree_protocol,storage/metadata}.rs`、`crates/dim-agent-{questions,attachments}`、`crates/dim-agent-capabilities/src/{input_queue,workspace_tools}/pending.rs`。能触发的形状用真实 daemon 跑过（见 6.4），不能触发的在 6.5 标 blocked。
+方法名与字段以真实服务端为准：本机 `/tmp/dim-2-target/debug/dim-app-server`（0.1.0-alpha.18）与其同版本源码 `dim-2` 的 `crates/dim-app-server/src/{protocol,tree_protocol,storage/metadata}.rs`、`crates/dim-agent-{questions,attachments}`、`crates/dim-agent-capabilities/src/{input_queue,workspace_tools}/pending.rs`。能触发的形状用真实 daemon 跑过（见 6.4），不能触发的在 6.6 标 blocked。
 
 **审批通知**（`approval.request` / `approval.cancelled` / `approval.resolved`）
 
@@ -134,6 +134,59 @@ Owner: D1 领域 agent
 **能力清单**（`session.methods`）
 
 回执 `{methods:[{name, mutating}]}`；上表所有贡献方法（`attachment.put`、四类 pending、`session.question.respond` 等）都应先在这里判定。
+
+### 3.8 管理面方法（alpha.21 实测 + 同版本/上游源码核对）
+
+本机真实服务端为 `~/.dimcode-alpha/rust/dimcode-server`（0.1.0-alpha.21）。能调用的方法都实际调过（临时数据目录 + 复制到 `/tmp` 的离线模型配置），失败或不存在的方法记录原始错误。
+
+**存在的方法（按家族）**
+
+| 家族 | 实际 wire 方法 | 备注 / 类型 |
+|---|---|---|
+| 插件 | `plugin.list` / `install` / `enable` / `disable` / `reload` / `update` / `remove` | list 返回**数组**；条目 `{name,use,off,locked,candidates[],status?,error?,refused?}`；install 参数 `{source:{path}|{git,ref?},id?,enable?}`；enable/disable/reload `{name,use?}`；update/remove `{id,ref?}`；enable 回执 `{status}`，disable `{}` |
+| 技能 | `skills.catalog` / `install` / `installations` / `preview` / `refresh` / `remove` / `set_enabled` / `update` | catalog `{version,entries[],issues[]}`；entry `{id,source,name,description,filePath,allowedTools[],enabled,shadowedBy}`；installations `{installations[]}` |
+| 钩子 | `hooks.catalog` / `save` / `set_enabled` | catalog `{userRevision,userDocument,projectsRevision,disableAllHooks,sources[],hooks[]}`；save `{expectedRevision,document}` |
+| 外部工具服务器 | **实际命名是 `mcp.*`**：`mcp.catalog` / `configuration` / `inspect` / `save` / `remove` / `move` / `update` / `set_enabled` / `test` / `import.sources` / `import.preview` / `import.apply` / `auth.*` / `disconnect` | catalog `{userRevision,projectRevision,userApplication,pluginApplication,projectApplication,servers[],invalid[]}`；server `{id,source,enabled,transport,auth?}`；import.sources `{sources[]}` |
+| 计划任务 | `schedule.list` / `save` / `delete` / `set_enabled` / `history` / `run_now` / `watch` | list `{jobs[]}`，job 为 snake_case；save `{job,revision?}` → `{transition?,job}`；delete `{job_id}`；set_enabled `{job_id,enabled}` → `{job}`；history `{job_id,limit?}` → `{runs[]}`；watch 走 `management.progress` |
+| 存储 | `storage.report` | `{databaseBytes,walBytes,reclaimableBytes}` |
+| 会话标题 | `session.rename` | 参数 `{sessionId,title|null}`；回执 `{title,titleSource,revision}` |
+| 本机 shell | `shell.list` / `run` / `stop`（会话贡献） | run `{sessionId,branchId,runId,command,mode}` → `{runId,status,output,truncated,durationMs,exitCode?,signal?,reason?,recorded?}`；list `{sessionId}` → `{runs[]}`；stop `{sessionId,runId}` → `{stopped}` |
+| 唤醒记录 | `session.wakeup.create` / `list` / `cancel`（会话贡献） | create `{sessionId,branchId,at,prompt}` → `{wakeupId}`；list `{sessionId,branchId?}` → `{wakeups[{wakeupId,at,prompt,state}]}`；cancel `{sessionId,wakeupId}` → `{}` 或 `{state}` |
+| 模态 | `modality.capabilities` / `configure` / `task.submit|status|list|wait|cancel|result` / `realtime.open|send|close` | capabilities `{revision,categories[]}`；task 记录 `{version,task_id,client_task_id,revision,category,operation,executor,params,state,remote_handle,progress,result,error,remote_cancel,created_at,updated_at,finished_at}`；realtime open `{connectionId,transport,connection?}` |
+| 附件 | `attachment.put` | 见 3.7 |
+
+对应 Go 类型（均在 `internal/appserver/protocol`）：
+
+- 权限：`PermissionPolicy`、`PermissionResult`、`PermissionGetParams`、`PermissionUpdateParams`、`PermissionChanged`
+- 标题：`SessionRenameParams`、`SessionRenameResult`
+- 存储/进度：`StorageReportResult`、`ManagementProgressNotice`
+- 插件：`PluginListResult`、`PluginEntry`、`PluginCandidate`、`PluginSource`、`PluginInstallParams`、`PluginNameParams`、`PluginIDParams`、`PluginOperationResult`
+- 技能：`SkillsCatalogResult`、`SkillEntry`、`SkillIssue`、`SkillsRefreshResult`、`SkillsInstallationsResult`、`SkillInstallation`、`SkillInstallationSkill`、`SkillsSetEnabledParams`、`SkillsPreviewParams`、`SkillsInstallParams`、`SelectedSkill`、`SkillsInstallationParams`
+- 钩子：`HooksCatalogResult`、`HookSource`、`HooksSaveParams`、`HooksSaveResult`、`HooksSetProjectEnabledParams`、`HooksSetProjectEnabledResult`
+- MCP：`MCPCatalogResult`、`MCPCatalogEntry`、`MCPAuthStatus`、`MCPInvalidCatalogEntry`、`MCPImportSourcesResult`、`MCPImportSource`、`MCPConfigurationResult`、`MCPTargetParams`、`MCPSetEnabledParams`、`MCPRemoveParams`、`MCPMoveParams`、`MCPSaveParams`、`MCPImportPreviewParams`、`MCPImportApplyParams`
+- 计划任务：`ScheduleListResult`、`ScheduleJob`、`ScheduleSaveParams`、`ScheduleSaveResult`、`ScheduleTransition`、`ScheduleDeleteParams/Result`、`ScheduleSetEnabledParams/Result`、`ScheduleHistoryParams/Result`、`ScheduleRun`、`ScheduleRunNowParams`、`ScheduleWatchParams`、`ScheduleWatchItem`
+- 模态：`ModalityCapabilitiesResult`、`ModalityCategory/Operation/Option/Effective/Reason`、`ModalityConfigureParams`、`ModalityTaskSubmitParams`、`ModalityTaskStatusParams`、`ModalityTaskWaitParams`、`ModalityTaskResultParams`、`ModalityTaskRecord`、`ModalityTaskReply`、`ModalityTaskListParams/Result`、`ModalityTaskResultReply`、`ModalityRealtimeOpenParams/Result`、`ModalityRealtimeSendParams`、`ModalityRealtimeCloseParams`、`ModalityRealtimeEventNotice`、`ModalityRealtimeEndedNotice`
+- shell：`ShellRunParams`、`ShellRunResult`、`ShellRunRecorded`、`ShellListParams`、`ShellListResult`、`ShellRunInfo`、`ShellStopParams`、`ShellStopResult`
+- 唤醒：`SessionWakeupCreateParams`、`SessionWakeupCreateResult`、`SessionWakeupListParams`、`SessionWakeup`、`SessionWakeupListResult`、`SessionWakeupCancelParams`、`SessionWakeupCancelResult`、`WakeupNoticeData`
+
+**不存在的方法（原样调用返回 `-32601 unknown_method`）**
+
+| 被问到的方法 | 结论与源码依据 |
+|---|---|
+| `toolServer.*`（含 import preview/apply） | 不存在。工具服务器在服务端叫 MCP：alpha.8 源码 `crates/dim-app-server/src/mcp/management.rs` 以命名空间 `mcp` 注册（`methods.register(ctx, "mcp", ...)`）；alpha.21 实测 `mcp.*` 全部可用，`toolServer.*` 全部 unknown_method |
+| `workflow.*` | 不存在。alpha.8 全仓 `grep -r "workflow\." crates/dim-app-server/src` 无注册；alpha.21 实测 `workflow.list/status/start/stop/save` 全部 unknown_method。Electron 侧有类型，但当前服务端没有该方法面 |
+| `scheduler.*` | 不存在。任务面实际叫 `schedule.*`：`crates/dim-agent-scheduler/src/methods.rs` 注册 `schedule.list/save/delete/set_enabled/history/run_now/watch`；`scheduler.*` 实测 unknown_method |
+| `runtime.*`（list/install/configure/watch） | alpha.21 不存在（全部 unknown_method）。alpha.8 源码 `crates/dim-app-server/src/runtime_manager.rs` 注册过 `runtime.list/install/configure`（无 `runtime.watch`），说明该面在 alpha.21 已不再随服务端注册；当前版本按能力缺失处理 |
+| 顶层 `wakeup.*` | 不存在。唤醒是会话方法 `session.wakeup.*`：`crates/dim-agent-scheduler/src/session.rs` 注册 `session.wakeup.create/list/cancel`；`wakeup.list` 实测 unknown_method |
+| `skills.list` / `hooks.list` | 不存在；实际读取方法是 `skills.catalog` 与 `hooks.catalog`（alpha.8 `skills_management.rs` / `hooks_settings.rs` 的 MethodDecl 与 alpha.21 实测一致） |
+| `permission.changed` | **不是通知**，详见 3.9 |
+
+### 3.9 权限档位
+
+- 读取：`session.permission.get {sessionId,branchId}` → `{version,policy}`。
+- 切换：`session.permission.update {sessionId,branchId,expectedVersion,policy}` → `{version,policy}`；`policy={preset,allowedTools[],disallowedTools[]}`，`preset` 为 `read-only`/`workspace-write`/`full-access`。
+- 通知：**没有** `permission.changed`。服务端通知表（alpha.8 `protocol.rs` 的 `notifications!` 表，含 `approval.*`、`session.*`、`modality.realtime.*` 等，无 permission 项）里没有它；切换档位产生的是时间线事实 `session.event {event.type:"permission", event.name:"changed", data:{policy}}`。alpha.21 实测：update 后控制连接与流连接上没有 `permission.changed`，流上收到 `session.event` 的 `permission/changed`，`data.policy` 为新档位。
+- 会话能力归属不变：档位本身由交互裁决持有；连接领域只冻结 wire 形状与事件转发。
 
 ## 4. 状态映射
 
@@ -219,6 +272,8 @@ go vet ./...
 | 端点私有目录、Unix 路径、Windows 管道命名、自启参数 | `daemon/endpoint_test.go` |
 | 传输：Unix 往返、管道未实现、未知网络 | `transport/transport_test.go` |
 | 错误分类与 `errors.Is` | `failure/failure_test.go` |
+| 管理面 wire：权限、改名、存储、进度、插件、技能、钩子、MCP、计划任务、模态、shell、唤醒（未知字段容忍 + 缺字段拒绝） | `protocol/management_test.go` |
+| 管理通知映射：permission/changed、唤醒通知、management.progress、模态实时事件 | `session.TestManagementNotificationsAreTyped` |
 | 审批三类通知、标题通知、提交核对、四类未完成事项、附件回执、方法清单的解码（未知字段容忍 + 缺字段拒绝） | `protocol/wire_v3_test.go` |
 | 通知映射到类型化事件；坏字段保留原始 Params 并报 `DecodeErr` | `session.TestRecognizedNotificationsAreTyped` |
 | 会话方法路由：`session.methods`、`input_lookup`、pending、`attachment.put` 都带会话标识走本会话的流 | `session.TestSessionCallsRouteWithSessionID` |
@@ -331,17 +386,64 @@ configured profile 输出（节选）：
 | 形状 | 证据 |
 |---|---|
 | `session.methods`、`input_lookup`（accepted/unknown）、`input.pending`（空页与真实条目）、`exec.pending`/`question.pending`/`collaboration.pending`（空页）、`attachment.put` 成功回执 | 真实 daemon 实测（上两段输出） |
-| 审批三类通知、标题通知、四类条目的完整字段、附件错误码 | 与运行二进制同版本的源码 + 服务端自己的 wire 测试（`transport_flow/{approval,notices,titles}.rs`）；真实事件未能触发，见 6.5 |
+| 审批三类通知、四类条目的完整字段、附件错误码 | 与运行二进制同版本的源码 + 服务端自己的 wire 测试（`transport_flow/{approval,notices,titles}.rs`）；审批事件未触发（见 6.6），标题通知已在 6.5 真实触发 |
 | 提问/征询通知 | 不存在：服务端通知表没有 `question.*`/`elicitation.*`；改用 `session.question.pending` + 时间线 `ask_user` 调用（实测空页 + 源码） |
 
-### 6.5 blocked
+### 6.5 管理面与权限证据（alpha.21）
+
+数据源纪律：`~/Code/dim`、`../dim-electron`、`~/.dimcode-alpha` 只读；模型配置文件复制到 `/tmp` 后交给服务端；所有会话与配置落在临时数据目录。
+
+```bash
+# 临时 home + 复制到 /tmp 的离线模型配置；服务端从只读安装目录启动
+D=$(mktemp -d /tmp/d1-mgmt-XXXXXX)
+cp ~/Code/dim/crates/dim-agent-aimux/examples/offline.json /tmp/d1-offline.json
+go run ./cmd/dimagent-conncheck -data-dir "$D" \
+  -server ~/.dimcode-alpha/rust/dimcode-server -server-arg app-server \
+  -model-config /tmp/d1-offline.json -mgmt -notice-seconds 1
+```
+
+探测结果（节选；完整输出已纳入本轮结果包报告）：
+
+```text
+HELLO serverVersion=0.1.0-alpha.21 protocolVersion=3 profile=configured
+mgmt.plugin.list           bytes=9585  preview=[{"name":"AgentDirectory","use":"builtin","off":false,"locked":false,"candidates":[{"id":"builtin","kinds":["code"]}],"status":"running"},...]
+mgmt.skills.catalog        bytes=19880 preview={"version":0,"entries":[{"id":"user:agents-sdk","source":"user",...,"enabled":true,"shadowedBy":null},...],"issues":[]}
+mgmt.skills.installations  {"installations":[]}
+mgmt.hooks.catalog         {"userRevision":"native:user/hooks:1","userDocument":{...},"projectsRevision":"...","disableAllHooks":false,"sources":[...],"hooks":[]}
+mgmt.mcp.catalog           {"userRevision":"native:user/mcp:1",...,"servers":[],"invalid":[]}
+mgmt.mcp.import.sources    {"sources":[{"id":"claude-code:user",...},{"id":"codex:user",...},{"id":"omp:user",...,"state":"absent"}]}
+mgmt.schedule.list         {"jobs":[]}
+mgmt.storage.report        {"databaseBytes":294912,"walBytes":758112,"reclaimableBytes":0}
+mgmt.modality.capabilities bytes=4644  preview={"revision":"native:user/modality:1","categories":[{"category":"image",...}]}
+mgmt.modality.task.list    {"tasks":[]}
+mgmt.permission.rules      {"revision":"native:user/permission:1","commandRules":[]}
+mgmt.session.permission.get    {"version":0,"policy":{"preset":"workspace-write","allowedTools":[],"disallowedTools":[]}}
+mgmt.session.permission.update {"version":18,"policy":{"preset":"read-only","allowedTools":[],"disallowedTools":[]}}
+notice.permission.changed  preset=read-only        # session.event permission/changed，无 permission.changed 通知
+mgmt.session.rename        {"title":"conncheck probe","titleSource":"manual","revision":1}
+notice.title               title=conncheck probe titleRevision=1 titleSource=manual
+mgmt.shell.run             {"runId":"...","status":"completed","output":"conncheck\n","truncated":false,"durationMs":24,"exitCode":0}
+mgmt.shell.list            {"runs":[]}
+mgmt.shell.stop            {"stopped":false}
+mgmt.session.wakeup.create {"wakeupId":"..."}
+notice.wakeup              state=scheduled / cancelled
+mgmt.session.wakeup.list   {"wakeups":[{"wakeupId":"...","at":"...","prompt":"conncheck wakeup","state":"scheduled"}]}
+mgmt.session.wakeup.cancel {}
+```
+
+另测（同一 alpha.21，临时 home）：`plugin.enable {name:"Attachments"}` → `{"status":"running"}`，`plugin.disable` → `{}`；`schedule.save`（新建一个 every_minutes 任务）→ `{"transition":...,"job":{"id":"...","name":"probe job","schedule":{"every_minutes":60},...,"created_by":"user"}}`，随后 `schedule.list` 与 `schedule.delete` 正常。
+
+`approval.*`、标题通知、唤醒通知也在这轮被真实事件验证：`session.rename` 触发 `session.notice {source:"SessionStore",kind:"title",data:{title,titleSource,titleRevision}}`；唤醒 create/cancel 触发 `session.notice {source:"Scheduler",kind:"wakeup",data:{branchId,wakeupId,state}}`。
+
+### 6.6 blocked（历史项）
+
+
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
 | Windows 命名管道真实连接 | blocked | 没有 Windows 主机与 Windows 版 App Server；本版只保留 `transport.Dial(pipe)` 接口并返回 `ErrUnsupportedPlatform` |
 | 真实 daemon 版本不兼容 | blocked | 没有协议版本不符的服务端二进制；用 fake 服务端覆盖该分支 |
 | 真实 `approval.request/cancelled/resolved` 事件 | blocked | 需要模型发出需要用户同意的工具调用；本机可用的是 mock/离线模型，不产生工具调用。形状按同版本服务端源码与 wire 测试冻结 |
-| 真实 `session.notice` 标题事件 | blocked | 标题写入由 `session.rename`（SessionTitle 插件）触发，独立 `dim-app-server` 不带该插件；`dimcode app-server` 的旧版本不接受当前模型配置。形状按同版本 `storage/metadata.rs` 与 `transport_flow/titles.rs` 冻结 |
 | 真实非空 `exec/question` 清单 | blocked | 同上：mock/离线模型不产生工具调用；空页形状已实测 |
 
 ## 7. 依赖与上下文需求
@@ -367,11 +469,15 @@ configured profile 输出（节选）：
 9. 自启子进程的 stdout/stderr 丢弃，启动失败只能看到退出状态与端点未就绪，不能从 `daemon.log` 取原因（约束禁止读写该文件）。
 10. 会话流固定主线 `main`；分支流不在本版范围（归 D2/D3 的后续工作）。
 11. 未知 `appError` 默认不可重试，属于失败关闭策略；能力扩展需要更新映射表。
-12. 审批三类通知与标题通知的**真实事件**未触发（见 6.5）；类型按与运行二进制同版本的源码冻结，字段缺失会被 `Parse*` 拒绝，未知字段被忽略。
+12. 审批三类通知的**真实事件**仍未触发（见 6.6）；类型按与运行二进制同版本的源码冻结。标题通知已在 alpha.21 的 `session.rename` 上真实触发并核对。
 13. 服务端没有提问/征询通知；提问只能从 `session.question.pending` 与时间线事实推导，连接领域不生成「请求/已决/超时清理」通知。
 14. `session.input_lookup` 的 `branchId` 在 v3 必填，`submissionId` 必须是 UUID；写登记应保留这两个约束。
 15. `attachment.put`、`session.exec.pending`、`session.question.pending` 等是贡献方法：mock profile 不存在（返回 `unknown_method`），必须先用 `session.methods` 判定能力。附件回执里的 `path` 是服务端路径，本领域不读取它。
 16. `CollaborationTarget` 的 `profile` 按不透明 JSON 保留；当前服务端只有 `agent`/`member`/`temporary` 三种 kind，其它 kind 会在解析时按未知目标拒绝。
+17. 本机没有 alpha.21 的 Rust 源码（`~/Code/dim` 是 alpha.8，`dim-2` 是 alpha.18）；管理面的存在性与字段以 alpha.21 实测为准，方法注册依据取 alpha.8 源码并标注版本差异。alpha.21 在 `schedule.list` 的 job 上多出 `next_window`/`last_run`，按未知字段容忍。
+18. 管理面只冻结了本轮能核对的部分：`plugin.install/update`、`skills.install/preview/update`、`mcp.save/remove/move/set_enabled/import.apply`、`schedule.run_now` 的**回执**未探测成功形态，只冻结了参数；结果按 `json.RawMessage` 或调用方原样处理，不写猜的字段。
+19. `runtime.*` 在 alpha.8 源码里注册（`runtime_manager.rs`），alpha.21 已不注册；`workflow.*` 在 alpha.8 与 alpha.21 都没有注册。两者都按能力缺失处理，不能按 Electron 的类型清单实现。
+20. 管理方法走控制连接（`daemon.Connection.Client`）；`session.rename`、`shell.*`、`session.wakeup.*`、`attachment.put` 走会话流（`Subscription.Call` 与对应封装）。两者不要混用连接。
 
 ## 9. 下一步建议
 
@@ -387,3 +493,5 @@ configured profile 输出（节选）：
 |---|---|---|---|
 | 2026-11-10 | 第一版：帧、传输、daemon 生命周期、会话流、错误分类与真实 daemon 证据 | 连接领域第一版交付 | D2–D6 可以接入订阅与历史 |
 | 2026-11-10 | 补齐 v3 wire：审批三类通知、`session.notice` 标题、`session.input_lookup`、四类未完成事项、`attachment.put`、`session.methods`；会话把通知映射为类型化事件并提供会话方法路由 | 集成层被六处未冻结形状挡住 | 审批、提问、标题、附件与写登记可以按已冻结形状实现；提问没有通知的结论已明确 |
+
+| 2026-11-11 | 管理面方法调查与冻结：plugin/skills/hooks/mcp/schedule/storage/modality/session.rename/shell/wakeup 的类型与解码测试；`permission.changed` 结论为「不存在通知，等同时间线 `permission/changed`」；列出 toolServer/workflow/scheduler/runtime/顶层 wakeup 的不存在依据 | 集成层需要管理面与权限档位形状 | D5 可按已冻结形状实现；未探测的变更回执与运行时方法明确列为未冻结 |

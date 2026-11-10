@@ -46,12 +46,7 @@ func TestRealDaemonExportTurns(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 180*time.Second)
 	defer cancel()
 
-	supervisor, err := daemon.New(daemon.Config{
-		DataDir:    dataDir,
-		ServerPath: serverPath,
-		ServerArgs: serverArgs,
-		MockModel:  true,
-	})
+	supervisor, err := daemon.New(evidenceMockDaemonConfig(dataDir, serverPath, serverArgs))
 	if err != nil {
 		t.Fatalf("创建监督者: %v", err)
 	}

@@ -36,9 +36,9 @@ type SkillEnabledPayload struct {
 // ListSkills 读取技能清单并更新镜像读数。
 func (s *Service) ListSkills(ctx context.Context) (Snapshot[Skill], error) {
 	if s.cfg.Skills == nil {
-		return missingReader(s, "skill.list", &s.skills)
+		return missingReader(s, "skills.catalog", &s.skills)
 	}
-	return readInto(s, ctx, "skill.list", &s.skills, s.cfg.Skills.ReadSkills)
+	return readInto(s, ctx, "skills.catalog", &s.skills, s.cfg.Skills.ReadSkills)
 }
 
 // SkillSnapshot 返回最近一次技能读数，不发起请求。

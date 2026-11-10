@@ -16,6 +16,11 @@ type ScheduledTask struct {
 	NextRunAt  time.Time
 	LastRunAt  time.Time
 	LastStatus string
+	// Revision/Prompt/Cwd/Mode 是 alpha.21 job 上的字段，原样保留供界面展示。
+	Revision int64
+	Prompt   string
+	Cwd      string
+	Mode     string
 }
 
 // SchedulerReader 读取计划任务清单。只读。
@@ -29,9 +34,9 @@ type SchedulerReader interface {
 // 领域实例。读取只发生在显式调用与变更通知到达时，没有定时轮询。
 func (s *Service) ListScheduledTasks(ctx context.Context) (Snapshot[ScheduledTask], error) {
 	if s.cfg.Scheduler == nil {
-		return missingReader(s, "scheduler.list", &s.scheduled)
+		return missingReader(s, "schedule.list", &s.scheduled)
 	}
-	return readInto(s, ctx, "scheduler.list", &s.scheduled, s.cfg.Scheduler.ReadScheduledTasks)
+	return readInto(s, ctx, "schedule.list", &s.scheduled, s.cfg.Scheduler.ReadScheduledTasks)
 }
 
 // ScheduledTaskSnapshot 返回最近一次计划任务读数，不发起请求。

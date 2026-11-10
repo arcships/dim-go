@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -11,145 +12,270 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 )
 
-// 账号领域在服务端上的读取方法。形状取自账号领域的集成证据。
+// 账号领域在服务端上的真实方法名（alpha.21 实测，见 D1 §3.7 与 D6 §6.3）。
 const (
-	methodAccountStatus = "account.status"
-	methodAccountUsage  = "account.usage"
-	methodModelList     = "model.list"
-	methodLoginBegin    = "account.login.begin"
-	methodLoginComplete = "account.login.complete"
-	methodLoginCancel   = "account.login.cancel"
+	methodAccountProviders = "account.providers"
+	methodAccountStatus    = "account.status"
+	methodAccountUsage     = "account.usage"
+	methodProviderCatalog  = "provider.catalog"
+	methodLoginBegin       = "account.login.browser.begin"
+	methodLoginComplete    = "account.login.browser.complete"
+	methodLoginCancel      = "account.login.cancel"
 )
+
+// accountProvider 是一次 provider 解析的结果。
+type accountProvider struct {
+	ID string
+	// Directory 是服务端声明的默认目录；为空时不带该参数。
+	Directory string
+}
+
+// accountWire 是账号域在控制连接上的读取与登录适配。
+//
+// provider 只解析一次并缓存；登录尝试到 provider 的对应关系只在内存里保存，
+// 用于完成/取消时回传 providerId。这里不持有任何凭据。
+type accountWire struct {
+	app *App
+
+	mu       sync.Mutex
+	provider *accountProvider
+	attempts map[string]string
+}
+
+func (w *accountWire) accountProvider(ctx context.Context, op string) (accountProvider, error) {
+	w.mu.Lock()
+	cached := w.provider
+	w.mu.Unlock()
+	if cached != nil {
+		return *cached, nil
+	}
+	client, err := w.app.requireControl(op)
+	if err != nil {
+		return accountProvider{}, err
+	}
+	var providers []struct {
+		ProviderID       string   `json:"providerId"`
+		DisplayName      string   `json:"displayName"`
+		LoginMethods     []string `json:"loginMethods"`
+		DefaultDirectory *string  `json:"defaultDirectory"`
+	}
+	if err := client.CallInto(ctx, methodAccountProviders, nil, &providers); err != nil {
+		return accountProvider{}, err
+	}
+	if len(providers) == 0 {
+		return accountProvider{}, failure.New(failure.KindNonRetryable, methodAccountProviders,
+			fmt.Errorf("服务端没有声明账号提供者"))
+	}
+	// 优先选支持浏览器登录的提供者；没有就取第一条，不猜能力。
+	picked := providers[0]
+	for _, provider := range providers {
+		for _, method := range provider.LoginMethods {
+			if method == "browser" {
+				picked = provider
+				break
+			}
+		}
+	}
+	resolved := accountProvider{ID: picked.ProviderID}
+	if picked.DefaultDirectory != nil {
+		resolved.Directory = *picked.DefaultDirectory
+	}
+	if resolved.ID == "" {
+		return accountProvider{}, failure.New(failure.KindNonRetryable, methodAccountProviders,
+			fmt.Errorf("账号提供者缺少标识"))
+	}
+	w.mu.Lock()
+	w.provider = &resolved
+	w.mu.Unlock()
+	return resolved, nil
+}
+
+func (w *accountWire) rememberAttempt(attempt, providerID string) {
+	if attempt == "" {
+		return
+	}
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.attempts == nil {
+		w.attempts = make(map[string]string)
+	}
+	w.attempts[attempt] = providerID
+}
+
+func (w *accountWire) attemptProvider(attempt string) string {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.attempts[attempt]
+}
+
+func (w *accountWire) forgetAttempt(attempt string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	delete(w.attempts, attempt)
+}
 
 // accountStatusReader 读取账号状态。
 type accountStatusReader struct {
-	app *App
+	wire *accountWire
 }
 
 func (r *accountStatusReader) ReadAccount(ctx context.Context) (account.Fact, error) {
-	client, err := r.app.requireControl("读取账号状态")
+	provider, err := r.wire.accountProvider(ctx, "读取账号状态")
+	if err != nil {
+		return account.Fact{}, err
+	}
+	client, err := r.wire.app.requireControl("读取账号状态")
 	if err != nil {
 		return account.Fact{}, err
 	}
 	var reply struct {
-		Status   string `json:"status"`
-		Identity struct {
-			AccountID   string `json:"accountId"`
-			Email       string `json:"email"`
-			DisplayName string `json:"displayName"`
-			Plan        string `json:"plan"`
-		} `json:"identity"`
+		CredentialEpoch string          `json:"credentialEpoch"`
+		Generation      json.RawMessage `json:"generation"`
+		Account         *struct {
+			Issuer  string `json:"issuer"`
+			Subject string `json:"subject"`
+			Email   string `json:"email"`
+			Name    string `json:"name"`
+			Plan    string `json:"plan"`
+		} `json:"account"`
 	}
-	if err := client.CallInto(ctx, methodAccountStatus, nil, &reply); err != nil {
+	if err := client.CallInto(ctx, methodAccountStatus, map[string]any{"providerId": provider.ID}, &reply); err != nil {
 		return account.Fact{}, err
 	}
-	status, err := parseAccountStatus(reply.Status)
-	if err != nil {
-		return account.Fact{}, err
+	// 真实回执没有独立的「过期」字段：没有账号对象就是未登录。
+	if reply.Account == nil {
+		return account.Fact{Status: account.StatusSignedOut}, nil
 	}
 	return account.Fact{
-		Status: status,
+		Status: account.StatusSignedIn,
 		Identity: account.Identity{
-			AccountID:   reply.Identity.AccountID,
-			Email:       reply.Identity.Email,
-			DisplayName: reply.Identity.DisplayName,
-			Plan:        reply.Identity.Plan,
+			AccountID:   reply.Account.Subject,
+			Email:       reply.Account.Email,
+			DisplayName: reply.Account.Name,
+			Plan:        reply.Account.Plan,
 		},
 	}, nil
 }
 
-func parseAccountStatus(raw string) (account.Status, error) {
-	switch account.Status(raw) {
-	case account.StatusSignedIn, account.StatusSignedOut, account.StatusExpired:
-		return account.Status(raw), nil
-	default:
-		return "", fmt.Errorf("%w: 账号状态无法识别 %q", account.ErrMalformedFact, raw)
-	}
-}
-
-// accountUsageReader 逐项读取用量；聚合项只在服务端给出时可用。
+// accountUsageReader 逐项读取用量；聚合项只在服务端给出数值时可用。
 type accountUsageReader struct {
-	app *App
+	wire *accountWire
 }
 
 func (r *accountUsageReader) ReadUsage(ctx context.Context) (account.Usage, error) {
-	client, err := r.app.requireControl("读取账号用量")
+	provider, err := r.wire.accountProvider(ctx, "读取账号用量")
+	if err != nil {
+		return account.Usage{}, err
+	}
+	client, err := r.wire.app.requireControl("读取账号用量")
 	if err != nil {
 		return account.Usage{}, err
 	}
 	var reply struct {
-		Lines []struct {
-			Key      string  `json:"key"`
-			Label    string  `json:"label"`
-			Used     float64 `json:"used"`
-			Limit    float64 `json:"limit"`
-			Unit     string  `json:"unit"`
-			Window   string  `json:"window"`
-			ResetsAt int64   `json:"resetsAt"`
-		} `json:"lines"`
-		Aggregate *struct {
-			Used  float64 `json:"used"`
-			Limit float64 `json:"limit"`
-			Unit  string  `json:"unit"`
-		} `json:"aggregate"`
+		Credits *struct {
+			UsedUnits  *float64 `json:"usedUnits"`
+			TotalUnits *float64 `json:"totalUnits"`
+			Unlimited  *bool    `json:"unlimited"`
+			ResetsAt   *string  `json:"resetsAt"`
+		} `json:"credits"`
+		Windows []struct {
+			DurationHours float64 `json:"durationHours"`
+			TokenUsed     float64 `json:"tokenUsed"`
+			TokenCap      float64 `json:"tokenCap"`
+			ExpiresAt     *string `json:"expiresAt"`
+		} `json:"windows"`
+		Features []struct {
+			Key       string   `json:"key"`
+			Used      *float64 `json:"used"`
+			Allowance *float64 `json:"allowance"`
+			Unit      *string  `json:"unit"`
+			PeriodEnd *string  `json:"periodEnd"`
+		} `json:"features"`
+		Plan string `json:"plan"`
 	}
-	if err := client.CallInto(ctx, methodAccountUsage, nil, &reply); err != nil {
+	if err := client.CallInto(ctx, methodAccountUsage, map[string]any{"providerId": provider.ID}, &reply); err != nil {
 		return account.Usage{}, err
 	}
-	usage := account.Usage{Lines: make([]account.UsageLine, 0, len(reply.Lines))}
-	for _, line := range reply.Lines {
-		mapped := account.UsageLine{
-			Key:    line.Key,
-			Label:  line.Label,
-			Used:   line.Used,
-			Limit:  line.Limit,
-			Unit:   line.Unit,
-			Window: line.Window,
+	usage := account.Usage{}
+	for _, feature := range reply.Features {
+		line := account.UsageLine{Key: feature.Key, Label: feature.Key}
+		if feature.Used != nil {
+			line.Used = *feature.Used
 		}
-		if line.ResetsAt > 0 {
-			mapped.ResetsAt = time.UnixMilli(line.ResetsAt).UTC()
+		if feature.Allowance != nil {
+			line.Limit = *feature.Allowance
 		}
-		usage.Lines = append(usage.Lines, mapped)
+		if feature.Unit != nil {
+			line.Unit = *feature.Unit
+		}
+		line.ResetsAt = wireTime(feature.PeriodEnd)
+		usage.Lines = append(usage.Lines, line)
 	}
-	if reply.Aggregate != nil {
+	for _, window := range reply.Windows {
+		usage.Lines = append(usage.Lines, account.UsageLine{
+			Key:      fmt.Sprintf("window-%gh", window.DurationHours),
+			Label:    fmt.Sprintf("最近 %g 小时", window.DurationHours),
+			Used:     window.TokenUsed,
+			Limit:    window.TokenCap,
+			Unit:     "tokens",
+			Window:   fmt.Sprintf("%gh", window.DurationHours),
+			ResetsAt: wireTime(window.ExpiresAt),
+		})
+	}
+	switch {
+	case reply.Credits == nil:
+		// 服务端没有给聚合项：保持不可用，由账号领域补原因。
+	case reply.Credits.Unlimited != nil && *reply.Credits.Unlimited:
+		usage.Aggregate = account.AggregateUsage{Reason: "服务端声明无限额度，没有上限值"}
+	case reply.Credits.UsedUnits != nil && reply.Credits.TotalUnits != nil:
 		usage.Aggregate = account.AggregateUsage{
 			Available: true,
-			Used:      reply.Aggregate.Used,
-			Limit:     reply.Aggregate.Limit,
-			Unit:      reply.Aggregate.Unit,
+			Used:      *reply.Credits.UsedUnits,
+			Limit:     *reply.Credits.TotalUnits,
+			Unit:      "units",
 		}
 	}
 	return usage, nil
 }
 
-// accountModelReader 读取服务端声明的模型清单。
+// accountModelReader 读取该账号的模型目录。
 type accountModelReader struct {
-	app *App
+	wire *accountWire
 }
 
 func (r *accountModelReader) ReadModels(ctx context.Context) ([]account.Model, error) {
-	client, err := r.app.requireControl("读取模型清单")
+	provider, err := r.wire.accountProvider(ctx, "读取模型清单")
+	if err != nil {
+		return nil, err
+	}
+	client, err := r.wire.app.requireControl("读取模型清单")
 	if err != nil {
 		return nil, err
 	}
 	var reply struct {
-		Models []struct {
-			ID              string `json:"id"`
-			DisplayName     string `json:"displayName"`
-			RequiresAccount bool   `json:"requiresAccount"`
-			Unavailable     bool   `json:"unavailable"`
-		} `json:"models"`
+		Catalog *struct {
+			Models []struct {
+				ID                string  `json:"id"`
+				Name              string  `json:"name"`
+				UnavailableReason *string `json:"unavailableReason"`
+			} `json:"models"`
+		} `json:"catalog"`
 	}
-	if err := client.CallInto(ctx, methodModelList, nil, &reply); err != nil {
+	if err := client.CallInto(ctx, methodProviderCatalog, map[string]any{"providerId": provider.ID}, &reply); err != nil {
 		return nil, err
 	}
-	models := make([]account.Model, 0, len(reply.Models))
-	for _, model := range reply.Models {
+	if reply.Catalog == nil {
+		return nil, failure.New(failure.KindNonRetryable, methodProviderCatalog,
+			fmt.Errorf("服务端没有该账号的模型目录"))
+	}
+	models := make([]account.Model, 0, len(reply.Catalog.Models))
+	for _, entry := range reply.Catalog.Models {
 		models = append(models, account.Model{
-			ID:              model.ID,
-			DisplayName:     model.DisplayName,
-			RequiresAccount: model.RequiresAccount,
-			Unavailable:     model.Unavailable,
+			ID:          entry.ID,
+			DisplayName: entry.Name,
+			// 账号目录里的模型都挂在账号下；是否可用以服务端原因为准。
+			RequiresAccount: true,
+			Unavailable:     entry.UnavailableReason != nil,
 		})
 	}
 	return models, nil
@@ -157,40 +283,43 @@ func (r *accountModelReader) ReadModels(ctx context.Context) ([]account.Model, e
 
 // accountAuthSource 是浏览器登录的服务端侧：发起授权、完成交换与取消尝试。
 type accountAuthSource struct {
-	app *App
-
-	// mu 保护 providers：只记住本次进程里各尝试对应的 provider，供取消时回传；
-	// 不落盘、不进日志。
-	mu        sync.Mutex
-	providers map[string]string
+	wire *accountWire
 }
 
 func (s *accountAuthSource) BeginAuthorization(
 	ctx context.Context,
 	redirectURI string,
 ) (account.AuthorizationRequest, error) {
-	client, err := s.app.requireControl("发起账号登录")
+	provider, err := s.wire.accountProvider(ctx, "发起账号登录")
 	if err != nil {
 		return account.AuthorizationRequest{}, err
 	}
-	var reply struct {
-		URL        string `json:"url"`
-		State      string `json:"state"`
-		Attempt    string `json:"attemptId"`
-		ProviderID string `json:"providerId"`
-	}
-	if err := client.CallInto(ctx, methodLoginBegin, map[string]any{"redirectUri": redirectURI}, &reply); err != nil {
+	client, err := s.wire.app.requireControl("发起账号登录")
+	if err != nil {
 		return account.AuthorizationRequest{}, err
 	}
-	if reply.Attempt != "" && reply.ProviderID != "" {
-		s.mu.Lock()
-		if s.providers == nil {
-			s.providers = make(map[string]string)
-		}
-		s.providers[reply.Attempt] = reply.ProviderID
-		s.mu.Unlock()
+	params := map[string]any{
+		"providerId":  provider.ID,
+		"redirectUri": redirectURI,
 	}
-	return account.AuthorizationRequest{URL: reply.URL, State: reply.State, Attempt: reply.Attempt}, nil
+	if provider.Directory != "" {
+		params["directory"] = provider.Directory
+	}
+	var reply struct {
+		AttemptID        string          `json:"attemptId"`
+		AuthorizationURL string          `json:"authorizationUrl"`
+		ExpiresAt        json.RawMessage `json:"expiresAt"`
+		State            string          `json:"state"`
+	}
+	if err := client.CallInto(ctx, methodLoginBegin, params, &reply); err != nil {
+		return account.AuthorizationRequest{}, err
+	}
+	s.wire.rememberAttempt(reply.AttemptID, provider.ID)
+	return account.AuthorizationRequest{
+		URL:     reply.AuthorizationURL,
+		State:   reply.State,
+		Attempt: reply.AttemptID,
+	}, nil
 }
 
 func (s *accountAuthSource) CompleteAuthorization(
@@ -198,52 +327,59 @@ func (s *accountAuthSource) CompleteAuthorization(
 	attempt string,
 	result account.AuthorizationResult,
 ) error {
-	client, err := s.app.requireControl("完成账号登录")
+	providerID := s.wire.attemptProvider(attempt)
+	if providerID == "" {
+		resolved, err := s.wire.accountProvider(ctx, "完成账号登录")
+		if err != nil {
+			return err
+		}
+		providerID = resolved.ID
+	}
+	client, err := s.wire.app.requireControl("完成账号登录")
 	if err != nil {
 		return err
 	}
-	params := map[string]any{
+	_, err = client.Call(ctx, methodLoginComplete, map[string]any{
+		"providerId":  providerID,
 		"attemptId":   attempt,
 		"callbackUrl": result.CallbackURL,
-		"code":        result.Code,
-		"state":       result.State,
-	}
-	if result.Error != "" {
-		params["error"] = result.Error
-	}
-	if result.ErrorDescription != "" {
-		params["errorDescription"] = result.ErrorDescription
-	}
-	_, err = client.Call(ctx, methodLoginComplete, params)
-	s.forgetProvider(attempt)
+	})
+	s.wire.forgetAttempt(attempt)
 	return err
 }
 
 // CancelAuthorization 取消服务端尚未结束的登录尝试；尽力而为，失败不改变本地状态。
 func (s *accountAuthSource) CancelAuthorization(ctx context.Context, attempt string) error {
-	client, err := s.app.requireControl("取消账号登录")
+	providerID := s.wire.attemptProvider(attempt)
+	if providerID == "" {
+		resolved, err := s.wire.accountProvider(ctx, "取消账号登录")
+		if err != nil {
+			return err
+		}
+		providerID = resolved.ID
+	}
+	client, err := s.wire.app.requireControl("取消账号登录")
 	if err != nil {
 		return err
 	}
-	params := map[string]any{"attemptId": attempt}
-	if provider := s.providerFor(attempt); provider != "" {
-		params["providerId"] = provider
-	}
-	_, err = client.Call(ctx, methodLoginCancel, params)
-	s.forgetProvider(attempt)
+	_, err = client.Call(ctx, methodLoginCancel, map[string]any{
+		"providerId": providerID,
+		"attemptId":  attempt,
+	})
+	s.wire.forgetAttempt(attempt)
 	return err
 }
 
-func (s *accountAuthSource) providerFor(attempt string) string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.providers[attempt]
-}
-
-func (s *accountAuthSource) forgetProvider(attempt string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.providers, attempt)
+// wireTime 把服务端的 RFC3339 时间映射成 UTC；解析失败按未给出处理。
+func wireTime(raw *string) time.Time {
+	if raw == nil {
+		return time.Time{}
+	}
+	parsed, err := time.Parse(time.RFC3339, *raw)
+	if err != nil {
+		return time.Time{}
+	}
+	return parsed.UTC()
 }
 
 // requireControl 返回控制连接；未连接时给出连接缺失分类，调用方据此失败关闭。

@@ -75,6 +75,8 @@ func (a *App) routeTimelineFact(arbiter *interaction.Arbiter, params json.RawMes
 		for _, value := range arrayValue(data["calls"]) {
 			a.applyAskUser(arbiter, event, requestID, objectValue(value))
 		}
+	case "permission/changed":
+		a.routePermissionChanged(arbiter, event.Data)
 	case "step/tool-completed":
 		a.settleQuestionCall(arbiter, event, data)
 	case "step/tool-result":
@@ -187,37 +189,55 @@ func approvalAction(notice protocol.ApprovalRequestNotice) string {
 
 // longTermRule 决定这次审批能否长期允许，以及写入哪些规则参数。
 //
-// 口径（比 R 块 6 的"带明确路径的读写与结构简单的命令"更窄，先只做路径一类）：
-//   - 只认 tool 来源；host 来源（操作类）一律不可长期允许。
-//   - 调用输入必须是 JSON 对象，且只带一个非空字符串字段 path、取值是绝对路径。
-//     此时规则参数为 {"tool":<工具名>,"path":<绝对路径>}。
-//   - 其余（含命令、多字段参数、相对路径、非字符串路径）一律不可长期允许，
-//     避免把复杂命令长期放行。
+// 服务端真实存在的长期允许只有用户级命令规则（`permission.rules` /
+// `permission.set_rules`），不是审批应答里的第三种决定，也没有通用的
+// tool/path 规则。因此：
+//   - 只认 tool 来源的 `exec`/`execute` 调用，input.command 必须是简单的非空命令；
+//   - 含命令分隔符（; & | ` ( ) < > $ 或换行）的复杂命令不长期允许；
+//   - 规则参数为 {"command":<命令>,"match":"exact","decision":"allow"}。
+//   - 其余工具（读写文件等）暂不支持长期允许，避免客户端假装有服务端没有的能力。
 func longTermRule(notice protocol.ApprovalRequestNotice) (bool, json.RawMessage) {
-	if notice.Source.Kind != "tool" || notice.Call.Name == "" {
+	if notice.Source.Kind != "tool" || !isCommandTool(notice.Call.Name) {
 		return false, nil
 	}
 	var input map[string]json.RawMessage
-	if err := json.Unmarshal(notice.Call.Input, &input); err != nil || len(input) != 1 {
+	if err := json.Unmarshal(notice.Call.Input, &input); err != nil {
 		return false, nil
 	}
-	rawPath, ok := input["path"]
+	rawCommand, ok := input["command"]
 	if !ok {
 		return false, nil
 	}
-	var path string
-	if err := json.Unmarshal(rawPath, &path); err != nil {
+	var command string
+	if err := json.Unmarshal(rawCommand, &command); err != nil {
 		return false, nil
 	}
-	path = strings.TrimSpace(path)
-	if path == "" || !strings.HasPrefix(path, "/") {
+	command = strings.TrimSpace(command)
+	if !isSimpleCommand(command) {
 		return false, nil
 	}
-	params, err := json.Marshal(map[string]string{"tool": notice.Call.Name, "path": path})
+	params, err := json.Marshal(map[string]string{
+		"command":  command,
+		"match":    "exact",
+		"decision": "allow",
+	})
 	if err != nil {
 		return false, nil
 	}
 	return true, params
+}
+
+// isCommandTool 判断工具是否是启动进程的命令工具；与服务端命令规则覆盖范围一致。
+func isCommandTool(name string) bool {
+	return name == "exec" || name == "execute"
+}
+
+// isSimpleCommand 判断命令是否没有服务端定义的命令分隔符。
+func isSimpleCommand(command string) bool {
+	if strings.TrimSpace(command) == "" {
+		return false
+	}
+	return !strings.ContainsAny(command, ";&|`()<>$\n\r")
 }
 
 // isAskUserTool 判断工具名是否提问工具；与交互裁决的判定保持一致。

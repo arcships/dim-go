@@ -329,6 +329,11 @@ func snapshotOf[T any](s *Service, target *Snapshot[T]) Snapshot[T] {
 // 具体 wire 方法；本包不定义 wire 方法名。
 type WriteOp string
 
+// WriteOp 是写登记参数的判别名，不是 wire 方法名；集成层按它映射到 alpha.21
+// 实测方法。这样既保持写意图稳定，也避免在领域包里复制 wire 方法表。
+//
+// 与实测方法的对应见 D11b §4.3；其中插件启停由 payload.Enabled 决定落到
+// plugin.enable 或 plugin.disable，MCP 导入落到 mcp.import.apply。
 const (
 	OpPluginInstall    WriteOp = "plugin.install"
 	OpPluginSetEnabled WriteOp = "plugin.set_enabled"
@@ -342,6 +347,18 @@ const (
 	OpWorkflowStart    WriteOp = "workflow.start"
 	OpWorkflowStop     WriteOp = "workflow.stop"
 	OpWakeupCancel     WriteOp = "wakeup.cancel"
+
+	// 以下只在解码时识别，随后归一到上面的判别名；集成层可以先按真实方法名
+	// 传参，本包仍以稳定判别名交给发送方。
+	opWireSkillsInstall    WriteOp = "skills.install"
+	opWireSkillsSetEnabled WriteOp = "skills.set_enabled"
+	opWireHooksSave        WriteOp = "hooks.save"
+	opWireMCPSave          WriteOp = "mcp.save"
+	opWireMCPRemove        WriteOp = "mcp.remove"
+	opWireMCPImportApply   WriteOp = "mcp.import.apply"
+	opWirePluginEnable     WriteOp = "plugin.enable"
+	opWirePluginDisable    WriteOp = "plugin.disable"
+	opWireWakeupCancel     WriteOp = "session.wakeup.cancel"
 )
 
 func (op WriteOp) valid() bool {
@@ -349,7 +366,10 @@ func (op WriteOp) valid() bool {
 	case OpPluginInstall, OpPluginSetEnabled, OpPluginUpdate,
 		OpSkillInstall, OpSkillSetEnabled, OpHookWrite,
 		OpToolServerAdd, OpToolServerUpdate, OpToolServerRemove,
-		OpWorkflowStart, OpWorkflowStop, OpWakeupCancel:
+		OpWorkflowStart, OpWorkflowStop, OpWakeupCancel,
+		opWireSkillsInstall, opWireSkillsSetEnabled, opWireHooksSave,
+		opWireMCPSave, opWireMCPRemove, opWireMCPImportApply,
+		opWirePluginEnable, opWirePluginDisable, opWireWakeupCancel:
 		return true
 	default:
 		return false
@@ -384,6 +404,9 @@ func ManagementParams(op WriteOp, payload any) (json.RawMessage, error) {
 }
 
 // DecodeManagementWrite 解析写登记参数，供集成层按操作名分发。
+//
+// 真实方法名（skills.*、hooks.save、mcp.*、session.wakeup.*）会被归一到本包
+// 稳定的判别名，载荷同时改写为发送方认识的结构；旧判别名原样通过。
 func DecodeManagementWrite(params json.RawMessage) (ManagementWrite, error) {
 	var managed ManagementWrite
 	if err := json.Unmarshal(params, &managed); err != nil {
@@ -391,6 +414,70 @@ func DecodeManagementWrite(params json.RawMessage) (ManagementWrite, error) {
 	}
 	if !managed.Op.valid() {
 		return ManagementWrite{}, fmt.Errorf("%w: 未知管理写入操作 %q", ErrInvalidRequest, managed.Op)
+	}
+	return normalizeManagementWrite(managed)
+}
+
+// normalizeManagementWrite 把真实方法名与载荷归一成发送方认识的判别名。
+func normalizeManagementWrite(managed ManagementWrite) (ManagementWrite, error) {
+	switch managed.Op {
+	case opWireSkillsInstall:
+		managed.Op = OpSkillInstall
+	case opWireSkillsSetEnabled:
+		managed.Op = OpSkillSetEnabled
+	case opWireHooksSave:
+		managed.Op = OpHookWrite
+	case opWireMCPSave:
+		managed.Op = OpToolServerAdd
+	case opWireMCPRemove:
+		managed.Op = OpToolServerRemove
+	case opWireWakeupCancel:
+		managed.Op = OpWakeupCancel
+	case opWirePluginEnable, opWirePluginDisable:
+		var payload struct {
+			PluginID string `json:"pluginId"`
+			Name     string `json:"name"`
+			Enabled  *bool  `json:"enabled"`
+		}
+		if len(managed.Payload) > 0 {
+			if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+				return ManagementWrite{}, fmt.Errorf("%w: 插件启停载荷无法解析: %v", ErrInvalidRequest, err)
+			}
+		}
+		pluginID := payload.PluginID
+		if pluginID == "" {
+			pluginID = payload.Name
+		}
+		if pluginID == "" {
+			return ManagementWrite{}, invalidRequest("插件启停缺少插件标识")
+		}
+		enabled := managed.Op == opWirePluginEnable
+		raw, err := json.Marshal(PluginEnabledPayload{PluginID: pluginID, Enabled: enabled})
+		if err != nil {
+			return ManagementWrite{}, fmt.Errorf("编码插件启停载荷: %w", err)
+		}
+		managed.Op = OpPluginSetEnabled
+		managed.Payload = raw
+	case opWireMCPImportApply:
+		var payload struct {
+			Source string   `json:"source"`
+			IDs    []string `json:"ids"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return ManagementWrite{}, fmt.Errorf("%w: MCP 导入载荷无法解析: %v", ErrInvalidRequest, err)
+		}
+		if payload.Source == "" || len(payload.IDs) != 1 || payload.IDs[0] == "" {
+			return ManagementWrite{}, invalidRequest("MCP 导入需要来源与单个候选标识")
+		}
+		raw, err := json.Marshal(ToolServerAddPayload{
+			ImportSource: payload.Source,
+			CandidateKey: payload.IDs[0],
+		})
+		if err != nil {
+			return ManagementWrite{}, fmt.Errorf("编码 MCP 导入载荷: %w", err)
+		}
+		managed.Op = OpToolServerAdd
+		managed.Payload = raw
 	}
 	return managed, nil
 }
