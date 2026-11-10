@@ -1,10 +1,12 @@
 package ui
 
 import (
+	"bytes"
 	"fmt"
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/egoist/mygo/ui"
 )
@@ -336,5 +338,125 @@ func TestComposerKeepsDraftAcrossFrames(t *testing.T) {
 	tt.Type("!")
 	if s.Draft != "draft survives!" {
 		t.Fatalf("draft %q after typing, want %q", s.Draft, "draft survives!")
+	}
+}
+
+// TestLoadingConversationDrawsTheBrandMark checks the loading state's shape: the
+// official brand mark, muted and centered in the content area, with the loading
+// line at the bottom left. The line stays the busy status region, so assistive
+// technology still waits for the rows, and the mark is the only thing drawn
+// above it: the spinner row is gone.
+func TestLoadingConversationDrawsTheBrandMark(t *testing.T) {
+	s := fixture()
+	s.ConversationLoading = true
+	const width, height = 900, 600
+	tt := ui.NewTester(s.View, width, height)
+	k := newTokens(ui.LightTheme())
+
+	text := textBox(t, tt, tr(LocaleEN, keyTimelineLoading))
+	if text.Y < float32(height)/2 {
+		t.Errorf("the loading line sits at y=%.1f, not at the bottom of the content area", text.Y)
+	}
+	status, ok := tt.AccessByRole(ui.RoleStatus, tr(LocaleEN, keyTimelineLoading))
+	if !ok {
+		t.Fatalf("the loading line is not a status region, texts %q", tt.Texts())
+	}
+	if !status.Busy {
+		t.Errorf("the loading region is not busy: %+v", status)
+	}
+
+	// The mark is the only muted shape above the line: the sidebar is outside
+	// the measured box and the header stops above it. It keeps the official
+	// 45:32 shape at the loading state's larger size, centered on the content
+	// area rather than aligned to a row.
+	contentLeft := float32(k.sidebarW)
+	contentRight := float32(width) - k.framePad
+	contentTop := k.framePad + k.headerH + conversationTopPad
+	mark, pixels := colorBox(tt, ui.Rect{
+		X: contentLeft,
+		Y: contentTop,
+		W: contentRight - contentLeft,
+		H: text.Y - contentTop,
+	}, k.mutedForeground)
+	if pixels == 0 {
+		t.Fatal("no muted mark pixels above the loading line")
+	}
+	if math.Abs(float64(mark.H-loadingMarkH)) > 2 {
+		t.Errorf("the loading mark is %.1f high, want %.1f", mark.H, float32(loadingMarkH))
+	}
+	if got, want := mark.W/mark.H, float32(45.0/32.0); math.Abs(float64(got-want)) > 0.08 {
+		t.Errorf("the loading mark's %.2f width-to-height is not the official 45:32 (%.2f)", got, want)
+	}
+	if center := (contentLeft + contentRight) / 2; math.Abs(float64(mark.X+mark.W/2-center)) > 2 {
+		t.Errorf("the loading mark is centered at %.1f, want %.1f", mark.X+mark.W/2, center)
+	}
+	if mark.Y <= contentTop || mark.Y+mark.H >= text.Y {
+		t.Errorf("the loading mark at %.1f..%.1f is not in the content area above the line at %.1f",
+			mark.Y, mark.Y+mark.H, text.Y)
+	}
+
+	// No spinner: the state is static. A turning spinner would repaint a
+	// different frame after time passes; the mark and the line do not.
+	before := tt.Image()
+	tt.Advance(300 * time.Millisecond)
+	tt.Frame()
+	if after := tt.Image(); !bytes.Equal(before.Pix, after.Pix) {
+		t.Error("the loading state repaints itself over time, so a spinner is still drawing")
+	}
+}
+
+// TestLoadingConversationFollowsTheLocale checks the loading line's language:
+// a zh-CN window says what the work is in Chinese, and the English placeholder
+// does not stay on the frame.
+func TestLoadingConversationFollowsTheLocale(t *testing.T) {
+	s := fixture()
+	s.ConversationLoading = true
+	s.Settings = SettingsView{Locale: LocaleZHCN}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	if !tt.HasText(tr(LocaleZHCN, keyTimelineLoading)) {
+		t.Errorf("the zh-CN loading state is missing %q, texts %q", tr(LocaleZHCN, keyTimelineLoading), tt.Texts())
+	}
+	if tt.HasText(tr(LocaleEN, keyTimelineLoading)) {
+		t.Errorf("the zh-CN loading state still draws the English line, texts %q", tt.Texts())
+	}
+	if _, ok := tt.AccessByRole(ui.RoleStatus, tr(LocaleZHCN, keyTimelineLoading)); !ok {
+		t.Errorf("the zh-CN loading line is not a status region, texts %q", tt.Texts())
+	}
+}
+
+// TestLoadingConversationFitsANarrowWindow checks that the loading state does
+// not overflow a narrow window: the mark shrinks with the content area and the
+// line stays inside it, above the composer.
+func TestLoadingConversationFitsANarrowWindow(t *testing.T) {
+	s := fixture()
+	s.ConversationLoading = true
+	const width, height = 420, 560
+	tt := ui.NewTester(s.View, width, height)
+	k := newTokens(ui.LightTheme())
+
+	text := textBox(t, tt, tr(LocaleEN, keyTimelineLoading))
+	if text.X < 0 || text.X+text.W > width {
+		t.Errorf("the loading line at %.1f..%.1f leaves the %d DIP window", text.X, text.X+text.W, width)
+	}
+	contentLeft := float32(k.sidebarW)
+	contentTop := k.framePad + k.headerH + conversationTopPad
+	mark, pixels := colorBox(tt, ui.Rect{
+		X: contentLeft,
+		Y: contentTop,
+		W: float32(width) - k.framePad - contentLeft,
+		H: text.Y - contentTop,
+	}, k.mutedForeground)
+	if pixels == 0 {
+		t.Fatal("the narrow window drew no loading mark")
+	}
+	if mark.W > loadingMarkW || mark.H > loadingMarkH {
+		t.Errorf("the loading mark at %.1fx%.1f is larger than the %vx%v full size", mark.W, mark.H, float32(loadingMarkW), float32(loadingMarkH))
+	}
+	if mark.X < contentLeft || mark.X+mark.W > float32(width)-k.framePad {
+		t.Errorf("the loading mark at %.1f..%.1f leaves the content area", mark.X, mark.X+mark.W)
+	}
+	if mark.Y < contentTop || mark.Y+mark.H > text.Y {
+		t.Errorf("the loading mark at %.1f..%.1f leaves the room above the line at %.1f", mark.Y, mark.Y+mark.H, text.Y)
 	}
 }

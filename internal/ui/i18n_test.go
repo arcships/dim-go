@@ -173,6 +173,7 @@ func TestProtocolNamesStayLiteral(t *testing.T) {
 		keyHeaderRegion, keyHeaderMenu, keyHeaderMenuRefresh,
 		keyHeaderOpenInEditor, keyComposerUnconfigured, keyComposerStatus,
 		keyHeaderDeleteTitle, keyHeaderDeleteMessage, keyHeaderDeleteConfirm, keyHeaderDeleteCancel,
+		keyTimelineLoading,
 	}
 	for _, key := range translated {
 		if tr(LocaleZHCN, key) == tr(LocaleEN, key) {
