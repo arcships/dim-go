@@ -157,6 +157,8 @@ type Writer interface {
 type Config struct {
 	SessionID string
 	Writer    Writer
+	// Rules 是命令规则的读取与写入入口；nil 表示没有该能力。
+	Rules RuleSource
 }
 
 // Arbiter 持有一个会话的审批集合、提问集合与推进队列。所有导出方法可并发调用。
@@ -187,6 +189,12 @@ type Arbiter struct {
 	// permissionTier 与 permissionSet 是本会话的权限档位；没有设置过就不猜默认值。
 	permissionTier PermissionTier
 	permissionSet  bool
+	// ruleSource 是命令规则的读取与写入入口；nil 表示没有该能力。
+	ruleSource RuleSource
+	// ruleCache 是命令规则的只读缓存，按 revision 更新；只在内存中，不落盘。
+	ruleCache            RuleSet
+	ruleCacheKnown       bool
+	ruleCacheUnavailable bool
 }
 
 // entry 内部保存一条待决项及其推进状态。
@@ -247,6 +255,7 @@ func New(cfg Config) (*Arbiter, error) {
 	return &Arbiter{
 		sessionID:       cfg.SessionID,
 		writer:          cfg.Writer,
+		ruleSource:      cfg.Rules,
 		byID:            make(map[string]*entry),
 		answered:        make(map[string]Decision),
 		rules:           make(map[string]struct{}),
