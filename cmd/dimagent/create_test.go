@@ -444,7 +444,7 @@ func TestAppSubmitIsSingleFlight(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("first submit did not reach the App Server")
 	}
-	a.state.OnSubmit("hello again")
+	a.state.OnSubmit("hello")
 	close(release)
 	waitForNotice(t, a, mu, "submit.accepted")
 	if len(f.submitText) != 1 {

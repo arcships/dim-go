@@ -685,11 +685,10 @@ type app struct {
 	// attachment in flight, then replaces it. A creation installs a controller
 	// the same way, so it takes the same lock.
 	selectMu sync.Mutex
-	// submitMu serializes the window's submit entry point. A second trigger while
-	// the first request (including unknown-result read-back) is in flight is
-	// ignored, preventing duplicate runs from repeated UI events.
+	// Pending submits deduplicate wire intent, including bounded unknown-result
+	// read-back, without retaining text or suppressing different user intents.
 	submitMu       sync.Mutex
-	submitInFlight bool
+	submitInFlight map[submitFlight]struct{}
 	// Pending end requests are UI concurrency guards, not branch facts. Scope
 	// them to the target identity across selection changes; generation only
 	// gates publication. Other sessions and branches remain independent.
@@ -2328,6 +2327,12 @@ const (
 	submitLookupBudget = 8 * time.Second
 )
 
+type submitFlight struct {
+	sessionID string
+	branchID  string
+	digest    [sha256.Size]byte
+}
+
 // submit sends the composer's text in the background and clears the draft only
 // after the App Server accepted it. An ambiguous result is read back through
 // session.input_lookup: it is never resent, and only the App Server's accepted
@@ -2336,31 +2341,39 @@ func (a *app) submit(text string) {
 	if a.bridge == nil || a.state == nil {
 		return
 	}
-	a.submitMu.Lock()
-	if a.submitInFlight {
-		a.submitMu.Unlock()
-		return
-	}
-	a.submitInFlight = true
-	a.submitMu.Unlock()
 	sessionID := a.state.Selected
 	// A submission goes to the branch the window shows: the App Server opened
 	// that branch, so it is the conversation the user is reading. With no branch
 	// of its own the window shows the session's default branch, which is what
 	// the branch-less submit names. The same branch names the read-back.
 	branchID := a.actionBranch()
+	keyBranch := branchID
+	if keyBranch == "" {
+		keyBranch = appserver.MainBranchID
+	}
+	flight := submitFlight{sessionID: sessionID, branchID: keyBranch, digest: sha256.Sum256([]byte(text))}
+	a.submitMu.Lock()
+	if _, pending := a.submitInFlight[flight]; pending {
+		a.submitMu.Unlock()
+		return
+	}
+	if a.submitInFlight == nil {
+		a.submitInFlight = make(map[submitFlight]struct{})
+	}
+	a.submitInFlight[flight] = struct{}{}
+	a.submitMu.Unlock()
 	gen := a.currentSelection()
 	go func() {
 		defer func() {
 			a.submitMu.Lock()
-			a.submitInFlight = false
+			delete(a.submitInFlight, flight)
 			a.submitMu.Unlock()
 		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		_, submissionID, err := a.bridge.submitOn(ctx, sessionID, branchID, text)
 		if err != nil {
-			log.Printf("dimagent: submit: %v", err)
+			log.Printf("dimagent: submit failed for session %q", sessionID)
 			if errors.Is(err, appserver.ErrUnknownResult) {
 				a.resolveUnknownSubmit(sessionID, branchID, submissionID, text, err, gen)
 				return
@@ -2383,7 +2396,9 @@ func (a *app) submit(text string) {
 				return
 			}
 			applyView(state, view)
-			state.Draft = ""
+			if strings.TrimSpace(state.Draft) == text {
+				state.Draft = ""
+			}
 			state.ActionStatus = ""
 		})
 		if a.selectionCurrent(gen) {
