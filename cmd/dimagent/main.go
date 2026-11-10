@@ -561,9 +561,10 @@ func (b *sessionBridge) Close(ctx context.Context) error {
 	return err
 }
 
-// stateFromDaemon is deliberately opt-in: the UI never guesses a product home
-// and never reads local daemon persistence. The supervisor is the sole source
-// of transport/session facts when DIMAGENT_PRODUCT_HOME is configured.
+// stateFromDaemon connects through the supervisor when a product home was
+// resolved. The UI never guesses a product home and never reads local daemon
+// persistence; resolveProductHome only names a directory, and the supervisor is
+// the sole source of transport/session facts.
 func stateFromDaemon(ctx context.Context, productHome string) (*dimui.State, *sessionBridge, error) {
 	if strings.TrimSpace(productHome) == "" {
 		return &dimui.State{Connection: dimui.ConnUnknown}, nil, nil
@@ -2711,8 +2712,14 @@ func main() {
 	if printVersion(os.Args[1:], os.Stdout) {
 		return
 	}
+	home := resolveProductHome()
+	if home.auto {
+		// Discovery is silent otherwise; this line says which local home the
+		// window is about to use. It names the path and nothing else.
+		log.Printf("dimagent: auto-discovered product home %s", home.path)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	state, bridge, err := stateFromDaemon(ctx, os.Getenv("DIMAGENT_PRODUCT_HOME"))
+	state, bridge, err := stateFromDaemon(ctx, home.path)
 	cancel()
 	if err != nil {
 		state = &dimui.State{Connection: dimui.ConnError, ConnectionError: fmt.Sprintf("%v", err)}
