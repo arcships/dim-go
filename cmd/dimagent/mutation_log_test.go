@@ -13,21 +13,26 @@ import (
 )
 
 func TestMutationFailureLogsExcludeSensitiveDetails(t *testing.T) {
-	for _, operation := range []string{"model", "approval"} {
+	for _, operation := range []string{"model", "approval", "stop", "delete"} {
 		t.Run(operation, func(t *testing.T) {
 			const secret = "sensitive-response-token-and-user-content"
 			var output bytes.Buffer
 			old := log.Writer()
 			log.SetOutput(&output)
 			defer log.SetOutput(old)
-			f := &fakeSession{updateModelErr: errors.New(secret), approvalErr: errors.New(secret)}
+			f := &fakeSession{updateModelErr: errors.New(secret), approvalErr: errors.New(secret), stopErr: errors.New(secret), deleteErr: errors.New(secret)}
 			a := &app{state: &dimui.State{Selected: "s1"}, bridge: &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}}
 			done := make(chan struct{}, 1)
 			a.updateHook = func(fn func(*dimui.State)) { fn(a.state); done <- struct{}{} }
-			if operation == "model" {
+			switch operation {
+			case "model":
 				a.selectModel("private-provider", "private-model")
-			} else {
+			case "approval":
 				a.respondApproval("main", "req-1", dimui.ApprovalAllow)
+			case "stop":
+				a.stop()
+			case "delete":
+				a.deleteSession("s1")
 			}
 			select {
 			case <-done:

@@ -1176,7 +1176,7 @@ func (a *app) deleteSession(id string) {
 				}
 			}
 			if !confirmed {
-				log.Printf("dimagent: delete session %q: %v", id, err)
+				log.Printf("dimagent: delete failed for session %q", id)
 				a.update(func(state *dimui.State) {
 					if !a.selectionCurrent(gen) {
 						return
@@ -2695,7 +2695,7 @@ func (a *app) stop() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		if err := a.bridge.stopOn(ctx, sessionID, branchID); err != nil {
-			log.Printf("dimagent: stop: %v", err)
+			log.Printf("dimagent: stop failed for session %q branch %q", sessionID, branchID)
 			if a.selectionCurrent(gen) {
 				a.notice("stop.error", err.Error())
 			}
