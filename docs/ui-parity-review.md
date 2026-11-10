@@ -92,6 +92,12 @@ Last updated: 2026-11-09
 - 已有真实窗口：空态、对话、closed、menu、hover、search、settings、pinned、branch、header model。
 - loading 已取到稳定真实帧；focus ring 已取到真实窗口帧（激活后 Tab 到 attach 按钮，蓝色 focus ring + WIP tooltip）。approval 真实态仍缺（mock 不产生审批），D7 仍不能通过。
 
+## 参考状态与动画帧（Electron，2026-11-10）
+
+- 状态：`window-hover.png`（行 hover + pin/归档 affordance）、`window-focus.png`（composer “+” focus ring + tooltip）、`window-loading.png`（居中 brand + 左下“正在加载...”）、`window-menu.png`（会话行右键菜单：置顶/重命名/在新窗口打开/导出/归档/删除）。
+- 动画：`motion-search-{000,075,150,250}.png` / `motion-search-close-*`，overlay 150ms、Dialog 200ms、keyframe ease；实际帧时间见 `motion-search-frames.json`。
+- 与 MyGo 的已知差异：loading 目前是 spinner+文本（正在改为 skeleton）；菜单在顶栏 “…”，参考是行右键（正在补）；hover 行缺少 pin/archive affordance；approval 参考图来自 fixture，不是真实 daemon。
+
 ## 像素基线（辅助，不是结论）
 
 同尺寸 800×720，区域按 sidebar/top/content/composer/bottom：
