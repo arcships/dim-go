@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划
 
-Status: active（波次已完成：10 个 UI 组件 + 4 个主逻辑 worktree 全部合并，进入接线与验收轮。产品验收 **16 通过 / 12 未通过**，见 [acceptance.md](acceptance.md)）
+Status: active（波次已完成：10 个 UI 组件 + 4 个主逻辑 worktree 全部合并，进入接线与验收轮。产品验收 **13 通过 / 15 未通过**，见 [acceptance.md](acceptance.md)）
 Last updated: 2026-11-09
 流程与角色见 [workflow.md](workflow.md)；逐日记录见 [archive/progress-2026-11.md](archive/progress-2026-11.md)。
 
@@ -15,8 +15,9 @@ Last updated: 2026-11-09
 ## 当前基线
 
 ```text
-验收：F1–F5、F7、F8、F9、F10、F12a、F12b、F13、F14a、F14b、A1、A4 通过（16）
-      D1–D7、F6–F9、F11、F12b、F13、F14b、A2/A3/A5 未通过（16）
+验收：F1–F5、F10、F12a、F12b、F13、F14a、F14b、A1、A4 通过（13）
+      D1–D7、F6–F9、F11、A2/A3/A5 未通过（15）
+      F6–F8：AX 窗口记录保留 provider 描述，实际 provider 未独立复核，不作协议/daemon 验收依据
 UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮层、keys/context/approval 面板
 主逻辑：catalog/create/select/submit/stop/approval/delete/branch/reconnect/unknown-result 读回
 波次：10 个 UI 组件 + 4 个主逻辑 worktree 已完成并合并（§2/§3）
@@ -76,9 +77,9 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 
 | 项 | 缺口 | 完成条件 | 依赖 |
 |---|---|---|---|
-| F6 流式 | ✅ 已通过（L4：真实 provider 增量帧 122→250→382 chars） | token 增量 + 截图/录屏 | — |
-| F7 stop | ✅ 已通过（L4：真实 provider 挂起时 Stop → stop.accepted） | 运行态 Stop → 状态收敛 L4 | — |
-| F8 approval | mock 无审批 | 审批 → Approve/Deny → 行消失 | 同上 |
+| F6 流式 | AX 记录标注 provider 增量帧 122→250→382 chars，来源未独立复核，未通过 | 补可核验运行锚点 + 增量截图/录屏 | 公开运行证据 |
+| F7 stop | AX 记录标注 provider 运行时 Stop → stop.accepted，来源未独立复核，未通过 | 补可核验运行锚点 + 状态收敛 L4 | 公开运行证据 |
+| F8 approval | AX 记录标注 Allow/Reject，来源未独立复核，未通过 | 补可核验运行锚点 + 决策后行消失/无重复发送 | 公开运行证据 |
 | F9 lookup | 只显示 unknown | lookup 结果（accepted/unknown）呈现 | P3 |
 | F11 subscription_changed | 无真实 wire | 真实断流恢复或 fail-closed | 上游/故障注入 |
 | F12b cut point | ✅ 已通过（L4：窗口点击创建 side branch） | 选择父 sequence 创建 side line | — |
