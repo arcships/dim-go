@@ -698,6 +698,10 @@ type app struct {
 	// daemon request, independent of selection generation and decision value.
 	approvalMu       sync.Mutex
 	approvalInFlight map[approvalFlight]struct{}
+	// Deduplicate only identical concurrent branch-create intent, not different
+	// prompts or cut points. These are transient request guards, not branches.
+	branchCreateMu       sync.Mutex
+	branchCreateInFlight map[branchCreateFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -1788,6 +1792,13 @@ func (a *app) selectBranch(branchID string) {
 	}()
 }
 
+type branchCreateFlight struct {
+	sessionID      string
+	parentBranchID string
+	at             int64
+	prompt         string
+}
+
 // branchFrom creates a side branch from the cut point a user row resolved,
 // then re-reads the branch directory and opens the branch the App Server
 // returned. Nothing is created locally: the row's sequence only names the cut
@@ -1818,16 +1829,36 @@ func (a *app) branchFrom(sessionID, branchID string, at int64, prompt string) {
 		a.notice("branch.error", "Branch from this message: the prompt is empty")
 		return
 	}
+	flight := branchCreateFlight{sessionID: sessionID, parentBranchID: branchID, at: at, prompt: prompt}
+	a.branchCreateMu.Lock()
+	if _, pending := a.branchCreateInFlight[flight]; pending {
+		a.branchCreateMu.Unlock()
+		return
+	}
+	if a.branchCreateInFlight == nil {
+		a.branchCreateInFlight = make(map[branchCreateFlight]struct{})
+	}
+	a.branchCreateInFlight[flight] = struct{}{}
+	a.branchCreateMu.Unlock()
 	gen := a.currentSelection()
 	branchGen := a.beginBranchSelect()
 	go func() {
+		defer func() {
+			a.branchCreateMu.Lock()
+			delete(a.branchCreateInFlight, flight)
+			a.branchCreateMu.Unlock()
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		created, err := a.bridge.BranchFromFor(ctx, sessionID, branchID, at, prompt)
 		if err != nil {
 			log.Printf("dimagent: branch from message at %d: %v", at, err)
 			if a.selectionCurrent(gen) {
-				a.notice("branch.error", fmt.Sprintf("Branch from this message: %v", err))
+				message := fmt.Sprintf("Branch from this message: %v", err)
+				if errors.Is(err, appserver.ErrUnknownResult) {
+					message = fmt.Sprintf("Branch creation result unknown: a branch may already have been created; trying again may create a duplicate. Check the branch directory before deciding whether to try again; the directory cannot conclusively identify this request. The request was not resent. (%v)", err)
+				}
+				a.notice("branch.error", message)
 			}
 			return
 		}

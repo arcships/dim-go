@@ -114,8 +114,10 @@ func TestAppBranchFromUnknownResultIsNotResent(t *testing.T) {
 	if f.refreshCalls != 0 || len(f.openBranch) != 0 {
 		t.Fatalf("an unknown result refreshed %d times and opened %q", f.refreshCalls, f.openBranch)
 	}
-	if !strings.Contains(a.state.ActionError, "result unknown") {
-		t.Fatalf("action error = %q, want the unknown-result reason", a.state.ActionError)
+	for _, warning := range []string{"result unknown", "may already have been created", "trying again may create a duplicate", "branch directory", "cannot conclusively identify"} {
+		if !strings.Contains(a.state.ActionError, warning) {
+			t.Fatalf("action error = %q, missing warning %q", a.state.ActionError, warning)
+		}
 	}
 }
 
