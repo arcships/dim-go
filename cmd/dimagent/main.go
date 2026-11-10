@@ -1624,7 +1624,7 @@ func (a *app) selectModel(providerID, modelID string) {
 		defer cancel()
 		result, err := a.bridge.UpdateModelFor(ctx, sessionID, providerID, modelID)
 		if err != nil {
-			log.Printf("dimagent: select model %s/%s for %q: %v", providerID, modelID, sessionID, err)
+			log.Printf("dimagent: model update failed for session %q", sessionID)
 			if !a.selectionCurrent(gen) {
 				return
 			}
@@ -2764,7 +2764,7 @@ func (a *app) respondApproval(branchID, requestID string, decision dimui.Approva
 		}()
 		outcome, err := a.bridge.RespondApprovalFor(ctx, sessionID, branchID, requestID, wireDecision)
 		if err != nil {
-			log.Printf("dimagent: approval.respond: %v", err)
+			log.Printf("dimagent: approval response failed for session %q branch %q request %q", sessionID, branchID, requestID)
 			if a.selectionCurrent(gen) {
 				a.notice("approval.error", err.Error())
 			}
