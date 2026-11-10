@@ -52,7 +52,9 @@ func wipCapabilityOf(actionKey, method, gapKey string) wipCapability {
 // directory once State.OnRefreshBranches is set, cutting a side branch from a
 // message once State.OnBranchFrom is set, while the keys browser is wired once
 // State.Keys carries a session.keys snapshot (the shell then wires
-// Actions.OnToggleKeys and the sidebar entry replaces this card).
+// Actions.OnToggleKeys and the sidebar entry replaces this card). The
+// attachment entry is wired once State.OnAttachFile is set, so its card is only
+// drawn for a window that has no picker callback.
 func wipCapabilities(s *State) []wipCapability {
 	capabilities := make([]wipCapability, 0, 10)
 	if s == nil || s.OnCreateSession == nil {
@@ -83,8 +85,10 @@ func wipCapabilities(s *State) []wipCapability {
 		capabilities = append(capabilities,
 			wipCapabilityOf(keyCapabilityApprovals, "approval.respond", keyCapabilityApprovalsGap))
 	}
-	capabilities = append(capabilities,
-		wipCapabilityOf(keyCapabilityAttachments, "attachment.put", keyCapabilityAttachmentsGap))
+	if s == nil || s.OnAttachFile == nil {
+		capabilities = append(capabilities,
+			wipCapabilityOf(keyCapabilityAttachments, "attachment.put", keyCapabilityAttachmentsGap))
+	}
 	if s == nil || s.OnReconnect == nil {
 		capabilities = append(capabilities,
 			wipCapabilityOf(keyCapabilityConnectionRecover, "supervisor.Reconnect", keyCapabilityConnectionGap))

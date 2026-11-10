@@ -101,6 +101,13 @@ type Actions struct {
 	// failure is reported through HeaderView.ActionError, so a send the App
 	// Server never received never looks delivered.
 	OnSubmit func(text string)
+	// OnAttachFile is called by the composer's attachment entry. The caller
+	// opens the native picker for a text file, stores it through attachment.put
+	// and adds the returned path to the draft as a Markdown link; the region
+	// adds no path and reports no upload itself. A cancelled picker sends
+	// nothing, so a dismissed dialog leaves the draft untouched. While this
+	// field is nil the entry stays visible, unavailable and explained as WIP.
+	OnAttachFile func()
 	// OnStop is called by the toolbar's Stop entry while a turn runs. The caller
 	// sends session.stop and leaves the run state to the App Server's next
 	// report; the view does not claim the turn stopped.

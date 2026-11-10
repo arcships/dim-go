@@ -624,6 +624,29 @@ func (c *SessionController) Rename(ctx context.Context, title *string) (appserve
 	return result, replayGapWrite("session.rename", err)
 }
 
+// AttachmentPut stores one text attachment through attachment.put. The write is
+// sent once and never retried: the method has no idempotency key and no
+// list/get read-back, so a lost or malformed reply is reported as an unknown
+// result for the user to decide on. A daemon without the Attachments plugin
+// answers unknown_method, surfaced as *appserver.MutationError.Unsupported (a
+// visible-disabled WIP gap), and a subscription_changed reply fails closed as a
+// replay gap.
+func (c *SessionController) AttachmentPut(ctx context.Context, name, text string) (appserver.AttachmentPutResult, error) {
+	if c == nil {
+		return appserver.AttachmentPutResult{}, fmt.Errorf("integration: no session")
+	}
+	if ctx == nil {
+		return appserver.AttachmentPutResult{}, fmt.Errorf("integration: nil context")
+	}
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.Session == nil {
+		return appserver.AttachmentPutResult{}, fmt.Errorf("integration: no session")
+	}
+	result, err := c.Session.AttachmentPut(ctx, name, text)
+	return result, replayGapWrite("attachment.put", err)
+}
+
 // Title returns the selected session's newest known title metadata, ordered
 // against the catalog summary by revision. It reads only what the daemon
 // supplied through a rename reply, a SessionStore title notice, or the summary

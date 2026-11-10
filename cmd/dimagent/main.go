@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"github.com/egoist/mygo"
 
@@ -73,6 +75,10 @@ type sessionActions interface {
 	// session.rename. A nil title clears it; the title the daemon committed is
 	// authoritative.
 	Rename(ctx context.Context, title *string) (appserver.RenameResult, error)
+	// AttachmentPut stores one UTF-8 text attachment through attachment.put and
+	// returns the App Server's stored path. It is sent once; there is no
+	// read-back method for an unknown result.
+	AttachmentPut(ctx context.Context, name, text string) (appserver.AttachmentPutResult, error)
 	// Title returns the newest title metadata the session observed, ordered
 	// against the catalog summary by revision.
 	Title(summary appserver.SessionSummary) session.TitleState
@@ -308,6 +314,17 @@ func (b *sessionBridge) RenameFor(ctx context.Context, sessionID string, title *
 		return appserver.RenameResult{}, err
 	}
 	return controller.Rename(ctx, title)
+}
+
+// AttachmentPutFor stores a text attachment through the controller that still
+// belongs to sessionID. The bridge adds no local file or path: the returned path
+// is the App Server's, and an unknown result is passed through unchanged.
+func (b *sessionBridge) AttachmentPutFor(ctx context.Context, sessionID, name, text string) (appserver.AttachmentPutResult, error) {
+	controller, err := b.controllerFor(sessionID)
+	if err != nil {
+		return appserver.AttachmentPutResult{}, err
+	}
+	return controller.AttachmentPut(ctx, name, text)
 }
 
 // ModelsFor reads the model catalog through the controller that still belongs
@@ -675,6 +692,9 @@ type app struct {
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
+	// attachmentPicker opens the native text-file picker. Tests replace it; the
+	// app uses the MyGo dialog attached to the window.
+	attachmentPicker func() (string, error)
 	// appearance is the desktop-local appearance preference store: the values
 	// loaded before the first frame and the snapshot the window writes when the
 	// settings surface reports a choice. See settings.go.
@@ -700,6 +720,7 @@ func (a *app) bind() {
 	a.state.OnRefreshBranches = a.refreshBranches
 	a.state.OnCreateSession = a.createSession
 	a.state.OnSubmit = a.submit
+	a.state.OnAttachFile = a.attachFile
 	a.state.OnStop = a.stop
 	a.state.OnReconnect = a.reconnect
 	a.state.OnApproval = a.respondApproval
@@ -1274,6 +1295,184 @@ func (a *app) renameSession(title string) {
 				dimui.Notice{Kind: "rename.accepted", ID: outcome})
 		})
 	}()
+}
+
+// attachmentTextExtensions are the text file extensions the picker offers and
+// the upload accepts, matching the Electron client's text attachment set. The
+// picker filters on them, and a file chosen through another path is checked
+// again before it is read.
+var attachmentTextExtensions = []string{"txt", "md", "json", "yaml", "yml", "csv", "log"}
+
+// attachmentPickerTimeout bounds one attachment.put request. The method has no
+// idempotency key and no read-back, so the request is never resent after the
+// context expires.
+const attachmentPickerTimeout = 30 * time.Second
+
+// attachFile opens the native text-file picker and stores the chosen file
+// through attachment.put. The dialog blocks until it is dismissed, so it runs on
+// its own goroutine; a cancelled picker changes nothing. The draft link is added
+// only after the App Server returned a path, so a dismissed dialog or a failed
+// upload leaves the draft untouched.
+func (a *app) attachFile() {
+	if a.bridge == nil || a.state == nil {
+		return
+	}
+	sessionID := a.state.Selected
+	if sessionID == "" {
+		a.notice("attach.error", "Attach file: no session is selected.")
+		return
+	}
+	gen := a.currentSelection()
+	go func() {
+		path, err := a.pickAttachment()
+		if err != nil {
+			log.Printf("dimagent: attachment picker: %v", err)
+			if a.selectionCurrent(gen) {
+				a.reportAttachmentFailure(gen, fmt.Sprintf("Attach file: the file picker failed: %v", err))
+			}
+			return
+		}
+		a.attachSelectedFile(gen, sessionID, path)
+	}()
+}
+
+// pickAttachment returns the chosen file path, or "" when the picker was
+// cancelled. Tests replace the dialog; the app attaches it to the window so it
+// opens as a sheet where the platform supports one.
+func (a *app) pickAttachment() (string, error) {
+	if a.attachmentPicker != nil {
+		return a.attachmentPicker()
+	}
+	paths, err := mygo.Dialog.Open(mygo.OpenDialogOptions{
+		Parent: a.win,
+		Title:  "Attach text file",
+		Filters: []mygo.FileFilter{{
+			Name:       "Text files",
+			Extensions: attachmentTextExtensions,
+		}},
+	})
+	if err != nil {
+		return "", err
+	}
+	if len(paths) == 0 {
+		return "", nil
+	}
+	return paths[0], nil
+}
+
+// attachSelectedFile reads one chosen text file and sends it through
+// attachment.put once. An empty path is a cancelled picker and sends nothing. A
+// file that cannot be read, is too large, is not UTF-8, or is not one of the
+// text extensions is reported and never uploaded.
+func (a *app) attachSelectedFile(gen uint64, sessionID, path string) {
+	if path == "" {
+		return
+	}
+	name, text, err := readTextAttachment(path)
+	if err != nil {
+		log.Printf("dimagent: attach %q: %v", path, err)
+		a.reportAttachmentFailure(gen, fmt.Sprintf("Attach file: %v", err))
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), attachmentPickerTimeout)
+	defer cancel()
+	result, err := a.bridge.AttachmentPutFor(ctx, sessionID, name, text)
+	if err != nil {
+		log.Printf("dimagent: attach %q for %q: %v", path, sessionID, err)
+		a.reportAttachmentFailure(gen, attachmentErrorMessage(err))
+		return
+	}
+	a.update(func(state *dimui.State) {
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		state.Draft = appendAttachmentLink(state.Draft, name, result.Path)
+		state.ActionError = ""
+		state.ActionStatus = "Attachment added"
+	})
+}
+
+// reportAttachmentFailure publishes the upload or read failure as the window's
+// action error and clears any older success line, so an attachment that was not
+// stored never looks added.
+func (a *app) reportAttachmentFailure(gen uint64, message string) {
+	a.update(func(state *dimui.State) {
+		if !a.selectionCurrent(gen) {
+			return
+		}
+		state.ActionError = message
+		state.ActionStatus = ""
+		state.ActionNotices = appendActionNotice(state.ActionNotices,
+			dimui.Notice{Kind: "attach.error", ID: message})
+	})
+}
+
+// attachmentErrorMessage explains the three attachment.put outcomes the window
+// can see. unknown_method means the host has no Attachments plugin, so the entry
+// stays a visible WIP gap; an unknown result has no read-back method and is
+// never resent; every other failure is reported as the App Server sent it.
+func attachmentErrorMessage(err error) string {
+	switch {
+	case errors.Is(err, appserver.ErrCapabilityUnavailable):
+		return fmt.Sprintf("Attach file: attachment.put is unavailable on this App Server (unknown_method); the file was not attached. This entry stays WIP until the App Server offers the method. %v", err)
+	case errors.Is(err, appserver.ErrUnknownResult):
+		return fmt.Sprintf("Attach file: the App Server did not confirm the upload (%v); attachment.put has no read-back method, so the request was not resent.", err)
+	default:
+		return fmt.Sprintf("Attach file: %v", err)
+	}
+}
+
+// readTextAttachment reads one supported text file and returns its base name
+// and UTF-8 text. The extension check runs before the read so a binary file the
+// picker let through is rejected without loading it. The size and UTF-8 rules
+// are attachment.put's own limits.
+func readTextAttachment(path string) (string, string, error) {
+	name := filepath.Base(path)
+	if !isAttachmentTextFile(name) {
+		return "", "", fmt.Errorf("%s is not a supported text file (%s); image attachments are WIP",
+			name, strings.Join(attachmentTextExtensions, ", "))
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", "", fmt.Errorf("read %s: %w", name, err)
+	}
+	if len(data) == 0 {
+		return "", "", fmt.Errorf("%s is empty; attachment.put requires non-empty text", name)
+	}
+	if len(data) > appserver.MaxAttachmentTextBytes {
+		return "", "", fmt.Errorf("%s is %d bytes, above the %d-byte text attachment limit",
+			name, len(data), appserver.MaxAttachmentTextBytes)
+	}
+	if !utf8.Valid(data) {
+		return "", "", fmt.Errorf("%s is not valid UTF-8 text; only UTF-8 text files can be attached", name)
+	}
+	return name, string(data), nil
+}
+
+// isAttachmentTextFile reports whether name carries one of the text extensions
+// the attachment entry offers.
+func isAttachmentTextFile(name string) bool {
+	ext := strings.TrimPrefix(strings.ToLower(filepath.Ext(name)), ".")
+	for _, allowed := range attachmentTextExtensions {
+		if ext == allowed {
+			return true
+		}
+	}
+	return false
+}
+
+// appendAttachmentLink adds the stored path to the draft as a Markdown link, as
+// the Electron client does: a blank line separates it from existing text, a
+// draft that already ends in a newline gets the link directly, and the label and
+// destination escape the characters Markdown would otherwise read.
+func appendAttachmentLink(draft, name, path string) string {
+	label := strings.NewReplacer(`\`, `\\`, `[`, `\[`, `]`, `\]`).Replace(name)
+	target := strings.NewReplacer(`\`, `\\`, `)`, `\)`).Replace(path)
+	link := "[" + label + "](" + target + ")"
+	if draft == "" || strings.HasSuffix(draft, "\n") {
+		return draft + link
+	}
+	return draft + "\n\n" + link
 }
 
 // selectModel switches the selected session's model through session.model.update.

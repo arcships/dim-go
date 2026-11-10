@@ -22,7 +22,7 @@ const reasonDelete = "Unavailable: the window has no session delete callback."
 const (
 	reasonCreateSession = "Unavailable: the window has no session.create callback yet."
 	reasonApproval      = "Unavailable: the shell has no approval callback wired to approval.respond."
-	reasonAttachment    = "Unavailable: attachment.put is not wired to a file picker yet; upload results may be unknown."
+	reasonAttachment    = "Unavailable: attachment.put is not wired to a file picker callback in this window; upload results may be unknown."
 	reasonReconnect     = "Unavailable: the shell is not wired to supervisor reconnect yet."
 	reasonStop          = "Unavailable: the shell has no session.stop callback yet."
 	reasonBranches      = "Unavailable: branch switching/cut point is not wired yet."
