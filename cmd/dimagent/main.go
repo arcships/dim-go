@@ -706,6 +706,10 @@ type app struct {
 	// generations control publication, not the identity of a pending mutation.
 	modelMu       sync.Mutex
 	modelInFlight map[modelFlight]struct{}
+	// Title is the normalized wire intent; empty denotes clearing the title.
+	// Distinct titles remain independent, and generation only gates publishing.
+	renameMu       sync.Mutex
+	renameInFlight map[renameFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -1216,6 +1220,11 @@ func (a *app) deleteSession(id string) {
 	}()
 }
 
+type renameFlight struct {
+	sessionID string
+	title     string
+}
+
 // renameSession sets or clears the selected session's manual title through
 // session.rename, then re-reads the catalog so the row shows the committed
 // title. The request is sent once and never retried: an unsupported method
@@ -1235,8 +1244,24 @@ func (a *app) renameSession(title string) {
 	if trimmed != "" {
 		request = &trimmed
 	}
+	flight := renameFlight{sessionID: sessionID, title: trimmed}
+	a.renameMu.Lock()
+	if _, pending := a.renameInFlight[flight]; pending {
+		a.renameMu.Unlock()
+		return
+	}
+	if a.renameInFlight == nil {
+		a.renameInFlight = make(map[renameFlight]struct{})
+	}
+	a.renameInFlight[flight] = struct{}{}
+	a.renameMu.Unlock()
 	gen := a.currentSelection()
 	go func() {
+		defer func() {
+			a.renameMu.Lock()
+			delete(a.renameInFlight, flight)
+			a.renameMu.Unlock()
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		result, err := a.bridge.RenameFor(ctx, sessionID, request)
