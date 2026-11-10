@@ -96,7 +96,7 @@ Last updated: 2026-11-09
 
 - 状态：`window-hover.png`（行 hover + pin/归档 affordance）、`window-focus.png`（composer “+” focus ring + tooltip）、`window-loading.png`（居中 brand + 左下“正在加载...”）、`window-menu.png`（会话行右键菜单：置顶/重命名/在新窗口打开/导出/归档/删除）。
 - 动画：`motion-search-{000,075,150,250}.png` / `motion-search-close-*`，overlay 150ms、Dialog 200ms、keyframe ease；实际帧时间见 `motion-search-frames.json`。
-- 与 MyGo 的已知差异：loading 目前是 spinner+文本（正在改为 skeleton）；菜单在顶栏 “…”，参考是行右键（正在补）；hover 行缺少 pin/archive affordance；approval 参考图来自 fixture，不是真实 daemon。
+- 已对齐：loading 改为居中 brand + 左下文本（`window-loading-skeleton.png`）；会话行右键菜单顺序与参考一致（`window-row-menu.png`）。仍差：hover 行没有 pin/archive affordance；approval 参考图来自 fixture，不是真实 daemon。
 
 ## 像素基线（辅助，不是结论）
 

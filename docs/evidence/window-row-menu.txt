@@ -1,0 +1,3 @@
+capture	docs/evidence/window-row-menu.png
+note	real window: right-click session row -> Pin/Rename/Archive/Delete context menu, matching the reference order
+driver	scripts/ax/axdo.swift rightclickat + screencapture -l

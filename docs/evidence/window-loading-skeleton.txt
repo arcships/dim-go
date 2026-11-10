@@ -1,0 +1,3 @@
+capture	docs/evidence/window-loading-skeleton.png
+note	real window: SIGSTOP daemon then select a session -> centered brand mark + Loading conversation... (reference-style skeleton)
+driver	scripts/ax/axdo.swift + SIGSTOP/SIGCONT + screencapture -l
