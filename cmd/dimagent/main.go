@@ -694,6 +694,10 @@ type app struct {
 	// gates publication. Other sessions and branches remain independent.
 	endBranchMu       sync.Mutex
 	endBranchInFlight map[branchEndFlight]struct{}
+	// A pending approval decision excludes conflicting decisions for the same
+	// daemon request, independent of selection generation and decision value.
+	approvalMu       sync.Mutex
+	approvalInFlight map[approvalFlight]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -2523,6 +2527,12 @@ func (a *app) stop() {
 	}()
 }
 
+type approvalFlight struct {
+	sessionID string
+	branchID  string
+	requestID string
+}
+
 // respondApproval sends one decision for one pending approval through the
 // controller that still belongs to the selected session. The shell keeps the
 // row: only the session projection's approval.resolved or approval.cancelled
@@ -2543,9 +2553,25 @@ func (a *app) respondApproval(branchID, requestID string, decision dimui.Approva
 	}
 	sessionID := a.state.Selected
 	gen := a.currentSelection()
+	flight := approvalFlight{sessionID: sessionID, branchID: branchID, requestID: requestID}
+	a.approvalMu.Lock()
+	if _, pending := a.approvalInFlight[flight]; pending {
+		a.approvalMu.Unlock()
+		return
+	}
+	if a.approvalInFlight == nil {
+		a.approvalInFlight = make(map[approvalFlight]struct{})
+	}
+	a.approvalInFlight[flight] = struct{}{}
+	a.approvalMu.Unlock()
 	go func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		defer func() {
+			a.approvalMu.Lock()
+			delete(a.approvalInFlight, flight)
+			a.approvalMu.Unlock()
+		}()
 		outcome, err := a.bridge.RespondApprovalFor(ctx, sessionID, branchID, requestID, wireDecision)
 		if err != nil {
 			log.Printf("dimagent: approval.respond: %v", err)

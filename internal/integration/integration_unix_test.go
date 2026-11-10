@@ -1247,9 +1247,9 @@ func waitForApprovalRows(t *testing.T, controller *SessionController, summary ap
 
 // TestApprovalDecisionRoundTripThroughBridge drives the approval vertical slice
 // over the fake daemon: approval.request becomes a row with the daemon's
-// identity, RespondApproval sends the folded decision, the row stays until the
-// daemon settles it, and approval.resolved removes it. Nothing is resolved
-// locally before the App Server answers.
+// identity, RespondApproval sends the folded decision, and the daemon's
+// successful response removes the actionable pending row even before a
+// settlement notification. A later approval.resolved is idempotent.
 func TestApprovalDecisionRoundTripThroughBridge(t *testing.T) {
 	daemon, sup, ctx := startBridge(t)
 	controller, err := OpenSession(ctx, sup, "s1")
@@ -1283,8 +1283,8 @@ func TestApprovalDecisionRoundTripThroughBridge(t *testing.T) {
 	if got := daemon.callCount("approval.respond"); got != 1 {
 		t.Fatalf("approval.respond calls = %d, want 1", got)
 	}
-	if rows := controller.StateForBranch(summary, "main").Messages; countApprovalRows(rows) != 1 {
-		t.Fatalf("approval row was resolved locally before the daemon settled it: %#v", rows)
+	if rows := controller.StateForBranch(summary, "main").Messages; countApprovalRows(rows) != 0 {
+		t.Fatalf("accepted approval still exposes an actionable UI row: %#v", rows)
 	}
 
 	daemon.emit("approval.resolved", appserver.ApprovalResolved{

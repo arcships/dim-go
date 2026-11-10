@@ -1175,10 +1175,11 @@ func (s *Session) RespondApproval(ctx context.Context, params appserver.Approval
 		params.BranchID = s.branchID
 	}
 	outcome, err := appserver.ApprovalRespond(ctx, s.client, params)
-	// A -32602 reply means the daemon no longer holds the approval (§12). That
-	// is the daemon's authoritative answer, so the cached pending request is
-	// cancelled too: leaving it would show a row whose decision can never apply.
-	if outcome == appserver.ApprovalOutcomeCancelled {
+	// A successful response confirms the daemon accepted this decision; -32602
+	// confirms it no longer holds the request. Both authoritative replies remove
+	// the actionable pending cache entry, without inventing a settlement event.
+	// Errors (including unknown outcomes) leave it untouched.
+	if err == nil && (outcome == appserver.ApprovalOutcomeResponded || outcome == appserver.ApprovalOutcomeCancelled) {
 		s.mu.Lock()
 		if branch := s.branches[params.BranchID]; branch != nil {
 			delete(branch.approvals, params.RequestID)
