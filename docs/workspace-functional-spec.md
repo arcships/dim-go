@@ -3,6 +3,22 @@
 Status: draft（先定义语义，不改代码）
 Scope: 只定义 Desktop 的 “workspace” 是什么、从哪来、能做什么、失败时怎样；不定义 session/timeline 内部。
 
+## 0. 证据等级
+
+**源码核对（dim-electron，只读）**
+
+- `sessions.list_workspace_page` 按 session 的 `cwd` 分组，返回 `{cwd, sessionCount, nonAcpSessionCount, createdAt, latestUpdatedAt}`：`electron-main/src/services/session-service.ts:370-410`、`shared/src/protocol/rpc.ts:2410-2427`。
+- “添加项目” = 选目录 + `nav.createThread(cwd)`，不是创建 workspace 实体：`renderer/src/components/sidebar/ThreadListHeader.vue:60-87`。
+- 本地展示状态字段实际是 `projectOrder`、`pinnedProjectCwds`、`projectAliasByCwd`、`projectExpandedByCwd`：`renderer/src/stores/sidebar.ts:54-59`、`:85-89`。
+- builtin workspace 来自 `app.projects.list_builtin`，不持久化路径：`renderer/src/config/builtin-workspace.ts:1-45`、`preload/index.ts:1010`。
+- 当前实现差距：`internal/integration/integration.go:1193` 只保留 `basename(cwd)`；`cmd/dimagent/main.go` 的 `defaultCreateParams` 固定 `os.Getwd()`。
+
+**设计决定（不是源码事实，需评审）**
+
+- 本文第 3 节的本地 JSON schema（`workspaces.aliases/order/pinned/expanded`）是新设计；Electron 用的是 `DesktopSidebarPreferences` 的扁平字段，键名与持久化位置需再确认。
+- 路径校验规则（绝对/存在/可读）、重复 cwd 复用、取消/失败状态、运行中切换语义、删除最后 session 后清理本地状态，均为设计决定；源码只证明了“分组由 cwd 派生”和“添加项目=选目录+建 session”。
+- “不能存在空 workspace（builtin 除外）”是从分组逻辑推导，未在 Electron 中逐一验证是否存在其他本地项目列表。
+
 ## 1. 定义
 
 Desktop 没有独立的 workspace 实体。**Workspace = 一组共享同一个绝对 `cwd` 的 session 的展示分组。身份就是 `cwd`。**
