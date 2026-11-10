@@ -376,6 +376,10 @@ func (a *App) Connect(ctx context.Context) error {
 		Storage:  &settingsStorageReader{app: a},
 		Runtimes: &settingsRuntimeReader{app: a},
 		Modality: &settingsModalityReader{app: a},
+		// provider 管理、协作策略与会话 agent 档案：读取 + 会话方法门禁。
+		Providers:     &providerAdmin{app: a},
+		Collaboration: &collaborationReader{app: a},
+		Agents:        &agentAdmin{app: a},
 		// 会话模态面：能力门禁（先 hello 再会话方法表）、任务读取与实时发送。
 		ModalitySession: &modalitySession{app: a},
 		Writer:          writes,

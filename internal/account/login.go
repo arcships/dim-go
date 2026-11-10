@@ -313,6 +313,10 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 			a.finishAttempt(attempt, LoginFailed, beginErr.Error())
 			return LoginStart{}, fmt.Errorf("%w: %v", ErrLoginRequest, beginErr)
 		}
+		if strings.TrimSpace(device.Attempt) == "" {
+			a.finishAttempt(attempt, LoginFailed, "设备码登录缺少尝试标识")
+			return LoginStart{}, fmt.Errorf("%w: 设备码登录缺少尝试标识", ErrLoginRequest)
+		}
 		if strings.TrimSpace(device.VerificationURI) == "" || strings.TrimSpace(device.UserCode) == "" {
 			a.finishAttempt(attempt, LoginFailed, "设备码登录缺少验证地址或用户码")
 			return LoginStart{}, fmt.Errorf("%w: 设备码登录缺少验证地址或用户码", ErrLoginRequest)

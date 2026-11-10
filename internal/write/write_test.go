@@ -468,6 +468,8 @@ func TestAllKindsAreSentOnce(t *testing.T) {
 		{KindSessionLifecycle, "", json.RawMessage(`{"op":"create","cwd":"/tmp"}`)},
 		{KindShellRun, "s1", json.RawMessage(`{"op":"run","runId":"run-1","command":"pwd"}`)},
 		{KindModalityWrite, "s1", json.RawMessage(`{"op":"task.submit"}`)},
+		{KindInputWithdraw, "s1", json.RawMessage(`{"op":"input.withdraw","branchId":"main","inputId":"i1"}`)},
+		{KindGoalControl, "s1", json.RawMessage(`{"op":"goal.pause","branchId":"main"}`)},
 	}
 	for _, tc := range cases {
 		t.Run(string(tc.kind), func(t *testing.T) {
@@ -1159,6 +1161,284 @@ func TestShellRunAndModalityScope(t *testing.T) {
 				Kind:      KindModalityWrite,
 				SessionID: "s1",
 				Params:    json.RawMessage(`{"op":"task.pause"}`),
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if _, err := manager.Register(tc.intent); !errors.Is(err, ErrInvalidIntent) {
+				t.Fatalf("错误=%v 期望 ErrInvalidIntent", err)
+			}
+		})
+	}
+}
+
+func TestInputWithdrawIntentIsSentOnce(t *testing.T) {
+	params := json.RawMessage(`{"op":"input.withdraw","branchId":"side","inputId":"i1"}`)
+	sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+		return Reply{InputID: "server-withdraw"}, nil
+	}}
+	manager := newTestManager(t, sender, &fakeInspector{})
+	registered := mustRegister(t, manager, Intent{
+		Key:       "input.withdraw:i1",
+		Kind:      KindInputWithdraw,
+		SessionID: "s1",
+		Params:    params,
+	})
+	if registered.BranchID != "side" || registered.InputID != "i1" {
+		t.Fatalf("登记后分支/输入=%q/%q 期望 side/i1", registered.BranchID, registered.InputID)
+	}
+	view := waitStatus(t, manager, registered.ID, StatusSucceeded)
+	if view.InputID != "server-withdraw" {
+		t.Fatalf("成功后输入标识=%q 期望服务端回执", view.InputID)
+	}
+	if sender.count() != 1 {
+		t.Fatalf("发送次数=%d 期望 1", sender.count())
+	}
+	call := sender.requests()[0]
+	if call.Kind != KindInputWithdraw || call.SessionID != "s1" ||
+		call.BranchID != "side" || call.InputID != "i1" {
+		t.Fatalf("发送请求=%+v", call)
+	}
+	if string(call.Params) != string(params) {
+		t.Fatalf("参数=%s 期望原样下发 %s", call.Params, params)
+	}
+}
+
+func TestInputWithdrawUnknownVerification(t *testing.T) {
+	sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+		return Reply{}, context.DeadlineExceeded
+	}}
+	inspector := &fakeInspector{handle: func(query InputQuery, _ int) (InputState, error) {
+		if query.Kind != KindInputWithdraw || query.SessionID != "s1" ||
+			query.BranchID != "side" || query.InputID != "i1" {
+			t.Errorf("核对查询=%+v 期望 input_withdraw/s1/side/i1", query)
+		}
+		return InputState{Confirmed: true, Present: true, SessionID: "s1", BranchID: "side"}, nil
+	}}
+	manager := newTestManager(t, sender, inspector)
+	view := mustRegister(t, manager, Intent{
+		Key:       "input.withdraw:unknown",
+		Kind:      KindInputWithdraw,
+		SessionID: "s1",
+		Params:    json.RawMessage(`{"op":"input.withdraw","branchId":"side","inputId":"i1"}`),
+	})
+	waitStatus(t, manager, view.ID, StatusSucceeded)
+	if sender.count() != 1 {
+		t.Fatalf("核对后发送次数=%d 期望 1（不自动重发）", sender.count())
+	}
+	if inspector.count() == 0 {
+		t.Fatal("未知状态没有触发核对")
+	}
+}
+
+func TestInputWithdrawFailurePreservesContentAndDraft(t *testing.T) {
+	sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+		return Reply{}, failure.New(failure.KindNonRetryable, "session.input.withdraw", errors.New("输入不存在"))
+	}}
+	inspector := &fakeInspector{}
+	manager := newTestManager(t, sender, inspector)
+	if err := manager.SetDraft(Draft{SessionID: "s1", Text: "草稿"}); err != nil {
+		t.Fatalf("保存草稿: %v", err)
+	}
+	view := mustRegister(t, manager, Intent{
+		Key:       "input.withdraw:fail",
+		Kind:      KindInputWithdraw,
+		SessionID: "s1",
+		Params:    json.RawMessage(`{"op":"input.withdraw","branchId":"side","inputId":"i1"}`),
+	})
+	result := waitStatus(t, manager, view.ID, StatusFailed)
+	if len(result.Content) == 0 {
+		t.Fatal("失败后待发内容被清空")
+	}
+	if _, ok := manager.Draft("s1"); !ok {
+		t.Fatal("失败后草稿被清空")
+	}
+	if sender.count() != 1 || inspector.count() != 0 {
+		t.Fatalf("发送=%d 核对=%d 期望 1/0", sender.count(), inspector.count())
+	}
+}
+
+func TestGoalControlIntentIsSentOnce(t *testing.T) {
+	for _, op := range []string{goalPauseOp, goalResumeOp} {
+		t.Run(op, func(t *testing.T) {
+			params := json.RawMessage(`{"op":"` + op + `","branchId":"side"}`)
+			sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+				return Reply{InputID: "server-goal-" + op}, nil
+			}}
+			manager := newTestManager(t, sender, &fakeInspector{})
+			registered := mustRegister(t, manager, Intent{
+				Key:       "goal:" + op,
+				Kind:      KindGoalControl,
+				SessionID: "s1",
+				Params:    params,
+			})
+			if registered.BranchID != "side" {
+				t.Fatalf("登记后分支=%q 期望 side", registered.BranchID)
+			}
+			waitStatus(t, manager, registered.ID, StatusSucceeded)
+			if sender.count() != 1 {
+				t.Fatalf("发送次数=%d 期望 1", sender.count())
+			}
+			call := sender.requests()[0]
+			if call.Kind != KindGoalControl || call.SessionID != "s1" || call.BranchID != "side" {
+				t.Fatalf("发送请求=%+v", call)
+			}
+			if string(call.Params) != string(params) {
+				t.Fatalf("参数=%s 期望原样下发 %s", call.Params, params)
+			}
+		})
+	}
+}
+
+func TestGoalControlUnknownVerification(t *testing.T) {
+	sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+		return Reply{}, context.DeadlineExceeded
+	}}
+	inspector := &fakeInspector{handle: func(query InputQuery, _ int) (InputState, error) {
+		if query.Kind != KindGoalControl || query.SessionID != "s1" || query.BranchID != "side" {
+			t.Errorf("核对查询=%+v 期望 goal_control/s1/side", query)
+		}
+		return InputState{Confirmed: true, Present: true, SessionID: "s1", BranchID: "side"}, nil
+	}}
+	manager := newTestManager(t, sender, inspector)
+	view := mustRegister(t, manager, Intent{
+		Key:       "goal:unknown",
+		Kind:      KindGoalControl,
+		SessionID: "s1",
+		Params:    json.RawMessage(`{"op":"goal.resume","branchId":"side"}`),
+	})
+	waitStatus(t, manager, view.ID, StatusSucceeded)
+	if sender.count() != 1 {
+		t.Fatalf("核对后发送次数=%d 期望 1（不自动重发）", sender.count())
+	}
+	if inspector.count() == 0 {
+		t.Fatal("未知状态没有触发核对")
+	}
+}
+
+func TestGoalControlFailurePreservesContentAndDraft(t *testing.T) {
+	sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+		return Reply{}, failure.New(failure.KindNonRetryable, "session.goal.pause", errors.New("目标不存在"))
+	}}
+	inspector := &fakeInspector{}
+	manager := newTestManager(t, sender, inspector)
+	if err := manager.SetDraft(Draft{SessionID: "s1", Text: "草稿"}); err != nil {
+		t.Fatalf("保存草稿: %v", err)
+	}
+	view := mustRegister(t, manager, Intent{
+		Key:       "goal:fail",
+		Kind:      KindGoalControl,
+		SessionID: "s1",
+		Params:    json.RawMessage(`{"op":"goal.pause","branchId":"side"}`),
+	})
+	result := waitStatus(t, manager, view.ID, StatusFailed)
+	if len(result.Content) == 0 {
+		t.Fatal("失败后待发内容被清空")
+	}
+	if _, ok := manager.Draft("s1"); !ok {
+		t.Fatal("失败后草稿被清空")
+	}
+	if sender.count() != 1 || inspector.count() != 0 {
+		t.Fatalf("发送=%d 核对=%d 期望 1/0", sender.count(), inspector.count())
+	}
+}
+
+func TestInputWithdrawAndGoalControlScope(t *testing.T) {
+	manager := newTestManager(t, &fakeSender{}, &fakeInspector{})
+	cases := []struct {
+		name   string
+		intent Intent
+	}{
+		{
+			name: "input.withdraw 缺少目标会话",
+			intent: Intent{
+				Key:    "withdraw-no-session",
+				Kind:   KindInputWithdraw,
+				Params: json.RawMessage(`{"op":"input.withdraw","branchId":"side","inputId":"i1"}`),
+			},
+		},
+		{
+			name: "input.withdraw 缺少 branchId",
+			intent: Intent{
+				Key:       "withdraw-no-branch",
+				Kind:      KindInputWithdraw,
+				SessionID: "s1",
+				Params:    json.RawMessage(`{"op":"input.withdraw","inputId":"i1"}`),
+			},
+		},
+		{
+			name: "input.withdraw 缺少 inputId",
+			intent: Intent{
+				Key:       "withdraw-no-input",
+				Kind:      KindInputWithdraw,
+				SessionID: "s1",
+				Params:    json.RawMessage(`{"op":"input.withdraw","branchId":"side"}`),
+			},
+		},
+		{
+			name: "input.withdraw 未知 op",
+			intent: Intent{
+				Key:       "withdraw-unknown-op",
+				Kind:      KindInputWithdraw,
+				SessionID: "s1",
+				Params:    json.RawMessage(`{"op":"input.delete","branchId":"side","inputId":"i1"}`),
+			},
+		},
+		{
+			name: "input.withdraw 输入标识不一致",
+			intent: Intent{
+				Key:       "withdraw-input-conflict",
+				Kind:      KindInputWithdraw,
+				SessionID: "s1",
+				InputID:   "i2",
+				Params:    json.RawMessage(`{"op":"input.withdraw","branchId":"side","inputId":"i1"}`),
+			},
+		},
+		{
+			name: "input.withdraw 分支标识不一致",
+			intent: Intent{
+				Key:       "withdraw-branch-conflict",
+				Kind:      KindInputWithdraw,
+				SessionID: "s1",
+				BranchID:  "other",
+				Params:    json.RawMessage(`{"op":"input.withdraw","branchId":"side","inputId":"i1"}`),
+			},
+		},
+		{
+			name: "goal 缺少目标会话",
+			intent: Intent{
+				Key:    "goal-no-session",
+				Kind:   KindGoalControl,
+				Params: json.RawMessage(`{"op":"goal.pause","branchId":"side"}`),
+			},
+		},
+		{
+			name: "goal 缺少 branchId",
+			intent: Intent{
+				Key:       "goal-no-branch",
+				Kind:      KindGoalControl,
+				SessionID: "s1",
+				Params:    json.RawMessage(`{"op":"goal.pause"}`),
+			},
+		},
+		{
+			name: "goal 未知 op",
+			intent: Intent{
+				Key:       "goal-unknown-op",
+				Kind:      KindGoalControl,
+				SessionID: "s1",
+				Params:    json.RawMessage(`{"op":"goal.edit","branchId":"side"}`),
+			},
+		},
+		{
+			name: "goal 分支标识不一致",
+			intent: Intent{
+				Key:       "goal-branch-conflict",
+				Kind:      KindGoalControl,
+				SessionID: "s1",
+				BranchID:  "other",
+				Params:    json.RawMessage(`{"op":"goal.pause","branchId":"side"}`),
 			},
 		},
 	}

@@ -38,6 +38,18 @@ func TestProvidersRejectsMalformed(t *testing.T) {
 	}
 }
 
+// TestProvidersReadFailure 确认 provider 读取失败原样报错，不发起登录。
+func TestProvidersReadFailure(t *testing.T) {
+	source := &stubProviderSource{err: errors.New("连接中断")}
+	account := newTestAccount(t, Config{Providers: source, Auth: callbackAuth("", "", ""), Browser: &stubBrowser{}})
+	if _, err := account.Providers(context.Background()); !errors.Is(err, ErrProvidersRead) {
+		t.Fatalf("应返回 provider 读取失败：%v", err)
+	}
+	if _, err := account.Login(context.Background(), LoginRequest{}); !errors.Is(err, ErrProvidersRead) {
+		t.Fatalf("登录应因 provider 读取失败而停止：%v", err)
+	}
+}
+
 // TestLoginRequiresProviderSelectionWhenMultiple 确认多个 provider 且未指定时拒绝，
 // 不在候选之间猜。
 func TestLoginRequiresProviderSelectionWhenMultiple(t *testing.T) {
@@ -118,6 +130,61 @@ func TestLoginPrefersBrowserWhenBothDeclared(t *testing.T) {
 	}
 	if auth.beginCount() != 1 {
 		t.Fatalf("浏览器授权发起次数不符：%d", auth.beginCount())
+	}
+}
+
+// TestLoginExplicitDeviceWhenBothDeclared 确认同时声明两种方式时，显式指定 device
+// 会走设备码流程。
+func TestLoginExplicitDeviceWhenBothDeclared(t *testing.T) {
+	status := &stubStatusReader{fact: signedInFact()}
+	deviceAuth := &stubDeviceAuth{
+		device: DeviceAuthorization{
+			Attempt:         "device-attempt",
+			VerificationURI: "https://issuer.example/device",
+			UserCode:        "ABCD-EFGH",
+			Interval:        time.Millisecond,
+		},
+		states: []DeviceLoginState{{Status: DeviceLoginCompleted}},
+	}
+	browserAuth := callbackAuth("code-1", "state-1", "state-1")
+	account := newTestAccount(t, Config{
+		Status:       status,
+		Providers:    bothProviderSource(),
+		Auth:         browserAuth,
+		DeviceAuth:   deviceAuth,
+		Browser:      &stubBrowser{},
+		LoginTimeout: 2 * time.Second,
+	})
+	if _, err := account.Login(context.Background(), LoginRequest{Method: LoginMethodDevice}); err != nil {
+		t.Fatalf("显式 device 登录: %v", err)
+	}
+	if browserAuth.beginCount() != 0 {
+		t.Fatal("显式 device 时不应发起浏览器登录")
+	}
+	if state := account.LoginState(); state.Method != LoginMethodDevice || state.Phase != LoginCompleted {
+		t.Fatalf("登录方式不符：%+v", state)
+	}
+}
+
+// TestLoginRejectsProviderWithoutUsableMethod 确认 provider 只声明未知方式时拒绝，
+// 不猜成 browser 或 device。
+func TestLoginRejectsProviderWithoutUsableMethod(t *testing.T) {
+	source := &stubProviderSource{providers: []Provider{{
+		ID:           "provider-sso",
+		LoginMethods: []LoginMethod{LoginMethod("sso")},
+	}}}
+	account := newTestAccount(t, Config{
+		Providers:  source,
+		Auth:       callbackAuth("code-1", "state-1", "state-1"),
+		DeviceAuth: &stubDeviceAuth{},
+		Browser:    &stubBrowser{},
+	})
+	_, err := account.Login(context.Background(), LoginRequest{})
+	if !errors.Is(err, ErrLoginMethodUnavailable) {
+		t.Fatalf("没有可用方式时应拒绝：%v", err)
+	}
+	if !strings.Contains(err.Error(), "sso") {
+		t.Fatalf("拒绝原因应列出声明：%v", err)
 	}
 }
 
@@ -310,6 +377,18 @@ func TestDeviceLoginMissingPromptIsRejected(t *testing.T) {
 	})
 	if _, err := account.BeginLogin(context.Background(), LoginRequest{}); !errors.Is(err, ErrLoginRequest) {
 		t.Fatalf("缺少用户码应失败：%v", err)
+	}
+
+	missingAttempt := &stubDeviceAuth{
+		device: DeviceAuthorization{VerificationURI: "https://issuer.example/device", UserCode: "ABCD"},
+	}
+	account = newTestAccount(t, Config{
+		Providers:  deviceProviderSource(),
+		DeviceAuth: missingAttempt,
+		Browser:    &stubBrowser{},
+	})
+	if _, err := account.BeginLogin(context.Background(), LoginRequest{}); !errors.Is(err, ErrLoginRequest) {
+		t.Fatalf("缺少尝试标识应失败：%v", err)
 	}
 	if polls := deviceAuth.polls; polls != 0 {
 		t.Fatalf("缺少提示时不应开始轮询：%d", polls)

@@ -56,13 +56,21 @@ const (
 	// KindModalityWrite 是模态任务提交与取消、实时传输的打开与关闭。
 	// 参数用 op 区分 task.submit / task.cancel / realtime.open / realtime.close。
 	KindModalityWrite Kind = "modality_write"
+	// KindInputWithdraw 是撤回一条排队输入。参数形状为
+	// {op:"input.withdraw", branchId, inputId}；inputId 同时作为核对标识。
+	KindInputWithdraw Kind = "input_withdraw"
+	// KindGoalControl 是暂停或恢复会话目标。参数形状为
+	// {op:"goal.pause"|"goal.resume", branchId}；未知核对建议在 Intent.InputID
+	// 里带一个客户端动作标识。
+	KindGoalControl Kind = "goal_control"
 )
 
 func (k Kind) valid() bool {
 	switch k {
 	case KindSubmitInput, KindStop, KindApprovalResponse, KindLongTermAllow,
 		KindQuestionAnswer, KindManagementWrite, KindAccountAction, KindAttachmentWrite,
-		KindSessionLifecycle, KindShellRun, KindModalityWrite:
+		KindSessionLifecycle, KindShellRun, KindModalityWrite, KindInputWithdraw,
+		KindGoalControl:
 		return true
 	}
 	return false
@@ -73,7 +81,8 @@ func (k Kind) valid() bool {
 func (k Kind) sessionScoped() bool {
 	switch k {
 	case KindSubmitInput, KindStop, KindApprovalResponse, KindLongTermAllow,
-		KindQuestionAnswer, KindAttachmentWrite, KindShellRun, KindModalityWrite:
+		KindQuestionAnswer, KindAttachmentWrite, KindShellRun, KindModalityWrite,
+		KindInputWithdraw, KindGoalControl:
 		return true
 	}
 	return false
@@ -956,6 +965,14 @@ func normalizeIntent(intent Intent) (Intent, error) {
 		if err := validateModalityWriteParams(intent.Params); err != nil {
 			return Intent{}, err
 		}
+	case KindInputWithdraw:
+		if err := validateInputWithdrawParams(&intent); err != nil {
+			return Intent{}, err
+		}
+	case KindGoalControl:
+		if err := validateGoalControlParams(&intent); err != nil {
+			return Intent{}, err
+		}
 	}
 	return intent, nil
 }
@@ -1084,6 +1101,71 @@ func validateModalityWriteParams(params json.RawMessage) error {
 	if !modalityWriteOps[op] {
 		return fmt.Errorf("%w: 未知模态写入动作 %q", ErrInvalidIntent, op)
 	}
+	return nil
+}
+
+// 投影侧写动作：撤回排队输入与目标暂停/恢复。
+const (
+	inputWithdrawOp = "input.withdraw"
+	goalPauseOp     = "goal.pause"
+	goalResumeOp    = "goal.resume"
+)
+
+// validateInputWithdrawParams 校验撤回排队输入的参数，并把分支与输入标识归一到
+// Intent 上，供未知核对使用。
+func validateInputWithdrawParams(intent *Intent) error {
+	op, err := requireOp(intent.Params, KindInputWithdraw)
+	if err != nil {
+		return err
+	}
+	if op != inputWithdrawOp {
+		return fmt.Errorf("%w: 未知输入撤回动作 %q", ErrInvalidIntent, op)
+	}
+	var body struct {
+		BranchID string `json:"branchId"`
+		InputID  string `json:"inputId"`
+	}
+	if err := json.Unmarshal(intent.Params, &body); err != nil {
+		return fmt.Errorf("%w: 输入撤回参数无法解析", ErrInvalidIntent)
+	}
+	if body.InputID == "" {
+		return fmt.Errorf("%w: 输入撤回缺少 inputId", ErrInvalidIntent)
+	}
+	if intent.InputID != "" && intent.InputID != body.InputID {
+		return fmt.Errorf("%w: 输入撤回的输入标识不一致", ErrInvalidIntent)
+	}
+	intent.InputID = body.InputID
+	return normalizeBranchParam(intent, body.BranchID, KindInputWithdraw)
+}
+
+// validateGoalControlParams 校验目标暂停/恢复的参数，并把分支归一到 Intent 上。
+func validateGoalControlParams(intent *Intent) error {
+	op, err := requireOp(intent.Params, KindGoalControl)
+	if err != nil {
+		return err
+	}
+	if op != goalPauseOp && op != goalResumeOp {
+		return fmt.Errorf("%w: 未知目标控制动作 %q", ErrInvalidIntent, op)
+	}
+	var body struct {
+		BranchID string `json:"branchId"`
+	}
+	if err := json.Unmarshal(intent.Params, &body); err != nil {
+		return fmt.Errorf("%w: 目标控制参数无法解析", ErrInvalidIntent)
+	}
+	return normalizeBranchParam(intent, body.BranchID, KindGoalControl)
+}
+
+// normalizeBranchParam 要求参数里给出 branchId，并把它与 Intent.BranchID 对齐：
+// 两处都给时必须一致；只给参数时补到 Intent.BranchID，供核对归属。
+func normalizeBranchParam(intent *Intent, paramBranchID string, kind Kind) error {
+	if paramBranchID == "" {
+		return fmt.Errorf("%w: %s 缺少 branchId", ErrInvalidIntent, kind)
+	}
+	if intent.BranchID != "" && intent.BranchID != paramBranchID {
+		return fmt.Errorf("%w: %s 的分支标识不一致", ErrInvalidIntent, kind)
+	}
+	intent.BranchID = paramBranchID
 	return nil
 }
 

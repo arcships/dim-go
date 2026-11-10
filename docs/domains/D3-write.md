@@ -21,6 +21,7 @@ Owner: D3 写登记领域
 | 功能块 5 的会话生命周期写入 | `docs/domains/R.md` | 新建、改名、删除、开分支、结束分支、分叉用 `KindSessionLifecycle`，参数里的 `op` 区分动作 |
 | 功能块 13 的会话内命令写入 | `docs/domains/R.md` | 执行与停止用 `KindShellRun`，`op` 取 `run`/`stop`；`!` 由服务端执行，不是本机终端 |
 | 功能块 9 的模态任务与实时传输写入 | `docs/domains/R.md` | 提交、取消、打开、关闭用 `KindModalityWrite`，`op` 取 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close` |
+| 功能块 2/3 的投影写动作 | `docs/domains/R.md` | 撤回排队输入用 `KindInputWithdraw`；目标暂停/恢复用 `KindGoalControl` |
 | 在途写状态机、草稿、四条总规矩 | `docs/domains/A.md` | 状态迁移逐条对应；草稿与待发归属本领域；启动时校验迁移表 |
 | 错误分类 | `docs/domains/D1-connection.md`、`internal/appserver/failure` | 超时与连接中断转未知；能力缺失、参数错误、连接缺失按明确失败 |
 | 只读核对视图 | `docs/domains/D2-projection.md` | 由调用方实现注入的 `Inspector`：按输入标识查归属、运行状态、历史是否已含该输入 |
@@ -42,9 +43,8 @@ Owner: D3 写登记领域
 
 **验收**
 
-- 本领域命令：`go test ./internal/write/`、`go vet ./internal/write/`、`go test -race ./internal/write/`；本版全部通过（2026-11-11，macOS arm64）。
-- 仓库整体：除 `cmd/dimagent` 外的包全部通过；`cmd/dimagent` 在本轮末尾正在并行编辑，构建失败（本轮最后见重复声明/格式笔误），与本次改动无关。待其修复后复跑 `go test ./...` / `go vet ./...`。
-- 本领域测试：35 个顶层测试、72 个子测试全部通过；覆盖见 §6.2。
+- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/write/`；本版全部通过（2026-11-11，macOS arm64）。
+- 本领域测试：42 个顶层测试、86 个子测试全部通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上真实 NDJSON 收发，覆盖一次发送、无回执超时、回执前断线、能力缺失、重启不补发。
   - 注入替身：`Sender` 与 `Inspector` 为测试替身，覆盖核对命中/未发生/无法确认/归属不一致。
@@ -60,6 +60,7 @@ Owner: D3 写登记领域
 | 会话目录与分支领域 | 新建/改名/删除/开分支/结束分支/分叉用 `KindSessionLifecycle`；`op` 可用 `create`/`rename`/`delete`/`branch.create`/`branch.end`/`fork`，会话动作兼容现有的 `catalog.*` 前缀；新建会话与分叉建议给客户端生成的操作标识 `InputID` 供核对；`branch.end` 的分支标识放在 `Intent.BranchID` 或参数 `branchId` |
 | 会话命令执行领域 | 执行/停止用 `KindShellRun`；`op` 取 `run`/`stop`，`run` 带命令、`stop` 带 `runId`；建议把 `runId` 也填进 `Intent.InputID` 供未知核对 |
 | 模态能力领域 | 任务提交/取消与实时传输开/关用 `KindModalityWrite`；`op` 取 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close`；建议把 `taskId`/`connectionId` 或客户端请求标识填进 `Intent.InputID` 供未知核对 |
+| 会话投影领域 | 撤回排队输入用 `KindInputWithdraw`，参数 `{op:"input.withdraw", branchId, inputId}`；目标暂停/恢复用 `KindGoalControl`，参数 `{op:"goal.pause" 或 "goal.resume", branchId}`；两者都要求 `SessionID`，分支标识会归一到 `Intent.BranchID`；目标控制建议给一个客户端动作标识填进 `Intent.InputID` 供核对 |
 | D5 管理面、D6 账号、D8 附件 | 各自提供稳定的幂等键；附件资源写入的键应包含内容摘要与会话，保证重复挂载只写一次 |
 | U1 原生界面 | 只读 `IntentView`/`Change`，用 `SetDraft`/`Draft` 保存草稿，不直接改状态 |
 
@@ -76,7 +77,7 @@ Owner: D3 写登记领域
 
 | 能力 | 说明 |
 |---|---|
-| 意图登记 | 十一类意图；目标会话与分支、投递方式、输入标识、透明参数 |
+| 意图登记 | 十三类意图；目标会话与分支、投递方式、输入标识、透明参数 |
 | 一次性发送 | 每条意图只在登记后发送一次；发送在登记之后、异步进行 |
 | 结果收敛 | 明确成功、明确失败、超时/断线转未知 |
 | 未知核对 | 按输入标识查归属与历史；命中且归属一致才成功；确认未发生允许重提；无法确认按上限再核对 |
@@ -159,14 +160,18 @@ manager.Close()
 | 会话生命周期 | `KindSessionLifecycle` | 新建会话不需要，其余必填 | 参数 `op` 取 `create`/`rename`/`delete`/`branch.create`/`branch.end`/`fork`，会话动作兼容 `catalog.create`/`catalog.rename`/`catalog.delete`；`branch.create` 按指定轮次开分支；`branch.end` 还需要分支标识；`fork` 用参数 `at` 指定继承的最后一条主线序号 |
 | 会话内命令执行 | `KindShellRun` | 必填 | `op=run` 必须有命令；`op=stop` 必须有运行标识；`!` 由服务端执行 |
 | 模态写入 | `KindModalityWrite` | 必填 | `op` 取 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close` |
+| 排队输入撤回 | `KindInputWithdraw` | 必填 | `op=input.withdraw`；参数必须带 `branchId` 与 `inputId` |
+| 目标控制 | `KindGoalControl` | 必填 | `op=goal.pause`/`goal.resume`；参数必须带 `branchId` |
 
 结构校验：幂等键非空、类型已知、会话要求满足、投递方式只能是 queue/interject（空按 queue）、参数是合法 JSON。参数内容不解释、不校验。各类型的 op 与必需字段：
 
 - 会话生命周期：参数必须是非空对象；`op` 取上表六个动作或三个目录兼容写法。`create` 不要求 `SessionID`；`rename`/`delete`/`branch.create`/`branch.end`/`fork` 要求 `SessionID`；`branch.end` 还要求分支标识，可用 `Intent.BranchID` 或参数 `branchId`，两处都给时必须一致，登记时统一归一到 `BranchID`；`fork` 的 `at` 原样下发，不占 `BranchID`。
 - 会话内命令：`op` 只能是 `run`/`stop`；`run` 的 `command` 去掉空白后不能为空；`stop` 的 `runId` 不能为空。
 - 模态写入：`op` 只能是 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close`。
+- 排队输入撤回：`op` 只能是 `input.withdraw`；参数必须带非空 `inputId` 与 `branchId`；`inputId` 会归一到 `Intent.InputID`，`branchId` 会归一到 `Intent.BranchID`，两处都给时必须一致。
+- 目标控制：`op` 只能是 `goal.pause`/`goal.resume`；参数必须带非空 `branchId`，并归一到 `Intent.BranchID`；两处都给时必须一致。
 
-`InputID` 是核对用的标识：提交类为空时由本包生成；审批、提问、停止、会话命令与模态写入建议由调用方填入服务端请求标识或运行/任务/连接标识。新建会话与分叉的结果里才会出现新会话或新分支标识，建议由调用方给一个客户端生成的操作标识；没有可核对标识的意图一旦进入未知，只能按核对上限收敛到需人工确认。
+`InputID` 是核对用的标识：提交类为空时由本包生成；审批、提问、停止、会话命令、模态写入与目标控制建议由调用方填入服务端请求标识或运行/任务/连接/动作标识；排队输入撤回直接用 `inputId`。新建会话、分叉与新建分支的结果里才会出现新会话或新分支标识，建议由调用方给一个客户端生成的操作标识；没有可核对标识的意图一旦进入未知，只能按核对上限收敛到需人工确认。
 
 ### 4.2 状态机
 
@@ -287,6 +292,7 @@ type InputState struct {
 | R 块 4 分支生命周期 | 会话生命周期意图的 `branch.create`/`branch.end`/`fork` | 切点轮次的选取、分支目录与分支内容 |
 | R 块 9 模态任务与实时传输 | 模态写入意图：任务提交/取消、实时开/关 | 任务状态、结果读取与实时事件流 |
 | R 块 13 会话内命令 | 命令执行/停止意图 | 命令输出折叠、本机终端 |
+| R 块 2/3 投影动作 | 排队输入撤回、目标暂停/恢复意图 | 输入清单与目标状态的事实折叠 |
 | A 在途写状态机 | `state.go` 迁移表与启动校验 | — |
 | A 草稿归属写登记 | `Draft`、`SetDraft`、成功时按修订号清空 | 界面输入 |
 | A 四条总规矩 | 只提交意图、不写事实；状态只有一个驱动者；不做乐观更新 | 投影与界面 |
@@ -303,7 +309,7 @@ go vet ./...
 go test -race ./internal/write/
 ```
 
-本版结果：`internal/write` 的三条命令全部通过；35 个顶层测试与 72 个子测试全绿。仓库整体除 `cmd/dimagent` 外的包全部通过；`cmd/dimagent` 本轮末尾正在并行编辑、构建失败（其他领域代码），待其修复后再复跑仓库整体命令。
+本版结果：三条命令全部通过；`internal/write` 的 42 个顶层测试与 86 个子测试全绿，仓库其余已落地包也全部通过（2026-11-11，本机 macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -320,7 +326,7 @@ go test -race ./internal/write/
 | 归属不一致不能算命中 | `TestOwnershipMismatchReachesManual`、`TestJudgeOwnership` |
 | 未知与需人工确认时保留待发内容 | `TestVerificationUnconfirmedReachesManualAfterLimit`、`TestCloseMarksUnsettledIntentAsManual` |
 | 重启后不补发（新实例模拟） | `TestRestartDoesNotResend` |
-| 十一类意图都能登记并只发一次 | `TestAllKindsAreSentOnce`、`TestSessionLifecycleIntentIsSentOnce`、`TestShellRunIntentIsSentOnce`、`TestModalityWriteIntentIsSentOnce` |
+| 十三类意图都能登记并只发一次 | `TestAllKindsAreSentOnce`、`TestSessionLifecycleIntentIsSentOnce`、`TestShellRunIntentIsSentOnce`、`TestModalityWriteIntentIsSentOnce` |
 | 会话生命周期的作用域：新建不要求会话，改名/删除/开分支/结束分支/分叉要求会话，op 必须合法 | `TestSessionLifecycleScope` |
 | 分支结束的分支标识：`BranchID` 与参数 `branchId` 二选一，冲突拒绝 | `TestSessionLifecycleIntentIsSentOnce`、`TestSessionLifecycleScope` |
 | 分支生命周期 op 的未知核对与失败保留 | `TestSessionLifecycleBranchOpsUnknownAndFailure` |
@@ -330,6 +336,8 @@ go test -race ./internal/write/
 | 会话命令执行/停止：只发一次、未知核对、失败保留 | `TestShellRunIntentIsSentOnce`、`TestShellRunUnknownVerification`、`TestShellRunFailurePreservesContentAndDraft` |
 | 模态写入：四种 op 各只发一次、未知核对、失败保留 | `TestModalityWriteIntentIsSentOnce`、`TestModalityWriteUnknownVerification`、`TestModalityWriteFailurePreservesContentAndDraft` |
 | 会话命令与模态写入的作用域与 op 校验 | `TestShellRunAndModalityScope` |
+| 排队输入撤回：只发一次、未知核对、失败保留、缺字段拒绝 | `TestInputWithdrawIntentIsSentOnce`、`TestInputWithdrawUnknownVerification`、`TestInputWithdrawFailurePreservesContentAndDraft`、`TestInputWithdrawAndGoalControlScope` |
+| 目标暂停/恢复：只发一次、未知核对、失败保留、缺字段拒绝 | `TestGoalControlIntentIsSentOnce`、`TestGoalControlUnknownVerification`、`TestGoalControlFailurePreservesContentAndDraft`、`TestInputWithdrawAndGoalControlScope` |
 | 结构校验与幂等键冲突 | `TestInvalidIntentsAreRejected`、`TestKeyConflictIsRejected` |
 | 在途表、全表、单条结果与状态变化通知 | `TestInFlightTableAndChangeNotifications` |
 | 关闭后拒绝新意图；未结项按需人工确认 | `TestClosedManagerRejectsNewIntents`、`TestCloseMarksUnsettledIntentAsManual` |
@@ -354,7 +362,7 @@ go test -race ./internal/write/
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
-| 真实 App Server 上的提交/停止/审批/提问/会话生命周期/会话命令/模态写入 | blocked | D1/D4/D5/D6/D8/D9/D11a 尚未冻结各写意图的方法名与参数；本版发送方由调用方注入 |
+| 真实 App Server 上的提交/停止/审批/提问/会话生命周期/会话命令/模态写入/输入撤回/目标控制 | blocked | D1/D2/D4/D5/D6/D8/D9/D11a 尚未冻结各写意图的方法名与参数；本版发送方由调用方注入 |
 | 真实 `session.input_lookup` 核对 | blocked | 需要真实服务端与稳定回执形状；本版只用注入的核对替身 |
 | 跨进程重启的人工确认 | blocked | R8 明确不落盘；需要服务端事实与人工流程，不属于本包 |
 | 附件资源写入去重 | blocked | 需要 D8 提供稳定内容摘要键与真实资源写入方法 |
@@ -376,7 +384,7 @@ go test -race ./internal/write/
 
 ## 8. 下一步
 
-1. D1 冻结写方法适配：提交、停止、审批应答、长期允许、提问应答、管理写入、账号动作、附件资源写入、会话生命周期（`create`/`rename`/`delete`/`branch.create`/`branch.end`/`fork`）、会话命令（`shell.run`/`shell.stop`）、模态任务与实时传输的方法名、参数与回执字段。
+1. D1 冻结写方法适配：提交、停止、审批应答、长期允许、提问应答、管理写入、账号动作、附件资源写入、会话生命周期（`create`/`rename`/`delete`/`branch.create`/`branch.end`/`fork`）、会话命令（`shell.run`/`shell.stop`）、模态任务与实时传输、输入撤回（`session.input.withdraw`）、目标暂停/恢复（`session.goal.pause`/`session.goal.resume`）的方法名、参数与回执字段。
 2. D2/D1 提供核对实现：按输入标识查用户行、分支归属与运行状态；补一个真实服务端上的 `session.input_lookup` 证据。
 3. D4 接入长期允许与审批应答的两段式顺序，并用本包的 `Wait` 验证「写入失败不发应答」。
 4. D8 接入附件资源写入：用内容摘要派生幂等键，成功/失败/未发生/人工确认四种结果各自的引用释放规则。

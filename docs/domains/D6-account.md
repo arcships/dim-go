@@ -45,7 +45,7 @@ Owner: 账号领域 agent
 **验收**
 
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/account/`；本版全部通过（2026-11-11，macOS arm64）。
-- 本领域：64 个顶层测试（含 3 个真实账号夹具测试）、17 个子测试；未设置夹具环境变量时夹具测试跳过，其余 61 个通过。覆盖见 §6.2。
+- 本领域：67 个顶层测试（含 3 个真实账号夹具测试）、17 个子测试；未设置夹具环境变量时夹具测试跳过，其余 64 个通过。覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖状态读取、登录回调、登出与重置。
   - 注入替身：状态/用量/模型读取、授权来源、系统浏览器、写登记在单元测试里替换，覆盖超时、取消、拒绝、校验不一致、聚合不可用与不重发。
@@ -200,7 +200,7 @@ provider 声明结构不合法（缺标识、标识重复）时整份拒绝（`E
 **设备码流程**
 
 1. 调 `DeviceAuthorizationSource.BeginDeviceAuthorization(ctx, providerID, directory)`，拿到尝试标识、验证地址、用户码与过期时间。
-2. 服务端没有给验证地址或用户码时明确失败，不展示半份提示。
+2. 服务端没有给尝试标识、验证地址或用户码时明确失败，不展示半份提示。
 3. `BeginLogin` 立即返回 `LoginStart`，界面据此展示验证地址与用户码；`WaitLogin` 按 `Interval`（默认 5 秒）轮询。
 4. 轮询状态：
 
@@ -339,7 +339,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
   go test ./internal/account -run TestRealAccountFixture -v
 ```
 
-本版结果：常规三条命令全部通过，`internal/account` 的 61 个顶层测试、17 个子测试全绿；3 个真实账号夹具测试在设置夹具环境变量后通过（2026-11-11，本机 macOS arm64）。
+本版结果：常规三条命令全部通过，`internal/account` 的 64 个顶层测试、17 个子测试全绿；3 个真实账号夹具测试在设置夹具环境变量后通过（2026-11-11，本机 macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -371,8 +371,8 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 | 无写登记时动作不可用 | `TestActionsRequireWriter` |
 | 假服务端覆盖重置无回执 → 需人工确认；重启不补发 | `TestAppServerResetUnknownIsNotResent` |
 | 完成交换带上尝试标识与完整回调地址；未完成时交回服务端取消 | `TestLoginOpensBrowserReceivesCallbackAndRefreshes`、`TestLoginTimeout`、`TestLoginCancel` |
-| provider 声明读取、结构校验、多 provider 必须指定 | `TestProvidersRequiresSource`、`TestProvidersRejectsMalformed`、`TestLoginRequiresProviderSelectionWhenMultiple`、`TestLoginUnknownProvider` |
-| 按 provider 声明选择 browser/device；显式方式必须被声明 | `TestLoginPrefersBrowserWhenBothDeclared`、`TestLoginDeviceWhenOnlyDevice`、`TestLoginExplicitMethodMustBeDeclared`、`TestLoginRequiresProviderDeclaration`、`TestLoginRequiresSourceForDeclaredMethod` |
+| provider 声明读取、读取失败、结构校验、多 provider 必须指定 | `TestProvidersRequiresSource`、`TestProvidersReadFailure`、`TestProvidersRejectsMalformed`、`TestLoginRequiresProviderSelectionWhenMultiple`、`TestLoginUnknownProvider` |
+| 按 provider 声明选择 browser/device；显式方式必须被声明 | `TestLoginPrefersBrowserWhenBothDeclared`、`TestLoginExplicitDeviceWhenBothDeclared`、`TestLoginDeviceWhenOnlyDevice`、`TestLoginExplicitMethodMustBeDeclared`、`TestLoginRequiresProviderDeclaration`、`TestLoginRequiresSourceForDeclaredMethod`、`TestLoginRejectsProviderWithoutUsableMethod` |
 | 设备码提示、轮询完成、失败原因、过期、取消、缺提示、轮询错误 | `TestDeviceLoginFailedKeepsReason`、`TestDeviceLoginExpired`、`TestDeviceLoginCancel`、`TestDeviceBeginThenCancelReleases`、`TestDeviceLoginMissingPromptIsRejected`、`TestDevicePollErrorFails`、`TestLoginDeviceWhenOnlyDevice` |
 | 没有尝试时等待明确报错 | `TestWaitLoginWithoutAttempt` |
 | 假服务端按 provider 走设备码流程 | `TestAppServerDeviceLoginThroughProvider` |
@@ -484,7 +484,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 13. **provider 声明是登录前提**：没有 `ProviderSource` 时登录明确不可用；多个 provider 必须显式指定，不在候选之间猜。
 14. **同时声明两种方式时默认 browser**：这是桌面端的固定偏好，不是能力推断；需要 device 时必须显式指定。
 15. **兼容旧授权来源**：只实现 `AuthorizationSource` 时退回单 provider 调用，不能把 `providerId`/`directory` 交给服务端；provider 专属登录应实现 `ProviderAuthorizationSource`。
-16. **设备码提示必须完整**：服务端没有给验证地址或用户码时整次发起失败，不展示半份提示；轮询间隔由服务端给，缺省 5 秒。
+16. **设备码提示必须完整**：服务端没有给尝试标识、验证地址或用户码时整次发起失败，不展示半份提示；轮询间隔由服务端给，缺省 5 秒。
 17. **读取失败保留旧数据**：`Snapshot`/`Usage` 会同时带旧数据与 `ReadError`；调用方需要自己决定是否提示陈旧，本包不替它判过期。
 18. **无诊断输出**：本包不写日志、不写文件；登录失败的诊断要由调用方按错误类别交给 D10。
 19. **无自动刷新登录**：过期只作为读取结果出现；重新登录必须由用户显式发起。

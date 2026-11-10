@@ -370,11 +370,64 @@ func (s *appSender) sendManagement(
 			return write.Reply{}, err
 		}
 		return write.Reply{Result: raw}, nil
+	case isProviderOp(head.Op), head.Op == "collaboration.set_model_policy":
+		// provider/协作写：载荷已是 wire 形状，去掉意图级的 op，再过 hello 门禁。
+		params, err := objectParams(req)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		delete(params, "op")
+		method := head.Op
+		if !s.app.controlSupports(method) {
+			return write.Reply{}, capabilityMissing(method)
+		}
+		return callAndReply(ctx, client, method, params)
+	case head.Op == "session.agent.update":
+		// 会话 agent 更新走会话流；expectedAgentId 是本领域前置条件，不能下发
+		// （真实服务端拒绝未知字段）。
+		params, err := objectParams(req)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		delete(params, "op")
+		delete(params, "expectedAgentId")
+		sessionID, _ := params["sessionId"].(string)
+		if sessionID == "" {
+			sessionID = req.SessionID
+		}
+		params["sessionId"] = sessionID
+		if branch, _ := params["branchId"].(string); branch == "" {
+			params["branchId"] = branchOrMain(req.BranchID)
+		}
+		runtime, err := s.sessionRuntime(sessionID, methodSessionAgentUpdate)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		if !s.app.sessionSupportsMethod(ctx, runtime, methodSessionAgentUpdate) {
+			return write.Reply{}, capabilityMissing(methodSessionAgentUpdate)
+		}
+		raw, err := runtime.lease.Subscription().Call(ctx, methodSessionAgentUpdate, params)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
 	case head.Op == "runtime.install":
 		// runtime.* 在 alpha.21 不注册：按能力缺失处理，不发请求、不发明方法。
 		return write.Reply{}, runtimeCapabilityMissing()
 	default:
 		return write.Reply{}, fmt.Errorf("%w: 未支持的管理写入 %q", write.ErrInvalidIntent, head.Op)
+	}
+}
+
+// isProviderOp 判断是否是 provider 管理写入（载荷与 wire 同形，只去 op）。
+func isProviderOp(op string) bool {
+	switch op {
+	case "provider.create", "provider.update",
+		"provider.models.set_enabled", "provider.models.edit", "provider.models.reset",
+		"provider.preferences.update":
+		return true
+	default:
+		return false
 	}
 }
 

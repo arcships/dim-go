@@ -5,165 +5,125 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver/daemon"
 )
 
-func keys(raw json.RawMessage) string {
-	var m map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &m); err != nil {
-		var a []json.RawMessage
-		if err := json.Unmarshal(raw, &a); err == nil {
-			if len(a) == 0 {
-				return "[]"
-			}
-			return "array[" + itoa(len(a)) + "] item:" + keys(a[0])
-		}
-		return "?"
-	}
-	out := make([]string, 0, len(m))
-	for k := range m {
-		out = append(out, k)
-	}
-	sort.Strings(out)
-	return fmt.Sprint(out)
-}
-
-func itoa(n int) string { return fmt.Sprintf("%d", n) }
-
 func main() {
 	dataDir, _ := os.MkdirTemp("/tmp", "d12p-")
 	defer os.RemoveAll(dataDir)
-	// 复制夹具 home（来源只读）：config.json + rust/ 供服务端启动。
 	if err := copyTree("/private/tmp/dimagent-real-model/home", dataDir); err != nil {
-		fmt.Println("copy fixture:", err)
+		fmt.Println("copy:", err)
 		return
 	}
 	sup, err := daemon.New(daemon.Config{
 		DataDir:    dataDir,
 		ServerPath: os.Getenv("HOME") + "/.dimcode-alpha/rust/dimcode-server",
 		ServerArgs: []string{"app-server"},
-		MockModel:  false,
 		ClientName: "d12-probe",
 	})
 	if err != nil {
-		panic(err)
+		fmt.Println("new:", err)
+		return
 	}
 	defer sup.Close(nil)
 	conn, err := sup.Connect(context.Background())
 	if err != nil {
-		panic(err)
-	}
-	defer sup.Shutdown(context.Background())
-	client := conn.Client
-	ctx := context.Background()
-	var providerFeatures []string
-	for _, feature := range conn.Hello.Features {
-		if strings.HasPrefix(feature, "provider") || strings.HasPrefix(feature, "collaboration") || strings.HasPrefix(feature, "agent") || strings.HasPrefix(feature, "session.agent") {
-			providerFeatures = append(providerFeatures, feature)
-		}
-	}
-	fmt.Println("hello features (provider/collaboration/agent):", providerFeatures)
-
-	list, err := client.Call(ctx, "provider.list", nil)
-	if err != nil {
-		fmt.Println("provider.list err:", err)
+		fmt.Println("connect:", err)
 		return
 	}
-	fmt.Println("provider.list:", keys(list))
-
-	var parsed struct {
-		Providers []map[string]json.RawMessage `json:"providers"`
-	}
-	_ = json.Unmarshal(list, &parsed)
-	fmt.Println("provider.list providers:", len(parsed.Providers))
-	if len(parsed.Providers) > 0 {
-		first := parsed.Providers[0]
-		ids := make([]string, 0, len(first))
-		for k := range first {
-			ids = append(ids, k)
-		}
-		sort.Strings(ids)
-		fmt.Println("provider item keys:", ids)
-		var id struct {
-			ID string `json:"id"`
-		}
-		_ = json.Unmarshal(mustMarshal(first), &id)
-		if id.ID == "" {
-			var alt struct {
-				ProviderID string `json:"providerId"`
-			}
-			_ = json.Unmarshal(mustMarshal(first), &alt)
-			id.ID = alt.ProviderID
-		}
-		fmt.Println("provider id empty:", id.ID == "")
-		if id.ID != "" {
-			mgmt, err := client.Call(ctx, "provider.management", map[string]any{"providerId": id.ID})
-			if err != nil {
-				fmt.Println("provider.management err:", err)
-			} else {
-				fmt.Println("provider.management:", keys(mgmt))
-				var detail struct {
-					Providers []map[string]json.RawMessage `json:"providers"`
-				}
-				_ = json.Unmarshal(mgmt, &detail)
-				if len(detail.Providers) > 0 {
-					entry := detail.Providers[0]
-					names := make([]string, 0, len(entry))
-					for k := range entry {
-						names = append(names, k)
-					}
-					sort.Strings(names)
-					fmt.Println("provider.management item keys:", names)
-					for _, sub := range []string{"connection", "account", "preferences"} {
-						if raw, ok := entry[sub]; ok {
-							fmt.Println("  ", sub, "keys:", keys(raw))
-						}
-					}
-					if raw, ok := entry["models"]; ok {
-						var models []map[string]json.RawMessage
-						_ = json.Unmarshal(raw, &models)
-						if len(models) > 0 {
-							names := make([]string, 0, len(models[0]))
-							for k := range models[0] {
-								names = append(names, k)
-							}
-							sort.Strings(names)
-							fmt.Println("   model item keys:", names)
-						}
-					}
-				}
-			}
-		}
-	}
-
-	policy, err := client.Call(ctx, "collaboration.model_policy", nil)
+	defer sup.Shutdown(context.Background())
+	ctx := context.Background()
+	raw, err := conn.Client.Call(ctx, "provider.list", map[string]any{})
 	if err != nil {
-		fmt.Println("collaboration.model_policy err:", err)
-	} else {
-		fmt.Println("collaboration.model_policy:", keys(policy))
+		fmt.Println("list:", err)
+		return
+	}
+	var list struct {
+		Providers []struct {
+			ProviderID string `json:"providerId"`
+		} `json:"providers"`
+	}
+	_ = json.Unmarshal(raw, &list)
+	for index, entry := range list.Providers {
+		if index >= 5 {
+			break
+		}
+		mgmt, err := conn.Client.Call(ctx, "provider.management", map[string]any{"providerId": entry.ProviderID})
+		if err != nil {
+			fmt.Println("mgmt:", err)
+			continue
+		}
 		var parsed struct {
-			Policy map[string]json.RawMessage `json:"policy"`
+			Providers []map[string]json.RawMessage `json:"providers"`
 		}
-		_ = json.Unmarshal(policy, &parsed)
-		fmt.Println("collaboration policy keys:", keys(mustMarshal(parsed.Policy)))
-	}
-	agents, err := client.Call(ctx, "agent.list", nil)
-	if err != nil {
-		fmt.Println("agent.list err:", err)
-	} else {
-		fmt.Println("agent.list:", keys(agents))
+		_ = json.Unmarshal(mgmt, &parsed)
+		if len(parsed.Providers) == 0 {
+			fmt.Println(entry.ProviderID, "no providers")
+			continue
+		}
+		models, ok := parsed.Providers[0]["models"]
+		if !ok {
+			fmt.Println(entry.ProviderID, "no models key")
+			continue
+		}
+		var asArray []map[string]json.RawMessage
+		if err := json.Unmarshal(models, &asArray); err != nil {
+			fmt.Println(entry.ProviderID, "array decode:", err)
+			continue
+		}
+		if len(asArray) == 0 {
+			fmt.Println(entry.ProviderID, "models empty")
+			continue
+		}
+		types := map[string]string{}
+		for key, value := range asArray[0] {
+			var probe any
+			_ = json.Unmarshal(value, &probe)
+			switch probe.(type) {
+			case string:
+				types[key] = "string"
+			case bool:
+				types[key] = "bool"
+			case float64:
+				types[key] = "number"
+			case []any:
+				types[key] = "array"
+			case map[string]any:
+				types[key] = "object"
+			default:
+				types[key] = "null"
+			}
+		}
+		fmt.Printf("%s models=%d firstTypes=%v\n", entry.ProviderID, len(asArray), types)
+		if rawModel, ok := asArray[0]["model"]; ok {
+			var modelObj map[string]json.RawMessage
+			if err := json.Unmarshal(rawModel, &modelObj); err == nil {
+				inner := map[string]string{}
+				for key, value := range modelObj {
+					var probe any
+					_ = json.Unmarshal(value, &probe)
+					switch probe.(type) {
+					case string:
+						inner[key] = "string"
+					case bool:
+						inner[key] = "bool"
+					case float64:
+						inner[key] = "number"
+					case []any:
+						inner[key] = "array"
+					case map[string]any:
+						inner[key] = "object"
+					default:
+						inner[key] = "null"
+					}
+				}
+				fmt.Println("  model object types:", inner)
+			}
+		}
 	}
 }
 
-func mustMarshal(m map[string]json.RawMessage) json.RawMessage {
-	raw, _ := json.Marshal(m)
-	return raw
-}
-
-// copyTree 递归复制目录（处理 /tmp 夹具的浅层结构）。
 func copyTree(src, dst string) error {
 	entries, err := os.ReadDir(src)
 	if err != nil {
