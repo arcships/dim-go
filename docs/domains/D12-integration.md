@@ -50,6 +50,8 @@ Owner: D12 集成层领域
 | `internal/app/providers.go` | `settings.ProviderAdmin`/`CollaborationReader`/`AgentAdmin` 适配器：provider 清单/详情/探测、协作策略、agent 档案 |
 | `internal/app/account_sources.go` | `account.ProviderSource`/`ProviderAuthorizationSource`/`DeviceAuthorizationSource`：按 provider 分发登录 |
 | `internal/app/rules.go` | `interaction.RuleSource`：`permission.rules` 读取、`permission.set_rules` 写入（冲突不重试） |
+| `internal/app/update.go` | 应用更新装配：当前版本、版本源、单文件目标、会话空闲探针、退出五阶段、重启回调、诊断 |
+| `cmd/dimagent/update.go` | `update check|download|switch` 子命令：状态与版本号输出，不打印下载地址 |
 | `internal/app/app_test.go` | 装配链路、宿主接线、单实例、阶段失败、退出超时、诊断白名单、写闸门 |
 | `internal/app/wire_test.go` | 审批路由、标题合并、清单注入、提问时间线路由、核对优先级、附件写入与能力门禁 |
 | `internal/app/writes_test.go` | 命令执行/停止、模态四种写入、分支开/结束的映射与门禁 |
@@ -60,7 +62,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：47 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：52 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -322,6 +324,31 @@ provider、协作策略、agent 与新增扩展写入都先过 hello 能力（�
 
 `dimcode-server` 是统一二进制，需要 `app-server` 子命令（D1 §3.7）。`App.Connect` 在 `ServerArgs` 为空且可执行文件名为 `dimcode-server` 时自动补 `["app-server"]`；调用方显式给了参数就原样使用（例如 `-server-arg app-server`）。`dim-app-server` 这类独立二进制不补参数。
 
+### 4.12 应用更新（装配 `host.Updater`）
+
+| 项 | 口径 |
+|---|---|
+| 当前版本 | `UpdateOptions.CurrentVersion`（x.y.z），或 `ReadVersion` 每次读取安装产物里的版本；CLI 缺省从构建信息取，读不到用 `0.0.0` |
+| 版本源 | 完整 `ManifestURL` 优先；否则按现有客户端的渠道约定推导：基址 `https://dimcode.echooai.com`、通道 `updates/stable`、平台路径 `mac/<arch>`（或 `win/x64`、`linux/x64`）、清单 `latest-mac.yml`/`latest.yml`。渠道地址只读确认自现有客户端配置，不在本包硬编码新值 |
+| 单文件目标 | `TargetPath` 默认是当前可执行文件；平台目录/安装器不在地支持范围（见 10） |
+| 会话空闲探针 | `App.SessionsIdle()`：本实例没有打开中的会话即为空闲 |
+| 退出五阶段 | 接到宿主外壳后，更新编排的 `Shutdown` 直接调用外壳的 `Shutdown`（不复制阶段顺序） |
+| 重启 | `Restart` 由调用方给出；CLI 用 `exec.Command(target)` 启动新进程，不接管输出 |
+| 诊断 | 复用宿主外壳的白名单 `Recorder`；只记录结果、状态与版本字段 |
+| 检查失败 | 状态进 `up_to_date`，原因放 `Status.LastError` 与诊断；**不阻塞使用** |
+| 切换推迟 | 有会话未收尾时返回 `host.ErrSessionsBusy`，状态保持待切换，产物不替换 |
+| 输出纪律 | 只打印状态与版本号；不打印清单地址、产物地址或其中的查询串 |
+
+CLI：
+
+```text
+dimagent update check      # 检查；失败打印原因并退出 0
+dimagent update download   # 检查 + 下载校验；失败退出 1
+dimagent update switch     # 检查 + 下载 + 切换；会话未收尾时明确报并退出 1
+```
+
+`switch` 与 `download` 在同一进程内完成状态机（检查 → 待下载 → 待切换），因为更新状态只在内存，不落盘。
+
 ## 5. 启动与退出（接线点）
 
 ### 5.1 启动：五阶段执行体 → 宿主六阶段
@@ -395,7 +422,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 47 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 52 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -438,6 +465,10 @@ go test -race ./internal/app/
 | provider 清单/详情/探测、协作策略、agent 清单与会话 agent 的读取映射 | `TestProviderAdminReads` |
 | provider 管理/协作策略/会话 agent 写入：参数映射、`op` 不下发、`expectedAgentId` 不下发 | `TestProviderAndAgentWritesUseRealMethods` |
 | provider 写入缺能力：零请求且明确失败 | `TestProviderWritesMissingCapability` |
+| 应用更新：检查到新版、已是最新 | `TestUpdaterCheckFindsNewVersion`、`TestUpdaterUpToDate` |
+| 应用更新：下载摘要不一致留在待下载 | `TestUpdaterDownloadChecksumFailure` |
+| 应用更新：有会话时切换推迟、产物不替换 | `TestUpdaterSwitchDeferredWithOpenSession` |
+| 应用更新：切换替换产物并读到新版本、重启一次 | `TestUpdaterSwitchReplacesTargetAndVersion` |
 | 命令规则来源：读取映射、写入映射（expectedRevision 与规则字段） | `TestRuleSourceReadAndWrite` |
 | 命令规则冲突：映射成 `ErrRulesConflict` 且不重试 | `TestRuleSourceConflict` |
 | 命令规则缺能力：零请求、裁决记住缺失 | `TestRuleSourceMissingCapability` |
@@ -689,6 +720,21 @@ permission.set_rules conflict: mapped=true
 - 原样写回推进了 revision；用旧 revision 再写返回 `permission_rules_conflict`，本包映射成 `interaction.ErrRulesConflict` 且只请求一次。
 - 真实回执只带 revision，规则集合以本次写入的集合为准；只读缓存由交互裁决持有，不落盘。
 
+**证据 N：更新检查失败不阻塞（本机离线）**
+
+```bash
+dimagent update check -version 0.0.1 \
+  -manifest http://127.0.0.1:9/updates/stable/mac/arm64/latest-mac.yml
+```
+
+```text
+update: state=up_to_date current=0.0.1 available=-
+dimagent update: 检查失败（不阻塞使用）: Get "...": connect: connection refused
+exit=0
+```
+
+真实渠道 `https://dimcode.echooai.com` **没有请求**（离线环境），见 9。检查成功、下载校验、切换与版本变化由本地 HTTP 版本源在测试里覆盖（证据见 7.2）。
+
 ### 7.4 自检子命令
 
 ```bash
@@ -775,6 +821,8 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 真实设备码/浏览器登录完成 | blocked | 需要真人在授权页完成；本包只验证发起、轮询与取消 |
 | 真实 `permission.set_rules`（长期允许） | 未验证 | 只有假服务端证据；需要一次真实工具审批（本机模型不产生） |
 | 重连后自动重开会话 | 未验证 | 需要 U1/D10 决定重开策略；本包只提供 `Reconnect` 与 `OpenSession` |
+| 真实更新渠道 | blocked（离线环境） | `https://dimcode.echooai.com` 未请求；真实渠道提供的是 macOS `.app`/安装器，本版只实现单文件替换 |
+| 真实安装包上的切换与重启 | blocked | 需要真实单文件产物；测试用假文件模拟替换与版本变化 |
 
 ## 10. 已知限制
 
@@ -802,14 +850,18 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 22. **agent 清单不按 hello 预判**：`agent.list` 是内建方法，真实 hello 不声明；直接调用，缺失时按 `unknown_method` 归为能力缺失。
 23. **账号 provider 解析按实例缓存**：`account.providers` 解析一次；登录方式只取服务端声明，未声明的方法不会本地推断。
 24. **设备码状态未知即拒绝**：只映射 pending/completed/failed/expired/canceled（含常见别名），其他取值按事实不合法报错，不改写成 pending。
-25. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
-26. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
-27. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-28. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-29. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-30. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-31. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-32. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+25. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
+26. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
+27. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
+28. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
+29. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
+30. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
+31. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+32. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+33. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+34. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+35. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+36. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -821,6 +873,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | 接上应用更新：装配 `host.Updater`（当前版本、渠道源、单文件目标、会话空闲探针、退出五阶段、重启、诊断），`dimagent update check/download/switch` 子命令 | 更新收尾；真实渠道离线未请求 | 
 | 2026-11-11 | 接上命令规则来源 `interaction.RuleSource`：`permission.rules` 读取、`permission.set_rules` 带版本写入、冲突透传不重试 | 交互领域新增命令规则面 | 
 | 2026-11-11 | 新增扩展写入（项目钩子启停、技能刷新/重载、MCP 认证四步）与设置适配器（provider 清单/详情/探测、协作策略、agent 档案），账号按 provider 分发（browser/device 来源） | 扩展与设置领域新增接口；账号领域改为按 provider 分发 | 
 | 2026-11-11 | 门禁改 hello 优先；命令与模态接真实调用：`shell.run/stop/list`（含 record 回写与停止收敛）、`settings.ModalitySession` 适配器（任务提交/状态/结果/取消 + 实时发送）；证据不含命令与输出 | 真实服务端把 `modality.*` 只声明在 hello、`shell.*` 只声明在会话方法表 |

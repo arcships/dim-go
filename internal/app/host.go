@@ -59,6 +59,11 @@ func NewHost(base *App, options HostOptions) (*host.Shell, error) {
 	if err != nil {
 		return nil, err
 	}
+	// 更新编排在宿主外壳建好后补上退出五阶段与同一份诊断记录。
+	if bindErr := base.bindUpdateHost(shell, options.Diag); bindErr != nil {
+		_ = base.closeUpdate()
+		return nil, bindErr
+	}
 	base.SetWriteGate(shell.Writable)
 	return shell, nil
 }

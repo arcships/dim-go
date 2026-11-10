@@ -20,6 +20,7 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/attachments"
 	"github.com/arcships/dimagent-mygo/internal/catalog"
 	"github.com/arcships/dimagent-mygo/internal/extensions"
+	"github.com/arcships/dimagent-mygo/internal/host"
 	"github.com/arcships/dimagent-mygo/internal/interaction"
 	"github.com/arcships/dimagent-mygo/internal/projection"
 	"github.com/arcships/dimagent-mygo/internal/settings"
@@ -140,6 +141,10 @@ type App struct {
 	accountWire *accountWire
 	// deviceAuth 是设备码登录的适配；尝试到 provider 的对应只在内存里保存。
 	deviceAuth *accountDeviceSource
+	// updater 是应用更新编排；未装配时为 nil。
+	updater       *host.Updater
+	updateOptions UpdateOptions
+	updateDiag    *host.Recorder
 
 	// 连接与订阅。
 	supervisor *daemon.Supervisor

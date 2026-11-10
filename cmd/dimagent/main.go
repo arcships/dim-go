@@ -53,6 +53,8 @@ func main() {
 	switch os.Args[1] {
 	case "selfcheck":
 		os.Exit(runSelfCheck(os.Args[2:]))
+	case "update":
+		os.Exit(runUpdate(os.Args[2:]))
 	case "-h", "--help", "help":
 		usage()
 	default:
@@ -66,6 +68,7 @@ func usage() {
 	fmt.Print(`dimagent：DimAgent Go 客户端（集成层自检）
 
 用法：
+  dimagent update check|download|switch [参数]   （见 dimagent update -h）
   dimagent selfcheck [参数]
 
 参数：
