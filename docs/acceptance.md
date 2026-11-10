@@ -41,7 +41,7 @@ Last updated: 2026-11-09
 | F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L4：`window-connected.png`（seed 会话的 user/assistant 行，`61a52a7`） | **已通过（L4）** |
 | F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L4：真实 provider（Qwen3.6-27B）发送后 assistant 文本 122→250→382 chars 增量出现（`window-stream-1/3/6.png`）；mock 下 user/assistant 行也已有证据 | **已通过（L4）** |
 | F7 | stop | 真实窗口停止 → 状态收敛 | L4：真实 provider 运行中点击 Stop → `stop.accepted`、Stop 消失、运行终止（`window-stop.png`） | **已通过（L4）** |
-| F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | headless + fake-server（bridge 单测）；无 L3/L4 审批流证据 | 未通过 |
+| F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | L4：真实 provider 触发 exec 审批；Allow once → exec Complete `approval-test`；Reject once → exec Error “Tool execution denied by user”；两次面板消失、无重复发送（`window-approval*.png`） | **已通过（L4）** |
 | F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | L4：daemon 在 Send 前后被停/杀，窗口显示 `Submission result unknown`、保留草稿、提示 Reconnect，不重发（`window-unknown-result.png`）；`input_lookup` 的 accepted/unknown 结果展示仍缺 | 未通过 |
 | F10 | 断线 / reattach | 杀掉 daemon → 错误态 → 重连 → 历史重建 | L4：kill daemon 显示 Connection error；点击 Reconnect 后 daemon 重新 spawn、连接恢复、latest-turn history 重建（`window-transport-lost.png`、`window-reattach.png`） | **已通过（L4）** |
 | F11 | `subscription_changed` 恢复 | 真实 replay-gap 场景 | 无真实 wire 证据 | 未通过 |
