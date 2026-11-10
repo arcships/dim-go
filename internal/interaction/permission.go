@@ -1,7 +1,6 @@
 package interaction
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -21,14 +20,11 @@ const (
 	PermissionFullAccess PermissionTier = "full-access"
 )
 
-// permissionParam 是提交意图里携带档位的字段名。取值原样透传给发送方。
-const permissionParam = "permission"
-
 // ErrPermissionTierEmpty 表示档位取值为空。
 var ErrPermissionTierEmpty = errors.New("权限档位取值为空")
 
-// ErrPermissionParams 表示提交意图的参数不是 JSON 对象，无法合入档位。
-var ErrPermissionParams = errors.New("提交意图参数不是 JSON 对象")
+// ErrPermissionUnset 表示本会话还没有选择权限档位；提交必须显式要求一个档位。
+var ErrPermissionUnset = errors.New("本会话尚未选择权限档位")
 
 // ErrNotSubmitIntent 表示档位只能透传给提交意图。
 var ErrNotSubmitIntent = errors.New("权限档位只能透传给提交意图")
@@ -66,11 +62,16 @@ func (a *Arbiter) PermissionTier() (PermissionTier, bool) {
 	return a.permissionTier, a.permissionSet
 }
 
-// WithPermission 把本会话的当前档位显式透传给一次提交意图。
+// WithPermission 校验一次提交意图是否可以带上本会话的权限档位。
 //
-// 约束：只接受提交意图，且意图的会话必须是本裁决器的会话；没有取值时意图原样
-// 返回，不补默认值。已有参数必须是 JSON 对象；本包只增加一个字段，不改其它内容。
-// 提交路径必须先调用本方法，服务端才能收到所选档位。
+// 协议事实（alpha.21）：`session.submit` 没有 permission 字段，权限由会话分支的
+// policy 携带，切换走 `session.permission.update`。因此本方法不向提交参数塞字段，
+// 只要求本会话已经明确选择过档位：
+//   - 没有取值时拒绝提交（ErrPermissionUnset），不猜默认值；
+//   - 只接受提交意图（ErrNotSubmitIntent），且会话必须是本裁决器的会话
+//     （ErrPermissionSession）。
+//
+// 提交路径必须先调用本方法；服务端按该会话已有的 policy 执行。
 func (a *Arbiter) WithPermission(intent write.Intent) (write.Intent, error) {
 	if intent.Kind != write.KindSubmitInput {
 		return intent, fmt.Errorf("%w: %s", ErrNotSubmitIntent, intent.Kind)
@@ -79,33 +80,11 @@ func (a *Arbiter) WithPermission(intent write.Intent) (write.Intent, error) {
 		return intent, fmt.Errorf("%w: 意图会话 %q，本会话 %q",
 			ErrPermissionSession, intent.SessionID, a.sessionID)
 	}
-
 	a.mu.Lock()
-	tier, ok := a.permissionTier, a.permissionSet
+	ok := a.permissionSet
 	a.mu.Unlock()
 	if !ok {
-		return intent, nil
+		return intent, fmt.Errorf("%w: %s", ErrPermissionUnset, a.sessionID)
 	}
-
-	params := make(map[string]json.RawMessage)
-	if len(intent.Params) > 0 {
-		if err := json.Unmarshal(intent.Params, &params); err != nil {
-			return intent, fmt.Errorf("%w: %v", ErrPermissionParams, err)
-		}
-		if params == nil {
-			// JSON null 解码后是 nil map；按空对象处理，避免写入时 panic。
-			params = make(map[string]json.RawMessage)
-		}
-	}
-	rawTier, err := json.Marshal(string(tier))
-	if err != nil {
-		return intent, fmt.Errorf("编码权限档位: %w", err)
-	}
-	params[permissionParam] = rawTier
-	merged, err := json.Marshal(params)
-	if err != nil {
-		return intent, fmt.Errorf("编码提交意图参数: %w", err)
-	}
-	intent.Params = merged
 	return intent, nil
 }

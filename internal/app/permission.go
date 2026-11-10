@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver/failure"
@@ -14,6 +15,9 @@ const (
 	methodPermissionGet    = "session.permission.get"
 	methodPermissionUpdate = "session.permission.update"
 )
+
+// ErrPermissionConflict 表示权限档位写入的版本前置条件已过期；不覆盖服务端。
+var ErrPermissionConflict = errors.New("权限档位版本冲突")
 
 // refreshPermission 打开会话时读一次当前权限策略，把 preset 装进交互裁决。
 //
@@ -38,6 +42,8 @@ func (a *App) refreshPermission(ctx context.Context, runtime *sessionRuntime) {
 		return
 	}
 	runtime.permissionVersion.Store(result.Version)
+	policy := result.Policy
+	runtime.permissionPolicy.Store(&policy)
 	a.setPermissionFromPolicy(runtime, result.Policy)
 }
 
@@ -73,14 +79,13 @@ func (a *App) SetPermissionTier(ctx context.Context, sessionID string, tier inte
 		SessionID:       runtime.id,
 		BranchID:        branchID,
 		ExpectedVersion: runtime.permissionVersion.Load(),
-		// 列表字段显式给空数组：服务端要求策略三件套齐全，不接受 null。
-		Policy: protocol.PermissionPolicy{
-			Preset:          string(tier),
-			AllowedTools:    []string{},
-			DisallowedTools: []string{},
-		},
+		// 保留已读到的工具列表，只换 preset；服务端要求策略三件套齐全，不接受 null。
+		Policy: permissionPolicyFor(runtime, tier),
 	})
 	if err != nil {
+		if appErrorOf(err) == "permission_conflict" {
+			return fmt.Errorf("%w: %s", ErrPermissionConflict, methodPermissionUpdate)
+		}
 		if failure.Is(err, failure.KindNonRetryable) {
 			return fmt.Errorf("%w: %s: %v", ErrCapabilityMissing, methodPermissionUpdate, err)
 		}
@@ -91,8 +96,26 @@ func (a *App) SetPermissionTier(ctx context.Context, sessionID string, tier inte
 		return fmt.Errorf("权限回执无法解析: %w", err)
 	}
 	runtime.permissionVersion.Store(result.Version)
+	policy := result.Policy
+	runtime.permissionPolicy.Store(&policy)
 	a.setPermissionFromPolicy(runtime, result.Policy)
 	return nil
+}
+
+// permissionPolicyFor 用最近读到的策略换 preset，保留工具列表。
+func permissionPolicyFor(runtime *sessionRuntime, tier interaction.PermissionTier) protocol.PermissionPolicy {
+	policy := protocol.PermissionPolicy{
+		Preset:          string(tier),
+		AllowedTools:    []string{},
+		DisallowedTools: []string{},
+	}
+	current := runtime.permissionPolicy.Load()
+	if current == nil {
+		return policy
+	}
+	policy.AllowedTools = append([]string{}, current.AllowedTools...)
+	policy.DisallowedTools = append([]string{}, current.DisallowedTools...)
+	return policy
 }
 
 // PermissionTier 返回本会话当前的权限档位；没有读取或没有值时为 false。

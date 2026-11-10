@@ -3,7 +3,7 @@
 Status: 第一版实现完成，待组织评审
 Owner: 交互裁决领域 agent
 依据: `docs/domains/R.md` 功能块 6、功能块 7；`docs/domains/A.md` 的「交互裁决」模块、「审批推进」「提问应答」「四条总规矩」；`docs/domains/D3-write.md`；`docs/domains/D2-projection.md`
-范围: 审批与提问的待决集合、推进顺序、应答与长期允许、重放替换、权限档位取值、成员停止。不含界面、连接实现、协议 wire 定义、会话折叠内部、目录、账号、管理面。
+范围: 审批与提问的待决集合、推进顺序、应答与长期允许、重放替换、权限档位读写与事实更新、成员停止。不含界面、连接实现、协议 wire 定义、会话折叠内部、目录、账号、管理面。
 
 ---
 
@@ -16,7 +16,7 @@ Owner: 交互裁决领域 agent
 | 输入 | 来源 | 本版使用方式 |
 |---|---|---|
 | 功能块 6「审批处理语义」 | `docs/domains/R.md` | 审批接收与去重、同意与拒绝、长期允许先写后答、重放集合替换 |
-| 功能块 7「提问处理与权限档位」 | `docs/domains/R.md` | 一次一个、应答/取消/拒绝、结算后移除且不重答、档位透传、成员停止 |
+| 功能块 7「提问处理与权限档位」 | `docs/domains/R.md` | 一次一个、应答/取消/拒绝、结算后移除且不重答、档位读取/写入与时间线事实、成员停止 |
 | 审批推进、提问应答、四条总规矩 | `docs/domains/A.md` | 两张迁移表逐条实现并在启动时校验；队列一次只推一条；不做乐观更新 |
 | 写意图、长期允许与审批应答两条独立意图 | `docs/domains/D3-write.md` | 所有应答、长期规则与成员停止都经写登记；成功/失败/未知/需人工确认直接消费 |
 | 审批通知 | `docs/domains/D1-connection.md` | `approval.request`/`approval.resolved`/`approval.cancelled` 映射成审批 `Fact`，重放用 `Snapshot` |
@@ -32,32 +32,32 @@ Owner: 交互裁决领域 agent
 | `internal/interaction/state.go` | 「审批推进」「提问应答」两张迁移表与启动校验 |
 | `internal/interaction/question.go` | 提问来源：清单/推导装载、`ask_user` 事实、工具结果结算、问题解析 |
 | `internal/interaction/respond.go` | 应答流程：队首约束、长期允许先写后答、写意图参数与幂等键、重复与不重发 |
-| `internal/interaction/permission.go` | 按会话的权限档位状态与提交意图透传 |
+| `internal/interaction/permission.go` | 按会话的权限档位状态；无值拒绝提交；提交参数不被污染 |
 | `internal/interaction/member.go` | 成员停止意图 |
 | `internal/interaction/helpers_test.go` | 写登记测试替身与事实构造 |
 | `internal/interaction/interaction_test.go` | 审批重放、队列推进、结算、重复应答、断线与视图 |
 | `internal/interaction/question_test.go` | 提问清单顺序、批次结算、清单失败退回推导、截止点与重复结算 |
 | `internal/interaction/state_test.go` | 迁移表与文档逐条对应、坏表拒绝 |
 | `internal/interaction/respond_test.go` | 长期允许顺序、写入失败不发应答、重试与不重发 |
-| `internal/interaction/permission_test.go` | 档位取值、无默认值、按会话隔离、透传边界 |
+| `internal/interaction/permission_test.go` | 档位取值、无值拒绝提交、按会话隔离、提交参数不被污染 |
 | `internal/interaction/member_test.go` | 成员停止只停成员 |
 | `internal/interaction/appserver_test.go` | `fakeappserver` + 真实写登记的请求顺序、失败与一次一条 |
 | `docs/domains/D5-interaction.md` | 本文件 |
 
 **验收**
 
-- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/interaction/`；本版全部通过（2026-11-10，macOS arm64）。
-- 本领域：49 个顶层测试、20 个子测试全部通过；覆盖见 §6.2。
+- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/interaction/`；本版全部通过（2026-11-11，macOS arm64）。
+- 本领域：49 个顶层测试、20 个子测试通过；真实模型用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 发出长期规则、审批应答与提问应答，核对服务端收到的请求顺序与参数。
   - 注入写登记替身：覆盖成功、明确失败、需人工确认、结果未知、并发应答等分支。
-  - 真实 App Server 的审批与提问生命周期：**blocked**，见 §6.5。
+  - 真实模型审批链路：已在本机 daemon + 夹具账号上验证（§6.5）；真实非空提问清单与成员停止仍 blocked（§6.6）。
 
 **依赖**
 
 | 依赖 | 需要对方冻结/提供 |
 |---|---|
-| D1 连接 | 审批请求/结算/取消、`permission/changed`、成员状态变化的通知形状；`session.question.pending` 清单与时间线工具事实；各写意图的方法名与参数形状；由集成层实现 `Fact`/`QuestionSeed` 映射与 `Sender` |
+| D1 连接 | 审批请求/结算/取消、`permission/changed` 时间线事实、成员状态变化的通知形状；`session.permission.get/update`；`session.question.pending` 清单与时间线工具事实；各写意图的方法名与参数形状；由集成层实现 `Fact`/`QuestionSeed` 映射与 `Sender` |
 | D3 写登记 | `*write.Manager` 直接满足本包 `Writer`（`Register`/`Wait`）；长期允许、审批应答、提问应答各为一条独立意图；明确失败与未发生可重提，未知与需人工确认不重发 |
 | D2 投影 | 不导入本包；D2 已声明 `approval/*`、`permission/changed`、`collaboration/message` 不折叠，事件路由需把这些通知转给本领域 |
 | 集成层（宿主） | 每个打开的会话创建一个裁决器；权限档位随裁决器按会话一份持有；把审批事实与快照交给本包；按截止点读提问清单（失败时注入推导结果），把工具事实与工具结果交给本包 |
@@ -73,7 +73,7 @@ Owner: 交互裁决领域 agent
 
 1. 领域编号：D1 连接、D2 投影、D3 写登记、D4 目录、D5 交互、D6 账号、D7 工作区、D8 附件、D9 终端、D10 宿主外壳、D11 管理面；本领域为 D5。
 2. 队列作用域：按会话。每个打开的会话一条待决队列，跨会话互不影响；同一条队列内一次只推进一条；跨会话并行的最高条数等于打开的会话数。
-3. 权限档位：归交互裁决，作用域按会话。未选择时不猜默认值；提交意图必须显式携带所选档位，跨会话互不影响。
+3. 权限档位：归交互裁决，作用域按会话。读取 `session.permission.get`、写入 `session.permission.update`；变更来源是时间线 `permission/changed`，没有通知。preset 只有 `read-only`/`workspace-write`/`full-access` 三档，不本地自造枚举。未选择时不猜默认值，并拒绝提交；提交本身不携带协议没有的 permission 字段，档位由会话分支 policy 携带。
 4. 提问来源：协议没有 `question.*`/`elicitation.*` 通知；提问由 `session.question.pending` 清单（固定截止点 + 不透明游标）与时间线 `ask_user` 事实构成，结算依据是工具结果/结算事实。清单优先，清单读取失败才退回历史推导。
 
 ## 2. 边界
@@ -90,7 +90,7 @@ Owner: 交互裁决领域 agent
 | 应答 | 审批同意/拒绝；提问应答/拒绝/取消；全部经写登记 |
 | 长期允许 | 先写长期规则，成功后才发审批应答；规则失败或无法确认时不发应答 |
 | 重复保护 | 同一时刻只允许一次应答；已答与已结算的请求拒绝再次应答 |
-| 权限档位 | 按会话保存当前取值并显式透传给本会话的提交意图；无值时不猜默认值 |
+| 权限档位 | 按会话保存服务端读到的 preset；从 `permission/changed` 更新；无值时拒绝提交，不猜默认值 |
 | 成员停止 | 只对指定成员发停止意图，主线与待决集合不受影响 |
 
 **不做**
@@ -103,7 +103,7 @@ Owner: 交互裁决领域 agent
 | 会话历史与工具行的折叠 | D2；本包不读折叠内部 |
 | 会话目录、草稿、导出 | 目录领域与 D3 |
 | 账号、模型、插件、技能、钩子、计划任务 | 账号与管理面 |
-| 权限档位写回服务端 | 档位取值归本领域、按会话持有；写回路径不属于本领域，本包只保存与透传 |
+| 权限档位读写 wire | `session.permission.get`/`update` 的方法名与参数由连接/集成层持有；本包只保存 preset 并校验提交前置条件 |
 | 等待提问通知 | 协议没有 `question.*`/`elicitation.*`；提问改由清单 + 时间线事实驱动 |
 | 应答超时语义 | R 块 7：不引入，只提供应答、取消、拒绝 |
 | 任何持久化 | R8 与 A.md：幂等与去重标识只在内存 |
@@ -121,7 +121,7 @@ internal/interaction/
 ├── question.go        提问来源：QuestionSeed、QuestionItem、SeedQuestions、
 │                      ApplyAskUser、SettleQuestion、QuestionSeedState
 ├── respond.go         Respond、长期允许两步、参数与幂等键、重复与不重发
-├── permission.go      PermissionTier、Set/Clear/PermissionTier、WithPermission
+├── permission.go      PermissionTier（真实三档）、Set/Clear/PermissionTier、WithPermission
 ├── member.go          MemberRef、StopMember
 └── *_test.go          §1 产物列出的测试
 ```
@@ -266,13 +266,14 @@ intent, err := arbiter.WithPermission(write.Intent{
 |---|---|---|---|
 | `DecisionApprove` | 审批 | `KindApprovalResponse` | `{"decision":"approve"}` |
 | `DecisionReject` | 审批、提问 | `KindApprovalResponse` / `KindQuestionAnswer` | `{"decision":"reject"}` |
-| `DecisionAllowLongTerm` | 审批（可长期允许且有规则参数） | 先 `KindLongTermAllow`，后 `KindApprovalResponse` | 规则：长期参数原文；应答：`{"decision":"allow_always"}` |
+| `DecisionAllowLongTerm` | 审批（可长期允许且有规则参数） | 先 `KindLongTermAllow`，后 `KindApprovalResponse` | 规则：`{"command":<简单命令>,"match":"exact","decision":"allow"}`；应答：`{"decision":"allow"}` |
 | `DecisionAnswer` | 提问 | `KindQuestionAnswer` | `{"decision":"answer","answer":<原文>}` |
 | `DecisionCancel` | 提问 | `KindQuestionAnswer` | `{"decision":"cancel"}` |
 
 - `SessionID` 为本裁决器的会话；`BranchID` 审批取自事实、提问取自清单分支。`InputID` 取审批或提问的请求标识，供写登记核对与发送方引用。
 - 每次尝试生成新的幂等键：`interaction/<step>/<session>/<requestID>/<decision>/<attempt>`；只有上一次写入明确失败后才会产生下一次尝试，因此新键不会掩盖重复发送。
-- 发送方（集成层）负责把 `Kind` 映射成 wire 方法，并合入会话、分支与请求标识；本包不复制 wire 定义。
+- 发送方（集成层）负责把 `Kind` 映射成 wire 方法，并合入会话、分支与请求标识；本包不复制 wire 定义。审批应答的 `approve`/`reject` 在集成层映射成服务端的 `allow`/`deny`。
+- 服务端没有 `approval.allow_always`：长期允许由 `permission.rules` 读、`permission.set_rules` 写用户命令规则承载，规则写成功后才发 `approval.respond {decision:"allow"}`。
 
 ### 4.6 长期允许：先写后答
 
@@ -283,7 +284,7 @@ intent, err := arbiter.WithPermission(write.Intent{
 5. 若应答写入明确失败：条目停在待应答、允许**只重试应答**，不重写规则，也不允许改口成拒绝；重试用新幂等键。规则已写入的记录跨重放与断线保留，重连后仍只重试应答。
 6. 若应答写入成功、需人工确认或结果未收敛：按已答处理，不重发。
 
-「先写后答」在 `fakeappserver` 上核对的是服务端收到的请求顺序：`approval.allow_always` 先于 `approval.respond`；规则失败时 `approval.respond` 的请求数为 0。
+「先写后答」在 `fakeappserver` 上核对的是服务端收到的请求顺序：`permission.rules` → `permission.set_rules` → `approval.respond`；规则失败时 `approval.respond` 的请求数为 0。规则只覆盖 `exec`/`execute` 的简单命令（不含分号、`&`、`|`、反引号、括号、重定向、`$` 与换行），其他工具暂不支持长期允许。
 
 ### 4.7 重复应答与不重发
 
@@ -297,19 +298,33 @@ intent, err := arbiter.WithPermission(write.Intent{
 | 明确失败 / 未发生 | 不记已答；允许重试（新幂等键） |
 | 审批结算 / 提问工具结果 | 移除并推进；已答记录保留，之后仍拒绝应答 |
 
-### 4.8 权限档位（按会话的状态与不变量）
+### 4.8 权限档位：状态、读写与不变量
 
-**状态**：每个打开的会话在自己的裁决器里持有一个权限档位取值，可以没有值。档位归交互裁决；取值来自服务端事实或用户选择，本包只保存并透传。
+**状态**：每个打开的会话在自己的裁决器里持有一个 preset，可以没有值。preset 只有服务端的三档：`read-only`、`workspace-write`、`full-access`；本包不定义别名、不猜默认值。版本号由集成层随会话持有（打开时读到、写入回执更新），交互裁决只持有 preset。
+
+**读写与变更来源**
+
+| 动作 | 服务端事实 | 本领域/集成层 |
+|---|---|---|
+| 打开会话时读取 | `session.permission.get {sessionId,branchId}` → `{version,policy}` | 集成层装入 preset 与版本 |
+| 用户切换档位 | `session.permission.update {sessionId,branchId,expectedVersion,policy}` → `{version,policy}` | 集成层写入；成功以回执更新 preset 与版本 |
+| 其他客户端改动 | 时间线 `permission/changed`（`event.type=permission`、`event.name=changed`、`data.policy`） | 集成层把 preset 装入本领域；**没有 `permission.changed` 通知，不订阅、不轮询** |
+| 提交 | `session.submit` | 提交前要求本会话已有 preset；协议没有提交 permission 字段，档位由分支 policy 携带 |
 
 **不变量**
 
-1. **无值不猜默认**：没有选择过就没有值，`PermissionTier()` 返回 `false`；不得补「全自动」「工作区自动」或任何本地默认值。
-2. **提交必须显式携带**：本会话有取值时，提交意图必须经 `WithPermission` 合入 `"permission": "<取值>"`；提交路径不得绕过它，也不得让服务端替客户端猜档位。
+1. **无值不猜默认**：没有读到/选择过就没有值，`PermissionTier()` 返回 `false`；不得补任何本地默认档位。
+2. **无值拒绝提交**：`WithPermission` 在本会话没有 preset 时返回 `ErrPermissionUnset`，提交路径必须先经过它；有值时只校验、不向提交参数添加字段。
 3. **只作用于本会话**：`WithPermission` 只接受 `KindSubmitInput`，且意图的 `SessionID` 必须等于本裁决器的会话；别的类型报 `ErrNotSubmitIntent`，别的会话报 `ErrPermissionSession`。
-4. **取值原样透传**：`SetPermissionTier` 只要求非空，取值原样保存、原样合入参数，不改写成本地常量，也不校验未知取值。
-5. **会话隔离**：两个会话的档位互不影响；清空一个会话的档位不改变另一个。
+4. **真实三档、原样保存**：`SetPermissionTier` 只要求非空，preset 原样保存；三档以服务端取值为准，不本地自造枚举。
+5. **版本冲突不覆盖**：集成层写入带 `expectedVersion`；服务端回 `permission_conflict` 时返回 `ErrPermissionConflict`，本地 preset 与版本都不变，由调用方重读后再写。
+6. **会话隔离**：两个会话的 preset 与版本互不影响；清空一个会话的档位不改变另一个。
 
-`WithPermission` 保留提交意图原有的 JSON 对象字段，只增加 `permission` 一个字段；参数不是 JSON 对象时报 `ErrPermissionParams`。档位切换写回服务端不在本领域：本包不写服务端，只保存与透传。
+**协议事实（alpha.21 实测与源码）**
+
+- `session.submit` 的参数没有 permission 字段；带该字段会被服务端按 `deny_unknown_fields` 回 `-32602 invalid_params`。因此本包不向提交参数注入 `permission`，只用 `WithPermission` 做“必须已选”的前置校验；真正生效的是会话分支的 policy。
+- `permission/changed` 的 data 只有 `policy`，没有版本号。集成层更新 preset；版本号不伪造，下一次 get/update 以服务端返回的 version 为准；若期间被其他客户端改过，update 会以 `permission_conflict` 显式失败，不覆盖。
+- 权限档位的读写方法名与参数形状只出现在集成层，本包不复制 wire。
 
 ### 4.9 成员停止
 
@@ -334,7 +349,7 @@ intent, err := arbiter.WithPermission(write.Intent{
 | R 块 7 两个提问只答一个、结算后才答下一个 | 一条队列、队首约束、`SettleQuestion` 推进 | 问题候选项解释（界面） |
 | R 块 7 提问来源与结算 | 清单/推导装载、截止点后的 `ask_user` 调用、工具结果结算 | 清单读取与分页（D1/集成层） |
 | R 块 7 结算后移除且不再应答 | `SettleQuestion` 移除；已答记录拒绝重发 | 工具结果/结算事实（D1/D2） |
-| R 块 7 权限档位取值与传递 | 按会话 `PermissionTier` 状态与 `WithPermission` 显式透传 | 档位写回服务端（不在本领域） |
+| R 块 7 权限档位取值与传递 | 按会话保存 preset；`WithPermission` 校验提交前置条件；读写方法由集成层执行 | `session.permission.get/update` 的 wire（集成层/D1） |
 | R 块 7 成员停止只停成员 | `StopMember` 带 `memberId` 的停止意图 | 成员运行状态读取（D2/D1） |
 | A 审批推进 / 提问应答 | `state.go` 两张表、启动校验 | — |
 | A 「审批集合、提问集合」镜像状态 | 审批只由 `Apply`/`Replay`/`Settle` 改；提问只由 `SeedQuestions`/`ApplyAskUser`/`SettleQuestion` 改；各自整体替换 | — |
@@ -352,7 +367,7 @@ go vet ./...
 go test -race ./internal/interaction/
 ```
 
-本版结果（2026-11-10，本机 macOS arm64）：三条命令全部通过；`internal/interaction` 49 个顶层测试、20 个子测试全绿。
+本版结果（2026-11-11，本机 macOS arm64）：三条命令全部通过；`internal/interaction` 49 个顶层测试、20 个子测试全绿；`TestRealModelApproval` 未设置夹具时跳过，设置后通过（§6.5）。
 
 ### 6.2 覆盖
 
@@ -393,16 +408,18 @@ go test -race ./internal/interaction/
 | 视图是拷贝，不暴露内部可写引用 | `TestViewsAreCopies` |
 | 两张迁移表与 A.md 逐条对应 | `TestTransitionTablesMatchDocument` |
 | 迁移表启动校验，坏表点名状态机并失败 | `TestTransitionTablesAreValid`、`TestBrokenTransitionTablesAreRejected`、`TestNewRequiresConfig` |
-| 权限档位无值时不猜默认值 | `TestPermissionHasNoDefault` |
-| 切换档位后提交意图携带所选档位 | `TestPermissionIsPassedThrough` |
-| 档位取值原样保存、空值被拒 | `TestPermissionValuesAreOpaque`、`TestPermissionRejectsEmptyAndBadParams` |
-| 档位只透传给提交意图，且只作用于本会话 | `TestPermissionScopeMatchesSession` |
+| 权限档位无值时不猜默认值，并拒绝提交 | `TestPermissionHasNoDefault` |
+| 提交不携带协议没有的 permission 字段，原参数不被改写 | `TestPermissionKeepsSubmitParams` |
+| 档位取值原样保存、空值被拒 | `TestPermissionValuesAreOpaque`、`TestPermissionRejectsEmptyTier` |
+| 档位只作用于提交意图，且只作用于本会话 | `TestPermissionScopeMatchesSession` |
 | 每个会话各有一份档位、互不影响 | `TestPermissionIsPerSession` |
-| 清空档位回到没有值 | `TestPermissionClear` |
+| 清空档位回到没有值，提交再次被拒 | `TestPermissionClear` |
+| 服务端读取、带版本写入、工具列表保留、时间线 `permission/changed` 驱动同一状态 | `TestPermissionGetUpdateAndTimeline`（`internal/app`） |
+| 版本冲突按冲突处理、不覆盖本地档位 | `TestPermissionUpdateConflictIsNotOverwritten`（`internal/app`） |
 | 成员停止只停成员，主线与待决集合不变 | `TestStopMemberOnlyStopsMember` |
 | 成员停止幂等，缺成员标识被拒 | `TestStopMemberIsIdempotent`、`TestStopMemberRequiresMember` |
 
-证据档位：`fakeappserver`（本机 Unix socket + NDJSON + 真实 `write.Manager`）三个用例；写登记替身覆盖其余分支。真实 App Server 的审批与提问事实未验证（§6.5）。
+证据档位：`fakeappserver`（本机 Unix socket + NDJSON + 真实 `write.Manager`）三个用例；写登记替身覆盖其余分支；真实模型审批链路见 §6.5。
 
 ### 6.3 与 D3/D2/D1 的接口形状
 
@@ -424,23 +441,51 @@ go test -race ./internal/interaction/
 
 | 用例 | 观察到的服务端请求 |
 |---|---|
-| `TestAppServerLongTermWritesRuleBeforeResponse` | `approval.allow_always` 先到，随后 `approval.respond`；两者都带 `sessionId=s1`、`requestId=a1`；规则请求带 `tool=Bash`，应答 `decision=allow_always`；结算后应答请求数仍为 1 |
-| `TestAppServerLongTermFailureSendsNoResponse` | `approval.allow_always` 回能力缺失；`approval.respond` 请求数为 0；审批仍在待呈现 |
+| `TestAppServerLongTermWritesRuleBeforeResponse` | `permission.rules` 读 revision，`permission.set_rules` 追加 `{command:"printf DIMAGENT_APPROVAL_OK",match:"exact",decision:"allow"}`，随后 `approval.respond {decision:"allow"}`；结算后应答请求数仍为 1 |
+| `TestAppServerLongTermFailureSendsNoResponse` | `permission.rules` 回能力缺失；`approval.respond` 请求数为 0；审批仍在待呈现 |
 | `TestAppServerQuestionsOneAtATime` | 提问由清单装载；第二条越前应答产生 0 个请求；第一条应答后按工具结果结算，第二条才发；两个 `question.respond` 的 `requestId` 分别为 `q1`、`q2` |
 
-### 6.5 blocked
+### 6.5 真实模型审批证据
+
+环境：macOS arm64；夹具 `/tmp/dimagent-real-model`（daemon `0.1.0-alpha.21`，managed provider，`deepseek-v4.1-flash`，账号已登录）；夹具只复制到新的 `/tmp` 目录，来源未修改、未提交。复制件把 `config.json` 的 `toolApproval` 改为 `ask`、`permission` 改为 `workspace-write`；会话打开后再用 `session.permission.update` 固定为 `workspace-write`。
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealModelApproval -v -count=1 -timeout 12m ./internal/interaction/
+```
+
+提示词：
+
+```text
+Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call the shell tool; do not answer from memory. Then report the tool output.
+```
+
+观察到的序列（2026-11-11；只记录类型、请求标识、决定与布尔结果，未打印凭据或会话正文）：
+
+| 场景 | 观察 |
+|---|---|
+| 同意 | 新建会话 → 提交 → `approval.request` 一条（`pendingApprovals=1`，动作是 `exec`）→ 决定 `allow` → 工具结果含 `DIMAGENT_APPROVAL_OK`，`toolResult=true` |
+| 拒绝 | 新建会话 → 提交 → `approval.request` 一条 → 决定 `deny` → 无成功执行结果，`toolResult=false` |
+| 长期允许 | 新建会话 → `approval.request`（`allowLongTerm=true`）→ `permission.rules` 读 revision → `permission.set_rules` 写 `{command:"printf DIMAGENT_APPROVAL_OK",match:"exact",decision:"allow"}` → `approval.respond {decision:"allow"}` → 工具结果成功；随后**新会话**发同一命令，未出现 `approval.request`，工具结果成功 |
+
+同一次验证还确认了两条协议事实：
+
+1. `session.submit` 没有 permission 字段；带 `"permission"` 提交会被服务端按 `-32602 invalid_params` 拒绝。档位由会话分支 policy 携带，切换走 `session.permission.update`。
+2. 审批应答的决定是 `allow`/`deny`，不是 `approve`/`reject`；长期允许没有 `approval.allow_always` 方法，必须写 `permission.rules`/`permission.set_rules` 命令规则。
+
+### 6.6 blocked
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
-| 真实 App Server 的审批生命周期 | blocked | `--mock-model` 不产生工具调用与审批；需要真实模型账号与一次真实工具审批 |
 | 真实非空提问清单 | blocked | 需要能产生 `ask_user` 工具调用的真实模型；空页已由 D1 在真实 daemon 上实测，本版按 wire 形状造 fixture |
-| 权限档位通知 | blocked | 需要 D1 冻结 `permission/changed` 形状；档位取值归本领域、按会话透传（已裁决） |
+| 真实 `permission/changed` 事件隔离 | blocked | 真实切换档位已走 `session.permission.get/update`；时间线 `permission/changed` 的独立观测目前由 fakeappserver 覆盖 |
 | 成员停止的真实语义 | blocked | 需要服务端真实的成员运行标识与停止方法；本版只验证意图形状 |
 
 已裁决、不再 blocked：
 
 - 跨会话队列：按会话一条队列，跨会话并行上限等于打开的会话数。
 - 提问通知：协议没有 `question.*`/`elicitation.*`。提问已改为「清单 + 时间线事实」：`session.question.pending` 按固定截止点装载，`ask_user` 调用与工具结果驱动开与结算；本包不再等待、也不伪造提问通知。
+- 真实审批链路：同意、拒绝与长期允许均已在本机真实 daemon + 真实模型上验证（§6.5）。
 
 ## 7. 已知限制
 
@@ -456,16 +501,19 @@ go test -race ./internal/interaction/
 10. **不引入超时语义**：清单里长期未结算的提问会一直存在，直到工具结果/结算事实到达或下一次装载；本包不单方面改服务端状态。
 11. **长期规则可能在重试时重写**：规则写入成功但等待被取消时，本包不知道成功，条目回到待呈现；用户重试会以新幂等键再写一次同一规则。规则内容相同，是否幂等取决于服务端。
 12. **应答未收敛按已发出处理**：等待被取消或写登记关闭时，应答可能已到达；本包选择不重发（`ErrResponseUnsettled`），必要时由 D3 的需人工确认与人工核对收尾。
-13. **不校验档位取值**：档位是服务端/用户给的字符串，本包原样透传；未知取值的拒绝由服务端负责。
+13. **档位取值不本地自造**：本包只保存服务端读到的 preset，不定义别名、不猜默认；`SetPermissionTier` 只校验非空，未知取值由服务端拒绝。
 14. **成员停止靠发送方收窄**：本包只带 `memberId`；如果发送方把它解释成会话停止，就会影响主线。集成时必须按成员范围映射方法。
 15. **无诊断存储**：坏事实与非法迁移通过 `Rejection`/错误返回；是否记录、记到哪里由调用方决定。
 16. **应答同步等待**：`Respond` 等写登记收敛，慢服务端会拖住调用方；界面应在后台调用并提供上下文超时。
+17. **提交不携带 permission 字段**：协议没有该字段；提交由会话分支 policy 携带档位，`WithPermission` 只保证已选档位并拒绝无值提交。
+18. **`permission/changed` 不带版本号**：本包只更新 preset，不伪造版本；版本由下一次 get/update 收敛，过期写入以 `permission_conflict` 显式失败。
+19. **长期允许只覆盖简单命令**：只有 `exec`/`execute` 且不含命令分隔符的调用可长期允许；读写文件等其他工具没有对应的服务端长期规则，本版不提供。
 
 ## 8. 下一步
 
-1. D1 冻结审批、权限、成员通知的 wire 形状，并给出写方法适配；补一个真实工具审批的端到端证据。
+1. 补真实 `permission/changed` 的独立观测与真实 `approval.cancelled`；目前切换档位已走真实 get/update，长期允许与同意/拒绝已有真实证据。
 2. 补真实非空 `session.question.pending` 的证据：包含分页（不透明游标）与真实 `ask_user` 调用、工具结果结算；目前只有空页实测与 wire 形状 fixture。
-3. 接入权限档位：把用户选择与服务端 `permission/changed` 接到 `SetPermissionTier`，提交路径统一经 `WithPermission`。
+3. 把版本冲突后的重读与用户提示接入界面：冲突时先 get 最新 version，再由用户决定是否重写；当前只返回 `ErrPermissionConflict`，不自动覆盖。
 4. 与 D3 对齐「需人工确认」在界面上的呈现与人工核对入口，避免应答悬空。
 5. 评估已答记录的清理与重启窗口：在不违反 R8 的前提下，用服务端清单/快照的结算时序降低重复呈现概率。
 6. 补成员停止的真实证据：成员运行标识、停止方法、停止后主线仍运行的读取。

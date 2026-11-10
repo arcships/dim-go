@@ -118,6 +118,8 @@ type sessionRuntime struct {
 	methodsErr  error
 	// permissionVersion 是最近一次权限读取/写入的版本号，作 update 的前置条件。
 	permissionVersion atomic.Int64
+	// permissionPolicy 是最近一次读到的完整策略；切换 preset 时保留工具列表。
+	permissionPolicy atomic.Pointer[protocol.PermissionPolicy]
 }
 
 // App 是集成层的对外类型。所有导出方法可并发调用。

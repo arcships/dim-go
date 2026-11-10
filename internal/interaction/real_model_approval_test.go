@@ -26,6 +26,8 @@ import (
 // 审批请求标识、决定与布尔结果，不打印会话正文或凭据。
 const realApprovalPrompt = "Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call the shell tool; do not answer from memory. Then report the tool output."
 
+const realApprovalPromptAgain = "This is a new session. Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call the shell tool again; do not reuse any earlier result. Then report the tool output."
+
 const realApprovalMarker = "DIMAGENT_APPROVAL_OK"
 
 // TestRealModelApproval 验证真实模型下的审批链路：同意后执行、拒绝后不执行、
@@ -44,19 +46,18 @@ func TestRealModelApproval(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
-	sessionID := createRealSession(t, ctx, base)
 	t.Cleanup(func() {
 		if err := base.Close(context.Background()); err != nil {
 			t.Logf("关闭集成层: %v", err)
 		}
 	})
 
-	approveScenario(t, ctx, base, sessionID)
-	if os.Getenv("DIM_APPROVAL_ONLY") == "approve" {
-		return
-	}
-	denyScenario(t, ctx, base, sessionID)
-	longTermScenario(t, ctx, base, sessionID)
+	approveSession := createRealSession(t, ctx, base)
+	approveScenario(t, ctx, base, approveSession)
+	denySession := createRealSession(t, ctx, base)
+	denyScenario(t, ctx, base, denySession)
+	longTermSession := createRealSession(t, ctx, base)
+	longTermScenario(t, ctx, base, longTermSession)
 }
 
 func approveScenario(t *testing.T, ctx context.Context, base *app.App, sessionID string) {
@@ -78,7 +79,7 @@ func approveScenario(t *testing.T, ctx context.Context, base *app.App, sessionID
 	if outcome.Response == nil || outcome.Response.Status != write.StatusSucceeded {
 		t.Fatalf("同意应答应写入成功: %+v", outcome.Response)
 	}
-	waitToolResult(t, ctx, base, sessionID, true)
+	waitToolResult(t, ctx, base, sessionID, true, 0)
 	t.Logf("approve: decided=allow toolResult=true")
 }
 
@@ -101,7 +102,7 @@ func denyScenario(t *testing.T, ctx context.Context, base *app.App, sessionID st
 	deadline := time.Now().Add(2 * time.Minute)
 	for time.Now().Before(deadline) {
 		view, _ := base.View(sessionID)
-		if ok, failed := toolOutcome(view); failed {
+		if ok, failed := toolOutcomeSince(view, 0); failed {
 			if ok {
 				t.Fatal("拒绝后仍出现了成功执行结果")
 			}
@@ -147,22 +148,26 @@ func longTermScenario(t *testing.T, ctx context.Context, base *app.App, sessionI
 	if outcome.Response == nil || outcome.Response.Status != write.StatusSucceeded {
 		t.Fatalf("长期允许后的应答应写入成功: %+v", outcome.Response)
 	}
-	waitToolResult(t, ctx, base, sessionID, true)
+	waitToolResult(t, ctx, base, sessionID, true, 0)
 	t.Logf("long-term: ruleWritten=true firstToolResult=true")
 
-	// 同一命令再来一次：规则应让服务端不再发审批请求。
-	submitRealPrompt(t, ctx, base, sessionID)
+	// 命令规则是用户级：换一个新会话发同一命令，规则应让服务端不再发审批请求。
+	secondSession := createRealSession(t, ctx, base)
+	if err := setWorkspaceWrite(ctx, base, secondSession); err != nil {
+		t.Fatalf("第二个会话设置 workspace-write: %v", err)
+	}
+	submitRealPromptText(t, ctx, base, secondSession, realApprovalPromptAgain)
 	deadline := time.Now().Add(3 * time.Minute)
 	for time.Now().Before(deadline) {
-		view, _ := base.View(sessionID)
+		view, _ := base.View(secondSession)
 		if view.HasCurrent && view.Current.Kind == interaction.PendingApproval {
 			// 规则没有生效；拒绝掉以免留下悬空审批，然后失败。
-			_, _ = base.Respond(ctx, sessionID, view.Current.RequestID, interaction.Response{
+			_, _ = base.Respond(ctx, secondSession, view.Current.RequestID, interaction.Response{
 				Decision: interaction.DecisionReject,
 			})
 			t.Fatalf("长期允许后同一命令仍触发审批: %s", view.Current.RequestID)
 		}
-		if ok, _ := toolOutcome(view); ok {
+		if ok, _ := toolOutcomeSince(view, 0); ok {
 			t.Logf("long-term: secondApproval=false secondToolResult=true")
 			return
 		}
@@ -207,8 +212,13 @@ func describeView(t *testing.T, ctx context.Context, base *app.App, sessionID st
 
 func waitApproval(t *testing.T, ctx context.Context, base *app.App, sessionID string) interaction.Item {
 	t.Helper()
-	deadline := time.Now().Add(90 * time.Second)
+	deadline := time.Now().Add(3 * time.Minute)
+	lastReport := time.Now()
 	for time.Now().Before(deadline) {
+		if time.Since(lastReport) > 15*time.Second {
+			describeView(t, ctx, base, sessionID)
+			lastReport = time.Now()
+		}
 		view, _ := base.View(sessionID)
 		if view.HasCurrent && view.Current.Kind == interaction.PendingApproval {
 			if view.PendingCounts.Approvals != 1 {
@@ -228,12 +238,12 @@ func waitApproval(t *testing.T, ctx context.Context, base *app.App, sessionID st
 	return interaction.Item{}
 }
 
-func waitToolResult(t *testing.T, ctx context.Context, base *app.App, sessionID string, wantOK bool) {
+func waitToolResult(t *testing.T, ctx context.Context, base *app.App, sessionID string, wantOK bool, from int) {
 	t.Helper()
 	deadline := time.Now().Add(3 * time.Minute)
 	for time.Now().Before(deadline) {
 		view, _ := base.View(sessionID)
-		ok, failed := toolOutcome(view)
+		ok, failed := toolOutcomeSince(view, from)
 		if wantOK && ok {
 			return
 		}
@@ -249,9 +259,15 @@ func waitToolResult(t *testing.T, ctx context.Context, base *app.App, sessionID 
 	t.Fatalf("等待工具结果超时")
 }
 
-// toolOutcome 只看工具有没有执行成功或失败，不返回任何工具输出正文。
-func toolOutcome(view app.SessionView) (ok bool, failed bool) {
-	for _, row := range view.Rows {
+// toolOutcomeSince 只从 from 开始看工具有没有执行成功或失败，不返回任何正文。
+func toolOutcomeSince(view app.SessionView, from int) (ok bool, failed bool) {
+	if from < 0 {
+		from = 0
+	}
+	if from > len(view.Rows) {
+		from = len(view.Rows)
+	}
+	for _, row := range view.Rows[from:] {
 		if row.Tool == nil {
 			continue
 		}
@@ -275,20 +291,37 @@ func turnEnded(view app.SessionView) bool {
 
 func submitRealPrompt(t *testing.T, ctx context.Context, base *app.App, sessionID string) {
 	t.Helper()
+	submitRealPromptText(t, ctx, base, sessionID, realApprovalPrompt)
+}
+
+func submitRealPromptText(t *testing.T, ctx context.Context, base *app.App, sessionID, prompt string) {
+	t.Helper()
 	view, err := base.Submit(ctx, app.SubmitRequest{
 		SessionID: sessionID,
-		Text:      realApprovalPrompt,
+		Text:      prompt,
 	})
 	if err != nil {
 		t.Fatalf("提交提示词: %v", err)
 	}
-	if _, err := base.Wait(ctx, view.ID); err != nil {
+	settled, err := base.Wait(ctx, view.ID)
+	if err != nil {
 		t.Fatalf("等待提交结果: %v", err)
 	}
+	if settled.Status != write.StatusSucceeded {
+		t.Fatalf("提交未成功: status=%s reason=%s", settled.Status, settled.Reason)
+	}
+	t.Logf("submit: intent=%s status=%s", settled.ID, settled.Status)
 }
 
 func setWorkspaceWrite(ctx context.Context, base *app.App, sessionID string) error {
-	return base.SetPermissionTier(ctx, sessionID, interaction.PermissionWorkspaceWrite)
+	if err := base.SetPermissionTier(ctx, sessionID, interaction.PermissionWorkspaceWrite); err != nil {
+		return err
+	}
+	tier, ok := base.PermissionTier(sessionID)
+	if !ok || tier != interaction.PermissionWorkspaceWrite {
+		return fmt.Errorf("权限档位没有生效: %q ok=%t", tier, ok)
+	}
+	return nil
 }
 
 func createRealSession(t *testing.T, ctx context.Context, base *app.App) string {

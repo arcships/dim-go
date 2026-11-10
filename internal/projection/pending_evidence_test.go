@@ -71,8 +71,10 @@ func TestRealDaemonPendingInventories(t *testing.T) {
 	}
 	var created protocol.SessionCreateResult
 	// 不传 tools：会话声明宿主全部工具（传空数组等于一个工具都不挂）。
+	// permission_policy 给全访问，工具调用不再逐次等审批——证据只关心清单，不关心审批。
 	if err := conn.Client.CallInto(ctx, "session.create", map[string]any{
-		"cwd": workDir,
+		"cwd":              workDir,
+		"permissionPolicy": map[string]any{"preset": "full-access"},
 	}, &created); err != nil {
 		t.Skipf("创建真实会话失败（账号/模型不可用）: %v", err)
 	}
@@ -121,6 +123,11 @@ func TestRealDaemonPendingInventories(t *testing.T) {
 	backgroundSequence := evidenceBackgroundTask(t, client, recorder)
 	queueSequence := evidenceQueuedInput(t, client, recorder)
 	questionSequence := evidenceQuestion(t, client, recorder)
+
+	// 等这一轮收尾再回收：服务端只有在空闲时才愿意停。
+	recorder.wait(ctx, 90*time.Second, func(event protocol.RawEvent) bool {
+		return event.Type == "turn" && event.Name == "end" && event.Sequence > questionSequence
+	})
 
 	t.Logf("证据: session=%s background={startedSeq:%d} queue={submitSeq:%d} question={callSeq:%d} events=%v",
 		sessionID, backgroundSequence, queueSequence, questionSequence, recorder.kinds())
@@ -219,7 +226,7 @@ func (c *pendingClient) pendingQuestions() wirePendingQuestions {
 	return result
 }
 
-func (c *pendingClient) submit(text, mode string) string {
+func (c *pendingClient) submit(text, mode string) (string, int64) {
 	var result struct {
 		Event protocol.RawEvent `json:"event"`
 	}
@@ -235,7 +242,7 @@ func (c *pendingClient) submit(text, mode string) string {
 	if err := c.conn.CallInto(c.ctx, "session.submit", params, &result); err != nil {
 		c.t.Fatalf("提交输入: %v", err)
 	}
-	return result.Event.ID
+	return result.Event.ID, result.Event.Sequence
 }
 
 // ----- 证据一：未结束后台任务 -----
@@ -268,8 +275,11 @@ func evidenceBackgroundTask(t *testing.T, client *pendingClient, recorder *recor
 	}
 	// 用服务端清单装载本包清单：装载点之后的结束事实负责结算。
 	client.folder.SeedPendingTasks(mainBranch, tasks.Through, projectionTasks(tasks))
-	if got := len(client.folder.View().Pending.Tasks); got != 1 {
-		t.Fatalf("按服务端清单装载后应有 1 个未结束任务，实际 %d", got)
+	if got := len(client.folder.View().Pending.Tasks); got != len(tasks.Tasks) {
+		t.Fatalf("按服务端清单装载后应有 %d 个未结束任务，实际 %d", len(tasks.Tasks), got)
+	}
+	if !hasProjectedTask(client.folder.View(), taskID) {
+		t.Fatalf("本包清单里没有刚启动的任务 %s", taskID)
 	}
 
 	ended, ok := recorder.wait(client.ctx, 3*time.Minute, func(event protocol.RawEvent) bool {
@@ -283,8 +293,8 @@ func evidenceBackgroundTask(t *testing.T, client *pendingClient, recorder *recor
 	if tasks := client.pendingTasks(); hasPendingTask(tasks, taskID) {
 		t.Fatalf("任务结束后 session.exec.pending 仍列出 %s", taskID)
 	}
-	if got := len(client.folder.View().Pending.Tasks); got != 0 {
-		t.Fatalf("任务结束后本包清单应结算为 0，实际 %d", got)
+	if hasProjectedTask(client.folder.View(), taskID) {
+		t.Fatalf("任务结束后本包清单里仍有 %s", taskID)
 	}
 	return started.Sequence
 }
@@ -293,17 +303,15 @@ func evidenceBackgroundTask(t *testing.T, client *pendingClient, recorder *recor
 
 func evidenceQueuedInput(t *testing.T, client *pendingClient, recorder *recorder) int64 {
 	t.Helper()
-	floor := recorder.head()
-	client.submit("Use the exec tool exactly once to run this command in the foreground "+
+	_, firstSeq := client.submit("Use the exec tool exactly once to run this command in the foreground "+
 		"(timeoutMs 30000): sleep 5. Then reply DONE.", "")
-
 	if _, ok := recorder.wait(client.ctx, 3*time.Minute, func(event protocol.RawEvent) bool {
-		return event.Sequence > floor && event.Type == "turn" && event.Name == "start"
+		return event.Sequence > firstSeq && event.Type == "turn" && event.Name == "start"
 	}); !ok {
 		t.Skipf("真实模型没有开始一轮（观察到：%v）", recorder.kinds())
 	}
 
-	inputID := client.submit("Reply with just OK.", "queue")
+	inputID, _ := client.submit("Reply with just OK.", "queue")
 	t.Logf("运行中提交排队输入: input=%s", inputID)
 
 	inputs := client.pendingInputs()
@@ -315,8 +323,11 @@ func evidenceQueuedInput(t *testing.T, client *pendingClient, recorder *recorder
 			item.InputID, item.Sequence, item.Mode, item.Applied)
 	}
 	client.folder.SeedPendingInputs(mainBranch, inputs.Through, projectionInputs(inputs))
-	if got := len(client.folder.View().Pending.Inputs); got != 1 {
-		t.Fatalf("按服务端清单装载后应有 1 条未处理输入，实际 %d", got)
+	if got := len(client.folder.View().Pending.Inputs); got != len(inputs.Inputs) {
+		t.Fatalf("按服务端清单装载后应有 %d 条未处理输入，实际 %d", len(inputs.Inputs), got)
+	}
+	if !hasProjectedInput(client.folder.View(), inputID) {
+		t.Fatalf("本包清单里没有刚提交的排队输入 %s", inputID)
 	}
 
 	consumed, ok := recorder.wait(client.ctx, 3*time.Minute, func(event protocol.RawEvent) bool {
@@ -330,8 +341,8 @@ func evidenceQueuedInput(t *testing.T, client *pendingClient, recorder *recorder
 	if inputs := client.pendingInputs(); hasPendingInput(inputs, inputID) {
 		t.Fatalf("消费后 session.input.pending 仍列出 %s", inputID)
 	}
-	if got := len(client.folder.View().Pending.Inputs); got != 0 {
-		t.Fatalf("消费后本包清单应结算为 0，实际 %d", got)
+	if hasProjectedInput(client.folder.View(), inputID) {
+		t.Fatalf("消费后本包清单里仍有 %s", inputID)
 	}
 	return consumed.Sequence
 }
@@ -365,8 +376,8 @@ func evidenceQuestion(t *testing.T, client *pendingClient, recorder *recorder) i
 	t.Logf("待答提问: request=%s call=%s sequence=%d through=%d",
 		batch.RequestID, batch.Calls[0].ID, batch.Sequence, questions.Through)
 	client.folder.SeedPendingQuestions(mainBranch, questions.Through, projectionQuestions(questions))
-	if got := len(client.folder.View().Pending.Questions); got != 1 {
-		t.Fatalf("按服务端清单装载后应有 1 批待答提问，实际 %d", got)
+	if !hasProjectedQuestion(client.folder.View(), batch.RequestID) {
+		t.Fatalf("本包清单里没有待答提问 request=%s", batch.RequestID)
 	}
 
 	answer, ok := firstAnswer(batch.Calls[0].Input)
@@ -396,8 +407,8 @@ func evidenceQuestion(t *testing.T, client *pendingClient, recorder *recorder) i
 	if questions := client.pendingQuestions(); len(questions.Batches) != 0 {
 		t.Fatalf("结算后 session.question.pending 应为空，实际 %d 批", len(questions.Batches))
 	}
-	if got := len(client.folder.View().Pending.Questions); got != 0 {
-		t.Fatalf("结算后本包清单应为 0，实际 %d", got)
+	if hasProjectedQuestion(client.folder.View(), batch.RequestID) {
+		t.Fatalf("结算后本包清单里仍有 request=%s", batch.RequestID)
 	}
 	return call.Sequence
 }
@@ -474,6 +485,33 @@ func projectionQuestions(questions wirePendingQuestions) []PendingQuestion {
 		}
 	}
 	return out
+}
+
+func hasProjectedTask(view View, taskID string) bool {
+	for _, task := range view.Pending.Tasks {
+		if task.TaskID == taskID {
+			return true
+		}
+	}
+	return false
+}
+
+func hasProjectedInput(view View, inputID string) bool {
+	for _, item := range view.Pending.Inputs {
+		if item.InputID == inputID {
+			return true
+		}
+	}
+	return false
+}
+
+func hasProjectedQuestion(view View, requestID string) bool {
+	for _, question := range view.Pending.Questions {
+		if question.RequestID == requestID {
+			return true
+		}
+	}
+	return false
 }
 
 func hasPendingTask(tasks wirePendingTasks, taskID string) bool {

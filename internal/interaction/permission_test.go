@@ -13,24 +13,21 @@ func submitIntent(sessionID string, params json.RawMessage) write.Intent {
 	return write.Intent{Kind: write.KindSubmitInput, SessionID: sessionID, Params: params}
 }
 
-// TestPermissionHasNoDefault 核对：没有取值时不猜默认值，也不往提交意图里加字段。
+// TestPermissionHasNoDefault 核对：没有取值时不猜默认值，提交被拒绝。
 func TestPermissionHasNoDefault(t *testing.T) {
 	arbiter, _ := newTestArbiter(t, testSession)
 	if tier, ok := arbiter.PermissionTier(); ok || tier != "" {
 		t.Fatalf("初始不应有档位: %q %v", tier, ok)
 	}
 	intent := submitIntent(testSession, json.RawMessage(`{"text":"你好"}`))
-	got, err := arbiter.WithPermission(intent)
-	if err != nil {
-		t.Fatalf("无档位不应报错: %v", err)
-	}
-	if string(got.Params) != string(intent.Params) {
-		t.Fatalf("无档位时不应改参数: %s", got.Params)
+	if _, err := arbiter.WithPermission(intent); !errors.Is(err, ErrPermissionUnset) {
+		t.Fatalf("无档位应拒绝提交: %v", err)
 	}
 }
 
-// TestPermissionIsPassedThrough 核对：档位保存后显式透传给本会话的提交意图，已有字段保留。
-func TestPermissionIsPassedThrough(t *testing.T) {
+// TestPermissionKeepsSubmitParams 核对：协议没有提交 permission 字段；档位由会话
+// 分支策略携带，WithPermission 只校验不污染提交参数。
+func TestPermissionKeepsSubmitParams(t *testing.T) {
 	arbiter, _ := newTestArbiter(t, testSession)
 	if err := arbiter.SetPermissionTier(PermissionWorkspaceWrite); err != nil {
 		t.Fatalf("设置档位: %v", err)
@@ -43,27 +40,17 @@ func TestPermissionIsPassedThrough(t *testing.T) {
 	intent := submitIntent(testSession, original)
 	got, err := arbiter.WithPermission(intent)
 	if err != nil {
-		t.Fatalf("透传档位: %v", err)
+		t.Fatalf("有档位时提交应通过: %v", err)
+	}
+	if string(got.Params) != string(original) {
+		t.Fatalf("提交参数不应被改写: %s", got.Params)
 	}
 	params := decodeParams(t, got.Params)
-	if params["permission"] != string(PermissionWorkspaceWrite) {
-		t.Fatalf("档位没有透传: %v", params)
+	if _, exists := params["permission"]; exists {
+		t.Fatalf("提交不应携带协议没有的 permission 字段: %v", params)
 	}
 	if params["text"] != "你好" || params["mode"] != "queue" {
 		t.Fatalf("原有参数被改坏: %v", params)
-	}
-	if string(intent.Params) != string(original) {
-		t.Fatalf("入参不应被就地修改: %s", intent.Params)
-	}
-
-	// 空参数也能合入。
-	empty, err := arbiter.WithPermission(submitIntent(testSession, nil))
-	if err != nil {
-		t.Fatalf("空参数透传: %v", err)
-	}
-	emptyParams := decodeParams(t, empty.Params)
-	if emptyParams["permission"] != string(PermissionWorkspaceWrite) {
-		t.Fatalf("空参数没有合入档位: %v", emptyParams)
 	}
 }
 
@@ -78,8 +65,8 @@ func TestPermissionValuesAreOpaque(t *testing.T) {
 	}
 }
 
-// TestPermissionRejectsEmptyAndBadParams 核对：空档位与非对象参数被拒绝。
-func TestPermissionRejectsEmptyAndBadParams(t *testing.T) {
+// TestPermissionRejectsEmptyTier 核对：空档位被拒绝，且不改已有取值。
+func TestPermissionRejectsEmptyTier(t *testing.T) {
 	arbiter, _ := newTestArbiter(t, testSession)
 	if err := arbiter.SetPermissionTier(PermissionFullAccess); err != nil {
 		t.Fatalf("设置档位: %v", err)
@@ -91,16 +78,6 @@ func TestPermissionRejectsEmptyAndBadParams(t *testing.T) {
 		t.Fatalf("拒绝后不应改档位: %q", tier)
 	}
 
-	for _, raw := range []json.RawMessage{
-		json.RawMessage(`[1,2]`),
-		json.RawMessage(`"文本"`),
-		json.RawMessage(`3`),
-	} {
-		intent := submitIntent(testSession, raw)
-		if _, err := arbiter.WithPermission(intent); !errors.Is(err, ErrPermissionParams) {
-			t.Fatalf("非对象参数应被拒: %s (%v)", raw, err)
-		}
-	}
 }
 
 // TestPermissionScopeMatchesSession 核对：档位只透传给提交意图，且只作用于本会话。
@@ -160,5 +137,8 @@ func TestPermissionClear(t *testing.T) {
 	arbiter.ClearPermissionTier()
 	if tier, ok := arbiter.PermissionTier(); ok || tier != "" {
 		t.Fatalf("清空后不应有值: %q %v", tier, ok)
+	}
+	if _, err := arbiter.WithPermission(submitIntent(testSession, nil)); !errors.Is(err, ErrPermissionUnset) {
+		t.Fatalf("清空后提交应被拒: %v", err)
 	}
 }

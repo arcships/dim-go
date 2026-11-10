@@ -2,7 +2,7 @@
 
 Status: 第一版实现完成（P1-2 候选结果包；含分页、按轮导出来源与真实 daemon 证据）
 Owner: D2 领域 agent
-验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3，blocked 见 6.5
+验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；blocked 见 6.5
 依据: `docs/domains/R.md` 第 1 部分功能块 2、块 4 的读取侧；`docs/domains/A.md`（会话视图、会话级状态含分页锚点、四条总规矩、启动校验）；`docs/domains/D1-connection.md`（wire 类型与会话流）
 范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径、磁盘存储、审批应答、目录与导出文件本身。
 
@@ -355,7 +355,7 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 - `go test ./...`：全部通过（含 `internal/projection` 与同期其它领域的包）。
 - `go vet ./...`：无输出。
 - `go test -race ./internal/projection/`：通过。
-- projection 用例 45 个：44 个 fixture 用例通过；1 个真实 daemon 用例在未设 `DIM_APP_SERVER_BIN` 时跳过，设了就通过（见 6.3）。
+- projection 用例 46 个：44 个 fixture 用例通过；2 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6），设了就通过。
 
 ### 6.2 覆盖
 
@@ -397,6 +397,7 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 | 锚点只由历史页推进，实时事实不动它 | `TestAnchorDoesNotMoveWithLiveFacts` |
 | 断线重开重设分页位置 | `TestDisconnectResetsWindow` |
 | 真实 daemon：实时与历史、落库、真实分页、导出式按轮读取一致 | `TestRealDaemonLiveAndHistoryAgree`，证据见 6.3 |
+| 真实模型：后台任务、排队输入、提问三类的截止点读取与结算 | `TestRealDaemonPendingInventories`，证据见 6.6 |
 | 多轮 fixture 连续翻页到底：轮次连续、无重复、无遗漏，行数据与一次读全一致 | `TestTurnHistoryPagesEveryTurnOnce` |
 | 首屏从最近一轮开始，同一游标重复读取得到同一页 | `TestTurnHistoryStartsFromNewest` |
 | 会话/分支与来源不一致时拒绝 | `TestTurnHistoryRejectsForeignRequest` |
@@ -469,9 +470,60 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 | 项 | 状态 | 缺什么 |
 |---|---|---|
 | 工具、思考、审批、提问、后台任务、协作请求的真实证据 | blocked | `--mock-model` 只产生文本回复，没有工具调用与思考；需要真实模型账号（R 的验收口径要求真实服务事实） |
-| 四类未完成事项的真实读取 | blocked | 需要真实会话上出现排队输入、提问与后台任务；本版按 wire 形状自造 fixture 并逐条结算 |
+| 协作请求的真实读取 | blocked | 需要真实会话上出现 `collaboration/request`（成员协作）；后台任务、排队输入、提问三类已在真实模型上验证（6.6） |
 | 分支会话的真实证据 | blocked | 需要在真实服务端上开分支并读分支历史 |
 | Windows 平台 | blocked | 没有 Windows 主机 |
+
+### 6.6 真实模型：三类未完成事项（2026-11-11）
+
+前提：真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具账号（真实 provider `deepseek-v4.1-flash`），
+夹具只复制不修改。会话用 `session.create` 建，**不传 `tools`**（传空数组等于一个工具都不挂），
+`permissionPolicy.preset = "full-access"`（否则工具调用会停在审批上）。
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealDaemonPendingInventories -v -count=1 ./internal/projection/
+```
+
+观察到的输出（只留事件类型、标识、序号与状态）：
+
+```text
+服务端 0.1.0-alpha.21（profile product）
+会话 63d8be39-ad87-48cb-b820-06e93cddc9b4
+后台任务开始: sequence=39 task=exec-ecefbc6c-...
+未结束任务: task=exec-ecefbc6c-... sequence=39 through=39
+后台任务结束: sequence=49 task=exec-ecefbc6c-...
+运行中提交排队输入: input=7e565b8b-...
+未处理输入: input=58af7af6-... sequence=51 mode=queue applied=false
+未处理输入: input=7e565b8b-... sequence=56 mode=queue applied=false
+排队输入被消费: sequence=88 input=7e565b8b-...
+提问工具调用: sequence=109
+待答提问: request=e924ae67-... call=call_00_wc46gafipzygpa5klq257qod sequence=109 through=109
+已应答提问: request=e924ae67-... call=call_00_wc46gafipzygpa5klq257qod
+提问被工具结果结算: sequence=110 call=call_00_wc46gafipzygpa5klq257qod
+证据: events=[input/message input/applied turn/start input/consumed step/model-start
+  step/thinking step/tool-use-start step/tool-use model/usage step/model-output-end
+  step/tool-call exec/started step/tool-result step/text turn/end exec/ended
+  notice:session.state notice:session.model.progress notice:session.mcp.state notice:session.notice]
+回收自启服务端: stopped=true
+```
+
+三类各自结论：
+
+| 类 | 读取 | 结算 | 结果 |
+|---|---|---|---|
+| 未结束后台任务 | `session.exec.pending` 在 `exec/started`（序号 39）之后列出该任务（`through=39`）；本包按服务端清单装载后为 1 | `exec/ended`（序号 49）之后清单为空，本包清单结算为 0 | 通过 |
+| 排队输入 | 运行中提交的输入（序号 56，`mode=queue`，`applied=false`）出现在 `session.input.pending`；本包按清单装载后能查到 | `input/consumed`（序号 88）之后清单不再列出它，本包清单同步消失 | 通过 |
+| 待答提问 | 模型调用 `ask_user`（`step/tool-call` 序号 109）后 `session.question.pending` 给出批次（`through=109`）；本包装载后能查到 | 用 `session.question.respond` 应答（选中模型给的第一个选项），`step/tool-result`（序号 110）结算，清单为空，本包清单同步消失 | 通过 |
+
+试过什么、为什么这样：
+
+1. 一开始给 `session.create` 传 `tools: []`，模型拿不到任何工具：整轮只有文本，没有 `exec`、没有 `ask_user`。改成不传 `tools` 后工具才挂上。
+2. 会话默认权限策略下 `exec` 会先发 `approval.request`，整轮停在那里（观察到 `notice:approval.request`）。改成 `permissionPolicy.preset=full-access` 后不再需要审批——审批语义归 D5，本证据不碰。
+3. 后台任务用 `exec` 的 `runInBackground: true` + `timeoutMs: -1`；排队输入在 `turn/start` 之后立刻以 `mode=queue` 提交；提问要求模型"先问再答"并给两个选项，应答用 `session.question.respond`。
+4. 三项判据都是"事件 + 清单"，不看模型文案：模型措辞、选哪个选项都不影响结论。
+
+数据纪律：夹具在 `/tmp`，只在复制出来的临时目录上跑，未写回来源；日志只含事件类型、标识、序号、状态，没有提示词、命令正文、模型输出与凭据；临时目录与自启服务端在用例结束时清掉（`stopped=true`，无残留进程）。
 
 ## 7. 已知限制
 
@@ -489,6 +541,8 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 12. `TurnHistory` 一个实例只服务一个会话的一个分支；换会话或换分支要新建实例。
 13. 切点只覆盖已加载范围：调用方（目录/界面）拿着视图里的轮次序号来问；没翻到那一轮就只能得到"未加载"，本包不会替它读。
 14. 只有 `turn/end` 才算结束事实；被下一轮隐式收口的轮次没有切点（按"不猜"处理）。
+15. 真实模型证据只覆盖本机一个账号与一个模型（`deepseek-v4.1-flash`）：模型是否调用 `exec`/`ask_user` 由模型决定，判据是事件与清单而不是文案；换账号或换模型需要重跑。
+16. 协作请求（`collaboration/request`）的清单仍未在真实会话上验证（需要成员协作场景），见 6.5。
 
 ## 8. 下一步
 
@@ -498,3 +552,4 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 4. 与 D4 对齐"待答提问"的语义边界：本包只维持清单，提问的候选项解释与应答顺序归 D4。
 5. 把 3.9 的冻结表交给 V 做成 fixture 词表，服务端词表变化时先改表再改实现。
 6. 等 D4 接上别名后，跑一次真实导出落盘，把导出文件的轮次与该会话的轮索引逐条对照。
+7. 协作请求清单的真实证据：在真实会话里触发一次成员协作，读 `session.collaboration.pending` 并按 `collaboration/result` 结算。

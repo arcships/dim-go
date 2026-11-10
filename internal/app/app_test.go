@@ -221,6 +221,9 @@ func TestAssemblyOpenSessionAndSubmit(t *testing.T) {
 			Events:          testEvents(),
 		}},
 		Replies: []fakeappserver.Reply{
+			{Method: "session.permission.get", Result: map[string]any{
+				"version": 1, "policy": map[string]any{"preset": "workspace-write", "allowedTools": []any{}, "disallowedTools": []any{}},
+			}},
 			{Method: "session.submit", Result: map[string]any{"inputId": "srv-input-1"}},
 		},
 	})
@@ -830,6 +833,9 @@ func TestDiagnosticsWhitelistOnly(t *testing.T) {
 			Events:          testEvents(),
 		}},
 		Replies: []fakeappserver.Reply{
+			{Method: "session.permission.get", Result: map[string]any{
+				"version": 1, "policy": map[string]any{"preset": "workspace-write", "allowedTools": []any{}, "disallowedTools": []any{}},
+			}},
 			{Method: "session.submit", Result: map[string]any{"inputId": "srv-input-1"}},
 		},
 	})

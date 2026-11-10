@@ -179,7 +179,7 @@ func TestPermissionGetUpdateAndTimeline(t *testing.T) {
 		Sessions: []fakeappserver.Session{{ID: testSession, Events: testEvents()}},
 		Replies: []fakeappserver.Reply{
 			{Method: "session.permission.get", Result: map[string]any{
-				"version": 1, "policy": map[string]any{"preset": "workspace-write", "allowedTools": []any{}, "disallowedTools": []any{}},
+				"version": 1, "policy": map[string]any{"preset": "workspace-write", "allowedTools": []any{"exec"}, "disallowedTools": []any{}},
 			}},
 			{Method: "session.permission.update", Result: map[string]any{
 				"version": 2, "policy": map[string]any{"preset": "full-access", "allowedTools": []any{}, "disallowedTools": []any{}},
@@ -223,6 +223,10 @@ func TestPermissionGetUpdateAndTimeline(t *testing.T) {
 	if policy["preset"] != "full-access" {
 		t.Fatalf("切换档位的策略不对: %v", params)
 	}
+	allowed, _ := policy["allowedTools"].([]any)
+	if len(allowed) != 1 || allowed[0] != "exec" {
+		t.Fatalf("切换档位不应清空工具列表: %v", policy)
+	}
 	if tier, ok := result.base.PermissionTier(testSession); !ok || tier != "full-access" {
 		t.Fatalf("切换后档位应取回执值，实际 %q ok=%t", tier, ok)
 	}
@@ -246,6 +250,50 @@ func TestPermissionGetUpdateAndTimeline(t *testing.T) {
 	// 没有 permission.changed 通知：控制连接也不该收到它。
 	if got := len(server.RequestsFor("session.permission.changed")); got != 0 {
 		t.Fatalf("不应请求 permission.changed 通知（%d）", got)
+	}
+}
+
+// TestPermissionUpdateConflictIsNotOverwritten 核对版本冲突按冲突处理，不覆盖服务端。
+func TestPermissionUpdateConflictIsNotOverwritten(t *testing.T) {
+	server := startFakeServer(t, fakeappserver.Script{
+		Sessions: []fakeappserver.Session{{ID: testSession, Events: testEvents()}},
+		Replies: []fakeappserver.Reply{
+			{Method: "session.permission.get", Result: map[string]any{
+				"version": 1, "policy": map[string]any{"preset": "workspace-write", "allowedTools": []any{"exec"}, "disallowedTools": []any{}},
+			}},
+			{Method: "session.permission.update", Error: fakeappserver.AppError(
+				-32602, "permission_conflict", "permission policy changed",
+			)},
+		},
+	})
+	result := startAssembly(t, server, assemblyOptions{session: testSession})
+	ctx := context.Background()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		if tier, ok := result.base.PermissionTier(testSession); ok && tier == "workspace-write" {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("打开会话后没有读到初始档位")
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+
+	err := result.base.SetPermissionTier(ctx, testSession, "full-access")
+	if !errors.Is(err, ErrPermissionConflict) {
+		t.Fatalf("版本冲突应报冲突，实际 %v", err)
+	}
+	if tier, ok := result.base.PermissionTier(testSession); !ok || tier != "workspace-write" {
+		t.Fatalf("冲突后不应覆盖本地档位，实际 %q ok=%t", tier, ok)
+	}
+	requests := server.RequestsFor("session.permission.update")
+	if len(requests) != 1 {
+		t.Fatalf("冲突时只应发一次更新，实际 %d", len(requests))
+	}
+	params := requestParams(t, requests[0])
+	if params["expectedVersion"] != float64(1) {
+		t.Fatalf("更新应带已知版本号: %v", params)
 	}
 }
 
