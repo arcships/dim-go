@@ -427,6 +427,31 @@ func submitAppWithUpdates(f *fakeSession) (*app, *sync.Mutex, <-chan struct{}) {
 	return a, &mu, updates
 }
 
+// TestAppSubmitIsSingleFlight checks that repeated submit triggers while the
+// first request is unanswered do not create a second App Server mutation.
+func TestAppSubmitIsSingleFlight(t *testing.T) {
+	release := make(chan struct{})
+	started := make(chan string, 1)
+	f := &fakeSession{
+		submitGate: release,
+		submitted:  started,
+		view:       &dimui.State{Selected: "s1", Connection: dimui.ConnReady},
+	}
+	a, mu := submitApp(f)
+	a.state.OnSubmit("hello")
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first submit did not reach the App Server")
+	}
+	a.state.OnSubmit("hello again")
+	close(release)
+	waitForNotice(t, a, mu, "submit.accepted")
+	if len(f.submitText) != 1 {
+		t.Fatalf("submit count = %d, want one mutation while in flight", len(f.submitText))
+	}
+}
+
 // TestAppSubmitUnknownResultReadsBackAccepted checks that an ambiguous submit is
 // resolved through session.input_lookup: the App Server's accepted answer is
 // what clears the draft, and the submission is never sent twice.

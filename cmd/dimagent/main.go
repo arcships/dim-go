@@ -655,6 +655,11 @@ type app struct {
 	// attachment in flight, then replaces it. A creation installs a controller
 	// the same way, so it takes the same lock.
 	selectMu sync.Mutex
+	// submitMu serializes the window's submit entry point. A second trigger while
+	// the first request (including unknown-result read-back) is in flight is
+	// ignored, preventing duplicate runs from repeated UI events.
+	submitMu       sync.Mutex
+	submitInFlight bool
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -1953,6 +1958,13 @@ func (a *app) submit(text string) {
 	if a.bridge == nil || a.state == nil {
 		return
 	}
+	a.submitMu.Lock()
+	if a.submitInFlight {
+		a.submitMu.Unlock()
+		return
+	}
+	a.submitInFlight = true
+	a.submitMu.Unlock()
 	sessionID := a.state.Selected
 	// A submission goes to the branch the window shows: the App Server opened
 	// that branch, so it is the conversation the user is reading. With no branch
@@ -1961,6 +1973,11 @@ func (a *app) submit(text string) {
 	branchID := a.actionBranch()
 	gen := a.currentSelection()
 	go func() {
+		defer func() {
+			a.submitMu.Lock()
+			a.submitInFlight = false
+			a.submitMu.Unlock()
+		}()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		_, submissionID, err := a.bridge.submitOn(ctx, sessionID, branchID, text)

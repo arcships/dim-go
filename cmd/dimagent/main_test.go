@@ -177,6 +177,7 @@ type fakeSession struct {
 	lookupStarted      chan struct{}
 	closed             bool
 	submitted          chan string
+	submitGate         <-chan struct{}
 	stopped            chan struct{}
 	approved           chan struct{}
 	refreshed          chan struct{}
@@ -308,6 +309,9 @@ func (f *fakeSession) Submit(_ context.Context, text string) (appserver.SubmitRe
 	f.submitText = append(f.submitText, text)
 	if f.submitted != nil {
 		f.submitted <- text
+	}
+	if f.submitGate != nil {
+		<-f.submitGate
 	}
 	return appserver.SubmitResult{}, f.submitErr
 }
