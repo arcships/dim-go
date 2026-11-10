@@ -374,6 +374,7 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 2026-11-10 | 用户拍板 R9 选 A：应用更新要做，挂在块 14（进程级行为） | 待定项清零，需求基线完整冻结 | 待定 1→0 项；做 66→67 项 |
 | 2026-11-11 | 去掉全部交付分期标记（功能块行、能力对照列、决策里的交付期表述、变更记录中的分期描述）；附件选择由延后改为做；验收对照的延后类别并入未实现 | 分期未经用户批准，且范围不含界面；附件选择的能力是接收路径与类别 | 能力对照结论只剩做／不做／未实现；验收对照只剩已验证／已实现未验证／blocked／未实现（不做项单列不计） |
 | 2026-11-11 | 平台口径改为只按本机验收，其他平台不在范围、不计 blocked；验收对照新增「不在范围（不做）」类别，外部打开按本机证据升为已验证，单实例去掉其他平台备注 | 用户明确 Windows 不做验证 | 已验证 20→21，已实现未验证 16→15，不做 2 条归入不在范围；合计仍 69 |
+| 2026-11-11 | 新增附 E「CLI/TUI 能力缺口」：对照服务端仓库的命令行与交互客户端，列出 23 条缺口与建议 | 服务端已有能力多于本项目需求清单 | 16 条建议纳入、7 条建议不纳入；纳入与否待用户拍板 |
 # 附 B　未决问题
 
 | 编号 | 问题 | 需要谁回答 | 处理 |
@@ -465,3 +466,37 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 统计：已验证 21 条；已实现未验证 15 条；blocked 30 条；未实现 1 条；不在范围（不做）2 条；合计 69 条。无落点 0 条。
 
 总评：客户端现在能从零启动、连上真实服务端、建会话与提交、读历史并导出、开分支到结束收敛、退出时回收自启服务；卡在两处——需要真实模型产生工具调用的链路（审批、提问、后台任务）与需要真实账号的链路（登录、用量、模型过滤），另外管理面写入还等协议方法名冻结。
+
+# 附 E　CLI/TUI 能力缺口
+
+对照范围：服务端仓库里的命令行与交互客户端实际调用的方法、通知与会话能力；来源只读。排序：服务端已支持而本项目未覆盖的排在前。状态中「部分」表示有实现或需求条目但覆盖不全。
+
+| 能力 | CLI/TUI 里的行为 | 本项目状态 | 建议 | 源码依据（文件与符号） |
+|---|---|---|---|---|
+| 供应商与模型目录管理 | 列/建/改/探测供应商，编辑、启用、重置模型，写模型偏好 | 无 | 纳入：没有它无法配置可用模型 | session_host.rs provider.management/create/update/probe、provider.models.*；management/models.rs |
+| 设置来源与文档读写 | 列来源与项目根，读文档，带版本写入 | 部分（已实现，需求未列） | 纳入：补需求条目，与实现对齐 | session_host.rs settings.read/update；management/editor.rs |
+| 提示建议 | 请求空输入建议，接受或忽略 | 无 | 纳入：服务端已支持，客户端未接 | session_host.rs session.suggestion.request/respond；ui/composer |
+| 会话分叉 | 从某一轮分叉出一份新会话 | 无 | 纳入：与分支不同，属会话级回退 | session_host.rs session.fork |
+| 上下文压缩与用量 | 触发压缩，读上下文用量 | 无 | 纳入：长会话必需 | session_host.rs session.context.compact/usage |
+| 排队输入撤回 | 撤回尚未消费的输入 | 无 | 纳入：与排队输入成对 | session_host.rs session.input.withdraw |
+| 后台任务输出与停止 | 读全量输出，按任务停止 | 部分（有任务行，无输出与停止） | 纳入：有任务却看不到输出、停不掉 | session_host.rs session.exec.output/exec.stop |
+| 协作模型策略 | 读/写成员的模型策略 | 无 | 纳入 | session_host.rs collaboration.model_policy/set_model_policy |
+| agent 档案更新 | 切换会话使用的 agent 档案 | 无 | 纳入 | configure.rs session.agent.update |
+| 命令规则管理 | 列出、编辑、删除长期命令规则 | 部分（只在长期允许时写规则） | 纳入：已有规则无法查看与撤销 | permission.rs permission.rules/set_rules；management/permissions.rs |
+| 会话权限读写 | 读当前权限，按会话更新 | 部分（仅档位选择） | 纳入：缺失会导致选择与事实不同步 | session_host.rs session.permission.get/update |
+| 外部工具服务器认证 | 发起/完成/登出认证，测试连接，读详情 | 部分（有配置读写与探测，无认证） | 纳入：需凭据的服务器现在接不上 | session_host.rs mcp.auth.start/complete/logout、mcp.test、mcp.inspect |
+| 钩子启停 | 单条钩子开关 | 部分（有目录与保存） | 纳入：补一条 | management/hooks.rs hooks.set_enabled |
+| 技能刷新 | 强制刷新技能目录 | 部分（有目录与启停） | 纳入：补一条 | management/skills.rs skills.refresh |
+| 目标暂停与恢复 | 暂停、恢复、清除目标 | 部分（只有显示与设置） | 纳入：补一条 | goal.rs session.goal.pause/resume/clear |
+| 供应商专属登录 | 按供应商命名空间走浏览器或设备码登录 | 部分（仅通用浏览器登录） | 纳入：设备码场景现在走不通 | ui/oauth_view.rs account.codex/account.grok |
+| 会话空闲等待 | 阻塞等待会话空闲后再继续 | 无 | 不纳入：事件驱动足够，避免客户端轮询 | session.rs session.idle |
+| 目录读取取消 | 取消进行中的目录请求 | 无 | 不纳入：本地丢弃响应即可 | session_host.rs session.catalog.cancel |
+| 会话摘要旧接口 | 旧版全量列表与摘要 | 无 | 不纳入：目录查询已取代 | session_host.rs session.summaries |
+| Web 工作区安装 | 从包源下载并校验 Web 工作区 | 无 | 不纳入：本项目无 Web 界面 | web_install.rs |
+| 宿主协作协议 | UI 附着、打开与关闭 | 无 | 不纳入：界面不在需求范围 | session_host.rs ui.attach/ui.open/ui.shutdown |
+| 执行后端配置 | 读写执行后端与沙箱配置 | 无 | 不纳入：本地沙箱不做 | management/ 与 host.execution.backend |
+| 离线数据库维护 | 无守护进程时执行一次性整理 | 部分（只给离线说明） | 不纳入：命令交运维执行 | maintenance.rs vacuum |
+
+统计：缺口 23 条。其中服务端已支持而本项目未覆盖 19 条（16 条建议纳入、3 条建议不纳入），服务端未支持或不在服务端职责 4 条（均建议不纳入）。
+
+优先纳入：① 供应商与模型目录管理——没有它无法配置可用模型；② 设置来源与文档读写——已有实现但需求清单里没有，属于需求缺口；③ 后台任务输出与停止——现在能看到任务却看不到输出、也停不掉。
