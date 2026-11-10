@@ -374,17 +374,17 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 后台任务输出与停止 | 已验证 | D2 会话内容读取、D3 写登记 | 附 E 第 7 项；真实分页读输出到 EOF、按任务停止后状态 cancelled；TestRealDaemonExecOutputAndStop |
 | 协作模型策略 | 已验证 | D11a 设置与运行环境 | 附 E 第 8 项；真实策略 4 次写入与 stale 冲突；verify-collaboration-agent 脚本 |
 | agent 档案更新 | 已验证 | D11a 设置与运行环境、D12 集成 | 附 E 第 9 项；真实 agent get/update，adopted 后 unchanged；verify-collaboration-agent 脚本 |
-| 命令规则管理 | 未实现 | D5 交互与审批 | 附 E 第 10 项；真实只有读 revision 与写规则，列出/编辑/撤销未实现 |
+| 命令规则管理 | 已验证 | D5 交互与审批 | 附 E 第 10 项；真实 daemon 读取/新增/编辑/撤销，revision 1→4；TestRealCommandRules |
 | 会话权限读写 | 已验证 | D5 交互与审批、D11a 设置与运行环境 | 附 E 第 11 项；真实 get/update 与 permission/changed 事件；集成自检证据 H |
 | 外部工具服务器认证 | blocked | D11b 扩展管理、D12 集成 | 附 E 第 12 项；缺真实 OAuth 认证服务器，只实测到 mcp_auth_unsupported 与 mcp_auth_attempt_closed |
 | 钩子启停 | 已验证 | D11b 扩展管理 | 附 E 第 13 项；alpha.21 项目钩子 enable/disable 推进 revision、旧 revision 冲突；D11b §6.4.3 |
 | 技能刷新 | 已验证 | D11b 扩展管理 | 附 E 第 14 项；alpha.21 skills.refresh 后 catalog 版本 0→1；D11b §6.4.3 |
 | 目标暂停与恢复 | 已验证 | D2 会话内容读取 | 附 E 第 15 项；真实 set/pause(user)/resume 三态；TestRealDaemonContextAndControls |
-| 供应商专属登录 | 未实现 | D6 账号与凭据、D11a 设置与运行环境 | 附 E 第 16 项；通用浏览器登录只到发起；设备码与供应商命名空间分支未实现 |
+| 供应商专属登录 | 已实现未验证 | D6 账号与凭据、D11a 设置与运行环境 | 附 E 第 16 项；按供应商选择 device 的发起真实通过（尝试标识、验证地址、用户码、取消）；完成轮询需真人，仍缺 |
 
 附 E 建议不纳入的 7 项仍不纳入，理由见附 E：会话空闲等待、目录读取取消、会话摘要旧接口、Web 工作区安装、宿主协作协议、执行后端配置、离线数据库维护。
 
-统计：候选能力 16 项，其中已验证 12 项、已实现未验证 1 项、blocked 1 项、未实现 2 项；与原 69 项分开计数。
+统计：候选能力 16 项，其中已验证 13 项、已实现未验证 2 项、blocked 1 项、未实现 0 项；与原 69 项分开计数。
 
 # 第 4 部分　验收口径
 - **证据形式**：只接受服务端请求与返回值、日志内容、数据或文件状态、进程状态、命令输出与退出码。
@@ -404,6 +404,7 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 2026-11-11 | 新增附 E「CLI/TUI 能力缺口」：对照服务端仓库的命令行与交互客户端，列出 23 条缺口与建议 | 服务端已有能力多于本项目需求清单 | 16 条建议纳入、7 条建议不纳入；纳入与否待用户拍板 |
 | 2026-11-11 | 能力对照新增「候选能力」小节：附 E 建议纳入的 16 项列为候选，标明状态与承接领域；7 项不纳入的只引用附 E 理由 | §7.2 缺口盘点落成需求候选，用户在夜间授权开发但尚未确认 | 候选 16 项单列，不并入 69 项统计 |
 | 2026-11-11 | 按各领域最新证据刷新附 D 与候选能力：真实模型、alpha.21 服务端与真实账号夹具带来一批新证据，审批/提问/后台任务/目标/权限/改名/命令/模态/唤醒/账号读取/供应商管理/协作策略/agent 档案/提示建议/撤回/分叉/钩子/技能刷新全部升级 | 验收对照落后于本轮证据 | 69 项：已验证 20→41、已实现未验证 16→17、blocked 30→8；候选 16 项：已验证 12、已实现未验证 1、blocked 1、未实现 2 |
+| 2026-11-11 | 再刷验收对照：命令规则管理升级为已验证（真实 revision 1→4 读/加/编辑/撤销），变更读取升级为已验证（真实模型写入轮计入、exec 轮不计入）；供应商专属登录由未实现改为已实现未验证（设备码发起真实通过）；blocked 逐条改写缺口原因 | 证据更新 | 69 项：已验证 41→42、blocked 8→7；候选 16 项：已验证 12→13、已实现未验证 1→2、未实现 2→0 |
 # 附 B　未决问题
 
 | 编号 | 问题 | 需要谁回答 | 处理 |
@@ -456,27 +457,27 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 审批重放 | 已实现未验证 | ReplayReplacesApprovalSetKeepsQuestions、RuleWrittenStateSurvivesReplay |
 | 提问应答与结算 | 已验证 | 真实 respond 选中选项后由 step/tool-result 结算；TestRealDaemonPendingInventories |
 | 权限档位 | 已验证 | alpha.21：session.permission.get/update 实训 full-access → read-only；集成自检证据 H |
-| 成员停止 | blocked | 缺真实成员运行标识；StopMemberOnlyStopsMember、StopMemberIsIdempotent |
+| 成员停止 | blocked | 缺真实协作成员的运行标识与停止回执；当前只有意图形状 |
 | 插件安装与配置 | 已实现未验证 | alpha.21：插件列表与启停真实通过；安装缺安全真实插件源（安装路径仍 blocked） |
 | 技能启停 | 已验证 | alpha.21：技能启停往返成功；TestRealDaemonExtensionReadsAndWakeup |
 | 钩子写入范围 | 已验证 | alpha.21：hooks.save 写回 revision 2、旧 revision 返回 hooks_conflict；TestRealDaemonHooksAndMCPWrites |
 | 外部工具服务器增删改与探测 | 已验证 | alpha.21：mcp.save/configuration/test/remove 闭环（stdio 夹具）；TestRealDaemonHooksAndMCPWrites |
-| 工具服务器配置导入 | blocked | 配置来源形态未冻结；ImportPreviewSelectsOnlyCheckedCandidates |
+| 工具服务器配置导入 | blocked | 导入来源与候选回执形状未冻结；现有证据只有参数映射与逐条写入 |
 | 计划任务列表与变更 | 已实现未验证 | alpha.21：schedule.list/save 真实可用；变更流需真实调度器，仍缺 |
-| 运行组件安装 | blocked | 缺真实组件包；AppServerRuntimeInstallRelay、InstallRuntimeFailureAndCapabilities |
-| 首次运行组件获取 | blocked | 缺真实服务端与组件包；同运行组件安装证据 |
+| 运行组件安装 | blocked | alpha.21 未注册 runtime.*，按能力缺失处理；缺真实组件包与服务端注册 |
+| 首次运行组件获取 | blocked | 同上：服务端未注册运行组件方法，无法产生真实获取证据 |
 | 存储读数 | 已验证 | alpha.21：storage.report 返回 databaseBytes/walBytes/reclaimableBytes；D1 管理面探针 |
 | 会话级唤醒 | 已验证 | alpha.21：wakeup create/list/cancel 与两次通知触发重读；TestRealDaemonExtensionReadsAndWakeup |
 | 账号状态 | 已验证 | alpha.21 夹具：status=signed_in、身份字段齐全；TestRealAccountFixture |
 | 登录 | 已实现未验证 | 发起、环回与取消真实通过；浏览器与设备码的完成交换需真人，仍缺 |
-| 登出 | blocked | 缺真实账号；LogoutSendsOnceAndClearsOnSuccess |
+| 登出 | blocked | 真实登出会吊销夹具授权；缺一次性测试账号或测试租户 |
 | 用量 | 已验证 | alpha.21 夹具：account.usage 逐项与聚合可用；TestRealAccountFixture。会话用量见 model/usage 真实验证 |
-| 推荐与重置 | blocked | 缺真实账号；ResetUnknownIsNotResent、ResetRetriesOnlyAfterExplicitFailure |
+| 推荐与重置 | blocked | 同上：重置会作用在真实账号上，缺一次性测试账号 |
 | 模型可用性过滤 | 已验证 | alpha.21 夹具：provider.catalog 返回 21 个可用模型；TestRealAccountFixture |
 | 工作区目录读取 | 已验证 | 真实文件系统；ListDirEntries、ListDirSymlinkKind |
 | 文件预览读取 | 已验证 | 真实文件；PreviewUTF8、PreviewTruncated、PreviewBinary |
 | 工作区文件搜索 | 已验证 | 真实文件系统；SearchMatches、SearchCreatesNoIndex |
-| 变更读取 | blocked | 依赖服务端 run 工具声明路径，当前未实现 |
+| 变更读取 | 已验证 | 真实模型：写入轮的工具声明进入清单、exec 轮的改动不计入；TestReadRunChangesMergesAndClassifies、TestReadRunChangesEmptyAndNilSource |
 | 外部打开 | 已验证 | 本机真实执行通过：OpenSuccess、OpenExitCode；其他平台不在范围 |
 | 附件选择 | 已实现未验证 | 暂存接口接收路径并判类别；StageClassifiesByFullContent、StageImageCategory |
 | 附件暂存与去重 | 已验证 | 真实文件系统；StageDeduplicatesByDigest、RestartKeepsEntriesAndReferences |
@@ -487,15 +488,15 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 退出回收 | 已验证 | 真实自启服务端回收 stopped=true、关停五段完成；ShutdownRunsFivePhasesInOrder |
 | 日志与诊断 | 已验证 | 真实运行产出诊断记录；RecorderOnlyWritesWhitelistFields、RecorderRejectsCredentialsAndBodies |
 | 模态任务提交与结果 | 已验证 | alpha.21：OCR 任务提交、状态、结果分页读完；模态证据脚本 |
-| 模态实时传输 | blocked | 本机服务端无 modality.realtime.*；同上映射测试 |
+| 模态实时传输 | blocked | 服务端无可用实时适配器，realtime.* 在能力清单里不可用 |
 | 应用更新 | 未实现 | 已拍板要做，尚无实现 |
 | 插件市场 | 不在范围 | 不做：服务端无市场接口，见附 C |
 | 外部内容容器 | 不在范围 | 不做，见附 C |
 
-统计：已验证 41 条；已实现未验证 17 条；blocked 8 条；未实现 1 条；不在范围（不做）2 条；合计 69 条。无落点 0 条。
+统计：已验证 42 条；已实现未验证 17 条；blocked 7 条；未实现 1 条；不在范围（不做）2 条；合计 69 条。无落点 0 条。
 
 
-总评：客户端现在能从零启动、连真服务端、建会话与提交、读历史并导出、开分支与分叉、改名、看审批与提问、跑会话内命令与模态任务、收回输入、暂停恢复目标，并能在退出时回收自启服务；还差需要真人或真实外部条件的三块——登录完成交换与登出/重置、真实插件安装源、MCP OAuth 成功链路，另外上下文预算与压缩、变更读取、运行组件与计划任务变更流仍缺服务端事实或实现。
+总评：客户端现在能从零启动、连真服务端、建会话与提交、读历史并导出、开分支与分叉、改名、看审批与提问、跑会话内命令与模态任务、收回输入、暂停恢复目标、读写命令规则、读到本次运行的工具声明变更、按供应商发起登录，退出时回收自启服务；剩下 7 条 blocked 都卡在真实外部条件（真人的登录完成与吊销语义、真实插件源、真实 OAuth 服务器、协作成员运行标识、导入回执形状、服务端未注册的运行组件、无实时适配器），另有 1 条未实现（应用更新）。
 # 附 E　CLI/TUI 能力缺口
 
 对照范围：服务端仓库里的命令行与交互客户端实际调用的方法、通知与会话能力；来源只读。排序：服务端已支持而本项目未覆盖的排在前。状态中「部分」表示有实现或需求条目但覆盖不全。
