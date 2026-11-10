@@ -1,3 +1,3 @@
 capture	docs/evidence/window-approval*.png
-note	real provider approval flow: Approval required panel -> Allow once (exec Complete approval-test) and Reject once (exec Error: Tool execution denied by user); panel disappears both times
-driver	scripts/ax/axdo.swift + DIMAGENT_MODEL_CONFIG provider + screencapture -l
+note	real provider next/Qwen3.6-27B via --model-config: Approval required -> Allow once (exec Complete approval-test) / Reject once (Tool execution denied by user); panel disappears both times; model id visible in header and daemon log
+limit	UI-level evidence; no protocol trace capture
