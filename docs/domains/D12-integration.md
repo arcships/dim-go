@@ -49,6 +49,7 @@ Owner: D12 集成层领域
 | `internal/app/changes.go` | `workspace.ChangeSource` 适配器：从工具结果事实提取声明路径；`App.RunChanges` 入口 |
 | `internal/app/providers.go` | `settings.ProviderAdmin`/`CollaborationReader`/`AgentAdmin` 适配器：provider 清单/详情/探测、协作策略、agent 档案 |
 | `internal/app/account_sources.go` | `account.ProviderSource`/`ProviderAuthorizationSource`/`DeviceAuthorizationSource`：按 provider 分发登录 |
+| `internal/app/rules.go` | `interaction.RuleSource`：`permission.rules` 读取、`permission.set_rules` 写入（冲突不重试） |
 | `internal/app/app_test.go` | 装配链路、宿主接线、单实例、阶段失败、退出超时、诊断白名单、写闸门 |
 | `internal/app/wire_test.go` | 审批路由、标题合并、清单注入、提问时间线路由、核对优先级、附件写入与能力门禁 |
 | `internal/app/writes_test.go` | 命令执行/停止、模态四种写入、分支开/结束的映射与门禁 |
@@ -59,7 +60,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：44 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：47 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -239,6 +240,7 @@ provider、协作策略、agent 与新增扩展写入都先过 hello 能力（�
 | `settings.CollaborationReader` | `collaboration.model_policy` → `{revision, policy{mode, model?}}` | 真实 daemon：revision 与 mode 有值 |
 | `settings.AgentAdmin` | `agent.list`（内建，不按 hello 预判）、`session.agent.get`（会话流）；`SupportsSessionAgentGet/Update` 按 hello → 会话方法表 | 真实 daemon：清单 1 条、方法可用 |
 | `account.ProviderSource` / `DeviceAuthorizationSource` | `account.providers`；`account.login.begin` / `account.login.status`（设备码） | 真实 daemon：browser/device 发起、轮询与取消（见证据 K） |
+| `interaction.RuleSource` | `permission.rules`（`{revision,commandRules[]}`）、`permission.set_rules`（`{expectedRevision,commandRules}`） | 真实 daemon：读取、原样写回推进 revision、旧 revision 冲突（见证据 M）；假服务端覆盖缺能力零请求 |
 
 ### 4.5 会话流通知 → 领域
 
@@ -393,7 +395,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 44 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 47 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -436,6 +438,9 @@ go test -race ./internal/app/
 | provider 清单/详情/探测、协作策略、agent 清单与会话 agent 的读取映射 | `TestProviderAdminReads` |
 | provider 管理/协作策略/会话 agent 写入：参数映射、`op` 不下发、`expectedAgentId` 不下发 | `TestProviderAndAgentWritesUseRealMethods` |
 | provider 写入缺能力：零请求且明确失败 | `TestProviderWritesMissingCapability` |
+| 命令规则来源：读取映射、写入映射（expectedRevision 与规则字段） | `TestRuleSourceReadAndWrite` |
+| 命令规则冲突：映射成 `ErrRulesConflict` 且不重试 | `TestRuleSourceConflict` |
+| 命令规则缺能力：零请求、裁决记住缺失 | `TestRuleSourceMissingCapability` |
 | 账号提供者映射 | `TestAccountProviderSource` |
 | 按 provider 的浏览器登录发起/完成/取消参数 | `TestAccountProviderAuthorization` |
 | 设备码登录发起与轮询状态映射、未知状态拒绝 | `TestAccountDeviceAuthorization` |
@@ -670,6 +675,20 @@ agent.list via adapter: count=1
 
 真实 `provider.management` 的模型条目里 `model` 是对象（`modelId/displayName/status/capabilities`），回执里没有 `status` 的条目按 `active` 展示；这些映射选择见 §10。
 
+**证据 M：命令规则来源（alpha.21 夹具，写入只影响副本）**
+
+`DIMAGENT_RULES_EVIDENCE=1` 时运行 `TestRealRuleSourceEvidence`；夹具 home 复制到临时目录，证据只留 revision 是否给出与规则条数。
+
+```text
+permission.rules: revisionSet=true count=0
+permission.set_rules: revisionChanged=true count=0
+permission.set_rules conflict: mapped=true
+```
+
+- 读取回执的 `{revision,commandRules}` 映射成 `RuleSet`；写入带 `expectedRevision` 与完整规则集合。
+- 原样写回推进了 revision；用旧 revision 再写返回 `permission_rules_conflict`，本包映射成 `interaction.ErrRulesConflict` 且只请求一次。
+- 真实回执只带 revision，规则集合以本次写入的集合为准；只读缓存由交互裁决持有，不落盘。
+
 ### 7.4 自检子命令
 
 ```bash
@@ -783,12 +802,14 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 22. **agent 清单不按 hello 预判**：`agent.list` 是内建方法，真实 hello 不声明；直接调用，缺失时按 `unknown_method` 归为能力缺失。
 23. **账号 provider 解析按实例缓存**：`account.providers` 解析一次；登录方式只取服务端声明，未声明的方法不会本地推断。
 24. **设备码状态未知即拒绝**：只映射 pending/completed/failed/expired/canceled（含常见别名），其他取值按事实不合法报错，不改写成 pending。
-25. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-26. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-27. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-28. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-29. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-30. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+25. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
+26. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
+27. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+28. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+29. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+30. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+31. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+32. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -800,5 +821,6 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | 接上命令规则来源 `interaction.RuleSource`：`permission.rules` 读取、`permission.set_rules` 带版本写入、冲突透传不重试 | 交互领域新增命令规则面 | 
 | 2026-11-11 | 新增扩展写入（项目钩子启停、技能刷新/重载、MCP 认证四步）与设置适配器（provider 清单/详情/探测、协作策略、agent 档案），账号按 provider 分发（browser/device 来源） | 扩展与设置领域新增接口；账号领域改为按 provider 分发 | 
 | 2026-11-11 | 门禁改 hello 优先；命令与模态接真实调用：`shell.run/stop/list`（含 record 回写与停止收敛）、`settings.ModalitySession` 适配器（任务提交/状态/结果/取消 + 实时发送）；证据不含命令与输出 | 真实服务端把 `modality.*` 只声明在 hello、`shell.*` 只声明在会话方法表 |

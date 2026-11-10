@@ -83,7 +83,12 @@ func (a *App) subscribeSession(ctx context.Context, sessionID string) (*sessionR
 	if err != nil {
 		return nil, fmt.Errorf("创建会话投影: %w", err)
 	}
-	arbiter, err := interaction.New(interaction.Config{SessionID: sessionID, Writer: writes})
+	arbiter, err := interaction.New(interaction.Config{
+		SessionID: sessionID,
+		Writer:    writes,
+		// 命令规则来源：permission.rules / permission.set_rules，只读缓存由裁决持有。
+		Rules: &ruleSource{app: a},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("创建交互裁决: %w", err)
 	}
