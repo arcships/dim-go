@@ -1,0 +1,426 @@
+{
+  "name": "motion-search",
+  "method": "CDP Animation.setPlaybackRate(0.02) slow-motion; screencapture -x -o -l <window> at wall-clock offsets target/0.02ms; actual animation times read from each element's Animation.currentTime before and after the screenshot",
+  "playbackRate": 0.02,
+  "openTiming": {
+    "dialogPresent": true,
+    "dialogState": "open",
+    "overlayPresent": true,
+    "dialog": {
+      "name": "enter",
+      "currentTime": 8.008000000000237,
+      "duration": 200,
+      "easing": "linear",
+      "keyframeEasings": [
+        "ease",
+        "ease"
+      ]
+    },
+    "overlay": {
+      "name": "enter",
+      "currentTime": 8.008000000000237,
+      "duration": 150,
+      "easing": "linear",
+      "keyframeEasings": [
+        "ease",
+        "ease"
+      ]
+    },
+    "computed": {
+      "opacity": "0.0242052",
+      "transform": "matrix3d(0.95121, 0, 0, 0, 0, 0.95121, 0, 0, 0, 0, 0.95121, 0, 0, 0, 0, 1)"
+    },
+    "overlayComputed": {
+      "opacity": "0.0361886"
+    },
+    "initialAnimations": [
+      {
+        "name": null,
+        "kind": "CSSTransition",
+        "duration": 150,
+        "delay": 0,
+        "fill": "backwards",
+        "playState": "running",
+        "currentTime": 8.320000000001215,
+        "target": "BUTTON[data-slot=tooltip-trigger][data-testid=timeline-user-copy]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "easing": "linear"
+          },
+          {
+            "offset": 1,
+            "easing": "linear"
+          }
+        ]
+      },
+      {
+        "name": null,
+        "kind": "CSSTransition",
+        "duration": 150,
+        "delay": 0,
+        "fill": "backwards",
+        "playState": "running",
+        "currentTime": 8.320000000001215,
+        "target": "BUTTON[data-slot=tooltip-trigger][data-testid=timeline-user-edit]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "easing": "linear"
+          },
+          {
+            "offset": 1,
+            "easing": "linear"
+          }
+        ]
+      },
+      {
+        "name": null,
+        "kind": "CSSTransition",
+        "duration": 150,
+        "delay": 0,
+        "fill": "backwards",
+        "playState": "running",
+        "currentTime": 8.320000000001215,
+        "target": "BUTTON[data-slot=tooltip-trigger][data-testid=timeline-user-fork]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "easing": "linear"
+          },
+          {
+            "offset": 1,
+            "easing": "linear"
+          }
+        ]
+      },
+      {
+        "name": null,
+        "kind": "CSSTransition",
+        "duration": 150,
+        "delay": 0,
+        "fill": "backwards",
+        "playState": "running",
+        "currentTime": 8.320000000001215,
+        "target": "BUTTON[data-slot=tooltip-trigger][data-testid=timeline-user-branch]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "easing": "linear"
+          },
+          {
+            "offset": 1,
+            "easing": "linear"
+          }
+        ]
+      },
+      {
+        "name": null,
+        "kind": "CSSTransition",
+        "duration": 150,
+        "delay": 0,
+        "fill": "backwards",
+        "playState": "running",
+        "currentTime": 8.320000000001215,
+        "target": "INPUT[data-slot=input][data-testid=chat-search-input]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "easing": "linear"
+          },
+          {
+            "offset": 1,
+            "easing": "linear"
+          }
+        ]
+      },
+      {
+        "name": null,
+        "kind": "CSSTransition",
+        "duration": 150,
+        "delay": 0,
+        "fill": "backwards",
+        "playState": "running",
+        "currentTime": 7.984000000000435,
+        "target": "BUTTON[data-testid=chat-search-result]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "easing": "linear"
+          },
+          {
+            "offset": 1,
+            "easing": "linear"
+          }
+        ]
+      },
+      {
+        "name": null,
+        "kind": "CSSTransition",
+        "duration": 150,
+        "delay": 0,
+        "fill": "backwards",
+        "playState": "running",
+        "currentTime": 7.984000000000435,
+        "target": "BUTTON[data-testid=chat-search-result]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "easing": "linear"
+          },
+          {
+            "offset": 1,
+            "easing": "linear"
+          }
+        ]
+      },
+      {
+        "name": "enter",
+        "kind": "CSSAnimation",
+        "duration": 150,
+        "delay": 0,
+        "fill": "none",
+        "playState": "running",
+        "currentTime": 8.320000000001215,
+        "target": "DIV[data-slot=dialog-overlay]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "opacity": "0",
+            "transform": "translate3d(0px, 0px, 0px) scale3d(1, 1, 1) rotate(0deg)",
+            "easing": "ease"
+          },
+          {
+            "offset": 1,
+            "opacity": "1",
+            "transform": "none",
+            "easing": "ease"
+          }
+        ]
+      },
+      {
+        "name": "enter",
+        "kind": "CSSAnimation",
+        "duration": 200,
+        "delay": 0,
+        "fill": "none",
+        "playState": "running",
+        "currentTime": 8.320000000001215,
+        "target": "DIV[data-slot=dialog-content][data-testid=chat-search-dialog]",
+        "keyframes": [
+          {
+            "offset": 0,
+            "opacity": "0",
+            "transform": "translate3d(0px, 0px, 0px) scale3d(0.95, 0.95, 0.95) rotate(0deg)",
+            "easing": "ease"
+          },
+          {
+            "offset": 1,
+            "opacity": "1",
+            "transform": "none",
+            "easing": "ease"
+          }
+        ]
+      }
+    ]
+  },
+  "closeTiming": {
+    "dialogPresent": true,
+    "dialogState": "closed",
+    "overlayPresent": true,
+    "dialog": {
+      "name": "exit",
+      "currentTime": 4.028000000001697,
+      "duration": 200,
+      "easing": "linear",
+      "keyframeEasings": [
+        "ease",
+        "ease"
+      ]
+    },
+    "overlay": {
+      "name": "exit",
+      "currentTime": 4.028000000001697,
+      "duration": 150,
+      "easing": "linear",
+      "keyframeEasings": [
+        "ease",
+        "ease"
+      ]
+    },
+    "computed": {
+      "opacity": "0.989933",
+      "transform": "matrix3d(0.999497, 0, 0, 0, 0, 0.999497, 0, 0, 0, 0, 0.999497, 0, 0, 0, 0, 1)"
+    },
+    "overlayComputed": {
+      "opacity": "0.985647"
+    }
+  },
+  "frames": [
+    {
+      "phase": "open",
+      "targetMs": 0,
+      "actualAnimationMs": {
+        "before": 8.320000000001215,
+        "after": 10.328000000001225
+      },
+      "dialogPresent": true,
+      "dialogState": "open",
+      "computed": {
+        "opacity": "0.0345022",
+        "transform": "matrix3d(0.951725, 0, 0, 0, 0, 0.951725, 0, 0, 0, 0, 0.951725, 0, 0, 0, 0, 1)"
+      },
+      "overlayComputed": {
+        "opacity": "0.0527096"
+      },
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-000.png",
+      "bytes": 189847,
+      "md5": "966c3a0894d5c34ed927fe2718627f9d",
+      "capturedAt": "2026-11-10T01:42:52.031Z"
+    },
+    {
+      "phase": "open",
+      "targetMs": 75,
+      "actualAnimationMs": {
+        "before": 74.69899999999896,
+        "after": 76.69999999999888
+      },
+      "dialogPresent": true,
+      "dialogState": "open",
+      "computed": {
+        "opacity": "0.658338",
+        "transform": "matrix3d(0.982917, 0, 0, 0, 0, 0.982917, 0, 0, 0, 0, 0.982917, 0, 0, 0, 0, 1)"
+      },
+      "overlayComputed": {
+        "opacity": "0.813437"
+      },
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-075.png",
+      "bytes": 187673,
+      "md5": "0376e9338659328710204337d7c04c52",
+      "capturedAt": "2026-11-10T01:42:55.361Z"
+    },
+    {
+      "phase": "open",
+      "targetMs": 150,
+      "actualAnimationMs": {
+        "before": 149.75399999999794,
+        "after": 151.77200000000113
+      },
+      "dialogPresent": true,
+      "dialogState": "open",
+      "computed": {
+        "opacity": "0.963461",
+        "transform": "matrix3d(0.998173, 0, 0, 0, 0, 0.998173, 0, 0, 0, 0, 0.998173, 0, 0, 0, 0, 1)"
+      },
+      "overlayComputed": {
+        "opacity": "1"
+      },
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-150.png",
+      "bytes": 176917,
+      "md5": "cedd659f6fc833f804aa70bf8d6f7087",
+      "capturedAt": "2026-11-10T01:42:59.109Z"
+    },
+    {
+      "phase": "open",
+      "targetMs": 250,
+      "actualAnimationMs": {
+        "before": null,
+        "after": null
+      },
+      "dialogPresent": true,
+      "dialogState": "open",
+      "computed": {
+        "opacity": "1",
+        "transform": "none"
+      },
+      "overlayComputed": {
+        "opacity": "1"
+      },
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-250.png",
+      "bytes": 173570,
+      "md5": "739b0ff388c11d76cebe4cfd2ad2caee",
+      "capturedAt": "2026-11-10T01:43:04.109Z"
+    },
+    {
+      "phase": "close",
+      "targetMs": 0,
+      "actualAnimationMs": {
+        "before": 4.028000000001697,
+        "after": 5.6939999999983115
+      },
+      "dialogPresent": true,
+      "dialogState": "closed",
+      "computed": {
+        "opacity": "0.984542",
+        "transform": "matrix3d(0.999227, 0, 0, 0, 0, 0.999227, 0, 0, 0, 0, 0.999227, 0, 0, 0, 0, 1)"
+      },
+      "overlayComputed": {
+        "opacity": "0.977478"
+      },
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-close-000.png",
+      "bytes": 174314,
+      "md5": "9410c62e286d6d6739272d3caeaf3430",
+      "capturedAt": "2026-11-10T01:43:04.408Z"
+    },
+    {
+      "phase": "close",
+      "targetMs": 75,
+      "actualAnimationMs": {
+        "before": 75.07599999999925,
+        "after": 77.06599999999852
+      },
+      "dialogPresent": true,
+      "dialogState": "closed",
+      "computed": {
+        "opacity": "0.338909",
+        "transform": "matrix3d(0.966945, 0, 0, 0, 0, 0.966945, 0, 0, 0, 0, 0.966945, 0, 0, 0, 0, 1)"
+      },
+      "overlayComputed": {
+        "opacity": "0.184247"
+      },
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-close-075.png",
+      "bytes": 205330,
+      "md5": "b60f0faea44170aae8813d507a6ce119",
+      "capturedAt": "2026-11-10T01:43:07.954Z"
+    },
+    {
+      "phase": "close",
+      "targetMs": 150,
+      "actualAnimationMs": {
+        "before": 149.79200000000148,
+        "after": 152.11400000000097
+      },
+      "dialogPresent": true,
+      "dialogState": "closed",
+      "computed": {
+        "opacity": "0.0359758",
+        "transform": "matrix3d(0.951799, 0, 0, 0, 0, 0.951799, 0, 0, 0, 0, 0.951799, 0, 0, 0, 0, 1)"
+      },
+      "overlayComputed": null,
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-close-150.png",
+      "bytes": 192566,
+      "md5": "67feacd9fb946b3195f81122029af8d6",
+      "capturedAt": "2026-11-10T01:43:11.704Z"
+    },
+    {
+      "phase": "close",
+      "targetMs": 250,
+      "actualAnimationMs": {
+        "before": null,
+        "after": null
+      },
+      "dialogPresent": false,
+      "dialogState": null,
+      "computed": null,
+      "overlayComputed": null,
+      "file": "/tmp/dimagent-wt-electron-states/docs/evidence/electron-reference/motion-search-close-250.png",
+      "bytes": 169120,
+      "md5": "2d92bd3a271f05e9d23b5d54dab96877",
+      "capturedAt": "2026-11-10T01:43:16.704Z"
+    }
+  ],
+  "dialogAfterClose": {
+    "present": false
+  },
+  "capturedAt": "2026-11-10T01:43:17.304Z"
+}
