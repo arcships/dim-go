@@ -1,6 +1,6 @@
 # DimAgent MyGo 开发计划
 
-Status: active（波次已完成：10 个 UI 组件 + 4 个主逻辑 worktree 全部合并，进入接线与验收轮。产品验收 **13 通过 / 15 未通过**，见 [acceptance.md](acceptance.md)）
+Status: active（波次已完成：10 个 UI 组件 + 4 个主逻辑 worktree 全部合并，进入接线与验收轮。产品验收 **12 通过 / 16 未通过**，见 [acceptance.md](acceptance.md)）
 Last updated: 2026-11-09
 流程与角色见 [workflow.md](workflow.md)；逐日记录见 [archive/progress-2026-11.md](archive/progress-2026-11.md)。
 
@@ -15,9 +15,9 @@ Last updated: 2026-11-09
 ## 当前基线
 
 ```text
-验收：F1–F5、F10、F12a、F12b、F13、F14a、F14b、A1、A4 通过（13）
-      D1–D7、F6–F9、F11、A2/A3/A5 未通过（15）
-      F6–F8：AX 窗口记录保留 provider 描述，实际 provider 未独立复核，不作协议/daemon 验收依据
+验收：F1–F5、F10、F12a、F12b、F14a、F14b、A1、A4 通过（12）
+      D1–D7、F6–F9、F11、F13、A2/A3/A5 未通过（16）
+      F6–F8、F13：AX 窗口记录保留 provider 描述，实际 provider/daemon 未独立复核，不作协议/daemon 验收依据
 UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮层、keys/context/approval 面板
 主逻辑：catalog/create/select/submit/stop/approval/delete/branch/reconnect/unknown-result 读回
 波次：10 个 UI 组件 + 4 个主逻辑 worktree 已完成并合并（§2/§3）
@@ -83,7 +83,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 | F9 lookup | 只显示 unknown | lookup 结果（accepted/unknown）呈现 | P3 |
 | F11 subscription_changed | 无真实 wire | 真实断流恢复或 fail-closed | 上游/故障注入 |
 | F12b cut point | ✅ 已通过（L4：窗口点击创建 side branch） | 选择父 sequence 创建 side line | — |
-| F13 附件 | mygo 无文件选择 | 选择 → attachment.put → timeline | MyGo 上游 |
+| F13 附件 | AX 记录标注选择/上传/读回，provider/daemon 来源未独立复核，未通过；图片仍 WIP | 补公开运行锚点 + 选择 → attachment.put → timeline | 公开运行证据 |
 | F14b closed 终态 | ✅ 已通过（L4：Session closed banner，composer/Stop/Reconnect 禁用） | 稳定展示、不可提交 | — |
 
 ### P5 设计 1:1（D 行）

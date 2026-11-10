@@ -1,3 +1,3 @@
 capture	docs/evidence/window-attachment.png
-note	real window + Qwen provider: native picker selected a .txt -> attachment.put -> draft link -> send -> timeline shows link; assistant read tool returned file content
+note	AX 窗口记录标注 real window + Qwen provider: native picker selected a .txt -> attachment.put -> draft link -> send -> timeline shows link; assistant read tool returned file content。实际 provider/daemon 未独立复核，不作协议/daemon 验收依据。截图含测试运行环境临时路径，不应将其作为读取私有存储的依据。
 driver	scripts/ax/axdo.swift + mygo.Dialog.Open + screencapture -l

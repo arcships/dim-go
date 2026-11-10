@@ -21,7 +21,7 @@ MyGo native UI 重实现实验项目。
 
 验证：`gofmt -l .`、`git diff --check` 空；`go build ./...`、`go vet ./...`、`go test -count=1 ./...` 通过（10 个包、937 个顶层测试）；`go test -race -count=1 ./...` 通过（`internal/ui` 约 340s，已列性能项）。opt-in real-daemon `TestRealDaemonSmoke` / `TestRealDaemonSessionFlow` 通过（create → attach → history → submit → stop；daemon 声明 branches 时覆盖 branch_create → open → refresh → end）。真实窗口证据在 `docs/window-evidence.md` 与 `docs/evidence/`，UI 并排对照在 `docs/evidence/ui-parity/`。
 
-**产品验收：13 通过 / 15 未通过**（F1–F5、F10、F12a、F12b、F13、F14a、F14b、A1、A4 为 L4；F6–F8 的 AX 窗口记录保留 provider 描述，但实际 provider 未独立复核，不作协议/daemon 验收依据；其余见[验收矩阵](docs/acceptance.md)）。测试通过不等于产品验收；视觉项要求同尺寸同状态截图 + 逐区域视觉复核，当前 D1–D7 全部未通过。`cmd/dimagent` 默认不连 daemon；设置 `DIMAGENT_PRODUCT_HOME` 才启动 supervisor。`scripts/package-macos.sh` 可生成带 `dimagent` scheme 的 macOS .app（ad-hoc 签名，未公证）。剩余阻塞：真实模型/审批流量（F6/F7/F8）、真实 `subscription_changed`（F11）、unknown-result 读回展示（F9）、MyGo 文件选择 API（F13）、VoiceOver/IME/Windows/Linux（A2/A3/A5）、字体/图标/皮肤全量像素对齐（D1–D7）。
+**产品验收：12 通过 / 16 未通过**（F1–F5、F10、F12a、F12b、F14a、F14b、A1、A4 为 L4；F6–F8、F13 的 AX 窗口记录保留 provider 描述，但实际 provider/daemon 未独立复核，不作协议/daemon 验收依据；其余见[验收矩阵](docs/acceptance.md)）。测试通过不等于产品验收；视觉项要求同尺寸同状态截图 + 逐区域视觉复核，当前 D1–D7 全部未通过。`cmd/dimagent` 默认不连 daemon；设置 `DIMAGENT_PRODUCT_HOME` 才启动 supervisor。`scripts/package-macos.sh` 可生成带 `dimagent` scheme 的 macOS .app（ad-hoc 签名，未公证）。剩余阻塞：真实模型/审批流量（F6/F7/F8）、真实 `subscription_changed`（F11）、unknown-result 读回展示（F9）、附件运行来源复核及图片选择（F13）、VoiceOver/IME/Windows/Linux（A2/A3/A5）、字体/图标/皮肤全量像素对齐（D1–D7）。
 
 ## 目录
 
