@@ -119,6 +119,11 @@ type Snapshot[T any] struct {
 	CapabilityMissing bool
 }
 
+// Features 是服务端 hello 声明的可选能力。连接领域的 *daemon.Connection 直接满足。
+type Features interface {
+	HasFeature(name string) bool
+}
+
 // Writer 是写登记的窄接口；*write.Manager 直接满足它。
 type Writer interface {
 	Register(intent write.Intent) (write.IntentView, error)
@@ -130,14 +135,17 @@ var _ Writer = (*write.Manager)(nil)
 // Config 是扩展与后台领域的配置。读取方为 nil 表示本端没有该能力；写登记为 nil
 // 时所有写入口返回 ErrWriterUnavailable。
 type Config struct {
-	Plugins     PluginReader
-	Skills      SkillReader
-	Hooks       HookReader
-	ToolServers ToolServerReader
-	Scheduler   SchedulerReader
-	Workflows   WorkflowReader
-	Wakeups     WakeupReader
-	Writer      Writer
+	Plugins      PluginReader
+	Skills       SkillReader
+	Hooks        HookReader
+	ProjectHooks ProjectHookReader
+	ToolServers  ToolServerReader
+	Scheduler    SchedulerReader
+	Workflows    WorkflowReader
+	Wakeups      WakeupReader
+	// Features 是 hello 能力声明；nil 时不做前置门禁，交给调用结果分类。
+	Features Features
+	Writer   Writer
 	// Now 可在测试中替换；nil 时使用系统时间。
 	Now func() time.Time
 	// Logf 记录能力缺失与事件跟随重读；不得写入凭据、参数或环境变量内容。
@@ -165,6 +173,8 @@ type Service struct {
 	closed        bool
 	plugins       Snapshot[Plugin]
 	skills        Snapshot[Skill]
+	skillVersion  uint64
+	skillIssues   []SkillIssue
 	hooks         Snapshot[Hook]
 	toolServers   Snapshot[ToolServer]
 	probes        map[string]ToolServerProbe
@@ -224,6 +234,16 @@ func (s *Service) isClosed() bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.closed
+}
+
+// requireFeature 在 hello 声明了能力清单时先做门禁；未声明即能力缺失且零请求。
+// 清单为空时交给调用结果分类，不假装能力存在或不存在。
+func (s *Service) requireFeature(name string) error {
+	if s.cfg.Features == nil || s.cfg.Features.HasFeature(name) {
+		return nil
+	}
+	s.cfg.Logf("extensions: 能力缺失 feature=%s reason=hello", name)
+	return &CapabilityError{Feature: name, Err: ErrCapabilityMissing}
 }
 
 // wrapReadError 把能力缺失归一成 CapabilityError；其他错误原样返回。
@@ -335,6 +355,14 @@ type WriteOp string
 // 与实测方法的对应见 D11b §4.3；其中插件启停由 payload.Enabled 决定落到
 // plugin.enable 或 plugin.disable，MCP 导入落到 mcp.import.apply。
 const (
+	OpHookSetEnabled      WriteOp = "hooks.set_enabled"
+	OpSkillsRefresh       WriteOp = "skills.refresh"
+	OpSkillsReloadCatalog WriteOp = "skills.reload_catalog"
+	OpMCPAuthStart        WriteOp = "mcp.auth.start"
+	OpMCPAuthComplete     WriteOp = "mcp.auth.complete"
+	OpMCPAuthCancel       WriteOp = "mcp.auth.cancel"
+	OpMCPAuthLogout       WriteOp = "mcp.auth.logout"
+
 	OpPluginInstall    WriteOp = "plugin.install"
 	OpPluginSetEnabled WriteOp = "plugin.set_enabled"
 	OpPluginUpdate     WriteOp = "plugin.update"
@@ -363,7 +391,9 @@ const (
 
 func (op WriteOp) valid() bool {
 	switch op {
-	case OpPluginInstall, OpPluginSetEnabled, OpPluginUpdate,
+	case OpHookSetEnabled, OpSkillsRefresh, OpSkillsReloadCatalog,
+		OpMCPAuthStart, OpMCPAuthComplete, OpMCPAuthCancel, OpMCPAuthLogout,
+		OpPluginInstall, OpPluginSetEnabled, OpPluginUpdate,
 		OpSkillInstall, OpSkillSetEnabled, OpHookWrite,
 		OpToolServerAdd, OpToolServerUpdate, OpToolServerRemove,
 		OpWorkflowStart, OpWorkflowStop, OpWakeupCancel,

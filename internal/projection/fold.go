@@ -50,6 +50,7 @@ type branchState struct {
 	fold           *foldState
 	seeds          seedSet
 	preview        map[string]*previewEntry
+	suggestion     *Suggestion
 }
 
 func newBranchState(id string) *branchState {
@@ -146,6 +147,15 @@ func (f *Folder) ApplyNotice(method string, params json.RawMessage) []Rejection 
 		f.mu.Lock()
 		defer f.mu.Unlock()
 		return f.applyFactLocked(f.branchLocked(notice.BranchID), notice.Event)
+
+	case "session.notice":
+		var notice sessionNotice
+		if err := json.Unmarshal(params, &notice); err != nil {
+			return []Rejection{{Reason: ReasonMalformedNotice, Detail: "session.notice 参数无法解码"}}
+		}
+		f.mu.Lock()
+		defer f.mu.Unlock()
+		return f.applySessionNoticeLocked(notice)
 
 	case "session.model.progress":
 		var notice progressNotice
@@ -334,6 +344,7 @@ func (f *Folder) dropTailLocked(branch *branchState) {
 	}
 	branch.fold = nil
 	branch.preview = make(map[string]*previewEntry)
+	branch.suggestion = nil
 	branch.maxSequence = branch.loadedThrough
 	for sequence := range branch.events {
 		if sequence > branch.maxSequence {
@@ -530,6 +541,14 @@ func (f *Folder) viewLocked(branch *branchState) View {
 		Pending:      state.inv.snapshot(),
 		Anchor:       branch.anchor,
 		HasOlder:     branch.hasOlder,
+		Usage:        state.usageView(),
+		Context:      state.contextView(),
+		Compaction:   state.compactionView(),
+		Compactions:  state.compaction.count,
+	}
+	if branch.suggestion != nil {
+		suggestion := *branch.suggestion
+		view.Suggestion = &suggestion
 	}
 	for _, row := range state.rows {
 		if row.deleted {

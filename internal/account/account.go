@@ -119,8 +119,14 @@ type Config struct {
 	Usage UsageReader
 	// Models 读取模型清单；nil 表示本端不提供模型清单读取。
 	Models ModelReader
-	// Auth 发起与完成浏览器登录；nil 表示本端不提供登录。
-	Auth AuthorizationSource
+	// Providers 读取服务端声明的账号 provider 与登录方式；nil 表示本端不提供
+	// provider 专属登录。
+	Providers ProviderSource
+	// Auth 是浏览器登录来源：实现 AuthorizationSource（单 provider 兼容）或
+	// ProviderAuthorizationSource（按 provider）。nil 表示本端不支持 browser 登录。
+	Auth any
+	// DeviceAuth 发起与轮询设备码登录；nil 表示本端不支持 device 登录。
+	DeviceAuth DeviceAuthorizationSource
 	// Browser 打开系统浏览器；nil 时按平台调用系统默认处理程序。
 	Browser Browser
 	// Actions 是写登记；登出与重置经它发出。nil 表示本端不提供账号动作。
@@ -148,20 +154,23 @@ func (c Config) withDefaults() Config {
 type Account struct {
 	cfg Config
 
-	mu          sync.Mutex
-	status      Status
-	identity    Identity
-	usage       Usage
-	readAt      time.Time
-	reason      string
-	readError   string
-	models      []Model
-	modelsOK    bool
-	modelsErr   string
-	loginPhase  LoginPhase
-	loginFrom   time.Time
-	loginError  string
-	loginCancel context.CancelFunc
+	mu            sync.Mutex
+	status        Status
+	identity      Identity
+	usage         Usage
+	readAt        time.Time
+	reason        string
+	readError     string
+	models        []Model
+	modelsOK      bool
+	modelsErr     string
+	loginPhase    LoginPhase
+	loginFrom     time.Time
+	loginError    string
+	loginProvider string
+	loginMethod   LoginMethod
+	// login 是当前进行中的尝试；尝试标识与授权码只随它存在内存里。
+	login *loginAttempt
 
 	// 账号动作只在内存里保留最近一次意图；重启即忘，不补发。
 	logoutMu      sync.Mutex
@@ -176,6 +185,13 @@ type Account struct {
 func New(cfg Config) (*Account, error) {
 	if cfg.Status == nil {
 		return nil, ErrMissingStatusReader
+	}
+	if cfg.Auth != nil {
+		if _, legacy := cfg.Auth.(AuthorizationSource); !legacy {
+			if _, provider := cfg.Auth.(ProviderAuthorizationSource); !provider {
+				return nil, ErrInvalidConfig
+			}
+		}
 	}
 	cfg = cfg.withDefaults()
 	if err := validateLoginTable(loginTransitions); err != nil {
@@ -286,6 +302,8 @@ func cloneUsage(usage Usage) Usage {
 var (
 	// ErrMissingStatusReader 表示没有账号状态读取来源。
 	ErrMissingStatusReader = errors.New("账号缺少状态读取来源")
+	// ErrInvalidConfig 表示配置里的能力实现不被支持。
+	ErrInvalidConfig = errors.New("账号配置不合法")
 	// ErrMalformedFact 表示服务端给出的账号事实结构不合法。
 	ErrMalformedFact = errors.New("账号事实不合法")
 	// ErrStatusRead 表示账号状态读取失败。

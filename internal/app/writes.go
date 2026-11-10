@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/write"
 )
 
@@ -33,7 +34,9 @@ type ShellRunRequest struct {
 	BranchID string
 	// Command 是要执行的命令，必填。
 	Command string
-	// RunID 是客户端给出的运行标识；空时不带，服务端自行生成。
+	// Mode 是执行模式：record（结果写入会话历史，默认）/ private（只给调用方）。
+	Mode string
+	// RunID 是客户端给出的运行标识；空时由写登记生成并随请求下发。
 	RunID string
 }
 
@@ -80,9 +83,18 @@ func (a *App) RunShell(ctx context.Context, request ShellRunRequest) (write.Inte
 	if writes == nil {
 		return write.IntentView{}, ErrNotConnected
 	}
-	params := map[string]any{"op": "run", "command": request.Command}
-	if request.RunID != "" {
-		params["runId"] = request.RunID
+	runID := request.RunID
+	if runID == "" {
+		// 运行标识由客户端生成：调用方需要它才能停止或核对这次运行。
+		id, err := uuidV4()
+		if err != nil {
+			return write.IntentView{}, fmt.Errorf("生成运行标识: %w", err)
+		}
+		runID = id
+	}
+	params := map[string]any{"op": "run", "command": request.Command, "runId": runID}
+	if request.Mode != "" {
+		params["mode"] = request.Mode
 	}
 	raw, err := json.Marshal(params)
 	if err != nil {
@@ -101,7 +113,7 @@ func (a *App) RunShell(ctx context.Context, request ShellRunRequest) (write.Inte
 		Kind:      write.KindShellRun,
 		SessionID: request.SessionID,
 		BranchID:  request.BranchID,
-		InputID:   request.RunID,
+		InputID:   runID,
 		Params:    raw,
 	})
 }
@@ -177,4 +189,45 @@ func (a *App) ModalityWrite(ctx context.Context, request ModalityWriteRequest) (
 		InputID:   request.InputID,
 		Params:    raw,
 	})
+}
+
+// ShellRun 是一次会话内命令的只读摘要；不含命令正文与输出内容。
+type ShellRun struct {
+	RunID     string
+	BranchID  string
+	Mode      string
+	StartedAt int64
+}
+
+// ShellRuns 读取本会话正在跟踪的运行清单（`shell.list`，会话流）。
+//
+// 只保留标识、分支、模式与开始时间；命令正文与输出一律不进入返回值，避免被
+// 诊断或界面误用。
+func (a *App) ShellRuns(ctx context.Context, sessionID string) ([]ShellRun, error) {
+	runtime, err := a.openRuntime(sessionID, methodShellList)
+	if err != nil {
+		return nil, err
+	}
+	if !a.sessionSupportsMethod(ctx, runtime, methodShellList) {
+		return nil, capabilityMissing(methodShellList)
+	}
+	raw, err := runtime.lease.Subscription().Call(ctx, methodShellList,
+		protocol.ShellListParams{SessionID: sessionID})
+	if err != nil {
+		return nil, err
+	}
+	result, err := protocol.ParseShellListResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("命令清单回执无法解析: %w", err)
+	}
+	runs := make([]ShellRun, 0, len(result.Runs))
+	for _, run := range result.Runs {
+		runs = append(runs, ShellRun{
+			RunID:     run.RunID,
+			BranchID:  run.BranchID,
+			Mode:      run.Mode,
+			StartedAt: run.StartedAt,
+		})
+	}
+	return runs, nil
 }

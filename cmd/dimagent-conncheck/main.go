@@ -55,6 +55,7 @@ func run() error {
 	mockModel := flag.Bool("mock", false, "用 mock 模型启动服务端（验收用）")
 	modelConfig := flag.String("model-config", "", "用模型配置启动服务端（configured profile）")
 	probe := flag.Bool("probe", false, "逐项读取 v3 wire：方法清单、四类未完成事项、提交核对、附件写入")
+	management := flag.Bool("mgmt", false, "探测管理面与权限档位：plugin/skills/hooks/mcp/schedule/storage/modality/shell/wakeup/rename")
 	keepDaemon := flag.Bool("keep", false, "不回收自己拉起的服务端")
 	noticeSeconds := flag.Int("notice-seconds", 1, "打开会话后等待通知的秒数")
 	flag.Var(&serverArgs, "server-arg", "追加给服务端的参数，可重复（例如 dimcode-server 需要 app-server）")
@@ -131,6 +132,22 @@ func run() error {
 			if event.Method != "session.event" {
 				emit("notification", map[string]any{"method": event.Method})
 			}
+			if event.Title != nil {
+				emit("notice.title", map[string]any{
+					"title": event.Title.Title, "titleSource": event.Title.TitleSource,
+					"titleRevision": event.Title.TitleRevision,
+				})
+			}
+			if event.PermissionChanged != nil {
+				emit("notice.permission.changed", map[string]any{
+					"preset": event.PermissionChanged.Policy.Preset,
+				})
+			}
+			if event.Wakeup != nil {
+				emit("notice.wakeup", map[string]any{
+					"wakeupId": event.Wakeup.WakeupID, "state": event.Wakeup.State,
+				})
+			}
 		},
 		OnResync: func(resync session.Resync) {
 			atomic.AddInt64(&resyncs, 1)
@@ -153,6 +170,9 @@ func run() error {
 
 	if *probe {
 		probeWire(ctx, lease.Subscription())
+	}
+	if *management {
+		probeManagement(ctx, conn, lease.Subscription(), *dataDir)
 	}
 
 	time.Sleep(time.Duration(*noticeSeconds) * time.Second)
@@ -259,6 +279,87 @@ func probeWire(ctx context.Context, sub *session.Subscription) {
 			"path":         put.Path,
 			"bytes":        put.Bytes,
 		})
+	}
+}
+
+// probeManagement 探测管理面方法；失败逐项记录，不中断其余项目。
+func probeManagement(ctx context.Context, conn *daemon.Connection, sub *session.Subscription, dataDir string) {
+	emitRaw := func(label string, raw json.RawMessage, err error) {
+		if err != nil {
+			emit(label, map[string]any{"error": err.Error()})
+			return
+		}
+		if len(raw) > 900 {
+			emit(label, map[string]any{"bytes": len(raw), "preview": string(raw[:900])})
+			return
+		}
+		emit(label, map[string]any{"result": json.RawMessage(raw)})
+	}
+
+	for _, method := range []string{
+		"plugin.list", "skills.catalog", "skills.installations", "hooks.catalog",
+		"mcp.catalog", "mcp.import.sources", "schedule.list", "storage.report",
+		"modality.capabilities", "modality.task.list", "permission.rules",
+	} {
+		raw, err := conn.Client.Call(ctx, method, map[string]any{})
+		emitRaw("mgmt."+method, raw, err)
+	}
+
+	branch := "main"
+	getParams := map[string]any{"sessionId": sub.SessionID(), "branchId": branch}
+	if raw, err := sub.Call(ctx, "session.permission.get", getParams); err != nil {
+		emitRaw("mgmt.session.permission.get", raw, err)
+	} else {
+		emitRaw("mgmt.session.permission.get", raw, nil)
+		var permission struct {
+			Version int64 `json:"version"`
+		}
+		if err := json.Unmarshal(raw, &permission); err == nil {
+			update := map[string]any{
+				"sessionId": sub.SessionID(), "branchId": branch,
+				"expectedVersion": permission.Version,
+				"policy":          map[string]any{"preset": "read-only"},
+			}
+			raw, err := sub.Call(ctx, "session.permission.update", update)
+			emitRaw("mgmt.session.permission.update", raw, err)
+		}
+	}
+
+	raw, err := sub.Call(ctx, "session.rename", map[string]any{"sessionId": sub.SessionID(), "title": "conncheck probe"})
+	emitRaw("mgmt.session.rename", raw, err)
+
+	workDir := filepath.Join(dataDir, "workspace")
+	_ = os.MkdirAll(workDir, 0o700)
+	runID := randomUUID()
+	raw, err = sub.Call(ctx, "shell.run", map[string]any{
+		"sessionId": sub.SessionID(), "branchId": branch, "runId": runID,
+		"command": "echo conncheck", "mode": "private",
+	})
+	emitRaw("mgmt.shell.run", raw, err)
+	raw, err = sub.Call(ctx, "shell.list", map[string]any{"sessionId": sub.SessionID()})
+	emitRaw("mgmt.shell.list", raw, err)
+	raw, err = sub.Call(ctx, "shell.stop", map[string]any{"sessionId": sub.SessionID(), "runId": runID})
+	emitRaw("mgmt.shell.stop", raw, err)
+
+	at := time.Now().Add(time.Minute).UTC().Format(time.RFC3339)
+	raw, err = sub.Call(ctx, "session.wakeup.create", map[string]any{
+		"sessionId": sub.SessionID(), "branchId": branch, "at": at, "prompt": "conncheck wakeup",
+	})
+	emitRaw("mgmt.session.wakeup.create", raw, err)
+	raw, err = sub.Call(ctx, "session.wakeup.list", map[string]any{"sessionId": sub.SessionID()})
+	emitRaw("mgmt.session.wakeup.list", raw, err)
+	if err == nil {
+		var listed struct {
+			Wakeups []struct {
+				WakeupID string `json:"wakeupId"`
+			} `json:"wakeups"`
+		}
+		if json.Unmarshal(raw, &listed) == nil && len(listed.Wakeups) > 0 {
+			raw, err = sub.Call(ctx, "session.wakeup.cancel", map[string]any{
+				"sessionId": sub.SessionID(), "wakeupId": listed.Wakeups[0].WakeupID,
+			})
+			emitRaw("mgmt.session.wakeup.cancel", raw, err)
+		}
 	}
 }
 

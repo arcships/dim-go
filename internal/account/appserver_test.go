@@ -27,6 +27,9 @@ type wireHarness struct {
 	mu          sync.Mutex
 	hasOverride bool
 	override    Status
+	attempts    map[string]string
+	cancels     int
+	deviceBegin []map[string]any
 }
 
 func (h *wireHarness) setStatus(status Status) {
@@ -40,6 +43,165 @@ func (h *wireHarness) currentOverride() (Status, bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return h.override, h.hasOverride
+}
+
+// ReadProviders 读取服务端声明的账号提供者。
+func (h *wireHarness) ReadProviders(ctx context.Context) ([]Provider, error) {
+	var reply []struct {
+		ProviderID       string   `json:"providerId"`
+		DisplayName      string   `json:"displayName"`
+		LoginMethods     []string `json:"loginMethods"`
+		DefaultDirectory *string  `json:"defaultDirectory"`
+	}
+	if err := h.client.CallInto(ctx, "account.providers", nil, &reply); err != nil {
+		return nil, err
+	}
+	providers := make([]Provider, 0, len(reply))
+	for _, entry := range reply {
+		provider := Provider{
+			ID:           entry.ProviderID,
+			DisplayName:  entry.DisplayName,
+			LoginMethods: make([]LoginMethod, 0, len(entry.LoginMethods)),
+		}
+		if entry.DefaultDirectory != nil {
+			provider.Directory = *entry.DefaultDirectory
+		}
+		for _, method := range entry.LoginMethods {
+			provider.LoginMethods = append(provider.LoginMethods, LoginMethod(method))
+		}
+		providers = append(providers, provider)
+	}
+	return providers, nil
+}
+
+func (h *wireHarness) rememberAttempt(attempt, providerID string) {
+	if attempt == "" {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.attempts == nil {
+		h.attempts = make(map[string]string)
+	}
+	h.attempts[attempt] = providerID
+}
+
+func (h *wireHarness) attemptProvider(attempt string) string {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.attempts[attempt]
+}
+
+// BeginProviderAuthorization 按 provider 向服务端登记环回回调地址。
+func (h *wireHarness) BeginProviderAuthorization(ctx context.Context, begin ProviderAuthorizationBegin) (AuthorizationRequest, error) {
+	var result struct {
+		URL     string `json:"url"`
+		State   string `json:"state"`
+		Attempt string `json:"attemptId"`
+	}
+	params := map[string]any{
+		"providerId":  begin.ProviderID,
+		"redirectUri": begin.RedirectURI,
+	}
+	if begin.Directory != "" {
+		params["directory"] = begin.Directory
+	}
+	if err := h.client.CallInto(ctx, "account.login.browser.begin", params, &result); err != nil {
+		return AuthorizationRequest{}, err
+	}
+	h.rememberAttempt(result.Attempt, begin.ProviderID)
+	query := url.Values{"code": {"login-code"}}
+	if result.State != "" {
+		query.Set("state", result.State)
+	}
+	return AuthorizationRequest{
+		URL:     begin.RedirectURI + "?" + query.Encode(),
+		State:   result.State,
+		Attempt: result.Attempt,
+	}, nil
+}
+
+// CompleteProviderAuthorization 按 provider 与尝试标识完成交换。
+func (h *wireHarness) CompleteProviderAuthorization(
+	ctx context.Context,
+	providerID string,
+	attempt string,
+	result AuthorizationResult,
+) error {
+	_, err := h.client.Call(ctx, "account.login.browser.complete", map[string]any{
+		"providerId":  providerID,
+		"attemptId":   attempt,
+		"callbackUrl": result.CallbackURL,
+		"code":        result.Code,
+		"state":       result.State,
+	})
+	return err
+}
+
+// BeginDeviceAuthorization 发起设备码登录。
+func (h *wireHarness) BeginDeviceAuthorization(
+	ctx context.Context,
+	providerID string,
+	directory string,
+) (DeviceAuthorization, error) {
+	params := map[string]any{"providerId": providerID}
+	if directory != "" {
+		params["directory"] = directory
+	}
+	h.mu.Lock()
+	h.deviceBegin = append(h.deviceBegin, params)
+	h.mu.Unlock()
+
+	var reply struct {
+		AttemptID               string `json:"attemptId"`
+		VerificationURI         string `json:"verificationUri"`
+		VerificationURIComplete string `json:"verificationUriComplete"`
+		UserCode                string `json:"userCode"`
+		ExpiresAt               int64  `json:"expiresAt"`
+	}
+	if err := h.client.CallInto(ctx, "account.login.begin", params, &reply); err != nil {
+		return DeviceAuthorization{}, err
+	}
+	h.rememberAttempt(reply.AttemptID, providerID)
+	device := DeviceAuthorization{
+		Attempt:                 reply.AttemptID,
+		VerificationURI:         reply.VerificationURI,
+		VerificationURIComplete: reply.VerificationURIComplete,
+		UserCode:                reply.UserCode,
+	}
+	if reply.ExpiresAt > 0 {
+		device.ExpiresAt = time.UnixMilli(reply.ExpiresAt).UTC()
+	}
+	return device, nil
+}
+
+// PollDeviceAuthorization 轮询设备码登录状态。
+func (h *wireHarness) PollDeviceAuthorization(ctx context.Context, attempt string) (DeviceLoginState, error) {
+	providerID := h.attemptProvider(attempt)
+	var reply struct {
+		Status string `json:"status"`
+		Error  string `json:"error"`
+	}
+	if err := h.client.CallInto(ctx, "account.login.status", map[string]any{
+		"providerId": providerID,
+		"attemptId":  attempt,
+	}, &reply); err != nil {
+		return DeviceLoginState{}, err
+	}
+	return DeviceLoginState{Status: DeviceLoginStatus(reply.Status), Reason: reply.Error}, nil
+}
+
+// CancelAuthorization 取消服务端尝试；provider 由发起时记住。
+func (h *wireHarness) CancelAuthorization(ctx context.Context, attempt string) error {
+	providerID := h.attemptProvider(attempt)
+	h.mu.Lock()
+	h.cancels++
+	h.mu.Unlock()
+	_, err := h.client.Call(ctx, "account.login.cancel", map[string]any{
+		"providerId": providerID,
+		"attemptId":  attempt,
+	})
+	return err
 }
 
 // wireIdentity 是账号状态回执里的身份字段。
@@ -160,50 +322,6 @@ func (h *wireHarness) ReadModels(ctx context.Context) ([]Model, error) {
 		})
 	}
 	return models, nil
-}
-
-// BeginAuthorization 向服务端登记环回回调地址，然后把它换成授权地址。
-//
-// 假服务端不能按请求回显回调地址，因此测试适配器把回执换成一个「立即重定向到
-// 回调地址」的授权地址；服务端确实收到了回调地址，这一点由请求参数核对。
-func (h *wireHarness) BeginAuthorization(ctx context.Context, redirectURI string) (AuthorizationRequest, error) {
-	var result struct {
-		URL     string `json:"url"`
-		State   string `json:"state"`
-		Attempt string `json:"attemptId"`
-	}
-	if err := h.client.CallInto(ctx, "account.login.begin", map[string]any{"redirectUri": redirectURI}, &result); err != nil {
-		return AuthorizationRequest{}, err
-	}
-	query := url.Values{"code": {"login-code"}}
-	if result.State != "" {
-		query.Set("state", result.State)
-	}
-	return AuthorizationRequest{
-		URL:     redirectURI + "?" + query.Encode(),
-		State:   result.State,
-		Attempt: result.Attempt,
-	}, nil
-}
-
-// CompleteAuthorization 用回调结果调用服务端完成交换。
-func (h *wireHarness) CompleteAuthorization(ctx context.Context, attempt string, result AuthorizationResult) error {
-	_, err := h.client.Call(ctx, "account.login.complete", map[string]any{
-		"attemptId":   attempt,
-		"callbackUrl": result.CallbackURL,
-		"code":        result.Code,
-		"state":       result.State,
-	})
-	return err
-}
-
-// CancelAuthorization 取消服务端的登录尝试。
-func (h *wireHarness) CancelAuthorization(ctx context.Context, attempt string) error {
-	_, err := h.client.Call(ctx, "account.login.cancel", map[string]any{
-		"providerId": "dimcode-api-oauth",
-		"attemptId":  attempt,
-	})
-	return err
 }
 
 // Send 是写登记的发送方：账号动作按透明参数里的操作名映射到服务端方法，只发一次。
@@ -366,12 +484,20 @@ func TestAppServerReadsStatusUsageAndModels(t *testing.T) {
 func TestAppServerLoginThroughLoopback(t *testing.T) {
 	server, client, _ := startAccountServer(t, fakeappserver.Script{
 		Replies: []fakeappserver.Reply{
-			{Method: "account.login.begin", Result: map[string]any{
+			{Method: "account.providers", Result: []any{
+				map[string]any{
+					"providerId":       "dimcode-api-oauth",
+					"displayName":      "Dim OAuth",
+					"loginMethods":     []any{"browser", "device"},
+					"defaultDirectory": "https://dimagent.cn",
+				},
+			}},
+			{Method: "account.login.browser.begin", Result: map[string]any{
 				"url":       "https://provider.example/authorize",
 				"state":     "wire-state",
 				"attemptId": "attempt-wire",
 			}},
-			{Method: "account.login.complete", Result: map[string]any{"ok": true}},
+			{Method: "account.login.browser.complete", Result: map[string]any{"ok": true}},
 			{Method: "account.status", Result: map[string]any{
 				"status": "signed_in",
 				"identity": map[string]any{
@@ -386,12 +512,13 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	browser := &httpBrowser{}
 	account := newTestAccount(t, Config{
 		Status:       harness,
+		Providers:    harness,
 		Auth:         harness,
 		Browser:      browser,
 		LoginTimeout: 2 * time.Second,
 	})
 
-	snapshot, err := account.Login(context.Background())
+	snapshot, err := account.Login(context.Background(), LoginRequest{})
 	if err != nil {
 		t.Fatalf("登录: %v", err)
 	}
@@ -402,7 +529,7 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 		t.Fatalf("登录尝试状态不符：%+v", state)
 	}
 
-	beginRequests := server.RequestsFor("account.login.begin")
+	beginRequests := server.RequestsFor("account.login.browser.begin")
 	if len(beginRequests) != 1 {
 		t.Fatalf("授权发起次数不符：%d", len(beginRequests))
 	}
@@ -415,8 +542,11 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	if err != nil || parsed.Hostname() != "127.0.0.1" || parsed.Path != callbackPath {
 		t.Fatalf("回调地址不符：%q", redirectURI)
 	}
+	if beginParams["providerId"] != "dimcode-api-oauth" || beginParams["directory"] != "https://dimagent.cn" {
+		t.Fatalf("授权发起没有带上 provider 与目录：%+v", beginParams)
+	}
 
-	completeRequests := server.RequestsFor("account.login.complete")
+	completeRequests := server.RequestsFor("account.login.browser.complete")
 	if len(completeRequests) != 1 {
 		t.Fatalf("完成交换次数不符：%d", len(completeRequests))
 	}
@@ -427,7 +557,7 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	if completeParams["code"] != "login-code" || completeParams["state"] != "wire-state" {
 		t.Fatalf("完成交换参数不符：%+v", completeParams)
 	}
-	if completeParams["attemptId"] != "attempt-wire" {
+	if completeParams["providerId"] != "dimcode-api-oauth" || completeParams["attemptId"] != "attempt-wire" {
 		t.Fatalf("完成交换没有带上服务端尝试标识：%+v", completeParams)
 	}
 	callbackURL, _ := completeParams["callbackUrl"].(string)
@@ -444,6 +574,90 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	}
 	if len(bodies) != 1 || strings.Contains(bodies[0], "login-code") {
 		t.Fatalf("回调应答不应回显授权码：%v", bodies)
+	}
+}
+
+// TestAppServerDeviceLoginThroughProvider 用假服务端核对：provider 只声明 device 时
+// 走设备码流程，发起用 providerId/directory，轮询到完成后重新读取账号状态。
+func TestAppServerDeviceLoginThroughProvider(t *testing.T) {
+	server, client, _ := startAccountServer(t, fakeappserver.Script{
+		Replies: []fakeappserver.Reply{
+			{Method: "account.providers", Result: []any{
+				map[string]any{
+					"providerId":   "provider-device",
+					"displayName":  "设备码账号",
+					"loginMethods": []any{"device"},
+				},
+			}},
+			{Method: "account.login.begin", Result: map[string]any{
+				"attemptId":               "device-attempt",
+				"verificationUri":         "https://issuer.example/device",
+				"verificationUriComplete": "https://issuer.example/device?code=ABCD",
+				"userCode":                "ABCD-EFGH",
+			}},
+			{Method: "account.login.status", Result: map[string]any{"status": "completed"}},
+			{Method: "account.status", Result: map[string]any{
+				"status": "signed_in",
+				"identity": map[string]any{
+					"accountId": "acct-wire",
+					"email":     "wire@example.com",
+				},
+			}},
+		},
+	})
+
+	harness := &wireHarness{client: client}
+	account := newTestAccount(t, Config{
+		Status:       harness,
+		Providers:    harness,
+		Auth:         harness,
+		DeviceAuth:   harness,
+		Browser:      &stubBrowser{},
+		LoginTimeout: 2 * time.Second,
+	})
+
+	start, err := account.BeginLogin(context.Background(), LoginRequest{Method: LoginMethodDevice})
+	if err != nil {
+		t.Fatalf("发起设备码登录: %v", err)
+	}
+	if start.ProviderID != "provider-device" || start.UserCode != "ABCD-EFGH" || start.VerificationURI == "" {
+		t.Fatalf("设备码提示不符：%+v", start)
+	}
+	snapshot, err := account.WaitLogin(context.Background())
+	if err != nil {
+		t.Fatalf("等待设备码登录: %v", err)
+	}
+	if snapshot.Status != StatusSignedIn || snapshot.Identity.AccountID != "acct-wire" {
+		t.Fatalf("设备码登录后的账号状态不符：%+v", snapshot)
+	}
+	if state := account.LoginState(); state.Method != LoginMethodDevice || state.Phase != LoginCompleted {
+		t.Fatalf("登录尝试状态不符：%+v", state)
+	}
+
+	beginRequests := server.RequestsFor("account.login.begin")
+	if len(beginRequests) != 1 {
+		t.Fatalf("设备码发起次数不符：%d", len(beginRequests))
+	}
+	var beginParams map[string]any
+	if err := json.Unmarshal(beginRequests[0].Params, &beginParams); err != nil {
+		t.Fatalf("设备码发起参数无法解析: %v", err)
+	}
+	if beginParams["providerId"] != "provider-device" {
+		t.Fatalf("设备码发起没有带上 provider：%+v", beginParams)
+	}
+	statusRequests := server.RequestsFor("account.login.status")
+	if len(statusRequests) != 1 {
+		t.Fatalf("设备码轮询次数不符：%d", len(statusRequests))
+	}
+	var statusParams map[string]any
+	if err := json.Unmarshal(statusRequests[0].Params, &statusParams); err != nil {
+		t.Fatalf("设备码轮询参数无法解析: %v", err)
+	}
+	if statusParams["providerId"] != "provider-device" || statusParams["attemptId"] != "device-attempt" {
+		t.Fatalf("设备码轮询参数不符：%+v", statusParams)
+	}
+	if count := len(server.RequestsFor("account.login.browser.begin")); count != 0 {
+		t.Fatalf("设备码流程不应发起浏览器登录：%d", count)
 	}
 }
 

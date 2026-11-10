@@ -174,11 +174,13 @@ type PendingQuestion struct {
 
 // PendingTask 是一个尚未结束的后台任务。
 type PendingTask struct {
-	TaskID      string
-	EventID     string
-	Sequence    int64
-	Description string
-	StartedAt   int64
+	TaskID      string `json:"taskId"`
+	EventID     string `json:"eventId"`
+	Sequence    int64  `json:"sequence"`
+	Description string `json:"description,omitempty"`
+	StartedAt   int64  `json:"startedAt"`
+	// Stopping 表示已经发出停止、还在等结束事实。它只影响展示，不参与结算。
+	Stopping bool `json:"stopping,omitempty"`
 }
 
 // PendingCollaboration 是一条尚未结算的协作请求。
@@ -312,4 +314,15 @@ type View struct {
 	Anchor int64
 	// HasOlder 表示还有更早的轮次没装载。
 	HasOlder bool
+	// Suggestion 是当前这一轮的一条提示建议；没有就是 nil。它不进时间线，
+	// 断线即清空（服务端不重放）。
+	Suggestion *Suggestion
+	// Usage 是本分支累计用量（model/usage）；还没用量事实时为 nil。
+	Usage *Usage
+	// Context 是最近一次模型调用的上下文占用（context/budget）；没有事实时为 nil。
+	Context *ContextUsage
+	// Compaction 是最近一次上下文压缩的摘要；没有压缩事实时为 nil。
+	Compaction *Compaction
+	// Compactions 是压缩次数。
+	Compactions int64
 }

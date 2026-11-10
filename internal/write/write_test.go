@@ -522,6 +522,11 @@ func TestSessionLifecycleIntentIsSentOnce(t *testing.T) {
 			params:  json.RawMessage(`{"op":"branch.create","parentBranchId":"main","at":3,"prompt":"换一条路"}`),
 		},
 		{
+			name:    "fork",
+			session: "s1",
+			params:  json.RawMessage(`{"op":"fork","at":42}`),
+		},
+		{
 			name:       "branch.end",
 			session:    "s1",
 			branchID:   "side",
@@ -686,6 +691,63 @@ func TestSessionLifecycleBranchOpsUnknownAndFailure(t *testing.T) {
 	}
 }
 
+func TestSessionLifecycleForkUnknownAndFailure(t *testing.T) {
+	t.Run("unknown", func(t *testing.T) {
+		sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+			return Reply{}, context.DeadlineExceeded
+		}}
+		inspector := &fakeInspector{handle: func(query InputQuery, _ int) (InputState, error) {
+			if query.Kind != KindSessionLifecycle || query.SessionID != "s1" {
+				t.Errorf("核对查询=%+v 期望 session_lifecycle/s1", query)
+			}
+			// 分叉会得到新分支标识；意图没有声明分支，核对不拿它当归属冲突。
+			return InputState{Confirmed: true, Present: true, SessionID: "s1", BranchID: "new-branch"}, nil
+		}}
+		manager := newTestManager(t, sender, inspector)
+		view := mustRegister(t, manager, Intent{
+			Key:       "fork-unknown",
+			Kind:      KindSessionLifecycle,
+			SessionID: "s1",
+			InputID:   "fork-1",
+			Params:    json.RawMessage(`{"op":"fork","at":42}`),
+		})
+		waitStatus(t, manager, view.ID, StatusSucceeded)
+		if sender.count() != 1 {
+			t.Fatalf("核对后发送次数=%d 期望 1（不自动重发）", sender.count())
+		}
+		if inspector.count() == 0 {
+			t.Fatal("未知状态没有触发核对")
+		}
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
+			return Reply{}, failure.New(failure.KindNonRetryable, "session.fork", errors.New("参数错误"))
+		}}
+		inspector := &fakeInspector{}
+		manager := newTestManager(t, sender, inspector)
+		if err := manager.SetDraft(Draft{SessionID: "s1", Text: "草稿"}); err != nil {
+			t.Fatalf("保存草稿: %v", err)
+		}
+		view := mustRegister(t, manager, Intent{
+			Key:       "fork-fail",
+			Kind:      KindSessionLifecycle,
+			SessionID: "s1",
+			Params:    json.RawMessage(`{"op":"fork","at":42}`),
+		})
+		result := waitStatus(t, manager, view.ID, StatusFailed)
+		if len(result.Content) == 0 {
+			t.Fatal("失败后待发内容被清空")
+		}
+		if _, ok := manager.Draft("s1"); !ok {
+			t.Fatal("失败后草稿被清空")
+		}
+		if sender.count() != 1 || inspector.count() != 0 {
+			t.Fatalf("发送=%d 核对=%d 期望 1/0", sender.count(), inspector.count())
+		}
+	})
+}
+
 func TestSessionLifecycleFailurePreservesContentAndDraft(t *testing.T) {
 	sender := &fakeSender{handle: func(context.Context, Request) (Reply, error) {
 		return Reply{}, failure.New(failure.KindNonRetryable, "session.rename", errors.New("会话不存在"))
@@ -760,6 +822,14 @@ func TestSessionLifecycleScope(t *testing.T) {
 				Key:    "lifecycle-no-op",
 				Kind:   KindSessionLifecycle,
 				Params: json.RawMessage(`{"title":"新名字"}`),
+			},
+		},
+		{
+			name: "fork 缺少目标会话",
+			intent: Intent{
+				Key:    "lifecycle-fork-no-session",
+				Kind:   KindSessionLifecycle,
+				Params: json.RawMessage(`{"op":"fork","at":42}`),
 			},
 		},
 		{

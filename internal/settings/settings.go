@@ -42,6 +42,34 @@ const (
 	FeatureModelProviders = "models.providers.list"
 	// FeatureModelSelection 是模型选择的写入。
 	FeatureModelSelection = "provider.select"
+	// FeatureProviderList 是 provider 概要清单。
+	FeatureProviderList = "provider.list"
+	// FeatureProviderManagement 是 provider 管理详情。
+	FeatureProviderManagement = "provider.management"
+	// FeatureProviderCreate 是新建 provider。
+	FeatureProviderCreate = "provider.create"
+	// FeatureProviderUpdate 是更新 provider。
+	FeatureProviderUpdate = "provider.update"
+	// FeatureProviderProbe 是显式探测 provider 的模型列表。
+	FeatureProviderProbe = "provider.probe"
+	// FeatureProviderModelsSetEnabled 是设置 provider 的启用模型集合。
+	FeatureProviderModelsSetEnabled = "provider.models.set_enabled"
+	// FeatureProviderModelsEdit 是编辑 provider 的模型配置。
+	FeatureProviderModelsEdit = "provider.models.edit"
+	// FeatureProviderModelsReset 是重置 provider 的模型配置。
+	FeatureProviderModelsReset = "provider.models.reset"
+	// FeatureProviderPreferencesUpdate 是写入模型偏好。
+	FeatureProviderPreferencesUpdate = "provider.preferences.update"
+	// FeatureCollaborationPolicy 是协作模型策略读取。
+	FeatureCollaborationPolicy = "collaboration.model_policy"
+	// FeatureCollaborationSetPolicy 是协作模型策略写入。
+	FeatureCollaborationSetPolicy = "collaboration.set_model_policy"
+	// FeatureAgentList 是 agent 档案清单。
+	FeatureAgentList = "agent.list"
+	// FeatureSessionAgentGet 是会话当前采用的 agent 档案读取。
+	FeatureSessionAgentGet = "session.agent.get"
+	// FeatureSessionAgentUpdate 是会话 agent 档案更新。
+	FeatureSessionAgentUpdate = "session.agent.update"
 	// FeatureStorageReport 是存储读数。
 	FeatureStorageReport = "storage.report"
 	// FeatureRuntimeList 是运行组件清单。
@@ -84,6 +112,42 @@ var (
 	ErrSelectionUnavailable = errors.New("模型选择不可用")
 	// ErrSelectionFailed 表示模型选择写入明确失败。
 	ErrSelectionFailed = errors.New("模型选择写入失败")
+	// ErrInvalidProviderRequest 表示 provider 或模型管理请求结构不合法。
+	ErrInvalidProviderRequest = errors.New("供应商请求不合法")
+	// ErrProviderReadFailed 表示 provider 清单或详情读取失败。
+	ErrProviderReadFailed = errors.New("供应商读取失败")
+	// ErrProviderConflict 表示 provider 版本前置条件不成立。
+	ErrProviderConflict = errors.New("供应商版本冲突")
+	// ErrProviderWriteFailed 表示 provider 写入明确失败。
+	ErrProviderWriteFailed = errors.New("供应商写入失败")
+	// ErrModelWriteFailed 表示 provider 模型写入明确失败。
+	ErrModelWriteFailed = errors.New("模型配置写入失败")
+	// ErrProbeFailed 表示显式探测失败。
+	ErrProbeFailed = errors.New("供应商探测失败")
+	// ErrProviderNotEditable 表示该 provider 没有可写的版本或动作。
+	ErrProviderNotEditable = errors.New("供应商不可编辑")
+	// ErrMalformedProvider 表示 provider 事实结构不合法。
+	ErrMalformedProvider = errors.New("供应商事实不合法")
+	// ErrInvalidCollaborationRequest 表示协作模型策略请求不合法。
+	ErrInvalidCollaborationRequest = errors.New("协作策略请求不合法")
+	// ErrCollaborationReadFailed 表示协作模型策略读取失败。
+	ErrCollaborationReadFailed = errors.New("协作策略读取失败")
+	// ErrCollaborationConflict 表示协作模型策略版本前置条件不成立。
+	ErrCollaborationConflict = errors.New("协作策略版本冲突")
+	// ErrCollaborationWriteFailed 表示协作模型策略写入明确失败。
+	ErrCollaborationWriteFailed = errors.New("协作策略写入失败")
+	// ErrMalformedCollaboration 表示协作模型策略事实不合法。
+	ErrMalformedCollaboration = errors.New("协作策略事实不合法")
+	// ErrInvalidAgentRequest 表示 agent 档案请求不合法。
+	ErrInvalidAgentRequest = errors.New("agent 档案请求不合法")
+	// ErrAgentReadFailed 表示 agent 档案读取失败。
+	ErrAgentReadFailed = errors.New("agent 档案读取失败")
+	// ErrAgentConflict 表示当前采用的 agent 与期望不一致。
+	ErrAgentConflict = errors.New("agent 档案冲突")
+	// ErrAgentWriteFailed 表示 agent 档案写入明确失败。
+	ErrAgentWriteFailed = errors.New("agent 档案写入失败")
+	// ErrMalformedAgent 表示 agent 档案事实不合法。
+	ErrMalformedAgent = errors.New("agent 档案事实不合法")
 	// ErrInvalidModalityRequest 表示模态任务或实时传输的请求结构不合法。
 	ErrInvalidModalityRequest = errors.New("模态请求不合法")
 	// ErrTaskSubmitFailed 表示模态任务提交明确失败。
@@ -229,6 +293,12 @@ type Config struct {
 	Modality ModalityReader
 	// ModalitySession 是会话流上的模态任务读取与实时帧发送面。
 	ModalitySession ModalitySession
+	// Providers 是 provider 清单、详情与显式探测的读取面。
+	Providers ProviderAdmin
+	// Collaboration 是协作模型策略的读取面。
+	Collaboration CollaborationReader
+	// Agents 是 agent 清单与会话当前 agent 的读取面。
+	Agents AgentAdmin
 	// Writer 是写登记；设置写入与组件安装都经它登记一次。
 	Writer Writer
 }
@@ -266,16 +336,27 @@ type Manager struct {
 
 	tasks    map[string]ModalityTask
 	realtime map[string]*realtimeState
+
+	providers      ProviderList
+	providersOK    bool
+	providerDetail map[string]ProviderDetail
+
+	collaboration   CollaborationPolicySnapshot
+	collaborationOK bool
+
+	agents   []AgentProfile
+	agentsOK bool
 }
 
 // New 创建管理面设置领域。各读取接口与写登记都可以在之后由集成层补齐；
 // 缺失时对应方法返回能力缺失错误。
 func New(cfg Config) (*Manager, error) {
 	return &Manager{
-		cfg:       cfg,
-		documents: make(map[string]Document),
-		tasks:     make(map[string]ModalityTask),
-		realtime:  make(map[string]*realtimeState),
+		cfg:            cfg,
+		documents:      make(map[string]Document),
+		tasks:          make(map[string]ModalityTask),
+		realtime:       make(map[string]*realtimeState),
+		providerDetail: make(map[string]ProviderDetail),
 	}, nil
 }
 

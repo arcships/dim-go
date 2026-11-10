@@ -86,8 +86,11 @@ type foldState struct {
 	tools        map[string]*rowState
 	orphanResult map[string][]toolResult
 
-	goal *goalFold
-	inv  *inventory
+	goal       *goalFold
+	inv        *inventory
+	usage      usageState
+	context    contextState
+	compaction compactionState
 }
 
 // toolResult 是结果先于调用到达时暂存的一份结果事实。

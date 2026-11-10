@@ -44,6 +44,8 @@ func (a *App) routeSessionEvent(sessionID string, arbiter *interaction.Arbiter, 
 		arbiter.Settle(notice.RequestID)
 	case protocol.MethodSessionNotice:
 		a.routeSessionNotice(event.Params)
+	case "modality.realtime.event", "modality.realtime.ended":
+		a.routeModalityNotice(sessionID, event)
 	case "session.event":
 		a.routeTimelineFact(arbiter, event.Params)
 	default:

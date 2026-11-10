@@ -1,8 +1,8 @@
 # D11b 扩展与后台（插件、技能、钩子、MCP、计划任务、工作流、唤醒）
 
-Status: 第一版实现完成（按 alpha.21 实测方法改名并落地，待组织评审）
+Status: 第一版实现完成（alpha.21 实测方法 + hooks/MCP 真实回执 + 夜间授权三项，待组织评审）
 Owner: 扩展与后台领域 agent
-验证: 可执行命令与覆盖见第 6 节；真实 alpha.21 证据见 6.4，blocked 见 6.5
+验证: 可执行命令与覆盖见第 6 节；真实 alpha.21 证据见 6.4（含 hooks/MCP 回执与夜间授权），blocked 见 6.5
 依据: `docs/domains/R.md` 功能块 8、9 与「块 8 扩展管理」「块 9 计划任务、运行组件、存储读数、唤醒与模态」的沿用条目；`docs/domains/A.md` 管理面读数、四条总规矩与状态归属；`docs/domains/D1-connection.md` §3.8 管理面实测方法；`docs/domains/D3-write.md` 的写登记意图与状态
 范围: 插件、技能、钩子、MCP（外部工具服务器）、计划任务、工作流定义与运行、会话级唤醒的读取、写入意图与事件跟随。不含界面、连接实现、protocol wire 定义、会话折叠、设置与模型、账号、运行组件。
 
@@ -18,12 +18,13 @@ Owner: 扩展与后台领域 agent
 |---|---|---|
 | 功能块 8「扩展管理」 | `docs/domains/R.md` | 插件列表与安装来源、技能安装与启停、钩子按来源的写入范围、MCP 增删改与探测、配置导入预览与按勾选写入 |
 | 功能块 9「计划任务、…、唤醒」 | `docs/domains/R.md` | 计划任务列表与事件跟随、唤醒记录读取/取消/状态跟随 |
+| 夜间授权补充项 | `docs/domains/R.md` 附 E 第 12–14 项 | 钩子启停、技能刷新、MCP 认证 |
 | 管理面读数、四条总规矩 | `docs/domains/A.md` | 每项读数只有一个驱动者；只由读取与变更通知驱动；缺能力报缺失；不做乐观更新；不保存第二份事实 |
 | alpha.21 管理面实测 | `docs/domains/D1-connection.md` §3.8、§6.5 | 真实方法名：`plugin.*`、`skills.*`、`hooks.*`、`mcp.*`、`schedule.*`、`session.wakeup.*`；`workflow.*`、`runtime.*` 在 alpha.21 不注册 |
 | D1 管理面类型 | `internal/appserver/protocol/management_*.go`、`notices.go` | 集成层按这些类型映射；本包不复制 wire 结构 |
 | 连接错误分类 | `docs/domains/D1-connection.md`、`internal/appserver/failure` | 能力缺失归一成 `CapabilityError`；超时、连接失败、参数错误原样上报 |
 | 写登记 | `docs/domains/D3-write.md`、`internal/write` | 所有变更登记为 `KindManagementWrite`，一次发送、不自行重试、结果由写登记收敛 |
-| 假服务端与真实服务端 | `internal/fakeappserver`、`internal/appserver/protocol`、`internal/appserver/daemon`、`~/.dimcode-alpha/rust/dimcode-server`（0.1.0-alpha.21） | 本机 Unix socket + 真实 NDJSON；假服务端覆盖全部分支，真实服务端覆盖读取、插件/技能启停、唤醒闭环 |
+| 假服务端与真实服务端 | `internal/fakeappserver`、`internal/appserver/protocol`、`internal/appserver/daemon`、`~/.dimcode-alpha/rust/dimcode-server`（0.1.0-alpha.21） | 本机 Unix socket + 真实 NDJSON；假服务端覆盖全部分支，真实服务端覆盖读取、插件/技能启停、唤醒闭环、hooks 写回/冲突与 MCP 保存/配置/探测/删除 |
 | 实现约束 | 本仓库 `AGENTS.md` | 只用 Go 标准库；不改 `go.mod`；只写本领域包与本文档 |
 
 **产物**
@@ -42,13 +43,15 @@ Owner: 扩展与后台领域 agent
 | `internal/extensions/extensions_test.go` | 注入替身覆盖能力分类、钩子来源、导入勾选、通知跟随、真实方法名归一、失败保留等分支 |
 | `internal/extensions/appserver_test.go` | 假服务端 + 真实 NDJSON 的插件/技能、钩子、MCP、计划任务、唤醒、工作流能力缺失证据 |
 | `internal/extensions/daemon_evidence_test.go` | 真实 alpha.21 daemon 证据：管理面读取、插件/技能启停、唤醒 create/list/cancel 与通知 |
+| `internal/extensions/daemon_evidence_hooks_mcp_test.go` | 真实 alpha.21 证据：hooks.save 写回与版本冲突、mcp.save/configuration/test/remove |
+| `internal/extensions/daemon_evidence_night_test.go` | 真实 alpha.21 证据：项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入 |
 | `docs/domains/D11b-extensions.md` | 本文件 |
 
 **验收**
 
 - 命令：`go test ./internal/extensions/`、`go test -race ./internal/extensions/`、`go test -count=1 ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64，Go 1.24.3）。
-- 本领域测试：22 个顶层测试（21 个默认通过，1 个真实 daemon 证据按环境变量运行）。
-- 真实 daemon：alpha.21，临时数据目录 + 复制到 `/tmp` 的离线模型配置；读取、插件/技能启停、唤醒 create/list/cancel 与通知均通过，见 6.4。
+- 本领域测试：30 个顶层测试（27 个默认通过，3 个真实 daemon 证据按环境变量运行）。
+- 真实 daemon：alpha.21，临时数据目录 + 复制到 `/tmp` 的离线模型配置；读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除、项目钩子启停/冲突、skills.refresh/reload_catalog 与 mcp.auth.* 方法接入均通过，见 6.4。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖插件/技能/钩子/MCP/计划任务/工作流能力缺失。
   - 注入替身：读取方与写登记替身，覆盖能力缺失与恢复、来源拒绝、导入勾选、失败保留、通知时序、真实方法名归一。
@@ -67,8 +70,8 @@ Owner: 扩展与后台领域 agent
 
 **上下文需求**
 
-- 真实钩子条目（`hooks.catalog.hooks[]`）与 `hooks.save` 文档形状尚未冻结；本版只按测试适配器的扁平形状验证来源范围，真实写标 blocked。
-- `mcp.test`、`mcp.import.preview`、`mcp.save`、`mcp.remove`、`mcp.import.apply` 的参数已冻结，回执形态未全部探测；本版用测试适配器覆盖方法名与参数，真实写/探测标 blocked。
+- 真实 `hooks` 已冻结本次用到的部分：`hooks.save` 文档 `{hooks:{event:[{matcher,hooks:[{type,command}]}]}}`，回执 `{revision}`，旧版本返回 `hooks_conflict` 且不覆盖；`hooks.catalog.hooks[]` 是扁平条目，无 `id`，本端按来源/事件/位置派生稳定标识。更多钩子字段（args、if、commandWindows）待补。
+- 真实 `mcp.save/remove/test/configuration` 已按本地无凭据 stdio 夹具核对；原始配置文档、HTTP/SSE 与鉴权服务器、`mcp.import.preview/apply` 仍待真实证据。
 - 计划任务 `schedule.watch` 通过 `management.progress` 推送；本版只在测试适配器验证映射，真实 watch 标 blocked。
 - 插件/技能安装的完整参数（`plugin.install` 的 `id`/`enable`、`skills.install` 的 `skills[]` 勾选与 revision）未在真实服务端闭环；本版只验证真实启停。
 - 工作流与运行组件在 alpha.21 没有 wire 方法；工作流类型保留但不发请求，运行组件由 D11a 按能力缺失处理。
@@ -81,8 +84,9 @@ Owner: 扩展与后台领域 agent
 |---|---|
 | 插件 | 清单（`plugin.list` 数组，含未安装/停用条目）、按本地路径/Git/随包来源安装、启停、更新 |
 | 技能 | 清单（`skills.catalog`）、来源、安装、启停；本端不留独立记录 |
-| 钩子 | 清单（`hooks.catalog`）、来源区分、只有用户来源可写 |
-| MCP | 目录（`mcp.catalog`）、新增/修改/删除、显式探测、导入预览、按勾选逐条写入 |
+| 钩子 | 清单（`hooks.catalog`）、来源区分、只有用户来源可写、项目作用域启停（`hooks.set_enabled`）与读回 |
+| MCP | 目录（`mcp.catalog`）、新增/修改/删除、显式探测、导入预览、按勾选逐条写入、认证开始/完成/取消/登出 |
+| 技能刷新 | `skills.refresh` 触发目录刷新并观察版本变化；`skills.reload_catalog` 按 hello 门禁，缺能力零请求 |
 | 计划任务 | `schedule.list` 清单读取；通知到达时重读一次，无定时轮询 |
 | 工作流 | 类型、定义浏览、运行读数；服务端没有 `workflow.*` 时读取与写都报能力缺失，不发请求 |
 | 会话级唤醒 | `session.wakeup.list` 读取、`session.wakeup.cancel` 取消、通知后重读一次；取消/过期记录不出现在读数里 |
@@ -187,27 +191,34 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 
 超时、连接失败、参数错误与未知错误不会被冒充成能力缺失。`CapabilityError` 保留底层错误，因此 `failure.KindOf` 仍会把它归为不可重试。计划任务能力恢复后再次读取即可得到列表；同一实例不需要重建。
 
+`Config.Features` 接入 hello 能力声明：新增的项目钩子启停、技能刷新/重载与 MCP 认证入口先查 hello，声明缺失即返回能力缺失且零请求；`Features` 为 nil 时不做前置门禁，交给调用结果分类。alpha.21 的 hello 声明 `hooks.set_enabled`、`skills.refresh` 与 `mcp.auth.*`，未声明 `skills.reload_catalog`。
+
 ### 4.3 写意图与真实方法
 
 所有变更都经注入的写登记发出，类型固定为 `write.KindManagementWrite`。`WriteOp` 是**判别名，不是 wire 方法名**；集成层按它映射到 alpha.21 实测方法：
 
 | WriteOp（判别名） | alpha.21 实际方法 | 说明 |
 |---|---|---|
+| `hooks.set_enabled` | `hooks.set_enabled` | `{cwd,enabled,expectedRevision}`；项目作用域 |
+| `skills.refresh` | `skills.refresh` | 无参数；回执 `{version,issues}` |
+| `skills.reload_catalog` | `skills.reload_catalog` | alpha.21 hello 未声明：能力缺失零请求 |
+| `mcp.auth.start` / `.complete` / `.cancel` / `.logout` | 同名 | start `{id,source,cwd?,clientSecret?}`；complete `{attemptId,callbackUrl}`；cancel `{attemptId}`；logout `{id,source,cwd?}` |
 | `plugin.install` | `plugin.install` | 来源映射成 `{path}` 或 `{git,ref?}` |
 | `plugin.set_enabled` | `plugin.enable` / `plugin.disable` | 由载荷 `Enabled` 选择 |
 | `plugin.update` | `plugin.update` | `{id,ref?}` |
 | `skill.install` | `skills.install` | 参数含来源与勾选技能 |
 | `skill.set_enabled` | `skills.set_enabled` | `{id,enabled}` |
-| `hook.write` | `hooks.save` | `{expectedRevision,document}`；真实文档形状待冻结 |
+| `hook.write` | `hooks.save` | `{expectedRevision,document}`；文档用 `HookDocument` 生成真实嵌套形状 |
 | `tool_server.add`（手工） | `mcp.save` | `{id,source,expectedVersion,configuration}` |
 | `tool_server.add`（导入） | `mcp.import.apply` | 载荷带 `importSource` 时逐条应用；每次只带一个候选 |
 | `tool_server.update` | `mcp.save` | 同手工新增，`id` 为已有服务器 |
-| `tool_server.remove` | `mcp.remove` | `{id,source,expectedVersion}` |
+| `tool_server.remove` | `mcp.remove` | `{id,source,expectedVersion}`；`RemoveToolServerWithVersion` 带目录版本 |
 | `workflow.start` / `workflow.stop` | 无 | alpha.21 不注册；能力缺失零请求 |
 | `wakeup.cancel` | `session.wakeup.cancel` | `{sessionId,wakeupId}`；需要会话标识 |
 
 - `DecodeManagementWrite` 同时接受真实方法名（`skills.*`、`hooks.save`、`mcp.*`、`plugin.enable/disable`、`session.wakeup.cancel`），并把它们归一到上面的判别名与发送方载荷；旧判别名原样通过。
-- 幂等键由「判别名 + 载荷摘要」生成。同一内容重复登记不会产生第二次请求；上一次明确失败或确认未发生时换新键允许重试；工作流启动在成功后再次调用也换键。
+- `HookDocument` 与 `ToolServerConfiguration` 生成 alpha.21 实际接受的文档形状；集成层应直接使用这两个构造函数，避免再手写字段。
+- 幂等键由「判别名 + 载荷摘要」生成。数据型写入成功后同一内容不重复；项目钩子启停、技能刷新、MCP 认证这类命令型操作在成功后再次调用会换新键，保证旧版本冲突与重复认证尝试都能真实发出。上一次明确失败或确认未发生时同样换新键。
 - 写成功后不自动重读清单：管理面事实只来自读取与变更通知；调用方显式读取或等待通知。
 - 状态以 `write.IntentView.Status` 为准；本包不自行重试、不自动补发。
 
@@ -216,17 +227,27 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 - 插件清单按 `plugin.list` 的数组映射：`id` 取 `name`，`enabled` 取 `!off`，并保留 `use`、`locked`、`status`、`error`；未安装/停用条目不被过滤。
 - 安装来源只接受 `local`、`git`、`bundled`；引用不能为空。真实安装参数由集成层映射成 `{path}` 或 `{git,ref?}`。
 - 技能清单按 `skills.catalog` 映射：`id`、`source`、`name`、`description`、`enabled`、`installed=true`；启停走 `skills.set_enabled`。
-- 本端不留独立记录；重启后重新读取即可得到同一状态。真实证据验证了技能启停往返。
+- `skills.catalog` 的 `version` 与 `issues` 由实现 `SkillCatalogReader` 的读取方一并带回；`ListSkills` 后可用 `SkillCatalogVersion` 观察版本。真实证据中刷新前版本 0、刷新后 1，条目数不变。
+- `skills.refresh` 是命令型写意图，经写登记只发一次；回执 `{version,issues}`，刷新后调用 `ListSkills` 即可观察条目与版本变化。
+- `skills.reload_catalog` 已按真实方法名接入，但 alpha.21 的 hello 未声明该能力；入口直接返回能力缺失且零请求。
+- 本端不留独立记录；重启后重新读取即可得到同一状态。真实证据验证了技能启停往返与刷新版本变化。
 
-### 4.5 钩子的来源范围
+### 4.5 钩子的来源范围、写回与冲突
 
 - `Hook.Writable()` 只在来源为用户时返回真；未知来源按只读处理。
 - `WriteHook` 在调用写登记**之前**校验来源：项目、插件、未知或空来源一律返回 `ErrSourceNotWritable`，不产生写意图，也不发出任何请求。
-- 读取方法按 `hooks.catalog`；写入方法按 `hooks.save`。真实 `hooks.catalog` 的条目形状尚未冻结，本版只在测试适配器里验证扁平条目；真实写标 blocked。
+- 读取按 `hooks.catalog`：`userRevision` 是写入前置版本；`hooks[]` 是扁平条目，字段为 `source`、`event`、`matcher`、`command`、`timeout`、`onFailure`、`async`、`state`，没有 `id`，本端按来源/事件/位置派生稳定标识。
+- 写入按 `hooks.save`：文档形状是 `{"hooks": {<event>: [{"matcher": <string|null>, "hooks": [{"type":"command", "command": ...}]}]}}`，由 `HookDocument` 生成；`WriteHookWithRevision` 把 `userRevision` 放进 `expectedRevision`。
+- 真实回执是 `{"revision":"native:user/hooks:N"}`。旧版本再次写入返回 `appError=hooks_conflict`；写登记把它收敛成明确失败，文档不被覆盖。调用方检查 `write.IntentView.Status` 与 `Reason`。真实写入应使用 `WriteHookWithRevision` 并传入最近一次 `userRevision`；不带版本可能被服务端拒绝或进入冲突。
+- 项目作用域：`hooks.catalog {cwd}` 返回项目来源状态 `{source:"project",path,enabled,state}`；`SetProjectHooksEnabled(cwd,enabled,projectsRevision)` 走 `hooks.set_enabled`，回执 `{revision}`。真实证据：初始 false → 启用 true（revision 1→2）→ 停用 false（revision 2→3）；用初始 revision 再启用返回 `hooks_conflict`，读回仍为 false。
 
-### 4.6 MCP：显式探测与按勾选导入
+### 4.6 MCP：保存、配置、探测、删除与导入
 
-- 目录读取按 `mcp.catalog`；服务器条目映射 `id`、`source`、`enabled`、`transport`、`auth`。清单读取、新增、修改、删除都不会触发探测；只有 `ProbeToolServer` 会发一次 `mcp.test`。探测结果只是预览，不写回配置。
+- 目录读取按 `mcp.catalog`：`userRevision` 是保存/删除的前置版本；`servers[]` 形如 `{id,source,enabled,transport,referencedVariables,unsetVariables}`，真实回执没有 name/command/url，本端用 `id` 作为显示名，详细配置走 `mcp.configuration`。
+- 保存按 `mcp.save`：参数 `{id,source,expectedVersion,configuration}`。配置文档由 `ToolServerConfiguration` 生成：stdio 只带 `command/args/env`，HTTP/SSE 只带 `url/env`，空字段必须省略；否则服务端返回 `mcp_invalid_config`。回执是空对象 `{}`。
+- 读回配置按 `mcp.configuration`：回执 `{revision,enabled,secretsInUserScope,configuration:{type,command,argsCount,cwd,envNames,referencedVariables,unsetVariables}}`。`envNames` 只是键名，不含值。
+- 探测按 `mcp.test`：参数 `{id,source}`，回执 `{status:"connected",latencyMs,tools:[{name,description,inputSchema}]}`；探测只在显式调用时发生，不写回配置。
+- 删除按 `mcp.remove`：参数 `{id,source,expectedVersion}`，回执空对象 `{}`；`RemoveToolServerWithVersion` 带目录版本。
 - 导入先 `PreviewToolServerImport`（`mcp.import.preview`）：读取候选并缓存在内存中，按来源键保存；预览会校验候选键非空且唯一、服务器配置结构合法。
 - `ApplyToolServerImport`：
   1. 要求该来源已有预览，否则 `ErrPreviewRequired`；
@@ -234,7 +255,8 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
   3. 按预览顺序为每条被勾选候选登记一条 `tool_server.add`，载荷带 `ImportSource` 与 `CandidateKey`；集成层映射成 `mcp.import.apply`，每次一个候选标识；
   4. 任一条没有明确成功就停止，返回已有结果与 `ErrWriteNotSucceeded`。
 - 环境变量只出现在写入参数中；清单只返回键名，不返回值；本包日志不记录参数或环境变量内容。
-- 真实证据只验证 `mcp.catalog` 读取；探测、导入与增删改标 blocked（没有真实 MCP 服务器与冻结的回执形状）。
+- 认证按真实方法接入：`mcp.auth.start {id,source,cwd?,clientSecret?}` 回执含 `{attemptId,authorizationUrl,redirectUri,resource,issuer,expiresAt}`；`mcp.auth.complete {attemptId,callbackUrl}`、`mcp.auth.cancel {attemptId}`、`mcp.auth.logout {id,source,cwd?}`（回执 `{revoked}`）。这些入口先查 hello 能力，缺声明即能力缺失零请求。
+- 真实证据用无凭据的本地 Python stdio 服务器覆盖保存/配置/探测/删除；认证对 stdio 服务器返回 `mcp_auth_unsupported`，complete/cancel 对不存在的 attempt 返回 `mcp_auth_attempt_closed`。成功认证需要真实 OAuth 认证服务器，仍 blocked。HTTP/SSE 与导入同样 blocked。
 
 ### 4.7 计划任务
 
@@ -294,10 +316,11 @@ go vet ./...
 
 本版结果（2026-11-11，macOS arm64，Go 1.24.3）：
 
-- `go test ./internal/extensions/`：`ok`（22 个顶层测试；21 个默认通过，真实 daemon 证据在无环境变量时跳过）。
+- `go test ./internal/extensions/`：`ok`（30 个顶层测试；27 个默认通过，3 个真实 daemon 证据在无环境变量时跳过）。
 - `go test -race ./internal/extensions/`：`ok`。
-- `go test -count=1 ./...`：全部包 `ok`（含 `internal/app` 集成层）。
-- `go vet ./...`：无输出。
+- `go test ./internal/app`：`ok`（集成层）。
+- `go vet ./internal/extensions/`：无输出。
+- `go test -count=1 ./...` 与 `go vet ./...`：全部包通过。
 
 ### 6.2 覆盖
 
@@ -317,22 +340,35 @@ go vet ./...
 | 工作流在 alpha.21 能力缺失且零请求 | `TestAlpha21WorkflowCapabilityMissingMakesNoRequest` |
 | 唤醒读取、取消后消失、通知只重读一次 | `TestAppServerWakeupFollowAndCancel`、`TestWakeupFollowsCancellationOnce`、`TestWakeupReadingsHideCancelledAndExpired` |
 | 读取失败保留上一次确认事实 | `TestSnapshotKeepsConfirmedFactsOnReadFailure` |
-| 十一个读取入口缺能力都带能力名 | `TestEveryCapabilityReportsMissingWhenReaderIsAbsent` |
+| 十二个读取入口缺能力都带能力名 | `TestEveryCapabilityReportsMissingWhenReaderIsAbsent` |
 | 写登记缺失时写入口明确不可用 | `TestWriteRequiresWriter` |
 | 失败后用新幂等键重试，不重复发送 | `TestWriteRetriesWithNewKeyAfterFailure` |
 | 真实方法名归一到稳定判别名 | `TestDecodeRealMethodNamesNormalizes` |
+| 钩子文档符合 alpha.21 嵌套形状 | `TestHookDocumentMatchesAlpha21Shape` |
+| 钩子写入携带 revision 与文档 | `TestWriteHookWithRevisionCarriesVersionAndDocument` |
+| MCP 配置省略不兼容字段 | `TestToolServerConfigurationOmitsIncompatibleFields` |
 | wire 层能力缺失不冒充空列表；写入明确失败 | `TestAppServerMissingCapabilityOnWire` |
 | 真实 alpha.21 管理面读取与唤醒闭环 | `TestRealDaemonExtensionReadsAndWakeup`（需环境变量） |
+| 真实 hooks 写回/冲突、MCP 保存/配置/探测/删除 | `TestRealDaemonHooksAndMCPWrites`（需环境变量） |
+| 项目钩子启停与状态读回 | `TestSkillCatalogVersionAndProjectHooksRead`、`TestRealDaemonNightAuthorization`（需环境变量） |
+| 项目钩子版本冲突不覆盖 | `TestRealDaemonNightAuthorization`（需环境变量） |
+| 技能目录版本与问题清单 | `TestSkillCatalogVersionAndProjectHooksRead` |
+| skills.refresh 版本变化、reload_catalog 缺能力零请求 | `TestRealDaemonNightAuthorization`（需环境变量） |
+| hello 能力门禁、缺能力零写意图 | `TestNewCapabilitiesGateOnHello` |
+| 新增写入口的载荷与只发一次 | `TestNewManagementWritesCarryPayloads` |
+| MCP 认证方法接入与无认证服务器错误 | `TestRealDaemonNightAuthorization`（需环境变量） |
 
 ### 6.3 证据档位
 
 - **fakeappserver + 真实客户端**：本机 Unix socket、真实 NDJSON 与 `daemon` 握手；wire 形状只出现在 `appserver_test.go` 的适配器里。覆盖七个范围的读取、写入只发一次、通知跟随、能力缺失与恢复。
 - **注入替身**：读取方与写登记替身，覆盖时序、来源拒绝、勾选校验、失败保留、真实方法名归一与关闭语义。
-- **真实 alpha.21 daemon**：临时数据目录 + `--model-config` 离线配置；验证 `plugin.list`、`skills.catalog`、`hooks.catalog`、`mcp.catalog`、`schedule.list`、`session.wakeup.list/cancel` 与 `session.notice` 唤醒通知。
+- **真实 alpha.21 daemon**：临时数据目录 + `--model-config` 离线配置；验证 `plugin.list`、`skills.catalog/refresh/reload_catalog`、`hooks.catalog/save/set_enabled`、`mcp.catalog/save/configuration/test/remove/auth.*`、`schedule.list`、`session.wakeup.list/cancel` 与 `session.notice` 唤醒通知。
 
 ### 6.4 真实 alpha.21 证据
 
-命令（模型配置复制到 `/tmp`，来源目录只读；数据目录临时）：
+两组证据都使用临时数据目录；模型配置从只读来源复制到 `/tmp` 后交给服务端。日志只留状态、标识、字段名与布尔结果，不打印文档内容、命令环境变量或任何凭据。
+
+#### 6.4.1 管理面读取与唤醒
 
 ```bash
 cp ~/Code/dim/crates/dim-agent-aimux/examples/offline.json /tmp/d11b-offline.json
@@ -369,14 +405,100 @@ extensions: 能力缺失 feature=workflow.start reason=no_reader
 - 唤醒 create 与 cancel 各触发一次 `session.notice`，重读计数为 2（每次通知一次），没有定时轮询。
 - 插件启停可能触发服务端整体 reload；读取证据先完成，写尝试放在最后。
 
+#### 6.4.2 hooks 写回/冲突与 MCP 保存/配置/探测/删除
+
+```bash
+DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_ARGS=app-server \
+DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+  go test -run TestRealDaemonHooksAndMCPWrites -v ./internal/extensions/
+```
+
+观察到的输出（节选；`...` 表示省略的临时标识）：
+
+```text
+hooks.catalog: userRevision=native:user/hooks:1 userDocumentKeys=[disableAllHooks hooks] hooks=0
+hooks.save 回执字段=[revision] revision=native:user/hooks:2
+hooks.catalog 写后: userRevision=native:user/hooks:2 hooks=1
+读回钩子: source=user event=SessionStart state=ok
+领域钩子读取: hooks=1 writable=true
+hooks.save 旧版本: status=failed conflict=true
+冲突后 hooks.catalog: userRevision=native:user/hooks:2 commands=[printf d11b]
+mcp.catalog: userRevision=native:user/mcp:1 servers=0
+mcp.save 回执字段=[]
+读回 MCP: id=d11b-mcp source=user enabled=true transport=stdio
+mcp.configuration: revision=native:user/mcp:2 enabled=true secretsInUserScope=false configurationFields=[type command argsCount cwd envNames referencedVariables unsetVariables] type=stdio argsCount=1 envNames=0
+mcp.test: status=connected reachable=true latencyMs=25 tools=[echo]
+mcp.remove 回执字段=[]
+mcp.remove 后 servers=0
+回收自启服务端: stopped=true
+```
+
+回执与语义（alpha.21 实测）：
+
+| 方法 | 参数要点 | 回执形状 |
+|---|---|---|
+| `hooks.catalog` | 无 | `{userRevision, userDocument, projectsRevision, disableAllHooks, sources[], hooks[]}`；`hooks[]` 条目是扁平对象，无 `id` |
+| `hooks.save` | `{expectedRevision, document:{hooks:{<event>:[{matcher,hooks:[{type,command,...}]}]}}}` | `{revision}`；旧版本返回 `appError=hooks_conflict`，文档不覆盖 |
+| `mcp.catalog` | 无 | `{userRevision, projectRevision, userApplication, pluginApplication, projectApplication, servers[], invalid[]}`；server 含 `{id,source,enabled,transport,referencedVariables,unsetVariables}` |
+| `mcp.save` | `{id,source,expectedVersion,configuration}`；stdio 不带 url，http/sse 不带 command | 空对象 `{}` |
+| `mcp.configuration` | `{id,source}` | `{revision,enabled,secretsInUserScope,configuration:{type,command,argsCount,cwd,envNames,referencedVariables,unsetVariables}}` |
+| `mcp.test` | `{id,source}` | `{status:"connected",latencyMs,tools:[{name,description,inputSchema}]}` |
+| `mcp.remove` | `{id,source,expectedVersion}` | 空对象 `{}` |
+
+MCP 夹具是无凭据、只响应 `initialize` 与 `tools/list` 的本地 Python stdio 进程；它不访问网络、不读写外部文件。
+
+#### 6.4.3 夜间授权三项：项目钩子、技能刷新、MCP 认证
+
+```bash
+DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_ARGS=app-server \
+DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+  go test -run TestRealDaemonNightAuthorization -v ./internal/extensions/
+```
+
+观察到的输出（节选）：
+
+```text
+服务端 0.1.0-alpha.21（profile configured）
+hello hooks.set_enabled=true
+hello skills.refresh=true
+hello skills.reload_catalog=false
+hello mcp.auth.start=true
+hello mcp.auth.complete=true
+hello mcp.auth.cancel=true
+hello mcp.auth.logout=true
+项目钩子初始: projectsRevision=native:user/hooks-projects:1 enabled=false sources=2
+项目钩子启用后: projectsRevision=native:user/hooks-projects:2 enabled=true
+项目钩子停用后: projectsRevision=native:user/hooks-projects:3 enabled=false
+项目钩子旧版本: status=failed conflict=true 当前enabled=false
+技能刷新前: version=0 entries=32
+skills.refresh: replyVersion=1 issues=0; catalog version=0 -> 1 entries=32
+skills.reload_catalog: capability_missing=true zero_request=true
+mcp.auth.start: status=failed reason=mcp_auth_unsupported（无 OAuth 认证服务器）
+mcp.auth.complete: status=failed reason=...mcp_auth_attempt_closed...
+mcp.auth.cancel: status=failed reason=...mcp_auth_attempt_closed...
+mcp.auth.logout: status=failed reason=mcp_auth_unsupported
+回收自启服务端: stopped=true
+```
+
+说明：
+
+- 项目钩子状态通过 `hooks.catalog {cwd}` 的 `sources[]` 读回；启用/停用分别推进 `projectsRevision`，旧 revision 写入返回 `hooks_conflict` 且状态不变。
+- 技能刷新回执版本 1；随后 `skills.catalog` 版本从 0 变为 1，条目数不变。
+- `skills.reload_catalog` 的 hello 声明为 false，领域入口按能力缺失处理，不登记写意图、不发请求。
+- MCP 认证成功链路需要真实 OAuth 认证服务器；本机只有无凭据 stdio 夹具，实测到 `mcp_auth_unsupported` 与 `mcp_auth_attempt_closed` 两类真实错误，成功流程标 blocked。
+
 ### 6.5 blocked
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
-| 真实 `hooks.save` 与钩子条目形状 | blocked | `hooks.catalog.hooks[]` 条目与 `hooks.save` 文档形状未冻结；本版只验证 `hooks.catalog` 空列表与来源范围 |
-| 真实 `mcp.test` 探测 | blocked | 没有可连接的外部 MCP 服务器；回执形状未冻结 |
+| 钩子扩展字段与删除 | blocked | 已真实验证 `type/command/matcher` 的最小用户钩子；`args/if/commandWindows` 等字段与删除语义未验证 |
 | 真实 `mcp.import.preview` / `mcp.import.apply` | blocked | 导入来源与候选回执形状未冻结；本版只验证参数映射与逐条写入 |
-| 真实 `mcp.save` / `mcp.remove` | blocked | 配置文档与回执形状未冻结；本版只验证方法名与参数映射 |
+| 真实 HTTP/SSE/鉴权 MCP 服务器 | blocked | 已用无凭据本地 stdio 夹具验证；网络传输、鉴权与远程服务器未验证 |
+| MCP OAuth 成功链路 | blocked | 没有真实 OAuth 认证服务器；只验证了 start/logout 的 `mcp_auth_unsupported`、complete/cancel 的 `mcp_auth_attempt_closed` 与能力门禁 |
+| 真实 `skills.reload_catalog` 成功路径 | blocked | alpha.21 的 hello 未声明且实际调用 unknown_method；本版只能按能力缺失零请求 |
+| 真实 `mcp.save` 原始配置文档 | blocked | `ToolServerConfiguration` 覆盖最小文档；已有原始文档的完整透传未验证 |
 | 真实 `plugin.install` / `skills.install` | blocked | 安装参数虽有实测形状，但没有安全的真实插件/技能源与回执闭环；本版只验证真实启停 |
 | 真实 `schedule.watch` 通知 | blocked | 需要真实调度器产生进度事件；本版用 `management.progress` 适配器验证映射 |
 | 真实 `workflow.*` / `runtime.*` | blocked | alpha.21 不注册；按能力缺失处理，不发明替代 |
@@ -392,21 +514,28 @@ extensions: 能力缺失 feature=workflow.start reason=no_reader
 6. **能力缺失识别有限**：只识别约定的 `appError` 集合与本端 nil 读取方；服务端新增错误名需要扩展映射表。
 7. **写入成功不自动重读**：镜像只由读取与通知更新；界面需要在写终态后显式读取或等待通知。
 8. **导入预览在内存**：`ApplyToolServerImport` 依赖同一实例里最近一次预览；重启或换实例后必须重新预览。
-9. **写重试靠新键**：同一内容成功过就不会再发；未知与需人工确认不会自动重试。
+9. **写重试靠新键**：数据型写入同一内容成功过就不会再发；项目钩子启停、技能刷新、MCP 认证属于命令型操作，成功后再次调用会换新键。未知与需人工确认不会自动重试。
 10. **MCP 环境变量经过写参数**：不会进入快照、日志或错误文本，但会留在写登记的内存参数里；不得在集成层打印。
-11. **钩子删除未实现**：本版只有清单与写入（新建/更新）；真实写入形状待冻结。
+11. **钩子删除未实现**：本版只有清单与写入（新建/更新）；最小命令钩子的真实写回与冲突已验证，删除未验证。
 12. **计划任务只读**：本版只做清单与跟随，不提供启停、立即运行或补跑。
 13. **唤醒过滤**：读数过滤 `cancelled`/`expired`，保留 `scheduled`/`fired`；历史状态仍可从写回执与通知观察。
 14. **工作流无运行时**：类型保留，alpha.21 下任何工作流读取/启动/停止都报能力缺失且零请求。
 15. **真实安装未闭环**：插件/技能安装只在 fakeappserver 与单元测试里验证；真实服务端只验证启停。
-16. **mcp.save 原始配置**：真实方法名归一后保留 `configuration` 文档，但当前集成层按领域摘要构造最小配置；完整配置文档透传需要 D12 继续补字段。
-17. **平台**：只在 macOS arm64 上跑过测试；Windows 未验证。
+16. **mcp.save 原始配置**：`ToolServerConfiguration` 生成最小合法文档并支持传入原始 `Configuration`；D12 发送方尚未改用该构造函数，仍会无条件写空 `url`，真实 MCP 保存需 D12 同步。
+17. **冲突表达**：hooks 版本冲突体现为 `write.IntentView.Status=failed` 且 `Reason` 含 `hooks_conflict`，没有单独的错误哨兵；调用方按状态与原因处理。
+18. **D12 发送方待同步**：本包已提供 `HookDocument` 与 `ToolServerConfiguration`；D12 当前仍手写扁平钩子文档与带空 `url` 的 MCP 文档，真实集成写入前必须改用这两个构造函数。新增的 `hooks.set_enabled`、`skills.refresh/reload_catalog`、`mcp.auth.*` 写意图也需要 D12 映射。
+19. **hello 门禁需集成层接线**：`Config.Features` 为 nil 时不做前置门禁；D12 必须把 `*daemon.Connection` 传进 `Features`，并实现 `ProjectHooks` 读取方，项目钩子与新增能力才会按 hello 门禁。
+20. **认证成功未验证**：MCP 认证只验证方法接入、能力门禁与无认证服务器错误；成功换取凭据需要真实 OAuth 认证服务器，`clientSecret` 与回调 URL 属敏感输入，日志不得记录。
+21. **skills.reload_catalog 不可用**：alpha.21 hello 未声明且调用 unknown_method；本版只保留能力缺失零请求的入口。
+22. **平台**：只在 macOS arm64 上跑过测试；Windows 未验证。
 
 ## 8. 下一步
 
-1. 冻结 `hooks.catalog.hooks[]` 与 `hooks.save` 文档形状，补真实钩子写入证据与删除语义。
-2. 准备一个安全的临时 MCP 服务器，补 `mcp.test`、`mcp.save`、`mcp.remove`、`mcp.import.preview/apply` 的真实闭环。
+1. 补钩子扩展字段（args/if/commandWindows）与删除语义的真实证据。
+2. 补 `mcp.import.preview/apply`、HTTP/SSE 与鉴权 MCP 服务器的真实闭环。
 3. 用真实调度器补 `schedule.watch` → `management.progress` 的通知跟随证据。
 4. 补真实插件/技能安装夹具，验证安装参数与回执闭环。
-5. 评估列表分页与按能力分锁；当前一页读取足够第一版。
-6. 与 D11a 对齐运行组件能力缺失的表达，避免两处对 `runtime.*` 给出不同结论。
+5. 推动 D12 改用 `HookDocument` 与 `ToolServerConfiguration`、接入 `Features`/`ProjectHooks`，并映射新增写意图。
+6. 准备真实 OAuth MCP 认证服务器，补 `mcp.auth.start/complete/cancel/logout` 成功链路与凭据不落日志的证据。
+7. 评估列表分页与按能力分锁；当前一页读取足够第一版。
+8. 与 D11a 对齐运行组件能力缺失的表达，避免两处对 `runtime.*` 给出不同结论。

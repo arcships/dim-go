@@ -192,6 +192,19 @@ func (i *inventory) openTask(event protocol.RawEvent, data map[string]any) {
 	}}
 }
 
+// hasTask 报告任务是否还在未结束清单里。
+func (i *inventory) hasTask(taskID string) bool {
+	_, ok := i.tasks[taskID]
+	return ok
+}
+
+// markTaskStopping 给未结束任务打上"正在停止"。它只影响展示；结算仍由结束事实负责。
+func (i *inventory) markTaskStopping(taskID string) {
+	if entry, ok := i.tasks[taskID]; ok {
+		entry.item.Stopping = true
+	}
+}
+
 func (i *inventory) settleTask(data map[string]any, sequence int64) {
 	taskID := firstString(data, "task_id", "taskId")
 	entry, ok := i.tasks[taskID]

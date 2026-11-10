@@ -46,7 +46,7 @@ const (
 	KindAttachmentWrite Kind = "attachment_resource_write"
 	// KindSessionLifecycle 是会话与分支的新建、改名、删除等生命周期动作。
 	// 具体动作由参数里的 op 区分（create / rename / delete / branch.create /
-	// branch.end，兼容目录领域现有的 catalog.create / catalog.rename /
+	// branch.end / fork，兼容目录领域现有的 catalog.create / catalog.rename /
 	// catalog.delete）；新建会话时还没有会话标识，因此这种类型不强制要求
 	// SessionID。
 	KindSessionLifecycle Kind = "session_lifecycle"
@@ -922,7 +922,7 @@ func normalizeIntent(intent Intent) (Intent, error) {
 	// 各类型按 op 做结构校验；只判断动作是否认得、必需字段在不在，不校验内容语义。
 	switch intent.Kind {
 	case KindSessionLifecycle:
-		// 新建时还没有会话标识，改名与删除必须有。
+		// 新建时还没有会话标识；改名、删除、开分支与分叉必须有。
 		op, err := sessionLifecycleOp(intent.Params)
 		if err != nil {
 			return Intent{}, err
@@ -930,8 +930,8 @@ func normalizeIntent(intent Intent) (Intent, error) {
 		switch op {
 		case sessionOpCreate:
 			// 新建会话：SessionID 可以为空；服务端在回执里给出新会话标识。
-		case sessionOpRename, sessionOpDelete, sessionOpBranchCreate:
-			// 改名、删除与开分支都发生在已有会话里，必须有目标会话。
+		case sessionOpRename, sessionOpDelete, sessionOpBranchCreate, sessionOpFork:
+			// 改名、删除、开分支与分叉都发生在已有会话里，必须有目标会话。
 			if intent.SessionID == "" {
 				return Intent{}, fmt.Errorf("%w: 会话生命周期 %s 缺少目标会话", ErrInvalidIntent, op)
 			}
@@ -967,6 +967,7 @@ const (
 	sessionOpDelete       = "delete"
 	sessionOpBranchCreate = "branch.create"
 	sessionOpBranchEnd    = "branch.end"
+	sessionOpFork         = "fork"
 )
 
 // sessionLifecycleOps 把参数里的 op 归一为动作。目录领域现有写法带 catalog
@@ -980,6 +981,7 @@ var sessionLifecycleOps = map[string]string{
 	"catalog.delete": sessionOpDelete,
 	"branch.create":  sessionOpBranchCreate,
 	"branch.end":     sessionOpBranchEnd,
+	"fork":           sessionOpFork,
 }
 
 // branchEndID 取结束分支的目标标识。Intent.BranchID 与参数 branchId 都可以给；

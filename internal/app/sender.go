@@ -52,6 +52,7 @@ const (
 	methodBranchEnd          = "session.branch_end"
 	methodShellRun           = "shell.run"
 	methodShellStop          = "shell.stop"
+	methodShellList          = "shell.list"
 	methodModalityTaskSubmit = "modality.task.submit"
 	methodModalityTaskCancel = "modality.task.cancel"
 	methodModalityOpen       = "modality.realtime.open"
@@ -494,16 +495,11 @@ func (s *appSender) sendExtensionWrite(
 		if err != nil {
 			return write.Reply{}, err
 		}
-		document, marshalErr := json.Marshal(map[string]any{"hooks": []any{map[string]any{
-			"id":      payload.Hook.ID,
-			"name":    payload.Hook.Name,
-			"event":   payload.Hook.Event,
-			"command": payload.Hook.Command,
-			"source":  string(payload.Hook.Source),
-			"enabled": payload.Hook.Enabled,
-		}}})
-		if marshalErr != nil {
-			return write.Reply{}, invalidPayload(marshalErr)
+		// 真实文档是嵌套形状（event → [{matcher, hooks:[{type,command}]}]），
+		// 由领域的构造函数生成，集成层不再手写扁平结构。
+		document, documentErr := extensions.HookDocument(payload.Hook)
+		if documentErr != nil {
+			return write.Reply{}, invalidPayload(documentErr)
 		}
 		return callAndReply(ctx, client, methodHooksSave, protocol.HooksSaveParams{
 			ExpectedRevision: revision,
@@ -585,9 +581,10 @@ func (s *appSender) sendExtensionWrite(
 		})
 	case "mcp.remove", "tool_server.remove":
 		var payload struct {
-			ServerID string `json:"serverId"`
-			ID       string `json:"id"`
-			Source   string `json:"source"`
+			ServerID        string `json:"serverId"`
+			ID              string `json:"id"`
+			Source          string `json:"source"`
+			ExpectedVersion string `json:"expectedVersion"`
 		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
@@ -596,9 +593,19 @@ func (s *appSender) sendExtensionWrite(
 		if source == "" {
 			source = "user"
 		}
+		version := payload.ExpectedVersion
+		if version == "" {
+			// 删除要带目录版本前置条件；载荷没给时读一次 mcp.catalog 补齐。
+			resolved, err := s.mcpRevision(ctx, client)
+			if err != nil {
+				return write.Reply{}, err
+			}
+			version = resolved
+		}
 		return callAndReply(ctx, client, methodMCPRemove, protocol.MCPRemoveParams{
-			ID:     firstNonEmpty(payload.ServerID, payload.ID),
-			Source: source,
+			ID:              firstNonEmpty(payload.ServerID, payload.ID),
+			Source:          source,
+			ExpectedVersion: version,
 		})
 	case "workflow.start", "workflow.stop":
 		// workflow.* 在 alpha.21 不注册：按能力缺失处理，不发请求。
@@ -657,6 +664,22 @@ func (s *appSender) hooksRevision(
 	return catalog.UserRevision, nil
 }
 
+// mcpRevision 读一次 MCP 目录的用户修订号，作为保存/删除的版本前置条件。
+func (s *appSender) mcpRevision(ctx context.Context, client *protocol.Client) (string, error) {
+	raw, err := client.Call(ctx, methodMCPCatalog, nil)
+	if err != nil {
+		return "", err
+	}
+	catalog, err := protocol.ParseMCPCatalogResult(raw)
+	if err != nil {
+		return "", fmt.Errorf("MCP 目录无法解析: %w", err)
+	}
+	if catalog.UserRevision == "" {
+		return "", fmt.Errorf("MCP 目录缺少 userRevision")
+	}
+	return catalog.UserRevision, nil
+}
+
 // pluginSourceWire 把安装来源映射成真实 wire 形状：本地路径或 Git 地址。
 func pluginSourceWire(source extensions.InstallSource) protocol.PluginSource {
 	switch source.Kind {
@@ -672,24 +695,12 @@ func pluginSourceWire(source extensions.InstallSource) protocol.PluginSource {
 // 载荷里带了原始配置文档就原样使用；否则按 transport/command/args/url/env 写一份
 // 最小文档。source 与版本前置条件优先取载荷，没给时按用户作用域与空版本。
 func mcpSaveParams(id string, spec extensions.ToolServerSpec) protocol.MCPSaveParams {
-	configuration := spec.Configuration
-	if len(configuration) == 0 {
-		document := map[string]any{
-			"transport": string(spec.Transport),
-			"command":   spec.Command,
-			"url":       spec.URL,
-		}
-		if len(spec.Args) > 0 {
-			document["args"] = append([]string(nil), spec.Args...)
-		}
-		if len(spec.Env) > 0 {
-			env := make(map[string]string, len(spec.Env))
-			for key, value := range spec.Env {
-				env[key] = value
-			}
-			document["env"] = env
-		}
-		configuration, _ = json.Marshal(document)
+	// 配置文档由领域的构造函数生成：stdio 省略 url，http/sse 省略 command，
+	// 空字段一律不写；载荷里已有原始 Configuration 时原样使用。
+	configuration, err := extensions.ToolServerConfiguration(spec)
+	if err != nil {
+		// 构造函数拒绝的配置不发送：返回空配置让调用方按不合法载荷处理。
+		configuration = spec.Configuration
 	}
 	source := string(spec.Source)
 	if source == "" {
@@ -920,14 +931,46 @@ func (s *appSender) sendShellRun(ctx context.Context, req write.Request) (write.
 		if strings.TrimSpace(command) == "" {
 			return write.Reply{}, fmt.Errorf("%w: 命令执行缺少 command", write.ErrInvalidIntent)
 		}
+		// 服务端 RunParams 要求 run_id 与 mode（record/private）必填：
+		// 缺 runId 时用意图的输入标识（UUID），缺 mode 时按 record（结果写入历史）。
+		if runID, _ := params["runId"].(string); runID == "" {
+			// 运行标识由客户端生成：服务端要求它存在，意图本身不强制携带。
+			generated := req.InputID
+			if generated == "" {
+				id, err := uuidV4()
+				if err != nil {
+					return write.Reply{}, fmt.Errorf("生成运行标识: %w", err)
+				}
+				generated = id
+			}
+			params["runId"] = generated
+		}
+		if mode, _ := params["mode"].(string); mode == "" {
+			params["mode"] = "record"
+		}
 	case "stop":
 		method = methodShellStop
-		if _, ok := params["runId"].(string); !ok || params["runId"] == "" {
+		if runID, _ := params["runId"].(string); runID == "" {
 			if req.InputID == "" {
 				return write.Reply{}, fmt.Errorf("%w: 命令停止缺少运行标识", write.ErrInvalidIntent)
 			}
 			params["runId"] = req.InputID
 		}
+		// StopParams 只接受 sessionId 与 runId（deny_unknown_fields）。
+		for key := range params {
+			if key != "runId" {
+				delete(params, key)
+			}
+		}
+		params["sessionId"] = req.SessionID
+		if !s.app.sessionSupportsMethod(ctx, runtime, method) {
+			return write.Reply{}, capabilityMissing(method)
+		}
+		raw, stopErr := runtime.lease.Subscription().Call(ctx, method, params)
+		if stopErr != nil {
+			return write.Reply{}, stopErr
+		}
+		return write.Reply{InputID: req.InputID, Result: raw}, nil
 	default:
 		return write.Reply{}, fmt.Errorf("%w: 未知命令执行操作 %q", write.ErrInvalidIntent, op)
 	}
@@ -965,48 +1008,115 @@ func (s *appSender) sendModality(ctx context.Context, req write.Request) (write.
 	}
 	op, _ := params["op"].(string)
 	delete(params, "op")
-	var method string
-	switch op {
-	case "task.submit":
-		method = methodModalityTaskSubmit
-	case "task.cancel":
-		method = methodModalityTaskCancel
-	case "realtime.open":
-		method = methodModalityOpen
-	case "realtime.close":
-		method = methodModalityClose
-	default:
-		return write.Reply{}, fmt.Errorf("%w: 未知模态写入操作 %q", write.ErrInvalidIntent, op)
+	// 模态方法由会话流路由，参数里不能带 sessionId/branchId（服务端拒绝未知字段）；
+	// 同时把领域的 camelCase 载荷映射成服务端的 snake_case。
+	method, payload, err := modalityWireParams(op, params)
+	if err != nil {
+		return write.Reply{}, err
 	}
-	params["sessionId"] = req.SessionID
-	params["branchId"] = branchWireValue(req.BranchID)
 	if !s.app.sessionSupportsMethod(ctx, runtime, method) {
 		return write.Reply{}, capabilityMissing(method)
 	}
-	raw, err := runtime.lease.Subscription().Call(ctx, method, params)
+	raw, err := runtime.lease.Subscription().Call(ctx, method, payload)
 	if err != nil {
 		return write.Reply{}, err
 	}
 	reply := write.Reply{InputID: req.InputID, Result: raw}
-	// 服务端给出运行/任务/连接标识时以服务端为准，供结果未知时的核对使用。
+	// 服务端给出任务/连接标识时以服务端为准，供写登记与结果未知核对使用。
 	var result struct {
-		RunID        string `json:"runId"`
-		TaskID       string `json:"taskId"`
+		Task *struct {
+			TaskID string `json:"task_id"`
+		} `json:"task"`
 		ConnectionID string `json:"connectionId"`
 	}
 	if len(raw) > 0 {
 		if err := json.Unmarshal(raw, &result); err == nil {
 			switch {
-			case result.RunID != "":
-				reply.InputID = result.RunID
-			case result.TaskID != "":
-				reply.InputID = result.TaskID
+			case result.Task != nil && result.Task.TaskID != "":
+				reply.InputID = result.Task.TaskID
 			case result.ConnectionID != "":
 				reply.InputID = result.ConnectionID
 			}
 		}
 	}
 	return reply, nil
+}
+
+// modalityWireParams 把模态意图的参数映射成服务端的 wire 形状。
+//
+// 任务提交/取消与实时开/关的参数以 D1 冻结的 snake_case 为准；领域包用
+// camelCase 表达同样的字段，映射只发生在这一处。会话标识由会话流承载，不放进参数。
+func modalityWireParams(op string, params map[string]any) (string, map[string]any, error) {
+	switch op {
+	case "task.submit":
+		out := map[string]any{
+			"category":  params["category"],
+			"operation": params["operation"],
+		}
+		if value, ok := params["params"]; ok && value != nil {
+			out["params"] = value
+		}
+		if files, ok := params["files"].([]any); ok && len(files) > 0 {
+			mapped := make([]map[string]any, 0, len(files))
+			for _, value := range files {
+				file, ok := value.(map[string]any)
+				if !ok {
+					continue
+				}
+				item := map[string]any{"name": file["name"]}
+				if mediaType, ok := file["mediaType"]; ok {
+					item["media_type"] = mediaType
+				}
+				if data, ok := file["dataBase64"]; ok && data != "" {
+					item["data_base64"] = data
+				}
+				if node, ok := file["nodePath"]; ok && node != "" {
+					item["node_path"] = node
+				}
+				mapped = append(mapped, item)
+			}
+			out["files"] = mapped
+		}
+		if model, ok := params["model"].(map[string]any); ok {
+			out["model"] = map[string]any{
+				"providerId": model["providerId"],
+				"modelId":    model["modelId"],
+			}
+		}
+		if node, ok := params["node"]; ok && node != "" {
+			out["node"] = node
+		}
+		if clientTaskID, ok := params["clientTaskId"]; ok && clientTaskID != "" {
+			out["client_task_id"] = clientTaskID
+		}
+		return methodModalityTaskSubmit, out, nil
+	case "task.cancel":
+		taskID, _ := params["taskId"].(string)
+		if taskID == "" {
+			return "", nil, fmt.Errorf("%w: 取消任务缺少任务标识", write.ErrInvalidIntent)
+		}
+		return methodModalityTaskCancel, map[string]any{"task_id": taskID}, nil
+	case "realtime.open":
+		out := map[string]any{"operation": params["operation"]}
+		if value, ok := params["params"]; ok && value != nil {
+			out["params"] = value
+		}
+		if model, ok := params["model"].(map[string]any); ok {
+			out["model"] = map[string]any{
+				"providerId": model["providerId"],
+				"modelId":    model["modelId"],
+			}
+		}
+		return methodModalityOpen, out, nil
+	case "realtime.close":
+		connectionID, _ := params["connectionId"].(string)
+		if connectionID == "" {
+			return "", nil, fmt.Errorf("%w: 关闭实时传输缺少连接标识", write.ErrInvalidIntent)
+		}
+		return methodModalityClose, map[string]any{"connectionId": connectionID}, nil
+	default:
+		return "", nil, fmt.Errorf("%w: 未知模态写入操作 %q", write.ErrInvalidIntent, op)
+	}
 }
 
 // sessionRuntime 取已打开会话；没有打开时按不可重试失败处理，不发请求。

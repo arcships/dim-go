@@ -2,9 +2,9 @@
 
 Status: 第一版实现完成（P1-2 候选结果包；含分页、按轮导出来源与真实 daemon 证据）
 Owner: D2 领域 agent
-验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；blocked 见 6.5
+验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；blocked 见 6.5
 依据: `docs/domains/R.md` 第 1 部分功能块 2、块 4 的读取侧；`docs/domains/A.md`（会话视图、会话级状态含分页锚点、四条总规矩、启动校验）；`docs/domains/D1-connection.md`（wire 类型与会话流）
-范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径、磁盘存储、审批应答、目录与导出文件本身。
+范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、后台任务输出分页与停止意图、提示建议、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径的登记与发送、磁盘存储、审批应答、目录与导出文件本身。
 
 ---
 
@@ -34,6 +34,9 @@ Owner: D2 领域 agent
 | `internal/projection/paging.go` | 分页：最近一轮首屏、向前翻页请求、锚点推进、越界与重复页处理、`hasOlder` 判定 |
 | `internal/projection/turnhistory.go` | 按轮历史来源（导出用）：读原始历史页 → 现有折叠 → 按轮切分，给出稳定的轮次号与游标 |
 | `internal/projection/cut.go` | 切点查询：父分支某一轮结束处的序号，只读已加载事实，未结束/未加载都明确报出 |
+| `internal/projection/execoutput.go` | 后台任务输出：按字节游标分页读，只记游标与单页上限，运行中可读、结束后读到 EOF |
+| `internal/projection/execstop.go` | 后台任务停止：停止意图（给写登记）+ 发送 + "正在停止"标记，结算仍由结束事实负责 |
+| `internal/projection/suggestion.go` | 提示建议：折叠 `session.notice` 的 offer / cleared，给出当前建议；顺便提供任务运行查询与停止标记入口 |
 | `internal/projection/inventory.go` | 四类未完成事项：截止点装载、按事件结算、截止点以下的结算不生效 |
 | `internal/projection/goal.go` | 目标折叠：目标块的解析、最新记录决定状态、删除后重算 |
 | `internal/projection/preview.go` | 末快照层：`session.model.progress` 按偏移裁剪、按整行替换、与落库行对齐 |
@@ -64,6 +67,19 @@ page, err := source.ReadHistory(ctx, projection.HistoryRequest{
     SessionID: sessionID, BranchID: "main", Before: 0, Limit: 100,
 })
 // page.Turns[i] = {Index, Data}；page.NextBefore / page.Done 驱动下一页
+
+// 后台任务输出：按字节游标分页读，不缓存整份输出
+output, err := projection.NewExecOutput(folder, branchID, taskID, reader)
+output.SetLimit(64 << 10)
+chunk, err := output.Next(ctx)   // {Text, Bytes, Cursor, EOF, Truncated}
+
+// 后台任务停止：意图交给写登记，发送方由集成层实现
+stop, err := projection.NewExecTaskStop(folder, branchID, taskID, sender)
+intent := stop.Intent()          // Op()/Key()/Params() 给写登记
+result, err := stop.Stop(ctx)    // {TaskID, Status}；Status=cancelled 表示已取消
+
+// 提示建议：折叠 session.notice，读 View().Suggestion
+folder.ApplyNotice("session.notice", params)
 
 // 切点（目录领域开分支用）
 cut, ok := folder.TurnCut(sessionID, branchID, turnIndex) // ok=false 表示拿不到，不猜
@@ -311,6 +327,46 @@ point := folder.CutPoint(branchID string, turnIndex int) CutPoint               
 
 与目录领域的接法：`TurnCut(sessionID, branchID string, turnIndex int) (int64, bool)` 与 `catalog.BranchSource` 里同名方法同形（`shape_test.go` 编译期断言），集成层一行转发即可，本包不导入 `internal/catalog`。
 
+### 3.13 后台任务输出
+
+任务输出是服务端的事实，按字节游标分页读；本包不缓存整份输出、不落盘。
+
+| 项 | 规则 |
+|---|---|
+| 读取接口 | `ExecOutputReader.ReadExecOutput(ctx, ExecOutputRequest) (ExecOutputPage, error)`；集成层用 `session.exec.output.page` 实现 |
+| 请求 | 会话、分支、任务标识、字节游标 `Cursor`、单页字节上限 `Limit` |
+| 返回 | `Text`（可能比字节数短：服务端丢掉控制字符）、`Bytes`（本页消费的字节数）、`NextCursor`（服务端给了就以它为准）、`Truncated` |
+| 游标 | 按 `Bytes` 前进，**不按文本长度**；服务端给的 `NextCursor` 更大时采用它 |
+| 上限 | 默认 64 KiB，最大 4 MiB（与服务端一致）；`SetLimit` 会夹紧 |
+| EOF | 任务已结束（不在未结束清单里）且这一页没有字节；任务还在跑时空页只表示"暂时没有新输出" |
+| 不缓存 | `ExecOutput` 只持有游标与上限；每页文本交出去就丢，`Next` 在 EOF 之后不再向服务端要页 |
+
+读的循环由调用方驱动（`for { chunk := Next(); 写出 chunk.Text; if chunk.EOF { break } }`），本包不做定时轮询。
+
+### 3.14 后台任务停止
+
+停止是一次写入：本包给登记内容与发送接口，不自己登记、不自己重发。
+
+| 项 | 规则 |
+|---|---|
+| 意图 | `ExecStopIntent{SessionID, BranchID, TaskID}`：`Op()` 返回 `exec.stop`，`Key()` 按会话+分支+任务派生幂等键，`Params()` 给出 `{op, branchId, taskId}` |
+| 写登记 | 复用已有的 `write.KindStop`（"停止会话或分支上的运行"）：集成层把 `write.Intent{Kind: KindStop, SessionID, BranchID, Params: intent.Params()}` 登记，不需要新增意图类型 |
+| 发送 | `ExecStopSender.StopExecTask(ctx, ExecStopRequest)`；集成层用写登记的发送方实现（它决定走控制连接还是会话流） |
+| 收敛 | 服务端在任务真正结束后才回执，回执带结束状态（`cancelled` 表示已取消）；回执先到时本地把任务标成"正在停止"，**清单成员仍由 `exec/ended` 结算** |
+| 幂等 | 同一任务重复点击只登记一次（同一个 `Key()`）；发送失败不标记、不重发 |
+
+### 3.15 提示建议
+
+服务端在某轮完成后给出"用户接下来可能会说的话"；它不进时间线，没有序号，也不重放。
+
+| 项 | 规则 |
+|---|---|
+| 通知 | `session.notice {source: "PromptSuggestion", kind: "offer"\|"cleared", data: {turnId, text}\|{turnId, reason}}`；`ApplyNotice` 折叠，`View().Suggestion` 给出当前一条 |
+| 结算 | `cleared` 只清同一轮的建议；没带轮次标识时一律清；断线清空（服务端不重放） |
+| 隔离 | 别的来源的通知不看；别的会话的通知拒绝；建议按分支分开 |
+| 请求与应答 | 集成层发 `session.suggestion.request {sessionId, turnId}` 与 `session.suggestion.respond {sessionId, turnId, action: accept\|dismiss}`；应答是写入，走写登记（目前没有专门的意图类型，集成层用 `KindManagementWrite` 带 op；需要时由 D3 增类型） |
+| 开关 | 由设置源 `prompt-suggestion` 控制（默认关）；关着时请求返回 `accepted=false, reason=disabled` |
+
 ## 4. 状态映射（与 A 文档对上）
 
 | A.md 的状态 | 本领域实现 | 驱动 |
@@ -322,6 +378,8 @@ point := folder.CutPoint(branchID string, turnIndex int) CutPoint               
 | 分支选择 | `Folder.selection` + 迁移表 | `SelectBranch`、已结束分支的新事实 |
 | 打开与装载 | `Folder.loadPhase` + 迁移表 | `AdvanceLoad` |
 | 分页锚点 | `branchState.anchor/cursor/hasOlder` + `paging.go` | 历史页（首屏与向前翻页）；断线重设 |
+| 后台任务清单 | `inventory.tasks`（含"正在停止"标记） | `exec/started`、`exec/ended`；停止只加标记，不加成员 |
+| 提示建议 | `branchState.suggestion`（可丢的展示状态） | `session.notice` 的 offer / cleared；断线清空 |
 | 对话之外的审批/提问答复 | 不在本包（D4） | — |
 
 四条总规矩的落点：镜像状态只由事实驱动（行只能由 `apply` 改）；客户端状态只提交意图、不写事实（本包不写任何服务端状态）；每个状态只有一个驱动者（折叠、清单、目标、分页、两张状态机各有唯一入口）；不做乐观更新（未确认的内容只能以 `Pending` 出现，提交与应答不在本包）。
@@ -355,7 +413,7 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 - `go test ./...`：全部通过（含 `internal/projection` 与同期其它领域的包）。
 - `go vet ./...`：无输出。
 - `go test -race ./internal/projection/`：通过。
-- projection 用例 46 个：44 个 fixture 用例通过；2 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6），设了就通过。
+- projection 用例 57 个：54 个 fixture 用例通过；3 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6 与 6.7），设了就通过。
 
 ### 6.2 覆盖
 
@@ -398,6 +456,17 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 | 断线重开重设分页位置 | `TestDisconnectResetsWindow` |
 | 真实 daemon：实时与历史、落库、真实分页、导出式按轮读取一致 | `TestRealDaemonLiveAndHistoryAgree`，证据见 6.3 |
 | 真实模型：后台任务、排队输入、提问三类的截止点读取与结算 | `TestRealDaemonPendingInventories`，证据见 6.6 |
+| 任务输出按字节游标分页、运行中不算 EOF、结束后读到 EOF、EOF 后不再请求 | `TestExecOutputPagesByBytes` |
+| 任务输出只留游标不缓存整份内容 | `TestExecOutputKeepsOnlyCursor` |
+| 单页上限的默认值与服务端最大值 | `TestExecOutputLimitClamp` |
+| 输出读取的构造与读取错误 | `TestExecOutputReportsErrors` |
+| 停止后标记"正在停止"，任务仍由结束事实结算 | `TestExecTaskStopMarksStoppingUntilFact` |
+| 停止意图的 op、幂等键与参数 | `TestExecTaskStopIntent` |
+| 发送失败不标记；缺任务或发送方明确失败 | `TestExecTaskStopFailures` |
+| 提示建议的 offer / cleared 结算 | `TestSuggestionOfferAndClear` |
+| 别的来源、别的会话、断线都不留建议 | `TestSuggestionIsolation` |
+| 建议按分支分开 | `TestSuggestionPerBranch` |
+| 真实模型：任务输出分页、任务停止、提示建议 | `TestRealDaemonExecOutputAndStop`，证据见 6.7 |
 | 多轮 fixture 连续翻页到底：轮次连续、无重复、无遗漏，行数据与一次读全一致 | `TestTurnHistoryPagesEveryTurnOnce` |
 | 首屏从最近一轮开始，同一游标重复读取得到同一页 | `TestTurnHistoryStartsFromNewest` |
 | 会话/分支与来源不一致时拒绝 | `TestTurnHistoryRejectsForeignRequest` |
@@ -471,6 +540,7 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 |---|---|---|
 | 工具、思考、审批、提问、后台任务、协作请求的真实证据 | blocked | `--mock-model` 只产生文本回复，没有工具调用与思考；需要真实模型账号（R 的验收口径要求真实服务事实） |
 | 协作请求的真实读取 | blocked | 需要真实会话上出现 `collaboration/request`（成员协作）；后台任务、排队输入、提问三类已在真实模型上验证（6.6） |
+| 任务输出的真实大流量与截断 | blocked | 需要一段超过服务端 64 MiB 输出上限的命令；本版只验证了多页小输出与 EOF |
 | 分支会话的真实证据 | blocked | 需要在真实服务端上开分支并读分支历史 |
 | Windows 平台 | blocked | 没有 Windows 主机 |
 
@@ -525,6 +595,44 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 数据纪律：夹具在 `/tmp`，只在复制出来的临时目录上跑，未写回来源；日志只含事件类型、标识、序号、状态，没有提示词、命令正文、模型输出与凭据；临时目录与自启服务端在用例结束时清掉（`stopped=true`，无残留进程）。
 
+### 6.7 真实模型：任务输出、任务停止、提示建议（2026-11-11）
+
+前提同 6.6（真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具复制）。提示建议默认关闭，用例只在**夹具副本**上把设置源 `prompt-suggestion` 打开（`settings.update`，revision 1 → 2），来源夹具不动。
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealDaemonExecOutputAndStop -v -count=1 ./internal/projection/
+```
+
+观察到的输出（只留事件类型、标识、序号、状态、字节数与分页数）：
+
+```text
+服务端 0.1.0-alpha.21（profile product）
+会话 4fc27074-...
+后台任务开始: sequence=39 task=exec-74561ab7-...
+运行中读输出: bytes=0 cursor=0 eof=false（任务仍在跑）
+任务输出: task=exec-74561ab7-... 分页=6 字节=30
+后台任务开始: sequence=76 task=exec-f5f353d7-...
+任务停止: task=exec-f5f353d7-... status=cancelled cancelled=true
+停止的结束事实: sequence=78 status=cancelled
+提示建议设置已在夹具副本上打开: revision=native:user/prompt-suggestion:2
+最近一轮已结束: turn=50c8592c-... sequence=86
+提示建议请求已受理: turn=50c8592c-...
+提示建议已到达并折叠: turn=50c8592c-... 文本长度=53
+提示建议已结算: turn=50c8592c-...
+回收自启服务端: stopped=true
+```
+
+三项结论：
+
+| 项 | 观察 | 结论 |
+|---|---|---|
+| 任务输出 | 运行中读一页（当时还没有输出，`bytes=0`、未判 EOF）；结束后按 8 字节一页读到 EOF，共 6 页 30 字节 | 运行中可读、结束后读到 EOF；游标按字节前进；没有整份缓存 |
+| 任务停止 | `session.exec.stop` 回执 `status=cancelled`；`exec/ended`（序号 78）状态同为 `cancelled`；`session.exec.pending` 与本包清单都不再列出该任务 | 按任务标识停止，状态收敛为非运行 |
+| 提示建议 | 打开开关后请求受理；`offer` 通知到达并折成建议（只记文本长度 53，不打印正文）；`dismiss` 应答后 `cleared` 通知到达，建议清空 | 请求、通知与结算都走通；没碰界面 |
+
+数据纪律：日志只有事件类型、标识、序号、状态、字节数与分页数；没有命令输出、建议正文、提示词或凭据；夹具复制运行，用例结束 `stopped=true`，无残留进程。
+
 ## 7. 已知限制
 
 1. 目标只折叠当前 `goal:state` 记录；旧键 `goal:objective`/`goal:status` 只参与变更行归类，不参与状态推导（旧服务端兼容需要补齐）。
@@ -543,6 +651,9 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 14. 只有 `turn/end` 才算结束事实；被下一轮隐式收口的轮次没有切点（按"不猜"处理）。
 15. 真实模型证据只覆盖本机一个账号与一个模型（`deepseek-v4.1-flash`）：模型是否调用 `exec`/`ask_user` 由模型决定，判据是事件与清单而不是文案；换账号或换模型需要重跑。
 16. 协作请求（`collaboration/request`）的清单仍未在真实会话上验证（需要成员协作场景），见 6.5。
+17. 任务输出是拉取式：本包不轮询、不跟随，读的节奏与展示由调用方决定；`Truncated` 只透传，不解释成"内容不全"。
+18. 任务停止复用 `write.KindStop`（会话/分支运行停止）：语义上它是"停会话内的一次运行"，参数用 `op: "exec.stop"` + 任务标识区分；D3 若要单独的意图类型，本包意图形状不变。
+19. 提示建议的应答没有专门意图类型，集成层暂用 `KindManagementWrite` 带 op；建议本状态可丢，断线即清空，不参与事实判断。
 
 ## 8. 下一步
 

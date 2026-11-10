@@ -376,7 +376,9 @@ func (a *App) Connect(ctx context.Context) error {
 		Storage:  &settingsStorageReader{app: a},
 		Runtimes: &settingsRuntimeReader{app: a},
 		Modality: &settingsModalityReader{app: a},
-		Writer:   writes,
+		// 会话模态面：能力门禁（先 hello 再会话方法表）、任务读取与实时发送。
+		ModalitySession: &modalitySession{app: a},
+		Writer:          writes,
 	})
 	if err != nil {
 		writes.Close()

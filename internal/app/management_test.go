@@ -339,6 +339,10 @@ func TestManagementWritesUseRealMethods(t *testing.T) {
 		Replies: []fakeappserver.Reply{
 			{Method: "skills.set_enabled", Result: map[string]any{"ok": true}},
 			{Method: "hooks.save", Result: map[string]any{"userRevision": "r2"}},
+			{Method: "mcp.catalog", Result: map[string]any{
+				"userRevision": "r1", "userApplication": map[string]any{},
+				"pluginApplication": map[string]any{}, "servers": []any{}, "invalid": []any{},
+			}},
 			{Method: "mcp.remove", Result: map[string]any{}},
 			{Method: "mcp.import.apply", Result: map[string]any{"applied": 1}},
 			{Method: "session.wakeup.cancel", Result: map[string]any{}},
@@ -375,14 +379,21 @@ func TestManagementWritesUseRealMethods(t *testing.T) {
 			},
 			method: "hooks.save",
 			check: func(t *testing.T, params map[string]any) {
+				// 真实文档是嵌套结构：hooks -> event -> [{matcher, hooks:[{type,command}]}]
 				document, _ := params["document"].(map[string]any)
-				hooks, _ := document["hooks"].([]any)
-				if len(hooks) != 1 {
+				hooks, _ := document["hooks"].(map[string]any)
+				entries, _ := hooks["pre"].([]any)
+				if len(entries) != 1 {
 					t.Fatalf("钩子文档不对: %v", params)
 				}
-				hook, _ := hooks[0].(map[string]any)
-				if hook["event"] != "pre" || hook["command"] != "gofmt" {
-					t.Fatalf("钩子内容不对: %v", hook)
+				entry, _ := entries[0].(map[string]any)
+				commands, _ := entry["hooks"].([]any)
+				if len(commands) != 1 {
+					t.Fatalf("钩子条目缺少命令: %v", entry)
+				}
+				command, _ := commands[0].(map[string]any)
+				if command["type"] != "command" || command["command"] != "gofmt" {
+					t.Fatalf("钩子命令不对: %v", command)
 				}
 			},
 		},
@@ -396,6 +407,9 @@ func TestManagementWritesUseRealMethods(t *testing.T) {
 			check: func(t *testing.T, params map[string]any) {
 				if params["id"] != "srv-1" || params["source"] != "user" {
 					t.Fatalf("MCP 删除参数不对: %v", params)
+				}
+				if params["expectedVersion"] != "r1" {
+					t.Fatalf("MCP 删除应带目录版本: %v", params)
 				}
 			},
 		},

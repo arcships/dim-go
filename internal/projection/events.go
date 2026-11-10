@@ -44,6 +44,11 @@ func (s *foldState) apply(event protocol.RawEvent) {
 		s.applyToolResults(event, data)
 	case "context/compaction":
 		s.applyCompaction(event, data)
+		s.applyCompactionRecord(event, data)
+	case "context/budget":
+		s.applyBudget(event, data)
+	case "model/usage":
+		s.applyUsage(data)
 	case "exec/started":
 		s.inv.openTask(event, data)
 	case "exec/ended":

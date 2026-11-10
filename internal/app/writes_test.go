@@ -85,8 +85,8 @@ func TestModalityWriteMapping(t *testing.T) {
 		},
 		Sessions: []fakeappserver.Session{{ID: testSession, Events: testEvents()}},
 		Replies: []fakeappserver.Reply{
-			{Method: "modality.task.submit", Result: map[string]any{"taskId": "task-1"}},
-			{Method: "modality.task.cancel", Result: map[string]any{"ok": true}},
+			{Method: "modality.task.submit", Result: map[string]any{"task": map[string]any{"task_id": "task-1"}}},
+			{Method: "modality.task.cancel", Result: map[string]any{"task": map[string]any{"task_id": "task-1"}}},
 			{Method: "modality.realtime.open", Result: map[string]any{"connectionId": "conn-1"}},
 			{Method: "modality.realtime.close", Result: map[string]any{"ok": true}},
 		},
@@ -97,7 +97,9 @@ func TestModalityWriteMapping(t *testing.T) {
 	submit, err := result.base.ModalityWrite(ctx, ModalityWriteRequest{
 		SessionID: testSession,
 		Op:        ModalityTaskSubmit,
-		Params:    map[string]any{"model": "m1"},
+		Params: map[string]any{
+			"category": "ocr", "operation": "recognize", "clientTaskId": "task-client-1",
+		},
 	})
 	if err != nil {
 		t.Fatalf("登记模态任务: %v", err)
@@ -110,11 +112,14 @@ func TestModalityWriteMapping(t *testing.T) {
 		t.Fatalf("模态任务标识应取服务端值，实际 %q", settled.InputID)
 	}
 	submitParams := requestParams(t, server.RequestsFor("modality.task.submit")[0])
-	if submitParams["sessionId"] != testSession || submitParams["branchId"] != mainBranchID {
-		t.Fatalf("模态任务没有带会话或主线: %v", submitParams)
+	if _, ok := submitParams["sessionId"]; ok {
+		t.Fatalf("模态方法由会话流路由，不应带 sessionId: %v", submitParams)
 	}
-	if submitParams["model"] != "m1" {
-		t.Fatalf("模态载荷没有透传: %v", submitParams)
+	if submitParams["category"] != "ocr" || submitParams["operation"] != "recognize" {
+		t.Fatalf("模态任务参数不对: %v", submitParams)
+	}
+	if submitParams["client_task_id"] != "task-client-1" {
+		t.Fatalf("模态任务没有映射 camelCase 到 snake_case: %v", submitParams)
 	}
 	if _, ok := submitParams["op"]; ok {
 		t.Fatalf("op 是意图级字段，不应下发: %v", submitParams)

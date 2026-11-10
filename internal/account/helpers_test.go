@@ -156,6 +156,96 @@ func (w *stubWriter) intentCount() int {
 	return len(w.intents)
 }
 
+// stubProviderSource 是账号 provider 声明替身。
+type stubProviderSource struct {
+	mu        sync.Mutex
+	providers []Provider
+	err       error
+	calls     int
+}
+
+func (s *stubProviderSource) ReadProviders(ctx context.Context) ([]Provider, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.calls++
+	providers := make([]Provider, 0, len(s.providers))
+	for _, provider := range s.providers {
+		provider.LoginMethods = append([]LoginMethod(nil), provider.LoginMethods...)
+		providers = append(providers, provider)
+	}
+	return providers, s.err
+}
+
+func (s *stubProviderSource) set(providers ...Provider) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.providers = append([]Provider(nil), providers...)
+}
+
+// stubDeviceAuth 是设备码登录服务端侧的替身：按顺序返回状态，并记录取消。
+type stubDeviceAuth struct {
+	mu        sync.Mutex
+	device    DeviceAuthorization
+	beginErr  error
+	states    []DeviceLoginState
+	pollErr   error
+	beginArgs []deviceBegin
+	polls     int
+	cancels   []string
+	cancelErr error
+}
+
+type deviceBegin struct {
+	ProviderID string
+	Directory  string
+}
+
+func (s *stubDeviceAuth) BeginDeviceAuthorization(ctx context.Context, providerID, directory string) (DeviceAuthorization, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.beginArgs = append(s.beginArgs, deviceBegin{ProviderID: providerID, Directory: directory})
+	if s.beginErr != nil {
+		return DeviceAuthorization{}, s.beginErr
+	}
+	return s.device, nil
+}
+
+func (s *stubDeviceAuth) PollDeviceAuthorization(ctx context.Context, attempt string) (DeviceLoginState, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.polls++
+	if s.pollErr != nil {
+		return DeviceLoginState{}, s.pollErr
+	}
+	if len(s.states) == 0 {
+		return DeviceLoginState{Status: DeviceLoginPending}, nil
+	}
+	state := s.states[0]
+	if len(s.states) > 1 {
+		s.states = s.states[1:]
+	}
+	return state, nil
+}
+
+func (s *stubDeviceAuth) CancelAuthorization(ctx context.Context, attempt string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.cancels = append(s.cancels, attempt)
+	return s.cancelErr
+}
+
+func (s *stubDeviceAuth) beginList() []deviceBegin {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]deviceBegin(nil), s.beginArgs...)
+}
+
+func (s *stubDeviceAuth) cancelList() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]string(nil), s.cancels...)
+}
+
 // stubAuth 是浏览器登录服务端侧的替身：记录回调地址与交换结果。
 type stubAuth struct {
 	mu          sync.Mutex
@@ -295,6 +385,34 @@ func newTestAccount(t *testing.T, cfg Config) *Account {
 		t.Fatalf("创建账号: %v", err)
 	}
 	return account
+}
+
+// browserProviderSource 造一个只声明 browser 的 provider。
+func browserProviderSource() *stubProviderSource {
+	return &stubProviderSource{providers: []Provider{{
+		ID:           "provider-browser",
+		DisplayName:  "浏览器账号",
+		LoginMethods: []LoginMethod{LoginMethodBrowser},
+		Directory:    "https://issuer.example",
+	}}}
+}
+
+// deviceProviderSource 造一个只声明 device 的 provider。
+func deviceProviderSource() *stubProviderSource {
+	return &stubProviderSource{providers: []Provider{{
+		ID:           "provider-device",
+		DisplayName:  "设备码账号",
+		LoginMethods: []LoginMethod{LoginMethodDevice},
+	}}}
+}
+
+// bothProviderSource 造一个同时声明 browser 与 device 的 provider。
+func bothProviderSource() *stubProviderSource {
+	return &stubProviderSource{providers: []Provider{{
+		ID:           "provider-both",
+		DisplayName:  "两种方式",
+		LoginMethods: []LoginMethod{LoginMethodBrowser, LoginMethodDevice},
+	}}}
 }
 
 // signedInFact 造一个已登录事实。

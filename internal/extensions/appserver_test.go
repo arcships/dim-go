@@ -165,13 +165,21 @@ type wireSkill struct {
 }
 
 func (h *appServerHarness) ReadSkills(ctx context.Context) ([]Skill, error) {
+	catalog, err := h.ReadSkillCatalog(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return catalog.Skills, nil
+}
+
+func (h *appServerHarness) ReadSkillCatalog(ctx context.Context) (SkillCatalog, error) {
 	var result struct {
-		Version uint64      `json:"version"`
-		Entries []wireSkill `json:"entries"`
-		Issues  []any       `json:"issues"`
+		Version uint64       `json:"version"`
+		Entries []wireSkill  `json:"entries"`
+		Issues  []SkillIssue `json:"issues"`
 	}
 	if err := h.client.CallInto(ctx, "skills.catalog", nil, &result); err != nil {
-		return nil, err
+		return SkillCatalog{}, err
 	}
 	skills := make([]Skill, 0, len(result.Entries))
 	for _, entry := range result.Entries {
@@ -198,7 +206,11 @@ func (h *appServerHarness) ReadSkills(ctx context.Context) ([]Skill, error) {
 			}
 		}
 	}
-	return skills, nil
+	return SkillCatalog{
+		Version: result.Version,
+		Skills:  skills,
+		Issues:  append([]SkillIssue(nil), result.Issues...),
+	}, nil
 }
 
 func hasSkillByID(skills []Skill, id string) bool {
@@ -213,42 +225,105 @@ func hasSkillByID(skills []Skill, id string) bool {
 // wireHook 是 `hooks.catalog` 里 hooks 数组的一项。真实条目形状尚未冻结；测试
 // 适配器只接受带 id 的扁平对象，非空且无法识别时明确报错。
 type wireHook struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Event   string `json:"event"`
-	Command string `json:"command"`
-	Source  string `json:"source"`
-	Enabled bool   `json:"enabled"`
+	ID        string  `json:"id"`
+	Name      string  `json:"name"`
+	Event     string  `json:"event"`
+	Command   string  `json:"command"`
+	Source    string  `json:"source"`
+	Enabled   bool    `json:"enabled"`
+	Type      string  `json:"type"`
+	Matcher   *string `json:"matcher"`
+	Timeout   int     `json:"timeout"`
+	OnFailure string  `json:"onFailure"`
+	Async     bool    `json:"async"`
+	State     string  `json:"state"`
+}
+
+type wireHookSource struct {
+	Source  string  `json:"source"`
+	Path    *string `json:"path"`
+	Enabled bool    `json:"enabled"`
+	State   string  `json:"state"`
 }
 
 func (h *appServerHarness) ReadHooks(ctx context.Context) ([]Hook, error) {
+	hooks, _, _, err := h.readHookCatalog(ctx, nil)
+	return hooks, err
+}
+
+func (h *appServerHarness) ReadProjectHooks(ctx context.Context, cwd string) (ProjectHookCatalog, error) {
+	hooks, sources, revision, err := h.readHookCatalog(ctx, map[string]any{"cwd": cwd})
+	if err != nil {
+		return ProjectHookCatalog{}, err
+	}
+	return ProjectHookCatalog{
+		Hooks:            hooks,
+		Sources:          sources,
+		ProjectsRevision: revision,
+		ReadAt:           time.Now(),
+	}, nil
+}
+
+func (h *appServerHarness) readHookCatalog(
+	ctx context.Context,
+	params any,
+) ([]Hook, []HookSourceState, string, error) {
 	var result struct {
 		UserRevision     string            `json:"userRevision"`
 		UserDocument     json.RawMessage   `json:"userDocument"`
 		ProjectsRevision string            `json:"projectsRevision"`
 		DisableAllHooks  bool              `json:"disableAllHooks"`
-		Sources          []json.RawMessage `json:"sources"`
+		Sources          []wireHookSource  `json:"sources"`
 		Hooks            []json.RawMessage `json:"hooks"`
 	}
-	if err := h.client.CallInto(ctx, "hooks.catalog", nil, &result); err != nil {
-		return nil, err
+	if err := h.client.CallInto(ctx, "hooks.catalog", params, &result); err != nil {
+		return nil, nil, "", err
+	}
+	sources := make([]HookSourceState, 0, len(result.Sources))
+	for _, source := range result.Sources {
+		path := ""
+		if source.Path != nil {
+			path = *source.Path
+		}
+		sources = append(sources, HookSourceState{
+			Source:  sourceFromWire(source.Source),
+			Path:    path,
+			Enabled: source.Enabled,
+			State:   source.State,
+		})
 	}
 	hooks := make([]Hook, 0, len(result.Hooks))
 	for index, raw := range result.Hooks {
 		var hook wireHook
 		if err := json.Unmarshal(raw, &hook); err != nil {
-			return nil, fmt.Errorf("hooks.catalog hooks[%d] 无法解析: %w", index, err)
+			return nil, nil, "", fmt.Errorf("hooks.catalog hooks[%d] 无法解析: %w", index, err)
 		}
-		if hook.ID == "" {
-			return nil, fmt.Errorf("hooks.catalog hooks[%d] 的条目形状尚未冻结：缺少 id", index)
+		id := hook.ID
+		if id == "" {
+			// alpha.21 的扁平条目没有 id；用来源、事件与位置生成稳定标识。
+			id = fmt.Sprintf("%s:%s:%d", hook.Source, hook.Event, index)
+		}
+		matcher := ""
+		if hook.Matcher != nil {
+			matcher = *hook.Matcher
+		}
+		hookType := hook.Type
+		if hookType == "" {
+			hookType = "command"
 		}
 		hooks = append(hooks, Hook{
-			ID:      hook.ID,
-			Name:    hook.Name,
-			Event:   hook.Event,
-			Command: hook.Command,
-			Source:  sourceFromWire(hook.Source),
-			Enabled: hook.Enabled,
+			ID:        id,
+			Name:      hook.Name,
+			Event:     hook.Event,
+			Command:   hook.Command,
+			Source:    sourceFromWire(hook.Source),
+			Enabled:   hook.Enabled,
+			Matcher:   matcher,
+			Type:      hookType,
+			Timeout:   hook.Timeout,
+			OnFailure: hook.OnFailure,
+			Async:     hook.Async,
+			State:     hook.State,
 		})
 	}
 	h.mu.Lock()
@@ -269,7 +344,7 @@ func (h *appServerHarness) ReadHooks(ctx context.Context) ([]Hook, error) {
 			}
 		}
 	}
-	return hooks, nil
+	return hooks, sources, result.ProjectsRevision, nil
 }
 
 // wireToolServer 是 `mcp.catalog` 的一项。真实回执只有 id/source/enabled/
@@ -368,6 +443,8 @@ func (h *appServerHarness) ProbeToolServer(ctx context.Context, serverID string)
 	var result struct {
 		ServerID  string           `json:"serverId"`
 		Reachable bool             `json:"reachable"`
+		Status    string           `json:"status"`
+		LatencyMs int64            `json:"latencyMs"`
 		Tools     []ToolDescriptor `json:"tools"`
 		Reason    string           `json:"reason"`
 	}
@@ -379,10 +456,12 @@ func (h *appServerHarness) ProbeToolServer(ctx context.Context, serverID string)
 		result.ServerID = serverID
 	}
 	return ToolServerProbe{
-		ServerID:  result.ServerID,
-		Reachable: result.Reachable,
-		Tools:     append([]ToolDescriptor(nil), result.Tools...),
-		Reason:    result.Reason,
+		ServerID:      result.ServerID,
+		Reachable:     result.Reachable || result.Status == "connected",
+		Status:        result.Status,
+		LatencyMillis: result.LatencyMs,
+		Tools:         append([]ToolDescriptor(nil), result.Tools...),
+		Reason:        result.Reason,
 	}, nil
 }
 
@@ -622,17 +701,17 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		hook := map[string]any{
-			"id":      payload.Hook.ID,
-			"name":    payload.Hook.Name,
-			"event":   payload.Hook.Event,
-			"command": payload.Hook.Command,
-			"source":  string(payload.Hook.Source),
-			"enabled": payload.Hook.Enabled,
+		document := payload.Document
+		if len(document) == 0 {
+			generated, documentErr := HookDocument(payload.Hook)
+			if documentErr != nil {
+				return write.Reply{}, documentErr
+			}
+			document = generated
 		}
 		raw, err := h.client.Call(ctx, "hooks.save", map[string]any{
 			"expectedRevision": payload.ExpectedRevision,
-			"document":         map[string]any{"hooks": []any{hook}},
+			"document":         json.RawMessage(document),
 		})
 		if err != nil {
 			return write.Reply{}, err
@@ -643,6 +722,88 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		}
 		h.hookWrites[payload.Hook.ID] = payload.Hook
 		h.mu.Unlock()
+		return write.Reply{Result: raw}, nil
+	case OpHookSetEnabled:
+		var payload HooksProjectEnabledPayload
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, err
+		}
+		raw, err := h.client.Call(ctx, "hooks.set_enabled", map[string]any{
+			"cwd":              payload.Cwd,
+			"enabled":          payload.Enabled,
+			"expectedRevision": payload.ExpectedRevision,
+		})
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case OpSkillsRefresh:
+		raw, err := h.client.Call(ctx, "skills.refresh", nil)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case OpSkillsReloadCatalog:
+		raw, err := h.client.Call(ctx, "skills.reload_catalog", nil)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case OpMCPAuthStart:
+		var payload MCPAuthStartPayload
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, err
+		}
+		params := map[string]any{"id": payload.ID, "source": string(payload.Source)}
+		if payload.Cwd != "" {
+			params["cwd"] = payload.Cwd
+		}
+		if payload.ClientSecret != "" {
+			params["clientSecret"] = payload.ClientSecret
+		}
+		raw, err := h.client.CallWithTimeout(ctx, "mcp.auth.start", params, 10*time.Second)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case OpMCPAuthComplete:
+		var payload MCPAuthCompletePayload
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, err
+		}
+		raw, err := h.client.CallWithTimeout(ctx, "mcp.auth.complete", map[string]any{
+			"attemptId":   payload.AttemptID,
+			"callbackUrl": payload.CallbackURL,
+		}, 10*time.Second)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case OpMCPAuthCancel:
+		var payload MCPAuthCancelPayload
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, err
+		}
+		raw, err := h.client.Call(ctx, "mcp.auth.cancel", map[string]any{
+			"attemptId": payload.AttemptID,
+		})
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case OpMCPAuthLogout:
+		var payload MCPAuthLogoutPayload
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, err
+		}
+		params := map[string]any{"id": payload.ID, "source": string(payload.Source)}
+		if payload.Cwd != "" {
+			params["cwd"] = payload.Cwd
+		}
+		raw, err := h.client.CallWithTimeout(ctx, "mcp.auth.logout", params, 10*time.Second)
+		if err != nil {
+			return write.Reply{}, err
+		}
 		return write.Reply{Result: raw}, nil
 	case OpToolServerAdd:
 		var payload ToolServerAddPayload
@@ -694,10 +855,14 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, err
 		}
-		raw, err := h.client.Call(ctx, "mcp.remove", map[string]any{
+		params := map[string]any{
 			"id":     payload.ServerID,
 			"source": string(SourceUser),
-		})
+		}
+		if payload.ExpectedVersion != "" {
+			params["expectedVersion"] = payload.ExpectedVersion
+		}
+		raw, err := h.client.Call(ctx, "mcp.remove", params)
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -749,55 +914,19 @@ func installRefID(source InstallSource) string {
 	return ref
 }
 
-// mcpSaveParams 把本领域的服务器摘要映射成 mcp.save 参数；配置文档尚未冻结，
-// 测试适配器按命令/地址构造一份最小文档。
+// mcpSaveParams 把本领域的服务器摘要映射成 mcp.save 参数。
 func mcpSaveParams(id string, spec ToolServerSpec) map[string]any {
 	source := spec.Source
 	if source == "" {
 		source = SourceUser
 	}
-	configuration := map[string]any{
-		"name":      spec.Name,
-		"transport": string(spec.Transport),
-		"command":   spec.Command,
-		"url":       spec.URL,
-	}
-	if len(spec.Args) > 0 {
-		configuration["args"] = append([]string(nil), spec.Args...)
-	}
-	if len(spec.Env) > 0 {
-		env := make(map[string]string, len(spec.Env))
-		for key, value := range spec.Env {
-			env[key] = value
-		}
-		configuration["env"] = env
-	}
+	configuration, _ := ToolServerConfiguration(spec)
 	return map[string]any{
 		"id":              id,
 		"source":          string(source),
 		"expectedVersion": spec.ExpectedVersion,
-		"configuration":   configuration,
+		"configuration":   json.RawMessage(configuration),
 	}
-}
-
-func toolServerParams(spec ToolServerSpec) map[string]any {
-	params := map[string]any{
-		"name":      spec.Name,
-		"transport": string(spec.Transport),
-		"command":   spec.Command,
-		"url":       spec.URL,
-	}
-	if len(spec.Args) > 0 {
-		params["args"] = append([]string(nil), spec.Args...)
-	}
-	if len(spec.Env) > 0 {
-		env := make(map[string]string, len(spec.Env))
-		for key, value := range spec.Env {
-			env[key] = value
-		}
-		params["env"] = env
-	}
-	return params
 }
 
 func sourceFromWire(raw string) Source {
@@ -1124,17 +1253,22 @@ func TestAppServerHookSourceScope(t *testing.T) {
 	var params struct {
 		ExpectedRevision string `json:"expectedRevision"`
 		Document         struct {
-			Hooks []struct {
-				Source string `json:"source"`
-				Event  string `json:"event"`
+			Hooks map[string][]struct {
+				Matcher any `json:"matcher"`
+				Hooks   []struct {
+					Type    string `json:"type"`
+					Command string `json:"command"`
+				} `json:"hooks"`
 			} `json:"hooks"`
 		} `json:"document"`
 	}
 	if err := json.Unmarshal(requests[0].Params, &params); err != nil {
 		t.Fatalf("解析钩子写入参数: %v", err)
 	}
-	if len(params.Document.Hooks) != 1 || params.Document.Hooks[0].Source != "user" || params.Document.Hooks[0].Event != "pre" {
-		t.Fatalf("钩子写入参数不符: %+v", params)
+	entries := params.Document.Hooks["pre"]
+	if len(entries) != 1 || len(entries[0].Hooks) != 1 ||
+		entries[0].Hooks[0].Type != "command" || entries[0].Hooks[0].Command != "echo new" {
+		t.Fatalf("钩子写入文档不符: %+v", params)
 	}
 }
 

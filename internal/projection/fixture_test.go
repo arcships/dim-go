@@ -61,6 +61,19 @@ func noticeJSON(t *testing.T, branchID string, event protocol.RawEvent) json.Raw
 	return raw
 }
 
+// noticeRaw 把一条通知的参数编码成 JSON。
+func noticeRaw(t *testing.T, fields map[string]any) json.RawMessage {
+	t.Helper()
+	raw, err := json.Marshal(fields)
+	if err != nil {
+		t.Fatalf("通知编码失败: %v", err)
+	}
+	return raw
+}
+
+// jsonRaw 把 JSON 原文嵌进参数。
+func jsonRaw(data string) json.RawMessage { return json.RawMessage(data) }
+
 // page 把一串事实包成一页历史。
 func page(through int64, events ...protocol.RawEvent) protocol.SessionHistoryResult {
 	return protocol.SessionHistoryResult{

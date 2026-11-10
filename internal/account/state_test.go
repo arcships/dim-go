@@ -126,13 +126,22 @@ func TestAdvanceLoginDropsIllegalMoves(t *testing.T) {
 	}
 
 	// 正常发起后再走取消，确认合法迁移仍然生效。
-	_, cancel := context.WithCancel(context.Background())
-	if !account.beginLogin(cancel) {
+	ctx, cancel := context.WithCancel(context.Background())
+	attempt := &loginAttempt{
+		provider: Provider{ID: "provider-browser", LoginMethods: []LoginMethod{LoginMethodBrowser}},
+		method:   LoginMethodBrowser,
+		ctx:      ctx,
+		cancel:   cancel,
+	}
+	if !account.beginLogin(attempt) {
 		t.Fatal("空闲状态应能发起登录")
 	}
-	account.advanceLogin(loginEventCanceled, "测试取消")
-	if state := account.LoginState(); state.Phase != LoginCanceled || state.Reason != "测试取消" {
+	account.finishAttempt(attempt, LoginCanceled, "测试取消")
+	state = account.LoginState()
+	if state.Phase != LoginCanceled || state.Reason != "测试取消" {
 		t.Fatalf("取消后的登录尝试状态不符：%+v", state)
 	}
-	account.finishLogin()
+	if state.ProviderID != "provider-browser" || state.Method != LoginMethodBrowser {
+		t.Fatalf("登录尝试没有记录 provider 与方式：%+v", state)
+	}
 }

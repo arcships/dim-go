@@ -21,13 +21,17 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/app"
 	"github.com/arcships/dimagent-mygo/internal/appserver/failure"
+	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/catalog"
 	"github.com/arcships/dimagent-mygo/internal/host"
+	"github.com/arcships/dimagent-mygo/internal/interaction"
+	"github.com/arcships/dimagent-mygo/internal/projection"
 	"github.com/arcships/dimagent-mygo/internal/write"
 )
 
@@ -69,6 +73,7 @@ func usage() {
   -server <可执行文件> App Server 可执行文件；缺省取 DIMCODE_APP_SERVER_BIN
   -server-arg <参数>  追加给服务端的参数，可重复
   -mock               用 mock 模型启动服务端（验收用）
+  -model-config <文件> 显式模型配置（configured profile；管理面方法只在非 mock 实例上可用）
   -session <标识>     打开已有会话；省略时取目录里的第一条
   -create             目录为空时新建一个会话
   -cwd <目录>         新建会话的工作目录；缺省取当前目录
@@ -78,6 +83,10 @@ func usage() {
   -submit <文本>      提交一条输入并等待写登记收敛
   -attachment <文本>  用 attachment.put 存成会话文件并等待收敛
   -shell <命令>       用 shell.run 执行一条会话内命令并等待收敛
+  -shell-stop         在 -shell 之后用 shell.stop 停止该次运行
+  -shell-list         读取 shell.list 并打印运行摘要（不含命令与输出）
+  -rename <标题>      用 session.rename 改会话标题并打印回执
+  -permission <档位>  用 session.permission.update 切换权限档位（如 full-access）
   -short              只打印汇总，不打印行
   -log <文件>         进程级诊断（宿主外壳白名单字段）写到该文件；缺省丢弃
 
@@ -120,8 +129,13 @@ func runSelfCheck(args []string) int {
 	submit := flags.String("submit", "", "提交一条输入")
 	attachment := flags.String("attachment", "", "用 attachment.put 存成会话文件")
 	shellCommand := flags.String("shell", "", "用 shell.run 执行一条会话内命令")
+	shellStop := flags.Bool("shell-stop", false, "在 -shell 之后停止该次运行")
+	shellList := flags.Bool("shell-list", false, "读取 shell.list 打印运行摘要")
+	rename := flags.String("rename", "", "用 session.rename 改会话标题")
+	permission := flags.String("permission", "", "用 session.permission.update 切换权限档位")
 	short := flags.Bool("short", false, "只打印汇总")
 	mockModel := flags.Bool("mock", false, "用 mock 模型启动服务端")
+	modelConfig := flags.String("model-config", "", "显式模型配置路径")
 	logPath := flags.String("log", "", "进程级诊断写到该文件")
 	if err := flags.Parse(args); err != nil {
 		return exitUsage
@@ -152,6 +166,7 @@ func runSelfCheck(args []string) int {
 		ServerPath:       *serverPath,
 		ServerArgs:       serverArgs,
 		MockModel:        *mockModel,
+		ModelConfig:      *modelConfig,
 		ClientName:       "dimagent-mygo-selfcheck",
 		InitialSessionID: *sessionID,
 		Version:          defaultVersion,
@@ -213,6 +228,10 @@ func runSelfCheck(args []string) int {
 		submit:     *submit,
 		attachment: *attachment,
 		shell:      *shellCommand,
+		shellStop:  *shellStop,
+		shellList:  *shellList,
+		rename:     *rename,
+		permission: *permission,
 		short:      *short,
 	})
 
@@ -240,6 +259,10 @@ type checkOptions struct {
 	submit     string
 	attachment string
 	shell      string
+	shellStop  bool
+	shellList  bool
+	rename     string
+	permission string
 	short      bool
 }
 
@@ -321,7 +344,34 @@ func runCheck(base *app.App, options checkOptions) int {
 		}
 	}
 	if options.shell != "" {
-		if code := runShellCommand(ctx, base, view.SessionID, options.shell); code != 0 {
+		beforeHistory, _ := base.HistoryKinds(ctx, view.SessionID)
+		if options.shellStop {
+			if code := runAndStopShell(ctx, base, view.SessionID, options.shell); code != 0 {
+				return code
+			}
+		} else if _, code := runShellCommand(ctx, base, view.SessionID, options.shell); code != 0 {
+			return code
+		}
+		// 证据只给行数与事实类型增量：确认命令结果写回了会话历史（record 模式）。
+		if updated, err := base.ReloadLatest(ctx, view.SessionID); err == nil {
+			fmt.Printf("history: rows=%d kinds=%s\n", len(updated.Rows), rowKindSummary(updated.Rows))
+		}
+		if afterHistory, err := base.HistoryKinds(ctx, view.SessionID); err == nil {
+			fmt.Printf("history.events.added: %s\n", kindDelta(beforeHistory, afterHistory))
+		}
+	}
+	if options.shellList {
+		if code := listShellRuns(ctx, base, view.SessionID); code != 0 {
+			return code
+		}
+	}
+	if options.rename != "" {
+		if code := renameSession(ctx, base, view.SessionID, options.rename); code != 0 {
+			return code
+		}
+	}
+	if options.permission != "" {
+		if code := switchPermission(ctx, base, view.SessionID, options.permission); code != 0 {
 			return code
 		}
 	}
@@ -375,26 +425,207 @@ func writeAttachment(ctx context.Context, base *app.App, sessionID, text string)
 }
 
 // runShellCommand 用 shell.run 执行一条会话内命令，验证命令写入链路。
-func runShellCommand(ctx context.Context, base *app.App, sessionID, command string) int {
+//
+// 证据口径：只打印运行标识、状态、截断标记、耗时与退出码；命令正文与输出内容
+// 一律不打印。
+func runShellCommand(ctx context.Context, base *app.App, sessionID, command string) (string, int) {
 	registered, err := base.RunShell(ctx, app.ShellRunRequest{SessionID: sessionID, Command: command})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "selfcheck: 登记命令执行: %v\n", err)
-		return exitFailed
+		return "", exitFailed
 	}
 	settled, err := base.Wait(ctx, registered.ID)
-	fmt.Printf("shell: status=%s reason=%q run=%s result=%s\n",
-		settled.Status, settled.Reason, settled.InputID, compact(string(settled.Result)))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "selfcheck: 等待命令执行收敛: %v\n", err)
-		return exitFailed
+		return "", exitFailed
 	}
+	runID := settled.InputID
+	fmt.Printf("shell.run: status=%s run=%s %s\n", settled.Status, runID, summarizeShellResult(settled.Result))
 	if settled.Status != write.StatusSucceeded {
 		fmt.Fprintf(os.Stderr, "selfcheck: 命令执行未成功：%s（%s）\n", settled.Status, settled.Reason)
 		for _, line := range base.Diagnostics() {
 			fmt.Fprintf(os.Stderr, "  - %s\n", line)
 		}
+		return "", exitFailed
+	}
+	return runID, 0
+}
+
+// summarizeShellResult 只取回执里的状态字段，不回显输出。
+func summarizeShellResult(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	result, err := protocol.ParseShellRunResult(raw)
+	if err != nil {
+		return "result=unparsable"
+	}
+	parts := []string{fmt.Sprintf("state=%s", result.Status)}
+	if result.Truncated {
+		parts = append(parts, "truncated=true")
+	}
+	parts = append(parts, fmt.Sprintf("durationMs=%d", result.DurationMS))
+	if result.ExitCode != nil {
+		parts = append(parts, fmt.Sprintf("exitCode=%d", *result.ExitCode))
+	}
+	if result.Signal != nil {
+		parts = append(parts, "signal=set")
+	}
+	if result.Reason != nil {
+		parts = append(parts, "reason=set")
+	}
+	return strings.Join(parts, " ")
+}
+
+// runAndStopShell 在运行仍进行时停止它，验证“停止后状态收敛”。
+//
+// 证据只给状态与标识：命令正文、输出都不打印。
+func runAndStopShell(ctx context.Context, base *app.App, sessionID, command string) int {
+	registered, err := base.RunShell(ctx, app.ShellRunRequest{SessionID: sessionID, Command: command})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 登记命令执行: %v\n", err)
 		return exitFailed
 	}
+	runID := registered.InputID
+	done := make(chan write.IntentView, 1)
+	go func() {
+		settled, _ := base.Wait(ctx, registered.ID)
+		done <- settled
+	}()
+	// 等这次运行出现在 shell.list 里再停止，避免在服务端登记之前就发 stop。
+	deadline := time.Now().Add(3 * time.Second)
+	for time.Now().Before(deadline) {
+		runs, listErr := base.ShellRuns(ctx, sessionID)
+		if listErr == nil {
+			found := false
+			for _, run := range runs {
+				if run.RunID == runID {
+					found = true
+				}
+			}
+			if found {
+				break
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if code := stopShellRun(ctx, base, sessionID, runID); code != 0 {
+		return code
+	}
+	settled := <-done
+	fmt.Printf("shell.run: status=%s run=%s %s\n", settled.Status, runID, summarizeShellResult(settled.Result))
+	return 0
+}
+
+// kindDelta 比较两次事实类型统计，只给出新增的类型与条数。
+func kindDelta(before, after map[string]int) string {
+	parts := make([]string, 0, len(after))
+	for kind, count := range after {
+		if delta := count - before[kind]; delta > 0 {
+			parts = append(parts, fmt.Sprintf("%s=+%d", kind, delta))
+		}
+	}
+	sort.Strings(parts)
+	if len(parts) == 0 {
+		return "none"
+	}
+	return strings.Join(parts, " ")
+}
+
+// rowKindSummary 汇总行类型与条数，不含正文。
+func rowKindSummary(rows []projection.Row) string {
+	counts := make(map[string]int, len(rows))
+	for _, row := range rows {
+		counts[string(row.Kind)]++
+	}
+	parts := make([]string, 0, len(counts))
+	for kind, count := range counts {
+		parts = append(parts, fmt.Sprintf("%s=%d", kind, count))
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, " ")
+}
+
+// stopShellRun 停止一次运行并打印是否真的停下（不含输出）。
+func stopShellRun(ctx context.Context, base *app.App, sessionID, runID string) int {
+	registered, err := base.StopShell(ctx, app.ShellStopRequest{SessionID: sessionID, RunID: runID})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 登记命令停止: %v\n", err)
+		return exitFailed
+	}
+	settled, err := base.Wait(ctx, registered.ID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 等待命令停止收敛: %v\n", err)
+		return exitFailed
+	}
+	stopped := ""
+	if len(settled.Result) > 0 {
+		var reply struct {
+			Stopped bool `json:"stopped"`
+		}
+		if err := json.Unmarshal(settled.Result, &reply); err == nil {
+			stopped = fmt.Sprintf(" stopped=%t", reply.Stopped)
+		}
+	}
+	fmt.Printf("shell.stop: status=%s run=%s%s\n", settled.Status, runID, stopped)
+	if settled.Status != write.StatusSucceeded {
+		return exitFailed
+	}
+	return 0
+}
+
+// listShellRuns 打印运行摘要：标识、分支、模式与开始时间；不含命令与输出。
+func listShellRuns(ctx context.Context, base *app.App, sessionID string) int {
+	runs, err := base.ShellRuns(ctx, sessionID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 读取运行清单: %v\n", err)
+		for _, line := range base.Diagnostics() {
+			fmt.Fprintf(os.Stderr, "  - %s\n", line)
+		}
+		return exitFailed
+	}
+	fmt.Printf("shell.list: runs=%d\n", len(runs))
+	for _, run := range runs {
+		fmt.Printf("  run=%s branch=%s mode=%s startedAt=%d\n",
+			run.RunID, run.BranchID, run.Mode, run.StartedAt)
+	}
+	return 0
+}
+
+// renameSession 用 session.rename 改会话标题，验证改名链路。
+func renameSession(ctx context.Context, base *app.App, sessionID, title string) int {
+	catalogDomain := base.Catalog()
+	if catalogDomain == nil {
+		fmt.Fprintln(os.Stderr, "selfcheck: 目录领域不可用")
+		return exitFailed
+	}
+	if _, err := catalogDomain.Refresh(ctx, catalog.Query{}); err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 读取目录（改名需要目录条目）: %v\n", err)
+		return exitFailed
+	}
+	entry, err := catalogDomain.Rename(ctx, catalog.RenameRequest{SessionID: sessionID, Title: title})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 改名失败: %v\n", err)
+		for _, line := range base.Diagnostics() {
+			fmt.Fprintf(os.Stderr, "  - %s\n", line)
+		}
+		return exitFailed
+	}
+	fmt.Printf("rename: title=%q source=%q revision=%d\n", entry.Title, entry.TitleSource, entry.TitleRevision)
+	return 0
+}
+
+// switchPermission 切换权限档位并从回执读回结果。
+func switchPermission(ctx context.Context, base *app.App, sessionID, preset string) int {
+	if err := base.SetPermissionTier(ctx, sessionID, interaction.PermissionTier(preset)); err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 切换权限档位: %v\n", err)
+		for _, line := range base.Diagnostics() {
+			fmt.Fprintf(os.Stderr, "  - %s\n", line)
+		}
+		return exitFailed
+	}
+	tier, ok := base.PermissionTier(sessionID)
+	fmt.Printf("permission: preset=%q ok=%t\n", tier, ok)
 	return 0
 }
 

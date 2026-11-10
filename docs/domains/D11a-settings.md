@@ -22,7 +22,8 @@ Owner: D11a 设置与运行环境领域
 | 设置来源、项目根、版本前置条件 | 产品基线的设置服务语义：来源声明 `scopes`/`userOnly`/`writeOnly`，项目以进程内根编号定位，写入带 `expectedRevision` | 本包只表达领域形状，不复制 wire；项目作用域与版本冲突由本包先行校验 |
 | provider 与模型目录、当前选择 | 产品基线的模型管理语义：`providers[].models`、`enabledModelIds`、`selection`、`provider.select` | 目录整份读取；可选性由账号可用模型清单过滤；选择写入经写登记转达 |
 | 运行组件与模态能力 | 产品基线的运行组件与模态能力语义：状态枚举、能力类别与原因、任务记录与实时连接 | 本包只映射为领域类型并校验结构；wire 映射由 D12 实现 |
-| 会话方法表 | D1 `session.methods` 与 hello 能力 | 模态任务与实时传输在发出任何请求或写登记之前，按该会话的方法表做能力门禁 |
+| 会话方法表 | D1 `session.methods` 与 hello 能力 | 模态任务与实时传输在发出任何请求或写登记之前，按 hello 能力与会话方法表做门禁 |
+| provider/模型管理事实 | 真实 wire：`provider.list`、`provider.management`、`provider.probe`、`provider.create/update/models.*/preferences.update` | 本包只表达领域形状与校验，不复制 wire；D12 映射回执 |
 | 错误分类 | `internal/appserver/failure`、`internal/appserver/protocol` | 能力缺失归为 `ErrCapabilityMissing`；其他错误按读取失败分类 |
 | 写意图与不重试 | `internal/write`、`docs/domains/D3-write.md` | 设置写入与组件安装登记 `KindManagementWrite`，模态任务与实时开关登记 `KindModalityWrite`；都不自行重试 |
 | 账号可用模型视图 | `internal/account`、`docs/domains/D6-account.md` | 只读 `Models() account.ModelList`，不自行判断账号状态 |
@@ -37,6 +38,9 @@ Owner: D11a 设置与运行环境领域
 | `internal/settings/projects.go` | 已授权项目根读取、按目录解析、授权校验 |
 | `internal/settings/documents.go` | 设置文档读取与缓存、版本前置条件、经写登记的写入、冲突判定 |
 | `internal/settings/models.go` | provider 与模型目录、当前选择、按账号可用模型过滤、选择写入 |
+| `internal/settings/providers.go` | provider 清单/详情/显式探测、新建与更新、启用状态、模型启用集合、模型编辑/重置、模型偏好 |
+| `internal/settings/collaboration.go` | 协作模型策略读取、版本前置写入与冲突判定 |
+| `internal/settings/agents.go` | agent 档案清单、会话当前 agent 读取、会话 agent 更新 |
 | `internal/settings/storage.go` | 存储占用只读读数与结构校验 |
 | `internal/settings/runtimes.go` | 运行组件清单、安装转达、安装后重读 |
 | `internal/settings/modality.go` | 模态能力状态、类别、操作与不可用原因 |
@@ -46,20 +50,26 @@ Owner: D11a 设置与运行环境领域
 | `internal/settings/*_test.go` | 单元测试、`fakeappserver` 集成测试与会话模态替身测试（见 §6.2） |
 | `scripts/verify-real-model.sh` | 真实模型验证脚本：读取 `/tmp` 夹具，起 daemon、跑会话、断言真实工具调用与工具结果 |
 | `scripts/verify-modality.py` | 真实模态验证脚本：查询能力、提交 OCR 任务、轮询状态、分页读结果、取消；记录实时门禁 |
+| `scripts/verify-provider-admin.py` | 真实 provider/模型管理验证脚本：列表、新建、探测、更新、启用、模型开关、编辑、重置、偏好与版本冲突 |
+| `scripts/verify-collaboration-agent.py` | 真实协作模型策略与会话 agent 档案证据：策略版本/冲突、agent 方法表、采用与读回 |
 | `docs/domains/D11a-settings.md` | 本文件 |
 
 **验收**
 
 - 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。
-- 本领域：73 个顶层测试、47 个子测试，共 120 个通过；语句覆盖率 84.4%。
+- 本领域：104 个顶层测试、53 个子测试，共 157 个通过；语句覆盖率 82.1%。
 - 真实模型：`scripts/verify-real-model.sh --fixture /tmp/dimagent-real-model` 通过，观察到真实工具调用与工具结果（§6.5）。
 - 真实模态：`scripts/verify-modality.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server --image /tmp/dimagent-modality-ocr.png` 通过；OCR 任务 `queued → running → succeeded`，结果分页读完；取消 `queued → cancelled`；实时因 adapter 不可用标 blocked（§6.6）。
+- 真实 provider/模型管理：`scripts/verify-provider-admin.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server` 通过；新建→探测→更新→启用→模型开关→编辑→重置→偏好→版本冲突全部在真实 alpha.21 上跑通（§6.7）。
+- 真实协作策略与 agent 档案：`scripts/verify-collaboration-agent.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server` 通过；策略 revision 1→4、过期写入返回冲突；会话 agent get/update/adopt/unchanged 均跑通（§6.8）。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖设置来源/项目/读写/冲突、模型与账号过滤、存储读数、运行组件安装、模态能力。
   - 注入替身：各读取接口、写发送方与会话模态面在单元测试里替换，覆盖能力缺失、事实不合法、缓存隔离、冲突、重试边界、任务分页、实时事件与失败原因。
   - 真实模型：本机 `dimcode-server` + `/tmp` 夹具 + 真实 Dim 账号，观察到一次真实工具调用（`exec`）与工具结果，见 §6.5。
   - 真实模态：真实服务端执行 OCR 任务并分页读完结果；取消成功；实时因能力不可用标 blocked，见 §6.6。
-  - 本包 Go API 对真实 App Server 的设置/模态方法、真实模态任务与实时传输：**blocked**，见 §6.4。
+  - 真实 provider/模型管理：真实 alpha.21 上由脚本直连验证（§6.7）；本包 Go API 仍依赖 D12 的 `ProviderAdmin` 适配器。
+  - 真实协作策略与 agent 档案：真实 alpha.21 上由脚本直连验证（§6.8）；本包 Go API 仍依赖 D12 的 `CollaborationReader`/`AgentAdmin` 适配器。
+  - 本包 Go API 对真实 App Server 的设置/模态/provider/协作/agent 方法、真实模态任务与实时传输：**blocked**，见 §6.4。
 
 **依赖**
 
@@ -67,7 +77,10 @@ Owner: D11a 设置与运行环境领域
 |---|---|
 | D1 连接 | 设置、模型、存储、运行组件、模态能力的读取方法与回执形状；`hello.features` 中的能力名；会话方法表与模态任务/实时方法；由集成层实现本包的读取接口与会话模态接口。`*daemon.Connection` 直接满足 `Features` |
 | D3 写登记 | `*write.Manager` 直接满足 `Writer`；设置写入与组件安装使用 `KindManagementWrite`，模态任务与实时开关使用 `KindModalityWrite`；明确失败与未知不重发 |
-| D12 集成层 | 实现 `ModalitySession`：会话方法门禁、任务状态/清单/结果读取、实时帧发送；把 `modality.realtime.event`/`ended` 通知投递给本包 |
+| D12 集成层 | 实现 `ModalitySession`：会话方法门禁、任务状态/清单/结果读取、实时帧发送；把 `modality.realtime.event`/`ended` 通知投递给本包；实现 `ProviderAdmin`：`provider.list`/`management`/`probe` 的映射 |
+| provider 管理依赖 | `*daemon.Connection` 的 hello 能力、控制连接 `protocol.Client.Call` 与写发送方 | D12 按 `KindManagementWrite` 的 op 映射 provider 写方法；本包只登记意图 |
+| 协作策略依赖 | hello 的 `collaboration.model_policy`/`collaboration.set_model_policy`、控制连接与写发送方 | D12 映射读取与写入；本包只做版本前置与冲突判定 |
+| agent 档案依赖 | `agent.list`、`session.methods`、`session.agent.get`、`session.agent.update` | D12 实现 `AgentAdmin`；`agent.list` 是内建方法，真实 hello 不一定声明 |
 | D6 账号 | `Models() account.ModelList` 作为唯一可用性来源；模型标识需与 provider 目录的模型标识可对齐（见 §7） |
 | V 验收设施 | `fakeappserver` 的脚本回执与故障注入；本版已用于设置、模型、存储、运行组件与模态能力的集成测试；模态任务与实时传输用会话模态替身验证 |
 | 组织 | 确认 D11 内部分工：本领域只管设置与运行环境，插件、技能、MCP、钩子、计划任务、唤醒归管理面的其余部分 |
@@ -93,6 +106,9 @@ Owner: D11a 设置与运行环境领域
 | 设置读取 | 按来源与作用域读取完整文档与版本；结构不合法即拒绝；最近一次确认值留在内存 |
 | 设置写入 | 必须带 `expectedRevision`；本地缓存发现版本已变时直接返回冲突且不发请求；经写登记只发一次；成功后采用回执文档 |
 | 模型与 provider | 读取 provider、模型、启用模型清单与当前选择；按账号可用模型清单过滤可选性并说明原因；写入当前选择，成功后重读回填 |
+| provider 管理 | 列表与详情；新建；更新显示名/地址/启用状态；显式探测（只读，不写配置）；显式全量设置启用模型；模型编辑/重置；模型偏好写入 |
+| 协作模型策略 | 读取策略与 revision；按 revision 写入 agent/inherit/fixed；本地与服务端冲突判定 |
+| agent 档案 | 读取 agent 清单；读取会话当前 agent；按当前 agent 前置条件更新会话 agent，写入后重读 |
 | 模态任务 | 提交、状态读取、清单分页、结果分页、取消；提交与取消经写登记，读取走集成层模态调用面（本机为 daemon 级控制方法） |
 | 实时传输 | 打开、发送帧、关闭；打开与关闭经写登记，发送走集成层模态调用面，接收按事件；维护本进程内的连接状态与订阅 |
 | 会话方法门禁 | 每个模态调用先查该会话的方法表；缺方法或方法表不可读即返回能力缺失，零请求 |
@@ -113,6 +129,9 @@ Owner: D11a 设置与运行环境领域
 | 存储清理、删除、本地容量估算、离线指令 | R 块 9：存储只读，清理交给离线指令 |
 | 运行组件的下载、校验、落盘 | 服务端负责；本包只转达安装并读取状态 |
 | 模态任务的等待/轮询策略、音频编解码、媒体播放 | 本包只提供提交/查询/取消与事件投递；等待与播放由调用方按 `ReadTask` 自行收敛 |
+| 凭据存储、凭据回显、凭据日志 | 本包只在显式写入请求里透传凭据，不缓存、不回显、不写日志；详情只给 `CredentialConfigured` |
+| provider 删除、导入旧配置、远程刷新模型 | 不在本版；本版只做列表/新建/更新/探测/启用/模型配置/偏好 |
+| agent 档案创建/删除、agent 档案字段编辑 | 本版只做会话采用的 agent 更新与 agent 清单读取；`agent.create` 由调用方/其他领域负责 |
 | 实时事件的路由与连接选择 | D12：本包只接收 `DeliverRealtimeEvent`/`DeliverRealtimeEnded` 并按连接分发 |
 | 模态方法的 wire 参数与回执 | D1/D12：本包不定义 wire 结构，类型由集成层映射；本机服务端把模态作为 daemon 级控制方法 |
 | 设置键的业务含义、schema 解释、默认值补齐 | 服务端拥有设置事实；本包只做结构校验 |
@@ -153,6 +172,9 @@ manager, err := settings.New(settings.Config{
     Runtimes: runtimeReader,  // ReadRuntimes(ctx) ([]RuntimeEntry, error)
     Modality: modalityReader, // ReadModalityCapabilities(ctx) (ModalityCapabilities, error)
     ModalitySession: sessionModality, // 会话方法门禁、任务读取、实时发送
+    Providers: providerAdmin, // provider 列表/详情/探测
+    Collaboration: collaborationReader, // collaboration.model_policy
+    Agents:       agentAdmin,           // agent.list / session.agent.*
     Writer:   writeManager,   // *write.Manager，登记 KindManagementWrite / KindModalityWrite
 })
 
@@ -178,6 +200,63 @@ report, err := manager.RefreshStorage(ctx)
 entries, err := manager.RefreshRuntimes(ctx)
 entry, err := manager.InstallRuntime(ctx, "uv")
 caps, err := manager.RefreshModality(ctx)
+
+providers, err := manager.RefreshProviders(ctx)
+providerDetail, err := manager.ReadProvider(ctx, providerID)
+probe, err := manager.ProbeProvider(ctx, settings.ProviderProbeRequest{
+    ProviderID: "01900000-0000-4000-8000-000000000002",
+    Connection: &settings.ProviderConnectionInput{
+        DriverKind: "openai-compatible",
+        Auth:       settings.ProviderAuth{Type: "anonymous"},
+        BaseURL:    "http://127.0.0.1:9000/v1",
+    },
+})
+providerDetail, err = manager.CreateProvider(ctx, settings.ProviderCreateRequest{
+    ID:          "01900000-0000-4000-8000-000000000001",
+    DisplayName: "示例供应商",
+    Enabled:     true,
+    Connection: settings.ProviderConnectionInput{
+        DriverKind: "openai-compatible",
+        Auth:       settings.ProviderAuth{Type: "anonymous"},
+        BaseURL:    "http://127.0.0.1:9000/v1",
+    },
+    Models: []settings.ProviderModelInput{
+        {ID: "model-1", DisplayName: "模型一", Status: "active"},
+    },
+})
+providerDetail, err = manager.UpdateProvider(ctx, settings.ProviderUpdateRequest{
+    ProviderID: providerID, ExpectedVersion: 1,
+    Patch: settings.ProviderPatch{DisplayName: &name, Enabled: &enabled},
+})
+providerDetail, err = manager.SetModelsEnabled(ctx, providerID, 2, []string{"model-1"})
+providerDetail, err = manager.SetModelEnabled(ctx, providerID, "model-1", 3, false)
+providerDetail, err = manager.EditModel(ctx, settings.ProviderModelEditRequest{
+    ProviderID: providerID, ModelID: "model-1", ExpectedVersion: 4,
+    Edit: settings.ProviderModelEdit{DisplayName: &name},
+})
+providerDetail, err = manager.ResetModel(ctx, providerID, "model-1", 5)
+providerDetail, err = manager.UpdateModelPreferences(ctx, settings.ModelPreferenceRequest{
+    ProviderID: providerID, ModelID: "model-1", ExpectedVersion: 6,
+    Patch: settings.ModelPreferencePatch{
+        ReasoningEffort: &settings.PreferenceUpdate{Action: "set", Value: "high"},
+    },
+})
+
+policy, err := manager.RefreshCollaborationPolicy(ctx)
+policy, err = manager.SetCollaborationPolicy(ctx, settings.CollaborationPolicyRequest{
+    ExpectedRevision: policy.Revision,
+    Policy: settings.CollaborationModelPolicy{
+        Mode: settings.CollaborationPolicyFixed,
+        ModelProviderID: "dimcode-api-oauth", ModelID: "deepseek-v4.1-flash",
+    },
+})
+agents, err := manager.RefreshAgents(ctx)
+sessionAgent, err := manager.ReadSessionAgent(ctx, "s1", "main")
+updatedAgent, err := manager.UpdateSessionAgent(ctx, settings.SessionAgentUpdateRequest{
+    SessionID: "s1", BranchID: "main",
+    AgentID: "01900000-0000-4000-8000-000000000003",
+    ExpectedAgentID: sessionAgent.AgentID,
+})
 
 task, err := manager.SubmitTask(ctx, settings.ModalityTaskSubmitRequest{
     SessionID: "s1", Category: "image", Operation: "generate", ClientTaskID: "local-1",
@@ -211,6 +290,10 @@ report, ok := manager.Storage()
 entries, ok := manager.Runtimes()
 entry, ok := manager.Runtime("uv")
 caps, ok := manager.Modality()
+providers, ok := manager.Providers()
+providerDetail, ok := manager.Provider(providerID)
+policy, ok := manager.CollaborationPolicy()
+agents, ok := manager.Agents()
 task, ok := manager.Task("s1", "task-1")
 conn, ok := manager.RealtimeConnection("s1", "conn-1")
 ```
@@ -219,9 +302,11 @@ conn, ok := manager.RealtimeConnection("s1", "conn-1")
 
 - **能力缺失统一分类**：所有缺失项返回 `*CapabilityError`，`errors.Is(err, settings.ErrCapabilityMissing)` 成立，`err.Capability` 给出方法名或接口名。
 - **不猜默认值**：读取失败保留上一次确认值；写入成功只采用回执里的文档；任何缺失字段都不补 0、不补空字符串、不补假值。
-- **只在内存**：来源、项目、文档、模型、存储、运行组件、模态能力、任务缓存与实时连接都随进程存在；重启不补发任何写入。
-- **写入只登记一次**：`Update`、`SelectModel` 与 `InstallRuntime` 经 `KindManagementWrite`，`SubmitTask`/`CancelTask`/`OpenRealtime`/`CloseRealtime` 经 `KindModalityWrite`；都只登记一次并等待终态，没有重发路径。
-- **模态先过方法门禁**：任务与实时调用在发出任何会话请求或写登记之前，先查该会话的方法表；缺方法或方法表不可读时返回能力缺失。
+- **只在内存**：来源、项目、文档、模型、存储、运行组件、模态能力、provider 列表/详情、任务缓存与实时连接都随进程存在；重启不补发任何写入。
+- **不存凭据**：provider 详情只保留 `CredentialConfigured`；新建/更新请求里的凭据只在本次调用中透传，不缓存、不回显、不写日志。
+- **agent 无服务端版本**：真实 `session.agent.update` 没有 revision；本包用 `ExpectedAgentID` 作为前置条件，并在写入后重读确认。
+- **写入只登记一次**：`Update`、`SelectModel`、`InstallRuntime` 与全部 provider/模型写入经 `KindManagementWrite`，`SubmitTask`/`CancelTask`/`OpenRealtime`/`CloseRealtime` 经 `KindModalityWrite`；都只登记一次并等待终态，没有重发路径。
+- **模态先过方法门禁**：任务与实时调用在发出任何请求或写登记之前，先查 `hello.features` 与会话方法表；缺方法或方法表不可读时返回能力缺失。
 - **返回值是副本**：所有缓存访问与读取结果都深拷贝，调用方改不到内部状态。
 
 ## 4. 设计
@@ -447,7 +532,65 @@ type StorageReading struct {
 5. **接收按事件**：本包不轮询实时事件；D12 收到通知后调用投递方法。未知连接的事件返回 `ErrRealtimeNotOpen`；结束事件幂等，重复到达不报错。
 6. **订阅回调同步**：回调里不要阻塞，也不要调用本包的管理写入（与写登记共用串行通道）。
 
-### 4.10 能力缺失与错误分类
+### 4.10 供应商与模型目录管理
+
+provider 读取面：
+
+| 接口 | 用途 |
+|---|---|
+| `RefreshProviders` / `Providers` | `provider.list` 概要清单与缓存 |
+| `ReadProvider` / `Provider` | `provider.management` 详情与缓存；模型与偏好从这里读 |
+| `ProbeProvider` | `provider.probe` 显式探测；**只读，不写配置** |
+
+provider 写入面（全部 `KindManagementWrite`，先过 `provider.management` 与具体方法的能力门禁）：
+
+| 方法 | op | 关键参数 |
+|---|---|---|
+| `CreateProvider` | `provider.create` | `providerId`（规范小写 UUID）、`displayName`、`connection`、`models`、`enabled` |
+| `UpdateProvider` | `provider.update` | `providerId`、`expectedVersion`、`patch` |
+| `SetProviderEnabled` | `provider.update` | `patch.enabled` |
+| `SetModelsEnabled` | `provider.models.set_enabled` | `providerId`、`expectedVersion`、完整 `modelIds` |
+| `SetModelEnabled` | `provider.models.set_enabled` | 先读详情计算完整集合，再写；已是目标状态则不写 |
+| `EditModel` | `provider.models.edit` | `providerId`、`expectedVersion`、`modelId`、`edit` |
+| `ResetModel` | `provider.models.reset` | `providerId`、`expectedVersion`、`modelId` |
+| `UpdateModelPreferences` | `provider.preferences.update` | `providerId`、`expectedVersion`、`modelId`、`patch` |
+
+规则：
+
+1. **版本前置**：`expectedVersion` 必须为正；本地缓存版本不符直接返回 `ErrProviderConflict` 且不发请求；服务端拒绝后只读一次 `provider.management` 判断版本，版本变了报冲突，否则报对应写入失败并保留原因。
+2. **不覆盖**：冲突只读不写；不自动重试。
+3. **写入只传显式字段**：`ProviderPatch` 的 nil 字段不下发；模型编辑同样；凭据用 `keep/clear/set/set_ref` 显式表达。
+4. **不存凭据**：`ProviderSummary`/`ProviderDetail` 只有 `CredentialConfigured`；请求里的 `Value`/`Reference` 只透传，不缓存、不回显、不写日志。
+5. **新建标识**：真实服务端要求新建 provider ID 是规范小写 UUID；本包在发请求前拒绝其他形状。已有 provider 的读取/更新不受此限制。
+6. **探测只读**：`ProbeProvider` 不登记写意图、不创建 provider；它把 `ProviderConnectionInput` 或 `ProviderPatch` 交给集成层调用 `provider.probe`。
+7. **偏好**：`ModelPreferencePatch` 的 `set` 必须带值、`clear` 不带值；服务端拒绝（例如模型不支持推理偏好）时保留原因，不本地伪造偏好。
+
+### 4.11 协作模型策略
+
+```go
+type CollaborationModelPolicy struct {
+    Mode            CollaborationPolicyMode // agent / inherit / fixed
+    ModelProviderID string                 // 仅 fixed
+    ModelID         string                 // 仅 fixed
+}
+```
+
+- `RefreshCollaborationPolicy` 读 `collaboration.model_policy`，返回 `{Revision, Policy}`；`CollaborationPolicy()` 返回最近确认值。
+- `SetCollaborationPolicy` 必须带 `ExpectedRevision`；本地缓存 revision 不符时不发请求；服务端拒绝后只读一次 `collaboration.model_policy` 判断冲突；成功后重读，不做乐观更新。
+- 透明参数：`{"op":"collaboration.set_model_policy","expectedRevision":"...","policy":{"mode":"fixed","model":{"providerId":"...","modelId":"..."}}}`。
+- 缺 `collaboration.model_policy` 或 `collaboration.set_model_policy` 时返回能力缺失，零请求。
+- `agent`/`inherit` 不得带模型；`fixed` 必须同时给 provider 与模型标识。
+
+### 4.12 agent 档案更新
+
+- `RefreshAgents` 读 `agent.list`，`ReadSessionAgent` 读 `session.agent.get`，`UpdateSessionAgent` 写 `session.agent.update`。
+- 真实 `session.agent.update` 是会话贡献方法，**没有服务端 revision**；本包用 `ExpectedAgentID` 作为前置条件：写入前读 `session.agent.get`，当前 AgentID 必须等于 `ExpectedAgentID`（空表示未采用任何档案），否则 `ErrAgentConflict`，不发请求。
+- 缺 `session.agent.get` 或 `session.agent.update`（按 `session.methods` 判定）时返回能力缺失，零请求。
+- 写入经 `KindManagementWrite`，op `session.agent.update`；成功后重读 `session.agent.get`，返回服务端确认的 AgentID 与 `Changed`。
+- 透明参数里的 `expectedAgentId` 是本地前置条件；真实服务端 `deny_unknown_fields` 会拒绝该字段，D12 写发送方必须**不把它下发**，只发 `sessionId`、`branchId`、`agentId`。
+- `agent.list` 是内建方法，真实 hello.features 不一定声明；本包不按 hello 预判，直接调用，`unknown_method` 归为能力缺失。
+
+### 4.13 能力缺失与错误分类
 
 | 错误 | 触发 | 调用方动作 |
 |---|---|---|
@@ -478,6 +621,10 @@ type StorageReading struct {
 | R 块 9 模态实时传输 | `OpenRealtime`/`CloseRealtime` 经 `KindModalityWrite`；`SendRealtime` 走会话；`DeliverRealtimeEvent`/`Ended` 按事件接收 | 事件路由（D12）、音频编解码与播放 |
 | R 块 10 模型可用性过滤 | `RefreshModels` 按 `account.ModelList` 过滤 | — |
 | R 块 10 模型档位选择 | `SelectModel` 经写登记转达 `provider.select`，成功后重读回填 | 界面选择入口 |
+| provider 列表/新建/更新/启用/探测 | `RefreshProviders`/`ReadProvider`/`ProbeProvider`、`CreateProvider`/`UpdateProvider`/`SetProviderEnabled` | 远程模型刷新、provider 删除、导入旧配置 |
+| 模型列表/编辑/启用/重置/偏好 | `ProviderDetail.Models`、`SetModelsEnabled`/`SetModelEnabled`/`EditModel`/`ResetModel`/`UpdateModelPreferences` | 模型删除、模型新建、账户策略 |
+| 协作模型策略 | `RefreshCollaborationPolicy`/`SetCollaborationPolicy`，revision 前置与冲突 | 子代理运行时的模型选择（执行归服务端） |
+| agent 档案更新 | `RefreshAgents`/`ReadSessionAgent`/`UpdateSessionAgent`，当前 agent 前置与读回 | agent 创建/删除、档案字段编辑 |
 | R 块 8 设置写入（版本前置条件、冲突） | 来源声明、项目作用域、`ExpectedRevision`、本地与服务端冲突判定 | 插件、技能、钩子的具体设置键 |
 | A 管理面读数镜像状态 | 只有本包的刷新方法与写登记回执能改读数 | 界面展示 |
 | A 四条总规矩 | 只提交意图、不写事实；不做乐观更新；读数单一驱动者；不显示未确认内容 | — |
@@ -496,7 +643,8 @@ go test ./...
 go vet ./...
 ```
 
-本版结果：四条命令全部通过；`internal/settings` 73 个顶层测试、47 个子测试全绿，语句覆盖率 84.4%（2026-11-10，本机 macOS arm64）。
+本版结果：`go test ./internal/settings`、`go test -race ./internal/settings`、`go vet ./internal/settings` 全部通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，本机 macOS arm64）。
+全仓 `go test ./...` 当前在 `internal/account` 的 `TestLoginRejectsConcurrentAttempt` 失败（账号领域正在改，不在本领域）；`go vet ./...` 通过。该失败与本领域无关，单独说明。
 
 ### 6.2 覆盖
 
@@ -563,12 +711,37 @@ go vet ./...
 | 选择写入失败保留原因、不乐观更新 | `TestSelectModelFailureKeepsReason` |
 | 已知选择版本时必须给前置条件 | `TestSelectModelRequiresRevisionWhenKnown` |
 | 选择写入的缺能力/缺账号/缺写登记分类 | `TestSelectModelCapabilities` |
+| provider 清单/详情读取、缓存隔离、事实校验 | `TestRefreshProvidersAndReadDetail`、`TestProviderFactsRejectMalformed` |
+| 显式探测只读、能力门禁与参数校验 | `TestProbeProviderIsReadOnly`、`TestProbeProviderCapabilityAndValidation` |
+| provider 新建一次写入、显式字段、重读 | `TestCreateProviderWritesOnceAndReadsBack`、`TestCreateProviderValidationAndCapability` |
+| provider 本地/服务端版本冲突、失败保留原因 | `TestUpdateProviderLocalConflictDoesNotWrite`、`TestUpdateProviderServerConflictReadsOnce`、`TestUpdateProviderFailureKeepsReason` |
+| provider 启用状态、显式启用集合 | `TestSetProviderEnabledAndModels` |
+| 单模型启用/停用与无变化不写 | `TestSetModelEnabledToggles` |
+| 模型编辑、重置、偏好写入 | `TestEditResetAndPreferencesWrites` |
+| provider/模型写入缺能力零请求 | `TestProviderWritesRequireCapabilities` |
+| provider 显式字段与凭据只透传 | `TestProviderPatchFieldsAndCredentialsAreExplicit`、`TestProviderPatchValidation` |
+| 模型编辑多字段与偏好 clear/set | `TestModelEditAndPreferenceFields` |
+| 新建 UUID 与托管 provider 不可编辑 | `TestProviderCreateRequiresUUIDAndManagedNotEditable` |
+| provider 读取缺能力分类 | `TestProviderReadCapabilities` |
+| 协作策略读取、缓存与事实校验 | `TestRefreshCollaborationPolicy` |
+| 协作策略写入一次、重读与参数形状 | `TestSetCollaborationPolicyWritesOnceAndRefreshes` |
+| 协作策略本地/服务端版本冲突 | `TestSetCollaborationPolicyConflicts` |
+| 协作策略失败原因与参数校验 | `TestSetCollaborationPolicyFailureAndValidation` |
+| 协作策略缺能力零请求 | `TestCollaborationPolicyCapabilities` |
+| agent 清单读取、缓存与事实校验 | `TestRefreshAgentsAndValidation` |
+| 会话当前 agent 读取与参数校验 | `TestReadSessionAgent` |
+| 会话 agent 更新一次、参数与重读 | `TestUpdateSessionAgentWritesOnceAndReadsBack` |
+| agent 当前值冲突、缺方法与方法表失败零请求 | `TestUpdateSessionAgentConflictAndCapability` |
+| agent 写入失败保留原因、服务端变化转冲突、回读不一致 | `TestUpdateSessionAgentFailureKeepsReasonAndReadsOnce`、`TestUpdateSessionAgentServerChangedBecomesConflict`、`TestUpdateSessionAgentReadbackMismatch` |
+| agent 缺接口/缺写登记分类 | `TestAgentCapabilitiesAndWriter` |
 | fakeappserver：设置来源/项目/读取/写入/本地冲突/用户专属键 | `TestAppServerSettingsProjectScopeAndRevision` |
 | fakeappserver：服务端版本冲突不覆盖 | `TestAppServerSettingsServerConflictNotOverwritten` |
 | fakeappserver：模型与 provider 目录、账号过滤、当前选择 | `TestAppServerModelsFilteredByAccount` |
 | fakeappserver：选择写入成功并回填、只发一次 | `TestAppServerSelectModelWritesAndRefreshes` |
 | fakeappserver：选择写入服务端冲突不重发 | `TestAppServerSelectModelServerConflict` |
 | fakeappserver：未登录时不得写入选择 | `TestAppServerSelectModelSignedOut` |
+| 真实 alpha.21：provider 列表、新建、探测、更新、启用、模型开关、编辑、重置、偏好、版本冲突 | `scripts/verify-provider-admin.py`（§6.7） |
+| 真实 alpha.21：协作策略 revision/冲突、agent 方法表/采用/读回 | `scripts/verify-collaboration-agent.py`（§6.8） |
 | fakeappserver：未登录时无可用模型并带原因 | `TestAppServerModelsSignedOut` |
 | fakeappserver：存储读数只读且无删除动作；缺能力不发请求 | `TestAppServerStorageReportIsReadOnly` |
 | fakeappserver：运行组件状态与安装转达、安装后重读 | `TestAppServerRuntimeInstallRelay` |
@@ -582,7 +755,7 @@ go vet ./...
 | D1 连接 | `hello.features` / `protocol.Client.Call` | D12 用 `hello.features` 实现 `ModalitySession.SupportsModalityMethod`（本机真实服务端只在 hello 声明 `modality.*`），用控制连接调用任务读取、清单、结果与实时发送；若未来服务端把模态贡献为会话方法，再走 `Subscription.Methods/Call`。本包不定义 wire 结构 |
 | D1 能力声明 | `*daemon.Connection.HasFeature(name)` | 直接作为 `Config.Features`；缺失项在发请求前返回 `CapabilityError` |
 | D1 错误分类 | `protocol.RPCError.AppError()` / `Code` | 只把 `unknown_method`、`capability_unavailable`、`storage_unavailable` 归为能力缺失；其他错误保持读取失败 |
-| D3 写登记 | `*write.Manager.Register` / `Wait` | 直接满足 `Writer`；设置写入参数 `{"op":"settings.update",...}`，选择写入参数 `{"op":"provider.select",...}`，安装参数 `{"op":"runtime.install","name":...}`；模态写入用 `KindModalityWrite`，参数 `{"op":"task.submit"、"task.cancel"、"realtime.open"、"realtime.close"}`；只登记一次，不重试 |
+| D3 写登记 | `*write.Manager.Register` / `Wait` | 直接满足 `Writer`；设置写入参数 `{"op":"settings.update",...}`，选择写入参数 `{"op":"provider.select",...}`，安装参数 `{"op":"runtime.install","name":...}`；provider 管理用 `{"op":"provider.create"/"provider.update"/"provider.models.set_enabled"/"provider.models.edit"/"provider.models.reset"/"provider.preferences.update",...}`；模态写入用 `KindModalityWrite`；只登记一次，不重试 |
 | D12 集成层 | `ModalitySession` 与模态通知路由 | D12 实现 hello 能力门禁、任务读取与实时发送；把 `modality.realtime.event` 与 `ended` 通知投递给 `DeliverRealtimeEvent`/`DeliverRealtimeEnded`；写发送方按 `KindModalityWrite` 路由到会话流并回填 `Reply.InputID` |
 | D3 结果语义 | `StatusSucceeded` / `Failed` / `Unknown` / `NeedsManualConfirmation` | 只有成功采用回执；其余按失败处理，失败后只读一次文档判断冲突 |
 | D6 账号 | `*account.Account.Models() account.ModelList` | 作为唯一可用性来源；不在本包重复读取账号状态、不派生模型 |
@@ -601,6 +774,8 @@ go vet ./...
 | 真实模型选择写入与版本冲突 | blocked | 需要真实账号、真实 provider 与 `provider.select` 的版本语义；本版用假服务端验证 |
 | 真实存储读数与离线回收边界 | blocked | 需要真实服务端原生存储；本版验证只读与结构校验，未执行任何清理 |
 | 真实运行组件安装 | blocked | 需要真实服务端与组件包；本版只验证转达、状态重读与失败分类 |
+| 本包 Go API 对真实 provider/模型管理 | blocked | 真实 alpha.21 的列表/新建/探测/更新/启用/模型配置/偏好/冲突已由脚本直连验证（§6.7）；本包 Go API 仍依赖 D12 的 `ProviderAdmin` 与写发送方适配器 |
+| 本包 Go API 对真实协作策略/agent 档案 | blocked | 真实 alpha.21 的协作 revision/冲突与 agent get/update 已由脚本直连验证（§6.8）；本包 Go API 仍依赖 D12 的 `CollaborationReader`/`AgentAdmin` 与写发送方适配器 |
 | 本包 Go API 对真实模态能力/任务/实时 | blocked | 真实 daemon 的能力、OCR 任务与取消已由脚本验证（§6.6）；但本包 Go API 仍依赖 D12 的 `ModalitySession` 适配器，尚未接通 |
 | 实时传输 | blocked | 当前 provider/adapter 没有可用实时模型：`realtime.voice/transcribe/avatar` 均为 adapter 不可用；无法验证打开→发送→关闭 |
 | 模态方法在会话流上的路由 | blocked | 本机真实服务端把 `modality.*` 声明在 `hello.features`，不贡献会话方法；D12 需按 hello 能力实现门禁与路由 |
@@ -737,6 +912,73 @@ Apple Vision 权限按可执行文件路径生效。用夹具里复制出来的
   图像内容或凭据。
 - 脚本每次把夹具复制到新的临时目录，运行结束后清理（`--keep` 可保留）。
 
+### 6.7 真实 provider/模型管理证据（2026-11-11）
+
+命令：
+
+```bash
+scripts/verify-provider-admin.py --fixture /tmp/dimagent-real-model   --server ~/.dimcode-alpha/rust/dimcode-server
+```
+
+真实 alpha.21 环境、匿名自定义 provider、本地 mock `/models` 端点；结果摘要：
+
+```text
+provider list: 127 -> 128
+created: version=1 modelCount=2 enabled=True
+probe: modelCount=2 ids=['probe-1','probe-2'] contextWindows=[32000,16000] createdProvider=False
+update: version=2 displayName='Dim Evidence Updated'
+enable: version=3 enabled=False -> version=4 enabled=True
+models: version=5 evidence-1=True evidence-2=False
+edit: version=6 evidence-1 displayName='Evidence One Edited' contextWindow=2000
+reset: version=7 evidence-1 displayName='Evidence 1' contextWindow=1000
+preferences: version=8 written=True
+stale conflict: appError=provider_conflict, name/version unchanged
+custom in list: True
+```
+
+结论：
+
+- `provider.list` 真实返回 127 个内置 provider；新建自定义 provider 后 128，且清单里能看到它。
+- `provider.probe` 真实返回 2 个模型（含 contextWindow/maxOutputTokens），且**没有创建** provider；探测是只读的。
+- `provider.update` 真实把显示名从 `Dim Evidence` 改为 `Dim Evidence Updated`，版本 1→2；启用状态 false/true 各推进一版。
+- `provider.models.set_enabled` 把 `evidence-2` 停用，`evidence-1` 保持启用。
+- `provider.models.edit` 把 `evidence-1` 的显示名与上下文/输出上限改大；`provider.models.reset` 把它们恢复到初始值。
+- `provider.preferences.update` 先用 `reasoningEffort=set` 被服务端拒绝（模型不支持推理偏好），再用 `serviceTier=clear` 成功，版本 7→8；偏好保持为空。
+- 过期版本更新返回 `appError=provider_conflict`，名称与版本都没有被覆盖。
+- 全程使用匿名认证和本地 mock 端点，没有读取/打印真实凭据；证据只保留 provider/模型标识、版本、状态、计数与错误分类。
+
+### 6.8 真实协作策略与 agent 档案证据（2026-11-11）
+
+命令：
+
+```bash
+scripts/verify-collaboration-agent.py --fixture /tmp/dimagent-real-model   --server ~/.dimcode-alpha/rust/dimcode-server
+```
+
+观察（只保留 revision、状态、agent 标识与错误分类）：
+
+```text
+policy initial: revision=native:user/collaboration:1 mode=agent
+policy revisions: 1 -> 2 -> 3 -> 4
+policy writes: fixed(r2) -> inherit(r3) -> agent(r4)
+policy stale conflict: appError=collaboration_model_policy_conflict
+  revisionAfter=native:user/collaboration:4 modeAfter=agent
+agent methods: get=True update=True
+agent list count: 1
+agent before: {}
+agent: agentId=54026405-... updateOutcome=adopted
+  after={'agentId': '54026405-...'} sameOutcome=unchanged
+```
+
+结论：
+
+- 协作策略真实读取 revision 与 policy；三次写入分别推进 revision 2/3/4，读回 mode 正确。
+- 用旧 revision 写入返回 `collaboration_model_policy_conflict`，当前 revision 与 mode 保持不变。
+- `session.methods` 真实包含 `session.agent.get` 与 `session.agent.update`；`agent.list` 可用但**不在 hello.features**，所以本包对 `agent.list` 不用 hello 预判。
+- 会话初始未采用 agent（`agent.get` 返回 `{}`）；创建 prompt-only agent 后 `session.agent.update` 返回 `adopted`，`agent.get` 读回该 agentId；重复更新返回 `unchanged`。
+- 真实 `session.agent.update` 不接受 `expectedAgentId` 字段（`invalid_params`），所以该前置条件必须只留在本包，D12 写发送方不能下发。
+- 全程未打印凭据；只创建临时会话与 prompt-only 档案，运行在 `/tmp` 夹具副本上。
+
 ## 7. 已知限制
 
 1. **wire 未冻结**：测试适配器里的方法名（`settings.sources`、`settings.projects`、`settings.read`、`settings.update`、`models.providers.list`、`provider.select`、`storage.report`、`runtime.list`、`runtime.install`、`modality.capabilities`、`modality.task.*`、`modality.realtime.*`、`account.status`、`model.list`）只是测试约定，不代表协议冻结。
@@ -769,6 +1011,20 @@ Apple Vision 权限按可执行文件路径生效。用夹具里复制出来的
 28. **实时在本机不可用**：`realtime.voice/transcribe/avatar` 均因 adapter 无可用实时模型而不可用；打开→发送→关闭没有真实证据，标 blocked，不用 mock 冒充。
 29. **OCR 依赖已安装二进制路径**：macOS Vision 权限按可执行文件路径生效；夹具内复制的二进制跑 OCR 会失败。复现时必须用 `--server ~/.dimcode-alpha/rust/dimcode-server` 或等价安装路径。
 30. **模态结果文本未打印**：证据只保留文件名字节数与分页数；OCR 文本属于任务结果内容，未写入文档或仓库。
+31. **新建 provider 标识必须是 UUID**：真实服务端拒绝非规范小写 UUID；本包在发请求前拒绝其他形状。已有 provider 的读取/更新不受限制。
+32. **provider 详情可能在版本/动作上受限**：账户托管的 provider 可能没有 `update` 动作，`provider.update` 会被服务端拒绝；本包不按动作列表预先猜测，只按版本与错误分类。
+33. **凭据只透传**：`CreateProvider`/`UpdateProvider` 可以带显式凭据（set/set_ref/clear），但本包不缓存、不回显、不写日志；`ProviderDetail` 只有 `CredentialConfigured`。真实证据只用匿名认证。
+34. **探测会访问网络**：`ProbeProvider` 是显式动作，可能访问用户给的 baseUrl；本包不缓存结果、不写配置。
+35. **模型偏好可能被服务端拒绝**：例如模型不支持推理偏好时 `set` 返回 `provider_invalid_config`；本包保留原因，不本地伪造偏好值。
+36. **provider 删除/远程刷新/导入旧配置不在本版**：只做列表、新建、更新、探测、启用、模型配置与偏好。
+37. **provider 管理真实证据由脚本直连取得**：本包 Go API 的真实 provider 管理仍依赖 D12 的 `ProviderAdmin` 与写发送方适配器，当前 blocked。
+38. **provider 列表可能很大**：真实夹具返回 127 个内置 provider；本包整份缓存，不做分页，列表读取耗时与内存随 provider 数量增长。
+39. **agent 没有服务端 revision**：真实 `session.agent.update` 没有版本字段；本包用 `ExpectedAgentID` 作为前置条件，并在写入后重读。它不是跨客户端强一致的 revision，但能阻止覆盖已变化的当前 agent。
+40. **agent.list 不按 hello 预判**：真实 hello.features 不含 `agent.list`，但方法可用；本包直接调用，缺失时靠 `unknown_method` 归为能力缺失，因此这一项不是零请求门禁。
+41. **agent 前置字段不能下发**：`expectedAgentId` 只在本包使用；真实服务端会拒绝未知字段，D12 必须只发 `sessionId`、`branchId`、`agentId`。
+42. **协作策略是全局设置**：真实 revision 是 `native:user/collaboration:n`；写入影响所有协作子代理，本包不做项目作用域。
+43. **agent 档案创建/删除不在本版**：本版只读取清单与会话采用；`agent.create` 仍由调用方/其他领域负责。
+44. **全仓 go test ./... 受账号领域影响**：当前 `internal/account` 的 `TestLoginRejectsConcurrentAttempt` 失败，与本领域无关；`go test ./internal/settings` 与 `go vet ./...` 通过。
 
 ## 8. 下一步
 
@@ -783,3 +1039,7 @@ Apple Vision 权限按可执行文件路径生效。用夹具里复制出来的
 9. 为真实模型验证准备专用测试账号或可轮换凭据，避免依赖个人 `~/.dimcode-alpha`；当前只做了本机夹具。
 10. 接入可用的实时适配器/模型后，补 `realtime.voice` 打开→发送→关闭的真实证据；当前只能记录能力原因。
 11. 让 D12 的 `ModalitySession` 适配器把 `modality.*` 控制连接调用接进来，再用本包 Go API 复跑 §6.6 的任务与分页，闭合“本包 API 真实可用”。
+12. 让 D12 的 `ProviderAdmin` 把 `provider.list`/`management`/`probe` 映射进来，写发送方按 op 映射 provider 写方法；再用本包 Go API 复跑 §6.7，闭合“本包 provider API 真实可用”。
+13. 补 provider 删除、`provider.refresh` 远程模型刷新与 `provider.import_legacy`；这些不在本版但方法已存在。
+14. 让 D12 的 `CollaborationReader`/`AgentAdmin` 接通协作策略与会话 agent，再用本包 Go API 复跑 §6.8；当前真实证据由脚本直连取得。
+15. 评估 agent 档案是否需要服务端 revision；当前只能以当前 AgentID 作为前置条件，跨客户端强一致冲突无法表达。

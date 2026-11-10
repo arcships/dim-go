@@ -53,6 +53,9 @@ func TestCreateReturnsServerIDAndAcceptsSubmit(t *testing.T) {
 	if created.Title != "" || created.TitleRevision != 0 || !created.CreatedAt.IsZero() || !created.UpdatedAt.IsZero() {
 		t.Fatalf("新建行不应带未经服务端确认的字段：%+v", created)
 	}
+	if !created.Incomplete {
+		t.Fatal("新建行应标记待补齐")
+	}
 	if _, ok := catalog.Entry("s-new"); !ok {
 		t.Fatal("新建后的会话不在本地目录集合里")
 	}

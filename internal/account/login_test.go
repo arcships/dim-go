@@ -57,12 +57,13 @@ func TestLoginOpensBrowserReceivesCallbackAndRefreshes(t *testing.T) {
 	browser := &httpBrowser{}
 	account := newTestAccount(t, Config{
 		Status:       status,
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      browser,
 		LoginTimeout: 2 * time.Second,
 	})
 
-	snapshot, err := account.Login(context.Background())
+	snapshot, err := account.Login(context.Background(), LoginRequest{})
 	if err != nil {
 		t.Fatalf("登录: %v", err)
 	}
@@ -117,6 +118,7 @@ func TestLoginTimeout(t *testing.T) {
 	auth := callbackAuth("code-1", "state-1", "state-1")
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &stubBrowser{},
 		LoginTimeout: 50 * time.Millisecond,
@@ -125,7 +127,7 @@ func TestLoginTimeout(t *testing.T) {
 		t.Fatalf("读取未登录状态: %v", err)
 	}
 
-	_, err := account.Login(context.Background())
+	_, err := account.Login(context.Background(), LoginRequest{})
 	if !errors.Is(err, ErrLoginTimeout) {
 		t.Fatalf("应返回登录超时：%v", err)
 	}
@@ -159,12 +161,13 @@ func TestLoginDeniedByAuthorizationServer(t *testing.T) {
 	}
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &httpBrowser{},
 		LoginTimeout: 2 * time.Second,
 	})
 
-	_, err := account.Login(context.Background())
+	_, err := account.Login(context.Background(), LoginRequest{})
 	if !errors.Is(err, ErrLoginDenied) {
 		t.Fatalf("应返回登录被拒绝：%v", err)
 	}
@@ -181,12 +184,13 @@ func TestLoginStateMismatch(t *testing.T) {
 	auth := callbackAuth("code-1", "state-server", "state-other")
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &httpBrowser{},
 		LoginTimeout: 2 * time.Second,
 	})
 
-	_, err := account.Login(context.Background())
+	_, err := account.Login(context.Background(), LoginRequest{})
 	if !errors.Is(err, ErrLoginStateMismatch) {
 		t.Fatalf("应返回校验值不一致：%v", err)
 	}
@@ -200,12 +204,13 @@ func TestLoginIncompleteCallback(t *testing.T) {
 	auth := callbackAuth("", "state-1", "state-1")
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &httpBrowser{},
 		LoginTimeout: 2 * time.Second,
 	})
 
-	_, err := account.Login(context.Background())
+	_, err := account.Login(context.Background(), LoginRequest{})
 	if !errors.Is(err, ErrLoginIncomplete) {
 		t.Fatalf("应返回回调缺少授权码：%v", err)
 	}
@@ -220,6 +225,7 @@ func TestLoginCompletionFailure(t *testing.T) {
 	auth.completeErr = errors.New("交换被服务端拒绝")
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &httpBrowser{},
 		LoginTimeout: 2 * time.Second,
@@ -228,7 +234,7 @@ func TestLoginCompletionFailure(t *testing.T) {
 		t.Fatalf("读取未登录状态: %v", err)
 	}
 
-	_, err := account.Login(context.Background())
+	_, err := account.Login(context.Background(), LoginRequest{})
 	if !errors.Is(err, ErrLoginCompletion) {
 		t.Fatalf("应返回完成交换失败：%v", err)
 	}
@@ -245,6 +251,7 @@ func TestLoginCancel(t *testing.T) {
 	auth := callbackAuth("code-1", "state-1", "state-1")
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &stubBrowser{},
 		LoginTimeout: 5 * time.Second,
@@ -252,7 +259,7 @@ func TestLoginCancel(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := account.Login(context.Background())
+		_, err := account.Login(context.Background(), LoginRequest{})
 		done <- err
 	}()
 	waitForLoginPhase(t, account, LoginWaiting)
@@ -279,12 +286,13 @@ func TestLoginBrowserOpenFailure(t *testing.T) {
 	auth := callbackAuth("code-1", "state-1", "state-1")
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &stubBrowser{open: func(string) error { return errors.New("没有可用的浏览器") }},
 		LoginTimeout: 2 * time.Second,
 	})
 
-	_, err := account.Login(context.Background())
+	_, err := account.Login(context.Background(), LoginRequest{})
 	if !errors.Is(err, ErrBrowserOpen) {
 		t.Fatalf("应返回打开浏览器失败：%v", err)
 	}
@@ -306,11 +314,25 @@ func TestLoginBrowserOpenFailure(t *testing.T) {
 	}
 }
 
-// TestLoginRequiresAuthorizationSource 确认没有授权来源时明确报不可用，不假装登录。
-func TestLoginRequiresAuthorizationSource(t *testing.T) {
-	account := newTestAccount(t, Config{})
-	if _, err := account.Login(context.Background()); !errors.Is(err, ErrLoginUnavailable) {
-		t.Fatalf("应返回登录不可用：%v", err)
+// TestLoginRequiresProviderDeclaration 确认没有 provider 声明时明确报不可用，不猜流程。
+func TestLoginRequiresProviderDeclaration(t *testing.T) {
+	account := newTestAccount(t, Config{Auth: callbackAuth("code-1", "state-1", "state-1")})
+	if _, err := account.Login(context.Background(), LoginRequest{}); !errors.Is(err, ErrProvidersUnavailable) {
+		t.Fatalf("应返回缺少 provider 声明：%v", err)
+	}
+}
+
+// TestLoginRequiresSourceForDeclaredMethod 确认 provider 声明了方式但本端没有对应
+// 能力时明确报不可用，不静默换一种方式。
+func TestLoginRequiresSourceForDeclaredMethod(t *testing.T) {
+	browserOnly := newTestAccount(t, Config{Providers: browserProviderSource()})
+	if _, err := browserOnly.Login(context.Background(), LoginRequest{}); !errors.Is(err, ErrLoginMethodUnavailable) {
+		t.Fatalf("browser 缺授权来源时应报不可用：%v", err)
+	}
+
+	deviceOnly := newTestAccount(t, Config{Providers: deviceProviderSource()})
+	if _, err := deviceOnly.Login(context.Background(), LoginRequest{}); !errors.Is(err, ErrLoginMethodUnavailable) {
+		t.Fatalf("device 缺设备码来源时应报不可用：%v", err)
 	}
 }
 
@@ -327,6 +349,7 @@ func TestLoginRejectsConcurrentAttempt(t *testing.T) {
 	}
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
 		Auth:         auth,
 		Browser:      &stubBrowser{},
 		LoginTimeout: 5 * time.Second,
@@ -334,12 +357,12 @@ func TestLoginRejectsConcurrentAttempt(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := account.Login(context.Background())
+		_, err := account.Login(context.Background(), LoginRequest{})
 		done <- err
 	}()
 	<-began
 
-	if _, err := account.Login(context.Background()); !errors.Is(err, ErrLoginInProgress) {
+	if _, err := account.Login(context.Background(), LoginRequest{}); !errors.Is(err, ErrLoginInProgress) {
 		t.Fatalf("并发的第二次登录应被拒绝：%v", err)
 	}
 
@@ -365,12 +388,13 @@ func TestLoginStatusUnreadAfterCompletion(t *testing.T) {
 	status := &stubStatusReader{err: errors.New("连接中断")}
 	account := newTestAccount(t, Config{
 		Status:       status,
+		Providers:    browserProviderSource(),
 		Auth:         callbackAuth("code-1", "state-1", "state-1"),
 		Browser:      &httpBrowser{},
 		LoginTimeout: 2 * time.Second,
 	})
 
-	snapshot, err := account.Login(context.Background())
+	snapshot, err := account.Login(context.Background(), LoginRequest{})
 	if !errors.Is(err, ErrLoginStatusUnread) {
 		t.Fatalf("应返回登录后状态读取失败：%v", err)
 	}

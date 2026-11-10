@@ -57,7 +57,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：32 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：36 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -219,6 +219,7 @@ Owner: D12 集成层领域
 | `extensions` 读取方 | `plugin.list`（数组）、`skills.catalog`、`hooks.catalog`、`mcp.catalog`/`mcp.test`/`mcp.import.preview`、`schedule.list`、`session.wakeup.list`（会话流）；`workflow.*` 不注册 → 能力缺失 | D11b 假服务端 + D1 §3.7 |
 | 四类未完成事项 | `session.input.pending` / `session.exec.pending` / `session.question.pending` / `session.collaboration.pending`（固定 `through`、`next` 原样带回，最多 5 页） | 真实 daemon（alpha.18/alpha.21 的 input/collaboration 返回真实条目；exec/question 按实例退回推导） |
 | 控制连接通知 | `scheduler.changed`、`wakeup.changed`、`workflow.changed`、`session.notice`（标题兜底） | D11b 假服务端 + 本版测试 |
+| `settings.ModalitySession` | `modality.task.status`/`list`/`result`、`modality.realtime.send`（会话流）；门禁 hello → 会话方法表 | 真实 daemon：OCR 任务 `queued→running→succeeded`、结果分页读取；假服务端覆盖映射 |
 
 ### 4.5 会话流通知 → 领域
 
@@ -233,15 +234,21 @@ Owner: D12 集成层领域
 | `session.event` / `session.model.progress` | 投影折叠 | 本包不解析内容 |
 | `session.state` 与其余 | — | 不改变本版持有的状态；其余只记一条诊断 |
 
-### 4.6 会话命令与模态写入（集成层给出的边界）
+### 4.6 会话命令与模态调用（真实形状）
+
+**门禁顺序（两处共用）**：先看 `hello.features`，再看会话方法表 `session.methods`；两者都没有才算缺失。真实服务端的情况正好相反：`shell.*`/`attachment.put`/`session.rename` 只出现在**会话方法表**里，`modality.*` 只出现在 **hello** 里——只查一边都会误判。
 
 | 项 | 口径 |
 |---|---|
-| 命令归属 | `shell.run`/`shell.stop` 由服务端执行并写入会话历史；本机终端（D9）是另一条路径，不经本方法 |
-| 运行标识 | `run` 可带客户端生成的 `runId`；服务端回执给出 `runId` 时以服务端为准，写进意图的输入标识供结果未知时核对 |
-| 模态任务 | `task.submit`/`task.cancel` 的载荷原样透传；服务端回执给出 `taskId` 时以服务端为准 |
-| 实时传输 | `realtime.open`/`realtime.close` 的载荷原样透传（例如 `connectionId`）；回执给出 `connectionId` 时以服务端为准 |
-| 共同要求 | 会话必须已打开（走会话流）；发送前先查 `session.methods`（含 hello 能力），缺方法零请求 |
+| 命令归属 | `shell.run`/`shell.stop` 由服务端执行；`mode=record` 时结果回写成 `input/message`（append），本机终端（D9）是另一条路径 |
+| `shell.run` 参数 | `{sessionId, branchId, runId, command, mode}`：服务端要求 `runId` 与 `mode` 必填；缺 `runId` 用意图输入标识（UUID），缺 `mode` 按 `record` |
+| `shell.stop` 参数 | 只接受 `{sessionId, runId}`（服务端拒绝未知字段，不能带 `branchId`） |
+| `shell.list` 参数 | `{sessionId}`；回执只取运行标识、分支、模式与开始时间，**不保留命令正文** |
+| 模态方法 | `modality.task.submit|status|list|cancel|result`、`modality.realtime.open|send|close` 都由会话流承载，参数里**不带** `sessionId`/`branchId` |
+| 模态参数映射 | 领域用 camelCase 表达载荷（`clientTaskId`、`files[].mediaType`/`dataBase64`/`nodePath`、`model{providerId,modelId}`），发送方映射成服务端 snake_case（`client_task_id`、`files[].media_type`/`data_base64`/`node_path`）；`op` 不下发 |
+| 模态标识 | 回执 `{task:{task_id}}` / `{connectionId}` 覆盖意图的输入标识；`task.cancel` 只发 `{task_id}`，`realtime.close` 只发 `{connectionId}` |
+| 模态读取面 | 集成层实现 `settings.ModalitySession`：任务状态/清单/结果与实时帧发送都走会话流；任务记录里的 `progress{ fraction,message }`、`result{ files[], data }`（文件字段兼容 snake_case 与 camelCase）、`error{ code,message }` 原样映射 |
+| 能力缺失 | 缺方法一律零请求；实时传输打不开（例如 `no_default_model`）按失败原样上报，自检里记 blocked，不伪造连接 |
 
 ### 4.7 长期允许的判定口径（集成层给出）
 
@@ -365,7 +372,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 32 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 36 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -403,6 +410,9 @@ go test -race ./internal/app/
 | 权限：打开时读、切换写（带版本）、时间线 `permission/changed` 驱动状态 | `TestPermissionGetUpdateAndTimeline` |
 | 统一二进制自启参数：`dimcode-server` 自动补 `app-server`，显式参数不覆盖 | `TestServerArgsForUnifiedBinary` |
 | 长期允许写命令规则：`permission.rules` 读、`permission.set_rules` 带版本写 | `TestSenderWritesCommandRuleForLongTerm` |
+| 模态门禁 hello 优先、其次会话方法表；两边都没有才缺失 | `TestModalityGateChecksHelloBeforeSessionMethods` |
+| 模态适配器：任务状态/清单/结果与实时帧的映射；缺能力零请求 | `TestModalitySessionMapsTasks` |
+| `shell.list` 摘要不含命令正文 | `TestShellRunsReadsListWithoutContent` |
 
 ### 7.3 真实 daemon 证据
 
@@ -556,6 +566,51 @@ shutdown: 5 段全部完成（4 ms）
 
 两次运行都回收了自启的服务实例；临时数据目录与复制到 `/tmp` 的配置文件在取证后删除。
 
+**证据 I：会话内命令真实执行（alpha.21 configured profile）**
+
+环境同证据 G。命令正文与输出不进入证据，只记运行标识、状态、耗时、退出码与历史事实类型增量。
+
+```bash
+go run ./cmd/dimagent selfcheck -data-dir "$D" \
+  -server "$HOME/.dimcode-alpha/rust/dimcode-server" \
+  -model-config /tmp/d12m-offline.json -create -shell "<一条短命令>" -shell-list
+```
+
+```text
+shell.run: status=succeeded run=2a7d310e-... state=completed durationMs=24 exitCode=0
+history: rows=0 kinds=
+history.events.added: input/applied=+2 input/message=+2
+shell.list: runs=0
+```
+
+`mode=record` 的结果确实回写成 `input/message`（append）与 `input/applied` 两条事实；`shell.list` 在运行结束后为空。
+
+运行中停止（命令换成长命令，同样不打印正文）：
+
+```text
+shell.stop: status=succeeded run=e5f5b7b4-... stopped=true
+shell.run: status=succeeded run=e5f5b7b4-... state=stopped durationMs=69
+history.events.added: input/applied=+3 input/message=+2
+shell.list: runs=0
+```
+
+**证据 J：模态任务真实执行（alpha.21 configured profile）**
+
+`DIMAGENT_MODALITY_EVIDENCE=1` 时运行 `TestRealModalityAndShellEvidence`，输入是一张本机图片；证据只打印状态序列、任务标识、文件字节数与页数。
+
+```text
+shell.run: run=dde577e1-... status=succeeded
+modality.task: id=mt_132e92ae-... states=[queued running succeeded]
+modality.result: file=result.json bytes=94 pages=1 eof=true
+modality.result: file=text.txt bytes=0 pages=1 eof=true
+modality.cancel: id=mt_e6e0cd0f-... state=cancelled
+modality.realtime: blocked（打开失败）: 实时传输打开失败: ... no_default_model: No model serves realtime.transcribe
+```
+
+- 任务提交、状态、结果分页、取消四条链路都走本包的 `ModalitySession` 与会话流。
+- 实时传输：打开被服务端拒绝（该账号没有 `realtime.transcribe` 的默认模型），按 blocked 记录，不伪造连接；没有进入帧发送。
+- 服务端能力回执里没有单独的能力标识，集成层用 `类别.操作` 派生本地标识（见 10）。
+
 ### 7.4 自检子命令
 
 ```bash
@@ -573,7 +628,8 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | `-lines` / `-older` | 打印最近多少行；打开后向前翻多少页更早的轮次 |
 | `-submit` / `-wait` | 提交一条文本并等待写登记收敛；提交后等多久再重读尾部 |
 | `-attachment` | 用 `attachment.put` 存一段文本成会话文件（缺方法时报能力缺失） |
-| `-shell` / `-rename` / `-permission` | 会话内命令、改名、权限档位切换（后两者需 configured profile） |
+| `-shell` / `-shell-stop` / `-shell-list` | 命令执行（record 模式）、运行中停止、读取运行摘要（都不打印命令与输出） |
+| `-rename` / `-permission` | 改名、权限档位切换（需 configured profile） |
 | `-model-config` | 显式模型配置（configured profile；管理面方法只在非 mock 实例上可用） |
 | `-short` | 只打印汇总 |
 | `-log` | 进程级白名单诊断写到该文件；缺省丢弃 |
@@ -624,8 +680,9 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 真实 ask_user 提问 | blocked（真实事件未触发） | 需要模型调用 `ask_user`；清单与时间线两条路都已接 |
 | 非空 `exec.pending` / `question.pending` | blocked（能力不可用） | 本机两个二进制都没有这两个方法 |
 | 真实 `attachment.put` 写入 | blocked（能力不可用） | 本机两个二进制都不贡献该方法；需要提供本地执行与原生存储的实例 |
-| 真实 `shell.run`/`shell.stop` | blocked（能力不可用） | 本机两个二进制都不贡献 `shell.*`；映射与门禁已用假服务端验证，真实服务端只验证到"能力缺失" |
-| 真实 `modality.*` | blocked（能力不可用 + 名称未在真实服务端验证） | 本机二进制不贡献这些方法；四个方法名按 D3 的 op 命名与 D11a 的 `modality.capabilities` 约定，缺服务端证据 |
+| 真实 `shell.run`/`shell.stop`/`shell.list` | 已真实跑通（alpha.21 configured profile） | 见证据 I；mock profile 不注册这些会话方法，按能力缺失处理 |
+| 真实模态任务（submit/status/result/cancel） | 已真实跑通（alpha.21 configured profile） | 见证据 J；OCR 任务 `queued→running→succeeded`，取消收敛为 `cancelled` |
+| 真实模态实时传输 | blocked（服务端没有可用模型） | 打开回 `no_default_model: No model serves realtime.transcribe`；帧发送路径因此未验证，不伪造连接 |
 | 真实分支开/结束（本包发出的写） | 未验证 | 参数形状与目录领域的真实分支证据一致；本包没有在真实服务端上直接发过 `session.branch_create`/`session.branch_end` |
 | 真实工具结果里的路径声明 | blocked（真实事件未触发） | 需要模型真的调用 `write`/`edit` 等工具并给出 `structuredContent`；本机 mock 模型不产生工具调用，因此变更读取的真实声明只验证到"空清单" |
 | 真实核对调用 | 未验证 | 需要一次超时/断线后才进入核对；D1 已单独验证方法本身 |
@@ -654,12 +711,16 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 13. **唤醒取消需要会话标识**：`session.wakeup.cancel` 是会话方法；领域包的旧写法只带 `wakeupId`，集成层优先用载荷里的 `sessionId`，其次用意图的会话标识，两者都没有时报不可重试错误。
 14. **账号没有「过期」字段**：`account.status` 只区分有/无账号对象；过期与恢复仍按 D6 的 blocked 记录处理。
 15. **权限档位值是服务端 preset**：集成层把 `policy.preset`（`read-only`/`workspace-write`/`full-access`）原样当档位保存并透传，不再改写成交互裁决早期的本地常量。
-16. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-17. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-18. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-19. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-20. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-21. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+16. **模态能力标识是派生值**：真实 `modality.capabilities` 没有单独的能力标识，集成层用 `类别.操作` 派生（`key` 会重复，不能当主键）；该标识只用于本地视图，不写回服务端。
+17. **模态参数做一次 camelCase→snake_case 映射**：领域载荷用 `clientTaskId`/`mediaType`/`dataBase64`/`nodePath`，发送方映射成 `client_task_id`/`media_type`/`data_base64`/`node_path`；结果文件两种写法都接受。
+18. **命令清单不保留正文**：`shell.list` 回执里的命令文本在集成层被丢弃，只保留标识、分支、模式与开始时间；证据与诊断都不会打印命令或输出。
+19. **真实模态/命令证据用例按环境变量开启**：`TestRealModalityAndShellEvidence` 需要 `DIMAGENT_MODALITY_EVIDENCE=1` 与真实服务端/模型配置/图片；默认跳过，不进入 CI。
+20. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+21. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+22. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+23. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+24. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+25. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -671,3 +732,4 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | 门禁改 hello 优先；命令与模态接真实调用：`shell.run/stop/list`（含 record 回写与停止收敛）、`settings.ModalitySession` 适配器（任务提交/状态/结果/取消 + 实时发送）；证据不含命令与输出 | 真实服务端把 `modality.*` 只声明在 hello、`shell.*` 只声明在会话方法表 |

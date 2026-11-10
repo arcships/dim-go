@@ -70,6 +70,159 @@ type ToolServer struct {
 	AuthMissingScopes []string
 }
 
+// ToolServerConfiguration 生成 alpha.21 `mcp.save` 的配置文档。
+//
+// stdio 不能带 url，http/sse 不能带 command；空字段必须省略，否则服务端返回
+// mcp_invalid_config。载荷里已有原始 Configuration 时原样返回。
+func ToolServerConfiguration(spec ToolServerSpec) (json.RawMessage, error) {
+	if len(spec.Configuration) > 0 {
+		return append(json.RawMessage(nil), spec.Configuration...), nil
+	}
+	document := map[string]any{"transport": string(spec.Transport)}
+	if spec.Command != "" {
+		document["command"] = spec.Command
+	}
+	if spec.URL != "" {
+		document["url"] = spec.URL
+	}
+	if len(spec.Args) > 0 {
+		document["args"] = append([]string(nil), spec.Args...)
+	}
+	if len(spec.Env) > 0 {
+		env := make(map[string]string, len(spec.Env))
+		for key, value := range spec.Env {
+			env[key] = value
+		}
+		document["env"] = env
+	}
+	raw, err := json.Marshal(document)
+	if err != nil {
+		return nil, fmt.Errorf("编码工具服务器配置: %w", err)
+	}
+	return raw, nil
+}
+
+// MCPTarget 定位一个 MCP 条目；Source 为空时按 user 处理。
+type MCPTarget struct {
+	ID     string `json:"id"`
+	Source Source `json:"source"`
+	Cwd    string `json:"cwd,omitempty"`
+}
+
+func (t MCPTarget) normalize() (MCPTarget, error) {
+	if err := requireText("MCP 条目标识", t.ID); err != nil {
+		return MCPTarget{}, err
+	}
+	if t.Source == "" {
+		t.Source = SourceUser
+	}
+	return t, nil
+}
+
+// MCPAuthStartPayload 是 mcp.auth.start 意图的载荷。
+type MCPAuthStartPayload struct {
+	ID           string `json:"id"`
+	Source       Source `json:"source"`
+	Cwd          string `json:"cwd,omitempty"`
+	ClientSecret string `json:"clientSecret,omitempty"`
+}
+
+// MCPAuthCompletePayload 是 mcp.auth.complete 意图的载荷。
+type MCPAuthCompletePayload struct {
+	AttemptID   string `json:"attemptId"`
+	CallbackURL string `json:"callbackUrl"`
+}
+
+// MCPAuthCancelPayload 是 mcp.auth.cancel 意图的载荷。
+type MCPAuthCancelPayload struct {
+	AttemptID string `json:"attemptId"`
+}
+
+// MCPAuthLogoutPayload 是 mcp.auth.logout 意图的载荷。
+type MCPAuthLogoutPayload struct {
+	ID     string `json:"id"`
+	Source Source `json:"source"`
+	Cwd    string `json:"cwd,omitempty"`
+}
+
+// MCPAuthStarted 是 mcp.auth.start 的成功回执；AuthorizationURL 含一次性授权
+// 参数，调用方不得写入日志。
+type MCPAuthStarted struct {
+	AttemptID        string `json:"attemptId"`
+	AuthorizationURL string `json:"authorizationUrl"`
+	RedirectURI      string `json:"redirectUri"`
+	Resource         string `json:"resource"`
+	Issuer           string `json:"issuer"`
+	ExpiresAt        int64  `json:"expiresAt"`
+}
+
+// MCPAuthLogoutResult 是 mcp.auth.logout 的回执。
+type MCPAuthLogoutResult struct {
+	Revoked bool `json:"revoked"`
+}
+
+// StartMCPAuth 发起一次 MCP 认证。没有该能力时按 hello 门禁返回能力缺失且
+// 零请求；真实认证服务器不可用时服务端返回 mcp_auth_* 错误。
+func (s *Service) StartMCPAuth(ctx context.Context, target MCPTarget, clientSecret string) (write.IntentView, error) {
+	target, err := target.normalize()
+	if err != nil {
+		return write.IntentView{}, err
+	}
+	if err := s.requireFeature("mcp.auth.start"); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpMCPAuthStart, MCPAuthStartPayload{
+		ID:           target.ID,
+		Source:       target.Source,
+		Cwd:          target.Cwd,
+		ClientSecret: clientSecret,
+	}, true)
+}
+
+// CompleteMCPAuth 用回调 URL 完成一次认证。
+func (s *Service) CompleteMCPAuth(ctx context.Context, attemptID, callbackURL string) (write.IntentView, error) {
+	if err := requireText("MCP 认证尝试标识", attemptID); err != nil {
+		return write.IntentView{}, err
+	}
+	if err := requireText("MCP 认证回调地址", callbackURL); err != nil {
+		return write.IntentView{}, err
+	}
+	if err := s.requireFeature("mcp.auth.complete"); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpMCPAuthComplete, MCPAuthCompletePayload{
+		AttemptID:   attemptID,
+		CallbackURL: callbackURL,
+	}, true)
+}
+
+// CancelMCPAuth 取消一次认证尝试。
+func (s *Service) CancelMCPAuth(ctx context.Context, attemptID string) (write.IntentView, error) {
+	if err := requireText("MCP 认证尝试标识", attemptID); err != nil {
+		return write.IntentView{}, err
+	}
+	if err := s.requireFeature("mcp.auth.cancel"); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpMCPAuthCancel, MCPAuthCancelPayload{AttemptID: attemptID}, true)
+}
+
+// LogoutMCPAuth 清除一个 MCP 条目的凭据。
+func (s *Service) LogoutMCPAuth(ctx context.Context, target MCPTarget) (write.IntentView, error) {
+	target, err := target.normalize()
+	if err != nil {
+		return write.IntentView{}, err
+	}
+	if err := s.requireFeature("mcp.auth.logout"); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpMCPAuthLogout, MCPAuthLogoutPayload{
+		ID:     target.ID,
+		Source: target.Source,
+		Cwd:    target.Cwd,
+	}, true)
+}
+
 // ToolDescriptor 是探测得到的工具摘要。
 type ToolDescriptor struct {
 	Name        string `json:"name"`
@@ -78,11 +231,14 @@ type ToolDescriptor struct {
 
 // ToolServerProbe 是一次显式探测的结果。它只是预览，不修改服务器配置。
 type ToolServerProbe struct {
-	ServerID  string           `json:"serverId"`
-	Reachable bool             `json:"reachable"`
-	Tools     []ToolDescriptor `json:"tools,omitempty"`
-	Reason    string           `json:"reason,omitempty"`
-	ProbedAt  time.Time        `json:"probedAt"`
+	ServerID  string `json:"serverId"`
+	Reachable bool   `json:"reachable"`
+	// Status 与 LatencyMillis 是 alpha.21 mcp.test 回执里的状态与耗时。
+	Status        string           `json:"status,omitempty"`
+	LatencyMillis int64            `json:"latencyMs,omitempty"`
+	Tools         []ToolDescriptor `json:"tools,omitempty"`
+	Reason        string           `json:"reason,omitempty"`
+	ProbedAt      time.Time        `json:"probedAt"`
 }
 
 // ImportCandidate 是配置导入预览里的一条候选。
@@ -121,9 +277,11 @@ type ToolServerUpdatePayload struct {
 	Server   ToolServerSpec `json:"server"`
 }
 
-// ToolServerRemovePayload 是 mcp.remove 意图的载荷。
+// ToolServerRemovePayload 是 mcp.remove 意图的载荷。ExpectedVersion 是目录
+// 版本前置条件；空表示由集成层按最近一次读取补齐。
 type ToolServerRemovePayload struct {
-	ServerID string `json:"serverId"`
+	ServerID        string `json:"serverId"`
+	ExpectedVersion string `json:"expectedVersion,omitempty"`
 }
 
 // ImportResult 是一次按勾选写入的结果。Written 是明确成功的条数。
@@ -168,10 +326,19 @@ func (s *Service) UpdateToolServer(ctx context.Context, serverID string, spec To
 
 // RemoveToolServer 删除一个外部工具服务器。写入经写登记。
 func (s *Service) RemoveToolServer(ctx context.Context, serverID string) (write.IntentView, error) {
+	return s.RemoveToolServerWithVersion(ctx, serverID, "")
+}
+
+// RemoveToolServerWithVersion 带 mcp.catalog 的 userRevision 删除服务器；
+// 版本已变化时服务端返回冲突，写意图明确失败且不清除当前配置。
+func (s *Service) RemoveToolServerWithVersion(ctx context.Context, serverID, expectedVersion string) (write.IntentView, error) {
 	if err := requireText("工具服务器标识", serverID); err != nil {
 		return write.IntentView{}, err
 	}
-	return s.write(ctx, OpToolServerRemove, ToolServerRemovePayload{ServerID: serverID}, false)
+	return s.write(ctx, OpToolServerRemove, ToolServerRemovePayload{
+		ServerID:        serverID,
+		ExpectedVersion: expectedVersion,
+	}, false)
 }
 
 // ProbeToolServer 显式探测一个工具服务器。探测只在调用时发生，清单读取与增删改

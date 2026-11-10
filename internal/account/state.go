@@ -1,7 +1,6 @@
 package account
 
 import (
-	"context"
 	"fmt"
 	"time"
 )
@@ -159,9 +158,11 @@ func validateLoginTable(table map[LoginPhase]map[loginEvent]LoginPhase) error {
 
 // LoginState 是一次登录尝试的只读状态。Reason 只在失败、取消或超时时非空。
 type LoginState struct {
-	Phase     LoginPhase
-	StartedAt time.Time
-	Reason    string
+	Phase      LoginPhase
+	StartedAt  time.Time
+	Reason     string
+	ProviderID string
+	Method     LoginMethod
 }
 
 // LoginState 返回当前登录尝试状态。
@@ -169,17 +170,19 @@ func (a *Account) LoginState() LoginState {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return LoginState{
-		Phase:     a.loginPhase,
-		StartedAt: a.loginFrom,
-		Reason:    a.loginError,
+		Phase:      a.loginPhase,
+		StartedAt:  a.loginFrom,
+		Reason:     a.loginError,
+		ProviderID: a.loginProvider,
+		Method:     a.loginMethod,
 	}
 }
 
-// beginLogin 进入等待回调。已有登录在进行时不接受第二次发起。
-func (a *Account) beginLogin(cancel context.CancelFunc) bool {
+// beginLogin 进入等待登录。已有登录在进行时不接受第二次发起。
+func (a *Account) beginLogin(attempt *loginAttempt) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	if a.loginCancel != nil {
+	if a.login != nil {
 		return false
 	}
 	next, ok := loginTransitions[a.loginPhase][loginEventBegin]
@@ -189,7 +192,9 @@ func (a *Account) beginLogin(cancel context.CancelFunc) bool {
 	a.loginPhase = next
 	a.loginFrom = a.cfg.Now()
 	a.loginError = ""
-	a.loginCancel = cancel
+	a.loginProvider = attempt.provider.ID
+	a.loginMethod = attempt.method
+	a.login = attempt
 	return true
 }
 
@@ -207,11 +212,4 @@ func (a *Account) advanceLogin(event loginEvent, reason string) {
 		return
 	}
 	a.loginError = reason
-}
-
-// finishLogin 结束一次登录尝试，释放取消句柄。
-func (a *Account) finishLogin() {
-	a.mu.Lock()
-	a.loginCancel = nil
-	a.mu.Unlock()
 }

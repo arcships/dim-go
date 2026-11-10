@@ -12,13 +12,14 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/write"
 )
 
-// 目录变更在写意图里的操作名。集成层的写发送方按这些操作名映射到服务端的
+// 目录变更在写意图里的操作名；fork 只用于会话分叉，不用于分支。集成层的写发送方按这些操作名映射到服务端的
 // 具体方法；本包不出现方法名与 wire 形状。三类变更都用写登记的
 // KindSessionLifecycle 承载：新建时还没有会话标识，改名与删除必须带目标会话。
 const (
 	opCreate = "catalog.create"
 	opRename = "catalog.rename"
 	opDelete = "catalog.delete"
+	opFork   = "fork"
 )
 
 // 幂等键前缀。
@@ -42,6 +43,8 @@ const (
 	OpBranchCreate Op = "branch_create"
 	// OpBranchEnd 是结束分支。
 	OpBranchEnd Op = "branch_end"
+	// OpFork 是从某个切点分叉出新会话。
+	OpFork Op = "fork"
 )
 
 // TitleUpdate 是一条标题事实：自动标题通知或改名结果的提交值。按修订号合并，
@@ -190,6 +193,8 @@ func opLabel(op Op) string {
 		return "创建分支"
 	case OpBranchEnd:
 		return "结束分支"
+	case OpFork:
+		return "分叉"
 	}
 	return string(op)
 }
@@ -238,17 +243,7 @@ func (c *Catalog) Create(ctx context.Context, req CreateRequest) (Entry, error) 
 		return Entry{}, fmt.Errorf("%w: 新建回执缺少会话标识", ErrMalformedResult)
 	}
 
-	entry := Entry{ID: result.SessionID}
-	c.mu.Lock()
-	if idx, exists := c.index[entry.ID]; exists {
-		// 目录里已有这一条时以目录事实为准，不用新建回执覆盖。
-		entry = c.entries[idx]
-	} else {
-		c.index[entry.ID] = len(c.entries)
-		c.entries = append(c.entries, entry)
-	}
-	c.mu.Unlock()
-	return entry, nil
+	return c.addEntry(Entry{ID: result.SessionID, Incomplete: true}), nil
 }
 
 // Rename 通过写登记改名。成功后按修订号合并标题；回执修订号不高于本地时返回

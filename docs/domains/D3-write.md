@@ -18,7 +18,7 @@ Owner: D3 写登记领域
 | 功能块 3「发送与运行控制」 | `docs/domains/R.md` | 提交、投递方式、停止、失败保留、结果未知核对、幂等 |
 | 功能块 6/7 的写入侧 | `docs/domains/R.md` | 审批应答、长期允许、提问应答各作为一次写意图；顺序与一次一条由 D4 负责 |
 | 功能块 8/9/10/12 的写入 | `docs/domains/R.md` | 管理写入、账号动作、附件资源写入作为同一种受控写入 |
-| 功能块 5 的会话生命周期写入 | `docs/domains/R.md` | 新建、改名、删除、开分支、结束分支用 `KindSessionLifecycle`，参数里的 `op` 区分动作 |
+| 功能块 5 的会话生命周期写入 | `docs/domains/R.md` | 新建、改名、删除、开分支、结束分支、分叉用 `KindSessionLifecycle`，参数里的 `op` 区分动作 |
 | 功能块 13 的会话内命令写入 | `docs/domains/R.md` | 执行与停止用 `KindShellRun`，`op` 取 `run`/`stop`；`!` 由服务端执行，不是本机终端 |
 | 功能块 9 的模态任务与实时传输写入 | `docs/domains/R.md` | 提交、取消、打开、关闭用 `KindModalityWrite`，`op` 取 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close` |
 | 在途写状态机、草稿、四条总规矩 | `docs/domains/A.md` | 状态迁移逐条对应；草稿与待发归属本领域；启动时校验迁移表 |
@@ -42,8 +42,9 @@ Owner: D3 写登记领域
 
 **验收**
 
-- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/write/`；本版全部通过（2026-11-10，macOS arm64）。
-- 本领域测试：34 个顶层测试、68 个子测试全部通过；覆盖见 §6.2。
+- 本领域命令：`go test ./internal/write/`、`go vet ./internal/write/`、`go test -race ./internal/write/`；本版全部通过（2026-11-11，macOS arm64）。
+- 仓库整体：除 `cmd/dimagent` 外的包全部通过；`cmd/dimagent` 在本轮末尾正在并行编辑，构建失败（本轮最后见重复声明/格式笔误），与本次改动无关。待其修复后复跑 `go test ./...` / `go vet ./...`。
+- 本领域测试：35 个顶层测试、72 个子测试全部通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上真实 NDJSON 收发，覆盖一次发送、无回执超时、回执前断线、能力缺失、重启不补发。
   - 注入替身：`Sender` 与 `Inspector` 为测试替身，覆盖核对命中/未发生/无法确认/归属不一致。
@@ -56,7 +57,7 @@ Owner: D3 写登记领域
 | D1 连接 | `Sender` 适配器：把 `write.Kind` 映射到具体方法，只调用一次、不自行重试、把错误原样返回，让 `failure.KindOf` 可分类；提供 `session.input_lookup` 对应的核对读取所需事实 |
 | D2 会话投影 | `Inspector` 实现：按输入标识回答 `Present`、实际 `SessionID`/`BranchID`、加载是否可信；运行状态可由 D1 的 attach 结果补入 |
 | D4 交互与审批 | 长期允许先写后答：只有本包对长期允许意图给出成功，才登记审批应答；写入失败时不得发出应答；提问一次只登记一条 |
-| 会话目录与分支领域 | 新建/改名/删除/开分支/结束分支用 `KindSessionLifecycle`；`op` 可用 `create`/`rename`/`delete`/`branch.create`/`branch.end`，会话动作兼容现有的 `catalog.*` 前缀；新建会话给客户端生成的 `InputID` 供核对；`branch.end` 的分支标识放在 `Intent.BranchID` 或参数 `branchId` |
+| 会话目录与分支领域 | 新建/改名/删除/开分支/结束分支/分叉用 `KindSessionLifecycle`；`op` 可用 `create`/`rename`/`delete`/`branch.create`/`branch.end`/`fork`，会话动作兼容现有的 `catalog.*` 前缀；新建会话与分叉建议给客户端生成的操作标识 `InputID` 供核对；`branch.end` 的分支标识放在 `Intent.BranchID` 或参数 `branchId` |
 | 会话命令执行领域 | 执行/停止用 `KindShellRun`；`op` 取 `run`/`stop`，`run` 带命令、`stop` 带 `runId`；建议把 `runId` 也填进 `Intent.InputID` 供未知核对 |
 | 模态能力领域 | 任务提交/取消与实时传输开/关用 `KindModalityWrite`；`op` 取 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close`；建议把 `taskId`/`connectionId` 或客户端请求标识填进 `Intent.InputID` 供未知核对 |
 | D5 管理面、D6 账号、D8 附件 | 各自提供稳定的幂等键；附件资源写入的键应包含内容摘要与会话，保证重复挂载只写一次 |
@@ -155,17 +156,17 @@ manager.Close()
 | 管理写入 | `KindManagementWrite` | 可选 | 插件、技能、钩子、计划任务等设置 |
 | 账号动作 | `KindAccountAction` | 可选 | 登录、登出、重置等 |
 | 附件资源写入 | `KindAttachmentWrite` | 必填 | 只承载写入意图；暂存与引用归 D8 |
-| 会话生命周期 | `KindSessionLifecycle` | 新建会话不需要，其余必填 | 参数 `op` 取 `create`/`rename`/`delete`/`branch.create`/`branch.end`，会话动作兼容 `catalog.create`/`catalog.rename`/`catalog.delete`；`branch.create` 按指定轮次开分支；`branch.end` 还需要分支标识 |
+| 会话生命周期 | `KindSessionLifecycle` | 新建会话不需要，其余必填 | 参数 `op` 取 `create`/`rename`/`delete`/`branch.create`/`branch.end`/`fork`，会话动作兼容 `catalog.create`/`catalog.rename`/`catalog.delete`；`branch.create` 按指定轮次开分支；`branch.end` 还需要分支标识；`fork` 用参数 `at` 指定继承的最后一条主线序号 |
 | 会话内命令执行 | `KindShellRun` | 必填 | `op=run` 必须有命令；`op=stop` 必须有运行标识；`!` 由服务端执行 |
 | 模态写入 | `KindModalityWrite` | 必填 | `op` 取 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close` |
 
 结构校验：幂等键非空、类型已知、会话要求满足、投递方式只能是 queue/interject（空按 queue）、参数是合法 JSON。参数内容不解释、不校验。各类型的 op 与必需字段：
 
-- 会话生命周期：参数必须是非空对象；`op` 取上表五个动作或三个目录兼容写法。`create` 不要求 `SessionID`；`rename`/`delete`/`branch.create`/`branch.end` 要求 `SessionID`；`branch.end` 还要求分支标识，可用 `Intent.BranchID` 或参数 `branchId`，两处都给时必须一致，登记时统一归一到 `BranchID`。
+- 会话生命周期：参数必须是非空对象；`op` 取上表六个动作或三个目录兼容写法。`create` 不要求 `SessionID`；`rename`/`delete`/`branch.create`/`branch.end`/`fork` 要求 `SessionID`；`branch.end` 还要求分支标识，可用 `Intent.BranchID` 或参数 `branchId`，两处都给时必须一致，登记时统一归一到 `BranchID`；`fork` 的 `at` 原样下发，不占 `BranchID`。
 - 会话内命令：`op` 只能是 `run`/`stop`；`run` 的 `command` 去掉空白后不能为空；`stop` 的 `runId` 不能为空。
 - 模态写入：`op` 只能是 `task.submit`/`task.cancel`/`realtime.open`/`realtime.close`。
 
-`InputID` 是核对用的标识：提交类为空时由本包生成；审批、提问、停止、会话命令与模态写入建议由调用方填入服务端请求标识或运行/任务/连接标识。新建会话没有会话标识，建议由调用方给一个客户端生成的新建标识；没有可核对标识的意图一旦进入未知，只能按核对上限收敛到需人工确认。
+`InputID` 是核对用的标识：提交类为空时由本包生成；审批、提问、停止、会话命令与模态写入建议由调用方填入服务端请求标识或运行/任务/连接标识。新建会话与分叉的结果里才会出现新会话或新分支标识，建议由调用方给一个客户端生成的操作标识；没有可核对标识的意图一旦进入未知，只能按核对上限收敛到需人工确认。
 
 ### 4.2 状态机
 
@@ -282,8 +283,8 @@ type InputState struct {
 | R 块 6 长期允许先写后答 | 长期允许与审批应答各为一次意图，结果可等待 | 顺序由 D4 保证 |
 | R 块 7 提问一次一条 | 提问应答意图 | 队列与推进由 D4 保证 |
 | R 块 8/9/10/12 写入 | 管理写入、账号动作、附件资源写入 | 各自的业务参数与预览 |
-| R 块 5 会话生命周期 | 会话生命周期意图：新建、改名、删除 | 目录页的选取、命名来源与删除确认 |
-| R 块 4 分支生命周期 | 会话生命周期意图的 `branch.create`/`branch.end` | 切点轮次的选取、分支目录与分支内容 |
+| R 块 5 会话生命周期 | 会话生命周期意图：新建、改名、删除、分叉 | 目录页的选取、命名来源与删除确认 |
+| R 块 4 分支生命周期 | 会话生命周期意图的 `branch.create`/`branch.end`/`fork` | 切点轮次的选取、分支目录与分支内容 |
 | R 块 9 模态任务与实时传输 | 模态写入意图：任务提交/取消、实时开/关 | 任务状态、结果读取与实时事件流 |
 | R 块 13 会话内命令 | 命令执行/停止意图 | 命令输出折叠、本机终端 |
 | A 在途写状态机 | `state.go` 迁移表与启动校验 | — |
@@ -302,7 +303,7 @@ go vet ./...
 go test -race ./internal/write/
 ```
 
-本版结果：三条命令全部通过；`internal/write` 的 34 个顶层测试与 68 个子测试全绿，仓库其余已落地包也全部通过（2026-11-10，本机 macOS arm64）。
+本版结果：`internal/write` 的三条命令全部通过；35 个顶层测试与 72 个子测试全绿。仓库整体除 `cmd/dimagent` 外的包全部通过；`cmd/dimagent` 本轮末尾正在并行编辑、构建失败（其他领域代码），待其修复后再复跑仓库整体命令。
 
 ### 6.2 覆盖
 
@@ -320,9 +321,10 @@ go test -race ./internal/write/
 | 未知与需人工确认时保留待发内容 | `TestVerificationUnconfirmedReachesManualAfterLimit`、`TestCloseMarksUnsettledIntentAsManual` |
 | 重启后不补发（新实例模拟） | `TestRestartDoesNotResend` |
 | 十一类意图都能登记并只发一次 | `TestAllKindsAreSentOnce`、`TestSessionLifecycleIntentIsSentOnce`、`TestShellRunIntentIsSentOnce`、`TestModalityWriteIntentIsSentOnce` |
-| 会话生命周期的作用域：新建不要求会话，改名/删除/开分支/结束分支要求会话，op 必须合法 | `TestSessionLifecycleScope` |
+| 会话生命周期的作用域：新建不要求会话，改名/删除/开分支/结束分支/分叉要求会话，op 必须合法 | `TestSessionLifecycleScope` |
 | 分支结束的分支标识：`BranchID` 与参数 `branchId` 二选一，冲突拒绝 | `TestSessionLifecycleIntentIsSentOnce`、`TestSessionLifecycleScope` |
 | 分支生命周期 op 的未知核对与失败保留 | `TestSessionLifecycleBranchOpsUnknownAndFailure` |
+| 分叉 op 的只发一次、未知核对、失败保留 | `TestSessionLifecycleIntentIsSentOnce`、`TestSessionLifecycleForkUnknownAndFailure` |
 | 会话生命周期未知核对：新建允许读到服务端新会话标识 | `TestSessionLifecycleUnknownVerification`、`TestJudgeOwnership` |
 | 会话生命周期失败保留待发内容与草稿 | `TestSessionLifecycleFailurePreservesContentAndDraft` |
 | 会话命令执行/停止：只发一次、未知核对、失败保留 | `TestShellRunIntentIsSentOnce`、`TestShellRunUnknownVerification`、`TestShellRunFailurePreservesContentAndDraft` |
@@ -374,7 +376,7 @@ go test -race ./internal/write/
 
 ## 8. 下一步
 
-1. D1 冻结写方法适配：提交、停止、审批应答、长期允许、提问应答、管理写入、账号动作、附件资源写入、会话生命周期（`create`/`rename`/`delete`/`branch.create`/`branch.end`）、会话命令（`shell.run`/`shell.stop`）、模态任务与实时传输的方法名、参数与回执字段。
+1. D1 冻结写方法适配：提交、停止、审批应答、长期允许、提问应答、管理写入、账号动作、附件资源写入、会话生命周期（`create`/`rename`/`delete`/`branch.create`/`branch.end`/`fork`）、会话命令（`shell.run`/`shell.stop`）、模态任务与实时传输的方法名、参数与回执字段。
 2. D2/D1 提供核对实现：按输入标识查用户行、分支归属与运行状态；补一个真实服务端上的 `session.input_lookup` 证据。
 3. D4 接入长期允许与审批应答的两段式顺序，并用本包的 `Wait` 验证「写入失败不发应答」。
 4. D8 接入附件资源写入：用内容摘要派生幂等键，成功/失败/未发生/人工确认四种结果各自的引用释放规则。

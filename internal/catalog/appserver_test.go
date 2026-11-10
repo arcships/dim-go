@@ -174,6 +174,16 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 				return write.Reply{}, err
 			}
 			return write.Reply{}, nil
+		case opFork:
+			h.add("send:fork:" + req.SessionID)
+			raw, err := h.client.Call(ctx, "session.fork", map[string]any{
+				"sessionId": req.SessionID,
+				"at":        payload.At,
+			})
+			if err != nil {
+				return write.Reply{}, err
+			}
+			return write.Reply{Result: raw}, nil
 		}
 		return write.Reply{}, fmt.Errorf("未知目录意图 %q", payload.Op)
 	case write.KindSubmitInput:

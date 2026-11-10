@@ -1,10 +1,10 @@
-# D4 会话目录（读取与过滤分页、新建、改名与自动标题、删除、归档隐藏、导出、分支目录与创建）
+# D4 会话目录（读取与过滤分页、新建、改名与自动标题、删除、归档隐藏、导出、分支目录与创建、会话分叉）
 
 Status: 第一版实现完成（P1-2 候选结果包，待组织评审）
 Owner: D4 目录领域
 验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3，blocked 见 6.5
-依据: `docs/domains/R.md` 功能块 4、5、R3、R4、R5；`docs/domains/A.md` 的「目录页」「归档隐藏列表」「四条总规矩」；`docs/domains/D1-connection.md` 的控制连接与错误分类；`docs/domains/D2-projection.md` 的行与轮次视图；`docs/domains/D3-write.md` 的写登记意图接口
-范围: 目录读取与过滤分页、新建、改名与自动标题、删除判定、本地归档隐藏列表、导出，以及分支目录的读取、合并、状态收敛与从指定轮次结束处创建分支。不含界面、连接实现、协议 wire 定义、会话内容折叠、分支内提交与停止、审批语义、账号与管理面。
+依据: `docs/domains/R.md` 功能块 4、5、R3、R4、R5、附 E 第 4 项；`docs/domains/A.md` 的「目录页」「归档隐藏列表」「四条总规矩」；`docs/domains/D1-connection.md` 的控制连接与错误分类；`docs/domains/D2-projection.md` 的行与轮次视图；`docs/domains/D3-write.md` 的写登记意图接口
+范围: 目录读取与过滤分页、新建、改名与自动标题、删除判定、本地归档隐藏列表、导出，分支目录的读取、合并、状态收敛与从指定轮次结束处创建分支，以及从某个切点分叉出新会话。不含界面、连接实现、协议 wire 定义、会话内容折叠、分支内提交与停止、审批语义、账号与管理面。
 
 ---
 
@@ -18,6 +18,7 @@ Owner: D4 目录领域
 |---|---|---|
 | 功能块 5「会话目录与生命周期」 | `docs/domains/R.md` | 目录读取、新建、改名与自动标题、删除、归档、导出逐条对应 |
 | 功能块 4「分支会话」与 R3 | `docs/domains/R.md` | 分支目录读取与完整性标记、从轮结束处开分支、状态收敛逐条对应 |
+| 附 E 第 4 项「会话分叉」 | `docs/domains/R.md` | 从某个切点分叉出新会话；与分支（留在原会话内）区分 |
 | R4 归档语义 | `docs/domains/R.md` | 只维护本地隐藏列表，不写回服务端；跨客户端归档记为服务端缺口 |
 | R5 导出内容范围 | `docs/domains/R.md` | 按游标读完全部历史后生成文件，不写当前已加载的部分 |
 | 目录页、归档隐藏列表、四条总规矩 | `docs/domains/A.md` | 目录页只由目录读取与目录变更通知驱动；归档只由用户显式操作驱动；不做乐观更新 |
@@ -35,32 +36,35 @@ Owner: D4 目录领域
 | `internal/catalog/archive.go` | 本地归档隐藏列表：版本化格式、原子写、损坏重建为空 |
 | `internal/catalog/export.go` | 导出：按游标收集轮次、去重与冲突判定、格式版本、最后才写文件 |
 | `internal/catalog/branch.go` | 分支目录：读取、完整性标记、状态收敛与固定头、切点校验、创建与结束 |
-| `internal/catalog/{catalog,archive,mutate,export,branch}_test.go` | 注入读取方/发送方/历史来源/分支来源的领域行为测试 |
+| `internal/catalog/fork.go` | 会话分叉：切点选择、写意图、成功并目录、单条读回与待补齐 |
+| `internal/catalog/{catalog,archive,mutate,export,branch,fork}_test.go` | 注入读取方/发送方/历史来源/分支来源/单条读回的领域行为测试 |
 | `internal/catalog/appserver_test.go` | 假服务端 + D1 客户端的目录读取、新建后可提交、改名、删除闭环 |
 | `internal/catalog/branch_appserver_test.go` | 假服务端 + D1 客户端的分支创建与结束闭环 |
 | `internal/catalog/export_projection_test.go` | 用会话投影的按轮来源跑一次多轮导出（端到端，接 D2） |
 | `internal/catalog/daemon_evidence_test.go` | 真实 App Server 的目录生命周期证据（缺可执行文件时跳过） |
 | `internal/catalog/daemon_export_evidence_test.go` | 真实 App Server 两轮对话后导出的证据（缺可执行文件时跳过） |
+| `internal/catalog/fork_appserver_test.go` | 假服务端 + D1 客户端的会话分叉闭环 |
 | `internal/catalog/daemon_branch_evidence_test.go` | 真实 App Server 分支创建、结束与固定头的证据（缺可执行文件时跳过） |
+| `internal/catalog/daemon_fork_evidence_test.go` | 真实 App Server 会话分叉与单条读回的证据（缺可执行文件时跳过） |
 | `docs/domains/D4-catalog.md` | 本文件 |
 
 **验收**
 
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/catalog/`；本版全部通过（2026-11-11，macOS arm64）。
-- 本领域测试：54 个顶层测试（另含 4 个子测试）全部通过；覆盖见 §6.2。
+- 本领域测试：63 个顶层测试（另含 11 个子测试）全部通过；覆盖见 §6.2。
 - 证据档位：
-  - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖过滤参数透传、新建、提交到新建标识、改名、删除、分支创建与结束、能力缺失。
-  - 注入替身：`Reader`、`write.Sender`、`HistorySource`、`SubscriptionReleaser`、`BranchSource` 为测试替身，覆盖分页、标题合并、删除被拒与结果未定、导出失败路径、分支切点与状态收敛。
-  - 真实 App Server：alpha.21 上目录读取、新建、改名与标题通知、非法标题拒绝、删除已跑通；alpha.18 上用 mock 模型跑通两轮对话后的导出与分支创建/结束（6.3）。旧版本（alpha.7 / alpha.18）的缺能力路径仍按 blocked 记录（6.5）。
+  - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖过滤参数透传、新建、提交到新建标识、改名、删除、分支创建与结束、会话分叉、能力缺失。
+  - 注入替身：`Reader`、`write.Sender`、`HistorySource`、`SubscriptionReleaser`、`BranchSource`、`EntryReader` 为测试替身，覆盖分页、标题合并、删除被拒与结果未定、导出失败路径、分支切点与状态收敛、分叉读回与待补齐。
+  - 真实 App Server：alpha.21 上目录读取、新建、改名与标题通知、非法标题拒绝、会话分叉、删除已跑通；alpha.18 上用 mock 模型跑通两轮对话后的导出、分支创建/结束与分叉（6.3）。旧版本（alpha.7 / alpha.18）的缺能力路径仍按 blocked 记录（6.5）。
 
 **依赖**
 
 | 依赖 | 需要对方冻结/提供 |
 |---|---|
-| D1 连接 | 控制连接上的目录读取、新建、改名、删除（alpha.21 实测 `session.rename` 在控制连接可用）；把标题通知（`session.notice`）原样交给集成层 |
+| D1 连接 | 控制连接上的目录读取、新建、改名、删除、分叉（alpha.21 实测 `session.rename` / `session.fork` 在控制连接可用）；把标题通知（`session.notice`）原样交给集成层 |
 | D2 会话投影 | 按轮提供只读快照（轮次序号 + 该轮内容）与向前翻页游标，供导出的 `HistorySource` 实现；提供分支目录与带原因的切点查询（`Folder.CutPoint`：ready/not_ended/not_loaded/no_branch）；不要求本包折叠 |
-| D3 写登记 | `Register`/`Wait` 与 `KindSessionLifecycle`；支持 create/rename/delete 与 branch.create/branch.end；新建不要求 `SessionID`，其余要求；删除未知结果的核对由 `Inspector` 用目录读取实现 |
-| U1 原生界面 | 只读 `Snapshot`/`Entry`/`BranchDirectory`，用 `Hide`/`Unhide` 改归档，用 `Create`/`Rename`/`Delete`/`CreateBranch`/`EndBranch` 提交意图；不直接改本地集合 |
+| D3 写登记 | `Register`/`Wait` 与 `KindSessionLifecycle`；支持 create/rename/delete、branch.create/branch.end 与 fork；新建不要求 `SessionID`，其余要求；删除未知结果的核对由 `Inspector` 用目录读取实现 |
+| U1 原生界面 | 只读 `Snapshot`/`Entry`/`BranchDirectory`，用 `Hide`/`Unhide` 改归档，用 `Create`/`Rename`/`Delete`/`CreateBranch`/`EndBranch`/`Fork` 提交意图；不直接改本地集合 |
 
 **上下文需求**
 
@@ -68,7 +72,7 @@ Owner: D4 目录领域
 - 需要 D3 确认删除的核对读取如何表达“该会话已不在目录里”。本版把写登记的成功视为服务端确认，并在文档中写明集成责任。
 - 需要 D2 明确导出用的轮次快照形状（本版只约定 `Turn{Index, Data}` 为合法 JSON，不解释内容）。
 - 需要 D2 提供带原因的切点查询（`Folder.CutPoint`，已落地）。本包按 ready/not_ended/not_loaded/no_branch 分派，不拿轮起点或行序号凑切点。
-- 需要用户确认：导出文件默认位置与命名（本版只接受调用方给出的路径）；新建后未命名行在界面上的占位（U1 决定）；分支创建后是否立即切到新分支（界面行为，本版只给目录）。
+- 需要用户确认：导出文件默认位置与命名（本版只接受调用方给出的路径）；新建/分叉后未命名行在界面上的占位（U1 决定）；分支创建后是否立即切到新分支（界面行为，本版只给目录）；分叉后是否自动打开新会话（界面行为）。
 
 ## 2. 边界
 
@@ -88,6 +92,8 @@ Owner: D4 目录领域
 | 分支创建 | 从父分支某一轮结束处经写登记创建；成功后只并入新条目，不重建目录 |
 | 分支结束 | 经写登记结束非主线分支；成功先收敛为 ending，等目录给出 ended |
 | 结束分支的拦截 | 已结束分支拒绝再开分支；提交路径可经 `CheckBranchWritable` 拒绝已结束分支 |
+| 会话分叉 | 从某个切点（某条输入或某轮结束处）经写登记分叉出新会话；新会话并入目录，源会话不变 |
+| 分叉读回 | 回执只有标识时按标识读回一条目录条目补齐字段；读回失败保留待补齐标记 |
 
 **不做**
 
@@ -97,6 +103,8 @@ Owner: D4 目录领域
 | 连接、socket、NDJSON、方法名、参数与回执的 wire 定义 | D1 |
 | 历史折叠、轮次切分、行身份、分支内容与分支历史 | D2 |
 | 分支内的提交与停止 | D3（目录只给可写性判断） |
+| 分叉出的新会话内容与打开 | D2（内容折叠）、U1（打开） |
+| 分叉后自动切换/打开 | U1（本包只并目录） |
 | 写意图的发送、重发、核对与在途表 | D3 |
 | 审批、提问、权限档位 | D4 之外的交互裁决领域 |
 | 账号、模型选择、管理面设置 | D6、D5 |
@@ -116,17 +124,21 @@ internal/catalog/
 ├── archive.go        归档隐藏列表、版本化落盘、原子写、损坏重建
 ├── export.go         轮次收集、去重与冲突、格式版本、最后写文件
 ├── branch.go         分支目录、完整性、切点校验、创建与结束、状态收敛
+├── fork.go           会话分叉、切点选择、并目录、单条读回、待补齐
 ├── catalog_test.go   分页、过滤透传、重复页、标题合并、归档可见性
 ├── archive_test.go   跨重启、损坏、未知版本、原子写与并发
 ├── mutate_test.go    新建、改名冲突、删除顺序与拒绝、归档记录惰性
 ├── export_test.go    轮次计数、失败不产出、游标重复、冲突与上限
 ├── branch_test.go    分支目录、切点、创建/结束、状态与固定头
+├── fork_test.go      分叉成功/失败、切点缺失、未知结果、读回与待补齐
 ├── appserver_test.go 假服务端 + D1 客户端的目录闭环与能力缺失
 ├── branch_appserver_test.go 假服务端 + D1 客户端的分支创建与结束
+├── fork_appserver_test.go 假服务端 + D1 客户端的分叉
 ├── export_projection_test.go 投影按轮来源的多轮导出
 ├── daemon_evidence_test.go 真实 App Server 目录证据（按环境变量跳过）
 ├── daemon_export_evidence_test.go 真实 App Server 导出证据（按环境变量跳过）
-└── daemon_branch_evidence_test.go 真实 App Server 分支证据（按环境变量跳过）
+├── daemon_branch_evidence_test.go 真实 App Server 分支证据（按环境变量跳过）
+└── daemon_fork_evidence_test.go 真实 App Server 分叉证据（按环境变量跳过）
 ```
 
 对外接口：
@@ -139,6 +151,7 @@ catalog, err := catalog.New(catalog.Config{
     Releaser: releaser,  // 可选：删除前释放会话订阅
     History:  history,   // 可选：导出的按轮历史来源
     Branches: branches,  // 可选：D2 的分支目录与切点来源
+    Lookup:   lookup,    // 可选：按标识读回一条目录条目
 })
 
 // 目录读取
@@ -172,9 +185,14 @@ branch, err := catalog.CreateBranch(ctx, catalog.BranchCreateRequest{
 branch, err = catalog.EndBranch(ctx, catalog.BranchEndRequest{SessionID: sessionID, BranchID: branch.ID})
 branch, err = catalog.ApplyBranchUpdate(sessionID, catalog.Branch{ID: branch.ID, Status: catalog.BranchEnded, Head: 12})
 err = catalog.CheckBranchWritable(sessionID, branchID)     // 已结束分支拒绝再提交
+
+// 会话分叉（产生新会话，源会话不变）
+forked, err := catalog.Fork(ctx, catalog.ForkRequest{
+    SessionID: sessionID, At: 17, // 或 TurnIndex: 2
+})
 ```
 
-`Snapshot`/`Entry`/`BranchDirectory` 只含业务可观察字段：标识、标题与来源与修订号、工作目录、创建/更新时间、运行状态、是否可见、分支状态与头部、目录是否完整。不暴露游标、页边界、幂等键与写意图标识。
+`Snapshot`/`Entry`/`BranchDirectory` 只含业务可观察字段：标识、标题与来源与修订号、工作目录、创建/更新时间、运行状态、是否可见、是否待补齐、分支状态与头部、目录是否完整。不暴露游标、页边界、幂等键与写意图标识。
 
 ## 4. 设计
 
@@ -216,7 +234,7 @@ err = catalog.CheckBranchWritable(sessionID, branchID)     // 已结束分支拒
 2. 幂等键：调用方给了就用；没给就生成唯一键——**两次新建是两次独立意图**，不会被去重成同一个会话。
 3. 以 `KindSessionLifecycle` 登记写意图，参数为 `{op: "catalog.create", cwd}`；新建不需要目标会话，发送与重试都由写登记负责。
 4. 成功后从 `Reply.Result` 读 `{sessionId}`；缺失或为空即 `ErrMalformedResult`，不产生本地行。
-5. 本地只加入 `Entry{ID}`：标题、工作目录、时间、运行状态都等服务端目录页补齐。这样“新建后可提交到该标识”成立，同时不出现乐观更新。
+5. 本地只加入 `Entry{ID, Incomplete:true}`：标题、工作目录、时间、运行状态都等服务端目录页补齐。这样“新建后可提交到该标识”成立，同时不出现乐观更新；下一次目录刷新会清掉待补齐标记。
 6. 被拒、未发生或需人工确认：返回 `RejectedError`，目录不变。
 
 ### 4.4 改名
@@ -316,6 +334,32 @@ err = catalog.CheckBranchWritable(sessionID, branchID)     // 已结束分支拒
 - 结束成功先把本地状态收敛为 `ending`；之后目录读取或事实更新给出 `ended` 与固定头；已结束分支再次结束不发请求。
 - 已结束分支拒绝再开分支；提交路径可调用 `CheckBranchWritable` 咨询，已结束返回 `ErrBranchEnded`，目录还没读取时不拦截。
 
+### 4.9 会话分叉
+
+**与分支的区别**
+
+- 分支：留在原会话内，切点是父分支某一轮的结束序号，结果进入原会话的分支目录；源会话内容不变。
+- 分叉：复制出一个新会话；切点是“要继承的最后一条主线序号”（`session.fork` 的 `at`）；新会话作为独立目录行进入目录，源会话不变。
+
+**切点**
+
+- 显式 `At`：调用方从某条用户输入（会话投影里该行的序号）或已知边界给出。服务端要求该位置是静止点（本轮已结束、没有未消费输入与未结束后台任务），否则拒绝。
+- `TurnIndex`：用 D2 的 `CutPoint` 取该轮结束序号；四种原因与分支切点共用（ready / not_ended / not_loaded / no_branch），错误按分叉语义描述。
+- 两个都给或都不给，在登记写意图之前拒绝（`ErrInvalidRequest`）。
+- 切点不可用时不发请求，不猜。
+
+**写入**
+
+- `KindSessionLifecycle` + `op=fork`，要求 `SessionID`（源会话），参数 `{op, at}`；只发一次，失败与未结项都保留原目录并带回原因。
+- 未知结果：写登记核对后仍无法确认时进入需人工确认（`RejectedError`），不把未确认的新会话加进目录。
+- 写登记确认成功但回执没有新会话标识（例如核对命中）：返回 `ErrForkResultUnknown`，提示重读目录，不猜标识。
+
+**并目录与单条读回**
+
+- 回执 `{sessionId, sequence}`（标题字段可选）成功后只追加这一条，不重建整个目录，也不重读目录页。
+- 配置了 `Lookup` 时，按新会话标识读回一条目录条目：成功则用读回条目补齐标题、来源、工作目录并清掉 `Incomplete`；读回失败或未命中只保留标识行并标记 `Incomplete=true`，不阻塞分叉结果。
+- 下一次目录刷新会把待补齐行换成服务端事实（`Incomplete=false`）。
+
 ## 5. 与 A/R 的对应
 
 | 需求或架构条目 | 本领域实现 | 不在本领域 |
@@ -330,6 +374,8 @@ err = catalog.CheckBranchWritable(sessionID, branchID)     // 已结束分支拒
 | R 块 4 / R3 开分支切点 | 以轮结束为界；`TurnCut` 不在已加载范围即 `ErrCutNotLoaded` | 轮次结束边界的推导（D2） |
 | R 块 4 分支状态收敛 | `EndBranch` + 目录读取：open → ending → ended，已结束头部固定 | 分支内提交与停止（D3） |
 | R 块 4 已结束分支不再接收 | `CreateBranch` 拒绝已结束父分支；`CheckBranchWritable` 拒绝提交 | 服务端侧的执行 |
+| R 附 E 会话分叉 | `Fork`：显式 At 或按轮结束切点；新会话并入目录，源会话不变 | 新会话内容与打开（D2/U1） |
+| R 附 E 分叉未知与失败 | 未确认不加行；失败保留目录；回执缺失报 `ErrForkResultUnknown` | 写登记核对实现（D3） |
 | A 目录页 | 本地集合只由目录页推进；重取第一页恢复；标题按修订号合并 | — |
 | A 归档隐藏列表 | 只有用户显式 `Hide`/`Unhide` 才变；损坏重建为空 | — |
 | A 四条总规矩 | 只提交意图不写事实；删除成功才移除；不做乐观更新；目录状态只有一个驱动者 | — |
@@ -351,7 +397,7 @@ go test -race ./internal/catalog/
 - `go test ./...`：全部通过（含 `internal/catalog`）。
 - `go vet ./...`：无输出。
 - `go test -race ./internal/catalog/`：通过。
-- catalog 用例 54 个顶层测试（另含 4 个子测试）全绿；三个真实 daemon 用例在未设 `DIM_APP_SERVER_BIN` 时跳过。
+- catalog 用例 63 个顶层测试（另含 11 个子测试）全绿；四个真实 daemon 用例在未设 `DIM_APP_SERVER_BIN` 时跳过。
 
 ### 6.2 覆盖
 
@@ -404,6 +450,14 @@ go test -race ./internal/catalog/
 | 坏分支目录被拒绝且不写入 | `TestBranchDirectoryRejectsMalformed` |
 | 分支请求缺字段时在登记前拒绝 | `TestBranchRequestsRequireFields` |
 | 真实分支创建、结束与固定头 | `TestRealDaemonBranchLifecycle`（6.3） |
+| 分叉成功只并入新会话、单条读回补齐、已有条目不变 | `TestForkAddsNewSessionAndReadsBackOneRow`、`TestAppServerForkAddsSession` |
+| 分叉读回失败/未命中/未配置时保留标识行并标记待补齐 | `TestForkReadBackFailureKeepsIncompleteRow` |
+| 分叉失败保留原目录并给原因 | `TestForkFailureKeepsCatalog` |
+| 分叉切点缺失或同时给两个时在登记前拒绝 | `TestForkRejectsMissingOrAmbiguousCut` |
+| 分叉按轮取切点沿用四种原因 | `TestForkTurnUsesCutReasons` |
+| 分叉未知结果只发一次且不加未确认行 | `TestForkUnknownResultKeepsCatalog` |
+| 分叉成功但无回执时报需重读目录 | `TestForkSuccessWithoutResultKeepsCatalog` |
+| 真实分叉并入目录与读回 | `TestRealDaemonFork`（6.3） |
 | 多轮导出接 D2 按轮来源（端到端、两页） | `TestExportThroughProjectionTurnHistory` |
 | 真实两轮会话导出（轮次、页数、内容） | `TestRealDaemonExportTurns`（6.3） |
 | 服务端缺目录能力时报错而不是空目录 | `TestAppServerMissingCatalogCapability`、`TestRealDaemonCatalogLifecycle` |
@@ -443,6 +497,27 @@ PASS
 2. **标题通知**：`session.rename` 触发 `session.notice`（`source=SessionStore`、`kind=title`、`data={title,titleSource,titleRevision}`）；通知与回执同修订号同内容，合并后本地状态一致，更低修订号的通知不会覆盖。
 3. **非法标题**：带换行的标题被服务端以 `-32602 invalid_params: Invalid title or control character` 拒绝；目录行保持改名后的状态与修订号，写登记把拒绝原样带回。
 4. **回收**：`stopped=true`。
+
+**会话分叉（alpha.21）**
+
+```bash
+DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_ARGS=app-server \
+DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \
+  go test -run TestRealDaemonFork -v -count=1 ./internal/catalog/
+```
+
+观察到的输出（离线 provider 回话较慢，这一轮约 107 秒；alpha.18 的 mock 模型跑同一条路径约 0.35 秒）：
+
+```text
+服务端 0.1.0-alpha.21（protocol 3，profile configured，owned=true）
+投影切点：第 1 轮结束于序号 34（turn c35546d1-82e4-4b80-a2cf-4926f09cfc36）
+分叉会话：id=635b671f-03ae-4fd9-a36c-144570dae800 title="" titleSource="" titleRevision=0 workspace="/private/tmp/d4fork-3165829832/workspace" incomplete=false
+回收自启服务端: stopped=true
+PASS
+```
+
+这条证据验证了：切点来自 `projection.Folder.CutPoint`（第 1 轮结束于序号 34）；`session.fork` 回执只有 `{sessionId, sequence}`，目录按标识做一次 `session.summaries` 单条读回，补齐工作目录并清掉 `Incomplete`；源会话条目不变；重读目录同时看到源会话与分叉会话；最后两个会话都能删除。alpha.7 因缺 `session.catalog` 跳过（6.5）。
 
 **旧版本兼容路径（alpha.18）**
 
@@ -539,8 +614,9 @@ SKIP
 | D2 按轮历史 | `projection.HistoryRequest` / `HistoryPage` / `HistoryTurn` | 本包用类型别名对齐（不写转换函数）；`projection.NewTurnHistory(sessionID, subscription)` 直接满足 `HistorySource` |
 | D2 分页 | `session.history` 的 `latestTurn` / `before` 游标 | 由 `TurnHistory` 装载与切页；本包只按页推进、去重与统计，不生成轮次 |
 | D2 分支目录 | `Folder.Branches()` 的推导结果 + 服务端目录是否存在 | 集成层实现 `BranchSource.ReadBranches`：目录项与 `complete` 标记；本包不另建推导 |
-| D2 切点查询 | `projection.CutPoint` / `CutStatus`（本包用类型别名对齐） | 集成层把 `Folder.CutPoint(branchID, turnIndex)` 一行转发为 `BranchSource.TurnCut`，绑定会话后不匹配返回 `no_branch`；本包按 ready/not_ended/not_loaded/no_branch 分派 |
-| D3 写登记 | `Register`、`Wait`、`IntentView`、`Reply.Result`、`KindSessionLifecycle` | 目录与分支变更都登记为 `KindSessionLifecycle`，参数带 `op`（catalog.create/rename/delete、branch.create/branch.end）；新建不需要 `SessionID`，其余由写登记按 op 要求；结果形状为 `{sessionId}`、`{title,titleSource,revision}` 与 `{branch:{branchId,...}}` |
+| D2 切点查询 | `projection.CutPoint` / `CutStatus`（本包用类型别名对齐） | 集成层把 `Folder.CutPoint(branchID, turnIndex)` 一行转发为 `BranchSource.TurnCut`，绑定会话后不匹配返回 `no_branch`；本包按 ready/not_ended/not_loaded/no_branch 分派；分叉按轮取切点复用同一查询 |
+| D1 单条读回 | `session.summaries` 的条目（alpha.21 实测） | 集成层实现 `EntryReader.ReadEntry`：按标识找到一条并转成 `Entry`；用于新建/分叉后补齐标题、来源与工作目录 |
+| D3 写登记 | `Register`、`Wait`、`IntentView`、`Reply.Result`、`KindSessionLifecycle` | 目录、分支与分叉变更都登记为 `KindSessionLifecycle`，参数带 `op`（catalog.create/rename/delete、branch.create/branch.end、fork）；新建不需要 `SessionID`，其余由写登记按 op 要求；结果形状为 `{sessionId}`、`{title,titleSource,revision}`、`{branch:{branchId,...}}` 与 `{sessionId,sequence}` |
 | D3 核对 | `Inspector.LookupInput` | 删除结果未知时，集成层用目录读取确认该标识已不存在；写登记返回成功即视为服务端确认 |
 
 本包不导入 D1 的业务包；为导出只导入 D2 的公开类型（别名对齐，D2 不反向导入本包），并导入 D3 的写登记。集成层负责拼装 `Reader`、`write.Sender`、`SubscriptionReleaser`、`BranchSource`，把 D1 的会话订阅交给 `projection.NewTurnHistory`。
@@ -550,6 +626,7 @@ SKIP
 | 项 | 状态 | 缺什么 |
 |---|---|---|
 | 旧版本上的改名（alpha.7 / alpha.18） | blocked | 这两个版本没有 `session.rename`，按能力缺失处理；alpha.21 的真实改名与标题通知已跑通（6.3） |
+| 分叉（alpha.7） | blocked | 该版本没有 `session.catalog`，目录证据不可用；alpha.18（mock）与 alpha.21 的分叉已跑通（6.3） |
 | 真实服务端自动标题通知 | blocked | 需要真实模型跑出自动标题并推送标题通知；当前只有 `--mock-model` |
 | 真实服务端目录（alpha.7） | blocked | 该版本没有 `session.catalog`，证据记为能力缺失 |
 | 真实导出（alpha.7） | blocked | 该版本没有 `session.history.latestTurn`；alpha.18 的两轮导出已跑通（6.3） |
@@ -577,13 +654,17 @@ SKIP
 16. **切点只覆盖已结束轮**：D2 的 `CutPoint` 依据已加载的 `turn/end` 事实；未结束轮返回 `not_ended`，本包报 `ErrCutNotEnded`，不会拿轮起点或行序号凑切点。
 17. **分支内容与提交不在本领域**：分支历史、行身份与分支内提交/停止归 D2/D3；本包只给目录、创建/结束与可写性判断，`CheckBranchWritable` 需要提交路径主动调用。
 18. **结束状态分两步收敛**：`EndBranch` 成功只到 `ending`，`ended` 与固定头要等目录读取或事实更新；结束期间的服务端拒绝仍会保留原目录。
+19. **分叉的标题依赖读回或刷新**：alpha 的 `session.fork` 回执只有 `{sessionId, sequence}`；本地先落标识行并标记 `Incomplete`，由单条读回或下一次目录刷新补齐标题与来源。
+20. **分叉未知结果拿不到新标识**：写登记若只能确认“发生过”而没有回执，本包无法知道新会话标识，返回 `ErrForkResultUnknown` 让调用方重读目录，不猜。
+21. **分叉切点由服务端校验静止点**：显式 `At` 指向的位置若还有未结束轮次、未消费输入或后台任务，服务端会拒绝；本包只负责把拒绝原样带回。
 
 ## 8. 下一步
 
-1. D1/D3 冻结目录读取适配器与连接选择：目录读取、新建、删除走控制连接；改名按服务端方法表选择控制连接或会话流。
+1. D1/D3 冻结目录读取适配器与连接选择：目录读取、新建、删除、分叉走控制连接；改名按服务端方法表选择连接。
 2. D3 提供删除的核对实现：结果未知时用目录读取确认“该标识已不存在”，把 `Inspector` 接到真实服务端上跑一次断线删除。
-3. 导出已接 D2 的 `TurnHistory`；下一步在超长真实会话上量一次首次全量装载的时延与内存，评估是否需要分片来源。
-4. 切点已接 D2 的 `CutPoint`；下一步用支持 `session.rename` 与标题通知的服务端版本补改名与自动标题的真实证据。
-5. 与 U1 约定新建未命名行的占位、归档入口与恢复方式；约定冲突提示的文案与“重读”按钮。
-6. 复核 `Refresh` 的恢复口径：是否改成按已加载页数重读，避免过滤变化之外的场景丢页。
-7. 评估归档记录的惰性清理（按整个目录读取结果回收不存在的标识），不阻塞删除、也不增加额外写盘。
+3. 导出已接 D2 的 `TurnHistory`；在超长真实会话上量一次首次全量装载的时延与内存，评估是否需要分片来源。
+4. 分叉已接 `session.fork` 与单条读回；与 U1 约定新会话的打开方式，并在真实长会话上验证分叉后的目录与历史一致。
+5. 切点已接 D2 的 `CutPoint`；用支持自动标题的服务端与真实模型补自动标题通知的证据（手动标题已由改名触发验证）。
+6. 与 U1 约定新建/分叉未命名行的占位、归档入口与恢复方式；约定冲突提示的文案与“重读”按钮。
+7. 复核 `Refresh` 的恢复口径：是否改成按已加载页数重读，避免过滤变化之外的场景丢页。
+8. 评估归档记录的惰性清理（按整个目录读取结果回收不存在的标识），不阻塞删除、也不增加额外写盘。

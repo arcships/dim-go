@@ -312,9 +312,13 @@ func (r *settingsModalityReader) ReadModalityCapabilities(ctx context.Context) (
 			Operations: make([]settings.ModalityOperation, 0, len(category.Operations)),
 		}
 		for _, operation := range category.Operations {
+			// 真实回执没有单独的能力标识：由类别与操作名派生一个稳定标识
+			// （只用于本地视图，不写回服务端）。不用 key：真实回执里同一 key
+			// 会出现在多个操作上，不能当主键。
+			capabilityID := category.Category + "." + operation.Operation
 			item := settings.ModalityOperation{
-				CapabilityID: operation.CapabilityID,
-				Category:     operation.Category,
+				CapabilityID: capabilityID,
+				Category:     category.Category,
 				Operation:    operation.Operation,
 				Key:          operation.Key,
 				Available:    operation.Available,

@@ -559,6 +559,7 @@ func TestEveryCapabilityReportsMissingWhenReaderIsAbsent(t *testing.T) {
 		{"plugin.list", func() error { _, err := service.ListPlugins(ctx); return err }},
 		{"skills.catalog", func() error { _, err := service.ListSkills(ctx); return err }},
 		{"hooks.catalog", func() error { _, err := service.ListHooks(ctx); return err }},
+		{"hooks.catalog", func() error { _, err := service.ReadProjectHooks(ctx, "/work"); return err }},
 		{"mcp.catalog", func() error { _, err := service.ListToolServers(ctx); return err }},
 		{"mcp.test", func() error { _, err := service.ProbeToolServer(ctx, "srv"); return err }},
 		{"mcp.import.preview", func() error {
@@ -744,5 +745,280 @@ func TestDecodeRealMethodNamesNormalizes(t *testing.T) {
 				testCase.check(t, managed.Payload)
 			}
 		})
+	}
+}
+
+func TestHookDocumentMatchesAlpha21Shape(t *testing.T) {
+	document, err := HookDocument(Hook{
+		Event: "SessionStart", Command: "printf d11b", Source: SourceUser, Type: "command",
+	})
+	if err != nil {
+		t.Fatalf("生成钩子文档: %v", err)
+	}
+	var parsed struct {
+		Hooks map[string][]struct {
+			Matcher any `json:"matcher"`
+			Hooks   []struct {
+				Type    string `json:"type"`
+				Command string `json:"command"`
+			} `json:"hooks"`
+		} `json:"hooks"`
+	}
+	if err := json.Unmarshal(document, &parsed); err != nil {
+		t.Fatalf("解析钩子文档: %v", err)
+	}
+	entries := parsed.Hooks["SessionStart"]
+	if len(entries) != 1 || entries[0].Matcher != nil || len(entries[0].Hooks) != 1 ||
+		entries[0].Hooks[0].Type != "command" || entries[0].Hooks[0].Command != "printf d11b" {
+		t.Fatalf("钩子文档形状不符: %s", document)
+	}
+}
+
+func TestWriteHookWithRevisionCarriesVersionAndDocument(t *testing.T) {
+	writer := newFakeWriter()
+	service, err := New(Config{Writer: writer})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+
+	view, err := service.WriteHookWithRevision(context.Background(), Hook{
+		Event: "SessionStart", Command: "printf d11b", Source: SourceUser, Type: "command",
+	}, "native:user/hooks:1")
+	if err != nil || view.Status != write.StatusSucceeded {
+		t.Fatalf("带版本写钩子: %v %+v", err, view)
+	}
+	intents := writer.intentList()
+	if len(intents) != 1 {
+		t.Fatalf("写意图条数不符: %d", len(intents))
+	}
+	var payload HookWritePayload
+	managed, err := DecodeManagementWrite(intents[0].Params)
+	if err != nil {
+		t.Fatalf("解析管理写入: %v", err)
+	}
+	if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+		t.Fatalf("解析钩子载荷: %v", err)
+	}
+	if payload.ExpectedRevision != "native:user/hooks:1" || len(payload.Document) == 0 {
+		t.Fatalf("钩子载荷缺少版本或文档: %+v", payload)
+	}
+}
+
+func TestToolServerConfigurationOmitsIncompatibleFields(t *testing.T) {
+	stdio, err := ToolServerConfiguration(ToolServerSpec{
+		Name: "cat", Transport: ToolTransportStdio, Command: "cat",
+	})
+	if err != nil {
+		t.Fatalf("生成 stdio 配置: %v", err)
+	}
+	var stdioDoc map[string]any
+	if err := json.Unmarshal(stdio, &stdioDoc); err != nil {
+		t.Fatalf("解析 stdio 配置: %v", err)
+	}
+	if stdioDoc["command"] != "cat" {
+		t.Fatalf("stdio 配置缺少 command: %s", stdio)
+	}
+	if _, exists := stdioDoc["url"]; exists {
+		t.Fatalf("stdio 配置不应带 url: %s", stdio)
+	}
+
+	httpConfig, err := ToolServerConfiguration(ToolServerSpec{
+		Name: "remote", Transport: ToolTransportHTTP, URL: "https://example.com",
+	})
+	if err != nil {
+		t.Fatalf("生成 http 配置: %v", err)
+	}
+	var httpDoc map[string]any
+	if err := json.Unmarshal(httpConfig, &httpDoc); err != nil {
+		t.Fatalf("解析 http 配置: %v", err)
+	}
+	if httpDoc["url"] != "https://example.com" {
+		t.Fatalf("http 配置缺少 url: %s", httpConfig)
+	}
+	if _, exists := httpDoc["command"]; exists {
+		t.Fatalf("http 配置不应带 command: %s", httpConfig)
+	}
+}
+
+type stubFeatures map[string]bool
+
+func (f stubFeatures) HasFeature(name string) bool { return f[name] }
+
+type projectHookReaderStub struct {
+	catalog ProjectHookCatalog
+}
+
+func (r projectHookReaderStub) ReadProjectHooks(context.Context, string) (ProjectHookCatalog, error) {
+	return r.catalog, nil
+}
+
+type skillCatalogReaderStub struct {
+	catalog SkillCatalog
+}
+
+func (r skillCatalogReaderStub) ReadSkills(ctx context.Context) ([]Skill, error) {
+	return r.catalog.Skills, nil
+}
+
+func (r skillCatalogReaderStub) ReadSkillCatalog(context.Context) (SkillCatalog, error) {
+	return r.catalog, nil
+}
+
+func TestNewManagementWritesCarryPayloads(t *testing.T) {
+	writer := newFakeWriter()
+	service, err := New(Config{Writer: writer})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+	ctx := context.Background()
+
+	if _, err := service.SetProjectHooksEnabled(ctx, "/work", true, "rev-1"); err != nil {
+		t.Fatalf("项目钩子启停: %v", err)
+	}
+	if _, err := service.RefreshSkills(ctx); err != nil {
+		t.Fatalf("技能刷新: %v", err)
+	}
+	if _, err := service.StartMCPAuth(ctx, MCPTarget{ID: "srv"}, "secret"); err != nil {
+		t.Fatalf("MCP 认证开始: %v", err)
+	}
+	if _, err := service.CompleteMCPAuth(ctx, "attempt-1", "http://localhost/cb"); err != nil {
+		t.Fatalf("MCP 认证完成: %v", err)
+	}
+	if _, err := service.CancelMCPAuth(ctx, "attempt-1"); err != nil {
+		t.Fatalf("MCP 认证取消: %v", err)
+	}
+	if _, err := service.LogoutMCPAuth(ctx, MCPTarget{ID: "srv"}); err != nil {
+		t.Fatalf("MCP 登出: %v", err)
+	}
+
+	intents := writer.intentList()
+	wantOps := []WriteOp{
+		OpHookSetEnabled, OpSkillsRefresh,
+		OpMCPAuthStart, OpMCPAuthComplete, OpMCPAuthCancel, OpMCPAuthLogout,
+	}
+	if len(intents) != len(wantOps) {
+		t.Fatalf("写意图条数不符: %d", len(intents))
+	}
+	for index, intent := range intents {
+		managed, err := DecodeManagementWrite(intent.Params)
+		if err != nil {
+			t.Fatalf("解析第 %d 条管理写入: %v", index, err)
+		}
+		if managed.Op != wantOps[index] {
+			t.Fatalf("第 %d 条操作不符: got %q want %q", index, managed.Op, wantOps[index])
+		}
+	}
+	var project HooksProjectEnabledPayload
+	managed, _ := DecodeManagementWrite(intents[0].Params)
+	if err := json.Unmarshal(managed.Payload, &project); err != nil {
+		t.Fatalf("解析项目钩子载荷: %v", err)
+	}
+	if project.Cwd != "/work" || !project.Enabled || project.ExpectedRevision != "rev-1" {
+		t.Fatalf("项目钩子载荷不符: %+v", project)
+	}
+	var complete MCPAuthCompletePayload
+	managed, _ = DecodeManagementWrite(intents[3].Params)
+	if err := json.Unmarshal(managed.Payload, &complete); err != nil {
+		t.Fatalf("解析认证完成载荷: %v", err)
+	}
+	if complete.AttemptID != "attempt-1" || complete.CallbackURL != "http://localhost/cb" {
+		t.Fatalf("认证完成载荷不符: %+v", complete)
+	}
+}
+
+func TestNewCapabilitiesGateOnHello(t *testing.T) {
+	writer := newFakeWriter()
+	service, err := New(Config{
+		Writer:   writer,
+		Features: stubFeatures{"hooks.set_enabled": true},
+	})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+	ctx := context.Background()
+
+	checks := []struct {
+		name string
+		call func() error
+	}{
+		{"skills.refresh", func() error { _, err := service.RefreshSkills(ctx); return err }},
+		{"skills.reload_catalog", func() error { _, err := service.ReloadSkillCatalog(ctx); return err }},
+		{"mcp.auth.start", func() error {
+			_, err := service.StartMCPAuth(ctx, MCPTarget{ID: "srv"}, "")
+			return err
+		}},
+		{"mcp.auth.complete", func() error {
+			_, err := service.CompleteMCPAuth(ctx, "attempt", "http://localhost/cb")
+			return err
+		}},
+		{"mcp.auth.cancel", func() error { _, err := service.CancelMCPAuth(ctx, "attempt"); return err }},
+		{"mcp.auth.logout", func() error {
+			_, err := service.LogoutMCPAuth(ctx, MCPTarget{ID: "srv"})
+			return err
+		}},
+	}
+	for _, check := range checks {
+		err := check.call()
+		if !errors.Is(err, ErrCapabilityMissing) {
+			t.Fatalf("%s 没有按 hello 门禁返回能力缺失: %v", check.name, err)
+		}
+		var capability *CapabilityError
+		if !errors.As(err, &capability) || capability.Feature != check.name {
+			t.Fatalf("%s 的能力错误没有带能力名: %v", check.name, err)
+		}
+	}
+	if intents := writer.intentList(); len(intents) != 0 {
+		t.Fatalf("hello 缺能力时仍登记了写意图: %+v", intents)
+	}
+
+	if _, err := service.SetProjectHooksEnabled(ctx, "/work", true, "rev"); err != nil {
+		t.Fatalf("已声明能力被误挡: %v", err)
+	}
+	if intents := writer.intentList(); len(intents) != 1 {
+		t.Fatalf("已声明能力没有登记写意图: %d", len(intents))
+	}
+}
+
+func TestSkillCatalogVersionAndProjectHooksRead(t *testing.T) {
+	service, err := New(Config{
+		Skills: skillCatalogReaderStub{catalog: SkillCatalog{
+			Version: 3,
+			Skills:  []Skill{{ID: "s1"}},
+			Issues:  []SkillIssue{{Path: "/p", Message: "m"}},
+		}},
+		ProjectHooks: projectHookReaderStub{catalog: ProjectHookCatalog{
+			Hooks:            []Hook{{Event: "SessionStart", Source: SourceUser}},
+			Sources:          []HookSourceState{{Source: SourceProject, Enabled: true, State: "ok"}},
+			ProjectsRevision: "projects-2",
+		}},
+	})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+
+	if _, err := service.ListSkills(context.Background()); err != nil {
+		t.Fatalf("读取技能目录: %v", err)
+	}
+	if version := service.SkillCatalogVersion(); version != 3 {
+		t.Fatalf("技能目录版本不符: %d", version)
+	}
+	if issues := service.SkillIssues(); len(issues) != 1 {
+		t.Fatalf("技能问题清单不符: %+v", issues)
+	}
+
+	project, err := service.ReadProjectHooks(context.Background(), "/work")
+	if err != nil {
+		t.Fatalf("读取项目钩子: %v", err)
+	}
+	if project.ProjectsRevision != "projects-2" || len(project.Sources) != 1 ||
+		!project.Sources[0].Enabled || project.Sources[0].Source != SourceProject {
+		t.Fatalf("项目钩子读数不符: %+v", project)
+	}
+	if project.ReadAt.IsZero() {
+		t.Fatal("项目钩子读数缺少读取时间")
 	}
 }

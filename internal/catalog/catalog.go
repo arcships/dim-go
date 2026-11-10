@@ -65,6 +65,9 @@ type Entry struct {
 	UpdatedAt time.Time
 	// Running 是服务端给出的运行状态。
 	Running bool
+	// Incomplete 表示这一条只有会话标识（可能还有回执里的标题），其余字段等
+	// 目录读回或下一次刷新补齐；补齐后为 false。
+	Incomplete bool
 }
 
 // Query 是一次目录读取的业务口径。所有过滤参数原样交给读取方，本包不在本地
@@ -88,6 +91,12 @@ type Page struct {
 // 不在本地过滤或重排。它只读，不写。
 type Reader interface {
 	ReadCatalog(ctx context.Context, query Query, cursor string) (Page, error)
+}
+
+// EntryReader 按会话标识读回一条目录条目。只读这一条，不重建整表；找不到时
+// 返回 ok=false。用于新建/分叉成功后补齐标题与来源。
+type EntryReader interface {
+	ReadEntry(ctx context.Context, sessionID string) (Entry, bool, error)
 }
 
 // SubscriptionReleaser 释放一个会话的全部订阅持有者。删除必须先释放订阅，
@@ -130,6 +139,8 @@ type Config struct {
 	History HistorySource
 	// Branches 提供分支目录与轮次切点；nil 表示不提供分支能力。
 	Branches BranchSource
+	// Lookup 按会话标识读回一条目录条目；nil 表示不做单条读回。
+	Lookup EntryReader
 	// Now 与 NewID 可在测试中替换；nil 时使用系统实现。
 	Now   func() time.Time
 	NewID func() (string, error)
@@ -401,6 +412,18 @@ func (c *Catalog) hidden(sessionID string) bool {
 		return false
 	}
 	return c.cfg.Archive.Hidden(sessionID)
+}
+
+// addEntry 把一条本地新行并入目录：只追加这一条，已有条目以目录事实为准。
+func (c *Catalog) addEntry(entry Entry) Entry {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if idx, ok := c.index[entry.ID]; ok {
+		return c.entries[idx]
+	}
+	c.index[entry.ID] = len(c.entries)
+	c.entries = append(c.entries, entry)
+	return entry
 }
 
 func (c *Catalog) entryLocked(sessionID string) (Entry, bool) {
