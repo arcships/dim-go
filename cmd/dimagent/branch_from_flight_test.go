@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -27,12 +28,12 @@ func (f *gatedBranchCreateSession) BranchCreate(ctx context.Context, parent stri
 }
 
 func TestAppBranchFromSingleFlightPreservesDifferentIntents(t *testing.T) {
-	for _, outcome := range []error{nil, errors.New("refused")} {
+	for _, outcome := range []error{nil, errors.New("refused"), &appserver.UnknownResultError{Method: appserver.MutationSessionBranchCreate}} {
 		t.Run(map[bool]string{true: "failure", false: "success"}[outcome != nil], func(t *testing.T) {
 			f := &gatedBranchCreateSession{fakeSession: &fakeSession{}, started: make(chan string, 8), release: make(chan error, 8)}
 			a := &app{state: &dimui.State{Selected: "s1", SelectedBranch: "main", ActionError: "existing"}, bridge: &sessionBridge{controller: f, summary: appserver.SessionSummary{SessionID: "s1"}}}
 			updates := make(chan struct{}, 8)
-			a.updateHook = func(func(*dimui.State)) { updates <- struct{}{} }
+			a.updateHook = func(fn func(*dimui.State)) { fn(a.state); updates <- struct{}{} }
 			a.branchFrom("s1", "main", 4, "question")
 			select {
 			case <-f.started:
@@ -50,20 +51,32 @@ func TestAppBranchFromSingleFlightPreservesDifferentIntents(t *testing.T) {
 			case <-time.After(30 * time.Millisecond):
 			}
 			_, after := a.displayBranch()
-			if before != after || len(updates) != 0 || a.state.ActionError != "existing" {
-				t.Fatal("suppressed create changed UI state or generation")
+			if before != after || len(updates) != 1 || a.state.ActionError != "existing" || a.state.ActionStatus != "Branch creation is already in progress; the duplicate request was not sent." {
+				t.Fatal("suppressed create changed generation/error or omitted visible pending status")
 			}
+			<-updates
 			// A new prompt is explicitly different intent, not a duplicate.
-			a.branchFrom("s1", "main", 4, "different question")
+			a.branchFrom("s1", "main", 4, " question ")
 			select {
-			case <-f.started:
+			case prompt := <-f.started:
+				if prompt != " question " {
+					t.Fatal("exact prompt changed")
+				}
 			case <-time.After(time.Second):
 				t.Fatal("different intent suppressed")
 			}
-			// Both results are now stale; neither can replace the new selection.
+			// The same prompt at a different cut is independently meaningful.
+			a.branchFrom("s1", "main", 5, "question")
+			select {
+			case <-f.started:
+			case <-time.After(time.Second):
+				t.Fatal("different cut suppressed")
+			}
+			// All results are now stale; none can replace the new selection.
 			a.mu.Lock()
 			a.selectGen++
 			a.mu.Unlock()
+			f.release <- outcome
 			f.release <- outcome
 			f.release <- outcome
 			// Completion is observed via the guard only after the implementation.
@@ -83,6 +96,17 @@ func TestAppBranchFromSingleFlightPreservesDifferentIntents(t *testing.T) {
 			f.release <- outcome
 			waitBranchCreates(t, a)
 		})
+	}
+}
+
+func TestBranchCreateGuardDoesNotRetainPrompt(t *testing.T) {
+	typ := reflect.TypeOf(branchCreateFlight{})
+	if _, ok := typ.FieldByName("prompt"); ok {
+		t.Fatal("guard retains full prompt")
+	}
+	field, ok := typ.FieldByName("digest")
+	if !ok || field.Type != reflect.TypeOf([32]byte{}) {
+		t.Fatal("guard must use complete SHA256 digest")
 	}
 }
 

@@ -1901,7 +1901,7 @@ type branchCreateFlight struct {
 	sessionID      string
 	parentBranchID string
 	at             int64
-	prompt         string
+	digest         [sha256.Size]byte
 }
 
 // branchFrom creates a side branch from the cut point a user row resolved,
@@ -1934,10 +1934,16 @@ func (a *app) branchFrom(sessionID, branchID string, at int64, prompt string) {
 		a.notice("branch.error", "Branch from this message: the prompt is empty")
 		return
 	}
-	flight := branchCreateFlight{sessionID: sessionID, parentBranchID: branchID, at: at, prompt: prompt}
+	flight := branchCreateFlight{sessionID: sessionID, parentBranchID: branchID, at: at, digest: sha256.Sum256([]byte(prompt))}
 	a.branchCreateMu.Lock()
 	if _, pending := a.branchCreateInFlight[flight]; pending {
 		a.branchCreateMu.Unlock()
+		gen := a.currentSelection()
+		a.update(func(state *dimui.State) {
+			if a.selectionCurrent(gen) {
+				state.ActionStatus = "Branch creation is already in progress; the duplicate request was not sent."
+			}
+		})
 		return
 	}
 	if a.branchCreateInFlight == nil {
@@ -1957,7 +1963,7 @@ func (a *app) branchFrom(sessionID, branchID string, at int64, prompt string) {
 		defer cancel()
 		created, err := a.bridge.BranchFromFor(ctx, sessionID, branchID, at, prompt)
 		if err != nil {
-			log.Printf("dimagent: branch from message at %d: %v", at, err)
+			log.Printf("dimagent: branch creation failed for session %q at %d", sessionID, at)
 			if a.selectionCurrent(gen) {
 				message := fmt.Sprintf("Branch from this message: %v", err)
 				if errors.Is(err, appserver.ErrUnknownResult) {
