@@ -1,3 +1,0 @@
-capture	docs/evidence/window-header-model.png
-note	real window: model chip in the header trailing group, opens the same model list as the composer chip
-driver	scripts/ax/axdo.swift + screencapture -l

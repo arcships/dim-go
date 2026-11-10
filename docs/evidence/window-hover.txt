@@ -1,3 +1,0 @@
-capture	docs/evidence/window-hover.png
-note	real window hover over a sidebar row (move via CGEvent); row takes the hover face
-driver	scripts/ax/axdo.swift + screencapture -l

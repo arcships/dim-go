@@ -1,3 +1,0 @@
-capture	docs/evidence/window-closed.png
-note	real window: Delete session confirmed -> Session closed: Deleted banner, row removed, composer disabled
-driver	scripts/ax/axdo.swift + screencapture -l

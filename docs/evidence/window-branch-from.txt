@@ -1,3 +1,0 @@
-capture	docs/evidence/window-branch-from.png
-note	real window: Branch from here -> prompt dialog -> session.branch_create -> branch.created -> side branch selected and rendered
-driver	scripts/ax/axdo.swift + screencapture -l

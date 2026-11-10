@@ -1,3 +1,0 @@
-capture	docs/evidence/window-debug-info.png
-note	real window: Copy debug info writes public model runtime facts and shows a muted status
-driver	scripts/ax/axdo.swift + pbpaste + screencapture -l

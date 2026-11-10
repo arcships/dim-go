@@ -1,3 +1,0 @@
-capture	docs/evidence/window-loading.png
-note	real window: select a session while the daemon is SIGSTOPped; shell shows spinner + Loading conversation... (empty history until resume)
-driver	scripts/ax/axdo.swift + SIGSTOP/SIGCONT + screencapture -l

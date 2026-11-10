@@ -1,3 +1,0 @@
-capture	docs/evidence/window-stop.png
-note	real provider next/Qwen3.6-27B via --model-config: Stop while the run was pending -> stop.accepted, Stop button gone, no further output
-limit	UI-level evidence; no protocol/daemon trace capture

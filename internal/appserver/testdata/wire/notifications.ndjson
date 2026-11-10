@@ -1,6 +1,0 @@
-{"jsonrpc":"2.0","method":"session.mcp.state","params":{"sessionId":"session","servers":[{"id":"docs","state":"auth_required"}]}}
-{"jsonrpc":"2.0","method":"session.plugin.notice","params":{"sessionId":"session","branchId":"child","source":"fixture","future":{"control":"\u001b[2J\n"}}}
-{"jsonrpc":"2.0","method":"session.model.progress","params":{"sessionId":"session","branchId":"main","requestId":"request","textOffset":0,"text":"Hello","newField":true}}
-{"jsonrpc":"2.0","method":"session.event","params":{"sessionId":"session","branchId":"main","event":{"sequence":12,"type":"step","name":"text","data":{"turn_id":"turn","request_id":"request","delta":"Hello","newField":"preserved"}}}}
-{"jsonrpc":"2.0","method":"session.event","params":{"sessionId":"session","branchId":"main","event":{"sequence":25,"type":"turn","name":"end","data":{"turn_id":"turn","status":"failed","error":"fixture"}}}}
-{"jsonrpc":"2.0","method":"approval.resolved","params":{"sessionId":"session","branchId":"main","requestId":"approval-1","decision":"allow"}}

@@ -1,3 +1,0 @@
-capture	docs/evidence/window-lookup-accepted.png
-note	real window: SIGSTOP daemon around Send -> submit timeout/unknown -> SIGCONT -> session.input_lookup retries return accepted -> "Submission accepted" + submit.accepted, draft cleared
-driver	scripts/ax/axdo.swift + SIGSTOP/SIGCONT + screencapture -l

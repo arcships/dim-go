@@ -1,3 +1,0 @@
-capture	docs/evidence/window-stream-1.png, window-stream-3.png, window-stream-6.png
-note	real provider next/Qwen3.6-27B via --model-config: assistant text length 122 -> 250 -> 382 chars across 1s/3s/6s frames
-limit	UI-level evidence; no protocol trace capture

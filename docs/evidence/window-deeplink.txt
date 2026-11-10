@@ -1,4 +1,0 @@
-capture	docs/evidence/window-deeplink.png
-note	real window: launched with dimagent://thread/<id>; catalog resolved and selected that session (Explain ...)
-limit	URL scheme registration fails without a bundle/urlSchemes; launch-time args still reach OnOpenURL
-driver	scripts/ax/axdo.swift + screencapture -l

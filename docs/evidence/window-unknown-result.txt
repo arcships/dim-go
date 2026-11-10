@@ -1,4 +1,0 @@
-capture	docs/evidence/window-unknown-result.png
-git_head	24cc949
-driver	scripts/ax/axdo.swift
-note	daemon SIGSTOP then SIGKILL around Send; UI shows Submission result unknown, keeps the draft, offers Reconnect; log confirms read-back instruction and no resend

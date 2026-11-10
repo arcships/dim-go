@@ -1,4 +1,0 @@
-capture	docs/evidence/window-transport-lost.png
-note	real MyGo window at 800x720 after killing its seeded daemon; Connection error banner + Reconnect
-driver	scripts/ax/axdo.swift + screencapture -l
-git_head	88dbf10
