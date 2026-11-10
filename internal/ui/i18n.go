@@ -174,7 +174,9 @@ const (
 	keyHeaderRenameConfirm = "header.rename.confirm"
 	keyHeaderRenameCancel  = "header.rename.cancel"
 
-	// The timeline's per-row cut point entry and the prompt dialog it opens.
+	// The timeline's loading status and its per-row cut point entry with the
+	// prompt dialog that entry opens.
+	keyTimelineLoading       = "timeline.loading"
 	keyTimelineBranchFrom    = "timeline.branchFrom"
 	keyBranchFromTitle       = "branchFrom.title"
 	keyBranchFromMessage     = "branchFrom.message"
@@ -470,6 +472,7 @@ var stringsEN = Strings{
 	keyHeaderRenameConfirm: "Rename",
 	keyHeaderRenameCancel:  "Cancel",
 
+	keyTimelineLoading:       "Loading conversation…",
 	keyTimelineBranchFrom:    "Branch from here",
 	keyBranchFromTitle:       "Branch from this message",
 	keyBranchFromMessage:     "Creates a side branch cut before this message through session.branch_create. The prompt seeds the new branch.",
@@ -716,6 +719,7 @@ var stringsZHCN = Strings{
 	keyHeaderRenameConfirm: "重命名",
 	keyHeaderRenameCancel:  "取消",
 
+	keyTimelineLoading:       "正在加载会话…",
 	keyTimelineBranchFrom:    "从这里分支",
 	keyBranchFromTitle:       "从这条消息分支",
 	keyBranchFromMessage:     "通过 session.branch_create 在这条消息之前切开一条旁支；下面的提示词会作为新分支的起始内容。",

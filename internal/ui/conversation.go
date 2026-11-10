@@ -13,7 +13,7 @@ import "github.com/egoist/mygo/ui"
 func timeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 	switch {
 	case v.Loading:
-		loadingConversation(c, k)
+		loadingConversation(c, k, v.Locale)
 	case len(v.Messages) == 0:
 		emptyConversation(c, k)
 	default:
@@ -27,14 +27,31 @@ func timeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 	branchFromDialog(c, k, v, a)
 }
 
-// loadingConversation is what shows while history is still coming. The row is a
-// busy status region, so assistive technology waits for the rows rather than
-// reading the placeholder, and reads the one label of the work.
-func loadingConversation(c *ui.Context, k tokens) {
-	ui.Column(c).Grow(1).Padding(k.panelPad).Gap(k.gap).Children(func() {
-		ui.Row(c).Role(ui.RoleStatus).Busy(true).Gap(k.gap).AlignItems(ui.Center).Children(func() {
-			ui.Spinner(c).AccessHidden(true) // the text beside it says what the work is
-			ui.Text(c, "Loading conversation…").FontSize(k.bodySize).TextColor(k.mutedForeground)
+// loadingMarkH is the loading state's brand mark height in DIPs: twice the
+// empty hero's mark, so the waiting content area is filled by the product mark
+// rather than by a spinner or a placeholder line. loadingMarkW keeps the
+// official 45:32 shape; the mark is capped to the column's width when the
+// window is too narrow to draw it whole.
+const (
+	loadingMarkH = heroMarkH * 2
+	loadingMarkW = loadingMarkH * 45.0 / 32.0
+)
+
+// loadingConversation is what shows while history is still coming: the brand
+// mark, muted and centered in the content area, with the loading line at the
+// bottom left. The line is a busy status region, so assistive technology waits
+// for the rows rather than reading the placeholder as the conversation, and the
+// mark stays decorative. No spinner draws beside the line: the waiting state is
+// the mark, and the line is the one label of the work.
+func loadingConversation(c *ui.Context, k tokens, locale Locale) {
+	text := tr(locale, keyTimelineLoading)
+	ui.Column(c).Grow(1).Children(func() {
+		ui.Column(c).Grow(1).Center().Padding(k.panelPad).Children(func() {
+			ui.Icon(c, brandMark).Width(loadingMarkW).MaxWidthPercent(80).
+				TextColor(k.mutedForeground).AccessHidden(true)
+		})
+		ui.Row(c).Padding(k.panelPad).Role(ui.RoleStatus).Busy(true).Children(func() {
+			ui.Text(c, text).FontSize(k.smallSize).TextColor(k.mutedForeground).Grow(1)
 		})
 	})
 }
@@ -42,8 +59,9 @@ func loadingConversation(c *ui.Context, k tokens) {
 // brandMark is the official DimAgent mark, the 45:32 filled path the reference's
 // BrandMark.vue draws (its d attribute, from brand-mark.ts). ui.SVG is parsed
 // once at start-up and drawn every frame through ui.Icon, which paints the
-// shapes in the text color, so the mark takes the shell's primary fill in both
-// appearances instead of carrying a color of its own.
+// shapes in the color of the state that draws it: the empty hero's primary
+// green, or the loading state's muted grey, so the mark carries no color of its
+// own.
 var brandMark = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" width="45" height="32" viewBox="0 0 45 32"><path fill="currentColor" d="M30.5753 0.061063C24.084 -0.350713 17.6572 1.3463 12.0353 4.35976C5.50548 7.916 -1.94527 14.9536 0.463184 22.9957C2.3951 28.848 9.11815 30.9755 14.8817 30.9755C17.8697 31.0254 18.1981 26.8827 15.223 26.5021C14.3923 26.4085 13.2267 26.3523 12.4088 26.1839C6.3362 25.1045 3.08415 21.1802 6.96729 15.6524C11.0179 10.1808 18.1273 7.04878 24.889 6.15036C32.3526 5.07724 42.463 8.11566 35.7206 16.6569C34.1557 18.5723 32.1079 20.1944 29.8926 21.5046C29.2487 21.8852 28.4244 21.4422 28.4244 20.7123V16.8378C28.4244 15.2718 27.1171 14.0053 25.5008 14.0053C23.8844 14.0053 22.5771 15.2718 22.5771 16.8378V29.1599C22.5771 30.7259 23.8844 31.9924 25.5008 31.9924C26.8145 31.9924 27.9221 31.1564 28.2892 30.0022C28.4308 29.5654 28.7335 29.1973 29.1714 29.0164C29.6544 28.8168 30.1309 28.6046 30.6075 28.3863C36.5835 25.4976 42.4114 20.9868 44.1502 14.3297C46.1336 5.66371 38.6249 0.52899 30.5753 0.061063Z"/></svg>`))
 
 // renderHero draws the empty conversation's hero: the official brand mark and

@@ -5,9 +5,10 @@
 // The reference has no wordmark, no branch directory, no thread-action row and
 // no capability cards in this column: the entries begin below the traffic
 // lights, the session and workspace headings follow them, the catalog sits
-// under the workspace heading, and the account row sits at the bottom. Branch
-// and delete callbacks stay in State and Actions for the session header menu
-// that will carry them, but this column draws neither today.
+// under the workspace heading, and the account row sits at the bottom. A
+// session row's actions (pin, rename, archive and delete) live in its context
+// menu, so the column draws no separate action row; branch and delete
+// callbacks also stay in State and Actions for the session header menu.
 
 package ui
 
@@ -459,7 +460,7 @@ func threadList(c *ui.Context, k tokens, v SidebarView, a Actions) {
 					chooseSession(v, a)
 				}
 			}
-			threadRow(c, k, v, rows[row], on)
+			threadRow(c, k, v, a, rows[row], on)
 		}).Grow(1).MinHeight(sidebarThreadRowH*2).
 			// The list paints its own face over the column, so it takes the sidebar's
 			// tint instead of the window background. Its rows are inset by the
@@ -502,7 +503,8 @@ func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 }
 
 // threadRow draws a group heading or a session row. A session row shows the
-// selected and hovered faces from the sidebar's own tokens; the heading stays
+// selected and hovered faces from the sidebar's own tokens and carries the
+// session actions in its context menu (sessionRowMenu); the heading stays
 // sticky over the rows it names, so it paints the sidebar's face. The group
 // heading keeps the reference's project row: 28 DIPs around its text plus the
 // gap-0.5 before its first row, so the session rows under it sit where
@@ -511,7 +513,7 @@ func workspaceEmpty(c *ui.Context, k tokens, v SidebarView, rows int) {
 // row draws the muted pin glyph at its tail, after the relative stamp, as the
 // desktop-local pin's only mark; the glyph changes no row fact and stays out of
 // the accessible name.
-func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()) {
+func threadRow(c *ui.Context, k tokens, v SidebarView, a Actions, row sidebarRow, on func()) {
 	if row.group {
 		// The list insets every row by sidebarRowInset, but the reference keeps
 		// the project heading's glyph at the column's own 7 DIP edge, so the
@@ -534,6 +536,7 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 	if on != nil {
 		line.OnClick(on)
 	}
+	line.ContextMenu(sessionRowMenu(v, a, row))
 	switch {
 	case selected:
 		line.Background(k.sidebarAccent)
@@ -555,6 +558,78 @@ func threadRow(c *ui.Context, k tokens, v SidebarView, row sidebarRow, on func()
 			sidebarGlyph(c, sidebarIcons.pin, k.mutedForeground)
 		}
 	})
+}
+
+// sessionRowMenu fills one session row's context menu with the reference's
+// session actions, in its order: Pin (or Unpin), Rename, Archive (or Unarchive)
+// and, after the rule the reference puts before the destructive entry, Delete
+// session. Every entry addresses the row it was opened on. The pin and archive
+// entries carry the row's id to the caller's desktop-local lists; rename and
+// delete open the window's dialogs, which address the shell's selection, so the
+// menu first makes the row the selection (selectSidebarRow) and then asks the
+// window. An entry whose callback is nil stays visible, disabled and explained
+// as WIP, so the menu never pretends an action the window cannot carry out. The
+// menu itself changes no session fact.
+func sessionRowMenu(v SidebarView, a Actions, row sidebarRow) func(m *ui.Menu) {
+	return func(m *ui.Menu) {
+		locale := v.Locale
+		if a.OnPinSession == nil || row.sessionID == "" {
+			menuWIP(m, tr(locale, keySidebarPin), tr(locale, keyReasonPin))
+		} else {
+			pinKey := keySidebarPin
+			if row.pinned {
+				pinKey = keySidebarUnpin
+			}
+			if menuItem(m, tr(locale, pinKey)).Chosen() {
+				a.OnPinSession(row.sessionID)
+			}
+		}
+		if a.OnRequestRename == nil || row.sessionID == "" {
+			menuWIP(m, tr(locale, keySidebarRename), tr(locale, keyReasonRename))
+		} else if menuItem(m, tr(locale, keySidebarRename)).Chosen() {
+			selectSidebarRow(v, a, row.sessionID)
+			a.OnRequestRename()
+		}
+		if a.OnArchiveSession == nil || row.sessionID == "" {
+			menuWIP(m, tr(locale, keySidebarArchive), tr(locale, keyReasonArchive))
+		} else {
+			archiveKey := keySidebarArchive
+			if containsID(v.Archived, row.sessionID) {
+				archiveKey = keySidebarUnarchive
+			}
+			if menuItem(m, tr(locale, archiveKey)).Chosen() {
+				a.OnArchiveSession(row.sessionID)
+			}
+		}
+		// The rule keeps the destructive entry apart from the display entries,
+		// as the reference separates Delete session from the rest.
+		m.Separator()
+		if a.OnRequestDelete == nil || a.OnDeleteSession == nil || row.sessionID == "" {
+			menuWIP(m, tr(locale, keySidebarDelete), tr(locale, keyReasonDelete))
+		} else if menuItem(m, tr(locale, keySidebarDelete)).Danger().Chosen() {
+			// The entry opens the window's confirmation; the session is deleted
+			// from the alert's confirm button, through OnDeleteSession.
+			selectSidebarRow(v, a, row.sessionID)
+			a.OnRequestDelete()
+		}
+	}
+}
+
+// selectSidebarRow makes a context menu's row the shell's selection before an
+// entry that addresses the selection runs. Rename and Delete open dialogs for
+// whatever session State.Selected holds, so a right-click on another row must
+// move the choice first, exactly as the row's click does; the caller then opens
+// the row and publishes what it finds. A row already selected asks for nothing.
+func selectSidebarRow(v SidebarView, a Actions, sessionID string) {
+	if sessionID == "" || sessionID == *v.Selected {
+		return
+	}
+	if index := rowIndex(v.state.rows, sessionID); index >= 0 {
+		v.state.choice = index
+	}
+	*v.Selected = sessionID
+	v.state.synced = sessionID
+	selectSession(a, sessionID)
 }
 
 // chooseSession publishes the list's choice. A heading is never chosen, and a
