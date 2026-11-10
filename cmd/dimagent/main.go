@@ -612,13 +612,25 @@ func summaryForRow(row dimui.Session) appserver.SessionSummary {
 }
 
 func newSupervisor(productHome string) (*supervisor.Supervisor, error) {
-	return supervisor.New(supervisor.Config{
+	return supervisor.New(supervisorConfig(productHome))
+}
+
+// supervisorConfig builds the daemon config from the environment. A model
+// config path is handed to the spawned daemon as an argument only; this
+// process never reads the file, so a real-model acceptance run stays the
+// daemon's own concern.
+func supervisorConfig(productHome string) supervisor.Config {
+	return supervisor.Config{
 		ProductHome: productHome,
 		// The mock model is the daemon's own flag for acceptance runs: it echoes
 		// turns without a provider. It is opt-in through the environment so a
 		// normal launch never hides a missing model.
 		MockModel: os.Getenv("DIMAGENT_MOCK_MODEL") == "1",
-	})
+		// The model config is the daemon's own flag for real-model acceptance
+		// runs. It is opt-in through the environment; an empty value keeps the
+		// daemon's default resolution.
+		ModelConfigPath: strings.TrimSpace(os.Getenv("DIMAGENT_MODEL_CONFIG")),
+	}
 }
 
 // app owns the window's state and the callbacks the shell calls. State writes
