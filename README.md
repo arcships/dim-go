@@ -79,6 +79,7 @@ open -a /tmp/dimagent-app/DimAgent.app
 - [MyGo Native UI 组件调查](docs/mygo-native-components.md)
 - [发布与打包](docs/release.md)
 - [项目流程](docs/workflow.md)
+- [Agent 组织与开发方案](docs/organization-model.md)
 - [验收矩阵](docs/acceptance.md)
 - [开发计划](docs/development-plan.md)
 - [Native UI 执行计划](docs/native-plan.md)
