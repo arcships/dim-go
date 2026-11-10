@@ -27,13 +27,12 @@ func timeline(c *ui.Context, k tokens, v TimelineView, a Actions) {
 	branchFromDialog(c, k, v, a)
 }
 
-// loadingMarkH is the loading state's brand mark height in DIPs: twice the
-// empty hero's mark, so the waiting content area is filled by the product mark
-// rather than by a spinner or a placeholder line. loadingMarkW keeps the
-// official 45:32 shape; the mark is capped to the column's width when the
-// window is too narrow to draw it whole.
+// loadingMarkH is the loading state's brand mark height in DIPs: the reference
+// draws the same mark it uses in the empty hero, not a filled waiting panel.
+// loadingMarkW keeps the official 45:32 shape; the mark is capped to the
+// column's width when the window is too narrow to draw it whole.
 const (
-	loadingMarkH = heroMarkH * 2
+	loadingMarkH = heroMarkH
 	loadingMarkW = loadingMarkH * 45.0 / 32.0
 )
 
