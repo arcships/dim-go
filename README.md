@@ -21,12 +21,12 @@ MyGo native UI 重实现实验项目。
 
 验证：`gofmt -l .`、`git diff --check` 空；`go build ./...`、`go vet ./...`、`go test -count=1 ./...` 通过（10 个包、937 个顶层测试）；`go test -race -count=1 ./...` 通过（`internal/ui` 约 340s，已列性能项）。opt-in real-daemon `TestRealDaemonSmoke` / `TestRealDaemonSessionFlow` 通过（create → attach → history → submit → stop；daemon 声明 branches 时覆盖 branch_create → open → refresh → end）。真实窗口证据在 `docs/window-evidence.md` 与 `docs/evidence/`，UI 并排对照在 `docs/evidence/ui-parity/`。
 
-**产品验收：12 通过 / 16 未通过**（F1–F5、F10、F12a、F12b、F14a、F14b、A1、A4 为 L4；F6–F8、F13 的 AX 窗口记录保留 provider 描述，但实际 provider/daemon 未独立复核，不作协议/daemon 验收依据；其余见[验收矩阵](docs/acceptance.md)）。测试通过不等于产品验收；视觉项要求同尺寸同状态截图 + 逐区域视觉复核，当前 D1–D7 全部未通过。`cmd/dimagent` 默认自动发现本机 product home 并连接 daemon（顺序：`DIMAGENT_PRODUCT_HOME` > `DIMCODE_HOME` > `~/.dimcode`）；`DIMAGENT_NO_AUTO_CONNECT=1` 或显式空 `DIMAGENT_PRODUCT_HOME` 关闭自动连接。`scripts/package-macos.sh` 可生成带 `dimagent` scheme 的 macOS .app（ad-hoc 签名，未公证）。剩余阻塞：真实模型/审批流量（F6/F7/F8）、真实 `subscription_changed`（F11）、unknown-result 读回展示（F9）、附件运行来源复核及图片选择（F13）、VoiceOver/IME/Windows/Linux（A2/A3/A5）、字体/图标/皮肤全量像素对齐（D1–D7）。
+**产品验收：12 通过 / 16 未通过**（F1–F5、F10、F12a、F12b、F14a、F14b、A1、A4 为 L4；F6–F8、F13 的 AX 窗口记录保留 provider 描述，但实际 provider/daemon 未独立复核，不作协议/daemon 验收依据；其余见[验收矩阵](docs/acceptance.md)）。测试通过不等于产品验收；视觉项要求同尺寸同状态截图 + 逐区域视觉复核，当前 D1–D7 全部未通过。`cmd/dimagent` 默认不连 daemon；设置 `DIMAGENT_PRODUCT_HOME` 才启动 supervisor。`scripts/package-macos.sh` 可生成带 `dimagent` scheme 的 macOS .app（ad-hoc 签名，未公证）。剩余阻塞：真实模型/审批流量（F6/F7/F8）、真实 `subscription_changed`（F11）、unknown-result 读回展示（F9）、附件运行来源复核及图片选择（F13）、VoiceOver/IME/Windows/Linux（A2/A3/A5）、字体/图标/皮肤全量像素对齐（D1–D7）。
 
 ## 目录
 
 ```text
-cmd/dimagent/       应用入口（自动发现 product home 后连接 daemon）
+cmd/dimagent/       应用入口（DIMAGENT_PRODUCT_HOME opt-in 连 daemon）
 internal/appserver/ protocol v3 framing、client、wire DTO、read helpers、
                     session stream/attach 和 mutation helpers
 internal/config/    桌面本地外观与语言偏好（settings.json 读写，不存 session 事实）
@@ -48,25 +48,15 @@ docs/               研究、设计与验收记录
 本机 `/usr/local/go` 可以是更老的版本：`GOTOOLCHAIN=auto`（默认）会按 `go.mod` 自动下载 `go1.27.3` toolchain 到模块缓存（`~/go/pkg/mod/golang.org/toolchain@...`，约 243 MB），第一次构建需要网络。CI 或离线环境请预装 Go 1.27.3，或用 `GOTOOLCHAIN=local` 立即暴露版本不足。
 
 ```bash
-go run ./cmd/dimagent     # 启动最小窗口：自动发现本机 product home 并连接 daemon，找不到时显示未连接
+go run ./cmd/dimagent     # 启动最小窗口；未设置 DIMAGENT_PRODUCT_HOME 时显示未连接
 go test ./...             # headless/fake 测试，不需要窗口
 go vet ./...
 ```
 
-启动时按以下顺序解析 product home，找到后交给 supervisor 启动/连接 `dim-app-server` 并打开 catalog 的第一个 session：
-
-1. `DIMAGENT_PRODUCT_HOME`（已设置即生效，空值表示不连接）；
-2. `DIMCODE_HOME`（已设置且非空）；
-3. `~/.dimcode`（存在、是目录，且含 `rust/` 或 `config.json`/`auth.json`）；
-4. 都没有时保持未连接状态。
-
-自动发现时只打一条包含该路径的普通日志；发现只检查目录项，不读 session/SQLite/JSONL/`daemon.log`，也不会在临时目录里 spawn daemon。
+设置 `DIMAGENT_PRODUCT_HOME` 才会启动/连接 `dim-app-server` 并打开 catalog 的第一个 session：
 
 ```bash
-go run ./cmd/dimagent                                            # 自动发现并连接
-DIMAGENT_PRODUCT_HOME="$HOME/.dimcode/v2" go run ./cmd/dimagent  # 显式指定 home
-DIMAGENT_NO_AUTO_CONNECT=1 go run ./cmd/dimagent                 # 不自动连接
-DIMAGENT_PRODUCT_HOME= go run ./cmd/dimagent                     # 显式不连接（capture 脚本用法）
+DIMAGENT_PRODUCT_HOME="$HOME/.dimcode/v2" go run ./cmd/dimagent
 ```
 
 应用只通过 supervisor 使用公开 socket/pipe；不读 daemon 的 SQLite/JSONL/session 文件或 `daemon.log`。启动、catalog 或首个 session 打开失败时窗口显示连接错误，不会回退到本地方案或伪造会话。
