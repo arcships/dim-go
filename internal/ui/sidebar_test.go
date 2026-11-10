@@ -1132,9 +1132,24 @@ func TestSidebarKeepsPinnedSessionsInline(t *testing.T) {
 	}
 }
 
-// TestSidebarDrawsThePinGlyphOnPinnedRows checks the inline mark: a pinned
-// session draws the muted pin at its tail, after the title, and a session
-// without the pin draws nothing there.
+// rowInk reports whether the 16 DIP box at x, y holds a pixel of color want.
+func rowInk(tt *ui.Tester, x, y float32, want ui.Color) bool {
+	image := tt.Image()
+	for py := int(y); py < int(y+sidebarIconSize); py++ {
+		for px := int(x); px < int(x+sidebarIconSize); px++ {
+			if sameColor(image.RGBAAt(px, py), want) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// TestSidebarDrawsThePinGlyphOnPinnedRows checks the pinned mark: a pinned
+// session keeps its pin at the row's leading cell without hovering, in the
+// row's foreground and as the Unpin action, while a session without the pin
+// draws nothing there. The pin takes the cell the row already reserves, so the
+// title starts at the same place on both rows.
 func TestSidebarDrawsThePinGlyphOnPinnedRows(t *testing.T) {
 	s := fixture()
 	s.Sessions = []Session{
@@ -1143,38 +1158,242 @@ func TestSidebarDrawsThePinGlyphOnPinnedRows(t *testing.T) {
 	}
 	s.Selected = ""
 	s.Pinned = []string{"s1"}
+	s.OnPinSession = func(string) {}
 	tt, k := glyphTester(t, s)
 
-	nav, ok := tt.AccessByRole(ui.RoleNavigation, "Session sidebar")
+	unpin, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySidebarUnpin))
 	if !ok {
-		t.Fatalf("the sidebar is not exposed, texts %q", tt.Texts())
+		t.Fatalf("the pinned row draws no unpin affordance, texts %q", tt.Texts())
 	}
-	rowRight := nav.Bounds.X + nav.Bounds.W - k.sidebarPadX - sidebarRowEndInset
-	boxFor := func(title string) ui.Rect {
-		row := textBox(t, tt, title)
-		return ui.Rect{
-			X: rowRight - k.sidebarPadX - sidebarIconSize,
-			Y: row.Y + row.H/2 - sidebarIconSize/2,
-			W: sidebarIconSize,
-			H: sidebarIconSize,
+	if !unpin.Checked {
+		t.Error("the pinned row's pin is not marked pressed")
+	}
+	if unpin.Disabled {
+		t.Error("the pinned row's pin is unavailable although the window could toggle it")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySidebarPin)); ok {
+		t.Error("a pinned row offers Pin instead of Unpin")
+	}
+	if _, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySidebarArchive)); ok {
+		t.Error("a pinned row draws the archive affordance without hover")
+	}
+
+	pinned, ok := tt.AccessByRole(ui.RoleListItem, "Pinned session")
+	if !ok {
+		t.Fatalf("the pinned row is not exposed, texts %q", tt.Texts())
+	}
+	plain, ok := tt.AccessByRole(ui.RoleListItem, "Plain session")
+	if !ok {
+		t.Fatalf("the plain row is not exposed, texts %q", tt.Texts())
+	}
+	pinX := pinned.Bounds.X + k.sidebarPadX + (sidebarThreadCell-sidebarIconSize)/2
+	pinY := pinned.Bounds.Y + (sidebarThreadRowH-sidebarIconSize)/2
+	if !rowInk(tt, pinX, pinY, k.sidebarForeground) {
+		t.Errorf("the pinned row draws no foreground pin in its leading cell, texts %q", tt.Texts())
+	}
+	if rowInk(tt, pinX, pinY, k.mutedForeground) {
+		t.Error("the pinned row draws the unpinned pin's muted color")
+	}
+	plainX := plain.Bounds.X + k.sidebarPadX + (sidebarThreadCell-sidebarIconSize)/2
+	plainY := plain.Bounds.Y + (sidebarThreadRowH-sidebarIconSize)/2
+	if rowInk(tt, plainX, plainY, k.mutedForeground) || rowInk(tt, plainX, plainY, k.sidebarForeground) {
+		t.Error("a row without the pin draws a glyph in its leading cell")
+	}
+
+	pinnedTitle := textBox(t, tt, "Pinned session")
+	plainTitle := textBox(t, tt, "Plain session")
+	if pinnedTitle.X != plainTitle.X {
+		t.Errorf("the pinned row's title starts at x=%.1f, the plain row's at x=%.1f: the pin moved it",
+			pinnedTitle.X, plainTitle.X)
+	}
+}
+
+// TestSidebarRowHoverShowsTheAffordances checks the reference's hover state: a
+// row under the pointer draws the pin in its leading cell and the archive in
+// the stamp's tail slot, and the row left alone draws neither.
+func TestSidebarRowHoverShowsTheAffordances(t *testing.T) {
+	s := fixture()
+	s.Selected = ""
+	s.OnPinSession = func(string) {}
+	s.OnArchiveSession = func(string) {}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	for _, name := range []string{tr(LocaleEN, keySidebarPin), tr(LocaleEN, keySidebarArchive)} {
+		if _, ok := tt.AccessByRole(ui.RoleButton, name); ok {
+			t.Errorf("the idle sidebar already offers %q, texts %q", name, tt.Texts())
 		}
 	}
-	hasInk := func(box ui.Rect, want ui.Color) bool {
-		image := tt.Image()
-		for y := int(box.Y); y < int(box.Y+box.H); y++ {
-			for x := int(box.X); x < int(box.X+box.W); x++ {
-				if sameColor(image.RGBAAt(x, y), want) {
-					return true
-				}
-			}
+	second, ok := tt.Find("Second session")
+	if !ok {
+		t.Fatalf("the second row is not drawn, texts %q", tt.Texts())
+	}
+	tt.Move(second.X+second.W/2, second.Y+second.H/2)
+	tt.Frame()
+	pin, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySidebarPin))
+	if !ok {
+		t.Fatalf("the hovered row offers no pin, texts %q", tt.Texts())
+	}
+	if pin.Disabled || pin.Checked {
+		t.Errorf("the hovered row's pin is disabled=%v pressed=%v, want an idle Pin action", pin.Disabled, pin.Checked)
+	}
+	archive, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySidebarArchive))
+	if !ok {
+		t.Fatalf("the hovered row offers no archive, texts %q", tt.Texts())
+	}
+	if archive.Disabled {
+		t.Error("the hovered row's archive is unavailable although the window could archive it")
+	}
+
+	tt.Move(1, 1)
+	tt.Frame()
+	for _, name := range []string{tr(LocaleEN, keySidebarPin), tr(LocaleEN, keySidebarArchive)} {
+		if _, ok := tt.AccessByRole(ui.RoleButton, name); ok {
+			t.Errorf("the affordance %q stays after the pointer left the row, texts %q", name, tt.Texts())
 		}
-		return false
 	}
-	if !hasInk(boxFor("Pinned session"), k.mutedForeground) {
-		t.Errorf("the pinned row draws no muted pin glyph at its tail, texts %q", tt.Texts())
+}
+
+// TestSidebarRowHoverActionsRunOnceWithoutSelecting checks that the row's
+// inline actions run the caller's callback once with the row's id, and that
+// clicking one does not move the list's choice: the affordance is an action in
+// the row, not another way to open the session.
+func TestSidebarRowHoverActionsRunOnceWithoutSelecting(t *testing.T) {
+	s := fixture()
+	s.Selected = "s1"
+	var pins, archives []string
+	s.OnPinSession = func(sessionID string) { pins = append(pins, sessionID) }
+	s.OnArchiveSession = func(sessionID string) { archives = append(archives, sessionID) }
+	tt := ui.NewTester(s.View, 900, 600)
+
+	hover := func() {
+		row, ok := tt.Find("Second session")
+		if !ok {
+			t.Fatalf("the second row is not drawn, texts %q", tt.Texts())
+		}
+		tt.Move(row.X+row.W/2, row.Y+row.H/2)
+		tt.Frame()
 	}
-	if hasInk(boxFor("Plain session"), k.mutedForeground) {
-		t.Errorf("a row without the pin draws a glyph at its tail, texts %q", tt.Texts())
+	click := func(name string) {
+		info, ok := tt.AccessByRole(ui.RoleButton, name)
+		if !ok {
+			t.Fatalf("the hovered row offers no %q, texts %q", name, tt.Texts())
+		}
+		tt.ClickAt(info.Bounds.X+info.Bounds.W/2, info.Bounds.Y+info.Bounds.H/2)
+		tt.Frame()
+	}
+
+	hover()
+	click(tr(LocaleEN, keySidebarPin))
+	click(tr(LocaleEN, keySidebarArchive))
+	if !slices.Equal(pins, []string{"s2"}) {
+		t.Errorf("pin callbacks = %v, want one for s2", pins)
+	}
+	if !slices.Equal(archives, []string{"s2"}) {
+		t.Errorf("archive callbacks = %v, want one for s2", archives)
+	}
+	if s.Selected != "s1" {
+		t.Errorf("an inline action moved the selection to %q", s.Selected)
+	}
+	if s.SidebarWidth != 256 || s.Draft != "" || len(s.Sessions) != 2 {
+		t.Errorf("an inline action changed the shell: width=%.0f draft=%q sessions=%d",
+			s.SidebarWidth, s.Draft, len(s.Sessions))
+	}
+}
+
+// TestSidebarRowHoverActionsExplainAMissingCallback checks the WIP side: with
+// no caller callback the affordances stay visible and unavailable, name the
+// gap they wait on, and take no action.
+func TestSidebarRowHoverActionsExplainAMissingCallback(t *testing.T) {
+	s := fixture()
+	s.Selected = "s1"
+	tt := ui.NewTester(s.View, 900, 600)
+
+	row, ok := tt.Find("Second session")
+	if !ok {
+		t.Fatalf("the second row is not drawn, texts %q", tt.Texts())
+	}
+	tt.Move(row.X+row.W/2, row.Y+row.H/2)
+	tt.Frame()
+
+	cases := []struct {
+		name string
+		want string
+	}{
+		{tr(LocaleEN, keySidebarPin), reasonPin},
+		{tr(LocaleEN, keySidebarArchive), reasonArchive},
+	}
+	for _, tc := range cases {
+		info, ok := tt.AccessByRole(ui.RoleButton, tc.name)
+		if !ok {
+			t.Errorf("the hovered row offers no %q, texts %q", tc.name, tt.Texts())
+			continue
+		}
+		if !info.Disabled {
+			t.Errorf("%q is available although no callback is wired", tc.name)
+		}
+		if !strings.Contains(info.Description, tc.want) {
+			t.Errorf("%q description %q does not name %q", tc.name, info.Description, tc.want)
+		}
+		tt.ClickAt(info.Bounds.X+info.Bounds.W/2, info.Bounds.Y+info.Bounds.H/2)
+		tt.Frame()
+	}
+	if s.Selected != "s1" || len(s.Sessions) != 2 {
+		t.Errorf("an unavailable affordance changed the shell: selected=%q sessions=%d", s.Selected, len(s.Sessions))
+	}
+}
+
+// rowTitleBox returns the box of a session title's text, not the list row's,
+// so a truncated title reports the width it was cut to. The sidebar draws
+// before the header, and the header names the same title only for the selected
+// session, which this test leaves unset.
+func rowTitleBox(t *testing.T, tt *ui.Tester, title string) ui.Rect {
+	t.Helper()
+	info, ok := tt.AccessByRole(ui.RoleText, title)
+	if !ok {
+		t.Fatalf("the frame shows no text box for %q, texts %q", title, tt.Texts())
+	}
+	return info.Bounds
+}
+
+// TestSidebarRowHoverKeepsTheTitleTruncation checks that the affordances take
+// room the row already reserved: a pinned row's long title is cut at the same
+// width as a plain row's, and hovering a row moves neither the title's left
+// edge nor its truncation point; the archive follows the title instead of
+// eating into it.
+func TestSidebarRowHoverKeepsTheTitleTruncation(t *testing.T) {
+	const pinnedTitle = "Pinned session title that is much longer than the sidebar row can show"
+	const plainTitle = "Plain session title that is much longer than the sidebar row can show"
+	s := fixture()
+	s.Sessions = []Session{
+		{ID: "s1", Title: pinnedTitle},
+		{ID: "s2", Title: plainTitle},
+	}
+	s.Selected = ""
+	s.Pinned = []string{"s1"}
+	tt := ui.NewTester(s.View, 900, 600)
+
+	pinned := rowTitleBox(t, tt, pinnedTitle)
+	plain := rowTitleBox(t, tt, plainTitle)
+	if math.Abs(float64(pinned.X-plain.X)) > 0.5 || math.Abs(float64(pinned.W-plain.W)) > 0.5 {
+		t.Errorf("the pinned title is %+v and the plain one %+v: the pin squeezed the pinned title", pinned, plain)
+	}
+
+	row, ok := tt.Find(plainTitle)
+	if !ok {
+		t.Fatalf("the plain row is not drawn, texts %q", tt.Texts())
+	}
+	tt.Move(row.X+row.W/2, row.Y+row.H/2)
+	tt.Frame()
+	hovered := rowTitleBox(t, tt, plainTitle)
+	if math.Abs(float64(hovered.X-plain.X)) > 0.5 || math.Abs(float64(hovered.W-plain.W)) > 0.5 {
+		t.Errorf("hovering moved the title from %+v to %+v", plain, hovered)
+	}
+	archive, ok := tt.AccessByRole(ui.RoleButton, tr(LocaleEN, keySidebarArchive))
+	if !ok {
+		t.Fatalf("the hovered row offers no archive, texts %q", tt.Texts())
+	}
+	if hovered.X+hovered.W > archive.Bounds.X+0.5 {
+		t.Errorf("the title ends at %.1f, under the archive at %.1f", hovered.X+hovered.W, archive.Bounds.X)
 	}
 }
 
