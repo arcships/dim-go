@@ -129,6 +129,8 @@ type App struct {
 	staging   *attachments.Store
 	workspace *workspace.Workspace
 	terminals *terminal.Registry
+	// changes 是变更读取的来源适配器；随实例存在，不新增全局状态。
+	changes workspace.ChangeSource
 
 	// 连接与订阅。
 	supervisor *daemon.Supervisor
@@ -191,12 +193,15 @@ func New(cfg Config) (*App, error) {
 		cfg.AttachmentLimits = attachments.DefaultLimits()
 	}
 
-	return &App{
+	app := &App{
 		cfg:       cfg,
 		phase:     PhaseInitial,
 		terminals: terminal.NewRegistry(),
 		sessions:  make(map[string]*sessionRuntime),
-	}, nil
+	}
+	// 变更来源只依赖本实例：按会话与 run 读工具结果声明，不持有额外状态。
+	app.changes = &changeSource{app: app}
+	return app, nil
 }
 
 // SetWriteGate 设置宿主外壳的写闸门。闸门返回错误时，本包登记意图的入口一律拒绝。

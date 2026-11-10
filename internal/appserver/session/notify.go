@@ -1,6 +1,8 @@
 package session
 
 import (
+	"encoding/json"
+
 	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 )
 
@@ -38,13 +40,56 @@ func decodeEvent(event *Event) {
 			return
 		}
 		event.SessionNotice = &notice
-		if notice.IsTitle() {
+		switch {
+		case notice.IsTitle():
 			title, err := notice.ParseTitle()
 			if err != nil {
 				event.DecodeErr = err
 				return
 			}
 			event.Title = &title
+		case notice.IsWakeup():
+			wakeup, err := notice.ParseWakeup()
+			if err != nil {
+				event.DecodeErr = err
+				return
+			}
+			event.Wakeup = &wakeup
 		}
+	case protocol.MethodSessionEvent:
+		var params protocol.SessionEventParams
+		if err := json.Unmarshal(event.Params, &params); err != nil {
+			event.DecodeErr = err
+			return
+		}
+		if params.Event.Type == "permission" && params.Event.Name == "changed" {
+			changed, err := protocol.ParsePermissionChanged(params.Event.Data)
+			if err != nil {
+				event.DecodeErr = err
+				return
+			}
+			event.PermissionChanged = &changed
+		}
+	case "management.progress":
+		notice, err := protocol.ParseManagementProgressNotice(event.Params)
+		if err != nil {
+			event.DecodeErr = err
+			return
+		}
+		event.Progress = &notice
+	case "modality.realtime.event":
+		notice, err := protocol.ParseModalityRealtimeEventNotice(event.Params)
+		if err != nil {
+			event.DecodeErr = err
+			return
+		}
+		event.ModalityEvent = &notice
+	case "modality.realtime.ended":
+		notice, err := protocol.ParseModalityRealtimeEndedNotice(event.Params)
+		if err != nil {
+			event.DecodeErr = err
+			return
+		}
+		event.ModalityEnded = &notice
 	}
 }

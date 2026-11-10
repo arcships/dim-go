@@ -4,7 +4,7 @@ Status: 第三版实现完成（P1 集成候选结果包，待组织评审）
 Owner: D12 集成层领域
 验证: 可执行命令与可观察输出见第 7 节；真实 daemon 证据见 7.3，blocked 见第 9 节
 依据: `docs/domains/A.md`（两个平面、四条总规矩、启动与退出、模块分工）、`docs/domains/R.md`（块 1–3、6、7、12、14 与 R8）、`docs/domains/D10-host.md`（六阶段启动、五阶段退出、写闸门、诊断白名单、二次启动）、`docs/domains/D1-connection.md` §3.7 的 v3 wire 形状、各领域文档的"接口形状"章节
-范围: 把已落地的领域包装配成可运行程序，并接到宿主外壳上：连接与订阅、投影、通知与清单路由、写登记的 Sender 与 Inspector、目录、交互、账号、设置、扩展、工作区、附件、终端；启动与退出分别挂到 D10 的阶段函数；一个只读视图与意图入口；一个走完整启停的自检子命令。不含界面、各领域内部逻辑。
+范围: 把已落地的领域包装配成可运行程序，并接到宿主外壳上：连接与订阅、投影、通知与清单路由、写登记的 Sender 与 Inspector、目录、交互、账号、设置、扩展、工作区（含变更读取来源）、附件、终端；启动与退出分别挂到 D10 的阶段函数；一个只读视图与意图入口；一个走完整启停的自检子命令。不含界面、各领域内部逻辑。
 
 ---
 
@@ -24,7 +24,8 @@ Owner: D12 集成层领域
 | 审批推进、提问清单与结算 | `docs/domains/D5-interaction.md` §4 与 `question.go` | 审批事实、`SeedQuestions`/`ApplyAskUser`/`SettleQuestion`、长期允许的两步顺序 |
 | 目录读取与标题合并 | `docs/domains/D4-catalog.md` §3 | `catalog.Reader`、`TitleUpdate` 按修订号合并 |
 | 账号、设置、扩展的读取方形状 | `docs/domains/D6-account.md`、`D11a-settings.md`、`D11b-extensions.md` | 逐项映射 wire 回执为领域类型 |
-| 本地能力 | `docs/domains/D7-workspace.md`、`D8-attachments.md`、`D9-terminal.md` | 工作区、暂存区、终端登记表在本地状态阶段与退出阶段打开与收尾 |
+| 本地能力 | `docs/domains/D7-workspace.md`、`D8-attachments.md`、`D9-terminal.md` | 工作区、暂存区、终端登记表在本地状态阶段与退出阶段打开与收尾；变更读取只注入来源、不扫描 |
+| 变更读取接口 | `docs/domains/D7-workspace.md` §4.7 的 `ChangeSource`/`RunChanges` | 实现来源适配器并暴露 `App.RunChanges` |
 | fake 服务端 | `internal/fakeappserver`（V） | 装配链路、通知路由、清单注入、核对与能力门禁测试 |
 
 **产物**
@@ -45,16 +46,18 @@ Owner: D12 集成层领域
 | `internal/app/settings.go` | 设置来源/项目/文档/模型目录/存储/运行组件/模态能力读取、能力声明转发 |
 | `internal/app/extensions.go` | 插件、技能、钩子、工具服务器、计划任务、工作流、唤醒的读取方 |
 | `internal/app/notices.go` | 控制连接的通知路由（扩展事件、标题兜底、审批丢弃） |
+| `internal/app/changes.go` | `workspace.ChangeSource` 适配器：从工具结果事实提取声明路径；`App.RunChanges` 入口 |
 | `internal/app/app_test.go` | 装配链路、宿主接线、单实例、阶段失败、退出超时、诊断白名单、写闸门 |
 | `internal/app/wire_test.go` | 审批路由、标题合并、清单注入、提问时间线路由、核对优先级、附件写入与能力门禁 |
 | `internal/app/writes_test.go` | 命令执行/停止、模态四种写入、分支开/结束的映射与门禁 |
+| `internal/app/changes_test.go` | 变更读取：多工具合并、去重、越界、按 run 过滤、空声明、来源错误、截断 |
 | `cmd/dimagent/main.go` | 无界面自检子命令 `selfcheck`：完整六阶段启动与五阶段退出 |
 | `docs/domains/D12-integration.md` | 本文件 |
 
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：22 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：25 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -89,6 +92,7 @@ Owner: D12 集成层领域
 | 清单注入 | 四类未完成事项按固定截止点读取后注入投影；提问同时注入交互裁决；读取失败退回历史推导 |
 | 写登记适配 | `Sender` 按 `write.Kind` 选方法、合入会话/分支/投递方式/输入标识；附件、命令、模态、分支走会话流并做能力门禁；发送前过写闸门 |
 | 核对 | `Inspector` 优先 `session.input_lookup`（accepted/unknown），失败或未广告时退回投影 + 历史扫描 |
+| 变更读取 | 从工具结果事实提取声明路径，按 run（一轮）过滤，交给工作区规范化；不扫描、不推断 diff |
 | 只读视图 | `SessionView`：行、轮次、四类未完成事项、目标、分支、装载阶段、待决计数；不含可写引用 |
 | 自检 | `dimagent selfcheck`：六阶段启动 → 打开会话 → 打印行 → 提交 → 重读 → 五阶段退出 |
 
@@ -245,6 +249,21 @@ Owner: D12 集成层领域
 - `call.input` 必须是 JSON 对象，且**只含一个非空字符串字段 `path`、取值是绝对路径**；此时规则参数为 `{"tool":<工具名>,"path":<绝对路径>}`。
 - 其余情况（命令、多字段参数、相对路径、非字符串）一律不可长期允许——宁可不放行，也不把复杂命令长期放行。
 
+### 4.8 变更读取（`workspace.ChangeSource` 适配器）
+
+| 项 | 口径 |
+|---|---|
+| run 的含义 | `runID` 是一轮的标识（事实里的 `turn_id`）；只取该轮工具结果里的声明，别轮一律不看 |
+| 来源读取 | 读本会话历史里的工具结果事实（`step/tool-completed`、`step/tool-result`），与投影同源；折叠后的工具行只保留文本，因此这里取原始载荷。一次读取最多 40 页 × 500 条，超限报错而不是返回看似完整的清单 |
+| 声明字段 | 只认 `structuredContent.affectedPaths`（兼容 snake_case）、`write`/`edit` 工具的 `structuredContent.path`、`fileWritten` effect（`structuredContent.effects[]`、顶层 `effects[]`/`fileWritten`，字段 `type`/`kind`/`name` 为 `fileWritten`，路径取 `path`/`filePath`/`file_path`/`file`/`paths`） |
+| 没有声明 | 返回空清单，不把"没有声明"当成"没有改动"，也不扫描任何目录 |
+| 规范化 | 交给 `workspace.ReadRunChanges`：去空白、展开 `~/`、相对路径拼工作区根、解析符号链接后判内/外、按 `scope+path` 去重、工作区内在前、超过 256 条截断并标记 |
+| 覆盖级别 | 恒为 `tool_reports`：工具声明级的部分覆盖，不声称覆盖会话内命令（exec）、外部修改、未声明的写入 |
+| 不做的 | 不扫描工作区、不推断 diff、不读 git 历史、不执行工具、不落盘、不缓存 |
+| 错误 | 会话未打开 → 报错（`ErrSessionNotOpen`）；历史读取失败/游标不前进 → 报错；没有工作区根 → `ErrWorkspaceUnavailable` |
+
+来源适配器只在 `App` 上存一份实例引用（`app.changes`），不新增包级全局状态；`App.RunChanges(ctx, sessionID, runID)` 调用 `Workspace.ReadRunChanges`，不在集成层另做规范化。
+
 ## 5. 启动与退出（接线点）
 
 ### 5.1 启动：五阶段执行体 → 宿主六阶段
@@ -302,6 +321,7 @@ outcome2, err := base.Respond(ctx, "s-1", "req-1", interaction.Response{Decision
 run, err := base.RunShell(ctx, app.ShellRunRequest{SessionID: "s-1", Command: "pwd"})
 stop, err := base.StopShell(ctx, app.ShellStopRequest{SessionID: "s-1", RunID: "run-1"})
 task, err := base.ModalityWrite(ctx, app.ModalityWriteRequest{SessionID: "s-1", Op: app.ModalityTaskSubmit, Params: map[string]any{"model": "m1"}})
+changes, err := base.RunChanges(ctx, "s-1", "turn-1") // 该轮工具声明的改动路径（部分覆盖）
 report, err := shell.Shutdown(ctx)             // 五阶段退出（含逐段超时）
 ```
 
@@ -345,6 +365,9 @@ go test -race ./internal/app/
 | 模态四种写入：方法名、载荷透传、`op` 不下发、回执里的任务/连接标识 | `TestModalityWriteMapping` |
 | 开分支/结束分支：`session.branch_create`（会话+切点+首条输入）、`session.branch_end`（会话+分支） | `TestBranchLifecycleMapping` |
 | 三类新意图的门禁：缺方法零请求、退出中零请求（入口拒绝 + 发送方兜底） | `TestNewWriteKindsRespectGates` |
+| 变更读取：多工具合并、去重、越界、按 run 过滤 | `TestRunChangesMergesToolDeclarations` |
+| 变更读取：声明缺失返回空、未知 run 为空、会话未打开报错、没有工作区根报错 | `TestRunChangesEmptyAndErrors` |
+| 变更读取：超过上限截断并保留总数 | `TestRunChangesTruncates` |
 
 ### 7.3 真实 daemon 证据
 
@@ -513,6 +536,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | R 块 12 附件 | 暂存区阶段打开清理；`attachment.put` 写入并做能力门禁 | 暂存引用生命周期（D8） |
 | R 块 13 会话内命令 | `shell.run`/`shell.stop` 映射，命令由服务端执行 | 本机终端进程（D9） |
 | R 块 9 模态任务与实时传输 | `modality.*` 四种写入映射 | 模态能力读数（D11a） |
+| R 块 11 本次运行的变更读取 | 工具结果声明 → 路径清单（`App.RunChanges`），只读本 run | 规范化、上限与 git 只读（D7） |
 | R 块 14 日志与诊断 | 进程级诊断只写白名单字段 | 落盘与冲刷（D10） |
 
 ## 9. blocked
@@ -527,6 +551,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 真实 `shell.run`/`shell.stop` | blocked（能力不可用） | 本机两个二进制都不贡献 `shell.*`；映射与门禁已用假服务端验证，真实服务端只验证到"能力缺失" |
 | 真实 `modality.*` | blocked（能力不可用 + 名称未在真实服务端验证） | 本机二进制不贡献这些方法；四个方法名按 D3 的 op 命名与 D11a 的 `modality.capabilities` 约定，缺服务端证据 |
 | 真实分支开/结束（本包发出的写） | 未验证 | 参数形状与目录领域的真实分支证据一致；本包没有在真实服务端上直接发过 `session.branch_create`/`session.branch_end` |
+| 真实工具结果里的路径声明 | blocked（真实事件未触发） | 需要模型真的调用 `write`/`edit` 等工具并给出 `structuredContent`；本机 mock 模型不产生工具调用，因此变更读取的真实声明只验证到"空清单" |
 | 真实核对调用 | 未验证 | 需要一次超时/断线后才进入核对；D1 已单独验证方法本身 |
 | 改名与自动标题 | blocked | 两版本服务端都没有 `session.rename`（自动标题通知已接，但真实事件未触发） |
 | 重连后自动重开会话 | 未验证 | 需要 U1/D10 决定重开策略；本包只提供 `Reconnect` 与 `OpenSession` |
@@ -543,9 +568,12 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 8. **运行状态只取 attach 回执**：`session.state` 通知不消费，运行状态变化需要重开或后续接入。
 9. **命令与模态依赖会话方法**：`shell.*`、`modality.*`、`attachment.put`、`session.branch_*` 都要求会话已打开；没打开时按不可重试失败处理，不发请求。方法名以 `session.methods`/hello 为准，不按版本猜。
 10. **模态方法名缺真实服务端证据**：`modality.task.submit` 等四个名称来自意图 op 命名与 `modality.capabilities` 的约定，本机没有贡献这些方法的实例，因此只验证到门禁行为。
-11. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-12. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-13. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+11. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+12. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+13. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+14. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+15. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+16. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -555,3 +583,4 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 接到 D10 宿主外壳：阶段函数、写闸门、诊断、二次启动、完整启停自检 | 组织要求覆盖宿主接线 |
 | 2026-11-10 | 接掉连接侧补齐的 wire：审批三类通知、标题通知、四类清单注入（含提问清单与时间线）、`input_lookup` 核对优先级、`attachment.put` 附件写入与能力门禁 | 组织要求把已冻结的 wire 形状接进集成层 |
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
+| 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |

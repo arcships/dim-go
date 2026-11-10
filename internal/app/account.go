@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/account"
@@ -17,6 +18,7 @@ const (
 	methodModelList     = "model.list"
 	methodLoginBegin    = "account.login.begin"
 	methodLoginComplete = "account.login.complete"
+	methodLoginCancel   = "account.login.cancel"
 )
 
 // accountStatusReader 读取账号状态。
@@ -153,9 +155,14 @@ func (r *accountModelReader) ReadModels(ctx context.Context) ([]account.Model, e
 	return models, nil
 }
 
-// accountAuthSource 是浏览器登录的服务端侧：发起授权与用回调结果完成交换。
+// accountAuthSource 是浏览器登录的服务端侧：发起授权、完成交换与取消尝试。
 type accountAuthSource struct {
 	app *App
+
+	// mu 保护 providers：只记住本次进程里各尝试对应的 provider，供取消时回传；
+	// 不落盘、不进日志。
+	mu        sync.Mutex
+	providers map[string]string
 }
 
 func (s *accountAuthSource) BeginAuthorization(
@@ -167,28 +174,76 @@ func (s *accountAuthSource) BeginAuthorization(
 		return account.AuthorizationRequest{}, err
 	}
 	var reply struct {
-		URL   string `json:"url"`
-		State string `json:"state"`
+		URL        string `json:"url"`
+		State      string `json:"state"`
+		Attempt    string `json:"attemptId"`
+		ProviderID string `json:"providerId"`
 	}
 	if err := client.CallInto(ctx, methodLoginBegin, map[string]any{"redirectUri": redirectURI}, &reply); err != nil {
 		return account.AuthorizationRequest{}, err
 	}
-	return account.AuthorizationRequest{URL: reply.URL, State: reply.State}, nil
+	if reply.Attempt != "" && reply.ProviderID != "" {
+		s.mu.Lock()
+		if s.providers == nil {
+			s.providers = make(map[string]string)
+		}
+		s.providers[reply.Attempt] = reply.ProviderID
+		s.mu.Unlock()
+	}
+	return account.AuthorizationRequest{URL: reply.URL, State: reply.State, Attempt: reply.Attempt}, nil
 }
 
 func (s *accountAuthSource) CompleteAuthorization(
 	ctx context.Context,
+	attempt string,
 	result account.AuthorizationResult,
 ) error {
 	client, err := s.app.requireControl("完成账号登录")
 	if err != nil {
 		return err
 	}
-	_, err = client.Call(ctx, methodLoginComplete, map[string]any{
-		"code":  result.Code,
-		"state": result.State,
-	})
+	params := map[string]any{
+		"attemptId":   attempt,
+		"callbackUrl": result.CallbackURL,
+		"code":        result.Code,
+		"state":       result.State,
+	}
+	if result.Error != "" {
+		params["error"] = result.Error
+	}
+	if result.ErrorDescription != "" {
+		params["errorDescription"] = result.ErrorDescription
+	}
+	_, err = client.Call(ctx, methodLoginComplete, params)
+	s.forgetProvider(attempt)
 	return err
+}
+
+// CancelAuthorization 取消服务端尚未结束的登录尝试；尽力而为，失败不改变本地状态。
+func (s *accountAuthSource) CancelAuthorization(ctx context.Context, attempt string) error {
+	client, err := s.app.requireControl("取消账号登录")
+	if err != nil {
+		return err
+	}
+	params := map[string]any{"attemptId": attempt}
+	if provider := s.providerFor(attempt); provider != "" {
+		params["providerId"] = provider
+	}
+	_, err = client.Call(ctx, methodLoginCancel, params)
+	s.forgetProvider(attempt)
+	return err
+}
+
+func (s *accountAuthSource) providerFor(attempt string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.providers[attempt]
+}
+
+func (s *accountAuthSource) forgetProvider(attempt string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.providers, attempt)
 }
 
 // requireControl 返回控制连接；未连接时给出连接缺失分类，调用方据此失败关闭。

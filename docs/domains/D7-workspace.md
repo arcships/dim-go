@@ -1,10 +1,10 @@
 # D7 工作区与文件
 
-Status: active（第一版实现完成，待组织评审）
+Status: active（第一版实现 + 变更读取完成，待组织评审）
 Owner: D7 领域 agent
-范围: 工作区内本机文件与仓库的只读能力：目录读取、文件预览、关键词搜索、git 只读状态、按平台外部打开、路径规范化与越界拒绝。
+范围: 工作区内本机文件与仓库的只读能力：目录读取、文件预览、关键词搜索、git 只读状态、本次运行变更读取、按平台外部打开、路径规范化与越界拒绝。
 依据: `docs/domains/R.md` 块 11、`docs/domains/A.md` 工作区模块与四条总规矩、`AGENTS.md`。
-Last verified: 2026-11-10（Go 1.24.3 / darwin arm64 / git 2.49.0）
+Last verified: 2026-11-11（Go 1.24.3 / darwin arm64 / git 2.49.0）
 
 ## 1. 边界
 
@@ -17,6 +17,7 @@ Last verified: 2026-11-10（Go 1.24.3 / darwin arm64 / git 2.49.0）
 | 文件预览 | 编码探测、二进制识别、按上限读取并显式标注截断 |
 | 关键词搜索 | 一次性递归扫描，返回路径、行号、列号与片段；条数与字节双上限；不建索引 |
 | git 只读 | 当前分支、是否分离头指针、是否有未提交改动、改动条目数 |
+| 变更读取 | 从工具结果声明收集本次 run 的路径，按工作区内/外分类并补绝对路径与是否存在 |
 | 外部打开 | 按平台调用系统默认处理程序，返回子进程退出码 |
 
 **不做**
@@ -24,7 +25,8 @@ Last verified: 2026-11-10（Go 1.24.3 / darwin arm64 / git 2.49.0）
 | 不做 | 归属/原因 |
 |---|---|
 | 界面、视图模型 | U1 |
-| 连接、服务端索引搜索、本次运行变更（工具声明路径） | D1；本版未实现，见 §8 |
+| 连接、服务端索引搜索 | D1 |
+| 投影适配、run 归属判定、工具声明提取 | D2/D12；本包只定义最小接口，见 §4.7 |
 | 附件暂存与提交 | D8 |
 | 任何写路径、缓存、索引、长期状态 | A 四条总规矩；本包只有一次性只读结果 |
 | commit、checkout、stage、pull 等 git 写操作 | 本领域明确不提供 |
@@ -39,6 +41,7 @@ internal/workspace/
 ├── dir.go            目录读取、条目类型、git 状态字段
 ├── preview.go        预览、编码探测、二进制识别、截断说明
 ├── search.go         一次性关键词扫描、上限与停止原因
+├── changes.go        工具结果声明 → 路径清单（工作区内/外、去重、排序、存在性）
 ├── git.go            git 只读状态、porcelain 解析、目录状态聚合
 ├── open.go           平台命令选择、子进程退出码
 └── *_test.go         临时目录与临时 git 仓库测试
@@ -58,8 +61,19 @@ func (w *Workspace) ListDir(rel string, opts ListOptions) (DirListing, error)
 func (w *Workspace) Preview(rel string, opts PreviewOptions) (Preview, error)
 func (w *Workspace) Search(rel string, opts SearchOptions) (SearchResult, error)
 func (w *Workspace) GitStatus(ctx context.Context) (GitStatus, error)
+func (w *Workspace) ReadRunChanges(ctx context.Context, source ChangeSource, sessionID, runID string) (RunChanges, error)
 func (w *Workspace) Open(rel string) (int, error)
 ```
+
+变更读取的注入接口只有一条方法：
+
+```go
+type ChangeSource interface {
+    ToolResultDeclarations(ctx context.Context, sessionID, runID string) ([]ToolResultDeclaration, error)
+}
+```
+
+`ToolResultDeclaration` 带 `ToolCallID`、`ToolName` 与 `Paths`；适配器由集成层实现，本包不导入投影内部。
 
 错误值：`ErrOutsideWorkspace`、`ErrPathNotExist`、`ErrNotDirectory`、`ErrNotRegularFile`、`ErrIsDirectory`、`ErrGitUnavailable`、`ErrUnsupportedPlatform`、`ErrOpenFailed`、`ErrEmptyQuery`、`ErrPreviewLimitTooLarge`。调用方按 `errors.Is` 分类，不用字符串匹配。
 
@@ -123,6 +137,32 @@ func (w *Workspace) Open(rel string) (int, error)
 
 测试：`TestOpenSuccess`、`TestOpenExitCode`、`TestOpenRejectsMissingAndOutside`、`TestOpenDirectory`、`TestOpenCommandFor`、`TestRunExternalCommand`。
 
+### 4.7 变更读取（本次运行）
+
+- 数据源只有注入的 `ChangeSource`：按会话与 run 返回每个工具结果的路径声明。适配器从投影的工具结果里取 `structuredContent.affectedPaths`、`write`/`edit` 声明的 `structuredContent.path` 与 `fileWritten` effect；本包不扫描工作区、不推断 diff、不读 git 历史、不执行工具。
+- source 为 nil 或声明为空时返回空清单，不把“没有声明”当成“没有改动”，也不据此扫描任何目录。
+- 每条声明：去首尾空白、展开 `~/` 与 `~\`、相对路径拼到工作区根、`Clean`，再解析已存在前缀的符号链接；空路径与解析后等于工作区根的路径丢弃。
+- 解析后在工作区内：`scope=workspace`，`path` 为 `/` 分隔的相对路径；在工作区外：`scope=external`，`path` 为绝对路径。两者都带解析后的 `absPath` 与 `exists`（`Stat` 成功即存在，声明删除的文件为 false）。
+- 按 `scope + path` 去重（同一路径的相对/绝对写法合并），工作区内的条目排在前，同类按路径字节序排序；超过 `MaxChangePaths=256` 时截断并显式返回 `Truncated=true` 与说明。
+- `coverage` 恒为 `tool_reports`：这是工具声明级的部分覆盖，不声称覆盖 exec、外部修改、未声明的写入或未产生声明的改动。
+- 不落盘、不缓存；一次调用一次结果。上下文取消在调用来源与遍历声明之间都会检查。
+
+接口形状（集成层适配，不导入投影）：
+
+```go
+type ToolResultDeclaration struct {
+    ToolCallID string
+    ToolName   string
+    Paths      []string
+}
+
+type ChangeSource interface {
+    ToolResultDeclarations(ctx context.Context, sessionID, runID string) ([]ToolResultDeclaration, error)
+}
+```
+
+测试：`TestReadRunChangesMergesAndClassifies`、`TestReadRunChangesEmptyAndNilSource`、`TestReadRunChangesSourceErrorAndCancel`、`TestReadRunChangesTruncates`、`TestReadRunChangesSkipsRootAndBlank`、`TestReadRunChangesHomeExpansion`、`TestReadRunChangesSymlinkEscape`。覆盖多工具结果合并、重复路径、工作区外路径、相对路径规范化、home 展开、符号链接越界、空声明不扫描与来源错误。
+
 ## 5. 默认上限
 
 | 项 | 默认 | 可调 | 超限表现 |
@@ -134,19 +174,24 @@ func (w *Workspace) Open(rel string) (int, error)
 | 单文件参与搜索 | 2 MiB（`DefaultMaxFileBytes`） | 同上 | 跳过并计入 `Skipped` |
 | 累计读取 | 32 MiB（`DefaultMaxScanBytes`） | 同上 | `StopReason=max-scan-bytes` |
 | 片段长度 | 200 字符（`DefaultSnippetRunes`） | 同上 | 以 `…` 结尾 |
+| 变更路径 | 256（`MaxChangePaths`） | 固定 | `Truncated=true` + 说明 |
 
 所有上限触发的“不完整”都在结果结构里显式标记，不静默截断。搜索的累计读取上限在达到后停止继续扫描，至少完成当前一份文件，因此累计值最多比上限多一份文件（且不超过单文件上限）。
 
 ## 6. 验收证据
 
-执行命令与本机结果（2026-11-10）：
+执行命令与本机结果（2026-11-11）：
 
 ```text
 $ go test ./internal/workspace -count=1
-ok   github.com/arcships/dimagent-mygo/internal/workspace   coverage: 84.3% of statements
+ok   github.com/arcships/dimagent-mygo/internal/workspace   coverage: 85.3% of statements
 
 $ go test -race ./internal/workspace -count=1
 ok   github.com/arcships/dimagent-mygo/internal/workspace
+
+$ go test ./...
+ok   github.com/arcships/dimagent-mygo/internal/workspace
+（其余包全部 ok）
 
 $ go vet ./...
 （无输出）
@@ -156,7 +201,7 @@ $ GOOS=linux go build ./internal/workspace
 （均无输出，跨平台编译通过）
 ```
 
-仓库级 `go test ./...` 在本领域完成时尚未全绿：失败项是 `internal/attachments` 的 `TestStageRepairsMissingBlobOnDuplicate`（D8 领域，非本领域改动），本领域包自身通过。该项由 D8 处理，组织 agent 需在合并验收时复核。
+仓库级 `go test ./...` 与 `go vet ./...` 在本领域完成后均为通过状态。
 
 需求到测试的对应：
 
@@ -165,7 +210,7 @@ $ GOOS=linux go build ./internal/workspace
 | ① 目录条目与 `ls -a` 一致 | `TestListDirEntries`（含隐藏文件、名称序、大小、类型） | 通过（集合一致；排序按字节序，见 §8） |
 | ② 内容读取字节与磁盘文件一致 | `TestPreviewUTF8`、`TestPreviewExactlyAtLimit`、`TestPreviewEncodings` | 通过 |
 | ③ 搜索不超上限、单次扫描、不生成索引 | `TestSearchLimits`、`TestSearchCreatesNoIndex` | 通过（服务端索引分支未接，见 §8） |
-| ④ 变更只含本次运行工具声明路径 | 未实现 | blocked：依赖 D1 的 run 工具路径事实 |
+| ④ 变更只含本次运行工具声明路径 | `TestReadRunChangesMergesAndClassifies`、`TestReadRunChangesEmptyAndNilSource`、`TestReadRunChangesSkipsRootAndBlank` | 包级通过；真实投影适配与 run 归属由 D12 接线，端到端待集成证据 |
 | ⑤ 外部打开退出码 0、路径不存在非 0 | `TestOpenSuccess`、`TestOpenExitCode`、`TestOpenRejectsMissingAndOutside` | 通过；不存在时返回 `-1` + 明确错误，不启动子进程 |
 
 测试全部使用 `t.TempDir()` 与临时 git 仓库；本机有 git 时执行 git 相关用例，无 git 时相关用例 `t.Skip`，不把跳过当通过。
@@ -184,7 +229,8 @@ $ GOOS=linux go build ./internal/workspace
 | 项 | 现状 | 处理 |
 |---|---|---|
 | 服务端索引搜索 | 未接；本版只做本机一次性扫描 | 服务端提供索引能力后由调用方优先走服务端；本包保持“用完即弃” |
-| 本次运行变更（`changes-*`） | 未实现 | blocked，依赖 D1 提供 run 工具声明路径；不自行 diff 猜测 |
+| 变更读取覆盖 | 只覆盖工具结果声明的路径，不覆盖 exec、外部修改与未声明写入；`coverage=tool_reports` | 产品基线即如此；不自行 diff、扫描或读 git 历史 |
+| 变更读取接线 | 投影适配器与 run 归属由集成层（D12）实现 | 本包只定义最小接口；端到端证据依赖真实投影与 daemon |
 | 编码支持 | UTF-8（含 BOM）、UTF-16LE/BE；UTF-32 明确不支持；GBK 等未识别编码按二进制返回原因 | 不猜测解码；需要时另行立需求并评估是否脱离标准库 |
 | 目录顺序 | Go 按文件名字节序 | 与 `ls` 在非 C locale 下的排序可能不同；集合一致 |
 | 搜索忽略规则 | 只跳过 `.git`，不读 `.gitignore` | 避免引入额外语义；确认需要后单独立项 |
@@ -197,10 +243,12 @@ $ GOOS=linux go build ./internal/workspace
 
 - A「工作区」一行：拥有“本机文件与仓库只读结果（用完即弃）”，无长期状态；本包只返回一次性结构，不持有跨调用状态；不调用其他领域。
 - A 四条总规矩：本领域不写事实、不提交意图、不显示未经确认的内容，也不参与界面临时状态。
-- 依赖方向：调用方（界面、附件暂存）调用本包；本包不反向调用界面、连接、会话或附件包。
+- 依赖方向：调用方（界面、附件暂存、集成层）调用本包；本包不反向调用界面、连接、会话或附件包，也不导入投影类型。
+- 变更读取只用注入的 `ChangeSource` 拿工具结果声明，不把“声明的路径”提升为服务端事实，也不在本地推导改动类型。
 
 ## 10. 变更记录
 
 | 日期 | 变更 | 原因 |
 |---|---|---|
 | 2026-11-10 | 第一版：路径规范化、目录读取 + git 状态、预览、搜索、git 只读、外部打开与测试 | 执行组织 agent 的 D7 实现任务 |
+| 2026-11-11 | 新增变更读取：工具结果声明 → 路径清单；补 `ChangeSource` 接口、上限与测试 | 补齐 R 块 11 的本次运行变更读取 |

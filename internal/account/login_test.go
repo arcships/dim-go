@@ -93,6 +93,17 @@ func TestLoginOpensBrowserReceivesCallbackAndRefreshes(t *testing.T) {
 	if len(completions) != 1 || completions[0].Code != "code-1" || completions[0].State != "state-1" {
 		t.Fatalf("完成交换的结果不符：%+v", completions)
 	}
+	if strings.TrimSpace(completions[0].CallbackURL) == "" ||
+		!strings.HasPrefix(completions[0].CallbackURL, redirects[0]) ||
+		!strings.Contains(completions[0].CallbackURL, "code=code-1") {
+		t.Fatalf("完成交换没有带上完整回调地址：%q", completions[0].CallbackURL)
+	}
+	if attempts := auth.attemptList(); len(attempts) != 1 || attempts[0] != "attempt-1" {
+		t.Fatalf("完成交换没有交回服务端尝试标识：%v", attempts)
+	}
+	if cancels := auth.cancelList(); len(cancels) != 0 {
+		t.Fatalf("成功的登录不应取消服务端尝试：%v", cancels)
+	}
 	if len(bodies) != 1 {
 		t.Fatalf("回调应答次数不符：%d", len(bodies))
 	}
@@ -126,6 +137,9 @@ func TestLoginTimeout(t *testing.T) {
 	}
 	if account.Status() != StatusSignedOut {
 		t.Fatalf("超时不应改变账号状态：%q", account.Status())
+	}
+	if cancels := auth.cancelList(); len(cancels) != 1 || cancels[0] != "attempt-1" {
+		t.Fatalf("超时后应交回服务端释放尝试：%v", cancels)
 	}
 }
 
@@ -228,9 +242,10 @@ func TestLoginCompletionFailure(t *testing.T) {
 
 // TestLoginCancel 确认取消登录会结束等待，并让登录尝试停在已取消。
 func TestLoginCancel(t *testing.T) {
+	auth := callbackAuth("code-1", "state-1", "state-1")
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
-		Auth:         callbackAuth("code-1", "state-1", "state-1"),
+		Auth:         auth,
 		Browser:      &stubBrowser{},
 		LoginTimeout: 5 * time.Second,
 	})
@@ -253,6 +268,9 @@ func TestLoginCancel(t *testing.T) {
 	}
 	if state := account.LoginState(); state.Phase != LoginCanceled {
 		t.Fatalf("登录尝试状态不符：%+v", state)
+	}
+	if cancels := auth.cancelList(); len(cancels) != 1 || cancels[0] != "attempt-1" {
+		t.Fatalf("取消后应交回服务端释放尝试：%v", cancels)
 	}
 }
 

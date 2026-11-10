@@ -162,9 +162,12 @@ type stubAuth struct {
 	onBegin     func(redirectURI string) AuthorizationRequest
 	beginErr    error
 	completeErr error
+	cancelErr   error
 	onComplete  func(AuthorizationResult)
 	redirects   []string
 	completes   []AuthorizationResult
+	attempts    []string
+	cancels     []string
 	begins      int
 }
 
@@ -184,9 +187,10 @@ func (a *stubAuth) BeginAuthorization(ctx context.Context, redirectURI string) (
 	return AuthorizationRequest{}, nil
 }
 
-func (a *stubAuth) CompleteAuthorization(ctx context.Context, result AuthorizationResult) error {
+func (a *stubAuth) CompleteAuthorization(ctx context.Context, attempt string, result AuthorizationResult) error {
 	a.mu.Lock()
 	a.completes = append(a.completes, result)
+	a.attempts = append(a.attempts, attempt)
 	completeErr := a.completeErr
 	onComplete := a.onComplete
 	a.mu.Unlock()
@@ -194,6 +198,27 @@ func (a *stubAuth) CompleteAuthorization(ctx context.Context, result Authorizati
 		onComplete(result)
 	}
 	return completeErr
+}
+
+// CancelAuthorization 实现可选的服务端尝试取消；记录交回的尝试标识。
+func (a *stubAuth) CancelAuthorization(ctx context.Context, attempt string) error {
+	a.mu.Lock()
+	a.cancels = append(a.cancels, attempt)
+	cancelErr := a.cancelErr
+	a.mu.Unlock()
+	return cancelErr
+}
+
+func (a *stubAuth) cancelList() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.cancels...)
+}
+
+func (a *stubAuth) attemptList() []string {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return append([]string(nil), a.attempts...)
 }
 
 func (a *stubAuth) completeList() []AuthorizationResult {
@@ -227,8 +252,9 @@ func callbackAuth(code, state, callbackState string) *stubAuth {
 			query.Set("state", callbackState)
 		}
 		return AuthorizationRequest{
-			URL:   redirectURI + "?" + query.Encode(),
-			State: state,
+			URL:     redirectURI + "?" + query.Encode(),
+			State:   state,
+			Attempt: "attempt-1",
 		}
 	}
 	return auth

@@ -38,6 +38,15 @@ type Event struct {
 	SessionNotice     *protocol.SessionNotice
 	// Title 只在 session.notice 是 SessionStore 的标题变更时非空。
 	Title *protocol.TitleChanged
+	// Wakeup 只在 session.notice 是 Scheduler 的唤醒变化时非空。
+	Wakeup *protocol.WakeupNoticeData
+	// PermissionChanged 只在 session.event 是 permission/changed 时非空。
+	PermissionChanged *protocol.PermissionChanged
+	// Progress 是管理方法回执前的进度通知（按 id 与请求关联）。
+	Progress *protocol.ManagementProgressNotice
+	// ModalityEvent / ModalityEnded 是实时模态通知。
+	ModalityEvent *protocol.ModalityRealtimeEventNotice
+	ModalityEnded *protocol.ModalityRealtimeEndedNotice
 	// DecodeErr 表示已识别方法的字段不合法；上层应继续按 Params 处理。
 	DecodeErr error
 }

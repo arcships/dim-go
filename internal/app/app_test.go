@@ -72,6 +72,8 @@ type assembly struct {
 type assemblyOptions struct {
 	// session 是订阅阶段要打开的会话；空表示由订阅阶段读目录决定。
 	session string
+	// workspaceRoot 是工作区根；空表示不提供工作区能力。
+	workspaceRoot string
 	// diag 非空时收集进程级诊断。
 	diag *bytes.Buffer
 }
@@ -104,6 +106,7 @@ func buildAssembly(t *testing.T, server *fakeappserver.Server, options assemblyO
 		DataDir:          server.DataDir(),
 		ClientName:       "dimagent-mygo-test",
 		InitialSessionID: options.session,
+		WorkspaceRoot:    options.workspaceRoot,
 		Version:          testVersion,
 		SendTimeout:      2 * time.Second,
 		Verify:           write.VerifyPolicy{MaxAttempts: 1, Interval: time.Millisecond, Timeout: time.Second},

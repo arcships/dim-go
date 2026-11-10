@@ -168,8 +168,9 @@ func (h *wireHarness) ReadModels(ctx context.Context) ([]Model, error) {
 // 回调地址」的授权地址；服务端确实收到了回调地址，这一点由请求参数核对。
 func (h *wireHarness) BeginAuthorization(ctx context.Context, redirectURI string) (AuthorizationRequest, error) {
 	var result struct {
-		URL   string `json:"url"`
-		State string `json:"state"`
+		URL     string `json:"url"`
+		State   string `json:"state"`
+		Attempt string `json:"attemptId"`
 	}
 	if err := h.client.CallInto(ctx, "account.login.begin", map[string]any{"redirectUri": redirectURI}, &result); err != nil {
 		return AuthorizationRequest{}, err
@@ -179,16 +180,28 @@ func (h *wireHarness) BeginAuthorization(ctx context.Context, redirectURI string
 		query.Set("state", result.State)
 	}
 	return AuthorizationRequest{
-		URL:   redirectURI + "?" + query.Encode(),
-		State: result.State,
+		URL:     redirectURI + "?" + query.Encode(),
+		State:   result.State,
+		Attempt: result.Attempt,
 	}, nil
 }
 
 // CompleteAuthorization 用回调结果调用服务端完成交换。
-func (h *wireHarness) CompleteAuthorization(ctx context.Context, result AuthorizationResult) error {
+func (h *wireHarness) CompleteAuthorization(ctx context.Context, attempt string, result AuthorizationResult) error {
 	_, err := h.client.Call(ctx, "account.login.complete", map[string]any{
-		"code":  result.Code,
-		"state": result.State,
+		"attemptId":   attempt,
+		"callbackUrl": result.CallbackURL,
+		"code":        result.Code,
+		"state":       result.State,
+	})
+	return err
+}
+
+// CancelAuthorization 取消服务端的登录尝试。
+func (h *wireHarness) CancelAuthorization(ctx context.Context, attempt string) error {
+	_, err := h.client.Call(ctx, "account.login.cancel", map[string]any{
+		"providerId": "dimcode-api-oauth",
+		"attemptId":  attempt,
 	})
 	return err
 }
@@ -354,8 +367,9 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	server, client, _ := startAccountServer(t, fakeappserver.Script{
 		Replies: []fakeappserver.Reply{
 			{Method: "account.login.begin", Result: map[string]any{
-				"url":   "https://provider.example/authorize",
-				"state": "wire-state",
+				"url":       "https://provider.example/authorize",
+				"state":     "wire-state",
+				"attemptId": "attempt-wire",
 			}},
 			{Method: "account.login.complete", Result: map[string]any{"ok": true}},
 			{Method: "account.status", Result: map[string]any{

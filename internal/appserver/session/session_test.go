@@ -658,6 +658,92 @@ func TestRecognizedNotificationsAreTyped(t *testing.T) {
 	}
 }
 
+func TestManagementNotificationsAreTyped(t *testing.T) {
+	sessionID := "s-8"
+	script := streamScript{
+		sessionID: sessionID,
+		head:      0,
+		onAttach: func(fc *fakeConn) {
+			fc.notify("session.event", map[string]any{
+				"sessionId": sessionID,
+				"branchId":  "main",
+				"event": map[string]any{
+					"id": "e-1", "sequence": 1, "create_at": 1,
+					"type": "permission", "name": "changed",
+					"data": map[string]any{"policy": map[string]any{
+						"preset": "read-only", "allowedTools": []any{}, "disallowedTools": []any{},
+					}},
+				},
+			})
+			fc.notify("session.notice", map[string]any{
+				"sessionId": sessionID, "source": "Scheduler", "kind": "wakeup",
+				"data": map[string]any{"branchId": "main", "wakeupId": "w-1", "state": "scheduled"},
+			})
+			fc.notify("management.progress", map[string]any{
+				"id": 9, "method": "plugin.install", "data": map[string]any{"phase": "fetch"},
+			})
+			fc.notify("modality.realtime.event", map[string]any{
+				"connectionId": "c-1", "event": map[string]any{"kind": "text"},
+			})
+			fc.notify("modality.realtime.ended", map[string]any{
+				"connectionId": "c-1", "reason": "closed",
+			})
+		},
+	}.script()
+	opener := &fakeOpener{scripts: []func(fc *fakeConn){script}}
+	manager, err := session.NewManager(session.Config{Opener: opener})
+	if err != nil {
+		t.Fatalf("manager: %v", err)
+	}
+	defer manager.Close()
+
+	events := make(chan session.Event, 8)
+	_, lease, err := manager.Acquire(context.Background(), sessionID, session.Listener{
+		OnEvent: func(event session.Event) { events <- event },
+	})
+	if err != nil {
+		t.Fatalf("acquire: %v", err)
+	}
+	defer lease.Release()
+
+	var collected []session.Event
+	for len(collected) < 5 {
+		select {
+		case event := <-events:
+			collected = append(collected, event)
+		case <-time.After(2 * time.Second):
+			t.Fatalf("missing notifications, got %d", len(collected))
+		}
+	}
+	find := func(method string) session.Event {
+		for _, event := range collected {
+			if event.Method == method {
+				return event
+			}
+		}
+		t.Fatalf("missing %s", method)
+		return session.Event{}
+	}
+	if permission := find("session.event"); permission.PermissionChanged == nil ||
+		permission.PermissionChanged.Policy.Preset != protocol.PermissionPresetReadOnly {
+		t.Fatalf("permission.changed event was not typed: %+v", permission)
+	}
+	if notice := find("session.notice"); notice.Wakeup == nil || notice.Wakeup.WakeupID != "w-1" {
+		t.Fatalf("wakeup notice was not typed: %+v", notice)
+	}
+	progress := find("management.progress")
+	if progress.Progress == nil || progress.Progress.Method != "plugin.install" {
+		t.Fatalf("management progress was not typed: %+v", progress)
+	}
+	if realtime := find("modality.realtime.event"); realtime.ModalityEvent == nil ||
+		realtime.ModalityEvent.ConnectionID != "c-1" {
+		t.Fatalf("realtime event was not typed: %+v", realtime)
+	}
+	if ended := find("modality.realtime.ended"); ended.ModalityEnded == nil || ended.ModalityEnded.Reason != "closed" {
+		t.Fatalf("realtime ended was not typed: %+v", ended)
+	}
+}
+
 func TestUnknownNotificationIsPreserved(t *testing.T) {
 	sessionID := "s-5"
 	script := streamScript{

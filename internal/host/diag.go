@@ -53,6 +53,16 @@ const (
 	EventShutdownDone Event = "shutdown.done"
 	// EventConnectionChanged 表示观察到的连接状态变化（状态本身归连接领域）。
 	EventConnectionChanged Event = "connection.changed"
+	// EventUpdateCheck 表示一次版本检查结束（成功或失败都按已是最新呈现）。
+	EventUpdateCheck Event = "update.check"
+	// EventUpdateDownload 表示一次更新下载结束。
+	EventUpdateDownload Event = "update.download"
+	// EventUpdateSwitch 表示一次更新切换结束。
+	EventUpdateSwitch Event = "update.switch"
+	// EventUpdateSwitchDeferred 表示有会话未收尾，切换被推迟。
+	EventUpdateSwitchDeferred Event = "update.switch_deferred"
+	// EventUpdateTransitionRejected 表示一次不合法的更新状态迁移已被丢弃。
+	EventUpdateTransitionRejected Event = "update.transition_rejected"
 )
 
 // ErrorClass 是诊断里的错误分类，取值来自连接领域的五种类别加一个兜底。
@@ -105,6 +115,8 @@ const (
 	fieldTimeout        = "timeout_ms"
 	fieldArgs           = "args"
 	fieldDropped        = "dropped"
+	fieldUpdateState    = "update_state"
+	fieldUpdateVersion  = "update_version"
 )
 
 // fieldKeys 是写入端允许出现的全部字段名；测试据此校验输出里没有越界键。
@@ -122,6 +134,8 @@ var fieldKeys = map[string]bool{
 	fieldTimeout:        true,
 	fieldArgs:           true,
 	fieldDropped:        true,
+	fieldUpdateState:    true,
+	fieldUpdateVersion:  true,
 }
 
 // record 是落盘的一行诊断。字段集合就是白名单，没有自由文本字段。
@@ -142,6 +156,8 @@ type record struct {
 	TimeoutMS      *int64 `json:"timeout_ms,omitempty"`
 	Args           *int   `json:"args,omitempty"`
 	Dropped        *int   `json:"dropped,omitempty"`
+	UpdateState    string `json:"update_state,omitempty"`
+	UpdateVersion  string `json:"update_version,omitempty"`
 }
 
 // valueKind 是字段取值的形状。形状决定校验方式，形状之外的字符串进不来。
@@ -157,6 +173,8 @@ const (
 	kindVersion
 	kindMillis
 	kindCount
+	kindUpdateState
+	kindUpdateVersion
 )
 
 // Field 是诊断记录里的一个字段。它只能用本包的构造函数生成：
@@ -238,6 +256,19 @@ func ArgsField(n int) Field {
 	return Field{key: fieldArgs, kind: kindCount, num: int64(n)}
 }
 
+// UpdateStateField 写入更新状态。
+func UpdateStateField(state UpdateState) Field {
+	return Field{key: fieldUpdateState, kind: kindUpdateState, text: string(state)}
+}
+
+// UpdateVersionField 写入版本源给出的新版本号；不合版本形状时写占位符。
+func UpdateVersionField(version string) Field {
+	if !versionPattern.MatchString(version) {
+		version = redacted
+	}
+	return Field{key: fieldUpdateVersion, kind: kindUpdateVersion, text: version}
+}
+
 // DroppedField 写入本次被丢弃的字段个数。
 func DroppedField(n int) Field {
 	if n < 0 {
@@ -260,9 +291,10 @@ var (
 )
 
 var (
-	knownStages   = map[string]bool{}
-	knownPhases   = map[string]bool{}
-	knownOutcomes = map[string]bool{
+	knownStages       = map[string]bool{}
+	knownPhases       = map[string]bool{}
+	knownUpdateStates = map[string]bool{}
+	knownOutcomes     = map[string]bool{
 		string(OutcomeOK):      true,
 		string(OutcomeTimeout): true,
 		string(OutcomeFailed):  true,
@@ -284,6 +316,9 @@ func init() {
 	}
 	for _, phase := range ShutdownPhases() {
 		knownPhases[string(phase)] = true
+	}
+	for _, state := range UpdateStates() {
+		knownUpdateStates[string(state)] = true
 	}
 }
 
@@ -328,8 +363,10 @@ func (f Field) valid() bool {
 		return knownClasses[ErrorClass(f.text)]
 	case kindBool:
 		return true
-	case kindVersion:
+	case kindVersion, kindUpdateVersion:
 		return f.text == redacted || versionPattern.MatchString(f.text)
+	case kindUpdateState:
+		return knownUpdateStates[f.text]
 	case kindMillis, kindCount:
 		return f.num >= 0
 	default:
@@ -375,6 +412,10 @@ func apply(rec *record, f Field) bool {
 	case fieldDropped:
 		v := int(f.num)
 		rec.Dropped = &v
+	case fieldUpdateState:
+		rec.UpdateState = f.text
+	case fieldUpdateVersion:
+		rec.UpdateVersion = f.text
 	default:
 		return false
 	}

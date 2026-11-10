@@ -14,14 +14,18 @@ import (
 )
 
 const (
-	// callbackPath 是环回回调的唯一路径。浏览器被授权服务端重定向回来后只会命中它。
-	callbackPath = "/account/callback"
+	// callbackPath 是环回回调的唯一路径。真实服务端只接受
+	// http://127.0.0.1:<port>/auth/callback（或 localhost/::1 同路径）作为
+	// 浏览器登录回调，因此这里固定成它。
+	callbackPath = "/auth/callback"
 	// DefaultLoginTimeout 是一次登录等待回调的默认上限。
 	DefaultLoginTimeout = 5 * time.Minute
 	// callbackReadHeaderTimeout 限制回调请求头的读取时间，避免被慢连接占住。
 	callbackReadHeaderTimeout = 5 * time.Second
 	// callbackShutdownTimeout 是回调应答写出后关闭监听的上限。
 	callbackShutdownTimeout = 2 * time.Second
+	// authorizationCancelTimeout 是取消服务端登录尝试的上限；失败不影响本地结果。
+	authorizationCancelTimeout = 3 * time.Second
 )
 
 // AuthorizationRequest 是服务端给出的一次授权请求。客户端只打开 URL，不解释、
@@ -31,6 +35,9 @@ type AuthorizationRequest struct {
 	URL string
 	// State 是服务端给出的回调校验值；空表示服务端不校验。
 	State string
+	// Attempt 是服务端给出的一次登录尝试标识；本包原样交回完成或取消。
+	// 空表示服务端不需要按尝试区分。
+	Attempt string
 }
 
 // AuthorizationResult 是环回回调收到的结果。Code 是一次性授权码，只在完成交换时
@@ -40,6 +47,9 @@ type AuthorizationResult struct {
 	State            string
 	Error            string
 	ErrorDescription string
+	// CallbackURL 是环回回调收到的完整地址（含查询串）。服务端按它完成交换；
+	// 它包含一次性授权码，本包不保存、不记录。
+	CallbackURL string
 }
 
 // AuthorizationSource 是浏览器登录的服务端侧接口：发起授权、用回调结果完成交换。
@@ -47,8 +57,15 @@ type AuthorizationResult struct {
 type AuthorizationSource interface {
 	// BeginAuthorization 用客户端生成的环回回调地址换一次授权请求。
 	BeginAuthorization(ctx context.Context, redirectURI string) (AuthorizationRequest, error)
-	// CompleteAuthorization 用回调结果完成交换。实现方只发一次，不自行重试。
-	CompleteAuthorization(ctx context.Context, result AuthorizationResult) error
+	// CompleteAuthorization 用回调结果与服务端的尝试标识完成交换。实现方只发
+	// 一次，不自行重试。
+	CompleteAuthorization(ctx context.Context, attempt string, result AuthorizationResult) error
+}
+
+// AuthorizationCanceler 是可选能力：取消服务端尚未结束的一次登录尝试。真实
+// 服务端按尝试标识取消；不实现时本包只结束本地等待。
+type AuthorizationCanceler interface {
+	CancelAuthorization(ctx context.Context, attempt string) error
 }
 
 // Browser 打开系统浏览器。只在用户显式发起登录时调用。
@@ -102,6 +119,20 @@ func (a *Account) Login(ctx context.Context) (Snapshot, error) {
 		a.advanceLogin(loginEventFailed, err.Error())
 		return a.Snapshot(), fmt.Errorf("%w: %v", ErrLoginRequest, err)
 	}
+	// 未完成的尝试交回服务端释放；失败不影响本地的失败原因。
+	attemptDone := false
+	defer func() {
+		if attemptDone || request.Attempt == "" {
+			return
+		}
+		canceler, ok := a.cfg.Auth.(AuthorizationCanceler)
+		if !ok {
+			return
+		}
+		cancelCtx, cancelFn := context.WithTimeout(context.Background(), authorizationCancelTimeout)
+		_ = canceler.CancelAuthorization(cancelCtx, request.Attempt)
+		cancelFn()
+	}()
 	if strings.TrimSpace(request.URL) == "" {
 		a.advanceLogin(loginEventFailed, "授权请求缺少地址")
 		return a.Snapshot(), fmt.Errorf("%w: 授权请求缺少地址", ErrLoginRequest)
@@ -139,14 +170,19 @@ func (a *Account) Login(ctx context.Context) (Snapshot, error) {
 		return a.Snapshot(), ErrLoginIncomplete
 	}
 
-	completion := AuthorizationResult{Code: callback.Code, State: callback.State}
+	completion := AuthorizationResult{
+		Code:        callback.Code,
+		State:       callback.State,
+		CallbackURL: callback.CallbackURL,
+	}
 	callback.Code = ""
-	err = a.cfg.Auth.CompleteAuthorization(attemptCtx, completion)
+	err = a.cfg.Auth.CompleteAuthorization(attemptCtx, request.Attempt, completion)
 	completion.Code = ""
 	if err != nil {
 		a.advanceLogin(loginEventFailed, err.Error())
 		return a.Snapshot(), fmt.Errorf("%w: %v", ErrLoginCompletion, err)
 	}
+	attemptDone = true
 	a.advanceLogin(loginEventCompleted, "")
 
 	snapshot, err := a.Refresh(ctx)
@@ -215,6 +251,7 @@ func callbackHandler(callbacks chan<- AuthorizationResult) http.Handler {
 			State:            query.Get("state"),
 			Error:            query.Get("error"),
 			ErrorDescription: query.Get("error_description"),
+			CallbackURL:      "http://" + r.Host + r.URL.RequestURI(),
 		}
 		message := "登录完成，可以回到客户端。"
 		if result.Error != "" {

@@ -8,11 +8,15 @@ import (
 
 // 通知方法名。
 const (
-	MethodApprovalRequest   = "approval.request"
-	MethodApprovalCancelled = "approval.cancelled"
-	MethodApprovalResolved  = "approval.resolved"
-	MethodSessionNotice     = "session.notice"
-	MethodSessionClosed     = "session.closed"
+	MethodSessionEvent          = "session.event"
+	MethodManagementProgress    = "management.progress"
+	MethodModalityRealtimeEvent = "modality.realtime.event"
+	MethodModalityRealtimeEnded = "modality.realtime.ended"
+	MethodApprovalRequest       = "approval.request"
+	MethodApprovalCancelled     = "approval.cancelled"
+	MethodApprovalResolved      = "approval.resolved"
+	MethodSessionNotice         = "session.notice"
+	MethodSessionClosed         = "session.closed"
 )
 
 // ApprovalDecision 是审批的最终决定，与服务端 wire 一致。

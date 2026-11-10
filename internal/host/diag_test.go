@@ -24,6 +24,8 @@ func TestRecorderOnlyWritesWhitelistFields(t *testing.T) {
 		TimeoutField(3*time.Second),
 		ArgsField(2),
 		DroppedField(0),
+		UpdateStateField(UpdateAvailable),
+		UpdateVersionField("2.1.0"),
 	)
 	if err := diag.Flush(); err != nil {
 		t.Fatalf("Flush: %v", err)
@@ -61,6 +63,8 @@ func TestRecorderOnlyWritesWhitelistFields(t *testing.T) {
 		"timeout_ms":     float64(3000),
 		"args":           float64(2),
 		"dropped":        float64(0),
+		"update_state":   "available",
+		"update_version": "2.1.0",
 	}
 	for key, want := range checks {
 		if want == nil {
@@ -149,6 +153,8 @@ func TestRecorderEveryDeclaredEventMatchesShape(t *testing.T) {
 		EventInstanceStaleRemoved, EventActivationDropped, EventStartupStage,
 		EventStartupFailed, EventStartupReady, EventStageRejected, EventShutdownBegin,
 		EventShutdownPhase, EventShutdownTimeout, EventShutdownDone, EventConnectionChanged,
+		EventUpdateCheck, EventUpdateDownload, EventUpdateSwitch, EventUpdateSwitchDeferred,
+		EventUpdateTransitionRejected,
 	}
 	for _, event := range events {
 		if !eventPattern.MatchString(string(event)) {
