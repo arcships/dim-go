@@ -76,7 +76,7 @@ UI：聊天壳、空态、composer、顶栏、侧栏、设置路由、搜索浮�
 
 | 项 | 缺口 | 完成条件 | 依赖 |
 |---|---|---|---|
-| F6 流式 | mock 瞬回 | 真实模型/慢速 fixture：token 增量 + 截图/录屏 | 真实模型/上游 |
+| F6 流式 | ✅ 已通过（L4：真实 provider 增量帧 122→250→382 chars） | token 增量 + 截图/录屏 | — |
 | F7 stop | ✅ 已通过（L4：真实 provider 挂起时 Stop → stop.accepted） | 运行态 Stop → 状态收敛 L4 | — |
 | F8 approval | mock 无审批 | 审批 → Approve/Deny → 行消失 | 同上 |
 | F9 lookup | 只显示 unknown | lookup 结果（accepted/unknown）呈现 | P3 |

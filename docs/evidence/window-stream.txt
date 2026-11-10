@@ -1,0 +1,3 @@
+capture	docs/evidence/window-stream-1.png, window-stream-3.png, window-stream-6.png
+note	real provider Qwen3.6-27B streaming: assistant text length 122 -> 250 -> 382 chars across 1s/3s/6s frames
+driver	scripts/ax/axdo.swift + DIMAGENT_MODEL_CONFIG provider + screencapture -l

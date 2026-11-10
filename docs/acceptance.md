@@ -39,7 +39,7 @@ Last updated: 2026-11-09
 | F3 | session 创建 | 真实窗口点击 → 列表出现新 session（App Server 返回） | L4：窗口点击 `New session`，`Sessions 2` 且新会话被选中（`window-create-session.png`） | **已通过（L4）** |
 | F4 | session 切换 | 真实窗口切换 + 历史正确 | L4：窗口点击第二个会话，标题与首屏 history 均切换（`window-switch-session.png`） | **已通过（L4）** |
 | F5 | 首屏 history | 真实 daemon 内容在窗口渲染 | L4：`window-connected.png`（seed 会话的 user/assistant 行，`61a52a7`） | **已通过（L4）** |
-| F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L4：窗口输入并点击 Send，user 行与 assistant 行出现（`window-submit.png`）；增量流式未单独观察 | 未通过 |
+| F6 | submit / 流式更新 | 真实窗口输入 → 发送 → 增量出现 | L4：真实 provider（Qwen3.6-27B）发送后 assistant 文本 122→250→382 chars 增量出现（`window-stream-1/3/6.png`）；mock 下 user/assistant 行也已有证据 | **已通过（L4）** |
 | F7 | stop | 真实窗口停止 → 状态收敛 | L4：真实 provider 运行中点击 Stop → `stop.accepted`、Stop 消失、运行终止（`window-stop.png`） | **已通过（L4）** |
 | F8 | approval 决策 | 真实窗口点击 Approve/Deny → 行消失、无重复发送 | headless + fake-server（bridge 单测）；无 L3/L4 审批流证据 | 未通过 |
 | F9 | unknown-result 读回 | submit 超时/断线 → `input_lookup` 结果可见 | L4：daemon 在 Send 前后被停/杀，窗口显示 `Submission result unknown`、保留草稿、提示 Reconnect，不重发（`window-unknown-result.png`）；`input_lookup` 的 accepted/unknown 结果展示仍缺 | 未通过 |
