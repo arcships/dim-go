@@ -217,7 +217,7 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 | `wakeup.cancel` | `session.wakeup.cancel` | `{sessionId,wakeupId}`；需要会话标识 |
 
 - `DecodeManagementWrite` 同时接受真实方法名（`skills.*`、`hooks.save`、`mcp.*`、`plugin.enable/disable`、`session.wakeup.cancel`），并把它们归一到上面的判别名与发送方载荷；旧判别名原样通过。
-- `HookDocument` 与 `ToolServerConfiguration` 生成 alpha.21 实际接受的文档形状；集成层应直接使用这两个构造函数，避免再手写字段。
+- `HookDocument` 与 `ToolServerConfiguration` 生成 alpha.21 实际接受的文档形状；集成层已改用这两个构造函数，`mcp.remove` 也带上版本前置条件。
 - 幂等键由「判别名 + 载荷摘要」生成。数据型写入成功后同一内容不重复；项目钩子启停、技能刷新、MCP 认证这类命令型操作在成功后再次调用会换新键，保证旧版本冲突与重复认证尝试都能真实发出。上一次明确失败或确认未发生时同样换新键。
 - 写成功后不自动重读清单：管理面事实只来自读取与变更通知；调用方显式读取或等待通知。
 - 状态以 `write.IntentView.Status` 为准；本包不自行重试、不自动补发。
@@ -294,6 +294,9 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 | R 块 8 插件启停、更新 | `plugin.enable`/`plugin.disable`/`plugin.update` 写意图 | 插件运行进程与日志 |
 | R 块 8 技能安装与启停 | `skills.catalog`、`skills.install`、`skills.set_enabled` | 技能内容执行 |
 | R 块 8 钩子写入范围 | `hooks.catalog` 读取；用户来源 `hooks.save`，其余来源零请求 | 钩子执行与审批 |
+| 夜间授权第 13 项 钩子启停 | `hooks.set_enabled` 项目作用域启停、读回与冲突 | 钩子执行与审批 |
+| 夜间授权第 14 项 技能刷新 | `skills.refresh` 版本观察；`skills.reload_catalog` 能力缺失零请求 | 技能内容执行 |
+| 夜间授权第 12 项 MCP 认证 | `mcp.auth.start/complete/cancel/logout`、hello 门禁与敏感输入不落日志 | 真实 OAuth 认证服务器 |
 | R 块 8 MCP 增删改与探测 | `mcp.catalog`、`mcp.save`、`mcp.remove`、显式 `mcp.test` | 外部进程连接实现 |
 | R 块 8 导入预览与按勾选写入 | `mcp.import.preview`、逐条 `mcp.import.apply` | 配置文件解析 |
 | R 块 9 计划任务列表与变更 | `schedule.list` + 事件后重读一次 | 任务执行、补跑、启停 |
@@ -521,9 +524,9 @@ mcp.auth.logout: status=failed reason=mcp_auth_unsupported
 13. **唤醒过滤**：读数过滤 `cancelled`/`expired`，保留 `scheduled`/`fired`；历史状态仍可从写回执与通知观察。
 14. **工作流无运行时**：类型保留，alpha.21 下任何工作流读取/启动/停止都报能力缺失且零请求。
 15. **真实安装未闭环**：插件/技能安装只在 fakeappserver 与单元测试里验证；真实服务端只验证启停。
-16. **mcp.save 原始配置**：`ToolServerConfiguration` 生成最小合法文档并支持传入原始 `Configuration`；D12 发送方尚未改用该构造函数，仍会无条件写空 `url`，真实 MCP 保存需 D12 同步。
+16. **mcp.save 原始配置**：`ToolServerConfiguration` 生成最小合法文档并支持传入原始 `Configuration`；原始配置文档的完整透传尚未在真实服务端验证。
 17. **冲突表达**：hooks 版本冲突体现为 `write.IntentView.Status=failed` 且 `Reason` 含 `hooks_conflict`，没有单独的错误哨兵；调用方按状态与原因处理。
-18. **D12 发送方待同步**：本包已提供 `HookDocument` 与 `ToolServerConfiguration`；D12 当前仍手写扁平钩子文档与带空 `url` 的 MCP 文档，真实集成写入前必须改用这两个构造函数。新增的 `hooks.set_enabled`、`skills.refresh/reload_catalog`、`mcp.auth.*` 写意图也需要 D12 映射。
+18. **D12 新增写意图待接线**：集成层已改用 `HookDocument` 与 `ToolServerConfiguration`，`mcp.remove` 已带版本前置条件；新增的 `hooks.set_enabled`、`skills.refresh/reload_catalog`、`mcp.auth.*` 写意图仍需 D12 映射。
 19. **hello 门禁需集成层接线**：`Config.Features` 为 nil 时不做前置门禁；D12 必须把 `*daemon.Connection` 传进 `Features`，并实现 `ProjectHooks` 读取方，项目钩子与新增能力才会按 hello 门禁。
 20. **认证成功未验证**：MCP 认证只验证方法接入、能力门禁与无认证服务器错误；成功换取凭据需要真实 OAuth 认证服务器，`clientSecret` 与回调 URL 属敏感输入，日志不得记录。
 21. **skills.reload_catalog 不可用**：alpha.21 hello 未声明且调用 unknown_method；本版只保留能力缺失零请求的入口。
@@ -535,7 +538,7 @@ mcp.auth.logout: status=failed reason=mcp_auth_unsupported
 2. 补 `mcp.import.preview/apply`、HTTP/SSE 与鉴权 MCP 服务器的真实闭环。
 3. 用真实调度器补 `schedule.watch` → `management.progress` 的通知跟随证据。
 4. 补真实插件/技能安装夹具，验证安装参数与回执闭环。
-5. 推动 D12 改用 `HookDocument` 与 `ToolServerConfiguration`、接入 `Features`/`ProjectHooks`，并映射新增写意图。
+5. 推动 D12 接入 `Features`/`ProjectHooks` 与 `SkillCatalogReader`，并映射新增写意图。
 6. 准备真实 OAuth MCP 认证服务器，补 `mcp.auth.start/complete/cancel/logout` 成功链路与凭据不落日志的证据。
 7. 评估列表分页与按能力分锁；当前一页读取足够第一版。
 8. 与 D11a 对齐运行组件能力缺失的表达，避免两处对 `runtime.*` 给出不同结论。

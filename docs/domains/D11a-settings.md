@@ -56,7 +56,7 @@ Owner: D11a 设置与运行环境领域
 
 **验收**
 
-- 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。
+- 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64）。
 - 本领域：104 个顶层测试、53 个子测试，共 157 个通过；语句覆盖率 82.1%。
 - 真实模型：`scripts/verify-real-model.sh --fixture /tmp/dimagent-real-model` 通过，观察到真实工具调用与工具结果（§6.5）。
 - 真实模态：`scripts/verify-modality.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server --image /tmp/dimagent-modality-ocr.png` 通过；OCR 任务 `queued → running → succeeded`，结果分页读完；取消 `queued → cancelled`；实时因 adapter 不可用标 blocked（§6.6）。
@@ -599,6 +599,10 @@ type CollaborationModelPolicy struct {
 | `ErrScopeNotAllowed` / `ErrProjectNotAuthorized` / `ErrUserOnlySetting` | 作用域或项目作用域的写入限制不成立 | 修正作用域或改用用户作用域 |
 | `ErrRevisionMissing` / `ErrRevisionConflict` | 缺版本前置条件或版本已变 | 重新读取后再决定是否写入 |
 | `ErrSelectionUnavailable` | 未登录、没有可用模型或目标模型不可选 | 明说原因，不猜默认值 |
+| `ErrCollaborationConflict` / `ErrCollaborationWriteFailed` | 协作策略版本冲突或写入失败 | 重新读取 revision 后再决定 |
+| `ErrInvalidCollaborationRequest` / `ErrMalformedCollaboration` | 协作策略请求或事实不合法 | 修正请求；不采用半份 |
+| `ErrAgentConflict` / `ErrAgentWriteFailed` | 当前 agent 已变或写入失败 | 重新读取当前 agent 后再决定 |
+| `ErrInvalidAgentRequest` / `ErrMalformedAgent` | agent 请求或事实不合法 | 修正请求；不采用半份 |
 | `ErrInvalidModalityRequest` | 模态任务/实时参数结构不合法 | 修正请求，不发请求 |
 | `ErrRealtimeNotOpen` | 本地没有该连接或已结束 | 重新打开或刷新连接状态 |
 | `ErrTaskSubmitFailed` / `ErrTaskCancelFailed` / `ErrTaskReadFailed` / `ErrTaskListFailed` / `ErrTaskResultFailed` | 任务写入或会话读取失败 | 读原因后由调用方决定是否重试 |
@@ -608,7 +612,7 @@ type CollaborationModelPolicy struct {
 | `ErrMalformedWriteResult` | 写入成功回执不是可采用的文档或缺少资源标识 | 保留原状态，由调用方重新读取 |
 | `ErrWriteUnavailable` | 没有写登记 | 集成层补齐写登记后重试动作 |
 
-能力名常量：`FeatureSettingsSources`、`FeatureSettingsProjects`、`FeatureSettingsRead`、`FeatureSettingsUpdate`、`FeatureModelProviders`、`FeatureModelSelection`、`FeatureStorageReport`、`FeatureRuntimeList`、`FeatureRuntimeInstall`、`FeatureModalityCapabilities`。会话模态方法名常量：`ModalityMethodTaskSubmit`、`ModalityMethodTaskStatus`、`ModalityMethodTaskList`、`ModalityMethodTaskCancel`、`ModalityMethodTaskResult`、`ModalityMethodRealtimeOpen`、`ModalityMethodRealtimeSend`、`ModalityMethodRealtimeClose`。`Config.Features` 为 nil 时不做声明检查，只按调用结果分类；集成层提供 `*daemon.Connection` 即可获得声明检查；会话方法表由 `ModalitySession` 的 `SupportsModalityMethod` 回答。
+能力名常量：`FeatureSettingsSources`、`FeatureSettingsProjects`、`FeatureSettingsRead`、`FeatureSettingsUpdate`、`FeatureModelProviders`、`FeatureModelSelection`、`FeatureProviderList`、`FeatureProviderManagement`、`FeatureProviderCreate`、`FeatureProviderUpdate`、`FeatureProviderProbe`、`FeatureProviderModelsSetEnabled`、`FeatureProviderModelsEdit`、`FeatureProviderModelsReset`、`FeatureProviderPreferencesUpdate`、`FeatureCollaborationPolicy`、`FeatureCollaborationSetPolicy`、`FeatureAgentList`、`FeatureSessionAgentGet`、`FeatureSessionAgentUpdate`、`FeatureStorageReport`、`FeatureRuntimeList`、`FeatureRuntimeInstall`、`FeatureModalityCapabilities`。其中 agent 的 get/update 以 `AgentAdmin.SupportsSessionAgentGet/Update` 读会话方法表为准；`agent.list` 是内建方法，不按 hello 预判。会话模态方法名常量：`ModalityMethodTaskSubmit`、`ModalityMethodTaskStatus`、`ModalityMethodTaskList`、`ModalityMethodTaskCancel`、`ModalityMethodTaskResult`、`ModalityMethodRealtimeOpen`、`ModalityMethodRealtimeSend`、`ModalityMethodRealtimeClose`。`Config.Features` 为 nil 时不做声明检查，只按调用结果分类；集成层提供 `*daemon.Connection` 即可获得声明检查；会话方法表由 `ModalitySession` 的 `SupportsModalityMethod` 回答。
 
 ## 5. 与 A/R 的对应
 
@@ -643,7 +647,7 @@ go test ./...
 go vet ./...
 ```
 
-本版结果：`go test ./internal/settings`、`go test -race ./internal/settings`、`go vet ./internal/settings` 全部通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，本机 macOS arm64）。
+本版结果：`go test ./internal/settings`、`go test -race ./internal/settings`、`go vet ./...` 通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，本机 macOS arm64）。
 全仓 `go test ./...` 当前在 `internal/account` 的 `TestLoginRejectsConcurrentAttempt` 失败（账号领域正在改，不在本领域）；`go vet ./...` 通过。该失败与本领域无关，单独说明。
 
 ### 6.2 覆盖
