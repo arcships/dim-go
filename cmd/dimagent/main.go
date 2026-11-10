@@ -714,6 +714,10 @@ type app struct {
 	// selection generation. They are concurrency guards, not running facts.
 	stopMu       sync.Mutex
 	stopInFlight map[stopFlight]struct{}
+	// Deduplicate pending deletes by target before selectMu queues lifecycle
+	// work. Different target deletes keep their existing lifecycle ordering.
+	deleteMu       sync.Mutex
+	deleteInFlight map[string]struct{}
 	// createParams builds session.create's request. Tests replace it; the app
 	// uses defaultCreateParams.
 	createParams func() (appserver.CreateParams, error)
@@ -1127,9 +1131,24 @@ func (a *app) deleteSession(id string) {
 	if a.bridge == nil || a.state == nil || id == "" {
 		return
 	}
+	a.deleteMu.Lock()
+	if _, pending := a.deleteInFlight[id]; pending {
+		a.deleteMu.Unlock()
+		return
+	}
+	if a.deleteInFlight == nil {
+		a.deleteInFlight = make(map[string]struct{})
+	}
+	a.deleteInFlight[id] = struct{}{}
+	a.deleteMu.Unlock()
 	gen := a.currentSelection()
 	selected := a.state.Selected
 	go func() {
+		defer func() {
+			a.deleteMu.Lock()
+			delete(a.deleteInFlight, id)
+			a.deleteMu.Unlock()
+		}()
 		a.selectMu.Lock()
 		defer a.selectMu.Unlock()
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
