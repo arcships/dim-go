@@ -598,7 +598,13 @@ func contextPanelToggle(c *ui.Context, k tokens, v HeaderView, a Actions) {
 	if v.ContextPanelOpen || toggle.Hovered() {
 		toggle.Background(k.sidebarHover)
 	}
-	toggle.OnClick(a.OnToggleContextPanel).Children(func() {
+	if a.OnToggleContextPanel != nil {
+		toggle.OnClick(a.OnToggleContextPanel)
+	} else {
+		const reason = "Unavailable: the window has no context-panel toggle callback."
+		toggle.AccessDisabled(true).Description(reason).Tooltip(reason)
+	}
+	toggle.Children(func() {
 		sidebarGlyph(c, contextPanelGlyph, k.mutedForeground)
 	})
 }
