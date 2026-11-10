@@ -1,6 +1,6 @@
 # D6 账号（状态、浏览器登录、登出、用量、可用模型）
 
-Status: 第一版实现完成；真实账号夹具验证通过，真实登录完成仍 blocked；待组织评审
+Status: 第一版实现完成；按 provider 分发 browser/device 登录，真实发起与取消验证通过，真实登录完成仍 blocked；待组织评审
 Owner: 账号领域 agent
 验证: 可执行命令与可观察输出见 §6；真实账号侦察、夹具与脱敏证据见 §6.4
 依据: `docs/domains/R.md` 功能块 10 与块 10「沿用」、`docs/domains/A.md` 的「账号与用量」镜像状态与四条总规矩、`docs/domains/D1-connection.md`、`docs/domains/D3-write.md`、`docs/project-organization.md` §4.2 与 §6 F5
@@ -23,14 +23,16 @@ Owner: 账号领域 agent
 | 写意图、幂等键、未知核对、重启语义 | `docs/domains/D3-write.md` | 登出与重置各为一条 `KindAccountAction` 意图；只发一次；未知不重发 |
 | 错误分类与连接方法 | `docs/domains/D1-connection.md` | 由集成层把 wire 映射成 `Fact`/`Usage`/`Model`，并实现授权来源与发送方；本包不复制 wire |
 | F5「账号状态与 provider 列表」 | `docs/project-organization.md` §6 | 本包输出 `Snapshot` 与 `ModelList`，供 D11 与管理面、U1 消费 |
-| 真实账号夹具 | 本机 alpha 产品 home 的 `auth.json`（只读复制到 `/tmp`）与真实 `dimcode-server` 0.1.0-alpha.21 | 在临时 home 上验证状态、用量、模型清单与登录发起；不进入产品代码，不读取来源存储 |
+| 真实账号夹具 | 本机 alpha 产品 home 的 `auth.json`（只读复制到 `/tmp`）与真实 `dimcode-server` 0.1.0-alpha.21 | 在临时 home 上验证状态、用量、模型清单与 browser/device 登录发起；不进入产品代码，不读取来源存储 |
+| provider 登录方式 | 真实服务端 `account.providers` 的 `providerId`、`loginMethods`、`defaultDirectory` | 登录方式只按声明分发；缺声明或本端缺能力都明确报不可用 |
 
 **产物**
 
 | 路径 | 职责 |
 |---|---|
 | `internal/account/account.go` | 对外类型（`Status`、`Identity`、`Fact`、`Snapshot`、读取接口、`Config`、`New`、`Refresh`）、账号镜像状态与错误 |
-| `internal/account/login.go` | 浏览器登录：环回回调地址、授权请求、系统浏览器、回调校验、完成交换、超时与取消 |
+| `internal/account/providers.go` | provider 声明、登录方式选择、provider 错误与 `LoginStart` |
+| `internal/account/login.go` | 按 provider 分发 browser/device 登录：环回回调、系统浏览器、设备码轮询、尝试释放、超时与取消 |
 | `internal/account/browser.go` | 按平台打开系统默认处理程序；只启动，不等待、不读取浏览器输出 |
 | `internal/account/state.go` | 登录尝试状态机与启动校验；账号状态只读不推断 |
 | `internal/account/usage.go` | 逐项用量、聚合项不可用的明确表达、读取失败保留上次确认值 |
@@ -43,7 +45,7 @@ Owner: 账号领域 agent
 **验收**
 
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/account/`；本版全部通过（2026-11-11，macOS arm64）。
-- 本领域：47 个顶层测试（含 2 个真实账号夹具测试）、14 个子测试；未设置夹具环境变量时夹具测试跳过，其余 45 个通过。覆盖见 §6.2。
+- 本领域：64 个顶层测试（含 3 个真实账号夹具测试）、17 个子测试；未设置夹具环境变量时夹具测试跳过，其余 61 个通过。覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖状态读取、登录回调、登出与重置。
   - 注入替身：状态/用量/模型读取、授权来源、系统浏览器、写登记在单元测试里替换，覆盖超时、取消、拒绝、校验不一致、聚合不可用与不重发。
@@ -105,7 +107,8 @@ Owner: 账号领域 agent
 ```text
 internal/account/
 ├── account.go        状态、身份、快照、读取接口、Config、New、Refresh、Usage、Status
-├── login.go          授权请求、环回回调、系统浏览器、超时/取消、完成交换、登录错误
+├── providers.go      provider 声明、登录方式选择、LoginRequest/LoginStart
+├── login.go          BeginLogin/WaitLogin/CancelLogin：browser 回调与 device 轮询
 ├── browser.go        系统默认处理程序（darwin/windows/其他）
 ├── state.go          登录尝试状态机与启动校验
 ├── usage.go          用量项、聚合不可用、RefreshUsage
@@ -121,7 +124,9 @@ acct, err := account.New(account.Config{
     Status:       statusReader,   // 必填：ReadAccount(ctx) (Fact, error)
     Usage:        usageReader,    // 可选：ReadUsage(ctx) (Usage, error)
     Models:       modelReader,    // 可选：ReadModels(ctx) ([]Model, error)
-    Auth:         authSource,     // 可选：BeginAuthorization / CompleteAuthorization（可再实现 CancelAuthorization）
+    Providers:    providerSource, // 可选：ReadProviders(ctx) ([]Provider, error)；nil 表示不提供 provider 登录
+    Auth:         authSource,     // 可选：AuthorizationSource 或 ProviderAuthorizationSource
+    DeviceAuth:   deviceSource,   // 可选：BeginDeviceAuthorization / PollDeviceAuthorization
     Browser:      browser,        // 可选：nil 时用系统默认处理程序
     Actions:      writeManager,   // 可选：*write.Manager 直接满足 Writer
     LoginTimeout: 5 * time.Minute,
@@ -132,9 +137,12 @@ usage, err := acct.RefreshUsage(ctx)           // 逐项读用量
 models, err := acct.RefreshModels(ctx)         // 读模型清单并按账号过滤
 snapshot = acct.Snapshot()
 models = acct.Models()
-snapshot, err = acct.Login(ctx)                // 发起并等待浏览器登录
-acct.CancelLogin()
-state := acct.LoginState()
+providers, err := acct.Providers(ctx)          // 读服务端声明的 provider 与登录方式
+start, err := acct.BeginLogin(ctx, account.LoginRequest{ProviderID: "..."}) // 按声明发起
+snapshot, err = acct.WaitLogin(ctx)            // 等 browser 回调或 device 轮询完成
+acct.CancelLogin()                             // 取消并交回服务端释放
+state := acct.LoginState()                     // 含 provider 与方式
+snapshot, err = acct.Login(ctx, request)       // BeginLogin + WaitLogin 的便捷入口
 view, err := acct.Logout(ctx)                  // 经写登记
 view, err = acct.Reset(ctx)                    // 经写登记
 ```
@@ -158,31 +166,75 @@ view, err = acct.Reset(ctx)                    // 经写登记
 
 读取成功后 `ReadAt` 是本次读取时间；读取失败不推进它。调用方据 `ReadAt` 与 `ReadError` 决定是否提示数据陈旧，本包不替它判断。
 
-### 4.2 浏览器登录
+### 4.2 按 provider 分发的登录
 
-流程：
+登录方式只来自服务端 `account.providers` 的声明，本包不推断、不探测。
+
+**provider 与方式选择**
+
+| 情形 | 结果 |
+|---|---|
+| provider ID 指定且存在 | 使用该 provider |
+| provider ID 指定但不存在 | `ErrProviderUnknown` |
+| 未指定且只有一个 provider | 使用它 |
+| 未指定且有多个 provider | `ErrProviderSelectionRequired`，不猜 |
+| 服务端没有声明 provider | `ErrProvidersUnavailable` |
+| 显式指定方式但 provider 未声明 | `ErrLoginMethodUnavailable`，错误里列出已声明方式 |
+| 未指定方式、声明含 browser | 使用 browser（桌面端优先） |
+| 未指定方式、只声明 device | 使用 device |
+| 未声明任何 browser/device | `ErrLoginMethodUnavailable` |
+| 声明了方式但本端缺对应来源 | `ErrLoginMethodUnavailable`，说明缺哪种能力 |
+
+provider 声明结构不合法（缺标识、标识重复）时整份拒绝（`ErrMalformedProviders`）；不保留半份。
+
+**浏览器流程**
 
 1. `net.Listen("tcp", "127.0.0.1:0")` 只绑 IPv4 环回，端口由系统分配；回调地址为 `http://127.0.0.1:<port>/auth/callback`。真实服务端只接受 `localhost`/`127.0.0.1`/`::1` 上的 `/auth/callback`，因此路径固定成它。
-2. 调 `AuthorizationSource.BeginAuthorization(ctx, redirectURI)` 换一次授权请求：授权地址、可选校验值、可选尝试标识（`Attempt`）。URL 由服务端给出，本包只打开、不修改。
+2. 调浏览器授权来源换一次授权请求（授权地址、可选校验值、可选尝试标识）。实现 `ProviderAuthorizationSource` 时带上 `providerId` 与 `directory`；只实现 `AuthorizationSource` 时退回单 provider 兼容调用。URL 由服务端给出，本包只打开、不修改。
 3. 交给 `Browser.Open` 启动系统浏览器；只启动，不等待退出、不读取浏览器输出。
 4. 等待环回回调，三种结束方式：收到回调、`LoginTimeout` 到期、`ctx`/`CancelLogin` 取消。
 5. 回调校验：服务端给出校验值时用常量时间比较；不一致直接失败。回调带 `error` 时按拒绝处理。没有授权码按不完整处理。
-6. 把 `{Code, State, CallbackURL}` 与尝试标识交给 `CompleteAuthorization(ctx, attempt, result)` 完成交换；成功后立即清掉手里的授权码引用。
+6. 把 `{Code, State, CallbackURL}` 与尝试标识交给完成交换；成功后立即清掉手里的授权码引用。
 7. 重新读取账号状态，返回快照。账号状态只来自这次读取；登录回执本身不解析身份字段。
-8. 未完成的尝试（发起失败、回执失败、超时、取消）在授权来源实现 `AuthorizationCanceler` 时按尝试标识交回服务端释放；取消失败不改变本地失败原因。
 
-状态机（客户端本地的登录尝试，不是账号事实）：
+**设备码流程**
+
+1. 调 `DeviceAuthorizationSource.BeginDeviceAuthorization(ctx, providerID, directory)`，拿到尝试标识、验证地址、用户码与过期时间。
+2. 服务端没有给验证地址或用户码时明确失败，不展示半份提示。
+3. `BeginLogin` 立即返回 `LoginStart`，界面据此展示验证地址与用户码；`WaitLogin` 按 `Interval`（默认 5 秒）轮询。
+4. 轮询状态：
+
+| 状态 | 处理 |
+|---|---|
+| `pending` | 继续等；到达过期时间报 `ErrLoginExpired` |
+| `completed` | 结束等待并重新读取账号状态 |
+| `failed` | 保留服务端原因，返回 `ErrDeviceLogin` |
+| `expired` | 返回 `ErrLoginExpired`，登录尝试记为超时 |
+| `canceled` | 返回 `ErrLoginCanceled` |
+| 未知取值 | 明确失败，不当作 pending |
+
+5. 设备码尝试同样只在内存；取消、超时、失败都按尝试标识交回服务端释放。
+
+**取消与超时**
+
+- 进行中的尝试保存在 `Account` 内存里：provider、方式、尝试标识、授权请求/设备信息、取消句柄。
+- `CancelLogin` 取消本地等待；有 `WaitLogin` 在等待时由它收尾，没有等待者时直接结束尝试并释放服务端。
+- 发起后、等待前被取消时，`WaitLogin` 返回 `ErrLoginCanceled`，不会退化成「没有尝试」。
+- 未完成的尝试（发起失败、回执失败、取消、超时、失败）在授权来源实现 `AuthorizationCanceler` 时按尝试标识交回服务端释放；取消失败不改变本地失败原因。成功完成的尝试不释放，由服务端结算。
+- 授权码、用户码与尝试标识不落盘；尝试结束时清空引用。
+
+**登录尝试状态机（客户端本地，不是账号事实）**
 
 | 当前状态 | 事件 | 下一个状态 |
 |---|---|---|
-| 空闲 | 发起 | 等待回调 |
-| 等待回调 | 完成交换成功 | 已完成 |
-| 等待回调 | 发起、回调校验或完成交换失败 | 已失败 |
-| 等待回调 | 调用方取消 | 已取消 |
-| 等待回调 | 等待超时 | 已超时 |
-| 已完成/已失败/已取消/已超时 | 再次发起 | 等待回调 |
+| 空闲 | 发起 | 等待登录 |
+| 等待登录 | browser 完成交换或 device 轮询完成 | 已完成 |
+| 等待登录 | 发起、回调校验、完成交换或轮询失败 | 已失败 |
+| 等待登录 | 调用方取消 | 已取消 |
+| 等待登录 | 等待超时或设备码过期 | 已超时 |
+| 已完成/已失败/已取消/已超时 | 再次发起 | 等待登录 |
 
-`New` 时校验这张表：状态与事件都在集合内、空闲只能作为入口、等待回调必须有四种结束方式、结束态只能重新发起；不合法即拒绝创建并点名条目。非法迁移按 A.md 统一处理：丢弃事件、状态不变、不向用户报错。
+`New` 时校验这张表：状态与事件都在集合内、空闲只能作为入口、等待登录必须有四种结束方式、结束态只能重新发起；不合法即拒绝创建并点名条目。非法迁移按 A.md 统一处理：丢弃事件、状态不变、不向用户报错。
 
 回调应答页面是固定文案，不回显授权码或任何请求参数。
 
@@ -190,11 +242,13 @@ view, err = acct.Reset(ctx)                    // 经写登记
 
 | 服务端方法 | 参数 | 回执 | 本领域对应 |
 |---|---|---|---|
-| `account.login.browser.begin` | `providerId`、`directory`、`redirectUri`、可选 `email` | `attemptId`、`authorizationUrl`、`expiresAt` | `BeginAuthorization` → `AuthorizationRequest{URL, Attempt}` |
-| `account.login.browser.complete` | `providerId`、`attemptId`、`callbackUrl` | 账号快照 | `CompleteAuthorization(ctx, attempt, result)`；`CallbackURL` 就是 `callbackUrl` |
-| `account.login.cancel` | `providerId`、`attemptId` | 空 | 可选 `CancelAuthorization` |
+| `account.login.browser.begin` | `providerId`、`directory`、`redirectUri`、可选 `email` | `attemptId`、`authorizationUrl`、`expiresAt` | `ProviderAuthorizationSource.BeginProviderAuthorization` |
+| `account.login.browser.complete` | `providerId`、`attemptId`、`callbackUrl` | 账号快照 | `ProviderAuthorizationSource.CompleteProviderAuthorization` |
+| `account.login.begin` | `providerId`、`directory` | `attemptId`、`verificationUri`、`verificationUriComplete`、`userCode`、`expiresAt` | `DeviceAuthorizationSource.BeginDeviceAuthorization` |
+| `account.login.status` | `providerId`、`attemptId` | `{status, error?}` | `DeviceAuthorizationSource.PollDeviceAuthorization` |
+| `account.login.cancel` | `providerId`、`attemptId` | 空 | 可选 `AuthorizationCanceler` |
 
-由此得到两条硬约束：回调路径必须是 `/auth/callback`；完成交换需要完整回调地址与尝试标识，不能只交授权码。真实服务端不在发起回执里给出 `state`，回调校验由服务端按尝试标识完成；本包的本地校验只在服务端给出 `State` 时启用。
+由此得到三条硬约束：回调路径必须是 `/auth/callback`；browser 完成交换需要完整回调地址与尝试标识；browser 与 device 都必须按 provider 发起。真实服务端不在发起回执里给出 `state`，回调校验由服务端按尝试标识完成；本包的本地校验只在服务端给出 `State` 时启用。
 
 ### 4.3 登出与重置
 
@@ -252,14 +306,14 @@ view, err = acct.Reset(ctx)                    // 经写登记
 - 所有读取方法可并发调用；内部状态只在锁内改写。
 - 每次调用返回快照副本，调用方改不动内部数据。
 - 登录同一时刻只允许一次；动作按动作类型串行。
-- 错误都带稳定语义：`ErrStatusRead`、`ErrUsageRead`、`ErrUsageUnavailable`、`ErrModelsRead`、`ErrModelsUnavailable`、`ErrMalformedFact/Usage/Models`、`ErrLogin*`、`ErrActionsUnavailable`。
+- 错误都带稳定语义：`ErrStatusRead`、`ErrUsageRead`、`ErrUsageUnavailable`、`ErrModelsRead`、`ErrModelsUnavailable`、`ErrMalformedFact/Usage/Models`、`ErrProvidersUnavailable/Read/Malformed`、`ErrProviderUnknown`、`ErrProviderSelectionRequired`、`ErrLoginMethodUnavailable`、`ErrLogin*`、`ErrDeviceLogin`、`ErrLoginExpired`、`ErrActionsUnavailable`。
 
 ## 5. 与 A/R 的对应
 
 | 需求或架构条目 | 本领域实现 | 不在本领域 |
 |---|---|---|
 | R 块 10 ① 未登录返回未登录 | `Refresh` 按 `signed_out` 填充，身份与用量清空 | 不依赖账号的会话读取由 D1/D2 保证，本包不拦截 |
-| R 块 10 ② 登录后返回已登录与身份字段 | 登录完成后重新读取；`signed_in` 必须有账号标识 | 登录页与浏览器交互（系统浏览器） |
+| R 块 10 ② 登录后返回已登录与身份字段 | 按 provider 声明分发 browser/device，完成后重新读取；`signed_in` 必须有账号标识 | 登录页与浏览器交互（系统浏览器）、设备码提示展示（U1） |
 | R 块 10 ③ 登出后未登录且本地无凭据 | 登出经写登记，成功后清空本地状态；重新读取得到未登录 | 凭据删除由服务端完成 |
 | R 块 10 ④ 用量逐项一致、聚合不可用 | `RefreshUsage` 原样保留逐项；`Aggregate.Available=false` 加原因 | 用量展示（U1） |
 | R 块 10 ⑤ 重置未知不重复提交、重启后提交 0 次 | 动作视图只在内存；未知/需人工确认只 `Wait` 不 `Register`；新实例不提交 | 人工确认流程 |
@@ -268,7 +322,7 @@ view, err = acct.Reset(ctx)                    // 经写登记
 | A 检查项「缺能力就报缺失」 | 无读取/登录/动作能力时返回稳定错误，不构造替代事实 | — |
 | A 检查项「一个状态只有一个驱动者」 | 状态只在 `Account` 内部改写 | — |
 | R8 本地状态边界 | 登录尝试、动作、清单、用量都只在内存 | — |
-| F5 账号状态与 provider 列表 | `Snapshot` 与 `ModelList` 是冻结候选输出 | 模型档位选择（D11） |
+| F5 账号状态与 provider 列表 | `Snapshot`、`ModelList` 与 `Provider` 是冻结候选输出 | 模型档位选择（D11） |
 
 ## 6. 验收
 
@@ -285,7 +339,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
   go test ./internal/account -run TestRealAccountFixture -v
 ```
 
-本版结果：常规三条命令全部通过，`internal/account` 的 45 个顶层测试、14 个子测试全绿；2 个真实账号夹具测试在设置夹具环境变量后通过（2026-11-11，本机 macOS arm64）。
+本版结果：常规三条命令全部通过，`internal/account` 的 61 个顶层测试、17 个子测试全绿；3 个真实账号夹具测试在设置夹具环境变量后通过（2026-11-11，本机 macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -317,16 +371,22 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 | 无写登记时动作不可用 | `TestActionsRequireWriter` |
 | 假服务端覆盖重置无回执 → 需人工确认；重启不补发 | `TestAppServerResetUnknownIsNotResent` |
 | 完成交换带上尝试标识与完整回调地址；未完成时交回服务端取消 | `TestLoginOpensBrowserReceivesCallbackAndRefreshes`、`TestLoginTimeout`、`TestLoginCancel` |
+| provider 声明读取、结构校验、多 provider 必须指定 | `TestProvidersRequiresSource`、`TestProvidersRejectsMalformed`、`TestLoginRequiresProviderSelectionWhenMultiple`、`TestLoginUnknownProvider` |
+| 按 provider 声明选择 browser/device；显式方式必须被声明 | `TestLoginPrefersBrowserWhenBothDeclared`、`TestLoginDeviceWhenOnlyDevice`、`TestLoginExplicitMethodMustBeDeclared`、`TestLoginRequiresProviderDeclaration`、`TestLoginRequiresSourceForDeclaredMethod` |
+| 设备码提示、轮询完成、失败原因、过期、取消、缺提示、轮询错误 | `TestDeviceLoginFailedKeepsReason`、`TestDeviceLoginExpired`、`TestDeviceLoginCancel`、`TestDeviceBeginThenCancelReleases`、`TestDeviceLoginMissingPromptIsRejected`、`TestDevicePollErrorFails`、`TestLoginDeviceWhenOnlyDevice` |
+| 没有尝试时等待明确报错 | `TestWaitLoginWithoutAttempt` |
+| 假服务端按 provider 走设备码流程 | `TestAppServerDeviceLoginThroughProvider` |
 | 真实夹具：账号状态、逐项用量、模型清单三条读取 | `TestRealAccountFixtureReads` |
-| 真实夹具：登录发起、环回 `/auth/callback`、尝试标识与取消 | `TestRealAccountFixtureLoginBeginReleases` |
+| 真实夹具：browser 登录发起、环回 `/auth/callback`、尝试取消 | `TestRealAccountFixtureBrowserLoginBeginReleases` |
+| 真实夹具：device 登录发起、验证地址/用户码、尝试取消 | `TestRealAccountFixtureDeviceLoginBeginReleases` |
 
-证据档位：`fakeappserver`（本机 Unix socket + NDJSON + 真实 `write.Manager`）、注入替身，以及临时产品 home 上的真实账号夹具（见 §6.4）；真实浏览器登录完成与真实登出/重置未验证。
+证据档位：`fakeappserver`（本机 Unix socket + NDJSON + 真实 `write.Manager`）、注入替身，以及临时产品 home 上的真实账号夹具（见 §6.4）；真实 browser/device 登录完成与真实登出/重置未验证。
 
 ### 6.3 与 D1/D3 的接口形状
 
 | 提供方 | 形状 | 本包消费方式 |
 |---|---|---|
-| D1 连接 | `protocol.Client.Call` / `CallInto` | 集成层用它实现 `StatusReader`、`UsageReader`、`ModelReader`、`AuthorizationSource` 与可选的 `AuthorizationCanceler`，把 wire 回执映射成 `Fact`/`Usage`/`Model`，不把 wire 类型带进本包 |
+| D1 连接 | `protocol.Client.Call` / `CallInto` | 集成层用它实现 `StatusReader`、`UsageReader`、`ModelReader`、`ProviderSource`、`AuthorizationSource`/`ProviderAuthorizationSource`、`DeviceAuthorizationSource` 与可选的 `AuthorizationCanceler`，把 wire 回执映射成领域类型，不把 wire 类型带进本包 |
 | D1 错误分类 | `failure.KindOf(err)` | 读取失败原样返回；写动作的错误由 D3 分类 |
 | D1 会话流 | 与本领域无关 | 账号状态不依赖会话是否打开；本包不订阅通知、不轮询 |
 | D3 写登记 | `Register(write.Intent)` / `Wait(ctx, id)` | `*write.Manager` 直接满足 `Writer`；账号动作用 `KindAccountAction`，透明参数 `{"op":"logout"|"reset"}`，幂等键 `account:<op>:<n>` |
@@ -341,11 +401,13 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 | 状态 | `account.status` | `{providerId}` → `{credentialEpoch, generation, account?}`；`account` 为空即未登录 | `ReadAccount` → `Fact`；`account.subject` 映射 `Identity.AccountID` |
 | 用量 | `account.usage` | `{providerId}` → `features[]`、`windows[]`、`credits`、`plan` | `ReadUsage` → `Usage`；`features`/`windows` → `Lines`，`credits` → `Aggregate` |
 | 模型 | `provider.catalog` | `{providerId}` → `catalog.models[{id,name,unavailableReason}]` | `ReadModels` → `[]Model` |
-| 登录发起 | `account.login.browser.begin` | `{providerId, directory, redirectUri}` → `{attemptId, authorizationUrl, expiresAt}` | `BeginAuthorization` → `{URL, Attempt}` |
-| 登录完成 | `account.login.browser.complete` | `{providerId, attemptId, callbackUrl}` | `CompleteAuthorization(ctx, attempt, result)`；`CallbackURL` = `callbackUrl` |
-| 登录取消 | `account.login.cancel` | `{providerId, attemptId}` | 可选 `CancelAuthorization` |
+| 登录发起（browser） | `account.login.browser.begin` | `{providerId, directory, redirectUri}` → `{attemptId, authorizationUrl, expiresAt}` | `ProviderAuthorizationSource.BeginProviderAuthorization` |
+| 登录完成（browser） | `account.login.browser.complete` | `{providerId, attemptId, callbackUrl}` | `ProviderAuthorizationSource.CompleteProviderAuthorization`；`CallbackURL` = `callbackUrl` |
+| 登录发起（device） | `account.login.begin` | `{providerId, directory}` → `{attemptId, verificationUri, verificationUriComplete, userCode, expiresAt}` | `DeviceAuthorizationSource.BeginDeviceAuthorization` |
+| 登录轮询（device） | `account.login.status` | `{providerId, attemptId}` → `{status, error?}` | `DeviceAuthorizationSource.PollDeviceAuthorization` |
+| 登录取消 | `account.login.cancel` | `{providerId, attemptId}` | 可选 `AuthorizationCanceler` |
 
-回调路径必须是 `/auth/callback`；真实服务端不返回独立的 `state`，本地校验只在服务端给出 `State` 时启用。统一二进制 `dimcode-server` 需要 `app-server` 子命令（由 D1 的自启参数提供；夹具测试用 `ServerArgs: []string{"app-server"}`）。
+回调路径必须是 `/auth/callback`；真实服务端不返回独立的 `state`，本地校验只在服务端给出 `State` 时启用。browser 与 device 都必须按 provider 发起，登录方式只取自 `account.providers` 的 `loginMethods`。统一二进制 `dimcode-server` 需要 `app-server` 子命令（由 D1 的自启参数提供；夹具测试用 `ServerArgs: []string{"app-server"}`）。
 
 本包只导入 `internal/write`，不导入 D1 的业务包；接口实现由集成层提供，两边可独立演进。
 
@@ -378,15 +440,17 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 用量：lines=1 aggregateAvailable=true aggregateReason="" observedAtSet=true
 用量项[0]：key="web_search" unit="call" window="" limitSet=true resetSet=true
 模型清单：available=21 first=[deepseek-v4-flash seed-2.1-pro seed-2.1-turbo]
-登录发起：authorizationHost=dimagent.cn redirectLoopback=true attemptIssued=true expiresSet=true cancelled=1
+浏览器登录发起：host=dimagent.cn redirectLoopback=true provider=dimcode-api-oauth method=browser cancelled=1
+设备码登录发起：provider=dimcode-api-oauth method=device attemptIssued=true verificationURISet=true userCodeSet=true cancelled=1
 真实服务回收：stopped=true
 ```
 
 结论：
 
 - **三条读取在真实账号上通过**：状态 `signed_in` 且带身份字段；用量有逐项 `web_search` 与服务端聚合额度；模型目录 21 条可用（登录状态下）。
-- **登录发起通过**：真实服务端接受环回 `/auth/callback`，返回授权地址与尝试标识；等待回调超时后按尝试标识取消成功。
-- **登录完成未验证**：完成交换需要真人在授权页登录（可能含验证码/二次验证），本次只验证到发起、回调地址与取消。
+- **browser 登录发起通过**：按 provider 选择 browser，真实服务端接受环回 `/auth/callback`，返回授权地址与尝试标识；等待回调超时后按尝试标识取消成功。
+- **device 登录发起通过**：按 provider 显式选择 device，真实服务端返回尝试标识、验证地址与用户码；取消后按尝试标识交回释放。
+- **登录完成未验证**：browser 完成交换需要真人在授权页登录（可能含验证码/二次验证）；device 完成需要真人在验证页输入用户码。本次只验证到发起、提示、回调地址与取消。
 - **真实 `account.status` 没有独立的「过期」字段**：过期与恢复由错误码/恢复流程表达，第一版的 `StatusExpired` 还没有真实 wire 映射。
 - **登出/重置未在真实夹具上执行**：登出会调用服务端吊销授权，可能影响来源账号的 refresh token；需要一次性测试账号或测试租户。
 - **现有集成层仍按旧猜测形状实现**：`internal/app/account.go` 目前用 `model.list`、`account.login.begin`、不带 `providerId` 的 `account.status`/`account.usage`，也没有把 `attemptId`/完整回调地址按 §6.3 传回；真实服务端不接受这些形状，集成层需要按 §6.3 更新后才能跑通真实夹具。
@@ -396,9 +460,10 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 | 项 | 状态 | 缺什么 |
 |---|---|---|
 | 真实浏览器登录的完成交换 | blocked | 需要真人在授权页完成登录；本次只验证发起、环回地址与取消 |
+| 真实设备码登录的完成轮询 | blocked | 需要真人在验证页输入用户码；本次只验证发起、验证地址/用户码与取消 |
 | 过期/恢复状态映射 | blocked | 真实 `account.status` 无过期字段；需要 D1 冻结「需要恢复」的错误语义与映射 |
 | 登出/重置的真实服务端语义 | blocked | 在夹具上执行登出会吊销真实授权；需要一次性测试账号或测试租户 |
-| 系统浏览器真实拉起 | blocked | 夹具测试用替身记录授权地址，没有真正弹出浏览器；平台差异未验证 |
+| 系统浏览器真实拉起 | blocked | 夹具测试用替身记录授权地址，没有真正弹出浏览器；平台差异未验证（打开真实授权页可能触发自动授权与凭据轮换） |
 | token 轮换与写回 | blocked | access token 距过期尚远，未验证 30 秒新鲜窗口内的刷新与 auth.json 写回 |
 | Windows/Linux 真实账号 | blocked | 只在 macOS arm64 上取证 |
 
@@ -416,18 +481,25 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 10. **真实账号标识取 subject**：真实 `account.status` 没有单独的账号标识字段，集成层用 `identity.subject` 映射 `Identity.AccountID`；没有 subject 时本包按事实不合法拒绝。
 11. **过期没有真实映射**：真实服务端不返回 `expired`；第一版只能通过读取失败或恢复要求表达，`StatusExpired` 的真实触发条件待 D1 冻结。
 12. **用量映射是集成层策略**：真实回执的 `features`/`windows` 映射成逐项、`credits` 映射成聚合；`credits.unlimited` 没有上限数值，按聚合不可用处理。
-13. **读取失败保留旧数据**：`Snapshot`/`Usage` 会同时带旧数据与 `ReadError`；调用方需要自己决定是否提示陈旧，本包不替它判过期。
-14. **无诊断输出**：本包不写日志、不写文件；登录失败的诊断要由调用方按错误类别交给 D10。
-15. **无自动刷新登录**：过期只作为读取结果出现；重新登录必须由用户显式发起。
-16. **真实登录完成未验证**：完成交换的接口已对齐，但没有真人授权证据。
-17. **夹具含真实凭据**：夹具只用于本机验证，验证后必须删除；不得提交、不得进 CI、不得打印内容。
+13. **provider 声明是登录前提**：没有 `ProviderSource` 时登录明确不可用；多个 provider 必须显式指定，不在候选之间猜。
+14. **同时声明两种方式时默认 browser**：这是桌面端的固定偏好，不是能力推断；需要 device 时必须显式指定。
+15. **兼容旧授权来源**：只实现 `AuthorizationSource` 时退回单 provider 调用，不能把 `providerId`/`directory` 交给服务端；provider 专属登录应实现 `ProviderAuthorizationSource`。
+16. **设备码提示必须完整**：服务端没有给验证地址或用户码时整次发起失败，不展示半份提示；轮询间隔由服务端给，缺省 5 秒。
+17. **读取失败保留旧数据**：`Snapshot`/`Usage` 会同时带旧数据与 `ReadError`；调用方需要自己决定是否提示陈旧，本包不替它判过期。
+18. **无诊断输出**：本包不写日志、不写文件；登录失败的诊断要由调用方按错误类别交给 D10。
+19. **无自动刷新登录**：过期只作为读取结果出现；重新登录必须由用户显式发起。
+20. **夹具含真实凭据**：夹具只用于本机验证，验证后必须删除；不得提交、不得进 CI、不得打印内容。
+21. **真实登录完成均未验证**：browser 与 device 的完成交换都需要真人操作；本次只验证发起、提示与取消。
+22. **尝试只在内存**：provider、方式、尝试标识、用户码与授权码都随尝试存在内存，不落盘；进程重启后没有可恢复的尝试。
 
 ## 8. 下一步
 
 1. D1 冻结真实账号 wire（§6.3 的方法名与参数）；集成层（`internal/app/account.go`）按此表更新，统一二进制需要 `app-server` 子命令这一点要写进 D1 的自启配置。
-2. 用一次性测试账号完成一次真实浏览器登录，记录回调、完成交换与登录后状态读取；同时验证登出/重置的吊销语义，不触碰来源账号。
-3. 映射过期/恢复：确认 `account_recovery_required` 等错误如何转为 `StatusExpired` 或 `ErrStatusRead`，并补一条真实证据。
-4. 系统浏览器：在 macOS/Windows/Linux 各做一次真实拉起，确认失败路径的错误可诊断。
-5. 与 D11 对齐 F5：确认 `ModelList` 足以支撑模型可选范围，以及过期状态是否应允许免账号模型。
-6. 与 U1 对齐登录入口：确认取消时机、超时提示与「登录已完成但状态未知」的呈现方式。
-7. 验证 token 新鲜窗口内的刷新与 auth.json 写回（只改夹具副本），确认不会把令牌写进日志或产品状态。
+2. 用一次性测试账号完成一次真实 browser 登录与一次真实 device 登录，记录提示、完成交换/轮询与登录后状态读取；同时验证登出/重置的吊销语义，不触碰来源账号。
+3. 集成层实现 `ProviderSource`、`ProviderAuthorizationSource` 与 `DeviceAuthorizationSource`，把 provider 声明、尝试标识与完整回调地址接到本包；旧 `AuthorizationSource` 只保留单 provider 兼容。
+4. U1 用 `LoginStart` 展示设备码验证地址与用户码，并把 `BeginLogin`/`WaitLogin` 拆成两步交互。
+5. 映射过期/恢复：确认 `account_recovery_required` 等错误如何转为 `StatusExpired` 或 `ErrStatusRead`，并补一条真实证据。
+6. 系统浏览器：在 macOS/Windows/Linux 各做一次真实拉起，确认失败路径的错误可诊断。
+7. 与 D11 对齐 F5：确认 `ModelList` 足以支撑模型可选范围，以及过期状态是否应允许免账号模型。
+8. 与 U1 对齐登录入口：确认取消时机、超时提示、设备码提示与「登录已完成但状态未知」的呈现方式。
+9. 验证 token 新鲜窗口内的刷新与 auth.json 写回（只改夹具副本），确认不会把令牌写进日志或产品状态。

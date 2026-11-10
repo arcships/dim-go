@@ -143,10 +143,13 @@ func TestRealDaemonContextAndControls(t *testing.T) {
 	// 证据三：目标暂停与恢复。
 	goalEvidence(t, ctx, conn.Client, client, folder, recorder, methods)
 
-	// 等这一轮收尾再回收：服务端只有在空闲时才愿意停。
-	recorder.wait(ctx, 90*time.Second, func(event protocol.RawEvent) bool {
-		return event.Name == "end" && event.Type == "turn" && event.Sequence > recorder.head()-1
-	})
+	// 恢复目标可能接着起一轮继续工作：等这一轮收尾再回收。
+	floor := recorder.head()
+	if _, ok := recorder.wait(ctx, 90*time.Second, func(event protocol.RawEvent) bool {
+		return event.Sequence > floor && event.Type == "turn" && event.Name == "end"
+	}); !ok {
+		t.Logf("恢复之后没有等到新的轮次结束（观察到：%v）", recorder.kinds())
+	}
 
 	t.Logf("证据: session=%s usage={requests:%d prompt:%d} withdraw={ok} goal={pause/resume} events=%v",
 		sessionID, view.Usage.Requests, view.Usage.PromptTokens, recorder.kinds())

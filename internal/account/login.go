@@ -110,9 +110,10 @@ type loginAttempt struct {
 	serveErr  chan error
 	canceler  AuthorizationCanceler
 
-	finishOnce sync.Once
-	mu         sync.Mutex
-	waiting    bool
+	finishOnce  sync.Once
+	mu          sync.Mutex
+	waiting     bool
+	releaseDone bool
 }
 
 func (attempt *loginAttempt) setWaiting(waiting bool) {
@@ -125,6 +126,60 @@ func (attempt *loginAttempt) isWaiting() bool {
 	attempt.mu.Lock()
 	defer attempt.mu.Unlock()
 	return attempt.waiting
+}
+
+func (attempt *loginAttempt) setAttemptID(id string) {
+	attempt.mu.Lock()
+	attempt.attemptID = id
+	attempt.mu.Unlock()
+}
+
+func (attempt *loginAttempt) attemptInfo() (string, AuthorizationCanceler) {
+	attempt.mu.Lock()
+	defer attempt.mu.Unlock()
+	return attempt.attemptID, attempt.canceler
+}
+
+func (attempt *loginAttempt) setBrowserRequest(request AuthorizationRequest) {
+	attempt.mu.Lock()
+	attempt.request = request
+	attempt.mu.Unlock()
+}
+
+func (attempt *loginAttempt) browserRequest() AuthorizationRequest {
+	attempt.mu.Lock()
+	defer attempt.mu.Unlock()
+	return attempt.request
+}
+
+func (attempt *loginAttempt) setDevice(device DeviceAuthorization) {
+	attempt.mu.Lock()
+	attempt.device = device
+	attempt.mu.Unlock()
+}
+
+func (attempt *loginAttempt) deviceInfo() DeviceAuthorization {
+	attempt.mu.Lock()
+	defer attempt.mu.Unlock()
+	return attempt.device
+}
+
+// release 交回服务端释放尚未完成的尝试；没有尝试标识时保持未释放，等发起方
+// 拿到标识后再调一次。只真正释放一次。
+func (attempt *loginAttempt) release() {
+	attempt.mu.Lock()
+	if attempt.releaseDone || attempt.attemptID == "" || attempt.canceler == nil {
+		attempt.mu.Unlock()
+		return
+	}
+	attempt.releaseDone = true
+	attemptID := attempt.attemptID
+	canceler := attempt.canceler
+	attempt.mu.Unlock()
+
+	releaseCtx, cancel := context.WithTimeout(context.Background(), authorizationCancelTimeout)
+	_ = canceler.CancelAuthorization(releaseCtx, attemptID)
+	cancel()
 }
 
 // Login 按 provider 声明的登录方式发起并等待一次登录：先 `BeginLogin`，再
@@ -185,7 +240,7 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 		}
 	}
 
-	// 浏览器方式先占好环回监听；失败时不进入「等待回调」。
+	// 浏览器方式先占好环回监听与回调服务；失败时不进入「等待回调」。
 	if method == LoginMethodBrowser {
 		listener, listenErr := net.Listen("tcp", "127.0.0.1:0")
 		if listenErr != nil {
@@ -193,6 +248,10 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 			return LoginStart{}, fmt.Errorf("%w: %v", ErrLoginUnavailable, listenErr)
 		}
 		attempt.listener = listener
+		attempt.server = &http.Server{
+			Handler:           callbackHandler(attempt.callbacks),
+			ReadHeaderTimeout: callbackReadHeaderTimeout,
+		}
 	}
 
 	if !a.beginLogin(attempt) {
@@ -212,10 +271,6 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 	case LoginMethodBrowser:
 		port := attempt.listener.Addr().(*net.TCPAddr).Port
 		redirectURI := "http://" + net.JoinHostPort("127.0.0.1", strconv.Itoa(port)) + callbackPath
-		attempt.server = &http.Server{
-			Handler:           callbackHandler(attempt.callbacks),
-			ReadHeaderTimeout: callbackReadHeaderTimeout,
-		}
 		go func() { attempt.serveErr <- attempt.server.Serve(attempt.listener) }()
 
 		var authorization AuthorizationRequest
@@ -235,8 +290,12 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 			a.finishAttempt(attempt, LoginFailed, beginErr.Error())
 			return LoginStart{}, fmt.Errorf("%w: %v", ErrLoginRequest, beginErr)
 		}
-		attempt.request = authorization
-		attempt.attemptID = authorization.Attempt
+		attempt.setBrowserRequest(authorization)
+		attempt.setAttemptID(authorization.Attempt)
+		if attempt.ctx.Err() != nil {
+			attempt.release()
+			return LoginStart{}, ErrLoginCanceled
+		}
 		if strings.TrimSpace(authorization.URL) == "" {
 			a.finishAttempt(attempt, LoginFailed, "授权请求缺少地址")
 			return LoginStart{}, fmt.Errorf("%w: 授权请求缺少地址", ErrLoginRequest)
@@ -258,8 +317,12 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 			a.finishAttempt(attempt, LoginFailed, "设备码登录缺少验证地址或用户码")
 			return LoginStart{}, fmt.Errorf("%w: 设备码登录缺少验证地址或用户码", ErrLoginRequest)
 		}
-		attempt.device = device
-		attempt.attemptID = device.Attempt
+		attempt.setDevice(device)
+		attempt.setAttemptID(device.Attempt)
+		if attempt.ctx.Err() != nil {
+			attempt.release()
+			return LoginStart{}, ErrLoginCanceled
+		}
 		start.Attempt = device.Attempt
 		start.VerificationURI = device.VerificationURI
 		start.VerificationURIComplete = device.VerificationURIComplete
@@ -336,8 +399,9 @@ func (a *Account) waitBrowser(ctx context.Context, attempt *loginAttempt) loginO
 			return loginOutcome{phase: LoginFailed, reason: reason,
 				err: fmt.Errorf("%w: %s", ErrLoginDenied, reason)}
 		}
-		if attempt.request.State != "" {
-			if subtle.ConstantTimeCompare([]byte(attempt.request.State), []byte(callback.State)) != 1 {
+		request := attempt.browserRequest()
+		if request.State != "" {
+			if subtle.ConstantTimeCompare([]byte(request.State), []byte(callback.State)) != 1 {
 				return loginOutcome{phase: LoginFailed, reason: "回调校验值不一致", err: ErrLoginStateMismatch}
 			}
 		}
@@ -350,11 +414,12 @@ func (a *Account) waitBrowser(ctx context.Context, attempt *loginAttempt) loginO
 			CallbackURL: callback.CallbackURL,
 		}
 		callback.Code = ""
+		attemptID, _ := attempt.attemptInfo()
 		var err error
 		if providerSource, ok := a.cfg.Auth.(ProviderAuthorizationSource); ok {
-			err = providerSource.CompleteProviderAuthorization(attempt.ctx, attempt.provider.ID, attempt.attemptID, completion)
+			err = providerSource.CompleteProviderAuthorization(attempt.ctx, attempt.provider.ID, attemptID, completion)
 		} else if legacy, ok := a.cfg.Auth.(AuthorizationSource); ok {
-			err = legacy.CompleteAuthorization(attempt.ctx, attempt.attemptID, completion)
+			err = legacy.CompleteAuthorization(attempt.ctx, attemptID, completion)
 		} else {
 			err = ErrLoginUnavailable
 		}
@@ -385,10 +450,11 @@ func (a *Account) waitBrowser(ctx context.Context, attempt *loginAttempt) loginO
 }
 
 func (a *Account) waitDevice(ctx context.Context, attempt *loginAttempt) loginOutcome {
+	deviceInfo := attempt.deviceInfo()
 	deadline := attempt.deadline
 	deviceExpiry := false
-	if !attempt.device.ExpiresAt.IsZero() && attempt.device.ExpiresAt.Before(deadline) {
-		deadline = attempt.device.ExpiresAt
+	if !deviceInfo.ExpiresAt.IsZero() && deviceInfo.ExpiresAt.Before(deadline) {
+		deadline = deviceInfo.ExpiresAt
 		deviceExpiry = true
 	}
 	waitCtx, cancel := context.WithDeadline(ctx, deadline)
@@ -396,9 +462,10 @@ func (a *Account) waitDevice(ctx context.Context, attempt *loginAttempt) loginOu
 	stop := context.AfterFunc(attempt.ctx, cancel)
 	defer stop()
 
-	interval := deviceInterval(attempt.device.Interval)
+	interval := deviceInterval(deviceInfo.Interval)
+	attemptID, _ := attempt.attemptInfo()
 	for {
-		state, err := a.cfg.DeviceAuth.PollDeviceAuthorization(waitCtx, attempt.attemptID)
+		state, err := a.cfg.DeviceAuth.PollDeviceAuthorization(waitCtx, attemptID)
 		if err != nil {
 			if waitCtx.Err() != nil {
 				outcome := a.waitOutcome(ctx, attempt, deviceExpiry)
@@ -468,7 +535,7 @@ func (a *Account) waitOutcome(parent context.Context, attempt *loginAttempt, dev
 func (a *Account) finishAttempt(attempt *loginAttempt, phase LoginPhase, reason string) {
 	attempt.finishOnce.Do(func() {
 		if phase != LoginCompleted {
-			a.releaseAttempt(attempt)
+			attempt.release()
 		}
 		attempt.cancel()
 		if attempt.server != nil {
@@ -501,15 +568,6 @@ func loginEventForPhase(phase LoginPhase) (loginEvent, bool) {
 	default:
 		return "", false
 	}
-}
-
-func (a *Account) releaseAttempt(attempt *loginAttempt) {
-	if attempt.canceler == nil || attempt.attemptID == "" {
-		return
-	}
-	releaseCtx, cancel := context.WithTimeout(context.Background(), authorizationCancelTimeout)
-	_ = attempt.canceler.CancelAuthorization(releaseCtx, attempt.attemptID)
-	cancel()
 }
 
 func (a *Account) shutdownBrowser(attempt *loginAttempt) {

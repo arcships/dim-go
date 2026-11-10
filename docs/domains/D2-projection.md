@@ -2,9 +2,9 @@
 
 Status: 第一版实现完成（P1-2 候选结果包；含分页、按轮导出来源与真实 daemon 证据）
 Owner: D2 领域 agent
-验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；blocked 见 6.5
+验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；用量、撤回与目标控制见 6.8；blocked 见 6.5
 依据: `docs/domains/R.md` 第 1 部分功能块 2、块 4 的读取侧；`docs/domains/A.md`（会话视图、会话级状态含分页锚点、四条总规矩、启动校验）；`docs/domains/D1-connection.md`（wire 类型与会话流）
-范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、后台任务输出分页与停止意图、提示建议、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径的登记与发送、磁盘存储、审批应答、目录与导出文件本身。
+范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、后台任务输出分页与停止意图、提示建议、上下文用量与压缩摘要、排队输入撤回与目标暂停恢复的意图、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径的登记与发送、磁盘存储、审批应答、目录与导出文件本身。
 
 ---
 
@@ -37,6 +37,8 @@ Owner: D2 领域 agent
 | `internal/projection/execoutput.go` | 后台任务输出：按字节游标分页读，只记游标与单页上限，运行中可读、结束后读到 EOF |
 | `internal/projection/execstop.go` | 后台任务停止：停止意图（给写登记）+ 发送 + "正在停止"标记，结算仍由结束事实负责 |
 | `internal/projection/suggestion.go` | 提示建议：折叠 `session.notice` 的 offer / cleared，给出当前建议；顺便提供任务运行查询与停止标记入口 |
+| `internal/projection/usage.go` | 上下文与用量：`model/usage` 累加、`context/budget` 取最新、`context/compaction` 摘要与次数 |
+| `internal/projection/inputcontrol.go` | 排队输入撤回与目标暂停/恢复：方法探测、写登记意图、发送接口 |
 | `internal/projection/inventory.go` | 四类未完成事项：截止点装载、按事件结算、截止点以下的结算不生效 |
 | `internal/projection/goal.go` | 目标折叠：目标块的解析、最新记录决定状态、删除后重算 |
 | `internal/projection/preview.go` | 末快照层：`session.model.progress` 按偏移裁剪、按整行替换、与落库行对齐 |
@@ -80,6 +82,15 @@ result, err := stop.Stop(ctx)    // {TaskID, Status}；Status=cancelled 表示�
 
 // 提示建议：折叠 session.notice，读 View().Suggestion
 folder.ApplyNotice("session.notice", params)
+
+// 上下文与用量：直接读视图
+view.Usage      // {Requests, PromptTokens, CompletionTokens, TotalTokens, CacheRead/WriteTokens, Cost}
+view.Context    // {EstimatedInputTokens, ContextWindow, OutputTokens, ...}；Remaining()/Percent()
+view.Compaction // {Sequence, Status, Summary, Strategy, RetainFrom, At}；view.Compactions 是次数
+
+// 撤回排队输入 / 暂停恢复目标：先探测方法名，再登记意图
+withdraw, err := projection.NewQueuedInputWithdraw(folder, branchID, inputID, methods, sender)
+goal, err := projection.NewGoalControl(folder, branchID, projection.GoalPause, methods, sender)
 
 // 切点（目录领域开分支用）
 cut, ok := folder.TurnCut(sessionID, branchID, turnIndex) // ok=false 表示拿不到，不猜
@@ -194,7 +205,7 @@ listener := projection.Listen(folder, onReject)  // 直接交给 D1 Manager.Acqu
 
 词表以服务端的 `EventKind::key()` 为准（50 个内建键 + 扩展事件）。本表**冻结**：V 的 fixture、D3、D4 以它为准；词表发生变化（服务端新增或改名）时先改本表再改实现与 fixture，不在消费端猜别名。
 
-**本包折叠（29 条）**
+**本包折叠（31 条）**
 
 | `type/name` | 折叠结果 |
 |---|---|
@@ -214,7 +225,9 @@ listener := projection.Listen(folder, onReject)  // 直接交给 D1 Manager.Acqu
 | `step/tool-call` | 批量工具行；`ask_user` 同样开提问 |
 | `step/tool-completed` | 工具行结束（合并结果）；结算提问 |
 | `step/tool-result` | 批量工具行结束；结算提问 |
-| `context/compaction` | 系统提示行（摘要在 `summary` 或 `replacement` 的 strategy 段） |
+| `context/compaction` | 系统提示行 + 最近一次压缩摘要与次数（`View.Compaction`/`Compactions`） |
+| `model/usage` | 累加会话用量：请求数、prompt/completion/total、缓存读写、费用（`View.Usage`） |
+| `context/budget` | 记录最近一次上下文占用：估算输入、窗口、输出预留、基线与增量（`View.Context`） |
 | `exec/started` | 未结束后台任务加入清单 |
 | `exec/ended` | 后台任务结算 |
 | `collaboration/request` | 协作请求加入清单 |
@@ -228,7 +241,7 @@ listener := projection.Listen(folder, onReject)  // 直接交给 D1 Manager.Acqu
 | `branch/end` | 分支结束，之后的事实丢弃 |
 | `branch/ended` | 同上（服务端的结束事实名） |
 
-**不折叠（21 条，逐条写明归谁）**
+**不折叠（19 条，逐条写明归谁）**
 
 | `type/name` | 归属 | 理由 |
 |---|---|---|
@@ -245,9 +258,8 @@ listener := projection.Listen(folder, onReject)  // 直接交给 D1 Manager.Acqu
 | `context/prepare` | 不处理 | 同上 |
 | `context/compact` | 不处理 | 同上 |
 | `context/compaction-start` | 不处理 | 本版只提示"压缩完成"，开始事实不建行 |
-| `context/budget` | 不处理 | 上下文预算读数 |
 | `model/call` | 不处理 | 模型调用读数，不属视图 |
-| `model/usage` | 不处理（账号/管理面） | 用量归账号与管理面 |
+| `model/call` 之外的模型读数 | 不处理（账号/管理面） | 逐次调用的原始请求与配置不进视图；累计用量已折叠 |
 | `step/model-content` | 不处理 | 模型原始内容（含图片等），本版不建行 |
 | `step/tool-start` | 不处理 | 工具执行开始；工具行已由调用事实收敛为 running |
 | `branch/create-failed` | 不处理 | 失败的分支不建目录项 |
@@ -367,6 +379,30 @@ point := folder.CutPoint(branchID string, turnIndex int) CutPoint               
 | 请求与应答 | 集成层发 `session.suggestion.request {sessionId, turnId}` 与 `session.suggestion.respond {sessionId, turnId, action: accept\|dismiss}`；应答是写入，走写登记（目前没有专门的意图类型，集成层用 `KindManagementWrite` 带 op；需要时由 D3 增类型） |
 | 开关 | 由设置源 `prompt-suggestion` 控制（默认关）；关着时请求返回 `accepted=false, reason=disabled` |
 
+### 3.16 上下文用量与压缩摘要
+
+只折叠事实、只做累加与取最新，不推导服务端没给的数字。
+
+| 视图 | 事实 | 规则 |
+|---|---|---|
+| `View.Usage` | `model/usage`（`usage.{promptTokens, completionTokens, totalTokens, cacheReadTokens?, cacheWriteTokens?, cost?}`） | 逐条累加：请求数、各 token、费用；token 四舍五入成整数。没有事实时为 nil，不是零值 |
+| `View.Context` | `context/budget`（`estimatedInputTokens`、`contextWindow`、`outputTokens`、`baselinePromptTokens?`、`deltaTokens?`） | 后来的覆盖先来的；`Remaining()` 与 `Percent()` 只按事实给出的窗口与估算计算，窗口缺失时为 0 |
+| `View.Compaction` / `Compactions` | `context/compaction`（`status` 为 completed / cancelled，完成时带 `replacement` 摘要、`strategy`） | 下一次覆盖上一次；次数累加；取消的压缩没有摘要。系统提示行仍按行折叠，摘要视图是同一事实的另一种读法 |
+
+### 3.17 排队输入撤回与目标暂停/恢复
+
+两者都是"先探测方法名，再发一次写入"：方法表里没有就不发请求，报能力缺失。
+
+| 项 | 撤回排队输入 | 暂停/恢复目标 |
+|---|---|---|
+| 探测 | `session.input.withdraw` | `session.goal.pause` / `session.goal.resume` |
+| 意图 | `InputWithdrawIntent{SessionID, BranchID, InputID}`：`Op()=input.withdraw`、稳定幂等键、参数 `{op, branchId, inputId}` | `GoalControlIntent{SessionID, BranchID, Action}`：`Op()=goal.pause`/`goal.resume`、稳定幂等键、参数 `{op, branchId}` |
+| 写登记 | 复用 `write.KindStop`（会话内的一次运行/动作停止）之外的既有类型不合语义：撤回属于会话内输入管理，建议 D3 增 `KindInputWithdraw`；在那之前集成层用 `KindManagementWrite` 带 op | 同上，建议 D3 增 `KindGoalControl`；在那之前用 `KindManagementWrite` 带 op |
+| 发送 | `InputWithdrawSender.WithdrawInput` | `GoalControlSender.ControlGoal` |
+| 回执 | `{status: "deleted"\|"notHeld"}`；`notHeld` 表示已被消费或已删除，什么也没写 | `{sequence}`：控制事实的序号 |
+| 结算 | `input/withdraw`（可能跟一条 `input/deleted`）到达后，清单与用户行一起消失；**回执不做本地预删** | 服务端写下一条 `goal:state` 记录，目标折叠按它更新状态与暂停原因；**回执不做本地预改** |
+| 零请求 | 方法表缺项或没探测过（空表）都返回能力缺失，不发请求 | 同上 |
+
 ## 4. 状态映射（与 A 文档对上）
 
 | A.md 的状态 | 本领域实现 | 驱动 |
@@ -380,6 +416,7 @@ point := folder.CutPoint(branchID string, turnIndex int) CutPoint               
 | 分页锚点 | `branchState.anchor/cursor/hasOlder` + `paging.go` | 历史页（首屏与向前翻页）；断线重设 |
 | 后台任务清单 | `inventory.tasks`（含"正在停止"标记） | `exec/started`、`exec/ended`；停止只加标记，不加成员 |
 | 提示建议 | `branchState.suggestion`（可丢的展示状态） | `session.notice` 的 offer / cleared；断线清空 |
+| 上下文用量 | `foldState.usage/context/compaction` | `model/usage`、`context/budget`、`context/compaction` 事实 |
 | 对话之外的审批/提问答复 | 不在本包（D4） | — |
 
 四条总规矩的落点：镜像状态只由事实驱动（行只能由 `apply` 改）；客户端状态只提交意图、不写事实（本包不写任何服务端状态）；每个状态只有一个驱动者（折叠、清单、目标、分页、两张状态机各有唯一入口）；不做乐观更新（未确认的内容只能以 `Pending` 出现，提交与应答不在本包）。
@@ -413,7 +450,7 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 - `go test ./...`：全部通过（含 `internal/projection` 与同期其它领域的包）。
 - `go vet ./...`：无输出。
 - `go test -race ./internal/projection/`：通过。
-- projection 用例 57 个：54 个 fixture 用例通过；3 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6 与 6.7），设了就通过。
+- projection 用例 66 个：62 个 fixture 用例通过；4 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6、6.7 与 6.8），设了就通过。
 
 ### 6.2 覆盖
 
@@ -467,6 +504,15 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 | 别的来源、别的会话、断线都不留建议 | `TestSuggestionIsolation` |
 | 建议按分支分开 | `TestSuggestionPerBranch` |
 | 真实模型：任务输出分页、任务停止、提示建议 | `TestRealDaemonExecOutputAndStop`，证据见 6.7 |
+| 用量按事实累加、没有事实时为空 | `TestUsageAccumulates` |
+| 上下文占用取最新一条并给出剩余与比例 | `TestContextBudgetKeepsLatest` |
+| 压缩摘要、状态与次数 | `TestCompactionSummaryAndCount` |
+| 撤回先探测方法名、缺方法零请求 | `TestInputWithdrawNeedsMethod` |
+| 撤回发一次请求，清单与视图由事实同步移除 | `TestInputWithdrawSettlesByFact` |
+| 撤回意图的 op、幂等键与参数 | `TestInputWithdrawIntent` |
+| 目标控制先探测方法名、非法动作被拒 | `TestGoalControlNeedsMethod` |
+| 暂停/恢复各发一次，状态由记录结算 | `TestGoalPauseAndResume` |
+| 真实模型：用量、撤回、目标暂停恢复 | `TestRealDaemonContextAndControls`，证据见 6.8 |
 | 多轮 fixture 连续翻页到底：轮次连续、无重复、无遗漏，行数据与一次读全一致 | `TestTurnHistoryPagesEveryTurnOnce` |
 | 首屏从最近一轮开始，同一游标重复读取得到同一页 | `TestTurnHistoryStartsFromNewest` |
 | 会话/分支与来源不一致时拒绝 | `TestTurnHistoryRejectsForeignRequest` |
@@ -541,6 +587,8 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 | 工具、思考、审批、提问、后台任务、协作请求的真实证据 | blocked | `--mock-model` 只产生文本回复，没有工具调用与思考；需要真实模型账号（R 的验收口径要求真实服务事实） |
 | 协作请求的真实读取 | blocked | 需要真实会话上出现 `collaboration/request`（成员协作）；后台任务、排队输入、提问三类已在真实模型上验证（6.6） |
 | 任务输出的真实大流量与截断 | blocked | 需要一段超过服务端 64 MiB 输出上限的命令；本版只验证了多页小输出与 EOF |
+| `context/budget` 的真实事实 | blocked | 这一轮真实调用里服务端没有发布该事实；折叠与视图由 fixture 覆盖，待服务端在某些条件下发布时重跑 |
+| `context/compaction` 的真实事实 | blocked | 压缩由上下文策略触发，无法在证据里人为制造；摘要与次数由 fixture 覆盖 |
 | 分支会话的真实证据 | blocked | 需要在真实服务端上开分支并读分支历史 |
 | Windows 平台 | blocked | 没有 Windows 主机 |
 
@@ -633,6 +681,45 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 数据纪律：日志只有事件类型、标识、序号、状态、字节数与分页数；没有命令输出、建议正文、提示词或凭据；夹具复制运行，用例结束 `stopped=true`，无残留进程。
 
+### 6.8 真实模型：用量、撤回、目标暂停/恢复（2026-11-11）
+
+前提同 6.6（真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具复制，full-access，不传 `tools`）。
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealDaemonContextAndControls -v -count=1 ./internal/projection/
+```
+
+观察到的输出（只留状态、标识与数字）：
+
+```text
+服务端 0.1.0-alpha.21（profile product）
+会话 bf1bd073-...
+用量: 请求=1 prompt=11325 completion=2 total=11327 缓存读=9600
+上下文占用: 这一轮没有 context/budget 事实（服务端未发布）
+压缩摘要: 这一轮没有触发压缩（compaction 由上下文策略决定，不可人为触发）
+撤回前: input=8f0914a0-... mode=queue applied=false
+撤回回执: status=deleted（服务端方法 session.input.withdraw）
+撤回事实: type=input/withdraw sequence=43
+目标: 已设置，状态=active
+目标: 已暂停，状态=paused 原因=user
+目标: 已恢复，状态=active
+证据: events=[input/message input/applied turn/start input/consumed step/model-start step/text
+  model/usage step/model-output-end turn/end input/withdraw input/deleted step/thinking
+  step/tool-use-start step/tool-use step/tool-call step/tool-result]
+回收自启服务端: stopped=true
+```
+
+| 项 | 观察 | 结论 |
+|---|---|---|
+| 用量 | 一次真实调用后 `model/usage` 折出 `requests=1`、prompt 11325、completion 2、total 11327、缓存读 9600 | 通过 |
+| 上下文占用 | 这一轮服务端没有发 `context/budget`，`View.Context` 为 nil，只记日志 | blocked（服务端未发布该事实；折叠与视图由 fixture 覆盖） |
+| 压缩摘要 | 没有触发压缩（由上下文策略与环境决定，不可人为触发） | blocked（fixture 覆盖 completed/cancelled 两种摘要） |
+| 撤回 | `session.input.withdraw` 回执 `deleted`；`input/withdraw`（序号 43）与随后的 `input/deleted` 到达后，服务端清单与本包清单都不再列出该输入 | 通过 |
+| 目标 | `session.goal.set` → active；`GoalPause` → paused（原因 user）；`GoalResume` → active | 通过 |
+
+数据纪律：日志只留状态、标识与数字；没有目标正文、输入正文、模型输出与凭据；夹具复制运行，`stopped=true`，无残留进程。
+
 ## 7. 已知限制
 
 1. 目标只折叠当前 `goal:state` 记录；旧键 `goal:objective`/`goal:status` 只参与变更行归类，不参与状态推导（旧服务端兼容需要补齐）。
@@ -654,6 +741,9 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 17. 任务输出是拉取式：本包不轮询、不跟随，读的节奏与展示由调用方决定；`Truncated` 只透传，不解释成"内容不全"。
 18. 任务停止复用 `write.KindStop`（会话/分支运行停止）：语义上它是"停会话内的一次运行"，参数用 `op: "exec.stop"` + 任务标识区分；D3 若要单独的意图类型，本包意图形状不变。
 19. 提示建议的应答没有专门意图类型，集成层暂用 `KindManagementWrite` 带 op；建议本状态可丢，断线即清空，不参与事实判断。
+20. 撤回与目标控制都没有专门的写登记意图类型：本包给形状与幂等键，集成层暂用 `KindManagementWrite` 带 op；D3 增类型后只需改调用点。
+21. 撤回的收敛依赖事实：回执是 `deleted`，`input/deleted` 可能晚一拍落库；调用方应按事实等待，不要拿回执当已删除。
+22. 用量是累计值：只反映本分支已折叠的 `model/usage`，不含服务端账号侧的聚合与计费口径。
 
 ## 8. 下一步
 
