@@ -174,6 +174,39 @@ func TestSnapshotIsDetached(t *testing.T) {
 	}
 }
 
+// TestErrorCodeMapsToOriginalCodes 确认类型化错误能映射到原客户端的稳定错误码。
+func TestErrorCodeMapsToOriginalCodes(t *testing.T) {
+	cases := []struct {
+		err  error
+		want string
+	}{
+		{ErrProviderUnknown, "account_invalid_input"},
+		{ErrLoginMethodUnavailable, "account_invalid_input"},
+		{ErrResetMissingSubscription, "account_invalid_input"},
+		{ErrProvidersUnavailable, "account_provider_unavailable"},
+		{ErrLoginCanceled, "login_cancelled"},
+		{ErrLoginTimeout, "login_timeout"},
+		{ErrLoginExpired, "login_timeout"},
+		{ErrLoginCompletion, "login_failed"},
+		{ErrDeviceLogin, "login_failed"},
+		{ErrResetRequiresAccount, "account_required"},
+		{ErrStatusRead, "account_status_failed"},
+		{ErrUsageUnavailable, "account_usage_failed"},
+		{ErrModelsRead, "model_setup_failed"},
+	}
+	for _, testCase := range cases {
+		if got := ErrorCode(testCase.err); got != testCase.want {
+			t.Fatalf("错误码不符：err=%v got=%q want=%q", testCase.err, got, testCase.want)
+		}
+	}
+	if code := ErrorCode(errors.New("other")); code != "" {
+		t.Fatalf("未知错误不应映射：%q", code)
+	}
+	if code := ErrorCode(nil); code != "" {
+		t.Fatalf("nil 不应映射：%q", code)
+	}
+}
+
 // TestReadTimeUsesConfiguredClock 确认读取时间来自可替换时钟，便于核对。
 func TestReadTimeUsesConfiguredClock(t *testing.T) {
 	fixed := time.Date(2026, 11, 10, 12, 0, 0, 0, time.UTC)

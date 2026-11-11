@@ -122,8 +122,12 @@ func (f *fileInstaller) Prepare(_ context.Context, artifact string) (installPlan
 	if info.IsDir() {
 		return installPlan{}, errors.New("host: 单文件安装的目标不能是目录")
 	}
-	if info, err := os.Stat(artifact); err != nil || info.Size() == 0 {
+	artifactInfo, err := os.Stat(artifact)
+	if err != nil {
 		return installPlan{}, fmt.Errorf("host: 更新产物不可用: %w", err)
+	}
+	if artifactInfo.Size() == 0 {
+		return installPlan{}, errors.New("host: 更新产物为空")
 	}
 	return installPlan{artifact: artifact, target: f.target}, nil
 }

@@ -24,8 +24,11 @@ func (l *linuxInstaller) Prepare(_ context.Context, artifact string) (installPla
 		return plan, errors.New("host: Linux 安装目标必须是 AppImage 文件")
 	}
 	artifactInfo, err := os.Stat(artifact)
-	if err != nil || artifactInfo.Size() == 0 {
+	if err != nil {
 		return plan, fmt.Errorf("host: 更新产物不可用: %w", err)
+	}
+	if artifactInfo.Size() == 0 {
+		return plan, errors.New("host: 更新产物为空")
 	}
 	return plan, nil
 }

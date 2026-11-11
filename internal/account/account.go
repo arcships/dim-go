@@ -313,6 +313,55 @@ func cloneUsage(usage Usage) Usage {
 	return usage
 }
 
+// ErrorCode 把本领域的类型化错误映射成原客户端使用的稳定错误码，供集成层
+// 组成 `AccountErrorPayload{code,message}`。没有匹配时返回空串，由调用方决定。
+func ErrorCode(err error) string {
+	switch {
+	case err == nil:
+		return ""
+	case errors.Is(err, ErrProviderUnknown),
+		errors.Is(err, ErrProviderSelectionRequired),
+		errors.Is(err, ErrLoginMethodUnavailable),
+		errors.Is(err, ErrMalformedProviders),
+		errors.Is(err, ErrMalformedFact),
+		errors.Is(err, ErrMalformedUsage),
+		errors.Is(err, ErrMalformedModels),
+		errors.Is(err, ErrResetInvalidType),
+		errors.Is(err, ErrResetMissingSubscription):
+		return "account_invalid_input"
+	case errors.Is(err, ErrProvidersUnavailable),
+		errors.Is(err, ErrActionsUnavailable),
+		errors.Is(err, ErrMissingStatusReader),
+		errors.Is(err, ErrInvalidConfig),
+		errors.Is(err, ErrLoginUnavailable):
+		return "account_provider_unavailable"
+	case errors.Is(err, ErrLoginCanceled):
+		return "login_cancelled"
+	case errors.Is(err, ErrLoginTimeout), errors.Is(err, ErrLoginExpired):
+		return "login_timeout"
+	case errors.Is(err, ErrLoginInProgress):
+		return "login_in_progress"
+	case errors.Is(err, ErrLoginRequest),
+		errors.Is(err, ErrBrowserOpen),
+		errors.Is(err, ErrLoginDenied),
+		errors.Is(err, ErrLoginStateMismatch),
+		errors.Is(err, ErrLoginIncomplete),
+		errors.Is(err, ErrLoginCompletion),
+		errors.Is(err, ErrDeviceLogin):
+		return "login_failed"
+	case errors.Is(err, ErrResetRequiresAccount):
+		return "account_required"
+	case errors.Is(err, ErrStatusRead):
+		return "account_status_failed"
+	case errors.Is(err, ErrUsageRead), errors.Is(err, ErrUsageUnavailable):
+		return "account_usage_failed"
+	case errors.Is(err, ErrModelsRead), errors.Is(err, ErrModelsUnavailable):
+		return "model_setup_failed"
+	default:
+		return ""
+	}
+}
+
 // 领域错误。所有错误都带稳定语义，供上层区分「缺能力」「读取失败」与「动作未发出」。
 var (
 	// ErrMissingStatusReader 表示没有账号状态读取来源。

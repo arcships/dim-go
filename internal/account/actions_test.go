@@ -278,6 +278,30 @@ func TestResetRejectsInvalidTypeAndMissingSubscription(t *testing.T) {
 	}
 }
 
+// TestResetLoadsUsageForSubscription 确认没有缓存用量时会先读一次，拿到订阅标识
+// 再发起重置（与原客户端一致）。
+func TestResetLoadsUsageForSubscription(t *testing.T) {
+	writer := &stubWriter{outcome: fixedOutcome(write.StatusSucceeded)}
+	usageReader := &stubUsageReader{usage: Usage{SubscriptionID: 777, HasSubscriptionID: true}}
+	account := newTestAccount(t, Config{
+		Status:  &stubStatusReader{fact: signedInFact()},
+		Usage:   usageReader,
+		Actions: writer,
+	})
+	if _, err := account.Refresh(context.Background()); err != nil {
+		t.Fatalf("读取已登录状态: %v", err)
+	}
+	if _, err := account.Reset(context.Background(), ResetRequest{Type: ResetTypeWindow}); err != nil {
+		t.Fatalf("重置: %v", err)
+	}
+	if params := decodeParams(t, writer.registered()[0]); params["subscriptionId"] != float64(777) {
+		t.Fatalf("重置没有使用读取到的订阅标识：%+v", params)
+	}
+	if calls := usageReader.calls; calls != 1 {
+		t.Fatalf("应读取一次用量：%d", calls)
+	}
+}
+
 // TestResetExplicitSubscriptionOverridesUsage 确认显式订阅标识优先于最近用量。
 func TestResetExplicitSubscriptionOverridesUsage(t *testing.T) {
 	writer := &stubWriter{outcome: fixedOutcome(write.StatusSucceeded)}

@@ -129,7 +129,7 @@ func TestRealDaemonMCPImport(t *testing.T) {
 		storeID = preview.Store.ID
 	}
 	t.Logf("preview revision=%s sourceRevision=%s store=%s entries=%d unknownTopLevel=%v",
-		preview.Revision, preview.SourceRevision, storeID, len(preview.Entries), preview.UnknownTopLevel)
+		preview.Revision, shortDigest(preview.SourceRevision), storeID, len(preview.Entries), preview.UnknownTopLevel)
 
 	importID := ""
 	for _, entry := range preview.Entries {
@@ -213,6 +213,16 @@ func TestRealDaemonMCPImport(t *testing.T) {
 		t.Fatalf("清理 mcp.remove: %v", err)
 	}
 	t.Logf("cleanup mcp.remove shape=%s", shapeOf(rawRemove))
+}
+
+func shortDigest(value string) string {
+	if value == "" {
+		return "<empty>"
+	}
+	if len(value) > 12 {
+		value = value[:12]
+	}
+	return "sha256:" + value + "..."
 }
 
 func sanitizeHomePath(path string) string {

@@ -30,8 +30,11 @@ func (m *macInstaller) Prepare(ctx context.Context, artifact string) (installPla
 		return plan, errors.New("host: macOS 安装目标是 .app 目录")
 	}
 	artifactInfo, err := os.Stat(artifact)
-	if err != nil || artifactInfo.Size() == 0 {
+	if err != nil {
 		return plan, fmt.Errorf("host: 更新产物不可用: %w", err)
+	}
+	if artifactInfo.Size() == 0 {
+		return plan, errors.New("host: 更新产物为空")
 	}
 
 	// 暂存目录必须和 .app 在同一卷，才能用 rename 原子替换。
@@ -76,7 +79,7 @@ func (m *macInstaller) unpack(ctx context.Context, artifact, staging string) err
 	return nil
 }
 
-// findAppBundle 在解包目录里找唯一的 .app；守望 zip 里的 __MACOSX 目录会被忽略。
+// findAppBundle 在解包目录里找唯一的 .app；zip 里的 __MACOSX 目录会被忽略。
 func findAppBundle(staging string) (string, error) {
 	entries, err := os.ReadDir(staging)
 	if err != nil {

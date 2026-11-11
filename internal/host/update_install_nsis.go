@@ -17,8 +17,11 @@ type windowsInstaller struct {
 func (w *windowsInstaller) Prepare(_ context.Context, artifact string) (installPlan, error) {
 	plan := installPlan{artifact: artifact}
 	info, err := os.Stat(artifact)
-	if err != nil || info.Size() == 0 {
+	if err != nil {
 		return plan, fmt.Errorf("host: 更新安装器不可用: %w", err)
+	}
+	if info.Size() == 0 {
+		return plan, errors.New("host: 更新安装器为空")
 	}
 	if info.IsDir() {
 		return plan, errors.New("host: 更新安装器必须是文件")

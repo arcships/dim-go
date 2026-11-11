@@ -45,7 +45,7 @@ Owner: 账号领域 agent
 **验收**
 
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/account/`；本版全部通过（2026-11-11，macOS arm64）。
-- 本领域：74 个顶层测试（含 3 个真实账号夹具测试）、17 个子测试；未设置夹具环境变量时夹具测试跳过，其余 71 个通过。覆盖见 §6.2。
+- 本领域：76 个顶层测试（含 3 个真实账号夹具测试）、17 个子测试；未设置夹具环境变量时夹具测试跳过，其余 73 个通过。覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖状态读取、登录回调、登出与重置。
   - 注入替身：状态/用量/模型读取、授权来源、系统浏览器、写登记在单元测试里替换，覆盖超时、取消、拒绝、校验不一致、聚合不可用与不重发。
@@ -342,7 +342,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
   go test ./internal/account -run TestRealAccountFixture -v
 ```
 
-本版结果：常规三条命令全部通过，`internal/account` 的 71 个顶层测试、17 个子测试全绿；3 个真实账号夹具测试在设置夹具环境变量后通过（2026-11-11，本机 macOS arm64）。
+本版结果：常规三条命令全部通过，`internal/account` 的 73 个顶层测试、17 个子测试全绿；3 个真实账号夹具测试在设置夹具环境变量后通过（2026-11-11，本机 macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -386,6 +386,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 | 浏览器登录必须有 state；缺失即拒绝并释放尝试 | `TestLoginRequiresAuthorizationState` |
 | 重置字段、幂等键复用/更换、前置条件、订阅标识 | `TestResetReusesIdempotencyKeyAfterUnknown`、`TestResetNewKeyAfterDefinitiveFailure`、`TestResetRequiresSignedIn`、`TestResetRejectsInvalidTypeAndMissingSubscription`、`TestResetExplicitSubscriptionOverridesUsage` |
 | 登出 provider 选择、重新登录后可再次登出、登出后重置键重建 | `TestLogoutProviderSelection`、`TestLogoutAgainAfterRelogin`、`TestResetKeyRegeneratedAfterLogout` |
+| 错误码映射到原客户端稳定码 | `TestErrorCodeMapsToOriginalCodes` |
 | 与原 Electron 客户端字段/接口核对 | 本文 §6.5（静态对照，无独立测试） |
 
 证据档位：`fakeappserver`（本机 Unix socket + NDJSON + 真实 `write.Manager`）、注入替身，以及临时产品 home 上的真实账号夹具（见 §6.4）；真实 browser/device 登录完成与真实登出/重置未验证。
@@ -503,7 +504,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 | 重置前置 | 必须已登录；必须知道 subscriptionId | 同；缺订阅标识拒绝 | **等价通过** |
 | 重置幂等 | 按 `subscriptionId:type` 内存键；未定重试复用；明确失败/成功/登出清除 | 同；显式重试复用键，本包不自动重发 | **等价通过** |
 | 重置返回 | `{status:'applied', replayed, appliedAt, usage}` | 写意图视图；调用方重新读取用量 | 语义差异：无 `replayed`/合并后的 usage |
-| 错误分类 | 服务端 `appError` 转发 + UI 码（`login_failed` 等），`{code,message}` | Go 类型化错误（`ErrLogin*`/`ErrDeviceLogin`/`ErrReset*` 等） | 语义差异：无 `{code,message}` 载荷；集成层负责映射 |
+| 错误分类 | 服务端 `appError` 转发 + UI 码（`login_failed` 等），`{code,message}` | Go 类型化错误 + `ErrorCode(err)` 稳定码映射 | 部分一致：码可映射，`{code,message}` 载荷仍由集成层组装 |
 | 用量字段 | `plan`、`subscription`、`config`、`resets`、`subscriptionId`、`featureMeters` | `Lines`、`Aggregate`、`SubscriptionID`、观察时间与读取错误 | 部分一致：`subscriptionId` 已补；plan/subscription/config/resets 未承载 |
 | 模型字段 | `modelSetup`、`unlockedModelCount` | `ModelList{Ready, Reason, Models}` | 语义差异：呈现分层不同 |
 | 回调参数来源 | query 或 hash | 环回 HTTP 只能收到 query | 限制：hash 形式回调无法读取（真实提供方使用 query） |
@@ -518,7 +519,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 **仍不能等价通过的部分**
 
 - `AccountState`/`AccountUser.uid`/`checked`/`modelSetup`/`unlockedModelCount` 等呈现层字段与命名不同。
-- 错误载荷 `{code,message}` 与 `appError` 透传未在本包表达。
+- 错误载荷 `{code,message}` 与 `appError` 透传未在本包表达；`ErrorCode` 只覆盖本领域错误。
 - 用量字段（plan/subscription/config/resets/featureMeters）未完整承载；模型呈现字段不同。
 - 固定回调端口、hash 回调、登录/登出并发顺序存在差异。
 
@@ -548,7 +549,7 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 22. **尝试只在内存**：provider、方式、尝试标识、用户码与授权码都随尝试存在内存，不落盘；进程重启后没有可恢复的尝试。
 23. **重置显式重试会再次发送**：不自动重发，但用户显式重试会登记新意图并复用同一幂等键；与原客户端一致，是否重复扣减由服务端幂等保证。
 24. **重置返回形状**：本包返回写意图视图，不带原客户端的 `replayed`/合并后的 usage；调用方需重新读取用量。
-25. **错误载荷**：本包用类型化 Go 错误，不产生 `{code,message}`；原客户端的 `appError`/UI 码需由集成层映射。
+25. **错误载荷**：本包用类型化 Go 错误，并提供 `ErrorCode(err)` 稳定码；不产生完整 `{code,message}`，服务端 `appError` 透传仍需集成层处理。
 26. **状态命名与呈现字段**：本包用 `Status`+`LoginPhase`+`ModelList`，没有原客户端的 `signing-in`/`refreshing`/`error`、`checked`、`modelSetup`、`unlockedModelCount`。
 27. **回调端口与并发顺序**：原客户端默认固定 `localhost:54321` 并串行等待登录/刷新后再登出；本包随机环回端口，登录与登出由调用方保证顺序。
 28. **hash 回调**：原客户端从 query 或 hash 解析回调；环回 HTTP 只能收到 query，hash 形式无法读取（真实提供方使用 query）。

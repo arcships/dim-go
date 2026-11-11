@@ -341,7 +341,8 @@ go vet ./...
 - `go test -race ./internal/extensions/`：`ok`。
 - `go test ./internal/app`：`ok`（集成层）。
 - `go vet ./internal/extensions/`：无输出。
-- `go test -count=1 ./...` 与 `go vet ./...`：全部包通过。
+- `go test -count=1 ./...`：本领域与其余包通过；`internal/app` 的 `TestUpdaterSwitchReplacesTargetAndVersion` 当前失败（宿主更新目标判定，不属本领域，本版未修改）。
+- `go vet ./...`：无输出。
 
 ### 6.2 覆盖
 

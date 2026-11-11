@@ -75,7 +75,16 @@ func (a *Account) Reset(ctx context.Context, request ResetRequest) (write.Intent
 	}
 	subscriptionID := request.SubscriptionID
 	if subscriptionID == 0 {
-		if usage := a.Usage(); usage.HasSubscriptionID {
+		usage := a.Usage()
+		if !usage.HasSubscriptionID && a.cfg.Usage != nil {
+			// 与原客户端一致：没有缓存的订阅标识时先读一次用量。
+			refreshed, readErr := a.RefreshUsage(ctx)
+			if readErr != nil {
+				return write.IntentView{}, fmt.Errorf("%w: %v", ErrResetMissingSubscription, readErr)
+			}
+			usage = refreshed
+		}
+		if usage.HasSubscriptionID {
 			subscriptionID = usage.SubscriptionID
 		}
 	}
