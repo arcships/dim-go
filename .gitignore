@@ -16,3 +16,5 @@ coverage.out
 # Local build artifacts
 /dimagent
 /dimagent-conncheck
+/tmpprobe
+/internal/tmpprobe
