@@ -1,13 +1,18 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>U1 B2 线框：三个概念方案</title>
-<style>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>U1 B2 线框</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font:14px/22.75px -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;color:#333;background:#fff;padding:24px}
 h1{font-size:20px;line-height:28px;margin-bottom:8px}
 h2{font-size:15px;line-height:22px;margin:28px 0 10px}
-p.lead{color:#999;margin-bottom:6px;max-width:1100px}
-.strip{display:flex;gap:32px;overflow-x:auto;padding-bottom:16px}
+h3{font-size:14px;line-height:22px;margin:18px 0 8px}
+p.lead{color:#666;margin-bottom:6px;max-width:1000px}
+.strip{display:flex;gap:24px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}
+.pair{display:flex;gap:12px}
 .cv{position:relative;flex:0 0 auto;height:900px;background:#fff;border:1px solid #ddd;overflow:hidden}
-.tag{position:absolute;right:8px;top:6px;font-size:10.5px;line-height:14px;color:#999;z-index:9}
+.tag{position:absolute;left:8px;bottom:6px;font-size:10.5px;line-height:14px;color:#999;z-index:9;background:#fff;padding:0 4px}
+.notes{width:240px;flex:0 0 auto;font-size:12.25px;line-height:18px;color:#333;border-left:1px solid #ddd;padding-left:10px}
+.notes b{display:block;margin-bottom:6px}
+.notes div{margin-bottom:6px;color:#666}
+.notes i{display:block;color:#999;font-style:normal;font-size:11px}
 .sb{position:absolute;left:0;top:0;bottom:0;width:256px;background:#f5f5f5;border-right:1px solid #ddd;padding:8px}
 .sb .hd{height:32px;display:flex;align-items:center;justify-content:space-between;color:#999;font-size:12.25px}
 .sb .ent{height:28px;display:flex;align-items:center;padding:0 8px;border-radius:6px}
@@ -20,62 +25,48 @@ p.lead{color:#999;margin-bottom:6px;max-width:1100px}
 .tb .nm{font-weight:600}
 .tb .mu{color:#999;font-size:12.25px}
 .tb .sp{flex:1}
-.tb .btn{border:1px solid #ddd;border-radius:6px;padding:0 8px;height:28px;display:flex;align-items:center;font-size:12.25px;color:#333}
+.btn{border:1px solid #ddd;border-radius:6px;padding:0 8px;height:28px;display:flex;align-items:center;font-size:12.25px;color:#333;background:#fff}
 .tl{position:absolute;left:0;right:0;overflow:hidden;padding:21px 14px}
-.wrap{max-width:784px;margin:0 auto}
+.wrap{margin:0 auto}
 .u{display:flex;justify-content:flex-end;margin-bottom:10.5px}
 .u .b{max-width:85%;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:7px 14px}
 .a{margin-bottom:10.5px}
-.tool{display:flex;align-items:center;gap:8px;border-left:1px solid #ddd;padding-left:10.5px;margin:7px 0 10.5px 5.25px;color:#999;font-size:12.25px}
-.tool .st{color:#333}
-.skel{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.skel .bar{width:3px;height:16px;background:#333}
-.skel .t{font-weight:600}
-.skel .meta{margin-left:auto;color:#999;font-size:12.25px}
-.ev{margin:0 0 10.5px 16.75px;color:#999;font-size:12.25px;display:flex;gap:8px}
-.q{border-top:1px solid #ddd;border-bottom:1px solid #ddd;background:#f5f5f5;padding:4px 14px;font-size:12.25px;color:#333;display:flex;gap:10px;align-items:center}
+.op{display:flex;align-items:center;gap:8px;border-left:1px solid #ddd;padding-left:10.5px;margin:7px 0 10.5px 5.25px;color:#666;font-size:12.25px}
+.op .st{color:#333}
+.q{border-top:1px solid #ddd;border-bottom:1px solid #ddd;background:#f5f5f5;padding:4px 14px;font-size:12.25px;display:flex;gap:10px;align-items:center;height:33px}
 .cm{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #ddd;background:#fff;padding:7px 14px}
-.card{max-width:784px;margin:0 auto;border:1px solid #ddd;border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
-.card .row1{display:flex;gap:8px;align-items:center;margin-bottom:7px}
+.card{border:1px solid #ddd;border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
+.row1{display:flex;gap:8px;align-items:center;margin-bottom:7px}
 .chip{border:1px solid #ddd;background:#f5f5f5;border-radius:6px;padding:0 8px;font-size:12.25px;height:24px;display:flex;align-items:center}
 .ph{color:#999}
-.card .row2{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.row2{display:flex;gap:8px;align-items:center;justify-content:flex-end}
 .prim{border:1px solid #333;background:#333;color:#fff;border-radius:6px;padding:0 10px;height:28px;display:flex;align-items:center;font-size:12.25px}
-.ghost{border:1px solid #ddd;border-radius:6px;padding:0 10px;height:28px;display:flex;align-items:center;font-size:12.25px}
-.appr{border-top:1px solid #ddd;background:#f5f5f5;padding:8px 14px}
-.appr .box{max-width:784px;margin:0 auto;border:1px solid #333;border-radius:8px;padding:8px 10px;background:#fff}
-.appr .t{font-weight:600;margin-bottom:4px}
-.appr .m{font-size:12.25px;color:#999;margin-bottom:6px}
-.appr .act{display:flex;gap:8px}
-.pagebar{display:flex;justify-content:center;margin-bottom:10.5px;color:#999;font-size:12.25px;border:1px dashed #ddd;border-radius:6px;height:28px;align-items:center}
+.ghost{border:1px solid #ddd;border-radius:6px;padding:0 10px;height:28px;display:flex;align-items:center;font-size:12.25px;background:#fff}
+.ap{border:1px solid #333;border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
+.ap .t{font-weight:600}
+.ap .m{font-size:12.25px;color:#666}
+.ap .act{display:flex;gap:8px;align-items:center}
 .mark{color:#999;font-size:12.25px}
-.panel{position:absolute;top:0;bottom:0;right:0;width:480px;border-left:1px solid #ddd;background:#fff}
-.panel .tabs{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid #ddd;font-size:12.25px;color:#999}
-.panel .tabs .on{color:#333;border-bottom:2px solid #333;height:48px;display:flex;align-items:center}
-.err{color:#333;border-left:2px solid #333;padding-left:10.5px;margin-bottom:10.5px}
+.pagebar{display:flex;justify-content:center;margin-bottom:10.5px;color:#666;font-size:12.25px;border:1px dashed #ddd;border-radius:6px;height:28px;align-items:center}
+.err{border-left:2px solid #333;padding-left:10.5px;margin-bottom:10.5px}
 .err .k{font-size:12.25px;color:#999}
-</style></head><body><h1>U1 B2 线框：三个概念方案</h1>
-<p class="lead">基线（这类应用的常规构图）：左侧导航承载项目与会话（256）；中间一条会话，标题栏 48 写会话名与权限；对话流按内容上限 784 居中，用户消息右对齐、助手文本满宽、工具调用折叠成一行；输入区贴在对话底部（60–300），运行中提交以队列条显示在输入区上方；右栏可选（280–容器−400），默认关闭。按 P1 / Q-9 / Q-19，基线里没有状态条与活动条，这不计为偏离。</p>
-<p class="lead">每个方案只允许在基线上偏离 ≤2 处；超过 2 处即说明它不属于通用桌面 agent，直接砍掉。
-每页两张横向长图：宽 1440 与宽 900，各含默认态、运行中、审批待答、出错/结果未知、长历史五个画布。灰度为唯一配色，无 JS、无外部资源。</p>
-<h2>方案</h2>
+.rail{position:absolute;top:48px;bottom:124px;left:0;width:22px;border-right:1px solid #ddd}
+.rail .pin{position:absolute;left:7px;width:8px;height:2px;background:#999}
+.rail .pin.cur{background:#333;height:3px}
+table{border-collapse:collapse;margin:8px 0 16px;font-size:12.25px}
+th,td{border:1px solid #ddd;padding:4px 8px;text-align:left;vertical-align:top}
+th{background:#f5f5f5}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+</style></head><body>
+<h1>U1 B2 线框：两个方案</h1>
+<p class="lead">基线：左栏放会话（256）→ 标题行 48 写会话名、分支、权限、模型 → 时间线按内容上限 784 居中，用户消息右对齐、助手铺开、操作收成一行 → 输入区贴底（60–300），有排队项时其上方出现队列条 → 右栏可选（280–容器−400），只放当前会话的附属内容。按 §9.9：审批出现时占据输入位，替换输入区；界面不用内部术语。</p>
+<p class="lead">对象模型见 <code>docs/domains/U1-objects.md</code>；每个方案在基线上偏离 ≤2 处。每页含宽 1440 与宽 900 两组、五个状态（默认、运行中、等待你同意、出错/结果不确定、长历史），每个画布右侧一列说明它由哪些对象组成。</p>
 <div class="strip">
-  <div class="cv" style="width:420px;height:320px;padding:16px">
-    <div class="tag">偏离 1 处</div>
-    <div style="font-weight:600;margin-bottom:6px">方案 A：输入区常驻 + 审批占底栈一层</div>
-    <p class="lead">审批在输入区上方占一层，输入区保留且可提交（session.submit 在审批待答期间被接受，D5 §4.12）。<br>代价：主区高度 −116px。<br><a href="a.html">看线框 →</a></p>
-  </div>
-  <div class="cv" style="width:420px;height:320px;padding:16px">
-    <div class="tag">偏离 2 处</div>
-    <div style="font-weight:600;margin-bottom:6px">方案 B：结论行 + 证据行</div>
-    <p class="lead">每轮压成结论行与证据行两行；失败与待答标记上提到结论行，折叠不得隐藏。<br>代价：默认只显示结论。<br><a href="b.html">看线框 →</a></p>
-  </div>
-  <div class="cv" style="width:420px;height:320px;padding:16px">
-    <div class="tag">偏离 2 处</div>
-    <div style="font-weight:600;margin-bottom:6px">方案 C：右栏承载第二会话</div>
-    <p class="lead">右栏可放另一条会话（标签之一）；双列时内容随列宽，不再限宽 784。<br>代价：主列 −39%，<960 无副列。<br><a href="c.html">看线框 →</a></p>
-  </div>
+ <div class="cv" style="width:420px;height:300px;padding:16px">
+  <div style="font-weight:600;margin-bottom:6px">方案 A：过程收成一行</div>
+  <p class="lead">偏离 2 处：一轮的全部操作收成一行；这一行自己承担进行中/等待/失败的变化。<br>代价：中途说明默认看不到。<br><a href="a.html">看线框 →</a></p></div>
+ <div class="cv" style="width:420px;height:300px;padding:16px">
+  <div style="font-weight:600;margin-bottom:6px">方案 B：轮次索引</div>
+  <p class="lead">偏离 1 处：时间线左缘加轮次索引，超过 5 轮才出现，占 22px。<br>代价：时间线窄 22px。<br><a href="b.html">看线框 →</a></p></div>
 </div>
-<h2>说明</h2>
-<p class="lead">线框只表达结构与比例，不表达视觉规范：字号、间距、颜色语义归 C2。所有按钮对应协议里存在的方法：提交 session.submit、停止 session.stop、允许/拒绝 approval.respond、长期允许 permission.set_rules、撤回 session.input.withdraw、上一页 session.history {before}。没有重试、重新生成、任务中心。</p>
 </body></html>
