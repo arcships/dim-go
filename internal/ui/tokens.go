@@ -103,7 +103,6 @@ const (
 	sidebarHeaderHeight   = 32
 	userBubbleMaxWidth    = 520
 	composerTextMinHeight = 44
-	sendSlotWidth         = 56
 	opNumberWidth         = 16
 	opActionWidth         = 36
 	opResultWidth         = 56

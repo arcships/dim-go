@@ -71,7 +71,7 @@ def over(fg, alpha, bg):
 FILL = {
     "bg": "窗口底（沿用框架）",
     "surface": "卡片 / 气泡 / 输入卡 / 行底（沿用框架）",
-    "surface-hover": "悬停面；选中行底（沿用框架）",
+    "surface-hover": "悬停面（选中行底由框架给：未聚焦 SurfacePressed、聚焦 Accent）",
     "surface-pressed": "按下态（沿用框架）",
     "border": "分隔线与普通轮廓（沿用框架）",
     "border-strong": "边界单独承担识别（补：≥3:1）",
@@ -418,17 +418,17 @@ body[data-motion="off"] .caret{animation:none}
 .approval .why{font-size:${sec}px;color:var(--text-secondary)}
 .actions{display:flex;gap:${s2}px;align-items:center}
 button.primary{
-  display:inline-flex;align-items:center;gap:${s2}px;
-  font:inherit;font-size:${sec}px;height:28px;padding:0 ${s3}px;border-radius:${radius}px;
-  border:1px solid var(--accent);background:var(--accent);color:var(--accent-on);cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+  font:inherit;font-size:${font}px;line-height:1.25;padding:6px 14px;border-radius:${radius}px;
+  border:1px solid transparent;background:var(--accent);color:var(--accent-on);cursor:pointer;
   transition:background var(--motion-transition) ease-out;
 }
 button.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 button.primary:active{background:var(--accent-pressed);border-color:var(--accent-pressed)}
 button.primary:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 button.ghost{
-  display:inline-flex;align-items:center;gap:${s2}px;
-  font:inherit;font-size:${sec}px;height:28px;padding:0 ${s3}px;border-radius:${radius}px;
+  display:inline-flex;align-items:center;gap:6px;
+  font:inherit;font-size:${font}px;line-height:1.25;padding:6px 14px;border-radius:${radius}px;
   border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;
   transition:background var(--motion-transition) ease-out;
 }
@@ -439,9 +439,8 @@ button.ghost[disabled]{opacity:.5;cursor:default}
 .iconbtn:hover{background:var(--surface-hover)}
 .iconbtn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .queue{display:flex;align-items:center;gap:${s2}px;height:33px;padding:0 ${s4}px;border:1px solid var(--border);border-radius:${radius}px;background:var(--surface);font-size:${sec}px;color:var(--text-secondary)}
-.composer{border:1px solid var(--border);border-radius:${radius}px;background:var(--surface);padding:${s3}px}
+.composer{border:1px solid var(--border-strong);border-radius:${radius}px;background:var(--surface);padding:${s3}px}
 .composer .editor{font-size:${font}px;line-height:${body_lh};min-height:44px;color:var(--text)}
-.composer.focus{border-color:var(--border-strong)}
 .composer .bar2{display:flex;align-items:center;gap:${s2}px;padding-top:${s2}px}
 .chip{display:inline-flex;align-items:center;gap:${s1}px;height:20px;padding:0 ${s2}px;border-radius:${radius}px;border:1px solid var(--border);background:var(--surface);font-size:${micro}px;color:var(--text-secondary)}
 .spacer{flex:1}
@@ -449,7 +448,8 @@ button.ghost[disabled]{opacity:.5;cursor:default}
 .rowdemo .row{display:flex;align-items:center;gap:${s2}px;height:28px;padding:0 ${s3}px;font-size:${sec}px;border-bottom:1px solid var(--border)}
 .rowdemo .row:last-child{border-bottom:0}
 .rowdemo .row.hover{background:var(--surface-hover)}
-.rowdemo .row.selected{background:var(--surface-hover);box-shadow:inset 2px 0 0 var(--accent-ink)}
+.rowdemo .row.selected{background:var(--surface-pressed)}
+.rowdemo .row.selected.on{background:var(--accent);color:var(--accent-on)}
 .rowdemo .row.focused{outline:2px solid var(--focus);outline-offset:-2px}
 .rowdemo .row.disabled{opacity:.5}
 .rowdemo .row .muted{color:var(--text-secondary)}
@@ -545,7 +545,7 @@ ${dark_swatches}
     </div>
   </div>
 </div></div>
-<p class="spec">卡面 surface · 1px accent-ink 描边（明 6.10 / 暗 5.86，≥3:1）· 圆角 ${radius}（Theme.Radius）· 内边距 ${s4} · 命令 ${code}/${code_lh} · 主按钮 accent/accent-on 28 高 · 摘要行时钟图标 accent-ink</p>
+<p class="spec">卡面 surface · 1px accent-ink 描边（明 6.10 / 暗 5.86，≥3:1）· 圆角 ${radius}（Theme.Radius）· 内边距 ${s4} · 命令 ${code}/${code_lh} · 卡内主按钮用框架 PrimaryButton（accent/accent-on）· 摘要行时钟图标 accent-ink</p>
 
 <h3>4.4 结果不确定</h3>
 <div class="frame"><div class="thread">
@@ -562,17 +562,18 @@ ${dark_swatches}
   </div>
   <div class="notice">${icon_warn}<span>连接已断开，输入暂不可用；恢复后内容还在。</span></div>
 </div></div>
-<p class="spec">整块不透明度 .5 · 不响应悬停与聚焦 · 禁用按钮 surface + 1px border + text-secondary · 原因一行 ${sec}</p>
+<p class="spec">整块不透明度 .5（框架内建）· 不响应悬停与聚焦 · 禁用按钮保留原面、只被 .5 压淡（UI-13）· 原因一行 ${sec}</p>
 
 <h3>4.6 选中 / 悬停 / 聚焦（同一行元素的三种属性变化）</h3>
 <div class="rowdemo">
   <div class="row"><span>payments 重试逻辑</span><span class="spacer"></span><span class="muted">12:04</span></div>
   <div class="row hover"><span>payments 重试逻辑（悬停）</span><span class="spacer"></span><span class="muted">12:04</span></div>
-  <div class="row selected"><span>payments 重试逻辑（选中）</span><span class="spacer"></span><span class="muted">12:04</span></div>
+  <div class="row selected"><span>payments 重试逻辑（选中·侧栏无焦点）</span><span class="spacer"></span><span class="muted">12:04</span></div>
+  <div class="row selected on"><span>payments 重试逻辑（选中·侧栏有焦点）</span><span class="spacer"></span><span class="muted">12:04</span></div>
   <div class="row focused"><span>payments 重试逻辑（键盘聚焦）</span><span class="spacer"></span><span class="muted">12:04</span></div>
   <div class="row disabled"><span>payments 重试逻辑（不可用）</span><span class="spacer"></span><span class="muted">12:04</span></div>
 </div>
-<p class="spec">悬停：底 surface → surface-hover，${motion_transition}ms，文字不变、不位移 · 选中：底 surface-hover + 2px accent-ink 竖条（不新增 color token：框架唯一选中色是文本选区，叠面次要文本 4.41 / 3.88 不达 4.5）· 聚焦：2px 焦点环外偏 1px · 不可用：.5，悬停不点亮</p>
+<p class="spec">悬停：底 surface → surface-hover，${motion_transition}ms，文字不变、不位移 · 选中：沿用框架（未聚焦 SurfacePressed、聚焦 Accent 填充 + AccentText），本文不画竖条 · 聚焦：2px 焦点环外偏 1px，由框架画 · 不可用：.5，悬停不点亮</p>
 
 <h3>4.7 输入区、队列条、发送 / 停止</h3>
 <div class="frame"><div class="thread">
@@ -588,7 +589,7 @@ ${dark_swatches}
     </div>
   </div>
 </div></div>
-<p class="spec">输入卡 surface + 1px border（边界单独承担识别，聚焦时转 border-strong），圆角 ${radius}，内边距 ${s3} · 编辑器 ${font}/${body_lh} · 队列条 ${sec}，贴输入卡上方 ${s2} · 按钮 28 高、${sec}、图标 16 · 微型块 ${micro}</p>
+<p class="spec">输入卡外壳（自绘）surface + 1px border-strong，圆角 ${radius}，内边距 ${s3}，不随焦点改描边 · 编辑器 TextAreaBase（无外观），焦点环由框架画 · 队列条 ${sec}，贴输入卡上方 ${s2} · 按钮沿用框架（内边距 6/14、标签 ${font}）· 图标 16 · 微型块 ${micro}</p>
 
 <h3>4.8 空态</h3>
 <div class="frame"><div class="thread">
@@ -628,7 +629,7 @@ ${icon_rows}
 <tbody>
 ${contrast_rows}
 </tbody></table>
-<p class="note">例外三条：<code>accent</code> 填充在暗色面上的边界 2.88（按钮有文字标签，识别由标签承担 5.17）；禁用态 .5 由 WCAG 豁免；次要文本落暗色按下面上 4.28（框架自己的配色，按下是 ≤${motion_transition}ms 的指针瞬时态）。焦点环 2px + 外偏 1px、不参与布局，只在键盘导航出现；交互目标 ≥ 24×24；文本缩放 100–200% 由框架乘 FontSize；高对比度沿用框架 <code>Theme.follow</code>，本文不另写覆盖。</p>
+<p class="note">例外三条：<code>accent</code> 填充在暗色面上的边界 2.88（按钮有文字标签，识别由标签承担 5.17）；禁用态 .5 由 WCAG 豁免（框架的画法，本文不换面）；次要文本落暗色按下面上 4.28（框架自己的配色，按下是 ≤${motion_transition}ms 的指针瞬时态）。焦点环 2px + 外偏 1px、不参与布局，只在键盘导航出现；交互目标 ≥ 24×24；文本缩放 100–200% 由框架乘 FontSize；高对比度沿用框架 <code>Theme.follow</code>，本文不另写覆盖。</p>
 
 <h2 id="s8">8 token 清单</h2>
 <table>

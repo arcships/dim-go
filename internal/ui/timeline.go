@@ -38,9 +38,12 @@ func (a *App) round(c *gui.Context, i int) {
 	gui.Column(c).Gap(space3).Children(func() {
 		gui.Row(c).Children(func() {
 			gui.Spacer(c)
-			typeBody.style(t, gui.Text(c, r.user)).Selectable().
+			// 气泡外观画在自绘 Box 上；文本只负责字号与可选。
+			gui.Box(c).MaxWidth(userBubbleMaxWidth).
 				Padding(space2, space3).Radius(radius).
-				Background(t.Surface).MaxWidth(userBubbleMaxWidth)
+				Background(t.Surface).Children(func() {
+				typeBody.style(t, gui.Text(c, r.user)).Selectable()
+			})
 		})
 		gui.Column(c).Gap(space2).Children(func() {
 			a.reply(c, r)
@@ -65,12 +68,12 @@ func (a *App) reply(c *gui.Context, r round) {
 	).Selectable()
 }
 
-// note 是本轮下方的一行说明（结果不确定）：行首状态位 + 一行正文，
+// note 是本轮下方的一行说明（结果不确定）：行首 16px 状态位 + 一行正文，
 // 说明属于本轮，不是容器（U2 §4.1）。
 func (a *App) note(c *gui.Context, note string) {
 	t := c.Theme()
-	gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
-		typeBody.style(t, gui.Text(c, "!")).TextColor(t.Warning)
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
+		iconBox(c, iconWarn, t.Warning, "结果不确定")
 		typeBody.style(t, gui.Text(c, note)).Selectable()
 	})
 }
@@ -125,22 +128,30 @@ func opRow(c *gui.Context, n int, o op) {
 	}
 }
 
-// statusMark 是过程摘要行的行首状态位（U2 §4.1、§6.4）：运行中是 8px 实心圆，
-// 其余三种用一个字形占位——图标集（Heroicons）接入前不引素材。
+// statusMark 是过程摘要行的行首状态位（U2 §4.1、§6.4、校准 C5）：
+// 固定 16×16 盒，尺寸不随字号变化；运行中是居中的 8px 实心圆，其余是
+// Heroicons outline 图标（24 网格 1.5 描边 → 16px 时 1.0px）。
 func statusMark(c *gui.Context, t *gui.Theme, s roundStatus) {
 	if s == roundRunning {
-		gui.Box(c).Width(dotStatus).Height(dotStatus).Radius(dotStatus / 2).
-			Background(colorAccentInk.in(t))
+		box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0).
+			Label("状态：正在运行")
+		box.DrawOver(func(p *gui.Painter, r gui.Rect) {
+			p.Fill(gui.Rect{
+				X: r.X + (iconInline-dotStatus)/2,
+				Y: r.Y + (iconInline-dotStatus)/2,
+				W: dotStatus, H: dotStatus,
+			}, colorAccentInk.in(t), dotStatus/2)
+		})
 		return
 	}
-	glyph, color := "✓", t.TextMuted
 	switch s {
 	case roundWaiting:
-		glyph, color = "◷", colorAccentInk.in(t)
+		iconBox(c, iconClock, colorAccentInk.in(t), "状态：等待你同意")
 	case roundFailed:
-		glyph, color = "✕", t.Danger
+		iconBox(c, iconXMark, t.Danger, "状态：失败")
+	default:
+		iconBox(c, iconCheck, t.TextMuted, "状态：完成")
 	}
-	typeSecondary.style(t, gui.Text(c, glyph)).TextColor(color)
 }
 
 // resultColor 只给失败的结果词上 danger，其余结果词取正文色。

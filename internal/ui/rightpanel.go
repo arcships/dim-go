@@ -16,8 +16,8 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 			AlignItems(gui.Center).Children(func() {
 			gui.Tabs(c, &a.rightTab, labels...).Label("右栏标签").Grow(1)
 		})
-		// 块之间的分隔线取框架 border，不承担控件轮廓（U2 §3.5）。
-		gui.Box(c).Height(strokeHairline).Background(t.Border)
+		// 块之间的分隔用框架 Divider：方向随容器，颜色取 border（U2 校准 C8）。
+		gui.Divider(c)
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space3).Gap(space2).Children(func() {
 				switch a.rightTab {

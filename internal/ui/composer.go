@@ -39,7 +39,9 @@ func (a *App) queueBar(c *gui.Context) {
 }
 
 // inputCard 是输入卡片：附件块、可编辑正文、附件入口与发送槽。
-// 模型不在这里：取默认值时不上屏，偏离默认时只在标题行末尾留一个淡标记（UI-9）。
+// 卡片自己画唯一一道 border-strong；编辑器用 TextAreaBase，不再叠第二道边
+// （U2 校准 C3）。模型不在输入区：默认值不上屏，偏离默认时只在标题行末尾
+// 留一个淡标记（UI-9）。
 func (a *App) inputCard(c *gui.Context) {
 	t := c.Theme()
 	empty := strings.TrimSpace(a.draft) == ""
@@ -54,8 +56,8 @@ func (a *App) inputCard(c *gui.Context) {
 				}
 				chip(c, "发送路径.md")
 			})
-			typeBody.style(t, gui.TextArea(c, &a.draft).
-				Placeholder("写点什么，或把文件拖进来")).
+			gui.TextAreaBase(c, &a.draft).
+				Placeholder("写点什么，或把文件拖进来").
 				Grow(1).MinHeight(composerTextMinHeight).Label("消息")
 			gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 				// 运行中 Enter 是排队，空闲时 Enter 发送（U3 K1）。
@@ -65,7 +67,7 @@ func (a *App) inputCard(c *gui.Context) {
 				}
 				typeSecondary.style(t, gui.Text(c, hint)).TextColor(t.TextMuted)
 				gui.Spacer(c)
-				actionButton(c, "＋ 附件", "附件", false, false)
+				actionButton(c, "+ 附件", "附件", false, false)
 				a.sendSlot(c, running, empty)
 			})
 		})
@@ -75,22 +77,22 @@ func (a *App) inputCard(c *gui.Context) {
 // 空闲是"发送"，运行中是"停止"，两者不并存；审批卡占位时整个输入卡不存在，
 // 槽也随之消失（UI-1）。
 func (a *App) sendSlot(c *gui.Context, running, empty bool) {
-	text, label := "发送", "发送"
+	text, label := "发送", "发送消息"
 	if running {
-		text, label = "停止", "停止"
+		text, label = "停止", "停止这次运行"
 	}
-	actionButton(c, text, label, true, !running && empty).MinWidth(sendSlotWidth)
+	actionButton(c, text, label, true, !running && empty)
 }
 
 // approvalCard 是审批卡：出现时占据输入位，输入区不存在（UI-1）。
-// 卡面 surface、1px accent 描边、圆角 6、内边距 16（U2 §4.1）。
-// 拿不到命令原文时不提供“始终允许”（U3 §5.3：不给看不清作用域的按钮）。
+// 卡面 surface、1px accent-ink 描边（对 surface 6.10，U2 校准 C7）、圆角 6、
+// 内边距 16（U2 §4.1）。拿不到命令原文时不提供“始终允许”（U3 §5.3）。
 func (a *App) approvalCard(c *gui.Context) {
 	t := c.Theme()
 	cmd := a.approvalCommand
 	gui.Column(c).MinHeight(ApprovalHeight).
 		Padding(space4).Gap(space3).
-		Background(t.Surface).Border(strokeHairline, t.Accent).Radius(radius).
+		Background(t.Surface).Border(strokeHairline, colorAccentInk.in(t)).Radius(radius).
 		Children(func() {
 			typeBodyStrong.style(t, gui.Text(c, "需要你同意：跑一条命令"))
 			if cmd != "" {

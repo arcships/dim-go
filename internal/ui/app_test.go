@@ -337,6 +337,81 @@ func TestScreensFitAtTextScale(t *testing.T) {
 	}
 }
 
+// C1：禁用的主按钮保留 accent 填充，由框架整体压 0.5；与 surface 次按钮靠面区分。
+func TestDisabledPrimaryKeepsAccentFill(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	btn, ok := tt.Find("发送消息")
+	if !ok {
+		t.Fatal("找不到禁用的发送按钮")
+	}
+	img := tt.Image()
+	// 文字左侧的按钮填充，避开字形。
+	x, y := int(btn.X)+4, int(btn.Y+btn.H/2)
+	fill := img.RGBAAt(x, y)
+	if fill.R == 244 && fill.G == 244 && fill.B == 245 {
+		t.Fatalf("禁用主按钮被换成 surface：%v", fill)
+	}
+	if !(fill.B > fill.R && fill.B > fill.G) {
+		t.Fatalf("禁用主按钮没有 accent 填充：%v", fill)
+	}
+}
+
+// C2：按钮高度取框架默认（6/14 内边距）；窗口未强调时主按钮由框架内缩 1px，
+// 因此禁用主按钮 28.5、次按钮 30.5，都不是我们覆盖出来的值。
+func TestButtonUsesFrameworkHeight(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	send, ok := tt.Find("发送消息")
+	if !ok {
+		t.Fatal("找不到发送按钮")
+	}
+	attach, ok := tt.Find("附件")
+	if !ok {
+		t.Fatal("找不到附件按钮")
+	}
+	if send.H < 28 || send.H > 29 {
+		t.Fatalf("禁用主按钮高 %v，想要框架未强调窗口的 28.5", send.H)
+	}
+	if attach.H < 30 || attach.H > 31 {
+		t.Fatalf("次按钮高 %v，想要框架默认的 30.5", attach.H)
+	}
+}
+
+// C5：状态位是固定 16×16 盒，不随字号变化。
+func TestStatusMarkIs16Box(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	r, ok := tt.Find("状态：完成")
+	if !ok {
+		t.Fatal("找不到状态位")
+	}
+	if r.W != 16 || r.H != 16 {
+		t.Fatalf("状态位 %+v，想要 16×16", r)
+	}
+}
+
+// C6：侧栏带标记与不带标记的行，文字左边界相同。
+func TestSidebarMarkerUsesIconSlot(t *testing.T) {
+	_, tt := newTester(t, StateRunning)
+	marked, ok := tt.Find("修发送路径")
+	if !ok {
+		t.Fatal("找不到带标记的会话")
+	}
+	plain, ok := tt.Find("参考")
+	if !ok {
+		t.Fatal("找不到不带标记的会话")
+	}
+	if marked.X != plain.X {
+		t.Fatalf("带标记行文字 X=%v，不带标记行 X=%v", marked.X, plain.X)
+	}
+}
+
+// C8：标签里不再出现全角加号。
+func TestNoFullwidthPlus(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	if tt.HasText("＋") {
+		t.Fatal("界面里仍有全角加号")
+	}
+}
+
 // 模型偏离默认时只在标题行末尾留一个淡标记，不写“模型：”（UI-9）。
 func TestModelMarkerOnlyWhenNonDefault(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

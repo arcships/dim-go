@@ -19,7 +19,7 @@ func (a *App) sidebar(c *gui.Context) {
 			AlignItems(gui.Center).Gap(space2).Children(func() {
 			typeSecondary.style(t, gui.Text(c, "会话")).TextColor(t.TextMuted)
 			gui.Spacer(c)
-			actionButton(c, "＋", "新建会话", false, false)
+			actionButton(c, "+", "新建会话", false, false)
 			if actionButton(c, "‹", "收起左栏", false, false).Clicked() {
 				a.sidebarCollapsed = true
 			}
@@ -48,7 +48,8 @@ func (a *App) sidebar(c *gui.Context) {
 }
 
 // sessionList 用框架的 Sidebar：一个 Tab 停靠点，列表自身滚动，
-// 上下键在会话之间移动。行首标记按状态取一个，不新增状态容器。
+// 上下键在会话之间移动。状态标记走固定的 16px icon 槽，不拼进 label，
+// 因此带标记与不带标记的行文字左边界相同（U2 校准 C6）。
 func (a *App) sessionList(c *gui.Context) {
 	sessions, markers := sessionSamples(a.state)
 	gui.Sidebar(c, &a.selectedSession, func() {
@@ -60,15 +61,32 @@ func (a *App) sessionList(c *gui.Context) {
 		gui.Divider(c)
 		gui.SidebarSection(c, "项目 A", nil, func() {
 			for i := range sessions[:2] {
-				label := sessionLabel(sessions[i], markers[i])
-				gui.SidebarItem(c, "s"+strconv.Itoa(i+1), nil, label)
+				a.sessionItem(c, "s"+strconv.Itoa(i+1), sessions[i], markers[i])
 			}
 		})
 		gui.SidebarSection(c, "项目 B", nil, func() {
-			label := sessionLabel(sessions[2], markers[2])
-			gui.SidebarItem(c, "s3", nil, label)
+			a.sessionItem(c, "s3", sessions[2], markers[2])
 		})
 	}).Grow(1).Label("会话列表")
+}
+
+// sessionItem 画一条会话行：选中样式完全交给框架（聚焦 = accent 填充 +
+// accent-on，未聚焦 = surface-pressed；U2 校准 C4 取框架语义）；状态标记走
+// SidebarItem 的 16px icon 槽，所有会话行都占这个槽，文字左边界一致。
+func (a *App) sessionItem(c *gui.Context, id, name, marker string) {
+	icon := statusIcon(marker)
+	if icon == nil {
+		icon = iconDotEmpty // 只占位，不画：让所有会话行从同一列起
+	}
+	gui.SidebarItem(c, id, icon, name)
+}
+
+// markerColor 是侧栏状态标记的颜色：运行/等待用 accent-ink，失败用 danger。
+func markerColor(t *gui.Theme, marker string) gui.Color {
+	if marker == "✕" {
+		return t.Danger
+	}
+	return colorAccentInk.in(t)
 }
 
 // sidebarRail 是收起后的 12px 边条：不显示会话，点击展开。
@@ -86,11 +104,4 @@ func (a *App) sidebarRail(c *gui.Context) {
 					Radius(railMarkHeight / 2).Background(t.TextMuted)
 			}
 		})
-}
-
-func sessionLabel(name, marker string) string {
-	if marker == "" {
-		return name
-	}
-	return marker + " " + name
 }

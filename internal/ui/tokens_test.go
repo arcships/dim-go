@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image/color"
+	"math"
 	"testing"
 	"time"
 
@@ -188,4 +189,53 @@ func TestViewAppliesTheme(t *testing.T) {
 			t.Fatalf("%s：主区底色 = %v，想要 %v", c.name, got, want)
 		}
 	}
+}
+
+// TestDisabledContrastUsesFrameworkOpacity 按框架算法重算禁用态（C1）：
+// 不换面，整棵子树压 0.5。禁用次按钮标签 = text 叠 surface 一半 → 3.31:1；
+// 禁用主按钮填充 = accent 叠 surface 一半 → #8cacf0 一类的淡强调面。
+func TestDisabledContrastUsesFrameworkOpacity(t *testing.T) {
+	light := theme(false, gui.Preferences{})
+
+	label := mixOver(light.Text, light.Surface, 0.5)
+	if got := contrastRatio(label, light.Surface); math.Abs(got-3.31) > 0.02 {
+		t.Errorf("禁用次按钮标签对 surface = %.2f:1，想要 3.31:1", got)
+	}
+
+	fill := mixOver(light.Accent, light.Surface, 0.5)
+	want := [3]int{140, 172, 240}
+	got := [3]int{int(fill.R), int(fill.G), int(fill.B)}
+	for i := range want {
+		if d := got[i] - want[i]; d < -2 || d > 2 {
+			t.Fatalf("禁用主按钮填充 = %v，想要接近 %v", got, want)
+		}
+	}
+}
+
+// mixOver 把 fg 以 alpha 叠在 bg 上，即框架禁用态的半透明合成。
+func mixOver(fg, bg gui.Color, alpha float32) gui.Color {
+	mix := func(f, b uint8) uint8 {
+		return uint8(math.Round(float64(alpha)*float64(f) + (1-float64(alpha))*float64(b)))
+	}
+	return gui.Color{R: mix(fg.R, bg.R), G: mix(fg.G, bg.G), B: mix(fg.B, bg.B), A: 255}
+}
+
+// contrastRatio 是 WCAG 2.1 的相对亮度对比度。
+func contrastRatio(a, b gui.Color) float64 {
+	la, lb := relativeLuminance(a), relativeLuminance(b)
+	if la < lb {
+		la, lb = lb, la
+	}
+	return (la + 0.05) / (lb + 0.05)
+}
+
+func relativeLuminance(c gui.Color) float64 {
+	lin := func(v uint8) float64 {
+		s := float64(v) / 255
+		if s <= 0.04045 {
+			return s / 12.92
+		}
+		return math.Pow((s+0.055)/1.055, 2.4)
+	}
+	return 0.2126*lin(c.R) + 0.7152*lin(c.G) + 0.0722*lin(c.B)
 }
