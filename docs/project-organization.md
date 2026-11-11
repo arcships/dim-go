@@ -68,6 +68,7 @@ DimAgent 的 Go 桌面客户端：Go + mygo native UI 承载宿主与界面，Ru
 | D11 | 管理面 | 设置、模型与 provider、插件、技能、MCP、hooks、scheduler、workflow、runtime、modality、storage | `app-server/{plugins,skills,hooks,scheduler,runtime,workflow}` 1,994、`config-rpc` 814、`modality-rpc` 1,128、`app-services` 插件技能 2,350 | D1、D3、D6 |
 | D12 | 集成层 | 把各领域拼成可运行程序：适配器、启动与退出编排、只读视图与意图入口、自检子命令 | 各领域结果包与公开接口 | D1–D11 | 在做 |
 | D13 | 成本核算 | 按会话统计 token 用量与费用：请求数、prompt/完成/缓存读写、按官方分档计价（美元与人民币）、时间跨度、单价来源与假设 | 本机 daemon 存储里的 `model/usage` 事实、官方定价页 | D1（会话标识口径） | 在做 |
+| D14 | 原生界面 | 由 mygo native view 组成的主界面：会话列表与历史、输入区、审批与提问、设置与供应商、扩展管理、终端；流式 Markdown 渲染与图标资源接入 | mygo UI 文档与示例、kero | D11a、D12 | 待启动 |
 ## 5. 结果包契约
 
 每个领域提交结果包时必须回答五项：
@@ -260,6 +261,20 @@ DimAgent 的 Go 桌面客户端：Go + mygo native UI 承载宿主与界面，Ru
 - 等外部条件的，先写清缺什么、谁能解除，不硬凑证据。
 - 上游没给方法的，只记录不臆造；方法出现后按上表直接接。
 
+
+### 7.3 界面参考来源（已登记，暂不研究）
+
+用户提供的参考，待界面领域启动时按需研究：
+
+| 用途 | 来源 |
+|---|---|
+| 流式 Markdown 渲染 | https://github.com/zerob13/markstream-go |
+| AI 与供应商图标 | https://ailogo.yldm.ai/ |
+| mygo 官方 UI 库 | https://mygo.egoist.dev/docs/ui |
+| mygo 官方示例 | https://github.com/egoist/mygo/tree/main/examples |
+| mygo 实战项目（终端） | https://github.com/egoist/kero |
+
+说明：这些是选型输入，不是需求；是否引入第三方库、以什么方式引入，由界面领域先出设计选择，再按仓库的第三方依赖规则走。
 
 ## 8. 最终验收
 
