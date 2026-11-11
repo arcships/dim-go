@@ -62,7 +62,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：64 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：67 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -308,7 +308,7 @@ provider、协作策略、agent 与新增扩展写入都先过 hello 能力（�
 |---|---|---|
 | provider 解析（内部） | `account.providers` | 取 `providerId` 与 `defaultDirectory`，优先选 `loginMethods` 含 `browser` 的提供者；结果按实例缓存一次 |
 | `StatusReader` | `account.status {providerId}` | `account` 为空 → `signed_out`；否则 `signed_in`，`subject/email/name/plan` → `Identity`。真实回执没有独立的「过期」字段 |
-| `UsageReader` | `account.usage {providerId}` | `features[]`（`key/used/allowance/unit/periodEnd`）与 `windows[]`（`durationHours/tokenUsed/tokenCap/expiresAt`）→ `Lines`；`credits`（`usedUnits/totalUnits/unlimited`）→ `Aggregate`；`unlimited` 只给原因、不伪造上限 |
+| `UsageReader` | `account.usage {providerId}` | 全量映射：`plan{name,status,priceAmount,priceCurrency,priceInterval,expiresAt,currentTermStart}` → `Plan`；`credits{usedUnits,totalUnits,remainingUnits,unlimited,resetsAt}` → `Credits`（`Unlimited` 为真时 `Aggregate` 只给原因）；`windows[]` → `Windows` 并拼进 `Lines`；`features[]{key,used,allowance,remaining,unit,unlimited,periodEnd}` → `Features` 并拼进 `Lines`；`subscriptionUrl`/`pricingUrl` 原样保留，`subscriptionId` > 0 时置 `SubscriptionID`/`HasSubscriptionID`。字段缺失保持 nil / 零值，不填 0；`PriceAmount` 是货币最小单位，原样透传，不做货币换算 |
 | `ModelReader` | `provider.catalog {providerId}` | `catalog.models[{id,name,unavailableReason}]` → `Model{ID, DisplayName, RequiresAccount:true, Unavailable: reason != nil}` |
 | `ProviderSource` | `account.providers` | `providerId/displayName/loginMethods/defaultDirectory` → `account.Provider`；登录方式只取服务端声明 |
 | `ProviderAuthorizationSource` | `account.login.browser.begin` / `complete`；取消用 `account.login.cancel` | begin 带 `providerId,directory,redirectUri`，回执 `attemptId,authorizationUrl`；complete 带 `providerId,attemptId,callbackUrl`；尝试到 provider 的对应只在内存里保存 |
@@ -466,7 +466,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 64 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 67 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -530,6 +530,9 @@ go test -race ./internal/app/
 | 命令规则来源：读取映射、写入映射（expectedRevision 与规则字段） | `TestRuleSourceReadAndWrite` |
 | 命令规则冲突：映射成 `ErrRulesConflict` 且不重试 | `TestRuleSourceConflict` |
 | 命令规则缺能力：零请求、裁决记住缺失 | `TestRuleSourceMissingCapability` |
+| 账号用量新字段：plan/credits/windows/features/链接/订阅标识透传 | `TestAccountUsageMapsNewFields` |
+| 账号用量缺失字段保持 nil / 聚合不可用 | `TestAccountUsageMissingFieldsStayNil` |
+| 账号用量两次读取互不共享内存 | `TestAccountUsageDeepCopiesValues` |
 | 账号提供者映射 | `TestAccountProviderSource` |
 | 按 provider 的浏览器登录发起/完成/取消参数 | `TestAccountProviderAuthorization` |
 | 设备码登录发起与轮询状态映射、未知状态拒绝 | `TestAccountDeviceAuthorization` |
@@ -1038,7 +1041,8 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 12. **管理面写形状按 D1 冻结参数实现**：`hooks.save` 写 `{hooks:[…]}` 文档、`mcp.save` 写 `{transport,command,args,url,env}` 最小文档；真实服务端的文档结构与版本冲突语义未在真实服务端验证。`mcp.remove`/`mcp.set_enabled` 的 `source` 取载荷，缺省按 `user`。
 13. **唤醒取消需要会话标识**：`session.wakeup.cancel` 是会话方法；领域包的旧写法只带 `wakeupId`，集成层优先用载荷里的 `sessionId`，其次用意图的会话标识，两者都没有时报不可重试错误。
 14. **账号没有「过期」字段**：`account.status` 只区分有/无账号对象；过期与恢复仍按 D6 的 blocked 记录处理。
-15. **权限档位值是服务端 preset**：集成层把 `policy.preset`（`read-only`/`workspace-write`/`full-access`）原样当档位保存并透传，不再改写成交互裁决早期的本地常量。
+15. **账号用量只做字段映射**：`PriceAmount` 是货币最小单位，除 100 属于界面口径，客户端不换算；`Plan/Credits/Windows/Features` 缺失保持 nil，空数组与缺失区分（指针切片）。账号领域仍未承载 `config`（账号级策略）与 `resets`（重置额度批次），集成层映射不到。
+16. **权限档位值是服务端 preset**：集成层把 `policy.preset`（`read-only`/`workspace-write`/`full-access`）原样当档位保存并透传，不再改写成交互裁决早期的本地常量。
 16. **模态能力标识是派生值**：真实 `modality.capabilities` 没有单独的能力标识，集成层用 `类别.操作` 派生（`key` 会重复，不能当主键）；该标识只用于本地视图，不写回服务端。
 17. **模态参数做一次 camelCase→snake_case 映射**：领域载荷用 `clientTaskId`/`mediaType`/`dataBase64`/`nodePath`，发送方映射成 `client_task_id`/`media_type`/`data_base64`/`node_path`；结果文件两种写法都接受。
 18. **命令清单不保留正文**：`shell.list` 回执里的命令文本在集成层被丢弃，只保留标识、分支、模式与开始时间；证据与诊断都不会打印命令或输出。
@@ -1082,6 +1086,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | 账号用量扩展到 plan/credits/windows/features/订阅链接与标识：字段缺失保持 nil，价格最小单位原样透传 | 账号领域新增用量字段 | 
 | 2026-11-11 | 纠正权限默认值：selfcheck `-permission-preset` 缺省为空（不默认提权），工具类证据显式传 full-access；文档补充“成员策略由服务端按发起分支采样，客户端不可指定” | 默认 full-access 是提权隐患 | 
 | 2026-11-11 | 成员停止真实端到端跑通：根因是新建会话未显式带权限档位（默认策略等审批）；`catalog.Create`/`App.CreateSession` 增加 `PermissionPreset`，selfcheck 缺省为空、证据用例显式传 full-access；真实 `cancelled` 与成员事实收敛已验证 | 复盘结论收尾 | 
 | 2026-11-11 | 成员停止真实尝试：模型调用 `agent` 一次但未产生协作请求/投递，5 分钟轮次未结束，按 blocked 记录 | 收尾 A 组最后一条 | 

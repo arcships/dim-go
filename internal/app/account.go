@@ -179,66 +179,132 @@ func (r *accountUsageReader) ReadUsage(ctx context.Context) (account.Usage, erro
 		return account.Usage{}, err
 	}
 	var reply struct {
+		SubscriptionURL string `json:"subscriptionUrl"`
+		PricingURL      string `json:"pricingUrl"`
+		SubscriptionID  *int64 `json:"subscriptionId"`
+		Plan            *struct {
+			Name             string   `json:"name"`
+			Status           string   `json:"status"`
+			PriceAmount      *float64 `json:"priceAmount"`
+			PriceCurrency    string   `json:"priceCurrency"`
+			PriceInterval    string   `json:"priceInterval"`
+			ExpiresAt        *string  `json:"expiresAt"`
+			CurrentTermStart *string  `json:"currentTermStart"`
+		} `json:"plan"`
 		Credits *struct {
-			UsedUnits  *float64 `json:"usedUnits"`
-			TotalUnits *float64 `json:"totalUnits"`
-			Unlimited  *bool    `json:"unlimited"`
-			ResetsAt   *string  `json:"resetsAt"`
+			UsedUnits      *float64 `json:"usedUnits"`
+			TotalUnits     *float64 `json:"totalUnits"`
+			RemainingUnits *float64 `json:"remainingUnits"`
+			Unlimited      *bool    `json:"unlimited"`
+			ResetsAt       *string  `json:"resetsAt"`
 		} `json:"credits"`
-		Windows []struct {
+		// 指针切片区分「服务端没给数组」与「给了空数组」。
+		Windows *[]struct {
 			DurationHours float64 `json:"durationHours"`
 			TokenUsed     float64 `json:"tokenUsed"`
 			TokenCap      float64 `json:"tokenCap"`
+			StartedAt     *string `json:"startedAt"`
 			ExpiresAt     *string `json:"expiresAt"`
 		} `json:"windows"`
-		Features []struct {
+		Features *[]struct {
 			Key       string   `json:"key"`
 			Used      *float64 `json:"used"`
 			Allowance *float64 `json:"allowance"`
+			Remaining *float64 `json:"remaining"`
 			Unit      *string  `json:"unit"`
+			Unlimited *bool    `json:"unlimited"`
 			PeriodEnd *string  `json:"periodEnd"`
 		} `json:"features"`
-		Plan string `json:"plan"`
 	}
 	if err := client.CallInto(ctx, methodAccountUsage, map[string]any{"providerId": provider.ID}, &reply); err != nil {
 		return account.Usage{}, err
 	}
-	usage := account.Usage{}
-	for _, feature := range reply.Features {
-		line := account.UsageLine{Key: feature.Key, Label: feature.Key}
-		if feature.Used != nil {
-			line.Used = *feature.Used
-		}
-		if feature.Allowance != nil {
-			line.Limit = *feature.Allowance
-		}
-		if feature.Unit != nil {
-			line.Unit = *feature.Unit
-		}
-		line.ResetsAt = wireTime(feature.PeriodEnd)
-		usage.Lines = append(usage.Lines, line)
+	usage := account.Usage{
+		SubscriptionURL: reply.SubscriptionURL,
+		PricingURL:      reply.PricingURL,
 	}
-	for _, window := range reply.Windows {
-		usage.Lines = append(usage.Lines, account.UsageLine{
-			Key:      fmt.Sprintf("window-%gh", window.DurationHours),
-			Label:    fmt.Sprintf("最近 %g 小时", window.DurationHours),
-			Used:     window.TokenUsed,
-			Limit:    window.TokenCap,
-			Unit:     "tokens",
-			Window:   fmt.Sprintf("%gh", window.DurationHours),
-			ResetsAt: wireTime(window.ExpiresAt),
-		})
+	if reply.Plan != nil {
+		usage.Plan = &account.UsagePlan{
+			Name:             reply.Plan.Name,
+			Status:           reply.Plan.Status,
+			PriceAmount:      cloneFloatPointer(reply.Plan.PriceAmount),
+			PriceCurrency:    reply.Plan.PriceCurrency,
+			PriceInterval:    reply.Plan.PriceInterval,
+			ExpiresAt:        wireTime(reply.Plan.ExpiresAt),
+			CurrentTermStart: wireTime(reply.Plan.CurrentTermStart),
+		}
+	}
+	if reply.Credits != nil {
+		usage.Credits = &account.UsageCredits{
+			UsedUnits:      cloneFloatPointer(reply.Credits.UsedUnits),
+			TotalUnits:     cloneFloatPointer(reply.Credits.TotalUnits),
+			RemainingUnits: cloneFloatPointer(reply.Credits.RemainingUnits),
+			Unlimited:      cloneBoolPointer(reply.Credits.Unlimited),
+			ResetsAt:       wireTime(reply.Credits.ResetsAt),
+		}
+	}
+	if reply.Windows != nil {
+		usage.Windows = make([]account.UsageWindow, 0, len(*reply.Windows))
+		for _, window := range *reply.Windows {
+			usage.Windows = append(usage.Windows, account.UsageWindow{
+				DurationHours: window.DurationHours,
+				TokenUsed:     window.TokenUsed,
+				TokenCap:      window.TokenCap,
+				StartedAt:     wireTime(window.StartedAt),
+				ExpiresAt:     wireTime(window.ExpiresAt),
+			})
+			// 通用视图仍按窗口拼一行；窗口本身保留原始字段。
+			usage.Lines = append(usage.Lines, account.UsageLine{
+				Key:      fmt.Sprintf("window-%gh", window.DurationHours),
+				Label:    fmt.Sprintf("最近 %g 小时", window.DurationHours),
+				Used:     window.TokenUsed,
+				Limit:    window.TokenCap,
+				Unit:     "tokens",
+				Window:   fmt.Sprintf("%gh", window.DurationHours),
+				ResetsAt: wireTime(window.ExpiresAt),
+			})
+		}
+	}
+	if reply.Features != nil {
+		usage.Features = make([]account.UsageFeature, 0, len(*reply.Features))
+		for _, feature := range *reply.Features {
+			unit := ""
+			if feature.Unit != nil {
+				unit = *feature.Unit
+			}
+			usage.Features = append(usage.Features, account.UsageFeature{
+				Key:       feature.Key,
+				Used:      cloneFloatPointer(feature.Used),
+				Allowance: cloneFloatPointer(feature.Allowance),
+				Remaining: cloneFloatPointer(feature.Remaining),
+				Unit:      unit,
+				Unlimited: cloneBoolPointer(feature.Unlimited),
+				PeriodEnd: wireTime(feature.PeriodEnd),
+			})
+			line := account.UsageLine{Key: feature.Key, Label: feature.Key, Unit: unit, ResetsAt: wireTime(feature.PeriodEnd)}
+			if feature.Used != nil {
+				line.Used = *feature.Used
+			}
+			if feature.Allowance != nil {
+				line.Limit = *feature.Allowance
+			}
+			usage.Lines = append(usage.Lines, line)
+		}
+	}
+	if reply.SubscriptionID != nil && *reply.SubscriptionID > 0 {
+		usage.SubscriptionID = *reply.SubscriptionID
+		usage.HasSubscriptionID = true
 	}
 	switch {
-	case reply.Credits == nil:
+	case usage.Credits == nil:
 		// 服务端没有给聚合项：保持不可用，由账号领域补原因。
-	case reply.Credits.Unlimited != nil && *reply.Credits.Unlimited:
+	case usage.Credits.Unlimited != nil && *usage.Credits.Unlimited:
 		usage.Aggregate = account.AggregateUsage{Reason: "服务端声明无限额度，没有上限值"}
-	case reply.Credits.UsedUnits != nil && reply.Credits.TotalUnits != nil:
+	case usage.Credits.UsedUnits != nil && usage.Credits.TotalUnits != nil:
 		usage.Aggregate = account.AggregateUsage{
 			Available: true,
-			Used:      *reply.Credits.UsedUnits,
-			Limit:     *reply.Credits.TotalUnits,
+			Used:      *usage.Credits.UsedUnits,
+			Limit:     *usage.Credits.TotalUnits,
 			Unit:      "units",
 		}
 	}
@@ -396,4 +462,22 @@ func (a *App) requireControl(op string) (*protocol.Client, error) {
 		return nil, failure.New(failure.KindConnectionMissing, op, ErrNotConnected)
 	}
 	return client, nil
+}
+
+// cloneFloatPointer 复制可选数值，避免返回值与服务端回执共享同一块内存。
+func cloneFloatPointer(value *float64) *float64 {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+// cloneBoolPointer 复制可选布尔值。
+func cloneBoolPointer(value *bool) *bool {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
 }
