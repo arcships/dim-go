@@ -125,9 +125,10 @@ func TestShellLifecycle(t *testing.T) {
 
 	// 二次启动：同一端点、带参数。本进程应只转交参数并退出。
 	secret := "sk-live-cafebabe"
+	workingDir := t.TempDir()
 	secondCfg := cfg
 	secondCfg.Args = []string{"--open", secret}
-	secondCfg.WorkingDir = "/tmp/work"
+	secondCfg.WorkingDir = workingDir
 	second, err := New(secondCfg)
 	if err != nil {
 		t.Fatalf("New 第二实例: %v", err)
@@ -146,8 +147,8 @@ func TestShellLifecycle(t *testing.T) {
 	if len(activation.Args) != 2 || activation.Args[1] != secret {
 		t.Fatalf("转交参数 = %v", activation.Args)
 	}
-	if activation.WorkingDir != "/tmp/work" {
-		t.Fatalf("转交工作目录 = %q", activation.WorkingDir)
+	if activation.WorkingDir != workingDir {
+		t.Fatalf("转交工作目录 = %q，期望 %q", activation.WorkingDir, workingDir)
 	}
 	if strings.Contains(buf.String(), secret) {
 		t.Fatalf("启动参数内容进入诊断: %s", buf.String())
@@ -282,7 +283,7 @@ func TestShellNewRequiresConfiguration(t *testing.T) {
 	if _, err := New(Config{Startup: steps}); err == nil {
 		t.Fatal("缺少端点与数据目录应报错")
 	}
-	if _, err := New(Config{Endpoint: "/tmp/x", Startup: StartupSteps{}}); !errors.Is(err, ErrStageUnwired) {
+	if _, err := New(Config{Endpoint: t.TempDir(), Startup: StartupSteps{}}); !errors.Is(err, ErrStageUnwired) {
 		t.Fatalf("缺少阶段实现应报 ErrStageUnwired，实际 %v", err)
 	}
 }

@@ -24,9 +24,10 @@ func TestSecondLaunchForwardsArgsAndPrimaryKeepsRunning(t *testing.T) {
 	}
 
 	secret := "sk-live-0123456789abcdef"
+	workingDir := t.TempDir()
 	err = Forward(InstanceConfig{Endpoint: endpoint}, Activation{
 		Args:       []string{"--open", secret},
-		WorkingDir: "/tmp/work",
+		WorkingDir: workingDir,
 	})
 	if err != nil {
 		t.Fatalf("Forward: %v", err)
@@ -35,8 +36,8 @@ func TestSecondLaunchForwardsArgsAndPrimaryKeepsRunning(t *testing.T) {
 	if len(activation.Args) != 2 || activation.Args[0] != "--open" || activation.Args[1] != secret {
 		t.Fatalf("转交参数 = %v", activation.Args)
 	}
-	if activation.WorkingDir != "/tmp/work" {
-		t.Fatalf("转交工作目录 = %q", activation.WorkingDir)
+	if activation.WorkingDir != workingDir {
+		t.Fatalf("转交工作目录 = %q，期望 %q", activation.WorkingDir, workingDir)
 	}
 	if activation.At.IsZero() {
 		t.Fatal("转交时间未记录")
@@ -106,15 +107,16 @@ func TestEndpointPath(t *testing.T) {
 	if got := EndpointPath(""); got != "" {
 		t.Fatalf("空数据目录 = %q，期望空串", got)
 	}
-	got := EndpointPath("/tmp/dim")
-	want := filepath.Join("/tmp/dim", instanceDirName, instanceFileName)
+	dataDir := t.TempDir()
+	got := EndpointPath(dataDir)
+	want := filepath.Join(dataDir, instanceDirName, instanceFileName)
 	if got != want {
 		t.Fatalf("EndpointPath = %q，期望 %q", got, want)
 	}
 	if _, err := (InstanceConfig{}).endpointPath(); err == nil {
 		t.Fatal("未配置端点与数据目录时应报错")
 	}
-	if _, err := (InstanceConfig{DataDir: "/tmp/dim"}).endpointPath(); err != nil {
+	if _, err := (InstanceConfig{DataDir: dataDir}).endpointPath(); err != nil {
 		t.Fatalf("由数据目录推导端点失败: %v", err)
 	}
 }

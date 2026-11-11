@@ -539,6 +539,8 @@ go test -race ./internal/app/
 
 ### 7.3 真实 daemon 证据
 
+真实证据用例只从环境变量取路径：`DIM_APP_SERVER_BIN`（服务端可执行文件）、`DIM_REAL_MODEL_FIXTURE`（夹具根，含 `home/`）、`DIM_MODEL_CONFIG`（离线模型配置）、`DIM_MODALITY_IMAGE`（模态图片）、`DIM_RUNTIME_PRESET`（现有客户端的运行时预设目录）。缺变量时用例直接 `t.Skip` 并点名缺哪个，不写任何本机默认路径。
+
 服务端在仓库之外，使用临时数据目录与 mock 模型。两版都不能产生工具调用，因此审批、标题与 ask_user 的真实事件**未触发**（见 7.5）。
 
 **证据 A：完整启停与清单降级（0.1.0-alpha.18，`<app-server-binary>`）**
@@ -719,7 +721,7 @@ shell.list: runs=0
 
 **证据 J：模态任务真实执行（alpha.21 configured profile）**
 
-`DIMAGENT_MODALITY_EVIDENCE=1` 时运行 `TestRealModalityAndShellEvidence`，输入是一张本机图片；证据只打印状态序列、任务标识、文件字节数与页数。
+`DIMAGENT_MODALITY_EVIDENCE=1` 时运行 `TestRealModalityAndShellEvidence`，输入图片来自 `DIM_MODALITY_IMAGE`；证据只打印状态序列、任务标识、文件字节数与页数。
 
 ```text
 shell.run: run=<run-id> status=succeeded
@@ -814,7 +816,7 @@ exit=0
 
 **证据 P：默认预设（`--defaults`，alpha.21）**
 
-`DIMAGENT_DEFAULTS_EVIDENCE=1` 时运行 `TestRealRuntimeDefaultsEvidence`：把现有客户端的 runtime 预设复制到临时目录后启动。
+`DIMAGENT_DEFAULTS_EVIDENCE=1` 时运行 `TestRealRuntimeDefaultsEvidence`：把 `DIM_RUNTIME_PRESET` 指向的运行时预设复制到临时目录后启动。
 
 ```text
 hello.runtime: [runtime.configure runtime.install runtime.list runtime.watch]
@@ -829,8 +831,8 @@ runtime.list: count=3 [node=off python=off uv=off]
 
 ```bash
 D=$(mktemp -d)   # 临时数据目录；测试内复制夹具 home
-DIMAGENT_RESILIENCE_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=<fixture-home> \
-  DIMAGENT_APP_SERVER_BIN=<server-binary> \
+DIMAGENT_RESILIENCE_EVIDENCE=1 DIM_REAL_MODEL_FIXTURE=<fixture-root> \
+  DIM_APP_SERVER_BIN=<server-binary> \
   go test ./internal/app -run TestRealResilienceEvidence -count=1 -v
 ```
 
@@ -909,8 +911,8 @@ daemon.ping: sessions=1 connections=1（没有成员会话）
 
 ```bash
 D=$(mktemp -d)   # 临时数据目录
-DIMAGENT_COLLAB_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=<fixture-home> \
-  DIMAGENT_APP_SERVER_BIN=<server-binary> \
+DIMAGENT_COLLAB_EVIDENCE=1 DIM_REAL_MODEL_FIXTURE=<fixture-root> \
+  DIM_APP_SERVER_BIN=<server-binary> \
   go test ./internal/app -run TestRealCollaborationMemberStopEvidence -count=1 -v
 ```
 

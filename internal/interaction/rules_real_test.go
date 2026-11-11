@@ -18,20 +18,14 @@ import (
 
 // TestRealCommandRules 验证真实 daemon 上的命令规则读取、写入、编辑与撤销。
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<fixture> DIM_REAL_MODEL_SERVER=<server> \
 //	  go test -run TestRealCommandRules -v -count=1 -timeout 6m ./internal/interaction/
 //
-// 只输出 revision 与规则条数，不打印命令全文；夹具复制到新的 /tmp 目录，来源不改。
+// 只输出 revision 与规则条数，不打印命令全文；夹具复制到新的临时目录，来源不改。
 func TestRealCommandRules(t *testing.T) {
-	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
-	if fixture == "" {
-		t.Skip("设置 DIM_REAL_MODEL_FIXTURE 后运行真实命令规则证据")
-	}
+	fixture := realFixtureHome(t)
+	serverPath := realServerPath(t)
 	home := prepareRulesHome(t, fixture)
-	serverPath := filepath.Join(fixture, "bin", "dimcode-server")
-	if _, err := os.Stat(serverPath); err != nil {
-		t.Fatalf("夹具缺少 daemon: %v", err)
-	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -204,7 +198,7 @@ func (unusedWriter) Wait(context.Context, string) (write.IntentView, error) {
 // prepareRulesHome 复制夹具 home 到短路径临时目录，避免 Unix socket 路径超限。
 func prepareRulesHome(t *testing.T, fixture string) string {
 	t.Helper()
-	root, err := os.MkdirTemp("/tmp", "dimagent-rules-")
+	root, err := os.MkdirTemp("", "dimev-")
 	if err != nil {
 		t.Fatalf("创建临时目录: %v", err)
 	}

@@ -19,18 +19,12 @@ func TestRealAccountLoginBeginEvidence(t *testing.T) {
 	if os.Getenv("DIMAGENT_ACCOUNT_EVIDENCE") != "1" {
 		t.Skip("未设置 DIMAGENT_ACCOUNT_EVIDENCE=1，跳过真实账号发起证据")
 	}
-	fixtureHome := os.Getenv("DIMAGENT_ACCOUNT_FIXTURE")
-	if fixtureHome == "" {
-		fixtureHome = "/private/tmp/dimagent-real-model/home"
-	}
-	serverPath := os.Getenv("DIMAGENT_APP_SERVER_BIN")
-	if serverPath == "" {
-		serverPath = filepath.Join(os.Getenv("HOME"), ".dimcode-alpha", "rust", "dimcode-server")
-	}
+	fixtureHome := evidenceFixtureHome(t)
+	serverPath := evidenceServerBinary(t)
 	if _, err := os.Stat(filepath.Join(fixtureHome, "auth.json")); err != nil {
 		t.Fatalf("夹具缺少 auth.json（不读取内容）: %v", err)
 	}
-	dataDir, err := os.MkdirTemp("/tmp", "d12a-")
+	dataDir, err := os.MkdirTemp("", "dimagent-evidence-")
 	if err != nil {
 		t.Fatalf("创建临时目录: %v", err)
 	}

@@ -21,7 +21,7 @@ import (
 //
 // 用法：
 //
-//	DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+//	DIM_APP_SERVER_BIN=<app-server-bin> \
 //	  go test -run TestRealDaemonExportTurns -v ./internal/catalog/
 func TestRealDaemonExportTurns(t *testing.T) {
 	serverPath := os.Getenv("DIM_APP_SERVER_BIN")
@@ -33,7 +33,7 @@ func TestRealDaemonExportTurns(t *testing.T) {
 		serverArgs = append(serverArgs, args)
 	}
 
-	dataDir, err := os.MkdirTemp("/tmp", "d4export-")
+	dataDir, err := os.MkdirTemp("", "dimagent-catalog-export-")
 	if err != nil {
 		t.Fatalf("创建临时数据目录: %v", err)
 	}

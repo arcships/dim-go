@@ -22,10 +22,10 @@ import (
 //
 // 用法：
 //
-//	DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+//	DIM_APP_SERVER_BIN=<app-server-bin> \
 //	  go test -run TestRealDaemonCatalogLifecycle -v ./internal/catalog/
 //
-// 老版本服务端需要 `app-server` 子命令，可用 DIM_APP_SERVER_ARGS=app-server 传入。
+// 需要子命令或额外参数的服务端，用 DIM_APP_SERVER_ARGS 传入。
 func TestRealDaemonCatalogLifecycle(t *testing.T) {
 	serverPath := os.Getenv("DIM_APP_SERVER_BIN")
 	if serverPath == "" {
@@ -36,7 +36,7 @@ func TestRealDaemonCatalogLifecycle(t *testing.T) {
 		serverArgs = append(serverArgs, args)
 	}
 
-	dataDir, err := os.MkdirTemp("/tmp", "d4cat-")
+	dataDir, err := os.MkdirTemp("", "dimagent-catalog-lifecycle-")
 	if err != nil {
 		t.Fatalf("创建临时数据目录: %v", err)
 	}
@@ -45,7 +45,7 @@ func TestRealDaemonCatalogLifecycle(t *testing.T) {
 	if err := os.MkdirAll(workDir, 0o700); err != nil {
 		t.Fatalf("创建工作目录: %v", err)
 	}
-	// macOS 的 /tmp 是指向 /private/tmp 的符号链接；服务端会返回解析后的路径。
+	// 服务端可能返回解析后的路径；比较前先解析符号链接。
 	resolvedWorkDir, err := filepath.EvalSymlinks(workDir)
 	if err != nil {
 		t.Fatalf("解析工作目录: %v", err)
@@ -273,7 +273,7 @@ func decodeTitleNotice(event session.Event, sessionID string) (TitleUpdate, bool
 }
 
 // evidenceDaemonConfig 组装证据用的服务端配置：给了离线模型配置就用它，
-// 否则退回 mock 模型（夹具与配置一律在 /tmp，不改来源目录）。
+// 否则退回 mock 模型（夹具与配置只放临时目录，不改来源目录）。
 func evidenceDaemonConfig(dataDir, serverPath string, serverArgs []string) daemon.Config {
 	cfg := daemon.Config{DataDir: dataDir, ServerPath: serverPath, ServerArgs: serverArgs}
 	if modelConfig := os.Getenv("DIM_APP_SERVER_MODEL_CONFIG"); modelConfig != "" {

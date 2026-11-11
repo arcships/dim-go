@@ -208,7 +208,7 @@ probe, err := manager.ProbeProvider(ctx, settings.ProviderProbeRequest{
     Connection: &settings.ProviderConnectionInput{
         DriverKind: "openai-compatible",
         Auth:       settings.ProviderAuth{Type: "anonymous"},
-        BaseURL:    "http://127.0.0.1:9000/v1",
+        BaseURL:    "http://<provider-host>/v1",
     },
 })
 providerDetail, err = manager.CreateProvider(ctx, settings.ProviderCreateRequest{
@@ -218,7 +218,7 @@ providerDetail, err = manager.CreateProvider(ctx, settings.ProviderCreateRequest
     Connection: settings.ProviderConnectionInput{
         DriverKind: "openai-compatible",
         Auth:       settings.ProviderAuth{Type: "anonymous"},
-        BaseURL:    "http://127.0.0.1:9000/v1",
+        BaseURL:    "http://<provider-host>/v1",
     },
     Models: []settings.ProviderModelInput{
         {ID: "model-1", DisplayName: "模型一", Status: "active"},

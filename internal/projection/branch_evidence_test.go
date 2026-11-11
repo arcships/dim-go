@@ -2,7 +2,7 @@ package projection
 
 // 真实模型证据：分支隔离、分支内未完成事项、插话（steer）。
 //
-// 前提同 6.6：/tmp 夹具的复制、真实 daemon（0.1.0-alpha.21）、真实 provider。
+// 前提同 6.6：临时夹具的复制、真实 daemon（0.1.0-alpha.21）、真实 provider。
 // 日志只留事件类型、标识、序号、状态与条数，不打印提示词、命令输出与模型正文。
 
 import (
@@ -23,22 +23,19 @@ import (
 //
 // 用法：
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<夹具目录> \
 //	  go test -run TestRealDaemonBranchIsolation -v -count=1 ./internal/projection/
 func TestRealDaemonBranchIsolation(t *testing.T) {
 	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
 	if fixture == "" {
-		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺 /tmp 夹具）")
+		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺临时夹具目录）")
 	}
 	serverPath := filepath.Join(fixture, "bin", "dimcode-server")
 	if _, err := os.Stat(serverPath); err != nil {
 		t.Skipf("夹具缺少 daemon 可执行文件: %v", err)
 	}
 
-	runDir, err := os.MkdirTemp("/tmp", "d2branch-")
-	if err != nil {
-		t.Fatalf("创建临时目录: %v", err)
-	}
+	runDir := evidenceTempDir(t, "d2branch-")
 	t.Cleanup(func() { _ = os.RemoveAll(runDir) })
 	home := filepath.Join(runDir, "home")
 	copyTree(t, filepath.Join(fixture, "home"), home)

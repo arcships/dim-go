@@ -3,13 +3,12 @@
 编辑、重置、偏好与版本冲突。
 
 数据纪律：
-- 来源目录只读；夹具在 /tmp，脚本把 fixture/home 复制到独立临时目录后运行。
+- 来源目录只读；夹具由调用方指定，脚本把 fixture/home 复制到独立临时目录后运行。
 - 只使用匿名认证与本地 mock /models 端点；不读取、不打印真实凭据。
 - 证据只保留 provider/模型标识、版本、状态、计数与错误分类，不打印凭据。
 
 用法：
-  scripts/verify-provider-admin.py --fixture /tmp/dimagent-real-model \
-      --server ~/.dimcode-alpha/rust/dimcode-server
+  scripts/verify-provider-admin.py --fixture <fixture-dir> --server <installed-server>
 """
 
 import argparse
@@ -123,8 +122,8 @@ def model_entries(detail):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fixture", default="/tmp/dimagent-real-model")
-    parser.add_argument("--server", default="")
+    parser.add_argument("--fixture", required=True)
+    parser.add_argument("--server", required=True)
     parser.add_argument("--keep", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -132,12 +131,12 @@ def main():
     if not os.path.isdir(os.path.join(args.fixture, "home")):
         print(f"fixture home missing: {args.fixture}/home", file=sys.stderr)
         return 2
-    server = args.server or os.path.join(args.fixture, "bin", "dimcode-server")
+    server = args.server
     if not os.access(server, os.X_OK):
         print(f"server is not executable: {server}", file=sys.stderr)
         return 2
 
-    run_dir = tempfile.mkdtemp(prefix="dimagent-provider-run.")
+    run_dir = tempfile.mkdtemp()
     daemon = None
     httpd = None
     try:

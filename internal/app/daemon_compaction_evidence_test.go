@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -20,15 +19,9 @@ func TestRealCompactionEvidence(t *testing.T) {
 	if os.Getenv("DIMAGENT_COMPACTION_EVIDENCE") != "1" {
 		t.Skip("未设置 DIMAGENT_COMPACTION_EVIDENCE=1，跳过压缩证据")
 	}
-	fixtureHome := os.Getenv("DIMAGENT_ACCOUNT_FIXTURE")
-	if fixtureHome == "" {
-		fixtureHome = "/private/tmp/dimagent-real-model/home"
-	}
-	serverPath := os.Getenv("DIMAGENT_APP_SERVER_BIN")
-	if serverPath == "" {
-		serverPath = filepath.Join(os.Getenv("HOME"), ".dimcode-alpha", "rust", "dimcode-server")
-	}
-	runDir, err := os.MkdirTemp("/tmp", "d12c-")
+	fixtureHome := evidenceFixtureHome(t)
+	serverPath := evidenceServerBinary(t)
+	runDir, err := os.MkdirTemp("", "dimagent-evidence-")
 	if err != nil {
 		t.Fatalf("创建临时目录: %v", err)
 	}

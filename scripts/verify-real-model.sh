@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# 用 /tmp 夹具里的真实 provider 配置跑一次会话，验证模型确实产生工具调用。
+# 用调用方指定的夹具跑一次会话，验证模型确实产生工具调用。
 #
-# 前提：夹具由人工准备（auth.json、config.json、home/rust/dimcode.sqlite、
-# bin/dimcode-server）。本脚本不读取 ~/.dimcode-alpha 或其他来源目录，也不把
-# 夹具内容写回任何来源；每次运行都把 fixture/home 复制到新的临时目录。
+# 前提：夹具由人工准备（账号记录、配置、原生存储、daemon 二进制）。本脚本
+# 不读取 <product-home> 或其他来源目录，也不把夹具内容写回任何来源；每次运行
+# 都把夹具的 home 复制到新的临时目录。
 #
 # 用法：
-#   scripts/verify-real-model.sh [--fixture DIR] [--server PATH]
+#   scripts/verify-real-model.sh --fixture DIR --server PATH
 #                                [--prompt TEXT] [--expect TEXT]
 #                                [--timeout SECONDS] [--keep]
 #
@@ -14,7 +14,7 @@
 # 失败：没有工具调用、没有工具结果、账号未登录、daemon 启动失败；退出码 1。
 set -euo pipefail
 
-FIXTURE="/tmp/dimagent-real-model"
+FIXTURE=""
 SERVER=""
 PROMPT='Use the shell tool to run exactly: printf DIMAGENT_REAL_TOOL_OK. You must call the shell tool; do not answer from memory. Then report the tool output.'
 EXPECT="DIMAGENT_REAL_TOOL_OK"
@@ -40,6 +40,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+if [ -z "$FIXTURE" ] || [ -z "$SERVER" ]; then
+  sed -n '2,20p' "$0" >&2
+  exit 2
+fi
+
 if [ ! -d "$FIXTURE/home" ]; then
   echo "夹具缺少 home 目录: $FIXTURE/home" >&2
   exit 1
@@ -48,15 +53,12 @@ if [ ! -f "$FIXTURE/home/rust/dimcode.sqlite" ]; then
   echo "夹具缺少原生存储: $FIXTURE/home/rust/dimcode.sqlite" >&2
   exit 1
 fi
-if [ -z "$SERVER" ]; then
-  SERVER="$FIXTURE/bin/dimcode-server"
-fi
 if [ ! -x "$SERVER" ]; then
   echo "找不到可执行的 daemon: $SERVER" >&2
   exit 1
 fi
 
-RUN_DIR="$(mktemp -d /tmp/dimagent-real-model-run.XXXXXX)"
+RUN_DIR="$(mktemp -d)"
 DAEMON_PID=""
 cleanup() {
   if [ -n "$DAEMON_PID" ] && kill -0 "$DAEMON_PID" 2>/dev/null; then

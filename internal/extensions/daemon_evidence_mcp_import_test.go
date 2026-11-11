@@ -183,11 +183,10 @@ func shortDigest(value string) string {
 }
 
 func sanitizeHomePath(path string) string {
-	home, err := os.UserHomeDir()
-	if err == nil && home != "" && len(path) > len(home) && path[:len(home)] == home {
-		return "$HOME" + path[len(home):]
+	if path == "" {
+		return "<none>"
 	}
-	return path
+	return "<client-config>"
 }
 
 func shapeOf(raw json.RawMessage) string {

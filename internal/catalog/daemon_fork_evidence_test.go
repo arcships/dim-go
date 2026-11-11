@@ -66,9 +66,9 @@ func (l *realEntryLookup) ReadEntry(ctx context.Context, sessionID string) (Entr
 //
 // 用法：
 //
-//	DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
-//	DIM_APP_SERVER_ARGS=app-server \
-//	DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \
+//	DIM_APP_SERVER_BIN=<app-server-bin> \
+//	DIM_APP_SERVER_ARGS=<server-args> \
+//	DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
 //	  go test -run TestRealDaemonFork -v ./internal/catalog/
 func TestRealDaemonFork(t *testing.T) {
 	serverPath := os.Getenv("DIM_APP_SERVER_BIN")
@@ -80,7 +80,7 @@ func TestRealDaemonFork(t *testing.T) {
 		serverArgs = append(serverArgs, args)
 	}
 
-	dataDir, err := os.MkdirTemp("/tmp", "d4fork-")
+	dataDir, err := os.MkdirTemp("", "dimagent-catalog-fork-")
 	if err != nil {
 		t.Fatalf("创建临时数据目录: %v", err)
 	}

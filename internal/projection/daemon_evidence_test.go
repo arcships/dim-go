@@ -22,7 +22,7 @@ import (
 //
 // 用法：
 //
-//	DIM_APP_SERVER_BIN=$HOME/.dimcode/rust/dimcode-server \
+//	DIM_APP_SERVER_BIN=<App Server 可执行文件> \
 //	  go test -run TestRealDaemonLiveAndHistoryAgree -v ./internal/projection/
 //
 // 老版本服务端需要 `app-server` 子命令，可用 DIM_APP_SERVER_ARGS=app-server 传入。
@@ -36,11 +36,8 @@ func TestRealDaemonLiveAndHistoryAgree(t *testing.T) {
 		serverArgs = append(serverArgs, args)
 	}
 
-	// 端点路径有长度上限，临时目录放在 /tmp 下，路径短且与用户数据目录无关。
-	dataDir, err := os.MkdirTemp("/tmp", "d2proj-")
-	if err != nil {
-		t.Fatalf("创建临时数据目录: %v", err)
-	}
+	// 端点路径有长度上限：临时目录由 evidenceTempDir 放在系统临时根下，可用 DIM_EVIDENCE_TMP 收短。
+	dataDir := evidenceTempDir(t, "d2proj-")
 	t.Cleanup(func() { _ = os.RemoveAll(dataDir) })
 	workDir := filepath.Join(dataDir, "workspace")
 	if err := os.MkdirAll(workDir, 0o700); err != nil {

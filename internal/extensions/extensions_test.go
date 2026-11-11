@@ -1136,7 +1136,7 @@ func TestMCPImportApplyConflict(t *testing.T) {
 		From:                   "claude-code:user",
 		ExpectedVersion:        "native:user/mcp:1",
 		ExpectedSourceRevision: "source-1",
-		Resolutions:            []MCPImportResolution{{ID: "pencil", Action: MCPImportActionImport}},
+		Resolutions:            []MCPImportResolution{{ID: "entry-1", Action: MCPImportActionImport}},
 	})
 	if !errors.Is(err, ErrImportConflict) {
 		t.Fatalf("冲突没有按 ErrImportConflict 返回: %v", err)

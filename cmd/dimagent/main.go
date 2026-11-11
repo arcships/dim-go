@@ -6,7 +6,7 @@
 //
 // 用法：
 //
-//	dimagent selfcheck -data-dir /tmp/dimagent-home \
+//	dimagent selfcheck -data-dir <数据目录> \
 //	  -server /path/to/dim-app-server -mock -session <id> -lines 10
 //
 // 缺少真实 App Server 时命令以非零码退出并写明 blocked 的依赖；二次启动把参数

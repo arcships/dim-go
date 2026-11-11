@@ -2,13 +2,12 @@
 """真实协作模型策略与会话 agent 档案证据。
 
 数据纪律：
-- 来源目录只读；夹具在 /tmp，脚本把 fixture/home 复制到独立临时目录后运行。
+- 来源目录只读；夹具由调用方指定，脚本把 fixture/home 复制到独立临时目录后运行。
 - 只创建临时会话与 prompt-only agent 档案；不打印凭据、不读取来源配置。
 - 证据只保留 revision、状态、agent 标识与错误分类。
 
 用法：
-  scripts/verify-collaboration-agent.py --fixture /tmp/dimagent-real-model \
-      --server ~/.dimcode-alpha/rust/dimcode-server
+  scripts/verify-collaboration-agent.py --fixture <fixture-dir> --server <installed-server>
 """
 
 import argparse
@@ -65,8 +64,8 @@ def ok(reply, method, failures):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fixture", default="/tmp/dimagent-real-model")
-    parser.add_argument("--server", default="")
+    parser.add_argument("--fixture", required=True)
+    parser.add_argument("--server", required=True)
     parser.add_argument("--keep", action="store_true")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -74,12 +73,12 @@ def main():
     if not os.path.isdir(os.path.join(args.fixture, "home")):
         print(f"fixture home missing: {args.fixture}/home", file=sys.stderr)
         return 2
-    server = args.server or os.path.join(args.fixture, "bin", "dimcode-server")
+    server = args.server
     if not os.access(server, os.X_OK):
         print(f"server is not executable: {server}", file=sys.stderr)
         return 2
 
-    run_dir = tempfile.mkdtemp(prefix="dimagent-collab-run.")
+    run_dir = tempfile.mkdtemp()
     daemon = None
     try:
         home = os.path.join(run_dir, "home")
@@ -166,7 +165,9 @@ def main():
         }
 
         # Agent profile: list, create prompt-only profile, read current, adopt, read back.
-        created_session = ok(rpc.call("session.create", {"cwd": "/tmp", "tools": []}), "session.create", failures)
+        work_dir = os.path.join(run_dir, "work")
+        os.makedirs(work_dir, exist_ok=True)
+        created_session = ok(rpc.call("session.create", {"cwd": work_dir, "tools": []}), "session.create", failures)
         session_id = (created_session or {}).get("sessionId")
         methods = ok(rpc.call("session.methods", {"sessionId": session_id}), "session.methods", failures)
         method_names = [method.get("name") for method in (methods or {}).get("methods", [])]

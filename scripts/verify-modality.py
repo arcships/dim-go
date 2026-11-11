@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""用 /tmp 夹具跑一次真实模态任务，并记录能力、状态、分页字节数与实时门禁。
+"""用调用方指定的夹具跑一次真实模态任务，并记录能力、状态、分页字节数与实时门禁。
 
 数据纪律：
 - 来源目录只读；脚本只读 --fixture，把 fixture/home 复制到独立临时目录后运行。
@@ -7,14 +7,10 @@
 - 本机服务端把 modality.* 作为 daemon 级方法声明在 hello.features；脚本按此门禁。
 
 macOS 提示：Apple Vision 的权限按可执行文件路径生效。用夹具里复制出来的
-dimcode-server 跑 ocr.recognize 会得到 executor_error；请用已安装路径：
-  --server ~/.dimcode-alpha/rust/dimcode-server
-或 npm 安装目录里的同一个二进制。
+daemon 跑 ocr.recognize 会得到 executor_error；请用已安装路径。
 
 用法：
-  scripts/verify-modality.py --fixture /tmp/dimagent-real-model \
-      --server ~/.dimcode-alpha/rust/dimcode-server \
-      --image /tmp/dimagent-modality-ocr.png
+  scripts/verify-modality.py --fixture <fixture-dir> --server <installed-server> --image <image-file>
 """
 
 import argparse
@@ -169,9 +165,9 @@ def read_results(rpc, task, page_bytes):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--fixture", default="/tmp/dimagent-real-model")
-    parser.add_argument("--server", default="")
-    parser.add_argument("--image", default="/tmp/dimagent-modality-ocr.png")
+    parser.add_argument("--fixture", required=True)
+    parser.add_argument("--server", required=True)
+    parser.add_argument("--image", required=True)
     parser.add_argument("--page-bytes", type=int, default=64)
     parser.add_argument("--timeout", type=int, default=120)
     parser.add_argument("--keep", action="store_true")
@@ -181,7 +177,7 @@ def main():
     if not os.path.isdir(os.path.join(args.fixture, "home")):
         print(f"fixture home missing: {args.fixture}/home", file=sys.stderr)
         return 2
-    server = args.server or os.path.join(args.fixture, "bin", "dimcode-server")
+    server = args.server
     if not os.access(server, os.X_OK):
         print(f"server is not executable: {server}", file=sys.stderr)
         return 2
@@ -189,7 +185,7 @@ def main():
         print(f"image missing: {args.image}", file=sys.stderr)
         return 2
 
-    run_dir = tempfile.mkdtemp(prefix="dimagent-modality-run.")
+    run_dir = tempfile.mkdtemp()
     daemon = None
     try:
         home = os.path.join(run_dir, "home")

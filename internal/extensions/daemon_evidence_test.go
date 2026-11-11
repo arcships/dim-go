@@ -24,7 +24,7 @@ import (
 //
 // 用法：
 //
-//	DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+//	DIM_APP_SERVER_BIN=<app-server-binary> \
 //	DIM_APP_SERVER_ARGS=app-server \
 //	  go test -run TestRealDaemonExtensionReadsAndWakeup -v ./internal/extensions/
 //

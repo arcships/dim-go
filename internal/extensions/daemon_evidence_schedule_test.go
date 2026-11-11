@@ -20,13 +20,22 @@ import (
 // 预设与 Node 运行时由环境变量提供：
 //
 //	DIM_APP_SERVER_DEFAULTS     含 scheduler 插件的 default-plugins.json
-//	DIM_APP_SERVER_NODE         可选：Node 可执行文件
-//	DIM_APP_SERVER_JS_RUNTIME   可选：@arcships/rutis-runtime 目录
+//	DIM_APP_SERVER_NODE         Node 可执行文件
+//	DIM_APP_SERVER_JS_RUNTIME   @arcships/rutis-runtime 目录
 func TestRealDaemonScheduleWatch(t *testing.T) {
 	serverPath := os.Getenv("DIM_APP_SERVER_BIN")
 	defaults := os.Getenv("DIM_APP_SERVER_DEFAULTS")
-	if serverPath == "" || defaults == "" {
-		t.Skip("未设置 DIM_APP_SERVER_BIN/DIM_APP_SERVER_DEFAULTS：真实计划任务证据 blocked（缺 Scheduler 预设或 App Server）")
+	node := os.Getenv("DIM_APP_SERVER_NODE")
+	jsRuntime := os.Getenv("DIM_APP_SERVER_JS_RUNTIME")
+	switch {
+	case serverPath == "":
+		t.Skip("未设置 DIM_APP_SERVER_BIN：真实计划任务证据 blocked（缺 App Server 可执行文件）")
+	case defaults == "":
+		t.Skip("未设置 DIM_APP_SERVER_DEFAULTS：真实计划任务证据 blocked（缺 Scheduler 预设）")
+	case node == "":
+		t.Skip("未设置 DIM_APP_SERVER_NODE：真实计划任务证据 blocked（缺 Node 可执行文件）")
+	case jsRuntime == "":
+		t.Skip("未设置 DIM_APP_SERVER_JS_RUNTIME：真实计划任务证据 blocked（缺 JS runtime 目录）")
 	}
 	if _, err := os.Stat(defaults); err != nil {
 		t.Skipf("默认预设不可读，真实计划任务证据 blocked: %v", err)
@@ -45,13 +54,11 @@ func TestRealDaemonScheduleWatch(t *testing.T) {
 	}
 
 	cfg := evidenceDaemonConfig(dataDir, serverPath)
-	cfg.ServerArgs = append(cfg.ServerArgs, "--defaults", defaults)
-	if node := os.Getenv("DIM_APP_SERVER_NODE"); node != "" {
-		cfg.ServerArgs = append(cfg.ServerArgs, "--node", node)
-	}
-	if jsRuntime := os.Getenv("DIM_APP_SERVER_JS_RUNTIME"); jsRuntime != "" {
-		cfg.ServerArgs = append(cfg.ServerArgs, "--js-runtime", jsRuntime)
-	}
+	cfg.ServerArgs = append(cfg.ServerArgs,
+		"--defaults", defaults,
+		"--node", node,
+		"--js-runtime", jsRuntime,
+	)
 	supervisor, err := daemon.New(cfg)
 	if err != nil {
 		t.Fatalf("创建连接监督者: %v", err)

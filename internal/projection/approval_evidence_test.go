@@ -2,7 +2,7 @@ package projection
 
 // 真实模型证据：审批重放（投影侧观察）与会话内 @ 搜索（方法探测）。
 //
-// 前提同 6.6：/tmp 夹具的复制、真实 daemon（0.1.0-alpha.21）、真实 provider。
+// 前提同 6.6：临时夹具的复制、真实 daemon（0.1.0-alpha.21）、真实 provider。
 // 日志只留事件类型、标识、状态与条数。
 
 import (
@@ -24,22 +24,19 @@ import (
 //
 // 用法：
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<夹具目录> \
 //	  go test -run TestRealDaemonApprovalReplayAndFileSearch -v -count=1 ./internal/projection/
 func TestRealDaemonApprovalReplayAndFileSearch(t *testing.T) {
 	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
 	if fixture == "" {
-		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺 /tmp 夹具）")
+		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺临时夹具目录）")
 	}
 	serverPath := filepath.Join(fixture, "bin", "dimcode-server")
 	if _, err := os.Stat(serverPath); err != nil {
 		t.Skipf("夹具缺少 daemon 可执行文件: %v", err)
 	}
 
-	runDir, err := os.MkdirTemp("/tmp", "d2approval-")
-	if err != nil {
-		t.Fatalf("创建临时目录: %v", err)
-	}
+	runDir := evidenceTempDir(t, "d2approval-")
 	t.Cleanup(func() { _ = os.RemoveAll(runDir) })
 	home := filepath.Join(runDir, "home")
 	copyTree(t, filepath.Join(fixture, "home"), home)

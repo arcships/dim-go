@@ -499,10 +499,10 @@ go test -race ./internal/interaction/
 
 ### 6.5 真实模型审批证据
 
-环境：`<platform>`；夹具 `<fixture>`（daemon `0.1.0-alpha.21`，managed provider，`deepseek-v4.1-flash`，账号已登录）；夹具只复制到新的临时目录，来源未修改、未提交。复制件把 `config.json` 的 `toolApproval` 改为 `ask`、`permission` 改为 `workspace-write`；会话打开后再用 `session.permission.update` 固定为 `workspace-write`。
+环境：`<platform>`；夹具 `<fixture>`、daemon `<server>`（`0.1.0-alpha.21`，managed provider，`deepseek-v4.1-flash`，账号已登录）；夹具只复制到新的临时目录，来源未修改、未提交。复制件把 `config.json` 的 `toolApproval` 改为 `ask`、`permission` 改为 `workspace-write`；会话打开后再用 `session.permission.update` 固定为 `workspace-write`。
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=<fixture> \
+DIM_REAL_MODEL_FIXTURE=<fixture> DIM_REAL_MODEL_SERVER=<server> \
   go test -run TestRealModelApproval -v -count=1 -timeout 12m ./internal/interaction/
 ```
 
@@ -528,7 +528,7 @@ Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call th
 **命令规则真实证据**（同一夹具、独立临时 home；只记录 revision 与规则条数，不打印命令全文）：
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=<fixture> \
+DIM_REAL_MODEL_FIXTURE=<fixture> DIM_REAL_MODEL_SERVER=<server> \
   go test -run TestRealCommandRules -v -count=1 -timeout 6m ./internal/interaction/
 ```
 

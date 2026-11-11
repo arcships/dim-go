@@ -71,7 +71,7 @@ func (s *realBranchSource) TurnCut(sessionID, branchID string, turnIndex int) Cu
 //
 // 用法：
 //
-//	DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+//	DIM_APP_SERVER_BIN=<app-server-bin> \
 //	  go test -run TestRealDaemonBranchLifecycle -v ./internal/catalog/
 func TestRealDaemonBranchLifecycle(t *testing.T) {
 	serverPath := os.Getenv("DIM_APP_SERVER_BIN")
@@ -83,7 +83,7 @@ func TestRealDaemonBranchLifecycle(t *testing.T) {
 		serverArgs = append(serverArgs, args)
 	}
 
-	dataDir, err := os.MkdirTemp("/tmp", "d4branch-")
+	dataDir, err := os.MkdirTemp("", "dimagent-catalog-branch-")
 	if err != nil {
 		t.Fatalf("创建临时数据目录: %v", err)
 	}

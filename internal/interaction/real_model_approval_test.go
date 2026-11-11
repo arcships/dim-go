@@ -17,9 +17,9 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/write"
 )
 
-// 真实模型审批证据。默认跳过；设置 DIM_REAL_MODEL_FIXTURE 指向 /tmp 夹具后运行：
+// 真实模型审批证据。默认跳过；设置只读环境变量后运行：
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<fixture> DIM_REAL_MODEL_SERVER=<server> \
 //	  go test -run TestRealModelApproval -v -timeout 12m ./internal/interaction/
 //
 // 夹具只被复制到临时目录，不修改来源，也不提交任何夹具内容。输出只含会话标识、
@@ -33,15 +33,10 @@ const realApprovalMarker = "DIMAGENT_APPROVAL_OK"
 // TestRealModelApproval 验证真实模型下的审批链路：同意后执行、拒绝后不执行、
 // 长期允许先写命令规则再应答，且同一命令第二次不再询问。
 func TestRealModelApproval(t *testing.T) {
-	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
-	if fixture == "" {
-		t.Skip("设置 DIM_REAL_MODEL_FIXTURE 后运行真实模型审批证据")
-	}
-	if _, err := os.Stat(filepath.Join(fixture, "bin", "dimcode-server")); err != nil {
-		t.Fatalf("夹具缺少 daemon: %v", err)
-	}
+	fixture := realFixtureHome(t)
+	server := realServerPath(t)
 	home := prepareApprovalHome(t, fixture)
-	base := startRealApp(t, home, fixture)
+	base := startRealApp(t, home, server)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
@@ -344,12 +339,39 @@ func createRealSession(t *testing.T, ctx context.Context, base *app.App) string 
 	return entry.ID
 }
 
-func startRealApp(t *testing.T, home, fixture string) *app.App {
+// realFixtureHome 返回只读夹具根；缺失时跳过并说明缺哪个环境变量。
+func realFixtureHome(t *testing.T) string {
+	t.Helper()
+	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
+	if fixture == "" {
+		t.Skip("缺少 DIM_REAL_MODEL_FIXTURE（夹具根）；设置只读环境变量后运行")
+	}
+	return fixture
+}
+
+// realServerPath 返回只读的 daemon 可执行文件；缺失时跳过并说明缺哪个环境变量。
+func realServerPath(t *testing.T) string {
+	t.Helper()
+	server := os.Getenv("DIM_REAL_MODEL_SERVER")
+	if server == "" {
+		t.Skip("缺少 DIM_REAL_MODEL_SERVER（daemon 可执行文件）；设置只读环境变量后运行")
+	}
+	info, err := os.Stat(server)
+	if err != nil {
+		t.Fatalf("DIM_REAL_MODEL_SERVER 不可用: %v", err)
+	}
+	if info.IsDir() {
+		t.Fatalf("DIM_REAL_MODEL_SERVER 是目录: %s", server)
+	}
+	return server
+}
+
+func startRealApp(t *testing.T, home, serverPath string) *app.App {
 	t.Helper()
 	base, err := app.New(app.Config{
 		DataDir:      home,
-		ServerPath:   filepath.Join(fixture, "bin", "dimcode-server"),
-		ClientName:   "dimagent-approval-evidence",
+		ServerPath:   serverPath,
+		ClientName:   "dimagent-evidence",
 		Version:      "0.1.0",
 		HistoryLimit: 20,
 		SendTimeout:  90 * time.Second,
@@ -390,7 +412,7 @@ func startRealApp(t *testing.T, home, fixture string) *app.App {
 // prepareApprovalHome 复制夹具 home 到临时目录，并把权限改成需要审批。
 func prepareApprovalHome(t *testing.T, fixture string) string {
 	t.Helper()
-	root, err := os.MkdirTemp("/tmp", "dimagent-approval-")
+	root, err := os.MkdirTemp("", "dimev-")
 	if err != nil {
 		t.Fatalf("创建临时夹具目录: %v", err)
 	}

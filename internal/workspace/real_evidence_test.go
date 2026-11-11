@@ -1,6 +1,6 @@
 package workspace
 
-// 真实模型证据：用 /tmp 夹具（真实 daemon + 真实 provider）跑一次写入会话与一次
+// 真实模型证据：用环境变量指定的临时夹具（真实 daemon + 真实 provider）跑一次写入会话与一次
 // exec 会话，验证变更读取只认工具结果声明的路径，不把 exec 造成的改动算进来。
 //
 // 日志只留路径数量、分类、coverage 与布尔值；不打印文件内容、命令正文、提示词、
@@ -29,12 +29,12 @@ const evidenceMainBranch = "main"
 //
 // 用法：
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<fixture-dir> \
 //	  go test -run TestRealDaemonRunChangesEvidence -v -count=1 ./internal/workspace/
 func TestRealDaemonRunChangesEvidence(t *testing.T) {
 	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
 	if fixture == "" {
-		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺 /tmp 夹具）")
+		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺夹具目录）")
 	}
 	serverPath := filepath.Join(fixture, "bin", "dimcode-server")
 	if _, err := os.Stat(serverPath); err != nil {
@@ -71,7 +71,7 @@ func TestRealDaemonRunChangesEvidence(t *testing.T) {
 	if err := os.MkdirAll(workDir, 0o700); err != nil {
 		t.Fatalf("创建工作目录: %v", err)
 	}
-	// macOS 的 /tmp 是指向 /private/tmp 的符号链接；工具结果声明的是解析后路径。
+	// 临时目录可能是符号链接；工具结果声明的是解析后的路径。
 	resolvedWorkDir, err := filepath.EvalSymlinks(workDir)
 	if err != nil {
 		t.Fatalf("解析工作目录: %v", err)

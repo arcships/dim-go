@@ -10,8 +10,9 @@ import (
 )
 
 func TestMacSignatureVerifierChecksTeamAndNotarization(t *testing.T) {
-	const oldApp = "/tmp/old/DimAgent.app"
-	const newApp = "/tmp/new/DimAgent.app"
+	base := t.TempDir()
+	oldApp := filepath.Join(base, "old", "DimAgent.app")
+	newApp := filepath.Join(base, "new", "DimAgent.app")
 
 	newHooks := func(newTeam string, calls *[]string) InstallHooks {
 		return InstallHooks{

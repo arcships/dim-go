@@ -23,18 +23,9 @@ func TestRealModalityAndShellEvidence(t *testing.T) {
 	if os.Getenv("DIMAGENT_MODALITY_EVIDENCE") != "1" {
 		t.Skip("未设置 DIMAGENT_MODALITY_EVIDENCE=1，跳过真实模态证据")
 	}
-	serverPath := os.Getenv("DIMAGENT_APP_SERVER_BIN")
-	if serverPath == "" {
-		serverPath = filepath.Join(os.Getenv("HOME"), ".dimcode-alpha", "rust", "dimcode-server")
-	}
-	modelConfig := os.Getenv("DIMAGENT_MODEL_CONFIG")
-	if modelConfig == "" {
-		modelConfig = "/tmp/d12n-offline.json"
-	}
-	imagePath := os.Getenv("DIMAGENT_MODALITY_IMAGE")
-	if imagePath == "" {
-		imagePath = "/tmp/dimagent-modality-ocr.png"
-	}
+	serverPath := evidenceServerBinary(t)
+	modelConfig := evidenceRequiredEnv(t, envModelConfig, "离线模型配置")
+	imagePath := evidenceRequiredEnv(t, envModalityImage, "模态测试图片")
 	if _, err := os.Stat(serverPath); err != nil {
 		t.Fatalf("App Server 不可用: %v", err)
 	}
@@ -44,7 +35,7 @@ func TestRealModalityAndShellEvidence(t *testing.T) {
 	}
 
 	// 单实例端点有 Unix socket 路径上限：数据目录放在 /tmp 下并保持短路径。
-	dataDir, err := os.MkdirTemp("/tmp", "d12m-")
+	dataDir, err := os.MkdirTemp("", "dimagent-evidence-")
 	if err != nil {
 		t.Fatalf("创建临时数据目录: %v", err)
 	}

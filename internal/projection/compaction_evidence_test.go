@@ -30,22 +30,19 @@ import (
 //
 // 用法：
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<夹具目录> \
 //	  go test -run TestRealDaemonContextAndCompaction -v -count=1 ./internal/projection/
 func TestRealDaemonContextAndCompaction(t *testing.T) {
 	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
 	if fixture == "" {
-		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺 /tmp 夹具）")
+		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺临时夹具目录）")
 	}
 	serverPath := filepath.Join(fixture, "bin", "dimcode-server")
 	if _, err := os.Stat(serverPath); err != nil {
 		t.Skipf("夹具缺少 daemon 可执行文件: %v", err)
 	}
 
-	runDir, err := os.MkdirTemp("/tmp", "d2compact-")
-	if err != nil {
-		t.Fatalf("创建临时目录: %v", err)
-	}
+	runDir := evidenceTempDir(t, "d2compact-")
 	t.Cleanup(func() { _ = os.RemoveAll(runDir) })
 	home := filepath.Join(runDir, "home")
 	copyTree(t, filepath.Join(fixture, "home"), home)

@@ -1,7 +1,7 @@
 package projection
 
 // 真实模型证据：后台任务、排队输入、提问这三类未完成事项，用真实 daemon +
-// 真实模型 + /tmp 夹具账号跑一遍，验证服务端的截止点读取与本包的清单结算一致。
+// 真实模型 + 临时夹具账号跑一遍，验证服务端的截止点读取与本包的清单结算一致。
 //
 // 只用夹具的复制：来源目录（含凭据）只读，夹具本身不改；日志只记事件类型、
 // 标识、序号与状态，不打印提示词、命令正文、模型输出或凭据。
@@ -22,24 +22,21 @@ import (
 
 // TestRealDaemonPendingInventories 在真实模型上验证三类未完成事项的读取与结算。
 //
-// 用法（夹具只存在 /tmp，不入库）：
+// 用法（夹具只在机器上的临时目录里，不入库）：
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<夹具目录> \
 //	  go test -run TestRealDaemonPendingInventories -v -count=1 ./internal/projection/
 func TestRealDaemonPendingInventories(t *testing.T) {
 	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
 	if fixture == "" {
-		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺 /tmp 夹具）")
+		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺临时夹具目录）")
 	}
 	serverPath := filepath.Join(fixture, "bin", "dimcode-server")
 	if _, err := os.Stat(serverPath); err != nil {
 		t.Skipf("夹具缺少 daemon 可执行文件: %v", err)
 	}
 
-	runDir, err := os.MkdirTemp("/tmp", "d2pending-")
-	if err != nil {
-		t.Fatalf("创建临时目录: %v", err)
-	}
+	runDir := evidenceTempDir(t, "d2pending-")
 	t.Cleanup(func() { _ = os.RemoveAll(runDir) })
 	// 夹具只读：复制一份 home 再用，不改来源。
 	home := filepath.Join(runDir, "home")

@@ -18,24 +18,15 @@ func TestRealRuntimeDefaultsEvidence(t *testing.T) {
 	if os.Getenv("DIMAGENT_DEFAULTS_EVIDENCE") != "1" {
 		t.Skip("未设置 DIMAGENT_DEFAULTS_EVIDENCE=1，跳过默认预设证据")
 	}
-	fixtureHome := os.Getenv("DIMAGENT_ACCOUNT_FIXTURE")
-	if fixtureHome == "" {
-		fixtureHome = "/private/tmp/dimagent-real-model/home"
-	}
-	runtimeSource := os.Getenv("DIMAGENT_RUNTIME_PRESET")
-	if runtimeSource == "" {
-		runtimeSource = filepath.Join(os.Getenv("HOME"), "Code", "dim-2", "runtime")
-	}
-	serverPath := os.Getenv("DIMAGENT_APP_SERVER_BIN")
-	if serverPath == "" {
-		serverPath = filepath.Join(os.Getenv("HOME"), ".dimcode-alpha", "rust", "dimcode-server")
-	}
+	fixtureHome := evidenceFixtureHome(t)
+	runtimeSource := evidenceRequiredEnv(t, envRuntimePreset, "现有客户端的运行时预设目录")
+	serverPath := evidenceServerBinary(t)
 	preset := filepath.Join(runtimeSource, "default-plugins.json")
 	if _, err := os.Stat(preset); err != nil {
 		t.Fatalf("预设文件不可用: %v", err)
 	}
 
-	runDir, err := os.MkdirTemp("/tmp", "d12d-")
+	runDir, err := os.MkdirTemp("", "dimagent-evidence-")
 	if err != nil {
 		t.Fatalf("创建临时目录: %v", err)
 	}

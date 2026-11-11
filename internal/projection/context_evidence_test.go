@@ -2,7 +2,7 @@ package projection
 
 // 真实模型证据：上下文用量、排队输入撤回、目标暂停与恢复。
 //
-// 前提与 6.6/6.7 相同：/tmp 夹具的复制、真实 daemon、真实 provider。日志只留状态、
+// 前提与 6.6/6.7 相同：临时夹具的复制、真实 daemon、真实 provider。日志只留状态、
 // 标识与数字，不打印目标正文、输入正文或模型输出。
 
 import (
@@ -22,22 +22,19 @@ import (
 //
 // 用法：
 //
-//	DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+//	DIM_REAL_MODEL_FIXTURE=<夹具目录> \
 //	  go test -run TestRealDaemonContextAndControls -v -count=1 ./internal/projection/
 func TestRealDaemonContextAndControls(t *testing.T) {
 	fixture := os.Getenv("DIM_REAL_MODEL_FIXTURE")
 	if fixture == "" {
-		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺 /tmp 夹具）")
+		t.Skip("未设置 DIM_REAL_MODEL_FIXTURE：真实模型证据 blocked（缺临时夹具目录）")
 	}
 	serverPath := filepath.Join(fixture, "bin", "dimcode-server")
 	if _, err := os.Stat(serverPath); err != nil {
 		t.Skipf("夹具缺少 daemon 可执行文件: %v", err)
 	}
 
-	runDir, err := os.MkdirTemp("/tmp", "d2ctx-")
-	if err != nil {
-		t.Fatalf("创建临时目录: %v", err)
-	}
+	runDir := evidenceTempDir(t, "d2ctx-")
 	t.Cleanup(func() { _ = os.RemoveAll(runDir) })
 	home := filepath.Join(runDir, "home")
 	copyTree(t, filepath.Join(fixture, "home"), home)
