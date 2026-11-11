@@ -167,7 +167,8 @@ type UpdateConfig struct {
 	SessionsIdle func() bool
 	// Settle 在检测到会话未收尾时先行收尾；为 nil 时直接推迟切换。
 	Settle func(context.Context) error
-	// Shutdown 可选：切换前的退出五阶段编排；为 nil 时跳过。
+	// Shutdown 可选：切换前的退出五阶段编排；生产应接 Shell.Shutdown，
+	// 它会关闭连接并释放单实例端点，否则新进程会把自己当成二次启动。
 	Shutdown func(context.Context) error
 	// Restart 是单文件模式替换后启动新进程的步骤；其他平台适配器自带重启。
 	Restart func(context.Context) error
@@ -367,8 +368,9 @@ func (u *Updater) Download(ctx context.Context) (string, error) {
 	return artifact, nil
 }
 
-// Switch 执行"用户确认且会话已收尾"后的切换：先收尾会话，再退出五阶段（若接线），
-// 替换安装产物，最后启动新进程。会话始终收不干净时推迟，状态保持待切换。
+// Switch 执行"用户确认且会话已收尾"后的切换：先收尾会话，按平台准备安装（解包、
+// 签名/公证校验或产物检查），再退出五阶段（若接线），执行安装并重启。会话始终收不
+// 干净时推迟，状态保持待切换；准备失败也停在待切换，可重试。
 func (u *Updater) Switch(ctx context.Context) error {
 	if ctx == nil {
 		ctx = context.Background()

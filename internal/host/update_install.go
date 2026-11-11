@@ -79,12 +79,28 @@ type installer interface {
 	Cleanup(plan *installPlan)
 }
 
+// resolveInstallMode 解析安装模式。
+// 显式模式优先；未设置（auto）时：提供 Restart 视为既有单文件接线，
+// 否则按平台分派（darwin 还要求目标是已存在的目录，避免把可执行文件当 .app）。
+func (u *Updater) resolveInstallMode() InstallMode {
+	if u.cfg.InstallMode != "" && u.cfg.InstallMode != InstallAuto {
+		return u.cfg.InstallMode
+	}
+	if u.cfg.Restart != nil {
+		return InstallFile
+	}
+	if u.platform == "darwin" {
+		if info, err := os.Stat(u.cfg.TargetPath); err == nil && info.IsDir() {
+			return InstallMacBundle
+		}
+		return InstallFile
+	}
+	return installModeForPlatform(u.platform)
+}
+
 // newInstaller 按配置或平台选择安装适配器。
 func (u *Updater) newInstaller() (installer, error) {
-	mode := u.cfg.InstallMode
-	if mode == "" || mode == InstallAuto {
-		mode = installModeForPlatform(u.platform)
-	}
+	mode := u.resolveInstallMode()
 	switch mode {
 	case InstallFile:
 		if strings.TrimSpace(u.cfg.TargetPath) == "" || u.cfg.Restart == nil {
@@ -224,6 +240,19 @@ func spawnProcess(name string, args []string, env []string) error {
 		return fmt.Errorf("host: 启动 %s 失败: %w", name, err)
 	}
 	return nil
+}
+
+// withEnv 在环境变量列表里设置一个键，已有同名项时替换而不是重复追加。
+func withEnv(env []string, key, value string) []string {
+	prefix := key + "="
+	updated := make([]string, 0, len(env)+1)
+	for _, item := range env {
+		if strings.HasPrefix(item, prefix) {
+			continue
+		}
+		updated = append(updated, item)
+	}
+	return append(updated, prefix+value)
 }
 
 // removeIfExists 删除文件；不存在不算错误。

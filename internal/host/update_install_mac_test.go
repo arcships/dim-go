@@ -18,9 +18,9 @@ func TestMacSignatureVerifierChecksTeamAndNotarization(t *testing.T) {
 			Run: func(_ context.Context, name string, args ...string) (string, error) {
 				*calls = append(*calls, name+" "+strings.Join(args, " "))
 				switch {
-				case name == "codesign" && len(args) > 0 && args[0] == "--verify":
+				case name == macCodesign && len(args) > 0 && args[0] == "--verify":
 					return "verified", nil
-				case name == "codesign" && len(args) > 0 && args[0] == "-d":
+				case name == macCodesign && len(args) > 0 && args[0] == "-d":
 					team := "TEAM-A"
 					if args[len(args)-1] == newApp {
 						team = newTeam
@@ -39,11 +39,11 @@ func TestMacSignatureVerifierChecksTeamAndNotarization(t *testing.T) {
 		t.Fatalf("签名一致应通过: %v", err)
 	}
 	want := []string{
-		"codesign --verify --deep --strict --verbose=2 " + newApp,
-		"codesign -d --verbose=4 " + oldApp,
-		"codesign -d --verbose=4 " + newApp,
-		"xcrun stapler validate " + newApp,
-		"spctl --assess --type execute --verbose=4 " + newApp,
+		macCodesign + " --verify --deep --strict --verbose=2 " + newApp,
+		macCodesign + " -d --verbose=4 " + oldApp,
+		macCodesign + " -d --verbose=4 " + newApp,
+		macStapler + " validate " + newApp,
+		macSpctl + " --assess --type execute --verbose=4 " + newApp,
 	}
 	if len(calls) != len(want) {
 		t.Fatalf("命令调用 = %v", calls)
@@ -60,7 +60,7 @@ func TestMacSignatureVerifierChecksTeamAndNotarization(t *testing.T) {
 		t.Fatal("TeamIdentifier 不一致应失败")
 	}
 	for _, call := range calls {
-		if strings.HasPrefix(call, "xcrun") || strings.HasPrefix(call, "spctl") {
+		if strings.HasPrefix(call, macXcrun) || strings.HasPrefix(call, macSpctl) {
 			t.Fatalf("TeamIdentifier 不一致后仍继续公证校验: %v", calls)
 		}
 	}
@@ -81,10 +81,10 @@ func TestMacInstallerFallsBackToUnzipWhenDittoMissing(t *testing.T) {
 	hooks := InstallHooks{
 		Run: func(_ context.Context, name string, args ...string) (string, error) {
 			used = append(used, name)
-			if name == "ditto" {
-				return "", &exec.Error{Name: "ditto", Err: exec.ErrNotFound}
+			if name == macDitto {
+				return "", &exec.Error{Name: macDitto, Err: exec.ErrNotFound}
 			}
-			if name == "unzip" {
+			if name == macUnzip {
 				staging := args[len(args)-1]
 				newApp := filepath.Join(staging, "DimAgent.app")
 				if err := os.MkdirAll(newApp, 0o755); err != nil {
@@ -102,7 +102,7 @@ func TestMacInstallerFallsBackToUnzipWhenDittoMissing(t *testing.T) {
 	if err := updater.Switch(context.Background()); err != nil {
 		t.Fatalf("Switch: %v", err)
 	}
-	if len(used) < 2 || used[0] != "ditto" || used[1] != "unzip" {
+	if len(used) < 2 || used[0] != macDitto || used[1] != macUnzip {
 		t.Fatalf("解包命令 = %v，期望先 ditto 后 unzip", used)
 	}
 	if got := readText(t, filepath.Join(bundle, "version.txt")); got != "2.1.0" {

@@ -177,10 +177,12 @@ Owner: D10 领域 agent
 - 下载或校验失败不迁移状态：停在待下载，写 `update.download`（`failed` + 分类），当前版本不变，可重新下载。会话未收尾时停在待切换，写 `update.switch_deferred`，不替换、不重启。
 - 同一进程只检查一次（迁移表没有从已是最新回到检查中的边）；重启后回到未检查。
 - 版本源沿用现有客户端形状：`<基址>/<通道>/<平台路径>/latest*.yml`，默认基址 `https://dimcode.echooai.com`、通道 `updates/stable`，平台路径 `mac/<arch>`、`win/x64`、`linux/x64`。清单解析 electron-builder 的 `version`、`files[].url/sha512/size` 与顶层 `path/sha512/size`；相对产物地址按清单地址解析。
-- 校验只有 sha512（base64 或十六进制），缺失摘要的清单视为失败；不做签名校验。
-- 切换顺序：会话收尾探测 → 可选退出五阶段 → 单文件原子替换（同目录临时文件 + `rename`）→ 重启步骤。任何一步失败都写 `update.switch`（`failed` + 分类）并保留当前版本；替换失败不会留下半截文件。真实产物是 macOS zip/.app、Windows NSIS、Linux AppImage，平台适配缺口见 6.3.4。
+- 下载校验只有 sha512（base64 或十六进制），缺失摘要的清单视为失败；macOS 安装适配器另外校验代码签名、TeamIdentifier 与公证票据。
+- 切换顺序：会话收尾探测 → 安装准备（macOS 解包 + 签名/公证校验；Linux/Windows 检查产物）→ 进入切换中 → 可选退出五阶段 → 平台安装（`.app` 备份交换 / AppImage 原子替换 / 运行 NSIS）→ 重启 → 失败回滚。准备失败停在待切换、不进入终态，可重试；安装或重启失败写 `update.switch`（`failed` + 分类 + `update_state`）。
+- 重启步骤假定退出五阶段已经释放单实例端点（`Shell.Shutdown` 会做），否则新进程会把自己当成二次启动而把参数转交后退出；`Switch` 成功后调用方必须立即退出，不能继续持有旧进程。
+- 安装适配器按平台分派（`InstallAuto`）：macOS `mac_bundle`、Linux `linux_appimage`、Windows `windows_nsis`，其余或测试用 `file`。未显式设置 `InstallMode` 时：提供 `Restart` 的旧接线视为单文件模式；否则按平台分派，darwin 还要求目标是已存在的 `.app` 目录。macOS 适配器用 `/usr/bin/ditto -x -k`（缺失时回退 `/usr/bin/unzip`）解包到同卷暂存目录，`/usr/bin/codesign --verify --deep --strict`、TeamIdentifier 与当前 `.app` 一致、`/usr/bin/stapler validate`（缺失时回退 `xcrun`）、`/usr/sbin/spctl --assess` 全通过才替换；替换前把旧 `.app` 改名为备份，移入失败或重启失败都把旧包换回。Linux 适配器 `chmod 0755` 后按稳定名原子替换，并以 `APPIMAGE_SILENT_INSTALL=1` 启动。Windows 适配器以 `--updated /S`（可选 `--force-run`）启动 NSIS 安装器，由安装器替换并重启。
 - 默认超时：检查 15 秒、下载 10 分钟、收尾 30 秒、切换 5 分钟；均可由 `UpdateTimeouts` 覆盖。
-- 切换一旦开始就是终态：退出、替换或重启任一步失败都保留当前版本，但本进程不再重试，重启后回到未检查。
+- 切换一旦开始就是终态：退出、替换或重启任一步失败都保留当前版本，但本进程不再重试，重启后回到未检查；准备阶段的失败不算"切换开始"，状态仍是待切换。
 - 更新只写诊断、不读会话事实，也不驱动连接；界面阶段只消费 `Updater.Status()`。
 
 ## 4. 状态映射
@@ -237,19 +239,21 @@ report, err := shell.Shutdown(ctx)
 
 // 应用更新（P3）
 updater, err := host.NewUpdater(host.UpdateConfig{
-    CurrentVersion: "0.1.0",                 // 或 ReadVersion 从安装产物读
-    TargetPath:     appArtifactPath,         // 本版只支持单文件
+    CurrentVersion: "0.9.61",                // 或 ReadVersion 从安装产物读
+    TargetPath:     installPath,             // mac: /Applications/DimAgent.app；linux: $APPIMAGE；file: 单文件
+    InstallMode:    host.InstallAuto,        // 生产显式指定；或 InstallMacBundle/InstallLinuxAppImage/InstallWindowsNSIS/InstallFile
     SessionsIdle:   func() bool { ... },     // 会话是否已收尾
     Settle:         func(ctx context.Context) error { ... },
     Shutdown:       func(ctx context.Context) error { _, err := shell.Shutdown(ctx); return err },
-    Restart:        func(ctx context.Context) error { ... }, // 启动新进程
     Diag:           diag,
 })
 status, err := updater.Check(ctx)      // 失败也返回状态：up_to_date + LastError
 artifact, err := updater.Download(ctx)
-err = updater.Switch(ctx)              // 调用即用户确认
+err = updater.Switch(ctx)              // 调用即用户确认；按平台准备、退出、安装、重启
 defer updater.Close()
 ```
+
+`InstallFile` 仍用 `Restart` 回调；macOS/Linux 适配器自带重启，Windows 交给安装器。测试可注入 `InstallHooks`（外部命令与进程启动）与 `VerifySignature`（跳过真实签名链）。
 
 **需要其他领域提供（本包不实现）**：
 
@@ -314,6 +318,15 @@ D10_REAL_CHANNEL=1 go test -run TestRealChannelCheck -v ./internal/host/   # 真
 | 切换后版本号变化（假文件模拟） | `TestUpdaterSwitchDefersWhileSessionsBusy`（`ReadVersion` 从假文件读，切换后为 2.1.0） |
 | 切换缺目标路径/重启步骤时不迁移、不替换 | `TestUpdaterSwitchRequiresWiring`、`TestUpdaterSwitchWithoutShutdownWiring` |
 | 更新诊断字段也在白名单内 | `TestRecorderOnlyWritesWhitelistFields`、`TestRecorderEveryDeclaredEventMatchesShape` |
+| 安装适配器按平台分派与 auto 解析 | `TestInstallModeForPlatform`、`TestInstallModeResolution` |
+| macOS 解包失败保留旧包、签名失败不替换 | `TestMacInstallerUnpackFailureKeepsOldBundle`、`TestMacInstallerSignatureFailureDoesNotReplace` |
+| macOS 成功顺序（解包 → 校验 → 退出 → 替换 → 重启）与版本号变化 | `TestMacInstallerReplacesBundleAfterVerification` |
+| macOS 重启失败回滚旧包 | `TestMacInstallerRestartFailureRollsBack` |
+| macOS 签名/公证命令与 TeamIdentifier 一致性 | `TestMacSignatureVerifierChecksTeamAndNotarization` |
+| macOS ditto 缺失时回退 unzip | `TestMacInstallerFallsBackToUnzipWhenDittoMissing` |
+| Linux 权限位、原子替换与重启环境 | `TestLinuxInstallerReplacesAppImageAndRestartEnv` |
+| Linux 符号链接安装位置替换真实文件 | `TestLinuxInstallerReplacesSymlinkTarget` |
+| Windows 安装器参数与只启动一次 | `TestNSISArgs`、`TestWindowsInstallerSpawnsInstallerOnce` |
 | 真实渠道检查（可选；只读清单、不下载） | `TestRealChannelCheck`（`D10_REAL_CHANNEL=1`） |
 | 带空格产物地址编码 | `TestParseManifestEscapesSpacesInArtifactURL` |
 
@@ -369,34 +382,35 @@ linux/amd64    state=available current=0.9.61 available=0.9.62
 
 #### 6.3.4 缺口分类
 
-| 平台 | 安装器适配缺什么 | 签名校验缺什么 | 现有代码 |
+| 平台 | 安装器适配（已实现） | 签名校验（已实现） | 验证状态 |
 |---|---|---|---|
-| macOS | zip 解包、`.app` 目录级原子替换、退出后重启 | `codesign --verify --deep --strict`、TeamIdentifier 一致、`stapler validate`/`spctl` | 只有单文件替换，不适用 |
-| Windows | 运行 NSIS 安装器（`--updated /S`），不是复制文件 | 真实渠道不强制（无 publisherName）；可选 Authenticode 复核 | 单文件替换不适用 |
-| Linux | `chmod 0755`、按稳定名替换 `$APPIMAGE`、带环境变量重启 | 无（sha512 已是全部） | 基本可用，小改 |
+| macOS | zip 解包、`.app` 备份交换、`open -n` 重启、失败回滚 | `codesign --verify --deep --strict`、TeamIdentifier 一致、`stapler validate`、`spctl --assess` | 假产物与注入命令全测；真实签名链未跑 |
+| Windows | 运行 NSIS `--updated /S`（可选 `--force-run`） | 真实渠道不强制（无 publisherName），未加 Authenticode 复核 | 参数拼装与启动次数单测；实机未验证 |
+| Linux | `chmod 0755`、稳定名原子替换、`APPIMAGE_SILENT_INSTALL=1` 重启 | 无（sha512 已是全部） | 假 AppImage 全测；真实 AppImage 未跑 |
 
-结论：**主要缺"安装器适配"**；macOS 的适配必须同时补签名校验（上游的 Squirrel.Mac 本来就会校验，我们不能比它更松）。Windows 的发布者校验在真实配置里被关闭，所以缺的是"运行安装器"而不是签名工具链；Linux 已接近完成。
+结论：**主要缺的是"安装器适配"**；macOS 同时补了签名校验（上游的 Squirrel.Mac 本来就会校验，不能比它更松）。Windows 的发布者校验在真实配置里被关闭，所以只做"运行安装器"；Linux 只差权限与重启环境变量。
 
-#### 6.3.5 最小可行方案（代价从低到高）
+#### 6.3.5 已实现的安装适配器（原最小可行方案）
 
-1. **Linux AppImage（最小）**：沿用现有下载与校验，切换时 `chmod 0755` → 按 `$APPIMAGE` 稳定名原子替换 → 以 `APPIMAGE_SILENT_INSTALL=1` 启动新文件；真实渠道已是稳定名，无需重指桌面项。约 100 行，可用假文件测试。
-2. **Windows NSIS（小）**：把"替换目标文件"换成"运行安装器"：退出五阶段后 spawn `<artifact> --updated /S [--force-run]`，由安装器完成替换与重启；可选 `Get-AuthenticodeSignature` 复核证书主体。约 100 行，本机无法验证，需 Windows 环境。
-3. **macOS zip（大，但必须）**：`ditto -x -k` 解包到同一卷暂存目录 → `codesign --verify --deep --strict`、TeamIdentifier 与当前 `.app` 一致、`stapler validate`（或 `spctl --assess`）→ 退出五阶段 → 旧 `.app` 改名为备份 → 新 `.app` 原子移入 → `open -n` 启动新版本 → 成功后删备份，失败回滚。约 300 行；命令执行器可注入以便测试编排，真实签名链需真实产物。权限：`/Applications` 需可写（管理员），普通用户需授权 helper。
+1. **Linux AppImage**：沿用下载与校验，切换时 `chmod 0755` → 同目录临时文件写盘 + `rename` 原子替换稳定名 → 以 `APPIMAGE_SILENT_INSTALL=1` 启动新文件。已有测试覆盖权限位、内容替换与重启环境。
+2. **Windows NSIS**：退出五阶段后以 `--updated /S`（可选 `--force-run`）启动安装器，由安装器替换并重启；重启步骤为空操作。已有参数拼装与"只启动一次"测试，实机行为未验证。
+3. **macOS zip**：`ditto -x -k` 解包（`ditto` 缺失时回退 `unzip`）到与 `.app` 同卷的暂存目录 → `codesign`/TeamIdentifier/公证校验 → 退出五阶段 → 旧 `.app` 改名为备份 → 新 `.app` 原子移入 → `open -n` 重启 → 成功后删备份，失败回滚。系统工具用绝对路径（GUI 进程 PATH 可能很短）。测试覆盖解包失败、签名失败、成功顺序、重启失败回滚与 `unzip` 回退；真实签名链与真实 zip 未跑。
 
-共性：状态机、检查、下载、sha512 校验不用改；只需把 `Switch` 里的"单文件替换 + Restart"换成平台适配器，`Updater` 的状态与诊断字段保持不变。
+共性：状态机、检查、下载、sha512 校验未改；`Switch` 在准备通过后才进入切换中，准备失败留在待切换。平台适配器通过 `InstallHooks`（Run/Spawn）与 `VerifySignature` 注入，测试不触碰真实系统命令。
 
-#### 6.3.6 最短路径
+#### 6.3.6 最短路径（已按此顺序实现）
 
-1. 先做 **macOS zip + 校验适配**：当前主平台，现有单文件模型在 mac 上完全不可用。
-2. 同期做 **Linux AppImage**：改动最小，可立即验证。
-3. 最后做 **Windows NSIS**：需要 Windows 环境验证。
+1. **macOS zip + 校验适配**：当前主平台，现有单文件模型在 mac 上完全不可用。
+2. **Linux AppImage**：改动最小，可立即验证。
+3. **Windows NSIS**：需要 Windows 环境验证。
 
-不需要先做：清单签名（渠道没有该字段）、发布渠道改造、增量下载（blockmap 可选，全量 285–313 MB 可用）、代码签名工具链（渠道产物已签名并公证，客户端只校验）。
+三条适配器已落地；剩余工作是真实制品验证（见 6.3.7）。不需要先做：清单签名（渠道没有该字段）、发布渠道改造、增量下载（blockmap 可选，全量 285–313 MB 可用）、代码签名工具链（渠道产物已签名并公证，客户端只校验）。
 
 #### 6.3.7 未验证与风险
 
+- 安装适配器用假产物测试：macOS 的解包、签名、公证命令是注入的假实现；Linux 用普通文件模拟 AppImage；Windows 只验证参数拼装，未在实机运行安装器。
 - 未下载真实产物（285–313 MB），sha512 未与真实字节比对；下载路径只用本地 HTTP 服务验证过。
-- 未解包真实 zip；"zip 根为 `DimAgent.app`"依据 electron-builder 的 mac zip 目标与 CI 断言，需在 `/tmp` 解包一次核对。
+- 未解包真实 zip；"zip 根为 `DimAgent.app`"依据 electron-builder 的 mac zip 目标与 CI 断言，需在 `/tmp` 解包一次核对，并跑一次真实 `codesign`/`stapler`/`spctl`。
 - macOS 原地替换需要可写 `/Applications`；下载 + 解包 + 旧包备份在安装卷上约占 1.6 GB（zip 298 MB、解开后 657 MB、备份 657 MB），空间不足的表现未测。
 - 非管理员用户、多实例、断电或崩溃中断后的恢复未覆盖。
 - Windows 安装器是否需要管理员、是否会终止运行中的旧进程、`--force-run` 行为未实测。
@@ -420,7 +434,7 @@ linux/amd64    state=available current=0.9.61 available=0.9.62
 | D5 交互裁决 | 结束待决审批/提问的入口 | 需 D5 确认 |
 | 全部领域 | 诊断走同一 `Recorder`，只传白名单字段 | 需各领域在接线时遵守 |
 | V 验收设施 | 真实 daemon 场景的 fixtures 与脚本 | 待 P1-3 集成 |
-| X1 发布与运行时获取 | 平台产物形态（mac zip/.app、win NSIS、linux AppImage）、签名策略与稳定文件名 | 已调查（6.3）；平台安装适配器未实现 |
+| X1 发布与运行时获取 | 平台产物形态（mac zip/.app、win NSIS、linux AppImage）、签名策略与稳定文件名 | 已调查（6.3）；安装适配器已实现，真实制品验证待做 |
 
 本领域不修改其他领域实现，也不替其他领域接线；以上接口只描述需要什么。
 
@@ -428,15 +442,14 @@ linux/amd64    state=available current=0.9.61 available=0.9.62
 
 1. **Windows 未验证**：单实例用回环 TCP + 端口文件，先探测后监听，同时启动存在竞态窗口；`GOOS=windows` 只验证了编译。
 2. **本地状态装载只留阶段位**：窗口与偏好（A.md 归进程框架）的存储未实现；`StartupSteps.LocalState` 由调用方提供。
-3. **应用更新只覆盖单文件替换**：真实产物是 macOS zip（内含 `.app` 目录）、Windows NSIS 安装器、Linux AppImage；前两者需要平台安装适配器（6.3.4），Linux 已接近可用。真实渠道只验证到检查，未下载、未替换。
-4. **macOS 签名校验未实现**：目前只比对 sha512；mac 适配器还必须校验 `codesign`/TeamIdentifier/公证票据。Windows 渠道的发布者校验在真实配置里被关闭，Linux 无签名，两端的安装期校验需求见 6.3.4。
+3. **安装适配器未用真实制品验证**：macOS 的 `.app` 解包、签名、公证命令只用假实现测过；Windows NSIS 只做了编译与参数单测，实机未验证；Linux AppImage 只用普通文件模拟。真实渠道只验证到检查，未下载、未替换。
+4. **安装细节未覆盖**：macOS 需要可写 `/Applications`，没有提权 helper；替换后新版本若启动即崩溃不会自动回滚；Windows 安装器是否需要管理员、是否会终止旧进程、`--force-run` 行为未实测；Linux 重启失败后磁盘已是新文件，不回滚、不重指桌面项。
 5. **更新没有发布面能力**：没有定时检查、渠道切换、增量下载（blockmap）与桌面项重指；版本比较只支持 `x.y.z[-pre]`，当前版本必须能被解析。
-6. **替换后重启失败不回滚**：磁盘上已经是新产物，下一次启动会运行新版本；本版不保留旧产物备份，也不做回滚。
-7. **超时 goroutine 不强制回收**：某段实现若完全忽略上下文，`Run` 会按时返回并继续，但该 goroutine 会存活到进程结束。这是"不无限等待"的代价，实现方应尊重上下文。
-8. **端点路径长度**：Unix 套接字路径受系统上限（macOS 约 104 字节）限制；数据目录过深时启动报错，需换短数据目录。临时名比端点名略长，仍在同一目录。
-9. **诊断没有人类可读消息字段**：这是刻意取舍——可诊断性靠事件名 + 白名单字段；需要正文的场景一律不进日志。
-10. **转交报文只有一行、无认证**：端点位于 0700 目录且套接字 0600，只允许同一用户连接；不额外做凭据校验。
-11. **二次启动转交成功后不再调用退出五阶段**：该进程没有建立任何连接或本地状态，直接退出即可；main 集成时需按此实现。
+6. **超时 goroutine 不强制回收**：某段实现若完全忽略上下文，`Run` 会按时返回并继续，但该 goroutine 会存活到进程结束。这是"不无限等待"的代价，实现方应尊重上下文。
+7. **端点路径长度**：Unix 套接字路径受系统上限（macOS 约 104 字节）限制；数据目录过深时启动报错，需换短数据目录。临时名比端点名略长，仍在同一目录。
+8. **诊断没有人类可读消息字段**：这是刻意取舍——可诊断性靠事件名 + 白名单字段；需要正文的场景一律不进日志。
+9. **转交报文只有一行、无认证**：端点位于 0700 目录且套接字 0600，只允许同一用户连接；不额外做凭据校验。
+10. **二次启动转交成功后不再调用退出五阶段**：该进程没有建立任何连接或本地状态，直接退出即可；main 集成时需按此实现。
 
 ## 9. 变更记录
 
@@ -446,3 +459,4 @@ linux/amd64    state=available current=0.9.61 available=0.9.62
 | 2026-11-10 | 单实例抢占改为"临时名监听 + 硬链接原子发布" | 并发启动压测暴露 bind 与 listen 之间的空窗会被误判为残留，导致多个赢家 |
 | 2026-11-11 | 补齐 P3 应用更新：检查、下载校验、切换与状态机；新增 `update_state`/`update_version` 诊断字段 | 用户拍板 R9 要做更新，此前版本明确未实现 |
 | 2026-11-11 | 新增真实更新产物调查（6.3）：三平台清单实测、真实 check、安装器与签名缺口、最小可行方案与最短路径 | 更新落地的卡点是真实产物形态（zip/.app、NSIS、AppImage）而不是状态机 |
+| 2026-11-11 | 实现三平台安装适配器：macOS zip/.app 解包 + 签名/公证校验 + 备份交换 + 回滚；Linux AppImage 权限/替换/重启环境；Windows NSIS 启动；`Switch` 准备失败停在待切换 | 按最短路径补齐真实更新落地的最后一环 |

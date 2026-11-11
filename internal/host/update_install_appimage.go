@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 // linuxInstaller 原地替换 AppImage：同目录写临时文件、chmod 0755、rename 覆盖，
@@ -16,7 +17,13 @@ type linuxInstaller struct {
 
 func (l *linuxInstaller) Prepare(_ context.Context, artifact string) (installPlan, error) {
 	plan := installPlan{artifact: artifact, target: l.target}
-	info, err := os.Stat(l.target)
+	// 目标是符号链接时替换真实文件，不能把链接本身换掉。
+	resolved, err := filepath.EvalSymlinks(l.target)
+	if err != nil {
+		return plan, fmt.Errorf("host: 当前 AppImage 不可用: %w", err)
+	}
+	plan.target = resolved
+	info, err := os.Stat(resolved)
 	if err != nil {
 		return plan, fmt.Errorf("host: 当前 AppImage 不可用: %w", err)
 	}
@@ -38,7 +45,7 @@ func (l *linuxInstaller) Apply(_ context.Context, plan *installPlan) error {
 }
 
 func (l *linuxInstaller) Restart(ctx context.Context, plan *installPlan) error {
-	env := append(os.Environ(), "APPIMAGE_SILENT_INSTALL=1")
+	env := withEnv(os.Environ(), "APPIMAGE_SILENT_INSTALL", "1")
 	return l.hooks.spawn(ctx, plan.target, nil, env)
 }
 

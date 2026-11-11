@@ -74,7 +74,7 @@ func TestMacInstallerReplacesBundleAfterVerification(t *testing.T) {
 	restartedVersion := ""
 	hooks := InstallHooks{
 		Run: func(_ context.Context, name string, args ...string) (string, error) {
-			if name != "ditto" {
+			if name != macDitto {
 				return "", nil
 			}
 			staging := args[len(args)-1]
@@ -90,7 +90,7 @@ func TestMacInstallerReplacesBundleAfterVerification(t *testing.T) {
 		},
 		Spawn: func(_ context.Context, name string, args []string, _ []string) error {
 			events = append(events, "restart")
-			if name != "open" || len(args) != 2 || args[0] != "-n" || args[1] != bundle {
+			if name != macOpen || len(args) != 2 || args[0] != "-n" || args[1] != bundle {
 				t.Fatalf("重启命令 = %s %v", name, args)
 			}
 			data, err := os.ReadFile(filepath.Join(bundle, "version.txt"))
@@ -164,7 +164,7 @@ func TestMacInstallerUnpackFailureKeepsOldBundle(t *testing.T) {
 	shutdownCalled := false
 	hooks := InstallHooks{
 		Run: func(_ context.Context, name string, _ ...string) (string, error) {
-			if name == "ditto" {
+			if name == macDitto {
 				return "", errors.New("坏包")
 			}
 			return "", nil
@@ -222,7 +222,7 @@ func TestMacInstallerSignatureFailureDoesNotReplace(t *testing.T) {
 	shutdownCalled := false
 	hooks := InstallHooks{
 		Run: func(_ context.Context, name string, args ...string) (string, error) {
-			if name == "ditto" {
+			if name == macDitto {
 				staging := args[len(args)-1]
 				if err := os.MkdirAll(filepath.Join(staging, "DimAgent.app"), 0o755); err != nil {
 					return "", err
@@ -275,7 +275,7 @@ func TestMacInstallerRestartFailureRollsBack(t *testing.T) {
 
 	hooks := InstallHooks{
 		Run: func(_ context.Context, name string, args ...string) (string, error) {
-			if name == "ditto" {
+			if name == macDitto {
 				staging := args[len(args)-1]
 				newApp := filepath.Join(staging, "DimAgent.app")
 				if err := os.MkdirAll(newApp, 0o755); err != nil {
@@ -346,8 +346,12 @@ func TestLinuxInstallerReplacesAppImageAndRestartEnv(t *testing.T) {
 	if got := readText(t, target); got != "2.1.0" {
 		t.Fatalf("AppImage 内容 = %q", got)
 	}
-	if spawnName != target || len(spawnArgs) != 0 {
-		t.Fatalf("重启命令 = %s %v", spawnName, spawnArgs)
+	resolved, err := filepath.EvalSymlinks(target)
+	if err != nil {
+		t.Fatalf("解析目标路径: %v", err)
+	}
+	if spawnName != resolved || len(spawnArgs) != 0 {
+		t.Fatalf("重启命令 = %s %v，期望 %s", spawnName, spawnArgs, resolved)
 	}
 	found := false
 	for _, value := range spawnEnv {

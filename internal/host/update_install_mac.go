@@ -12,6 +12,17 @@ import (
 	"time"
 )
 
+// macOS 系统工具的绝对路径：GUI 进程的 PATH 可能很短，按名字调用会找不到。
+const (
+	macDitto    = "/usr/bin/ditto"
+	macUnzip    = "/usr/bin/unzip"
+	macCodesign = "/usr/bin/codesign"
+	macStapler  = "/usr/bin/stapler"
+	macXcrun    = "/usr/bin/xcrun"
+	macSpctl    = "/usr/sbin/spctl"
+	macOpen     = "/usr/bin/open"
+)
+
 // macInstaller 把更新 zip 解包成 .app，校验签名与公证后原子替换旧 .app，失败回滚。
 type macInstaller struct {
 	bundle string
@@ -68,11 +79,11 @@ func (m *macInstaller) Prepare(ctx context.Context, artifact string) (installPla
 
 func (m *macInstaller) unpack(ctx context.Context, artifact, staging string) error {
 	// ditto 保留 .app 内的符号链接与扩展属性；缺失时退回 unzip。
-	if _, err := m.hooks.run(ctx, "ditto", "-x", "-k", artifact, staging); err != nil {
+	if _, err := m.hooks.run(ctx, macDitto, "-x", "-k", artifact, staging); err != nil {
 		if !errors.Is(err, exec.ErrNotFound) {
 			return fmt.Errorf("host: 解包更新产物失败: %w", err)
 		}
-		if _, unzipErr := m.hooks.run(ctx, "unzip", "-q", artifact, "-d", staging); unzipErr != nil {
+		if _, unzipErr := m.hooks.run(ctx, macUnzip, "-q", artifact, "-d", staging); unzipErr != nil {
 			return fmt.Errorf("host: 解包更新产物失败: %w", unzipErr)
 		}
 	}
@@ -103,7 +114,7 @@ func findAppBundle(staging string) (string, error) {
 // verifyWithCommands 是默认的签名与公证校验：
 // codesign 校验签名完整性、TeamIdentifier 与当前 .app 一致、公证票据可校验、Gatekeeper 可通过。
 func (m *macInstaller) verifyWithCommands(ctx context.Context, oldApp, newApp string) error {
-	if _, err := m.hooks.run(ctx, "codesign", "--verify", "--deep", "--strict", "--verbose=2", newApp); err != nil {
+	if _, err := m.hooks.run(ctx, macCodesign, "--verify", "--deep", "--strict", "--verbose=2", newApp); err != nil {
 		return fmt.Errorf("host: 更新包代码签名校验失败: %w", err)
 	}
 	oldTeam, err := m.teamIdentifier(ctx, oldApp)
@@ -120,17 +131,23 @@ func (m *macInstaller) verifyWithCommands(ctx context.Context, oldApp, newApp st
 	if newTeam == "" || !strings.EqualFold(oldTeam, newTeam) {
 		return fmt.Errorf("host: 更新包 TeamIdentifier %q 与当前 %q 不一致", newTeam, oldTeam)
 	}
-	if _, err := m.hooks.run(ctx, "xcrun", "stapler", "validate", newApp); err != nil {
-		return fmt.Errorf("host: 更新包公证票据校验失败: %w", err)
+	if _, err := m.hooks.run(ctx, macStapler, "validate", newApp); err != nil {
+		// 少数环境只有 xcrun 能找到 stapler。
+		if !errors.Is(err, exec.ErrNotFound) {
+			return fmt.Errorf("host: 更新包公证票据校验失败: %w", err)
+		}
+		if _, err := m.hooks.run(ctx, macXcrun, "stapler", "validate", newApp); err != nil {
+			return fmt.Errorf("host: 更新包公证票据校验失败: %w", err)
+		}
 	}
-	if _, err := m.hooks.run(ctx, "spctl", "--assess", "--type", "execute", "--verbose=4", newApp); err != nil {
+	if _, err := m.hooks.run(ctx, macSpctl, "--assess", "--type", "execute", "--verbose=4", newApp); err != nil {
 		return fmt.Errorf("host: 更新包公证评估失败: %w", err)
 	}
 	return nil
 }
 
 func (m *macInstaller) teamIdentifier(ctx context.Context, app string) (string, error) {
-	output, err := m.hooks.run(ctx, "codesign", "-d", "--verbose=4", app)
+	output, err := m.hooks.run(ctx, macCodesign, "-d", "--verbose=4", app)
 	if err != nil {
 		return "", fmt.Errorf("host: 读取安装包签名信息失败: %w", err)
 	}
@@ -164,7 +181,7 @@ func (m *macInstaller) Apply(_ context.Context, plan *installPlan) error {
 }
 
 func (m *macInstaller) Restart(ctx context.Context, plan *installPlan) error {
-	if err := m.hooks.spawn(ctx, "open", []string{"-n", plan.target}, os.Environ()); err != nil {
+	if err := m.hooks.spawn(ctx, macOpen, []string{"-n", plan.target}, os.Environ()); err != nil {
 		rollbackErr := rollbackBundle(plan.target, plan.backup)
 		return errors.Join(fmt.Errorf("host: 启动新版本失败: %w", err), rollbackErr)
 	}
