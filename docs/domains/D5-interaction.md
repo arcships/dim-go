@@ -51,7 +51,7 @@ Owner: 交互裁决领域 agent
 **验收**
 
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/interaction/`；本版全部通过（2026-11-11，`<platform>`）。
-- 本领域：57 个顶层测试、20 个子测试通过；真实模型与真实规则用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
+- 本领域：57 个顶层测试、20 个子测试通过；3 个真实环境用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 发出长期规则、审批应答与提问应答，核对服务端收到的请求顺序与参数。
   - 注入写登记替身：覆盖成功、明确失败、需人工确认、结果未知、并发应答等分支。
@@ -380,6 +380,24 @@ unavailable := arbiter.RulesUnavailable()   // 能力缺失后不再发请求
 
 三者都先用缓存里的 revision 作 `expectedRevision`，写成功后更新缓存；校验失败（空命令、分隔符、未知 match/decision）在发请求前返回 `ErrRuleInvalid`。
 
+### 4.12 审批待答期间的提交
+
+**结论：允许。** 审批待答不阻塞 `session.submit`；`mode:"queue"` 与 `mode:"steer"` 都会被服务端接受，不需要先结算审批。两者的差别在消费方式：
+
+| 模式 | 待答期间 | 审批同意后 |
+|---|---|---|
+| `queue` | 接受；输入进入队列（`input/pending` 出现，`applied=false`） | 当前轮结束后被消费；实测轮次数 1→2（开新轮），队列回到 0 |
+| `steer` | 接受；输入进入队列（`input/pending` 出现，`applied=false`） | 被应用进当前轮；实测轮次数保持 1，队列回到 0 |
+
+条件与边界：
+
+- 审批所属轮仍在进行时实测成立；提交带合法的会话、分支与 mode。
+- 提交不会改变待决审批：审批条数仍为 1，当前审批项不被替换。
+- 两种模式都先进入输入队列；`queue` 等当前轮结束再开下一轮，`steer` 不新开轮。
+- 没有观察到错误码；本场景不是“能力缺失”或“需要先审批才能输入”。
+
+对界面的影响：审批面板出现时输入框可以保持可用，并允许用户选择排队/插话；界面不能把“有待决审批”当作禁止提交的条件，也不应把提交当作对审批的回答。提交后应显示队列条数/模式；审批结算后按队列与当前轮的消费结果显示，而不是本地推断。
+
 ## 5. 与 A/R 的对应
 
 | 需求或架构条目 | 本领域实现 | 不在本领域 |
@@ -393,6 +411,7 @@ unavailable := arbiter.RulesUnavailable()   // 能力缺失后不再发请求
 | R 块 7 结算后移除且不再应答 | `SettleQuestion` 移除；已答记录拒绝重发 | 工具结果/结算事实（D1/D2） |
 | R 块 7 权限档位取值与传递 | 按会话保存 preset；`WithPermission` 校验提交前置条件；读写方法由集成层执行 | `session.permission.get/update` 的 wire（集成层/D1） |
 | R 块 7 成员停止只停成员 | `StopMember` 带 `memberId` 的停止意图 | 成员运行状态读取（D2/D1） |
+| R 块 3/6 审批待答期间的输入 | 允许 `queue`/`steer`；不替换审批；queue 开新轮、steer 进当前轮 | 输入正文与轮次消费（D3/D2） |
 | R 块 6/7 命令规则管理 | `LoadRules`/`AddRule`/`EditRule`/`RevokeRule`；整集重写、revision 冲突不覆盖 | `permission.rules/set_rules` wire（集成层） |
 | A 审批推进 / 提问应答 | `state.go` 两张表、启动校验 | — |
 | A 「审批集合、提问集合」镜像状态 | 审批只由 `Apply`/`Replay`/`Settle` 改；提问只由 `SeedQuestions`/`ApplyAskUser`/`SettleQuestion` 改；各自整体替换 | — |
@@ -410,7 +429,7 @@ go vet ./...
 go test -race ./internal/interaction/
 ```
 
-本版结果（2026-11-11，本机 `<platform>`）：三条命令全部通过；`internal/interaction` 57 个顶层测试、20 个子测试全绿；`TestRealModelApproval` 与 `TestRealCommandRules` 未设置夹具时跳过，设置后通过（§6.5）。
+本版结果（2026-11-11，本机 `<platform>`）：三条命令全部通过；`internal/interaction` 57 个顶层测试、20 个子测试全绿；`TestRealModelApproval`、`TestRealCommandRules` 与 `TestRealSubmitDuringApproval` 未设置夹具时跳过，设置后通过（§6.5）。
 
 ### 6.2 覆盖
 
@@ -467,6 +486,8 @@ go test -race ./internal/interaction/
 | 真实 set_rules 回执只带 revision 时使用提交集合 | `TestWriteReplyWithoutRulesUsesSentSet` |
 | 规则管理不经过写登记 | `TestRulesDoNotUseWriteRegistry` |
 | 真实 daemon 的规则读取、新增、编辑、撤销 | `TestRealCommandRules`（§6.5） |
+| 审批待答期间 `queue`/`steer` 均被接受，审批不被替换 | `TestRealSubmitDuringApproval/queue`、`/steer`（§6.5） |
+| 审批结算后 queue 开新轮、steer 进当前轮 | `TestRealSubmitDuringApproval/queue`、`/steer`（§6.5） |
 | 成员停止只停成员，主线与待决集合不变 | `TestStopMemberOnlyStopsMember` |
 | 成员停止幂等，缺成员标识被拒 | `TestStopMemberIsIdempotent`、`TestStopMemberRequiresMember` |
 
@@ -541,6 +562,27 @@ rules: cache  revision=native:user/permission:4 count=0
 ```
 
 读、写、编辑、撤销都在真实 daemon 上成功；`permission.set_rules` 的回执只带 revision，规则集合以本次提交的集合为准。夹具复制件已删除，来源未修改。
+
+**审批待答期间提交真实证据**（同一夹具；只记录状态、序号、模式、错误码与条数，不打印输入正文）：
+
+```bash
+DIM_REAL_MODEL_FIXTURE=<fixture> DIM_REAL_MODEL_SERVER=<server> \
+  go test -run TestRealSubmitDuringApproval -v -count=1 -timeout 12m ./internal/interaction/
+```
+
+```text
+queue: before  approvals=1 queuedInputs=0 turns=1
+queue: submit  status=succeeded code=none
+queue: after   approvals=1 queuedInputs=1 turns=1 mode=queue applied=false seq=41
+queue: consume approvals=0 queuedInputs=0 turns=2
+
+steer: before  approvals=1 queuedInputs=0 turns=1
+steer: submit  status=succeeded code=none
+steer: after   approvals=1 queuedInputs=1 turns=1 mode=steer applied=false seq=41
+steer: consume approvals=0 queuedInputs=0 turns=1
+```
+
+结论：审批待答期间 queue 与 steer 都被接受；审批保持待决；同意后 queue 开新轮、steer 进当前轮。
 
 ### 6.6 blocked
 
