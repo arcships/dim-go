@@ -4,7 +4,7 @@ Status: active（第一版实现 + 变更读取完成，待组织评审）
 Owner: D7 领域 agent
 范围: 工作区内本机文件与仓库的只读能力：目录读取、文件预览、关键词搜索、git 只读状态、本次运行变更读取、按平台外部打开、路径规范化与越界拒绝。
 依据: `docs/domains/R.md` 块 11、`docs/domains/A.md` 工作区模块与四条总规矩、`AGENTS.md`。
-Last verified: 2026-11-11（Go 1.24.3 / darwin arm64 / git 2.49.0）
+Last verified: 2026-11-11
 
 ## 1. 边界
 
@@ -85,7 +85,7 @@ type ChangeSource interface {
 2. 解析已存在前缀的符号链接，不存在的尾段保留；解析结果可能是新的绝对路径。
 3. 在**解析后的路径**上判断是否等于根或位于根之下；越界返回 `ErrOutsideWorkspace`，不启动任何读取或外部程序。
 4. 中间路径是普通文件时返回 `ErrNotDirectory`，不把 `file/child` 当成可用路径。
-5. 工作区根在 `NewWorkspace` 时解析符号链接；macOS 的 `/var → /private/var` 不会被误判为越界。
+5. 工作区根在 `NewWorkspace` 时解析符号链接；系统目录自身的符号链接不会被误判为越界。
 
 测试：`TestResolveInside`、`TestResolveRejectsEscape`、`TestResolveRejectsPrefixSibling`、`TestResolveSymlink`、`TestResolveIntermediateFile`。覆盖 `..`、绝对越界、同前缀兄弟目录、目录/文件符号链接越界。
 
@@ -205,12 +205,12 @@ $ GOOS=linux go build ./internal/workspace
 
 ### 6.1 真实模型证据（写入声明与 exec 边界）
 
-日期 2026-11-11。夹具只存在 `/tmp/dimagent-real-model`（真实 daemon `0.1.0-alpha.21`、真实 provider、已登录账号）；测试把夹具 `home` 复制到新的临时目录后启动，来源目录只读，不改夹具。权限用 `full-access`，避免审批打断工具调用。
+日期 2026-11-11。夹具只存在 `<fixture-dir>`（本机临时目录，不入库；真实 daemon `0.1.0-alpha.21`、真实 provider、已登录账号）；测试只把夹具的账号与配置目录复制到新的临时目录后启动，来源目录只读，不改夹具。权限用 `full-access`，避免审批打断工具调用。
 
 复现命令：
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<fixture-dir> \
   go test -run TestRealDaemonRunChangesEvidence -v -count=1 ./internal/workspace/
 ```
 

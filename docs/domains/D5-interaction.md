@@ -50,7 +50,7 @@ Owner: 交互裁决领域 agent
 
 **验收**
 
-- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/interaction/`；本版全部通过（2026-11-11，macOS arm64）。
+- 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/interaction/`；本版全部通过（2026-11-11，`<platform>`）。
 - 本领域：57 个顶层测试、20 个子测试通过；真实模型与真实规则用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 发出长期规则、审批应答与提问应答，核对服务端收到的请求顺序与参数。
@@ -410,7 +410,7 @@ go vet ./...
 go test -race ./internal/interaction/
 ```
 
-本版结果（2026-11-11，本机 macOS arm64）：三条命令全部通过；`internal/interaction` 57 个顶层测试、20 个子测试全绿；`TestRealModelApproval` 与 `TestRealCommandRules` 未设置夹具时跳过，设置后通过（§6.5）。
+本版结果（2026-11-11，本机 `<platform>`）：三条命令全部通过；`internal/interaction` 57 个顶层测试、20 个子测试全绿；`TestRealModelApproval` 与 `TestRealCommandRules` 未设置夹具时跳过，设置后通过（§6.5）。
 
 ### 6.2 覆盖
 
@@ -499,10 +499,10 @@ go test -race ./internal/interaction/
 
 ### 6.5 真实模型审批证据
 
-环境：macOS arm64；夹具 `/tmp/dimagent-real-model`（daemon `0.1.0-alpha.21`，managed provider，`deepseek-v4.1-flash`，账号已登录）；夹具只复制到新的 `/tmp` 目录，来源未修改、未提交。复制件把 `config.json` 的 `toolApproval` 改为 `ask`、`permission` 改为 `workspace-write`；会话打开后再用 `session.permission.update` 固定为 `workspace-write`。
+环境：`<platform>`；夹具 `<fixture>`（daemon `0.1.0-alpha.21`，managed provider，`deepseek-v4.1-flash`，账号已登录）；夹具只复制到新的临时目录，来源未修改、未提交。复制件把 `config.json` 的 `toolApproval` 改为 `ask`、`permission` 改为 `workspace-write`；会话打开后再用 `session.permission.update` 固定为 `workspace-write`。
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<fixture> \
   go test -run TestRealModelApproval -v -count=1 -timeout 12m ./internal/interaction/
 ```
 
@@ -528,7 +528,7 @@ Use the shell tool to run exactly: printf DIMAGENT_APPROVAL_OK. You must call th
 **命令规则真实证据**（同一夹具、独立临时 home；只记录 revision 与规则条数，不打印命令全文）：
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<fixture> \
   go test -run TestRealCommandRules -v -count=1 -timeout 6m ./internal/interaction/
 ```
 

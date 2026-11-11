@@ -23,7 +23,7 @@ Owner: 账号领域 agent
 | 写意图、幂等键、未知核对、重启语义 | `docs/domains/D3-write.md` | 登出与重置各为一条 `KindAccountAction` 意图；只发一次；未知不重发 |
 | 错误分类与连接方法 | `docs/domains/D1-connection.md` | 由集成层把 wire 映射成 `Fact`/`Usage`/`Model`，并实现授权来源与发送方；本包不复制 wire |
 | F5「账号状态与 provider 列表」 | `docs/project-organization.md` §6 | 本包输出 `Snapshot` 与 `ModelList`，供 D11 与管理面、U1 消费 |
-| 真实账号夹具 | 本机 alpha 产品 home 的 `auth.json`（只读复制到 `/tmp`）与真实 `dimcode-server` 0.1.0-alpha.21 | 在临时 home 上验证状态、用量、模型清单与 browser/device 登录发起；不进入产品代码，不读取来源存储 |
+| 真实账号夹具 | 本机 alpha 产品 home 的 `auth.json`（只读复制到 `<临时目录>`）与真实 `dimcode-server` 0.1.0-alpha.21 | 在临时 home 上验证状态、用量、模型清单与 browser/device 登录发起；不进入产品代码，不读取来源存储 |
 | provider 登录方式 | 真实服务端 `account.providers` 的 `providerId`、`loginMethods`、`defaultDirectory` | 登录方式只按声明分发；缺声明或本端缺能力都明确报不可用 |
 
 **产物**
@@ -337,8 +337,8 @@ go vet ./...
 go test -race ./internal/account/
 
 # 真实账号夹具（需要临时 home 与真实 App Server；未设置时自动跳过）
-DIMAGENT_ACCOUNT_FIXTURE=/tmp/<fixture-home> \
-DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
+DIMAGENT_ACCOUNT_FIXTURE=<临时目录> \
+DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
   go test ./internal/account -run TestRealAccountFixture -v
 ```
 
@@ -436,9 +436,9 @@ DIMAGENT_APP_SERVER_BIN=/path/to/dimcode-server \
 
 **夹具流程**
 
-1. `mktemp -d /tmp/dimagent-account-fixture-XXXXXX`，目录权限 0700。
+1. 创建权限 0700 的临时目录（记为 `<临时目录>`）。
 2. 只复制 `auth.json`（0600）与 `config.json`，新建空的 `rust/`（0700）；不复制来源的 SQLite、session 文件与日志。
-3. 设置 `DIMAGENT_ACCOUNT_FIXTURE=<夹具目录>` 与 `DIMAGENT_APP_SERVER_BIN=<真实 dimcode-server>`；夹具测试只从环境变量取路径。
+3. 设置 `DIMAGENT_ACCOUNT_FIXTURE=<临时目录>` 与 `DIMAGENT_APP_SERVER_BIN=<真实 dimcode-server>`；夹具测试只从环境变量取路径。
 4. 统一二进制用 `ServerArgs: []string{"app-server"}` 启动；`--home` 指向夹具 `rust/`，`--product-home` 指向夹具根。
 5. 运行 `go test ./internal/account -run TestRealAccountFixture -v`。
 6. 验证后删除夹具（含复制的认证文件）；夹具不进入仓库，也不作为 CI 依赖。本次夹具在取证完成后已删除。

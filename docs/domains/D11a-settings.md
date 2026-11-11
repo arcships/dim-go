@@ -48,7 +48,7 @@ Owner: D11a 设置与运行环境领域
 | `internal/settings/modality_tasks.go` | 模态任务提交/取消/读取/清单/结果分页 |
 | `internal/settings/modality_realtime.go` | 实时打开/发送/关闭、连接状态、事件订阅与投递 |
 | `internal/settings/*_test.go` | 单元测试、`fakeappserver` 集成测试与会话模态替身测试（见 §6.2） |
-| `scripts/verify-real-model.sh` | 真实模型验证脚本：读取 `/tmp` 夹具，起 daemon、跑会话、断言真实工具调用与工具结果 |
+| `scripts/verify-real-model.sh` | 真实模型验证脚本：读取临时目录夹具，起 daemon、跑会话、断言真实工具调用与工具结果 |
 | `scripts/verify-modality.py` | 真实模态验证脚本：查询能力、提交 OCR 任务、轮询状态、分页读结果、取消；记录实时门禁 |
 | `scripts/verify-provider-admin.py` | 真实 provider/模型管理验证脚本：列表、新建、探测、更新、启用、模型开关、编辑、重置、偏好与版本冲突 |
 | `scripts/verify-collaboration-agent.py` | 真实协作模型策略与会话 agent 档案证据：策略版本/冲突、agent 方法表、采用与读回 |
@@ -58,14 +58,14 @@ Owner: D11a 设置与运行环境领域
 
 - 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64）。
 - 本领域：104 个顶层测试、53 个子测试，共 157 个通过；语句覆盖率 82.1%。
-- 真实模型：`scripts/verify-real-model.sh --fixture /tmp/dimagent-real-model` 通过，观察到真实工具调用与工具结果（§6.5）。
-- 真实模态：`scripts/verify-modality.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server --image /tmp/dimagent-modality-ocr.png` 通过；OCR 任务 `queued → running → succeeded`，结果分页读完；取消 `queued → cancelled`；实时因 adapter 不可用标 blocked（§6.6）。
-- 真实 provider/模型管理：`scripts/verify-provider-admin.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server` 通过；新建→探测→更新→启用→模型开关→编辑→重置→偏好→版本冲突全部在真实 alpha.21 上跑通（§6.7）。
-- 真实协作策略与 agent 档案：`scripts/verify-collaboration-agent.py --fixture /tmp/dimagent-real-model --server ~/.dimcode-alpha/rust/dimcode-server` 通过；策略 revision 1→4、过期写入返回冲突；会话 agent get/update/adopt/unchanged 均跑通（§6.8）。
+- 真实模型：`scripts/verify-real-model.sh --fixture <fixture-dir>` 通过，观察到真实工具调用与工具结果（§6.5）。
+- 真实模态：`scripts/verify-modality.py --fixture <fixture-dir> --server <installed-server> --image <image-file>` 通过；OCR 任务 `queued → running → succeeded`，结果分页读完；取消 `queued → cancelled`；实时因 adapter 不可用标 blocked（§6.6）。
+- 真实 provider/模型管理：`scripts/verify-provider-admin.py --fixture <fixture-dir> --server <installed-server>` 通过；新建→探测→更新→启用→模型开关→编辑→重置→偏好→版本冲突全部在真实 alpha.21 上跑通（§6.7）。
+- 真实协作策略与 agent 档案：`scripts/verify-collaboration-agent.py --fixture <fixture-dir> --server <installed-server>` 通过；策略 revision 1→4、过期写入返回冲突；会话 agent get/update/adopt/unchanged 均跑通（§6.8）。
 - 证据档位：
-  - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖设置来源/项目/读写/冲突、模型与账号过滤、存储读数、运行组件安装、模态能力。
+  - `fakeappserver`：本地 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖设置来源/项目/读写/冲突、模型与账号过滤、存储读数、运行组件安装、模态能力。
   - 注入替身：各读取接口、写发送方与会话模态面在单元测试里替换，覆盖能力缺失、事实不合法、缓存隔离、冲突、重试边界、任务分页、实时事件与失败原因。
-  - 真实模型：本机 `dimcode-server` + `/tmp` 夹具 + 真实 Dim 账号，观察到一次真实工具调用（`exec`）与工具结果，见 §6.5。
+  - 真实模型：已安装 daemon + 临时目录夹具 + 真实 Dim 账号，观察到一次真实工具调用（`exec`）与工具结果，见 §6.5。
   - 真实模态：真实服务端执行 OCR 任务并分页读完结果；取消成功；实时因能力不可用标 blocked，见 §6.6。
   - 真实 provider/模型管理：真实 alpha.21 上由脚本直连验证（§6.7）；本包 Go API 仍依赖 D12 的 `ProviderAdmin` 适配器。
   - 真实协作策略与 agent 档案：真实 alpha.21 上由脚本直连验证（§6.8）；本包 Go API 仍依赖 D12 的 `CollaborationReader`/`AgentAdmin` 适配器。
@@ -109,7 +109,7 @@ Owner: D11a 设置与运行环境领域
 | provider 管理 | 列表与详情；新建；更新显示名/地址/启用状态；显式探测（只读，不写配置）；显式全量设置启用模型；模型编辑/重置；模型偏好写入 |
 | 协作模型策略 | 读取策略与 revision；按 revision 写入 agent/inherit/fixed；本地与服务端冲突判定 |
 | agent 档案 | 读取 agent 清单；读取会话当前 agent；按当前 agent 前置条件更新会话 agent，写入后重读 |
-| 模态任务 | 提交、状态读取、清单分页、结果分页、取消；提交与取消经写登记，读取走集成层模态调用面（本机为 daemon 级控制方法） |
+| 模态任务 | 提交、状态读取、清单分页、结果分页、取消；提交与取消经写登记，读取走集成层模态调用面（该服务端为 daemon 级控制方法） |
 | 实时传输 | 打开、发送帧、关闭；打开与关闭经写登记，发送走集成层模态调用面，接收按事件；维护本进程内的连接状态与订阅 |
 | 会话方法门禁 | 每个模态调用先查该会话的方法表；缺方法或方法表不可读即返回能力缺失，零请求 |
 | 存储读数 | 读取数据库、WAL 与可回收字节；只读，没有清理入口，不做本地估算 |
@@ -133,7 +133,7 @@ Owner: D11a 设置与运行环境领域
 | provider 删除、导入旧配置、远程刷新模型 | 不在本版；本版只做列表/新建/更新/探测/启用/模型配置/偏好 |
 | agent 档案创建/删除、agent 档案字段编辑 | 本版只做会话采用的 agent 更新与 agent 清单读取；`agent.create` 由调用方/其他领域负责 |
 | 实时事件的路由与连接选择 | D12：本包只接收 `DeliverRealtimeEvent`/`DeliverRealtimeEnded` 并按连接分发 |
-| 模态方法的 wire 参数与回执 | D1/D12：本包不定义 wire 结构，类型由集成层映射；本机服务端把模态作为 daemon 级控制方法 |
+| 模态方法的 wire 参数与回执 | D1/D12：本包不定义 wire 结构，类型由集成层映射；该服务端把模态作为 daemon 级控制方法 |
 | 设置键的业务含义、schema 解释、默认值补齐 | 服务端拥有设置事实；本包只做结构校验 |
 | 任何持久化、跨进程幂等表、重启恢复 | R8：缓存与幂等键只在内存 |
 
@@ -204,7 +204,7 @@ caps, err := manager.RefreshModality(ctx)
 providers, err := manager.RefreshProviders(ctx)
 providerDetail, err := manager.ReadProvider(ctx, providerID)
 probe, err := manager.ProbeProvider(ctx, settings.ProviderProbeRequest{
-    ProviderID: "01900000-0000-4000-8000-000000000002",
+    ProviderID: "<provider-id>",
     Connection: &settings.ProviderConnectionInput{
         DriverKind: "openai-compatible",
         Auth:       settings.ProviderAuth{Type: "anonymous"},
@@ -212,7 +212,7 @@ probe, err := manager.ProbeProvider(ctx, settings.ProviderProbeRequest{
     },
 })
 providerDetail, err = manager.CreateProvider(ctx, settings.ProviderCreateRequest{
-    ID:          "01900000-0000-4000-8000-000000000001",
+    ID:          "<provider-id>",
     DisplayName: "示例供应商",
     Enabled:     true,
     Connection: settings.ProviderConnectionInput{
@@ -254,7 +254,7 @@ agents, err := manager.RefreshAgents(ctx)
 sessionAgent, err := manager.ReadSessionAgent(ctx, "s1", "main")
 updatedAgent, err := manager.UpdateSessionAgent(ctx, settings.SessionAgentUpdateRequest{
     SessionID: "s1", BranchID: "main",
-    AgentID: "01900000-0000-4000-8000-000000000003",
+    AgentID: "<agent-id>",
     ExpectedAgentID: sessionAgent.AgentID,
 })
 
@@ -492,7 +492,7 @@ type StorageReading struct {
 
 任务要求：
 
-1. **能力门禁先于请求**：提交前要求服务端同时声明 `modality.task.submit` 与 `modality.task.status`；取消前要求 `modality.task.cancel` 与 `modality.task.status`。缺任一方法即返回能力缺失，不发写请求。读取、清单、结果分别要求对应方法。门禁先看 `hello.features`，再看会话方法表；本机真实服务端只在 `hello.features` 声明 `modality.*`。
+1. **能力门禁先于请求**：提交前要求服务端同时声明 `modality.task.submit` 与 `modality.task.status`；取消前要求 `modality.task.cancel` 与 `modality.task.status`。缺任一方法即返回能力缺失，不发写请求。读取、清单、结果分别要求对应方法。门禁先看 `hello.features`，再看会话方法表；真实服务端只在 `hello.features` 声明 `modality.*`。
 2. **不猜默认参数**：`Category`、`Operation`、任务标识、结果文件名必填；`Params` 为空表示没有提供，不补 `{}`；输入文件必须且只能给 `dataBase64` 或 `nodePath`；模型引用必须同时有 provider 与模型标识。
 3. **回执只给标识**：提交与取消的写登记回执用 `InputID` 传任务标识；本包据此重读任务。回执缺标识时返回 `ErrMalformedWriteResult`，不伪造任务。
 4. **任务事实校验**：标识、类别、操作、状态、创建/更新时间必填；状态只能是 `queued`/`running`/`succeeded`/`failed`/`cancelled`/`interrupted`；结果文件与错误对象的必填字段都校验；缺字段即整份拒绝。
@@ -647,7 +647,7 @@ go test ./...
 go vet ./...
 ```
 
-本版结果：四条命令全部通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，本机 macOS arm64）。
+本版结果：四条命令全部通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -750,16 +750,16 @@ go vet ./...
 | fakeappserver：运行组件状态与安装转达、安装后重读 | `TestAppServerRuntimeInstallRelay` |
 | fakeappserver：模态能力状态、原因、不支持快照、缺能力不发请求 | `TestAppServerModalityCapabilities` |
 
-### 6.3 与 D1/D3/D6 的接口形状
+### 6.3 与 D1/D3/D6/D12 的接口形状
 
 | 提供方 | 形状 | 本包消费方式 |
 |---|---|---|
 | D1 连接 | `protocol.Client.Call` / `CallInto` | 集成层实现 `SourcesReader`、`SettingsReader`、`ProjectsReader`、`ModelCatalogReader`、`StorageReader`、`RuntimeReader`、`ModalityReader`，把 wire 回执映射成领域类型；方法名不出现在本包；选择写入的 `provider.select` 由写发送方映射 |
-| D1 连接 | `hello.features` / `protocol.Client.Call` | D12 用 `hello.features` 实现 `ModalitySession.SupportsModalityMethod`（本机真实服务端只在 hello 声明 `modality.*`），用控制连接调用任务读取、清单、结果与实时发送；若未来服务端把模态贡献为会话方法，再走 `Subscription.Methods/Call`。本包不定义 wire 结构 |
+| D1 连接 | `hello.features` / `protocol.Client.Call` | D12 用 `hello.features` 实现 `ModalitySession.SupportsModalityMethod`（真实服务端只在 hello 声明 `modality.*`），用控制连接调用任务读取、清单、结果与实时发送；若未来服务端把模态贡献为会话方法，再走 `Subscription.Methods/Call`。本包不定义 wire 结构 |
 | D1 能力声明 | `*daemon.Connection.HasFeature(name)` | 直接作为 `Config.Features`；缺失项在发请求前返回 `CapabilityError` |
 | D1 错误分类 | `protocol.RPCError.AppError()` / `Code` | 只把 `unknown_method`、`capability_unavailable`、`storage_unavailable` 归为能力缺失；其他错误保持读取失败 |
 | D3 写登记 | `*write.Manager.Register` / `Wait` | 直接满足 `Writer`；设置写入参数 `{"op":"settings.update",...}`，选择写入参数 `{"op":"provider.select",...}`，安装参数 `{"op":"runtime.install","name":...}`；provider 管理用 `{"op":"provider.create"/"provider.update"/"provider.models.set_enabled"/"provider.models.edit"/"provider.models.reset"/"provider.preferences.update",...}`；模态写入用 `KindModalityWrite`；只登记一次，不重试 |
-| D12 集成层 | `ModalitySession` 与模态通知路由 | D12 实现 hello 能力门禁、任务读取与实时发送；把 `modality.realtime.event` 与 `ended` 通知投递给 `DeliverRealtimeEvent`/`DeliverRealtimeEnded`；写发送方按 `KindModalityWrite` 路由到会话流并回填 `Reply.InputID` |
+| D12 集成层 | `ModalitySession`、`ProviderAdmin`、`CollaborationReader`、`AgentAdmin` 与通知路由 | D12 实现 hello/会话方法门禁、任务读取与实时发送；`ProviderAdmin` 映射 `provider.list`/`management`/`probe`；`CollaborationReader` 映射策略；`AgentAdmin` 映射 `agent.list`、`session.agent.get/update`；写发送方按 `KindManagementWrite`/`KindModalityWrite` 路由并回填 `Reply.InputID` |
 | D3 结果语义 | `StatusSucceeded` / `Failed` / `Unknown` / `NeedsManualConfirmation` | 只有成功采用回执；其余按失败处理，失败后只读一次文档判断冲突 |
 | D6 账号 | `*account.Account.Models() account.ModelList` | 作为唯一可用性来源；不在本包重复读取账号状态、不派生模型 |
 | D6 模型标识 | `account.Model.ID` | 与 provider 目录的 `models[].id` 完全匹配；匹配口径见 §7 第 3 条 |
@@ -781,15 +781,15 @@ go vet ./...
 | 本包 Go API 对真实协作策略/agent 档案 | blocked | 真实 alpha.21 的协作 revision/冲突与 agent get/update 已由脚本直连验证（§6.8）；本包 Go API 仍依赖 D12 的 `CollaborationReader`/`AgentAdmin` 与写发送方适配器 |
 | 本包 Go API 对真实模态能力/任务/实时 | blocked | 真实 daemon 的能力、OCR 任务与取消已由脚本验证（§6.6）；但本包 Go API 仍依赖 D12 的 `ModalitySession` 适配器，尚未接通 |
 | 实时传输 | blocked | 当前 provider/adapter 没有可用实时模型：`realtime.voice/transcribe/avatar` 均为 adapter 不可用；无法验证打开→发送→关闭 |
-| 模态方法在会话流上的路由 | blocked | 本机真实服务端把 `modality.*` 声明在 `hello.features`，不贡献会话方法；D12 需按 hello 能力实现门禁与路由 |
+| 模态方法在会话流上的路由 | blocked | 真实服务端把 `modality.*` 声明在 `hello.features`，不贡献会话方法；D12 需按 hello 能力实现门禁与路由 |
 
 ### 6.5 真实模型接入验证（2026-11-11）
 
 **侦察（只读）**
 
-- `~/.dimcode-alpha/config.json` 只有外观与权限开关，不含 provider/model。
-- `~/.dimcode-alpha/auth.json` 是 Dim 账号 OAuth 记录；账号已登录，subject `63`，issuer `https://dimagent.cn`。令牌不写入本文档。
-- 提供 provider 与模型事实的是原生存储 `~/.dimcode-alpha/rust/dimcode.sqlite`：
+- `<product-home>/config.json` 只有外观与权限开关，不含 provider/model。
+- `<product-home>/auth.json` 是 Dim 账号 OAuth 记录；账号已登录（身份字段不记录）。令牌不写入本文档。
+- 提供 provider 与模型事实的是 product home 下的原生 SQLite：
   - `providers`：`dimcode-api-oauth`，`kind=managed`，`version=5`，模型条目 33 个。
   - `provider_selections`：`scope=global` → `dimcode-api-oauth` / `deepseek-v4.1-flash`。
   - 目标模型声明 `toolCalling=true`、`streaming=true`、`reasoning=true`。
@@ -797,19 +797,18 @@ go vet ./...
 
 **夹具**
 
-- 位置：`/tmp/dimagent-real-model`（只在 `/tmp`，不进入仓库）。
-- 内容：`home/config.json`、`home/auth.json`（0600）、`home/rust/dimcode.sqlite`
-  （来源 schema + `agent_store_format=36` + 1 条 provider + 1 条 selection +
-  6 条非敏感设置文档；**0 条会话/时间线/消息**）、`bin/dimcode-server`
-  （0.1.0-alpha.21）、`meta/schema.sql`、`FIXTURE.md`。
-- 权限：夹具根、`home`、`home/rust` 为 0700；`auth.json` 为 0600。
-- 形状与复制清单见夹具内 `FIXTURE.md`；真实凭据只存在 `/tmp`，不写入仓库、
+- 位置：`<fixture-dir>`（临时目录，不进入仓库）。
+- 内容：账号记录、配置、最小 provider/selection 存储（来源 schema +
+  当前 store format + 1 条 provider + 1 条 selection + 6 条非敏感设置文档；
+  **0 条会话/时间线/消息**）、daemon 二进制（0.1.0-alpha.21）与 schema 说明。
+- 权限：夹具根与存储目录为 0700；账号文件为 0600。
+- 形状与复制清单见夹具内说明文件；真实凭据只存在临时目录，不写入仓库、
   不写回来源、不进入产品代码路径。
 
 **验证脚本**
 
-`scripts/verify-real-model.sh` 不读取 `~/.dimcode-alpha` 或任何来源目录，只读
-`--fixture`（默认 `/tmp/dimagent-real-model`）。它把 `fixture/home` 复制到新的
+`scripts/verify-real-model.sh` 不读取 `<product-home>` 或任何来源目录，只读
+`--fixture`（默认 `<fixture-dir>`）。它把 <fixture-dir>/home 复制到新的
 临时目录，起 daemon，确认账号已登录，跑一次 `exec`，解析 `session.event`：
 
 - `step/tool-call` 必须出现，且带工具名与输入；
@@ -819,14 +818,14 @@ go vet ./...
 用法：
 
 ```bash
-scripts/verify-real-model.sh --fixture /tmp/dimagent-real-model
+scripts/verify-real-model.sh --fixture <fixture-dir>
 ```
 
 **观察到的结果**
 
 ```text
-account: Signed in: 63 (https://dimagent.cn)
-{"sessionId":"40fe352f-...","toolCalls":[{"tool":"exec","input":{"command":"printf DIMAGENT_REAL_TOOL_OK","timeoutMs":10000}}],"toolResults":["DIMAGENT_REAL_TOOL_OK"],"expected":"DIMAGENT_REAL_TOOL_OK","ok":true}
+account: Signed in: <account>
+{"sessionId":"<session-id>","toolCalls":[{"tool":"exec","input":{"command":"printf DIMAGENT_REAL_TOOL_OK","timeoutMs":10000}}],"toolResults":["DIMAGENT_REAL_TOOL_OK"],"expected":"DIMAGENT_REAL_TOOL_OK","ok":true}
 REAL_TOOL_CALL_OK
 ```
 
@@ -836,8 +835,8 @@ REAL_TOOL_CALL_OK
 
 **数据源纪律**
 
-- 来源目录只读；只把必要配置复制到 `/tmp` 夹具，未写回来源。
-- 产品代码与领域包不读取 `~/.dimcode-alpha`、Dim 源码或 dim-electron 源码。
+- 来源目录只读；只把必要配置复制到临时目录夹具，未写回来源。
+- 产品代码与领域包不读取 `<product-home>`、Dim 源码或 dim-electron 源码。
 - 脚本只读夹具，每次运行把夹具复制到独立临时目录，不修改夹具本身。
 
 ### 6.6 真实模态任务与实时证据（2026-11-11）
@@ -859,7 +858,7 @@ adapter 没有可用实时适配器。
 
 - `hello.features` 声明 `modality.capabilities`、`modality.task.submit/status/list/result/cancel`、
   `modality.realtime.open/send/close`。
-- `session.methods`（新建会话）**不包含** `modality.*`；本机服务端把模态作为
+- `session.methods`（新建会话）**不包含** `modality.*`；该服务端把模态作为
   daemon 级方法，而不是会话贡献方法。
 - 因此 `ModalitySession.SupportsModalityMethod` 必须接受 `hello.features`；
   只查 `session.methods` 会把可用方法误判为缺失。D12 的实现已按“hello 优先、
@@ -868,17 +867,17 @@ adapter 没有可用实时适配器。
 **任务：OCR 成功且结果分页读完**
 
 ```bash
-scripts/verify-modality.py --fixture /tmp/dimagent-real-model   --server ~/.dimcode-alpha/rust/dimcode-server   --image /tmp/dimagent-modality-ocr.png
+scripts/verify-modality.py --fixture <fixture-dir> --server <installed-server> --image <image-file>
 ```
 
 观察（只记录状态、标识、字节数，未打印 OCR 文本）：
 
 ```text
 available operations: ['image.understand', 'ocr.recognize']
-task: mt_b7a38d15-... states=['queued', 'running', 'succeeded'] terminal=succeeded
+task: <task-id> states=['queued', 'running', 'succeeded'] terminal=succeeded
   result result.json: bytes=94 declared=94 pages=2 eof=True
   result text.txt: bytes=0 declared=0 pages=1 eof=True
-cancel: mt_eebec059-... reply=cancelled final=cancelled
+cancel: <task-id> reply=cancelled final=cancelled
 ```
 
 - 状态确实经历 `queued → running → succeeded`。
@@ -897,20 +896,20 @@ avatar:     No available adapter serves realtime.avatar
 ```
 
 尝试打开 `realtime.voice` 返回 `modality_unknown_operation`；用 `voice` 打开返回
-`no_default_model`（没有模型服务该操作）。因此打开→发送→关闭无法在本机验证，
+`no_default_model`（没有模型服务该操作）。因此打开→发送→关闭无法在当前环境验证，
 标 blocked，原因不是客户端缺方法，而是当前 provider/adapter 没有可用实时模型。
 
 **macOS OCR 路径限制**
 
 Apple Vision 权限按可执行文件路径生效。用夹具里复制出来的
-`bin/dimcode-server` 跑 OCR 会得到
+daemon 二进制跑 OCR 会得到
 `executor_error: Apple Vision text recognition failed ...`；用已安装路径
-`~/.dimcode-alpha/rust/dimcode-server`（或 npm 安装目录里的同一二进制）成功。
-脚本因此提供 `--server`，文档命令显式使用已安装路径；夹具仍是 `/tmp`，来源只读。
+`<installed-server>`（或等价已安装路径）成功。
+脚本因此提供 `--server`，文档命令显式使用已安装路径；夹具仍在临时目录，来源只读。
 
 **数据纪律**
 
-- 夹具与图像只在 `/tmp`；来源目录只读；未写回来源。
+- 夹具与图像只在临时目录；来源目录只读；未写回来源。
 - 证据只含状态、任务/文件标识、字节数、分页数、能力原因；未打印 OCR 文本、
   图像内容或凭据。
 - 脚本每次把夹具复制到新的临时目录，运行结束后清理（`--keep` 可保留）。
@@ -920,7 +919,7 @@ Apple Vision 权限按可执行文件路径生效。用夹具里复制出来的
 命令：
 
 ```bash
-scripts/verify-provider-admin.py --fixture /tmp/dimagent-real-model   --server ~/.dimcode-alpha/rust/dimcode-server
+scripts/verify-provider-admin.py --fixture <fixture-dir> --server <installed-server>
 ```
 
 真实 alpha.21 环境、匿名自定义 provider、本地 mock `/models` 端点；结果摘要：
@@ -955,21 +954,21 @@ custom in list: True
 命令：
 
 ```bash
-scripts/verify-collaboration-agent.py --fixture /tmp/dimagent-real-model   --server ~/.dimcode-alpha/rust/dimcode-server
+scripts/verify-collaboration-agent.py --fixture <fixture-dir> --server <installed-server>
 ```
 
 观察（只保留 revision、状态、agent 标识与错误分类）：
 
 ```text
-policy initial: revision=native:user/collaboration:1 mode=agent
+policy initial: revision=<revision-1> mode=agent
 policy revisions: 1 -> 2 -> 3 -> 4
 policy writes: fixed(r2) -> inherit(r3) -> agent(r4)
 policy stale conflict: appError=collaboration_model_policy_conflict
-  revisionAfter=native:user/collaboration:4 modeAfter=agent
+  revisionAfter=<revision-4> modeAfter=agent
 agent methods: get=True update=True
 agent list count: 1
 agent before: {}
-agent: agentId=54026405-... updateOutcome=adopted
+agent: agentId=<agent-id> updateOutcome=adopted
   after={'agentId': '54026405-...'} sameOutcome=unchanged
 ```
 
@@ -980,7 +979,7 @@ agent: agentId=54026405-... updateOutcome=adopted
 - `session.methods` 真实包含 `session.agent.get` 与 `session.agent.update`；`agent.list` 可用但**不在 hello.features**，所以本包对 `agent.list` 不用 hello 预判。
 - 会话初始未采用 agent（`agent.get` 返回 `{}`）；创建 prompt-only agent 后 `session.agent.update` 返回 `adopted`，`agent.get` 读回该 agentId；重复更新返回 `unchanged`。
 - 真实 `session.agent.update` 不接受 `expectedAgentId` 字段（`invalid_params`），所以该前置条件必须只留在本包，D12 写发送方不能下发。
-- 全程未打印凭据；只创建临时会话与 prompt-only 档案，运行在 `/tmp` 夹具副本上。
+- 全程未打印凭据；只创建临时会话与 prompt-only 档案，运行在临时目录夹具副本上。
 
 ## 7. 已知限制
 
@@ -1007,12 +1006,12 @@ agent: agentId=54026405-... updateOutcome=adopted
 21. **实时状态只在内存**：本进程重启后不记得已打开的连接，`CloseRealtime` 会返回 `ErrRealtimeNotOpen`；这时应由服务端或用户侧清理残留连接。
 22. **实时事件原样透传**：事件 JSON 只校验合法性，不解析音频或控制语义；播放与编解码由调用方负责。
 23. **订阅回调同步**：`WatchRealtime` 的回调在投递路径上同步执行；慢回调会拖慢通知路由，回调里也不能调用本包的管理写入。
-24. **真实模型夹具不入库**：夹具含真实账号凭据，只存在 `/tmp`；仓库只有脚本。换机器或令牌过期后需要人工重新准备夹具或登录。
-25. **真实模型验证依赖本机账号与网络**：脚本能证明当前账号/网络下真实工具调用可用，不证明其他账号、其他模型或离线环境；模型输出与工具选择可能变化，脚本以“工具调用 + 期望工具结果”为判据。
+24. **真实模型夹具不入库**：夹具含真实账号凭据，只存在临时目录；仓库只有脚本。换机器或令牌过期后需要人工重新准备夹具或登录。
+25. **真实模型验证依赖当前账号与网络**：脚本能证明当前账号/网络下真实工具调用可用，不证明其他账号、其他模型或离线环境；模型输出与工具选择可能变化，脚本以“工具调用 + 期望工具结果”为判据。
 26. **真实模型验证用的是 daemon CLI**：`scripts/verify-real-model.sh` 走 `dimcode-server exec` 的完整会话链路，不经过本包 Go API；本包 Go API 对真实 App Server 的验证仍在 §6.4 blocked。
-27. **模态方法不是会话方法**：本机真实服务端只在 `hello.features` 声明 `modality.*`，`session.methods` 不含；门禁必须以 hello 能力为准，否则会误报能力缺失。
-28. **实时在本机不可用**：`realtime.voice/transcribe/avatar` 均因 adapter 无可用实时模型而不可用；打开→发送→关闭没有真实证据，标 blocked，不用 mock 冒充。
-29. **OCR 依赖已安装二进制路径**：macOS Vision 权限按可执行文件路径生效；夹具内复制的二进制跑 OCR 会失败。复现时必须用 `--server ~/.dimcode-alpha/rust/dimcode-server` 或等价安装路径。
+27. **模态方法不是会话方法**：真实服务端只在 `hello.features` 声明 `modality.*`，`session.methods` 不含；门禁必须以 hello 能力为准，否则会误报能力缺失。
+28. **实时在当前环境不可用**：`realtime.voice/transcribe/avatar` 均因 adapter 无可用实时模型而不可用；打开→发送→关闭没有真实证据，标 blocked，不用 mock 冒充。
+29. **OCR 依赖已安装二进制路径**：macOS Vision 权限按可执行文件路径生效；夹具内复制的二进制跑 OCR 会失败。复现时必须用 `--server <installed-server>` 或等价安装路径。
 30. **模态结果文本未打印**：证据只保留文件名字节数与分页数；OCR 文本属于任务结果内容，未写入文档或仓库。
 31. **新建 provider 标识必须是 UUID**：真实服务端拒绝非规范小写 UUID；本包在发请求前拒绝其他形状。已有 provider 的读取/更新不受限制。
 32. **provider 详情可能在版本/动作上受限**：账户托管的 provider 可能没有 `update` 动作，`provider.update` 会被服务端拒绝；本包不按动作列表预先猜测，只按版本与错误分类。
@@ -1025,7 +1024,7 @@ agent: agentId=54026405-... updateOutcome=adopted
 39. **agent 没有服务端 revision**：真实 `session.agent.update` 没有版本字段；本包用 `ExpectedAgentID` 作为前置条件，并在写入后重读。它不是跨客户端强一致的 revision，但能阻止覆盖已变化的当前 agent。
 40. **agent.list 不按 hello 预判**：真实 hello.features 不含 `agent.list`，但方法可用；本包直接调用，缺失时靠 `unknown_method` 归为能力缺失，因此这一项不是零请求门禁。
 41. **agent 前置字段不能下发**：`expectedAgentId` 只在本包使用；真实服务端会拒绝未知字段，D12 必须只发 `sessionId`、`branchId`、`agentId`。
-42. **协作策略是全局设置**：真实 revision 是 `native:user/collaboration:n`；写入影响所有协作子代理，本包不做项目作用域。
+42. **协作策略是全局设置**：真实 revision 是服务端分配的字符串；写入影响所有协作子代理，本包不做项目作用域。
 43. **agent 档案创建/删除不在本版**：本版只读取清单与会话采用；`agent.create` 仍由调用方/其他领域负责。
 
 ## 8. 下一步
@@ -1038,7 +1037,7 @@ agent: agentId=54026405-... updateOutcome=adopted
 6. 补真实服务端证据：设置写入与选择写入的版本冲突、项目作用域、存储读数、运行组件安装、模态能力、任务提交/查询/取消、实时打开/发送/关闭与事件。
 7. 与 U1 对齐读数呈现：任务进度、结果分页、实时事件与不可用原因的展示口径；本包只提供数据与原因，不做文案。
 8. 把真实模型验证接到本包 Go API：用真实 daemon 执行 `models.providers.list`、`provider.select`、`storage.report`、`runtime.list` 与 `modality.capabilities`，把 §6.5 的“模型可用”推进到“本包读取与选择写入可用”。
-9. 为真实模型验证准备专用测试账号或可轮换凭据，避免依赖个人 `~/.dimcode-alpha`；当前只做了本机夹具。
+9. 为真实模型验证准备专用测试账号或可轮换凭据，避免依赖个人环境；当前只做了临时目录夹具。
 10. 接入可用的实时适配器/模型后，补 `realtime.voice` 打开→发送→关闭的真实证据；当前只能记录能力原因。
 11. 让 D12 的 `ModalitySession` 适配器把 `modality.*` 控制连接调用接进来，再用本包 Go API 复跑 §6.6 的任务与分页，闭合“本包 API 真实可用”。
 12. 让 D12 的 `ProviderAdmin` 把 `provider.list`/`management`/`probe` 映射进来，写发送方按 op 映射 provider 写方法；再用本包 Go API 复跑 §6.7，闭合“本包 provider API 真实可用”。

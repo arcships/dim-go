@@ -535,10 +535,10 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 
 ### 6.3 真实 daemon 证据
 
-环境：macOS arm64；App Server 为仓库外构建的 `dim-app-server` 0.1.0-alpha.18（`/tmp/dim-2-target/debug/dim-app-server`），临时数据目录 + `--mock-model`，不触碰任何用户数据目录。
+环境：macOS arm64；App Server 为仓库外构建的 `dim-app-server` 0.1.0-alpha.18，临时数据目录 + `--mock-model`，不触碰任何用户数据目录。
 
 ```bash
-DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+DIM_APP_SERVER_BIN=<App Server 可执行文件> \
   go test -run TestRealDaemonLiveAndHistoryAgree -v -count=1 ./internal/projection/
 ```
 
@@ -546,10 +546,10 @@ DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
 
 ```text
 服务端 0.1.0-alpha.18（protocol 3，profile mock，owned=true）
-会话 1165b29c-5670-42c0-b91a-9aec9f70bfdd
+会话 <session-id>
 首屏: head=1 events=1 through=1 done=true
-提交成功: 输入事件 65d0cb98-...（序号 5）
-提交成功: 输入事件 bdf0e1f4-...（序号 18）
+提交成功: 输入事件 <input-id>（序号 5）
+提交成功: 输入事件 <input-id>（序号 18）
 实时折叠: 4 行（未落库 4），2 轮
 历史折叠: 4 行（23 条事实，through=27）
 向前翻页: 5 页，4 行，锚点 1，hasOlder=false
@@ -604,12 +604,12 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 
 ### 6.6 真实模型：三类未完成事项（2026-11-11）
 
-前提：真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具账号（真实 provider `deepseek-v4.1-flash`），
-夹具只复制不修改。会话用 `session.create` 建，**不传 `tools`**（传空数组等于一个工具都不挂），
+前提：真实 daemon 0.1.0-alpha.21 + 本机临时夹具账号（真实 provider `deepseek-v4.1-flash`），
+夹具只复制不修改、不入库。会话用 `session.create` 建，**不传 `tools`**（传空数组等于一个工具都不挂），
 `permissionPolicy.preset = "full-access"`（否则工具调用会停在审批上）。
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<夹具目录> \
   go test -run TestRealDaemonPendingInventories -v -count=1 ./internal/projection/
 ```
 
@@ -617,18 +617,18 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 ```text
 服务端 0.1.0-alpha.21（profile product）
-会话 63d8be39-ad87-48cb-b820-06e93cddc9b4
-后台任务开始: sequence=39 task=exec-ecefbc6c-...
-未结束任务: task=exec-ecefbc6c-... sequence=39 through=39
-后台任务结束: sequence=49 task=exec-ecefbc6c-...
-运行中提交排队输入: input=7e565b8b-...
-未处理输入: input=58af7af6-... sequence=51 mode=queue applied=false
-未处理输入: input=7e565b8b-... sequence=56 mode=queue applied=false
-排队输入被消费: sequence=88 input=7e565b8b-...
+会话 <session-id>
+后台任务开始: sequence=39 task=<task-id>
+未结束任务: task=<task-id> sequence=39 through=39
+后台任务结束: sequence=49 task=<task-id>
+运行中提交排队输入: input=<input-id>
+未处理输入: input=<input-id> sequence=51 mode=queue applied=false
+未处理输入: input=<input-id> sequence=56 mode=queue applied=false
+排队输入被消费: sequence=88 input=<input-id>
 提问工具调用: sequence=109
-待答提问: request=e924ae67-... call=call_00_wc46gafipzygpa5klq257qod sequence=109 through=109
-已应答提问: request=e924ae67-... call=call_00_wc46gafipzygpa5klq257qod
-提问被工具结果结算: sequence=110 call=call_00_wc46gafipzygpa5klq257qod
+待答提问: request=<request-id> call=<call-id> sequence=109 through=109
+已应答提问: request=<request-id> call=<call-id>
+提问被工具结果结算: sequence=110 call=<call-id>
 证据: events=[input/message input/applied turn/start input/consumed step/model-start
   step/thinking step/tool-use-start step/tool-use model/usage step/model-output-end
   step/tool-call exec/started step/tool-result step/text turn/end exec/ended
@@ -651,14 +651,14 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 3. 后台任务用 `exec` 的 `runInBackground: true` + `timeoutMs: -1`；排队输入在 `turn/start` 之后立刻以 `mode=queue` 提交；提问要求模型"先问再答"并给两个选项，应答用 `session.question.respond`。
 4. 三项判据都是"事件 + 清单"，不看模型文案：模型措辞、选哪个选项都不影响结论。
 
-数据纪律：夹具在 `/tmp`，只在复制出来的临时目录上跑，未写回来源；日志只含事件类型、标识、序号、状态，没有提示词、命令正文、模型输出与凭据；临时目录与自启服务端在用例结束时清掉（`stopped=true`，无残留进程）。
+数据纪律：夹具只在机器上的临时目录里，只在复制出来的副本上跑，未写回来源；日志只含事件类型、标识、序号、状态，没有提示词、命令正文、模型输出与凭据；临时目录与自启服务端在用例结束时清掉（`stopped=true`，无残留进程）。
 
 ### 6.7 真实模型：任务输出、任务停止、提示建议（2026-11-11）
 
-前提同 6.6（真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具复制）。提示建议默认关闭，用例只在**夹具副本**上把设置源 `prompt-suggestion` 打开（`settings.update`，revision 1 → 2），来源夹具不动。
+前提同 6.6（真实 daemon 0.1.0-alpha.21 + 临时夹具复制）。提示建议默认关闭，用例只在**夹具副本**上把设置源 `prompt-suggestion` 打开（`settings.update`，revision 1 → 2），来源夹具不动。
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<夹具目录> \
   go test -run TestRealDaemonExecOutputAndStop -v -count=1 ./internal/projection/
 ```
 
@@ -666,18 +666,18 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 ```text
 服务端 0.1.0-alpha.21（profile product）
-会话 4fc27074-...
-后台任务开始: sequence=39 task=exec-74561ab7-...
+会话 <session-id>
+后台任务开始: sequence=39 task=<task-id>
 运行中读输出: bytes=0 cursor=0 eof=false（任务仍在跑）
-任务输出: task=exec-74561ab7-... 分页=6 字节=30
-后台任务开始: sequence=76 task=exec-f5f353d7-...
-任务停止: task=exec-f5f353d7-... status=cancelled cancelled=true
+任务输出: task=<task-id> 分页=6 字节=30
+后台任务开始: sequence=76 task=<task-id>
+任务停止: task=<task-id> status=cancelled cancelled=true
 停止的结束事实: sequence=78 status=cancelled
 提示建议设置已在夹具副本上打开: revision=native:user/prompt-suggestion:2
-最近一轮已结束: turn=50c8592c-... sequence=86
-提示建议请求已受理: turn=50c8592c-...
-提示建议已到达并折叠: turn=50c8592c-... 文本长度=53
-提示建议已结算: turn=50c8592c-...
+最近一轮已结束: turn=<turn-id> sequence=86
+提示建议请求已受理: turn=<turn-id>
+提示建议已到达并折叠: turn=<turn-id> 文本长度=53
+提示建议已结算: turn=<turn-id>
 回收自启服务端: stopped=true
 ```
 
@@ -693,10 +693,10 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 ### 6.8 真实模型：用量、撤回、目标暂停/恢复（2026-11-11）
 
-前提同 6.6（真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具复制，full-access，不传 `tools`）。
+前提同 6.6（真实 daemon 0.1.0-alpha.21 + 临时夹具复制，full-access，不传 `tools`）。
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<夹具目录> \
   go test -run TestRealDaemonContextAndControls -v -count=1 ./internal/projection/
 ```
 
@@ -704,11 +704,11 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 ```text
 服务端 0.1.0-alpha.21（profile product）
-会话 bf1bd073-...
+会话 <session-id>
 用量: 请求=1 prompt=11325 completion=2 total=11327 缓存读=9600
 上下文占用: 这一轮没有 context/budget 事实（服务端未发布）
 压缩摘要: 这一轮没有触发压缩（compaction 由上下文策略决定，不可人为触发）
-撤回前: input=8f0914a0-... mode=queue applied=false
+撤回前: input=<input-id> mode=queue applied=false
 撤回回执: status=deleted（服务端方法 session.input.withdraw）
 撤回事实: type=input/withdraw sequence=43
 目标: 已设置，状态=active
@@ -785,7 +785,7 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 可复现命令：
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<夹具目录> \
   go test -run TestRealDaemonContextAndCompaction -v -count=1 ./internal/projection/
 ```
 
@@ -798,28 +798,28 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 ### 6.10 真实模型：分支、插话、审批重放与 @ 搜索（2026-11-11）
 
-前提同 6.6（真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具复制）。两段证据各一条命令：
+前提同 6.6（真实 daemon 0.1.0-alpha.21 + 临时夹具复制）。两段证据各一条命令：
 
 ```bash
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<夹具目录> \
   go test -run TestRealDaemonBranchIsolation -v -count=1 ./internal/projection/
-DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+DIM_REAL_MODEL_FIXTURE=<夹具目录> \
   go test -run TestRealDaemonApprovalReplayAndFileSearch -v -count=1 ./internal/projection/
 ```
 
 **分支隔离与分支内未完成事项（26 秒）**
 
 ```text
-主线一轮结束: turn=2931b3b2-... sequence=36
+主线一轮结束: turn=<turn-id> sequence=36
 主线行: 2
-分支已创建: branch=fed1e828-... 切点=36
-分支首轮结束: turn=b0145747-... sequence=33
+分支已创建: branch=<branch-id> 切点=36
+分支首轮结束: turn=<turn-id> sequence=33
 分支建好: 行=6
-分支第二轮结束: turn=035f3594-... sequence=45
+分支第二轮结束: turn=<turn-id> sequence=45
 主线行未变: 2 行
-插话: input=ca64bfa4-... sequence=54 清单模式=steer 已应用(seq=55)
-插话折叠: 行=ca64bfa4-... 轮=3
-分支停止: turn=174f40c3-... outcome=cancelled sequence=87
+插话: input=<input-id> sequence=54 清单模式=steer 已应用(seq=55)
+插话折叠: 行=<row-id> 轮=3
+分支停止: turn=<turn-id> outcome=cancelled sequence=87
 分支停止后主线行未变: 2 行
 分支未完成事项: 分支=1 主线=0（through=104）
 分支任务停止: status=cancelled
@@ -839,21 +839,21 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 **审批重放与 @ 搜索（5 秒）**
 
 ```text
-@ 搜索: 服务端 5 条，本机扫描 5 条
-@ 搜索候选: [d2probe-dir d2probe-dir/extra.go d2probe-dir/readme.txt d2probe-main.go d2probe-notes.md]
-审批请求: request=284bf95a-...（第一次）
+@ 搜索: 服务端 5 条，本机扫描 5 条（工作区放了 5 个探针文件与 1 个隐藏文件）
+@ 搜索候选: [<dir> <dir>/extra.go <dir>/readme.txt <name>.go <name>.md]
+审批请求: request=<request-id>（第一次）
 提问集合: 重放前 0 批
-审批请求: request=284bf95a-...（重放）
+审批请求: request=<request-id>（重放）
 提问集合: 重放后 0 批（重放只涉及审批）
-审批回应: request=284bf95a-... decision=deny
+审批回应: request=<request-id> decision=deny
 回收自启服务端: stopped=true
 ```
 
 | 项 | 事实 | 结论 |
 |---|---|---|
-| 审批重放 | 默认权限策略下模型调 `exec` → 收到 `approval.request`（request 284bf95a-…）；用第二个 `Manager.Acquire` 重新 attach，服务端**再次交付同一个 requestId** | 重放发的是同一批待决请求，客户端应整体替换而不是累加（**集合语义归 D5**，本包只观察） |
+| 审批重放 | 默认权限策略下模型调 `exec` → 收到 `approval.request`（request <request-id>）；用第二个 `Manager.Acquire` 重新 attach，服务端**再次交付同一个 requestId** | 重放发的是同一批待决请求，客户端应整体替换而不是累加（**集合语义归 D5**，本包只观察） |
 | 提问集合不受影响 | `session.question.pending` 与 `View.Pending.Questions` 在重放前后都是 0 | 审批重放不动提问清单 |
-| @ 搜索 | `session.methods` 里有 `session.files.search`；`{query:"d2probe"}` 返回 5 条候选，与本机扫描（隐藏文件与隐藏目录排除）逐条一致 | 口径一致；方法缺失时按能力缺失、零请求（**搜索归 D7**，这里是方法探测与口径对照） |
+| @ 搜索 | `session.methods` 里有 `session.files.search`；查询词返回 5 条候选，与本机扫描（隐藏文件与隐藏目录排除）逐条一致 | 口径一致；方法缺失时按能力缺失、零请求（**搜索归 D7**，这里是方法探测与口径对照） |
 
 两项边界说明：
 

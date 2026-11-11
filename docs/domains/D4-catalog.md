@@ -25,7 +25,7 @@ Owner: D4 目录领域
 | 控制连接与错误分类 | `docs/domains/D1-connection.md` | 目录读取与写意图由集成层经控制连接发送；能力缺失按非可重试失败上报 |
 | 行、轮次与分页、分支事实 | `docs/domains/D2-projection.md` | 导出按轮读取；分支目录与切点沿用投影已有的推导结果；本包只保存、合并与校验，不另建折叠 |
 | 写登记意图接口 | `docs/domains/D3-write.md` | 新建、改名、删除、分支创建与结束都登记为 `KindSessionLifecycle` 写意图；一次发送、不自行重试、结果由写登记收敛 |
-| 假服务端与 D1 客户端 | `internal/fakeappserver`、`internal/appserver/protocol` | 本机 Unix socket 上真实 NDJSON 的目录读取、新建、改名、删除证据 |
+| 假服务端与 D1 客户端 | `internal/fakeappserver`、`internal/appserver/protocol` | 本地 Unix socket 上真实 NDJSON 的目录读取、新建、改名、删除证据 |
 
 **产物**
 
@@ -53,7 +53,7 @@ Owner: D4 目录领域
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/catalog/`；本版全部通过（2026-11-11，macOS arm64）。
 - 本领域测试：63 个顶层测试（另含 11 个子测试）全部通过；覆盖见 §6.2。
 - 证据档位：
-  - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖过滤参数透传、新建、提交到新建标识、改名、删除、分支创建与结束、会话分叉、能力缺失。
+  - `fakeappserver`：本地 Unix socket 上真实 NDJSON，覆盖过滤参数透传、新建、提交到新建标识、改名、删除、分支创建与结束、会话分叉、能力缺失。
   - 注入替身：`Reader`、`write.Sender`、`HistorySource`、`SubscriptionReleaser`、`BranchSource`、`EntryReader` 为测试替身，覆盖分页、标题合并、删除被拒与结果未定、导出失败路径、分支切点与状态收敛、分叉读回与待补齐。
   - 真实 App Server：alpha.21 上目录读取、新建、改名与标题通知、非法标题拒绝、会话分叉、删除已跑通；alpha.18 上用 mock 模型跑通两轮对话后的导出、分支创建/结束与分叉（6.3）。旧版本（alpha.7 / alpha.18）的缺能力路径仍按 blocked 记录（6.5）。
 
@@ -155,7 +155,7 @@ catalog, err := catalog.New(catalog.Config{
 })
 
 // 目录读取
-result, err := catalog.Refresh(ctx, catalog.Query{Search: "构建", Workspace: "/repo", Limit: 20})
+result, err := catalog.Refresh(ctx, catalog.Query{Search: "构建", Workspace: "<workspace>", Limit: 20})
 result, err = catalog.LoadMore(ctx)             // 用服务端给的游标推进一页
 snapshot := catalog.Snapshot()                  // 可见条目 + 隐藏计数 + HasMore + 过滤
 entry, ok := catalog.Entry(sessionID)
@@ -165,7 +165,7 @@ hidden := catalog.HiddenEntries()
 applied := catalog.ApplyTitle(catalog.TitleUpdate{SessionID: id, Title: "自动标题", Source: catalog.TitleSourceAuto, Revision: 3})
 
 // 目录变更（都经写登记）
-entry, err = catalog.Create(ctx, catalog.CreateRequest{Cwd: "/repo"})
+entry, err = catalog.Create(ctx, catalog.CreateRequest{Cwd: "<workspace>"})
 entry, err = catalog.Rename(ctx, catalog.RenameRequest{SessionID: id, Title: "新名字"})
 err = catalog.Delete(ctx, catalog.DeleteRequest{SessionID: id})
 
@@ -174,7 +174,7 @@ err = catalog.Hide(id)
 err = catalog.Unhide(id)
 
 // 导出
-result, err = catalog.Export(ctx, catalog.ExportRequest{SessionID: id, Path: "/tmp/session.json"})
+result, err = catalog.Export(ctx, catalog.ExportRequest{SessionID: id, Path: "<export-path>"})
 
 // 分支目录与生命周期
 directory, err := catalog.RefreshBranches(ctx, sessionID) // 从 D2 读目录，整次替换该会话
@@ -392,7 +392,7 @@ go vet ./...
 go test -race ./internal/catalog/
 ```
 
-本版结果（2026-11-11，本机 macOS arm64）：
+本版结果（2026-11-11，macOS arm64）：
 
 - `go test ./...`：全部通过（含 `internal/catalog`）。
 - `go vet ./...`：无输出。
@@ -465,16 +465,16 @@ go test -race ./internal/catalog/
 
 ### 6.3 真实 daemon 证据
 
-夹具纪律：数据目录、离线模型配置与导出文件只放 `/tmp`；`~/.dimcode-alpha`、`/tmp/dim-2-target` 与仓库外源码只读，产品代码不读取它们。
+夹具纪律：数据目录、模型配置与导出文件只放执行者提供的临时目录；服务端二进制、模型配置来源与仓库外源码只读，产品代码不读取它们。命令示例中的路径一律用占位符。
 
 **目录、改名与标题通知（alpha.21）**
 
 ```bash
-# 离线模型配置复制到 /tmp，来源目录不动
-cp ~/Code/dim-2/crates/dim-agent-aimux/examples/offline.json /tmp/d4-offline.json
-DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+# 离线模型配置复制到临时目录，来源目录不动
+cp <offline-model-config-source> <offline-model-config>
+DIM_APP_SERVER_BIN=<app-server-bin> \
 DIM_APP_SERVER_ARGS=app-server \
-DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \
+DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
   go test -run TestRealDaemonCatalogLifecycle -v -count=1 ./internal/catalog/
 ```
 
@@ -482,8 +482,8 @@ DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \
 
 ```text
 服务端 0.1.0-alpha.21（protocol 3，profile configured，owned=true）
-新建会话 eec1c218-319b-49ab-b1c4-1c2e0ea097b2
-重读条目：title=""，titleRevision=0，workspace="/private/tmp/d4cat-1252184959/workspace"
+新建会话 <session-id>
+重读条目：title=""，titleRevision=0，workspace="<workspace>"
 改名后重读：title="目录证据标题"，titleRevision=1，titleSource="manual"
 标题通知：title="目录证据标题"，revision=1，source="manual"，本地一致
 非法标题被拒：目录改名被拒绝（failed）：发送明确失败: rpc error -32602 (invalid_params): Invalid title or control character
@@ -501,9 +501,9 @@ PASS
 **会话分叉（alpha.21）**
 
 ```bash
-DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_BIN=<app-server-bin> \
 DIM_APP_SERVER_ARGS=app-server \
-DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \
+DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
   go test -run TestRealDaemonFork -v -count=1 ./internal/catalog/
 ```
 
@@ -511,8 +511,8 @@ DIM_APP_SERVER_MODEL_CONFIG=/tmp/d4-offline.json \
 
 ```text
 服务端 0.1.0-alpha.21（protocol 3，profile configured，owned=true）
-投影切点：第 1 轮结束于序号 34（turn c35546d1-82e4-4b80-a2cf-4926f09cfc36）
-分叉会话：id=635b671f-03ae-4fd9-a36c-144570dae800 title="" titleSource="" titleRevision=0 workspace="/private/tmp/d4fork-3165829832/workspace" incomplete=false
+投影切点：第 1 轮结束于序号 34（turn <turn-id>）
+分叉会话：id=<session-id> title="" titleSource="" titleRevision=0 workspace="<workspace>" incomplete=false
 回收自启服务端: stopped=true
 PASS
 ```
@@ -523,10 +523,10 @@ PASS
 
 导出与分支证据需要真实模型回话，仍用 alpha.18 的 `--mock-model`；alpha.21 的离线 provider 只用于目录与改名证据。
 
-环境：服务端为仓库外二进制 `/tmp/dim-2-target/debug/dim-app-server` 0.1.0-alpha.18；临时数据目录 + `--mock-model`。
+环境：服务端为仓库外二进制（由 `DIM_APP_SERVER_BIN` 指定）0.1.0-alpha.18；临时数据目录 + `--mock-model`。
 
 ```bash
-DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+DIM_APP_SERVER_BIN=<app-server-bin> \
   go test -run TestRealDaemonCatalogLifecycle -v -count=1 ./internal/catalog/
 ```
 
@@ -534,8 +534,8 @@ DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
 
 ```text
 服务端 0.1.0-alpha.18（protocol 3，profile mock，owned=true）
-新建会话 98ed18bd-8bf2-4631-b8b0-e8f91e2a5e5f
-重读条目：title=""，titleRevision=0，workspace="/private/tmp/d4cat-812619777/workspace"
+新建会话 <session-id>
+重读条目：title=""，titleRevision=0，workspace="<workspace>"
 改名 blocked：服务端未提供该方法（目录改名被拒绝（failed）：发送明确失败: rpc error -32601 (unknown_method): Unknown method）
 回收自启服务端: stopped=true
 PASS
@@ -553,7 +553,7 @@ PASS
 **导出证据（alpha.18）**：两轮真实对话后，用会话投影的按轮来源导出。
 
 ```bash
-DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+DIM_APP_SERVER_BIN=<app-server-bin> \
   go test -run TestRealDaemonExportTurns -v -count=1 ./internal/catalog/
 ```
 
@@ -571,15 +571,15 @@ PASS
 **分支证据（alpha.18）**：读取目录、从切点创建分支、结束后重读。
 
 ```bash
-DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+DIM_APP_SERVER_BIN=<app-server-bin> \
   go test -run TestRealDaemonBranchLifecycle -v -count=1 ./internal/catalog/
 ```
 
 ```text
 服务端 0.1.0-alpha.18（protocol 3，profile mock，owned=true）
-投影切点：第 1 轮结束于序号 17（turn 4d4818f1-5286-4b70-b0ff-bc7977ebf60d）
+投影切点：第 1 轮结束于序号 17（turn <turn-id>）
 初始目录: [{ID:main ParentID: CutSequence:0 Status:open Head:17}]
-新分支: {ID:4c4f18b5-e0b8-4759-958b-77d1eda23587 ParentID:main CutSequence:18 Status:open Head:0}
+新分支: {ID:<branch-id> ParentID:main CutSequence:18 Status:open Head:0}
 分支收敛：state=ended head=9
 回收自启服务端: stopped=true
 PASS
@@ -587,10 +587,10 @@ PASS
 
 这条证据验证了：先跑一轮真实对话，`projection.Folder.CutPoint` 给出该轮结束事实的序号 17；`session.branches` 的真实目录被读入（主线 open、头部 17）；`session.branch_create` 经写登记只发一次，服务端把切点提交为 `branchPoint=18`，本地只追加新分支、主线条目不变；`session.branch_end` 后重读目录收敛为 `ended`，连续两次读取头部都是 9（已结束分支的固定头）。
 
-旧版服务端（`dimcode-server` 0.1.0-alpha.7，`app-server` 子命令）上同一用例的行为：
+旧版服务端（0.1.0-alpha.7，需 `app-server` 子命令）上同一用例的行为：
 
 ```bash
-DIM_APP_SERVER_BIN=$HOME/.dimcode/rust/dimcode-server DIM_APP_SERVER_ARGS=app-server \
+DIM_APP_SERVER_BIN=<app-server-bin> DIM_APP_SERVER_ARGS=app-server \
   go test -run TestRealDaemonCatalogLifecycle -v -count=1 ./internal/catalog/
 ```
 

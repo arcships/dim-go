@@ -52,7 +52,7 @@ defer server.Close()
 supervisor, err := daemon.New(daemon.Config{DataDir: server.DataDir()})
 ```
 
-`Start` 在 `/tmp` 下建临时数据目录并监听 `<dataDir>/rust/daemon.sock`，与真实客户端解析出的端点规则一致；`Close` 删除目录与 socket。需要自己管理目录时用 `StartIn(dataDir, script)`，`Close` 只删 socket 不删目录。
+`Start` 在 `<临时目录>` 下建数据目录并监听 `<dataDir>/rust/daemon.sock`，与真实客户端解析出的端点规则一致；`Close` 删除目录与 socket。需要自己管理目录时用 `StartIn(dataDir, script)`，`Close` 只删 socket 不删目录。
 
 ## 2. 脚本指令
 
@@ -193,13 +193,9 @@ go test -race ./internal/fakeappserver/...
 
 本版结果（macOS arm64，Go 1.24）：
 
-- `go test ./internal/fakeappserver/...` 为 `ok`；
-- `go vet ./internal/fakeappserver/...` 无输出；
-- `go test -race -count=5 ./internal/fakeappserver/...` 为 `ok`，无数据竞争；
-- `go test ./internal/appserver/... ./internal/attachments/... ./internal/workspace/...` 全部 `ok`；
-- 全量 `go test ./...` 在本次复跑时被 `internal/projection`（D2 正在并行开发）的编译错误挡住，失败点不在 V 目录；D2 完成后由组织侧复跑全量。`go vet ./...` 同一原因未全量通过，V 包单独 `go vet` 通过。
-
-V 包不修改其他领域目录，也不为让全量通过而改动 `internal/projection`。
+- `go test ./...` 全部 `ok`，其中 `internal/fakeappserver` 为 `ok`；
+- `go vet ./...` 无输出；
+- `go test -race -count=5 ./internal/fakeappserver/...` 为 `ok`，无数据竞争。
 
 本领域测试逐条：
 
@@ -256,7 +252,7 @@ V 包不修改其他领域目录，也不为让全量通过而改动 `internal/p
 ## 6. 已知限制
 
 1. 只支持 Unix socket；Windows 命名管道未实现，`Start`/`StartIn` 在 Windows 上返回明确错误。
-2. `Start` 用 `/tmp` 建临时目录以避开 socket 路径上限；`StartIn` 的完整路径超过 100 字节时直接报错。macOS 的 `/tmp` 会解析为 `/private/tmp`，因此实际路径还要再留余量。
+2. `Start` 用 `<临时目录>` 建数据目录以避开 socket 路径上限；`StartIn` 的完整路径超过 100 字节时直接报错。部分平台上 `<临时目录>` 会解析为更长的真实路径，因此实际路径还要再留余量。
 3. 会话目录、提交、停止等方法的回执形状未在 `protocol` 冻结，由调用方用 `Replies` 提供任意 JSON；假服务端不校验形状，也不保证与真实服务端一致。
 4. 历史只实现向前游标（`after`/`through`/`limit`/`latestTurn`）；`before` 返回参数错误。向后翻页等 D2 冻结语义后再补。
 5. `latestTurn` 的轮次边界由样例元数据 `latestTurnStart` 给出，不解析事件类型；事件词表变化时需要同步样例与实现。

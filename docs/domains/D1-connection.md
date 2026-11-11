@@ -16,7 +16,7 @@ Owner: D1 领域 agent
 | 连接与会话流生命周期 | `dim-electron` 的 `app-server/{supervisor,transport,session-reader,daemon-link}.ts`，`docs/architecture/app-server.md` | 端点、自启参数、hello 校验、attach/detach、按序号重读 |
 | 错误语义 | 产品基线 `app-server/error-mapping.ts` | 映射为连接领域的五种分类，供上层失败关闭 |
 | 状态机 | `docs/domains/A.md` 的「连接」「启动与退出」、多窗口共用一条订阅 | 连接状态与订阅生命周期按此实现 |
-| 本地证据 | 本机 `~/.dimcode/rust/dimcode-server`（`dimcode app-server` 子命令，0.1.0-alpha.7）与仓库外二进制 `/tmp/dim-2-target/debug/dim-app-server`（0.1.0-alpha.18） | 临时数据目录 + mock 模型跑真实握手、打开会话与回收，覆盖新旧能力分支 |
+| 本地证据 | 本机服务端二进制（`app-server` 子命令，0.1.0-alpha.7）与另一份本机服务端二进制（0.1.0-alpha.18） | 临时数据目录 + mock 模型跑真实握手、打开会话与回收，覆盖新旧能力分支 |
 
 ## 2. 产物
 
@@ -97,7 +97,7 @@ Owner: D1 领域 agent
 
 ### 3.7 v3 wire 形状（第二轮补齐）
 
-方法名与字段以真实服务端为准：本机 `/tmp/dim-2-target/debug/dim-app-server`（0.1.0-alpha.18）与其同版本源码 `dim-2` 的 `crates/dim-app-server/src/{protocol,tree_protocol,storage/metadata}.rs`、`crates/dim-agent-{questions,attachments}`、`crates/dim-agent-capabilities/src/{input_queue,workspace_tools}/pending.rs`。能触发的形状用真实 daemon 跑过（见 6.4），不能触发的在 6.6 标 blocked。
+方法名与字段以真实服务端为准：本机服务端二进制（0.1.0-alpha.18）与其同版本服务端源码的 `crates/dim-app-server/src/{protocol,tree_protocol,storage/metadata}.rs`、`crates/dim-agent-{questions,attachments}`、`crates/dim-agent-capabilities/src/{input_queue,workspace_tools}/pending.rs`。能触发的形状用真实 daemon 跑过（见 6.4），不能触发的在 6.6 标 blocked。
 
 **审批通知**（`approval.request` / `approval.cancelled` / `approval.resolved`）
 
@@ -138,7 +138,7 @@ Owner: D1 领域 agent
 
 ### 3.8 管理面方法（alpha.21 实测 + 同版本/上游源码核对）
 
-本机真实服务端为 `~/.dimcode-alpha/rust/dimcode-server`（0.1.0-alpha.21）。能调用的方法都实际调过（临时数据目录 + 复制到 `/tmp` 的离线模型配置），失败或不存在的方法记录原始错误。
+本机真实服务端二进制（0.1.0-alpha.21）。能调用的方法都实际调过（临时数据目录 + 复制到临时目录的离线模型配置），失败或不存在的方法记录原始错误。
 
 **存在的方法（按家族）**
 
@@ -286,19 +286,19 @@ go vet ./...
 
 环境：macOS arm64；均为临时数据目录 + `--mock-model`；服务端路径都在本仓库之外。
 
-**证据 A：旧版服务端（`dimcode app-server`，0.1.0-alpha.7）。**
+**证据 A：旧版服务端（`app-server` 子命令，0.1.0-alpha.7）。**
 
 ```bash
-D=$(mktemp -d /tmp/d1-check-XXXXXX)
+D=$(mktemp -d)
 go run ./cmd/dimagent-conncheck -data-dir "$D" \
-  -server "$HOME/.dimcode/rust/dimcode-server" -server-arg app-server -mock
+  -server <server-binary> -server-arg app-server -mock
 ```
 
 观察到的输出（节选；`<data>` 为临时目录）：
 
 ```json
-{"event":"hello","endpoint":"unix:/private<data>/rust/daemon.sock","instanceId":"9be62dd2-...","serverVersion":"0.1.0-alpha.7","protocolVersion":3,"profile":"mock","owned":true,"features":["session.summaries","daemon.shutdown.completed","session.history","session.input_lookup","session.create","session.delete","session.model.progress","session.methods","session.fork","web.open","ui.leaf"]}
-{"event":"session.created","sessionId":"016d03d5-...","cwd":"<data>/workspace"}
+{"event":"hello","endpoint":"unix:<home>/rust/daemon.sock","instanceId":"<instance-id>","serverVersion":"0.1.0-alpha.7","protocolVersion":3,"profile":"mock","owned":true,"features":["session.summaries","daemon.shutdown.completed","session.history","session.input_lookup","session.create","session.delete","session.model.progress","session.methods","session.fork","web.open","ui.leaf"]}
+{"event":"session.created","sessionId":"<session-id>","cwd":"<data>/workspace"}
 {"event":"session.opened","head":1,"historyEvents":1,"historyThrough":1,"historyDone":true}
 {"event":"notification","method":"session.state"}
 {"event":"notification","method":"session.model.progress"}
@@ -311,16 +311,16 @@ go run ./cmd/dimagent-conncheck -data-dir "$D" \
 **证据 B：较新服务端（仓库外构建的独立二进制，0.1.0-alpha.18）。**
 
 ```bash
-D=$(mktemp -d /tmp/d1-new-XXXXXX)
+D=$(mktemp -d)
 go run ./cmd/dimagent-conncheck -data-dir "$D" \
-  -server /tmp/dim-2-target/debug/dim-app-server -mock
+  -server <server-binary> -mock
 ```
 
 观察到的输出（节选）：
 
 ```json
-{"event":"hello","instanceId":"2c2a42a2-...","serverVersion":"0.1.0-alpha.18","protocolVersion":3,"profile":"mock","owned":true,"features":["session.summaries","daemon.shutdown.completed","daemon.shutdown.ifIdle","session.catalog",...,"session.history.latestTurn",...]}
-{"event":"session.created","sessionId":"155bbe47-..."}
+{"event":"hello","instanceId":"<instance-id>","serverVersion":"0.1.0-alpha.18","protocolVersion":3,"profile":"mock","owned":true,"features":["session.summaries","daemon.shutdown.completed","daemon.shutdown.ifIdle","session.catalog",...,"session.history.latestTurn",...]}
+{"event":"session.created","sessionId":"<session-id>"}
 {"event":"session.opened","head":1,"historyEvents":1,"historyThrough":1,"historyDone":true}
 {"event":"notification","method":"session.state"}
 {"event":"notification","method":"session.model.progress"}
@@ -337,7 +337,7 @@ go run ./cmd/dimagent-conncheck -data-dir "$D" \
 {"event":"shutdown","stopped":false,"reason":"not_owned"}
 ```
 
-结论：非自己拉起的实例不被回收；两次测试结束后，两份临时目录与自启进程都已确认不存在（`ps` 按临时路径过滤为空），未触碰用户 `~/.dimcode` 下的服务与文件。
+结论：非自己拉起的实例不被回收；两次测试结束后，两份临时目录与自启进程都已确认不存在（`ps` 按临时路径过滤为空），未触碰用户产品 home 下的服务与文件。
 
 失败即报：`dimagent-conncheck` 在任一步返回错误时以非零码退出。
 
@@ -347,15 +347,15 @@ go run ./cmd/dimagent-conncheck -data-dir "$D" \
 
 ```bash
 # mock profile
-D=$(mktemp -d /tmp/d1-wire-mock-XXXXXX)
+D=$(mktemp -d)
 go run ./cmd/dimagent-conncheck -data-dir "$D" \
-  -server /tmp/dim-2-target/debug/dim-app-server -mock -probe -notice-seconds 0
+  -server <server-binary> -mock -probe -notice-seconds 0
 
 # configured profile（离线模型配置，只用来建会话，不调用模型）
-D=$(mktemp -d /tmp/d1-wire-conf-XXXXXX)
+D=$(mktemp -d)
 go run ./cmd/dimagent-conncheck -data-dir "$D" \
-  -server /tmp/dim-2-target/debug/dim-app-server \
-  -model-config ~/Code/dim-2/crates/dim-agent-aimux/examples/offline.json \
+  -server <server-binary> \
+  -model-config <offline-model-config> \
   -probe -notice-seconds 0
 ```
 
@@ -365,7 +365,7 @@ mock profile 输出（节选）：
 {"event":"probe.methods","methods":["session.agent.get",...,"session.collaboration.pending","session.input.pending",...]}
 {"event":"probe.input_lookup.unknown","status":"unknown"}
 {"event":"probe.input_lookup.accepted","eventId":"4868e486-...","sequence":5,"status":"accepted"}
-{"event":"probe.input.pending","inputs":[{"inputId":"4868e486-...","sequence":5,"mode":"queue","user":{"content":[{"type":"text","text":"conncheck lookup probe"}]},"applied":false}],"next":null,"through":5}
+{"event":"probe.input.pending","inputs":[{"inputId":"<input-id>","sequence":5,"mode":"queue","user":{"content":[{"type":"text","text":"conncheck lookup probe"}]},"applied":false}],"next":null,"through":5}
 {"event":"probe.exec.pending","error":"session.exec.pending: non_retryable: rpc error -32601 (unknown_method): Unknown method"}
 {"event":"probe.question.pending","error":"session.question.pending: non_retryable: rpc error -32601 (unknown_method): Unknown method"}
 {"event":"probe.collaboration.pending","next":null,"requests":[],"through":6}
@@ -378,11 +378,11 @@ configured profile 输出（节选）：
 {"event":"probe.methods","methods":["attachment.put",...,"session.exec.pending",...,"session.question.pending","session.question.respond",...]}
 {"event":"probe.input_lookup.unknown","status":"unknown"}
 {"event":"probe.input_lookup.accepted","eventId":"e443ca33-...","sequence":18,"status":"accepted"}
-{"event":"probe.input.pending","inputs":[...,{"inputId":"e443ca33-...","sequence":18,"mode":"queue","user":{"content":[{"type":"text","text":"conncheck lookup probe"}]},"applied":false}],"next":null,"through":18}
+{"event":"probe.input.pending","inputs":[...,{"inputId":"<input-id>","sequence":18,"mode":"queue","user":{"content":[{"type":"text","text":"conncheck lookup probe"}]},"applied":false}],"next":null,"through":18}
 {"event":"probe.exec.pending","next":null,"tasks":[],"through":19}
 {"event":"probe.question.pending","next":null,"batches":[],"through":19}
 {"event":"probe.collaboration.pending","next":null,"requests":[],"through":20}
-{"event":"probe.attachment.put","attachmentId":"2fa21d1b-...","bytes":15,"path":"/private<data>/rust/dimcode.sqlite.session-files/2fa21d1b-.../conncheck.txt"}
+{"event":"probe.attachment.put","attachmentId":"<attachment-id>","bytes":15,"path":"<server-side-path>"}
 ```
 
 证据分级：
@@ -395,15 +395,15 @@ configured profile 输出（节选）：
 
 ### 6.5 管理面与权限证据（alpha.21）
 
-数据源纪律：`~/Code/dim`、`../dim-electron`、`~/.dimcode-alpha` 只读；模型配置文件复制到 `/tmp` 后交给服务端；所有会话与配置落在临时数据目录。
+数据源纪律：服务端源码、客户端产品基线源码与本机安装目录只读；模型配置文件复制到临时目录后交给服务端；所有会话与配置落在临时数据目录。
 
 ```bash
-# 临时 home + 复制到 /tmp 的离线模型配置；服务端从只读安装目录启动
-D=$(mktemp -d /tmp/d1-mgmt-XXXXXX)
-cp ~/Code/dim/crates/dim-agent-aimux/examples/offline.json /tmp/d1-offline.json
+# 临时 home + 复制到临时目录的离线模型配置；服务端从只读安装目录启动
+D=$(mktemp -d)
+cp <offline-model-config> <temp-model-config>
 go run ./cmd/dimagent-conncheck -data-dir "$D" \
-  -server ~/.dimcode-alpha/rust/dimcode-server -server-arg app-server \
-  -model-config /tmp/d1-offline.json -mgmt -notice-seconds 1
+  -server <server-binary> -server-arg app-server \
+  -model-config <temp-model-config> -mgmt -notice-seconds 1
 ```
 
 探测结果（节选；完整输出已纳入本轮结果包报告）：
@@ -426,12 +426,12 @@ mgmt.session.permission.update {"version":18,"policy":{"preset":"read-only","all
 notice.permission.changed  preset=read-only        # session.event permission/changed，无 permission.changed 通知
 mgmt.session.rename        {"title":"conncheck probe","titleSource":"manual","revision":1}
 notice.title               title=conncheck probe titleRevision=1 titleSource=manual
-mgmt.shell.run             {"runId":"...","status":"completed","output":"conncheck\n","truncated":false,"durationMs":24,"exitCode":0}
+mgmt.shell.run             {"runId":"<run-id>","status":"completed","output":"conncheck\n","truncated":false,"durationMs":24,"exitCode":0}
 mgmt.shell.list            {"runs":[]}
 mgmt.shell.stop            {"stopped":false}
-mgmt.session.wakeup.create {"wakeupId":"..."}
+mgmt.session.wakeup.create {"wakeupId":"<wakeup-id>"}
 notice.wakeup              state=scheduled / cancelled
-mgmt.session.wakeup.list   {"wakeups":[{"wakeupId":"...","at":"...","prompt":"conncheck wakeup","state":"scheduled"}]}
+mgmt.session.wakeup.list   {"wakeups":[{"wakeupId":"<wakeup-id>","at":"<instant>","prompt":"conncheck wakeup","state":"scheduled"}]}
 mgmt.session.wakeup.cancel {}
 ```
 
@@ -478,7 +478,7 @@ mgmt.session.wakeup.cancel {}
 14. `session.input_lookup` 的 `branchId` 在 v3 必填，`submissionId` 必须是 UUID；写登记应保留这两个约束。
 15. `attachment.put`、`session.exec.pending`、`session.question.pending` 等是贡献方法：mock profile 不存在（返回 `unknown_method`），必须先用 `session.methods` 判定能力。附件回执里的 `path` 是服务端路径，本领域不读取它。
 16. `CollaborationTarget` 的 `profile` 按不透明 JSON 保留；当前服务端只有 `agent`/`member`/`temporary` 三种 kind，其它 kind 会在解析时按未知目标拒绝。
-17. 本机没有 alpha.21 的 Rust 源码（`~/Code/dim` 是 alpha.8，`dim-2` 是 alpha.18）；管理面的存在性与字段以 alpha.21 实测为准，方法注册依据取 alpha.8 源码并标注版本差异。alpha.21 在 `schedule.list` 的 job 上多出 `next_window`/`last_run`，按未知字段容忍。
+17. 本机没有 alpha.21 的 Rust 源码（本机源码是 alpha.8，另一份同版本源码是 alpha.18）；管理面的存在性与字段以 alpha.21 实测为准，方法注册依据取 alpha.8 源码并标注版本差异。alpha.21 在 `schedule.list` 的 job 上多出 `next_window`/`last_run`，按未知字段容忍。
 18. 管理面只冻结了本轮能核对的部分：`plugin.install/update`、`skills.install/preview/update`、`mcp.save/remove/move/set_enabled/import.apply`、`schedule.run_now` 的**回执**未探测成功形态，只冻结了参数；结果按 `json.RawMessage` 或调用方原样处理，不写猜的字段。
 19. `runtime.*` 在 alpha.8 源码里注册（`runtime_manager.rs`），alpha.21 已不注册；`workflow.*` 在 alpha.8 与 alpha.21 都没有注册。两者都按能力缺失处理，不能按 Electron 的类型清单实现。
 20. 管理方法走控制连接（`daemon.Connection.Client`）；`session.rename`、`shell.*`、`session.wakeup.*`、`attachment.put` 走会话流（`Subscription.Call` 与对应封装）。两者不要混用连接。
@@ -502,7 +502,7 @@ mgmt.session.wakeup.cancel {}
 
 ## 10. 四项卡点调查
 
-调查时间：2026-11-11。数据源均为只读：`~/Code/dim`（alpha.8 源码）、`~/Code/dim-2`（alpha.18 源码/插件）、`~/.dimcode-alpha`（0.1.0-alpha.21 安装）；脚手架与插件副本只放 `/tmp`。
+调查时间：2026-11-11。数据源均为只读：服务端源码（alpha.8）、同版本源码/插件（alpha.18）、本机安装目录（0.1.0-alpha.21）；脚手架与插件副本只放临时目录。
 
 ### 10.1 `runtime.*`：不是移除，而是只在带默认预设时注册
 
@@ -510,9 +510,9 @@ mgmt.session.wakeup.cancel {}
 
 **依据**：
 
-- 源码：`~/Code/dim/crates/dim-app-server/src/lib.rs` 中 RuntimeManager 只在 `session_typescript.acquire` 为 `Some` 时注册；`session_typescript::SessionTypeScriptConfig::acquired` 只在 `cli.rs` 的 `--defaults` 分支调用（`acquire: Some`），`--session-rows` 分支是 `acquire: None`。
+- 源码：服务端源码的 `crates/dim-app-server/src/lib.rs` 中 RuntimeManager 只在 `session_typescript.acquire` 为 `Some` 时注册；`session_typescript::SessionTypeScriptConfig::acquired` 只在 `cli.rs` 的 `--defaults` 分支调用（`acquire: Some`），`--session-rows` 分支是 `acquire: None`。
 - alpha.21 实测（无 `--defaults`）：`runtime.list`、`workflow.list` 均为 `unknown_method`。
-- alpha.21 实测（`--defaults` + 只含 `runtimes` 的 `/tmp` 预设）：`hello.features` 出现 `runtime.list/runtime.install/runtime.configure/runtime.watch`；`plugin.list` 有 `RuntimeManager use=builtin status=running`；`runtime.list` 返回 `[{"name":"node","source":"download","auto":false,"version":"24.21.0","status":"off"},{"name":"python",...},{"name":"uv",...}]`。
+- alpha.21 实测（`--defaults` + 只含 `runtimes` 的临时预设）：`hello.features` 出现 `runtime.list/runtime.install/runtime.configure/runtime.watch`；`plugin.list` 有 `RuntimeManager use=builtin status=running`；`runtime.list` 返回 `[{"name":"node","source":"download","auto":false,"version":"24.21.0","status":"off"},{"name":"python",...},{"name":"uv",...}]`。
 - alpha.21 实测（`--session-rows` + node/js-runtime）：`runtime.list` 仍 `unknown_method`，与 `acquire: None` 一致。
 
 **能否在我们这一侧解锁**：能。给 `daemon.Config` 增加默认预设路径，自启参数追加 `--defaults <file>`（预设内给出 `runtimes`）。方法面即出现；真正安装运行时仍受网络/本机解释器限制。注意 `DIMCODE_DEFAULT_PLUGINS` 环境变量在我们的独立启动里未生效，`--defaults` 有效。
@@ -525,8 +525,8 @@ mgmt.session.wakeup.cancel {}
 
 **依据**：
 
-- 安装物：`~/.nvm/.../dimcode-alpha/node_modules/dimcode-darwin-arm64/default-plugins.json` 只有 `plugin-authoring` 与可选 `light-ocr`，没有 workflow；`plugins/` 目录同样没有 workflow。
-- 源码/插件：`~/Code/dim-2/staging/dev-plugins/plugins/workflow/index.ts` 通过 `managementMethods.register` 注册 `workflow.list/status/start/stop/save`；`dim-plugin.json` 声明需要 `settings`、`workflowFiles`、`pluginFiles` 等 host；同目录 `default-plugins.json` 把 workflow 列为默认插件。
+- 安装物：随包发布的默认预设只有 `plugin-authoring` 与可选 `light-ocr`，没有 workflow；`plugins/` 目录同样没有 workflow。
+- 源码/插件：上游插件源码 `plugins/workflow/index.ts` 通过 `managementMethods.register` 注册 `workflow.list/status/start/stop/save`；`dim-plugin.json` 声明需要 `settings`、`workflowFiles`、`pluginFiles` 等 host；同目录 `default-plugins.json` 把 workflow 列为默认插件。
 - alpha.21 实测（`--defaults` 不含 workflow）：`workflow.list/status` 均 `unknown_method`。
 - alpha.21 实测（`--defaults` 含 workflow 副本）：`plugin.list` 出现 `workflow use=default status=pending`；在 pending 期间 `workflow.list` 仍 `unknown_method`。
 - alpha.21 实测（`--session-rows` 直接加载 workflow/index.ts）：插件报 `still waiting after 10s for settings, workflowFiles: it starts once that is provided`，说明它需要默认预设 profile 的进程 host，而不是 session row。
@@ -543,8 +543,8 @@ mgmt.session.wakeup.cancel {}
 **依据**：
 
 - alpha.21 实测 `modality.capabilities`：`realtime available=false reasons=[{dimension:"adapter",detail:"No available adapter serves realtime.voice"},{...transcribe},{...avatar}]`，三个 operation（voice/transcribe/avatar）均 `available:false`；`image` 是 adapter/configuration，`video/speech/music/audio/asset/motion` 是 build，`ocr` 可用。
-- 设计：`~/Code/dim/docs/design/plugins/Modality.md` §1/§3.2/附录 A 说明 adapter 操作由 `modalityAdapter` 服务提供；产品构建只有 fixture adapter（image slice），其他类别报 build；`options`/`available` 由 owner 在读取时从“可用的 adapter + Provider 可选择的模型”计算，adapter 的 `operations` 决定它服务哪些模型。
-- 安装物 `~/.dimcode-alpha` 的 `runtimes`/`plugins` 无 realtime adapter 插件（只有 light-ocr 供 OCR）。
+- 设计：上游 `docs/design/plugins/Modality.md` §1/§3.2/附录 A 说明 adapter 操作由 `modalityAdapter` 服务提供；产品构建只有 fixture adapter（image slice），其他类别报 build；`options`/`available` 由 owner 在读取时从“可用的 adapter + Provider 可选择的模型”计算，adapter 的 `operations` 决定它服务哪些模型。
+- 安装物的 `runtimes`/`plugins` 无 realtime adapter 插件（只有 light-ocr 供 OCR）。
 - 二进制含 `RealtimeDeclaration`、`modality.realtime.*` 与 adapter 原因字符串，证明通路存在，缺的是适配器。
 
 **能否在我们这一侧解锁**：不能靠 provider/model 配置。需要安装/随包一个服务 realtime.voice/transcribe/avatar 的 adapter 插件；当前没有可安装来源。
@@ -558,7 +558,7 @@ mgmt.session.wakeup.cancel {}
 **依据**：
 
 - alpha.21 `session.methods` 含 `session.collaboration.cancel`；实测带伪造 `memberSessionId` 调用返回 `team_member_not_found`，错误文本提示 “use list for agentId + sessionId”，证明参数面与归属校验。
-- 源码：`~/Code/dim-2/crates/dim-app-server/src/collaboration.rs` 的 `CancelParams { session_id, branch_id, member_session_id }` 与 `cancel_member` 返回 `{"status":"cancelled"|"idle"}`；客户端调用不写 `collaboration/cancel` op，效果由成员的 `stop/interrupt`、`turn/end` 与 leader 的 `collaboration/result`/report 记录。
+- 源码：同版本服务端源码的 `crates/dim-app-server/src/collaboration.rs` 的 `CancelParams { session_id, branch_id, member_session_id }` 与 `cancel_member` 返回 `{"status":"cancelled"|"idle"}`；客户端调用不写 `collaboration/cancel` op，效果由成员的 `stop/interrupt`、`turn/end` 与 leader 的 `collaboration/result`/report 记录。
 - 获取成员会话标识：`collaboration/delivered` 事实的 `delivery.session_id`（status=ok）、`session.collaboration.pending` 请求的 `delivery.session_id`、`collaboration/result` 的 `session_id`、`collaboration/message|cancel|close` 的 peer 数据 `session_id`。`agent.list` 只有 `sessions` 计数；`session.agent.get` 返回分支采纳的 `agentId`，都不是成员会话标识。
 - 类型已补：`SessionCollaborationCancelParams`、`SessionCollaborationCancelResult`、`CollaborationDeliveredData`（`ParseCollaborationDeliveredData`）。
 
@@ -585,7 +585,7 @@ mgmt.session.wakeup.cancel {}
 
 ## 11. 宿主侧能力调查
 
-调查时间：2026-11-11。源码只读：`~/Code/dim`（alpha.8）、`~/Code/dim-2`（alpha.18）、`~/.dimcode-alpha`（alpha.21 安装物）；没有写回任何数据源。
+调查时间：2026-11-11。源码只读：服务端源码（alpha.8）、同版本源码（alpha.18）、本机安装目录（alpha.21）；没有写回任何数据源。
 
 ### 11.1 宿主协作协议（`ui.*`）
 
@@ -661,7 +661,7 @@ mgmt.session.wakeup.cancel {}
 
 ## 12. UI 叶子协议与 Go 最小实现
 
-调查时间：2026-11-11。源码只读：`~/Code/rutis`（含 `crates/rutis-bridge`、`rutis-types`、`go/rutis`）、`~/Code/dim`（dim 的叶子实现 `crates/dim-cli/src/leaf.rs`、`crates/dim-app-server/src/ui_leaf.rs`）、`~/.dimcode-alpha`（alpha.21 二进制）。夹具与 socket 只在 `/tmp` 或临时 home。
+调查时间：2026-11-11。源码只读：rutis 上游源码（含 `crates/rutis-bridge`、`rutis-types`、`go/rutis`）、服务端源码（叶子实现 `crates/dim-cli/src/leaf.rs`、`crates/dim-app-server/src/ui_leaf.rs`）、本机安装目录（alpha.21 二进制）。夹具与 socket 只在临时目录或临时 home。
 
 ### 12.1 session protocol 4 要点
 
@@ -688,7 +688,7 @@ mgmt.session.wakeup.cancel {}
 ### 12.3 真机结果（alpha.21）
 
 ```bash
-DIMCODE_APP_SERVER_BIN=~/.dimcode-alpha/rust/dimcode-server \
+DIMCODE_APP_SERVER_BIN=<server-binary> \
 DIMCODE_APP_SERVER_ARGS=app-server \
 go test -count=1 -v ./internal/rutis -run TestRealDaemonUIFLeaf
 ```
@@ -696,7 +696,7 @@ go test -count=1 -v ./internal/rutis -run TestRealDaemonUIFLeaf
 结果（只记标识、状态与帧长度，不打印会话内容）：
 
 ```text
-leaf peer=ui-9d6ce3ce954767c8
+leaf peer=<ui-id>
 greeting={Endpoint:dim-daemon Implementation:map[name:rutis-bridge version:0.19.3]
   Capabilities:[reentrant-sync plugins value-instant ... value-uuid node]}
 hello_bytes=113 far_hello_bytes=302 token_bytes=43 generation=1
@@ -713,7 +713,7 @@ PASS
 - **不能做**：这个包不是插件运行时，也不承载插件行；需要插件目录/服务/row 的完整叶子（例如在叶子里跑 TUI 或注册 Session part）还要实现 `node`/`plugins` 能力、offer/服务调用与 row 协议，当前未实现。
 - **未做/限制**：仅 Unix socket（TCP `tcp:...#token` 未实现）；固定期望 `dim-daemon`；没有重连（会话结束即退出）；入站调用一律拒绝；帧 16 MiB；不声明 capabilities（真实 dim 叶子声明 `reentrant-sync/plugins/value-*/node`）。
 
-**需要上游做什么**：当前无阻塞；若要在 Go 叶子中运行插件/注册 Session part，需要完整的 rutis Go SDK 或等价规范（`~/Code/rutis/go/rutis` 已存在，但版本是 0.21+ 且当前协议仍为 4；接入前要确认与宿主 0.19.3 的兼容性）。本轮已验证最小握手无需该 SDK。
+**需要上游做什么**：当前无阻塞；若要在 Go 叶子中运行插件/注册 Session part，需要完整的 rutis Go SDK 或等价规范（上游已有 Go SDK，但版本是 0.21+ 且当前协议仍为 4；接入前要确认与宿主 0.19.3 的兼容性）。本轮已验证最小握手无需该 SDK。
 
 ## 13. 变更记录
 

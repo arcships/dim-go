@@ -19,13 +19,13 @@ Owner: 扩展与后台领域 agent
 | 功能块 8「扩展管理」 | `docs/domains/R.md` | 插件列表与安装来源、技能安装与启停、钩子按来源的写入范围、MCP 增删改与探测、配置导入预览与按勾选写入 |
 | 功能块 9「计划任务、…、唤醒」 | `docs/domains/R.md` | 计划任务列表与事件跟随、唤醒记录读取/取消/状态跟随 |
 | 夜间授权补充项 | `docs/domains/R.md` 附 E 第 12–14 项 | 钩子启停、技能刷新、MCP 认证 |
-| Scheduler 默认预设 | 随包默认插件 `scheduler`（`dim-2/staging/dev-plugins`），复制到 `/tmp` 后通过 `--defaults` 装配 | 真实 schedule.* 与 watch 证据 |
+| Scheduler 默认预设 | 随包默认插件 `scheduler`（`<bundled-default-plugins>`），复制到 `<tmp>` 后通过 `--defaults` 装配 | 真实 schedule.* 与 watch 证据 |
 | 管理面读数、四条总规矩 | `docs/domains/A.md` | 每项读数只有一个驱动者；只由读取与变更通知驱动；缺能力报缺失；不做乐观更新；不保存第二份事实 |
 | alpha.21 管理面实测 | `docs/domains/D1-connection.md` §3.8、§6.5 | 真实方法名：`plugin.*`、`skills.*`、`hooks.*`、`mcp.*`、`schedule.*`、`session.wakeup.*`；`workflow.*`、`runtime.*` 在 alpha.21 不注册 |
 | D1 管理面类型 | `internal/appserver/protocol/management_*.go`、`notices.go` | 集成层按这些类型映射；本包不复制 wire 结构 |
 | 连接错误分类 | `docs/domains/D1-connection.md`、`internal/appserver/failure` | 能力缺失归一成 `CapabilityError`；超时、连接失败、参数错误原样上报 |
 | 写登记 | `docs/domains/D3-write.md`、`internal/write` | 所有变更登记为 `KindManagementWrite`，一次发送、不自行重试、结果由写登记收敛 |
-| 假服务端与真实服务端 | `internal/fakeappserver`、`internal/appserver/protocol`、`internal/appserver/daemon`、`~/.dimcode-alpha/rust/dimcode-server`（0.1.0-alpha.21） | 本机 Unix socket + 真实 NDJSON；假服务端覆盖全部分支，真实服务端覆盖读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除与 Scheduler 预设下的 schedule.watch |
+| 假服务端与真实服务端 | `internal/fakeappserver`、`internal/appserver/protocol`、`internal/appserver/daemon`、`<app-server-binary>`（0.1.0-alpha.21） | 本机 Unix socket + 真实 NDJSON；假服务端覆盖全部分支，真实服务端覆盖读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除与 Scheduler 预设下的 schedule.watch |
 | 实现约束 | 本仓库 `AGENTS.md` | 只用 Go 标准库；不改 `go.mod`；只写本领域包与本文档 |
 
 **产物**
@@ -54,7 +54,7 @@ Owner: 扩展与后台领域 agent
 
 - 命令：`go test ./internal/extensions/`、`go test -race ./internal/extensions/`、`go test -count=1 ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64，Go 1.24.3）。
 - 本领域测试：35 个顶层测试（30 个默认通过，5 个真实 daemon 证据按环境变量运行）。
-- 真实 daemon：alpha.21，临时数据目录 + 复制到 `/tmp` 的离线模型配置；读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除、项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入、MCP 配置导入与 schedule.watch 跟随均通过，见 6.4。
+- 真实 daemon：alpha.21，临时数据目录 + 离线模型配置；读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除、项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入、MCP 配置导入与 schedule.watch 跟随均通过，见 6.4。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖插件/技能/钩子/MCP/计划任务/工作流能力缺失。
   - 注入替身：读取方与写登记替身，覆盖能力缺失与恢复、来源拒绝、导入勾选、失败保留、通知时序、真实方法名归一。
@@ -258,16 +258,16 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 
 #### 4.6.1 MCP 配置导入：真实来源、回执与领域 API
 
-**服务端扫描的已知来源**（alpha.21 实测 + `dim-2` 同版本源码 `mcp/discovery.rs`）：
+**服务端扫描的已知来源**（alpha.21 实测 + 同版本上游源码 `mcp/discovery.rs`）：
 
 | 来源 id | client | scope | 路径 | 条件 |
 |---|---|---|---|---|
-| `claude-code:user` | claude-code | user | `~/.claude.json` | 读取顶层 `mcpServers` |
-| `claude-code:local` | claude-code | local | `~/.claude.json` 的 `projects[<授权工作区>]` | 需要已授权工作区 |
-| `codex:user` | codex | user | `~/.codex/config.toml` | 读取 `mcp_servers` 表 |
-| `codex:project` | codex | project | `<workspace>/.codex/config.toml` | 需要已授权工作区 |
-| `omp:user` | omp | user | `~/.omp/agent/mcp.json` | 读取 `mcpServers`（或等价表） |
-| `omp:project` | omp | project | `<workspace>/.omp/mcp.json` | 需要已授权工作区 |
+| `claude-code:user` | claude-code | user | `<claude-user-config>` | 读取顶层 `mcpServers` |
+| `claude-code:local` | claude-code | local | `<claude-user-config>` 的 `projects[<authorized-workspace>]` | 需要已授权工作区 |
+| `codex:user` | codex | user | `<codex-user-config>` | 读取 `mcp_servers` 表 |
+| `codex:project` | codex | project | `<codex-project-config>` | 需要已授权工作区 |
+| `omp:user` | omp | user | `<omp-user-config>` | 读取 `mcpServers`（或等价表） |
+| `omp:project` | omp | project | `<omp-project-config>` | 需要已授权工作区 |
 
 - `mcp.import.sources` 参数 `{cwd?}`；回执 `{sources:[{id,client,scope,path,state,entries?,error?}]}`。`state` 为 `ready` / `absent` / `unreadable` / `too-large` / `malformed`；单文件上限 32 MiB，条目上限由导入模块控制；**只读**，不返回值。
 - `mcp.import.preview` 参数 `{cwd?,source,from?|document?}`：`source` 是写入目标作用域（`user`/`project`），`from` 是上面的来源 id；`document` 用于客户端自带的 JSON 文本，二者只能给一个。回执：
@@ -397,15 +397,15 @@ go vet ./...
 
 ### 6.4 真实 alpha.21 证据
 
-两组证据都使用临时数据目录；模型配置从只读来源复制到 `/tmp` 后交给服务端。日志只留状态、标识、字段名与布尔结果，不打印文档内容、命令环境变量或任何凭据。
+两组证据都使用临时数据目录；模型配置从只读来源复制到临时目录后交给服务端。日志只留状态、标识、字段名与布尔结果，不打印文档内容、命令环境变量或任何凭据。
 
 #### 6.4.1 管理面读取与唤醒
 
 ```bash
-cp ~/Code/dim/crates/dim-agent-aimux/examples/offline.json /tmp/d11b-offline.json
-DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+cp <offline-model-config-source> <offline-model-config>
+DIM_APP_SERVER_BIN=<app-server-binary> \
 DIM_APP_SERVER_ARGS=app-server \
-DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
   go test -run TestRealDaemonExtensionReadsAndWakeup -v ./internal/extensions/
 ```
 
@@ -439,9 +439,9 @@ extensions: 能力缺失 feature=workflow.start reason=no_reader
 #### 6.4.2 hooks 写回/冲突与 MCP 保存/配置/探测/删除
 
 ```bash
-DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_BIN=<app-server-binary> \
 DIM_APP_SERVER_ARGS=app-server \
-DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
   go test -run TestRealDaemonHooksAndMCPWrites -v ./internal/extensions/
 ```
 
@@ -454,10 +454,10 @@ hooks.catalog 写后: userRevision=native:user/hooks:2 hooks=1
 读回钩子: source=user event=SessionStart state=ok
 领域钩子读取: hooks=1 writable=true
 hooks.save 旧版本: status=failed conflict=true
-冲突后 hooks.catalog: userRevision=native:user/hooks:2 commands=[printf d11b]
+冲突后 hooks.catalog: userRevision=native:user/hooks:2 commands=[<hook-command>]
 mcp.catalog: userRevision=native:user/mcp:1 servers=0
 mcp.save 回执字段=[]
-读回 MCP: id=d11b-mcp source=user enabled=true transport=stdio
+读回 MCP: id=<test-server-id> source=user enabled=true transport=stdio
 mcp.configuration: revision=native:user/mcp:2 enabled=true secretsInUserScope=false configurationFields=[type command argsCount cwd envNames referencedVariables unsetVariables] type=stdio argsCount=1 envNames=0
 mcp.test: status=connected reachable=true latencyMs=25 tools=[echo]
 mcp.remove 回执字段=[]
@@ -482,9 +482,9 @@ MCP 夹具是无凭据、只响应 `initialize` 与 `tools/list` 的本地 Pytho
 #### 6.4.3 夜间授权三项：项目钩子、技能刷新、MCP 认证
 
 ```bash
-DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_BIN=<app-server-binary> \
 DIM_APP_SERVER_ARGS=app-server \
-DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
   go test -run TestRealDaemonNightAuthorization -v ./internal/extensions/
 ```
 
@@ -523,26 +523,26 @@ mcp.auth.logout: status=failed reason=mcp_auth_unsupported
 #### 6.4.4 MCP 配置导入：来源、预览、应用与冲突
 
 ```bash
-DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_BIN=<app-server-binary> \
 DIM_APP_SERVER_ARGS=app-server \
-DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
   go test -run TestRealDaemonMCPImport -v ./internal/extensions/
 ```
 
-观察到的输出（节选；路径已把 home 替换为 `$HOME`，不打印任何配置值）：
+观察到的输出（节选；路径已替换为占位，不打印任何配置值）：
 
 ```text
 服务端 0.1.0-alpha.21（profile configured）
-import.source id=claude-code:user client=claude-code scope=user state=ready entries=1 path=~/.claude.json
-import.source id=claude-code:local client=claude-code scope=local state=absent entries=-1 path=~/.claude.json · projects["<temp>/project"]
-import.source id=codex:user client=codex scope=user state=ready entries=4 path=~/.codex/config.toml
-import.source id=codex:project client=codex scope=project state=absent entries=-1 path=.codex/config.toml
-import.source id=omp:user client=omp scope=user state=absent entries=-1 path=~/.omp/agent/mcp.json
-import.source id=omp:project client=omp scope=project state=absent entries=-1 path=.omp/mcp.json
+import.source id=claude-code:user client=claude-code scope=user state=ready entries=1 path=<claude-user-config>
+import.source id=claude-code:local client=claude-code scope=local state=absent entries=-1 path=<claude-user-config> · projects[<authorized-workspace>]
+import.source id=codex:user client=codex scope=user state=ready entries=4 path=<codex-user-config>
+import.source id=codex:project client=codex scope=project state=absent entries=-1 path=<codex-project-config>
+import.source id=omp:user client=omp scope=user state=absent entries=-1 path=<omp-user-config>
+import.source id=omp:project client=omp scope=project state=absent entries=-1 path=<omp-project-config>
 preview revision=native:user/mcp:1 sourceRevision=<sha256> store=claude-code:user entries=1 unknownTopLevel=[]
-preview.entry id=pencil status=changed transport=stdio changes=[args:array command:string enabled:boolean type:string] unsupported=0 omitted=0
-apply revision=native:user/mcp:2 imported=pencil
-catalog.server id=pencil source=user enabled=false transport=stdio
+preview.entry id=<source-entry-id> status=changed transport=stdio changes=[args:array command:string enabled:boolean type:string] unsupported=0 omitted=0
+apply revision=native:user/mcp:2 imported=<source-entry-id>
+catalog.server id=<source-entry-id> source=user enabled=false transport=stdio
 apply stale err=MCP 导入目标已变化 conflict=true（底层 appError=mcp_settings_conflict）
 cleanup mcp.remove shape={}
 回收自启服务端: stopped=true
@@ -558,14 +558,14 @@ cleanup mcp.remove shape={}
 
 #### 6.4.5 计划任务 watch（Scheduler 默认预设）
 
-预设与运行时都在 `/tmp` 与只读安装目录中；没有复制插件源码进仓库。准备夹具：
+预设与运行时都在 `<tmp>` 与只读安装目录中；没有复制插件源码进仓库。准备夹具：
 
 ```bash
-# 随包默认插件目录（只读来源；路径按本机安装调整）
-rm -rf /tmp/d11b-scheduler-plugin
-cp -R ~/Code/dim-2/staging/dev-plugins/plugins/scheduler /tmp/d11b-scheduler-plugin
-cat > /tmp/d11b-defaults.json <<'JSON'
-{"plugins":{"scheduler":"/tmp/d11b-scheduler-plugin"},"locked":["PluginManager","Rpc","Transport"],
+# 随包默认插件目录（只读来源；路径用占位）
+rm -rf <tmp>/scheduler-plugin
+cp -R <bundled-default-plugins>/scheduler <tmp>/scheduler-plugin
+cat > <defaults-file> <<'JSON'
+{"plugins":{"scheduler":"<tmp>/scheduler-plugin"},"locked":["PluginManager","Rpc","Transport"],
  "runtimes":{"node":{"source":"download","auto":false},"python":{"source":"download","auto":false}}}
 JSON
 ```
@@ -573,12 +573,12 @@ JSON
 命令示例：
 
 ```bash
-DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_BIN=<app-server-binary> \
 DIM_APP_SERVER_ARGS=app-server \
-DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
-DIM_APP_SERVER_DEFAULTS=/tmp/d11b-defaults.json \
-DIM_APP_SERVER_NODE=$HOME/.dimcode-alpha/runtimes/node-v24.21.0-darwin-arm64/bin/node \
-DIM_APP_SERVER_JS_RUNTIME=$HOME/.dimcode-alpha/runtimes/node-packages-0c2ff7eb761cd6da/node_modules/@arcships/rutis-runtime \
+DIM_APP_SERVER_MODEL_CONFIG=<offline-model-config> \
+DIM_APP_SERVER_DEFAULTS=<defaults-file> \
+DIM_APP_SERVER_NODE=<node-binary> \
+DIM_APP_SERVER_JS_RUNTIME=<js-runtime-dir> \
   go test -run TestRealDaemonScheduleWatch -v ./internal/extensions/
 ```
 

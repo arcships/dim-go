@@ -18,7 +18,7 @@ Owner: D10 领域 agent
 | 连接领域接口（F3 候选） | `docs/domains/D1-connection.md` §5 | 只作为外部步骤接入：`Connect` / `OpenStream` / `Shutdown` / `failure.KindOf`；本包不 import 连接包、不重复 wire 定义 |
 | 错误分类白名单 | D1 的五种错误分类 | 通过 `ErrorClass` 与 `Classified` 接口收敛，未知一律记 `other` |
 | 更新状态机 | `A.md` 的「更新」迁移表；`R.md` 功能块 14 完成标志⑤、R9 | 五条迁移逐条实现；检查失败按已是最新呈现；下载/校验失败保留当前版本 |
-| 更新源形状（只读参考） | dim-electron `electron-main/src/services/update-service.ts`、`src/config/distribution.ts`、`~/.dimcode-alpha/config.json` | 基址 `https://dimcode.echooai.com`、通道 `updates/stable`、平台路径 `mac/<arch>`/`win/x64`/`linux/x64`、清单 `latest*.yml`（electron-builder 通用）；只复制读取，不改参考仓库 |
+| 更新源形状（只读参考） | dim-electron `electron-main/src/services/update-service.ts`、`src/config/distribution.ts`、`<产品 home>/config.json` | 基址 `https://dimcode.echooai.com`、通道 `updates/stable`、平台路径 `mac/<arch>`/`win/x64`/`linux/x64`、清单 `latest*.yml`（electron-builder 通用）；只复制读取，不改参考仓库 |
 | 本机证据环境 | macOS arm64、Go 1.24 | 端点互斥、强杀残留、超时、更新检查与切换均在本机实测（更新源用本地 HTTP 服务模拟） |
 
 ## 2. 产物
@@ -180,7 +180,7 @@ Owner: D10 领域 agent
 - 下载校验只有 sha512（base64 或十六进制），缺失摘要的清单视为失败；macOS 安装适配器另外校验代码签名、TeamIdentifier 与公证票据。
 - 切换顺序：会话收尾探测 → 安装准备（macOS 解包 + 签名/公证校验；Linux/Windows 检查产物）→ 进入切换中 → 可选退出五阶段 → 平台安装（`.app` 备份交换 / AppImage 原子替换 / 运行 NSIS）→ 重启 → 失败回滚。准备失败停在待切换、不进入终态，可重试；安装或重启失败写 `update.switch`（`failed` + 分类 + `update_state`）。
 - 重启步骤假定退出五阶段已经释放单实例端点（`Shell.Shutdown` 会做），否则新进程会把自己当成二次启动而把参数转交后退出；`Switch` 成功后调用方必须立即退出，不能继续持有旧进程。
-- 安装适配器按平台分派（`InstallAuto`）：macOS `mac_bundle`、Linux `linux_appimage`、Windows `windows_nsis`，其余或测试用 `file`。未显式设置 `InstallMode` 时：提供 `Restart` 的旧接线视为单文件模式；否则按平台分派，darwin 还要求目标是已存在的 `.app` 目录。macOS 适配器用 `/usr/bin/ditto -x -k`（缺失时回退 `/usr/bin/unzip`）解包到同卷暂存目录，`/usr/bin/codesign --verify --deep --strict`、TeamIdentifier 与当前 `.app` 一致、`/usr/bin/stapler validate`（缺失时回退 `xcrun`）、`/usr/sbin/spctl --assess` 全通过才替换；替换前把旧 `.app` 改名为备份，移入失败或重启失败都把旧包换回。Linux 适配器 `chmod 0755` 后按稳定名原子替换，并以 `APPIMAGE_SILENT_INSTALL=1` 启动。Windows 适配器以 `--updated /S`（可选 `--force-run`）启动 NSIS 安装器，由安装器替换并重启。
+- 安装适配器按平台分派（`InstallAuto`）：macOS `mac_bundle`、Linux `linux_appimage`、Windows `windows_nsis`，其余或测试用 `file`。未显式设置 `InstallMode` 时：提供 `Restart` 的旧接线视为单文件模式；否则按平台分派，darwin 还要求目标是已存在的 `.app` 目录。macOS 适配器用 `ditto -x -k`（缺失时回退 `unzip`）解包到同卷暂存目录，`codesign --verify --deep --strict`、TeamIdentifier 与当前 `.app` 一致、`stapler validate`（缺失时回退 `xcrun`）、`spctl --assess` 全通过才替换；系统工具按绝对路径调用，避开 GUI 进程过短的 PATH；替换前把旧 `.app` 改名为备份，移入失败或重启失败都把旧包换回。Linux 适配器 `chmod 0755` 后按稳定名原子替换，并以 `APPIMAGE_SILENT_INSTALL=1` 启动。Windows 适配器以 `--updated /S`（可选 `--force-run`）启动 NSIS 安装器，由安装器替换并重启。
 - 默认超时：检查 15 秒、下载 10 分钟、收尾 30 秒、切换 5 分钟；均可由 `UpdateTimeouts` 覆盖。
 - 切换一旦开始就是终态：退出、替换或重启任一步失败都保留当前版本，但本进程不再重试，重启后回到未检查；准备阶段的失败不算"切换开始"，状态仍是待切换。
 - 更新只写诊断、不读会话事实，也不驱动连接；界面阶段只消费 `Updater.Status()`。
@@ -240,7 +240,7 @@ report, err := shell.Shutdown(ctx)
 // 应用更新（P3）
 updater, err := host.NewUpdater(host.UpdateConfig{
     CurrentVersion: "0.9.61",                // 或 ReadVersion 从安装产物读
-    TargetPath:     installPath,             // mac: /Applications/DimAgent.app；linux: $APPIMAGE；file: 单文件
+    TargetPath:     installPath,             // mac: <安装目录>/DimAgent.app；linux: $APPIMAGE；file: 单文件
     InstallMode:    host.InstallAuto,        // 生产显式指定；或 InstallMacBundle/InstallLinuxAppImage/InstallWindowsNSIS/InstallFile
     SessionsIdle:   func() bool { ... },     // 会话是否已收尾
     Settle:         func(ctx context.Context) error { ... },
@@ -276,7 +276,7 @@ GOOS=windows go vet ./internal/host/      # 通过（仅编译验证）
 D10_REAL_CHANNEL=1 go test -run TestRealChannelCheck -v ./internal/host/   # 真实渠道只读检查
 ```
 
-本机（macOS arm64，Go 1.24.3）实测：`go test ./...` 全通过，`go vet ./...` 无输出，`internal/host` 竞态检测通过。
+本机（macOS arm64，Go 1.24）实测：`go test ./...` 全通过，`go vet ./...` 无输出，`internal/host` 竞态检测通过。
 
 ### 6.2 覆盖
 
@@ -332,7 +332,7 @@ D10_REAL_CHANNEL=1 go test -run TestRealChannelCheck -v ./internal/host/   # 真
 
 ### 6.3 真实更新产物调查（2026-11-11，只读 + 真实 check）
 
-本节是只读调查：读参考实现与已安装客户端、请求版本清单与 HEAD；**没有下载产物、没有替换任何安装文件**。参考仓库与 `~/.dimcode-alpha` 未改动，清单副本只落在 `/tmp`。
+本节是只读调查：读参考实现与已安装客户端、请求版本清单与 HEAD；**没有下载产物、没有替换任何安装文件**。参考仓库与 `<产品 home>` 未改动，清单副本只落在 `<临时目录>`。
 
 #### 6.3.1 发布形态（只读参考）
 
@@ -344,9 +344,9 @@ D10_REAL_CHANNEL=1 go test -run TestRealChannelCheck -v ./internal/host/   # 真
 
 - 清单字段：`version`、`files[].url/sha512/size`（Linux 还有 `blockMapSize`）、顶层 `path/sha512`、`releaseDate`；**没有签名字段**。
 - 签名与公证：macOS 用 Developer ID Application 签名（hardened runtime），构建阶段公证并把票据 staple 进 `.app`；Windows 在配置签名输入时用 signtool（sha256 + RFC3161 时间戳）；Linux 无签名。
-- 已安装客户端（`/Applications/DimAgent.app`，0.9.61）：`app-update.yml` 只有 `provider: generic`、`url: https://dimcode.echooai.com/updates/stable`、`updaterCacheDirName`，**没有 publisherName**；构建配置 `verifyUpdateCodeSignature:false` 使 electron-builder 不写 publisherName，因此 NSIS 更新器跳过 Authenticode 发布者校验。
+- 已安装客户端（`<安装目录>/DimAgent.app`，0.9.61）：`app-update.yml` 只有 `provider: generic`、`url: https://dimcode.echooai.com/updates/stable`、`updaterCacheDirName`，**没有 publisherName**；构建配置 `verifyUpdateCodeSignature:false` 使 electron-builder 不写 publisherName，因此 NSIS 更新器跳过 Authenticode 发布者校验。
 - electron-updater 6.8.9 的行为：所有平台先校对 base64 sha512；mac 把 zip 交给 Squirrel.Mac（由其解包、校验代码签名、替换并重启）；Windows 运行 NSIS 安装器（`--updated /S`，可带 `--force-run`）；Linux AppImage 直接替换文件、`chmod 0755`、带 `APPIMAGE_SILENT_INSTALL=1` 重启，文件名带版本时重指桌面项。
-- 已安装 `.app` 实测：TeamIdentifier `3AA79YWT4C`，`codesign` 显示 hardened runtime，`spctl` 为 `accepted / Notarized Developer ID`，`stapler validate` 通过；`/Applications/DimAgent.app` 归属当前用户、权限 755，可原地替换（非管理员用户需提权）。
+- 已安装 `.app` 实测：TeamIdentifier `3AA79YWT4C`，`codesign` 显示 hardened runtime，`spctl` 为 `accepted / Notarized Developer ID`，`stapler validate` 通过；安装目录可写时可直接原地替换，非管理员用户需要提权。
 
 #### 6.3.2 真实清单（2026-11-10 发布 0.9.62）
 
@@ -410,8 +410,8 @@ linux/amd64    state=available current=0.9.61 available=0.9.62
 
 - 安装适配器用假产物测试：macOS 的解包、签名、公证命令是注入的假实现；Linux 用普通文件模拟 AppImage；Windows 只验证参数拼装，未在实机运行安装器。
 - 未下载真实产物（285–313 MB），sha512 未与真实字节比对；下载路径只用本地 HTTP 服务验证过。
-- 未解包真实 zip；"zip 根为 `DimAgent.app`"依据 electron-builder 的 mac zip 目标与 CI 断言，需在 `/tmp` 解包一次核对，并跑一次真实 `codesign`/`stapler`/`spctl`。
-- macOS 原地替换需要可写 `/Applications`；下载 + 解包 + 旧包备份在安装卷上约占 1.6 GB（zip 298 MB、解开后 657 MB、备份 657 MB），空间不足的表现未测。
+- 未解包真实 zip；"zip 根为 `DimAgent.app`"依据 electron-builder 的 mac zip 目标与 CI 断言，需在 `<临时目录>` 解包一次核对，并跑一次真实 `codesign`/`stapler`/`spctl`。
+- macOS 原地替换需要可写 `<安装目录>`；下载 + 解包 + 旧包备份在安装卷上约占 1.6 GB（zip 298 MB、解开后 657 MB、备份 657 MB），空间不足的表现未测。
 - 非管理员用户、多实例、断电或崩溃中断后的恢复未覆盖。
 - Windows 安装器是否需要管理员、是否会终止运行中的旧进程、`--force-run` 行为未实测。
 
@@ -443,7 +443,7 @@ linux/amd64    state=available current=0.9.61 available=0.9.62
 1. **Windows 未验证**：单实例用回环 TCP + 端口文件，先探测后监听，同时启动存在竞态窗口；`GOOS=windows` 只验证了编译。
 2. **本地状态装载只留阶段位**：窗口与偏好（A.md 归进程框架）的存储未实现；`StartupSteps.LocalState` 由调用方提供。
 3. **安装适配器未用真实制品验证**：macOS 的 `.app` 解包、签名、公证命令只用假实现测过；Windows NSIS 只做了编译与参数单测，实机未验证；Linux AppImage 只用普通文件模拟。真实渠道只验证到检查，未下载、未替换。
-4. **安装细节未覆盖**：macOS 需要可写 `/Applications`，没有提权 helper；替换后新版本若启动即崩溃不会自动回滚；Windows 安装器是否需要管理员、是否会终止旧进程、`--force-run` 行为未实测；Linux 重启失败后磁盘已是新文件，不回滚、不重指桌面项。
+4. **安装细节未覆盖**：macOS 需要可写 `<安装目录>`，没有提权 helper；替换后新版本若启动即崩溃不会自动回滚；Windows 安装器是否需要管理员、是否会终止旧进程、`--force-run` 行为未实测；Linux 重启失败后磁盘已是新文件，不回滚、不重指桌面项。
 5. **更新没有发布面能力**：没有定时检查、渠道切换、增量下载（blockmap）与桌面项重指；版本比较只支持 `x.y.z[-pre]`，当前版本必须能被解析。
 6. **超时 goroutine 不强制回收**：某段实现若完全忽略上下文，`Run` 会按时返回并继续，但该 goroutine 会存活到进程结束。这是"不无限等待"的代价，实现方应尊重上下文。
 7. **端点路径长度**：Unix 套接字路径受系统上限（macOS 约 104 字节）限制；数据目录过深时启动报错，需换短数据目录。临时名比端点名略长，仍在同一目录。

@@ -541,23 +541,23 @@ go test -race ./internal/app/
 
 服务端在仓库之外，使用临时数据目录与 mock 模型。两版都不能产生工具调用，因此审批、标题与 ask_user 的真实事件**未触发**（见 7.5）。
 
-**证据 A：完整启停与清单降级（0.1.0-alpha.18，`/tmp/dim-2-target/debug/dim-app-server`）**
+**证据 A：完整启停与清单降级（0.1.0-alpha.18，`<app-server-binary>`）**
 
 ```bash
-D=$(mktemp -d /tmp/d12w-a-XXXXXX)
+D=$(mktemp -d)   # 临时数据目录
 go run ./cmd/dimagent selfcheck -data-dir "$D" \
-  -server /tmp/dim-2-target/debug/dim-app-server -mock \
+  -server <app-server-binary> -mock \
   -create -submit "通知与清单接线自检" -lines 10 -log "$D/diag.log"
 ```
 
 ```text
 startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
-session: 3db6f611-...  branch: main  load: ready  rows: 0  turns: 0  hasOlder: false
+session: <session-id>  branch: main  load: ready  rows: 0  turns: 0  hasOlder: false
 pending: inputs=0 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
-submit: status=succeeded  input=02b019fe-...
+submit: status=succeeded  input=<input-id>
 after submit: rows: 2  load: ready
-[turn 1] user_message   17c8be87-... 通知与清单接线自检
-[turn 1] assistant_text 304f2993-... Echo: 通知与清单接线自检
+[turn 1] user_message   <event-id> 通知与清单接线自检
+[turn 1] assistant_text <event-id> Echo: 通知与清单接线自检
 diagnostics:
   - 读取未结束后台任务失败，退回历史推导: session.exec.pending: ... unknown_method
   - 读取待答提问失败，退回历史推导: session.question.pending: ... unknown_method
@@ -567,15 +567,15 @@ shutdown: 5 段全部完成（5 ms）
 **证据 B：启动阶段就带会话，清单读到真实条目（同一数据目录，`-session`）**
 
 ```bash
-go run ./cmd/dimagent selfcheck -data-dir "$D" -server /tmp/dim-2-target/debug/dim-app-server \
-  -mock -session 3db6f611-... -lines 10 -log "$D/c.log"
+go run ./cmd/dimagent selfcheck -data-dir "$D" -server <app-server-binary> \
+  -mock -session <session-id> -lines 10 -log "$D/c.log"
 ```
 
 ```text
 startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
-session: 3db6f611-...  branch: main  load: ready  rows: 2  turns: 1  hasOlder: true
-[turn 1] user_message   17c8be87-... 通知与清单接线自检
-[turn 1] assistant_text 304f2993-... Echo: 通知与清单接线自检
+session: <session-id>  branch: main  load: ready  rows: 2  turns: 1  hasOlder: true
+[turn 1] user_message   <event-id> 通知与清单接线自检
+[turn 1] assistant_text <event-id> Echo: 通知与清单接线自检
 pending: inputs=4 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
 ```
 
@@ -584,14 +584,14 @@ pending: inputs=4 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
 **证据 C：旧服务端全部降级（0.1.0-alpha.7，`dimcode app-server`）**
 
 ```bash
-go run ./cmd/dimagent selfcheck -data-dir "$D" -server "$HOME/.dimcode/rust/dimcode-server" \
+go run ./cmd/dimagent selfcheck -data-dir "$D" -server "<server-binary>" \
   -server-arg app-server -mock -session <会话标识> -submit "旧服务端 wire 自检"
 ```
 
 四类清单方法全部 `unknown_method`，逐类退回历史推导，会话与提交仍正常：
 
 ```text
-submit: status=succeeded  input=08e7cb21-...
+submit: status=succeeded  input=<input-id>
 pending: inputs=0 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
 diagnostics:
   - 读取未消费输入失败，退回历史推导: session.input.pending: ... unknown_method
@@ -627,10 +627,10 @@ shell: status=failed reason="发送明确失败: shell.run: non_retryable: 服�
 同一二进制在 hello 里声明了 `session.branch_create`/`session.branch_end`。目录领域用同一对方法、同一组参数在同一服务端上跑通了真实分支生命周期（本包 Sender 的参数与之一致）：
 
 ```text
-$ DIM_APP_SERVER_BIN=/tmp/dim-2-target/debug/dim-app-server \
+$ DIM_APP_SERVER_BIN=<app-server-binary> \
     go test ./internal/catalog -run TestRealDaemonBranchLifecycle -count=1 -v
 初始目录: [{ID:main ParentID: CutSequence:0 Status:open Head:1}]
-新分支:   {ID:0e335f5d-... ParentID:main CutSequence:4 Status:open Head:0}
+新分支:   {ID:<branch-id> ParentID:main CutSequence:4 Status:open Head:0}
 分支收敛：state=ended head=9
 回收自启服务端: stopped=true
 ```
@@ -652,18 +652,18 @@ instance: forwarded（已有实例在运行，本次启动参数已转交）
 
 **证据 G：改名（alpha.21 configured profile）**
 
-mock profile 不注册管理面方法（`Management method is unavailable`），改名与权限要在 configured profile 上验证：服务端用复制到 `/tmp` 的离线模型配置启动（`-model-config`），数据目录是临时目录。
+mock profile 不注册管理面方法（`Management method is unavailable`），改名与权限要在 configured profile 上验证：服务端用复制到临时目录的离线模型配置启动（`-model-config`），数据目录也是临时目录。
 
 ```bash
-D=$(mktemp -d /tmp/d12m-real2-XXXXXX)
+D=$(mktemp -d)   # 临时数据目录
 go run ./cmd/dimagent selfcheck -data-dir "$D" \
-  -server "$HOME/.dimcode-alpha/rust/dimcode-server" \
-  -model-config /tmp/d12m-offline.json -create -rename "集成层改名验证" -lines 4
+  -server "<server-binary>" \
+  -model-config <model-config> -create -rename "集成层改名验证" -lines 4
 ```
 
 ```text
 startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
-session: cf582cc8-...  branch: main  load: ready  rows: 0  turns: 0
+session: <session-id>  branch: main  load: ready  rows: 0  turns: 0
 pending: inputs=5 tasks=0 questions=0 collaborations=0  approvals=0 待答=0
 rename: title="集成层改名验证" source="manual" revision=1
 shutdown: 5 段全部完成（4 ms）
@@ -673,21 +673,21 @@ shutdown: 5 段全部完成（4 ms）
 
 ```bash
 go run ./cmd/dimagent selfcheck -data-dir "$D" \
-  -server "$HOME/.dimcode-alpha/rust/dimcode-server" \
-  -model-config /tmp/d12m-offline.json -session cf582cc8-... -permission read-only
+  -server "<server-binary>" \
+  -model-config <model-config> -session <session-id> -permission read-only
 ```
 
 ```text
 startup: ready（单实例 → 本地状态 → 连服务 → 订阅 → 首轮历史 → 允许写）
 permission: preset="read-only" ok=true
 diagnostics:
-  - 已建立会话订阅: cf582cc8-... 头部=35
-  - 权限档位=full-access: 会话=cf582cc8-...        # 打开时 session.permission.get
-  - 权限档位=read-only: 会话=cf582cc8-...          # session.permission.update 的回执
+  - 已建立会话订阅: <session-id> 头部=35
+  - 权限档位=full-access: 会话=<session-id>        # 打开时 session.permission.get
+  - 权限档位=read-only: 会话=<session-id>          # session.permission.update 的回执
 shutdown: 5 段全部完成（4 ms）
 ```
 
-两次运行都回收了自启的服务实例；临时数据目录与复制到 `/tmp` 的配置文件在取证后删除。
+两次运行都回收了自启的服务实例；临时数据目录与临时模型配置在取证后删除。
 
 **证据 I：会话内命令真实执行（alpha.21 configured profile）**
 
@@ -695,12 +695,12 @@ shutdown: 5 段全部完成（4 ms）
 
 ```bash
 go run ./cmd/dimagent selfcheck -data-dir "$D" \
-  -server "$HOME/.dimcode-alpha/rust/dimcode-server" \
-  -model-config /tmp/d12m-offline.json -create -shell "<一条短命令>" -shell-list
+  -server "<server-binary>" \
+  -model-config <model-config> -create -shell "<一条短命令>" -shell-list
 ```
 
 ```text
-shell.run: status=succeeded run=2a7d310e-... state=completed durationMs=24 exitCode=0
+shell.run: status=succeeded run=<run-id> state=completed durationMs=24 exitCode=0
 history: rows=0 kinds=
 history.events.added: input/applied=+2 input/message=+2
 shell.list: runs=0
@@ -711,8 +711,8 @@ shell.list: runs=0
 运行中停止（命令换成长命令，同样不打印正文）：
 
 ```text
-shell.stop: status=succeeded run=e5f5b7b4-... stopped=true
-shell.run: status=succeeded run=e5f5b7b4-... state=stopped durationMs=69
+shell.stop: status=succeeded run=<run-id> stopped=true
+shell.run: status=succeeded run=<run-id> state=stopped durationMs=69
 history.events.added: input/applied=+3 input/message=+2
 shell.list: runs=0
 ```
@@ -722,11 +722,11 @@ shell.list: runs=0
 `DIMAGENT_MODALITY_EVIDENCE=1` 时运行 `TestRealModalityAndShellEvidence`，输入是一张本机图片；证据只打印状态序列、任务标识、文件字节数与页数。
 
 ```text
-shell.run: run=dde577e1-... status=succeeded
-modality.task: id=mt_132e92ae-... states=[queued running succeeded]
+shell.run: run=<run-id> status=succeeded
+modality.task: id=<modality-task-id> states=[queued running succeeded]
 modality.result: file=result.json bytes=94 pages=1 eof=true
 modality.result: file=text.txt bytes=0 pages=1 eof=true
-modality.cancel: id=mt_e6e0cd0f-... state=cancelled
+modality.cancel: id=<modality-task-id> state=cancelled
 modality.realtime: blocked（打开失败）: 实时传输打开失败: ... no_default_model: No model serves realtime.transcribe
 ```
 
@@ -736,7 +736,7 @@ modality.realtime: blocked（打开失败）: 实时传输打开失败: ... no_d
 
 **证据 K：账号按 provider 分发（alpha.21 夹具，只验证发起与取消）**
 
-`DIMAGENT_ACCOUNT_EVIDENCE=1` 时运行 `TestRealAccountLoginBeginEvidence`；夹具 home 从 `/tmp` 只读复制到新的临时目录。证据只留状态、标识与主机名。
+`DIMAGENT_ACCOUNT_EVIDENCE=1` 时运行 `TestRealAccountLoginBeginEvidence`；夹具 home 从只读夹具目录复制到新的临时目录。证据只留状态、标识与主机名。
 
 ```text
 account.providers: count=1 methods=[browser device] directorySet=true
@@ -814,7 +814,7 @@ exit=0
 
 **证据 P：默认预设（`--defaults`，alpha.21）**
 
-`DIMAGENT_DEFAULTS_EVIDENCE=1` 时运行 `TestRealRuntimeDefaultsEvidence`：把 `dim-2/runtime` 预设复制到 /tmp 后启动。
+`DIMAGENT_DEFAULTS_EVIDENCE=1` 时运行 `TestRealRuntimeDefaultsEvidence`：把现有客户端的 runtime 预设复制到临时目录后启动。
 
 ```text
 hello.runtime: [runtime.configure runtime.install runtime.list runtime.watch]
@@ -828,9 +828,9 @@ runtime.list: count=3 [node=off python=off uv=off]
 **证据 Q：断线恢复、共享订阅与未知核对（alpha.21 夹具）**
 
 ```bash
-D=$(mktemp -d /tmp/d12x-XXXXXX)   # 在测试内复制夹具 home
-DIMAGENT_RESILIENCE_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=/private/tmp/dimagent-real-model/home \
-  DIMAGENT_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+D=$(mktemp -d)   # 临时数据目录；测试内复制夹具 home
+DIMAGENT_RESILIENCE_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=<fixture-home> \
+  DIMAGENT_APP_SERVER_BIN=<server-binary> \
   go test ./internal/app -run TestRealResilienceEvidence -count=1 -v
 ```
 
@@ -849,21 +849,21 @@ DIMAGENT_RESILIENCE_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=/private/tmp/dimagent-re
 **证据 R：附件真实写入与运行中停止（configured profile）**
 
 ```bash
-D=$(mktemp -d /tmp/d12att-XXXXXX)
+D=$(mktemp -d)   # 临时数据目录
 go run ./cmd/dimagent selfcheck -data-dir "$D" \
-  -server $HOME/.dimcode-alpha/rust/dimcode-server \
-  -model-config /tmp/offline.json -create -attachment "attachment evidence" -short
+  -server <server-binary> \
+  -model-config <model-config> -create -attachment "attachment evidence" -short
 ```
 
 ```text
-attachment: status=succeeded reason="" result={"attachmentId":"2037f69a-...","path":"<临时数据目录>/rust/dimcode.sqlite.session-files/..."}
+attachment: status=succeeded reason="" result={"attachmentId":"<attachment-id>","path":"<临时数据目录>/rust/dimcode.sqlite.session-files/..."}
 ```
 
 回执只记录 `attachmentId` 与路径前缀；字节数与文件内容未打印（CLI 输出长度有限，且证据不需要正文）。
 
 ```text
-shell.stop: status=succeeded run=a0d81c78-... stopped=true
-shell.run: status=succeeded run=a0d81c78-... state=stopped durationMs=70
+shell.stop: status=succeeded run=<run-id> stopped=true
+shell.run: status=succeeded run=<run-id> state=stopped durationMs=70
 history.events.added: input/applied=+3 input/message=+2
 shell.list: runs=0
 ```
@@ -874,15 +874,15 @@ shell.list: runs=0
 **证据 S：界面注册（alpha.21 configured profile）**
 
 ```bash
-D=$(mktemp -d /tmp/d12ui-XXXXXX)
+D=$(mktemp -d)   # 临时数据目录
 go run ./cmd/dimagent selfcheck -data-dir "$D" \
-  -server $HOME/.dimcode-alpha/rust/dimcode-server \
-  -model-config /tmp/offline.json -create -ui-attach -ui-close -ui-status -short
+  -server <server-binary> \
+  -model-config <model-config> -create -ui-attach -ui-close -ui-status -short
 ```
 
 ```text
-ui.attach: uiId=a305e222-337a-41dd-8624-79b52d6f91de generation=1 state=online
-ui.close: uiId=a305e222-337a-41dd-8624-79b52d6f91de state=closed
+ui.attach: uiId=<ui-id> generation=1 state=online
+ui.close: uiId=<ui-id> state=closed
 ui.status: instances=0 webConnections=0
 ```
 
@@ -908,15 +908,15 @@ daemon.ping: sessions=1 connections=1（没有成员会话）
 修复后（证据用例显式传 `--permission-preset full-access`；selfcheck 缺省仍为空）的完整证据：
 
 ```bash
-D=$(mktemp -d /tmp/d12collab-XXXXXX)
-DIMAGENT_COLLAB_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=/private/tmp/dimagent-real-model/home \
-  DIMAGENT_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+D=$(mktemp -d)   # 临时数据目录
+DIMAGENT_COLLAB_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=<fixture-home> \
+  DIMAGENT_APP_SERVER_BIN=<server-binary> \
   go test ./internal/app -run TestRealCollaborationMemberStopEvidence -count=1 -v
 ```
 
 ```text
-leader session: a313a10d-...
-成员会话: [4a56b86c-ff9f-4c31-8972-3159a94fb02b]
+leader session: <session-id>
+成员会话: [<member-session-id>]
 停止回执: intent=succeeded status=cancelled stopped=true err=<nil> 耗时=3ms
 成员停止后新增事实: turn/end=+1 input/applied=+1 step/model-output-end=+1
 成员停止后事实增量: 3
