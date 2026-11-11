@@ -381,9 +381,17 @@ dimagent update switch     # 检查 + 下载 + 切换；会话未收尾时明确
 | 项 | 口径 |
 |---|---|
 | 入口 | `App.CreateSession(ctx, cwd, preset)` → `catalog.Create`，参数 `permissionPolicy:{preset}`；`preset` 为空表示按服务端默认，**不猜** |
-| 为什么必须显式 | 默认策略下工具调用（含 `exec`/`agent`）会等待审批；没有人应答时工具停在 `step/tool-call` 之后，轮次不会结束。自检与自动化路径必须显式给 `full-access` |
-| selfcheck | `-permission-preset <档位>`（默认 `full-access`；显式传空表示按服务端默认） |
-| 正常创建路径 | 调用方给出用户当前选择的档位；集成层不补默认，也不在本地记录 |
+| 为什么不默认 full-access | 新建会话的档位是用户安全选择的一部分。集成层不能为了让工具调用“跑通”就静默提权：默认策略等待审批是服务端的正确行为，客户端应当呈现审批，而不是绕过 |
+| 自检与自动化 | 需要工具调用的证据/自检必须**显式传参**（例如 `--permission-preset full-access`）；缺省为空，不下发 `permissionPolicy` |
+| selfcheck | `-permission-preset <档位>`：缺省为空＝按服务端默认；文档与证据命令都显式写出档位 |
+| 正常创建路径 | 调用方给出用户当前选择的档位；没有选择时传空，由服务端默认策略决定；集成层不补默认，也不在本地记录 |
+
+**成员权限策略（只查协议与文档，不改实现）**
+
+- `session.collaboration.pending` 的请求形状是 `{turn_id, request_id, call_id, target, prompt}`；`target` 只有 `kind`（`agent`/`member`/`temporary`）、`agent_id`、`session_id`、`profile`，**没有权限策略字段**。
+- `agent` 工具的 `profile` 结构只接受 `name`、`description`、`systemPrompt`、`tools`、`model`（`additionalProperties:false`），同样没有权限字段。
+- 服务端在派发协作请求时按**请求分支当前的权限策略**采样（`PermissionState` → `member` 的 `permission_policy`），成员不能由客户端单独指定策略。
+- 结论：**成员策略由服务端决定，客户端不可指定**；客户端能做的只有先设置好发起会话/分支的档位。
 
 ## 5. 启动与退出（接线点）
 
@@ -895,9 +903,9 @@ daemon.ping: sessions=1 connections=1（没有成员会话）
 
 断点：`step/tool-call`（序号 41）之后没有 `tool-completed`/`tool-result`，也没有 `collaboration/*`，`turn/start` 没有 `turn/end`；daemon 线程全部空闲。同一现象在 `exec` 工具上也能复现——不是 `agent` 工具特有问题。
 
-根因：**新建会话没有显式请求权限档位**。夹具 `config.json` 里的 `permission=full-access` 不等于会话策略；`session.create` 不带 `permissionPolicy` 时服务端用默认策略，工具调用转去等待审批（审批是通知，不进入历史事实），没有人应答就一直等。对照实验：同一夹具、同一提示词，`SetPermissionTier(..., "full-access")` 后成员立即创建。
+根因：**新建会话没有显式请求权限档位**（当时自检新建路径缺少这个参数）。夹具 `config.json` 里的 `permission=full-access` 不等于会话策略；`session.create` 不带 `permissionPolicy` 时服务端用默认策略，工具调用转去等待审批（审批是通知，不进入历史事实），没有人应答就一直等。对照实验：同一夹具、同一提示词，`SetPermissionTier(..., "full-access")` 后成员立即创建。
 
-修复后（本版 `CreateSession` 显式带 `--permission-preset full-access`）的完整证据：
+修复后（证据用例显式传 `--permission-preset full-access`；selfcheck 缺省仍为空）的完整证据：
 
 ```bash
 D=$(mktemp -d /tmp/d12collab-XXXXXX)
@@ -1038,28 +1046,29 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 22. **agent 清单不按 hello 预判**：`agent.list` 是内建方法，真实 hello 不声明；直接调用，缺失时按 `unknown_method` 归为能力缺失。
 23. **账号 provider 解析按实例缓存**：`account.providers` 解析一次；登录方式只取服务端声明，未声明的方法不会本地推断。
 24. **设备码状态未知即拒绝**：只映射 pending/completed/failed/expired/canceled（含常见别名），其他取值按事实不合法报错，不改写成 pending。
-25. **默认权限策略会等审批**：`session.create` 不带 `permissionPolicy` 时服务端用默认策略，工具调用会停在 `step/tool-call` 之后等待审批，轮次不结束；自检与自动化必须显式给 `full-access`，正常路径传用户选择的档位。
-26. **成员停止的真实端到端已跑通**：显式 full-access 下成员创建、`session.collaboration.cancel` 的 `cancelled` 与停止后事实收敛均已验证；`idle` 视为已停。
-27. **`ui.*` 只做普通连接注册**：`ui.open` 的叶子路径需要 rutis 会话，不在 Go 侧实现；`ui.attach` 失败按稳定 appError 分类。
-28. **`ui.shutdown` 是 advisory**：只记录并标状态，是否关窗由宿主决定；重连后的重新注册只在本地注册存在且未被建议关闭时进行。
-29. **断线恢复以行标识判重**：模型可能在断线期间继续产生事实，事实总数会变；是否重复只看行/事实标识，不看总数。
-30. **共享订阅的连接数观察依赖 `daemon.ping`**：它只给连接与会话计数，看不到持有者数量；持有者语义由 `session.Manager` 的租约保证。
-31. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
-32. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
-33. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
-34. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
-35. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
-36. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
-37. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
-38. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
-39. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
-40. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
-41. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-42. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-43. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-44. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-45. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-46. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+25. **权限档位不默认提权**：`session.create` 不带 `permissionPolicy` 时按服务端默认策略；默认策略下工具调用会停在 `step/tool-call` 之后等待审批。集成层不替用户选 `full-access`，需要工具调用的自检/证据必须显式传档位，正常路径传用户选择。
+26. **成员权限策略不可由客户端指定**：协作请求与 `agent` 工具 profile 都没有权限字段；服务端按发起分支的当前策略采样给成员。
+27. **成员停止的真实端到端已跑通**：显式 full-access 下成员创建、`session.collaboration.cancel` 的 `cancelled` 与停止后事实收敛均已验证；`idle` 视为已停。
+28. **`ui.*` 只做普通连接注册**：`ui.open` 的叶子路径需要 rutis 会话，不在 Go 侧实现；`ui.attach` 失败按稳定 appError 分类。
+29. **`ui.shutdown` 是 advisory**：只记录并标状态，是否关窗由宿主决定；重连后的重新注册只在本地注册存在且未被建议关闭时进行。
+30. **断线恢复以行标识判重**：模型可能在断线期间继续产生事实，事实总数会变；是否重复只看行/事实标识，不看总数。
+31. **共享订阅的连接数观察依赖 `daemon.ping`**：它只给连接与会话计数，看不到持有者数量；持有者语义由 `session.Manager` 的租约保证。
+32. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
+33. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
+34. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
+35. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
+36. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
+37. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
+38. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
+39. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
+40. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
+41. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
+42. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+43. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+44. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+45. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+46. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+47. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -1071,7 +1080,8 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
-| 2026-11-11 | 成员停止真实端到端跑通：根因是新建会话未显式带权限档位（默认策略等审批）；`catalog.Create`/`App.CreateSession` 增加 `PermissionPreset`，selfcheck 默认 full-access；真实 `cancelled` 与成员事实收敛已验证 | 复盘结论收尾 | 
+| 2026-11-11 | 纠正权限默认值：selfcheck `-permission-preset` 缺省为空（不默认提权），工具类证据显式传 full-access；文档补充“成员策略由服务端按发起分支采样，客户端不可指定” | 默认 full-access 是提权隐患 | 
+| 2026-11-11 | 成员停止真实端到端跑通：根因是新建会话未显式带权限档位（默认策略等审批）；`catalog.Create`/`App.CreateSession` 增加 `PermissionPreset`，selfcheck 缺省为空、证据用例显式传 full-access；真实 `cancelled` 与成员事实收敛已验证 | 复盘结论收尾 | 
 | 2026-11-11 | 成员停止真实尝试：模型调用 `agent` 一次但未产生协作请求/投递，5 分钟轮次未结束，按 blocked 记录 | 收尾 A 组最后一条 | 
 | 2026-11-11 | 界面注册：`ui.attach`/`ui.close`/`ui.status`，建议性 `ui.shutdown`，detach/reattach 跟随与失败码分类 | 连接侧查清普通注册路径 | 
 | 2026-11-11 | A 组集成层真实证据：断线恢复、多窗口共享订阅、未知结果核对、附件真实写入、运行中停止 | 收尾真实证据 | 

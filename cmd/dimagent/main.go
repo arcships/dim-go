@@ -83,7 +83,8 @@ func usage() {
   -ui-status          读取界面清单（ui.status）
   -session <标识>     打开已有会话；省略时取目录里的第一条
   -create             目录为空时新建一个会话
-  -permission-preset <档位> 新建会话的权限档位（默认 full-access；空表示按服务端默认）
+  -permission-preset <档位> 新建会话的权限档位；缺省为空＝按服务端默认，不下发 permissionPolicy
+                          需要 full-access 的证据用例必须显式传参
   -cwd <目录>         新建会话的工作目录；缺省取当前目录
   -lines <条数>       打印最近多少行（默认 10）
   -older <页数>       打开后向前翻多少页更早的轮次（默认 0）
@@ -130,7 +131,7 @@ func runSelfCheck(args []string) int {
 	flags.Var(&serverArgs, "server-arg", "追加给服务端的参数，可重复")
 	sessionID := flags.String("session", "", "要打开的会话；省略时取目录第一条")
 	create := flags.Bool("create", false, "目录为空时新建一个会话")
-	permissionPreset := flags.String("permission-preset", "full-access", "新建会话的权限档位")
+	permissionPreset := flags.String("permission-preset", "", "新建会话的权限档位；空表示按服务端默认")
 	cwd := flags.String("cwd", "", "新建会话的工作目录")
 	lines := flags.Int("lines", 10, "打印最近多少行")
 	older := flags.Int("older", 0, "打开后向前翻多少页")
