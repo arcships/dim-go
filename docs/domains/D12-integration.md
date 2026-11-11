@@ -486,6 +486,7 @@ go test -race ./internal/app/
 | 账号邮箱透传（browser/device）与设备码取消 | `TestAccountEmailAndDeviceCancel` |
 | 登出成功后清 provider 解析缓存 | `TestLogoutClearsProviderBinding` |
 | MCP 导入新形状（resolutions/expectedVersion）与冲突映射 | `TestMCPImportApplyMapsResolutions` |
+| 断线恢复、共享订阅、未知核对（真实 daemon，环境变量开启） | `TestRealResilienceEvidence` |
 | 应用更新：检查到新版、已是最新 | `TestUpdaterCheckFindsNewVersion`、`TestUpdaterUpToDate` |
 | 应用更新：下载摘要不一致留在待下载 | `TestUpdaterDownloadChecksumFailure` |
 | 应用更新：有会话时切换推迟、产物不替换 | `TestUpdaterSwitchDeferredWithOpenSession` |
@@ -788,6 +789,52 @@ runtime.list: count=3 [node=off python=off uv=off]
 - 带预设的实例在 hello 里声明 `runtime.*`；不带预设时这些方法不注册（按能力缺失零请求）。
 - `plugin.list` 出现 `RuntimeManager`；`runtime.list` 给出 node/python/uv 三个组件的 `off` 状态。
 
+**证据 Q：断线恢复、共享订阅与未知核对（alpha.21 夹具）**
+
+```bash
+D=$(mktemp -d /tmp/d12x-XXXXXX)   # 在测试内复制夹具 home
+DIMAGENT_RESILIENCE_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=/private/tmp/dimagent-real-model/home \
+  DIMAGENT_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+  go test ./internal/app -run TestRealResilienceEvidence -count=1 -v
+```
+
+```text
+连接数: 初始 control+stream=2；第二个持有者后=2；释放一个后=2
+已杀掉 daemon: pidSet=true
+恢复: head=1->1 rows=4->4 唯一行=4 input/message=8->11
+未知核对: status=succeeded reasonSet=false 新增 input/message=1 该 submissionId 出现=1
+连接数: 释放会话后控制连接已重连中，未能取到计数: app server connection closed: EOF
+```
+
+- 多窗口共享：同一会话两个持有者时连接数不变（仍 control+stream=2），释放一个仍在；两个都释放后控制连接进入回收（EOF 是自启实例被回收的表现）。
+- 断线恢复：`kill -9` daemon 后自动重连并重读；行数与唯一行数一致（4/4），没有重复或缺失。期间模型继续产生的新事实会让 `input/message` 总数增加，重复以行标识为准。
+- 未知核对：极短发送超时让结算先转未知，`session.input_lookup` 核对后收敛为 `succeeded`，该 `submissionId` 在历史里只出现 1 次（不重发）。
+
+**证据 R：附件真实写入与运行中停止（configured profile）**
+
+```bash
+D=$(mktemp -d /tmp/d12att-XXXXXX)
+go run ./cmd/dimagent selfcheck -data-dir "$D" \
+  -server $HOME/.dimcode-alpha/rust/dimcode-server \
+  -model-config /tmp/offline.json -create -attachment "attachment evidence" -short
+```
+
+```text
+attachment: status=succeeded reason="" result={"attachmentId":"2037f69a-...","path":"<临时数据目录>/rust/dimcode.sqlite.session-files/..."}
+```
+
+回执只记录 `attachmentId` 与路径前缀；字节数与文件内容未打印（CLI 输出长度有限，且证据不需要正文）。
+
+```text
+shell.stop: status=succeeded run=a0d81c78-... stopped=true
+shell.run: status=succeeded run=a0d81c78-... state=stopped durationMs=70
+history.events.added: input/applied=+3 input/message=+2
+shell.list: runs=0
+```
+
+- `attachment.put` 在 configured profile 上真实可用，门禁放行并拿到 `attachmentId` 与路径；mock profile 会按能力缺失拒绝。
+- 运行中停止：`shell.stop` 返回 `stopped=true`，运行状态收敛为 `stopped`，清单清空。
+
 ### 7.4 自检子命令
 
 ```bash
@@ -904,22 +951,24 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 22. **agent 清单不按 hello 预判**：`agent.list` 是内建方法，真实 hello 不声明；直接调用，缺失时按 `unknown_method` 归为能力缺失。
 23. **账号 provider 解析按实例缓存**：`account.providers` 解析一次；登录方式只取服务端声明，未声明的方法不会本地推断。
 24. **设备码状态未知即拒绝**：只映射 pending/completed/failed/expired/canceled（含常见别名），其他取值按事实不合法报错，不改写成 pending。
-25. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
-26. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
-27. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
-28. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
-29. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
-30. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
-31. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
-32. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
-33. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
-34. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
-35. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-36. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-37. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-38. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-39. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-40. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+25. **断线恢复以行标识判重**：模型可能在断线期间继续产生事实，事实总数会变；是否重复只看行/事实标识，不看总数。
+26. **共享订阅的连接数观察依赖 `daemon.ping`**：它只给连接与会话计数，看不到持有者数量；持有者语义由 `session.Manager` 的租约保证。
+27. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
+28. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
+29. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
+30. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
+31. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
+32. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
+33. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
+34. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
+35. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
+36. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
+37. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+38. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+39. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+40. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+41. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+42. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -931,6 +980,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | A 组集成层真实证据：断线恢复、多窗口共享订阅、未知结果核对、附件真实写入、运行中停止 | 收尾真实证据 | 
 | 2026-11-11 | 上下文占用（`session.context.usage`）与手动压缩（`session.context.compact`）、成员停止（`session.collaboration.cancel`）、默认预设（`--defaults` + `runtime.list` 门禁）；账号邮箱透传/设备码取消/provider 绑定清理；MCP 导入新形状 | 投影与扩展领域查明真实形状；账号与 MCP 导入补齐 | 
 | 2026-11-11 | 接上应用更新：装配 `host.Updater`（当前版本、渠道源、单文件目标、会话空闲探针、退出五阶段、重启、诊断），`dimagent update check/download/switch` 子命令 | 更新收尾；真实渠道离线未请求 | 
 | 2026-11-11 | 接上命令规则来源 `interaction.RuleSource`：`permission.rules` 读取、`permission.set_rules` 带版本写入、冲突透传不重试 | 交互领域新增命令规则面 | 
