@@ -27,6 +27,8 @@ type fakeWriter struct {
 	next        int
 	registerErr error
 	statusFor   func(call int) write.Status
+	reply       json.RawMessage
+	reason      string
 }
 
 func newFakeWriter() *fakeWriter {
@@ -55,6 +57,8 @@ func (w *fakeWriter) Register(intent write.Intent) (write.IntentView, error) {
 		Key:       intent.Key,
 		Kind:      intent.Kind,
 		Status:    status,
+		Reason:    w.reason,
+		Result:    append(json.RawMessage(nil), w.reply...),
 		Content:   append(json.RawMessage(nil), intent.Params...),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
@@ -82,6 +86,18 @@ func (w *fakeWriter) intentList() []write.Intent {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return append([]write.Intent(nil), w.intents...)
+}
+
+func (w *fakeWriter) setReason(reason string) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.reason = reason
+}
+
+func (w *fakeWriter) setReply(raw json.RawMessage) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.reply = append(json.RawMessage(nil), raw...)
 }
 
 func (w *fakeWriter) setStatusFor(fn func(call int) write.Status) {
@@ -115,9 +131,11 @@ func (f wakeupReaderFunc) ReadWakeups(ctx context.Context, scope WakeupScope) ([
 }
 
 type toolServerReaderStub struct {
-	list    func(context.Context) ([]ToolServer, error)
-	probe   func(context.Context, string) (ToolServerProbe, error)
-	preview func(context.Context, string) (ImportPreview, error)
+	list       func(context.Context) ([]ToolServer, error)
+	probe      func(context.Context, string) (ToolServerProbe, error)
+	preview    func(context.Context, string) (ImportPreview, error)
+	sources    func(context.Context, string) ([]MCPImportSource, error)
+	mcpPreview func(context.Context, MCPImportPreviewRequest) (MCPImportPreview, error)
 }
 
 func (s toolServerReaderStub) ReadToolServers(ctx context.Context) ([]ToolServer, error) {
@@ -129,7 +147,24 @@ func (s toolServerReaderStub) ProbeToolServer(ctx context.Context, serverID stri
 }
 
 func (s toolServerReaderStub) PreviewToolServerImport(ctx context.Context, source string) (ImportPreview, error) {
+	if s.preview == nil {
+		return ImportPreview{}, errors.New("旧预览未配置")
+	}
 	return s.preview(ctx, source)
+}
+
+func (s toolServerReaderStub) ReadMCPImportSources(ctx context.Context, cwd string) ([]MCPImportSource, error) {
+	if s.sources == nil {
+		return nil, errors.New("来源未配置")
+	}
+	return s.sources(ctx, cwd)
+}
+
+func (s toolServerReaderStub) PreviewMCPImport(ctx context.Context, request MCPImportPreviewRequest) (MCPImportPreview, error) {
+	if s.mcpPreview == nil {
+		return MCPImportPreview{}, errors.New("真实预览未配置")
+	}
+	return s.mcpPreview(ctx, request)
 }
 
 type workflowReaderStub struct {
@@ -269,22 +304,27 @@ func TestHookSourceIsTheOnlyWritableOne(t *testing.T) {
 }
 
 func TestImportPreviewSelectsOnlyCheckedCandidates(t *testing.T) {
-	preview := ImportPreview{
-		Candidates: []ImportCandidate{
-			{Key: "alpha", Server: ToolServerSpec{Name: "alpha", Transport: ToolTransportStdio, Command: "alpha-bin"}},
-			{Key: "beta", Server: ToolServerSpec{Name: "beta", Transport: ToolTransportHTTP, URL: "https://beta.example"}},
-			{Key: "gamma", Server: ToolServerSpec{Name: "gamma", Transport: ToolTransportSSE, URL: "https://gamma.example"}},
+	preview := MCPImportPreview{
+		Revision:       "native:user/mcp:1",
+		SourceRevision: "source-1",
+		Store:          &MCPImportStore{ID: "config-a", Client: "claude-code", Scope: "user", Path: "~/.claude.json"},
+		Entries: []MCPImportEntry{
+			{ID: "alpha", Transport: "stdio", Status: MCPImportChanged},
+			{ID: "beta", Transport: "http", Status: MCPImportChanged},
+			{ID: "gamma", Transport: "sse", Status: MCPImportConflict, Error: "differs"},
 		},
+		UnknownTopLevel: []string{"other"},
 	}
 	reader := toolServerReaderStub{
-		list: func(context.Context) ([]ToolServer, error) { return nil, nil },
-		probe: func(context.Context, string) (ToolServerProbe, error) {
-			return ToolServerProbe{}, nil
+		list:  func(context.Context) ([]ToolServer, error) { return nil, nil },
+		probe: func(context.Context, string) (ToolServerProbe, error) { return ToolServerProbe{}, nil },
+		mcpPreview: func(context.Context, MCPImportPreviewRequest) (MCPImportPreview, error) {
+			return preview, nil
 		},
-		preview: func(context.Context, string) (ImportPreview, error) { return preview, nil },
 	}
 	writer := newFakeWriter()
-	service, err := New(Config{ToolServers: reader, Writer: writer})
+	writer.setReply(json.RawMessage(`{"revision":"native:user/mcp:2"}`))
+	service, err := New(Config{ToolServers: reader, MCPImports: reader, Writer: writer})
 	if err != nil {
 		t.Fatalf("创建领域实例: %v", err)
 	}
@@ -294,7 +334,7 @@ func TestImportPreviewSelectsOnlyCheckedCandidates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("预览导入: %v", err)
 	}
-	if len(got.Candidates) != 3 {
+	if len(got.Candidates) != 3 || got.Candidates[0].Key != "alpha" {
 		t.Fatalf("预览候选条数不符: %+v", got.Candidates)
 	}
 	if _, err := service.ApplyToolServerImport(context.Background(), "config-a", nil); !errors.Is(err, ErrEmptySelection) {
@@ -314,33 +354,30 @@ func TestImportPreviewSelectsOnlyCheckedCandidates(t *testing.T) {
 	if err != nil {
 		t.Fatalf("按勾选写入: %v", err)
 	}
-	if result.Written != 2 || len(result.Views) != 2 {
-		t.Fatalf("写入条数不符: %+v", result)
+	if result.Written != 2 || len(result.Views) != 1 || result.Revision != "native:user/mcp:2" {
+		t.Fatalf("写入结果不符: %+v", result)
 	}
 	intents := writer.intentList()
-	if len(intents) != 2 {
-		t.Fatalf("写入条数不等于勾选条数: %d", len(intents))
+	if len(intents) != 1 {
+		t.Fatalf("导入应只登记一条写意图: %d", len(intents))
 	}
-	var names []string
-	for _, intent := range intents {
-		managed, err := DecodeManagementWrite(intent.Params)
-		if err != nil {
-			t.Fatalf("解析管理写入: %v", err)
-		}
-		if managed.Op != OpToolServerAdd {
-			t.Fatalf("导入写入操作不符: %q", managed.Op)
-		}
-		var payload ToolServerAddPayload
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			t.Fatalf("解析导入载荷: %v", err)
-		}
-		if payload.ImportSource != "config-a" || payload.CandidateKey == "" {
-			t.Fatalf("导入载荷缺少来源或候选键: %+v", payload)
-		}
-		names = append(names, payload.Server.Name)
+	managed, err := DecodeManagementWrite(intents[0].Params)
+	if err != nil {
+		t.Fatalf("解析管理写入: %v", err)
 	}
-	if len(names) != 2 || names[0] != "beta" || names[1] != "gamma" {
-		t.Fatalf("写入顺序或候选不符: %v", names)
+	if managed.Op != OpMCPImportApply {
+		t.Fatalf("导入写入操作不符: %q", managed.Op)
+	}
+	var payload MCPImportApplyPayload
+	if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+		t.Fatalf("解析导入载荷: %v", err)
+	}
+	if payload.Source != SourceUser || payload.From != "config-a" ||
+		payload.ExpectedVersion != "native:user/mcp:1" || payload.ExpectedSourceRevision != "source-1" {
+		t.Fatalf("导入载荷缺少来源或版本: %+v", payload)
+	}
+	if len(payload.Resolutions) != 2 || payload.Resolutions[0].ID != "beta" || payload.Resolutions[1].ID != "gamma" {
+		t.Fatalf("resolutions 只应包含勾选条目: %+v", payload.Resolutions)
 	}
 }
 
@@ -719,15 +756,15 @@ func TestDecodeRealMethodNamesNormalizes(t *testing.T) {
 		},
 		{
 			name:   "mcp import apply",
-			params: `{"op":"mcp.import.apply","payload":{"source":"claude-code:user","ids":["c1"]}}`,
-			wantOp: OpToolServerAdd,
+			params: `{"op":"mcp.import.apply","payload":{"source":"user","from":"claude-code:user","expectedVersion":"v1","expectedSourceRevision":"s1","resolutions":[{"id":"c1","action":"import"}]}}`,
+			wantOp: OpMCPImportApply,
 			check: func(t *testing.T, payload json.RawMessage) {
-				var decoded ToolServerAddPayload
+				var decoded MCPImportApplyPayload
 				if err := json.Unmarshal(payload, &decoded); err != nil {
 					t.Fatalf("解析 MCP 导入载荷: %v", err)
 				}
-				if decoded.ImportSource != "claude-code:user" || decoded.CandidateKey != "c1" {
-					t.Fatalf("MCP 导入归一不符: %+v", decoded)
+				if decoded.From != "claude-code:user" || len(decoded.Resolutions) != 1 || decoded.Resolutions[0].ID != "c1" {
+					t.Fatalf("MCP 导入载荷不符: %+v", decoded)
 				}
 			},
 		},
@@ -1020,5 +1057,90 @@ func TestSkillCatalogVersionAndProjectHooksRead(t *testing.T) {
 	}
 	if project.ReadAt.IsZero() {
 		t.Fatal("项目钩子读数缺少读取时间")
+	}
+}
+
+func TestMCPImportSourcesAndPreviewMapping(t *testing.T) {
+	entries := 2
+	preview := MCPImportPreview{
+		Revision:       "native:user/mcp:1",
+		SourceRevision: "source-digest",
+		Store:          &MCPImportStore{ID: "codex:user", Client: "codex", Scope: "user", Path: "~/.codex/config.toml"},
+		Entries: []MCPImportEntry{{
+			ID: "demo", Transport: "stdio", Status: MCPImportChanged,
+			Changes:     []MCPImportField{{Field: "command", Kind: "string"}},
+			Unsupported: []MCPImportUnsupported{{Field: "future", Effect: "kept-unused"}},
+			Omitted:     1,
+		}},
+		UnknownTopLevel: []string{"theme", "other"},
+	}
+	reader := toolServerReaderStub{
+		list:  func(context.Context) ([]ToolServer, error) { return nil, nil },
+		probe: func(context.Context, string) (ToolServerProbe, error) { return ToolServerProbe{}, nil },
+		sources: func(context.Context, string) ([]MCPImportSource, error) {
+			return []MCPImportSource{
+				{ID: "claude-code:user", Client: "claude-code", Scope: "user", Path: "~/.claude.json", State: MCPImportSourceReady, Entries: &entries},
+				{ID: "codex:user", Client: "codex", Scope: "user", Path: "~/.codex/config.toml", State: MCPImportSourceUnreadable, Error: "permission denied"},
+				{ID: "omp:user", Client: "omp", Scope: "user", Path: "~/.omp/agent/mcp.json", State: MCPImportSourceTooLarge},
+				{ID: "omp:project", Client: "omp", Scope: "project", Path: ".omp/mcp.json", State: MCPImportSourceMalformed},
+			}, nil
+		},
+		mcpPreview: func(context.Context, MCPImportPreviewRequest) (MCPImportPreview, error) {
+			return preview, nil
+		},
+	}
+	service, err := New(Config{ToolServers: reader, MCPImports: reader})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+	ctx := context.Background()
+
+	sources, err := service.ListMCPImportSources(ctx, "/work")
+	if err != nil {
+		t.Fatalf("读取导入来源: %v", err)
+	}
+	if len(sources) != 4 || sources[0].State != MCPImportSourceReady ||
+		sources[1].State != MCPImportSourceUnreadable ||
+		sources[2].State != MCPImportSourceTooLarge ||
+		sources[3].State != MCPImportSourceMalformed {
+		t.Fatalf("来源状态映射不符: %+v", sources)
+	}
+
+	got, err := service.PreviewMCPImport(ctx, MCPImportPreviewRequest{Source: SourceUser, From: "codex:user"})
+	if err != nil {
+		t.Fatalf("预览导入: %v", err)
+	}
+	if got.Revision != preview.Revision || got.SourceRevision != preview.SourceRevision ||
+		got.Store == nil || got.Store.ID != "codex:user" ||
+		len(got.Entries) != 1 || got.Entries[0].Changes[0].Field != "command" ||
+		got.Entries[0].Unsupported[0].Effect != "kept-unused" || got.Entries[0].Omitted != 1 ||
+		len(got.UnknownTopLevel) != 2 || got.UnknownTopLevel[1] != "other" {
+		t.Fatalf("预览字段映射不符: %+v", got)
+	}
+}
+
+func TestMCPImportApplyConflict(t *testing.T) {
+	writer := newFakeWriter()
+	writer.setStatusFor(func(int) write.Status { return write.StatusFailed })
+	writer.setReason("发送明确失败: rpc error -32000 (mcp_settings_conflict): settings changed")
+	service, err := New(Config{Writer: writer})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+
+	_, err = service.ApplyMCPImport(context.Background(), MCPImportApplyRequest{
+		Source:                 SourceUser,
+		From:                   "claude-code:user",
+		ExpectedVersion:        "native:user/mcp:1",
+		ExpectedSourceRevision: "source-1",
+		Resolutions:            []MCPImportResolution{{ID: "pencil", Action: MCPImportActionImport}},
+	})
+	if !errors.Is(err, ErrImportConflict) {
+		t.Fatalf("冲突没有按 ErrImportConflict 返回: %v", err)
+	}
+	if intents := writer.intentList(); len(intents) != 1 {
+		t.Fatalf("冲突后不应重写: %d", len(intents))
 	}
 }

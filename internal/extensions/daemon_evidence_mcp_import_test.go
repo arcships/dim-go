@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver/daemon"
-	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 )
 
 // TestRealDaemonMCPImport 调查真实 mcp.import.sources/preview/apply：
@@ -59,30 +58,33 @@ func TestRealDaemonMCPImport(t *testing.T) {
 	})
 	t.Logf("服务端 %s（profile %s）", conn.Hello.ServerVersion, conn.Hello.DaemonProfile.Kind)
 
+	harness := newAppServerHarness(conn.Client)
+	harness.overlayWrites = false
+	writes := newWriteManager(t, harness)
+	service := newService(t, Config{
+		ToolServers: harness,
+		MCPImports:  harness,
+		Features:    conn,
+		Writer:      writes,
+		Logf: func(format string, args ...any) {
+			t.Logf(format, args...)
+		},
+	})
+
 	// 1. 已知来源：id/client/scope/path/state/entries，不读取条目内容。
-	var sourcesReply struct {
-		Sources []struct {
-			ID      string `json:"id"`
-			Client  string `json:"client"`
-			Scope   string `json:"scope"`
-			Path    string `json:"path"`
-			State   string `json:"state"`
-			Entries *int   `json:"entries"`
-			Error   string `json:"error"`
-		} `json:"sources"`
-	}
-	if err := conn.Client.CallInto(ctx, "mcp.import.sources", map[string]any{"cwd": workDir}, &sourcesReply); err != nil {
+	sources, err := service.ListMCPImportSources(ctx, workDir)
+	if err != nil {
 		t.Fatalf("mcp.import.sources: %v", err)
 	}
 	chosen := ""
-	for _, source := range sourcesReply.Sources {
+	for _, source := range sources {
 		entries := -1
 		if source.Entries != nil {
 			entries = *source.Entries
 		}
 		t.Logf("import.source id=%s client=%s scope=%s state=%s entries=%d path=%s",
 			source.ID, source.Client, source.Scope, source.State, entries, sanitizeHomePath(source.Path))
-		if chosen == "" && source.State == "ready" && source.Entries != nil && *source.Entries > 0 {
+		if chosen == "" && source.State == MCPImportSourceReady && source.Entries != nil && *source.Entries > 0 {
 			chosen = source.ID
 		}
 	}
@@ -91,37 +93,12 @@ func TestRealDaemonMCPImport(t *testing.T) {
 	}
 
 	// 2. 预览：target source 固定 user，from 为来源 id。
-	var preview struct {
-		Revision       string `json:"revision"`
-		SourceRevision string `json:"sourceRevision"`
-		Store          *struct {
-			ID     string `json:"id"`
-			Client string `json:"client"`
-			Scope  string `json:"scope"`
-			Path   string `json:"path"`
-		} `json:"store"`
-		Entries []struct {
-			ID        string `json:"id"`
-			Transport string `json:"transport"`
-			Status    string `json:"status"`
-			Changes   []struct {
-				Field string `json:"field"`
-				Kind  string `json:"kind"`
-			} `json:"changes"`
-			Unsupported []struct {
-				Field  string `json:"field"`
-				Effect string `json:"effect"`
-			} `json:"unsupported"`
-			Omitted int    `json:"omitted"`
-			Error   string `json:"error"`
-		} `json:"entries"`
-		UnknownTopLevel []string `json:"unknownTopLevel"`
-	}
-	if err := conn.Client.CallInto(ctx, "mcp.import.preview", map[string]any{
-		"cwd":    workDir,
-		"source": "user",
-		"from":   chosen,
-	}, &preview); err != nil {
+	preview, err := service.PreviewMCPImport(ctx, MCPImportPreviewRequest{
+		Cwd:    workDir,
+		Source: SourceUser,
+		From:   chosen,
+	})
+	if err != nil {
 		t.Fatalf("mcp.import.preview: %v", err)
 	}
 	storeID := ""
@@ -139,7 +116,7 @@ func TestRealDaemonMCPImport(t *testing.T) {
 		}
 		t.Logf("preview.entry id=%s status=%s transport=%s changes=%v unsupported=%d omitted=%d",
 			entry.ID, entry.Status, entry.Transport, fields, len(entry.Unsupported), entry.Omitted)
-		if importID == "" && (entry.Status == "changed" || entry.Status == "identical") {
+		if importID == "" && (entry.Status == MCPImportChanged || entry.Status == MCPImportIdentical) {
 			importID = entry.ID
 		}
 	}
@@ -147,39 +124,27 @@ func TestRealDaemonMCPImport(t *testing.T) {
 		t.Skip("预览没有可导入条目：真实导入证据 blocked（缺可用样本）")
 	}
 
-	// 3. 只应用这一条；resolutions 是逐条动作，不是一次性改全量。
-	applyParams := map[string]any{
-		"cwd":                    workDir,
-		"source":                 "user",
-		"from":                   chosen,
-		"expectedVersion":        preview.Revision,
-		"expectedSourceRevision": preview.SourceRevision,
-		"resolutions": []any{map[string]any{
-			"id": importID, "action": "import",
-		}},
+	// 3. 只应用这一条；resolutions 是逐条动作。
+	applyRequest := MCPImportApplyRequest{
+		Cwd:                    workDir,
+		Source:                 SourceUser,
+		From:                   chosen,
+		ExpectedVersion:        preview.Revision,
+		ExpectedSourceRevision: preview.SourceRevision,
+		Resolutions:            []MCPImportResolution{{ID: importID, Action: MCPImportActionImport}},
 	}
-	var applied struct {
-		Revision string `json:"revision"`
-	}
-	if err := conn.Client.CallInto(ctx, "mcp.import.apply", applyParams, &applied); err != nil {
+	applied, err := service.ApplyMCPImport(ctx, applyRequest)
+	if err != nil {
 		t.Fatalf("mcp.import.apply: %v", err)
 	}
 	t.Logf("apply revision=%s imported=%s", applied.Revision, importID)
 
-	var catalog struct {
-		UserRevision string `json:"userRevision"`
-		Servers      []struct {
-			ID        string `json:"id"`
-			Source    string `json:"source"`
-			Enabled   bool   `json:"enabled"`
-			Transport string `json:"transport"`
-		} `json:"servers"`
-	}
-	if err := conn.Client.CallInto(ctx, "mcp.catalog", nil, &catalog); err != nil {
+	servers, err := service.ListToolServers(ctx)
+	if err != nil {
 		t.Fatalf("apply 后 mcp.catalog: %v", err)
 	}
 	found := false
-	for _, server := range catalog.Servers {
+	for _, server := range servers.Items {
 		t.Logf("catalog.server id=%s source=%s enabled=%v transport=%s",
 			server.ID, server.Source, server.Enabled, server.Transport)
 		if server.ID == importID {
@@ -191,28 +156,20 @@ func TestRealDaemonMCPImport(t *testing.T) {
 	}
 
 	// 4. 用旧目标版本再次应用：必须 mcp_settings_conflict，且不重复写入。
-	_, staleErr := conn.Client.CallWithTimeout(ctx, "mcp.import.apply", applyParams, 10*time.Second)
-	var rpcErr *protocol.RPCError
-	conflict := errors.As(staleErr, &rpcErr) && rpcErr.AppError() == "mcp_settings_conflict"
+	_, staleErr := service.ApplyMCPImport(ctx, applyRequest)
+	conflict := errors.Is(staleErr, ErrImportConflict)
 	t.Logf("apply stale err=%v conflict=%v", staleErr, conflict)
 	if !conflict {
-		t.Fatalf("旧目标版本没有返回 mcp_settings_conflict: %v", staleErr)
+		t.Fatalf("旧目标版本没有返回 ErrImportConflict: %v", staleErr)
 	}
 
 	// 5. 清理：删除导入条目，来源文件保持不变。
-	var after struct {
-		UserRevision string `json:"userRevision"`
-	}
-	if err := conn.Client.CallInto(ctx, "mcp.catalog", nil, &after); err != nil {
-		t.Fatalf("清理前 mcp.catalog: %v", err)
-	}
-	rawRemove, err := conn.Client.CallWithTimeout(ctx, "mcp.remove", map[string]any{
-		"id": importID, "source": "user", "expectedVersion": after.UserRevision,
-	}, 10*time.Second)
+	removed, err := service.RemoveToolServerWithVersion(ctx, importID, applied.Revision)
 	if err != nil {
 		t.Fatalf("清理 mcp.remove: %v", err)
 	}
-	t.Logf("cleanup mcp.remove shape=%s", shapeOf(rawRemove))
+	t.Logf("cleanup mcp.remove shape=%s", shapeOf(removed.Result))
+
 }
 
 func shortDigest(value string) string {

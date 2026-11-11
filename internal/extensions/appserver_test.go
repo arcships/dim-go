@@ -501,6 +501,51 @@ func (h *appServerHarness) PreviewToolServerImport(ctx context.Context, source s
 	return preview, nil
 }
 
+func (h *appServerHarness) ReadMCPImportSources(ctx context.Context, cwd string) ([]MCPImportSource, error) {
+	params := map[string]any{}
+	if cwd != "" {
+		params["cwd"] = cwd
+	}
+	var result struct {
+		Sources []MCPImportSource `json:"sources"`
+	}
+	if err := h.client.CallInto(ctx, "mcp.import.sources", params, &result); err != nil {
+		return nil, err
+	}
+	return append([]MCPImportSource(nil), result.Sources...), nil
+}
+
+func (h *appServerHarness) PreviewMCPImport(ctx context.Context, request MCPImportPreviewRequest) (MCPImportPreview, error) {
+	params := map[string]any{"source": string(request.Source)}
+	if request.Cwd != "" {
+		params["cwd"] = request.Cwd
+	}
+	if request.From != "" {
+		params["from"] = request.From
+	}
+	if request.Document != "" {
+		params["document"] = request.Document
+	}
+	var result struct {
+		Revision        string           `json:"revision"`
+		SourceRevision  string           `json:"sourceRevision"`
+		Store           *MCPImportStore  `json:"store"`
+		Entries         []MCPImportEntry `json:"entries"`
+		UnknownTopLevel []string         `json:"unknownTopLevel"`
+	}
+	if err := h.client.CallInto(ctx, "mcp.import.preview", params, &result); err != nil {
+		return MCPImportPreview{}, err
+	}
+	return MCPImportPreview{
+		Revision:        result.Revision,
+		SourceRevision:  result.SourceRevision,
+		Store:           result.Store,
+		Entries:         append([]MCPImportEntry(nil), result.Entries...),
+		UnknownTopLevel: append([]string(nil), result.UnknownTopLevel...),
+		ReadAt:          time.Now(),
+	}, nil
+}
+
 // wireScheduledTask 是 `schedule.list` 的一项；wire 是 snake_case。
 type wireScheduledTask struct {
 	ID         string          `json:"id"`
@@ -745,6 +790,33 @@ func (h *appServerHarness) Send(ctx context.Context, req write.Request) (write.R
 		return write.Reply{Result: raw}, nil
 	case OpSkillsReloadCatalog:
 		raw, err := h.client.Call(ctx, "skills.reload_catalog", nil)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case OpMCPImportApply:
+		var payload MCPImportApplyPayload
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, err
+		}
+		params := map[string]any{
+			"source":          string(payload.Source),
+			"expectedVersion": payload.ExpectedVersion,
+			"resolutions":     payload.Resolutions,
+		}
+		if payload.Cwd != "" {
+			params["cwd"] = payload.Cwd
+		}
+		if payload.From != "" {
+			params["from"] = payload.From
+		}
+		if payload.Document != "" {
+			params["document"] = payload.Document
+		}
+		if payload.ExpectedSourceRevision != "" {
+			params["expectedSourceRevision"] = payload.ExpectedSourceRevision
+		}
+		raw, err := h.client.CallWithTimeout(ctx, "mcp.import.apply", params, 15*time.Second)
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -1293,18 +1365,31 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 					map[string]any{"name": "fetch"},
 				},
 			}},
-			{Method: "mcp.import.preview", Result: map[string]any{"source": "config-a", "candidates": []any{
-				map[string]any{"key": "alpha", "server": map[string]any{"name": "alpha", "transport": "stdio", "command": "alpha-bin"}},
-				map[string]any{"key": "beta", "server": map[string]any{"name": "beta", "transport": "http", "url": "https://beta.example"}},
-				map[string]any{"key": "gamma", "server": map[string]any{"name": "gamma", "transport": "sse", "url": "https://gamma.example"}},
-			}}},
+			{Method: "mcp.import.preview", Result: map[string]any{
+				"revision": "native:user/mcp:1", "sourceRevision": "source-1",
+				"store": map[string]any{"id": "config-a", "client": "claude-code", "scope": "user", "path": "~/.claude.json"},
+				"entries": []any{
+					map[string]any{"id": "alpha", "status": "changed", "transport": "stdio",
+						"changes": []any{map[string]any{"field": "command", "kind": "string"}}},
+					map[string]any{"id": "beta", "status": "changed", "transport": "http",
+						"changes": []any{map[string]any{"field": "url", "kind": "string"}}},
+					map[string]any{"id": "gamma", "status": "conflict", "transport": "sse",
+						"changes": []any{map[string]any{"field": "url", "kind": "string"}},
+						"error":   "existing entry differs"},
+				},
+				"unknownTopLevel": []any{"other"},
+			}},
 			{Method: "mcp.save", Result: map[string]any{"serverId": "srv-new"}},
 			{Method: "mcp.remove", Result: map[string]any{}},
-			{Method: "mcp.import.apply", Result: map[string]any{}},
+			{Method: "mcp.import.apply", Result: map[string]any{"revision": "native:user/mcp:2"}},
 		},
 	})
 	harness := newAppServerHarness(client)
-	service := newService(t, Config{ToolServers: harness, Writer: newWriteManager(t, harness)})
+	service := newService(t, Config{
+		ToolServers: harness,
+		MCPImports:  harness,
+		Writer:      newWriteManager(t, harness),
+	})
 	ctx := context.Background()
 
 	servers, err := service.ListToolServers(ctx)
@@ -1362,6 +1447,9 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 	if err != nil || len(preview.Candidates) != 3 {
 		t.Fatalf("导入预览: %v %+v", err, preview)
 	}
+	if preview.Candidates[0].Key != "alpha" || preview.Candidates[0].Server.Transport != ToolTransportStdio {
+		t.Fatalf("旧格式候选映射不符: %+v", preview.Candidates[0])
+	}
 	if requests := server.RequestsFor("mcp.save"); len(requests) != 2 {
 		t.Fatalf("预览写出了配置: %d", len(requests))
 	}
@@ -1373,17 +1461,30 @@ func TestAppServerToolServersAndImport(t *testing.T) {
 	if err != nil || result.Written != 2 {
 		t.Fatalf("按勾选写入: %v %+v", err, result)
 	}
-	applyParams := methodParams(t, server, "mcp.import.apply")
-	if len(applyParams) != 2 {
-		t.Fatalf("导入写入条数不等于勾选条数: %d", len(applyParams))
+	if result.Revision != "native:user/mcp:2" || len(result.Views) != 1 || len(result.Selected) != 2 {
+		t.Fatalf("导入结果不符: %+v", result)
 	}
-	keys := make([]string, 0, len(applyParams))
-	for _, params := range applyParams {
-		ids, _ := params["ids"].([]any)
-		if params["source"] != "config-a" || len(ids) != 1 {
-			t.Fatalf("导入写入缺少来源或候选: %+v", params)
+	applyParams := methodParams(t, server, "mcp.import.apply")
+	if len(applyParams) != 1 {
+		t.Fatalf("导入应只调用一次 mcp.import.apply: %d", len(applyParams))
+	}
+	params := applyParams[0]
+	if params["source"] != "user" || params["from"] != "config-a" ||
+		params["expectedVersion"] != "native:user/mcp:1" ||
+		params["expectedSourceRevision"] != "source-1" {
+		t.Fatalf("导入参数不符: %+v", params)
+	}
+	resolutions, _ := params["resolutions"].([]any)
+	if len(resolutions) != 2 {
+		t.Fatalf("resolutions 条数不等于勾选条数: %+v", params)
+	}
+	keys := make([]string, 0, len(resolutions))
+	for _, raw := range resolutions {
+		resolution, _ := raw.(map[string]any)
+		if resolution["action"] != "import" {
+			t.Fatalf("导入动作不符: %+v", resolution)
 		}
-		keys = append(keys, ids[0].(string))
+		keys = append(keys, resolution["id"].(string))
 	}
 	if strings.Join(keys, ",") != "beta,gamma" {
 		t.Fatalf("导入只应写入勾选条目: %v", keys)

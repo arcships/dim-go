@@ -140,6 +140,7 @@ type Config struct {
 	Hooks        HookReader
 	ProjectHooks ProjectHookReader
 	ToolServers  ToolServerReader
+	MCPImports   MCPImportReader
 	Scheduler    SchedulerReader
 	Workflows    WorkflowReader
 	Wakeups      WakeupReader
@@ -179,6 +180,7 @@ type Service struct {
 	toolServers   Snapshot[ToolServer]
 	probes        map[string]ToolServerProbe
 	imports       map[string]ImportPreview
+	mcpPreviews   map[string]MCPImportPreview
 	scheduled     Snapshot[ScheduledTask]
 	workflows     Snapshot[WorkflowDefinition]
 	workflowRuns  map[string]*Snapshot[WorkflowRun]
@@ -208,6 +210,7 @@ func New(cfg Config) (*Service, error) {
 		cfg:           cfg,
 		probes:        make(map[string]ToolServerProbe),
 		imports:       make(map[string]ImportPreview),
+		mcpPreviews:   make(map[string]MCPImportPreview),
 		workflowRuns:  make(map[string]*Snapshot[WorkflowRun]),
 		workflowWatch: make(map[string]struct{}),
 		wakeups:       make(map[string]*Snapshot[Wakeup]),
@@ -358,6 +361,7 @@ const (
 	OpHookSetEnabled      WriteOp = "hooks.set_enabled"
 	OpSkillsRefresh       WriteOp = "skills.refresh"
 	OpSkillsReloadCatalog WriteOp = "skills.reload_catalog"
+	OpMCPImportApply      WriteOp = "mcp.import.apply"
 	OpMCPAuthStart        WriteOp = "mcp.auth.start"
 	OpMCPAuthComplete     WriteOp = "mcp.auth.complete"
 	OpMCPAuthCancel       WriteOp = "mcp.auth.cancel"
@@ -383,7 +387,6 @@ const (
 	opWireHooksSave        WriteOp = "hooks.save"
 	opWireMCPSave          WriteOp = "mcp.save"
 	opWireMCPRemove        WriteOp = "mcp.remove"
-	opWireMCPImportApply   WriteOp = "mcp.import.apply"
 	opWirePluginEnable     WriteOp = "plugin.enable"
 	opWirePluginDisable    WriteOp = "plugin.disable"
 	opWireWakeupCancel     WriteOp = "session.wakeup.cancel"
@@ -392,13 +395,13 @@ const (
 func (op WriteOp) valid() bool {
 	switch op {
 	case OpHookSetEnabled, OpSkillsRefresh, OpSkillsReloadCatalog,
-		OpMCPAuthStart, OpMCPAuthComplete, OpMCPAuthCancel, OpMCPAuthLogout,
+		OpMCPImportApply, OpMCPAuthStart, OpMCPAuthComplete, OpMCPAuthCancel, OpMCPAuthLogout,
 		OpPluginInstall, OpPluginSetEnabled, OpPluginUpdate,
 		OpSkillInstall, OpSkillSetEnabled, OpHookWrite,
 		OpToolServerAdd, OpToolServerUpdate, OpToolServerRemove,
 		OpWorkflowStart, OpWorkflowStop, OpWakeupCancel,
 		opWireSkillsInstall, opWireSkillsSetEnabled, opWireHooksSave,
-		opWireMCPSave, opWireMCPRemove, opWireMCPImportApply,
+		opWireMCPSave, opWireMCPRemove,
 		opWirePluginEnable, opWirePluginDisable, opWireWakeupCancel:
 		return true
 	default:
@@ -549,26 +552,6 @@ func normalizeManagementWrite(managed ManagementWrite) (ManagementWrite, error) 
 			return ManagementWrite{}, fmt.Errorf("编码插件启停载荷: %w", err)
 		}
 		managed.Op = OpPluginSetEnabled
-		managed.Payload = raw
-	case opWireMCPImportApply:
-		var payload struct {
-			Source string   `json:"source"`
-			IDs    []string `json:"ids"`
-		}
-		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
-			return ManagementWrite{}, fmt.Errorf("%w: MCP 导入载荷无法解析: %v", ErrInvalidRequest, err)
-		}
-		if payload.Source == "" || len(payload.IDs) != 1 || payload.IDs[0] == "" {
-			return ManagementWrite{}, invalidRequest("MCP 导入需要来源与单个候选标识")
-		}
-		raw, err := json.Marshal(ToolServerAddPayload{
-			ImportSource: payload.Source,
-			CandidateKey: payload.IDs[0],
-		})
-		if err != nil {
-			return ManagementWrite{}, fmt.Errorf("编码 MCP 导入载荷: %w", err)
-		}
-		managed.Op = OpToolServerAdd
 		managed.Payload = raw
 	}
 	return managed, nil

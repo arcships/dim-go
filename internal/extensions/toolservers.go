@@ -2,7 +2,10 @@ package extensions
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -263,6 +266,201 @@ type ToolServerReader interface {
 	PreviewToolServerImport(ctx context.Context, source string) (ImportPreview, error)
 }
 
+// MCPImportSourceState 是 mcp.import.sources 的一个来源状态。
+type MCPImportSourceState string
+
+const (
+	MCPImportSourceReady      MCPImportSourceState = "ready"
+	MCPImportSourceAbsent     MCPImportSourceState = "absent"
+	MCPImportSourceUnreadable MCPImportSourceState = "unreadable"
+	MCPImportSourceTooLarge   MCPImportSourceState = "too-large"
+	MCPImportSourceMalformed  MCPImportSourceState = "malformed"
+)
+
+// MCPImportSource 是服务端扫描到的另一个客户端的配置来源。
+type MCPImportSource struct {
+	ID      string               `json:"id"`
+	Client  string               `json:"client"`
+	Scope   string               `json:"scope"`
+	Path    string               `json:"path"`
+	State   MCPImportSourceState `json:"state"`
+	Entries *int                 `json:"entries,omitempty"`
+	Error   string               `json:"error,omitempty"`
+}
+
+// MCPImportStatus 是预览里一条会被怎么处理。
+type MCPImportStatus string
+
+const (
+	MCPImportIdentical MCPImportStatus = "identical"
+	MCPImportChanged   MCPImportStatus = "changed"
+	MCPImportConflict  MCPImportStatus = "conflict"
+	MCPImportInvalid   MCPImportStatus = "invalid"
+)
+
+// MCPImportField 是写入会改变的字段名与值类型；不含值。
+type MCPImportField struct {
+	Field string `json:"field"`
+	Kind  string `json:"kind"`
+}
+
+// MCPImportUnsupported 是解码器不执行的成员及其处理方式。
+type MCPImportUnsupported struct {
+	Field  string `json:"field"`
+	Effect string `json:"effect"`
+}
+
+// MCPImportEntry 是预览里的一个条目。
+type MCPImportEntry struct {
+	ID          string                 `json:"id"`
+	Transport   string                 `json:"transport,omitempty"`
+	Status      MCPImportStatus        `json:"status"`
+	Changes     []MCPImportField       `json:"changes,omitempty"`
+	Unsupported []MCPImportUnsupported `json:"unsupported,omitempty"`
+	Omitted     int                    `json:"omitted,omitempty"`
+	Error       string                 `json:"error,omitempty"`
+}
+
+// MCPImportStore 是预览读取的已知来源身份。
+type MCPImportStore struct {
+	ID     string `json:"id"`
+	Client string `json:"client"`
+	Scope  string `json:"scope"`
+	Path   string `json:"path"`
+}
+
+// MCPImportPreview 是 mcp.import.preview 的归一化回执。
+type MCPImportPreview struct {
+	Revision        string
+	SourceRevision  string
+	Store           *MCPImportStore
+	Entries         []MCPImportEntry
+	UnknownTopLevel []string
+	ReadAt          time.Time
+}
+
+// MCPImportPreviewRequest 是预览参数。Source 是写入目标作用域（user/project）；
+// From 是 mcp.import.sources 的来源 id；Document 是客户端自带 JSON，二者只能给一个。
+type MCPImportPreviewRequest struct {
+	Cwd      string `json:"cwd,omitempty"`
+	Source   Source `json:"source"`
+	From     string `json:"from,omitempty"`
+	Document string `json:"document,omitempty"`
+}
+
+func (r MCPImportPreviewRequest) validate() error {
+	if r.Source != SourceUser && r.Source != SourceProject {
+		return invalidRequest("MCP 导入目标作用域 %q 不支持", r.Source)
+	}
+	if (r.From == "") == (r.Document == "") {
+		return invalidRequest("MCP 导入来源必须且只能给 from 或 document")
+	}
+	return nil
+}
+
+// MCPImportAction 是 resolutions 里一条动作。
+type MCPImportAction string
+
+const (
+	MCPImportActionImport  MCPImportAction = "import"
+	MCPImportActionSkip    MCPImportAction = "skip"
+	MCPImportActionReplace MCPImportAction = "replace"
+	MCPImportActionRename  MCPImportAction = "rename"
+)
+
+// MCPImportResolution 是要对一条预览条目执行的动作。
+type MCPImportResolution struct {
+	ID     string          `json:"id"`
+	Action MCPImportAction `json:"action"`
+	NewID  string          `json:"newId,omitempty"`
+}
+
+func (r MCPImportResolution) validate() error {
+	if err := requireText("MCP 导入条目标识", r.ID); err != nil {
+		return err
+	}
+	switch r.Action {
+	case MCPImportActionImport, MCPImportActionSkip, MCPImportActionReplace:
+		if r.NewID != "" {
+			return invalidRequest("动作 %s 不接受 newId", r.Action)
+		}
+	case MCPImportActionRename:
+		if err := requireText("MCP 导入新标识", r.NewID); err != nil {
+			return err
+		}
+	default:
+		return invalidRequest("MCP 导入动作 %q 不支持", r.Action)
+	}
+	return nil
+}
+
+// MCPImportApplyRequest 是 mcp.import.apply 的参数。
+type MCPImportApplyRequest struct {
+	Cwd                    string                `json:"cwd,omitempty"`
+	Source                 Source                `json:"source"`
+	From                   string                `json:"from,omitempty"`
+	Document               string                `json:"document,omitempty"`
+	ExpectedVersion        string                `json:"expectedVersion"`
+	ExpectedSourceRevision string                `json:"expectedSourceRevision,omitempty"`
+	Resolutions            []MCPImportResolution `json:"resolutions"`
+}
+
+func (r MCPImportApplyRequest) validate() error {
+	if r.Source != SourceUser && r.Source != SourceProject {
+		return invalidRequest("MCP 导入目标作用域 %q 不支持", r.Source)
+	}
+	if (r.From == "") == (r.Document == "") {
+		return invalidRequest("MCP 导入来源必须且只能给 from 或 document")
+	}
+	if err := requireText("MCP 导入目标版本", r.ExpectedVersion); err != nil {
+		return err
+	}
+	if r.From != "" && r.ExpectedSourceRevision == "" {
+		return invalidRequest("从来源导入时必须给 expectedSourceRevision")
+	}
+	if r.From == "" && r.ExpectedSourceRevision != "" {
+		return invalidRequest("expectedSourceRevision 只用于从来源导入")
+	}
+	if len(r.Resolutions) == 0 {
+		return invalidRequest("MCP 导入 resolutions 不能为空")
+	}
+	for _, resolution := range r.Resolutions {
+		if err := resolution.validate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// MCPImportApplyPayload 是 mcp.import.apply 写意图的载荷。
+type MCPImportApplyPayload struct {
+	Cwd                    string                `json:"cwd,omitempty"`
+	Source                 Source                `json:"source"`
+	From                   string                `json:"from,omitempty"`
+	Document               string                `json:"document,omitempty"`
+	ExpectedVersion        string                `json:"expectedVersion"`
+	ExpectedSourceRevision string                `json:"expectedSourceRevision,omitempty"`
+	Resolutions            []MCPImportResolution `json:"resolutions"`
+}
+
+// MCPImportApplyResult 是应用结果；Revision 是 apply 回执里的新目标版本。
+type MCPImportApplyResult struct {
+	Revision string
+	Intent   write.IntentView
+}
+
+// MCPImportReader 读取已知配置来源与导入预览。只读；应用走写登记。
+type MCPImportReader interface {
+	ReadMCPImportSources(ctx context.Context, cwd string) ([]MCPImportSource, error)
+	PreviewMCPImport(ctx context.Context, request MCPImportPreviewRequest) (MCPImportPreview, error)
+}
+
+// 导入失败分类。
+var (
+	// ErrImportConflict 表示目标或来源在预览之后已变化，未写入。
+	ErrImportConflict = errors.New("MCP 导入目标已变化")
+)
+
 // ToolServerAddPayload 是 mcp.save 意图的载荷（新增）。ImportSource 与 CandidateKey
 // 非空时表示这次新增来自一次导入预览。
 type ToolServerAddPayload struct {
@@ -290,6 +488,7 @@ type ImportResult struct {
 	Selected []string           `json:"selected"`
 	Views    []write.IntentView `json:"views,omitempty"`
 	Written  int                `json:"written"`
+	Revision string             `json:"revision,omitempty"`
 }
 
 // ListToolServers 读取工具服务器清单并更新镜像读数。读取清单不探测。
@@ -382,48 +581,150 @@ func (s *Service) ProbeSnapshot(serverID string) (ToolServerProbe, bool) {
 	return probe, true
 }
 
-// PreviewToolServerImport 读取一份配置里的候选并返回预览。它不写任何配置；
-// 预览结果按来源保存，供 ApplyToolServerImport 校验勾选。
-func (s *Service) PreviewToolServerImport(ctx context.Context, source string) (ImportPreview, error) {
-	if err := requireText("导入来源", source); err != nil {
-		return ImportPreview{}, err
+// ListMCPImportSources 读取服务端已知的客户端配置来源；只读，不返回值。
+func (s *Service) ListMCPImportSources(ctx context.Context, cwd string) ([]MCPImportSource, error) {
+	if err := s.requireFeature("mcp.import.sources"); err != nil {
+		return nil, err
 	}
-	if s.cfg.ToolServers == nil {
-		return ImportPreview{}, s.wrapReadError("mcp.import.preview", ErrCapabilityMissing)
+	if s.cfg.MCPImports == nil {
+		return nil, s.wrapReadError("mcp.import.sources", ErrCapabilityMissing)
 	}
 	s.readMu.Lock()
 	defer s.readMu.Unlock()
 	if s.isClosed() {
-		return ImportPreview{}, ErrClosed
+		return nil, ErrClosed
 	}
-	preview, err := s.cfg.ToolServers.PreviewToolServerImport(ctx, source)
+	sources, err := s.cfg.MCPImports.ReadMCPImportSources(ctx, cwd)
 	if err != nil {
-		return ImportPreview{}, s.wrapReadError("mcp.import.preview", err)
+		return nil, s.wrapReadError("mcp.import.sources", err)
 	}
-	preview.Source = source
+	return append([]MCPImportSource(nil), sources...), nil
+}
+
+// PreviewMCPImport 读取一次真实形状的导入预览并缓存，供 ApplyMCPImport 与旧包装
+// 使用。它不写任何配置。
+func (s *Service) PreviewMCPImport(ctx context.Context, request MCPImportPreviewRequest) (MCPImportPreview, error) {
+	if err := request.validate(); err != nil {
+		return MCPImportPreview{}, err
+	}
+	if err := s.requireFeature("mcp.import.preview"); err != nil {
+		return MCPImportPreview{}, err
+	}
+	if s.cfg.MCPImports == nil {
+		return MCPImportPreview{}, s.wrapReadError("mcp.import.preview", ErrCapabilityMissing)
+	}
+	s.readMu.Lock()
+	defer s.readMu.Unlock()
+	if s.isClosed() {
+		return MCPImportPreview{}, ErrClosed
+	}
+	preview, err := s.cfg.MCPImports.PreviewMCPImport(ctx, request)
+	if err != nil {
+		return MCPImportPreview{}, s.wrapReadError("mcp.import.preview", err)
+	}
 	if preview.ReadAt.IsZero() {
 		preview.ReadAt = s.cfg.Now()
 	}
-	if err := validateImportPreview(preview); err != nil {
-		return ImportPreview{}, err
-	}
-	stored := ImportPreview{
-		Source:     preview.Source,
-		Candidates: make([]ImportCandidate, len(preview.Candidates)),
-		ReadAt:     preview.ReadAt,
-	}
-	for index, candidate := range preview.Candidates {
-		candidate.Server.Args = append([]string(nil), candidate.Server.Args...)
-		candidate.Warnings = append([]string(nil), candidate.Warnings...)
-		stored.Candidates[index] = candidate
-	}
+	preview = cloneMCPImportPreview(preview)
 	s.mu.Lock()
-	s.imports[source] = stored
+	if s.mcpPreviews == nil {
+		s.mcpPreviews = make(map[string]MCPImportPreview)
+	}
+	s.mcpPreviews[mcpImportKey(request)] = preview
 	s.mu.Unlock()
-	return cloneImportPreview(stored), nil
+	return cloneMCPImportPreview(preview), nil
 }
 
-// ImportPreviewSnapshot 返回某个来源最近一次预览，不重读配置。
+// ApplyMCPImport 按 resolutions 逐条应用导入。写入经写登记只发一次；目标或来源
+// 在预览后变化时返回 ErrImportConflict，不重写。
+func (s *Service) ApplyMCPImport(ctx context.Context, request MCPImportApplyRequest) (MCPImportApplyResult, error) {
+	if err := request.validate(); err != nil {
+		return MCPImportApplyResult{}, err
+	}
+	if err := s.requireFeature("mcp.import.apply"); err != nil {
+		return MCPImportApplyResult{}, err
+	}
+	view, err := s.write(ctx, OpMCPImportApply, MCPImportApplyPayload{
+		Cwd:                    request.Cwd,
+		Source:                 request.Source,
+		From:                   request.From,
+		Document:               request.Document,
+		ExpectedVersion:        request.ExpectedVersion,
+		ExpectedSourceRevision: request.ExpectedSourceRevision,
+		Resolutions:            append([]MCPImportResolution(nil), request.Resolutions...),
+	}, true)
+	result := MCPImportApplyResult{Intent: view}
+	if err != nil {
+		return result, err
+	}
+	if view.Status == write.StatusFailed && strings.Contains(view.Reason, "mcp_settings_conflict") {
+		return result, ErrImportConflict
+	}
+	if view.Status != write.StatusSucceeded {
+		return result, ErrWriteNotSucceeded
+	}
+	if len(view.Result) == 0 {
+		return result, fmt.Errorf("%w: MCP 导入回执为空", ErrInvalidRequest)
+	}
+	var reply struct {
+		Revision string `json:"revision"`
+	}
+	if err := json.Unmarshal(view.Result, &reply); err != nil {
+		return result, fmt.Errorf("解析 MCP 导入回执: %w", err)
+	}
+	if reply.Revision == "" {
+		return result, fmt.Errorf("%w: MCP 导入回执缺少 revision", ErrInvalidRequest)
+	}
+	result.Revision = reply.Revision
+	return result, nil
+}
+
+func mcpImportKey(request MCPImportPreviewRequest) string {
+	raw, _ := json.Marshal(request)
+	sum := sha256.Sum256(raw)
+	return "extensions:mcpimport:" + hex.EncodeToString(sum[:8])
+}
+
+func cloneMCPImportPreview(preview MCPImportPreview) MCPImportPreview {
+	cloned := preview
+	if preview.Store != nil {
+		store := *preview.Store
+		cloned.Store = &store
+	}
+	cloned.Entries = make([]MCPImportEntry, len(preview.Entries))
+	for index, entry := range preview.Entries {
+		entry.Changes = append([]MCPImportField(nil), entry.Changes...)
+		entry.Unsupported = append([]MCPImportUnsupported(nil), entry.Unsupported...)
+		cloned.Entries[index] = entry
+	}
+	cloned.UnknownTopLevel = append([]string(nil), preview.UnknownTopLevel...)
+	return cloned
+}
+
+// PreviewToolServerImport 是旧便捷方法：内部转成真实 mcp.import.preview 请求
+// （目标作用域 user、from=source），并把真实预览转回扁平候选供旧调用方使用。
+func (s *Service) PreviewToolServerImport(ctx context.Context, source string) (ImportPreview, error) {
+	if err := requireText("导入来源", source); err != nil {
+		return ImportPreview{}, err
+	}
+	if s.cfg.MCPImports == nil {
+		return ImportPreview{}, s.wrapReadError("mcp.import.preview", ErrCapabilityMissing)
+	}
+	preview, err := s.PreviewMCPImport(ctx, MCPImportPreviewRequest{
+		Source: SourceUser,
+		From:   source,
+	})
+	if err != nil {
+		return ImportPreview{}, err
+	}
+	legacy := legacyImportPreview(source, preview)
+	s.mu.Lock()
+	s.imports[source] = legacy
+	s.mu.Unlock()
+	return cloneImportPreview(legacy), nil
+}
+
+// ImportPreviewSnapshot 返回某个来源最近一次旧格式预览，不重读配置。
 func (s *Service) ImportPreviewSnapshot(source string) (ImportPreview, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -434,11 +735,8 @@ func (s *Service) ImportPreviewSnapshot(source string) (ImportPreview, bool) {
 	return cloneImportPreview(preview), true
 }
 
-// ApplyToolServerImport 按勾选逐条写入导入候选。
-//
-// 先校验全部勾选键都在最近一次预览里、没有重复；任一不合法都不写入任何条目。
-// 每条候选登记一条管理写入，发送顺序与预览顺序一致。任一条没有明确成功即停止，
-// 返回已登记的结果与 ErrWriteNotSucceeded。
+// ApplyToolServerImport 是旧便捷方法：内部转成真实 mcp.import.apply，
+// resolutions 只包含勾选条目；不再逐条写 tool_server.add。
 func (s *Service) ApplyToolServerImport(ctx context.Context, source string, keys []string) (ImportResult, error) {
 	if err := requireText("导入来源", source); err != nil {
 		return ImportResult{}, err
@@ -457,43 +755,71 @@ func (s *Service) ApplyToolServerImport(ctx context.Context, source string, keys
 		selected[key] = struct{}{}
 	}
 
+	request := MCPImportPreviewRequest{Source: SourceUser, From: source}
 	s.mu.Lock()
-	preview, ok := s.imports[source]
+	preview, ok := s.mcpPreviews[mcpImportKey(request)]
 	s.mu.Unlock()
 	if !ok {
 		return ImportResult{}, ErrPreviewRequired
 	}
-	known := make(map[string]ImportCandidate, len(preview.Candidates))
-	for _, candidate := range preview.Candidates {
-		known[candidate.Key] = candidate
+	known := make(map[string]struct{}, len(preview.Entries))
+	for _, entry := range preview.Entries {
+		known[entry.ID] = struct{}{}
 	}
 	for key := range selected {
 		if _, ok := known[key]; !ok {
 			return ImportResult{}, fmt.Errorf("%w: %q", ErrUnknownCandidate, key)
 		}
 	}
-
-	result := ImportResult{Source: source}
-	for _, candidate := range preview.Candidates {
-		if _, wanted := selected[candidate.Key]; !wanted {
+	resolutions := make([]MCPImportResolution, 0, len(selected))
+	result := ImportResult{Source: source, Selected: make([]string, 0, len(selected))}
+	for _, entry := range preview.Entries {
+		if _, wanted := selected[entry.ID]; !wanted {
 			continue
 		}
-		result.Selected = append(result.Selected, candidate.Key)
-		view, err := s.write(ctx, OpToolServerAdd, ToolServerAddPayload{
-			Server:       candidate.Server,
-			ImportSource: source,
-			CandidateKey: candidate.Key,
-		}, false)
-		result.Views = append(result.Views, view)
-		if err != nil {
-			return result, err
-		}
-		if view.Status != write.StatusSucceeded {
-			return result, ErrWriteNotSucceeded
-		}
-		result.Written++
+		result.Selected = append(result.Selected, entry.ID)
+		resolutions = append(resolutions, MCPImportResolution{ID: entry.ID, Action: MCPImportActionImport})
 	}
+
+	applied, err := s.ApplyMCPImport(ctx, MCPImportApplyRequest{
+		Source:                 SourceUser,
+		From:                   source,
+		ExpectedVersion:        preview.Revision,
+		ExpectedSourceRevision: preview.SourceRevision,
+		Resolutions:            resolutions,
+	})
+	result.Revision = applied.Revision
+	if applied.Intent.ID != "" {
+		result.Views = []write.IntentView{applied.Intent}
+	}
+	if err != nil {
+		return result, err
+	}
+	result.Written = len(resolutions)
 	return result, nil
+}
+
+func legacyImportPreview(source string, preview MCPImportPreview) ImportPreview {
+	legacy := ImportPreview{
+		Source:     source,
+		Candidates: make([]ImportCandidate, 0, len(preview.Entries)),
+		ReadAt:     preview.ReadAt,
+	}
+	for _, entry := range preview.Entries {
+		candidate := ImportCandidate{
+			Key:      entry.ID,
+			Server:   ToolServerSpec{Name: entry.ID, Transport: ToolTransport(entry.Transport)},
+			Existing: entry.Status == MCPImportIdentical,
+		}
+		for _, unsupported := range entry.Unsupported {
+			candidate.Warnings = append(candidate.Warnings, unsupported.Field+":"+unsupported.Effect)
+		}
+		if entry.Error != "" {
+			candidate.Warnings = append(candidate.Warnings, entry.Error)
+		}
+		legacy.Candidates = append(legacy.Candidates, candidate)
+	}
+	return legacy
 }
 
 func validateImportPreview(preview ImportPreview) error {
