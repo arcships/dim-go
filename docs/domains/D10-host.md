@@ -178,7 +178,7 @@ Owner: D10 领域 agent
 - 同一进程只检查一次（迁移表没有从已是最新回到检查中的边）；重启后回到未检查。
 - 版本源沿用现有客户端形状：`<基址>/<通道>/<平台路径>/latest*.yml`，默认基址 `https://dimcode.echooai.com`、通道 `updates/stable`，平台路径 `mac/<arch>`、`win/x64`、`linux/x64`。清单解析 electron-builder 的 `version`、`files[].url/sha512/size` 与顶层 `path/sha512/size`；相对产物地址按清单地址解析。
 - 校验只有 sha512（base64 或十六进制），缺失摘要的清单视为失败；不做签名校验。
-- 切换顺序：会话收尾探测 → 可选退出五阶段 → 单文件原子替换（同目录临时文件 + `rename`）→ 重启步骤。任何一步失败都写 `update.switch`（`failed` + 分类）并保留当前版本；替换失败不会留下半截文件。
+- 切换顺序：会话收尾探测 → 可选退出五阶段 → 单文件原子替换（同目录临时文件 + `rename`）→ 重启步骤。任何一步失败都写 `update.switch`（`failed` + 分类）并保留当前版本；替换失败不会留下半截文件。真实产物是 macOS zip/.app、Windows NSIS、Linux AppImage，平台适配缺口见 6.3.4。
 - 默认超时：检查 15 秒、下载 10 分钟、收尾 30 秒、切换 5 分钟；均可由 `UpdateTimeouts` 覆盖。
 - 切换一旦开始就是终态：退出、替换或重启任一步失败都保留当前版本，但本进程不再重试，重启后回到未检查。
 - 更新只写诊断、不读会话事实，也不驱动连接；界面阶段只消费 `Updater.Status()`。
@@ -269,6 +269,7 @@ go test ./...          # 全仓库通过；internal/host ok
 go vet ./...           # 无输出
 go test -race -count=3 ./internal/host/   # 通过
 GOOS=windows go vet ./internal/host/      # 通过（仅编译验证）
+D10_REAL_CHANNEL=1 go test -run TestRealChannelCheck -v ./internal/host/   # 真实渠道只读检查
 ```
 
 本机（macOS arm64，Go 1.24.3）实测：`go test ./...` 全通过，`go vet ./...` 无输出，`internal/host` 竞态检测通过。
@@ -313,12 +314,92 @@ GOOS=windows go vet ./internal/host/      # 通过（仅编译验证）
 | 切换后版本号变化（假文件模拟） | `TestUpdaterSwitchDefersWhileSessionsBusy`（`ReadVersion` 从假文件读，切换后为 2.1.0） |
 | 切换缺目标路径/重启步骤时不迁移、不替换 | `TestUpdaterSwitchRequiresWiring`、`TestUpdaterSwitchWithoutShutdownWiring` |
 | 更新诊断字段也在白名单内 | `TestRecorderOnlyWritesWhitelistFields`、`TestRecorderEveryDeclaredEventMatchesShape` |
+| 真实渠道检查（可选；只读清单、不下载） | `TestRealChannelCheck`（`D10_REAL_CHANNEL=1`） |
+| 带空格产物地址编码 | `TestParseManifestEscapesSpacesInArtifactURL` |
 
-### 6.3 真实更新渠道（未验证）
+### 6.3 真实更新产物调查（2026-11-11，只读 + 真实 check）
 
-本版更新只验证到"清单/产物形状与状态机正确"：测试用本地 HTTP 服务模拟版本源与产物，校验 sha512、切换与假文件版本变化；**没有请求真实渠道**（`https://dimcode.echooai.com`），也没有在真实安装包上替换。
+本节是只读调查：读参考实现与已安装客户端、请求版本清单与 HEAD；**没有下载产物、没有替换任何安装文件**。参考仓库与 `~/.dimcode-alpha` 未改动，清单副本只落在 `/tmp`。
 
-原因：真实渠道提供的是 macOS `.app`（dmg/zip）与各平台安装器，本版只实现单文件产物替换；发布与签名工具链不在本领域。解除方式：发布阶段（X1）提供单文件产物或安装器适配后，用真实渠道跑一次"检查 → 下载校验 → 切换 → 重启后版本号变化"。
+#### 6.3.1 发布形态（只读参考）
+
+| 平台 | electron-builder target | 更新清单 | 更新产物 | 说明 |
+|---|---|---|---|---|
+| macOS arm64/x64 | dmg + zip | `latest-mac.yml` | `DimAgent-<ver>[-arm64]-mac.zip` | dmg 配 `writeUpdateInfo:false`，CI 断言清单只引用 zip；zip 内含 `.app` |
+| Windows x64 | nsis | `latest.yml` | `DimAgent Setup <ver>.exe` | 单文件 NSIS 安装器 |
+| Linux x64 | AppImage + tar.gz + deb | `latest-linux.yml` | `DimAgent.AppImage`（首个条目） | deb/tar.gz 不在自动更新路径 |
+
+- 清单字段：`version`、`files[].url/sha512/size`（Linux 还有 `blockMapSize`）、顶层 `path/sha512`、`releaseDate`；**没有签名字段**。
+- 签名与公证：macOS 用 Developer ID Application 签名（hardened runtime），构建阶段公证并把票据 staple 进 `.app`；Windows 在配置签名输入时用 signtool（sha256 + RFC3161 时间戳）；Linux 无签名。
+- 已安装客户端（`/Applications/DimAgent.app`，0.9.61）：`app-update.yml` 只有 `provider: generic`、`url: https://dimcode.echooai.com/updates/stable`、`updaterCacheDirName`，**没有 publisherName**；构建配置 `verifyUpdateCodeSignature:false` 使 electron-builder 不写 publisherName，因此 NSIS 更新器跳过 Authenticode 发布者校验。
+- electron-updater 6.8.9 的行为：所有平台先校对 base64 sha512；mac 把 zip 交给 Squirrel.Mac（由其解包、校验代码签名、替换并重启）；Windows 运行 NSIS 安装器（`--updated /S`，可带 `--force-run`）；Linux AppImage 直接替换文件、`chmod 0755`、带 `APPIMAGE_SILENT_INSTALL=1` 重启，文件名带版本时重指桌面项。
+- 已安装 `.app` 实测：TeamIdentifier `3AA79YWT4C`，`codesign` 显示 hardened runtime，`spctl` 为 `accepted / Notarized Developer ID`，`stapler validate` 通过；`/Applications/DimAgent.app` 归属当前用户、权限 755，可原地替换（非管理员用户需提权）。
+
+#### 6.3.2 真实清单（2026-11-10 发布 0.9.62）
+
+| 平台 | 版本 | 产物地址（无查询串） | 大小（字节） | 摘要 |
+|---|---|---|---|---|
+| macOS arm64 | 0.9.62 | `https://dimcode.echooai.com/updates/stable/mac/arm64/DimAgent-0.9.62-arm64-mac.zip` | 298590349 | sha512，base64 88 字符 |
+| macOS x64 | 0.9.62 | `https://dimcode.echooai.com/updates/stable/mac/x64/DimAgent-0.9.62-mac.zip` | 290936179 | 同上 |
+| Windows x64 | 0.9.62 | `https://dimcode.echooai.com/updates/stable/win/x64/DimAgent%20Setup%200.9.62.exe` | 328446728 | 同上 |
+| Linux x64 | 0.9.62 | `https://dimcode.echooai.com/updates/stable/linux/x64/DimAgent.AppImage` | 323338212 | 同上 |
+
+- Linux 清单还列出 `DimAgent-0.9.62.deb`（261912876 字节），但顶层 `path/sha512` 指向 AppImage，自动更新只取 AppImage。
+- 产物响应 `200`、`Content-Length` 与清单一致、`Accept-Ranges: bytes`、`Expires` 30 天；清单本体 356–507 字节，CDN 缓存命中。
+- Windows 产物名含空格，清单里写的是未编码的 `DimAgent Setup 0.9.62.exe`；本包解析后编码为 `%20`，HTTP 可直接下载。
+
+#### 6.3.3 真实 check 实测
+
+```bash
+D10_REAL_CHANNEL=1 go test -run TestRealChannelCheck -v ./internal/host/
+```
+
+默认跳过，只有显式开关才访问网络，且只取版本清单、不下载产物。实测四项全部通过：
+
+```text
+darwin/arm64   state=available current=0.9.61 available=0.9.62
+darwin/amd64   state=available current=0.9.61 available=0.9.62
+windows/amd64  state=available current=0.9.61 available=0.9.62
+linux/amd64    state=available current=0.9.61 available=0.9.62
+```
+
+诊断各一条 `update.check`（`outcome=ok`、`update_state=available`、`update_version=0.9.62`，18–66ms）；解析出的产物地址与 6.3.2 一致；检查阶段 `ArtifactPath` 为空。说明渠道推导、清单解析（空格 URL、`blockMapSize` 忽略、顶层字段回退）、sha512 形状校验都已对齐真实清单。
+
+**真实下载与切换还差什么**：下载链路（流式写盘、大小与 sha512 比对、1 GiB 上限）已就绪，但没有用真实 285–313 MB 产物验证耗时、磁盘占用、断网中断与 CDN 缓存失效后的重试；切换（安装）才是主要缺口：mac 需要 zip/.app 适配与代码签名校验，Windows 需要运行 NSIS，Linux 只差 `chmod` 与重启环境变量。
+
+#### 6.3.4 缺口分类
+
+| 平台 | 安装器适配缺什么 | 签名校验缺什么 | 现有代码 |
+|---|---|---|---|
+| macOS | zip 解包、`.app` 目录级原子替换、退出后重启 | `codesign --verify --deep --strict`、TeamIdentifier 一致、`stapler validate`/`spctl` | 只有单文件替换，不适用 |
+| Windows | 运行 NSIS 安装器（`--updated /S`），不是复制文件 | 真实渠道不强制（无 publisherName）；可选 Authenticode 复核 | 单文件替换不适用 |
+| Linux | `chmod 0755`、按稳定名替换 `$APPIMAGE`、带环境变量重启 | 无（sha512 已是全部） | 基本可用，小改 |
+
+结论：**主要缺"安装器适配"**；macOS 的适配必须同时补签名校验（上游的 Squirrel.Mac 本来就会校验，我们不能比它更松）。Windows 的发布者校验在真实配置里被关闭，所以缺的是"运行安装器"而不是签名工具链；Linux 已接近完成。
+
+#### 6.3.5 最小可行方案（代价从低到高）
+
+1. **Linux AppImage（最小）**：沿用现有下载与校验，切换时 `chmod 0755` → 按 `$APPIMAGE` 稳定名原子替换 → 以 `APPIMAGE_SILENT_INSTALL=1` 启动新文件；真实渠道已是稳定名，无需重指桌面项。约 100 行，可用假文件测试。
+2. **Windows NSIS（小）**：把"替换目标文件"换成"运行安装器"：退出五阶段后 spawn `<artifact> --updated /S [--force-run]`，由安装器完成替换与重启；可选 `Get-AuthenticodeSignature` 复核证书主体。约 100 行，本机无法验证，需 Windows 环境。
+3. **macOS zip（大，但必须）**：`ditto -x -k` 解包到同一卷暂存目录 → `codesign --verify --deep --strict`、TeamIdentifier 与当前 `.app` 一致、`stapler validate`（或 `spctl --assess`）→ 退出五阶段 → 旧 `.app` 改名为备份 → 新 `.app` 原子移入 → `open -n` 启动新版本 → 成功后删备份，失败回滚。约 300 行；命令执行器可注入以便测试编排，真实签名链需真实产物。权限：`/Applications` 需可写（管理员），普通用户需授权 helper。
+
+共性：状态机、检查、下载、sha512 校验不用改；只需把 `Switch` 里的"单文件替换 + Restart"换成平台适配器，`Updater` 的状态与诊断字段保持不变。
+
+#### 6.3.6 最短路径
+
+1. 先做 **macOS zip + 校验适配**：当前主平台，现有单文件模型在 mac 上完全不可用。
+2. 同期做 **Linux AppImage**：改动最小，可立即验证。
+3. 最后做 **Windows NSIS**：需要 Windows 环境验证。
+
+不需要先做：清单签名（渠道没有该字段）、发布渠道改造、增量下载（blockmap 可选，全量 285–313 MB 可用）、代码签名工具链（渠道产物已签名并公证，客户端只校验）。
+
+#### 6.3.7 未验证与风险
+
+- 未下载真实产物（285–313 MB），sha512 未与真实字节比对；下载路径只用本地 HTTP 服务验证过。
+- 未解包真实 zip；"zip 根为 `DimAgent.app`"依据 electron-builder 的 mac zip 目标与 CI 断言，需在 `/tmp` 解包一次核对。
+- macOS 原地替换需要可写 `/Applications`；下载 + 解包 + 旧包备份在安装卷上约占 1.6 GB（zip 298 MB、解开后 657 MB、备份 657 MB），空间不足的表现未测。
+- 非管理员用户、多实例、断电或崩溃中断后的恢复未覆盖。
+- Windows 安装器是否需要管理员、是否会终止运行中的旧进程、`--force-run` 行为未实测。
 
 ### 6.4 真实 daemon 证据（未验证）
 
@@ -339,6 +420,7 @@ GOOS=windows go vet ./internal/host/      # 通过（仅编译验证）
 | D5 交互裁决 | 结束待决审批/提问的入口 | 需 D5 确认 |
 | 全部领域 | 诊断走同一 `Recorder`，只传白名单字段 | 需各领域在接线时遵守 |
 | V 验收设施 | 真实 daemon 场景的 fixtures 与脚本 | 待 P1-3 集成 |
+| X1 发布与运行时获取 | 平台产物形态（mac zip/.app、win NSIS、linux AppImage）、签名策略与稳定文件名 | 已调查（6.3）；平台安装适配器未实现 |
 
 本领域不修改其他领域实现，也不替其他领域接线；以上接口只描述需要什么。
 
@@ -346,14 +428,15 @@ GOOS=windows go vet ./internal/host/      # 通过（仅编译验证）
 
 1. **Windows 未验证**：单实例用回环 TCP + 端口文件，先探测后监听，同时启动存在竞态窗口；`GOOS=windows` 只验证了编译。
 2. **本地状态装载只留阶段位**：窗口与偏好（A.md 归进程框架）的存储未实现；`StartupSteps.LocalState` 由调用方提供。
-3. **应用更新只覆盖单文件替换**：macOS `.app` 目录、dmg/zip 安装包、Windows 安装器与 Linux AppImage 的原地替换都未实现；真实渠道未做端到端验证（只用本地 HTTP 服务模拟清单与产物）。
-4. **更新没有签名校验与发布能力**：只比对 sha512，不校验代码签名/公证；没有定时检查、渠道切换、增量下载与桌面项修复；版本比较只支持 `x.y.z[-pre]`，当前版本必须能被解析。
-5. **替换后重启失败不回滚**：磁盘上已经是新产物，下一次启动会运行新版本；本版不保留旧产物备份，也不做回滚。
-4. **超时 goroutine 不强制回收**：某段实现若完全忽略上下文，`Run` 会按时返回并继续，但该 goroutine 会存活到进程结束。这是"不无限等待"的代价，实现方应尊重上下文。
-5. **端点路径长度**：Unix 套接字路径受系统上限（macOS 约 104 字节）限制；数据目录过深时启动报错，需换短数据目录。临时名比端点名略长，仍在同一目录。
-6. **诊断没有人类可读消息字段**：这是刻意取舍——可诊断性靠事件名 + 白名单字段；需要正文的场景一律不进日志。
-7. **转交报文只有一行、无认证**：端点位于 0700 目录且套接字 0600，只允许同一用户连接；不额外做凭据校验。
-8. **二次启动转交成功后不再调用退出五阶段**：该进程没有建立任何连接或本地状态，直接退出即可；main 集成时需按此实现。
+3. **应用更新只覆盖单文件替换**：真实产物是 macOS zip（内含 `.app` 目录）、Windows NSIS 安装器、Linux AppImage；前两者需要平台安装适配器（6.3.4），Linux 已接近可用。真实渠道只验证到检查，未下载、未替换。
+4. **macOS 签名校验未实现**：目前只比对 sha512；mac 适配器还必须校验 `codesign`/TeamIdentifier/公证票据。Windows 渠道的发布者校验在真实配置里被关闭，Linux 无签名，两端的安装期校验需求见 6.3.4。
+5. **更新没有发布面能力**：没有定时检查、渠道切换、增量下载（blockmap）与桌面项重指；版本比较只支持 `x.y.z[-pre]`，当前版本必须能被解析。
+6. **替换后重启失败不回滚**：磁盘上已经是新产物，下一次启动会运行新版本；本版不保留旧产物备份，也不做回滚。
+7. **超时 goroutine 不强制回收**：某段实现若完全忽略上下文，`Run` 会按时返回并继续，但该 goroutine 会存活到进程结束。这是"不无限等待"的代价，实现方应尊重上下文。
+8. **端点路径长度**：Unix 套接字路径受系统上限（macOS 约 104 字节）限制；数据目录过深时启动报错，需换短数据目录。临时名比端点名略长，仍在同一目录。
+9. **诊断没有人类可读消息字段**：这是刻意取舍——可诊断性靠事件名 + 白名单字段；需要正文的场景一律不进日志。
+10. **转交报文只有一行、无认证**：端点位于 0700 目录且套接字 0600，只允许同一用户连接；不额外做凭据校验。
+11. **二次启动转交成功后不再调用退出五阶段**：该进程没有建立任何连接或本地状态，直接退出即可；main 集成时需按此实现。
 
 ## 9. 变更记录
 
@@ -362,3 +445,4 @@ GOOS=windows go vet ./internal/host/      # 通过（仅编译验证）
 | 2026-11-10 | 第一版：单实例端点互斥与二次启动转交、启动六阶段、退出五阶段逐段超时、诊断白名单、进程级状态 | 结果包要求覆盖范围 1–5 |
 | 2026-11-10 | 单实例抢占改为"临时名监听 + 硬链接原子发布" | 并发启动压测暴露 bind 与 listen 之间的空窗会被误判为残留，导致多个赢家 |
 | 2026-11-11 | 补齐 P3 应用更新：检查、下载校验、切换与状态机；新增 `update_state`/`update_version` 诊断字段 | 用户拍板 R9 要做更新，此前版本明确未实现 |
+| 2026-11-11 | 新增真实更新产物调查（6.3）：三平台清单实测、真实 check、安装器与签名缺口、最小可行方案与最短路径 | 更新落地的卡点是真实产物形态（zip/.app、NSIS、AppImage）而不是状态机 |
