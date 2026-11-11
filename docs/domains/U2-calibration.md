@@ -5,6 +5,8 @@ Owner: U2 界面视觉
 依据: `github.com/egoist/mygo@v0.8.3` 的 `examples/` 与 `ui/`（只读）；本仓 `internal/ui/`（只读）与 `docs/domains/screens/` 的九张截图；`docs/domains/U2-visual.md`（v2）。
 范围: 只对照"看得见的值"——字号层级、间距节奏、颜色分配、控件默认样式、内容列宽、对齐、状态样式。不含区域划分、触发与键位。
 产物: 本文 + `docs/domains/calibration/examples/`（9 张示例/探针渲染）+ `docs/domains/calibration/compare/`（7 张对照图）。
+约束: 章程 UI-13（`docs/project-organization.md` §9.9，用框架组件就不改它的样式）与 `docs/domains/U2-visual.md` v3。本文的"我们错"按 UI-13 分派去向，见 §0.1；不再是"把值调成框架的样子"。
+测量基准: §4 与 §5 里"我们的做法"及其像素值，全部取自**校准时**的截图（`docs/domains/screens/` 的 git HEAD 版本）；工作区随后已有实现把 U1–U6 落地，当前截图是修改后的样子。两栏对照见 `calibration/compare/fix-preview.png`（左：HEAD，右：现状）。
 
 ---
 
@@ -18,7 +20,25 @@ Owner: U2 界面视觉
 | 其中"我们错" | 9（D1–D8、D16） |
 | 其中"我们不同但有据" | 7（D10–D15、D17；见 §6，属刻意） |
 | 其中"与官方同值但实现不一致" | 1（D9：分隔线，视觉值相同，只是没用框架控件） |
-| 纠正清单 | 8 条必改（C1–C8，覆盖 D1–D9）+ 2 条可选（C9、C10，覆盖 D17、D16） |
+| 纠正清单 | 6 条必改（U1–U6）+ 2 条可选（U7、U8）；覆盖 D1–D9、D16、D17 |
+
+### 0.1 九条"我们错"的处置（UI-13）
+
+UI-13 只留两条路：**沿用框架**（删掉我们的值，不写替代值）或**换 Base 自绘**（外壳自绘，内部交互用框架无外观变体）。不属框架组件的元素（状态标记、摘要行、气泡、审批卡外壳、输入卡外壳）本来就是自绘范围，可以保留本文的值。
+
+| 差异 | 处置 | 具体做什么 | 规范落点 | 代码现状（核对于工作区当前代码与截图） |
+|---|---|---|---|---|
+| D1 禁用主按钮 | **沿用框架** | 删掉 `internal/ui/controls.go` 的禁用换面；禁用由框架 0.5 变淡、保留原面 | U2 §4.1「不可用」、§4.2、§7.1 例外 2 | **已落地**：按钮改用框架，禁用实测填充 `#8dacf0` |
+| D2 按钮高度/字号 | **沿用框架** | 删掉 `buttonPadV/H` 与 `typeSecondary` 标签，直接用 `gui.Button` / `gui.PrimaryButton` | U2 §1.1、§4.2、§6.1、§9.4 #1/#9/#13 | **已落地**：按钮实测 30 高（y 849..878），标签随主题字号 |
+| D3 输入卡第二道边 | **换 Base 自绘** | 外壳保留 `border-strong`（自绘），编辑器改 `gui.TextAreaBase`（无外观） | U2 §4.2「输入卡内的编辑器」 | **已落地**：截图里卡内只剩外壳一道 `#85858b` |
+| D4 选中行 | **沿用框架** | 竖条方案作废；选中由 `Sidebar` / `Tabs` 自己画 | U2 §4.1「选中」、§4.3、§9.4 #7/#12 | **已落地**：`sessionItem` 直接调 `SidebarItem`，无竖条 |
+| D5 审批卡描边 | **保留**（自绘外壳） | 审批卡是自绘卡，值按 §3 取 `accent-ink`；只改值，不改结构 | U2 §4.1「等待你同意」、§3.5 | **已落地**：卡边实测 `#1d4ed8` |
+| D6 状态位形态 | **保留**（自绘标记） | 状态标记本来就是自绘元素；按 §6.4 用 16px 图标盒，不跟字号变 | U2 §4.1、§6.4 | **已落地**：新增 `internal/ui/icons.go`，`iconBox` 固定 16×16、Painter 自绘 |
+| D7 侧栏行首标记 | **沿用框架** | 用 `SidebarItem` 的 icon 槽，不把标记拼进 label | U2 §0.5（框架组件不写） | **已落地**：`sessionItem` 传 `statusIcon`，空标记用占位图标对齐 |
+| D8 全角 `＋` | **保留**（内容问题） | 标签文案不是样式覆盖；改半角或走 icon 槽 | 归 U1 文案；U2 不写 | **已落地**：改为 `+ 附件` / `+` |
+| D16 次要文本字号 | **保留**（自绘字阶） | 12.25 / 10.5 只作用于自绘文本；框架渲染的文本仍按 `Theme.FontSize` | U2 §1.1（字阶只覆盖自绘文本） | **未改**（可选 U8） |
+
+两条附带：D9 右栏分隔线 → 沿用框架 `ui.Divider`；D17 气泡圆角 → 保留（自绘气泡，可选 U7）。
 
 最严重的三条，都能从像素上直接看出：
 
@@ -26,10 +46,10 @@ Owner: U2 界面视觉
 2. **按钮比声称的矮 4px**。`internal/ui/controls.go:9-10` 的注释写"竖向 4 让按钮正好 row-regular 28"，实测 24（行盒 14 + 2×4 + 2×1）。框架自己的按钮是 6/14 内边距、29–30 高。见 §4 D2。
 3. **输入卡里套了第二道边框**。卡是 `surface` + `border-strong`，里面的 `TextArea` 用框架默认外观（`surface` + `border`，`ui/textinput.go:18`），两个面同色、两道边只差 1.28:1。框架的两种做法都不是这样：要么卡为 `bg`、字段为 `surface`（gallery），要么容器只画一道边、编辑器无外观（notes）。见 `calibration/compare/nesting.png`。
 
-另外发现两处**规范自相矛盾**（不是实现跑偏，是文档内部打架），见 §4 的 D1、D3 与 §5 的 C1、C3：
+另外发现两处**规范自相矛盾**（不是实现跑偏，是文档内部打架）。U2 v3 已消解，处置见 §5 的 U1、U2；改动前的冲突如下，留作记录：
 
-- §4.1 写"禁用按钮：`surface` + 1px `border` + `text-secondary`"；§4.2 同一控件写"禁用 `.5` + 不响应悬停"；§7.1 的例外 2 又按 ".5 不透明度"算对比度。
-- §4.2 写"输入卡：`surface` + 1px `border`"，§3.5 写 `border-strong` 的使用面"限死在输入卡轮廓"。实现取的是 `border-strong`。
+- §4.1 写"禁用按钮：`surface` + 1px `border` + `text-secondary`"；§4.2 同一控件写"禁用 `.5` + 不响应悬停"；§7.1 的例外 2 又按 ".5 不透明度"算对比度。→ v3 统一为框架的 .5（U1）。
+- §4.2 写"输入卡：`surface` + 1px `border`"，§3.5 写 `border-strong` 的使用面"限死在输入卡轮廓"。→ v3 把外壳与编辑器拆开，外壳取 `border-strong`（U2）。
 
 ---
 
@@ -70,7 +90,7 @@ kero 项目：**本机没有副本**（`<HOME>/Code` 下无同名目录，`<HOME
 | `examples/notes` | 侧栏（230）、会话行、工具条、单容器编辑器 | `calibration/examples/notes.png` |
 | `examples/permissionflow` | 卡片行、主/次/禁用按钮、状态文字 | `calibration/examples/permissionflow.png` |
 | `examples/gallery` | 框架自己的应用外壳与全部控件默认样式（Overview / Controls / List） | `calibration/examples/gallery-overview.png`、`gallery-controls.png`、`gallery-list.png` |
-| 纠正探针 | 只换框架能力（`TextAreaBase` + 6/14 内边距 + 不禁用换面）后的输入位 | `calibration/examples/probe-composer-before.png`、`probe-composer-after.png` |
+| 纠正探针 | 实施前的预演：现状 vs UI-13 形态（`TextAreaBase` + 按钮交回框架） | `calibration/examples/probe-composer-before.png`、`probe-composer-v3.png` |
 
 对照图（左/上为官方，右/下为我们）：
 
@@ -82,7 +102,7 @@ kero 项目：**本机没有副本**（`<HOME>/Code` 下无同名目录，`<HOME
 | `calibration/compare/nesting.png` | 输入框嵌套（4x） |
 | `calibration/compare/sidebar.png` | 侧栏行高、内缩、选中行 |
 | `calibration/compare/statusmarks.png` | 状态位：字形 vs 图标（3x） |
-| `calibration/compare/fix-preview.png` | 纠正前后（100%，同布局） |
+| `calibration/compare/fix-preview.png` | 校准前（git HEAD）vs 现状（U1–U6 已落地），100%，同布局 |
 
 ---
 
@@ -170,96 +190,102 @@ kero 项目：**本机没有副本**（`<HOME>/Code` 下无同名目录，`<HOME
 
 ## 4 差异表
 
-"官方做法"一列都带数值与源码位置；"实测"指本文的像素量法。
+"官方做法"一列都带数值与源码位置；"实测"指本文的像素量法。**"我们的做法"一列是校准时的快照**（git HEAD 的截图），不代表工作区当前代码；现状见 §0.1 末列。
 
 | # | 项 | 官方做法（数值 + 位置） | 我们的做法 | 差异 | 结论 |
 |---|---|---|---|---|---|
-| D1 | 禁用主按钮 | 保留填充，整体 0.5 不透明度（`ui/paint.go:312`）：禁用主按钮实测面 `#8dacf0`，禁用次按钮面 `#f4f4f5`、标签 `#868687`（3.31:1）——两者仍靠"面"区分 | 先换中性面再被压 0.5（`internal/ui/controls.go:51-54`）：实测面 `#f4f4f5`、边 `#e7e7ea`（1.12:1）、字 `#a9a9ae`（2.13:1） | accent 填充消失；与启用次按钮（边 `#d9d9de` 1.28:1、字 `#18181b` 16.12:1）只差"更淡"，且边框比次按钮还弱 | **我们错**；U2 §4.1 与 §4.2、§7.1 三处指向两种做法 |
-| D2 | 按钮高度 | 内边距 6/14 + 标签 13 → 实测 29–30（permissionflow y 95..123） | 内边距 4/12 + 标签 12.25 → 实测 24（附件 y 855..878；标题行按钮 25） | −5~6px；且注释声称"正好 28"，实测 24 | **我们错**（值不成立） |
-| D3 | 输入卡的第二道边 | 卡 `Background` + 字段 `Surface`（`gallery/main.go:530,692`），或容器一道边 + 编辑器无外观（`notes/main.go:114-121`，实测内无第二道边） | 卡 `surface` + `border-strong`，内部 `TextArea` 用默认外观 `surface` + `border`（`internal/ui/composer.go:47-49,57`） | 同面双层描边；实测卡边 y=732 `#85858b`、内框 y=774 `#d9d9de`，对内框下的面只有 1.28:1 | **我们错** |
-| D4 | 选中行 | 聚焦 = `Accent` 填充 + `AccentText`；未聚焦 = `SurfacePressed`（`ui/sidebar.go:183-196`） | 直接用框架默认；U2 §4.1 要求"`surface-hover` 底 + 2px `accent-ink` 竖条" | 实测选中行 `#dddde1`（= `SurfacePressed`），**竖条不存在** | **我们错**（规范未落地） |
-| D5 | 审批卡描边 | 1px 边要单独承担识别时用 ≥3:1 的色（本仓 U2 §3.5 #9 的 `border-strong` 逻辑） | 规范 §4.1 写 `accent-ink` `#1d4ed8`（对 surface 6.10）；实现 `composer.go:93` 用 `t.Accent` `#2563eb`（4.70） | 实测卡边 `#2563eb`，与规范值不符 | **我们错**（规范/实现值不一致） |
-| D6 | 状态位形态 | SVG 图标 + `ui.Icon`，`FontSize(16)`（`ui/sidebar.go:212`）；24 网格 1.5 描边 → 16px 时 1.0px | 文本字形 `✓ ◷ ✕ !`，字号随 `type-secondary` 12.25（`internal/ui/timeline.go:130`） | 实测字形高约 9px；大小随字号变、基线随字体变 | **我们错**（§4.1/§6.4 已写 16px 图标） |
-| D7 | 侧栏行首标记 | 独立 icon 槽：16px + 8 间隙，文字从固定列起（`ui/sidebar.go:164,211-216`） | 标记字符拼进 label（`internal/ui/sidebar.go:91` 的 `sessionLabel`） | 有标记的行文字右移约一个字形宽（state-running 第一行） | **我们错**（用错框架能力） |
-| D8 | 附件按钮标签 | 图标走 icon 槽或纯文字标签（notes 的 `New`、gallery 的 `Open …`） | 标签里用全角 `＋`（`internal/ui/composer.go:68`、`internal/ui/sidebar.go:22`） | 全角字形占 1em、与右侧字面重心错位 | **我们错**（小） |
-| D9 | 右栏分隔线 | `ui.Divider`，按父方向取 1px 宽/高（`ui/widgets.go:39-46`） | `Box().Height(1).Background(t.Border)` 自画（`internal/ui/rightpanel.go`） | 视觉值相同；方向不随容器、多一处手写 | 建议换（低影响） |
+| D1 | 禁用主按钮 | 保留填充，整体 0.5 不透明度（`ui/paint.go:312`）：禁用主按钮实测面 `#8dacf0`，禁用次按钮面 `#f4f4f5`、标签 `#868687`（3.31:1）——两者仍靠"面"区分 | 先换中性面再被压 0.5（`internal/ui/controls.go:51-54`）：实测面 `#f4f4f5`、边 `#e7e7ea`（1.12:1）、字 `#a9a9ae`（2.13:1） | accent 填充消失；与启用次按钮（边 `#d9d9de` 1.28:1、字 `#18181b` 16.12:1）只差"更淡"，且边框比次按钮还弱 | **我们错** → **沿用框架**；U2 §4.1/§4.2/§7.1 已统一 |
+| D2 | 按钮高度 | 内边距 6/14 + 标签 13 → 实测 29–30（permissionflow y 95..123） | 内边距 4/12 + 标签 12.25 → 实测 24（附件 y 855..878；标题行按钮 25） | −5~6px；且注释声称"正好 28"，实测 24 | **我们错** → **沿用框架**（尺寸与字号都交回框架） |
+| D3 | 输入卡的第二道边 | 卡 `Background` + 字段 `Surface`（`gallery/main.go:530,692`），或容器一道边 + 编辑器无外观（`notes/main.go:114-121`，实测内无第二道边） | 卡 `surface` + `border-strong`，内部 `TextArea` 用默认外观 `surface` + `border`（`internal/ui/composer.go:47-49,57`） | 同面双层描边；实测卡边 y=732 `#85858b`、内框 y=774 `#d9d9de`，对内框下的面只有 1.28:1 | **我们错** → **换 Base 自绘**（`TextAreaBase`） |
+| D4 | 选中行 | 聚焦 = `Accent` 填充 + `AccentText`；未聚焦 = `SurfacePressed`（`ui/sidebar.go:183-196`） | 直接用框架默认；U2 §4.1 要求"`surface-hover` 底 + 2px `accent-ink` 竖条" | 实测选中行 `#dddde1`（= `SurfacePressed`），**竖条不存在** | **我们错** → **沿用框架**（竖条方案作废） |
+| D5 | 审批卡描边 | 1px 边要单独承担识别时用 ≥3:1 的色（本仓 U2 §3.5 #9 的 `border-strong` 逻辑） | 规范 §4.1 写 `accent-ink` `#1d4ed8`（对 surface 6.10）；实现 `composer.go:93` 用 `t.Accent` `#2563eb`（4.70） | 实测卡边 `#2563eb`，与规范值不符 | **我们错** → **保留**（自绘外壳，只改值） |
+| D6 | 状态位形态 | SVG 图标 + `ui.Icon`，`FontSize(16)`（`ui/sidebar.go:212`）；24 网格 1.5 描边 → 16px 时 1.0px | 文本字形 `✓ ◷ ✕ !`，字号随 `type-secondary` 12.25（`internal/ui/timeline.go:130`） | 实测字形高约 9px；大小随字号变、基线随字体变 | **我们错** → **保留**（自绘标记，按 16px 盒） |
+| D7 | 侧栏行首标记 | 独立 icon 槽：16px + 8 间隙，文字从固定列起（`ui/sidebar.go:164,211-216`） | 标记字符拼进 label（`internal/ui/sidebar.go:91` 的 `sessionLabel`） | 有标记的行文字右移约一个字形宽（state-running 第一行） | **我们错** → **沿用框架**（用 icon 槽） |
+| D8 | 附件按钮标签 | 图标走 icon 槽或纯文字标签（notes 的 `New`、gallery 的 `Open …`） | 标签里用全角 `＋`（`internal/ui/composer.go:68`、`internal/ui/sidebar.go:22`） | 全角字形占 1em、与右侧字面重心错位 | **我们错** → **保留**（内容问题，非样式） |
+| D9 | 右栏分隔线 | `ui.Divider`，按父方向取 1px 宽/高（`ui/widgets.go:39-46`） | `Box().Height(1).Background(t.Border)` 自画（`internal/ui/rightpanel.go`） | 视觉值相同；方向不随容器、多一处手写 | **沿用框架**（`ui.Divider`，低影响） |
 | D10 | 根字号 | 13（macOS，`ui/theme.go`） | 14（`internal/ui/tokens.go`；U2 §1.2 有实测依据） | +1；连带所有行盒 +1 左右 | **刻意**（§6） |
 | D11 | 六个颜色改值 | `TextMuted #71717a`、`Success #16a34a`、`Warning #d97706`、`Danger #dc2626`、`Focus` 半透明、`Selection .25`（`ui/theme.go`） | 各自改值并附重算对比度（U2 §3.5 A 类） | 逐条 ≥4.5 / ≥3 的门槛差 | **刻意**（§6） |
 | D12 | 暗色强调色 | `#3b82f6` / `#60a5fa` / `#2563eb` | `#2563eb` / `#1d4ed8` / `#1e40af`（与明色同值） | 暗色填充对 `bg` 3.43（框架 3.68 白字不达标） | **刻意**（§6） |
 | D13 | 正文行高 | 纯文本不设行高（实测 12px 行距 15 → 1.25）；Markdown 1.5 | 正文 1.5 = 21（`tokens.go` `typeBody`） | 与框架纯文本松约 0.25×；与框架 Markdown 相同 | **刻意**（§6） |
 | D14 | 内容列宽与对齐 | 正文最大宽 760、左对齐、两侧 20（`markdown-chat/main.go:58,88`） | 最大宽 784、居中、两侧 16、纵向 24（`internal/ui/timeline.go:22-25`） | 宽 +24；水平 −4；纵向 +8；居中 vs 左对齐 | **刻意**（§6） |
 | D15 | 轮次间距 | 消息间 16（`markdown-chat/main.go:58`） | 轮次 24、轮内 12/8（U2 §2.3） | +8 | **刻意**（§6） |
-| D16 | 次要文本字号 | 侧栏分组标题 = 根字号 − 1 = 13、600（`ui/sidebar.go:134`）；徽标 = −2（框架 13 时 11；我们 14 时 12）（`ui/sidebar.go:225`） | 自己的次要级 12.25（0.875×）、极小 10.5（0.75×）；侧栏分组标题仍是框架的 13 | 同屏并存的"次要文本"有两个字号（13 与 12.25） | **我们错**（小）：同一语义两种字号 |
-| D17 | 气泡圆角 | 14（`markdown-chat/main.go:84`），与控件 6 区分开 | 6（`tokens.go` `radius`；U2 §8.3 统一 6） | −8 | **我们不同但有据**，但见 C9 |
+| D16 | 次要文本字号 | 侧栏分组标题 = 根字号 − 1 = 13、600（`ui/sidebar.go:134`）；徽标 = −2（框架 13 时 11；我们 14 时 12）（`ui/sidebar.go:225`） | 自己的次要级 12.25（0.875×）、极小 10.5（0.75×）；侧栏分组标题仍是框架的 13 | 同屏并存的"次要文本"有两个字号（13 与 12.25） | **我们错** → **保留**（自绘字阶；框架文本按主题字号） |
+| D17 | 气泡圆角 | 14（`markdown-chat/main.go:84`），与控件 6 区分开 | 6（`tokens.go` `radius`；U2 §8.3 统一 6） | −8 | **我们不同但有据** → 保留（自绘气泡；可选 U7） |
 
-### 4.1 两处规范内部矛盾（不是实现跑偏）
+### 4.1 两处规范内部矛盾（U2 v3 已消解）
 
 | 位置 | 冲突 | 建议 |
 |---|---|---|
-| §4.1「不可用」vs §4.2 按钮行 + §7.1 例外 2 | §4.1 写"禁用按钮：`surface` + 1px `border` + `text-secondary`"；§4.2 写"`.5` + 不响应悬停"；§7.1 例外 2 又按"禁用态不透明度 .5（明等效 3.31 / 暗 4.55）"算对比度——三处指向两种做法 | 统一为后者（与框架一致），见 C1 |
-| §4.2 输入卡 vs §3.5 #9 | 前者"`surface` + 1px `border`"，后者把 `border-strong` 限死在"输入卡轮廓" | 统一为 `border-strong`（实现已是），见 C3 |
+| §4.1「不可用」vs §4.2 按钮行 + §7.1 例外 2 | §4.1 写"禁用按钮：`surface` + 1px `border` + `text-secondary`"；§4.2 写"`.5` + 不响应悬停"；§7.1 例外 2 又按"禁用态不透明度 .5（明等效 3.31 / 暗 4.55）"算对比度——三处指向两种做法 | 统一为后者（与框架一致），见 U1 |
+| §4.2 输入卡 vs §3.5 #9 | 前者"`surface` + 1px `border`"，后者把 `border-strong` 限死在"输入卡轮廓" | 统一为 `border-strong`（实现已是），见 U2 |
 
 ---
 
 ## 5 纠正清单（按影响排序）
 
-每条给：改什么值 / 换哪个框架能力 / 判定方法。**不含布局与交互改动**。
+每条给：**处置**（沿用框架 / 换 Base 自绘 / 保留）/ 改什么 / 判定方法。不含布局与交互改动。
 
-### C1 禁用主按钮保留填充（影响：高）
+| 新号 | 原号 | 主题 | 处置 | 影响 |
+|---|---|---|---|---|
+| U1 | C1 + C2 | 按钮交回框架 | 沿用框架 | 高 |
+| U2 | C3 | 输入卡只留一道边 | 换 Base 自绘 | 高 |
+| U3 | C5 | 状态标记 16px 盒 | 保留（自绘） | 中 |
+| U4 | C6 | 侧栏行首标记走 icon 槽 | 沿用框架 | 中 |
+| U5 | C7 | 审批卡描边 `accent` → `accent-ink` | 保留（自绘外壳） | 中 |
+| U6 | C8 | 分隔线与全角加号 | 沿用框架 + 文案 | 低 |
+| U7 | C9 | 气泡圆角（可选） | 保留（自绘） | 低 |
+| U8 | C10 | 次要文本字号（可选） | 保留（自绘字阶） | 低 |
 
-- **改**：删掉 `internal/ui/controls.go:51-54` 的"禁用 → `surface` + `text-secondary` + `border`"分支，让框架的 0.5 不透明度生效（不调 `DimDisabled`）。若将来要自绘禁用外观（`DimDisabled(false)`），前提是**保留 `accent` 填充**，只压不透明度。
-- **规范**：U2 §4.1「不可用」一行的禁用按钮描述改为"`accent` 填充 + `.5` 不透明度；次按钮 `surface` + `border` + `.5`"。
-- **判定**：截图中禁用主按钮的填充 ≠ `surface`（明色应为 `#8dacf0` 一类的淡强调面）；标签对 `surface` ≥3.31；与相邻次按钮在"填充色"一项上不同。
+### U1 按钮交回框架（原 C1 + C2；影响：高）
 
-### C2 按钮内边距 4/12 → 6/14（影响：高）
+- **处置**：沿用框架。原 C1（禁用中性化）与 C2（内边距/字号）是同一个根因——我们在框架按钮上又叠了一层外观；删掉这一层，两个问题一起消失。
+- **改**：`internal/ui/controls.go` 的 `actionButton` 不再用 `ButtonBase` 自绘；改调 `gui.Button` / `gui.PrimaryButton`，只保留 `Label`、`Disabled` 与点击。删掉 `buttonPadV` / `buttonPadH`、`typeSecondary` 标签、禁用换面三个分支。
+- **实测（已落地，量自现状截图）**：按钮高 24 → 30（y 849..878），标签 12.25 → 14，禁用主按钮自动变淡 accent（`#8dacf0`），次按钮仍是 `surface` + `border`；对照见 `calibration/compare/fix-preview.png`。
+- **判定**：`internal/ui/controls.go` 里不再出现 `ButtonBase`；截图中按钮外框 29–30 高（根字号 14）；禁用主按钮填充 ≠ `surface`。
 
-- **改**：`controls.go:11-14` 的 `buttonPadV/buttonPadH` 改为 `t.Space(1.5)` / `t.Space(3.5)`（6/14，框架值）。实测高度由 24 → 28，正好落在 §6.1 的 `row-regular`。
-- **规范**：§2.2 增加一句"控件内边距允许 `t.Space(0.5)` 的半档（框架自身即如此：侧栏 2.5u、按钮 1.5u/3.5u）"，否则本改动会违反"只出现 4 的倍数"。
-- **判定**：量按钮外框高度 = 28（1x 截图即 28px 高）；标签 12.25 不变。
+### U2 输入卡只留一道边（原 C3；影响：高）
 
-### C3 输入卡只留一道边（影响：高）
-
-- **改**：`internal/ui/composer.go:57` 的 `gui.TextArea` → `gui.TextAreaBase`（无外观），编辑器不再有 `surface` + `border`；卡的 `border-strong` 保留 1px。
+- **处置**：换 Base 自绘。外壳（`surface` + 1px `border-strong`，圆角 `Theme.Radius`，内边距 12）本来就是自绘，保留；编辑器没有外观需求，交回框架。
+- **改**：`internal/ui/composer.go:57` 的 `gui.TextArea` → `gui.TextAreaBase`。
+- **验证图**：`calibration/compare/fix-preview.png` 的 v3 一栏。
 - **备选及否决**：把卡面换成 `bg`、编辑器保留默认外观（gallery 的"白卡灰字段"）。否决理由：白卡落在白底上，边界只剩 1px `border`（对页面底 1.41:1），违反 U2 §3.5 #9 的"边界单独承担识别 ≥3:1"；若改描 `border-strong`，卡与编辑器就是两道强边，回到原问题。
-- **验证图**：`docs/domains/calibration/compare/fix-preview.png` 的 after 一栏是这条路线的渲染结果。
 - **判定**：卡内边距范围内不再出现第二条 1px 边；输入区左边界只出现一次描边。
 
-### C4 选中行落地（影响：高）
+### U3 状态标记用 16px 盒（原 C5；影响：中）
 
-- **改**：任选其一并在 §4.1 写死：(a) 实现"`surface-hover` 底 + 2px `accent-ink` 竖条"（`DrawOver` 画在内侧，上下各留 8）；(b) 采用框架语义"选中 = `Accent` 填充 + `AccentText`"。
-- **不建议**保持现状：现状是框架的"未聚焦选中"灰色（`#dddde1`），而规范描述的是另一个样子，走查无法判定。
-- **判定**：选中行与相邻未选中行在"底色"或"竖条"上至少一项不同；键盘聚焦侧栏时状态按所选方案变化。
+- **处置**：保留。状态标记是本文自绘的元素（§0.5 的自绘层），不是框架组件。
+- **改**：`internal/ui/timeline.go:130` 的 `statusMark` 改成固定 16×16 盒（`ui.Icon` + Heroicons SVG；接入前用固定尺寸 `Box` 居中字形），不跟随 `type-secondary` 字号。
+- **判定**：状态位外接框 = 16×16；`Theme.FontSize` 调到 16 时状态位尺寸不变。
 
-### C5 状态位换成 16px 盒（影响：中）
+### U4 侧栏行首标记走 icon 槽（原 C6；影响：中）
 
-- **改**：`internal/ui/timeline.go:130` 的 `statusMark` 改成固定 16×16 盒（`ui.Icon` + Heroicons SVG；接入前至少用固定尺寸的 `Box` 居中字形），**不要**用 `type-secondary` 的字形（字号一改，状态位就变大小）。
-- **判定**：量状态位外接框 = 16×16；把 `Theme.FontSize` 调到 16 时状态位尺寸不变。
-
-### C6 侧栏行首标记走 icon 槽（影响：中）
-
-- **改**：`internal/ui/sidebar.go` 不再把 `● ◷ ✕` 拼进 `label`；用 `gui.SidebarItem(c, id, icon, label)` 的 icon 参数（或固定 16px 标记盒）。
+- **处置**：沿用框架能力（`SidebarItem` 的 icon 参数），不是自绘。
+- **改**：`internal/ui/sidebar.go:91` 的 `sessionLabel` 不再拼 `● ◷ ✕`；标记走 `gui.SidebarItem(c, id, icon, label)` 的 icon 参数，或固定在 16px 槽里。
 - **判定**：带标记与不带标记的行，文字左边界相同。
 
-### C7 审批卡描边 `accent` → `accent-ink`（影响：中）
+### U5 审批卡描边改 `accent-ink`（原 C7；影响：中）
 
-- **改**：`internal/ui/composer.go:93` 的 `t.Accent` → `colorAccentInk.in(t)`。明色对 surface 4.70 → 6.10（U2 §3.2 数值）。
+- **处置**：保留。审批卡是自绘外壳（§0.5），1px 描边按 §3 取值。
+- **改**：`internal/ui/composer.go:93` 的 `t.Accent` → `colorAccentInk.in(t)`；明色对 surface 4.70 → 6.10（U2 §3.2）。
 - **判定**：卡边像素 = `#1d4ed8`（明）/ `#60a5fa`（暗）。
 
-### C8 分隔线与全角加号（影响：低）
+### U6 分隔线与全角加号（原 C8；影响：低）
 
-- **改**：`internal/ui/rightpanel.go` 的自画分隔 → `gui.Divider(c)`；`＋ 附件` → `+ 附件`（或 icon 槽 + "附件"）。
+- **处置**：分隔线沿用框架（`ui.Divider`）；加号是文案，不是样式。
+- **改**：`internal/ui/rightpanel.go` 自画 1px `Box` → `gui.Divider(c)`；`＋ 附件`（`composer.go:68`）与 `＋`（`sidebar.go:22`）→ 半角，或走 icon 槽。
 - **判定**：分隔线随容器方向取 1px；标签里不再出现全角 `＋`。
 
-### C9 气泡圆角（可选，影响：低）
+### U7 气泡圆角（可选；影响：低）
 
-- **改**：`internal/ui/timeline.go` 的用户气泡 `radius` → 14（框架 chat 值），与控件 6 拉开形态差。
-- **代价**：需要给 §8.3 加一档 `radius-bubble`，多一个 token；不加则维持现状，属可接受。
-- **判定**：气泡四角半径 = 14；控件仍为 6。
+- **处置**：保留（自绘气泡）。若评审要求与框架 chat 对齐，可改 14。
+- **改**：`internal/ui/timeline.go` 的用户气泡 `radius` → 14；U2 §8.3 需加一档（半径只经主题字段与自绘外壳，不涉框架控件，UI-13 不禁止）。
+- **判定**：气泡四角半径 = 14；框架控件仍是 `Theme.Radius`。
 
-### C10 统一"次要文本"字号（可选，影响：低）
+### U8 统一"次要文本"字号（可选；影响：低）
 
-- **改**：二选一——把 `type-secondary` 提到 13（= 框架 `FontSize − 1`，与侧栏分组标题一致），或给侧栏分组标题单独覆盖到 12.25。前者更省事，且与 D16 的框架惯例同向。
-- **代价**：14 × 0.875 = 12.25 是 U2 §1.1 的推导；改成 13 需要改 §1.1 那一行的来源说明（框架 `FontSize − 1` 也是框架自身在用的比例）。
+- **处置**：保留（自绘文本的字阶属 §0.5 的自绘层）。与框架渲染的 13 号文本并排时会出现两个相近字号，这是已知代价。
+- **改**：若要收敛，把 `type-secondary` 提到 13（= 框架 `FontSize − 1`），同步改 U2 §1.1 那一行的来源说明。
+- **判定**：同屏"次要文本"只有一个字号。
 
 ---
 
@@ -273,7 +299,7 @@ kero 项目：**本机没有副本**（`<HOME>/Code` 下无同名目录，`<HOME
 | 正文行高 1.5（D13） | 21 | 与框架 Markdown 同值；消息正文最终由 markdown 渲染 | 对纯文本比框架默认松 0.25× |
 | 内容列 784 居中（D14） | `ContentMaxWidth` | 可读行宽 + 气泡两侧留白对称 | 比框架的 760 宽 24；框架示例里没有居中列，属新增做法 |
 | 轮次 24（D15） | `space-6` | 轮次是语义分组，框架的 16 用于连续消息流 | +8，信息密度更松 |
-| 气泡圆角 6（D17） | `radius` | §8.3"控件与卡片同值" | 与框架 chat 的 14 不同；若接受 C9 则改 |
+| 气泡圆角 6（D17） | `radius` | §8.3 半径只经 `Theme.Radius`；气泡是自绘元素，可另取 | 与框架 chat 的 14 不同；若接受 U7 则改 |
 
 ---
 
@@ -284,7 +310,7 @@ kero 项目：**本机没有副本**（`<HOME>/Code` 下无同名目录，`<HOME
    - 在包里加一个函数照抄 `main()` 里构造状态的那一行，返回 view；
    - `ui.NewTesterWith(view, 宽, 高, ui.TesterOptions{Dark: 明暗}).Image()` → `png.Encode`。
 2. 量图：沿列/行取连续同色段，读边界坐标（本文的数值都是这样得到的）。
-3. 纠正探针：`calibration/compare/fix-preview.png` 的两栏分别用 `TextArea` 与 `TextAreaBase`、内边距 4/12 与 6/14、禁用换面与不换面渲染，其余完全一致。
+3. 纠正探针：`calibration/compare/fix-preview.png` 的两栏分别是"现状"（`TextArea` + `ButtonBase` 自绘 4/12 与 12.25 标签 + 禁用换面）与"UI-13 形态"（`TextAreaBase` + `gui.Button`/`gui.PrimaryButton`），其余完全一致。
 
 我们的截图保持 `internal/ui` 的现有渲染路径：`go test ./internal/ui -run TestScreens`（只比对）或加 `-update` 重写。
 
