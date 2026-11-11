@@ -43,6 +43,22 @@ func TestRealRuleMatching(t *testing.T) {
 		"DIMAGENT_RULE_EXACT", exactRule.Command, false)
 	t.Logf("match: exact command allowed=true")
 
+	exactExtraSession := newWorkspaceSession(t, ctx, base)
+	exactExtraCommand := exactRule.Command + " extra"
+	exactExtraApproval := submitAndWaitApproval(t, ctx, base, exactExtraSession,
+		"Use the shell tool to run exactly: "+exactExtraCommand+". You must call the shell tool with the extra argument; do not answer from memory.")
+	exactExtraActual := lastToolCommand(t, ctx, base, exactExtraSession)
+	if exactExtraActual != exactExtraCommand {
+		t.Fatalf("模型没有按提示执行带参数命令，无法验证 exact 边界")
+	}
+	t.Logf("match: exact with extra argument approval=true")
+	if _, err := base.Respond(ctx, exactExtraSession, exactExtraApproval.RequestID, interaction.Response{
+		Decision: interaction.DecisionApprove,
+	}); err != nil {
+		t.Fatalf("同意带参数命令审批: %v", err)
+	}
+	waitToolResultMarker(t, ctx, base, exactExtraSession, "DIMAGENT_RULE_EXACT")
+
 	prefixRule := interaction.CommandRule{
 		Command:  "printf DIMAGENT_RULE_PREFIX",
 		Match:    interaction.CommandMatchPrefix,

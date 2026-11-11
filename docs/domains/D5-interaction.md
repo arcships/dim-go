@@ -51,7 +51,7 @@ Owner: 交互裁决领域 agent
 **验收**
 
 - 命令：`go test ./...`、`go vet ./...`、`go test -race ./internal/interaction/`；本版全部通过（2026-11-11，`<platform>`）。
-- 本领域：57 个顶层测试、20 个子测试通过；3 个真实环境用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
+- 本领域：57 个顶层测试、20 个子测试通过；4 个真实环境用例按环境跳过，设置夹具后通过；覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 发出长期规则、审批应答与提问应答，核对服务端收到的请求顺序与参数。
   - 注入写登记替身：覆盖成功、明确失败、需人工确认、结果未知、并发应答等分支。
@@ -398,6 +398,47 @@ unavailable := arbiter.RulesUnavailable()   // 能力缺失后不再发请求
 
 对界面的影响：审批面板出现时输入框可以保持可用，并允许用户选择排队/插话；界面不能把“有待决审批”当作禁止提交的条件，也不应把提交当作对审批的回答。提交后应显示队列条数/模式；审批结算后按队列与当前轮的消费结果显示，而不是本地推断。
 
+### 4.13 始终允许：规则形状、匹配与作用域
+
+**服务端形状**
+
+- 读：`permission.rules {}` → `{revision, commandRules:[{command, match, decision}]}`。
+- 写：`permission.set_rules {expectedRevision, commandRules}`，整集重写；回执只带新的 `revision`。
+- `match` 只有两个取值：`exact`、`prefix`；服务端枚举不接受 `glob`、`regex` 或其他值。
+- `decision` 只有 `allow`、`deny`。
+- `command` 必须非空且不含服务端定义的分隔符（分号、`&`、`|`、反引号、括号、重定向、`$`、换行）；规则本身不能是一条管道/复合命令。
+
+**匹配语义**
+
+- 命令按空白切成词（不是 shell 解析，不处理引号/转义）；`exact` 要求词序列完全相同，`prefix` 要求命令以规则的词序列开头。
+- 精确匹配包含参数：多一个参数就不匹配。
+- 前缀匹配按整词前缀：规则 `printf ok` 可以匹配 `printf ok extra`，但不会匹配 `printf okay`。
+- 允许规则只在命令**不含**分隔符时参与判定；带管道的命令不会被 allow 规则自动放行，仍会触发审批。
+- 拒绝规则在判定更早的位置生效：命令按分隔符切成段，任意一段匹配 deny 规则即拒绝；deny 在三个 preset 下都生效。
+- allow 规则只把“本会询问（Ask）”改成允许，不会覆盖 preset 的拒绝（例如 read-only 下启动进程仍被拒绝）。
+
+**作用域与修改权**
+
+- 规则是**用户级**设置（`permission` source、user scope），全局适用所有会话与分支；不是会话级、分支级。
+- 项目/会话配置不能授予规则；没有项目级规则。
+- 连接 daemon 的客户端可调用 `permission.set_rules`；方法参数里没有 sessionId/branchId。本机 socket 就是访问边界。
+- 撤销没有单条删除方法：读当前集合、去掉目标、带 `expectedRevision` 重写；冲突不覆盖。
+- 审批请求本身不带规则作用域/规则标识；服务端只在 deny 的 `reason` 里带“由哪条规则拒绝”（含 command 与 match）。
+
+**审批卡可展示的字段**
+
+| 来源 | 可展示 |
+|---|---|
+| `approval.request` | `source.kind`、`call.name`、`call.input`（可显示工具与命令）、`reason` |
+| 审批卡上的作用域说明 | 服务端没有 scope/revision/ruleId 字段；“写入用户级命令规则、所有会话生效”只能是客户端按 API 语义做的说明 |
+| `permission.rules` | `revision`、完整规则集合，可做规则管理视图 |
+| `permission.set_rules` | 只有 `revision`；不返回规则集 |
+| deny 的 `reason` | 规则命令与 match，可用于解释拒绝原因 |
+
+**默认该用哪种**
+
+默认 `exact`。事实依据：prefix 会连同后续参数一起放行，范围更宽；exact 只在命令词序列完全一致时生效。需要覆盖不同参数时，必须由用户显式选择 prefix 并看到“所有会话生效”的说明，不能由客户端根据一次审批自动推断。
+
 ## 5. 与 A/R 的对应
 
 | 需求或架构条目 | 本领域实现 | 不在本领域 |
@@ -412,6 +453,7 @@ unavailable := arbiter.RulesUnavailable()   // 能力缺失后不再发请求
 | R 块 7 权限档位取值与传递 | 按会话保存 preset；`WithPermission` 校验提交前置条件；读写方法由集成层执行 | `session.permission.get/update` 的 wire（集成层/D1） |
 | R 块 7 成员停止只停成员 | `StopMember` 带 `memberId` 的停止意图 | 成员运行状态读取（D2/D1） |
 | R 块 3/6 审批待答期间的输入 | 允许 `queue`/`steer`；不替换审批；queue 开新轮、steer 进当前轮 | 输入正文与轮次消费（D3/D2） |
+| R 块 6 始终允许的作用域 | 用户级命令规则；exact/prefix；所有会话；deny 全 preset，allow 仅 Ask→Allow | 规则匹配 wire（集成层），审批卡无 scope 字段 |
 | R 块 6/7 命令规则管理 | `LoadRules`/`AddRule`/`EditRule`/`RevokeRule`；整集重写、revision 冲突不覆盖 | `permission.rules/set_rules` wire（集成层） |
 | A 审批推进 / 提问应答 | `state.go` 两张表、启动校验 | — |
 | A 「审批集合、提问集合」镜像状态 | 审批只由 `Apply`/`Replay`/`Settle` 改；提问只由 `SeedQuestions`/`ApplyAskUser`/`SettleQuestion` 改；各自整体替换 | — |
@@ -429,7 +471,7 @@ go vet ./...
 go test -race ./internal/interaction/
 ```
 
-本版结果（2026-11-11，本机 `<platform>`）：三条命令全部通过；`internal/interaction` 57 个顶层测试、20 个子测试全绿；`TestRealModelApproval`、`TestRealCommandRules` 与 `TestRealSubmitDuringApproval` 未设置夹具时跳过，设置后通过（§6.5）。
+本版结果（2026-11-11，本机 `<platform>`）：三条命令全部通过；`internal/interaction` 57 个顶层测试、20 个子测试全绿；`TestRealModelApproval`、`TestRealCommandRules`、`TestRealSubmitDuringApproval` 与 `TestRealRuleMatching` 未设置夹具时跳过，设置后通过（§6.5）。
 
 ### 6.2 覆盖
 
@@ -486,6 +528,7 @@ go test -race ./internal/interaction/
 | 真实 set_rules 回执只带 revision 时使用提交集合 | `TestWriteReplyWithoutRulesUsesSentSet` |
 | 规则管理不经过写登记 | `TestRulesDoNotUseWriteRegistry` |
 | 真实 daemon 的规则读取、新增、编辑、撤销 | `TestRealCommandRules`（§6.5） |
+| 规则 exact/prefix、带参数、管道与 deny 的真实匹配行为 | `TestRealRuleMatching`（§6.5） |
 | 审批待答期间 `queue`/`steer` 均被接受，审批不被替换 | `TestRealSubmitDuringApproval/queue`、`/steer`（§6.5） |
 | 审批结算后 queue 开新轮、steer 进当前轮 | `TestRealSubmitDuringApproval/queue`、`/steer`（§6.5） |
 | 成员停止只停成员，主线与待决集合不变 | `TestStopMemberOnlyStopsMember` |
@@ -584,6 +627,28 @@ steer: consume approvals=0 queuedInputs=0 turns=1
 
 结论：审批待答期间 queue 与 steer 都被接受；审批保持待决；同意后 queue 开新轮、steer 进当前轮。
 
+**规则匹配真实证据**（同一夹具；只记录 revision、条数与匹配结果，不打印命令正文）：
+
+```bash
+DIM_REAL_MODEL_FIXTURE=<fixture> DIM_REAL_MODEL_SERVER=<server> \
+  go test -run TestRealRuleMatching -v -count=1 -timeout 12m ./internal/interaction/
+```
+
+```text
+rules: initial revision=native:user/permission:1 count=0
+rules: add exact revision=native:user/permission:2 count=1
+match: exact command allowed=true
+match: exact with extra argument approval=true
+rules: add prefix revision=native:user/permission:3 count=2
+match: prefix leading words allowed=true
+match: pipeline approval=true
+match: pipeline approved and executed=true
+rules: add deny revision=native:user/permission:5 count=4
+match: deny rule applied_without_approval=true
+```
+
+结论：exact 只匹配完整词序列；prefix 按整词前缀匹配并覆盖额外参数；带管道的命令不被 allow 规则放行；deny 规则直接拒绝且不触发审批。
+
 ### 6.6 blocked
 
 | 项 | 状态 | 缺什么 |
@@ -624,6 +689,10 @@ steer: consume approvals=0 queuedInputs=0 turns=1
 21. **规则冲突不自动重试**：`EditRule`/`RevokeRule`/`AddRule` 遇到 `ErrRulesConflict` 只返回错误，必须先 `LoadRules` 再决定；不合并、不覆盖。
 22. **规则回执可能省略集合**：真实 `permission.set_rules` 只回 revision；本包以本次提交的集合更新缓存，若服务端另有裁剪，下一次 `LoadRules` 会纠正。
 23. **规则只覆盖用户级命令**：本包保存会话 preset，但不管理 `allowedTools`/`disallowedTools` 或审批 preset 的写回细节；本包只管理 `permission.rules` 的命令规则。
+24. **匹配按空白词，不做 shell 解析**：引号、转义、变量展开不参与匹配；规则命令本身也不能含分隔符。
+25. **allow 不覆盖管道**：allow 规则只对不含分隔符的命令生效；带管道的命令即使某段匹配也不会自动放行。deny 规则按分隔符切段匹配，可能命中复合命令的一段。
+26. **没有单条规则 API**：撤销/编辑都是整集重写并带 revision；冲突时需重读后重写。
+27. **审批卡拿不到规则作用域**：`approval.request` 没有 scope/revision/ruleId；“用户级、所有会话生效”只能是客户端说明；规则集合需另读 `permission.rules`。
 
 ## 8. 下一步
 
