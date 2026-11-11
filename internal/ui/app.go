@@ -74,7 +74,8 @@ type Options struct {
 }
 
 // App 只保存可丢的界面状态：当前样例状态、左栏与右栏的开合、摘要展开、
-// 草稿文本与滚动位置。它不保存任何事实，也不发起任何写入。
+// 草稿文本与滚动位置，外加两个只用于样例的展示字段（非默认模型标记、
+// 审批命令原文）。它不保存任何事实，也不发起任何写入。
 type App struct {
 	state   State
 	onState func(State)
@@ -87,6 +88,11 @@ type App struct {
 	draft       string
 	rounds      []round
 	summaryOpen []bool
+
+	// model 是非默认模型在标题行末尾的淡标记；空表示取默认值，不上屏（UI-9）。
+	model string
+	// approvalCommand 是审批卡上的命令原文；为空时拿不到原文，不提供“始终允许”。
+	approvalCommand string
 
 	feed gui.ScrollState
 }
@@ -121,12 +127,27 @@ func (a *App) SetState(s State) {
 func (a *App) loadSample() {
 	a.rounds = sampleRounds(a.state)
 	a.summaryOpen = make([]bool, len(a.rounds))
+	a.approvalCommand = ""
+	if a.state == StateWaiting {
+		a.approvalCommand = "rm -rf ./tmp/*"
+	}
 }
 
 // View 是每帧重建的界面。
 func (a *App) View(c *gui.Context) {
+	a.applyTokens(c)
 	a.debugKeys(c)
 	a.layout(c)
+}
+
+// applyTokens 把 U2 的 token 表换成本帧的主题（tokens.go 的 theme）：
+// 外观跟随系统，文本缩放与高对比跟随系统设置。
+func (a *App) applyTokens(c *gui.Context) {
+	dark := false
+	if sys := c.Theme(); sys != nil {
+		dark = sys.Dark
+	}
+	c.SetTheme(theme(dark, c.Preferences()))
 }
 
 // debugKeys 是仅用于走查的键位：1–5 切换状态。焦点在输入框里时不抢键，

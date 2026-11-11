@@ -15,29 +15,30 @@ func (a *App) sidebar(c *gui.Context) {
 	}
 	t := c.Theme()
 	header := func() {
-		gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).Padding(spaceXS, spaceM).
-			AlignItems(gui.Center).Gap(spaceS).Children(func() {
-			gui.Text(c, "会话").TextColor(t.TextMuted).FontSize(t.FontSize - smallFontSteps)
+		gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).Padding(space1, space3).
+			AlignItems(gui.Center).Gap(space2).Children(func() {
+			typeSecondary.style(t, gui.Text(c, "会话")).TextColor(t.TextMuted)
 			gui.Spacer(c)
-			gui.Button(c, "＋").Label("新建会话").Focusable()
-			if gui.Button(c, "‹").Label("收起左栏").Focusable().Clicked() {
+			actionButton(c, "＋", "新建会话", false, false)
+			if actionButton(c, "‹", "收起左栏", false, false).Clicked() {
 				a.sidebarCollapsed = true
 			}
 		})
 	}
 
 	footer := func() {
-		gui.Column(c).Shrink(0).Padding(spaceM).Gap(spaceXXS).
-			BorderWidth(hairline, 0, 0, 0).BorderColor(t.Border).Children(func() {
-			gui.Text(c, "已连接").TextColor(t.TextMuted).
-				FontSize(t.FontSize - smallFontSteps).Label("连接状态")
-			gui.Text(c, "账号 · 已登录").TextColor(t.TextMuted).
-				FontSize(t.FontSize - smallFontSteps).Label("账号")
+		gui.Column(c).Shrink(0).Padding(space3).Gap(space1).
+			BorderWidth(strokeHairline, 0, 0, 0).BorderColor(t.Border).Children(func() {
+			typeSecondary.style(t, gui.Text(c, "已连接")).TextColor(t.TextMuted).
+				Label("连接状态")
+			typeSecondary.style(t, gui.Text(c, "账号 · 已登录")).TextColor(t.TextMuted).
+				Label("账号")
 		})
 	}
 
 	gui.Column(c).Width(SidebarWidth).Shrink(0).
-		Background(t.Surface).BorderWidth(0, hairline, 0, 0).BorderColor(t.Border).
+		Background(t.Surface).
+		BorderWidth(0, strokeHairline, 0, 0).BorderColor(t.Border).
 		Label("左栏 · 会话列表").Role(gui.RoleNavigation).Focusable().TabStop(true).
 		Children(func() {
 			header()
@@ -74,13 +75,15 @@ func (a *App) sessionList(c *gui.Context) {
 func (a *App) sidebarRail(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Width(SidebarRailWidth).Shrink(0).
-		Background(t.Surface).BorderWidth(0, hairline, 0, 0).BorderColor(t.Border).
-		AlignItems(gui.Center).Justify(gui.Center).Gap(spaceXS).
+		Background(t.Surface).
+		BorderWidth(0, strokeHairline, 0, 0).BorderColor(t.Border).
+		AlignItems(gui.Center).Justify(gui.Center).Gap(space1).
 		Label("展开左栏").Role(gui.RoleButton).Focusable().TabStop(true).
 		OnClick(func() { a.sidebarCollapsed = false }).
 		Children(func() {
 			for i := 0; i < 3; i++ {
-				gui.Box(c).Width(railMarkWidth).Height(railMarkHeight).Radius(1).Background(t.TextMuted)
+				gui.Box(c).Width(railMarkWidth).Height(railMarkHeight).
+					Radius(railMarkHeight / 2).Background(t.TextMuted)
 			}
 		})
 }

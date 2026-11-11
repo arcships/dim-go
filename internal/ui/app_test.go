@@ -20,10 +20,10 @@ func TestStatesShowTheirState(t *testing.T) {
 		want  string
 		gone  string
 	}{
-		{StateDefault, "完成 · 4 个操作 · 改了 2 个文件 · 12s", "等待你同意"},
-		{StateRunning, "正在运行 · 12s", "等待你同意"},
+		{StateDefault, "完成", "等待你同意"},
+		{StateRunning, "正在运行", "等待你同意"},
 		{StateWaiting, "需要你同意：跑一条命令", "发送路径.md"},
-		{StateFailed, "失败 · 2.1s", "排队中 1"},
+		{StateFailed, "失败", "排队中 1"},
 		{StateEmpty, "还没有消息。写点什么开始，或把文件拖进来。", "修发送路径"},
 	}
 	for _, tc := range cases {
@@ -43,10 +43,29 @@ func TestWaitingReplacesComposer(t *testing.T) {
 	if _, ok := tt.Find("消息"); ok {
 		t.Fatal("等待你同意时输入区不应存在")
 	}
-	for _, label := range []string{"允许一次", "一直允许这条命令", "拒绝"} {
+	for _, label := range []string{"允许一次", "始终允许", "拒绝"} {
 		if _, ok := tt.Find(label); !ok {
 			t.Fatalf("审批卡缺少 %q", label)
 		}
+	}
+	// 审批卡占位时整个输入槽不出现（UI-1）。
+	for _, label := range []string{"发送", "停止", "附件"} {
+		if _, ok := tt.Find(label); ok {
+			t.Fatalf("审批卡占位时不应出现输入控件 %q", label)
+		}
+	}
+}
+
+// 拿不到命令原文时，不提供“始终允许”（U3 §5.3）。
+func TestApprovalWithoutCommandHidesAllowAlways(t *testing.T) {
+	app, _ := newTester(t, StateWaiting)
+	app.approvalCommand = ""
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if tt.HasText("始终允许") {
+		t.Fatal("没有命令原文时不应出现始终允许")
+	}
+	if _, ok := tt.Find("允许一次"); !ok {
+		t.Fatal("没有命令原文时仍应能允许一次")
 	}
 }
 
@@ -117,6 +136,28 @@ func TestSidebarCollapsesAndExpands(t *testing.T) {
 	}
 	if app.sidebarCollapsed {
 		t.Fatal("左栏没有展开")
+	}
+}
+
+// 过程摘要行折叠时只留状态判断；条数、文件数与耗时进展开（UI-11）。
+func TestSummaryKeepsCountsInExpansion(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	for _, s := range []string{"个操作", "改了", "12s", "耗时"} {
+		if tt.HasText(s) {
+			t.Fatalf("折叠时不应出现明细 %q", s)
+		}
+	}
+	if !tt.HasText("完成") {
+		t.Fatal("折叠时应保留状态判断")
+	}
+	if err := tt.Click("展开"); err != nil {
+		t.Fatalf("点不到展开：%v", err)
+	}
+	if app.summaryOpen[0] == false {
+		t.Fatal("第一轮摘要没有展开")
+	}
+	if !tt.HasText("4 个操作 · 改了 2 个文件 · 耗时 12s") {
+		t.Fatal("展开后缺少操作数、文件数与耗时")
 	}
 }
 
@@ -220,16 +261,95 @@ func TestParseState(t *testing.T) {
 	}
 }
 
-// 运行中：队列条贴在输入区上沿，发送位变成停止。
+// 运行中：队列条贴在输入区上沿；发送槽同一位置、同一尺寸变成停止，
+// 不与发送并存。
 func TestRunningShowsQueueAndStop(t *testing.T) {
 	_, tt := newTester(t, StateRunning)
 	if !tt.HasText("排队中 1") {
 		t.Fatal("运行中缺少队列条")
 	}
-	if !tt.HasText("停止") {
-		t.Fatal("运行中发送位应是停止")
+	stop, ok := tt.Find("停止")
+	if !ok {
+		t.Fatal("运行中发送槽应是停止")
 	}
 	if _, ok := tt.Find("发送"); ok {
 		t.Fatal("运行中不应出现发送")
+	}
+
+	_, idle := newTester(t, StateDefault)
+	send, ok := idle.Find("发送")
+	if !ok {
+		t.Fatal("空闲时找不到发送")
+	}
+	if stop != send {
+		t.Fatalf("停止槽 %+v 与发送槽 %+v 不同位同尺寸", stop, send)
+	}
+}
+
+// 输入区右侧只留附件入口与发送槽；模型不在输入区（UI-9、迭代意见）。
+func TestComposerHasNoModel(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	if tt.HasText("模型") {
+		t.Fatal("输入区不应出现模型入口")
+	}
+	if _, ok := tt.Find("附件"); !ok {
+		t.Fatal("输入区缺少附件入口")
+	}
+}
+
+// 文本缩放 200% 时，五个状态的文字都不越出窗口，输入位也不压住对话流（U2 §7.4）。
+func TestScreensFitAtTextScale(t *testing.T) {
+	for _, s := range []State{StateDefault, StateRunning, StateWaiting, StateFailed, StateEmpty} {
+		app := NewApp(Options{State: s})
+		tt := gui.NewTesterWith(app.View, WindowWidth, WindowHeight,
+			gui.TesterOptions{Preferences: gui.Preferences{TextScale: 2}})
+		for _, text := range tt.Texts() {
+			r, ok := tt.Find(text)
+			if !ok {
+				continue
+			}
+			// 滚动区里滚出视口的行没有可见面积，不算布局越界。
+			if r.W == 0 || r.H == 0 {
+				continue
+			}
+			if r.X < 0 || r.Y < 0 || r.X+r.W > WindowWidth || r.Y+r.H > WindowHeight {
+				t.Fatalf("%v：%q 越出窗口（%+v）", s, text, r)
+			}
+		}
+		if s == StateEmpty {
+			continue
+		}
+		feed, ok := tt.Find("对话流")
+		if !ok {
+			t.Fatalf("%v：找不到对话流", s)
+		}
+		composer := "消息"
+		if s == StateWaiting {
+			composer = "需要你同意：跑一条命令"
+		}
+		box, ok := tt.Find(composer)
+		if !ok {
+			t.Fatalf("%v：找不到输入位（%q）", s, composer)
+		}
+		if feed.Y+feed.H > box.Y {
+			t.Fatalf("%v：对话流（%+v）压到输入位（%+v）", s, feed, box)
+		}
+	}
+}
+
+// 模型偏离默认时只在标题行末尾留一个淡标记，不写“模型：”（UI-9）。
+func TestModelMarkerOnlyWhenNonDefault(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if tt.HasText("模型") {
+		t.Fatal("默认模型不应上屏")
+	}
+	app.model = "Opus"
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	r, ok := tt.Find("模型 Opus")
+	if !ok {
+		t.Fatal("非默认模型缺少标题行标记")
+	}
+	if r.Y+r.H > HeaderHeight {
+		t.Fatalf("模型标记 %+v 不在标题行内（高 %v）", r, HeaderHeight)
 	}
 }

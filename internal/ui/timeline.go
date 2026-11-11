@@ -12,7 +12,7 @@ func (a *App) timeline(c *gui.Context) {
 	t := c.Theme()
 	if a.state == StateEmpty {
 		gui.Box(c).Grow(1).Center().Label("对话流").Role(gui.RoleLog).Children(func() {
-			gui.Text(c, "还没有消息。写点什么开始，或把文件拖进来。").
+			typeBody.style(t, gui.Text(c, "还没有消息。写点什么开始，或把文件拖进来。")).
 				TextColor(t.TextMuted).TextAlign(gui.Center)
 		})
 		return
@@ -21,7 +21,7 @@ func (a *App) timeline(c *gui.Context) {
 	gui.Scroll(c).TrackScroll(&a.feed).Grow(1).
 		Label("对话流").Role(gui.RoleLog).Focusable().TabStop(true).Children(func() {
 		gui.Column(c).WidthPercent(100).MaxWidth(ContentMaxWidth).
-			AlignSelf(gui.Center).Padding(spaceXXL, spaceXL).Gap(spaceL).
+			AlignSelf(gui.Center).Padding(space6, space4).Gap(space6).
 			Label("对话内容").Children(func() {
 			for i := range a.rounds {
 				a.round(c, i)
@@ -31,51 +31,70 @@ func (a *App) timeline(c *gui.Context) {
 }
 
 // round 画一轮：用户消息右对齐，助手正文铺开，下面是过程摘要行。
+// 轮次之间 21，轮内块之间 10.5（U2 §2.3）。
 func (a *App) round(c *gui.Context, i int) {
 	t := c.Theme()
 	r := a.rounds[i]
-	gui.Column(c).Gap(spaceS).Children(func() {
+	gui.Column(c).Gap(space3).Children(func() {
 		gui.Row(c).Children(func() {
 			gui.Spacer(c)
-			gui.Text(c, r.user).Selectable().
-				Padding(spaceM, spaceL).Radius(radiusRow).
+			typeBody.style(t, gui.Text(c, r.user)).Selectable().
+				Padding(space2, space3).Radius(radius).
 				Background(t.Surface).MaxWidth(userBubbleMaxWidth)
 		})
-		gui.Column(c).Gap(spaceS).Children(func() {
-			reply := r.reply
-			if r.status == roundRunning {
-				reply += " ▍"
-			}
-			gui.Text(c, reply).Selectable()
+		gui.Column(c).Gap(space2).Children(func() {
+			a.reply(c, r)
 			if r.note != "" {
-				gui.Text(c, r.note).TextColor(t.TextMuted).
-					FontSize(t.FontSize - smallFontSteps)
+				a.note(c, r.note)
 			}
 			a.summary(c, i)
 		})
 	})
 }
 
-// summary 是过程摘要行：折叠时只给状态与一句摘要，展开后按发生顺序
-// 逐条列出操作（UI-11）。状态落在这一行已有的标记与文字上。
+// reply 是助手正文。运行中在行尾给 2×14 的 accent-ink 光标（U2 §4.1、§5.3）。
+func (a *App) reply(c *gui.Context, r round) {
+	t := c.Theme()
+	if r.status != roundRunning {
+		typeBody.style(t, gui.Text(c, r.reply)).Selectable()
+		return
+	}
+	gui.RichText(c,
+		gui.Span{Text: r.reply, Size: typeBody.sizeIn(t), Weight: typeBody.weight, Color: t.Text},
+		gui.Span{Text: "\u258d", Size: typeBody.sizeIn(t), Color: colorAccentInk.in(t)},
+	).Selectable()
+}
+
+// note 是本轮下方的一行说明（结果不确定）：行首状态位 + 一行正文，
+// 说明属于本轮，不是容器（U2 §4.1）。
+func (a *App) note(c *gui.Context, note string) {
+	t := c.Theme()
+	gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
+		typeBody.style(t, gui.Text(c, "!")).TextColor(t.Warning)
+		typeBody.style(t, gui.Text(c, note)).Selectable()
+	})
+}
+
+// summary 是过程摘要行：折叠时只给此刻状态的判断（UI-11），条数、文件数与
+// 耗时全部进展开；展开后按发生顺序逐条列出操作。状态落在这一行已有的标记
+// 与文字上。
 func (a *App) summary(c *gui.Context, i int) {
 	t := c.Theme()
 	r := a.rounds[i]
 	open := &a.summaryOpen[i]
 
 	parts := gui.CollapsibleBase(c, open)
-	parts.Trigger.Gap(spaceS).AlignItems(gui.Center).
-		Padding(spaceXS, 0).Radius(radiusChip).Children(func() {
-		gui.RichText(c,
-			gui.Span{Text: statusMark(r.status), Color: statusColor(t, r.status)},
-			gui.Span{Text: "  " + summaryText(r), Color: summaryColor(t, r.status)},
-		)
+	parts.Trigger.Gap(space1).AlignItems(gui.Center).
+		Padding(space1, 0).Radius(radius).Children(func() {
+		statusMark(c, t, r.status)
+		typeSecondaryStrong.style(t, gui.Text(c, summaryStatus(r.status))).
+			TextColor(summaryColor(t, r.status))
 		gui.Spacer(c)
-		gui.Text(c, expandText(*open)).TextColor(t.TextMuted).
-			FontSize(t.FontSize - smallFontSteps)
+		typeSecondary.style(t, gui.Text(c, expandText(*open))).TextColor(t.TextMuted)
 	})
 	parts.Panel(func() {
-		gui.Column(c).Gap(spaceXXS).PaddingStart(spaceL).Children(func() {
+		gui.Column(c).Gap(space1).PaddingStart(space4).Children(func() {
+			typeSecondary.style(t, gui.Text(c, summaryMeta(r))).TextColor(t.TextMuted)
 			for n, o := range r.ops {
 				opRow(c, n+1, o)
 			}
@@ -83,58 +102,70 @@ func (a *App) summary(c *gui.Context, i int) {
 	})
 }
 
-// opRow 是展开后的一行操作：序号、动作、对象、结果、耗时。
+// opRow 是展开后的一行操作：序号、动作、对象、结果、耗时。失败行只把结果词
+// 标成 danger，其余文字保持正文色（U2 §4.1：失败不把正文染红）。
 func opRow(c *gui.Context, n int, o op) {
 	t := c.Theme()
-	color := t.Text
-	if o.failed {
-		color = t.TextMuted
-	}
-	gui.Row(c).Gap(spaceM).AlignItems(gui.Center).Children(func() {
-		gui.Text(c, fmt.Sprint(n)).Width(opNumberWidth).TextColor(t.TextMuted).
-			FontSize(t.FontSize - smallFontSteps)
-		gui.Text(c, o.action).Width(opActionWidth).TextColor(t.TextMuted).
-			FontSize(t.FontSize - smallFontSteps)
-		gui.Text(c, o.target).Grow(1).SingleLine().TextColor(color).
-			FontSize(t.FontSize - smallFontSteps)
-		gui.Text(c, o.result).Width(opResultWidth).TextColor(color).
-			FontSize(t.FontSize - smallFontSteps)
-		gui.Text(c, o.took).Width(opDurationWidth).TextAlign(gui.End).TextColor(t.TextMuted).
-			FontSize(t.FontSize - smallFontSteps)
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
+		// 行内编号用极小级（U2 §1.1）。
+		typeMicro.style(t, gui.Text(c, fmt.Sprint(n))).Width(opNumberWidth).
+			TextColor(t.TextMuted)
+		typeSecondary.style(t, gui.Text(c, o.action)).Width(opActionWidth).
+			TextColor(t.TextMuted)
+		typeSecondary.style(t, gui.Text(c, o.target)).Grow(1).SingleLine().
+			TextColor(t.Text)
+		typeSecondary.style(t, gui.Text(c, o.result)).Width(opResultWidth).
+			TextColor(resultColor(t, o))
+		typeSecondary.style(t, gui.Text(c, o.took)).Width(opDurationWidth).
+			TextAlign(gui.End).TextColor(t.TextMuted)
 	})
 	if o.cause != "" {
-		gui.Text(c, "原因："+o.cause).TextColor(t.TextMuted).
-			FontSize(t.FontSize - smallFontSteps).PaddingStart(spaceXL)
+		typeSecondary.style(t, gui.Text(c, "原因："+o.cause)).TextColor(t.TextMuted).
+			PaddingStart(space4)
 	}
 }
 
-// statusMark 是过程摘要行的行首标记：一个位，按状态取一个。
-func statusMark(s roundStatus) string {
-	switch s {
-	case roundRunning:
-		return "●"
-	case roundWaiting:
-		return "◷"
-	case roundFailed:
-		return "✕"
-	default:
-		return "✓"
+// statusMark 是过程摘要行的行首状态位（U2 §4.1、§6.4）：运行中是 8px 实心圆，
+// 其余三种用一个字形占位——图标集（Heroicons）接入前不引素材。
+func statusMark(c *gui.Context, t *gui.Theme, s roundStatus) {
+	if s == roundRunning {
+		gui.Box(c).Width(dotStatus).Height(dotStatus).Radius(dotStatus / 2).
+			Background(colorAccentInk.in(t))
+		return
 	}
+	glyph, color := "✓", t.TextMuted
+	switch s {
+	case roundWaiting:
+		glyph, color = "◷", colorAccentInk.in(t)
+	case roundFailed:
+		glyph, color = "✕", t.Danger
+	}
+	typeSecondary.style(t, gui.Text(c, glyph)).TextColor(color)
 }
 
-func statusColor(t *gui.Theme, s roundStatus) gui.Color {
-	switch s {
-	case roundRunning:
-		return t.Accent
-	case roundWaiting:
-		return t.Accent
-	case roundFailed:
+// resultColor 只给失败的结果词上 danger，其余结果词取正文色。
+func resultColor(t *gui.Theme, o op) gui.Color {
+	if o.failed {
 		return t.Danger
+	}
+	return t.Text
+}
+
+// summaryStatus 是折叠态唯一保留的判断：此刻是什么状态（UI-11）。
+func summaryStatus(s roundStatus) string {
+	switch s {
+	case roundRunning:
+		return "正在运行"
+	case roundWaiting:
+		return "等待你同意"
+	case roundFailed:
+		return "失败"
 	default:
-		return t.TextMuted
+		return "完成"
 	}
 }
 
+// summaryColor 让失败行整行取 text-secondary，其余状态取正文色（U2 §4.1）。
 func summaryColor(t *gui.Theme, s roundStatus) gui.Color {
 	if s == roundFailed {
 		return t.TextMuted
@@ -142,25 +173,26 @@ func summaryColor(t *gui.Theme, s roundStatus) gui.Color {
 	return t.Text
 }
 
-// summaryText 折叠时只给判断所需：状态、操作数与耗时；文件数给到一轮。
-func summaryText(r round) string {
+// summaryMeta 是展开后的第一行：操作数、文件数与耗时只在这里出现，
+// 折叠态不显示（UI-11）。
+func summaryMeta(r round) string {
 	files := map[string]bool{}
 	for _, o := range r.ops {
 		if o.action == "改动" {
 			files[o.target] = true
 		}
 	}
-	switch r.status {
-	case roundRunning:
-		return "正在运行 · " + r.took
-	case roundWaiting:
-		return "等待你同意"
-	case roundFailed:
-		return "失败 · " + r.took
-	default:
-		return fmt.Sprintf("完成 · %d 个操作 · 改了 %d 个文件 · %s",
-			len(r.ops), len(files), r.took)
+	meta := fmt.Sprintf("%d 个操作", len(r.ops))
+	if len(files) > 0 {
+		meta += fmt.Sprintf(" · 改了 %d 个文件", len(files))
 	}
+	switch {
+	case r.status == roundRunning && r.took != "" && r.took != "—":
+		meta += " · 已用 " + r.took
+	case r.status != roundWaiting && r.took != "" && r.took != "—":
+		meta += " · 耗时 " + r.took
+	}
+	return meta
 }
 
 func expandText(open bool) string {
