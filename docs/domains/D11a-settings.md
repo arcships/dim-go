@@ -57,7 +57,7 @@ Owner: D11a 设置与运行环境领域
 **验收**
 
 - 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64）。
-- 本领域：104 个顶层测试、53 个子测试，共 157 个通过；语句覆盖率 82.1%。
+- 本领域：105 个顶层测试、53 个子测试，共 158 个通过；语句覆盖率 82.2%。
 - 真实模型：`scripts/verify-real-model.sh --fixture <fixture-dir> --server <installed-server>` 通过，观察到真实工具调用与工具结果（§6.5）。
 - 真实模态：`scripts/verify-modality.py --fixture <fixture-dir> --server <installed-server> --image <image-file>` 通过；OCR 任务 `queued → running → succeeded`，结果分页读完；取消 `queued → cancelled`；实时因 adapter 不可用标 blocked（§6.6）。
 - 真实 provider/模型管理：`scripts/verify-provider-admin.py --fixture <fixture-dir> --server <installed-server>` 通过；新建→探测→更新→启用→模型开关→编辑→重置→偏好→版本冲突全部在真实 alpha.21 上跑通（§6.7）。
@@ -106,7 +106,8 @@ Owner: D11a 设置与运行环境领域
 | 设置读取 | 按来源与作用域读取完整文档与版本；结构不合法即拒绝；最近一次确认值留在内存 |
 | 设置写入 | 必须带 `expectedRevision`；本地缓存发现版本已变时直接返回冲突且不发请求；经写登记只发一次；成功后采用回执文档 |
 | 模型与 provider | 读取 provider、模型、启用模型清单与当前选择；按账号可用模型清单过滤可选性并说明原因；写入当前选择，成功后重读回填 |
-| provider 管理 | 列表与详情；新建；更新显示名/地址/启用状态；显式探测（只读，不写配置）；显式全量设置启用模型；模型编辑/重置；模型偏好写入 |
+| provider 管理 | 列表与详情；新建；更新显示名/地址/启用状态；显式探测（只读，不写配置）；显式全量设置启用模型；模型编辑/重置；模型偏好写入；模型计价字段读取 |
+| 费用/计价数据 | 读取 provider 目录的输入/输出单价与货币；读取账号套餐价格、额度、窗口与功能用量；会话 token 用量与可选 cost/currency |
 | 协作模型策略 | 读取策略与 revision；按 revision 写入 agent/inherit/fixed；本地与服务端冲突判定 |
 | agent 档案 | 读取 agent 清单；读取会话当前 agent；按当前 agent 前置条件更新会话 agent，写入后重读 |
 | 模态任务 | 提交、状态读取、清单分页、结果分页、取消；提交与取消经写登记，读取走集成层模态调用面（该服务端为 daemon 级控制方法） |
@@ -550,6 +551,7 @@ provider 写入面（全部 `KindManagementWrite`，先过 `provider.management`
 | `UpdateProvider` | `provider.update` | `providerId`、`expectedVersion`、`patch` |
 | `SetProviderEnabled` | `provider.update` | `patch.enabled` |
 | `SetModelsEnabled` | `provider.models.set_enabled` | `providerId`、`expectedVersion`、完整 `modelIds` |
+| 模型计价 | `ProviderModelInfo.Pricing` / `ProviderModelInput.Pricing`：`inputTokenPrice`、`outputTokenPrice`、`currency`；typed wire 无 unit 字段 |
 | `SetModelEnabled` | `provider.models.set_enabled` | 先读详情计算完整集合，再写；已是目标状态则不写 |
 | `EditModel` | `provider.models.edit` | `providerId`、`expectedVersion`、`modelId`、`edit` |
 | `ResetModel` | `provider.models.reset` | `providerId`、`expectedVersion`、`modelId` |
@@ -614,6 +616,70 @@ type CollaborationModelPolicy struct {
 
 能力名常量：`FeatureSettingsSources`、`FeatureSettingsProjects`、`FeatureSettingsRead`、`FeatureSettingsUpdate`、`FeatureModelProviders`、`FeatureModelSelection`、`FeatureProviderList`、`FeatureProviderManagement`、`FeatureProviderCreate`、`FeatureProviderUpdate`、`FeatureProviderProbe`、`FeatureProviderModelsSetEnabled`、`FeatureProviderModelsEdit`、`FeatureProviderModelsReset`、`FeatureProviderPreferencesUpdate`、`FeatureCollaborationPolicy`、`FeatureCollaborationSetPolicy`、`FeatureAgentList`、`FeatureSessionAgentGet`、`FeatureSessionAgentUpdate`、`FeatureStorageReport`、`FeatureRuntimeList`、`FeatureRuntimeInstall`、`FeatureModalityCapabilities`。其中 agent 的 get/update 以 `AgentAdmin.SupportsSessionAgentGet/Update` 读会话方法表为准；`agent.list` 是内建方法，不按 hello 预判。会话模态方法名常量：`ModalityMethodTaskSubmit`、`ModalityMethodTaskStatus`、`ModalityMethodTaskList`、`ModalityMethodTaskCancel`、`ModalityMethodTaskResult`、`ModalityMethodRealtimeOpen`、`ModalityMethodRealtimeSend`、`ModalityMethodRealtimeClose`。`Config.Features` 为 nil 时不做声明检查，只按调用结果分类；集成层提供 `*daemon.Connection` 即可获得声明检查；会话方法表由 `ModalitySession` 的 `SupportsModalityMethod` 回答。
 
+### 4.14 费用/计价数据
+
+服务端**提供计价字段，但不保证能还原一次会话的最终费用**。真实 alpha.21 的字段如下。
+
+**provider.catalog / provider.management 的模型条目**
+
+- `provider.catalog` 回执：`catalog.models[].metadata.pricing`。
+- `provider.management` 回执：`providers[].models[].model.metadata.pricing`。
+- 形状：`{inputTokenPrice?: number, outputTokenPrice?: number, currency?: string}`。
+- 单位：数值按产品目录约定为**每百万 token**；wire 没有 `unit` 或 `billingBasis` 字段，客户端不能只凭这三个字段推断单位或最终费用。
+- `metadata.raw.cost` 里可能还有 `cache_read`、`cache_write`、`reasoning` 等原始单价，但不在 typed 字段里；客户端不应把它们当作稳定接口。
+- `provider.probe` 返回的模型条目同样可能带 `metadata.pricing`；本包把它映射到 `ProviderModelInput.Pricing`。
+- 本包 `ProviderModelInfo.Pricing` 只承载这三个字段；不提供本地费用估算。
+
+**account.usage（需带 providerId）**
+
+形状（都可选，缺失表示服务端没有给）：
+
+| 字段 | 形状 | 含义 |
+|---|---|---|
+| `plan.name` / `status` | string | 套餐名与状态 |
+| `plan.priceAmount` | number | 套餐价格，**货币最小单位**（如分；展示前除以 100） |
+| `plan.priceCurrency` | string | ISO 货币代码，例如 `CNY`、`USD` |
+| `plan.priceInterval` | string | 计费周期：`month` / `year` / `week` / `day` |
+| `plan.expiresAt` / `currentTermStart` | string | 套餐期限时间 |
+| `credits.usedUnits` / `totalUnits` / `remainingUnits` | number（整数） | 套餐额度单位数；不是货币 |
+| `credits.unlimited` | bool | 无上限时余额为 0 也不代表耗尽 |
+| `credits.resetsAt` | string | 额度重置时间 |
+| `windows[]` | `{durationHours, tokenUsed, tokenCap, startedAt?, expiresAt?}` | 滚动窗口的 token 配额与用量 |
+| `features[]` | `{key, used?, allowance?, remaining?, unit?, unlimited?, periodEnd?}` | 功能额度；`unit` 由服务端给（如 `call`） |
+| `subscriptionUrl` / `pricingUrl` | string | 管理/价格页面链接，不是金额 |
+
+结论：
+
+- 套餐价格可展示，但它是**订阅价格**，不是逐 token 单价，也不能直接换算成一次会话费用。
+- credits / windows / features 是额度与配额；响应里没有“credit → 货币”的换算率，客户端不得自行换算。
+- 账号用量读取必须带 provider 标识；本包当前只消费 `account.Usage` 的逐项与聚合，套餐/额度字段需要 D6 扩展（见下）。
+
+**会话事实**
+
+- `session.event` 的 `model/usage`：`data.usage` 形状
+  `{promptTokens, completionTokens, totalTokens, cacheReadTokens?, cacheWriteTokens?, cost?, currency?}`。
+- `cost` 与 `currency` 是 wire 可选字段；当前 dim-oauth/aimux 适配器把 `cost` 置空，真实调用只返回 token 字段，没有 `cost`/`currency`。
+- 其余会话事件没有 cost/price 字段；工具调用、轮次、目标等事实不携带计价。
+- 因此：**当前真实服务端不提供可直接展示的逐会话费用**；客户端只能展示 token 用量。若未来适配器填充 `cost`/`currency`，客户端应优先采用服务端值，不在本地按单价乘 token 计算。
+
+**可在界面展示的字段清单**
+
+- 模型目录：`displayName`、`inputTokenPrice`、`outputTokenPrice`、`currency`；按每百万 token 的目录约定展示，并标注“目录单价”。
+- 账号套餐：`plan.name`、`status`、`priceAmount/100`、`priceCurrency`、`priceInterval`、期限时间。
+- 账号额度：`credits.usedUnits/totalUnits/remainingUnits/unlimited/resetsAt`；`windows[].tokenUsed/tokenCap/durationHours`；`features[].key/used/allowance/remaining/unit`。
+- 会话：`promptTokens`、`completionTokens`、`totalTokens`、`cacheReadTokens`、`cacheWriteTokens`；仅当服务端给出时再展示 `cost`/`currency`。
+
+**判定方式**
+
+1. 有 `model/usage.usage.cost` 且 `currency` 非空 → 展示服务端费用，不本地重算。
+2. 只有模型目录单价 → 展示目录单价；不把“单价 × token”称为最终费用（缺 cache/reasoning 价、峰谷价与计费口径）。
+3. 只有账号 credits/windows/features → 展示额度；不换算成货币。
+4. 以上都没有 → 明说“服务端不提供计价”，只展示 token 用量。
+
+**对 D6 的接口发现（需要 D6 更新）**
+
+D6 当前 `account.Usage` 只有 `Lines` 与 `Aggregate`，没有承载 `plan`、`credits`、`windows`、`features`。要展示套餐与额度，D6 需要扩展 `Usage`（或新增只读视图）并保留可选字段语义：缺失不等于 0，`unlimited=true` 时余额 0 不代表耗尽，`priceAmount` 是货币最小单位。D11a 只记录发现，未改 D6 的包与文档。
+
 ## 5. 与 A/R 的对应
 
 | 需求或架构条目 | 本领域实现 | 不在本领域 |
@@ -647,7 +713,7 @@ go test ./...
 go vet ./...
 ```
 
-本版结果：四条命令全部通过；`internal/settings` 104 个顶层测试、53 个子测试全绿，语句覆盖率 82.1%（2026-11-11，macOS arm64）。
+本版结果：四条命令全部通过；`internal/settings` 105 个顶层测试、53 个子测试全绿，语句覆盖率 82.2%（2026-11-11，macOS arm64）。
 
 ### 6.2 覆盖
 
@@ -722,6 +788,7 @@ go vet ./...
 | 单模型启用/停用与无变化不写 | `TestSetModelEnabledToggles` |
 | 模型编辑、重置、偏好写入 | `TestEditResetAndPreferencesWrites` |
 | provider/模型写入缺能力零请求 | `TestProviderWritesRequireCapabilities` |
+| 模型计价字段读取、创建与深拷贝/校验 | `TestRefreshProvidersAndReadDetail`、`TestCreateProviderWritesOnceAndReadsBack`、`TestProviderPricingValidationAndClone` |
 | provider 显式字段与凭据只透传 | `TestProviderPatchFieldsAndCredentialsAreExplicit`、`TestProviderPatchValidation` |
 | 模型编辑多字段与偏好 clear/set | `TestModelEditAndPreferenceFields` |
 | 新建 UUID 与托管 provider 不可编辑 | `TestProviderCreateRequiresUUIDAndManagedNotEditable` |
@@ -1026,6 +1093,9 @@ agent: agentId=<agent-id> updateOutcome=adopted
 41. **agent 前置字段不能下发**：`expectedAgentId` 只在本包使用；真实服务端会拒绝未知字段，D12 必须只发 `sessionId`、`branchId`、`agentId`。
 42. **协作策略是全局设置**：真实 revision 是服务端分配的字符串；写入影响所有协作子代理，本包不做项目作用域。
 43. **agent 档案创建/删除不在本版**：本版只读取清单与会话采用；`agent.create` 仍由调用方/其他领域负责。
+44. **模型目录单价没有单位字段**：`metadata.pricing` 只有输入/输出单价与货币，没有 unit、计费口径或峰谷价；本包按产品目录约定理解为每百万 token，不据此计算最终费用。
+45. **逐会话 cost 当前为空**：`model/usage.usage.cost/currency` 是可选字段，当前适配器未填充；真实调用只有 token 字段。客户端不得用目录单价乘 token 冒充服务端费用。
+46. **账号额度不是货币**：`account.usage` 的 credits/windows/features 是额度单位，响应没有换算率；D6 需要扩展 Usage 才能展示套餐与额度。
 
 ## 8. 下一步
 
@@ -1044,3 +1114,5 @@ agent: agentId=<agent-id> updateOutcome=adopted
 13. 补 provider 删除、`provider.refresh` 远程模型刷新与 `provider.import_legacy`；这些不在本版但方法已存在。
 14. 让 D12 的 `CollaborationReader`/`AgentAdmin` 接通协作策略与会话 agent，再用本包 Go API 复跑 §6.8；当前真实证据由脚本直连取得。
 15. 评估 agent 档案是否需要服务端 revision；当前只能以当前 AgentID 作为前置条件，跨客户端强一致冲突无法表达。
+16. 让 D6 扩展 `account.Usage` 承载 `plan`、`credits`、`windows`、`features`；本版只记录字段与语义，不改 D6 包/文档。
+17. 若服务端后续填充 `model/usage.cost/currency`，补真实逐会话费用证据；当前只证明字段存在、适配器未填充。
