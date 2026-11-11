@@ -42,39 +42,22 @@ func (a *App) CollaborationMembers(ctx context.Context, sessionID string) ([]str
 		members = append(members, id)
 	}
 
-	// 1) 未结束的协作请求：delivery 给出成员会话。
+	// 1) 未结束的协作请求：delivery 给出成员会话。用与首屏清单相同的分页封装，
+	// 游标 `after`/`through` 原样带回。
 	branchID := branchOrMain(runtime.folder.Selected())
-	after := int64(0)
-	through := int64(0)
-	for page := 0; page < 5; page++ {
-		raw, callErr := runtime.lease.Subscription().Call(ctx, "session.collaboration.pending", map[string]any{
-			"sessionId": sessionID,
-			"branchId":  branchID,
-			"after":     after,
-		})
-		if callErr != nil {
-			return nil, callErr
-		}
-		result, parseErr := protocol.ParseSessionCollaborationPendingResult(raw)
-		if parseErr != nil {
-			return nil, fmt.Errorf("协作清单回执无法解析: %w", parseErr)
-		}
-		for _, request := range result.Requests {
+	if _, requests, err := fetchPendingPages(ctx, branchID,
+		func(ctx context.Context, query protocol.PendingQuery) (protocol.PendingPage, []protocol.PendingCollaboration, error) {
+			result, err := runtime.lease.Subscription().PendingCollaboration(ctx, query)
+			return result.PendingPage, result.Requests, err
+		}); err != nil {
+		return nil, err
+	} else {
+		for _, request := range requests {
 			if request.Delivery != nil && request.Delivery.Status == protocol.CollaborationDeliveryOK {
 				add(request.Delivery.SessionID)
 			}
 		}
-		through = result.Through
-		var next string
-		if len(result.Next) > 0 && string(result.Next) != "null" {
-			_ = json.Unmarshal(result.Next, &next)
-		}
-		if next == "" || next == fmt.Sprint(after) {
-			break
-		}
-		after = result.Through
 	}
-	_ = through
 
 	// 2) 历史事实：delivered 的 delivery.session_id。
 	events, err := (&changeSource{app: a}).collectFacts(ctx, runtime)
