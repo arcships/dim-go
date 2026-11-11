@@ -104,7 +104,7 @@ type Server struct {
 //	supervisor, err := daemon.New(daemon.Config{DataDir: server.DataDir()})
 func Start(script Script) (*Server, error) {
 	// Unix socket 路径有平台上限（macOS 104 字节、Linux 108 字节），临时目录
-	// 用 /tmp 以留出余量；失败时回落到系统临时目录。
+	// 优先用短路径的系统临时目录以留出余量；失败时回落到默认临时目录。
 	dir, err := os.MkdirTemp("/tmp", "dimagent-fakeappserver-")
 	if err != nil {
 		dir, err = os.MkdirTemp("", "dimagent-fakeappserver-")
