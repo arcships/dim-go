@@ -1,0 +1,73 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>UI-9 / UI-10 / UI-11 修正对照</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font:14px/22.75px -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;color:#333;background:#fff;padding:24px}
+h1{font-size:20px;line-height:28px;margin-bottom:8px}
+h2{font-size:15px;line-height:22px;margin:28px 0 10px}
+h3{font-size:14px;line-height:22px;margin:18px 0 8px}
+p.lead{color:#666;margin-bottom:6px;max-width:1000px}
+.strip{display:flex;gap:24px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}
+.pair{display:flex;gap:12px}
+.cv{position:relative;flex:0 0 auto;height:900px;background:#fff;border:1px solid #ddd;overflow:hidden}
+.tag{position:absolute;left:8px;bottom:6px;font-size:10.5px;line-height:14px;color:#999;z-index:9;background:#fff;padding:0 4px}
+.notes{width:240px;flex:0 0 auto;font-size:12.25px;line-height:18px;color:#333;border-left:1px solid #ddd;padding-left:10px}
+.notes b{display:block;margin-bottom:6px}
+.notes div{margin-bottom:6px;color:#666}
+.notes i{display:block;color:#999;font-style:normal;font-size:11px}
+.sb{position:absolute;left:0;top:0;bottom:0;width:256px;background:#f5f5f5;border-right:1px solid #ddd;padding:8px}
+.sb .hd{height:32px;display:flex;align-items:center;justify-content:space-between;color:#999;font-size:12.25px}
+.sb .ent{height:28px;display:flex;align-items:center;padding:0 8px;border-radius:6px}
+.sb .ent.on{background:#fff;border:1px solid #ddd}
+.sb .div{height:1px;background:#ddd;margin:8px 0}
+.sb .prj{height:28px;display:flex;align-items:center;color:#999;font-size:12.25px;padding:0 8px}
+.sb .bot{position:absolute;left:8px;right:8px;bottom:8px;height:28px;display:flex;align-items:center;padding:0 8px;border-top:1px solid #ddd}
+.main{position:absolute;top:0;bottom:0;left:256px;right:0}
+.tb{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid #ddd}
+.tb .nm{font-weight:600}
+.tb .mu{color:#999;font-size:12.25px}
+.tb .sp{flex:1}
+.btn{border:1px solid #ddd;border-radius:6px;padding:0 8px;height:28px;display:flex;align-items:center;font-size:12.25px;color:#333;background:#fff}
+.tl{position:absolute;left:0;right:0;overflow:hidden;padding:21px 14px}
+.wrap{margin:0 auto}
+.u{display:flex;justify-content:flex-end;margin-bottom:10.5px}
+.u .b{max-width:85%;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:7px 14px}
+.a{margin-bottom:10.5px}
+.op{display:flex;align-items:center;gap:8px;border-left:1px solid #ddd;padding-left:10.5px;margin:7px 0 10.5px 5.25px;color:#666;font-size:12.25px}
+.op .st{color:#333}
+.q{position:absolute;left:0;right:0;border-top:1px solid #ddd;border-bottom:1px solid #ddd;background:#f5f5f5;padding:4px 14px;font-size:12.25px;display:flex;gap:10px;align-items:center;height:33px}
+.cm{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #ddd;background:#fff;padding:7px 14px}
+.card{border:1px solid #ddd;border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
+.row1{display:flex;gap:8px;align-items:center;margin-bottom:7px}
+.chip{border:1px solid #ddd;background:#f5f5f5;border-radius:6px;padding:0 8px;font-size:12.25px;height:24px;display:flex;align-items:center}
+.ph{color:#999}
+.row2{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.prim{border:1px solid #333;background:#333;color:#fff;border-radius:6px;padding:0 10px;height:28px;display:flex;align-items:center;font-size:12.25px}
+.ghost{border:1px solid #ddd;border-radius:6px;padding:0 10px;height:28px;display:flex;align-items:center;font-size:12.25px;background:#fff}
+.ap{border:1px solid #333;border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
+.ap .t{font-weight:600}
+.ap .m{font-size:12.25px;color:#666}
+.ap .act{display:flex;gap:8px;align-items:center}
+.mark{color:#999;font-size:12.25px}
+.pagebar{display:flex;justify-content:center;margin-bottom:10.5px;color:#666;font-size:12.25px;border:1px dashed #ddd;border-radius:6px;height:28px;align-items:center}
+.err{border-left:2px solid #333;padding-left:10.5px;margin-bottom:10.5px}
+.err .k{font-size:12.25px;color:#999}
+.rail{position:absolute;top:48px;bottom:124px;left:0;width:22px;border-right:1px solid #ddd}
+.rail .pin{position:absolute;left:7px;width:8px;height:2px;background:#999}
+.rail .pin.cur{background:#333;height:3px}
+table{border-collapse:collapse;margin:8px 0 16px;font-size:12.25px}
+th,td{border:1px solid #ddd;padding:4px 8px;text-align:left;vertical-align:top}
+th{background:#f5f5f5}
+code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+
+.sum{display:flex;align-items:center;gap:8px;border-left:1px solid #ddd;padding-left:10.5px;margin:7px 0 10.5px 5.25px;font-size:12.25px;color:#333}
+.sum .k{color:#666}
+.sum .sp{flex:1}
+.sum .bad{color:#333;font-weight:600}
+.list{margin:0 0 10.5px 21.75px;border-left:1px solid #ddd;padding-left:10.5px}
+.list .it{display:flex;gap:8px;font-size:12.25px;line-height:22.75px}
+.list .n{width:16px;color:#999}
+.list .who{width:52px;color:#999}
+.list .what{flex:1}
+.list .res{width:64px}
+.list .ms{width:44px;color:#999;text-align:right}
+.list .cause{color:#666;font-size:12.25px;line-height:18px;padding-left:24px;margin-bottom:4px}
+</style></head><body><h1>UI-9 / UI-10 / UI-11 修正对照</h1><p class="lead">UI-9：默认值不展示——分支 main、默认权限、默认模型不常驻，只显示会话标题与用量；偏离默认时才以最小形式提示（第 5 张）。UI-10：队列紧贴输入区上方（绝对定位在输入区之上），标题区与时间线顶部不出现队列。UI-11：过程摘要行只保留"此刻在干什么/卡没卡"，操作数、文件数、耗时进展开。</p><h2>五个画面（宽 1440）</h2><div class="strip"><div class="cv" style="width:1440px"><div class="sb"><div class="hd"><span>会话</span><span>＋</span></div><div class="ent">新会话</div><div class="ent">搜索</div><div class="div"></div><div class="prj">项目 A</div><div class="ent on">· 修发送路径</div><div class="ent">· 参考</div><div class="prj">项目 B</div><div class="ent">· 旧实现对照</div><div class="ent">⋮</div><div class="bot">账号 · 已登录</div></div><div class="main"><div class="tb"><span class="nm">修发送路径</span><span class="sp"></span><span class="mu">上下文 12%</span><button class="btn">右栏 ›</button></div><div class="tl" style="top:48px;bottom:157px"><div class="wrap" style="max-width:784px"><div class="u"><div class="b">看看这次的失败</div></div><div class="a">消息在排队判定里丢了：运行中提交会覆盖队列。</div><div class="u"><div class="b">再跑一次</div></div><div class="a">正在改写发送路径…▍</div><div class="sum"><span class="bad">●</span><span>正在运行 · 12s</span><span class="sp"></span><span>展开 ⌄</span></div></div></div><div class="q" style="bottom:124px"><span>排队中 1</span><span>把日志也开上</span><span style="flex:1"></span><button class="ghost" style="height:22px">撤回</button></div><div class="cm" style="height:124px"><div class="card"><div class="row1"><span class="chip">发送路径.md</span><span class="ph">写点什么，或把文件拖进来</span></div><div class="row2"><span class="mark">⌘↵ 发送</span><button class="ghost">＋ 附件</button><span class="mark">模型：默认 ▾</span><button class="prim">停止</button></div></div></div></div><div class="tag">运行中（队列贴输入，摘要只给状态） · 1440×900 · 侧栏 256 · 内容 784</div></div><div class="cv" style="width:1440px"><div class="sb"><div class="hd"><span>会话</span><span>＋</span></div><div class="ent">新会话</div><div class="ent">搜索</div><div class="div"></div><div class="prj">项目 A</div><div class="ent on">· 修发送路径</div><div class="ent">· 参考</div><div class="prj">项目 B</div><div class="ent">· 旧实现对照</div><div class="ent">⋮</div><div class="bot">账号 · 已登录</div></div><div class="main"><div class="tb"><span class="nm">修发送路径</span><span class="sp"></span><span class="mu">上下文 12%</span><button class="btn">右栏 ›</button></div><div class="tl" style="top:48px;bottom:124px"><div class="wrap" style="max-width:784px"><div class="u"><div class="b">看看这次的失败</div></div><div class="a">消息在排队判定里丢了：运行中提交会覆盖队列。</div><div class="u"><div class="b">把临时目录清掉</div></div><div class="err"><div class="k">结果不确定</div>这次提交可能已经送达。正在核对，不会自动重发。</div><div class="sum"><span class="bad">✕</span><span>失败 · 2.1s</span><span class="sp"></span><span>展开 ⌄</span></div></div></div><div class="cm" style="height:124px"><div class="card"><div class="row1"><span class="chip">发送路径.md</span><span class="ph">写点什么，或把文件拖进来</span></div><div class="row2"><span class="mark">⌘↵ 发送</span><button class="ghost">＋ 附件</button><span class="mark">模型：默认 ▾</span><button class="prim">发送</button></div></div></div></div><div class="tag">失败（摘要只给状态，明细进展开） · 1440×900 · 侧栏 256 · 内容 784</div></div><div class="cv" style="width:1440px"><div class="sb"><div class="hd"><span>会话</span><span>＋</span></div><div class="ent">新会话</div><div class="ent">搜索</div><div class="div"></div><div class="prj">项目 A</div><div class="ent on">· 修发送路径</div><div class="ent">· 参考</div><div class="prj">项目 B</div><div class="ent">· 旧实现对照</div><div class="ent">⋮</div><div class="bot">账号 · 已登录</div></div><div class="main"><div class="tb"><span class="nm">修发送路径</span><span class="sp"></span><span class="mu">上下文 12%</span><button class="btn">右栏 ›</button></div><div class="tl" style="top:48px;bottom:183px"><div class="wrap" style="max-width:784px"><div class="u"><div class="b">看看这次的失败</div></div><div class="a">消息在排队判定里丢了：运行中提交会覆盖队列。</div><div class="u"><div class="b">清一下临时目录</div></div><div class="a">需要跑一条命令，等你同意。</div><div class="sum"><span class="bad">◷</span><span>等待你同意</span><span class="sp"></span><span>展开 ⌄</span></div></div></div><div class="q" style="bottom:150px"><span>排队中 1</span><span>把日志也开上</span><span style="flex:1"></span><button class="ghost" style="height:22px">撤回</button></div><div class="cm" style="height:150px"><div class="ap"><div class="t">需要你同意：跑一条命令</div><div class="m">rm -rf ./tmp/* ｜ 影响：工作区内的临时文件</div><div class="act"><button class="prim">允许一次</button><button class="ghost">一直允许这条命令</button><button class="ghost">拒绝</button><span class="mark">默认只精确匹配这一条；对所有会话生效</span></div></div></div></div><div class="tag">等待你同意（输入位被占，队列仍在输入区上方） · 1440×900 · 侧栏 256 · 内容 784</div></div><div class="cv" style="width:1440px"><div class="sb"><div class="hd"><span>会话</span><span>＋</span></div><div class="ent">新会话</div><div class="ent">搜索</div><div class="div"></div><div class="prj">项目 A</div><div class="ent on">· 修发送路径</div><div class="ent">· 参考</div><div class="prj">项目 B</div><div class="ent">· 旧实现对照</div><div class="ent">⋮</div><div class="bot">账号 · 已登录</div></div><div class="main"><div class="tb"><span class="nm">修发送路径</span><span class="sp"></span><span class="mu">上下文 12%</span><button class="btn">右栏 ›</button></div><div class="tl" style="top:48px;bottom:124px"><div class="wrap" style="max-width:784px"><div class="u"><div class="b">看看这次的失败</div></div><div class="a">消息在排队判定里丢了：运行中提交会覆盖队列。</div><div class="a">已改为默认排队。</div></div></div><div class="cm" style="height:124px"><div class="card"><div class="row1"><span class="chip">发送路径.md</span><span class="ph">写点什么，或把文件拖进来</span></div><div class="row2"><span class="mark">⌘↵ 发送</span><button class="ghost">＋ 附件</button><span class="mark">模型：默认 ▾</span><button class="prim">发送</button></div></div></div></div><div class="tag">标题行 · 全默认（只显示会话标题与用量） · 1440×900 · 侧栏 256 · 内容 784</div></div><div class="cv" style="width:1440px"><div class="sb"><div class="hd"><span>会话</span><span>＋</span></div><div class="ent">新会话</div><div class="ent">搜索</div><div class="div"></div><div class="prj">项目 A</div><div class="ent on">· 修发送路径</div><div class="ent">· 参考</div><div class="prj">项目 B</div><div class="ent">· 旧实现对照</div><div class="ent">⋮</div><div class="bot">账号 · 已登录</div></div><div class="main"><div class="tb"><span class="nm">修发送路径</span><span class="mu">分支：feature/queue-rework · 权限：完全访问 · 模型：opus</span><span class="sp"></span><span class="mu">上下文 12%</span><button class="btn">右栏 ›</button></div><div class="tl" style="top:48px;bottom:124px"><div class="wrap" style="max-width:784px"><div class="u"><div class="b">看看这次的失败</div></div><div class="a">消息在排队判定里丢了：运行中提交会覆盖队列。</div><div class="a">已改为默认排队。</div></div></div><div class="cm" style="height:124px"><div class="card"><div class="row1"><span class="chip">发送路径.md</span><span class="ph">写点什么，或把文件拖进来</span></div><div class="row2"><span class="mark">⌘↵ 发送</span><button class="ghost">＋ 附件</button><span class="mark">模型：默认 ▾</span><button class="prim">发送</button></div></div></div></div><div class="tag">标题行 · 有偏离（最小形式提示） · 1440×900 · 侧栏 256 · 内容 784</div></div></div><h2>摘要行最终文案</h2><table><tr><th>状态</th><th>折叠时（只给判断所需）</th><th>展开后（明细）</th></tr><tr><td>运行中</td><td><code>● 正在运行 · 12s</code></td><td><code>4 个操作 · 改了 2 个文件 · 12s</code> + 逐条</td></tr><tr><td>等待同意</td><td><code>◷ 等待你同意</code></td><td>同上</td></tr><tr><td>失败</td><td><code>✕ 失败 · 2.1s</code></td><td>同上 + 失败条目与原因</td></tr><tr><td>完成</td><td>不显示状态行；回复末尾 <code>12s · 展开 ⌄</code></td><td>同上</td></tr></table></body></html>
