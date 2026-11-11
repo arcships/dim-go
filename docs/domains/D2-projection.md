@@ -2,7 +2,7 @@
 
 Status: 第一版实现完成（P1-2 候选结果包；含分页、按轮导出来源与真实 daemon 证据）
 Owner: D2 领域 agent
-验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；用量、撤回与目标控制见 6.8；上下文预算与压缩的调查结论见 6.9；blocked 见 6.5
+验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；用量、撤回与目标控制见 6.8；上下文预算与压缩的调查结论见 6.9；分支、插话、审批重放与 @ 搜索见 6.10；blocked 见 6.5
 依据: `docs/domains/R.md` 第 1 部分功能块 2、块 4 的读取侧；`docs/domains/A.md`（会话视图、会话级状态含分页锚点、四条总规矩、启动校验）；`docs/domains/D1-connection.md`（wire 类型与会话流）
 范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、后台任务输出分页与停止意图、提示建议、上下文用量与压缩摘要、排队输入撤回与目标暂停恢复的意图、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径的登记与发送、磁盘存储、审批应答、目录与导出文件本身。
 
@@ -452,7 +452,7 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 - `go test ./...`：全部通过（含 `internal/projection` 与同期其它领域的包）。
 - `go vet ./...`：无输出。
 - `go test -race ./internal/projection/`：通过。
-- projection 用例 70 个：65 个 fixture 用例通过；5 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6–6.9），设了就通过。
+- projection 用例 72 个：65 个 fixture 用例通过；7 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6–6.10），设了就通过。
 
 ### 6.2 覆盖
 
@@ -519,6 +519,8 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 | 失败的压缩保留状态、不给摘要、仍计次 | `TestCompactionFailedStatus` |
 | 按需读数的剩余量、占比与阈值判定 | `TestContextReadingHelpers` |
 | 真实模型：占用读数与手动压缩（含成功配方） | `TestRealDaemonContextAndCompaction`，证据见 6.9 |
+| 真实模型：分支内容只落该分支、主线不变、插话、分支未完成事项 | `TestRealDaemonBranchIsolation`，证据见 6.10 |
+| 真实模型：审批重放对投影的影响面、@ 搜索口径 | `TestRealDaemonApprovalReplayAndFileSearch`，证据见 6.10 |
 | 多轮 fixture 连续翻页到底：轮次连续、无重复、无遗漏，行数据与一次读全一致 | `TestTurnHistoryPagesEveryTurnOnce` |
 | 首屏从最近一轮开始，同一游标重复读取得到同一页 | `TestTurnHistoryStartsFromNewest` |
 | 会话/分支与来源不一致时拒绝 | `TestTurnHistoryRejectsForeignRequest` |
@@ -592,6 +594,8 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 |---|---|---|
 | 工具、思考、审批、提问、后台任务、协作请求的真实证据 | blocked | `--mock-model` 只产生文本回复，没有工具调用与思考；需要真实模型账号（R 的验收口径要求真实服务事实） |
 | 协作请求的真实读取 | blocked | 需要真实会话上出现 `collaboration/request`（成员协作）；后台任务、排队输入、提问三类已在真实模型上验证（6.6） |
+| 审批集合"整体替换"的条数验收 | blocked（归 D5） | 本包不持有审批；6.10 只证明重放会重发同一 requestId 且不影响提问清单 |
+| 分支内提问/协作清单的真实读取 | blocked | 6.10 验证了分支内的排队输入与后台任务；提问与协作需要模型或成员协作配合 |
 | 任务输出的真实大流量与截断 | blocked | 需要一段超过服务端 64 MiB 输出上限的命令；本版只验证了多页小输出与 EOF |
 | `context/budget` 的真实事实 | 不适用（服务端不发） | 结论见 6.9：该事实被协议 v3 的可见性白名单排除，任何客户端都收不到；占用改用 `session.context.usage` 读取（已有真实证据） |
 | `context/compaction` 的真实事实 | 已取得 | 见 6.9：`gpt-5.6-terra` + 4 轮大输出后手动压缩成功（completed、替换 19 条、摘要 1177 字符） |
@@ -792,6 +796,70 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 1. `compactionSummary` 现在认得 `Message.content` 的**字符串**形式（真实 wire 里 `MessageContent` 是 untagged 的 `Text(String)|Parts(Vec<MessagePart>)`）；此前只认内容块数组，导致真实成功的压缩摘要为空。
 2. 新增只读类型 `ContextReading` 与 `Remaining()/Percent()/OverThreshold()`：`View.Context` 仍只由 `context/budget` 事件驱动（v3 下恒为 nil），客户端该用 `session.context.usage` 的读数。
 
+### 6.10 真实模型：分支、插话、审批重放与 @ 搜索（2026-11-11）
+
+前提同 6.6（真实 daemon 0.1.0-alpha.21 + `/tmp` 夹具复制）。两段证据各一条命令：
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealDaemonBranchIsolation -v -count=1 ./internal/projection/
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealDaemonApprovalReplayAndFileSearch -v -count=1 ./internal/projection/
+```
+
+**分支隔离与分支内未完成事项（26 秒）**
+
+```text
+主线一轮结束: turn=2931b3b2-... sequence=36
+主线行: 2
+分支已创建: branch=fed1e828-... 切点=36
+分支首轮结束: turn=b0145747-... sequence=33
+分支建好: 行=6
+分支第二轮结束: turn=035f3594-... sequence=45
+主线行未变: 2 行
+插话: input=ca64bfa4-... sequence=54 清单模式=steer 已应用(seq=55)
+插话折叠: 行=ca64bfa4-... 轮=3
+分支停止: turn=174f40c3-... outcome=cancelled sequence=87
+分支停止后主线行未变: 2 行
+分支未完成事项: 分支=1 主线=0（through=104）
+分支任务停止: status=cancelled
+证据: 主线行=2 分支行=18 分支任务结算=ok
+回收自启服务端: stopped=true
+```
+
+| 项 | 事实 | 结论 |
+|---|---|---|
+| 开分支 | `session.branch_create {sessionId, parentBranchId:"main", at:<主线该轮 turn/end 序号>, prompt}` → `{branch:{branchId,...}}`；服务端用分支提示词自动跑一轮（序号 37–45） | 切点用父分支轮次结束处（与 `TurnCut` 同一口径） |
+| 分支历史 | `session.history {branchId}` 读到分支自己的事实；折叠后 8 行，再提交一轮后 17 行 | 分支内容只落在该分支 |
+| 主线不受影响 | 主线 `session.history` 两次读取行标识序列不变（2 行）；服务端 `session.branches` 里主线 head 34、分支 head 65 | 分支事实不抬高主线 |
+| 插话 | 运行中 `session.submit {branchId, mode:"steer"}`：`session.input.pending` 里这一条 `mode=steer`，随后 `input/applied`（序号 55），折叠后归到运行中的第 3 轮 | 投递方式与服务端行为一致 |
+| 分支停止 | 分支内 `exec` 跑 `sleep 60` 时 `session.stop {branchId}`：写 `stop/interrupt`，该轮以 `outcome=cancelled` 结束（序号 87）；主线行标识不变 | 停止只作用于该分支 |
+| 分支未完成事项 | 分支内后台任务：`session.exec.pending {branchId}` 分支 1 条、主线 0 条；停止后 `status=cancelled` 且清单清空 | 分区清单按分支隔离并结算 |
+
+**审批重放与 @ 搜索（5 秒）**
+
+```text
+@ 搜索: 服务端 5 条，本机扫描 5 条
+@ 搜索候选: [d2probe-dir d2probe-dir/extra.go d2probe-dir/readme.txt d2probe-main.go d2probe-notes.md]
+审批请求: request=284bf95a-...（第一次）
+提问集合: 重放前 0 批
+审批请求: request=284bf95a-...（重放）
+提问集合: 重放后 0 批（重放只涉及审批）
+审批回应: request=284bf95a-... decision=deny
+回收自启服务端: stopped=true
+```
+
+| 项 | 事实 | 结论 |
+|---|---|---|
+| 审批重放 | 默认权限策略下模型调 `exec` → 收到 `approval.request`（request 284bf95a-…）；用第二个 `Manager.Acquire` 重新 attach，服务端**再次交付同一个 requestId** | 重放发的是同一批待决请求，客户端应整体替换而不是累加（**集合语义归 D5**，本包只观察） |
+| 提问集合不受影响 | `session.question.pending` 与 `View.Pending.Questions` 在重放前后都是 0 | 审批重放不动提问清单 |
+| @ 搜索 | `session.methods` 里有 `session.files.search`；`{query:"d2probe"}` 返回 5 条候选，与本机扫描（隐藏文件与隐藏目录排除）逐条一致 | 口径一致；方法缺失时按能力缺失、零请求（**搜索归 D7**，这里是方法探测与口径对照） |
+
+两项边界说明：
+
+1. **审批集合整体替换**是交互裁决（D5）的状态语义；本包不持有审批，只证明重放会重发同一 requestId、且不影响本包的提问清单。要让 D5 的"条数等于服务端"可验收，需要在 D5 的待决集合上重跑同一场景。
+2. **会话内 @ 搜索**是工作区领域（D7）的能力；本包只探测方法名与对照一次结果口径，不作为 D7 的验收证据。
+
 ## 7. 已知限制
 
 1. 目标只折叠当前 `goal:state` 记录；旧键 `goal:objective`/`goal:status` 只参与变更行归类，不参与状态推导（旧服务端兼容需要补齐）。
@@ -818,6 +886,8 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 22. 用量是累计值：只反映本分支已折叠的 `model/usage`，不含服务端账号侧的聚合与计费口径。
 23. `View.Context` 在协议 v3 下恒为 nil（`context/budget` 不发给客户端）；要显示占用请读 `session.context.usage`，并把它按 `ContextReading` 换算。若将来协议开放该事件，折叠路径已经就绪。
 24. 压缩成功的条件是"策略估算超过保留目标"，与自动压缩阈值不是一回事：手动压缩在上下文很小时会以 `failed` 收口，调用方要把 `status=failed` 当"这次没压成"，不是错误，也不影响已落库内容。
+25. 分支建好时服务端会用分支提示词自动跑一轮；客户端不需要为这一轮另外提交，等它结束再提交自己的输入。
+26. 插话在 `session.input.pending` 里会以 `mode=steer` 出现一小段时间（已应用未消费），不能把"出现在清单里"当成"排队等下一轮"；判断依据是 `mode` 与 `input/applied`。
 
 ## 8. 下一步
 

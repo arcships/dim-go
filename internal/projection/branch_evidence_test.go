@@ -177,6 +177,29 @@ func TestRealDaemonBranchIsolation(t *testing.T) {
 	}
 	t.Logf("插话折叠: 行=%s 轮=%d", steerRow.ID, steerRow.TurnIndex)
 
+	// 停止：分支内跑一条长命令，再停这一轮（主线不受影响）。
+	stopInput := submitTo(t, ctx, conn.Client, sessionID, branchID,
+		"Use the exec tool exactly once to run this command in the foreground (timeoutMs 120000): sleep 60. Then reply DONE.")
+	stopFloor := waitHistoryTurnStart(t, ctx, conn.Client, sessionID, branchID, stopInput.Sequence)
+	if err := conn.Client.CallInto(ctx, "session.stop", map[string]any{
+		"sessionId": sessionID,
+		"branchId":  branchID,
+		"reason":    "evidence",
+	}, nil); err != nil {
+		t.Fatalf("停止分支运行: %v", err)
+	}
+	stoppedEnd := waitHistoryTurnEnd(t, ctx, conn.Client, sessionID, branchID, stopFloor)
+	t.Logf("分支停止: turn=%s outcome=%s sequence=%d",
+		stringField(stoppedEnd, "turn_id"), stringField(stoppedEnd, "status"), stoppedEnd.Sequence)
+
+	// 停止只作用于该分支：主线行标识仍不变。
+	mainPage = readHistory(t, ctx, conn.Client, sessionID, mainBranch)
+	folder.ApplyHistory(mainBranch, mainPage)
+	if got := rowIDs(folder.View()); !equalStrings(got, mainIDsBefore) {
+		t.Fatalf("分支停止影响了主线: %v -> %v", mainIDsBefore, got)
+	}
+	t.Logf("分支停止后主线行未变: %d 行", len(mainIDsBefore))
+
 	// 分支内未完成事项：后台任务只出现在分支清单里。
 	taskID := startBranchTask(t, client, branchID)
 	branchTasks := readPendingTasksFor(t, ctx, conn.Client, sessionID, branchID)
