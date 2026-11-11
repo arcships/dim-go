@@ -73,6 +73,14 @@ type ProviderModelReasoning struct {
 	EffortOptions []string `json:"effortOptions,omitempty"`
 }
 
+// ProviderModelPricing 是模型目录里的计价字段。数值单位由产品目录约定为
+// 每百万 token；wire 没有 unit 字段，客户端不得只凭这三个字段推断最终费用。
+type ProviderModelPricing struct {
+	InputTokenPrice  *float64
+	OutputTokenPrice *float64
+	Currency         string
+}
+
 // ProviderModelInfo 是 provider 管理视图里的模型。
 type ProviderModelInfo struct {
 	ID                string
@@ -85,6 +93,8 @@ type ProviderModelInfo struct {
 	UnavailableReason string
 	Actions           []string
 	Capabilities      ProviderModelCapabilities
+	// Pricing 只在服务端给出计价字段时存在。
+	Pricing *ProviderModelPricing
 }
 
 // ModelPreferences 是模型偏好。
@@ -147,6 +157,7 @@ type ProviderModelInput struct {
 	Vision          *bool
 	Modalities      []string
 	Reasoning       *ProviderModelReasoning
+	Pricing         *ProviderModelPricing
 	GuidePrompt     string
 }
 
@@ -274,6 +285,7 @@ type providerModelParam struct {
 	Capabilities     providerCapabilitiesParam `json:"capabilities"`
 	Modalities       []string                  `json:"modalityCapabilities,omitempty"`
 	Reasoning        *ProviderModelReasoning   `json:"reasoning,omitempty"`
+	Pricing          *ProviderModelPricing     `json:"pricing,omitempty"`
 	ModelGuidePrompt string                    `json:"modelGuidePrompt,omitempty"`
 }
 
@@ -1079,6 +1091,9 @@ func normalizeModelInput(input ProviderModelInput) (providerModelParam, error) {
 	if err := validateReasoning(input.Reasoning); err != nil {
 		return providerModelParam{}, err
 	}
+	if err := validatePricing(input.Pricing); err != nil {
+		return providerModelParam{}, err
+	}
 	return providerModelParam{
 		ModelID:     modelID,
 		DisplayName: displayName,
@@ -1091,6 +1106,7 @@ func normalizeModelInput(input ProviderModelInput) (providerModelParam, error) {
 		},
 		Modalities:       append([]string(nil), input.Modalities...),
 		Reasoning:        input.Reasoning,
+		Pricing:          cloneProviderPricing(input.Pricing),
 		ModelGuidePrompt: strings.TrimSpace(input.GuidePrompt),
 	}, nil
 }
@@ -1111,6 +1127,24 @@ func validateModalities(modalities []string) error {
 			return fmt.Errorf("%w: 模态标识重复 %q", ErrInvalidProviderRequest, value)
 		}
 		seen[value] = true
+	}
+	return nil
+}
+
+func validatePricing(pricing *ProviderModelPricing) error {
+	if pricing == nil {
+		return nil
+	}
+	if pricing.InputTokenPrice != nil && *pricing.InputTokenPrice < 0 {
+		return fmt.Errorf("%w: 输入单价为负", ErrInvalidProviderRequest)
+	}
+	if pricing.OutputTokenPrice != nil && *pricing.OutputTokenPrice < 0 {
+		return fmt.Errorf("%w: 输出单价为负", ErrInvalidProviderRequest)
+	}
+	if pricing.Currency != "" {
+		if _, ok := trimNonEmpty(pricing.Currency); !ok {
+			return fmt.Errorf("%w: 计价货币为空", ErrInvalidProviderRequest)
+		}
 	}
 	return nil
 }
@@ -1305,6 +1339,7 @@ func cloneProviderDetail(detail ProviderDetail) ProviderDetail {
 		copied.Actions = append([]string(nil), model.Actions...)
 		copied.MissingLimits = append([]string(nil), model.MissingLimits...)
 		copied.Capabilities = cloneProviderCapabilities(model.Capabilities)
+		copied.Pricing = cloneProviderPricing(model.Pricing)
 		cloned.Models = append(cloned.Models, copied)
 	}
 	if detail.Preferences != nil {
@@ -1314,6 +1349,22 @@ func cloneProviderDetail(detail ProviderDetail) ProviderDetail {
 		}
 	}
 	return cloned
+}
+
+func cloneProviderPricing(pricing *ProviderModelPricing) *ProviderModelPricing {
+	if pricing == nil {
+		return nil
+	}
+	cloned := *pricing
+	if pricing.InputTokenPrice != nil {
+		value := *pricing.InputTokenPrice
+		cloned.InputTokenPrice = &value
+	}
+	if pricing.OutputTokenPrice != nil {
+		value := *pricing.OutputTokenPrice
+		cloned.OutputTokenPrice = &value
+	}
+	return &cloned
 }
 
 func cloneProviderCapabilities(capabilities ProviderModelCapabilities) ProviderModelCapabilities {

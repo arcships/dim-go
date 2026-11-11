@@ -68,7 +68,9 @@ func providerFixtureDetail(version int) ProviderDetail {
 			BaseURL:    "http://127.0.0.1:9/v1",
 		},
 		Models: []ProviderModelInfo{
-			{ID: "m1", DisplayName: "一号", Status: "active", Enabled: true},
+			{ID: "m1", DisplayName: "一号", Status: "active", Enabled: true, Pricing: &ProviderModelPricing{
+				InputTokenPrice: float64Ptr(1.5), OutputTokenPrice: float64Ptr(2.5), Currency: "USD",
+			}},
 			{ID: "m2", DisplayName: "二号", Status: "active", Enabled: true},
 			{ID: "m3", DisplayName: "三号", Status: "beta", Enabled: true},
 		},
@@ -130,6 +132,10 @@ func TestRefreshProvidersAndReadDetail(t *testing.T) {
 	}
 	if detail.Version == nil || *detail.Version != 3 || len(detail.Models) != 3 {
 		t.Fatalf("provider 详情不符：%+v", detail)
+	}
+	if detail.Models[0].Pricing == nil || detail.Models[0].Pricing.Currency != "USD" ||
+		detail.Models[0].Pricing.InputTokenPrice == nil || *detail.Models[0].Pricing.InputTokenPrice != 1.5 {
+		t.Fatalf("模型计价字段不符：%+v", detail.Models[0].Pricing)
 	}
 	detail.Models[0].DisplayName = "changed"
 	cachedDetail, ok := manager.Provider("p1")
@@ -238,6 +244,7 @@ func TestCreateProviderWritesOnceAndReadsBack(t *testing.T) {
 		Models: []ProviderModelInput{{
 			ID: "m1", DisplayName: "一号", Status: "active",
 			ContextWindow: int64Ptr(1000), MaxOutputTokens: int64Ptr(100),
+			Pricing: &ProviderModelPricing{InputTokenPrice: float64Ptr(0.5), OutputTokenPrice: float64Ptr(1.5), Currency: "USD"},
 		}},
 		Enabled: true,
 	})
@@ -258,7 +265,8 @@ func TestCreateProviderWritesOnceAndReadsBack(t *testing.T) {
 	if params.Connection.Credential == nil || params.Connection.Credential.Reference != "ENV_KEY" {
 		t.Fatalf("显式凭据引用未下发：%+v", params.Connection.Credential)
 	}
-	if len(params.Models) != 1 || params.Models[0].ModelID != "m1" {
+	if len(params.Models) != 1 || params.Models[0].ModelID != "m1" ||
+		params.Models[0].Pricing == nil || params.Models[0].Pricing.Currency != "USD" {
 		t.Fatalf("新建模型参数不符：%+v", params.Models)
 	}
 	if admin.detailCalls != 1 {
@@ -698,5 +706,26 @@ func TestProviderReadCapabilities(t *testing.T) {
 	}
 	if _, err := manager.ReadProvider(context.Background(), "p1"); !errors.Is(err, ErrCapabilityMissing) {
 		t.Fatalf("缺 provider.management 应分类：%v", err)
+	}
+}
+
+func TestProviderPricingValidationAndClone(t *testing.T) {
+	for _, pricing := range []*ProviderModelPricing{
+		{InputTokenPrice: float64Ptr(-1)},
+		{OutputTokenPrice: float64Ptr(-1)},
+		{Currency: " "},
+	} {
+		if err := validatePricing(pricing); !errors.Is(err, ErrInvalidProviderRequest) {
+			t.Fatalf("不合法计价应拒绝：%+v -> %v", pricing, err)
+		}
+	}
+	pricing := &ProviderModelPricing{InputTokenPrice: float64Ptr(1), OutputTokenPrice: float64Ptr(2), Currency: "USD"}
+	cloned := cloneProviderPricing(pricing)
+	if cloned == pricing || cloned.InputTokenPrice == pricing.InputTokenPrice {
+		t.Fatal("计价字段应深拷贝")
+	}
+	*cloned.InputTokenPrice = 9
+	if *pricing.InputTokenPrice != 1 {
+		t.Fatal("计价副本不应改动原值")
 	}
 }

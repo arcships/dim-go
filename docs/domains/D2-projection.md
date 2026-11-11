@@ -2,7 +2,7 @@
 
 Status: 第一版实现完成（P1-2 候选结果包；含分页、按轮导出来源与真实 daemon 证据）
 Owner: D2 领域 agent
-验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；用量、撤回与目标控制见 6.8；上下文预算与压缩的调查结论见 6.9；分支、插话、审批重放与 @ 搜索见 6.10；blocked 见 6.5
+验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；用量、撤回与目标控制见 6.8；上下文预算与压缩的调查结论见 6.9；分支、插话、审批重放与 @ 搜索见 6.10；改动行数的调查结论见 6.11；blocked 见 6.5
 依据: `docs/domains/R.md` 第 1 部分功能块 2、块 4 的读取侧；`docs/domains/A.md`（会话视图、会话级状态含分页锚点、四条总规矩、启动校验）；`docs/domains/D1-connection.md`（wire 类型与会话流）
 范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、后台任务输出分页与停止意图、提示建议、上下文用量与压缩摘要、排队输入撤回与目标暂停恢复的意图、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径的登记与发送、磁盘存储、审批应答、目录与导出文件本身。
 
@@ -521,6 +521,7 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 | 真实模型：占用读数与手动压缩（含成功配方） | `TestRealDaemonContextAndCompaction`，证据见 6.9 |
 | 真实模型：分支内容只落该分支、主线不变、插话、分支未完成事项 | `TestRealDaemonBranchIsolation`，证据见 6.10 |
 | 真实模型：审批重放对投影的影响面、@ 搜索口径 | `TestRealDaemonApprovalReplayAndFileSearch`，证据见 6.10 |
+| 真实模型：工具结果与会话事实里没有行数字段；本地 git 的行数口径 | `TestRealDaemonChangeLineCounts`，证据见 6.11 |
 | 多轮 fixture 连续翻页到底：轮次连续、无重复、无遗漏，行数据与一次读全一致 | `TestTurnHistoryPagesEveryTurnOnce` |
 | 首屏从最近一轮开始，同一游标重复读取得到同一页 | `TestTurnHistoryStartsFromNewest` |
 | 会话/分支与来源不一致时拒绝 | `TestTurnHistoryRejectsForeignRequest` |
@@ -861,6 +862,67 @@ DIM_REAL_MODEL_FIXTURE=<夹具目录> \
 1. **审批集合整体替换**是交互裁决（D5）的状态语义；本包不持有审批，只证明重放会重发同一 requestId、且不影响本包的提问清单。要让 D5 的"条数等于服务端"可验收，需要在 D5 的待决集合上重跑同一场景。
 2. **会话内 @ 搜索**是工作区领域（D7）的能力；本包只探测方法名与对照一次结果口径，不作为 D7 的验收证据。
 
+### 6.11 调查：改动统计能不能拿到行数（2026-11-11）
+
+**结论：服务端没有任何“行数”事实；行数只能来自客户端本地的 git 读取。**
+
+**一、工具结果里没有行数字段。** 真实会话里让模型用 `write` 与 `edit` 各改一次文件，读 `step/tool-result` 的 `structuredContent`：
+
+```text
+服务端 0.1.0-alpha.21（profile product）
+write 结果字段: [bytesWritten path revision]（bytesWritten=17）
+edit 结果字段: [diff path replacementCount revision]（replacementCount=1）
+read 结果字段: [code]
+工具结果字段汇总: map[edit:[diff path replacementCount revision] read:[code] write:[bytesWritten path revision]]
+```
+
+- `write` 只给字节数（`bytesWritten`）与内容版本（`revision`），没有行数；字节数不能反推行数。
+- `edit` 给替换次数（`replacementCount`）与一段 **display-only** 的 unified diff（`diff`，3 行上下文）。这段 diff 能数出这次编辑的增删行，但它的注释就写明是展示用（`Display-only unified diff hunks`），不是契约。
+- 其他工具（`exec`、`read` 等）只有文本内容与错误码。
+
+**二、会话事实里也没有“文件变更行数”。** 遍历整个 `session.history` 的 `data`，`additions`、`deletions`、`numstat` 一个都不出现：
+
+```text
+会话事实里的行数字段: false
+```
+
+时间线上只有工具结果里的路径声明（`fileWritten` effect 与 `structuredContent.path`），没有变更类型，更没有行数。
+
+**三、D7 的变更读取只给路径清单。** `ReadRunChanges` 的输出是 `RunChange{Path, AbsPath, Scope, Exists}` 加覆盖标记 `coverage=tool_reports`，并明确“不推断 diff、不读 git 历史、不扫描工作区”。所以“改了 N 个文件”有事实基础，“改了 +x/−y 行”没有。
+
+**四、行数只能本地读 git，代价明确。** 同一工作区里只读地跑 git（测试自建仓库，未改产品代码）：
+
+```text
+git status: [?? probe.txt]
+git diff --numstat（已跟踪）: []
+未跟踪新文件的 numstat（--no-index）: [3	0	/dev/null => probe.txt]
+```
+
+代价与限制：
+
+| 项 | 事实 |
+|---|---|
+| 前提 | 工作区必须是 git 仓库；不是仓库时只剩“文件数” |
+| 未跟踪文件 | `git diff --numstat` 看不到，需要 `git diff --no-index /dev/null <file>`（只读）或 `git add -N`（会写 index，违反只读） |
+| 口径 | 反映“工作区 vs HEAD/index”的**累计**改动，不能按 run、轮次或工具调用归因 |
+| 开销 | 每次读取都要逐文件 diff；大仓库要比“读路径清单”贵一个量级 |
+| 边界 | 二进制、重命名、超大文件需要额外规则；`exec` 之类不可见的改动也只能靠 git 兜底 |
+| 归属 | “读 git 拿行数”是工作区（D7）的新读取路径，当前 D7 明确不做；本包也不做 |
+
+**五、建议界面呈现。**
+
+1. 默认只给文件数：用 D7 的本次 run 变更清单（`coverage=tool_reports` + `Truncated` 标记），文案如“本次运行改动了 N 个文件”。
+2. 需要行数时，单独给一个“工作区累计 +x/−y（本地 git）”读数，并显式标注它不是本轮改动；不在“本次运行”的角标里混用两种口径。
+3. 单次 `edit` 可以显示“该次编辑 +1/−1”，但必须标明来源是工具的展示 diff，且只对该次调用成立（同一文件多次编辑不能相加）。
+4. 不要用 `bytesWritten` 推算行数。
+
+可复现命令：
+
+```bash
+DIM_REAL_MODEL_FIXTURE=<夹具目录> \
+  go test -run TestRealDaemonChangeLineCounts -v -count=1 ./internal/projection/
+```
+
 ## 7. 已知限制
 
 1. 目标只折叠当前 `goal:state` 记录；旧键 `goal:objective`/`goal:status` 只参与变更行归类，不参与状态推导（旧服务端兼容需要补齐）。
@@ -889,6 +951,7 @@ DIM_REAL_MODEL_FIXTURE=<夹具目录> \
 24. 压缩成功的条件是"策略估算超过保留目标"，与自动压缩阈值不是一回事：手动压缩在上下文很小时会以 `failed` 收口，调用方要把 `status=failed` 当"这次没压成"，不是错误，也不影响已落库内容。
 25. 分支建好时服务端会用分支提示词自动跑一轮；客户端不需要为这一轮另外提交，等它结束再提交自己的输入。
 26. 插话在 `session.input.pending` 里会以 `mode=steer` 出现一小段时间（已应用未消费），不能把"出现在清单里"当成"排队等下一轮"；判断依据是 `mode` 与 `input/applied`。
+27. 改动行数不是投影能提供的事实（见 6.11）：投影只有路径声明；行数若出现在界面上，必须标明它来自本地 git 的累计口径，而不是服务端或本轮事实。
 
 ## 8. 下一步
 

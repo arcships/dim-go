@@ -239,6 +239,8 @@ func rpcError(code int, appError, message string) *protocol.RPCError {
 
 func int64Ptr(value int64) *int64 { return &value }
 
+func float64Ptr(value float64) *float64 { return &value }
+
 func boolPtr(value bool) *bool { return &value }
 
 func stringPtr(value string) *string { return &value }
