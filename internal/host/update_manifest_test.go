@@ -153,3 +153,16 @@ func TestParseManifestAcceptsHexDigest(t *testing.T) {
 		t.Fatal("十六进制摘要解码结果不一致")
 	}
 }
+
+func TestParseManifestEscapesSpacesInArtifactURL(t *testing.T) {
+	body := "version: 9.9.9\nfiles:\n  - url: DimAgent Setup 9.9.9.exe\n    sha512: " +
+		testDigest([]byte("x")) + "\n    size: 1\n"
+	release, err := ParseManifest("https://example.test/updates/stable/win/x64/latest.yml", []byte(body))
+	if err != nil {
+		t.Fatalf("ParseManifest: %v", err)
+	}
+	want := "https://example.test/updates/stable/win/x64/DimAgent%20Setup%209.9.9.exe"
+	if release.ArtifactURL != want {
+		t.Fatalf("产物地址 = %q，期望 %q", release.ArtifactURL, want)
+	}
+}

@@ -153,15 +153,23 @@ type UpdateConfig struct {
 	HTTPClient *http.Client
 	// TempDir 是下载落点；为空时新建临时目录并由 Close 回收。
 	TempDir string
-	// TargetPath 是要替换的安装产物路径（本版只支持单个文件）。
+	// TargetPath 是安装位置：单文件模式为目标文件，macOS 为 .app 目录，Linux 为 AppImage 文件。
 	TargetPath string
+	// InstallMode 选择安装适配器；为空（auto）时按 Platform 分派。
+	InstallMode InstallMode
+	// InstallHooks 是安装适配器使用的外部命令与进程钩子；测试用它们跳过真实系统调用。
+	InstallHooks InstallHooks
+	// VerifySignature 可选：替换默认的 macOS codesign/公证校验；测试用它跳过真实签名链。
+	VerifySignature func(ctx context.Context, oldApp, newApp string) error
+	// ForceRunAfterInstall 表示 Windows 安装器完成后强制启动新版本。
+	ForceRunAfterInstall bool
 	// SessionsIdle 是会话是否已收尾的只读探针；为 nil 时视为已收尾。
 	SessionsIdle func() bool
 	// Settle 在检测到会话未收尾时先行收尾；为 nil 时直接推迟切换。
 	Settle func(context.Context) error
 	// Shutdown 可选：切换前的退出五阶段编排；为 nil 时跳过。
 	Shutdown func(context.Context) error
-	// Restart 是替换后启动新进程的步骤；切换时必须接线。
+	// Restart 是单文件模式替换后启动新进程的步骤；其他平台适配器自带重启。
 	Restart func(context.Context) error
 	// Diag 是诊断写入端，可为 nil。
 	Diag *Recorder
@@ -176,6 +184,7 @@ type Updater struct {
 	diag        *Recorder
 	client      *http.Client
 	manifestURL string
+	platform    string
 	tempDir     string
 	ownsTemp    bool
 	timeouts    UpdateTimeouts
@@ -239,6 +248,7 @@ func NewUpdater(cfg UpdateConfig) (*Updater, error) {
 		diag:        cfg.Diag,
 		client:      client,
 		manifestURL: manifestURL,
+		platform:    platform,
 		tempDir:     tempDir,
 		ownsTemp:    ownsTemp,
 		timeouts:    cfg.Timeouts.withDefaults(),
@@ -370,14 +380,6 @@ func (u *Updater) Switch(ctx context.Context) error {
 	}
 	release := u.currentRelease()
 
-	if strings.TrimSpace(u.cfg.TargetPath) == "" || u.cfg.Restart == nil {
-		err := updateFailure(ClassNonRetryable, errors.New("host: 切换缺少安装路径或重启步骤"))
-		u.setLastError(err)
-		u.diag.Log(LevelError, EventUpdateSwitch,
-			OutcomeField(OutcomeFailed), UpdateVersionField(release.Version), ClassField(ClassNonRetryable))
-		return err
-	}
-
 	if !u.sessionsIdle() {
 		settleErr := u.settleSessions(ctx)
 		if !u.sessionsIdle() {
@@ -394,16 +396,32 @@ func (u *Updater) Switch(ctx context.Context) error {
 		}
 	}
 
-	if !u.advance(UpdateReady, UpdateSwitching) {
-		return fmt.Errorf("%w: 切换（当前 %s）", ErrUpdateState, u.State())
-	}
+	ctx, cancel := context.WithTimeout(ctx, u.timeouts.Switch)
+	defer cancel()
+	start := time.Now()
+
 	u.mu.Lock()
 	artifact := u.artifactPath
 	u.mu.Unlock()
 
-	start := time.Now()
-	ctx, cancel := context.WithTimeout(ctx, u.timeouts.Switch)
-	defer cancel()
+	// 准备阶段只读产物与安装位置：解包、签名/公证校验失败都不动现有安装。
+	install, err := u.newInstaller()
+	if err != nil {
+		u.failSwitch(release.Version, start, updateFailure(ClassNonRetryable, err))
+		return err
+	}
+	plan, err := install.Prepare(ctx, artifact)
+	if err != nil {
+		install.Cleanup(&plan)
+		u.failSwitch(release.Version, start, updateFailure(ClassNonRetryable, err))
+		return err
+	}
+	defer install.Cleanup(&plan)
+
+	// 用户确认且会话已收尾，准备也通过，才进入终态"切换中"。
+	if !u.advance(UpdateReady, UpdateSwitching) {
+		return fmt.Errorf("%w: 切换（当前 %s）", ErrUpdateState, u.State())
+	}
 
 	if u.cfg.Shutdown != nil {
 		if err := u.cfg.Shutdown(ctx); err != nil {
@@ -411,11 +429,11 @@ func (u *Updater) Switch(ctx context.Context) error {
 			return err
 		}
 	}
-	if err := installArtifact(artifact, u.cfg.TargetPath); err != nil {
+	if err := install.Apply(ctx, &plan); err != nil {
 		u.failSwitch(release.Version, start, updateFailure(ClassNonRetryable, err))
 		return err
 	}
-	if err := u.cfg.Restart(ctx); err != nil {
+	if err := install.Restart(ctx, &plan); err != nil {
 		u.failSwitch(release.Version, start, updateFailure(ClassOther, err))
 		return err
 	}
@@ -498,7 +516,7 @@ func (u *Updater) setLastError(err error) {
 func (u *Updater) failSwitch(version string, start time.Time, err error) {
 	u.setLastError(err)
 	u.diag.Log(LevelError, EventUpdateSwitch,
-		OutcomeField(OutcomeFailed), UpdateVersionField(version),
+		OutcomeField(OutcomeFailed), UpdateStateField(u.State()), UpdateVersionField(version),
 		ClassField(classify(err)), ElapsedField(time.Since(start)))
 	_ = u.diag.Flush()
 }

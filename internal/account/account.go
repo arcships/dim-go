@@ -45,7 +45,10 @@ type Identity struct {
 	AccountID   string
 	Email       string
 	DisplayName string
-	Plan        string
+	// PreferredUsername 是原客户端 AccountUser 里的同一字段；服务端状态回执
+	// 可能没有，空表示未知，不用账号名顶替。
+	PreferredUsername string
+	Plan              string
 }
 
 // Fact 是一次账号状态读取的归一化结果。wire 形状由连接领域负责，集成层在交界处
@@ -178,7 +181,8 @@ type Account struct {
 	logoutView    *write.IntentView
 	resetMu       sync.Mutex
 	resetAttempt  int
-	resetView     *write.IntentView
+	// resetKeys 按「订阅标识:重置类型」保存在不确定结果下复用的幂等键；只在内存。
+	resetKeys map[string]string
 }
 
 // New 创建账号领域实例。Status 必填；登录尝试状态机在启动时校验。
@@ -223,15 +227,25 @@ func (a *Account) Refresh(ctx context.Context) (Snapshot, error) {
 
 	now := a.cfg.Now()
 	a.mu.Lock()
+	previous := a.status
 	a.status = fact.Status
 	a.readAt = now
 	a.reason = ""
 	a.readError = ""
-	if fact.Status == StatusSignedOut {
+	switch fact.Status {
+	case StatusSignedOut:
 		// 未登录时不保留上一账号的身份与用量。
 		a.identity = Identity{}
 		a.usage = Usage{}
-	} else {
+		a.resetKeys = nil
+	case StatusSignedIn:
+		a.identity = fact.Identity
+		if previous != StatusSignedIn {
+			// 新的账号会话：上一次登出已经是历史，允许再次登出；重置键重新开始。
+			a.logoutView = nil
+			a.resetKeys = nil
+		}
+	default:
 		a.identity = fact.Identity
 	}
 	snapshot := a.snapshotLocked()
@@ -288,6 +302,7 @@ func (a *Account) clearConfirmedLogout() {
 	a.status = StatusUnknown
 	a.identity = Identity{}
 	a.usage = Usage{}
+	a.resetKeys = nil
 	a.readAt = time.Time{}
 	a.readError = ""
 	a.reason = "登出已确认，本地账号状态已清空；重新读取后以服务端为准"
@@ -322,4 +337,10 @@ var (
 	ErrMalformedModels = errors.New("模型清单事实不合法")
 	// ErrActionsUnavailable 表示没有写登记，账号动作不可用。
 	ErrActionsUnavailable = errors.New("账号动作不可用：缺少写登记")
+	// ErrResetRequiresAccount 表示未登录时调用重置。
+	ErrResetRequiresAccount = errors.New("重置需要已登录账号")
+	// ErrResetInvalidType 表示重置类型不合法。
+	ErrResetInvalidType = errors.New("重置类型不合法")
+	// ErrResetMissingSubscription 表示缺少订阅标识，无法发起重置。
+	ErrResetMissingSubscription = errors.New("重置需要已读取的订阅标识")
 )

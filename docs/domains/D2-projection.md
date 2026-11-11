@@ -2,7 +2,7 @@
 
 Status: 第一版实现完成（P1-2 候选结果包；含分页、按轮导出来源与真实 daemon 证据）
 Owner: D2 领域 agent
-验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；用量、撤回与目标控制见 6.8；blocked 见 6.5
+验证: 可执行命令与覆盖表见第 6 节；真实 daemon 证据见 6.3；真实模型下三类未完成事项见 6.6；任务输出、任务停止与提示建议见 6.7；用量、撤回与目标控制见 6.8；上下文预算与压缩的调查结论见 6.9；blocked 见 6.5
 依据: `docs/domains/R.md` 第 1 部分功能块 2、块 4 的读取侧；`docs/domains/A.md`（会话视图、会话级状态含分页锚点、四条总规矩、启动校验）；`docs/domains/D1-connection.md`（wire 类型与会话流）
 范围: 历史与实时折叠、行模型与身份、轮次归属、未落库增量、分页锚点与向前翻页、按轮历史来源（供导出）、四类未完成事项、后台任务输出分页与停止意图、提示建议、上下文用量与压缩摘要、排队输入撤回与目标暂停恢复的意图、目标、分支分桶、打开与装载/分支选择两张状态机。不含界面、连接、写路径的登记与发送、磁盘存储、审批应答、目录与导出文件本身。
 
@@ -37,7 +37,7 @@ Owner: D2 领域 agent
 | `internal/projection/execoutput.go` | 后台任务输出：按字节游标分页读，只记游标与单页上限，运行中可读、结束后读到 EOF |
 | `internal/projection/execstop.go` | 后台任务停止：停止意图（给写登记）+ 发送 + "正在停止"标记，结算仍由结束事实负责 |
 | `internal/projection/suggestion.go` | 提示建议：折叠 `session.notice` 的 offer / cleared，给出当前建议；顺便提供任务运行查询与停止标记入口 |
-| `internal/projection/usage.go` | 上下文与用量：`model/usage` 累加、`context/budget` 取最新、`context/compaction` 摘要与次数 |
+| `internal/projection/usage.go` | 上下文与用量：`model/usage` 累加、`context/budget` 取最新、`context/compaction` 摘要与次数，以及按需读数的 `ContextReading` |
 | `internal/projection/inputcontrol.go` | 排队输入撤回与目标暂停/恢复：方法探测、写登记意图、发送接口 |
 | `internal/projection/inventory.go` | 四类未完成事项：截止点装载、按事件结算、截止点以下的结算不生效 |
 | `internal/projection/goal.go` | 目标折叠：目标块的解析、最新记录决定状态、删除后重算 |
@@ -87,6 +87,7 @@ folder.ApplyNotice("session.notice", params)
 view.Usage      // {Requests, PromptTokens, CompletionTokens, TotalTokens, CacheRead/WriteTokens, Cost}
 view.Context    // {EstimatedInputTokens, ContextWindow, OutputTokens, ...}；Remaining()/Percent()
 view.Compaction // {Sequence, Status, Summary, Strategy, RetainFrom, At}；view.Compactions 是次数
+reading := projection.ContextReading{...}  // session.context.usage 的读数：Remaining()/Percent()/OverThreshold()
 
 // 撤回排队输入 / 暂停恢复目标：先探测方法名，再登记意图
 withdraw, err := projection.NewQueuedInputWithdraw(folder, branchID, inputID, methods, sender)
@@ -387,7 +388,8 @@ point := folder.CutPoint(branchID string, turnIndex int) CutPoint               
 |---|---|---|
 | `View.Usage` | `model/usage`（`usage.{promptTokens, completionTokens, totalTokens, cacheReadTokens?, cacheWriteTokens?, cost?}`） | 逐条累加：请求数、各 token、费用；token 四舍五入成整数。没有事实时为 nil，不是零值 |
 | `View.Context` | `context/budget`（`estimatedInputTokens`、`contextWindow`、`outputTokens`、`baselinePromptTokens?`、`deltaTokens?`） | 后来的覆盖先来的；`Remaining()` 与 `Percent()` 只按事实给出的窗口与估算计算，窗口缺失时为 0 |
-| `View.Compaction` / `Compactions` | `context/compaction`（`status` 为 completed / cancelled，完成时带 `replacement` 摘要、`strategy`） | 下一次覆盖上一次；次数累加；取消的压缩没有摘要。系统提示行仍按行折叠，摘要视图是同一事实的另一种读法 |
+| `View.Compaction` / `Compactions` | `context/compaction`（`status` 为 completed / failed / cancelled，完成时带 `replacement` 摘要、`strategy`） | 下一次覆盖上一次；次数累加；失败与取消没有摘要。摘要取 `replacement_parts.strategy` 指出的策略消息（`Message.content` 是 untagged 的：字符串或内容块数组都认）。系统提示行仍按行折叠 |
+| `ContextReading` | 会话方法 `session.context.usage`（不是事件） | `context/budget` **不被协议 v3 发给客户端**（见 6.9），占用只能按需读；`Remaining()`/`Percent()`/`OverThreshold()` 只按读数里的数字算 |
 
 ### 3.17 排队输入撤回与目标暂停/恢复
 
@@ -450,7 +452,7 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 - `go test ./...`：全部通过（含 `internal/projection` 与同期其它领域的包）。
 - `go vet ./...`：无输出。
 - `go test -race ./internal/projection/`：通过。
-- projection 用例 66 个：62 个 fixture 用例通过；4 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6、6.7 与 6.8），设了就通过。
+- projection 用例 70 个：65 个 fixture 用例通过；5 个真实用例在未设环境变量时跳过（`DIM_APP_SERVER_BIN` 见 6.3，`DIM_REAL_MODEL_FIXTURE` 见 6.6–6.9），设了就通过。
 
 ### 6.2 覆盖
 
@@ -513,6 +515,10 @@ DIM_APP_SERVER_BIN=<App Server> go test -run TestRealDaemonLiveAndHistoryAgree -
 | 目标控制先探测方法名、非法动作被拒 | `TestGoalControlNeedsMethod` |
 | 暂停/恢复各发一次，状态由记录结算 | `TestGoalPauseAndResume` |
 | 真实模型：用量、撤回、目标暂停恢复 | `TestRealDaemonContextAndControls`，证据见 6.8 |
+| 压缩摘要在 `Message.content` 为字符串时也能取到 | `TestCompactionSummaryTextVariant` |
+| 失败的压缩保留状态、不给摘要、仍计次 | `TestCompactionFailedStatus` |
+| 按需读数的剩余量、占比与阈值判定 | `TestContextReadingHelpers` |
+| 真实模型：占用读数与手动压缩（含成功配方） | `TestRealDaemonContextAndCompaction`，证据见 6.9 |
 | 多轮 fixture 连续翻页到底：轮次连续、无重复、无遗漏，行数据与一次读全一致 | `TestTurnHistoryPagesEveryTurnOnce` |
 | 首屏从最近一轮开始，同一游标重复读取得到同一页 | `TestTurnHistoryStartsFromNewest` |
 | 会话/分支与来源不一致时拒绝 | `TestTurnHistoryRejectsForeignRequest` |
@@ -587,8 +593,8 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 | 工具、思考、审批、提问、后台任务、协作请求的真实证据 | blocked | `--mock-model` 只产生文本回复，没有工具调用与思考；需要真实模型账号（R 的验收口径要求真实服务事实） |
 | 协作请求的真实读取 | blocked | 需要真实会话上出现 `collaboration/request`（成员协作）；后台任务、排队输入、提问三类已在真实模型上验证（6.6） |
 | 任务输出的真实大流量与截断 | blocked | 需要一段超过服务端 64 MiB 输出上限的命令；本版只验证了多页小输出与 EOF |
-| `context/budget` 的真实事实 | blocked | 这一轮真实调用里服务端没有发布该事实；折叠与视图由 fixture 覆盖，待服务端在某些条件下发布时重跑 |
-| `context/compaction` 的真实事实 | blocked | 压缩由上下文策略触发，无法在证据里人为制造；摘要与次数由 fixture 覆盖 |
+| `context/budget` 的真实事实 | 不适用（服务端不发） | 结论见 6.9：该事实被协议 v3 的可见性白名单排除，任何客户端都收不到；占用改用 `session.context.usage` 读取（已有真实证据） |
+| `context/compaction` 的真实事实 | 已取得 | 见 6.9：`gpt-5.6-terra` + 4 轮大输出后手动压缩成功（completed、替换 19 条、摘要 1177 字符） |
 | 分支会话的真实证据 | blocked | 需要在真实服务端上开分支并读分支历史 |
 | Windows 平台 | blocked | 没有 Windows 主机 |
 
@@ -720,6 +726,72 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 
 数据纪律：日志只留状态、标识与数字；没有目标正文、输入正文、模型输出与凭据；夹具复制运行，`stopped=true`，无残留进程。
 
+### 6.9 调查：上下文预算与压缩为什么拿不到真实事实（2026-11-11）
+
+**结论一：`context/budget` 是服务端内部事实，v3 客户端永远收不到。**
+
+依据（服务端源码，只读）：`dim-app-server/src/tree_protocol.rs` 的 `ProductEvent::new` 按事件类型决定是否发给客户端；`ContextBudget`、`ContextPrepare`、`ModelCall`、`Prompt*`、`Approval*` 落在 `false` 分支（"not visible"），而 `ContextCompaction`/`ContextCompactionStart`/`ContextCompact` 要求 `version >= 3`（可见）。所以无论会话多长、用哪个 provider、开哪个设置，`session.event` 与 `session.history` 都不会出现 `context/budget`——这不是环境条件，是协议的可见性决定。
+
+可用的等价读法是会话方法 **`session.context.usage`**，同一份估算事实按需返回。真实读数：
+
+```text
+占用读数(session.context.usage): 窗口=258000 输出预留=128000 阈值=114000 估算输入=3062 基线=full_estimate
+占用事实(context/budget): 客户端未收到（服务端 v3 可见性白名单排除）
+```
+
+**结论二：压缩可以稳定触发，但要先让策略"有东西可切"。**
+
+触发路径有两条：
+
+1. **手动**：会话方法 `session.context.compact`（`session.methods` 列出，mutating）写 `context/compact` 并等配套的 `context/compaction`；回执是压缩结果。
+2. **自动**：上下文准备时估算输入 ≥ `thresholdTokens` 才会自动压缩；该阈值随模型：`deepseek-v4.1-flash`（1M 窗口）是 782,035，`gpt-5.6-terra`（258k 窗口）是 114,000。
+
+但 summary 策略还要过一道：切掉之后必须**真的变小**，保留目标 = `min(0.5 × 输出预留, 0.1 × (窗口 − 输出预留))`。两次失败的尝试都卡在这里：
+
+| 尝试 | 模型 | 估算输入 | 保留目标 | 结果 |
+|---|---|---|---|---|
+| 1 轮短会话 | deepseek-v4.1-flash（1M/131k） | 11,305 | 65,536 | `status=failed`，`entriesReplaced=0`，错误 `Compacted context does not reduce input.` |
+| 1 轮大输出 | gpt-5.6-terra（258k/128k） | 15,009 | 13,000 | 仍 `failed`：策略自己的估算（8,396）低于保留目标 |
+
+**成功配方**（可复现）：选保留目标最小的模型 + 把上下文推过它。
+
+```text
+会话：model = {provider: "dimcode-api-oauth", modelId: "gpt-5.6-terra"}（258k 窗口 / 128k 输出 → 保留目标 13,000）
+轮次：4 轮，每轮让模型用 exec 跑 `seq 1 20000`（约 30k 字符内联，约 6k token）
+读数：估算输入 3,062 → 15,040 → 21,201 → 27,383 → 33,569
+压缩：session.context.compact → status=completed，策略 summary，替换 19 条
+压缩后：估算输入 8,730（压缩前 33,569）
+```
+
+观察到的证据（只留状态、标识与数字）：
+
+```text
+服务端 0.1.0-alpha.21（profile product）
+第 4 轮后: 估算输入=33569 阈值=114000 窗口=258000
+压缩回执: err=<nil> status=completed（耗时 10.2s）
+压缩事实: seq=118 status=completed 策略=summary 替换条目=19 估算输入=19414 估算输出=8731
+压缩事实形状: keys=[command context_baseline diagnostics digest_entries replacement replacement_parts
+  retain_from start status strategy through] replacement=2 parts=map[digest:1 strategy:1]
+折叠结果: status=completed 策略=summary 摘要长度=1177
+压缩后占用: 估算输入=8730（压缩前 33569）
+结论: 手动压缩成功
+回收自启服务端: stopped=true
+```
+
+可复现命令：
+
+```bash
+DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
+  go test -run TestRealDaemonContextAndCompaction -v -count=1 ./internal/projection/
+```
+
+这条用例会自己把上下文推过保留目标再压缩，并断言：压缩事实对 v3 可见、折叠状态与事实一致、成功时摘要非空且压缩后占用变小。
+
+**本任务的小改（已说明）**：
+
+1. `compactionSummary` 现在认得 `Message.content` 的**字符串**形式（真实 wire 里 `MessageContent` 是 untagged 的 `Text(String)|Parts(Vec<MessagePart>)`）；此前只认内容块数组，导致真实成功的压缩摘要为空。
+2. 新增只读类型 `ContextReading` 与 `Remaining()/Percent()/OverThreshold()`：`View.Context` 仍只由 `context/budget` 事件驱动（v3 下恒为 nil），客户端该用 `session.context.usage` 的读数。
+
 ## 7. 已知限制
 
 1. 目标只折叠当前 `goal:state` 记录；旧键 `goal:objective`/`goal:status` 只参与变更行归类，不参与状态推导（旧服务端兼容需要补齐）。
@@ -744,6 +816,8 @@ DIM_REAL_MODEL_FIXTURE=/tmp/dimagent-real-model \
 20. 撤回与目标控制都没有专门的写登记意图类型：本包给形状与幂等键，集成层暂用 `KindManagementWrite` 带 op；D3 增类型后只需改调用点。
 21. 撤回的收敛依赖事实：回执是 `deleted`，`input/deleted` 可能晚一拍落库；调用方应按事实等待，不要拿回执当已删除。
 22. 用量是累计值：只反映本分支已折叠的 `model/usage`，不含服务端账号侧的聚合与计费口径。
+23. `View.Context` 在协议 v3 下恒为 nil（`context/budget` 不发给客户端）；要显示占用请读 `session.context.usage`，并把它按 `ContextReading` 换算。若将来协议开放该事件，折叠路径已经就绪。
+24. 压缩成功的条件是"策略估算超过保留目标"，与自动压缩阈值不是一回事：手动压缩在上下文很小时会以 `failed` 收口，调用方要把 `status=failed` 当"这次没压成"，不是错误，也不影响已落库内容。
 
 ## 8. 下一步
 

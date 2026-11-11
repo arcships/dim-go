@@ -38,11 +38,28 @@ type AggregateUsage struct {
 // Usage 是一次用量读取的结果。Ready 表示 Lines/Aggregate 来自一次成功的服务端读取。
 // ReadError 非空表示最近一次读取失败；此时 Ready 与数据仍是上一次确认的事实。
 type Usage struct {
-	Ready      bool
-	Lines      []UsageLine
-	Aggregate  AggregateUsage
-	ObservedAt time.Time
-	ReadError  string
+	Ready     bool
+	Lines     []UsageLine
+	Aggregate AggregateUsage
+	// SubscriptionID 是服务端给出的订阅标识；重置额度必须带它。
+	SubscriptionID    int64
+	HasSubscriptionID bool
+	ObservedAt        time.Time
+	ReadError         string
+}
+
+// ResetType 是重置额度消耗的类型，与原客户端一致。
+type ResetType string
+
+const (
+	// ResetTypeWindow 重置当前滚动窗口。
+	ResetTypeWindow ResetType = "window"
+	// ResetTypeMonthlyFull 重置整月额度。
+	ResetTypeMonthlyFull ResetType = "monthly_full"
+)
+
+func (t ResetType) valid() bool {
+	return t == ResetTypeWindow || t == ResetTypeMonthlyFull
 }
 
 // RefreshUsage 逐项读取用量。聚合项由服务端给出：没有给出时保持 Available=false

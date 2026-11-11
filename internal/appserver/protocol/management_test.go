@@ -352,3 +352,61 @@ func TestDecodeShellAndWakeupWire(t *testing.T) {
 		t.Fatalf("wakeup notice: %+v, %v", data, err)
 	}
 }
+
+func TestDecodeRuntimeWire(t *testing.T) {
+	list, err := protocol.ParseRuntimeListResult(mustRaw(t, `[
+		{"name":"node","source":"system","auto":true,"status":"acquiring","future":1},
+		{"name":"python","source":"download","auto":false,"version":"3.12.15","status":"off"}
+	]`))
+	if err != nil || len(list) != 2 || list[0].Name != protocol.RuntimeNode {
+		t.Fatalf("runtime list: %+v, %v", list, err)
+	}
+	if _, err := protocol.ParseRuntimeListResult(mustRaw(t,
+		`[{"name":"ruby","source":"system","auto":false,"status":"off"}]`)); err == nil {
+		t.Fatal("want an error for an unknown runtime name")
+	}
+	if _, err := protocol.ParseRuntimeListResult(mustRaw(t,
+		`[{"name":"node","source":"system","auto":false,"status":"busy"}]`)); err == nil {
+		t.Fatal("want an error for an unknown runtime status")
+	}
+	item, err := protocol.ParseRuntimeWatchItem(mustRaw(t, `{"seq":2,"kind":"runtime","name":"node","future":1}`))
+	if err != nil || item.Name == nil || *item.Name != "node" {
+		t.Fatalf("runtime watch item: %+v, %v", item, err)
+	}
+	if _, err := protocol.ParseRuntimeWatchItem(mustRaw(t, `{"seq":1,"kind":"runtime"}`)); err == nil {
+		t.Fatal("want an error for a runtime item without name")
+	}
+}
+
+func TestDecodeCollaborationCancelAndDelivered(t *testing.T) {
+	cancelled, err := protocol.ParseSessionCollaborationCancelResult(mustRaw(t,
+		`{"status":"cancelled","future":1}`))
+	if err != nil || cancelled.Status != protocol.CollaborationCancelCancelled {
+		t.Fatalf("cancel result: %+v, %v", cancelled, err)
+	}
+	idle, err := protocol.ParseSessionCollaborationCancelResult(mustRaw(t, `{"status":"idle"}`))
+	if err != nil || idle.Status != protocol.CollaborationCancelIdle {
+		t.Fatalf("idle result: %+v, %v", idle, err)
+	}
+	if _, err := protocol.ParseSessionCollaborationCancelResult(mustRaw(t, `{"status":"done"}`)); err == nil {
+		t.Fatal("want an error for an unknown cancel status")
+	}
+
+	delivered, err := protocol.ParseCollaborationDeliveredData(mustRaw(t, `{
+		"op_event_id":"op-1","status":"ok","agent_id":"a-1","session_id":"m-1",
+		"input_event_id":"i-1","future":1
+	}`))
+	if err != nil || delivered.Delivery.SessionID != "m-1" {
+		t.Fatalf("delivered: %+v, %v", delivered, err)
+	}
+	failed, err := protocol.ParseCollaborationDeliveredData(mustRaw(t, `{
+		"op_event_id":"op-2","status":"error","error":"member_closed"
+	}`))
+	if err != nil || failed.Delivery.Error != "member_closed" {
+		t.Fatalf("delivered error: %+v, %v", failed, err)
+	}
+	if _, err := protocol.ParseCollaborationDeliveredData(mustRaw(t,
+		`{"status":"ok","agent_id":"a","session_id":"s"}`)); err == nil {
+		t.Fatal("want an error for a delivered fact without op_event_id")
+	}
+}

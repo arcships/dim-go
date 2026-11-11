@@ -345,7 +345,7 @@ func TestLoginRejectsConcurrentAttempt(t *testing.T) {
 	auth.onBegin = func(redirectURI string) AuthorizationRequest {
 		once.Do(func() { close(began) })
 		<-release
-		return AuthorizationRequest{URL: "http://127.0.0.1/unused"}
+		return AuthorizationRequest{URL: "http://127.0.0.1/unused", State: "state-1"}
 	}
 	account := newTestAccount(t, Config{
 		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
@@ -379,6 +379,32 @@ func TestLoginRejectsConcurrentAttempt(t *testing.T) {
 	}
 	if count := auth.beginCount(); count != 1 {
 		t.Fatalf("授权发起次数不符：%d", count)
+	}
+}
+
+// TestLoginRequiresAuthorizationState 确认浏览器登录缺少服务端校验值时拒绝，
+// 与原客户端一致：没有 state 就无法校验回调。
+func TestLoginRequiresAuthorizationState(t *testing.T) {
+	auth := &stubAuth{}
+	auth.onBegin = func(redirectURI string) AuthorizationRequest {
+		return AuthorizationRequest{URL: redirectURI, Attempt: "attempt-1"}
+	}
+	browser := &stubBrowser{}
+	account := newTestAccount(t, Config{
+		Status:       &stubStatusReader{fact: Fact{Status: StatusSignedOut}},
+		Providers:    browserProviderSource(),
+		Auth:         auth,
+		Browser:      browser,
+		LoginTimeout: 2 * time.Second,
+	})
+	if _, err := account.Login(context.Background(), LoginRequest{}); !errors.Is(err, ErrLoginRequest) {
+		t.Fatalf("缺少校验值应拒绝：%v", err)
+	}
+	if opened := browser.openedURLs(); len(opened) != 0 {
+		t.Fatalf("缺少校验值时不应打开浏览器：%v", opened)
+	}
+	if cancels := auth.cancelList(); len(cancels) != 1 || cancels[0] != "attempt-1" {
+		t.Fatalf("失败后应交回服务端释放尝试：%v", cancels)
 	}
 }
 

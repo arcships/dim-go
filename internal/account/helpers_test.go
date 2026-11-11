@@ -198,12 +198,23 @@ type stubDeviceAuth struct {
 type deviceBegin struct {
 	ProviderID string
 	Directory  string
+	Email      string
 }
 
 func (s *stubDeviceAuth) BeginDeviceAuthorization(ctx context.Context, providerID, directory string) (DeviceAuthorization, error) {
+	return s.begin(providerID, directory, "")
+}
+
+func (s *stubDeviceAuth) BeginDeviceAuthorizationWithEmail(
+	ctx context.Context, providerID, directory, email string,
+) (DeviceAuthorization, error) {
+	return s.begin(providerID, directory, email)
+}
+
+func (s *stubDeviceAuth) begin(providerID, directory, email string) (DeviceAuthorization, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.beginArgs = append(s.beginArgs, deviceBegin{ProviderID: providerID, Directory: directory})
+	s.beginArgs = append(s.beginArgs, deviceBegin{ProviderID: providerID, Directory: directory, Email: email})
 	if s.beginErr != nil {
 		return DeviceAuthorization{}, s.beginErr
 	}

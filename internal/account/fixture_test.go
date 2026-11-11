@@ -115,8 +115,8 @@ func TestRealAccountFixtureReads(t *testing.T) {
 	if !usage.Ready {
 		t.Fatal("真实用量读取后应为可用")
 	}
-	t.Logf("用量：lines=%d aggregateAvailable=%v aggregateReason=%q observedAtSet=%v",
-		len(usage.Lines), usage.Aggregate.Available, usage.Aggregate.Reason, !usage.ObservedAt.IsZero())
+	t.Logf("用量：lines=%d aggregateAvailable=%v subscriptionIDSet=%v aggregateReason=%q observedAtSet=%v",
+		len(usage.Lines), usage.Aggregate.Available, usage.HasSubscriptionID, usage.Aggregate.Reason, !usage.ObservedAt.IsZero())
 	for index, line := range usage.Lines {
 		if index >= 3 {
 			break

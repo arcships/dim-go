@@ -1,6 +1,6 @@
 # D1 连接（protocol v3 wire、daemon 生命周期、会话流）
 
-Status: 第三版（第一版 + v3 wire + 管理面/权限档位形状，P1-1 候选结果包）
+Status: 第四版（第一版 + v3 wire + 管理面/权限档位 + 四项卡点调查，P1-1 候选结果包）
 Owner: D1 领域 agent
 验证: 可执行命令 + 可观察输出见第 6 节；真实 daemon 证据在 6.3 与 6.4
 依据: `docs/domains/R.md` 第 1 部分功能块 1、`docs/domains/A.md`（连接状态机、会话能力归属、四条总规矩）、`docs/project-organization.md` §6 F3
@@ -168,6 +168,8 @@ Owner: D1 领域 agent
 - 模态：`ModalityCapabilitiesResult`、`ModalityCategory/Operation/Option/Effective/Reason`、`ModalityConfigureParams`、`ModalityTaskSubmitParams`、`ModalityTaskStatusParams`、`ModalityTaskWaitParams`、`ModalityTaskResultParams`、`ModalityTaskRecord`、`ModalityTaskReply`、`ModalityTaskListParams/Result`、`ModalityTaskResultReply`、`ModalityRealtimeOpenParams/Result`、`ModalityRealtimeSendParams`、`ModalityRealtimeCloseParams`、`ModalityRealtimeEventNotice`、`ModalityRealtimeEndedNotice`
 - shell：`ShellRunParams`、`ShellRunResult`、`ShellRunRecorded`、`ShellListParams`、`ShellListResult`、`ShellRunInfo`、`ShellStopParams`、`ShellStopResult`
 - 唤醒：`SessionWakeupCreateParams`、`SessionWakeupCreateResult`、`SessionWakeupListParams`、`SessionWakeup`、`SessionWakeupListResult`、`SessionWakeupCancelParams`、`SessionWakeupCancelResult`、`WakeupNoticeData`
+- 运行时（仅带默认预设时存在）：`RuntimeListResult`、`RuntimeEntry`、`RuntimeInstallParams`、`RuntimeConfigureParams`、`RuntimeWatchItem`
+- 协作成员停止：`SessionCollaborationCancelParams`、`SessionCollaborationCancelResult`、`CollaborationDeliveredData`
 
 **不存在的方法（原样调用返回 `-32601 unknown_method`）**
 
@@ -478,6 +480,10 @@ mgmt.session.wakeup.cancel {}
 18. 管理面只冻结了本轮能核对的部分：`plugin.install/update`、`skills.install/preview/update`、`mcp.save/remove/move/set_enabled/import.apply`、`schedule.run_now` 的**回执**未探测成功形态，只冻结了参数；结果按 `json.RawMessage` 或调用方原样处理，不写猜的字段。
 19. `runtime.*` 在 alpha.8 源码里注册（`runtime_manager.rs`），alpha.21 已不注册；`workflow.*` 在 alpha.8 与 alpha.21 都没有注册。两者都按能力缺失处理，不能按 Electron 的类型清单实现。
 20. 管理方法走控制连接（`daemon.Connection.Client`）；`session.rename`、`shell.*`、`session.wakeup.*`、`attachment.put` 走会话流（`Subscription.Call` 与对应封装）。两者不要混用连接。
+21. 本仓库的 `daemon.Config` 还没有默认预设路径，自启不传 `--defaults`，所以 `runtime.*` 在当前客户端不会出现；要解锁需增加该配置（见 10.1）。`runtime.list` 只报告配置与状态，不负责获取；真正 `runtime.install` 仍受网络/解释器约束。
+22. `workflow.*` 在 alpha.21 随包发布物里不可用（默认预设没有 Workflow 插件）；带插件的预设能让插件进入 `pending`，但离线环境无法完成 Node/Python 运行时获取，成功注册后的回执未实测（见 10.2）。
+23. `modality.realtime.*` 的方法与通知形状已冻结，但产品构建没有 realtime adapter，`available:false` 来自 adapter 维度，provider/model 配置无法解锁（见 10.3）。
+24. 成员停止只验证了方法、参数与 `team_member_not_found`；端到端停止需要模型发起协作请求，未实测（见 10.4）。
 
 ## 9. 下一步建议
 
@@ -487,7 +493,90 @@ mgmt.session.wakeup.cancel {}
 4. 订阅级 `session.closed` 处理：由 D3 决定是否在终态通知到达时自动释放全部持有者。
 5. 诊断记录（D10）：把端点、实例标识、版本、分类结果作为事件交给 D10，不在本包写文件。
 
-## 10. 变更记录
+## 10. 四项卡点调查
+
+调查时间：2026-11-11。数据源均为只读：`~/Code/dim`（alpha.8 源码）、`~/Code/dim-2`（alpha.18 源码/插件）、`~/.dimcode-alpha`（0.1.0-alpha.21 安装）；脚手架与插件副本只放 `/tmp`。
+
+### 10.1 `runtime.*`：不是移除，而是只在带默认预设时注册
+
+**结论**：`runtime.*` 在 alpha.21 里没有消失。RuntimeManager 是内建插件，只有在 daemon 以 `--defaults <preset>` 启动（并有 home）时才注册；不带默认预设时 `session_typescript` 不存在，RuntimeManager 不装配，`runtime.list` 就是 `unknown_method`。运行时本身改成首次使用/启动时获取：`runtime.install`、`auto`、`source=download|system`，不是另一套接口。
+
+**依据**：
+
+- 源码：`~/Code/dim/crates/dim-app-server/src/lib.rs` 中 RuntimeManager 只在 `session_typescript.acquire` 为 `Some` 时注册；`session_typescript::SessionTypeScriptConfig::acquired` 只在 `cli.rs` 的 `--defaults` 分支调用（`acquire: Some`），`--session-rows` 分支是 `acquire: None`。
+- alpha.21 实测（无 `--defaults`）：`runtime.list`、`workflow.list` 均为 `unknown_method`。
+- alpha.21 实测（`--defaults` + 只含 `runtimes` 的 `/tmp` 预设）：`hello.features` 出现 `runtime.list/runtime.install/runtime.configure/runtime.watch`；`plugin.list` 有 `RuntimeManager use=builtin status=running`；`runtime.list` 返回 `[{"name":"node","source":"download","auto":false,"version":"24.21.0","status":"off"},{"name":"python",...},{"name":"uv",...}]`。
+- alpha.21 实测（`--session-rows` + node/js-runtime）：`runtime.list` 仍 `unknown_method`，与 `acquire: None` 一致。
+
+**能否在我们这一侧解锁**：能。给 `daemon.Config` 增加默认预设路径，自启参数追加 `--defaults <file>`（预设内给出 `runtimes`）。方法面即出现；真正安装运行时仍受网络/本机解释器限制。注意 `DIMCODE_DEFAULT_PLUGINS` 环境变量在我们的独立启动里未生效，`--defaults` 有效。
+
+**需上游做什么**：接口不缺。若希望嵌入宿主无需自带预设就能看到运行时，上游需要在文档/发布物里明确默认预设的传递方式（或让独立 `dim-app-server` 也认 `DIMCODE_DEFAULT_PLUGINS`）。
+
+### 10.2 `workflow.*`：默认插件提供，当前发布物没有带
+
+**结论**：`workflow.*` 由 **Workflow 默认插件**（JS）注册，不是内建方法。只有启动时带一个包含该插件的 default-plugins 预设（并具备插件运行时和 `settings`/`workflowFiles` host）才会出现；alpha.21 随包发布的 `default-plugins.json` 没有 workflow，所以默认不可用。
+
+**依据**：
+
+- 安装物：`~/.nvm/.../dimcode-alpha/node_modules/dimcode-darwin-arm64/default-plugins.json` 只有 `plugin-authoring` 与可选 `light-ocr`，没有 workflow；`plugins/` 目录同样没有 workflow。
+- 源码/插件：`~/Code/dim-2/staging/dev-plugins/plugins/workflow/index.ts` 通过 `managementMethods.register` 注册 `workflow.list/status/start/stop/save`；`dim-plugin.json` 声明需要 `settings`、`workflowFiles`、`pluginFiles` 等 host；同目录 `default-plugins.json` 把 workflow 列为默认插件。
+- alpha.21 实测（`--defaults` 不含 workflow）：`workflow.list/status` 均 `unknown_method`。
+- alpha.21 实测（`--defaults` 含 workflow 副本）：`plugin.list` 出现 `workflow use=default status=pending`；在 pending 期间 `workflow.list` 仍 `unknown_method`。
+- alpha.21 实测（`--session-rows` 直接加载 workflow/index.ts）：插件报 `still waiting after 10s for settings, workflowFiles: it starts once that is provided`，说明它需要默认预设 profile 的进程 host，而不是 session row。
+- 离线环境无法完成 Node/Python 运行时获取，workflow 一直 pending，因此“成功注册后的回执”未实测。
+
+**能否在我们这一侧解锁**：不建议。需要把 workflow 插件与默认预设一起分发，并保证插件运行时（Node/Python 获取）可用；这等于由客户端携带第三方插件，超出连接领域边界。当前应按能力缺失处理。
+
+**需上游做什么**：把 workflow 插件纳入随包默认预设，或提供官方安装路径/发行包说明。
+
+### 10.3 模态实时：adapter 层没有适配器，配置改不动
+
+**结论**：realtime 不可用来自 **adapter 维度**，不是 provider/model 配置。alpha.21 的 `modality.capabilities` 对 `realtime` 给出三条 `adapter` 原因（voice/transcribe/avatar 无可用 adapter），产品构建只带 fixture image adapter，没有 realtime adapter；仅配置 provider/model 无法让它变可用。
+
+**依据**：
+
+- alpha.21 实测 `modality.capabilities`：`realtime available=false reasons=[{dimension:"adapter",detail:"No available adapter serves realtime.voice"},{...transcribe},{...avatar}]`，三个 operation（voice/transcribe/avatar）均 `available:false`；`image` 是 adapter/configuration，`video/speech/music/audio/asset/motion` 是 build，`ocr` 可用。
+- 设计：`~/Code/dim/docs/design/plugins/Modality.md` §1/§3.2/附录 A 说明 adapter 操作由 `modalityAdapter` 服务提供；产品构建只有 fixture adapter（image slice），其他类别报 build；`options`/`available` 由 owner 在读取时从“可用的 adapter + Provider 可选择的模型”计算，adapter 的 `operations` 决定它服务哪些模型。
+- 安装物 `~/.dimcode-alpha` 的 `runtimes`/`plugins` 无 realtime adapter 插件（只有 light-ocr 供 OCR）。
+- 二进制含 `RealtimeDeclaration`、`modality.realtime.*` 与 adapter 原因字符串，证明通路存在，缺的是适配器。
+
+**能否在我们这一侧解锁**：不能靠 provider/model 配置。需要安装/随包一个服务 realtime.voice/transcribe/avatar 的 adapter 插件；当前没有可安装来源。
+
+**需上游做什么**：提供 realtime adapter（或发布 fixture/官方 adapter 插件并说明安装方式）。
+
+### 10.4 成员停止：`session.collaboration.cancel` 存在
+
+**结论**：服务端提供成员停止：`session.collaboration.cancel {sessionId, branchId?, memberSessionId}` → `{status:"cancelled"|"idle"}`。`idle` 是合法结果（没有可停的运行）。成员会话标识来自协作事实，不来自 `agent.list`/`session.agent.get`。
+
+**依据**：
+
+- alpha.21 `session.methods` 含 `session.collaboration.cancel`；实测带伪造 `memberSessionId` 调用返回 `team_member_not_found`，错误文本提示 “use list for agentId + sessionId”，证明参数面与归属校验。
+- 源码：`~/Code/dim-2/crates/dim-app-server/src/collaboration.rs` 的 `CancelParams { session_id, branch_id, member_session_id }` 与 `cancel_member` 返回 `{"status":"cancelled"|"idle"}`；客户端调用不写 `collaboration/cancel` op，效果由成员的 `stop/interrupt`、`turn/end` 与 leader 的 `collaboration/result`/report 记录。
+- 获取成员会话标识：`collaboration/delivered` 事实的 `delivery.session_id`（status=ok）、`session.collaboration.pending` 请求的 `delivery.session_id`、`collaboration/result` 的 `session_id`、`collaboration/message|cancel|close` 的 peer 数据 `session_id`。`agent.list` 只有 `sessions` 计数；`session.agent.get` 返回分支采纳的 `agentId`，都不是成员会话标识。
+- 类型已补：`SessionCollaborationCancelParams`、`SessionCollaborationCancelResult`、`CollaborationDeliveredData`（`ParseCollaborationDeliveredData`）。
+
+**能否在我们这一侧解锁**：能。读 `session.collaboration.pending`（或折叠 `collaboration/delivered`）拿 `memberSessionId`，调用 `Session.Call` 发 `session.collaboration.cancel`；`idle` 视为已停。端到端“成员运行被停止”未实测，因为需要模型发起协作请求；方法、参数、错误码已真实验证。
+
+**需上游做什么**：接口不缺。若希望客户端不依赖事件推导，需要上游在 `session.agent.get`/`agent.list` 一类读取里直接给出成员会话标识（当前没有）。
+
+### 10.5 需上游开的接口/能力
+
+按 #1394/#1395 的格式（Problem / Needed / Owner / Impact / Acceptance）：
+
+1. **Workflow 默认插件未随发布物提供**（能力缺失）
+   - Problem：`workflow.*` 只由 Workflow 默认插件注册，alpha.21 随包 `default-plugins.json` 不含该插件；无 `--defaults` 时客户端无法提供工作流。
+   - Needed：把 Workflow 插件纳入随包默认预设，或给出官方安装/发行包路径。
+   - Owner：默认插件发布物 / PluginManager。
+   - Impact：客户端只能把 `workflow.*` 报为能力缺失。
+   - Acceptance：用发布包启动 `dim-app-server`（不额外带插件）时 `hello.features`/`session.methods` 出现 `workflow.*`，且 `workflow.list` 返回定义列表。
+2. **产品构建没有 realtime adapter**（能力缺失）
+   - Problem：`modality.capabilities` 的 realtime 三项因 “No available adapter serves realtime.*” 不可用，provider/model 配置无法改变；构建里没有 realtime adapter 插件。
+   - Needed：提供 realtime.voice/transcribe/avatar 的 adapter（内建或可安装插件），并说明获取方式。
+   - Owner：Modality / adapter 发布物。
+   - Impact：实时语音/转录/头像功能不可用，客户端只能显示 adapter 原因。
+   - Acceptance：安装/随包 adapter 后 `modality.capabilities` 的 realtime 至少一项 `available:true`，`modality.realtime.open` 返回 `connectionId` 并能收到 `modality.realtime.event`。
+
+## 11. 变更记录
 
 | 日期 | 变更 | 原因 | 影响 |
 |---|---|---|---|
@@ -495,3 +584,6 @@ mgmt.session.wakeup.cancel {}
 | 2026-11-10 | 补齐 v3 wire：审批三类通知、`session.notice` 标题、`session.input_lookup`、四类未完成事项、`attachment.put`、`session.methods`；会话把通知映射为类型化事件并提供会话方法路由 | 集成层被六处未冻结形状挡住 | 审批、提问、标题、附件与写登记可以按已冻结形状实现；提问没有通知的结论已明确 |
 
 | 2026-11-11 | 管理面方法调查与冻结：plugin/skills/hooks/mcp/schedule/storage/modality/session.rename/shell/wakeup 的类型与解码测试；`permission.changed` 结论为「不存在通知，等同时间线 `permission/changed`」；列出 toolServer/workflow/scheduler/runtime/顶层 wakeup 的不存在依据 | 集成层需要管理面与权限档位形状 | D5 可按已冻结形状实现；未探测的变更回执与运行时方法明确列为未冻结 |
+
+| 2026-11-11 | 四项卡点调查：runtime 注册条件（`--defaults`/`acquire`）、workflow 默认插件缺失、模态实时 adapter 缺失、成员停止方法与成员标识来源 | 集成层需要判定能否在本侧解锁 | runtime 可由客户端补默认预设解锁；workflow 与 realtime 需上游；成员停止可直接接入 |
+| 2026-11-11 | 补第四轮调查：runtime 注册条件与客户端解锁方式、workflow 默认插件缺失、模态实时 adapter 缺失、成员停止接口与成员会话标识来源；附两条上游 issue 草案 | 四件卡点需要可否解锁的判定 | runtime/成员停止可接入；workflow/realtime 需上游 |

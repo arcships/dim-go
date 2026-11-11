@@ -45,13 +45,14 @@ Owner: 扩展与后台领域 agent
 | `internal/extensions/daemon_evidence_test.go` | 真实 alpha.21 daemon 证据：管理面读取、插件/技能启停、唤醒 create/list/cancel 与通知 |
 | `internal/extensions/daemon_evidence_hooks_mcp_test.go` | 真实 alpha.21 证据：hooks.save 写回与版本冲突、mcp.save/configuration/test/remove |
 | `internal/extensions/daemon_evidence_night_test.go` | 真实 alpha.21 证据：项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入 |
+| `internal/extensions/daemon_evidence_mcp_import_test.go` | 真实 alpha.21 证据：MCP 导入来源、preview/apply 形状、逐条写入与冲突 |
 | `docs/domains/D11b-extensions.md` | 本文件 |
 
 **验收**
 
 - 命令：`go test ./internal/extensions/`、`go test -race ./internal/extensions/`、`go test -count=1 ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64，Go 1.24.3）。
-- 本领域测试：30 个顶层测试（27 个默认通过，3 个真实 daemon 证据按环境变量运行）。
-- 真实 daemon：alpha.21，临时数据目录 + 复制到 `/tmp` 的离线模型配置；读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除、项目钩子启停/冲突、skills.refresh/reload_catalog 与 mcp.auth.* 方法接入均通过，见 6.4。
+- 本领域测试：31 个顶层测试（27 个默认通过，4 个真实 daemon 证据按环境变量运行）。
+- 真实 daemon：alpha.21，临时数据目录 + 复制到 `/tmp` 的离线模型配置；读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除、项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入与 MCP 配置导入均通过，见 6.4。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖插件/技能/钩子/MCP/计划任务/工作流能力缺失。
   - 注入替身：读取方与写登记替身，覆盖能力缺失与恢复、来源拒绝、导入勾选、失败保留、通知时序、真实方法名归一。
@@ -71,7 +72,7 @@ Owner: 扩展与后台领域 agent
 **上下文需求**
 
 - 真实 `hooks` 已冻结本次用到的部分：`hooks.save` 文档 `{hooks:{event:[{matcher,hooks:[{type,command}]}]}}`，回执 `{revision}`，旧版本返回 `hooks_conflict` 且不覆盖；`hooks.catalog.hooks[]` 是扁平条目，无 `id`，本端按来源/事件/位置派生稳定标识。更多钩子字段（args、if、commandWindows）待补。
-- 真实 `mcp.save/remove/test/configuration` 已按本地无凭据 stdio 夹具核对；原始配置文档、HTTP/SSE 与鉴权服务器、`mcp.import.preview/apply` 仍待真实证据。
+- 真实 `mcp.save/remove/test/configuration` 已按本地无凭据 stdio 夹具核对；原始配置文档、HTTP/SSE 与鉴权服务器仍待真实证据。`mcp.import.sources/preview/apply` 已在本机真实来源上跑通，但领域 API 仍是旧简化形状，需重构。
 - 计划任务 `schedule.watch` 通过 `management.progress` 推送；本版只在测试适配器验证映射，真实 watch 标 blocked。
 - 插件/技能安装的完整参数（`plugin.install` 的 `id`/`enable`、`skills.install` 的 `skills[]` 勾选与 revision）未在真实服务端闭环；本版只验证真实启停。
 - 工作流与运行组件在 alpha.21 没有 wire 方法；工作流类型保留但不发请求，运行组件由 D11a 按能力缺失处理。
@@ -248,15 +249,32 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 - 读回配置按 `mcp.configuration`：回执 `{revision,enabled,secretsInUserScope,configuration:{type,command,argsCount,cwd,envNames,referencedVariables,unsetVariables}}`。`envNames` 只是键名，不含值。
 - 探测按 `mcp.test`：参数 `{id,source}`，回执 `{status:"connected",latencyMs,tools:[{name,description,inputSchema}]}`；探测只在显式调用时发生，不写回配置。
 - 删除按 `mcp.remove`：参数 `{id,source,expectedVersion}`，回执空对象 `{}`；`RemoveToolServerWithVersion` 带目录版本。
-- 导入先 `PreviewToolServerImport`（`mcp.import.preview`）：读取候选并缓存在内存中，按来源键保存；预览会校验候选键非空且唯一、服务器配置结构合法。
-- `ApplyToolServerImport`：
-  1. 要求该来源已有预览，否则 `ErrPreviewRequired`；
-  2. 要求勾选非空、无重复、每个键都在预览里；任一不合法都不写任何条目；
-  3. 按预览顺序为每条被勾选候选登记一条 `tool_server.add`，载荷带 `ImportSource` 与 `CandidateKey`；集成层映射成 `mcp.import.apply`，每次一个候选标识；
-  4. 任一条没有明确成功就停止，返回已有结果与 `ErrWriteNotSucceeded`。
 - 环境变量只出现在写入参数中；清单只返回键名，不返回值；本包日志不记录参数或环境变量内容。
 - 认证按真实方法接入：`mcp.auth.start {id,source,cwd?,clientSecret?}` 回执含 `{attemptId,authorizationUrl,redirectUri,resource,issuer,expiresAt}`；`mcp.auth.complete {attemptId,callbackUrl}`、`mcp.auth.cancel {attemptId}`、`mcp.auth.logout {id,source,cwd?}`（回执 `{revoked}`）。这些入口先查 hello 能力，缺声明即能力缺失零请求。
-- 真实证据用无凭据的本地 Python stdio 服务器覆盖保存/配置/探测/删除；认证对 stdio 服务器返回 `mcp_auth_unsupported`，complete/cancel 对不存在的 attempt 返回 `mcp_auth_attempt_closed`。成功认证需要真实 OAuth 认证服务器，仍 blocked。HTTP/SSE 与导入同样 blocked。
+- 真实证据用无凭据的本地 Python stdio 服务器覆盖保存/配置/探测/删除；认证对 stdio 服务器返回 `mcp_auth_unsupported`，complete/cancel 对不存在的 attempt 返回 `mcp_auth_attempt_closed`。成功认证需要真实 OAuth 认证服务器，仍 blocked。
+
+#### 4.6.1 MCP 配置导入：真实来源、回执与当前卡点
+
+**服务端扫描的已知来源**（alpha.21 实测 + `dim-2` 同版本源码 `mcp/discovery.rs`）：
+
+| 来源 id | client | scope | 路径 | 条件 |
+|---|---|---|---|---|
+| `claude-code:user` | claude-code | user | `~/.claude.json` | 读取顶层 `mcpServers` |
+| `claude-code:local` | claude-code | local | `~/.claude.json` 的 `projects[<授权工作区>]` | 需要已授权工作区 |
+| `codex:user` | codex | user | `~/.codex/config.toml` | 读取 `mcp_servers` 表 |
+| `codex:project` | codex | project | `<workspace>/.codex/config.toml` | 需要已授权工作区 |
+| `omp:user` | omp | user | `~/.omp/agent/mcp.json` | 读取 `mcpServers`（或等价表） |
+| `omp:project` | omp | project | `<workspace>/.omp/mcp.json` | 需要已授权工作区 |
+
+- `mcp.import.sources` 参数 `{cwd?}`；回执 `{sources:[{id,client,scope,path,state,entries?,error?}]}`。`state` 为 `ready` / `absent` / `unreadable` / `too-large` / `malformed`；单文件上限 32 MiB，条目上限由导入模块控制；**只读**，不返回值。
+- `mcp.import.preview` 参数 `{cwd?,source,from?|document?}`：`source` 是写入目标作用域（`user`/`project`），`from` 是上面的来源 id；`document` 用于客户端自带的 JSON 文本，二者只能给一个。回执：
+  ```text
+  {revision, entries:[{id,transport?,status,changes:[{field,kind}],unsupported:[{field,effect}],omitted?,error?}],
+   unknownTopLevel:[...], sourceRevision?, store?:{id,client,scope,path}}
+  ```
+  `status` 为 `identical` / `changed` / `conflict` / `invalid`；`changes` 只给字段名与类型，不给值；`unsupported.effect` 为 `kept-unused` / `dropped`；`sourceRevision` 是来源文档摘要，用于 apply 时确认来源未变。
+- `mcp.import.apply` 参数 `{cwd?,source,from?|document?,expectedVersion,expectedSourceRevision?,resolutions:[{id,action,newId?}]}`：`action` 为 `import` / `skip` / `replace` / `rename`；`expectedVersion` 是目标 MCP 目录版本，`expectedSourceRevision` 来自预览。回执 `{revision}`；目标已变化返回 `mcp_settings_conflict`，来源已变化返回同名冲突；逐条动作在 `resolutions` 里表达，一次写入选择过的条目，不是每条一次 `mcp.save`。
+- **当前卡点**：本包第一版 `PreviewToolServerImport(source)` / `ApplyToolServerImport(source, keys)` 把 `source` 当来源 id、把勾选映射成逐条 `tool_server.add`，与真实 `source`（目标作用域）+ `from` + `resolutions` 形状不一致；因此 fakeappserver 的旧测试只能证明参数校验与逐条计数，真实导入必须重做领域 API/集成映射，不能宣称已可用。真实导入的 wire 证据由 `TestRealDaemonMCPImport` 直接走连接层取得。
 
 ### 4.7 计划任务
 
@@ -319,7 +337,7 @@ go vet ./...
 
 本版结果（2026-11-11，macOS arm64，Go 1.24.3）：
 
-- `go test ./internal/extensions/`：`ok`（30 个顶层测试；27 个默认通过，3 个真实 daemon 证据在无环境变量时跳过）。
+- `go test ./internal/extensions/`：`ok`（31 个顶层测试；27 个默认通过，4 个真实 daemon 证据在无环境变量时跳过）。
 - `go test -race ./internal/extensions/`：`ok`。
 - `go test ./internal/app`：`ok`（集成层）。
 - `go vet ./internal/extensions/`：无输出。
@@ -360,6 +378,7 @@ go vet ./...
 | hello 能力门禁、缺能力零写意图 | `TestNewCapabilitiesGateOnHello` |
 | 新增写入口的载荷与只发一次 | `TestNewManagementWritesCarryPayloads` |
 | MCP 认证方法接入与无认证服务器错误 | `TestRealDaemonNightAuthorization`（需环境变量） |
+| MCP 导入来源扫描、preview/apply 形状、逐条写入与冲突 | `TestRealDaemonMCPImport`（需环境变量） |
 
 ### 6.3 证据档位
 
@@ -492,12 +511,49 @@ mcp.auth.logout: status=failed reason=mcp_auth_unsupported
 - `skills.reload_catalog` 的 hello 声明为 false，领域入口按能力缺失处理，不登记写意图、不发请求。
 - MCP 认证成功链路需要真实 OAuth 认证服务器；本机只有无凭据 stdio 夹具，实测到 `mcp_auth_unsupported` 与 `mcp_auth_attempt_closed` 两类真实错误，成功流程标 blocked。
 
+#### 6.4.4 MCP 配置导入：来源、预览、应用与冲突
+
+```bash
+DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_ARGS=app-server \
+DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+  go test -run TestRealDaemonMCPImport -v ./internal/extensions/
+```
+
+观察到的输出（节选；路径已把 home 替换为 `$HOME`，不打印任何配置值）：
+
+```text
+服务端 0.1.0-alpha.21（profile configured）
+import.source id=claude-code:user client=claude-code scope=user state=ready entries=1 path=~/.claude.json
+import.source id=claude-code:local client=claude-code scope=local state=absent entries=-1 path=~/.claude.json · projects["<temp>/project"]
+import.source id=codex:user client=codex scope=user state=ready entries=4 path=~/.codex/config.toml
+import.source id=codex:project client=codex scope=project state=absent entries=-1 path=.codex/config.toml
+import.source id=omp:user client=omp scope=user state=absent entries=-1 path=~/.omp/agent/mcp.json
+import.source id=omp:project client=omp scope=project state=absent entries=-1 path=.omp/mcp.json
+preview revision=native:user/mcp:1 sourceRevision=<sha256> store=claude-code:user entries=1 unknownTopLevel=[]
+preview.entry id=pencil status=changed transport=stdio changes=[args:array command:string enabled:boolean type:string] unsupported=0 omitted=0
+apply revision=native:user/mcp:2 imported=pencil
+catalog.server id=pencil source=user enabled=false transport=stdio
+apply stale err=rpc error -32000 (mcp_settings_conflict): settings changed; read the current version before updating conflict=true
+cleanup mcp.remove shape={}
+回收自启服务端: stopped=true
+```
+
+判定条件：
+
+- 来源扫描成功：`state=ready` 且 `entries>0`；路径与上表一致；只读来源文件。
+- 预览成功：`revision`、`sourceRevision`、`store` 非空；条目带 `status` 与 `changes` 字段名/类型，不含值。
+- 逐条写入成功：只应用一条 `resolutions`，apply 后 `mcp.catalog` 只多该条目，`revision` 推进。
+- 冲突成功：同一 `expectedVersion` 再次 apply 返回 `mcp_settings_conflict`，目录不重复写入。
+- 清理成功：`mcp.remove` 使用 apply 后的 `userRevision` 删除导入条目，回执 `{}`；来源文件未被修改。
+
 ### 6.5 blocked
 
 | 项 | 状态 | 缺什么 |
 |---|---|---|
 | 钩子扩展字段与删除 | blocked | 已真实验证 `type/command/matcher` 的最小用户钩子；`args/if/commandWindows` 等字段与删除语义未验证 |
-| 真实 `mcp.import.preview` / `mcp.import.apply` | blocked | 导入来源与候选回执形状未冻结；本版只验证参数映射与逐条写入 |
+| 领域导入 API 对齐真实 shape | blocked | 真实 server 的 `preview/apply` 已跑通；本包第一版 `PreviewToolServerImport`/`ApplyToolServerImport` 仍是旧简化模型，需改为 target `source` + `from`/`document` + `resolutions` 的形状 |
+| 项目作用域导入与含秘密条目 | blocked | 已验证 user 作用域一条 stdio 条目；project 来源样本缺失，含 env/header 秘密的条目未做过真实导入 |
 | 真实 HTTP/SSE/鉴权 MCP 服务器 | blocked | 已用无凭据本地 stdio 夹具验证；网络传输、鉴权与远程服务器未验证 |
 | MCP OAuth 成功链路 | blocked | 没有真实 OAuth 认证服务器；只验证了 start/logout 的 `mcp_auth_unsupported`、complete/cancel 的 `mcp_auth_attempt_closed` 与能力门禁 |
 | 真实 `skills.reload_catalog` 成功路径 | blocked | alpha.21 的 hello 未声明且实际调用 unknown_method；本版只能按能力缺失零请求 |
@@ -530,12 +586,13 @@ mcp.auth.logout: status=failed reason=mcp_auth_unsupported
 19. **hello 门禁需集成层接线**：`Config.Features` 为 nil 时不做前置门禁；D12 必须把 `*daemon.Connection` 传进 `Features`，并实现 `ProjectHooks` 读取方，项目钩子与新增能力才会按 hello 门禁。
 20. **认证成功未验证**：MCP 认证只验证方法接入、能力门禁与无认证服务器错误；成功换取凭据需要真实 OAuth 认证服务器，`clientSecret` 与回调 URL 属敏感输入，日志不得记录。
 21. **skills.reload_catalog 不可用**：alpha.21 hello 未声明且调用 unknown_method；本版只保留能力缺失零请求的入口。
-22. **平台**：只在 macOS arm64 上跑过测试；Windows 未验证。
+22. **MCP 导入领域 API 未对齐**：真实 wire 已跑通，但本包 `PreviewToolServerImport`/`ApplyToolServerImport` 仍把 source 当来源 id、逐条 add；真实导入必须用 `source` 目标作用域、`from` 来源、`resolutions` 逐条动作与 `expectedSourceRevision`，当前 API 不应被当成可用。
+23. **平台**：只在 macOS arm64 上跑过测试；Windows 未验证。
 
 ## 8. 下一步
 
 1. 补钩子扩展字段（args/if/commandWindows）与删除语义的真实证据。
-2. 补 `mcp.import.preview/apply`、HTTP/SSE 与鉴权 MCP 服务器的真实闭环。
+2. 按 §4.6.1 重构领域导入 API（target source + from/document + resolutions），替换旧的逐条 `tool_server.add` 模型；再补项目作用域与含秘密条目的真实样本。
 3. 用真实调度器补 `schedule.watch` → `management.progress` 的通知跟随证据。
 4. 补真实插件/技能安装夹具，验证安装参数与回执闭环。
 5. 推动 D12 接入 `Features`/`ProjectHooks` 与 `SkillCatalogReader`，并映射新增写意图。

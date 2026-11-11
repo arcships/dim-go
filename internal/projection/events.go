@@ -456,7 +456,12 @@ func compactionSummary(data map[string]any) string {
 		if index >= strategy {
 			break
 		}
-		text := textBlocks(object(value)["content"])
+		// Message.content 是 untagged 的：纯文本消息是字符串，其余是内容块数组。
+		content := object(value)["content"]
+		text := stringValue(content)
+		if text == "" {
+			text = textBlocks(content)
+		}
 		if text == "" {
 			continue
 		}

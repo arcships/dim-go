@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"sync"
@@ -71,6 +72,7 @@ type ProviderAuthorizationBegin struct {
 	ProviderID  string
 	Directory   string
 	RedirectURI string
+	Email       string
 }
 
 // ProviderAuthorizationSource 是可选能力：按 provider 发起与完成浏览器登录。
@@ -280,6 +282,7 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 				ProviderID:  provider.ID,
 				Directory:   provider.Directory,
 				RedirectURI: redirectURI,
+				Email:       strings.TrimSpace(request.Email),
 			})
 		} else if legacy, ok := a.cfg.Auth.(AuthorizationSource); ok {
 			authorization, beginErr = legacy.BeginAuthorization(attemptCtx, redirectURI)
@@ -300,6 +303,10 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 			a.finishAttempt(attempt, LoginFailed, "授权请求缺少地址")
 			return LoginStart{}, fmt.Errorf("%w: 授权请求缺少地址", ErrLoginRequest)
 		}
+		if strings.TrimSpace(authorization.State) == "" {
+			a.finishAttempt(attempt, LoginFailed, "授权请求缺少校验值")
+			return LoginStart{}, fmt.Errorf("%w: 授权请求缺少校验值", ErrLoginRequest)
+		}
 		if browserErr := a.cfg.Browser.Open(authorization.URL); browserErr != nil {
 			a.finishAttempt(attempt, LoginFailed, browserErr.Error())
 			return LoginStart{}, fmt.Errorf("%w: %v", ErrBrowserOpen, browserErr)
@@ -308,7 +315,16 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 		start.AuthorizationURL = authorization.URL
 
 	case LoginMethodDevice:
-		device, beginErr := a.cfg.DeviceAuth.BeginDeviceAuthorization(attemptCtx, provider.ID, provider.Directory)
+		email := strings.TrimSpace(request.Email)
+		var device DeviceAuthorization
+		var beginErr error
+		if emailSource, ok := a.cfg.DeviceAuth.(DeviceAuthorizationEmailSource); ok && email != "" {
+			device, beginErr = emailSource.BeginDeviceAuthorizationWithEmail(
+				attemptCtx, provider.ID, provider.Directory, email)
+		} else {
+			device, beginErr = a.cfg.DeviceAuth.BeginDeviceAuthorization(
+				attemptCtx, provider.ID, provider.Directory)
+		}
 		if beginErr != nil {
 			a.finishAttempt(attempt, LoginFailed, beginErr.Error())
 			return LoginStart{}, fmt.Errorf("%w: %v", ErrLoginRequest, beginErr)
@@ -630,11 +646,18 @@ func callbackHandler(callbacks chan<- AuthorizationResult) http.Handler {
 			return
 		}
 		query := r.URL.Query()
+		fragment, _ := url.ParseQuery(strings.TrimPrefix(r.URL.Fragment, "#"))
+		param := func(key string) string {
+			if value := query.Get(key); value != "" {
+				return value
+			}
+			return fragment.Get(key)
+		}
 		result := AuthorizationResult{
-			Code:             query.Get("code"),
-			State:            query.Get("state"),
-			Error:            query.Get("error"),
-			ErrorDescription: query.Get("error_description"),
+			Code:             param("code"),
+			State:            param("state"),
+			Error:            param("error"),
+			ErrorDescription: param("error_description"),
 			CallbackURL:      "http://" + r.Host + r.URL.RequestURI(),
 		}
 		message := "登录完成，可以回到客户端。"

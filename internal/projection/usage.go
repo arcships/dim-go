@@ -181,3 +181,51 @@ func roundedFloat(value any) float64 {
 	}
 	return 0
 }
+
+// ContextReading 是服务端按需读到的上下文占用（会话方法 `session.context.usage`）。
+//
+// 协议 v3 不把 `context/budget` 事实发给客户端（服务端的事件可见性白名单把它排除），
+// 所以客户端拿到的占用来自这个读取方法。集成层负责发请求，本包负责换算与判断。
+type ContextReading struct {
+	// Through 是这次读数覆盖到的序号。
+	Through int64 `json:"through"`
+	// EstimatedInputTokens 是服务端估算的输入 token 数。
+	EstimatedInputTokens int64 `json:"estimatedInputTokens"`
+	// ContextWindow 是模型的上下文窗口。
+	ContextWindow int64 `json:"contextWindow"`
+	// OutputTokens 是为输出预留的 token 数。
+	OutputTokens int64 `json:"outputTokens"`
+	// ThresholdTokens 是自动压缩的阈值。
+	ThresholdTokens int64 `json:"thresholdTokens"`
+	// BaselineSource 是估算基线的来源。
+	BaselineSource string `json:"baselineSource,omitempty"`
+}
+
+// Remaining 是估算还可用的输入 token 数。
+func (c ContextReading) Remaining() int64 {
+	remaining := c.ContextWindow - c.EstimatedInputTokens
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
+}
+
+// Percent 是占用比例（0–100）；窗口未知时为 0。
+func (c ContextReading) Percent() float64 {
+	if c.ContextWindow <= 0 {
+		return 0
+	}
+	percent := float64(c.EstimatedInputTokens) / float64(c.ContextWindow) * 100
+	if percent < 0 {
+		return 0
+	}
+	if percent > 100 {
+		return 100
+	}
+	return percent
+}
+
+// OverThreshold 报告估算输入是否已达到自动压缩的阈值。
+func (c ContextReading) OverThreshold() bool {
+	return c.ThresholdTokens > 0 && float64(c.EstimatedInputTokens) >= float64(c.ThresholdTokens)
+}

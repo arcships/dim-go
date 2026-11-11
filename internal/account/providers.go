@@ -43,6 +43,8 @@ type LoginRequest struct {
 	// Method 指定登录方式；空表示按 provider 声明选择：有 browser 用 browser，
 	// 否则只有 device 时用 device。显式指定的方式必须被 provider 声明。
 	Method LoginMethod
+	// Email 是可选的登录提示（login_hint），原客户端同样透传。
+	Email string
 }
 
 // LoginStart 是一次已发起的登录尝试。浏览器方式给授权地址；设备码方式给验证
@@ -102,6 +104,14 @@ type DeviceLoginState struct {
 type DeviceAuthorizationSource interface {
 	BeginDeviceAuthorization(ctx context.Context, providerID, directory string) (DeviceAuthorization, error)
 	PollDeviceAuthorization(ctx context.Context, attempt string) (DeviceLoginState, error)
+}
+
+// DeviceAuthorizationEmailSource 是可选能力：设备码发起时带登录提示（login_hint）。
+// 不实现时忽略 LoginRequest.Email，其余流程不变。
+type DeviceAuthorizationEmailSource interface {
+	BeginDeviceAuthorizationWithEmail(
+		ctx context.Context, providerID, directory, email string,
+	) (DeviceAuthorization, error)
 }
 
 // Providers 读取服务端声明的账号提供者。没有 provider 读取能力时明确不可用，

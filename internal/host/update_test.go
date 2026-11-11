@@ -54,6 +54,10 @@ func newTestUpdater(t *testing.T, manifestURL string, cfg UpdateConfig) (*Update
 	if cfg.CurrentVersion == "" && cfg.ReadVersion == nil {
 		cfg.CurrentVersion = "1.0.0"
 	}
+	// 这些用例用临时文件模拟安装产物，显式选择单文件模式，避免在 macOS 上误走 .app 适配器。
+	if cfg.InstallMode == "" {
+		cfg.InstallMode = InstallFile
+	}
 	defaults := UpdateTimeouts{
 		Check:    time.Second,
 		Download: time.Second,
@@ -469,11 +473,13 @@ func TestUpdaterSwitchInstallFailureKeepsCurrentVersion(t *testing.T) {
 	if restarted {
 		t.Fatal("替换失败不应重启")
 	}
-	if updater.State() != UpdateSwitching {
-		t.Fatalf("失败后状态 = %s", updater.State())
+	if updater.State() != UpdateReady {
+		t.Fatalf("准备失败后状态 = %s，期望 ready_to_switch（未进入切换中）", updater.State())
 	}
 	records := recordsOf(decodeRecords(t, buf.String()), EventUpdateSwitch)
-	if len(records) != 1 || records[0]["outcome"] != "failed" || records[0]["classification"] != "non_retryable" {
+	if len(records) != 1 || records[0]["outcome"] != "failed" ||
+		records[0]["classification"] != "non_retryable" ||
+		records[0]["update_state"] != "ready_to_switch" {
 		t.Fatalf("切换记录 = %v", records)
 	}
 }

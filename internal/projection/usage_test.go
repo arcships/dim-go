@@ -95,3 +95,59 @@ func TestCompactionSummaryAndCount(t *testing.T) {
 		t.Fatalf("三次压缩应有三条系统提示行，实际 %d", rows)
 	}
 }
+
+// TestCompactionSummaryTextVariant 验证 replacement 里的纯文本消息也能取到摘要。
+func TestCompactionSummaryTextVariant(t *testing.T) {
+	folder := newFolder(t)
+	mustHistory(t, folder, mainBranch, page(1,
+		ev("c1", 1, "context", "compaction",
+			`{"status":"completed","through":1,"strategy":"summary","replacement":[{"role":"user","content":"纯文本摘要"},{"role":"assistant","content":[{"type":"text","text":"补充"}]}],"replacement_parts":{"strategy":1,"digest":1}}`),
+	))
+	compaction := folder.View().Compaction
+	// replacement_parts.strategy=1：只有第一条是策略产出的摘要；第二条是工具摘要条目。
+	if compaction == nil || compaction.Summary != "纯文本摘要" {
+		t.Fatalf("摘要应取策略消息（字符串形式）: %+v", compaction)
+	}
+}
+
+// TestCompactionFailedStatus 验证失败的压缩保留状态与错误，不给摘要。
+func TestCompactionFailedStatus(t *testing.T) {
+	folder := newFolder(t)
+	mustHistory(t, folder, mainBranch, page(1,
+		ev("c1", 1, "context", "compaction", `{"status":"failed","through":1,"error":"Compacted context does not reduce input.","diagnostics":{"entriesReplaced":0}}`),
+	))
+	compaction := folder.View().Compaction
+	if compaction == nil || compaction.Status != "failed" || compaction.Summary != "" {
+		t.Fatalf("失败的压缩不该有摘要: %+v", compaction)
+	}
+	if folder.View().Compactions != 1 {
+		t.Fatalf("失败的压缩也计入次数: %d", folder.View().Compactions)
+	}
+}
+
+// TestContextReadingHelpers 验证按需读数的剩余量、占比与阈值判定。
+func TestContextReadingHelpers(t *testing.T) {
+	reading := ContextReading{
+		ContextWindow:        258000,
+		OutputTokens:         128000,
+		ThresholdTokens:      114000,
+		EstimatedInputTokens: 33569,
+	}
+	if reading.Remaining() != 224431 {
+		t.Fatalf("剩余量不对: %d", reading.Remaining())
+	}
+	if percent := reading.Percent(); percent < 12.9 || percent > 13.1 {
+		t.Fatalf("占比不对: %v", percent)
+	}
+	if reading.OverThreshold() {
+		t.Fatalf("没到阈值不该判过线")
+	}
+	reading.EstimatedInputTokens = 114000
+	if !reading.OverThreshold() {
+		t.Fatalf("到阈值应判过线")
+	}
+	unknown := ContextReading{}
+	if unknown.Remaining() != 0 || unknown.Percent() != 0 || unknown.OverThreshold() {
+		t.Fatalf("窗口未知时助手应给零值: %+v", unknown)
+	}
+}

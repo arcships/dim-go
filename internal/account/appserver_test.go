@@ -112,8 +112,17 @@ func (h *wireHarness) BeginProviderAuthorization(ctx context.Context, begin Prov
 	if begin.Directory != "" {
 		params["directory"] = begin.Directory
 	}
+	if begin.Email != "" {
+		params["email"] = begin.Email
+	}
 	if err := h.client.CallInto(ctx, "account.login.browser.begin", params, &result); err != nil {
 		return AuthorizationRequest{}, err
+	}
+	if result.State == "" && result.AuthorizationURL != "" {
+		// 真实服务端把 state 放在授权地址里；原客户端也从地址读取并校验。
+		if parsed, parseErr := url.Parse(result.AuthorizationURL); parseErr == nil {
+			result.State = parsed.Query().Get("state")
+		}
 	}
 	h.rememberAttempt(result.Attempt, begin.ProviderID)
 	query := url.Values{"code": {"login-code"}}
@@ -157,9 +166,30 @@ func (h *wireHarness) BeginDeviceAuthorization(
 	providerID string,
 	directory string,
 ) (DeviceAuthorization, error) {
+	return h.beginDevice(ctx, providerID, directory, "")
+}
+
+func (h *wireHarness) BeginDeviceAuthorizationWithEmail(
+	ctx context.Context,
+	providerID string,
+	directory string,
+	email string,
+) (DeviceAuthorization, error) {
+	return h.beginDevice(ctx, providerID, directory, email)
+}
+
+func (h *wireHarness) beginDevice(
+	ctx context.Context,
+	providerID string,
+	directory string,
+	email string,
+) (DeviceAuthorization, error) {
 	params := map[string]any{"providerId": providerID}
 	if directory != "" {
 		params["directory"] = directory
+	}
+	if email != "" {
+		params["email"] = email
 	}
 	h.mu.Lock()
 	h.deviceBegin = append(h.deviceBegin, params)
@@ -290,7 +320,8 @@ func (h *wireHarness) ReadUsage(ctx context.Context) (Usage, error) {
 		return Usage{}, err
 	}
 	var result struct {
-		Credits *struct {
+		SubscriptionID *int64 `json:"subscriptionId"`
+		Credits        *struct {
 			UsedUnits  *float64 `json:"usedUnits"`
 			TotalUnits *float64 `json:"totalUnits"`
 			Unlimited  *bool    `json:"unlimited"`
@@ -337,6 +368,10 @@ func (h *wireHarness) ReadUsage(ctx context.Context) (Usage, error) {
 			Window:   fmt.Sprintf("%gh", window.DurationHours),
 			ResetsAt: wireTime(window.ExpiresAt),
 		})
+	}
+	if result.SubscriptionID != nil && *result.SubscriptionID > 0 {
+		usage.SubscriptionID = *result.SubscriptionID
+		usage.HasSubscriptionID = true
 	}
 	if result.Credits != nil && result.Credits.Unlimited != nil && *result.Credits.Unlimited {
 		usage.Aggregate = AggregateUsage{Reason: "服务端声明无限额度，没有上限值"}
@@ -416,7 +451,13 @@ func (h *wireHarness) Send(ctx context.Context, req write.Request) (write.Reply,
 	if err := json.Unmarshal(req.Params, &payload); err != nil {
 		return write.Reply{}, err
 	}
-	raw, err := h.client.Call(ctx, "account."+payload.Op, nil)
+	var params map[string]any
+	if len(req.Params) > 0 {
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			return write.Reply{}, err
+		}
+	}
+	raw, err := h.client.Call(ctx, "account."+payload.Op, params)
 	if err != nil {
 		return write.Reply{}, err
 	}
@@ -510,6 +551,7 @@ func TestAppServerReadsStatusUsageAndModels(t *testing.T) {
 			{Method: "account.providers", Result: []any{fakeProvider("dimcode-api-oauth", "browser", "device")}},
 			{Method: "account.status", Result: fakeSignedInStatus("acct-wire", "wire@example.com")},
 			{Method: "account.usage", Result: map[string]any{
+				"subscriptionId": 4242,
 				"features": []any{
 					map[string]any{
 						"key":       "tokens",
@@ -581,6 +623,9 @@ func TestAppServerReadsStatusUsageAndModels(t *testing.T) {
 	if !usage.Aggregate.Available || usage.Aggregate.Used != 123 || usage.Aggregate.Limit != 456 || usage.Aggregate.Unit != "units" {
 		t.Fatalf("聚合用量应采用服务端值：%+v", usage.Aggregate)
 	}
+	if !usage.HasSubscriptionID || usage.SubscriptionID != 4242 {
+		t.Fatalf("订阅标识没有保留：%+v", usage)
+	}
 
 	list, err := account.RefreshModels(context.Background())
 	if err != nil {
@@ -630,7 +675,7 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 		LoginTimeout: 2 * time.Second,
 	})
 
-	snapshot, err := account.Login(context.Background(), LoginRequest{})
+	snapshot, err := account.Login(context.Background(), LoginRequest{Email: "user@example.com"})
 	if err != nil {
 		t.Fatalf("登录: %v", err)
 	}
@@ -654,8 +699,9 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	if err != nil || parsed.Hostname() != "127.0.0.1" || parsed.Path != callbackPath {
 		t.Fatalf("回调地址不符：%q", redirectURI)
 	}
-	if beginParams["providerId"] != "dimcode-api-oauth" || beginParams["directory"] != "https://dimagent.cn" {
-		t.Fatalf("授权发起没有带上 provider 与目录：%+v", beginParams)
+	if beginParams["providerId"] != "dimcode-api-oauth" || beginParams["directory"] != "https://dimagent.cn" ||
+		beginParams["email"] != "user@example.com" {
+		t.Fatalf("授权发起没有带上 provider、目录与登录提示：%+v", beginParams)
 	}
 
 	completeRequests := server.RequestsFor("account.login.browser.complete")
@@ -722,7 +768,7 @@ func TestAppServerDeviceLoginThroughProvider(t *testing.T) {
 		LoginTimeout: 2 * time.Second,
 	})
 
-	start, err := account.BeginLogin(context.Background(), LoginRequest{Method: LoginMethodDevice})
+	start, err := account.BeginLogin(context.Background(), LoginRequest{Method: LoginMethodDevice, Email: "user@example.com"})
 	if err != nil {
 		t.Fatalf("发起设备码登录: %v", err)
 	}
@@ -748,8 +794,8 @@ func TestAppServerDeviceLoginThroughProvider(t *testing.T) {
 	if err := json.Unmarshal(beginRequests[0].Params, &beginParams); err != nil {
 		t.Fatalf("设备码发起参数无法解析: %v", err)
 	}
-	if beginParams["providerId"] != "provider-device" {
-		t.Fatalf("设备码发起没有带上 provider：%+v", beginParams)
+	if beginParams["providerId"] != "provider-device" || beginParams["email"] != "user@example.com" {
+		t.Fatalf("设备码发起没有带上 provider 与登录提示：%+v", beginParams)
 	}
 	statusRequests := server.RequestsFor("account.login.status")
 	if len(statusRequests) != 1 {
@@ -810,15 +856,23 @@ func TestAppServerLogoutThroughWriteManager(t *testing.T) {
 		t.Fatalf("读取模型清单: %+v，%v", list, err)
 	}
 
-	view, err := account.Logout(context.Background())
+	view, err := account.Logout(context.Background(), LogoutRequest{})
 	if err != nil {
 		t.Fatalf("登出: %v", err)
 	}
 	if view.Status != write.StatusSucceeded {
 		t.Fatalf("登出结果不符：%+v", view)
 	}
-	if count := len(server.RequestsFor("account.logout")); count != 1 {
-		t.Fatalf("登出请求次数不符：%d", count)
+	logoutRequests := server.RequestsFor("account.logout")
+	if len(logoutRequests) != 1 {
+		t.Fatalf("登出请求次数不符：%d", len(logoutRequests))
+	}
+	var logoutParams map[string]any
+	if err := json.Unmarshal(logoutRequests[0].Params, &logoutParams); err != nil {
+		t.Fatalf("登出参数无法解析: %v", err)
+	}
+	if logoutParams["providerId"] != "dimcode-api-oauth" {
+		t.Fatalf("登出没有带上 provider：%+v", logoutParams)
 	}
 	table := manager.Table()
 	if len(table) != 1 || table[0].Kind != write.KindAccountAction || table[0].Status != write.StatusSucceeded {
@@ -834,7 +888,7 @@ func TestAppServerLogoutThroughWriteManager(t *testing.T) {
 	}
 
 	// 再次登出：不重复发请求。
-	if _, err := account.Logout(context.Background()); err != nil {
+	if _, err := account.Logout(context.Background(), LogoutRequest{}); err != nil {
 		t.Fatalf("再次登出: %v", err)
 	}
 	if count := len(server.RequestsFor("account.logout")); count != 1 {
@@ -855,14 +909,20 @@ func TestAppServerLogoutThroughWriteManager(t *testing.T) {
 	}
 }
 
-// TestAppServerResetUnknownIsNotResent 用假服务端核对：重置没有回执时进入需人工
-// 确认，不自动重发；再次显式重置与「重启」都不产生新请求。
+// TestAppServerResetUnknownReusesKey 用假服务端核对：重置没有回执时进入需人工
+// 确认，不自动重发；显式重试复用同一幂等键；重启不补发。
 func TestAppServerResetUnknownIsNotResent(t *testing.T) {
 	server, client, manager := startAccountServer(t, fakeappserver.Script{
 		Replies: []fakeappserver.Reply{
 			{Method: "account.providers", Result: []any{fakeProvider("dimcode-api-oauth", "browser", "device")}},
 			{Method: "account.reset", Result: map[string]any{"ok": true}},
 			{Method: "account.status", Result: fakeSignedInStatus("acct-wire", "wire@example.com")},
+			{Method: "account.usage", Result: map[string]any{
+				"subscriptionId": 4242,
+				"features": []any{
+					map[string]any{"key": "tokens", "used": 1, "allowance": 10},
+				},
+			}},
 		},
 		Faults: []fakeappserver.Fault{
 			{Method: "account.reset", NoReply: true},
@@ -874,8 +934,11 @@ func TestAppServerResetUnknownIsNotResent(t *testing.T) {
 	if _, err := account.Refresh(context.Background()); err != nil {
 		t.Fatalf("读取账号状态: %v", err)
 	}
+	if _, err := account.RefreshUsage(context.Background()); err != nil {
+		t.Fatalf("读取用量: %v", err)
+	}
 
-	view, err := account.Reset(context.Background())
+	view, err := account.Reset(context.Background(), ResetRequest{Type: ResetTypeWindow})
 	if err != nil {
 		t.Fatalf("重置: %v", err)
 	}
@@ -886,15 +949,30 @@ func TestAppServerResetUnknownIsNotResent(t *testing.T) {
 		t.Fatalf("重置请求次数不符：%d", count)
 	}
 
-	second, err := account.Reset(context.Background())
+	second, err := account.Reset(context.Background(), ResetRequest{Type: ResetTypeWindow})
 	if err != nil {
 		t.Fatalf("再次重置: %v", err)
 	}
-	if second.ID != view.ID {
-		t.Fatalf("结果未定时应等待同一条意图：got %q，want %q", second.ID, view.ID)
+	if second.Status != write.StatusNeedsManualConfirmation {
+		t.Fatalf("无回执的重置应进入需人工确认：%+v", second)
 	}
-	if count := len(server.RequestsFor("account.reset")); count != 1 {
-		t.Fatalf("结果未定的重置被重复提交：%d", count)
+	resetRequests := server.RequestsFor("account.reset")
+	if len(resetRequests) != 2 {
+		t.Fatalf("显式重试应发出第二次请求：%d", len(resetRequests))
+	}
+	var firstParams, secondParams map[string]any
+	if err := json.Unmarshal(resetRequests[0].Params, &firstParams); err != nil {
+		t.Fatalf("重置参数无法解析: %v", err)
+	}
+	if err := json.Unmarshal(resetRequests[1].Params, &secondParams); err != nil {
+		t.Fatalf("重置参数无法解析: %v", err)
+	}
+	if firstParams["idempotencyKey"] == "" || firstParams["idempotencyKey"] != secondParams["idempotencyKey"] {
+		t.Fatalf("未知结果后的重试应复用幂等键：%v vs %v", firstParams, secondParams)
+	}
+	if firstParams["resetType"] != "window" || firstParams["subscriptionId"] != float64(4242) ||
+		firstParams["providerId"] != "dimcode-api-oauth" {
+		t.Fatalf("重置参数不符：%+v", firstParams)
 	}
 
 	// 模拟重启：新的账号实例与写登记不持有旧意图，也不补发。
@@ -902,7 +980,7 @@ func TestAppServerResetUnknownIsNotResent(t *testing.T) {
 	if restarted.Status() != StatusUnknown {
 		t.Fatalf("新实例应从未知开始：%q", restarted.Status())
 	}
-	if count := len(server.RequestsFor("account.reset")); count != 1 {
+	if count := len(server.RequestsFor("account.reset")); count != 2 {
 		t.Fatalf("重启后不应补发重置：%d", count)
 	}
 }
