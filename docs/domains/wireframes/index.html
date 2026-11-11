@@ -57,16 +57,29 @@ table{border-collapse:collapse;margin:8px 0 16px;font-size:12.25px}
 th,td{border:1px solid #ddd;padding:4px 8px;text-align:left;vertical-align:top}
 th{background:#f5f5f5}
 code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+
+.sum{display:flex;align-items:center;gap:8px;border-left:1px solid #ddd;padding-left:10.5px;margin:7px 0 10.5px 5.25px;font-size:12.25px;color:#333}
+.sum .k{color:#666}
+.sum .sp{flex:1}
+.sum .bad{color:#333;font-weight:600}
+.list{margin:0 0 10.5px 21.75px;border-left:1px solid #ddd;padding-left:10.5px}
+.list .it{display:flex;gap:8px;font-size:12.25px;line-height:22.75px}
+.list .n{width:16px;color:#999}
+.list .who{width:52px;color:#999}
+.list .what{flex:1}
+.list .res{width:64px}
+.list .ms{width:44px;color:#999;text-align:right}
+.list .cause{color:#666;font-size:12.25px;line-height:18px;padding-left:24px;margin-bottom:4px}
 </style></head><body>
 <h1>U1 B2 线框：两个方案</h1>
-<p class="lead">基线：左栏放会话（256）→ 标题行 48 写会话名、分支、权限、模型 → 时间线按内容上限 784 居中，用户消息右对齐、助手铺开、操作收成一行 → 输入区贴底（60–300），有排队项时其上方出现队列条 → 右栏可选（280–容器−400），只放当前会话的附属内容。按 §9.9：审批出现时占据输入位，替换输入区；界面不用内部术语。</p>
-<p class="lead">对象模型见 <code>docs/domains/U1-objects.md</code>；每个方案在基线上偏离 ≤2 处。每页含宽 1440 与宽 900 两组、五个状态（默认、运行中、等待你同意、出错/结果不确定、长历史），每个画布右侧一列说明它由哪些对象组成。</p>
+<p class="lead">基线：左栏放会话（256）→ 标题行 48 写会话名、分支、权限、模型 → 时间线按内容上限 784 居中，用户消息右对齐、助手铺开、操作收成一行 → 输入区贴底（60–300），有排队项时上方出现队列条 → 右栏可选（280–容器−400），只放当前会话的附属内容。按 §9.9：审批出现时占据输入位，替换输入区；界面不用内部术语；流式保序、动效可关。</p>
+<p class="lead">每页七组画面：默认（摘要折叠）、摘要展开、动效关闭、运行中、等待你同意、出错/结果不确定、长历史；每组各有宽 1440 与宽 900 两版。每个画布右侧一列说明它由哪些对象组成。对象模型见 <code>docs/domains/U1-objects.md</code>。</p>
 <div class="strip">
- <div class="cv" style="width:420px;height:300px;padding:16px">
-  <div style="font-weight:600;margin-bottom:6px">方案 A：过程收成一行</div>
-  <p class="lead">偏离 2 处：一轮的全部操作收成一行；这一行自己承担进行中/等待/失败的变化。<br>代价：中途说明默认看不到。<br><a href="a.html">看线框 →</a></p></div>
- <div class="cv" style="width:420px;height:300px;padding:16px">
+ <div class="cv" style="width:430px;height:300px;padding:16px">
+  <div style="font-weight:600;margin-bottom:6px">方案 A：过程摘要行</div>
+  <p class="lead">一轮的全部操作收成一行具体摘要，可展开成逐条（序号·动作·对象·结果·耗时，失败带原因）；同一行承担进行中/等待/失败。<br><a href="a.html">看线框 →</a></p></div>
+ <div class="cv" style="width:430px;height:300px;padding:16px">
   <div style="font-weight:600;margin-bottom:6px">方案 B：轮次索引</div>
-  <p class="lead">偏离 1 处：时间线左缘加轮次索引，超过 5 轮才出现，占 22px。<br>代价：时间线窄 22px。<br><a href="b.html">看线框 →</a></p></div>
+  <p class="lead">长会话左缘一排针，点一下跳到那一轮；操作仍逐条列出，可单独展开。<br><a href="b.html">看线框 →</a></p></div>
 </div>
 </body></html>
