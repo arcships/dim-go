@@ -34,6 +34,7 @@ Owner: U0 界面框架基线
 4. **kero 是可用的实战样本，不是模板。** 它证明「一个 action 表驱动菜单 + 命令面板 + 可重绑快捷键 + CLI」「自绘外观建在 `Base` 上」「`ui.Tester` 覆盖 view 层（19 个测试文件、91 处）」三条做法在真实产品里站得住；也暴露出「单包 main 2.3 万行」这类我们不该照抄的组织方式。
 5. **markstream-go 与 mygo 自带 `ui/markdown` 是两条互斥路线。** 前者功能面大（虚拟化、FileDiff、rich 引擎），但无版本标签、依赖 Chromium（rich 包）、体积与维护面都更大；后者是框架内建、零第三方、已按流式设计。二选一必须在 C4 前拍板（见 §7）。
 6. **许可证四项都可商用**：mygo / kero / markstream-go 均 MIT；图标 MIT（fork 自 lobe-icons，MIT）、非 AI 图标来自 Simple Icons（CC0-1.0）并逐条列出例外（CC-BY-4.0 / CC-BY-3.0 / MIT / BSD-3-Clause / Apache-2.0）。义务是保留版权与许可声明；启用 markstream 的 `rich` 包会额外引入 MPL-2.0 的 D2，需要单独评估（§5.4）。
+7. **状态模型：能力在，映射不在。** 框架给了 18 项可控视觉态的判断与绘制能力，主题只有 29 个 token（20 色 + 4 尺寸 + 间距/字号/字族/提示延迟各 1），动效机制齐备但没有时长常量。**「哪个态长什么样」必须由我们在 C2 定、在 view 层实现**（详见 §2.5）。
 
 ---
 
@@ -115,7 +116,87 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 
 关键判断：**框架给的是「一套跟随系统的主题 + 一堆样式原语」，不是一套设计系统。** 字阶、间距标尺、语义色、三态（default/hover/disabled）都要我们自己定义并在 view 里表达（§7 第 1 条）。
 
-### 2.5 文本、字体与中文
+### 2.5 组件的状态模型（可控视觉态、token 与动画）
+
+框架里没有「视觉状态机」这个对象：状态是每帧从输入与数据算出来的布尔，外观是每帧重新算出来的样式方法链。所以「支持哪些视觉态」= 「`Element` 上有哪些状态查询与设置」；「这些态长什么样」= 「主题 token + 你在 view 里写的样式」。下面三张表分别回答：能控哪些态、状态怎么落到 API、可调的 token 有哪些。
+
+#### 2.5.1 可控视觉态清单（18 项）
+
+| 态 | 触发 / API | 内建外观 | 能自定义到什么程度 | 出处 |
+|---|---|---|---|---|
+| 默认（idle） | — | 主题 `Surface` / `Border` / `Text` | 元素级任意重画；`*Base` 从零画 | `mygo:docs/ui/styling.md`「Themes」 |
+| 悬停 | `Hovered()`；菜单与选项项的 `Highlighted()` | `SurfaceHover` / `AccentHover`，内建控件都在用 | 主题换色；元素级 `if row.Hovered()`；配合 `Transition{Colors:true}` 淡入 | `mygo:ui/theme.go:16`、`mygo:ui/theme.go:28`；`mygo:docs/ui/input.md`「The pointer」 |
+| 按下 | `Pressed()`、`PressedButton()`（哪个键）、`PressedInside()` | `SurfacePressed` / `AccentPressed` | 同上 | `mygo:ui/theme.go:18`、`mygo:ui/theme.go:29` |
+| 选中 | `Selected`（整元素 accent 填充并告知辅助技术）、`AccessSelected`（只告知、不着色）、`Checked` / `Mixed`（开关类） | accent 填充，非活动窗口转 `InactiveAccent` | 可：`AccessSelected` + 自己画，或用 Base 自己画 | `mygo:ui/api_gen.go`（`Selected`/`AccessSelected`/`Checked` 的注释）；`mygo:docs/ui/accessibility.md`「Selected, without the look」 |
+| 键盘焦点 | `Focusable()`、`FocusVisible()`、`FocusWithin()`、`FocusLeft()`、`TabStop(false)` | 焦点环：`FocusRingWidth`（默认 2）、`FocusRingOffset`（默认 1）、`Focus` | 主题级改宽/距/色；元素级 `FocusRingOffset` / `FocusRingColor` / `FocusRing(false)`；或 `Painter.FocusRing` 自绘 | `mygo:ui/theme.go:47`；`mygo:docs/ui/styling.md`「The focus ring」 |
+| 禁用 | `Disabled(true)`、`AccessDisabled(true)`（保留焦点与点击，给必须可达的控件）、`DimDisabled(false)`、`IsDisabled()` | 整棵子树 50% 不透明度，无点击、不进 Tab | 可：关掉 dim 后按自己的方式表达不可用（文档给了「保留不可用原因可读」的例子） | `mygo:ui/api_gen.go`（`Disabled`/`DimDisabled`/`IsDisabled` 注释）；`mygo:docs/ui/custom-widgets.md` 末段 |
+| 只读 | `ReadOnly(true)`（文本输入） | 不变灰；可选中、可复制、无光标 | 行为内建，外观自定 | `mygo:ui/api_gen.go`（`ReadOnly`） |
+| 无效 / 错误 | `Invalid(true)`；`Field(...).Error(msg)`；自绘消息用 `ErrorMessage` / `DescribedBy` | 文本输入边框转 `Danger`；`Error` 另加说明文字并与控件建立 a11y 关联 | 只有「边框变色 + 消息位置 + 关联」三条约定，其余自定 | `mygo:docs/ui/form.md`「Form」「Hints and errors of your own」；`mygo:ui/api_gen.go`（`Invalid`） |
+| 忙碌 / 加载 | **没有控件级内建态**。辅助技术用 `Busy(true)`；视觉只能借 `Spinner`、`Progress(v)`、`Progress(-1)`（未知长度） | 只有独立组件，没有「按钮 loading」「行骨架」 | **必须自建**：按钮内塞 Spinner + `Disabled` + `Busy`，或自画骨架 | `mygo:docs/ui/progress.md`、`mygo:docs/ui/spinner.md`、`mygo:docs/ui/accessibility.md`「States」 |
+| 展开 / 收起 | `Expanded(open)`（只告知辅助技术）；视觉用 `Collapsible`/`Accordion`，其 `Progress` 从 0 到 1 | 开合动画内建（`CollapsibleBase.Progress`） | 部分：动画内建；箭头旋转、图标切换、展开区背景要自画 | `mygo:docs/ui/custom-widgets.md` 的 Base 表；`mygo:ui/api_gen.go`（`Expanded`） |
+| 搜索命中高亮 | 无专用 API | 无 | **必须自建**：`TextBackground`、`SelectionColor`、或自画 span | `mygo:docs/ui/text.md`「Style」 |
+| 拖拽中 | `Dragging()`、`Dragged()`、`DragEnded()`、`DragMissed()`、`PressCanceled()` | `ui.Drag`/`ui.Drop`/`Draggable`/`Reorder` 的目标高亮与重排内建 | 部分：拖影（ghost）与目标态自定 | `mygo:docs/ui/input.md`「The pointer」；`mygo:docs/ui/drag-and-drop.md` |
+| 输入法组合中 | `Composing()` | 内建（组合文本由输入法栈绘制） | 沿用 | `mygo:ui/api_gen.go`（`Composing`） |
+| 窗口非激活 | `c.WindowActive()` | 内建：选中行、勾选、滑杆、进度、tab 下划线等自动转 `InactiveAccent` | 可（`InactiveAccent: Accent` 保持原色） | `mygo:docs/ui/windows.md`「Active and inactive windows」 |
+| 隐藏 | `Hidden(true)`（不占位、保留内部状态）、`Invisible()`（占位不画）、`c.WindowHidden()` | 内建 | 沿用 | `mygo:docs/ui/layout.md`「Clipping and visibility」；`mygo:docs/ui/windows.md`「Hidden windows」 |
+| 滚动条显隐 | 悬停显示、`KeepScrollbars(true)`、`Scrollbars(false)` | 内建三策略 | 可（`Scrollbar` / `ScrollbarWidth` / `ScrollbarInsets`） | `mygo:docs/ui/scroll.md`「Scroll bars」 |
+| 进入视野 | `InView()`、`InViewAmount(x)` | 无外观，只给布尔 | **必须自建**进场/曝光动画 | `mygo:ui/api_gen.go`（`InView` / `InViewAmount`） |
+| 流式完成 | `markdown.Revealed(el)`（reveal 与淡入队列是否排空，据此才挂时间与操作条） | 内建（`ui/markdown`） | 可（`Options.Reveal{Unit, CatchUp, Fade}`） | `mygo:docs/ui/markdown.md`「Once a reply has shown」 |
+
+#### 2.5.2 状态在 API 上的表达（三条通道 + 一条缺席）
+
+1. **查询**（在 build 期内读一次，返回布尔/数值）：`Hovered` `Pressed` `PressedButton` `Clicked` `DoubleClicked` `RightClicked` `Dragged` `Dragging` `DragEnded` `DragMissed` `PressCanceled` `FocusVisible` `FocusWithin` `FocusLeft` `Composing` `Highlighted` `InView` `InViewAmount` `IsDisabled` `Changed` `Submitted`。出处 `mygo:docs/ui/input.md`「The pointer」「The keyboard focus」。
+2. **设置**（幂等的断言式方法，写在构造链上）：`Disabled(bool)` `ReadOnly(bool)` `Selected(bool)` `AccessSelected(bool)` `Checked(bool)` `Mixed()` `Expanded(bool)` `Invalid(bool)` `Busy(bool)` `DimDisabled(bool)` `TabStop(bool)` `AutoFocus()` `Focusable()` `Focus()` `Value(s)` `Range(lo,hi,v)` `Step(n)` `PositionInSet/SetSize` `Role(r)` `Label(s)` `Semantics` 相关（`DescribedBy`/`ErrorMessage`/`Controls`）。**其中前 8 个同时改变外观与辅助技术所见的语义，其余只改语义**。出处 `mygo:ui/api_gen.go`（每个方法的注释即规范）、`mygo:docs/ui/accessibility.md`「States」。
+3. **事件**（要执行动作时）：`OnClick` `OnChange` `OnSubmit` `OnShortcut`；查询式则用 `Clicked()` 就地分支。出处 `mygo:docs/ui/views.md`「Events and actions」。
+4. **缺席**：没有 `VisualState` 枚举、没有 `:hover` / `:disabled` 选择器、没有 `StatefulWidget`；**同一个元素在各态下的差异只能由 view 里的 if 分叉表达，或交给 `*Base` 自己画**（`mygo:docs/ui/custom-widgets.md`）。也没有「主题里给每种态配一套样式」的机制——token 只覆盖了悬停与按下两组颜色。
+
+一句话：**框架给「判断状态的能力」与「画任意样子的能力」，不给「状态 → 样子」的映射表。**
+
+#### 2.5.3 主题 token 清单（29 个字段）
+
+`ui.Theme`（`mygo:ui/theme.go:10`）是全框架唯一一处集中可调的视觉参数。字段按用途分：
+
+| 类别 | 数量 | 字段 |
+|---|---:|---|
+| 明暗开关 | 1 | `Dark` |
+| 颜色 | 20 | `Background` `Surface` `SurfaceHover` `SurfacePressed` `Border` `Text` `TextMuted` `Accent` `AccentHover` `AccentPressed` `AccentText` `InactiveAccent` `Danger` `Warning` `Success` `Selection` `Focus` `Inverse` `InverseText` `Scrollbar` |
+| 尺寸 | 4 | `FocusRingWidth`(2) `FocusRingOffset`(1) `Radius`(6) `ScrollbarWidth`(6) |
+| 间距 | 1 | `Spacing`(4)，`t.Space(n)` 取 n 倍 |
+| 字号 | 1 | `FontSize`（macOS 13、其他 14，见 `defaultFontSize()`） |
+| 字族 | 1 | `Font`（`""` 为系统字体） |
+| 时长 | 1 | `TooltipDelay`（默认 0.6 s，负值立即显示） |
+
+默认值以 `LightTheme()` / `DarkTheme()` 为基线（`mygo:ui/theme.go:167`、`mygo:ui/theme.go:195`）。自定义三种方式，可叠加：`c.SetTheme(&t)` 整窗替换；`ui.Themed(c, t)` 只主题化一棵子树；元素级链式样式覆盖单个元素（`mygo:docs/ui/styling.md`「Themes」「A theme for part of the window」）。
+
+**token 没覆盖的（必须自建）**：字阶（只有 `FontSize` 一个数）、阴影/高度阶（只有 `Shadow(x,y,blur,spread,color)` 原语）、描边宽度档、动效时长与缓动、密度档（只有 `Spacing` 一个乘数）、层级（`ZIndex` 是元素属性不是 token）、图标尺寸、断点/响应式。
+
+#### 2.5.4 动画能力
+
+| 能力 | API | 默认值 | 出处 |
+|---|---|---|---|
+| 值缓动（弹簧/曲线） | `Animation{Duration, Ease, Spring, Delay, Oklab, NonMotion}`；快捷方法 `Animate` `AnimateWith` `AnimateTo` `Spring` `AnimateColor` `AnimatePose` | 弹簧 500 ms（`defaultSpringDuration`）；曲线 `EaseOut`；预设 `Smooth` / `Snappy` / `Bouncy` | `mygo:ui/motion.go:16`、`mygo:ui/motion.go:47`、`mygo:ui/motion.go:53` |
+| 布局变化过渡 | `Transition(ElementTransition)`：位置、尺寸、颜色、阴影，可逐项开关 | **`Duration` 为 0 时按 200 ms**，负数立即；`ExitDuration` 缺省同 `Duration` | `mygo:ui/transition.go:21`；`mygo:docs/ui/transitions.md`「What moves」 |
+| 进出场 | `Enter` / `Exit` 的 `Motion{Collapse:true}` 等 | 内建 | `mygo:docs/ui/transitions.md`「Coming and going」 |
+| 错峰 | `Animation.Delay`，如 `time.Duration(i) * 25 * time.Millisecond` | 无默认，靠调用方给 | `mygo:docs/ui/transitions.md`「Delays and staggering」 |
+| 文本内容变形 | `ContentTransition`（`Match` / `ScaleContent`） | 内建 | `mygo:docs/ui/transitions.md`「Shared elements」 |
+| 关键帧与时间线 | `Keyframes`、`Timeline`、`Loop(key, dur, ease)` | 内建 | `mygo:docs/ui/motion.md`「Keyframes」「Timelines」「Loops and your own motion」 |
+| 定时重绘 | `c.After(d)`、`c.AnimationFrame()`、`c.Invalidate()`、`Painter.After` | 内建 | `mygo:docs/ui/views.md`；`mygo:docs/ui/drawing.md`「Animation」 |
+| 降低动效 | `Preferences.ReduceMotion` 自动摊平；`Animation.NonMotion` 标记「不动位置的值」（透明度/模糊/交叉淡入）仍可动 | 内建 | `mygo:ui/motion.go:34` |
+| 帧诊断 | `MYGO_FRAME_STATS=1` 打印 build/layout/paint/present 耗时构成 | 内建 | `mygo:docs/ui/rendering.md` |
+
+**结论：机制齐备，token 缺席。** 弹簧、曲线、布局过渡、进出场、错峰、关键帧、时间线、降低动效、帧诊断都有；但**没有任何时长/缓动常量**：`200 ms`（过渡）与 `500 ms`（弹簧）只是两处默认值，其余时长由每个调用点自己写。真实项目里这一点立刻显形：kero 的时间常数散成 `50/100/120/150/200/260/400 ms` 六档并存（`自测:kero-durations`；其中 `sidebarMotion` 260 ms、`popupFace` 120 ms），因为框架没有给出可引用的刻度。
+
+#### 2.5.5 结论：沿用 / 配置 / 自建
+
+| 档 | 内容 |
+|---|---|
+| **可以完全沿用**（机制与外观都由框架给） | 悬停与按下的机制、焦点环、禁用变灰、只读行为、非激活窗口淡化、隐藏三态、滚动条显隐策略、输入法组合、流式 reveal、开合动画 |
+| **可沿用但必须先配置**（改 token 即可，前提是先有标尺） | 选中色与 accent、`Danger`/`Warning`/`Success`、圆角、间距单位、字号、滚动条宽度、tooltip 延迟 |
+| **必须我们在 view 层实现** | 忙碌与骨架屏（含按钮 loading）、错误呈现规范（位置/聚合/表单级 vs 字段级）、搜索命中高亮、展开箭头与图标切换、进场与曝光动画、**时长与缓动表**、密度档（compact/roomy）、阴影阶、空态 |
+
+这正是 §7 第 1 条要我们拍板的东西：**框架给的是状态与 token 的「名词表」，缺的是「每个态长什么样」的规格**。
+
+### 2.6 文本、字体与中文
 
 | 事实 | 出处 |
 |---|---|
@@ -130,7 +211,7 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 | 中文/日文字形：`Element.Lang("ja")`、`Span.Lang`、`Font.Lang` 决定汉字的字形变体 | `mygo:docs/i18n.md`「Native UI」 |
 | 界面语言与区域格式：`c.Locale()`、`c.Region()`，每帧重建所以切语言即时生效 | `mygo:docs/i18n.md`「When the language changes」 |
 
-### 2.6 事件、焦点与快捷键
+### 2.7 事件、焦点与快捷键
 
 | 事实 | 出处 |
 |---|---|
@@ -150,7 +231,7 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 | 滚动与捏合事件：`InputScroll`（`Precise` 区分触控板与滚轮）、`InputZoom` | 同上「Scrolling and pinching」 |
 | 大写：`ui.Cmd` 在 macOS 是 Command、其他是 Ctrl；`KeyBack`/`KeyForward` 接鼠标侧键 | 同上「Shortcuts」 |
 
-### 2.7 滚动与虚拟列表
+### 2.8 滚动与虚拟列表
 
 | 事实 | 出处 |
 |---|---|
@@ -167,7 +248,7 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 
 框架自己的聊天范式（可以直接沿用的正解）：消息列表用 `ui.List` + `ListState{Key, FollowEnd, FollowAnimation: &ui.Smooth}` + `Justify(ui.End)`，见 `mygo:docs/ui/list.md`「A chat」与 `mygo:docs/ui/markdown.md`「A chat」。
 
-### 2.8 窗口、标题栏与菜单
+### 2.9 窗口、标题栏与菜单
 
 | 事实 | 出处 |
 |---|---|
@@ -183,7 +264,7 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 | 上下文菜单、托盘图标与托盘菜单、Dock 菜单 | `mygo:docs/menus.md`「Context menus」「Tray icons」「The Dock menu」 |
 | 窗口内自绘菜单：`PopoverMenu`、`PopoverMenuButton`、以及「整窗自绘菜单」开关，a11y 角色与键盘齐备 | `mygo:docs/ui/context-menu.md`、`mygo:docs/ui/menu-button.md` |
 
-### 2.9 原生对话框与桌面集成
+### 2.10 原生对话框与桌面集成
 
 | 事实 | 出处 |
 |---|---|
@@ -191,7 +272,7 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 | `OpenDialogOptions` 可选目录、显示隐藏文件、`FileFilter{MIMETypes:["image/*"]}`；`MessageOptions` 支持按钮、`DestructiveButtons`、`CheckboxLabel` | 同上 |
 | 通知、全局快捷键、深链、单实例锁、最近文档、Now Playing、系统主题与无障碍设置 | `mygo:docs/native.md` 其余小节；`mygo:docs/app.md` |
 
-### 2.10 无障碍
+### 2.11 无障碍
 
 | 事实 | 出处 |
 |---|---|
@@ -203,7 +284,7 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 | 主动播报：`c.Announce(text)`；live region / landmark | 同上「Announcements」「Landmarks, live regions and rules」 |
 | 可测：`tt.Access` / `tt.AccessByRole(role, name)` 返回 `ui.AccessInfo`（角色、名字、值、描述、全部状态、Bounds），断言的是「辅助技术拿到什么」而不是「view 设了什么」 | `mygo:docs/ui/testing.md`「What assistive technology sees」 |
 
-### 2.11 测试
+### 2.12 测试
 
 | 事实 | 出处 |
 |---|---|
@@ -212,7 +293,7 @@ flexbox + grid，单位是 DIP（device-independent pixel）。
 | `tt.Image()` 拿最后一帧位图做快照；`ui.Render(view, w, h, scale)` 单帧渲染 | 同上；`mygo:docs/ui/rendering.md` |
 | 端到端：automation 插件让外部进程按 `Label`/`Key` 读写真实窗口 | `mygo:docs/ui/testing.md`「Testing the built app」；`mygo:docs/plugins/automation.md` |
 
-### 2.12 上游给出的性能数字（口径：作者机器、`CGO_ENABLED=0 GOMAXPROCS=1`、CPU 渲染、`ui.Tester`）
+### 2.13 上游给出的性能数字（口径：作者机器、`CGO_ENABLED=0 GOMAXPROCS=1`、CPU 渲染、`ui.Tester`）
 
 | 场景 | 每帧 | 分配 |
 |---|---:|---:|
@@ -557,7 +638,7 @@ kero 的控件是自绘的但**不是自研底座**：`controls.go` 里 30 处 `
 
 | # | 要决定的事 | 框架现状（不出） | 谁定 | 何时 |
 |---|---|---|---|---|
-| 1 | **视觉标尺**：字阶（H1–H4/正文/说明/代码）、间距刻度、圆角与描边阶梯、语义色（正文/次要/禁用/危险/成功/强调/选中）、三态（default/hover/active/disabled/focus） | 只给 `Spacing`（默认 4）、`FontSize`、`Radius`、`Accent` 四个标量 + 一组样式原语；没有设计 token，没有状态矩阵 | U2 | C2 |
+| 1 | **视觉标尺**：字阶（H1–H4/正文/说明/代码）、间距刻度、圆角与描边阶梯、语义色（正文/次要/禁用/危险/成功/强调/选中）、三态（default/hover/active/disabled/focus） | 只给 `Spacing`（默认 4）、`FontSize`、`Radius`、`Accent` 四个标量 + 一组样式原语；没有设计 token，没有状态矩阵（现状与缺口清单见 §2.5） | U2 | C2 |
 | 2 | **信息架构与页面/面板划分**：单窗多区还是多窗；会话区、目录、审批、设置、扩展、终端各自占哪里 | `Router` 提供页面路由与历史（`mygo:docs/ui/navigation.md`），`Sidebar`/`Tabs`/`Split` 提供容器；划分本身不给 | U1 | C1 |
 | 3 | **虚拟化单位**：一条消息一行（官方聊天范式）还是「轮次一行」/「块一行」；超长消息内部是否再分页 | `List` 的虚拟化以「行」为单位，行高可变但必须可测量；框架不提供「行内再虚拟化」 | U4 | C4 |
 | 4 | **流式 Markdown 选型**：`ui/markdown` 还是 `markstream-go`（§4.7 对照） | 两条等价路线，都能跑 | 用户（涉第三方依赖例外） | C4 前，先出设计选择（`docs/domains/A.md` 体例） |
@@ -677,6 +758,7 @@ kero 的控件是自绘的但**不是自研底座**：`controls.go` 里 30 处 `
 | `ailogo-tags` | `git ls-remote --tags https://github.com/yldm-tech/ai-logo` | 存在 `mygo/v1.20.0`（子模块可单独钉版本） |
 | `ailogo-zip` | 解压 `ailogo:mygo/icons.zip` 并数条目 | 2,709 个 SVG；`src/` 下 1,326 个品牌目录 |
 | `widgets` | 在 mygo v0.8.3 的 `ui` 包里枚举 `func X(c *Context…)` 与泛型构造器并去重 | 114 个名字（25 个 `*Base` + 1 个 `SelectBaseOpen` + 88 个成型控件） |
+| `kero-durations` | 在 kero 仓库统计 `[0-9]+ * time.Millisecond` 的出现次数 | 至少 50 / 100 / 120 / 150 / 200 / 260 / 400 ms 并存，说明框架没给时长刻度、各调用点各自取值 |
 | `kero-usage` | 在 kero 仓库统计 `ui.NewTester`、`ui.*Base`、`ui.List`、`ui.Scroll` 的出现次数 | `NewTester` 91 处（19 个测试文件）；`ButtonBase` 30、`TextInputBase` 11、`DialogBase` 4；`List` 3、`Scroll` 6 |
 
 **无法获取的来源：无。** mygo（本地模块缓存 + 公开仓库）、kero、markstream-go、AI Logo 四处都取到了原文；`ailogo.yldm.ai` 站点正文另行核对（HTTP 200）。上表列出的是「取到了但没实测」的项目，与「取不到」区分开。
