@@ -414,6 +414,7 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 2026-11-11 | 附 E 宿主协作协议由不纳入改判纳入候选；候选新增「Go leaf runtime 注册」；候选 16→18 项、不纳入 7→6 条 | 本项目是原生 UI 宿主，宿主接线协议不是 CLI 专属；用户指出需评估以 Go 实现 leaf runtime 并注册 | 69 项统计不变 |
 | 2026-11-11 | 候选更新：宿主协作协议改为已验证（普通注册路径真机验证）；「Go leaf runtime 注册」拆为 UI 叶子（已验证，纯标准库真机跑通）与插件运行时注册（blocked，缺服务端连接行能力，上游 #1403） | Go leaf 已真机跑通，插件侧仍缺上游能力 | 候选 18→19 项；已验证 14→16、blocked 1→2、待做 2→0；69 项统计不变 |
 | 2026-11-11 | 账号三条（登录、登出、推荐与重置）由已实现未验证改为已验证（等价核对通过），证据列写明与原客户端对照的字段与补齐项；附 D 口径补「真实吊销类动作按等价核对验收，不执行真实吊销」 | 用户确认「与原项目核对逻辑字段接口就算通过」，账号领域已完成字段级核对并补齐差异 | 69 项：已验证 43→46、已实现未验证 23→20；其余判定不变 |
+| 2026-11-11 | 成员停止维持「已实现未验证」，证据改写为真实尝试结果：模型调用了 agent 工具但服务端未产生协作请求/投递、清单为空、leader 轮次无 turn/end，拿不到 memberSessionId；已开上游 issue #1405；集成层映射与 cancelled/idle 语义由假服务端覆盖 | 端到端仍缺服务端协作事实，无法真实调用停止接口 | 69 项统计不变；候选统计不变 |
 # 附 B　未决问题
 
 | 编号 | 问题 | 需要谁回答 | 处理 |
@@ -466,7 +467,7 @@ Owner: R 领域　验证人: 用户（需求侧决定只由用户拍板）
 | 审批重放 | 已实现未验证 | ReplayReplacesApprovalSetKeepsQuestions、RuleWrittenStateSurvivesReplay |
 | 提问应答与结算 | 已验证 | 真实 respond 选中选项后由 step/tool-result 结算；TestRealDaemonPendingInventories |
 | 权限档位 | 已验证 | alpha.21：session.permission.get/update 实训 full-access → read-only；集成自检证据 H |
-| 成员停止 | 已实现未验证 | 方法与参数已真机验证（伪造成员标识返回 team_member_not_found、idle 为合法结果），集成层已接线（TestCollaborationMembersAndStop）；端到端需模型发起协作 |
+| 成员停止 | 已实现未验证 | 模型确实调用了 agent 工具（step/tool-call 存在），但服务端未产生 collaboration/request 或投递事实，session.collaboration.pending 为空、leader 轮次无 turn/end，因此拿不到 memberSessionId，无法真实调用 session.collaboration.cancel；已开上游 issue #1405。集成层映射与「cancelled/idle 都算已停」已由假服务端覆盖（TestCollaborationMembersAndStop） |
 | 插件安装与配置 | 已实现未验证 | alpha.21：插件列表与启停真实通过；安装缺安全真实插件源（安装路径仍 blocked） |
 | 技能启停 | 已验证 | alpha.21：技能启停往返成功；TestRealDaemonExtensionReadsAndWakeup |
 | 钩子写入范围 | 已验证 | alpha.21：hooks.save 写回 revision 2、旧 revision 返回 hooks_conflict；TestRealDaemonHooksAndMCPWrites |
