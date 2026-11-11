@@ -21,12 +21,13 @@ func TestModalityGateChecksHelloBeforeSessionMethods(t *testing.T) {
 	})
 	result := startAssembly(t, server, assemblyOptions{session: testSession})
 	gate := &modalitySession{app: result.base}
+	before := len(server.RequestsFor("session.methods"))
 	ok, err := gate.SupportsModalityMethod(context.Background(), testSession, "modality.task.status")
 	if err != nil || !ok {
 		t.Fatalf("hello 声明时应放行: ok=%t err=%v", ok, err)
 	}
-	if got := len(server.RequestsFor("session.methods")); got != 0 {
-		t.Fatalf("hello 命中时不应读会话方法表（%d 次）", got)
+	if got := len(server.RequestsFor("session.methods")); got != before {
+		t.Fatalf("hello 命中时不应额外读会话方法表（%d -> %d 次）", before, got)
 	}
 
 	// hello 没声明，但会话方法表声明了：同样放行。

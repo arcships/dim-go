@@ -64,16 +64,17 @@ func (r *extensionReaders) ReadPlugins(ctx context.Context) ([]extensions.Plugin
 		return nil, err
 	}
 	var entries []struct {
-		Name    string   `json:"name"`
-		ID      string   `json:"id"`
-		Use     *bool    `json:"use"`
-		Off     *bool    `json:"off"`
-		Locked  *bool    `json:"locked"`
-		Status  string   `json:"status"`
-		Version string   `json:"version"`
-		Error   string   `json:"error"`
-		Refused string   `json:"refused"`
-		Missing []string `json:"missing"`
+		Name string `json:"name"`
+		ID   string `json:"id"`
+		// Use 在真实回执里是字符串（例如 builtin），旧夹具是布尔；两种都接受。
+		Use     json.RawMessage `json:"use"`
+		Off     *bool           `json:"off"`
+		Locked  *bool           `json:"locked"`
+		Status  string          `json:"status"`
+		Version string          `json:"version"`
+		Error   string          `json:"error"`
+		Refused string          `json:"refused"`
+		Missing []string        `json:"missing"`
 	}
 	if err := client.CallInto(ctx, methodPluginList, nil, &entries); err != nil {
 		return nil, err
@@ -93,8 +94,16 @@ func (r *extensionReaders) ReadPlugins(ctx context.Context) ([]extensions.Plugin
 			locked = *entry.Locked
 		}
 		use := ""
-		if entry.Use != nil && *entry.Use {
-			use = "enabled"
+		if len(entry.Use) > 0 {
+			var text string
+			if err := json.Unmarshal(entry.Use, &text); err == nil {
+				use = text
+			} else {
+				var enabled bool
+				if err := json.Unmarshal(entry.Use, &enabled); err == nil && enabled {
+					use = "enabled"
+				}
+			}
 		}
 		plugins = append(plugins, extensions.Plugin{
 			ID:        id,

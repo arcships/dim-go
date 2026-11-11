@@ -86,6 +86,10 @@ func (s *accountAuthSource) BeginProviderAuthorization(
 	if directory != "" {
 		params["directory"] = directory
 	}
+	if email := strings.TrimSpace(begin.Email); email != "" {
+		// login_hint：原客户端同样透传，只在发起时带上。
+		params["email"] = email
+	}
 	var reply struct {
 		AttemptID        string `json:"attemptId"`
 		AuthorizationURL string `json:"authorizationUrl"`
@@ -146,6 +150,25 @@ func (s *accountDeviceSource) BeginDeviceAuthorization(
 	providerID string,
 	directory string,
 ) (account.DeviceAuthorization, error) {
+	return s.beginDeviceAuthorization(ctx, providerID, directory, "")
+}
+
+// BeginDeviceAuthorizationWithEmail 是可选能力：设备码发起时带登录提示。
+func (s *accountDeviceSource) BeginDeviceAuthorizationWithEmail(
+	ctx context.Context,
+	providerID string,
+	directory string,
+	email string,
+) (account.DeviceAuthorization, error) {
+	return s.beginDeviceAuthorization(ctx, providerID, directory, email)
+}
+
+func (s *accountDeviceSource) beginDeviceAuthorization(
+	ctx context.Context,
+	providerID string,
+	directory string,
+	email string,
+) (account.DeviceAuthorization, error) {
 	if providerID == "" || directory == "" {
 		resolved, err := s.wire.accountProvider(ctx, "发起设备码登录")
 		if err != nil {
@@ -165,6 +188,9 @@ func (s *accountDeviceSource) BeginDeviceAuthorization(
 	params := map[string]any{"providerId": providerID}
 	if directory != "" {
 		params["directory"] = directory
+	}
+	if strings.TrimSpace(email) != "" {
+		params["email"] = strings.TrimSpace(email)
 	}
 	var reply struct {
 		AttemptID               string  `json:"attemptId"`
@@ -237,6 +263,28 @@ func (s *accountDeviceSource) PollDeviceAuthorization(
 	return account.DeviceLoginState{Status: status, Reason: reply.Error}, nil
 }
 
+// CancelAuthorization 取消设备码尝试：与浏览器登录共用 account.login.cancel。
+func (s *accountDeviceSource) CancelAuthorization(ctx context.Context, attempt string) error {
+	providerID := s.wire.attemptProvider(attempt)
+	if providerID == "" {
+		resolved, err := s.wire.accountProvider(ctx, "取消设备码登录")
+		if err != nil {
+			return err
+		}
+		providerID = resolved.ID
+	}
+	client, err := s.wire.app.requireControl("取消设备码登录")
+	if err != nil {
+		return err
+	}
+	_, err = client.Call(ctx, methodLoginCancel, map[string]any{
+		"providerId": providerID,
+		"attemptId":  attempt,
+	})
+	s.wire.forgetAttempt(attempt)
+	return err
+}
+
 // deviceLoginStatus 把服务端状态映射成领域取值；未知状态按事实不合法拒绝。
 func deviceLoginStatus(raw string) (account.DeviceLoginStatus, error) {
 	switch strings.ToLower(strings.TrimSpace(raw)) {
@@ -269,7 +317,9 @@ func wireUnixTime(value int64) time.Time {
 
 // 编译期确认：账号领域需要的三个来源都已提供。
 var (
-	_ account.ProviderSource              = (*accountProviderSource)(nil)
-	_ account.ProviderAuthorizationSource = (*accountAuthSource)(nil)
-	_ account.DeviceAuthorizationSource   = (*accountDeviceSource)(nil)
+	_ account.ProviderSource                 = (*accountProviderSource)(nil)
+	_ account.ProviderAuthorizationSource    = (*accountAuthSource)(nil)
+	_ account.DeviceAuthorizationSource      = (*accountDeviceSource)(nil)
+	_ account.AuthorizationCanceler          = (*accountDeviceSource)(nil)
+	_ account.DeviceAuthorizationEmailSource = (*accountDeviceSource)(nil)
 )

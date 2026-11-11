@@ -72,6 +72,9 @@ type Config struct {
 	ServerPath string
 	// ServerArgs 是追加给服务端的参数（例如 dimcode-server 需要 app-server 子命令）。
 	ServerArgs []string
+	// ServerDefaults 是默认插件/运行时预设文件（`--defaults`）；空表示不带。
+	// 文件缺失时按能力缺失处理：不传给服务端，也不让连接失败。
+	ServerDefaults string
 	// MockModel 为真时用 mock 模型拉起服务端，只用于验收。
 	MockModel bool
 	// ModelConfig 是显式的模型配置路径。
@@ -121,6 +124,8 @@ type sessionRuntime struct {
 	permissionVersion atomic.Int64
 	// permissionPolicy 是最近一次读到的完整策略；切换 preset 时保留工具列表。
 	permissionPolicy atomic.Pointer[protocol.PermissionPolicy]
+	// contextReading 是最近一次按需读到的上下文占用（session.context.usage）。
+	contextReading contextReadingCache
 }
 
 // App 是集成层的对外类型。所有导出方法可并发调用。
@@ -220,6 +225,24 @@ func New(cfg Config) (*App, error) {
 	return app, nil
 }
 
+// serverArgsWithDefaults 在服务端参数里补上 `--defaults`。
+//
+// 预设文件缺失时按能力缺失处理：记诊断、跳过该参数，不影响连接。
+func (a *App) serverArgsWithDefaults() []string {
+	args := serverArgsFor(a.cfg.ServerPath, a.cfg.ServerArgs)
+	path := strings.TrimSpace(a.cfg.ServerDefaults)
+	if path == "" {
+		return args
+	}
+	if _, err := os.Stat(path); err != nil {
+		a.record("默认预设缺失，按能力缺失处理: %s", path)
+		return args
+	}
+	args = append(args, "--defaults", path)
+	a.record("已带上默认预设: %s", path)
+	return args
+}
+
 // serverArgsFor 补齐统一二进制的子命令。
 //
 // 统一二进制 dimcode-server 需要 `app-server` 子命令（D1 §3.7）；调用方显式给了
@@ -315,7 +338,7 @@ func (a *App) Connect(ctx context.Context) error {
 	supervisor, err := daemon.New(daemon.Config{
 		DataDir:        a.cfg.DataDir,
 		ServerPath:     a.cfg.ServerPath,
-		ServerArgs:     serverArgsFor(a.cfg.ServerPath, a.cfg.ServerArgs),
+		ServerArgs:     a.serverArgsWithDefaults(),
 		MockModel:      a.cfg.MockModel,
 		ModelConfig:    a.cfg.ModelConfig,
 		ClientName:     a.cfg.ClientName,

@@ -108,6 +108,13 @@ func (w *accountWire) attemptProvider(attempt string) string {
 	return w.attempts[attempt]
 }
 
+// forgetProvider 清掉按实例缓存的 provider 解析结果（登出后重新读取）。
+func (w *accountWire) forgetProvider() {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	w.provider = nil
+}
+
 func (w *accountWire) forgetAttempt(attempt string) {
 	w.mu.Lock()
 	defer w.mu.Unlock()

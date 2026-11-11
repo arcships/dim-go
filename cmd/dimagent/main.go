@@ -77,6 +77,7 @@ func usage() {
   -server-arg <参数>  追加给服务端的参数，可重复
   -mock               用 mock 模型启动服务端（验收用）
   -model-config <文件> 显式模型配置（configured profile；管理面方法只在非 mock 实例上可用）
+  -defaults <文件>    默认插件/运行时预设（--defaults）；缺失时按能力缺失处理
   -session <标识>     打开已有会话；省略时取目录里的第一条
   -create             目录为空时新建一个会话
   -cwd <目录>         新建会话的工作目录；缺省取当前目录
@@ -139,6 +140,7 @@ func runSelfCheck(args []string) int {
 	short := flags.Bool("short", false, "只打印汇总")
 	mockModel := flags.Bool("mock", false, "用 mock 模型启动服务端")
 	modelConfig := flags.String("model-config", "", "显式模型配置路径")
+	defaults := flags.String("defaults", "", "默认插件/运行时预设路径")
 	logPath := flags.String("log", "", "进程级诊断写到该文件")
 	if err := flags.Parse(args); err != nil {
 		return exitUsage
@@ -170,6 +172,7 @@ func runSelfCheck(args []string) int {
 		ServerArgs:       serverArgs,
 		MockModel:        *mockModel,
 		ModelConfig:      *modelConfig,
+		ServerDefaults:   *defaults,
 		ClientName:       "dimagent-mygo-selfcheck",
 		InitialSessionID: *sessionID,
 		Version:          defaultVersion,

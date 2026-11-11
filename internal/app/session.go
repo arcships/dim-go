@@ -39,6 +39,9 @@ type SessionView struct {
 	// Current 是队列里的第一条待决项；HasCurrent 为假表示没有待决。
 	Current    interaction.Item
 	HasCurrent bool
+	// Compaction 是最近一次上下文压缩的摘要；Compactions 是压缩次数。
+	Compaction  *projection.Compaction
+	Compactions int64
 }
 
 // OpenSession 打开一个会话：建立唯一订阅、折叠首屏历史、创建交互裁决。
@@ -168,6 +171,8 @@ func (a *App) loadFirstHistory(ctx context.Context, runtime *sessionRuntime) {
 	a.seedPending(ctx, runtime)
 	// 权限档位来自服务端策略；读不到只记诊断，不补默认档位。
 	a.refreshPermission(ctx, runtime)
+	// 上下文占用只能按需读取（协议 v3 不推 context/budget）；缺方法时零请求。
+	a.readContextUsageQuiet(ctx, runtime)
 }
 
 // firstCatalogSession 读目录第一页，返回第一条会话标识；读不到时返回错误与空标识。
@@ -433,6 +438,8 @@ func (a *App) viewOf(runtime *sessionRuntime) SessionView {
 		PendingCounts: counts,
 		Current:       current,
 		HasCurrent:    hasCurrent,
+		Compaction:    view.Compaction,
+		Compactions:   view.Compactions,
 	}
 }
 
@@ -482,4 +489,14 @@ func (a *App) openRuntime(sessionID, method string) (*sessionRuntime, error) {
 func (a *App) controlSupports(method string) bool {
 	conn := a.connection()
 	return conn != nil && conn.HasFeature(method)
+}
+
+// readContextUsageQuiet 在打开会话后尽力读一次上下文占用；失败只记诊断。
+func (a *App) readContextUsageQuiet(ctx context.Context, runtime *sessionRuntime) {
+	if !a.sessionSupportsMethod(ctx, runtime, methodContextUsage) {
+		return
+	}
+	if _, err := a.ReadContextUsage(ctx, runtime.id); err != nil {
+		a.record("读取上下文占用失败: %v", err)
+	}
 }

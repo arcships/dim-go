@@ -382,6 +382,64 @@ func (s *appSender) sendManagement(
 			return write.Reply{}, capabilityMissing(method)
 		}
 		return callAndReply(ctx, client, method, params)
+	case head.Op == "session.collaboration.cancel":
+		// 成员停止是会话方法：参数带成员会话标识，回执 status=cancelled|idle。
+		params, err := objectParams(req)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		delete(params, "op")
+		sessionID, _ := params["sessionId"].(string)
+		if sessionID == "" {
+			sessionID = req.SessionID
+		}
+		params["sessionId"] = sessionID
+		memberID, _ := params["memberSessionId"].(string)
+		if memberID == "" {
+			return write.Reply{}, fmt.Errorf("%w: 缺少成员会话标识", write.ErrInvalidIntent)
+		}
+		if branch, _ := params["branchId"].(string); branch == "" {
+			params["branchId"] = branchOrMain(req.BranchID)
+		}
+		runtime, err := s.sessionRuntime(sessionID, methodCollaborationCancel)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		if !s.app.sessionSupportsMethod(ctx, runtime, methodCollaborationCancel) {
+			return write.Reply{}, capabilityMissing(methodCollaborationCancel)
+		}
+		raw, err := runtime.lease.Subscription().Call(ctx, methodCollaborationCancel, params)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
+	case head.Op == "session.context.compact":
+		// 手动压缩是会话方法：参数只带会话与分支，结果以时间线事实为准。
+		params, err := objectParams(req)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		delete(params, "op")
+		sessionID, _ := params["sessionId"].(string)
+		if sessionID == "" {
+			sessionID = req.SessionID
+		}
+		params["sessionId"] = sessionID
+		if branch, _ := params["branchId"].(string); branch == "" {
+			params["branchId"] = branchOrMain(req.BranchID)
+		}
+		runtime, err := s.sessionRuntime(sessionID, methodContextCompact)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		if !s.app.sessionSupportsMethod(ctx, runtime, methodContextCompact) {
+			return write.Reply{}, capabilityMissing(methodContextCompact)
+		}
+		raw, err := runtime.lease.Subscription().Call(ctx, methodContextCompact, params)
+		if err != nil {
+			return write.Reply{}, err
+		}
+		return write.Reply{Result: raw}, nil
 	case head.Op == "session.agent.update":
 		// 会话 agent 更新走会话流；expectedAgentId 是本领域前置条件，不能下发
 		// （真实服务端拒绝未知字段）。
@@ -412,8 +470,17 @@ func (s *appSender) sendManagement(
 		}
 		return write.Reply{Result: raw}, nil
 	case head.Op == "runtime.install":
-		// runtime.* 在 alpha.21 不注册：按能力缺失处理，不发请求、不发明方法。
-		return write.Reply{}, runtimeCapabilityMissing()
+		var payload struct {
+			Name string `json:"name"`
+		}
+		if err := json.Unmarshal(req.Params, &payload); err != nil {
+			return write.Reply{}, fmt.Errorf("%w: 组件安装参数无法解析: %v", write.ErrInvalidIntent, err)
+		}
+		// 只有带默认预设的实例才声明 runtime.*；缺声明零请求。
+		if !s.app.controlSupports(methodRuntimeInstall) {
+			return write.Reply{}, runtimeCapabilityMissing()
+		}
+		return callAndReply(ctx, client, methodRuntimeInstall, map[string]any{"name": payload.Name})
 	default:
 		return write.Reply{}, fmt.Errorf("%w: 未支持的管理写入 %q", write.ErrInvalidIntent, head.Op)
 	}
@@ -559,23 +626,53 @@ func (s *appSender) sendExtensionWrite(
 			Document:         document,
 		})
 	case "mcp.import.apply":
+		// 真实形状：{cwd?, source, from?/document?, expectedVersion,
+		// expectedSourceRevision?, resolutions[{id,action,newId?}]}。
 		var payload struct {
-			ImportSource string   `json:"importSource"`
-			Source       string   `json:"source"`
-			CandidateKey string   `json:"candidateKey"`
-			IDs          []string `json:"ids"`
+			Cwd                    string `json:"cwd"`
+			Source                 string `json:"source"`
+			From                   string `json:"from"`
+			Document               string `json:"document"`
+			ExpectedVersion        string `json:"expectedVersion"`
+			ExpectedSourceRevision string `json:"expectedSourceRevision"`
+			Resolutions            []struct {
+				ID     string `json:"id"`
+				Action string `json:"action"`
+				NewID  string `json:"newId"`
+			} `json:"resolutions"`
 		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		ids := append([]string(nil), payload.IDs...)
-		if len(ids) == 0 && payload.CandidateKey != "" {
-			ids = []string{payload.CandidateKey}
+		if !s.app.controlSupports(methodMCPImportApply) {
+			return write.Reply{}, capabilityMissing(methodMCPImportApply)
 		}
-		return callAndReply(ctx, client, methodMCPImportApply, protocol.MCPImportApplyParams{
-			Source: firstNonEmpty(payload.ImportSource, payload.Source),
-			IDs:    ids,
-		})
+		params := map[string]any{
+			"source":          payload.Source,
+			"expectedVersion": payload.ExpectedVersion,
+		}
+		if payload.Cwd != "" {
+			params["cwd"] = payload.Cwd
+		}
+		if payload.From != "" {
+			params["from"] = payload.From
+		}
+		if payload.Document != "" {
+			params["document"] = payload.Document
+		}
+		if payload.ExpectedSourceRevision != "" {
+			params["expectedSourceRevision"] = payload.ExpectedSourceRevision
+		}
+		resolutions := make([]map[string]any, 0, len(payload.Resolutions))
+		for _, resolution := range payload.Resolutions {
+			item := map[string]any{"id": resolution.ID, "action": resolution.Action}
+			if resolution.NewID != "" {
+				item["newId"] = resolution.NewID
+			}
+			resolutions = append(resolutions, item)
+		}
+		params["resolutions"] = resolutions
+		return callAndReply(ctx, client, methodMCPImportApply, params)
 	case "mcp.save", "tool_server.add", "tool_server.update":
 		var payload struct {
 			ServerID     string                    `json:"serverId"`
@@ -883,6 +980,11 @@ func (s *appSender) sendAccountAction(
 	raw, err := client.Call(ctx, "account."+op, payload)
 	if err != nil {
 		return write.Reply{}, err
+	}
+	if op == "logout" {
+		// 登出成功后清 provider 绑定缓存：下次登录重新读 account.providers，
+		// 不复用登出前的解析结果（凭据本身由服务端清理）。
+		s.app.accountWire.forgetProvider()
 	}
 	return write.Reply{Result: raw}, nil
 }

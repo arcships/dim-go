@@ -62,7 +62,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：52 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：59 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -191,7 +191,7 @@ provider、协作策略、agent 与新增扩展写入都先过 hello 能力（�
 | `skills.install`（旧 `skill.install`） | `skills.install` | `source{path|git,ref?}` + `skills:[]` |
 | `skills.set_enabled`（旧 `skill.set_enabled`） | `skills.set_enabled` | `{id, enabled}` |
 | `hooks.save`（旧 `hook.write`） | `hooks.save` | `{expectedRevision, document:{hooks:[…]}}`；`expectedRevision` 为空时先读 `hooks.catalog` 的 `userRevision` 补齐 |
-| `mcp.import.apply` | `mcp.import.apply` | `{source, ids:[候选键]}`（一次一条，按勾选逐条写） |
+| `mcp.import.apply` | `mcp.import.apply` | `{cwd?, source, from?/document?, expectedVersion, expectedSourceRevision?, resolutions[{id,action,newId?}]}`；`mcp_settings_conflict` 由扩展领域归为 `ErrImportConflict` |
 | `mcp.save` / `tool_server.add` / `tool_server.update` | `mcp.save` | `{id, source, expectedVersion, configuration}`；配置文档优先用载荷里的 `configuration`，否则按 transport/command/args/url/env 写最小文档 |
 | `mcp.set_enabled` | `mcp.set_enabled` | `{id, source, expectedVersion, enabled}` |
 | `mcp.remove` / `tool_server.remove` | `mcp.remove` | `{id, source:"user", expectedVersion}`；版本为空时读 `mcp.catalog` 的 `userRevision` 补齐 |
@@ -211,6 +211,8 @@ provider、协作策略、agent 与新增扩展写入都先过 hello 能力（�
 | `provider.preferences.update` | `provider.preferences.update` | `providerId`、`expectedVersion`、`modelId`、`patch` |
 | `collaboration.set_model_policy` | 同名 | `{expectedRevision, policy:{mode, model?}}` |
 | `session.agent.update` | `session.agent.update`（**会话流**） | `{sessionId, branchId, agentId}`；**`expectedAgentId` 是本领域前置条件，不下发**（服务端拒绝未知字段） |
+| `session.context.compact` | `session.context.compact`（**会话流**） | `{sessionId, branchId}`；回执 `{sequence,status}` 原样交回；压缩结果以时间线 `context/compaction` 为准 |
+| `session.collaboration.cancel` | `session.collaboration.cancel`（**会话流**） | `{sessionId, branchId?, memberSessionId}`；回执 `{status:"cancelled"\|"idle"}`，`idle` 视为已停 |
 
 ### 4.3 `write.Inspector`：核对读取
 
@@ -243,6 +245,8 @@ provider、协作策略、agent 与新增扩展写入都先过 hello 能力（�
 | `settings.AgentAdmin` | `agent.list`（内建，不按 hello 预判）、`session.agent.get`（会话流）；`SupportsSessionAgentGet/Update` 按 hello → 会话方法表 | 真实 daemon：清单 1 条、方法可用 |
 | `account.ProviderSource` / `DeviceAuthorizationSource` | `account.providers`；`account.login.begin` / `account.login.status`（设备码） | 真实 daemon：browser/device 发起、轮询与取消（见证据 K） |
 | `interaction.RuleSource` | `permission.rules`（`{revision,commandRules[]}`）、`permission.set_rules`（`{expectedRevision,commandRules}`） | 真实 daemon：读取、原样写回推进 revision、旧 revision 冲突（见证据 M）；假服务端覆盖缺能力零请求 |
+| 上下文占用 | `session.context.usage`（会话流）→ `projection.ContextReading`（窗口/输出预留/阈值/估算输入/基线/through） | 真实 daemon：窗口 258000、输出预留 128000、阈值 114000、估算输入实测（见证据 O）；协议 v3 不推 `context/budget` |
+| 运行组件 | `runtime.list` / `runtime.install`；hello 未声明 `runtime.*` 时能力缺失零请求 | 真实 daemon（带 `--defaults` 预设）：node/python/uv 状态 `off`（见证据 P） |
 
 ### 4.5 会话流通知 → 领域
 
@@ -349,6 +353,16 @@ dimagent update switch     # 检查 + 下载 + 切换；会话未收尾时明确
 
 `switch` 与 `download` 在同一进程内完成状态机（检查 → 待下载 → 待切换），因为更新状态只在内存，不落盘。
 
+### 4.13 上下文、成员与默认预设
+
+| 项 | 口径 |
+|---|---|
+| 上下文占用 | `App.ReadContextUsage(ctx, session)` 走 `session.context.usage`，映射成 `projection.ContextReading` 并缓存在会话内（内存）；打开会话后尽力读一次，缺方法零请求 |
+| 手动压缩 | `App.CompactContext(ctx, session)` 登记一次 `KindManagementWrite`，发送方转到 `session.context.compact`；结果以 `context/compaction` 事实与投影的 `Compaction` 为准 |
+| 成员停止 | `App.CollaborationMembers` 从 `session.collaboration.pending` 的 `delivery.session_id` 与历史 `collaboration/delivered` 收集成员会话；`App.StopTeamMember` 登记一次写，发送方转到 `session.collaboration.cancel`；`idle` 视为已停 |
+| 默认预设 | `Config.ServerDefaults` 追加 `--defaults <文件>`；文件缺失记诊断并按能力缺失处理（不传参数、不崩）。带预设的实例才在 hello 声明 `runtime.*` |
+| 门禁 | 上下文/成员/运行组件都按 hello-first；缺方法零请求 |
+
 ## 5. 启动与退出（接线点）
 
 ### 5.1 启动：五阶段执行体 → 宿主六阶段
@@ -422,7 +436,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 52 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 59 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -465,6 +479,13 @@ go test -race ./internal/app/
 | provider 清单/详情/探测、协作策略、agent 清单与会话 agent 的读取映射 | `TestProviderAdminReads` |
 | provider 管理/协作策略/会话 agent 写入：参数映射、`op` 不下发、`expectedAgentId` 不下发 | `TestProviderAndAgentWritesUseRealMethods` |
 | provider 写入缺能力：零请求且明确失败 | `TestProviderWritesMissingCapability` |
+| 上下文占用读取映射、缓存与缺能力零请求 | `TestContextUsageReadMapsReading` |
+| 手动压缩走写登记与会话流、缺能力零请求 | `TestCompactContextMapsWrite` |
+| 成员标识来源（pending + delivered）与停止映射、`idle` 视为已停 | `TestCollaborationMembersAndStop` |
+| 带默认预设时 `runtime.list` 读取与 `runtime.install` 映射 | `TestRuntimeListReadsWhenDeclared` |
+| 账号邮箱透传（browser/device）与设备码取消 | `TestAccountEmailAndDeviceCancel` |
+| 登出成功后清 provider 解析缓存 | `TestLogoutClearsProviderBinding` |
+| MCP 导入新形状（resolutions/expectedVersion）与冲突映射 | `TestMCPImportApplyMapsResolutions` |
 | 应用更新：检查到新版、已是最新 | `TestUpdaterCheckFindsNewVersion`、`TestUpdaterUpToDate` |
 | 应用更新：下载摘要不一致留在待下载 | `TestUpdaterDownloadChecksumFailure` |
 | 应用更新：有会话时切换推迟、产物不替换 | `TestUpdaterSwitchDeferredWithOpenSession` |
@@ -735,6 +756,38 @@ exit=0
 
 真实渠道 `https://dimcode.echooai.com` **没有请求**（离线环境），见 9。检查成功、下载校验、切换与版本变化由本地 HTTP 版本源在测试里覆盖（证据见 7.2）。
 
+**证据 O：上下文占用与手动压缩（alpha.21 夹具，真实模型）**
+
+`DIMAGENT_COMPACTION_EVIDENCE=1` 时运行 `TestRealCompactionEvidence`：用 gpt-5.6-terra（258k 窗口 / 128k 输出）建会话，连续 4 轮大输出把上下文推过保留目标，再手动压缩。证据只留数字与状态。
+
+```text
+占用读数: 窗口=258000 输出预留=128000 阈值=114000 估算输入=3062 基线=full_estimate
+第 1 轮后: 估算输入=15044 阈值=114000
+第 2 轮后: 估算输入=21205 阈值=114000
+第 3 轮后: 估算输入=27385 阈值=114000
+第 4 轮后: 估算输入=33543 阈值=114000
+压缩回执: err=<nil> status=completed sequence=117
+折叠结果: counters=1 status=completed strategy=summary summaryLength=995
+压缩后占用: 估算输入=8656（压缩前 33543）
+```
+
+- `session.context.usage` 给出与 `context/budget` 等价的读数；协议 v3 的视图里没有 `Context`（事实不下发）。
+- 手动压缩回执 `completed`，`context/compaction` 折叠成摘要（只记录摘要长度，不打印正文）。
+- 压缩后估算输入从 33543 降到 8656。
+
+**证据 P：默认预设（`--defaults`，alpha.21）**
+
+`DIMAGENT_DEFAULTS_EVIDENCE=1` 时运行 `TestRealRuntimeDefaultsEvidence`：把 `dim-2/runtime` 预设复制到 /tmp 后启动。
+
+```text
+hello.runtime: [runtime.configure runtime.install runtime.list runtime.watch]
+plugin.list: count=78 runtimeManager=true
+runtime.list: count=3 [node=off python=off uv=off]
+```
+
+- 带预设的实例在 hello 里声明 `runtime.*`；不带预设时这些方法不注册（按能力缺失零请求）。
+- `plugin.list` 出现 `RuntimeManager`；`runtime.list` 给出 node/python/uv 三个组件的 `off` 状态。
+
 ### 7.4 自检子命令
 
 ```bash
@@ -821,6 +874,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 真实设备码/浏览器登录完成 | blocked | 需要真人在授权页完成；本包只验证发起、轮询与取消 |
 | 真实 `permission.set_rules`（长期允许） | 未验证 | 只有假服务端证据；需要一次真实工具审批（本机模型不产生） |
 | 重连后自动重开会话 | 未验证 | 需要 U1/D10 决定重开策略；本包只提供 `Reconnect` 与 `OpenSession` |
+| 真实成员运行被停止 | blocked | 需要模型发起协作请求产生成员运行时；方法、参数与 `idle` 已真实验证，端到端未触发 |
 | 真实更新渠道 | blocked（离线环境） | `https://dimcode.echooai.com` 未请求；真实渠道提供的是 macOS `.app`/安装器，本版只实现单文件替换 |
 | 真实安装包上的切换与重启 | blocked | 需要真实单文件产物；测试用假文件模拟替换与版本变化 |
 
@@ -850,18 +904,22 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 22. **agent 清单不按 hello 预判**：`agent.list` 是内建方法，真实 hello 不声明；直接调用，缺失时按 `unknown_method` 归为能力缺失。
 23. **账号 provider 解析按实例缓存**：`account.providers` 解析一次；登录方式只取服务端声明，未声明的方法不会本地推断。
 24. **设备码状态未知即拒绝**：只映射 pending/completed/failed/expired/canceled（含常见别名），其他取值按事实不合法报错，不改写成 pending。
-25. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
-26. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
-27. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
-28. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
-29. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
-30. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
-31. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-32. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-33. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-34. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-35. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-36. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+25. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
+26. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
+27. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
+28. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
+29. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
+30. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
+31. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
+32. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
+33. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
+34. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
+35. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+36. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+37. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+38. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+39. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+40. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -873,6 +931,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | 上下文占用（`session.context.usage`）与手动压缩（`session.context.compact`）、成员停止（`session.collaboration.cancel`）、默认预设（`--defaults` + `runtime.list` 门禁）；账号邮箱透传/设备码取消/provider 绑定清理；MCP 导入新形状 | 投影与扩展领域查明真实形状；账号与 MCP 导入补齐 | 
 | 2026-11-11 | 接上应用更新：装配 `host.Updater`（当前版本、渠道源、单文件目标、会话空闲探针、退出五阶段、重启、诊断），`dimagent update check/download/switch` 子命令 | 更新收尾；真实渠道离线未请求 | 
 | 2026-11-11 | 接上命令规则来源 `interaction.RuleSource`：`permission.rules` 读取、`permission.set_rules` 带版本写入、冲突透传不重试 | 交互领域新增命令规则面 | 
 | 2026-11-11 | 新增扩展写入（项目钩子启停、技能刷新/重载、MCP 认证四步）与设置适配器（provider 清单/详情/探测、协作策略、agent 档案），账号按 provider 分发（browser/device 来源） | 扩展与设置领域新增接口；账号领域改为按 provider 分发 | 

@@ -221,6 +221,12 @@ func (r *settingsStorageReader) ReadStorage(ctx context.Context) (settings.Stora
 	}, nil
 }
 
+// 运行组件面的真实方法（带默认预设的实例才注册）。
+const (
+	methodRuntimeList    = "runtime.list"
+	methodRuntimeInstall = "runtime.install"
+)
+
 // settingsRuntimeReader 读取运行组件清单。
 //
 // alpha.21 不再注册 runtime.*（D1 实测全部 unknown_method）：按能力缺失处理，
@@ -230,14 +236,51 @@ type settingsRuntimeReader struct {
 }
 
 func (r *settingsRuntimeReader) ReadRuntimes(ctx context.Context) ([]settings.RuntimeEntry, error) {
-	return nil, runtimeCapabilityMissing()
+	// 门禁先看 hello：不带默认预设的实例不注册 runtime.*，带预设的实例会声明。
+	if !r.app.controlSupports(methodRuntimeList) {
+		return nil, runtimeCapabilityMissing()
+	}
+	client, err := r.app.requireControl("读取运行组件清单")
+	if err != nil {
+		return nil, err
+	}
+	var reply []struct {
+		Name    string `json:"name"`
+		Source  string `json:"source"`
+		Auto    *bool  `json:"auto"`
+		Version string `json:"version"`
+		Path    string `json:"path"`
+		Status  string `json:"status"`
+		Reason  string `json:"reason"`
+	}
+	if err := client.CallInto(ctx, methodRuntimeList, nil, &reply); err != nil {
+		return nil, err
+	}
+	entries := make([]settings.RuntimeEntry, 0, len(reply))
+	for _, item := range reply {
+		source := settings.RuntimeSource(item.Source)
+		status := settings.RuntimeStatus(item.Status)
+		entry := settings.RuntimeEntry{
+			Name:    item.Name,
+			Source:  source,
+			Version: item.Version,
+			Path:    item.Path,
+			Status:  status,
+			Reason:  item.Reason,
+		}
+		if item.Auto != nil {
+			entry.Auto = *item.Auto
+		}
+		entries = append(entries, entry)
+	}
+	return entries, nil
 }
 
-// runtimeCapabilityMissing 是运行组件面在 alpha.21 的能力缺失错误。
+// runtimeCapabilityMissing 是运行组件面缺失时的错误（例如未带默认预设）。
 func runtimeCapabilityMissing() error {
 	return &settings.CapabilityError{
 		Capability: settings.FeatureRuntimeList,
-		Reason:     "服务端未注册 runtime.*（alpha.21 实测 unknown_method）",
+		Reason:     "服务端未声明 runtime.*（未带默认预设或该版本不注册）",
 	}
 }
 
