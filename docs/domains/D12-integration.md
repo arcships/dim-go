@@ -62,7 +62,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：63 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：64 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -376,6 +376,15 @@ dimagent update switch     # 检查 + 下载 + 切换；会话未收尾时明确
 | 默认预设 | `Config.ServerDefaults` 追加 `--defaults <文件>`；文件缺失记诊断并按能力缺失处理（不传参数、不崩）。带预设的实例才在 hello 声明 `runtime.*` |
 | 门禁 | 上下文/成员/运行组件都按 hello-first；缺方法零请求 |
 
+### 4.15 新建会话的权限档位
+
+| 项 | 口径 |
+|---|---|
+| 入口 | `App.CreateSession(ctx, cwd, preset)` → `catalog.Create`，参数 `permissionPolicy:{preset}`；`preset` 为空表示按服务端默认，**不猜** |
+| 为什么必须显式 | 默认策略下工具调用（含 `exec`/`agent`）会等待审批；没有人应答时工具停在 `step/tool-call` 之后，轮次不会结束。自检与自动化路径必须显式给 `full-access` |
+| selfcheck | `-permission-preset <档位>`（默认 `full-access`；显式传空表示按服务端默认） |
+| 正常创建路径 | 调用方给出用户当前选择的档位；集成层不补默认，也不在本地记录 |
+
 ## 5. 启动与退出（接线点）
 
 ### 5.1 启动：五阶段执行体 → 宿主六阶段
@@ -449,7 +458,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 63 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 64 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -499,11 +508,13 @@ go test -race ./internal/app/
 | 账号邮箱透传（browser/device）与设备码取消 | `TestAccountEmailAndDeviceCancel` |
 | 登出成功后清 provider 解析缓存 | `TestLogoutClearsProviderBinding` |
 | MCP 导入新形状（resolutions/expectedVersion）与冲突映射 | `TestMCPImportApplyMapsResolutions` |
+| 新建会话显式带权限档位；空档位不带字段 | `TestCreateSessionPassesPermissionPreset` |
 | 界面注册成功保存 uiId/generation、关闭清理、ui.status 映射 | `TestUIAttachCloseAndStatus` |
 | `ui.shutdown` 只记录为建议性关闭、不自动 ui.close | `TestUIShutdownIsAdvisory` |
 | 失败码 `ui_in_use`/`session_not_attached` 分类与 detach/reattach 注册跟随 | `TestUIErrorCodesAndReattach` |
 | 界面注册缺能力零请求 | `TestUIAttachMissingCapability` |
 | 断线恢复、共享订阅、未知核对（真实 daemon，环境变量开启） | `TestRealResilienceEvidence` |
+| 成员停止真实端到端：显式 full-access 创建 → 成员创建 → 停止 `cancelled`（环境变量开启） | `TestRealCollaborationMemberStopEvidence` |
 | 应用更新：检查到新版、已是最新 | `TestUpdaterCheckFindsNewVersion`、`TestUpdaterUpToDate` |
 | 应用更新：下载摘要不一致留在待下载 | `TestUpdaterDownloadChecksumFailure` |
 | 应用更新：有会话时切换推迟、产物不替换 | `TestUpdaterSwitchDeferredWithOpenSession` |
@@ -870,36 +881,45 @@ ui.status: instances=0 webConnections=0
 - 普通路径注册成功，拿到 `uiId` 与 `generation=1`；关闭后本地注册清理，`ui.status` 里没有残留界面。
 - 证据只留标识、代数与状态；不打印界面地址、token 或会话正文。
 
-**证据 T：成员停止的真实尝试（未触发，blocked）**
+**证据 T：成员停止的真实端到端（根因已定位，已跑通）**
+
+第一次尝试失败的现象与断点：
+
+```text
+leader 事实类型: [... step/model-start=1 step/tool-call=1 step/tool-use=1 step/tool-use-start=1 turn/start=1]
+leader 工具调用: [agent=1]
+pending 协作请求数=0
+daemon.log 最后一行: model.invoke{...} outcome="returned"
+daemon.ping: sessions=1 connections=1（没有成员会话）
+```
+
+断点：`step/tool-call`（序号 41）之后没有 `tool-completed`/`tool-result`，也没有 `collaboration/*`，`turn/start` 没有 `turn/end`；daemon 线程全部空闲。同一现象在 `exec` 工具上也能复现——不是 `agent` 工具特有问题。
+
+根因：**新建会话没有显式请求权限档位**。夹具 `config.json` 里的 `permission=full-access` 不等于会话策略；`session.create` 不带 `permissionPolicy` 时服务端用默认策略，工具调用转去等待审批（审批是通知，不进入历史事实），没有人应答就一直等。对照实验：同一夹具、同一提示词，`SetPermissionTier(..., "full-access")` 后成员立即创建。
+
+修复后（本版 `CreateSession` 显式带 `--permission-preset full-access`）的完整证据：
 
 ```bash
+D=$(mktemp -d /tmp/d12collab-XXXXXX)
 DIMAGENT_COLLAB_EVIDENCE=1 DIMAGENT_ACCOUNT_FIXTURE=/private/tmp/dimagent-real-model/home \
   DIMAGENT_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
-  go test ./internal/app -run TestRealCollaborationMemberStopEvidence -count=1 -v -timeout 15m
+  go test ./internal/app -run TestRealCollaborationMemberStopEvidence -count=1 -v
 ```
-
-尝试的提示词（只到达 leader，不为成员执行）：
 
 ```text
-Use the `agent` tool exactly once with action=request.
-profile: {"name":"runner","description":"runs one short command",
-"systemPrompt":"Run the exec tool exactly once to run: sleep 30. Then reply DONE.",
-"tools":["exec"]}
-prompt: "Run the exec tool exactly once to run: sleep 30. Then reply DONE."
-After the tool returns, reply STARTED and stop.
+leader session: a313a10d-...
+成员会话: [4a56b86c-ff9f-4c31-8972-3159a94fb02b]
+停止回执: intent=succeeded status=cancelled stopped=true err=<nil> 耗时=3ms
+成员停止后新增事实: turn/end=+1 input/applied=+1 step/model-output-end=+1
+成员停止后事实增量: 3
+主线事实类型数: 19
 ```
 
-观察（只留标识、状态与事件类型）：
+- 成员创建成功并出现在 `session.collaboration.pending` 的 delivery 里。
+- `session.collaboration.cancel` 回执 `cancelled`，`idle` 也算已停；停止后成员只留下收尾事实（`turn/end` 等），不再产生新轮次。
+- 主线会话仍可读、写闸门正常。
 
-```text
-leader session: ca56c7d8-...
-leader 事实类型: [branch/start=1 context/configured=1 input/applied=8 input/consumed=8 input/message=8 model/usage=1 step/model-output-end=1 step/model-start=1 step/thinking=1 step/tool-call=1 step/tool-use=1 step/tool-use-start=1 turn/start=1]
-leader 工具调用: [agent=1]
-pending 协作请求数=0 through=39
-未触发成员：提示词已提交但 pending 里没有 delivery.session_id；按 blocked 记录
-```
-
-结论：`agent` 工具已挂载且模型确实调用了一次（`step/tool-call agent=1`），但服务端没有产生 `collaboration/request` / `delivered` 事实，`session.collaboration.pending` 也没有请求，leader 轮次一直未结束——所以拿不到成员会话标识，无法执行真实 `session.collaboration.cancel`。按 blocked 记录，不伪造停止结果。停止映射、`idle` 视为已停、缺能力零请求由假服务端与连接侧真实验证覆盖。
+结论：#1405 不应写成“服务端未创建成员”。真实断点是客户端新建会话未显式请求权限档位，默认策略下工具调用等待审批；显式 full-access 后成员创建与停止都正常。服务端“审批无超时”可以作为独立议题讨论，但不是成员丢失。
 
 ### 7.4 自检子命令
 
@@ -988,7 +1008,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 真实 `permission.set_rules`（长期允许） | 未验证 | 只有假服务端证据；需要一次真实工具审批（本机模型不产生） |
 | 重连后自动重开会话 | 未验证 | 需要 U1/D10 决定重开策略；本包只提供 `Reconnect` 与 `OpenSession` |
 | 真实 UI 叶子路径（`ui.open` + rutis 会话） | blocked | 需要 rutis 客户端实现；本版只做普通连接注册（`ui.attach`） |
-| 真实成员运行被停止 | blocked（已尝试，未产生成员） | 真实模型确实调用了 `agent` 工具（`step/tool-call agent=1`），但 5 分钟内既没有 `collaboration/*` 事实，也没有 `session.collaboration.pending` 请求，leader 轮次未结束；详见证据 T。停止映射与 `idle` 语义由假服务端/连接证据覆盖 |
+| 真实成员运行被停止 | 已真实跑通 | 显式 full-access 创建会话后成员正常创建，`session.collaboration.cancel` 回 `cancelled`，成员停止后只剩收尾事实；见证据 T |
 | 真实更新渠道 | blocked（离线环境） | `https://dimcode.echooai.com` 未请求；真实渠道提供的是 macOS `.app`/安装器，本版只实现单文件替换 |
 | 真实安装包上的切换与重启 | blocked | 需要真实单文件产物；测试用假文件模拟替换与版本变化 |
 
@@ -1018,27 +1038,28 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 22. **agent 清单不按 hello 预判**：`agent.list` 是内建方法，真实 hello 不声明；直接调用，缺失时按 `unknown_method` 归为能力缺失。
 23. **账号 provider 解析按实例缓存**：`account.providers` 解析一次；登录方式只取服务端声明，未声明的方法不会本地推断。
 24. **设备码状态未知即拒绝**：只映射 pending/completed/failed/expired/canceled（含常见别名），其他取值按事实不合法报错，不改写成 pending。
-25. **成员停止的真实端到端未触发**：模型确实调用了 `agent` 工具，但 5 分钟内服务端没有产生协作请求/投递事实，轮次未结束；真实停止需要服务端能完成成员创建。集成层的停止映射只由假服务端与连接侧证据覆盖。
-26. **`ui.*` 只做普通连接注册**：`ui.open` 的叶子路径需要 rutis 会话，不在 Go 侧实现；`ui.attach` 失败按稳定 appError 分类。
-27. **`ui.shutdown` 是 advisory**：只记录并标状态，是否关窗由宿主决定；重连后的重新注册只在本地注册存在且未被建议关闭时进行。
-28. **断线恢复以行标识判重**：模型可能在断线期间继续产生事实，事实总数会变；是否重复只看行/事实标识，不看总数。
-29. **共享订阅的连接数观察依赖 `daemon.ping`**：它只给连接与会话计数，看不到持有者数量；持有者语义由 `session.Manager` 的租约保证。
-30. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
-31. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
-32. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
-33. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
-34. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
-35. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
-36. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
-37. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
-38. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
-39. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
-40. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-41. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-42. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-43. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-44. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-45. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+25. **默认权限策略会等审批**：`session.create` 不带 `permissionPolicy` 时服务端用默认策略，工具调用会停在 `step/tool-call` 之后等待审批，轮次不结束；自检与自动化必须显式给 `full-access`，正常路径传用户选择的档位。
+26. **成员停止的真实端到端已跑通**：显式 full-access 下成员创建、`session.collaboration.cancel` 的 `cancelled` 与停止后事实收敛均已验证；`idle` 视为已停。
+27. **`ui.*` 只做普通连接注册**：`ui.open` 的叶子路径需要 rutis 会话，不在 Go 侧实现；`ui.attach` 失败按稳定 appError 分类。
+28. **`ui.shutdown` 是 advisory**：只记录并标状态，是否关窗由宿主决定；重连后的重新注册只在本地注册存在且未被建议关闭时进行。
+29. **断线恢复以行标识判重**：模型可能在断线期间继续产生事实，事实总数会变；是否重复只看行/事实标识，不看总数。
+30. **共享订阅的连接数观察依赖 `daemon.ping`**：它只给连接与会话计数，看不到持有者数量；持有者语义由 `session.Manager` 的租约保证。
+31. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
+32. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
+33. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
+34. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
+35. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
+36. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
+37. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
+38. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
+39. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
+40. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
+41. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+42. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+43. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+44. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+45. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+46. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -1050,6 +1071,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | 成员停止真实端到端跑通：根因是新建会话未显式带权限档位（默认策略等审批）；`catalog.Create`/`App.CreateSession` 增加 `PermissionPreset`，selfcheck 默认 full-access；真实 `cancelled` 与成员事实收敛已验证 | 复盘结论收尾 | 
 | 2026-11-11 | 成员停止真实尝试：模型调用 `agent` 一次但未产生协作请求/投递，5 分钟轮次未结束，按 blocked 记录 | 收尾 A 组最后一条 | 
 | 2026-11-11 | 界面注册：`ui.attach`/`ui.close`/`ui.status`，建议性 `ui.shutdown`，detach/reattach 跟随与失败码分类 | 连接侧查清普通注册路径 | 
 | 2026-11-11 | A 组集成层真实证据：断线恢复、多窗口共享订阅、未知结果核对、附件真实写入、运行中停止 | 收尾真实证据 | 

@@ -1049,7 +1049,15 @@ func (s *appSender) sendSessionLifecycle(
 	case "branch.end", "catalog.branch_end", "branch_end":
 		return s.sendBranchEnd(ctx, req, payload)
 	case "create", "catalog.create":
-		raw, err := client.Call(ctx, methodSessionCreate, map[string]any{"cwd": payload.Cwd})
+		params := map[string]any{"cwd": payload.Cwd}
+		preset := payload.PermissionPreset
+		if payload.PermissionPolicy != nil && payload.PermissionPolicy.Preset != "" {
+			preset = payload.PermissionPolicy.Preset
+		}
+		if preset != "" {
+			params["permissionPolicy"] = map[string]any{"preset": preset}
+		}
+		raw, err := client.Call(ctx, methodSessionCreate, params)
 		if err != nil {
 			return write.Reply{}, err
 		}
@@ -1089,8 +1097,12 @@ func branchWireValue(branchID string) string {
 
 // lifecyclePayload 是会话生命周期意图的透明参数。
 type lifecyclePayload struct {
-	Op             string  `json:"op"`
-	Cwd            string  `json:"cwd"`
+	Op               string `json:"op"`
+	Cwd              string `json:"cwd"`
+	PermissionPreset string `json:"permissionPreset"`
+	PermissionPolicy *struct {
+		Preset string `json:"preset"`
+	} `json:"permissionPolicy"`
 	Title          *string `json:"title"`
 	ParentBranchID string  `json:"parentBranchId"`
 	At             int64   `json:"at"`

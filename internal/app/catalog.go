@@ -11,6 +11,21 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/projection"
 )
 
+// CreateSession 新建会话，并显式带上权限档位。
+//
+// 默认策略下工具调用可能需要审批；自检与自动化路径应显式给档位（例如
+// full-access），否则工具调用会停在等待审批。空档位表示按服务端默认，不猜。
+func (a *App) CreateSession(ctx context.Context, cwd, permissionPreset string) (catalog.Entry, error) {
+	domain := a.Catalog()
+	if domain == nil {
+		return catalog.Entry{}, ErrNotConnected
+	}
+	return domain.Create(ctx, catalog.CreateRequest{
+		Cwd:              cwd,
+		PermissionPreset: permissionPreset,
+	})
+}
+
 // catalogReader 是目录领域的读取方：把 session.catalog 的一页映射成目录条目。
 type catalogReader struct {
 	app *App

@@ -75,7 +75,7 @@ func TestRealCollaborationMemberStopEvidence(t *testing.T) {
 	if _, err := catalogDomain.Refresh(ctx, catalog.Query{}); err != nil {
 		t.Fatalf("读取目录: %v", err)
 	}
-	entry, err := catalogDomain.Create(ctx, catalog.CreateRequest{Cwd: runDir})
+	entry, err := base.CreateSession(ctx, runDir, "full-access")
 	if err != nil {
 		t.Fatalf("创建会话: %v", err)
 	}

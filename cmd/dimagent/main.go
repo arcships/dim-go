@@ -83,6 +83,7 @@ func usage() {
   -ui-status          读取界面清单（ui.status）
   -session <标识>     打开已有会话；省略时取目录里的第一条
   -create             目录为空时新建一个会话
+  -permission-preset <档位> 新建会话的权限档位（默认 full-access；空表示按服务端默认）
   -cwd <目录>         新建会话的工作目录；缺省取当前目录
   -lines <条数>       打印最近多少行（默认 10）
   -older <页数>       打开后向前翻多少页更早的轮次（默认 0）
@@ -129,6 +130,7 @@ func runSelfCheck(args []string) int {
 	flags.Var(&serverArgs, "server-arg", "追加给服务端的参数，可重复")
 	sessionID := flags.String("session", "", "要打开的会话；省略时取目录第一条")
 	create := flags.Bool("create", false, "目录为空时新建一个会话")
+	permissionPreset := flags.String("permission-preset", "full-access", "新建会话的权限档位")
 	cwd := flags.String("cwd", "", "新建会话的工作目录")
 	lines := flags.Int("lines", 10, "打印最近多少行")
 	older := flags.Int("older", 0, "打开后向前翻多少页")
@@ -233,6 +235,7 @@ func runSelfCheck(args []string) int {
 
 	code := runCheck(base, checkOptions{
 		cwd:        *cwd,
+		preset:     *permissionPreset,
 		create:     *create,
 		lines:      *lines,
 		older:      *older,
@@ -268,6 +271,7 @@ func runSelfCheck(args []string) int {
 type checkOptions struct {
 	cwd        string
 	create     bool
+	preset     string
 	lines      int
 	older      int
 	wait       time.Duration
@@ -297,7 +301,7 @@ func runCheck(base *app.App, options checkOptions) int {
 
 	target := base.StartupSession()
 	if target == "" {
-		id, err := firstCatalogEntry(ctx, base, options.cwd, options.create)
+		id, err := firstCatalogEntry(ctx, base, options.create, options.cwd, options.preset)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "selfcheck: %v\n", err)
 			return exitFailed
@@ -700,7 +704,7 @@ func switchPermission(ctx context.Context, base *app.App, sessionID, preset stri
 }
 
 // firstCatalogEntry 读一页目录，返回要打开的会话；需要时先新建一个。
-func firstCatalogEntry(ctx context.Context, base *app.App, cwd string, create bool) (string, error) {
+func firstCatalogEntry(ctx context.Context, base *app.App, create bool, cwd, preset string) (string, error) {
 	catalogDomain := base.Catalog()
 	if catalogDomain == nil {
 		return "", app.ErrNotConnected
@@ -716,7 +720,7 @@ func firstCatalogEntry(ctx context.Context, base *app.App, cwd string, create bo
 	if !create {
 		return "", fmt.Errorf("目录里没有会话（本次读取加入 %d 条）；用 -session 指定或加 -create 新建", result.Added)
 	}
-	entry, err := catalogDomain.Create(ctx, catalog.CreateRequest{Cwd: cwd})
+	entry, err := base.CreateSession(ctx, cwd, preset)
 	if err != nil {
 		return "", fmt.Errorf("新建会话: %w", err)
 	}

@@ -59,6 +59,9 @@ type TitleUpdate struct {
 // CreateRequest 是一次新建。Cwd 必填。
 type CreateRequest struct {
 	Cwd string
+	// PermissionPreset 是新建会话的权限档位（如 full-access）。空表示不指定，
+	// 由服务端按默认策略决定；默认策略下工具调用可能需要审批。
+	PermissionPreset string
 	// Key 是可选的幂等键。空时为这次调用生成唯一键：两次新建是两次独立意图。
 	// 调用方重试同一次新建时应显式给同一个键。
 	Key string
@@ -82,8 +85,14 @@ type DeleteRequest struct {
 
 // createPayload 是新建意图的参数。集成层把它映射成服务端的创建请求。
 type createPayload struct {
-	Op  string `json:"op"`
-	Cwd string `json:"cwd"`
+	Op               string                   `json:"op"`
+	Cwd              string                   `json:"cwd"`
+	PermissionPolicy *createPermissionPayload `json:"permissionPolicy,omitempty"`
+}
+
+// createPermissionPayload 是新建会话的权限策略；preset 为空时整段省略。
+type createPermissionPayload struct {
+	Preset string `json:"preset"`
 }
 
 // renamePayload 是改名意图的参数。会话标识由写登记的 SessionID 承载。
@@ -214,7 +223,11 @@ func (c *Catalog) Create(ctx context.Context, req CreateRequest) (Entry, error) 
 		}
 		key = keyPrefixCreate + ":" + id
 	}
-	params, err := json.Marshal(createPayload{Op: opCreate, Cwd: cwd})
+	payload := createPayload{Op: opCreate, Cwd: cwd}
+	if preset := strings.TrimSpace(req.PermissionPreset); preset != "" {
+		payload.PermissionPolicy = &createPermissionPayload{Preset: preset}
+	}
+	params, err := json.Marshal(payload)
 	if err != nil {
 		return Entry{}, fmt.Errorf("编码新建意图: %w", err)
 	}

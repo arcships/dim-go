@@ -83,7 +83,7 @@ func TestRealModalityAndShellEvidence(t *testing.T) {
 	if _, err := catalogDomain.Refresh(ctx, catalog.Query{}); err != nil {
 		t.Fatalf("读取目录: %v", err)
 	}
-	entry, err := catalogDomain.Create(ctx, catalog.CreateRequest{Cwd: workspaceRoot})
+	entry, err := base.CreateSession(ctx, workspaceRoot, "full-access")
 	if err != nil {
 		t.Fatalf("新建会话: %v", err)
 	}
