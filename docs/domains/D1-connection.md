@@ -1,6 +1,6 @@
 # D1 连接（protocol v3 wire、daemon 生命周期、会话流）
 
-Status: 第四版（第一版 + v3 wire + 管理面/权限档位 + 四项卡点调查，P1-1 候选结果包）
+Status: 第五版（第一版 + v3 wire + 管理面/权限档位 + 卡点调查 + 宿主侧调查，P1-1 候选结果包）
 Owner: D1 领域 agent
 验证: 可执行命令 + 可观察输出见第 6 节；真实 daemon 证据在 6.3–6.5，调查结论在 10
 依据: `docs/domains/R.md` 第 1 部分功能块 1、`docs/domains/A.md`（连接状态机、会话能力归属、四条总规矩）、`docs/project-organization.md` §6 F3
@@ -24,7 +24,7 @@ Owner: D1 领域 agent
 
 | 包 | 一句话职责 |
 |---|---|
-| `internal/appserver/protocol` | JSON-RPC 2.0 over NDJSON：帧编解码与上限、消息解析、请求关联与超时、通知分发、关闭语义；v3 wire 类型（审批、会话通知、未完成事项、提交核对、附件、方法清单、管理面、权限档位、shell、唤醒、计划任务、模态）只在这里出现 |
+| `internal/appserver/protocol` | JSON-RPC 2.0 over NDJSON：帧编解码与上限、消息解析、请求关联与超时、通知分发、关闭语义；v3 wire 类型（审批、会话通知、未完成事项、提交核对、附件、方法清单、管理面、权限档位、shell、唤醒、计划任务、模态、UI 宿主）只在这里出现 |
 | `internal/appserver/transport` | 本地传输入口：Unix domain socket 实现；Windows 命名管道保留接口并明确返回不支持 |
 | `internal/appserver/daemon` | 数据目录 → 端点解析、自启与归属、回收、hello 握手与版本校验、控制连接与流连接 |
 | `internal/appserver/session` | 每会话一条流、一份订阅；订阅先于 attach 与历史；持有者计数；断线按序号重读 |
@@ -170,6 +170,7 @@ Owner: D1 领域 agent
 - 唤醒：`SessionWakeupCreateParams`、`SessionWakeupCreateResult`、`SessionWakeupListParams`、`SessionWakeup`、`SessionWakeupListResult`、`SessionWakeupCancelParams`、`SessionWakeupCancelResult`、`WakeupNoticeData`
 - 运行时（仅带默认预设时存在）：`RuntimeListResult`、`RuntimeEntry`、`RuntimeInstallParams`、`RuntimeConfigureParams`、`RuntimeWatchItem`
 - 协作成员停止：`SessionCollaborationCancelParams`、`SessionCollaborationCancelResult`、`CollaborationDeliveredData`
+- UI 宿主：`UIOpenParams`、`UIOpened`、`UIAttachParams`、`UIAttached`、`UICloseParams`、`UIReplaceParams`、`UIShutdownParams`、`UIShutdownNotice`、`UIStatusResult`、`UIInstance`
 
 **不存在的方法（原样调用返回 `-32601 unknown_method`）**
 
@@ -484,6 +485,9 @@ mgmt.session.wakeup.cancel {}
 22. `workflow.*` 在 alpha.21 随包发布物里不可用（默认预设没有 Workflow 插件）；带插件的预设能让插件进入 `pending`，但离线环境无法完成 Node/Python 运行时获取，成功注册后的回执未实测（见 10.2）。
 23. `modality.realtime.*` 的方法与通知形状已冻结，但产品构建没有 realtime adapter，`available:false` 来自 adapter 维度，provider/model 配置无法解锁（见 10.3）。
 24. 成员停止只验证了方法、参数与 `team_member_not_found`；端到端停止需要模型发起协作请求，未实测（见 10.4）。
+25. `ui.*` 只冻结了协议形状与连接注册路径；UI 叶子的 rutis 会话没有 Go 实现，`ui.open` 的叶子路未在 Go 侧验证（见 11.1）。`ui.shutdown` 是 advisory；真正的关闭是 daemon 处置 `UiLeaf` 关闭会话，不是宿主进程被 kill。
+26. `UiLeave` 结构体存在但未注册、未调度；客户端不要调用 `ui.leave`（见 11.2 末尾）。
+27. 插件运行时只支持 Node/Python；没有注册 Go 运行时的公开接口，不能把普通 Go 进程伪装成 runtime（见 11.2）。
 
 ## 9. 下一步建议
 
@@ -576,7 +580,83 @@ mgmt.session.wakeup.cancel {}
    - Impact：实时语音/转录/头像功能不可用，客户端只能显示 adapter 原因。
    - Acceptance：安装/随包 adapter 后 `modality.capabilities` 的 realtime 至少一项 `available:true`，`modality.realtime.open` 返回 `connectionId` 并能收到 `modality.realtime.event`。
 
-## 11. 变更记录
+## 11. 宿主侧能力调查
+
+调查时间：2026-11-11。源码只读：`~/Code/dim`（alpha.8）、`~/Code/dim-2`（alpha.18）、`~/.dimcode-alpha`（alpha.21 安装物）；没有写回任何数据源。
+
+### 11.1 宿主协作协议（`ui.*`）
+
+**结论**：`ui.*` 是 daemon 的**界面登记表**，不是 daemon 调用宿主的业务 RPC。宿主有两条接入路：普通连接注册（一条已 attach 到会话的 protocol v3 连接调用 `ui.attach`，无 `uiId/token`），或 UI 叶子（宿主先绑定私有地址，已经 attach 的本机连接调用 `ui.open`，daemon 反向拨号并做一次 rutis 会话握手，随后宿主的 TUI 用 token 调 `ui.attach`）。日常业务仍走 protocol v3；`ui.*` 只负责“谁在展示哪个会话、能否被替换/关闭”。
+
+**规则与形状**（源码：`crates/dim-app-server/src/ui_host.rs`、`ui_leaf.rs`、`protocol.rs`；文档 `docs/design/plugins/Tui.md §3.6`）：
+
+| 方法（本机 protocol v3） | 参数 | 回执 |
+|---|---|---|
+| `ui.open` | `{sessionId, kind, peer, address, replace?, expectedGeneration?}`；调用者必须已 attach 到该会话；`kind` 为 `tui`，`peer` 是 `ui-` + 小写字母/数字/`-`，成为 `uiId`；`address` 为 `unix:<path>` 或 `tcp:<host>:<port>#<token>` | `{uiId, generation, token}`；失败只可能是链路/握手（`ui_leaf_failed`），不留注册；20 秒内未 attach 按 `ui.close` 关闭 |
+| `ui.attach` | `{sessionId, kind, uiId?, token?}`；普通界面不带后两者；叶子带 `ui.open` 回执的两者 | `{uiId, generation}`；`session_not_attached`、`ui_token`、`ui_in_use` 等错误 |
+| `ui.status` | `{}` | `{instances:[{uiId, sessionId, kind, sinceMs, generation, state}], webConnections}` |
+| `ui.close` | `{uiId, reason?}` | `{}`；移除注册并向该界面连接发 advisory `ui.shutdown`；叶子同时处置 `UiLeaf`，关闭其会话 |
+| `ui.shutdown` | `{uiId, reason?}` | `{}`；只发 advisory 通知；连接在 detach/reattach 之间时为 `ui_detached` |
+| `ui.replace` | `{uiId, sessionId, kind, generation?}` | `{uiId, generation}`；用于连接注册的替换，旧界面随后关闭 |
+
+服务端 → 宿主只有一条通知：`ui.shutdown {uiId, reason}`（advisory，不强制终止进程）；叶子的生命周期事实是 **rutis 会话结束**（没有心跳）。daemon 退出时处置 `UiHostPlugin`，等待所有 `UiLeaf` 关闭。
+
+**与 session/branch 的关系**：注册按 `sessionId` 绑定，没有 branch 字段；一个会话可有多个 viewer/连接注册，互不排斥。叶子活到其会话结束，不随调用 `ui.open` 的连接存在；该连接之后没有角色。`ui.open` 的 `replace`/`expectedGeneration` 只允许替换同一会话的旧界面；替换在新叶子 attach 后关闭旧界面，非原子、无回滚。
+
+**失败与重连**：`ui.open` 在 dial/握手失败时 `ui_leaf_failed` 且不留注册；`ui_token`/`ui_in_use`/`ui_unknown`/`session_not_attached`/`ui_generation`/`ui_detached` 是其余稳定错误码。叶子 20 秒未 attach 会被关闭；叶子进程退出或会话结束会移除注册。detach（如 `/new`、resume）不改叶子状态，重新 `ui.attach` 跟到新会话；连接注册在重连后重新 `ui.attach`（同一连接+会话幂等返回同一 `uiId`）。
+
+**一个原生 UI 宿主必须做什么**：
+
+- 选择角色。普通原生窗口建议用**连接注册**：在已 attach 的会话连接上调 `ui.attach {sessionId, kind:"gui"}`（不带 `uiId/token`），保存返回的 `uiId`；窗口关闭调 `ui.close`；收到 `ui.shutdown` 只当作“界面被关闭”的提示并自行收尾；断线重连后重新 attach。
+- 若要成为**UI 叶子**（进程/终端与会话同生命周期，可被 daemon 替换/关闭）：宿主必须自己绑定私有地址，提供 rutis 会话的 `LocalId ui-<id>`，接受一次连接并按 rutis 会话协议（0.19.3 为 session protocol 4）与 daemon 握手，会话结束后处置自己的 UI；同时保留一条 protocol v3 连接来 `ui.attach {uiId, token}`。谁发起：**宿主发起 `ui.open` 与 `ui.attach`**；daemon 只反向拨号、登记、关闭。`ui.*` 只对本机连接开放，`hello` 用 `ui.leaf.2` 标记叶子语义。
+- 注册身份：普通界面由服务端生成 `uiId`；叶子用宿主提供的 `peer`（`ui-...`）作为 `uiId`，`token` 只由 `ui.open` 发给宿主。`kind` 必须是可打印名字；叶子只接受 `tui`。
+
+**我们能做什么**：连接注册这条路现在就能做：已补 `UIOpenParams/UIOpened/UIAttachParams/UIAttached/UICloseParams/UIReplaceParams/UIShutdownParams/UIShutdownNotice/UIStatusResult/UIInstance` 与解码测试。叶子路需要 rutis 会话协议，Go 侧没有现成 SDK（见 11.2），不建议在连接领域先做。
+
+**需要上游做什么**：`ui.*` 接口不缺。若希望非 Rust 宿主实现叶子，需要 rutis 的 Go 会话协议/SDK 或一份可实现的 wire 规范（当前仓库只写“rutis-bridge 的 framed 通道 + handshake”，没有帧格式）。
+
+### 11.2 插件运行时注册与 Go leaf runtime
+
+**结论**：插件运行时是宿主 loader 的**连接行**（connection row），不是 RPC 注册面。当前只支持 Node 和 Python：`session-node`、`py` 两个连接行，由 `--node/--js-runtime/--python`（开发/测试）或 RuntimeManager 的默认预设 `runtimes` 提供启动命令；插件行按 `<row>:<module>` 由 `SessionResolver::npm` 解析。**没有注册第三种（Go）运行时的公开接口**；UI 叶子虽然也是 rutis 会话，但被刻意设为“无插件目录”，daemon 不能在叶子里跑插件，因此它不是插件运行时。
+
+**源码依据**：
+
+- `docs/design/rutis-usage.md` A.4：每个本地运行时是 `session-node`/`py` 连接行，RuntimeConnection 注入 `nodeRuntime`/`pythonRuntime` 启动命令，`Launcher` 启动进程、等 greeting、挂 `Session::new(channel)`；`SessionResolver::npm(catalog, "session-node")` 解析 `py:<module>` 与其它外部名字。
+- `docs/design/rutis-0.19-upgrade.md` M4：运行时是连接行；M8：UI 叶子是插件、其寿命是会话；文中明确 “Not in scope: Go, Swift and Kotlin runtimes, dylib plugins, remote runtimes and node connection rows”。
+- `crates/dim-app-server/src/session_typescript.rs`：`SessionTypeScriptConfig` 只有 node/py；`Parts::runtimes()` 只返回这两个 `ForeignRuntime`；启动命令 `node --import tsx ...` / `python -m rutis`；`--session-rows` 只提供行，不提供新的 runtime 类型。
+- `crates/dim-app-server/src/runtime_manager.rs`：只计划 Node/Python/uv，`RuntimeEntry` 是这三者；`runtime.*` 的注册仍需默认预设（见 10.1）。
+- `ui_leaf.rs`：`UiLeaf` 用 `ctx.isolate(catalog_key(), ...)` 隔离目录，且 LeafNode “offers no plugin catalog”，所以叶子不是插件运行时。
+
+**一个 Go leaf runtime 需要实现什么**：
+
+- 若指 **UI 叶子**（可行但非插件运行时）：实现 rutis 0.19.3 的会话协议（session protocol 4）：私有地址（Unix socket 或 loopback TCP + 首行 token）、`LocalId ui-<id>`、accept 一次、`pipe::framed` 通道、与 `dim-daemon` 握手并校验对端 id；随后用 protocol v3 做业务与 `ui.attach`。前置条件：一份 Go 的 rutis 会话实现（本仓库未找到；上游 docs 只描述 framed/handshake，没有帧格式）。
+- 若指 **插件运行时**（让 Go 跑插件行）：还缺服务端接口。需要 host loader 能新增一个连接行：启动命令（`<channel> --id <name> <project>` 形态）、greeting/会话协议、`SessionResolver` 对该行前缀（例如 `go:<module>`）的解析、row 的 `provides`/`instanceNames` 目录声明、`RuntimeStatus`（starting/ready/down）与生命周期（会话结束、卸载杀进程、失败后行回到等待）。这些在 alpha.8/alpha.21 都没有公开注册方式；`--session-rows`/`--defaults` 只接受既有 Node/Python 运行时。
+- 能力声明：插件/部件通过 `provides` 与 `instanceNames` 声明，宿主目录在运行时启动前固定；跨语言服务按名字导出（`managementMethods`、`partRegistry`、`settings` 等）。Go 运行时若存在，需实现同样的服务调用/注册与事件总线协议，而不是自定义窄接口。
+
+**我们能做什么**：
+
+- 不注册 Go 插件运行时；在可预见的范围内继续用 Node/Python 插件（由 daemon 的 RuntimeManager/默认预设提供）。
+- 原生 UI 用 `ui.attach` 连接注册，不需要 rutis；若将来要做叶子，先补 Go 的 rutis 会话实现（这是一个独立前置项，不应塞进连接领域）。
+- 不能靠“宿主自己起一个 Go 插件进程并说它是 runtime”绕过：daemon 的 loader 不会解析它，`plugin.list`/`plugin.install` 也不认。
+
+**需要上游做什么**（按 #1394/#1395 格式）：
+
+1. **缺少通用运行时注册接口**
+   - Problem：插件运行时只支持 Node/Python；`SessionTypeScriptConfig`、RuntimeManager、`SessionResolver` 都硬编码这两个，没有公开方式注册第三种连接行。
+   - Needed：可配置的运行时连接行（启动命令、行前缀/模块解析、`provides`/`instanceNames` 目录声明、`RuntimeStatus` 与生命周期），或明确说明“只支持 Node/Python，第三方运行时不在范围”。
+   - Owner：RuntimeManager / rutis 集成。
+   - Impact：非 Rust、非 Node/Python 的宿主（含 Go）无法承载插件。
+   - Acceptance：配置一个测试运行时后，`runtime.list` 出现该行，`plugin.list` 的行变为 ready，`<row>:<module>` 的方法/工具在会话中可用；运行时退出后行回到等待且 `runtime.list` 报 down+reason。
+2. **缺少 Go 的 rutis 会话协议实现/SDK**
+   - Problem：UI 叶子与非 Rust 运行时都需要 rutis 0.19.3 的 framed 通道与 session protocol 4，仓库只有 Rust 实现与文档级描述，没有帧格式或 Go SDK。
+   - Needed：Go SDK（或完整 wire 规范 + 一致性测试）。
+   - Owner：rutis。
+   - Impact：mygo 只能做普通 `ui.attach` 连接注册，不能做叶子，也不能承载插件。
+   - Acceptance：Go 进程与 daemon 完成握手、挂载会话、注册/调用一个命名服务并通过 rutis 自带的一致性用例。
+
+**未找到**：rutis framed 通道的字节级帧格式、Go SDK/Go runtime 实现、任何 `runtime.register`/`runtime.create` 一类的公开方法；`protocol.rs` 里有 `UiLeave` 结构体，但不在 `UI_HOST_METHODS` 或 builtin 方法表里，也没有被 `connection.rs` 调度，未作为接口使用。
+
+## 12. 变更记录
 
 | 日期 | 变更 | 原因 | 影响 |
 |---|---|---|---|
@@ -587,3 +667,4 @@ mgmt.session.wakeup.cancel {}
 
 | 2026-11-11 | 四项卡点调查：runtime 注册条件（`--defaults`/`acquire`）、workflow 默认插件缺失、模态实时 adapter 缺失、成员停止方法与成员标识来源 | 集成层需要判定能否在本侧解锁 | runtime 可由客户端补默认预设解锁；workflow 与 realtime 需上游；成员停止可直接接入 |
 | 2026-11-11 | 补第四轮调查：runtime 注册条件与客户端解锁方式、workflow 默认插件缺失、模态实时 adapter 缺失、成员停止接口与成员会话标识来源；附两条上游 issue 草案 | 四件卡点需要可否解锁的判定 | runtime/成员停止可接入；workflow/realtime 需上游 |
+| 2026-11-11 | 宿主侧调查：`ui.*` 语义/参数/回执/方向/失败与重连；插件运行时只支持 Node/Python，Go leaf runtime 需要上游通用运行时行与 Go rutis 会话实现；补 UI 宿主 wire 类型 | 原生宿主接入需要冻结 ui.* 形状并判定 Go 运行时可不可行 | 普通 UI 连接注册可接入；UI 叶子和 Go 插件运行时需上游 |

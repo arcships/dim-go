@@ -410,3 +410,47 @@ func TestDecodeCollaborationCancelAndDelivered(t *testing.T) {
 		t.Fatal("want an error for a delivered fact without op_event_id")
 	}
 }
+
+func TestDecodeUIHostWire(t *testing.T) {
+	opened, err := protocol.ParseUIOpened(mustRaw(t,
+		`{"uiId":"ui-abcd1234","generation":7,"token":"tok-1","future":1}`))
+	if err != nil || opened.UIID != "ui-abcd1234" || opened.Generation != 7 {
+		t.Fatalf("ui.open: %+v, %v", opened, err)
+	}
+	if _, err := protocol.ParseUIOpened(mustRaw(t, `{"uiId":"ui-x","generation":1}`)); err == nil {
+		t.Fatal("want an error for a missing token")
+	}
+	attached, err := protocol.ParseUIAttached(mustRaw(t,
+		`{"uiId":"ui-abcd1234","generation":7,"future":1}`))
+	if err != nil || attached.UIID != "ui-abcd1234" {
+		t.Fatalf("ui.attach: %+v, %v", attached, err)
+	}
+	if _, err := protocol.ParseUIAttached(mustRaw(t, `{"uiId":"ui-x","generation":0}`)); err == nil {
+		t.Fatal("want an error for a missing generation")
+	}
+	status, err := protocol.ParseUIStatusResult(mustRaw(t, `{
+		"instances":[
+			{"uiId":"ui-a","sessionId":"s","kind":"tui","sinceMs":5,"generation":2,"state":"online","future":1},
+			{"uiId":"ui-b","sessionId":"s","kind":"other","sinceMs":9,"generation":3,"state":"starting"}
+		],
+		"webConnections":1,
+		"future":2
+	}`))
+	if err != nil || len(status.Instances) != 2 || status.WebConnections != 1 {
+		t.Fatalf("ui.status: %+v, %v", status, err)
+	}
+	if _, err := protocol.ParseUIStatusResult(mustRaw(t, `{
+		"instances":[{"uiId":"ui-a","sessionId":"s","kind":"tui","generation":2,"state":"offline"}],
+		"webConnections":0
+	}`)); err == nil {
+		t.Fatal("want an error for an unknown UI state")
+	}
+	notice, err := protocol.ParseUIShutdownNotice(mustRaw(t,
+		`{"uiId":"ui-a","reason":"replaced","future":1}`))
+	if err != nil || notice.Reason != "replaced" {
+		t.Fatalf("ui.shutdown: %+v, %v", notice, err)
+	}
+	if _, err := protocol.ParseUIShutdownNotice(mustRaw(t, `{"uiId":"ui-a"}`)); err == nil {
+		t.Fatal("want an error for a shutdown notice without reason")
+	}
+}
