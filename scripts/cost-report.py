@@ -6,9 +6,12 @@ SQLite 只读连接查询，退出时删除临时副本。只读取 token 计数
 消息正文、提示词或凭据。
 
 用法：
-  scripts/cost-report.py                            # 自动找到当前仓库的主会话
-  scripts/cost-report.py --leader <session_id>
-  scripts/cost-report.py --rate 6.9 --price-miss 0.15 --price-hit 0.003 --price-out 0.6
+  scripts/cost-report.py --db <产品原生存储 SQLite>                 # 自动找当前仓库的主会话
+  scripts/cost-report.py --db <path> --leader <leader-id>
+  scripts/cost-report.py --db <path> --rate 6.9 --price-miss 0.15 --price-hit 0.003 --price-out 0.6
+
+库路径不写死：用 --db 指定，或设置环境变量 DIMCODE_DB。默认输出不含会话标识，
+需要排查时加 --verbose。
 
 依赖：Python 3 标准库。
 """
@@ -25,7 +28,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-DEFAULT_DB = "~/.dimcode-alpha/rust/dimcode.sqlite"
+DB_ENV = "DIMCODE_DB"  # 库路径由调用方给出，仓库不写死本机位置
 
 # 官方价目（美元 / 百万 token），见 https://api-docs.deepseek.com/quick_start/pricing
 # 2026-11-11 抓取：deepseek-flash（DeepSeek-V4.1-Flash-1017）
@@ -45,7 +48,8 @@ def parse_args(argv):
     p = argparse.ArgumentParser(
         description="统计 DimCode 会话树的 token 用量与费用（只读，临时副本）。",
     )
-    p.add_argument("--db", default=DEFAULT_DB, help="DimCode 库路径（默认 %(default)s）")
+    p.add_argument("--db", default=os.environ.get(DB_ENV),
+                   help=f"产品原生存储的 SQLite 路径（也可设环境变量 {DB_ENV}）")
     p.add_argument("--leader", default=None, help="leader 会话 id；缺省按 --project 自动发现")
     p.add_argument("--project", default=None,
                    help="项目目录，用于自动发现主会话与标定范围（默认当前目录）")
@@ -66,6 +70,8 @@ def parse_args(argv):
                         "留空表示只按 UTC 星期与时段判定")
     p.add_argument("--rate-note", default="用户指定", help="汇率来源说明")
     p.add_argument("--out", default=None, help="写入文件（默认 stdout）")
+    p.add_argument("--verbose", action="store_true",
+                   help="输出里附带 leader 与会话标识（默认不打印）")
     return p.parse_args(argv)
 
 
@@ -260,12 +266,18 @@ def build_report(args, leader, tree, meta, rows) -> str:
     ap("### 复跑输出（脚本自动生成，勿手改）")
     ap("")
     ap(f"- 生成时间：{dt.datetime.now().astimezone().strftime('%Y-%m-%d %H:%M %Z')}")
-    shown_db = str(args.db)
-    home = os.path.expanduser("~")
-    if shown_db.startswith(home):
-        shown_db = "~" + shown_db[len(home):]
-    ap(f"- 数据源：`{shown_db}` 的只读临时副本；表 `timeline_events`，`kind='model/usage'`")
-    ap(f"- leader 会话：`{leader}`；会话数：{len(tree)}")
+    if args.verbose:
+        shown_db = str(args.db)
+        home = os.path.expanduser("~")
+        if shown_db.startswith(home):
+            shown_db = "~" + shown_db[len(home):]
+    else:
+        shown_db = Path(args.db).name  # 默认只报文件名，不回显本机路径
+    ap(f"- 数据源：产品原生存储 SQLite（`{shown_db}`，调用方用 --db 指定）的只读临时副本；"
+       f"表 `timeline_events`，`kind='model/usage'`")
+    if args.verbose:
+        ap(f"- leader 会话：`{leader}`（--verbose）")
+    ap(f"- 会话数：{len(tree)}")
     ap(f"- 数据窗口（北京时间）：{fmt_ts(tmin)} → {fmt_ts(tmax)}")
     ap(f"- 单价（USD/1M tokens）：miss {args.price_miss}、hit {args.price_hit}、"
        f"out {args.price_out}；高峰 = 低谷 × {args.peak_mult}"
@@ -273,22 +285,28 @@ def build_report(args, leader, tree, meta, rows) -> str:
     ap(f"- 汇率：1 USD = {rate} CNY（{args.rate_note}）")
     ap("")
 
-    ap("| 角色 | 领域 agent | 请求数 | prompt | completion | total | cache_read | cache_write | 费用（USD） | 费用（CNY） | 首末（北京时间） |")
-    ap("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|")
+    if args.verbose:
+        ap("| 会话 | 角色 | 领域 agent | 请求数 | prompt | completion | total | cache_read | cache_write | 费用（USD） | 费用（CNY） | 首末（北京时间） |")
+        ap("|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|")
+    else:
+        ap("| 角色 | 领域 agent | 请求数 | prompt | completion | total | cache_read | cache_write | 费用（USD） | 费用（CNY） | 首末（北京时间） |")
+        ap("|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|")
     leader_agent = meta.get(leader, {}).get("agent", "leader")
     ordered = sorted(tree, key=lambda s: (agg[s]["t0"] or 0))
     for sid in ordered:
         a = agg[sid]
         role = "组织" if sid == leader else "子会话"
         name = leader_agent if sid == leader else meta[sid]["agent"]
-        ap(f"| {role} | {name} | {a['n']} | {fmt_int(a['prompt'])} | "
+        pre = f"| `{sid}` " if args.verbose else "|"
+        ap(f"{pre} {role} | {name} | {a['n']} | {fmt_int(a['prompt'])} | "
            f"{fmt_int(a['completion'])} | {fmt_int(a['total'])} | "
            f"{fmt_int(a['cache_read'])} | {fmt_int(a['cache_write'])} | "
            f"{fmt_money(a['usd'])} | {fmt_money(a['usd'] * rate)} | "
            f"{fmt_ts(a['t0'])} → {fmt_ts(a['t1'])} |")
     tot = {k: sum(a[k] for a in agg.values()) for k in
            ("n", "prompt", "completion", "total", "cache_read", "cache_write")}
-    ap(f"| **合计** | {len(tree)} 个会话 | {tot['n']} | {fmt_int(tot['prompt'])} | "
+    pre = "| — " if args.verbose else "|"
+    ap(f"{pre} **合计** | {len(tree)} 个会话 | {tot['n']} | {fmt_int(tot['prompt'])} | "
        f"{fmt_int(tot['completion'])} | {fmt_int(tot['total'])} | "
        f"{fmt_int(tot['cache_read'])} | {fmt_int(tot['cache_write'])} | "
        f"{fmt_money(total_usd)} | {fmt_money(total_cny)} | "
@@ -332,9 +350,12 @@ def build_report(args, leader, tree, meta, rows) -> str:
 
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
+    if not args.db:
+        print(f"请用 --db 指定产品原生存储的 SQLite 路径，或设置 {DB_ENV}", file=sys.stderr)
+        return 2
     db_path = Path(os.path.expanduser(args.db))
-    if not db_path.exists():
-        print(f"库不存在：{db_path}", file=sys.stderr)
+    if not db_path.is_file():
+        print(f"不是可读的库文件：{db_path}", file=sys.stderr)
         return 2
     project = args.project
     if project is None:
@@ -348,7 +369,11 @@ def main(argv: list[str]) -> int:
 
     workdir = Path(tempfile.mkdtemp(prefix="dimcode-cost-"))
     try:
-        copy = snapshot(db_path, workdir)
+        try:
+            copy = snapshot(db_path, workdir)
+        except OSError as exc:
+            print(f"复制库失败：{exc}", file=sys.stderr)
+            return 2
         conn = sqlite3.connect(f"file:{copy}?mode=ro", uri=True)
         try:
             leader = args.leader or discover_leader(conn, project)
