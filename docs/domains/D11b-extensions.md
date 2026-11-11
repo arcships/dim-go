@@ -19,12 +19,13 @@ Owner: 扩展与后台领域 agent
 | 功能块 8「扩展管理」 | `docs/domains/R.md` | 插件列表与安装来源、技能安装与启停、钩子按来源的写入范围、MCP 增删改与探测、配置导入预览与按勾选写入 |
 | 功能块 9「计划任务、…、唤醒」 | `docs/domains/R.md` | 计划任务列表与事件跟随、唤醒记录读取/取消/状态跟随 |
 | 夜间授权补充项 | `docs/domains/R.md` 附 E 第 12–14 项 | 钩子启停、技能刷新、MCP 认证 |
+| Scheduler 默认预设 | 随包默认插件 `scheduler`（`dim-2/staging/dev-plugins`），复制到 `/tmp` 后通过 `--defaults` 装配 | 真实 schedule.* 与 watch 证据 |
 | 管理面读数、四条总规矩 | `docs/domains/A.md` | 每项读数只有一个驱动者；只由读取与变更通知驱动；缺能力报缺失；不做乐观更新；不保存第二份事实 |
 | alpha.21 管理面实测 | `docs/domains/D1-connection.md` §3.8、§6.5 | 真实方法名：`plugin.*`、`skills.*`、`hooks.*`、`mcp.*`、`schedule.*`、`session.wakeup.*`；`workflow.*`、`runtime.*` 在 alpha.21 不注册 |
 | D1 管理面类型 | `internal/appserver/protocol/management_*.go`、`notices.go` | 集成层按这些类型映射；本包不复制 wire 结构 |
 | 连接错误分类 | `docs/domains/D1-connection.md`、`internal/appserver/failure` | 能力缺失归一成 `CapabilityError`；超时、连接失败、参数错误原样上报 |
 | 写登记 | `docs/domains/D3-write.md`、`internal/write` | 所有变更登记为 `KindManagementWrite`，一次发送、不自行重试、结果由写登记收敛 |
-| 假服务端与真实服务端 | `internal/fakeappserver`、`internal/appserver/protocol`、`internal/appserver/daemon`、`~/.dimcode-alpha/rust/dimcode-server`（0.1.0-alpha.21） | 本机 Unix socket + 真实 NDJSON；假服务端覆盖全部分支，真实服务端覆盖读取、插件/技能启停、唤醒闭环、hooks 写回/冲突与 MCP 保存/配置/探测/删除 |
+| 假服务端与真实服务端 | `internal/fakeappserver`、`internal/appserver/protocol`、`internal/appserver/daemon`、`~/.dimcode-alpha/rust/dimcode-server`（0.1.0-alpha.21） | 本机 Unix socket + 真实 NDJSON；假服务端覆盖全部分支，真实服务端覆盖读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除与 Scheduler 预设下的 schedule.watch |
 | 实现约束 | 本仓库 `AGENTS.md` | 只用 Go 标准库；不改 `go.mod`；只写本领域包与本文档 |
 
 **产物**
@@ -46,13 +47,14 @@ Owner: 扩展与后台领域 agent
 | `internal/extensions/daemon_evidence_hooks_mcp_test.go` | 真实 alpha.21 证据：hooks.save 写回与版本冲突、mcp.save/configuration/test/remove |
 | `internal/extensions/daemon_evidence_night_test.go` | 真实 alpha.21 证据：项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入 |
 | `internal/extensions/daemon_evidence_mcp_import_test.go` | 真实 alpha.21 证据：MCP 导入来源、preview/apply 形状、逐条写入与冲突 |
+| `internal/extensions/daemon_evidence_schedule_test.go` | 真实 alpha.21 证据：Scheduler 默认预设、schedule.watch 序号、list/history 重读、删除与缺口 |
 | `docs/domains/D11b-extensions.md` | 本文件 |
 
 **验收**
 
 - 命令：`go test ./internal/extensions/`、`go test -race ./internal/extensions/`、`go test -count=1 ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64，Go 1.24.3）。
-- 本领域测试：33 个顶层测试（29 个默认通过，4 个真实 daemon 证据按环境变量运行）。
-- 真实 daemon：alpha.21，临时数据目录 + 复制到 `/tmp` 的离线模型配置；读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除、项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入与 MCP 配置导入均通过，见 6.4。
+- 本领域测试：35 个顶层测试（30 个默认通过，5 个真实 daemon 证据按环境变量运行）。
+- 真实 daemon：alpha.21，临时数据目录 + 复制到 `/tmp` 的离线模型配置；读取、插件/技能启停、唤醒闭环、hooks 写回/冲突、MCP 保存/配置/探测/删除、项目钩子启停/冲突、skills.refresh/reload_catalog、mcp.auth.* 方法接入、MCP 配置导入与 schedule.watch 跟随均通过，见 6.4。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上真实 NDJSON，覆盖插件/技能/钩子/MCP/计划任务/工作流能力缺失。
   - 注入替身：读取方与写登记替身，覆盖能力缺失与恢复、来源拒绝、导入勾选、失败保留、通知时序、真实方法名归一。
@@ -73,7 +75,7 @@ Owner: 扩展与后台领域 agent
 
 - 真实 `hooks` 已冻结本次用到的部分：`hooks.save` 文档 `{hooks:{event:[{matcher,hooks:[{type,command}]}]}}`，回执 `{revision}`，旧版本返回 `hooks_conflict` 且不覆盖；`hooks.catalog.hooks[]` 是扁平条目，无 `id`，本端按来源/事件/位置派生稳定标识。更多钩子字段（args、if、commandWindows）待补。
 - 真实 `mcp.save/remove/test/configuration` 已按本地无凭据 stdio 夹具核对；原始配置文档、HTTP/SSE 与鉴权服务器仍待真实证据。`mcp.import.sources/preview/apply` 已在本机真实来源上跑通，领域 API 已按真实形状落地；旧便捷方法保留为薄包装。
-- 计划任务 `schedule.watch` 通过 `management.progress` 推送；本版只在测试适配器验证映射，真实 watch 标 blocked。
+- 计划任务 `schedule.watch` 通过 `management.progress` 推送；真实 Scheduler 默认预设下已验证 watching/jobs/delete 通知与重读。真实 run 通知未触发（任务安排在几分钟后），history 重读用 run 型通知驱动验证。
 - 插件/技能安装的完整参数（`plugin.install` 的 `id`/`enable`、`skills.install` 的 `skills[]` 勾选与 revision）未在真实服务端闭环；本版只验证真实启停。
 - 工作流与运行组件在 alpha.21 没有 wire 方法；工作流类型保留但不发请求，运行组件由 D11a 按能力缺失处理。
 
@@ -88,7 +90,7 @@ Owner: 扩展与后台领域 agent
 | 钩子 | 清单（`hooks.catalog`）、来源区分、只有用户来源可写、项目作用域启停（`hooks.set_enabled`）与读回 |
 | MCP | 目录（`mcp.catalog`）、新增/修改/删除、显式探测、导入预览、按勾选逐条写入、认证开始/完成/取消/登出 |
 | 技能刷新 | `skills.refresh` 触发目录刷新并观察版本变化；`skills.reload_catalog` 按 hello 门禁，缺能力零请求 |
-| 计划任务 | `schedule.list` 清单读取；通知到达时重读一次，无定时轮询 |
+| 计划任务 | `schedule.list` 清单与 `schedule.history` 历史读取；`schedule.watch` 的 watching/jobs/run、序号缺口与去重；无定时轮询 |
 | 工作流 | 类型、定义浏览、运行读数；服务端没有 `workflow.*` 时读取与写都报能力缺失，不发请求 |
 | 会话级唤醒 | `session.wakeup.list` 读取、`session.wakeup.cancel` 取消、通知后重读一次；取消/过期记录不出现在读数里 |
 | 缺能力 | 每个读取入口返回带能力名的 `CapabilityError`；能力恢复后同一实例可再读 |
@@ -277,10 +279,12 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 - `mcp.import.apply` 参数 `{cwd?,source,from?|document?,expectedVersion,expectedSourceRevision?,resolutions:[{id,action,newId?}]}`：`action` 为 `import` / `skip` / `replace` / `rename`；`expectedVersion` 是目标 MCP 目录版本，`expectedSourceRevision` 来自预览。回执 `{revision}`；目标已变化返回 `mcp_settings_conflict`，来源已变化返回同名冲突；逐条动作在 `resolutions` 里表达，一次写入选择过的条目，不是每条一次 `mcp.save`。
 - **领域 API**：`MCPImportReader` 提供 `ReadMCPImportSources` 与 `PreviewMCPImport`；`ApplyMCPImport` 经写登记只发一次 `mcp.import.apply`，`resolutions` 逐条动作、目标或来源冲突返回 `ErrImportConflict` 且不重写。旧的 `PreviewToolServerImport(source)` / `ApplyToolServerImport(source, keys)` 保留为薄包装：内部按 `SourceUser` + `From=source` 转真实请求，并把真实预览转回扁平候选；旧包装不表达 project 目标或 `document`，新代码应使用真实 API。
 
-### 4.7 计划任务
+### 4.7 计划任务与 schedule.watch
 
 - 清单按 `schedule.list` 映射；job 是 snake_case，保留 `revision`、`prompt`、`cwd`、`mode` 等字段。状态与时间由服务端给出，本端不推算下次运行时间。
-- 通知由集成层从 `management.progress`（`schedule.watch`）映射成 `Notice{Topic: TopicSchedule}`；一次通知重读一次清单，无定时器、无全量轮询。
+- `schedule.watch` 是长驻调用，进度以 `management.progress {method:"schedule.watch", data}` 推送；`data` 为 `{seq,kind}`，`kind` 取 `watching` / `jobs` / `run`；`run` 项另带 `jobId`、`runId`、`state`、`terminal`。集成层把它们映射成 `Notice{Topic: TopicSchedule, Sequence, SequenceSet, Kind, JobID}`。
+- 跟随规则：`watching` 后读一次 list；`jobs` 变化读一次 list；`run` 通知读一次 list 并读一次该任务的 `schedule.history`；序号缺口（`next > last+1`）记录日志并重读；同一序号重复到达不重读。没有定时器、没有全量轮询。
+- `ListScheduleHistory` 在读取方实现 `ScheduleHistoryReader` 时可用；否则按能力缺失处理。
 - 能力缺失分类并记录日志；能力恢复后同一实例再次读取即可得到列表。
 
 ### 4.8 工作流：保留类型，不发请求
@@ -318,7 +322,7 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 | 夜间授权第 12 项 MCP 认证 | `mcp.auth.start/complete/cancel/logout`、hello 门禁与敏感输入不落日志 | 真实 OAuth 认证服务器 |
 | R 块 8 MCP 增删改与探测 | `mcp.catalog`、`mcp.save`、`mcp.remove`、显式 `mcp.test` | 外部进程连接实现 |
 | R 块 8 导入预览与按勾选写入 | `mcp.import.sources/preview/apply`；`resolutions` 逐条动作、冲突不重写 | 配置文件解析 |
-| R 块 9 计划任务列表与变更 | `schedule.list` + 事件后重读一次 | 任务执行、补跑、启停 |
+| R 块 9 计划任务列表与变更 | `schedule.list/history` + `schedule.watch` 序号跟随、缺口重读、无轮询 | 任务执行、补跑、启停 |
 | R 块 9 唤醒读取、取消与状态跟随 | `session.wakeup.list/cancel`、每范围一次重读、取消后过滤 | 定时器触发与提醒展示 |
 | R 块 8/9 能力缺失 | `CapabilityError` + 日志 + 恢复后可再读 | 服务端能力实现 |
 | alpha.21 工作流/运行组件不存在 | 工作流保留类型零请求；运行组件交 D11a | 服务端能力实现 |
@@ -338,11 +342,11 @@ go vet ./...
 
 本版结果（2026-11-11，macOS arm64，Go 1.24.3）：
 
-- `go test ./internal/extensions/`：`ok`（33 个顶层测试；29 个默认通过，4 个真实 daemon 证据在无环境变量时跳过）。
+- `go test ./internal/extensions/`：`ok`（35 个顶层测试；30 个默认通过，5 个真实 daemon 证据在无环境变量时跳过）。
 - `go test -race ./internal/extensions/`：`ok`。
 - `go test ./internal/app`：`ok`（集成层）。
 - `go vet ./internal/extensions/`：无输出。
-- `go test -count=1 ./...`：本领域与其余包通过；`internal/app` 当前有非本领域测试失败（本次为 `TestModalityGateChecksHelloBeforeSessionMethods`，另一时刻为 `TestUpdaterSwitchReplacesTargetAndVersion`），不属于本领域、本版未修改。
+- `go test -count=1 ./...`：全部包通过。
 - `go vet ./...`：无输出。
 
 ### 6.2 覆盖
@@ -552,6 +556,61 @@ cleanup mcp.remove shape={}
 - 冲突成功：同一 `expectedVersion` 再次 apply 返回 `mcp_settings_conflict`，目录不重复写入。
 - 清理成功：`mcp.remove` 使用 apply 后的 `userRevision` 删除导入条目，回执 `{}`；来源文件未被修改。
 
+#### 6.4.5 计划任务 watch（Scheduler 默认预设）
+
+预设与运行时都在 `/tmp` 与只读安装目录中；没有复制插件源码进仓库。准备夹具：
+
+```bash
+# 随包默认插件目录（只读来源；路径按本机安装调整）
+rm -rf /tmp/d11b-scheduler-plugin
+cp -R ~/Code/dim-2/staging/dev-plugins/plugins/scheduler /tmp/d11b-scheduler-plugin
+cat > /tmp/d11b-defaults.json <<'JSON'
+{"plugins":{"scheduler":"/tmp/d11b-scheduler-plugin"},"locked":["PluginManager","Rpc","Transport"],
+ "runtimes":{"node":{"source":"download","auto":false},"python":{"source":"download","auto":false}}}
+JSON
+```
+
+命令示例：
+
+```bash
+DIM_APP_SERVER_BIN=$HOME/.dimcode-alpha/rust/dimcode-server \
+DIM_APP_SERVER_ARGS=app-server \
+DIM_APP_SERVER_MODEL_CONFIG=/tmp/d11b-offline.json \
+DIM_APP_SERVER_DEFAULTS=/tmp/d11b-defaults.json \
+DIM_APP_SERVER_NODE=$HOME/.dimcode-alpha/runtimes/node-v24.21.0-darwin-arm64/bin/node \
+DIM_APP_SERVER_JS_RUNTIME=$HOME/.dimcode-alpha/runtimes/node-packages-0c2ff7eb761cd6da/node_modules/@arcships/rutis-runtime \
+  go test -run TestRealDaemonScheduleWatch -v ./internal/extensions/
+```
+
+观察到的输出（节选；不打印调度表达式正文）：
+
+```text
+服务端 0.1.0-alpha.21（profile configured）
+hello schedule.list=true
+hello schedule.watch=true
+hello schedule.save=true
+hello schedule.history=true
+hello schedule.delete=true
+watching: seq=0 kind=watching
+创建任务 id=<job-id>
+jobs: seq=1 kind=jobs
+run 跟随: listReads=3 historyReads=1 historyItems=0
+删除任务回执字段=[job_id]
+delete: seq=2 kind=jobs
+extensions: schedule.watch 序号缺口 last=2 next=5
+最终 listReads=5 historyReads=1 stats={Notices:map[schedule:5] Reads:map[schedule:5]}
+```
+
+判定条件：
+
+- 预设生效：hello 声明 `schedule.list/watch/save/history/delete`，`schedule.list` 成功。
+- ready：`seq=0 kind=watching` 后 list 读取次数从 0 到 1。
+- 变化：创建任务后 `seq=1 kind=jobs`，list 读取次数到 2，读数含新任务；等待 300ms 读取次数不变。
+- history：domain 的 run 通知路径触发一次 `schedule.history`（list 读取到 3、history 到 1）；本次任务安排在几分钟后，没有真实 run，因此 `historyItems=0`。
+- 删除：`schedule.delete` 回执 `{job_id}`，`seq=2 kind=jobs`，list 读取到 4，读数不再含该任务。
+- 序号缺口：注入 `last+3` 的 jobs 通知后 list 读取到 5，并记录 `序号缺口`；随后 300ms 无新增读取。
+- 不轮询：所有读取都由显式调用或通知驱动，等待窗口内读取次数不增长。
+
 ### 6.5 blocked
 
 | 项 | 状态 | 缺什么 |
@@ -563,7 +622,7 @@ cleanup mcp.remove shape={}
 | 真实 `skills.reload_catalog` 成功路径 | blocked | alpha.21 的 hello 未声明且实际调用 unknown_method；本版只能按能力缺失零请求 |
 | 真实 `mcp.save` 原始配置文档 | blocked | `ToolServerConfiguration` 覆盖最小文档；已有原始文档的完整透传未验证 |
 | 真实 `plugin.install` / `skills.install` | blocked | 安装参数虽有实测形状，但没有安全的真实插件/技能源与回执闭环；本版只验证真实启停 |
-| 真实 `schedule.watch` 通知 | blocked | 需要真实调度器产生进度事件；本版用 `management.progress` 适配器验证映射 |
+| 真实 run 通知与终端状态 | blocked | 任务安排在几分钟后，未等待真实执行；`run` 型通知按源码形状用于 history 重读验证，未观察真实状态序列 |
 | 真实 `workflow.*` / `runtime.*` | blocked | alpha.21 不注册；按能力缺失处理，不发明替代 |
 | Windows 命名管道与平台差异 | blocked | 没有 Windows 主机与 Windows 版 App Server；本包本身无平台分支 |
 
@@ -597,7 +656,7 @@ cleanup mcp.remove shape={}
 
 1. 补钩子扩展字段（args/if/commandWindows）与删除语义的真实证据。
 2. 补项目作用域导入与含秘密条目的真实样本；验证 `document` 输入与 `resolutions` 的 replace/rename/skip 动作。
-3. 用真实调度器补 `schedule.watch` → `management.progress` 的通知跟随证据。
+3. 用真实调度器触发一次 run，补 `run` 状态的 launching/submitted/running/terminal 真实通知与 history 对照。
 4. 补真实插件/技能安装夹具，验证安装参数与回执闭环。
 5. 推动 D12 接入 `Features`/`ProjectHooks`/`MCPImports` 与 `SkillCatalogReader`，并映射新增写意图。
 6. 准备真实 OAuth MCP 认证服务器，补 `mcp.auth.start/complete/cancel/logout` 成功链路与凭据不落日志的证据。
