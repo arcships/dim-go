@@ -66,6 +66,8 @@ DimAgent 的 Go 桌面客户端：Go + mygo native UI 承载宿主与界面，Ru
 | D9 | 终端 | 本地 shell、`!` shell 输入的本地侧 | `terminal-*` 632、`local-exec-shell` 264、`shell-rpc` 271 | A |
 | D10 | 宿主外壳 | 生命周期、窗口、菜单与托盘、通知、快捷键、深链、主题与字体、i18n、窗口状态、诊断 | `bootstrap` 3,354、`window-service` 1,261、`tray-icon` 231、主题字体 skin 1,640、诊断 1,140 | D1（只读连接状态） |
 | D11 | 管理面 | 设置、模型与 provider、插件、技能、MCP、hooks、scheduler、workflow、runtime、modality、storage | `app-server/{plugins,skills,hooks,scheduler,runtime,workflow}` 1,994、`config-rpc` 814、`modality-rpc` 1,128、`app-services` 插件技能 2,350 | D1、D3、D6 |
+| D12 | 集成层 | 把各领域拼成可运行程序：适配器、启动与退出编排、只读视图与意图入口、自检子命令 | 各领域结果包与公开接口 | D1–D11 | 在做 |
+| D13 | 成本核算 | 按会话统计 token 用量与费用：请求数、prompt/完成/缓存读写、按官方分档计价（美元与人民币）、时间跨度、单价来源与假设 | 本机 daemon 存储里的 `model/usage` 事实、官方定价页 | D1（会话标识口径） | 在做 |
 ## 5. 结果包契约
 
 每个领域提交结果包时必须回答五项：
