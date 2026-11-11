@@ -154,8 +154,6 @@ func (h *wireHarness) CompleteProviderAuthorization(
 		"providerId":  providerID,
 		"attemptId":   attempt,
 		"callbackUrl": result.CallbackURL,
-		"code":        result.Code,
-		"state":       result.State,
 	})
 	return err
 }
@@ -711,9 +709,6 @@ func TestAppServerLoginThroughLoopback(t *testing.T) {
 	var completeParams map[string]any
 	if err := json.Unmarshal(completeRequests[0].Params, &completeParams); err != nil {
 		t.Fatalf("完成交换参数无法解析: %v", err)
-	}
-	if completeParams["code"] != "login-code" || completeParams["state"] != "wire-state" {
-		t.Fatalf("完成交换参数不符：%+v", completeParams)
 	}
 	if completeParams["providerId"] != "dimcode-api-oauth" || completeParams["attemptId"] != "attempt-wire" {
 		t.Fatalf("完成交换没有带上服务端尝试标识：%+v", completeParams)

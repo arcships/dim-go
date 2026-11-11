@@ -293,7 +293,6 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 			a.finishAttempt(attempt, LoginFailed, beginErr.Error())
 			return LoginStart{}, fmt.Errorf("%w: %v", ErrLoginRequest, beginErr)
 		}
-		attempt.setBrowserRequest(authorization)
 		attempt.setAttemptID(authorization.Attempt)
 		if attempt.ctx.Err() != nil {
 			attempt.release()
@@ -303,10 +302,18 @@ func (a *Account) BeginLogin(ctx context.Context, request LoginRequest) (LoginSt
 			a.finishAttempt(attempt, LoginFailed, "授权请求缺少地址")
 			return LoginStart{}, fmt.Errorf("%w: 授权请求缺少地址", ErrLoginRequest)
 		}
+		if strings.TrimSpace(authorization.State) == "" && authorization.URL != "" {
+			// 与原客户端一致：授权地址里带 state 时从地址读取，服务端回执没有
+			// 单独的 state 字段也能校验回调。
+			if parsed, parseErr := url.Parse(authorization.URL); parseErr == nil {
+				authorization.State = parsed.Query().Get("state")
+			}
+		}
 		if strings.TrimSpace(authorization.State) == "" {
 			a.finishAttempt(attempt, LoginFailed, "授权请求缺少校验值")
 			return LoginStart{}, fmt.Errorf("%w: 授权请求缺少校验值", ErrLoginRequest)
 		}
+		attempt.setBrowserRequest(authorization)
 		if browserErr := a.cfg.Browser.Open(authorization.URL); browserErr != nil {
 			a.finishAttempt(attempt, LoginFailed, browserErr.Error())
 			return LoginStart{}, fmt.Errorf("%w: %v", ErrBrowserOpen, browserErr)

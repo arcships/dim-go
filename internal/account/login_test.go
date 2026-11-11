@@ -382,6 +382,37 @@ func TestLoginRejectsConcurrentAttempt(t *testing.T) {
 	}
 }
 
+// TestLoginParsesStateFromAuthorizationURL 确认服务端只在授权地址里带 state 时，
+// 本包能从地址读取并校验回调（与原客户端一致）。
+func TestLoginParsesStateFromAuthorizationURL(t *testing.T) {
+	status := &stubStatusReader{fact: signedInFact()}
+	auth := &stubAuth{}
+	auth.onBegin = func(redirectURI string) AuthorizationRequest {
+		query := url.Values{"code": {"code-1"}, "state": {"state-1"}}
+		return AuthorizationRequest{
+			URL:     redirectURI + "?" + query.Encode(),
+			Attempt: "attempt-1",
+		}
+	}
+	account := newTestAccount(t, Config{
+		Status:       status,
+		Providers:    browserProviderSource(),
+		Auth:         auth,
+		Browser:      &httpBrowser{},
+		LoginTimeout: 2 * time.Second,
+	})
+	snapshot, err := account.Login(context.Background(), LoginRequest{})
+	if err != nil {
+		t.Fatalf("登录: %v", err)
+	}
+	if snapshot.Status != StatusSignedIn {
+		t.Fatalf("登录后的状态不符：%+v", snapshot)
+	}
+	if completions := auth.completeList(); len(completions) != 1 || completions[0].State != "state-1" {
+		t.Fatalf("完成交换没有使用地址里的校验值：%+v", completions)
+	}
+}
+
 // TestLoginRequiresAuthorizationState 确认浏览器登录缺少服务端校验值时拒绝，
 // 与原客户端一致：没有 state 就无法校验回调。
 func TestLoginRequiresAuthorizationState(t *testing.T) {
