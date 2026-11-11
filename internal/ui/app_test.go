@@ -1,0 +1,235 @@
+package ui
+
+import (
+	"strings"
+	"testing"
+
+	gui "github.com/egoist/mygo/ui"
+)
+
+func newTester(t *testing.T, s State) (*App, *gui.Tester) {
+	t.Helper()
+	app := NewApp(Options{State: s})
+	return app, gui.NewTester(app.View, WindowWidth, WindowHeight)
+}
+
+// 每个状态都要画出自己的签名文案，证明状态切换落到区域与元素上。
+func TestStatesShowTheirState(t *testing.T) {
+	cases := []struct {
+		state State
+		want  string
+		gone  string
+	}{
+		{StateDefault, "完成 · 4 个操作 · 改了 2 个文件 · 12s", "等待你同意"},
+		{StateRunning, "正在运行 · 12s", "等待你同意"},
+		{StateWaiting, "需要你同意：跑一条命令", "发送路径.md"},
+		{StateFailed, "失败 · 2.1s", "排队中 1"},
+		{StateEmpty, "还没有消息。写点什么开始，或把文件拖进来。", "修发送路径"},
+	}
+	for _, tc := range cases {
+		_, tt := newTester(t, tc.state)
+		if !tt.HasText(tc.want) {
+			t.Fatalf("%v：缺少 %q", tc.state, tc.want)
+		}
+		if tc.gone != "" && tt.HasText(tc.gone) {
+			t.Fatalf("%v：不应出现 %q", tc.state, tc.gone)
+		}
+	}
+}
+
+// 等待你同意时，审批卡占据输入位，输入区整个不存在（UI-1）。
+func TestWaitingReplacesComposer(t *testing.T) {
+	_, tt := newTester(t, StateWaiting)
+	if _, ok := tt.Find("消息"); ok {
+		t.Fatal("等待你同意时输入区不应存在")
+	}
+	for _, label := range []string{"允许一次", "一直允许这条命令", "拒绝"} {
+		if _, ok := tt.Find(label); !ok {
+			t.Fatalf("审批卡缺少 %q", label)
+		}
+	}
+}
+
+// 1–5 是仅用于走查的调试键。
+func TestDebugKeysSwitchState(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	want := []State{StateDefault, StateRunning, StateWaiting, StateFailed, StateEmpty}
+	for i, key := range []gui.Key{gui.Key1, gui.Key2, gui.Key3, gui.Key4, gui.Key5} {
+		tt.Key(0, key)
+		if app.State() != want[i] {
+			t.Fatalf("按 %v 后状态是 %v，想要 %v", key, app.State(), want[i])
+		}
+	}
+}
+
+// 焦点在输入框里时，数字键必须留给草稿，不切状态。
+func TestDebugKeysYieldToTextInput(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if err := tt.Click("消息"); err != nil {
+		t.Fatalf("点不到输入框：%v", err)
+	}
+	tt.TypeKey(0, gui.Key2, "2")
+	if app.State() != StateDefault {
+		t.Fatalf("输入框里的 2 切了状态：%v", app.State())
+	}
+	if !strings.Contains(app.draft, "2") {
+		t.Fatalf("草稿没有收到 2：%q", app.draft)
+	}
+}
+
+// Tab 依次经过三个可聚焦区域：左栏、对话流、输入框。
+func TestTabReachesEachRegion(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	reached := map[string]bool{}
+	for i := 0; i < 16 && len(reached) < 3; i++ {
+		tt.Key(0, gui.KeyTab)
+		for _, label := range []string{"左栏 · 会话列表", "对话流", "消息"} {
+			if tt.Focused(label) {
+				reached[label] = true
+			}
+		}
+	}
+	for _, label := range []string{"左栏 · 会话列表", "对话流", "消息"} {
+		if !reached[label] {
+			t.Fatalf("Tab 没有到达 %q", label)
+		}
+	}
+}
+
+// 左栏收起后留 12px 边条，边条可展开回原位。
+func TestSidebarCollapsesAndExpands(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if err := tt.Click("收起左栏"); err != nil {
+		t.Fatalf("点不到收起：%v", err)
+	}
+	if !app.sidebarCollapsed {
+		t.Fatal("左栏没有收起")
+	}
+	rail, ok := tt.Find("展开左栏")
+	if !ok {
+		t.Fatal("收起后找不到边条")
+	}
+	if rail.W != SidebarRailWidth {
+		t.Fatalf("边条宽 %v，想要 %v", rail.W, SidebarRailWidth)
+	}
+	if err := tt.Click("展开左栏"); err != nil {
+		t.Fatalf("点不到边条：%v", err)
+	}
+	if app.sidebarCollapsed {
+		t.Fatal("左栏没有展开")
+	}
+}
+
+// 过程摘要行展开后按发生顺序给出操作与失败原因（UI-11）。
+func TestSummaryExpands(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if tt.HasText("原因：权限不足，命令没有执行") {
+		t.Fatal("折叠时不应给出展开内容")
+	}
+	if err := tt.Click("展开"); err != nil {
+		t.Fatalf("点不到展开：%v", err)
+	}
+	if !app.summaryOpen[0] {
+		t.Fatal("第一轮摘要没有展开")
+	}
+	if !tt.HasText("原因：权限不足，命令没有执行") {
+		t.Fatal("展开后缺少失败原因")
+	}
+	if !tt.HasText("go test ./...") {
+		t.Fatal("展开后缺少操作对象")
+	}
+}
+
+// 右栏默认收起，展开后宽度落在 280–（容器−400）之间，主区不缩到 400 以下。
+func TestRightPanelOpensWithinBounds(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if app.rightOpen {
+		t.Fatal("右栏应默认收起")
+	}
+	if err := tt.Click("打开右栏"); err != nil {
+		t.Fatalf("点不到右栏入口：%v", err)
+	}
+	if !app.rightOpen {
+		t.Fatal("右栏没有展开")
+	}
+	panel, ok := tt.Find("右栏")
+	if !ok {
+		t.Fatal("找不到右栏")
+	}
+	if panel.W < RightPanelMinWidth || panel.W > 1440-SidebarWidth-RightPanelMainMinWidth {
+		t.Fatalf("右栏宽 %v 超出 280–（容器−400）", panel.W)
+	}
+	main, ok := tt.Find("对话流")
+	if !ok {
+		t.Fatal("找不到对话流")
+	}
+	if main.W < MainMinWidth {
+		t.Fatalf("主区宽 %v，小于 %v", main.W, MainMinWidth)
+	}
+}
+
+// 内容上限 784 居中；左栏固定 256；标题行 48。
+func TestRegionDimensions(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	sidebar, ok := tt.Find("左栏 · 会话列表")
+	if !ok || sidebar.W != SidebarWidth {
+		t.Fatalf("左栏 %+v，想要宽 %v", sidebar, SidebarWidth)
+	}
+	header, ok := tt.Find("标题行")
+	if !ok || header.H != HeaderHeight {
+		t.Fatalf("标题行 %+v，想要高 %v", header, HeaderHeight)
+	}
+	content, ok := tt.Find("对话内容")
+	if !ok || content.W > ContentMaxWidth {
+		t.Fatalf("内容 %+v，上限 %v", content, ContentMaxWidth)
+	}
+	if content.X+content.W/2 != SidebarWidth+(1440-SidebarWidth)/2 {
+		t.Fatalf("内容没有居中：%+v", content)
+	}
+}
+
+// 空态不显示会话附属，也不显示用量与右栏入口。
+func TestEmptyStateHidesSessionChrome(t *testing.T) {
+	_, tt := newTester(t, StateEmpty)
+	for _, label := range []string{"上下文用量", "打开右栏", "项目 A"} {
+		if tt.HasText(label) {
+			t.Fatalf("空态不应出现 %q", label)
+		}
+	}
+}
+
+// ParseState 接受名称与 1–5，其他给错误。
+func TestParseState(t *testing.T) {
+	for _, tc := range []struct {
+		in   string
+		want State
+	}{
+		{"default", StateDefault},
+		{"2", StateRunning},
+		{"waiting", StateWaiting},
+		{"4", StateFailed},
+		{"empty", StateEmpty},
+	} {
+		got, err := ParseState(tc.in)
+		if err != nil || got != tc.want {
+			t.Fatalf("ParseState(%q) = %v, %v；想要 %v", tc.in, got, err, tc.want)
+		}
+	}
+	if _, err := ParseState("nope"); err == nil {
+		t.Fatal("未知状态应报错")
+	}
+}
+
+// 运行中：队列条贴在输入区上沿，发送位变成停止。
+func TestRunningShowsQueueAndStop(t *testing.T) {
+	_, tt := newTester(t, StateRunning)
+	if !tt.HasText("排队中 1") {
+		t.Fatal("运行中缺少队列条")
+	}
+	if !tt.HasText("停止") {
+		t.Fatal("运行中发送位应是停止")
+	}
+	if _, ok := tt.Find("发送"); ok {
+		t.Fatal("运行中不应出现发送")
+	}
+}
