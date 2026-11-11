@@ -425,3 +425,258 @@ Status: active（架构基线已冻结；本版按对象与状态重写，取代
 3. 状态推断诱惑：界面容易自行判断运行状态。对策=状态字段只由呈现模型给，view 不新增判断。
 4. 性能目标受服务端首轮延迟影响：本机可达不代表远端可达。对策=按档位记录，不混用数字。
 
+## 附　呈现模型接口（首片定死，界面照此实现）
+
+呈现模型只做一件事：把折叠结果、在途写、待决项折成"可直接渲染的行"。它不引宿主框架类型、不引 Markdown 类型、不解析文本、不做时间格式化——这些归 view 与渲染层。
+
+### 行类型与字段
+
+共十种行：用户消息、助手消息、过程摘要、工具行、审批卡、提问卡、系统提示、错误行、结果未知行、空态。
+
+```go
+// 时间线：一次打开会话对应一份，顺序即显示顺序。
+type Timeline struct {
+    ConversationID string    // 服务端会话标识；未打开时为空
+    Rows           []Row     // 行序列
+    AnchorRow      RowID     // 建议滚动锚点；空态为零值
+    Unread         int       // 视口外的未读行数，可空（0 表示无）
+}
+
+type Row struct {
+    Kind     RowKind    // 十种之一，必填
+    ID       RowID      // 行身份，必填
+    Status   RowStatus  // 状态字段，必填（有缺省）
+    Segments []Segment  // 文本片段序列，至少一项；工具与卡片行可为空
+    Tool     *ToolInfo     // 仅工具行
+    Approval *ApprovalInfo // 仅审批卡，或工具行上挂的审批
+    Question *QuestionInfo // 仅提问卡
+    System   *SystemInfo   // 仅系统提示
+    Error    *ErrorInfo    // 仅错误行与结果未知行
+    Meta     RowMeta       // 元信息，必填
+}
+
+type RowKind int
+
+const (
+    RowUserMessage RowKind = iota + 1 // 用户消息
+    RowAssistantMessage               // 助手消息
+    RowProcessSummary                 // 过程摘要（思考、状态合并行）
+    RowTool                           // 工具行
+    RowApproval                       // 审批卡
+    RowQuestion                       // 提问卡
+    RowSystem                         // 系统提示
+    RowError                          // 错误行
+    RowUnknownResult                  // 结果未知行
+    RowEmpty                          // 空态
+)
+```
+
+### 行身份
+
+```go
+type RowID struct {
+    FactID  string // 服务端事实标识；未落库尾部为空
+    TurnSeq int    // 轮次序号，落定不变
+    Ordinal int    // 轮内顺序号
+    Temp    string // 仅未落库尾部使用；落库后由 FactID 取代
+}
+```
+
+- 优先用 `FactID`；尾部未落库的行用 `Temp`（由折叠层给，view 不得生成）。
+- `TurnSeq` 与 `Ordinal` 只用于定位与排序，不作为唯一身份。
+- 界面不得自造稳定标识、不得把行身份写进持久存储、不得用文本内容当身份。
+- 同一 `FactID` 再次出现即替换该行，不新增（重读与重放的去重就靠这一条）。
+
+### 状态字段
+
+```go
+type RowStatus struct {
+    Phase     Phase // 取值见下，必填
+    Collapsed bool  // 过程摘要是否折叠，缺省 false
+    Stale     bool  // 断线后未再确认，缺省 false
+}
+
+type Phase int
+
+const (
+    PhaseDone          Phase = iota + 1 // 已完成
+    PhaseRunning                        // 运行中
+    PhaseNeedsYou                       // 待你同意（审批、提问）
+    PhaseFailed                         // 失败
+    PhaseUnknownResult                  // 结果未知（仅写入）
+)
+```
+
+- 取值域固定为五种，缺省 `PhaseDone`；不得新增取值，需要新语义时先改本节。
+- "未连接"不占行状态，它属于时间线之外的连接提示；"已折叠"由 `Collapsed` 表达，不占 `Phase`。
+
+### 行内细节类型
+
+```go
+type Segment struct {
+    Kind  SegmentKind // 文本、思考、代码块、引用
+    Text  string      // 原样文本，不解析
+    Lang  string      // 代码块语言，可空
+    Parts []Segment   // 嵌套片段，可空
+}
+
+type ToolInfo struct {
+    CallID   string         // 服务端调用标识
+    Name     string         // 工具名
+    Status   Phase          // 与行状态一致
+    Summary  []Segment      // 参数与结果的摘要，可空
+    Approval *ApprovalInfo  // 该调用挂的审批，可空
+}
+
+type ApprovalInfo struct {
+    RequestID    string        // 服务端请求标识
+    CanAllowLong bool          // 是否可长期允许
+    Decision     ApprovalScope // 已作出的决定，可空（未决为空）
+    Description  []Segment     // 动作描述
+}
+
+type QuestionInfo struct {
+    RequestID string   // 服务端请求标识
+    Choices   []Choice // 候选项，可空
+    Answer    string   // 已答内容，可空
+}
+
+type Choice struct {
+    Value string // 候选项取值
+    Label string // 展示文案（服务端给，view 不改写）
+}
+
+type SystemInfo struct {
+    Level string // 提示级别
+    Code  string // 服务端错误或缺失分类码
+}
+
+type ErrorInfo struct {
+    Class     string // 错误分类
+    Retryable bool   // 是否允许用户重试
+}
+
+type RowMeta struct {
+    TurnSeq           int   // 所属轮次，空态为 0
+    CreatedAt         int64 // 服务端时间戳，view 负责格式化
+    VirtualHeightHint int   // 已测量高度，0 表示未测
+}
+```
+
+### 输入区模型
+
+```go
+type Composer struct {
+    Slot        Slot             // 当前槽位，必填
+    Draft       Draft            // 草稿，必填
+    Attachments []AttachmentChip // 待发附件块
+    Queue       []QueueItem      // 排队中的提交
+    Values      ValueStrip       // 当前值行
+}
+
+type Slot int
+
+const (
+    SlotWrite    Slot = iota + 1 // 写
+    SlotQueued                   // 排队
+    SlotApproval                 // 审批
+    SlotQuestion                 // 提问
+)
+
+type Draft struct {
+    Text      string // 原文，不解析
+    Cursor    int    // 光标位置
+    ChangedAt int64  // 最后修改时间
+}
+
+type AttachmentChip struct {
+    TempID   string        // 暂存标识
+    Name     string        // 文件名
+    Kind     string        // 文本或图片
+    Bytes    int64         // 字节数
+    Rejected *RejectReason // 被拒原因，可空
+}
+
+type RejectReason struct {
+    Class string // 超限、不可读
+    Limit int64 // 触发上限时的上限值
+}
+
+type QueueItem struct {
+    IntentID string // 写登记的意图标识
+    Text     string // 提交时内容
+    Phase    Phase  // 在途、未知或已完成
+}
+
+type ValueStrip struct {
+    Goal       *ValueItem // 目标，可空
+    Changes    *ValueItem // 本次改动，可空
+    Background *ValueItem // 后台任务，可空
+}
+
+type ValueItem struct {
+    Label  string // 名称
+    Value  string // 当前值
+    Status Phase  // 与行状态同域
+}
+```
+
+输入区的关键约束：草稿只在写槽位出现；进了审批或提问槽位时草稿保留但不可提交；排队项显示的是写登记的意图，不是界面自建的队列。
+
+### 增量协议
+
+```go
+type Patch struct {
+    Ops []Op // 一次刷新内的全部操作，按序应用
+}
+
+type Op struct {
+    Kind OpKind // 见下
+    ID   RowID  // 目标行
+    At   int    // 插入位置：插到第 At 行之前
+    Row  *Row   // 插入与替换时非空
+    Seg  int    // 追加到第几个片段
+    Text string // 追加的文本
+}
+
+type OpKind int
+
+const (
+    OpInsert OpKind = iota + 1 // 新增行
+    OpReplace                  // 整行替换（同 ID）
+    OpAppend                   // 向某片段追加文本（流式）
+    OpDelete                   // 删除行
+)
+```
+
+- 界面只做四件事：按 `At` 插入、按 `ID` 替换、按 `ID` 与 `Seg` 追加、按 `ID` 删除；不做推断、不做合并、不做排序。
+- 追加文本只对 `RowAssistantMessage` 与 `RowProcessSummary` 的文本片段有效；其它行收到追加即视为缺陷，应记诊断而不应用。
+- 插入必须带 `At`；`At` 越界时按末尾插入并记诊断。
+- 同一批 `Ops` 内出现同一 `ID` 的删除后插入，按序执行，不做优化。
+
+### 测试接缝
+
+```go
+// 纯函数入口：输入是只读快照，输出是完整行序列。
+func BuildTimeline(in TimelineInput) Timeline
+
+type TimelineInput struct {
+    Conversation ConversationFold // 折叠结果（只读）
+    InFlight     []IntentStatus   // 在途写（只读）
+    Pending      []PendingItem    // 待决项，队首优先
+    Client       SessionClient    // 打开阶段、分支选择、是否已连接
+}
+```
+
+- 单测只喂 `TimelineInput`、断言 `Timeline`：行序、行身份、状态字段、去重、空态。
+- 增量单测：先 `BuildTimeline` 得基线，再喂一串增量事件，断言产出的 `Patch` 与"重建后全量"等价；不等价即不通过。
+- view 层只测应用：给固定 `Patch` 系列，断言行数量与行类型序列，不做像素比对。
+
+### 边界（必须写在代码评审清单上）
+
+1. 呈现模型不引宿主框架类型、不引 Markdown 库类型；只输出 `Segment` 与状态。
+2. 呈现模型不解析文本、不做语法高亮、不格式化时间、不做本地化。
+3. 呈现模型不读连接、不发写请求、不持有事实；输入全是只读快照。
+4. 界面不得自造行身份、不得缓存历史、不得在行状态之外另加判断。
+5. `Phase` 只有五种；新增行类型或状态取值须先改本节再改实现。
+
