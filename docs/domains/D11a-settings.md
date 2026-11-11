@@ -58,7 +58,7 @@ Owner: D11a 设置与运行环境领域
 
 - 命令：`go test ./internal/settings`、`go test -race ./internal/settings`、`go test ./...`、`go vet ./...`；本版全部通过（2026-11-11，macOS arm64）。
 - 本领域：104 个顶层测试、53 个子测试，共 157 个通过；语句覆盖率 82.1%。
-- 真实模型：`scripts/verify-real-model.sh --fixture <fixture-dir>` 通过，观察到真实工具调用与工具结果（§6.5）。
+- 真实模型：`scripts/verify-real-model.sh --fixture <fixture-dir> --server <installed-server>` 通过，观察到真实工具调用与工具结果（§6.5）。
 - 真实模态：`scripts/verify-modality.py --fixture <fixture-dir> --server <installed-server> --image <image-file>` 通过；OCR 任务 `queued → running → succeeded`，结果分页读完；取消 `queued → cancelled`；实时因 adapter 不可用标 blocked（§6.6）。
 - 真实 provider/模型管理：`scripts/verify-provider-admin.py --fixture <fixture-dir> --server <installed-server>` 通过；新建→探测→更新→启用→模型开关→编辑→重置→偏好→版本冲突全部在真实 alpha.21 上跑通（§6.7）。
 - 真实协作策略与 agent 档案：`scripts/verify-collaboration-agent.py --fixture <fixture-dir> --server <installed-server>` 通过；策略 revision 1→4、过期写入返回冲突；会话 agent get/update/adopt/unchanged 均跑通（§6.8）。
@@ -807,8 +807,8 @@ go vet ./...
 
 **验证脚本**
 
-`scripts/verify-real-model.sh` 不读取 `<product-home>` 或任何来源目录，只读
-`--fixture`（默认 `<fixture-dir>`）。它把 <fixture-dir>/home 复制到新的
+`scripts/verify-real-model.sh` 不读取 `<product-home>` 或任何来源目录；`--fixture`
+与 `--server` 都必填。它把 <fixture-dir>/home 复制到新的
 临时目录，起 daemon，确认账号已登录，跑一次 `exec`，解析 `session.event`：
 
 - `step/tool-call` 必须出现，且带工具名与输入；
@@ -818,7 +818,7 @@ go vet ./...
 用法：
 
 ```bash
-scripts/verify-real-model.sh --fixture <fixture-dir>
+scripts/verify-real-model.sh --fixture <fixture-dir> --server <installed-server>
 ```
 
 **观察到的结果**

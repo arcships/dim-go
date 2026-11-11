@@ -36,11 +36,7 @@ func TestRealDaemonCatalogLifecycle(t *testing.T) {
 		serverArgs = append(serverArgs, args)
 	}
 
-	dataDir, err := os.MkdirTemp("", "dimagent-catalog-lifecycle-")
-	if err != nil {
-		t.Fatalf("创建临时数据目录: %v", err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dataDir) })
+	dataDir := evidenceDataDir(t)
 	workDir := filepath.Join(dataDir, "workspace")
 	if err := os.MkdirAll(workDir, 0o700); err != nil {
 		t.Fatalf("创建工作目录: %v", err)
@@ -270,6 +266,21 @@ func decodeTitleNotice(event session.Event, sessionID string) (TitleUpdate, bool
 		Source:    TitleSource(notice.Data.TitleSource),
 		Revision:  notice.Data.TitleRevision,
 	}, true
+}
+
+// evidenceDataDir 在系统临时目录下建一个证据用数据目录。目录名尽量短，
+// 避免 Unix socket 路径超过平台上限；过长时跳过并说明需要更短的 TMPDIR。
+func evidenceDataDir(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("", "")
+	if err != nil {
+		t.Fatalf("创建临时数据目录: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	if length := len(filepath.Join(dir, "rust", "daemon.sock")); length > 100 {
+		t.Skipf("系统临时目录路径过长（socket 路径 %d 字节），请把 TMPDIR 指到更短的目录", length)
+	}
+	return dir
 }
 
 // evidenceDaemonConfig 组装证据用的服务端配置：给了离线模型配置就用它，

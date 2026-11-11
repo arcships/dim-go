@@ -605,7 +605,8 @@ D1 待确认：`OnHistory` 不带分支标识（本包按主线折叠）。
 ### 6.6 真实模型：三类未完成事项（2026-11-11）
 
 前提：真实 daemon 0.1.0-alpha.21 + 本机临时夹具账号（真实 provider `deepseek-v4.1-flash`），
-夹具只复制不修改、不入库。会话用 `session.create` 建，**不传 `tools`**（传空数组等于一个工具都不挂），
+夹具只复制不修改、不入库。临时目录默认取系统临时根；端点路径有上限时，用环境变量
+`DIM_EVIDENCE_TMP` 指一个更短的临时根（写进命令行即可，不必改代码）。会话用 `session.create` 建，**不传 `tools`**（传空数组等于一个工具都不挂），
 `permissionPolicy.preset = "full-access"`（否则工具调用会停在审批上）。
 
 ```bash

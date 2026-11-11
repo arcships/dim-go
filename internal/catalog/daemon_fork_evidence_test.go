@@ -80,11 +80,7 @@ func TestRealDaemonFork(t *testing.T) {
 		serverArgs = append(serverArgs, args)
 	}
 
-	dataDir, err := os.MkdirTemp("", "dimagent-catalog-fork-")
-	if err != nil {
-		t.Fatalf("创建临时数据目录: %v", err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dataDir) })
+	dataDir := evidenceDataDir(t)
 	workDir := filepath.Join(dataDir, "workspace")
 	if err := os.MkdirAll(workDir, 0o700); err != nil {
 		t.Fatalf("创建工作目录: %v", err)
