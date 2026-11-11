@@ -18,3 +18,5 @@ coverage.out
 /dimagent-conncheck
 /tmpprobe
 /internal/tmpprobe
+/scripts/tmp-*
+/tmp-colab
