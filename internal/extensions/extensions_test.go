@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -1142,5 +1143,72 @@ func TestMCPImportApplyConflict(t *testing.T) {
 	}
 	if intents := writer.intentList(); len(intents) != 1 {
 		t.Fatalf("冲突后不应重写: %d", len(intents))
+	}
+}
+
+type scheduleReaderStub struct {
+	tasks   []ScheduledTask
+	runs    []ScheduledRun
+	taskErr error
+	runErr  error
+}
+
+func (s *scheduleReaderStub) ReadScheduledTasks(context.Context) ([]ScheduledTask, error) {
+	return append([]ScheduledTask(nil), s.tasks...), s.taskErr
+}
+
+func (s *scheduleReaderStub) ReadScheduleHistory(context.Context, string, int) ([]ScheduledRun, error) {
+	return append([]ScheduledRun(nil), s.runs...), s.runErr
+}
+
+func TestScheduleFollowSequenceGapAndHistory(t *testing.T) {
+	reader := &scheduleReaderStub{
+		tasks: []ScheduledTask{{ID: "job-1", Name: "定时任务"}},
+		runs:  []ScheduledRun{{ID: "run-1", JobID: "job-1", State: "running"}},
+	}
+	var logs []string
+	service, err := New(Config{
+		Scheduler: reader,
+		Logf: func(format string, args ...any) {
+			logs = append(logs, fmt.Sprintf(format, args...))
+		},
+	})
+	if err != nil {
+		t.Fatalf("创建领域实例: %v", err)
+	}
+	defer service.Close()
+
+	notices := []Notice{
+		{Topic: TopicSchedule, Sequence: 0, SequenceSet: true, Kind: "watching"},
+		{Topic: TopicSchedule, Sequence: 1, SequenceSet: true, Kind: "jobs"},
+		{Topic: TopicSchedule, Sequence: 1, SequenceSet: true, Kind: "jobs"}, // 重发：不重读
+		{Topic: TopicSchedule, Sequence: 3, SequenceSet: true, Kind: "jobs"}, // 缺口
+		{Topic: TopicSchedule, Sequence: 4, SequenceSet: true, Kind: "run", JobID: "job-1"},
+	}
+	for _, notice := range notices {
+		if err := service.Notify(notice); err != nil {
+			t.Fatalf("登记通知: %v", err)
+		}
+		if err := service.WaitIdle(context.Background()); err != nil {
+			t.Fatalf("等待跟随: %v", err)
+		}
+	}
+	if reads := service.ScheduledTaskReads(); reads != 4 {
+		t.Fatalf("计划任务重读次数不符: %d", reads)
+	}
+	if reads := service.ScheduleHistoryReads(); reads != 1 {
+		t.Fatalf("任务历史重读次数不符: %d", reads)
+	}
+	if len(service.ScheduleHistorySnapshot("job-1").Items) != 1 {
+		t.Fatalf("历史读数没有更新: %+v", service.ScheduleHistorySnapshot("job-1"))
+	}
+	gapLogged := false
+	for _, line := range logs {
+		if strings.Contains(line, "序号缺口") {
+			gapLogged = true
+		}
+	}
+	if !gapLogged {
+		t.Fatalf("序号缺口没有记录: %v", logs)
 	}
 }

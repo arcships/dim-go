@@ -35,6 +35,12 @@ type Notice struct {
 	SessionID  string
 	BranchID   string
 	WorkflowID string
+	// Sequence/Kind/JobID 用于 schedule.watch：序号缺口时重读，run 通知重读历史。
+	// SequenceSet 为 false 时保持旧行为（每条通知都重读）。
+	Sequence    int64
+	SequenceSet bool
+	Kind        string
+	JobID       string
 }
 
 // scopeKey 是同主题通知的合并键。
@@ -123,9 +129,7 @@ func (s *Service) handleNotice(ctx context.Context, notice Notice) {
 			_, _ = s.ListToolServers(ctx)
 		}
 	case TopicSchedule:
-		if s.cfg.Scheduler != nil {
-			_, _ = s.ListScheduledTasks(ctx)
-		}
+		s.followSchedule(ctx, notice)
 	case TopicWorkflows:
 		s.followWorkflows(ctx, notice)
 	case TopicWakeups:
@@ -160,6 +164,41 @@ func (s *Service) followWorkflows(ctx context.Context, notice Notice) {
 	for _, workflowID := range targets {
 		_, _ = s.readWorkflowRuns(ctx, workflowID)
 		s.recordRead(TopicWorkflows)
+	}
+}
+
+func (s *Service) followSchedule(ctx context.Context, notice Notice) {
+	if s.cfg.Scheduler == nil {
+		return
+	}
+	gap := false
+	duplicate := false
+	if notice.SequenceSet {
+		s.mu.Lock()
+		seen := s.scheduleSequenceSeen
+		last := s.scheduleSequence
+		switch {
+		case !seen:
+			s.scheduleSequenceSeen = true
+			s.scheduleSequence = notice.Sequence
+		case notice.Sequence > last:
+			gap = notice.Sequence > last+1
+			s.scheduleSequence = notice.Sequence
+		default:
+			duplicate = true
+		}
+		s.mu.Unlock()
+		if duplicate {
+			// 同一个序号重复到达：不重复重读，避开服务端的进度重发。
+			return
+		}
+		if gap {
+			s.cfg.Logf("extensions: schedule.watch 序号缺口 last=%d next=%d", last, notice.Sequence)
+		}
+	}
+	_, _ = s.ListScheduledTasks(ctx)
+	if notice.Kind == "run" && notice.JobID != "" {
+		_, _ = s.ListScheduleHistory(ctx, notice.JobID, 0)
 	}
 }
 

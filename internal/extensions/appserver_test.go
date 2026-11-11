@@ -583,6 +583,37 @@ func (h *appServerHarness) ReadScheduledTasks(ctx context.Context) ([]ScheduledT
 	return tasks, nil
 }
 
+func (h *appServerHarness) ReadScheduleHistory(ctx context.Context, jobID string, limit int) ([]ScheduledRun, error) {
+	params := map[string]any{"job_id": jobID}
+	if limit > 0 {
+		params["limit"] = limit
+	}
+	var result struct {
+		Runs []struct {
+			RunID        string `json:"run_id"`
+			JobID        string `json:"job_id"`
+			Window       string `json:"window"`
+			State        string `json:"state"`
+			CreatedAt    string `json:"created_at"`
+			EndedAt      string `json:"ended_at"`
+			SessionID    string `json:"session_id"`
+			SubmissionID string `json:"submission_id"`
+		} `json:"runs"`
+	}
+	if err := h.client.CallInto(ctx, "schedule.history", params, &result); err != nil {
+		return nil, err
+	}
+	runs := make([]ScheduledRun, 0, len(result.Runs))
+	for _, run := range result.Runs {
+		runs = append(runs, ScheduledRun{
+			ID: run.RunID, JobID: run.JobID, Window: run.Window, State: run.State,
+			CreatedAt: run.CreatedAt, EndedAt: run.EndedAt,
+			SessionID: run.SessionID, Submission: run.SubmissionID,
+		})
+	}
+	return runs, nil
+}
+
 // wireWakeup 是 `session.wakeup.list` 的一项（camelCase，时间 RFC 3339）。
 type wireWakeup struct {
 	WakeupID string `json:"wakeupId"`

@@ -170,24 +170,29 @@ type Service struct {
 	// readMu 串行化全部管理面读取，保证旧读数不会覆盖后完成的读数。
 	readMu sync.Mutex
 
-	mu            sync.Mutex
-	closed        bool
-	plugins       Snapshot[Plugin]
-	skills        Snapshot[Skill]
-	skillVersion  uint64
-	skillIssues   []SkillIssue
-	hooks         Snapshot[Hook]
-	toolServers   Snapshot[ToolServer]
-	probes        map[string]ToolServerProbe
-	imports       map[string]ImportPreview
-	mcpPreviews   map[string]MCPImportPreview
-	scheduled     Snapshot[ScheduledTask]
-	workflows     Snapshot[WorkflowDefinition]
-	workflowRuns  map[string]*Snapshot[WorkflowRun]
-	workflowWatch map[string]struct{}
-	wakeups       map[string]*Snapshot[Wakeup]
-	wakeupWatch   map[string]WakeupScope
-	followStats   FollowStats
+	mu                   sync.Mutex
+	closed               bool
+	plugins              Snapshot[Plugin]
+	skills               Snapshot[Skill]
+	skillVersion         uint64
+	skillIssues          []SkillIssue
+	hooks                Snapshot[Hook]
+	toolServers          Snapshot[ToolServer]
+	probes               map[string]ToolServerProbe
+	imports              map[string]ImportPreview
+	mcpPreviews          map[string]MCPImportPreview
+	scheduled            Snapshot[ScheduledTask]
+	scheduleSequence     int64
+	scheduleSequenceSeen bool
+	scheduleHistory      map[string]*Snapshot[ScheduledRun]
+	scheduleReads        uint64
+	scheduleHistoryReads uint64
+	workflows            Snapshot[WorkflowDefinition]
+	workflowRuns         map[string]*Snapshot[WorkflowRun]
+	workflowWatch        map[string]struct{}
+	wakeups              map[string]*Snapshot[Wakeup]
+	wakeupWatch          map[string]WakeupScope
+	followStats          FollowStats
 
 	// writeMu 保护同一操作的重试序号与最近状态，防止重复写入。
 	writeMu sync.Mutex
@@ -207,15 +212,16 @@ type writeAttempt struct {
 func New(cfg Config) (*Service, error) {
 	cfg = cfg.withDefaults()
 	service := &Service{
-		cfg:           cfg,
-		probes:        make(map[string]ToolServerProbe),
-		imports:       make(map[string]ImportPreview),
-		mcpPreviews:   make(map[string]MCPImportPreview),
-		workflowRuns:  make(map[string]*Snapshot[WorkflowRun]),
-		workflowWatch: make(map[string]struct{}),
-		wakeups:       make(map[string]*Snapshot[Wakeup]),
-		wakeupWatch:   make(map[string]WakeupScope),
-		writes:        make(map[string]writeAttempt),
+		cfg:             cfg,
+		probes:          make(map[string]ToolServerProbe),
+		imports:         make(map[string]ImportPreview),
+		mcpPreviews:     make(map[string]MCPImportPreview),
+		scheduleHistory: make(map[string]*Snapshot[ScheduledRun]),
+		workflowRuns:    make(map[string]*Snapshot[WorkflowRun]),
+		workflowWatch:   make(map[string]struct{}),
+		wakeups:         make(map[string]*Snapshot[Wakeup]),
+		wakeupWatch:     make(map[string]WakeupScope),
+		writes:          make(map[string]writeAttempt),
 	}
 	service.follower = newFollower(service.handleNotice)
 	return service, nil

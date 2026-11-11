@@ -1,6 +1,6 @@
 # D1 连接（protocol v3 wire、daemon 生命周期、会话流）
 
-Status: 第五版（第一版 + v3 wire + 管理面/权限档位 + 卡点调查 + 宿主侧调查，P1-1 候选结果包）
+Status: 第六版（第一版 + v3 wire + 管理面/权限档位 + 卡点调查 + 宿主侧调查 + Go UI 叶子验证，P1-1 候选结果包）
 Owner: D1 领域 agent
 验证: 可执行命令 + 可观察输出见第 6 节；真实 daemon 证据在 6.3–6.5，调查结论在 10
 依据: `docs/domains/R.md` 第 1 部分功能块 1、`docs/domains/A.md`（连接状态机、会话能力归属、四条总规矩）、`docs/project-organization.md` §6 F3
@@ -28,6 +28,7 @@ Owner: D1 领域 agent
 | `internal/appserver/transport` | 本地传输入口：Unix domain socket 实现；Windows 命名管道保留接口并明确返回不支持 |
 | `internal/appserver/daemon` | 数据目录 → 端点解析、自启与归属、回收、hello 握手与版本校验、控制连接与流连接 |
 | `internal/appserver/session` | 每会话一条流、一份订阅；订阅先于 attach 与历史；持有者计数；断线按序号重读 |
+| `internal/rutis` | UI 叶子的最小 rutis 会话：私有 Unix socket、hello/握手、newline 帧、保持连接；不提供插件目录与业务方法 |
 | `internal/appserver/failure` | 五种错误分类与 `errors.Is` 支持，供上层决定重试或失败关闭 |
 | `cmd/dimagent-conncheck` | 真实 daemon 验收程序：握手、打开会话、观察通知、回收自启实例 |
 
@@ -488,6 +489,8 @@ mgmt.session.wakeup.cancel {}
 25. `ui.*` 只冻结了协议形状与连接注册路径；UI 叶子的 rutis 会话没有 Go 实现，`ui.open` 的叶子路未在 Go 侧验证（见 11.1）。`ui.shutdown` 是 advisory；真正的关闭是 daemon 处置 `UiLeaf` 关闭会话，不是宿主进程被 kill。
 26. `UiLeave` 结构体存在但未注册、未调度；客户端不要调用 `ui.leave`（见 11.2 末尾）。
 27. 插件运行时只支持 Node/Python；没有注册 Go 运行时的公开接口，不能把普通 Go 进程伪装成 runtime（见 11.2）。
+28. `internal/rutis` 只实现 UI 叶子的最小会话：Unix socket、hello/握手、newline 帧、保持/关闭；没有 TCP+token 地址、插件目录、服务 offer、入站方法、重连或 session option 限制（见 12.2）。
+29. 最小叶子不声明 rutis capabilities；真实 dim 叶子声明 `reentrant-sync/plugins/value-*/node`。alpha.21 接受前者并完成 `ui.*`，但依赖 `node`/`plugins` 的叶子功能需要补实现（见 12.4）。
 
 ## 9. 下一步建议
 
@@ -656,7 +659,63 @@ mgmt.session.wakeup.cancel {}
 
 **未找到**：rutis framed 通道的字节级帧格式、Go SDK/Go runtime 实现、任何 `runtime.register`/`runtime.create` 一类的公开方法；`protocol.rs` 里有 `UiLeave` 结构体，但不在 `UI_HOST_METHODS` 或 builtin 方法表里，也没有被 `connection.rs` 调度，未作为接口使用。
 
-## 12. 变更记录
+## 12. UI 叶子协议与 Go 最小实现
+
+调查时间：2026-11-11。源码只读：`~/Code/rutis`（含 `crates/rutis-bridge`、`rutis-types`、`go/rutis`）、`~/Code/dim`（dim 的叶子实现 `crates/dim-cli/src/leaf.rs`、`crates/dim-app-server/src/ui_leaf.rs`）、`~/.dimcode-alpha`（alpha.21 二进制）。夹具与 socket 只在 `/tmp` 或临时 home。
+
+### 12.1 session protocol 4 要点
+
+| 项 | 内容（源码依据） |
+|---|---|
+| 帧 | 一条消息一行：JSON 后接 `\n`；发送前禁止消息内出现原始换行（JSON 字符串里的换行会被转义）；接收要求 UTF-8；单帧上限 16 MiB（不含换行），超限即结束通道。来源：`rutis-bridge/src/pipe/lines.rs`（`MAX_MESSAGE`、`refuses`）、`go/rutis/internal/peer/channel.go`。 |
+| 握手 | 双方各发一帧 `hello`：`{op:"hello", version:4, endpoint:"<id>", implementation?:{name,version}, capabilities?:[...]}`；`version` 必须为 4；`endpoint` 匹配 `^[a-z0-9-]+$` 且不能等于本端 id；可声明期望对端 id。daemon 端在 10 秒内等不到 greeting 就关闭。来源：`session/plugin/greet.rs`（`Greet::open`、`ENDPOINT_PROTOCOL=4`、`HANDSHAKE=10s`）、`session/plugin/mod.rs`（`Session::handshake`）、`go/rutis/internal/peer/peer.go`（`Start`、`greet`、`versionMismatch`）。 |
+| LocalId | 本端 id 由 `rutis_bridge::LocalId` 提供，作为 hello 的 `endpoint` 和调用 id 前缀。UI 叶子用 `ui-<id>`（dim 用 `ui-<uuid-simple>`；peer 只允许小写字母、数字、`-`），daemon 用 `dim-daemon`。daemon 的 `UiLeaf` 用 `expected` 校验叶子 id；dim 的叶子反校验对端为 `dim-daemon`。来源：`crates/dim-cli/src/leaf.rs`、`ui_leaf.rs`。 |
+| 管道/地址 | Unix：native home（`<home>/rust`，0700）里的 `ui-<8 hex>` 私有 socket，地址写作 `unix:<path>`；跨平台走 loopback TCP `tcp:<host>:<port>#<token>`，连接后第一行先发一次性 token，再开始握手。来源：`ui_leaf.rs` 的 `dial`、`leaf.rs` 的 `Accept`、`Tui.md §3.6`。 |
+| 失败 | 版本/格式不符、非法 endpoint、期望 id 不符会在握手阶段结束会话；daemon 的 `ui.open` 以 `ui_leaf_failed` 返回且不留注册；`ui.attach` 另见 `ui_token`/`ui_in_use`/`ui_unknown`。来源：`greet.rs`、`ui_host.rs`。 |
+| 关闭 | 通道结束（EOF/关闭 socket）即会话结束：daemon 处置 `UiLeaf` 并移除界面注册；`ui.close`/替换/daemon 退出先发 advisory `ui.shutdown`，再处置 `UiLeaf` 关闭通道。没有心跳，会话结束就是生命周期事实。来源：`ui_leaf.rs`、`ui_host.rs`、`Tui.md §3.6`。 |
+
+### 12.2 Go 最小实现（`internal/rutis`，只用标准库）
+
+实现范围：
+
+- `Listen(dir)`：在私有目录绑定 `ui-<8 hex>` 的 Unix socket，返回 `peer`（`ui-...`）与 `address`（`unix:<path>`）。
+- `Serve(ctx, expectedPeer)`：accept 一次；发送本端 hello（`version=4`、`endpoint=peer`、`implementation.name=mygo-uileaf`、不声明 capabilities）；10 秒内读取对端 hello，校验 `op=hello`、`version=4`、`endpoint=dim-daemon`；之后保持通道，逐帧读取。
+- 入站 `invoke/call/get`：以 `throw {name:"BindingError", message:"the UI leaf serves no methods"}` 拒绝；`offer`/通知类帧忽略。叶子没有插件目录、服务或 row，所以不实现 rutis 插件宿主。
+- `Close`/通道 EOF：删除 socket、关闭 `Done`；`Serve` 返回 `ErrClosed`。
+- 帧编解码：newline、16 MiB 上限、UTF-8 校验、超限帧错误；与 `pipe/lines.rs` 一致。
+- 仅实现了 Unix socket 与纯协议 4；没有实现 TCP+token 地址、plugin catalog/services、重连或 session option 限制。
+
+### 12.3 真机结果（alpha.21）
+
+```bash
+DIMCODE_APP_SERVER_BIN=~/.dimcode-alpha/rust/dimcode-server \
+DIMCODE_APP_SERVER_ARGS=app-server \
+go test -count=1 -v ./internal/rutis -run TestRealDaemonUIFLeaf
+```
+
+结果（只记标识、状态与帧长度，不打印会话内容）：
+
+```text
+leaf peer=ui-9d6ce3ce954767c8
+greeting={Endpoint:dim-daemon Implementation:map[name:rutis-bridge version:0.19.3]
+  Capabilities:[reentrant-sync plugins value-instant ... value-uuid node]}
+hello_bytes=113 far_hello_bytes=302 token_bytes=43 generation=1
+ui.status instances=1 state=online generation=1
+leaf session ended after ui.close: rutis: session closed
+PASS
+```
+
+步骤全部通过：宿主绑定 socket → 调 `ui.open {sessionId, kind:"tui", peer, address}` → daemon 反向拨号并握手（对端 `dim-daemon`，protocol 4）→ 宿主拿到 `{uiId, generation, token}` → `ui.attach {uiId, token}` → `ui.status` 看到 `online` → `ui.close` → 注册移除且叶子 session 结束。调用链用现有 `daemon`/`session` 客户端与临时 home、mock 模型，结束后 `Shutdown` 回收自有 daemon。
+
+### 12.4 结论与边界
+
+- **能做**：纯 Go、标准库即可完成 UI 叶子所需的最小 rutis 会话；不需要 rutis 动态库、Node 或 Python。alpha.21 接受不声明 capabilities、无插件目录的最小 hello。
+- **不能做**：这个包不是插件运行时，也不承载插件行；需要插件目录/服务/row 的完整叶子（例如在叶子里跑 TUI 或注册 Session part）还要实现 `node`/`plugins` 能力、offer/服务调用与 row 协议，当前未实现。
+- **未做/限制**：仅 Unix socket（TCP `tcp:...#token` 未实现）；固定期望 `dim-daemon`；没有重连（会话结束即退出）；入站调用一律拒绝；帧 16 MiB；不声明 capabilities（真实 dim 叶子声明 `reentrant-sync/plugins/value-*/node`）。
+
+**需要上游做什么**：当前无阻塞；若要在 Go 叶子中运行插件/注册 Session part，需要完整的 rutis Go SDK 或等价规范（`~/Code/rutis/go/rutis` 已存在，但版本是 0.21+ 且当前协议仍为 4；接入前要确认与宿主 0.19.3 的兼容性）。本轮已验证最小握手无需该 SDK。
+
+## 13. 变更记录
 
 | 日期 | 变更 | 原因 | 影响 |
 |---|---|---|---|
@@ -668,3 +727,4 @@ mgmt.session.wakeup.cancel {}
 | 2026-11-11 | 四项卡点调查：runtime 注册条件（`--defaults`/`acquire`）、workflow 默认插件缺失、模态实时 adapter 缺失、成员停止方法与成员标识来源 | 集成层需要判定能否在本侧解锁 | runtime 可由客户端补默认预设解锁；workflow 与 realtime 需上游；成员停止可直接接入 |
 | 2026-11-11 | 补第四轮调查：runtime 注册条件与客户端解锁方式、workflow 默认插件缺失、模态实时 adapter 缺失、成员停止接口与成员会话标识来源；附两条上游 issue 草案 | 四件卡点需要可否解锁的判定 | runtime/成员停止可接入；workflow/realtime 需上游 |
 | 2026-11-11 | 宿主侧调查：`ui.*` 语义/参数/回执/方向/失败与重连；插件运行时只支持 Node/Python，Go leaf runtime 需要上游通用运行时行与 Go rutis 会话实现；补 UI 宿主 wire 类型 | 原生宿主接入需要冻结 ui.* 形状并判定 Go 运行时可不可行 | 普通 UI 连接注册可接入；UI 叶子和 Go 插件运行时需上游 |
+| 2026-11-11 | 读 rutis 源码实现最小 Go UI 叶子会话（`internal/rutis`，纯标准库）；alpha.21 真机跑通 ui.open/握手/ui.attach/ui.status/ui.close；记录协议 4 帧、握手、LocalId、地址与关闭语义 | 验证 Go leaf 只缺协议实现而非不可行 | 原生 UI 可用 Go 叶子接入；插件运行时仍未支持 |
