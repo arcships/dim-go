@@ -111,12 +111,26 @@ func (a *App) subscribeSession(ctx context.Context, sessionID string) (*sessionR
 			innerEvent(event)
 		}
 	}
+	// 断线先把界面标记为 detached；重连重读后再重新 ui.attach。
+	innerResync := listener.OnResync
+	var runtimeRef *sessionRuntime
+	listener.OnResync = func(resync session.Resync) {
+		if innerResync != nil {
+			innerResync(resync)
+		}
+		if runtimeRef != nil {
+			a.markUIDetached(runtimeRef)
+		}
+	}
 	var landed atomic.Int64
 	innerHistory := listener.OnHistory
 	if innerHistory != nil {
 		listener.OnHistory = func(replay session.HistoryReplay) {
 			innerHistory(replay)
 			landed.Store(replay.History.Through)
+			if runtimeRef != nil {
+				go a.reattachUIAfterResync(runtimeRef)
+			}
 		}
 	}
 
@@ -132,6 +146,7 @@ func (a *App) subscribeSession(ctx context.Context, sessionID string) (*sessionR
 		attached: snapshot.Attach,
 		snapshot: snapshot,
 	}
+	runtimeRef = runtime
 	runtime.landed.Store(landed.Load())
 	if snapshot.History.Through > runtime.landed.Load() {
 		runtime.landed.Store(snapshot.History.Through)
@@ -205,6 +220,8 @@ func (a *App) CloseSession(sessionID string) error {
 	if !ok {
 		return nil
 	}
+	// 会话关闭时清理本地界面注册；服务端会随会话移除注册，不发额外请求。
+	runtime.ui.clear()
 	runtime.lease.Release()
 	a.record("已关闭会话: %s", sessionID)
 	return nil

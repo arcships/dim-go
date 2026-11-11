@@ -126,6 +126,8 @@ type sessionRuntime struct {
 	permissionPolicy atomic.Pointer[protocol.PermissionPolicy]
 	// contextReading 是最近一次按需读到的上下文占用（session.context.usage）。
 	contextReading contextReadingCache
+	// ui 是本会话的界面注册状态（ui.attach/ui.close）。
+	ui uiRegistrationState
 }
 
 // App 是集成层的对外类型。所有导出方法可并发调用。
@@ -146,6 +148,8 @@ type App struct {
 	accountWire *accountWire
 	// deviceAuth 是设备码登录的适配；尝试到 provider 的对应只在内存里保存。
 	deviceAuth *accountDeviceSource
+	// uiShutdowns 是 daemon 发来的建议性关闭通知（宿主自行决定如何响应）。
+	uiShutdowns []UIShutdownEvent
 	// updater 是应用更新编排；未装配时为 nil。
 	updater       *host.Updater
 	updateOptions UpdateOptions
@@ -572,6 +576,8 @@ func (a *App) StopIntents(ctx context.Context) error {
 	}
 	sessions := make([]*sessionRuntime, 0, len(a.sessions))
 	for id, runtime := range a.sessions {
+		// 退出时清理本地界面注册，不向服务端发关闭请求。
+		runtime.ui.clear()
 		sessions = append(sessions, runtime)
 		delete(a.sessions, id)
 	}

@@ -78,6 +78,9 @@ func usage() {
   -mock               用 mock 模型启动服务端（验收用）
   -model-config <文件> 显式模型配置（configured profile；管理面方法只在非 mock 实例上可用）
   -defaults <文件>    默认插件/运行时预设（--defaults）；缺失时按能力缺失处理
+  -ui-attach          在打开的会话上注册一个普通界面（ui.attach，kind=gui）
+  -ui-close           注册后立即关闭（ui.close）
+  -ui-status          读取界面清单（ui.status）
   -session <标识>     打开已有会话；省略时取目录里的第一条
   -create             目录为空时新建一个会话
   -cwd <目录>         新建会话的工作目录；缺省取当前目录
@@ -141,6 +144,9 @@ func runSelfCheck(args []string) int {
 	mockModel := flags.Bool("mock", false, "用 mock 模型启动服务端")
 	modelConfig := flags.String("model-config", "", "显式模型配置路径")
 	defaults := flags.String("defaults", "", "默认插件/运行时预设路径")
+	uiAttach := flags.Bool("ui-attach", false, "注册普通界面")
+	uiClose := flags.Bool("ui-close", false, "注册后立即关闭")
+	uiStatus := flags.Bool("ui-status", false, "读取界面清单")
 	logPath := flags.String("log", "", "进程级诊断写到该文件")
 	if err := flags.Parse(args); err != nil {
 		return exitUsage
@@ -236,6 +242,9 @@ func runSelfCheck(args []string) int {
 		shell:      *shellCommand,
 		shellStop:  *shellStop,
 		shellList:  *shellList,
+		uiAttach:   *uiAttach,
+		uiClose:    *uiClose,
+		uiStatus:   *uiStatus,
 		rename:     *rename,
 		permission: *permission,
 		short:      *short,
@@ -267,6 +276,9 @@ type checkOptions struct {
 	shell      string
 	shellStop  bool
 	shellList  bool
+	uiAttach   bool
+	uiClose    bool
+	uiStatus   bool
 	rename     string
 	permission string
 	short      bool
@@ -368,6 +380,16 @@ func runCheck(base *app.App, options checkOptions) int {
 	}
 	if options.shellList {
 		if code := listShellRuns(ctx, base, view.SessionID); code != 0 {
+			return code
+		}
+	}
+	if options.uiAttach || options.uiClose {
+		if code := runUIAttach(ctx, base, view.SessionID, options.uiClose); code != 0 {
+			return code
+		}
+	}
+	if options.uiStatus {
+		if code := printUIStatus(ctx, base); code != 0 {
 			return code
 		}
 	}
@@ -594,6 +616,48 @@ func listShellRuns(ctx context.Context, base *app.App, sessionID string) int {
 	for _, run := range runs {
 		fmt.Printf("  run=%s branch=%s mode=%s startedAt=%d\n",
 			run.RunID, run.BranchID, run.Mode, run.StartedAt)
+	}
+	return 0
+}
+
+// runUIAttach 注册普通界面，可选立即关闭；证据只打印 uiId 与状态。
+func runUIAttach(ctx context.Context, base *app.App, sessionID string, closeAfter bool) int {
+	registration, err := base.AttachUI(ctx, sessionID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 注册界面: %v（code=%s）\n", err, app.UIErrorCode(err))
+		for _, line := range base.Diagnostics() {
+			fmt.Fprintf(os.Stderr, "  - %s\n", line)
+		}
+		return exitFailed
+	}
+	fmt.Printf("ui.attach: uiId=%s generation=%d state=%s\n",
+		registration.UIID, registration.Generation, registration.State)
+	if !closeAfter {
+		return 0
+	}
+	if err := base.CloseUI(ctx, sessionID, "selfcheck"); err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 关闭界面: %v（code=%s）\n", err, app.UIErrorCode(err))
+		return exitFailed
+	}
+	state := "closed"
+	if registration, ok := base.UIRegistration(sessionID); ok {
+		state = registration.State
+	}
+	fmt.Printf("ui.close: uiId=%s state=%s\n", registration.UIID, state)
+	return 0
+}
+
+// printUIStatus 打印界面清单的条数与连接数；不打印界面地址。
+func printUIStatus(ctx context.Context, base *app.App) int {
+	status, err := base.UIStatus(ctx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "selfcheck: 读取界面清单: %v（code=%s）\n", err, app.UIErrorCode(err))
+		return exitFailed
+	}
+	fmt.Printf("ui.status: instances=%d webConnections=%d\n", len(status.Instances), status.WebConnections)
+	for _, instance := range status.Instances {
+		fmt.Printf("  uiId=%s session=%s kind=%s state=%s generation=%d\n",
+			instance.UIID, instance.SessionID, instance.Kind, instance.State, instance.Generation)
 	}
 	return 0
 }

@@ -51,6 +51,9 @@ func (a *App) handleControlNotice(message protocol.Message) {
 		})
 	case protocol.MethodSessionNotice:
 		a.routeSessionNotice(message.Params)
+	case protocol.MethodUIShutdown:
+		// ui.shutdown 是 advisory：控制连接上收到也按同一条路径记录。
+		a.routeUIShutdownMessage(message.Method, message.Params)
 	case protocol.MethodApprovalRequest, protocol.MethodApprovalCancelled, protocol.MethodApprovalResolved:
 		// 审批通知按会话归属解释；控制连接上收到时直接丢弃，不重复入队。
 	case "session.event", "session.model.progress":

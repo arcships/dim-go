@@ -62,7 +62,7 @@ Owner: D12 集成层领域
 **验收**（详见第 7 节）
 
 - 命令：`go test ./...`、`go vet ./...`；本版全部通过（2026-11-10，macOS arm64）。`go test -race ./internal/app/` 通过。
-- 本领域测试：59 个顶层测试与 8 个子测试全部通过。
+- 本领域测试：63 个顶层测试与 8 个子测试全部通过。
 - 证据档位：`fakeappserver`（本机 Unix socket 上真实 NDJSON，覆盖通知路由、清单注入、核对与附件门禁）；真实 App Server（0.1.0-alpha.7 与 0.1.0-alpha.18，临时数据目录 + mock 模型）。
 - 真实事件里能触发的已触发（清单读取、提交、核对方法可探测）；不能触发的（审批、标题、ask_user）如实标 blocked。
 
@@ -353,7 +353,20 @@ dimagent update switch     # 检查 + 下载 + 切换；会话未收尾时明确
 
 `switch` 与 `download` 在同一进程内完成状态机（检查 → 待下载 → 待切换），因为更新状态只在内存，不落盘。
 
-### 4.13 上下文、成员与默认预设
+### 4.13 界面注册（`ui.*`）
+
+| 项 | 口径 |
+|---|---|
+| 注册 | `AttachUI(ctx, session)` 在已 attach 的会话流上调 `ui.attach {sessionId, kind:"gui"}`（普通路径不带 `uiId/token`）；保存回执的 `uiId` 与 `generation`，状态 `online` |
+| 关闭 | `CloseUI(ctx, session, reason)` 调 `ui.close {uiId, reason?}`，随后清本地注册；没有注册时不发请求 |
+| 清单 | `UIStatus(ctx)` 读控制连接 `ui.status`（instances/webConnections），只用于自检与诊断 |
+| 建议性关闭 | `ui.shutdown {uiId, reason}` 只记录进 `DrainUIShutdowns` 并把注册标成 `shutdown_requested`；不自动发 `ui.close`、不杀进程 |
+| detach/reattach | 会话流断开时注册标成 `detached`；重连重读后自动重新 `ui.attach`（同一连接+会话幂等），恢复 `online` |
+| 清理 | 会话关闭与退出五阶段清理本地注册；不额外请求 |
+| 失败码 | `UIErrorCode(err)` 取稳定 appError（`ui_in_use`、`session_not_attached`、`ui_detached` 等），调用方按码分类 |
+| 范围 | `ui.*` 只对本机连接；叶子路径（`ui.open` + rutis）不在 Go 侧实现 |
+
+### 4.14 上下文、成员与默认预设
 
 | 项 | 口径 |
 |---|---|
@@ -436,7 +449,7 @@ go vet ./...
 go test -race ./internal/app/
 ```
 
-本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 59 个顶层测试与 8 个子测试全绿。
+本版结果：三条命令全部通过（2026-11-11，macOS arm64）。`internal/app` 的 63 个顶层测试与 8 个子测试全绿。
 
 ### 7.2 覆盖
 
@@ -486,6 +499,10 @@ go test -race ./internal/app/
 | 账号邮箱透传（browser/device）与设备码取消 | `TestAccountEmailAndDeviceCancel` |
 | 登出成功后清 provider 解析缓存 | `TestLogoutClearsProviderBinding` |
 | MCP 导入新形状（resolutions/expectedVersion）与冲突映射 | `TestMCPImportApplyMapsResolutions` |
+| 界面注册成功保存 uiId/generation、关闭清理、ui.status 映射 | `TestUIAttachCloseAndStatus` |
+| `ui.shutdown` 只记录为建议性关闭、不自动 ui.close | `TestUIShutdownIsAdvisory` |
+| 失败码 `ui_in_use`/`session_not_attached` 分类与 detach/reattach 注册跟随 | `TestUIErrorCodesAndReattach` |
+| 界面注册缺能力零请求 | `TestUIAttachMissingCapability` |
 | 断线恢复、共享订阅、未知核对（真实 daemon，环境变量开启） | `TestRealResilienceEvidence` |
 | 应用更新：检查到新版、已是最新 | `TestUpdaterCheckFindsNewVersion`、`TestUpdaterUpToDate` |
 | 应用更新：下载摘要不一致留在待下载 | `TestUpdaterDownloadChecksumFailure` |
@@ -835,6 +852,24 @@ shell.list: runs=0
 - `attachment.put` 在 configured profile 上真实可用，门禁放行并拿到 `attachmentId` 与路径；mock profile 会按能力缺失拒绝。
 - 运行中停止：`shell.stop` 返回 `stopped=true`，运行状态收敛为 `stopped`，清单清空。
 
+**证据 S：界面注册（alpha.21 configured profile）**
+
+```bash
+D=$(mktemp -d /tmp/d12ui-XXXXXX)
+go run ./cmd/dimagent selfcheck -data-dir "$D" \
+  -server $HOME/.dimcode-alpha/rust/dimcode-server \
+  -model-config /tmp/offline.json -create -ui-attach -ui-close -ui-status -short
+```
+
+```text
+ui.attach: uiId=a305e222-337a-41dd-8624-79b52d6f91de generation=1 state=online
+ui.close: uiId=a305e222-337a-41dd-8624-79b52d6f91de state=closed
+ui.status: instances=0 webConnections=0
+```
+
+- 普通路径注册成功，拿到 `uiId` 与 `generation=1`；关闭后本地注册清理，`ui.status` 里没有残留界面。
+- 证据只留标识、代数与状态；不打印界面地址、token 或会话正文。
+
 ### 7.4 自检子命令
 
 ```bash
@@ -921,6 +956,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 真实设备码/浏览器登录完成 | blocked | 需要真人在授权页完成；本包只验证发起、轮询与取消 |
 | 真实 `permission.set_rules`（长期允许） | 未验证 | 只有假服务端证据；需要一次真实工具审批（本机模型不产生） |
 | 重连后自动重开会话 | 未验证 | 需要 U1/D10 决定重开策略；本包只提供 `Reconnect` 与 `OpenSession` |
+| 真实 UI 叶子路径（`ui.open` + rutis 会话） | blocked | 需要 rutis 客户端实现；本版只做普通连接注册（`ui.attach`） |
 | 真实成员运行被停止 | blocked | 需要模型发起协作请求产生成员运行时；方法、参数与 `idle` 已真实验证，端到端未触发 |
 | 真实更新渠道 | blocked（离线环境） | `https://dimcode.echooai.com` 未请求；真实渠道提供的是 macOS `.app`/安装器，本版只实现单文件替换 |
 | 真实安装包上的切换与重启 | blocked | 需要真实单文件产物；测试用假文件模拟替换与版本变化 |
@@ -951,24 +987,26 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 22. **agent 清单不按 hello 预判**：`agent.list` 是内建方法，真实 hello 不声明；直接调用，缺失时按 `unknown_method` 归为能力缺失。
 23. **账号 provider 解析按实例缓存**：`account.providers` 解析一次；登录方式只取服务端声明，未声明的方法不会本地推断。
 24. **设备码状态未知即拒绝**：只映射 pending/completed/failed/expired/canceled（含常见别名），其他取值按事实不合法报错，不改写成 pending。
-25. **断线恢复以行标识判重**：模型可能在断线期间继续产生事实，事实总数会变；是否重复只看行/事实标识，不看总数。
-26. **共享订阅的连接数观察依赖 `daemon.ping`**：它只给连接与会话计数，看不到持有者数量；持有者语义由 `session.Manager` 的租约保证。
-27. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
-28. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
-29. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
-30. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
-31. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
-32. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
-33. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
-34. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
-35. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
-36. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
-37. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
-38. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
-39. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
-40. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
-41. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
-42. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
+25. **`ui.*` 只做普通连接注册**：`ui.open` 的叶子路径需要 rutis 会话，不在 Go 侧实现；`ui.attach` 失败按稳定 appError 分类。
+26. **`ui.shutdown` 是 advisory**：只记录并标状态，是否关窗由宿主决定；重连后的重新注册只在本地注册存在且未被建议关闭时进行。
+27. **断线恢复以行标识判重**：模型可能在断线期间继续产生事实，事实总数会变；是否重复只看行/事实标识，不看总数。
+28. **共享订阅的连接数观察依赖 `daemon.ping`**：它只给连接与会话计数，看不到持有者数量；持有者语义由 `session.Manager` 的租约保证。
+29. **`context/budget` 永远不下发**：协议 v3 的可见性白名单把它排除；客户端只按需读 `session.context.usage`，视图里的 `Context` 不来自事实。
+30. **手动压缩依赖模型窗口**：summary 策略要求压缩后确实变小，小窗口模型 + 足够内容才能成功；不满足时服务端回 `failed`，本包如实透传。
+31. **成员标识只来自协作事实**：`agent.list` 只有会话计数，`session.agent.get` 是分支采纳的 agent；停止成员必须从 pending/delivered 取成员会话标识。
+32. **默认预设缺失按能力缺失**：`--defaults` 文件不存在时不传给服务端、记诊断；运行组件面回到能力缺失零请求。
+33. **应用更新只做单文件替换**：不处理 macOS `.app`、dmg/zip、Windows 安装器与 AppImage；没有代码签名校验，只比对 sha512。
+34. **更新状态只在内存**：`switch` 与 `download` 必须在同一进程内完成状态机；进程重启后从「未检查」开始。
+35. **CLI 检查失败退出 0**：检查失败按已是最新呈现，只打印原因；`download`/`switch` 的失败才返回非零。
+36. **CLI 输出不含地址**：只打印状态与版本号，不打印清单/产物地址及其查询串。
+37. **命令规则写入回执只带 revision**：集成层用本次写入的集合补齐 `Rules`，并保留服务端 revision；冲突时不覆盖缓存、不重试。
+38. **命令规则缓存只在裁决内存里**：适配器不缓存、不落盘；缺能力确认后由裁决记住，后续不再请求。
+39. **变更读取是工具声明级的部分覆盖**：清单只含工具结果明确声明的路径（`coverage=tool_reports`），不含会话内命令（exec）的改动、外部程序修改、没有产生声明的写入；不等于"本次运行改了哪些文件"的权威结论。
+40. **变更读取按轮归属**：`runID` 取事实里的 `turn_id`；同一轮之外的工具结果一律不看。历史读取上限 40 页 × 500 条，超出直接报错。
+41. **声明字段只认约定形状**：只解析 `structuredContent.affectedPaths`、`write`/`edit` 的 `structuredContent.path` 与 `fileWritten` effect；其它结构不猜，宁可少列也不推断。
+42. **重读尾部用 `after` 游标而非 `latestTurn`**：兼容拒绝未知字段的旧服务端；一次重读最多 5 页。
+43. **自由文本诊断与白名单诊断分开**：`App.Diagnostics()` 只给人看、不进 `host.Recorder`。
+44. **超时阶段的 goroutine 不强制回收**：外壳按时进入下一段；本包步骤尊重上下文，唯一例外是终端停止本身的宽限期。
 
 ## 11. 变更记录
 
@@ -980,6 +1018,7 @@ dimagent selfcheck -data-dir <目录> [-server <可执行文件>] [-server-arg <
 | 2026-11-10 | 补三类写意图：`KindShellRun`（`shell.run`/`shell.stop`）、`KindModalityWrite`（四种模态写入）、`KindSessionLifecycle` 的 `branch.create`/`branch.end`；发送方加写闸门兜底 | 写登记新增意图，集成层补齐映射与门禁 |
 | 2026-11-11 | 接上工作区变更读取：`workspace.ChangeSource` 适配器（工具结果声明、按 run 过滤）+ `App.RunChanges`；来源实例挂在 App 上 | D7 新增变更读取，需要集成层提供来源 |
 | 2026-11-11 | 按 alpha.21 实测改真实命名与形状：账号（providers/status/usage/provider.catalog/login.browser.*）、管理面（mcp.*/schedule.*/session.wakeup.*/skills.catalog/hooks.catalog）、改名走会话流、权限 `session.permission.get/update` + 时间线 `permission/changed`、统一二进制自启补 `app-server`；长期允许改为命令规则（`permission.rules`/`permission.set_rules`） | 连接侧实测出真实命名；管理面与权限需要真实接线 |
+| 2026-11-11 | 界面注册：`ui.attach`/`ui.close`/`ui.status`，建议性 `ui.shutdown`，detach/reattach 跟随与失败码分类 | 连接侧查清普通注册路径 | 
 | 2026-11-11 | A 组集成层真实证据：断线恢复、多窗口共享订阅、未知结果核对、附件真实写入、运行中停止 | 收尾真实证据 | 
 | 2026-11-11 | 上下文占用（`session.context.usage`）与手动压缩（`session.context.compact`）、成员停止（`session.collaboration.cancel`）、默认预设（`--defaults` + `runtime.list` 门禁）；账号邮箱透传/设备码取消/provider 绑定清理；MCP 导入新形状 | 投影与扩展领域查明真实形状；账号与 MCP 导入补齐 | 
 | 2026-11-11 | 接上应用更新：装配 `host.Updater`（当前版本、渠道源、单文件目标、会话空闲探针、退出五阶段、重启、诊断），`dimagent update check/download/switch` 子命令 | 更新收尾；真实渠道离线未请求 | 
