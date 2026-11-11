@@ -25,7 +25,7 @@ DimAgent 的 Go 桌面客户端：Go + mygo native UI 承载宿主与界面，Ru
 - 主界面由 native view 组成；外部内容进独立隔离容器，不接入主界面，也拿不到 socket 与凭据。
 - mygo 按上游 API 使用，不在本地改语义。
 - 文档只写方法，不写本机信息：仓库内引用用相对路径（如 `internal/app`、`docs/domains/C-cost.md`）；不出现绝对路径与产品 home 下的具体目录名、不出现会话 uuid、不出现临时夹具目录名；外部路径用 `<placeholder>` 占位。
-- 第三方依赖默认禁止。唯一例外：`internal/terminal` 可以使用一个伪终端库，且只用于伪终端创建与读写；其他模块保持零第三方依赖。新增例外须先在 `docs/domains/A.md` 出设计选择。
+- 第三方依赖默认禁止。既有例外：`internal/terminal` 可用一个伪终端库（仅伪终端创建与读写）；`internal/ui/render` 可用 `markstream-go`（仅 Markdown 流式渲染）。其他模块保持零第三方依赖。新增例外须先在 `docs/domains/A.md` 出设计选择。
 
 ## 4. 文档位置
 
