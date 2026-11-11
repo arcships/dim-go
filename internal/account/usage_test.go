@@ -130,6 +130,75 @@ func TestUsageLineValidation(t *testing.T) {
 	}
 }
 
+// TestUsageOptionalFieldsPreserveMissing 确认可选数值/布尔字段用 nil 表示缺失，
+// 0 与 false 是服务端明确给出的值。
+func TestUsageOptionalFieldsPreserveMissing(t *testing.T) {
+	zero := 0.0
+	unlimited := false
+	reader := &stubUsageReader{usage: Usage{
+		Plan: &UsagePlan{PriceAmount: &zero},
+		Features: []UsageFeature{
+			{Key: "tokens", Used: &zero, Allowance: nil, Remaining: nil, Unlimited: &unlimited},
+		},
+		Credits: &UsageCredits{UsedUnits: &zero, Unlimited: nil},
+	}}
+	account := newTestAccount(t, Config{Usage: reader})
+	usage, err := account.RefreshUsage(context.Background())
+	if err != nil {
+		t.Fatalf("读取用量: %v", err)
+	}
+	if usage.Plan == nil || usage.Plan.PriceAmount == nil || *usage.Plan.PriceAmount != 0 {
+		t.Fatalf("0 价格应保留为明确值：%+v", usage.Plan)
+	}
+	if usage.Features[0].Allowance != nil || usage.Features[0].Remaining != nil {
+		t.Fatalf("缺失字段应保持 nil：%+v", usage.Features[0])
+	}
+	if usage.Features[0].Unlimited == nil || *usage.Features[0].Unlimited {
+		t.Fatalf("false 应保留为明确值：%+v", usage.Features[0].Unlimited)
+	}
+	if usage.Credits == nil || usage.Credits.Unlimited != nil {
+		t.Fatalf("缺失布尔应保持 nil：%+v", usage.Credits)
+	}
+}
+
+// TestUsageCloneDeepCopiesOptionalFields 确认 Snapshot/Usage 副本不共享指针与切片。
+func TestUsageCloneDeepCopiesOptionalFields(t *testing.T) {
+	price := 9900.0
+	used := 1.0
+	remaining := 2.0
+	unlimited := false
+	reader := &stubUsageReader{usage: Usage{
+		Plan:    &UsagePlan{Name: "Pro", PriceAmount: &price},
+		Credits: &UsageCredits{UsedUnits: &used, RemainingUnits: &remaining, Unlimited: &unlimited},
+		Windows: []UsageWindow{{DurationHours: 5, TokenUsed: 1}},
+		Features: []UsageFeature{{
+			Key: "tokens", Used: &used, Remaining: &remaining, Unlimited: &unlimited,
+		}},
+	}}
+	account := newTestAccount(t, Config{Usage: reader})
+	if _, err := account.RefreshUsage(context.Background()); err != nil {
+		t.Fatalf("读取用量: %v", err)
+	}
+
+	snapshot := account.Usage()
+	*snapshot.Plan.PriceAmount = 1
+	*snapshot.Credits.UsedUnits = 9
+	*snapshot.Credits.RemainingUnits = 8
+	*snapshot.Credits.Unlimited = true
+	*snapshot.Features[0].Used = 7
+	*snapshot.Features[0].Remaining = 6
+	*snapshot.Features[0].Unlimited = true
+	snapshot.Windows[0].TokenUsed = 5
+
+	current := account.Usage()
+	if *current.Plan.PriceAmount != 9900 || *current.Credits.UsedUnits != 1 ||
+		*current.Credits.RemainingUnits != 2 || *current.Credits.Unlimited ||
+		*current.Features[0].Used != 1 || *current.Features[0].Remaining != 2 ||
+		*current.Features[0].Unlimited || current.Windows[0].TokenUsed != 1 {
+		t.Fatalf("用量副本共享了底层数据：%+v", current)
+	}
+}
+
 // TestUsageIsDetachedFromReader 确认读取替身返回的切片被复制，不共享底层数组。
 func TestUsageIsDetachedFromReader(t *testing.T) {
 	lines := []UsageLine{{Key: "tokens", Used: 1}}

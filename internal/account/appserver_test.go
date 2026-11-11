@@ -311,49 +311,108 @@ func wireIdentityFact() Identity {
 	return Identity{AccountID: "acct-wire", Email: "wire@example.com", DisplayName: "接口用户", Plan: "pro"}
 }
 
-// ReadUsage 逐项读取用量；features/windows 是逐项，credits 是服务端聚合。
+// ReadUsage 读取 account.usage 的完整形状：plan、credits、windows、features 与
+// 两个链接；同时保留通用的 Lines/Aggregate 视图。
 func (h *wireHarness) ReadUsage(ctx context.Context) (Usage, error) {
 	providerID, err := h.accountProvider(ctx)
 	if err != nil {
 		return Usage{}, err
 	}
 	var result struct {
-		SubscriptionID *int64 `json:"subscriptionId"`
-		Credits        *struct {
-			UsedUnits  *float64 `json:"usedUnits"`
-			TotalUnits *float64 `json:"totalUnits"`
-			Unlimited  *bool    `json:"unlimited"`
+		SubscriptionURL string `json:"subscriptionUrl"`
+		PricingURL      string `json:"pricingUrl"`
+		SubscriptionID  *int64 `json:"subscriptionId"`
+		Plan            *struct {
+			Name             string   `json:"name"`
+			Status           string   `json:"status"`
+			PriceAmount      *float64 `json:"priceAmount"`
+			PriceCurrency    string   `json:"priceCurrency"`
+			PriceInterval    string   `json:"priceInterval"`
+			ExpiresAt        *string  `json:"expiresAt"`
+			CurrentTermStart *string  `json:"currentTermStart"`
+		} `json:"plan"`
+		Credits *struct {
+			UsedUnits      *float64 `json:"usedUnits"`
+			TotalUnits     *float64 `json:"totalUnits"`
+			RemainingUnits *float64 `json:"remainingUnits"`
+			Unlimited      *bool    `json:"unlimited"`
+			ResetsAt       *string  `json:"resetsAt"`
 		} `json:"credits"`
 		Windows []struct {
 			DurationHours float64 `json:"durationHours"`
 			TokenUsed     float64 `json:"tokenUsed"`
 			TokenCap      float64 `json:"tokenCap"`
+			StartedAt     *string `json:"startedAt"`
 			ExpiresAt     *string `json:"expiresAt"`
 		} `json:"windows"`
 		Features []struct {
 			Key       string   `json:"key"`
 			Used      *float64 `json:"used"`
 			Allowance *float64 `json:"allowance"`
+			Remaining *float64 `json:"remaining"`
 			Unit      *string  `json:"unit"`
+			Unlimited *bool    `json:"unlimited"`
 			PeriodEnd *string  `json:"periodEnd"`
 		} `json:"features"`
 	}
 	if err := h.client.CallInto(ctx, "account.usage", map[string]any{"providerId": providerID}, &result); err != nil {
 		return Usage{}, err
 	}
-	usage := Usage{}
+	usage := Usage{
+		SubscriptionURL: result.SubscriptionURL,
+		PricingURL:      result.PricingURL,
+	}
+	if result.Plan != nil {
+		usage.Plan = &UsagePlan{
+			Name:             result.Plan.Name,
+			Status:           result.Plan.Status,
+			PriceAmount:      cloneFloat(result.Plan.PriceAmount),
+			PriceCurrency:    result.Plan.PriceCurrency,
+			PriceInterval:    result.Plan.PriceInterval,
+			ExpiresAt:        wireTime(result.Plan.ExpiresAt),
+			CurrentTermStart: wireTime(result.Plan.CurrentTermStart),
+		}
+	}
+	if result.Credits != nil {
+		usage.Credits = &UsageCredits{
+			UsedUnits:      cloneFloat(result.Credits.UsedUnits),
+			TotalUnits:     cloneFloat(result.Credits.TotalUnits),
+			RemainingUnits: cloneFloat(result.Credits.RemainingUnits),
+			Unlimited:      cloneBool(result.Credits.Unlimited),
+			ResetsAt:       wireTime(result.Credits.ResetsAt),
+		}
+	}
+	for _, window := range result.Windows {
+		usage.Windows = append(usage.Windows, UsageWindow{
+			DurationHours: window.DurationHours,
+			TokenUsed:     window.TokenUsed,
+			TokenCap:      window.TokenCap,
+			StartedAt:     wireTime(window.StartedAt),
+			ExpiresAt:     wireTime(window.ExpiresAt),
+		})
+	}
 	for _, feature := range result.Features {
-		line := UsageLine{Key: feature.Key, Label: feature.Key}
+		unit := ""
+		if feature.Unit != nil {
+			unit = *feature.Unit
+		}
+		usage.Features = append(usage.Features, UsageFeature{
+			Key:       feature.Key,
+			Used:      cloneFloat(feature.Used),
+			Allowance: cloneFloat(feature.Allowance),
+			Remaining: cloneFloat(feature.Remaining),
+			Unit:      unit,
+			Unlimited: cloneBool(feature.Unlimited),
+			PeriodEnd: wireTime(feature.PeriodEnd),
+		})
+
+		line := UsageLine{Key: feature.Key, Label: feature.Key, Unit: unit, ResetsAt: wireTime(feature.PeriodEnd)}
 		if feature.Used != nil {
 			line.Used = *feature.Used
 		}
 		if feature.Allowance != nil {
 			line.Limit = *feature.Allowance
 		}
-		if feature.Unit != nil {
-			line.Unit = *feature.Unit
-		}
-		line.ResetsAt = wireTime(feature.PeriodEnd)
 		usage.Lines = append(usage.Lines, line)
 	}
 	for _, window := range result.Windows {
@@ -371,13 +430,13 @@ func (h *wireHarness) ReadUsage(ctx context.Context) (Usage, error) {
 		usage.SubscriptionID = *result.SubscriptionID
 		usage.HasSubscriptionID = true
 	}
-	if result.Credits != nil && result.Credits.Unlimited != nil && *result.Credits.Unlimited {
+	if usage.Credits != nil && usage.Credits.Unlimited != nil && *usage.Credits.Unlimited {
 		usage.Aggregate = AggregateUsage{Reason: "服务端声明无限额度，没有上限值"}
-	} else if result.Credits != nil && result.Credits.UsedUnits != nil && result.Credits.TotalUnits != nil {
+	} else if usage.Credits != nil && usage.Credits.UsedUnits != nil && usage.Credits.TotalUnits != nil {
 		usage.Aggregate = AggregateUsage{
 			Available: true,
-			Used:      *result.Credits.UsedUnits,
-			Limit:     *result.Credits.TotalUnits,
+			Used:      *usage.Credits.UsedUnits,
+			Limit:     *usage.Credits.TotalUnits,
 			Unit:      "units",
 		}
 	}
@@ -549,13 +608,26 @@ func TestAppServerReadsStatusUsageAndModels(t *testing.T) {
 			{Method: "account.providers", Result: []any{fakeProvider("dimcode-api-oauth", "browser", "device")}},
 			{Method: "account.status", Result: fakeSignedInStatus("acct-wire", "wire@example.com")},
 			{Method: "account.usage", Result: map[string]any{
-				"subscriptionId": 4242,
+				"subscriptionUrl": "https://dimagent.cn/console/subscription",
+				"pricingUrl":      "https://dimagent.cn/console/pricing",
+				"subscriptionId":  4242,
+				"plan": map[string]any{
+					"name":             "Pro",
+					"status":           "active",
+					"priceAmount":      9900,
+					"priceCurrency":    "CNY",
+					"priceInterval":    "month",
+					"expiresAt":        "2026-12-31T00:00:00Z",
+					"currentTermStart": "2026-12-01T00:00:00Z",
+				},
 				"features": []any{
 					map[string]any{
 						"key":       "tokens",
 						"used":      120,
 						"allowance": 1000,
+						"remaining": 880,
 						"unit":      "tokens",
+						"unlimited": false,
 						"periodEnd": "2026-12-01T00:00:00Z",
 					},
 					map[string]any{
@@ -570,10 +642,17 @@ func TestAppServerReadsStatusUsageAndModels(t *testing.T) {
 						"durationHours": 5,
 						"tokenUsed":     7,
 						"tokenCap":      100,
+						"startedAt":     "2026-11-01T00:00:00Z",
 						"expiresAt":     "2026-12-01T00:00:00Z",
 					},
 				},
-				"credits": map[string]any{"usedUnits": 123, "totalUnits": 456},
+				"credits": map[string]any{
+					"usedUnits":      123,
+					"totalUnits":     456,
+					"remainingUnits": 333,
+					"unlimited":      false,
+					"resetsAt":       "2027-01-01T00:00:00Z",
+				},
 			}},
 			{Method: "provider.catalog", Result: map[string]any{
 				"catalog": map[string]any{
@@ -617,6 +696,51 @@ func TestAppServerReadsStatusUsageAndModels(t *testing.T) {
 	}
 	if usage.Lines[2].Key != "window-5h" || usage.Lines[2].Used != 7 || usage.Lines[2].Limit != 100 {
 		t.Fatalf("时间窗用量不符：%+v", usage.Lines[2])
+	}
+	plan := usage.Plan
+	if plan == nil || plan.Name != "Pro" || plan.Status != "active" ||
+		plan.PriceAmount == nil || *plan.PriceAmount != 9900 ||
+		plan.PriceCurrency != "CNY" || plan.PriceInterval != "month" {
+		t.Fatalf("套餐字段不符：%+v", plan)
+	}
+	if !plan.ExpiresAt.Equal(time.Date(2026, 12, 31, 0, 0, 0, 0, time.UTC)) ||
+		!plan.CurrentTermStart.Equal(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("套餐期限不符：%+v", plan)
+	}
+	credits := usage.Credits
+	if credits == nil || credits.UsedUnits == nil || *credits.UsedUnits != 123 ||
+		credits.TotalUnits == nil || *credits.TotalUnits != 456 ||
+		credits.RemainingUnits == nil || *credits.RemainingUnits != 333 ||
+		credits.Unlimited == nil || *credits.Unlimited {
+		t.Fatalf("额度字段不符：%+v", credits)
+	}
+	if !credits.ResetsAt.Equal(time.Date(2027, 1, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("额度重置时间不符：%+v", credits)
+	}
+	if len(usage.Windows) != 1 || usage.Windows[0].DurationHours != 5 || usage.Windows[0].TokenUsed != 7 ||
+		usage.Windows[0].TokenCap != 100 ||
+		!usage.Windows[0].StartedAt.Equal(time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC)) ||
+		!usage.Windows[0].ExpiresAt.Equal(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("窗口字段不符：%+v", usage.Windows)
+	}
+	if len(usage.Features) != 2 {
+		t.Fatalf("功能额度条数不符：%+v", usage.Features)
+	}
+	first := usage.Features[0]
+	if first.Key != "tokens" || first.Used == nil || *first.Used != 120 ||
+		first.Allowance == nil || *first.Allowance != 1000 ||
+		first.Remaining == nil || *first.Remaining != 880 ||
+		first.Unit != "tokens" || first.Unlimited == nil || *first.Unlimited ||
+		!first.PeriodEnd.Equal(time.Date(2026, 12, 1, 0, 0, 0, 0, time.UTC)) {
+		t.Fatalf("功能额度字段不符：%+v", first)
+	}
+	second := usage.Features[1]
+	if second.Key != "requests" || second.Remaining != nil || second.Unlimited != nil || !second.PeriodEnd.IsZero() {
+		t.Fatalf("缺失字段应保持 nil：%+v", second)
+	}
+	if usage.SubscriptionURL != "https://dimagent.cn/console/subscription" ||
+		usage.PricingURL != "https://dimagent.cn/console/pricing" {
+		t.Fatalf("链接字段不符：%+v", usage)
 	}
 	if !usage.Aggregate.Available || usage.Aggregate.Used != 123 || usage.Aggregate.Limit != 456 || usage.Aggregate.Unit != "units" {
 		t.Fatalf("聚合用量应采用服务端值：%+v", usage.Aggregate)

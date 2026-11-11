@@ -45,11 +45,11 @@ Owner: 账号领域 agent
 **验收**
 
 - 命令：`go test ./internal/account/`、`go test -race ./internal/account/`、`go vet ./...` 通过；`go test ./...` 当前被 `internal/app` 的 modality 门禁测试阻塞（非账号领域，相关包正在并行修改），账号领域无失败（2026-11-11，macOS arm64）。
-- 本领域：77 个顶层测试（含 3 个真实账号夹具测试）、17 个子测试；未设置夹具环境变量时夹具测试跳过，其余 74 个通过。覆盖见 §6.2。
+- 本领域：79 个顶层测试（含 3 个真实账号夹具测试）、17 个子测试；未设置夹具环境变量时夹具测试跳过，其余 76 个通过。覆盖见 §6.2。
 - 证据档位：
   - `fakeappserver`：本机 Unix socket 上的真实 NDJSON，经 D1 连接与真实 `write.Manager` 覆盖状态读取、登录回调、登出与重置。
   - 注入替身：状态/用量/模型读取、授权来源、系统浏览器、写登记在单元测试里替换，覆盖超时、取消、拒绝、校验不一致、聚合不可用与不重发。
-  - 真实账号夹具：临时产品 home + 真实 `dimcode-server`（alpha.21）验证账号状态、逐项用量、模型清单与登录发起/取消；见 §6.4。
+  - 真实账号夹具：临时产品 home + 真实 `dimcode-server`（alpha.21）验证账号状态、逐项用量与套餐/额度/窗口/功能字段、模型清单与登录发起/取消；见 §6.4。
   - 真实 browser/device 登录完成：真实运行未执行（需真人操作）；字段与接口按 §6.5 等价核对通过，不列为阻塞。
 
 **依赖**
@@ -273,12 +273,29 @@ provider 声明结构不合法（缺标识、标识重复）时整份拒绝（`E
 
 ### 4.4 用量
 
-- `Usage.Lines` 逐项来自服务端，顺序与服务端一致；本包不改写数值、不合并、不补齐缺失项。
-- `Usage.Aggregate` 只能采用服务端给的聚合值。服务端没有给时 `Available=false`，`Used/Limit/Unit` 一律没有意义；服务端没给原因时本包补一句「服务端未提供聚合用量」。**本包从不把逐项相加**。
-- 真实服务端的 `account.usage` 给出 `features[]`（逐项）、`windows[]`（时间窗令牌用量）、`credits`（聚合额度）与 `subscriptionId`；集成层把前两者映射成 `Usage.Lines`、把 `credits` 映射成 `Usage.Aggregate`，并保留 `subscriptionId` 供重置使用。`credits.unlimited` 没有上限数值，本版按聚合不可用并给原因，不伪造上限。
-- 读取失败：`Ready` 与数据保持上一次确认值，`ReadError` 记录原因，`RefreshUsage` 返回错误；观察时间不推进。
-- 没有用量读取能力：返回 `ErrUsageUnavailable`，`ReadError` 说明原因，不返回「零用量」。
-- 缺少标识的用量项按事实不合法处理，整次读取不采用。
+`Usage` 同时保留服务端原始字段与通用视图；可选字段一律用指针或零值表达“服务端没有给”，缺失不等于 0。
+
+**原始字段**
+
+| 字段 | 形状 | 语义 |
+|---|---|---|
+| `Usage.Plan *UsagePlan` | `Name`、`Status`、`PriceAmount *float64`、`PriceCurrency`、`PriceInterval`、`ExpiresAt`、`CurrentTermStart` | 套餐信息；nil 表示服务端没有给。`PriceAmount` 是货币最小单位（如分），本包不除、不换算、不计算费用 |
+| `Usage.Credits *UsageCredits` | `UsedUnits/TotalUnits/RemainingUnits *float64`、`Unlimited *bool`、`ResetsAt` | 套餐额度单位，不是货币；`Unlimited=true` 时余额 0 不代表耗尽；nil 表示缺失 |
+| `Usage.Windows []UsageWindow` | `DurationHours`、`TokenUsed`、`TokenCap`、`StartedAt`、`ExpiresAt` | 滚动窗口的 token 配额与用量；nil 表示服务端没给数组，非 nil 空切片表示明确给了空数组 |
+| `Usage.Features []UsageFeature` | `Key`、`Used/Allowance/Remaining *float64`、`Unit`、`Unlimited *bool`、`PeriodEnd` | 功能额度；单位由服务端给（如 `call`），本包不推导、不换算 |
+| `Usage.SubscriptionURL` / `Usage.PricingURL` | string | 管理页与价格页链接，不是金额；空表示服务端没有给 |
+| `Usage.SubscriptionID` / `HasSubscriptionID` | int64 / bool | 重置额度必须带订阅标识；缺失时不能猜 |
+| `Usage.Lines` / `Usage.Aggregate` | 通用逐项与聚合视图 | 兼容旧调用方；聚合只能采用服务端给的值，**本包从不把逐项相加** |
+
+要点：
+
+- **不做额度→货币换算**：服务端没有换算率；`PriceAmount` 只按最小单位保留，展示时除以 100 是界面口径，本包不执行。
+- **缺失与零分开**：数值/布尔字段用 nil 保留“未知”，0 与 false 是服务端明确值；`Unlimited` 缺失时不能当作 false。
+- **链接不是金额**：`subscriptionUrl`/`pricingUrl` 原样保留为链接。
+- **聚合项**：只由 `Credits` 的 used/total 组成；`Credits.Unlimited=true` 或缺少上限时 `Aggregate.Available=false` 并给原因，不用逐项求和。
+- **读取失败**：`Ready` 与数据保持上一次确认值，`ReadError` 记录原因，观察时间不推进；没有用量读取能力返回 `ErrUsageUnavailable`。
+- **副本隔离**：嵌套结构（Plan、Credits、Features 的指针与 Windows/Features 切片）在快照与 `Usage()` 中都做深拷贝。
+- **结构校验**：缺少标识的通用用量项仍按事实不合法拒绝；原始字段不合法时整体不采用。
 
 ### 4.5 可用模型
 
@@ -344,7 +361,7 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 
 本版结果（2026-11-11，本机 macOS arm64）：
 
-- `go test ./internal/account/`、`go test -race ./internal/account/`、`go vet ./...` 通过；`internal/account` 74 个顶层测试、17 个子测试全绿。
+- `go test ./internal/account/`、`go test -race ./internal/account/`、`go vet ./...` 通过；`internal/account` 76 个顶层测试、17 个子测试全绿。
 - `go test ./...` 当前被 `internal/app` 的 `TestModalityGateChecksHelloBeforeSessionMethods` 阻塞（modality 门禁顺序，非账号领域；相关包仍在并行修改）；账号领域包与依赖编译均无失败。
 
 ### 6.2 覆盖
@@ -366,7 +383,11 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 | 登录尝试迁移表与坏表拒绝 | `TestLoginTransitionTableMatchesDocument`、`TestBrokenLoginTablesAreRejected`、`TestAdvanceLoginDropsIllegalMoves`、`TestNewRejectsMissingStatusReader` |
 | 用量逐项一致、聚合不可用、聚合采用服务端值 | `TestUsageItemsAndUnavailableAggregate`、`TestUsageAggregateUsesServerValues` |
 | 用量读取失败保留上次数据；无读取能力明确不可用 | `TestUsageReadFailureKeepsConfirmedData`、`TestUsageWithoutReaderIsUnavailable` |
-| 用量结构校验与副本隔离 | `TestUsageLineValidation`、`TestUsageIsDetachedFromReader` |
+| 用量结构校验与副本隔离 | `TestUsageLineValidation`、`TestUsageIsDetachedFromReader`、`TestUsageCloneDeepCopiesOptionalFields` |
+| 套餐字段、价格最小单位不换算 | `TestAppServerReadsStatusUsageAndModels`、`TestRealAccountFixtureReads` |
+| credits 可选字段与 unlimited 语义 | `TestAppServerReadsStatusUsageAndModels`、`TestUsageOptionalFieldsPreserveMissing` |
+| windows/features 可选字段、缺失≠0 | `TestAppServerReadsStatusUsageAndModels`、`TestUsageOptionalFieldsPreserveMissing` |
+| subscriptionUrl/pricingUrl 作为链接 | `TestAppServerReadsStatusUsageAndModels`、`TestRealAccountFixtureReads` |
 | 未登录/未知空清单并给原因 | `TestModelsSignedOutAndUnknownAreEmptyWithReason` |
 | 已登录过滤不可用模型；过期隐藏需要账号的模型 | `TestModelsSignedInFiltersUnavailable`、`TestModelsExpiredHidesAccountModels`、`TestModelsExpiredWithoutFreeModelsIsEmptyWithReason` |
 | 无清单读取能力、清单结构校验、状态变化重新过滤 | `TestModelsWithoutReaderIsUnavailable`、`TestModelsValidation`、`TestModelsFollowStatusChanges` |
@@ -450,8 +471,12 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 账号提供者：displayName="Dim OAuth" loginMethods=[browser device] directoryConfigured=true
 账号状态：status=signed_in identity=accountIDSet=true emailSet=true nameSet=true planSet=false
 用量：lines=1 aggregateAvailable=true subscriptionIDSet=true aggregateReason="" observedAtSet=true
-用量项[0]：key="web_search" unit="call" window="" limitSet=true resetSet=true
-模型清单：available=21 first=[deepseek-v4-flash seed-2.1-pro seed-2.1-turbo]
+套餐形状：planSet=true planNameSet=true planStatusSet=true priceAmountSet=true currencySet=true intervalSet=true expiresAtSet=true currentTermStartSet=true
+额度形状：creditsSet=true usedSet=true totalSet=true remainingSet=true unlimitedSet=true resetsAtSet=true
+窗口形状：count=0 durationSet=false usedSet=false capSet=false startedAtSet=false expiresAtSet=false
+功能额度形状：count=1 keySet=true usedSet=true allowanceSet=true remainingSet=true unitSet=true unlimitedSet=true periodEndSet=true
+链接形状：subscriptionURLSet=true pricingURLSet=true
+模型清单：available=22 first=[deepseek-v4-flash seed-2.1-pro seed-2.1-turbo]
 浏览器登录发起：host=dimagent.cn redirectLoopback=true provider=dimcode-api-oauth method=browser cancelled=1
 设备码登录发起：provider=dimcode-api-oauth method=device attemptIssued=true verificationURISet=true userCodeSet=true cancelled=1
 真实服务回收：stopped=true
@@ -459,7 +484,9 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 
 结论：
 
-- **三条读取在真实账号上通过**：状态 `signed_in` 且带身份字段；用量有逐项 `web_search`、服务端聚合额度与 `subscriptionId`；模型目录 21 条可用（登录状态下）。
+- **三条读取在真实账号上通过**：状态 `signed_in` 且带身份字段；用量携带套餐、credits、功能额度、订阅标识与管理/价格链接，真实回执本次 `windows` 为空数组；模型目录 22 条可用（登录状态下）。证据只记录字段有无与条数，不打印金额明细。
+- **真实 `windows` 只覆盖空数组**：非空窗口的字段映射由假服务端用例覆盖，真实服务端本次没有返回窗口。
+- **集成层映射仍待更新**：`internal/app/account.go` 的用量适配器目前只填 `Lines`/`Aggregate`/`SubscriptionID`；要把它接到本版 `Plan`/`Credits`/`Windows`/`Features`/链接字段，需由集成领域更新（本领域未改其他包）。
 - **browser 登录发起通过**：按 provider 选择 browser，真实服务端接受环回 `/auth/callback`，返回授权地址与尝试标识；等待回调超时后按尝试标识取消成功。
 - **device 登录发起通过**：按 provider 显式选择 device，真实服务端返回尝试标识、验证地址与用户码；取消后按尝试标识交回释放。
 - **登录完成未运行**：browser 完成交换需要真人在授权页登录（可能含验证码/二次验证）；device 完成需要真人在验证页输入用户码。本次只验证到发起、提示、回调地址与取消；字段与接口按 §6.5 与原客户端核对后等价通过。
@@ -508,7 +535,7 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 | 重置幂等 | 按 `subscriptionId:type` 内存键；未定重试复用；明确失败/成功/登出清除 | 同；显式重试复用键，本包不自动重发 | **等价通过** |
 | 重置返回 | `{status:'applied', replayed, appliedAt, usage}` | 写意图视图；调用方重新读取用量 | 语义差异：无 `replayed`/合并后的 usage |
 | 错误分类 | 服务端 `appError` 转发 + UI 码（`login_failed` 等），`{code,message}` | Go 类型化错误 + `ErrorCode(err)` 稳定码映射 | 部分一致：码可映射，`{code,message}` 载荷仍由集成层组装 |
-| 用量字段 | `plan`、`subscription`、`config`、`resets`、`subscriptionId`、`featureMeters` | `Lines`、`Aggregate`、`SubscriptionID`、观察时间与读取错误 | 部分一致：`subscriptionId` 已补；plan/subscription/config/resets 未承载 |
+| 用量字段 | `plan`、`subscription`、`config`、`resets`、`subscriptionId`、`featureMeters` | `Plan`、`Credits`、`Windows`、`Features`、`SubscriptionID`、`SubscriptionURL`/`PricingURL` | 大部分一致：plan/credits(≈subscription)/featureMeters(≈features)/windows/subscriptionId 已承载；`config` 与重置额度批次 `resets` 未承载；URL 是我们多出的服务端字段 |
 | 模型字段 | `modelSetup`、`unlockedModelCount` | `ModelList{Ready, Reason, Models}` | 语义差异：呈现分层不同 |
 | 回调参数来源 | query 或 hash | 环回 HTTP 只能收到 query | 限制：hash 形式回调无法读取（真实提供方使用 query） |
 | 登录/登出并发 | `logout` 等登录/刷新结束再执行 | 登出与登录各自独立 | 语义差异：并发顺序由调用方保证 |
@@ -522,7 +549,7 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 **分类汇总**
 
 - 一致（按等价核对通过）：browser 登录完成参数与回调、尝试处理、登出参数与清理、重置参数/前置/幂等生命周期、`ErrorCode` 的稳定码。取消释放接口一致，但生产集成仍缺 `AuthorizationCanceler` 实现。
-- 我们缺失（已补或仍缺）：`preferredUsername`（已补）、`subscriptionId`（已补）、`AuthorizationCanceler` 生产实现（集成层仍缺）、plan/subscription/config/resets 用量字段（仍缺）、`AccountState` 呈现字段（仍缺）。
+- 我们缺失（已补或仍缺）：`preferredUsername`（已补）、`subscriptionId`（已补）、`AuthorizationCanceler` 生产实现（集成层仍缺）、`config`/`resets` 用量字段（仍缺）、`AccountState` 呈现字段（仍缺）。
 - 我们多出：provider 列表与按声明分发（原客户端只有单一托管 provider）、`StatusExpired`、`Usage.Lines/Aggregate` 结构、`LoginPhase`、`ModelList.Reason`、`ErrorCode` 映射。
 - 语义差异：登录失败/取消的状态呈现、登出后 unknown vs signed-out、重置返回形状、固定/随机回调端口、query/hash 回调、登录与登出的并发顺序。
 
@@ -530,7 +557,7 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 
 - `AccountState`/`AccountUser.uid`/`checked`/`modelSetup`/`unlockedModelCount` 等呈现层字段与命名不同。
 - 错误载荷 `{code,message}` 与 `appError` 透传未在本包表达；`ErrorCode` 只覆盖本领域错误。
-- 用量字段（plan/subscription/config/resets/featureMeters）未完整承载；模型呈现字段不同。
+- 用量字段的 `config`/`resets` 未承载；模型呈现字段不同。
 - 固定回调端口、hash 回调、登录/登出并发顺序存在差异。
 
 ## 7. 已知限制
@@ -546,7 +573,7 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 9. **模型是否需要账号由集成层映射**：真实托管提供者的模型一律 `RequiresAccount=true`；本包只消费 `RequiresAccount` 与 `Unavailable`，不探测模型能力。
 10. **真实账号标识取 subject**：真实 `account.status` 没有单独的账号标识字段，集成层用 `identity.subject` 映射 `Identity.AccountID`；原客户端在 subject 等于 email 时把 uid 置空，本包不做这层回退。
 11. **过期没有真实映射**：真实服务端不返回 `expired`；第一版只能通过读取失败或恢复要求表达，`StatusExpired` 的真实触发条件待 D1 冻结。
-12. **用量字段不完整**：本包承载逐项、聚合与 `subscriptionId`；原客户端的 plan/subscription/config/resets 字段尚未承载，由集成层或后续版本补。
+12. **用量字段仍有缺口**：已承载套餐、credits、windows、features、`subscriptionId` 与链接；原客户端的 `config`（账号级策略）与 `resets`（重置额度批次）尚未承载。集成层 `accountUsageReader` 仍只填通用视图，需要按新类型补齐映射。
 13. **provider 声明是登录前提**：没有 `ProviderSource` 时登录明确不可用；多个 provider 必须显式指定，不在候选之间猜。
 14. **同时声明两种方式时默认 browser**：这是桌面端的固定偏好，不是能力推断；需要 device 时必须显式指定。
 15. **兼容旧授权来源**：只实现 `AuthorizationSource` 时退回单 provider 调用，不能把 `providerId`/`directory`/`email` 交给服务端；provider 专属登录应实现 `ProviderAuthorizationSource`。设备码邮箱提示是可选能力 `DeviceAuthorizationEmailSource`，旧实现忽略它。
@@ -572,7 +599,7 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 3. 集成层补齐 `AuthorizationCanceler`（浏览器与设备码尝试的 `account.login.cancel`）、provider 绑定清理（登出后清 App Server provider 凭据）与统一二进制 `app-server` 子命令的自启配置。
 4. U1 组合 `Status`+`LoginPhase`+`ModelList` 成原客户端的 `AccountState`（含 signing-in/refreshing/error/checked/modelSetup/unlockedModelCount），并把错误映射成 `AccountErrorPayload{code,message}`。
 5. 映射过期/恢复：确认 `account_recovery_required` 等错误如何转为 `StatusExpired` 或 `ErrStatusRead`，并补一条真实证据。
-6. 需要 plan/subscription/config/resets 字段时，由集成层读取并承载，或在 D6 下一版补类型；当前只保留逐项、聚合与 `subscriptionId`。
+6. 补 `config`（账号级策略）与 `resets`（window/monthly_full 重置额度批次）字段；plan/credits/windows/features/链接已由本版承载，集成层负责把服务端原始值填入。
 7. 系统浏览器：在 macOS/Windows/Linux 各做一次真实拉起，确认失败路径的错误可诊断。
 8. 与 D11 对齐 F5：确认 `ModelList` 足以支撑模型可选范围，以及过期状态是否应允许免账号模型。
 9. 决定回调端口策略（随机 vs 固定 54321）、是否支持 hash 回调，以及登录/登出并发顺序是否要像原客户端一样串行等待。

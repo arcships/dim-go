@@ -310,7 +310,48 @@ func (a *Account) clearConfirmedLogout() {
 
 func cloneUsage(usage Usage) Usage {
 	usage.Lines = append([]UsageLine(nil), usage.Lines...)
+	usage.Windows = append([]UsageWindow(nil), usage.Windows...)
+	if usage.Features != nil {
+		features := make([]UsageFeature, len(usage.Features))
+		for index, feature := range usage.Features {
+			feature.Used = cloneFloat(feature.Used)
+			feature.Allowance = cloneFloat(feature.Allowance)
+			feature.Remaining = cloneFloat(feature.Remaining)
+			feature.Unlimited = cloneBool(feature.Unlimited)
+			features[index] = feature
+		}
+		usage.Features = features
+	}
+	if usage.Plan != nil {
+		plan := *usage.Plan
+		plan.PriceAmount = cloneFloat(plan.PriceAmount)
+		usage.Plan = &plan
+	}
+	if usage.Credits != nil {
+		credits := *usage.Credits
+		credits.UsedUnits = cloneFloat(credits.UsedUnits)
+		credits.TotalUnits = cloneFloat(credits.TotalUnits)
+		credits.RemainingUnits = cloneFloat(credits.RemainingUnits)
+		credits.Unlimited = cloneBool(credits.Unlimited)
+		usage.Credits = &credits
+	}
 	return usage
+}
+
+func cloneFloat(value *float64) *float64 {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
+}
+
+func cloneBool(value *bool) *bool {
+	if value == nil {
+		return nil
+	}
+	copied := *value
+	return &copied
 }
 
 // ErrorCode 把本领域的类型化错误映射成原客户端使用的稳定错误码，供集成层

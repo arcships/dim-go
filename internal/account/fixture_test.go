@@ -117,13 +117,29 @@ func TestRealAccountFixtureReads(t *testing.T) {
 	}
 	t.Logf("用量：lines=%d aggregateAvailable=%v subscriptionIDSet=%v aggregateReason=%q observedAtSet=%v",
 		len(usage.Lines), usage.Aggregate.Available, usage.HasSubscriptionID, usage.Aggregate.Reason, !usage.ObservedAt.IsZero())
-	for index, line := range usage.Lines {
-		if index >= 3 {
-			break
-		}
-		t.Logf("用量项[%d]：key=%q unit=%q window=%q limitSet=%v resetSet=%v",
-			index, line.Key, line.Unit, line.Window, line.Limit > 0, !line.ResetsAt.IsZero())
-	}
+	plan := usage.Plan
+	credits := usage.Credits
+	t.Logf("套餐形状：planSet=%v planNameSet=%v planStatusSet=%v priceAmountSet=%v currencySet=%v intervalSet=%v expiresAtSet=%v currentTermStartSet=%v",
+		plan != nil,
+		plan != nil && plan.Name != "", plan != nil && plan.Status != "",
+		plan != nil && plan.PriceAmount != nil,
+		plan != nil && plan.PriceCurrency != "", plan != nil && plan.PriceInterval != "",
+		plan != nil && !plan.ExpiresAt.IsZero(), plan != nil && !plan.CurrentTermStart.IsZero())
+	t.Logf("额度形状：creditsSet=%v usedSet=%v totalSet=%v remainingSet=%v unlimitedSet=%v resetsAtSet=%v",
+		credits != nil,
+		credits != nil && credits.UsedUnits != nil,
+		credits != nil && credits.TotalUnits != nil,
+		credits != nil && credits.RemainingUnits != nil,
+		credits != nil && credits.Unlimited != nil,
+		credits != nil && !credits.ResetsAt.IsZero())
+	t.Logf("窗口形状：count=%d durationSet=%v usedSet=%v capSet=%v startedAtSet=%v expiresAtSet=%v",
+		len(usage.Windows), hasWindowDuration(usage.Windows), hasWindowUsed(usage.Windows),
+		hasWindowCap(usage.Windows), hasWindowStarted(usage.Windows), hasWindowExpires(usage.Windows))
+	t.Logf("功能额度形状：count=%d keySet=%v usedSet=%v allowanceSet=%v remainingSet=%v unitSet=%v unlimitedSet=%v periodEndSet=%v",
+		len(usage.Features), hasFeatureKey(usage.Features), hasFeatureUsed(usage.Features),
+		hasFeatureAllowance(usage.Features), hasFeatureRemaining(usage.Features),
+		hasFeatureUnit(usage.Features), hasFeatureUnlimited(usage.Features), hasFeaturePeriodEnd(usage.Features))
+	t.Logf("链接形状：subscriptionURLSet=%v pricingURLSet=%v", usage.SubscriptionURL != "", usage.PricingURL != "")
 
 	models, err := account.RefreshModels(context.Background())
 	if err != nil {
@@ -236,6 +252,114 @@ func TestRealAccountFixtureDeviceLoginBeginReleases(t *testing.T) {
 	}
 	t.Logf("设备码登录发起：provider=%s method=%s attemptIssued=%v verificationURISet=%v userCodeSet=%v cancelled=%d",
 		state.ProviderID, state.Method, start.Attempt != "", start.VerificationURI != "", start.UserCode != "", harness.cancels)
+}
+
+func hasWindowDuration(windows []UsageWindow) bool {
+	for _, window := range windows {
+		if window.DurationHours > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func hasWindowUsed(windows []UsageWindow) bool {
+	for _, window := range windows {
+		if window.TokenUsed > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func hasWindowCap(windows []UsageWindow) bool {
+	for _, window := range windows {
+		if window.TokenCap > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func hasWindowStarted(windows []UsageWindow) bool {
+	for _, window := range windows {
+		if !window.StartedAt.IsZero() {
+			return true
+		}
+	}
+	return false
+}
+
+func hasWindowExpires(windows []UsageWindow) bool {
+	for _, window := range windows {
+		if !window.ExpiresAt.IsZero() {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFeatureKey(features []UsageFeature) bool {
+	for _, feature := range features {
+		if feature.Key != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFeatureUsed(features []UsageFeature) bool {
+	for _, feature := range features {
+		if feature.Used != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFeatureAllowance(features []UsageFeature) bool {
+	for _, feature := range features {
+		if feature.Allowance != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFeatureRemaining(features []UsageFeature) bool {
+	for _, feature := range features {
+		if feature.Remaining != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFeatureUnit(features []UsageFeature) bool {
+	for _, feature := range features {
+		if feature.Unit != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFeatureUnlimited(features []UsageFeature) bool {
+	for _, feature := range features {
+		if feature.Unlimited != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFeaturePeriodEnd(features []UsageFeature) bool {
+	for _, feature := range features {
+		if !feature.PeriodEnd.IsZero() {
+			return true
+		}
+	}
+	return false
 }
 
 // identityShape 只输出身份字段的有无，不输出邮箱等个人信息。

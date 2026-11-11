@@ -35,12 +35,66 @@ type AggregateUsage struct {
 	Reason string
 }
 
-// Usage 是一次用量读取的结果。Ready 表示 Lines/Aggregate 来自一次成功的服务端读取。
-// ReadError 非空表示最近一次读取失败；此时 Ready 与数据仍是上一次确认的事实。
+// UsagePlan 是账号套餐信息。数值字段用指针表示「服务端没有给」，缺失不等于 0。
+// PriceAmount 是货币最小单位（例如分），本包不换算货币。
+type UsagePlan struct {
+	Name             string
+	Status           string
+	PriceAmount      *float64
+	PriceCurrency    string
+	PriceInterval    string
+	ExpiresAt        time.Time
+	CurrentTermStart time.Time
+}
+
+// UsageCredits 是套餐额度单位。它不是货币；Unlimited 为 true 时余额 0 不代表耗尽。
+type UsageCredits struct {
+	UsedUnits      *float64
+	TotalUnits     *float64
+	RemainingUnits *float64
+	Unlimited      *bool
+	ResetsAt       time.Time
+}
+
+// UsageWindow 是一个滚动窗口的 token 配额与用量。
+type UsageWindow struct {
+	DurationHours float64
+	TokenUsed     float64
+	TokenCap      float64
+	StartedAt     time.Time
+	ExpiresAt     time.Time
+}
+
+// UsageFeature 是一项功能额度。数值字段用指针表示「服务端没有给」，Unit 由服务端
+// 给出（如 call），本包不推导单位或换算。
+type UsageFeature struct {
+	Key       string
+	Used      *float64
+	Allowance *float64
+	Remaining *float64
+	Unit      string
+	Unlimited *bool
+	PeriodEnd time.Time
+}
+
+// Usage 是一次用量读取的结果。Ready 表示数据来自一次成功的服务端读取；
+// ReadError 非空表示最近一次读取失败，此时 Ready 与数据仍是上一次确认的事实。
+//
+// Lines/Aggregate 是逐项与聚合的通用视图；Plan/Credits/Windows/Features 保留
+// 服务端原始字段与可选语义。SubscriptionURL/PricingURL 是链接，不是金额。
 type Usage struct {
 	Ready     bool
 	Lines     []UsageLine
 	Aggregate AggregateUsage
+	// Plan/Credits 为 nil 表示服务端没有给出对应对象。
+	Plan    *UsagePlan
+	Credits *UsageCredits
+	// Windows/Features 为 nil 表示服务端没有给出该数组；非 nil 空切片表示明确给了空数组。
+	Windows  []UsageWindow
+	Features []UsageFeature
+	// SubscriptionURL / PricingURL 是管理页与价格页链接，不是金额。
+	SubscriptionURL string
+	PricingURL      string
 	// SubscriptionID 是服务端给出的订阅标识；重置额度必须带它。
 	SubscriptionID    int64
 	HasSubscriptionID bool
