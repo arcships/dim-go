@@ -630,13 +630,52 @@ func TestGoalRowLivesAboveComposer(t *testing.T) {
 	}
 	app.goalEditing = true
 	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	for _, label := range []string{"目标", "保存目标", "取消编辑"} {
+	// W1：保存 / 取消是文字按钮（不是与审批同形的勾/叉）。
+	for _, label := range []string{"保存", "取消"} {
 		if _, ok := tt.Find(label); !ok {
-			t.Fatalf("目标编辑态缺少 %q", label)
+			t.Fatalf("目标编辑态缺少文字按钮 %q", label)
+		}
+	}
+	for _, label := range []string{"保存目标", "取消编辑"} {
+		if _, ok := tt.Access(label); !ok {
+			t.Fatalf("文字按钮缺少读屏名 %q", label)
 		}
 	}
 	if _, ok := tt.Find("修改目标"); ok {
 		t.Fatal("编辑态不应同时显示修改入口")
+	}
+	// W2：编辑态输入框有面差（surface 填充），一眼能看出"这里能改"。
+	if err := gui.NewTester(app.View, WindowWidth, WindowHeight).Click("目标"); err != nil {
+		t.Logf("点不到目标输入框：%v", err)
+	}
+	_ = tt
+}
+
+// 结束分支是两步动作（AC-08）：菜单第一次只换成确认态，再点才生效。
+func TestEndBranchNeedsConfirm(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.branch, app.branches = branchSamples()
+	app.branchMenuOpen = true
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if err := tt.ChooseMenuItem("结束分支"); err != nil {
+		t.Fatalf("点不到结束分支：%v", err)
+	}
+	if !app.endBranchConfirm {
+		t.Fatal("第一次点结束分支应进入确认态")
+	}
+	if app.branch != "feature/queue-rework" {
+		t.Fatalf("第一次点击就切换了分支：%q", app.branch)
+	}
+	// 第二步在标题行的标记上：换成「确认结束分支？」，再点标记才生效。
+	tt.Frame()
+	if _, ok := tt.Find("确认结束分支？"); !ok {
+		t.Fatal("标记没有换成确认文案")
+	}
+	if err := tt.Click("确认结束分支"); err != nil {
+		t.Fatalf("点不到确认结束分支：%v", err)
+	}
+	if app.branch != "main" {
+		t.Fatalf("确认后分支 = %q，想要 main", app.branch)
 	}
 }
 

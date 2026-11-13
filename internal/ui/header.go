@@ -85,14 +85,42 @@ func titleBarHeight(bar gui.TitleBar) float32 {
 func titleBarInset(bar gui.TitleBar) float32 { return bar.Height }
 
 // branchChip 是标题行里的分支标记：分叉图标 + 分支名，点开是分支清单（框架的原生
-// 弹出菜单，不占版式）。清单里当前分支打勾；「从当前分支切出」与「结束分支」是
-// 两个动作，后者是高后果（AC-08），走确认。
+// 弹出菜单，不占版式）。清单里当前分支打勾；「结束分支」是高后果（AC-08）：
+// 选它只进入确认态——标记换成「确认结束分支？」并出现「取消」，再点标记才生效。
 func (a *App) branchChip(c *gui.Context) {
 	t := c.Theme()
-	label := "切换分支：" + a.branch
-	if len([]rune(label)) > 0 {
-		label = "切换分支：" + a.branch
+
+	if a.endBranchConfirm {
+		// 第二步：标记本身变成确认按钮（同一个位置、同一形状），旁边给「取消」。
+		b := gui.ButtonBase(c).Padding(space1, space2).Radius(radius).
+			Cursor(gui.CursorPointer).Label("确认结束分支").
+			Tooltip("再点一次：结束这条分支，之后不能再提交")
+		if b.Hovered() {
+			b = b.Background(t.SurfaceHover)
+		}
+		if b.Clicked() {
+			ended := a.branch
+			a.branch = "main"
+			kept := a.branches[:0]
+			for _, name := range a.branches {
+				if name != ended {
+					kept = append(kept, name)
+				}
+			}
+			a.branches = kept
+			a.endBranchConfirm = false
+		}
+		b.Children(func() {
+			iconGlyph(c, iconBranch, t.Danger, "branch")
+			typeSecondary.style(t, gui.Text(c, "确认结束分支？")).TextColor(t.Danger).SingleLine()
+		})
+		if actionButton(c, "取消", "取消结束分支", false, false).Clicked() {
+			a.endBranchConfirm = false
+		}
+		return
 	}
+
+	label := "切换分支：" + a.branch
 	b := gui.ButtonBase(c).Padding(space1, space2).Radius(radius).
 		Cursor(gui.CursorPointer).Label(label).Tooltip("分支 · 点开切换")
 	b = b.PopoverMenuButton(func(m *gui.Menu) {
@@ -107,7 +135,10 @@ func (a *App) branchChip(c *gui.Context) {
 			// 骨架不发起写入：只把样例里的分支名换成派生名。
 			a.branch = a.branch + "-1"
 		}
-		m.Item("结束分支").Disabled(a.branch == "main").Chosen()
+		if m.Item("结束分支").Disabled(a.branch == "main").Chosen() {
+			// 第一步：只进入确认态（不可逆动作不在菜单里一步完成）。
+			a.endBranchConfirm = true
+		}
 	}, gui.PopoverMenuButtonOptions{Open: &a.branchMenuOpen})
 	if b.Hovered() {
 		b = b.Background(t.SurfaceHover)

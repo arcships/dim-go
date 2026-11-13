@@ -23,7 +23,8 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-720.png` | 720×900 | 三档宽度对照 · compact 边界 |
 | `window-titlebar-closeup.png` | 1440×120 | 标题行特写（红绿灯、会话名、无系统标题栏、无分隔线） |
 | `window-default-variant-branch{,-900,-720}.png` | 1440/900/720×900 | 分支切换：标题行分支标记 + 原生菜单（三分支状态之一） |
-| `window-default-variant-goal{,-900,-720}.png` | 1440/900/720×900 | 目标设置中：输入区上沿的目标行进入编辑态 |
+| `window-default-variant-goal{,-900,-720}.png` | 1440/900/720×900 | 目标设置中：面差输入框 + 「保存 / 取消」文字按钮 |
+| `window-default-variant-branch-end{,-900,-720}.png` | 1440/900/720×900 | 分支 · 结束分支确认态：标记换成「确认结束分支？」+「取消」 |
 | `window-running-variant-tasks{,-900,-720}.png` | 1440/900/720×900 | 后台任务运行中：右栏「后台」标签下的任务清单（720 时右栏整屏替代主区） |
 | `window-default-variant-settings{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **外观分节**（主题下拉 + 动效开关）；左导航 224、顶部返回入口 |
 | `window-default-variant-settings-rules{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **命令规则分节**，停在**清空确认态**（危险动作两步） |
@@ -33,7 +34,7 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 
 | 类别 | 外观 | 覆盖 |
 |---|---|---|
-| `window-*.png` | 跟随系统（本轮深色） | 五种状态、三档宽度、五个走查态、设置两态 |
+| `window-*.png` | 跟随系统（本轮深色） | 五种状态、三档宽度、六个走查态、设置两态 |
 | `state-*.png` / `variant-*.png` | 软件渲染默认浅色 | 五个状态与各变体；深色见 `variant-dark.png` |
 
 **不能证明什么**：悬停 / 按下 / 焦点态与 tooltip。本会话里进程无法成为前台（`NSRunningApplication.activate` 返回 true 而 `isActive=false`，窗口 `onscreen=false`），窗口收不到 hover 事件，系统 tooltip 不会出现；这部分以测试断言代替（`TestSendSlotIsIconWithTooltip`、`TestSelfDrawnRowsHaveStates`）。Windows 与 Linux 的形态同样不在证据内。
@@ -59,7 +60,7 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 
 | 类别 | 外观 | 覆盖 |
 |---|---|---|
-| `window-*.png` | 跟随系统（本轮深色） | 五种状态、三档宽度、五个走查态、设置两态 |
+| `window-*.png` | 跟随系统（本轮深色） | 五种状态、三档宽度、六个走查态、设置两态 |
 | `state-*.png` / `variant-*.png` | 软件渲染默认浅色 | 五个状态与各变体；深色见 `variant-dark.png` |
 
 **不能证明什么**：系统窗口装饰、真实指针形状、真实输入法与屏读器行为。
@@ -72,7 +73,7 @@ go test ./internal/ui -run 'TestScreens|TestTitleBarCloseup|TestWordlessCheck' -
 
 # 真窗口（逐态启动、按窗口号截图；需要屏幕录制权限）
 go build -o /tmp/dimagent-ui ./cmd/dimagent-ui
-python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 五个走查态（branch / goal / tasks / settings / settings-rules）
+python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 六个走查态（branch / branch-end / goal / tasks / settings / settings-rules）
 
 # 基线量测（同一批图上的数值）
 python3 scripts/ui-baseline.py docs/domains/screens/state-default.png

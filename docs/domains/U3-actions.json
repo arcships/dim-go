@@ -79,7 +79,7 @@
       "scope": "一条分支",
       "form": "icon+text",
       "confirm": true,
-      "basis": "U1 S63；U3 后续批次"
+      "basis": "U1 S63；U3 后续批次；两步确认落在标题行标记（U2-forms F19 变化规则）"
     },
     {
       "id": "AC-09",

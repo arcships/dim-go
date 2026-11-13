@@ -252,15 +252,18 @@ func (a *App) goalRow(c *gui.Context) {
 	}
 	t := c.Theme()
 	if a.goalEditing {
-		// 设置中：一行输入 + 保存 / 取消两个图标入口，位置与阅读态相同。
+		// 设置中（F20 的变化规则）：输入框给面差（`surface` 填充、不描边，UI-18），
+		// 右侧是「保存 / 取消」两个**文字按钮**——低频、中后果、需要明确，不能与
+		// 审批的勾/叉同形不同义（同形同义，A0/D4）。位置与阅读态相同。
 		gui.Row(c).Height(QueueHeight).Shrink(0).Padding(0, space4).
 			Gap(space2).AlignItems(gui.Center).Children(func() {
 			iconGlyph(c, iconTarget, colorAccentInk.in(t), "target")
-			gui.TextInputBase(c, &a.goal).Grow(1).Label("目标").Placeholder(placeholderGoal)
-			if iconButton(c, iconButtonSpec{icon: iconCheck, label: "保存目标", size: rowCompact}) {
+			gui.TextInputBase(c, &a.goal).Grow(1).Label("目标").Placeholder(placeholderGoal).
+				Padding(space1, space2).Radius(radius).Background(t.Surface)
+			if actionButton(c, "保存", "保存目标", true, false).Clicked() {
 				a.goalEditing = false
 			}
-			if iconButton(c, iconButtonSpec{icon: iconXMark, label: "取消编辑", size: rowCompact}) {
+			if actionButton(c, "取消", "取消编辑", false, false).Clicked() {
 				a.goalEditing = false
 			}
 		})

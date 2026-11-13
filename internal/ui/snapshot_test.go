@@ -80,6 +80,12 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 分支 · 结束分支的确认态（AC-08 两步）。
+	{name: "variant-branch-end", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.branch, a.branches = branchSamples()
+		a.branchMenuOpen = true
+		a.endBranchConfirm = true
+	}},
 	// 目标：输入区上沿的目标行进入设置态。
 	{name: "variant-goal", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.goalEditing = true

@@ -344,14 +344,15 @@
       "id": "EL-24",
       "element": "目标行 · 编辑态保存",
       "item": "E1",
-      "control": "自绘图标入口",
-      "form": "icon",
-      "reason": "低频 + 词形成熟（对勾）",
-      "icon": "check",
+      "control": "框架主按钮（文字）",
+      "form": "text",
+      "reason": "低频、中后果、需要明确；与审批的勾/叉同形不同义（同形同义 A0/D4）",
+      "icon": "—",
       "doc": "U2-forms §1 F20",
       "when": "goal-edit",
       "probe": "保存目标",
-      "checkable": true
+      "checkable": true,
+      "text": "保存"
     },
     {
       "id": "EL-25",
@@ -464,6 +465,20 @@
       "when": "settings-rules",
       "probe": "清空命令规则",
       "text": "清空命令规则",
+      "checkable": true
+    },
+    {
+      "id": "EL-33",
+      "element": "目标行 · 编辑态取消",
+      "item": "E1",
+      "control": "框架次按钮（文字）",
+      "form": "text",
+      "reason": "同上：取消与保存成对，文字比叉号更明确",
+      "icon": "—",
+      "doc": "U2-forms §1 F20",
+      "when": "goal-edit",
+      "probe": "取消编辑",
+      "text": "取消",
       "checkable": true
     }
   ]

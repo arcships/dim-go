@@ -89,6 +89,8 @@ const (
 	VariantGoal
 	// VariantTasks 打开右栏的「后台」标签并显示运行中的任务。
 	VariantTasks
+	// VariantBranchEnd 打开分支菜单并停在「结束分支」的确认态。
+	VariantBranchEnd
 	// VariantSettings 进入设置屏（默认分节）。
 	VariantSettings
 	// VariantSettingsRules 进入设置屏并停在命令规则的清空确认态。
@@ -99,7 +101,7 @@ const (
 var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
-	"settings": VariantSettings, "settings-rules": VariantSettingsRules,
+	"branch-end": VariantBranchEnd, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
 }
 
 // ParseVariant 解析 -variant。
@@ -107,7 +109,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、goal、tasks、settings、settings-rules", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、goal、tasks、settings、settings-rules", v)
 }
 
 // Options 是骨架的启动参数。
@@ -145,9 +147,10 @@ type App struct {
 
 	// 分支、目标、后台任务是样例里的展示数据（不是事实）：分支名、目标文本、
 	// 任务名都属于内容字符串（U1-content.json）。
-	branch         string
-	branches       []string
-	branchMenuOpen bool
+	branch           string
+	branches         []string
+	branchMenuOpen   bool
+	endBranchConfirm bool
 	goal           string
 	goalDone       bool
 	goalEditing    bool
@@ -228,6 +231,7 @@ func (a *App) loadSample() {
 	a.branch = "main"
 	a.branches = []string{"main"}
 	a.branchMenuOpen = false
+	a.endBranchConfirm = false
 	a.goal = "把发送路径改成排队"
 	a.goalDone = false
 	a.goalEditing = false
@@ -259,6 +263,10 @@ func (a *App) loadSample() {
 	case VariantBranch:
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
+	case VariantBranchEnd:
+		a.branch, a.branches = branchSamples()
+		a.branchMenuOpen = true
+		a.endBranchConfirm = true
 	case VariantGoal:
 		a.goalEditing = true
 	case VariantTasks:
