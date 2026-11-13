@@ -32,7 +32,7 @@ func markdownTheme(t *gui.Theme) *markdown.Theme {
 	//   列表项之间：示例 22.5px 行距 = 行盒 + 0.25em，我们已是 0.25em（不动）；
 	//   表格行：示例 32px 行距 = 行盒 21 + 上下 0.4em，我们的行盒 19.5 只有 31px，
 	//   上下各加 0.05em 补回到 2.2em 的行距。
-	md.BlockSpacing = 0.85
+	md.BlockSpacing = 1.0
 	md.ItemSpacing = 0.25
 	md.TableCellPadding = [2]float32{0.6, 0.45}
 
@@ -45,8 +45,8 @@ func markdownTheme(t *gui.Theme) *markdown.Theme {
 		md.Headings[i].Color = t.Text
 		// 标题上下留白：示例 h2 上方墨迹间隙 30px、下方 27px（21px 行盒），
 		// 换算成 em 的上/下留白约 1.45 / 0.6。
-		md.Headings[i].Top = 1.45
-		md.Headings[i].Bottom = 0.6
+		md.Headings[i].Top = 1.65
+		md.Headings[i].Bottom = 0.75
 	}
 	md.Headings[5].Color = t.TextMuted
 	return md

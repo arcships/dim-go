@@ -833,6 +833,8 @@ func checkMarkdownRhythm(md *markdown.Theme) []lintFinding {
 		fail("量不到标题与正文两行")
 	} else if gap := bands[1][0] - bands[0][1] - 1; gap < 10 {
 		fail(fmt.Sprintf("块间呼吸不足：标题到正文的墨迹间隙 %dpx（想要 ≥ 10）", gap))
+	} else if g := float32(gap) / 13; g > 2.4 { // 13px 正文：上限 2.4em，防止调过头
+		fail(fmt.Sprintf("块间呼吸过大：%.2fem（上限 2.4em）", g))
 	}
 
 	// 列表项间：两项的起点差 ≥ 行盒 + 0.2em（13px → 约 22px）。
