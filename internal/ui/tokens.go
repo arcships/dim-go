@@ -32,6 +32,17 @@ const (
 	// R3 的宽度下限：右栏打开时主区不缩到 400 以下。
 	MainMinWidth = 400
 
+	// R6 设置（独立屏）：左导航 224 + 内容区上限 1008（U0 §12.7、U1-ia §4）。
+	SettingsNavWidth         = 224
+	SettingsContentMaxWidth  = 1008
+	SettingsLabelWidth       = 140
+	SettingsRuleCommandWidth = 240
+	SettingsRuleSelectWidth  = 120
+	// SettingsRuleRowMinWidth 是"命令 + 决定 + 匹配方式"排在一行所需的最小内宽；
+	// 窄于它就按行堆叠（一条规则两行），见 U2-forms F23 的退化规则。
+	SettingsRuleRowMinWidth = SettingsRuleCommandWidth + space4 + SettingsRuleSelectWidth +
+		space4 + SettingsRuleSelectWidth
+
 	// R5 右栏：280–（容器−400）。
 	RightPanelMinWidth       = 280
 	RightPanelPreferredWidth = 320

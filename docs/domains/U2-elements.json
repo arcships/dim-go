@@ -409,6 +409,62 @@
       "probe": "消息在排队判定里丢了",
       "checkable": false,
       "why_not_checkable": "内容行，长文本；形式由内容定"
+    },
+    {
+      "id": "EL-29",
+      "element": "设置入口",
+      "item": "S4",
+      "control": "自绘图标入口（左栏页脚）",
+      "form": "icon",
+      "reason": "低频 + 词形成熟（齿轮）+ 页脚空间紧",
+      "icon": "gear",
+      "doc": "U2-forms §1 F22",
+      "when": "always",
+      "probe": "设置",
+      "checkable": true
+    },
+    {
+      "id": "EL-30",
+      "element": "设置分节导航",
+      "item": "S41",
+      "control": "自绘行（ButtonBase）",
+      "form": "text",
+      "reason": "分节名是界面语；空间充足；选中态用底色与字重",
+      "icon": "—",
+      "doc": "U2-forms §1 F22",
+      "when": "settings",
+      "probe": "外观",
+      "text": "外观",
+      "checkable": true
+    },
+    {
+      "id": "EL-31",
+      "element": "设置项（标签 + 控件）",
+      "item": "S42",
+      "control": "标签文字 + 框架控件（Select / Switch）",
+      "form": "text",
+      "reason": "标签是界面语；空间充足；控件用框架原语",
+      "icon": "—",
+      "doc": "U2-forms §1 F23",
+      "when": "settings",
+      "probe": "主题",
+      "text": "主题",
+      "checkable": true
+    },
+    {
+      "id": "EL-32",
+      "element": "危险动作 · 清空命令规则",
+      "item": "T1",
+      "control": "自绘按钮（图标 + 文字，两步确认）",
+      "form": "icon+text",
+      "reason": "不可逆、影响所有会话（→文字 + 确认）；低频；内容区空间充足",
+      "icon": "x-mark",
+      "mark": "x-mark",
+      "doc": "U2-forms §1 F24",
+      "when": "settings-rules",
+      "probe": "清空命令规则",
+      "text": "清空命令规则",
+      "checkable": true
     }
   ]
 }

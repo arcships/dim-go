@@ -16,7 +16,7 @@ STATES = ["default", "running", "waiting", "failed", "empty"]
 # 三档宽度对照（U1-ia §0：compact <720 / regular 720–959 / wide ≥960）。
 WIDTHS = [1440, 900, 720]
 # 三类新信息的走查态（分支切换 / 目标设置中 / 后台任务运行中）。
-VARIANTS = ["branch", "goal", "tasks"]
+VARIANTS = ["branch", "goal", "tasks", "settings", "settings-rules"]
 
 
 def windows():
@@ -62,7 +62,21 @@ def capture(state, width=1440, height=900, suffix=None, variant=""):
         num, x, y, w, h = win
         time.sleep(0.8)  # let the first frame settle
         path = f"{SHOTS}/window-{state}{suffix or ''}.png"
-        subprocess.run(["screencapture", "-x", "-o", "-l", str(num), path], check=True)
+        # 窗口刚出现时 screencapture 偶尔取不到它的后备缓冲：重试三次，仍失败就
+        # 报出状态并继续，不静默当成功。
+        last = None
+        for attempt in range(3):
+            r = subprocess.run(["screencapture", "-x", "-o", "-l", str(num), path],
+                               capture_output=True)
+            if r.returncode == 0:
+                last = None
+                break
+            last = r
+            time.sleep(0.8)
+        if last is not None:
+            print(f"{state}: capture failed for window {num}: {last.stderr.decode()[:200]}",
+                  file=sys.stderr)
+            return False
         print(f"{state}: window {num} at {x},{y} {w}x{h} -> {path}")
         if state == "default" and suffix is None:
             # 标题行特写直接从这一帧裁，不再用 -R 取屏幕坐标：窗口可能落在负坐标上
@@ -94,6 +108,7 @@ def main():
             ok = False
     for variant in VARIANTS:
         state = "running" if variant == "tasks" else "default"
+        # 设置两态：默认（外观分节）与命令规则的清空确认态。
         for width in WIDTHS:
             suffix = f"-variant-{variant}" if width == 1440 else f"-variant-{variant}-{width}"
             if not capture(state, width=width, suffix=suffix, variant=variant):

@@ -116,6 +116,15 @@
       "form": "icon",
       "confirm": false,
       "basis": "U1 S63、E7"
+    },
+    {
+      "id": "AC-13",
+      "action": "清空命令规则",
+      "consequence": "不可逆：删除用户级命令规则，对所有会话立即生效",
+      "scope": "所有会话",
+      "form": "icon+text",
+      "confirm": true,
+      "basis": "U1 T1、T29；U3 设置分节（后续批次接 permission.set_rules）"
     }
   ],
   "undecided": [

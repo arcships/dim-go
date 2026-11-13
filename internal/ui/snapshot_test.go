@@ -84,6 +84,17 @@ var screenCases = []screenCase{
 	{name: "variant-goal", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.goalEditing = true
 	}},
+	// 设置屏（P2）：左导航 + 三个分节；默认停在命令规则（含危险动作）。
+	{name: "variant-settings", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen = ScreenSettings
+		a.settingsSection = 0
+	}},
+	// 设置 · 命令规则的清空确认态（危险动作两步）。
+	{name: "variant-settings-rules", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen = ScreenSettings
+		a.settingsSection = 2
+		a.clearRulesConfirm = true
+	}},
 	// 后台任务：右栏「后台」标签下的运行中任务。
 	{name: "variant-tasks", state: StateRunning, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.rightOpen = true
@@ -211,6 +222,10 @@ func TestScreensFitWindow(t *testing.T) {
 				r.X+r.W > WindowWidth || r.Y+r.H > WindowHeight {
 				t.Fatalf("%s：%q 越出窗口（%+v）", c.name, text, r)
 			}
+		}
+		// 设置屏没有对话流与输入位（独立成屏），跳过这条重叠检查。
+		if _, ok := tt.Find("设置"); ok {
+			continue
 		}
 		// 对话流与输入位不重叠：时间线在下沿给输入位让位。
 		feed, ok := tt.Find("对话流")

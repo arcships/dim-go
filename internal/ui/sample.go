@@ -4,6 +4,13 @@ package ui
 // 不来自 App Server，也不代表任何真实会话。样例文案与顺序取自
 // docs/domains/wireframes/a.html 的七个画面。
 
+// commandRule 是一条命令规则：命令原文（内容）+ 决定 + 匹配方式。
+type commandRule struct {
+	command  string
+	decision string // 允许 / 拒绝
+	match    string // 精确 / 前缀
+}
+
 // taskState 是后台任务在界面上的三种形态。
 type taskState int
 

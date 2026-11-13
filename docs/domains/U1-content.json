@@ -407,6 +407,214 @@
       "item": "S63",
       "kind": "interface",
       "why": "高后果动作的动词（AC-08，图标 + 文字 + 确认）"
+    },
+    {
+      "id": "CT-51",
+      "match": "exact",
+      "value": "设置",
+      "item": "S41",
+      "kind": "interface",
+      "why": "设置屏的入口与屏名"
+    },
+    {
+      "id": "CT-52",
+      "match": "exact",
+      "value": "外观",
+      "item": "S41",
+      "kind": "interface",
+      "why": "设置分节名"
+    },
+    {
+      "id": "CT-53",
+      "match": "exact",
+      "value": "供应商",
+      "item": "S41",
+      "kind": "interface",
+      "why": "设置分节名"
+    },
+    {
+      "id": "CT-54",
+      "match": "exact",
+      "value": "命令规则",
+      "item": "S41",
+      "kind": "interface",
+      "why": "设置分节名"
+    },
+    {
+      "id": "CT-55",
+      "match": "exact",
+      "value": "主题",
+      "item": "T20",
+      "kind": "interface",
+      "why": "设置项标签"
+    },
+    {
+      "id": "CT-56",
+      "match": "exact",
+      "value": "动效",
+      "item": "T21",
+      "kind": "interface",
+      "why": "设置项标签"
+    },
+    {
+      "id": "CT-57",
+      "match": "exact",
+      "value": "当前供应商",
+      "item": "T3",
+      "kind": "interface",
+      "why": "设置项标签"
+    },
+    {
+      "id": "CT-58",
+      "match": "exact",
+      "value": "模型",
+      "item": "T4",
+      "kind": "interface",
+      "why": "设置项标签"
+    },
+    {
+      "id": "CT-59",
+      "match": "exact",
+      "value": "允许",
+      "item": "T2",
+      "kind": "interface",
+      "why": "规则的决定值（界面选项）"
+    },
+    {
+      "id": "CT-60",
+      "match": "exact",
+      "value": "拒绝",
+      "item": "T2",
+      "kind": "interface",
+      "why": "规则的决定值（界面选项）"
+    },
+    {
+      "id": "CT-61",
+      "match": "exact",
+      "value": "精确",
+      "item": "T2",
+      "kind": "interface",
+      "why": "匹配方式（exact）"
+    },
+    {
+      "id": "CT-62",
+      "match": "exact",
+      "value": "前缀",
+      "item": "T2",
+      "kind": "interface",
+      "why": "匹配方式（prefix）"
+    },
+    {
+      "id": "CT-63",
+      "match": "exact",
+      "value": "清空命令规则",
+      "item": "T1",
+      "kind": "interface",
+      "why": "危险动作的动词"
+    },
+    {
+      "id": "CT-64",
+      "match": "exact",
+      "value": "确认清空",
+      "item": "T1",
+      "kind": "interface",
+      "why": "两步确认的确认态文案"
+    },
+    {
+      "id": "CT-65",
+      "match": "exact",
+      "value": "规则对所有会话生效；拒绝先于允许。",
+      "item": "T29",
+      "kind": "content",
+      "why": "规则的作用域与优先级说明（事实）"
+    },
+    {
+      "id": "CT-66",
+      "match": "exact",
+      "value": "清空后所有会话立即生效，无法撤销。",
+      "item": "T1",
+      "kind": "content",
+      "why": "不可逆后果的说明（事实）"
+    },
+    {
+      "id": "CT-67",
+      "match": "exact",
+      "value": "Anthropic",
+      "item": "T3",
+      "kind": "content",
+      "why": "供应商名"
+    },
+    {
+      "id": "CT-68",
+      "match": "exact",
+      "value": "OpenAI",
+      "item": "T3",
+      "kind": "content",
+      "why": "供应商名"
+    },
+    {
+      "id": "CT-69",
+      "match": "exact",
+      "value": "Opus 4.6",
+      "item": "T4",
+      "kind": "content",
+      "why": "模型名"
+    },
+    {
+      "id": "CT-70",
+      "match": "exact",
+      "value": "Sonnet 4.6",
+      "item": "T4",
+      "kind": "content",
+      "why": "模型名"
+    },
+    {
+      "id": "CT-71",
+      "match": "prefix",
+      "value": "$3 / 百万 token",
+      "item": "G6",
+      "kind": "content",
+      "why": "目录单价（每百万 token）"
+    },
+    {
+      "id": "CT-72",
+      "match": "exact",
+      "value": "go test ./...",
+      "item": "T1",
+      "kind": "content",
+      "why": "命令规则里的命令原文"
+    },
+    {
+      "id": "CT-73",
+      "match": "exact",
+      "value": "rm -rf",
+      "item": "T1",
+      "kind": "content",
+      "why": "命令规则里的命令原文"
+    },
+    {
+      "id": "CT-74",
+      "match": "exact",
+      "value": "跟随系统",
+      "item": "T20",
+      "kind": "interface",
+      "why": "主题选项"
+    },
+    {
+      "id": "CT-75",
+      "match": "exact",
+      "value": "明",
+      "item": "T20",
+      "kind": "interface",
+      "why": "主题选项"
+    },
+    {
+      "id": "CT-76",
+      "match": "exact",
+      "value": "暗",
+      "item": "T20",
+      "kind": "interface",
+      "why": "主题选项"
     }
   ],
   "undecided": []

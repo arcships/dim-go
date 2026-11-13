@@ -478,6 +478,119 @@ func TestActionsUseIconsNotGlyphs(t *testing.T) {
 	}
 }
 
+// 设置是独立成屏（P2）：从左栏齿轮进入、从导航的返回入口回来；草稿与滚动位置
+// 不因为进出一趟设置而丢失（UI-8）。
+func TestSettingsRoundTripKeepsDraftAndScroll(t *testing.T) {
+	app := NewApp(Options{State: StateDefault})
+	app.draft = "还没写完的一句"
+	// 用矮窗口让时间线可滚动：滚动位置才有意义的非零值。
+	tt := gui.NewTester(app.View, WindowWidth, 480)
+	tt.Frame()
+	tt.Scroll(WindowWidth/2, 300, 0, 120)
+	tt.Frame()
+	scrolled := app.feed.Y
+
+	if err := tt.Click("设置"); err != nil {
+		t.Fatalf("点不到设置入口：%v", err)
+	}
+	if app.screen != ScreenSettings {
+		t.Fatal("没有进入设置屏")
+	}
+	tt.Frame()
+	if _, ok := tt.Find("对话流"); ok {
+		t.Fatal("设置屏不应同时显示主界面")
+	}
+	for _, name := range []string{"外观", "供应商", "命令规则"} {
+		if _, ok := tt.Find(name); !ok {
+			t.Fatalf("设置导航缺分节 %q", name)
+		}
+	}
+	if err := tt.Click("返回主界面"); err != nil {
+		t.Fatalf("点不到返回入口：%v", err)
+	}
+	if app.screen != ScreenMain {
+		t.Fatal("没有回到主界面")
+	}
+	if app.draft != "还没写完的一句" {
+		t.Fatalf("草稿丢了：%q", app.draft)
+	}
+	if app.feed.Y != scrolled {
+		t.Fatalf("滚动位置丢了：%v → %v", scrolled, app.feed.Y)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("对话流"); !ok {
+		t.Fatal("回到主界面后没有对话流")
+	}
+}
+
+// 设置里分节可切换；外观的主题改完立即生效（同一帧换主题）。
+func TestSettingsSectionsAndTheme(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.screen = ScreenSettings
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	// 主题：切到「暗」后同一帧背景变暗（外观分节）。
+	if err := tt.Click("主题选择"); err != nil {
+		t.Fatalf("点不到主题下拉：%v", err)
+	}
+	// 下拉是框架的原生弹层：聚焦后 ↓ 打开、再 ↓ 移到「暗」、Enter 选中。
+	tt.Key(0, gui.KeyDown)
+	tt.Key(0, gui.KeyDown)
+	tt.Key(0, gui.KeyEnter)
+	if app.themePref != "暗" {
+		t.Fatalf("主题偏好 = %q，想要 暗", app.themePref)
+	}
+	tt.Frame()
+	bg := tt.Image().RGBAAt(SidebarWidth+8, HeaderHeight+8)
+	if bg.R > bg.B || bg.R > 200 {
+		t.Fatalf("切到暗色后主区底色仍是 %v", bg)
+	}
+	// 动效开关：点开关本身（开关比标签窄），状态立即变。
+	if info, ok := tt.Access("关闭动效"); ok {
+		tt.ClickAt(info.Bounds.X+4, info.Bounds.Y+info.Bounds.H/2)
+	}
+	if !app.motionOff {
+		t.Fatal("动效开关没有生效")
+	}
+	// 分节切换：命令规则。
+	tt.Frame()
+	if err := tt.Click("命令规则"); err != nil {
+		t.Fatalf("点不到命令规则：%v", err)
+	}
+	if app.settingsSection != 2 {
+		t.Fatalf("分节 = %d，想要 2（命令规则）", app.settingsSection)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("清空命令规则"); !ok {
+		t.Fatal("命令规则分节缺少危险动作")
+	}
+}
+
+// 清空命令规则是两步动作（AC-13）：第一次只进确认态，第二次才清空。
+func TestClearRulesNeedsConfirm(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.screen = ScreenSettings
+	app.settingsSection = 2
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if err := tt.Click("清空命令规则"); err != nil {
+		t.Fatalf("点不到清空：%v", err)
+	}
+	if len(app.rules) == 0 {
+		t.Fatal("第一次点击就清空了规则")
+	}
+	if !app.clearRulesConfirm {
+		t.Fatal("第一次点击应进入确认态")
+	}
+	if _, ok := tt.Find("确认清空"); !ok {
+		t.Fatal("确认态没有换成「确认清空」")
+	}
+	if err := tt.Click("确认清空"); err != nil {
+		t.Fatalf("点不到确认清空：%v", err)
+	}
+	if len(app.rules) != 0 {
+		t.Fatalf("确认后仍有 %d 条规则", len(app.rules))
+	}
+}
+
 // 分支：main 不上屏（UI-9）；非 main 时标题行给「图标 + 名字」，点开是原生菜单。
 func TestBranchMarkerOnlyWhenNotMain(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

@@ -65,6 +65,17 @@ func ParseState(v string) (State, error) {
 	return StateDefault, fmt.Errorf("未知状态 %q：可用 default、running、waiting、failed、empty，或 1–5", v)
 }
 
+// Screen 是当前屏：主界面或设置（P1/P2，U1-ia §4）。设置独立成屏，返回时恢复
+// 离开前的主界面状态（草稿、滚动位置、展开状态都由 App 持有，切屏不重建它们）。
+type Screen int
+
+const (
+	// ScreenMain 主界面。
+	ScreenMain Screen = iota
+	// ScreenSettings 设置屏。
+	ScreenSettings
+)
+
 // Variant 是骨架的第三种维度：在同一个状态上打开分支菜单、目标编辑或后台任务，
 // 用来走查三类新信息（不改变业务事实，只切样例里的展开态）。
 type Variant int
@@ -78,12 +89,17 @@ const (
 	VariantGoal
 	// VariantTasks 打开右栏的「后台」标签并显示运行中的任务。
 	VariantTasks
+	// VariantSettings 进入设置屏（默认分节）。
+	VariantSettings
+	// VariantSettingsRules 进入设置屏并停在命令规则的清空确认态。
+	VariantSettingsRules
 )
 
 // variantNames 是 -variant 的取值。
 var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
+	"settings": VariantSettings, "settings-rules": VariantSettingsRules,
 }
 
 // ParseVariant 解析 -variant。
@@ -91,7 +107,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、goal、tasks", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、goal、tasks、settings、settings-rules", v)
 }
 
 // Options 是骨架的启动参数。
@@ -135,6 +151,19 @@ type App struct {
 	goal           string
 	goalDone       bool
 	goalEditing    bool
+
+	// 设置屏：屏幕、当前分节、三个分节的样例值。全部是可丢的界面状态。
+	screen             Screen
+	settingsSection    int
+	themePref          string
+	motionOff          bool
+	provider           string
+	providers          []string
+	modelChoice        string
+	models             []string
+	modelPrice         string
+	rules              []commandRule
+	clearRulesConfirm  bool
 	tasks          []task
 
 	// contextUsed / contextLimit 是样例里的上下文用量，百分比由二者算；
@@ -204,7 +233,29 @@ func (a *App) loadSample() {
 	a.goalEditing = false
 	a.tasks = taskSamples()
 
+	a.screen = ScreenMain
+	a.settingsSection = 0
+	a.themePref = "跟随系统"
+	a.motionOff = false
+	a.providers = []string{"Anthropic", "OpenAI"}
+	a.provider = "Anthropic"
+	a.models = []string{"Opus 4.6", "Sonnet 4.6"}
+	a.modelChoice = "Opus 4.6"
+	a.modelPrice = "$3 / 百万 token · $15 / 百万 token（输出）"
+	a.rules = []commandRule{
+		{command: "go test ./...", decision: "允许", match: "精确"},
+		{command: "rm -rf", decision: "拒绝", match: "前缀"},
+	}
+	a.clearRulesConfirm = false
+
 	switch a.variant {
+	case VariantSettings:
+		a.screen = ScreenSettings
+		a.settingsSection = 0 // 外观：主题与动效
+	case VariantSettingsRules:
+		a.screen = ScreenSettings
+		a.settingsSection = 2 // 命令规则：清空确认态
+		a.clearRulesConfirm = true
 	case VariantBranch:
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
@@ -233,6 +284,13 @@ func (a *App) applyTokens(c *gui.Context) {
 	dark := false
 	if sys := c.Theme(); sys != nil {
 		dark = sys.Dark
+	}
+	// 设置 · 外观 · 主题：跟随系统 / 明 / 暗，改完立即生效（同一帧换主题）。
+	switch a.themePref {
+	case "明":
+		dark = false
+	case "暗":
+		dark = true
 	}
 	c.SetTheme(theme(dark, c.Preferences()))
 }
@@ -273,6 +331,10 @@ func (a *App) layout(c *gui.Context) {
 
 	gui.Row(c).Fill().AlignItems(gui.Stretch).
 		Background(t.Background).Children(func() {
+		if a.screen == ScreenSettings {
+			a.settings(c)
+			return
+		}
 		a.sidebar(c)
 		gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
 			a.header(c)

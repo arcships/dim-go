@@ -43,6 +43,10 @@ func (a *App) sidebar(c *gui.Context) {
 			AlignItems(gui.Center).Gap(space2).Children(func() {
 			statusDot(c, t.Success, a.connected)
 			gui.Spacer(c)
+			// 设置入口（P2）：齿轮图标，点开是独立成屏的设置。
+			if iconButton(c, iconButtonSpec{icon: iconGear, label: "设置", size: rowCompact}) {
+				a.screen = ScreenSettings
+			}
 			avatar(c, t, a.accountInitial)
 		})
 	}

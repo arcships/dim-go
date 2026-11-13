@@ -25,8 +25,17 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-variant-branch{,-900,-720}.png` | 1440/900/720×900 | 分支切换：标题行分支标记 + 原生菜单（三分支状态之一） |
 | `window-default-variant-goal{,-900,-720}.png` | 1440/900/720×900 | 目标设置中：输入区上沿的目标行进入编辑态 |
 | `window-running-variant-tasks{,-900,-720}.png` | 1440/900/720×900 | 后台任务运行中：右栏「后台」标签下的任务清单（720 时右栏整屏替代主区） |
+| `window-default-variant-settings{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **外观分节**（主题下拉 + 动效开关）；左导航 224、顶部返回入口 |
+| `window-default-variant-settings-rules{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **命令规则分节**，停在**清空确认态**（危险动作两步） |
 
 **能证明什么**：macOS 红绿灯由系统画在左栏顶部的让位条里；没有系统标题栏；标题行是自绘的、左端是会话名；窗口圆角与阴影由系统给。
+**外观（主题）**：真窗口截图跟随系统外观——本轮系统为深色，所以 `window-*.png` 全是深色，同一轮评审看到的是同一套观感。软件渲染（`state-*.png` / `variant-*.png`）默认浅色，深色由 `variant-dark.png` 覆盖；两类的对照关系见下表。
+
+| 类别 | 外观 | 覆盖 |
+|---|---|---|
+| `window-*.png` | 跟随系统（本轮深色） | 五种状态、三档宽度、五个走查态、设置两态 |
+| `state-*.png` / `variant-*.png` | 软件渲染默认浅色 | 五个状态与各变体；深色见 `variant-dark.png` |
+
 **不能证明什么**：悬停 / 按下 / 焦点态与 tooltip。本会话里进程无法成为前台（`NSRunningApplication.activate` 返回 true 而 `isActive=false`，窗口 `onscreen=false`），窗口收不到 hover 事件，系统 tooltip 不会出现；这部分以测试断言代替（`TestSendSlotIsIconWithTooltip`、`TestSelfDrawnRowsHaveStates`）。Windows 与 Linux 的形态同样不在证据内。
 
 ## 二、软件渲染（`state-*.png`、`variant-*.png`、`wordless-check.png`）
@@ -46,6 +55,13 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `wordless-check.png` | 遮字测试：盖住发送槽文字，检查"读历史 / 提交 / 处理一次审批"是否仍认得出 |
 
 **能证明什么**：每个状态的元素与形式、排版基线的数值（`scripts/ui-baseline.py`）、像素级的悬停/按下取色（测试里断言）、遮字后仍可完成首片任务。
+**外观（主题）**：真窗口截图跟随系统外观——本轮系统为深色，所以 `window-*.png` 全是深色，同一轮评审看到的是同一套观感。软件渲染（`state-*.png` / `variant-*.png`）默认浅色，深色由 `variant-dark.png` 覆盖；两类的对照关系见下表。
+
+| 类别 | 外观 | 覆盖 |
+|---|---|---|
+| `window-*.png` | 跟随系统（本轮深色） | 五种状态、三档宽度、五个走查态、设置两态 |
+| `state-*.png` / `variant-*.png` | 软件渲染默认浅色 | 五个状态与各变体；深色见 `variant-dark.png` |
+
 **不能证明什么**：系统窗口装饰、真实指针形状、真实输入法与屏读器行为。
 
 ## 三、重新产出
@@ -56,7 +72,7 @@ go test ./internal/ui -run 'TestScreens|TestTitleBarCloseup|TestWordlessCheck' -
 
 # 真窗口（逐态启动、按窗口号截图；需要屏幕录制权限）
 go build -o /tmp/dimagent-ui ./cmd/dimagent-ui
-python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 三个走查态（branch / goal / tasks）
+python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 五个走查态（branch / goal / tasks / settings / settings-rules）
 
 # 基线量测（同一批图上的数值）
 python3 scripts/ui-baseline.py docs/domains/screens/state-default.png

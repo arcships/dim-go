@@ -62,13 +62,14 @@ var lintFix = map[string]string{
 	"L15": "200% 缩放下不越界：调字号或允许单行截断",
 	"L16": "清单条目指回 U1 信息项编号",
 	"L17": "让实现与元素表的形式一致：补图标或改清单（改形式=形式级）",
+	"L18": "改窄窗退化（堆叠 / 滚动），或收窄定宽列；不要靠裁切",
 }
 
 // TestUILint 是检查器本体：工作区必须零违例。
 func TestUILint(t *testing.T) {
 	findings := lintWorkspace(t)
 	if len(findings) == 0 {
-		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 17)
+		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 18)
 		return
 	}
 	sort.Slice(findings, func(i, j int) bool {
@@ -133,6 +134,20 @@ func TestUILintSeeds(t *testing.T) {
 	}
 	t.Logf("种子「元素缺图标」→ %s", got[0].String())
 
+	// 第八类：定宽列把内容顶出窗口（评审在 720 档看到的那种）。
+	wideRow := func(c *gui.Context) {
+		gui.Row(c).Width(800).Children(func() {
+			gui.Spacer(c)
+			gui.Text(c, "匹配方式")
+		})
+	}
+	wt := gui.NewTester(wideRow, 720, 200)
+	if got := checkNoOverflow(wt, "seed", 720, 200); len(got) == 0 || got[0].check != "L18" {
+		t.Fatalf("越界种子没有被 L18 报出：%v", got)
+	} else {
+		t.Logf("种子「内容越界」→ %s", got[0].String())
+	}
+
 	// 基线不等的种子：合成三档左缘，检查必须报。
 	bad := map[string][3]float32{
 		"标题行":  {272, 272, 272},
@@ -179,6 +194,7 @@ func lintWorkspace(t *testing.T) []lintFinding {
 	out = append(out, lintHighConsequence(t, &actions)...)
 	out = append(out, lintListReferences(t, &content)...)
 	out = append(out, lintElementForms(t, &elements)...)
+	out = append(out, lintNoOverflow(t)...)
 	return out
 }
 
@@ -678,6 +694,65 @@ func lintListReferences(t *testing.T, content *contentDoc) []lintFinding {
 // rowCompact 的方盒，而图标 + 文字的入口一定比这个更宽。
 var iconOnlyButtonWidth = float32(iconInline + 2*space3)
 
+// L18：元素的盒子不得越出窗口（含设置屏与主界面，1440 / 900 / 720 三档）。
+// 用 Tester 的 Bounds 判：文字与带名字的元素（下拉、按钮、行）都算；滚出视口
+// 的零面积行跳过。
+func lintNoOverflow(t *testing.T) []lintFinding {
+	t.Helper()
+	var out []lintFinding
+	screens := []struct {
+		name string
+		app  func() *App
+	}{
+		{"主界面·默认", func() *App { return NewApp(Options{State: StateDefault}) }},
+		{"主界面·运行中", func() *App { return NewApp(Options{State: StateRunning}) }},
+		{"主界面·等待同意", func() *App { return NewApp(Options{State: StateWaiting}) }},
+		{"设置·外观", func() *App {
+			a := NewApp(Options{State: StateDefault})
+			a.screen, a.settingsSection = ScreenSettings, 0
+			return a
+		}},
+		{"设置·供应商", func() *App {
+			a := NewApp(Options{State: StateDefault})
+			a.screen, a.settingsSection = ScreenSettings, 1
+			return a
+		}},
+		{"设置·命令规则", func() *App {
+			a := NewApp(Options{State: StateDefault})
+			a.screen, a.settingsSection = ScreenSettings, 2
+			return a
+		}},
+	}
+	for _, sc := range screens {
+		for _, width := range []int{1440, 900, 720} {
+			tt := gui.NewTester(sc.app().View, width, WindowHeight)
+			out = append(out, checkNoOverflow(tt, sc.name, width, WindowHeight)...)
+		}
+	}
+	return out
+}
+
+// checkNoOverflow 是 L18 的纯判定（种子自检直接调它）。
+func checkNoOverflow(tt *gui.Tester, screen string, width, height int) []lintFinding {
+	var out []lintFinding
+	for _, text := range tt.Texts() {
+		// 优先用可访问节点的盒子：它是元素的完整盒子，不会被裁到窗口内；
+		// Find 给的是可见文字的范围，被裁时看不出"元素其实伸出了窗口"。
+		r, ok := tt.Find(text)
+		if info, okA := tt.Access(text); okA {
+			r, ok = info.Bounds, true
+		}
+		if !ok || r.W <= 0 || r.H <= 0 {
+			continue // 没有可见面积：不在这一档的可见范围内
+		}
+		if r.X < -0.5 || r.Y < -0.5 || r.X+r.W > float32(width)+0.5 || r.Y+r.H > float32(height)+0.5 {
+			out = append(out, lintFinding{"L18", "§9.14 第 3 层、UI-22", "render",
+				fmt.Sprintf("%s @%d：%q 越出窗口（%+v）", screen, width, text, r)})
+		}
+	}
+	return out
+}
+
 // L17：元素表声明的形式必须和渲染一致——`icon+text` 要有图标墨迹与可见文字，
 // `icon` 不得有可见文字，`text` 必须有可见文字，`style` 要有墨迹。找不到元素
 // 就报"清单与实现不一致"，不静默跳过（这是评审能静默绕过的那条通道）。
@@ -716,6 +791,10 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app = NewApp(Options{State: StateEmpty})
 	case "running":
 		app = NewApp(Options{State: StateRunning})
+	case "settings":
+		app.screen, app.settingsSection = ScreenSettings, 0
+	case "settings-rules":
+		app.screen, app.settingsSection = ScreenSettings, 2
 	default:
 		return nil
 	}
