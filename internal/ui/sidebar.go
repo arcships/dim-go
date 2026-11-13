@@ -8,6 +8,10 @@ import (
 
 // sidebar 是 R1 左栏：入口区、会话列表（滚动）、账号与连接。
 // 收起时留 12px 边条，点击边条展开。
+//
+// 窗口模式下，macOS 的红绿灯落在左栏顶部上方：顶部先留一条与控件同高的空带
+// （c.TitleBar().Height），这一条也是拖动窗口的把手，控件不会压住任何可点元素。
+// 全屏时 c.TitleBar() 为零，这条空带随之消失；标题行与主区不因此变动（UI-19）。
 func (a *App) sidebar(c *gui.Context) {
 	if a.sidebarCollapsed {
 		a.sidebarRail(c)
@@ -15,30 +19,37 @@ func (a *App) sidebar(c *gui.Context) {
 	}
 	t := c.Theme()
 	header := func() {
-		gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).Padding(space1, space3).
-			AlignItems(gui.Center).Gap(space2).Children(func() {
-			typeSecondary.style(t, gui.Text(c, "会话")).TextColor(t.TextMuted)
+		if inset := titleBarInset(c.TitleBar()); inset > 0 {
+			gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位")
+		}
+		// 入口只有图标（UI-23：界面语是最后手段）：新建、搜索、收起左栏。
+		// 三个入口右对齐，读屏名照写，屏幕上不出现字。
+		gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).
+			Padding(space1, space2, space1, space2).
+			AlignItems(gui.Center).Gap(space1).Children(func() {
 			gui.Spacer(c)
-			actionButton(c, "+", "新建会话", false, false)
-			if actionButton(c, "‹", "收起左栏", false, false).Clicked() {
+			iconButton(c, iconButtonSpec{icon: iconPlus, label: "新建会话", size: rowCompact})
+			iconButton(c, iconButtonSpec{icon: iconSearch, label: "搜索", size: rowCompact})
+			if iconButton(c, iconButtonSpec{icon: iconChevronL, label: "收起左栏", size: rowCompact}) {
 				a.sidebarCollapsed = true
 			}
 		})
 	}
 
 	footer := func() {
-		gui.Column(c).Shrink(0).Padding(space3).Gap(space1).
-			BorderWidth(strokeHairline, 0, 0, 0).BorderColor(t.Border).Children(func() {
-			typeSecondary.style(t, gui.Text(c, "已连接")).TextColor(t.TextMuted).
-				Label("连接状态")
-			typeSecondary.style(t, gui.Text(c, "账号 · 已登录")).TextColor(t.TextMuted).
-				Label("账号")
+		// 连接状态用状态点、账号用首字母头像（UI-23：先换形状与图形）；两者都
+		// 保留读屏名，屏幕上不出现「已连接」「账号 · 已登录」这类界面语。
+		gui.Row(c).Shrink(0).Padding(space3, space2, space3, space2).
+			AlignItems(gui.Center).Gap(space2).Children(func() {
+			statusDot(c, t.Success, a.connected)
+			gui.Spacer(c)
+			avatar(c, t, a.accountInitial)
 		})
 	}
 
+	// 与主区之间靠面差（surface 对 background）分开，不画竖线（UI-18 第一档）。
 	gui.Column(c).Width(SidebarWidth).Shrink(0).
 		Background(t.Surface).
-		BorderWidth(0, strokeHairline, 0, 0).BorderColor(t.Border).
 		Label("左栏 · 会话列表").Role(gui.RoleNavigation).Focusable().TabStop(true).
 		Children(func() {
 			header()
@@ -53,8 +64,7 @@ func (a *App) sidebar(c *gui.Context) {
 func (a *App) sessionList(c *gui.Context) {
 	sessions, markers := sessionSamples(a.state)
 	gui.Sidebar(c, &a.selectedSession, func() {
-		gui.SidebarItem(c, "new", nil, "新会话")
-		gui.SidebarItem(c, "search", nil, "搜索")
+		// 新建与搜索已移进左栏头部的图标入口（UI-23），列表从这里直接分组。
 		if len(sessions) == 0 {
 			return
 		}
@@ -94,7 +104,6 @@ func (a *App) sidebarRail(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Width(SidebarRailWidth).Shrink(0).
 		Background(t.Surface).
-		BorderWidth(0, strokeHairline, 0, 0).BorderColor(t.Border).
 		AlignItems(gui.Center).Justify(gui.Center).Gap(space1).
 		Label("展开左栏").Role(gui.RoleButton).Focusable().TabStop(true).
 		OnClick(func() { a.sidebarCollapsed = false }).

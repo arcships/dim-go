@@ -706,6 +706,26 @@ kero 的控件是自绘的但**不是自研底座**：`controls.go` 里 30 处 `
 
 ---
 
+### 8.8 窗口与菜单能力（UI-17 / UI-18 / UI-19 的依据）
+
+这一节记录"无系统标题栏 + 自绘标题行"与"系统菜单只留最小项"两件事在框架里的实际能力。上游引用都是 mygo v0.8.3 的源码位置，重跑即可复核。
+
+| 能力 | 上游位置 | 事实 | 对界面的要求 |
+|---|---|---|---|
+| 隐藏系统标题栏、保留窗口控件 | `window.go`：`WindowOptions.TitleBarStyle`（`TitleBarHidden` / `TitleBarHiddenInset`）、注释"hides the title bar but keeps the window controls … the traffic lights on macOS" | 与 `Frameless` 不同：`Frameless` 连阴影、圆角、边缘缩放都失去；`TitleBarHidden` 保留它们，只把标题栏让给视图 | 用 `TitleBarHidden`；不用 `Frameless`、不 `HideWindowButtons`（红绿灯由系统画，我们不重画） |
+| 窗口控件占的空间 | `ui/context.go`：`Context.TitleBar()` 返回 `TitleBar{Height, Left, Right}`，注释给出用法 `ui.Row(c).Height(max(bar.Height, 32)).Padding(0, bar.Right, 0, bar.Left).DragWindow()`；全屏时为零 | 空间由平台给，不写死；全屏时控件隐藏，返回零 | 标题行高度取 `max(c.TitleBar().Height, 48)`；左栏顶部让出 `Height` 那一条；`Left`/`Right` 只在该侧确实被控件占用时用作内边距 |
+| 拖动与双击最大化 | `ui/element.go`：`DragWindow()`（"moves the window … A double click on it maximizes the window"） | 拖动与双击由框架处理 | 标题行的空白区与左栏顶部让位条都挂 `DragWindow()` |
+| 窗口标题 | `window.go`：`WindowOptions.Title`；`Window.SetTitle` | 系统用它显示在任务栏、Mission Control、窗口切换器 | 标题写会话名（系统通道）；界面里不再重复写一遍（§9.0 A2） |
+| 菜单角色与默认菜单 | `menu.go`：`MenuRole` 的 `RoleAppMenu` / `RoleEditMenu` / `RoleWindowMenu` 等；`defaultMenu()` 只在应用未设菜单时安装，且**只有 macOS 有默认菜单栏** | 自定义菜单 = 自己给一份最小集合 | 设 `App/Edit/Window` 三个角色菜单；不提供 File/View（没有文档与网页视图，UI-6、UI-19） |
+| 编辑快捷键依赖 Edit 菜单 | `ui/input.go`：`commandKeys`（copy/cut/paste/selectAll/undo/redo）与 `commandKey` 的注释"On macOS the Edit menu takes Command+V and the others before the window sees the key" | macOS 上 ⌘C/⌘V/⌘X/⌘A/⌘Z 先作为菜单命令进入窗口，再由框架转成按键 | **Edit 菜单不是产品功能，而是平台必需的输入通道**；不能为了"菜单只留最小项"把它删掉 |
+| 缩放与全屏 | `menu.go`：`RoleResetZoom`/`RoleZoomIn`/`RoleZoomOut`/`RoleToggleFullScreen` 属 View 菜单 | 它们作用于页面缩放与窗口状态 | 本片不提供 View 菜单（界面是 native view，不涉及页面缩放）；全屏仍可用系统快捷键与窗口按钮 |
+
+**平台范围（blocked 说明）**：以上只在 macOS arm64 核对。Windows 的自绘标题行（`TitleBarHeight`、`MaximizeButton`、`HideWindowButtons`）与 Linux 的 GTK 标题按钮布局没有实测；本仓不写死 macOS 的控件尺寸，一律取 `c.TitleBar()`，因此换平台不需要改布局代码，但**结论与截图只对 macOS 有效**。缺真实 Windows/Linux 机器与窗口（§7.1）。
+
+**结论（写进 U2 与 U3 的依据）**：窗口控件归平台（红绿灯由系统画在我们让出的那条里），标题行与左栏顶部按 `c.TitleBar()` 让位并承担拖动；菜单只保留 `App`、`Edit`、`Window` 三个角色，其中 `Edit` 是 macOS 文本编辑快捷键的通道，属于"平台必需的最小项"，不算产品功能。
+
+---
+
 ## 9. 本次未验证 / 后续核对
 
 这一节是「不许用替身结果」的落点：下面每一条都是本次**没有**做到的，写清怎么补。

@@ -24,7 +24,7 @@ TOOLTIP, TOOLTIP_WARM = 600, 400
 
 LIGHT = dict(
     bg="#ffffff", surface="#f4f4f5", surface_hover="#e9e9ec", surface_pressed="#dddde1",
-    border="#d9d9de", border_strong="#85858b",
+    border="#d9d9de",
     text="#18181b", text_secondary="#5f5f68", accent="#2563eb", accent_hover="#1d4ed8",
     accent_pressed="#1e40af", accent_on="#ffffff", accent_ink="#1d4ed8",
     success="#15803d", warning="#b45309", danger="#b91c1c", focus="#2563eb",
@@ -32,7 +32,7 @@ LIGHT = dict(
 )
 DARK = dict(
     bg="#18181b", surface="#27272a", surface_hover="#323236", surface_pressed="#3c3c41",
-    border="#3f3f46", border_strong="#8b8b94",
+    border="#3f3f46",
     text="#f4f4f5", text_secondary="#a1a1aa", accent="#2563eb", accent_hover="#1d4ed8",
     accent_pressed="#1e40af", accent_on="#ffffff", accent_ink="#60a5fa",
     success="#22c55e", warning="#f59e0b", danger="#f87171", focus="#60a5fa",
@@ -74,7 +74,6 @@ FILL = {
     "surface-hover": "悬停面（选中行底由框架给：未聚焦 SurfacePressed、聚焦 Accent）",
     "surface-pressed": "按下态（沿用框架）",
     "border": "分隔线与普通轮廓（沿用框架）",
-    "border-strong": "边界单独承担识别（补：≥3:1）",
     "accent": "强调填充（沿用框架）",
     "accent-hover": "强调填充悬停（沿用框架）",
     "accent-pressed": "强调填充按下（沿用框架）",
@@ -91,7 +90,7 @@ INK = {
     "selection": "文本选区（改：透明度下调）",
 }
 
-ORDER = ["bg", "surface", "surface-hover", "surface-pressed", "border", "border-strong",
+ORDER = ["bg", "surface", "surface-hover", "surface-pressed", "border",
          "text", "text-secondary", "accent", "accent-hover", "accent-pressed", "accent-on",
          "accent-ink", "success", "warning", "danger", "selection", "focus"]
 
@@ -103,9 +102,9 @@ def type_rows_data():
         ("type-body", "正文", FONT, "×1.5", 400, "助手回复、用户消息、Markdown、输入、说明行",
          "我把重试逻辑抽到了 retry.ts，并补了一个测试。"),
         ("type-body-strong", "正文强调", FONT, "×1.5", 600, "Markdown 粗体、对象名", "重试逻辑"),
-        ("type-secondary", "次要", FONT * R_SECONDARY, "不设", 400, "摘要行、工具行、时间、用量、按钮",
-         "运行了 4 个操作 · 改了 2 个文件 · 12s"),
-        ("type-secondary-strong", "次要强调", FONT * R_SECONDARY, "不设", 600, "状态词、键位提示", "等待你同意"),
+        ("type-secondary", "次要", FONT * R_SECONDARY, "不设", 400, "组头、工具行、用量、按钮",
+         "读取 composer.go · 改动 composer.go · 执行 go test ./..."),
+        ("type-secondary-strong", "次要强调", FONT * R_SECONDARY, "不设", 600, "组头、键位提示", "等待你同意"),
         ("type-micro", "极小", FONT * R_MICRO, "不设", 400, "计数、徽标、编号", "+12 −3 · 4.2 KB"),
         ("type-code", "代码", FONT * R_CODE, "×1.4", 400, "代码块、行内代码、命令", "go test ./..."),
         ("type-title-row", "标题行会话名", FONT, "不设", 600, "标题行", "payments 重试逻辑"),
@@ -179,7 +178,6 @@ def contrast_rows():
         ("焦点环 / surface", "focus", "surface", 3.0),
         ("焦点环 / surface-hover", "focus", "surface_hover", 3.0),
         ("焦点环 / surface-pressed", "focus", "surface_pressed", 3.0),
-        ("border-strong / surface", "border_strong", "surface", 3.0),
         ("强调标记 accent-ink / surface-hover", "accent_ink", "surface_hover", 3.0),
         ("强调标记 accent-ink / surface-pressed（最差面）", "accent_ink", "surface_pressed", 3.0),
     ]
@@ -404,8 +402,16 @@ td.sample{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34
 .md h4{font-size:${font}px;line-height:${body_lh};font-weight:600;margin:${h_top}px 0 ${h_bottom}px}
 .md code.inline{background:var(--surface);border:1px solid var(--border);border-radius:${radius}px;padding:1px ${s1}px;font-size:${code}px}
 .codeblock{background:var(--surface);border:1px solid var(--border);border-radius:${radius_code}px;padding:${code_pad}px;margin:${block_spacing}px 0;font-family:"SF Mono",Menlo,monospace;font-size:${code}px;line-height:${code_lh};color:var(--text);white-space:pre;overflow:auto}
-.summary{display:flex;align-items:center;gap:${s2}px;font-size:${sec}px;color:var(--text-secondary);padding:${s1}px 0}
+.summary{display:inline-flex;align-items:center;gap:${s2}px;font-size:${sec}px;color:var(--text-secondary);padding:${s1}px ${s2}px;border-radius:${radius}px;cursor:pointer;transition:background var(--motion-transition) ease-out}
+.summary:hover{background:var(--surface-hover)}
 .summary .state{font-weight:600}
+.chev{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:0 0 auto;color:var(--text-secondary);transform:rotate(-90deg);transition:transform var(--motion-transition) ease-out}
+.summary.open .chev{transform:rotate(0deg)}
+.ctx{font-size:${sec}px;color:var(--text-secondary);cursor:pointer;padding:${s1}px ${s2}px;border-radius:${radius}px;transition:background var(--motion-transition) ease-out}
+.ctx:hover{background:var(--surface-hover)}
+.ctx.near{color:var(--warning);display:inline-flex;align-items:center;gap:${s1}px}
+.ctxdot{display:inline-block;width:6px;height:6px;border-radius:3px;background:var(--warning);flex:0 0 auto}
+.ctxline{display:block;font-size:${sec}px;color:var(--text-secondary);padding:0 ${s2}px}
 .tool{display:flex;align-items:center;gap:${s2}px;min-height:24px;font-size:${sec}px;padding-left:${s3}px;border-left:1px solid var(--border);color:var(--text-secondary)}
 .notice{display:flex;align-items:flex-start;gap:${s2}px;font-size:${font}px;line-height:${body_lh};padding:${s1}px 0}
 .dot{width:8px;height:8px;border-radius:4px;background:var(--accent-ink);flex:0 0 auto;margin-top:${s2}px}
@@ -439,7 +445,7 @@ button.ghost[disabled]{opacity:.5;cursor:default}
 .iconbtn:hover{background:var(--surface-hover)}
 .iconbtn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
 .queue{display:flex;align-items:center;gap:${s2}px;height:33px;padding:0 ${s4}px;border:1px solid var(--border);border-radius:${radius}px;background:var(--surface);font-size:${sec}px;color:var(--text-secondary)}
-.composer{border:1px solid var(--border-strong);border-radius:${radius}px;background:var(--surface);padding:${s3}px}
+.composer{border:none;border-radius:${radius}px;background:var(--surface);padding:${s3}px}
 .composer .editor{font-size:${font}px;line-height:${body_lh};min-height:44px;color:var(--text)}
 .composer .bar2{display:flex;align-items:center;gap:${s2}px;padding-top:${s2}px}
 .chip{display:inline-flex;align-items:center;gap:${s1}px;height:20px;padding:0 ${s2}px;border-radius:${radius}px;border:1px solid var(--border);background:var(--surface);font-size:${micro}px;color:var(--text-secondary)}
@@ -474,6 +480,12 @@ button.ghost[disabled]{opacity:.5;cursor:default}
   <div>
     <h1>U2 C2 · 视觉 token 预览</h1>
     <div class="sub">v2 默认优先：字号比例、行高、间距基准、圆角、动效一律取 mygo 默认；只有 AA 门槛、实测证据与 UI 需求允许改。预览只示样式，不代表布局与控件位置（布局归 U1/U3）。</div>
+    <div class="sub" style="margin-top:8px;border:1px dashed var(--border);border-radius:${radius}px;padding:${s2}px ${s3}px">
+      <b>依据</b> UI-11 / UI-13 / UI-15 / UI-16 / UI-17 / UI-18 / UI-19（并 §9.0 A1–A4、D1–D6）·
+      <b>文档</b> U2-visual §3–§8、U2-calibration、U1-ia §1 ·
+      <b>日期</b> 2026-11-13 · <b>状态</b> 现行<br>
+      <b>图例</b> 本页只示 token 与元素形态；框线与间距是示例画法，不构成 UI-18 的判据。
+    </div>
   </div>
   <div class="seg">
     <button data-theme-btn="system" class="on">跟随系统</button>
@@ -501,8 +513,8 @@ ${type_demo}
 ${space_rows}
 <p class="note">用法：图标与文字 ${s2}；标记与文字 ${s1}；行内元素 ${s1}–${s2}；同一轮内块间 ${s3}；轮次间 ${s6}；卡片内边距 ${s4}；输入卡 ${s3}；队列条与输入卡 ${s2}；内容左右 ${s4}。</p>
 
-<h2 id="s3">3 颜色语义 · 每主题 18 个 token</h2>
-<p class="note">两套同名同角色。强调色只用于可操作 / 当前 / 进行中；成功 / 警告 / 危险只用于状态，只作文字、图标与 1px 描边。18 个里 16 个是框架字段（8 个按 AA 改值），2 个是框架没有字段的补充（border-strong、accent-ink）；inverse / inverse-text / scrollbar 沿用框架。</p>
+<h2 id="s3">3 颜色语义 · 每主题 17 个 token</h2>
+<p class="note">两套同名同角色。强调色只用于可操作 / 当前 / 进行中；成功 / 警告 / 危险只用于状态，只作文字、图标与 1px 描边。17 个里 16 个是框架字段（8 个按 AA 改值），1 个是框架没有字段的补充（accent-ink）；inverse / inverse-text / scrollbar 沿用框架。边界只有主题 Border 一套（UI-18），没有第二级边框色。</p>
 <div class="palettes">
   <div class="panel t-light"><h3>明色</h3>
 ${light_swatches}
@@ -518,22 +530,22 @@ ${dark_swatches}
 <h3>4.1 运行中</h3>
 <div class="frame"><div class="thread">
   <div class="md"><p>我先看一下现在的重试实现，再把公共部分抽出来。<span class="caret"></span></p></div>
-  <div class="summary"><span class="dot"></span><span class="state" style="color:var(--text)">正在运行</span><span>· 12s</span></div>
+  <div class="summary"><span class="dot"></span><span>读取 payments/retry.ts · 运行 go test</span><span class="chev">${icon_chev}</span></div>
   <div class="tool">${icon_chev}运行测试 · payments/retry</div>
 </div></div>
-<p class="spec">8px 实心圆 accent-ink · 摘要行 ${sec}/${body_lh} text-secondary · 状态词 600 · 行尾光标 2×${font} accent-ink，周期 ${caret}ms（框架光标同周期）· 发送键文字变「停止」，填充不变</p>
+<p class="spec">组头行首 8px 实心圆 accent-ink（不写状态词、不写时长）· 组头文字写这一组做了什么 · 方向指示紧跟文字 · 行尾光标 2×${font} accent-ink，周期 ${caret}ms · 发送键文字变「停止」，填充不变</p>
 
 <h3>4.2 失败</h3>
 <div class="frame"><div class="thread">
-  <div class="summary">${icon_x}<span class="state">失败</span><span>· 2.1s</span><span>· 4 个操作 · 1 个失败</span></div>
+  <div class="summary">${icon_x}<span>读取 payments/retry.ts · 运行 go test</span><span class="chev">${icon_chev}</span></div>
   <div class="tool">${icon_x}运行测试 · payments/retry</div>
   <div class="notice">${icon_x}<span><b style="font-weight:600">原因</b>：权限不足，命令没有执行。</span></div>
 </div></div>
-<p class="spec">叉图标 danger 16px · 摘要行文字 text-secondary（对 surface 5.75:1）· 原因正文 text，不染红、不加底色、不加重试入口</p>
+<p class="spec">叉图标 danger 16px · 组头文字 text-secondary（对 surface 5.75:1），不写「失败」二字 · 原因正文 text，不染红、不加底色、不加重试入口</p>
 
 <h3>4.3 等待你同意（替换输入位，不与输入并存 · UI-1）</h3>
 <div class="frame"><div class="thread">
-  <div class="summary">${icon_clock}<span class="state">等待你同意</span><span>· 1 个操作</span></div>
+  <div class="summary">${icon_clock}<span>读取 tmp/ · 执行 go test ./...</span><span class="chev">${icon_chev}</span></div>
   <div class="approval">
     <div class="k">要执行</div>
     <div class="what">运行 <code class="inline">go test ./...</code>，会读取当前工作区并写入缓存目录。</div>
@@ -545,7 +557,7 @@ ${dark_swatches}
     </div>
   </div>
 </div></div>
-<p class="spec">卡面 surface · 1px accent-ink 描边（明 6.10 / 暗 5.86，≥3:1）· 圆角 ${radius}（Theme.Radius）· 内边距 ${s4} · 命令 ${code}/${code_lh} · 卡内主按钮用框架 PrimaryButton（accent/accent-on）· 摘要行时钟图标 accent-ink</p>
+<p class="spec">卡面 surface · 1px accent-ink 描边（明 6.10 / 暗 5.86，≥3:1）· 圆角 ${radius}（Theme.Radius）· 内边距 ${s4} · 命令 ${code}/${code_lh} · 卡内主按钮用框架 PrimaryButton（accent/accent-on）· 组头行首时钟图标 accent-ink</p>
 
 <h3>4.4 结果不确定</h3>
 <div class="frame"><div class="thread">
@@ -585,17 +597,30 @@ ${dark_swatches}
       <span class="chip">技能 · review</span>
       <span class="chip">retry.ts · 4.2 KB</span>
       <span class="spacer"></span>
+      <span class="ctx">上下文 12%</span>
       <button class="primary">${icon_stop}停止</button>
     </div>
   </div>
 </div></div>
-<p class="spec">输入卡外壳（自绘）surface + 1px border-strong，圆角 ${radius}，内边距 ${s3}，不随焦点改描边 · 编辑器 TextAreaBase（无外观），焦点环由框架画 · 队列条 ${sec}，贴输入卡上方 ${s2} · 按钮沿用框架（内边距 6/14、标签 ${font}）· 图标 16 · 微型块 ${micro}</p>
+<p class="spec">输入卡外壳（自绘）surface 填充、无描边（与背景靠面差 + 留白分开，UI-18），圆角 ${radius}，内边距 ${s3} · 编辑器 TextAreaBase（无外观），焦点环由框架画 · 队列条 ${sec}，贴输入卡上方 ${s2} · 按钮沿用框架（内边距 6/14、标签 ${font}）· 图标 16 · 微型块 ${micro} · 上下文用量 ${sec} text-secondary，与附件同一行右端，手形指针 + 悬停面（UI-15）</p>
 
 <h3>4.8 空态</h3>
 <div class="frame"><div class="thread">
   <div class="empty">${icon_block}这个会话还没有消息。写第一条，或先从左边挑一个会话。</div>
 </div></div>
 <p class="spec">20px 图标 + ${sec} text-secondary 一行 · 不用大字号、不画假内容</p>
+
+<h3>4.9 行即入口与输入区用量（UI-16 / UI-15）</h3>
+<div class="frame"><div class="thread">
+  <div class="summary"><span class="dot"></span><span>读取 composer.go · 改动 composer.go · 执行 go test ./...</span><span class="chev">${icon_chev}</span></div>
+  <div class="summary open"><span>${icon_check}</span><span>读取 composer.go · 改动 composer.go</span><span class="chev">${icon_chev}</span></div>
+  <div class="ctxline">4 个操作 · 改了 2 个文件</div>
+  <div class="composer">
+    <div class="editor">写点什么，或把文件拖进来</div>
+    <div class="bar2"><span class="chip">发送路径.md</span><span class="spacer"></span><span class="ctx">上下文 12%</span><span class="ctx near"><i class="ctxdot"></i>上下文 92%</span><button class="primary">发送</button></div>
+  </div>
+</div></div>
+<p class="spec">可折叠行：命中区是内容块 + 上下各 ${s1}（块高 24 = hit-min），行宽随内容、方向指示紧跟文字（不用空白顶到边缘）· 悬停底 surface-hover、手形指针（第一行已处于悬停态）· 方向指示 16px，折叠 −90°（指向右）、展开 0°（指向下），${motion_transition}ms 旋转 · 行内无「展开/收起」文字，也不写状态词 · 明细不属于入口 · 用量：输入卡内一处 ${sec} text-secondary，将满时换 warning 色并在数值前多一个 6px 实心圆点（颜色 + 形状，§9.0 D4），不加词、不加底色</p>
 
 <h2 id="s5">5 动效 · 一律取框架默认</h2>
 <table>

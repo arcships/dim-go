@@ -1,0 +1,22 @@
+#!/bin/sh
+# 界面检查器：跑 internal/ui 的 lint 套件（L1–L15），对应 docs/domains/U2-checks.md。
+#
+#   scripts/ui-lint            检查工作区（零违例才算过）
+#   scripts/ui-lint --seeds    只跑种子自检（五类违例必须都报出）
+#   scripts/ui-lint --all      两者都跑
+#
+# 退出码：0 = 全绿；非 0 = 有违例（输出里逐条给出 file:line 与修法）。
+set -e
+cd "$(dirname "$0")/.."
+
+case "${1:-}" in
+  --seeds)
+    go test ./internal/ui -run 'TestUILintSeeds' -v -count=1
+    ;;
+  --all)
+    go test ./internal/ui -run 'TestUILint' -v -count=1
+    ;;
+  *)
+    go test ./internal/ui -run 'TestUILint$' -v -count=1
+    ;;
+esac

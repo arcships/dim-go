@@ -1,88 +1,53 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><title>U1 B2 线框</title><style>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
+<title>U1 B2 线框索引（2026-11-13 · 现行）</title><style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font:14px/22.75px -apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;color:#333;background:#fff;padding:24px}
+body{font:14px/1.5 -apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",sans-serif;color:#333;background:#fff;padding:24px}
 h1{font-size:20px;line-height:28px;margin-bottom:8px}
-h2{font-size:15px;line-height:22px;margin:28px 0 10px}
-h3{font-size:14px;line-height:22px;margin:18px 0 8px}
-p.lead{color:#666;margin-bottom:6px;max-width:1000px}
-.strip{display:flex;gap:24px;overflow-x:auto;padding-bottom:16px;align-items:flex-start}
-.pair{display:flex;gap:12px}
-.cv{position:relative;flex:0 0 auto;height:900px;background:#fff;border:1px solid #ddd;overflow:hidden}
-.tag{position:absolute;left:8px;bottom:6px;font-size:10.5px;line-height:14px;color:#999;z-index:9;background:#fff;padding:0 4px}
-.notes{width:240px;flex:0 0 auto;font-size:12.25px;line-height:18px;color:#333;border-left:1px solid #ddd;padding-left:10px}
-.notes b{display:block;margin-bottom:6px}
-.notes div{margin-bottom:6px;color:#666}
-.notes i{display:block;color:#999;font-style:normal;font-size:11px}
-.sb{position:absolute;left:0;top:0;bottom:0;width:256px;background:#f5f5f5;border-right:1px solid #ddd;padding:8px}
-.sb .hd{height:32px;display:flex;align-items:center;justify-content:space-between;color:#999;font-size:12.25px}
-.sb .ent{height:28px;display:flex;align-items:center;padding:0 8px;border-radius:6px}
-.sb .ent.on{background:#fff;border:1px solid #ddd}
-.sb .div{height:1px;background:#ddd;margin:8px 0}
-.sb .prj{height:28px;display:flex;align-items:center;color:#999;font-size:12.25px;padding:0 8px}
-.sb .bot{position:absolute;left:8px;right:8px;bottom:8px;height:28px;display:flex;align-items:center;padding:0 8px;border-top:1px solid #ddd}
-.main{position:absolute;top:0;bottom:0;left:256px;right:0}
-.tb{height:48px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid #ddd}
-.tb .nm{font-weight:600}
-.tb .mu{color:#999;font-size:12.25px}
-.tb .sp{flex:1}
-.btn{border:1px solid #ddd;border-radius:6px;padding:0 8px;height:28px;display:flex;align-items:center;font-size:12.25px;color:#333;background:#fff}
-.tl{position:absolute;left:0;right:0;overflow:hidden;padding:21px 14px}
-.wrap{margin:0 auto}
-.u{display:flex;justify-content:flex-end;margin-bottom:10.5px}
-.u .b{max-width:85%;background:#f5f5f5;border:1px solid #ddd;border-radius:8px;padding:7px 14px}
-.a{margin-bottom:10.5px}
-.op{display:flex;align-items:center;gap:8px;border-left:1px solid #ddd;padding-left:10.5px;margin:7px 0 10.5px 5.25px;color:#666;font-size:12.25px}
-.op .st{color:#333}
-.q{position:absolute;left:0;right:0;border-top:1px solid #ddd;border-bottom:1px solid #ddd;background:#f5f5f5;padding:4px 14px;font-size:12.25px;display:flex;gap:10px;align-items:center;height:33px}
-.cm{position:absolute;left:0;right:0;bottom:0;border-top:1px solid #ddd;background:#fff;padding:7px 14px}
-.card{border:1px solid #ddd;border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
-.row1{display:flex;gap:8px;align-items:center;margin-bottom:7px}
-.chip{border:1px solid #ddd;background:#f5f5f5;border-radius:6px;padding:0 8px;font-size:12.25px;height:24px;display:flex;align-items:center}
-.ph{color:#999}
-.row2{display:flex;gap:8px;align-items:center;justify-content:flex-end}
-.prim{border:1px solid #333;background:#333;color:#fff;border-radius:6px;padding:0 10px;height:28px;display:flex;align-items:center;font-size:12.25px}
-.ghost{border:1px solid #ddd;border-radius:6px;padding:0 10px;height:28px;display:flex;align-items:center;font-size:12.25px;background:#fff}
-.ap{border:1px solid #333;border-radius:12px;padding:10px;min-height:110px;display:flex;flex-direction:column;justify-content:space-between}
-.ap .t{font-weight:600}
-.ap .m{font-size:12.25px;color:#666}
-.ap .act{display:flex;gap:8px;align-items:center}
-.mark{color:#999;font-size:12.25px}
-.pagebar{display:flex;justify-content:center;margin-bottom:10.5px;color:#666;font-size:12.25px;border:1px dashed #ddd;border-radius:6px;height:28px;align-items:center}
-.err{border-left:2px solid #333;padding-left:10.5px;margin-bottom:10.5px}
-.err .k{font-size:12.25px;color:#999}
-.rail{position:absolute;top:48px;bottom:124px;left:0;width:22px;border-right:1px solid #ddd}
-.rail .pin{position:absolute;left:7px;width:8px;height:2px;background:#999}
-.rail .pin.cur{background:#333;height:3px}
-table{border-collapse:collapse;margin:8px 0 16px;font-size:12.25px}
+h2{font-size:15px;line-height:22px;margin:24px 0 8px}
+p.lead{color:#666;margin-bottom:10px;max-width:1000px}
+table{border-collapse:collapse;margin:8px 0 16px;font-size:12.25px;max-width:1100px}
 th,td{border:1px solid #ddd;padding:4px 8px;text-align:left;vertical-align:top}
 th{background:#f5f5f5}
 code{font-family:ui-monospace,Menlo,monospace;font-size:12px}
-
-.sum{display:flex;align-items:center;gap:8px;border-left:1px solid #ddd;padding-left:10.5px;margin:7px 0 10.5px 5.25px;font-size:12.25px;color:#333}
-.sum .k{color:#666}
-.sum .sp{flex:1}
-.sum .bad{color:#333;font-weight:600}
-.list{margin:0 0 10.5px 21.75px;border-left:1px solid #ddd;padding-left:10.5px}
-.list .it{display:flex;gap:8px;font-size:12.25px;line-height:22.75px}
-.list .n{width:16px;color:#999}
-.list .who{width:52px;color:#999}
-.list .what{flex:1}
-.list .res{width:64px}
-.list .ms{width:44px;color:#999;text-align:right}
-.list .cause{color:#666;font-size:12.25px;line-height:18px;padding-left:24px;margin-bottom:4px}
+.ident{margin:0 0 12px;font-size:12.25px;line-height:18px;color:#666;border:1px dashed #ddd;border-radius:6px;padding:8px 10px;max-width:1000px}
+.ident b{color:#333}
+.strip{display:flex;gap:12px;flex-wrap:wrap}
+.cv{width:320px;border:1px solid #ddd;border-radius:6px;padding:12px}
+.cv b{display:block;margin-bottom:6px}
 </style></head><body>
-<h1>U1 B2 线框：两个方案</h1>
-<p class="lead">基线：左栏放会话（256）→ 标题行 48 写会话名、分支、权限、模型 → 时间线按内容上限 784 居中，用户消息右对齐、助手铺开、操作收成一行 → 输入区贴底（60–300），有排队项时上方出现队列条 → 右栏可选（280–容器−400），只放当前会话的附属内容。按 §9.9：审批出现时占据输入位，替换输入区；界面不用内部术语；流式保序、动效可关。</p>
-<p class="lead">每页七组画面：默认（摘要折叠）、摘要展开、动效关闭、运行中、等待你同意、出错/结果不确定、长历史；每组各有宽 1440 与宽 900 两版。每个画布右侧一列说明它由哪些对象组成。对象模型见 <code>docs/domains/U1-objects.md</code>。</p>
+<h1>U1 B2 线框索引</h1>
+<div class="ident"><b>依据</b> UI-11 / UI-15 / UI-16 / UI-17 / UI-18 / UI-19（并 §9.0 A1–A4、D1–D6） · <b>文档</b> U1-concepts、U1-ia §1/§5/§7、U2 §4.4/§4.5、U3 §1.1/T7/T10 · <b>日期</b> 2026-11-13 · <b>版本</b> 第 4 版（UI-20…UI-23：图标与文字最后手段） · <b>状态</b> 现行<br>
+<b>图例</b> 线框里的框线、间距与圆角是画法，不构成 UI-18 的判据；规格以 U2 的 token 与框架默认值为准。线框里的文案、状态、位置、可点区必须与裁决一致（§9.10 第 4 条）。窗口控件由系统绘制，线框只画它占的那条空带。标题行左端写一次会话名（红绿灯让位之后），系统 Title 不算重复。虚线方块是图标占位：图标由设计决定（U2-forms §3），线框只约束内容、位置与可点区。</div>
+
+<h2>画面 × 依据 × 日期 × 状态</h2>
+<table>
+<tr><th>页</th><th>画面</th><th>依据</th><th>文档</th><th>日期</th><th>状态</th></tr>
+<tr><td>a.html</td><td>方案 A：轮次组头 · 默认态（摘要折叠）</td><td>UI-11 组头写内容 / UI-16 行即入口 / UI-19 标题行写会话名</td><td>U1-ia §1 R2/R3、U2 §4.4/§4.6</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>a.html</td><td>方案 A：轮次组头 · 摘要展开</td><td>UI-11 计数进展开 / UI-16 方向指示</td><td>U1-ia §1 R3、U3 T7</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>a.html</td><td>方案 A：轮次组头 · 动效关闭</td><td>UI-5 布局与状态不变</td><td>U2 §5.1</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>a.html</td><td>方案 A：轮次组头 · 运行中</td><td>UI-10 队列贴输入 / §9.0 A2 状态归样式</td><td>U1-ia §5、U2 §4.1</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>a.html</td><td>方案 A：轮次组头 · 等待你同意</td><td>UI-1 占输入位 / UI-15 用量在输入卡</td><td>U1-ia §1 R4、U2 §4.1</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>a.html</td><td>方案 A：轮次组头 · 出错/结果不确定</td><td>§9.0 只有「结果不确定」保留文字</td><td>U1-ia §5、U2 §4.1</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>a.html</td><td>方案 A：轮次组头 · 长历史</td><td>UI-12 索引只索引用户输入</td><td>U1-ia §1 R3</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>b.html</td><td>方案 B：轮次索引 · 默认态</td><td>UI-11 组头 / UI-12 轮次索引</td><td>U1-ia §1 R3</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>b.html</td><td>方案 B：轮次索引 · 运行中</td><td>UI-10 队列贴输入</td><td>U1-ia §5</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>b.html</td><td>方案 B：轮次索引 · 等待你同意</td><td>UI-1 占输入位</td><td>U1-ia §1 R4</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>b.html</td><td>方案 B：轮次索引 · 出错/结果不确定</td><td>§9.0 A2 状态归样式</td><td>U1-ia §5</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>b.html</td><td>方案 B：轮次索引 · 长历史</td><td>UI-12 索引只索引用户输入</td><td>U1-ia §1 R3</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>ui9-11.html</td><td>UI-9/10/11 + UI-15/16 对照 · 运行中（队列贴输入，组头只给内容）</td><td>UI-10 / UI-11</td><td>U1-ia §5、U2 §4.1</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>ui9-11.html</td><td>UI-9/10/11 + UI-15/16 对照 · 失败（组头写内容，状态归图标）</td><td>UI-11 / §9.0 A2</td><td>U1-ia §5、U2 §4.1</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>ui9-11.html</td><td>UI-9/10/11 + UI-15/16 对照 · 等待你同意（输入位被占，队列仍在）</td><td>UI-1 / UI-15</td><td>U1-ia §1 R4</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>ui9-11.html</td><td>UI-9/10/11 + UI-15/16 对照 · 标题行 · 全默认（会话名 + 用量在输入卡内）</td><td>UI-9 / UI-15 / UI-19</td><td>U1-ia §1 R2/R4、U2 §4.6</td><td>2026-11-13</td><td>现行</td></tr>
+<tr><td>ui9-11.html</td><td>UI-9/10/11 + UI-15/16 对照 · 标题行 · 有偏离（最小形式提示）</td><td>UI-9 / UI-19</td><td>U1-ia §1 R2、U2 §4.6</td><td>2026-11-13</td><td>现行</td></tr>
+</table>
+
+<h2>三份线框</h2>
 <div class="strip">
- <div class="cv" style="width:430px;height:300px;padding:16px">
-  <div style="font-weight:600;margin-bottom:6px">方案 A：过程摘要行</div>
-  <p class="lead">一轮的全部操作收成一行具体摘要，可展开成逐条（序号·动作·对象·结果·耗时，失败带原因）；同一行承担进行中/等待/失败。<br><a href="a.html">看线框 →</a></p></div>
- <div class="cv" style="width:430px;height:300px;padding:16px">
-  <div style="font-weight:600;margin-bottom:6px">方案 B：轮次索引</div>
-  <p class="lead">长会话左缘一排针，点一下跳到那一轮；操作仍逐条列出，可单独展开。<br><a href="b.html">看线框 →</a></p></div>
- <div class="cv" style="width:430px;height:300px;padding:16px">
-  <div style="font-weight:600;margin-bottom:6px">UI-9 / UI-10 / UI-11 修正对照</div>
-  <p class="lead">默认值不展示、队列贴输入、摘要只给判断所需；含标题行“全默认/有偏离”两张对照。<br><a href="ui9-11.html">看对照 →</a></p></div>
+ <div class="cv"><b>a.html · 方案 A：轮次组头</b><p class="lead">一轮的全部动作收成一行组头，写这一组做了什么；点内容展开逐条。<br><a href="a.html">看线框 →</a></p></div>
+ <div class="cv"><b>b.html · 方案 B：轮次索引</b><p class="lead">长会话左缘一排针，点一下跳到那一轮；操作逐条列出。<br><a href="b.html">看线框 →</a></p></div>
+ <div class="cv"><b>ui9-11.html · 修正对照</b><p class="lead">UI-9/10/11 与 UI-15/16 的五个对照画面。<br><a href="ui9-11.html">看对照 →</a></p></div>
 </div>
+
+<h2>归档</h2>
+<p class="lead"><code>comps/comp1–3.html</code>（2026-11-11 整屏稿）已作废并移入 <code>comps/archive-2026-11-11/</code>：它们引用已删除的 <code>border-strong</code>、网页式卡片与圆角，且没有任何文档引用（§9.10 第 5 条）。</p>
 </body></html>

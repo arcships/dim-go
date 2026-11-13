@@ -8,9 +8,9 @@ import gui "github.com/egoist/mygo/ui"
 func (a *App) rightPanel(c *gui.Context, width float32) {
 	t := c.Theme()
 	labels := []string{"文件", "改动", "后台", "目标"}
+	// 与主区之间靠面差（surface 对 background）分开，不画竖线（UI-18 第一档）。
 	gui.Column(c).Width(width).Shrink(0).
 		Background(t.Surface).
-		BorderWidth(0, strokeHairline, 0, 0).BorderColor(t.Border).
 		Label("右栏").Role(gui.RoleGroup).Children(func() {
 		gui.Row(c).Height(HeaderHeight).Shrink(0).Padding(0, space3).
 			AlignItems(gui.Center).Children(func() {

@@ -38,3 +38,32 @@ func chip(c *gui.Context, text string) {
 		typeSecondary.style(t, gui.Text(c, text)).SingleLine()
 	})
 }
+
+// statusDot 是连接状态：8px 实心圆，连上是 success，断线是 danger；屏幕上一个
+// 字都不写（UI-23 第 1 档），读屏名给「连接状态：已连接 / 未连接」。
+func statusDot(c *gui.Context, color gui.Color, ok bool) {
+	dot := gui.Box(c).Width(dotStatus).Height(dotStatus).Shrink(0)
+	if ok {
+		dot = dot.Label("连接状态：已连接")
+	} else {
+		dot = dot.Label("连接状态：未连接")
+	}
+	dot.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		p.Fill(r, color, dotStatus/2)
+	})
+}
+
+// avatar 是账号身份：24px 圆，里面是账号名的首字母（内容，不是界面语）。
+// 读屏名给「账号：<首字母>」；没有首字母时退化为一个中性点。
+func avatar(c *gui.Context, t *gui.Theme, initial string) {
+	box := gui.Box(c).Width(rowCompact).Height(rowCompact).Shrink(0).
+		Background(t.SurfacePressed).Radius(rowCompact/2).
+		Label("账号：" + initial)
+	box.Children(func() {
+		if initial == "" {
+			return
+		}
+		typeSecondaryStrong.style(t, gui.Text(c, initial)).TextColor(t.Text).
+			TextAlign(gui.Center)
+	})
+}

@@ -52,9 +52,7 @@ func TestThemeTokens(t *testing.T) {
 		{"暗 danger", dark.Danger, "#f87171"},
 		{"暗 focus", dark.Focus, "#60a5fa"},
 
-		// 框架没有字段的两个 token（§8.1）。
-		{"明 border-strong", colorBorderStrong.in(light), "#85858b"},
-		{"暗 border-strong", colorBorderStrong.in(dark), "#8b8b94"},
+		// 框架没有字段的 accent-ink（§8.1）。边界只有主题 Border 一套（UI-18）。
 		{"明 accent-ink", colorAccentInk.in(light), "#1d4ed8"},
 		{"暗 accent-ink", colorAccentInk.in(dark), "#60a5fa"},
 	}
@@ -83,6 +81,8 @@ func TestThemeTokens(t *testing.T) {
 		{"radius", radius, 6},
 		{"radius-code", radiusCode, 8},
 		{"hit-min", hitMin, 24},
+		{"stroke-chevron", strokeChevron, 1.5},
+		{"context-near-percent", contextNearPercent, 90},
 	}
 	for _, m := range metrics {
 		if m.got != m.want {
@@ -118,9 +118,9 @@ func TestFontSteps(t *testing.T) {
 		{"正文强调", typeBodyStrong, 14, 21, 600},
 		{"次要", typeSecondary, 12.25, 0, 400},
 		{"次要强调", typeSecondaryStrong, 12.25, 0, 600},
+		{"标题行会话名", typeTitleRow, 14, 0, 600},
 		{"极小", typeMicro, 10.5, 0, 400},
 		{"代码", typeCode, 12.25, 17.15, 400},
-		{"标题行会话名", typeTitleRow, 14, 0, 600},
 		{"h1", typeH1, 22.4, 33.6, 700},
 		{"h2", typeH2, 18.9, 28.35, 650},
 		{"h3", typeH3, 16.1, 24.15, 600},

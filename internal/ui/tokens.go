@@ -22,9 +22,6 @@ const (
 	// R2 标题行。
 	HeaderHeight = 48
 
-	// R3 主区内容上限。
-	ContentMaxWidth = 784
-
 	// R4 输入位：卡片 60–300，上沿可带一行队列（33）。
 	ComposerMinHeight = 60
 	ComposerMaxHeight = 300
@@ -44,8 +41,9 @@ const (
 // 视觉 token：docs/domains/U2-visual.md §8 的 token 表（v2：默认优先），
 // 值只在这里出现一次。
 //
-// 颜色不写在元素上：主题有字段的取 c.Theme()，框架没有字段的两个 token
-// （border-strong、accent-ink）取本文件的 colorXxx.in(t)。
+// 颜色不写在元素上：主题有字段的取 c.Theme()，框架没有字段的 accent-ink
+// （强调色作文字/标记）取本文件的 colorXxx.in(t)。边界只有一套：主题的 Border
+// （UI-18），没有第二级边框色。
 const (
 	// 间距：沿用框架基础单位 4，只用七档（U2 §2.1、§2.2）。
 	spaceUnit = 4
@@ -66,6 +64,8 @@ const (
 	iconInline = 16
 	iconBlock  = 20
 	dotStatus  = 8
+	// dotContext 是输入区用量"将满"时的圆点：图标体系里的最小档（U2 §4.5）。
+	dotContext = 6
 
 	// 描边与焦点环（U2 §8.3）。
 	strokeHairline  = 1
@@ -76,6 +76,13 @@ const (
 	// 圆角：控件与卡片同值，沿用框架 Theme.Radius（U2 §8.3）。
 	radius     = 6
 	radiusCode = radius + 2
+
+	// 方向指示的描边：24 网格的 1.5 描边在 16px 盒上约 1px（U2 §4.4、§6.4）。
+	strokeChevron = 1.5
+
+	// contextNearPercent 是"上下文将满"的界面口径（U3 T10）：已用 / 上限达到
+	// 这个百分比就换颜色与附词。它是可调参数，不是协议事实。
+	contextNearPercent = 90
 
 	// 命中区下限（U2 §6.5、§8.3）。
 	hitMin = 24
@@ -106,9 +113,24 @@ const (
 	opNumberWidth         = 16
 	opActionWidth         = 36
 	opResultWidth         = 56
-	opDurationWidth       = 44
 	railMarkWidth         = 6
 	railMarkHeight        = 2
+	// placeholderInput 是空输入框的最小占位：四个字以内，只说明"这里能写"，
+	// 不写引导语（UI-23；R6 裁决二选一里选了占位而不是默认聚焦）。
+	placeholderInput = "输入"
+
+	// sidebarTextInset 是侧栏里与列表行文字对齐的左内边距：框架 Sidebar 的内边距 8
+	// + 行内边距 8 + 图标槽 16 + 图标与文字间距 8 = 40。它不是魔法数字，是从
+	// SidebarItem 的排布推出的同一条文字列（UI-22）。
+	sidebarTextInset = space8 + space2
+
+	// headerTargetsMax 是组头里每组最多写几个对象、headerGroupsMax 是最多几组
+	// 动作，多出的用省略号收住；完整清单在展开里。
+	headerTargetsMax = 2
+	headerGroupsMax  = 3
+	// headerPhraseMaxRunes 是组头可见文字的字符上限：超过就按对象为单位截断，
+	// 动作与对象的第一段一定留住（R7）。
+	headerPhraseMaxRunes = 34
 )
 
 // 字阶：11 个语义级（U2 §1.1、§8.2）。
@@ -129,9 +151,9 @@ var (
 	typeBodyStrong      = fontStep{size: 14, line: 21, weight: 600}
 	typeSecondary       = fontStep{size: 12.25, weight: 400}
 	typeSecondaryStrong = fontStep{size: 12.25, weight: 600}
+	typeTitleRow        = fontStep{size: 14, weight: 600}
 	typeMicro           = fontStep{size: 10.5, weight: 400}
 	typeCode            = fontStep{size: 12.25, line: 17.15, weight: 400, family: codeFont}
-	typeTitleRow        = fontStep{size: 14, weight: 600}
 	typeH1              = fontStep{size: 22.4, line: 33.6, weight: 700}
 	typeH2              = fontStep{size: 18.9, line: 28.35, weight: 650}
 	typeH3              = fontStep{size: 16.1, line: 24.15, weight: 600}
@@ -185,15 +207,15 @@ func (c colorSet) in(t *gui.Theme) gui.Color {
 	return c.light
 }
 
-// 颜色 token：每主题 18 个设计 token（其中 border-strong、accent-ink 框架没有
-// 字段），另 3 个沿用框架、不参与设计（U2 §8.1）。
+// 颜色 token：每主题 17 个设计 token（其中 accent-ink 框架没有字段），另 3 个
+// 沿用框架、不参与设计（U2 §8.1）。边界只取主题的 Border，不再有第二级边框色
+// （UI-18）。
 var (
 	colorBG             = colorSet{gui.Hex("#ffffff"), gui.Hex("#18181b")}
 	colorSurface        = colorSet{gui.Hex("#f4f4f5"), gui.Hex("#27272a")}
 	colorSurfaceHover   = colorSet{gui.Hex("#e9e9ec"), gui.Hex("#323236")}
 	colorSurfacePressed = colorSet{gui.Hex("#dddde1"), gui.Hex("#3c3c41")}
 	colorBorder         = colorSet{gui.Hex("#d9d9de"), gui.Hex("#3f3f46")}
-	colorBorderStrong   = colorSet{gui.Hex("#85858b"), gui.Hex("#8b8b94")}
 	colorText           = colorSet{gui.Hex("#18181b"), gui.Hex("#f4f4f5")}
 	colorTextSecondary  = colorSet{gui.Hex("#5f5f68"), gui.Hex("#a1a1aa")}
 	colorAccent         = colorSet{gui.Hex("#2563eb"), gui.Hex("#2563eb")}

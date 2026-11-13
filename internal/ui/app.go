@@ -74,8 +74,9 @@ type Options struct {
 }
 
 // App 只保存可丢的界面状态：当前样例状态、左栏与右栏的开合、摘要展开、
-// 草稿文本与滚动位置，外加两个只用于样例的展示字段（非默认模型标记、
-// 审批命令原文）。它不保存任何事实，也不发起任何写入。
+// 草稿文本与滚动位置、上下文用量的展开，外加几个只用于样例的展示字段
+// （非默认模型标记、审批命令原文、用量样例）。它不保存任何事实，也不发起
+// 任何写入。
 type App struct {
 	state   State
 	onState func(State)
@@ -89,10 +90,25 @@ type App struct {
 	rounds      []round
 	summaryOpen []bool
 
+	// connected 与 accountInitial 是样例里的连接态与账号首字母：只用于画状态点
+	// 与头像（UI-23），不是事实来源。
+	connected      bool
+	accountInitial string
+
+	// contextUsed / contextLimit 是样例里的上下文用量，百分比由二者算；
+	// contextOpen 是明细的展开状态。三者都是可丢的界面状态（UI-8）。
+	contextUsed  int
+	contextLimit int
+	contextOpen  bool
+
 	// model 是非默认模型在标题行末尾的淡标记；空表示取默认值，不上屏（UI-9）。
 	model string
-	// approvalCommand 是审批卡上的命令原文；为空时拿不到原文，不提供“始终允许”。
+	// approvalCommand 是审批卡上的命令原文；为空时拿不到原文，不提供「一直允许」。
 	approvalCommand string
+	// confirmAlways 是「一直允许」的确认态：第一次点击先换成确认，再点才生效。
+	confirmAlways bool
+	// approvalDecision 是样例里点过的决定（只用于界面反馈，不发起任何写入）。
+	approvalDecision string
 
 	feed gui.ScrollState
 }
@@ -103,6 +119,8 @@ func NewApp(o Options) *App {
 		state:           o.State,
 		onState:         o.StateChanged,
 		selectedSession: "s1",
+		connected:       true,
+		accountInitial:  "E",
 	}
 	a.loadSample()
 	return a
@@ -128,6 +146,11 @@ func (a *App) loadSample() {
 	a.rounds = sampleRounds(a.state)
 	a.summaryOpen = make([]bool, len(a.rounds))
 	a.approvalCommand = ""
+	// 上下文用量的样例值：12%，与线框一致；上限只是样例，不是事实。
+	a.contextUsed, a.contextLimit = 24_600, 200_000
+	a.contextOpen = false
+	a.confirmAlways = false
+	a.approvalDecision = ""
 	if a.state == StateWaiting {
 		a.approvalCommand = "rm -rf ./tmp/*"
 	}
@@ -182,13 +205,7 @@ func (a *App) layout(c *gui.Context) {
 
 	// 右栏只在窗口宽到能并排时展开：主区保 400，右栏保 280。
 	// 更窄的窗口属于 compact，右栏应整屏替代主区，本批次未做。
-	panel := float32(0)
-	if a.rightOpen {
-		maxPanel := windowWidth - sidebar - RightPanelMainMinWidth
-		if maxPanel >= RightPanelMinWidth {
-			panel = clamp(RightPanelPreferredWidth, RightPanelMinWidth, maxPanel)
-		}
-	}
+	panel := panelWidth(windowWidth, sidebar, a.rightOpen)
 
 	gui.Row(c).Fill().AlignItems(gui.Stretch).
 		Background(t.Background).Children(func() {
@@ -206,6 +223,18 @@ func (a *App) layout(c *gui.Context) {
 			})
 		})
 	})
+}
+
+// panelWidth 是右栏实际占的宽度：未打开、或窗口窄到并排不下时为零。
+func panelWidth(windowWidth, sidebar float32, rightOpen bool) float32 {
+	if !rightOpen {
+		return 0
+	}
+	maxPanel := windowWidth - sidebar - RightPanelMainMinWidth
+	if maxPanel < RightPanelMinWidth {
+		return 0
+	}
+	return clamp(RightPanelPreferredWidth, RightPanelMinWidth, maxPanel)
 }
 
 // clamp 把 v 收进 [lo, hi]；当 lo > hi 时取 lo。
