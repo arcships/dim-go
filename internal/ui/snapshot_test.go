@@ -80,6 +80,14 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 设置 · 扩展：四个页签 + 列表（插件 8 行）。
+	{name: "variant-ext", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, 3, 1
+	}},
+	// 设置 · 扩展：读取失败态。
+	{name: "variant-ext-failed", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection, a.extState = ScreenSettings, 3, extFailed
+	}},
 	// 富文本：Markdown 的块级样式（标题、列表、行内代码、代码块、引用、表格、链接）。
 	{name: "variant-rich", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.rounds = []round{{

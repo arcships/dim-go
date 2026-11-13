@@ -48,6 +48,11 @@ Owner: U4 技术设计（界面领域）
 | EL-31 | 设置项（标签 + 控件） | gui.Select / gui.Switch | `settingsRow` | `settings` |
 | EL-32 | 危险动作 · 清空命令规则 | 自绘 ButtonBase（textIconButton） | `textIconButton` | `settings-rules` |
 | EL-33 | 目标行 · 编辑态取消 | gui.Button | `actionButton` | `goal-edit` |
+| EL-34 | 扩展分节 | 自绘行（ButtonBase） | `navRow` | `settings-ext` |
+| EL-35 | 扩展页签 | gui.Tabs | `settingsExtensions` | `settings-ext` |
+| EL-36 | 扩展列表行 | 自绘行 + gui.Switch | `extRow` | `settings-ext` |
+| EL-37 | 扩展空态 | 自绘行 + iconGlyph | `settingsExtensions` | `settings-ext-empty` |
+| EL-38 | 扩展读取失败 | 自绘行 + iconGlyph + iconButton | `settingsExtensions` | `settings-ext-failed` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

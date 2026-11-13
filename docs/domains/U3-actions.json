@@ -6,7 +6,8 @@
   "forms": {
     "icon": "纯图标 + tooltip（名称 · 快捷键）",
     "icon+text": "图标 + 文字",
-    "text": "纯文字"
+    "text": "纯文字",
+    "switch": "框架 Switch（就地启停，无确认）"
   },
   "items": [
     {
@@ -125,6 +126,42 @@
       "form": "icon+text",
       "confirm": true,
       "basis": "U1 T1、T29；U3 设置分节（后续批次接 permission.set_rules）"
+    },
+    {
+      "id": "AC-14",
+      "action": "停用插件",
+      "consequence": "可逆：随时可再启用；已产生的输出保留",
+      "scope": "本机全部会话",
+      "form": "switch",
+      "confirm": false,
+      "basis": "U1 T6、S46；U3 T16"
+    },
+    {
+      "id": "AC-15",
+      "action": "停用技能",
+      "consequence": "可逆：随时可再启用",
+      "scope": "本机全部会话",
+      "form": "switch",
+      "confirm": false,
+      "basis": "U1 S43–S46；U3 T16"
+    },
+    {
+      "id": "AC-16",
+      "action": "停用 MCP",
+      "consequence": "可逆：停用后该服务器的工具不再出现；配置保留",
+      "scope": "本机全部会话",
+      "form": "switch",
+      "confirm": false,
+      "basis": "U1 T8；U3 T16"
+    },
+    {
+      "id": "AC-17",
+      "action": "停用钩子",
+      "consequence": "可逆：钩子不再触发，配置保留",
+      "scope": "本机全部会话",
+      "form": "switch",
+      "confirm": false,
+      "basis": "U1 T7；U3 T16"
     }
   ],
   "undecided": [

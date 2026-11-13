@@ -38,6 +38,11 @@ const (
 	SettingsLabelWidth       = 140
 	SettingsRuleCommandWidth = 240
 	SettingsRuleSelectWidth  = 120
+	// 设置 · 扩展：行内名称与版本的定宽，以及"一行放得下"的最小内宽。
+	extNameWidth      = 200
+	extVersionWidth   = 72
+	extRowMinWidth    = extNameWidth + extVersionWidth + space3*3 + 36
+
 	// SettingsRuleRowMinWidth 是"命令 + 决定 + 匹配方式"排在一行所需的最小内宽；
 	// 窄于它就按行堆叠（一条规则两行），见 U2-forms F23 的退化规则。
 	SettingsRuleRowMinWidth = SettingsRuleCommandWidth + space4 + SettingsRuleSelectWidth +

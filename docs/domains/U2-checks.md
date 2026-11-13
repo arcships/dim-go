@@ -32,7 +32,7 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 | L2 | 字符冒充图标（`＋ ‹ › × ⋯`） | UI-21、X15 | `lintSource` → `glyphIcons` | 删掉字符，改用 `icons.go` 的图标元素 |
 | L3 | 图标入口缺可访问名 | UI-21、D4 | `lintSource`：`iconButtonSpec` 必须有 `label` | 补 `label`（读屏名） |
 | L4 | 纯图标入口缺 tooltip（名称 / 快捷键） | UI-23 选择表、F17、§9.0「形式的选择」 | 静态：`iconButtonSpec` 至少有 `tip` 或 `label`；渲染：发送/停止的 `Access().Description` 必须含名称与 `Enter` | 补 `tip`：名称 · 快捷键（如「发送 · Enter」） |
-| L5 | 高后果动作缺图标 / 可见文字 / 确认 | UI-23、F18、D5 | 静态：① 清单里的高后果动作不得走 `actionButton`；② `textIconButtonSpec` 的 `text` 字段必须存在且**不得是空串**（只留 `label` 可访问名会被静默绕过）。渲染：③ `U3-actions.json` 里 `form=icon+text` 的动作必须能用 `Find` 找到可见文本，且按钮宽于纯图标盒（`iconInline + 2*space3`）——只留 label 时宽度只有图标那么宽；④ 盒内有图标墨迹；⑤ `form=icon` 的动作不得出现可见文字（盒子不得宽于纯图标盒）；⑥ `confirm=true` 的第一次点击不得生效 | 改用 `textIconButton` 并写可见文字；需要确认的补两步 |
+| L5 | 高后果动作缺图标 / 可见文字 / 确认 | UI-23、F18、D5 | 静态：① 清单里的高后果动作不得走 `actionButton`；② `textIconButtonSpec` 的 `text` 字段必须存在且**不得是空串**（只留 `label` 可访问名会被静默绕过）。渲染：③ `U3-actions.json` 里 `form=icon+text` 的动作必须能用 `Find` 找到可见文本，且按钮宽于纯图标盒（`iconInline + 2*space3`）——只留 label 时宽度只有图标那么宽；④ 盒内有图标墨迹；⑤ `form=icon` 的动作不得出现可见文字（盒子不得宽于纯图标盒）；⑥ `confirm=true` 的第一次点击不得生效 | 改用 `textIconButton` 并写可见文字；需要确认的补两步；⑦ 清单 `form=switch` 的动作必须是框架 `Switch`（`RoleSwitch`、状态与数据一致、命中区 ≥ 36×20），`form` 不是 switch 的动作不得渲染成开关 | 改用 `textIconButton`；需要确认的补两步 |
 | L6 | 时间线状态位把状态画成文字 | A2/D2、UI-11、X20 | `lintSource`：`gui.Text/RichText` 的字面量不得是状态词（完成 / 正在运行 / 等待你同意 / 失败）；报错时按 `U1-content.json` 给出对应的信息项编号 | 状态用图标 + 颜色；读屏名可保留状态词 |
 | L7 | 五种状态同屏两两可分 | D4 | `lintStatesDistinct`：状态读屏名集合不同 + 整帧像素指纹不同 | 让两个状态在图标、颜色或形态上至少差两项 |
 | L8 | 三档宽度下内容左缘相等 | UI-22、§9.14 排版基线 2 | `lintBaselines`（1440/900/720）：标题行 / 时间线 / 输入卡同一左缘（±1.5） | 统一 `space-4` 外边距 + `space-2` 卡片内边距 |
@@ -44,7 +44,7 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 | L14 | 自绘可交互元素有悬停 / 按下 / 禁用态 | X17、§9.14 第 4 层 | `lintInteractiveStates`：组头悬停 `surface-hover`、按下 `surface-pressed`；发送槽在无草稿时 `Disabled` | 补缺的那一态 |
 | L15 | 200% 文本缩放下不越界 | §9.14 第 3 层、U2 §7.4 | `lintTextScale`：五个状态在 `TextScale: 2` 下所有可见文字不出窗口 | 调字号、允许单行截断 |
 | L16 |清单引用完整性：U1 清单每条能指回信息项 | §9.14 第 1 层、U1-information | `lintListReferences`：`U1-content.json` 的 `item` 必须作为一行出现在 `U1-information.md` | 改信息项编号，或把条目从清单里删掉 |
-| L17 | 元素表声明的形式与渲染一致 | UI-23、D5、§9.14 第 2 层 | `lintElementForms` 读 `U2-elements.json`：`icon+text` 必须有图标标记（`图标：<mark>`）与盒内可见文字；`icon` 盒宽不得超纯图标且要有墨迹；`text` 必须有盒内可见文字；`style` 要有墨迹；`checkable=false` 的条目在清单里写了不能自动判的理由；找不到元素报「清单与实现不一致」 | 补图标或文字，或改清单（改形式属形式级） |
+| L17 | 元素表声明的形式与渲染一致（when 新增 `settings-ext` / `-empty` / `-failed`） | UI-23、D5、§9.14 第 2 层 | `lintElementForms` 读 `U2-elements.json`：`icon+text` 必须有图标标记（`图标：<mark>`）与盒内可见文字；`icon` 盒宽不得超纯图标且要有墨迹；`text` 必须有盒内可见文字；`style` 要有墨迹；`checkable=false` 的条目在清单里写了不能自动判的理由；找不到元素报「清单与实现不一致」 | 补图标或文字，或改清单（改形式属形式级） |
 | L18 | 元素不得越出窗口 | UI-22、§9.14 第 3 层 | `lintNoOverflow`：主界面（默认/运行中/等待）与设置三节，在 1440 / 900 / 720 三档下，每个文字/带名字元素的**可访问盒子**（不是被裁过的可见文字范围）都必须在窗口内 | 改窄窗退化（堆叠 / 滚动），或收窄定宽列；不要靠裁切 |
 | L19 | view 映射覆盖率 | U4 §1、§9.14 第 1 层 | `lintViewMapping` 读 `U2-elements.json`：每条元素的 `component` 与 `symbol` 非空，且 `symbol` 是 `internal/ui` 里真实存在的标识符（框架符号取最后一段）；指不到即缺 | 补 `component`/`symbol`，或在 `internal/ui` 里补上该组件 |
 | L20 | Markdown 块样式存在性 | U0 §3.1（M1–M8）、C4 §5 | `lintMarkdownBlocks`：① `a.md` 的 `markdown.Theme` 非空，且链接 / 行内代码 / 代码块 / 表头 / 引用竖线取我们的 token、代码块圆角 = 8、六级标题字号递减；② 逐块渲染最小文档并数像素：标题墨迹高度 ≥ 正文 1.2 倍、行内代码有底色、代码块有自己的面、引用有竖线、表头有底色、链接是强调色；③ 三处呼吸（`checkMarkdownRhythm`）：块间墨迹间隙 ≥ 10px、列表项起点差 ≥ 21px、表格边线间距 ≥ 29px | 给 `a.md` 设 `markdownTheme`，并让样例包含全部块级结构 |
@@ -87,12 +87,13 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 种子「状态词上屏」    → seed.go:2 [L6] A2/D2、UI-11、X20：状态词被当成文字画到屏幕上：完成
 种子「决定缺可见文字」→ seed.go:2 [L5] UI-23、F18：图标 + 文字的入口把可见文字写成了空串
 种子「元素缺图标」    → render [L17] UI-23、D5（seed）：分支标记：声明为图标 + 文字，但文字旁边没有图标（图标：<mark> 找不到）
+种子「开关形式与实现不一致」→ render [L5] UI-23、D5（seed）：停用插件 声明为 icon，却渲染成了开关
 种子「Markdown 主题清空」→ render [L20] U0 §3.1、C4 §5：Markdown 主题为空：用了零值 options（默认样式）
 种子「内容越界」      → render [L18] §9.14 第 3 层、UI-22：seed @720："匹配方式" 越出窗口（{X:748.4 …}）
 种子「基线不等」      → seed [L8] UI-22、§9.14 排版基线 2：输入卡 在 900 档的左缘 275.0 与 1440 档的 272.0 不同
 ```
 
-九类种子覆盖：档位外间距、字符冒充图标、缺 tooltip、状态词上屏、高后果动作缺可见文字、元素表声明 icon+text 但只画了文字、内容越出窗口、Markdown 主题被清空、基线不等。
+十类种子覆盖：档位外间距、字符冒充图标、缺 tooltip、状态词上屏、高后果动作缺可见文字、元素表声明 icon+text 但只画了文字、内容越出窗口、Markdown 主题被清空、开关形式与实现不一致、基线不等。
 
 ## 4 手工注入（评审用的复现步骤）
 
@@ -111,6 +112,7 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 | L18 | 把 `tokens.go` 的 `SettingsRuleSelectWidth` 改成 200（三列总和超过 720 的内宽） | `render [L18] … 设置·命令规则 @720 … 越出窗口` |
 | L19 | 删掉 `U2-elements.json` 里任一元素的 `symbol`（或写成不存在的名字） | `docs [L19] … 没有指到组件` / `… 指的组件 "x" 在 internal/ui 里找不到` |
 | L20 | 把 `applyTokens` 里的 `a.md.Theme = markdownTheme(...)` 删掉（回到零值 options） | `render [L20] … Markdown 主题为空：用了零值 options` |
+| L5（switch） | 把 `U3-actions.json` 的 `AC-14 停用插件` 的 `form` 从 `switch` 改成 `icon` | `render [L5] … 停用插件 声明为 icon，却渲染成了开关` |
 | L8 | 把输入卡的内边距从 `space2` 改成 `space3` | `[L8] … 输入卡 在 1440 档的左缘 … 不同` |
 | L13 | 把 `iconButtonSpec` 的 `size` 改成 `20` | `[L13] … 命中区 20×20 小于 24` |
 

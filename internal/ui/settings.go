@@ -24,8 +24,10 @@ func (a *App) settings(c *gui.Context) {
 					a.settingsAppearance(c)
 				case 1:
 					a.settingsProviders(c)
-				default:
+				case 2:
 					a.settingsRules(c)
+				default:
+					a.settingsExtensions(c)
 				}
 			})
 		})
@@ -35,7 +37,7 @@ func (a *App) settings(c *gui.Context) {
 // settingsNav 是左导航：返回主界面的图标入口 + 分节列表。
 func (a *App) settingsNav(c *gui.Context) {
 	t := c.Theme()
-	sections := []string{"外观", "供应商", "命令规则"}
+	sections := []string{"外观", "供应商", "命令规则", "扩展"}
 	gui.Column(c).Width(SettingsNavWidth).Shrink(0).
 		Background(t.Surface).Children(func() {
 		if inset := titleBarInset(c.TitleBar()); inset > 0 {

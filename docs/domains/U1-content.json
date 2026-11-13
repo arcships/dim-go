@@ -615,6 +615,134 @@
       "item": "T20",
       "kind": "interface",
       "why": "主题选项"
+    },
+    {
+      "id": "CT-77",
+      "match": "exact",
+      "value": "扩展",
+      "item": "S43",
+      "kind": "interface",
+      "why": "设置分节名"
+    },
+    {
+      "id": "CT-78",
+      "match": "exact",
+      "value": "技能",
+      "item": "S43",
+      "kind": "interface",
+      "why": "扩展页签名"
+    },
+    {
+      "id": "CT-79",
+      "match": "exact",
+      "value": "插件",
+      "item": "S43",
+      "kind": "interface",
+      "why": "扩展页签名"
+    },
+    {
+      "id": "CT-80",
+      "match": "exact",
+      "value": "MCP",
+      "item": "S43",
+      "kind": "interface",
+      "why": "扩展页签名"
+    },
+    {
+      "id": "CT-81",
+      "match": "exact",
+      "value": "钩子",
+      "item": "S43",
+      "kind": "interface",
+      "why": "扩展页签名"
+    },
+    {
+      "id": "CT-82",
+      "match": "prefix",
+      "value": "还没有可用的",
+      "item": "S43",
+      "kind": "content",
+      "why": "空态的一句事实（跟着页签换主语）"
+    },
+    {
+      "id": "CT-83",
+      "match": "exact",
+      "value": "正在读取…",
+      "item": "E4",
+      "kind": "content",
+      "why": "加载态的一句事实"
+    },
+    {
+      "id": "CT-84",
+      "match": "exact",
+      "value": "读取失败：连接已断开",
+      "item": "E4",
+      "kind": "content",
+      "why": "失败原因（事实侧的原因，包装后）"
+    },
+    {
+      "id": "CT-85",
+      "match": "exact",
+      "value": "重试读取",
+      "item": "E4",
+      "kind": "interface",
+      "why": "重试入口的读屏名"
+    },
+    {
+      "id": "CT-86",
+      "match": "exact",
+      "value": "启用：",
+      "item": "S46",
+      "kind": "interface",
+      "why": "开关的读屏名前缀"
+    },
+    {
+      "id": "CT-87",
+      "match": "exact",
+      "value": "GitHub",
+      "item": "S44",
+      "kind": "content",
+      "why": "插件名"
+    },
+    {
+      "id": "CT-88",
+      "match": "exact",
+      "value": "Linear",
+      "item": "S44",
+      "kind": "content",
+      "why": "插件名"
+    },
+    {
+      "id": "CT-89",
+      "match": "exact",
+      "value": "v0.6.3",
+      "item": "S44",
+      "kind": "content",
+      "why": "版本号"
+    },
+    {
+      "id": "CT-90",
+      "match": "exact",
+      "value": "代码评审",
+      "item": "S44",
+      "kind": "content",
+      "why": "技能名"
+    },
+    {
+      "id": "CT-91",
+      "match": "exact",
+      "value": "filesystem",
+      "item": "T8",
+      "kind": "content",
+      "why": "MCP 服务器名"
+    },
+    {
+      "id": "CT-92",
+      "match": "exact",
+      "value": "提交前检查",
+      "item": "T7",
+      "kind": "content",
+      "why": "钩子名"
     }
   ],
   "undecided": []

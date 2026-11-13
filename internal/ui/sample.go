@@ -200,3 +200,43 @@ const richReply = "## 先看结论\n\n" +
 	"| 未运行 | 直接发送 |\n" +
 	"| 运行中 | 先入队 |\n\n" +
 	"详见 [U3 的发送与排队](U3-interaction.md)。"
+
+// extSamples 是扩展四类的样例数据（数量：技能 6、插件 8、MCP 4、钩子 3）。
+// 名称与版本是内容；状态只用样式（可用 / 有更新 / 加载失败）。
+func extSamples(kind extKind) []extItem {
+	switch kind {
+	case extSkills:
+		return []extItem{
+			{name: "代码评审", version: "v1.4.0", on: true},
+			{name: "提交信息", version: "v0.9.2", on: true, status: extUpdate},
+			{name: "测试生成", version: "v2.0.1", on: true},
+			{name: "文档同步", version: "v0.3.0", on: false},
+			{name: "依赖升级", version: "v1.0.4", on: false},
+			{name: "发布检查", version: "v0.1.0", on: true, status: extError},
+		}
+	case extPlugins:
+		return []extItem{
+			{name: "GitHub", version: "v0.6.3", on: true},
+			{name: "Linear", version: "v0.4.1", on: true},
+			{name: "Sentry", version: "v0.2.0", on: false},
+			{name: "Figma", version: "v0.1.7", on: false, status: extUpdate},
+			{name: "Notion", version: "v0.3.2", on: true},
+			{name: "Slack", version: "v0.5.0", on: true},
+			{name: "Jira", version: "v0.2.8", on: false},
+			{name: "Datadog", version: "v0.1.1", on: false, status: extError},
+		}
+	case extMCP:
+		return []extItem{
+			{name: "filesystem", version: "v0.9.0", on: true},
+			{name: "postgres", version: "v0.5.2", on: true, status: extUpdate},
+			{name: "playwright", version: "v0.3.0", on: false},
+			{name: "sentry", version: "v0.2.1", on: false},
+		}
+	default:
+		return []extItem{
+			{name: "提交前检查", version: "v1.0.0", on: true},
+			{name: "保存时格式化", version: "v1.0.0", on: true},
+			{name: "推送后通知", version: "v0.4.0", on: false},
+		}
+	}
+}

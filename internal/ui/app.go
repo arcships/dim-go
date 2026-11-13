@@ -94,6 +94,11 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantExt 设置 · 扩展（列表）；后三个是同一节的加载 / 空 / 失败态。
+	VariantExt
+	VariantExtFailed
+	VariantExtEmpty
+	VariantExtLoading
 	// VariantSettings 进入设置屏（默认分节）。
 	VariantSettings
 	// VariantSettingsRules 进入设置屏并停在命令规则的清空确认态。
@@ -104,7 +109,9 @@ const (
 var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
-	"branch-end": VariantBranchEnd, "rich": VariantRich, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
+	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"ext": VariantExt, "ext-failed": VariantExtFailed,
+	"ext-empty": VariantExtEmpty, "ext-loading": VariantExtLoading, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
 }
 
 // ParseVariant 解析 -variant。
@@ -112,7 +119,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、rich、goal、tasks、settings、settings-rules", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、rich、goal、tasks、settings、settings-rules、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -176,6 +183,14 @@ type App struct {
 	modelPrice         string
 	rules              []commandRule
 	clearRulesConfirm  bool
+
+	// 扩展：页签、加载态与四类样例。
+	extTab   int
+	extState extState
+	plugins  []extItem
+	skills   []extItem
+	mcps     []extItem
+	hooks    []extItem
 	tasks          []task
 
 	// contextUsed / contextLimit 是样例里的上下文用量，百分比由二者算；
@@ -260,6 +275,11 @@ func (a *App) loadSample() {
 		{command: "rm -rf", decision: "拒绝", match: "前缀"},
 	}
 	a.clearRulesConfirm = false
+	a.extTab, a.extState = 0, extLoaded
+	a.skills = extSamples(extSkills)
+	a.plugins = extSamples(extPlugins)
+	a.mcps = extSamples(extMCP)
+	a.hooks = extSamples(extHooks)
 
 	switch a.variant {
 	case VariantSettings:
@@ -269,6 +289,17 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = 2 // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantExt, VariantExtFailed, VariantExtEmpty, VariantExtLoading:
+		a.screen = ScreenSettings
+		a.settingsSection = 3 // 扩展
+		switch a.variant {
+		case VariantExtFailed:
+			a.extState = extFailed
+		case VariantExtEmpty:
+			a.extState = extEmpty
+		case VariantExtLoading:
+			a.extState = extLoading
+		}
 	case VariantRich:
 		a.rounds = []round{{
 			user:   "把排队的实现讲清楚",

@@ -138,6 +138,16 @@ func TestUILintSeeds(t *testing.T) {
 	}
 	t.Logf("种子「元素缺图标」→ %s", got[0].String())
 
+	// 第十类：清单说"用开关"，实现换成图标（或清单写 icon 而实现是开关）。
+	switched := &actionDoc{Items: []actionEntry{{
+		ID: "seed", Action: "停用插件", Form: "icon", Confirm: false,
+	}}}
+	if got := checkIconNotSwitch(t, switched); len(got) == 0 || got[0].check != "L5" {
+		t.Fatalf("开关形式种子没有被 L5 报出：%v", got)
+	} else {
+		t.Logf("种子「开关形式与实现不一致」→ %s", got[0].String())
+	}
+
 	// 第九类：Markdown 主题被清空（零值 options）——块级样式就不归我们管了。
 	if got := checkMarkdownTheme(theme(false, gui.Preferences{}), nil); len(got) == 0 || got[0].check != "L20" {
 		t.Fatalf("Markdown 主题种子没有被 L20 报出：%v", got)
@@ -506,6 +516,13 @@ func lintHighConsequence(t *testing.T, actions *actionDoc) []lintFinding {
 				it.Action + " 的按钮只有图标那么宽，看不到文字"})
 		}
 	}
+	// switch 形式：清单说"用开关"，实现就必须是框架 Switch（有开关语义、有开/关
+	// 两态、命中区达标），不能换成图标按钮。
+	out = append(out, checkSwitchForms(t, actions)...)
+
+	// 反向：清单里 form=icon 的动作，渲染出来时不得是开关。
+	out = append(out, checkIconNotSwitch(t, actions)...)
+
 	// 反向：清单里 form=icon 的动作，渲染出来时不得有可见文字（盒子只有图标宽）。
 	for _, st := range []State{StateDefault, StateRunning, StateWaiting} {
 		app2 := NewApp(Options{State: st})
@@ -534,6 +551,104 @@ func lintHighConsequence(t *testing.T, actions *actionDoc) []lintFinding {
 		} else if app.approvalDecision != "" {
 			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
 				"一直允许一次点击就生效了，缺确认"})
+		}
+	}
+	return out
+}
+
+// extTabOf 是"停用某类"与扩展页签的对应（本批四类各一个页签）。
+func extTabOf(action string) (int, bool) {
+	switch action {
+	case "停用技能":
+		return 0, true
+	case "停用插件":
+		return 1, true
+	case "停用 MCP":
+		return 2, true
+	case "停用钩子":
+		return 3, true
+	}
+	return 0, false
+}
+
+// checkSwitchForms 判"清单 form=switch 的动作真的渲染成框架 Switch"。
+func checkSwitchForms(t *testing.T, actions *actionDoc) []lintFinding {
+	t.Helper()
+	var out []lintFinding
+	for _, it := range actions.Items {
+		if it.Form != "switch" {
+			continue
+		}
+		tab, ok := extTabOf(it.Action)
+		if !ok {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 标了 switch，但检查器不知道它落在哪个页签"})
+			continue
+		}
+		app := NewApp(Options{State: StateDefault})
+		app.screen, app.settingsSection, app.extTab = ScreenSettings, 3, tab
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		// 该类第一行的开关：名字是「启用：<名称>」。
+		items := app.extItems(extKind(tab))
+		if len(items) == 0 {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的页签没有样例行"})
+			continue
+		}
+		want := "启用：" + items[0].name
+		info, ok := tt.Access(want)
+		if !ok {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 找不到开关 " + want})
+			continue
+		}
+		if info.Role != gui.RoleSwitch {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				fmt.Sprintf("%s 不是开关（role=%v）", it.Action, info.Role)})
+			continue
+		}
+		// 命中区：框架 Switch 是 36×20，低于通用 24 的宽度下限但不低于高度下限。
+		if info.Bounds.W < 36 || info.Bounds.H < 20 {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				fmt.Sprintf("%s 的开关命中区 %.0f×%.0f 小于 36×20", it.Action, info.Bounds.W, info.Bounds.H)})
+		}
+		if info.Checked != items[0].on {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的开关状态与数据不一致"})
+		}
+	}
+	return out
+}
+
+// checkIconNotSwitch 判"清单 form 不是 switch 的动作没被渲染成开关"。
+// 扩展类的启停动作按行渲染成「启用：<名称>」的开关；若清单说它是 icon / text，
+// 却在这里查到开关语义，就是清单与实现不一致。
+func checkIconNotSwitch(t *testing.T, actions *actionDoc) []lintFinding {
+	t.Helper()
+	var out []lintFinding
+	for _, it := range actions.Items {
+		if it.Form == "switch" {
+			continue
+		}
+		if tab, ok := extTabOf(it.Action); ok {
+			app := NewApp(Options{State: StateDefault})
+			app.screen, app.settingsSection, app.extTab = ScreenSettings, 3, tab
+			tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+			items := app.extItems(extKind(tab))
+			if len(items) == 0 {
+				continue
+			}
+			if info, ok := tt.Access("启用：" + items[0].name); ok && info.Role == gui.RoleSwitch {
+				out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+					it.Action + " 声明为 " + it.Form + "，却渲染成了开关"})
+			}
+			continue
+		}
+		app := NewApp(Options{State: StateRunning})
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		if info, ok := tt.Access(it.Action); ok && info.Role == gui.RoleSwitch {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 声明为 " + it.Form + "，却渲染成了开关"})
 		}
 	}
 	return out
@@ -1123,6 +1238,12 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.screen, app.settingsSection = ScreenSettings, 0
 	case "settings-rules":
 		app.screen, app.settingsSection = ScreenSettings, 2
+	case "settings-ext":
+		app.screen, app.settingsSection, app.extTab, app.extState = ScreenSettings, 3, 1, extLoaded
+	case "settings-ext-empty":
+		app.screen, app.settingsSection, app.extState = ScreenSettings, 3, extEmpty
+	case "settings-ext-failed":
+		app.screen, app.settingsSection, app.extState = ScreenSettings, 3, extFailed
 	default:
 		return nil
 	}

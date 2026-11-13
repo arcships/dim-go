@@ -478,6 +478,61 @@ func TestActionsUseIconsNotGlyphs(t *testing.T) {
 	}
 }
 
+// 扩展：四个页签、切页签只换列表、开关点一次只翻转一行、失败态给重试。
+func TestExtensionsTabsAndSwitches(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.screen, app.settingsSection = ScreenSettings, 3
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	for _, name := range []string{"技能", "插件", "MCP", "钩子"} {
+		if _, ok := tt.Find(name); !ok {
+			t.Fatalf("扩展缺少页签 %q", name)
+		}
+	}
+	// 切到插件页签：列表换成 8 个插件，分节不变。
+	if err := tt.Click("插件"); err != nil {
+		t.Fatalf("点不到插件页签：%v", err)
+	}
+	if app.extTab != 1 || app.settingsSection != 3 {
+		t.Fatalf("切页签后 tab=%d section=%d", app.extTab, app.settingsSection)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("GitHub"); !ok {
+		t.Fatal("插件页签没有列表")
+	}
+	// 开关：点第一行的开关，只翻转这一行。
+	before := app.plugins[0].on
+	info, ok := tt.Access("启用：GitHub")
+	if !ok {
+		t.Fatal("找不到 GitHub 的开关")
+	}
+	tt.ClickAt(info.Bounds.X+4, info.Bounds.Y+info.Bounds.H/2)
+	if app.plugins[0].on == before {
+		t.Fatal("开关没有翻转")
+	}
+	if app.plugins[1].on != true {
+		t.Fatal("别的行被连带改了")
+	}
+	// 失败态：叹号 + 原因 + 重试。
+	app.extState = extFailed
+	tt.Frame()
+	if _, ok := tt.Access("扩展读取失败"); !ok {
+		t.Fatal("失败态没有说明行")
+	}
+	if _, ok := tt.Access("重试读取"); !ok {
+		t.Fatal("失败态没有重试入口")
+	}
+}
+
+// 扩展空态：一句事实，主语跟着页签。
+func TestExtensionsEmptyState(t *testing.T) {
+	app, _ := newTester(t, StateDefault)
+	app.screen, app.settingsSection, app.extState = ScreenSettings, 3, extEmpty
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if _, ok := tt.Find("还没有可用的技能"); !ok {
+		t.Fatal("空态没有一句事实")
+	}
+}
+
 // 设置是独立成屏（P2）：从左栏齿轮进入、从导航的返回入口回来；草稿与滚动位置
 // 不因为进出一趟设置而丢失（UI-8）。
 func TestSettingsRoundTripKeepsDraftAndScroll(t *testing.T) {

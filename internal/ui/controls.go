@@ -67,3 +67,13 @@ func avatar(c *gui.Context, t *gui.Theme, initial string) {
 			TextAlign(gui.Center)
 	})
 }
+
+// extStatusDot 是扩展列表行里的状态点：同样是 8px 圆，但带一个给检查器用的
+// 标记（「图标：dot:<名称>」），因为列表里有多行、同一页会出现多个点。
+func extStatusDot(c *gui.Context, color gui.Color, name string) {
+	dot := gui.Box(c).Width(dotStatus).Height(dotStatus).Shrink(0).
+		Label("图标：dot:" + name).AccessHidden(true)
+	dot.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		p.Fill(r, color, dotStatus/2)
+	})
+}
