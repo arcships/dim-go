@@ -104,14 +104,15 @@ python3 scripts/compare-screens.py                # 三屏并排（左官方 / �
 | C6 | 行内元素的呼吸 | `permissionflow.png (30,90)–(390,130)`：标题 14/600 与状态词 13 间距 2；按钮组间距 8；`gallery-overview.png (10,80)–(200,110)`：导航行高约 26–28，图标 16 与文字间距 8 | 侧栏行高 22.1（偏密）；组头内图标与文字间距 4；记录行间距 8 | 示例行高 26–28，我们 22 | `[改变]` 侧栏会话行最小高度 → **28**（`rowRegular`，对齐 gallery 导航行）；组头间距保持 4（它比导航更密，是"行内提示"不是"导航项"） |
 | C7 | 正文留白与行宽 | `notes.png (258,90)–(880,200)`：编辑卡内边距 20、正文行宽受卡约束；`markdown-chat.png (14,230)–(800,300)`：左右 24 | 内容列上限 784，居中；段落间距 24（轮次）、12（段内） | 示例正文可用宽约 620–700，我们 784 | `[沿用]`：784 是 U1-ia 的内容列契约；比示例宽，但那是"读代码为主"的场景 |
 | M1 | 标题字号跳变 | `markdown-chat.png (14,230)–(300,260)`：H2「Comparing the options」约 18/700（≈1.35em），与正文 14 有明显跳变；`notes.png (258,88)–(430,116)`：文档标题 24/700 | `markdownTheme` 六级 1.6/1.35/1.15/1/0.95/0.9 em，权重 700/650/600/600/600/600 | 结构一致；我们的 h2 = 1.35em（13 → 17.55） | `[改变]` 显式写入 `markdown.Theme`（此前是零值 options，靠框架默认） |
-| M2 | 无序列表缩进与项距 | `markdown-chat.png (14,258)–(400,300)`：项目符号左缩进约 1.6em，项距 0.25em | `ListIndent 1.6`、`ItemSpacing 0.25`（默认值，本轮显式保留） | 一致 | `[沿用]`；样例新增无序列表，才第一次被看见 |
+| M2 | 无序列表缩进与项距 | `markdown-chat.png (14,258)–(400,300)`：项目符号左缩进约 1.6em；三项的墨迹起点 316 / 338 / 361，项距 **22–23px**（行盒 21 + 0.25em） | `ListIndent 1.6`、`ItemSpacing 0.25`；`variant-rich.png` 的三项起点 266 / 289 / 311，项距 **22–23px** | 0 | `[沿用]`：量出来已经一致，本轮不动 |
 | M3 | 有序列表 | `markdown-chat.png (14,278)–(400,300)`：「1. / 2. / 3.」数字对齐、缩进同无序 | 同 ListIndent | 一致 | `[沿用]`；样例新增有序列表 |
 | M4 | 行内代码 chip | `markdown-chat.png (16,300)–(300,318)`：`cache-aside` 带浅底 chip，圆角约 3 | `CodeBackground = surface`、`CodeSize 0.875`、圆角随框架 | 一致（底色取我们的面层） | `[改变]` 底色从"文字色 7% 透明"改成本主题的 `surface`，深浅主题都稳 |
 | M5 | 代码块 | `markdown-chat.png (14,40)–(780,270)`：整块浅底 + 圆角 6 + 内边距约 12 + 语言标签 + Copy | `CodeBlockBackground = surface`、`CodeBlockRadius = radiusCode(8)`、`CodeBlockPadding 0.85em`、`CodeBlockBorder = Border` | 一致；圆角比示例大 2 | `[改变]` 底色取 `surface`；圆角 8 是**保留偏离**（等宽字 + 6 圆角偏硬，已在 §2 记） |
 | M6 | 引用块 | `markdown-chat.png (14,362)–(760,380)`：左侧 3px 竖线（`border` 色）+ 文字转 muted | `QuoteBarWidth 3`、`QuoteBar = Border`、`QuoteText = TextMuted` | 一致 | `[沿用]` |
-| M7 | 表格 | `markdown-chat.png (14,410)–(390,505)`：表头浅底 + 1px 边线 + 单元格内边距 0.6/0.4em | `TableHeader = surface`、`TableBorder = Border`、`TableCellPadding 0.6/0.4` | 一致（表头底色取面层） | `[改变]` 表头底色从"文字色 4%"改成本主题 `surface` |
+| M7 | 表格 | `markdown-chat.png (14,410)–(390,505)`：表头浅底 + 1px 边线；行文字的墨迹起点 442 / 478 / 509 / 540，行距 **31px**（行盒 21 + 上下各 5.2） | `TableHeader = surface`、`TableBorder = Border`；行距量得 31px，与示例同为 31 | 0（改前）/ +1.5px 行高（改后 33） | `[改变]` 表头底色取面层；**本轮 `TableCellPadding` 竖向 0.40 → 0.45**（行距 31 → 33，与示例的 32 对齐） |
 | M8 | 链接 | `markdown-chat.png (14,520)–(330,536)`：链接为强调色，其余正文色；`notes.png (404,130)–(460,146)` 同 | `Link = accent-ink`（`#2563eb` 亮 / `#60a5fa` 暗；框架默认取 `Accent`） | 一致，但用文字版强调色（对比更高） | `[改变]` 链接色改 `accent-ink` |
 | C8 | 行高与段落节奏 | `markdown-chat.png`：正文行高 1.5 倍、段落间距 12–16、代码块上下各 12 | 正文 1.5 倍（同官方 markdown）、轮次间距 24、组头与正文 12 | 一致 | `[沿用]` |
+| M9 | 块间呼吸（段落之间 / 标题上下） | `markdown-chat.png`：「A few things to note」下沿 298 → 列表首项上沿 316，墨迹间隙 **18px**（21px 行盒）；列表末项下沿 373 → H2 上沿 403，**30px**；H2 下沿 415 → 表头上沿 442，**27px** | 改前 `BlockSpacing 0.75`、标题上下 1.40 / 0.55：段落→标题间隙 25px，列表→段落 19px，引用→表格 23px；改后 `BlockSpacing 0.85`、标题上下 1.45 / 0.60：同三处 25 / 19 / 25px，块与块之间的墨迹间隙整体 +1–2px | 改前比示例紧约 1–2px | `[改变]` 块间与标题留白上调；列表项距已是 0.25em（与示例同），不动 |
 
 ## 4 风格板（供拍板）
 
@@ -144,6 +145,7 @@ python3 scripts/compare-screens.py                # 三屏并排（左官方 / �
 | 标题行会话名字号 | 14 / 600 | **15 / 600** | 组合层 C1（`gallery-overview`/`notes`/`permissionflow` 的标题档） |
 | 侧栏会话行最小高度 | 22.1（框架按字号算） | **28**（`rowRegular`） | 组合层 C6（`gallery-overview` 导航行 26–28） |
 | Markdown 块样式 | 零值 `markdown.Options`（靠框架 DefaultTheme） | **显式 `markdownTheme`**：链接 / 行内代码 / 代码块 / 表头取我们的 token，六级标题字号与权重写死 | 组合层 M1–M8；L20 守 |
+| Markdown 呼吸 | `BlockSpacing 0.75`、`TablePadding 0.6/0.4`、标题上下 1.40/0.55 | `0.85` / `0.6/0.45` / `1.45/0.60`（字号、颜色、圆角、结构不动） | M2/M7/M9 的量测（示例 18/22.5/31px，我们改前 17/22.5/31、改后 19/22.5/33） |
 
 **影响哪些屏**：主界面五态（侧栏行变高、标题行会话名变大）、分支/目标/后台任务、设置三节——文字小 1 档
 （约 7%），控件高度 −1.2 px 左右。列宽、区域尺寸、左缘基线不变。

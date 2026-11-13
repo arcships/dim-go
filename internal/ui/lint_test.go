@@ -809,6 +809,98 @@ func checkMarkdownRender(t *testing.T, md *markdown.Theme, th *gui.Theme) []lint
 	if n := countNear(doc("[链接文字](https://example.com)").Image(), md.Link, 40); n < 5 {
 		fail(fmt.Sprintf("链接没有用强调色（命中 %d 像素）", n))
 	}
+
+	// 三处呼吸（M2/M6/M7）：块间、列表项间、表格行距。
+	out = append(out, checkMarkdownRhythm(md)...)
+	return out
+}
+
+// checkMarkdownRhythm 量三处呼吸（U0 §3.1 的 M2/M6/M7）：块间、列表项间、
+// 表格行距。用墨迹带（同一行文字）的起点差来量，避免依赖具体文字的坐标。
+func checkMarkdownRhythm(md *markdown.Theme) []lintFinding {
+	doc := func(src string) *image.RGBA {
+		return gui.NewTester(func(c *gui.Context) {
+			o := markdown.Options{Theme: md}
+			markdown.View(c, src, &o)
+		}, 600, 320).Image()
+	}
+	var out []lintFinding
+	fail := func(msg string) { out = append(out, lintFinding{"L20", "U0 §3.1（M2/M6/M7）", "render", msg}) }
+
+	// 块间：标题与下一段之间的墨迹间隙 ≥ 0.8em（13px 正文 → 约 10px）。
+	bands := inkBands(doc("## 标题\n\n正文一段"), 0, 600)
+	if len(bands) < 2 {
+		fail("量不到标题与正文两行")
+	} else if gap := bands[1][0] - bands[0][1] - 1; gap < 10 {
+		fail(fmt.Sprintf("块间呼吸不足：标题到正文的墨迹间隙 %dpx（想要 ≥ 10）", gap))
+	}
+
+	// 列表项间：两项的起点差 ≥ 行盒 + 0.2em（13px → 约 22px）。
+	lb := inkBands(doc("- 第一项\n- 第二项"), 0, 600)
+	if len(lb) < 2 {
+		fail("量不到两个列表项")
+	} else if pitch := lb[1][0] - lb[0][0]; pitch < 21 {
+		fail(fmt.Sprintf("列表项间距不足：两项起点差 %dpx（想要 ≥ 21）", pitch))
+	}
+
+	// 表格行距：两条横向边线的间距 ≥ 2.2em（13px → 约 29px）。
+	// 表格的边线与表头底色是连续的，横向墨迹带分不出行，所以量边线。
+	lines := hLines(doc("| a | b |\n|---|---|\n| 1 | 2 |"), md.TableBorder, 600)
+	if len(lines) < 2 {
+		fail("量不到表格的横向边线")
+	} else if pitch := lines[1] - lines[0]; pitch < 29 {
+		fail(fmt.Sprintf("表格行高不足：边线间距 %dpx（想要 ≥ 29）", pitch))
+	}
+	return out
+}
+
+// hLines 找接近 want 的横向整行（表格边线），返回它们的 y。
+func hLines(img *image.RGBA, want gui.Color, width int) []int {
+	var out []int
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		hits := 0
+		for x := 0; x < width && x < img.Bounds().Dx(); x++ {
+			c := img.RGBAAt(x, y)
+			if abs(int(c.R)-int(want.R)) <= 12 && abs(int(c.G)-int(want.G)) <= 12 &&
+				abs(int(c.B)-int(want.B)) <= 12 {
+				hits++
+			}
+		}
+		if hits >= 40 { // 两列表格的边线也远宽于 40px；整行像素里这条线最密
+			// 相邻的像素行算同一条线。
+			if len(out) == 0 || y-out[len(out)-1] > 1 {
+				out = append(out, y)
+			}
+		}
+	}
+	return out
+}
+
+// inkBands 把图切成"有墨迹的行带"，返回每段的 [起, 止]。
+func inkBands(img *image.RGBA, x0, x1 int) [][2]int {
+	bg := img.RGBAAt(img.Bounds().Dx()-2, img.Bounds().Dy()-2)
+	var out [][2]int
+	start := -1
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		dark := false
+		for x := x0; x < x1 && x < img.Bounds().Dx(); x++ {
+			c := img.RGBAAt(x, y)
+			if abs(int(c.R)-int(bg.R))+abs(int(c.G)-int(bg.G))+abs(int(c.B)-int(bg.B)) > 60 {
+				dark = true
+				break
+			}
+		}
+		if dark && start < 0 {
+			start = y
+		}
+		if !dark && start >= 0 {
+			out = append(out, [2]int{start, y - 1})
+			start = -1
+		}
+	}
+	if start >= 0 {
+		out = append(out, [2]int{start, img.Bounds().Dy() - 1})
+	}
 	return out
 }
 

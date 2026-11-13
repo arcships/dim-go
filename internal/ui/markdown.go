@@ -27,6 +27,15 @@ func markdownTheme(t *gui.Theme) *markdown.Theme {
 	md.QuoteText = t.TextMuted
 	md.QuoteBarWidth = 3
 	md.Rule = t.Border
+	// 呼吸（U0 §3.1 的 M2/M6/M7 量出来的）：
+	//   段落之间：示例 18px 墨迹间隙 / 21px 行盒 ≈ 0.85em，我们原来 0.75em；
+	//   列表项之间：示例 22.5px 行距 = 行盒 + 0.25em，我们已是 0.25em（不动）；
+	//   表格行：示例 32px 行距 = 行盒 21 + 上下 0.4em，我们的行盒 19.5 只有 31px，
+	//   上下各加 0.05em 补回到 2.2em 的行距。
+	md.BlockSpacing = 0.85
+	md.ItemSpacing = 0.25
+	md.TableCellPadding = [2]float32{0.6, 0.45}
+
 	// 字阶：以正文 1em 为基准，六级的字号与字重与示例一致（示例 h2 ≈ 1.35em/700）。
 	sizes := [6]float32{1.6, 1.35, 1.15, 1, 0.95, 0.9}
 	weights := [6]int{700, 650, 600, 600, 600, 600}
@@ -34,8 +43,10 @@ func markdownTheme(t *gui.Theme) *markdown.Theme {
 		md.Headings[i].Size = sizes[i]
 		md.Headings[i].Weight = weights[i]
 		md.Headings[i].Color = t.Text
-		md.Headings[i].Top = 1.4
-		md.Headings[i].Bottom = 0.55
+		// 标题上下留白：示例 h2 上方墨迹间隙 30px、下方 27px（21px 行盒），
+		// 换算成 em 的上/下留白约 1.45 / 0.6。
+		md.Headings[i].Top = 1.45
+		md.Headings[i].Bottom = 0.6
 	}
 	md.Headings[5].Color = t.TextMuted
 	return md
