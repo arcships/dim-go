@@ -80,6 +80,20 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 终端三态（右栏第五个标签）：空闲 / 运行中 / 已退出。
+	{name: "variant-term", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, 4
+	}},
+	{name: "variant-term-running", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, 4
+		a.termState = termRunning
+		a.termLines = termSamples(termRunning)
+	}},
+	{name: "variant-term-exited", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, 4
+		a.termState = termExited
+		a.termLines = termSamples(termExited)
+	}},
 	// 设置 · 扩展：四个页签 + 列表（插件 8 行）。
 	{name: "variant-ext", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.screen, a.settingsSection, a.extTab = ScreenSettings, 3, 1

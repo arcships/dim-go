@@ -1238,6 +1238,16 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.screen, app.settingsSection = ScreenSettings, 0
 	case "settings-rules":
 		app.screen, app.settingsSection = ScreenSettings, 2
+	case "term":
+		app.rightOpen, app.rightTab = true, 4
+	case "term-running":
+		app.rightOpen, app.rightTab = true, 4
+		app.termState = termRunning
+		app.termLines = termSamples(termRunning)
+	case "term-exited":
+		app.rightOpen, app.rightTab = true, 4
+		app.termState = termExited
+		app.termLines = termSamples(termExited)
 	case "settings-ext":
 		app.screen, app.settingsSection, app.extTab, app.extState = ScreenSettings, 3, 1, extLoaded
 	case "settings-ext-empty":

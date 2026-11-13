@@ -16,7 +16,7 @@ STATES = ["default", "running", "waiting", "failed", "empty"]
 # 三档宽度对照（U1-ia §0：compact <720 / regular 720–959 / wide ≥960）。
 WIDTHS = [1440, 900, 720]
 # 三类新信息的走查态（分支切换 / 目标设置中 / 后台任务运行中）。
-VARIANTS = ["branch", "branch-end", "goal", "tasks", "settings", "settings-rules", "ext", "ext-failed"]
+VARIANTS = ["branch", "branch-end", "goal", "tasks", "settings", "settings-rules", "ext", "ext-failed", "term", "term-running", "term-exited"]
 
 
 def windows():

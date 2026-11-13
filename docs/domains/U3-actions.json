@@ -162,6 +162,33 @@
       "form": "switch",
       "confirm": false,
       "basis": "U1 T7；U3 T16"
+    },
+    {
+      "id": "AC-18",
+      "action": "中止运行",
+      "consequence": "可逆：命令可以再跑一次；已产生的输出保留",
+      "scope": "当前终端会话",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 T25；U3 T17"
+    },
+    {
+      "id": "AC-19",
+      "action": "清屏",
+      "consequence": "不可逆但只影响局部：清掉可见输出，不动会话与历史",
+      "scope": "当前终端视图",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 T25；U3 T17"
+    },
+    {
+      "id": "AC-20",
+      "action": "复制输出",
+      "consequence": "无副作用（只写剪贴板）",
+      "scope": "当前终端视图",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 T25；U3 T17"
     }
   ],
   "undecided": [

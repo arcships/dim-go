@@ -478,6 +478,48 @@ func TestActionsUseIconsNotGlyphs(t *testing.T) {
 	}
 }
 
+// 终端：右栏第五个标签；三态只由状态点表达；中止/清屏/键盘都生效。
+func TestTerminalStatesAndKeys(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.rightOpen, app.rightTab = true, 4
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if _, ok := tt.Find("终端"); !ok {
+		t.Fatal("右栏没有终端标签")
+	}
+	// 空闲：有清屏、没有中止。
+	if _, ok := tt.Access("清屏"); !ok {
+		t.Fatal("空闲态缺清屏入口")
+	}
+	if _, ok := tt.Access("中止运行"); ok {
+		t.Fatal("空闲态不应有中止入口")
+	}
+	// 运行中：状态点转 accent，出现中止；Ctrl-C 中止。
+	app.termState = termRunning
+	app.termLines = termSamples(termRunning)
+	tt.Frame()
+	if _, ok := tt.Access("中止运行"); !ok {
+		t.Fatal("运行中缺中止入口")
+	}
+	tt.Key(gui.Ctrl, gui.KeyC)
+	if app.termState != termExited {
+		t.Fatalf("Ctrl-C 后状态 = %v，想要已退出", app.termState)
+	}
+	// Cmd-K 清屏：回空态。
+	tt.Key(gui.Cmd, gui.KeyK)
+	tt.Frame()
+	if len(app.termLines) != 0 {
+		t.Fatalf("清屏后仍有 %d 行", len(app.termLines))
+	}
+	if _, ok := tt.Find("还没有输出"); !ok {
+		t.Fatal("清屏后没有空态")
+	}
+	// Esc 收回右栏（回主界面）。
+	tt.Key(0, gui.KeyEscape)
+	if app.rightOpen {
+		t.Fatal("Esc 没有收回右栏")
+	}
+}
+
 // 扩展：四个页签、切页签只换列表、开关点一次只翻转一行、失败态给重试。
 func TestExtensionsTabsAndSwitches(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

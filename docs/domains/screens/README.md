@@ -33,6 +33,9 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-variant-settings-rules{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **命令规则分节**，停在**清空确认态**（危险动作两步） |
 | `window-default-variant-ext{,-900,-720}.png` | 1440/900/720×900 | 设置 · **扩展**分节：四页签 + 插件列表（8 行，名称/版本/状态点/开关） |
 | `window-default-variant-ext-failed{,-900,-720}.png` | 1440/900/720×900 | 设置 · 扩展**读取失败态**：叹号 + 原因 + 重试入口 |
+| `window-default-variant-term{,-900,-720}.png` | 1440/900/720×900 | 右栏 · **终端（空闲）**：状态点 + 清屏/复制 + 提示行 |
+| `window-default-variant-term-running{,-900,-720}.png` | 1440/900/720×900 | 右栏 · **终端（运行中）**：状态点 accent + 中止入口 |
+| `window-default-variant-term-exited{,-900,-720}.png` | 1440/900/720×900 | 右栏 · **终端（已退出）**：ANSI 颜色、长行折行、多行错误 |
 
 **能证明什么**：macOS 红绿灯由系统画在左栏顶部的让位条里；没有系统标题栏；标题行是自绘的、左端是会话名；窗口圆角与阴影由系统给。
 **外观（主题）**：真窗口截图跟随系统外观——本轮系统为深色，所以 `window-*.png` 全是深色，同一轮评审看到的是同一套观感。软件渲染（`state-*.png` / `variant-*.png`）默认浅色，深色由 `variant-dark.png` 覆盖；两类的对照关系见下表。
@@ -78,7 +81,7 @@ go test ./internal/ui -run 'TestScreens|TestTitleBarCloseup|TestWordlessCheck' -
 
 # 真窗口（逐态启动、按窗口号截图；需要屏幕录制权限）
 go build -o /tmp/dimagent-ui ./cmd/dimagent-ui
-python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 八个走查态（branch / branch-end / goal / tasks / settings / settings-rules / ext / ext-failed）
+python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 十一个走查态（branch / branch-end / goal / tasks / settings / settings-rules / ext / ext-failed / term / term-running / term-exited）
 
 # 基线量测（同一批图上的数值）
 python3 scripts/ui-baseline.py docs/domains/screens/state-default.png

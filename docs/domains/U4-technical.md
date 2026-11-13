@@ -53,6 +53,11 @@ Owner: U4 技术设计（界面领域）
 | EL-36 | 扩展列表行 | 自绘行 + gui.Switch | `extRow` | `settings-ext` |
 | EL-37 | 扩展空态 | 自绘行 + iconGlyph | `settingsExtensions` | `settings-ext-empty` |
 | EL-38 | 扩展读取失败 | 自绘行 + iconGlyph + iconButton | `settingsExtensions` | `settings-ext-failed` |
+| EL-39 | 终端表面 | 右栏标签（gui.Tabs 第五项） | `rightPanel` | `term` |
+| EL-40 | 终端状态点 | 自绘 Box + DrawOver 点 | `terminalPane` | `term` |
+| EL-41 | 终端输出区 | gui.Scroll + 等宽 Text | `terminalPane` | `term-exited` |
+| EL-42 | 终端中止入口 | 自绘图标入口 | `iconButton` | `term-running` |
+| EL-43 | 终端清屏入口 | 自绘图标入口 | `iconButton` | `term` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

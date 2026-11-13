@@ -94,6 +94,10 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantTerm / TermRunning / TermExited 打开右栏的终端标签，三种状态。
+	VariantTerm
+	VariantTermRunning
+	VariantTermExited
 	// VariantExt 设置 · 扩展（列表）；后三个是同一节的加载 / 空 / 失败态。
 	VariantExt
 	VariantExtFailed
@@ -110,6 +114,8 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"term": VariantTerm, "term-running": VariantTermRunning,
+	"term-exited": VariantTermExited,
 	"ext": VariantExt, "ext-failed": VariantExtFailed,
 	"ext-empty": VariantExtEmpty, "ext-loading": VariantExtLoading, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
 }
@@ -119,7 +125,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、rich、goal、tasks、settings、settings-rules、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -187,6 +193,12 @@ type App struct {
 	// 扩展：页签、加载态与四类样例。
 	extTab   int
 	extState extState
+
+	// 终端（右栏第五个标签）：状态、输出行、提示行与"已复制"反馈。
+	termState  termState
+	termLines  []termLine
+	termInput  string
+	termCopied bool
 	plugins  []extItem
 	skills   []extItem
 	mcps     []extItem
@@ -276,6 +288,9 @@ func (a *App) loadSample() {
 	}
 	a.clearRulesConfirm = false
 	a.extTab, a.extState = 0, extLoaded
+	a.termState = termIdle
+	a.termLines = termSamples(termIdle)
+	a.termCopied = false
 	a.skills = extSamples(extSkills)
 	a.plugins = extSamples(extPlugins)
 	a.mcps = extSamples(extMCP)
@@ -289,6 +304,15 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = 2 // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantTerm, VariantTermRunning, VariantTermExited:
+		a.rightOpen, a.rightTab = true, 4
+		switch a.variant {
+		case VariantTermRunning:
+			a.termState = termRunning
+		case VariantTermExited:
+			a.termState = termExited
+		}
+		a.termLines = termSamples(a.termState)
 	case VariantExt, VariantExtFailed, VariantExtEmpty, VariantExtLoading:
 		a.screen = ScreenSettings
 		a.settingsSection = 3 // 扩展
@@ -372,6 +396,23 @@ func (a *App) debugKeys(c *gui.Context) {
 	}
 }
 
+// terminalKeys 是终端的键位（U3 T17）：Ctrl-C 中止、Cmd-K 清屏、Esc 收回右栏
+// （回到主界面）。Ctrl-C 在终端输入框里仍是"复制"，所以只在焦点不在输入框时接管。
+func (a *App) terminalKeys(c *gui.Context) {
+	if !a.rightOpen || a.rightTab != 4 {
+		return
+	}
+	if !c.FocusTakesText() && c.Shortcut(gui.Ctrl, gui.KeyC) && a.termState == termRunning {
+		a.termState = termExited
+	}
+	if c.Shortcut(gui.Cmd, gui.KeyK) {
+		a.termLines = nil
+	}
+	if c.Shortcut(0, gui.KeyEscape) {
+		a.rightOpen = false
+	}
+}
+
 // layout 摆六个区域：左栏 +（标题行 / 对话流 / 输入位）+ 右栏。
 // 挤占顺序按 U1-ia §3.1：右栏先失空间，主区不缩到 400 以下。
 func (a *App) layout(c *gui.Context) {
@@ -386,6 +427,7 @@ func (a *App) layout(c *gui.Context) {
 	// 更窄的窗口属于 compact，右栏应整屏替代主区，本批次未做。
 	panel := panelWidth(windowWidth, sidebar, a.rightOpen)
 
+	a.terminalKeys(c)
 	gui.Row(c).Fill().AlignItems(gui.Stretch).
 		Background(t.Background).Children(func() {
 		if a.screen == ScreenSettings {

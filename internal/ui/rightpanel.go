@@ -7,7 +7,7 @@ import gui "github.com/egoist/mygo/ui"
 // 算好传入，主区不缩到 400 以下。
 func (a *App) rightPanel(c *gui.Context, width float32) {
 	t := c.Theme()
-	labels := []string{"文件", "改动", "后台", "目标"}
+	labels := []string{"文件", "改动", "后台", "目标", "终端"}
 	// 与主区之间靠面差（surface 对 background）分开，不画竖线（UI-18 第一档）。
 	gui.Column(c).Width(width).Shrink(0).
 		Background(t.Surface).
@@ -18,6 +18,14 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 		})
 		// 块之间的分隔用框架 Divider：方向随容器，颜色取 border（U2 校准 C8）。
 		gui.Divider(c)
+		if a.rightTab == 4 {
+			// 终端自带滚动（输出区）与提示行，不再套外层滚动容器。
+			gui.Column(c).Grow(1).Padding(space3).Gap(space2).Children(func() {
+				a.terminalPane(c)
+				a.termPrompt(c)
+			})
+			return
+		}
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space3).Gap(space2).Children(func() {
 				switch a.rightTab {
@@ -37,7 +45,7 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 					for i := range a.tasks {
 						a.taskRow(c, a.tasks[i])
 					}
-				default:
+				case 3:
 					typeBodyStrong.style(t, gui.Text(c, "把发送路径改成排队"))
 					typeSecondary.style(t, gui.Text(c, "运行中的提交先入队，结束后自动发出。")).
 						TextColor(t.TextMuted)
