@@ -25,6 +25,8 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-variant-branch{,-900,-720}.png` | 1440/900/720×900 | 分支切换：标题行分支标记 + 原生菜单（三分支状态之一） |
 | `window-default-variant-goal{,-900,-720}.png` | 1440/900/720×900 | 目标设置中：面差输入框 + 「保存 / 取消」文字按钮 |
 | `window-default-variant-branch-end{,-900,-720}.png` | 1440/900/720×900 | 分支 · 结束分支确认态：标记换成「确认结束分支？」+「取消」 |
+| `baseline/controls-{1,2}x.png` | 320×620 | 官方控件的对照表（mygo 默认主题，逐控件一行） |
+| `baseline/compare-{default,waiting,settings}.png` | 见各图 | 三屏并排：左**官方示例真实切片**（`calibration/examples/`，坐标写在图上与 `U0-control-baseline.md` §3）/ 右我们同尺寸切片（`scripts/compare-screens.py`） |
 | `window-running-variant-tasks{,-900,-720}.png` | 1440/900/720×900 | 后台任务运行中：右栏「后台」标签下的任务清单（720 时右栏整屏替代主区） |
 | `window-default-variant-settings{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **外观分节**（主题下拉 + 动效开关）；左导航 224、顶部返回入口 |
 | `window-default-variant-settings-rules{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **命令规则分节**，停在**清空确认态**（危险动作两步） |

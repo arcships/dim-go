@@ -71,9 +71,9 @@ func (a *App) navRow(c *gui.Context, index int, name string) {
 		a.settingsSection = index
 	}
 	row.Children(func() {
-		style := typeBody
+		style := typeControl
 		if selected {
-			style = typeBodyStrong
+			style = typeControlStrong
 		}
 		style.style(t, gui.Text(c, name)).TextColor(t.Text)
 	})
@@ -84,7 +84,7 @@ func (a *App) navRow(c *gui.Context, index int, name string) {
 func settingsRow(c *gui.Context, label string, control func()) {
 	t := c.Theme()
 	gui.Row(c).Gap(space4).AlignItems(gui.Center).Shrink(0).Children(func() {
-		typeBody.style(t, gui.Text(c, label)).Width(SettingsLabelWidth).TextColor(t.Text)
+		typeControl.style(t, gui.Text(c, label)).Width(SettingsLabelWidth).TextColor(t.Text)
 		gui.Row(c).Grow(1).AlignItems(gui.Center).Children(control)
 	})
 }

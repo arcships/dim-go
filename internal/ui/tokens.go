@@ -66,6 +66,12 @@ const (
 	space8    = 32
 	space12   = 48
 
+	// 控件内边距：沿用框架按钮（ui/widgets.go 的 styleButton：
+	// Padding(t.Space(1.5), t.Space(3.5)) → 6 / 14）。自绘的文字按钮与官方按钮
+	// 同高，不再自己定 4 / 12（U0 §control-baseline）。
+	controlPadV = 6
+	controlPadH = 14
+
 	// 密度：控件高度（U2 §8.3）。
 	rowRegular  = 28
 	rowCompact  = 24
@@ -161,11 +167,18 @@ type fontStep struct {
 }
 
 var (
+	// typeControl 是"控件里的文字"：不设行高，行盒由框架按字形度量给——与官方
+	// Button / Select / TextInput 的 15.31 一致（U0 §control-baseline）。
+	typeControl       = fontStep{size: 14, weight: 400}
+	typeControlStrong = fontStep{size: 14, weight: 600}
+
 	typeBody            = fontStep{size: 14, line: 21, weight: 400}
 	typeBodyStrong      = fontStep{size: 14, line: 21, weight: 600}
 	typeSecondary       = fontStep{size: 12.25, weight: 400}
 	typeSecondaryStrong = fontStep{size: 12.25, weight: 600}
-	typeTitleRow        = fontStep{size: 14, weight: 600}
+	// typeTitleRow 是标题行的会话名：跟官方示例的页面标题同一档（15/600，
+	// 见 notes.png 的 24 与 permissionflow.png 的 20 之间的最小档；标题行只有 48 高）。
+	typeTitleRow        = fontStep{size: 15, weight: 600}
 	typeMicro           = fontStep{size: 10.5, weight: 400}
 	typeCode            = fontStep{size: 12.25, line: 17.15, weight: 400, family: codeFont}
 	typeH1              = fontStep{size: 22.4, line: 33.6, weight: 700}
@@ -277,7 +290,9 @@ func theme(dark bool, prefs gui.Preferences) *gui.Theme {
 	t.Scrollbar = colorScrollbar.in(t)
 
 	t.Font = "" // 系统 UI 字体栈（U2 §1.3）
-	t.FontSize = typeBodySize
+	// 字号不覆盖：用框架的平台默认（ui/theme.go 的 defaultFontSize：macOS 13、
+	// 其它 14）。我们的字阶按它等比缩放（textScale），所以每条都与官方控件同基准
+	// （UI-24：并排对照；U0 §control-baseline §3 的对照表第 1、2 行）。
 	t.Spacing = spaceUnit
 	t.Radius = radius
 	t.FocusRingWidth = strokeFocus

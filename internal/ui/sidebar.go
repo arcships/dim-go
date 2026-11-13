@@ -92,7 +92,9 @@ func (a *App) sessionItem(c *gui.Context, id, name, marker string) {
 	if icon == nil {
 		icon = iconDotEmpty // 只占位，不画：让所有会话行从同一列起
 	}
-	gui.SidebarItem(c, id, icon, name)
+	// 行高对齐官方示例的导航行（gallery-overview.png 的选中条约 26–28 高）：
+	// 我们原来 22.1，列表过密。
+	gui.SidebarItem(c, id, icon, name).MinHeight(rowRegular)
 }
 
 // markerColor 是侧栏状态标记的颜色：运行/等待用 accent-ink，失败用 danger。

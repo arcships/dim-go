@@ -68,7 +68,8 @@ func TestThemeTokens(t *testing.T) {
 		got, want float32
 	}{
 		{"Theme.Spacing", light.Spacing, 4},
-		{"Theme.FontSize", light.FontSize, 14},
+		// 字号不覆盖：跟框架的平台默认（macOS 13、其它 14），所以这里比的是同一个值。
+		{"Theme.FontSize", light.FontSize, gui.LightTheme().FontSize},
 		{"Theme.Radius", light.Radius, 6},
 		{"Theme.FocusRingWidth", light.FocusRingWidth, 2},
 		{"Theme.FocusRingOffset", light.FocusRingOffset, 1},
@@ -78,6 +79,8 @@ func TestThemeTokens(t *testing.T) {
 		{"row-compact", rowCompact, 24},
 		{"control-mini", controlMini, 20},
 		{"icon-inline", iconInline, 16},
+		{"control-pad-v", controlPadV, 6},
+		{"control-pad-h", controlPadH, 14},
 		{"radius", radius, 6},
 		{"radius-code", radiusCode, 8},
 		{"hit-min", hitMin, 24},
@@ -118,7 +121,7 @@ func TestFontSteps(t *testing.T) {
 		{"正文强调", typeBodyStrong, 14, 21, 600},
 		{"次要", typeSecondary, 12.25, 0, 400},
 		{"次要强调", typeSecondaryStrong, 12.25, 0, 600},
-		{"标题行会话名", typeTitleRow, 14, 0, 600},
+		{"标题行会话名", typeTitleRow, 15, 0, 600},
 		{"极小", typeMicro, 10.5, 0, 400},
 		{"代码", typeCode, 12.25, 17.15, 400},
 		{"h1", typeH1, 22.4, 33.6, 700},
@@ -142,14 +145,16 @@ func TestFontSteps(t *testing.T) {
 // TestThemeFollowsPreferences 对 §7.4 的文本缩放与 §7.5 的高对比。
 func TestThemeFollowsPreferences(t *testing.T) {
 	scaled := theme(false, gui.Preferences{TextScale: 1.5})
-	if scaled.FontSize != 21 {
-		t.Fatalf("文本缩放 1.5 的主题字号 = %v，想要 21", scaled.FontSize)
+	if want := gui.LightTheme().FontSize * 1.5; scaled.FontSize != want {
+		t.Fatalf("文本缩放 1.5 的主题字号 = %v，想要 %v", scaled.FontSize, want)
 	}
-	if got := typeBody.sizeIn(scaled); got != 21 {
-		t.Fatalf("文本缩放 1.5 的正文 = %v，想要 21", got)
+	// 正文跟着平台默认字号走：缩放 1.5 后就是平台默认 × 1.5（macOS 13 → 19.5）。
+	if got, want := typeBody.sizeIn(scaled), gui.LightTheme().FontSize*1.5; got != want {
+		t.Fatalf("文本缩放 1.5 的正文 = %v，想要 %v", got, want)
 	}
-	if got := typeSecondary.sizeIn(scaled); got != 18.375 {
-		t.Fatalf("文本缩放 1.5 的次要 = %v，想要 18.375", got)
+	// 次要级是正文的 12.25/14 = 0.875 倍，随平台字号同比缩放。
+	if got, want := typeSecondary.sizeIn(scaled), gui.LightTheme().FontSize*1.5*(12.25/14); got != want {
+		t.Fatalf("文本缩放 1.5 的次要 = %v，想要 %v", got, want)
 	}
 
 	contrast := theme(false, gui.Preferences{HighContrast: true})

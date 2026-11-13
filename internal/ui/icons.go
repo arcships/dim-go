@@ -207,7 +207,7 @@ func textIconButton(c *gui.Context, spec textIconButtonSpec) bool {
 	if label == "" {
 		label = spec.text
 	}
-	b := gui.ButtonBase(c).Padding(space1, space3).Radius(radius).
+	b := gui.ButtonBase(c).Padding(controlPadV, controlPadH).Radius(radius).
 		Label(label).Tooltip(spec.tip).Disabled(spec.disabled)
 	if bg.A != 0 {
 		b = b.Background(bg)
@@ -233,7 +233,7 @@ func textIconButton(c *gui.Context, spec textIconButtonSpec) bool {
 	b.Children(func() {
 		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
 			iconGlyph(c, spec.icon, color, spec.mark)
-			typeBody.style(t, gui.Text(c, spec.text)).TextColor(color).SingleLine()
+			typeControl.style(t, gui.Text(c, spec.text)).TextColor(color).SingleLine()
 		})
 	})
 	return b.Clicked()

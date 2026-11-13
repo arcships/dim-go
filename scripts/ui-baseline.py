@@ -19,9 +19,10 @@ import sys
 
 from PIL import Image
 
-# 暗像素阈值：主题 text #18181b、text-secondary #5f5f68 都在阈值之下；
-# surface #f4f4f5、background #ffffff 在阈值之上。
-DARK = 150
+# 墨迹判据：与背景的亮度差超过 DELTA。亮色主题里 text #18181b 与背景 #ffffff
+# 差得远；暗色主题里 text #fafafa 与背景 #18181b 同样差得远——用差值而不是
+# 绝对阈值，两套外观用同一条判据（此前用绝对阈值，深色截图会把整片背景当成墨迹）。
+DELTA = 60
 
 # 各区域的取样带（DIP）：避开分隔线、卡片轮廓与图标盒的竖直方向。
 # y 为负表示相对窗口底边。
@@ -35,19 +36,34 @@ REGIONS = {
 SIDEBAR = 256
 
 
-def dark_left(img, x0, y0, y1, scale, run=0):
-    """返回 [x0, ∞) 内第 run 段连续暗列（从 0 起）的起点（DIP）。
+def luma(r, g, b):
+    return 0.299 * r + 0.587 * g + 0.114 * b
 
-    按"列里有没有暗像素"把图切成段：一段图标、一段文字，中间是空白。
+
+def background_luma(img):
+    """取窗口背景的亮度：左上角的空白区（标题行上方的让位条）。"""
+    px = img.load()
+    samples = [(4, 4), (img.width - 4, 4), (4, img.height - 4)]
+    vals = [luma(*px[x, y][:3]) for x, y in samples]
+    vals.sort()
+    return vals[1]
+
+
+def dark_left(img, x0, y0, y1, scale, run=0):
+    """返回 [x0, ∞) 内第 run 段"有墨迹"的列（从 0 起）的起点（DIP）。
+
+    按"列里有没有墨迹"把图切成段：一段图标、一段文字，中间是空白。墨迹 =
+    与背景亮度差超过 DELTA，深浅两套外观同一判据。
     """
     px = img.load()
+    bg = background_luma(img)
     runs = 0
     was_dark = False
     for x in range(int(x0 * scale), img.width):
         dark = False
         for y in range(int(y0 * scale), min(int(y1 * scale), img.height)):
             r, g, b = px[x, y][:3]
-            if 0.299 * r + 0.587 * g + 0.114 * b < DARK:
+            if abs(luma(r, g, b) - bg) > DELTA:
                 dark = True
                 break
         if dark and not was_dark:
