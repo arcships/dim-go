@@ -102,6 +102,16 @@ func sampleRounds(s State) []round {
 		},
 	}
 
+	// 富文本轮：默认态与富文本变体里都带一轮含块级结构的回复（U0 §3.1 M 系列）。
+	rich := round{
+		user:   "把排队的实现讲清楚",
+		reply:  richReply,
+		status: roundDone,
+		ops: []op{
+			{action: "读取", target: "internal/ui/composer.go", result: "完成"},
+		},
+	}
+
 	switch s {
 	case StateRunning:
 		last.reply = "正在改写发送路径…"
@@ -131,7 +141,9 @@ func sampleRounds(s State) []round {
 		}
 	}
 
-	return append(base, last)
+	// 富文本轮排在最后：默认态因此"至少一轮回复含块级结构"，同时不打乱前几轮
+	// 的位置（既有断言与截图都按前几轮取）。
+	return append(base, last, rich)
 }
 
 // sessionSamples 是左栏的静态会话列表：按项目分组，行首标记当前状态。
@@ -167,3 +179,24 @@ func taskSamples() []task {
 		{name: "npm run build", state: taskDone},
 	}
 }
+
+// richReply 是默认态的富文本回复：一段话、两级标题、两种列表、行内代码、
+// 代码块、引用、表格、链接——Markdown 的块级样式全都要在这条回复上被看见
+// （U0 §3.1 的 M 系列；L20 用它做存在性检查）。
+const richReply = "## 先看结论\n\n" +
+	"发送路径的三处改动已经落地，**排队不再覆盖队列**。\n\n" +
+	"### 改动清单\n\n" +
+	"- 运行中的提交先入队\n" +
+	"- 队列项在输入区上沿显示一行\n" +
+	"- 这一轮结束后自动发出\n\n" +
+	"1. 提交前检查草稿\n" +
+	"2. 覆盖时保留原文\n" +
+	"3. 结束后按序发出\n\n" +
+	"`session.input.submit` 现在带 `queue` 参数。\n\n" +
+	"```go\nfunc (a *App) send() {\n\ta.queue = append(a.queue, a.draft)\n}\n```\n\n" +
+	"> 这条与 K2 的约定一致：运行中提交不打断当前轮。\n\n" +
+	"| 场景 | 行为 |\n" +
+	"|---|---|\n" +
+	"| 未运行 | 直接发送 |\n" +
+	"| 运行中 | 先入队 |\n\n" +
+	"详见 [U3 的发送与排队](U3-interaction.md)。"

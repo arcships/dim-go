@@ -82,7 +82,7 @@ python3 scripts/compare-screens.py                # 三屏并排（左官方 / �
 
 | 屏 | 并排图 | 左（官方示例切片） | 右（我们的切片） |
 |---|---|---|---|
-| 主界面 · 默认态 | `screens/baseline/compare-default.png` | `examples/markdown-chat.png (14,236)–(800,700)`：H2 + 表格 + 引用 + 链接 + 气泡 | `state-default.png (272,140)–(1058,604)`：两轮回复与组头 |
+| 主界面 · 默认态（Markdown 块级） | `screens/baseline/compare-default.png` | `examples/markdown-chat.png (14,236)–(800,700)`：H2 + 有序列表 + 代码块尾 + 引用 + 链接 + 表格 | `variant-rich.png (272,120)–(1058,584)`：h2/h3 + 两种列表 + 行内代码 + 代码块 + 引用 + 表格 + 链接 |
 | 等待审批 | `screens/baseline/compare-waiting.png` | `examples/permissionflow.png (8,80)–(512,340)`：三张卡片行 + 右侧按钮组 | `state-waiting.png (272,700)–(776,900)`：审批卡 |
 | 设置 · 外观 | `screens/baseline/compare-settings.png` | `examples/gallery-overview.png (220,40)–(720,340)`：页面标题 + 说明 + 两张卡片 | `variant-settings.png (256,20)–(756,320)`：分节标题 + 两个设置项 |
 
@@ -103,6 +103,14 @@ python3 scripts/compare-screens.py                # 三屏并排（左官方 / �
 | C5 | 输入区体量与位置 | `markdown-chat.png (14,676)–(800,714)`：一行输入框（border + 圆角 6）+ 右侧 Send 主按钮，同高 | 输入卡 124 高：附件 chip + 多行输入 + 右下附件/发送 + 右上用量；上方还有目标行与队列条 | 示例 1 行 38 高；我们 124 + 上沿两行 | `[偏离]`：多行 + 用量 + 附件是 U1 R4 的契约（F10/F17/E2）。**但可以借示例一处**：`[改变]` 输入卡内边距保持 8（与内容列一致，L8），不再加大——加大会破坏 272.5 的左缘 |
 | C6 | 行内元素的呼吸 | `permissionflow.png (30,90)–(390,130)`：标题 14/600 与状态词 13 间距 2；按钮组间距 8；`gallery-overview.png (10,80)–(200,110)`：导航行高约 26–28，图标 16 与文字间距 8 | 侧栏行高 22.1（偏密）；组头内图标与文字间距 4；记录行间距 8 | 示例行高 26–28，我们 22 | `[改变]` 侧栏会话行最小高度 → **28**（`rowRegular`，对齐 gallery 导航行）；组头间距保持 4（它比导航更密，是"行内提示"不是"导航项"） |
 | C7 | 正文留白与行宽 | `notes.png (258,90)–(880,200)`：编辑卡内边距 20、正文行宽受卡约束；`markdown-chat.png (14,230)–(800,300)`：左右 24 | 内容列上限 784，居中；段落间距 24（轮次）、12（段内） | 示例正文可用宽约 620–700，我们 784 | `[沿用]`：784 是 U1-ia 的内容列契约；比示例宽，但那是"读代码为主"的场景 |
+| M1 | 标题字号跳变 | `markdown-chat.png (14,230)–(300,260)`：H2「Comparing the options」约 18/700（≈1.35em），与正文 14 有明显跳变；`notes.png (258,88)–(430,116)`：文档标题 24/700 | `markdownTheme` 六级 1.6/1.35/1.15/1/0.95/0.9 em，权重 700/650/600/600/600/600 | 结构一致；我们的 h2 = 1.35em（13 → 17.55） | `[改变]` 显式写入 `markdown.Theme`（此前是零值 options，靠框架默认） |
+| M2 | 无序列表缩进与项距 | `markdown-chat.png (14,258)–(400,300)`：项目符号左缩进约 1.6em，项距 0.25em | `ListIndent 1.6`、`ItemSpacing 0.25`（默认值，本轮显式保留） | 一致 | `[沿用]`；样例新增无序列表，才第一次被看见 |
+| M3 | 有序列表 | `markdown-chat.png (14,278)–(400,300)`：「1. / 2. / 3.」数字对齐、缩进同无序 | 同 ListIndent | 一致 | `[沿用]`；样例新增有序列表 |
+| M4 | 行内代码 chip | `markdown-chat.png (16,300)–(300,318)`：`cache-aside` 带浅底 chip，圆角约 3 | `CodeBackground = surface`、`CodeSize 0.875`、圆角随框架 | 一致（底色取我们的面层） | `[改变]` 底色从"文字色 7% 透明"改成本主题的 `surface`，深浅主题都稳 |
+| M5 | 代码块 | `markdown-chat.png (14,40)–(780,270)`：整块浅底 + 圆角 6 + 内边距约 12 + 语言标签 + Copy | `CodeBlockBackground = surface`、`CodeBlockRadius = radiusCode(8)`、`CodeBlockPadding 0.85em`、`CodeBlockBorder = Border` | 一致；圆角比示例大 2 | `[改变]` 底色取 `surface`；圆角 8 是**保留偏离**（等宽字 + 6 圆角偏硬，已在 §2 记） |
+| M6 | 引用块 | `markdown-chat.png (14,362)–(760,380)`：左侧 3px 竖线（`border` 色）+ 文字转 muted | `QuoteBarWidth 3`、`QuoteBar = Border`、`QuoteText = TextMuted` | 一致 | `[沿用]` |
+| M7 | 表格 | `markdown-chat.png (14,410)–(390,505)`：表头浅底 + 1px 边线 + 单元格内边距 0.6/0.4em | `TableHeader = surface`、`TableBorder = Border`、`TableCellPadding 0.6/0.4` | 一致（表头底色取面层） | `[改变]` 表头底色从"文字色 4%"改成本主题 `surface` |
+| M8 | 链接 | `markdown-chat.png (14,520)–(330,536)`：链接为强调色，其余正文色；`notes.png (404,130)–(460,146)` 同 | `Link = accent-ink`（`#2563eb` 亮 / `#60a5fa` 暗；框架默认取 `Accent`） | 一致，但用文字版强调色（对比更高） | `[改变]` 链接色改 `accent-ink` |
 | C8 | 行高与段落节奏 | `markdown-chat.png`：正文行高 1.5 倍、段落间距 12–16、代码块上下各 12 | 正文 1.5 倍（同官方 markdown）、轮次间距 24、组头与正文 12 | 一致 | `[沿用]` |
 
 ## 4 风格板（供拍板）
@@ -135,6 +143,7 @@ python3 scripts/compare-screens.py                # 三屏并排（左官方 / �
 | 设置项标签 / 导航字级 | `typeBody` / `typeBodyStrong` | `typeControl` / `typeControlStrong` | 同上 |
 | 标题行会话名字号 | 14 / 600 | **15 / 600** | 组合层 C1（`gallery-overview`/`notes`/`permissionflow` 的标题档） |
 | 侧栏会话行最小高度 | 22.1（框架按字号算） | **28**（`rowRegular`） | 组合层 C6（`gallery-overview` 导航行 26–28） |
+| Markdown 块样式 | 零值 `markdown.Options`（靠框架 DefaultTheme） | **显式 `markdownTheme`**：链接 / 行内代码 / 代码块 / 表头取我们的 token，六级标题字号与权重写死 | 组合层 M1–M8；L20 守 |
 
 **影响哪些屏**：主界面五态（侧栏行变高、标题行会话名变大）、分支/目标/后台任务、设置三节——文字小 1 档
 （约 7%），控件高度 −1.2 px 左右。列宽、区域尺寸、左缘基线不变。

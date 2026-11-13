@@ -92,6 +92,8 @@ const (
 	VariantTasks
 	// VariantBranchEnd 打开分支菜单并停在「结束分支」的确认态。
 	VariantBranchEnd
+	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
+	VariantRich
 	// VariantSettings 进入设置屏（默认分节）。
 	VariantSettings
 	// VariantSettingsRules 进入设置屏并停在命令规则的清空确认态。
@@ -102,7 +104,7 @@ const (
 var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
-	"branch-end": VariantBranchEnd, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
+	"branch-end": VariantBranchEnd, "rich": VariantRich, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
 }
 
 // ParseVariant 解析 -variant。
@@ -110,7 +112,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、goal、tasks、settings、settings-rules", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、rich、goal、tasks、settings、settings-rules", v)
 }
 
 // Options 是骨架的启动参数。
@@ -148,7 +150,8 @@ type App struct {
 	connected      bool
 	accountInitial string
 
-	// md 是 Markdown 视图的配置（主题与扩展），一份实例跨帧复用（解析缓存随它）。
+	// md 是 Markdown 视图的配置（主题与扩展），一份实例跨帧复用（解析缓存随它）；
+	// 主题每帧在 applyTokens 里换成当前外观（U0 §3.1 的 M 系列）。
 	md markdown.Options
 
 	// 分支、目标、后台任务是样例里的展示数据（不是事实）：分支名、目标文本、
@@ -266,6 +269,13 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = 2 // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantRich:
+		a.rounds = []round{{
+			user:   "把排队的实现讲清楚",
+			reply:  richReply,
+			status: roundDone,
+			ops:    []op{{action: "读取", target: "internal/ui/composer.go", result: "完成"}},
+		}}
 	case VariantBranch:
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
@@ -307,6 +317,8 @@ func (a *App) applyTokens(c *gui.Context) {
 		dark = true
 	}
 	c.SetTheme(theme(dark, c.Preferences()))
+	// Markdown 的块样式跟着当前主题走（每帧换一次指针，解析缓存留在 a.md 里）。
+	a.md.Theme = markdownTheme(c.Theme())
 }
 
 // debugKeys 是仅用于走查的键位：1–5 切换状态。焦点在输入框里时不抢键，

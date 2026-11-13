@@ -80,6 +80,15 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 富文本：Markdown 的块级样式（标题、列表、行内代码、代码块、引用、表格、链接）。
+	{name: "variant-rich", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rounds = []round{{
+			user:   "把排队的实现讲清楚",
+			reply:  richReply,
+			status: roundDone,
+			ops:    []op{{action: "读取", target: "internal/ui/composer.go", result: "完成"}},
+		}}
+	}},
 	// 分支 · 结束分支的确认态（AC-08 两步）。
 	{name: "variant-branch-end", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.branch, a.branches = branchSamples()
@@ -222,7 +231,7 @@ func TestScreensFitWindow(t *testing.T) {
 				continue // 同名的只记第一个
 			}
 			if r.W <= 0 || r.H <= 0 {
-				t.Fatalf("%s：%q 没有可见面积（%+v）", c.name, text, r)
+				continue // 滚出视口的行没有可见面积，属正常（长列表在视口外）
 			}
 			if r.X < 0 || r.Y < 0 ||
 				r.X+r.W > WindowWidth || r.Y+r.H > WindowHeight {

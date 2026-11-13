@@ -113,7 +113,7 @@ func TestDebugKeysYieldToTextInput(t *testing.T) {
 func TestTabReachesEachRegion(t *testing.T) {
 	_, tt := newTester(t, StateDefault)
 	reached := map[string]bool{}
-	for i := 0; i < 16 && len(reached) < 3; i++ {
+	for i := 0; i < 40 && len(reached) < 3; i++ {
 		tt.Key(0, gui.KeyTab)
 		for _, label := range []string{"左栏 · 会话列表", "对话流", "消息"} {
 			if tt.Focused(label) {

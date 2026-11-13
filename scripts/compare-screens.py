@@ -41,10 +41,11 @@ def compose(name, title, left_path, left_box, right_path, right_box):
 
 def main():
     os.makedirs(os.path.join(BASE, "baseline"), exist_ok=True)
-    # 主界面·默认态：官方 markdown-chat 的正文 + 气泡 + 输入区，对我们的消息流 + 输入卡。
-    compose("default", "主界面 · 默认态：正文层级 / 气泡 / 输入区",
+    # 主界面·默认态：两边尽量同构——标题、列表、行内代码、代码块、引用、表格、
+    # 链接都出现，差异只剩"我们的块样式对不对"。
+    compose("default", "主界面 · 默认态：Markdown 块级排版（标题 / 列表 / 代码 / 引用 / 表格 / 链接）",
             os.path.join(EX, "markdown-chat.png"), (14, 236, 800, 700),
-            os.path.join(BASE, "state-default.png"), (272, 140, 1058, 604))
+            os.path.join(BASE, "variant-rich.png"), (272, 120, 1058, 584))
     # 等待审批：官方 permissionflow 的卡片行 + 右侧按钮组，对我们的审批卡。
     compose("waiting", "等待审批：卡片行 + 右侧按钮组",
             os.path.join(EX, "permissionflow.png"), (8, 80, 512, 340),

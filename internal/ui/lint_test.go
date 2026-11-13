@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"image"
+	"image/color"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	gui "github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/markdown"
 )
 
 // 本文件是界面领域的可执行检查器（`scripts/ui-lint` 跑的就是它）。
@@ -64,13 +66,14 @@ var lintFix = map[string]string{
 	"L17": "让实现与元素表的形式一致：补图标或改清单（改形式=形式级）",
 	"L18": "改窄窗退化（堆叠 / 滚动），或收窄定宽列；不要靠裁切",
 	"L19": "在 U2-elements.json 里补 component 与 symbol，或在 internal/ui 里补上该组件",
+	"L20": "给 a.md 设 markdownTheme（不是零值 options），并让样例包含全部块级结构",
 }
 
 // TestUILint 是检查器本体：工作区必须零违例。
 func TestUILint(t *testing.T) {
 	findings := lintWorkspace(t)
 	if len(findings) == 0 {
-		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 19)
+		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 20)
 		return
 	}
 	sort.Slice(findings, func(i, j int) bool {
@@ -135,6 +138,13 @@ func TestUILintSeeds(t *testing.T) {
 	}
 	t.Logf("种子「元素缺图标」→ %s", got[0].String())
 
+	// 第九类：Markdown 主题被清空（零值 options）——块级样式就不归我们管了。
+	if got := checkMarkdownTheme(theme(false, gui.Preferences{}), nil); len(got) == 0 || got[0].check != "L20" {
+		t.Fatalf("Markdown 主题种子没有被 L20 报出：%v", got)
+	} else {
+		t.Logf("种子「Markdown 主题清空」→ %s", got[0].String())
+	}
+
 	// 第八类：定宽列把内容顶出窗口（评审在 720 档看到的那种）。
 	wideRow := func(c *gui.Context) {
 		gui.Row(c).Width(800).Children(func() {
@@ -197,6 +207,7 @@ func lintWorkspace(t *testing.T) []lintFinding {
 	out = append(out, lintElementForms(t, &elements)...)
 	out = append(out, lintNoOverflow(t)...)
 	out = append(out, lintViewMapping(t, &elements)...)
+	out = append(out, lintMarkdownBlocks(t)...)
 	return out
 }
 
@@ -696,6 +707,185 @@ func lintListReferences(t *testing.T, content *contentDoc) []lintFinding {
 // rowCompact 的方盒，而图标 + 文字的入口一定比这个更宽。
 var iconOnlyButtonWidth = float32(iconInline + 2*space3)
 
+// L20：Markdown 块样式存在性（U0 §3.1 的 M 系列）。
+// 两段：① 助手正文的 Markdown 主题必须是我们声明的那份（不是零值 options）；
+// ② 渲染一条含全部块级结构的回复后，各类块都要画出预期标记。
+func lintMarkdownBlocks(t *testing.T) []lintFinding {
+	t.Helper()
+	var out []lintFinding
+
+	// ① 配置：主题存在，且关键项与我们的 token 一致。
+	th := theme(false, gui.Preferences{})
+	md := markdownTheme(th)
+	out = append(out, checkMarkdownTheme(th, md)...)
+
+	// ② 渲染：逐块渲染最小文档，数像素判样式（块内部的文字不成可访问节点，
+	// 靠 Find 找文字不可靠）。
+	out = append(out, checkMarkdownRender(t, md, th)...)
+	return out
+}
+
+// checkMarkdownTheme 判"主题是不是我们声明的那份"（种子自检直接调它）。
+func checkMarkdownTheme(t *gui.Theme, md *markdown.Theme) []lintFinding {
+	if md == nil {
+		return []lintFinding{{"L20", "U0 §3.1、C4 §5", "render",
+			"Markdown 主题为空：用了零值 options（默认样式）"}}
+	}
+	var out []lintFinding
+	want := func(name string, got, expect gui.Color) {
+		if got != expect {
+			out = append(out, lintFinding{"L20", "U0 §3.1、C4 §5", "render",
+				fmt.Sprintf("Markdown 的 %s 没取我们的 token", name)})
+		}
+	}
+	want("链接色", md.Link, colorAccentInk.in(t))
+	want("代码块底色", md.CodeBlockBackground, colorSurface.in(t))
+	want("行内代码底色", md.CodeBackground, colorSurface.in(t))
+	want("表头底色", md.TableHeader, colorSurface.in(t))
+	want("引用竖线", md.QuoteBar, t.Border)
+	if md.QuoteBarWidth < 2 {
+		out = append(out, lintFinding{"L20", "U0 §3.1", "render", "引用竖线宽度 < 2"})
+	}
+	if md.CodeBlockRadius != radiusCode {
+		out = append(out, lintFinding{"L20", "U0 §3.1", "render",
+			fmt.Sprintf("代码块圆角 %v，想要 %v", md.CodeBlockRadius, radiusCode)})
+	}
+	// 字阶必须递减（h1 > h2 > … > h6）。
+	for i := 1; i < len(md.Headings); i++ {
+		if md.Headings[i].Size >= md.Headings[i-1].Size {
+			out = append(out, lintFinding{"L20", "U0 §3.1", "render",
+				fmt.Sprintf("标题字阶没有递减：h%d ≥ h%d", i+1, i)})
+			break
+		}
+	}
+	return out
+}
+
+// checkMarkdownRender 判"各类块画出了预期标记"（种子自检直接调它）。
+//
+// 按块各渲染一份最小文档，再数像素：Markdown 视图内部的文字不单独成可访问
+// 节点，靠 Find 找文字不可靠，数颜色才是稳定的判据。
+func checkMarkdownRender(t *testing.T, md *markdown.Theme, th *gui.Theme) []lintFinding {
+	_ = t
+	doc := func(src string) *gui.Tester {
+		return gui.NewTester(func(c *gui.Context) {
+			o := markdown.Options{Theme: md}
+			markdown.View(c, src, &o)
+		}, 600, 320)
+	}
+	var out []lintFinding
+	fail := func(msg string) {
+		out = append(out, lintFinding{"L20", "U0 §3.1", "render", msg})
+	}
+
+	// 标题：h2 的墨迹高度明显大于同文正文。
+	h2 := inkHeight(doc("## 标题").Image())
+	plain := inkHeight(doc("标题").Image())
+	if h2 < plain*1.2 {
+		fail(fmt.Sprintf("标题没有字号跳变：h2 墨迹 %.1f，正文 %.1f", h2, plain))
+	}
+
+	// 行内代码：chip 底色。
+	if n := countNear(doc("用 `queue` 参数").Image(), md.CodeBackground, 12); n < 20 {
+		fail(fmt.Sprintf("行内代码没有底色（命中 %d 像素）", n))
+	}
+
+	// 代码块：整块的面。
+	if n := countNear(doc("```go\nx := 1\n```").Image(), md.CodeBlockBackground, 12); n < 200 {
+		fail(fmt.Sprintf("代码块没有自己的面（命中 %d 像素）", n))
+	}
+
+	// 引用：左侧竖线（主题边界色）。
+	if n := countNear(doc("> 引用的这一行").Image(), th.Border, 12); n < 10 {
+		fail(fmt.Sprintf("引用块左侧没有竖线（命中 %d 像素）", n))
+	}
+
+	// 表格：表头底色。
+	if n := countNear(doc("| a | b |\n|---|---|\n| 1 | 2 |").Image(), md.TableHeader, 12); n < 100 {
+		fail(fmt.Sprintf("表格表头没有底色（命中 %d 像素）", n))
+	}
+
+	// 链接：强调色。
+	if n := countNear(doc("[链接文字](https://example.com)").Image(), md.Link, 40); n < 5 {
+		fail(fmt.Sprintf("链接没有用强调色（命中 %d 像素）", n))
+	}
+	return out
+}
+
+// inkHeight 是墨迹（与背景不同）的最大纵向跨度，用来比字号。
+func inkHeight(img *image.RGBA) float32 {
+	bg := img.RGBAAt(img.Bounds().Dx()-2, img.Bounds().Dy()-2)
+	minY, maxY := img.Bounds().Dy(), -1
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		for x := 0; x < img.Bounds().Dx(); x += 2 {
+			c := img.RGBAAt(x, y)
+			d := abs(int(c.R)-int(bg.R)) + abs(int(c.G)-int(bg.G)) + abs(int(c.B)-int(bg.B))
+			if d > 30 {
+				if y < minY {
+					minY = y
+				}
+				if y > maxY {
+					maxY = y
+				}
+				break
+			}
+		}
+	}
+	if maxY < 0 {
+		return 0
+	}
+	return float32(maxY - minY + 1)
+}
+
+// countNear 数图里接近 want 的像素个数（块底色 / 边线 / 链接色）。
+func countNear(img *image.RGBA, want gui.Color, tol int) int {
+	n := 0
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		for x := 0; x < img.Bounds().Dx(); x++ {
+			c := img.RGBAAt(x, y)
+			if abs(int(c.R)-int(want.R)) <= tol && abs(int(c.G)-int(want.G)) <= tol &&
+				abs(int(c.B)-int(want.B)) <= tol {
+				n++
+			}
+		}
+	}
+	return n
+}
+
+// differs 判某点与页面底色不同。
+func differs(img *image.RGBA, x, y int, page color.RGBA) bool {
+	if x < 0 || y < 0 || x >= img.Bounds().Dx() || y >= img.Bounds().Dy() {
+		return false
+	}
+	c := img.RGBAAt(x, y)
+	d := abs(int(c.R)-int(page.R)) + abs(int(c.G)-int(page.G)) + abs(int(c.B)-int(page.B))
+	return d > 12
+}
+
+// containsColor 判矩形里有没有接近 want 的像素（链接的强调色）。
+func containsColor(img *image.RGBA, r gui.Rect, want gui.Color, tol int) bool {
+	for y := int(r.Y); y < int(r.Y+r.H); y++ {
+		for x := int(r.X); x < int(r.X+r.W); x++ {
+			if x < 0 || y < 0 || x >= img.Bounds().Dx() || y >= img.Bounds().Dy() {
+				continue
+			}
+			c := img.RGBAAt(x, y)
+			if abs(int(c.R)-int(want.R)) <= tol && abs(int(c.G)-int(want.G)) <= tol &&
+				abs(int(c.B)-int(want.B)) <= tol {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func abs(v int) int {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
+
 // L19：view 映射覆盖率——元素表每一条都要指到一个组件（U4 §1）。
 // 判法：`component` 与 `symbol` 非空，且 `symbol` 是 internal/ui 里真实存在的标识符
 // （框架符号 `gui.X` / `markdown.X` 取最后一段，按同名方法名在源码里找）。
@@ -787,7 +977,9 @@ func checkNoOverflow(tt *gui.Tester, screen string, width, height int) []lintFin
 		if !ok || r.W <= 0 || r.H <= 0 {
 			continue // 没有可见面积：不在这一档的可见范围内
 		}
-		if r.X < -0.5 || r.Y < -0.5 || r.X+r.W > float32(width)+0.5 || r.Y+r.H > float32(height)+0.5 {
+		// 只查横向越界与"跑到窗口上边之外"：纵向超出下沿是滚动内容，属正常
+		// （长列表本来就在视口外）。原来的四边全查会把滚动内容误报成越界。
+		if r.X < -0.5 || r.Y < -0.5 || r.X+r.W > float32(width)+0.5 {
 			out = append(out, lintFinding{"L18", "§9.14 第 3 层、UI-22", "render",
 				fmt.Sprintf("%s @%d：%q 越出窗口（%+v）", screen, width, text, r)})
 		}
