@@ -30,7 +30,13 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 					fileRow(c, "internal/ui/composer.go  +33 −5")
 					fileRow(c, "internal/ui/timeline.go  +8 −2")
 				case 2:
-					typeSecondary.style(t, gui.Text(c, "没有后台任务")).TextColor(t.TextMuted)
+					if len(a.tasks) == 0 {
+						typeSecondary.style(t, gui.Text(c, "没有后台任务")).TextColor(t.TextMuted)
+						break
+					}
+					for i := range a.tasks {
+						a.taskRow(c, a.tasks[i])
+					}
 				default:
 					typeBodyStrong.style(t, gui.Text(c, "把发送路径改成排队"))
 					typeSecondary.style(t, gui.Text(c, "运行中的提交先入队，结束后自动发出。")).
@@ -45,5 +51,28 @@ func fileRow(c *gui.Context, name string) {
 	t := c.Theme()
 	gui.Row(c).AlignItems(gui.Center).Children(func() {
 		typeSecondary.style(t, gui.Text(c, name)).SingleLine()
+	})
+}
+
+// taskRow 是一行后台任务：状态图标 + 任务名（内容）+ 取消入口。
+// 状态用样式（运行中是播放圈 + accent-ink、完成是对勾、失败是叉），名字是内容；
+// 取消是纯图标动作（可逆：任务可以再跑一次）。
+func (a *App) taskRow(c *gui.Context, t task) {
+	th := c.Theme()
+	icon, color := iconTask, colorAccentInk.in(th)
+	state := "运行中"
+	switch t.state {
+	case taskDone:
+		icon, color, state = iconCheck, th.TextMuted, "已完成"
+	case taskFailed:
+		icon, color, state = iconXMark, th.Danger, "失败"
+	}
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
+		Label("后台任务：" + t.name + " · " + state).Children(func() {
+		iconGlyph(c, icon, color, "task")
+		typeSecondary.style(th, gui.Text(c, t.name)).Grow(1).SingleLine()
+		if t.state == taskRunning {
+			iconButton(c, iconButtonSpec{icon: iconXMark, label: "取消任务", size: rowCompact})
+		}
 	})
 }

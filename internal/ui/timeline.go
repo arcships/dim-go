@@ -17,8 +17,8 @@ func (a *App) timeline(c *gui.Context) {
 		// 空态：形状 + 一句事实（UI-23）。不写「写点什么开始」「拖进来」这类
 		// 引导语——输入区就在下面，形状与位置已经说明下一步。
 		gui.Box(c).Grow(1).Center().Label("对话流").Role(gui.RoleLog).Children(func() {
-			gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
-				iconBox(c, iconChat, t.TextMuted, "")
+			gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("空态").Children(func() {
+				iconGlyph(c, iconChat, t.TextMuted, "chat")
 				typeBody.style(t, gui.Text(c, "还没有消息")).TextColor(t.TextMuted)
 			})
 		})
@@ -99,8 +99,8 @@ func (a *App) reply(c *gui.Context, r round) {
 // 说明属于本轮，不是容器（U2 §4.1）。
 func (a *App) note(c *gui.Context, note string) {
 	t := c.Theme()
-	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
-		iconBox(c, iconWarn, t.Warning, "结果不确定")
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("结果不确定行").Children(func() {
+		iconGlyph(c, iconWarn, t.Warning, "exclamation")
 		typeBody.style(t, gui.Text(c, note)).Selectable()
 	})
 }

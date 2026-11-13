@@ -119,6 +119,9 @@ const (
 	// 不写引导语（UI-23；R6 裁决二选一里选了占位而不是默认聚焦）。
 	placeholderInput = "输入"
 
+	// placeholderGoal 是目标编辑框的占位（2 字，与输入框同一策略）。
+	placeholderGoal = "目标"
+
 	// sidebarTextInset 是侧栏里与列表行文字对齐的左内边距：框架 Sidebar 的内边距 8
 	// + 行内边距 8 + 图标槽 16 + 图标与文字间距 8 = 40。它不是魔法数字，是从
 	// SidebarItem 的排布推出的同一条文字列（UI-22）。

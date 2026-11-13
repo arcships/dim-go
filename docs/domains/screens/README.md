@@ -22,6 +22,9 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-900.png` | 900×900 | 三档宽度对照 · regular |
 | `window-default-720.png` | 720×900 | 三档宽度对照 · compact 边界 |
 | `window-titlebar-closeup.png` | 1440×120 | 标题行特写（红绿灯、会话名、无系统标题栏、无分隔线） |
+| `window-default-variant-branch{,-900,-720}.png` | 1440/900/720×900 | 分支切换：标题行分支标记 + 原生菜单（三分支状态之一） |
+| `window-default-variant-goal{,-900,-720}.png` | 1440/900/720×900 | 目标设置中：输入区上沿的目标行进入编辑态 |
+| `window-running-variant-tasks{,-900,-720}.png` | 1440/900/720×900 | 后台任务运行中：右栏「后台」标签下的任务清单（720 时右栏整屏替代主区） |
 
 **能证明什么**：macOS 红绿灯由系统画在左栏顶部的让位条里；没有系统标题栏；标题行是自绘的、左端是会话名；窗口圆角与阴影由系统给。
 **不能证明什么**：悬停 / 按下 / 焦点态与 tooltip。本会话里进程无法成为前台（`NSRunningApplication.activate` 返回 true 而 `isActive=false`，窗口 `onscreen=false`），窗口收不到 hover 事件，系统 tooltip 不会出现；这部分以测试断言代替（`TestSendSlotIsIconWithTooltip`、`TestSelfDrawnRowsHaveStates`）。Windows 与 Linux 的形态同样不在证据内。
@@ -53,7 +56,7 @@ go test ./internal/ui -run 'TestScreens|TestTitleBarCloseup|TestWordlessCheck' -
 
 # 真窗口（逐态启动、按窗口号截图；需要屏幕录制权限）
 go build -o /tmp/dimagent-ui ./cmd/dimagent-ui
-python3 scripts/capture-windows.py
+python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 三个走查态（branch / goal / tasks）
 
 # 基线量测（同一批图上的数值）
 python3 scripts/ui-baseline.py docs/domains/screens/state-default.png

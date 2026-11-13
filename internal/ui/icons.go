@@ -32,6 +32,11 @@ var (
 	iconCheckLock = mustSVG(`<path d="m4.5 12.75 5.25 5.25 9-12"/><rect x="14.25" y="13.5" width="6" height="6" rx="1"/><path d="M15.75 13.5v-1.5a1.5 1.5 0 0 1 3 0v1.5"/>`)
 
 
+	// 分支、目标、后台任务：分叉、旗标、播放圈（运行中的任务）。
+	iconBranch = mustSVG(`<circle cx="6.75" cy="6" r="2.25"/><circle cx="6.75" cy="18" r="2.25"/><circle cx="17.25" cy="9.75" r="2.25"/><path d="M6.75 8.25v7.5M17.25 12a5.25 5.25 0 0 1-5.25 5.25H9"/>`)
+	iconTarget = mustSVG(`<circle cx="12" cy="12" r="8.25"/><circle cx="12" cy="12" r="3.75"/>`)
+	iconTask   = mustSVG(`<circle cx="12" cy="12" r="8.25"/><path d="M10.5 9.75 15 12l-4.5 2.25z"/>`)
+
 	// 上下文用量与撤回：环形表（用量）、回转箭头（撤回）、对话气泡（空态）。
 	iconGauge = mustSVG(`<path d="M3.75 12a8.25 8.25 0 0 1 16.5 0"/><path d="M12 12l4.5-3"/>`)
 	iconUndo  = mustSVG(`<path d="M9 15 4.5 10.5 9 6"/><path d="M4.5 10.5h9a6 6 0 0 1 0 12h-3"/>`)
@@ -85,6 +90,17 @@ func iconBox(c *gui.Context, icon *gui.SVG, color gui.Color, label string) {
 	if label != "" {
 		box = box.Label(label)
 	}
+	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		p.Icon(icon, r, color)
+	})
+}
+
+// iconGlyph 画一个"图标 + 文字"里用的图标：16px 盒，带一个给检查器用的标记
+// （Label 「图标：<名字>」，对辅助技术隐藏）。检查项 L17 靠它判"文字旁边确实
+// 画了图标"，而不是靠像素——文字本身的墨迹会掩盖"图标没了"。
+func iconGlyph(c *gui.Context, icon *gui.SVG, color gui.Color, mark string) {
+	box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0).
+		Label("图标：" + mark).AccessHidden(true)
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
 		p.Icon(icon, r, color)
 	})
@@ -166,7 +182,9 @@ func iconAction(c *gui.Context, spec iconButtonSpec, primary bool) bool {
 // textIconButton 是"图标 + 文字"的入口：后果大、需要确认的动作用它（审批的三
 // 个决定）。同样用无外观 ButtonBase 承担命中与焦点，外观由这里按主题画。
 type textIconButtonSpec struct {
-	icon     *gui.SVG
+	icon *gui.SVG
+	// mark 是给检查器用的图标标记（图标：<mark>）；同时写进元素表清单。
+	mark     string
 	text     string
 	label    string
 	tip      string
@@ -211,7 +229,7 @@ func textIconButton(c *gui.Context, spec textIconButtonSpec) bool {
 	}
 	b.Children(func() {
 		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
-			iconBox(c, spec.icon, color, "")
+			iconGlyph(c, spec.icon, color, spec.mark)
 			typeBody.style(t, gui.Text(c, spec.text)).TextColor(color).SingleLine()
 		})
 	})

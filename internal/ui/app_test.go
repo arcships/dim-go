@@ -478,6 +478,76 @@ func TestActionsUseIconsNotGlyphs(t *testing.T) {
 	}
 }
 
+// 分支：main 不上屏（UI-9）；非 main 时标题行给「图标 + 名字」，点开是原生菜单。
+func TestBranchMarkerOnlyWhenNotMain(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if _, ok := tt.Find("切换分支：main"); ok {
+		t.Fatal("main 分支不应出现在标题行")
+	}
+	app.branch, app.branches = branchSamples()
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	chip, ok := tt.Find("切换分支：feature/queue-rework")
+	if !ok {
+		t.Fatal("非 main 分支缺少标题行标记")
+	}
+	header, _ := tt.Find("标题行")
+	if chip.Y < header.Y || chip.Y+chip.H > header.Y+header.H {
+		t.Fatalf("分支标记 %+v 不在标题行 %+v 里", chip, header)
+	}
+	// 点开菜单：清单里有当前分支与 main，当前分支打勾。
+	if err := tt.Click("切换分支：feature/queue-rework"); err != nil {
+		t.Fatalf("点不到分支标记：%v", err)
+	}
+	menu := tt.Menu()
+	if len(menu) < 2 {
+		t.Fatalf("分支菜单只有 %v", menu)
+	}
+}
+
+// 目标行：在输入区上沿一行；编辑态同位置换成输入框 + 保存 / 取消。
+func TestGoalRowLivesAboveComposer(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	goal, ok := tt.Find("把发送路径改成排队")
+	if !ok {
+		t.Fatal("找不到目标行")
+	}
+	editor, _ := tt.Find("消息")
+	if goal.Y >= editor.Y {
+		t.Fatalf("目标行 %+v 不在输入区上方（编辑器 %+v）", goal, editor)
+	}
+	app.goalEditing = true
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	for _, label := range []string{"目标", "保存目标", "取消编辑"} {
+		if _, ok := tt.Find(label); !ok {
+			t.Fatalf("目标编辑态缺少 %q", label)
+		}
+	}
+	if _, ok := tt.Find("修改目标"); ok {
+		t.Fatal("编辑态不应同时显示修改入口")
+	}
+}
+
+// 后台任务：右栏「后台」列出任务；运行中的行有取消入口，完成的行没有。
+func TestTaskRowsShowStateAndCancel(t *testing.T) {
+	app, _ := newTester(t, StateDefault)
+	app.rightOpen, app.rightTab = true, 2
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	for _, name := range []string{"go test ./...", "npm run build"} {
+		if _, ok := tt.Find(name); !ok {
+			t.Fatalf("后台清单缺少 %q", name)
+		}
+	}
+	if _, ok := tt.Find("取消任务"); !ok {
+		t.Fatal("运行中的任务缺取消入口")
+	}
+	if _, ok := tt.Access("后台任务：go test ./... · 运行中"); !ok {
+		t.Fatal("缺少运行中的状态位")
+	}
+	if _, ok := tt.Access("后台任务：npm run build · 已完成"); !ok {
+		t.Fatal("缺少已完成的状态位")
+	}
+}
+
 // 发送槽的形式是纯图标 + tooltip（名称 · 快捷键），读屏名给动作词（UI-23、F17）。
 func TestSendSlotIsIconWithTooltip(t *testing.T) {
 	_, tt := newTester(t, StateDefault)

@@ -4,6 +4,21 @@ package ui
 // 不来自 App Server，也不代表任何真实会话。样例文案与顺序取自
 // docs/domains/wireframes/a.html 的七个画面。
 
+// taskState 是后台任务在界面上的三种形态。
+type taskState int
+
+const (
+	taskRunning taskState = iota
+	taskDone
+	taskFailed
+)
+
+// task 是一个后台任务行：名字是内容，状态是样式。
+type task struct {
+	name  string
+	state taskState
+}
+
 type roundStatus int
 
 const (
@@ -131,4 +146,17 @@ func sessionSamples(s State) (sessions []string, markers []string) {
 		markers = []string{"", "", ""}
 	}
 	return sessions, markers
+}
+
+// branchSamples 是分支样例：当前分支与全部分支（名字是内容）。
+func branchSamples() (current string, all []string) {
+	return "feature/queue-rework", []string{"main", "feature/queue-rework"}
+}
+
+// taskSamples 是后台任务样例：一个在跑、一个完成。
+func taskSamples() []task {
+	return []task{
+		{name: "go test ./...", state: taskRunning},
+		{name: "npm run build", state: taskDone},
+	}
 }

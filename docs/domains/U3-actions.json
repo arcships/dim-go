@@ -9,18 +9,127 @@
     "text": "纯文字"
   },
   "items": [
-    {"id": "AC-01", "action": "允许一次", "consequence": "不可逆：这一次的命令会执行", "scope": "单次", "form": "icon+text", "confirm": false, "basis": "U3 §5.2（allow）"},
-    {"id": "AC-02", "action": "一直允许", "consequence": "不可逆：写入用户级命令规则，影响所有会话", "scope": "所有会话", "form": "icon+text", "confirm": true, "basis": "U3 §5.2/§5.3（permission.set_rules + allow）"},
-    {"id": "AC-03", "action": "拒绝", "consequence": "不可逆：这一次不执行，不能重新发起同一条审批", "scope": "单次", "form": "icon+text", "confirm": false, "basis": "U3 §5.2（deny）、§6.3"},
-    {"id": "AC-04", "action": "停止运行", "consequence": "可逆：可重新发送；已产生的输出保留", "scope": "当前轮", "form": "icon", "confirm": false, "basis": "U3 §4.1、T4；D3 write registry"},
-    {"id": "AC-05", "action": "撤回排队", "consequence": "可为未发生：受理前可再排队；受理后不可撤回（notHeld）", "scope": "当前队列项", "form": "icon", "confirm": false, "basis": "U3 §4.3 S6–S9"},
-    {"id": "AC-06", "action": "附件移除", "consequence": "可逆：删掉的是待发条目，不涉及已发内容", "scope": "待发附件", "form": "icon", "confirm": false, "basis": "U1 E2、U3 未单列（未实现）"},
-    {"id": "AC-07", "action": "删除会话", "consequence": "不可逆：会话与历史不再出现", "scope": "整条会话", "form": "icon+text", "confirm": true, "basis": "U1 A6、D4；U3 后续批次"},
-    {"id": "AC-08", "action": "结束分支", "consequence": "不可逆：分支不可再提交", "scope": "一条分支", "form": "icon+text", "confirm": true, "basis": "U1 S63；U3 后续批次"},
-    {"id": "AC-09", "action": "修改权限档位", "consequence": "高影响：改变后续所有操作的授权范围", "scope": "当前会话", "form": "text", "confirm": true, "basis": "U1 A8、Q8（首批不提供入口）"}
+    {
+      "id": "AC-01",
+      "action": "允许一次",
+      "consequence": "不可逆：这一次的命令会执行",
+      "scope": "单次",
+      "form": "icon+text",
+      "confirm": false,
+      "basis": "U3 §5.2（allow）"
+    },
+    {
+      "id": "AC-02",
+      "action": "一直允许",
+      "consequence": "不可逆：写入用户级命令规则，影响所有会话",
+      "scope": "所有会话",
+      "form": "icon+text",
+      "confirm": true,
+      "basis": "U3 §5.2/§5.3（permission.set_rules + allow）"
+    },
+    {
+      "id": "AC-03",
+      "action": "拒绝",
+      "consequence": "不可逆：这一次不执行，不能重新发起同一条审批",
+      "scope": "单次",
+      "form": "icon+text",
+      "confirm": false,
+      "basis": "U3 §5.2（deny）、§6.3"
+    },
+    {
+      "id": "AC-04",
+      "action": "停止运行",
+      "consequence": "可逆：可重新发送；已产生的输出保留",
+      "scope": "当前轮",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U3 §4.1、T4；D3 write registry"
+    },
+    {
+      "id": "AC-05",
+      "action": "撤回排队",
+      "consequence": "可为未发生：受理前可再排队；受理后不可撤回（notHeld）",
+      "scope": "当前队列项",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U3 §4.3 S6–S9"
+    },
+    {
+      "id": "AC-06",
+      "action": "附件移除",
+      "consequence": "可逆：删掉的是待发条目，不涉及已发内容",
+      "scope": "待发附件",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 E2、U3 未单列（未实现）"
+    },
+    {
+      "id": "AC-07",
+      "action": "删除会话",
+      "consequence": "不可逆：会话与历史不再出现",
+      "scope": "整条会话",
+      "form": "icon+text",
+      "confirm": true,
+      "basis": "U1 A6、D4；U3 后续批次"
+    },
+    {
+      "id": "AC-08",
+      "action": "结束分支",
+      "consequence": "不可逆：分支不可再提交",
+      "scope": "一条分支",
+      "form": "icon+text",
+      "confirm": true,
+      "basis": "U1 S63；U3 后续批次"
+    },
+    {
+      "id": "AC-09",
+      "action": "修改权限档位",
+      "consequence": "高影响：改变后续所有操作的授权范围",
+      "scope": "当前会话",
+      "form": "text",
+      "confirm": true,
+      "basis": "U1 A8、Q8（首批不提供入口）"
+    },
+    {
+      "id": "AC-10",
+      "action": "取消任务",
+      "consequence": "可逆：任务可以再跑一次，已产生的输出保留",
+      "scope": "一个后台任务",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 C11；U3 后续批次"
+    },
+    {
+      "id": "AC-11",
+      "action": "修改目标",
+      "consequence": "可逆：文本可再改；不改历史轮次",
+      "scope": "当前会话",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 E1、UI-7"
+    },
+    {
+      "id": "AC-12",
+      "action": "从当前分支切出",
+      "consequence": "低风险：只新增一条分支，不改现有历史",
+      "scope": "当前会话",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 S63、E7"
+    }
   ],
   "undecided": [
-    {"id": "AC-U1", "action": "撤回排队（applied=true 之后）", "question": "协议不允许撤回已应用的项；界面是否仍显示撤回入口（禁用）还是完全隐藏？", "basis": "U3 §4.3 S3"},
-    {"id": "AC-U2", "action": "停止（结果未知时）", "question": "是否给一个显式的「再停止一次」——U3 Q4 待用户裁决", "basis": "U3 §11 Q4"}
+    {
+      "id": "AC-U1",
+      "action": "撤回排队（applied=true 之后）",
+      "question": "协议不允许撤回已应用的项；界面是否仍显示撤回入口（禁用）还是完全隐藏？",
+      "basis": "U3 §4.3 S3"
+    },
+    {
+      "id": "AC-U2",
+      "action": "停止（结果未知时）",
+      "question": "是否给一个显式的「再停止一次」——U3 Q4 待用户裁决",
+      "basis": "U3 §11 Q4"
+    }
   ]
 }

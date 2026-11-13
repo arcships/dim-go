@@ -15,6 +15,8 @@ SHOTS = "docs/domains/screens"
 STATES = ["default", "running", "waiting", "failed", "empty"]
 # 三档宽度对照（U1-ia §0：compact <720 / regular 720–959 / wide ≥960）。
 WIDTHS = [1440, 900, 720]
+# 三类新信息的走查态（分支切换 / 目标设置中 / 后台任务运行中）。
+VARIANTS = ["branch", "goal", "tasks"]
 
 
 def windows():
@@ -40,8 +42,11 @@ def find_window(pid):
     return None
 
 
-def capture(state, width=1440, height=900, suffix=None):
-    proc = subprocess.Popen([BIN, "-state", state, "-width", str(width), "-height", str(height)],
+def capture(state, width=1440, height=900, suffix=None, variant=""):
+    args = [BIN, "-state", state, "-width", str(width), "-height", str(height)]
+    if variant:
+        args += ["-variant", variant]
+    proc = subprocess.Popen(args,
                             stdout=open(f"/tmp/dimagent-ui-{state}.log", "w"),
                             stderr=subprocess.STDOUT)
     try:
@@ -87,6 +92,12 @@ def main():
         suffix = None if width == 1440 else f"-{width}"
         if not capture("default", width=width, suffix=suffix):
             ok = False
+    for variant in VARIANTS:
+        state = "running" if variant == "tasks" else "default"
+        for width in WIDTHS:
+            suffix = f"-variant-{variant}" if width == 1440 else f"-variant-{variant}-{width}"
+            if not capture(state, width=width, suffix=suffix, variant=variant):
+                ok = False
     sys.exit(0 if ok else 1)
 
 

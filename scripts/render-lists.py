@@ -25,6 +25,17 @@ def rows_u1(data):
     return "\n".join(out)
 
 
+def rows_elements(data):
+    out = ["| 元素 | 依据 | 控件选型 | 形式 | 理由（后果 / 频率 / 空间 / 词形） | 图标 |",
+           "|---|---|---|---|---|---|"]
+    for it in data["items"]:
+        out.append(
+            f"| {it['element']} | {it['item']} | {it['control']} | `{it['form']}` | "
+            f"{it['reason']} | {it['icon']} |"
+        )
+    return "\n".join(out)
+
+
 def rows_u3(data):
     out = ["| # | 动作 | 后果 | 影响面 | 形式 | 需要确认 | 依据 |",
            "|---|---|---|---|---|---|---|"]
@@ -47,9 +58,12 @@ def rewrite(path, data, render):
 def main():
     u1 = json.load(io.open("docs/domains/U1-content.json", encoding="utf-8"))
     u3 = json.load(io.open("docs/domains/U3-actions.json", encoding="utf-8"))
+    el = json.load(io.open("docs/domains/U2-elements.json", encoding="utf-8"))
     rewrite("docs/domains/U1-content.md", u1, rows_u1)
     rewrite("docs/domains/U3-actions.md", u3, rows_u3)
-    print(f"wrote U1-content.md（{len(u1['items'])} 条）与 U3-actions.md（{len(u3['items'])} 条）")
+    rewrite("docs/domains/U2-forms.md", el, rows_elements)
+    print(f"wrote U1-content.md（{len(u1['items'])} 条）、U3-actions.md（{len(u3['items'])} 条）"
+          f"、U2-forms.md 元素表（{len(el['items'])} 条）")
 
 
 if __name__ == "__main__":

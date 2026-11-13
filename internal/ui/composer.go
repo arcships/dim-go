@@ -16,6 +16,7 @@ func (a *App) composer(c *gui.Context) {
 		if a.state == StateRunning {
 			a.queueBar(c)
 		}
+		a.goalRow(c)
 		gui.Box(c).Padding(composerPadding).Children(func() {
 			if a.state == StateWaiting {
 				a.approvalCard(c)
@@ -110,7 +111,7 @@ func (a *App) contextMeter(c *gui.Context) {
 		}
 		// 形状 + 数值（UI-23 第 1、3 档）：环形图标说明"占用"，百分比是精确值；
 		// 屏幕上不写「上下文」。
-		iconBox(c, iconGauge, color, "")
+		iconGlyph(c, iconGauge, color, "gauge")
 		typeSecondary.style(t, gui.Text(c, fmt.Sprintf("%d%%", percent))).
 			TextColor(color)
 	})
@@ -193,7 +194,7 @@ func (a *App) approvalCard(c *gui.Context) {
 			// 卡的身份由形状与内容说（UI-23）：时钟图标说明"在等你决定"，命令原文
 			// 是内容；不写「需要你同意」这类界面语。拿不到命令原文时只剩图标与三个
 			// 决定，读屏名仍给「需要你决定」。
-			iconBox(c, iconClock, colorAccentInk.in(t), "需要你决定")
+			iconGlyph(c, iconClock, colorAccentInk.in(t), "clock")
 			if cmd != "" {
 				// 命令原文与影响分成两块：命令是一段代码（自己的面与内边距），影响是
 				// 下面一行说明。两者不再粘在一行，扫一眼就能分清哪是命令、哪是影响。
@@ -211,7 +212,7 @@ func (a *App) approvalCard(c *gui.Context) {
 				// 三个决定是"图标 + 文字"（UI-23 / §9.0 选择表：高后果、不可逆、
 				// 同族多选 → 识别与确认同时成立）。
 				if textIconButton(c, textIconButtonSpec{
-					icon: iconCheck, text: "允许一次", primary: true,
+					icon: iconCheck, mark: "check", text: "允许一次", primary: true,
 					tip: "只同意这一次",
 				}) {
 					a.approvalDecision = "allow"
@@ -224,7 +225,7 @@ func (a *App) approvalCard(c *gui.Context) {
 						tip = "再点一次：对所有会话写入这条命令规则"
 					}
 					if textIconButton(c, textIconButtonSpec{
-						icon: iconCheckLock, text: text, label: label, tip: tip,
+						icon: iconCheckLock, mark: "check-lock", text: text, label: label, tip: tip,
 					}) {
 						if a.confirmAlways {
 							a.approvalDecision = "allow-always"
@@ -235,10 +236,49 @@ func (a *App) approvalCard(c *gui.Context) {
 					}
 				}
 				if textIconButton(c, textIconButtonSpec{
-					icon: iconXMark, text: "拒绝", tip: "不改规则，这次不执行",
+					icon: iconXMark, mark: "x-mark", text: "拒绝", tip: "不改规则，这次不执行",
 				}) {
 					a.approvalDecision = "deny"
 				}
 			})
 		})
+}
+
+// goalRow 是输入区上沿的目标行（UI-7：目标在输入框上方一行，点击到右栏看详情）。
+// 形式是「图标 + 文字」：目标文本是内容，编辑与完成态用图标与颜色区分。
+func (a *App) goalRow(c *gui.Context) {
+	if a.goal == "" {
+		return
+	}
+	t := c.Theme()
+	if a.goalEditing {
+		// 设置中：一行输入 + 保存 / 取消两个图标入口，位置与阅读态相同。
+		gui.Row(c).Height(QueueHeight).Shrink(0).Padding(0, space4).
+			Gap(space2).AlignItems(gui.Center).Children(func() {
+			iconGlyph(c, iconTarget, colorAccentInk.in(t), "target")
+			gui.TextInputBase(c, &a.goal).Grow(1).Label("目标").Placeholder(placeholderGoal)
+			if iconButton(c, iconButtonSpec{icon: iconCheck, label: "保存目标", size: rowCompact}) {
+				a.goalEditing = false
+			}
+			if iconButton(c, iconButtonSpec{icon: iconXMark, label: "取消编辑", size: rowCompact}) {
+				a.goalEditing = false
+			}
+		})
+		return
+	}
+	gui.Row(c).Height(QueueHeight).Shrink(0).Padding(0, space4).
+		Gap(space2).AlignItems(gui.Center).Label("目标行").Children(func() {
+		iconGlyph(c, iconTarget, colorAccentInk.in(t), "target")
+		color := t.Text
+		if a.goalDone {
+			color = t.TextMuted
+		}
+		typeSecondary.style(t, gui.Text(c, a.goal)).TextColor(color).Grow(1).SingleLine()
+		if a.goalDone {
+			iconBox(c, iconCheck, t.TextMuted, "目标已完成")
+		}
+		if iconButton(c, iconButtonSpec{icon: iconPencil, label: "修改目标", size: rowCompact}) {
+			a.goalEditing = true
+		}
+	})
 }

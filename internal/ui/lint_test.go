@@ -60,13 +60,15 @@ var lintFix = map[string]string{
 	"L13": "命中区放大到 hit-min（24）",
 	"L14": "补默认 / 悬停 / 聚焦 / 按下 / 禁用里的缺项",
 	"L15": "200% 缩放下不越界：调字号或允许单行截断",
+	"L16": "清单条目指回 U1 信息项编号",
+	"L17": "让实现与元素表的形式一致：补图标或改清单（改形式=形式级）",
 }
 
 // TestUILint 是检查器本体：工作区必须零违例。
 func TestUILint(t *testing.T) {
 	findings := lintWorkspace(t)
 	if len(findings) == 0 {
-		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 16)
+		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 17)
 		return
 	}
 	sort.Slice(findings, func(i, j int) bool {
@@ -114,6 +116,23 @@ func TestUILintSeeds(t *testing.T) {
 		t.Logf("种子「%s」→ %s", seed.name, hit.String())
 	}
 
+	// 第七类：元素表声明 icon+text，实现却只画了文字（评审删掉分支标记图标的那种）。
+	textOnly := func(c *gui.Context) {
+		gui.Row(c).Padding(space1, space2).Label("切换分支：feature/queue-rework").Children(func() {
+			gui.Text(c, "feature/queue-rework")
+		})
+	}
+	tt := gui.NewTester(textOnly, 600, 200)
+	spec := elementEntry{
+		ID: "seed", Element: "分支标记", Form: "icon+text", Checkable: true,
+		Probe: "切换分支：feature/queue-rework", Text: "feature/queue-rework",
+	}
+	got := checkElementForm(t, tt, spec)
+	if len(got) == 0 || got[0].check != "L17" {
+		t.Fatalf("元素形式种子没有被 L17 报出：%v", got)
+	}
+	t.Logf("种子「元素缺图标」→ %s", got[0].String())
+
 	// 基线不等的种子：合成三档左缘，检查必须报。
 	bad := map[string][3]float32{
 		"标题行":  {272, 272, 272},
@@ -136,6 +155,8 @@ func lintWorkspace(t *testing.T) []lintFinding {
 	loadJSON(t, "U1-content.json", &content)
 	var actions actionDoc
 	loadJSON(t, "U3-actions.json", &actions)
+	var elements elementDoc
+	loadJSON(t, "U2-elements.json", &elements)
 	dir := "."
 	files, err := filepath.Glob(filepath.Join(dir, "*.go"))
 	if err != nil {
@@ -157,6 +178,7 @@ func lintWorkspace(t *testing.T) []lintFinding {
 	out = append(out, lintRender(t)...)
 	out = append(out, lintHighConsequence(t, &actions)...)
 	out = append(out, lintListReferences(t, &content)...)
+	out = append(out, lintElementForms(t, &elements)...)
 	return out
 }
 
@@ -439,9 +461,7 @@ func lintHighConsequence(t *testing.T, actions *actionDoc) []lintFinding {
 		}
 		seen++
 		if it.Form != "icon+text" {
-			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
-				it.Action + " 的形式应为 " + it.Form + "，清单与实现不一致"})
-			continue
+			continue // 纯图标的动作由下面的反向检查管（不得有可见文字）
 		}
 		if !hasInk(tt.Image(), info.Bounds) {
 			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
@@ -526,20 +546,35 @@ func lintTooltipText(t *testing.T) []lintFinding {
 	return out
 }
 
-// L13：图标入口的命中区不小于 hit-min。
+// L13：图标入口的命中区不小于 hit-min。有些入口只在编辑态 / 右栏出现，
+// 因此按"在哪个准备态里出现"分组量。
 func lintHitAreas(t *testing.T) []lintFinding {
 	t.Helper()
-	_, tt := newTester(t, StateDefault)
+	cases := []struct {
+		label   string
+		prepare func(*App)
+	}{
+		{"新建会话", nil}, {"搜索", nil}, {"收起左栏", nil}, {"打开右栏", nil},
+		{"附件", nil}, {"发送", nil}, {"读取更早的记录", nil}, {"修改目标", nil},
+		{"保存目标", func(a *App) { a.goalEditing = true }},
+		{"取消编辑", func(a *App) { a.goalEditing = true }},
+		{"取消任务", func(a *App) { a.rightOpen, a.rightTab = true, 2 }},
+	}
 	var out []lintFinding
-	for _, label := range []string{"新建会话", "搜索", "收起左栏", "打开右栏", "附件", "发送", "读取更早的记录"} {
-		info, ok := tt.Access(label)
+	for _, c := range cases {
+		app := NewApp(Options{State: StateDefault})
+		if c.prepare != nil {
+			c.prepare(app)
+		}
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		info, ok := tt.Access(c.label)
 		if !ok {
-			out = append(out, lintFinding{"L13", "UI-22 §6.5", "render", "找不到入口 " + label})
+			out = append(out, lintFinding{"L13", "UI-22 §6.5", "render", "找不到入口 " + c.label})
 			continue
 		}
 		if info.Bounds.W < hitMin || info.Bounds.H < hitMin {
 			out = append(out, lintFinding{"L13", "UI-22 §6.5", "render",
-				fmt.Sprintf("%s 的命中区 %.0f×%.0f 小于 %d", label, info.Bounds.W, info.Bounds.H, hitMin)})
+				fmt.Sprintf("%s 的命中区 %.0f×%.0f 小于 %d", c.label, info.Bounds.W, info.Bounds.H, hitMin)})
 		}
 	}
 	return out
@@ -643,6 +678,133 @@ func lintListReferences(t *testing.T, content *contentDoc) []lintFinding {
 // rowCompact 的方盒，而图标 + 文字的入口一定比这个更宽。
 var iconOnlyButtonWidth = float32(iconInline + 2*space3)
 
+// L17：元素表声明的形式必须和渲染一致——`icon+text` 要有图标墨迹与可见文字，
+// `icon` 不得有可见文字，`text` 必须有可见文字，`style` 要有墨迹。找不到元素
+// 就报"清单与实现不一致"，不静默跳过（这是评审能静默绕过的那条通道）。
+func lintElementForms(t *testing.T, elements *elementDoc) []lintFinding {
+	t.Helper()
+	var out []lintFinding
+	for _, it := range elements.Items {
+		tt := testerForWhen(t, it.When)
+		if tt == nil {
+			out = append(out, lintFinding{"L17", "UI-23、D5（" + it.ID + "）", "render",
+				"未知的 when：" + it.When})
+			continue
+		}
+		out = append(out, checkElementForm(t, tt, it)...)
+	}
+	return out
+}
+
+// testerForWhen 按清单里的 when 造出该元素出现的界面。
+func testerForWhen(t *testing.T, when string) *gui.Tester {
+	t.Helper()
+	app := NewApp(Options{State: StateDefault})
+	switch when {
+	case "always":
+	case "branch":
+		app.branch, app.branches = branchSamples()
+	case "goal-edit":
+		app.goalEditing = true
+	case "tasks":
+		app.rightOpen, app.rightTab = true, 2
+	case "waiting":
+		app = NewApp(Options{State: StateWaiting})
+	case "failed":
+		app = NewApp(Options{State: StateFailed})
+	case "empty":
+		app = NewApp(Options{State: StateEmpty})
+	case "running":
+		app = NewApp(Options{State: StateRunning})
+	default:
+		return nil
+	}
+	return gui.NewTester(app.View, WindowWidth, WindowHeight)
+}
+
+// checkElementForm 是一条元素的判定（种子自检直接调它）。
+func checkElementForm(t *testing.T, tt *gui.Tester, it elementEntry) []lintFinding {
+	t.Helper()
+	if !it.Checkable {
+		return nil
+	}
+	info, ok := tt.Access(it.Probe)
+	if !ok {
+		return []lintFinding{{"L17", "UI-23、D5（" + it.ID + "）", "render",
+			"清单与实现不一致：找不到「" + it.Element + "」（probe=" + it.Probe + "）"}}
+	}
+	fail := func(msg string) []lintFinding {
+		return []lintFinding{{"L17", "UI-23、D5（" + it.ID + "）", "render", it.Element + "：" + msg}}
+	}
+	ink := hasInk(tt.Image(), info.Bounds)
+
+	switch it.Form {
+	case "icon+text":
+		textRect, ok := visibleTextRect(tt, info.Bounds, it.Text)
+		if !ok {
+			return fail("声明为图标 + 文字，但找不到可见文字「" + it.Text + "」")
+		}
+		_ = textRect
+		if !iconMarkIn(tt, info.Bounds, it.Mark) {
+			return fail("声明为图标 + 文字，但文字旁边没有图标（图标：<mark> 找不到）")
+		}
+	case "icon":
+		if !ink {
+			return fail("声明为纯图标，但盒子里没有墨迹")
+		}
+		if info.Bounds.W > iconOnlyButtonWidth+space2 {
+			return fail("声明为纯图标，但盒子比纯图标宽，说明画了字")
+		}
+	case "text":
+		if !hasVisibleText(t, tt, info.Bounds, it.Text) {
+			return fail("声明为纯文字，但找不到可见文字「" + it.Text + "」")
+		}
+	case "style":
+		if !ink {
+			return fail("声明为样式，但盒子里没有形状墨迹")
+		}
+	default:
+		return fail("清单里的 form 不认识：" + it.Form)
+	}
+	return nil
+}
+
+// visibleTextRect 取 text 作为可见文本在 box 里的位置（不是只存在于可访问名）。
+func visibleTextRect(tt *gui.Tester, box gui.Rect, text string) (gui.Rect, bool) {
+	if text == "" {
+		return gui.Rect{}, false
+	}
+	r, ok := tt.Find(text)
+	if !ok {
+		return gui.Rect{}, false
+	}
+	// 可见文字要在元素盒内（允许 1px 抗锯齿误差）。
+	if r.X < box.X-1 || r.Y < box.Y-1 || r.X > box.X+box.W || r.Y > box.Y+box.H {
+		return gui.Rect{}, false
+	}
+	return r, true
+}
+
+// hasVisibleText 是 visibleTextRect 的布尔版。
+func hasVisibleText(t *testing.T, tt *gui.Tester, box gui.Rect, text string) bool {
+	t.Helper()
+	_, ok := visibleTextRect(tt, box, text)
+	return ok
+}
+
+// iconMarkIn 判断元素盒里有没有该图标：图标由 iconGlyph 画，带一个「图标：<mark>」
+// 标记（对辅助技术隐藏）。用结构判而不是像素判——文字本身的墨迹会掩盖"图标没了"。
+func iconMarkIn(tt *gui.Tester, box gui.Rect, mark string) bool {
+	if mark == "" {
+		return false
+	}
+	r, ok := tt.Find("图标：" + mark)
+	if !ok {
+		return false
+	}
+	return r.X >= box.X-1 && r.Y >= box.Y-1 && r.X <= box.X+box.W && r.Y <= box.Y+box.H
+}
+
 // ---- 清单（单一来源：docs/domains/*.json） ----
 
 // contentList 是 U1 的内容/界面语清单。
@@ -657,6 +819,28 @@ type contentEntry struct {
 
 type contentDoc struct {
 	Items []contentEntry `json:"items"`
+}
+
+// elementEntry 是 U2 的元素表清单（U2-elements.json）：元素 → 形式 → 理由。
+type elementEntry struct {
+	ID        string `json:"id"`
+	Element   string `json:"element"`
+	Item      string `json:"item"`
+	Control   string `json:"control"`
+	Form      string `json:"form"`
+	Reason    string `json:"reason"`
+	Icon      string `json:"icon"`
+	Doc       string `json:"doc"`
+	When      string `json:"when"`
+	Probe     string `json:"probe"`
+	Text      string `json:"text"`
+	Mark      string `json:"mark"`
+	Checkable bool   `json:"checkable"`
+	WhyNot    string `json:"why_not_checkable"`
+}
+
+type elementDoc struct {
+	Items []elementEntry `json:"items"`
 }
 
 // actionEntry 是 U3 的高后果动作清单。

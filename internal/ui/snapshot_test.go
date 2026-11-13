@@ -75,6 +75,20 @@ var screenCases = []screenCase{
 	{name: "variant-draft", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.draft = "把日志也开上"
 	}},
+	// 分支：标题行的分支标记与它的原生菜单（非默认分支才出现，UI-9）。
+	{name: "variant-branch", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.branch, a.branches = branchSamples()
+		a.branchMenuOpen = true
+	}},
+	// 目标：输入区上沿的目标行进入设置态。
+	{name: "variant-goal", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.goalEditing = true
+	}},
+	// 后台任务：右栏「后台」标签下的运行中任务。
+	{name: "variant-tasks", state: StateRunning, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen = true
+		a.rightTab = 2
+	}},
 	// UI-19：无系统标题栏的窗口，红绿灯落在左栏顶部上方的那条里；标题行是自绘的。
 	{name: "variant-titlebar", state: StateDefault, titleBar: &gui.TitleBar{Height: 28, Left: 78}},
 	// 暗色不是另一个状态，是同一批 token 的另一套值（U2 §3.3）。
@@ -111,6 +125,16 @@ func drawTrafficLights(img *image.RGBA, bar gui.TitleBar) {
 			}
 		}
 	}
+}
+
+// screenTesterAt 按指定窗口宽度渲染一张截图（三档对照用）。
+func screenTesterAt(c screenCase, width int) *gui.Tester {
+	a := NewApp(Options{State: c.state})
+	if c.setup != nil {
+		c.setup(a)
+	}
+	tt := gui.NewTesterWith(a.View, width, WindowHeight, gui.TesterOptions{Dark: c.dark})
+	return tt
 }
 
 // screenTester 渲染一张截图，返回其 Tester，供取图与量元素用。

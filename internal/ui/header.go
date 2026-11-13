@@ -51,6 +51,11 @@ func (a *App) header(c *gui.Context) {
 		if a.state == StateEmpty {
 			return
 		}
+		// 分支：main 不上屏（UI-9）；非默认时给一个最小标记，点开是分支清单。
+		// 形式是「图标 + 文字」——名字是内容，切换是低频但影响"提交到哪条线"的动作。
+		if a.branch != "" && a.branch != "main" {
+			a.branchChip(c)
+		}
 		if a.model != "" {
 			// 偏离默认的模型：最小形式，不写“模型：”前缀（UI-9）。
 			typeSecondary.style(t, gui.Text(c, a.model)).TextColor(t.TextMuted).
@@ -78,3 +83,37 @@ func titleBarHeight(bar gui.TitleBar) float32 {
 // titleBarInset 是左栏顶部让给窗口控件的高度：窗口模式里等于控件那条的高度，
 // 全屏时为 0（控件已隐藏）。它只影响左栏顶部那一条空带，不影响别的区域。
 func titleBarInset(bar gui.TitleBar) float32 { return bar.Height }
+
+// branchChip 是标题行里的分支标记：分叉图标 + 分支名，点开是分支清单（框架的原生
+// 弹出菜单，不占版式）。清单里当前分支打勾；「从当前分支切出」与「结束分支」是
+// 两个动作，后者是高后果（AC-08），走确认。
+func (a *App) branchChip(c *gui.Context) {
+	t := c.Theme()
+	label := "切换分支：" + a.branch
+	if len([]rune(label)) > 0 {
+		label = "切换分支：" + a.branch
+	}
+	b := gui.ButtonBase(c).Padding(space1, space2).Radius(radius).
+		Cursor(gui.CursorPointer).Label(label).Tooltip("分支 · 点开切换")
+	b = b.PopoverMenuButton(func(m *gui.Menu) {
+		for _, name := range a.branches {
+			n := name
+			if m.Item(n).Checked(n == a.branch).Chosen() {
+				a.branch = n
+			}
+		}
+		m.Separator()
+		if m.Item("从当前分支切出").Chosen() {
+			// 骨架不发起写入：只把样例里的分支名换成派生名。
+			a.branch = a.branch + "-1"
+		}
+		m.Item("结束分支").Disabled(a.branch == "main").Chosen()
+	}, gui.PopoverMenuButtonOptions{Open: &a.branchMenuOpen})
+	if b.Hovered() {
+		b = b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		iconGlyph(c, iconBranch, t.TextMuted, "branch")
+		typeSecondary.style(t, gui.Text(c, a.branch)).TextColor(t.TextMuted).SingleLine()
+	})
+}

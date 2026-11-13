@@ -23,6 +23,8 @@ import (
 func main() {
 	stateFlag := flag.String("state", "default",
 		"起始状态：default、running、waiting、failed、empty（也可写 1–5）")
+	variantFlag := flag.String("variant", "",
+		"额外的走查态：branch（分支菜单）、goal（目标编辑）、tasks（后台任务）")
 	widthFlag := flag.Int("width", appui.WindowWidth, "窗口宽度（逻辑像素，用于三档宽度对照截图）")
 	heightFlag := flag.Int("height", appui.WindowHeight, "窗口高度（逻辑像素）")
 	flag.Parse()
@@ -38,8 +40,15 @@ func main() {
 		return "DimAgent — " + s.String() + "（界面骨架）"
 	}
 
+	variant, err := appui.ParseVariant(*variantFlag)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(2)
+	}
+
 	app := appui.NewApp(appui.Options{
-		State: state,
+		State:   state,
+		Variant: variant,
 		StateChanged: func(s appui.State) {
 			if win != nil {
 				win.SetTitle(title(s))

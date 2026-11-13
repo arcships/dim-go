@@ -65,10 +65,41 @@ func ParseState(v string) (State, error) {
 	return StateDefault, fmt.Errorf("未知状态 %q：可用 default、running、waiting、failed、empty，或 1–5", v)
 }
 
+// Variant 是骨架的第三种维度：在同一个状态上打开分支菜单、目标编辑或后台任务，
+// 用来走查三类新信息（不改变业务事实，只切样例里的展开态）。
+type Variant int
+
+const (
+	// VariantNone 不额外展开。
+	VariantNone Variant = iota
+	// VariantBranch 打开标题行的分支菜单。
+	VariantBranch
+	// VariantGoal 让输入区上沿的目标行进入编辑态。
+	VariantGoal
+	// VariantTasks 打开右栏的「后台」标签并显示运行中的任务。
+	VariantTasks
+)
+
+// variantNames 是 -variant 的取值。
+var variantNames = map[string]Variant{
+	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
+	"goal": VariantGoal, "tasks": VariantTasks,
+}
+
+// ParseVariant 解析 -variant。
+func ParseVariant(v string) (Variant, error) {
+	if got, ok := variantNames[v]; ok {
+		return got, nil
+	}
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、goal、tasks", v)
+}
+
 // Options 是骨架的启动参数。
 type Options struct {
 	// State 是起始状态。
 	State State
+	// Variant 是额外的走查态（分支菜单 / 目标编辑 / 后台任务）。
+	Variant Variant
 	// StateChanged 在调试键切换状态后回调，供入口更新窗口标题。
 	StateChanged func(State)
 }
@@ -79,6 +110,7 @@ type Options struct {
 // 任何写入。
 type App struct {
 	state   State
+	variant Variant
 	onState func(State)
 
 	sidebarCollapsed bool
@@ -94,6 +126,16 @@ type App struct {
 	// 与头像（UI-23），不是事实来源。
 	connected      bool
 	accountInitial string
+
+	// 分支、目标、后台任务是样例里的展示数据（不是事实）：分支名、目标文本、
+	// 任务名都属于内容字符串（U1-content.json）。
+	branch         string
+	branches       []string
+	branchMenuOpen bool
+	goal           string
+	goalDone       bool
+	goalEditing    bool
+	tasks          []task
 
 	// contextUsed / contextLimit 是样例里的上下文用量，百分比由二者算；
 	// contextOpen 是明细的展开状态。三者都是可丢的界面状态（UI-8）。
@@ -117,6 +159,7 @@ type App struct {
 func NewApp(o Options) *App {
 	a := &App{
 		state:           o.State,
+		variant:         o.Variant,
 		onState:         o.StateChanged,
 		selectedSession: "s1",
 		connected:       true,
@@ -151,6 +194,27 @@ func (a *App) loadSample() {
 	a.contextOpen = false
 	a.confirmAlways = false
 	a.approvalDecision = ""
+
+	// 分支、目标、后台任务：默认取"常规"值（分支 main 不上屏，UI-9）。
+	a.branch = "main"
+	a.branches = []string{"main"}
+	a.branchMenuOpen = false
+	a.goal = "把发送路径改成排队"
+	a.goalDone = false
+	a.goalEditing = false
+	a.tasks = taskSamples()
+
+	switch a.variant {
+	case VariantBranch:
+		a.branch, a.branches = branchSamples()
+		a.branchMenuOpen = true
+	case VariantGoal:
+		a.goalEditing = true
+	case VariantTasks:
+		a.rightOpen = true
+		a.rightTab = 2
+	}
+
 	if a.state == StateWaiting {
 		a.approvalCommand = "rm -rf ./tmp/*"
 	}
@@ -213,6 +277,13 @@ func (a *App) layout(c *gui.Context) {
 		gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
 			a.header(c)
 			gui.Row(c).Grow(1).AlignItems(gui.Stretch).Children(func() {
+				// 窄到并排不下时（compact），右栏整屏替代主区（U1-ia §3.1）：
+				// 同一时刻只显示一处，关闭右栏后主区回来。
+				if a.rightOpen && panel == 0 {
+					remaining, _ := c.Size()
+					a.rightPanel(c, remaining-sidebar)
+					return
+				}
 				gui.Column(c).Grow(1).Children(func() {
 					a.timeline(c)
 					a.composer(c)
