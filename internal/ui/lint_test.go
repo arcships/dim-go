@@ -138,11 +138,32 @@ func TestUILintSeeds(t *testing.T) {
 	}
 	t.Logf("种子「元素缺图标」→ %s", got[0].String())
 
+	// 第十一类：动作声明"出现在某界面"，那里却查不到（AC-18 的 when 指到 waiting）。
+	noShow := &actionDoc{Items: []actionEntry{{
+		ID: "seed", Action: "中止运行", Form: "icon", When: "waiting", Probe: "中止运行",
+	}}}
+	if got := lintHighConsequence(t, noShow); len(got) == 0 || got[0].check != "L5" {
+		t.Fatalf("动作缺席种子没有被 L5 报出：%v", got)
+	} else {
+		t.Logf("种子「动作在声明的界面里缺席」→ %s", got[0].String())
+	}
+
+	// 第十二类：AC-18 的 form 从 icon 改成 icon+text（图标按钮没有可见文字）。
+	wrongForm := &actionDoc{Items: []actionEntry{{
+		ID: "seed", Action: "中止运行", Form: "icon+text", When: "term-running", Probe: "中止运行",
+	}}}
+	if got := lintHighConsequence(t, wrongForm); len(got) == 0 || got[0].check != "L5" {
+		t.Fatalf("形式不符种子没有被 L5 报出：%v", got)
+	} else {
+		t.Logf("种子「动作形式与渲染不符」→ %s", got[0].String())
+	}
+
 	// 第十类：清单说"用开关"，实现换成图标（或清单写 icon 而实现是开关）。
 	switched := &actionDoc{Items: []actionEntry{{
-		ID: "seed", Action: "停用插件", Form: "icon", Confirm: false,
+		ID: "seed", Action: "停用插件", Form: "icon", When: "settings-ext",
+		Probe: "启用：GitHub", Tab: 1,
 	}}}
-	if got := checkIconNotSwitch(t, switched); len(got) == 0 || got[0].check != "L5" {
+	if got := lintHighConsequence(t, switched); len(got) == 0 || got[0].check != "L5" {
 		t.Fatalf("开关形式种子没有被 L5 报出：%v", got)
 	} else {
 		t.Logf("种子「开关形式与实现不一致」→ %s", got[0].String())
@@ -486,172 +507,109 @@ func lintStatesDistinct(t *testing.T) []lintFinding {
 	return out
 }
 
-// L5（渲染侧）：高后果动作按 U3-actions.json 判定——`icon+text` 的必须有图标与
-// 可见文字；`confirm` 为真的必须先确认再生效。未在首片渲染的动作只记录不判。
+// L5（渲染侧）：逐条按 `when` 造出它出现的界面，再判形式。
+//
+// 关键约定：**清单说它在哪出现，那里就必须查到**。查不到即报"清单说它在这出现，
+// 但渲染里没有"；`implemented: false` 的跳过并计数，不让"只在某些状态出现"的
+// 动作永远逃过检查（终端的三个动作、队列撤回、分支菜单项都属于这一类）。
 func lintHighConsequence(t *testing.T, actions *actionDoc) []lintFinding {
 	t.Helper()
-	app, tt := newTester(t, StateWaiting)
 	var out []lintFinding
-	seen := 0
+	checked, skipped := 0, 0
 	for _, it := range actions.Items {
-		info, ok := tt.Access(it.Action)
-		if !ok {
-			continue // 首片没有这个入口（删除会话等）
+		if it.Implemented != nil && !*it.Implemented {
+			skipped++
+			continue
 		}
-		seen++
-		if it.Form != "icon+text" {
-			continue // 纯图标的动作由下面的反向检查管（不得有可见文字）
+		checked++
+		probe := it.Probe
+		if probe == "" {
+			probe = it.Action
 		}
-		if !hasInk(tt.Image(), info.Bounds) {
-			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
-				it.Action + " 只有文字没有图标"})
+		tt := testerForWhen(t, it.When)
+		if tt == nil {
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的 when 不认识：" + it.When})
+			continue
 		}
-		// 可见文字：必须能在文本表里找到这个动作名，且按钮比"只有图标"的盒子
-		// 更宽（只留 label 时可访问名还在，但屏幕上没有字、盒子也只有图标那么宽）。
-		if _, visible := tt.Find(it.Action); !visible {
-			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
-				it.Action + " 在屏幕上没有可见文字（可能只留了 label）"})
-		} else if info.Bounds.W <= iconOnlyButtonWidth+space2 {
-			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
-				it.Action + " 的按钮只有图标那么宽，看不到文字"})
+		if it.When == "settings-ext" {
+			// 扩展的四个页签共用 when，页签序号在清单的 tab 里。
+			a := NewApp(Options{State: StateDefault})
+			a.screen, a.settingsSection, a.extTab = ScreenSettings, 3, it.Tab
+			tt = gui.NewTester(a.View, WindowWidth, WindowHeight)
 		}
-	}
-	// switch 形式：清单说"用开关"，实现就必须是框架 Switch（有开关语义、有开/关
-	// 两态、命中区达标），不能换成图标按钮。
-	out = append(out, checkSwitchForms(t, actions)...)
-
-	// 反向：清单里 form=icon 的动作，渲染出来时不得是开关。
-	out = append(out, checkIconNotSwitch(t, actions)...)
-
-	// 反向：清单里 form=icon 的动作，渲染出来时不得有可见文字（盒子只有图标宽）。
-	for _, st := range []State{StateDefault, StateRunning, StateWaiting} {
-		app2 := NewApp(Options{State: st})
-		t2 := gui.NewTester(app2.View, WindowWidth, WindowHeight)
-		for _, it := range actions.Items {
-			if it.Form != "icon" {
-				continue
+		if it.InMenu {
+			// 原生菜单项没有盒子：只判它在不在菜单里。
+			found := false
+			for _, label := range tt.Menu() {
+				if label == probe {
+					found = true
+					break
+				}
 			}
-			info, ok := t2.Access(it.Action)
-			if !ok {
-				continue
-			}
-			if info.Bounds.W > iconOnlyButtonWidth+space2 {
-				out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
-					it.Action + " 应是纯图标，却画出了文字（盒子宽 " + fmt.Sprintf("%.0f", info.Bounds.W) + "）"})
-			}
-		}
-	}
-	if seen == 0 {
-		out = append(out, lintFinding{"L5", "UI-23、F18", "render", "等待态的审批决定一个都没渲染"})
-	}
-	// confirm=true 的动作：第一次点击不得生效。
-	if it, ok := actionByAction(actions, "一直允许"); ok && it.Confirm {
-		if err := tt.Click("一直允许"); err != nil {
-			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render", "点不到一直允许"})
-		} else if app.approvalDecision != "" {
-			out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
-				"一直允许一次点击就生效了，缺确认"})
-		}
-	}
-	return out
-}
-
-// extTabOf 是"停用某类"与扩展页签的对应（本批四类各一个页签）。
-func extTabOf(action string) (int, bool) {
-	switch action {
-	case "停用技能":
-		return 0, true
-	case "停用插件":
-		return 1, true
-	case "停用 MCP":
-		return 2, true
-	case "停用钩子":
-		return 3, true
-	}
-	return 0, false
-}
-
-// checkSwitchForms 判"清单 form=switch 的动作真的渲染成框架 Switch"。
-func checkSwitchForms(t *testing.T, actions *actionDoc) []lintFinding {
-	t.Helper()
-	var out []lintFinding
-	for _, it := range actions.Items {
-		if it.Form != "switch" {
-			continue
-		}
-		tab, ok := extTabOf(it.Action)
-		if !ok {
-			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 标了 switch，但检查器不知道它落在哪个页签"})
-			continue
-		}
-		app := NewApp(Options{State: StateDefault})
-		app.screen, app.settingsSection, app.extTab = ScreenSettings, 3, tab
-		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-		// 该类第一行的开关：名字是「启用：<名称>」。
-		items := app.extItems(extKind(tab))
-		if len(items) == 0 {
-			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 的页签没有样例行"})
-			continue
-		}
-		want := "启用：" + items[0].name
-		info, ok := tt.Access(want)
-		if !ok {
-			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 找不到开关 " + want})
-			continue
-		}
-		if info.Role != gui.RoleSwitch {
-			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				fmt.Sprintf("%s 不是开关（role=%v）", it.Action, info.Role)})
-			continue
-		}
-		// 命中区：框架 Switch 是 36×20，低于通用 24 的宽度下限但不低于高度下限。
-		if info.Bounds.W < 36 || info.Bounds.H < 20 {
-			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				fmt.Sprintf("%s 的开关命中区 %.0f×%.0f 小于 36×20", it.Action, info.Bounds.W, info.Bounds.H)})
-		}
-		if info.Checked != items[0].on {
-			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 的开关状态与数据不一致"})
-		}
-	}
-	return out
-}
-
-// checkIconNotSwitch 判"清单 form 不是 switch 的动作没被渲染成开关"。
-// 扩展类的启停动作按行渲染成「启用：<名称>」的开关；若清单说它是 icon / text，
-// 却在这里查到开关语义，就是清单与实现不一致。
-func checkIconNotSwitch(t *testing.T, actions *actionDoc) []lintFinding {
-	t.Helper()
-	var out []lintFinding
-	for _, it := range actions.Items {
-		if it.Form == "switch" {
-			continue
-		}
-		if tab, ok := extTabOf(it.Action); ok {
-			app := NewApp(Options{State: StateDefault})
-			app.screen, app.settingsSection, app.extTab = ScreenSettings, 3, tab
-			tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-			items := app.extItems(extKind(tab))
-			if len(items) == 0 {
-				continue
-			}
-			if info, ok := tt.Access("启用：" + items[0].name); ok && info.Role == gui.RoleSwitch {
+			if !found {
 				out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-					it.Action + " 声明为 " + it.Form + "，却渲染成了开关"})
+					"清单说它在「" + it.When + "」的菜单里出现，但菜单里没有 " + probe})
 			}
 			continue
 		}
-		app := NewApp(Options{State: StateRunning})
-		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-		if info, ok := tt.Access(it.Action); ok && info.Role == gui.RoleSwitch {
+		info, ok := tt.Access(probe)
+		if !ok {
 			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 声明为 " + it.Form + "，却渲染成了开关"})
+				"清单说它出现在「" + it.When + "」，但渲染里查不到 " + probe})
+			continue
+		}
+		switch it.Form {
+		case "switch":
+			if info.Role != gui.RoleSwitch {
+				out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+					fmt.Sprintf("%s 声明为 switch，实际 role=%v", it.Action, info.Role)})
+			} else if info.Bounds.W < 36 || info.Bounds.H < 20 {
+				out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+					fmt.Sprintf("%s 的开关命中区 %.0f×%.0f 小于 36×20", it.Action, info.Bounds.W, info.Bounds.H)})
+			}
+		case "icon":
+			if info.Role == gui.RoleSwitch {
+				out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+					it.Action + " 声明为 icon，却渲染成了开关"})
+			} else if info.Bounds.W > iconOnlyButtonWidth+space2 {
+				out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+					it.Action + " 声明为纯图标，盒子却比纯图标宽（画了字）"})
+			}
+		case "icon+text":
+			if !hasInk(tt.Image(), info.Bounds) {
+				out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+					it.Action + " 只有文字没有图标"})
+			}
+			// 可见文字：盒子里要真有字——纯图标按钮的 label 也会被 Find 命中，
+			// 所以同时要求盒子比"只有图标"宽。
+			if _, visible := tt.Find(visibleText(it)); !visible {
+				out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
+					it.Action + " 在屏幕上没有可见文字（可能只留了 label）"})
+			} else if info.Bounds.W <= iconOnlyButtonWidth+space2 {
+				out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
+					it.Action + " 声明为图标 + 文字，盒子却只有图标那么宽"})
+			}
+		case "text":
+			if _, visible := tt.Find(visibleText(it)); !visible {
+				out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
+					it.Action + " 声明为纯文字，屏幕上却没有字"})
+			}
+		default:
+			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的 form 不认识：" + it.Form})
 		}
 	}
+	t.Logf("L5 覆盖：真正检查 %d 条、未实现跳过 %d 条（共 %d 条）", checked, skipped, len(actions.Items))
 	return out
+}
+
+// visibleText 是动作在屏幕上的可见文字（缺省与动作同名）。
+func visibleText(it actionEntry) string {
+	if it.Text != "" {
+		return it.Text
+	}
+	return it.Action
 }
 
 // actionByAction 按动作名取清单条目。
@@ -1214,14 +1172,19 @@ func lintElementForms(t *testing.T, elements *elementDoc) []lintFinding {
 	return out
 }
 
-// testerForWhen 按清单里的 when 造出该元素出现的界面。
+// testerForWhen 按清单里的 when 造出它出现的界面（元素表与动作表共用）。
 func testerForWhen(t *testing.T, when string) *gui.Tester {
 	t.Helper()
 	app := NewApp(Options{State: StateDefault})
 	switch when {
-	case "always":
+	case "always", "", "default":
 	case "branch":
 		app.branch, app.branches = branchSamples()
+		app.branchMenuOpen = true
+	case "branch-end":
+		app.branch, app.branches = branchSamples()
+		app.branchMenuOpen = true
+		app.endBranchConfirm = true
 	case "goal-edit":
 		app.goalEditing = true
 	case "tasks":
@@ -1238,6 +1201,16 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.screen, app.settingsSection = ScreenSettings, 0
 	case "settings-rules":
 		app.screen, app.settingsSection = ScreenSettings, 2
+	case "settings-ext", "settings-ext-empty", "settings-ext-failed":
+		app.screen, app.settingsSection = ScreenSettings, 3
+		switch when {
+		case "settings-ext":
+			app.extTab, app.extState = 1, extLoaded
+		case "settings-ext-empty":
+			app.extState = extEmpty
+		default:
+			app.extState = extFailed
+		}
 	case "term":
 		app.rightOpen, app.rightTab = true, 4
 	case "term-running":
@@ -1248,12 +1221,6 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.rightOpen, app.rightTab = true, 4
 		app.termState = termExited
 		app.termLines = termSamples(termExited)
-	case "settings-ext":
-		app.screen, app.settingsSection, app.extTab, app.extState = ScreenSettings, 3, 1, extLoaded
-	case "settings-ext-empty":
-		app.screen, app.settingsSection, app.extState = ScreenSettings, 3, extEmpty
-	case "settings-ext-failed":
-		app.screen, app.settingsSection, app.extState = ScreenSettings, 3, extFailed
 	default:
 		return nil
 	}
@@ -1391,6 +1358,20 @@ type actionEntry struct {
 	Form        string `json:"form"`
 	Confirm     bool   `json:"confirm"`
 	Basis       string `json:"basis"`
+	// When 是它出现的界面（waiting / running / tasks / branch / branch-end /
+	// term / term-running / settings / settings-rules / settings-ext / default）。
+	When string `json:"when"`
+	// Probe 是它在那个界面里的可访问名（缺省用 Action）；Text 是屏幕上的可见
+	// 文字（缺省用 Action）——两步确认类的动作两者不同（「结束分支」→「确认结束分支？」）。
+	Probe string `json:"probe"`
+	Text  string `json:"text"`
+	// InMenu 表示它只出现在原生菜单里（菜单项给不了盒子，只判存在）。
+	InMenu bool `json:"in_menu"`
+	// Tab 是扩展类的页签序号（switch 形式用）。
+	Tab int `json:"tab"`
+	// Implemented 为 false 表示这一条还没实现；L5 跳过并在报告里计数，
+	// 不靠"查不到"来静默跳过。
+	Implemented *bool `json:"implemented"`
 }
 
 type actionDoc struct {

@@ -62,7 +62,13 @@ Owner: U3 界面交互
 |---|---|
 | L5 | 清单里 `form = icon+text` 的动作，渲染出来必须有图标与可见文字；`confirm = true` 的必须有两步确认（当前是「一直允许」） |
 
-JSON 字段：`id`、`action`、`consequence`、`scope`、`form`（`icon` / `icon+text` / `text`）、`confirm`、`basis`（U3 章节或 D 领域接口）。
+JSON 字段：`id`、`action`、`consequence`、`scope`、`form`（`icon` / `icon+text` / `text` / `switch`）、`confirm`、`basis`（U3 章节或 D 领域接口），以及检查器用的三项：
+
+| 字段 | 含义 |
+|---|---|
+| `when` | 它出现在哪个界面（`waiting` / `running` / `tasks` / `branch` / `branch-end` / `term` / `term-running` / `settings` / `settings-rules` / `settings-ext` / `default`） |
+| `probe` / `text` | 在那个界面里的可访问名 / 屏幕上的可见文字（两步确认类两者不同） |
+| `implemented` | 为 `false` 的是还没实现的入口，L5 跳过并计数——**不靠"查不到"静默跳过** |
 
 ## 5 变更记录
 

@@ -17,7 +17,9 @@
       "scope": "单次",
       "form": "icon+text",
       "confirm": false,
-      "basis": "U3 §5.2（allow）"
+      "basis": "U3 §5.2（allow）",
+      "when": "waiting",
+      "probe": "允许一次"
     },
     {
       "id": "AC-02",
@@ -26,7 +28,9 @@
       "scope": "所有会话",
       "form": "icon+text",
       "confirm": true,
-      "basis": "U3 §5.2/§5.3（permission.set_rules + allow）"
+      "basis": "U3 §5.2/§5.3（permission.set_rules + allow）",
+      "when": "waiting",
+      "probe": "一直允许"
     },
     {
       "id": "AC-03",
@@ -35,7 +39,9 @@
       "scope": "单次",
       "form": "icon+text",
       "confirm": false,
-      "basis": "U3 §5.2（deny）、§6.3"
+      "basis": "U3 §5.2（deny）、§6.3",
+      "when": "waiting",
+      "probe": "拒绝"
     },
     {
       "id": "AC-04",
@@ -44,7 +50,9 @@
       "scope": "当前轮",
       "form": "icon",
       "confirm": false,
-      "basis": "U3 §4.1、T4；D3 write registry"
+      "basis": "U3 §4.1、T4；D3 write registry",
+      "when": "running",
+      "probe": "停止"
     },
     {
       "id": "AC-05",
@@ -53,7 +61,9 @@
       "scope": "当前队列项",
       "form": "icon",
       "confirm": false,
-      "basis": "U3 §4.3 S6–S9"
+      "basis": "U3 §4.3 S6–S9",
+      "when": "running",
+      "probe": "撤回排队"
     },
     {
       "id": "AC-06",
@@ -62,7 +72,11 @@
       "scope": "待发附件",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 E2、U3 未单列（未实现）"
+      "basis": "U1 E2、U3 未单列（未实现）",
+      "when": "default",
+      "probe": "",
+      "implemented": false,
+      "why_not_implemented": "附件 chip 还没有移除入口（U1 E2 的移除留后续批次）"
     },
     {
       "id": "AC-07",
@@ -71,7 +85,11 @@
       "scope": "整条会话",
       "form": "icon+text",
       "confirm": true,
-      "basis": "U1 A6、D4；U3 后续批次"
+      "basis": "U1 A6、D4；U3 后续批次",
+      "when": "default",
+      "probe": "",
+      "implemented": false,
+      "why_not_implemented": "删除会话没有入口（U3 后续批次）"
     },
     {
       "id": "AC-08",
@@ -80,7 +98,10 @@
       "scope": "一条分支",
       "form": "icon+text",
       "confirm": true,
-      "basis": "U1 S63；U3 后续批次；两步确认落在标题行标记（U2-forms F19 变化规则）"
+      "basis": "U1 S63；U3 后续批次；两步确认落在标题行标记（U2-forms F19 变化规则）",
+      "when": "branch-end",
+      "probe": "确认结束分支",
+      "text": "确认结束分支？"
     },
     {
       "id": "AC-09",
@@ -89,7 +110,11 @@
       "scope": "当前会话",
       "form": "text",
       "confirm": true,
-      "basis": "U1 A8、Q8（首批不提供入口）"
+      "basis": "U1 A8、Q8（首批不提供入口）",
+      "when": "settings",
+      "probe": "",
+      "implemented": false,
+      "why_not_implemented": "权限档位入口按 Q8 首批不提供"
     },
     {
       "id": "AC-10",
@@ -98,7 +123,9 @@
       "scope": "一个后台任务",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 C11；U3 后续批次"
+      "basis": "U1 C11；U3 后续批次",
+      "when": "tasks",
+      "probe": "取消任务"
     },
     {
       "id": "AC-11",
@@ -107,7 +134,9 @@
       "scope": "当前会话",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 E1、UI-7"
+      "basis": "U1 E1、UI-7",
+      "when": "default",
+      "probe": "修改目标"
     },
     {
       "id": "AC-12",
@@ -116,7 +145,10 @@
       "scope": "当前会话",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 S63、E7"
+      "basis": "U1 S63、E7",
+      "when": "branch",
+      "probe": "从当前分支切出",
+      "in_menu": true
     },
     {
       "id": "AC-13",
@@ -125,7 +157,9 @@
       "scope": "所有会话",
       "form": "icon+text",
       "confirm": true,
-      "basis": "U1 T1、T29；U3 设置分节（后续批次接 permission.set_rules）"
+      "basis": "U1 T1、T29；U3 设置分节（后续批次接 permission.set_rules）",
+      "when": "settings-rules",
+      "probe": "清空命令规则"
     },
     {
       "id": "AC-14",
@@ -134,7 +168,10 @@
       "scope": "本机全部会话",
       "form": "switch",
       "confirm": false,
-      "basis": "U1 T6、S46；U3 T16"
+      "basis": "U1 T6、S46；U3 T16",
+      "when": "settings-ext",
+      "probe": "启用：GitHub",
+      "tab": 1
     },
     {
       "id": "AC-15",
@@ -143,7 +180,10 @@
       "scope": "本机全部会话",
       "form": "switch",
       "confirm": false,
-      "basis": "U1 S43–S46；U3 T16"
+      "basis": "U1 S43–S46；U3 T16",
+      "when": "settings-ext",
+      "probe": "启用：代码评审",
+      "tab": 0
     },
     {
       "id": "AC-16",
@@ -152,7 +192,10 @@
       "scope": "本机全部会话",
       "form": "switch",
       "confirm": false,
-      "basis": "U1 T8；U3 T16"
+      "basis": "U1 T8；U3 T16",
+      "when": "settings-ext",
+      "probe": "启用：filesystem",
+      "tab": 2
     },
     {
       "id": "AC-17",
@@ -161,7 +204,10 @@
       "scope": "本机全部会话",
       "form": "switch",
       "confirm": false,
-      "basis": "U1 T7；U3 T16"
+      "basis": "U1 T7；U3 T16",
+      "when": "settings-ext",
+      "probe": "启用：提交前检查",
+      "tab": 3
     },
     {
       "id": "AC-18",
@@ -170,7 +216,9 @@
       "scope": "当前终端会话",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 T25；U3 T17"
+      "basis": "U1 T25；U3 T17",
+      "when": "term-running",
+      "probe": "中止运行"
     },
     {
       "id": "AC-19",
@@ -179,7 +227,9 @@
       "scope": "当前终端视图",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 T25；U3 T17"
+      "basis": "U1 T25；U3 T17",
+      "when": "term",
+      "probe": "清屏"
     },
     {
       "id": "AC-20",
@@ -188,7 +238,9 @@
       "scope": "当前终端视图",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 T25；U3 T17"
+      "basis": "U1 T25；U3 T17",
+      "when": "term",
+      "probe": "复制输出"
     }
   ],
   "undecided": [
