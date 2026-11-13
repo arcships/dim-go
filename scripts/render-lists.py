@@ -36,6 +36,16 @@ def rows_elements(data):
     return "\n".join(out)
 
 
+def rows_mapping(data):
+    out = ["| # | 可见元素 | 组件（框架 / 自绘） | 代码符号 | 出现的态 |",
+           "|---|---|---|---|---|"]
+    for it in data["items"]:
+        out.append(
+            f"| {it['id']} | {it['element']} | {it['component']} | `{it['symbol']}` | `{it['when']}` |"
+        )
+    return "\n".join(out)
+
+
 def rows_u3(data):
     out = ["| # | 动作 | 后果 | 影响面 | 形式 | 需要确认 | 依据 |",
            "|---|---|---|---|---|---|---|"]
@@ -62,8 +72,9 @@ def main():
     rewrite("docs/domains/U1-content.md", u1, rows_u1)
     rewrite("docs/domains/U3-actions.md", u3, rows_u3)
     rewrite("docs/domains/U2-forms.md", el, rows_elements)
+    rewrite("docs/domains/U4-technical.md", el, rows_mapping)
     print(f"wrote U1-content.md（{len(u1['items'])} 条）、U3-actions.md（{len(u3['items'])} 条）"
-          f"、U2-forms.md 元素表（{len(el['items'])} 条）")
+          f"、U2-forms.md 元素表与 U4 映射表（{len(el['items'])} 条）")
 
 
 if __name__ == "__main__":

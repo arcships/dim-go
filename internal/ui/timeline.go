@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/markdown"
 )
 
 // timeline 是 R3 对话流：内容左缘对齐，纵向滚动（§9.0 A3：对齐由内容推出，
@@ -85,8 +86,10 @@ func (a *App) round(c *gui.Context, i int) {
 // reply 是助手正文。运行中在行尾给 2×14 的 accent-ink 光标（U2 §4.1、§5.3）。
 func (a *App) reply(c *gui.Context, r round) {
 	t := c.Theme()
+	// 助手正文是 Markdown（U1 B2）：完成的回复用 View，正在写的用 Stream（逐字）。
+	// 用宿主框架自带的 ui/markdown，不引入第三方（C4 §5 的决策）。
 	if r.status != roundRunning {
-		typeBody.style(t, gui.Text(c, r.reply)).Selectable()
+		markdown.View(c, r.reply, &a.md)
 		return
 	}
 	gui.RichText(c,
@@ -118,9 +121,9 @@ func (a *App) roundHeader(c *gui.Context, i int) {
 	if phrase == "" {
 		return
 	}
-	open := &a.summaryOpen[i]
+	openPtr := a.openOf(i)
 
-	parts := gui.CollapsibleBase(c, open)
+	parts := gui.CollapsibleBase(c, openPtr)
 	// 指针形状与悬停底是"这能点"的两条线索（U2 §4.4）；文字与图标颜色不变。
 	full := phrase
 	shown := fitPhrase(c, t, phrase, a.sidebarCollapsed, a.rightOpen)

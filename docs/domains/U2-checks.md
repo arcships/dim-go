@@ -24,7 +24,7 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
     修法：删掉字符，用 internal/ui/icons.go 的图标元素
 ```
 
-## 1 检查项（18 条）
+## 1 检查项（19 条）
 
 | # | 检查什么 | 规则 | 断言（`lint_test.go`） | 不通过时的修法 |
 |---|---|---|---|---|
@@ -46,8 +46,9 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 | L16 |清单引用完整性：U1 清单每条能指回信息项 | §9.14 第 1 层、U1-information | `lintListReferences`：`U1-content.json` 的 `item` 必须作为一行出现在 `U1-information.md` | 改信息项编号，或把条目从清单里删掉 |
 | L17 | 元素表声明的形式与渲染一致 | UI-23、D5、§9.14 第 2 层 | `lintElementForms` 读 `U2-elements.json`：`icon+text` 必须有图标标记（`图标：<mark>`）与盒内可见文字；`icon` 盒宽不得超纯图标且要有墨迹；`text` 必须有盒内可见文字；`style` 要有墨迹；`checkable=false` 的条目在清单里写了不能自动判的理由；找不到元素报「清单与实现不一致」 | 补图标或文字，或改清单（改形式属形式级） |
 | L18 | 元素不得越出窗口 | UI-22、§9.14 第 3 层 | `lintNoOverflow`：主界面（默认/运行中/等待）与设置三节，在 1440 / 900 / 720 三档下，每个文字/带名字元素的**可访问盒子**（不是被裁过的可见文字范围）都必须在窗口内 | 改窄窗退化（堆叠 / 滚动），或收窄定宽列；不要靠裁切 |
+| L19 | view 映射覆盖率 | U4 §1、§9.14 第 1 层 | `lintViewMapping` 读 `U2-elements.json`：每条元素的 `component` 与 `symbol` 非空，且 `symbol` 是 `internal/ui` 里真实存在的标识符（框架符号取最后一段）；指不到即缺 | 补 `component`/`symbol`，或在 `internal/ui` 里补上该组件 |
 
-**18 条与组织编号的对应**：A2/D2 → L6；A3 → L9；D4 → L3/L7；UI-5 → L12；UI-11 → L6；UI-18 → L10/L11；UI-21 → L2/L3；UI-22 → L1/L8/L13；UI-23 → L4/L5；X14 → L10/L11；X15 → L2；X16 → L1；X17 → L14；X20 → L6；§9.14 第 1 层 → L16；D5、§9.14 第 2 层 → L17；§9.14 第 3 层、UI-22 → L18。
+**19 条与组织编号的对应**：A2/D2 → L6；A3 → L9；D4 → L3/L7；UI-5 → L12；UI-11 → L6；UI-18 → L10/L11；UI-21 → L2/L3；UI-22 → L1/L8/L13；UI-23 → L4/L5；X14 → L10/L11；X15 → L2；X16 → L1；X17 → L14；X20 → L6；§9.14 第 1 层 → L16；D5、§9.14 第 2 层 → L17；§9.14 第 3 层、UI-22 → L18；U4 §1 → L19。
 
 ## 2 白名单（逐条给理由）
 
@@ -106,6 +107,7 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 | L6 | 在 `timeline.go` 里加 `gui.Text(c, "完成")` | `[L6] … 状态词被当成文字画到屏幕上：完成` |
 | L17 | 删掉 `header.go` 里分支标记的 `iconGlyph(c, iconBranch, …, "branch")` | `render [L17] UI-23、D5（EL-08）… 声明为图标 + 文字，但文字旁边没有图标` |
 | L18 | 把 `tokens.go` 的 `SettingsRuleSelectWidth` 改成 200（三列总和超过 720 的内宽） | `render [L18] … 设置·命令规则 @720 … 越出窗口` |
+| L19 | 删掉 `U2-elements.json` 里任一元素的 `symbol`（或写成不存在的名字） | `docs [L19] … 没有指到组件` / `… 指的组件 "x" 在 internal/ui 里找不到` |
 | L8 | 把输入卡的内边距从 `space2` 改成 `space3` | `[L8] … 输入卡 在 1440 档的左缘 … 不同` |
 | L13 | 把 `iconButtonSpec` 的 `size` 改成 `20` | `[L13] … 命中区 20×20 小于 24` |
 

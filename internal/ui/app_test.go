@@ -247,7 +247,7 @@ func TestRoundHeaderTogglesOnContentClick(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 	row := headerRow(t, tt)
 	tt.ClickAt(row.X+row.W/2, row.Y+row.H/2)
-	if !app.summaryOpen[0] {
+	if !*app.openOf(0) {
 		t.Fatal("点内容块没有展开")
 	}
 	tt.Advance(300 * time.Millisecond)
@@ -256,7 +256,7 @@ func TestRoundHeaderTogglesOnContentClick(t *testing.T) {
 	}
 	row = headerRow(t, tt)
 	tt.ClickAt(row.X+row.W/2, row.Y+row.H/2)
-	if app.summaryOpen[0] {
+	if *app.openOf(0) {
 		t.Fatal("再点内容块没有收起")
 	}
 }
@@ -285,7 +285,7 @@ func TestRoundHeaderExpands(t *testing.T) {
 	}
 	row := headerRow(t, tt)
 	tt.ClickAt(row.X+row.W/2, row.Y+row.H/2)
-	if !app.summaryOpen[0] {
+	if !*app.openOf(0) {
 		t.Fatal("第一轮组头没有展开")
 	}
 	tt.Advance(300 * time.Millisecond)
@@ -298,7 +298,7 @@ func TestRoundHeaderExpands(t *testing.T) {
 	if err := tt.Click("go test ./..."); err != nil {
 		t.Fatalf("点不到明细行：%v", err)
 	}
-	if !app.summaryOpen[0] {
+	if !*app.openOf(0) {
 		t.Fatal("点明细内容不应收起组头")
 	}
 }
@@ -345,7 +345,7 @@ func TestDirectionIndicatorTurnsWithOpen(t *testing.T) {
 	}
 
 	before := tt.Image()
-	app.summaryOpen[0] = true
+	*app.openOf(0) = true
 	tt.Frame()
 	tt.Advance(300 * time.Millisecond)
 	after := tt.Image()

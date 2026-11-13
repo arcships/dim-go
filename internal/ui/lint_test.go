@@ -63,13 +63,14 @@ var lintFix = map[string]string{
 	"L16": "清单条目指回 U1 信息项编号",
 	"L17": "让实现与元素表的形式一致：补图标或改清单（改形式=形式级）",
 	"L18": "改窄窗退化（堆叠 / 滚动），或收窄定宽列；不要靠裁切",
+	"L19": "在 U2-elements.json 里补 component 与 symbol，或在 internal/ui 里补上该组件",
 }
 
 // TestUILint 是检查器本体：工作区必须零违例。
 func TestUILint(t *testing.T) {
 	findings := lintWorkspace(t)
 	if len(findings) == 0 {
-		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 18)
+		t.Logf("检查器全绿：%d 个检查项（见 docs/domains/U2-checks.md）", 19)
 		return
 	}
 	sort.Slice(findings, func(i, j int) bool {
@@ -195,6 +196,7 @@ func lintWorkspace(t *testing.T) []lintFinding {
 	out = append(out, lintListReferences(t, &content)...)
 	out = append(out, lintElementForms(t, &elements)...)
 	out = append(out, lintNoOverflow(t)...)
+	out = append(out, lintViewMapping(t, &elements)...)
 	return out
 }
 
@@ -694,6 +696,46 @@ func lintListReferences(t *testing.T, content *contentDoc) []lintFinding {
 // rowCompact 的方盒，而图标 + 文字的入口一定比这个更宽。
 var iconOnlyButtonWidth = float32(iconInline + 2*space3)
 
+// L19：view 映射覆盖率——元素表每一条都要指到一个组件（U4 §1）。
+// 判法：`component` 与 `symbol` 非空，且 `symbol` 是 internal/ui 里真实存在的标识符
+// （框架符号 `gui.X` / `markdown.X` 取最后一段，按同名方法名在源码里找）。
+func lintViewMapping(t *testing.T, elements *elementDoc) []lintFinding {
+	t.Helper()
+	src, err := os.ReadFile(".")
+	if err != nil {
+		_ = src
+	}
+	var all []byte
+	files, _ := filepath.Glob("*.go")
+	for _, f := range files {
+		if strings.HasSuffix(f, "_test.go") {
+			continue
+		}
+		b, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		all = append(all, b...)
+	}
+	var out []lintFinding
+	for _, it := range elements.Items {
+		if it.Component == "" || it.Symbol == "" {
+			out = append(out, lintFinding{"L19", "U4 §1、§9.14 第 1 层", "docs",
+				fmt.Sprintf("%s（%s）没有指到组件：component 或 symbol 为空", it.ID, it.Element)})
+			continue
+		}
+		name := it.Symbol
+		if i := strings.LastIndex(name, "."); i >= 0 {
+			name = name[i+1:]
+		}
+		if !regexp.MustCompile(`\b` + regexp.QuoteMeta(name) + `\b`).Match(all) {
+			out = append(out, lintFinding{"L19", "U4 §1、§9.14 第 1 层", "docs",
+				fmt.Sprintf("%s（%s）指的组件 %q 在 internal/ui 里找不到", it.ID, it.Element, it.Symbol)})
+		}
+	}
+	return out
+}
+
 // L18：元素的盒子不得越出窗口（含设置屏与主界面，1440 / 900 / 720 三档）。
 // 用 Tester 的 Bounds 判：文字与带名字的元素（下拉、按钮、行）都算；滚出视口
 // 的零面积行跳过。
@@ -914,6 +956,8 @@ type elementEntry struct {
 	Probe     string `json:"probe"`
 	Text      string `json:"text"`
 	Mark      string `json:"mark"`
+	Component string `json:"component"`
+	Symbol    string `json:"symbol"`
 	Checkable bool   `json:"checkable"`
 	WhyNot    string `json:"why_not_checkable"`
 }

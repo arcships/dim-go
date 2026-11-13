@@ -29,7 +29,9 @@
       "doc": "U2-forms §1 F16",
       "when": "always",
       "probe": "新建会话",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-02",
@@ -42,7 +44,9 @@
       "doc": "U2-forms §1 F16",
       "when": "always",
       "probe": "搜索",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-03",
@@ -55,7 +59,9 @@
       "doc": "U2-forms §1 F16",
       "when": "always",
       "probe": "收起左栏",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-04",
@@ -68,7 +74,9 @@
       "doc": "U2-forms §1 F11",
       "when": "always",
       "probe": "连接状态：已连接",
-      "checkable": true
+      "checkable": true,
+      "component": "自绘 Box + DrawOver 圆",
+      "symbol": "statusDot"
     },
     {
       "id": "EL-05",
@@ -82,7 +90,9 @@
       "when": "always",
       "probe": "账号：E",
       "text": "E",
-      "checkable": true
+      "checkable": true,
+      "component": "自绘 Box + DrawOver 首字母",
+      "symbol": "avatar"
     },
     {
       "id": "EL-06",
@@ -97,7 +107,9 @@
       "probe": "会话 修发送路径",
       "text": "修发送路径",
       "checkable": false,
-      "why_not_checkable": "标题是内容（A1），且与左栏同名行撞名；标题行由 TestTitleBarIsWindowTitleBar 覆盖"
+      "why_not_checkable": "标题是内容（A1），且与左栏同名行撞名；标题行由 TestTitleBarIsWindowTitleBar 覆盖",
+      "component": "自绘 Row + gui.Text",
+      "symbol": "header"
     },
     {
       "id": "EL-07",
@@ -110,7 +122,9 @@
       "doc": "U2-forms §1 F16",
       "when": "always",
       "probe": "打开右栏",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconMenuButton"
     },
     {
       "id": "EL-08",
@@ -125,7 +139,9 @@
       "probe": "切换分支：feature/queue-rework",
       "text": "feature/queue-rework",
       "checkable": true,
-      "mark": "branch"
+      "mark": "branch",
+      "component": "gui.ButtonBase + PopoverMenuButton（原生菜单）",
+      "symbol": "branchChip"
     },
     {
       "id": "EL-09",
@@ -140,7 +156,9 @@
       "probe": "读取更早的记录",
       "text": "读取 composer.go",
       "checkable": false,
-      "why_not_checkable": "组头是 disclosure，probe 落在它的邻居上；组头的图标与文字由 L5/L6 与 TestRoundHeader* 覆盖"
+      "why_not_checkable": "组头是 disclosure，probe 落在它的邻居上；组头的图标与文字由 L5/L6 与 TestRoundHeader* 覆盖",
+      "component": "CollapsibleBase + 自绘行",
+      "symbol": "roundHeader"
     },
     {
       "id": "EL-10",
@@ -155,7 +173,9 @@
       "probe": "读取",
       "text": "读取",
       "checkable": false,
-      "why_not_checkable": "只在展开后出现，且与组头同一段文字；由 TestRoundHeaderExpands 覆盖"
+      "why_not_checkable": "只在展开后出现，且与组头同一段文字；由 TestRoundHeaderExpands 覆盖",
+      "component": "自绘行",
+      "symbol": "opRow"
     },
     {
       "id": "EL-11",
@@ -170,7 +190,9 @@
       "probe": "结果不确定行",
       "text": "结果不确定 · 正在核对",
       "checkable": true,
-      "mark": "exclamation"
+      "mark": "exclamation",
+      "component": "自绘 Row + iconGlyph",
+      "symbol": "note"
     },
     {
       "id": "EL-12",
@@ -185,7 +207,9 @@
       "probe": "允许一次",
       "text": "允许一次",
       "checkable": true,
-      "mark": "check"
+      "mark": "check",
+      "component": "自绘 ButtonBase（textIconButton）",
+      "symbol": "textIconButton"
     },
     {
       "id": "EL-13",
@@ -200,7 +224,9 @@
       "probe": "一直允许",
       "text": "一直允许",
       "checkable": true,
-      "mark": "check-lock"
+      "mark": "check-lock",
+      "component": "自绘 ButtonBase（textIconButton）",
+      "symbol": "textIconButton"
     },
     {
       "id": "EL-14",
@@ -215,7 +241,9 @@
       "probe": "拒绝",
       "text": "拒绝",
       "checkable": true,
-      "mark": "x-mark"
+      "mark": "x-mark",
+      "component": "自绘 ButtonBase（textIconButton）",
+      "symbol": "textIconButton"
     },
     {
       "id": "EL-15",
@@ -228,7 +256,9 @@
       "doc": "U2-forms §1 F8",
       "when": "running",
       "probe": "撤回排队",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-16",
@@ -243,7 +273,9 @@
       "probe": "上下文 12%",
       "text": "12%",
       "checkable": true,
-      "mark": "gauge"
+      "mark": "gauge",
+      "component": "CollapsibleBase + 自绘行",
+      "symbol": "contextMeter"
     },
     {
       "id": "EL-17",
@@ -256,7 +288,9 @@
       "doc": "U2-forms §1 F16",
       "when": "always",
       "probe": "附件",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-18",
@@ -269,7 +303,9 @@
       "doc": "U2-forms §1 F17",
       "when": "always",
       "probe": "发送",
-      "checkable": true
+      "checkable": true,
+      "component": "自绘 ButtonBase（iconAction）",
+      "symbol": "iconAction"
     },
     {
       "id": "EL-19",
@@ -282,7 +318,9 @@
       "doc": "U2-forms §1 F17",
       "when": "running",
       "probe": "停止",
-      "checkable": true
+      "checkable": true,
+      "component": "自绘 ButtonBase（iconAction）",
+      "symbol": "iconAction"
     },
     {
       "id": "EL-20",
@@ -295,7 +333,9 @@
       "doc": "U2-forms §1 F16",
       "when": "always",
       "probe": "读取更早的记录",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-21",
@@ -310,7 +350,9 @@
       "probe": "空态",
       "text": "还没有消息",
       "checkable": true,
-      "mark": "chat"
+      "mark": "chat",
+      "component": "自绘 Row + iconGlyph",
+      "symbol": "timeline"
     },
     {
       "id": "EL-22",
@@ -325,7 +367,9 @@
       "probe": "目标行",
       "text": "把发送路径改成排队",
       "checkable": true,
-      "mark": "target"
+      "mark": "target",
+      "component": "自绘 Row + TextAreaBase",
+      "symbol": "goalRow"
     },
     {
       "id": "EL-23",
@@ -338,7 +382,9 @@
       "doc": "U2-forms §1 F20",
       "when": "always",
       "probe": "修改目标",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-24",
@@ -352,7 +398,9 @@
       "when": "goal-edit",
       "probe": "保存目标",
       "checkable": true,
-      "text": "保存"
+      "text": "保存",
+      "component": "gui.PrimaryButton",
+      "symbol": "actionButton"
     },
     {
       "id": "EL-25",
@@ -367,7 +415,9 @@
       "probe": "后台任务：go test ./... · 运行中",
       "text": "go test ./...",
       "checkable": true,
-      "mark": "task"
+      "mark": "task",
+      "component": "自绘 Row + iconGlyph",
+      "symbol": "taskRow"
     },
     {
       "id": "EL-26",
@@ -380,7 +430,9 @@
       "doc": "U2-forms §1 F21",
       "when": "tasks",
       "probe": "取消任务",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-27",
@@ -395,7 +447,9 @@
       "probe": "看看这次的失败",
       "text": "看看这次的失败",
       "checkable": false,
-      "why_not_checkable": "内容行，跨轮重复；形式由内容定"
+      "why_not_checkable": "内容行，跨轮重复；形式由内容定",
+      "component": "自绘 Box（气泡）",
+      "symbol": "round"
     },
     {
       "id": "EL-28",
@@ -409,7 +463,9 @@
       "when": "always",
       "probe": "消息在排队判定里丢了",
       "checkable": false,
-      "why_not_checkable": "内容行，长文本；形式由内容定"
+      "why_not_checkable": "内容行，长文本；形式由内容定",
+      "component": "ui/markdown.View",
+      "symbol": "markdown.View"
     },
     {
       "id": "EL-29",
@@ -422,7 +478,9 @@
       "doc": "U2-forms §1 F22",
       "when": "always",
       "probe": "设置",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase + 自绘图标",
+      "symbol": "iconButton"
     },
     {
       "id": "EL-30",
@@ -436,7 +494,9 @@
       "when": "settings",
       "probe": "外观",
       "text": "外观",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.ButtonBase（自绘行）",
+      "symbol": "navRow"
     },
     {
       "id": "EL-31",
@@ -450,7 +510,9 @@
       "when": "settings",
       "probe": "主题",
       "text": "主题",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.Select / gui.Switch",
+      "symbol": "settingsRow"
     },
     {
       "id": "EL-32",
@@ -465,7 +527,9 @@
       "when": "settings-rules",
       "probe": "清空命令规则",
       "text": "清空命令规则",
-      "checkable": true
+      "checkable": true,
+      "component": "自绘 ButtonBase（textIconButton）",
+      "symbol": "textIconButton"
     },
     {
       "id": "EL-33",
@@ -479,7 +543,9 @@
       "when": "goal-edit",
       "probe": "取消编辑",
       "text": "取消",
-      "checkable": true
+      "checkable": true,
+      "component": "gui.Button",
+      "symbol": "actionButton"
     }
   ]
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/markdown"
 )
 
 // State 是首片骨架要看的五种界面状态，对应 docs/domains/U1-ia.md §5
@@ -138,12 +139,17 @@ type App struct {
 
 	draft       string
 	rounds      []round
-	summaryOpen []bool
+	// summaryOpen 是每一轮的展开态（可丢的视图状态）：按轮次索引存一份 *bool，
+	// 指针稳定、按需创建——轮次变多时不必重建数组，view 里也不攒第二份事实。
+	summaryOpen map[int]*bool
 
 	// connected 与 accountInitial 是样例里的连接态与账号首字母：只用于画状态点
 	// 与头像（UI-23），不是事实来源。
 	connected      bool
 	accountInitial string
+
+	// md 是 Markdown 视图的配置（主题与扩展），一份实例跨帧复用（解析缓存随它）。
+	md markdown.Options
 
 	// 分支、目标、后台任务是样例里的展示数据（不是事实）：分支名、目标文本、
 	// 任务名都属于内容字符串（U1-content.json）。
@@ -219,7 +225,7 @@ func (a *App) SetState(s State) {
 // loadSample 按状态重建静态样例。
 func (a *App) loadSample() {
 	a.rounds = sampleRounds(a.state)
-	a.summaryOpen = make([]bool, len(a.rounds))
+	a.summaryOpen = make(map[int]*bool)
 	a.approvalCommand = ""
 	// 上下文用量的样例值：12%，与线框一致；上限只是样例，不是事实。
 	a.contextUsed, a.contextLimit = 24_600, 200_000
@@ -390,4 +396,19 @@ func clamp(v, lo, hi float32) float32 {
 		return hi
 	}
 	return v
+}
+
+// openOf 取某一轮的展开态指针（视图状态，按需创建并缓存）。默认全部折叠，
+// 只影响初始观感，不涉及任何事实。
+func (a *App) openOf(i int) *bool {
+	if a.summaryOpen == nil {
+		a.summaryOpen = make(map[int]*bool)
+	}
+	if p, ok := a.summaryOpen[i]; ok {
+		return p
+	}
+	v := false
+	p := &v
+	a.summaryOpen[i] = p
+	return p
 }

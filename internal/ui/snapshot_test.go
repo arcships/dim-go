@@ -58,7 +58,7 @@ var screenCases = []screenCase{
 	{name: "state-failed", state: StateFailed, titleBar: &windowTitleBar},
 	{name: "state-empty", state: StateEmpty, titleBar: &windowTitleBar},
 	{name: "variant-summary-open", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.summaryOpen[0] = true
+		*a.openOf(0) = true
 	}},
 	{name: "variant-right-panel", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.rightOpen = true
