@@ -33,6 +33,10 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-variant-settings-rules{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **命令规则分节**，停在**清空确认态**（危险动作两步） |
 | `window-default-variant-ext{,-900,-720}.png` | 1440/900/720×900 | 设置 · **扩展**分节：四页签 + 插件列表（8 行，名称/版本/状态点/开关） |
 | `window-default-variant-ext-failed{,-900,-720}.png` | 1440/900/720×900 | 设置 · 扩展**读取失败态**：叹号 + 原因 + 重试入口 |
+| `window-default-variant-ext-detail{,-900,-720}.png` | 1440/900/720×900 | 扩展**详情**（二级页）：描述、来源、能力、启停、卸载 |
+| `window-default-variant-ext-select{,-900,-720}.png` | 1440/900/720×900 | 扩展**选择态**：复选框 + 工具条（已选 2 / 启用 / 停用 / 取消） |
+| `window-default-variant-mcp-test{,-900,-720}.png` | 1440/900/720×900 | MCP **连接测试**：进行中 + 成功两行 |
+| `window-default-variant-mcp-fail{,-900/720}.png`（含 900/720） | 1440/900/720×900 | MCP **测试失败** + 导入回执 |
 | `window-default-variant-shell{,-900,-720}.png` | 1440/900/720×900 | 输入区**命令模式（`!`）空闲**：标记「! 命令」+ 退出 + 三角运行槽 |
 | `window-default-variant-shell-run{,-900,-720}.png` | 1440/900/720×900 | 输入区命令模式**运行中**：右栏终端同步显示命令（720 档右栏整屏替代主区，此时只看到终端——输入区的标记在窄窗被整屏替换，见 U1-ia §3.1） |
 | `window-default-variant-storage{,-900,-720}.png` | 1440/900/720×900 | 设置 · **存储与诊断**：三条读数（带单位）+ 服务版本 + 导出回执 |
@@ -93,7 +97,7 @@ go test ./internal/ui -run 'TestScreens|TestTitleBarCloseup|TestWordlessCheck' -
 
 # 真窗口（逐态启动、按窗口号截图；需要屏幕录制权限）
 go build -o /tmp/dimagent-ui ./cmd/dimagent-ui
-python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 二十三个走查态（branch / branch-end / goal / tasks / settings / settings-rules / ext / ext-failed / term / term-running / term-exited）
+python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 二十七个走查态（branch / branch-end / goal / tasks / settings / settings-rules / ext / ext-failed / term / term-running / term-exited）
 
 # 基线量测（同一批图上的数值）
 python3 scripts/ui-baseline.py docs/domains/screens/state-default.png

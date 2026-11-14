@@ -106,6 +106,11 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantExtDetail / ExtSelect / MCPTest / MCPFail 是扩展的详情、选择态与 MCP 测试三态。
+	VariantExtDetail
+	VariantExtSelect
+	VariantMCPTest
+	VariantMCPFail
 	// VariantShell / ShellRun 是输入区命令模式（`!`）的空闲与运行中。
 	VariantShell
 	VariantShellRun
@@ -142,6 +147,8 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"ext-detail": VariantExtDetail, "ext-select": VariantExtSelect,
+	"mcp-test": VariantMCPTest, "mcp-fail": VariantMCPFail,
 	"shell": VariantShell, "shell-run": VariantShellRun,
 	"storage": VariantStorage, "appearance-keys": VariantAppearanceKeys,
 	"cron": VariantCron, "cron-delete": VariantCronDelete,
@@ -159,7 +166,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、ext-detail、ext-select、mcp-test、mcp-fail、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -241,6 +248,15 @@ type App struct {
 	// 扩展：页签、加载态与四类样例。
 	extTab   int
 	extState extState
+
+	// 扩展的详情（二级页）、选择态与 MCP 的认证 / 导入 / 连接测试。
+	extDetail          int
+	extUninstallConfirm bool
+	selectMode         bool
+	extSelected        map[string]bool
+	mcpTest            map[string]mcpState
+	mcpTestDone        map[string]bool
+	importMCP          string
 
 	// 会话目录：搜索面、行内重命名、删除确认、归档与导出反馈（都属可丢的视图状态）。
 	searchOpen bool
@@ -354,6 +370,11 @@ func (a *App) loadSample() {
 	a.timeZone = "跟随系统"
 	a.diagnosticsExported, a.diagnosticsOpened = false, false
 	a.extTab, a.extState = 0, extLoaded
+	a.extDetail, a.extUninstallConfirm = -1, false
+	a.selectMode = false
+	a.extSelected = map[string]bool{}
+	a.mcpTest, a.mcpTestDone = map[string]mcpState{}, map[string]bool{}
+	a.importMCP = ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
@@ -376,6 +397,21 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = secRules // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantExtDetail:
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
+		a.extDetail = 0
+	case VariantExtSelect:
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
+		a.selectMode = true
+		a.extSelected = map[string]bool{"GitHub": true, "Linear": true}
+	case VariantMCPTest:
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
+		a.mcpTest["filesystem"] = mcpTesting
+		a.mcpTest["postgres"] = mcpOK
+	case VariantMCPFail:
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
+		a.mcpTest["postgres"] = mcpFail
+		a.importMCP = "filesystem"
 	case VariantShell:
 		a.draft = "!go test ./..."
 	case VariantShellRun:

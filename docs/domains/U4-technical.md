@@ -74,6 +74,11 @@ Owner: U4 技术设计（界面领域）
 | EL-57 | 命令模式标记 | 自绘行 + iconButton | `shellMarker` | `shell` |
 | EL-58 | 运行命令入口 | iconAction | `sendSlot` | `shell` |
 | EL-59 | 退出命令模式 | 自绘图标入口 | `shellMarker` | `shell` |
+| EL-60 | 扩展开详情页 | 自绘行 + gui.Switch + actionButton | `extDetailView` | `ext-detail` |
+| EL-61 | 批量选择工具条 | 自绘行 + actionButton | `selectToolbar` | `ext-select` |
+| EL-62 | 选择态复选框 | gui.Checkbox | `extRow` | `ext-select` |
+| EL-63 | MCP 认证状态 | 自绘 Box + DrawOver 点 | `mcpRow` | `mcp` |
+| EL-64 | 连接测试结果 | 自绘行 + iconGlyph | `mcpRow` | `mcp-ok` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

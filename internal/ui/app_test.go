@@ -520,6 +520,78 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
+// 扩展详情 / 批量选择 / MCP 连接测试。
+func TestExtDetailSelectAndMCP(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 1
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	// 详情：行末入口进入二级页，返回回列表。
+	if err := tt.Click("详情：GitHub"); err != nil {
+		t.Fatalf("点不到详情入口：%v", err)
+	}
+	if app.extDetail != 0 {
+		t.Fatal("没有进入详情")
+	}
+	tt.Frame()
+	if _, ok := tt.Access("返回扩展列表"); !ok {
+		t.Fatal("详情页缺返回入口")
+	}
+	// 卸载两步。
+	if err := tt.Click("卸载扩展"); err != nil {
+		t.Fatalf("点不到卸载：%v", err)
+	}
+	if !app.extUninstallConfirm || len(app.plugins) != 8 {
+		t.Fatal("第一次点卸载不应生效")
+	}
+	tt.Frame()
+	if err := tt.Click("确认卸载"); err != nil {
+		t.Fatalf("点不到确认卸载：%v", err)
+	}
+	if len(app.plugins) != 7 {
+		t.Fatalf("卸载后剩 %d 条", len(app.plugins))
+	}
+
+	// 选择态：勾两行 → 批量停用。
+	app.extDetail = -1
+	app.selectMode = true
+	app.extSelected = map[string]bool{"GitHub": true, "Linear": true}
+	tt.Frame()
+	if _, ok := tt.Find("批量工具条"); !ok {
+		t.Fatal("选择态缺工具条")
+	}
+	if err := tt.Click("批量停用"); err != nil {
+		t.Fatalf("点不到批量停用：%v", err)
+	}
+	for _, it := range app.plugins {
+		if (it.name == "GitHub" || it.name == "Linear") && it.on {
+			t.Fatalf("%s 没有被停用", it.name)
+		}
+	}
+	if app.selectMode {
+		t.Fatal("批量操作后应退出选择态")
+	}
+
+	// MCP：连接测试三态。
+	app.extTab = 2
+	tt.Frame()
+	if err := tt.Click("连接测试：filesystem"); err != nil {
+		t.Fatalf("点不到测试：%v", err)
+	}
+	if app.mcpTest["filesystem"] != mcpTesting {
+		t.Fatalf("测试后状态 = %v", app.mcpTest["filesystem"])
+	}
+	tt.Frame()
+	if _, ok := tt.Access("连接测试进行中"); !ok {
+		t.Fatal("缺连接测试进行中")
+	}
+	app.mcpTest["filesystem"] = mcpFail
+	tt.Frame()
+	if _, ok := tt.Access("连接测试失败"); !ok {
+		t.Fatal("缺连接测试失败")
+	}
+}
+
 // 命令模式（`!`）：标记与占位换口径、槽位换语义、运行后输出进终端、退出回普通输入。
 func TestShellMode(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

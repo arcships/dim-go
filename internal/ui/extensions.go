@@ -69,9 +69,22 @@ func (a *App) settingsExtensions(c *gui.Context) {
 	t := c.Theme()
 	settingsSectionTitle(c, "扩展")
 
+	// 详情是屏内二级页：整块内容换成详情，顶部一个返回入口。
+	if a.extDetail >= 0 {
+		a.extDetailView(c)
+		return
+	}
+
 	labels := make([]string, 0, len(extKindNames))
 	labels = append(labels, extKindNames[:]...)
-	gui.Tabs(c, &a.extTab, labels...).Label("扩展页签")
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Children(func() {
+		gui.Tabs(c, &a.extTab, labels...).Label("扩展页签")
+		gui.Spacer(c)
+		if actionButton(c, "选择", "进入选择态", false, a.extTab == int(extMCP)).Clicked() {
+			a.selectMode = !a.selectMode
+			a.extSelected = map[string]bool{}
+		}
+	})
 
 	switch a.extState {
 	case extLoading:
@@ -111,6 +124,16 @@ func (a *App) settingsExtensions(c *gui.Context) {
 		})
 		return
 	}
+	if a.extTab == int(extMCP) {
+		// MCP 页签：每行带认证状态、导入与连接测试（F49–F51）。
+		for i := range a.mcps {
+			a.mcpRow(c, &a.mcps[i])
+		}
+		return
+	}
+	if a.selectMode {
+		a.selectToolbar(c)
+	}
 	for i := range items {
 		a.extRow(c, &items[i])
 	}
@@ -149,14 +172,30 @@ func (a *App) extRow(c *gui.Context, it *extItem) {
 	// 宽窗：状态是**这一项**的属性，放在名称左侧作行首（距名称 space-2），既紧贴名称
 	// 又在跨行成列；版本跟在名称后；开关独占行末（A3：关系归布局）。原来状态点贴着
 	// 开关、离名称 500px，看起来像属于开关。
-	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
-		Label("扩展：" + it.name + " · " + it.version + " · " + statusName(it.status)).
-		Children(func() {
+	base := gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
+		Label("扩展：" + it.name + " · " + it.version + " · " + statusName(it.status))
+	base = base.ContextMenu(func(m *gui.Menu) {
+		if m.Item("详情").Chosen() {
+			a.openExtDetail(it.name)
+		}
+	})
+	base.Children(func() {
+			if a.selectMode {
+				// 选择态：行首复选框（框架 Checkbox），点它不打开详情。
+				checked := a.extSelected[it.name]
+				gui.Checkbox(c, &checked, "").Label("选择：" + it.name)
+				if checked != a.extSelected[it.name] {
+					a.extSelected[it.name] = checked
+				}
+			}
 			status()
 			typeBody.style(t, gui.Text(c, it.name)).TextColor(t.Text).Width(extNameWidth).SingleLine()
 			typeSecondary.style(t, gui.Text(c, it.version)).TextColor(t.TextMuted).
 				Width(extVersionWidth)
 			gui.Spacer(c)
+			if iconButton(c, iconButtonSpec{icon: iconChevronR, label: "详情：" + it.name, size: rowCompact}) {
+				a.openExtDetail(it.name)
+			}
 			sw()
 		})
 }

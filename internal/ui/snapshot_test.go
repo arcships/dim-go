@@ -80,6 +80,25 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 扩展的详情、选择态，MCP 的连接测试与导入。
+	{name: "variant-ext-detail", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
+		a.extDetail = 0
+	}},
+	{name: "variant-ext-select", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
+		a.selectMode = true
+		a.extSelected = map[string]bool{"GitHub": true, "Linear": true}
+	}},
+	{name: "variant-mcp-test", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
+		a.mcpTest["filesystem"], a.mcpTest["postgres"] = mcpTesting, mcpOK
+	}},
+	{name: "variant-mcp-fail", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
+		a.mcpTest["postgres"] = mcpFail
+		a.importMCP = "filesystem"
+	}},
 	// 输入区命令模式（`!`）：空闲与运行中。
 	{name: "variant-shell", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.draft = "!go test ./..."

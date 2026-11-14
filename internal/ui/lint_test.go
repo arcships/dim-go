@@ -1223,6 +1223,21 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.screen, app.settingsSection = ScreenSettings, secAppearance
 	case "settings-rules":
 		app.screen, app.settingsSection = ScreenSettings, secRules
+	case "ext-detail":
+		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 1
+		app.extDetail = 0
+	case "ext-select":
+		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 1
+		app.selectMode = true
+		app.extSelected = map[string]bool{"GitHub": true, "Linear": true}
+	case "mcp":
+		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 2
+	case "mcp-ok":
+		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 2
+		app.mcpTest["postgres"] = mcpOK
+	case "mcp-test":
+		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 2
+		app.mcpTest["postgres"] = mcpFail
 	case "settings-ext", "settings-ext-empty", "settings-ext-failed":
 		app.screen, app.settingsSection = ScreenSettings, secExtensions
 		switch when {
