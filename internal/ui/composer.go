@@ -67,12 +67,19 @@ func (a *App) inputCard(c *gui.Context) {
 				a.contextMeter(c)
 			})
 			a.contextDetail(c)
+			if a.shellMode() {
+				a.shellMarker(c)
+			}
 			// 空输入框给一个两字的最小占位（R6 裁决：占位与"默认聚焦"只选一种，
 			// 选占位——它在截图与静态评审里也可见）。首字键入即消失；读屏名仍是
-			// 「消息」，键位提示挂在槽位的悬停提示上。
+			// 「消息」，键位提示挂在槽位的悬停提示上。命令模式换占位与读屏名（F46）。
+			ph, name := placeholderInput, "消息"
+			if a.shellMode() {
+				ph, name = placeholderShell, "命令"
+			}
 			gui.TextAreaBase(c, &a.draft).
-				Placeholder(placeholderInput).
-				Grow(1).MinHeight(composerTextMinHeight).Label("消息")
+				Placeholder(ph).
+				Grow(1).MinHeight(composerTextMinHeight).Label(name)
 			gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 				gui.Spacer(c)
 				iconButton(c, iconButtonSpec{icon: iconPaperclip, label: "附件", size: rowCompact})
@@ -168,6 +175,10 @@ func tokenCount(n int) string {
 // 与快捷键，读屏名给「发送」「停止」。结果不确定与需人工确认期间禁用。
 func (a *App) sendSlot(c *gui.Context, running, empty bool) {
 	icon, label, tip := iconArrowUp, "发送", "发送 · Enter"
+	if a.shellMode() {
+		// 命令模式：同一个槽位，语义换成"运行命令"（F46）。
+		icon, label, tip = iconPlay, "运行命令", "运行命令 · Enter"
+	}
 	disabled := empty
 	switch {
 	case running:
@@ -177,7 +188,13 @@ func (a *App) sendSlot(c *gui.Context, running, empty bool) {
 		// 结果不确定 / 需人工确认：不提供重发入口，槽位禁用（U3 §6.1）。
 		disabled = true
 	}
-	iconAction(c, iconButtonSpec{icon: icon, label: label, tip: tip, size: rowCompact, disabled: disabled}, true)
+	if iconAction(c, iconButtonSpec{icon: icon, label: label, tip: tip, size: rowCompact, disabled: disabled}, true) {
+		if a.shellMode() {
+			a.runShellCommand()
+			return
+		}
+		// 普通模式：骨架不发起提交，草稿保留（本批不接 App Server）。
+	}
 }
 
 // approvalCard 是审批卡：出现时占据输入位，输入区不存在（UI-1）。
@@ -284,4 +301,49 @@ func (a *App) goalRow(c *gui.Context) {
 			a.goalEditing = true
 		}
 	})
+}
+
+// shellMode 是输入区的命令模式（S25 的 `!` 前缀）：输入以 `!` 开头就是命令模式。
+// 它是**视图状态**（草稿的首字符），不是另一块界面：与右栏终端共用会话，但表面
+// 仍是输入卡（F33 的备注与 F46）。
+func (a *App) shellMode() bool {
+	return strings.HasPrefix(a.draft, "!")
+}
+
+// shellCommand 是去掉 `!` 前缀后的命令原文。
+func (a *App) shellCommand() string {
+	return strings.TrimSpace(strings.TrimPrefix(a.draft, "!"))
+}
+
+// shellMarker 是命令模式的标记行：`!` + 「命令」+ 退出入口。它出现在输入卡的
+// 第一行，说明"这个输入框现在在跑命令"，而不是换一块界面。
+func (a *App) shellMarker(c *gui.Context) {
+	t := c.Theme()
+	gui.Row(c).Gap(space1).AlignItems(gui.Center).Shrink(0).Label("命令模式").Children(func() {
+		typeCode.style(t, gui.Text(c, "!")).TextColor(colorAccentInk.in(t))
+		typeSecondary.style(t, gui.Text(c, "命令")).TextColor(colorAccentInk.in(t))
+		// 退出入口紧跟标记（关系归布局，A3），不推到行尾。
+		if iconButton(c, iconButtonSpec{icon: iconXMark, label: "退出命令模式", size: rowCompact}) {
+			a.exitShellMode()
+		}
+		gui.Spacer(c)
+	})
+}
+
+// runShellCommand 是命令模式的"运行"：把命令与一行结果追加到右栏终端的同一份
+// 输出里（共用会话、不共用表面），并清空草稿退出模式。
+func (a *App) runShellCommand() {
+	cmd := a.shellCommand()
+	if cmd == "" {
+		return
+	}
+	a.termLines = append(a.termLines, termLine{text: "$ " + cmd, color: -1})
+	a.termLines = append(a.termLines, termLine{text: "ok  " + cmd + " (样例)", color: 2})
+	a.termState = termExited
+	a.draft = ""
+}
+
+// exitShellMode 清掉 `!` 前缀（回到普通输入）。
+func (a *App) exitShellMode() {
+	a.draft = strings.TrimLeft(strings.TrimPrefix(a.draft, "!"), " ")
 }

@@ -520,6 +520,49 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
+// 命令模式（`!`）：标记与占位换口径、槽位换语义、运行后输出进终端、退出回普通输入。
+func TestShellMode(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if app.shellMode() {
+		t.Fatal("默认不该是命令模式")
+	}
+	app.draft = "!go test ./..."
+	tt.Frame()
+	if !app.shellMode() {
+		t.Fatal("! 前缀没有进入命令模式")
+	}
+	if _, ok := tt.Find("命令模式"); !ok {
+		t.Fatal("缺命令模式标记")
+	}
+	if _, ok := tt.Access("运行命令"); !ok {
+		t.Fatal("槽位没有换成运行命令")
+	}
+	if _, ok := tt.Access("发送"); ok {
+		t.Fatal("命令模式不该再有发送")
+	}
+	// 运行：输出进终端、草稿清空、退出模式。
+	before := len(app.termLines)
+	if err := tt.Click("运行命令"); err != nil {
+		t.Fatalf("点不到运行：%v", err)
+	}
+	if app.shellMode() {
+		t.Fatal("运行后没有退出命令模式")
+	}
+	if len(app.termLines) != before+2 {
+		t.Fatalf("终端多了 %d 行，想要 2", len(app.termLines)-before)
+	}
+
+	// 退出：叉入口只去前缀，草稿保留。
+	app.draft = "!echo hi"
+	tt.Frame()
+	if err := tt.Click("退出命令模式"); err != nil {
+		t.Fatalf("点不到退出：%v", err)
+	}
+	if app.draft != "echo hi" {
+		t.Fatalf("退出后草稿 = %q，想要 echo hi", app.draft)
+	}
+}
+
 // 设置第 7、8 节：八节导航、存储读数带单位、导出回执、键位表。
 func TestSettingsStorageAndKeys(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

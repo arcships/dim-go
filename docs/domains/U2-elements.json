@@ -922,6 +922,52 @@
       "component": "自绘行",
       "symbol": "settingsAppearanceKeys",
       "checkable": true
+    },
+    {
+      "id": "EL-57",
+      "element": "命令模式标记",
+      "item": "S25",
+      "control": "自绘行（`!` + 标记词）+ 图标入口",
+      "form": "text",
+      "reason": "标记是文字（`!` + 命令）；前缀本身就是形状；低频切换",
+      "icon": "—",
+      "doc": "U2-forms §1 F46",
+      "when": "shell",
+      "probe": "命令模式",
+      "text": "命令",
+      "component": "自绘行 + iconButton",
+      "symbol": "shellMarker",
+      "checkable": true
+    },
+    {
+      "id": "EL-58",
+      "element": "运行命令入口",
+      "item": "S25",
+      "control": "自绘主图标动作（iconAction）",
+      "form": "icon",
+      "reason": "高频 + 词形成熟（三角）+ 与发送同一槽位",
+      "icon": "play",
+      "doc": "U2-forms §1 F46",
+      "when": "shell",
+      "probe": "运行命令",
+      "component": "iconAction",
+      "symbol": "sendSlot",
+      "checkable": true
+    },
+    {
+      "id": "EL-59",
+      "element": "退出命令模式",
+      "item": "S25",
+      "control": "自绘图标入口",
+      "form": "icon",
+      "reason": "低频；叉形；紧跟标记",
+      "icon": "x-mark",
+      "doc": "U2-forms §1 F46",
+      "when": "shell",
+      "probe": "退出命令模式",
+      "component": "自绘图标入口",
+      "symbol": "shellMarker",
+      "checkable": true
     }
   ]
 }

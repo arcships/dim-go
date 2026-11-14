@@ -158,6 +158,17 @@ func TestUILintSeeds(t *testing.T) {
 		t.Logf("种子「动作形式与渲染不符」→ %s", got[0].String())
 	}
 
+	// 第十三类：把纯图标动作声明成 text（图标按钮的 label 骗过 Find 的那种）。
+	iconAsText := &actionDoc{Items: []actionEntry{{
+		ID: "seed", Action: "打开诊断日志", Form: "text", When: "settings-storage",
+		Probe: "打开诊断日志", Text: "打开诊断日志",
+	}}}
+	if got := lintHighConsequence(t, iconAsText); len(got) == 0 || got[0].check != "L5" {
+		t.Fatalf("图标声明成 text 的种子没有被 L5 报出：%v", got)
+	} else {
+		t.Logf("种子「图标动作声明成 text」→ %s", got[0].String())
+	}
+
 	// 第十类：清单说"用开关"，实现换成图标（或清单写 icon 而实现是开关）。
 	switched := &actionDoc{Items: []actionEntry{{
 		ID: "seed", Action: "停用插件", Form: "icon", When: "settings-ext",
@@ -591,9 +602,14 @@ func lintHighConsequence(t *testing.T, actions *actionDoc) []lintFinding {
 					it.Action + " 声明为图标 + 文字，盒子却只有图标那么宽"})
 			}
 		case "text":
-			if _, visible := tt.Find(visibleText(it)); !visible {
+			// 按盒子判：文字要画在这个盒子里（不是只存在于可访问名），且盒子要比
+			// 纯图标宽——图标按钮的 label 也能被 Find 命中，这正是之前的漏。
+			if _, visible := visibleTextRect(tt, info.Bounds, visibleText(it)); !visible {
 				out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
 					it.Action + " 声明为纯文字，屏幕上却没有字"})
+			} else if info.Bounds.W <= iconOnlyButtonWidth+space2 {
+				out = append(out, lintFinding{"L5", "UI-23、F18（" + it.ID + "）", "render",
+					it.Action + " 声明为纯文字，盒子却只有图标那么宽（其实是图标按钮）"})
 			}
 		default:
 			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
@@ -1199,6 +1215,8 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app = NewApp(Options{State: StateRunning})
 	case "settings":
 		app.screen, app.settingsSection = ScreenSettings, secAccount
+	case "shell":
+		app.draft = "!go test ./..."
 	case "settings-storage":
 		app.screen, app.settingsSection = ScreenSettings, secStorage
 	case "settings-appearance":

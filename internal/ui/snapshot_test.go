@@ -80,6 +80,16 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 输入区命令模式（`!`）：空闲与运行中。
+	{name: "variant-shell", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.draft = "!go test ./..."
+	}},
+	{name: "variant-shell-run", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.draft = "!npm run build"
+		a.rightOpen, a.rightTab = true, 4
+		a.termState = termRunning
+		a.termLines = append(termSamples(termRunning), termLine{text: "$ npm run build", color: -1})
+	}},
 	// 设置第 7、8 节：存储与诊断、外观与键位。
 	{name: "variant-storage", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.screen, a.settingsSection = ScreenSettings, secStorage

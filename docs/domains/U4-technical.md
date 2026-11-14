@@ -71,6 +71,9 @@ Owner: U4 技术设计（界面领域）
 | EL-54 | 存储读数行 | 自绘行 | `settingsStorage` | `settings-storage` |
 | EL-55 | 诊断动作 | actionButton + iconButton | `settingsStorage` | `settings-storage` |
 | EL-56 | 键位提示表 | 自绘行 | `settingsAppearanceKeys` | `settings-appearance` |
+| EL-57 | 命令模式标记 | 自绘行 + iconButton | `shellMarker` | `shell` |
+| EL-58 | 运行命令入口 | iconAction | `sendSlot` | `shell` |
+| EL-59 | 退出命令模式 | 自绘图标入口 | `shellMarker` | `shell` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

@@ -28,6 +28,7 @@ var (
 	iconPanelRight = mustSVG(`<path d="M3.75 4.5h16.5v15H3.75z"/><path d="M14.25 4.5v15"/>`)
 	iconPaperclip  = mustSVG(`<path d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"/>`)
 	iconArrowUp   = mustSVG(`<path d="M12 19.5v-15m0 0-6.75 6.75M12 4.5l6.75 6.75"/>`)
+	iconPlay      = mustSVG(`<path d="M8.25 5.25 18.75 12 8.25 18.75Z"/>`)
 	iconStop      = mustSVG(`<rect x="6.75" y="6.75" width="10.5" height="10.5" rx="1.5"/>`)
 	// 审批决定：勾（允许一次）、勾 + 锁（一直允许）、叉（拒绝）。
 	iconCheckLock = mustSVG(`<path d="m4.5 12.75 5.25 5.25 9-12"/><rect x="14.25" y="13.5" width="6" height="6" rx="1"/><path d="M15.75 13.5v-1.5a1.5 1.5 0 0 1 3 0v1.5"/>`)

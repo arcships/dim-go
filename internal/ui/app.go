@@ -106,6 +106,9 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantShell / ShellRun 是输入区命令模式（`!`）的空闲与运行中。
+	VariantShell
+	VariantShellRun
 	// VariantStorage / AppearanceKeys 是设置第 7、8 节的走查态。
 	VariantStorage
 	VariantAppearanceKeys
@@ -139,6 +142,7 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"shell": VariantShell, "shell-run": VariantShellRun,
 	"storage": VariantStorage, "appearance-keys": VariantAppearanceKeys,
 	"cron": VariantCron, "cron-delete": VariantCronDelete,
 	"runtime": VariantRuntime, "runtime-submit": VariantRuntimeSubmit,
@@ -155,7 +159,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -372,6 +376,13 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = secRules // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantShell:
+		a.draft = "!go test ./..."
+	case VariantShellRun:
+		a.draft = "!npm run build"
+		a.rightOpen, a.rightTab = true, 4
+		a.termState = termRunning
+		a.termLines = append(termSamples(termRunning), termLine{text: "$ npm run build", color: -1})
 	case VariantStorage:
 		a.screen, a.settingsSection = ScreenSettings, secStorage
 	case VariantAppearanceKeys:

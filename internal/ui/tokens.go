@@ -149,6 +149,8 @@ const (
 
 	// placeholderGoal 是目标编辑框的占位（2 字，与输入框同一策略）。
 	placeholderGoal = "目标"
+	// placeholderShell 是命令模式的占位（2 字，与普通输入同一策略）。
+	placeholderShell = "命令"
 
 	// sidebarTextInset 是侧栏里与列表行文字对齐的左内边距：框架 Sidebar 的内边距 8
 	// + 行内边距 8 + 图标槽 16 + 图标与文字间距 8 = 40。它不是魔法数字，是从

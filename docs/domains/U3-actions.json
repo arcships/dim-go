@@ -346,6 +346,28 @@
       "basis": "U1 T26；U3 T20",
       "when": "settings-storage",
       "probe": "打开诊断日志"
+    },
+    {
+      "id": "AC-30",
+      "action": "运行命令",
+      "consequence": "可逆：命令可以再跑一次；结果进终端输出",
+      "scope": "当前会话的命令模式",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 S25；U3 T21",
+      "when": "shell",
+      "probe": "运行命令"
+    },
+    {
+      "id": "AC-31",
+      "action": "退出命令模式",
+      "consequence": "可逆：草稿保留，只是去掉 `!` 前缀",
+      "scope": "当前输入区",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 S25；U3 T21",
+      "when": "shell",
+      "probe": "退出命令模式"
     }
   ],
   "undecided": [
