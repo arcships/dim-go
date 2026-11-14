@@ -265,6 +265,10 @@ type App struct {
 	mcpTestDone        map[string]bool
 	importMCP          string
 
+	// source 非空时，视图从它读事实（A 领域的 Source 接口）；为空时用样例数据
+	// （-demo 与截图）。视图不缓存事实：每次读的都是 Source 的快照。
+	source Source
+
 	// 待发附件（样例）与权限档位（提交值与草稿值分开：切换要两步确认）。
 	attachments []string
 	tier        string
@@ -671,4 +675,48 @@ func (a *App) openOf(i int) *bool {
 	p := &v
 	a.summaryOpen[i] = p
 	return p
+}
+
+// wired 表示当前由 Source 提供事实。
+func (a *App) wired() bool { return a.source != nil }
+
+// sessionNames 是左栏要显示的会话名：连着 Source 就用它的，否则用样例。
+func (a *App) sessionNames() []string {
+	if a.source != nil {
+		return a.source.SessionNames()
+	}
+	names, _ := sessionSamples(a.state)
+	return names
+}
+
+// liveSession 取 Source 的当前会话快照。
+func (a *App) liveSession() (SessionSnapshot, bool) {
+	if a.source == nil {
+		return SessionSnapshot{}, false
+	}
+	return a.source.Session()
+}
+
+// liveRunning 是"这一轮在跑"：有 Source 时看事实，否则看样例状态。
+func (a *App) liveRunning() bool {
+	if snap, ok := a.liveSession(); ok {
+		return snap.Running
+	}
+	return a.state == StateRunning
+}
+
+// liveApproval 取待决审批（Source 优先）。
+func (a *App) liveApproval() (ApprovalSnapshot, bool) {
+	if a.source == nil {
+		return ApprovalSnapshot{}, false
+	}
+	return a.source.Approval()
+}
+
+// currentExtTitle 是 Source 里当前会话的标题（空会话时给空态用）。
+func (a *App) currentExtTitle() string {
+	if snap, ok := a.liveSession(); ok {
+		return snap.Title
+	}
+	return ""
 }

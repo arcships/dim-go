@@ -76,7 +76,7 @@ func (a *App) sessionList(c *gui.Context) {
 	if a.searchOpen {
 		a.searchPane(c)
 	}
-	sessions, markers := sessionSamples(a.state)
+	sessions, markers := a.sessionNames(), a.sessionMarkers()
 	// 归档与删除的会话不再出现；搜索面开着时按名称过滤（空白查询给全部）。
 	visible := make([]bool, len(sessions))
 	any := false
@@ -323,4 +323,14 @@ func (a *App) sidebarRail(c *gui.Context) {
 					Radius(railMarkHeight / 2).Background(t.TextMuted)
 			}
 		})
+}
+
+// sessionMarkers 是会话行的状态标记：连着 Source 时不画样例标记（真实状态由
+// 会话快照决定，后续批次接）；样例模式下沿用 sample。
+func (a *App) sessionMarkers() []string {
+	if a.source != nil {
+		return make([]string, len(a.sessionNames()))
+	}
+	_, markers := sessionSamples(a.state)
+	return markers
 }

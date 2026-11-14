@@ -13,12 +13,17 @@ import (
 // 队列与不可用原因贴在输入区上沿，不放到标题行或时间线顶部（UI-10）。
 func (a *App) composer(c *gui.Context) {
 	gui.Column(c).Shrink(0).Children(func() {
-		if a.state == StateRunning {
+		if a.liveRunning() {
 			a.queueBar(c)
 		}
 		a.goalRow(c)
 		gui.Box(c).Padding(composerPadding).Children(func() {
+			// 审批卡占输入位：样例走 StateWaiting，接真实事实时看 Source 有没有待决。
 			if a.state == StateWaiting {
+				a.approvalCard(c)
+				return
+			}
+			if _, ok := a.liveApproval(); ok {
 				a.approvalCard(c)
 				return
 			}
@@ -51,7 +56,7 @@ func (a *App) queueBar(c *gui.Context) {
 func (a *App) inputCard(c *gui.Context) {
 	t := c.Theme()
 	empty := strings.TrimSpace(a.draft) == ""
-	running := a.state == StateRunning
+	running := a.liveRunning()
 	// 卡片内边距取 space-2：与外层 8 相加等于标题行与时间线的 16，四处左缘同一条
 	// （UI-22、U2 §4.7 的基线表）。
 	gui.Column(c).MinHeight(ComposerHeight).MaxHeight(ComposerMaxHeight).
@@ -206,6 +211,9 @@ func (a *App) sendSlot(c *gui.Context, running, empty bool) {
 func (a *App) approvalCard(c *gui.Context) {
 	t := c.Theme()
 	cmd := a.approvalCommand
+	if ap, ok := a.liveApproval(); ok {
+		cmd = ap.Command
+	}
 	gui.Column(c).MinHeight(ApprovalHeight).
 		Padding(space2).Gap(space3).
 		Background(t.Surface).Border(strokeHairline, t.Border).Radius(radius).

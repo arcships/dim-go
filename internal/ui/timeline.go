@@ -13,6 +13,16 @@ import (
 // timeline 是 R3 对话流：内容左缘对齐，纵向滚动（§9.0 A3：对齐由内容推出，
 // 不用居中）。空态只给一行说明，复用同一区域，不拆页面（U1-ia §4）。
 func (a *App) timeline(c *gui.Context) {
+	// 连着 Source 时，时间线只画它给的快照（不掺样例）。
+	if snap, ok := a.liveSession(); ok {
+		a.liveTimeline(c, snap)
+		return
+	}
+	if a.wired() {
+		// 还没有打开会话：空态，不给样例。
+		a.emptyTimeline(c)
+		return
+	}
 	t := c.Theme()
 	if a.state == StateEmpty {
 		// 空态：形状 + 一句事实（UI-23）。不写「写点什么开始」「拖进来」这类
@@ -428,3 +438,46 @@ func roundMeta(r round) string {
 	return meta
 }
 
+// liveTimeline 只画 Source 给的快照：每条行一段文字，没有组头展开（后续批次接
+// 完整的行渲染；首片先保证"事实进来、样例不掺"）。
+func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
+	t := c.Theme()
+	if len(snap.Rows) == 0 {
+		a.emptyTimeline(c)
+		return
+	}
+	gui.Scroll(c).TrackScroll(&a.feed).Grow(1).
+		Label("对话流").Role(gui.RoleLog).Focusable().TabStop(true).Children(func() {
+		gui.Column(c).Padding(space6, space4).Gap(space3).
+			Label("对话内容").Children(func() {
+			for _, row := range snap.Rows {
+				row := row
+				gui.Column(c).Shrink(0).Gap(space1).Children(func() {
+					switch row.Kind {
+					case "user":
+						gui.Row(c).Children(func() {
+							gui.Spacer(c)
+							gui.Box(c).MaxWidth(userBubbleMaxWidth).Padding(space2, space3).
+								Radius(radius).Background(t.Surface).Children(func() {
+								typeBody.style(t, gui.Text(c, row.Text)).Selectable()
+							})
+						})
+					default:
+						typeBody.style(t, gui.Text(c, row.Text)).Selectable()
+					}
+				})
+			}
+		})
+	})
+}
+
+// emptyTimeline 是"没有消息"的空态（与样例空态同一形状）。
+func (a *App) emptyTimeline(c *gui.Context) {
+	t := c.Theme()
+	gui.Box(c).Grow(1).Center().Label("对话流").Role(gui.RoleLog).Children(func() {
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("空态").Children(func() {
+			iconGlyph(c, iconChat, t.TextMuted, "chat")
+			typeBody.style(t, gui.Text(c, "还没有消息")).TextColor(t.TextMuted)
+		})
+	})
+}
