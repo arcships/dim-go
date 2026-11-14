@@ -76,9 +76,11 @@ Owner: U4 技术设计（界面领域）
 | EL-59 | 退出命令模式 | 自绘图标入口 | `shellMarker` | `shell` |
 | EL-60 | 扩展开详情页 | 自绘行 + gui.Switch + actionButton | `extDetailView` | `ext-detail` |
 | EL-61 | 批量选择工具条 | 自绘行 + actionButton | `selectToolbar` | `ext-select` |
-| EL-62 | 选择态复选框 | gui.Checkbox | `extRow` | `ext-select` |
+| EL-62 | 选择态行（整行勾选） | gui.Checkbox | `extRow` | `ext-select` |
 | EL-63 | MCP 认证状态 | 自绘 Box + DrawOver 点 | `mcpRow` | `mcp` |
 | EL-64 | 连接测试结果 | 自绘行 + iconGlyph | `mcpRow` | `mcp-ok` |
+| EL-65 | 附件行与移除入口 | 自绘行 + iconButton | `chipRow` | `default` |
+| EL-66 | 权限档位设置项 | gui.Select + actionButton | `settingsProviders` | `settings-providers` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

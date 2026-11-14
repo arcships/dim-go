@@ -126,6 +126,38 @@ func (a *App) settingsProviders(c *gui.Context) {
 	settingsRow(c, "模型", func() {
 		gui.Select(c, &a.modelChoice, a.models).Label("模型")
 	})
+	// 权限档位：改变后续所有操作的授权范围（高影响），因此两步确认（AC-09）。
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Children(func() {
+		typeControl.style(t, gui.Text(c, "权限档位")).Width(SettingsLabelWidth).TextColor(t.Text)
+		gui.Select(c, &a.tierDraft, []string{"工作区内自动", "每次询问", "只读"}).
+			Label("权限档位选择")
+		gui.Spacer(c)
+	})
+	if a.tierDraft != a.tier && a.tierPending == "" {
+		a.tierPending = a.tierDraft
+	}
+	if a.tierPending != "" && a.tierPending != a.tier {
+		gui.Row(c).Gap(space1).AlignItems(gui.Center).Shrink(0).
+			Label("权限档位确认").Children(func() {
+			iconGlyph(c, iconWarn, t.Warning, "exclamation")
+			typeSecondary.style(t, gui.Text(c, "切到「"+a.tierPending+"」会影响之后所有操作。")).
+				TextColor(t.TextMuted)
+			gui.Spacer(c)
+		})
+		gui.Row(c).Gap(space2).Children(func() {
+			if actionButton(c, "确认切换", "确认切换权限档位", true, false).Clicked() {
+				a.tier = a.tierPending
+				a.tierDraft = a.tier
+				a.tierPending = ""
+			}
+			if actionButton(c, "取消", "取消切换权限档位", false, false).Clicked() {
+				a.tierDraft = a.tier
+				a.tierPending = ""
+			}
+			gui.Spacer(c)
+		})
+	}
+
 	// 目录单价是内容（G6）：只读一行，不在主界面出现。
 	typeSecondary.style(t, gui.Text(c, a.modelPrice)).TextColor(t.TextMuted).
 		Label("目录单价")

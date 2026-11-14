@@ -77,3 +77,16 @@ func extStatusDot(c *gui.Context, color gui.Color, name string) {
 		p.Fill(r, color, dotStatus/2)
 	})
 }
+
+// chipRow 是待发附件的一行：文件名 + 行内移除入口（图标，可逆）。
+func chipRow(c *gui.Context, name string, remove func()) {
+	t := c.Theme()
+	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space1).
+		Radius(radius).Border(strokeHairline, t.Border).AlignItems(gui.Center).
+		Label("附件：" + name).Children(func() {
+		typeSecondary.style(t, gui.Text(c, name)).TextColor(t.Text).SingleLine()
+		if iconButton(c, iconButtonSpec{icon: iconXMark, label: "移除附件：" + name, size: controlMini}) {
+			remove()
+		}
+	})
+}

@@ -172,6 +172,33 @@ func (a *App) extRow(c *gui.Context, it *extItem) {
 	// 宽窗：状态是**这一项**的属性，放在名称左侧作行首（距名称 space-2），既紧贴名称
 	// 又在跨行成列；版本跟在名称后；开关独占行末（A3：关系归布局）。原来状态点贴着
 	// 开关、离名称 500px，看起来像属于开关。
+	// 选择态与普通态是两套操作模型：选择态收起行内动作（开关、详情），整行就是
+	// 勾选；否则"点开关改这一行"与"点行选这一行"会并存（F48 的处置）。
+	if a.selectMode {
+		checked := a.extSelected[it.name]
+		row := gui.ButtonBase(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
+			Label("选择：" + it.name).Cursor(gui.CursorPointer)
+		if row.Hovered() {
+			row = row.Background(t.SurfaceHover)
+		}
+		if row.Clicked() {
+			a.extSelected[it.name] = !checked
+		}
+		row.Children(func() {
+			if checked {
+				iconGlyph(c, iconCheck, colorAccentInk.in(t), "select:"+it.name)
+			} else {
+				iconGlyph(c, iconStop, t.TextMuted, "select:"+it.name)
+			}
+			status()
+			typeBody.style(t, gui.Text(c, it.name)).TextColor(t.Text).Width(extNameWidth).SingleLine()
+			typeSecondary.style(t, gui.Text(c, it.version)).TextColor(t.TextMuted).
+				Width(extVersionWidth)
+			gui.Spacer(c)
+		})
+		return
+	}
+
 	base := gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
 		Label("扩展：" + it.name + " · " + it.version + " · " + statusName(it.status))
 	base = base.ContextMenu(func(m *gui.Menu) {
@@ -180,14 +207,6 @@ func (a *App) extRow(c *gui.Context, it *extItem) {
 		}
 	})
 	base.Children(func() {
-			if a.selectMode {
-				// 选择态：行首复选框（框架 Checkbox），点它不打开详情。
-				checked := a.extSelected[it.name]
-				gui.Checkbox(c, &checked, "").Label("选择：" + it.name)
-				if checked != a.extSelected[it.name] {
-					a.extSelected[it.name] = checked
-				}
-			}
 			status()
 			typeBody.style(t, gui.Text(c, it.name)).TextColor(t.Text).Width(extNameWidth).SingleLine()
 			typeSecondary.style(t, gui.Text(c, it.version)).TextColor(t.TextMuted).

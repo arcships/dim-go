@@ -72,11 +72,9 @@
       "scope": "待发附件",
       "form": "icon",
       "confirm": false,
-      "basis": "U1 E2、U3 未单列（未实现）",
+      "basis": "U1 E2；U3 T23（chip 行内移除，可逆）",
       "when": "default",
-      "probe": "",
-      "implemented": false,
-      "why_not_implemented": "附件 chip 还没有移除入口（U1 E2 的移除留后续批次）"
+      "probe": "移除附件：发送路径.md"
     },
     {
       "id": "AC-07",
@@ -109,11 +107,10 @@
       "scope": "当前会话",
       "form": "text",
       "confirm": true,
-      "basis": "U1 A8、Q8（首批不提供入口）",
-      "when": "settings",
-      "probe": "",
-      "implemented": false,
-      "why_not_implemented": "权限档位入口按 Q8 首批不提供"
+      "basis": "U1 A8、Q8；U3 T23（改变后续所有操作范围 → 两步确认）",
+      "when": "settings-providers",
+      "probe": "权限档位选择",
+      "text": "工作区内自动"
     },
     {
       "id": "AC-10",

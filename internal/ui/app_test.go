@@ -520,6 +520,38 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
+// 最后两个动作：附件移除（可逆）与权限档位（两步确认）。
+func TestAttachmentRemoveAndTierConfirm(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if len(app.attachments) != 1 {
+		t.Fatalf("样例附件 %d 条，想要 1", len(app.attachments))
+	}
+	if err := tt.Click("移除附件：发送路径.md"); err != nil {
+		t.Fatalf("点不到移除：%v", err)
+	}
+	if len(app.attachments) != 0 {
+		t.Fatal("移除没有生效")
+	}
+
+	// 权限档位：改下拉只进确认态，确认后才生效。
+	app.screen, app.settingsSection = ScreenSettings, secProviders
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	app.tierDraft, app.tierPending = "每次询问", "每次询问"
+	tt.Frame()
+	if _, ok := tt.Find("权限档位确认"); !ok {
+		t.Fatal("没有进入确认态")
+	}
+	if app.tier != "工作区内自动" {
+		t.Fatal("确认前不该改档位")
+	}
+	if err := tt.Click("确认切换权限档位"); err != nil {
+		t.Fatalf("点不到确认：%v", err)
+	}
+	if app.tier != "每次询问" {
+		t.Fatalf("确认后档位 = %q", app.tier)
+	}
+}
+
 // 扩展详情 / 批量选择 / MCP 连接测试。
 func TestExtDetailSelectAndMCP(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

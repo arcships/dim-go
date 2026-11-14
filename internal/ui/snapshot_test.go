@@ -80,6 +80,11 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 权限档位切换的两步确认态。
+	{name: "variant-tier-confirm", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection = ScreenSettings, secProviders
+		a.tierDraft, a.tierPending = "每次询问", "每次询问"
+	}},
 	// 扩展的详情、选择态，MCP 的连接测试与导入。
 	{name: "variant-ext-detail", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1

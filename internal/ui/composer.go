@@ -62,7 +62,9 @@ func (a *App) inputCard(c *gui.Context) {
 				if a.state == StateEmpty {
 					return
 				}
-				chip(c, "发送路径.md")
+				for i, name := range a.attachments {
+					a.attachChip(c, i, name)
+				}
 				gui.Spacer(c)
 				a.contextMeter(c)
 			})
@@ -346,4 +348,15 @@ func (a *App) runShellCommand() {
 // exitShellMode 清掉 `!` 前缀（回到普通输入）。
 func (a *App) exitShellMode() {
 	a.draft = strings.TrimLeft(strings.TrimPrefix(a.draft, "!"), " ")
+}
+
+// attachChip 是一个待发附件：文件名（内容）+ 行内移除入口（可逆、无确认，
+// AC-06）。移除后 chip 消失；失败时按 U3 §4.2 回滚（样例无写入，故只留说明）。
+func (a *App) attachChip(c *gui.Context, i int, name string) {
+	if i >= len(a.attachments) {
+		return
+	}
+	chipRow(c, name, func() {
+		a.attachments = append(a.attachments[:i], a.attachments[i+1:]...)
+	})
 }

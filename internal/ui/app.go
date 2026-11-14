@@ -106,6 +106,8 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantTierConfirm 是权限档位切换的两步确认态。
+	VariantTierConfirm
 	// VariantExtDetail / ExtSelect / MCPTest / MCPFail 是扩展的详情、选择态与 MCP 测试三态。
 	VariantExtDetail
 	VariantExtSelect
@@ -147,6 +149,7 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"tier-confirm": VariantTierConfirm,
 	"ext-detail": VariantExtDetail, "ext-select": VariantExtSelect,
 	"mcp-test": VariantMCPTest, "mcp-fail": VariantMCPFail,
 	"shell": VariantShell, "shell-run": VariantShellRun,
@@ -166,7 +169,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、ext-detail、ext-select、mcp-test、mcp-fail、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、tier-confirm、ext-detail、ext-select、mcp-test、mcp-fail、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -257,6 +260,12 @@ type App struct {
 	mcpTest            map[string]mcpState
 	mcpTestDone        map[string]bool
 	importMCP          string
+
+	// 待发附件（样例）与权限档位（提交值与草稿值分开：切换要两步确认）。
+	attachments []string
+	tier        string
+	tierDraft   string
+	tierPending string
 
 	// 会话目录：搜索面、行内重命名、删除确认、归档与导出反馈（都属可丢的视图状态）。
 	searchOpen bool
@@ -375,6 +384,8 @@ func (a *App) loadSample() {
 	a.extSelected = map[string]bool{}
 	a.mcpTest, a.mcpTestDone = map[string]mcpState{}, map[string]bool{}
 	a.importMCP = ""
+	a.attachments = []string{"发送路径.md"}
+	a.tier, a.tierDraft, a.tierPending = "工作区内自动", "工作区内自动", ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
@@ -397,6 +408,9 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = secRules // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantTierConfirm:
+		a.screen, a.settingsSection = ScreenSettings, secProviders
+		a.tierDraft, a.tierPending = "每次询问", "每次询问"
 	case VariantExtDetail:
 		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
 		a.extDetail = 0

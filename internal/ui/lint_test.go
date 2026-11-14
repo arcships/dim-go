@@ -380,7 +380,7 @@ func lintSource(name string, src []byte, content *contentDoc) []lintFinding {
 // L11：分隔线与自绘描边只允许出现在登记过的位置。
 func lintDividerAllowlist(files []string) []lintFinding {
 	allowed := map[string]int{
-		"controls.go":   1, // 附件 chip：落在 surface 上，需要一条线才看得出是条目
+		"controls.go":   2, // 附件 chip 与新的附件行：都落在 surface 上，需要一条线才看得出是条目
 		"composer.go":   1, // 审批卡：唯一需要硬分开的自绘面（第三档边界）
 		"icons.go":      1, // 审批的次按钮（一直允许 / 拒绝）：落在卡面上，需要一条轮廓
 		"sidebar.go":    1, // 框架 Divider：入口区与会话列表两个模块
@@ -1221,6 +1221,8 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.screen, app.settingsSection = ScreenSettings, secStorage
 	case "settings-appearance":
 		app.screen, app.settingsSection = ScreenSettings, secAppearance
+	case "settings-providers":
+		app.screen, app.settingsSection = ScreenSettings, secProviders
 	case "settings-rules":
 		app.screen, app.settingsSection = ScreenSettings, secRules
 	case "ext-detail":

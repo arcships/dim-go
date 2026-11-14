@@ -1003,19 +1003,20 @@
     },
     {
       "id": "EL-62",
-      "element": "选择态复选框",
+      "element": "选择态行（整行勾选）",
       "item": "S48",
-      "control": "框架 Checkbox",
-      "form": "icon",
-      "reason": "选择是一个布尔位（→框架复选框）；行首位置表达「选中哪些」",
-      "icon": "checkbox",
+      "control": "整行 ButtonBase + 勾选图标",
+      "form": "icon+text",
+      "reason": "整行是一个勾选目标（→勾/空方框图标 + 行文字）；选择态与普通态的操作模型分开",
+      "icon": "check / stop",
       "doc": "U2-forms §1 F48",
       "when": "ext-select",
       "probe": "选择：GitHub",
       "component": "gui.Checkbox",
       "symbol": "extRow",
-      "checkable": false,
-      "why_not_checkable": "复选框的可见形状是框架画的方框 + 勾，L17 的图标标记判据不适用；由 TestExtSelect 覆盖"
+      "checkable": true,
+      "mark": "select:GitHub",
+      "text": "GitHub"
     },
     {
       "id": "EL-63",
@@ -1048,6 +1049,38 @@
       "text": "连接正常",
       "component": "自绘行 + iconGlyph",
       "symbol": "mcpRow",
+      "checkable": true
+    },
+    {
+      "id": "EL-65",
+      "element": "附件行与移除入口",
+      "item": "E2",
+      "control": "自绘行 + 图标入口",
+      "form": "text",
+      "reason": "文件名是内容（→文字）；移除是行内图标入口，不改变这一行的形式",
+      "icon": "—",
+      "doc": "U2-forms §1 F52",
+      "when": "default",
+      "probe": "附件：发送路径.md",
+      "text": "发送路径.md",
+      "component": "自绘行 + iconButton",
+      "symbol": "chipRow",
+      "checkable": true
+    },
+    {
+      "id": "EL-66",
+      "element": "权限档位设置项",
+      "item": "A8",
+      "control": "标签 + 框架 Select + 两步确认",
+      "form": "text",
+      "reason": "档位名要能读（→文字）；切换影响后续所有操作（→两步确认）；低频",
+      "icon": "—",
+      "doc": "U2-forms §1 F53",
+      "when": "settings-providers",
+      "probe": "权限档位选择",
+      "text": "工作区内自动",
+      "component": "gui.Select + actionButton",
+      "symbol": "settingsProviders",
       "checkable": true
     }
   ]
