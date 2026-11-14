@@ -10,25 +10,33 @@ import (
 
 // fakeSource 是一个可注入的 Source：用来证明"视图只吃 Source、不吃样例"。
 type fakeSource struct {
-	names    []string
-	session  SessionSnapshot
-	hasSess  bool
-	approval ApprovalSnapshot
-	hasAppr  bool
-	conn     Connection
-	acct     AccountSnapshot
-	settings SettingsSnapshot
+	names      []string
+	session    SessionSnapshot
+	hasSess    bool
+	approval   ApprovalSnapshot
+	hasAppr    bool
+	conn       Connection
+	acct       AccountSnapshot
+	usage      UsageSnapshot
+	settings   SettingsSnapshot
+	extensions ExtensionsSnapshot
+	schedules  SchedulesSnapshot
+	terminal   TerminalSnapshot
 }
 
-func (f *fakeSource) Connection() Connection          { return f.conn }
-func (f *fakeSource) SessionNames() []string          { return f.names }
+func (f *fakeSource) Connection() Connection           { return f.conn }
+func (f *fakeSource) SessionNames() []string           { return f.names }
 func (f *fakeSource) Session() (SessionSnapshot, bool) { return f.session, f.hasSess }
 func (f *fakeSource) Approval() (ApprovalSnapshot, bool) {
 	return f.approval, f.hasAppr
 }
 func (f *fakeSource) Question() (QuestionSnapshot, bool) { return QuestionSnapshot{}, false }
 func (f *fakeSource) Account() AccountSnapshot           { return f.acct }
+func (f *fakeSource) Usage() UsageSnapshot               { return f.usage }
 func (f *fakeSource) Settings() SettingsSnapshot         { return f.settings }
+func (f *fakeSource) Extensions() ExtensionsSnapshot     { return f.extensions }
+func (f *fakeSource) Schedules() SchedulesSnapshot       { return f.schedules }
+func (f *fakeSource) Terminal() TerminalSnapshot         { return f.terminal }
 
 // TestSourceDrivesSidebarAndTimeline：把 Source 的会话列表改成空 → 界面进空态，
 // 而不是保留样例；把 Running 翻成 true → 停止槽出现。
@@ -71,13 +79,36 @@ func TestSourceDrivesSidebarAndTimeline(t *testing.T) {
 	}
 }
 
+// TestSourceDisconnect：断线时状态点转 danger、输入位禁用并给出原因。
+func TestSourceDisconnect(t *testing.T) {
+	src := &fakeSource{
+		conn:    Connection{Phase: "disconnected", Reason: "socket closed"},
+		names:   []string{"x"},
+		session: SessionSnapshot{ID: "s1", Title: "x"},
+		hasSess: true,
+	}
+	app := NewApp(Options{State: StateDefault})
+	app.source = src
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if _, ok := tt.Access("连接断开"); !ok {
+		t.Fatal("断线没有在原位给原因")
+	}
+	if _, ok := tt.Access("发送"); ok {
+		t.Fatal("断线时不该还有发送入口")
+	}
+	// 状态点：断线时用 danger。
+	if got := connectionColor(theme(false, gui.Preferences{}), src.conn); got != theme(false, gui.Preferences{}).Danger {
+		t.Fatalf("状态点颜色 = %v，想要 danger", got)
+	}
+}
+
 // TestSourceApprovalReplacesComposer：待决审批来自 Source，占住输入位。
 func TestSourceApprovalReplacesComposer(t *testing.T) {
 	src := &fakeSource{
-		conn: Connection{Phase: "connected"},
-		names: []string{"x"},
-		session: SessionSnapshot{ID: "s1", Title: "x"},
-		hasSess: true,
+		conn:     Connection{Phase: "connected"},
+		names:    []string{"x"},
+		session:  SessionSnapshot{ID: "s1", Title: "x"},
+		hasSess:  true,
 		approval: ApprovalSnapshot{ID: "a1", Command: "rm -rf ./tmp/*", Impact: "工作区内的临时文件"},
 		hasAppr:  true,
 	}

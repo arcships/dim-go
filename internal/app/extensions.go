@@ -28,6 +28,7 @@ const (
 	methodSkillsCatalog       = "skills.catalog"
 	methodSkillsInstall       = "skills.install"
 	methodSkillsSetEnabled    = "skills.set_enabled"
+	methodSkillsRemove        = "skills.remove"
 	methodHooksCatalog        = "hooks.catalog"
 	methodHooksSave           = "hooks.save"
 	methodHooksSetEnabled     = "hooks.set_enabled"
@@ -45,6 +46,8 @@ const (
 	methodMCPImportPreview    = "mcp.import.preview"
 	methodMCPImportApply      = "mcp.import.apply"
 	methodScheduleList        = "schedule.list"
+	methodScheduleSetEnabled  = "schedule.set_enabled"
+	methodScheduleDelete      = "schedule.delete"
 	methodSessionWakeupList   = "session.wakeup.list"
 	methodSessionWakeupCancel = "session.wakeup.cancel"
 )
@@ -366,6 +369,125 @@ func (r *extensionReaders) PreviewToolServerImport(
 	return preview, nil
 }
 
+// ReadMCPImportSources 实现 extensions.MCPImportReader 的来源读取
+// （`mcp.import.sources`）：只读服务端扫描到的其它客户端配置。
+func (r *extensionReaders) ReadMCPImportSources(ctx context.Context, cwd string) ([]extensions.MCPImportSource, error) {
+	client, err := r.app.requireControl("读取 MCP 导入来源")
+	if err != nil {
+		return nil, err
+	}
+	params := map[string]any{}
+	if cwd != "" {
+		params["cwd"] = cwd
+	}
+	raw, err := client.Call(ctx, "mcp.import.sources", params)
+	if err != nil {
+		return nil, err
+	}
+	result, err := protocol.ParseMCPImportSourcesResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("MCP 导入来源无法解析: %w", err)
+	}
+	sources := make([]extensions.MCPImportSource, 0, len(result.Sources))
+	for _, source := range result.Sources {
+		entries := source.Entries
+		sources = append(sources, extensions.MCPImportSource{
+			ID:      source.ID,
+			Client:  source.Client,
+			Scope:   source.Scope,
+			Path:    source.Path,
+			State:   extensions.MCPImportSourceState(source.State),
+			Entries: &entries,
+		})
+	}
+	return sources, nil
+}
+
+// PreviewMCPImport 实现 extensions.MCPImportReader 的预览（`mcp.import.preview`）。
+// 回执形状未在 D1 冻结；按公认字段宽容解析，认不出的留空，不猜。
+func (r *extensionReaders) PreviewMCPImport(
+	ctx context.Context,
+	request extensions.MCPImportPreviewRequest,
+) (extensions.MCPImportPreview, error) {
+	client, err := r.app.requireControl("预览 MCP 导入")
+	if err != nil {
+		return extensions.MCPImportPreview{}, err
+	}
+	params := map[string]any{"source": string(request.Source)}
+	if request.Cwd != "" {
+		params["cwd"] = request.Cwd
+	}
+	if request.From != "" {
+		params["from"] = request.From
+	}
+	if request.Document != "" {
+		params["document"] = request.Document
+	}
+	raw, err := client.Call(ctx, "mcp.import.preview", params)
+	if err != nil {
+		return extensions.MCPImportPreview{}, err
+	}
+	var reply struct {
+		Revision       string `json:"revision"`
+		SourceRevision string `json:"sourceRevision"`
+		Store          *struct {
+			ID     string `json:"id"`
+			Client string `json:"client"`
+			Scope  string `json:"scope"`
+			Path   string `json:"path"`
+		} `json:"store"`
+		Entries []struct {
+			ID        string `json:"id"`
+			Transport string `json:"transport"`
+			Status    string `json:"status"`
+			Changes   []struct {
+				Field string `json:"field"`
+				Kind  string `json:"kind"`
+			} `json:"changes"`
+			Unsupported []struct {
+				Field  string `json:"field"`
+				Effect string `json:"effect"`
+			} `json:"unsupported"`
+			Omitted int    `json:"omitted"`
+			Error   string `json:"error"`
+		} `json:"entries"`
+		UnknownTopLevel []string `json:"unknownTopLevel"`
+	}
+	if err := json.Unmarshal(raw, &reply); err != nil {
+		return extensions.MCPImportPreview{}, fmt.Errorf("MCP 导入预览无法解析: %w", err)
+	}
+	preview := extensions.MCPImportPreview{
+		Revision:        reply.Revision,
+		SourceRevision:  reply.SourceRevision,
+		UnknownTopLevel: append([]string(nil), reply.UnknownTopLevel...),
+		Entries:         make([]extensions.MCPImportEntry, 0, len(reply.Entries)),
+	}
+	if reply.Store != nil {
+		preview.Store = &extensions.MCPImportStore{
+			ID: reply.Store.ID, Client: reply.Store.Client,
+			Scope: reply.Store.Scope, Path: reply.Store.Path,
+		}
+	}
+	for _, entry := range reply.Entries {
+		mapped := extensions.MCPImportEntry{
+			ID:        entry.ID,
+			Transport: entry.Transport,
+			Status:    extensions.MCPImportStatus(entry.Status),
+			Omitted:   entry.Omitted,
+			Error:     entry.Error,
+		}
+		for _, change := range entry.Changes {
+			mapped.Changes = append(mapped.Changes, extensions.MCPImportField{Field: change.Field, Kind: change.Kind})
+		}
+		for _, unsupported := range entry.Unsupported {
+			mapped.Unsupported = append(mapped.Unsupported,
+				extensions.MCPImportUnsupported{Field: unsupported.Field, Effect: unsupported.Effect})
+		}
+		preview.Entries = append(preview.Entries, mapped)
+	}
+	return preview, nil
+}
+
 // ReadScheduledTasks 实现 extensions.SchedulerReader（`schedule.list`）。
 func (r *extensionReaders) ReadScheduledTasks(ctx context.Context) ([]extensions.ScheduledTask, error) {
 	client, err := r.app.requireControl("读取计划任务清单")
@@ -509,6 +631,7 @@ var (
 	_ extensions.SkillReader      = (*extensionReaders)(nil)
 	_ extensions.HookReader       = (*extensionReaders)(nil)
 	_ extensions.ToolServerReader = (*extensionReaders)(nil)
+	_ extensions.MCPImportReader  = (*extensionReaders)(nil)
 	_ extensions.SchedulerReader  = (*extensionReaders)(nil)
 	_ extensions.WorkflowReader   = (*extensionReaders)(nil)
 	_ extensions.WakeupReader     = (*extensionReaders)(nil)

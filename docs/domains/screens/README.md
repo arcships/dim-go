@@ -55,6 +55,12 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-variant-term-disconnected{,-900,-720}.png` | 1440/900/720×900 | 终端**断线**：点 danger + `connection lost` + 重新连接入口 |
 | `window-default-variant-term-recovered{,-900,-720}.png` | 1440/900/720×900 | 终端**恢复**：回空闲 + `reconnected` |
 | `window-default-variant-term-exited{,-900,-720}.png` | 1440/900/720×900 | 右栏 · **终端（已退出）**：ANSI 颜色、长行折行、多行错误 |
+| `connect-default.png` | 1440×900 | `-connect` 连**真实 App Server**（mock 模型）的默认态；无样例数据 |
+| `connect-streaming.png` | 1440×900 | `-connect` 连**fake App Server**，服务端推送三条 `step/text` 后的一帧（运行中） |
+| `connect-approval.png` | 1440×900 | `-connect` 连**fake App Server**，服务端推送 `approval.request` 后的一帧（审批卡占输入位） |
+
+**`connect-*.png` 的来源**：三张都由 `cmd/dimagent-ui -connect -data-dir <目录>` 产出，界面只从 `internal/uiwire` 的 `Source` 读事实，没有样例数据进入视图。`connect-default.png` 的服务端是真实 App Server（路径用 `<app-server 可执行文件>` 占位）；`connect-streaming.png` 与 `connect-approval.png` 的服务端是 **fake App Server**（`internal/fakeappserver`，由 `cmd/dimagent-fake-server` 启动），**协议路径与真实一致**（同一个 `<data-dir>/rust/daemon.sock`、同一套 protocol v3 帧）。流式增量与审批出现/应答/消失的逐条断言见 `go test ./internal/uiwire -run EndToEnd -v`，不只靠截图。
+**取帧限制**：本会话窗口 `onscreen=false`，框架对不可见窗口只提交首帧；两张 fake 图取的是事实到达后、窗口首帧的状态，不是逐帧动画。界面在可见窗口里每 250ms 重绘一次，把订阅收到的变化画出来。
 
 **能证明什么**：macOS 红绿灯由系统画在左栏顶部的让位条里；没有系统标题栏；标题行是自绘的、左端是会话名；窗口圆角与阴影由系统给。
 **外观（主题）**：真窗口截图跟随系统外观——本轮系统为深色，所以 `window-*.png` 全是深色，同一轮评审看到的是同一套观感。软件渲染（`state-*.png` / `variant-*.png`）默认浅色，深色由 `variant-dark.png` 覆盖；两类的对照关系见下表。

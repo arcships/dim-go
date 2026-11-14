@@ -1,9 +1,12 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	gui "github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
@@ -154,7 +157,7 @@ var variantNames = map[string]Variant{
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
 	"term-disconnected": VariantTermDisconnected, "term-recovered": VariantTermRecovered,
 	"tier-confirm": VariantTierConfirm,
-	"ext-detail": VariantExtDetail, "ext-select": VariantExtSelect,
+	"ext-detail":   VariantExtDetail, "ext-select": VariantExtSelect,
 	"mcp-test": VariantMCPTest, "mcp-fail": VariantMCPFail,
 	"shell": VariantShell, "shell-run": VariantShellRun,
 	"storage": VariantStorage, "appearance-keys": VariantAppearanceKeys,
@@ -164,7 +167,7 @@ var variantNames = map[string]Variant{
 	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
 	"term-exited": VariantTermExited,
-	"ext": VariantExt, "ext-failed": VariantExtFailed,
+	"ext":         VariantExt, "ext-failed": VariantExtFailed,
 	"ext-empty": VariantExtEmpty, "ext-loading": VariantExtLoading, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
 }
 
@@ -182,6 +185,13 @@ type Options struct {
 	State State
 	// Variant 是额外的走查态（分支菜单 / 目标编辑 / 后台任务）。
 	Variant Variant
+	// Source 非空时视图从它读事实（-connect）；为空时用样例（-demo / 截图）。
+	Source Source
+	// Intents 非空时视图上的动作会发起真实写入；为空时动作只留在视图里
+	// （样例走查）。
+	Intents Intents
+	// Changed 在后台意图完成后回调，供入口重绘；可为 nil。
+	Changed func()
 	// StateChanged 在调试键切换状态后回调，供入口更新窗口标题。
 	StateChanged func(State)
 }
@@ -195,13 +205,14 @@ type App struct {
 	variant Variant
 	onState func(State)
 
-	sidebarCollapsed bool
-	rightOpen        bool
-	rightTab         int
-	selectedSession  string
+	sidebarCollapsed    bool
+	rightOpen           bool
+	rightTab            int
+	selectedSession     string
+	lastSelectedSession string
 
-	draft       string
-	rounds      []round
+	draft  string
+	rounds []round
 	// summaryOpen 是每一轮的展开态（可丢的视图状态）：按轮次索引存一份 *bool，
 	// 指针稳定、按需创建——轮次变多时不必重建数组，view 里也不攒第二份事实。
 	summaryOpen map[int]*bool
@@ -221,30 +232,31 @@ type App struct {
 	branches         []string
 	branchMenuOpen   bool
 	endBranchConfirm bool
-	goal           string
-	goalDone       bool
-	goalEditing    bool
+	goal             string
+	goalDone         bool
+	goalEditing      bool
 
 	// 设置屏：屏幕、当前分节、三个分节的样例值。全部是可丢的界面状态。
-	screen             Screen
-	settingsSection    int
-	themePref          string
-	motionOff          bool
-	provider           string
-	providers          []string
-	modelChoice        string
-	models             []string
-	modelPrice         string
-	rules              []commandRule
-	clearRulesConfirm  bool
+	screen            Screen
+	settingsSection   int
+	themePref         string
+	motionOff         bool
+	provider          string
+	providers         []string
+	modelChoice       string
+	models            []string
+	modelPrice        string
+	rules             []commandRule
+	clearRulesConfirm bool
 
 	// 定时任务（设置第 5 节）与运行时（第 6 节）。
-	cron          []cronTask
-	cronState     extState
-	cronDeleting  int
-	runtime       []runtimePart
-	runtimeState  extState
-	modalTask     string
+	cron           []cronTask
+	cronState      extState
+	cronDeleting   int
+	cronDeletingID string
+	runtime        []runtimePart
+	runtimeState   extState
+	modalTask      string
 	modalSubmitted string
 
 	// 第 8 节：时区；第 7 节：诊断导出/打开的回执。
@@ -257,17 +269,30 @@ type App struct {
 	extState extState
 
 	// 扩展的详情（二级页）、选择态与 MCP 的认证 / 导入 / 连接测试。
-	extDetail          int
+	extDetail           int
 	extUninstallConfirm bool
-	selectMode         bool
-	extSelected        map[string]bool
-	mcpTest            map[string]mcpState
-	mcpTestDone        map[string]bool
-	importMCP          string
+	selectMode          bool
+	extSelected         map[string]bool
+	mcpTest             map[string]mcpState
+	mcpTestDone         map[string]bool
+	mcpTestReason       string
+	importMCP           string
+	importResult        string
 
 	// source 非空时，视图从它读事实（A 领域的 Source 接口）；为空时用样例数据
 	// （-demo 与截图）。视图不缓存事实：每次读的都是 Source 的快照。
 	source Source
+	// intents 非空时，视图上的动作发起真实写入；写入在后台协程执行，结果回到
+	// intentMu 保护的两个槽位，下一帧在渲染线程上应用。
+	intents    Intents
+	changed    func()
+	intentMu   sync.Mutex
+	intentErr  string
+	intentDone []func()
+	// questionAnswer 是提问卡的回答草稿（可丢的视图状态）。
+	questionAnswer string
+	// lastShellRun 是最近一次已发出的命令运行标识，供「中止」使用。
+	lastShellRun string
 
 	// 待发附件（样例）与权限档位（提交值与草稿值分开：切换要两步确认）。
 	attachments []string
@@ -276,26 +301,26 @@ type App struct {
 	tierPending string
 
 	// 会话目录：搜索面、行内重命名、删除确认、归档与导出反馈（都属可丢的视图状态）。
-	searchOpen bool
+	searchOpen  bool
 	searchQuery string
-	renaming   int
+	renaming    int
 	renameDraft string
-	deleting   int
-	archived   map[int]bool
-	renamed    map[int]string
-	exported   string
-	menuOpen   map[int]*bool
+	deleting    int
+	archived    map[int]bool
+	renamed     map[int]string
+	exported    string
+	menuOpen    map[int]*bool
 
 	// 终端（右栏第五个标签）：状态、输出行、提示行与"已复制"反馈。
 	termState  termState
 	termLines  []termLine
 	termInput  string
 	termCopied bool
-	plugins  []extItem
-	skills   []extItem
-	mcps     []extItem
-	hooks    []extItem
-	tasks          []task
+	plugins    []extItem
+	skills     []extItem
+	mcps       []extItem
+	hooks      []extItem
+	tasks      []task
 
 	// contextUsed / contextLimit 是样例里的上下文用量，百分比由二者算；
 	// contextOpen 是明细的展开状态。三者都是可丢的界面状态（UI-8）。
@@ -318,6 +343,9 @@ type App struct {
 // NewApp 建立骨架。状态切换只改界面样例，不连任何服务。
 func NewApp(o Options) *App {
 	a := &App{
+		source:          o.Source,
+		intents:         o.Intents,
+		changed:         o.Changed,
 		state:           o.State,
 		variant:         o.Variant,
 		onState:         o.StateChanged,
@@ -328,6 +356,9 @@ func NewApp(o Options) *App {
 	a.loadSample()
 	return a
 }
+
+// SetChanged 设置后台意图完成后的重绘回调。
+func (a *App) SetChanged(changed func()) { a.changed = changed }
 
 // State 返回当前样例状态。
 func (a *App) State() State { return a.state }
@@ -346,6 +377,12 @@ func (a *App) SetState(s State) {
 
 // loadSample 按状态重建静态样例。
 func (a *App) loadSample() {
+	// 连着真实事实时不灌样例（-connect 下任何样例都不得进视图），只恢复可丢的
+	// 视图状态默认值；事实全部每帧从 Source 读。
+	if a.source != nil {
+		a.resetWiredViewState()
+		return
+	}
 	a.rounds = sampleRounds(a.state)
 	a.summaryOpen = make(map[int]*bool)
 	a.approvalCommand = ""
@@ -520,11 +557,169 @@ func (a *App) loadSample() {
 	}
 }
 
+// resetWiredViewState 只重置可丢的界面状态：不写任何样例事实，事实每帧从
+// Source 读。连着 Source 时 loadSample 走这条路径。
+func (a *App) resetWiredViewState() {
+	a.rounds = nil
+	a.summaryOpen = make(map[int]*bool)
+	a.approvalCommand = ""
+	a.contextUsed, a.contextLimit = 0, 0
+	a.contextOpen = false
+	a.confirmAlways = false
+	a.approvalDecision = ""
+
+	a.branch = ""
+	a.branches = nil
+	a.branchMenuOpen = false
+	a.endBranchConfirm = false
+	a.goal = ""
+	a.goalDone = false
+	a.goalEditing = false
+	a.tasks = nil
+
+	a.screen = ScreenMain
+	a.settingsSection = secAppearance
+	a.themePref = "跟随系统"
+	a.motionOff = false
+	a.provider = ""
+	a.providers = nil
+	a.modelChoice = ""
+	a.models = nil
+	a.modelPrice = ""
+	a.rules = nil
+	a.clearRulesConfirm = false
+	a.cron = nil
+	a.cronState = extLoaded
+	a.cronDeleting = -1
+	a.cronDeletingID = ""
+	a.runtime = nil
+	a.runtimeState = extLoaded
+	a.modalTask, a.modalSubmitted = "", ""
+	a.timeZone = "跟随系统"
+	a.diagnosticsExported, a.diagnosticsOpened = false, false
+
+	a.extTab, a.extState = 0, extLoaded
+	a.extDetail, a.extUninstallConfirm = -1, false
+	a.selectMode = false
+	a.extSelected = map[string]bool{}
+	a.mcpTest, a.mcpTestDone = map[string]mcpState{}, map[string]bool{}
+	a.importMCP = ""
+	a.plugins, a.skills, a.mcps, a.hooks = nil, nil, nil, nil
+
+	a.attachments = nil
+	a.tier, a.tierDraft, a.tierPending = "", "", ""
+	a.searchOpen, a.searchQuery = false, ""
+	a.renaming, a.deleting = -1, -1
+	a.renameDraft = ""
+	a.archived, a.renamed = map[int]bool{}, map[int]string{}
+	a.menuOpen = map[int]*bool{}
+	a.exported = ""
+	a.termState = termIdle
+	a.termLines = nil
+	a.termCopied = false
+	a.termInput = ""
+	a.model = ""
+}
+
 // View 是每帧重建的界面。
 func (a *App) View(c *gui.Context) {
+	a.applyIntentResults()
+	a.syncSelectedSession()
 	a.applyTokens(c)
 	a.debugKeys(c)
 	a.layout(c)
+}
+
+// syncSelectedSession 在左栏选中项变化时打开对应会话；选中标识是视图里的行
+// 标识（s1、s2…），真实会话标识从当前目录列表取。
+func (a *App) syncSelectedSession() {
+	if a.intents == nil || a.source == nil {
+		return
+	}
+	if a.selectedSession == "" || a.selectedSession == a.lastSelectedSession {
+		return
+	}
+	a.lastSelectedSession = a.selectedSession
+	index := sessionIndex(a.selectedSession)
+	names := a.sessionNames()
+	if index < 0 || index >= len(names) {
+		return
+	}
+	sessionID := names[index]
+	if current, ok := a.liveSession(); ok && current.ID == sessionID {
+		return
+	}
+	a.dispatch("打开会话", func(ctx context.Context) error {
+		return a.intents.OpenSession(ctx, sessionID)
+	}, nil)
+}
+
+// dispatch 在后台执行一次写入意图：失败原因挂到视图的错误行，成功后把视图状态
+// 更新闭包交回渲染线程（下一帧执行），不在后台协程里改视图。
+func (a *App) dispatch(label string, action func(context.Context) error, onOK func()) {
+	if a.intents == nil || action == nil {
+		return
+	}
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		err := action(ctx)
+		a.intentMu.Lock()
+		if err != nil {
+			a.intentErr = label + "：" + err.Error()
+		} else {
+			a.intentErr = ""
+			if onOK != nil {
+				a.intentDone = append(a.intentDone, onOK)
+			}
+		}
+		a.intentMu.Unlock()
+		if a.changed != nil {
+			a.changed()
+		}
+	}()
+}
+
+// applyIntentResults 在渲染线程上执行后台意图交回的成功回调。
+func (a *App) applyIntentResults() {
+	a.intentMu.Lock()
+	done := a.intentDone
+	a.intentDone = nil
+	a.intentMu.Unlock()
+	for _, update := range done {
+		update()
+	}
+}
+
+// intentError 是最近一次失败的动作原因；空表示没有。
+func (a *App) intentError() string {
+	a.intentMu.Lock()
+	defer a.intentMu.Unlock()
+	return a.intentErr
+}
+
+// dismissIntentError 清掉错误行。
+func (a *App) dismissIntentError() {
+	a.intentMu.Lock()
+	a.intentErr = ""
+	a.intentMu.Unlock()
+}
+
+// actionErrorView 是一行失败原因：只在有错误时出现，关闭入口就在同一行。
+func (a *App) actionErrorView(c *gui.Context) {
+	reason := a.intentError()
+	if reason == "" {
+		return
+	}
+	t := c.Theme()
+	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space2).AlignItems(gui.Center).
+		Label("操作未完成").Children(func() {
+		iconGlyph(c, iconWarn, t.Danger, "exclamation")
+		typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.Danger).Grow(1).SingleLine()
+		if iconButton(c, iconButtonSpec{icon: iconXMark, label: "关闭操作失败提示", size: rowCompact}) {
+			a.dismissIntentError()
+		}
+	})
 }
 
 // applyTokens 把 U2 的 token 表换成本帧的主题（tokens.go 的 theme）：
@@ -616,6 +811,7 @@ func (a *App) layout(c *gui.Context) {
 		a.sidebar(c)
 		gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
 			a.header(c)
+			a.actionErrorView(c)
 			gui.Row(c).Grow(1).AlignItems(gui.Stretch).Children(func() {
 				// 窄到并排不下时（compact），右栏整屏替代主区（U1-ia §3.1）：
 				// 同一时刻只显示一处，关闭右栏后主区回来。
@@ -677,6 +873,17 @@ func (a *App) openOf(i int) *bool {
 	return p
 }
 
+// liveConnection 是连接阶段：有 Source 时读它，否则按样例视为已连接。
+func (a *App) liveConnection() Connection {
+	if a.source != nil {
+		return a.source.Connection()
+	}
+	return Connection{Phase: "connected"}
+}
+
+// disconnected 表示当前连不上（输入区要禁用、原因要可见）。
+func (a *App) disconnected() bool { return a.liveConnection().Phase == "disconnected" }
+
 // wired 表示当前由 Source 提供事实。
 func (a *App) wired() bool { return a.source != nil }
 
@@ -711,6 +918,70 @@ func (a *App) liveApproval() (ApprovalSnapshot, bool) {
 		return ApprovalSnapshot{}, false
 	}
 	return a.source.Approval()
+}
+
+// liveQuestion 取待答提问（Source 优先）。
+func (a *App) liveQuestion() (QuestionSnapshot, bool) {
+	if a.source == nil {
+		return QuestionSnapshot{}, false
+	}
+	return a.source.Question()
+}
+
+// accountInitialValue 是页脚头像的首字母：连着 Source 时取账号事实，否则用样例。
+func (a *App) accountInitialValue() string {
+	if a.source != nil {
+		return a.source.Account().Initial
+	}
+	return a.accountInitial
+}
+
+// liveSettings 取设置里的事实快照。
+func (a *App) liveSettings() (SettingsSnapshot, bool) {
+	if a.source == nil {
+		return SettingsSnapshot{}, false
+	}
+	return a.source.Settings(), true
+}
+
+// liveAccount 取账号事实快照。
+func (a *App) liveAccount() (AccountSnapshot, bool) {
+	if a.source == nil {
+		return AccountSnapshot{}, false
+	}
+	return a.source.Account(), true
+}
+
+// liveUsage 取账号用量快照。
+func (a *App) liveUsage() (UsageSnapshot, bool) {
+	if a.source == nil {
+		return UsageSnapshot{}, false
+	}
+	return a.source.Usage(), true
+}
+
+// liveExtensions 取扩展四类读数。
+func (a *App) liveExtensions() (ExtensionsSnapshot, bool) {
+	if a.source == nil {
+		return ExtensionsSnapshot{}, false
+	}
+	return a.source.Extensions(), true
+}
+
+// liveSchedules 取定时任务读数。
+func (a *App) liveSchedules() (SchedulesSnapshot, bool) {
+	if a.source == nil {
+		return SchedulesSnapshot{}, false
+	}
+	return a.source.Schedules(), true
+}
+
+// liveTerminal 取终端状态；第三个返回值表示是否由 Source 提供。
+func (a *App) liveTerminal() (TerminalSnapshot, bool) {
+	if a.source == nil {
+		return TerminalSnapshot{}, false
+	}
+	return a.source.Terminal(), true
 }
 
 // currentExtTitle 是 Source 里当前会话的标题（空会话时给空态用）。

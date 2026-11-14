@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strconv"
@@ -13,18 +14,37 @@ import (
 // 队列与不可用原因贴在输入区上沿，不放到标题行或时间线顶部（UI-10）。
 func (a *App) composer(c *gui.Context) {
 	gui.Column(c).Shrink(0).Children(func() {
-		if a.liveRunning() {
+		// 队列内容没有对接的读数（SessionSnapshot 不带排队项），接上事实时不画
+		// 样例队列条；运行态由停止槽表达。
+		if a.liveRunning() && !a.wired() {
 			a.queueBar(c)
 		}
 		a.goalRow(c)
 		gui.Box(c).Padding(composerPadding).Children(func() {
 			// 审批卡占输入位：样例走 StateWaiting，接真实事实时看 Source 有没有待决。
+			if a.disconnected() {
+				// 断线：输入位不可用，原因写在原位（不是白屏、不是静默）。
+				t := c.Theme()
+				gui.Column(c).MinHeight(ComposerMinHeight).Padding(space2).
+					Background(t.Surface).Radius(radius).Children(func() {
+					gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("连接断开").Children(func() {
+						iconGlyph(c, iconWarn, t.Danger, "exclamation")
+						typeBody.style(t, gui.Text(c, "连接已断开："+a.liveConnection().Reason)).
+							TextColor(t.Danger).SingleLine()
+					})
+				})
+				return
+			}
 			if a.state == StateWaiting {
 				a.approvalCard(c)
 				return
 			}
 			if _, ok := a.liveApproval(); ok {
 				a.approvalCard(c)
+				return
+			}
+			if question, ok := a.liveQuestion(); ok {
+				a.questionCard(c, question)
 				return
 			}
 			a.inputCard(c)
@@ -71,7 +91,10 @@ func (a *App) inputCard(c *gui.Context) {
 					a.attachChip(c, i, name)
 				}
 				gui.Spacer(c)
-				a.contextMeter(c)
+				// 上下文用量没有对接读数时不画 0% 的假读数。
+				if !a.wired() {
+					a.contextMeter(c)
+				}
 			})
 			a.contextDetail(c)
 			if a.shellMode() {
@@ -174,6 +197,50 @@ func tokenCount(n int) string {
 	return strings.TrimSuffix(s, ".0") + "k"
 }
 
+// respondApproval 把审批决定发出去：接上事实时走 Intents，否则只记样例反馈。
+func (a *App) respondApproval(decision string) {
+	if a.intents == nil {
+		a.approvalDecision = decision
+		return
+	}
+	a.dispatch("审批", func(ctx context.Context) error {
+		return a.intents.RespondApproval(ctx, decision)
+	}, nil)
+}
+
+// questionCard 是提问卡：出现时占据输入位，批次只提交一次（U3 §5.5）。
+func (a *App) questionCard(c *gui.Context, question QuestionSnapshot) {
+	t := c.Theme()
+	gui.Column(c).MinHeight(ApprovalHeight).
+		Padding(space2).Gap(space2).
+		Background(t.SurfacePressed).Radius(radius).
+		Label("需要你回答").Children(func() {
+		iconGlyph(c, iconClock, colorAccentInk.in(t), "clock")
+		typeBody.style(t, gui.Text(c, question.Text)).TextColor(t.Text)
+		for _, option := range question.Options {
+			option := option
+			if actionButton(c, option, "选项："+option, false, false).Clicked() {
+				a.questionAnswer = option
+			}
+		}
+		gui.TextInputBase(c, &a.questionAnswer).Label("回答").Grow(1).
+			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
+			gui.Spacer(c)
+			answer := strings.TrimSpace(a.questionAnswer)
+			if actionButton(c, "回答", "提交回答", true, answer == "").Clicked() && a.intents != nil {
+				a.dispatch("回答", func(ctx context.Context) error {
+					return a.intents.RespondQuestion(ctx, answer)
+				}, func() { a.questionAnswer = "" })
+			}
+			if actionButton(c, "跳过", "跳过这个问题", false, false).Clicked() && a.intents != nil {
+				a.dispatch("跳过提问", func(ctx context.Context) error {
+					return a.intents.SkipQuestion(ctx)
+				}, func() { a.questionAnswer = "" })
+			}
+		})
+	})
+}
 
 // sendSlot 是 R4 的发送槽：同一位置、同一尺寸只放一个动作（UI-1、U3 §4.1）。
 //
@@ -186,7 +253,7 @@ func (a *App) sendSlot(c *gui.Context, running, empty bool) {
 		// 命令模式：同一个槽位，语义换成"运行命令"（F46）。
 		icon, label, tip = iconPlay, "运行命令", "运行命令 · Enter"
 	}
-	disabled := empty
+	disabled := empty || a.disconnected()
 	switch {
 	case running:
 		icon, label, tip = iconStop, "停止", "停止 · Enter"
@@ -196,6 +263,20 @@ func (a *App) sendSlot(c *gui.Context, running, empty bool) {
 		disabled = true
 	}
 	if iconAction(c, iconButtonSpec{icon: icon, label: label, tip: tip, size: rowCompact, disabled: disabled}, true) {
+		if a.intents != nil {
+			switch {
+			case running:
+				a.dispatch("停止", a.intents.Stop, nil)
+			case a.shellMode():
+				a.runShellCommand()
+			default:
+				text := a.draft
+				a.dispatch("发送", func(ctx context.Context) error {
+					return a.intents.Submit(ctx, text)
+				}, func() { a.draft = "" })
+			}
+			return
+		}
 		if a.shellMode() {
 			a.runShellCommand()
 			return
@@ -242,7 +323,7 @@ func (a *App) approvalCard(c *gui.Context) {
 					icon: iconCheck, mark: "check", text: "允许一次", primary: true,
 					tip: "只同意这一次",
 				}) {
-					a.approvalDecision = "allow"
+					a.respondApproval("allow")
 				}
 				if cmd != "" {
 					// 「一直允许」会对所有会话生效：第一次点击换成确认态，再点才生效。
@@ -255,7 +336,7 @@ func (a *App) approvalCard(c *gui.Context) {
 						icon: iconCheckLock, mark: "check-lock", text: text, label: label, tip: tip,
 					}) {
 						if a.confirmAlways {
-							a.approvalDecision = "allow-always"
+							a.respondApproval("allow-always")
 							a.confirmAlways = false
 						} else {
 							a.confirmAlways = true
@@ -265,7 +346,7 @@ func (a *App) approvalCard(c *gui.Context) {
 				if textIconButton(c, textIconButtonSpec{
 					icon: iconXMark, mark: "x-mark", text: "拒绝", tip: "不改规则，这次不执行",
 				}) {
-					a.approvalDecision = "deny"
+					a.respondApproval("deny")
 				}
 			})
 		})
@@ -307,8 +388,11 @@ func (a *App) goalRow(c *gui.Context) {
 		if a.goalDone {
 			iconBox(c, iconCheck, t.TextMuted, "目标已完成")
 		}
-		if iconButton(c, iconButtonSpec{icon: iconPencil, label: "修改目标", size: rowCompact}) {
-			a.goalEditing = true
+		// 接上事实时目标只读：服务端没有目标写方法（D14 §5）。
+		if !a.wired() {
+			if iconButton(c, iconButtonSpec{icon: iconPencil, label: "修改目标", size: rowCompact}) {
+				a.goalEditing = true
+			}
 		}
 	})
 }
@@ -345,6 +429,25 @@ func (a *App) shellMarker(c *gui.Context) {
 func (a *App) runShellCommand() {
 	cmd := a.shellCommand()
 	if cmd == "" {
+		return
+	}
+	if a.intents != nil {
+		var runID string
+		a.dispatch("运行命令", func(ctx context.Context) error {
+			id, err := a.intents.RunShell(ctx, cmd)
+			if err == nil {
+				runID = id
+			}
+			return err
+		}, func() {
+			a.lastShellRun = runID
+			a.draft = ""
+			a.termState = termRunning
+		})
+		return
+	}
+	// 样例模式：只追加一行样例回执。
+	if a.wired() {
 		return
 	}
 	a.termLines = append(a.termLines, termLine{text: "$ " + cmd, color: -1})

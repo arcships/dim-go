@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	gui "github.com/egoist/mygo/ui"
 )
 
@@ -14,6 +16,10 @@ import (
 func (a *App) settingsStorage(c *gui.Context) {
 	t := c.Theme()
 	settingsSectionTitle(c, "存储与诊断")
+	if st, ok := a.liveSettings(); ok {
+		a.settingsStorageLive(c, st)
+		return
+	}
 
 	// 存储读数：数值 + 单位，单位与数值同字号、次要色。
 	readings := []struct{ label, value, unit string }{
@@ -60,6 +66,48 @@ func (a *App) settingsStorage(c *gui.Context) {
 			typeSecondary.style(t, gui.Text(c, "已导出诊断包")).TextColor(t.TextMuted)
 		})
 	}
+}
+
+// settingsStorageLive 是接上事实后的存储分节：只读服务端读数，缺项显示「—」。
+func (a *App) settingsStorageLive(c *gui.Context, st SettingsSnapshot) {
+	t := c.Theme()
+	if !st.StorageKnown {
+		reason := "尚未读取"
+		if st.StorageError != "" {
+			reason = st.StorageError
+		}
+		a.stateNote(c, "存储读数", iconClock, "clock", reason, t.TextMuted)
+	} else {
+		readings := []struct {
+			label string
+			bytes int64
+		}{
+			{"数据库", st.Storage.DatabaseBytes},
+			{"WAL", st.Storage.WALBytes},
+			{"可回收", st.Storage.ReclaimableBytes},
+		}
+		for _, reading := range readings {
+			settingsValueRow(c, "存储读数："+reading.label, reading.label, humanBytes(reading.bytes))
+		}
+	}
+	// 服务版本没有在设置领域暴露读数；不拿样例版本顶替。
+	settingsValueRow(c, "服务版本", "服务版本", "—")
+	settingsValueRow(c, "连接方式", "连接方式", "本机 socket")
+	// 诊断导出/打开没有对接的本地能力，本批不提供入口（见 D14 未接清单）。
+}
+
+// humanBytes 把字节数换成带单位的读数；0 显示 0 B，不做四舍五入以外的推断。
+func humanBytes(bytes int64) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div *= unit
+		exp++
+	}
+	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 
 // settingsAppearanceKeys 是「外观与键位」分节：主题 / 动效 / 时区 + 快捷键提示表。

@@ -1,10 +1,41 @@
 package ui
 
 import (
+	"context"
 	"fmt"
+	"strings"
 
 	gui "github.com/egoist/mygo/ui"
 )
+
+// tierChoices 是界面上的权限档位选项。
+func tierChoices() []string { return []string{"只读", "工作区内自动", "全自动"} }
+
+// tierFromLabel 把界面语换回服务端取值；认不出的返回空（适配器会拒绝）。
+func tierFromLabel(label string) string {
+	switch label {
+	case "只读":
+		return "read-only"
+	case "工作区内自动":
+		return "workspace-write"
+	case "全自动":
+		return "full-access"
+	}
+	return ""
+}
+
+// tierLabel 把服务端的权限档位取值换成界面语；认不出的原样显示。
+func tierLabel(tier string) string {
+	switch tier {
+	case "full-access":
+		return "全自动"
+	case "workspace-write":
+		return "工作区内自动"
+	case "read-only":
+		return "只读"
+	}
+	return dashIfEmpty(tier)
+}
 
 // settings 是 P2 设置屏（独立成屏，U1-ia §4）：左导航 224 + 内容区（上限 1008）。
 // 本片只做三个分节——外观、供应商、命令规则；其余分节在后续批次追加节点。
@@ -19,6 +50,7 @@ func (a *App) settings(c *gui.Context) {
 		gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
 			gui.Column(c).Grow(1).MaxWidth(SettingsContentMaxWidth).
 				Padding(space8, space8).Gap(space4).Children(func() {
+				a.actionErrorView(c)
 				switch a.settingsSection {
 				case secAccount:
 					a.settingsAccount(c)
@@ -120,6 +152,45 @@ func (a *App) settingsAppearance(c *gui.Context) {
 func (a *App) settingsProviders(c *gui.Context) {
 	t := c.Theme()
 	settingsSectionTitle(c, "供应商")
+	if st, ok := a.liveSettings(); ok {
+		settingsValueRow(c, "当前供应商", "当前供应商", st.Provider)
+		settingsValueRow(c, "模型", "模型", st.Model)
+		if !st.TierKnown {
+			settingsValueRow(c, "权限档位", "权限档位", "—")
+			return
+		}
+		current := tierLabel(st.Tier)
+		if a.tierDraft == "" {
+			a.tierDraft = current
+		}
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Children(func() {
+			typeControl.style(t, gui.Text(c, "权限档位")).Width(SettingsLabelWidth).TextColor(t.Text)
+			gui.Select(c, &a.tierDraft, tierChoices()).Label("权限档位选择")
+			gui.Spacer(c)
+		})
+		if a.tierDraft != current {
+			gui.Row(c).Gap(space1).AlignItems(gui.Center).Shrink(0).
+				Label("权限档位确认").Children(func() {
+				iconGlyph(c, iconWarn, t.Warning, "exclamation")
+				typeSecondary.style(t, gui.Text(c, "切到「"+a.tierDraft+"」会影响之后所有操作。")).
+					TextColor(t.TextMuted)
+				gui.Spacer(c)
+			})
+			gui.Row(c).Gap(space2).Children(func() {
+				if actionButton(c, "确认切换", "确认切换权限档位", true, false).Clicked() && a.intents != nil {
+					tier := tierFromLabel(a.tierDraft)
+					a.dispatch("权限档位", func(ctx context.Context) error {
+						return a.intents.SetPermissionTier(ctx, tier)
+					}, func() { a.tierDraft = "" })
+				}
+				if actionButton(c, "取消", "取消切换权限档位", false, false).Clicked() {
+					a.tierDraft = current
+				}
+				gui.Spacer(c)
+			})
+		}
+		return
+	}
 	settingsRow(c, "当前供应商", func() {
 		gui.Select(c, &a.provider, a.providers).Label("当前供应商")
 	})
@@ -170,6 +241,10 @@ func (a *App) settingsRules(c *gui.Context) {
 	settingsSectionTitle(c, "命令规则")
 	typeSecondary.style(t, gui.Text(c, "规则对所有会话生效；拒绝先于允许。")).
 		TextColor(t.TextMuted).Label("规则说明")
+	if st, ok := a.liveSettings(); ok {
+		a.settingsRulesLive(c, st)
+		return
+	}
 
 	// 窄窗退化（U2-forms F23）：三列排不下一行时，一条规则两行——先命令，
 	// 再「决定 + 匹配方式」。表头只在三列并排时出现（堆叠后每列带自己的标签）。
@@ -240,6 +315,59 @@ func (a *App) settingsRules(c *gui.Context) {
 	}
 }
 
+// settingsRulesLive 是接上事实后的命令规则：本批没有读取入口，读数缺失时
+// 明说「尚未读取」，不拿样例规则顶上。
+func (a *App) settingsRulesLive(c *gui.Context, st SettingsSnapshot) {
+	t := c.Theme()
+	if !st.RulesKnown {
+		a.stateNote(c, "命令规则", iconClock, "clock", "尚未读取", t.TextMuted)
+		return
+	}
+	if len(st.Rules) == 0 {
+		a.emptyNote(c, "命令规则空态", "还没有命令规则")
+		return
+	}
+	width, _ := c.Size()
+	inner := width - SettingsNavWidth - 2*space8
+	stacked := inner < SettingsRuleRowMinWidth
+	if !stacked {
+		gui.Row(c).Gap(space4).Shrink(0).Children(func() {
+			typeSecondary.style(t, gui.Text(c, "命令")).Width(SettingsRuleCommandWidth).
+				TextColor(t.TextMuted).Label("命令列")
+			typeSecondary.style(t, gui.Text(c, "决定")).Width(SettingsRuleSelectWidth).
+				TextColor(t.TextMuted).Label("决定列")
+			typeSecondary.style(t, gui.Text(c, "匹配方式")).Width(SettingsRuleSelectWidth).
+				TextColor(t.TextMuted).Label("匹配列")
+		})
+	}
+	for _, rule := range st.Rules {
+		if !stacked {
+			gui.Row(c).Gap(space4).AlignItems(gui.Center).Shrink(0).Children(func() {
+				typeCode.style(t, gui.RichText(c, gui.Span{
+					Text: rule.Command, Size: typeCode.sizeIn(t), Weight: typeCode.weight, Color: t.Text,
+				})).Width(SettingsRuleCommandWidth).SingleLine()
+				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Decision))).
+					Width(SettingsRuleSelectWidth).TextColor(t.TextMuted)
+				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Match))).
+					Width(SettingsRuleSelectWidth).TextColor(t.TextMuted)
+			})
+			continue
+		}
+		gui.Column(c).Shrink(0).Gap(space1).Children(func() {
+			typeCode.style(t, gui.RichText(c, gui.Span{
+				Text: rule.Command, Size: typeCode.sizeIn(t), Weight: typeCode.weight, Color: t.Text,
+			})).SingleLine()
+			gui.Row(c).Gap(space3).AlignItems(gui.Center).Shrink(0).Children(func() {
+				typeSecondary.style(t, gui.Text(c, "决定")).TextColor(t.TextMuted)
+				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Decision))).TextColor(t.TextMuted)
+				typeSecondary.style(t, gui.Text(c, "匹配方式")).TextColor(t.TextMuted)
+				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Match))).TextColor(t.TextMuted)
+				gui.Spacer(c)
+			})
+		})
+	}
+}
+
 // settingsSummary 是入口语（样例）：提供给导航与测试读取的当前值摘要。
 func (a *App) settingsSummary() string {
 	return fmt.Sprintf("%s · %s", a.themePref, a.provider)
@@ -250,6 +378,10 @@ func (a *App) settingsSummary() string {
 func (a *App) settingsAccount(c *gui.Context) {
 	t := c.Theme()
 	settingsSectionTitle(c, "账号与套餐")
+	if snap, ok := a.liveAccount(); ok {
+		a.settingsAccountLive(c, snap)
+		return
+	}
 	rows := []struct{ label, value string }{
 		{"账号", "E · eric@example.com"},
 		{"套餐", "Pro · 每月 $20"},
@@ -265,4 +397,49 @@ func (a *App) settingsAccount(c *gui.Context) {
 			gui.Spacer(c)
 		})
 	}
+}
+
+// settingsAccountLive 是接上事实后的账号分节：缺项显示「—」，不用样例顶替。
+func (a *App) settingsAccountLive(c *gui.Context, snap AccountSnapshot) {
+	identity := snap.Email
+	if identity == "" {
+		identity = snap.Name
+	}
+	quota := "—"
+	if usage, ok := a.liveUsage(); ok && usage.Available {
+		quota = fmt.Sprintf("%g / %g %s", usage.Used, usage.Limit, usage.Unit)
+	} else if usage.Reason != "" {
+		quota = usage.Reason
+	}
+	reset := "—"
+	if usage, ok := a.liveUsage(); ok && usage.HasResets {
+		reset = usage.ResetsAt.Local().Format("2006-01-02")
+	}
+	rows := []struct{ label, value string }{
+		{"账号", dashIfEmpty(identity)},
+		{"套餐", dashIfEmpty(snap.Plan)},
+		{"本月额度", quota},
+		{"用量重置", reset},
+	}
+	for _, r := range rows {
+		settingsValueRow(c, "账号信息："+r.label, r.label, r.value)
+	}
+}
+
+// settingsValueRow 是只读的一行：左侧标签 + 右侧值（值缺失时显示「—」）。
+func settingsValueRow(c *gui.Context, label, name, value string) {
+	t := c.Theme()
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Label(label).Children(func() {
+		typeControl.style(t, gui.Text(c, name)).Width(SettingsLabelWidth).TextColor(t.Text)
+		typeSecondary.style(t, gui.Text(c, dashIfEmpty(value))).TextColor(t.TextMuted)
+		gui.Spacer(c)
+	})
+}
+
+// dashIfEmpty 把空值显示成「—」：不发明内容，也不留空。
+func dashIfEmpty(value string) string {
+	if strings.TrimSpace(value) == "" {
+		return "—"
+	}
+	return value
 }

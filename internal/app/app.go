@@ -433,6 +433,7 @@ func (a *App) Connect(ctx context.Context) error {
 		Skills:      extensionReaders,
 		Hooks:       extensionReaders,
 		ToolServers: extensionReaders,
+		MCPImports:  extensionReaders,
 		Scheduler:   extensionReaders,
 		Workflows:   extensionReaders,
 		Wakeups:     extensionReaders,
@@ -807,6 +808,25 @@ func (a *App) Phase() Phase {
 
 // Connected 报告控制连接是否可用；它是宿主外壳的只读连接探针。
 func (a *App) Connected() bool { return a.control() != nil }
+
+// ConnectionClosed 返回控制连接的关闭通道；未连接时为 nil。
+// 界面用它感知断线：通道关闭后 ConnectionError 给出原因。
+func (a *App) ConnectionClosed() <-chan struct{} {
+	client := a.control()
+	if client == nil {
+		return nil
+	}
+	return client.Done()
+}
+
+// ConnectionError 返回控制连接关闭的原因；未关闭或没有连接时为 nil。
+func (a *App) ConnectionError() error {
+	client := a.control()
+	if client == nil {
+		return nil
+	}
+	return client.Err()
+}
 
 // Catalog 返回会话目录领域实例；Connect 之前为 nil。
 func (a *App) Catalog() *catalog.Catalog {

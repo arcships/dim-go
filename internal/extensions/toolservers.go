@@ -482,6 +482,13 @@ type ToolServerRemovePayload struct {
 	ExpectedVersion string `json:"expectedVersion,omitempty"`
 }
 
+// ToolServerEnabledPayload 是 mcp.set_enabled 意图的载荷。
+type ToolServerEnabledPayload struct {
+	ServerID string `json:"serverId"`
+	Source   Source `json:"source,omitempty"`
+	Enabled  bool   `json:"enabled"`
+}
+
 // ImportResult 是一次按勾选写入的结果。Written 是明确成功的条数。
 type ImportResult struct {
 	Source   string             `json:"source"`
@@ -526,6 +533,17 @@ func (s *Service) UpdateToolServer(ctx context.Context, serverID string, spec To
 // RemoveToolServer 删除一个外部工具服务器。写入经写登记。
 func (s *Service) RemoveToolServer(ctx context.Context, serverID string) (write.IntentView, error) {
 	return s.RemoveToolServerWithVersion(ctx, serverID, "")
+}
+
+// SetToolServerEnabled 写入一个工具服务器的启用状态（mcp.set_enabled）。
+func (s *Service) SetToolServerEnabled(ctx context.Context, serverID string, enabled bool) (write.IntentView, error) {
+	if err := requireText("工具服务器标识", serverID); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpToolServerEnable, ToolServerEnabledPayload{
+		ServerID: serverID,
+		Enabled:  enabled,
+	}, false)
 }
 
 // RemoveToolServerWithVersion 带 mcp.catalog 的 userRevision 删除服务器；

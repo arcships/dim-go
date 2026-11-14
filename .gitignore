@@ -20,3 +20,5 @@ coverage.out
 /internal/tmpprobe
 /scripts/tmp-*
 /tmp-colab
+/dimagent-ui
+/dimagent-fake-server

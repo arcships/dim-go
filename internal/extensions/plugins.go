@@ -66,6 +66,11 @@ type PluginUpdatePayload struct {
 	PluginID string `json:"pluginId"`
 }
 
+// PluginRemovePayload 是 plugin.remove 意图的载荷。
+type PluginRemovePayload struct {
+	PluginID string `json:"pluginId"`
+}
+
 // ListPlugins 读取插件清单并更新镜像读数。缺能力时返回已经确认的旧读数与分类错误。
 func (s *Service) ListPlugins(ctx context.Context) (Snapshot[Plugin], error) {
 	if s.cfg.Plugins == nil {
@@ -94,6 +99,14 @@ func (s *Service) SetPluginEnabled(ctx context.Context, pluginID string, enabled
 		return write.IntentView{}, err
 	}
 	return s.write(ctx, OpPluginSetEnabled, PluginEnabledPayload{PluginID: pluginID, Enabled: enabled}, false)
+}
+
+// RemovePlugin 卸载一个插件。写入经写登记，只发一次。
+func (s *Service) RemovePlugin(ctx context.Context, pluginID string) (write.IntentView, error) {
+	if err := requireText("插件标识", pluginID); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpPluginRemove, PluginRemovePayload{PluginID: pluginID}, false)
 }
 
 // UpdatePlugin 触发一次插件更新。每次显式调用都是一次新的检查，成功后再次调用

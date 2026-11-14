@@ -507,6 +507,7 @@ func isExtensionOp(op string) bool {
 		strings.HasPrefix(op, "hooks."),
 		strings.HasPrefix(op, "mcp."),
 		strings.HasPrefix(op, "tool_server."),
+		strings.HasPrefix(op, "schedule."),
 		strings.HasPrefix(op, "workflow."),
 		op == "wakeup.cancel",
 		op == "session.wakeup.cancel":
@@ -564,6 +565,17 @@ func (s *appSender) sendExtensionWrite(
 		return callAndReply(ctx, client, method, map[string]any{
 			"name": firstNonEmpty(payload.PluginID, payload.Name),
 		})
+	case "plugin.remove":
+		var payload struct {
+			PluginID string `json:"pluginId"`
+			ID       string `json:"id"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		return callAndReply(ctx, client, methodPluginRemove, protocol.PluginIDParams{
+			ID: firstNonEmpty(payload.PluginID, payload.ID),
+		})
 	case "plugin.update":
 		var payload struct {
 			PluginID string `json:"pluginId"`
@@ -586,6 +598,17 @@ func (s *appSender) sendExtensionWrite(
 			Source: pluginSourceWire(payload.Source),
 			Skills: []protocol.SelectedSkill{},
 		})
+	case "skill.remove", "skills.remove":
+		var payload struct {
+			SkillID string `json:"skillId"`
+			ID      string `json:"id"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		return callAndReply(ctx, client, methodSkillsRemove, protocol.SkillsInstallationParams{
+			ID: firstNonEmpty(payload.SkillID, payload.ID),
+		})
 	case "skills.set_enabled", "skill.set_enabled":
 		var payload struct {
 			SkillID string `json:"skillId"`
@@ -602,6 +625,28 @@ func (s *appSender) sendExtensionWrite(
 		return callAndReply(ctx, client, methodSkillsSetEnabled, protocol.SkillsSetEnabledParams{
 			ID:      firstNonEmpty(payload.SkillID, payload.ID),
 			Enabled: enabled,
+		})
+	case "schedule.set_enabled":
+		var payload struct {
+			JobID   string `json:"jobId"`
+			Enabled bool   `json:"enabled"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		return callAndReply(ctx, client, methodScheduleSetEnabled, protocol.ScheduleSetEnabledParams{
+			JobID:   payload.JobID,
+			Enabled: payload.Enabled,
+		})
+	case "schedule.delete":
+		var payload struct {
+			JobID string `json:"jobId"`
+		}
+		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
+			return write.Reply{}, invalidPayload(err)
+		}
+		return callAndReply(ctx, client, methodScheduleDelete, protocol.ScheduleDeleteParams{
+			JobID: payload.JobID,
 		})
 	case "hooks.save", "hook.write":
 		var payload struct {

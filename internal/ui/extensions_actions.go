@@ -1,5 +1,7 @@
 package ui
 
+import "context"
+
 // 扩展的详情与批量选择所需的动作（数据侧的几条小函数）。
 
 // openExtDetail 打开某一项的详情（按当前页签定位）。
@@ -51,13 +53,24 @@ func (a *App) setExtItems(kind extKind, items []extItem) {
 // U3-actions 的 AC-33：影响面是多行，但每行都可以立刻改回，且批量本身是用户的
 // 明确选择；加确认只会让"选错一行"更难纠正。
 func (a *App) setSelected(on bool) {
-	items := a.extItems(extKind(a.extTab))
+	kind := extKind(a.extTab)
+	items := a.extItems(kind)
 	for i := range items {
-		if a.extSelected[items[i].name] {
-			items[i].on = on
+		if !a.extSelected[items[i].name] {
+			continue
 		}
+		if a.intents != nil {
+			id, enabled := extensionID(&items[i]), on
+			a.dispatch("批量启用扩展", func(ctx context.Context) error {
+				return a.intents.SetExtensionEnabled(ctx, extKindKey(kind), id, enabled)
+			}, nil)
+			continue
+		}
+		items[i].on = on
 	}
-	a.setExtItems(extKind(a.extTab), items)
+	if a.intents == nil {
+		a.setExtItems(kind, items)
+	}
 	a.selectMode = false
 	a.extSelected = map[string]bool{}
 }

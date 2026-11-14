@@ -1,6 +1,10 @@
 package ui
 
 import (
+	"context"
+	"fmt"
+	"strings"
+
 	gui "github.com/egoist/mygo/ui"
 )
 
@@ -35,6 +39,7 @@ const (
 
 // extItem 是扩展列表的一行：名称与版本是内容，状态用样式（点 + 颜色）。
 type extItem struct {
+	id      string
 	name    string
 	version string
 	status  extStatus
@@ -50,8 +55,11 @@ const (
 	extError
 )
 
-// extItems 返回某一类的样例数据（数量按本批要求：插件 8、技能 6、MCP 4、钩子 3）。
+// extItems 返回某一类的列表：连着 Source 时每帧从快照重新映射，否则用样例。
 func (a *App) extItems(kind extKind) []extItem {
+	if snapshot, ok := a.liveExtensions(); ok {
+		return extItemsFrom(snapshot, kind)
+	}
 	switch kind {
 	case extPlugins:
 		return a.plugins
@@ -62,6 +70,94 @@ func (a *App) extItems(kind extKind) []extItem {
 	default:
 		return a.hooks
 	}
+}
+
+// extItemsFrom 把四类读数里的一类映射成列表行；不认识的字段留空。
+func extItemsFrom(snapshot ExtensionsSnapshot, kind extKind) []extItem {
+	var list ExtListSnapshot
+	switch kind {
+	case extPlugins:
+		list = snapshot.Plugins
+	case extSkills:
+		list = snapshot.Skills
+	case extMCP:
+		list = snapshot.MCP
+	default:
+		list = snapshot.Hooks
+	}
+	items := make([]extItem, 0, len(list.Items))
+	for _, entry := range list.Items {
+		items = append(items, extItem{
+			id:      entry.ID,
+			name:    entry.Name,
+			version: entry.Version,
+			status:  extStatusFrom(entry),
+			on:      entry.Enabled,
+		})
+	}
+	return items
+}
+
+// extensionID 取服务端标识；样例没有单独标识时用名称。
+func extensionID(item *extItem) string {
+	if item.id != "" {
+		return item.id
+	}
+	return item.name
+}
+
+// extKindKey 是 Intent 里的扩展类型取值。
+func extKindKey(kind extKind) string {
+	switch kind {
+	case extPlugins:
+		return "plugin"
+	case extSkills:
+		return "skill"
+	case extMCP:
+		return "mcp"
+	default:
+		return "hook"
+	}
+}
+
+// extStatusFrom 把服务端的错误与状态文本映射成列表点的状态。
+func extStatusFrom(entry ExtItemSnapshot) extStatus {
+	text := strings.ToLower(entry.Error + " " + entry.Status)
+	switch {
+	case strings.Contains(text, "fail"), strings.Contains(text, "error"):
+		return extError
+	case strings.Contains(text, "update"), strings.Contains(text, "outdated"):
+		return extUpdate
+	}
+	return extOK
+}
+
+// extensionState 是某一类扩展在接上事实后的状态与原因。
+func (a *App) extensionState(kind extKind) (extState, string) {
+	snapshot, ok := a.liveExtensions()
+	if !ok {
+		return a.extState, ""
+	}
+	var list ExtListSnapshot
+	switch kind {
+	case extPlugins:
+		list = snapshot.Plugins
+	case extSkills:
+		list = snapshot.Skills
+	case extMCP:
+		list = snapshot.MCP
+	default:
+		list = snapshot.Hooks
+	}
+	switch {
+	case list.CapabilityMissing:
+		return extFailed, "服务端未声明该类扩展"
+	case list.ReadError != "":
+		return extFailed, list.ReadError
+	case len(list.Items) == 0:
+		return extEmpty, ""
+	}
+	return extLoaded, ""
 }
 
 // settingsExtensions 是「扩展」分节：四个页签 + 列表。
@@ -86,7 +182,8 @@ func (a *App) settingsExtensions(c *gui.Context) {
 		}
 	})
 
-	switch a.extState {
+	state, readErr := a.extensionState(extKind(a.extTab))
+	switch state {
 	case extLoading:
 		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Label("扩展加载中").Children(func() {
 			iconGlyph(c, iconClock, t.TextMuted, "clock")
@@ -95,12 +192,19 @@ func (a *App) settingsExtensions(c *gui.Context) {
 		return
 	case extFailed:
 		// 说明与重试是同一件事的两半：重试紧跟在文字后面（A3：关系归布局），
-		// 不用空白把入口推到窗口另一边。
+		// 不用空白把入口推到窗口另一边。接上事实时不给重试（重读入口未接）。
+		reason := "读取失败：连接已断开"
+		if a.wired() {
+			reason = readErr
+			if reason == "" {
+				reason = "读取失败"
+			}
+		}
 		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
 			Label("扩展读取失败").Children(func() {
 			iconGlyph(c, iconWarn, t.Danger, "exclamation")
-			typeSecondary.style(t, gui.Text(c, "读取失败：连接已断开")).TextColor(t.Danger)
-			if iconButton(c, iconButtonSpec{icon: iconUndo, label: "重试读取", size: rowCompact}) {
+			typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.Danger)
+			if !a.wired() && iconButton(c, iconButtonSpec{icon: iconUndo, label: "重试读取", size: rowCompact}) {
 				a.extState = extLoaded
 			}
 			gui.Spacer(c)
@@ -125,9 +229,12 @@ func (a *App) settingsExtensions(c *gui.Context) {
 		return
 	}
 	if a.extTab == int(extMCP) {
+		if snapshot, ok := a.liveExtensions(); ok {
+			a.mcpImportSources(c, snapshot)
+		}
 		// MCP 页签：每行带认证状态、导入与连接测试（F49–F51）。
-		for i := range a.mcps {
-			a.mcpRow(c, &a.mcps[i])
+		for i := range items {
+			a.mcpRow(c, &items[i])
 		}
 		return
 	}
@@ -135,13 +242,55 @@ func (a *App) settingsExtensions(c *gui.Context) {
 		a.selectToolbar(c)
 	}
 	for i := range items {
-		a.extRow(c, &items[i])
+		a.extRow(c, &items[i], extKind(a.extTab))
+	}
+}
+
+// mcpImportSources 是 MCP 页签上方的导入来源：来源来自 mcp.import.sources，
+// 点一个来源先预览再应用，不拿 MCP 名称冒充来源。
+func (a *App) mcpImportSources(c *gui.Context, snapshot ExtensionsSnapshot) {
+	t := c.Theme()
+	if snapshot.ImportError != "" {
+		a.stateNote(c, "导入来源读取失败", iconWarn, "exclamation", snapshot.ImportError, t.Danger)
+		return
+	}
+	ready := make([]MCPImportSourceSnapshot, 0, len(snapshot.MCPImportSources))
+	for _, source := range snapshot.MCPImportSources {
+		if source.State == "" || source.State == "ready" {
+			ready = append(ready, source)
+		}
+	}
+	if len(ready) == 0 {
+		return
+	}
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Label("MCP 导入来源").Children(func() {
+		typeSecondary.style(t, gui.Text(c, "导入来源")).TextColor(t.TextMuted)
+		for _, source := range ready {
+			source := source
+			label := "从 " + source.Client + " 导入"
+			if actionButton(c, label, "导入来源："+source.ID, false, false).Clicked() && a.intents != nil {
+				id, client := source.ID, source.Client
+				var applied int
+				a.dispatch("导入 MCP", func(ctx context.Context) error {
+					n, err := a.intents.ImportMCP(ctx, id)
+					applied = n
+					return err
+				}, func() {
+					a.importMCP = client
+					a.importResult = fmt.Sprintf("已导入 %d 项", applied)
+				})
+			}
+		}
+		gui.Spacer(c)
+	})
+	if a.importResult != "" {
+		a.stateNote(c, "导入回执", iconCheck, "check", a.importResult, t.TextMuted)
 	}
 }
 
 // extRow 是一行扩展：名称 + 版本（内容）、状态点（样式）、启用开关（框架 Switch）。
 // 窄窗时改为两行：名称一行，版本与开关一行（U2-forms F26 的退化规则）。
-func (a *App) extRow(c *gui.Context, it *extItem) {
+func (a *App) extRow(c *gui.Context, it *extItem, kind extKind) {
 	t := c.Theme()
 	width, _ := c.Size()
 	inner := width - SettingsNavWidth - 2*space8
@@ -151,7 +300,14 @@ func (a *App) extRow(c *gui.Context, it *extItem) {
 		extStatusDot(c, statusColor(t, it.status), it.name)
 	}
 	sw := func() {
+		before := it.on
 		gui.Switch(c, &it.on).Label("启用：" + it.name)
+		if a.intents != nil && it.on != before {
+			id, enabled := extensionID(it), it.on
+			a.dispatch("启用扩展", func(ctx context.Context) error {
+				return a.intents.SetExtensionEnabled(ctx, extKindKey(kind), id, enabled)
+			}, nil)
+		}
 	}
 
 	if stacked {
@@ -207,16 +363,24 @@ func (a *App) extRow(c *gui.Context, it *extItem) {
 		}
 	})
 	base.Children(func() {
-			status()
-			typeBody.style(t, gui.Text(c, it.name)).TextColor(t.Text).Width(extNameWidth).SingleLine()
-			typeSecondary.style(t, gui.Text(c, it.version)).TextColor(t.TextMuted).
-				Width(extVersionWidth)
-			gui.Spacer(c)
-			if iconButton(c, iconButtonSpec{icon: iconChevronR, label: "详情：" + it.name, size: rowCompact}) {
-				a.openExtDetail(it.name)
-			}
-			sw()
-		})
+		status()
+		typeBody.style(t, gui.Text(c, it.name)).TextColor(t.Text).Width(extNameWidth).SingleLine()
+		typeSecondary.style(t, gui.Text(c, it.version)).TextColor(t.TextMuted).
+			Width(extVersionWidth)
+		gui.Spacer(c)
+		if iconButton(c, iconButtonSpec{icon: iconChevronR, label: "详情：" + it.name, size: rowCompact}) {
+			a.openExtDetail(it.name)
+		}
+		sw()
+	})
+}
+
+// enabledText 是启停状态的值文本（设置行里的右值，不是主界面状态词）。
+func enabledText(on bool) string {
+	if on {
+		return "已启用"
+	}
+	return "已停用"
 }
 
 // statusColor 是一行状态的颜色：可用 success、有更新 warning、加载失败 danger。

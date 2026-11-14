@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
@@ -65,16 +66,49 @@ func termSamples(state termState) []termLine {
 	return lines
 }
 
+// terminalView 取终端的状态与输出行：连着 Source 时读快照，否则用样例。
+func (a *App) terminalView() (termState, []termLine, bool) {
+	snapshot, ok := a.liveTerminal()
+	if !ok {
+		return a.termState, a.termLines, false
+	}
+	state := termIdle
+	switch {
+	case snapshot.Running:
+		state = termRunning
+	case snapshot.Exited:
+		state = termExited
+	}
+	lines := make([]termLine, 0, len(snapshot.Lines))
+	for _, line := range snapshot.Lines {
+		lines = append(lines, termLine{text: line, color: -1})
+	}
+	return state, lines, true
+}
+
 // terminalPane 是终端表面：一行工具条（状态点 + 清屏 / 中止）+ 输出区 + 提示行。
 func (a *App) terminalPane(c *gui.Context) {
 	t := c.Theme()
+	state, lines, wired := a.terminalView()
 
 	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
-		Label(termLabel(a.termState)).Children(func() {
+		Label(termLabel(state)).Children(func() {
 		// 状态：行首一个 8px 点（空闲次要色、运行中 accent、已退出成功色、断开
 		// danger）；屏幕上不写状态词，只给读屏名（UI-23/A2）。
-		statusDotMark(c, termColor(t, a.termState), "term")
+		statusDotMark(c, termColor(t, state), "term")
 		gui.Spacer(c)
+		if wired {
+			// 中止只在有已发出的运行时出现；启动、清屏与复制仍未接（见 D14）。
+			if a.lastShellRun != "" {
+				if iconButton(c, iconButtonSpec{icon: iconStop, label: "中止运行", size: rowCompact}) {
+					runID := a.lastShellRun
+					a.dispatch("中止命令", func(ctx context.Context) error {
+						return a.intents.StopShell(ctx, runID)
+					}, func() { a.lastShellRun = "" })
+				}
+			}
+			return
+		}
 		// 中止只在运行中出现（可逆，AC-18）；清屏一直在（局部不可逆，AC-19）。
 		if a.termState == termRunning {
 			if iconButton(c, iconButtonSpec{icon: iconStop, label: "中止运行", size: rowCompact}) {
@@ -99,7 +133,7 @@ func (a *App) terminalPane(c *gui.Context) {
 		}
 	})
 
-	if len(a.termLines) == 0 {
+	if len(lines) == 0 {
 		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Label("终端空态").Children(func() {
 			iconGlyph(c, iconChat, t.TextMuted, "chat")
 			typeSecondary.style(t, gui.Text(c, "还没有输出")).TextColor(t.TextMuted)
@@ -107,9 +141,10 @@ func (a *App) terminalPane(c *gui.Context) {
 		return
 	}
 	// 输出区：等宽、可滚动、按宽度折行（终端里长行折行比横向滚动更常用）。
+	visible := visibleLines(lines)
 	gui.Scroll(c).Grow(1).Children(func() {
 		gui.Column(c).Gap(0).Children(func() {
-			for _, ln := range a.termVisible() {
+			for _, ln := range visible {
 				line := typeCode.style(t, gui.Text(c, ln.text)).TextColor(termColorOf(t, ln.color))
 				_ = line
 			}

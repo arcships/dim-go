@@ -377,7 +377,40 @@ func (a *App) Respond(
 	return runtime.arbiter.Respond(ctx, requestID, response)
 }
 
-// StopMember 停止某个成员的运行，不触碰主线。
+// Stop 停止当前会话主线的运行：登记一次 session.stop，不碰待决集合。
+//
+// 它不是成员停止（Static StopMember 需要成员标识）；界面上的「停止」作用在主线。
+func (a *App) Stop(ctx context.Context, sessionID string) (write.IntentView, error) {
+	if strings.TrimSpace(sessionID) == "" {
+		return write.IntentView{}, fmt.Errorf("%w: 停止缺少会话标识", ErrInvalidConfig)
+	}
+	if err := a.Writable(); err != nil {
+		return write.IntentView{}, err
+	}
+	runtime, ok := a.session(sessionID)
+	if !ok {
+		return write.IntentView{}, ErrSessionNotOpen
+	}
+	writes := a.Writes()
+	if writes == nil {
+		return write.IntentView{}, ErrNotConnected
+	}
+	branchID := runtime.folder.Selected()
+	if branchID == "" {
+		branchID = mainBranchID
+	}
+	id, err := uuidV4()
+	if err != nil {
+		return write.IntentView{}, fmt.Errorf("生成停止标识: %w", err)
+	}
+	return writes.Register(write.Intent{
+		Key:       "stop:" + sessionID + ":" + branchID + ":" + id,
+		Kind:      write.KindStop,
+		SessionID: sessionID,
+		BranchID:  branchID,
+	})
+}
+
 func (a *App) StopMember(sessionID string, member interaction.MemberRef) (write.IntentView, error) {
 	if err := a.Writable(); err != nil {
 		return write.IntentView{}, err

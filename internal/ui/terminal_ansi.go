@@ -54,9 +54,14 @@ func interpretLine(raw string) string {
 
 // termVisible 是输出区当前应该显示的行（把控制序列解释成最终文本）。
 func (a *App) termVisible() []termLine {
-	lines := make([]termLine, 0, len(a.termLines))
-	for _, ln := range a.termLines {
-		lines = append(lines, termLine{text: interpretLine(ln.text), color: ln.color})
+	return visibleLines(a.termLines)
+}
+
+// visibleLines 解释一组输出行里的控制序列。
+func visibleLines(lines []termLine) []termLine {
+	out := make([]termLine, 0, len(lines))
+	for _, ln := range lines {
+		out = append(out, termLine{text: interpretLine(ln.text), color: ln.color})
 	}
-	return lines
+	return out
 }

@@ -90,3 +90,11 @@ func chipRow(c *gui.Context, name string, remove func()) {
 		}
 	})
 }
+
+// connectionColor 是连接状态点的颜色：断了 danger，否则 success。
+func connectionColor(t *gui.Theme, c Connection) gui.Color {
+	if c.Phase == "disconnected" {
+		return t.Danger
+	}
+	return t.Success
+}

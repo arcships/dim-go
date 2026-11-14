@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/arcships/dimagent-mygo/internal/write"
 )
 
 // ScheduledTask 是一条计划任务读数。状态与时间都由服务端给出，本端不推算下次
@@ -143,4 +145,31 @@ func (s *Service) ScheduleHistoryReads() uint64 {
 // ScheduledTaskSnapshot 返回最近一次计划任务读数，不发起请求。
 func (s *Service) ScheduledTaskSnapshot() Snapshot[ScheduledTask] {
 	return snapshotOf(s, &s.scheduled)
+}
+
+// ScheduleSetEnabledPayload 是 schedule.set_enabled 意图的载荷。
+type ScheduleSetEnabledPayload struct {
+	JobID   string `json:"jobId"`
+	Enabled bool   `json:"enabled"`
+}
+
+// ScheduleDeletePayload 是 schedule.delete 意图的载荷。
+type ScheduleDeletePayload struct {
+	JobID string `json:"jobId"`
+}
+
+// SetScheduledTaskEnabled 启停一条计划任务；写入经写登记，只发一次。
+func (s *Service) SetScheduledTaskEnabled(ctx context.Context, jobID string, enabled bool) (write.IntentView, error) {
+	if err := requireText("计划任务标识", jobID); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpScheduleSetEnabled, ScheduleSetEnabledPayload{JobID: jobID, Enabled: enabled}, false)
+}
+
+// DeleteScheduledTask 删除一条计划任务；写入经写登记，只发一次。
+func (s *Service) DeleteScheduledTask(ctx context.Context, jobID string) (write.IntentView, error) {
+	if err := requireText("计划任务标识", jobID); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpScheduleDelete, ScheduleDeletePayload{JobID: jobID}, false)
 }

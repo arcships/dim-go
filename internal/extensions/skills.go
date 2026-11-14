@@ -150,3 +150,11 @@ func (s *Service) SetSkillEnabled(ctx context.Context, skillID string, enabled b
 	}
 	return s.write(ctx, OpSkillSetEnabled, SkillEnabledPayload{SkillID: skillID, Enabled: enabled}, false)
 }
+
+// RemoveSkill 卸载一个技能。写入经写登记，只发一次。
+func (s *Service) RemoveSkill(ctx context.Context, skillID string) (write.IntentView, error) {
+	if err := requireText("技能标识", skillID); err != nil {
+		return write.IntentView{}, err
+	}
+	return s.write(ctx, OpSkillRemove, SkillEnabledPayload{SkillID: skillID}, false)
+}

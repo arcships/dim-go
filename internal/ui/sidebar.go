@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"strconv"
 	"strings"
 
@@ -29,7 +30,9 @@ func (a *App) sidebar(c *gui.Context) {
 			Padding(space1, space2, space1, space2).
 			AlignItems(gui.Center).Gap(space1).Children(func() {
 			gui.Spacer(c)
-			iconButton(c, iconButtonSpec{icon: iconPlus, label: "新建会话", size: rowCompact})
+			if iconButton(c, iconButtonSpec{icon: iconPlus, label: "新建会话", size: rowCompact}) {
+				a.createSession()
+			}
 			if iconButton(c, iconButtonSpec{icon: iconSearch, label: "搜索", size: rowCompact}) {
 				a.searchOpen = !a.searchOpen
 				a.searchQuery = ""
@@ -48,13 +51,13 @@ func (a *App) sidebar(c *gui.Context) {
 		// 保留读屏名，屏幕上不出现「已连接」「账号 · 已登录」这类界面语。
 		gui.Row(c).Shrink(0).Padding(space3, space2, space3, space2).
 			AlignItems(gui.Center).Gap(space2).Children(func() {
-			statusDot(c, t.Success, a.connected)
+			statusDot(c, connectionColor(t, a.liveConnection()), !a.disconnected())
 			gui.Spacer(c)
 			// 设置入口（P2）：齿轮图标，点开是独立成屏的设置。
 			if iconButton(c, iconButtonSpec{icon: iconGear, label: "设置", size: rowCompact}) {
 				a.screen = ScreenSettings
 			}
-			avatar(c, t, a.accountInitial)
+			avatar(c, t, a.accountInitialValue())
 		})
 	}
 
@@ -103,6 +106,19 @@ func (a *App) sessionList(c *gui.Context) {
 			gui.Row(c).Padding(space1, space2).Shrink(0).Label("搜索无结果").Children(func() {
 				typeSecondary.style(c.Theme(), gui.Text(c, "没有匹配的会话")).
 					TextColor(c.Theme().TextMuted)
+			})
+			return
+		}
+		if a.wired() {
+			// 目录快照只有会话标识，没有项目归属；接上事实时不画样例的「项目 A/B」，
+			// 用一个中性分组把会话列出来。
+			gui.SidebarSection(c, "会话", nil, func() {
+				for i := range sessions {
+					if visible[i] {
+						a.sessionItem(c, "s"+strconv.Itoa(i+1), a.sessionName(i, sessions[i]),
+							markers[i], i)
+					}
+				}
 			})
 			return
 		}
@@ -166,10 +182,10 @@ func (a *App) sessionItem(c *gui.Context, id, name, marker string, index int) {
 			a.renameDraft = name
 		}
 		if m.Item("归档").Chosen() {
-			a.archived[index] = true
+			a.archiveSession(index)
 		}
 		if m.Item("导出").Chosen() {
-			a.exported = name
+			a.exportSession(index)
 		}
 		if m.Item("删除").Chosen() {
 			a.deleting = index
@@ -186,7 +202,7 @@ func (a *App) sessionActionsEntry(c *gui.Context) {
 		return
 	}
 	index := sessionIndex(a.selectedSession)
-	sessions, _ := sessionSamples(a.state)
+	sessions := a.sessionNames()
 	if index < 0 || index >= len(sessions) {
 		return
 	}
@@ -196,10 +212,10 @@ func (a *App) sessionActionsEntry(c *gui.Context) {
 			a.renaming, a.renameDraft = index, name
 		}
 		if m.Item("归档").Chosen() {
-			a.archived[index] = true
+			a.archiveSession(index)
 		}
 		if m.Item("导出").Chosen() {
-			a.exported = name
+			a.exportSession(index)
 		}
 		if m.Item("删除").Chosen() {
 			a.deleting = index
@@ -224,10 +240,7 @@ func (a *App) renameRow(c *gui.Context, index int, old string) {
 		gui.Row(c).Gap(space2).Children(func() {
 			gui.Spacer(c)
 			if actionButton(c, "保存", "保存名称", true, false).Clicked() {
-				if a.renameDraft != "" {
-					a.renamed[index] = a.renameDraft
-				}
-				a.renaming = -1
+				a.saveRename(index)
 			}
 			if actionButton(c, "取消", "取消重命名", false, false).Clicked() {
 				a.renaming = -1
@@ -251,13 +264,112 @@ func (a *App) deleteConfirmRow(c *gui.Context, index int, name string) {
 		gui.Row(c).Gap(space2).Children(func() {
 			gui.Spacer(c)
 			if actionButton(c, "删除", "确认删除", true, false).Clicked() {
-				a.archived[index] = true
-				a.deleting = -1
+				a.deleteSession(index)
 			}
 			if actionButton(c, "取消", "取消删除", false, false).Clicked() {
 				a.deleting = -1
 			}
 		})
+	})
+}
+
+// sessionIDAt 把视图里的行序号换成目录里的真实会话标识。
+func (a *App) sessionIDAt(index int) string {
+	names := a.sessionNames()
+	if index < 0 || index >= len(names) {
+		return ""
+	}
+	return names[index]
+}
+
+// createSession 新建会话：工作目录由适配器沿用当前会话的目录。
+func (a *App) createSession() {
+	if a.intents == nil {
+		return
+	}
+	a.dispatch("新建会话", func(ctx context.Context) error {
+		return a.intents.CreateSession(ctx, "")
+	}, nil)
+}
+
+// saveRename 保存行内改名：接上事实时走目录改名，失败原因回到错误行。
+func (a *App) saveRename(index int) {
+	if strings.TrimSpace(a.renameDraft) == "" {
+		return
+	}
+	title := a.renameDraft
+	if a.intents == nil {
+		a.renamed[index] = title
+		a.renaming = -1
+		return
+	}
+	sessionID := a.sessionIDAt(index)
+	if sessionID == "" {
+		return
+	}
+	a.dispatch("重命名", func(ctx context.Context) error {
+		return a.intents.RenameSession(ctx, sessionID, title)
+	}, func() {
+		a.renamed[index] = title
+		a.renaming = -1
+	})
+}
+
+// archiveSession 归档（本地隐藏）一行；样例模式只改视图状态。
+func (a *App) archiveSession(index int) {
+	if a.intents == nil {
+		a.archived[index] = true
+		return
+	}
+	sessionID := a.sessionIDAt(index)
+	if sessionID == "" {
+		return
+	}
+	a.dispatch("归档", func(ctx context.Context) error {
+		return a.intents.ArchiveSession(ctx, sessionID, true)
+	}, nil)
+}
+
+// exportSession 导出一行到本地文件；回执路径显示在同一位置。
+func (a *App) exportSession(index int) {
+	name := a.sessionName(index, a.sessionIDAt(index))
+	if a.intents == nil {
+		a.exported = name
+		return
+	}
+	sessionID := a.sessionIDAt(index)
+	if sessionID == "" {
+		return
+	}
+	var path string
+	a.dispatch("导出", func(ctx context.Context) error {
+		written, err := a.intents.ExportSession(ctx, sessionID)
+		if err == nil {
+			path = written
+		}
+		return err
+	}, func() {
+		if path != "" {
+			a.exported = path
+		}
+	})
+}
+
+// deleteSession 确认删除一行：成功后目录条目消失，当前会话由适配器切走。
+func (a *App) deleteSession(index int) {
+	if a.intents == nil {
+		a.archived[index] = true
+		a.deleting = -1
+		return
+	}
+	sessionID := a.sessionIDAt(index)
+	if sessionID == "" {
+		return
+	}
+	a.dispatch("删除会话", func(ctx context.Context) error {
+		return a.intents.DeleteSession(ctx, sessionID)
+	}, func() {
+		a.deleting = -1
 	})
 }
 

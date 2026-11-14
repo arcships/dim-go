@@ -373,18 +373,23 @@ const (
 	OpMCPAuthCancel       WriteOp = "mcp.auth.cancel"
 	OpMCPAuthLogout       WriteOp = "mcp.auth.logout"
 
-	OpPluginInstall    WriteOp = "plugin.install"
-	OpPluginSetEnabled WriteOp = "plugin.set_enabled"
-	OpPluginUpdate     WriteOp = "plugin.update"
-	OpSkillInstall     WriteOp = "skill.install"
-	OpSkillSetEnabled  WriteOp = "skill.set_enabled"
-	OpHookWrite        WriteOp = "hook.write"
-	OpToolServerAdd    WriteOp = "tool_server.add"
-	OpToolServerUpdate WriteOp = "tool_server.update"
-	OpToolServerRemove WriteOp = "tool_server.remove"
-	OpWorkflowStart    WriteOp = "workflow.start"
-	OpWorkflowStop     WriteOp = "workflow.stop"
-	OpWakeupCancel     WriteOp = "wakeup.cancel"
+	OpPluginInstall      WriteOp = "plugin.install"
+	OpPluginSetEnabled   WriteOp = "plugin.set_enabled"
+	OpPluginUpdate       WriteOp = "plugin.update"
+	OpPluginRemove       WriteOp = "plugin.remove"
+	OpSkillInstall       WriteOp = "skill.install"
+	OpSkillSetEnabled    WriteOp = "skill.set_enabled"
+	OpSkillRemove        WriteOp = "skill.remove"
+	OpHookWrite          WriteOp = "hook.write"
+	OpToolServerAdd      WriteOp = "tool_server.add"
+	OpToolServerUpdate   WriteOp = "tool_server.update"
+	OpToolServerRemove   WriteOp = "tool_server.remove"
+	OpToolServerEnable   WriteOp = "mcp.set_enabled"
+	OpScheduleSetEnabled WriteOp = "schedule.set_enabled"
+	OpScheduleDelete     WriteOp = "schedule.delete"
+	OpWorkflowStart      WriteOp = "workflow.start"
+	OpWorkflowStop       WriteOp = "workflow.stop"
+	OpWakeupCancel       WriteOp = "wakeup.cancel"
 
 	// 以下只在解码时识别，随后归一到上面的判别名；集成层可以先按真实方法名
 	// 传参，本包仍以稳定判别名交给发送方。
@@ -402,9 +407,10 @@ func (op WriteOp) valid() bool {
 	switch op {
 	case OpHookSetEnabled, OpSkillsRefresh, OpSkillsReloadCatalog,
 		OpMCPImportApply, OpMCPAuthStart, OpMCPAuthComplete, OpMCPAuthCancel, OpMCPAuthLogout,
-		OpPluginInstall, OpPluginSetEnabled, OpPluginUpdate,
-		OpSkillInstall, OpSkillSetEnabled, OpHookWrite,
-		OpToolServerAdd, OpToolServerUpdate, OpToolServerRemove,
+		OpPluginInstall, OpPluginSetEnabled, OpPluginUpdate, OpPluginRemove,
+		OpSkillInstall, OpSkillSetEnabled, OpSkillRemove, OpHookWrite,
+		OpToolServerAdd, OpToolServerUpdate, OpToolServerRemove, OpToolServerEnable,
+		OpScheduleSetEnabled, OpScheduleDelete,
 		OpWorkflowStart, OpWorkflowStop, OpWakeupCancel,
 		opWireSkillsInstall, opWireSkillsSetEnabled, opWireHooksSave,
 		opWireMCPSave, opWireMCPRemove,

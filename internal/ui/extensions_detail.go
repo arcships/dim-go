@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"context"
+
 	gui "github.com/egoist/mygo/ui"
 )
 
@@ -26,17 +28,39 @@ func (a *App) extDetailView(c *gui.Context) {
 		typeH3.style(t, gui.Text(c, item.name)).TextColor(t.Text)
 		typeSecondary.style(t, gui.Text(c, item.version)).TextColor(t.TextMuted)
 	})
-	typeSecondary.style(t, gui.Text(c, extDescription(item.name))).TextColor(t.TextMuted).
-		Label("扩展描述")
+	if !a.wired() {
+		typeSecondary.style(t, gui.Text(c, extDescription(item.name))).TextColor(t.TextMuted).
+			Label("扩展描述")
 
-	for _, row := range [][2]string{{"来源", "本地安装"}, {"能力", "读写工作区文件、发起命令"}} {
-		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
-			Label("扩展详情：" + row[0]).Children(func() {
-			typeControl.style(t, gui.Text(c, row[0])).Width(SettingsLabelWidth).
-				TextColor(t.TextMuted)
-			typeSecondary.style(t, gui.Text(c, row[1])).TextColor(t.Text)
+		for _, row := range [][2]string{{"来源", "本地安装"}, {"能力", "读写工作区文件、发起命令"}} {
+			gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
+				Label("扩展详情：" + row[0]).Children(func() {
+				typeControl.style(t, gui.Text(c, row[0])).Width(SettingsLabelWidth).
+					TextColor(t.TextMuted)
+				typeSecondary.style(t, gui.Text(c, row[1])).TextColor(t.Text)
+				gui.Spacer(c)
+			})
+		}
+	}
+
+	// 启停与卸载在接上事实时走 Intents：没有领域方法的类型由适配器返回明确原因。
+	if a.wired() {
+		settingsValueRow(c, "扩展详情：启用", "启用", enabledText(item.on))
+		kind := extKind(a.extTab)
+		gui.Row(c).Gap(space2).Children(func() {
+			if actionButton(c, "卸载", "卸载扩展", false, false).Clicked() && a.intents != nil {
+				id := extensionID(item)
+				a.dispatch("卸载扩展", func(ctx context.Context) error {
+					return a.intents.UninstallExtension(ctx, extKindKey(kind), id)
+				}, func() {
+					a.removeExt(a.extDetail)
+					a.extDetail = -1
+					a.extUninstallConfirm = false
+				})
+			}
 			gui.Spacer(c)
 		})
+		return
 	}
 
 	// 启停（可逆，Switch）与卸载（不可逆，两步确认）。
@@ -111,14 +135,47 @@ func (a *App) mcpRow(c *gui.Context, it *extItem) {
 			typeSecondary.style(t, gui.Text(c, it.version)).TextColor(t.TextMuted).
 				Width(extVersionWidth)
 			gui.Spacer(c)
-			if actionButton(c, "导入", "导入配置："+it.name, false, false).Clicked() {
-				a.importMCP = it.name
+			if iconButton(c, iconButtonSpec{icon: iconChevronR, label: "详情：" + it.name, size: rowCompact}) {
+				a.openExtDetail(it.name)
+			}
+			if !a.wired() {
+				if actionButton(c, "导入", "导入配置："+it.name, false, false).Clicked() {
+					a.importMCP = it.name
+				}
 			}
 			if actionButton(c, "测试", "连接测试："+it.name, false, status == mcpTesting).Clicked() {
+				if a.intents != nil {
+					name := extensionID(it)
+					a.mcpTest[name] = mcpTesting
+					var reachable bool
+					var reason string
+					a.dispatch("连接测试", func(ctx context.Context) error {
+						var err error
+						reachable, reason, err = a.intents.TestMCP(ctx, name)
+						return err
+					}, func() {
+						a.mcpTestDone[name] = true
+						a.mcpTest[name] = mcpOK
+						if !reachable {
+							a.mcpTest[name] = mcpFail
+						}
+						if reason != "" {
+							a.mcpTestReason = reason
+						}
+					})
+					return
+				}
 				a.mcpTest[it.name] = mcpTesting
 				a.mcpTestDone[it.name] = true
 			}
+			before := it.on
 			gui.Switch(c, &it.on).Label("启用：" + it.name)
+			if a.intents != nil && it.on != before {
+				id, enabled := extensionID(it), it.on
+				a.dispatch("启停 MCP", func(ctx context.Context) error {
+					return a.intents.SetExtensionEnabled(ctx, "mcp", id, enabled)
+				}, nil)
+			}
 		})
 		// 连接测试的三态：进行中 / 成功 / 失败，都在这行下面一行里。
 		switch status {
@@ -131,6 +188,9 @@ func (a *App) mcpRow(c *gui.Context, it *extItem) {
 		}
 		if a.importMCP == it.name {
 			a.stateNote(c, "导入回执", iconCheck, "check", "已导入配置："+it.name, t.TextMuted)
+		}
+		if status == mcpFail && a.mcpTestReason != "" {
+			a.stateNote(c, "连接测试原因", iconWarn, "exclamation", a.mcpTestReason, t.Danger)
 		}
 	})
 }

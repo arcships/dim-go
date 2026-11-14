@@ -9,20 +9,29 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/egoist/mygo"
 	"github.com/egoist/mygo/ui"
 
+	"github.com/arcships/dimagent-mygo/internal/app"
 	appui "github.com/arcships/dimagent-mygo/internal/ui"
+	"github.com/arcships/dimagent-mygo/internal/uiwire"
 )
 
 func main() {
 	stateFlag := flag.String("state", "default",
 		"起始状态：default、running、waiting、failed、empty（也可写 1–5）")
+	connectFlag := flag.Bool("connect", false,
+		"连接真实 App Server（app.New + 连接阶段）；失败时界面显示原因。默认 -demo 用样例数据")
+	dataDirFlag := flag.String("data-dir", "", "-connect 模式下的客户端数据目录")
+	serverFlag := flag.String("server", "", "-connect 模式下的 App Server 可执行文件")
+	mockFlag := flag.Bool("mock-model", false, "-connect 模式下用 mock 模型拉起服务端")
 	variantFlag := flag.String("variant", "",
 		"额外的走查态：branch（分支菜单）、goal（目标编辑）、tasks（后台任务）、settings（设置）、settings-rules（清空确认）、ext / ext-failed / ext-empty / ext-loading（扩展四态）")
 	widthFlag := flag.Int("width", appui.WindowWidth, "窗口宽度（逻辑像素，用于三档宽度对照截图）")
@@ -46,7 +55,33 @@ func main() {
 		os.Exit(2)
 	}
 
+	// -connect：从真实集成层读事实；-demo（默认）：样例数据（截图与走查用）。
+	var source appui.Source
+	var intents appui.Intents
+	var wire *uiwire.App
+	if *connectFlag {
+		if *dataDirFlag == "" {
+			fmt.Fprintln(os.Stderr, "-connect 需要 -data-dir（客户端数据目录）")
+			os.Exit(2)
+		}
+		base, err := app.New(app.Config{
+			DataDir:    *dataDirFlag,
+			ServerPath: *serverFlag,
+			MockModel:  *mockFlag,
+			ClientName: "dimagent-ui",
+		})
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "创建集成层：", err)
+			os.Exit(1)
+		}
+		wire = uiwire.New(base)
+		source = wire
+		intents = wire
+	}
+
 	app := appui.NewApp(appui.Options{
+		Source:  source,
+		Intents: intents,
 		State:   state,
 		Variant: variant,
 		StateChanged: func(s appui.State) {
@@ -78,6 +113,29 @@ func main() {
 			TitleBarStyle: mygo.TitleBarHidden,
 			Content:       ui.View(app.View),
 		})
+		if wire != nil {
+			// 订阅收到事件后重绘一帧；视图每帧从 Source 读事实。
+			wire.OnChange = func() { win.Invalidate() }
+			app.SetChanged(func() { win.Invalidate() })
+			// 集成层目前没有"事实变化"回调：用一帧轮询把收到的流式事件画出来。
+			// 这是显示刷新，不是第二份事实——每帧仍然只从 Source 读。
+			go func() {
+				ticker := time.NewTicker(250 * time.Millisecond)
+				defer ticker.Stop()
+				for range ticker.C {
+					win.Invalidate()
+				}
+			}()
+			// 连接在后台走；失败时视图显示原因（Connected/Connection 来自事实）。
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+				defer cancel()
+				if err := wire.Connect(ctx); err != nil {
+					fmt.Fprintln(os.Stderr, "连接失败：", err)
+				}
+				win.Invalidate()
+			}()
+		}
 	})
 	if err := mygo.App.Run(); err != nil {
 		log.Fatal(err)
