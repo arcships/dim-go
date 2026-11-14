@@ -158,6 +158,15 @@ func TestUILintSeeds(t *testing.T) {
 		t.Logf("种子「动作形式与渲染不符」→ %s", got[0].String())
 	}
 
+	// 第十四类：声明了 confirm:true 却没有 confirmProbe（两步确认只剩声明）。
+	noConfirm := actionEntry{ID: "seed", Action: "权限档位", Form: "text", When: "settings-providers",
+		Confirm: true}
+	if got := lintConfirm(t, noConfirm); len(got) == 0 || got[0].check != "L5" {
+		t.Fatalf("缺 confirmProbe 的种子没有被 L5 报出：%v", got)
+	} else {
+		t.Logf("种子「声明两步却没有确认入口」→ %s", got[0].String())
+	}
+
 	// 第十三类：把纯图标动作声明成 text（图标按钮的 label 骗过 Find 的那种）。
 	iconAsText := &actionDoc{Items: []actionEntry{{
 		ID: "seed", Action: "打开诊断日志", Form: "text", When: "settings-storage",
@@ -615,9 +624,168 @@ func lintHighConsequence(t *testing.T, actions *actionDoc) []lintFinding {
 			out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render",
 				it.Action + " 的 form 不认识：" + it.Form})
 		}
+		if it.Confirm {
+			out = append(out, lintConfirm(t, it)...)
+		}
 	}
 	t.Logf("L5 覆盖：真正检查 %d 条、未实现跳过 %d 条（共 %d 条）", checked, skipped, len(actions.Items))
 	return out
+}
+
+// lintConfirm 是"清单说 confirm:true"的实现侧验证：
+//  1. confirmProbe 不能为空（否则"要两步"只是声明）；
+//  2. 第一步之后的界面里必须查得到 confirmProbe；
+//  3. 第一步之前的界面里不得已经出现它（否则等于一步就到位）；
+//  4. 能驱动的动作再验效果：第一次触发不生效、按 confirmProbe 之后才生效。
+func lintConfirm(t *testing.T, it actionEntry) []lintFinding {
+	var out []lintFinding
+	fail := func(msg string) {
+		out = append(out, lintFinding{"L5", "UI-23、D5（" + it.ID + "）", "render", msg})
+	}
+	if it.ConfirmProbe == "" {
+		fail(it.Action + " 声明了 confirm:true，但没有 confirmProbe（两步确认无法验证）")
+		return out
+	}
+	after := it.ConfirmWhen
+	if after == "" {
+		after = it.When
+	}
+	if tt := testerForWhen(t, after); tt == nil {
+		fail(it.Action + " 的 confirm_when 不认识：" + after)
+	} else if _, ok := tt.Access(it.ConfirmProbe); !ok {
+		if _, found := tt.Find(it.ConfirmProbe); !found {
+			fail("清单说「" + it.Action + "」要两步确认，但「" + after + "」里查不到 " + it.ConfirmProbe)
+		}
+	}
+	if after != it.When {
+		if tt := testerForWhen(t, it.When); tt != nil {
+			if _, found := tt.Access(it.ConfirmProbe); found {
+				fail(it.Action + " 的确认入口在触发之前就出现了（「" + it.When + "」）")
+			}
+		}
+	}
+	if effect, ok := confirmEffects[it.ID]; ok {
+		out = append(out, effect(t, it)...)
+	}
+	return out
+}
+
+// confirmEffect 是"两次点击"的效果验证：第一次不生效、第二次生效。
+type confirmEffect func(t *testing.T, it actionEntry) []lintFinding
+
+// confirmEffects 是能自动驱动的六条（其余靠上面的存在性判据）。
+var confirmEffects = map[string]confirmEffect{
+	"AC-09": func(t *testing.T, it actionEntry) []lintFinding {
+		app := NewApp(Options{State: StateDefault})
+		app.screen, app.settingsSection = ScreenSettings, secProviders
+		app.tierDraft, app.tierPending = "每次询问", "每次询问"
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		_ = tt
+		if app.tier == "每次询问" {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 在确认之前就生效了"}}
+		}
+		if err := tt.Click(it.ConfirmProbe); err != nil {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的确认入口点不到：" + err.Error()}}
+		}
+		if app.tier != "每次询问" {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 确认之后没有生效"}}
+		}
+		return nil
+	},
+	"AC-24": func(t *testing.T, it actionEntry) []lintFinding {
+		app := NewApp(Options{State: StateDefault})
+		app.deleting = 0
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		if app.archived[0] {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 在确认之前就生效了"}}
+		}
+		if err := tt.Click(it.ConfirmProbe); err != nil {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的确认入口点不到：" + err.Error()}}
+		}
+		if !app.archived[0] {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 确认之后没有生效"}}
+		}
+		return nil
+	},
+	"AC-26": func(t *testing.T, it actionEntry) []lintFinding {
+		app := NewApp(Options{State: StateDefault})
+		app.screen, app.settingsSection, app.cronDeleting = ScreenSettings, secCron, 0
+		n := len(app.cron)
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		if len(app.cron) != n {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 在确认之前就生效了"}}
+		}
+		if err := tt.Click(it.ConfirmProbe); err != nil {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的确认入口点不到：" + err.Error()}}
+		}
+		if len(app.cron) != n-1 {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 确认之后没有生效"}}
+		}
+		return nil
+	},
+	"AC-32": func(t *testing.T, it actionEntry) []lintFinding {
+		app := NewApp(Options{State: StateDefault})
+		app.screen, app.settingsSection, app.extTab, app.extDetail = ScreenSettings, secExtensions, 1, 0
+		app.extUninstallConfirm = true
+		n := len(app.plugins)
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		if err := tt.Click(it.ConfirmProbe); err != nil {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的确认入口点不到：" + err.Error()}}
+		}
+		if len(app.plugins) != n-1 {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 确认之后没有生效"}}
+		}
+		return nil
+	},
+	"AC-13": func(t *testing.T, it actionEntry) []lintFinding {
+		app := NewApp(Options{State: StateDefault})
+		app.screen, app.settingsSection, app.clearRulesConfirm = ScreenSettings, secRules, true
+		n := len(app.rules)
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		if len(app.rules) != n {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 在确认之前就生效了"}}
+		}
+		if err := tt.Click(it.ConfirmProbe); err != nil {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的确认入口点不到：" + err.Error()}}
+		}
+		if len(app.rules) != 0 {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 确认之后没有生效"}}
+		}
+		return nil
+	},
+	"AC-08": func(t *testing.T, it actionEntry) []lintFinding {
+		app := NewApp(Options{State: StateDefault})
+		app.branch, app.branches = branchSamples()
+		app.branchMenuOpen, app.endBranchConfirm = true, true
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		if app.branch != "feature/queue-rework" {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 在确认之前就生效了"}}
+		}
+		if err := tt.Click(it.ConfirmProbe); err != nil {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 的确认入口点不到：" + err.Error()}}
+		}
+		if app.branch != "main" {
+			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
+				it.Action + " 确认之后没有生效"}}
+		}
+		return nil
+	},
 }
 
 // visibleText 是动作在屏幕上的可见文字（缺省与动作同名）。
@@ -1207,6 +1375,17 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.rightOpen, app.rightTab = true, 2
 	case "waiting":
 		app = NewApp(Options{State: StateWaiting})
+	case "waiting-confirm":
+		app = NewApp(Options{State: StateWaiting})
+		app.confirmAlways = true
+	case "providers-confirm":
+		app.screen, app.settingsSection = ScreenSettings, secProviders
+		app.tierDraft, app.tierPending = "每次询问", "每次询问"
+	case "rules-confirm":
+		app.screen, app.settingsSection, app.clearRulesConfirm = ScreenSettings, secRules, true
+	case "ext-detail-confirm":
+		app.screen, app.settingsSection, app.extTab, app.extDetail = ScreenSettings, secExtensions, 1, 0
+		app.extUninstallConfirm = true
 	case "failed":
 		app = NewApp(Options{State: StateFailed})
 	case "empty":
@@ -1273,6 +1452,10 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.rightOpen, app.rightTab = true, 4
 		app.termState = termRunning
 		app.termLines = termSamples(termRunning)
+	case "term-disconnected":
+		app.rightOpen, app.rightTab = true, 4
+		app.termState = termDisconnected
+		app.termLines = append(termSamples(termExited), termLine{text: "connection lost", color: 1})
 	case "term-exited":
 		app.rightOpen, app.rightTab = true, 4
 		app.termState = termExited
@@ -1432,6 +1615,10 @@ type actionEntry struct {
 	InMenu bool `json:"in_menu"`
 	// Tab 是扩展类的页签序号（switch 形式用）。
 	Tab int `json:"tab"`
+	// ConfirmProbe 是"两步确认"里第一步之后应该出现的入口/文案；
+	// ConfirmWhen 是它出现的界面（缺省与 When 相同）。
+	ConfirmProbe string `json:"confirm_probe"`
+	ConfirmWhen  string `json:"confirm_when"`
 	// Implemented 为 false 表示这一条还没实现；L5 跳过并在报告里计数，
 	// 不靠"查不到"来静默跳过。
 	Implemented *bool `json:"implemented"`

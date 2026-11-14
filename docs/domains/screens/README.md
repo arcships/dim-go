@@ -52,6 +52,8 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-variant-search{,-900,-720}.png` | 1440/900/720×900 | 左栏**搜索面**：放大镜 + 面差输入 + 过滤后的列表 |
 | `window-default-variant-term{,-900,-720}.png` | 1440/900/720×900 | 右栏 · **终端（空闲）**：状态点 + 清屏/复制 + 提示行 |
 | `window-default-variant-term-running{,-900,-720}.png` | 1440/900/720×900 | 右栏 · **终端（运行中）**：状态点 accent + 中止入口 |
+| `window-default-variant-term-disconnected{,-900,-720}.png` | 1440/900/720×900 | 终端**断线**：点 danger + `connection lost` + 重新连接入口 |
+| `window-default-variant-term-recovered{,-900,-720}.png` | 1440/900/720×900 | 终端**恢复**：回空闲 + `reconnected` |
 | `window-default-variant-term-exited{,-900,-720}.png` | 1440/900/720×900 | 右栏 · **终端（已退出）**：ANSI 颜色、长行折行、多行错误 |
 
 **能证明什么**：macOS 红绿灯由系统画在左栏顶部的让位条里；没有系统标题栏；标题行是自绘的、左端是会话名；窗口圆角与阴影由系统给。

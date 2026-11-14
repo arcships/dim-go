@@ -667,6 +667,42 @@ func TestShellMode(t *testing.T) {
 	}
 }
 
+// 终端 ANSI：\r 覆盖、\b 退格、\x1b[K 清行；断线入口与恢复。
+func TestTerminalANSIAndDisconnect(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"下载 10%\r下载 100%", "下载 100%"},
+		{"v1.O\b0", "v1.0"},
+		{"临时输出\x1b[K", ""},
+	}
+	for _, c := range cases {
+		if got := interpretLine(c.in); got != c.want {
+			t.Fatalf("interpretLine(%q) = %q，想要 %q", c.in, got, c.want)
+		}
+	}
+	app, tt := newTester(t, StateDefault)
+	app.rightOpen, app.rightTab = true, 4
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if err := tt.Click("模拟断线"); err != nil {
+		t.Fatalf("点不到断线入口：%v", err)
+	}
+	if app.termState != termDisconnected {
+		t.Fatal("没有转断线")
+	}
+	tt.Frame()
+	if _, ok := tt.Access("重新连接"); !ok {
+		t.Fatal("断线态缺恢复入口")
+	}
+	if err := tt.Click("重新连接"); err != nil {
+		t.Fatalf("点不到恢复：%v", err)
+	}
+	if app.termState != termIdle {
+		t.Fatal("恢复后没有回空闲")
+	}
+	if got := app.termVisible()[len(app.termVisible())-1].text; got != "reconnected" {
+		t.Fatalf("恢复末行 = %q", got)
+	}
+}
+
 // 设置第 7、8 节：八节导航、存储读数带单位、导出回执、键位表。
 func TestSettingsStorageAndKeys(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

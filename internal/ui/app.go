@@ -106,6 +106,9 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantTermDisconnected / TermRecovered 是终端的断线与恢复（F31 的退化）。
+	VariantTermDisconnected
+	VariantTermRecovered
 	// VariantTierConfirm 是权限档位切换的两步确认态。
 	VariantTierConfirm
 	// VariantExtDetail / ExtSelect / MCPTest / MCPFail 是扩展的详情、选择态与 MCP 测试三态。
@@ -149,6 +152,7 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"term-disconnected": VariantTermDisconnected, "term-recovered": VariantTermRecovered,
 	"tier-confirm": VariantTierConfirm,
 	"ext-detail": VariantExtDetail, "ext-select": VariantExtSelect,
 	"mcp-test": VariantMCPTest, "mcp-fail": VariantMCPFail,
@@ -169,7 +173,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、tier-confirm、ext-detail、ext-select、mcp-test、mcp-fail、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、tier-confirm、ext-detail、ext-select、mcp-test、mcp-fail、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -408,6 +412,15 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = secRules // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantTermDisconnected:
+		a.rightOpen, a.rightTab = true, 4
+		a.termState = termDisconnected
+		a.termLines = append(termSamples(termExited), termLine{text: "connection lost", color: 1})
+	case VariantTermRecovered:
+		a.rightOpen, a.rightTab = true, 4
+		a.termState = termIdle
+		a.termLines = append(termSamples(termExited), termLine{text: "connection lost", color: 1},
+			termLine{text: "reconnected", color: 2})
 	case VariantTierConfirm:
 		a.screen, a.settingsSection = ScreenSettings, secProviders
 		a.tierDraft, a.tierPending = "每次询问", "每次询问"

@@ -45,6 +45,14 @@ func termSamples(state termState) []termLine {
 		},
 		{text: "exit status 1", color: 1},
 	}
+	// ANSI 的三类控制序列放在靠前的位置，截图里能直接看到处理结果：
+	// \r 覆盖同一行（进度条）、\b 退格修正、\x1b[K 清行。
+	ansi := []termLine{
+		{text: "下载中 10%\r下载中 55%\r下载中 100% 完成", color: 3},
+		{text: "版本 v1.O\b0", color: -1},
+		{text: "临时输出：不要了\x1b[K", color: -1},
+	}
+	lines = append(append(lines[:2:2], ansi...), lines[2:]...)
 	switch state {
 	case termIdle:
 		return lines[:1]
@@ -73,6 +81,16 @@ func (a *App) terminalPane(c *gui.Context) {
 				a.termState = termExited
 			}
 		}
+		// 断开与恢复：真实入口（样例里模拟连接状态，F31 的退化规则）。
+		if a.termState == termDisconnected {
+			if iconButton(c, iconButtonSpec{icon: iconUndo, label: "重新连接", size: rowCompact}) {
+				a.termState = termIdle
+				a.termLines = append(a.termLines, termLine{text: "reconnected", color: 2})
+			}
+		} else if iconButton(c, iconButtonSpec{icon: iconWarn, label: "模拟断线", size: rowCompact}) {
+			a.termState = termDisconnected
+			a.termLines = append(a.termLines, termLine{text: "connection lost", color: 1})
+		}
 		if iconButton(c, iconButtonSpec{icon: iconXMark, label: "清屏", size: rowCompact}) {
 			a.termLines = nil
 		}
@@ -91,7 +109,7 @@ func (a *App) terminalPane(c *gui.Context) {
 	// 输出区：等宽、可滚动、按宽度折行（终端里长行折行比横向滚动更常用）。
 	gui.Scroll(c).Grow(1).Children(func() {
 		gui.Column(c).Gap(0).Children(func() {
-			for _, ln := range a.termLines {
+			for _, ln := range a.termVisible() {
 				line := typeCode.style(t, gui.Text(c, ln.text)).TextColor(termColorOf(t, ln.color))
 				_ = line
 			}

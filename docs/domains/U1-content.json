@@ -743,6 +743,30 @@
       "item": "T7",
       "kind": "content",
       "why": "钩子名"
+    },
+    {
+      "id": "CT-186",
+      "match": "exact",
+      "value": "模拟断线",
+      "item": "T25",
+      "kind": "interface",
+      "why": "断线入口的读屏名（样例）"
+    },
+    {
+      "id": "CT-187",
+      "match": "exact",
+      "value": "重新连接",
+      "item": "T25",
+      "kind": "interface",
+      "why": "恢复入口的读屏名"
+    },
+    {
+      "id": "CT-188",
+      "match": "exact",
+      "value": "reconnected",
+      "item": "T25",
+      "kind": "content",
+      "why": "恢复时终端自己的一行输出"
     }
   ],
   "undecided": []

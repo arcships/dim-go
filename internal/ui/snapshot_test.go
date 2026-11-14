@@ -80,6 +80,17 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 终端：断线与恢复（断线入口有真实按钮）。
+	{name: "variant-term-disconnected", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, 4
+		a.termState = termDisconnected
+		a.termLines = append(termSamples(termExited), termLine{text: "connection lost", color: 1})
+	}},
+	{name: "variant-term-recovered", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, 4
+		a.termLines = append(termSamples(termExited), termLine{text: "connection lost", color: 1},
+			termLine{text: "reconnected", color: 2})
+	}},
 	// 权限档位切换的两步确认态。
 	{name: "variant-tier-confirm", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.screen, a.settingsSection = ScreenSettings, secProviders

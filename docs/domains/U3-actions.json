@@ -30,7 +30,9 @@
       "confirm": true,
       "basis": "U3 §5.2/§5.3（permission.set_rules + allow）",
       "when": "waiting",
-      "probe": "一直允许"
+      "probe": "一直允许",
+      "confirm_probe": "确认一直允许",
+      "confirm_when": "waiting-confirm"
     },
     {
       "id": "AC-03",
@@ -98,7 +100,9 @@
       "basis": "U1 S63；U3 后续批次；两步确认落在标题行标记（U2-forms F19 变化规则）",
       "when": "branch-end",
       "probe": "确认结束分支",
-      "text": "确认结束分支？"
+      "text": "确认结束分支？",
+      "confirm_probe": "确认结束分支",
+      "confirm_when": "branch-end"
     },
     {
       "id": "AC-09",
@@ -110,7 +114,9 @@
       "basis": "U1 A8、Q8；U3 T23（改变后续所有操作范围 → 两步确认）",
       "when": "settings-providers",
       "probe": "权限档位选择",
-      "text": "工作区内自动"
+      "text": "工作区内自动",
+      "confirm_probe": "确认切换权限档位",
+      "confirm_when": "providers-confirm"
     },
     {
       "id": "AC-10",
@@ -155,7 +161,9 @@
       "confirm": true,
       "basis": "U1 T1、T29；U3 设置分节（后续批次接 permission.set_rules）",
       "when": "settings-rules",
-      "probe": "清空命令规则"
+      "probe": "清空命令规则",
+      "confirm_probe": "确认清空",
+      "confirm_when": "rules-confirm"
     },
     {
       "id": "AC-14",
@@ -284,7 +292,9 @@
       "basis": "U1 A6；U3 T18（行内两步）",
       "when": "session-delete",
       "probe": "确认删除",
-      "text": "删除"
+      "text": "删除",
+      "confirm_probe": "确认删除",
+      "confirm_when": "session-delete"
     },
     {
       "id": "AC-25",
@@ -307,7 +317,9 @@
       "basis": "U1 S54；U3 T19（行内两步）",
       "when": "settings-cron-delete",
       "probe": "确认删除任务",
-      "text": "删除"
+      "text": "删除",
+      "confirm_probe": "确认删除任务",
+      "confirm_when": "settings-cron-delete"
     },
     {
       "id": "AC-27",
@@ -376,7 +388,9 @@
       "basis": "U1 S47；U3 T22（详情页两步）",
       "when": "ext-detail",
       "probe": "卸载扩展",
-      "text": "卸载"
+      "text": "卸载",
+      "confirm_probe": "确认卸载",
+      "confirm_when": "ext-detail-confirm"
     },
     {
       "id": "AC-33",

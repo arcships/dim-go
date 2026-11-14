@@ -81,6 +81,8 @@ Owner: U4 技术设计（界面领域）
 | EL-64 | 连接测试结果 | 自绘行 + iconGlyph | `mcpRow` | `mcp-ok` |
 | EL-65 | 附件行与移除入口 | 自绘行 + iconButton | `chipRow` | `default` |
 | EL-66 | 权限档位设置项 | gui.Select + actionButton | `settingsProviders` | `settings-providers` |
+| EL-67 | 终端断线入口 | 自绘图标入口 | `terminalPane` | `term` |
+| EL-68 | 终端恢复入口 | 自绘图标入口 | `terminalPane` | `term-disconnected` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

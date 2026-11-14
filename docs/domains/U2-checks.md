@@ -32,7 +32,7 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 | L2 | 字符冒充图标（`＋ ‹ › × ⋯`） | UI-21、X15 | `lintSource` → `glyphIcons` | 删掉字符，改用 `icons.go` 的图标元素 |
 | L3 | 图标入口缺可访问名 | UI-21、D4 | `lintSource`：`iconButtonSpec` 必须有 `label` | 补 `label`（读屏名） |
 | L4 | 纯图标入口缺 tooltip（名称 / 快捷键） | UI-23 选择表、F17、§9.0「形式的选择」 | 静态：`iconButtonSpec` 至少有 `tip` 或 `label`；渲染：发送/停止的 `Access().Description` 必须含名称与 `Enter` | 补 `tip`：名称 · 快捷键（如「发送 · Enter」） |
-| L5 | 高后果动作的形式与清单一致（按 `when` 逐条造界面） | UI-23、F18、D5 | 静态：① 清单里的高后果动作不得走 `actionButton`；② `textIconButtonSpec` 的 `text` 字段必须存在且**不得是空串**（只留 `label` 可访问名会被静默绕过）。渲染：③ `U3-actions.json` 里 `form=icon+text` 的动作必须能用 `Find` 找到可见文本，且按钮宽于纯图标盒（`iconInline + 2*space3`）——只留 label 时宽度只有图标那么宽；④ 盒内有图标墨迹；⑤ `form=icon` 的动作不得出现可见文字（盒子不得宽于纯图标盒）；⑥ `confirm=true` 的第一次点击不得生效 | 改用 `textIconButton` 并写可见文字；需要确认的补两步；⑦ 清单 `form=switch` 的动作必须是框架 `Switch`（`RoleSwitch`、状态与数据一致、命中区 ≥ 36×20），`form` 不是 switch 的动作不得渲染成开关 | 改用 `textIconButton`；需要确认的补两步 |
+| L5 | 高后果动作的形式与清单一致（按 `when` 逐条造界面；`confirm:true` 验两步） | UI-23、F18、D5 | 静态：① 清单里的高后果动作不得走 `actionButton`；② `textIconButtonSpec` 的 `text` 字段必须存在且**不得是空串**（只留 `label` 可访问名会被静默绕过）。渲染：③ `U3-actions.json` 里 `form=icon+text` 的动作必须能用 `Find` 找到可见文本，且按钮宽于纯图标盒（`iconInline + 2*space3`）——只留 label 时宽度只有图标那么宽；④ 盒内有图标墨迹；⑤ `form=icon` 的动作不得出现可见文字（盒子不得宽于纯图标盒）；⑥ `confirm=true` 的第一次点击不得生效 | 改用 `textIconButton` 并写可见文字；需要确认的补两步；⑦ 清单 `form=switch` 的动作必须是框架 `Switch`（`RoleSwitch`、状态与数据一致、命中区 ≥ 36×20），`form` 不是 switch 的动作不得渲染成开关 | 改用 `textIconButton`；需要确认的补两步 |
 | L6 | 时间线状态位把状态画成文字 | A2/D2、UI-11、X20 | `lintSource`：`gui.Text/RichText` 的字面量不得是状态词（完成 / 正在运行 / 等待你同意 / 失败）；报错时按 `U1-content.json` 给出对应的信息项编号 | 状态用图标 + 颜色；读屏名可保留状态词 |
 | L7 | 五种状态同屏两两可分 | D4 | `lintStatesDistinct`：状态读屏名集合不同 + 整帧像素指纹不同 | 让两个状态在图标、颜色或形态上至少差两项 |
 | L8 | 三档宽度下内容左缘相等 | UI-22、§9.14 排版基线 2 | `lintBaselines`（1440/900/720）：标题行 / 时间线 / 输入卡同一左缘（±1.5） | 统一 `space-4` 外边距 + `space-2` 卡片内边距 |
@@ -95,7 +95,7 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 种子「基线不等」      → seed [L8] UI-22、§9.14 排版基线 2：输入卡 在 900 档的左缘 275.0 与 1440 档的 272.0 不同
 ```
 
-十二类种子覆盖：档位外间距、字符冒充图标、缺 tooltip、状态词上屏、高后果动作缺可见文字、元素表声明 icon+text 但只画了文字、内容越出窗口、Markdown 主题被清空、开关形式与实现不一致、动作在声明的界面里缺席、动作形式与渲染不符、基线不等。
+十四类种子覆盖：档位外间距、字符冒充图标、缺 tooltip、状态词上屏、高后果动作缺可见文字、元素表声明 icon+text 但只画了文字、内容越出窗口、Markdown 主题被清空、开关形式与实现不一致、动作在声明的界面里缺席、动作形式与渲染不符、声明两步却没有确认入口、基线不等。
 
 ## 4 手工注入（评审用的复现步骤）
 

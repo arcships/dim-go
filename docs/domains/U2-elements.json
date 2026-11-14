@@ -1082,6 +1082,36 @@
       "component": "gui.Select + actionButton",
       "symbol": "settingsProviders",
       "checkable": true
+    },
+    {
+      "id": "EL-67",
+      "element": "终端断线入口",
+      "item": "T25",
+      "control": "自绘图标入口",
+      "form": "icon",
+      "reason": "低频但必须够得着（样例里模拟断线）；警示词形（叹号）",
+      "icon": "exclamation",
+      "doc": "U2-forms §1 F31",
+      "when": "term",
+      "probe": "模拟断线",
+      "component": "自绘图标入口",
+      "symbol": "terminalPane",
+      "checkable": true
+    },
+    {
+      "id": "EL-68",
+      "element": "终端恢复入口",
+      "item": "T25",
+      "control": "自绘图标入口",
+      "form": "icon",
+      "reason": "断线态下的唯一动作；回转箭头词形成熟",
+      "icon": "arrow-uturn-left",
+      "doc": "U2-forms §1 F31",
+      "when": "term-disconnected",
+      "probe": "重新连接",
+      "component": "自绘图标入口",
+      "symbol": "terminalPane",
+      "checkable": true
     }
   ]
 }
