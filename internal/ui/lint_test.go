@@ -1198,11 +1198,15 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 	case "running":
 		app = NewApp(Options{State: StateRunning})
 	case "settings":
-		app.screen, app.settingsSection = ScreenSettings, 0
+		app.screen, app.settingsSection = ScreenSettings, secAccount
+	case "settings-storage":
+		app.screen, app.settingsSection = ScreenSettings, secStorage
+	case "settings-appearance":
+		app.screen, app.settingsSection = ScreenSettings, secAppearance
 	case "settings-rules":
-		app.screen, app.settingsSection = ScreenSettings, 2
+		app.screen, app.settingsSection = ScreenSettings, secRules
 	case "settings-ext", "settings-ext-empty", "settings-ext-failed":
-		app.screen, app.settingsSection = ScreenSettings, 3
+		app.screen, app.settingsSection = ScreenSettings, secExtensions
 		switch when {
 		case "settings-ext":
 			app.extTab, app.extState = 1, extLoaded
@@ -1212,13 +1216,13 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 			app.extState = extFailed
 		}
 	case "settings-cron":
-		app.screen, app.settingsSection = ScreenSettings, 4
+		app.screen, app.settingsSection = ScreenSettings, secCron
 	case "settings-cron-delete":
-		app.screen, app.settingsSection, app.cronDeleting = ScreenSettings, 4, 0
+		app.screen, app.settingsSection, app.cronDeleting = ScreenSettings, secCron, 0
 	case "settings-runtime":
-		app.screen, app.settingsSection = ScreenSettings, 5
+		app.screen, app.settingsSection = ScreenSettings, secRuntime
 	case "settings-runtime-submit":
-		app.screen, app.settingsSection = ScreenSettings, 5
+		app.screen, app.settingsSection = ScreenSettings, secRuntime
 		app.modalTask, app.modalSubmitted = "重跑全部语言测试", "重跑全部语言测试"
 	case "session-menu":
 		*app.menuOpenPtr(0) = true

@@ -323,6 +323,29 @@
       "when": "settings-runtime-submit",
       "probe": "提交模态任务",
       "text": "提交任务"
+    },
+    {
+      "id": "AC-28",
+      "action": "导出诊断",
+      "consequence": "无副作用（写出一份诊断包）",
+      "scope": "本机",
+      "form": "text",
+      "confirm": false,
+      "basis": "U1 T26；U3 T20",
+      "when": "settings-storage",
+      "probe": "导出诊断",
+      "text": "导出诊断"
+    },
+    {
+      "id": "AC-29",
+      "action": "打开诊断日志",
+      "consequence": "只读：打开日志位置，不改任何东西",
+      "scope": "本机",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 T26；U3 T20",
+      "when": "settings-storage",
+      "probe": "打开诊断日志"
     }
   ],
   "undecided": [

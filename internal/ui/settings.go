@@ -20,18 +20,22 @@ func (a *App) settings(c *gui.Context) {
 			gui.Column(c).Grow(1).MaxWidth(SettingsContentMaxWidth).
 				Padding(space8, space8).Gap(space4).Children(func() {
 				switch a.settingsSection {
-				case 0:
-					a.settingsAppearance(c)
-				case 1:
+				case secAccount:
+					a.settingsAccount(c)
+				case secProviders:
 					a.settingsProviders(c)
-				case 2:
+				case secRules:
 					a.settingsRules(c)
-				case 3:
+				case secExtensions:
 					a.settingsExtensions(c)
-				case 4:
+				case secCron:
 					a.settingsCron(c)
-				default:
+				case secRuntime:
 					a.settingsRuntime(c)
+				case secStorage:
+					a.settingsStorage(c)
+				default:
+					a.settingsAppearanceKeys(c)
 				}
 			})
 		})
@@ -41,7 +45,7 @@ func (a *App) settings(c *gui.Context) {
 // settingsNav 是左导航：返回主界面的图标入口 + 分节列表。
 func (a *App) settingsNav(c *gui.Context) {
 	t := c.Theme()
-	sections := []string{"外观", "供应商", "命令规则", "扩展", "定时任务", "运行时与模态"}
+	sections := []string{"账号与套餐", "模型与供应商", "命令规则", "扩展", "定时任务", "运行时与模态", "存储与诊断", "外观与键位"}
 	gui.Column(c).Width(SettingsNavWidth).Shrink(0).
 		Background(t.Surface).Children(func() {
 		if inset := titleBarInset(c.TitleBar()); inset > 0 {
@@ -103,7 +107,7 @@ func settingsSectionTitle(c *gui.Context, title string) {
 
 // settingsAppearance 是「外观」：主题与动效两项。
 func (a *App) settingsAppearance(c *gui.Context) {
-	settingsSectionTitle(c, "外观")
+	settingsSectionTitle(c, "账号与套餐")
 	settingsRow(c, "主题", func() {
 		gui.Select(c, &a.themePref, []string{"跟随系统", "明", "暗"}).Label("主题选择")
 	})
@@ -207,4 +211,26 @@ func (a *App) settingsRules(c *gui.Context) {
 // settingsSummary 是入口语（样例）：提供给导航与测试读取的当前值摘要。
 func (a *App) settingsSummary() string {
 	return fmt.Sprintf("%s · %s", a.themePref, a.provider)
+}
+
+// settingsAccount 是「账号与套餐」分节（U1-ia §4 第 1 节，T24/T27）：身份与套餐
+// 读数都是事实，只读；登录/退出属后续批次。
+func (a *App) settingsAccount(c *gui.Context) {
+	t := c.Theme()
+	settingsSectionTitle(c, "账号与套餐")
+	rows := []struct{ label, value string }{
+		{"账号", "E · eric@example.com"},
+		{"套餐", "Pro · 每月 $20"},
+		{"本月额度", "34% 已用（约 680 万 token）"},
+		{"用量重置", "12 月 1 日"},
+	}
+	for _, r := range rows {
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
+			Label("账号信息：" + r.label).Children(func() {
+			typeControl.style(t, gui.Text(c, r.label)).Width(SettingsLabelWidth).
+				TextColor(t.Text)
+			typeSecondary.style(t, gui.Text(c, r.value)).TextColor(t.TextMuted)
+			gui.Spacer(c)
+		})
+	}
 }

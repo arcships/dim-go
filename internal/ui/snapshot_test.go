@@ -80,6 +80,14 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 设置第 7、8 节：存储与诊断、外观与键位。
+	{name: "variant-storage", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection = ScreenSettings, secStorage
+		a.diagnosticsExported = true
+	}},
+	{name: "variant-appearance-keys", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection = ScreenSettings, secAppearance
+	}},
 	// 设置第 5、6 节：定时任务列表 / 删除确认、运行时与模态（含提交回执）。
 	{name: "variant-cron", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.screen, a.settingsSection = ScreenSettings, 4

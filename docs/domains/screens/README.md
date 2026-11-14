@@ -33,6 +33,8 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 | `window-default-variant-settings-rules{,-900,-720}.png` | 1440/900/720×900 | 设置屏 · **命令规则分节**，停在**清空确认态**（危险动作两步） |
 | `window-default-variant-ext{,-900,-720}.png` | 1440/900/720×900 | 设置 · **扩展**分节：四页签 + 插件列表（8 行，名称/版本/状态点/开关） |
 | `window-default-variant-ext-failed{,-900,-720}.png` | 1440/900/720×900 | 设置 · 扩展**读取失败态**：叹号 + 原因 + 重试入口 |
+| `window-default-variant-storage{,-900,-720}.png` | 1440/900/720×900 | 设置 · **存储与诊断**：三条读数（带单位）+ 服务版本 + 导出回执 |
+| `window-default-variant-appearance-keys{,-900,-720}.png` | 1440/900/720×900 | 设置 · **外观与键位**：主题/动效/时区 + 快捷键提示表（9 行） |
 | `window-default-variant-cron{,-900,-720}.png` | 1440/900/720×900 | 设置 · **定时任务**：四行任务（名称/计划/下次/开关/删除） |
 | `window-default-variant-cron-delete{,-900,-720}.png` | 1440/900/720×900 | 设置 · 定时任务**删除两步确认** |
 | `window-default-variant-runtime{,-900,-720}.png` | 1440/900/720×900 | 设置 · **运行时与模态**：组件清单 + 模态能力 + 提交入口 |
@@ -89,7 +91,7 @@ go test ./internal/ui -run 'TestScreens|TestTitleBarCloseup|TestWordlessCheck' -
 
 # 真窗口（逐态启动、按窗口号截图；需要屏幕录制权限）
 go build -o /tmp/dimagent-ui ./cmd/dimagent-ui
-python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 十九个走查态（branch / branch-end / goal / tasks / settings / settings-rules / ext / ext-failed / term / term-running / term-exited）
+python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 二十一个走查态（branch / branch-end / goal / tasks / settings / settings-rules / ext / ext-failed / term / term-running / term-exited）
 
 # 基线量测（同一批图上的数值）
 python3 scripts/ui-baseline.py docs/domains/screens/state-default.png

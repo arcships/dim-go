@@ -44,8 +44,8 @@ Owner: U4 技术设计（界面领域）
 | EL-27 | 用户消息 | 自绘 Box（气泡） | `round` | `always` |
 | EL-28 | 助手正文 | ui/markdown.View | `markdown.View` | `always` |
 | EL-29 | 设置入口 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
-| EL-30 | 设置分节导航 | gui.ButtonBase（自绘行） | `navRow` | `settings` |
-| EL-31 | 设置项（标签 + 控件） | gui.Select / gui.Switch | `settingsRow` | `settings` |
+| EL-30 | 设置分节导航 | gui.ButtonBase（自绘行） | `navRow` | `settings-appearance` |
+| EL-31 | 设置项（标签 + 控件） | gui.Select / gui.Switch | `settingsRow` | `settings-appearance` |
 | EL-32 | 危险动作 · 清空命令规则 | 自绘 ButtonBase（textIconButton） | `textIconButton` | `settings-rules` |
 | EL-33 | 目标行 · 编辑态取消 | gui.Button | `actionButton` | `goal-edit` |
 | EL-34 | 扩展分节 | 自绘行（ButtonBase） | `navRow` | `settings-ext` |
@@ -68,6 +68,9 @@ Owner: U4 技术设计（界面领域）
 | EL-51 | 运行时组件行 | 自绘行 | `settingsRuntime` | `settings-runtime` |
 | EL-52 | 模态任务提交 | gui.TextInputBase + actionButton | `settingsRuntime` | `settings-runtime-submit` |
 | EL-53 | 提交回执 | 自绘行 | `settingsRuntime` | `settings-runtime-submit` |
+| EL-54 | 存储读数行 | 自绘行 | `settingsStorage` | `settings-storage` |
+| EL-55 | 诊断动作 | actionButton + iconButton | `settingsStorage` | `settings-storage` |
+| EL-56 | 键位提示表 | 自绘行 | `settingsAppearanceKeys` | `settings-appearance` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

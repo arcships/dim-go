@@ -45,6 +45,8 @@ const (
 	// cronScheduleWidth 是定时任务里「计划」一列的定宽（如 "每天 09:00"）。
 	cronScheduleWidth = 120
 	// cronRowMinWidth 是一行放得下「名称 + 计划 + 下次 + 开关 + 删除」的最小内宽。
+	// keyHintKeysWidth 是快捷键提示表里键位一列的定宽（最长 "Cmd+1…5"）。
+	keyHintKeysWidth = 120
 	cronRowMinWidth   = extNameWidth + cronScheduleWidth + 72 + space2*5 + rowCompact*2
 
 	// SettingsRuleRowMinWidth 是"命令 + 决定 + 匹配方式"排在一行所需的最小内宽；

@@ -520,6 +520,51 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
+// 设置第 7、8 节：八节导航、存储读数带单位、导出回执、键位表。
+func TestSettingsStorageAndKeys(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.screen, app.settingsSection = ScreenSettings, secStorage
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	// 导航八节齐。
+	for _, name := range []string{"账号与套餐", "模型与供应商", "命令规则", "扩展",
+		"定时任务", "运行时与模态", "存储与诊断", "外观与键位"} {
+		if _, ok := tt.Find(name); !ok {
+			t.Fatalf("导航缺 %q", name)
+		}
+	}
+	// 读数带单位：占用 1.2 GB。
+	if _, ok := tt.Access("存储读数：占用"); !ok {
+		t.Fatal("缺存储读数行")
+	}
+	if _, ok := tt.Find("GB"); !ok {
+		t.Fatal("读数没有单位")
+	}
+	// 导出：一次点击即给回执。
+	if err := tt.Click("导出诊断"); err != nil {
+		t.Fatalf("点不到导出：%v", err)
+	}
+	if !app.diagnosticsExported {
+		t.Fatal("导出没有生效")
+	}
+	tt.Frame()
+	if _, ok := tt.Find("导出回执"); !ok {
+		t.Fatal("导出没有回执")
+	}
+
+	// 第 8 节：时区与键位表。
+	app.settingsSection = secAppearance
+	tt.Frame()
+	if _, ok := tt.Find("时区"); !ok {
+		t.Fatal("外观与键位缺时区项")
+	}
+	if _, ok := tt.Find("快捷键"); !ok {
+		t.Fatal("缺键位表")
+	}
+	if _, ok := tt.Find("发送 / 停止"); !ok {
+		t.Fatal("键位表缺 Enter 一行")
+	}
+}
+
 // 设置第 5、6 节：任务启停/删除两步、组件清单、模态任务提交回执。
 func TestSettingsCronAndRuntime(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
@@ -771,7 +816,7 @@ func TestSettingsRoundTripKeepsDraftAndScroll(t *testing.T) {
 	if _, ok := tt.Find("对话流"); ok {
 		t.Fatal("设置屏不应同时显示主界面")
 	}
-	for _, name := range []string{"外观", "供应商", "命令规则"} {
+	for _, name := range []string{"外观与键位", "模型与供应商", "命令规则"} {
 		if _, ok := tt.Find(name); !ok {
 			t.Fatalf("设置导航缺分节 %q", name)
 		}

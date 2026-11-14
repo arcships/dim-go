@@ -22,6 +22,7 @@ var (
 	// 动作：新建、搜索、收起/展开侧栏、右栏、附件、发送、停止。
 	iconPlus       = mustSVG(`<path d="M12 4.5v15m7.5-7.5h-15"/>`)
 	iconSearch     = mustSVG(`<path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>`)
+	iconChevronR   = mustSVG(`<path d="M8.25 4.5 15.75 12l-7.5 7.5"/>`)
 	iconChevronL   = mustSVG(`<path d="M15.75 19.5 8.25 12l7.5-7.5"/>`)
 	iconChevronUp  = mustSVG(`<path d="m4.5 15.75 7.5-7.5 7.5 7.5"/>`)
 	iconPanelRight = mustSVG(`<path d="M3.75 4.5h16.5v15H3.75z"/><path d="M14.25 4.5v15"/>`)

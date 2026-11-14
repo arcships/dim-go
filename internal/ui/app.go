@@ -66,6 +66,18 @@ func ParseState(v string) (State, error) {
 	return StateDefault, fmt.Errorf("未知状态 %q：可用 default、running、waiting、failed、empty，或 1–5", v)
 }
 
+// 设置的分节序号（U1-ia §4 的 8 节，顺序与文档一致）。
+const (
+	secAccount    = 0 // 账号与套餐
+	secProviders  = 1 // 模型与供应商
+	secRules      = 2 // 命令规则
+	secExtensions = 3 // 扩展
+	secCron       = 4 // 定时任务
+	secRuntime    = 5 // 运行时与模态
+	secStorage    = 6 // 存储与诊断
+	secAppearance = 7 // 外观与键位
+)
+
 // Screen 是当前屏：主界面或设置（P1/P2，U1-ia §4）。设置独立成屏，返回时恢复
 // 离开前的主界面状态（草稿、滚动位置、展开状态都由 App 持有，切屏不重建它们）。
 type Screen int
@@ -94,6 +106,9 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantStorage / AppearanceKeys 是设置第 7、8 节的走查态。
+	VariantStorage
+	VariantAppearanceKeys
 	// VariantCron / CronDelete / Runtime / RuntimeSubmit 是设置第 5、6 节的走查态。
 	VariantCron
 	VariantCronDelete
@@ -124,6 +139,7 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"storage": VariantStorage, "appearance-keys": VariantAppearanceKeys,
 	"cron": VariantCron, "cron-delete": VariantCronDelete,
 	"runtime": VariantRuntime, "runtime-submit": VariantRuntimeSubmit,
 	"session-menu": VariantSessionMenu, "rename": VariantSessionRename,
@@ -139,7 +155,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -212,6 +228,11 @@ type App struct {
 	runtimeState  extState
 	modalTask     string
 	modalSubmitted string
+
+	// 第 8 节：时区；第 7 节：诊断导出/打开的回执。
+	timeZone            string
+	diagnosticsExported bool
+	diagnosticsOpened   bool
 
 	// 扩展：页签、加载态与四类样例。
 	extTab   int
@@ -308,7 +329,7 @@ func (a *App) loadSample() {
 	a.tasks = taskSamples()
 
 	a.screen = ScreenMain
-	a.settingsSection = 0
+	a.settingsSection = secAppearance
 	a.themePref = "跟随系统"
 	a.motionOff = false
 	a.providers = []string{"Anthropic", "OpenAI"}
@@ -326,6 +347,8 @@ func (a *App) loadSample() {
 	a.runtime = runtimeSamples()
 	a.runtimeState = extLoaded
 	a.modalTask, a.modalSubmitted = "", ""
+	a.timeZone = "跟随系统"
+	a.diagnosticsExported, a.diagnosticsOpened = false, false
 	a.extTab, a.extState = 0, extLoaded
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
@@ -344,19 +367,23 @@ func (a *App) loadSample() {
 	switch a.variant {
 	case VariantSettings:
 		a.screen = ScreenSettings
-		a.settingsSection = 0 // 外观：主题与动效
+		a.settingsSection = secAppearance // 外观：主题与动效
 	case VariantSettingsRules:
 		a.screen = ScreenSettings
-		a.settingsSection = 2 // 命令规则：清空确认态
+		a.settingsSection = secRules // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantStorage:
+		a.screen, a.settingsSection = ScreenSettings, secStorage
+	case VariantAppearanceKeys:
+		a.screen, a.settingsSection = ScreenSettings, secAppearance
 	case VariantCron:
-		a.screen, a.settingsSection = ScreenSettings, 4
+		a.screen, a.settingsSection = ScreenSettings, secCron
 	case VariantCronDelete:
-		a.screen, a.settingsSection, a.cronDeleting = ScreenSettings, 4, 0
+		a.screen, a.settingsSection, a.cronDeleting = ScreenSettings, secCron, 0
 	case VariantRuntime:
-		a.screen, a.settingsSection = ScreenSettings, 5
+		a.screen, a.settingsSection = ScreenSettings, secRuntime
 	case VariantRuntimeSubmit:
-		a.screen, a.settingsSection = ScreenSettings, 5
+		a.screen, a.settingsSection = ScreenSettings, secRuntime
 		a.modalTask = "重跑全部语言测试"
 		a.modalSubmitted = "重跑全部语言测试"
 	case VariantSessionMenu:
@@ -380,7 +407,7 @@ func (a *App) loadSample() {
 		a.termLines = termSamples(a.termState)
 	case VariantExt, VariantExtFailed, VariantExtEmpty, VariantExtLoading:
 		a.screen = ScreenSettings
-		a.settingsSection = 3 // 扩展
+		a.settingsSection = secExtensions
 		switch a.variant {
 		case VariantExtFailed:
 			a.extState = extFailed
