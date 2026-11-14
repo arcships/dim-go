@@ -146,6 +146,7 @@ func (a *App) settingsAppearance(c *gui.Context) {
 	settingsRow(c, "动效", func() {
 		gui.Switch(c, &a.motionOff).Label("关闭动效")
 	})
+	a.persistPreferences()
 }
 
 // settingsProviders 是「供应商」：当前供应商与模型，下面是目录信息（内容）。

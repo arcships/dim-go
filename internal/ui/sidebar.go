@@ -62,7 +62,7 @@ func (a *App) sidebar(c *gui.Context) {
 	}
 
 	// 与主区之间靠面差（surface 对 background）分开，不画竖线（UI-18 第一档）。
-	gui.Column(c).Width(SidebarWidth).Shrink(0).
+	gui.Column(c).Width(a.sidebarWidthValue()).Shrink(0).
 		Background(t.Surface).
 		Label("左栏 · 会话列表").Role(gui.RoleNavigation).Focusable().TabStop(true).
 		Children(func() {

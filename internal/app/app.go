@@ -138,6 +138,7 @@ type App struct {
 	cfg Config
 
 	// 本地状态：随进程存在，丢了不影响服务端事实。
+	prefs     Preferences
 	archive   *catalog.Archive
 	staging   *attachments.Store
 	workspace *workspace.Workspace
@@ -226,6 +227,7 @@ func New(cfg Config) (*App, error) {
 	app.changes = &changeSource{app: app}
 	app.accountWire = &accountWire{app: app}
 	app.deviceAuth = &accountDeviceSource{wire: app.accountWire}
+	app.loadPreferences()
 	return app, nil
 }
 

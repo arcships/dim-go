@@ -22,6 +22,7 @@ type fakeSource struct {
 	extensions ExtensionsSnapshot
 	schedules  SchedulesSnapshot
 	terminal   TerminalSnapshot
+	prefs      PreferencesSnapshot
 }
 
 func (f *fakeSource) Connection() Connection           { return f.conn }
@@ -37,6 +38,7 @@ func (f *fakeSource) Settings() SettingsSnapshot         { return f.settings }
 func (f *fakeSource) Extensions() ExtensionsSnapshot     { return f.extensions }
 func (f *fakeSource) Schedules() SchedulesSnapshot       { return f.schedules }
 func (f *fakeSource) Terminal() TerminalSnapshot         { return f.terminal }
+func (f *fakeSource) Preferences() PreferencesSnapshot   { return f.prefs }
 
 // TestSourceDrivesSidebarAndTimeline：把 Source 的会话列表改成空 → 界面进空态，
 // 而不是保留样例；把 Running 翻成 true → 停止槽出现。

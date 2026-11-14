@@ -301,6 +301,30 @@ func (a *App) settingsRuntimeLive(c *gui.Context, st SettingsSnapshot) {
 			TextColor(t.TextMuted)
 		gui.Spacer(c)
 	})
+	if st.TasksError != "" {
+		a.stateNote(c, "模态任务读取失败", iconWarn, "exclamation", st.TasksError, t.Danger)
+	}
+	for _, task := range st.ModalityTasks {
+		task := task
+		running := task.State == "running" || task.State == "queued"
+		label := "模态任务：" + task.Category + "/" + task.Operation + " · " + task.State
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Label(label).Children(func() {
+			statusDotMark(c, statusColor(t, extOK), "modality:"+task.ID)
+			typeBody.style(t, gui.Text(c, task.Category+"/"+task.Operation)).TextColor(t.Text).Width(extNameWidth)
+			typeSecondary.style(t, gui.Text(c, task.State)).TextColor(t.TextMuted).Grow(1)
+			if task.Progress != "" {
+				typeSecondary.style(t, gui.Text(c, task.Progress)).TextColor(t.TextMuted).SingleLine()
+			}
+			if running {
+				if iconButton(c, iconButtonSpec{icon: iconXMark, label: "取消模态任务：" + task.ID, size: rowCompact}) {
+					id := task.ID
+					a.dispatch("取消模态任务", func(ctx context.Context) error {
+						return a.intents.CancelModalityTask(ctx, id)
+					}, nil)
+				}
+			}
+		})
+	}
 }
 
 // stateNote / emptyNote / failedNote 是三种非正常态的公共行（加载 / 空 / 失败），

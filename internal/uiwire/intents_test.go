@@ -97,6 +97,7 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 		"permission.rules", "permission.set_rules",
 		"session.branch_create", "session.branch_end",
 		"attachment.put",
+		"modality.task.list", "modality.task.cancel",
 	)
 	return fakeappserver.Script{
 		Features: features,
@@ -211,6 +212,20 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 			{Method: "attachment.put", Result: map[string]any{
 				"attachmentId": "att-1", "path": "/work/attachment.txt", "bytes": 3,
 			}},
+			{Method: "modality.task.list", Result: map[string]any{"tasks": []any{map[string]any{
+				"version": 1, "task_id": "task-1", "client_task_id": nil, "revision": 1,
+				"category": "image", "operation": "generate", "executor": map[string]any{},
+				"params": map[string]any{}, "state": "running", "progress": map[string]any{},
+				"result": nil, "error": nil, "created_at": "2026-11-15T00:00:00Z",
+				"updated_at": "2026-11-15T00:00:01Z", "finished_at": nil,
+			}}, "next": nil}},
+			{Method: "modality.task.cancel", Result: map[string]any{"task": map[string]any{
+				"version": 1, "task_id": "task-1", "client_task_id": nil, "revision": 2,
+				"category": "image", "operation": "generate", "executor": map[string]any{},
+				"params": map[string]any{}, "state": "cancelled", "progress": map[string]any{},
+				"result": nil, "error": nil, "created_at": "2026-11-15T00:00:00Z",
+				"updated_at": "2026-11-15T00:00:02Z", "finished_at": "2026-11-15T00:00:02Z",
+			}}},
 			{Method: "mcp.catalog", Result: map[string]any{
 				"userRevision": "rev-1",
 				"servers": []any{map[string]any{
@@ -534,6 +549,20 @@ func TestIntentAttachment(t *testing.T) {
 		len(h.server.RequestsFor("attachment.put")), params["name"], params["text"])
 	if params["text"] != "hello" {
 		t.Fatalf("附件参数不对：%v", params)
+	}
+}
+
+// TestIntentCancelModalityTask 设置 · 运行时 → 取消运行中的模态任务。
+func TestIntentCancelModalityTask(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("运行时与模态")
+	h.click("取消模态任务：task-1")
+	params := h.waitRequest("modality.task.cancel")
+	t.Logf("点了「取消模态任务」→ 服务端收到 modality.task.cancel（%d 次），task_id=%v",
+		len(h.server.RequestsFor("modality.task.cancel")), params["task_id"])
+	if params["task_id"] != "task-1" {
+		t.Fatalf("取消任务参数不对：%v", params)
 	}
 }
 

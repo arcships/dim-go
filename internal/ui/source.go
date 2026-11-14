@@ -33,6 +33,8 @@ type Source interface {
 	Schedules() SchedulesSnapshot
 	// Terminal 是当前会话终端的状态；Active 为假表示没有终端实例。
 	Terminal() TerminalSnapshot
+	// Preferences 是客户端本地偏好（主题、动效、时区、侧栏宽度）。
+	Preferences() PreferencesSnapshot
 }
 
 // Intents 是视图发起写的唯一入口：写走既有的 app 方法，不新开协议通道。
@@ -81,12 +83,24 @@ type Intents interface {
 	// 定时任务。
 	SetScheduleEnabled(ctx context.Context, jobID string, enabled bool) error
 	DeleteSchedule(ctx context.Context, jobID string) error
+	// CancelModalityTask 取消一条运行中的模态任务。
+	CancelModalityTask(ctx context.Context, taskID string) error
 
 	// 终端：RunShell 返回运行标识，供 StopShell 使用。
 	RunShell(ctx context.Context, command string) (string, error)
 	StopShell(ctx context.Context, runID string) error
 	// Reconnect 重连控制连接（断线后的「重新连接」）。
 	Reconnect(ctx context.Context) error
+	// SetPreferences 落盘本地偏好。
+	SetPreferences(ctx context.Context, prefs PreferencesSnapshot) error
+}
+
+// PreferencesSnapshot 是本地偏好；它不来自 App Server。
+type PreferencesSnapshot struct {
+	Theme        string
+	MotionOff    bool
+	TimeZone     string
+	SidebarWidth int
 }
 
 // Connection 是连接阶段与原因（断线要能看见原因，不是白屏）。
@@ -201,6 +215,18 @@ type SettingsSnapshot struct {
 	RuntimesReason string
 
 	Modality ModalitySnapshot
+	// ModalityTasks 是模态任务清单；TasksError 非空表示读取失败。
+	ModalityTasks []ModalityTaskSnapshot
+	TasksError    string
+}
+
+// ModalityTaskSnapshot 是一条模态任务。
+type ModalityTaskSnapshot struct {
+	ID        string
+	Category  string
+	Operation string
+	State     string
+	Progress  string
 }
 
 // ProviderOption 是一个 provider（标识 + 展示名）。

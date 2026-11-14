@@ -58,6 +58,19 @@ var samplePhrases = []string{
 	"把日志也开上", "发送路径.md", "rm -rf ./tmp/*",
 }
 
+// TestPreferencesSeedView 本地偏好进入视图：主题、动效、时区与侧栏宽度。
+func TestPreferencesSeedView(t *testing.T) {
+	src := wiredSource()
+	src.prefs = PreferencesSnapshot{Theme: "暗", MotionOff: true, TimeZone: "UTC", SidebarWidth: 300}
+	app := NewApp(Options{State: StateDefault, Source: src})
+	if app.themePref != "暗" || !app.motionOff || app.timeZone != "UTC" {
+		t.Fatalf("偏好没有进入视图：theme=%q motion=%v tz=%q", app.themePref, app.motionOff, app.timeZone)
+	}
+	if app.sidebarWidthValue() != 300 {
+		t.Fatalf("侧栏宽度 = %v，想要 300", app.sidebarWidthValue())
+	}
+}
+
 // TestWiredScreensExcludeSamples 逐屏渲染 -connect 的视图，断言样例常量不再上屏。
 func TestWiredScreensExcludeSamples(t *testing.T) {
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})

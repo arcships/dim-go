@@ -134,6 +134,7 @@ func (a *App) settingsAppearanceKeys(c *gui.Context) {
 			gui.Spacer(c)
 		})
 	}
+	a.persistPreferences()
 }
 
 // keyHint 是一行快捷键提示（键位 + 作用），取自 U3 的 K 表。

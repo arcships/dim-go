@@ -206,6 +206,8 @@ type App struct {
 	onState func(State)
 
 	sidebarCollapsed    bool
+	sidebarWidth        float32
+	lastPrefs           PreferencesSnapshot
 	rightOpen           bool
 	rightTab            int
 	selectedSession     string
@@ -584,6 +586,9 @@ func (a *App) resetWiredViewState() {
 	a.settingsSection = secAppearance
 	a.themePref = "跟随系统"
 	a.motionOff = false
+	a.timeZone = "跟随系统"
+	a.sidebarWidth = 0
+	a.lastPrefs = PreferencesSnapshot{}
 	a.provider = ""
 	a.providers = nil
 	a.modelChoice = ""
@@ -624,6 +629,19 @@ func (a *App) resetWiredViewState() {
 	a.termCopied = false
 	a.termInput = ""
 	a.model = ""
+
+	if a.source != nil {
+		prefs := a.source.Preferences()
+		if prefs.Theme != "" {
+			a.themePref = prefs.Theme
+		}
+		if prefs.TimeZone != "" {
+			a.timeZone = prefs.TimeZone
+		}
+		a.motionOff = prefs.MotionOff
+		a.sidebarWidth = float32(prefs.SidebarWidth)
+		a.lastPrefs = prefs
+	}
 }
 
 // View 是每帧重建的界面。
@@ -656,6 +674,24 @@ func (a *App) syncSelectedSession() {
 	}
 	a.dispatch("打开会话", func(ctx context.Context) error {
 		return a.intents.OpenSession(ctx, sessionID)
+	}, nil)
+}
+
+// persistPreferences 在主题/动效/时区/侧栏宽度变化后落盘；只在接上 Intents 时。
+func (a *App) persistPreferences() {
+	if a.intents == nil {
+		return
+	}
+	prefs := PreferencesSnapshot{
+		Theme: a.themePref, MotionOff: a.motionOff,
+		TimeZone: a.timeZone, SidebarWidth: int(a.sidebarWidth),
+	}
+	if prefs == a.lastPrefs {
+		return
+	}
+	a.lastPrefs = prefs
+	a.dispatch("保存偏好", func(ctx context.Context) error {
+		return a.intents.SetPreferences(ctx, prefs)
 	}, nil)
 }
 
@@ -795,7 +831,7 @@ func (a *App) terminalKeys(c *gui.Context) {
 // 挤占顺序按 U1-ia §3.1：右栏先失空间，主区不缩到 400 以下。
 func (a *App) layout(c *gui.Context) {
 	t := c.Theme()
-	sidebar := float32(SidebarWidth)
+	sidebar := a.sidebarWidthValue()
 	if a.sidebarCollapsed {
 		sidebar = SidebarRailWidth
 	}
@@ -835,6 +871,14 @@ func (a *App) layout(c *gui.Context) {
 			})
 		})
 	})
+}
+
+// sidebarWidthValue 是左栏宽度：本地偏好给了非零值就用它。
+func (a *App) sidebarWidthValue() float32 {
+	if a.sidebarWidth > 0 {
+		return a.sidebarWidth
+	}
+	return SidebarWidth
 }
 
 // panelWidth 是右栏实际占的宽度：未打开、或窗口窄到并排不下时为零。

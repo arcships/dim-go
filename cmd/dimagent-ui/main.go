@@ -59,6 +59,7 @@ func main() {
 	var source appui.Source
 	var intents appui.Intents
 	var wire *uiwire.App
+	var appBase *app.App
 	if *connectFlag {
 		if *dataDirFlag == "" {
 			fmt.Fprintln(os.Stderr, "-connect 需要 -data-dir（客户端数据目录）")
@@ -74,6 +75,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "创建集成层：", err)
 			os.Exit(1)
 		}
+		appBase = base
 		wire = uiwire.New(base)
 		source = wire
 		intents = wire
@@ -102,17 +104,39 @@ func main() {
 	}))
 
 	mygo.App.WhenReady(func() {
-		win = mygo.NewWindow(mygo.WindowOptions{
+		width, height, x, y := *widthFlag, *heightFlag, 0, 0
+		hasPosition := false
+		if appBase != nil {
+			prefs := appBase.Preferences()
+			if prefs.Window.Width > 0 {
+				width = prefs.Window.Width
+			}
+			if prefs.Window.Height > 0 {
+				height = prefs.Window.Height
+			}
+			x, y, hasPosition = prefs.Window.X, prefs.Window.Y, prefs.Window.HasPosition
+		}
+		options := mygo.WindowOptions{
 			Title:     title(state),
-			Width:     *widthFlag,
-			Height:    *heightFlag,
+			Width:     width,
+			Height:    height,
 			MinWidth:  720,
 			MinHeight: 600,
 			// 无系统标题栏，保留系统阴影、圆角与边缘缩放；红绿灯由系统画在我们
 			// 自绘标题行的上方（UI-19、A4 平台律）。
 			TitleBarStyle: mygo.TitleBarHidden,
 			Content:       ui.View(app.View),
-		})
+		}
+		if hasPosition {
+			options.X, options.Y = x, y
+		}
+		win = mygo.NewWindow(options)
+		if appBase != nil {
+			win.OnClose(func(*mygo.CloseEvent) {
+				bounds := win.Bounds()
+				_ = appBase.UpdateWindowBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height)
+			})
+		}
 		if wire != nil {
 			// 订阅收到事件后重绘一帧；视图每帧从 Source 读事实。
 			wire.OnChange = func() { win.Invalidate() }

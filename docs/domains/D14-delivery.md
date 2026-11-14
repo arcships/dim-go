@@ -39,7 +39,7 @@ go run ./cmd/dimagent-ui \
 
 服务端已在 `<数据目录>/rust/daemon.sock` 上监听时，`daemon.Config` 不会另起进程：可以直接把界面指向一个已经运行的实例。
 
-`-connect` 下点了会发请求的入口：发送、停止、审批三决定、提问回答/跳过、打开/新建会话、重命名、归档、导出、删除、供应商/模型切换、命令规则修改/清空、分支切换/切出/结束、附件添加、插件/技能/钩子启停、插件/技能/MCP 卸载、MCP 启停/测试/从来源导入、定时任务启停/删除、`!` 命令运行与终端中止、断线重连、权限档位切换。其余见 §5。
+`-connect` 下点了会发请求或落盘的入口：发送、停止、审批三决定、提问回答/跳过、打开/新建会话、重命名、归档、导出、删除、供应商/模型切换、命令规则修改/清空、分支切换/切出/结束、附件添加、插件/技能/钩子启停、插件/技能/MCP 卸载、MCP 启停/测试/从来源导入、定时任务启停/删除、模态任务取消、`!` 命令运行与终端中止、断线重连、权限档位切换；主题/动效/时区改后写入 `<数据目录>/preferences.json`。其余见 §5。
 
 ### 1.3 连接假 App Server（截图与端到端用）
 
@@ -80,6 +80,7 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 设置 · 定时任务 | `Source.Schedules` | 读 `schedule.list` 快照 |
 | 设置 · 运行时与模态 | `Source.Settings`（runtimes/modality） | 读最近一次成功读数；能力缺失显示原因 |
 | 设置 · 存储与诊断 | `Source.Settings`（storage） | 读 `storage.report` 读数 |
+| 设置 · 外观 / 侧栏 / 窗口 | `Source.Preferences` | 读本地 `preferences.json`（主题、动效、时区、侧栏宽度、窗口几何） |
 | 设置 · 命令规则 | `Source.Settings`（rules） | 连接后读 `permission.rules` |
 | 标题行 · 分支 | `Source.Session`（Branches / Branch） | 读投影分支事实与当前分支 |
 | 右栏 · 后台任务 | `Source.Session`（Tasks） | 读投影未结束后台任务 |
@@ -125,6 +126,8 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 标题行 · 结束分支（两步确认） | `EndBranch` | `app.EndBranch` | `session.branch_end` | `TestIntentSelectAndEndBranch` |
 | 输入卡 · 添加文本附件 | `WriteAttachment` | `app.WriteAttachment` | `attachment.put` | `TestIntentAttachment` |
 | 右栏终端 · 清屏 / 复制 | 本地 | 视图状态 / `Context.WriteClipboard` | 无 | 本地动作 |
+| 设置 · 运行时 · 取消模态任务 | `CancelModalityTask` | `app.ModalityWrite(task.cancel)` | `modality.task.cancel` | `TestIntentCancelModalityTask` |
+| 设置 · 外观 / 侧栏 / 窗口 | 本地偏好 | `app.UpdatePreferences`（`<数据目录>/preferences.json`） | 无 | `TestPreferencesRoundTrip` / `TestPreferencesCorruptFallsBack` |
 
 分支切出的起始提问取当前草稿；草稿为空时用「从当前分支切出」，切点取已加载轮次的最后一轮。附件先做文本，文件路径与消息引用见 §5。
 
@@ -132,15 +135,18 @@ MCP 导入的来源来自 `mcp.import.sources`（连接后读一次，界面列�
 
 失败时不会静默：动作在后台协程执行，错误原因显示在内容区顶部的一行（带关闭入口）。
 
+### mock profile 的能力边界
+
+本机 mock profile 的 `session.methods` 只声明 10 个方法：`session.agent.get/update`、`session.collaboration.{approval.get,cancel,pending}`、`session.input.{pending,withdraw}`、`session.tool.get`、`session.turn.get`、`session.ui.resources.read`。很多 `unknown_method` 是 profile 造成的，不是协议没有；判断某项能力前先看 profile 声明，不用 mock 的拒绝反推协议。
+
 ## 5. 未接动作（blocked，缺什么）
 
-| 视图元素 | 缺什么 | 当前表现 / 谁能解除 |
+| 视图元素 | 现状与缺口 | 当前表现 / 谁能解除 |
 |---|---|---|
-| 目标 · 保存 | 协议包没有 goal 写方法；`projection.Goal` 只读，`app` 没有 `SetGoal` | 目标行只读；需要服务端先定义目标写方法，再由 D1/D2 接入 |
-| 设置 · 运行时提交模态任务 | 服务端未注册 `runtime.*`（D1 §7.1 已记）；`settings.Manager.SubmitTask` 还需要 `category` / `operation`，界面只有任务文本 | 提交按钮禁用并显示 "blocked：服务端未注册 runtime.* / 模态任务提交方法"；D1 恢复能力后再接 |
-| 设置 · 主题 / 动效 / 时区落盘 | `app` 没有持久化入口 | 保留为视图状态，重启丢失；不偷偷写文件 |
-| 右栏 · 后台任务取消 | 协议没有 exec task 的取消方法；`session.collaboration.stop` 只用于协作成员，不能取消后台任务 | 显示任务清单与 "取消任务：缺服务端方法"；D1/D2 定义取消方法后再接 |
-| 附件与消息的关联 | 提交协议没有附件引用字段（`session.submit` 只带文本） | `attachment.put` 已写会话文件；发送成功后只清空本地暂存 chips，消息本身不带附件引用。需要 D1/D2 定义附件引用后再接 |
+| 目标 · 保存 | 写入口在插件 `plugins.goal_mode`（动作 get/set/edit/pause/resume/clear）；本项目没有插件宿主，`projection.Goal` 只读 | 目标行维持只读；需要插件宿主或 D1/D2 提供等价入口 |
+| 设置 · 运行时提交模态任务 | `runtime.list/install` 协议有定义，但服务端未注册 `runtime.*`（D1 §7.1 的 issue）；`SubmitTask` 还需要 `category/operation` | 提交按钮禁用并显示 "blocked：服务端未注册 runtime.* / 模态任务提交方法"；D1 恢复能力后再接 |
+| 右栏 · 后台任务取消 | exec task 取消在 protocol 里没有方法；`session.collaboration.stop` 只用于协作成员，不能取消后台任务 | 显示任务清单与 "取消任务：缺服务端方法"；D1/D2 定义方法后再接 |
+| 附件与消息的关联 | Electron 侧是客户端草稿（`pickFiles` / `stagePaths` / `materialize`）；`session.submit` 的附件引用形状需 configured profile 核对。本机缺离线模型配置，**待核对**，不能写成"协议没有" | `attachment.put` 已写会话文件；发送成功后清空本地暂存 chips，消息本身暂不带附件引用 |
 
 ## 6. 已知边界
 
@@ -191,6 +197,7 @@ go test ./internal/uiwire -run TestIntent -v -count=1
 #   点了「分支 · side」→ 当前分支=side（投影切换，不发请求）
 #   点了「结束分支 · 确认」→ 服务端收到 session.branch_end（1 次）
 #   点了「添加附件」→ 服务端收到 attachment.put（1 次），name=note.txt text=hello
+#   点了「取消模态任务」→ 服务端收到 modality.task.cancel（1 次），task_id=task-1
 #   点了「重新连接」→ 连接阶段=connected
 #   点了「插件 · 启用开关」→ 服务端收到 plugin.disable（1 次）
 #   点了「插件 · 卸载」→ 服务端收到 plugin.remove（1 次）
@@ -204,19 +211,25 @@ go test ./internal/uiwire -run TestIntent -v -count=1
 #     随后 mcp.import.apply（1 次），from=src-1 expectedVersion=rev-2 sourceRevision=src-rev-1
 #   点了「运行命令」→ 服务端收到 shell.run（1 次），command=echo hi
 #   点了「终端 · 中止」→ 服务端收到 shell.stop（1 次），runId=run-srv-1
-#   --- PASS: TestIntent...（29 条）
+#   --- PASS: TestIntent...（30 条）
 
-# 4) 接上事实后不出现样例常量（逐屏渲染断言）
+# 4) 本地偏好：往返、损坏回退、视图套用
+go test ./internal/app -run TestPreferences -v -count=1
+# 预期：TestPreferencesRoundTrip / TestPreferencesCorruptFallsBack 均 PASS
+go test ./internal/ui -run TestPreferencesSeedView -v -count=1
+# 预期：--- PASS: TestPreferencesSeedView
+
+# 5) 接上事实后不出现样例常量（逐屏渲染断言）
 go test ./internal/ui -run TestWiredScreensExcludeSamples -v -count=1
 # 预期：--- PASS: TestWiredScreensExcludeSamples
 
-# 5) 构建、静态检查、全量测试
+# 6) 构建、静态检查、全量测试
 go build ./...
 go vet ./...
 go test ./... -count=1
 # 预期：全部 ok；uiwire 的真实服务端测试按 §6.1 标 blocked
 
-# 6) 界面检查器：20 个检查项与 14 条种子
+# 7) 界面检查器：20 个检查项与 14 条种子
 scripts/ui-lint
 # 预期：检查器全绿：20 个检查项；--- PASS: TestUILint
 scripts/ui-lint --seeds
@@ -233,12 +246,14 @@ scripts/ui-lint --seeds
 | `internal/ui/composer.go` | 发送/停止/审批三决定/提问回答与跳过 |
 | `internal/ui/sidebar.go` | 新建、打开、重命名、归档、导出、删除 |
 | `internal/ui/header.go`、`internal/ui/rightpanel.go` | 分支切换/切出/结束；后台任务清单 |
+| `internal/ui/settings_tasks.go` | 模态任务清单与取消入口 |
 | `internal/ui/settings*.go`、`extensions*.go`、`terminal.go` | 四块改读 `Source` 快照；权限档位、扩展开关/卸载/测试、终端运行/中止 |
 | `cmd/dimagent-ui/main.go` | `-connect` 模式、`OnChange` 重绘、250ms 刷新 |
 | `cmd/dimagent-fake-server/main.go` | 截图用的假服务端（dev-only，不是产品入口） |
 | `internal/uiwire/e2e_test.go` | 五步端到端、断线 |
-| `internal/uiwire/intents_test.go` | 点击 → 服务端收到 / 本地写出（29 条动作） |
+| `internal/uiwire/intents_test.go` | 点击 → 服务端收到 / 本地写出（30 条动作） |
 | `internal/app/session.go` | `App.Stop`：主线停止的写意图入口 |
+| `internal/app/preferences.go` | 本地偏好 `preferences.json` 的读写与默认值 |
 | `internal/app/rules.go`、`internal/app/branches.go`、`internal/app/writes.go` | 规则读写、分支目录/切点/切出/结束、附件写入 |
 | `internal/app/sender.go`、`internal/app/extensions.go` | `plugin.remove` / `schedule.*` 分派、`mcp.import.sources/preview` 读取 |
 | `internal/extensions/*.go` | 插件/技能/钩子/MCP 启停与卸载、定时任务启停/删除、MCP 导入来源与预览 |

@@ -40,6 +40,10 @@ type App struct {
 	rulesRevision string
 	rulesKnown    bool
 	rulesErr      string
+	// tasksMu 保护最近一次读取的模态任务清单。
+	tasksMu  sync.Mutex
+	tasks    []ui.ModalityTaskSnapshot
+	tasksErr string
 }
 
 // New 包住一个已创建的集成层。
@@ -133,6 +137,34 @@ func (w *App) loadFacts(ctx context.Context) {
 	}
 	w.refreshImportSources(ctx)
 	w.refreshRules(ctx)
+	w.refreshModalityTasks(ctx)
+}
+
+// refreshModalityTasks 读一页模态任务并留在适配器里；界面每帧只读这份快照。
+func (w *App) refreshModalityTasks(ctx context.Context) {
+	manager := w.A.Settings()
+	if manager == nil || w.SessionID == "" {
+		return
+	}
+	page, err := manager.ListTasks(ctx, w.SessionID, settings.ModalityTaskQuery{})
+	w.tasksMu.Lock()
+	defer w.tasksMu.Unlock()
+	if err != nil {
+		w.tasksErr = err.Error()
+		return
+	}
+	w.tasksErr = ""
+	w.tasks = w.tasks[:0]
+	for _, task := range page.Tasks {
+		progress := ""
+		if task.Progress != nil {
+			progress = task.Progress.Message
+		}
+		w.tasks = append(w.tasks, ui.ModalityTaskSnapshot{
+			ID: task.ID, Category: task.Category, Operation: task.Operation,
+			State: string(task.State), Progress: progress,
+		})
+	}
 }
 
 // refreshRules 读一次用户级命令规则并留在适配器里；界面每帧只读这份快照。
@@ -381,6 +413,10 @@ func (w *App) Settings() ui.SettingsSnapshot {
 	out.RulesKnown = w.rulesKnown
 	out.RulesError = w.rulesErr
 	w.rulesMu.Unlock()
+	w.tasksMu.Lock()
+	out.ModalityTasks = append([]ui.ModalityTaskSnapshot(nil), w.tasks...)
+	out.TasksError = w.tasksErr
+	w.tasksMu.Unlock()
 	if report, ok := settings.Storage(); ok {
 		out.Storage = ui.StorageSnapshot{
 			DatabaseBytes:    report.DatabaseBytes,
@@ -489,6 +525,29 @@ func (w *App) Schedules() ui.SchedulesSnapshot {
 		})
 	}
 	return out
+}
+
+// Preferences 是客户端本地偏好；不从服务端读。
+func (w *App) Preferences() ui.PreferencesSnapshot {
+	prefs := w.A.Preferences()
+	return ui.PreferencesSnapshot{
+		Theme: prefs.Theme, MotionOff: prefs.MotionOff,
+		TimeZone: prefs.TimeZone, SidebarWidth: prefs.SidebarWidth,
+	}
+}
+
+// SetPreferences 落盘本地偏好。
+func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) error {
+	current := w.A.Preferences()
+	current.Theme = prefs.Theme
+	current.MotionOff = prefs.MotionOff
+	current.TimeZone = prefs.TimeZone
+	current.SidebarWidth = prefs.SidebarWidth
+	if err := w.A.UpdatePreferences(current); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
 }
 
 // Terminal 是当前会话终端的状态；输出由 pty 流式读取，本批不缓存。
@@ -1072,6 +1131,28 @@ func (w *App) DeleteSchedule(ctx context.Context, jobID string) error {
 		return err
 	}
 	_, _ = service.ListScheduledTasks(ctx)
+	w.changed()
+	return nil
+}
+
+// CancelModalityTask 取消一条运行中的模态任务；成功后重读任务清单。
+func (w *App) CancelModalityTask(ctx context.Context, taskID string) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if strings.TrimSpace(taskID) == "" {
+		return fmt.Errorf("任务标识为空")
+	}
+	view, err := w.A.ModalityWrite(ctx, app.ModalityWriteRequest{
+		SessionID: w.SessionID,
+		Op:        app.ModalityTaskCancel,
+		Params:    map[string]any{"taskId": taskID},
+	})
+	if err != nil {
+		return err
+	}
+	_, _ = w.A.Wait(ctx, view.ID)
+	w.refreshModalityTasks(ctx)
 	w.changed()
 	return nil
 }
