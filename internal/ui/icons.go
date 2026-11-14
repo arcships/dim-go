@@ -32,6 +32,9 @@ var (
 	iconCheckLock = mustSVG(`<path d="m4.5 12.75 5.25 5.25 9-12"/><rect x="14.25" y="13.5" width="6" height="6" rx="1"/><path d="M15.75 13.5v-1.5a1.5 1.5 0 0 1 3 0v1.5"/>`)
 
 
+	// 行末的"更多动作"：三个点。
+	iconEllipsis = mustSVG(`<circle cx="6.75" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="17.25" cy="12" r="1.4"/>`)
+
 	// 终端：复制输出（两张叠纸）。
 	iconClipboard = mustSVG(`<rect x="8.25" y="8.25" width="10.5" height="10.5" rx="2"/><path d="M15.75 6.75v-.5a2 2 0 0 0-2-2h-7.5a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h.5"/>`)
 

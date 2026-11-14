@@ -94,6 +94,11 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantSessionMenu / Rename / SessionDelete / Search 是左栏目录动作的四个走查态。
+	VariantSessionMenu
+	VariantSessionRename
+	VariantSessionDelete
+	VariantSearch
 	// VariantTerm / TermRunning / TermExited 打开右栏的终端标签，三种状态。
 	VariantTerm
 	VariantTermRunning
@@ -114,6 +119,8 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"session-menu": VariantSessionMenu, "rename": VariantSessionRename,
+	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
 	"term-exited": VariantTermExited,
 	"ext": VariantExt, "ext-failed": VariantExtFailed,
@@ -125,7 +132,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -193,6 +200,17 @@ type App struct {
 	// 扩展：页签、加载态与四类样例。
 	extTab   int
 	extState extState
+
+	// 会话目录：搜索面、行内重命名、删除确认、归档与导出反馈（都属可丢的视图状态）。
+	searchOpen bool
+	searchQuery string
+	renaming   int
+	renameDraft string
+	deleting   int
+	archived   map[int]bool
+	renamed    map[int]string
+	exported   string
+	menuOpen   map[int]*bool
 
 	// 终端（右栏第五个标签）：状态、输出行、提示行与"已复制"反馈。
 	termState  termState
@@ -288,6 +306,12 @@ func (a *App) loadSample() {
 	}
 	a.clearRulesConfirm = false
 	a.extTab, a.extState = 0, extLoaded
+	a.searchOpen, a.searchQuery = false, ""
+	a.renaming, a.deleting = -1, -1
+	a.renameDraft = ""
+	a.archived, a.renamed = map[int]bool{}, map[int]string{}
+	a.menuOpen = map[int]*bool{}
+	a.exported = ""
 	a.termState = termIdle
 	a.termLines = termSamples(termIdle)
 	a.termCopied = false
@@ -304,6 +328,16 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = 2 // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantSessionMenu:
+		*a.menuOpenPtr(0) = true
+	case VariantSessionRename:
+		a.renaming = 0
+		a.renameDraft = "修发送路径"
+	case VariantSessionDelete:
+		a.deleting = 0
+	case VariantSearch:
+		a.searchOpen = true
+		a.searchQuery = ""
 	case VariantTerm, VariantTermRunning, VariantTermExited:
 		a.rightOpen, a.rightTab = true, 4
 		switch a.variant {
@@ -396,6 +430,14 @@ func (a *App) debugKeys(c *gui.Context) {
 	}
 }
 
+// searchKeys 是搜索面的键位（U3 T18）：Esc 收起搜索面（焦点回到列表）。
+func (a *App) searchKeys(c *gui.Context) {
+	if a.searchOpen && c.Shortcut(0, gui.KeyEscape) {
+		a.searchOpen = false
+		a.searchQuery = ""
+	}
+}
+
 // terminalKeys 是终端的键位（U3 T17）：Ctrl-C 中止、Cmd-K 清屏、Esc 收回右栏
 // （回到主界面）。Ctrl-C 在终端输入框里仍是"复制"，所以只在焦点不在输入框时接管。
 func (a *App) terminalKeys(c *gui.Context) {
@@ -427,6 +469,7 @@ func (a *App) layout(c *gui.Context) {
 	// 更窄的窗口属于 compact，右栏应整屏替代主区，本批次未做。
 	panel := panelWidth(windowWidth, sidebar, a.rightOpen)
 
+	a.searchKeys(c)
 	a.terminalKeys(c)
 	gui.Row(c).Fill().AlignItems(gui.Stretch).
 		Background(t.Background).Children(func() {

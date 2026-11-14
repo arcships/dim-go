@@ -85,11 +85,10 @@
       "scope": "整条会话",
       "form": "icon+text",
       "confirm": true,
-      "basis": "U1 A6、D4；U3 后续批次",
-      "when": "default",
-      "probe": "",
-      "implemented": false,
-      "why_not_implemented": "删除会话没有入口（U3 后续批次）"
+      "basis": "U1 A6、D4；U3 T18（菜单项 + 行内两步确认）",
+      "when": "session-menu",
+      "probe": "删除",
+      "in_menu": true
     },
     {
       "id": "AC-08",
@@ -241,6 +240,54 @@
       "basis": "U1 T25；U3 T17",
       "when": "term",
       "probe": "复制输出"
+    },
+    {
+      "id": "AC-21",
+      "action": "重命名会话",
+      "consequence": "可逆：名字可以再改；不影响会话内容",
+      "scope": "一条会话",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 A1；U3 T18",
+      "when": "session-menu",
+      "probe": "重命名",
+      "in_menu": true
+    },
+    {
+      "id": "AC-22",
+      "action": "归档会话",
+      "consequence": "可逆：归档后从列表消失，可再取回",
+      "scope": "一条会话",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 S13；U3 T18",
+      "when": "session-menu",
+      "probe": "归档",
+      "in_menu": true
+    },
+    {
+      "id": "AC-23",
+      "action": "导出会话",
+      "consequence": "无副作用（写出一份副本）",
+      "scope": "一条会话",
+      "form": "icon",
+      "confirm": false,
+      "basis": "U1 S13；U3 T18",
+      "when": "session-menu",
+      "probe": "导出",
+      "in_menu": true
+    },
+    {
+      "id": "AC-24",
+      "action": "确认删除",
+      "consequence": "不可逆：会话与历史从列表消失",
+      "scope": "一条会话",
+      "form": "icon+text",
+      "confirm": true,
+      "basis": "U1 A6；U3 T18（行内两步）",
+      "when": "session-delete",
+      "probe": "确认删除",
+      "text": "删除"
     }
   ],
   "undecided": [

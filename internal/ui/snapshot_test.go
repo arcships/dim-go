@@ -80,6 +80,19 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 会话目录动作：行末菜单、行内重命名、删除确认、搜索面。
+	{name: "variant-session-menu", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		*a.menuOpenPtr(0) = true
+	}},
+	{name: "variant-rename", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.renaming, a.renameDraft = 0, "修发送路径"
+	}},
+	{name: "variant-session-delete", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.deleting = 0
+	}},
+	{name: "variant-search", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.searchOpen = true
+	}},
 	// 终端三态（右栏第五个标签）：空闲 / 运行中 / 已退出。
 	{name: "variant-term", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.rightOpen, a.rightTab = true, 4

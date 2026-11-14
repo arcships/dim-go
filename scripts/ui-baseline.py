@@ -41,12 +41,15 @@ def luma(r, g, b):
 
 
 def background_luma(img):
-    """取窗口背景的亮度：左上角的空白区（标题行上方的让位条）。"""
+    """取窗口背景的亮度：标题行中段一小块（窗口圆角四角是透明的，不能采样）。"""
     px = img.load()
-    samples = [(4, 4), (img.width - 4, 4), (4, img.height - 4)]
-    vals = [luma(*px[x, y][:3]) for x, y in samples]
+    cx = img.width // 2
+    vals = []
+    for dx in range(-4, 5):
+        for dy in range(2, 10):
+            vals.append(luma(*px[cx + dx, dy][:3]))
     vals.sort()
-    return vals[1]
+    return vals[len(vals) // 2]
 
 
 def dark_left(img, x0, y0, y1, scale, run=0):

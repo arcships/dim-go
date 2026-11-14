@@ -58,6 +58,11 @@ Owner: U4 技术设计（界面领域）
 | EL-41 | 终端输出区 | gui.Scroll + 等宽 Text | `terminalPane` | `term-exited` |
 | EL-42 | 终端中止入口 | 自绘图标入口 | `iconButton` | `term-running` |
 | EL-43 | 终端清屏入口 | 自绘图标入口 | `iconButton` | `term` |
+| EL-44 | 会话行末动作入口 | gui.ButtonBase + PopoverMenuButton | `sessionItem` | `session-menu` |
+| EL-45 | 会话动作菜单 | gui.PopoverMenuButton | `sessionItem` | `session-menu` |
+| EL-46 | 重命名行内编辑 | gui.TextInputBase + actionButton | `renameRow` | `rename` |
+| EL-47 | 删除确认行 | 自绘行 + actionButton | `deleteConfirmRow` | `session-delete` |
+| EL-48 | 搜索面 | gui.TextInputBase | `searchPane` | `search` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

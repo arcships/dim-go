@@ -520,6 +520,121 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
+// 会话目录动作：菜单四项、重命名行内编辑、删除两步、归档/导出、搜索过滤。
+func TestSessionActions(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+
+	// 菜单：选中行有「…」，四项齐全。
+	info, ok := tt.Find("会话操作：修发送路径")
+	if !ok {
+		t.Fatal("选中行没有行末动作入口")
+	}
+	_ = info
+	if err := tt.Click("会话操作：修发送路径"); err != nil {
+		t.Fatalf("点不到动作入口：%v", err)
+	}
+	tt.Frame()
+	menu := tt.Menu()
+	for _, want := range []string{"重命名", "归档", "导出", "删除"} {
+		found := false
+		for _, got := range menu {
+			if got == want {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("菜单缺 %q（实际 %v）", want, menu)
+		}
+	}
+
+	// 重命名：行内编辑 + 保存。
+	if err := tt.ChooseMenuItem("重命名"); err != nil {
+		t.Fatalf("点不到重命名：%v", err)
+	}
+	if app.renaming != 0 {
+		t.Fatal("没有进入重命名编辑态")
+	}
+	tt.Frame()
+	if _, ok := tt.Find("保存"); !ok {
+		t.Fatal("重命名编辑态缺保存按钮")
+	}
+	app.renameDraft = "发送路径（改）"
+	if err := tt.Click("保存名称"); err != nil {
+		t.Fatalf("点不到保存：%v", err)
+	}
+	tt.Frame()
+	if got := app.sessionName(0, ""); got != "发送路径（改）" {
+		t.Fatalf("重命名没生效：%q", got)
+	}
+
+	// 删除：菜单选删除只进确认态，确认后才消失。
+	app.renaming = -1
+	tt.Frame()
+	if err := tt.Click("会话操作：发送路径（改）"); err != nil {
+		t.Fatalf("点不到动作入口：%v", err)
+	}
+	tt.Frame()
+	if err := tt.ChooseMenuItem("删除"); err != nil {
+		t.Fatalf("点不到删除：%v", err)
+	}
+	if app.deleting != 0 || app.archived[0] {
+		t.Fatal("第一次选删除不应生效")
+	}
+	tt.Frame()
+	if err := tt.Click("确认删除"); err != nil {
+		t.Fatalf("点不到确认删除：%v", err)
+	}
+	if !app.archived[0] {
+		t.Fatal("确认后会话没有移除")
+	}
+
+	// 归档：可逆，单步。
+	app2, tt2 := newTester(t, StateDefault)
+	if err := tt2.Click("会话操作：修发送路径"); err != nil {
+		t.Fatalf("点不到动作入口：%v", err)
+	}
+	tt2.Frame()
+	if err := tt2.ChooseMenuItem("归档"); err != nil {
+		t.Fatalf("点不到归档：%v", err)
+	}
+	if !app2.archived[0] {
+		t.Fatal("归档没有生效")
+	}
+	tt2.Frame()
+	if _, ok := tt2.Find("修发送路径"); ok {
+		t.Fatal("归档后行仍在列表里")
+	}
+}
+
+// 搜索面：点搜索展开，输入过滤，空白给全部，Esc 关闭。
+func TestSessionSearch(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if err := tt.Click("搜索"); err != nil {
+		t.Fatalf("点不到搜索：%v", err)
+	}
+	if !app.searchOpen {
+		t.Fatal("搜索没有展开")
+	}
+	tt.Frame()
+	app.searchQuery = "旧实现"
+	tt.Frame()
+	if _, ok := tt.Find("修发送路径"); ok {
+		t.Fatal("过滤后仍显示不匹配的行")
+	}
+	if _, ok := tt.Find("旧实现对照"); !ok {
+		t.Fatal("过滤后匹配的行不见了")
+	}
+	app.searchQuery = ""
+	tt.Frame()
+	if _, ok := tt.Find("修发送路径"); !ok {
+		t.Fatal("空白查询应给全部")
+	}
+	tt.Key(0, gui.KeyEscape)
+	if app.searchOpen {
+		t.Fatal("Esc 没有收起搜索面")
+	}
+}
+
 // 扩展：四个页签、切页签只换列表、开关点一次只翻转一行、失败态给重试。
 func TestExtensionsTabsAndSwitches(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

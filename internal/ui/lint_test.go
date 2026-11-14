@@ -1211,6 +1211,14 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		default:
 			app.extState = extFailed
 		}
+	case "session-menu":
+		*app.menuOpenPtr(0) = true
+	case "rename":
+		app.renaming, app.renameDraft = 0, "修发送路径"
+	case "session-delete":
+		app.deleting = 0
+	case "search":
+		app.searchOpen = true
 	case "term":
 		app.rightOpen, app.rightTab = true, 4
 	case "term-running":
@@ -1234,6 +1242,13 @@ func checkElementForm(t *testing.T, tt *gui.Tester, it elementEntry) []lintFindi
 		return nil
 	}
 	info, ok := tt.Access(it.Probe)
+	if !ok {
+		// 有些元素在框架的行/列表里不单独成可访问节点（如 SidebarItem 的子入口），
+		// 但盒子还在：回退用 Find 的可见范围判形式。
+		if r, found := tt.Find(it.Probe); found {
+			info, ok = gui.AccessInfo{Bounds: r, Name: it.Probe}, true
+		}
+	}
 	if !ok {
 		return []lintFinding{{"L17", "UI-23、D5（" + it.ID + "）", "render",
 			"清单与实现不一致：找不到「" + it.Element + "」（probe=" + it.Probe + "）"}}
