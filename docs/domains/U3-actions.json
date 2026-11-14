@@ -288,6 +288,41 @@
       "when": "session-delete",
       "probe": "确认删除",
       "text": "删除"
+    },
+    {
+      "id": "AC-25",
+      "action": "启停定时任务",
+      "consequence": "可逆：随时可再启用；历史保留",
+      "scope": "一条定时任务",
+      "form": "switch",
+      "confirm": false,
+      "basis": "U1 S49–S51；U3 T19",
+      "when": "settings-cron",
+      "probe": "启用任务：每晚依赖检查"
+    },
+    {
+      "id": "AC-26",
+      "action": "删除定时任务",
+      "consequence": "不可逆：任务与历史一起删除",
+      "scope": "一条定时任务",
+      "form": "icon+text",
+      "confirm": true,
+      "basis": "U1 S54；U3 T19（行内两步）",
+      "when": "settings-cron-delete",
+      "probe": "确认删除任务",
+      "text": "删除"
+    },
+    {
+      "id": "AC-27",
+      "action": "提交模态任务",
+      "consequence": "可回退：提交后可在运行时里取消；样例一次最多 1 个",
+      "scope": "当前会话",
+      "form": "icon+text",
+      "confirm": false,
+      "basis": "U1 T16/T17；U3 T19",
+      "when": "settings-runtime-submit",
+      "probe": "提交模态任务",
+      "text": "提交任务"
     }
   ],
   "undecided": [

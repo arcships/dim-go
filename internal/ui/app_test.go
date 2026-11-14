@@ -520,6 +520,65 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
+// 设置第 5、6 节：任务启停/删除两步、组件清单、模态任务提交回执。
+func TestSettingsCronAndRuntime(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.screen, app.settingsSection = ScreenSettings, 4
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if len(app.cron) != 4 {
+		t.Fatalf("定时任务样例 %d 条，想要 4", len(app.cron))
+	}
+	// 启停：只翻转目标行。
+	before := app.cron[0].on
+	info, ok := tt.Access("启用任务：每晚依赖检查")
+	if !ok {
+		t.Fatal("找不到定时任务开关")
+	}
+	tt.ClickAt(info.Bounds.X+4, info.Bounds.Y+info.Bounds.H/2)
+	if app.cron[0].on == before {
+		t.Fatal("开关没有翻转")
+	}
+	if app.cron[1].on != true {
+		t.Fatal("别的任务被连带改了")
+	}
+	// 删除：第一步只进确认，第二步才删。
+	if err := tt.Click("删除任务：每晚依赖检查"); err != nil {
+		t.Fatalf("点不到删除入口：%v", err)
+	}
+	if app.cronDeleting != 0 || len(app.cron) != 4 {
+		t.Fatal("第一次点删除不应生效")
+	}
+	tt.Frame()
+	if _, ok := tt.Find("删除定时任务确认"); !ok {
+		t.Fatal("删除确认行没有出现")
+	}
+	if err := tt.Click("确认删除任务"); err != nil {
+		t.Fatalf("点不到确认删除：%v", err)
+	}
+	if len(app.cron) != 3 {
+		t.Fatalf("确认后剩 %d 条", len(app.cron))
+	}
+
+	// 运行时：组件清单 + 模态提交。
+	app.settingsSection = 5
+	tt.Frame()
+	if _, ok := tt.Access("运行时组件：dim-app-server · v3.4.1 · 可用"); !ok {
+		t.Fatal("运行时组件行缺失")
+	}
+	app.modalTask = "重跑全部语言测试"
+	tt.Frame()
+	if err := tt.Click("提交模态任务"); err != nil {
+		t.Fatalf("点不到提交：%v", err)
+	}
+	if app.modalSubmitted != "重跑全部语言测试" {
+		t.Fatalf("回执 = %q", app.modalSubmitted)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("提交回执"); !ok {
+		t.Fatal("没有提交回执")
+	}
+}
+
 // 会话目录动作：菜单四项、重命名行内编辑、删除两步、归档/导出、搜索过滤。
 func TestSessionActions(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

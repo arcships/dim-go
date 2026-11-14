@@ -63,6 +63,11 @@ Owner: U4 技术设计（界面领域）
 | EL-46 | 重命名行内编辑 | gui.TextInputBase + actionButton | `renameRow` | `rename` |
 | EL-47 | 删除确认行 | 自绘行 + actionButton | `deleteConfirmRow` | `session-delete` |
 | EL-48 | 搜索面 | gui.TextInputBase | `searchPane` | `search` |
+| EL-49 | 定时任务行 | 自绘行 + gui.Switch | `cronRow` | `settings-cron` |
+| EL-50 | 定时任务删除确认 | 自绘行 + actionButton | `cronRow` | `settings-cron-delete` |
+| EL-51 | 运行时组件行 | 自绘行 | `settingsRuntime` | `settings-runtime` |
+| EL-52 | 模态任务提交 | gui.TextInputBase + actionButton | `settingsRuntime` | `settings-runtime-submit` |
+| EL-53 | 提交回执 | 自绘行 | `settingsRuntime` | `settings-runtime-submit` |
 <!-- END:items -->
 
 **形式库的 24 条**落在这些组件上（一条形式可能对应多个元素）：

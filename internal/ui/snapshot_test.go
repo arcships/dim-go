@@ -80,6 +80,20 @@ var screenCases = []screenCase{
 		a.branch, a.branches = branchSamples()
 		a.branchMenuOpen = true
 	}},
+	// 设置第 5、6 节：定时任务列表 / 删除确认、运行时与模态（含提交回执）。
+	{name: "variant-cron", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection = ScreenSettings, 4
+	}},
+	{name: "variant-cron-delete", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection, a.cronDeleting = ScreenSettings, 4, 0
+	}},
+	{name: "variant-runtime", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection = ScreenSettings, 5
+	}},
+	{name: "variant-runtime-submit", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.screen, a.settingsSection = ScreenSettings, 5
+		a.modalTask, a.modalSubmitted = "重跑全部语言测试", "重跑全部语言测试"
+	}},
 	// 会话目录动作：行末菜单、行内重命名、删除确认、搜索面。
 	{name: "variant-session-menu", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		*a.menuOpenPtr(0) = true

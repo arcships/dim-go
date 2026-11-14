@@ -42,6 +42,10 @@ const (
 	extNameWidth      = 200
 	extVersionWidth   = 72
 	extRowMinWidth    = extNameWidth + extVersionWidth + space3*3 + 36
+	// cronScheduleWidth 是定时任务里「计划」一列的定宽（如 "每天 09:00"）。
+	cronScheduleWidth = 120
+	// cronRowMinWidth 是一行放得下「名称 + 计划 + 下次 + 开关 + 删除」的最小内宽。
+	cronRowMinWidth   = extNameWidth + cronScheduleWidth + 72 + space2*5 + rowCompact*2
 
 	// SettingsRuleRowMinWidth 是"命令 + 决定 + 匹配方式"排在一行所需的最小内宽；
 	// 窄于它就按行堆叠（一条规则两行），见 U2-forms F23 的退化规则。

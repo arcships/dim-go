@@ -240,3 +240,23 @@ func extSamples(kind extKind) []extItem {
 		}
 	}
 }
+
+// cronSamples 是定时任务的样例（S49–S54：任务、计划、下次时间、历史）。
+func cronSamples() []cronTask {
+	return []cronTask{
+		{name: "每晚依赖检查", schedule: "每天 02:00", next: "明天 02:00", on: true, result: "上次成功"},
+		{name: "每周汇总", schedule: "周一 09:00", next: "周一 09:00", on: true, result: "上次成功"},
+		{name: "清理临时文件", schedule: "每天 02:00", next: "明天 02:00", on: false, result: "已停用"},
+		{name: "同步文档站", schedule: "每 6 小时", next: "今天 18:00", on: false, result: "上次失败", status: extError},
+	}
+}
+
+// runtimeSamples 是运行时组件（T13–T15 的样例）。
+func runtimeSamples() []runtimePart {
+	return []runtimePart{
+		{name: "dim-app-server", version: "v3.4.1"},
+		{name: "protocol", version: "v3"},
+		{name: "终端组件", version: "v0.2.0", status: extUpdate},
+		{name: "渲染组件", version: "v0.1.3", status: extError},
+	}
+}

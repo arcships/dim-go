@@ -1211,6 +1211,15 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		default:
 			app.extState = extFailed
 		}
+	case "settings-cron":
+		app.screen, app.settingsSection = ScreenSettings, 4
+	case "settings-cron-delete":
+		app.screen, app.settingsSection, app.cronDeleting = ScreenSettings, 4, 0
+	case "settings-runtime":
+		app.screen, app.settingsSection = ScreenSettings, 5
+	case "settings-runtime-submit":
+		app.screen, app.settingsSection = ScreenSettings, 5
+		app.modalTask, app.modalSubmitted = "重跑全部语言测试", "重跑全部语言测试"
 	case "session-menu":
 		*app.menuOpenPtr(0) = true
 	case "rename":

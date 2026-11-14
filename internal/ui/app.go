@@ -94,6 +94,11 @@ const (
 	VariantBranchEnd
 	// VariantRich 只显示那条富文本回复（Markdown 块级样式走查）。
 	VariantRich
+	// VariantCron / CronDelete / Runtime / RuntimeSubmit 是设置第 5、6 节的走查态。
+	VariantCron
+	VariantCronDelete
+	VariantRuntime
+	VariantRuntimeSubmit
 	// VariantSessionMenu / Rename / SessionDelete / Search 是左栏目录动作的四个走查态。
 	VariantSessionMenu
 	VariantSessionRename
@@ -119,6 +124,8 @@ var variantNames = map[string]Variant{
 	"": VariantNone, "none": VariantNone, "branch": VariantBranch,
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
+	"cron": VariantCron, "cron-delete": VariantCronDelete,
+	"runtime": VariantRuntime, "runtime-submit": VariantRuntimeSubmit,
 	"session-menu": VariantSessionMenu, "rename": VariantSessionRename,
 	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
@@ -132,7 +139,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
 }
 
 // Options 是骨架的启动参数。
@@ -196,6 +203,15 @@ type App struct {
 	modelPrice         string
 	rules              []commandRule
 	clearRulesConfirm  bool
+
+	// 定时任务（设置第 5 节）与运行时（第 6 节）。
+	cron          []cronTask
+	cronState     extState
+	cronDeleting  int
+	runtime       []runtimePart
+	runtimeState  extState
+	modalTask     string
+	modalSubmitted string
 
 	// 扩展：页签、加载态与四类样例。
 	extTab   int
@@ -305,6 +321,11 @@ func (a *App) loadSample() {
 		{command: "rm -rf", decision: "拒绝", match: "前缀"},
 	}
 	a.clearRulesConfirm = false
+	a.cron = cronSamples()
+	a.cronState, a.cronDeleting = extLoaded, -1
+	a.runtime = runtimeSamples()
+	a.runtimeState = extLoaded
+	a.modalTask, a.modalSubmitted = "", ""
 	a.extTab, a.extState = 0, extLoaded
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
@@ -328,6 +349,16 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = 2 // 命令规则：清空确认态
 		a.clearRulesConfirm = true
+	case VariantCron:
+		a.screen, a.settingsSection = ScreenSettings, 4
+	case VariantCronDelete:
+		a.screen, a.settingsSection, a.cronDeleting = ScreenSettings, 4, 0
+	case VariantRuntime:
+		a.screen, a.settingsSection = ScreenSettings, 5
+	case VariantRuntimeSubmit:
+		a.screen, a.settingsSection = ScreenSettings, 5
+		a.modalTask = "重跑全部语言测试"
+		a.modalSubmitted = "重跑全部语言测试"
 	case VariantSessionMenu:
 		*a.menuOpenPtr(0) = true
 	case VariantSessionRename:
