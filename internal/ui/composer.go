@@ -31,6 +31,10 @@ func (a *App) composer(c *gui.Context) {
 						iconGlyph(c, iconWarn, t.Danger, "exclamation")
 						typeBody.style(t, gui.Text(c, "连接已断开："+a.liveConnection().Reason)).
 							TextColor(t.Danger).SingleLine()
+						gui.Spacer(c)
+						if actionButton(c, "重新连接", "重新连接服务端", false, false).Clicked() && a.intents != nil {
+							a.dispatch("重新连接", a.intents.Reconnect, nil)
+						}
 					})
 				})
 				return
@@ -97,6 +101,7 @@ func (a *App) inputCard(c *gui.Context) {
 				}
 			})
 			a.contextDetail(c)
+			a.attachmentEditor(c)
 			if a.shellMode() {
 				a.shellMarker(c)
 			}
@@ -112,10 +117,43 @@ func (a *App) inputCard(c *gui.Context) {
 				Grow(1).MinHeight(composerTextMinHeight).Label(name)
 			gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 				gui.Spacer(c)
-				iconButton(c, iconButtonSpec{icon: iconPaperclip, label: "附件", size: rowCompact})
+				if iconButton(c, iconButtonSpec{icon: iconPaperclip, label: "附件", size: rowCompact}) {
+					a.attachmentEditing = !a.attachmentEditing
+				}
 				a.sendSlot(c, running, empty)
 			})
 		})
+}
+
+// attachmentEditor 是文本附件的行内编辑：文本先做，添加后走 attachment.put。
+func (a *App) attachmentEditor(c *gui.Context) {
+	if !a.attachmentEditing {
+		return
+	}
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(space1).Padding(space1, 0).Label("附件文本").Children(func() {
+		gui.TextInputBase(c, &a.attachmentName).Label("附件名").Placeholder("附件名").
+			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+		gui.TextInputBase(c, &a.attachmentText).Label("附件内容").
+			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+		gui.Row(c).Gap(space2).Children(func() {
+			gui.Spacer(c)
+			name, text := a.attachmentName, a.attachmentText
+			if actionButton(c, "添加附件", "添加附件", true, strings.TrimSpace(text) == "").Clicked() && a.intents != nil {
+				a.dispatch("添加附件", func(ctx context.Context) error {
+					_, err := a.intents.WriteAttachment(ctx, name, text)
+					return err
+				}, func() {
+					a.attachments = append(a.attachments, name)
+					a.attachmentText = ""
+					a.attachmentEditing = false
+				})
+			}
+			if actionButton(c, "取消", "取消添加附件", false, false).Clicked() {
+				a.attachmentEditing = false
+			}
+		})
+	})
 }
 
 // contextMeter 是输入卡内的上下文用量（UI-15）：属于输入区的一块，不在标题行、
@@ -273,7 +311,10 @@ func (a *App) sendSlot(c *gui.Context, running, empty bool) {
 				text := a.draft
 				a.dispatch("发送", func(ctx context.Context) error {
 					return a.intents.Submit(ctx, text)
-				}, func() { a.draft = "" })
+				}, func() {
+					a.draft = ""
+					a.attachments = nil
+				})
 			}
 			return
 		}

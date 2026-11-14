@@ -231,3 +231,38 @@ func (a *App) ShellRuns(ctx context.Context, sessionID string) ([]ShellRun, erro
 	}
 	return runs, nil
 }
+
+// WriteAttachment 把一段文本存成会话文件（attachment.put）。文本先做；文件路径
+// 版本由附件领域与后续批次接入。
+func (a *App) WriteAttachment(ctx context.Context, sessionID, name, text string) (write.IntentView, error) {
+	if strings.TrimSpace(sessionID) == "" {
+		return write.IntentView{}, fmt.Errorf("%w: 附件写入缺少会话标识", ErrInvalidConfig)
+	}
+	if strings.TrimSpace(name) == "" {
+		name = "attachment.txt"
+	}
+	if strings.TrimSpace(text) == "" {
+		return write.IntentView{}, fmt.Errorf("%w: 附件文本为空", write.ErrInvalidIntent)
+	}
+	if err := a.Writable(); err != nil {
+		return write.IntentView{}, err
+	}
+	writes := a.Writes()
+	if writes == nil {
+		return write.IntentView{}, ErrNotConnected
+	}
+	id, err := uuidV4()
+	if err != nil {
+		return write.IntentView{}, fmt.Errorf("生成附件标识: %w", err)
+	}
+	params, err := json.Marshal(map[string]any{"name": name, "text": text})
+	if err != nil {
+		return write.IntentView{}, fmt.Errorf("编码附件参数: %w", err)
+	}
+	return writes.Register(write.Intent{
+		Key:       "attachment:" + sessionID + ":" + id,
+		Kind:      write.KindAttachmentWrite,
+		SessionID: sessionID,
+		Params:    params,
+	})
+}

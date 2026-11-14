@@ -38,12 +38,16 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 					fileRow(c, "internal/ui/composer.go  +33 −5")
 					fileRow(c, "internal/ui/timeline.go  +8 −2")
 				case 2:
-					if len(a.tasks) == 0 {
+					tasks, live := a.sessionTasks()
+					if len(tasks) == 0 {
 						typeSecondary.style(t, gui.Text(c, "没有后台任务")).TextColor(t.TextMuted)
 						break
 					}
-					for i := range a.tasks {
-						a.taskRow(c, a.tasks[i])
+					for i := range tasks {
+						a.taskRow(c, tasks[i], live)
+					}
+					if live {
+						typeSecondary.style(t, gui.Text(c, "取消任务：缺服务端方法")).TextColor(t.TextMuted)
 					}
 				case 3:
 					typeBodyStrong.style(t, gui.Text(c, "把发送路径改成排队"))
@@ -65,7 +69,7 @@ func fileRow(c *gui.Context, name string) {
 // taskRow 是一行后台任务：状态图标 + 任务名（内容）+ 取消入口。
 // 状态用样式（运行中是播放圈 + accent-ink、完成是对勾、失败是叉），名字是内容；
 // 取消是纯图标动作（可逆：任务可以再跑一次）。
-func (a *App) taskRow(c *gui.Context, t task) {
+func (a *App) taskRow(c *gui.Context, t task, live bool) {
 	th := c.Theme()
 	icon, color := iconTask, colorAccentInk.in(th)
 	state := "运行中"
@@ -79,7 +83,7 @@ func (a *App) taskRow(c *gui.Context, t task) {
 		Label("后台任务：" + t.name + " · " + state).Children(func() {
 		iconGlyph(c, icon, color, "task")
 		typeSecondary.style(th, gui.Text(c, t.name)).Grow(1).SingleLine()
-		if t.state == taskRunning {
+		if t.state == taskRunning && !live {
 			iconButton(c, iconButtonSpec{icon: iconXMark, label: "取消任务", size: rowCompact})
 		}
 	})

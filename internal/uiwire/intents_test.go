@@ -91,7 +91,13 @@ func requestParamsMap(t *testing.T, request fakeappserver.Request) map[string]an
 
 // baseScript 是交互测试共用的服务端脚本：一个会话、目录与各写入方法的回执。
 func baseScript(cwd string, running bool, features ...string) fakeappserver.Script {
-	features = append(features, "mcp.import.sources", "mcp.import.preview", "mcp.import.apply")
+	features = append(features,
+		"mcp.import.sources", "mcp.import.preview", "mcp.import.apply",
+		"models.providers.list", "provider.select",
+		"permission.rules", "permission.set_rules",
+		"session.branch_create", "session.branch_end",
+		"attachment.put",
+	)
 	return fakeappserver.Script{
 		Features: features,
 		Sessions: []fakeappserver.Session{{
@@ -161,6 +167,50 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 				"unknownTopLevel": []any{},
 			}},
 			{Method: "mcp.import.apply", Result: map[string]any{"revision": "rev-3"}},
+			{Method: "account.providers", Result: []any{map[string]any{
+				"providerId": "acme-account", "displayName": "Acme", "loginMethods": []any{"browser"},
+			}}},
+			{Method: "account.status", Result: map[string]any{
+				"credentialEpoch": "e1",
+				"account": map[string]any{
+					"issuer": "acme", "subject": "acct-1", "email": "ada@real.test", "name": "Ada", "plan": "Pro",
+				},
+			}},
+			{Method: "provider.catalog", Result: map[string]any{"catalog": map[string]any{
+				"models": []any{
+					map[string]any{"id": "model-x", "name": "Model-X"},
+					map[string]any{"id": "model-b", "name": "Model-B"},
+				},
+			}}},
+			{Method: "models.providers.list", Result: map[string]any{
+				"providers": []any{
+					map[string]any{"id": "acme", "name": "Acme", "enabled": true,
+						"models":          []any{map[string]any{"id": "model-x", "name": "Model-X"}},
+						"enabledModelIds": []any{"model-x"}},
+					map[string]any{"id": "beta", "name": "Beta", "enabled": true,
+						"models":          []any{map[string]any{"id": "model-b", "name": "Model-B"}},
+						"enabledModelIds": []any{"model-b"}},
+				},
+				"selection": map[string]any{"providerId": "acme", "modelId": "model-x", "version": "sel-1"},
+			}},
+			{Method: "provider.select", Result: map[string]any{}},
+			{Method: "permission.rules", Result: map[string]any{
+				"revision": "rules-rev-1",
+				"commandRules": []any{
+					map[string]any{"command": "go test ./...", "match": "exact", "decision": "allow"},
+					map[string]any{"command": "rm -rf", "match": "prefix", "decision": "deny"},
+				},
+			}},
+			{Method: "permission.set_rules", Result: map[string]any{
+				"revision": "rules-rev-2", "commandRules": []any{},
+			}},
+			{Method: "session.branch_create", Result: map[string]any{"branch": map[string]any{
+				"branchId": "side", "parentBranchId": "main", "branchPoint": 5,
+			}}},
+			{Method: "session.branch_end", Result: map[string]any{}},
+			{Method: "attachment.put", Result: map[string]any{
+				"attachmentId": "att-1", "path": "/work/attachment.txt", "bytes": 3,
+			}},
 			{Method: "mcp.catalog", Result: map[string]any{
 				"userRevision": "rev-1",
 				"servers": []any{map[string]any{
@@ -365,6 +415,141 @@ func TestIntentDelete(t *testing.T) {
 	if params["sessionId"] != e2eSession {
 		t.Fatalf("删除参数不对：%v", params)
 	}
+}
+
+// TestIntentSelectModel 设置 · 模型与供应商 → 选 provider → provider.select。
+func TestIntentSelectModel(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("模型与供应商")
+	h.click("切换到 Beta")
+	params := h.waitRequest("provider.select")
+	t.Logf("点了「供应商 · Beta」→ 服务端收到 provider.select（%d 次），providerId=%v modelId=%v",
+		len(h.server.RequestsFor("provider.select")), params["providerId"], params["modelId"])
+	if params["providerId"] != "beta" || params["modelId"] != "model-b" {
+		t.Fatalf("模型选择参数不对：%v", params)
+	}
+}
+
+// TestIntentChangeRule 设置 · 命令规则 → 改一条决定 → permission.set_rules。
+func TestIntentChangeRule(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("命令规则")
+	h.click("拒绝：go test ./...")
+	params := h.waitRequest("permission.set_rules")
+	t.Logf("点了「允许→拒绝」→ 服务端收到 permission.set_rules（%d 次），rules=%v",
+		len(h.server.RequestsFor("permission.set_rules")), params["commandRules"])
+	rules, _ := params["commandRules"].([]any)
+	if len(rules) == 0 {
+		t.Fatalf("规则写入为空：%v", params)
+	}
+	first, _ := rules[0].(map[string]any)
+	if first["decision"] != "deny" {
+		t.Fatalf("规则决定不对：%v", first)
+	}
+}
+
+// TestIntentClearRules 设置 · 命令规则 → 清空（两步）→ permission.set_rules。
+func TestIntentClearRules(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("命令规则")
+	h.click("清空命令规则")
+	h.click("确认清空")
+	params := h.waitRequest("permission.set_rules")
+	t.Logf("点了「清空命令规则 · 确认」→ 服务端收到 permission.set_rules（%d 次），expectedRevision=%v rules=%v",
+		len(h.server.RequestsFor("permission.set_rules")), params["expectedRevision"], params["commandRules"])
+	if params["expectedRevision"] != "rules-rev-1" {
+		t.Fatalf("规则写入版本不对：%v", params)
+	}
+}
+
+// TestIntentCreateBranch 标题行分支菜单 → 从当前分支切出 → session.branch_create。
+func TestIntentCreateBranch(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("切换分支：main")
+	if err := h.tester.ChooseMenuItem("从当前分支切出"); err != nil {
+		t.Fatalf("选择从当前分支切出：%v", err)
+	}
+	params := h.waitRequest("session.branch_create")
+	t.Logf("点了「从当前分支切出」→ 服务端收到 session.branch_create（%d 次），parentBranchId=%v at=%v prompt=%v",
+		len(h.server.RequestsFor("session.branch_create")), params["parentBranchId"], params["at"], params["prompt"])
+	if params["parentBranchId"] != "main" {
+		t.Fatalf("分支创建参数不对：%v", params)
+	}
+}
+
+// TestIntentSelectAndEndBranch 分支事实到达后切换分支并结束。
+func TestIntentSelectAndEndBranch(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	branchEvent := e2eRawEvent("b1", 20, "branch", "create",
+		`{"branch":"side","at":{"sequence":5},"prompt":"从第一轮开分支"}`)
+	if err := h.server.PushEvent(e2eSession, branchEvent); err != nil {
+		t.Fatalf("推送分支事实：%v", err)
+	}
+	waitFor(t, "分支出现", func() bool {
+		snap, ok := h.wire.Session()
+		if !ok {
+			return false
+		}
+		for _, branch := range snap.Branches {
+			if branch.ID == "side" {
+				return true
+			}
+		}
+		return false
+	})
+	h.frame()
+	h.click("切换分支：main")
+	if err := h.tester.ChooseMenuItem("side"); err != nil {
+		t.Fatalf("选择 side：%v", err)
+	}
+	waitFor(t, "当前分支切到 side", func() bool {
+		snap, _ := h.wire.Session()
+		return snap.Branch == "side"
+	})
+	t.Logf("点了「分支 · side」→ 当前分支=%s（投影切换，不发请求）", "side")
+	h.frame()
+	h.click("切换分支：side")
+	if err := h.tester.ChooseMenuItem("结束分支"); err != nil {
+		t.Fatalf("选择结束分支：%v", err)
+	}
+	h.frame()
+	h.click("确认结束分支")
+	h.waitRequest("session.branch_end")
+	t.Logf("点了「结束分支 · 确认」→ 服务端收到 session.branch_end（%d 次）",
+		len(h.server.RequestsFor("session.branch_end")))
+}
+
+// TestIntentAttachment 输入卡附件编辑 → attachment.put。
+func TestIntentAttachment(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("附件")
+	h.typeInto("附件名", "note.txt")
+	h.typeInto("附件内容", "hello")
+	h.click("添加附件")
+	params := h.waitRequest("attachment.put")
+	t.Logf("点了「添加附件」→ 服务端收到 attachment.put（%d 次），name=%v text=%v",
+		len(h.server.RequestsFor("attachment.put")), params["name"], params["text"])
+	if params["text"] != "hello" {
+		t.Fatalf("附件参数不对：%v", params)
+	}
+}
+
+// TestIntentReconnect 断线后点「重新连接」恢复连接阶段。
+func TestIntentReconnect(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.server.DisconnectAll()
+	waitFor(t, "断线阶段", func() bool {
+		return h.wire.Connection().Phase == "disconnected"
+	})
+	h.frame()
+	h.click("重新连接")
+	waitFor(t, "重新连上", func() bool {
+		return h.wire.Connection().Phase == "connected"
+	})
+	t.Logf("点了「重新连接」→ 连接阶段=%s", h.wire.Connection().Phase)
 }
 
 // TestIntentExtensionToggle 设置 · 扩展 → 插件开关 → plugin.disable。

@@ -98,7 +98,7 @@ func (a *App) terminalPane(c *gui.Context) {
 		statusDotMark(c, termColor(t, state), "term")
 		gui.Spacer(c)
 		if wired {
-			// 中止只在有已发出的运行时出现；启动、清屏与复制仍未接（见 D14）。
+			// 中止只在有已发出的运行时出现；清屏与复制是本地动作。
 			if a.lastShellRun != "" {
 				if iconButton(c, iconButtonSpec{icon: iconStop, label: "中止运行", size: rowCompact}) {
 					runID := a.lastShellRun
@@ -106,6 +106,13 @@ func (a *App) terminalPane(c *gui.Context) {
 						return a.intents.StopShell(ctx, runID)
 					}, func() { a.lastShellRun = "" })
 				}
+			}
+			if iconButton(c, iconButtonSpec{icon: iconXMark, label: "清屏", size: rowCompact}) {
+				a.termLines = nil
+			}
+			if iconButton(c, iconButtonSpec{icon: iconClipboard, label: "复制输出", size: rowCompact}) {
+				c.WriteClipboard(joinLines(visibleLines(lines)))
+				a.termCopied = true
 			}
 			return
 		}
@@ -201,6 +208,16 @@ func termColorOf(t *gui.Theme, idx int) gui.Color {
 		return colorAccentInk.in(t)
 	}
 	return t.Text
+}
+
+// joinLines 把终端行拼成纯文本，供复制使用。
+func joinLines(lines []termLine) string {
+	var b strings.Builder
+	for _, line := range lines {
+		b.WriteString(line.text)
+		b.WriteByte('\n')
+	}
+	return b.String()
 }
 
 // statusDotMark 是带检查器标记的状态点（一行里可能有多个点，标记带名称）。

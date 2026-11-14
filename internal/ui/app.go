@@ -295,10 +295,13 @@ type App struct {
 	lastShellRun string
 
 	// 待发附件（样例）与权限档位（提交值与草稿值分开：切换要两步确认）。
-	attachments []string
-	tier        string
-	tierDraft   string
-	tierPending string
+	attachments       []string
+	attachmentEditing bool
+	attachmentName    string
+	attachmentText    string
+	tier              string
+	tierDraft         string
+	tierPending       string
 
 	// 会话目录：搜索面、行内重命名、删除确认、归档与导出反馈（都属可丢的视图状态）。
 	searchOpen  bool
@@ -607,6 +610,8 @@ func (a *App) resetWiredViewState() {
 	a.plugins, a.skills, a.mcps, a.hooks = nil, nil, nil, nil
 
 	a.attachments = nil
+	a.attachmentEditing = false
+	a.attachmentName, a.attachmentText = "", ""
 	a.tier, a.tierDraft, a.tierPending = "", "", ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
@@ -918,6 +923,45 @@ func (a *App) liveApproval() (ApprovalSnapshot, bool) {
 		return ApprovalSnapshot{}, false
 	}
 	return a.source.Approval()
+}
+
+// sessionTasks 取后台任务：连着 Source 时用会话快照，否则用样例。
+func (a *App) sessionTasks() ([]task, bool) {
+	if snap, ok := a.liveSession(); ok {
+		tasks := make([]task, 0, len(snap.Tasks))
+		for _, item := range snap.Tasks {
+			state := taskRunning
+			if item.Stopping {
+				state = taskDone
+			}
+			tasks = append(tasks, task{name: item.Description, state: state})
+		}
+		return tasks, true
+	}
+	return a.tasks, false
+}
+
+// branchState 返回当前分支与分支清单：连着 Source 时取会话快照，否则用样例。
+func (a *App) branchState() (string, []string, bool) {
+	if snap, ok := a.liveSession(); ok {
+		names := make([]string, 0, len(snap.Branches))
+		for _, branch := range snap.Branches {
+			names = append(names, branch.ID)
+		}
+		if len(names) == 0 {
+			names = []string{"main"}
+		}
+		return snap.Branch, names, true
+	}
+	return a.branch, a.branches, false
+}
+
+// currentModel 是标题行末尾要显示的模型：连着 Source 时取当前选择，否则用样例。
+func (a *App) currentModel() string {
+	if st, ok := a.liveSettings(); ok {
+		return st.Model
+	}
+	return a.model
 }
 
 // liveQuestion 取待答提问（Source 优先）。

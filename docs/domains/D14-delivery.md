@@ -39,7 +39,7 @@ go run ./cmd/dimagent-ui \
 
 服务端已在 `<数据目录>/rust/daemon.sock` 上监听时，`daemon.Config` 不会另起进程：可以直接把界面指向一个已经运行的实例。
 
-`-connect` 下点了会发请求的入口：发送、停止、审批三决定、提问回答/跳过、打开/新建会话、重命名、归档、导出、删除、插件/技能/钩子启停、插件/技能/MCP 卸载、MCP 启停/测试/从来源导入、定时任务启停/删除、`!` 命令运行与终端中止、权限档位切换。其余见 §5。
+`-connect` 下点了会发请求的入口：发送、停止、审批三决定、提问回答/跳过、打开/新建会话、重命名、归档、导出、删除、供应商/模型切换、命令规则修改/清空、分支切换/切出/结束、附件添加、插件/技能/钩子启停、插件/技能/MCP 卸载、MCP 启停/测试/从来源导入、定时任务启停/删除、`!` 命令运行与终端中止、断线重连、权限档位切换。其余见 §5。
 
 ### 1.3 连接假 App Server（截图与端到端用）
 
@@ -79,7 +79,10 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 设置 · 扩展 | `Source.Extensions`（四类） | 读 `plugin.list` / `skills.catalog` / `hooks.catalog` / `mcp.catalog` 快照 |
 | 设置 · 定时任务 | `Source.Schedules` | 读 `schedule.list` 快照 |
 | 设置 · 运行时与模态 | `Source.Settings`（runtimes/modality） | 读最近一次成功读数；能力缺失显示原因 |
-| 设置 · 存储与诊断 | `Source.Settings`（storage） | 读 `storage.report` 读数；导出/打开未接 |
+| 设置 · 存储与诊断 | `Source.Settings`（storage） | 读 `storage.report` 读数 |
+| 设置 · 命令规则 | `Source.Settings`（rules） | 连接后读 `permission.rules` |
+| 标题行 · 分支 | `Source.Session`（Branches / Branch） | 读投影分支事实与当前分支 |
+| 右栏 · 后台任务 | `Source.Session`（Tasks） | 读投影未结束后台任务 |
 | 右栏终端状态 | `Source.Terminal` | 读 `internal/terminal.Registry` 的存活/退出状态 |
 | 连接后初始读数 | `internal/uiwire.Connect → loadFacts` | 账号、模型、存储、运行时、模态、扩展四类、定时任务各读一次；失败留"未读取" |
 
@@ -101,6 +104,8 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 会话菜单 · 归档 | `ArchiveSession` | `catalog.Catalog.Hide/Unhide` | 无（本地归档） | `TestIntentArchive` |
 | 会话菜单 · 删除（两步确认） | `DeleteSession` | `catalog.Catalog.Delete` | `session.delete` | `TestIntentDelete` |
 | 会话菜单 · 导出 | `ExportSession` | `catalog.Catalog.Export` | 读历史后写本地 `.md` | `TestIntentExport` |
+| 设置 · 供应商 / 模型 | `SelectModel` | `settings.Manager.SelectModel` | `provider.select` | `TestIntentSelectModel` |
+| 设置 · 命令规则修改 / 清空 | `WriteCommandRules` | `app.WriteCommandRules` | `permission.set_rules` | `TestIntentChangeRule` / `TestIntentClearRules` |
 | 设置 · 权限档位（两步确认） | `SetPermissionTier` | `app.SetPermissionTier` | `session.permission.update` | 界面已发，真实服务端缺该方法 |
 | 设置 · 插件 / 技能启停 | `SetExtensionEnabled` | `extensions.SetPluginEnabled/SetSkillEnabled` | `plugin.enable/disable`、`skills.set_enabled` | `TestIntentExtensionToggle` |
 | 设置 · 钩子单项启停 | `SetExtensionEnabled("hook")` | `extensions.WriteHook` | `hooks.save` | `TestIntentHookToggle` |
@@ -114,6 +119,14 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | MCP · 从来源导入 | `ImportMCP` | `extensions.PreviewMCPImport` → `ApplyMCPImport` | `mcp.import.preview` → `mcp.import.apply` | `TestIntentMCPImport` |
 | 输入区 `!命令` · 运行 | `RunShell` | `app.RunShell`（等回执取运行标识） | `shell.run` | `TestIntentShellRun` |
 | 右栏终端 · 中止 | `StopShell` | `app.StopShell` | `shell.stop` | `TestIntentShellStop` |
+| 断线 · 重新连接 | `Reconnect` | `app.Reconnect` | 重连 daemon | `TestIntentReconnect` |
+| 标题行 · 切换分支 | `SelectBranch` | `app.SelectBranch` | 无（投影切换） | `TestIntentSelectAndEndBranch` |
+| 标题行 · 从当前分支切出 | `CreateBranch` | `app.CreateBranch` | `session.branch_create` | `TestIntentCreateBranch` |
+| 标题行 · 结束分支（两步确认） | `EndBranch` | `app.EndBranch` | `session.branch_end` | `TestIntentSelectAndEndBranch` |
+| 输入卡 · 添加文本附件 | `WriteAttachment` | `app.WriteAttachment` | `attachment.put` | `TestIntentAttachment` |
+| 右栏终端 · 清屏 / 复制 | 本地 | 视图状态 / `Context.WriteClipboard` | 无 | 本地动作 |
+
+分支切出的起始提问取当前草稿；草稿为空时用「从当前分支切出」，切点取已加载轮次的最后一轮。附件先做文本，文件路径与消息引用见 §5。
 
 MCP 导入的来源来自 `mcp.import.sources`（连接后读一次，界面列出来源）；点一个来源先 `mcp.import.preview`，再按预览的 `revision` / `sourceRevision` 发 `mcp.import.apply`。插件/技能/MCP 的标识用服务端 ID，不用展示名。
 
@@ -123,11 +136,11 @@ MCP 导入的来源来自 `mcp.import.sources`（连接后读一次，界面列�
 
 | 视图元素 | 缺什么 | 当前表现 / 谁能解除 |
 |---|---|---|
-| 目标 · 保存 | 协议包没有 goal 写方法；`projection.Goal` 只读，`app` 没有 `SetGoal` | 目标行改为只读展示；需要服务端先定义目标写方法，再由 D1/D2 接入 |
+| 目标 · 保存 | 协议包没有 goal 写方法；`projection.Goal` 只读，`app` 没有 `SetGoal` | 目标行只读；需要服务端先定义目标写方法，再由 D1/D2 接入 |
 | 设置 · 运行时提交模态任务 | 服务端未注册 `runtime.*`（D1 §7.1 已记）；`settings.Manager.SubmitTask` 还需要 `category` / `operation`，界面只有任务文本 | 提交按钮禁用并显示 "blocked：服务端未注册 runtime.* / 模态任务提交方法"；D1 恢复能力后再接 |
-| 设置 · 主题 / 动效 / 时区落盘 | `app` 没有持久化入口 | 保留为视图状态，重启丢失；不偷偷写文件。需要确定本地偏好归属后再接 |
-
-范围外（本轮 A/B 清单未要求，仍是只读或视图状态）：provider / model 选择、命令规则读写、终端启动 / 重连 / 清屏 / 复制、附件 / 分支切换 / 后台任务。
+| 设置 · 主题 / 动效 / 时区落盘 | `app` 没有持久化入口 | 保留为视图状态，重启丢失；不偷偷写文件 |
+| 右栏 · 后台任务取消 | 协议没有 exec task 的取消方法；`session.collaboration.stop` 只用于协作成员，不能取消后台任务 | 显示任务清单与 "取消任务：缺服务端方法"；D1/D2 定义取消方法后再接 |
+| 附件与消息的关联 | 提交协议没有附件引用字段（`session.submit` 只带文本） | `attachment.put` 已写会话文件；发送成功后只清空本地暂存 chips，消息本身不带附件引用。需要 D1/D2 定义附件引用后再接 |
 
 ## 6. 已知边界
 
@@ -171,6 +184,14 @@ go test ./internal/uiwire -run TestIntent -v -count=1
 #   点了「归档」→ 目录列表 0 个会话（本地隐藏，不发服务端请求）
 #   点了「删除 · 确认」→ 服务端收到 session.delete（1 次）
 #   点了「导出」→ 本地写出 dimagent-export-<时间戳>.md
+#   点了「供应商 · Beta」→ 服务端收到 provider.select（1 次），providerId=beta modelId=model-b
+#   点了「允许→拒绝」→ 服务端收到 permission.set_rules（1 次），rules=[... decision:deny ...]
+#   点了「清空命令规则 · 确认」→ 服务端收到 permission.set_rules（1 次），expectedRevision=rules-rev-1 rules=[]
+#   点了「从当前分支切出」→ 服务端收到 session.branch_create（1 次），parentBranchId=main at=5
+#   点了「分支 · side」→ 当前分支=side（投影切换，不发请求）
+#   点了「结束分支 · 确认」→ 服务端收到 session.branch_end（1 次）
+#   点了「添加附件」→ 服务端收到 attachment.put（1 次），name=note.txt text=hello
+#   点了「重新连接」→ 连接阶段=connected
 #   点了「插件 · 启用开关」→ 服务端收到 plugin.disable（1 次）
 #   点了「插件 · 卸载」→ 服务端收到 plugin.remove（1 次）
 #   点了「钩子 · 开关」→ 服务端收到 hooks.save（1 次）
@@ -183,7 +204,7 @@ go test ./internal/uiwire -run TestIntent -v -count=1
 #     随后 mcp.import.apply（1 次），from=src-1 expectedVersion=rev-2 sourceRevision=src-rev-1
 #   点了「运行命令」→ 服务端收到 shell.run（1 次），command=echo hi
 #   点了「终端 · 中止」→ 服务端收到 shell.stop（1 次），runId=run-srv-1
-#   --- PASS: TestIntent...（22 条）
+#   --- PASS: TestIntent...（29 条）
 
 # 4) 接上事实后不出现样例常量（逐屏渲染断言）
 go test ./internal/ui -run TestWiredScreensExcludeSamples -v -count=1
@@ -211,12 +232,14 @@ scripts/ui-lint --seeds
 | `internal/ui/app.go` | `-connect` 下只重置视图状态、不灌样例；后台意图与错误行 |
 | `internal/ui/composer.go` | 发送/停止/审批三决定/提问回答与跳过 |
 | `internal/ui/sidebar.go` | 新建、打开、重命名、归档、导出、删除 |
+| `internal/ui/header.go`、`internal/ui/rightpanel.go` | 分支切换/切出/结束；后台任务清单 |
 | `internal/ui/settings*.go`、`extensions*.go`、`terminal.go` | 四块改读 `Source` 快照；权限档位、扩展开关/卸载/测试、终端运行/中止 |
 | `cmd/dimagent-ui/main.go` | `-connect` 模式、`OnChange` 重绘、250ms 刷新 |
 | `cmd/dimagent-fake-server/main.go` | 截图用的假服务端（dev-only，不是产品入口） |
 | `internal/uiwire/e2e_test.go` | 五步端到端、断线 |
-| `internal/uiwire/intents_test.go` | 点击 → 服务端收到 / 本地写出（22 条动作） |
+| `internal/uiwire/intents_test.go` | 点击 → 服务端收到 / 本地写出（29 条动作） |
 | `internal/app/session.go` | `App.Stop`：主线停止的写意图入口 |
+| `internal/app/rules.go`、`internal/app/branches.go`、`internal/app/writes.go` | 规则读写、分支目录/切点/切出/结束、附件写入 |
 | `internal/app/sender.go`、`internal/app/extensions.go` | `plugin.remove` / `schedule.*` 分派、`mcp.import.sources/preview` 读取 |
 | `internal/extensions/*.go` | 插件/技能/钩子/MCP 启停与卸载、定时任务启停/删除、MCP 导入来源与预览 |
 | `internal/uiwire/real_test.go` | 真实服务端：连接 + 目录 + 默认态；提交段 blocked |

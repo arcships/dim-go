@@ -381,6 +381,7 @@ func (a *App) Connect(ctx context.Context) error {
 		Archive:  a.archive,
 		Releaser: &sessionReleaser{app: a},
 		History:  &turnHistorySource{app: a},
+		Branches: &branchSource{app: a},
 	})
 	if err != nil {
 		writes.Close()

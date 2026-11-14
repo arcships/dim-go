@@ -34,6 +34,12 @@ type App struct {
 	importMu      sync.Mutex
 	importSources []ui.MCPImportSourceSnapshot
 	importErr     string
+	// rulesMu 保护最近一次读取的命令规则（界面每帧读，不能每帧发请求）。
+	rulesMu       sync.Mutex
+	rules         []ui.RuleSnapshot
+	rulesRevision string
+	rulesKnown    bool
+	rulesErr      string
 }
 
 // New 包住一个已创建的集成层。
@@ -110,6 +116,7 @@ func (w *App) loadFacts(ctx context.Context) {
 	if account := w.A.Account(); account != nil {
 		_, _ = account.Refresh(ctx)
 		_, _ = account.RefreshUsage(ctx)
+		_, _ = account.RefreshModels(ctx)
 	}
 	if settings := w.A.Settings(); settings != nil {
 		_, _ = settings.RefreshModels(ctx)
@@ -125,6 +132,29 @@ func (w *App) loadFacts(ctx context.Context) {
 		_, _ = extensions.ListScheduledTasks(ctx)
 	}
 	w.refreshImportSources(ctx)
+	w.refreshRules(ctx)
+}
+
+// refreshRules 读一次用户级命令规则并留在适配器里；界面每帧只读这份快照。
+func (w *App) refreshRules(ctx context.Context) {
+	set, err := w.A.ReadCommandRules(ctx)
+	w.rulesMu.Lock()
+	defer w.rulesMu.Unlock()
+	if err != nil {
+		w.rulesErr = err.Error()
+		return
+	}
+	w.rulesErr = ""
+	w.rulesKnown = true
+	w.rulesRevision = set.Revision
+	w.rules = w.rules[:0]
+	for _, rule := range set.Rules {
+		w.rules = append(w.rules, ui.RuleSnapshot{
+			Command:  rule.Command,
+			Decision: string(rule.Decision),
+			Match:    string(rule.Match),
+		})
+	}
 }
 
 // refreshImportSources 读一次 MCP 导入来源并留在适配器里；界面每帧只读这份快照。
@@ -213,10 +243,25 @@ func (w *App) Session() (ui.SessionSnapshot, bool) {
 // snapshot 把 app.SessionView 映射成界面要的快照（只取首片用到的字段）。
 func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 	out := ui.SessionSnapshot{
-		ID:      v.SessionID,
-		Title:   v.SessionID,
-		Running: v.Running,
-		Pending: v.PendingCounts.Approvals + v.PendingCounts.Questions,
+		ID:        v.SessionID,
+		Title:     v.SessionID,
+		Running:   v.Running,
+		Pending:   v.PendingCounts.Approvals + v.PendingCounts.Questions,
+		Branch:    v.BranchID,
+		TurnCount: len(v.Turns),
+	}
+	for _, pending := range v.Pending.Tasks {
+		out.Tasks = append(out.Tasks, ui.TaskSnapshot{
+			ID: pending.TaskID, Description: pending.Description, Stopping: pending.Stopping,
+		})
+	}
+	for _, branch := range v.Branches {
+		out.Branches = append(out.Branches, ui.BranchSnapshot{
+			ID:     branch.BranchID,
+			Name:   branch.BranchID,
+			Status: string(branch.Status),
+			Ended:  string(branch.Status) == "ended",
+		})
 	}
 	// 标题是目录事实；目录没有给标题时才退回会话标识。
 	if catalog := w.A.Catalog(); catalog != nil {
@@ -313,17 +358,29 @@ func (w *App) Settings() ui.SettingsSnapshot {
 	}
 	if models, ok := settings.Models(); ok {
 		for _, provider := range models.Providers {
-			out.Providers = append(out.Providers, firstNonEmpty(provider.Name, provider.ID))
+			out.Providers = append(out.Providers, ui.ProviderOption{
+				ID: provider.ID, Name: firstNonEmpty(provider.Name, provider.ID),
+			})
+			for _, model := range provider.Models {
+				out.Models = append(out.Models, ui.ModelOption{
+					ID: model.ID, ProviderID: provider.ID,
+					Name: firstNonEmpty(model.Name, model.ID),
+				})
+			}
 		}
 		if selection := models.Selection; selection != nil {
+			out.ProviderID = selection.ProviderID
+			out.ModelID = selection.ModelID
 			out.Provider = providerLabel(models, selection.ProviderID)
 			out.Model = modelLabel(models, selection.ProviderID, selection.ModelID)
-			out.Models = modelLabels(models)
-		}
-		if out.Models == nil {
-			out.Models = modelLabels(models)
+			out.ModelRevision = selection.Revision
 		}
 	}
+	w.rulesMu.Lock()
+	out.Rules = append([]ui.RuleSnapshot(nil), w.rules...)
+	out.RulesKnown = w.rulesKnown
+	out.RulesError = w.rulesErr
+	w.rulesMu.Unlock()
 	if report, ok := settings.Storage(); ok {
 		out.Storage = ui.StorageSnapshot{
 			DatabaseBytes:    report.DatabaseBytes,
@@ -711,6 +768,127 @@ func (w *App) SetPermissionTier(ctx context.Context, tier string) error {
 	if err := w.A.SetPermissionTier(ctx, w.SessionID, interaction.PermissionTier(tier)); err != nil {
 		return err
 	}
+	w.changed()
+	return nil
+}
+
+// SelectModel 切换当前模型；ExpectedRevision 取最近一次读取的选择版本。
+func (w *App) SelectModel(ctx context.Context, providerID, modelID string) error {
+	manager := w.A.Settings()
+	if manager == nil {
+		return fmt.Errorf("设置领域未就绪")
+	}
+	revision := ""
+	if models, ok := manager.Models(); ok && models.Selection != nil {
+		revision = models.Selection.Revision
+	}
+	_, err := manager.SelectModel(ctx, settings.SelectModelRequest{
+		ProviderID:       providerID,
+		ModelID:          modelID,
+		ExpectedRevision: revision,
+	})
+	if err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// WriteCommandRules 写完整规则集合；成功后用回执更新本地缓存。
+func (w *App) WriteCommandRules(ctx context.Context, rules []ui.RuleSnapshot) error {
+	w.rulesMu.Lock()
+	revision := w.rulesRevision
+	w.rulesMu.Unlock()
+	mapped := make([]interaction.CommandRule, 0, len(rules))
+	for _, rule := range rules {
+		mapped = append(mapped, interaction.CommandRule{
+			Command:  rule.Command,
+			Match:    interaction.CommandMatch(rule.Match),
+			Decision: interaction.CommandDecision(rule.Decision),
+		})
+	}
+	set, err := w.A.WriteCommandRules(ctx, revision, mapped)
+	if err != nil {
+		return err
+	}
+	w.rulesMu.Lock()
+	w.rulesRevision = set.Revision
+	w.rules = w.rules[:0]
+	for _, rule := range set.Rules {
+		w.rules = append(w.rules, ui.RuleSnapshot{
+			Command: rule.Command, Decision: string(rule.Decision), Match: string(rule.Match),
+		})
+	}
+	w.rulesKnown = true
+	w.rulesErr = ""
+	w.rulesMu.Unlock()
+	w.changed()
+	return nil
+}
+
+// ---- 分支 ----
+
+// SelectBranch 切换当前查看的分支。
+func (w *App) SelectBranch(ctx context.Context, branchID string) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if _, err := w.A.SelectBranch(ctx, w.SessionID, branchID); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// CreateBranch 从当前分支的指定轮次切出新分支。
+func (w *App) CreateBranch(ctx context.Context, parentID string, turnIndex int, prompt string) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if _, err := w.A.CreateBranch(ctx, w.SessionID, parentID, turnIndex, prompt); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// EndBranch 结束一个非主线分支。
+func (w *App) EndBranch(ctx context.Context, branchID string) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if _, err := w.A.EndBranch(ctx, w.SessionID, branchID); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// ---- 附件 ----
+
+// WriteAttachment 把文本存成会话文件；等到终态后返回写入的附件名。
+func (w *App) WriteAttachment(ctx context.Context, name, text string) (string, error) {
+	if w.SessionID == "" {
+		return "", fmt.Errorf("没有打开的会话")
+	}
+	view, err := w.A.WriteAttachment(ctx, w.SessionID, name, text)
+	if err != nil {
+		return "", err
+	}
+	if settled, waitErr := w.A.Wait(ctx, view.ID); waitErr == nil {
+		view = settled
+	}
+	w.changed()
+	return name, nil
+}
+
+// Reconnect 重连控制连接。
+func (w *App) Reconnect(ctx context.Context) error {
+	if err := w.A.Reconnect(ctx); err != nil {
+		return err
+	}
+	w.setPhase("connected", "")
+	w.watchConnection()
 	w.changed()
 	return nil
 }

@@ -153,8 +153,40 @@ func (a *App) settingsProviders(c *gui.Context) {
 	t := c.Theme()
 	settingsSectionTitle(c, "供应商")
 	if st, ok := a.liveSettings(); ok {
-		settingsValueRow(c, "当前供应商", "当前供应商", st.Provider)
-		settingsValueRow(c, "模型", "模型", st.Model)
+		providerNames := make([]string, 0, len(st.Providers))
+		for _, provider := range st.Providers {
+			providerNames = append(providerNames, provider.Name)
+		}
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Children(func() {
+			typeControl.style(t, gui.Text(c, "当前供应商")).Width(SettingsLabelWidth).TextColor(t.Text)
+			for _, provider := range st.Providers {
+				provider := provider
+				primary := provider.Name == st.Provider
+				if actionButton(c, provider.Name, "切换到 "+provider.Name, primary, provider.Name == st.Provider).Clicked() && a.intents != nil {
+					models := modelsForProvider(st.Models, provider.ID)
+					if len(models) > 0 {
+						model := models[0].ID
+						a.dispatch("切换供应商", func(ctx context.Context) error {
+							return a.intents.SelectModel(ctx, provider.ID, model)
+						}, nil)
+					}
+				}
+			}
+			gui.Spacer(c)
+		})
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Children(func() {
+			typeControl.style(t, gui.Text(c, "模型")).Width(SettingsLabelWidth).TextColor(t.Text)
+			for _, model := range modelsForProvider(st.Models, st.ProviderID) {
+				model := model
+				primary := model.Name == st.Model
+				if actionButton(c, model.Name, "选择模型 "+model.Name, primary, model.Name == st.Model).Clicked() && a.intents != nil {
+					a.dispatch("切换模型", func(ctx context.Context) error {
+						return a.intents.SelectModel(ctx, model.ProviderID, model.ID)
+					}, nil)
+				}
+			}
+			gui.Spacer(c)
+		})
 		if !st.TierKnown {
 			settingsValueRow(c, "权限档位", "权限档位", "—")
 			return
@@ -315,12 +347,16 @@ func (a *App) settingsRules(c *gui.Context) {
 	}
 }
 
-// settingsRulesLive 是接上事实后的命令规则：本批没有读取入口，读数缺失时
-// 明说「尚未读取」，不拿样例规则顶上。
+// settingsRulesLive 是接上事实后的命令规则：读数来自 permission.rules，改动与
+// 清空都发 permission.set_rules。规则语义（拒绝先于允许）由服务端解释。
 func (a *App) settingsRulesLive(c *gui.Context, st SettingsSnapshot) {
 	t := c.Theme()
 	if !st.RulesKnown {
-		a.stateNote(c, "命令规则", iconClock, "clock", "尚未读取", t.TextMuted)
+		reason := "尚未读取"
+		if st.RulesError != "" {
+			reason = st.RulesError
+		}
+		a.stateNote(c, "命令规则", iconClock, "clock", reason, t.TextMuted)
 		return
 	}
 	if len(st.Rules) == 0 {
@@ -340,32 +376,124 @@ func (a *App) settingsRulesLive(c *gui.Context, st SettingsSnapshot) {
 				TextColor(t.TextMuted).Label("匹配列")
 		})
 	}
-	for _, rule := range st.Rules {
+	for index := range st.Rules {
+		rule := st.Rules[index]
+		decision := decisionLabel(rule.Decision)
+		match := matchLabel(rule.Match)
+		changed := false
+		nextDecision, nextMatch := rule.Decision, rule.Match
 		if !stacked {
 			gui.Row(c).Gap(space4).AlignItems(gui.Center).Shrink(0).Children(func() {
 				typeCode.style(t, gui.RichText(c, gui.Span{
 					Text: rule.Command, Size: typeCode.sizeIn(t), Weight: typeCode.weight, Color: t.Text,
 				})).Width(SettingsRuleCommandWidth).SingleLine()
-				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Decision))).
-					Width(SettingsRuleSelectWidth).TextColor(t.TextMuted)
-				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Match))).
-					Width(SettingsRuleSelectWidth).TextColor(t.TextMuted)
+				if actionButton(c, "允许", "允许："+rule.Command, decision == "允许", decision == "允许").Clicked() {
+					nextDecision, changed = "allow", true
+				}
+				if textIconButton(c, textIconButtonSpec{
+					icon: iconXMark, mark: "x-mark", text: "拒绝", label: "拒绝：" + rule.Command,
+					primary: decision == "拒绝", disabled: decision == "拒绝",
+				}) {
+					nextDecision, changed = "deny", true
+				}
+				if actionButton(c, "精确", "精确："+rule.Command, match == "精确", match == "精确").Clicked() {
+					nextMatch, changed = "exact", true
+				}
+				if actionButton(c, "前缀", "前缀："+rule.Command, match == "前缀", match == "前缀").Clicked() {
+					nextMatch, changed = "prefix", true
+				}
 			})
+		} else {
+			gui.Column(c).Shrink(0).Gap(space1).Children(func() {
+				typeCode.style(t, gui.RichText(c, gui.Span{
+					Text: rule.Command, Size: typeCode.sizeIn(t), Weight: typeCode.weight, Color: t.Text,
+				})).SingleLine()
+				gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Children(func() {
+					if actionButton(c, "允许", "允许："+rule.Command, decision == "允许", decision == "允许").Clicked() {
+						nextDecision, changed = "allow", true
+					}
+					if textIconButton(c, textIconButtonSpec{
+						icon: iconXMark, mark: "x-mark", text: "拒绝", label: "拒绝：" + rule.Command,
+						primary: decision == "拒绝", disabled: decision == "拒绝",
+					}) {
+						nextDecision, changed = "deny", true
+					}
+					if actionButton(c, "精确", "精确："+rule.Command, match == "精确", match == "精确").Clicked() {
+						nextMatch, changed = "exact", true
+					}
+					if actionButton(c, "前缀", "前缀："+rule.Command, match == "前缀", match == "前缀").Clicked() {
+						nextMatch, changed = "prefix", true
+					}
+					gui.Spacer(c)
+				})
+			})
+		}
+		if a.intents == nil || !changed {
 			continue
 		}
-		gui.Column(c).Shrink(0).Gap(space1).Children(func() {
-			typeCode.style(t, gui.RichText(c, gui.Span{
-				Text: rule.Command, Size: typeCode.sizeIn(t), Weight: typeCode.weight, Color: t.Text,
-			})).SingleLine()
-			gui.Row(c).Gap(space3).AlignItems(gui.Center).Shrink(0).Children(func() {
-				typeSecondary.style(t, gui.Text(c, "决定")).TextColor(t.TextMuted)
-				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Decision))).TextColor(t.TextMuted)
-				typeSecondary.style(t, gui.Text(c, "匹配方式")).TextColor(t.TextMuted)
-				typeSecondary.style(t, gui.Text(c, dashIfEmpty(rule.Match))).TextColor(t.TextMuted)
-				gui.Spacer(c)
-			})
-		})
+		next := append([]RuleSnapshot(nil), st.Rules...)
+		next[index].Decision = nextDecision
+		next[index].Match = nextMatch
+		a.dispatch("修改命令规则", func(ctx context.Context) error {
+			return a.intents.WriteCommandRules(ctx, next)
+		}, nil)
+		return
 	}
+	gui.Spacer(c)
+	label, tip := "清空命令规则", "删除所有会话的全部命令规则"
+	if a.clearRulesConfirm {
+		label, tip = "确认清空", "再点一次：清空全部规则，无法撤销"
+	}
+	gui.Row(c).Shrink(0).Children(func() {
+		if textIconButton(c, textIconButtonSpec{
+			icon: iconXMark, mark: "x-mark", text: label, tip: tip,
+		}) {
+			if a.clearRulesConfirm {
+				a.clearRulesConfirm = false
+				if a.intents != nil {
+					a.dispatch("清空命令规则", func(ctx context.Context) error {
+						return a.intents.WriteCommandRules(ctx, nil)
+					}, nil)
+				}
+			} else {
+				a.clearRulesConfirm = true
+			}
+		}
+	})
+	if a.clearRulesConfirm {
+		typeSecondary.style(t, gui.Text(c, "清空后所有会话立即生效，无法撤销。")).
+			TextColor(t.Danger).Label("清空确认说明")
+	}
+}
+
+// decisionLabel / decisionWire 在界面语与 wire 取值之间转换。
+func decisionLabel(value string) string {
+	if value == "deny" {
+		return "拒绝"
+	}
+	return "允许"
+}
+
+func decisionWire(label string) string {
+	if label == "拒绝" {
+		return "deny"
+	}
+	return "allow"
+}
+
+// matchLabel / matchWire 同上。
+func matchLabel(value string) string {
+	if value == "prefix" {
+		return "前缀"
+	}
+	return "精确"
+}
+
+func matchWire(label string) string {
+	if label == "前缀" {
+		return "prefix"
+	}
+	return "exact"
 }
 
 // settingsSummary 是入口语（样例）：提供给导航与测试读取的当前值摘要。
@@ -424,6 +552,37 @@ func (a *App) settingsAccountLive(c *gui.Context, snap AccountSnapshot) {
 	for _, r := range rows {
 		settingsValueRow(c, "账号信息："+r.label, r.label, r.value)
 	}
+}
+
+// providerIDByName 把展示名换回 provider 标识。
+func providerIDByName(providers []ProviderOption, name string) string {
+	for _, provider := range providers {
+		if provider.Name == name {
+			return provider.ID
+		}
+	}
+	return ""
+}
+
+// modelsForProvider 返回某个 provider 下的模型。
+func modelsForProvider(models []ModelOption, providerID string) []ModelOption {
+	out := make([]ModelOption, 0, len(models))
+	for _, model := range models {
+		if model.ProviderID == providerID {
+			out = append(out, model)
+		}
+	}
+	return out
+}
+
+// modelIDByName 把模型展示名换回模型标识。
+func modelIDByName(models []ModelOption, providerID, name string) string {
+	for _, model := range models {
+		if model.ProviderID == providerID && model.Name == name {
+			return model.ID
+		}
+	}
+	return ""
 }
 
 // settingsValueRow 是只读的一行：左侧标签 + 右侧值（值缺失时显示「—」）。

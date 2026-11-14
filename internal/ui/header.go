@@ -1,6 +1,11 @@
 package ui
 
-import gui "github.com/egoist/mygo/ui"
+import (
+	"context"
+	"strings"
+
+	gui "github.com/egoist/mygo/ui"
+)
 
 // header 是 R2 标题行，同时也是窗口的标题栏（UI-19）：窗口控件（macOS 的红绿灯、
 // Windows 的最小化/最大化/关闭）由系统画在我们这一行的上方，界面不再保留系统
@@ -51,15 +56,15 @@ func (a *App) header(c *gui.Context) {
 		if a.state == StateEmpty {
 			return
 		}
-		// 分支：main 不上屏（UI-9）；非默认时给一个最小标记，点开是分支清单。
-		// 形式是「图标 + 文字」——名字是内容，切换是低频但影响"提交到哪条线"的动作。
-		if a.branch != "" && a.branch != "main" {
+		// 分支：样例里 main 不上屏（UI-9）；接上事实时始终给入口，便于切出/结束。
+		currentBranch, _, wiredBranch := a.branchState()
+		if wiredBranch || (currentBranch != "" && currentBranch != "main") {
 			a.branchChip(c)
 		}
-		if a.model != "" {
+		if model := a.currentModel(); model != "" {
 			// 偏离默认的模型：最小形式，不写“模型：”前缀（UI-9）。
-			typeSecondary.style(t, gui.Text(c, a.model)).TextColor(t.TextMuted).
-				Label("模型 " + a.model)
+			typeSecondary.style(t, gui.Text(c, model)).TextColor(t.TextMuted).
+				Label("模型 " + model)
 		}
 		label := "打开右栏"
 		if a.rightOpen {
@@ -89,9 +94,9 @@ func titleBarInset(bar gui.TitleBar) float32 { return bar.Height }
 // 选它只进入确认态——标记换成「确认结束分支？」并出现「取消」，再点标记才生效。
 func (a *App) branchChip(c *gui.Context) {
 	t := c.Theme()
+	current, branches, wired := a.branchState()
 
 	if a.endBranchConfirm {
-		// 第二步：标记本身变成确认按钮（同一个位置、同一形状），旁边给「取消」。
 		b := gui.ButtonBase(c).Padding(space1, space2).Radius(radius).
 			Cursor(gui.CursorPointer).Label("确认结束分支").
 			Tooltip("再点一次：结束这条分支，之后不能再提交")
@@ -99,16 +104,23 @@ func (a *App) branchChip(c *gui.Context) {
 			b = b.Background(t.SurfaceHover)
 		}
 		if b.Clicked() {
-			ended := a.branch
-			a.branch = "main"
-			kept := a.branches[:0]
-			for _, name := range a.branches {
-				if name != ended {
-					kept = append(kept, name)
+			if wired && a.intents != nil {
+				ended := current
+				a.dispatch("结束分支", func(ctx context.Context) error {
+					return a.intents.EndBranch(ctx, ended)
+				}, func() { a.endBranchConfirm = false })
+			} else {
+				ended := a.branch
+				a.branch = "main"
+				kept := a.branches[:0]
+				for _, name := range a.branches {
+					if name != ended {
+						kept = append(kept, name)
+					}
 				}
+				a.branches = kept
+				a.endBranchConfirm = false
 			}
-			a.branches = kept
-			a.endBranchConfirm = false
 		}
 		b.Children(func() {
 			iconGlyph(c, iconBranch, t.Danger, "branch")
@@ -120,23 +132,39 @@ func (a *App) branchChip(c *gui.Context) {
 		return
 	}
 
-	label := "切换分支：" + a.branch
+	label := "切换分支：" + current
 	b := gui.ButtonBase(c).Padding(space1, space2).Radius(radius).
 		Cursor(gui.CursorPointer).Label(label).Tooltip("分支 · 点开切换")
 	b = b.PopoverMenuButton(func(m *gui.Menu) {
-		for _, name := range a.branches {
+		for _, name := range branches {
 			n := name
-			if m.Item(n).Checked(n == a.branch).Chosen() {
-				a.branch = n
+			if m.Item(n).Checked(n == current).Chosen() {
+				if wired && a.intents != nil {
+					a.dispatch("切换分支", func(ctx context.Context) error {
+						return a.intents.SelectBranch(ctx, n)
+					}, nil)
+				} else {
+					a.branch = n
+				}
 			}
 		}
 		m.Separator()
 		if m.Item("从当前分支切出").Chosen() {
-			// 骨架不发起写入：只把样例里的分支名换成派生名。
-			a.branch = a.branch + "-1"
+			if wired && a.intents != nil {
+				snap, _ := a.liveSession()
+				prompt := strings.TrimSpace(a.draft)
+				if prompt == "" {
+					prompt = "从当前分支切出"
+				}
+				parent, turn := current, snap.TurnCount
+				a.dispatch("切出分支", func(ctx context.Context) error {
+					return a.intents.CreateBranch(ctx, parent, turn, prompt)
+				}, nil)
+			} else {
+				a.branch = a.branch + "-1"
+			}
 		}
-		if m.Item("结束分支").Disabled(a.branch == "main").Chosen() {
-			// 第一步：只进入确认态（不可逆动作不在菜单里一步完成）。
+		if m.Item("结束分支").Disabled(current == "main").Chosen() {
 			a.endBranchConfirm = true
 		}
 	}, gui.PopoverMenuButtonOptions{Open: &a.branchMenuOpen})
@@ -145,6 +173,6 @@ func (a *App) branchChip(c *gui.Context) {
 	}
 	b.Children(func() {
 		iconGlyph(c, iconBranch, t.TextMuted, "branch")
-		typeSecondary.style(t, gui.Text(c, a.branch)).TextColor(t.TextMuted).SingleLine()
+		typeSecondary.style(t, gui.Text(c, current)).TextColor(t.TextMuted).SingleLine()
 	})
 }

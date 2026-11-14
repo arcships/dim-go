@@ -141,3 +141,17 @@ func classifyRulesError(method string, err error) error {
 		return err
 	}
 }
+
+// ReadCommandRules 读取用户级命令规则；供设置分节使用，不依赖某个会话的裁决。
+func (a *App) ReadCommandRules(ctx context.Context) (interaction.RuleSet, error) {
+	return (&ruleSource{app: a}).ReadRules(ctx)
+}
+
+// WriteCommandRules 写入完整规则集合；expectedRevision 是最近一次读取的版本。
+func (a *App) WriteCommandRules(
+	ctx context.Context,
+	expectedRevision string,
+	rules []interaction.CommandRule,
+) (interaction.RuleSet, error) {
+	return (&ruleSource{app: a}).WriteRules(ctx, expectedRevision, rules)
+}

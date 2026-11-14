@@ -59,6 +59,16 @@ type Intents interface {
 
 	// 设置。
 	SetPermissionTier(ctx context.Context, tier string) error
+	SelectModel(ctx context.Context, providerID, modelID string) error
+	WriteCommandRules(ctx context.Context, rules []RuleSnapshot) error
+
+	// 分支。
+	SelectBranch(ctx context.Context, branchID string) error
+	CreateBranch(ctx context.Context, parentID string, turnIndex int, prompt string) error
+	EndBranch(ctx context.Context, branchID string) error
+
+	// 附件：文本先做，返回写入的附件名。
+	WriteAttachment(ctx context.Context, name, text string) (string, error)
 
 	// 扩展：kind 取 "plugin" / "skill" / "hook" / "mcp"。
 	SetExtensionEnabled(ctx context.Context, kind, id string, enabled bool) error
@@ -75,6 +85,8 @@ type Intents interface {
 	// 终端：RunShell 返回运行标识，供 StopShell 使用。
 	RunShell(ctx context.Context, command string) (string, error)
 	StopShell(ctx context.Context, runID string) error
+	// Reconnect 重连控制连接（断线后的「重新连接」）。
+	Reconnect(ctx context.Context) error
 }
 
 // Connection 是连接阶段与原因（断线要能看见原因，不是白屏）。
@@ -85,13 +97,36 @@ type Connection struct {
 
 // SessionSnapshot 是首片要用的会话事实（与 app.SessionView 对齐，不多造）。
 type SessionSnapshot struct {
-	ID       string
-	Title    string
-	Running  bool
-	Rows     []RowSnapshot
-	Pending  int
-	Goal     string
+	ID      string
+	Title   string
+	Running bool
+	Rows    []RowSnapshot
+	Pending int
+	Goal    string
+	// Branch 是当前查看的分支；Branches 是分支清单（名字即标识）。
+	Branch   string
+	Branches []BranchSnapshot
+	// TurnCount 是已加载轮次数，用于从当前分支切出时选切点。
+	TurnCount int
+	// Tasks 是未结束的后台任务。
+	Tasks    []TaskSnapshot
 	OpenedAt time.Time
+}
+
+// TaskSnapshot 是一条后台任务。
+type TaskSnapshot struct {
+	ID          string
+	Description string
+	Stopping    bool
+}
+
+// BranchSnapshot 是一个分支。
+type BranchSnapshot struct {
+	ID     string
+	Name   string
+	Status string
+	// Ended 为真表示分支已结束（只读）。
+	Ended bool
 }
 
 // RowSnapshot 是时间线的一行（用户 / 助手 / 过程组）。
@@ -140,17 +175,22 @@ type UsageSnapshot struct {
 
 // SettingsSnapshot 是设置里来自事实的几项（与 settings 领域视图对齐）。
 type SettingsSnapshot struct {
-	Provider  string
-	Providers []string
-	Model     string
-	Models    []string
+	Provider   string
+	ProviderID string
+	Providers  []ProviderOption
+	Model      string
+	ModelID    string
+	Models     []ModelOption
+	// ModelRevision 是当前选择的版本前置条件；空表示服务端没有给。
+	ModelRevision string
 	// Tier 是当前会话的权限档位；TierKnown 为假表示还没读到。
 	Tier      string
 	TierKnown bool
 
-	// Rules 是命令规则的只读视图；RulesKnown 为假表示本批没有读取入口。
+	// Rules 是命令规则的只读视图；RulesKnown 为假表示还没读到。
 	Rules      []RuleSnapshot
 	RulesKnown bool
+	RulesError string
 
 	Storage      StorageSnapshot
 	StorageKnown bool
@@ -161,6 +201,19 @@ type SettingsSnapshot struct {
 	RuntimesReason string
 
 	Modality ModalitySnapshot
+}
+
+// ProviderOption 是一个 provider（标识 + 展示名）。
+type ProviderOption struct {
+	ID   string
+	Name string
+}
+
+// ModelOption 是一个模型（标识 + 展示名 + 所属 provider）。
+type ModelOption struct {
+	ID         string
+	ProviderID string
+	Name       string
 }
 
 // RuleSnapshot 是一条命令规则。
