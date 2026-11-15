@@ -256,22 +256,26 @@ go test ./internal/app -run TestPreferences -v -count=1
 go test ./internal/ui -run TestPreferencesSeedView -v -count=1
 # 预期：--- PASS: TestPreferencesSeedView
 
-# 5) 并发：50 轮加附件/发送/切会话，每帧渲染；不得有数据竞争
+# 5) 顺序稳定：uiwire 连跑 5 次（界面状态用 waitFor 条件等待，不依赖固定帧数）
+go test ./internal/uiwire -count=5
+# 预期：ok
+
+# 6) 并发：50 轮加附件/发送/切会话，每帧渲染；不得有数据竞争
 go test -race ./internal/uiwire -run TestConcurrentUIInteractions -count=1
 # 预期：50 轮交互完成：session.submit=50 attachment.put=50 ...；ok
 
-# 6) 接上事实后不出现样例常量（逐屏渲染断言）
+# 7) 接上事实后不出现样例常量（逐屏渲染断言）
 go test ./internal/ui -run TestWiredScreensExcludeSamples -v -count=1
 # 预期：--- PASS: TestWiredScreensExcludeSamples
 
-# 7) 构建、静态检查、全量测试、race
+# 8) 构建、静态检查、全量测试、race
 go build ./...
 go vet ./...
 go test ./... -count=1
 go test -race ./internal/ui ./internal/uiwire -count=1
 # 预期：全部 ok；-race 下 ui/uiwire 无竞争；uiwire 的真实服务端测试按 §6.1 标 blocked
 
-# 8) 界面检查器：20 个检查项与 14 条种子
+# 9) 界面检查器：20 个检查项与 14 条种子
 scripts/ui-lint
 # 预期：检查器全绿：20 个检查项；--- PASS: TestUILint
 scripts/ui-lint --seeds

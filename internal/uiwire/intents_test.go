@@ -51,6 +51,22 @@ func newIntentHarness(t *testing.T, script fakeappserver.Script) *intentHarness 
 // frame 重绘一帧：后台意图交回的成功回调在渲染线程上应用。
 func (h *intentHarness) frame() { h.tester.Frame() }
 
+// waitFor 反复渲染直到元素出现；不依赖固定帧数，超时报出等了多少帧。
+func (h *intentHarness) waitFor(label string, timeout time.Duration) {
+	h.t.Helper()
+	deadline := time.Now().Add(timeout)
+	frames := 0
+	for time.Now().Before(deadline) {
+		h.tester.Frame()
+		frames++
+		if _, ok := h.tester.Find(label); ok {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	h.t.Fatalf("等待 %q 超时：%d 帧后仍未出现", label, frames)
+}
+
 // click 点击界面上显示指定文字或读屏名的元素。
 func (h *intentHarness) click(label string) {
 	h.t.Helper()
@@ -64,6 +80,15 @@ func (h *intentHarness) click(label string) {
 func (h *intentHarness) typeInto(label, text string) {
 	h.t.Helper()
 	h.click(label)
+	h.tester.Type(text)
+	h.frame()
+}
+
+// replaceInto 点中输入框，全选后键入文本（用于已带默认值的字段）。
+func (h *intentHarness) replaceInto(label, text string) {
+	h.t.Helper()
+	h.click(label)
+	h.tester.Key(gui.Cmd, gui.KeyA)
 	h.tester.Type(text)
 	h.frame()
 }
@@ -351,17 +376,21 @@ func TestConcurrentUIInteractions(t *testing.T) {
 func TestIntentSubmitContent(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
 	h.click("附件")
+	h.waitFor("附件类型：图片", 2*time.Second)
 	h.typeInto("附件名", "note.txt")
 	h.typeInto("附件内容", "hello")
 	h.click("添加附件")
 	h.waitRequest("attachment.put")
-	h.frame()
+	h.waitFor("note.txt", 2*time.Second)
 	h.click("附件")
+	h.waitFor("附件类型：图片", 2*time.Second)
 	h.click("附件类型：图片")
-	h.typeInto("附件名", "pic.png")
+	h.waitFor("图片 base64", 2*time.Second)
+	h.replaceInto("附件名", "pic.png")
 	h.typeInto("媒体类型", "image/png")
 	h.typeInto("图片 base64", "aGk=")
 	h.click("添加附件")
+	h.waitFor("pic.png · 图片", 2*time.Second)
 	h.typeInto("消息", "hi")
 	h.click("发送")
 	params := h.waitRequest("session.submit")
@@ -421,7 +450,7 @@ func TestIntentApproval(t *testing.T) {
 		_, ok := h.wire.Approval()
 		return ok
 	})
-	h.frame()
+	h.waitFor("允许一次", 2*time.Second)
 	h.click("允许一次")
 	params := h.waitRequest("approval.respond")
 	t.Logf("点了「允许一次」→ 服务端收到 approval.respond（%d 次），decision=%v",
@@ -443,7 +472,7 @@ func TestIntentQuestion(t *testing.T) {
 		_, ok := h.wire.Question()
 		return ok
 	})
-	h.frame()
+	h.waitFor("提交回答", 2*time.Second)
 	h.typeInto("回答", "A")
 	h.click("提交回答")
 	params := h.waitRequest("question.respond")
@@ -466,7 +495,7 @@ func TestIntentQuestionSkip(t *testing.T) {
 		_, ok := h.wire.Question()
 		return ok
 	})
-	h.frame()
+	h.waitFor("跳过", 2*time.Second)
 	h.click("跳过")
 	params := h.waitRequest("question.respond")
 	t.Logf("点了「跳过」→ 服务端收到 question.respond（%d 次），decision=%v",
@@ -516,7 +545,7 @@ func TestIntentRename(t *testing.T) {
 	if err := h.tester.ChooseMenuItem("重命名"); err != nil {
 		t.Fatalf("选择重命名：%v", err)
 	}
-	h.frame()
+	h.waitFor("保存名称", 2*time.Second)
 	h.click("保存名称")
 	params := h.waitRequest("session.rename")
 	t.Logf("点了「重命名 · 保存」→ 服务端收到 session.rename（%d 次），title=%v",
@@ -567,7 +596,7 @@ func TestIntentDelete(t *testing.T) {
 	if err := h.tester.ChooseMenuItem("删除"); err != nil {
 		t.Fatalf("选择删除：%v", err)
 	}
-	h.frame()
+	h.waitFor("确认删除", 2*time.Second)
 	h.click("确认删除")
 	params := h.waitRequest("session.delete")
 	t.Logf("点了「删除 · 确认」→ 服务端收到 session.delete（%d 次），sessionId=%v",
@@ -747,7 +776,7 @@ func TestIntentSelectAndEndBranch(t *testing.T) {
 		}
 		return false
 	})
-	h.frame()
+	h.waitFor("切换分支：main", 2*time.Second)
 	h.click("切换分支：main")
 	if err := h.tester.ChooseMenuItem("side"); err != nil {
 		t.Fatalf("选择 side：%v", err)
@@ -757,12 +786,12 @@ func TestIntentSelectAndEndBranch(t *testing.T) {
 		return snap.Branch == "side"
 	})
 	t.Logf("点了「分支 · side」→ 当前分支=%s（投影切换，不发请求）", "side")
-	h.frame()
+	h.waitFor("切换分支：side", 2*time.Second)
 	h.click("切换分支：side")
 	if err := h.tester.ChooseMenuItem("结束分支"); err != nil {
 		t.Fatalf("选择结束分支：%v", err)
 	}
-	h.frame()
+	h.waitFor("确认结束分支", 2*time.Second)
 	h.click("确认结束分支")
 	h.waitRequest("session.branch_end")
 	t.Logf("点了「结束分支 · 确认」→ 服务端收到 session.branch_end（%d 次）",
@@ -817,7 +846,7 @@ func TestIntentEditGoal(t *testing.T) {
 		snap, ok := h.wire.Session()
 		return ok && snap.Goal == "甲目标"
 	})
-	h.frame()
+	h.waitFor("修改目标", 2*time.Second)
 	h.click("修改目标")
 	h.waitRequest("session.goal.get")
 	h.typeInto("目标", "改")
@@ -837,7 +866,7 @@ func TestIntentGoalPauseResumeClear(t *testing.T) {
 		snap, ok := h.wire.Session()
 		return ok && snap.Goal == "甲目标"
 	})
-	h.frame()
+	h.waitFor("暂停目标", 2*time.Second)
 	h.click("暂停目标")
 	params := h.waitRequest("session.goal.pause")
 	t.Logf("点了「暂停目标」→ 服务端收到 session.goal.pause（%d 次）", len(h.server.RequestsFor("session.goal.pause")))
@@ -849,14 +878,14 @@ func TestIntentGoalPauseResumeClear(t *testing.T) {
 		snap, ok := h.wire.Session()
 		return ok && snap.GoalStatus == "paused"
 	})
-	h.frame()
+	h.waitFor("恢复目标", 2*time.Second)
 	h.click("恢复目标")
 	h.waitRequest("session.goal.resume")
 	t.Logf("点了「恢复目标」→ 服务端收到 session.goal.resume（%d 次）", len(h.server.RequestsFor("session.goal.resume")))
 
-	h.frame()
+	h.waitFor("清除目标", 2*time.Second)
 	h.click("清除目标")
-	h.frame()
+	h.waitFor("确认清除目标", 2*time.Second)
 	h.click("确认清除目标")
 	clear := h.waitRequest("session.goal.clear")
 	t.Logf("点了「清除目标 · 确认」→ 服务端收到 session.goal.clear（%d 次），objective=%v",
@@ -899,7 +928,7 @@ func TestIntentReconnect(t *testing.T) {
 	waitFor(t, "断线阶段", func() bool {
 		return h.wire.Connection().Phase == "disconnected"
 	})
-	h.frame()
+	h.waitFor("重新连接", 2*time.Second)
 	h.click("重新连接")
 	waitFor(t, "重新连上", func() bool {
 		return h.wire.Connection().Phase == "connected"
@@ -944,7 +973,7 @@ func TestIntentMCPUninstall(t *testing.T) {
 	h.click("扩展")
 	h.click("MCP")
 	h.click("详情：mcp-one")
-	h.frame()
+	h.waitFor("卸载扩展", 2*time.Second)
 	h.click("卸载扩展")
 	params := h.waitRequest("mcp.remove")
 	t.Logf("点了「MCP · 卸载」→ 服务端收到 mcp.remove（%d 次），id=%v",
@@ -974,7 +1003,7 @@ func TestIntentScheduleDelete(t *testing.T) {
 	h.click("设置")
 	h.click("定时任务")
 	h.click("删除任务：每晚检查")
-	h.frame()
+	h.waitFor("确认删除任务", 2*time.Second)
 	h.click("确认删除任务")
 	params := h.waitRequest("schedule.delete")
 	t.Logf("点了「定时任务 · 删除」→ 服务端收到 schedule.delete（%d 次），job_id=%v",
@@ -991,7 +1020,7 @@ func TestIntentPluginUninstall(t *testing.T) {
 	h.click("扩展")
 	h.click("插件")
 	h.click("详情：demo-plugin")
-	h.frame()
+	h.waitFor("卸载扩展", 2*time.Second)
 	h.click("卸载扩展")
 	params := h.waitRequest("plugin.remove")
 	t.Logf("点了「插件 · 卸载」→ 服务端收到 plugin.remove（%d 次），id=%v",
@@ -1067,9 +1096,10 @@ func TestIntentShellStop(t *testing.T) {
 	h.typeInto("消息", "!echo hi")
 	h.click("运行命令")
 	h.waitRequest("shell.run")
-	h.frame() // 应用 RunShell 的成功回调，记下运行标识
+	h.waitFor("消息", 2*time.Second)
 	h.click("打开右栏")
 	h.click("终端")
+	h.waitFor("中止运行", 2*time.Second)
 	h.click("中止运行")
 	params := h.waitRequest("shell.stop")
 	t.Logf("点了「终端 · 中止」→ 服务端收到 shell.stop（%d 次），runId=%v",
