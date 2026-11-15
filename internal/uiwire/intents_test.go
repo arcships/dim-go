@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,6 +103,8 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 		"session.exec.stop", "session.exec.pending",
 		"session.goal.set", "session.goal.edit", "session.goal.pause",
 		"session.goal.resume", "session.goal.clear", "session.goal.get",
+		"provider.list", "provider.management", "provider.probe",
+		"provider.create", "provider.update", "provider.models.set_enabled",
 	)
 	return fakeappserver.Script{
 		Features: features,
@@ -173,7 +176,8 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 			}},
 			{Method: "mcp.import.apply", Result: map[string]any{"revision": "rev-3"}},
 			{Method: "account.providers", Result: []any{map[string]any{
-				"providerId": "acme-account", "displayName": "Acme", "loginMethods": []any{"browser"},
+				"providerId": "acme-account", "displayName": "Acme",
+				"loginMethods": []any{"browser", "device"},
 			}}},
 			{Method: "account.status", Result: map[string]any{
 				"credentialEpoch": "e1",
@@ -199,6 +203,36 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 				"selection": map[string]any{"providerId": "acme", "modelId": "model-x", "version": "sel-1"},
 			}},
 			{Method: "provider.select", Result: map[string]any{}},
+			{Method: "provider.list", Result: map[string]any{"providers": []any{map[string]any{
+				"providerId": "acme", "displayName": "Acme", "driverKind": "openai",
+				"auth": map[string]any{"type": "bearer"}, "baseUrl": "https://acme.test",
+				"enabled": true, "version": 1, "credentialConfigured": true,
+			}}, "errors": []any{}}},
+			{Method: "provider.management", Result: map[string]any{"providers": []any{map[string]any{
+				"providerId": "acme", "displayName": "Acme", "version": 1, "enabled": true,
+				"connection": map[string]any{
+					"driverKind": "openai", "auth": map[string]any{"type": "bearer"},
+					"baseUrl": "https://acme.test", "credentialConfigured": true,
+				},
+				"models": []any{map[string]any{
+					"model":   map[string]any{"modelId": "model-x", "displayName": "Model-X", "status": "active", "capabilities": map[string]any{}},
+					"enabled": true,
+				}},
+			}}}},
+			{Method: "provider.probe", Result: map[string]any{"models": []any{
+				map[string]any{"modelId": "model-x", "displayName": "Model-X"},
+				map[string]any{"modelId": "model-y", "displayName": "Model-Y"},
+			}}},
+			{Method: "provider.create", Result: map[string]any{}},
+			{Method: "provider.update", Result: map[string]any{}},
+			{Method: "provider.models.set_enabled", Result: map[string]any{}},
+			{Method: "account.logout", Result: map[string]any{"ok": true}},
+			{Method: "account.login.begin", Result: map[string]any{
+				"attemptId": "att-1", "verificationUri": "https://example.test/device",
+				"verificationUriComplete": "https://example.test/device?code=ABCD-EFGH",
+				"userCode":                "ABCD-EFGH", "expiresAt": 1700000600, "interval": 1,
+			}},
+			{Method: "account.login.status", Result: map[string]any{"status": "pending"}},
 			{Method: "permission.rules", Result: map[string]any{
 				"revision": "rules-rev-1",
 				"commandRules": []any{
@@ -269,6 +303,99 @@ func TestIntentSubmit(t *testing.T) {
 		len(h.server.RequestsFor("session.submit")), params["text"])
 	if params["text"] != "你好" || params["sessionId"] != e2eSession {
 		t.Fatalf("提交参数不对：%v", params)
+	}
+}
+
+// TestConcurrentUIInteractions 连续 50 次加附件/发送/切会话，每帧渲染；-race 不得报竞争。
+func TestConcurrentUIInteractions(t *testing.T) {
+	script := baseScript("/work", false)
+	script.Sessions = append(script.Sessions, fakeappserver.Session{ID: "s2"})
+	script.Replies[0] = fakeappserver.Reply{Method: "session.catalog", Result: map[string]any{
+		"sessions": []any{
+			map[string]any{"sessionId": "s1", "cwd": "/work", "title": "演示会话"},
+			map[string]any{"sessionId": "s2", "cwd": "/work", "title": "第二个会话"},
+		},
+		"nextCursor": nil,
+	}}
+	h := newIntentHarness(t, script)
+	for i := 0; i < 50; i++ {
+		_ = h.tester.Click("附件")
+		_ = h.tester.Click("附件名")
+		h.tester.Type("note.txt")
+		_ = h.tester.Click("附件内容")
+		h.tester.Type("hello")
+		_ = h.tester.Click("添加附件")
+		h.tester.Frame()
+		_ = h.tester.Click("消息")
+		h.tester.Type("hi")
+		_ = h.tester.Click("发送")
+		h.tester.Frame()
+		_ = h.tester.Click("s2")
+		h.tester.Frame()
+		_ = h.tester.Click("s1")
+		h.tester.Frame()
+	}
+	waitFor(t, "提交到达", func() bool {
+		return len(h.server.RequestsFor("session.submit")) > 0
+	})
+	for i := 0; i < 10; i++ {
+		h.tester.Frame()
+	}
+	t.Logf("50 轮交互完成：session.submit=%d attachment.put=%d session.attach=%d",
+		len(h.server.RequestsFor("session.submit")),
+		len(h.server.RequestsFor("attachment.put")),
+		len(h.server.RequestsFor("session.attach")))
+}
+
+// TestIntentSubmitContent 文本附件与图片附件一起提交，断言 user.content 块。
+func TestIntentSubmitContent(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("附件")
+	h.typeInto("附件名", "note.txt")
+	h.typeInto("附件内容", "hello")
+	h.click("添加附件")
+	h.waitRequest("attachment.put")
+	h.frame()
+	h.click("附件")
+	h.click("附件类型：图片")
+	h.typeInto("附件名", "pic.png")
+	h.typeInto("媒体类型", "image/png")
+	h.typeInto("图片 base64", "aGk=")
+	h.click("添加附件")
+	h.typeInto("消息", "hi")
+	h.click("发送")
+	params := h.waitRequest("session.submit")
+	user, _ := params["user"].(map[string]any)
+	content, _ := user["content"].([]any)
+	types := make([]string, 0, len(content))
+	for _, raw := range content {
+		block, _ := raw.(map[string]any)
+		types = append(types, block["type"].(string))
+	}
+	t.Logf("点了「发送」（带附件）→ session.submit（%d 次），content 块=%v", len(h.server.RequestsFor("session.submit")), types)
+	if len(types) != 3 || types[0] != "text" || types[1] != "text" || types[2] != "image" {
+		t.Fatalf("内容块不对：%v（params=%v）", types, params)
+	}
+	image, _ := content[2].(map[string]any)["source"].(map[string]any)
+	if image["type"] != "base64" || image["mediaType"] != "image/png" || image["data"] != "aGk=" {
+		t.Fatalf("图片块不对：%v", image)
+	}
+}
+
+// TestIntentSubmitLargeText 超过 4KB 的文本先 attachment.put，再以引用块提交。
+func TestIntentSubmitLargeText(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.typeInto("消息", strings.Repeat("长文本", 2000))
+	h.click("发送")
+	h.waitRequest("attachment.put")
+	params := h.waitRequest("session.submit")
+	user, _ := params["user"].(map[string]any)
+	content, _ := user["content"].([]any)
+	block, _ := content[0].(map[string]any)
+	text, _ := block["text"].(string)
+	t.Logf("点了「发送」（长文本）→ attachment.put + session.submit，首块=%q", text)
+	if !strings.Contains(text, "[Pasted text:") {
+		t.Fatalf("长文本没有走引用块：%v", params)
 	}
 }
 
@@ -363,11 +490,11 @@ func TestIntentOpenSession(t *testing.T) {
 	h := newIntentHarness(t, script)
 	h.click("s2")
 	waitFor(t, "会话切到 s2", func() bool {
-		return h.wire.SessionID == "s2"
+		return h.wire.currentSession() == "s2"
 	})
 	requests := h.server.RequestsFor("session.attach")
 	t.Logf("点了「s2」→ 服务端收到 session.attach（%d 次），当前会话=%s",
-		len(requests), h.wire.SessionID)
+		len(requests), h.wire.currentSession())
 }
 
 // TestIntentCreateSession 点左栏「新建会话」→ session.create。
@@ -448,6 +575,93 @@ func TestIntentDelete(t *testing.T) {
 	if params["sessionId"] != e2eSession {
 		t.Fatalf("删除参数不对：%v", params)
 	}
+}
+
+// TestIntentCreateProvider 设置 · 模型与供应商 → 新增 provider → provider.create。
+func TestIntentCreateProvider(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("模型与供应商")
+	h.click("新增供应商")
+	h.typeInto("provider 名称", "New Provider")
+	h.typeInto("Base URL", "https://new.test")
+	h.typeInto("API 密钥", "sk-test")
+	h.click("创建 provider")
+	params := h.waitRequest("provider.create")
+	t.Logf("点了「创建 provider」→ 服务端收到 provider.create（%d 次），providerId=%v",
+		len(h.server.RequestsFor("provider.create")), params["providerId"])
+	id, _ := params["providerId"].(string)
+	if len(id) != 36 {
+		t.Fatalf("新建 provider 标识不是 UUID：%v", params)
+	}
+}
+
+// TestIntentProbeProvider 设置 · 模型与供应商 → 探测 → provider.probe。
+func TestIntentProbeProvider(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("模型与供应商")
+	h.click("探测 acme")
+	params := h.waitRequest("provider.probe")
+	t.Logf("点了「探测 acme」→ 服务端收到 provider.probe（%d 次），providerId=%v",
+		len(h.server.RequestsFor("provider.probe")), params["providerId"])
+	if params["providerId"] != "acme" {
+		t.Fatalf("探测参数不对：%v", params)
+	}
+}
+
+// TestIntentProviderModelToggle 设置 · 模型与供应商 → 停用模型 → provider.models.set_enabled。
+func TestIntentProviderModelToggle(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("模型与供应商")
+	h.click("停用模型：model-x")
+	params := h.waitRequest("provider.models.set_enabled")
+	t.Logf("点了「停用模型」→ 服务端收到 provider.models.set_enabled（%d 次），providerId=%v modelId=%v",
+		len(h.server.RequestsFor("provider.models.set_enabled")), params["providerId"], params["modelId"])
+	if params["providerId"] != "acme" {
+		t.Fatalf("模型启停参数不对：%v", params)
+	}
+	ids, _ := params["modelIds"].([]any)
+	if len(ids) != 0 {
+		t.Fatalf("停用后启用模型集合应为空：%v", params)
+	}
+}
+
+// signedOutScript 是一份账号未登录的脚本，用于登录入口测试。
+func signedOutScript() fakeappserver.Script {
+	script := baseScript("/work", false)
+	for index := range script.Replies {
+		if script.Replies[index].Method == "account.status" {
+			script.Replies[index].Result = map[string]any{"credentialEpoch": "e1", "account": nil}
+		}
+	}
+	return script
+}
+
+// TestIntentDeviceLogin 设置 · 账号 → 设备码登录 → account.login.begin。
+func TestIntentDeviceLogin(t *testing.T) {
+	h := newIntentHarness(t, signedOutScript())
+	h.click("设置")
+	h.click("账号与套餐")
+	h.click("设备码登录")
+	params := h.waitRequest("account.login.begin")
+	t.Logf("点了「设备码登录」→ 服务端收到 account.login.begin（%d 次），providerId=%v",
+		len(h.server.RequestsFor("account.login.begin")), params["providerId"])
+	if params["providerId"] != "acme-account" {
+		t.Fatalf("登录参数不对：%v", params)
+	}
+}
+
+// TestIntentLogout 设置 · 账号 → 退出登录 → account.logout。
+func TestIntentLogout(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("设置")
+	h.click("账号与套餐")
+	h.click("退出登录")
+	h.waitRequest("account.logout")
+	t.Logf("点了「退出登录」→ 服务端收到 account.logout（%d 次）",
+		len(h.server.RequestsFor("account.logout")))
 }
 
 // TestIntentSelectModel 设置 · 模型与供应商 → 选 provider → provider.select。

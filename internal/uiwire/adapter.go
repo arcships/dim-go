@@ -2,6 +2,9 @@ package uiwire
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -9,6 +12,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/arcships/dimagent-mygo/internal/account"
 	"github.com/arcships/dimagent-mygo/internal/app"
 	"github.com/arcships/dimagent-mygo/internal/catalog"
 	"github.com/arcships/dimagent-mygo/internal/extensions"
@@ -28,8 +32,9 @@ type App struct {
 	// SessionID 是当前打开的会话 id；空表示还没打开。
 	SessionID string
 
-	mu    sync.RWMutex
-	phase ui.Connection
+	mu        sync.RWMutex
+	phase     ui.Connection
+	sessionMu sync.RWMutex
 	// importMu 保护最近一次读取的 MCP 导入来源（界面每帧读，不能每帧发请求）。
 	importMu      sync.Mutex
 	importSources []ui.MCPImportSourceSnapshot
@@ -40,6 +45,14 @@ type App struct {
 	rulesRevision string
 	rulesKnown    bool
 	rulesErr      string
+	// accountMu 保护 provider 登录方式与最近一次登录提示。
+	accountMu    sync.Mutex
+	loginMethods []string
+	loginPrompt  ui.LoginPromptSnapshot
+	// providerMu 保护 provider 管理清单。
+	providerMu      sync.Mutex
+	providerRecords []ui.ProviderRecordSnapshot
+	providerErr     string
 	// tasksMu 保护最近一次读取的模态任务清单。
 	tasksMu  sync.Mutex
 	tasks    []ui.ModalityTaskSnapshot
@@ -49,6 +62,20 @@ type App struct {
 // New 包住一个已创建的集成层。
 func New(a *app.App) *App {
 	return &App{A: a, phase: ui.Connection{Phase: "connecting"}}
+}
+
+// currentSession 返回当前打开的会话标识；读写由 sessionMu 保护。
+func (w *App) currentSession() string {
+	w.sessionMu.RLock()
+	defer w.sessionMu.RUnlock()
+	return w.SessionID
+}
+
+// setSession 设置当前会话标识。
+func (w *App) setSession(id string) {
+	w.sessionMu.Lock()
+	w.SessionID = id
+	w.sessionMu.Unlock()
 }
 
 // Connect 走连接与订阅，并把阶段写进 Connection（失败时带上原因）。
@@ -82,8 +109,8 @@ func (w *App) Connect(ctx context.Context) error {
 		w.setPhase("disconnected", err.Error())
 		return err
 	}
-	if names := w.SessionNames(); len(names) > 0 && w.SessionID == "" {
-		w.SessionID = names[0]
+	if names := w.SessionNames(); len(names) > 0 && w.currentSession() == "" {
+		w.setSession(names[0])
 	}
 	// 设置、扩展、定时任务与终端的读数：只在连接成功后读一次，失败留空由界面
 	// 显示"未读取"，不用样例顶上。
@@ -138,15 +165,75 @@ func (w *App) loadFacts(ctx context.Context) {
 	w.refreshImportSources(ctx)
 	w.refreshRules(ctx)
 	w.refreshModalityTasks(ctx)
+	w.refreshAccountProviders(ctx)
+	w.refreshProviderRecords(ctx)
+}
+
+// refreshProviderRecords 读取 provider 清单与每个 provider 的详情。
+func (w *App) refreshProviderRecords(ctx context.Context) {
+	manager := w.A.Settings()
+	if manager == nil {
+		return
+	}
+	list, err := manager.RefreshProviders(ctx)
+	w.providerMu.Lock()
+	defer w.providerMu.Unlock()
+	if err != nil {
+		w.providerErr = err.Error()
+		return
+	}
+	w.providerErr = ""
+	w.providerRecords = w.providerRecords[:0]
+	for _, summary := range list.Providers {
+		record := ui.ProviderRecordSnapshot{
+			ID: summary.ID, Name: firstNonEmpty(summary.DisplayName, summary.ID),
+			BaseURL: summary.BaseURL, DriverKind: summary.DriverKind,
+			AuthType: summary.AuthType, Enabled: summary.Enabled, Version: summary.Version,
+		}
+		if detail, readErr := manager.ReadProvider(ctx, summary.ID); readErr == nil {
+			for _, model := range detail.Models {
+				record.Models = append(record.Models, ui.ProviderModelSnapshot{
+					ID: model.ID, Name: firstNonEmpty(model.DisplayName, model.ID),
+					Enabled: model.Enabled, Status: model.Status,
+				})
+			}
+		}
+		w.providerRecords = append(w.providerRecords, record)
+	}
+}
+
+// refreshAccountProviders 读一次 provider 登录方式，供账号分节显示登录入口。
+func (w *App) refreshAccountProviders(ctx context.Context) {
+	accountDomain := w.A.Account()
+	if accountDomain == nil {
+		return
+	}
+	providers, err := accountDomain.Providers(ctx)
+	if err != nil {
+		return
+	}
+	methods := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, provider := range providers {
+		for _, method := range provider.LoginMethods {
+			if !seen[string(method)] {
+				seen[string(method)] = true
+				methods = append(methods, string(method))
+			}
+		}
+	}
+	w.accountMu.Lock()
+	w.loginMethods = methods
+	w.accountMu.Unlock()
 }
 
 // refreshModalityTasks 读一页模态任务并留在适配器里；界面每帧只读这份快照。
 func (w *App) refreshModalityTasks(ctx context.Context) {
 	manager := w.A.Settings()
-	if manager == nil || w.SessionID == "" {
+	if manager == nil || w.currentSession() == "" {
 		return
 	}
-	page, err := manager.ListTasks(ctx, w.SessionID, settings.ModalityTaskQuery{})
+	page, err := manager.ListTasks(ctx, w.currentSession(), settings.ModalityTaskQuery{})
 	w.tasksMu.Lock()
 	defer w.tasksMu.Unlock()
 	if err != nil {
@@ -195,7 +282,7 @@ func (w *App) refreshImportSources(ctx context.Context) {
 	if service == nil {
 		return
 	}
-	sources, err := service.ListMCPImportSources(ctx, w.sessionWorkspace(w.SessionID))
+	sources, err := service.ListMCPImportSources(ctx, w.sessionWorkspace(w.currentSession()))
 	w.importMu.Lock()
 	defer w.importMu.Unlock()
 	if err != nil {
@@ -262,10 +349,10 @@ func (w *App) refreshCatalog(ctx context.Context) error {
 }
 
 func (w *App) Session() (ui.SessionSnapshot, bool) {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return ui.SessionSnapshot{}, false
 	}
-	view, ok := w.A.View(w.SessionID)
+	view, ok := w.A.View(w.currentSession())
 	if !ok {
 		return ui.SessionSnapshot{}, false
 	}
@@ -312,10 +399,10 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 }
 
 func (w *App) Approval() (ui.ApprovalSnapshot, bool) {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return ui.ApprovalSnapshot{}, false
 	}
-	view, ok := w.A.View(w.SessionID)
+	view, ok := w.A.View(w.currentSession())
 	if !ok || !view.HasCurrent || view.Current.Kind != interaction.PendingApproval {
 		return ui.ApprovalSnapshot{}, false
 	}
@@ -328,10 +415,10 @@ func (w *App) Approval() (ui.ApprovalSnapshot, bool) {
 }
 
 func (w *App) Question() (ui.QuestionSnapshot, bool) {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return ui.QuestionSnapshot{}, false
 	}
-	view, ok := w.A.View(w.SessionID)
+	view, ok := w.A.View(w.currentSession())
 	if !ok || !view.HasCurrent || view.Current.Kind != interaction.PendingQuestion ||
 		len(view.Current.Questions) == 0 {
 		return ui.QuestionSnapshot{}, false
@@ -352,6 +439,14 @@ func (w *App) Account() ui.AccountSnapshot {
 	out.Plan = snapshot.Identity.Plan
 	out.Status = string(snapshot.Status)
 	out.Initial = avatarInitial(out.Name, snapshot.Identity.Email, snapshot.Identity.AccountID)
+	state := account.LoginState()
+	out.LoginPhase = string(state.Phase)
+	out.LoginReason = state.Reason
+	w.accountMu.Lock()
+	out.LoginMethods = append([]string(nil), w.loginMethods...)
+	out.LoginUserCode = w.loginPrompt.UserCode
+	out.LoginURL = w.loginPrompt.URL
+	w.accountMu.Unlock()
 	return out
 }
 
@@ -379,8 +474,8 @@ func (w *App) Usage() ui.UsageSnapshot {
 // Settings 把设置领域最近确认的读数映射成界面快照。
 func (w *App) Settings() ui.SettingsSnapshot {
 	out := ui.SettingsSnapshot{}
-	if w.SessionID != "" {
-		if tier, ok := w.A.PermissionTier(w.SessionID); ok {
+	if w.currentSession() != "" {
+		if tier, ok := w.A.PermissionTier(w.currentSession()); ok {
 			out.Tier = string(tier)
 			out.TierKnown = true
 		}
@@ -418,6 +513,10 @@ func (w *App) Settings() ui.SettingsSnapshot {
 	out.ModalityTasks = append([]ui.ModalityTaskSnapshot(nil), w.tasks...)
 	out.TasksError = w.tasksErr
 	w.tasksMu.Unlock()
+	w.providerMu.Lock()
+	out.ProviderRecords = append([]ui.ProviderRecordSnapshot(nil), w.providerRecords...)
+	out.ProviderError = w.providerErr
+	w.providerMu.Unlock()
 	if report, ok := settings.Storage(); ok {
 		out.Storage = ui.StorageSnapshot{
 			DatabaseBytes:    report.DatabaseBytes,
@@ -554,10 +653,10 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 // Terminal 是当前会话终端的状态；输出由 pty 流式读取，本批不缓存。
 func (w *App) Terminal() ui.TerminalSnapshot {
 	registry := w.A.Terminals()
-	if registry == nil || w.SessionID == "" {
+	if registry == nil || w.currentSession() == "" {
 		return ui.TerminalSnapshot{}
 	}
-	terminal, ok := registry.Get(w.SessionID)
+	terminal, ok := registry.Get(w.currentSession())
 	if !ok {
 		return ui.TerminalSnapshot{}
 	}
@@ -644,16 +743,53 @@ func (w *App) OpenSession(ctx context.Context, name string) error {
 	if _, err := w.A.OpenSession(ctx, name); err != nil {
 		return fmt.Errorf("打开会话 %s：%w", name, err)
 	}
-	w.SessionID = name
+	w.setSession(name)
 	w.changed()
 	return nil
 }
 
 func (w *App) Submit(ctx context.Context, text string) error {
-	if w.SessionID == "" {
+	return w.SubmitWithContent(ctx, text, nil)
+}
+
+// SubmitWithContent 提交文本 + 内容块；超过 4KB 的长文本先 attachment.put，
+// 再以 `[Pasted text: path (N lines)]` 文本块提交。
+func (w *App) SubmitWithContent(
+	ctx context.Context,
+	text string,
+	blocks []ui.ContentBlockSnapshot,
+) error {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	_, err := w.A.Submit(ctx, app.SubmitRequest{SessionID: w.SessionID, Text: text})
+	if strings.TrimSpace(text) == "" && len(blocks) == 0 {
+		return fmt.Errorf("提交文本为空")
+	}
+	content := make([]app.SubmitContentBlock, 0, len(blocks)+1)
+	if len(text) > 4096 {
+		ref, err := w.WriteAttachment(ctx, "pasted-text.txt", text)
+		if err != nil {
+			return err
+		}
+		lines := strings.Count(text, "\n") + 1
+		content = append(content, app.SubmitContentBlock{
+			Kind: "text", Text: fmt.Sprintf("[Pasted text: %s (%d lines)]", ref.Path, lines),
+		})
+		text = ""
+	}
+	for _, block := range blocks {
+		mapped := app.SubmitContentBlock{Kind: block.Kind, Text: block.Text}
+		if block.Image != nil {
+			mapped.Image = &app.SubmitImage{
+				FileID: block.Image.FileID, SourceType: block.Image.SourceType,
+				MediaType: block.Image.MediaType, Data: block.Image.Data, URL: block.Image.URL,
+			}
+		}
+		content = append(content, mapped)
+	}
+	_, err := w.A.Submit(ctx, app.SubmitRequest{
+		SessionID: w.currentSession(), Text: text, Content: content,
+	})
 	w.changed()
 	return err
 }
@@ -661,50 +797,50 @@ func (w *App) Submit(ctx context.Context, text string) error {
 func (w *App) Queue(ctx context.Context, text string) error { return w.Submit(ctx, text) }
 
 func (w *App) Stop(ctx context.Context) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	_, err := w.A.Stop(ctx, w.SessionID)
+	_, err := w.A.Stop(ctx, w.currentSession())
 	w.changed()
 	return err
 }
 
 func (w *App) RespondApproval(ctx context.Context, decision string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	view, ok := w.A.View(w.SessionID)
+	view, ok := w.A.View(w.currentSession())
 	if !ok || !view.HasCurrent {
 		return fmt.Errorf("没有待决审批")
 	}
-	_, err := w.A.Respond(ctx, w.SessionID, view.Current.RequestID, approvalResponse(decision))
+	_, err := w.A.Respond(ctx, w.currentSession(), view.Current.RequestID, approvalResponse(decision))
 	w.changed()
 	return err
 }
 
 func (w *App) RespondQuestion(ctx context.Context, answer string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	view, ok := w.A.View(w.SessionID)
+	view, ok := w.A.View(w.currentSession())
 	if !ok || !view.HasCurrent {
 		return fmt.Errorf("没有待答提问")
 	}
-	_, err := w.A.Respond(ctx, w.SessionID, view.Current.RequestID, questionResponse(answer))
+	_, err := w.A.Respond(ctx, w.currentSession(), view.Current.RequestID, questionResponse(answer))
 	w.changed()
 	return err
 }
 
 // SkipQuestion 是提问卡的「跳过」：按取消提交，不当作拒绝。
 func (w *App) SkipQuestion(ctx context.Context) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	view, ok := w.A.View(w.SessionID)
+	view, ok := w.A.View(w.currentSession())
 	if !ok || !view.HasCurrent {
 		return fmt.Errorf("没有待答提问")
 	}
-	_, err := w.A.Respond(ctx, w.SessionID, view.Current.RequestID,
+	_, err := w.A.Respond(ctx, w.currentSession(), view.Current.RequestID,
 		interaction.Response{Decision: interaction.DecisionCancel})
 	w.changed()
 	return err
@@ -715,7 +851,7 @@ func (w *App) RetrySubmit(ctx context.Context) error { return w.Submit(ctx, "") 
 func (w *App) CreateSession(ctx context.Context, cwd string) error {
 	if strings.TrimSpace(cwd) == "" {
 		// 界面没有目录选择器：沿用当前会话的工作目录；没有打开会话时取目录首项。
-		cwd = w.sessionWorkspace(w.SessionID)
+		cwd = w.sessionWorkspace(w.currentSession())
 		if cwd == "" {
 			if names := w.SessionNames(); len(names) > 0 {
 				cwd = w.sessionWorkspace(names[0])
@@ -775,11 +911,11 @@ func (w *App) DeleteSession(ctx context.Context, sessionID string) error {
 	if err := domain.Delete(ctx, catalog.DeleteRequest{SessionID: sessionID}); err != nil {
 		return err
 	}
-	if w.SessionID == sessionID {
+	if w.currentSession() == sessionID {
 		if names := w.SessionNames(); len(names) > 0 {
-			w.SessionID = names[0]
+			w.setSession(names[0])
 		} else {
-			w.SessionID = ""
+			w.setSession("")
 		}
 	}
 	w.changed()
@@ -819,13 +955,13 @@ func (w *App) ExportSession(ctx context.Context, sessionID string) (string, erro
 
 // SetPermissionTier 走会话方法切换权限档位；服务端没有该方法时按能力缺失返回。
 func (w *App) SetPermissionTier(ctx context.Context, tier string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
 	if strings.TrimSpace(tier) == "" {
 		return fmt.Errorf("权限档位为空")
 	}
-	if err := w.A.SetPermissionTier(ctx, w.SessionID, interaction.PermissionTier(tier)); err != nil {
+	if err := w.A.SetPermissionTier(ctx, w.currentSession(), interaction.PermissionTier(tier)); err != nil {
 		return err
 	}
 	w.changed()
@@ -890,10 +1026,10 @@ func (w *App) WriteCommandRules(ctx context.Context, rules []ui.RuleSnapshot) er
 
 // SelectBranch 切换当前查看的分支。
 func (w *App) SelectBranch(ctx context.Context, branchID string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if _, err := w.A.SelectBranch(ctx, w.SessionID, branchID); err != nil {
+	if _, err := w.A.SelectBranch(ctx, w.currentSession(), branchID); err != nil {
 		return err
 	}
 	w.changed()
@@ -902,10 +1038,10 @@ func (w *App) SelectBranch(ctx context.Context, branchID string) error {
 
 // CreateBranch 从当前分支的指定轮次切出新分支。
 func (w *App) CreateBranch(ctx context.Context, parentID string, turnIndex int, prompt string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if _, err := w.A.CreateBranch(ctx, w.SessionID, parentID, turnIndex, prompt); err != nil {
+	if _, err := w.A.CreateBranch(ctx, w.currentSession(), parentID, turnIndex, prompt); err != nil {
 		return err
 	}
 	w.changed()
@@ -914,10 +1050,10 @@ func (w *App) CreateBranch(ctx context.Context, parentID string, turnIndex int, 
 
 // EndBranch 结束一个非主线分支。
 func (w *App) EndBranch(ctx context.Context, branchID string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if _, err := w.A.EndBranch(ctx, w.SessionID, branchID); err != nil {
+	if _, err := w.A.EndBranch(ctx, w.currentSession(), branchID); err != nil {
 		return err
 	}
 	w.changed()
@@ -927,19 +1063,30 @@ func (w *App) EndBranch(ctx context.Context, branchID string) error {
 // ---- 附件 ----
 
 // WriteAttachment 把文本存成会话文件；等到终态后返回写入的附件名。
-func (w *App) WriteAttachment(ctx context.Context, name, text string) (string, error) {
-	if w.SessionID == "" {
-		return "", fmt.Errorf("没有打开的会话")
+func (w *App) WriteAttachment(ctx context.Context, name, text string) (ui.AttachmentRefSnapshot, error) {
+	if w.currentSession() == "" {
+		return ui.AttachmentRefSnapshot{}, fmt.Errorf("没有打开的会话")
 	}
-	view, err := w.A.WriteAttachment(ctx, w.SessionID, name, text)
+	view, err := w.A.WriteAttachment(ctx, w.currentSession(), name, text)
 	if err != nil {
-		return "", err
+		return ui.AttachmentRefSnapshot{}, err
 	}
 	if settled, waitErr := w.A.Wait(ctx, view.ID); waitErr == nil {
 		view = settled
 	}
+	ref := ui.AttachmentRefSnapshot{Name: name}
+	if len(view.Result) > 0 {
+		var reply struct {
+			AttachmentID string `json:"attachmentId"`
+			Path         string `json:"path"`
+		}
+		if err := json.Unmarshal(view.Result, &reply); err == nil {
+			ref.ID = reply.AttachmentID
+			ref.Path = reply.Path
+		}
+	}
 	w.changed()
-	return name, nil
+	return ref, nil
 }
 
 // Reconnect 重连控制连接。
@@ -957,10 +1104,10 @@ func (w *App) Reconnect(ctx context.Context) error {
 
 // ReadGoal 读当前目标（session.goal.get），返回原始回执文本。
 func (w *App) ReadGoal(ctx context.Context) (string, error) {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return "", fmt.Errorf("没有打开的会话")
 	}
-	raw, err := w.A.ReadGoal(ctx, w.SessionID)
+	raw, err := w.A.ReadGoal(ctx, w.currentSession())
 	if err != nil {
 		return "", err
 	}
@@ -969,10 +1116,10 @@ func (w *App) ReadGoal(ctx context.Context) (string, error) {
 
 // SetGoal 新建或覆盖目标。
 func (w *App) SetGoal(ctx context.Context, objective string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.SetGoal(ctx, w.SessionID, objective); err != nil {
+	if err := w.A.SetGoal(ctx, w.currentSession(), objective); err != nil {
 		return err
 	}
 	w.changed()
@@ -981,10 +1128,10 @@ func (w *App) SetGoal(ctx context.Context, objective string) error {
 
 // EditGoal 修改目标文本。
 func (w *App) EditGoal(ctx context.Context, objective string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.EditGoal(ctx, w.SessionID, objective); err != nil {
+	if err := w.A.EditGoal(ctx, w.currentSession(), objective); err != nil {
 		return err
 	}
 	w.changed()
@@ -993,10 +1140,10 @@ func (w *App) EditGoal(ctx context.Context, objective string) error {
 
 // PauseGoal 暂停目标。
 func (w *App) PauseGoal(ctx context.Context) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.PauseGoal(ctx, w.SessionID); err != nil {
+	if err := w.A.PauseGoal(ctx, w.currentSession()); err != nil {
 		return err
 	}
 	w.changed()
@@ -1005,10 +1152,10 @@ func (w *App) PauseGoal(ctx context.Context) error {
 
 // ResumeGoal 恢复目标。
 func (w *App) ResumeGoal(ctx context.Context) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.ResumeGoal(ctx, w.SessionID); err != nil {
+	if err := w.A.ResumeGoal(ctx, w.currentSession()); err != nil {
 		return err
 	}
 	w.changed()
@@ -1017,10 +1164,10 @@ func (w *App) ResumeGoal(ctx context.Context) error {
 
 // ClearGoal 清除目标。
 func (w *App) ClearGoal(ctx context.Context) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.ClearGoal(ctx, w.SessionID); err != nil {
+	if err := w.A.ClearGoal(ctx, w.currentSession()); err != nil {
 		return err
 	}
 	w.changed()
@@ -1029,12 +1176,244 @@ func (w *App) ClearGoal(ctx context.Context) error {
 
 // StopExecTask 停止一条后台任务。
 func (w *App) StopExecTask(ctx context.Context, taskID string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.StopExecTask(ctx, w.SessionID, taskID); err != nil {
+	if err := w.A.StopExecTask(ctx, w.currentSession(), taskID); err != nil {
 		return err
 	}
+	w.changed()
+	return nil
+}
+
+// ---- 供应商管理 ----
+
+// CreateProvider 新建一个 provider；driver 取 openai，认证用 bearer + 显式密钥。
+func (w *App) CreateProvider(ctx context.Context, id, name, baseURL, apiKey string) error {
+	manager := w.A.Settings()
+	if manager == nil {
+		return fmt.Errorf("设置领域未就绪")
+	}
+	if !looksLikeUUID(id) {
+		id = newUUID()
+	}
+	connection := settings.ProviderConnectionInput{
+		DriverKind: "openai",
+		BaseURL:    baseURL,
+		Auth:       settings.ProviderAuth{Type: "bearer"},
+	}
+	if apiKey != "" {
+		connection.Credential = &settings.ProviderCredential{Action: "set", Value: apiKey}
+	}
+	if _, err := manager.CreateProvider(ctx, settings.ProviderCreateRequest{
+		ID: id, DisplayName: name, Connection: connection, Enabled: true,
+	}); err != nil {
+		return err
+	}
+	w.refreshProviderRecords(ctx)
+	w.changed()
+	return nil
+}
+
+// UpdateProvider 修改 provider 的显示名、Base URL 与密钥。
+func (w *App) UpdateProvider(ctx context.Context, id, name, baseURL, apiKey string) error {
+	manager := w.A.Settings()
+	if manager == nil {
+		return fmt.Errorf("设置领域未就绪")
+	}
+	detail, err := manager.ReadProvider(ctx, id)
+	if err != nil {
+		return err
+	}
+	if detail.Version == nil {
+		return fmt.Errorf("provider %s 没有可写版本", id)
+	}
+	patch := settings.ProviderPatch{}
+	if name != "" {
+		patch.DisplayName = &name
+	}
+	if baseURL != "" {
+		patch.BaseURL = &baseURL
+	}
+	if apiKey != "" {
+		patch.Credential = &settings.ProviderCredentialUpdate{Action: "set", Value: apiKey}
+	}
+	if _, err := manager.UpdateProvider(ctx, settings.ProviderUpdateRequest{
+		ProviderID: id, ExpectedVersion: *detail.Version, Patch: patch,
+	}); err != nil {
+		return err
+	}
+	w.refreshProviderRecords(ctx)
+	w.changed()
+	return nil
+}
+
+// ProbeProvider 探测一个已存在的 provider，返回发现的模型数。
+func (w *App) ProbeProvider(ctx context.Context, id string) (int, error) {
+	manager := w.A.Settings()
+	if manager == nil {
+		return 0, fmt.Errorf("设置领域未就绪")
+	}
+	patch := &settings.ProviderPatch{}
+	w.providerMu.Lock()
+	for _, record := range w.providerRecords {
+		if record.ID == id && record.BaseURL != "" {
+			base := record.BaseURL
+			patch.BaseURL = &base
+			break
+		}
+	}
+	w.providerMu.Unlock()
+	result, err := manager.ProbeProvider(ctx, settings.ProviderProbeRequest{
+		ProviderID: id,
+		Patch:      patch,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return len(result.Models), nil
+}
+
+// SetProviderModelEnabled 启用/禁用 provider 下的一个模型。
+func (w *App) SetProviderModelEnabled(
+	ctx context.Context,
+	providerID, modelID string,
+	enabled bool,
+) error {
+	manager := w.A.Settings()
+	if manager == nil {
+		return fmt.Errorf("设置领域未就绪")
+	}
+	detail, err := manager.ReadProvider(ctx, providerID)
+	if err != nil {
+		return err
+	}
+	if detail.Version == nil {
+		return fmt.Errorf("provider %s 没有可写版本", providerID)
+	}
+	if _, err := manager.SetModelEnabled(ctx, providerID, modelID, *detail.Version, enabled); err != nil {
+		return err
+	}
+	w.refreshProviderRecords(ctx)
+	w.changed()
+	return nil
+}
+
+// looksLikeUUID 判断 provider 标识是否已是服务端要求的小写 UUID。
+func looksLikeUUID(value string) bool {
+	if len(value) != 36 || value[8] != '-' || value[13] != '-' || value[18] != '-' || value[23] != '-' {
+		return false
+	}
+	for _, r := range value {
+		if r == '-' {
+			continue
+		}
+		if (r < '0' || r > '9') && (r < 'a' || r > 'f') {
+			return false
+		}
+	}
+	return true
+}
+
+// newUUID 生成一个小写 UUID v4（provider 标识需要）。
+func newUUID() string {
+	var b [16]byte
+	_, _ = rand.Read(b[:])
+	b[6] = (b[6] & 0x0f) | 0x40
+	b[8] = (b[8] & 0x3f) | 0x80
+	text := hex.EncodeToString(b[:])
+	return text[0:8] + "-" + text[8:12] + "-" + text[12:16] + "-" + text[16:20] + "-" + text[20:32]
+}
+
+// ---- 账号登录 ----
+
+// BeginLogin 发起一次浏览器或设备码登录，返回要显示的提示；不等待完成。
+func (w *App) BeginLogin(ctx context.Context, method string) (ui.LoginPromptSnapshot, error) {
+	domain := w.A.Account()
+	if domain == nil {
+		return ui.LoginPromptSnapshot{}, fmt.Errorf("账号领域未就绪")
+	}
+	providers, err := domain.Providers(ctx)
+	if err != nil {
+		return ui.LoginPromptSnapshot{}, err
+	}
+	loginMethod := account.LoginMethod(method)
+	providerID := ""
+	for _, provider := range providers {
+		for _, declared := range provider.LoginMethods {
+			if declared == loginMethod {
+				providerID = provider.ID
+				break
+			}
+		}
+		if providerID != "" {
+			break
+		}
+	}
+	if providerID == "" {
+		return ui.LoginPromptSnapshot{}, fmt.Errorf("没有声明 %s 登录方式的 provider", method)
+	}
+	start, err := domain.BeginLogin(ctx, account.LoginRequest{ProviderID: providerID, Method: loginMethod})
+	if err != nil {
+		return ui.LoginPromptSnapshot{}, err
+	}
+	prompt := ui.LoginPromptSnapshot{
+		ProviderID: start.ProviderID, Method: string(start.Method), Attempt: start.Attempt,
+		URL: start.AuthorizationURL, UserCode: start.UserCode, VerifyURL: start.VerificationURIComplete,
+	}
+	if prompt.VerifyURL == "" {
+		prompt.VerifyURL = start.VerificationURI
+	}
+	w.accountMu.Lock()
+	w.loginPrompt = prompt
+	w.accountMu.Unlock()
+	w.changed()
+	return prompt, nil
+}
+
+// WaitLogin 等待当前登录尝试完成；成功后重读账号、用量与模型清单。
+func (w *App) WaitLogin(ctx context.Context) error {
+	domain := w.A.Account()
+	if domain == nil {
+		return fmt.Errorf("账号领域未就绪")
+	}
+	if _, err := domain.WaitLogin(ctx); err != nil {
+		return err
+	}
+	_, _ = domain.Refresh(ctx)
+	_, _ = domain.RefreshUsage(ctx)
+	_, _ = domain.RefreshModels(ctx)
+	w.accountMu.Lock()
+	w.loginPrompt = ui.LoginPromptSnapshot{}
+	w.accountMu.Unlock()
+	w.changed()
+	return nil
+}
+
+// CancelLogin 取消当前登录尝试。
+func (w *App) CancelLogin(ctx context.Context) error {
+	domain := w.A.Account()
+	if domain == nil {
+		return fmt.Errorf("账号领域未就绪")
+	}
+	domain.CancelLogin()
+	w.accountMu.Lock()
+	w.loginPrompt = ui.LoginPromptSnapshot{}
+	w.accountMu.Unlock()
+	w.changed()
+	return nil
+}
+
+// Logout 退出当前账号。
+func (w *App) Logout(ctx context.Context) error {
+	domain := w.A.Account()
+	if domain == nil {
+		return fmt.Errorf("账号领域未就绪")
+	}
+	if _, err := domain.Logout(ctx, account.LogoutRequest{}); err != nil {
+		return err
+	}
+	_, _ = domain.Refresh(ctx)
 	w.changed()
 	return nil
 }
@@ -1141,7 +1520,7 @@ func (w *App) ImportMCP(ctx context.Context, sourceID string) (int, error) {
 	if strings.TrimSpace(sourceID) == "" {
 		return 0, fmt.Errorf("导入来源为空")
 	}
-	cwd := w.sessionWorkspace(w.SessionID)
+	cwd := w.sessionWorkspace(w.currentSession())
 	preview, err := service.PreviewMCPImport(ctx, extensions.MCPImportPreviewRequest{
 		Cwd:    cwd,
 		Source: extensions.SourceUser,
@@ -1224,14 +1603,14 @@ func (w *App) DeleteSchedule(ctx context.Context, jobID string) error {
 
 // CancelModalityTask 取消一条运行中的模态任务；成功后重读任务清单。
 func (w *App) CancelModalityTask(ctx context.Context, taskID string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
 	if strings.TrimSpace(taskID) == "" {
 		return fmt.Errorf("任务标识为空")
 	}
 	view, err := w.A.ModalityWrite(ctx, app.ModalityWriteRequest{
-		SessionID: w.SessionID,
+		SessionID: w.currentSession(),
 		Op:        app.ModalityTaskCancel,
 		Params:    map[string]any{"taskId": taskID},
 	})
@@ -1248,10 +1627,10 @@ func (w *App) CancelModalityTask(ctx context.Context, taskID string) error {
 
 // RunShell 登记一次会话内命令执行，返回运行标识供停止使用。
 func (w *App) RunShell(ctx context.Context, command string) (string, error) {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return "", fmt.Errorf("没有打开的会话")
 	}
-	view, err := w.A.RunShell(ctx, app.ShellRunRequest{SessionID: w.SessionID, Command: command})
+	view, err := w.A.RunShell(ctx, app.ShellRunRequest{SessionID: w.currentSession(), Command: command})
 	if err != nil {
 		return "", err
 	}
@@ -1265,13 +1644,13 @@ func (w *App) RunShell(ctx context.Context, command string) (string, error) {
 
 // StopShell 停止一次已经发出的命令执行。
 func (w *App) StopShell(ctx context.Context, runID string) error {
-	if w.SessionID == "" {
+	if w.currentSession() == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
 	if strings.TrimSpace(runID) == "" {
 		return fmt.Errorf("没有要停止的运行")
 	}
-	if _, err := w.A.StopShell(ctx, app.ShellStopRequest{SessionID: w.SessionID, RunID: runID}); err != nil {
+	if _, err := w.A.StopShell(ctx, app.ShellStopRequest{SessionID: w.currentSession(), RunID: runID}); err != nil {
 		return err
 	}
 	w.changed()

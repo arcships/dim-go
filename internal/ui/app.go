@@ -265,6 +265,13 @@ type App struct {
 
 	// 第 8 节：时区；第 7 节：诊断导出/打开的回执。
 	timeZone            string
+	providerFormOpen    bool
+	providerEditing     string
+	providerIDDraft     string
+	providerNameDraft   string
+	providerBaseDraft   string
+	providerKeyDraft    string
+	providerProbe       map[string]string
 	diagnosticsExported bool
 	diagnosticsOpened   bool
 
@@ -299,10 +306,13 @@ type App struct {
 	lastShellRun string
 
 	// 待发附件（样例）与权限档位（提交值与草稿值分开：切换要两步确认）。
-	attachments       []string
+	attachments       []attachmentChipData
 	attachmentEditing bool
+	attachmentKind    string
 	attachmentName    string
 	attachmentText    string
+	attachmentMedia   string
+	attachmentData    string
 	tier              string
 	tierDraft         string
 	tierPending       string
@@ -429,6 +439,10 @@ func (a *App) loadSample() {
 	a.runtimeState = extLoaded
 	a.modalTask, a.modalSubmitted = "", ""
 	a.timeZone = "跟随系统"
+	a.providerFormOpen = false
+	a.providerEditing = ""
+	a.providerIDDraft, a.providerNameDraft, a.providerBaseDraft, a.providerKeyDraft = "", "", "", ""
+	a.providerProbe = map[string]string{}
 	a.diagnosticsExported, a.diagnosticsOpened = false, false
 	a.extTab, a.extState = 0, extLoaded
 	a.extDetail, a.extUninstallConfirm = -1, false
@@ -436,7 +450,7 @@ func (a *App) loadSample() {
 	a.extSelected = map[string]bool{}
 	a.mcpTest, a.mcpTestDone = map[string]mcpState{}, map[string]bool{}
 	a.importMCP = ""
-	a.attachments = []string{"发送路径.md"}
+	a.attachments = []attachmentChipData{{name: "发送路径.md", kind: "text"}}
 	a.tier, a.tierDraft, a.tierPending = "工作区内自动", "工作区内自动", ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
@@ -608,6 +622,10 @@ func (a *App) resetWiredViewState() {
 	a.runtimeState = extLoaded
 	a.modalTask, a.modalSubmitted = "", ""
 	a.timeZone = "跟随系统"
+	a.providerFormOpen = false
+	a.providerEditing = ""
+	a.providerIDDraft, a.providerNameDraft, a.providerBaseDraft, a.providerKeyDraft = "", "", "", ""
+	a.providerProbe = map[string]string{}
 	a.diagnosticsExported, a.diagnosticsOpened = false, false
 
 	a.extTab, a.extState = 0, extLoaded
@@ -621,6 +639,8 @@ func (a *App) resetWiredViewState() {
 	a.attachments = nil
 	a.attachmentEditing = false
 	a.attachmentName, a.attachmentText = "", ""
+	a.attachmentKind = "text"
+	a.attachmentMedia, a.attachmentData = "", ""
 	a.tier, a.tierDraft, a.tierPending = "", "", ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1

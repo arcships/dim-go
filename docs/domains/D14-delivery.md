@@ -74,7 +74,7 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 左栏会话列表 | `Source.SessionNames`（目录快照） | 已接 |
 | 时间线历史与实时事实 | `Source.Session`（投影行） | 已接；服务端 `session.event` 到达后行数增长 |
 | 待决审批 / 提问 | `Source.Approval` / `Source.Question` | 已接；命令动作描述来自通知 |
-| 设置 · 账号与套餐 | `Source.Account` / `Source.Usage` | 读服务端账号状态、身份与用量聚合项 |
+| 设置 · 账号与套餐 | `Source.Account` / `Source.Usage` | 读服务端账号状态、身份、用量与登录状态 |
 | 设置 · 模型与供应商 | `Source.Settings`（provider/model/权限档位） | 读模型目录快照；档位来自 `session.permission.get` |
 | 设置 · 扩展 | `Source.Extensions`（四类） | 读 `plugin.list` / `skills.catalog` / `hooks.catalog` / `mcp.catalog` 快照 |
 | 设置 · 定时任务 | `Source.Schedules` | 读 `schedule.list` 快照 |
@@ -95,7 +95,8 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 
 | 视图元素 | `ui.Intents` | app / 领域方法 | 服务端方法 | 测试 |
 |---|---|---|---|---|
-| 发送槽 | `Submit` | `app.Submit` | `session.submit` | `TestIntentSubmit` |
+| 发送槽 | `Submit` / `SubmitWithContent` | `app.Submit`（`user.content`） | `session.submit` | `TestIntentSubmit` / `TestIntentSubmitContent` |
+| 长文本发送（>4KB） | `SubmitWithContent` | `attachment.put` → `[Pasted text: path]` | `session.submit` | `TestIntentSubmitLargeText` |
 | 停止槽 | `Stop` | `app.Stop`（本批新增：主线停止） | `session.stop` | `TestIntentStop` |
 | 审批 · 允许一次 / 一直允许 / 拒绝 | `RespondApproval` | `app.Respond` | `approval.respond` | `TestIntentApproval` |
 | 提问 · 回答 / 跳过 | `RespondQuestion` / `SkipQuestion` | `app.Respond` | `question.respond` | `TestIntentQuestion` / `TestIntentQuestionSkip` |
@@ -106,6 +107,14 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 会话菜单 · 删除（两步确认） | `DeleteSession` | `catalog.Catalog.Delete` | `session.delete` | `TestIntentDelete` |
 | 会话菜单 · 导出 | `ExportSession` | `catalog.Catalog.Export` | 读历史后写本地 `.md` | `TestIntentExport` |
 | 设置 · 供应商 / 模型 | `SelectModel` | `settings.Manager.SelectModel` | `provider.select` | `TestIntentSelectModel` |
+| 设置 · 新增供应商 | `CreateProvider` | `settings.Manager.CreateProvider` | `provider.create` | `TestIntentCreateProvider` |
+| 设置 · 编辑供应商 | `UpdateProvider` | `settings.Manager.UpdateProvider` | `provider.update` | 同一路径（表单保存） |
+| 设置 · 探测供应商 | `ProbeProvider` | `settings.Manager.ProbeProvider` | `provider.probe` | `TestIntentProbeProvider` |
+| 设置 · 模型启用/停用 | `SetProviderModelEnabled` | `settings.Manager.SetModelEnabled` | `provider.models.set_enabled` | `TestIntentProviderModelToggle` |
+| 设置 · 浏览器登录 | `BeginLogin("browser")` | `account.BeginLogin` | `account.login.browser.begin` | 界面已接；浏览器由系统打开 |
+| 设置 · 设备码登录 | `BeginLogin("device")` | `account.BeginLogin` | `account.login.begin` | `TestIntentDeviceLogin` |
+| 设置 · 等待 / 取消登录 | `WaitLogin` / `CancelLogin` | `account.WaitLogin/CancelLogin` | `account.login.status` | 界面已接 |
+| 设置 · 退出登录 | `Logout` | `account.Logout` | `account.logout` | `TestIntentLogout` |
 | 设置 · 命令规则修改 / 清空 | `WriteCommandRules` | `app.WriteCommandRules` | `permission.set_rules` | `TestIntentChangeRule` / `TestIntentClearRules` |
 | 设置 · 权限档位（两步确认） | `SetPermissionTier` | `app.SetPermissionTier` | `session.permission.update` | 界面已发；受 `local_execution` 门控（mock 不注册，configured profile 可用） |
 | 设置 · 插件 / 技能启停 | `SetExtensionEnabled` | `extensions.SetPluginEnabled/SetSkillEnabled` | `plugin.enable/disable`、`skills.set_enabled` | `TestIntentExtensionToggle` |
@@ -133,7 +142,9 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 右栏 · 后台任务停止 | `StopExecTask` | `app.StopExecTask` | `session.exec.stop` | `TestIntentStopExecTask` |
 | 设置 · 外观 / 侧栏 / 窗口 | 本地偏好 | `app.UpdatePreferences`（`<数据目录>/preferences.json`） | 无 | `TestPreferencesRoundTrip` / `TestPreferencesCorruptFallsBack` |
 
-分支切出的起始提问取当前草稿；草稿为空时用「从当前分支切出」，切点取已加载轮次的最后一轮。附件先做文本，文件路径与消息引用见 §5。
+分支切出的起始提问取当前草稿；草稿为空时用「从当前分支切出」，切点取已加载轮次的最后一轮。
+
+提交正文的真实流程（源码）：`protocol.rs:742-756` 的 `Submit` 收 `user: {content: [ContentBlock]}`；`dim-agent-types/content.rs:36` 定义 `Text { text }` 与 `Image { source }`；`dim-cli/composer.rs:495` 对大段文本先 `attachment.put {sessionId, text}` 取回 `path`，再以 `[Pasted text: path (N lines)]` 作为文本块提交。图片用 `ImageSource{fileId}` 或 `base64{mediaType,data}`。账号登录方法见 `protocol.rs:223-228`，供应商管理见同文件 `204-218`。
 
 MCP 导入的来源来自 `mcp.import.sources`（连接后读一次，界面列出来源）；点一个来源先 `mcp.import.preview`，再按预览的 `revision` / `sourceRevision` 发 `mcp.import.apply`。插件/技能/MCP 的标识用服务端 ID，不用展示名。
 
@@ -158,7 +169,8 @@ MCP 导入的来源来自 `mcp.import.sources`（连接后读一次，界面列�
 | 视图元素 | 现状与缺口 | 当前表现 / 谁能解除 |
 |---|---|---|
 | 设置 · 运行时提交模态任务 | `runtime.list/install` 协议有定义，但服务端未注册 `runtime.*`（D1 §7.1 的 issue）；`SubmitTask` 还需要 `category/operation` | 提交按钮禁用并显示 "blocked：服务端未注册 runtime.* / 模态任务提交方法"；D1 恢复能力后再接 |
-| 附件与消息的关联 | Electron 侧是客户端草稿（`pickFiles` / `stagePaths` / `materialize`）；`session.submit` 的附件引用形状需 configured profile 核对。本机缺离线模型配置，**待核对**，不能写成"协议没有" | `attachment.put` 已写会话文件；发送成功后清空本地暂存 chips，消息本身暂不带附件引用 |
+
+附件与登录不再列为未接：`session.submit` 的正文走 `user.content`（`Text` / `Image` 块），长文本先 `attachment.put` 再以 `[Pasted text: path]` 引用；`account.login.*` 与 `provider.*` 已接。
 
 ## 6. 已知边界
 
@@ -193,6 +205,8 @@ go test ./internal/uiwire -run TestDisconnectSurfacesPhase -v -count=1
 go test ./internal/uiwire -run TestIntent -v -count=1
 # 预期（节选）：
 #   点了「发送」→ 服务端收到 session.submit（1 次），text=你好
+#   点了「发送」（带附件）→ session.submit，content 块=[text text image]
+#   点了「发送」（长文本）→ attachment.put + session.submit，首块="[Pasted text: ...]"
 #   点了「停止」→ 服务端收到 session.stop（1 次），sessionId=s1
 #   点了「允许一次」→ 服务端收到 approval.respond（1 次），decision=allow
 #   点了「回答」→ 服务端收到 question.respond（1 次）
@@ -203,6 +217,11 @@ go test ./internal/uiwire -run TestIntent -v -count=1
 #   点了「删除 · 确认」→ 服务端收到 session.delete（1 次）
 #   点了「导出」→ 本地写出 dimagent-export-<时间戳>.md
 #   点了「供应商 · Beta」→ 服务端收到 provider.select（1 次），providerId=beta modelId=model-b
+#   点了「创建 provider」→ 服务端收到 provider.create（1 次）
+#   点了「探测 acme」→ 服务端收到 provider.probe（1 次）
+#   点了「停用模型」→ 服务端收到 provider.models.set_enabled（1 次）
+#   点了「设备码登录」→ 服务端收到 account.login.begin（1 次）
+#   点了「退出登录」→ 服务端收到 account.logout（1 次）
 #   点了「允许→拒绝」→ 服务端收到 permission.set_rules（1 次），rules=[... decision:deny ...]
 #   点了「清空命令规则 · 确认」→ 服务端收到 permission.set_rules（1 次），expectedRevision=rules-rev-1 rules=[]
 #   点了「从当前分支切出」→ 服务端收到 session.branch_create（1 次），parentBranchId=main at=5
@@ -229,7 +248,7 @@ go test ./internal/uiwire -run TestIntent -v -count=1
 #     随后 mcp.import.apply（1 次），from=src-1 expectedVersion=rev-2 sourceRevision=src-rev-1
 #   点了「运行命令」→ 服务端收到 shell.run（1 次），command=echo hi
 #   点了「终端 · 中止」→ 服务端收到 shell.stop（1 次），runId=run-srv-1
-#   --- PASS: TestIntent...（34 条）
+#   --- PASS: TestIntent...（41 条）
 
 # 4) 本地偏好：往返、损坏回退、视图套用
 go test ./internal/app -run TestPreferences -v -count=1
@@ -237,17 +256,22 @@ go test ./internal/app -run TestPreferences -v -count=1
 go test ./internal/ui -run TestPreferencesSeedView -v -count=1
 # 预期：--- PASS: TestPreferencesSeedView
 
-# 5) 接上事实后不出现样例常量（逐屏渲染断言）
+# 5) 并发：50 轮加附件/发送/切会话，每帧渲染；不得有数据竞争
+go test -race ./internal/uiwire -run TestConcurrentUIInteractions -count=1
+# 预期：50 轮交互完成：session.submit=50 attachment.put=50 ...；ok
+
+# 6) 接上事实后不出现样例常量（逐屏渲染断言）
 go test ./internal/ui -run TestWiredScreensExcludeSamples -v -count=1
 # 预期：--- PASS: TestWiredScreensExcludeSamples
 
-# 6) 构建、静态检查、全量测试
+# 7) 构建、静态检查、全量测试、race
 go build ./...
 go vet ./...
 go test ./... -count=1
-# 预期：全部 ok；uiwire 的真实服务端测试按 §6.1 标 blocked
+go test -race ./internal/ui ./internal/uiwire -count=1
+# 预期：全部 ok；-race 下 ui/uiwire 无竞争；uiwire 的真实服务端测试按 §6.1 标 blocked
 
-# 7) 界面检查器：20 个检查项与 14 条种子
+# 8) 界面检查器：20 个检查项与 14 条种子
 scripts/ui-lint
 # 预期：检查器全绿：20 个检查项；--- PASS: TestUILint
 scripts/ui-lint --seeds
@@ -269,10 +293,11 @@ scripts/ui-lint --seeds
 | `cmd/dimagent-ui/main.go` | `-connect` 模式、`OnChange` 重绘、250ms 刷新 |
 | `cmd/dimagent-fake-server/main.go` | 截图用的假服务端（dev-only，不是产品入口） |
 | `internal/uiwire/e2e_test.go` | 五步端到端、断线 |
-| `internal/uiwire/intents_test.go` | 点击 → 服务端收到 / 本地写出（34 条动作） |
+| `internal/uiwire/intents_test.go` | 点击 → 服务端收到 / 本地写出（41 条动作）+ 50 轮并发交互 |
 | `internal/app/session.go` | `App.Stop`：主线停止的写意图入口 |
 | `internal/app/preferences.go` | 本地偏好 `preferences.json` 的读写与默认值 |
 | `internal/app/goals.go` | 目标方法（`session.goal.*`）与 `session.exec.stop` |
+| `internal/app/session.go` | `SubmitRequest.Content` 与 `user.content` 编码 |
 | `internal/app/rules.go`、`internal/app/branches.go`、`internal/app/writes.go` | 规则读写、分支目录/切点/切出/结束、附件写入 |
 | `internal/app/sender.go`、`internal/app/extensions.go` | `plugin.remove` / `schedule.*` 分派、`mcp.import.sources/preview` 读取 |
 | `internal/extensions/*.go` | 插件/技能/钩子/MCP 启停与卸载、定时任务启停/删除、MCP 导入来源与预览 |

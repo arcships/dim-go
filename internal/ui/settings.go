@@ -222,6 +222,7 @@ func (a *App) settingsProviders(c *gui.Context) {
 				gui.Spacer(c)
 			})
 		}
+		a.providerManagement(c, st)
 		return
 	}
 	settingsRow(c, "当前供应商", func() {
@@ -530,6 +531,7 @@ func (a *App) settingsAccount(c *gui.Context) {
 
 // settingsAccountLive 是接上事实后的账号分节：缺项显示「—」，不用样例顶替。
 func (a *App) settingsAccountLive(c *gui.Context, snap AccountSnapshot) {
+	t := c.Theme()
 	identity := snap.Email
 	if identity == "" {
 		identity = snap.Name
@@ -553,6 +555,58 @@ func (a *App) settingsAccountLive(c *gui.Context, snap AccountSnapshot) {
 	for _, r := range rows {
 		settingsValueRow(c, "账号信息："+r.label, r.label, r.value)
 	}
+	if a.intents == nil {
+		return
+	}
+	if snap.Status == "signed_in" {
+		if actionButton(c, "退出登录", "退出登录", false, false).Clicked() {
+			a.dispatch("退出登录", func(ctx context.Context) error {
+				return a.intents.Logout(ctx)
+			}, nil)
+		}
+		return
+	}
+	if snap.LoginPhase == "waiting" || snap.LoginPhase == "failed" {
+		if snap.LoginUserCode != "" {
+			settingsValueRow(c, "登录验证码", "验证码", snap.LoginUserCode)
+		}
+		if snap.LoginURL != "" {
+			settingsValueRow(c, "登录地址", "地址", snap.LoginURL)
+		}
+		if snap.LoginReason != "" {
+			a.stateNote(c, "登录状态", iconWarn, "exclamation", snap.LoginReason, t.Danger)
+		}
+		gui.Row(c).Gap(space2).Children(func() {
+			if actionButton(c, "等待完成", "等待登录完成", true, false).Clicked() {
+				a.dispatch("等待登录", func(ctx context.Context) error {
+					return a.intents.WaitLogin(ctx)
+				}, nil)
+			}
+			if actionButton(c, "取消登录", "取消登录", false, false).Clicked() {
+				a.dispatch("取消登录", func(ctx context.Context) error {
+					return a.intents.CancelLogin(ctx)
+				}, nil)
+			}
+			gui.Spacer(c)
+		})
+		return
+	}
+	gui.Row(c).Gap(space2).Children(func() {
+		for _, method := range snap.LoginMethods {
+			method := method
+			label := "浏览器登录"
+			if method == "device" {
+				label = "设备码登录"
+			}
+			if actionButton(c, label, label, true, false).Clicked() {
+				a.dispatch(label, func(ctx context.Context) error {
+					_, err := a.intents.BeginLogin(ctx, method)
+					return err
+				}, nil)
+			}
+		}
+		gui.Spacer(c)
+	})
 }
 
 // providerIDByName 把展示名换回 provider 标识。
@@ -602,4 +656,105 @@ func dashIfEmpty(value string) string {
 		return "—"
 	}
 	return value
+}
+
+// providerManagement 是 provider 管理：新增/编辑/探测与模型启用。
+func (a *App) providerManagement(c *gui.Context, st SettingsSnapshot) {
+	t := c.Theme()
+	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Label("供应商管理").Children(func() {
+		typeControl.style(t, gui.Text(c, "供应商管理")).Width(SettingsLabelWidth).TextColor(t.Text)
+		if actionButton(c, "新增供应商", "新增供应商", false, false).Clicked() {
+			a.providerFormOpen = true
+			a.providerEditing = ""
+			a.providerIDDraft, a.providerNameDraft, a.providerBaseDraft, a.providerKeyDraft = "", "", "", ""
+		}
+		gui.Spacer(c)
+	})
+	if a.providerFormOpen {
+		gui.Column(c).Shrink(0).Gap(space1).Label("供应商表单").Children(func() {
+			if a.providerEditing == "" {
+				gui.TextInputBase(c, &a.providerIDDraft).Label("provider 标识").
+					Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+			}
+			gui.TextInputBase(c, &a.providerNameDraft).Label("provider 名称").
+				Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+			gui.TextInputBase(c, &a.providerBaseDraft).Label("Base URL").
+				Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+			gui.TextInputBase(c, &a.providerKeyDraft).Label("API 密钥").
+				Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+			gui.Row(c).Gap(space2).Children(func() {
+				gui.Spacer(c)
+				label := "创建"
+				if a.providerEditing != "" {
+					label = "保存"
+				}
+				if actionButton(c, label, label+" provider", true, false).Clicked() && a.intents != nil {
+					id, name, baseURL, key := a.providerIDDraft, a.providerNameDraft, a.providerBaseDraft, a.providerKeyDraft
+					editing := a.providerEditing
+					edit := editing
+					if edit == "" {
+						edit = id
+					}
+					a.dispatch("保存供应商", func(ctx context.Context) error {
+						if editing == "" {
+							return a.intents.CreateProvider(ctx, id, name, baseURL, key)
+						}
+						return a.intents.UpdateProvider(ctx, edit, name, baseURL, key)
+					}, func() { a.providerFormOpen = false; a.providerEditing = "" })
+				}
+				if actionButton(c, "取消", "取消供应商编辑", false, false).Clicked() {
+					a.providerFormOpen = false
+					a.providerEditing = ""
+				}
+			})
+		})
+	}
+	if st.ProviderError != "" {
+		a.stateNote(c, "供应商读取失败", iconWarn, "exclamation", st.ProviderError, t.Danger)
+	}
+	for _, provider := range st.ProviderRecords {
+		provider := provider
+		gui.Column(c).Shrink(0).Gap(space1).Label("供应商：" + provider.ID).Children(func() {
+			gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
+				statusDotMark(c, statusColor(t, extOK), "provider:"+provider.ID)
+				typeBody.style(t, gui.Text(c, provider.Name)).TextColor(t.Text).Width(extNameWidth)
+				typeSecondary.style(t, gui.Text(c, provider.BaseURL)).TextColor(t.TextMuted).Grow(1).SingleLine()
+				if actionButton(c, "探测", "探测 "+provider.ID, false, false).Clicked() && a.intents != nil {
+					id := provider.ID
+					var count int
+					a.dispatch("探测供应商", func(ctx context.Context) error {
+						var err error
+						count, err = a.intents.ProbeProvider(ctx, id)
+						return err
+					}, func() {
+						a.providerProbe[id] = fmt.Sprintf("发现 %d 个模型", count)
+					})
+				}
+				if actionButton(c, "编辑", "编辑 "+provider.ID, false, false).Clicked() {
+					a.providerFormOpen = true
+					a.providerEditing = provider.ID
+					a.providerIDDraft = provider.ID
+					a.providerNameDraft = provider.Name
+					a.providerBaseDraft = provider.BaseURL
+					a.providerKeyDraft = ""
+				}
+			})
+			if a.providerProbe[provider.ID] != "" {
+				a.stateNote(c, "探测结果", iconCheck, "check", a.providerProbe[provider.ID], t.TextMuted)
+			}
+			for _, model := range provider.Models {
+				model := model
+				label := "启用模型：" + model.ID
+				if model.Enabled {
+					label = "停用模型：" + model.ID
+				}
+				if actionButton(c, "切换模型", label, false, false).Clicked() && a.intents != nil {
+					providerID, modelID, enabled := provider.ID, model.ID, !model.Enabled
+					a.dispatch("切换模型启用", func(ctx context.Context) error {
+						return a.intents.SetProviderModelEnabled(ctx, providerID, modelID, enabled)
+					}, nil)
+				}
+			}
+		})
+	}
 }

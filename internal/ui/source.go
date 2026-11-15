@@ -43,6 +43,8 @@ type Source interface {
 type Intents interface {
 	OpenSession(ctx context.Context, name string) error
 	Submit(ctx context.Context, text string) error
+	// SubmitWithContent 提交文本 + 内容块（文本 / 图片）。
+	SubmitWithContent(ctx context.Context, text string, blocks []ContentBlockSnapshot) error
 	Queue(ctx context.Context, text string) error
 	Stop(ctx context.Context) error
 	RespondApproval(ctx context.Context, decision string) error
@@ -69,8 +71,20 @@ type Intents interface {
 	CreateBranch(ctx context.Context, parentID string, turnIndex int, prompt string) error
 	EndBranch(ctx context.Context, branchID string) error
 
-	// 附件：文本先做，返回写入的附件名。
-	WriteAttachment(ctx context.Context, name, text string) (string, error)
+	// 附件：写入文本附件，返回服务端回执里的标识与路径。
+	WriteAttachment(ctx context.Context, name, text string) (AttachmentRefSnapshot, error)
+
+	// 供应商管理。
+	CreateProvider(ctx context.Context, id, name, baseURL, apiKey string) error
+	UpdateProvider(ctx context.Context, id, name, baseURL, apiKey string) error
+	ProbeProvider(ctx context.Context, id string) (int, error)
+	SetProviderModelEnabled(ctx context.Context, providerID, modelID string, enabled bool) error
+
+	// 账号登录：method 取 browser / device。
+	BeginLogin(ctx context.Context, method string) (LoginPromptSnapshot, error)
+	WaitLogin(ctx context.Context) error
+	CancelLogin(ctx context.Context) error
+	Logout(ctx context.Context) error
 
 	// 扩展：kind 取 "plugin" / "skill" / "hook" / "mcp"。
 	SetExtensionEnabled(ctx context.Context, kind, id string, enabled bool) error
@@ -103,6 +117,30 @@ type Intents interface {
 	Reconnect(ctx context.Context) error
 	// SetPreferences 落盘本地偏好。
 	SetPreferences(ctx context.Context, prefs PreferencesSnapshot) error
+}
+
+// ContentBlockSnapshot 是一次提交里的内容块。
+type ContentBlockSnapshot struct {
+	Kind string // "text" / "image"
+	Text string
+	// Image 是图片块来源；Kind 为 image 时必填。
+	Image *ImageBlockSnapshot
+}
+
+// ImageBlockSnapshot 是图片块来源。
+type ImageBlockSnapshot struct {
+	FileID     string
+	SourceType string // base64 / url / file
+	MediaType  string
+	Data       string
+	URL        string
+}
+
+// AttachmentRefSnapshot 是 attachment.put 回执里的标识与路径。
+type AttachmentRefSnapshot struct {
+	ID   string
+	Path string
+	Name string
 }
 
 // PreferencesSnapshot 是本地偏好；它不来自 App Server。
@@ -186,6 +224,23 @@ type AccountSnapshot struct {
 	Email  string
 	Plan   string
 	Status string
+	// LoginPhase/Reason 是当前登录尝试；LoginUserCode/LoginURL 是设备码或浏览器提示。
+	LoginPhase    string
+	LoginReason   string
+	LoginUserCode string
+	LoginURL      string
+	// LoginMethods 是 provider 声明的登录方式（browser / device）。
+	LoginMethods []string
+}
+
+// LoginPromptSnapshot 是一次登录发起的提示。
+type LoginPromptSnapshot struct {
+	ProviderID string
+	Method     string
+	Attempt    string
+	URL        string
+	UserCode   string
+	VerifyURL  string
 }
 
 // UsageSnapshot 是账号用量的聚合项；Available 为假时数值没有意义。
@@ -230,6 +285,29 @@ type SettingsSnapshot struct {
 	// ModalityTasks 是模态任务清单；TasksError 非空表示读取失败。
 	ModalityTasks []ModalityTaskSnapshot
 	TasksError    string
+	// ProviderRecords 是 provider 管理清单；ProviderError 非空表示读取失败。
+	ProviderRecords []ProviderRecordSnapshot
+	ProviderError   string
+}
+
+// ProviderRecordSnapshot 是一个 provider 及其模型。
+type ProviderRecordSnapshot struct {
+	ID         string
+	Name       string
+	BaseURL    string
+	DriverKind string
+	AuthType   string
+	Enabled    bool
+	Version    int
+	Models     []ProviderModelSnapshot
+}
+
+// ProviderModelSnapshot 是 provider 下的一个模型。
+type ProviderModelSnapshot struct {
+	ID      string
+	Name    string
+	Enabled bool
+	Status  string
 }
 
 // ModalityTaskSnapshot 是一条模态任务。

@@ -91,8 +91,8 @@ func (a *App) inputCard(c *gui.Context) {
 				if a.state == StateEmpty {
 					return
 				}
-				for i, name := range a.attachments {
-					a.attachChip(c, i, name)
+				for i := range a.attachments {
+					a.attachChip(c, i)
 				}
 				gui.Spacer(c)
 				// 上下文用量没有对接读数时不画 0% 的假读数。
@@ -125,26 +125,71 @@ func (a *App) inputCard(c *gui.Context) {
 		})
 }
 
-// attachmentEditor 是文本附件的行内编辑：文本先做，添加后走 attachment.put。
+// attachmentChipData 是一个待发附件：文本与图片两种。
+type attachmentChipData struct {
+	name      string
+	kind      string // text / image
+	text      string
+	mediaType string
+	data      string
+	fileID    string
+	path      string
+}
+
+// attachmentEditor 是附件的行内编辑：文本走 attachment.put，图片按 base64 提交。
 func (a *App) attachmentEditor(c *gui.Context) {
 	if !a.attachmentEditing {
 		return
 	}
 	t := c.Theme()
-	gui.Column(c).Shrink(0).Gap(space1).Padding(space1, 0).Label("附件文本").Children(func() {
+	gui.Column(c).Shrink(0).Gap(space1).Padding(space1, 0).Label("附件编辑").Children(func() {
+		gui.Row(c).Gap(space2).Children(func() {
+			if actionButton(c, "文本", "附件类型：文本", a.attachmentKind == "text", a.attachmentKind == "text").Clicked() {
+				a.attachmentKind = "text"
+			}
+			if actionButton(c, "图片", "附件类型：图片", a.attachmentKind == "image", a.attachmentKind == "image").Clicked() {
+				a.attachmentKind = "image"
+			}
+			gui.Spacer(c)
+		})
 		gui.TextInputBase(c, &a.attachmentName).Label("附件名").Placeholder("附件名").
 			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
-		gui.TextInputBase(c, &a.attachmentText).Label("附件内容").
-			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+		if a.attachmentKind == "image" {
+			gui.TextInputBase(c, &a.attachmentMedia).Label("媒体类型").Placeholder("image/png").
+				Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+			gui.TextInputBase(c, &a.attachmentData).Label("图片 base64").
+				Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+		} else {
+			gui.TextInputBase(c, &a.attachmentText).Label("附件内容").
+				Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+		}
 		gui.Row(c).Gap(space2).Children(func() {
 			gui.Spacer(c)
-			name, text := a.attachmentName, a.attachmentText
-			if actionButton(c, "添加附件", "添加附件", true, strings.TrimSpace(text) == "").Clicked() && a.intents != nil {
+			name, kind := a.attachmentName, a.attachmentKind
+			if actionButton(c, "添加附件", "添加附件", true, false).Clicked() {
+				if a.intents == nil {
+					a.attachments = append(a.attachments, attachmentChipData{name: name, kind: kind})
+					a.attachmentEditing = false
+					return
+				}
+				if kind == "image" {
+					a.attachments = append(a.attachments, attachmentChipData{
+						name: name, kind: "image", mediaType: a.attachmentMedia, data: a.attachmentData,
+					})
+					a.attachmentData = ""
+					a.attachmentEditing = false
+					return
+				}
+				text := a.attachmentText
+				var ref AttachmentRefSnapshot
 				a.dispatch("添加附件", func(ctx context.Context) error {
-					_, err := a.intents.WriteAttachment(ctx, name, text)
+					var err error
+					ref, err = a.intents.WriteAttachment(ctx, name, text)
 					return err
 				}, func() {
-					a.attachments = append(a.attachments, name)
+					a.attachments = append(a.attachments, attachmentChipData{
+						name: name, kind: "text", text: text, fileID: ref.ID, path: ref.Path,
+					})
 					a.attachmentText = ""
 					a.attachmentEditing = false
 				})
@@ -153,6 +198,43 @@ func (a *App) attachmentEditor(c *gui.Context) {
 				a.attachmentEditing = false
 			}
 		})
+	})
+}
+
+// attachmentBlocks 把附件 chips 变成提交内容块。
+func (a *App) attachmentBlocks() []ContentBlockSnapshot {
+	blocks := make([]ContentBlockSnapshot, 0, len(a.attachments))
+	for _, chip := range a.attachments {
+		if chip.kind == "image" {
+			source := &ImageBlockSnapshot{MediaType: chip.mediaType, Data: chip.data}
+			if chip.fileID != "" {
+				source.FileID = chip.fileID
+				source.SourceType = "file"
+			} else {
+				source.SourceType = "base64"
+			}
+			blocks = append(blocks, ContentBlockSnapshot{Kind: "image", Image: source})
+			continue
+		}
+		text := chip.text
+		if chip.path != "" {
+			lines := strings.Count(text, "\n") + 1
+			text = "[Pasted text: " + chip.path + " (" + strconv.Itoa(lines) + " lines)]"
+		}
+		blocks = append(blocks, ContentBlockSnapshot{Kind: "text", Text: text})
+	}
+	return blocks
+}
+
+// submitDraft 发送当前草稿与附件。
+func (a *App) submitDraft() {
+	text := a.draft
+	blocks := a.attachmentBlocks()
+	a.dispatch("发送", func(ctx context.Context) error {
+		return a.intents.SubmitWithContent(ctx, text, blocks)
+	}, func() {
+		a.draft = ""
+		a.attachments = nil
 	})
 }
 
@@ -308,13 +390,7 @@ func (a *App) sendSlot(c *gui.Context, running, empty bool) {
 			case a.shellMode():
 				a.runShellCommand()
 			default:
-				text := a.draft
-				a.dispatch("发送", func(ctx context.Context) error {
-					return a.intents.Submit(ctx, text)
-				}, func() {
-					a.draft = ""
-					a.attachments = nil
-				})
+				a.submitDraft()
 			}
 			return
 		}
@@ -554,11 +630,16 @@ func (a *App) exitShellMode() {
 
 // attachChip 是一个待发附件：文件名（内容）+ 行内移除入口（可逆、无确认，
 // AC-06）。移除后 chip 消失；失败时按 U3 §4.2 回滚（样例无写入，故只留说明）。
-func (a *App) attachChip(c *gui.Context, i int, name string) {
+func (a *App) attachChip(c *gui.Context, i int) {
 	if i >= len(a.attachments) {
 		return
 	}
-	chipRow(c, name, func() {
+	chip := a.attachments[i]
+	label := chip.name
+	if chip.kind == "image" {
+		label += " · 图片"
+	}
+	chipRow(c, label, func() {
 		a.attachments = append(a.attachments[:i], a.attachments[i+1:]...)
 	})
 }

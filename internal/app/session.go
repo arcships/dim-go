@@ -306,12 +306,33 @@ type SubmitRequest struct {
 	SessionID string
 	// BranchID 是目标分支；空表示主线由发送方决定。
 	BranchID string
-	// Text 是提交的文本。
+	// Text 是提交的文本（短文本内联；空时必须有 Content）。
 	Text string
+	// Content 是提交的内容块（文本 + 图片）；非空时按 user.content 下发。
+	Content []SubmitContentBlock
 	// Delivery 是投递方式；空按排队处理（R1）。
 	Delivery write.Delivery
 	// InputID 是提交去重标识；空时由写登记生成 UUID。
 	InputID string
+}
+
+// SubmitContentBlock 是一次提交里的内容块。
+type SubmitContentBlock struct {
+	// Kind 取 "text" 或 "image"。
+	Kind string
+	// Text 是文本块正文。
+	Text string
+	// Image 是图片块来源；Kind 为 image 时必填。
+	Image *SubmitImage
+}
+
+// SubmitImage 是图片块来源：file_id 或 base64/url 三选一。
+type SubmitImage struct {
+	FileID     string
+	SourceType string // base64 / url / file
+	MediaType  string
+	Data       string
+	URL        string
 }
 
 // Submit 登记一次提交意图并立即返回意图视图；结果未知的核对与不重发由写登记负责。
@@ -319,7 +340,7 @@ func (a *App) Submit(ctx context.Context, request SubmitRequest) (write.IntentVi
 	if strings.TrimSpace(request.SessionID) == "" {
 		return write.IntentView{}, fmt.Errorf("%w: 缺少会话标识", ErrInvalidConfig)
 	}
-	if strings.TrimSpace(request.Text) == "" {
+	if strings.TrimSpace(request.Text) == "" && len(request.Content) == 0 {
 		return write.IntentView{}, fmt.Errorf("%w: 提交文本为空", write.ErrInvalidIntent)
 	}
 	if err := a.Writable(); err != nil {
@@ -337,7 +358,7 @@ func (a *App) Submit(ctx context.Context, request SubmitRequest) (write.IntentVi
 		}
 		key = "submit:" + request.SessionID + ":" + request.BranchID + ":" + id
 	}
-	params, err := json.Marshal(map[string]any{"text": request.Text})
+	params, err := submitParams(request)
 	if err != nil {
 		return write.IntentView{}, fmt.Errorf("编码提交参数: %w", err)
 	}
@@ -358,6 +379,44 @@ func (a *App) Submit(ctx context.Context, request SubmitRequest) (write.IntentVi
 		}
 	}
 	return writes.Register(intent)
+}
+
+// submitParams 把提交内容编码成 wire：短文本用 text，内容块用 user.content。
+func submitParams(request SubmitRequest) (json.RawMessage, error) {
+	if len(request.Content) == 0 {
+		return json.Marshal(map[string]any{"text": request.Text})
+	}
+	blocks := make([]map[string]any, 0, len(request.Content)+1)
+	if strings.TrimSpace(request.Text) != "" {
+		blocks = append(blocks, map[string]any{"type": "text", "text": request.Text})
+	}
+	for _, block := range request.Content {
+		switch block.Kind {
+		case "text":
+			blocks = append(blocks, map[string]any{"type": "text", "text": block.Text})
+		case "image":
+			if block.Image == nil {
+				return nil, fmt.Errorf("%w: 图片块缺少来源", write.ErrInvalidIntent)
+			}
+			source := map[string]any{
+				"type":      block.Image.SourceType,
+				"mediaType": block.Image.MediaType,
+			}
+			if block.Image.FileID != "" {
+				source["fileId"] = block.Image.FileID
+			}
+			if block.Image.Data != "" {
+				source["data"] = block.Image.Data
+			}
+			if block.Image.URL != "" {
+				source["url"] = block.Image.URL
+			}
+			blocks = append(blocks, map[string]any{"type": "image", "source": source})
+		default:
+			return nil, fmt.Errorf("%w: 未知内容块 %q", write.ErrInvalidIntent, block.Kind)
+		}
+	}
+	return json.Marshal(map[string]any{"user": map[string]any{"content": blocks}})
 }
 
 // Respond 对当前队首的审批或提问作出决定；顺序与一次一条由交互裁决保证。
