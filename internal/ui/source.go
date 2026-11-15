@@ -85,6 +85,16 @@ type Intents interface {
 	DeleteSchedule(ctx context.Context, jobID string) error
 	// CancelModalityTask 取消一条运行中的模态任务。
 	CancelModalityTask(ctx context.Context, taskID string) error
+	// StopExecTask 停止一条运行中的后台任务。
+	StopExecTask(ctx context.Context, taskID string) error
+
+	// 目标：set 新建/覆盖，edit 改文本，pause/resume，clear；read 走 get。
+	ReadGoal(ctx context.Context) (string, error)
+	SetGoal(ctx context.Context, objective string) error
+	EditGoal(ctx context.Context, objective string) error
+	PauseGoal(ctx context.Context) error
+	ResumeGoal(ctx context.Context) error
+	ClearGoal(ctx context.Context) error
 
 	// 终端：RunShell 返回运行标识，供 StopShell 使用。
 	RunShell(ctx context.Context, command string) (string, error)
@@ -117,6 +127,8 @@ type SessionSnapshot struct {
 	Rows    []RowSnapshot
 	Pending int
 	Goal    string
+	// GoalStatus 是 active/paused/complete/blocked；空表示没有状态。
+	GoalStatus string
 	// Branch 是当前查看的分支；Branches 是分支清单（名字即标识）。
 	Branch   string
 	Branches []BranchSnapshot

@@ -61,7 +61,7 @@ func script(scenario string) fakeappserver.Script {
 			ID:              sessionID,
 			Running:         running,
 			LatestTurnStart: 1,
-			Events:          history("我先看一遍发送路径。", true),
+			Events:          history("我先看一遍发送路径。排队不再覆盖队列，运行中的提交先入队，这一轮结束后自动发出。", true),
 		}},
 		Replies: []fakeappserver.Reply{
 			{Method: "session.catalog", Result: map[string]any{"sessions": []any{map[string]any{
@@ -127,20 +127,8 @@ func push(ctx context.Context, server *fakeappserver.Server, scenario string, de
 			fmt.Fprintln(os.Stderr, "推送审批请求：", err)
 		}
 	default:
-		step := int64(4)
-		for _, delta := range []string{"排队不再覆盖队列，", "运行中的提交先入队，", "这一轮结束后自动发出。"} {
-			if err := server.PushEvent(sessionID, raw(
-				fmt.Sprintf("live-%d", step), step, "step", "text",
-				`{"turn_id":"t1","request_id":"r1","delta":"`+delta+`"}`,
-			)); err != nil {
-				fmt.Fprintln(os.Stderr, "推送流式事实：", err)
-			}
-			step++
-		}
-		if err := server.PushEvent(sessionID, raw(fmt.Sprintf("live-%d", step), step, "turn", "end",
-			`{"turn_id":"t1","status":"completed"}`)); err != nil {
-			fmt.Fprintln(os.Stderr, "推送轮次结束：", err)
-		}
+		// streaming 场景把流式文本放在首屏历史里：窗口不可见时框架只提交首帧，
+		// 推送的增量不会出现在截图里。实时增量由 internal/uiwire 的端到端测试覆盖。
 	}
 }
 

@@ -237,6 +237,8 @@ type App struct {
 	goal             string
 	goalDone         bool
 	goalEditing      bool
+	goalDraft        string
+	goalClearConfirm bool
 
 	// 设置屏：屏幕、当前分节、三个分节的样例值。全部是可丢的界面状态。
 	screen            Screen
@@ -580,6 +582,8 @@ func (a *App) resetWiredViewState() {
 	a.goal = ""
 	a.goalDone = false
 	a.goalEditing = false
+	a.goalDraft = ""
+	a.goalClearConfirm = false
 	a.tasks = nil
 
 	a.screen = ScreenMain
@@ -978,7 +982,7 @@ func (a *App) sessionTasks() ([]task, bool) {
 			if item.Stopping {
 				state = taskDone
 			}
-			tasks = append(tasks, task{name: item.Description, state: state})
+			tasks = append(tasks, task{id: item.ID, name: item.Description, state: state})
 		}
 		return tasks, true
 	}

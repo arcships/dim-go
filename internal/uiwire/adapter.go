@@ -303,6 +303,7 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 	}
 	if v.Goal != nil {
 		out.Goal = v.Goal.Objective
+		out.GoalStatus = string(v.Goal.Status)
 	}
 	for _, row := range v.Rows {
 		out.Rows = append(out.Rows, ui.RowSnapshot{Kind: string(row.Kind), Text: row.Text})
@@ -948,6 +949,92 @@ func (w *App) Reconnect(ctx context.Context) error {
 	}
 	w.setPhase("connected", "")
 	w.watchConnection()
+	w.changed()
+	return nil
+}
+
+// ---- 目标 ----
+
+// ReadGoal 读当前目标（session.goal.get），返回原始回执文本。
+func (w *App) ReadGoal(ctx context.Context) (string, error) {
+	if w.SessionID == "" {
+		return "", fmt.Errorf("没有打开的会话")
+	}
+	raw, err := w.A.ReadGoal(ctx, w.SessionID)
+	if err != nil {
+		return "", err
+	}
+	return string(raw), nil
+}
+
+// SetGoal 新建或覆盖目标。
+func (w *App) SetGoal(ctx context.Context, objective string) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if err := w.A.SetGoal(ctx, w.SessionID, objective); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// EditGoal 修改目标文本。
+func (w *App) EditGoal(ctx context.Context, objective string) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if err := w.A.EditGoal(ctx, w.SessionID, objective); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// PauseGoal 暂停目标。
+func (w *App) PauseGoal(ctx context.Context) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if err := w.A.PauseGoal(ctx, w.SessionID); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// ResumeGoal 恢复目标。
+func (w *App) ResumeGoal(ctx context.Context) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if err := w.A.ResumeGoal(ctx, w.SessionID); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// ClearGoal 清除目标。
+func (w *App) ClearGoal(ctx context.Context) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if err := w.A.ClearGoal(ctx, w.SessionID); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// StopExecTask 停止一条后台任务。
+func (w *App) StopExecTask(ctx context.Context, taskID string) error {
+	if w.SessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if err := w.A.StopExecTask(ctx, w.SessionID, taskID); err != nil {
+		return err
+	}
 	w.changed()
 	return nil
 }

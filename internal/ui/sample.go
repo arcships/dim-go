@@ -22,6 +22,7 @@ const (
 
 // task 是一个后台任务行：名字是内容，状态是样式。
 type task struct {
+	id    string
 	name  string
 	state taskState
 }

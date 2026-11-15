@@ -393,24 +393,33 @@ func (a *App) approvalCard(c *gui.Context) {
 		})
 }
 
-// goalRow 是输入区上沿的目标行（UI-7：目标在输入框上方一行，点击到右栏看详情）。
-// 形式是「图标 + 文字」：目标文本是内容，编辑与完成态用图标与颜色区分。
+// goalRow 是输入区上沿的目标行（UI-7：目标在输入框上方一行）。
 func (a *App) goalRow(c *gui.Context) {
-	if a.goal == "" {
+	objective, status, exists := a.goalState()
+	if !exists && !a.goalEditing && !a.wired() {
 		return
 	}
 	t := c.Theme()
 	if a.goalEditing {
-		// 设置中（F20 的变化规则）：输入框给面差（`surface` 填充、不描边，UI-18），
-		// 右侧是「保存 / 取消」两个**文字按钮**——低频、中后果、需要明确，不能与
-		// 审批的勾/叉同形不同义（同形同义，A0/D4）。位置与阅读态相同。
 		gui.Row(c).Height(QueueHeight).Shrink(0).Padding(0, space4).
 			Gap(space2).AlignItems(gui.Center).Children(func() {
 			iconGlyph(c, iconTarget, colorAccentInk.in(t), "target")
-			gui.TextInputBase(c, &a.goal).Grow(1).Label("目标").Placeholder(placeholderGoal).
+			gui.TextInputBase(c, &a.goalDraft).Grow(1).Label("目标").Placeholder(placeholderGoal).
 				Padding(space1, space2).Radius(radius).Background(t.Surface)
 			if actionButton(c, "保存", "保存目标", true, false).Clicked() {
-				a.goalEditing = false
+				text := a.goalDraft
+				verb := "新建目标"
+				if a.intents == nil {
+					a.goal = text
+					a.goalEditing = false
+					return
+				}
+				a.dispatch(verb, func(ctx context.Context) error {
+					if exists {
+						return a.intents.EditGoal(ctx, text)
+					}
+					return a.intents.SetGoal(ctx, text)
+				}, func() { a.goalEditing = false })
 			}
 			if actionButton(c, "取消", "取消编辑", false, false).Clicked() {
 				a.goalEditing = false
@@ -421,21 +430,62 @@ func (a *App) goalRow(c *gui.Context) {
 	gui.Row(c).Height(QueueHeight).Shrink(0).Padding(0, space4).
 		Gap(space2).AlignItems(gui.Center).Label("目标行").Children(func() {
 		iconGlyph(c, iconTarget, colorAccentInk.in(t), "target")
-		color := t.Text
-		if a.goalDone {
-			color = t.TextMuted
+		if !exists {
+			typeSecondary.style(t, gui.Text(c, "设定目标")).TextColor(t.TextMuted).Grow(1)
+		} else {
+			color := t.Text
+			if status == "complete" || status == "blocked" {
+				color = t.TextMuted
+			}
+			typeSecondary.style(t, gui.Text(c, objective)).TextColor(color).Grow(1).SingleLine()
 		}
-		typeSecondary.style(t, gui.Text(c, a.goal)).TextColor(color).Grow(1).SingleLine()
-		if a.goalDone {
+		if status == "complete" {
 			iconBox(c, iconCheck, t.TextMuted, "目标已完成")
 		}
-		// 接上事实时目标只读：服务端没有目标写方法（D14 §5）。
 		if !a.wired() {
 			if iconButton(c, iconButtonSpec{icon: iconPencil, label: "修改目标", size: rowCompact}) {
 				a.goalEditing = true
 			}
+			return
+		}
+		if iconButton(c, iconButtonSpec{icon: iconPencil, label: "修改目标", size: rowCompact}) {
+			a.goalDraft = objective
+			a.goalEditing = true
+			a.dispatch("读取目标", func(ctx context.Context) error {
+				_, err := a.intents.ReadGoal(ctx)
+				return err
+			}, nil)
+		}
+		if exists {
+			if status == "paused" {
+				if iconButton(c, iconButtonSpec{icon: iconPlay, label: "恢复目标", size: rowCompact}) {
+					a.dispatch("恢复目标", a.intents.ResumeGoal, nil)
+				}
+			} else {
+				if iconButton(c, iconButtonSpec{icon: iconStop, label: "暂停目标", size: rowCompact}) {
+					a.dispatch("暂停目标", a.intents.PauseGoal, nil)
+				}
+			}
+			if a.goalClearConfirm {
+				if textIconButton(c, textIconButtonSpec{
+					icon: iconXMark, mark: "x-mark", text: "确认清除目标", label: "确认清除目标",
+				}) {
+					a.goalClearConfirm = false
+					a.dispatch("清除目标", a.intents.ClearGoal, nil)
+				}
+			} else if iconButton(c, iconButtonSpec{icon: iconXMark, label: "清除目标", size: rowCompact}) {
+				a.goalClearConfirm = true
+			}
 		}
 	})
+}
+
+// goalState 取当前目标与状态：连着 Source 时用会话快照，否则用样例。
+func (a *App) goalState() (string, string, bool) {
+	if snap, ok := a.liveSession(); ok {
+		return snap.Goal, snap.GoalStatus, snap.Goal != ""
+	}
+	return a.goal, "", a.goal != ""
 }
 
 // shellMode 是输入区的命令模式（S25 的 `!` 前缀）：输入以 `!` 开头就是命令模式。

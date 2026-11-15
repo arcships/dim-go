@@ -1,6 +1,10 @@
 package ui
 
-import gui "github.com/egoist/mygo/ui"
+import (
+	"context"
+
+	gui "github.com/egoist/mygo/ui"
+)
 
 // rightPanel 是 R5 右栏：默认收起；展开后是带标签的容器，只放当前会话
 // 的附属内容（文件、改动、后台、目标）。宽度由调用方按 280–（容器−400）
@@ -46,9 +50,7 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 					for i := range tasks {
 						a.taskRow(c, tasks[i], live)
 					}
-					if live {
-						typeSecondary.style(t, gui.Text(c, "取消任务：缺服务端方法")).TextColor(t.TextMuted)
-					}
+
 				case 3:
 					typeBodyStrong.style(t, gui.Text(c, "把发送路径改成排队"))
 					typeSecondary.style(t, gui.Text(c, "运行中的提交先入队，结束后自动发出。")).
@@ -83,8 +85,19 @@ func (a *App) taskRow(c *gui.Context, t task, live bool) {
 		Label("后台任务：" + t.name + " · " + state).Children(func() {
 		iconGlyph(c, icon, color, "task")
 		typeSecondary.style(th, gui.Text(c, t.name)).Grow(1).SingleLine()
-		if t.state == taskRunning && !live {
-			iconButton(c, iconButtonSpec{icon: iconXMark, label: "取消任务", size: rowCompact})
+		if t.state == taskRunning {
+			label := "取消任务"
+			if live {
+				label = "停止任务"
+			}
+			if iconButton(c, iconButtonSpec{icon: iconXMark, label: label, size: rowCompact}) {
+				if live && a.intents != nil && t.id != "" {
+					id := t.id
+					a.dispatch("停止任务", func(ctx context.Context) error {
+						return a.intents.StopExecTask(ctx, id)
+					}, nil)
+				}
+			}
 		}
 	})
 }

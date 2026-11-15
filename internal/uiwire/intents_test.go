@@ -9,6 +9,7 @@ import (
 
 	gui "github.com/egoist/mygo/ui"
 
+	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/fakeappserver"
 	appui "github.com/arcships/dimagent-mygo/internal/ui"
 )
@@ -98,6 +99,9 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 		"session.branch_create", "session.branch_end",
 		"attachment.put",
 		"modality.task.list", "modality.task.cancel",
+		"session.exec.stop", "session.exec.pending",
+		"session.goal.set", "session.goal.edit", "session.goal.pause",
+		"session.goal.resume", "session.goal.clear", "session.goal.get",
 	)
 	return fakeappserver.Script{
 		Features: features,
@@ -219,6 +223,20 @@ func baseScript(cwd string, running bool, features ...string) fakeappserver.Scri
 				"result": nil, "error": nil, "created_at": "2026-11-15T00:00:00Z",
 				"updated_at": "2026-11-15T00:00:01Z", "finished_at": nil,
 			}}, "next": nil}},
+			{Method: "session.exec.pending", Result: map[string]any{
+				"branchId": "main", "through": 6, "next": nil,
+				"tasks": []any{map[string]any{
+					"eventId": "task-e1", "sequence": 5, "startedAt": 1, "taskId": "task-1",
+					"turnId": "t1", "requestId": "r1", "callId": "c1", "description": "构建",
+				}},
+			}},
+			{Method: "session.exec.stop", Result: map[string]any{}},
+			{Method: "session.goal.get", Result: map[string]any{"objective": "甲目标", "status": "active"}},
+			{Method: "session.goal.set", Result: map[string]any{"sequence": 21}},
+			{Method: "session.goal.edit", Result: map[string]any{"sequence": 22}},
+			{Method: "session.goal.pause", Result: map[string]any{"sequence": 23}},
+			{Method: "session.goal.resume", Result: map[string]any{"sequence": 24}},
+			{Method: "session.goal.clear", Result: map[string]any{"sequence": 25}},
 			{Method: "modality.task.cancel", Result: map[string]any{"task": map[string]any{
 				"version": 1, "task_id": "task-1", "client_task_id": nil, "revision": 2,
 				"category": "image", "operation": "generate", "executor": map[string]any{},
@@ -549,6 +567,100 @@ func TestIntentAttachment(t *testing.T) {
 		len(h.server.RequestsFor("attachment.put")), params["name"], params["text"])
 	if params["text"] != "hello" {
 		t.Fatalf("附件参数不对：%v", params)
+	}
+}
+
+// goalEvent 造一条承载目标记录的输入事实。
+func goalEvent(id string, sequence int64, status, op, objective string) protocol.RawEvent {
+	body := "<dim-goal status=\"" + status + "\" judge=\"model\" op=\"" + op + "\">\n<objective>\n" + objective + "\n</objective>\n</dim-goal>"
+	data, _ := json.Marshal(map[string]any{"blocks": []any{map[string]any{"key": "goal:state", "text": body}}})
+	return protocol.RawEvent{ID: id, Sequence: sequence, CreateAt: 1700000000000 + sequence,
+		Type: "input", Name: "message", Data: data}
+}
+
+// TestIntentSetGoal 目标行 → 设定 → 保存 → session.goal.set；打开编辑时会先 get。
+func TestIntentSetGoal(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("修改目标")
+	h.waitRequest("session.goal.get")
+	h.typeInto("目标", "把发送路径改成排队")
+	h.click("保存目标")
+	params := h.waitRequest("session.goal.set")
+	t.Logf("点了「保存目标」→ 服务端收到 session.goal.set（%d 次），objective=%v",
+		len(h.server.RequestsFor("session.goal.set")), params["objective"])
+	if params["objective"] != "把发送路径改成排队" {
+		t.Fatalf("目标写入参数不对：%v", params)
+	}
+}
+
+// TestIntentEditGoal 已有目标 → 修改 → 保存 → session.goal.edit。
+func TestIntentEditGoal(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	if err := h.server.PushEvent(e2eSession, goalEvent("g1", 30, "active", "set", "甲目标")); err != nil {
+		t.Fatalf("推送目标：%v", err)
+	}
+	waitFor(t, "目标出现", func() bool {
+		snap, ok := h.wire.Session()
+		return ok && snap.Goal == "甲目标"
+	})
+	h.frame()
+	h.click("修改目标")
+	h.waitRequest("session.goal.get")
+	h.typeInto("目标", "改")
+	h.click("保存目标")
+	params := h.waitRequest("session.goal.edit")
+	t.Logf("点了「修改目标 · 保存」→ 服务端收到 session.goal.edit（%d 次），objective=%v",
+		len(h.server.RequestsFor("session.goal.edit")), params["objective"])
+}
+
+// TestIntentGoalPauseResumeClear 目标暂停 / 恢复 / 两步清除。
+func TestIntentGoalPauseResumeClear(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	if err := h.server.PushEvent(e2eSession, goalEvent("g1", 30, "active", "set", "甲目标")); err != nil {
+		t.Fatalf("推送目标：%v", err)
+	}
+	waitFor(t, "目标出现", func() bool {
+		snap, ok := h.wire.Session()
+		return ok && snap.Goal == "甲目标"
+	})
+	h.frame()
+	h.click("暂停目标")
+	params := h.waitRequest("session.goal.pause")
+	t.Logf("点了「暂停目标」→ 服务端收到 session.goal.pause（%d 次）", len(h.server.RequestsFor("session.goal.pause")))
+
+	if err := h.server.PushEvent(e2eSession, goalEvent("g2", 31, "paused", "pause", "甲目标")); err != nil {
+		t.Fatalf("推送暂停目标：%v", err)
+	}
+	waitFor(t, "目标暂停", func() bool {
+		snap, ok := h.wire.Session()
+		return ok && snap.GoalStatus == "paused"
+	})
+	h.frame()
+	h.click("恢复目标")
+	h.waitRequest("session.goal.resume")
+	t.Logf("点了「恢复目标」→ 服务端收到 session.goal.resume（%d 次）", len(h.server.RequestsFor("session.goal.resume")))
+
+	h.frame()
+	h.click("清除目标")
+	h.frame()
+	h.click("确认清除目标")
+	clear := h.waitRequest("session.goal.clear")
+	t.Logf("点了「清除目标 · 确认」→ 服务端收到 session.goal.clear（%d 次），objective=%v",
+		len(h.server.RequestsFor("session.goal.clear")), clear["objective"])
+	_ = params
+}
+
+// TestIntentStopExecTask 右栏后台任务 → 停止 → session.exec.stop。
+func TestIntentStopExecTask(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false))
+	h.click("打开右栏")
+	h.click("后台")
+	h.click("停止任务")
+	params := h.waitRequest("session.exec.stop")
+	t.Logf("点了「停止任务」→ 服务端收到 session.exec.stop（%d 次），taskId=%v",
+		len(h.server.RequestsFor("session.exec.stop")), params["taskId"])
+	if params["taskId"] != "task-1" {
+		t.Fatalf("停止任务参数不对：%v", params)
 	}
 }
 
