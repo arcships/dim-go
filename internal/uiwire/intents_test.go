@@ -103,6 +103,23 @@ func (h *intentHarness) waitRequest(method string) map[string]any {
 	return requestParamsMap(h.t, requests[0])
 }
 
+// waitCount 等到服务端收到至少 want 次 method；返回等待时长。
+func (h *intentHarness) waitCount(method string, want int, timeout time.Duration, round int) time.Duration {
+	h.t.Helper()
+	start := time.Now()
+	deadline := start.Add(timeout)
+	for time.Now().Before(deadline) {
+		h.tester.Frame()
+		if len(h.server.RequestsFor(method)) >= want {
+			return time.Since(start)
+		}
+		time.Sleep(time.Millisecond)
+	}
+	h.t.Fatalf("第 %d 轮等待 %s 到 %d 次超时：已等 %v（当前 %d 次）",
+		round, method, want, time.Since(start), len(h.server.RequestsFor(method)))
+	return 0
+}
+
 // requestParamsMap 把请求参数解析成 map。
 func requestParamsMap(t *testing.T, request fakeappserver.Request) map[string]any {
 	t.Helper()
@@ -331,7 +348,8 @@ func TestIntentSubmit(t *testing.T) {
 	}
 }
 
-// TestConcurrentUIInteractions 连续 50 次加附件/发送/切会话，每帧渲染；-race 不得报竞争。
+// TestConcurrentUIInteractions 是 UI 并发交互测试，不是压测：每轮等上一次提交
+// 落地再发下一次，避免把写登记的串行背压误判成偶发失败。
 func TestConcurrentUIInteractions(t *testing.T) {
 	script := baseScript("/work", false)
 	script.Sessions = append(script.Sessions, fakeappserver.Session{ID: "s2"})
@@ -343,33 +361,46 @@ func TestConcurrentUIInteractions(t *testing.T) {
 		"nextCursor": nil,
 	}}
 	h := newIntentHarness(t, script)
-	for i := 0; i < 50; i++ {
-		_ = h.tester.Click("附件")
-		_ = h.tester.Click("附件名")
-		h.tester.Type("note.txt")
-		_ = h.tester.Click("附件内容")
-		h.tester.Type("hello")
-		_ = h.tester.Click("添加附件")
-		h.tester.Frame()
-		_ = h.tester.Click("消息")
+
+	const rounds = 50
+	var total, slowest time.Duration
+	slowRounds := 0
+	for i := 0; i < rounds; i++ {
+		wantSubmit := len(h.server.RequestsFor("session.submit")) + 1
+		wantAttachment := len(h.server.RequestsFor("attachment.put")) + 1
+		start := time.Now()
+
+		h.click("附件")
+		h.waitFor("附件名", 2*time.Second)
+		h.replaceInto("附件名", "note.txt")
+		h.replaceInto("附件内容", "hello")
+		h.click("添加附件")
+		h.waitFor("note.txt", 2*time.Second)
+		h.click("消息")
 		h.tester.Type("hi")
-		_ = h.tester.Click("发送")
-		h.tester.Frame()
+		h.frame()
+		h.waitFor("发送", 2*time.Second)
+		h.click("发送")
 		_ = h.tester.Click("s2")
 		h.tester.Frame()
 		_ = h.tester.Click("s1")
 		h.tester.Frame()
+
+		h.waitCount("attachment.put", wantAttachment, 10*time.Second, i+1)
+		elapsed := h.waitCount("session.submit", wantSubmit, 10*time.Second, i+1)
+		total += time.Since(start)
+		if elapsed > slowest {
+			slowest = elapsed
+		}
+		if elapsed > 100*time.Millisecond {
+			slowRounds++
+			t.Logf("第 %d 轮提交较慢：%v", i+1, elapsed)
+		}
 	}
-	waitFor(t, "提交到达", func() bool {
-		return len(h.server.RequestsFor("session.submit")) > 0
-	})
-	for i := 0; i < 10; i++ {
-		h.tester.Frame()
-	}
-	t.Logf("50 轮交互完成：session.submit=%d attachment.put=%d session.attach=%d",
+	t.Logf("%d 轮：总耗时 %v，最慢单轮提交 %v，超过 100ms 的轮次 %d；session.submit=%d attachment.put=%d",
+		rounds, total, slowest, slowRounds,
 		len(h.server.RequestsFor("session.submit")),
-		len(h.server.RequestsFor("attachment.put")),
-		len(h.server.RequestsFor("session.attach")))
+		len(h.server.RequestsFor("attachment.put")))
 }
 
 // TestIntentSubmitContent 文本附件与图片附件一起提交，断言 user.content 块。
