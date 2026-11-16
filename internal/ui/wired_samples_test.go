@@ -55,6 +55,7 @@ var samplePhrases = []string{
 	"每晚依赖检查", "每周汇总", "清理临时文件",
 	"dim-app-server", "终端组件", "渲染组件", "v3.4.1",
 	"1.2", "128", "84", "项目 A", "项目 B",
+	"修发送路径", "参考", "旧实现对照",
 	"把日志也开上", "发送路径.md", "rm -rf ./tmp/*",
 }
 
@@ -71,6 +72,25 @@ func TestPreferencesSeedView(t *testing.T) {
 	}
 }
 
+// TestWiredNoSessionHidesSamples 连上 Source 但没有会话时，标题与目标行不落样例。
+func TestWiredNoSessionHidesSamples(t *testing.T) {
+	src := wiredSource()
+	src.names = nil
+	src.hasSess = false
+	src.session = SessionSnapshot{}
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tester := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	text := strings.Join(tester.Texts(), "\n")
+	if !strings.Contains(text, "DimAgent") {
+		t.Fatalf("无会话时标题不是应用名：\n%s", text)
+	}
+	for _, phrase := range []string{"修发送路径", "设定目标", "项目 A", "项目 B", "参考", "旧实现对照"} {
+		if strings.Contains(text, phrase) {
+			t.Fatalf("无会话时出现样例串 %q：\n%s", phrase, text)
+		}
+	}
+}
+
 // TestWiredScreensExcludeSamples 逐屏渲染 -connect 的视图，断言样例常量不再上屏。
 func TestWiredScreensExcludeSamples(t *testing.T) {
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
@@ -80,6 +100,7 @@ func TestWiredScreensExcludeSamples(t *testing.T) {
 		setup  func(*App)
 		expect string // 必须出现的真实值（证明这一屏确实读了 Source）
 	}{
+		{"主界面", func(a *App) { a.screen = ScreenMain }, "真实会话"},
 		{"账号", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAccount }, "ada@real.test"},
 		{"供应商", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders }, "Acme"},
 		{"命令规则", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secRules }, "尚未读取"},

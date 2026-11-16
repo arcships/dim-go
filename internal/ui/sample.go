@@ -147,6 +147,24 @@ func sampleRounds(s State) []round {
 	return append(base, last, rich)
 }
 
+// sampleSessionName 是 -demo 标题行用的样例会话名；接上 Source 时不用。
+func sampleSessionName(state State) string {
+	if state == StateEmpty {
+		return "新会话"
+	}
+	names, _ := sessionSamples(state)
+	if len(names) == 0 {
+		return "新会话"
+	}
+	return names[0]
+}
+
+// 样例项目分组的名字；接上 Source 时侧栏用中性「会话」分组。
+const (
+	sampleProjectA = "项目 A"
+	sampleProjectB = "项目 B"
+)
+
 // sessionSamples 是左栏的静态会话列表：按项目分组，行首标记当前状态。
 func sessionSamples(s State) (sessions []string, markers []string) {
 	if s == StateEmpty {

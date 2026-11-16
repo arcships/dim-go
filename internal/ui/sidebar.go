@@ -122,7 +122,7 @@ func (a *App) sessionList(c *gui.Context) {
 			})
 			return
 		}
-		gui.SidebarSection(c, "项目 A", nil, func() {
+		gui.SidebarSection(c, sampleProjectA, nil, func() {
 			for i := 0; i < 2 && i < len(sessions); i++ {
 				if visible[i] {
 					a.sessionItem(c, "s"+strconv.Itoa(i+1), a.sessionName(i, sessions[i]),
@@ -130,7 +130,7 @@ func (a *App) sessionList(c *gui.Context) {
 				}
 			}
 		})
-		gui.SidebarSection(c, "项目 B", nil, func() {
+		gui.SidebarSection(c, sampleProjectB, nil, func() {
 			for i := 2; i < len(sessions); i++ {
 				if visible[i] {
 					a.sessionItem(c, "s"+strconv.Itoa(i+1), a.sessionName(i, sessions[i]),

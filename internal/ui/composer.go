@@ -471,6 +471,11 @@ func (a *App) approvalCard(c *gui.Context) {
 
 // goalRow 是输入区上沿的目标行（UI-7：目标在输入框上方一行）。
 func (a *App) goalRow(c *gui.Context) {
+	if a.wired() {
+		if _, ok := a.liveSession(); !ok {
+			return
+		}
+	}
 	objective, status, exists := a.goalState()
 	if !exists && !a.goalEditing && !a.wired() {
 		return

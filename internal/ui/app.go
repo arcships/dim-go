@@ -526,7 +526,9 @@ func (a *App) loadSample() {
 		*a.menuOpenPtr(0) = true
 	case VariantSessionRename:
 		a.renaming = 0
-		a.renameDraft = "修发送路径"
+		if names := a.sessionNames(); len(names) > 0 {
+			a.renameDraft = names[0]
+		}
 	case VariantSessionDelete:
 		a.deleting = 0
 	case VariantSearch:

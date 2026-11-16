@@ -25,9 +25,13 @@ import (
 func (a *App) header(c *gui.Context) {
 	t := c.Theme()
 	bar := c.TitleBar()
-	name := "修发送路径"
-	if a.state == StateEmpty {
-		name = "新会话"
+	name := "DimAgent"
+	if a.source == nil {
+		name = sampleSessionName(a.state)
+	} else if snap, ok := a.liveSession(); ok {
+		if title := strings.TrimSpace(snap.Title); title != "" {
+			name = title
+		}
 	}
 
 	// 左内边距让开窗口控件：红绿灯落在左栏上方时这一行不必让，左栏收起为
