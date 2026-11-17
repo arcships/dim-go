@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"timeline-file-changes\"]",
+ "mode": "plain",
+ "geometry": {
+  "rect": {
+   "x": 29,
+   "y": 444,
+   "w": 661,
+   "h": 18
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 533
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": "1 个文件改动"
+ },
+ "text": "1 个文件改动"
+}

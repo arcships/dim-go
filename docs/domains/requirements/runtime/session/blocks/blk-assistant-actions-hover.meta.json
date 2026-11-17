@@ -1,0 +1,114 @@
+{
+ "hoverSel": "[data-testid=\"timeline-assistant-actions\"]",
+ "capSel": "[data-testid=\"timeline-assistant-actions\"]",
+ "geo": {
+  "rect": {
+   "x": 29,
+   "y": 503,
+   "w": 661,
+   "h": 25
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 568
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "probes": [
+   {
+    "testid": "timeline-assistant-copy",
+    "tag": "button",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "rect",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": "timeline-assistant-fork",
+    "tag": "button",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": "timeline-assistant-retry",
+    "tag": "button",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": "timeline-assistant-completed-time",
+    "tag": "span",
+    "text": "星期二 21:56",
+    "label": null,
+    "title": null
+   }
+  ],
+  "text": "星期二 21:56"
+ }
+}

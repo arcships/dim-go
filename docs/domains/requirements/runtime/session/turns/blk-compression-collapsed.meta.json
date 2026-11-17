@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"compression-divider\"]",
+ "mode": "plain",
+ "geometry": {
+  "rect": {
+   "x": 29,
+   "y": 496,
+   "w": 661,
+   "h": 32
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 568
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": "上下文已压缩"
+ },
+ "text": "上下文已压缩"
+}

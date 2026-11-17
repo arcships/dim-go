@@ -1,0 +1,1223 @@
+{
+ "turnIndex": 7,
+ "turnText": "在 /private/tmp 下新建 coverage-artifact",
+ "blocks": [
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "7a4bcee7-addd-40df-a6e2-a4200bb71e05",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 281,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9773,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-write-edit-b0-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "7a4bcee7-addd-40df-a6e2-a4200bb71e05",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 281,
+     "w": 644,
+     "h": 121
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9773,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "Need use write then edit. File /private/tmp/coverage-artifac"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "98px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s Need use write then edit. File /private/tmp/coverage-artifact.md. Content H1 and three-line list. Then edit H1 to 覆盖演示. Report one sentence. Let's write.",
+    "shot": "t-write-edit-b0-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "写入 coverage-artifact.md + 4 4",
+   "collapsed": {
+    "blockId": "message:call_00_pdi8vpqabo0yjniyomwfjh33",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 282,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9805,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "写入 coverage-artifact.md + 4 4",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "写入\ncoverage-artifact.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "写入",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "coverage-artifact.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n4\n4",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n4\n4",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "4",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "4",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "写入 coverage-artifact.md + 4 4",
+    "shot": "t-write-edit-b1-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_pdi8vpqabo0yjniyomwfjh33",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 282,
+     "w": 644,
+     "h": 161
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9805,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "写入 coverage-artifact.md + 4 4",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "写入\ncoverage-artifact.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "写入",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "coverage-artifact.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n4\n4",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n4\n4",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "4",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "4",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-file-panel",
+      "tag": "div",
+      "text": "/private/tmp/coverage-artifact.md"
+     },
+     {
+      "testid": "tool-code-block",
+      "tag": "div",
+      "text": ""
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "139.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "写入 coverage-artifact.md + 4 4 /private/tmp/coverage-artifact.md",
+    "shot": "t-write-edit-b1-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "编辑 coverage-artifact.md + 1 1 - 1 1",
+   "collapsed": {
+    "blockId": "message:call_00_3k8c39v3ikxxsqpu5skioz3u",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 301,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9818,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "编辑 coverage-artifact.md + 1 1 - 1 1",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "编辑\ncoverage-artifact.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "编辑",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "coverage-artifact.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n1\n1\n-\n1\n1",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n1\n1",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "-\n1\n1",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "-",
+      "cls": "leading-none"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "编辑 coverage-artifact.md + 1 1 - 1 1",
+    "shot": "t-write-edit-b2-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_3k8c39v3ikxxsqpu5skioz3u",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 301,
+     "w": 644,
+     "h": 107
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9818,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "编辑 coverage-artifact.md + 1 1 - 1 1",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "编辑\ncoverage-artifact.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "编辑",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "coverage-artifact.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n1\n1\n-\n1\n1",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n1\n1",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "-\n1\n1",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "-",
+      "cls": "leading-none"
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-file-panel",
+      "tag": "div",
+      "text": "/private/tmp/coverage-artifact.md"
+     },
+     {
+      "testid": "timeline-tool-file-path-open",
+      "tag": "button",
+      "text": "/private/tmp/coverage-artifact.md"
+     },
+     {
+      "testid": "tool-code-block",
+      "tag": "div",
+      "text": ""
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "85.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "编辑 coverage-artifact.md + 1 1 - 1 1 /private/tmp/coverage-artifact.md",
+    "shot": "t-write-edit-b2-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "f964d2dc-35c8-4e79-b863-7e02da4cd3b4",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 332,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9818,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-write-edit-b3-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "f964d2dc-35c8-4e79-b863-7e02da4cd3b4",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 332,
+     "w": 644,
+     "h": 121
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9818,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "One-sentence report. Maybe verify? The instruction says run "
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "98px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s One-sentence report. Maybe verify? The instruction says run tests/checks after changes. We could read the file to verify, but user asked one-sentence report. Read would be a tool call but not necessary? Engineering says verify. We can read quickly. But \"做完一句话汇报\" — we can verify then report. Let's read the file to ensure.",
+    "shot": "t-write-edit-b3-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "读取 coverage-artifact.md",
+   "collapsed": {
+    "blockId": "message:call_00_jf6azv72mbfmppw47c34o345",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 366,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9818,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "读取 coverage-artifact.md",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "读取\ncoverage-artifact.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "读取",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "coverage-artifact.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": null,
+    "chevronClass": null,
+    "text": "读取 coverage-artifact.md",
+    "shot": "t-write-edit-b4-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_jf6azv72mbfmppw47c34o345",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 366,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 480,
+     "st": 9818,
+     "y": 53,
+     "bottom": 533,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "读取 coverage-artifact.md",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "读取\ncoverage-artifact.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "读取",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "coverage-artifact.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": null,
+    "chevronClass": null,
+    "text": "读取 coverage-artifact.md",
+    "shot": "t-write-edit-b4-expanded.png"
+   }
+  }
+ ]
+}

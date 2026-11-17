@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"timeline-block-group\"]",
+ "mode": "plain",
+ "geometry": {
+  "rect": {
+   "x": 29,
+   "y": 298,
+   "w": 661,
+   "h": 23
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 568
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": "思考 2 2 轮 · 读 2 2 次文件 思考了 0s 读取 dim-tool-test.md 第2到4行 读取 dim-tool-test.md 第2行起 思考了 1s"
+ },
+ "text": "思考 2 2 轮 · 读 2 2 次文件 思考了 0s 读取 dim-tool-test.md 第2到4行 读取 dim-tool-test.md 第2行起 思考了 1s"
+}

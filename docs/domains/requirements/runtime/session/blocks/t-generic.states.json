@@ -1,0 +1,1102 @@
+{
+ "turnIndex": 12,
+ "turnText": "依次用 recall、settings、plugin",
+ "blocks": [
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "19d4350a-18c1-4af8-a99e-dfba79b03eac",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20706,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-generic-b0-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "19d4350a-18c1-4af8-a99e-dfba79b03eac",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 270
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20706,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "We need call recall, settings, plugin. Minimal calls. Recall"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "247px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s We need call recall, settings, plugin. Minimal calls. Recall: no arguments lists past turns; maybe open one turn. \"recall 读回一条历史\" — we can call recall with no args to list past turns, then maybe open a turn. Minimum: call recall({}). That returns history list. Or use `about` query. \"读回一条历史\" suggests open one turn. We could call recall with about \"工具测试\" to find one, then open it. But \"各做一次最小",
+    "shot": "t-generic-b0-expanded.png",
+    "shotBottom": "t-generic-b0-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "使用工具 recall",
+   "collapsed": {
+    "blockId": "message:call_00_lj28a4c144tc876ffp6b6tef",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20738,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 recall",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nrecall",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "recall",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "使用工具 recall",
+    "shot": "t-generic-b1-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_lj28a4c144tc876ffp6b6tef",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20738,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 recall",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nrecall",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "recall",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 {} 输出 2026-11-17 (UTC) 13:37 67fd8e5a-8eda-4160-912e-360c"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{}"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "2026-11-17 (UTC) 13:37 67fd8e5a-8eda-4160-912e-360c0df7df4f "
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "使用工具 recall 输入 {} 输出 2026-11-17 (UTC) 13:37 67fd8e5a-8eda-4160-912e-360c0df7df4f turn: user \"依次用 recall、settings、plugin 三个工具各做一次最小调用：recall 读回一条历史、settings 读一项设置、plugin 列出插件；三次结果各一句话汇报。\" — you called recall, settings, plugin — in progress 13:36 b1ea0e8c-4719-49a5-9d95-f57194f0a529 turn: user \"用可用的 MCP 浏览器工具（名字以 mcp_dim_desktop 开头的那些）打开 https://example.com ，读出页面标题并给我一句话总结。\" — you called mcp_dim_des",
+    "shot": "t-generic-b1-expanded.png",
+    "shotBottom": "t-generic-b1-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "使用工具 settings",
+   "collapsed": {
+    "blockId": "message:call_01_2zsvug43uzu2xadrmz8z0rwo",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20770,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 settings",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nsettings",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "settings",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "使用工具 settings",
+    "shot": "t-generic-b2-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_01_2zsvug43uzu2xadrmz8z0rwo",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 225
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20770,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 settings",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nsettings",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "settings",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 { \"op\": \"list\" } 输出 {\"settings\":[{\"name\":\"execution.sandb"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"op\": \"list\" }"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{\"settings\":[{\"name\":\"execution.sandbox\",\"description\":\"Run "
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "204px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "使用工具 settings 输入 { \"op\": \"list\" } 输出 {\"settings\":[{\"name\":\"execution.sandbox\",\"description\":\"Run shell commands inside the sandbox.\",\"type\":\"boolean\",\"value\":false,\"writable\":false},{\"name\":\"execution.network\",\"description\":\"Allow network access for new processes. Only meaningful when the sandbox is on.\",\"type\":\"boolean\",\"value\":false,\"writable\":false}]}",
+    "shot": "t-generic-b2-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "使用工具 plugin",
+   "collapsed": {
+    "blockId": "message:call_02_l5qjhkurjpmc1eq506z34t1e",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20801,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 plugin",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nplugin",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "plugin",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "使用工具 plugin",
+    "shot": "t-generic-b3-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_02_l5qjhkurjpmc1eq506z34t1e",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20801,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 plugin",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nplugin",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "plugin",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 { \"command\": \"list\" } 输出 [{\"name\":\"AgentDirectory\",\"use\":"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"command\": \"list\" }"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "[{\"name\":\"AgentDirectory\",\"use\":\"builtin\",\"off\":false,\"locke"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "使用工具 plugin 输入 { \"command\": \"list\" } 输出 [{\"name\":\"AgentDirectory\",\"use\":\"builtin\",\"off\":false,\"locked\":false,\"candidates\":[{\"id\":\"builtin\",\"kinds\":[\"code\"]}],\"status\":\"running\"},{\"name\":\"Agents\",\"use\":\"builtin\",\"off\":false,\"locked\":false,\"candidates\":[{\"id\":\"builtin\",\"kinds\":[\"code\"]}],\"status\":\"running\"},{\"name\":\"Aimux\",\"use\":\"builtin\",\"off\":false,\"locked\":false,\"candidates\":[{\"id\":\"builtin\",\"kin",
+    "shot": "t-generic-b3-expanded.png",
+    "shotBottom": "t-generic-b3-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0.2s",
+   "collapsed": {
+    "blockId": "e110989e-373c-44d3-a2c8-4d13bdc4e772",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20834,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.2s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.2s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0.2s",
+    "shot": "t-generic-b4-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "e110989e-373c-44d3-a2c8-4d13bdc4e772",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 270
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20834,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.2s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.2s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "Now report three results, each one sentence. Ensure settings"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "247px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0.2s Now report three results, each one sentence. Ensure settings: list returned two settings, values false, not writable. We can say \"settings 读到两项设置，其中 execution.sandbox=false（不可写）\". One sentence. Recall: read back a history turn, e.g., 13:36 browser turn completed. One sentence. Plugin: list returned 70-ish built-in plugins all running. One sentence. Need count plugins? Could count: list ap",
+    "shot": "t-generic-b4-expanded.png",
+    "shotBottom": "t-generic-b4-expanded-bottom.png"
+   }
+  }
+ ]
+}

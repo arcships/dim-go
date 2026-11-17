@@ -1,0 +1,3455 @@
+{
+ "turnIndex": 1,
+ "turnText": "请测试你所有的工具",
+ "blocks": [
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0.3s",
+   "collapsed": {
+    "blockId": "2615d186-8f84-41f5-af57-879d8bbd5b6f",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 385,
+     "y": 298,
+     "w": 617,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1803,
+     "y": 53,
+     "bottom": 568,
+     "x": 360,
+     "right": 1026
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.3s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.3s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0.3s",
+    "shot": "t-batch-b0-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "2615d186-8f84-41f5-af57-879d8bbd5b6f",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 385,
+     "y": 298,
+     "w": 617,
+     "h": 98
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1803,
+     "y": 53,
+     "bottom": 568,
+     "x": 360,
+     "right": 1026
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.3s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.3s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "用户要求我测试所有工具，测试结果需用完整Markdown格式呈现，覆盖指定的10类工具功能，我已梳理出待测试的核心工具模"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "75.25px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0.3s 用户要求我测试所有工具，测试结果需用完整Markdown格式呈现，覆盖指定的10类工具功能，我已梳理出待测试的核心工具模块，接下来将并行执行独立的测试任务。我将先完成几类工具的基础测试，后续再推进剩余测试任务。",
+    "shot": "t-batch-b0-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "读取 package.json",
+   "collapsed": {
+    "blockId": "message:call_jxk83zc7z4ixfczhcy4fkc8j",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 401,
+     "y": 299,
+     "w": 600,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1897,
+     "y": 53,
+     "bottom": 568,
+     "x": 360,
+     "right": 1026
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "读取 package.json",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "读取\npackage.json",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "读取",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "package.json",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": null,
+    "chevronClass": null,
+    "text": "读取 package.json",
+    "shot": "t-batch-b1-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_jxk83zc7z4ixfczhcy4fkc8j",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1897,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "读取 package.json",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "读取\npackage.json",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "读取",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "package.json",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": null,
+    "chevronClass": null,
+    "text": "读取 package.json",
+    "shot": "t-batch-b1-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "查找 *.py",
+   "collapsed": {
+    "blockId": "message:call_auejmyiocjftf9ilvx1yf81x",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1928,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "查找 *.py",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "查找\n*.py",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "查找",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "*.py",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "查找 *.py",
+    "shot": "t-batch-b2-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_auejmyiocjftf9ilvx1yf81x",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1928,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "查找 *.py",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "查找\n*.py",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "查找",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "*.py",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-search-panel",
+      "tag": "div",
+      "text": "输入 pattern: *.py path: /Users/eric8810/dim-agent 输出 Matched "
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "Matched at least 100 files. Showing 100 files. More files ma"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "查找 *.py 输入 pattern: *.py path: /Users/eric8810/dim-agent 输出 Matched at least 100 files. Showing 100 files. More files may remain; narrow path or pattern and retry. artifacts/clean_text.py artifacts/concat_mp3.py artifacts/dim_tts_synth.py artifacts/generate_srt.py artifacts/run_tts.py artifacts/split_chunks.py artifacts/tts_synth.py downloads/md2pdf.py fib57.py fib_test.py hanzi-evolution/build-co",
+    "shot": "t-batch-b2-expanded.png",
+    "shotBottom": "t-batch-b2-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "搜索内容 TODO|FIXME|HACK",
+   "collapsed": {
+    "blockId": "message:call_ecwdhie5kfv2wz6519ibka8h",
+    "status": "error",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1960,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "搜索内容 TODO|FIXME|HACK",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "搜索内容\nTODO|FIXME|HACK",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "搜索内容",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "TODO|FIXME|HACK",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "搜索内容 TODO|FIXME|HACK",
+    "shot": "t-batch-b3-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_ecwdhie5kfv2wz6519ibka8h",
+    "status": "error",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 155
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1960,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "搜索内容 TODO|FIXME|HACK",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "搜索内容\nTODO|FIXME|HACK",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "搜索内容",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "TODO|FIXME|HACK",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-search-panel",
+      "tag": "div",
+      "text": "输入 pattern: TODO|FIXME|HACK path: /Users/eric8810/dim-agent "
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "outputMode must be \"content\" or \"files\""
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "134px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "搜索内容 TODO|FIXME|HACK 输入 pattern: TODO|FIXME|HACK path: /Users/eric8810/dim-agent 输出 outputMode must be \"content\" or \"files\"",
+    "shot": "t-batch-b3-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "执行 echo",
+   "collapsed": {
+    "blockId": "message:call_5sqozzd6grrr7710kzmq99sk",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1991,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "执行 echo",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "执行\necho",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "rect",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "执行",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "echo",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "执行 echo",
+    "shot": "t-batch-b4-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_5sqozzd6grrr7710kzmq99sk",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 1991,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "执行 echo",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "执行\necho",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "rect",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "执行",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "echo",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-exec-panel",
+      "tag": "div",
+      "text": "输入 $ echo \"=== 系统信息 ===\" && uname -a && echo \"\" && echo \"==="
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "=== 系统信息 === Darwin abcd.local 25.6.0 Darwin Kernel Version "
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "执行 echo 输入 $ echo \"=== 系统信息 ===\" && uname -a && echo \"\" && echo \"=== 当前时间 ===\" && date && echo \"\" && echo \"=== 磁盘使用 ===\" && df -h / | tail -1 输出 === 系统信息 === Darwin abcd.local 25.6.0 Darwin Kernel Version 25.6.0: Fri Jul 31 19:17:26 PDT 2026; root:xnu-12377.161.14~5/RELEASE_ARM64_T6041 arm64 === 当前时间 === Tue Nov 17 21:26:27 CST 2026 === 磁盘使用 === /dev/disk3s1s1 926Gi 12Gi 22Gi 35% 459k 235M 0% /",
+    "shot": "t-batch-b4-expanded.png",
+    "shotBottom": "t-batch-b4-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "搜索网络 dim agent AI assistant platform ✗",
+   "collapsed": {
+    "blockId": "message:call_y3pq22r99cjwol6d9kaz7e7c",
+    "status": "error",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2023,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "搜索网络 dim agent AI assistant platform ✗",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "搜索网络\ndim agent AI assistant platform",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "搜索网络",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "dim agent AI assistant platform",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-web-error",
+      "tag": "span",
+      "text": "✗",
+      "cls": "shrink-0 text-xs text-activity-warning"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": null,
+    "chevronClass": null,
+    "text": "搜索网络 dim agent AI assistant platform ✗",
+    "shot": "t-batch-b5-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_y3pq22r99cjwol6d9kaz7e7c",
+    "status": "error",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2023,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "搜索网络 dim agent AI assistant platform ✗",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "搜索网络\ndim agent AI assistant platform",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "搜索网络",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "dim agent AI assistant platform",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-web-error",
+      "tag": "span",
+      "text": "✗",
+      "cls": "shrink-0 text-xs text-activity-warning"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": null,
+    "chevronClass": null,
+    "text": "搜索网络 dim agent AI assistant platform ✗",
+    "shot": "t-batch-b5-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0.5s",
+   "collapsed": {
+    "blockId": "d8a442ee-a8ee-429c-b152-b33488b7837e",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2055,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.5s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.5s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0.5s",
+    "shot": "t-batch-b6-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "d8a442ee-a8ee-429c-b152-b33488b7837e",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 53
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2055,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.5s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.5s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "I need to fix the grep output_mode param, first fix grep, th"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "29.75px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0.5s I need to fix the grep output_mode param, first fix grep, then run remaining tests.",
+    "shot": "t-batch-b6-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "搜索内容 TODO|FIXME|HACK",
+   "collapsed": {
+    "blockId": "message:call_bjga05at01tym5eho9x1x5rz",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2160,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "搜索内容 TODO|FIXME|HACK",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "搜索内容\nTODO|FIXME|HACK",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "搜索内容",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "TODO|FIXME|HACK",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "搜索内容 TODO|FIXME|HACK",
+    "shot": "t-batch-b7-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_bjga05at01tym5eho9x1x5rz",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 190
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2160,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "搜索内容 TODO|FIXME|HACK",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "搜索内容\nTODO|FIXME|HACK",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "搜索内容",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "TODO|FIXME|HACK",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-search-panel",
+      "tag": "div",
+      "text": "输入 pattern: TODO|FIXME|HACK path: /Users/eric8810/dim-agent "
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "Matched 1 files in 1 shown files. Not truncated. we-mp-rss-c"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "169px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "搜索内容 TODO|FIXME|HACK 输入 pattern: TODO|FIXME|HACK path: /Users/eric8810/dim-agent 输出 Matched 1 files in 1 shown files. Not truncated. we-mp-rss-check/apis/cascade.py: 1 matches",
+    "shot": "t-batch-b7-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "写入 dim-tool-test.md + 1 1 9 9",
+   "collapsed": {
+    "blockId": "message:call_r4szr5zgf069asi6er8mztp1",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2191,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "写入 dim-tool-test.md + 1 1 9 9",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "写入\ndim-tool-test.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "写入",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "dim-tool-test.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n1\n1\n9\n9",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n1\n1\n9\n9",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "9",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "写入 dim-tool-test.md + 1 1 9 9",
+    "shot": "t-batch-b8-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_r4szr5zgf069asi6er8mztp1",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2191,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "写入 dim-tool-test.md + 1 1 9 9",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "写入\ndim-tool-test.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "写入",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "dim-tool-test.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n1\n1\n9\n9",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n1\n1\n9\n9",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "1",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "9",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-file-panel",
+      "tag": "div",
+      "text": "/tmp/dim-tool-test.md"
+     },
+     {
+      "testid": "tool-code-block",
+      "tag": "div",
+      "text": ""
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "写入 dim-tool-test.md + 1 1 9 9 /tmp/dim-tool-test.md",
+    "shot": "t-batch-b8-expanded.png",
+    "shotBottom": "t-batch-b8-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "获取网页 E example.com ✗",
+   "collapsed": {
+    "blockId": "message:call_mvb41ga2b20frs89nr95qgje",
+    "status": "error",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2223,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "获取网页 E example.com ✗",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "获取网页\nE\nexample.com",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "获取网页",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "favicon-img",
+      "tag": "div",
+      "text": "E",
+      "cls": "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg"
+     },
+     {
+      "testid": null,
+      "tag": "div",
+      "text": "E",
+      "cls": "flex h-full w-full items-center justify-center text-white font-medium"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "example.com",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-web-error",
+      "tag": "span",
+      "text": "✗",
+      "cls": "shrink-0 text-xs text-activity-warning"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "获取网页 E example.com ✗",
+    "shot": "t-batch-b9-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_mvb41ga2b20frs89nr95qgje",
+    "status": "error",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 117
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2223,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "获取网页 E example.com ✗",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "获取网页\nE\nexample.com",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "获取网页",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "favicon-img",
+      "tag": "div",
+      "text": "E",
+      "cls": "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg"
+     },
+     {
+      "testid": null,
+      "tag": "div",
+      "text": "E",
+      "cls": "flex h-full w-full items-center justify-center text-white font-medium"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "example.com",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-web-error",
+      "tag": "span",
+      "text": "✗",
+      "cls": "shrink-0 text-xs text-activity-warning"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-web-panel",
+      "tag": "div",
+      "text": "E https://example.com web_fetch failed: blocked_address: Res"
+     },
+     {
+      "testid": "favicon-img",
+      "tag": "div",
+      "text": "E"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "95.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "获取网页 E example.com ✗ E https://example.com web_fetch failed: blocked_address: Reserved benchmark addresses are blocked. If using Fake-IP DNS, enable proxyDns with a trusted proxy, use real-address DNS answers, or configure an explicit trusted-host exception. See docs/design/plugins/Web.md (Address policy).",
+    "shot": "t-batch-b9-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "93ea287d-403b-484a-aef0-94687c031143",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2255,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-batch-b10-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "93ea287d-403b-484a-aef0-94687c031143",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 53
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2255,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "Let me test edit tool now,I'll edit the file first, then tes"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "29.75px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s Let me test edit tool now,I'll edit the file first, then test web fetch and user query tools.",
+    "shot": "t-batch-b10-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "编辑 dim-tool-test.md + 2 2 - 2 2",
+   "collapsed": {
+    "blockId": "message:call_w0pavi0bxmzgqvgtlwz13ovk",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2288,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "编辑 dim-tool-test.md + 2 2 - 2 2",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "编辑\ndim-tool-test.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "编辑",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "dim-tool-test.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n2\n2\n-\n2\n2",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n2\n2",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "2",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "2",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "-\n2\n2",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "-",
+      "cls": "leading-none"
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "编辑 dim-tool-test.md + 2 2 - 2 2",
+    "shot": "t-batch-b11-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_w0pavi0bxmzgqvgtlwz13ovk",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 125
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2288,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "编辑 dim-tool-test.md + 2 2 - 2 2",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "编辑\ndim-tool-test.md",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "编辑",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-file-icon",
+      "tag": "img",
+      "text": "",
+      "cls": "h-3.5 w-3.5 shrink-0 object-contain"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "dim-tool-test.md",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-diff-stats",
+      "tag": "div",
+      "text": "+\n2\n2\n-\n2\n2",
+      "cls": "flex shrink-0 items-center gap-0.5 text-base tabular-nums"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "+\n2\n2",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "+",
+      "cls": "leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "2",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "2",
+      "cls": "flex h-[1em] items-center justify-center whitespace-pre leading-none"
+     },
+     {
+      "testid": "animated-number",
+      "tag": "span",
+      "text": "-\n2\n2",
+      "cls": "animated-number inline-flex h-[1em] items-center overflow-hidden align-middle ta"
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "-",
+      "cls": "leading-none"
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-file-panel",
+      "tag": "div",
+      "text": "/tmp/dim-tool-test.md"
+     },
+     {
+      "testid": "timeline-tool-file-path-open",
+      "tag": "button",
+      "text": "/tmp/dim-tool-test.md"
+     },
+     {
+      "testid": "tool-code-block",
+      "tag": "div",
+      "text": ""
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "103.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "编辑 dim-tool-test.md + 2 2 - 2 2 /tmp/dim-tool-test.md",
+    "shot": "t-batch-b11-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "获取网页 H httpbin.org ✗",
+   "collapsed": {
+    "blockId": "message:call_pauq89mg0fp4sb2gikn8iwr1",
+    "status": "error",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2319,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "获取网页 H httpbin.org ✗",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "获取网页\nH\nhttpbin.org",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "获取网页",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "favicon-img",
+      "tag": "div",
+      "text": "H",
+      "cls": "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg"
+     },
+     {
+      "testid": null,
+      "tag": "div",
+      "text": "H",
+      "cls": "flex h-full w-full items-center justify-center text-white font-medium"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "httpbin.org",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-web-error",
+      "tag": "span",
+      "text": "✗",
+      "cls": "shrink-0 text-xs text-activity-warning"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "获取网页 H httpbin.org ✗",
+    "shot": "t-batch-b12-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_pauq89mg0fp4sb2gikn8iwr1",
+    "status": "error",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 117
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2319,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "获取网页 H httpbin.org ✗",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "获取网页\nH\nhttpbin.org",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "circle",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "获取网页",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "favicon-img",
+      "tag": "div",
+      "text": "H",
+      "cls": "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg"
+     },
+     {
+      "testid": null,
+      "tag": "div",
+      "text": "H",
+      "cls": "flex h-full w-full items-center justify-center text-white font-medium"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "httpbin.org",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-web-error",
+      "tag": "span",
+      "text": "✗",
+      "cls": "shrink-0 text-xs text-activity-warning"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-web-panel",
+      "tag": "div",
+      "text": "H https://httpbin.org/get web_fetch failed: blocked_address:"
+     },
+     {
+      "testid": "favicon-img",
+      "tag": "div",
+      "text": "H"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "95.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "获取网页 H httpbin.org ✗ H https://httpbin.org/get web_fetch failed: blocked_address: Reserved benchmark addresses are blocked. If using Fake-IP DNS, enable proxyDns with a trusted proxy, use real-address DNS answers, or configure an explicit trusted-host exception. See docs/design/plugins/Web.md (Address policy).",
+    "shot": "t-batch-b12-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "使用工具 ask_user",
+   "collapsed": {
+    "blockId": "message:call_u738sg49pyc32lwj5b518fxk",
+    "status": "error",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2351,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 ask_user",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nask_user",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "ask_user",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "使用工具 ask_user",
+    "shot": "t-batch-b13-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_u738sg49pyc32lwj5b518fxk",
+    "status": "error",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 2351,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用工具 ask_user",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用工具\nask_user",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用工具",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "ask_user",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 { \"questions\": [ { \"header\": \"工具偏好\", \"multiSelect\": false"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"questions\": [ { \"header\": \"工具偏好\", \"multiSelect\": false, \""
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "The question was cancelled before the user answered."
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "使用工具 ask_user 输入 { \"questions\": [ { \"header\": \"工具偏好\", \"multiSelect\": false, \"options\": [ { \"description\": \"使用系统默认浏览器访问网页\", \"label\": \"Chrome\" }, { \"description\": \"使用浏览器工具内置预览\", \"label\": \"内置预览\" }, { \"description\": \"不关心，随便选\", \"label\": \"无所谓\" } ], \"question\": \"这是一个 ask_user 工具测试。请问你偏好哪种网页浏览方式？（选择任意选项即可继续）\" } ] } 输出 The question was cancelled before the user answered.",
+    "shot": "t-batch-b13-expanded.png",
+    "shotBottom": "t-batch-b13-expanded-bottom.png"
+   }
+  }
+ ]
+}

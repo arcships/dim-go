@@ -1,0 +1,1831 @@
+{
+ "turnIndex": 11,
+ "turnText": "用可用的 MCP 浏览器工具",
+ "blocks": [
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "cbf0b91f-8655-46a9-b62c-3ea0493e4778",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20157,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-mcp-b0-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "cbf0b91f-8655-46a9-b62c-3ea0493e4778",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 270
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20157,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "We need use MCP browser tools. The tools are named mcp_dim_d"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "247px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s We need use MCP browser tools. The tools are named mcp_dim_desktop_bro_*. They require sessionId. Which sessionId? The tool descriptions say \"App Server session id\". We have sessionId from agent? The leader's sessionId is 38955c6e-1a92-4ddd-99c5-62576aaef860 (from agent list). The exec output path also includes that UUID. Likely that's the app server session id. We can use it. Need to open ",
+    "shot": "t-mcp-b0-expanded.png",
+    "shotBottom": "t-mcp-b0-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "MCP · dim/desktop_bro https://example.com",
+   "collapsed": {
+    "blockId": "message:call_00_qz3v214alkn6vwued1r9nf0n",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20189,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro https://example.com",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro\nhttps://example.com",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "https://example.com",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "MCP · dim/desktop_bro https://example.com",
+    "shot": "t-mcp-b1-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_qz3v214alkn6vwued1r9nf0n",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20189,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro https://example.com",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro\nhttps://example.com",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "https://example.com",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 { \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\", \"u"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\", \"url\""
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"url\\\":\\\"https:/"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "MCP · dim/desktop_bro https://example.com 输入 { \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\", \"url\": \"https://example.com\" } 输出 { \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"url\\\":\\\"https://example.com/\\\",\\\"title\\\":\\\"\\\",\\\"loading\\\":true,\\\"canGoBack\\\":false,\\\"canGoForward\\\":false,\\\"partition\\\":\\\"persist:dimcode-browser\\\",\\\"guestWebContentsId\\\":3,\\\"hostWebContentsId\\\":2}\" } ] }",
+    "shot": "t-mcp-b1-expanded.png",
+    "shotBottom": "t-mcp-b1-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "5ac68df7-65b4-4b4e-b50e-3588c8f4db05",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20222,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-mcp-b2-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "5ac68df7-65b4-4b4e-b50e-3588c8f4db05",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 121
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20222,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "The page is loading. Need wait for load, then read state or "
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "98px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s The page is loading. Need wait for load, then read state or snapshot. Use wait type \"load\" maybe. Then read current state. Let's call wait and then read state. The wait tool parameters: sessionId, type: \"load\", value, timeout. Use type \"load\". Then read state. Maybe in parallel? Wait first.",
+    "shot": "t-mcp-b2-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "MCP · dim/desktop_bro",
+   "collapsed": {
+    "blockId": "message:call_00_ttftiyg06urpsftbjptp9vwy",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20254,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "MCP · dim/desktop_bro",
+    "shot": "t-mcp-b3-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_ttftiyg06urpsftbjptp9vwy",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20254,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 { \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\", \"t"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\", \"type"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"ok\\\":true}\" } ]"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "MCP · dim/desktop_bro 输入 { \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\", \"type\": \"load\", \"timeout\": 15000 } 输出 { \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"ok\\\":true}\" } ] }",
+    "shot": "t-mcp-b3-expanded.png",
+    "shotBottom": "t-mcp-b3-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "69d835ae-e0a0-40ab-bd7e-55ab87e2868b",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20287,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-mcp-b4-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "69d835ae-e0a0-40ab-bd7e-55ab87e2868b",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 53
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20287,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "Now read current state."
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "29.75px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s Now read current state.",
+    "shot": "t-mcp-b4-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "MCP · dim/desktop_bro",
+   "collapsed": {
+    "blockId": "message:call_00_fdoi1wd30piz8g83pv10omp2",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20319,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "MCP · dim/desktop_bro",
+    "shot": "t-mcp-b5-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_fdoi1wd30piz8g83pv10omp2",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20319,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 { \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\" } 输"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\" }"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"url\\\":\\\"https:/"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "MCP · dim/desktop_bro 输入 { \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\" } 输出 { \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"url\\\":\\\"https://example.com/\\\",\\\"title\\\":\\\"Example Domain\\\",\\\"loading\\\":false,\\\"canGoBack\\\":true,\\\"canGoForward\\\":false,\\\"partition\\\":\\\"persist:dimcode-browser\\\",\\\"guestWebContentsId\\\":3,\\\"hostWebContentsId\\\":2}\" } ] }",
+    "shot": "t-mcp-b5-expanded.png",
+    "shotBottom": "t-mcp-b5-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "MCP · dim/desktop_bro",
+   "collapsed": {
+    "blockId": "message:call_01_1x3ggd3ouggy6oyyatddzpim",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20351,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "MCP · dim/desktop_bro",
+    "shot": "t-mcp-b6-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_01_1x3ggd3ouggy6oyyatddzpim",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 272
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20351,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "MCP · dim/desktop_bro",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "MCP · dim/desktop_bro",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-raw-panel",
+      "tag": "div",
+      "text": "输入 { \"compact\": true, \"sessionId\": \"38955c6e-1a92-4ddd-99c5-"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"compact\": true, \"sessionId\": \"38955c6e-1a92-4ddd-99c5-625"
+     },
+     {
+      "testid": null,
+      "tag": "pre",
+      "text": "{ \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"text\\\":\\\"Page: "
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "250.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "MCP · dim/desktop_bro 输入 { \"compact\": true, \"sessionId\": \"38955c6e-1a92-4ddd-99c5-62576aaef860\" } 输出 { \"content\": [ { \"type\": \"text\", \"text\": \"{\\\"text\\\":\\\"Page: Example Domain — https://example.com/\\\\n\\\\n@e1 [statictext] \\\\\\\"该域名仅用于文档示例，无需获得许可。这并非一项服务，请勿将其用于测试和监控目的。\\\\\\\"\\\\n@e2 [statictext] \\\\\\\"This domain is for use in documentation examples without needing permission. This is not a service; avoid r",
+    "shot": "t-mcp-b6-expanded.png",
+    "shotBottom": "t-mcp-b6-expanded-bottom.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0.4s",
+   "collapsed": {
+    "blockId": "15c9ef0a-fb12-4393-909b-921b16b42efe",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20383,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.4s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.4s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0.4s",
+    "shot": "t-mcp-b7-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "15c9ef0a-fb12-4393-909b-921b16b42efe",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 189
+    },
+    "viewport": {
+     "h": 515,
+     "st": 20383,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.4s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.4s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "We have page title \"Example Domain\". One-sentence summary. S"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "166.25px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0.4s We have page title \"Example Domain\". One-sentence summary. Should mention the page states example.com is for documentation examples, not a real service, and links to IANA's help page. The user asked \"读出页面标题并给我一句话总结\". Provide title and one sentence summary. No extra tools. Maybe close the browser? Not requested. Leave open. Answer concise: Title: Example Domain. Summary one sentence. Use C",
+    "shot": "t-mcp-b7-expanded.png"
+   }
+  }
+ ]
+}

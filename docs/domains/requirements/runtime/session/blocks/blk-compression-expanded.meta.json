@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"compression-summary-toggle\"]",
+ "mode": "click",
+ "geometry": {
+  "rect": {
+   "x": 288,
+   "y": 500,
+   "w": 144,
+   "h": 25
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 568
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": "上下文已压缩"
+ },
+ "text": "上下文已压缩"
+}

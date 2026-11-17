@@ -1,0 +1,640 @@
+{
+ "turnIndex": 10,
+ "turnText": "用 skill 工具调用 pptx",
+ "blocks": [
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0s",
+   "collapsed": {
+    "blockId": "c2bb2e4a-3eff-4a1d-a3d2-1e63a6c8bdc9",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 19801,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0s",
+    "shot": "t-skill-b0-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "c2bb2e4a-3eff-4a1d-a3d2-1e63a6c8bdc9",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 76
+    },
+    "viewport": {
+     "h": 515,
+     "st": 19801,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "We need to call skill tool with skill_name \"pptx\". Then one "
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "52.5px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0s We need to call skill tool with skill_name \"pptx\". Then one sentence explaining what it returned. Let's do it.",
+    "shot": "t-skill-b0-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-tool-block",
+   "blockText": "使用技能 pptx",
+   "collapsed": {
+    "blockId": "message:call_00_cewn0ecbwi9crlcgym5d0u0x",
+    "status": "complete",
+    "open": false,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 21
+    },
+    "viewport": {
+     "h": 515,
+     "st": 19833,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用技能 pptx",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用技能\npptx",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用技能",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "pptx",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "0px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "使用技能 pptx",
+    "shot": "t-skill-b1-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "message:call_00_cewn0ecbwi9crlcgym5d0u0x",
+    "status": "complete",
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 299,
+     "w": 644,
+     "h": 100
+    },
+    "viewport": {
+     "h": 515,
+     "st": 19833,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "使用技能 pptx",
+    "headerItems": [
+     {
+      "testid": "timeline-tool-summary",
+      "tag": "span",
+      "text": "使用技能\npptx",
+      "cls": "inline-flex min-w-0 max-w-full items-center gap-1 min-w-0"
+     },
+     {
+      "testid": "timeline-tool-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": "timeline-tool-summary-label",
+      "tag": "span",
+      "text": "使用技能",
+      "cls": "shrink-0 text-muted-foreground transition-colors group-hover/tool-call:text-fore"
+     },
+     {
+      "testid": "timeline-tool-primary-parameter",
+      "tag": "span",
+      "text": "pptx",
+      "cls": "param-enter-anim min-w-0 truncate text-muted-foreground/70 group-hover/tool-call"
+     },
+     {
+      "testid": "timeline-tool-chevron",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-4 w-4 shrink-0 text-muted-foreground transition-[color,transform] group"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-tool-skill-panel",
+      "tag": "div",
+      "text": "Presentation creation, editing, and analysis. When Claude ne"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "79px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "color, transform",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "使用技能 pptx Presentation creation, editing, and analysis. When Claude needs to work with presentations (.pptx files) for: (1) Creating new presentations, (2) Modifying or editing content, (3) Working with layouts, (4) Adding comments or speaker notes, or any other presentation tasks",
+    "shot": "t-skill-b1-expanded.png"
+   }
+  },
+  {
+   "testid": "timeline-thinking-block",
+   "blockText": "思考了 0.3s",
+   "collapsed": {
+    "blockId": "59d222b9-ebb7-4cfd-948f-88d40ce4de09",
+    "status": null,
+    "open": null,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 23
+    },
+    "viewport": {
+     "h": 515,
+     "st": 19866,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.3s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.3s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [],
+    "grid": null,
+    "inner": null,
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "",
+    "text": "思考了 0.3s",
+    "shot": "t-skill-b2-collapsed.png"
+   },
+   "expanded": {
+    "blockId": "59d222b9-ebb7-4cfd-948f-88d40ce4de09",
+    "status": null,
+    "open": true,
+    "rect": {
+     "x": 46,
+     "y": 298,
+     "w": 644,
+     "h": 53
+    },
+    "viewport": {
+     "h": 515,
+     "st": 19866,
+     "y": 53,
+     "bottom": 568,
+     "x": 5,
+     "right": 715
+    },
+    "window": {
+     "w": 1030,
+     "h": 725
+    },
+    "headerText": "思考了 0.3s",
+    "headerItems": [
+     {
+      "testid": "timeline-thinking-icon",
+      "tag": "svg",
+      "text": "",
+      "cls": "lucide h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover/"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     },
+     {
+      "testid": null,
+      "tag": "span",
+      "text": "思考了 0.3s",
+      "cls": "thinking-title-absolute"
+     },
+     {
+      "testid": null,
+      "tag": "path",
+      "text": "",
+      "cls": ""
+     }
+    ],
+    "panelItems": [
+     {
+      "testid": "timeline-thinking-quote",
+      "tag": "div",
+      "text": "Now one sentence explaining what it returned. Must be one se"
+     }
+    ],
+    "grid": {
+     "transitionProperty": "grid-template-rows",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "cubic-bezier(0.16, 1, 0.3, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "29.75px",
+     "transform": "none"
+    },
+    "inner": {
+     "transitionProperty": "opacity",
+     "transitionDuration": "0.3s",
+     "transitionTimingFunction": "ease-in",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevron": {
+     "transitionProperty": "transform, translate, scale, rotate",
+     "transitionDuration": "0.15s",
+     "transitionTimingFunction": "cubic-bezier(0.4, 0, 0.2, 1)",
+     "transitionDelay": "0s",
+     "animationName": "none",
+     "animationDuration": "0s",
+     "animationTimingFunction": "ease",
+     "opacity": "1",
+     "gridTemplateRows": "none",
+     "transform": "none"
+    },
+    "chevronClass": "rotate-90,rotate-90",
+    "text": "思考了 0.3s Now one sentence explaining what it returned. Must be one sentence. Chinese. No tools.",
+    "shot": "t-skill-b2-expanded.png"
+   }
+  }
+ ]
+}

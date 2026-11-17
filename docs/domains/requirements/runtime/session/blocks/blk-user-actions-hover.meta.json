@@ -1,0 +1,142 @@
+{
+ "hoverSel": "[data-testid=\"timeline-user-actions\"]",
+ "capSel": "[data-testid=\"timeline-user-actions\"]",
+ "geo": {
+  "rect": {
+   "x": 500,
+   "y": 298,
+   "w": 191,
+   "h": 25
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 568
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "probes": [
+   {
+    "testid": "timeline-user-sent-time",
+    "tag": "span",
+    "text": "星期二 21:55",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": "timeline-user-copy",
+    "tag": "button",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "rect",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": "timeline-user-edit",
+    "tag": "button",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": "timeline-user-fork",
+    "tag": "button",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": "timeline-user-branch",
+    "tag": "button",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "path",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   },
+   {
+    "testid": null,
+    "tag": "circle",
+    "text": "",
+    "label": null,
+    "title": null
+   }
+  ],
+  "text": "星期二 21:55"
+ }
+}

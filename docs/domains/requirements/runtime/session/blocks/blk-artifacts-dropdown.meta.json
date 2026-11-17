@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"timeline-artifact-dropdown-trigger\"]",
+ "mode": "click",
+ "geometry": {
+  "rect": {
+   "x": 665,
+   "y": 406,
+   "w": 18,
+   "h": 25
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 533
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": ""
+ },
+ "text": ""
+}

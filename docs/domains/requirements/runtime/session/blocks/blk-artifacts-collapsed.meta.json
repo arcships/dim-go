@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"timeline-artifacts\"]",
+ "mode": "plain",
+ "geometry": {
+  "rect": {
+   "x": 29,
+   "y": 380,
+   "w": 661,
+   "h": 56
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 533
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": "1 个产物 coverage-demo.html 打开"
+ },
+ "text": "1 个产物 coverage-demo.html 打开"
+}

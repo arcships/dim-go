@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"timeline-work-summary\"]",
+ "mode": "hover",
+ "geometry": {
+  "rect": {
+   "x": 29,
+   "y": 298,
+   "w": 661,
+   "h": 25
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 568
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": "已经工作了 3m 22s"
+ },
+ "text": "已经工作了 3m 22s"
+}

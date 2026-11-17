@@ -1,0 +1,22 @@
+{
+ "selector": "[data-testid=\"right-panel-shell\"]",
+ "mode": "plain",
+ "geometry": {
+  "rect": {
+   "x": 719,
+   "y": 5,
+   "w": 306,
+   "h": 716
+  },
+  "vp": {
+   "y": 53,
+   "bottom": 568
+  },
+  "win": {
+   "w": 1030,
+   "h": 725
+  },
+  "text": "文件 coverage-artifact.md dim-tool-test.md package.json 浏览器 /private/tmp/dim-tool-test.md 工具测试文件 这是一个用于测试 write 工具的 Markdown 文件。 列表项 1 列表项 2 嵌套项 引用块测试 行内代码 测试 Python 列 A 列 B 1 2 链接示例 待办列表： 写文件测试 编辑测试 /U"
+ },
+ "text": "文件 coverage-artifact.md dim-tool-test.md package.json 浏览器 /private/tmp/dim-tool-test.md 工具测试文件 这是一个用于测试 write 工具的 Markdown 文件。 列表项 1 列表项 2 嵌套项 引用块测试 行内代码 测试 Python 列 A 列 B 1 2 链接示例 待办列表： 写文件测试 编辑测试 /U"
+}
