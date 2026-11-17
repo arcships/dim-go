@@ -1,0 +1,161 @@
+{
+ "state": "scheduled",
+ "count": 14,
+ "items": [
+  {
+   "chain": "div.flex.h-full.w-full > div.relative.flex.h-full > main.relative.z-[var(--z-content)].w-full > div.flex.min-h-0.flex-1 > div.flex.h-full.min-h-0 > header.flex.h-(--titlebar-height).shrink-0 > button.inline-flex.items-center.justify-center",
+   "tag": "button",
+   "role": "",
+   "text": "",
+   "label": "展开侧边栏",
+   "icon": true,
+   "x": 99,
+   "y": 14,
+   "w": 28,
+   "h": 28
+  },
+  {
+   "chain": "div.relative.flex.h-full > main.relative.z-[var(--z-content)].w-full > div.flex.min-h-0.flex-1 > div.flex.h-full.min-h-0 > header.flex.h-(--titlebar-height).shrink-0 > div.window-drag-none > div.inline-flex.h-8.items-center",
+   "tag": "div",
+   "role": "group",
+   "text": "",
+   "label": "筛选任务",
+   "x": 127,
+   "y": 14,
+   "w": 174,
+   "h": 28
+  },
+  {
+   "chain": "main.relative.z-[var(--z-content)].w-full > div.flex.min-h-0.flex-1 > div.flex.h-full.min-h-0 > header.flex.h-(--titlebar-height).shrink-0 > div.window-drag-none > div.inline-flex.h-8.items-center > button.inline-flex.h-full.items-center",
+   "tag": "button",
+   "role": "",
+   "text": "全部",
+   "label": "",
+   "x": 130,
+   "y": 17,
+   "w": 47,
+   "h": 22
+  },
+  {
+   "chain": "main.relative.z-[var(--z-content)].w-full > div.flex.min-h-0.flex-1 > div.flex.h-full.min-h-0 > header.flex.h-(--titlebar-height).shrink-0 > div.window-drag-none > div.inline-flex.h-8.items-center > button.inline-flex.h-full.items-center",
+   "tag": "button",
+   "role": "",
+   "text": "已启用",
+   "label": "",
+   "x": 177,
+   "y": 17,
+   "w": 60,
+   "h": 22
+  },
+  {
+   "chain": "main.relative.z-[var(--z-content)].w-full > div.flex.min-h-0.flex-1 > div.flex.h-full.min-h-0 > header.flex.h-(--titlebar-height).shrink-0 > div.window-drag-none > div.inline-flex.h-8.items-center > button.inline-flex.h-full.items-center",
+   "tag": "button",
+   "role": "",
+   "text": "已暂停",
+   "label": "",
+   "x": 237,
+   "y": 17,
+   "w": 60,
+   "h": 22
+  },
+  {
+   "chain": "div.relative.flex.h-full > main.relative.z-[var(--z-content)].w-full > div.flex.min-h-0.flex-1 > div.flex.h-full.min-h-0 > header.flex.h-(--titlebar-height).shrink-0 > div.ml-auto.window-drag-none > button.inline-flex.items-center.justify-center",
+   "tag": "button",
+   "role": "",
+   "text": "创建",
+   "label": "",
+   "x": 966,
+   "y": 14,
+   "w": 46,
+   "h": 28
+  },
+  {
+   "chain": "div.flex.min-h-0.flex-1 > div.flex.h-full.min-h-0 > div.min-h-0.flex-1 > section.flex.h-full.min-h-0 > div.px-4.py-3 > div.relative.mx-auto.w-full > input.file:text-foreground.placeholder:text-muted-foreground.selection:bg-primary",
+   "tag": "input",
+   "role": "",
+   "text": "",
+   "label": "搜索定时任务",
+   "x": 221,
+   "y": 63,
+   "w": 588,
+   "h": 32
+  },
+  {
+   "chain": "div.flex.h-full.min-h-0 > div.min-h-0.flex-1 > section.flex.h-full.min-h-0 > div.min-h-0.flex-1.overflow-y-auto > div.mx-auto.w-full.max-w-2xl > div.flex.min-h-48.flex-col > p.text-sm.font-medium.text-foreground",
+   "tag": "p",
+   "role": "",
+   "text": "定时任务暂不可用",
+   "label": "",
+   "x": 466,
+   "y": 187,
+   "w": 98,
+   "h": 18
+  },
+  {
+   "chain": "div.flex.h-full.min-h-0 > div.min-h-0.flex-1 > section.flex.h-full.min-h-0 > div.min-h-0.flex-1.overflow-y-auto > div.mx-auto.w-full.max-w-2xl > div.flex.min-h-48.flex-col > p.mt-1.max-w-xs.text-[0.8125rem]",
+   "tag": "p",
+   "role": "",
+   "text": "当前 App Server 未加载 Scheduler 插件。请关闭其他客户端或会话后重启 DimAgent。",
+   "label": "",
+   "x": 375,
+   "y": 208,
+   "w": 280,
+   "h": 35
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0",
+   "tag": "div",
+   "role": "dialog",
+   "text": "",
+   "label": "",
+   "x": 291,
+   "y": 293,
+   "w": 448,
+   "h": 139
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.flex.min-w-0.flex-col > h2.text-lg.leading-none.font-semibold",
+   "tag": "h2",
+   "role": "",
+   "text": "搜索聊天",
+   "label": "",
+   "x": 291,
+   "y": 293,
+   "w": 1,
+   "h": 16
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.flex.min-w-0.flex-col > p.min-w-0.break-words.text-muted-foreground",
+   "tag": "p",
+   "role": "",
+   "text": "搜索并打开已有聊天",
+   "label": "",
+   "x": 291,
+   "y": 316,
+   "w": 1,
+   "h": 18
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.flex.h-14.items-center > input.file:text-foreground.placeholder:text-muted-foreground.selection:bg-primary",
+   "tag": "input",
+   "role": "",
+   "text": "",
+   "label": "",
+   "x": 331,
+   "y": 294,
+   "w": 394,
+   "h": 48
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.max-h-[420px].overflow-y-auto.p-2 > p.px-3.py-8.text-center",
+   "tag": "p",
+   "role": "",
+   "text": "未找到聊天",
+   "label": "",
+   "x": 299,
+   "y": 350,
+   "w": 432,
+   "h": 74
+  }
+ ]
+}

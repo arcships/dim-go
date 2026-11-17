@@ -1,0 +1,61 @@
+{
+ "state": "search",
+ "count": 5,
+ "items": [
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0",
+   "tag": "div",
+   "role": "dialog",
+   "text": "",
+   "label": "",
+   "x": 291,
+   "y": 293,
+   "w": 448,
+   "h": 139
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.flex.min-w-0.flex-col > h2.text-lg.leading-none.font-semibold",
+   "tag": "h2",
+   "role": "",
+   "text": "搜索聊天",
+   "label": "",
+   "x": 291,
+   "y": 293,
+   "w": 1,
+   "h": 16
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.flex.min-w-0.flex-col > p.min-w-0.break-words.text-muted-foreground",
+   "tag": "p",
+   "role": "",
+   "text": "搜索并打开已有聊天",
+   "label": "",
+   "x": 291,
+   "y": 316,
+   "w": 1,
+   "h": 18
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.flex.h-14.items-center > input.file:text-foreground.placeholder:text-muted-foreground.selection:bg-primary",
+   "tag": "input",
+   "role": "",
+   "text": "",
+   "label": "",
+   "x": 331,
+   "y": 294,
+   "w": 394,
+   "h": 48
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in.data-[state=closed]:animate-out.data-[state=closed]:fade-out-0 > div.max-h-[420px].overflow-y-auto.p-2 > p.px-3.py-8.text-center",
+   "tag": "p",
+   "role": "",
+   "text": "未找到聊天",
+   "label": "",
+   "x": 299,
+   "y": 350,
+   "w": 432,
+   "h": 74
+  }
+ ]
+}
