@@ -1,0 +1,3672 @@
+[
+ {
+  "tag": "span",
+  "role": "",
+  "text": "返回",
+  "label": "",
+  "x": 45,
+  "y": 64,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "账户",
+  "label": "",
+  "x": 47,
+  "y": 113,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "用量",
+  "label": "",
+  "x": 47,
+  "y": 148,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "个性化",
+  "label": "",
+  "x": 47,
+  "y": 183,
+  "w": 37,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "外观",
+  "label": "",
+  "x": 47,
+  "y": 218,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "通用",
+  "label": "",
+  "x": 47,
+  "y": 253,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "快捷键",
+  "label": "",
+  "x": 47,
+  "y": 288,
+  "w": 37,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "模型供应",
+  "label": "",
+  "x": 47,
+  "y": 323,
+  "w": 49,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "多模态",
+  "label": "",
+  "x": 47,
+  "y": 358,
+  "w": 37,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "运行环境",
+  "label": "",
+  "x": 47,
+  "y": 393,
+  "w": 49,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "MCP",
+  "label": "",
+  "x": 47,
+  "y": 428,
+  "w": 28,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "通知",
+  "label": "",
+  "x": 47,
+  "y": 463,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "宠物",
+  "label": "",
+  "x": 47,
+  "y": 498,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "权限",
+  "label": "",
+  "x": 47,
+  "y": 533,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Git",
+  "label": "",
+  "x": 47,
+  "y": 568,
+  "w": 16,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Hooks",
+  "label": "",
+  "x": 47,
+  "y": 603,
+  "w": 37,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "插件设置",
+  "label": "",
+  "x": 47,
+  "y": 638,
+  "w": 49,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "外部 Agent",
+  "label": "",
+  "x": 47,
+  "y": 673,
+  "w": 62,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "归档会话",
+  "label": "",
+  "x": 47,
+  "y": 708,
+  "w": 49,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "关于",
+  "label": "",
+  "x": 47,
+  "y": 743,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "模型供应",
+  "label": "",
+  "x": 239,
+  "y": 20,
+  "w": 46,
+  "h": 13
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "已启用",
+  "label": "",
+  "x": 257,
+  "y": 81,
+  "w": 35,
+  "h": 17
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "1",
+  "label": "",
+  "x": 431,
+  "y": 81,
+  "w": 5,
+  "h": 15
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "DimAgent OAuth",
+  "label": "",
+  "x": 262,
+  "y": 108,
+  "w": 112,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "●",
+  "label": "",
+  "x": 426,
+  "y": 110,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "未启用",
+  "label": "",
+  "x": 257,
+  "y": 138,
+  "w": 35,
+  "h": 17
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "127",
+  "label": "",
+  "x": 418,
+  "y": 139,
+  "w": 18,
+  "h": 15
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "302.AI",
+  "label": "",
+  "x": 262,
+  "y": 166,
+  "w": 52,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 167,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Adobe Firefly",
+  "label": "",
+  "x": 262,
+  "y": 196,
+  "w": 92,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 197,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Aihubmix",
+  "label": "",
+  "x": 262,
+  "y": 225,
+  "w": 68,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 227,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Alibaba DashScope",
+  "label": "",
+  "x": 262,
+  "y": 255,
+  "w": 127,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 257,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Amazon Speech",
+  "label": "",
+  "x": 262,
+  "y": 285,
+  "w": 109,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 286,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Anthropic",
+  "label": "",
+  "x": 262,
+  "y": 315,
+  "w": 70,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 316,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Apiframe",
+  "label": "",
+  "x": 262,
+  "y": 344,
+  "w": 67,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 346,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Volcengine Agent Plan",
+  "label": "",
+  "x": 262,
+  "y": 374,
+  "w": 145,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 376,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Ark Code",
+  "label": "",
+  "x": 262,
+  "y": 404,
+  "w": 68,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 405,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "AssemblyAI",
+  "label": "",
+  "x": 262,
+  "y": 434,
+  "w": 82,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 435,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Atlas Cloud AI",
+  "label": "",
+  "x": 262,
+  "y": 463,
+  "w": 95,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 465,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "AtlasCloud Coding Plan",
+  "label": "",
+  "x": 262,
+  "y": 493,
+  "w": 150,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 495,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "AWS Bedrock",
+  "label": "",
+  "x": 262,
+  "y": 523,
+  "w": 93,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 524,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Azure OpenAI",
+  "label": "",
+  "x": 262,
+  "y": 553,
+  "w": 95,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 554,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Azure Speech",
+  "label": "",
+  "x": 262,
+  "y": 582,
+  "w": 95,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 584,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Bailian",
+  "label": "",
+  "x": 262,
+  "y": 612,
+  "w": 52,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 614,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Model Studio Coding Plan",
+  "label": "",
+  "x": 262,
+  "y": 642,
+  "w": 164,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 643,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "BaiLing",
+  "label": "",
+  "x": 262,
+  "y": 672,
+  "w": 57,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 673,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Beatoven",
+  "label": "",
+  "x": 262,
+  "y": 701,
+  "w": 68,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 703,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Black Forest Labs",
+  "label": "",
+  "x": 262,
+  "y": 731,
+  "w": 116,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 733,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "ByteDance",
+  "label": "",
+  "x": 262,
+  "y": 761,
+  "w": 77,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 762,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "BytePlus Coding Plan",
+  "label": "",
+  "x": 262,
+  "y": 791,
+  "w": 138,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 792,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Cartesia",
+  "label": "",
+  "x": 262,
+  "y": 820,
+  "w": 62,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 822,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Command Code",
+  "label": "",
+  "x": 262,
+  "y": 850,
+  "w": 108,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 852,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Custom Provider",
+  "label": "",
+  "x": 262,
+  "y": 880,
+  "w": 111,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 881,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "D-ID",
+  "label": "",
+  "x": 262,
+  "y": 910,
+  "w": 41,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 911,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Deepgram",
+  "label": "",
+  "x": 262,
+  "y": 939,
+  "w": 74,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 941,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "DeepSeek",
+  "label": "",
+  "x": 262,
+  "y": 969,
+  "w": 74,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 971,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "DMXAPI",
+  "label": "",
+  "x": 262,
+  "y": 999,
+  "w": 62,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1000,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "DouBaoSeed",
+  "label": "",
+  "x": 262,
+  "y": 1029,
+  "w": 89,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1030,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "each::labs",
+  "label": "",
+  "x": 262,
+  "y": 1058,
+  "w": 73,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1060,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "ElevenLabs",
+  "label": "",
+  "x": 262,
+  "y": 1088,
+  "w": 80,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1090,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "fal.ai",
+  "label": "",
+  "x": 262,
+  "y": 1118,
+  "w": 42,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1119,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Fireworks",
+  "label": "",
+  "x": 262,
+  "y": 1148,
+  "w": 71,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1149,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Fish Audio",
+  "label": "",
+  "x": 262,
+  "y": 1177,
+  "w": 75,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1179,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "FlyMux (Anthropic)",
+  "label": "",
+  "x": 262,
+  "y": 1207,
+  "w": 125,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1209,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "FlyMux (OpenAI)",
+  "label": "",
+  "x": 262,
+  "y": 1237,
+  "w": 112,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1238,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GitHub Models",
+  "label": "",
+  "x": 262,
+  "y": 1267,
+  "w": 100,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1268,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Gladia",
+  "label": "",
+  "x": 262,
+  "y": 1296,
+  "w": 50,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1298,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Google",
+  "label": "",
+  "x": 262,
+  "y": 1326,
+  "w": 56,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1328,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Grok Build",
+  "label": "",
+  "x": 262,
+  "y": 1356,
+  "w": 74,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1357,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Groq",
+  "label": "",
+  "x": 262,
+  "y": 1386,
+  "w": 42,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1387,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "HeyGen",
+  "label": "",
+  "x": 262,
+  "y": 1415,
+  "w": 61,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1417,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Hugging Face",
+  "label": "",
+  "x": 262,
+  "y": 1445,
+  "w": 95,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1447,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Hume AI",
+  "label": "",
+  "x": 262,
+  "y": 1475,
+  "w": 64,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1476,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "IBM Watson Speech",
+  "label": "",
+  "x": 262,
+  "y": 1505,
+  "w": 131,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1506,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Ideogram",
+  "label": "",
+  "x": 262,
+  "y": 1534,
+  "w": 69,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1536,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "JieKou.AI",
+  "label": "",
+  "x": 262,
+  "y": 1564,
+  "w": 69,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1566,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "KAT-Coder",
+  "label": "",
+  "x": 262,
+  "y": 1594,
+  "w": 78,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1595,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Kimi For Coding",
+  "label": "",
+  "x": 262,
+  "y": 1624,
+  "w": 106,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1625,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Kling",
+  "label": "",
+  "x": 262,
+  "y": 1653,
+  "w": 43,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1655,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "LM Studio",
+  "label": "",
+  "x": 262,
+  "y": 1683,
+  "w": 72,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1685,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Longcat",
+  "label": "",
+  "x": 262,
+  "y": 1713,
+  "w": 61,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1714,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Luma AI",
+  "label": "",
+  "x": 262,
+  "y": 1743,
+  "w": 61,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1744,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Magpie",
+  "label": "",
+  "x": 262,
+  "y": 1772,
+  "w": 57,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1774,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "MiniMax (minimax.io)",
+  "label": "",
+  "x": 262,
+  "y": 1802,
+  "w": 137,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1804,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "MiniMax (minimaxi.com)",
+  "label": "",
+  "x": 262,
+  "y": 1832,
+  "w": 155,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1833,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "MiniMax Coding Plan (minimaxi.com)",
+  "label": "",
+  "x": 262,
+  "y": 1862,
+  "w": 228,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1863,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "MiniMax Coding Plan (minimax.io)",
+  "label": "",
+  "x": 262,
+  "y": 1891,
+  "w": 211,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1893,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Mistral AI",
+  "label": "",
+  "x": 262,
+  "y": 1921,
+  "w": 68,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1923,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "ModelScope",
+  "label": "",
+  "x": 262,
+  "y": 1951,
+  "w": 87,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1952,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Moonshot",
+  "label": "",
+  "x": 262,
+  "y": 1981,
+  "w": 72,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 1982,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Moonshot AI",
+  "label": "",
+  "x": 262,
+  "y": 2010,
+  "w": 87,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2012,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Mubert",
+  "label": "",
+  "x": 262,
+  "y": 2040,
+  "w": 56,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2042,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "MusicAPI.ai",
+  "label": "",
+  "x": 262,
+  "y": 2070,
+  "w": 81,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2071,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "New API",
+  "label": "",
+  "x": 262,
+  "y": 2100,
+  "w": 63,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2101,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Nous Research",
+  "label": "",
+  "x": 262,
+  "y": 2129,
+  "w": 102,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2131,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Novita AI",
+  "label": "",
+  "x": 262,
+  "y": 2159,
+  "w": 66,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2161,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "NVIDIA",
+  "label": "",
+  "x": 262,
+  "y": 2189,
+  "w": 56,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2190,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "o3.fan",
+  "label": "",
+  "x": 262,
+  "y": 2219,
+  "w": 51,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2220,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Ollama",
+  "label": "",
+  "x": 262,
+  "y": 2248,
+  "w": 54,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2250,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "OpenAI",
+  "label": "",
+  "x": 262,
+  "y": 2278,
+  "w": 57,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2280,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "OpenAI Codex",
+  "label": "",
+  "x": 262,
+  "y": 2308,
+  "w": 98,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2309,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "OpenCode Go",
+  "label": "",
+  "x": 262,
+  "y": 2338,
+  "w": 96,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2339,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "OpenRouter",
+  "label": "",
+  "x": 262,
+  "y": 2367,
+  "w": 83,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2369,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "PiAPI",
+  "label": "",
+  "x": 262,
+  "y": 2397,
+  "w": 44,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2399,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Pika",
+  "label": "",
+  "x": 262,
+  "y": 2427,
+  "w": 38,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2428,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "PixVerse",
+  "label": "",
+  "x": 262,
+  "y": 2457,
+  "w": 65,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2458,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "PlayHT",
+  "label": "",
+  "x": 262,
+  "y": 2486,
+  "w": 56,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2488,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "PPIO",
+  "label": "",
+  "x": 262,
+  "y": 2516,
+  "w": 42,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2518,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Baidu Qianfan Coding Plan",
+  "label": "",
+  "x": 262,
+  "y": 2546,
+  "w": 168,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2547,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Baidu Qianfan Token Plan",
+  "label": "",
+  "x": 262,
+  "y": 2576,
+  "w": 162,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2577,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Qiniu",
+  "label": "",
+  "x": 262,
+  "y": 2605,
+  "w": 44,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2607,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "QwenCloud",
+  "label": "",
+  "x": 262,
+  "y": 2635,
+  "w": 82,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2637,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "QwenCloud For Coding",
+  "label": "",
+  "x": 262,
+  "y": 2665,
+  "w": 149,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2666,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "QwenCloud Token Plan",
+  "label": "",
+  "x": 262,
+  "y": 2695,
+  "w": 149,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2696,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Recraft",
+  "label": "",
+  "x": 262,
+  "y": 2724,
+  "w": 56,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2726,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Replicate",
+  "label": "",
+  "x": 262,
+  "y": 2754,
+  "w": 67,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2756,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Rev AI",
+  "label": "",
+  "x": 262,
+  "y": 2784,
+  "w": 51,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2785,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Reve AI",
+  "label": "",
+  "x": 262,
+  "y": 2814,
+  "w": 58,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2815,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "RunInfra",
+  "label": "",
+  "x": 262,
+  "y": 2843,
+  "w": 63,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2845,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Runware",
+  "label": "",
+  "x": 262,
+  "y": 2873,
+  "w": 65,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2875,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Runway",
+  "label": "",
+  "x": 262,
+  "y": 2903,
+  "w": 60,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2904,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Sarvam AI",
+  "label": "",
+  "x": 262,
+  "y": 2933,
+  "w": 73,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2934,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "SiliconFlow",
+  "label": "",
+  "x": 262,
+  "y": 2962,
+  "w": 80,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2964,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "SiliconFlow (com)",
+  "label": "",
+  "x": 262,
+  "y": 2992,
+  "w": 117,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 2994,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Soniox",
+  "label": "",
+  "x": 262,
+  "y": 3022,
+  "w": 53,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3023,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Speechmatics",
+  "label": "",
+  "x": 262,
+  "y": 3052,
+  "w": 96,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3053,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Stability AI",
+  "label": "",
+  "x": 262,
+  "y": 3081,
+  "w": 76,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3083,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Step Plan",
+  "label": "",
+  "x": 262,
+  "y": 3111,
+  "w": 69,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3113,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "StepFun en",
+  "label": "",
+  "x": 262,
+  "y": 3141,
+  "w": 80,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3142,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "StepFun",
+  "label": "",
+  "x": 262,
+  "y": 3171,
+  "w": 62,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3172,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Suno",
+  "label": "",
+  "x": 262,
+  "y": 3200,
+  "w": 44,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3202,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Synthesia",
+  "label": "",
+  "x": 262,
+  "y": 3230,
+  "w": 71,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3232,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tavus",
+  "label": "",
+  "x": 262,
+  "y": 3260,
+  "w": 48,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3261,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tencent Hunyuan",
+  "label": "",
+  "x": 262,
+  "y": 3290,
+  "w": 116,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3291,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tencent Token Plan",
+  "label": "",
+  "x": 262,
+  "y": 3319,
+  "w": 128,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3321,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tencent Token Plan Enterprise Lite",
+  "label": "",
+  "x": 262,
+  "y": 3349,
+  "w": 215,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3351,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tencent Token Plan Enterprise Lite (Intl)",
+  "label": "",
+  "x": 262,
+  "y": 3379,
+  "w": 245,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3380,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tencent Token Plan Enterprise Pro",
+  "label": "",
+  "x": 262,
+  "y": 3409,
+  "w": 213,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3410,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tencent Token Plan Enterprise Pro (Intl)",
+  "label": "",
+  "x": 262,
+  "y": 3438,
+  "w": 243,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3440,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Tencent Token Plan (Intl)",
+  "label": "",
+  "x": 262,
+  "y": 3468,
+  "w": 158,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3470,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Together AI",
+  "label": "",
+  "x": 262,
+  "y": 3498,
+  "w": 81,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3499,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "TokenFlux",
+  "label": "",
+  "x": 262,
+  "y": 3528,
+  "w": 73,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3529,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Upstage",
+  "label": "",
+  "x": 262,
+  "y": 3557,
+  "w": 63,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3559,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Vercel AI Gateway",
+  "label": "",
+  "x": 262,
+  "y": 3587,
+  "w": 120,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3589,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Vidu",
+  "label": "",
+  "x": 262,
+  "y": 3617,
+  "w": 40,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3618,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "xAI",
+  "label": "",
+  "x": 262,
+  "y": 3647,
+  "w": 33,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3648,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Xiaomi MiMo",
+  "label": "",
+  "x": 262,
+  "y": 3676,
+  "w": 89,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3678,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Xiaomi Token Plan (Europe)",
+  "label": "",
+  "x": 262,
+  "y": 3706,
+  "w": 174,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3708,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Xiaomi Token Plan (China)",
+  "label": "",
+  "x": 262,
+  "y": 3736,
+  "w": 166,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3737,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Xiaomi Token Plan (Singapore)",
+  "label": "",
+  "x": 262,
+  "y": 3766,
+  "w": 191,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3767,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Z.AI",
+  "label": "",
+  "x": 262,
+  "y": 3795,
+  "w": 37,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3797,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Z.AI Coding Plan",
+  "label": "",
+  "x": 262,
+  "y": 3825,
+  "w": 110,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3827,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "ZenMux",
+  "label": "",
+  "x": 262,
+  "y": 3855,
+  "w": 61,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3856,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "ZhipuAI",
+  "label": "",
+  "x": 262,
+  "y": 3885,
+  "w": 58,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3886,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "ZhipuAI Coding Plan",
+  "label": "",
+  "x": 262,
+  "y": 3914,
+  "w": 132,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "○",
+  "label": "",
+  "x": 426,
+  "y": 3916,
+  "w": 9,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "添加",
+  "label": "",
+  "x": 260,
+  "y": 687,
+  "w": 25,
+  "h": 18
+ },
+ {
+  "tag": "div",
+  "role": "",
+  "text": "DimAgent OAuth",
+  "label": "",
+  "x": 489,
+  "y": 22,
+  "w": 98,
+  "h": 18
+ },
+ {
+  "tag": "div",
+  "role": "",
+  "text": "已启用",
+  "label": "",
+  "x": 489,
+  "y": 40,
+  "w": 98,
+  "h": 14
+ },
+ {
+  "tag": "div",
+  "role": "",
+  "text": "由 Dim 账户管理",
+  "label": "",
+  "x": 502,
+  "y": 92,
+  "w": 495,
+  "h": 18
+ },
+ {
+  "tag": "div",
+  "role": "",
+  "text": "此提供商由你的 Dim 账户管理，无法在此编辑。",
+  "label": "",
+  "x": 502,
+  "y": 112,
+  "w": 495,
+  "h": 14
+ },
+ {
+  "tag": "label",
+  "role": "",
+  "text": "基础 URL",
+  "label": "",
+  "x": 466,
+  "y": 153,
+  "w": 542,
+  "h": 14
+ },
+ {
+  "tag": "code",
+  "role": "",
+  "text": "https://dimagent.cn/v1",
+  "label": "",
+  "x": 466,
+  "y": 172,
+  "w": 542,
+  "h": 32
+ },
+ {
+  "tag": "button",
+  "role": "checkbox",
+  "text": "",
+  "label": "模型",
+  "x": 466,
+  "y": 221,
+  "w": 14,
+  "h": 14
+ },
+ {
+  "tag": "label",
+  "role": "",
+  "text": "模型 · 32 / 32",
+  "label": "",
+  "x": 487,
+  "y": 221,
+  "w": 65,
+  "h": 14
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "vokie-dp-v4-flash",
+  "label": "",
+  "x": 478,
+  "y": 287,
+  "w": 106,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "seedream-5.0",
+  "label": "",
+  "x": 478,
+  "y": 320,
+  "w": 81,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Seedance 2.0",
+  "label": "",
+  "x": 478,
+  "y": 353,
+  "w": 80,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 563,
+  "y": 352,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Seedance 2.0 Fast",
+  "label": "",
+  "x": 478,
+  "y": 386,
+  "w": 108,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 590,
+  "y": 386,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "seed-2.1-pro",
+  "label": "",
+  "x": 478,
+  "y": 420,
+  "w": 73,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 556,
+  "y": 419,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 592,
+  "y": 419,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Seed 2.1 Turbo",
+  "label": "",
+  "x": 478,
+  "y": 453,
+  "w": 85,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 568,
+  "y": 453,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 604,
+  "y": 453,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GPT-5.6 Terra",
+  "label": "",
+  "x": 478,
+  "y": 487,
+  "w": 81,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 564,
+  "y": 486,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 600,
+  "y": 486,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "arcship-image",
+  "label": "",
+  "x": 478,
+  "y": 520,
+  "w": 83,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 566,
+  "y": 520,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "DeepSeek V4 Pro",
+  "label": "",
+  "x": 478,
+  "y": 554,
+  "w": 102,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 585,
+  "y": 553,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Seedance 2.5",
+  "label": "",
+  "x": 478,
+  "y": 587,
+  "w": 79,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Qwen: Qwen3.8 27B",
+  "label": "",
+  "x": 478,
+  "y": 620,
+  "w": 118,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 601,
+  "y": 619,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 637,
+  "y": 619,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "MiniMax-M3",
+  "label": "",
+  "x": 478,
+  "y": 653,
+  "w": 73,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 556,
+  "y": 653,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 591,
+  "y": 653,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GLM-5.3 Flash",
+  "label": "",
+  "x": 478,
+  "y": 687,
+  "w": 85,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 567,
+  "y": 686,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 603,
+  "y": 686,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GPT-6 Astra",
+  "label": "",
+  "x": 478,
+  "y": 720,
+  "w": 71,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 554,
+  "y": 720,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 590,
+  "y": 720,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "OpenAI: GPT-Image-2.5-Flare",
+  "label": "",
+  "x": 478,
+  "y": 754,
+  "w": 173,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 655,
+  "y": 753,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "OpenAI: GPT-Image-2.5-Sunburst",
+  "label": "",
+  "x": 478,
+  "y": 787,
+  "w": 196,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 679,
+  "y": 787,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "DeepSeek: DeepSeek V4.1 Flash",
+  "label": "",
+  "x": 478,
+  "y": 821,
+  "w": 187,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 669,
+  "y": 820,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 705,
+  "y": 820,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GPT-6 Sol",
+  "label": "",
+  "x": 478,
+  "y": 854,
+  "w": 59,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 542,
+  "y": 854,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 577,
+  "y": 854,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GPT-6 Luna",
+  "label": "",
+  "x": 478,
+  "y": 888,
+  "w": 69,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 552,
+  "y": 887,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 587,
+  "y": 887,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "seedream-flash",
+  "label": "",
+  "x": 478,
+  "y": 921,
+  "w": 91,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Xiaomi: MiMo-V2.6-Flash",
+  "label": "",
+  "x": 478,
+  "y": 954,
+  "w": 147,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 630,
+  "y": 953,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 665,
+  "y": 953,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Xiaomi: MiMo-V2.6-Pro",
+  "label": "",
+  "x": 478,
+  "y": 987,
+  "w": 136,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 618,
+  "y": 987,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 654,
+  "y": 987,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "qwen-image-3.0",
+  "label": "",
+  "x": 478,
+  "y": 1021,
+  "w": 96,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 579,
+  "y": 1020,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "qwen-image-3.0-pro",
+  "label": "",
+  "x": 478,
+  "y": 1054,
+  "w": 121,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 604,
+  "y": 1054,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Qwen3.8 Max",
+  "label": "",
+  "x": 478,
+  "y": 1088,
+  "w": 80,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 563,
+  "y": 1087,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 598,
+  "y": 1087,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Qwen3.8 Flash",
+  "label": "",
+  "x": 478,
+  "y": 1121,
+  "w": 86,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 569,
+  "y": 1121,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 604,
+  "y": 1121,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GPT-6.1 Sol",
+  "label": "",
+  "x": 478,
+  "y": 1155,
+  "w": 66,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 549,
+  "y": 1154,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 584,
+  "y": 1154,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Claude Opus 5.5",
+  "label": "",
+  "x": 478,
+  "y": 1188,
+  "w": 96,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 578,
+  "y": 1188,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 614,
+  "y": 1188,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "Claude Sonnet 5.5",
+  "label": "",
+  "x": 478,
+  "y": 1222,
+  "w": 106,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "视觉",
+  "label": "",
+  "x": 589,
+  "y": 1221,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 624,
+  "y": 1221,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "GLM-5.3",
+  "label": "",
+  "x": 478,
+  "y": 1255,
+  "w": 50,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "推理",
+  "label": "",
+  "x": 533,
+  "y": 1255,
+  "w": 31,
+  "h": 19
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "seedream-5.5",
+  "label": "",
+  "x": 478,
+  "y": 1288,
+  "w": 81,
+  "h": 18
+ },
+ {
+  "tag": "span",
+  "role": "",
+  "text": "minimax-h3-image",
+  "label": "",
+  "x": 478,
+  "y": 1321,
+  "w": 109,
+  "h": 18
+ },
+ {
+  "tag": "button",
+  "role": "",
+  "text": "刷新",
+  "label": "",
+  "x": 840,
+  "y": 675,
+  "w": 69,
+  "h": 28
+ },
+ {
+  "tag": "button",
+  "role": "",
+  "text": "查看套餐",
+  "label": "",
+  "x": 915,
+  "y": 675,
+  "w": 93,
+  "h": 28
+ }
+]
