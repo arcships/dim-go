@@ -1,0 +1,182 @@
+{
+ "state": "dialog-full-access",
+ "count": 16,
+ "items": [
+  {
+   "chain": "div.relative min-h-full w-full > div.timeline-plain-scroller > div.timeline-row-shell w-full px-4 > div.py-1 > div.compression-summary-panel mx-auto mt-2 w-full max-w-3xl rounded-md border bg-muted/30 px-4 py-3 > div.flex items-center justify-between gap-3 > p.text-sm text-muted-foreground",
+   "tag": "p",
+   "role": "",
+   "text": "无法加载摘要。",
+   "label": "",
+   "x": 44,
+   "y": -2524,
+   "w": 86,
+   "h": 18
+  },
+  {
+   "chain": "div.relative min-h-full w-full > div.timeline-plain-scroller > div.timeline-row-shell w-full px-4 > div.py-1 > div.compression-summary-panel mx-auto mt-2 w-full max-w-3xl rounded-md border bg-muted/30 px-4 py-3 > div.flex items-center justify-between gap-3 > button.inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5",
+   "tag": "button",
+   "role": "",
+   "text": "重试",
+   "label": "",
+   "x": 628,
+   "y": -2530,
+   "w": 48,
+   "h": 28
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border is-plain-text > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 29,
+   "y": -2085,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border is-plain-text > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 29,
+   "y": -1812,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 29,
+   "y": -16,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 29,
+   "y": 150,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 29,
+   "y": 297,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 29,
+   "y": 463,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.flex h-full min-h-0 flex-col context-panel-view context-panel-view-active > div.file-preview-markdown markstream-vue min-h-0 flex-1 overflow-auto px-4 py-4 > div.markstream-vue markdown-renderer timeline-markdown > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 738,
+   "y": 469,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[34rem]",
+   "tag": "div",
+   "role": "alertdialog",
+   "text": "",
+   "label": "",
+   "x": 277,
+   "y": 241,
+   "w": 476,
+   "h": 244
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[34rem] > div.flex flex-col gap-2 text-center sm:text-left > h2.text-lg font-semibold flex items-center gap-2",
+   "tag": "h2",
+   "role": "",
+   "text": "确认开启完全放开？",
+   "label": "",
+   "x": 299,
+   "y": 263,
+   "w": 432,
+   "h": 25
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[34rem] > div.flex flex-col gap-2 text-center sm:text-left > p.whitespace-pre-line text-base leading-7 text-foreground/80",
+   "tag": "p",
+   "role": "",
+   "text": "开启后，AI 将减少确认步骤，并可直接执行更多操作，包括敏感操作、文件修改或外部执行。\n仅建议在你信任当前任务时使用。",
+   "label": "",
+   "x": 299,
+   "y": 294,
+   "w": 432,
+   "h": 74
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[34rem] > label.flex cursor-pointer items-center gap-3 py-2 text-base font-medium > button.peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+   "tag": "button",
+   "role": "checkbox",
+   "text": "",
+   "label": "",
+   "x": 299,
+   "y": 392,
+   "w": 14,
+   "h": 14
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[34rem] > label.flex cursor-pointer items-center gap-3 py-2 text-base font-medium > span",
+   "tag": "span",
+   "role": "",
+   "text": "我已了解风险，并愿意继续",
+   "label": "",
+   "x": 324,
+   "y": 389,
+   "w": 168,
+   "h": 21
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[34rem] > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3 mt-2 sm:mt-0",
+   "tag": "button",
+   "role": "",
+   "text": "取消",
+   "label": "",
+   "x": 593,
+   "y": 431,
+   "w": 55,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-[34rem] > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-9 px-4 py-2 has-[>svg]:px-3 bg-destructive/20 text-destructive hover:bg-destructive/30",
+   "tag": "button",
+   "role": "",
+   "text": "确认开启",
+   "label": "",
+   "x": 654,
+   "y": 431,
+   "w": 77,
+   "h": 32
+  }
+ ]
+}

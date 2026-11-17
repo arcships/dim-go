@@ -1,0 +1,72 @@
+{
+ "state": "dialog-logout-confirm",
+ "count": 6,
+ "items": [
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 385,
+   "y": -366,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+   "tag": "div",
+   "role": "alertdialog",
+   "text": "",
+   "label": "",
+   "x": 291,
+   "y": 293,
+   "w": 448,
+   "h": 139
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg > div.flex flex-col gap-2 text-center sm:text-left > h2.text-lg font-semibold",
+   "tag": "h2",
+   "role": "",
+   "text": "退出 Dim？",
+   "label": "",
+   "x": 313,
+   "y": 315,
+   "w": 404,
+   "h": 25
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg > div.flex flex-col gap-2 text-center sm:text-left > p.text-muted-foreground text-sm",
+   "tag": "p",
+   "role": "",
+   "text": "退出后，需要重新登录才能使用 Dim 账户。",
+   "label": "",
+   "x": 313,
+   "y": 347,
+   "w": 404,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3 mt-2 sm:mt-0",
+   "tag": "button",
+   "role": "",
+   "text": "取消",
+   "label": "",
+   "x": 579,
+   "y": 378,
+   "w": 55,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-9 px-4 py-2 has-[>svg]:px-3 bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
+   "tag": "button",
+   "role": "",
+   "text": "退出登录",
+   "label": "",
+   "x": 640,
+   "y": 378,
+   "w": 77,
+   "h": 32
+  }
+ ]
+}
