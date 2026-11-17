@@ -984,3 +984,451 @@ png：[多模态-top.png](runtime/settings/多模态-top.png)、[多模态-botto
 | S-modality-70 | 帧发送区（文本帧输入 + 发送） | 容器 + 控件 | 同上 + `v-else` | `ModalityRealtimePanel.vue:337+` | 未出现（条件） | — |
 
 本节行数 70（图标 4）｜可见 48｜未出现（条件）22｜未命中 0｜运行时独有 0
+---
+
+## 9. 运行环境（`components/settings/RuntimeSettings.vue` + `FeatureRuntimeSettings.vue`）
+
+png：[运行环境-top.png](runtime/settings/运行环境-top.png)、[运行环境-bottom.png](runtime/settings/运行环境-bottom.png)。运行时 90 节点 = 侧栏 40 + 内容 12 + 侧栏 38；内容首趟 y 33–365。当前状态：App Server 未声明 `runtime.list`，运行环境条目区显示错误分支；功能组件区显示 OfficeCLI 未安装。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-runtime-01 | 运行环境 | 页面标题（`h1`） | 常显 | `RuntimeSettings.vue:78` | 可见 | 257,33 446×25 |
+| S-runtime-02 | 由 App Server RuntimeManager 管理；Desktop 不下载、不保留第二份运行时。 | 文本 | 常显 | `RuntimeSettings.vue:79` | 可见 | 257,61 446×18 |
+| S-runtime-03 | 刷新（含 `RefreshCw`，`:disabled`） | 按钮 | 常显 | `RuntimeSettings.vue:81-91` | 可见 | 934,33 63×28 |
+| S-runtime-04 | 正在加载... | 文本（role=status） | `loading` | `RuntimeSettings.vue:94-96` | 未出现（条件：已加载） | — |
+| S-runtime-05 | 运行环境条目区 | 容器·卡片 | `v-else`（`entries !== null`） | `RuntimeSettings.vue:98-110` | 未出现（条件：当前走错误分支） | — |
+| S-runtime-06 | `error ?? 无法加载运行环境设置。` | 文本（role=status，含 `AlertCircle` 语义） | `entries === null` | `RuntimeSettings.vue:98-104` | 可见（The App Server does not advertise runtime.list…） | 272,111 711×18 |
+| S-runtime-07 | 重试 | 按钮 | 同上 | `RuntimeSettings.vue:105-107` | 可见 | 272,139 48×28 |
+| S-runtime-08 | 实时运行环境更新不可用；请使用刷新重新读取 owner 条目。 | 文本（role=status） | `watchAvailable === false` | `RuntimeSettings.vue:111-118` | 未出现（条件：未进入条目区） | — |
+| S-runtime-09 | `RUNTIME_NAMES[name]` · `statusLabel(...)`（Node.js / Python / uv 三条） | 条目卡（`v-for="name in RUNTIMES"`） | `byName[name] !== undefined` | `RuntimeSettings.vue:120-154` | 未出现（条件：无 runtime 条目） | — |
+| S-runtime-10 | ↳ 状态图标（`Loader2` / `CheckCircle2` / `AlertTriangle`） | 图标 | 按状态三支 | `RuntimeSettings.vue:138-148` | 未出现（条件） | — |
+| S-runtime-11 | 系统自带 / 下载（来源切换） | 控件·分段组（`aria-label="运行环境来源"`，`:disabled`） | 同上 | `RuntimeSettings.vue:157-180` | 未出现（条件） | — |
+| S-runtime-12 | 启动时获取 | 开关（`:disabled`） | 同上 | `RuntimeSettings.vue:185-193` | 未出现（条件） | — |
+| S-runtime-13 | 重新安装 / 安装（`Loader2` / `Download`） | 按钮（`:disabled`） | 同上 | `RuntimeSettings.vue:195-209` | 未出现（条件） | — |
+| S-runtime-14 | `version` · `path` · 复制路径 | 文本·值 + 按钮 | 同上 + `path !== undefined` | `RuntimeSettings.vue:212-238` | 未出现（条件） | — |
+| S-runtime-15 | `reason` | 文本（role=alert） | 同上 + `reason` | `RuntimeSettings.vue:242-249` | 未出现（条件） | — |
+| S-runtime-16 | App Server 未返回 {runtime}。 | 文本 | `v-else`（`byName[name]` 缺） | `RuntimeSettings.vue:252-254` | 未出现（条件） | — |
+| S-runtime-17 | `error` | 文本（role=alert） | `error !== null` | `RuntimeSettings.vue:257-264` | 未出现（条件：无错误） | — |
+| S-runtime-18 | 功能组件 | 分组标题（`h2`） | 常显 | `FeatureRuntimeSettings.vue:52` | 可见 | 257,199 741×21 |
+| S-runtime-19 | `store.loadError` | 文本（role=alert） | `store.loadError` | `FeatureRuntimeSettings.vue:53-54` | 未出现（条件：加载成功） | — |
+| S-runtime-20 | 重试 | 按钮 | 同上 | `FeatureRuntimeSettings.vue:55` | 未出现（条件） | — |
+| S-runtime-21 | 正在加载... | 文本（role=status） | `v-else-if="!store.snapshot"` | `FeatureRuntimeSettings.vue:57` | 未出现（条件：已有快照） | — |
+| S-runtime-22 | OfficeCLI | 组件标题（`h3`，`v-for="component in components"`） | `v-else` | `FeatureRuntimeSettings.vue:59-61` | 可见 | 275,253 63×21 |
+| S-runtime-23 | 未安装（`featureRuntimes.status.*`） | 状态·徽标（role=status，含状态图标） | 同上 | `FeatureRuntimeSettings.vue:62-65` | 可见 | 942,254 37×18 |
+| S-runtime-24 | 创建、读取和编辑 Word、Excel、PowerPoint 文件。 | 文本 | 同上 | `FeatureRuntimeSettings.vue:67` | 可见 | 275,284 704×18 |
+| S-runtime-25 | `versionText(component)`（配套版本 1.0.135-desktop.1 · 下载 13.0 MB） | 文本 | 同上 | `FeatureRuntimeSettings.vue:68` | 可见 | 275,312 704×14 |
+| S-runtime-26 | 下载进度 `formatBytes` + `Progress` | 文本 + 进度条 | 同上 + `downloadedBytes !== undefined && active(component)` | `FeatureRuntimeSettings.vue:69-71` | 未出现（条件：未在下载） | — |
+| S-runtime-27 | `errors[component] ?? …error.message` | 文本（role=alert） | 非空 | `FeatureRuntimeSettings.vue:73` | 未出现（条件：无错误） | — |
+| S-runtime-28 | 已安装并验证。新任务立即生效；已有任务需重启应用，已有终端需重新打开。 | 文本 | `status === 'ready'` | `FeatureRuntimeSettings.vue:74` | 未出现（条件：未安装） | — |
+| S-runtime-29 | 下载安装 / 验证可用性 | 按钮（`:disabled`） | 非内置组件且未就绪 / 其它 | `FeatureRuntimeSettings.vue:76-77` | 可见（下载安装） | 275,337 70×28 |
+
+本节行数 29（图标 1）｜可见 12｜未出现（条件）17｜未命中 0｜运行时独有 0
+---
+
+## 10. MCP（`components/settings/McpSettingsPage.vue` + `McpImportPanel.vue`）
+
+png：[MCP-top.png](runtime/settings/MCP-top.png)、[MCP-bottom.png](runtime/settings/MCP-bottom.png)。运行时 96 节点 = 侧栏 40 + 内容 18 + 侧栏 38；内容首趟 y 33–240。当前状态：列表视图，1 个服务器 `dim-desktop-browser`（user 范围、disconnected、0 个工具）。
+
+模板按 `view` 分两支：`list`（876–1164）与编辑表单（1166 起）。
+
+### 10.1 列表视图
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-mcp-01 | MCP 服务器 | 页面标题 | `view === 'list'` | `:880` | 可见 | 257,33 741×25 |
+| S-mcp-02 | 连接外部工具和数据源。 | 文本 | 同上 | `:881-883` | 可见 | 257,61 741×18 |
+| S-mcp-03 | 了解更多。 | 文本·链接（含 `ExternalLink`） | 同上 | `:883-890` | 可见 | 395,61 77×18 |
+| S-mcp-04 | 服务器 | 分组标题 | 同上 | `:897` | 可见 | 257,113 37×18 |
+| S-mcp-05 | 导入（含 `Download`） | 按钮 | 同上 + `canImport` | `:899-908` | 可见 | 819,106 69×32 |
+| S-mcp-06 | 添加服务器（含 `Plus`） | 按钮 | 同上 | `:909-912` | 可见 | 894,106 103×32 |
+| S-mcp-07 | 导入面板（`McpImportPanel`） | 面板 | `importOpen` | `:916` | 未出现（条件：导入面板未打开） | — |
+| S-mcp-08 | 范围 | 文本标签 | 同上 | `:925` | 可见 | 257,158 25×12 |
+| S-mcp-09 | 全部范围 / 用户 / 项目（范围下拉） | 控件·下拉 | 同上 | `:926-933` | 可见（当前值「全部范围」） | 292,148 140×32（值 303,155 49×18） |
+| S-mcp-10 | MCP 配置问题提示（`warnings`） | 文本容器（含 `AlertTriangle`） | `warnings.length > 0` | `:938-945` | 未出现（条件：无警告） | — |
+| S-mcp-11 | `warning.scope · serverId · message` | 列表项（`v-for="warning in warnings"`） | 同上 | `:947-950` | 未出现（条件） | — |
+| S-mcp-12 | 加载骨架 | 容器·骨架 | `loading && !loaded` | `:954-956` | 未出现（条件：已加载） | — |
+| S-mcp-13 | `mcpStore.error` + 重试 | 文本 + 按钮 | `mcpStore.error` | `:959-963` | 未出现（条件：无错误） | — |
+| S-mcp-14 | 还没有配置 MCP 服务器 | 文本·空态 | `servers.length === 0` | `:966-968` | 未出现（条件：已有 1 个服务器） | — |
+| S-mcp-15 | 此范围内没有服务器。 | 文本·空态 | `visibleServers.length === 0` | `:970-972` | 未出现（条件：全部范围下有 1 个） | — |
+| S-mcp-16 | `server.name`（dim-desktop-browser） | 文本·服务器名（`v-for="server in visibleServers"`） | `v-else` | `:975-984` | 可见 | 272,205 501×18 |
+| S-mcp-17 | `server.scope` · `SSE（已弃用）` · `serverStatusLabel` · `serverWarningText` | 文本·元信息 | 同上（SSE / warning 各有 `v-if`） | `:986-996` | 可见（user · disconnected） | 272,226 22×14、300,226 67×14 |
+| S-mcp-18 | `getAuthNotice(server)` | 文本 | 同上 + 有认证提示 | `:998-1004` | 未出现（条件：无认证提示） | — |
+| S-mcp-19 | {count} 个工具（0 个工具） | 文本·计数（含 `Wrench`） | 同上 | `:1006-1013` | 可见 | 783,209 35×28（数字 810,214 8×18） |
+| S-mcp-20 | 认证 / 认证中 | 按钮 | `canAuthenticateServer(server)` | `:1015-1025` | 未出现（条件：该服务器无需认证） | — |
+| S-mcp-21 | 取消（认证） | 按钮 | `authCancellableIds.has(server.id)` | `:1026-1035` | 未出现（条件） | — |
+| S-mcp-22 | 查看连接 | 图标按钮 | `capabilities.inspect` | `:1036-1046` | 可见 | 829,207 32×32 |
+| S-mcp-23 | 断开连接 | 图标按钮（`:disabled`） | `capabilities.disconnect` | `:1048-1059` | 可见 | 871,207 32×32 |
+| S-mcp-24 | 配置服务器 | 图标按钮 | 常显 | `:1061-1069` | 可见 | 913,207 32×32 |
+| S-mcp-25 | 启用开关 | 开关（`:disabled`） | 常显 | `:1071` | 可见 | 955,214 28×16 |
+| S-mcp-26 | 来自插件 | 分组标题 | `pluginServers.length > 0` | `:1082` | 未出现（条件：无插件服务器） | — |
+| S-mcp-27 | `plugin.id` · `plugin.transport` · 只读 | 列表项（`v-for="plugin in pluginServers"`） | 同上 | `:1084-1094` | 未出现（条件） | — |
+| S-mcp-28 | 需要登录 / 连接成功 / 连接失败（含延迟、工具数、缺权限范围） | 测试结果文本 | 同上 + `getMcpTestResult(plugin.id)` | `:1096-1120` | 未出现（条件） | — |
+| S-mcp-29 | 查看连接 / 断开连接 / 测试连接 | 图标按钮 | 同上 | `:1124-1158` | 未出现（条件） | — |
+
+### 10.2 编辑表单视图（`view !== 'list'`，未出现）
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-mcp-30 | 连接自定义 MCP | 页面标题 | `v-else`（`view !== 'list'`） | `:1169` | 未出现（条件：当前在列表视图） | — |
+| S-mcp-31 | 文档 | 文本·链接 | 同上 | `:1170-1177` | 未出现（条件） | — |
+| S-mcp-32 | 正在加载... | 文本 | `loadingDraft` | `:1181-1184` | 未出现（条件） | — |
+| S-mcp-33 | 已存储的值已隐藏，留空即可保留。 · 密钥值存储在用户范围，无法在此项目中修改。 | 文本 | `draft.snapshot` | `:1192-1195` | 未出现（条件） | — |
+| S-mcp-34 | 移动作用域说明 + 移动 MCP 条目？对话框（取消 / 确认） | 文本 + 对话框 | `mode === 'edit'` 且 `capabilities.move` | `:1197-1231` | 未出现（条件） | — |
+| S-mcp-35 | 名称 | 文本标签 + 输入 | 常显 | `:1237-1238` | 未出现（条件） | — |
+| S-mcp-36 | 范围（用户 / 项目） | 文本标签 + 下拉 | 常显 | `:1248-1255` | 未出现（条件） | — |
+| S-mcp-37 | STDIO / Streamable HTTP / SSE（已弃用） | 控件·分段按钮（传输类型） | 常显 | `:1261-1290` | 未出现（条件） | — |
+| S-mcp-38 | 启动命令 | 文本标签 + 输入 | `transport === 'stdio'` | `:1295-1296` | 未出现（条件） | — |
+| S-mcp-39 | 参数 + 替换参数（已存储 {count} 个）+ 添加参数 | 文本标签 + 输入列表 | 同上 | `:1305-1338` | 未出现（条件） | — |
+| S-mcp-40 | 环境变量 + 添加环境变量 | 文本标签 + 键值输入列表 | 同上 | `:1342-1364` | 未出现（条件） | — |
+| S-mcp-41 | 环境变量透传 + 添加变量 | 文本标签 + 输入列表 | 同上 + `!draft.snapshot` | `:1368-1389` | 未出现（条件） | — |
+| S-mcp-42 | 工作目录 | 文本标签 + 输入 | 同上 | `:1393-1394` | 未出现（条件） | — |
+| S-mcp-43 | SSE 已弃用，仅用于兼容旧版 MCP 服务器，不推荐用于新配置。请优先使用 Streamable HTTP。 | 文本（role=note） | `transport === 'sse'` | `:1404-1411` | 未出现（条件） | — |
+| S-mcp-44 | URL + 替换 URL + 移除已存储值 | 文本标签 + 输入 + 勾选 | `transport !== 'stdio'` | `:1414-1429` | 未出现（条件） | — |
+| S-mcp-45 | Bearer 令牌 + 移除已存储的 Bearer 令牌 | 文本标签 + 输入 + 勾选 | 同上 | `:1439-1451` | 未出现（条件） | — |
+| S-mcp-46 | 请求头 + 添加请求头 | 文本标签 + 键值输入列表 | 同上 | `:1461-1483` | 未出现（条件） | — |
+| S-mcp-47 | 来自环境变量的请求头 + 添加变量 | 文本标签 + 键值输入列表 | 同上 + `!draft.snapshot` | `:1487-1504` | 未出现（条件） | — |
+| S-mcp-48 | `formError` · `error`（表单校验） | 文本 | 非空 | `:1510-1512` | 未出现（条件） | — |
+| S-mcp-49 | 测试结果（需要登录 / 连接成功 / 失败，含延迟与工具数） | 文本 | `getMcpTestResult(selectedServer.id)` | `:1515-1534` | 未出现（条件） | — |
+| S-mcp-50 | 保存 / 测试连接 / 取消等底部动作 | 按钮 | 常显 | `:1535-1659` | 未出现（条件） | — |
+| S-mcp-51 | 删除服务器确认（删除服务器 / 取消 / 删除） | 对话框 | 删除动作 | `:1659` 区间内 | 未出现（条件：对话框未打开） | — |
+
+本节行数 51（图标 0）｜可见 18｜未出现（条件）33｜未命中 0｜运行时独有 0
+---
+
+## 11. 通知（`components/settings/NotificationsSettings.vue`）
+
+png：[通知-top.png](runtime/settings/通知-top.png)、[通知-bottom.png](runtime/settings/通知-bottom.png)。运行时 85 节点 = 侧栏 40 + 内容 7 + 侧栏 38；内容首趟 y 33–255。三个开关行都是「边框卡 + 标签 + 开关」。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-notifications-01 | 通知 | 页面标题 | 常显 | `:59` | 可见 | 257,33 741×25 |
+| S-notifications-02 | 通知设置卡（3 张） | 容器·卡片 | 常显 | `:62`、`:67`、`:72` | 可见（png 边框） | 257,85 741×56 起，间距 68 |
+| S-notifications-03 | 任务完成或失败时通知 | 文本标签 | 常显 | `:63` | 可见 | 272,100 123×18 |
+| S-notifications-04 | 任务完成或失败时通知（开关） | 开关 | 常显 | `:64` | 可见 | 955,101 28×16 |
+| S-notifications-05 | 通知声音 | 文本标签 | 常显 | `:68` | 可见 | 272,169 49×18 |
+| S-notifications-06 | 通知声音（开关） | 开关 | 常显 | `:69` | 可见 | 955,169 28×16 |
+| S-notifications-07 | 需要我回应时通知 | 文本标签 | 常显 | `:73` | 可见 | 272,237 98×18 |
+| S-notifications-08 | 需要我回应时通知（开关） | 开关 | 常显 | `:74` | 可见 | 955,238 28×16 |
+
+本节行数 8（图标 0）｜可见 8｜未出现 0｜未命中 0｜运行时独有 0
+
+注：3 张卡片容器是同一段模板 `v-for` 外的重复 markup，按 1 行计（运行时无对应节点，位置取 png 边框）。
+---
+
+## 12. 宠物（`components/settings/PetsSettings.vue`）
+
+png：[宠物-top.png](runtime/settings/宠物-top.png)、[宠物-bottom.png](runtime/settings/宠物-bottom.png)。运行时 94 节点 = 侧栏 40 + 内容 16 + 侧栏 38；内容首趟 y 33–588。当前状态：Pet 显示组件不可用（2 个内置 Pet 可选），无自定义 Pet。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-pets-01 | 宠物 | 页面标题 | 常显 | `:247` | 可见 | 257,33 741×25 |
+| S-pets-02 | 显示 Pet | 文本标签 | 常显 | `:253` | 可见 | 272,100 135×18 |
+| S-pets-03 | Pet 会保持在其他窗口上方。 | 文本 | 常显 | `:254-256` | 可见 | 272,121 135×14 |
+| S-pets-04 | 显示 Pet（开关） | 开关（`:disabled`、`aria-label`） | 常显 | `:258` | 可见 | 955,109 28×16 |
+| S-pets-05 | `floatingUnavailableNoteKey`（Pet 显示组件不可用…） | 文本·提示条 | `isMainWindow` | `:267-273` | 可见 | 272,149 711×34 |
+| S-pets-06 | Pet 大小 | 文本标签 + 滑块（`:disabled`） | `!isMainWindow` | `:275-283` | 未出现（条件：当前是主窗口） | — |
+| S-pets-07 | `operationError.message` | 文本（role=alert） | `operationError` | `:297-304` | 未出现（条件：无错误） | — |
+| S-pets-08 | 打开素材位置并备份。修复目录权限后，刷新并从备份重新安装。不要覆盖相同 ID 的 Pet。 | 文本 | 同上 + `recoveryPetId !== undefined` | `:304-305` | 未出现（条件） | — |
+| S-pets-09 | 打开保留素材（含 `FolderOpen`） | 按钮（`:disabled`） | 同上 | `:306-316` | 未出现（条件） | — |
+| S-pets-10 | 重试 | 按钮（`:disabled`） | `snapshot === null \|\| descriptors === null` | `:318-328` | 未出现（条件：已加载） | — |
+| S-pets-11 | 选择 Pet | 分组标题 | 常显 | `:333` | 可见 | 257,226 741×21 |
+| S-pets-12 | 已保存的 Pet 不可用：{id} · `selectionError` · 在已保存的 Pet 恢复可用前，将显示 {name}。 | 文本 + 预览 | `selectionMissing && snapshot` | `:344-360` | 未出现（条件：已选 Pet 可用） | — |
+| S-pets-13 | 正在加载... | 文本 | `descriptors === null` | `:367-374` | 未出现（条件：已加载） | — |
+| S-pets-14 | `pet.name` · `pet.description` · `pet.error` | 预览卡（`v-for="pet in descriptors"`） | `v-else` | `:377-401` | 可见（2 个内置 Pet：Dim / dim-fox） | Dim 337,295 586×18；dim-fox 337,380 572×18 |
+| S-pets-15 | 选择 / 已选择 | 按钮（`:disabled`） | 同上 + `pet.available` | `:404-414` | 可见 | Dim 937,290 46×28；dim-fox 923,375 60×28 |
+| S-pets-16 | 无法渲染这个 Pet 的预览。 | 文本（role=alert） | `previewUnavailable` | `:418-420` | 未出现（条件：预览可渲染） | — |
+| S-pets-17 | 自定义 Pets | 分组标题 | 常显 | `:425` | 可见 | 257,460 741×21 |
+| S-pets-18 | 创建 | 按钮（含 `Plus`，`:disabled`） | 常显 | `:429-432` | 可见 | 257,495 67×32 |
+| S-pets-19 | 从文件夹安装 | 按钮（含 `FolderOpen`，`:disabled`） | 常显 | `:433-436` | 可见 | 330,495 116×32 |
+| S-pets-20 | 刷新 | 按钮（含 `RefreshCw`，`:disabled`） | 常显 | `:437-440` | 可见 | 453,495 69×32 |
+| S-pets-21 | 打开 Pets 文件夹 | 按钮（含 `FolderOpen`，`:disabled`） | 常显 | `:441-449` | 可见 | 528,495 137×32 |
+| S-pets-22 | 尚未安装自定义 Pet。 | 文本·空态（虚线框） | `descriptors !== null && customPets?.length === 0` | `:452-458` | 可见 | 257,540 741×48 |
+| S-pets-23 | `pet.name` · `pet.error` + 选择 / 删除 | 自定义 Pet 行（`v-for="pet in customPets"`） | `v-else-if="customPets?.length"` | `:460-491` | 未出现（条件：无自定义 Pet） | — |
+| S-pets-24 | 删除 {name}？+（说明两支：已保存选择将切回内置 / 将从托管目录删除） | 对话框 | 点击删除 | `:497-513` | 未出现（条件：对话框未打开） | — |
+| S-pets-25 | 取消 | 对话框按钮 | 同上 | `:516-518` | 未出现（条件） | — |
+| S-pets-26 | 删除（`operation === 'delete' ? 正在删除… : 删除`） | 对话框按钮 | 同上 | `:519-526` | 未出现（条件） | — |
+
+本节行数 26（图标 0）｜可见 14｜未出现（条件）12｜未命中 0｜运行时独有 0
+---
+
+## 13. 权限（`components/settings/SandboxSettings.vue`）
+
+png：[权限-top.png](runtime/settings/权限-top.png)、[权限-bottom.png](runtime/settings/权限-bottom.png)。运行时 100 节点 = 侧栏 40 + 内容 22 + 侧栏 38；内容首趟 y 33–580。当前状态：进程隔离区已加载（两个开关），权限规则表为空。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-permissions-01 | 权限 | 页面标题 | 常显 | `:287` | 可见 | 257,33 741×25 |
+| S-permissions-02 | ↳ `ShieldCheck` 图标 | 图标 | 常显 | `:292` | 可见（png） | 分组标题左侧 |
+| S-permissions-03 | 进程隔离 | 分组标题（`h3`） | 常显 | `:294` | 可见 | 296,100 356×18 |
+| S-permissions-04 | 控制命令是否在 App Server 沙箱中运行，以及沙箱命令是否可以使用网络。 | 文本 | 常显 | `:295-297` | 可见 | 296,121 356×18 |
+| S-permissions-05 | 正在加载... | 文本 | `executionLoading` | `:301-303` | 未出现（条件：已加载） | — |
+| S-permissions-06 | `executionError \|\| 加载进程隔离设置失败` + 刷新 | 文本 + 按钮 | `execution === undefined` | `:304-310` | 未出现（条件：已加载） | — |
+| S-permissions-07 | 沙箱后端不可用：{reason} | 文本 | `executionUnavailable` | `:313-321` | 未出现（条件：沙箱后端可用） | — |
+| S-permissions-08 | 在沙箱中运行命令 | 文本标签 | `v-else` | `:325-327` | 可见 | 272,153 137×12 |
+| S-permissions-09 | 使用宿主沙箱后端运行命令。 | 文本 | 同上 | `:328-330` | 可见 | 272,167 137×14 |
+| S-permissions-10 | 在沙箱中运行命令（开关） | 开关（`:disabled`） | 同上 | `:332` | 可见 | 955,158 28×16 |
+| S-permissions-11 | 允许网络访问 | 文本标签 | 同上 | `:342-344` | 可见 | 272,195 116×12 |
+| S-permissions-12 | 允许沙箱命令访问网络。 | 文本 | 同上 | `:345-347` | 可见 | 272,209 116×14 |
+| S-permissions-13 | 允许网络访问（开关） | 开关（`:disabled`） | 同上 | `:349` | 可见 | 955,200 28×16 |
+| S-permissions-14 | 保存隔离设置（含 `Save`） | 按钮（`:disabled`） | 同上 | `:358-366` | 可见 | 272,237 116×28 |
+| S-permissions-15 | `executionFeedback` | 文本 | 同上 + 非空 | `:367-369` | 未出现（条件：未保存过） | — |
+| S-permissions-16 | `executionError` | 文本 | 同上 + 非空 | `:370-372` | 未出现（条件：无错误） | — |
+| S-permissions-17 | 新命令使用这些设置；正在运行的进程保持启动时的隔离边界。 | 文本 | 同上 | `:375-377` | 可见 | 272,279 711×14 |
+| S-permissions-18 | 权限 | 分组标题（`h3`） | 常显 | `:383` | 可见 | 257,358 741×18 |
+| S-permissions-19 | Exec command 权限 | 文本标签 | 常显 | `:384` | 可见 | 257,379 741×18 |
+| S-permissions-20 | App Server 命令规则作用于 exec 和 execute 调用。 | 文本 | 常显 | `:385-387` | 可见 | 257,400 741×14 |
+| S-permissions-21 | 规则 | 小标题（`h4`） | 常显 | `:391` | 可见 | 257,428 741×18 |
+| S-permissions-22 | deny 优先于 allow。exact 匹配完整命令词；prefix 匹配开头的词。 | 文本 | 常显 | `:392` | 可见 | 257,452 741×14 |
+| S-permissions-23 | 命令 / 匹配 / 决策 / 规则（表头） | 表格表头 | 常显 | `:395-400` | 可见 | 命令 258,474 217×28；匹配 475,474；决策 692,474；规则 916,487（sr-only） |
+| S-permissions-24 | 规则行（命令输入 + 匹配 / 决策下拉 + 移除） | 表格行（`v-for="rule in execRules"`） | `execRules` 非空 | `:404-432` | 未出现（条件：无规则） | — |
+| S-permissions-25 | `rule.error` | 文本（role=alert） | 同上 + `rule.error` | `:418` | 未出现（条件） | — |
+| S-permissions-26 | 添加规则 | 按钮（`:disabled`） | 常显 | `:437` | 可见 | 257,510 72×28 |
+| S-permissions-27 | 保存权限（含 `Save`） | 按钮（`:disabled`） | 常显 | `:441-450` | 可见 | 257,552 86×28 |
+| S-permissions-28 | `permissionFeedbackMessage` | 文本 | 非空 | `:451-460` | 未出现（条件：未保存过） | — |
+| S-permissions-29 | `permissionErrorMessage` | 文本 | 非空 | `:463-465` | 未出现（条件：无错误） | — |
+| S-permissions-30 | 命令权限尚未保存 · 离开前保存更改，或丢弃更改。 · 取消 / 丢弃 / 保存 | 对话框 | 离开未保存时 | `:468-477` | 未出现（条件：对话框未打开） | — |
+
+本节行数 30（图标 1）｜可见 22｜未出现（条件）8｜未命中 0｜运行时独有 0
+---
+
+## 14. Git（`components/settings/GitSettings.vue`）
+
+png：[Git-top.png](runtime/settings/Git-top.png)、[Git-bottom.png](runtime/settings/Git-bottom.png)。运行时 128 节点 = 侧栏 40 + 内容 25 + 侧栏 38 + 内容 25；内容首趟 y 33–1099。各分组之间为 1px 分隔线。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-git-01 | Git | 页面标题 | 常显 | `:108` | 可见 | 257,33 741×25 |
+| S-git-02 | 分支前缀 | 文本标签 | 常显 | `:114` | 可见 | 257,85 741×18 |
+| S-git-03 | feature/（输入框） | 控件·输入 | 常显 | `:116` | 可见（占位符不入 `text`） | 257,113 280×32 |
+| S-git-04 | 默认远程仓库 | 文本标签 | 常显 | `:129` | 可见 | 257,202 741×18 |
+| S-git-05 | commit 和 push 的默认远程目标 | 文本 | 常显 | `:130-132` | 可见 | 257,223 741×14 |
+| S-git-06 | origin（远程下拉） | 控件·下拉 | 常显 | `:134-136` | 可见 | 257,247 77×32（值 268,254 33×18） |
+| S-git-07 | `option.label`（远程选项，`v-for`） | 下拉选项 | 下拉展开 | `:139-145` | 未出现（条件：下拉未展开） | — |
+| S-git-08 | 默认基线分支 | 文本标签 | 常显 | `:156` | 可见 | 257,336 741×18 |
+| S-git-09 | 对比/合并的基准分支 | 文本 | 常显 | `:157-159` | 可见 | 257,357 741×14 |
+| S-git-10 | main（基线分支下拉） | 控件·下拉 | 常显 | `:161-163` | 可见 | 257,381 72×32（值 268,388 28×18） |
+| S-git-11 | `option.label`（基线分支选项，`v-for`） | 下拉选项 | 下拉展开 | `:166-172` | 未出现（条件：下拉未展开） | — |
+| S-git-12 | 始终强制推送 | 文本标签 | 常显 | `:183` | 可见 | 257,470 172×18 |
+| S-git-13 | 默认使用 force push（需谨慎使用） | 文本 | 常显 | `:184-186` | 可见 | 257,489 172×14 |
+| S-git-14 | 始终强制推送（开关） | 开关 | 常显 | `:188` | 可见 | 970,478 28×16 |
+| S-git-15 | 提交后自动推送 | 文本标签 | 常显 | `:197` | 可见 | 257,560 86×18 |
+| S-git-16 | 提交后自动推送（开关） | 开关 | 常显 | `:199` | 可见 | 970,560 28×16 |
+| S-git-17 | Commit 指令补充 | 文本标签 | 常显 | `:208` | 可见 | 257,634 741×18 |
+| S-git-18 | AI 生成 commit message 时的额外提示 | 文本 | 常显 | `:209-211` | 可见 | 257,655 741×14 |
+| S-git-19 | 例如：使用中文，遵循 Conventional Commits 规范...（多行输入） | 控件·输入（Textarea） | 常显 | `:213` | 可见（占位符不入 `text`） | 257,680 741×100 |
+| S-git-20 | PR 指令补充 | 文本标签 | 常显 | `:226` | 可见 | 257,837 741×18 |
+| S-git-21 | AI 生成 PR description 时的额外提示 | 文本 | 常显 | `:227-229` | 可见 | 257,858 741×14 |
+| S-git-22 | 例如：包含测试步骤，说明破坏性变更...（多行输入） | 控件·输入（Textarea） | 常显 | `:231` | 可见（占位符不入 `text`） | 257,882 741×100 |
+| S-git-23 | Worktree 根目录 | 文本标签 | 常显 | `:244` | 可见 | 257,1039 741×18 |
+| S-git-24 | 选择目录...（输入框） | 控件·输入 | 常显 | `:247` | 可见（占位符不入 `text`） | 257,1067 703×32 |
+| S-git-25 | 选择目录（含 `FolderOpen`） | 图标按钮 | 常显 | `:253-254` | 可见 | 966,1067 32×32 |
+
+本节行数 25（图标 1）｜可见 23｜未出现（条件）2｜未命中 0｜运行时独有 0
+---
+
+## 15. Hooks（`components/settings/HooksSettings.vue` → App Server 模式下为 `HooksAppServerCatalog.vue`）
+
+png：[Hooks-top.png](runtime/settings/Hooks-top.png)、[Hooks-bottom.png](runtime/settings/Hooks-bottom.png)。运行时 104 节点 = 侧栏 40 + 内容 26 + 侧栏 38；内容首趟 y 33–578。当前状态：`appServerMode`，走 `HooksAppServerCatalog`（来源 2 个：用户 / 项目；条目 2 组均为空）。
+
+### 15.1 App Server 目录（当前可见分支）
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-hooks-01 | 命令钩子 | 页面标题 | `appServerMode` | `HooksAppServerCatalog.vue:102` | 可见 | 257,33 68×25 |
+| S-hooks-02 | 了解更多 | 按钮（含 `ExternalLink`） | 同上 | `:105-113` | 可见 | 884,33 79×27 |
+| S-hooks-03 | 刷新 | 图标按钮（含 `RefreshCw`） | 同上 | `:114-122` | 可见 | 970,33 28×28 |
+| S-hooks-04 | `hooks.loadError \|\| 加载设置失败` | 文本 | `hooks.loadError` | `:127-129` | 未出现（条件：加载成功） | — |
+| S-hooks-05 | 正在加载... | 文本 | `loading && catalog === null` | `:130-132` | 未出现（条件：已加载） | — |
+| S-hooks-06 | 用户文档已关闭所有钩子。 | 文本·提示条 | `catalog?.disableAllHooks` | `:134-140` | 未出现（条件：未全局关闭） | — |
+| S-hooks-07 | 钩子会在这些生命周期事件上运行 shell 命令。 | 文本·提示条（含 `TriangleAlert`） | 常显 | `:143-145` | 可见 | 286,96 218×14 |
+| S-hooks-08 | 来源 | 小标题 | 常显 | `:149` | 可见 | 257,145 741×14 |
+| S-hooks-09 | `sourceTitle(source)` · `sourceStateLabel` · 已启用 / 已禁用 · 只读 | 来源行（`v-for="source in hooks.sources"`） | 常显（2 实例：用户 / 项目） | `:150-183` | 可见 | 用户 272,184 32×32（名 314,186）、正常 345,184、已启用 387,184；项目 272,256（缺失 345,256、已禁用 387,256） |
+| S-hooks-10 | ↳ 来源图标（`<component :is>`） | 图标 | 同上 | `:157` | 可见（icon:true） | 272,184 32×32 |
+| S-hooks-11 | ↳ `Lock` 图标（插件来源） | 图标 | 同上 + `source.source.startsWith('plugin:')` | `:171-176` | 未出现（条件：无插件来源） | — |
+| S-hooks-12 | `source.path` | 文本（等宽） | 同上 + `source.path` | `:180-182` | 可见（/Users/…/.dimcode/hooks.json） | 314,282 561×14 |
+| S-hooks-13 | `source.message` | 文本 | 同上 + `source.message` | `:183` | 未出现（条件：无 message） | — |
+| S-hooks-14 | 编辑（含 `Pencil`） | 按钮 | `source.source === 'user'` | `:186-195` | 可见 | 914,184 69×28 |
+| S-hooks-15 | 启用项目钩子 / 禁用项目钩子 | 文本 + 开关（`:disabled`） | `source.source === 'project'` | `:196-200` | 可见 | 885,257 63×14（开关 955,256 28×16） |
+| S-hooks-16 | `failureText(hooks.writeFailure)` | 文本 | `hooks.writeFailure` | `:209-215` | 未出现（条件：无写入失败） | — |
+| S-hooks-17 | 条目 | 小标题 | 常显 | `:219` | 可见 | 257,339 741×14 |
+| S-hooks-18 | `sourceTitle(source)` · 已启用 / 已禁用 | 条目分组头（`v-for="source in hooks.sources"`） | 常显（2 实例） | `:220-229` | 可见 | 用户 293,373 652×18（已启用 951,375）；项目 293,453（已禁用 951,455） |
+| S-hooks-19 | 没有条目 | 文本·空态 | `entriesOf(source).length === 0` | `:231-233` | 可见（2 处） | 258,399 739×33；258,479 739×33 |
+| S-hooks-20 | `entry.event` · `entryStateLabel` · 异步 · `entry.command` · 匹配器 / 超时 / 失败时 | 条目行（`v-for="(entry, index) in entriesOf(source)"`） | 有条目 | `:234-254` | 未出现（条件：两组均无条目） | — |
+| S-hooks-21 | `failureText(hooks.saveFailure)` | 文本 | `saveFailure && draft === null` | `:260-266` | 未出现（条件：无保存失败） | — |
+| S-hooks-22 | 用户修订号 {revision} · 项目修订号 {revision} | 文本 | `catalog` | `:268-270` | 可见 | 257,541 741×17；257,561 741×17 |
+| S-hooks-23 | 用户钩子文档 · 编辑用户钩子文档。保存时会按本页读取的修订号替换。 | 对话框标题 + 说明 | 点击 S-hooks-14 | `:273-277` | 未出现（条件：对话框未打开） | — |
+| S-hooks-24 | 文档编辑框（`Textarea`） | 控件·输入 | 同上 | `:279-280` | 未出现（条件） | — |
+| S-hooks-25 | 文档必须是 JSON 对象。 · `failureText(saveFailure)` | 文本 | 同上 + 校验/保存失败 | `:288-297` | 未出现（条件） | — |
+| S-hooks-26 | 取消 / 保存 | 对话框按钮 | 同上 | `:298-304` | 未出现（条件） | — |
+
+### 15.2 非 App Server 分支（`v-else`，未出现）
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-hooks-27 | 命令钩子（本地配置页） | 页面标题 | `!appServerMode` | `HooksSettings.vue:191` | 未出现（条件：App Server 模式） | — |
+| S-hooks-28 | 了解更多 · 刷新 | 按钮 + 图标按钮 | 同上 | `:194-211` | 未出现（条件） | — |
+| S-hooks-29 | `loadError` · 未配置命令钩子。 | 文本 | 同上 + 错误/空态 | `:216-219` | 未出现（条件） | — |
+| S-hooks-30 | 来自配置 / 来自工作区 / 来自插件 | 分组标题 + 来源按钮（`v-for` 三组） | 同上 + 各组非空 | `:222-290` | 未出现（条件） | — |
+| S-hooks-31 | `source.title` · `configPath` · {on} 开 · {off} 关 | 来源行内容 | 同上 | `:236-265` | 未出现（条件） | — |
+| S-hooks-32 | 钩子编辑/条目对话框 | 对话框 | 同上（点击来源行） | `:295+` | 未出现（条件） | — |
+
+本节行数 32（图标 2）｜可见 14｜未出现（条件）18｜未命中 0｜运行时独有 0
+---
+
+## 16. 插件设置（`components/settings/PluginSettings.vue` + `PluginSettingsField.vue`）
+
+png：[插件设置-top.png](runtime/settings/插件设置-top.png)、[插件设置-bottom.png](runtime/settings/插件设置-bottom.png)。运行时 134 节点 = 侧栏 40 + 内容 28 + 侧栏 38 + 内容 28；内容首趟 y 5–761，内容列左边界 x 229（其余节 257）。当前状态：3 个插件（Model log / Prompt suggestion / Web）的设置表单，标签文案来自插件 schema（英文）。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-pluginSettings-01 | 插件设置 | 页面标题（`h1`） | 常显 | `:234` | 可见 | 229,5 797×25 |
+| S-pluginSettings-02 | 配置 App Server 插件声明的设置。 | 文本 | 常显 | `:235` | 可见 | 229,29 797×18 |
+| S-pluginSettings-03 | 正在加载插件设置... | 文本 | `loading` | `:238` | 未出现（条件：已加载） | — |
+| S-pluginSettings-04 | 当前 App Server 不提供插件设置。 | 文本 | `unavailable` | `:240-242` | 未出现（条件：App Server 提供插件设置） | — |
+| S-pluginSettings-05 | `loadError` + 重试 | 文本 + 按钮 | `loadError` | `:244-246` | 未出现（条件：无错误） | — |
+| S-pluginSettings-06 | 没有已安装插件提供设置。 | 文本·空态 | `sources.length === 0` | `:249-251` | 未出现（条件：有 3 个插件） | — |
+| S-pluginSettings-07 | 用户 / 项目（保存范围切换） | 控件·分段按钮 + 说明 | `projectSources.length > 0` | `:254-271` | 未出现（条件：当前仅在用户范围） | — |
+| S-pluginSettings-08 | 项目根目录（`project.cwd`） | 文本标签 + 下拉 + 重新加载 | `activeScope === 'project'` | `:274-317` | 未出现（条件：用户范围） | — |
+| S-pluginSettings-09 | 设置将从 {cwd} 读取并写回；该根目录由已打开的项目会话授权。 | 文本 | 同上 | `:319-321` | 未出现（条件） | — |
+| S-pluginSettings-10 | 正在加载插件设置... / `projectRootsError` / 当前没有已授权的项目根目录。请在项目中打开会话以完成授权。 | 文本 + 按钮 | 同上（三种项目根状态） | `:279-300` | 未出现（条件） | — |
+| S-pluginSettings-11 | 没有已安装插件声明项目级设置。 | 文本 | `activeScope === 'project' && projectSources.length === 0` | `:325-331` | 未出现（条件） | — |
+| S-pluginSettings-12 | 尚未选择已授权的项目根目录。 | 文本 | `selectedProjectRoot === null` | `:333-339` | 未出现（条件） | — |
+| S-pluginSettings-13 | 插件设置卡（`v-for="state in visibleStates"`） | 容器·卡片 | `visibleStates` 非空（3 实例） | `:350` | 可见（png 边框） | 229,69 797×159 起 |
+| S-pluginSettings-14 | `sourceTitle(state.source)`（Model log / Prompt suggestion / Web） | 插件标题（`h2`） | 同上 | `:359` | 可见 | Model log 244,83 59×18；Prompt suggestion 244,238 112×18；Web 244,461 27×18 |
+| S-pluginSettings-15 | `sourceDescription(state.source)` | 文本 | 同上 + 非空 | `:360` | 未出现（条件：3 个插件均无描述） | — |
+| S-pluginSettings-16 | `state.source.source`（model-log / prompt-suggestion / web） | 文本（等宽） | 同上 | `:361` | 可见 | 244,104 59×17；244,259 112×17；244,482 27×17 |
+| S-pluginSettings-17 | 正在加载插件设置... | 文本 | `state.loading` | `:365` | 未出现（条件：已加载） | — |
+| S-pluginSettings-18 | `state.loadError` + 重试 | 文本 + 按钮 | `state.loadError` | `:367-369` | 未出现（条件） | — |
+| S-pluginSettings-19 | 设置已在别处更改。请重新加载后再保存。+ 重新加载 | 文本 + 按钮 | `state.conflict` | `:373-377` | 未出现（条件：无冲突） | — |
+| S-pluginSettings-20 | `field.name`（schema 字段：Enabled / Max Chars / Search Service / Allow Private Hosts / Proxy / Proxy Dns） | 字段（`v-for="field in schemaProperties(...)"`） | `v-else` | `:381` | 可见（表单内 6 个字段实例） | Enabled 244,134；Max Chars 244,321；Search Service 255,524；Allow Private Hosts 244,567；Proxy 244,633；Proxy Dns 244,702 |
+| S-pluginSettings-21 | 保存（`state.saving ? 正在保存... : 保存`） | 按钮（`:disabled`） | 常显 | `:394-396` | 可见（3 处） | 244,166 46×28；244,389；244,733 |
+| S-pluginSettings-22 | 重新加载 | 按钮（`:disabled`） | 常显 | `:397-399` | 可见（3 处） | 296,166 72×28；296,389；296,733 |
+| S-pluginSettings-23 | 已保存 | 文本 | `state.saved` | `:400-402` | 未出现（条件：本次未保存） | — |
+| S-pluginSettings-24 | `state.error` | 文本 | `state.error` | `:403-405` | 未出现（条件：无错误） | — |
+| S-pluginSettings-25 | `label` · `description` · 必填 `*` | 字段标签（`PluginSettingsField`） | 字段渲染 | `PluginSettingsField.vue:131-142` | 可见（同 S-pluginSettings-20） | 同上 |
+| S-pluginSettings-26 | 此值包含密钥字段，当前表单无法安全编辑。 | 文本 | `withheldSchema` / `arrayHasSecrets` | `PluginSettingsField.vue:133-135`、`:172-178` | 未出现（条件：字段不含密钥） | — |
+| S-pluginSettings-27 | 布尔字段开关 | 开关 | `type === 'boolean'` / `object` 未必填 | `PluginSettingsField.vue:146`、`:199+` | 可见（Enabled 244,135；Search Service 971,524；Proxy Dns 983,702） | 见上 |
+| S-pluginSettings-28 | 数值/字符串字段输入 | 控件·输入 | `type` 为标量 | `PluginSettingsField.vue:199+` | 可见（Max Chars 244,343 767×32；Proxy 244,656 767×32） | 见上 |
+| S-pluginSettings-29 | 数组字段项 + 移除 / 添加 | 输入列表 + 按钮 | `type === 'array' && primitiveItems` | `PluginSettingsField.vue:167-195` | 可见（Allow Private Hosts 的「添加」244,591） | 见上 |
+| S-pluginSettings-30 | 嵌套对象字段（递归 `PluginSettingsField`） | 字段组 | `objectSchema !== undefined` + `objectConfigured` | `PluginSettingsField.vue:153-154` | 未出现（条件：当前 schema 无嵌套对象展开） | — |
+
+本节行数 30（图标 0）｜可见 12｜未出现（条件）18｜未命中 0｜运行时独有 0
+
+注：字段名与控件形状由插件 schema 决定（`schemaProperties(state.source.schema)`），模板只有一个 `v-for` 字段节点；上表按运行时实际渲染的 6 个字段列出实例位置，行数仍按模板节点计。
+---
+
+## 17. 外部 Agent（`components/settings/ExternalAgentsSettings.vue`）
+
+png：[外部Agent-top.png](runtime/settings/外部Agent-top.png)、[外部Agent-bottom.png](runtime/settings/外部Agent-bottom.png)。运行时 82 节点 = 侧栏 40 + 内容 4 + 侧栏 38；内容首趟 y 33–164。当前状态：`unavailable`（App Server 未实现外部代理）。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-externalAgents-01 | 外部 Agent | 页面标题 | 常显 | `:115` | 可见 | 257,33 741×25 |
+| S-externalAgents-02 | 将外部 agent CLI 作为子 agent 启用，主 agent 可委派任务给它们。 | 文本 | 常显 | `:116-118` | 可见 | 257,61 741×18 |
+| S-externalAgents-03 | 正在探测外部 Agent… | 文本 | `loading` | `:121-123` | 未出现（条件：探测结束） | — |
+| S-externalAgents-04 | `loadError` + 重试 | 文本 + 按钮 | `loadError` | `:125-129` | 未出现（条件：无错误） | — |
+| S-externalAgents-05 | 不可用提示卡 | 容器·卡片 | `unavailable` | `:132-140` | 可见（png 边框） | 257,96 741×86 |
+| S-externalAgents-06 | App Server 模式下不可用 | 文本 | 同上 | `:137` | 可见 | 272,121 711×18 |
+| S-externalAgents-07 | App Server 尚未实现外部代理。此模式下 Desktop 无法检测或配置它们。 | 文本 | 同上 | `:138-140` | 可见 | 272,146 711×18 |
+| S-externalAgents-08 | `agent.agentType` 行 | 行容器（`v-for="agent in agents"`） | `v-else`（`!unavailable`） | `:143-154` | 未出现（条件：当前 unavailable） | — |
+| S-externalAgents-09 | `agent.version` / 已安装 / 未识别版本 / 未安装 | 文本·状态 | 同上（四支互斥） | `:156-176` | 未出现（条件） | — |
+| S-externalAgents-10 | ↳ `TriangleAlert` 图标 + 未能从该文件识别版本号，这个 Agent 可能不可用。 | 图标 + 提示文本 | 同上 + `execPath` 存在但版本未知 | `:161-172` | 未出现（条件） | — |
+| S-externalAgents-11 | `agent.execPath` | 文本 · | 同上 + `execPath` | `:176-187` | 未出现（条件） | — |
+| S-externalAgents-12 | `rowErrors[agent.agentType]` | 文本（role=alert） | 同上 + 行错误 | `:191-193` | 未出现（条件） | — |
+| S-externalAgents-13 | 编辑 / 选择 {agentType} 的可执行文件 | 图标按钮（`Pencil` / `Plus`） | 同上 | `:196-219` | 未出现（条件） | — |
+| S-externalAgents-14 | 启用开关 | 开关（`:disabled`） | 同上 | `:221` | 未出现（条件） | — |
+| S-externalAgents-15 | 更改将在新对话中生效。 | 文本 | `!unavailable` | `:233-235` | 未出现（条件：当前 unavailable） | — |
+
+本节行数 15（图标 1）｜可见 6｜未出现（条件）9｜未命中 0｜运行时独有 0
+---
+
+## 18. 归档会话（`components/settings/ArchivedThreadsSettings.vue`）
+
+png：[归档会话-top.png](runtime/settings/归档会话-top.png)、[归档会话-bottom.png](runtime/settings/归档会话-bottom.png)。运行时 81 节点 = 侧栏 40 + 内容 3 + 侧栏 38；内容首趟 y 33–230。当前状态：无归档会话（空态）。
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-archived-01 | 归档会话 | 页面标题 | 常显 | `:262` | 可见 | 257,33 68×25 |
+| S-archived-02 | 全部删除（含 `Trash2`） | 按钮（`:disabled`） | 常显 | `:264-274` | 可见 | 910,33 88×28 |
+| S-archived-03 | 删除所有归档会话 · 确定要永久删除 {count} 条归档会话吗？此操作不可撤销。 | 对话框标题 + 说明 | 点击 S-archived-02 | `:276-281` | 未出现（条件：对话框未打开） | — |
+| S-archived-04 | 取消 / 删除 | 对话框按钮 | 同上 | `:283-287` | 未出现（条件） | — |
+| S-archived-05 | 加载骨架（`v-for="i in 3"`） | 容器·骨架 | `loading` | `:294-307` | 未出现（条件：已加载） | — |
+| S-archived-06 | 搜索归档会话 | 控件·输入（含 `Search`） | `threads.length > 0` | `:318-320` | 未出现（条件：无归档会话） | — |
+| S-archived-07 | 全部项目（项目筛选下拉） | 控件·下拉 | 同上 | `:326-332` | 未出现（条件） | — |
+| S-archived-08 | 全部项目 / 无项目 / `project` | 下拉选项 | 同上 + 下拉展开 | `:335-347` | 未出现（条件） | — |
+| S-archived-09 | 项目分组头 `group.label` · {count} 条会话 | 文本（`v-for="group in projectGroups"`） | 同上 | `:354-364` | 未出现（条件） | — |
+| S-archived-10 | 更多操作（`MoreHorizontal`） | 图标按钮 | 同上 | `:365-374` | 未出现（条件） | — |
+| S-archived-11 | 删除项目内全部会话 · 删除项目内所有会话 · 确定要永久删除 "{project}" 中的 {count} 条归档会话吗？… · 取消 / 删除 | 菜单项 + 对话框 | 同上 + 菜单展开 | `:377-399` | 未出现（条件） | — |
+| S-archived-12 | `thread.title` · 已关闭 · `formatDate(archivedAt) 归档` | 会话行（`v-for="(thread, index) in group.threads"`） | 同上 | `:409-430` | 未出现（条件：无归档会话） | — |
+| S-archived-13 | 恢复（含 `RotateCcw`） | 按钮（`:disabled`） | 同上 | `:433-444` | 未出现（条件） | — |
+| S-archived-14 | 删除归档 · 确定要永久删除 "{title}" 吗？此操作不可撤销。 · 取消 / 删除 | 按钮 + 对话框 | 同上 | `:446-468` | 未出现（条件） | — |
+| S-archived-15 | ↳ `Archive` 图标 | 图标 | `filteredThreads.length === 0` | `:482-483` | 可见（png） | 585,209 区域 |
+| S-archived-16 | 暂无归档会话 | 文本·空态 | `threads.length === 0` | `:485-486` | 可见 | 585,209 84×21 |
+| S-archived-17 | 没有匹配的会话 · 请尝试其他搜索词或项目筛选条件 | 文本·空态 | `v-else`（有会话但筛选为空） | `:488-490` | 未出现（条件：无归档会话） | — |
+
+本节行数 17（图标 1）｜可见 3｜未出现（条件）14｜未命中 0｜运行时独有 0
+---
+
+## 19. 关于（`components/settings/AboutSettings.vue`）
+
+png：[关于-top.png](runtime/settings/关于-top.png)、[关于-bottom.png](runtime/settings/关于-bottom.png)。运行时 184 节点 = 侧栏 40 + 内容 53 + 侧栏 38 + 内容 53；内容首趟 y 33–1072。本页没有页面标题（模板首节即「软件更新」），当前状态：自动更新已禁用、2 条公告、8 条 WIP 能力、开发态调试条。
+
+### 19.1 软件更新
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-about-01 | 软件更新 | 文本标签 | 常显 | `:130` | 可见 | 257,33 741×18 |
+| S-about-02 | 当前版本: · `currentVersion`（v0.9.57） | 文本 + 文本·值 | 常显 | `:134-136` | 可见 | 257,64 100×18；312,65 44×15 |
+| S-about-03 | 新版本: · `updateVersion` | 文本 + 值 | `updateVersion` | `:138-140` | 未出现（条件：无可用版本） | — |
+| S-about-04 | 已是最新版本（含 `Check`） | 文本·状态 | `phase === 'idle'` | `:146-148` | 未出现（条件：`phase` 为其它分支） | — |
+| S-about-05 | 检查中...（含 `Loader2`） | 文本·状态 | `phase === 'checking'` | `:150-152` | 未出现（条件） | — |
+| S-about-06 | 下载中...（含 `Download`） | 文本·状态 | `phase === 'downloading'` | `:154-156` | 未出现（条件） | — |
+| S-about-07 | `updateState.message \|\| 有新版本可用`（含 `Download`） | 文本·状态 | `phase === 'available'` | `:158-164` | 未出现（条件） | — |
+| S-about-08 | 更新已下载（含 `Check`） | 文本·状态 | `phase === 'downloaded'` | `:166-171` | 未出现（条件） | — |
+| S-about-09 | 正在准备…（含 `Loader2`） | 文本·状态 | `phase === 'preparing'` | `:173-175` | 未出现（条件） | — |
+| S-about-10 | `updateState.message \|\| 检查更新失败` | 文本·状态 | `phase === 'error'` | `:177-179` | 未出现（条件） | — |
+| S-about-11 | 自动更新已禁用 | 文本·状态 | `v-else` | `:180-182` | 可见 | 257,96 86×18 |
+| S-about-12 | 检查更新 / 重试 | 按钮 | `phase === 'idle' \|\| 'error'` | `:185-194` | 未出现（条件：不支持自动更新） | — |
+| S-about-13 | 检查中... | 按钮（`:disabled`） | `phase === 'checking'` | `:195-204` | 未出现（条件） | — |
+| S-about-14 | `downloadProgressPercent%` | 按钮（`:disabled`） | `phase === 'downloading'` | `:205-214` | 未出现（条件） | — |
+| S-about-15 | 下载新版本 / `updateState.message` | 按钮 | `phase === 'available'` | `:215-228` | 未出现（条件） | — |
+| S-about-16 | 重启安装 | 按钮 | `phase === 'downloaded'` | `:229-237` | 未出现（条件） | — |
+| S-about-17 | 正在准备… | 按钮（`:disabled`） | `phase === 'preparing'` | `:238-246` | 未出现（条件） | — |
+| S-about-18 | `updateStatusError` | 文本 | 非空 | `:249-251` | 未出现（条件：无错误） | — |
+
+### 19.2 公告
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-about-19 | 公告 | 文本标签 | 常显 | `:257` | 可见 | 257,170 25×18 |
+| S-about-20 | 刷新 | 图标按钮（含 `RefreshCw`） | 常显 | `:259-270` | 可见 | 970,170 28×28 |
+| S-about-21 | 公告条目（`v-for="announcement in recentAnnouncements"`） | 控件·折叠按钮（`article > button`） | `recentAnnouncements.length > 0` | `:274-288` | 可见（2 条） | 258,213 739×56；258,270 739×56 |
+| S-about-22 | `announcement.title` | 文本 | 同上 | `:290` | 可见 | DimAgent Desktop 0.9.65 / CLI 0.5.28（272,224）；0.9.26更新失败解决方案（272,281） |
+| S-about-23 | `formatAnnouncementDate(...)` | 文本·时间（`time`） | 同上 | `:291-293` | 可见 | 875,226 83×14；877,283 81×14 |
+| S-about-24 | `announcement.summary` | 文本 | 同上 + `summary` | `:295-297` | 可见（2 条） | 272,245 687×14；272,302 687×14 |
+| S-about-25 | ↳ `ChevronUp` / `ChevronDown` 图标 | 图标 | 展开 / 收起 | `:299-304` | 可见（收起态，`ChevronDown`） | 条目内 |
+| S-about-26 | 公告正文（`MarkdownRender`） | 容器·正文 | `expandedAnnouncementId === announcement.id` | `:307-315` | 未出现（条件：未展开） | — |
+| S-about-27 | 暂无公告 | 文本·空态 | `announcementsLoaded` 且为空 | `:332-337` | 未出现（条件：有 2 条公告） | — |
+| S-about-28 | 查看更多公告（含 `ExternalLink`） | 按钮 | 常显 | `:339-343` | 可见 | 880,341 118×28 |
+
+### 19.3 暂不可用（WIP 能力）
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-about-29 | 暂不可用 | 文本标签 | 常显 | `:349` | 可见 | 257,397 741×18 |
+| S-about-30 | 以下能力仍在 WIP 跟踪中；入口保持可见但禁用，直到 App Server 路径完成。 | 文本 | 常显 | `:350-352` | 可见 | 257,418 741×14 |
+| S-about-31 | WIP 能力条目（`v-for="capability in wipCapabilities"`） | 列表项（`li`） | 常显（8 实例） | `:354-355` | 可见（8 行） | 257,443 741×58 起，行距 65 |
+| S-about-32 | `capability.label` · `capability.reason` | 文本 | 同上 | `:361-363` | 可见（8 组） | 如 文件历史与回退 268,454 253×18 + 268,475 |
+| S-about-33 | WIP | 状态·徽标 | 同上 | `:365` | 可见（8 个） | 950,454 36×20 等 |
+
+### 19.4 开发态调试（`isDev`）
+
+| 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
+|---|---|---|---|---|---|---|
+| S-about-34 | ↳ `Bug` 图标 | 图标 | `isDev` | `:370-376` | 可见（png） | 272,990 附近 |
+| S-about-35 | Update state debugger | 文本标签 | 同上 | `:378` | 可见 | 293,999 408×18 |
+| S-about-36 | Development only. Cycles local update UI states without downloading or installing. | 文本 | 同上 | `:379-381` | 可见 | 293,1020 408×14 |
+| S-about-37 | `debugStateLabel`（disabled） | 文本·值（code） | 同上 | `:385` | 可见 | 272,1051 50×14 |
+| S-about-38 | Next state | 按钮 | 同上 | `:386-388` | 可见 | 900,1044 83×28 |
+
+本节行数 38（图标 2）｜可见 27｜未出现（条件）11｜未命中 0｜运行时独有 0
