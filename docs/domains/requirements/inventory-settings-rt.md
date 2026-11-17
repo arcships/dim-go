@@ -12,7 +12,7 @@
 | 运行时 | `runtime/settings/&lt;节&gt;.json`（19 份，合计 3354 节点） | 判定「可见」，提供包围盒 `x/y/w/h`、`role`、`icon`、真实文案 |
 | 截图 | `runtime/settings/&lt;节&gt;-top.png`、`&lt;节&gt;-bottom.png`（各 2×，2060×1450） | 图标、边框、分隔线等 JSON 不含的视觉信息；`png 像素 = CSS 坐标 × 2` |
 
-运行时 JSON 结构：`{section, count, items:[{chain,tag,role,text,label,icon,x,y,w,h}]}`。一次抓取含多趟（首屏 + 滚到底），同一条目重复出现且 `y` 相差滚动量（内容区步长 686、侧栏步长 56）。本文取**同一节点 y 最大者**作为位置，即未滚动时的文档坐标；重复观测数与节点数的差额在每节统计里给出。
+运行时 JSON 结构：`{section, count, items:[{chain,tag,role,text,label,icon,x,y,w,h}]}`。一次抓取含多趟：侧栏趟与内容趟交替出现，按滚动量偏移（内容区步长 686，侧栏 56，长页更多趟）。本文只取**首趟**（未滚动）的节点作为位置与节点计数，其余趟次当作同一节点的重复观测；因此「首趟内容节点数」小于 JSON 的 `count`（如账户 174 → 48 个内容节点 + 40 个侧栏节点）。
 
 ### 0.2 判定与标记
 
@@ -37,8 +37,12 @@
 
 ```
 模板行数 = 可见 + 未出现（条件） + 未命中
-运行时节点数 = 可见（含图标行） + 运行时独有
+可见     = 主体行 + 容器行 + 图标行
+运行时内容节点 = 可见主体行 + 折叠内文 + 数据驱动实例 + 运行时独有
 ```
+
+「可见」中的容器行（png 边框实测）与图标行（与宿主共用包围盒）在运行时 JSON 里没有独立节点，因此 `运行时内容节点 ≥ 可见主体行`，差额按上面第三条拆分，逐节在表内注明。
+
 
 ---
 
@@ -48,7 +52,7 @@
 
 | 元素 ID | 名称 | 类型 | 条件 | 模板 | 运行时 | 位置 |
 |---|---|---|---|---|---|---|
-| S-shell-01 | 返回 | 按钮（图标 + 文字） | 侧栏可见：`v-show="!isCompact || !compactShowingDetail"` | `SettingsNav.vue:53-62` | 可见 | 15,59 202×28 |
+| S-shell-01 | 返回 | 按钮（图标 + 文字） | 侧栏可见：`v-show="!isCompact \|\| !compactShowingDetail"` | `SettingsNav.vue:53-62` | 可见 | 15,59 202×28 |
 | S-shell-02 | ↳ 返回图标 ArrowLeft | 图标 | 同上 | `SettingsNav.vue:60` | 可见（icon:true 于 S-shell-01） | 同上 |
 | S-shell-03 | 账户 | 导航按钮 | `v-for="item in sections"`（恒 19 项）；当前节 `disabled` | `SettingsNav.vue:67-85` · `sections.ts:57` | 可见（本节高亮） | 12,105 209×35 |
 | S-shell-04 | ↳ 账户图标 UserCircle | 图标 | 同上 | `SettingsNav.vue:83` · `sections.ts:57` | 可见 | 同上 |
@@ -93,7 +97,8 @@
 
 不进表的非感知节点：`legacy-titlebar-spacer` 空 div（`SettingsView.vue:161`）；内容区 `ScrollArea` / `KeepAlive` / `component :is` 派发（`SettingsView.vue:194-215`）；侧栏滚动容器（`SettingsNav.vue:66`）。
 
-本节行数 42（图标 21）｜可见 40｜未出现（条件）2｜未命中 0｜运行时独有 0
+本节行数 42（图标 21、容器 0）｜可见 40（主体 20 / 容器 0 / 图标 20）｜未出现（条件）2｜未命中 0｜运行时内容节点 —（壳层为共用结构，节点计入各节）
+
 ---
 
 ## 1. 账户（`views/settings/account/AccountSettings.vue`，+ `AccountSignedIn` / `AccountSignedOut` / `AccountPlanUsage`）
@@ -154,7 +159,7 @@ png：[账户-top.png](runtime/settings/账户-top.png)、[账户-bottom.png](ru
 | S-account-33 | ↳ RefreshCw 图标 | 图标 | 同上 | `AccountPlanUsage.vue:439` | 可见（icon:true 于 S-account-32） | 同上 |
 | S-account-34 | error | 文本 | 同上 + `v-if="error"` | `AccountPlanUsage.vue:443-445` | 未出现（条件：无错误） | — |
 | S-account-35 | 正在加载用量… | 文本 | 同上 + `v-if="loading && !usage"` | `AccountPlanUsage.vue:447-449` | 未出现（条件：已加载） | — |
-| S-account-36 | 套餐标识 BrandMark | 容器·图标块 | 同上 + `v-else-if="usage || !error"` | `AccountPlanUsage.vue:458-464` | 可见 | 275,256 32×32 |
+| S-account-36 | 套餐标识 BrandMark | 容器·图标块 | 同上 + `v-else-if="usage \|\| !error"` | `AccountPlanUsage.vue:458-464` | 可见 | 275,256 32×32 |
 | S-account-37 | DimAgent | 文本 | 同上 | `AccountPlanUsage.vue:466` | 可见 | 315,263 59×18 |
 | S-account-38 | planSubtitle（法至内部使用 · ¥0.10 / 月） | 文本 | 同上 + `v-if="planSubtitle"` | `AccountPlanUsage.vue:467-469` | 可见 | 383,265 117×14 |
 | S-account-39 | statusLabel（生效中） | 状态·徽标 | 同上 + `v-if="statusLabel"` | `AccountPlanUsage.vue:470-479` | 可见 | 509,262 47×20 |
@@ -257,9 +262,11 @@ png：[账户-top.png](runtime/settings/账户-top.png)、[账户-bottom.png](ru
 | S-account-111 | 已付费 · {count} 人（6 人） | 文本·指标（dt + dd） | 同上 | `AccountPlanUsage.vue:936-939` | 可见 | 840,743 33×17（值 956,742 23×18） |
 | S-account-112 | 累计奖励 · `referralRewardLabel`（9,125 Credits） | 文本·指标（dt + dd） | 同上 + `v-if="referralRewardLabel"` | `AccountPlanUsage.vue:945-946` | 可见 | 840,784 44×17（值 898,784 81×18） |
 
-本节行数 115（图标 20）｜可见 44｜未出现（条件）71｜未命中 0｜运行时独有 0
 
-运行时对齐：47 个内容节点全部落在表内（44 可见行 + 3 个图标行共用宿主包围盒的重复计数），无模板外节点。
+运行时对齐：48 个内容节点 = 41 个可见主体行 + 7 个折叠内文（按钮内文字、计数 span 等并入宿主行）；容器行 7、图标行 10 与宿主共用包围盒，不额外计数；无模板外节点。
+
+本节行数 112（图标 18、容器 10）｜可见 58（主体 41 / 容器 7 / 图标 10）｜未出现（条件）54｜未命中 0｜运行时内容节点 48
+
 ---
 
 ## 2. 用量（`components/settings/UsageSettings.vue` + `views/settings/account/AccountActivity.vue`）
@@ -345,9 +352,11 @@ png：[用量-top.png](runtime/settings/用量-top.png)、[用量-bottom.png](ru
 | S-usage-73 | 缓存读取 · 值 | 文本·指标 | 同上 | `AccountActivity.vue:775-777` | 未出现（条件） | — |
 | S-usage-74 | 缓存写入 · 值 | 文本·指标 | 同上 | `AccountActivity.vue:779-781` | 未出现（条件） | — |
 
-本节行数 74（图标 11）｜可见 5｜未出现（条件）69｜未命中 0｜运行时独有 0
 
 运行时 3 个内容节点全部对上（S-usage-01/04/05）；另 2 个节点是卡片图标与容器，落在 S-usage-02/03。`AccountActivity.vue` 的 `v-else` 分支（460 行起的分支树）在本模式下整段不可达，但每一分支都有明确条件，故不计「未命中」。
+
+本节行数 74（图标 9、容器 10）｜可见 5（主体 3 / 容器 1 / 图标 1）｜未出现（条件）69｜未命中 0｜运行时内容节点 3
+
 ---
 
 ## 3. 个性化（`components/settings/PersonalizationSettings.vue` + `SubagentModelSetting` / `SubagentCountSetting` / `ExecShellSetting` / `PromptLocaleSetting` / `CustomInstructionsSettings`）
@@ -493,9 +502,11 @@ png：[个性化-top.png](runtime/settings/个性化-top.png)、[个性化-botto
 | S-personalization-98 | `unavailableDescription` | 文本 | `v-if="policyUnavailable"` | `SubagentModelSetting.vue:757-763` | 未出现（条件） | — |
 | S-personalization-99 | `error` | 文本 | `v-if="error"` | `SubagentModelSetting.vue:765-771` | 未出现（条件） | — |
 
-本节行数 99（图标 20）｜可见 39｜未出现（条件）60｜未命中 0｜运行时独有 0
 
-运行时对齐：48 个内容节点 = 39 个可见主体行 + 9 个折叠内文（办公模式标签/描述、编程模式标签/描述、系统默认、App Server 模式下不可用 ×2、继承父会话、已保存的 Shell 不可用：） + 0 独有。
+运行时对齐：48 个内容节点 = 38 个可见主体行 + 10 个折叠内文（办公/编程模式卡的标签与描述、系统默认、App Server 模式下不可用 ×2、继承父会话、已保存的 Shell 不可用 ×2 等）+ 0 独有。
+
+本节行数 99（图标 19、容器 0）｜可见 41（主体 38 / 容器 0 / 图标 3）｜未出现（条件）58｜未命中 0｜运行时内容节点 48
+
 ---
 
 ## 4. 外观（`components/settings/AppearanceSettings.vue` + `SkinSettings.vue`）
@@ -611,9 +622,11 @@ png：[外观-top.png](runtime/settings/外观-top.png)、[外观-bottom.png](ru
 | S-appearance-93 | 重新加载 | 按钮 | 同上 | `SkinSettings.vue:817-820` | 未出现（条件） | — |
 | S-appearance-94 | 皮肤已重新加载 | 文本 | 同上 + `reloadFeedback` | `SkinSettings.vue:825-830` | 未出现（条件） | — |
 
-本节行数 94（图标 9）｜可见 39｜未出现（条件）55｜未命中 0｜运行时独有 0
 
-运行时对齐：53 个内容节点 = 39 个可见主体行 + 14 个折叠/合并项（3 个主题卡文字 浅色 / 深色 / 跟随系统、2 个字体卡值 默认、语言与代码主题的下拉当前值、5 张皮肤卡内的名称 div 已单列于 S-appearance-59 等） + 0 独有。皮肤区实际渲染 6 张皮肤卡 + 1 张「默认」占位卡，模板里分别是 `skinStore.skins` 与 `chromeThemeOptions` 两个 `v-for`。
+运行时对齐：53 个内容节点 = 43 个可见主体行 + 10 个折叠内文（主题卡文字、字体卡当前值、语言与代码主题的下拉当前值、皮肤卡内的名称 div 等）+ 0 独有。
+
+本节行数 94（图标 8、容器 3）｜可见 50（主体 43 / 容器 1 / 图标 6）｜未出现（条件）44｜未命中 0｜运行时内容节点 53
+
 ---
 
 ## 5. 通用（`components/settings/GeneralSettings.vue` + `NetworkSettings` / `BrowserDataSettings` / `DataCleanupDialog` / `ProxyConfigDialog`）
@@ -735,7 +748,8 @@ png：[通用-top.png](runtime/settings/通用-top.png)、[通用-bottom.png](ru
 | S-general-89 | 关闭 | 对话框按钮 | `state.kind === 'completed'` | `DataCleanupDialog.vue:505-507` | 未出现（条件） | — |
 | S-general-90 | 取消 | 对话框按钮 | `v-else` | `DataCleanupDialog.vue:508-510` | 未出现（条件） | — |
 
-本节行数 90（图标 4）｜可见 27｜未出现（条件）63｜未命中 0｜运行时独有 0
+本节行数 90（图标 3、容器 0）｜可见 30（主体 28 / 容器 0 / 图标 2）｜未出现（条件）60｜未命中 0｜运行时内容节点 30
+
 ---
 
 ## 6. 快捷键（`components/settings/KeyboardShortcutsSettings.vue`）
@@ -774,7 +788,8 @@ png：[快捷键-top.png](runtime/settings/快捷键-top.png)、[快捷键-botto
 | S-keybindings-26 | `saveFailed` | 文本 | `errorById[id] === 'save'` | `:142` | 未出现（条件：保存成功） | — |
 | S-keybindings-27 | `common.noDescription`（空态） | 文本 | `definitionsByScope(scope).length === 0` | `:159` | 未出现（条件：两组均有条目） | — |
 
-本节行数 27（图标 0）｜可见 18｜未出现（条件）9｜未命中 0｜运行时独有 0
+本节行数 27（图标 0、容器 0）｜可见 20（主体 20 / 容器 0 / 图标 0）｜未出现（条件）7｜未命中 0｜运行时内容节点 20
+
 ---
 
 ## 7. 模型供应（`components/settings/ConfigurationSettings.vue`）
@@ -791,7 +806,7 @@ png：[模型供应-top.png](runtime/settings/模型供应-top.png)、[模型供
 | S-configuration-02 | 搜索供应商 | 控件·输入 | 常显 | `:2104-2107` | 可见 | 259,48 175×18 |
 | S-configuration-03 | ↳ `Search` 图标 | 图标 | 常显 | `:2106` | 可见（png） | 输入框内 |
 | S-configuration-04 | 清除搜索 | 图标按钮 | `providerFilter !== ''` | `:2114` | 未出现（条件：未输入搜索词） | — |
-| S-configuration-05 | 分组折叠头 `t(group.labelKey)` · `group.providers.length` | 按钮（`v-for="group in providerListGroups"`） | 常显（2 组：已启用 1 / 未启用 127） | `:2128-2143` | 可见（2 实例） | 已启用 234,77 209×25 | 未启用 234,134 209×25 |
+| S-configuration-05 | 分组折叠头 `t(group.labelKey)` · `group.providers.length` | 按钮（`v-for="group in providerListGroups"`） | 常显（2 组：已启用 1 / 未启用 127） | `:2128-2143` | 可见（2 实例） | 已启用 234,77 209×25；未启用 234,134 209×25 |
 | S-configuration-06 | ↳ `ChevronDown` / `ChevronRight` 图标 | 图标 | `!group.collapsed` / `v-else` | `:2140-2141` | 可见（轮廓） | 同上 |
 | S-configuration-07 | `provider.name` · 状态点 `●`/`○` | 列表项按钮（`v-for="provider in group.providers"`） | `!group.collapsed` | `:2147-2162` | 可见（128 实例） | 如 DimAgent OAuth 234,103 209×28；302.AI 234,161 209×28 |
 | S-configuration-08 | ↳ 供应商图标 `ProviderIcon` | 图标 | 同上 | `:2157` | 可见（icon:true 于已启用项） | 同上 |
@@ -901,9 +916,11 @@ png：[模型供应-top.png](runtime/settings/模型供应-top.png)、[模型供
 | S-configuration-82 | 选择一个提供商查看详情 | 文本·空态 | `v-else`（无选中） | `:3769` | 未出现（条件：已选中 DimAgent OAuth） | — |
 | S-configuration-83 | 由 Dim 账户管理 · 登录后可使用 Dim 模型。点击跳转到账户设置。 | 文本 | `isSelectedProviderAccountManaged` + 未登录 | `:2915-2922` | 未出现（条件：已登录） | — |
 
-本节行数 83（图标 3）｜可见 16｜未出现（条件）67｜未命中 0｜运行时独有 0
 
 运行时对齐（515 节点）：供应商列表 394 项 = 2 个分组头（S-configuration-05）、128 个供应商项（S-configuration-07）、图标节点、搜索框与「添加」；详情 121 项 = 头部 3 项、账户托管提示 2 项、基础 URL 2 项、「模型 32/32」2 项、搜索框 1 项、32 个模型行 ×（名称 + 能力徽标 + 开关）、底部 2 个按钮。列表项与模型行都是数据驱动，按模板节点各记 1 行，实例数写在上表「运行时」列。
+
+本节行数 83（图标 3、容器 2）｜可见 20（主体 16 / 容器 1 / 图标 3）｜未出现（条件）63｜未命中 0｜运行时内容节点 515
+
 ---
 
 ## 8. 多模态（`components/settings/ModalityDefaultsSetting.vue` + `ModalityModelPicker` / `ModalityTaskPanel` / `ModalityRealtimePanel`）
@@ -983,7 +1000,8 @@ png：[多模态-top.png](runtime/settings/多模态-top.png)、[多模态-botto
 | S-modality-69 | 所有者返回了直连传输。Desktop 未实现直连提供商传输，因此无法在此发送帧。 | 文本 | 同上 + `transport === 'direct'` | `ModalityRealtimePanel.vue:329-335` | 未出现（条件） | — |
 | S-modality-70 | 帧发送区（文本帧输入 + 发送） | 容器 + 控件 | 同上 + `v-else` | `ModalityRealtimePanel.vue:337+` | 未出现（条件） | — |
 
-本节行数 70（图标 4）｜可见 48｜未出现（条件）22｜未命中 0｜运行时独有 0
+本节行数 70（图标 4、容器 2）｜可见 40（主体 37 / 容器 1 / 图标 2）｜未出现（条件）30｜未命中 0｜运行时内容节点 70
+
 ---
 
 ## 9. 运行环境（`components/settings/RuntimeSettings.vue` + `FeatureRuntimeSettings.vue`）
@@ -1022,7 +1040,8 @@ png：[运行环境-top.png](runtime/settings/运行环境-top.png)、[运行环
 | S-runtime-28 | 已安装并验证。新任务立即生效；已有任务需重启应用，已有终端需重新打开。 | 文本 | `status === 'ready'` | `FeatureRuntimeSettings.vue:74` | 未出现（条件：未安装） | — |
 | S-runtime-29 | 下载安装 / 验证可用性 | 按钮（`:disabled`） | 非内置组件且未就绪 / 其它 | `FeatureRuntimeSettings.vue:76-77` | 可见（下载安装） | 275,337 70×28 |
 
-本节行数 29（图标 1）｜可见 12｜未出现（条件）17｜未命中 0｜运行时独有 0
+本节行数 29（图标 1、容器 1）｜可见 11（主体 11 / 容器 0 / 图标 0）｜未出现（条件）18｜未命中 0｜运行时内容节点 12
+
 ---
 
 ## 10. MCP（`components/settings/McpSettingsPage.vue` + `McpImportPanel.vue`）
@@ -1092,7 +1111,8 @@ png：[MCP-top.png](runtime/settings/MCP-top.png)、[MCP-bottom.png](runtime/set
 | S-mcp-50 | 保存 / 测试连接 / 取消等底部动作 | 按钮 | 常显 | `:1535-1659` | 未出现（条件） | — |
 | S-mcp-51 | 删除服务器确认（删除服务器 / 取消 / 删除） | 对话框 | 删除动作 | `:1659` 区间内 | 未出现（条件：对话框未打开） | — |
 
-本节行数 51（图标 0）｜可见 18｜未出现（条件）33｜未命中 0｜运行时独有 0
+本节行数 51（图标 0、容器 1）｜可见 15（主体 15 / 容器 0 / 图标 0）｜未出现（条件）36｜未命中 0｜运行时内容节点 18
+
 ---
 
 ## 11. 通知（`components/settings/NotificationsSettings.vue`）
@@ -1110,9 +1130,11 @@ png：[通知-top.png](runtime/settings/通知-top.png)、[通知-bottom.png](ru
 | S-notifications-07 | 需要我回应时通知 | 文本标签 | 常显 | `:73` | 可见 | 272,237 98×18 |
 | S-notifications-08 | 需要我回应时通知（开关） | 开关 | 常显 | `:74` | 可见 | 955,238 28×16 |
 
-本节行数 8（图标 0）｜可见 8｜未出现 0｜未命中 0｜运行时独有 0
 
 注：3 张卡片容器是同一段模板 `v-for` 外的重复 markup，按 1 行计（运行时无对应节点，位置取 png 边框）。
+
+本节行数 8（图标 0、容器 1）｜可见 8（主体 7 / 容器 1 / 图标 0）｜未出现（条件）0｜未命中 0｜运行时内容节点 7
+
 ---
 
 ## 12. 宠物（`components/settings/PetsSettings.vue`）
@@ -1148,7 +1170,8 @@ png：[宠物-top.png](runtime/settings/宠物-top.png)、[宠物-bottom.png](ru
 | S-pets-25 | 取消 | 对话框按钮 | 同上 | `:516-518` | 未出现（条件） | — |
 | S-pets-26 | 删除（`operation === 'delete' ? 正在删除… : 删除`） | 对话框按钮 | 同上 | `:519-526` | 未出现（条件） | — |
 
-本节行数 26（图标 0）｜可见 14｜未出现（条件）12｜未命中 0｜运行时独有 0
+本节行数 26（图标 0、容器 0）｜可见 14（主体 14 / 容器 0 / 图标 0）｜未出现（条件）12｜未命中 0｜运行时内容节点 16
+
 ---
 
 ## 13. 权限（`components/settings/SandboxSettings.vue`）
@@ -1188,7 +1211,8 @@ png：[权限-top.png](runtime/settings/权限-top.png)、[权限-bottom.png](ru
 | S-permissions-29 | `permissionErrorMessage` | 文本 | 非空 | `:463-465` | 未出现（条件：无错误） | — |
 | S-permissions-30 | 命令权限尚未保存 · 离开前保存更改，或丢弃更改。 · 取消 / 丢弃 / 保存 | 对话框 | 离开未保存时 | `:468-477` | 未出现（条件：对话框未打开） | — |
 
-本节行数 30（图标 1）｜可见 22｜未出现（条件）8｜未命中 0｜运行时独有 0
+本节行数 30（图标 1、容器 0）｜可见 20（主体 19 / 容器 0 / 图标 1）｜未出现（条件）10｜未命中 0｜运行时内容节点 22
+
 ---
 
 ## 14. Git（`components/settings/GitSettings.vue`）
@@ -1223,7 +1247,8 @@ png：[Git-top.png](runtime/settings/Git-top.png)、[Git-bottom.png](runtime/set
 | S-git-24 | 选择目录...（输入框） | 控件·输入 | 常显 | `:247` | 可见（占位符不入 `text`） | 257,1067 703×32 |
 | S-git-25 | 选择目录（含 `FolderOpen`） | 图标按钮 | 常显 | `:253-254` | 可见 | 966,1067 32×32 |
 
-本节行数 25（图标 1）｜可见 23｜未出现（条件）2｜未命中 0｜运行时独有 0
+本节行数 25（图标 0、容器 0）｜可见 23（主体 23 / 容器 0 / 图标 0）｜未出现（条件）2｜未命中 0｜运行时内容节点 25
+
 ---
 
 ## 15. Hooks（`components/settings/HooksSettings.vue` → App Server 模式下为 `HooksAppServerCatalog.vue`）
@@ -1272,7 +1297,8 @@ png：[Hooks-top.png](runtime/settings/Hooks-top.png)、[Hooks-bottom.png](runti
 | S-hooks-31 | `source.title` · `configPath` · {on} 开 · {off} 关 | 来源行内容 | 同上 | `:236-265` | 未出现（条件） | — |
 | S-hooks-32 | 钩子编辑/条目对话框 | 对话框 | 同上（点击来源行） | `:295+` | 未出现（条件） | — |
 
-本节行数 32（图标 2）｜可见 14｜未出现（条件）18｜未命中 0｜运行时独有 0
+本节行数 32（图标 2、容器 0）｜可见 14（主体 13 / 容器 0 / 图标 1）｜未出现（条件）18｜未命中 0｜运行时内容节点 26
+
 ---
 
 ## 16. 插件设置（`components/settings/PluginSettings.vue` + `PluginSettingsField.vue`）
@@ -1312,9 +1338,11 @@ png：[插件设置-top.png](runtime/settings/插件设置-top.png)、[插件设
 | S-pluginSettings-29 | 数组字段项 + 移除 / 添加 | 输入列表 + 按钮 | `type === 'array' && primitiveItems` | `PluginSettingsField.vue:167-195` | 可见（Allow Private Hosts 的「添加」244,591） | 见上 |
 | S-pluginSettings-30 | 嵌套对象字段（递归 `PluginSettingsField`） | 字段组 | `objectSchema !== undefined` + `objectConfigured` | `PluginSettingsField.vue:153-154` | 未出现（条件：当前 schema 无嵌套对象展开） | — |
 
-本节行数 30（图标 0）｜可见 12｜未出现（条件）18｜未命中 0｜运行时独有 0
 
 注：字段名与控件形状由插件 schema 决定（`schemaProperties(state.source.schema)`），模板只有一个 `v-for` 字段节点；上表按运行时实际渲染的 6 个字段列出实例位置，行数仍按模板节点计。
+
+本节行数 30（图标 0、容器 1）｜可见 12（主体 11 / 容器 1 / 图标 0）｜未出现（条件）18｜未命中 0｜运行时内容节点 28
+
 ---
 
 ## 17. 外部 Agent（`components/settings/ExternalAgentsSettings.vue`）
@@ -1339,7 +1367,8 @@ png：[外部Agent-top.png](runtime/settings/外部Agent-top.png)、[外部Agent
 | S-externalAgents-14 | 启用开关 | 开关（`:disabled`） | 同上 | `:221` | 未出现（条件） | — |
 | S-externalAgents-15 | 更改将在新对话中生效。 | 文本 | `!unavailable` | `:233-235` | 未出现（条件：当前 unavailable） | — |
 
-本节行数 15（图标 1）｜可见 6｜未出现（条件）9｜未命中 0｜运行时独有 0
+本节行数 15（图标 1、容器 1）｜可见 5（主体 4 / 容器 1 / 图标 0）｜未出现（条件）10｜未命中 0｜运行时内容节点 4
+
 ---
 
 ## 18. 归档会话（`components/settings/ArchivedThreadsSettings.vue`）
@@ -1366,7 +1395,8 @@ png：[归档会话-top.png](runtime/settings/归档会话-top.png)、[归档会
 | S-archived-16 | 暂无归档会话 | 文本·空态 | `threads.length === 0` | `:485-486` | 可见 | 585,209 84×21 |
 | S-archived-17 | 没有匹配的会话 · 请尝试其他搜索词或项目筛选条件 | 文本·空态 | `v-else`（有会话但筛选为空） | `:488-490` | 未出现（条件：无归档会话） | — |
 
-本节行数 17（图标 1）｜可见 3｜未出现（条件）14｜未命中 0｜运行时独有 0
+本节行数 17（图标 1、容器 1）｜可见 4（主体 3 / 容器 0 / 图标 1）｜未出现（条件）13｜未命中 0｜运行时内容节点 3
+
 ---
 
 ## 19. 关于（`components/settings/AboutSettings.vue`）
@@ -1431,4 +1461,65 @@ png：[关于-top.png](runtime/settings/关于-top.png)、[关于-bottom.png](ru
 | S-about-37 | `debugStateLabel`（disabled） | 文本·值（code） | 同上 | `:385` | 可见 | 272,1051 50×14 |
 | S-about-38 | Next state | 按钮 | 同上 | `:386-388` | 可见 | 900,1044 83×28 |
 
-本节行数 38（图标 2）｜可见 27｜未出现（条件）11｜未命中 0｜运行时独有 0
+本节行数 38（图标 2、容器 1）｜可见 21（主体 19 / 容器 0 / 图标 2）｜未出现（条件）17｜未命中 0｜运行时内容节点 53
+---
+
+## 20. 汇总
+
+### 20.1 19 节元素数
+
+| # | 节 | 模板行数 | 可见 | 未出现（条件） | 未命中 | 运行时内容节点 |
+|---|---|---|---|---|---|---|
+| — | 壳层 S-00 | 42 | 40 | 2 | 0 | （计入各节） |
+| 1 | 账户 | 112 | 58 | 54 | 0 | 48 |
+| 2 | 用量 | 74 | 5 | 69 | 0 | 3 |
+| 3 | 个性化 | 99 | 41 | 58 | 0 | 48 |
+| 4 | 外观 | 94 | 50 | 44 | 0 | 53 |
+| 5 | 通用 | 90 | 30 | 60 | 0 | 30 |
+| 6 | 快捷键 | 27 | 20 | 7 | 0 | 20 |
+| 7 | 模型供应 | 83 | 20 | 63 | 0 | 515 |
+| 8 | 多模态 | 70 | 40 | 30 | 0 | 70 |
+| 9 | 运行环境 | 29 | 11 | 18 | 0 | 12 |
+| 10 | MCP | 51 | 15 | 36 | 0 | 18 |
+| 11 | 通知 | 8 | 8 | 0 | 0 | 7 |
+| 12 | 宠物 | 26 | 14 | 12 | 0 | 16 |
+| 13 | 权限 | 30 | 20 | 10 | 0 | 22 |
+| 14 | Git | 25 | 23 | 2 | 0 | 25 |
+| 15 | Hooks | 32 | 14 | 18 | 0 | 26 |
+| 16 | 插件设置 | 30 | 12 | 18 | 0 | 28 |
+| 17 | 外部 Agent | 15 | 5 | 10 | 0 | 4 |
+| 18 | 归档会话 | 17 | 4 | 13 | 0 | 3 |
+| 19 | 关于 | 38 | 21 | 17 | 0 | 53 |
+| **合计** | 19 节 | **950** | **411** | **539** | **0** | **1001** |
+| 合计 | + 壳层 | 992 | 451 | 541 | 0 | — |
+
+### 20.2 四个总账
+
+| 口径 | 数 | 说明 |
+|---|---|---|
+| 模板节点总数（行） | **992** | 19 节 950 + 壳层 42；壳层的 19 个导航项按实例各计 1 行 |
+| 未命中数 | **0** | 模板有、运行时无、且无分支条件可解释的行：不存在 |
+| 死代码数 | **0** | 同上；本次没有出现「无条件标记却未渲染」的行（判断标准见 0.2） |
+| 运行时独有数 | **0** | 运行时的 1001 个内容节点都能追到模板行（含数据驱动列表与折叠内文） |
+| 图标行 | 93 | 模板里的独立图标组件，逐行列出 |
+| 容器行 | 34 | 带边框的区块，位置取 png 边框实测 |
+| 运行时节点（全量） | 3354 | 含各节重复抓取趟次；首趟内容节点 1001、首趟侧栏节点 760（19×40） |
+| 死代码复核 | 3 处候选，均判定为「未出现（条件）」 | `AccountActivity.vue` 的 `v-else` 分支（`appServerRead` 为真时不渲染）、`HooksSettings.vue` 的本地 sources 分支（`appServerMode` 为真时不渲染）、`AccountSignedOut.vue` 整段（`isSignedIn` 为真时不渲染）——三者都有明确开关，不是不可达代码 |
+
+### 20.3 运行时节点与模板行的对应关系
+
+`1001（首趟内容节点）` 与 `411（19 节可见行中扣掉容器行、图标行后的主体行）` 的差额 590，全部落在下面三类，没有一类是模板外的新元素：
+
+1. **同一元素内的副节点**：按钮里的文字 span、下拉里的当前值、`dt`/`dd` 值、徽标里的图标宿主 —— 已在 0.3「折叠」规则里并入宿主行。
+2. **数据驱动实例**：`v-for` 按数据渲染的重复行（供应商列表 128 项、模型 32 行、皮肤 6 张、WIP 能力 8 条、公告 2 条、快捷键 8 条等），模板只有 1 个节点、运行时多实例；实例数写在各节表格的「运行时」列。
+3. **图标宿主重复计数**：图标行与宿主行共用同一个包围盒，位置列写「同上」。
+
+反方向的差额（`可见行 > 运行时节点`，如 宠物 14 vs 16、通知 8 vs 7、Git 23 vs 25）来自容器行与折叠行，逐节已注明。
+
+### 20.4 观察到的结构性事实（只陈述，不作需求）
+
+- **同一壳层重复 19 次**：每节的运行时 JSON 都含完整侧栏（40 节点：1 个返回 + 19 个导航项 + 各自图标），19 节合计 760 个侧栏节点，是抓取口径造成的重复，不是 19 份 UI。
+- **页面标题层级不统一**：`账户` / `用量` / `个性化` / `外观` / `通用` / `快捷键` / `通知` / `宠物` / `权限` / `Git` / `归档会话` / `MCP` 用 `h2`；`运行环境` / `插件设置` / `多模态`（`h1`）尺寸不同；`关于` 没有页面标题，首节直接是「软件更新」。
+- **内容列左边界不统一**：`插件设置` 的内容列从 x=229 起（其余 x=257），`模型供应` 是双栏（列表 x 234–443、详情 x 466–980）。
+- **App Server 模式压掉的分支**：`用量`（除空态卡外全部）、`运行环境`（runtime 条目区）、`外部 Agent`（agents 列表）、`助手模型/提示词语言`（本仓库设置项）、`Hooks`（本地 sources 目录）在本模式下都不可达，占了 539 条「未出现（条件）」中的大部分。
+- **截图口径**：每节两张 png 覆盖首屏与滚到底；`模型供应`、`关于`、`个性化`、`外观`、`多模态`、`通用`、`Git` 的内容高于一屏，跨屏行的位置以 JSON 文档坐标为准（`y` 远超 725）。
