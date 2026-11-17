@@ -1,5 +1,17 @@
 [
  {
+  "chain": "div.flex.min-h-0.flex-1 > div.flex.h-full.w-full > div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.shrink-0.px-1.py-3 > button.inline-flex.items-center.whitespace-nowrap",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 15,
+  "y": 59,
+  "w": 202,
+  "h": 28
+ },
+ {
+  "chain": "div.flex.h-full.w-full > div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.shrink-0.px-1.py-3 > button.inline-flex.items-center.whitespace-nowrap > span.text-sm",
   "tag": "span",
   "role": "",
   "text": "返回",
@@ -10,6 +22,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 105,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "账户",
@@ -20,6 +44,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 140,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "用量",
@@ -30,6 +66,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 175,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "个性化",
@@ -40,6 +88,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 210,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "外观",
@@ -50,6 +110,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 245,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "通用",
@@ -60,6 +132,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 280,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "快捷键",
@@ -70,6 +154,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 315,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "模型供应",
@@ -80,6 +176,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 350,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "多模态",
@@ -90,6 +198,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 385,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "运行环境",
@@ -100,6 +220,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 420,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "MCP",
@@ -110,6 +242,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 455,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "通知",
@@ -120,6 +264,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 490,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "宠物",
@@ -130,6 +286,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 525,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "权限",
@@ -140,6 +308,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 560,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "Git",
@@ -150,6 +330,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 595,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "Hooks",
@@ -160,6 +352,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 630,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "插件设置",
@@ -170,6 +374,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 665,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "外部 Agent",
@@ -180,6 +396,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 700,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "归档会话",
@@ -190,6 +418,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 735,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "关于",
@@ -200,6 +440,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-1 > h2.text-xl.font-semibold.tracking-tight",
   "tag": "h2",
   "role": "",
   "text": "外观",
@@ -210,6 +451,7 @@
   "h": 25
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "主题",
@@ -220,6 +462,18 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.inline-flex.justify-center.whitespace-nowrap",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 257,
+  "y": 113,
+  "w": 240,
+  "h": 69
+ },
+ {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.inline-flex.justify-center.whitespace-nowrap > span.text-sm.font-medium",
   "tag": "span",
   "role": "",
   "text": "浅色",
@@ -230,6 +484,18 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.inline-flex.justify-center.whitespace-nowrap",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 507,
+  "y": 113,
+  "w": 240,
+  "h": 69
+ },
+ {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.inline-flex.justify-center.whitespace-nowrap > span.text-sm.font-medium",
   "tag": "span",
   "role": "",
   "text": "深色",
@@ -240,6 +506,18 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.inline-flex.justify-center.whitespace-nowrap",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 758,
+  "y": 113,
+  "w": 240,
+  "h": 69
+ },
+ {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.inline-flex.justify-center.whitespace-nowrap > span.text-sm.font-medium",
   "tag": "span",
   "role": "",
   "text": "跟随系统",
@@ -250,6 +528,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "程序语言",
@@ -260,6 +539,18 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > button.border-input.data-[placeholder]:text-muted-foreground.[&_svg:not([class*='text-'])]:text-muted-foreground",
+  "tag": "button",
+  "role": "combobox",
+  "text": "",
+  "label": "",
+  "x": 257,
+  "y": 267,
+  "w": 168,
+  "h": 32
+ },
+ {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-3 > button.border-input.data-[placeholder]:text-muted-foreground.[&_svg:not([class*='text-'])]:text-muted-foreground > span",
   "tag": "span",
   "role": "",
   "text": "简体中文",
@@ -270,6 +561,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "字体",
@@ -280,6 +572,7 @@
   "h": 18
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.space-y-4 > div.flex.flex-col.gap-3 > div.space-y-0.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "UI 字体",
@@ -290,6 +583,7 @@
   "h": 18
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.space-y-4 > div.flex.flex-col.gap-3 > div.space-y-0.5 > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "用于应用界面和 Markdown 正文",
@@ -300,6 +594,7 @@
   "h": 14
  },
  {
+  "chain": "section.space-y-4 > div.space-y-4 > div.flex.flex-col.gap-3 > div > div.w-full.sm:w-64 > button.border-input.focus-visible:border-ring.focus-visible:ring-ring/50",
   "tag": "button",
   "role": "",
   "text": "",
@@ -310,6 +605,7 @@
   "h": 32
  },
  {
+  "chain": "div.space-y-4 > div.flex.flex-col.gap-3 > div > div.w-full.sm:w-64 > button.border-input.focus-visible:border-ring.focus-visible:ring-ring/50 > span.truncate",
   "tag": "span",
   "role": "",
   "text": "默认",
@@ -320,6 +616,7 @@
   "h": 18
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.space-y-4 > div.flex.flex-col.gap-3 > div.space-y-0.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "代码字体",
@@ -330,6 +627,7 @@
   "h": 18
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.space-y-4 > div.flex.flex-col.gap-3 > div.space-y-0.5 > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "用于终端、代码块和差异内容",
@@ -340,6 +638,7 @@
   "h": 14
  },
  {
+  "chain": "section.space-y-4 > div.space-y-4 > div.flex.flex-col.gap-3 > div > div.w-full.sm:w-64 > button.border-input.focus-visible:border-ring.focus-visible:ring-ring/50",
   "tag": "button",
   "role": "",
   "text": "",
@@ -350,6 +649,7 @@
   "h": 32
  },
  {
+  "chain": "div.space-y-4 > div.flex.flex-col.gap-3 > div > div.w-full.sm:w-64 > button.border-input.focus-visible:border-ring.focus-visible:ring-ring/50 > span.truncate",
   "tag": "span",
   "role": "",
   "text": "默认",
@@ -360,6 +660,7 @@
   "h": 18
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.space-y-0.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "UI 字号",
@@ -370,6 +671,7 @@
   "h": 18
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.flex.items-center.gap-2 > span.text-xs.text-muted-foreground",
   "tag": "span",
   "role": "",
   "text": "小",
@@ -380,6 +682,7 @@
   "h": 14
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.flex.items-center.gap-2 > div.flex.gap-1 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "特小",
@@ -390,6 +693,7 @@
   "h": 25
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.flex.items-center.gap-2 > div.flex.gap-1 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "小",
@@ -400,6 +704,7 @@
   "h": 25
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.flex.items-center.gap-2 > div.flex.gap-1 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "中",
@@ -410,6 +715,7 @@
   "h": 25
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.flex.items-center.gap-2 > div.flex.gap-1 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "大",
@@ -420,6 +726,7 @@
   "h": 25
  },
  {
+  "chain": "div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.flex.items-center.gap-2 > div.flex.gap-1 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "特大",
@@ -430,6 +737,7 @@
   "h": 25
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.flex.items-center.gap-2 > span.text-xs.text-muted-foreground",
   "tag": "span",
   "role": "",
   "text": "大",
@@ -440,6 +748,7 @@
   "h": 14
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > div.space-y-0.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "代码字号",
@@ -450,6 +759,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.items-center.justify-between > span.text-sm.tabular-nums.text-muted-foreground",
   "tag": "span",
   "role": "",
   "text": "12px",
@@ -460,6 +770,18 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > span.relative.flex.touch-none > span.bg-white.border-primary.ring-ring/50",
+  "tag": "span",
+  "role": "slider",
+  "text": "",
+  "label": "",
+  "x": 257,
+  "y": 633,
+  "w": 14,
+  "h": 14
+ },
+ {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.justify-between.text-xs > span",
   "tag": "span",
   "role": "",
   "text": "12px",
@@ -470,6 +792,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.justify-between.text-xs > span",
   "tag": "span",
   "role": "",
   "text": "16px",
@@ -480,6 +803,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.flex.justify-between.text-xs > span",
   "tag": "span",
   "role": "",
   "text": "20px",
@@ -490,6 +814,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > div.space-y-0.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "代码主题",
@@ -500,6 +825,18 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > button.border-input.data-[placeholder]:text-muted-foreground.[&_svg:not([class*='text-'])]:text-muted-foreground",
+  "tag": "button",
+  "role": "combobox",
+  "text": "",
+  "label": "",
+  "x": 257,
+  "y": 759,
+  "w": 741,
+  "h": 32
+ },
+ {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4 > button.border-input.data-[placeholder]:text-muted-foreground.[&_svg:not([class*='text-'])]:text-muted-foreground > span",
   "tag": "span",
   "role": "",
   "text": "GitHub",
@@ -510,6 +847,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "我的皮肤",
@@ -520,6 +858,18 @@
   "h": 18
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 257,
+  "y": 1005,
+  "w": 240,
+  "h": 98
+ },
+ {
+  "chain": "div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex > div.w-full.shrink-0.truncate",
   "tag": "div",
   "role": "",
   "text": "Windows 98",
@@ -530,6 +880,18 @@
   "h": 21
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 507,
+  "y": 1005,
+  "w": 240,
+  "h": 98
+ },
+ {
+  "chain": "div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex > div.w-full.shrink-0.truncate",
   "tag": "div",
   "role": "",
   "text": "Windows XP",
@@ -540,6 +902,18 @@
   "h": 21
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 758,
+  "y": 1005,
+  "w": 240,
+  "h": 98
+ },
+ {
+  "chain": "div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex > div.w-full.shrink-0.truncate",
   "tag": "div",
   "role": "",
   "text": "Windows Vista",
@@ -550,6 +924,18 @@
   "h": 21
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 257,
+  "y": 1113,
+  "w": 240,
+  "h": 98
+ },
+ {
+  "chain": "div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex > div.w-full.shrink-0.truncate",
   "tag": "div",
   "role": "",
   "text": "macOS Big Sur",
@@ -560,6 +946,18 @@
   "h": 21
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 507,
+  "y": 1113,
+  "w": 240,
+  "h": 98
+ },
+ {
+  "chain": "div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex > div.w-full.shrink-0.truncate",
   "tag": "div",
   "role": "",
   "text": "OS X Tiger",
@@ -570,6 +968,18 @@
   "h": 21
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 758,
+  "y": 1113,
+  "w": 240,
+  "h": 98
+ },
+ {
+  "chain": "div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.grid.grid-cols-3.gap-3 > button.group.relative.flex > span.text-xs.font-medium.text-muted-foreground",
   "tag": "span",
   "role": "",
   "text": "默认",
@@ -580,6 +990,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "暂无自定义皮肤。可用图片新建或导入已有皮肤。",
@@ -590,6 +1001,7 @@
   "h": 14
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.flex.flex-wrap.gap-2 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "用图片新建",
@@ -600,6 +1012,7 @@
   "h": 28
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-6 > section.space-y-3 > div.flex.flex-wrap.gap-2 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "打开目录",

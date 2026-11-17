@@ -1,5 +1,17 @@
 [
  {
+  "chain": "div.flex.min-h-0.flex-1 > div.flex.h-full.w-full > div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.shrink-0.px-1.py-3 > button.inline-flex.items-center.whitespace-nowrap",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 15,
+  "y": 59,
+  "w": 202,
+  "h": 28
+ },
+ {
+  "chain": "div.flex.h-full.w-full > div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.shrink-0.px-1.py-3 > button.inline-flex.items-center.whitespace-nowrap > span.text-sm",
   "tag": "span",
   "role": "",
   "text": "返回",
@@ -10,6 +22,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 105,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "账户",
@@ -20,6 +44,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 140,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "用量",
@@ -30,6 +66,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 175,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "个性化",
@@ -40,6 +88,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 210,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "外观",
@@ -50,6 +110,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 245,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "通用",
@@ -60,6 +132,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 280,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "快捷键",
@@ -70,6 +154,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 315,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "模型供应",
@@ -80,6 +176,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 350,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "多模态",
@@ -90,6 +198,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 385,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "运行环境",
@@ -100,6 +220,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 420,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "MCP",
@@ -110,6 +242,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 455,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "通知",
@@ -120,6 +264,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 490,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "宠物",
@@ -130,6 +286,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 525,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "权限",
@@ -140,6 +308,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 560,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "Git",
@@ -150,6 +330,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 595,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "Hooks",
@@ -160,6 +352,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 630,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "插件设置",
@@ -170,6 +374,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 665,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "外部 Agent",
@@ -180,6 +396,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 700,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "归档会话",
@@ -190,6 +418,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 735,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "关于",
@@ -200,6 +440,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > div.space-y-1 > h2.text-xl.font-semibold.tracking-tight",
   "tag": "h2",
   "role": "",
   "text": "权限",
@@ -210,6 +451,7 @@
   "h": 25
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-start.gap-3 > div.space-y-1 > h3.text-sm.font-semibold",
   "tag": "h3",
   "role": "",
   "text": "进程隔离",
@@ -220,6 +462,7 @@
   "h": 18
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-start.gap-3 > div.space-y-1 > p.text-xs.leading-5.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "控制命令是否在 App Server 沙箱中运行，以及沙箱命令是否可以使用网络。",
@@ -230,6 +473,7 @@
   "h": 18
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-center.justify-between > div.space-y-0.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "在沙箱中运行命令",
@@ -240,6 +484,7 @@
   "h": 12
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-center.justify-between > div.space-y-0.5 > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "使用宿主沙箱后端运行命令。",
@@ -250,6 +495,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-center.justify-between > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
   "tag": "button",
   "role": "switch",
   "text": "",
@@ -260,6 +506,7 @@
   "h": 16
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-center.justify-between > div.space-y-0.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "允许网络访问",
@@ -270,6 +517,7 @@
   "h": 12
  },
  {
+  "chain": "div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-center.justify-between > div.space-y-0.5 > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "允许沙箱命令访问网络。",
@@ -280,6 +528,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-center.justify-between > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
   "tag": "button",
   "role": "switch",
   "text": "",
@@ -290,6 +539,7 @@
   "h": 16
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > div.flex.items-center.gap-3 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "保存隔离设置",
@@ -300,6 +550,7 @@
   "h": 28
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.rounded-lg.border > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "新命令使用这些设置；正在运行的进程保持启动时的隔离边界。",
@@ -310,6 +561,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.border-t.border-border > div.space-y-1 > h3.text-sm.font-semibold",
   "tag": "h3",
   "role": "",
   "text": "权限",
@@ -320,6 +572,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.border-t.border-border > div.space-y-1 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "Exec command 权限",
@@ -330,6 +583,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.border-t.border-border > div.space-y-1 > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "App Server 命令规则作用于 exec 和 execute 调用。",
@@ -340,6 +594,7 @@
   "h": 14
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.border-t.border-border > div.space-y-2 > h4.text-sm.font-medium",
   "tag": "h4",
   "role": "",
   "text": "规则",
@@ -350,6 +605,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.border-t.border-border > div.space-y-2 > p.text-xs.text-muted-foreground",
   "tag": "p",
   "role": "",
   "text": "deny 优先于 allow。exact 匹配完整命令词；prefix 匹配开头的词。",
@@ -360,6 +616,7 @@
   "h": 14
  },
  {
+  "chain": "div.space-y-2 > div.overflow-x-auto.rounded-md.border > table.w-full.text-left.text-sm > thead.bg-muted/30.text-xs.text-muted-foreground > tr > th.p-2",
   "tag": "th",
   "role": "",
   "text": "命令",
@@ -370,6 +627,7 @@
   "h": 28
  },
  {
+  "chain": "div.space-y-2 > div.overflow-x-auto.rounded-md.border > table.w-full.text-left.text-sm > thead.bg-muted/30.text-xs.text-muted-foreground > tr > th.p-2",
   "tag": "th",
   "role": "",
   "text": "匹配",
@@ -380,6 +638,7 @@
   "h": 28
  },
  {
+  "chain": "div.space-y-2 > div.overflow-x-auto.rounded-md.border > table.w-full.text-left.text-sm > thead.bg-muted/30.text-xs.text-muted-foreground > tr > th.p-2",
   "tag": "th",
   "role": "",
   "text": "决策",
@@ -390,6 +649,7 @@
   "h": 28
  },
  {
+  "chain": "div.overflow-x-auto.rounded-md.border > table.w-full.text-left.text-sm > thead.bg-muted/30.text-xs.text-muted-foreground > tr > th.p-2 > span.sr-only",
   "tag": "span",
   "role": "",
   "text": "规则",
@@ -400,6 +660,7 @@
   "h": 1
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.border-t.border-border > div.space-y-2 > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "添加规则",
@@ -410,6 +671,7 @@
   "h": 28
  },
  {
+  "chain": "div > div.w-full.m-auto.max-w-6xl > div.space-y-8.p-6.md:p-8 > section.space-y-4.border-t.border-border > div.flex.flex-wrap.items-center > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "保存权限",

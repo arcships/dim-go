@@ -1,5 +1,17 @@
 [
  {
+  "chain": "div.flex.min-h-0.flex-1 > div.flex.h-full.w-full > div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.shrink-0.px-1.py-3 > button.inline-flex.items-center.whitespace-nowrap",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 15,
+  "y": 59,
+  "w": 202,
+  "h": 28
+ },
+ {
+  "chain": "div.flex.h-full.w-full > div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.shrink-0.px-1.py-3 > button.inline-flex.items-center.whitespace-nowrap > span.text-sm",
   "tag": "span",
   "role": "",
   "text": "返回",
@@ -10,6 +22,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 105,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "账户",
@@ -20,6 +44,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 140,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "用量",
@@ -30,6 +66,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 175,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "个性化",
@@ -40,6 +88,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 210,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "外观",
@@ -50,6 +110,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 245,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "通用",
@@ -60,6 +132,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 280,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "快捷键",
@@ -70,6 +154,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 315,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "模型供应",
@@ -80,6 +176,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 350,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "多模态",
@@ -90,6 +198,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 385,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "运行环境",
@@ -100,6 +220,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 420,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "MCP",
@@ -110,6 +242,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 455,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "通知",
@@ -120,6 +264,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 490,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "宠物",
@@ -130,6 +286,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 525,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "权限",
@@ -140,6 +308,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 560,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "Git",
@@ -150,6 +330,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 595,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "Hooks",
@@ -160,6 +352,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 630,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "插件设置",
@@ -170,6 +374,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 665,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "外部 Agent",
@@ -180,6 +396,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 700,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "归档会话",
@@ -190,6 +418,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.shrink-0 > nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 12,
+  "y": 735,
+  "w": 209,
+  "h": 35
+ },
+ {
+  "chain": "nav.flex.min-h-0.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > button.inline-flex.whitespace-nowrap.disabled:pointer-events-none > span",
   "tag": "span",
   "role": "",
   "text": "关于",
@@ -200,6 +440,7 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-w-0.flex-1 > div.min-h-0.min-w-0.flex-1 > div.flex.h-full.gap-0 > div.flex.h-full.shrink-0 > div.shrink-0.px-3.pb-1 > span.text-[11px].font-medium.uppercase",
   "tag": "span",
   "role": "",
   "text": "模型供应",
@@ -210,6 +451,29 @@
   "h": 13
  },
  {
+  "chain": "div.min-h-0.min-w-0.flex-1 > div.flex.h-full.gap-0 > div.flex.h-full.shrink-0 > div.shrink-0.px-1.5.pb-2 > div.flex.items-center.gap-1.5 > input.min-w-0.flex-1.border-none",
+  "tag": "input",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 259,
+  "y": 48,
+  "w": 175,
+  "h": 18
+ },
+ {
+  "chain": "div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > button.flex.h-7.w-full",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 77,
+  "w": 209,
+  "h": 25
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > button.flex.h-7.w-full > span.min-w-0.truncate",
   "tag": "span",
   "role": "",
   "text": "已启用",
@@ -220,6 +484,7 @@
   "h": 17
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > button.flex.h-7.w-full > span.ml-auto.text-[10px].text-muted-foreground/70",
   "tag": "span",
   "role": "",
   "text": "1",
@@ -230,6 +495,18 @@
   "h": 15
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 103,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "DimAgent OAuth",
@@ -240,6 +517,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-green-500",
   "tag": "span",
   "role": "",
   "text": "●",
@@ -250,6 +528,18 @@
   "h": 14
  },
  {
+  "chain": "div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > button.flex.h-7.w-full",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 134,
+  "w": 209,
+  "h": 25
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > button.flex.h-7.w-full > span.min-w-0.truncate",
   "tag": "span",
   "role": "",
   "text": "未启用",
@@ -260,6 +550,7 @@
   "h": 17
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > button.flex.h-7.w-full > span.ml-auto.text-[10px].text-muted-foreground/70",
   "tag": "span",
   "role": "",
   "text": "127",
@@ -270,6 +561,18 @@
   "h": 15
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 161,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "302.AI",
@@ -280,6 +583,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -290,6 +594,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 190,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Adobe Firefly",
@@ -300,6 +616,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -310,6 +627,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 220,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Aihubmix",
@@ -320,6 +649,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -330,6 +660,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 250,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Alibaba DashScope",
@@ -340,6 +682,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -350,6 +693,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 280,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Amazon Speech",
@@ -360,6 +715,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -370,6 +726,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 309,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Anthropic",
@@ -380,6 +748,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -390,6 +759,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 339,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Apiframe",
@@ -400,6 +781,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -410,6 +792,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 369,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Volcengine Agent Plan",
@@ -420,6 +814,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -430,6 +825,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 399,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Ark Code",
@@ -440,6 +847,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -450,6 +858,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 428,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "AssemblyAI",
@@ -460,6 +880,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -470,6 +891,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 458,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Atlas Cloud AI",
@@ -480,6 +913,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -490,6 +924,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 488,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "AtlasCloud Coding Plan",
@@ -500,6 +946,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -510,6 +957,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 518,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "AWS Bedrock",
@@ -520,6 +979,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -530,6 +990,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 547,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Azure OpenAI",
@@ -540,6 +1012,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -550,6 +1023,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 577,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Azure Speech",
@@ -560,6 +1045,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -570,6 +1056,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 607,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Bailian",
@@ -580,6 +1078,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -590,6 +1089,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 637,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Model Studio Coding Plan",
@@ -600,6 +1111,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -610,6 +1122,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 666,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "BaiLing",
@@ -620,6 +1144,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -630,6 +1155,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 696,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Beatoven",
@@ -640,6 +1177,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -650,6 +1188,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 726,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Black Forest Labs",
@@ -660,6 +1210,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -670,6 +1221,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 756,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "ByteDance",
@@ -680,6 +1243,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -690,6 +1254,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 785,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "BytePlus Coding Plan",
@@ -700,6 +1276,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -710,6 +1287,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 815,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Cartesia",
@@ -720,6 +1309,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -730,6 +1320,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 845,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Command Code",
@@ -740,6 +1342,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -750,6 +1353,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 875,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Custom Provider",
@@ -760,6 +1375,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -770,6 +1386,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 904,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "D-ID",
@@ -780,6 +1408,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -790,6 +1419,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 934,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Deepgram",
@@ -800,6 +1441,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -810,6 +1452,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 964,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "DeepSeek",
@@ -820,6 +1474,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -830,6 +1485,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 994,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "DMXAPI",
@@ -840,6 +1507,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -850,6 +1518,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1023,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "DouBaoSeed",
@@ -860,6 +1540,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -870,6 +1551,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1053,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "each::labs",
@@ -880,6 +1573,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -890,6 +1584,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1083,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "ElevenLabs",
@@ -900,6 +1606,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -910,6 +1617,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1113,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "fal.ai",
@@ -920,6 +1639,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -930,6 +1650,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1142,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Fireworks",
@@ -940,6 +1672,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -950,6 +1683,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1172,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Fish Audio",
@@ -960,6 +1705,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -970,6 +1716,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1202,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "FlyMux (Anthropic)",
@@ -980,6 +1738,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -990,6 +1749,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1232,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "FlyMux (OpenAI)",
@@ -1000,6 +1771,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1010,6 +1782,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1261,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "GitHub Models",
@@ -1020,6 +1804,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1030,6 +1815,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1291,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Gladia",
@@ -1040,6 +1837,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1050,6 +1848,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1321,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Google",
@@ -1060,6 +1870,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1070,6 +1881,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1351,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Grok Build",
@@ -1080,6 +1903,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1090,6 +1914,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1380,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Groq",
@@ -1100,6 +1936,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1110,6 +1947,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1410,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "HeyGen",
@@ -1120,6 +1969,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1130,6 +1980,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1440,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Hugging Face",
@@ -1140,6 +2002,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1150,6 +2013,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1470,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Hume AI",
@@ -1160,6 +2035,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1170,6 +2046,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1499,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "IBM Watson Speech",
@@ -1180,6 +2068,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1190,6 +2079,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1529,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Ideogram",
@@ -1200,6 +2101,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1210,6 +2112,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1559,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "JieKou.AI",
@@ -1220,6 +2134,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1230,6 +2145,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1589,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "KAT-Coder",
@@ -1240,6 +2167,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1250,6 +2178,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1618,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Kimi For Coding",
@@ -1260,6 +2200,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1270,6 +2211,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1648,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Kling",
@@ -1280,6 +2233,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1290,6 +2244,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1678,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "LM Studio",
@@ -1300,6 +2266,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1310,6 +2277,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1708,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Longcat",
@@ -1320,6 +2299,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1330,6 +2310,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1737,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Luma AI",
@@ -1340,6 +2332,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1350,6 +2343,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1767,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Magpie",
@@ -1360,6 +2365,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1370,6 +2376,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1797,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "MiniMax (minimax.io)",
@@ -1380,6 +2398,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1390,6 +2409,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1827,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "MiniMax (minimaxi.com)",
@@ -1400,6 +2431,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1410,6 +2442,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1856,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "MiniMax Coding Plan (minimaxi.com)",
@@ -1420,6 +2464,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1430,6 +2475,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1886,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "MiniMax Coding Plan (minimax.io)",
@@ -1440,6 +2497,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1450,6 +2508,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1916,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Mistral AI",
@@ -1460,6 +2530,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1470,6 +2541,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1946,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "ModelScope",
@@ -1480,6 +2563,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1490,6 +2574,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 1975,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Moonshot",
@@ -1500,6 +2596,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1510,6 +2607,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2005,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Moonshot AI",
@@ -1520,6 +2629,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1530,6 +2640,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2035,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Mubert",
@@ -1540,6 +2662,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1550,6 +2673,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2065,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "MusicAPI.ai",
@@ -1560,6 +2695,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1570,6 +2706,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2094,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "New API",
@@ -1580,6 +2728,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1590,6 +2739,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2124,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Nous Research",
@@ -1600,6 +2761,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1610,6 +2772,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2154,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Novita AI",
@@ -1620,6 +2794,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1630,6 +2805,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2184,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "NVIDIA",
@@ -1640,6 +2827,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1650,6 +2838,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2213,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "o3.fan",
@@ -1660,6 +2860,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1670,6 +2871,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2243,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Ollama",
@@ -1680,6 +2893,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1690,6 +2904,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2273,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "OpenAI",
@@ -1700,6 +2926,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1710,6 +2937,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2303,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "OpenAI Codex",
@@ -1720,6 +2959,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1730,6 +2970,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2332,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "OpenCode Go",
@@ -1740,6 +2992,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1750,6 +3003,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2362,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "OpenRouter",
@@ -1760,6 +3025,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1770,6 +3036,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2392,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "PiAPI",
@@ -1780,6 +3058,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1790,6 +3069,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2422,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Pika",
@@ -1800,6 +3091,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1810,6 +3102,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2451,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "PixVerse",
@@ -1820,6 +3124,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1830,6 +3135,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2481,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "PlayHT",
@@ -1840,6 +3157,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1850,6 +3168,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2511,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "PPIO",
@@ -1860,6 +3190,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1870,6 +3201,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2541,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Baidu Qianfan Coding Plan",
@@ -1880,6 +3223,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1890,6 +3234,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2570,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Baidu Qianfan Token Plan",
@@ -1900,6 +3256,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1910,6 +3267,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2600,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Qiniu",
@@ -1920,6 +3289,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1930,6 +3300,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2630,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "QwenCloud",
@@ -1940,6 +3322,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1950,6 +3333,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2660,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "QwenCloud For Coding",
@@ -1960,6 +3355,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1970,6 +3366,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2689,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "QwenCloud Token Plan",
@@ -1980,6 +3388,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -1990,6 +3399,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2719,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Recraft",
@@ -2000,6 +3421,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2010,6 +3432,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2749,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Replicate",
@@ -2020,6 +3454,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2030,6 +3465,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2779,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Rev AI",
@@ -2040,6 +3487,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2050,6 +3498,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2808,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Reve AI",
@@ -2060,6 +3520,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2070,6 +3531,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2838,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "RunInfra",
@@ -2080,6 +3553,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2090,6 +3564,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2868,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Runware",
@@ -2100,6 +3586,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2110,6 +3597,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2898,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Runway",
@@ -2120,6 +3619,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2130,6 +3630,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2927,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Sarvam AI",
@@ -2140,6 +3652,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2150,6 +3663,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2957,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "SiliconFlow",
@@ -2160,6 +3685,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2170,6 +3696,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 2987,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "SiliconFlow (com)",
@@ -2180,6 +3718,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2190,6 +3729,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3017,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Soniox",
@@ -2200,6 +3751,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2210,6 +3762,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3046,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Speechmatics",
@@ -2220,6 +3784,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2230,6 +3795,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3076,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Stability AI",
@@ -2240,6 +3817,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2250,6 +3828,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3106,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Step Plan",
@@ -2260,6 +3850,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2270,6 +3861,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3136,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "StepFun en",
@@ -2280,6 +3883,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2290,6 +3894,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3165,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "StepFun",
@@ -2300,6 +3916,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2310,6 +3927,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3195,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Suno",
@@ -2320,6 +3949,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2330,6 +3960,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3225,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Synthesia",
@@ -2340,6 +3982,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2350,6 +3993,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3255,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tavus",
@@ -2360,6 +4015,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2370,6 +4026,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3284,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tencent Hunyuan",
@@ -2380,6 +4048,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2390,6 +4059,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3314,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tencent Token Plan",
@@ -2400,6 +4081,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2410,6 +4092,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3344,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tencent Token Plan Enterprise Lite",
@@ -2420,6 +4114,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2430,6 +4125,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3374,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tencent Token Plan Enterprise Lite (Intl)",
@@ -2440,6 +4147,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2450,6 +4158,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3403,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tencent Token Plan Enterprise Pro",
@@ -2460,6 +4180,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2470,6 +4191,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3433,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tencent Token Plan Enterprise Pro (Intl)",
@@ -2480,6 +4213,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2490,6 +4224,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3463,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Tencent Token Plan (Intl)",
@@ -2500,6 +4246,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2510,6 +4257,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3493,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Together AI",
@@ -2520,6 +4279,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2530,6 +4290,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3522,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "TokenFlux",
@@ -2540,6 +4312,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2550,6 +4323,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3552,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Upstage",
@@ -2560,6 +4345,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2570,6 +4356,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3582,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Vercel AI Gateway",
@@ -2580,6 +4378,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2590,6 +4389,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3612,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Vidu",
@@ -2600,6 +4411,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2610,6 +4422,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3641,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "xAI",
@@ -2620,6 +4444,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2630,6 +4455,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3671,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Xiaomi MiMo",
@@ -2640,6 +4477,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2650,6 +4488,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3701,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Xiaomi Token Plan (Europe)",
@@ -2660,6 +4510,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2670,6 +4521,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3731,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Xiaomi Token Plan (China)",
@@ -2680,6 +4543,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2690,6 +4554,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3760,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Xiaomi Token Plan (Singapore)",
@@ -2700,6 +4576,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2710,6 +4587,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3790,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Z.AI",
@@ -2720,6 +4609,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2730,6 +4620,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3820,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "Z.AI Coding Plan",
@@ -2740,6 +4642,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2750,6 +4653,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3850,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "ZenMux",
@@ -2760,6 +4675,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2770,6 +4686,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3879,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "ZhipuAI",
@@ -2780,6 +4708,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2790,6 +4719,18 @@
   "h": 14
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 3909,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.space-y-0.5 > button.flex.w-full.items-center > span.marquee-text.min-w-0.flex-1 > span.marquee-text-clip > span.marquee-text-track > span.marquee-text-segment",
   "tag": "span",
   "role": "",
   "text": "ZhipuAI Coding Plan",
@@ -2800,6 +4741,7 @@
   "h": 18
  },
  {
+  "chain": "div > div.space-y-1.px-1.5.pb-2 > div.space-y-0.5 > div.space-y-0.5 > button.flex.w-full.items-center > span.shrink-0.text-[10px].text-muted-foreground/50",
   "tag": "span",
   "role": "",
   "text": "○",
@@ -2810,6 +4752,18 @@
   "h": 14
  },
  {
+  "chain": "div.flex.min-w-0.flex-1 > div.min-h-0.min-w-0.flex-1 > div.flex.h-full.gap-0 > div.flex.h-full.shrink-0 > div.shrink-0.px-1.5.pb-3 > button.flex.w-full.items-center",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 234,
+  "y": 682,
+  "w": 209,
+  "h": 28
+ },
+ {
+  "chain": "div.min-h-0.min-w-0.flex-1 > div.flex.h-full.gap-0 > div.flex.h-full.shrink-0 > div.shrink-0.px-1.5.pb-3 > button.flex.w-full.items-center > span",
   "tag": "span",
   "role": "",
   "text": "添加",
@@ -2820,6 +4774,7 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.shrink-0.items-center > div.flex.min-w-0.items-center > div.min-w-0 > div.truncate.text-sm.font-medium",
   "tag": "div",
   "role": "",
   "text": "DimAgent OAuth",
@@ -2830,6 +4785,7 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.shrink-0.items-center > div.flex.min-w-0.items-center > div.min-w-0 > div.text-xs.text-muted-foreground",
   "tag": "div",
   "role": "",
   "text": "已启用",
@@ -2840,6 +4796,29 @@
   "h": 14
  },
  {
+  "chain": "div.min-h-0.min-w-0.flex-1 > div.flex.h-full.gap-0 > div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.shrink-0.items-center > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 980,
+  "y": 30,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.flex.h-full.gap-0 > div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.shrink-0.space-y-5 > button.flex.w-full.items-start",
+  "tag": "button",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 466,
+  "y": 83,
+  "w": 542,
+  "h": 53
+ },
+ {
+  "chain": "div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.shrink-0.space-y-5 > button.flex.w-full.items-start > div.min-w-0.flex-1.space-y-0.5 > div.text-sm.font-medium.text-primary",
   "tag": "div",
   "role": "",
   "text": "由 Dim 账户管理",
@@ -2850,6 +4829,7 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.shrink-0.space-y-5 > button.flex.w-full.items-start > div.min-w-0.flex-1.space-y-0.5 > div.text-xs.text-muted-foreground",
   "tag": "div",
   "role": "",
   "text": "此提供商由你的 Dim 账户管理，无法在此编辑。",
@@ -2860,6 +4840,7 @@
   "h": 14
  },
  {
+  "chain": "div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.shrink-0.space-y-5 > div.space-y-1.5 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "基础 URL",
@@ -2870,6 +4851,7 @@
   "h": 14
  },
  {
+  "chain": "div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.shrink-0.space-y-5 > div.space-y-1.5 > code.block.rounded-md.bg-muted",
   "tag": "code",
   "role": "",
   "text": "https://dimagent.cn/v1",
@@ -2880,6 +4862,7 @@
   "h": 32
  },
  {
+  "chain": "div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.flex.min-h-40.flex-1 > div.mb-2.flex.shrink-0 > div.flex.items-center.gap-2 > button.peer.border-input.data-[state=checked]:bg-primary",
   "tag": "button",
   "role": "checkbox",
   "text": "",
@@ -2890,6 +4873,7 @@
   "h": 14
  },
  {
+  "chain": "div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.flex.min-h-40.flex-1 > div.mb-2.flex.shrink-0 > div.flex.items-center.gap-2 > label.flex.items-center.gap-2",
   "tag": "label",
   "role": "",
   "text": "模型 · 32 / 32",
@@ -2900,6 +4884,18 @@
   "h": 14
  },
  {
+  "chain": "div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.flex.min-h-40.flex-1 > div.mb-2.flex.items-center > input.min-w-0.flex-1.border-none",
+  "tag": "input",
+  "role": "",
+  "text": "",
+  "label": "",
+  "x": 493,
+  "y": 248,
+  "w": 507,
+  "h": 18
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "vokie-dp-v4-flash",
@@ -2910,6 +4906,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 288,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "seedream-5.0",
@@ -2920,6 +4928,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 320,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Seedance 2.0",
@@ -2930,6 +4950,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -2940,6 +4961,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 353,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Seedance 2.0 Fast",
@@ -2950,6 +4983,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -2960,6 +4994,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 387,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "seed-2.1-pro",
@@ -2970,6 +5016,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -2980,6 +5027,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -2990,6 +5038,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 420,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Seed 2.1 Turbo",
@@ -3000,6 +5060,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3010,6 +5071,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3020,6 +5082,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 454,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "GPT-5.6 Terra",
@@ -3030,6 +5104,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3040,6 +5115,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3050,6 +5126,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 487,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "arcship-image",
@@ -3060,6 +5148,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3070,6 +5159,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 521,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "DeepSeek V4 Pro",
@@ -3080,6 +5181,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3090,6 +5192,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 554,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Seedance 2.5",
@@ -3100,6 +5214,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 587,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Qwen: Qwen3.8 27B",
@@ -3110,6 +5236,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3120,6 +5247,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3130,6 +5258,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 620,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "MiniMax-M3",
@@ -3140,6 +5280,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3150,6 +5291,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3160,6 +5302,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 654,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "GLM-5.3 Flash",
@@ -3170,6 +5324,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3180,6 +5335,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3190,6 +5346,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 687,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "GPT-6 Astra",
@@ -3200,6 +5368,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3210,6 +5379,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3220,6 +5390,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 721,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "OpenAI: GPT-Image-2.5-Flare",
@@ -3230,6 +5412,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3240,6 +5423,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 754,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "OpenAI: GPT-Image-2.5-Sunburst",
@@ -3250,6 +5445,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3260,6 +5456,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 788,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "DeepSeek: DeepSeek V4.1 Flash",
@@ -3270,6 +5478,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3280,6 +5489,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3290,6 +5500,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 821,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "GPT-6 Sol",
@@ -3300,6 +5522,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3310,6 +5533,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3320,6 +5544,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 855,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "GPT-6 Luna",
@@ -3330,6 +5566,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3340,6 +5577,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3350,6 +5588,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 888,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "seedream-flash",
@@ -3360,6 +5610,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 921,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Xiaomi: MiMo-V2.6-Flash",
@@ -3370,6 +5632,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3380,6 +5643,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3390,6 +5654,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 954,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Xiaomi: MiMo-V2.6-Pro",
@@ -3400,6 +5676,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3410,6 +5687,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3420,6 +5698,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 988,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "qwen-image-3.0",
@@ -3430,6 +5720,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3440,6 +5731,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1021,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "qwen-image-3.0-pro",
@@ -3450,6 +5753,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3460,6 +5764,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1055,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Qwen3.8 Max",
@@ -3470,6 +5786,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3480,6 +5797,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3490,6 +5808,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1088,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Qwen3.8 Flash",
@@ -3500,6 +5830,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3510,6 +5841,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3520,6 +5852,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1122,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "GPT-6.1 Sol",
@@ -3530,6 +5874,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3540,6 +5885,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3550,6 +5896,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1155,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Claude Opus 5.5",
@@ -3560,6 +5918,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3570,6 +5929,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3580,6 +5940,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1189,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "Claude Sonnet 5.5",
@@ -3590,6 +5962,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "视觉",
@@ -3600,6 +5973,7 @@
   "h": 19
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3610,6 +5984,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1222,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "GLM-5.3",
@@ -3620,6 +6006,7 @@
   "h": 18
  },
  {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.shrink-0.rounded.bg-primary/10",
   "tag": "span",
   "role": "",
   "text": "推理",
@@ -3630,6 +6017,18 @@
   "h": 19
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1256,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "seedream-5.5",
@@ -3640,6 +6039,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1289,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > div.min-w-0.flex-1 > div.flex.items-center.gap-1.5 > span.truncate.text-sm",
   "tag": "span",
   "role": "",
   "text": "minimax-h3-image",
@@ -3650,6 +6061,18 @@
   "h": 18
  },
  {
+  "chain": "div.flex.min-h-40.flex-1 > div.relative.min-h-0.flex-1 > div.focus-visible:ring-ring/50.size-full.rounded-[inherit] > div > div.flex.items-center.gap-3 > button.peer.data-[state=checked]:bg-primary.data-[state=unchecked]:bg-input",
+  "tag": "button",
+  "role": "switch",
+  "text": "",
+  "label": "",
+  "x": 969,
+  "y": 1321,
+  "w": 28,
+  "h": 16
+ },
+ {
+  "chain": "div.flex.h-full.gap-0 > div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.flex.shrink-0.justify-end > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "刷新",
@@ -3660,6 +6083,7 @@
   "h": 28
  },
  {
+  "chain": "div.flex.h-full.gap-0 > div.flex.min-w-0.flex-1 > div.flex.min-h-0.w-full > div.flex.min-h-0.flex-1 > div.flex.shrink-0.justify-end > button.inline-flex.items-center.justify-center",
   "tag": "button",
   "role": "",
   "text": "查看套餐",
