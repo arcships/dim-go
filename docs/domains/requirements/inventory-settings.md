@@ -12,7 +12,9 @@
 3. **证据列**给 i18n 键（`i18n:<key>`）；无 i18n、直接写在模板里的字面量标 `字面量`；由 store/后端给出的运行期文案标 `运行期`。
 4. **下拉/选择器的选项**：选项是同一个控件的取值，不是独立元素，因此合并为一行，但**全部选项文案逐项写在「名称」列中**，不省略、不抽样。选项本身是独立可见按钮/卡片的（例如主题三选一、界面模式两张卡、字号档位、皮肤卡），一项一行。
 5. **条件**写「什么时候出现」（未登录 / 已登录 / 有会话 / 运行中 / 开关打开 / 平台 …）。
-6. 每节末尾给「本节元素数」。
+6. 每节末尾给「本节元素数」，随后一行「本轮自检」列出已核对的状态/菜单/空态。
+
+以上六条与「证据」列（第 7 列）已由组织方逐条确认，全文件按此口径。
 
 来源入口：`components/settings/sections.ts`（19 节定义与导航顺序）。
 
@@ -45,6 +47,8 @@
 | S-shell-21 | 返回 | 图标按钮（窄屏工具栏） | — | 窄屏（compact）且已进入某一节详情 | `SettingsView.vue:183-192` | i18n:common.back |
 
 本节元素数：21
+
+本轮自检：19 项导航顺序与 labelKey、当前节高亮、默认落地节（个性化）、侧栏「返回」与窄屏工具栏「返回」两个入口、窄屏侧栏/详情互斥。
 
 ---
 
@@ -137,6 +141,8 @@
 
 本节元素数：82
 
+本轮自检：未登录（登录卡片 + 两个按钮 + 错误 + 企业邮箱弹窗）与已登录（身份卡 + UID 三态 + 两个按钮 + 错误）两套；过期横幅；套餐卡四态（不限量 / 月度+周期窗口 / 仅窗口 / 无额度空态）、状态徽标 6 种、重置 pill 与确认弹窗六态、额度耗尽提示、未订阅块、底部 CTA 两文案、推广区块（规则两态 + 未开启 + 两条复制 + 三行统计）。
+
 ---
 
 ## S-usage 用量（`components/settings/UsageSettings.vue` + `views/settings/account/AccountActivity.vue`）
@@ -200,6 +206,8 @@
 | S-usage-55 | 缓存写入 | 子指标 | 0 | 同上 | `AccountActivity.vue:779-782` | i18n:accountSettings.cacheWriteShort |
 
 本节元素数：55
+
+本轮自检：App Server 读模式 WIP 块、能力不可用块、加载中、错误块、回填进行中（含进度）与回填失败；5 个概览指标；活跃度卡（标题、部分数据徽标、日期范围、刷新、空态、月份标签、按 token 分 5 档的热力格与 tooltip）；三张汇总卡共 10 行；两个分页列表（空态、页码、上一页/下一页禁用）。
 
 ---
 
@@ -295,6 +303,8 @@
 
 本节元素数：85
 
+本轮自检：界面模式未选/办公/编程三态与切换失败；展示 ACP 会话开关；默认打开应用下拉 17 项 + 配置无效错误 + 保存失败；助手模型与子代理模型两个实例（步骤 1 策略卡、步骤 2 搜索/供应商列/模型列/两处空态、步骤 3 强度、锁定与不可用态）；子代理数量滑杆（可配置/不可配置/保存失败）；命令 Shell（无效配置、重置确认、自动/不可用/各 Shell 选项、刷新、5 条说明、保存与错误）；提示词语言（仅 App Server、两处外链、禁用下拉 11 项）；自定义指令两分支（外部文件 + 打开失败、文本框 + 保存禁用）。
+
 ---
 
 ## S-appearance 外观（`components/settings/AppearanceSettings.vue` + `SkinSettings.vue`）
@@ -386,6 +396,8 @@
 | S-appearance-83 | 皮肤已重新加载 | 成功提示条（主色） | — | 重新加载成功（2 秒后消失） | `SkinSettings.vue:826-831` | i18n:skin.reloaded |
 
 本节元素数：83
+
+本轮自检：主题三选一 + 经典外观提示；程序语言 11 项与切换失败；字体区（字体未加载、枚举失败 + 重试、缺失字体逐条、保存失败、UI/代码两个 picker 与搜索/空态/默认项）；UI 字号 5 档与两端刻度；代码字号数值 + 滑杆 + 三段刻度；代码主题 11 项（浅深成对 7 + 仅深 4）+ 单/双栏预览；皮肤区（加载骨架、皮肤卡与缩略图/首字母、激活点、错误点、删除确认、5 张复古外观卡、默认卡、空态、两个按钮、删除失败、当前皮肤设置 6 个控件、文字颜色 3 项、高级折叠与外部打开、schema 错误 + 两按钮、重载成功提示）。
 
 ---
 
@@ -497,6 +509,8 @@
 | S-general-102 | 取消 | 弹窗按钮（outline，兜底） | — | 其它状态 | `DataCleanupDialog.vue:508-510` | i18n:common.cancel |
 
 本节元素数：102
+
+本轮自检：三个开关默认关与持久化回填、性能日志被环境变量固定时的禁用与提示；数据根目录（不可编辑态、无改动时重启按钮禁用、保存/重启错误）；代理三模式（系统/无/自定义）、自定义代理显示与编辑、弹窗必填/格式校验与保存中；浏览器数据（状态刷新失败 + 重试、Chrome 数据行能力标签 7 种、浏览器存储行、导入弹窗扫描/预览/计数/结果/部分失败/错误与诊断/按钮态、清理弹窗成功/失败/按钮态）；数据清理行两套描述与「查看…」，弹窗扫描/App Server 报告三行 + 两段说明/本地报告四行 + 提示/运行中三阶段 + 保持开启/阻塞三因/不可用/错误/完成三行 + 部分提示/五组按钮分支。
 
 ---
 ## S-keybindings 快捷键（`components/settings/KeyboardShortcutsSettings.vue`）
@@ -1090,12 +1104,12 @@
 
 | 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
 |---|---|---|---|---|---|---|
-| S-mcp-01 | MCP 服务器 | 页面标题（h2） | — | 列表视图 | `McpSettingsPage.vue:881` | i18n:toolsSettings.mcpServersTitle |
+| S-mcp-01 | MCP 服务器 | 页面标题（h2） | — | 列表视图 | `McpSettingsPage.vue:880` | i18n:toolsSettings.mcpServersTitle |
 | S-mcp-02 | 连接外部工具和数据源。 | 说明文案 | — | 同上 | `McpSettingsPage.vue:882-883` | i18n:toolsSettings.mcpServersDescription |
 | S-mcp-03 | 了解更多。 | 链接（外链，modelcontextprotocol.io） | — | 同上 | `McpSettingsPage.vue:884-892` | i18n:toolsSettings.learnMore |
-| S-mcp-04 | 服务器 | 小标题（h3） | — | 同上 | `McpSettingsPage.vue:902` | i18n:toolsSettings.servers |
+| S-mcp-04 | 服务器 | 小标题（h3） | — | 同上 | `McpSettingsPage.vue:897` | i18n:toolsSettings.servers |
 | S-mcp-05 | 导入 | 按钮（outline，下载图标，开合导入面板） | 收起 | `canImport` 为真 | `McpSettingsPage.vue:905-913` | i18n:toolsSettings.mcpImportOpen |
-| S-mcp-06 | 添加服务器 | 按钮（主按钮，加号） | — | 列表视图 | `McpSettingsPage.vue:914-917` | i18n:toolsSettings.addServer |
+| S-mcp-06 | 添加服务器 | 按钮（主按钮，加号） | — | 列表视图 | `McpSettingsPage.vue:908-913` | i18n:toolsSettings.addServer |
 | S-mcp-07 | 范围 | 标签（for 下拉） | — | 列表视图 | `McpSettingsPage.vue:925` | i18n:toolsSettings.scope |
 | S-mcp-08 | 全部范围 / 用户 / 项目 | 下拉（w-40） | 全部范围 | 列表视图 | `McpSettingsPage.vue:926-936` | i18n:toolsSettings.scopeAll · scopeUser · scopeProject |
 | S-mcp-09 | {n} MCP configuration issue(s) need attention. | 警告横幅标题（琥珀色，警示图标） | — | store 有 warnings | `McpSettingsPage.vue:938-945` | 字面量（英文，模板内拼单复数） |
@@ -1106,106 +1120,106 @@
 | S-mcp-14 | 还没有配置 MCP 服务器 | 空态（虚线框） | — | 无任何服务器 | `McpSettingsPage.vue:965-967` | i18n:toolsSettings.noMcpServersConfigured |
 | S-mcp-15 | 此范围内没有服务器。 | 空态（虚线框） | — | 有服务器但被范围筛选清空 | `McpSettingsPage.vue:969-971` | i18n:toolsSettings.scopeEmpty |
 | S-mcp-16 | {server.name 或 id} | 服务器行标题（truncate，title） | — | 每个可见服务器一行 | `McpSettingsPage.vue:977-980` | 运行期 |
-| S-mcp-17 | {scope} | 行内范围标签 | — | 每行 | `McpSettingsPage.vue:982` | 运行期 |
-| S-mcp-18 | SSE（已弃用） | 行内标签 | — | 该服务器 transport 为 sse | `McpSettingsPage.vue:983` | i18n:toolsSettings.sseDeprecatedLabel |
-| S-mcp-19 | {状态标签原文} | 行内状态文本 | — | 每行 | `McpSettingsPage.vue:984` | 运行期（`serverStatusLabel`） |
-| S-mcp-20 | {警告文案} | 行内警告（destructive，truncate + title） | — | 该服务器有配置警告 | `McpSettingsPage.vue:985-991` | 运行期 |
-| S-mcp-21 | {认证提示文案} | 行内提示（destructive，truncate + title） | — | 该服务器需要 OAuth 登录 | `McpSettingsPage.vue:993-999` | 运行期（`getAuthNotice`） |
-| S-mcp-22 | {count} 个工具 | 工具数徽标（扳手图标 + 数字，title/aria-label） | — | 每行 | `McpSettingsPage.vue:1000-1008` | i18n:toolsSettings.toolCount |
-| S-mcp-23 | 认证 / 认证中 | 按钮（outline，宽 9.75rem，认证中转圈） | 认证 | 服务器可认证且未认证 | `McpSettingsPage.vue:1009-1021` | i18n:toolsSettings.authenticate · authenticating |
-| S-mcp-24 | 取消 | 按钮（outline，X 图标，取消进行中的认证） | — | 认证可取消 | `McpSettingsPage.vue:1022-1031` | i18n:common.cancel |
+| S-mcp-17 | {scope} | 行内范围标签 | — | 每行 | `McpSettingsPage.vue:986` | 运行期 |
+| S-mcp-18 | SSE（已弃用） | 行内标签 | — | 该服务器 transport 为 sse | `McpSettingsPage.vue:987` | i18n:toolsSettings.sseDeprecatedLabel |
+| S-mcp-19 | {状态标签原文} | 行内状态文本 | — | 每行 | `McpSettingsPage.vue:988` | 运行期（`serverStatusLabel`） |
+| S-mcp-20 | {警告文案} | 行内警告（destructive，truncate + title） | — | 该服务器有配置警告 | `McpSettingsPage.vue:989-996` | 运行期 |
+| S-mcp-21 | {认证提示文案} | 行内提示（destructive，truncate + title） | — | 该服务器需要 OAuth 登录 | `McpSettingsPage.vue:998-1004` | 运行期（`getAuthNotice`） |
+| S-mcp-22 | {count} 个工具 | 工具数徽标（扳手图标 + 数字，title/aria-label） | — | 每行 | `McpSettingsPage.vue:1005-1013` | i18n:toolsSettings.toolCount |
+| S-mcp-23 | 认证 / 认证中 | 按钮（outline，宽 9.75rem，认证中转圈） | 认证 | 服务器可认证且未认证 | `McpSettingsPage.vue:1015-1025` | i18n:toolsSettings.authenticate · authenticating |
+| S-mcp-24 | 取消 | 按钮（outline，X 图标，取消进行中的认证） | — | 认证可取消 | `McpSettingsPage.vue:1026-1035` | i18n:common.cancel |
 | S-mcp-25 | 查看连接 | 图标按钮（活动图标，aria-label/title） | — | 能力支持 inspect | `McpSettingsPage.vue:1032-1044` | i18n:toolsSettings.mcpInspect |
 | S-mcp-26 | 断开连接 | 图标按钮（电源图标） | — | 能力支持 disconnect | `McpSettingsPage.vue:1045-1057` | i18n:toolsSettings.mcpDisconnect |
 | S-mcp-27 | 配置服务器 | 图标按钮（齿轮图标） | — | 每行常显 | `McpSettingsPage.vue:1058-1067` | i18n:toolsSettings.configureServer |
 | S-mcp-28 | — | 开关（启用/禁用该服务器） | 开（`enabled !== false`） | 每行；写入中禁用 | `McpSettingsPage.vue:1068-1073` | 运行期 |
-| S-mcp-29 | 来自插件 | 小标题（h3） | — | 存在插件提供的服务器 | `McpSettingsPage.vue:1075-1077` | i18n:toolsSettings.fromPlugins |
-| S-mcp-30 | {plugin.id} | 插件服务器行标题 | — | 每个插件服务器一行 | `McpSettingsPage.vue:1086` | 运行期 |
-| S-mcp-31 | {transport} | 行内 transport 文本 | — | 每行 | `McpSettingsPage.vue:1088` | 运行期 |
-| S-mcp-32 | 只读 | 行内标签 | — | 每行（插件来源） | `McpSettingsPage.vue:1089` | i18n:toolsSettings.mcpReadOnly |
-| S-mcp-33 | 需要登录 · 已存储的凭据已过期。 · 缺少权限范围：{scopes} / 连接成功 · 延迟 {latency}ms · {count} 个工具 / {错误} ({reason}) | 测试结果区（绿/红按 ok 着色） | — | 该插件服务器已测试过 | `McpSettingsPage.vue:1091-1117` | i18n:toolsSettings.mcpAuthRequired · mcpAuthExpired · mcpMissingScopes · connectionSucceeded · latencyMs · toolCount · connectionFailed |
-| S-mcp-34 | 查看连接 | 图标按钮 | — | 能力支持 inspect | `McpSettingsPage.vue:1119-1131` | i18n:toolsSettings.mcpInspect |
-| S-mcp-35 | 断开连接 | 图标按钮 | — | 能力支持 disconnect | `McpSettingsPage.vue:1132-1144` | i18n:toolsSettings.mcpDisconnect |
-| S-mcp-36 | 测试连接 | 按钮（outline，测试中转圈） | — | 每个插件服务器行 | `McpSettingsPage.vue:1145-1154` | i18n:toolsSettings.testConnection |
+| S-mcp-29 | 来自插件 | 小标题（h3） | — | 存在插件提供的服务器 | `McpSettingsPage.vue:1081-1083` | i18n:toolsSettings.fromPlugins |
+| S-mcp-30 | {plugin.id} | 插件服务器行标题 | — | 每个插件服务器一行 | `McpSettingsPage.vue:1090` | 运行期 |
+| S-mcp-31 | {transport} | 行内 transport 文本 | — | 每行 | `McpSettingsPage.vue:1093` | 运行期 |
+| S-mcp-32 | 只读 | 行内标签 | — | 每行（插件来源） | `McpSettingsPage.vue:1094` | i18n:toolsSettings.mcpReadOnly |
+| S-mcp-33 | 需要登录 · 已存储的凭据已过期。 · 缺少权限范围：{scopes} / 连接成功 · 延迟 {latency}ms · {count} 个工具 / {错误} ({reason}) | 测试结果区（绿/红按 ok 着色） | — | 该插件服务器已测试过 | `McpSettingsPage.vue:1096-1120` | i18n:toolsSettings.mcpAuthRequired · mcpAuthExpired · mcpMissingScopes · connectionSucceeded · latencyMs · toolCount · connectionFailed |
+| S-mcp-34 | 查看连接 | 图标按钮 | — | 能力支持 inspect | `McpSettingsPage.vue:1122-1134` | i18n:toolsSettings.mcpInspect |
+| S-mcp-35 | 断开连接 | 图标按钮 | — | 能力支持 disconnect | `McpSettingsPage.vue:1135-1147` | i18n:toolsSettings.mcpDisconnect |
+| S-mcp-36 | 测试连接 | 按钮（outline，测试中转圈） | — | 每个插件服务器行 | `McpSettingsPage.vue:1148-1159` | i18n:toolsSettings.testConnection |
 
 ### 配置 / 新建表单
 
 | 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
 |---|---|---|---|---|---|---|
-| S-mcp-37 | 连接自定义 MCP | 页面标题（h2） | — | `view !== 'list'` | `McpSettingsPage.vue:1163` | i18n:toolsSettings.connectCustomMcp |
-| S-mcp-38 | 文档 | 链接（外链小字） | — | 同上 | `McpSettingsPage.vue:1164-1171` | i18n:toolsSettings.docs |
-| S-mcp-39 | 正在加载... | 加载态（转圈 + 文案） | — | 编辑草稿加载中 | `McpSettingsPage.vue:1173-1176` | i18n:common.loading |
-| S-mcp-40 | 已存储的值已隐藏，留空即可保留。 | 提示（灰底） | — | 编辑已有条目（有 snapshot） | `McpSettingsPage.vue:1179-1184` | i18n:toolsSettings.mcpWithheldValue |
-| S-mcp-41 | 密钥值存储在用户范围，无法在此项目中修改。 | 提示（灰底） | — | snapshot 标记密钥在用户范围 | `McpSettingsPage.vue:1185-1187` | i18n:toolsSettings.mcpSecretsInUserScope |
-| S-mcp-42 | 将此条目移动到另一个作用域；确认框会说明启用状态和密钥的处理方式。 | 提示（灰底/白底小字） | — | 编辑态、有修订号、能力支持 move | `McpSettingsPage.vue:1188-1202` | i18n:toolsSettings.mcpMoveHint |
-| S-mcp-43 | 移动到项目 / 移动到用户 | 按钮（outline，sm，左右箭头图标） | — | 同上 | `McpSettingsPage.vue:1203-1219` | i18n:toolsSettings.mcpMoveToProject · mcpMoveToUser |
-| S-mcp-44 | 移动 MCP 条目？ | 移动确认弹窗标题 | — | 点移动按钮 | `McpSettingsPage.vue:1222` | i18n:toolsSettings.mcpMoveConfirmTitle |
-| S-mcp-45 | 将 {id} 移动到项目作用域？… / 将 {id} 移动到用户作用域？… | 移动确认描述 | — | 同上（按目标作用域二选一） | `McpSettingsPage.vue:1223-1228` | i18n:toolsSettings.mcpMoveConfirmProject · mcpMoveConfirmUser |
-| S-mcp-46 | 同 ID 的插件条目优先级更高；在移除该插件条目之前，移动后的用户条目会被隐藏。 | 追加说明 | — | 移动目标被插件条目遮蔽 | `McpSettingsPage.vue:1226-1228` | i18n:toolsSettings.mcpMoveShadowedByPlugin |
-| S-mcp-47 | 取消 | 弹窗按钮 | — | 移动确认弹窗 | `McpSettingsPage.vue:1231` | i18n:common.cancel |
-| S-mcp-48 | 确认 | 弹窗主按钮 | — | 同上 | `McpSettingsPage.vue:1232-1234` | i18n:common.confirm |
-| S-mcp-49 | 名称 | 标签 | — | 表单 | `McpSettingsPage.vue:1238` | i18n:toolsSettings.name |
-| S-mcp-50 | my-server | 名称输入框（编辑态已有条目时禁用） | 空 | 同上 | `McpSettingsPage.vue:1239-1245` | i18n:toolsSettings.serverNamePlaceholder |
-| S-mcp-51 | 范围 | 标签（for 下拉） | — | 同上 | `McpSettingsPage.vue:1249` | i18n:toolsSettings.scope |
-| S-mcp-52 | 用户 / 项目 | 下拉（编辑态禁用；无项目 cwd 时「项目」禁用） | 用户 | 同上 | `McpSettingsPage.vue:1250-1260` | i18n:toolsSettings.scopeUser · scopeProject |
-| S-mcp-53 | STDIO | transport 分段按钮 | 选中（新建默认） | 三段切换，编辑态仅当原 transport 匹配时可用 | `McpSettingsPage.vue:1263-1273` | i18n:toolsSettings.stdio |
-| S-mcp-54 | Streamable HTTP | transport 分段按钮 | — | 同上 | `McpSettingsPage.vue:1274-1284` | i18n:toolsSettings.streamableHttp |
-| S-mcp-55 | SSE（已弃用） | transport 分段按钮 | — | 同上 | `McpSettingsPage.vue:1285-1295` | i18n:toolsSettings.sseDeprecatedLabel |
-| S-mcp-56 | SSE 已弃用，仅用于兼容旧版 MCP 服务器，不推荐用于新配置。请优先使用 Streamable HTTP。 | 弃用提示（琥珀色，警示图标） | — | transport 为 sse | `McpSettingsPage.vue:1330-1340` | i18n:toolsSettings.sseDeprecatedNotice |
-| S-mcp-57 | 启动命令 | 标签 | — | transport 为 stdio | `McpSettingsPage.vue:1343` | i18n:toolsSettings.commandToLaunch |
-| S-mcp-58 | openai-dev-mcp serve-sqlite | 输入框（占位） | 空 | 同上 | `McpSettingsPage.vue:1344-1349` | i18n:toolsSettings.commandExamplePlaceholder |
-| S-mcp-59 | 参数 | 标签 | — | 同上 | `McpSettingsPage.vue:1353` | i18n:toolsSettings.arguments |
-| S-mcp-60 | 替换参数（已存储 {count} 个） | 复选框 + 文案 | 未勾 | stdio 且编辑已有条目 | `McpSettingsPage.vue:1354-1362` | i18n:toolsSettings.mcpReplaceArguments |
-| S-mcp-61 | 参数值 | 行内输入框（每项一行） | 取草稿/空 | 新建或勾选替换参数 | `McpSettingsPage.vue:1364-1382` | 运行期 |
-| S-mcp-62 | 删除该参数 | 图标按钮（垃圾桶） | — | 每个参数行 | `McpSettingsPage.vue:1377-1379` | 无文案 |
-| S-mcp-63 | 添加参数 | 按钮（secondary，整宽，加号） | — | 新建或勾选替换参数 | `McpSettingsPage.vue:1384-1387` | i18n:toolsSettings.addArgument |
-| S-mcp-64 | 环境变量 | 标签 | — | transport 为 stdio | `McpSettingsPage.vue:1392` | i18n:toolsSettings.environmentVariables |
-| S-mcp-65 | 键 / 值（编辑已有条目时值占位为「已存储的值已隐藏，留空即可保留。」） | 键值对输入 | 空 | 每个环境变量行 | `McpSettingsPage.vue:1394-1406` | i18n:toolsSettings.key · value · mcpWithheldValue |
-| S-mcp-66 | 删除该环境变量 | 图标按钮（垃圾桶） | — | 每个环境变量行 | `McpSettingsPage.vue:1407-1409` | 无文案 |
-| S-mcp-67 | 添加环境变量 | 按钮（secondary，整宽） | — | stdio | `McpSettingsPage.vue:1412-1415` | i18n:toolsSettings.addEnvironmentVariable |
-| S-mcp-68 | 环境变量透传 | 标签 | — | stdio 且为新建 | `McpSettingsPage.vue:1419` | i18n:toolsSettings.environmentVariablePassthrough |
-| S-mcp-69 | 透传变量名 | 行内输入（每项一行） | 空 | 同上 | `McpSettingsPage.vue:1421-1437` | 运行期 |
-| S-mcp-70 | 删除该透传变量 | 图标按钮（垃圾桶） | — | 每个透传行 | `McpSettingsPage.vue:1435-1437` | 无文案 |
-| S-mcp-71 | 添加变量 | 按钮（secondary，整宽） | — | 同上 | `McpSettingsPage.vue:1440-1443` | i18n:toolsSettings.addVariable |
-| S-mcp-72 | 工作目录 | 标签 | — | transport 为 stdio | `McpSettingsPage.vue:1448` | i18n:toolsSettings.workingDirectory |
-| S-mcp-73 | ~/code | 输入框（占位） | 空 | 同上 | `McpSettingsPage.vue:1449-1454` | i18n:toolsSettings.workingDirectoryPlaceholder |
-| S-mcp-74 | URL | 标签 | — | transport 为 http/sse | `McpSettingsPage.vue:1344` | i18n:toolsSettings.url |
-| S-mcp-75 | {脱敏 endpoint} | 等宽文案 | — | 编辑已有条目 | `McpSettingsPage.vue:1347-1350` | 运行期（`redactedEndpoint`） |
-| S-mcp-76 | 替换 URL（路径和查询已隐藏） | 复选框 + 文案 | 未勾 | 编辑已有条目 | `McpSettingsPage.vue:1351-1358` | i18n:toolsSettings.mcpReplaceUrl |
-| S-mcp-77 | https://mcp.example.com/mcp | URL 输入框（占位） | 空 | 新建或勾选替换 URL | `McpSettingsPage.vue:1360-1366` | i18n:toolsSettings.urlExamplePlaceholder |
-| S-mcp-78 | Bearer 令牌 | 标签 | — | transport 为 http/sse | `McpSettingsPage.vue:1371` | i18n:toolsSettings.bearerTokenEnvVar |
-| S-mcp-79 | 移除已存储的 Bearer 令牌 | 复选框 + 文案 | 未勾 | 编辑已有条目且已配置认证 | `McpSettingsPage.vue:1373-1381` | i18n:toolsSettings.mcpRemoveBearer |
-| S-mcp-80 | Bearer 令牌值（编辑态占位「已存储的值已隐藏，留空即可保留。」） | 输入框 | 空 | 未勾选移除 | `McpSettingsPage.vue:1383-1389` | i18n:toolsSettings.mcpWithheldValue |
-| S-mcp-81 | 请求头 | 标签 | — | transport 为 http/sse | `McpSettingsPage.vue:1394` | i18n:toolsSettings.headers |
-| S-mcp-82 | 键 / 值（编辑态值占位隐藏提示） | 请求头键值行 | 空 | 每个请求头一行 | `McpSettingsPage.vue:1396-1412` | i18n:toolsSettings.key · value |
-| S-mcp-83 | 删除该请求头 | 图标按钮（垃圾桶） | — | 每个请求头行 | `McpSettingsPage.vue:1412-1414` | 无文案 |
-| S-mcp-84 | 添加请求头 | 按钮（secondary，整宽） | — | 同上 | `McpSettingsPage.vue:1417-1420` | i18n:toolsSettings.addHeader |
-| S-mcp-85 | 来自环境变量的请求头 | 标签 | — | http/sse 且为新建 | `McpSettingsPage.vue:1424` | i18n:toolsSettings.headersFromEnvironmentVariables |
-| S-mcp-86 | 键 / `ENV_VAR` | 键值行（第二列固定占位 ENV_VAR） | 空 | 每个 env header 一行 | `McpSettingsPage.vue:1426-1442` | 字面量（`ENV_VAR`） |
-| S-mcp-87 | 删除该行 | 图标按钮（垃圾桶） | — | 每个 env header 行 | `McpSettingsPage.vue:1441-1443` | 无文案 |
-| S-mcp-88 | 添加变量 | 按钮（secondary，整宽） | — | 同上 | `McpSettingsPage.vue:1446-1449` | i18n:toolsSettings.addVariable |
-| S-mcp-89 | {表单/字段错误列表} | 错误区（destructive，逐条） | — | 校验失败或保存失败 | `McpSettingsPage.vue:1455-1460` | i18n:toolsSettings.nameRequired · nameTooLong · duplicateServerId · commandRequired · urlRequired · urlInvalid · invalidEnvVar · duplicateKey · authorizationHeaderConflict · keyAndValueRequired · invalidEnvVarName · mcpConflictReread |
-| S-mcp-90 | 需要登录 · 已存储的凭据已过期。 · 缺少权限范围：{scopes} / 连接成功 · … / {错误} ({reason}) | 测试结果条（绿/红） | — | 已选服务器且有测试结果 | `McpSettingsPage.vue:1462-1501` | i18n:toolsSettings.mcpAuthRequired · mcpAuthExpired · mcpMissingScopes · connectionSucceeded · latencyMs · toolCount · connectionFailed |
-| S-mcp-91 | {tool.name} | 测试结果内的工具名列表项 | — | 测试成功且返回工具 | `McpSettingsPage.vue:1489-1493` | 运行期 |
-| S-mcp-92 | 测试连接 | 按钮（outline，测试中转圈） | — | 已选服务器 | `McpSettingsPage.vue:1507-1514` | i18n:toolsSettings.testConnection |
-| S-mcp-93 | 删除此服务器 | 按钮（ghost，红色，垃圾桶） | — | 已选服务器 | `McpSettingsPage.vue:1516-1526` | i18n:toolsSettings.deleteServer |
-| S-mcp-94 | 删除 MCP 服务器 | 确认弹窗标题 | — | 点删除 | `McpSettingsPage.vue:1531` | i18n:toolsSettings.deleteServerTitle |
-| S-mcp-95 | 确定要删除 "{name}" 吗？此操作无法撤销。 | 确认弹窗描述 | — | 同上 | `McpSettingsPage.vue:1532-1534` | i18n:toolsSettings.deleteServerDescription |
-| S-mcp-96 | 取消 | 弹窗按钮 | — | 同上 | `McpSettingsPage.vue:1537` | i18n:common.cancel |
-| S-mcp-97 | 删除 | 弹窗主按钮 | — | 同上 | `McpSettingsPage.vue:1538-1540` | i18n:common.delete |
-| S-mcp-98 | 取消 | 表单底部按钮（outline） | — | 表单常显 | `McpSettingsPage.vue:1547-1549` | i18n:common.cancel |
-| S-mcp-99 | 保存 | 表单主按钮（保存中转圈，不可保存时禁用） | — | 表单常显 | `McpSettingsPage.vue:1550-1555` | i18n:toolsSettings.save |
+| S-mcp-37 | 连接自定义 MCP | 页面标题（h2） | — | `view !== 'list'` | `McpSettingsPage.vue:1169` | i18n:toolsSettings.connectCustomMcp |
+| S-mcp-38 | 文档 | 链接（外链小字） | — | 同上 | `McpSettingsPage.vue:1170-1177` | i18n:toolsSettings.docs |
+| S-mcp-39 | 正在加载... | 加载态（转圈 + 文案） | — | 编辑草稿加载中 | `McpSettingsPage.vue:1181-1184` | i18n:common.loading |
+| S-mcp-40 | 已存储的值已隐藏，留空即可保留。 | 提示（灰底） | — | 编辑已有条目（有 snapshot） | `McpSettingsPage.vue:1186-1196` | i18n:toolsSettings.mcpWithheldValue |
+| S-mcp-41 | 密钥值存储在用户范围，无法在此项目中修改。 | 提示（灰底） | — | snapshot 标记密钥在用户范围 | `McpSettingsPage.vue:1193-1195` | i18n:toolsSettings.mcpSecretsInUserScope |
+| S-mcp-42 | 将此条目移动到另一个作用域；确认框会说明启用状态和密钥的处理方式。 | 提示（灰底/白底小字） | — | 编辑态、有修订号、能力支持 move | `McpSettingsPage.vue:1197-1206` · 文案 `:1202` | i18n:toolsSettings.mcpMoveHint |
+| S-mcp-43 | 移动到项目 / 移动到用户 | 按钮（outline，sm，左右箭头图标） | — | 同上 | `McpSettingsPage.vue:1207-1216` | i18n:toolsSettings.mcpMoveToProject · mcpMoveToUser |
+| S-mcp-44 | 移动 MCP 条目？ | 移动确认弹窗标题 | — | 点移动按钮 | `McpSettingsPage.vue:1219` | i18n:toolsSettings.mcpMoveConfirmTitle |
+| S-mcp-45 | 将 {id} 移动到项目作用域？… / 将 {id} 移动到用户作用域？… | 移动确认描述 | — | 同上（按目标作用域二选一） | `McpSettingsPage.vue:1220-1224` | i18n:toolsSettings.mcpMoveConfirmProject · mcpMoveConfirmUser |
+| S-mcp-46 | 同 ID 的插件条目优先级更高；在移除该插件条目之前，移动后的用户条目会被隐藏。 | 追加说明 | — | 移动目标被插件条目遮蔽 | `McpSettingsPage.vue:1222-1224` | i18n:toolsSettings.mcpMoveShadowedByPlugin |
+| S-mcp-47 | 取消 | 弹窗按钮 | — | 移动确认弹窗 | `McpSettingsPage.vue:1228` | i18n:common.cancel |
+| S-mcp-48 | 确认 | 弹窗主按钮 | — | 同上 | `McpSettingsPage.vue:1229-1232` | i18n:common.confirm |
+| S-mcp-49 | 名称 | 标签 | — | 表单 | `McpSettingsPage.vue:1237` | i18n:toolsSettings.name |
+| S-mcp-50 | my-server | 名称输入框（编辑态已有条目时禁用） | 空 | 同上 | `McpSettingsPage.vue:1238-1245` | i18n:toolsSettings.serverNamePlaceholder |
+| S-mcp-51 | 范围 | 标签（for 下拉） | — | 同上 | `McpSettingsPage.vue:1248` | i18n:toolsSettings.scope |
+| S-mcp-52 | 用户 / 项目 | 下拉（编辑态禁用；无项目 cwd 时「项目」禁用） | 用户 | 同上 | `McpSettingsPage.vue:1249-1260` | i18n:toolsSettings.scopeUser · scopeProject |
+| S-mcp-53 | STDIO | transport 分段按钮 | 选中（新建默认） | 三段切换，编辑态仅当原 transport 匹配时可用 | `McpSettingsPage.vue:1262-1272` | i18n:toolsSettings.stdio |
+| S-mcp-54 | Streamable HTTP | transport 分段按钮 | — | 同上 | `McpSettingsPage.vue:1273-1283` | i18n:toolsSettings.streamableHttp |
+| S-mcp-55 | SSE（已弃用） | transport 分段按钮 | — | 同上 | `McpSettingsPage.vue:1284-1294` | i18n:toolsSettings.sseDeprecatedLabel |
+| S-mcp-56 | SSE 已弃用，仅用于兼容旧版 MCP 服务器，不推荐用于新配置。请优先使用 Streamable HTTP。 | 弃用提示（琥珀色，警示图标） | — | transport 为 sse | `McpSettingsPage.vue:1405-1412` | i18n:toolsSettings.sseDeprecatedNotice |
+| S-mcp-57 | 启动命令 | 标签 | — | transport 为 stdio | `McpSettingsPage.vue:1295` | i18n:toolsSettings.commandToLaunch |
+| S-mcp-58 | openai-dev-mcp serve-sqlite | 输入框（占位） | 空 | 同上 | `McpSettingsPage.vue:1296-1301` | i18n:toolsSettings.commandExamplePlaceholder |
+| S-mcp-59 | 参数 | 标签 | — | 同上 | `McpSettingsPage.vue:1305` | i18n:toolsSettings.arguments |
+| S-mcp-60 | 替换参数（已存储 {count} 个） | 复选框 + 文案 | 未勾 | stdio 且编辑已有条目 | `McpSettingsPage.vue:1313-1317` | i18n:toolsSettings.mcpReplaceArguments |
+| S-mcp-61 | 参数值 | 行内输入框（每项一行） | 取草稿/空 | 新建或勾选替换参数 | `McpSettingsPage.vue:1319-1335` | 运行期 |
+| S-mcp-62 | 删除该参数 | 图标按钮（垃圾桶） | — | 每个参数行 | `McpSettingsPage.vue:1330-1332` | 无文案 |
+| S-mcp-63 | 添加参数 | 按钮（secondary，整宽，加号） | — | 新建或勾选替换参数 | `McpSettingsPage.vue:1336-1338` | i18n:toolsSettings.addArgument |
+| S-mcp-64 | 环境变量 | 标签 | — | transport 为 stdio | `McpSettingsPage.vue:1342` | i18n:toolsSettings.environmentVariables |
+| S-mcp-65 | 键 / 值（编辑已有条目时值占位为「已存储的值已隐藏，留空即可保留。」） | 键值对输入 | 空 | 每个环境变量行 | `McpSettingsPage.vue:1344-1361` | i18n:toolsSettings.key · value · mcpWithheldValue |
+| S-mcp-66 | 删除该环境变量 | 图标按钮（垃圾桶） | — | 每个环境变量行 | `McpSettingsPage.vue:1357-1359` | 无文案 |
+| S-mcp-67 | 添加环境变量 | 按钮（secondary，整宽） | — | stdio | `McpSettingsPage.vue:1362-1364` | i18n:toolsSettings.addEnvironmentVariable |
+| S-mcp-68 | 环境变量透传 | 标签 | — | stdio 且为新建 | `McpSettingsPage.vue:1368` | i18n:toolsSettings.environmentVariablePassthrough |
+| S-mcp-69 | 透传变量名 | 行内输入（每项一行） | 空 | 同上 | `McpSettingsPage.vue:1370-1386` | 运行期 |
+| S-mcp-70 | 删除该透传变量 | 图标按钮（垃圾桶） | — | 每个透传行 | `McpSettingsPage.vue:1383-1385` | 无文案 |
+| S-mcp-71 | 添加变量 | 按钮（secondary，整宽） | — | 同上 | `McpSettingsPage.vue:1387-1389` | i18n:toolsSettings.addVariable |
+| S-mcp-72 | 工作目录 | 标签 | — | transport 为 stdio | `McpSettingsPage.vue:1393` | i18n:toolsSettings.workingDirectory |
+| S-mcp-73 | ~/code | 输入框（占位） | 空 | 同上 | `McpSettingsPage.vue:1394-1399` | i18n:toolsSettings.workingDirectoryPlaceholder |
+| S-mcp-74 | URL | 标签 | — | transport 为 http/sse | `McpSettingsPage.vue:1414` | i18n:toolsSettings.url |
+| S-mcp-75 | {脱敏 endpoint} | 等宽文案 | — | 编辑已有条目 | `McpSettingsPage.vue:1415-1419` | 运行期（`redactedEndpoint`） |
+| S-mcp-76 | 替换 URL（路径和查询已隐藏） | 复选框 + 文案 | 未勾 | 编辑已有条目 | `McpSettingsPage.vue:1424-1428` | i18n:toolsSettings.mcpReplaceUrl |
+| S-mcp-77 | https://mcp.example.com/mcp | URL 输入框（占位） | 空 | 新建或勾选替换 URL | `McpSettingsPage.vue:1431-1435` | i18n:toolsSettings.urlExamplePlaceholder |
+| S-mcp-78 | Bearer 令牌 | 标签 | — | transport 为 http/sse | `McpSettingsPage.vue:1439` | i18n:toolsSettings.bearerTokenEnvVar |
+| S-mcp-79 | 移除已存储的 Bearer 令牌 | 复选框 + 文案 | 未勾 | 编辑已有条目且已配置认证 | `McpSettingsPage.vue:1446-1450` | i18n:toolsSettings.mcpRemoveBearer |
+| S-mcp-80 | Bearer 令牌值（编辑态占位「已存储的值已隐藏，留空即可保留。」） | 输入框 | 空 | 未勾选移除 | `McpSettingsPage.vue:1452-1456` | i18n:toolsSettings.mcpWithheldValue |
+| S-mcp-81 | 请求头 | 标签 | — | transport 为 http/sse | `McpSettingsPage.vue:1461` | i18n:toolsSettings.headers |
+| S-mcp-82 | 键 / 值（编辑态值占位隐藏提示） | 请求头键值行 | 空 | 每个请求头一行 | `McpSettingsPage.vue:1462-1479` | i18n:toolsSettings.key · value |
+| S-mcp-83 | 删除该请求头 | 图标按钮（垃圾桶） | — | 每个请求头行 | `McpSettingsPage.vue:1475-1477` | 无文案 |
+| S-mcp-84 | 添加请求头 | 按钮（secondary，整宽） | — | 同上 | `McpSettingsPage.vue:1481-1483` | i18n:toolsSettings.addHeader |
+| S-mcp-85 | 来自环境变量的请求头 | 标签 | — | http/sse 且为新建 | `McpSettingsPage.vue:1487` | i18n:toolsSettings.headersFromEnvironmentVariables |
+| S-mcp-86 | 键 / `ENV_VAR` | 键值行（第二列固定占位 ENV_VAR） | 空 | 每个 env header 一行 | `McpSettingsPage.vue:1489-1500` | 字面量（`ENV_VAR`） |
+| S-mcp-87 | 删除该行 | 图标按钮（垃圾桶） | — | 每个 env header 行 | `McpSettingsPage.vue:1499-1501` | 无文案 |
+| S-mcp-88 | 添加变量 | 按钮（secondary，整宽） | — | 同上 | `McpSettingsPage.vue:1502-1504` | i18n:toolsSettings.addVariable |
+| S-mcp-89 | {表单/字段错误列表} | 错误区（destructive，逐条） | — | 校验失败或保存失败 | `McpSettingsPage.vue:1510-1513` | i18n:toolsSettings.nameRequired · nameTooLong · duplicateServerId · commandRequired · urlRequired · urlInvalid · invalidEnvVar · duplicateKey · authorizationHeaderConflict · keyAndValueRequired · invalidEnvVarName · mcpConflictReread |
+| S-mcp-90 | 需要登录 · 已存储的凭据已过期。 · 缺少权限范围：{scopes} / 连接成功 · … / {错误} ({reason}) | 测试结果条（绿/红） | — | 已选服务器且有测试结果 | `McpSettingsPage.vue:1515-1548` | i18n:toolsSettings.mcpAuthRequired · mcpAuthExpired · mcpMissingScopes · connectionSucceeded · latencyMs · toolCount · connectionFailed |
+| S-mcp-91 | {tool.name} | 测试结果内的工具名列表项 | — | 测试成功且返回工具 | `McpSettingsPage.vue:1582-1584` | 运行期 |
+| S-mcp-92 | 测试连接 | 按钮（outline，测试中转圈） | — | 已选服务器 | `McpSettingsPage.vue:1552-1560` | i18n:toolsSettings.testConnection |
+| S-mcp-93 | 删除此服务器 | 按钮（ghost，红色，垃圾桶） | — | 已选服务器 | `McpSettingsPage.vue:1562-1571` | i18n:toolsSettings.deleteServer |
+| S-mcp-94 | 删除 MCP 服务器 | 确认弹窗标题 | — | 点删除 | `McpSettingsPage.vue:1575` | i18n:toolsSettings.deleteServerTitle |
+| S-mcp-95 | 确定要删除 "{name}" 吗？此操作无法撤销。 | 确认弹窗描述 | — | 同上 | `McpSettingsPage.vue:1576-1578` | i18n:toolsSettings.deleteServerDescription |
+| S-mcp-96 | 取消 | 弹窗按钮 | — | 同上 | `McpSettingsPage.vue:1581` | i18n:common.cancel |
+| S-mcp-97 | 删除 | 弹窗主按钮 | — | 同上 | `McpSettingsPage.vue:1582-1584` | i18n:common.delete |
+| S-mcp-98 | 取消 | 表单底部按钮（outline） | — | 表单常显 | `McpSettingsPage.vue:1591-1594` | i18n:common.cancel |
+| S-mcp-99 | 保存 | 表单主按钮（保存中转圈，不可保存时禁用） | — | 表单常显 | `McpSettingsPage.vue:1595-1599` | i18n:toolsSettings.save |
 
 ### 查看连接弹窗
 
 | 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
 |---|---|---|---|---|---|---|
-| S-mcp-100 | 查看连接 | 弹窗标题 | — | 点「查看连接」 | `McpSettingsPage.vue:1566` | i18n:toolsSettings.mcpInspect |
-| S-mcp-101 | 当前活动连接代次和生效配置，这些值只读。 | 弹窗描述 | — | 同上 | `McpSettingsPage.vue:1567` | i18n:toolsSettings.mcpInspectDescription |
-| S-mcp-102 | 已启用 / 已禁用 | 状态文案 | — | 有 inspect 结果 | `McpSettingsPage.vue:1571-1573` | i18n:toolsSettings.enabled · disabled |
-| S-mcp-103 | 没有活动连接 | 空态文案 | — | 连接列表为空 | `McpSettingsPage.vue:1574-1576` | i18n:toolsSettings.mcpNoLiveConnections |
-| S-mcp-104 | {状态} · 已存储的凭据已过期。 · {count} 个工具 · {失败原因} | 连接项（逐个连接一块） | — | 有活连接 | `McpSettingsPage.vue:1577-1594` | i18n:toolsSettings.mcpAuthExpired · toolCount |
-| S-mcp-105 | 生效配置 | 小标题（h4） | — | 有 configuration | `McpSettingsPage.vue:1596-1597` | i18n:toolsSettings.mcpEffectiveConfiguration |
-| S-mcp-106 | {command} · {cwd} · 参数: {n} · 环境变量: {names} / {endpoint} · 请求头: {names} | 生效配置内容 | — | 同上（stdio 或 http 二选一） | `McpSettingsPage.vue:1598-1618` | i18n:toolsSettings.arguments · environmentVariables · headers |
+| S-mcp-100 | 查看连接 | 弹窗标题 | — | 点「查看连接」 | `McpSettingsPage.vue:1608` | i18n:toolsSettings.mcpInspect |
+| S-mcp-101 | 当前活动连接代次和生效配置，这些值只读。 | 弹窗描述 | — | 同上 | `McpSettingsPage.vue:1609` | i18n:toolsSettings.mcpInspectDescription |
+| S-mcp-102 | 已启用 / 已禁用 | 状态文案 | — | 有 inspect 结果 | `McpSettingsPage.vue:1613-1615` | i18n:toolsSettings.enabled · disabled |
+| S-mcp-103 | 没有活动连接 | 空态文案 | — | 连接列表为空 | `McpSettingsPage.vue:1616-1618` | i18n:toolsSettings.mcpNoLiveConnections |
+| S-mcp-104 | {状态} · 已存储的凭据已过期。 · {count} 个工具 · {失败原因} | 连接项（逐个连接一块） | — | 有活连接 | `McpSettingsPage.vue:1619-1636` | i18n:toolsSettings.mcpAuthExpired · toolCount |
+| S-mcp-105 | 生效配置 | 小标题（h4） | — | 有 configuration | `McpSettingsPage.vue:1635` | i18n:toolsSettings.mcpEffectiveConfiguration |
+| S-mcp-106 | {command} · {cwd} · 参数: {n} · 环境变量: {names} / {endpoint} · 请求头: {names} | 生效配置内容 | — | 同上（stdio 或 http 二选一） | `McpSettingsPage.vue:1637-1656` | i18n:toolsSettings.arguments · environmentVariables · headers |
 
 ### 导入面板（`McpImportPanel.vue`）
 
@@ -1250,3 +1264,305 @@
 
 ---
 
+## S-configuration 模型供应（`components/settings/ConfigurationSettings.vue`）
+
+本节是左右分栏：左侧供应商列表（含「添加自定义提供商」入口），右侧详情面板按供应商类型切换成 6 种形态（添加自定义 / OpenAI Codex OAuth / Grok Build device flow / 账户托管只读 / 通用托管 OAuth / 未配置表单 / 已配置凭据+模型），另有「添加模型」命令面板与「模型编辑」弹窗。连续编号。
+
+### 左侧列表
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-01 | 加载骨架（左 4 条 + 右 4 块） | 骨架（Skeleton，无文案） | — | store 未加载完成 | `ConfigurationSettings.vue:2081-2104` | 无文案 |
+| S-configuration-02 | 模型供应 | 侧栏小标题（大写小字） | — | 已加载 | `ConfigurationSettings.vue:2118` | i18n:configurationSettings.providers |
+| S-configuration-03 | 搜索供应商 | 搜索输入框（放大镜，Esc 清空） | 空 | 已加载 | `ConfigurationSettings.vue:2122-2130` | i18n:configurationSettings.searchProviders |
+| S-configuration-04 | 清除搜索 | 图标按钮（X，aria-label） | — | 搜索框有内容 | `ConfigurationSettings.vue:2131-2138` | i18n:configurationSettings.clearSearch |
+| S-configuration-05 | 已启用 + {count} | 分组折叠按钮（chevron，aria-expanded） | 展开 | 已加载 | `ConfigurationSettings.vue:2128-2152` · 分组 `:553-559` | i18n:configurationSettings.enabledProviders |
+| S-configuration-06 | 未启用 + {count} | 分组折叠按钮 | 折叠 | 已加载 | `ConfigurationSettings.vue:2128-2152` · 分组 `:560-565` | i18n:configurationSettings.disabledProviders |
+| S-configuration-07 | {提供商名}（+ 右侧 ● 已配置 / ○ 未配置） | 供应商项按钮（图标 + 跑马灯名称 + 状态点） | 首项高亮 | 每个供应商一项 | `ConfigurationSettings.vue:2156-2175` | 运行期 |
+| S-configuration-08 | 添加 | 按钮（加号，进入「添加自定义提供商」） | — | `dimProviderOnly` 不为真 | `ConfigurationSettings.vue:2178-2191` | i18n:configurationSettings.add |
+| S-configuration-09 | 返回 | 图标按钮（左箭头，aria-label） | — | 窄屏（compact）详情态 | `ConfigurationSettings.vue:2198-2207` | i18n:common.back |
+
+### 形态 A：添加自定义提供商
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-10 | 添加自定义提供商 | 面板标题（h3） | — | 点「添加」 | `ConfigurationSettings.vue:2212` | i18n:configurationSettings.addCustomProvider |
+| S-configuration-11 | 协议 | 标签 + 5 个单选：OpenAI 兼容 / OpenAI Responses / Anthropic / Gemini / New API | OpenAI 兼容 | 添加表单 | `ConfigurationSettings.vue:2216-2237` · 标签 `:204-210` | i18n:configurationSettings.adapter.* |
+| S-configuration-12 | 名称 | 标签 | — | 同上 | `ConfigurationSettings.vue:2231` | i18n:configurationSettings.name |
+| S-configuration-13 | 我的自定义提供商 | 输入框（占位） | 空 | 同上 | `ConfigurationSettings.vue:2233` | i18n:configurationSettings.customProviderNamePlaceholder |
+| S-configuration-14 | 基础 URL | 标签 | — | 同上 | `ConfigurationSettings.vue:2236` | i18n:configurationSettings.baseUrl |
+| S-configuration-15 | https://api.openai.com/v1（随协议变化的占位） | 输入框 | 该协议默认地址 | 同上 | `ConfigurationSettings.vue:2237` · `:3096` | i18n:configurationSettings.customBaseUrlPlaceholder |
+| S-configuration-16 | API 密钥 | 标签 | — | 同上 | `ConfigurationSettings.vue:2241` | i18n:providerSettings.apiKey |
+| S-configuration-17 | sk-... | 密码输入框（占位） | 空 | 同上 | `ConfigurationSettings.vue:2242` | i18n:configurationSettings.apiKeyPlaceholder |
+| S-configuration-18 | User-Agent | 标签 | — | 同上 | `ConfigurationSettings.vue:2246` | i18n:configurationSettings.userAgent |
+| S-configuration-19 | Mozilla/5.0 ... | 输入框（等宽，占位） | 空 | 同上 | `ConfigurationSettings.vue:2247` | 字面量（placeholder） |
+| S-configuration-20 | 留空则使用运行时默认值。仅应用于此供应商的模型获取和模型请求。 | 说明文案 | — | 同上 | `ConfigurationSettings.vue:2248` | i18n:configurationSettings.userAgentHint |
+| S-configuration-21 | 模型 · {可见数} / {总数} | 全选复选框 + 文案（三态 indeterminate） | 未全选 | 草稿模型非空 | `ConfigurationSettings.vue:2253-2266` | i18n:configurationSettings.models |
+| S-configuration-22 | 添加模型 | 按钮（outline，sm，加号） | — | 添加表单 | `ConfigurationSettings.vue:2268-2275` | i18n:configurationSettings.addModel |
+| S-configuration-23 | 刷新（获取模型） | 图标按钮（刷新图标，获取中转圈） | — | 可获取模型时可用 | `ConfigurationSettings.vue:2276-2284` | 无文案（图标按钮） |
+| S-configuration-24 | 搜索模型名称或 ID | 搜索输入框（占位，Esc 清空） | 空 | 草稿模型非空 | `ConfigurationSettings.vue:2287-2299` | i18n:configurationSettings.searchModels |
+| S-configuration-25 | 清除搜索 | 图标按钮（X，aria-label） | — | 搜索框有内容 | `ConfigurationSettings.vue:2300-2307` | i18n:configurationSettings.clearSearch |
+| S-configuration-26 | {模型名} + 自定义 / 工具 / 视觉 / 推理 / 媒体能力 徽标 + {count}k 上下文 · {count}k 输出 + 启用开关 | 草稿模型行（点击打开模型编辑） | 按选择集 | 每个草稿模型一行 | `ConfigurationSettings.vue:2318-2364` | i18n:configurationSettings.modelCustomized · modelCapabilityTools · modelCapabilityVision · modelCapabilityReasoning · modelCapabilityMedia · modelContextK · modelOutputK |
+| S-configuration-27 | 没有匹配的模型 | 空态（搜索无匹配） | — | 草稿模型非空但过滤后为空 | `ConfigurationSettings.vue:2365-2370` | i18n:configurationSettings.noMatchingModels |
+| S-configuration-28 | 还没有模型。可以手动添加，也可以在提供商支持模型列表时点击刷新。 | 空态（虚线框） | — | 草稿模型为空 | `ConfigurationSettings.vue:2371-2377` | i18n:configurationSettings.manualModelListEmpty |
+| S-configuration-29 | {表单错误原文} | 错误条（destructive，警示图标） | — | 校验失败 | `ConfigurationSettings.vue:2379-2387` | 运行期 |
+| S-configuration-30 | 取消 | 按钮（outline） | — | 添加表单 | `ConfigurationSettings.vue:2390` | i18n:common.cancel |
+| S-configuration-31 | 保存 | 按钮（保存中转圈 / chevron） | — | 同上；不可保存时禁用 | `ConfigurationSettings.vue:2391-2396` | i18n:common.save |
+
+### 详情头（所有形态共用）
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-32 | {提供商名} | 详情头标题（truncate） | — | 已选中供应商 | `ConfigurationSettings.vue:2399-2401` | 运行期 |
+| S-configuration-33 | 未登录 / 登录中 / 等待设备 / 已连接 / 错误 / 已禁用 / OAuth 错误 / 等待设备授权 | 状态标签 | — | 已选中供应商（按类型与 OAuth 状态映射） | `ConfigurationSettings.vue:2402` · 映射 `:445-480` | i18n:configurationSettings.openAICodexStatus* · grokBuildStatus* |
+| S-configuration-34 | — | 开关（启用/停用该供应商） | 视供应商 | 已选中；保存中/获取模型/需先登录/需先配置时禁用 | `ConfigurationSettings.vue:2405-2418` | 运行期 |
+
+### 形态 B：OpenAI Codex OAuth
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-35 | 登录 OpenAI 后可在 DimAgent 中使用 Codex 模型。 | 未登录说明 | — | 状态 signed-out 或 error | `ConfigurationSettings.vue:2427-2430` | i18n:configurationSettings.openAICodexSignedOutDescription |
+| S-configuration-36 | 使用 OpenAI 登录 | 按钮（sm，外链图标，进行中转圈） | — | 同上 | `ConfigurationSettings.vue:2436-2446` | i18n:configurationSettings.openAICodexSignInWithOpenAI |
+| S-configuration-37 | 请将浏览器地址栏中的 callback URL 复制到 DimAgent 完成登录。 / Copy the callback URL from your browser address bar into DimAgent to complete sign-in. | 等待提示（转圈） | — | 状态 pending-browser | `ConfigurationSettings.vue:2450-2456` | i18n:configurationSettings.openAICodexWaitingForBrowser |
+| S-configuration-38 | 取消 | 按钮（outline，sm） | — | 同上 | `ConfigurationSettings.vue:2458-2464` | i18n:common.cancel |
+| S-configuration-39 | 打开 URL | 按钮（outline，sm，外链图标） | — | 同上；无授权 URL 时禁用 | `ConfigurationSettings.vue:2472-2481` | i18n:configurationSettings.openAICodexOpenUrl |
+| S-configuration-40 | 复制 | 按钮（outline，sm，复制图标） | — | 同上；无授权 URL 时禁用 | `ConfigurationSettings.vue:2482-2490` | i18n:common.copy |
+| S-configuration-41 | Callback URL | 标签 + 输入框（等宽，占位「粘贴完整 callback URL 或 query string」） | 空 | 同上 | `ConfigurationSettings.vue:2492-2506` | i18n:configurationSettings.openAICodexCallbackUrl · openAICodexCallbackPlaceholder |
+| S-configuration-42 | 确认 | 提交按钮（sm，发送图标；空值或忙时禁用） | — | 同上 | `ConfigurationSettings.vue:2508-2514` | i18n:common.confirm |
+| S-configuration-43 | {redirect uri} | 小字回显（truncate） | — | 有 redirect uri | `ConfigurationSettings.vue:2516-2518` | 运行期 |
+| S-configuration-44 | {账户标签} | 已连接卡标题（主色，truncate） | — | 状态 authenticated | `ConfigurationSettings.vue:2526-2528` | 运行期（或「OpenAI 账户」回退） |
+| S-configuration-45 | 套餐: {planType} | 小字行 | — | 已连接且带 planType | `ConfigurationSettings.vue:2532` | i18n:configurationSettings.openAICodexPlan |
+| S-configuration-46 | 账户: {accountIdPreview} | 小字行 | — | 已连接且带 accountIdPreview | `ConfigurationSettings.vue:2535` | i18n:configurationSettings.openAICodexAccount |
+| S-configuration-47 | 刷新 | 按钮（outline，sm，刷新中转圈） | — | 已连接 | `ConfigurationSettings.vue:2540-2548` | i18n:common.refresh |
+| S-configuration-48 | 退出登录 | 按钮（outline，sm） | — | 已连接 | `ConfigurationSettings.vue:2549-2556` | i18n:accountSettings.signOut |
+| S-configuration-49 | 令牌已生效。模型开关决定聊天中可用的 Codex 模型。 | 说明文案 | — | 已连接 | `ConfigurationSettings.vue:2561` | i18n:configurationSettings.openAICodexAuthenticatedDescription |
+| S-configuration-50 | 环境设置已禁用 OpenAI Codex。 | 提示条（灰底） | — | 状态 disabled | `ConfigurationSettings.vue:2568-2574` | i18n:configurationSettings.openAICodexDisabledDescription |
+| S-configuration-51 | 基础 URL | 标签 + 等宽只读值 | 供应商 baseUrl 或协议默认地址 | 面板内常显 | `ConfigurationSettings.vue:2576-2581` | i18n:configurationSettings.baseUrl |
+| S-configuration-52 | {OAuth 错误原文} | 错误条（destructive） | — | 登录/刷新失败 | `ConfigurationSettings.vue:2583-2590` | i18n:configurationSettings.openAICodexOAuthFailed |
+| S-configuration-53 | 模型 · {可见数} / {总数} | 全选复选框 + 文案 | 未全选 | 已连接且模型可选中 | `ConfigurationSettings.vue:2598-2609` | i18n:configurationSettings.models |
+| S-configuration-54 | 搜索模型名称或 ID | 搜索输入框 | 空 | 有模型 | `ConfigurationSettings.vue:2610-2618` | i18n:configurationSettings.searchModels |
+| S-configuration-55 | {模型名} + 视觉 / 推理 徽标 + 开关 | 模型行（Codex 面板） | 按选择集 | 每行一个模型 | `ConfigurationSettings.vue:2620-2652` | i18n:configurationSettings.modelCapabilityVision · modelCapabilityReasoning |
+| S-configuration-56 | 没有匹配的模型 | 空态 | — | 搜索无匹配 | `ConfigurationSettings.vue:2653-2655` | i18n:configurationSettings.noMatchingModels |
+| S-configuration-57 | 登录成功后将自动拉取可用模型。 | 空态（虚线框） | — | 无模型 | `ConfigurationSettings.vue:2656-2660` | i18n:configurationSettings.modelsAutoLoadAfterSignIn |
+
+### 形态 C：Grok Build device flow
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-58 | 登录 SuperGrok 或 Premium+ 后，即可在 DimAgent 中使用 Grok Build 模型。 | 未登录说明 | — | 状态 signed-out 或 error | `ConfigurationSettings.vue:2671-2675` | i18n:configurationSettings.grokBuildSignedOutDescription |
+| S-configuration-59 | 使用 SuperGrok / Premium+ 登录 | 按钮（sm，外链图标） | — | 同上 | `ConfigurationSettings.vue:2681-2689` | i18n:configurationSettings.grokBuildSignInWithSuperGrok |
+| S-configuration-60 | 环境设置已禁用 Grok Build OAuth。 | 提示条（灰底） | — | 状态 disabled | `ConfigurationSettings.vue:2690-2696` | i18n:configurationSettings.grokBuildDisabledDescription |
+| S-configuration-61 | 正在等待授权... | 等待提示（转圈） | — | 状态 pending-device | `ConfigurationSettings.vue:2700-2704` | i18n:configurationSettings.grokBuildWaitingForDevice |
+| S-configuration-62 | 取消 | 按钮（outline，sm） | — | 同上 | `ConfigurationSettings.vue:2705-2712` | i18n:common.cancel |
+| S-configuration-63 | 设备码 | 小字标签 | — | 同上 | `ConfigurationSettings.vue:2714-2717` | i18n:configurationSettings.grokBuildDeviceCode |
+| S-configuration-64 | {userCode} | 等宽大号验证码 | — | 同上 | `ConfigurationSettings.vue:2718-2720` | 运行期 |
+| S-configuration-65 | 打开验证页面 | 按钮（outline，sm，外链图标） | — | 同上；无验证 URI 时禁用 | `ConfigurationSettings.vue:2725-2733` | i18n:configurationSettings.grokBuildOpenVerification |
+| S-configuration-66 | 复制 | 按钮（outline，sm，复制图标） | — | 同上 | `ConfigurationSettings.vue:2734-2742` | i18n:common.copy |
+| S-configuration-67 | {verificationUri} | 小字回显（truncate） | — | 同上 | `ConfigurationSettings.vue:2744-2746` | 运行期 |
+| S-configuration-68 | {账户标签} | 已连接卡标题 | — | 状态 authenticated | `ConfigurationSettings.vue:2755` | 运行期（或「Grok Build 账户」回退） |
+| S-configuration-69 | 套餐: {planType} | 小字行 | — | 已连接且带 planType | `ConfigurationSettings.vue:2758` | i18n:configurationSettings.grokBuildPlan |
+| S-configuration-70 | 账户: {accountIdPreview} | 小字行 | — | 已连接且带 accountIdPreview | `ConfigurationSettings.vue:2761` | i18n:configurationSettings.grokBuildAccount |
+| S-configuration-71 | 刷新 | 按钮（outline，sm） | — | 已连接 | `ConfigurationSettings.vue:2765-2773` | i18n:common.refresh |
+| S-configuration-72 | 退出登录 | 按钮（outline，sm） | — | 已连接 | `ConfigurationSettings.vue:2774-2781` | i18n:accountSettings.signOut |
+| S-configuration-73 | OAuth 令牌已生效。模型开关决定聊天中可用的 Grok Build 模型。 | 说明文案 | — | 已连接 | `ConfigurationSettings.vue:2787` | i18n:configurationSettings.grokBuildAuthenticatedDescription |
+| S-configuration-74 | 基础 URL | 标签 + 等宽只读值（默认 `https://api.x.ai/v1`） | 供应商 baseUrl | 面板内常显 | `ConfigurationSettings.vue:2790-2795` | i18n:configurationSettings.baseUrl |
+| S-configuration-75 | {OAuth 错误原文} | 错误条（destructive） | — | 登录/刷新失败 | `ConfigurationSettings.vue:2798-2806` | i18n:configurationSettings.grokBuildOAuthFailed |
+| S-configuration-76 | 模型 · {可见数} / {总数} | 全选复选框 + 文案 | 未全选 | 已连接 | `ConfigurationSettings.vue:2811-2822` | i18n:configurationSettings.models |
+| S-configuration-77 | {模型名} + 自定义/工具/视觉/推理/媒体 徽标 + 上下文/输出 + 开关（点击进模型编辑，aria-label「修改模型: {name}」） | 模型行（Grok 面板） | 按选择集 | 每行一个模型 | `ConfigurationSettings.vue:2834-2883` | i18n:configurationSettings.editModel · modelCustomized · modelCapability* |
+| S-configuration-78 | 登录后加载 Grok Build 模型。 | 空态（虚线框） | — | 无模型 | `ConfigurationSettings.vue:2895-2899` | i18n:configurationSettings.grokBuildModelsSignInPrompt |
+
+### 形态 D：账户托管（只读）
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-79 | 由 Dim 账户管理 | 横幅标题（锁图标，整块可点跳账户设置） | — | 供应商由账户托管 | `ConfigurationSettings.vue:2907-2925` | i18n:configurationSettings.managedByAccount |
+| S-configuration-80 | 此提供商由你的 Dim 账户管理，无法在此编辑。 / 登录后可使用 Dim 模型。点击跳转到账户设置。 | 横幅说明（按下文二选一） | — | 已连接 / 未登录 | `ConfigurationSettings.vue:2916-2923` | i18n:configurationSettings.managedByAccountDescription · signInManagedDescription |
+| S-configuration-81 | 基础 URL | 标签 + 等宽只读值 | 供应商 baseUrl 或协议默认 | 面板内常显 | `ConfigurationSettings.vue:2927-2932` | i18n:configurationSettings.baseUrl |
+| S-configuration-82 | {表单错误原文} | 错误条（destructive） | — | 有错误 | `ConfigurationSettings.vue:2934-2942` | 运行期 |
+| S-configuration-83 | 模型 · {可见数} / {总数} | 全选复选框 + 文案 | 未全选 | 托管供应商 | `ConfigurationSettings.vue:2943-2952` | i18n:configurationSettings.models |
+| S-configuration-84 | 搜索模型名称或 ID | 搜索输入框 | 空 | 有模型 | `ConfigurationSettings.vue:2953-2961` | i18n:configurationSettings.searchModels |
+| S-configuration-85 | {模型名} + 视觉 / 推理 徽标 + 开关 | 模型行（托管面板） | 按选择集 | 每行一个模型 | `ConfigurationSettings.vue:2966-2992` | i18n:configurationSettings.modelCapabilityVision · modelCapabilityReasoning |
+| S-configuration-86 | 登录成功后将自动拉取可用模型。 / 登录 Dim 以解锁模型。 | 空态（虚线框，按下文二选一） | — | 无模型（已配置 / 未配置） | `ConfigurationSettings.vue:3009-3017` | i18n:configurationSettings.modelsAutoLoadAfterSignIn · signInToUnlockModels |
+| S-configuration-87 | 刷新 | 按钮（outline，sm，刷新图标） | — | Dim OAuth 或账户托管；未登录时禁用 | `ConfigurationSettings.vue:3020-3029` | i18n:common.refresh |
+| S-configuration-88 | 查看套餐 | 按钮（outline，sm，外链图标） | — | 同上；未登录时禁用 | `ConfigurationSettings.vue:3030-3037` | i18n:accountSettings.viewPlan |
+
+### 形态 E：通用托管 OAuth
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-89 | 登录 {provider} 以加载其模型。 | 未登录说明 | — | 状态 signed-out 或 error | `ConfigurationSettings.vue:3049-3053` | i18n:configurationSettings.oauthSignedOutDescription |
+| S-configuration-90 | 使用设备代码登录 | 按钮（sm） | — | 登录方式包含 device | `ConfigurationSettings.vue:3060-3068` | i18n:configurationSettings.oauthSignInDevice |
+| S-configuration-91 | 使用浏览器登录 | 按钮（sm，浏览器方式） | — | 登录方式包含 browser；未填回调地址时禁用 | `ConfigurationSettings.vue:3071-3080` | i18n:configurationSettings.oauthSignInBrowser |
+| S-configuration-92 | 回调地址 | 标签 + 输入框（等宽） | 视脚本 | 浏览器方式 | `ConfigurationSettings.vue:3076-3080` | i18n:configurationSettings.oauthRedirectUri |
+| S-configuration-93 | 正在等待授权... | 等待提示（设备流程） | — | 状态 pending-device | `ConfigurationSettings.vue:3085-3089` | i18n:configurationSettings.grokBuildWaitingForDevice |
+| S-configuration-94 | 取消 | 按钮（outline，sm） | — | 同上 | `ConfigurationSettings.vue:3090-3097` | i18n:common.cancel |
+| S-configuration-95 | 设备码 | 小字标签 | — | 设备流程且有 userCode | `ConfigurationSettings.vue:3096-3099` | i18n:configurationSettings.grokBuildDeviceCode |
+| S-configuration-96 | {userCode} | 等宽验证码 | — | 同上 | `ConfigurationSettings.vue:3100-3101` | 运行期 |
+| S-configuration-97 | 打开验证页面 | 按钮（outline，sm） | — | 设备流程 | `ConfigurationSettings.vue:3102-3110` | i18n:configurationSettings.grokBuildOpenVerification |
+| S-configuration-98 | 复制 | 按钮（outline，sm） | — | 设备流程 | `ConfigurationSettings.vue:3111-3118` | i18n:common.copy |
+| S-configuration-99 | 刷新 | 按钮（outline，sm） | — | 设备流程 | `ConfigurationSettings.vue:3119-3126` | i18n:common.refresh |
+| S-configuration-100 | 请将浏览器地址栏中的 callback URL 复制到 DimAgent 完成登录。… | 等待提示（浏览器流程） | — | 状态 pending-browser | `ConfigurationSettings.vue:3123-3130` | i18n:configurationSettings.openAICodexWaitingForBrowser |
+| S-configuration-101 | 取消 | 按钮（outline，sm） | — | 同上 | `ConfigurationSettings.vue:3131-3138` | i18n:common.cancel |
+| S-configuration-102 | 打开 URL | 按钮（outline，sm） | — | 浏览器流程 | `ConfigurationSettings.vue:3141-3149` | i18n:configurationSettings.openAICodexOpenUrl |
+| S-configuration-103 | 复制 | 按钮（outline，sm） | — | 浏览器流程 | `ConfigurationSettings.vue:3150-3157` | i18n:common.copy |
+| S-configuration-104 | Callback URL | 标签 + 输入框（占位「粘贴完整 callback URL 或 query string」） | 空 | 浏览器流程 | `ConfigurationSettings.vue:3160-3173` | i18n:configurationSettings.openAICodexCallbackUrl · openAICodexCallbackPlaceholder |
+| S-configuration-105 | 确认 | 提交按钮（sm） | — | 同上；空值或忙时禁用 | `ConfigurationSettings.vue:3174-3181` | i18n:common.confirm |
+| S-configuration-106 | {redirect uri} | 小字回显 | — | 有 redirectUri | `ConfigurationSettings.vue:3182-3184` | 运行期 |
+| S-configuration-107 | {账户标签} | 已连接卡标题 | — | 状态 authenticated | `ConfigurationSettings.vue:3193` | 运行期 |
+| S-configuration-108 | 刷新 | 按钮（outline，sm） | — | 已连接 | `ConfigurationSettings.vue:3196-3204` | i18n:common.refresh |
+| S-configuration-109 | 退出登录 | 按钮（outline，sm） | — | 已连接 | `ConfigurationSettings.vue:3205-3212` | i18n:accountSettings.signOut |
+| S-configuration-110 | 已登录。模型开关决定聊天中显示哪些模型。 | 说明文案 | — | 已连接 | `ConfigurationSettings.vue:3214-3216` | i18n:configurationSettings.oauthAuthenticatedDescription |
+| S-configuration-111 | 基础 URL | 标签 + 等宽只读值 | 供应商 baseUrl | 面板内常显 | `ConfigurationSettings.vue:3219-3224` | i18n:configurationSettings.baseUrl |
+| S-configuration-112 | {OAuth 错误原文} | 错误条（destructive） | — | 登录/刷新失败 | `ConfigurationSettings.vue:3226-3229` | 运行期 |
+| S-configuration-113 | 模型 · {可见数} / {总数} | 全选复选框 + 文案 | 未全选 | 面板内 | `ConfigurationSettings.vue:3237-3246` | i18n:configurationSettings.models |
+| S-configuration-114 | 搜索模型名称或 ID | 搜索输入框 | 空 | 有模型 | `ConfigurationSettings.vue:3247-3255` | i18n:configurationSettings.searchModels |
+| S-configuration-115 | {模型名} + 视觉/推理徽标 + 开关 | 模型行 | 按选择集 | 每行一个模型 | `ConfigurationSettings.vue:3260-3278` | i18n:configurationSettings.modelCapabilityVision · modelCapabilityReasoning |
+| S-configuration-116 | 登录成功后将自动拉取可用模型。 | 空态（虚线框） | — | 无模型 | `ConfigurationSettings.vue:3279-3281` | i18n:configurationSettings.modelsAutoLoadAfterSignIn |
+
+### 形态 F：未配置（setup 表单）
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-117 | Authentication | 标签（AWS Bedrock 专用，英文硬编码） | — | 供应商为 AWS Bedrock | `ConfigurationSettings.vue:3287` | 字面量（英文） |
+| S-configuration-118 | API Key / Access Key | 下拉（2 选项） | API Key | 同上 | `ConfigurationSettings.vue:3288-3295` | 字面量（英文） |
+| S-configuration-119 | Access Key ID | 标签 + 密码输入（占位） | 空 | Bedrock 且选 Access Key | `ConfigurationSettings.vue:3296-3300` | 字面量（英文） |
+| S-configuration-120 | Secret Access Key | 标签 + 密码输入 | 空 | 同上 | `ConfigurationSettings.vue:3301-3305` | 字面量（英文） |
+| S-configuration-121 | Session Token | 标签 + 密码输入 | 空 | 同上 | `ConfigurationSettings.vue:3306-3310` | 字面量（英文） |
+| S-configuration-122 | API 密钥 | 标签（非 Bedrock 路径） | — | 未配置且非 Bedrock | `ConfigurationSettings.vue:3313` | i18n:providerSettings.apiKey |
+| S-configuration-123 | sk-... | 密码输入框（占位，回车直连） | 空 | 同上 | `ConfigurationSettings.vue:3314-3319` | i18n:configurationSettings.apiKeyPlaceholder |
+| S-configuration-124 | Region / 基础 URL | 标签 | — | 未配置 | `ConfigurationSettings.vue:3321` | 字面量（`Region`）· i18n:configurationSettings.baseUrl |
+| S-configuration-125 | us-east-1（Region）/ {基础 URL} | 输入框（Region 占位 us-east-1；非 Bedrock 时不可编辑则置灰） | 空 | 同上 | `ConfigurationSettings.vue:3322-3334` | 字面量（`us-east-1`） |
+| S-configuration-126 | {表单错误原文} | 错误条（destructive） | — | 校验失败 | `ConfigurationSettings.vue:3336-3344` | 运行期 |
+| S-configuration-127 | 连接并获取模型 / 保存 | 按钮（整宽，主按钮，获取中转圈） | 连接并获取模型 | 未配置；不可连接时禁用 | `ConfigurationSettings.vue:3347-3352` | i18n:configurationSettings.connectAndFetchModels · i18n:common.save |
+
+### 形态 G：已配置（凭据 + 用量 + 模型）
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-128 | 协议 | 标签 + 等宽只读值（自定义供应商） | 视供应商 | 自定义供应商 | `ConfigurationSettings.vue:3335-3340` | i18n:configurationSettings.protocol |
+| S-configuration-129 | 名称 | 标签 + 输入框（自定义供应商可改） | 供应商名 | 自定义供应商 | `ConfigurationSettings.vue:3341-3344` | i18n:configurationSettings.name |
+| S-configuration-130 | 基础 URL | 标签 + 等宽输入框 | 供应商 baseUrl | 自定义供应商 | `ConfigurationSettings.vue:3345-3348` | i18n:configurationSettings.baseUrl |
+| S-configuration-131 | API 密钥 | 标签 + 密码输入（已存值时占位「已保存，如需更换请重新输入」） | 空 | 自定义供应商 | `ConfigurationSettings.vue:3349-3356` | i18n:providerSettings.apiKey · configurationSettings.savedReplacePrompt |
+| S-configuration-132 | User-Agent | 标签 + 输入框 + 说明 | 空 | 自定义供应商 | `ConfigurationSettings.vue:3357-3361` | i18n:configurationSettings.userAgent · userAgentHint |
+| S-configuration-133 | 取消 / 保存 | 两个按钮（连接信息有改动才启用取消/保存） | 保存 | 自定义供应商 | `ConfigurationSettings.vue:3362-3367` | i18n:common.cancel · save |
+| S-configuration-134 | Authentication / API 密钥 | 标签（Bedrock 显示 Authentication） | — | 非自定义供应商 | `ConfigurationSettings.vue:3371-3374` | 字面量 · i18n:providerSettings.apiKey |
+| S-configuration-135 | Access Key ID / Secret Access Key / Session Token (optional) | 密码输入（占位文案） | 空 | Bedrock 且编辑密钥并选 Access Key | `ConfigurationSettings.vue:3383-3388` | 字面量（英文） |
+| S-configuration-136 | sk-... / 已保存，如需更换请重新输入 | 密码输入框（占位） | 空 | 编辑密钥且非 Bedrock 多字段 | `ConfigurationSettings.vue:3389-3395` | i18n:configurationSettings.apiKeyPlaceholder · savedReplacePrompt |
+| S-configuration-137 | 取消 / 确认 | 编辑密钥的两个按钮 | — | 编辑密钥态 | `ConfigurationSettings.vue:3398-3403` | i18n:common.cancel · confirm |
+| S-configuration-138 | Access Key · •••••••• / {掩码密钥} | 等宽掩码值 | — | 非编辑密钥态 | `ConfigurationSettings.vue:3406-3408` | 运行期（掩码为硬编码点号） |
+| S-configuration-139 | 修改 | 按钮（outline，sm，进入编辑密钥） | — | 非编辑密钥态 | `ConfigurationSettings.vue:3409` | i18n:configurationSettings.edit |
+| S-configuration-140 | Region / 基础 URL | 标签 | — | 已配置 | `ConfigurationSettings.vue:3414-3416` | 字面量 · i18n:configurationSettings.baseUrl |
+| S-configuration-141 | us-east-1 / {基础 URL} + 确认 | 输入框 + 确认按钮（可编辑基础 URL 的供应商） | 当前值 | 基础 URL 可编辑 | `ConfigurationSettings.vue:3418-3448` | 字面量 · i18n:common.confirm |
+| S-configuration-142 | {基础 URL} | 等宽只读值 | 当前值 | 基础 URL 不可编辑 | `ConfigurationSettings.vue:3450-3452` | 运行期 |
+| S-configuration-143 | {表单错误原文} | 错误条（destructive） | — | 校验失败 | `ConfigurationSettings.vue:3454-3462` | 运行期 |
+| S-configuration-144 | 用量 | 小标题（用量区块） | — | 该供应商有 usage 投影 | `ConfigurationSettings.vue:3485` | i18n:usageSettings.title |
+| S-configuration-145 | 刷新 | 图标按钮（h-6 w-6，aria-label/title） | — | 同上；加载中/未启用/未配置时禁用 | `ConfigurationSettings.vue:3486-3494` | i18n:common.refresh |
+| S-configuration-146 | 账户 | 标签 + 下拉（API Key / Team） | API Key | 供应商支持团队用量 | `ConfigurationSettings.vue:3497-3506` | i18n:configurationSettings.openAICodexAccount |
+| S-configuration-147 | 基础 URL / API 密钥 | 标签 + 输入框（separate_api_key 模式） | 当前值 | 用量凭据模式为 separate_api_key | `ConfigurationSettings.vue:3508-3523` | i18n:configurationSettings.baseUrl · providerSettings.apiKey |
+| S-configuration-148 | Organization ID / Project ID | 标签 + 输入框（zhipu_team 模式） | 当前值 | 用量凭据模式为 zhipu_team | `ConfigurationSettings.vue:3525-3535` | 字面量（英文） |
+| S-configuration-149 | Access Key ID / Secret Access Key | 标签 + 密码输入（volcengine_aksk 模式） | 当前值 | 用量凭据模式为 volcengine_aksk | `ConfigurationSettings.vue:3537-3555` | 字面量（英文） |
+| S-configuration-150 | 测试连接 | 按钮（outline，sm，测试中转圈） | — | 非 API Key 模式 | `ConfigurationSettings.vue:3561-3568` | i18n:toolsSettings.testConnection |
+| S-configuration-151 | 保存 | 按钮（sm，保存中转圈） | — | 用量凭据非默认模式或支持团队用量 | `ConfigurationSettings.vue:3569-3572` | i18n:common.save |
+| S-configuration-152 | {用量摘要} | 用量投影区（ProviderAccountUsageSummary：加载中/未配置/空/窗口行与百分比） | — | 有 displayedProviderUsage | `ConfigurationSettings.vue:3574-3578` · 组件 `provider/ProviderAccountUsageSummary.vue:44-76` | i18n:usageSettings.creditLoading · creditEmpty · inputArea.notConfigured · creditUsed · windowLabel · creditResets |
+| S-configuration-153 | {用量错误原文} | 错误文案（destructive） | — | 用量查询失败 | `ConfigurationSettings.vue:3579` | 运行期 |
+| S-configuration-154 | 模型 · {可见数} / {总数} | 全选复选框 + 文案 | 未全选 | 已配置，模型非空 | `ConfigurationSettings.vue:3591-3599` | i18n:configurationSettings.models |
+| S-configuration-155 | 添加模型 | 按钮（outline，sm，加号） | — | 已配置 | `ConfigurationSettings.vue:3602-3609` | i18n:configurationSettings.addModel |
+| S-configuration-156 | 刷新（远程模型列表） | 图标按钮（刷新图标） | — | 供应商支持远程模型列表 | `ConfigurationSettings.vue:3610-3620` | 无文案（图标按钮） |
+| S-configuration-157 | 搜索模型名称或 ID | 搜索输入框（Esc 清空） | 空 | 有模型 | `ConfigurationSettings.vue:3622-3630` | i18n:configurationSettings.searchModels |
+| S-configuration-158 | {模型名} + 自定义/工具/视觉/推理/媒体 徽标 + 上下文/输出 + 开关（点击进模型编辑） | 模型行 | 按选择集 | 每行一个模型 | `ConfigurationSettings.vue:3640-3688` | i18n:configurationSettings.modelCustomized · modelCapability* · modelContextK · modelOutputK |
+| S-configuration-159 | 没有匹配的模型 | 空态 | — | 搜索无匹配 | `ConfigurationSettings.vue:3689-3691` | i18n:configurationSettings.noMatchingModels |
+| S-configuration-160 | 还没有模型数据，点击「刷新」获取 | 空态（虚线框） | — | 无模型 | `ConfigurationSettings.vue:3693-3699` | i18n:configurationSettings.noModelsYet |
+| S-configuration-161 | 断开此提供商 | 按钮（ghost，红色，垃圾桶） | — | 预置供应商、非账户托管、可管理 | `ConfigurationSettings.vue:3705-3714` | i18n:configurationSettings.disconnectProvider |
+| S-configuration-162 | 断开提供商 | 确认弹窗标题 | — | 点「断开此提供商」 | `ConfigurationSettings.vue:3727` | i18n:configurationSettings.disconnectProviderTitle |
+| S-configuration-163 | 确定要断开 "{name}" 吗？将清除已保存的 API 密钥和模型列表，提供商配置仍会保留以便之后重新连接。 | 确认弹窗描述 | — | 同上 | `ConfigurationSettings.vue:3729-3731` | i18n:configurationSettings.disconnectProviderDescription |
+| S-configuration-164 | 取消 / 断开连接 | 弹窗两个按钮 | — | 同上 | `ConfigurationSettings.vue:3733-3734` | i18n:common.cancel · configurationSettings.disconnect |
+| S-configuration-165 | 删除此提供商 | 按钮（ghost，红色，垃圾桶） | — | 自定义供应商 | `ConfigurationSettings.vue:3745-3754` | i18n:configurationSettings.deleteProvider |
+| S-configuration-166 | 删除提供商 | 确认弹窗标题 | — | 点「删除此提供商」 | `ConfigurationSettings.vue:3748-3750` | i18n:configurationSettings.deleteProviderTitle |
+| S-configuration-167 | 确定要删除 "{name}" 吗？删除后它会从提供商列表和聊天模型列表中移除。 | 确认弹窗描述 | — | 同上 | `ConfigurationSettings.vue:3751-3753` | i18n:configurationSettings.deleteProviderDescription |
+| S-configuration-168 | 取消 / 删除 | 弹窗两个按钮 | — | 同上 | `ConfigurationSettings.vue:3763-3764` | i18n:common.cancel · i18n:common.delete |
+| S-configuration-169 | 选择一个提供商查看详情 | 空态文案（居中，h-32） | — | 详情面板无选中供应商 | `ConfigurationSettings.vue:3766-3770` | i18n:configurationSettings.selectProviderDetail |
+
+### 「添加模型」命令面板（CommandDialog）
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-170 | 添加模型 | 命令面板标题 | — | 点「添加模型」 | `ConfigurationSettings.vue:3775-3779` | i18n:configurationSettings.addModel |
+| S-configuration-171 | 搜索模型... | 面板描述 + 搜索输入框占位 | 空 | 同上 | `ConfigurationSettings.vue:3778` · `:3781-3785` | i18n:inputArea.searchModels |
+| S-configuration-172 | 添加自定义模型 | 首条命令项（加号图标） | 选中第 0 项 | 面板打开 | `ConfigurationSettings.vue:3787-3801` | i18n:configurationSettings.addCustomModel |
+| S-configuration-173 | 从空白配置开始；搜索内容会预填为模型 ID。 | 项说明 | — | 同上 | `ConfigurationSettings.vue:3798` | i18n:configurationSettings.addCustomModelDescription |
+| S-configuration-174 | 使用模板创建 | 分组小标题 | — | 面板打开 | `ConfigurationSettings.vue:3803` | i18n:configurationSettings.createFromTemplate |
+| S-configuration-175 | 选择预设配置作为起点，保存前仍可修改所有字段。 | 分组说明 | — | 同上 | `ConfigurationSettings.vue:3804-3806` | i18n:configurationSettings.createFromTemplateDescription |
+| S-configuration-176 | 没有匹配的模型 | 空态 | — | 有搜索词且无匹配模板 | `ConfigurationSettings.vue:3808-3813` | i18n:configurationSettings.subagentModelNoMatches |
+| S-configuration-177 | {供应商名} + {模板数} | 供应商分组按钮（可折叠，aria-expanded） | 展开状态视脚本 | 每个供应商一组 | `ConfigurationSettings.vue:3819-3837` | 运行期 |
+| S-configuration-178 | {模型名} + {model.id} · 工具/视觉/推理/媒体 | 模板项（CommandItem，缩进） | — | 该组合展开 | `ConfigurationSettings.vue:3838-3858` | i18n:configurationSettings.modelCapability* |
+
+### 「模型编辑」弹窗
+
+| 元素 ID | 名称（界面文案原文） | 控件 | 默认 | 条件 | 定位 | 证据 |
+|---|---|---|---|---|---|---|
+| S-configuration-179 | 修改模型 / 添加模型 | 弹窗标题 | 修改模型 | 打开模型编辑 | `ConfigurationSettings.vue:3870-3872` | i18n:configurationSettings.editModel · addModel |
+| S-configuration-180 | {模板来源 / 供应商名 / 表单名称} | 弹窗描述 | — | 同上 | `ConfigurationSettings.vue:3874-3876` | 运行期 |
+| S-configuration-181 | 模型 ID | 标签 + 输入框（编辑态禁用） | 当前值 | 弹窗打开 | `ConfigurationSettings.vue:3882-3884` | i18n:configurationSettings.modelId |
+| S-configuration-182 | 显示名称 | 标签 + 输入框 | 当前值 | 同上 | `ConfigurationSettings.vue:3885-3887` | i18n:configurationSettings.modelDisplayName |
+| S-configuration-183 | 上下文长度 | 标签 + 数字输入（inputmode=numeric） | 当前值 | 同上 | `ConfigurationSettings.vue:3888-3890` | i18n:configurationSettings.modelContextWindow |
+| S-configuration-184 | 最大输出 | 标签 + 数字输入 | 当前值 | 同上 | `ConfigurationSettings.vue:3891-3893` | i18n:configurationSettings.modelMaxOutput |
+| S-configuration-185 | 对话端点 | 标签 + 下拉（自动 + 各端点类型） | 自动 | New API 供应商且可编辑端点 | `ConfigurationSettings.vue:3899-3910` · 标签 `:212-223` | i18n:configurationSettings.modelChatEndpoint · i18n:inputArea.serviceTier.auto |
+| S-configuration-186 | 已检测: {endpoints} | 说明文案 | — | 有已检测端点 | `ConfigurationSettings.vue:3912-3916` | i18n:configurationSettings.modelDetectedEndpoints |
+| S-configuration-187 | 此处不支持: {endpoints} | 说明文案 | — | 有不支持端点 | `ConfigurationSettings.vue:3917-3921` | i18n:configurationSettings.modelUnsupportedEndpoints |
+| S-configuration-188 | 工具 | 能力开关行（label + switch） | 视模型 | 弹窗打开 | `ConfigurationSettings.vue:3925-3927` | i18n:configurationSettings.modelCapabilityTools |
+| S-configuration-189 | 视觉 | 能力开关行 | 视模型 | 同上 | `ConfigurationSettings.vue:3929-3931` | i18n:configurationSettings.modelCapabilityVision |
+| S-configuration-190 | 推理 | 能力开关行 | 视模型 | 同上 | `ConfigurationSettings.vue:3933-3935` | i18n:configurationSettings.modelCapabilityReasoning |
+| S-configuration-191 | 媒体能力 | 分组开关行（switch） | 关 | 弹窗打开 | `ConfigurationSettings.vue:3939-3941` | i18n:configurationSettings.modelCapabilityMedia |
+| S-configuration-192 | 选择该模型可用于哪些媒体操作。 | 说明文案 | — | 同上 | `ConfigurationSettings.vue:3943-3945` | i18n:configurationSettings.modelCapabilityMediaDescription |
+| S-configuration-193 | 图像 / 视频 / 音频 / 其他 | 媒体能力分组标签（4 组） | — | 媒体能力开关打开 | `ConfigurationSettings.vue:3948` · 分组 `:120-156` | i18n:configurationSettings.modelCapabilityGroup* |
+| S-configuration-194 | 图像生成 / 图像编辑 / 图像增强 / 视频生成 / 视频编辑 / 视频增强 / 语音合成 / 语音转写 / 音乐生成 / 音频生成 / 素材生成 / 动作生成 | 媒体能力复选框项（label + checkbox） | 视模型 | 同上 | `ConfigurationSettings.vue:3951-3962` | i18n:configurationSettings.modalityCapability.* |
+| S-configuration-195 | 思考强度 | 标签 | — | 推理开关打开 | `ConfigurationSettings.vue:3968` | i18n:inputArea.effort.submenuTitle |
+| S-configuration-196 | 关闭 / 极低 / 低 / 中 / 高 / 极高 / 最高 | 强度按钮组（选中为主按钮） | 视模型 | 同上 | `ConfigurationSettings.vue:3970-3982` | i18n:inputArea.reasoning.* |
+| S-configuration-197 | {模型表单错误原文} | 错误条（destructive） | — | 校验失败 | `ConfigurationSettings.vue:3985-3992` | i18n:configurationSettings.modelIdRequired · modelIdDuplicate · modelLimitInvalid · modelCapabilityMediaRequired · modelCapabilityMediaUnsupported |
+| S-configuration-198 | 删除 | 按钮（ghost，红色，垃圾桶） | — | 编辑态且可删除该模型 | `ConfigurationSettings.vue:4001-4011` | i18n:common.delete |
+| S-configuration-199 | 还原默认 | 按钮（ghost，回退图标） | — | 可还原（自定义过该模型） | `ConfigurationSettings.vue:4012-4021` | i18n:configurationSettings.resetModelConfig |
+| S-configuration-200 | 取消 | 按钮（outline，sm） | — | 弹窗底部 | `ConfigurationSettings.vue:4024` | i18n:common.cancel |
+| S-configuration-201 | 保存 | 按钮（sm，保存中转圈） | — | 弹窗底部 | `ConfigurationSettings.vue:4025-4028` | i18n:common.save |
+
+本节元素数：201
+
+本轮自检：加载骨架到左右分栏；左栏搜索（空/有词/清除）、两个分组折叠、每项 ●/○ 状态、「添加」入口显隐、窄屏返回；六种详情形态逐一走过——添加自定义（5 协议单选、5 个输入、User-Agent 说明、模型全选三态、添加/刷新/搜索/清除、模型行五类徽标与限额、两种空态、错误、取消/保存）；Codex OAuth（未登录/等待浏览器/已连接/已禁用四态 + 错误 + 模型区两空态）；Grok device flow（未登录/已禁用/等待设备/已连接 + 错误 + 无模型空态）；账户托管（两种横幅说明 + 模型区 + 两按钮）；通用托管 OAuth（四种状态 + 设备码/浏览器两套等待 + 已连接 + 模型空态）；未配置 setup（Bedrock 与普通两路、连接并获取/保存）；已配置（自定义与预置两路凭据编辑、基础 URL 可编辑/只读、用量区块五种凭据模式 + 测试/保存 + 用量摘要 + 错误、模型区四态、断开/删除两个确认弹窗）；无选中空态；「添加模型」命令面板（自定义项、模板分组折叠、无匹配空态、模板项徽标）；模型编辑弹窗（五个基础字段、New API 端点选择与已检测/不支持、三个能力开关、媒体能力分组 4×复选框、思考强度按钮组、错误、删除/还原默认/取消/保存）。
+
+---
+
+## 汇总（19 节全覆盖）
+
+| # | 节（导航顺序） | 元素数 |
+|---|---|---|
+| — | S-00 设置壳层与导航（非 19 节之一） | 21 |
+| 1 | account 账户 | 82 |
+| 2 | usage 用量 | 55 |
+| 3 | personalization 个性化 | 85 |
+| 4 | appearance 外观 | 83 |
+| 5 | general 通用 | 102 |
+| 6 | keybindings 快捷键 | 19 |
+| 7 | configuration 模型供应 | 201 |
+| 8 | modality 多模态 | 79 |
+| 9 | runtime 运行环境 | 34 |
+| 10 | mcp MCP | 138 |
+| 11 | notifications 通知 | 8 |
+| 12 | pets 宠物 | 36 |
+| 13 | sandbox 权限 | 40 |
+| 14 | git Git | 24 |
+| 15 | hooks Hooks | 65 |
+| 16 | pluginSettings 插件设置 | 49 |
+| 17 | externalAgents 外部 Agent | 19 |
+| 18 | archived 归档会话 | 32 |
+| 19 | about 关于 | 37 |
+| — | **19 节小计** | **1188** |
+| — | **含壳层合计** | **1209** |
+
+覆盖情况：`components/settings/sections.ts` 的 19 个 `SettingsSectionId` 全部有对应小节；每节表格连续编号 1..N、无重号缺号；每节末有「本节元素数」与「本轮自检」。
+
+口径执行记录：
+- 下拉/选择器选项合并为一行，但全部选项文案逐项写在「名称」列（如协议 5 项、代码主题 11 项、打开应用 17 项、语言 11 项、皮肤位置 9 项）。
+- S-00 保留并标注非 19 节之一。
+- 共用组件结构只穷举一遍（`SubagentModelSetting` 弹窗、`AccountActivity`），实例分别占行并标差异。
+- 分隔线与无文案容器不计；纯骨架占位保留 1 行并注明「无文案」。
+- 第 7 列「证据」为固定列：`i18n:<键>` / `字面量` / `运行期`。
+- 源码中存在但渲染端无引用的 i18n 键（如 `keybindingsSettings.testCapture`、`permissionsSettings.resetTitle`）在对应节的「本轮自检」里注明「无对应界面元素，未计入」，可追溯、不静默丢弃。
