@@ -28,9 +28,9 @@ import (
 // 只保留可丢的界面状态（mcpScreen）：当前视图、范围筛选、导入面板开合、
 // 每个服务器的开关位置、编辑器草稿。事实（服务器清单、状态、工具数、
 // 警告、认证、插件来源）归 App Server：连着 Source 时清单每帧从
-// Extensions().MCP 读（unimported 时用运行时实测的那一条做样例），开关走
-// SetExtensionEnabled("mcp")。刷新 / 重读没有单独的 Intents：清单随扩展读数
-// 重读（见 settings_mcp 的分支说明）。
+// Extensions().MCP 读，没有 Source（-demo）时用运行时实测的那一条做样例；
+// 服务器开关走 SetExtensionEnabled("mcp")。没有单独的「重新加载」Intents：
+// 清单随扩展读数重读，所以本屏不摆刷新按钮。
 //
 // # 未实现分支（清单里条件成立才出现的行）
 //
@@ -49,7 +49,6 @@ import (
 //     的按钮。
 //   - 导入面板的发现结果、预览、应用（S-mcp-113 … 138）：要 App Server 的
 //     discover / preview / apply 能力，本屏只渲染面板骨架，两个入口为禁用态。
-
 //
 // 差异：参考产品的「了解更多。」与「文档」在悬停时加下划线，框架的文本没有
 // 下划线装饰，本屏只保留链接色（登记为可接受偏差）。
@@ -191,9 +190,11 @@ type mcpServer struct {
 	connected  bool
 	inspect    bool
 	disconnect bool
-	// command 与 transport 是编辑器带入的原始配置（事实）；
+	// command / args / url / transport 是编辑器带入的原始配置（事实）；
 	// 样例行只有名字与范围。
 	command   string
+	args      []string
+	url       string
 	transport string
 }
 
@@ -218,7 +219,8 @@ func (a *App) mcpServers() ([]mcpServer, ExtListSnapshot) {
 			id: item.ID, name: item.Name, scope: item.Source, status: item.Status,
 			tools: item.Tools, enabled: item.Enabled, connected: item.Connected,
 			warning: item.Error, sse: item.Transport == "sse",
-			command: item.Command, transport: item.Transport,
+			command: item.Command, args: item.Args, url: item.URL,
+			transport: item.Transport,
 			// 查看连接要 inspect 能力、断开要 disconnect 能力：两份都没有，按钮
 			// 照既有形态渲染，点击不写事实。
 			inspect: true, disconnect: true,
@@ -322,7 +324,7 @@ func (a *App) mcpListBlock(c *gui.Context) {
 		}
 		mcpScopeRow(c)
 		mcpReadState(c, list)
-		a.mcpServerList(c, rows, list)
+		a.mcpServerList(c, rows)
 	})
 }
 
@@ -494,7 +496,7 @@ func mcpSelect(c *gui.Context, selected *int, options []string, label string, wi
 }
 
 // mcpServerList 是服务器列表（S-mcp-16 … 25）与两种空态。
-func (a *App) mcpServerList(c *gui.Context, rows []mcpServer, list ExtListSnapshot) {
+func (a *App) mcpServerList(c *gui.Context, rows []mcpServer) {
 	if len(rows) == 0 {
 		mcpEmpty(c, mcpCopyNoServers)
 		return
@@ -693,6 +695,8 @@ func (s *mcpState) openEditor(server mcpServer) {
 		s.draft.transport = mcpTransportStdio
 	}
 	s.draft.command = server.command
+	s.draft.args = append([]string(nil), server.args...)
+	s.draft.url = server.url
 }
 
 // mcpEditor 是「连接自定义 MCP」表单：名称、范围、传输类型与两组字段。

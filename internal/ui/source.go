@@ -505,16 +505,21 @@ type ExtItemSnapshot struct {
 	Status string
 	Error  string
 	// Event/Command/Source 是钩子的原始事实，用于单项启停时重建文档；
-	// Matcher/Type/Timeout/Async 是钩子目录的其余扁平字段（S-hooks-20 的行）。
-	Event   string
-	Command string
-	Source  string
-	Matcher string
-	Type    string
-	Timeout int
-	Async   bool
-	// Transport/Tools/Connected 是工具服务器（MCP）的事实；其余四类为空。
+	// Matcher/Type/Timeout/Async/OnFailure 是钩子目录的其余扁平字段
+	// （S-hooks-20 的行）。
+	Event     string
+	Command   string
+	Source    string
+	Matcher   string
+	Type      string
+	Timeout   int
+	Async     bool
+	OnFailure string
+	// Transport/Args/URL/Tools/Connected 是工具服务器（MCP）的事实；
+	// 其余四类为空（Command 两者共用：钩子命令 / stdio 启动命令）。
 	Transport string
+	Args      []string
+	URL       string
 	Tools     int
 	Connected bool
 }

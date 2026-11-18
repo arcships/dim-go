@@ -23,16 +23,6 @@ func (a *App) rpOpenPreview(p string) {
 	a.rpOpen(tabFilePreview)
 }
 
-// rpPreviewSnapshot 取当前文件的预览读数：连着 Source 时读 PanelFacts，
-// 否则给样例。refresh 来自「重新加载 / 重试」（一次点击只重读一次）。
-func (a *App) rpPreviewSnapshot(p string) PreviewSnapshot {
-	facts, ok := a.rpFacts()
-	if !ok {
-		return rpSamplePreview(p)
-	}
-	return facts.Preview(PreviewRequest{Cwd: a.rpCwd(), Path: p})
-}
-
 // rpPreviewPage 是预览页本体。
 func (a *App) rpPreviewPage(c *gui.Context) {
 	t := c.Theme()
@@ -46,7 +36,7 @@ func (a *App) rpPreviewPage(c *gui.Context) {
 				"在文件页点一个文件就能在这里看它的内容。")
 			return
 		}
-		snapshot := a.rpPreviewSnapshotWithRefresh(s.previewPath, refresh)
+		snapshot := a.rpPreviewSnapshot(s.previewPath, refresh)
 		a.rpPreviewHeader(c, t, snapshot)
 		rpRule(c)
 		gui.Scroll(c).Grow(1).Label("文件内容").Children(func() {
@@ -57,8 +47,9 @@ func (a *App) rpPreviewPage(c *gui.Context) {
 	})
 }
 
-// rpPreviewSnapshotWithRefresh 取一次预览读数；refresh 为真时要求重读。
-func (a *App) rpPreviewSnapshotWithRefresh(p string, refresh bool) PreviewSnapshot {
+// rpPreviewSnapshot 取一次预览读数：连着 Source 时读 PanelFacts，否则给样例。
+// refresh 来自「重新加载 / 重试」（一次点击只重读一次）。
+func (a *App) rpPreviewSnapshot(p string, refresh bool) PreviewSnapshot {
 	facts, ok := a.rpFacts()
 	if !ok {
 		return rpSamplePreview(p)

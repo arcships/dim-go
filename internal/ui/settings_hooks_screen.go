@@ -2,6 +2,7 @@ package ui
 
 import (
 	"encoding/json"
+	"strconv"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -17,8 +18,9 @@ import (
 // 当前可见分支是 App Server 目录（HooksAppServerCatalog）：来源与条目连着
 // Source 时每帧从 Extensions().Hooks 分组读（按 source 前缀分成用户 / 项目 /
 // 插件三组），没有 Source（-demo）时用样例。屏内只保留**可丢的界面状态**
-// （hooksScreen）：编辑框开合、草稿与保存失败文本。写事实（hooks.save、
-// hooks.set_enabled）还没有对应的 Intents 方法，控件照渲染、点击只改本屏状态。
+// （hooksScreen）：编辑框开合、草稿与保存失败文本。写事实本屏没有接到控件上：
+// 条目行没有单项开关（参考形态如此），项目总开关的写入（hooks.set_enabled）
+// 不在 Intents 里，所以这两处都只改本屏状态。
 //
 // # 未实现分支
 //
@@ -44,7 +46,9 @@ type hooksEntry struct {
 	async   bool
 	command string
 	matcher string
-	timeout string
+	// timeout 是钩子目录给的上限原值（0 表示没有限制）；单位由服务端文档定，
+	// 本屏只原样展示这个数，不自行加单位。
+	timeout int
 	onFail  string
 }
 
@@ -113,6 +117,8 @@ func (a *App) hooksData() ([]hooksSource, ExtListSnapshot) {
 			async:   item.Async,
 			command: item.Command,
 			matcher: item.Matcher,
+			timeout: item.Timeout,
+			onFail:  item.OnFailure,
 		})
 	}
 	return sources, list
@@ -196,8 +202,6 @@ const (
 	hkCopyRefresh    = "刷新"
 	hkCopyLoadError  = "加载设置失败"
 	hkCopyNoCatalog  = "服务端没有声明钩子目录能力，这一屏只有本端能确认的部分。"
-	hkCopyLoading    = "正在加载..."
-	hkCopyAllOff     = "用户文档已关闭所有钩子。"
 	hkCopyWarning    = "钩子会在这些生命周期事件上运行 shell 命令。"
 	hkCopySources    = "来源"
 	hkCopyEntries    = "条目"
@@ -452,8 +456,8 @@ func hkEntryMetaLine(e *hooksEntry) string {
 	if e.matcher != "" {
 		parts = append(parts, "匹配器 "+e.matcher)
 	}
-	if e.timeout != "" {
-		parts = append(parts, "超时 "+e.timeout)
+	if e.timeout > 0 {
+		parts = append(parts, "超时 "+strconv.Itoa(e.timeout))
 	}
 	if e.onFail != "" {
 		parts = append(parts, "失败时 "+e.onFail)
@@ -522,7 +526,7 @@ func hkUserDoc(entries []hooksEntry) string {
 		if e.matcher != "" {
 			item["matcher"] = e.matcher
 		}
-		if e.timeout != "" {
+		if e.timeout > 0 {
 			item["timeout"] = e.timeout
 		}
 		if e.async {

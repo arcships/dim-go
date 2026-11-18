@@ -260,3 +260,24 @@ func (r *recordIntents) UpdateProvider(_ context.Context, id, name, baseURL, api
 func joinedText(tt *gui.Tester) string {
 	return strings.Join(tt.Texts(), "\n")
 }
+
+// TestSettingsScreensDemoKeepSamples 断言没有 Source（-demo）时三屏仍是样例：
+// 截图与走查要能出图，样例不是事实。
+func TestSettingsScreensDemoKeepSamples(t *testing.T) {
+	cases := []struct {
+		section settingsSectionID
+		want    string
+	}{
+		{secMCP, "dim-desktop-browser"},
+		{secHooks, "native:user/hooks:1"},
+		{secProviders, configDimName},
+	}
+	for _, tc := range cases {
+		resetSettingsScreenState()
+		app := NewApp(Options{State: StateDefault})
+		tt := openSettingsSection(t, app, tc.section)
+		if !strings.Contains(joinedText(tt), tc.want) {
+			t.Fatalf("分节 %d 在 -demo 下没有样例 %q", tc.section, tc.want)
+		}
+	}
+}

@@ -618,16 +618,17 @@ func (w *App) Extensions() ui.ExtensionsSnapshot {
 	out.Hooks = ui.ExtListSnapshot{ReadError: hooks.ReadError, CapabilityMissing: hooks.CapabilityMissing}
 	for _, item := range hooks.Items {
 		out.Hooks.Items = append(out.Hooks.Items, ui.ExtItemSnapshot{
-			ID:      item.ID,
-			Name:    firstNonEmpty(item.Name, item.ID),
-			Enabled: item.Enabled,
-			Event:   item.Event,
-			Command: item.Command,
-			Source:  string(item.Source),
-			Matcher: item.Matcher,
-			Type:    item.Type,
-			Timeout: item.Timeout,
-			Async:   item.Async,
+			ID:        item.ID,
+			Name:      firstNonEmpty(item.Name, item.ID),
+			Enabled:   item.Enabled,
+			Event:     item.Event,
+			Command:   item.Command,
+			Source:    string(item.Source),
+			Matcher:   item.Matcher,
+			Type:      item.Type,
+			Timeout:   item.Timeout,
+			Async:     item.Async,
+			OnFailure: item.OnFailure,
 		})
 	}
 	servers := service.ToolServerSnapshot()
@@ -641,6 +642,8 @@ func (w *App) Extensions() ui.ExtensionsSnapshot {
 			Command:   item.Command,
 			Source:    string(item.Source),
 			Transport: string(item.Transport),
+			Args:      append([]string(nil), item.Args...),
+			URL:       item.URL,
 			Tools:     item.ToolCount,
 			Connected: item.Connected,
 		})
