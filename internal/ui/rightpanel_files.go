@@ -60,7 +60,7 @@ func (a *App) rpFilterRow(c *gui.Context) {
 			})
 	})
 	// 焦点在框内按 Esc：退出搜索态并清空查询（F-01、R-RF-007）。
-	if s.filter != "" && c.Shortcut(0, gui.KeyEscape) {
+	if s.filter != "" && c.FocusTakesText() && c.Shortcut(0, gui.KeyEscape) {
 		s.filter = ""
 		s.searching = false
 	}
@@ -156,7 +156,7 @@ func (a *App) rpDirRow(c *gui.Context, node *rpNode, p string) {
 	}
 	row := gui.ButtonBase(c).Height(panelRowHeight2).Padding(0, panelRowPadH).
 		Gap(panelRowGap).AlignItems(gui.Center).Radius(radiusSmall).
-		Label("目录，" + node.name + "，"+state).Cursor(gui.CursorPointer)
+		Label("目录，" + node.name + "，" + state).Cursor(gui.CursorPointer)
 	switch {
 	case row.Pressed():
 		row = row.Background(t.SurfacePressed)

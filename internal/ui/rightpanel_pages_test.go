@@ -128,6 +128,27 @@ func clickAccess(t *testing.T, tt *gui.Tester, name string) {
 	tt.Frame()
 }
 
+// 标签条：悬停标签出 ×；点 × 关掉最后一页后右栏自动收起（R-TB-029）。
+func TestRightPanelTabClose(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
+	tab, ok := tt.Find("文件")
+	if !ok {
+		t.Fatal("找不到文件标签")
+	}
+	tt.Move(tab.X+tab.W/2, tab.Y+tab.H/2)
+	tt.Frame()
+	tt.Frame()
+	closeBox, ok := tt.Access("关闭标签页：文件")
+	if !ok {
+		t.Fatal("悬停标签没有出现关闭入口")
+	}
+	tt.ClickAt(closeBox.Bounds.X+closeBox.Bounds.W/2, closeBox.Bounds.Y+closeBox.Bounds.H/2)
+	tt.Frame()
+	if app.rightOpen {
+		t.Fatal("关掉最后一页后右栏没有收起")
+	}
+}
+
 // 标签条：展开面板占满主区，恢复后回到并排；拖拽手柄改宽度。
 func TestRightPanelExpandAndResize(t *testing.T) {
 	app, tt := rightTester(t, tabFiles)

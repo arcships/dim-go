@@ -132,7 +132,7 @@ func (a *App) sideChatComposer(c *gui.Context) {
 		}
 		if iconAction(c, iconButtonSpec{
 			icon: iconArrowUp, label: label, tip: label + " · Enter", size: panelSendSize,
-			disabled: draft == "" || closed || sending,
+			disabled: draft == "" || closed,
 		}, true) {
 			a.sendSideChat()
 		}

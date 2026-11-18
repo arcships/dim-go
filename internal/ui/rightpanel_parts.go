@@ -134,13 +134,13 @@ type rightPanelState struct {
 
 	// 浮层： ＋新建（可指定插入位置）、标签右键、行右键、范围下拉、提交菜单、
 	// 分支子菜单。
-	newMenu     bool
+	newMenu      bool
 	pendingAfter int
-	tabMenu     map[int]*bool
-	rowMenu     map[string]*bool
-	scopeOpen   bool
-	gitOpen     bool
-	branchOpen  bool
+	tabMenu      map[int]*bool
+	rowMenu      map[string]*bool
+	scopeOpen    bool
+	gitOpen      bool
+	branchOpen   bool
 
 	// revertPath 非空时「还原未暂存改动」的确认框在场。
 	revertPath string
@@ -316,12 +316,10 @@ func (a *App) rpTabBar(c *gui.Context, width float32) {
 	a.rpTabKeys(c)
 	gui.Row(c).Height(HeaderHeight).Shrink(0).Padding(space1, space3).
 		AlignItems(gui.Center).Gap(space1).Label("右栏标签").Children(func() {
-		gui.ScrollHorizontal(c).Grow(1).Children(func() {
-			gui.Row(c).AlignItems(gui.Center).Gap(space1).Children(func() {
-				for i, tab := range s.tabs {
-					a.rpTabItem(c, tab, i)
-				}
-			})
+		gui.Row(c).Grow(1).AlignItems(gui.Center).Gap(space1).Children(func() {
+			for i, tab := range s.tabs {
+				a.rpTabItem(c, tab, i)
+			}
 		})
 		a.rpNewTabButton(c)
 		a.rpExpandButton(c)
@@ -381,7 +379,7 @@ func (a *App) rpTabItem(c *gui.Context, tab, index int) {
 			typeMicro.style(t, gui.Text(c, rpShortcut(index+1))).TextColor(t.TextMuted)
 		case hovered:
 			closeBox = gui.Box(c).Width(panelTabIcon).Height(panelTabIcon).Shrink(0).
-				Label("关闭标签页："+label).AccessHidden(true)
+				Label("关闭标签页：" + label)
 			closeBox.DrawOver(func(p *gui.Painter, r gui.Rect) {
 				p.Icon(iconXMark, r, t.TextMuted)
 			})
@@ -594,7 +592,10 @@ func rpShortcut(n int) string {
 // rpMenuPanel 是浮层与菜单的面板样式：surface 面、卡片圆角、1px 主题描边、投影。
 func rpMenuPanel(panel gui.Element, t *gui.Theme, width float32) {
 	panel.MinWidth(width).Padding(space1).Radius(radiusCard).Background(t.Surface).
-		Border(strokeHairline, t.Border).Shadow(0, 4, 16, 0, colorShadow.in(t))
+		Shadow(0, 4, 16, 0, colorShadow.in(t))
+	panel.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, radiusCard, strokeHairline)
+	})
 }
 
 // rpRule 是一条 1px 分隔线：用 1px 高的面差表达，不新增自绘描边。

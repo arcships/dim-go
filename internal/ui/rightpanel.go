@@ -95,9 +95,9 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 	})
 }
 
-// rightPanelBody 按当前标签画面板。文件 / 改动 / 目标三面保持既有实现，
-// 后四面见本文件的 tasksPanel、terminal.go、rightpanel_sidechat.go 与
-// rightpanel_subagent.go。
+// rightPanelBody 按当前标签画面板：文件与改动见 rightpanel_files.go /
+// rightpanel_changes.go，目标与后四面见本文件的 goalPanel、rightpanel_tasks.go、
+// terminal.go、rightpanel_sidechat.go 与 rightpanel_subagent.go。
 func (a *App) rightPanelBody(c *gui.Context) {
 	switch a.rightTab {
 	case tabFiles:

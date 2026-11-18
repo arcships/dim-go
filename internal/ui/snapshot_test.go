@@ -226,6 +226,30 @@ var screenCases = []screenCase{
 		a.rightOpen, a.rightTab = true, tabSubagent
 		a.panels.subagentReady = true
 	}},
+	// 右栏标签条 + 文件页 + 改动页（本批重建）。
+	{name: "panel-files", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabFiles
+	}},
+	{name: "panel-files-expanded", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabFiles
+		a.rp().dirOpen["internal"] = true
+		a.rp().dirOpen["internal/ui"] = true
+	}},
+	{name: "panel-review", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabChanges
+	}},
+	{name: "panel-review-scope", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabChanges
+		a.rp().scopeOpen = true
+	}},
+	{name: "panel-review-diff", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabChanges
+		a.rp().diffOpen["internal/ui/composer.go"] = true
+	}},
+	{name: "panel-add-tab", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabFiles
+		a.rp().newMenu = true
+	}},
 	// UI-19：无系统标题栏的窗口，红绿灯落在左栏顶部上方的那条里；标题行是自绘的。
 	{name: "variant-titlebar", state: StateDefault, titleBar: &gui.TitleBar{Height: 28, Left: 78}},
 	// 暗色不是另一个状态，是同一批 token 的另一套值（U2 §3.3）。
