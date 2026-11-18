@@ -66,10 +66,8 @@ const (
 	mcpPanelPadY  = screenSpace35 // 面板与空态卡的上下内边距（14）
 	mcpEditorGap  = screenSpace5  // 编辑器块间 20
 	mcpScopeW     = 140           // 范围下拉 140×32
-	mcpNameW      = 280           // 名称输入 280×32
 	mcpActionSize = screenControlH
 	mcpTinyIcon   = 12
-	mcpTextareaH  = 100
 )
 
 // 字阶（design-baseline §2）：分组标题 13/600、名称 12.25/500、元信息 11、
@@ -91,6 +89,7 @@ var (
 	mcpIconExternal = mustSVG(`<path d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"/>`)
 	mcpIconActivity = mustSVG(`<path d="M3 12h3.75l2.25-6 4.5 12 2.25-6H21"/>`)
 	mcpIconPower    = mustSVG(`<path d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9"/>`)
+	mcpIconWrench   = mustSVG(`<path d="M21.75 6.75a4.5 4.5 0 0 1-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 1 1-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 0 1 6.336-4.486l-3.276 3.276a3.004 3.004 0 0 0 2.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852Z"/><path d="M4.867 19.125h.008v.008h-.008v-.008Z"/>`)
 )
 
 // 本屏文案：逐字取自参考产品的 zh-CN（i18n:toolsSettings.*、common.*）。
@@ -158,11 +157,13 @@ const (
 	mcpCopySaveOff      = "保存需要 App Server 的 MCP 写入能力（未接入）"
 )
 
-// 视图与传输类型。
+// 视图与传输类型：两组常量分开声明，各自的 iota 从 0 起。
 const (
 	mcpViewList = iota
 	mcpViewEdit
+)
 
+const (
 	mcpTransportStdio = iota
 	mcpTransportHTTP
 	mcpTransportSse
@@ -218,6 +219,7 @@ type mcpState struct {
 	view       int
 	scope      int
 	importOpen bool
+	editing    bool // 编辑器打开的是已有条目（名称不可改）
 	enabled    map[string]*bool
 	draft      mcpDraft
 }
@@ -515,11 +517,11 @@ func mcpServerCard(c *gui.Context, index int) {
 					}
 					if server.warning != "" {
 						mcpMetaStyle.style(t, gui.Text(c, server.warning)).TextColor(t.Danger).
-							SingleLine()
+							SingleLine().Grow(1)
 					}
 					if server.auth != "" {
 						mcpMetaStyle.style(t, gui.Text(c, server.auth)).TextColor(t.Danger).
-							SingleLine()
+							SingleLine().Grow(1)
 					}
 				})
 			})
@@ -560,7 +562,7 @@ func mcpToolCount(c *gui.Context, tools int) {
 	t := c.Theme()
 	label := fmt.Sprintf("%d 个工具", tools)
 	gui.Row(c).Shrink(0).Gap(space1).AlignItems(gui.Center).Label(label).Children(func() {
-		screenIcon(c, iconWrench, screenIconMicro, t.TextMuted, "wrench")
+		screenIcon(c, mcpIconWrench, screenIconMicro, t.TextMuted, "wrench")
 		mcpCountStyle.style(t, gui.Text(c, fmt.Sprintf("%d", tools))).
 			TextColor(t.TextMuted).SingleLine()
 	})
@@ -596,6 +598,7 @@ func mcpIconAction(c *gui.Context, icon *gui.SVG, label string, disabled bool) b
 // openEditor 进入编辑器：新建时草稿清空，配置某一条时带入名称与范围。
 func (s *mcpState) openEditor(serverName string) {
 	s.view = mcpViewEdit
+	s.editing = serverName != ""
 	s.draft = mcpDraft{}
 	for _, server := range mcpServers {
 		if server.name != serverName {
@@ -612,8 +615,10 @@ func (s *mcpState) openEditor(serverName string) {
 func mcpEditor(c *gui.Context) {
 	gui.Column(c).Shrink(0).Gap(mcpEditorGap).Children(func() {
 		mcpField(c, mcpCopyName, func() {
-			screenInput(c, &mcpScreen.draft.name, mcpCopyNameExample, mcpCopyName).
-				Width(mcpNameW)
+			name := screenInput(c, &mcpScreen.draft.name, mcpCopyNameExample, mcpCopyName)
+			if mcpScreen.editing {
+				name = name.Disabled(true)
+			}
 		})
 		mcpField(c, mcpCopyScope, func() {
 			mcpSelect(c, &mcpScreen.draft.scope,
@@ -629,7 +634,7 @@ func mcpEditor(c *gui.Context) {
 			mcpHTTPFields(c)
 		}
 		gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
-			if screenButton(c, mcpCopyCancel, mcpCopyCancel+"编辑 MCP 服务器", "", false, rowRegular) {
+			if screenButton(c, mcpCopyCancel, mcpCopyCancel+"编辑 MCP 服务器", "", false, screenControlH) {
 				mcpScreen.view = mcpViewList
 			}
 			mcpSaveButton(c, mcpCopySave)
@@ -775,9 +780,9 @@ func mcpRemoveAt(items *[]string, index int) {
 	*items = append((*items)[:index], (*items)[index+1:]...)
 }
 
-// mcpAddButton 是整宽的「添加 …」按钮（secondary，28 高）。
+// mcpAddButton 是整宽的「添加 …」按钮（secondary + 加号，32 高）。
 func mcpAddButton(c *gui.Context, label string, run func()) {
-	if screenButton(c, label, label, "", false, rowRegular) {
+	if mcpButton(c, iconPlus, "plus", label, false) {
 		run()
 	}
 }
@@ -786,7 +791,7 @@ func mcpAddButton(c *gui.Context, label string, run func()) {
 // 看起来能存的按钮）。
 func mcpSaveButton(c *gui.Context, label string) {
 	t := c.Theme()
-	b := gui.ButtonBase(c).Shrink(0).Height(rowRegular).
+	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).
 		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
 		Background(t.Accent).Label(label).Tooltip(mcpCopySaveOff).Disabled(true)
 	b.Children(func() {
