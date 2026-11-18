@@ -403,9 +403,9 @@ func mcpScopeRow(c *gui.Context) {
 func mcpSelect(c *gui.Context, selected *int, options []string, label string, width float32) {
 	t := c.Theme()
 	parts := gui.SelectBase[int](c, selected)
-	trigger := parts.Trigger.Shrink(0).Width(width).Height(screenControlH).
+	trigger := parts.Trigger.Shrink(0).AlignSelf(gui.Start).Width(width).Height(screenControlH).
 		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
-		Background(t.Background).Justify(gui.SpaceBetween).Label(label)
+		Background(t.Background).Justify(gui.SpaceBetween).Gap(screenSpace1).Label(label)
 	trigger.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})

@@ -59,7 +59,7 @@ func rtHeader(c *gui.Context, t *gui.Theme) {
 func rtRefreshButton(c *gui.Context, t *gui.Theme) {
 	accButton(c, accButtonSpec{
 		variant: accButtonOutline, height: rtButtonH, label: rtCopyRefresh,
-		tip: rtCopyRefresh,
+		tip: rtCopyRefresh, paddingX: rtPadBtnX,
 		children: func() {
 			gui.Row(c).Gap(rtIconGap).AlignItems(gui.Center).Children(func() {
 				accIcon(c, accIconRefresh, rtIconInline, t.Text, "refresh")
@@ -79,12 +79,12 @@ func rtErrorCard(c *gui.Context, t *gui.Theme) {
 		Role(gui.RoleStatus).Label(rtCopyError)
 	card.Children(func() {
 		typeSecondary.style(t, gui.Text(c, rtCopyError)).TextColor(t.Danger).
-			Selectable()
+			LineHeight(mdSmLine).Selectable()
 		// 「重试」左对齐、按内容取宽：卡是列容器，按钮要放进行里才不撑满。
 		gui.Row(c).Shrink(0).Children(func() {
 			accButton(c, accButtonSpec{
 				variant: accButtonOutline, height: rtButtonH, label: rtCopyRetry,
-				tip: rtCopyRetry,
+				tip: rtCopyRetry, paddingX: rtPadBtnX,
 				children: func() {
 					typeSecondary.style(t, gui.Text(c, rtCopyRetry)).TextColor(t.Text).
 						SingleLine()
@@ -113,10 +113,12 @@ func rtFeatureCard(c *gui.Context, t *gui.Theme) {
 					Role(gui.RoleHeading).Level(3).SingleLine()
 				gui.Spacer(c)
 				typeSecondary.style(t, gui.Text(c, rtCopyNotInstalled)).
-					TextColor(t.TextMuted).Role(gui.RoleStatus).Label(rtCopyNotInstalled)
+					TextColor(t.TextMuted).LineHeight(mdSmLine).
+					Role(gui.RoleStatus).Label(rtCopyNotInstalled)
 			})
 			typeSecondary.style(t, gui.Text(c, rtCopyOfficeCLIDesc)).
-				TextColor(t.TextMuted).Selectable().Margin(rtTextGap, 0, 0, 0)
+				TextColor(t.TextMuted).LineHeight(mdSmLine).Selectable().
+				Margin(rtTextGap, 0, 0, 0)
 			typeMicro.style(t, gui.Text(c, rtCopyOfficeCLIVersion)).
 				TextColor(t.TextMuted).SingleLine().Margin(rtTextGap, 0, 0, 0)
 			gui.Row(c).Shrink(0).Margin(rtButtonGap, 0, 0, 0).Children(func() {
@@ -141,6 +143,7 @@ const (
 	rtIconGap    = 7    // 刷新按钮内图标与文字之间
 	rtIconInline = 14   // 按钮内图标
 	rtButtonH    = 28   // h-8 / size="sm"：刷新、重试、安装
+	rtPadBtnX    = 10.5 // px-3：小按钮的左右内边距（参考 63×28）
 	rtErrorAlpha = 0.35 // 错误卡描边的不透明度（png 实测的浅红边）
 )
 

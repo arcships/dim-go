@@ -43,6 +43,32 @@ func (a *App) settingsContent(c *gui.Context) {
 		renderGeneral(c)
 	case secKeybindings:
 		renderKeybindings(c)
+	case secProviders:
+		renderConfiguration(c)
+	case secModality:
+		renderModality(c)
+	case secRuntime:
+		renderRuntime(c)
+	case secMCP:
+		renderMCP(c)
+	case secNotifications:
+		renderNotifications(c)
+	case secPets:
+		renderPets(c)
+	case secPermissions:
+		renderPermissions(c)
+	case secGit:
+		renderGit(c)
+	case secHooks:
+		renderHooks(c)
+	case secPluginSettings:
+		renderPluginSettings(c)
+	case secExternalAgents:
+		renderExternalAgents(c)
+	case secArchived:
+		renderArchived(c)
+	case secAbout:
+		renderAbout(c)
 	default:
 		settingsPlaceholder(c, section)
 	}

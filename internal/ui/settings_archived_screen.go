@@ -609,7 +609,7 @@ func arcDialogWidth(c *gui.Context) float32 {
 	return arcDialogW
 }
 
-// arcGroupCount 是分组头右侧的「{n} 条会话」。
+// arcGroupCount 是分组头右侧的「· {n} 条会话」。
 func arcGroupCount(n int) string {
-	return fmt.Sprintf(arcCopySessions, n)
+	return "· " + fmt.Sprintf(arcCopySessions, n)
 }

@@ -225,17 +225,15 @@ func gitLabelHint(c *gui.Context, label, hint string) {
 func gitSelect(c *gui.Context, selected *int, options []string, label string) {
 	t := c.Theme()
 	parts := gui.SelectBase[int](c, selected)
-	trigger := parts.Trigger.Shrink(0).Height(screenControlH).
+	trigger := parts.Trigger.Shrink(0).AlignSelf(gui.Start).Height(screenControlH).
 		Padding(gitSelectPadV, gitSelectPadH).Radius(screenRadiusCtl).
-		Background(t.Background).Label(label)
+		Background(t.Background).Gap(screenSpace1).Justify(gui.Start).Label(label)
 	trigger.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})
 	trigger.Children(func() {
-		gui.Row(c).Gap(screenSpace1).AlignItems(gui.Center).Children(func() {
-			gitValueStyle.style(t, gui.Text(c, options[*selected])).TextColor(t.Text).SingleLine()
-			screenIcon(c, screenIconChevronDown, screenIconMicro, t.TextMuted, "chevron-down")
-		})
+		gitValueStyle.style(t, gui.Text(c, options[*selected])).TextColor(t.Text).SingleLine()
+		screenIcon(c, screenIconChevronDown, screenIconMicro, t.TextMuted, "chevron-down")
 	})
 	parts.Popup(func(panel gui.Element) {
 		panel.Padding(space1).Radius(screenRadiusCard).Background(t.Background)

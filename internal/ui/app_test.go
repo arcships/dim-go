@@ -822,8 +822,12 @@ func TestSettingsNavAndSectionRouting(t *testing.T) {
 	if _, ok := tt.Find("宠物"); !ok {
 		t.Fatal("占位分节缺标题")
 	}
-	if _, ok := tt.Find("尚未按参考产品重建"); !ok {
-		t.Fatal("占位分节缺状态句")
+	// 19 节现在都已按参考产品重建：占位句不应再出现。
+	if _, ok := tt.Find("尚未按参考产品重建"); ok {
+		t.Fatal("分节已重建，不应再显示占位")
+	}
+	if _, ok := tt.Find("宠物"); !ok {
+		t.Fatal("宠物分节缺内容")
 	}
 }
 

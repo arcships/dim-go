@@ -51,7 +51,7 @@ func renderModality(c *gui.Context) {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Children(func() {
 				typeH2.style(t, gui.Text(c, mdCopyTitle)).TextColor(t.Text).
-					Role(gui.RoleHeading).Level(2).SingleLine()
+					Role(gui.RoleHeading).Level(1).SingleLine()
 				mdAlertBanner(c, t, mdCopyUnavailable).
 					Margin(mdPageGap, 0, 0, 0)
 				mdGroupsBlock(c, t).Margin(mdPageGap, 0, 0, 0)
@@ -425,7 +425,7 @@ func mdIconButton(c *gui.Context, t *gui.Theme, icon *gui.SVG, text, label strin
 	disabled bool) bool {
 	return accButton(c, accButtonSpec{
 		variant: accButtonOutline, height: mdFieldH, label: label, tip: label,
-		disabled: disabled,
+		paddingX: mdPickerPadX, disabled: disabled,
 		children: func() {
 			gui.Row(c).Gap(mdRowGap).AlignItems(gui.Center).Children(func() {
 				accIcon(c, icon, mdIconSmall, t.Text, "refresh")
@@ -440,7 +440,7 @@ func mdIconButton(c *gui.Context, t *gui.Theme, icon *gui.SVG, text, label strin
 func mdIconlessButton(c *gui.Context, t *gui.Theme, text string, disabled bool) bool {
 	return accButton(c, accButtonSpec{
 		variant: accButtonOutline, height: mdFieldH, label: text, tip: text,
-		disabled: disabled,
+		paddingX: mdPickerPadX, disabled: disabled,
 		children: func() {
 			typeSecondary.style(t, gui.Text(c, text)).TextColor(t.Text).SingleLine()
 		},
