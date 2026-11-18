@@ -2,172 +2,377 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
 )
 
-// sidebar 是 R1 左栏：入口区、会话列表（滚动）、账号与连接。
+// 左栏按参考产品重建：栏头（收起）→ 四个全局入口（新建会话 / 搜索 / 定时任务 /
+// 技能/插件）→ 列表（已置顶、列表头「会话」+ 添加工作区 + 视图菜单、工作区分组、
+// 会话行）→ 底部账户行（头像 + 名字 + 设置）。
+//
+// 结构对应清单 docs/domains/requirements/inventory-main-rt.md 区 2：
+// 2.1 栏头（LB-01、LB-10）、2.2 全局入口（LB-11–15）、2.3 置顶区（LB-16–23）、
+// 2.4 列表头（LB-24–33）、2.5 工作区组（LB-34–57）、2.7 会话行（LB-66–82）、
+// 2.7.1 行右键菜单（LB-107–112）、2.8 账户行（LB-83–100）。
+//
+// 参考产品的侧栏宽 360（DOM 实测）；本项目左栏宽是布局契约的 256（tokens.go 的
+// SidebarWidth），所以行宽按 256 收窄，行高、间距、字号、字号层级仍取基线常量。
 // 收起时留 12px 边条，点击边条展开。
 //
-// 窗口模式下，macOS 的红绿灯落在左栏顶部上方：顶部先留一条与控件同高的空带
-// （c.TitleBar().Height），这一条也是拖动窗口的把手，控件不会压住任何可点元素。
-// 全屏时 c.TitleBar() 为零，这条空带随之消失；标题行与主区不因此变动（UI-19）。
+// 窗口模式下 macOS 的红绿灯落在左栏顶部上方：顶部先留一条与控件同高的空带
+// （c.TitleBar().Height），这一条也是拖动窗口的把手。
 func (a *App) sidebar(c *gui.Context) {
+	if c.Shortcut(gui.Cmd, gui.KeyG) {
+		a.toggleSearch()
+	}
 	if a.sidebarCollapsed {
 		a.sidebarRail(c)
 		return
 	}
 	t := c.Theme()
-	header := func() {
-		if inset := titleBarInset(c.TitleBar()); inset > 0 {
-			gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位")
-		}
-		// 入口只有图标（UI-23：界面语是最后手段）：新建、搜索、收起左栏。
-		// 三个入口右对齐，读屏名照写，屏幕上不出现字。
-		gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).
-			Padding(space1, space2, space1, space2).
-			AlignItems(gui.Center).Gap(space1).Children(func() {
-			gui.Spacer(c)
-			if iconButton(c, iconButtonSpec{icon: iconPlus, label: "新建会话", size: rowCompact}) {
-				a.createSession()
-			}
-			if iconButton(c, iconButtonSpec{icon: iconSearch, label: "搜索", size: rowCompact}) {
-				a.searchOpen = !a.searchOpen
-				a.searchQuery = ""
-			}
-			// 会话操作入口放在头部：框架的 SidebarItem 会把子元素的点击吃掉，行内
-			// 「…」按不了（见 F34 的被否替代）。它作用于当前选中的会话。
-			a.sessionActionsEntry(c)
-			if iconButton(c, iconButtonSpec{icon: iconChevronL, label: "收起左栏", size: rowCompact}) {
-				a.sidebarCollapsed = true
-			}
-		})
-	}
-
-	footer := func() {
-		// 连接状态用状态点、账号用首字母头像（UI-23：先换形状与图形）；两者都
-		// 保留读屏名，屏幕上不出现「已连接」「账号 · 已登录」这类界面语。
-		gui.Row(c).Shrink(0).Padding(space3, space2, space3, space2).
-			AlignItems(gui.Center).Gap(space2).Children(func() {
-			statusDot(c, connectionColor(t, a.liveConnection()), !a.disconnected())
-			gui.Spacer(c)
-			// 设置入口（P2）：齿轮图标，点开是独立成屏的设置。
-			if iconButton(c, iconButtonSpec{icon: iconGear, label: "设置", size: rowCompact}) {
-				a.screen = ScreenSettings
-			}
-			avatar(c, t, a.accountInitialValue())
-		})
-	}
-
 	// 与主区之间靠面差（surface 对 background）分开，不画竖线（UI-18 第一档）。
 	gui.Column(c).Width(a.sidebarWidthValue()).Shrink(0).
 		Background(t.Surface).
 		Label("左栏 · 会话列表").Role(gui.RoleNavigation).Focusable().TabStop(true).
 		Children(func() {
-			header()
-			a.sessionList(c)
-			footer()
+			a.sidebarHeader(c)
+			a.sidebarEntries(c)
+			if a.searchOpen {
+				a.searchPane(c)
+			}
+			a.sidebarList(c)
+			a.accountRow(c)
 		})
 }
 
-// sessionList 用框架的 Sidebar：一个 Tab 停靠点，列表自身滚动，
-// 上下键在会话之间移动。状态标记走固定的 16px icon 槽，不拼进 label，
-// 因此带标记与不带标记的行文字左边界相同（U2 校准 C6）。
-func (a *App) sessionList(c *gui.Context) {
-	if a.searchOpen {
-		a.searchPane(c)
+// sidebarHeader 是栏头：macOS 上让出窗口控件那条（只作拖动把手，不放控件），
+// 右端一个收起按钮（LB-10）。
+func (a *App) sidebarHeader(c *gui.Context) {
+	if inset := titleBarInset(c.TitleBar()); inset > 0 {
+		gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位")
 	}
-	sessions, markers := a.sessionNames(), a.sessionMarkers()
-	// 归档与删除的会话不再出现；搜索面开着时按名称过滤（空白查询给全部）。
-	visible := make([]bool, len(sessions))
-	any := false
-	for i := range sessions {
-		if a.archived[i] {
-			continue
+	gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).
+		Padding(space1, space2).AlignItems(gui.Center).Children(func() {
+		gui.Spacer(c)
+		if iconButton(c, iconButtonSpec{
+			icon: iconSidebarPanelClose, label: "收起侧边栏 ⌘B", tip: "收起侧边栏 ⌘B",
+			size: rowRegular,
+		}) {
+			a.sidebarCollapsed = true
 		}
-		name := sessions[i]
-		if r, ok := a.renamed[i]; ok {
-			name = r
-		}
-		if a.searchOpen && a.searchQuery != "" && !containsFold(name, a.searchQuery) {
-			continue
-		}
-		visible[i] = true
-		any = true
-	}
-	gui.Sidebar(c, &a.selectedSession, func() {
-		if len(sessions) == 0 {
-			return
-		}
-		gui.Divider(c)
-		if !any {
-			gui.Row(c).Padding(space1, space2).Shrink(0).Label("搜索无结果").Children(func() {
-				typeSecondary.style(c.Theme(), gui.Text(c, "没有匹配的会话")).
-					TextColor(c.Theme().TextMuted)
-			})
-			return
-		}
-		if a.wired() {
-			// 目录快照只有会话标识，没有项目归属；接上事实时不画样例的「项目 A/B」，
-			// 用一个中性分组把会话列出来。
-			gui.SidebarSection(c, "会话", nil, func() {
-				for i := range sessions {
-					if visible[i] {
-						a.sessionItem(c, "s"+strconv.Itoa(i+1), a.sessionName(i, sessions[i]),
-							markers[i], i)
-					}
-				}
-			})
-			return
-		}
-		gui.SidebarSection(c, sampleProjectA, nil, func() {
-			for i := 0; i < 2 && i < len(sessions); i++ {
-				if visible[i] {
-					a.sessionItem(c, "s"+strconv.Itoa(i+1), a.sessionName(i, sessions[i]),
-						markers[i], i)
-				}
-			}
-		})
-		gui.SidebarSection(c, sampleProjectB, nil, func() {
-			for i := 2; i < len(sessions); i++ {
-				if visible[i] {
-					a.sessionItem(c, "s"+strconv.Itoa(i+1), a.sessionName(i, sessions[i]),
-						markers[i], i)
-				}
-			}
-		})
-	}).Grow(1).Label("会话列表")
+	})
 }
 
-// searchPane 是左栏的搜索面（形式库 F37）：一行面差输入，Esc 或再点搜索收起；
-// 空白查询给全部。过滤只作用于左栏列表，不改会话本身。
+// sidebarEntrySpec 是一个全局入口行：图标、检查器标记、文案、行尾键帽与动作。
+type sidebarEntrySpec struct {
+	icon   *gui.SVG
+	mark   string
+	label  string
+	keycap string
+	tip    string
+	run    func()
+}
+
+// sidebarEntries 是四个全局入口（LB-11–15）：28 高一行的图标 + 文字，悬停整行
+// 变浅一档；「搜索」行尾在悬停时出现 ⌘G 键帽（LB-13、C19）。
+func (a *App) sidebarEntries(c *gui.Context) {
+	gui.Column(c).Shrink(0).Padding(0, space2).Gap(space1).Children(func() {
+		a.sidebarEntry(c, sidebarEntrySpec{
+			icon: iconPlus, mark: "plus", label: "新建会话", run: a.createSession,
+		})
+		a.sidebarEntry(c, sidebarEntrySpec{
+			icon: iconSearch, mark: "search", label: "搜索", keycap: "⌘G",
+			tip: "搜索 · ⌘G", run: a.toggleSearch,
+		})
+		// 定时任务与技能/插件是独立路由页（清单 §7.3、§7.4），本批次只建入口，
+		// 点击不进页；接页后把 run 换成进页。
+		a.sidebarEntry(c, sidebarEntrySpec{
+			icon: iconClock, mark: "clock", label: "定时任务",
+		})
+		a.sidebarEntry(c, sidebarEntrySpec{
+			icon: iconSidebarGrid, mark: "layout-grid", label: "技能/插件",
+		})
+	})
+}
+
+// sidebarEntry 画一行全局入口。行本身是可点入口（读屏名就是文案），悬停时
+// 有键帽的行在行尾补出键帽，行宽不变（键帽占的是文字后面的剩余宽度）。
+func (a *App) sidebarEntry(c *gui.Context, spec sidebarEntrySpec) {
+	t := c.Theme()
+	row := gui.ButtonBase(c).Height(sidebarRowHeight).Padding(space1, space2).
+		Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
+		Label(spec.label).Cursor(gui.CursorPointer)
+	if spec.tip != "" {
+		row = row.Tooltip(spec.tip)
+	}
+	hovered := row.Hovered()
+	row = sidebarRowPaint(row, t, false)
+	if row.Clicked() && spec.run != nil {
+		spec.run()
+	}
+	row.Children(func() {
+		iconGlyph(c, spec.icon, t.Text, spec.mark)
+		typeSecondary.style(t, gui.Text(c, spec.label)).TextColor(t.Text).Grow(1).SingleLine()
+		if hovered && spec.keycap != "" {
+			sidebarKeycap(c, t, spec.keycap)
+		}
+	})
+}
+
+// toggleSearch 开合左栏的搜索面（空白查询给全部）。
+func (a *App) toggleSearch() {
+	a.searchOpen = !a.searchOpen
+	if !a.searchOpen {
+		a.searchQuery = ""
+	}
+}
+
+// searchPane 是左栏的搜索面（F37）：一行面差输入，Esc 或再点搜索收起；
+// 过滤只作用于左栏列表，不改会话本身。参考产品把入口做成全窗搜索弹窗
+// （清单 §7.2），弹窗不在本批次，这里保留行内过滤。
 func (a *App) searchPane(c *gui.Context) {
 	t := c.Theme()
 	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space2).
 		AlignItems(gui.Center).Label("搜索会话").Children(func() {
-		iconGlyph(c, iconSearch, t.TextMuted, "search")
+		iconGlyph(c, iconSearch, t.TextMuted, "search-pane")
 		gui.TextInputBase(c, &a.searchQuery).Grow(1).Label("搜索会话").
 			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed).
 			Placeholder("搜索")
 	})
 }
 
-// sessionItem 画一条会话行：选中样式完全交给框架（聚焦 = accent 填充 +
-// accent-on，未聚焦 = surface-pressed；U2 校准 C4 取框架语义）；状态标记走
-// SidebarItem 的 16px icon 槽，所有会话行都占这个槽，文字左边界一致。
-//
-// 目录动作（重命名 / 归档 / 导出 / 删除）的可见入口在左栏头部的「会话操作」
-// （框架原生弹出菜单，画在窗口里、可截图、可被无窗口 Tester 驱动）；行上还有
-// 同一个菜单的右键路径。重命名与删除确认在行内完成。
-func (a *App) sessionItem(c *gui.Context, id, name, marker string, index int) {
-	icon := statusIcon(marker)
-	if icon == nil {
-		icon = iconDotEmpty // 只占位，不画：让所有会话行从同一列起
+// sidebarList 是列表本体：已置顶（有置顶时）→ 列表头「会话」→ 工作区分组；
+// 平铺视图换成日期分组。列表自己滚动，账户行贴底不动。
+func (a *App) sidebarList(c *gui.Context) {
+	gui.Scroll(c).Grow(1).Label("会话列表").Children(func() {
+		gui.Column(c).Shrink(0).Padding(0, space2).Gap(space2).Children(func() {
+			all := a.sidebarThreads()
+			if pinned := a.sidebarPinnedThreads(all); len(pinned) > 0 {
+				gui.Column(c).Shrink(0).Children(func() {
+					a.sidebarHeading(c, "已置顶")
+					for _, thread := range pinned {
+						a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
+					}
+				})
+			}
+			a.listHeader(c)
+			if len(all) == 0 && a.searchQuery != "" {
+				a.sidebarNote(c, "没有匹配的会话", false)
+				return
+			}
+			if a.sidebarView.flat {
+				a.flatGroups(c, all)
+				return
+			}
+			for _, ws := range a.sidebarWorkspaces() {
+				a.workspaceGroup(c, ws, all)
+				if ws.builtin {
+					// 内置工作区与其余工作区之间一条分隔线（LB-57）。
+					gui.Divider(c)
+				}
+			}
+		})
+	})
+}
+
+// sidebarHeading 是只读分组标题（「已置顶」）：10.5px、侧栏弱文字色，不加计数。
+func (a *App) sidebarHeading(c *gui.Context, text string) {
+	t := c.Theme()
+	gui.Row(c).Height(sidebarHeadingHeight).Shrink(0).Padding(space1, space1).
+		AlignItems(gui.Center).Children(func() {
+		typeMicro.style(t, gui.Text(c, text)).TextColor(colorSidebarHeading.in(t)).SingleLine()
+	})
+}
+
+// listHeader 是列表头（LB-24–26）：「会话」标题 + 添加工作区 + 视图菜单。
+func (a *App) listHeader(c *gui.Context) {
+	t := c.Theme()
+	gui.Row(c).Height(sidebarHeadingHeight).Shrink(0).Padding(space1, space1).
+		Margin(space2, 0, space1, 0).
+		AlignItems(gui.Center).Gap(space1).Children(func() {
+		typeMicro.style(t, gui.Text(c, "会话")).TextColor(colorSidebarHeading.in(t)).SingleLine()
+		gui.Spacer(c)
+		// 添加工作区：打开系统目录选择器属于平台能力，本批次只留入口与读屏名。
+		if iconButton(c, iconButtonSpec{icon: iconSidebarFolderPlus, label: "添加工作区", size: rowCompact}) {
+			a.addWorkspace()
+		}
+		a.sidebarViewButton(c)
+	})
+}
+
+// sidebarViewButton 是列表头的视图切换（LB-26）：分组视图显示列表图标，平铺
+// 显示宫格；点开是排序 / 视图 / 折叠全部（LB-27–33、C11）。
+func (a *App) sidebarViewButton(c *gui.Context) {
+	t := c.Theme()
+	icon := iconSidebarList
+	label := "视图：按工作区分组"
+	if a.sidebarView.flat {
+		icon = iconSidebarGrid
+		label = "视图：平铺"
 	}
-	// 行高对齐官方示例的导航行（gallery-overview.png 的选中条约 26–28 高）：
-	// 我们原来 22.1，列表过密。
+	b := gui.ButtonBase(c).Width(rowCompact).Height(rowCompact).Radius(radiusSmall).
+		Cursor(gui.CursorPointer).Label(label).Tooltip("视图")
+	b = b.PopoverMenuButton(a.viewMenu, gui.PopoverMenuButtonOptions{Open: &a.sidebarView.viewMenu})
+	switch {
+	case b.Pressed() || a.sidebarView.viewMenu:
+		b = b.Background(t.SurfacePressed)
+	case b.Hovered():
+		b = b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		iconGlyph(c, icon, t.TextMuted, "view")
+	})
+}
+
+// viewMenu 是视图菜单：排序两项、视图两项、折叠全部。参考产品里「排序」「视图」
+// 是不可点的分组标题；框架的菜单项只有"项"一种，这里用禁用的项表达。
+func (a *App) viewMenu(m *gui.Menu) {
+	m.Item("排序").Disabled(true)
+	if m.Item("最近活跃").Radio(!a.sidebarView.byCreated).Chosen() {
+		a.sidebarView.byCreated = false
+	}
+	if m.Item("最近创建").Radio(a.sidebarView.byCreated).Chosen() {
+		a.sidebarView.byCreated = true
+	}
+	m.Separator()
+	m.Item("视图").Disabled(true)
+	if m.Item("按工作区分组").Radio(!a.sidebarView.flat).Chosen() {
+		a.sidebarView.flat = false
+	}
+	if m.Item("平铺").Radio(a.sidebarView.flat).Chosen() {
+		a.sidebarView.flat = true
+	}
+	m.Separator()
+	if m.Item("折叠全部").Chosen() {
+		a.collapseAllGroups()
+	}
+}
+
+// addWorkspace 是「添加工作区」的落点：系统目录选择器没有接，先不改列表
+// （不新增空分组，见 R-LB-169）。
+func (a *App) addWorkspace() {}
+
+// workspaceGroup 是一个工作区分组（LB-34–57）：一行工作区（图标 / 折叠箭头 +
+// 名称 + 悬停出现的新建与更多）与其会话行；展开且没有会话时写「暂无会话」。
+//
+// 行宽按参考产品的两段：工作区行缩进 7，会话行占满内容宽（DOM 实测内置工作区
+// 的会话行 x=7 w=346、其他分组的会话行缩进到 x=14）。
+func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarThread) {
+	t := c.Theme()
+	open := !a.groupCollapsed(ws.id)
+	threads := a.sidebarGroupThreads(ws, all)
+	gui.Column(c).Shrink(0).Children(func() {
+		gui.Row(c).Shrink(0).PaddingStart(space2).Children(func() {
+			row := gui.ButtonBase(c).Height(sidebarGroupRowHeight).Padding(space1, space2).
+				Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
+				Grow(1).Label(ws.name).Cursor(gui.CursorPointer)
+			if !ws.builtin {
+				row = row.Tooltip(ws.name)
+			}
+			hovered := row.Hovered()
+			row = sidebarRowPaint(row, t, false)
+			if row.Clicked() {
+				a.toggleGroup(ws.id)
+			}
+			row.Children(func() {
+				// 悬停时图标槽换成折叠箭头（LB-35）；静止时是 🏠 或文件夹。
+				sidebarDisclosure(c, t, ws, open, hovered)
+				typeSecondaryStrong.style(t, gui.Text(c, ws.name)).TextColor(t.Text).
+					Grow(1).SingleLine()
+			})
+			// 行尾动作在工作区行之外（参考产品的 21×21 两个按钮），静止时不接收
+			// 指针，也不改变行按钮的宽度。
+			sidebarIconAction(c, sidebarIconSpec{
+				icon: iconPlus, label: "在工作区中新建会话：" + ws.name,
+				hover: hovered, run: a.createSession,
+			})
+			sidebarIconAction(c, sidebarIconSpec{
+				icon: iconEllipsis, label: "工作区操作：" + ws.name,
+				hover: hovered || *a.groupMenuPtr(ws.id),
+				menu: func(m *gui.Menu) { a.workspaceMenu(m, ws, threads) },
+				open: a.groupMenuPtr(ws.id),
+			})
+		})
+		if !open {
+			return
+		}
+		body := func() {
+			if len(threads) == 0 {
+				a.sidebarNote(c, "暂无会话", true)
+				return
+			}
+			for _, thread := range threads {
+				a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
+			}
+		}
+		if ws.builtin {
+			body()
+			return
+		}
+		gui.Column(c).Shrink(0).Padding(0, space2).Children(body)
+	})
+}
+
+// workspaceMenu 是工作区行的菜单（C16 / C17 / C45）：置顶 / 在文件管理器中显示 /
+// 归档会话 / 重命名 / 移除。工作区目录的写路径本批次只接通「归档会话」——它落在
+// 已有的会话归档上；置顶、在文件管理器中显示、重命名与移除只建菜单。
+func (a *App) workspaceMenu(m *gui.Menu, ws sidebarWorkspace, threads []sidebarThread) {
+	m.Item("置顶工作区")
+	m.Item("在文件管理器中显示")
+	if len(threads) > 0 {
+		if m.Item("归档会话").Chosen() {
+			for _, thread := range threads {
+				a.archiveSession(thread.index)
+			}
+		}
+	}
+	m.Separator()
+	m.Item("重命名")
+	if !ws.builtin {
+		m.Item("移除")
+	}
+}
+
+// flatGroups 是平铺视图（C12）：按日期分组，不按工作区分组。日期分组用
+// 「今天」一档（目录快照没有时间事实时全部落在今天）。
+func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
+	threads := a.sidebarGroupThreads(sidebarWorkspace{id: sidebarBuiltinID}, all)
+	gui.Column(c).Shrink(0).Children(func() {
+		if len(threads) == 0 {
+			a.sidebarNote(c, "暂无会话", true)
+			return
+		}
+		a.sidebarHeading(c, "今天")
+		for _, thread := range threads {
+			a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
+		}
+	})
+}
+
+// sidebarNote 是一行说明文字（「暂无会话」「没有匹配的会话」）：10.5px、最淡的
+// 侧栏文字；hint 为真时缩进到会话标题那一列。
+func (a *App) sidebarNote(c *gui.Context, text string, indented bool) {
+	t := c.Theme()
+	pad := float32(space1)
+	if indented {
+		pad = sidebarEmptyIndent
+	}
+	gui.Row(c).Shrink(0).Padding(space1, pad).AlignItems(gui.Center).Children(func() {
+		typeMicro.style(t, gui.Text(c, text)).TextColor(colorSidebarFaint.in(t)).SingleLine()
+	})
+}
+
+// sessionItem 画一条会话行（LB-66–82）：状态槽 + 标题 +（等待操作）标签 +
+// 时间 / 悬停动作。选中态是 12% 底的整行；悬停时行尾换成置顶、归档与更多三个
+// 动作（参考产品 C18 的悬停动作，第三项是本实现的行内菜单入口）。
+//
+// 行右键与行内「更多」是同一份菜单（LB-107–112）：置顶 / 重命名 / 在新窗口中
+// 打开 / 导出 / 归档 / 删除。
+func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) {
+	t := c.Theme()
 	if a.renaming == index {
 		a.renameRow(c, index, name)
 		return
@@ -176,57 +381,186 @@ func (a *App) sessionItem(c *gui.Context, id, name, marker string, index int) {
 		a.deleteConfirmRow(c, index, name)
 		return
 	}
-	menu := func(m *gui.Menu) {
-		if m.Item("重命名").Chosen() {
-			a.renaming = index
-			a.renameDraft = name
-		}
-		if m.Item("归档").Chosen() {
-			a.archiveSession(index)
-		}
-		if m.Item("导出").Chosen() {
-			a.exportSession(index)
-		}
-		if m.Item("删除").Chosen() {
-			a.deleting = index
-		}
+	id := "s" + strconv.Itoa(index+1)
+	chosen := a.selectedSession == id
+	row := gui.ButtonBase(c).Height(sidebarRowHeight).Padding(space1, space1).
+		Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
+		Label(name).Cursor(gui.CursorPointer).
+		ContextMenu(func(m *gui.Menu) { a.sessionMenu(m, index, name) })
+	hovered := row.Hovered()
+	menuOpen := *a.menuOpenPtr(index)
+	row = sidebarRowPaint(row, t, chosen)
+	if row.Clicked() && !chosen {
+		a.selectedSession = id
 	}
-	// 行的右键菜单与头部的「会话操作」是同一份菜单；行的子元素点击会被框架的
-	// SidebarItem 吃掉，所以可见入口只放头部。
-	gui.SidebarItem(c, id, icon, name).MinHeight(rowRegular).ContextMenu(menu)
+	row.Children(func() {
+		sidebarStatusSlot(c, t, marker, a.pinned(index))
+		typeSecondary.style(t, gui.Text(c, name)).TextColor(t.Text).Grow(1).SingleLine()
+		if marker == "◷" {
+			sidebarBadge(c, t, "等待操作")
+		}
+		if hovered || menuOpen {
+			sidebarIconAction(c, sidebarIconSpec{
+				icon: iconEllipsis, label: "会话操作：" + name, color: t.TextMuted,
+				hover: true, menu: func(m *gui.Menu) { a.sessionMenu(m, index, name) },
+				open: a.menuOpenPtr(index),
+			})
+			pinIcon, pinLabel := iconSidebarPin, "置顶会话："+name
+			if a.pinned(index) {
+				pinIcon, pinLabel = iconSidebarPinOff, "取消置顶会话："+name
+			}
+			sidebarIconAction(c, sidebarIconSpec{
+				icon: pinIcon, label: pinLabel, hover: true,
+				run: func() { a.togglePin(index) },
+			})
+			sidebarIconAction(c, sidebarIconSpec{
+				icon: iconArchive, label: "归档会话：" + name, hover: true,
+				run: func() { a.archiveSession(index) },
+			})
+			return
+		}
+		if when != "" {
+			typeMicro.style(t, gui.Text(c, when)).TextColor(t.TextMuted).SingleLine()
+		}
+	})
 }
 
-// sessionActionsEntry 是左栏头部的「会话操作」入口：作用于选中的会话。
-func (a *App) sessionActionsEntry(c *gui.Context) {
-	if a.selectedSession == "" {
-		return
+// sessionMenu 是会话行的六项菜单（LB-107–112 与 C2 的同构菜单）：置顶 / 重命名 /
+// 在新窗口中打开 / 导出 / 归档 / 删除。已有置顶的会话首项是「取消置顶」。
+func (a *App) sessionMenu(m *gui.Menu, index int, name string) {
+	pin := "置顶"
+	if a.pinned(index) {
+		pin = "取消置顶"
 	}
-	index := sessionIndex(a.selectedSession)
-	sessions := a.sessionNames()
-	if index < 0 || index >= len(sessions) {
-		return
+	if m.Item(pin).Chosen() {
+		a.togglePin(index)
 	}
-	name := a.sessionName(index, sessions[index])
-	menu := func(m *gui.Menu) {
-		if m.Item("重命名").Chosen() {
-			a.renaming, a.renameDraft = index, name
-		}
-		if m.Item("归档").Chosen() {
-			a.archiveSession(index)
-		}
-		if m.Item("导出").Chosen() {
-			a.exportSession(index)
-		}
-		if m.Item("删除").Chosen() {
-			a.deleting = index
-		}
+	if m.Item("重命名").Chosen() {
+		a.renaming, a.renameDraft = index, name
 	}
-	b := gui.ButtonBase(c).Width(rowCompact).Height(rowCompact).Radius(radius).
-		Cursor(gui.CursorPointer).Label("会话操作：" + name)
-	b = b.PopoverMenuButton(menu, gui.PopoverMenuButtonOptions{Open: a.menuOpenPtr(index)})
+	// 在新窗口中打开：弹窗窗口不在本批次（清单 §7 之外的窗口形态）。
+	m.Item("在新窗口中打开")
+	if m.Item("导出").Chosen() {
+		a.exportSession(index)
+	}
+	m.Separator()
+	if m.Item("归档").Chosen() {
+		a.archiveSession(index)
+	}
+	if m.Item("删除").Chosen() {
+		a.deleting = index
+	}
+}
+
+// sidebarIconSpec 是行内小动作（21×21 的图标入口）：图标、读屏名、是否显形，
+// 以及"点一下做什么"或"打开哪个菜单"。不显形时仍占位、但不接收指针（框架的
+// IgnoreInput 约定），因此行内其余部分的点击与命中区不变。
+type sidebarIconSpec struct {
+	icon  *gui.SVG
+	label string
+	color gui.Color
+	hover bool
+	menu  func(*gui.Menu)
+	open  *bool
+	run   func()
+}
+
+// sidebarIconAction 画一个行内小动作；返回它是否被按下。
+func sidebarIconAction(c *gui.Context, spec sidebarIconSpec) bool {
+	t := c.Theme()
+	color := spec.color
+	if color == (gui.Color{}) {
+		color = t.TextMuted
+	}
+	b := gui.ButtonBase(c).Width(sidebarActionSize).Height(sidebarActionSize).
+		Radius(radiusSmall).Cursor(gui.CursorPointer).Label(spec.label).
+		Tooltip(spec.label)
+	if spec.menu != nil {
+		b = b.PopoverMenuButton(spec.menu, gui.PopoverMenuButtonOptions{Open: spec.open})
+	}
+	if spec.hover {
+		switch {
+		case b.Pressed():
+			b = b.Background(t.SurfacePressed)
+		case b.Hovered():
+			b = b.Background(t.SurfaceHover)
+		}
+	} else {
+		b = b.Opacity(0).IgnoreInput(true)
+	}
 	b.Children(func() {
-		iconGlyph(c, iconEllipsis, c.Theme().TextMuted, "ellipsis")
+		gui.Icon(c, spec.icon).Size(iconInline, iconInline).TextColor(color)
 	})
+	clicked := b.Clicked()
+	if clicked && spec.run != nil {
+		spec.run()
+	}
+	return clicked
+}
+
+// accountRow 是底部账户行（LB-83–88、LB-100）：18px 首字母头像 + 账户名 +
+// 右侧设置齿轮；整行点开账户菜单（C32）。
+func (a *App) accountRow(c *gui.Context) {
+	t := c.Theme()
+	initial := a.accountInitialValue()
+	name := a.accountNameValue()
+	gui.Row(c).Shrink(0).Height(sidebarAccountHeight+space2).
+		Padding(space1, space2).AlignItems(gui.Center).Gap(space1).Children(func() {
+		row := gui.ButtonBase(c).Grow(1).Height(sidebarAccountHeight).
+			Padding(space1, space2).Radius(radiusSmall).Gap(space2).
+			AlignItems(gui.Center).Label(name).Cursor(gui.CursorPointer)
+		row = row.PopoverMenuButton(a.accountMenu, gui.PopoverMenuButtonOptions{Open: &a.sidebarView.accountMenu})
+		row = sidebarRowPaint(row, t, false)
+		row.Children(func() {
+			sidebarAvatar(c, t, initial)
+			typeSecondary.style(t, gui.Text(c, name)).TextColor(t.Text).Grow(1).SingleLine()
+		})
+		if iconButton(c, iconButtonSpec{icon: iconGear, label: "设置", tip: "设置 ⌘,", size: sidebarAccountHeight}) {
+			a.screen = ScreenSettings
+		}
+	})
+}
+
+// sidebarAvatar 是账户行头像：18px 整圆，里面是账户名首字母（内容，不是界面语）。
+func sidebarAvatar(c *gui.Context, t *gui.Theme, initial string) {
+	box := gui.Box(c).Width(sidebarAvatarSize).Height(sidebarAvatarSize).Shrink(0).
+		Radius(radiusFull).Background(t.SurfacePressed).Label("账号：" + initial).
+		AlignItems(gui.Center).Justify(gui.Center)
+	box.Children(func() {
+		if initial == "" {
+			return
+		}
+		typeMicro.style(t, gui.Text(c, initial)).TextColor(t.Text).TextAlign(gui.Center)
+	})
+}
+
+// accountMenu 是账户菜单（C32）：身份项 + 用量 / 显示 Pet / 邀请朋友 + 设置 /
+// 退出登录。用量带着账户事实里的剩余额度；Pet、邀请与退出登录属于账户领域，
+// 本批次只建项不接线。
+func (a *App) accountMenu(m *gui.Menu) {
+	m.Item(a.accountInitialValue() + "   " + a.accountNameValue()).Disabled(true)
+	m.Item(a.usageLabel())
+	m.Item("显示 Pet")
+	m.Item("邀请朋友")
+	m.Separator()
+	if m.Item("设置").Chosen() {
+		a.screen = ScreenSettings
+	}
+	m.Item("退出登录")
+}
+
+// usageLabel 是账户菜单里的用量项：有账户用量事实时把剩余额度写在后面
+// （LB-91 / LB-92），没有事实只写「用量」，不编造百分比。
+func (a *App) usageLabel() string {
+	usage, ok := a.liveUsage()
+	if !ok || !usage.Available || usage.Limit <= 0 {
+		return "用量"
+	}
+	left := usage.Limit - usage.Used
+	if left < 0 {
+		left = 0
+	}
+	return fmt.Sprintf("用量   剩余 %d%%", int(left*100/usage.Limit+0.5))
 }
 
 // renameRow 是重命名的行内编辑（F35）：面差输入 + 保存 / 取消两个文字按钮，
@@ -282,9 +616,11 @@ func (a *App) sessionIDAt(index int) string {
 	return names[index]
 }
 
-// createSession 新建会话：工作目录由适配器沿用当前会话的目录。
+// createSession 新建会话：工作目录由适配器沿用当前会话的目录。样例模式下没有
+// 写入路径，切到空态（参考产品的「新建会话」进入空会话）。
 func (a *App) createSession() {
 	if a.intents == nil {
+		a.SetState(StateEmpty)
 		return
 	}
 	a.dispatch("新建会话", func(ctx context.Context) error {
@@ -411,14 +747,6 @@ func sessionIndex(id string) int {
 		return -1
 	}
 	return n - 1
-}
-
-// markerColor 是侧栏状态标记的颜色：运行/等待用 accent-ink，失败用 danger。
-func markerColor(t *gui.Theme, marker string) gui.Color {
-	if marker == "✕" {
-		return t.Danger
-	}
-	return colorAccentInk.in(t)
 }
 
 // sidebarRail 是收起后的 12px 边条：不显示会话，点击展开。

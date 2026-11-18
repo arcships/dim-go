@@ -275,3 +275,32 @@ func textIconButton(c *gui.Context, spec textIconButtonSpec) bool {
 func iconMenuButton(c *gui.Context, icon *gui.SVG, label string, open bool) bool {
 	return iconButton(c, iconButtonSpec{icon: icon, label: label, size: rowCompact})
 }
+
+// 重建主窗口（标题栏 / 输入区）所需的形状：参考产品的 lucide 同名图标按同一
+// 24 网格、1.5 描边绘制。与上面的分组分开，避免改动既有的图标清单。
+var (
+	iconChevronDown = mustSVG(`<path d="m19.5 8.25-7.5 7.5-7.5-7.5"/>`)
+	iconPin         = mustSVG(`<path d="M15 3.75 20.25 9l-3 3 .75 3.75-2.25 2.25-4.5-4.5L6 18.75 3.75 21l1.5-3.75 5.25-5.25-4.5-4.5L8.25 5.25 12 6l3-3Z"/>`)
+	iconPinOff      = mustSVG(`<path d="M15 3.75 20.25 9l-3 3 .75 3.75-2.25 2.25-2.25-2.25M8.25 5.25 12 6l-4.5 4.5M6 18.75 3.75 21l1.5-3.75m.75-6L9 9m-3 8.25 3-3M3 3l18 18"/>`)
+	iconExternal    = mustSVG(`<path d="M13.5 4.5h6v6M19.5 4.5 11.25 12.75"/><path d="M18.75 13.5v4.125a1.875 1.875 0 0 1-1.875 1.875H5.625A1.875 1.875 0 0 1 3.75 17.625V6.375A1.875 1.875 0 0 1 5.625 4.5H9.75"/>`)
+	iconDownload    = mustSVG(`<path d="M12 3.75v11.25m0 0 4.5-4.5m-4.5 4.5-4.5-4.5M4.5 19.5h15"/>`)
+	iconLink        = mustSVG(`<path d="M9.75 14.25 14.25 9.75"/><path d="M7.5 16.5 5.25 18.75a3.182 3.182 0 0 1-4.5-4.5L3 12M16.5 7.5l2.25-2.25a3.182 3.182 0 0 1 4.5 4.5L21 12"/>`)
+	iconFileCode    = mustSVG(`<path d="M14.25 3.75H6.75a1.5 1.5 0 0 0-1.5 1.5v13.5a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V7.5z"/><path d="M14.25 3.75V7.5h4.5M9.75 11.25 7.5 13.5l2.25 2.25m4.5-4.5 2.25 2.25-2.25 2.25"/>`)
+	iconFolderOpen  = mustSVG(`<path d="M3.75 9V6.75A1.5 1.5 0 0 1 5.25 5.25h3l2.25 2.25h6A1.5 1.5 0 0 1 18 9v1.5"/><path d="M3.75 9h15.375a1.5 1.5 0 0 1 1.44 1.92l-1.5 6A1.5 1.5 0 0 1 17.625 18H4.875a1.5 1.5 0 0 1-1.44-1.92l1.5-6A1.5 1.5 0 0 1 6.375 9"/>`)
+	iconPanelClose  = mustSVG(`<path d="M3.75 4.5h16.5v15H3.75z"/><path d="M14.25 4.5v15"/><path d="M10.5 9.75 8.25 12l2.25 2.25"/>`)
+	iconPanelOpen   = mustSVG(`<path d="M3.75 4.5h16.5v15H3.75z"/><path d="M9.75 4.5v15"/><path d="M13.5 9.75 15.75 12l-2.25 2.25"/>`)
+	iconHome        = mustSVG(`<path d="m3.75 10.5 8.25-6.75 8.25 6.75v8.25a1.5 1.5 0 0 1-1.5 1.5h-3.75V15h-6v5.25H5.25a1.5 1.5 0 0 1-1.5-1.5z"/>`)
+	iconCube        = mustSVG(`<path d="m12 2.25 8.25 4.5v10.5L12 21.75l-8.25-4.5V6.75z"/><path d="M3.75 6.75 12 11.25l8.25-4.5M12 11.25v10.5"/>`)
+	iconChevronsR   = mustSVG(`<path d="m6 6.75 5.25 5.25L6 17.25M12.75 6.75 18 12l-5.25 5.25"/>`)
+	iconEffort      = mustSVG(`<path d="M4.5 7.5h15M4.5 12h15M4.5 16.5h9"/>`)
+	iconProvider    = mustSVG(`<path d="M19.5 12a7.5 7.5 0 1 1-2.25-5.303"/><path d="M19.5 4.5V9h-4.5"/>`)
+	iconBrand       = mustSVG(`<path d="M19.8 15.6c1.65-3.6 1.05-7.65-1.95-9.75C14.7 3.45 9.15 4.95 6.3 8.4c-2.85 3.45-1.65 8.55 2.1 10.2 1.35.6 2.85.9 4.35.75"/><path d="M12.6 12.75v7.5"/>`)
+)
+
+// 打开方式的应用图标：参考产品用各应用的品牌图标；这里按同一 24 网格画可辨认的
+// 形状（VS Code 的折角、Zed 的字母 Z、终端的提示符、Ghostty 的幽灵轮廓）。
+var (
+	iconVSCode = mustSVG(`<path d="M17.25 3.75 6.75 12l10.5 8.25V3.75Z"/><path d="M6.75 12 3.75 9.75v4.5L6.75 12Z"/>`)
+	iconZed    = mustSVG(`<path d="M5.25 4.5h13.5l-13.5 15h13.5"/>`)
+	iconGhost  = mustSVG(`<path d="M6 18.75V8.25a6 6 0 0 1 12 0v10.5l-2.25-1.5-2.25 1.5-2.25-1.5-2.25 1.5-3-1.5Z"/><path d="M9.75 10.5h.008v.008H9.75V10.5Zm4.5 0h.008v.008h-.008V10.5Z"/>`)
+)

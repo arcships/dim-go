@@ -120,7 +120,7 @@ func TestSourceApprovalReplacesComposer(t *testing.T) {
 	if _, ok := tt.Find("rm -rf ./tmp/*"); !ok {
 		t.Fatal("审批命令没有来自 Source")
 	}
-	if _, ok := tt.Access("允许一次"); !ok {
+	if _, ok := tt.Access("仅这次"); !ok {
 		t.Fatal("审批决定缺失")
 	}
 }

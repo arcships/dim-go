@@ -147,6 +147,31 @@ var screenCases = []screenCase{
 	{name: "variant-goal", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.goalEditing = true
 	}},
+	// 输入区 / 标题栏的浮层：⋯ 菜单、打开方式、模型、推理强度、技能、模式。
+	{name: "variant-chat-menu", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.chatMenuOpen = true
+	}},
+	{name: "variant-open-with", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.openWithOpen = true
+	}},
+	{name: "variant-model", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.modelOpen = true
+	}},
+	{name: "variant-effort", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.effortOpen = true
+	}},
+	{name: "variant-skills", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.skillsOpen = true
+	}},
+	{name: "variant-mode", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.modeOpen = true
+	}},
+	{name: "variant-permission", state: StateEmpty, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.permissionOpen = true
+	}},
+	{name: "variant-workspace", state: StateEmpty, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.workspaceOpen = true
+	}},
 	// 设置屏（P2）：左导航 19 节，默认停在首节（账户）。
 	{name: "variant-settings", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.screen = ScreenSettings
@@ -291,7 +316,7 @@ func TestScreensFitWindow(t *testing.T) {
 		}
 		composer := "消息"
 		if c.state == StateWaiting {
-			composer = "rm -rf ./tmp/*"
+			composer = "审批卡"
 		}
 		box, ok := tt.Find(composer)
 		if !ok {

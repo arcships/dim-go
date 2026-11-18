@@ -116,6 +116,16 @@ const (
 	VariantTermExited
 	// VariantSettings 进入设置屏（首节：账户）。
 	VariantSettings
+	// 输入区 / 标题栏的浮层走查态：⋯ 菜单、打开方式、模型、推理强度、技能、
+	// 模式、权限、工作区。
+	VariantChatMenu
+	VariantOpenWith
+	VariantModel
+	VariantEffort
+	VariantSkills
+	VariantMode
+	VariantPermission
+	VariantWorkspace
 )
 
 // variantNames 是 -variant 的取值。
@@ -129,6 +139,10 @@ var variantNames = map[string]Variant{
 	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
 	"term-exited": VariantTermExited, "settings": VariantSettings,
+	"chat-menu": VariantChatMenu, "open-with": VariantOpenWith,
+	"model": VariantModel, "effort": VariantEffort,
+	"skills": VariantSkills, "mode": VariantMode,
+	"permission": VariantPermission, "workspace": VariantWorkspace,
 }
 
 // ParseVariant 解析 -variant。
@@ -136,7 +150,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace", v)
 }
 
 // Options 是骨架的启动参数。
@@ -250,6 +264,10 @@ type App struct {
 	exported    string
 	menuOpen    map[int]*bool
 
+	// 左栏重建后的可丢视图状态：工作区分组折叠、置顶、视图菜单与账户菜单
+	// （见 sidebar_state.go）。它不是事实，切会话不重建。
+	sidebarView sidebarViewState
+
 	// 终端（右栏第五个标签）：状态、输出行、提示行与"已复制"反馈。
 	termState  termState
 	termLines  []termLine
@@ -263,7 +281,29 @@ type App struct {
 	contextLimit int
 	contextOpen  bool
 
-	// model 是非默认模型在标题行末尾的淡标记；空表示取默认值，不上屏（UI-9）。
+	// 重建后的输入区 / 标题栏视图状态：推理强度、模式、权限、工作区、选择器
+	// 浮层的开合与查询词。全部可丢，不承载事实。
+	effort          float64
+	effortOpen      bool
+	modelOpen       bool
+	modelQuery      string
+	skillsOpen      bool
+	skillQuery      string
+	mode            string
+	modeOpen        bool
+	workspaceName   string
+	workspaceOpen   bool
+	workspaceQuery  string
+	permission      string
+	permissionOpen  bool
+	chatMenuOpen    bool
+	openWithOpen    bool
+	openWithLoading bool
+	openWithApp     string
+	chatPinned      bool
+	headerNote      string
+
+	// model 是当前模型名（输入区工具行与标题栏共用）。
 	model string
 	// approvalCommand 是审批卡上的命令原文；为空时拿不到原文，不提供「一直允许」。
 	approvalCommand string
@@ -342,7 +382,27 @@ func (a *App) loadSample() {
 	a.themePref = "跟随系统"
 	a.motionOff = false
 	a.timeZone = "跟随系统"
-	a.attachments = []attachmentChipData{{name: "发送路径.md", kind: "text"}}
+	a.attachments = nil
+	a.effort = 2
+	a.effortOpen = false
+	a.modelOpen = false
+	a.modelQuery = ""
+	a.skillsOpen = false
+	a.skillQuery = ""
+	a.mode = "Agent"
+	a.modeOpen = false
+	a.workspaceName = sampleWorkspaceTitle
+	a.workspaceOpen = false
+	a.workspaceQuery = ""
+	a.permission = "默认权限"
+	a.permissionOpen = false
+	a.chatMenuOpen = false
+	a.openWithOpen = false
+	a.openWithLoading = false
+	a.openWithApp = "VS Code"
+	a.chatPinned = false
+	a.headerNote = ""
+	a.model = sampleModel
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
@@ -413,10 +473,28 @@ func (a *App) loadSample() {
 	case VariantTasks:
 		a.rightOpen = true
 		a.rightTab = 2
+	case VariantChatMenu:
+		a.chatMenuOpen = true
+	case VariantOpenWith:
+		a.openWithOpen = true
+	case VariantModel:
+		a.modelOpen = true
+	case VariantEffort:
+		a.effortOpen = true
+	case VariantSkills:
+		a.skillsOpen = true
+	case VariantMode:
+		a.modeOpen = true
+	case VariantPermission:
+		a.state = StateEmpty
+		a.permissionOpen = true
+	case VariantWorkspace:
+		a.state = StateEmpty
+		a.workspaceOpen = true
 	}
 
 	if a.state == StateWaiting {
-		a.approvalCommand = "rm -rf ./tmp/*"
+		a.approvalCommand = "ls -la"
 	}
 }
 
@@ -455,6 +533,25 @@ func (a *App) resetWiredViewState() {
 	a.attachmentName, a.attachmentText = "", ""
 	a.attachmentKind = "text"
 	a.attachmentMedia, a.attachmentData = "", ""
+	a.effort = 2
+	a.effortOpen = false
+	a.modelOpen = false
+	a.modelQuery = ""
+	a.skillsOpen = false
+	a.skillQuery = ""
+	a.mode = "Agent"
+	a.modeOpen = false
+	a.workspaceName = ""
+	a.workspaceOpen = false
+	a.workspaceQuery = ""
+	a.permission = "默认权限"
+	a.permissionOpen = false
+	a.chatMenuOpen = false
+	a.openWithOpen = false
+	a.openWithLoading = false
+	a.openWithApp = "VS Code"
+	a.chatPinned = false
+	a.headerNote = ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
@@ -699,6 +796,12 @@ func (a *App) layout(c *gui.Context) {
 					return
 				}
 				gui.Column(c).Grow(1).Children(func() {
+					// 空态（NewThread）：品牌标记 + 开始构建 + 输入卡整体居中，
+					// 不再画时间线的「还没有消息」。
+					if a.state == StateEmpty && !a.wired() {
+						a.emptyThread(c)
+						return
+					}
 					a.timeline(c)
 					a.composer(c)
 				})
@@ -839,10 +942,13 @@ func (a *App) branchState() (string, []string, bool) {
 
 // currentModel 是标题行末尾要显示的模型：连着 Source 时取当前选择，否则用样例。
 func (a *App) currentModel() string {
-	if st, ok := a.liveSettings(); ok {
+	if st, ok := a.liveSettings(); ok && st.Model != "" {
 		return st.Model
 	}
-	return a.model
+	if a.model != "" {
+		return a.model
+	}
+	return sampleModel
 }
 
 // liveQuestion 取待答提问（Source 优先）。

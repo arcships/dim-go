@@ -12,36 +12,34 @@
   "items": [
     {
       "id": "AC-01",
-      "action": "允许一次",
+      "action": "仅这次",
       "consequence": "不可逆：这一次的命令会执行",
       "scope": "单次",
-      "form": "icon+text",
+      "form": "text",
       "confirm": false,
-      "basis": "U3 §5.2（allow）",
+      "basis": "参考产品审批卡（仅这次）",
       "when": "waiting",
-      "probe": "允许一次"
+      "probe": "仅这次"
     },
     {
       "id": "AC-02",
-      "action": "一直允许",
+      "action": "始终允许此命令",
       "consequence": "不可逆：写入用户级命令规则，影响所有会话",
       "scope": "所有会话",
-      "form": "icon+text",
-      "confirm": true,
-      "basis": "U3 §5.2/§5.3（permission.set_rules + allow）",
+      "form": "text",
+      "confirm": false,
+      "basis": "参考产品审批卡（始终允许此命令）",
       "when": "waiting",
-      "probe": "一直允许",
-      "confirm_probe": "确认一直允许",
-      "confirm_when": "waiting-confirm"
+      "probe": "始终允许此命令"
     },
     {
       "id": "AC-03",
       "action": "拒绝",
       "consequence": "不可逆：这一次不执行，不能重新发起同一条审批",
       "scope": "单次",
-      "form": "icon+text",
+      "form": "text",
       "confirm": false,
-      "basis": "U3 §5.2（deny）、§6.3",
+      "basis": "参考产品审批卡（拒绝）",
       "when": "waiting",
       "probe": "拒绝"
     },
@@ -55,28 +53,6 @@
       "basis": "U3 §4.1、T4；D3 write registry",
       "when": "running",
       "probe": "停止"
-    },
-    {
-      "id": "AC-05",
-      "action": "撤回排队",
-      "consequence": "可为未发生：受理前可再排队；受理后不可撤回（notHeld）",
-      "scope": "当前队列项",
-      "form": "icon",
-      "confirm": false,
-      "basis": "U3 §4.3 S6–S9",
-      "when": "running",
-      "probe": "撤回排队"
-    },
-    {
-      "id": "AC-06",
-      "action": "附件移除",
-      "consequence": "可逆：删掉的是待发条目，不涉及已发内容",
-      "scope": "待发附件",
-      "form": "icon",
-      "confirm": false,
-      "basis": "U1 E2；U3 T23（chip 行内移除，可逆）",
-      "when": "default",
-      "probe": "移除附件：发送路径.md"
     },
     {
       "id": "AC-07",
@@ -102,7 +78,8 @@
       "probe": "确认结束分支",
       "text": "确认结束分支？",
       "confirm_probe": "确认结束分支",
-      "confirm_when": "branch-end"
+      "confirm_when": "branch-end",
+      "implemented": false
     },
     {
       "id": "AC-10",
@@ -114,29 +91,6 @@
       "basis": "U1 C11；U3 后续批次",
       "when": "tasks",
       "probe": "取消任务"
-    },
-    {
-      "id": "AC-11",
-      "action": "修改目标",
-      "consequence": "可逆：文本可再改；不改历史轮次",
-      "scope": "当前会话",
-      "form": "icon",
-      "confirm": false,
-      "basis": "U1 E1、UI-7",
-      "when": "default",
-      "probe": "修改目标"
-    },
-    {
-      "id": "AC-12",
-      "action": "从当前分支切出",
-      "consequence": "低风险：只新增一条分支，不改现有历史",
-      "scope": "当前会话",
-      "form": "icon",
-      "confirm": false,
-      "basis": "U1 S63、E7",
-      "when": "branch",
-      "probe": "从当前分支切出",
-      "in_menu": true
     },
     {
       "id": "AC-18",
@@ -231,17 +185,6 @@
       "basis": "U1 S25；U3 T21",
       "when": "shell",
       "probe": "运行命令"
-    },
-    {
-      "id": "AC-31",
-      "action": "退出命令模式",
-      "consequence": "可逆：草稿保留，只是去掉 `!` 前缀",
-      "scope": "当前输入区",
-      "form": "icon",
-      "confirm": false,
-      "basis": "U1 S25；U3 T21",
-      "when": "shell",
-      "probe": "退出命令模式"
     }
   ],
   "undecided": [

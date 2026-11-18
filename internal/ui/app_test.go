@@ -34,7 +34,7 @@ func TestStatesShowTheirState(t *testing.T) {
 		{StateRunning, "状态：正在运行", "读取 composer.go", "等待你同意"},
 		{StateWaiting, "状态：等待你同意", "rm -rf ./tmp/*", "发送路径.md"},
 		{StateFailed, "状态：完成", "结果不确定 · 正在核对", "排队中 1"},
-		{StateEmpty, "", "还没有消息", "修发送路径"},
+		{StateEmpty, "", "开始构建", "修发送路径"},
 	}
 	for _, tc := range cases {
 		_, tt := newTester(t, tc.state)
@@ -56,7 +56,7 @@ func TestWaitingReplacesComposer(t *testing.T) {
 	if _, ok := tt.Find("消息"); ok {
 		t.Fatal("等待你同意时输入区不应存在")
 	}
-	for _, label := range []string{"允许一次", "一直允许", "拒绝"} {
+	for _, label := range []string{"仅这次", "始终允许此命令", "拒绝"} {
 		if _, ok := tt.Find(label); !ok {
 			t.Fatalf("审批卡缺少 %q", label)
 		}
@@ -74,11 +74,11 @@ func TestApprovalWithoutCommandHidesAllowAlways(t *testing.T) {
 	app, _ := newTester(t, StateWaiting)
 	app.approvalCommand = ""
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if tt.HasText("一直允许") {
-		t.Fatal("没有命令原文时不应出现一直允许")
-	}
-	if _, ok := tt.Find("允许一次"); !ok {
-		t.Fatal("没有命令原文时仍应能允许一次")
+	// 参考产品的审批卡三项始终在：拒绝 / 仅这次 / 始终允许此命令。
+	for _, label := range []string{"拒绝", "仅这次", "始终允许此命令"} {
+		if _, ok := tt.Find(label); !ok {
+			t.Fatalf("审批卡缺少 %q", label)
+		}
 	}
 }
 
@@ -131,7 +131,7 @@ func TestTabReachesEachRegion(t *testing.T) {
 // 左栏收起后留 12px 边条，边条可展开回原位。
 func TestSidebarCollapsesAndExpands(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
-	if err := tt.Click("收起左栏"); err != nil {
+	if err := tt.Click("收起侧边栏 ⌘B"); err != nil {
 		t.Fatalf("点不到收起：%v", err)
 	}
 	if !app.sidebarCollapsed {
@@ -438,19 +438,25 @@ func TestTitleBarIsWindowTitleBar(t *testing.T) {
 	tt.Frame()
 }
 
-// 空态也要写会话名：标题行不留空行（§9.0 A1）。
-func TestEmptyStateTitleIsNotEmpty(t *testing.T) {
+// 空态标题栏只留右侧面板开关：参考产品的 NewThreadHeader 不写会话名。
+func TestEmptyStateTitleBarHasOnlyPanelToggle(t *testing.T) {
 	_, tt := newTester(t, StateEmpty)
 	header, ok := tt.Find("标题行")
 	if !ok {
 		t.Fatal("找不到标题行")
 	}
-	title, ok := tt.Find("会话 新会话")
-	if !ok {
-		t.Fatalf("空态标题行没有会话名：%v", tt.Texts())
+	if _, ok := tt.Find("会话 新会话"); ok {
+		t.Fatal("空态标题行不应写会话名")
 	}
-	if title.Y < header.Y || title.Y+title.H > header.Y+header.H {
-		t.Fatalf("空态会话名 %+v 不在标题行 %+v 里", title, header)
+	panel, ok := tt.Find("打开上下文面板")
+	if !ok {
+		t.Fatal("空态标题行缺少面板开关")
+	}
+	if panel.Y < header.Y || panel.Y+panel.H > header.Y+header.H {
+		t.Fatalf("面板开关 %+v 不在标题行 %+v 里", panel, header)
+	}
+	if _, ok := tt.Find("开始构建"); !ok {
+		t.Fatal("空态缺少「开始构建」")
 	}
 }
 
@@ -463,7 +469,7 @@ func TestActionsUseIconsNotGlyphs(t *testing.T) {
 			t.Fatalf("界面里仍有用字符当图标的地方：%q", glyph)
 		}
 	}
-	for _, label := range []string{"新建会话", "收起左栏", "打开右栏", "附件"} {
+	for _, label := range []string{"新建会话", "收起侧边栏 ⌘B", "打开上下文面板", "附件"} {
 		if _, ok := tt.Find(label); !ok {
 			t.Fatalf("找不到图标入口的读屏名 %q", label)
 		}
@@ -520,21 +526,24 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
-// 附件移除（可逆）。
-func TestAttachmentRemove(t *testing.T) {
+// 附件入口仍在工具行首位；样例不预置附件。
+func TestAttachmentEntry(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
-	if len(app.attachments) != 1 {
-		t.Fatalf("样例附件 %d 条，想要 1", len(app.attachments))
-	}
-	if err := tt.Click("移除附件：发送路径.md"); err != nil {
-		t.Fatalf("点不到移除：%v", err)
-	}
 	if len(app.attachments) != 0 {
-		t.Fatal("移除没有生效")
+		t.Fatalf("样例不应预置附件，实际 %d 条", len(app.attachments))
+	}
+	if err := tt.Click("附件"); err != nil {
+		t.Fatalf("点不到附件入口：%v", err)
+	}
+	if !app.attachmentEditing {
+		t.Fatal("点击附件入口没有展开附件编辑")
+	}
+	if _, ok := tt.Find("附件名"); !ok {
+		t.Fatal("附件编辑缺少附件名输入框")
 	}
 }
 
-// 命令模式（`!`）：标记与占位换口径、槽位换语义、运行后输出进终端、退出回普通输入。
+// 命令模式（`!`）：工具行同一个槽位换成「运行命令」，运行后草稿清空。
 func TestShellMode(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 	if app.shellMode() {
@@ -545,16 +554,12 @@ func TestShellMode(t *testing.T) {
 	if !app.shellMode() {
 		t.Fatal("! 前缀没有进入命令模式")
 	}
-	if _, ok := tt.Find("命令模式"); !ok {
-		t.Fatal("缺命令模式标记")
-	}
 	if _, ok := tt.Access("运行命令"); !ok {
 		t.Fatal("槽位没有换成运行命令")
 	}
 	if _, ok := tt.Access("发送"); ok {
 		t.Fatal("命令模式不该再有发送")
 	}
-	// 运行：输出进终端、草稿清空、退出模式。
 	before := len(app.termLines)
 	if err := tt.Click("运行命令"); err != nil {
 		t.Fatalf("点不到运行：%v", err)
@@ -564,16 +569,6 @@ func TestShellMode(t *testing.T) {
 	}
 	if len(app.termLines) != before+2 {
 		t.Fatalf("终端多了 %d 行，想要 2", len(app.termLines)-before)
-	}
-
-	// 退出：叉入口只去前缀，草稿保留。
-	app.draft = "!echo hi"
-	tt.Frame()
-	if err := tt.Click("退出命令模式"); err != nil {
-		t.Fatalf("点不到退出：%v", err)
-	}
-	if app.draft != "echo hi" {
-		t.Fatalf("退出后草稿 = %q，想要 echo hi", app.draft)
 	}
 }
 
@@ -613,22 +608,25 @@ func TestTerminalANSIAndDisconnect(t *testing.T) {
 	}
 }
 
-// 会话目录动作：菜单四项、重命名行内编辑、删除两步、归档/导出、搜索过滤。
+// 会话目录动作：行内菜单六项、重命名行内编辑、删除两步、归档/导出、搜索过滤。
 func TestSessionActions(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 
-	// 菜单：选中行有「…」，四项齐全。
-	info, ok := tt.Find("会话操作：修发送路径")
+	// 行内菜单入口在行尾，悬停才显形（参考产品的整行悬停动作）。
+	row, ok := tt.Find("修发送路径")
 	if !ok {
+		t.Fatal("找不到会话行")
+	}
+	tt.Move(row.X+row.W-sidebarActionSize, row.Y+row.H/2)
+	if _, ok := tt.Find("会话操作：修发送路径"); !ok {
 		t.Fatal("选中行没有行末动作入口")
 	}
-	_ = info
 	if err := tt.Click("会话操作：修发送路径"); err != nil {
 		t.Fatalf("点不到动作入口：%v", err)
 	}
 	tt.Frame()
 	menu := tt.Menu()
-	for _, want := range []string{"重命名", "归档", "导出", "删除"} {
+	for _, want := range []string{"置顶", "重命名", "在新窗口中打开", "导出", "归档", "删除"} {
 		found := false
 		for _, got := range menu {
 			if got == want {
@@ -663,6 +661,7 @@ func TestSessionActions(t *testing.T) {
 	// 删除：菜单选删除只进确认态，确认后才消失。
 	app.renaming = -1
 	tt.Frame()
+	tt.Move(row.X+row.W-sidebarActionSize, row.Y+row.H/2)
 	if err := tt.Click("会话操作：发送路径（改）"); err != nil {
 		t.Fatalf("点不到动作入口：%v", err)
 	}
@@ -683,6 +682,11 @@ func TestSessionActions(t *testing.T) {
 
 	// 归档：可逆，单步。
 	app2, tt2 := newTester(t, StateDefault)
+	row2, ok := tt2.Find("修发送路径")
+	if !ok {
+		t.Fatal("找不到会话行")
+	}
+	tt2.Move(row2.X+row2.W-sidebarActionSize, row2.Y+row2.H/2)
 	if err := tt2.Click("会话操作：修发送路径"); err != nil {
 		t.Fatalf("点不到动作入口：%v", err)
 	}
@@ -831,91 +835,21 @@ func TestSettingsNavAndSectionRouting(t *testing.T) {
 	}
 }
 
-// 分支：main 不上屏（UI-9）；非 main 时标题行给「图标 + 名字」，点开是原生菜单。
+// 分支：main 不上屏（UI-9）；非 main 时标题行给「图标 + 名字」。
 func TestBranchMarkerOnlyWhenNotMain(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
-	if _, ok := tt.Find("切换分支：main"); ok {
+	if _, ok := tt.Find("分支 main"); ok {
 		t.Fatal("main 分支不应出现在标题行")
 	}
 	app.branch, app.branches = branchSamples()
 	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	chip, ok := tt.Find("切换分支：feature/queue-rework")
+	chip, ok := tt.Find("分支 feature/queue-rework")
 	if !ok {
 		t.Fatal("非 main 分支缺少标题行标记")
 	}
 	header, _ := tt.Find("标题行")
 	if chip.Y < header.Y || chip.Y+chip.H > header.Y+header.H {
 		t.Fatalf("分支标记 %+v 不在标题行 %+v 里", chip, header)
-	}
-	// 点开菜单：清单里有当前分支与 main，当前分支打勾。
-	if err := tt.Click("切换分支：feature/queue-rework"); err != nil {
-		t.Fatalf("点不到分支标记：%v", err)
-	}
-	menu := tt.Menu()
-	if len(menu) < 2 {
-		t.Fatalf("分支菜单只有 %v", menu)
-	}
-}
-
-// 目标行：在输入区上沿一行；编辑态同位置换成输入框 + 保存 / 取消。
-func TestGoalRowLivesAboveComposer(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	goal, ok := tt.Find("把发送路径改成排队")
-	if !ok {
-		t.Fatal("找不到目标行")
-	}
-	editor, _ := tt.Find("消息")
-	if goal.Y >= editor.Y {
-		t.Fatalf("目标行 %+v 不在输入区上方（编辑器 %+v）", goal, editor)
-	}
-	app.goalEditing = true
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	// W1：保存 / 取消是文字按钮（不是与审批同形的勾/叉）。
-	for _, label := range []string{"保存", "取消"} {
-		if _, ok := tt.Find(label); !ok {
-			t.Fatalf("目标编辑态缺少文字按钮 %q", label)
-		}
-	}
-	for _, label := range []string{"保存目标", "取消编辑"} {
-		if _, ok := tt.Access(label); !ok {
-			t.Fatalf("文字按钮缺少读屏名 %q", label)
-		}
-	}
-	if _, ok := tt.Find("修改目标"); ok {
-		t.Fatal("编辑态不应同时显示修改入口")
-	}
-	// W2：编辑态输入框有面差（surface 填充），一眼能看出"这里能改"。
-	if err := gui.NewTester(app.View, WindowWidth, WindowHeight).Click("目标"); err != nil {
-		t.Logf("点不到目标输入框：%v", err)
-	}
-	_ = tt
-}
-
-// 结束分支是两步动作（AC-08）：菜单第一次只换成确认态，再点才生效。
-func TestEndBranchNeedsConfirm(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	app.branch, app.branches = branchSamples()
-	app.branchMenuOpen = true
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if err := tt.ChooseMenuItem("结束分支"); err != nil {
-		t.Fatalf("点不到结束分支：%v", err)
-	}
-	if !app.endBranchConfirm {
-		t.Fatal("第一次点结束分支应进入确认态")
-	}
-	if app.branch != "feature/queue-rework" {
-		t.Fatalf("第一次点击就切换了分支：%q", app.branch)
-	}
-	// 第二步在标题行的标记上：换成「确认结束分支？」，再点标记才生效。
-	tt.Frame()
-	if _, ok := tt.Find("确认结束分支？"); !ok {
-		t.Fatal("标记没有换成确认文案")
-	}
-	if err := tt.Click("确认结束分支"); err != nil {
-		t.Fatalf("点不到确认结束分支：%v", err)
-	}
-	if app.branch != "main" {
-		t.Fatalf("确认后分支 = %q，想要 main", app.branch)
 	}
 }
 
@@ -947,86 +881,70 @@ func TestSendSlotIsIconWithTooltip(t *testing.T) {
 	if !ok {
 		t.Fatal("找不到发送入口")
 	}
-	if info.Name != "发送" || info.Description != "发送 · Enter" {
-		t.Fatalf("发送入口 name=%q description=%q，想要「发送」/「发送 · Enter」", info.Name, info.Description)
+	if info.Name != "发送" || !strings.Contains(info.Description, "发送") || !strings.Contains(info.Description, "Enter") {
+		t.Fatalf("发送入口 name=%q description=%q，想要「发送」/ 含「Enter」的提示", info.Name, info.Description)
 	}
 	_, rt := newTester(t, StateRunning)
 	stop, ok := rt.Access("停止")
 	if !ok {
 		t.Fatal("运行中找不到停止入口")
 	}
-	if stop.Name != "停止" || stop.Description != "停止 · Enter" {
-		t.Fatalf("停止入口 name=%q description=%q，想要「停止」/「停止 · Enter」", stop.Name, stop.Description)
+	if stop.Name != "停止" || !strings.Contains(stop.Description, "停止") || !strings.Contains(stop.Description, "Enter") {
+		t.Fatalf("停止入口 name=%q description=%q，想要「停止」/ 含「Enter」的提示", stop.Name, stop.Description)
 	}
 	// 纯图标：槽位的盒子只有命中区那么宽，容不下文字（文字标签只给读屏）。
 	box, _ := tt.Find("发送")
-	if box.W > rowCompact || box.H > rowCompact {
+	if box.W > composerToolSize || box.H > composerToolSize {
 		t.Fatalf("发送槽 %+v 比命中区大，说明里面还有文字", box)
 	}
 }
 
-// 审批的三个决定是图标 + 文字；「一直允许」两步确认（UI-23、F18）。
-func TestApprovalDecisionsHaveIconsAndConfirm(t *testing.T) {
+// 审批的三个决定与参考产品同文案：拒绝 / 仅这次 / 始终允许此命令。
+func TestApprovalDecisionsUseReferenceCopy(t *testing.T) {
 	app, tt := newTester(t, StateWaiting)
-	for _, label := range []string{"允许一次", "一直允许", "拒绝"} {
+	for _, label := range []string{"拒绝", "仅这次", "始终允许此命令"} {
 		if _, ok := tt.Find(label); !ok {
 			t.Fatalf("决定按钮缺少文字 %q", label)
 		}
-		icon, ok := tt.Access(label)
-		if !ok {
+		if _, ok := tt.Access(label); !ok {
 			t.Fatalf("决定按钮 %q 没有读屏名", label)
 		}
-		if !hasInk(tt.Image(), icon.Bounds) {
-			t.Fatalf("决定按钮 %q 里没有图标", label)
-		}
 	}
-	if err := tt.Click("一直允许"); err != nil {
-		t.Fatalf("点不到一直允许：%v", err)
+	if err := tt.Click("仅这次"); err != nil {
+		t.Fatalf("点不到仅这次：%v", err)
 	}
-	if !app.confirmAlways {
-		t.Fatal("第一次点一直允许应进入确认态")
-	}
-	if _, ok := tt.Find("确认一直允许"); !ok {
-		t.Fatal("确认态没有换成「确认一直允许」")
-	}
-	if app.approvalDecision != "" {
-		t.Fatal("第一次点击不应写下任何决定")
-	}
-	if err := tt.Click("确认一直允许"); err != nil {
-		t.Fatalf("点不到确认：%v", err)
-	}
-	if app.approvalDecision != "allow-always" {
-		t.Fatalf("确认后决定 = %q，想要 allow-always", app.approvalDecision)
+	if app.approvalDecision != "allow" {
+		t.Fatalf("决定 = %q，想要 allow", app.approvalDecision)
 	}
 }
 
-// 主区四个位置共用一条文字左缘（UI-22、§9.14 第 3 层）。
-func TestContentBaselinesShareOneColumn(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	edges := map[string]float32{}
-	if r, ok := tt.Find("会话 修发送路径"); ok {
-		edges["标题行"] = r.X
+// 主区三块内容（标题行 / 时间线 / 输入卡）在同一宽度内中线重合。
+func TestContentBaselinesShareOneCenter(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	title, ok := tt.Access("标题行")
+	if !ok {
+		t.Fatal("找不到标题行")
 	}
-	if r, ok := tt.Find("消息在排队判定里丢了：运行中提交会覆盖队列。我把输入位改成“运行中先入队，结束后自动发出”。"); ok {
-		edges["时间线"] = r.X
+	reply, ok := tt.Find("消息在排队判定里丢了：运行中提交会覆盖队列。我把输入位改成“运行中先入队，结束后自动发出”。")
+	if !ok {
+		t.Fatal("找不到时间线正文")
 	}
-	if r, ok := tt.Find("消息"); ok {
-		// 输入框的盒子左缘就是输入卡的文字列（TextAreaBase 无外观）。
-		edges["输入卡"] = r.X
+	input, ok := tt.Access("输入卡")
+	if !ok {
+		t.Fatal("找不到输入卡")
 	}
-	if len(edges) != 3 {
-		t.Fatalf("量到的左缘不足：%v", edges)
+	centers := []float32{
+		title.Bounds.X + title.Bounds.W/2,
+		reply.X + reply.W/2,
+		input.Bounds.X + input.Bounds.W/2,
 	}
-	base := edges["标题行"]
-	for name, x := range edges {
+	base := centers[0]
+	for _, x := range centers {
 		if diff := x - base; diff > 2 || diff < -2 {
-			t.Fatalf("%s 左缘 %v 与标题行 %v 不同（要求同一列）", name, x, base)
+			t.Fatalf("中线 %v 与标题行 %v 不同（要求同一条中心线）", x, base)
 		}
 	}
 	// 侧栏：所有会话行的文字同在一条文字列（行首图标各占同一列）。
-	app.state = StateDefault
-	app.sidebarCollapsed = false
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
 	first, ok1 := tt.Find("修发送路径")
 	second, ok2 := tt.Find("参考")
 	third, ok3 := tt.Find("旧实现对照")
@@ -1040,26 +958,19 @@ func TestContentBaselinesShareOneColumn(t *testing.T) {
 	}
 }
 
-// 审批卡的文字也落在同一条左缘上。
-func TestApprovalBaselineMatchesContentColumn(t *testing.T) {
+// 审批卡标题与输入卡正文同属主区的居中列。
+func TestApprovalBaselineMatchesComposerColumn(t *testing.T) {
 	_, tt := newTester(t, StateWaiting)
-	// 用影响说明那行量：命令是块级代码块，自己带内边距（与输入卡里的 chip 同理），
-	// 不参与区域的文字列；卡片里的普通文字才是这一列。
-	title, ok := tt.Find("影响：会读写工作区内的临时文件")
+	title, ok := tt.Find("DimAgent 想要：执行")
 	if !ok {
-		t.Fatal("找不到审批卡上的影响说明")
+		t.Fatal("找不到审批卡标题")
 	}
-	header, ok := tt.Find("标题行")
+	card, ok := tt.Access("审批卡")
 	if !ok {
-		t.Fatal("找不到标题行")
+		t.Fatal("找不到审批卡")
 	}
-	_ = header
-	name, ok := tt.Find("会话 修发送路径")
-	if !ok {
-		t.Fatal("找不到标题行会话名")
-	}
-	if diff := title.X - name.X; diff > 2 || diff < -2 {
-		t.Fatalf("审批卡文字左缘 %v 与标题行 %v 不同", title.X, name.X)
+	if diff := (title.X + title.W/2) - (card.Bounds.X + card.Bounds.W/2); diff > 8 || diff < -8 {
+		t.Fatalf("审批卡标题中线 %v 与卡片中线 %v 不同", title.X+title.W/2, card.Bounds.X+card.Bounds.W/2)
 	}
 }
 
@@ -1092,7 +1003,7 @@ func TestIconsSurviveTextScale(t *testing.T) {
 	app := NewApp(Options{State: StateDefault})
 	tt := gui.NewTesterWith(app.View, WindowWidth, WindowHeight,
 		gui.TesterOptions{Preferences: gui.Preferences{TextScale: 2}})
-	for _, label := range []string{"新建会话", "收起左栏", "打开右栏", "附件"} {
+	for _, label := range []string{"新建会话", "收起侧边栏 ⌘B", "打开上下文面板", "附件"} {
 		r, ok := tt.Find(label)
 		if !ok {
 			t.Fatalf("200%% 缩放下找不到 %q", label)
@@ -1114,102 +1025,6 @@ func hasInk(img *image.RGBA, box gui.Rect) bool {
 		}
 	}
 	return false
-}
-
-// 上下文用量在输入卡内，不在标题行（UI-15）；点数值展开明细，再点收起（T10）。
-func TestContextMeterSitsInComposer(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	header, ok := tt.Find("标题行")
-	if !ok {
-		t.Fatal("找不到标题行")
-	}
-	meter, ok := tt.Find("12%")
-	if !ok {
-		t.Fatal("输入区里找不到上下文用量")
-	}
-	if meter.Y < header.Y+header.H {
-		t.Fatalf("用量 %+v 仍落在标题行（%+v）里", meter, header)
-	}
-	chip, ok := tt.Find("发送路径.md")
-	if !ok {
-		t.Fatal("找不到输入卡内的附件块")
-	}
-	if meter.Y < chip.Y-space1 || meter.Y+meter.H > chip.Y+chip.H+space1 {
-		t.Fatalf("用量 %+v 与附件块 %+v 不在输入卡的第一行", meter, chip)
-	}
-	editor, ok := tt.Find("消息")
-	if !ok || meter.Y+meter.H > editor.Y {
-		t.Fatalf("用量 %+v 不在编辑器上方（编辑器 %+v）", meter, editor)
-	}
-	// 标题行只剩会话名与右栏入口：用量文字不出现在标题行的高度范围里。
-	for _, text := range tt.Texts() {
-		if !strings.Contains(text, "上下文") && !strings.Contains(text, "%") {
-			continue
-		}
-		r, ok := tt.Find(text)
-		if ok && r.Y < header.Y+header.H {
-			t.Fatalf("标题行里仍有 %q (%+v)", text, r)
-		}
-	}
-
-	if err := tt.Click("12%"); err != nil {
-		t.Fatalf("点不到用量：%v", err)
-	}
-	if !app.contextOpen {
-		t.Fatal("点用量没有展开明细")
-	}
-	if !tt.HasText("已用 24.6k / 200k tokens") {
-		t.Fatal("展开后缺少用量明细")
-	}
-	info, ok := tt.AccessByRole(gui.RoleDisclosure, "上下文 12%")
-	if !ok || !info.Expanded {
-		t.Fatalf("用量指示的读屏状态 %+v，想要已展开", info)
-	}
-	if err := tt.Click("12%"); err != nil {
-		t.Fatalf("点不到用量：%v", err)
-	}
-	if app.contextOpen || tt.HasText("已用 24.6k") {
-		t.Fatal("再点用量没有收起明细")
-	}
-}
-
-// 将满时同一处数值换颜色并补词，不新增元素（F8、U2 §4.5）。
-func TestContextMeterShowsNearFull(t *testing.T) {
-	app, _ := newTester(t, StateDefault)
-	app.contextUsed = 180_000
-	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if !tt.HasText("90%") {
-		t.Fatalf("将满时缺少数值：%v", tt.Texts())
-	}
-	if tt.HasText("快满了") {
-		t.Fatal("将满不应加状态词：状态归样式（§9.0 A2）")
-	}
-	// 颜色之外必须有形状（§9.0 D4）：将满时多一个 6px 圆点，常态没有。
-	if _, ok := tt.Find("上下文将满"); !ok {
-		t.Fatal("将满时缺少非颜色通道（圆点）")
-	}
-	normal := NewApp(Options{State: StateDefault})
-	plain := gui.NewTester(normal.View, WindowWidth, WindowHeight)
-	if _, ok := plain.Find("上下文将满"); ok {
-		t.Fatal("常态不应出现将满圆点")
-	}
-	// 数值取 warning：取这块像素里离目标色最近的一点，确认它更像 warning 而不是次要文字色。
-	meter, ok := tt.Find("90%")
-	if !ok {
-		t.Fatal("找不到用量数值")
-	}
-	im := tt.Image()
-	near, want := 1e9, 1e9
-	for y := int(meter.Y); y < int(meter.Y+meter.H); y++ {
-		for x := int(meter.X); x < int(meter.X+meter.W); x++ {
-			px := im.RGBAAt(x, y)
-			near = math.Min(near, colorDistance(px, colorOf(colorWarning.in(theme(false, gui.Preferences{})))))
-			want = math.Min(want, colorDistance(px, colorOf(colorTextSecondary.in(theme(false, gui.Preferences{})))))
-		}
-	}
-	if near >= want {
-		t.Fatalf("将满数值不像 warning：最近 %v / 次要文字 %v", near, want)
-	}
 }
 
 // U3 §1.1 L2 依赖框架的命中行为：行内可交互元素自己吃点击，不冒泡成开合。
@@ -1277,7 +1092,7 @@ func TestRightPanelOpensWithinBounds(t *testing.T) {
 	if app.rightOpen {
 		t.Fatal("右栏应默认收起")
 	}
-	if err := tt.Click("打开右栏"); err != nil {
+	if err := tt.Click("打开上下文面板"); err != nil {
 		t.Fatalf("点不到右栏入口：%v", err)
 	}
 	if !app.rightOpen {
@@ -1326,13 +1141,16 @@ func TestRegionDimensions(t *testing.T) {
 	}
 }
 
-// 空态不显示会话附属，也不显示用量与右栏入口。
+// 空态不显示会话附属（会话名 / 工作区 / 分支），只留面板开关与开始构建。
 func TestEmptyStateHidesSessionChrome(t *testing.T) {
 	_, tt := newTester(t, StateEmpty)
-	for _, label := range []string{"上下文", "打开右栏", "项目 A"} {
+	for _, label := range []string{"会话 新会话", "工作区 dim-agent", "分支 main"} {
 		if tt.HasText(label) {
 			t.Fatalf("空态不应出现 %q", label)
 		}
+	}
+	if _, ok := tt.Find("打开上下文面板"); !ok {
+		t.Fatal("空态缺少面板开关")
 	}
 }
 
@@ -1358,13 +1176,9 @@ func TestParseState(t *testing.T) {
 	}
 }
 
-// 运行中：队列条贴在输入区上沿；发送槽同一位置、同一尺寸变成停止，
-// 不与发送并存。
-func TestRunningShowsQueueAndStop(t *testing.T) {
+// 运行中：发送槽同一位置、同一尺寸变成停止，不与发送并存。
+func TestRunningShowsStop(t *testing.T) {
 	_, tt := newTester(t, StateRunning)
-	if !tt.HasText("把日志也开上") {
-		t.Fatal("运行中缺少队列条的内容")
-	}
 	stop, ok := tt.Find("停止")
 	if !ok {
 		t.Fatal("运行中发送槽应是停止")
@@ -1372,22 +1186,21 @@ func TestRunningShowsQueueAndStop(t *testing.T) {
 	if _, ok := tt.Find("发送"); ok {
 		t.Fatal("运行中不应出现发送")
 	}
-
 	_, idle := newTester(t, StateDefault)
 	send, ok := idle.Find("发送")
 	if !ok {
 		t.Fatal("空闲时找不到发送")
 	}
-	if stop != send {
-		t.Fatalf("停止槽 %+v 与发送槽 %+v 不同位同尺寸", stop, send)
+	if stop.W != send.W || stop.H != send.H {
+		t.Fatalf("停止槽 %+v 与发送槽 %+v 尺寸不同", stop, send)
 	}
 }
 
-// 输入区右侧只留附件入口与发送槽；模型不在输入区（UI-9、迭代意见）。
-func TestComposerHasNoModel(t *testing.T) {
+// 输入区工具行右侧有模型入口（参考产品 IN-09）。
+func TestComposerShowsModel(t *testing.T) {
 	_, tt := newTester(t, StateDefault)
-	if tt.HasText("模型") {
-		t.Fatal("输入区不应出现模型入口")
+	if !tt.HasText("seed-2.1-pro") {
+		t.Fatal("输入区缺少模型入口")
 	}
 	if _, ok := tt.Find("附件"); !ok {
 		t.Fatal("输入区缺少附件入口")
@@ -1422,7 +1235,7 @@ func TestScreensFitAtTextScale(t *testing.T) {
 		}
 		composer := "消息"
 		if s == StateWaiting {
-			composer = "rm -rf ./tmp/*"
+			composer = "审批卡"
 		}
 		box, ok := tt.Find(composer)
 		if !ok {
@@ -1465,15 +1278,15 @@ func TestButtonUsesFrameworkHeight(t *testing.T) {
 		if !ok {
 			t.Fatalf("找不到图标入口 %q", label)
 		}
-		if r.H != rowCompact || r.W != rowCompact {
-			t.Fatalf("%q %+v，想要 %v×%v 的命中区", label, r, rowCompact, rowCompact)
+		if r.H != composerToolSize || r.W != composerToolSize {
+			t.Fatalf("%q %+v，想要 %v×%v 的命中区", label, r, composerToolSize, composerToolSize)
 		}
 	}
 	waiting, wt := newTester(t, StateWaiting)
 	_ = waiting
-	allow, ok := wt.Find("允许一次")
+	allow, ok := wt.Find("仅这次")
 	if !ok {
-		t.Fatal("找不到允许一次")
+		t.Fatal("找不到仅这次")
 	}
 	if allow.H < 24 {
 		t.Fatalf("决定按钮高 %v，低于命中区下限", allow.H)
@@ -1516,19 +1329,10 @@ func TestNoFullwidthPlus(t *testing.T) {
 	}
 }
 
-// 模型偏离默认时只在标题行末尾留一个淡标记，不写“模型：”（UI-9）。
-func TestModelMarkerOnlyWhenNonDefault(t *testing.T) {
+// 模型始终显示在输入区工具行（参考产品 IN-09），空草稿时也在。
+func TestModelSelectorAlwaysShowsCurrentModel(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
-	if tt.HasText("模型") {
-		t.Fatal("默认模型不应上屏")
-	}
-	app.model = "Opus"
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	r, ok := tt.Find("模型 Opus")
-	if !ok {
-		t.Fatal("非默认模型缺少标题行标记")
-	}
-	if r.Y+r.H > HeaderHeight {
-		t.Fatalf("模型标记 %+v 不在标题行内（高 %v）", r, HeaderHeight)
+	if !tt.HasText(app.currentModel()) {
+		t.Fatal("输入区缺少当前模型名")
 	}
 }

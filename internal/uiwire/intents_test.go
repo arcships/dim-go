@@ -76,6 +76,18 @@ func (h *intentHarness) click(label string) {
 	h.frame()
 }
 
+// hoverRow 把指针移到一条会话行的行尾：行内动作（更多 / 置顶 / 归档）只在悬停
+// 时显形（参考产品的整行悬停动作）。
+func (h *intentHarness) hoverRow(name string) {
+	h.t.Helper()
+	row, ok := h.tester.Find(name)
+	if !ok {
+		h.t.Fatalf("找不到会话行 %q", name)
+	}
+	h.tester.Move(row.X+row.W-12, row.Y+row.H/2)
+	h.frame()
+}
+
 // typeInto 点中输入框并键入文本。
 func (h *intentHarness) typeInto(label, text string) {
 	h.t.Helper()
@@ -481,10 +493,10 @@ func TestIntentApproval(t *testing.T) {
 		_, ok := h.wire.Approval()
 		return ok
 	})
-	h.waitFor("允许一次", 2*time.Second)
-	h.click("允许一次")
+	h.waitFor("仅这次", 2*time.Second)
+	h.click("仅这次")
 	params := h.waitRequest("approval.respond")
-	t.Logf("点了「允许一次」→ 服务端收到 approval.respond（%d 次），decision=%v",
+	t.Logf("点了「仅这次」→ 服务端收到 approval.respond（%d 次），decision=%v",
 		len(h.server.RequestsFor("approval.respond")), params["decision"])
 	if params["decision"] != "allow" {
 		t.Fatalf("审批应答参数不对：%v", params)
@@ -572,6 +584,7 @@ func TestIntentCreateSession(t *testing.T) {
 // TestIntentRename 会话菜单 → 重命名 → 保存 → session.rename。
 func TestIntentRename(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
+	h.hoverRow("s1")
 	h.click("会话操作：s1")
 	if err := h.tester.ChooseMenuItem("重命名"); err != nil {
 		t.Fatalf("选择重命名：%v", err)
@@ -589,6 +602,7 @@ func TestIntentRename(t *testing.T) {
 // TestIntentArchive 会话菜单 → 归档：本地隐藏，不出现在列表里。
 func TestIntentArchive(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
+	h.hoverRow("s1")
 	h.click("会话操作：s1")
 	if err := h.tester.ChooseMenuItem("归档"); err != nil {
 		t.Fatalf("选择归档：%v", err)
@@ -604,6 +618,7 @@ func TestIntentArchive(t *testing.T) {
 func TestIntentExport(t *testing.T) {
 	dir := t.TempDir()
 	h := newIntentHarness(t, baseScript(dir, false))
+	h.hoverRow("s1")
 	h.click("会话操作：s1")
 	if err := h.tester.ChooseMenuItem("导出"); err != nil {
 		t.Fatalf("选择导出：%v", err)
@@ -623,6 +638,7 @@ func TestIntentExport(t *testing.T) {
 // TestIntentDelete 会话菜单 → 删除 → 确认 → session.delete。
 func TestIntentDelete(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
+	h.hoverRow("s1")
 	h.click("会话操作：s1")
 	if err := h.tester.ChooseMenuItem("删除"); err != nil {
 		t.Fatalf("选择删除：%v", err)
@@ -836,7 +852,7 @@ func TestIntentGoalPauseResumeClear(t *testing.T) {
 // TestIntentStopExecTask 右栏后台任务 → 停止 → session.exec.stop。
 func TestIntentStopExecTask(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("打开右栏")
+	h.click("打开上下文面板")
 	h.click("后台")
 	h.click("停止任务")
 	params := h.waitRequest("session.exec.stop")
@@ -882,7 +898,7 @@ func TestIntentShellStop(t *testing.T) {
 	h.click("运行命令")
 	h.waitRequest("shell.run")
 	h.waitFor("消息", 2*time.Second)
-	h.click("打开右栏")
+	h.click("打开上下文面板")
 	h.click("终端")
 	h.waitFor("中止运行", 2*time.Second)
 	h.click("中止运行")

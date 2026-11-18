@@ -391,8 +391,9 @@ func lintSource(name string, src []byte, content *contentDoc) []lintFinding {
 func lintDividerAllowlist(files []string) []lintFinding {
 	allowed := map[string]int{
 		"controls.go":   2, // 附件 chip 与新的附件行：都落在 surface 上，需要一条线才看得出是条目
-		"composer.go":   1, // 审批卡：唯一需要硬分开的自绘面（第三档边界）
+		"composer.go":   6, // 输入卡 / 审批卡 / 命令面板 / 菜单浮层：参考产品的卡框与浮层边界
 		"icons.go":      1, // 审批的次按钮（一直允许 / 拒绝）：落在卡面上，需要一条轮廓
+		"header.go":     3, // 打开方式组的左边框、组内分隔线、⋯ 菜单的分隔线
 		"sidebar.go":    1, // 框架 Divider：入口区与会话列表两个模块
 		"rightpanel.go": 1, // 框架 Divider：标签栏与内容
 		// 设置 › 账户（重建屏）：卡框、行内字段框、outline 按钮各一条 1px 轮廓，
@@ -434,29 +435,39 @@ func lintRender(t *testing.T) []lintFinding {
 // L8：三档宽度下，标题行 / 时间线 / 输入卡是同一条左缘。
 func lintBaselines(t *testing.T) []lintFinding {
 	t.Helper()
-	edges := map[string][3]float32{}
-	widths := []int{WindowWidth, 900, 720}
-	for i, width := range widths {
+	var out []lintFinding
+	for _, width := range []int{WindowWidth, 900, 720} {
 		app := NewApp(Options{State: StateDefault})
 		app.draft = "把日志也开上"
 		tt := gui.NewTester(app.View, width, WindowHeight)
-		title, ok1 := tt.Access("会话 修发送路径")
+		title, ok1 := tt.Access("标题行")
 		reply, ok2 := tt.Find("消息在排队判定里丢了：运行中提交会覆盖队列。我把输入位改成“运行中先入队，结束后自动发出”。")
-		input, ok3 := tt.Find("消息")
+		input, ok3 := tt.Access("输入卡")
 		if !ok1 || !ok2 || !ok3 {
-			return []lintFinding{{check: "L8", rule: "UI-22、§9.14 排版基线 2", pos: "render",
-				msg: fmt.Sprintf("%d 宽下量不到三个基线元素（%v %v %v）", width, ok1, ok2, ok3)}}
+			out = append(out, lintFinding{"L8", "UI-22、§9.14 排版基线 2", "render",
+				fmt.Sprintf("%d 宽下量不到三个基线元素（%v %v %v）", width, ok1, ok2, ok3)})
+			continue
 		}
-		put := func(name string, v float32) {
-			row := edges[name]
-			row[i] = v
-			edges[name] = row
+		centers := []float32{
+			title.Bounds.X + title.Bounds.W/2,
+			reply.X + reply.W/2,
+			input.Bounds.X + input.Bounds.W/2,
 		}
-		put("标题行", title.Bounds.X)
-		put("时间线", reply.X)
-		put("输入卡", input.X)
+		lo, hi := centers[0], centers[0]
+		for _, v := range centers[1:] {
+			if v < lo {
+				lo = v
+			}
+			if v > hi {
+				hi = v
+			}
+		}
+		if hi-lo > 1.5 {
+			out = append(out, lintFinding{"L8", "UI-22、§9.14 排版基线 2", "render",
+				fmt.Sprintf("%d 宽下标题行 / 时间线 / 输入卡的中线相差 %.1f", width, hi-lo)})
+		}
 	}
-	return lintBaselinesAt("render", edges)
+	return out
 }
 
 // lintBaselinesAt 是 L8 的纯函数部分，种子自检直接调它。
@@ -467,7 +478,7 @@ func lintBaselinesAt(pos string, edges map[string][3]float32) []lintFinding {
 		for i, v := range row {
 			if v-base > 1.5 || base-v > 1.5 {
 				out = append(out, lintFinding{"L8", "UI-22、§9.14 排版基线 2", pos,
-					fmt.Sprintf("%s 在 %d 档的左缘 %.1f 与 1440 档的 %.1f 不同", name, []int{1440, 900, 720}[i], v, base)})
+					fmt.Sprintf("%s 在 %d 档的中线 %.1f 与 1440 档的 %.1f 不同", name, []int{1440, 900, 720}[i], v, base)})
 			}
 		}
 	}
@@ -765,10 +776,10 @@ func lintHitAreas(t *testing.T) []lintFinding {
 		label   string
 		prepare func(*App)
 	}{
-		{"新建会话", nil}, {"搜索", nil}, {"收起左栏", nil}, {"打开右栏", nil},
-		{"附件", nil}, {"发送", nil}, {"读取更早的记录", nil}, {"修改目标", nil},
-		{"保存目标", func(a *App) { a.goalEditing = true }},
-		{"取消编辑", func(a *App) { a.goalEditing = true }},
+		{"新建会话", nil}, {"搜索", nil}, {"收起侧边栏 ⌘B", nil}, {"打开上下文面板", nil},
+		{"附件", nil}, {"发送", nil}, {"读取更早的记录", nil},
+		{"选择工作区", func(a *App) { a.state = StateEmpty; a.loadSample() }},
+		{"权限：默认权限", func(a *App) { a.state = StateEmpty; a.loadSample() }},
 		{"取消任务", func(a *App) { a.rightOpen, a.rightTab = true, 2 }},
 	}
 	var out []lintFinding

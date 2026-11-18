@@ -6,22 +6,39 @@ import (
 	gui "github.com/egoist/mygo/ui"
 )
 
+// 设置壳的两条尺寸不是间距档位，是窗框留白，故单列常量并写明推导：
+// 参考产品的设置面是窗框里的一块白面（1030×725 视口上量得白面从 (4,4) 起、
+// 到 (1026,721) 止，四周 4），导航与内容之间一条 1px 分隔线（导航最后一像素）。
+const (
+	settingsShellInset = 4
+	settingsShellRule  = 1
+)
+
 // settings 是 P2 设置屏（独立成屏，U1-ia §4）：左导航 224 + 内容区（上限 1008）。
 // 导航是参考产品的 19 节（settings_sections.go）；内容按标识路由：已重建的分节
 // 显示真内容，其余显示占位，不摆编造的控件。
+//
+// 面差：整块设置面是 t.Surface（白面 / 暗色 0c0c0c），窗框留 settingsShellInset
+// 让出 t.Background。参考产品同构——导航与内容同在白面上，两者之间靠 1px 的
+// t.Border 分开（同色面之间必须有这条线，否则导航列看不出边界）。
 //
 // 顶部让位与标题栏一致：窗口控件（红绿灯）落在导航列上方的那条里（UI-19），
 // 导航列顶部留出 c.TitleBar().Height，空白区可拖动窗口。
 func (a *App) settings(c *gui.Context) {
 	t := c.Theme()
 	gui.Row(c).Fill().AlignItems(gui.Stretch).
-		Background(t.Background).Label("设置").Children(func() {
-		a.settingsNav(c)
-		gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
-			gui.Column(c).Grow(1).MaxWidth(SettingsContentMaxWidth).
-				Padding(space8, space8).Gap(space4).Children(func() {
-				a.actionErrorView(c)
-				a.settingsContent(c)
+		Background(t.Background).Padding(settingsShellInset).Label("设置").Children(func() {
+		gui.Row(c).Fill().AlignItems(gui.Stretch).Radius(radius).
+			Background(t.Surface).Children(func() {
+			a.settingsNav(c)
+			gui.Box(c).Width(settingsShellRule).Shrink(0).
+				Background(t.Border).Label("导航与内容的分隔")
+			gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
+				gui.Column(c).Grow(1).MaxWidth(SettingsContentMaxWidth).
+					Padding(space8, space8).Gap(space4).Children(func() {
+					a.actionErrorView(c)
+					a.settingsContent(c)
+				})
 			})
 		})
 	})
@@ -84,10 +101,13 @@ func settingsPlaceholder(c *gui.Context, section settingsSectionDef) {
 }
 
 // settingsNav 是左导航：返回主界面的图标入口 + 19 节分节列表。
+//
+// 导航列自己不铺底色：白面由设置壳铺（同一块面），导航再铺一次会把圆角的
+// 四个内角盖成直角。左右留 space2：参考产品的分节行宽 209（design-baseline
+// §7），224 − 2×7 = 210。
 func (a *App) settingsNav(c *gui.Context) {
-	t := c.Theme()
 	gui.Column(c).Width(SettingsNavWidth).Shrink(0).
-		Background(t.Surface).Children(func() {
+		Padding(0, space2).Children(func() {
 		if inset := titleBarInset(c.TitleBar()); inset > 0 {
 			gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位")
 		}
