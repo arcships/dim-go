@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 
 	gui "github.com/egoist/mygo/ui"
@@ -26,19 +27,20 @@ import (
 //
 // 只保留可丢的界面状态（mcpScreen）：当前视图、范围筛选、导入面板开合、
 // 每个服务器的开关位置、编辑器草稿。事实（服务器清单、状态、工具数、
-// 警告、认证、插件来源）归 App Server；本屏用运行时实测的那一条做样例，
-// 接线时换成 Source / Intents。
+// 警告、认证、插件来源）归 App Server：连着 Source 时清单每帧从
+// Extensions().MCP 读（unimported 时用运行时实测的那一条做样例），开关走
+// SetExtensionEnabled("mcp")。刷新 / 重读没有单独的 Intents：清单随扩展读数
+// 重读（见 settings_mcp 的分支说明）。
 //
 // # 未实现分支（清单里条件成立才出现的行）
 //
 //   - S-mcp-10…13 配置问题横幅与明细、加载骨架、错误 + 重试：要 App Server 的
-//     配置问题与加载态事实，本屏没有读路径。
-//   - S-mcp-14/15 两种空态有渲染（无服务器 / 范围筛选空），但样例只有一条
-//     服务器，正常路径下看不到；判据见 R-MCP-105/113。
+//     配置问题与加载态事实；本屏只画读数里的 ReadError / 能力缺失两行。
+//   - S-mcp-14/15 两种空态有渲染（无服务器 / 范围筛选空）；读数为空时走「无服务器」。
 //   - S-mcp-18 认证提示、S-mcp-20/21 认证与取消认证：OAuth 流程要宿主能力，
 //     本屏不摆认证按钮（该服务器无需认证）。
 //   - S-mcp-26…29 来自插件的服务器（发现、只读、测试结果、三个图标按钮）：
-//     插件来源的事实与连接测试都归 App Server。
+//     插件来源的连接测试与只读标记要 App Server 的 inspect 能力。
 //   - S-mcp-32/33/34 编辑器的加载态、已存储值隐藏提示、移动作用域：编辑已有
 //     条目才出现，需要条目快照与 move 能力。
 //   - S-mcp-48/49 表单校验错误与测试结果条：要写入与连接测试的返回值。
@@ -47,6 +49,7 @@ import (
 //     的按钮。
 //   - 导入面板的发现结果、预览、应用（S-mcp-113 … 138）：要 App Server 的
 //     discover / preview / apply 能力，本屏只渲染面板骨架，两个入口为禁用态。
+
 //
 // 差异：参考产品的「了解更多。」与「文档」在悬停时加下划线，框架的文本没有
 // 下划线装饰，本屏只保留链接色（登记为可接受偏差）。
@@ -172,9 +175,11 @@ const (
 // mcpTransports 是三段传输类型，顺序与参考产品一致。
 var mcpTransports = []string{mcpCopyStdio, mcpCopyHTTP, mcpCopySseDepr}
 
-// mcpServer 是一台 MCP 服务器（事实的样例）。字段对应参考实现的 server
-// 对象；连接状态与能力在这里只是布尔，接线后由 Source 给。
+// mcpServer 是一台 MCP 服务器（一行视图数据）。事实行由 Source 给，
+// 样例行只给 -demo；字段对应参考实现的 server 对象。
 type mcpServer struct {
+	// id 是服务端标识（启停写入要它）；样例行没有。
+	id         string
 	name       string
 	scope      string
 	status     string
@@ -186,14 +191,41 @@ type mcpServer struct {
 	connected  bool
 	inspect    bool
 	disconnect bool
+	// command 与 transport 是编辑器带入的原始配置（事实）；
+	// 样例行只有名字与范围。
+	command   string
+	transport string
 }
 
-// mcpServers 是运行时实测的那一条（MCP.json：dim-desktop-browser / user /
-// disconnected / 0 个工具）。它是样例，不是事实：接线后整表从 Source 读。
-var mcpServers = []mcpServer{{
+// mcpSampleServers 是运行时实测的那一条（MCP.json：dim-desktop-browser / user /
+// disconnected / 0 个工具）。它是样例，不是事实：只在 -demo（没有 Source）时用。
+var mcpSampleServers = []mcpServer{{
+	id:   "dim-desktop-browser",
 	name: "dim-desktop-browser", scope: "user", status: "disconnected",
 	tools: 0, enabled: true, connected: false, inspect: true, disconnect: true,
 }}
+
+// mcpServers 取这一帧的 MCP 清单：连着 Source 时读 Extensions().MCP，
+// 否则用样例。第二个返回值是读数本身的读态（ReadError / CapabilityMissing）。
+func (a *App) mcpServers() ([]mcpServer, ExtListSnapshot) {
+	if a.source == nil {
+		return mcpSampleServers, ExtListSnapshot{}
+	}
+	list := a.source.Extensions().MCP
+	rows := make([]mcpServer, 0, len(list.Items))
+	for _, item := range list.Items {
+		rows = append(rows, mcpServer{
+			id: item.ID, name: item.Name, scope: item.Source, status: item.Status,
+			tools: item.Tools, enabled: item.Enabled, connected: item.Connected,
+			warning: item.Error, sse: item.Transport == "sse",
+			command: item.Command, transport: item.Transport,
+			// 查看连接要 inspect 能力、断开要 disconnect 能力：两份都没有，按钮
+			// 照既有形态渲染，点击不写事实。
+			inspect: true, disconnect: true,
+		})
+	}
+	return rows, list
+}
 
 // mcpKeyValue 是编辑器里的一行键值。
 type mcpKeyValue struct{ key, value string }
@@ -227,7 +259,7 @@ type mcpState struct {
 var mcpScreen = mcpState{view: mcpViewList, enabled: map[string]*bool{}}
 
 // renderMCP 是设置 › MCP 这一屏（设置壳的一个分节）。内容自己滚。
-func renderMCP(c *gui.Context) {
+func renderMCP(c *gui.Context, a *App) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(mcpCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(mcpSectionGap).Children(func() {
@@ -235,7 +267,7 @@ func renderMCP(c *gui.Context) {
 				if mcpScreen.view == mcpViewEdit {
 					mcpEditor(c)
 				} else {
-					mcpListBlock(c)
+					a.mcpListBlock(c)
 				}
 			})
 		})
@@ -281,15 +313,31 @@ func mcpLink(c *gui.Context, text string) {
 }
 
 // mcpListBlock 是列表视图：组头、导入面板、范围行、服务器列表。
-func mcpListBlock(c *gui.Context) {
+func (a *App) mcpListBlock(c *gui.Context) {
+	rows, list := a.mcpServers()
 	gui.Column(c).Shrink(0).Gap(mcpStackGap).Children(func() {
 		mcpServerBar(c)
 		if mcpScreen.importOpen {
 			mcpImportPanel(c)
 		}
 		mcpScopeRow(c)
-		mcpServerList(c)
+		mcpReadState(c, list)
+		a.mcpServerList(c, rows, list)
 	})
+}
+
+// mcpReadState 画读数本身的两种读态：能力缺失与最近一次读取失败。
+// 两者都不清空上一次确认的清单（行照画），只在清单上方给原因。
+func mcpReadState(c *gui.Context, list ExtListSnapshot) {
+	t := c.Theme()
+	if list.CapabilityMissing {
+		mcpMetaStyle.style(t, gui.Text(c, "服务端没有声明 MCP 能力，清单可能不完整。")).
+			TextColor(t.TextMuted).Role(gui.RoleStatus).Selectable()
+	}
+	if list.ReadError != "" {
+		mcpMetaStyle.style(t, gui.Text(c, "读取 MCP 服务器失败："+list.ReadError)).
+			TextColor(t.Danger).Role(gui.RoleAlert).Selectable()
+	}
 }
 
 // mcpServerBar 是「服务器」组头与右端两个动作（S-mcp-04 … 06）。
@@ -303,7 +351,7 @@ func mcpServerBar(c *gui.Context) {
 			mcpScreen.importOpen = !mcpScreen.importOpen
 		}
 		if mcpButton(c, iconPlus, "plus", mcpCopyAddServer, true) {
-			mcpScreen.openEditor("")
+			mcpScreen.openEditor(mcpServer{})
 		}
 	})
 }
@@ -446,19 +494,19 @@ func mcpSelect(c *gui.Context, selected *int, options []string, label string, wi
 }
 
 // mcpServerList 是服务器列表（S-mcp-16 … 25）与两种空态。
-func mcpServerList(c *gui.Context) {
-	if len(mcpServers) == 0 {
+func (a *App) mcpServerList(c *gui.Context, rows []mcpServer, list ExtListSnapshot) {
+	if len(rows) == 0 {
 		mcpEmpty(c, mcpCopyNoServers)
 		return
 	}
 	gui.Column(c).Shrink(0).Gap(mcpStackGap).Children(func() {
 		visible := 0
-		for i := range mcpServers {
-			if !mcpInScope(mcpServers[i], mcpScreen.scope) {
+		for i := range rows {
+			if !mcpInScope(rows[i], mcpScreen.scope) {
 				continue
 			}
 			visible++
-			mcpServerCard(c, i)
+			a.mcpServerCard(c, rows[i])
 		}
 		if visible == 0 {
 			mcpEmpty(c, mcpCopyScopeEmpty)
@@ -488,14 +536,16 @@ func mcpEmpty(c *gui.Context, text string) {
 	})
 }
 
-// mcpServerCard 是一台服务器的卡（S-mcp-16 … 25）。
-func mcpServerCard(c *gui.Context, index int) {
+// mcpServerCard 是一台服务器的卡（S-mcp-16 … 25）。点卡片（不是卡上的开关与
+// 图标按钮）进入编辑器，编辑器带入这一条的真实配置。
+func (a *App) mcpServerCard(c *gui.Context, server mcpServer) {
 	t := c.Theme()
-	server := &mcpServers[index]
 	card := gui.Column(c).Shrink(0).Background(t.Background).Radius(screenRadiusCard)
 	card.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
 	})
+	// childHit 记录这一帧有没有点在卡上的交互控件：有则卡片本身不再算被点。
+	childHit := false
 	card.Children(func() {
 		gui.Row(c).Padding(mcpRowPadY, mcpRowPadX).Gap(mcpClusterGap).
 			AlignItems(gui.Center).Children(func() {
@@ -529,31 +579,57 @@ func mcpServerCard(c *gui.Context, index int) {
 			if server.inspect {
 				if mcpIconAction(c, mcpIconActivity, mcpCopyInspect, false) {
 					// 连接详情弹窗要 App Server 的 inspect 能力（未接入）。
+					childHit = true
 				}
 			}
 			if server.disconnect {
 				if mcpIconAction(c, mcpIconPower, mcpCopyDisconnect, !server.connected) {
 					// 断开连接要 App Server 的 disconnect 能力（未接入）。
+					childHit = true
 				}
 			}
 			if mcpIconAction(c, iconGear, mcpCopyConfigure, false) {
-				mcpScreen.openEditor(server.name)
+				mcpScreen.openEditor(server)
+				childHit = true
 			}
-			gui.Switch(c, mcpEnabled(server.name, server.enabled)).
-				Size(screenSwitchW, screenSwitchH).Radius(screenSwitchH / 2).
-				Label(server.name)
+			toggle := mcpEnabled(server)
+			sw := gui.Switch(c, toggle).Size(screenSwitchW, screenSwitchH).
+				Radius(screenSwitchH / 2).Label("启用服务器 " + server.name)
+			if sw.Changed() {
+				a.mcpToggle(server, *toggle)
+				childHit = true
+			}
 		})
 	})
+	if card.Clicked() && !childHit {
+		mcpScreen.openEditor(server)
+	}
 }
 
-// mcpEnabled 取一台服务器的开关位（本屏的可丢状态，初值来自样例）。
-func mcpEnabled(name string, fallback bool) *bool {
-	if on, ok := mcpScreen.enabled[name]; ok {
+// mcpEnabled 取一台服务器的开关位（本屏的可丢状态，初值来自这一帧的读数）。
+func mcpEnabled(server mcpServer) *bool {
+	key := server.id
+	if key == "" {
+		key = server.name
+	}
+	if on, ok := mcpScreen.enabled[key]; ok {
 		return on
 	}
-	on := fallback
-	mcpScreen.enabled[name] = &on
+	on := server.enabled
+	mcpScreen.enabled[key] = &on
 	return &on
+}
+
+// mcpToggle 把开关落到服务端（SetExtensionEnabled("mcp")）：失败原因由设置壳
+// 的错误行给出，成功由扩展读数重读带回。样例行与没有 Intents 时只改界面状态。
+func (a *App) mcpToggle(server mcpServer, enabled bool) {
+	if a.intents == nil || server.id == "" {
+		return
+	}
+	id := server.id
+	a.dispatch("启停 MCP 服务器", func(ctx context.Context) error {
+		return a.intents.SetExtensionEnabled(ctx, "mcp", id, enabled)
+	}, nil)
 }
 
 // mcpToolCount 是行右端的工具数（S-mcp-19）：扳手图标 + 数字，读屏名为
@@ -595,20 +671,28 @@ func mcpIconAction(c *gui.Context, icon *gui.SVG, label string, disabled bool) b
 
 // ---- 编辑器（S-mcp-30 … 50） ----
 
-// openEditor 进入编辑器：新建时草稿清空，配置某一条时带入名称与范围。
-func (s *mcpState) openEditor(serverName string) {
+// openEditor 进入编辑器：新建时草稿清空，配置某一条时带入这一条的真实配置
+// （名称、范围、传输方式与启动命令；读不出来就不填，不猜）。
+func (s *mcpState) openEditor(server mcpServer) {
 	s.view = mcpViewEdit
-	s.editing = serverName != ""
+	s.editing = server.name != ""
 	s.draft = mcpDraft{}
-	for _, server := range mcpServers {
-		if server.name != serverName {
-			continue
-		}
-		s.draft.name = server.name
-		if server.scope == "project" {
-			s.draft.scope = 1
-		}
+	if !s.editing {
+		return
 	}
+	s.draft.name = server.name
+	if server.scope == "project" {
+		s.draft.scope = 1
+	}
+	switch server.transport {
+	case "http":
+		s.draft.transport = mcpTransportHTTP
+	case "sse":
+		s.draft.transport = mcpTransportSse
+	default:
+		s.draft.transport = mcpTransportStdio
+	}
+	s.draft.command = server.command
 }
 
 // mcpEditor 是「连接自定义 MCP」表单：名称、范围、传输类型与两组字段。

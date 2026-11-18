@@ -11,6 +11,7 @@ import (
 // fakeSource 是一个可注入的 Source：用来证明"视图只吃 Source、不吃样例"。
 type fakeSource struct {
 	names      []string
+	workspaces []WorkspaceSnapshot
 	session    SessionSnapshot
 	hasSess    bool
 	approval   ApprovalSnapshot
@@ -27,6 +28,7 @@ type fakeSource struct {
 
 func (f *fakeSource) Connection() Connection           { return f.conn }
 func (f *fakeSource) SessionNames() []string           { return f.names }
+func (f *fakeSource) Workspaces() []WorkspaceSnapshot  { return f.workspaces }
 func (f *fakeSource) Session() (SessionSnapshot, bool) { return f.session, f.hasSess }
 func (f *fakeSource) Approval() (ApprovalSnapshot, bool) {
 	return f.approval, f.hasAppr

@@ -611,3 +611,80 @@ func waitFrame(t *testing.T, what string, tester *gui.Tester, text string) {
 		time.Sleep(5 * time.Millisecond)
 	}
 }
+
+// TestPanelPreviewReadsWorkspace 断言文件预览来自真实文件：文本按编码读出、
+// 上限处的截断有说明、二进制不解码、目录与不在工作区内的路径都报错。
+func TestPanelPreviewReadsWorkspace(t *testing.T) {
+	root := newPanelRepo(t)
+	server := startE2EServer(t, panelScript(root))
+	w := New(newRowsApp(t, server, root))
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	if err := w.Connect(ctx); err != nil {
+		t.Fatalf("连接失败：%v", err)
+	}
+
+	// 文本：内容就是磁盘上的那一份，编码是 utf-8。
+	text := ui.PreviewRequest{Cwd: root, Path: "notes.md"}
+	waitFor(t, "文本预览读回", func() bool {
+		return w.Preview(text).Phase == ui.PanelReadReady
+	})
+	textSnapshot := w.Preview(text)
+	if textSnapshot.Kind != ui.PreviewText || textSnapshot.Encoding != "utf-8" {
+		t.Fatalf("文本预览的类别/编码 = %q/%q", textSnapshot.Kind, textSnapshot.Encoding)
+	}
+	if !strings.Contains(textSnapshot.Content, "PANEL_SEARCH_TOKEN") {
+		t.Fatalf("预览内容没有读到文件正文：%q", textSnapshot.Content)
+	}
+	if textSnapshot.Truncated {
+		t.Fatal("小文件不该被标截断")
+	}
+	if textSnapshot.Path != "notes.md" {
+		t.Fatalf("预览路径 = %q，想要相对工作区的 notes.md", textSnapshot.Path)
+	}
+
+	// 上限：MaxBytes 小于文件时只给前缀，并说明截断。
+	limited := ui.PreviewRequest{Cwd: root, Path: "notes.md", MaxBytes: 4}
+	waitFor(t, "截断预览读回", func() bool {
+		return w.Preview(limited).Phase == ui.PanelReadReady
+	})
+	limitedSnapshot := w.Preview(limited)
+	if !limitedSnapshot.Truncated || limitedSnapshot.ReadBytes != 4 {
+		t.Fatalf("截断读数 = %+v（想要读 4 字节且标截断）", limitedSnapshot)
+	}
+	if limitedSnapshot.Note == "" {
+		t.Fatal("截断没有给出说明")
+	}
+
+	// 二进制：含 NUL 字节的文件不返回内容，只给说明。
+	writePanelFile(t, root, "blob.bin", "abc\x00def")
+	binary := ui.PreviewRequest{Cwd: root, Path: "blob.bin"}
+	waitFor(t, "二进制预览读回", func() bool {
+		return w.Preview(binary).Phase == ui.PanelReadReady
+	})
+	binarySnapshot := w.Preview(binary)
+	if binarySnapshot.Kind != ui.PreviewBinary || binarySnapshot.Content != "" {
+		t.Fatalf("二进制预览 = %+v", binarySnapshot)
+	}
+	if binarySnapshot.Note == "" {
+		t.Fatal("二进制没有给出说明")
+	}
+
+	// 目录与不存在的文件都是失败态（原因非空），不是空内容。
+	dir := ui.PreviewRequest{Cwd: root, Path: "docs"}
+	waitFor(t, "目录预览报错", func() bool {
+		return w.Preview(dir).Phase == ui.PanelReadFailed
+	})
+	if w.Preview(dir).Error == "" {
+		t.Fatal("读目录没有给出原因")
+	}
+	missing := ui.PreviewRequest{Cwd: root, Path: "nope.txt"}
+	waitFor(t, "缺文件预览报错", func() bool {
+		return w.Preview(missing).Phase == ui.PanelReadFailed
+	})
+
+	// 没有路径时是空闲态：界面据此画「没有打开的文件」。
+	if got := w.Preview(ui.PreviewRequest{Cwd: root}); got.Phase != ui.PanelReadIdle {
+		t.Fatalf("空路径的预览读态 = %q，想要 idle", got.Phase)
+	}
+}

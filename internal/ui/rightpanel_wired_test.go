@@ -20,10 +20,13 @@ type fakePanelSource struct {
 	trees   map[string]FileTreeSnapshot
 	search  FileSearchSnapshot
 	changes ChangeSet
+	// previews 是按文件路径给的预览快照。
+	previews map[string]PreviewSnapshot
 
-	lastTree   FileTreeRequest
-	lastSearch FileSearchRequest
-	lastChange ChangesRequest
+	lastTree    FileTreeRequest
+	lastSearch  FileSearchRequest
+	lastChange  ChangesRequest
+	lastPreview PreviewRequest
 	// searchRefreshed 记录搜索请求里出现过一次 Refresh（点了刷新 / 重试）。
 	searchRefreshed bool
 }
@@ -67,6 +70,16 @@ func (f *fakePanelSource) FileSearch(request FileSearchRequest) FileSearchSnapsh
 func (f *fakePanelSource) Changes(request ChangesRequest) ChangeSet {
 	f.lastChange = request
 	return f.changes
+}
+
+func (f *fakePanelSource) Preview(request PreviewRequest) PreviewSnapshot {
+	f.lastPreview = request
+	snapshot, ok := f.previews[request.Path]
+	if !ok {
+		return PreviewSnapshot{Cwd: request.Cwd, Path: request.Path, Phase: PanelReadReady}
+	}
+	snapshot.Cwd, snapshot.Path = request.Cwd, request.Path
+	return snapshot
 }
 
 // rightWiredTester 造一个连着注入读数、打开在指定标签上的右栏。

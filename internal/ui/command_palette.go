@@ -693,8 +693,9 @@ func (a *App) commandPaletteActions() []commandItem {
 		{
 			id: "action:new-session", title: "新建会话", detail: "在工作区里开一个会话",
 			icon:     iconPlus,
-			disabled: true,
-			reason:   "工作区路径尚未接入界面（CreateSession 需要 cwd）",
+			disabled: a.intents == nil || a.currentWorkspaceCwd() == "",
+			reason:   commandPaletteUnavailable(a.intents == nil, noIntents, "没有可用的工作区"),
+			run:      a.createSession,
 		},
 		{
 			id: "action:end-branch", title: "结束当前分支", detail: "结束正在查看的分支",

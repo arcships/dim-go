@@ -146,3 +146,20 @@ func rightSample() ([]*rpNode, []*rpChange) {
 func rpSampleChildName(i int) string {
 	return "f" + strconv.Itoa(i) + ".md"
 }
+
+// rpSamplePreview 是预览页在 -demo（没有 Source）时的样例正文。
+//
+// 它写清「这是样例」：连着 Source 时这一页读 PanelFacts 的 Preview，样例不会上屏。
+func rpSamplePreview(p string) PreviewSnapshot {
+	content := "// " + p + "\n" +
+		"package main\n\n" +
+		"func main() {\n" +
+		"\tprintln(\"hello from the preview sample\")\n" +
+		"}\n"
+	return PreviewSnapshot{
+		Path: p, Kind: PreviewText, Encoding: "utf-8",
+		Size: int64(len(content)), ReadBytes: len(content), Content: content,
+		Phase: PanelReadReady,
+		Note:  "样例内容：连着 App Server 时这里读磁盘上的真实文件。",
+	}
+}

@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
@@ -89,11 +90,14 @@ func (a *App) composer(c *gui.Context) {
 			return
 		}
 		// 接上事实且已打开会话时保留目标行（参考产品把它做成输入区上沿的活动条）。
-		if _, ok := a.liveSession(); ok {
+		_, hasSession := a.liveSession()
+		if hasSession {
 			a.goalRow(c)
 		}
 		gui.Row(c).Justify(gui.Center).Children(func() {
-			a.inputBlock(c, false)
+			// 连上事实但没有打开会话时也是空态：输入卡底下带工作区与权限两处入口
+			// （-demo 的空态走 emptyThread，由它带控制行）。
+			a.inputBlock(c, a.wired() && !hasSession)
 		})
 	})
 }
@@ -483,25 +487,31 @@ func (a *App) modelSelector(c *gui.Context) {
 		gui.Box(c).Height(strokeHairline).Background(t.Border)
 		gui.TextInputBase(c, &a.modelQuery).Placeholder("搜索模型...").Height(composerSearchRowHeight).
 			Padding(0, space2).Radius(radius).Background(t.SurfacePressed).Label("搜索模型")
+		options, currentID := a.modelOptions()
 		gui.Row(c).Gap(space2).AlignItems(gui.Start).Children(func() {
-			gui.Column(c).Width(composerRecentWidth).Gap(space1).Children(func() {
-				gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
-					iconBox(c, iconClock, t.TextMuted, "recent")
-					typeMicro.style(t, gui.Text(c, "最近使用")).TextColor(t.TextMuted)
-				})
-				if a.modelOpen {
-					if menuItem(c, m, iconProvider, "DimAgent OAuth", "最近使用：DimAgent OAuth", "", false, true) {
-						a.model = sampleModel
-					}
-				}
-			})
-			gui.Column(c).Grow(1).Gap(space1).Children(func() {
-				for _, name := range modelSamples() {
-					name := name
-					if strings.Contains(strings.ToLower(name), strings.ToLower(a.modelQuery)) {
-						if menuItem(c, m, nil, name, "模型："+name, "", false, name == a.currentModel()) {
-							a.model = name
+			// 最近使用：服务端没有「最近用过哪些模型」的事实，能解析出来的只有当前
+			// 选择，所以这一栏最多一项；没有当前选择时整栏不画。
+			if recent, ok := a.recentModel(options, currentID); ok {
+				gui.Column(c).Width(composerRecentWidth).Gap(space1).Children(func() {
+					gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
+						iconBox(c, iconClock, t.TextMuted, "recent")
+						typeMicro.style(t, gui.Text(c, "最近使用")).TextColor(t.TextMuted)
+					})
+					if a.modelOpen {
+						if menuItem(c, m, iconProvider, recent.Name, "最近使用："+recent.Name, "", false, true) {
+							a.selectModel(recent)
 						}
+					}
+				})
+			}
+			gui.Column(c).Grow(1).Gap(space1).Children(func() {
+				for _, option := range options {
+					option := option
+					if !strings.Contains(strings.ToLower(option.Name), strings.ToLower(a.modelQuery)) {
+						continue
+					}
+					if menuItem(c, m, nil, option.Name, "模型："+option.Name, "", false, option.ID == currentID) {
+						a.selectModel(option)
 					}
 				}
 			})
@@ -509,12 +519,56 @@ func (a *App) modelSelector(c *gui.Context) {
 	})
 }
 
-// modelSamples 是模型浮层里的样例模型；接真实设置时由 Source 提供。
-func modelSamples() []string {
-	return []string{
+// sampleRecentProvider 是样例里「最近使用」栏的那一项（参考产品的 provider 名）。
+const sampleRecentProvider = "DimAgent OAuth"
+
+// modelOptions 是模型浮层的候选与当前选择：连上 Source 时读 Settings().Models，
+// 样例里用静态清单（-demo 出图用）。
+func (a *App) modelOptions() ([]ModelOption, string) {
+	if st, ok := a.liveSettings(); ok {
+		return st.Models, st.ModelID
+	}
+	return demoModels(), a.model
+}
+
+// demoModels 是 -demo 的静态模型清单：只有没有 Source 时才用；接上事实后浮层
+// 一律读 Settings().Models，这个函数不会被调用。
+func demoModels() []ModelOption {
+	names := []string{
 		"seed-2.1-pro", "GPT-5.6 Terra", "DeepSeek V4 Pro", "Qwen: Qwen3.8 27B",
 		"MiniMax-M3", "GLM-5.3 Flash", "GPT-6 Astra", "DeepSeek: DeepSeek V4.1 Flash",
 	}
+	out := make([]ModelOption, 0, len(names))
+	for _, name := range names {
+		out = append(out, ModelOption{ID: name, Name: name})
+	}
+	return out
+}
+
+// recentModel 是「最近使用」栏里的那一项：样例里是固定的 provider 名；接上事实
+// 时是当前选择（服务端没有另外的最近使用事实，不编造历史）。
+func (a *App) recentModel(options []ModelOption, currentID string) (ModelOption, bool) {
+	if a.source == nil {
+		return ModelOption{ID: sampleModel, Name: sampleRecentProvider}, true
+	}
+	for _, option := range options {
+		if currentID != "" && option.ID == currentID {
+			return option, true
+		}
+	}
+	return ModelOption{}, false
+}
+
+// selectModel 是模型浮层里的一次点选：连上事实时走 SelectModel（provider.select），
+// 样例里只改视图里的当前模型。
+func (a *App) selectModel(option ModelOption) {
+	if a.source == nil || a.intents == nil {
+		a.model = option.ID
+		return
+	}
+	a.dispatch("选择模型", func(ctx context.Context) error {
+		return a.intents.SelectModel(ctx, option.ProviderID, option.ID)
+	}, nil)
 }
 
 // skillsSelector 是技能按钮与技能浮层（搜索 + 名称/描述列表）。
@@ -537,44 +591,64 @@ func (a *App) skillsSelector(c *gui.Context) {
 			gui.TextInputBase(c, &a.skillQuery).Placeholder("搜索技能...").Grow(1).
 				Label("搜索技能")
 		})
-		for _, skill := range skillSamples() {
+		skills, readErr := a.skillEntries()
+		if readErr != "" {
+			typeMicro.style(t, gui.Text(c, readErr)).TextColor(t.TextMuted).SingleLine()
+			return
+		}
+		if len(skills) == 0 {
+			typeMicro.style(t, gui.Text(c, "还没有技能")).TextColor(t.TextMuted).
+				Padding(space1, space2)
+			return
+		}
+		for _, skill := range skills {
 			skill := skill
-			if !strings.Contains(strings.ToLower(skill.name), strings.ToLower(a.skillQuery)) {
+			if !strings.Contains(strings.ToLower(skill.Name), strings.ToLower(a.skillQuery)) {
 				continue
 			}
 			it := m.Item().Padding(space1, space2).Radius(radius).
-				Label("技能：" + skill.name)
+				Label("技能：" + skill.Name)
 			it.Children(func() {
 				gui.Column(c).Grow(1).Children(func() {
-					typeSecondaryStrong.style(t, gui.Text(c, skill.name)).TextColor(t.Text).SingleLine()
-					typeMicro.style(t, gui.Text(c, skill.desc)).TextColor(t.TextMuted).
-						SingleLine()
+					typeSecondaryStrong.style(t, gui.Text(c, skill.Name)).TextColor(t.Text).SingleLine()
+					if skill.Description != "" {
+						typeMicro.style(t, gui.Text(c, skill.Description)).TextColor(t.TextMuted).
+							SingleLine()
+					}
 				})
 			})
 			if it.Highlighted() {
 				it.Background(t.SurfaceHover)
 			}
 			if it.Clicked() {
-				a.draft = strings.TrimSpace(a.draft + " $" + skill.name)
+				a.draft = strings.TrimSpace(a.draft + " $" + skill.Name)
 			}
 		}
 	})
 }
 
-type skillSample struct{ name, desc string }
+// skillEntries 是技能浮层的读数：连上 Source 时读 Extensions().Skills，样例里用
+// 静态清单（-demo 出图用）。第二个返回值是最近一次读取失败的原因。
+func (a *App) skillEntries() ([]ExtItemSnapshot, string) {
+	if a.source == nil {
+		return demoSkills(), ""
+	}
+	skills := a.source.Extensions().Skills
+	return skills.Items, skills.ReadError
+}
 
-// skillSamples 是技能浮层的样例清单（与运行时采集的 C9 同名前四项）。
-func skillSamples() []skillSample {
-	return []skillSample{
-		{"agents-sdk", "Build AI agents on Cloudflare Workers using the Agents SDK."},
-		{"background-check", "Comprehensive OSINT background investigation."},
-		{"baoyu-format-markdown", "Formats plain text or markdown files with frontmatter."},
-		{"baoyu-infographic", "Generate professional infographics with layout types."},
-		{"deep-read", "Read and summarize long documents."},
+// demoSkills 是 -demo 的静态技能清单：只有没有 Source 时才用。
+func demoSkills() []ExtItemSnapshot {
+	return []ExtItemSnapshot{
+		{Name: "agents-sdk", Description: "Build AI agents on Cloudflare Workers using the Agents SDK."},
+		{Name: "background-check", Description: "Comprehensive OSINT background investigation."},
+		{Name: "baoyu-format-markdown", Description: "Formats plain text or markdown files with frontmatter."},
+		{Name: "baoyu-infographic", Description: "Generate professional infographics with layout types."},
+		{Name: "deep-read", Description: "Read and summarize long documents."},
 	}
 }
 
-// modeSelector 是 Agent / Goal 模式选择器（Goal 当前灰显并给不可用说明）。
+// modeSelector 是 Agent / Goal 模式选择器。
 func (a *App) modeSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.modeOpen)
@@ -590,12 +664,76 @@ func (a *App) modeSelector(c *gui.Context) {
 		if menuItem(c, m, iconChevronsR, "Agent", "Agent 模式", "", false, a.mode == "Agent") {
 			a.mode = "Agent"
 		}
-		if menuItem(c, m, iconTarget, "Goal", "Goal 模式", "", true, false) {
+		// Goal 模式的五个写入（设置 / 修改 / 暂停 / 恢复 / 清除）都已在目标行接通：
+		// 这里只切模式，还没有目标时把目标行的编辑框打开，让「设定目标」走同一条
+		// SetGoal 路径。目标归会话：没有打开会话时写不进去，按不可用画。
+		_, hasSession := a.liveSession()
+		goalUnavailable := a.wired() && !hasSession
+		if menuItem(c, m, iconTarget, "Goal", "Goal 模式", "", goalUnavailable, a.mode == "Goal") {
 			a.mode = "Goal"
+			if _, _, exists := a.goalState(); !exists {
+				a.goalDraft, a.goalEditing = "", true
+			}
 		}
-		typeMicro.style(t, gui.Text(c, "此会话暂不可用 Goal 模式（缺少目标事实）")).
-			TextColor(t.TextMuted).Padding(space1, space2)
+		if goalUnavailable {
+			typeMicro.style(t, gui.Text(c, "还没有打开会话，暂时设定不了目标")).
+				TextColor(t.TextMuted).Padding(space1, space2)
+		}
 	})
+}
+
+// workspaceOption 是一个可选工作区：界面名与目录（空目录表示样例里的内置项）。
+type workspaceOption struct {
+	name string
+	path string
+}
+
+// workspaceOptions 是工作区选择器的候选：连上 Source 时读服务端授权的工作区，
+// 样例里用静态清单（-demo 出图用）。
+func (a *App) workspaceOptions() []workspaceOption {
+	if a.source == nil {
+		return []workspaceOption{
+			{name: "工作区"},
+			{name: "year"}, {name: "dim-3"}, {name: "dim-2"}, {name: "dim"},
+		}
+	}
+	workspaces := a.source.Workspaces()
+	out := make([]workspaceOption, 0, len(workspaces))
+	for _, workspace := range workspaces {
+		if strings.TrimSpace(workspace.Path) == "" {
+			continue
+		}
+		out = append(out, workspaceOption{
+			name: workspaceBaseName(workspace.Path),
+			path: workspace.Path,
+		})
+	}
+	return out
+}
+
+// workspaceBaseName 是工作区的界面名：目录的最后一段；取不到时用原路径。
+func workspaceBaseName(path string) string {
+	base := filepath.Base(path)
+	if base == "" || base == "." || base == string(filepath.Separator) {
+		return path
+	}
+	return base
+}
+
+// currentWorkspaceCwd 是「新建会话」要用的工作目录：当前会话的目录优先，其次
+// 是空态选择器选中的工作区，再其次是授权清单的第一项。都没有时为空，由适配器
+// 沿用目录首项。
+func (a *App) currentWorkspaceCwd() string {
+	if snap, ok := a.liveSession(); ok && snap.Cwd != "" {
+		return snap.Cwd
+	}
+	if a.workspacePath != "" {
+		return a.workspacePath
+	}
+	if options := a.workspaceOptions(); len(options) > 0 {
+		return options[0].path
+	}
+	return ""
 }
 
 // workspaceSelector 是空态控制行的工作区入口。
@@ -621,15 +759,27 @@ func (a *App) workspaceSelector(c *gui.Context) {
 			gui.TextInputBase(c, &a.workspaceQuery).Placeholder("搜索工作区...").
 				Grow(1).Label("搜索工作区")
 		})
-		if menuItem(c, m, iconHome, "工作区", "内置工作区", "", false, true) {
-			a.workspaceName = "工作区"
+		options := a.workspaceOptions()
+		if len(options) == 0 {
+			typeMicro.style(t, gui.Text(c, "服务端没有授权的工作区")).TextColor(t.TextMuted).
+				Padding(space1, space2)
 		}
-		for _, name := range []string{"year", "dim-3", "dim-2", "dim"} {
-			name := name
-			if strings.Contains(strings.ToLower(name), strings.ToLower(a.workspaceQuery)) {
-				if menuItem(c, m, iconFolderOpen, name, "工作区："+name, "", false, false) {
-					a.workspaceName = name
-				}
+		for _, option := range options {
+			option := option
+			if !strings.Contains(strings.ToLower(option.name), strings.ToLower(a.workspaceQuery)) {
+				continue
+			}
+			icon := iconFolderOpen
+			label := "工作区：" + option.name
+			checked := option.path != "" && option.path == a.workspacePath
+			if option.path == "" {
+				// 样例里的工作区没有目录：内置工作区是默认落点（参考产品停在 🏠），
+				// 其余按屏内名字记选中。
+				icon, label = iconHome, "内置工作区"
+				checked = option.name == "工作区" || option.name == a.workspaceName
+			}
+			if menuItem(c, m, icon, option.name, label, "", false, checked) {
+				a.workspaceName, a.workspacePath = option.name, option.path
 			}
 		}
 		if menuItem(c, m, iconPlus, "添加新工作区", "添加新工作区", "", false, false) {
@@ -638,26 +788,103 @@ func (a *App) workspaceSelector(c *gui.Context) {
 	})
 }
 
+// permissionLevel 是一档权限：界面文案（SB-02）与协议 preset（D5 §4.8）。
+type permissionLevel struct {
+	label string
+	tier  string
+}
+
+// permissionLevels 是权限选择器的三档。协议只有三档 preset（read-only /
+// workspace-write / full-access）；参考产品的「默认权限」与「智能权限」都落在
+// workspace-write 上（两者只差审批策略，而协议档位不表达审批策略），所以这两档
+// 同值；「完全访问权限」对应 full-access。
+var permissionLevels = []permissionLevel{
+	{label: "默认权限", tier: "workspace-write"},
+	{label: "智能权限", tier: "workspace-write"},
+	{label: "完全访问权限", tier: "full-access"},
+}
+
+// permissionTierOf 把界面文案换成协议取值；未知文案返回 false。
+func permissionTierOf(label string) (string, bool) {
+	for _, level := range permissionLevels {
+		if level.label == label {
+			return level.tier, true
+		}
+	}
+	return "", false
+}
+
+// permissionLabelOf 把协议取值换成界面文案；三档之外的取值返回 false（原样显示，
+// 不翻译成别名）。
+func permissionLabelOf(tier string) (string, bool) {
+	for _, level := range permissionLevels {
+		if level.tier == tier {
+			return level.label, true
+		}
+	}
+	return "", false
+}
+
+// permissionLabel 是权限选择器显示的当前档位：连上事实时读会话档位，样例里用
+// 视图里的值。两档文案共用 workspace-write，所以点过的那一档优先（见
+// permissionChoice）；三档之外的取值原样显示。
+func (a *App) permissionLabel() string {
+	st, ok := a.liveSettings()
+	if !ok || !st.TierKnown || st.Tier == "" {
+		return a.permission
+	}
+	if chosen, ok := permissionTierOf(a.permissionChoice); ok && chosen == st.Tier {
+		return a.permissionChoice
+	}
+	if label, ok := permissionLabelOf(st.Tier); ok {
+		return label
+	}
+	return st.Tier
+}
+
+// choosePermission 是权限菜单里点一档：完全放开先确认（两步），其余直接生效。
+func (a *App) choosePermission(level string) {
+	if level == "完全访问权限" && level != a.permissionLabel() {
+		a.permissionArmOpen = true
+		a.permissionArmAck = false
+		return
+	}
+	a.applyPermission(level)
+}
+
+// applyPermission 切到一档：连上事实时走 SetPermissionTier，样例里只改视图。
+func (a *App) applyPermission(level string) {
+	tier, known := permissionTierOf(level)
+	if a.source == nil || a.intents == nil || !known {
+		a.permission, a.permissionChoice = level, level
+		return
+	}
+	a.dispatch("切换权限", func(ctx context.Context) error {
+		return a.intents.SetPermissionTier(ctx, tier)
+	}, func() { a.permissionChoice = level })
+}
+
 // permissionSelector 是空态控制行的权限入口。
 func (a *App) permissionSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.permissionOpen)
 	tr := m.Trigger.Height(composerControlTriggerHeight).Padding(0, space1).Radius(radius).
-		Label("权限：" + a.permission).Tooltip("选择权限").Cursor(gui.CursorPointer)
+		Label("权限：" + a.permissionLabel()).Tooltip("选择权限").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)
 	}
 	tr.Children(func() {
 		iconBox(c, iconShield, t.TextMuted, "permission")
-		typeSecondary.style(t, gui.Text(c, a.permission)).TextColor(t.TextMuted)
+		typeSecondary.style(t, gui.Text(c, a.permissionLabel())).TextColor(t.TextMuted)
 	})
 	m.Popup(func(panel gui.Element) {
 		panel.Width(composerPermissionMenuWidth).Padding(space1).Radius(radiusCard).Background(t.Surface).
 			Border(strokeHairline, t.Border).Shadow(0, 4, 16, 0, colorShadow.in(t))
-		for _, level := range []string{"默认权限", "智能权限", "完全访问权限"} {
+		for _, level := range permissionLevels {
 			level := level
-			if menuItem(c, m, iconShield, level, "权限："+level, "", false, level == a.permission) {
-				a.permission = level
+			if menuItem(c, m, iconShield, level.label, "权限："+level.label, "", false,
+				level.label == a.permissionLabel()) {
+				a.choosePermission(level.label)
 			}
 		}
 	})

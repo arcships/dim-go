@@ -61,13 +61,13 @@ func (a *App) settingsContent(c *gui.Context) {
 	case secKeybindings:
 		renderKeybindings(c)
 	case secProviders:
-		renderConfiguration(c)
+		renderConfiguration(c, a)
 	case secModality:
 		renderModality(c)
 	case secRuntime:
 		renderRuntime(c)
 	case secMCP:
-		renderMCP(c)
+		renderMCP(c, a)
 	case secNotifications:
 		renderNotifications(c)
 	case secPets:
@@ -77,7 +77,7 @@ func (a *App) settingsContent(c *gui.Context) {
 	case secGit:
 		renderGit(c)
 	case secHooks:
-		renderHooks(c)
+		renderHooks(c, a)
 	case secPluginSettings:
 		renderPluginSettings(c)
 	case secExternalAgents:

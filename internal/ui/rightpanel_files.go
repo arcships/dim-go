@@ -415,7 +415,10 @@ func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string) {
 			rpStagedDot(c)
 		}
 	})
-	// 文件行的单击是「打开预览」（F-27）；预览面板不在本批，故只保留行本身。
+	// 文件行的单击是「打开预览」（F-27）：在「打开文件」页看这个文件。
+	if row.Clicked() {
+		a.rpOpenPreview(p)
+	}
 	a.rpFileMenu(c, row, node, p)
 }
 
@@ -633,6 +636,9 @@ func (a *App) rpSearchRow(c *gui.Context, hit rpSearchHit, query string) {
 			rpStatPair(c, hit.node.change.added, hit.node.change.removed)
 		}
 	})
+	if row.Clicked() {
+		a.rpOpenPreview(rpJoinPath(hit.dir, hit.node.name))
+	}
 	a.rpFileMenu(c, row, hit.node, rpJoinPath(hit.dir, hit.node.name))
 }
 

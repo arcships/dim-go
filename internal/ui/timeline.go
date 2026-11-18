@@ -58,6 +58,7 @@ var (
 	iconFork     = mustSVG(`<circle cx="6.75" cy="6" r="2.25"/><circle cx="6.75" cy="18" r="2.25"/><circle cx="17.25" cy="9.75" r="2.25"/><path d="M6.75 8.25v7.5M17.25 12a5.25 5.25 0 0 1-5.25 5.25H9"/>`)
 	iconRetry    = mustSVG(`<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.303M4.5 4.5V9h4.5"/>`)
 	iconFilePlus = mustSVG(`<path d="M14.25 3.75H6.75a1.5 1.5 0 0 0-1.5 1.5v13.5a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V7.5z"/><path d="M14.25 3.75V7.5h4.5M12 11.25v6M9 14.25h6"/>`)
+	iconImage    = mustSVG(`<rect x="3.75" y="4.5" width="16.5" height="15" rx="2.25"/><circle cx="9" cy="9.75" r="1.5"/><path d="m3.75 16.5 4.5-4.5 4.5 4.5 3-3 4.5 4.5"/>`)
 )
 
 // timeline 是对话流：连着 Source 时只画它给的快照（不掺样例），否则画样例。
@@ -123,55 +124,316 @@ func (a *App) roundDivider(c *gui.Context, text string) {
 	})
 }
 
-// userMessage 是用户消息行：气泡右对齐；悬停时在气泡下方出现发送时间与动作行。
+// 消息动作没有写入口时写进读屏名、提示与菜单项的原因。分叉要的是「从这条消息
+// 切出」：Intents 只有按轮次切分支的 CreateBranch，RowSnapshot 也不带这一行的
+// 轮次，所以先置灰并写原因，不拿别的轮次顶替（等事实）。
+const (
+	messageForkUnavailable     = "消息分叉还没有写入口"
+	messageDeleteUnavailable   = "删除消息还没有写入口"
+	messageWithdrawUnavailable = "撤回只在发送中的消息上可用"
+	messageCopyNeedsSelection  = "先选中要复制的文本"
+)
+
+// userMessage 是用户消息行：气泡右对齐；悬停时在气泡下方出现发送时间、动作行
+// 与不可用动作的原因；选中正文时出现选区浮条（TL-44）。
 func (a *App) userMessage(c *gui.Context, i int, r round) {
 	col := gui.Column(c).Shrink(0).Gap(space1).Label("用户消息 " + r.user)
-	hovered := col.Hovered()
+	// timelineHover 是截图走查态：自动截图没有指针，靠它把悬停动作钉住。
+	hovered := col.Hovered() || a.timelineHover == i
 	col.Children(func() {
-		a.userBubble(c, r, false)
+		body := a.userBubble(c, r, false)
+		if selection := selectedTextOf(body); selection != "" {
+			a.selectionBar(c, selection)
+		}
 		if hovered {
 			a.userActions(c, i, r)
 		}
 	})
 }
 
-// userBubble 是气泡本体：右对齐、最多 85% 内容宽、浅底圆角。
-func (a *App) userBubble(c *gui.Context, r round, pending bool) {
+// userBubble 是气泡本体：右对齐、最多 85% 内容宽、浅底圆角；附件、正文同属
+// 一个可选区，右键打开消息菜单（TL-41–TL-43）。
+func (a *App) userBubble(c *gui.Context, r round, pending bool) gui.Element {
 	t := c.Theme()
+	var box gui.Element
 	gui.Row(c).Grow(1).Children(func() {
 		gui.Spacer(c)
-		box := gui.Box(c).MaxWidthPercent(userBubbleMaxPercent).
+		box = gui.Box(c).MaxWidthPercent(userBubbleMaxPercent).
 			Padding(space2, timelinePadX).Radius(radiusCard).
-			Background(t.SurfaceHover).Label("我的消息")
+			Background(t.SurfaceHover).Label("我的消息").Selectable()
 		if pending {
 			box = box.Opacity(0.6)
 		}
 		box.Children(func() {
-			typeBody.style(t, gui.Text(c, r.user)).TextColor(t.Text).Selectable()
+			a.userAttachmentArea(c, r)
+			if r.user != "" {
+				body := typeBody.style(t, gui.Text(c, r.user)).TextColor(t.Text)
+				if !pending {
+					// 菜单挂在正文上：可选中文本自带编辑菜单，ContextMenu 在
+					// 它上面才会替换掉那条（选区仍由外层可选区持有）。
+					svc := c.Services()
+					body = body.ContextMenu(func(m *gui.Menu) {
+						a.userMessageMenu(m, svc, r, selectedTextOf(box))
+					})
+				}
+			}
+		})
+	})
+	return box
+}
+
+// userActions 是用户气泡下的发送时间与四个动作（悬停可见）：复制走剪贴板，
+// 编辑把原文回填输入区，侧边对话打开右栏；分叉没有写入口，置灰并写原因。
+func (a *App) userActions(c *gui.Context, i int, r round) {
+	t := c.Theme()
+	gui.Column(c).Grow(1).Gap(space1).Label("消息动作").Children(func() {
+		gui.Row(c).Grow(1).Gap(space1).AlignItems(gui.Center).Children(func() {
+			gui.Spacer(c)
+			if r.at != "" {
+				typeMicro.style(t, gui.Text(c, r.at)).TextColor(t.TextMuted).
+					Label("发送时间 " + r.at).SingleLine()
+			}
+			if strings.TrimSpace(r.user) != "" {
+				if iconButton(c, iconButtonSpec{
+					icon: iconCopy, label: "复制整个消息 " + fmt.Sprint(i+1),
+					tip: "复制整个消息", size: rowCompact,
+				}) {
+					c.WriteClipboard(r.user)
+				}
+				if iconButton(c, iconButtonSpec{
+					icon: iconPencil, label: "编辑消息 " + fmt.Sprint(i+1),
+					tip: "编辑消息：回填到输入区", size: rowCompact,
+				}) {
+					a.draft = r.user
+				}
+			}
+			iconButton(c, iconButtonSpec{
+				icon:  iconFork,
+				label: "从此处分叉 " + fmt.Sprint(i+1) + "（" + messageForkUnavailable + "）",
+				tip:   messageForkUnavailable, size: rowCompact, disabled: true,
+			})
+			if iconButton(c, iconButtonSpec{
+				icon: iconBranch, label: "从此处开始侧边对话 " + fmt.Sprint(i+1),
+				tip: "从此处开始侧边对话", size: rowCompact,
+			}) {
+				a.openSideChatFromMessage()
+			}
+		})
+		gui.Row(c).Grow(1).Children(func() {
+			gui.Spacer(c)
+			typeMicro.style(t, gui.Text(c, "分叉不可用："+messageForkUnavailable)).
+				TextColor(t.TextMuted).Label("分叉不可用的原因")
 		})
 	})
 }
 
-// userActions 是用户气泡下的发送时间与四个动作（悬停可见）。
-func (a *App) userActions(c *gui.Context, i int, r round) {
+// openSideChatFromMessage 打开右栏的侧边对话，并记下它是「从某条消息之前开始」
+// （视图状态；侧聊还没接事实，空态文案据此区分用哪一条）。
+func (a *App) openSideChatFromMessage() {
+	a.rightOpen = true
+	a.rpOpen(tabSideChat)
+	a.panels.sideChatFromMessage = true
+}
+
+// userMessageMenu 是用户消息的右键菜单（TL-41–TL-43）：侧边对话、复制选区、
+// 复制整个消息、编辑；删除与撤回没有写入口，置灰并把原因写进菜单项。
+func (a *App) userMessageMenu(m *gui.Menu, svc gui.Services, r round, selection string) {
+	if m.Item("从此处开始侧边对话").Chosen() {
+		a.openSideChatFromMessage()
+	}
+	copyLabel := "复制"
+	if selection == "" {
+		copyLabel = "复制（" + messageCopyNeedsSelection + "）"
+	}
+	if m.Item(copyLabel).Disabled(selection == "").Chosen() {
+		svc.WriteClipboard(selection)
+	}
+	if m.Item("复制整个消息").Chosen() {
+		svc.WriteClipboard(r.user)
+	}
+	if strings.TrimSpace(r.user) != "" && m.Item("编辑消息").Chosen() {
+		a.draft = r.user
+	}
+	m.Separator()
+	m.Item("删除消息（" + messageDeleteUnavailable + "）").Disabled(true)
+	m.Item("撤回（" + messageWithdrawUnavailable + "）").Disabled(true)
+}
+
+// assistantMessageMenu 是助手消息的右键菜单（TL-65）：复制选区、复制整个消息；
+// 删除与撤回没有写入口，与用户消息一样置灰并写原因。
+func (a *App) assistantMessageMenu(m *gui.Menu, svc gui.Services, text, selection string) {
+	copyLabel := "复制"
+	if selection == "" {
+		copyLabel = "复制（" + messageCopyNeedsSelection + "）"
+	}
+	if m.Item(copyLabel).Disabled(selection == "").Chosen() {
+		svc.WriteClipboard(selection)
+	}
+	if m.Item("复制整个消息").Chosen() {
+		svc.WriteClipboard(text)
+	}
+	m.Separator()
+	m.Item("删除消息（" + messageDeleteUnavailable + "）").Disabled(true)
+	m.Item("撤回（" + messageWithdrawUnavailable + "）").Disabled(true)
+}
+
+// userAttachmentArea 是气泡里的附件与引用区（TL-21–TL-26）：定时来源、图片廊、
+// 附件 chip、引用列表与标注，都排在正文之上（R-TL-213）。
+//
+// RowSnapshot 目前没有附件 / 引用 / 标注 / 定时来源字段（等事实）：线上路径传
+// 空，不画假 chip；投影补上字段后由 userRound 填进来即可。
+func (a *App) userAttachmentArea(c *gui.Context, r round) {
 	t := c.Theme()
-	gui.Row(c).Grow(1).Gap(space1).AlignItems(gui.Center).Label("消息动作").Children(func() {
-		gui.Spacer(c)
-		if r.at != "" {
-			typeMicro.style(t, gui.Text(c, r.at)).TextColor(t.TextMuted).
-				Label("发送时间 " + r.at).SingleLine()
+	if len(r.images) == 0 && len(r.attachments) == 0 && len(r.quotes) == 0 &&
+		len(r.marks) == 0 && r.wakeup == "" {
+		return
+	}
+	gui.Column(c).Shrink(0).Gap(space1).Label("消息附件与引用").Children(func() {
+		if r.wakeup != "" {
+			typeMicro.style(t, gui.Text(c, r.wakeup)).TextColor(t.TextMuted).Label("定时唤醒来源")
 		}
-		iconButton(c, iconButtonSpec{icon: iconCopy, label: "复制整个消息 " + fmt.Sprint(i+1), size: rowCompact})
-		iconButton(c, iconButtonSpec{icon: iconPencil, label: "编辑消息 " + fmt.Sprint(i+1), size: rowCompact})
-		iconButton(c, iconButtonSpec{icon: iconFork, label: "从此处分叉 " + fmt.Sprint(i+1), size: rowCompact})
-		iconButton(c, iconButtonSpec{icon: iconBranch, label: "从此处开始侧边对话 " + fmt.Sprint(i+1), size: rowCompact})
+		if len(r.images) > 0 {
+			gui.Row(c).Wrap().Gap(space1).Children(func() {
+				for _, name := range r.images {
+					imageThumb(c, name)
+				}
+			})
+		}
+		if len(r.attachments) > 0 {
+			gui.Row(c).Wrap().Gap(space1).Children(func() {
+				for _, att := range r.attachments {
+					attachmentChip(c, att)
+				}
+			})
+		}
+		if len(r.quotes) > 0 {
+			gui.Column(c).Gap(space1).Children(func() {
+				for _, quote := range r.quotes {
+					quoteRow(c, quote)
+				}
+			})
+		}
+		for _, mark := range r.marks {
+			typeMicro.style(t, gui.Text(c, fmt.Sprintf("标注 %d", mark.num))).
+				TextColor(t.TextMuted).Label("标注 " + fmt.Sprint(mark.num))
+			typeSecondary.style(t, gui.Text(c, mark.text)).TextColor(t.Text).MaxLines(3)
+		}
 	})
 }
 
-// assistant 是助手区：思考、正文、工具分组、轮末块与动作条。
+// imageThumb 是一张图片附件的缩略位（TL-21）：固定方角、浅底、图片图标；
+// 图片内容本身还没有进快照，这里只画占位，不假装加载了图片。
+func imageThumb(c *gui.Context, name string) {
+	t := c.Theme()
+	label := "图片附件"
+	if name != "" {
+		label += " " + name
+	}
+	box := gui.Box(c).Width(space12).Height(space12).Shrink(0).Radius(radiusSmall).
+		Background(t.SurfacePressed).Label(label)
+	box.DrawOver(func(p *gui.Painter, rect gui.Rect) {
+		size := float32(iconInline * 2)
+		p.Icon(iconImage, gui.Rect{
+			X: rect.X + (rect.W-size)/2,
+			Y: rect.Y + (rect.H-size)/2,
+			W: size, H: size,
+		}, t.TextMuted)
+	})
+}
+
+// attachmentChip 是一个附件 chip（TL-22）：图标 + 文件名；已不可用的附件降
+// 对比并写「不可用」（R-TL-212）。
+func attachmentChip(c *gui.Context, att messageAttachment) {
+	t := c.Theme()
+	color := t.TextMuted
+	label := "附件 " + att.name
+	if att.missing {
+		label += "（不可用）"
+	}
+	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space1).
+		Padding(space1, space2).Radius(radiusSmall).
+		Background(t.Surface).Label(label).Children(func() {
+		iconGlyph(c, iconPaperclip, color, "attachment")
+		typeMicro.style(t, gui.Text(c, att.name)).TextColor(color).SingleLine()
+	})
+}
+
+// quoteRow 是一条已发送的引用（TL-23）：标题行 + 被引用的片段。
+func quoteRow(c *gui.Context, quote messageQuote) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(space1).Label("引用 " + quote.title).Children(func() {
+		typeMicro.style(t, gui.Text(c, quote.title)).TextColor(t.TextMuted).SingleLine()
+		typeSecondary.style(t, gui.Text(c, quote.text)).TextColor(t.Text).MaxLines(3)
+	})
+}
+
+// selectionBar 是选中正文后出现的浮条（TL-44）：复制选区、把选区作为引用填进
+// 输入区。它按上一帧的选区成立；点完按钮后选区若还在，浮条也就还在。
+func (a *App) selectionBar(c *gui.Context, selection string) {
+	gui.Row(c).Grow(1).Gap(space1).AlignItems(gui.Center).Label("选区浮条").Children(func() {
+		gui.Spacer(c)
+		if actionButton(c, "复制选区", "复制选中的文本", false, false).Clicked() {
+			c.WriteClipboard(selection)
+		}
+		if actionButton(c, "引用到输入区", "把选中的文本作为引用填进输入区", false, false).Clicked() {
+			a.draft = quoteIntoDraft(a.draft, selection)
+		}
+	})
+}
+
+// selectedTextOf 把可选区里的选区拼回一段文本；没有选区时返回空串。
+func selectedTextOf(e gui.Element) string {
+	parts := e.SelectedTexts()
+	if len(parts) == 0 {
+		return ""
+	}
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		runes := []rune(part.Text)
+		start, end := part.Start, part.End
+		if start < 0 {
+			start = 0
+		}
+		if end > len(runes) {
+			end = len(runes)
+		}
+		if start >= end {
+			continue
+		}
+		out = append(out, string(runes[start:end]))
+	}
+	return strings.Join(out, "\n")
+}
+
+// quoteIntoDraft 把一段选区作为 Markdown 引用接到草稿末尾；草稿为空时不留前导
+// 空行，已有内容时隔一空行。
+func quoteIntoDraft(draft, selection string) string {
+	selection = strings.TrimSpace(selection)
+	if selection == "" {
+		return draft
+	}
+	var b strings.Builder
+	b.WriteString(draft)
+	if strings.TrimSpace(draft) != "" {
+		b.WriteString("\n\n")
+	}
+	for _, line := range strings.Split(selection, "\n") {
+		b.WriteString("> ")
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
+// assistant 是助手区：思考、正文、工具分组、轮末块与动作条。整块可选（右键
+// 菜单按选区复制，TL-65）；Markdown 的选区交给这一层（ShareSelection）。
 func (a *App) assistant(c *gui.Context, i int, r round) {
-	col := gui.Column(c).Shrink(0).Gap(timelineBlockGap).Label("助手消息")
+	col := gui.Column(c).Shrink(0).Gap(timelineBlockGap).Label("助手消息").Selectable()
 	hovered := col.Hovered()
+	svc := c.Services()
+	col = col.ContextMenu(func(m *gui.Menu) {
+		a.assistantMessageMenu(m, svc, assistantMessageText(r), selectedTextOf(col))
+	})
 	col.Children(func() {
 		if r.thinking != "" {
 			a.thinkingBlock(c, i, r)
@@ -290,7 +552,10 @@ func (a *App) roundHeader(c *gui.Context, i int, r round) {
 			gui.Column(c).Grow(1).Gap(space3).Children(func() {
 				for n, o := range r.ops {
 					a.opRow(c, i, n, o)
-					if o.failed && o.cause != "" {
+					// 工具行收起时在行下给一条失败原因；展开后原因在详情的
+					// 「失败原因」段里，这里不再重复。
+					if o.failed && o.cause != "" &&
+						!*a.blockOf(fmt.Sprintf("tool:%d:%d", i, n), false) {
 						typeSecondary.style(t, gui.Text(c, o.cause)).TextColor(t.TextMuted).
 							PaddingStart(timelineGroupIndent)
 					}
@@ -352,22 +617,36 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 	})
 }
 
-// toolDetail 是工具行的展开区：输入 / 输出 / 失败原因，等宽浅底。
+// toolDetail 是工具行的展开区：输入 / 输出 / 失败原因三段，段首写段名，
+// 内容用等宽浅底块；失败原因取危险色。输入与失败原因分开进快照之前，失败的
+// 工具仍给出「失败原因」段，并写明这一段还在等事实，不把输出冒充原因。
 func (a *App) toolDetail(c *gui.Context, o op) {
 	t := c.Theme()
 	gui.Column(c).Gap(space1).PaddingStart(timelineGroupIndent).Children(func() {
 		if o.input != "" {
-			typeMicro.style(t, gui.Text(c, "输入")).TextColor(t.TextMuted)
-			a.codeBlock(c, o.input)
+			a.toolDetailSection(c, "输入", t.TextMuted, func() { a.codeBlock(c, o.input) })
 		}
 		if o.output != "" {
-			typeMicro.style(t, gui.Text(c, "输出")).TextColor(t.TextMuted)
-			a.codeBlock(c, o.output)
+			a.toolDetailSection(c, "输出", t.TextMuted, func() { a.codeBlock(c, o.output) })
 		}
-		if o.cause != "" {
-			typeSecondary.style(t, gui.Text(c, o.cause)).TextColor(t.Danger)
+		if o.failed || o.cause != "" {
+			a.toolDetailSection(c, "失败原因", t.Danger, func() {
+				if o.cause != "" {
+					a.codeBlock(c, o.cause)
+					return
+				}
+				typeSecondary.style(t, gui.Text(c, "失败原因还没有单独进快照（等事实）")).
+					TextColor(t.TextMuted)
+			})
 		}
 	})
+}
+
+// toolDetailSection 是一段工具详情：段名（可定位）+ 一段内容。
+func (a *App) toolDetailSection(c *gui.Context, title string, color gui.Color, body func()) {
+	t := c.Theme()
+	typeMicro.style(t, gui.Text(c, title)).TextColor(color).Label("工具详情：" + title)
+	body()
 }
 
 // codeBlock 是等宽浅底块：工具输入/输出与日志共用。
@@ -941,17 +1220,9 @@ func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 // liveRow 画一行事实：种类决定用哪个块，字段决定块里的文字；认不出的种类
 // 仍按正文画（纯文本回退，不丢内容）。
 func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
-	t := c.Theme()
 	switch row.Kind {
 	case RowUser:
-		gui.Row(c).Grow(1).Children(func() {
-			gui.Spacer(c)
-			gui.Box(c).MaxWidthPercent(userBubbleMaxPercent).
-				Padding(space2, timelinePadX).Radius(radiusCard).
-				Background(t.SurfaceHover).Label("我的消息").Children(func() {
-				typeBody.style(t, gui.Text(c, row.Text)).TextColor(t.Text).Selectable()
-			})
-		})
+		a.userMessage(c, i, userRound(row))
 	case RowThinking:
 		a.thinkingBlock(c, i, thinkingRound(row))
 	case RowToolGroup:
@@ -987,7 +1258,34 @@ func (a *App) liveText(c *gui.Context, row RowSnapshot) {
 	if strings.TrimSpace(row.Text) == "" {
 		return
 	}
-	markdown.View(c, row.Text, &a.md)
+	a.assistantText(c, row.Text)
+}
+
+// assistantText 是一段助手正文：整段可选，右键菜单按选区复制（TL-65）。
+func (a *App) assistantText(c *gui.Context, text string) {
+	col := gui.Column(c).Shrink(0).Label("助手正文").Selectable()
+	svc := c.Services()
+	col = col.ContextMenu(func(m *gui.Menu) {
+		a.assistantMessageMenu(m, svc, text, selectedTextOf(col))
+	})
+	col.Children(func() {
+		markdown.View(c, text, &a.md)
+	})
+}
+
+// userRound 把用户行投成一条用户消息：正文与状态来自事实。附件、引用、标注与
+// 定时来源还没有进 RowSnapshot（等事实），所以这里不填，气泡里也就不画假 chip。
+func userRound(row RowSnapshot) round {
+	return round{user: row.Text, status: liveRoundStatus(row.Status)}
+}
+
+// assistantMessageText 是「复制整个消息」要复制的正文：回复原文；没有回复时
+// 退回思考原文（这一轮只留下了思考）。
+func assistantMessageText(r round) string {
+	if strings.TrimSpace(r.reply) != "" {
+		return r.reply
+	}
+	return r.thinking
 }
 
 // thinkingRound 把思考行投成思考块要的一轮（标题里的时长由事实给出）。

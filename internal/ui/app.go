@@ -135,6 +135,10 @@ const (
 	// VariantPalette / PaletteEmpty 打开命令面板，后者停在无匹配项的空态。
 	VariantPalette
 	VariantPaletteEmpty
+	// VariantTimelineHover 把第一轮用户消息的悬停动作钉在屏上（截图没有指针）；
+	// VariantTimelineToolDetail 展开第一轮工具分组里的失败工具，走查三段详情。
+	VariantTimelineHover
+	VariantTimelineToolDetail
 )
 
 // variantNames 是 -variant 的取值。
@@ -156,6 +160,7 @@ var variantNames = map[string]Variant{
 	"review-scope": VariantReviewScope, "add-tab": VariantAddTab,
 	"right-expanded":  VariantRightExpanded,
 	"command-palette": VariantPalette, "command-palette-empty": VariantPaletteEmpty,
+	"timeline-hover": VariantTimelineHover, "timeline-tool-detail": VariantTimelineToolDetail,
 }
 
 // ParseVariant 解析 -variant。
@@ -163,7 +168,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty、timeline-hover、timeline-tool-detail", v)
 }
 
 // Options 是骨架的启动参数。
@@ -211,6 +216,9 @@ type App struct {
 	summaryOpen map[int]*bool
 	// blockOpen 是思考块、工具行、产物与改动块的开合（键是块标识）。
 	blockOpen map[string]*bool
+	// timelineHover 是走查变体钉住的悬停轮次（-1 表示没有）：自动截图没有指针，
+	// 只影响用户消息的悬停动作是否显形，不改任何事实。
+	timelineHover int
 
 	// connected 与 accountInitial 是样例里的连接态与账号首字母：只用于画状态点
 	// 与头像（UI-23），不是事实来源。
@@ -325,7 +333,13 @@ type App struct {
 	workspaceName     string
 	workspaceOpen     bool
 	workspaceQuery    string
-	permission        string
+	// workspacePath 是空态工作区选择器选中的目录（可丢）：新建会话把它当 cwd。
+	workspacePath string
+	permission    string
+	// permissionChoice 是权限菜单里点过的那一档文案（可丢）：协议档位在「默认
+	// 权限」「智能权限」上取值相同（见 permissionLevels），记住点的是哪一档才不
+	// 至于回弹。
+	permissionChoice  string
 	permissionOpen    bool
 	permissionArmOpen bool
 	permissionArmAck  bool
@@ -367,6 +381,9 @@ func NewApp(o Options) *App {
 		accountInitial:  "E",
 		logPath:         o.LogPath,
 	}
+	// 时间线的助手区自己承担可选区与右键菜单（消息级复制）：Markdown 不再自建
+	// 选区与菜单，把段落交给外层容器（TL-65）。
+	a.md.ShareSelection = true
 	a.loadSample()
 	return a
 }
@@ -400,6 +417,7 @@ func (a *App) loadSample() {
 	a.rounds = sampleRounds(a.state)
 	a.summaryOpen = make(map[int]*bool)
 	a.blockOpen = make(map[string]*bool)
+	a.timelineHover = -1
 	// 运行中的最新一轮把工具分组默认展开：参考产品在输出时就是展开态。
 	if a.state == StateRunning && len(a.rounds) >= 2 {
 		*a.openOf(len(a.rounds) - 2) = true
@@ -438,7 +456,9 @@ func (a *App) loadSample() {
 	a.workspaceName = sampleWorkspaceTitle
 	a.workspaceOpen = false
 	a.workspaceQuery = ""
+	a.workspacePath = ""
 	a.permission = "默认权限"
+	a.permissionChoice = ""
 	a.permissionOpen = false
 	a.permissionArmOpen = false
 	a.permissionArmAck = false
@@ -553,6 +573,15 @@ func (a *App) loadSample() {
 	case VariantRightExpanded:
 		a.rightOpen, a.rightTab = true, tabFiles
 		a.rp().expanded = true
+	case VariantTimelineHover:
+		// 截图没有指针：把第一轮的悬停动作钉住，只改显形，不改事实。
+		a.timelineHover = 0
+	case VariantTimelineToolDetail:
+		// 第一轮工具分组展开，并展开其中的失败工具，走查输入 / 输出 / 失败原因。
+		if len(a.rounds) > 0 {
+			*a.openOf(0) = true
+			*a.blockOf("tool:0:3", true) = true
+		}
 	}
 
 	if a.state == StateWaiting {
@@ -580,6 +609,7 @@ func (a *App) resetWiredViewState() {
 	a.rounds = nil
 	a.summaryOpen = make(map[int]*bool)
 	a.blockOpen = make(map[string]*bool)
+	a.timelineHover = -1
 	a.approvalCommand = ""
 	a.contextUsed, a.contextLimit = 0, 0
 	a.contextOpen = false
@@ -621,7 +651,9 @@ func (a *App) resetWiredViewState() {
 	a.workspaceName = ""
 	a.workspaceOpen = false
 	a.workspaceQuery = ""
+	a.workspacePath = ""
 	a.permission = "默认权限"
+	a.permissionChoice = ""
 	a.permissionOpen = false
 	a.permissionArmOpen = false
 	a.permissionArmAck = false

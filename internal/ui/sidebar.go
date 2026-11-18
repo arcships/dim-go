@@ -615,15 +615,17 @@ func (a *App) sessionIDAt(index int) string {
 	return names[index]
 }
 
-// createSession 新建会话：工作目录由适配器沿用当前会话的目录。样例模式下没有
-// 写入路径，切到空态（参考产品的「新建会话」进入空会话）。
+// createSession 新建会话：工作目录取当前工作区（空态选择器选中的工作区，其次
+// 是当前会话的目录）。样例模式下没有写入路径，切到空态（参考产品的「新建会话」
+// 进入空会话）。
 func (a *App) createSession() {
 	if a.intents == nil {
 		a.SetState(StateEmpty)
 		return
 	}
+	cwd := a.currentWorkspaceCwd()
 	a.dispatch("新建会话", func(ctx context.Context) error {
-		return a.intents.CreateSession(ctx, "")
+		return a.intents.CreateSession(ctx, cwd)
 	}, nil)
 }
 

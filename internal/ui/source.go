@@ -15,6 +15,9 @@ type Source interface {
 	Connection() Connection
 	// SessionNames 是左栏的会话列表（按目录顺序）。
 	SessionNames() []string
+	// Workspaces 是服务端授权的工作区（项目根）清单；空表示没有读到或没有授权。
+	// 新建会话的 cwd 只从这里取，不自己拼路径。
+	Workspaces() []WorkspaceSnapshot
 	// Session 是当前会话的快照；ok 为假表示还没打开会话。
 	Session() (SessionSnapshot, bool)
 	// Approval 是当前待决审批；ok 为假表示没有。
@@ -60,6 +63,8 @@ type PanelFacts interface {
 	FileSearch(request FileSearchRequest) FileSearchSnapshot
 	// Changes 读一次改动清单（范围见 ChangeScope*）。
 	Changes(request ChangesRequest) ChangeSet
+	// Preview 读一个文件的前缀内容（文件预览页，D7 的 Preview）。
+	Preview(request PreviewRequest) PreviewSnapshot
 }
 
 // Intents 是视图发起写的唯一入口：写走既有的 app 方法，不新开协议通道。
@@ -180,6 +185,15 @@ type PreferencesSnapshot struct {
 type Connection struct {
 	Phase  string // "connecting" / "connected" / "disconnected"
 	Reason string
+}
+
+// WorkspaceSnapshot 是一个授权的工作区（项目根，与 settings.Project 对齐）。
+//
+// Root 是服务端进程内的项目根编号；Path 是服务端给出的目录，只用于展示与
+// 新建会话的 cwd，不用于拼路径。
+type WorkspaceSnapshot struct {
+	Root int
+	Path string
 }
 
 // SessionSnapshot 是首片要用的会话事实（与 app.SessionView 对齐，不多造）。
@@ -485,13 +499,24 @@ type ExtItemSnapshot struct {
 	Name    string
 	Version string
 	Enabled bool
+	// Description 是服务端给的说明（技能的描述）；空表示没有。
+	Description string
 	// Status/Error 是服务端给出的原始状态与错误；空表示没有。
 	Status string
 	Error  string
-	// Event/Command/Source 是钩子的原始事实，用于单项启停时重建文档。
+	// Event/Command/Source 是钩子的原始事实，用于单项启停时重建文档；
+	// Matcher/Type/Timeout/Async 是钩子目录的其余扁平字段（S-hooks-20 的行）。
 	Event   string
 	Command string
 	Source  string
+	Matcher string
+	Type    string
+	Timeout int
+	Async   bool
+	// Transport/Tools/Connected 是工具服务器（MCP）的事实；其余四类为空。
+	Transport string
+	Tools     int
+	Connected bool
 }
 
 // SchedulesSnapshot 是定时任务读数。
@@ -723,4 +748,56 @@ type ChangeFileSnapshot struct {
 	Added     int
 	Removed   int
 	StatKnown bool
+}
+
+// ---- 文件预览（右栏「打开文件」页） ----
+
+// 预览内容的类别（与 workspace.PreviewKind 同一口径）。
+const (
+	// PreviewEmpty 表示空文件。
+	PreviewEmpty = "empty"
+	// PreviewText 表示已按识别出的编码解码为文本。
+	PreviewText = "text"
+	// PreviewBinary 表示二进制或未识别编码，不返回内容。
+	PreviewBinary = "binary"
+)
+
+// PreviewRequest 是一次文件预览的读取请求。
+//
+// Cwd 是会话工作目录（绝对路径）；Path 是相对 Cwd 的文件路径（'/' 分隔）。
+// 与目录读一样按请求缓存：同一请求每帧读同一份快照，Refresh 跳过缓存重读。
+type PreviewRequest struct {
+	Cwd  string
+	Path string
+	// MaxBytes 是读取上限；0 用适配器的默认值。
+	MaxBytes int
+	Refresh  bool
+}
+
+// PreviewSnapshot 是一次文件预览的结果（与 workspace.Preview 对齐）。
+//
+// 内容类别、截断与说明都来自读的一方：视图不猜「读不到」与「空文件」的区别。
+type PreviewSnapshot struct {
+	// Cwd / Path 回显请求，视图据此判断快照是否属于当前请求。
+	Cwd  string
+	Path string
+	// Kind 取 PreviewEmpty / PreviewText / PreviewBinary 之一。
+	Kind     string
+	Encoding string
+	Size     int64
+	// ReadBytes 是从磁盘实际读到的字节数。
+	ReadBytes int
+	// Content 只在 Kind 为 text 时有值。
+	Content string
+	// Truncated 表示文件大于读取上限，Content 只是前缀。
+	Truncated bool
+	// Note 说明截断、二进制或未识别编码的原因；空表示没有需要说明的情况。
+	Note string
+	// Phase 取 PanelRead* 之一。
+	Phase string
+	// Error 是失败原因原文；空表示没有失败。
+	Error string
+	// Denied 为真表示失败原因是权限不足（EPERM / EACCES）。
+	Denied bool
+	ReadAt time.Time
 }

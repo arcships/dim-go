@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -185,5 +187,195 @@ func TestFullAccessNeedsConfirmation(t *testing.T) {
 	}
 	if app.permission != "完全访问权限" {
 		t.Fatalf("确认后权限 %q，想要完全访问权限", app.permission)
+	}
+}
+
+// 用户消息悬停动作（TL-37–TL-40）：复制进剪贴板、编辑回填输入区、侧边对话
+// 打开右栏；分叉没有写入口，置灰并写原因。
+func TestUserActionsDoWhatTheySay(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	bubble, ok := tt.Find("我的消息")
+	if !ok {
+		t.Fatal("找不到用户气泡")
+	}
+	tt.Move(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Frame()
+
+	if info, ok := tt.Access("从此处分叉 1（消息分叉还没有写入口）"); !ok || !info.Disabled {
+		t.Fatalf("分叉没有按不可用画：%+v（找到 %v）", info, ok)
+	}
+	if _, ok := tt.Find("分叉不可用的原因"); !ok {
+		t.Fatalf("置灰的分叉没写原因：%v", tt.Texts())
+	}
+
+	if err := tt.Click("复制整个消息 1"); err != nil {
+		t.Fatalf("点不到复制：%v", err)
+	}
+	if got := tt.Clipboard(); got != app.rounds[0].user {
+		t.Fatalf("剪贴板是 %q，想要 %q", got, app.rounds[0].user)
+	}
+
+	if err := tt.Click("编辑消息 1"); err != nil {
+		t.Fatalf("点不到编辑：%v", err)
+	}
+	if app.draft != app.rounds[0].user {
+		t.Fatalf("编辑没有回填输入区：%q", app.draft)
+	}
+
+	if err := tt.Click("从此处开始侧边对话 1"); err != nil {
+		t.Fatalf("点不到侧边对话：%v", err)
+	}
+	if !app.rightOpen || app.rightTab != tabSideChat {
+		t.Fatalf("侧边对话没有打开右栏：open=%v tab=%d", app.rightOpen, app.rightTab)
+	}
+	if !app.panels.sideChatFromMessage {
+		t.Fatal("侧边对话没有记下从消息之前开始")
+	}
+}
+
+// 消息右键菜单（TL-41–TL-43）：侧边对话、复制整个消息、编辑都在；
+// 没有写入口的删除与撤回置灰并写原因。
+func TestUserMessageContextMenu(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	bubble, ok := tt.Find("我的消息")
+	if !ok {
+		t.Fatal("找不到用户气泡")
+	}
+	tt.RightClickAt(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Frame()
+	menu := tt.Menu()
+	for _, want := range []string{
+		"从此处开始侧边对话", "复制整个消息", "编辑消息",
+		"复制（" + messageCopyNeedsSelection + "）",
+		"删除消息（" + messageDeleteUnavailable + "）",
+		"撤回（" + messageWithdrawUnavailable + "）",
+	} {
+		if !slices.Contains(menu, want) {
+			t.Fatalf("菜单缺 %q（实际 %v）", want, menu)
+		}
+	}
+	if err := tt.ChooseMenuItem("复制（" + messageCopyNeedsSelection + "）"); err == nil {
+		t.Fatal("没有选区却可选复制")
+	}
+	if err := tt.ChooseMenuItem("删除消息（" + messageDeleteUnavailable + "）"); err == nil {
+		t.Fatal("删除没有写入口却可选")
+	}
+	tt.CloseMenu()
+
+	tt.RightClickAt(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Frame()
+	if err := tt.ChooseMenuItem("编辑消息"); err != nil {
+		t.Fatalf("点不到菜单编辑：%v", err)
+	}
+	if app.draft != app.rounds[0].user {
+		t.Fatalf("菜单编辑没有回填输入区：%q", app.draft)
+	}
+
+	tt.RightClickAt(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Frame()
+	if err := tt.ChooseMenuItem("复制整个消息"); err != nil {
+		t.Fatalf("点不到复制整个消息：%v", err)
+	}
+	if got := tt.Clipboard(); got != app.rounds[0].user {
+		t.Fatalf("菜单复制的是 %q，想要 %q", got, app.rounds[0].user)
+	}
+}
+
+// 选区浮条（TL-44）：选中正文后出现复制与引用两项；引用把选区以 Markdown
+// 引用行填进输入区。
+func TestSelectionBarCopiesAndQuotes(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	bubble, ok := tt.Find("我的消息")
+	if !ok {
+		t.Fatal("找不到用户气泡")
+	}
+	tt.ClickAt(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Key(gui.Cmd, gui.KeyA)
+	tt.Frame()
+	if _, ok := tt.Find("选区浮条"); !ok {
+		t.Fatalf("选中正文后没有选区浮条：%v", tt.Texts())
+	}
+
+	if err := tt.Click("引用到输入区"); err != nil {
+		t.Fatalf("点不到引用到输入区：%v", err)
+	}
+	if !strings.HasPrefix(app.draft, "> ") || !strings.Contains(app.draft, app.rounds[0].user) {
+		t.Fatalf("引用没有填进输入区：%q", app.draft)
+	}
+
+	// 再选一次，验证复制选区走剪贴板。
+	tt.ClickAt(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Key(gui.Cmd, gui.KeyA)
+	tt.Frame()
+	if err := tt.Click("复制选区"); err != nil {
+		t.Fatalf("点不到复制选区：%v", err)
+	}
+	if got := tt.Clipboard(); got != app.rounds[0].user {
+		t.Fatalf("复制选区得到 %q，想要 %q", got, app.rounds[0].user)
+	}
+}
+
+// 工具详情三段（TL-54 的展开）：输入 / 输出 / 失败原因各有段名，内容不混。
+func TestToolDetailHasThreeSections(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	header := "轮次组头 " + groupSummary(app.rounds[0]) + "，状态：" +
+		statusWord(app.rounds[0].status) + "，" + roundHeaderPhrase(app.rounds[0])
+	if err := tt.Click(header); err != nil {
+		t.Fatalf("点不到工具组头：%v", err)
+	}
+	tt.Advance(300 * time.Millisecond)
+	if err := tt.Click("执行 go test ./..."); err != nil {
+		t.Fatalf("点不到失败的工具行：%v", err)
+	}
+	tt.Advance(300 * time.Millisecond)
+	for _, want := range []string{"输入", "输出", "失败原因"} {
+		if _, ok := tt.Find("工具详情：" + want); !ok {
+			t.Fatalf("工具详情缺 %q 段：%v", want, tt.Texts())
+		}
+	}
+	if !tt.HasText("command: go test ./...") || !tt.HasText("$ go test ./...") {
+		t.Fatalf("输入与输出内容没有分别上屏：%v", tt.Texts())
+	}
+	if !tt.HasText("权限不足，命令没有执行") {
+		t.Fatal("失败原因没有上屏")
+	}
+}
+
+// 附件与引用 chip（TL-21–TL-26）：气泡里按数据画图片、chip、引用、标注与
+// 定时来源；没有数据时一个都不画。
+func TestUserMessageAttachmentsAndQuotes(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if _, ok := tt.Find("消息附件与引用"); ok {
+		t.Fatal("样例没有附件事实，却画了附件区")
+	}
+	app.rounds[0].images = []string{"屏幕.png"}
+	app.rounds[0].attachments = []messageAttachment{
+		{name: "需求.md"},
+		{name: "旧日志.txt", missing: true},
+	}
+	app.rounds[0].quotes = []messageQuote{{title: "引用 1", text: "发送路径要排队"}}
+	app.rounds[0].marks = []messageMark{{num: 1, text: "这一行是标注"}}
+	app.rounds[0].wakeup = "定时唤醒：每天 9:00"
+	tt.Frame()
+	for _, want := range []string{
+		"消息附件与引用", "图片附件 屏幕.png", "附件 需求.md",
+		"附件 旧日志.txt（不可用）", "引用 引用 1", "定时唤醒来源",
+	} {
+		if _, ok := tt.Find(want); !ok {
+			t.Fatalf("缺少 %q：%v", want, tt.Texts())
+		}
+	}
+	if !tt.HasText("这一行是标注") {
+		t.Fatalf("标注正文没有上屏：%v", tt.Texts())
+	}
+}
+
+// quoteIntoDraft 只加一层引用；空草稿不留前导空行。
+func TestQuoteIntoDraft(t *testing.T) {
+	if got := quoteIntoDraft("", "第一段\n第二段"); got != "> 第一段\n> 第二段" {
+		t.Fatalf("空草稿的引用是 %q", got)
+	}
+	if got := quoteIntoDraft("已有内容", "引用"); got != "已有内容\n\n> 引用" {
+		t.Fatalf("已有内容时的引用是 %q", got)
 	}
 }

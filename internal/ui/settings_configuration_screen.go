@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
@@ -136,22 +137,35 @@ var (
 	configIconMinus    = mustSVG(`<path d="M5.25 12h13.5"/>`)
 )
 
-// configModel 是一行模型：名称、两项能力与开关位置。取值来自运行时快照
-// （选中 DimAgent OAuth 的 32 个模型），不是事实；接线时换成 Source 的数据。
+// configModel 是一行模型：标识、名称、两项能力与开关初值。连着 Source 时来自
+// Settings().ProviderRecords（标识与启停是真的）；只在 -demo 时用运行时快照的
+// 32 个模型做样例。
 type configModel struct {
+	id        string
 	name      string
 	vision    bool
 	reasoning bool
 	on        bool
 }
 
-// configProvider 是一个供应商：名称、是否已配置、是否由账户托管、基础 URL。
-// account 为真的只有 DimAgent OAuth（运行时唯一已启用且账户托管的一项）。
+// configProvider 是一个供应商：标识、名称、是否已配置、是否由账户托管、
+// 基础 URL 与可写版本。account 为真的只有样例里的 DimAgent OAuth
+// （运行时唯一已启用且账户托管的一项）；读数的 provider 一律按普通项画。
 type configProvider struct {
+	id         string
 	name       string
 	configured bool
 	account    bool
 	baseURL    string
+	version    int
+}
+
+// configKey 是供应商在视图状态里的键：读数的用服务端标识，样例用名称。
+func configKey(provider configProvider) string {
+	if provider.id != "" {
+		return provider.id
+	}
+	return provider.name
 }
 
 // configDimName 是当前选中的账户托管供应商名。
@@ -239,10 +253,13 @@ type configState struct {
 	enabledCollapsed  bool
 	disabledCollapsed bool
 
-	// providerToggles 是按供应商名的启用开关（界面态）。初始只有账户托管的
+	// providerToggles 是按供应商键的启用开关（界面态）。初始只有账户托管的
 	// DimAgent OAuth 为开（运行时唯一已启用的一项）。
 	providerToggles map[string]*bool
-	models          []configModel
+	// modelToggles 是按「供应商键/模型标识」的模型开关（界面态，初值来自读数）。
+	modelToggles map[string]*bool
+	// models 是 -demo 的样例模型表（读数为真时每帧从 ProviderRecords 取）。
+	models []configModel
 }
 
 var configScreen = configState{
@@ -251,34 +268,128 @@ var configScreen = configState{
 }
 
 // providerToggle 取一个供应商的启用开关（按需建、指针稳定）。
-func (s *configState) providerToggle(name string) *bool {
+func (s *configState) providerToggle(provider configProvider) *bool {
 	if s.providerToggles == nil {
 		s.providerToggles = map[string]*bool{}
 	}
-	if on, ok := s.providerToggles[name]; ok {
+	key := configKey(provider)
+	if on, ok := s.providerToggles[key]; ok {
 		return on
 	}
-	on := name == configDimName
-	s.providerToggles[name] = &on
+	on := provider.configured
+	s.providerToggles[key] = &on
+	return &on
+}
+
+// modelToggle 取一个模型的开关（按需建、指针稳定，初值来自这一帧的读数）。
+func (s *configState) modelToggle(provider configProvider, model configModel) *bool {
+	if s.modelToggles == nil {
+		s.modelToggles = map[string]*bool{}
+	}
+	key := configKey(provider) + "/" + model.id
+	if model.id == "" {
+		key = configKey(provider) + "/" + model.name
+	}
+	if on, ok := s.modelToggles[key]; ok {
+		return on
+	}
+	on := model.on
+	s.modelToggles[key] = &on
 	return &on
 }
 
 // renderConfiguration 是设置 › 模型供应这一屏（设置壳的一个分节）。
-func renderConfiguration(c *gui.Context) {
+func renderConfiguration(c *gui.Context, a *App) {
 	t := c.Theme()
+	data := a.configView()
 	gui.Row(c).Grow(1).AlignItems(gui.Stretch).Background(t.Background).
 		Label("模型供应").Children(func() {
-		configProviderColumn(c)
-		configDetailColumn(c)
+		a.configProviderColumn(c, data)
+		a.configDetailColumn(c, data)
 	})
+}
+
+// configView 是一帧的模型供应读数：供应商清单、读数错误、选中项与它的模型。
+//
+// 连着 Source 时全部来自 Settings().ProviderRecords（标识、启停、基础 URL 与
+// 模型启停都是服务端事实）；没有 Source（-demo）时用运行时快照的样例。
+type configView struct {
+	providers   []configProvider
+	readErr     string
+	selected    configProvider
+	hasSelected bool
+	models      []configModel
+}
+
+// configView 取这一帧的读数。选中项只是视图状态（configScreen.selected），
+// 读数里找不到它时落到第一项，不空着详情。
+func (a *App) configView() configView {
+	v := configView{}
+	if a.source == nil {
+		v.providers = configSampleProviders()
+		v.models = configScreen.models
+	} else {
+		settings, _ := a.liveSettings()
+		v.readErr = settings.ProviderError
+		for _, record := range settings.ProviderRecords {
+			v.providers = append(v.providers, configProvider{
+				id: record.ID, name: configRecordName(record),
+				configured: record.Enabled, baseURL: record.BaseURL,
+				version: record.Version,
+			})
+		}
+	}
+	for _, provider := range v.providers {
+		if configKey(provider) != configScreen.selected {
+			continue
+		}
+		v.selected, v.hasSelected = provider, true
+		break
+	}
+	if !v.hasSelected && len(v.providers) > 0 {
+		v.selected, v.hasSelected = v.providers[0], true
+		configScreen.selected = configKey(v.selected)
+	}
+	if a.source != nil && v.hasSelected {
+		v.models = a.configRecordModels(v.selected)
+	}
+	return v
+}
+
+// configRecordName 是 provider 的展示名：没有展示名时用标识（不空着）。
+func configRecordName(record ProviderRecordSnapshot) string {
+	if strings.TrimSpace(record.Name) != "" {
+		return record.Name
+	}
+	return record.ID
+}
+
+// configRecordModels 取一个供应商的模型行（读数的标识与启停；没有能力徽标事实）。
+func (a *App) configRecordModels(provider configProvider) []configModel {
+	settings, _ := a.liveSettings()
+	for _, record := range settings.ProviderRecords {
+		if record.ID != provider.id {
+			continue
+		}
+		out := make([]configModel, 0, len(record.Models))
+		for _, model := range record.Models {
+			name := model.ID
+			if strings.TrimSpace(model.Name) != "" {
+				name = model.Name
+			}
+			out = append(out, configModel{id: model.ID, name: name, on: model.Enabled})
+		}
+		return out
+	}
+	return nil
 }
 
 // ---- 左栏：供应商列表（S-configuration-01 … 09） ----
 
 // configProviderColumn 是左栏：栏标题 + 搜索 + 两段分组 + 底部「添加」。
-func configProviderColumn(c *gui.Context) {
+func (a *App) configProviderColumn(c *gui.Context, data configView) {
 	t := c.Theme()
-	enabled, disabled := configFilteredProviders()
+	enabled, disabled := configFilteredProviders(data.providers)
 	column := gui.Column(c).Width(configListW).Shrink(0).
 		Background(configListFill(t)).Label("供应商列表")
 	// 右缘 1px 分隔线（参考的 border-r）：只有一条边，用填色画，不另立描边。
@@ -299,12 +410,27 @@ func configProviderColumn(c *gui.Context) {
 		gui.Row(c).Shrink(0).Padding(0, configPadH, configAddPad, configPadH).Children(func() {
 			configSearchField(c, &configScreen.providerFilter, "搜索供应商", "搜索供应商")
 		})
+		// 读数失败与读空：两行都来自读数，不拿空清单当「没有供应商」。
+		if data.readErr != "" {
+			gui.Row(c).Shrink(0).Padding(0, configPadH, configAddPad, configPadH).
+				Children(func() {
+					configMicroStyle.style(t, gui.Text(c, "读取供应商失败："+data.readErr)).
+						TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
+				})
+		}
 		// S-configuration-05 … 08：两段分组，列表自己在列内滚动。
 		gui.Scroll(c).Grow(1).Label("供应商").Children(func() {
 			gui.Column(c).Shrink(0).Gap(configGapGroups).
 				Padding(0, configPadH, configAddPad, configPadH).Children(func() {
-				configProviderGroup(c, "已启用", enabled, &configScreen.enabledCollapsed)
-				configProviderGroup(c, "未启用", disabled, &configScreen.disabledCollapsed)
+				if len(data.providers) == 0 {
+					configMicroStyle.style(t, gui.Text(c, "没有读到供应商。")).
+						TextColor(t.TextMuted).Role(gui.RoleStatus).MaxLines(2)
+					return
+				}
+				a.configProviderGroup(c, data, "已启用", enabled,
+					&configScreen.enabledCollapsed)
+				a.configProviderGroup(c, data, "未启用", disabled,
+					&configScreen.disabledCollapsed)
 			})
 		})
 		// S-configuration-09：添加（固定在这一列底部）。
@@ -345,8 +471,8 @@ func configSearchField(c *gui.Context, value *string, placeholder, label string)
 
 // configFilteredProviders 按搜索词把供应商分成两段：名称子串、不区分大小写
 // （参考 matchesProviderFilter 的口径：名称或标识命中即算）。
-func configFilteredProviders() (enabled, disabled []configProvider) {
-	for _, provider := range configProviderList() {
+func configFilteredProviders(providers []configProvider) (enabled, disabled []configProvider) {
+	for _, provider := range providers {
 		if !configMatches(configScreen.providerFilter, provider.name) {
 			continue
 		}
@@ -368,9 +494,9 @@ func configMatches(query, name string) bool {
 	return strings.Contains(strings.ToLower(name), query)
 }
 
-// configProviderList 是供应商的全表：DimAgent OAuth 在前（已启用、账户托管），
-// 其后是 127 个未启用项。
-func configProviderList() []configProvider {
+// configSampleProviders 是 -demo 的供应商全表：DimAgent OAuth 在前（已启用、
+// 账户托管），其后是 127 个未启用项。连着 Source 时整表来自读数。
+func configSampleProviders() []configProvider {
 	out := make([]configProvider, 0, len(configDisabledProviderNames)+1)
 	out = append(out, configProvider{
 		name: configDimName, configured: true, account: true, baseURL: configDimBaseURL,
@@ -382,7 +508,8 @@ func configProviderList() []configProvider {
 }
 
 // configProviderGroup 是一段分组：折叠头 + （未折叠时）组内各项。
-func configProviderGroup(c *gui.Context, label string, providers []configProvider, collapsed *bool) {
+func (a *App) configProviderGroup(c *gui.Context, data configView, label string,
+	providers []configProvider, collapsed *bool) {
 	// 搜索生效时两组强制展开（参考行为），折叠状态本身不改。
 	expanded := !*collapsed || configScreen.providerFilter != ""
 	configGroupHead(c, label, len(providers), expanded, collapsed)
@@ -391,7 +518,7 @@ func configProviderGroup(c *gui.Context, label string, providers []configProvide
 	}
 	gui.Column(c).Shrink(0).Gap(configGapItems).Children(func() {
 		for _, provider := range providers {
-			configProviderRow(c, provider)
+			a.configProviderRow(c, data, provider)
 		}
 	})
 }
@@ -429,9 +556,9 @@ func configGroupHead(c *gui.Context, label string, count int, expanded bool, col
 }
 
 // configProviderRow 是一个供应商项：图标 + 名称 + 状态点（S-configuration-07/08）。
-func configProviderRow(c *gui.Context, provider configProvider) {
+func (a *App) configProviderRow(c *gui.Context, data configView, provider configProvider) {
 	t := c.Theme()
-	selected := configScreen.selected == provider.name
+	selected := configScreen.selected == configKey(provider)
 	row := gui.ButtonBase(c).Shrink(0).Height(configRowH).AlignItems(gui.Center).
 		Gap(configGapRow).Padding(configRowPadV, configRowPadH).Radius(screenRadiusCtl).
 		Label(configProviderLabel(provider)).Tooltip(provider.name).
@@ -443,7 +570,7 @@ func configProviderRow(c *gui.Context, provider configProvider) {
 		row = row.Background(t.SurfaceHover)
 	}
 	if row.Clicked() {
-		configScreen.selected = provider.name
+		configScreen.selected = configKey(provider)
 	}
 	style := configRowStyle
 	if selected {
@@ -535,23 +662,26 @@ func configAddButton(c *gui.Context) {
 // ---- 右栏：详情（S-configuration-11 … 28） ----
 
 // configDetailColumn 是右栏：头部 + 账户托管（或未重建分支）。
-func configDetailColumn(c *gui.Context) {
-	provider, ok := configSelectedProvider()
+func (a *App) configDetailColumn(c *gui.Context, data configView) {
 	gui.Column(c).Grow(1).MinWidth(0).Padding(configDetailPad).Children(func() {
 		gui.Column(c).Width(configDetailContentWidth(c)).Grow(1).Gap(configDetailGap).
 			Children(func() {
-				if !ok {
+				if !data.hasSelected {
 					// S-configuration-82：没有选中项时的空态。
 					configMicroStyle.style(c.Theme(), gui.Text(c, "选择一个提供商查看详情")).
 						TextColor(c.Theme().TextMuted)
 					return
 				}
-				configDetailHead(c, provider)
-				if provider.account {
-					configManagedBody(c, provider)
-					return
+				a.configDetailHead(c, data.selected)
+				switch {
+				case data.selected.account:
+					a.configManagedBody(c, data)
+				case a.source != nil:
+					// 读数的 provider：基础 URL 与模型启停都是事实，照画同一套形态。
+					a.configRecordBody(c, data)
+				default:
+					configUnbuiltBody(c)
 				}
-				configUnbuiltBody(c)
 			})
 	})
 }
@@ -571,20 +701,11 @@ func configDetailContentWidth(c *gui.Context) float32 {
 	return avail
 }
 
-// configSelectedProvider 取当前选中的供应商。
-func configSelectedProvider() (configProvider, bool) {
-	for _, provider := range configProviderList() {
-		if provider.name == configScreen.selected {
-			return provider, true
-		}
-	}
-	return configProvider{}, false
-}
-
 // configDetailHead 是详情头部：图标 + 名称 + 启用状态 + 启用开关，下方一条底线
 // （S-configuration-11 … 13）。
-func configDetailHead(c *gui.Context, provider configProvider) {
+func (a *App) configDetailHead(c *gui.Context, provider configProvider) {
 	t := c.Theme()
+	toggle := configScreen.providerToggle(provider)
 	gui.Column(c).Shrink(0).Children(func() {
 		gui.Row(c).Shrink(0).AlignItems(gui.Center).Justify(gui.SpaceBetween).
 			Gap(configGapRow).Padding(0, 0, configHeadPad, 0).Children(func() {
@@ -594,11 +715,11 @@ func configDetailHead(c *gui.Context, provider configProvider) {
 				gui.Column(c).Grow(1).MinWidth(0).Children(func() {
 					configStrongStyle.style(t, gui.Text(c, provider.name)).TextColor(t.Text).
 						SingleLine()
-					configMicroStyle.style(t, gui.Text(c, configStatusLabel(provider))).
+					configMicroStyle.style(t, gui.Text(c, configStatusLabel(*toggle))).
 						TextColor(t.TextMuted).SingleLine()
 				})
 			})
-			gui.Switch(c, configScreen.providerToggle(provider.name)).
+			gui.Switch(c, toggle).
 				Size(configSwitchW, configSwitchH).Radius(configSwitchH / 2).
 				Label("启用 " + provider.name)
 		})
@@ -606,9 +727,10 @@ func configDetailHead(c *gui.Context, provider configProvider) {
 	})
 }
 
-// configStatusLabel 是详情头部的状态词（参考 selectedProviderStatusLabel）。
-func configStatusLabel(provider configProvider) string {
-	if provider.configured {
+// configStatusLabel 是详情头部的状态词（参考 selectedProviderStatusLabel）：
+// 与开关同源，开着就是「已启用」。
+func configStatusLabel(on bool) string {
+	if on {
 		return "已启用"
 	}
 	return "未启用"
@@ -634,14 +756,28 @@ func configProviderMarkBig(c *gui.Context, provider configProvider) {
 
 // configManagedBody 是账户托管供应商的只读详情（S-configuration-14 … 28）：
 // 提示条 + 基础 URL + 模型块 + 底部动作。
-func configManagedBody(c *gui.Context, provider configProvider) {
+func (a *App) configManagedBody(c *gui.Context, data configView) {
 	gui.Column(c).Grow(1).MinHeight(0).Gap(configDetailGap).Children(func() {
 		gui.Column(c).Shrink(0).Gap(configDetailGap).Children(func() {
 			configManagedBanner(c)
-			configBaseURL(c, provider.baseURL)
+			configBaseURL(c, data.selected.baseURL)
 		})
-		configModelsPanel(c)
-		configDetailFooter(c)
+		a.configModelsPanel(c, data)
+		a.configDetailFooter(c, data)
+	})
+}
+
+// configRecordBody 是读数里的 provider：基础 URL（有就读）+ 模型块 + 底部动作。
+// 账户托管提示条只在样例的 DimAgent OAuth 上出现（读数没有「托管」这项事实）。
+func (a *App) configRecordBody(c *gui.Context, data configView) {
+	gui.Column(c).Grow(1).MinHeight(0).Gap(configDetailGap).Children(func() {
+		if data.selected.baseURL != "" {
+			gui.Column(c).Shrink(0).Gap(configDetailGap).Children(func() {
+				configBaseURL(c, data.selected.baseURL)
+			})
+		}
+		a.configModelsPanel(c, data)
+		a.configDetailFooter(c, data)
 	})
 }
 
@@ -698,37 +834,37 @@ func configBaseURL(c *gui.Context, url string) {
 
 // configModelsPanel 是模型块（S-configuration-20 … 26）：全选复选框 + 计数、
 // 搜索、列表。列表自己滚，占满剩下的高度。
-func configModelsPanel(c *gui.Context) {
+func (a *App) configModelsPanel(c *gui.Context, data configView) {
 	gui.Column(c).Grow(1).MinHeight(0).Gap(configGapRow).Children(func() {
-		configModelsToolbar(c)
+		a.configModelsToolbar(c, data)
 		gui.Row(c).Shrink(0).Children(func() {
 			configSearchField(c, &configScreen.modelFilter, "搜索模型名称或 ID",
 				"搜索模型名称或 ID")
 		})
-		configModelList(c)
+		a.configModelList(c, data)
 	})
 }
 
 // configModelsToolbar 是「模型 · 可见 / 总数」一行：三态复选框 + 标签
 // （S-configuration-20）。
-func configModelsToolbar(c *gui.Context) {
+func (a *App) configModelsToolbar(c *gui.Context, data configView) {
 	t := c.Theme()
-	visible := configVisibleModelIndexes()
-	label := fmt.Sprintf("模型 · %d / %d", len(visible), len(configScreen.models))
+	visible := configVisibleModelIndexes(data.models)
+	label := fmt.Sprintf("模型 · %d / %d", len(visible), len(data.models))
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(configGapRow).Children(func() {
-		configModelsCheckbox(c)
+		a.configModelsCheckbox(c, data)
 		configMicroStyle.style(t, gui.Text(c, label)).TextColor(t.TextMuted).
 			Label(label).SingleLine()
 	})
 }
 
 // configModelsCheckbox 是全选框：全部启用为勾、部分为横杠、全未启用为空。
-func configModelsCheckbox(c *gui.Context) {
+func (a *App) configModelsCheckbox(c *gui.Context, data configView) {
 	t := c.Theme()
 	state := gui.CheckOff
-	on := configEnabledModelCount()
+	on := configEnabledModelCount(data)
 	switch {
-	case on == len(configScreen.models) && on > 0:
+	case on == len(data.models) && on > 0:
 		state = gui.CheckOn
 	case on > 0:
 		state = gui.CheckMixed
@@ -736,10 +872,11 @@ func configModelsCheckbox(c *gui.Context) {
 	box := gui.CheckboxStateBase(c, &state).Size(configCheckbox, configCheckbox).
 		Shrink(0).Radius(configBadgeRadius).Label("模型")
 	if box.Changed() {
-		// 逐个开关是模型供应领域的事实：这里只改界面状态。
+		// 全选 / 全不选：每个模型各发一次启停（读数里的模型才有标识）。
 		next := state == gui.CheckOn
-		for i := range configScreen.models {
-			configScreen.models[i].on = next
+		for _, model := range data.models {
+			*configScreen.modelToggle(data.selected, model) = next
+			a.configSetModelEnabled(data.selected, model, next)
 		}
 	}
 	box.Children(func() {
@@ -761,11 +898,11 @@ func configModelsCheckbox(c *gui.Context) {
 	})
 }
 
-// configEnabledModelCount 是已启用的模型数（界面状态）。
-func configEnabledModelCount() int {
+// configEnabledModelCount 是已启用的模型数（开关位是界面状态，初值来自读数）。
+func configEnabledModelCount(data configView) int {
 	n := 0
-	for _, model := range configScreen.models {
-		if model.on {
+	for _, model := range data.models {
+		if *configScreen.modelToggle(data.selected, model) {
 			n++
 		}
 	}
@@ -773,9 +910,9 @@ func configEnabledModelCount() int {
 }
 
 // configVisibleModelIndexes 是过滤后的模型下标（名称子串、不区分大小写）。
-func configVisibleModelIndexes() []int {
-	out := make([]int, 0, len(configScreen.models))
-	for i, model := range configScreen.models {
+func configVisibleModelIndexes(models []configModel) []int {
+	out := make([]int, 0, len(models))
+	for i, model := range models {
 		if configMatches(configScreen.modelFilter, model.name) {
 			out = append(out, i)
 		}
@@ -785,7 +922,7 @@ func configVisibleModelIndexes() []int {
 
 // configModelList 是模型列表（S-configuration-23/24）：1px 外框，行间一条细线，
 // 列表自己滚。
-func configModelList(c *gui.Context) {
+func (a *App) configModelList(c *gui.Context, data configView) {
 	t := c.Theme()
 	frame := gui.Column(c).Grow(1).MinHeight(0).Radius(screenRadiusCtl).
 		Background(t.Background).Label("模型列表")
@@ -793,7 +930,7 @@ func configModelList(c *gui.Context) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})
 	frame.Children(func() {
-		indexes := configVisibleModelIndexes()
+		indexes := configVisibleModelIndexes(data.models)
 		if len(indexes) == 0 {
 			// S-configuration-24：没有匹配的模型。
 			gui.Row(c).Grow(1).Center().Padding(configEmptyPad, 0).Children(func() {
@@ -805,7 +942,7 @@ func configModelList(c *gui.Context) {
 		gui.Scroll(c).Grow(1).Label("模型").Children(func() {
 			gui.Column(c).Shrink(0).Children(func() {
 				for k, i := range indexes {
-					configModelRow(c, i)
+					a.configModelRow(c, data, i)
 					if k < len(indexes)-1 {
 						screenRule(c)
 					}
@@ -816,11 +953,11 @@ func configModelList(c *gui.Context) {
 }
 
 // configModelRow 是一行模型：名称 + 能力徽标 + 开关（S-configuration-23）。
-func configModelRow(c *gui.Context, index int) {
+func (a *App) configModelRow(c *gui.Context, data configView, index int) {
 	t := c.Theme()
-	model := &configScreen.models[index]
+	model := data.models[index]
 	ink := t.Text
-	if !*configScreen.providerToggle(configDimName) {
+	if !*configScreen.providerToggle(data.selected) {
 		// 供应商关掉后模型名退到次级前景（参考的 !isSelectedProviderConfigured）。
 		ink = t.TextMuted
 	}
@@ -837,8 +974,12 @@ func configModelRow(c *gui.Context, index int) {
 					configBadge(c, "推理", "能力：推理")
 				}
 			})
-		gui.Switch(c, &model.on).Size(configSwitchW, configSwitchH).
+		toggle := configScreen.modelToggle(data.selected, model)
+		sw := gui.Switch(c, toggle).Size(configSwitchW, configSwitchH).
 			Radius(configSwitchH / 2).Label("启用模型 " + model.name)
+		if sw.Changed() {
+			a.configSetModelEnabled(data.selected, model, *toggle)
+		}
 	})
 }
 
@@ -854,10 +995,11 @@ func configBadge(c *gui.Context, text, label string) {
 }
 
 // configDetailFooter 是详情底部动作（S-configuration-27/28）：刷新、查看套餐。
-func configDetailFooter(c *gui.Context) {
+func (a *App) configDetailFooter(c *gui.Context, data configView) {
 	gui.Row(c).Shrink(0).Justify(gui.End).Gap(configGapRow).Children(func() {
 		if screenAction(c, screenIconRefresh, "refresh", "刷新", rowRegular) {
-			// 拉取模型列表是模型供应领域的事实：控件照渲染，点击不写事实。
+			// 「刷新」= 重新探测这个 provider 的模型清单（provider.probe，只读）。
+			a.configProbeProvider(data.selected)
 		}
 		if screenAction(c, configIconExternal, "external", "查看套餐", rowRegular) {
 			// 外部页面（套餐页）的地址由账户领域给，本屏不拼 URL。
@@ -870,4 +1012,29 @@ func configDetailFooter(c *gui.Context) {
 func configUnbuiltBody(c *gui.Context) {
 	t := c.Theme()
 	configRowStyle.style(t, gui.Text(c, "尚未按参考产品重建")).TextColor(t.TextMuted)
+}
+
+// configSetModelEnabled 把模型开关落到服务端（provider.models.set_enabled）。
+// 样例行（没有标识）与没有 Intents 时只改界面状态。
+func (a *App) configSetModelEnabled(provider configProvider, model configModel, enabled bool) {
+	if a.intents == nil || provider.id == "" || model.id == "" {
+		return
+	}
+	providerID, modelID := provider.id, model.id
+	a.dispatch("启停模型", func(ctx context.Context) error {
+		return a.intents.SetProviderModelEnabled(ctx, providerID, modelID, enabled)
+	}, nil)
+}
+
+// configProbeProvider 重新探测一个 provider 的模型清单（provider.probe，只读，
+// 不写配置）。结果由下一帧的 ProviderRecords / Models 读数带回来。
+func (a *App) configProbeProvider(provider configProvider) {
+	if a.intents == nil || provider.id == "" {
+		return
+	}
+	id := provider.id
+	a.dispatch("探测供应商", func(ctx context.Context) error {
+		_, err := a.intents.ProbeProvider(ctx, id)
+		return err
+	}, nil)
 }

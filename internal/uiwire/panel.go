@@ -57,6 +57,7 @@ type panelCache struct {
 	trees    map[string]*panelTreeEntry
 	searches map[string]*panelSearchEntry
 	changes  map[string]*panelChangeEntry
+	previews map[string]*panelPreviewEntry
 	slots    chan struct{}
 }
 
@@ -81,12 +82,20 @@ type panelChangeEntry struct {
 	fetching bool
 }
 
+// panelPreviewEntry 是一次文件预览读的缓存项。
+type panelPreviewEntry struct {
+	snapshot ui.PreviewSnapshot
+	readAt   time.Time
+	fetching bool
+}
+
 // newPanelCache 建一份空缓存。
 func newPanelCache() panelCache {
 	return panelCache{
 		trees:    make(map[string]*panelTreeEntry),
 		searches: make(map[string]*panelSearchEntry),
 		changes:  make(map[string]*panelChangeEntry),
+		previews: make(map[string]*panelPreviewEntry),
 		slots:    make(chan struct{}, panelReadSlots),
 	}
 }
@@ -119,6 +128,11 @@ func (c *panelCache) prune(now time.Time) {
 	for key, entry := range c.changes {
 		if !entry.fetching && now.Sub(entry.readAt) > panelCacheKeep {
 			delete(c.changes, key)
+		}
+	}
+	for key, entry := range c.previews {
+		if !entry.fetching && now.Sub(entry.readAt) > panelCacheKeep {
+			delete(c.previews, key)
 		}
 	}
 }
@@ -579,6 +593,96 @@ func lastRunNote(result workspace.RunChanges) string {
 		notes = append(notes, result.Note)
 	}
 	return strings.Join(notes, "；")
+}
+
+// ---- 文件预览 ----
+
+// Preview 读一个文件的前缀内容（右栏「打开文件」页）。
+func (w *App) Preview(request ui.PreviewRequest) ui.PreviewSnapshot {
+	request.Path = strings.Trim(strings.TrimSpace(request.Path), "/")
+	if request.Path == "" {
+		return ui.PreviewSnapshot{Cwd: request.Cwd, Phase: ui.PanelReadIdle}
+	}
+	key := previewKey(request)
+
+	c := &w.panel
+	c.mu.Lock()
+	entry, ok := c.previews[key]
+	if !ok {
+		entry = &panelPreviewEntry{snapshot: ui.PreviewSnapshot{
+			Cwd: request.Cwd, Path: request.Path, Phase: ui.PanelReadLoading,
+		}}
+		c.previews[key] = entry
+	}
+	snapshot := entry.snapshot
+	dispatch := panelStale(entry.readAt, entry.fetching, request.Refresh, panelTreeTTL)
+	if dispatch && c.tryAcquire() {
+		entry.fetching = true
+		c.prune(time.Now())
+		go w.refreshPreview(key, request)
+	}
+	c.mu.Unlock()
+	return snapshot
+}
+
+// previewKey 是预览读的缓存键。
+func previewKey(request ui.PreviewRequest) string {
+	return strings.Join([]string{
+		request.Cwd, request.Path, fmt.Sprintf("%d", request.MaxBytes),
+	}, "\x00")
+}
+
+// refreshPreview 在后台读一次文件前缀并写回缓存。
+func (w *App) refreshPreview(key string, request ui.PreviewRequest) {
+	defer w.panel.release()
+	ctx, cancel := context.WithTimeout(context.Background(), panelReadTimeout)
+	defer cancel()
+	snapshot := w.readPreview(ctx, request)
+
+	w.panel.mu.Lock()
+	if entry, ok := w.panel.previews[key]; ok {
+		entry.snapshot = snapshot
+		entry.readAt = snapshot.ReadAt
+		entry.fetching = false
+	}
+	w.panel.mu.Unlock()
+	w.changed()
+}
+
+// readPreview 是真正的一次预览读（D7 的 Preview：编码识别、上限与截断说明）。
+func (w *App) readPreview(ctx context.Context, request ui.PreviewRequest) ui.PreviewSnapshot {
+	snapshot := ui.PreviewSnapshot{
+		Cwd: request.Cwd, Path: request.Path,
+		Phase: ui.PanelReadFailed, ReadAt: time.Now(),
+	}
+	if err := ctx.Err(); err != nil {
+		snapshot.Error = err.Error()
+		return snapshot
+	}
+	ws, rel, err := w.panelWorkspace(request.Cwd)
+	if err != nil {
+		snapshot.Error = err.Error()
+		snapshot.Denied = errors.Is(err, fs.ErrPermission)
+		return snapshot
+	}
+	preview, err := ws.Preview(panelDirArg(rel, request.Path), workspace.PreviewOptions{
+		MaxBytes: request.MaxBytes,
+	})
+	if err != nil {
+		snapshot.Error = err.Error()
+		snapshot.Denied = errors.Is(err, fs.ErrPermission)
+		return snapshot
+	}
+	snapshot.Path = preview.Path
+	snapshot.Kind = string(preview.Kind)
+	snapshot.Encoding = preview.Encoding
+	snapshot.Size = preview.Size
+	snapshot.ReadBytes = preview.ReadBytes
+	snapshot.Content = preview.Content
+	snapshot.Truncated = preview.Truncated
+	snapshot.Note = preview.Note
+	snapshot.Phase = ui.PanelReadReady
+	return snapshot
 }
 
 // ---- 共用 ----

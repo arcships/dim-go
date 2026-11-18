@@ -68,6 +68,33 @@ type round struct {
 	artifacts   []artifact
 	// divider 是轮前的分隔文案（压缩/截断）；空表示没有。
 	divider string
+	// images / attachments / quotes / marks / wakeup 是用户消息里的附件与引用
+	// （TL-21–TL-25）。它们是视图样例字段：RowSnapshot 还没有这些事实，线上
+	// 一律留空（等事实），样例与测试可以直接给出条目。
+	images      []string
+	attachments []messageAttachment
+	quotes      []messageQuote
+	marks       []messageMark
+	wakeup      string
+}
+
+// messageAttachment 是用户消息里的一个附件 chip（TL-22）；missing 表示附件
+// 已不可用（R-TL-212），降对比并写「不可用」。
+type messageAttachment struct {
+	name    string
+	missing bool
+}
+
+// messageQuote 是一条已发送的引用（TL-23）：标题或首行摘要 + 被引用的片段。
+type messageQuote struct {
+	title string
+	text  string
+}
+
+// messageMark 是一条标注（TL-24）：序号 + 标注原文。
+type messageMark struct {
+	num  int
+	text string
 }
 
 // fileChange 是一个改动文件。

@@ -14,9 +14,10 @@ import (
 //	页面标题 17.5/600、分组小标题 12.25/600、名称 13/600、说明与状态 11–12.25、
 //	卡片圆角 8、卡内边距 14、来源图标块 32×32、开关 28×16、行内按钮高 28。
 //
-// 当前可见分支是 App Server 目录（HooksAppServerCatalog）：2 个来源（用户 /
-// 项目），条目 2 组均为空。屏内只保留**可丢的界面状态**（hooksScreen）：来源
-// 与条目的读数、编辑框草稿、加载与失败文本。写事实（hooks.save、
+// 当前可见分支是 App Server 目录（HooksAppServerCatalog）：来源与条目连着
+// Source 时每帧从 Extensions().Hooks 分组读（按 source 前缀分成用户 / 项目 /
+// 插件三组），没有 Source（-demo）时用样例。屏内只保留**可丢的界面状态**
+// （hooksScreen）：编辑框开合、草稿与保存失败文本。写事实（hooks.save、
 // hooks.set_enabled）还没有对应的 Intents 方法，控件照渲染、点击只改本屏状态。
 //
 // # 未实现分支
@@ -24,16 +25,17 @@ import (
 //	S-hooks-27…32  非 App Server 分支（本地 config 页、来自配置/工作区/插件三组、
 //	               本地钩子编辑对话框）：本客户端恒为 App Server 宿主界面，
 //	               该分支不可达（同一判断见清单 §15.2）。
-//	S-hooks-11     插件来源的 Lock 图标：当前没有 plugin: 来源，条件不成立；
-//	               形状已备（hkIconLock），接线后按 source 前缀显示。
+//	S-hooks-12…15  来源卡的状态（正常 / 缺失）、启用徽标、项目总开关与页尾修订号
+//	               要有 hooks.catalog 的来源快照（路径 / state / revision）；扩展
+//	               读数只给条目，这几行在连着 Source 时不画（不拿条目猜来源状态）。
+//	S-hooks-11     插件来源的 Lock 图标：来源里有 plugin 前缀的条目时出现
+//	               （形状见 hkIconLock）。
 //
 // # 与参考的差异
 //
 //	标题字号取设计基线的 17.5（清单 R-HOK-002 写的 20 是 16px 根字号的换算值；
 //	design-baseline §2 的页面标题是 17.5/600，与「账户」「归档会话」同档）。
 //	「了解更多」没有外链地址（没有文档 URL 的事实来源），按钮照渲染、点击不动作。
-//	项目来源的路径用 ~ 占位（参考截图里是采集机器的绝对路径，不写进仓库）。
-//	条目行（S-hooks-20）按参考结构实现，当前两组皆空，故只走空态。
 
 // hooksEntry 是一条钩子：事件、状态、异步标记、命令与三个可选修饰。
 type hooksEntry struct {
@@ -65,33 +67,73 @@ type hooksSource struct {
 
 // hooksState 是本屏可丢的界面状态：不是事实。
 type hooksState struct {
-	loading   bool
-	loadError string
-	// writeFailure 是启用开关失败的原因；saveFailure 是文档保存失败的原因。
-	writeFailure string
-	saveFailure  string
-	// disableAll 表示用户文档关闭了所有钩子。
-	disableAll bool
-	sources    []hooksSource
-
-	editorOpen bool
-	draft      string
+	// saveFailure 是文档保存失败的原因；编辑框草稿与开合也只是视图状态。
+	saveFailure string
+	editorOpen  bool
+	draft       string
 }
 
-// hooksScreen 的首屏取值与参考产品运行时一致：用户来源正常且启用、项目来源
-// 缺失且禁用、两组条目均为空、修订号各 1。
-var hooksScreen = hooksState{
-	sources: []hooksSource{
-		{
-			title: "用户", user: true, revision: "native:user/hooks:1",
-			enabled: true, readonly: true,
-		},
-		{
-			title: "项目", path: "~/.dimcode/hooks.json",
-			revision: "native:user/hooks-projects:1",
-			enabled:  false, readonly: true, missing: true,
-		},
+// hooksScreen 只装视图状态：来源与条目每帧从 Source 读（-demo 时读样例）。
+var hooksScreen = hooksState{}
+
+// hkSampleSources 是 -demo 的样例：用户来源正常且启用、项目来源缺失且禁用、
+// 两组条目均为空。它只在没有 Source 时上屏。
+var hkSampleSources = []hooksSource{
+	{
+		title: "用户", user: true, revision: "native:user/hooks:1",
+		enabled: true, readonly: true,
 	},
+	{
+		title: "项目", path: "~/.dimcode/hooks.json",
+		revision: "native:user/hooks-projects:1",
+		enabled:  false, readonly: true, missing: true,
+	},
+}
+
+// hooksData 取这一帧的来源与条目：连着 Source 时从 Extensions().Hooks 按
+// source 前缀分组，否则用样例。第二个返回值是读数本身的读态。
+func (a *App) hooksData() ([]hooksSource, ExtListSnapshot) {
+	if a.source == nil {
+		return hkSampleSources, ExtListSnapshot{}
+	}
+	list := a.source.Extensions().Hooks
+	sources := make([]hooksSource, 0, 3)
+	index := map[string]int{}
+	for _, item := range list.Items {
+		source := hkSourceOf(item)
+		i, ok := index[source.title]
+		if !ok {
+			index[source.title] = len(sources)
+			sources = append(sources, source)
+			i = len(sources) - 1
+		}
+		sources[i].entries = append(sources[i].entries, hooksEntry{
+			event:   item.Event,
+			enabled: item.Enabled,
+			async:   item.Async,
+			command: item.Command,
+			matcher: item.Matcher,
+		})
+	}
+	return sources, list
+}
+
+// hkSourceOf 把一条钩子的来源前缀映射成来源卡：用户 / 项目 / 插件（其余来源
+// 用一个只读卡装，名称取原始前缀）。
+func hkSourceOf(item ExtItemSnapshot) hooksSource {
+	switch item.Source {
+	case "user":
+		return hooksSource{title: "用户", user: true, enabled: true, readonly: true}
+	case "project":
+		return hooksSource{title: "项目", enabled: true, readonly: true}
+	case "plugin":
+		return hooksSource{title: "插件", enabled: true, readonly: true, plugin: true}
+	}
+	title := item.Source
+	if title == "" {
+		title = "其他"
+	}
+	return hooksSource{title: title, enabled: true, readonly: true}
 }
 
 // 本屏几何：参考的 Tailwind 量换算成 design-baseline §1.1 的档位。
@@ -153,6 +195,7 @@ const (
 	hkCopyMore       = "了解更多"
 	hkCopyRefresh    = "刷新"
 	hkCopyLoadError  = "加载设置失败"
+	hkCopyNoCatalog  = "服务端没有声明钩子目录能力，这一屏只有本端能确认的部分。"
 	hkCopyLoading    = "正在加载..."
 	hkCopyAllOff     = "用户文档已关闭所有钩子。"
 	hkCopyWarning    = "钩子会在这些生命周期事件上运行 shell 命令。"
@@ -179,40 +222,39 @@ const (
 )
 
 // renderHooks 是设置 › Hooks 这一屏（设置壳的一个分节）。
-func renderHooks(c *gui.Context) {
+func renderHooks(c *gui.Context, a *App) {
 	t := c.Theme()
+	sources, list := a.hooksData()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(hkSectionGap).Children(func() {
 				hkHeader(c, t)
-				if hooksScreen.loadError != "" {
-					hkAlertLine(c, t, hooksScreen.loadError)
-				} else if hooksScreen.loading {
-					hkNoteLine(c, t, hkCopyLoading)
+				if list.ReadError != "" {
+					hkAlertLine(c, t, hkCopyLoadError+"："+list.ReadError)
 				}
-				if hooksScreen.disableAll {
-					hkBanner(c, t, hkCopyAllOff, false)
+				if list.CapabilityMissing {
+					hkNoteLine(c, t, hkCopyNoCatalog)
 				}
 				hkBanner(c, t, hkCopyWarning, true)
 				gui.Column(c).Shrink(0).Gap(hkLabelGap).Children(func() {
 					screenGroupTitle(c, hkCopySources)
-					for i := range hooksScreen.sources {
-						hkSourceCard(c, t, &hooksScreen.sources[i])
+					for i := range sources {
+						a.hkSourceCard(c, t, &sources[i])
 					}
 				})
-				if hooksScreen.writeFailure != "" {
-					hkAlertLine(c, t, hooksScreen.writeFailure)
-				}
 				gui.Column(c).Shrink(0).Gap(hkLabelGap).Children(func() {
 					screenGroupTitle(c, hkCopyEntries)
-					for i := range hooksScreen.sources {
-						hkEntryGroup(c, t, &hooksScreen.sources[i])
+					for i := range sources {
+						hkEntryGroup(c, t, &sources[i])
 					}
 				})
 				if hooksScreen.saveFailure != "" {
 					hkAlertLine(c, t, hooksScreen.saveFailure)
 				}
-				hkRevisions(c, t)
+				// 修订号要有 hooks.catalog 的来源快照：只在样例里画。
+				if a.source == nil {
+					hkRevisions(c, t, sources)
+				}
 			})
 		})
 	})
@@ -264,7 +306,11 @@ func hkBanner(c *gui.Context, t *gui.Theme, text string, warn bool) {
 
 // hkSourceCard 是一个来源（S-hooks-09/10/12/14/15）：图标块、名称、状态、
 // 徽标、可选路径与消息，右端是「编辑」或项目开关。
-func hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
+//
+// 连着 Source 时来源状态（正常 / 缺失）、来源级启用徽标与项目总开关都没有
+// 事实（扩展读数只给条目），这几种行不画；插件来源的只读徽标是事实，照画。
+func (a *App) hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
+	wired := a.source != nil
 	card := accCardFrame(c, gui.Row(c).Shrink(0).AlignItems(gui.Start).
 		Gap(hkRowGap).Padding(hkPadV, hkPadH))
 	card.Label(s.title)
@@ -273,8 +319,10 @@ func hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(hkTightGap).Children(func() {
 			gui.Row(c).AlignItems(gui.Center).Gap(hkChipGap).Children(func() {
 				hkNameStyle.style(t, gui.Text(c, s.title)).TextColor(t.Text).SingleLine()
-				hkStatusStyle.style(t, gui.Text(c, hkSourceState(s))).TextColor(t.TextMuted)
-				hkBadge(c, t, hkEnabledLabel(s.enabled), s.enabled)
+				if !wired {
+					hkStatusStyle.style(t, gui.Text(c, hkSourceState(s))).TextColor(t.TextMuted)
+					hkBadge(c, t, hkEnabledLabel(s.enabled), s.enabled)
+				}
 				if s.plugin {
 					hkBadge(c, t, hkCopyReadonly, false)
 				}
@@ -289,13 +337,15 @@ func hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
 		})
 		if s.user {
 			if screenAction(c, iconPencil, "pencil", hkCopyEdit, hkBtnH) {
-				hooksScreen.draft = hkUserDoc(hooksScreen.sources[0].entries)
+				hooksScreen.draft = hkUserDoc(s.entries)
 				hooksScreen.saveFailure = ""
 				hooksScreen.editorOpen = true
 			}
 			return
 		}
-		hkProjectToggle(c, t, s)
+		if !wired {
+			hkProjectToggle(c, t, s)
+		}
 	})
 }
 
@@ -419,10 +469,10 @@ func hkEntryMetaLine(e *hooksEntry) string {
 }
 
 // hkRevisions 是页尾的两行修订号（S-hooks-22）：等宽、次级。
-func hkRevisions(c *gui.Context, t *gui.Theme) {
+func hkRevisions(c *gui.Context, t *gui.Theme, sources []hooksSource) {
 	user, project := "", ""
-	if len(hooksScreen.sources) > 1 {
-		user, project = hooksScreen.sources[0].revision, hooksScreen.sources[1].revision
+	if len(sources) > 1 {
+		user, project = sources[0].revision, sources[1].revision
 	}
 	gui.Column(c).Shrink(0).Gap(hkTightGap).Children(func() {
 		hkRevisionSty.style(t, gui.Text(c, hkCopyRevUser+user)).

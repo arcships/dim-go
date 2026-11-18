@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"slices"
 	"testing"
 	"time"
 
@@ -171,5 +172,107 @@ func TestRowDurationText(t *testing.T) {
 		if got := rowDurationText(tc.in); got != tc.want {
 			t.Fatalf("rowDurationText(%v) = %q，想要 %q", tc.in, got, tc.want)
 		}
+	}
+}
+
+// 事实时间线里的用户消息也走同一套悬停动作与右键菜单（TL-37–TL-43）：
+// 消息来自 RowSnapshot，动作不另画一份。
+func TestLiveUserMessageActionsAndMenu(t *testing.T) {
+	app := NewApp(Options{State: StateDefault})
+	app.source = &fakeSource{
+		conn: Connection{Phase: "connected"}, names: []string{"接入真实事实"},
+		session: liveFactSession(), hasSess: true,
+	}
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	bubble, ok := tt.Find("我的消息")
+	if !ok {
+		t.Fatalf("用户行没有画成气泡：%v", tt.Texts())
+	}
+	tt.Move(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Frame()
+	if _, ok := tt.Find("复制整个消息 1"); !ok {
+		t.Fatalf("悬停后没有消息动作：%v", tt.Texts())
+	}
+	if info, ok := tt.Access("从此处分叉 1（" + messageForkUnavailable + "）"); !ok || !info.Disabled {
+		t.Fatalf("分叉没有置灰：%+v（找到 %v）", info, ok)
+	}
+	if err := tt.Click("复制整个消息 1"); err != nil {
+		t.Fatalf("点不到复制：%v", err)
+	}
+	if tt.Clipboard() != "看看这次的失败" {
+		t.Fatalf("复制的是 %q", tt.Clipboard())
+	}
+
+	tt.RightClickAt(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Frame()
+	if !slices.Contains(tt.Menu(), "复制整个消息") {
+		t.Fatalf("事实消息没有右键菜单：%v", tt.Menu())
+	}
+	if err := tt.ChooseMenuItem("复制整个消息"); err != nil {
+		t.Fatalf("点不到菜单复制：%v", err)
+	}
+	if tt.Clipboard() != "看看这次的失败" {
+		t.Fatalf("菜单复制的是 %q", tt.Clipboard())
+	}
+}
+
+// 助手正文右键菜单（TL-65）：复制整个消息。
+func TestLiveAssistantContextMenu(t *testing.T) {
+	app := NewApp(Options{State: StateDefault})
+	app.source = &fakeSource{
+		conn: Connection{Phase: "connected"}, names: []string{"接入真实事实"},
+		session: liveFactSession(), hasSess: true,
+	}
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	body, ok := tt.Find("助手正文")
+	if !ok {
+		t.Fatalf("没有助手正文：%v", tt.Texts())
+	}
+	tt.RightClickAt(body.X+body.W/2, body.Y+body.H/2)
+	tt.Frame()
+	menu := tt.Menu()
+	if !slices.Contains(menu, "复制整个消息") {
+		t.Fatalf("助手正文没有右键菜单：%v", menu)
+	}
+	if err := tt.ChooseMenuItem("复制整个消息"); err != nil {
+		t.Fatalf("点不到复制整个消息：%v", err)
+	}
+	if tt.Clipboard() != "我把工具行接上了。" {
+		t.Fatalf("复制整个消息得到 %q", tt.Clipboard())
+	}
+}
+
+// 工具详情三段在事实时间线上同样成立：失败原因没有单独进快照时给出占位，
+// 不把输出冒充原因。
+func TestLiveToolDetailShowsFailureSection(t *testing.T) {
+	app := NewApp(Options{State: StateDefault})
+	session := liveFactSession()
+	app.source = &fakeSource{
+		conn: Connection{Phase: "connected"}, names: []string{"接入真实事实"},
+		session: session, hasSess: true,
+	}
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	group := session.Rows[3]
+	header := "轮次组头 " + groupSummary(toolGroupRound(group)) + "，状态：" +
+		statusWord(liveRoundStatus(group.Status)) + "，" + roundHeaderPhrase(toolGroupRound(group))
+	if err := tt.Click(header); err != nil {
+		t.Fatalf("点不到工具组头：%v", err)
+	}
+	tt.Advance(300 * time.Millisecond)
+	if err := tt.Click("改动 composer.go"); err != nil {
+		t.Fatalf("点不到失败的工具行：%v", err)
+	}
+	tt.Advance(300 * time.Millisecond)
+	if _, ok := tt.Find("工具详情：输出"); !ok {
+		t.Fatalf("没有输出段：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("工具详情：失败原因"); !ok {
+		t.Fatalf("没有失败原因段：%v", tt.Texts())
+	}
+	if !tt.HasText("失败原因还没有单独进快照（等事实）") {
+		t.Fatalf("失败原因段没有写明等事实：%v", tt.Texts())
+	}
+	if !tt.HasText("权限不足，命令没有执行") {
+		t.Fatalf("输出原文没有上屏：%v", tt.Texts())
 	}
 }

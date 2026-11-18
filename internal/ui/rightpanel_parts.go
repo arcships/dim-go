@@ -147,6 +147,10 @@ type rightPanelState struct {
 
 	// reload 是「重新加载」的计数（样例里只用于让行重建）。
 	reload int
+
+	// previewPath 是文件预览页正在看的文件（相对会话工作目录，'/' 分隔）；
+	// 空表示还没有选文件。预览内容每帧从 PanelFacts 读，这里只留路径。
+	previewPath string
 }
 
 // rp 取右栏状态并在第一次用到时补默认值。

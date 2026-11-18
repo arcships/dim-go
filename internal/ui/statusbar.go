@@ -47,29 +47,25 @@ func (a *App) statusPermission(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.permissionOpen)
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
-		Gap(space1).AlignItems(gui.Center).Label("权限：" + a.permission).
+		Gap(space1).AlignItems(gui.Center).Label("权限：" + a.permissionLabel()).
 		Tooltip("选择权限").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)
 	}
 	tr.Children(func() {
 		iconBox(c, iconShield, t.TextMuted, "permission")
-		typeMicro.style(t, gui.Text(c, a.permission)).TextColor(t.TextMuted).FontWeight(500)
+		typeMicro.style(t, gui.Text(c, a.permissionLabel())).TextColor(t.TextMuted).FontWeight(500)
 	})
 	m.Popup(func(panel gui.Element) {
 		panel.Width(composerPermissionMenuWidth).Padding(space1).Radius(radiusCard).
 			Background(t.Surface).
 			Shadow(0, 4, 16, 0, colorShadow.in(t))
-		for _, level := range []string{"默认权限", "智能权限", "完全访问权限"} {
+		for _, level := range permissionLevels {
 			level := level
-			if menuItem(c, m, iconShield, level, "权限："+level, "", false, level == a.permission) {
-				if level == "完全访问权限" && level != a.permission {
-					// 完全放开是高后果：先确认，不在菜单里一步生效。
-					a.permissionArmOpen = true
-					a.permissionArmAck = false
-					continue
-				}
-				a.permission = level
+			if menuItem(c, m, iconShield, level.label, "权限："+level.label, "", false,
+				level.label == a.permissionLabel()) {
+				// 完全放开是高后果：先确认，不在菜单里一步生效（见 choosePermission）。
+				a.choosePermission(level.label)
 			}
 		}
 	})
@@ -102,7 +98,7 @@ func (a *App) fullAccessConfirm(c *gui.Context) {
 				}
 				if gui.PrimaryButton(c, "确认开启").Label("确认开启").
 					Disabled(!a.permissionArmAck).Clicked() && a.permissionArmAck {
-					a.permission = "完全访问权限"
+					a.applyPermission("完全访问权限")
 					a.permissionArmOpen = false
 					open = false
 				}

@@ -170,6 +170,8 @@ func (w *App) loadFacts(ctx context.Context) {
 		_, _ = settings.RefreshStorage(ctx)
 		_, _ = settings.RefreshRuntimes(ctx)
 		_, _ = settings.RefreshModality(ctx)
+		// 已授权项目根：左栏工作区与「新建会话」的 cwd 来源。
+		_, _ = settings.RefreshProjects(ctx)
 	}
 	if extensions := w.A.Extensions(); extensions != nil {
 		_, _ = extensions.ListPlugins(ctx)
@@ -349,6 +351,23 @@ func (w *App) SessionNames() []string {
 	out := make([]string, 0, len(entries))
 	for _, e := range entries {
 		out = append(out, e.ID)
+	}
+	return out
+}
+
+// Workspaces 是服务端授权的工作区（项目根），读设置领域最近确认的清单。
+func (w *App) Workspaces() []ui.WorkspaceSnapshot {
+	settings := w.A.Settings()
+	if settings == nil {
+		return nil
+	}
+	projects, ok := settings.Projects()
+	if !ok {
+		return nil
+	}
+	out := make([]ui.WorkspaceSnapshot, 0, len(projects))
+	for _, project := range projects {
+		out = append(out, ui.WorkspaceSnapshot{Root: project.Root, Path: project.CWD})
 	}
 	return out
 }
@@ -589,9 +608,10 @@ func (w *App) Extensions() ui.ExtensionsSnapshot {
 	out.Skills = ui.ExtListSnapshot{ReadError: skills.ReadError, CapabilityMissing: skills.CapabilityMissing}
 	for _, item := range skills.Items {
 		out.Skills.Items = append(out.Skills.Items, ui.ExtItemSnapshot{
-			ID:      item.ID,
-			Name:    firstNonEmpty(item.Name, item.ID),
-			Enabled: item.Enabled,
+			ID:          item.ID,
+			Name:        firstNonEmpty(item.Name, item.ID),
+			Description: item.Description,
+			Enabled:     item.Enabled,
 		})
 	}
 	hooks := service.HookSnapshot()
@@ -604,16 +624,25 @@ func (w *App) Extensions() ui.ExtensionsSnapshot {
 			Event:   item.Event,
 			Command: item.Command,
 			Source:  string(item.Source),
+			Matcher: item.Matcher,
+			Type:    item.Type,
+			Timeout: item.Timeout,
+			Async:   item.Async,
 		})
 	}
 	servers := service.ToolServerSnapshot()
 	out.MCP = ui.ExtListSnapshot{ReadError: servers.ReadError, CapabilityMissing: servers.CapabilityMissing}
 	for _, item := range servers.Items {
 		out.MCP.Items = append(out.MCP.Items, ui.ExtItemSnapshot{
-			ID:      item.ID,
-			Name:    firstNonEmpty(item.Name, item.ID),
-			Enabled: item.Enabled,
-			Status:  item.AuthStatus,
+			ID:        item.ID,
+			Name:      firstNonEmpty(item.Name, item.ID),
+			Enabled:   item.Enabled,
+			Status:    item.AuthStatus,
+			Command:   item.Command,
+			Source:    string(item.Source),
+			Transport: string(item.Transport),
+			Tools:     item.ToolCount,
+			Connected: item.Connected,
 		})
 	}
 	w.importMu.Lock()

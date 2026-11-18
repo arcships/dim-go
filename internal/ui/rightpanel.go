@@ -114,8 +114,10 @@ func (a *App) rightPanelBody(c *gui.Context) {
 		a.sideChatPanel(c)
 	case tabSubagent:
 		a.subagentPanel(c)
+	case tabFilePreview:
+		a.rpPreviewPage(c)
 	default:
-		// 参考产品里浏览器 / 文件预览 / 工作流 / 唤醒 / 扩展 / MCP App 由各自的
+		// 参考产品里浏览器 / 工作流 / 唤醒 / 扩展 / MCP App 由各自的
 		// 功能承载；本产品还没有对应能力，页内容留空。
 		gui.Box(c).Grow(1)
 	}
