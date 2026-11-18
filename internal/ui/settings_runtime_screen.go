@@ -149,11 +149,13 @@ const (
 
 // 本屏文案：逐字取参考产品的 zh-CN（i18n:runtimeSettings.*、
 // i18n:featureRuntimes.*）。
+//
+// 能力缺失的提示保留英文原文，前面加中文说明（「服务端未提供该能力：」），
+// 让人先看懂是什么，再能对上服务端的原话。
 const (
 	rtCopyTitle            = "运行环境"
 	rtCopyDesc             = "由 App Server RuntimeManager 管理；Desktop 不下载、不保留第二份运行时。"
 	rtCopyRefresh          = "刷新"
-	// 能力缺失的提示：中文说明在前，英文原文原样保留。
 	rtCopyError            = "服务端未提供该能力：The App Server does not advertise runtime.list; update the bundled runtime."
 	rtCopyRetry            = "重试"
 	rtCopyFeatures         = "功能组件"

@@ -3,7 +3,7 @@
 Status: draft（首版并排比对；2026-11-18 按清单修内容差异）
 Input: `docs/domains/requirements/runtime/settings/*-top.png` / `*-bottom.png`（19 节）、`runtime/main/*.png`、`runtime/panels/*.png`，以及同名 `runtime/**/*.json`（参考产品运行时节点：文案 + 包围盒）
 Owner: 比对（只出清单，不改代码）；修复与截图由界面实现更新
-Last updated: 2026-11-18（修 10 条、保留 1 条、1 条已消解，见 §6）
+Last updated: 2026-11-18（修 12 条、保留 1 条、1 条已消解，见 §6）
 
 ## 0. 方法与口径
 
@@ -104,6 +104,8 @@ Last updated: 2026-11-18（修 10 条、保留 1 条、1 条已消解，见 §6�
 | M1 / M2 | `shots/main-empty.png` | `TestFirstRunGuideHiddenWhenNotNeeded`、`TestEmptyStateFirstRunGuide`；左栏头像 `ER` |
 | M3 / M4 | `shots/main-running.png` | `TestRunningSummaryLine`、「已经工作了 1m 28s · 改动文件」分隔行、摘要行无状态位（`TestRoundHeaderHasNoStatusMark`） |
 | P1 | `shots/panel-files-root.png`、`shots/panel-file-preview.png` | `TestRightPanelBackButton`（根禁用、预览可返回） |
+| P2 | `docs/domains/screens/panel-files.png`、`docs/domains/screens/panel-review.png` | `TestRightPanelTabBar`（文件页顶栏没有「展开面板」、Review 页有）、`TestRightPanelExpandAndResize`（在 Review 页展开/恢复） |
+| S1 | `docs/domains/screens/variant-settings.png` | `TestSettingsCopyMatchesReference`（「到期 2026年12月13日␣␣· 还剩 26 天」逐字） |
 | P3 | `shots/panel-review.png` | `TestRightPanelChangesScopes`（无会话时这一行只有刷新） |
 
 **M3 的事实边界**：连 App Server 时只有逐行的 `RowSnapshot.Duration`，`SessionSnapshot`
