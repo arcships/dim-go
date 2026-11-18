@@ -212,9 +212,9 @@ func TestUILintSeeds(t *testing.T) {
 
 	// 基线不等的种子：合成三档左缘，检查必须报。
 	bad := map[string][3]float32{
-		"标题行":  {272, 272, 272},
-		"时间线":  {272, 272, 272},
-		"输入卡":  {272, 275, 272},
+		"标题行": {272, 272, 272},
+		"时间线": {272, 272, 272},
+		"输入卡": {272, 275, 272},
 	}
 	if got := lintBaselinesAt("seed", bad); len(got) == 0 || got[0].check != "L8" {
 		t.Fatalf("基线种子没有被 L8 报出：%v", got)
@@ -394,6 +394,10 @@ func lintDividerAllowlist(files []string) []lintFinding {
 		"icons.go":      1, // 审批的次按钮（一直允许 / 拒绝）：落在卡面上，需要一条轮廓
 		"sidebar.go":    1, // 框架 Divider：入口区与会话列表两个模块
 		"rightpanel.go": 1, // 框架 Divider：标签栏与内容
+		// 设置 › 账户（重建屏）：卡框、行内字段框、outline 按钮各一条 1px 轮廓，
+		// 三处都在各自的构造器里只出现一次（accCardFrame / accFieldFrame / accButton），
+		// 参考产品的同一屏也是卡框 + 字段框 + 描边按钮三档边界。
+		"settings_account_screen.go": 3,
 	}
 	var out []lintFinding
 	for _, f := range files {
@@ -552,12 +556,6 @@ func lintHighConsequence(t *testing.T, actions *actionDoc) []lintFinding {
 				it.Action + " 的 when 不认识：" + it.When})
 			continue
 		}
-		if it.When == "settings-ext" {
-			// 扩展的四个页签共用 when，页签序号在清单的 tab 里。
-			a := NewApp(Options{State: StateDefault})
-			a.screen, a.settingsSection, a.extTab = ScreenSettings, 3, it.Tab
-			tt = gui.NewTester(a.View, WindowWidth, WindowHeight)
-		}
 		if it.InMenu {
 			// 原生菜单项没有盒子：只判它在不在菜单里。
 			found := false
@@ -675,26 +673,6 @@ type confirmEffect func(t *testing.T, it actionEntry) []lintFinding
 
 // confirmEffects 是能自动驱动的六条（其余靠上面的存在性判据）。
 var confirmEffects = map[string]confirmEffect{
-	"AC-09": func(t *testing.T, it actionEntry) []lintFinding {
-		app := NewApp(Options{State: StateDefault})
-		app.screen, app.settingsSection = ScreenSettings, secProviders
-		app.tierDraft, app.tierPending = "每次询问", "每次询问"
-		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-		_ = tt
-		if app.tier == "每次询问" {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 在确认之前就生效了"}}
-		}
-		if err := tt.Click(it.ConfirmProbe); err != nil {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 的确认入口点不到：" + err.Error()}}
-		}
-		if app.tier != "每次询问" {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 确认之后没有生效"}}
-		}
-		return nil
-	},
 	"AC-24": func(t *testing.T, it actionEntry) []lintFinding {
 		app := NewApp(Options{State: StateDefault})
 		app.deleting = 0
@@ -708,60 +686,6 @@ var confirmEffects = map[string]confirmEffect{
 				it.Action + " 的确认入口点不到：" + err.Error()}}
 		}
 		if !app.archived[0] {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 确认之后没有生效"}}
-		}
-		return nil
-	},
-	"AC-26": func(t *testing.T, it actionEntry) []lintFinding {
-		app := NewApp(Options{State: StateDefault})
-		app.screen, app.settingsSection, app.cronDeleting = ScreenSettings, secCron, 0
-		n := len(app.cron)
-		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-		if len(app.cron) != n {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 在确认之前就生效了"}}
-		}
-		if err := tt.Click(it.ConfirmProbe); err != nil {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 的确认入口点不到：" + err.Error()}}
-		}
-		if len(app.cron) != n-1 {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 确认之后没有生效"}}
-		}
-		return nil
-	},
-	"AC-32": func(t *testing.T, it actionEntry) []lintFinding {
-		app := NewApp(Options{State: StateDefault})
-		app.screen, app.settingsSection, app.extTab, app.extDetail = ScreenSettings, secExtensions, 1, 0
-		app.extUninstallConfirm = true
-		n := len(app.plugins)
-		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-		if err := tt.Click(it.ConfirmProbe); err != nil {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 的确认入口点不到：" + err.Error()}}
-		}
-		if len(app.plugins) != n-1 {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 确认之后没有生效"}}
-		}
-		return nil
-	},
-	"AC-13": func(t *testing.T, it actionEntry) []lintFinding {
-		app := NewApp(Options{State: StateDefault})
-		app.screen, app.settingsSection, app.clearRulesConfirm = ScreenSettings, secRules, true
-		n := len(app.rules)
-		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-		if len(app.rules) != n {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 在确认之前就生效了"}}
-		}
-		if err := tt.Click(it.ConfirmProbe); err != nil {
-			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
-				it.Action + " 的确认入口点不到：" + err.Error()}}
-		}
-		if len(app.rules) != 0 {
 			return []lintFinding{{"L5", "UI-23、D5（" + it.ID + "）", "render",
 				it.Action + " 确认之后没有生效"}}
 		}
@@ -1378,14 +1302,6 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 	case "waiting-confirm":
 		app = NewApp(Options{State: StateWaiting})
 		app.confirmAlways = true
-	case "providers-confirm":
-		app.screen, app.settingsSection = ScreenSettings, secProviders
-		app.tierDraft, app.tierPending = "每次询问", "每次询问"
-	case "rules-confirm":
-		app.screen, app.settingsSection, app.clearRulesConfirm = ScreenSettings, secRules, true
-	case "ext-detail-confirm":
-		app.screen, app.settingsSection, app.extTab, app.extDetail = ScreenSettings, secExtensions, 1, 0
-		app.extUninstallConfirm = true
 	case "failed":
 		app = NewApp(Options{State: StateFailed})
 	case "empty":
@@ -1396,48 +1312,6 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app.screen, app.settingsSection = ScreenSettings, secAccount
 	case "shell":
 		app.draft = "!go test ./..."
-	case "settings-storage":
-		app.screen, app.settingsSection = ScreenSettings, secStorage
-	case "settings-appearance":
-		app.screen, app.settingsSection = ScreenSettings, secAppearance
-	case "settings-providers":
-		app.screen, app.settingsSection = ScreenSettings, secProviders
-	case "settings-rules":
-		app.screen, app.settingsSection = ScreenSettings, secRules
-	case "ext-detail":
-		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 1
-		app.extDetail = 0
-	case "ext-select":
-		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 1
-		app.selectMode = true
-		app.extSelected = map[string]bool{"GitHub": true, "Linear": true}
-	case "mcp":
-		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 2
-	case "mcp-ok":
-		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 2
-		app.mcpTest["postgres"] = mcpOK
-	case "mcp-test":
-		app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 2
-		app.mcpTest["postgres"] = mcpFail
-	case "settings-ext", "settings-ext-empty", "settings-ext-failed":
-		app.screen, app.settingsSection = ScreenSettings, secExtensions
-		switch when {
-		case "settings-ext":
-			app.extTab, app.extState = 1, extLoaded
-		case "settings-ext-empty":
-			app.extState = extEmpty
-		default:
-			app.extState = extFailed
-		}
-	case "settings-cron":
-		app.screen, app.settingsSection = ScreenSettings, secCron
-	case "settings-cron-delete":
-		app.screen, app.settingsSection, app.cronDeleting = ScreenSettings, secCron, 0
-	case "settings-runtime":
-		app.screen, app.settingsSection = ScreenSettings, secRuntime
-	case "settings-runtime-submit":
-		app.screen, app.settingsSection = ScreenSettings, secRuntime
-		app.modalTask, app.modalSubmitted = "重跑全部语言测试", "重跑全部语言测试"
 	case "session-menu":
 		*app.menuOpenPtr(0) = true
 	case "rename":

@@ -1,0 +1,1034 @@
+package ui
+
+import (
+	"fmt"
+	"strconv"
+
+	gui "github.com/egoist/mygo/ui"
+)
+
+// 本文件是「设置 › 外观」的重建屏：元素按
+// docs/domains/requirements/inventory-settings-rt.md §4（S-appearance-01 … 94，
+// 94 个元素）逐行对应，文案逐字取参考产品中文，数值取
+// docs/domains/requirements/design-baseline.md：
+//
+//	主题卡 240×69、皮肤卡 240×98、三列卡间距 10、卡片圆角 8、控件高 32、
+//	开关 28×16、说明字 10.5、键帽 11、页面标题 17.5、行距 60（快捷键）。
+//
+// 本文件同时放三屏共用的构件（screenTitle / screenCard / screenRule /
+// screenHint / screenInput / screenIcon …），settings_general_screen.go 与
+// settings_keybindings_screen.go 直接引用。
+//
+// 只保留可丢的界面状态（appearanceScreen）：选中的主题 / 语言 / 字体 / 字号 /
+// 代码主题 / 皮肤，皮肤的图片与高级折叠，删除对话框。写事实（主题、字体、皮肤）
+// 需要设置领域与宿主能力，本屏只改这些界面状态，接线时换成 Intents。
+//
+// 两处没有资产，用等尺寸示意：主题卡的预览是 Sun / Moon / Desktop 图标，
+// 皮肤卡的缩略图是按皮肤配色画的窗口示意（不是原始素材）。
+
+const (
+	// 间距半档：参考产品在本屏用到 2 / 6 / 10 / 14 / 20，比七档标尺更密
+	// （design-baseline §1.1 的 3.5 倍档在 2× 截图上落成这些整数）。
+	screenSpace05 = 2
+	screenSpace1  = 4
+	screenSpace15 = 6
+	screenSpace2  = 8
+	screenSpace25 = 10
+	screenSpace3  = 12
+	screenSpace35 = 14
+	screenSpace4  = 16
+	screenSpace5  = 20
+	screenSpace6  = 24
+
+	// 几何：design-baseline §3、§4、§7。
+	screenStroke     = 1
+	screenRadiusCard = 8
+	screenRadiusCtl  = 6
+	screenCardGap    = 10
+	screenControlH   = 32
+	screenInputPadV  = 8
+	screenSwitchW    = 28
+	screenSwitchH    = 16
+	screenIconBlock  = 20
+	screenIconInline = 16
+	screenIconMicro  = 14
+	screenDotSize    = 16
+	screenDotInset   = 3
+	screenHit        = hitMin
+	screenDialogW    = 448
+	screenDialogMinW = 160
+	screenRuleH      = 1
+
+	// 本屏尺寸（参考产品的 Tailwind 确定值，见 design-baseline §1.3、§3）。
+	screenThemeCardW  = 240
+	screenThemeCardH  = 69
+	screenSkinCardW   = 240
+	screenSkinCardH   = 98
+	screenSkinThumbH  = 58
+	screenSkinTitleH  = 16
+	screenLangW       = 168
+	screenFontSelW    = 224
+	screenSegHSm      = 25
+	screenSegHLg      = 41
+	screenKeyRowH     = 60
+	screenKeyMinW     = 45
+	screenSearchW     = 392
+	screenCodeLineH   = 18
+	screenCodeNumW    = 18
+	screenPanelRadius = 12
+)
+
+// 字阶（design-baseline §2）：页面标题 17.5、标签 14/500、说明 10.5、
+// 分组标题与刻度 12.25/10.5。
+var (
+	screenTitleStyle  = fontStep{size: 17.5, line: 24.5, weight: 600}
+	screenLabelStyle  = fontStep{size: 14, line: 21, weight: 500}
+	screenValueStyle  = fontStep{size: 14, line: 21, weight: 400}
+	screenStrongStyle = fontStep{size: 14, line: 21, weight: 600}
+	screenHintStyle   = fontStep{size: 10.5, line: 14, weight: 400}
+	screenGroupStyle  = fontStep{size: 12.25, line: 17.5, weight: 600}
+	screenTickStyle   = fontStep{size: 10.5, line: 14, weight: 400}
+	screenCodeStyle   = fontStep{size: 12, line: 17, weight: 400, family: codeFont}
+)
+
+// 本屏图标：Heroicons v2 outline（24 网格、1.5 描边、MIT）的内联路径，
+// 与 icons.go 同一套约定。
+var (
+	screenIconSun         = mustSVG(`<path d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z"/>`)
+	screenIconMoon        = mustSVG(`<path d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z"/>`)
+	screenIconDesktop     = mustSVG(`<path d="M9 17.25v1.007a3 3 0 0 1-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0 1 15 18.257V17.25m6-12V15a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 15V5.25m18 0A2.25 2.25 0 0 0 18.75 3H5.25A2.25 2.25 0 0 0 3 5.25m18 0V12a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 12V5.25"/>`)
+	screenIconChevronDown = mustSVG(`<path d="m19.5 8.25-7.5 7.5-7.5-7.5"/>`)
+	screenIconFolderOpen  = mustSVG(`<path d="M3.75 9.776c.112-.017.227-.026.344-.026h15.812c.117 0 .232.009.344.026m-16.5 0a2.25 2.25 0 0 0-1.883 2.542l.857 6a2.25 2.25 0 0 0 2.227 1.932H19.05a2.25 2.25 0 0 0 2.227-1.932l.857-6a2.25 2.25 0 0 0-1.883-2.542m-16.5 0V6A2.25 2.25 0 0 1 6 3.75h3.879a1.5 1.5 0 0 1 1.06.44l2.122 2.12a1.5 1.5 0 0 0 1.06.44H18A2.25 2.25 0 0 1 20.25 9v.776"/>`)
+	screenIconTrash       = mustSVG(`<path d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"/>`)
+	screenIconRefresh     = mustSVG(`<path d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/>`)
+	screenIconBan         = mustSVG(`<path d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/>`)
+	screenIconSliders     = mustSVG(`<path d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"/>`)
+)
+
+// ---- 三屏共用构件 ----
+
+// screenTitle 是设置分节的页面标题：与账户屏同级（type-h2、二级标题）。
+func screenTitle(c *gui.Context, text string) {
+	t := c.Theme()
+	screenTitleStyle.style(t, gui.Text(c, text)).TextColor(t.Text).
+		Role(gui.RoleHeading).Level(2).SingleLine()
+}
+
+// screenLabel 是行标签：14、中等字重、通栏。
+func screenLabel(c *gui.Context, text string) {
+	t := c.Theme()
+	screenLabelStyle.style(t, gui.Text(c, text)).TextColor(t.Text).Label(text)
+}
+
+// screenValue 是一行取值（14、常规字重）。
+func screenValue(c *gui.Context, text string) {
+	t := c.Theme()
+	screenValueStyle.style(t, gui.Text(c, text)).TextColor(t.Text)
+}
+
+// screenHint 是说明文字：10.5、次级前景、可选中复制。
+func screenHint(c *gui.Context, text string) {
+	t := c.Theme()
+	screenHintStyle.style(t, gui.Text(c, text)).TextColor(t.TextMuted).Selectable()
+}
+
+// screenGroupTitle 是分组标题（12.25、半粗、次级前景）。
+func screenGroupTitle(c *gui.Context, text string) {
+	t := c.Theme()
+	screenGroupStyle.style(t, gui.Text(c, text)).TextColor(t.TextMuted).Label(text)
+}
+
+// screenTick 是刻度文字（10.5、次级前景）。
+func screenTick(c *gui.Context, text string) {
+	t := c.Theme()
+	screenTickStyle.style(t, gui.Text(c, text)).TextColor(t.TextMuted).SingleLine()
+}
+
+// screenRule 是分节之间的 1px 细线：用 1px 高的面差表达，不新增自绘描边。
+func screenRule(c *gui.Context) {
+	t := c.Theme()
+	gui.Box(c).Shrink(0).Height(screenRuleH).Background(t.Border).
+		Label("分隔线").AccessHidden(true)
+}
+
+// screenCard 是设置页的卡：内容底、卡片圆角、1px 主题描边（描边走 Draw，
+// 着色取 t.Border）。
+func screenCard(c *gui.Context, body func()) {
+	t := c.Theme()
+	card := gui.Column(c).Shrink(0).Background(t.Background).Radius(screenRadiusCard)
+	card.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
+	})
+	card.Children(body)
+}
+
+// screenIcon 画一个装饰图标：尺寸固定，不随字号变化。
+func screenIcon(c *gui.Context, icon *gui.SVG, size float32, color gui.Color, mark string) {
+	box := gui.Box(c).Width(size).Height(size).Shrink(0)
+	if mark != "" {
+		box = box.Label("图标：" + mark).AccessHidden(true)
+	}
+	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		p.Icon(icon, r, color)
+	})
+}
+
+// screenIconButton 是一个只有图标的入口：命中区不小于 hit-min。
+func screenIconButton(c *gui.Context, icon *gui.SVG, label, tip string, color gui.Color) bool {
+	t := c.Theme()
+	b := gui.ButtonBase(c).Shrink(0).Size(screenHit, screenHit).Radius(screenRadiusCtl).
+		Center().Label(label).Tooltip(tip)
+	ink := color
+	switch {
+	case b.Pressed():
+		b = b.Background(t.SurfacePressed)
+		ink = t.Text
+	case b.Hovered():
+		b = b.Background(t.SurfaceHover)
+		ink = t.Text
+	}
+	b.Children(func() {
+		screenIcon(c, icon, screenIconMicro, ink, label)
+	})
+	return b.Clicked()
+}
+
+// screenIconRotated 画一个旋转的装饰图标（折叠箭头）。
+func screenIconRotated(c *gui.Context, icon *gui.SVG, size float32, color gui.Color, mark string, degrees float32) {
+	box := gui.Box(c).Width(size).Height(size).Shrink(0)
+	if mark != "" {
+		box = box.Label("图标：" + mark).AccessHidden(true)
+	}
+	if degrees != 0 {
+		box = box.Rotate(degrees)
+	}
+	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		p.Icon(icon, r, color)
+	})
+}
+
+// screenSelectedDot 是主题卡 / 皮肤卡的选中角标：16×16 主色圆 + 白色对勾。
+func screenSelectedDot(c *gui.Context) {
+	t := c.Theme()
+	box := gui.Box(c).Width(screenDotSize).Height(screenDotSize).Shrink(0).
+		Label("已选中").AccessHidden(true)
+	box.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Fill(r, t.Accent, screenDotSize/2)
+		inner := gui.Rect{
+			X: r.X + screenDotInset, Y: r.Y + screenDotInset,
+			W: r.W - 2*screenDotInset, H: r.H - 2*screenDotInset,
+		}
+		p.Icon(iconCheck, inner, t.AccentText)
+	})
+}
+
+// screenButton 是一个自绘的文字按钮（描边 / 主色两态），返回是否被按下。
+func screenButton(c *gui.Context, text, label, tip string, primary bool, height float32) bool {
+	t := c.Theme()
+	if label == "" {
+		label = text
+	}
+	if height == 0 {
+		height = screenControlH
+	}
+	b := gui.ButtonBase(c).Shrink(0).Height(height).Padding(controlPadV, controlPadH).
+		Radius(screenRadiusCtl).Label(label).Tooltip(tip)
+	if primary {
+		b = b.Background(t.Accent)
+	} else {
+		b = b.Background(t.Background)
+		b.Draw(func(p *gui.Painter, r gui.Rect) {
+			p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+		})
+	}
+	ink := t.Text
+	switch {
+	case primary && b.Pressed():
+		b = b.Background(t.AccentPressed)
+	case primary && b.Hovered():
+		b = b.Background(t.AccentHover)
+	case !primary && b.Pressed():
+		b = b.Background(t.SurfacePressed)
+	case !primary && b.Hovered():
+		b = b.Background(t.SurfaceHover)
+	}
+	if primary {
+		ink = t.AccentText
+	}
+	b.Children(func() {
+		screenValueStyle.style(t, gui.Text(c, text)).TextColor(ink).SingleLine()
+	})
+	return b.Clicked()
+}
+
+// screenAction 是「图标 + 文字」的描边按钮。
+func screenAction(c *gui.Context, icon *gui.SVG, mark, text string, height float32) bool {
+	t := c.Theme()
+	if height == 0 {
+		height = screenControlH
+	}
+	b := gui.ButtonBase(c).Shrink(0).Height(height).Padding(controlPadV, controlPadH).
+		Radius(screenRadiusCtl).Background(t.Background).Label(text)
+	b.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	switch {
+	case b.Pressed():
+		b = b.Background(t.SurfacePressed)
+	case b.Hovered():
+		b = b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
+			screenIcon(c, icon, screenIconInline, t.Text, mark)
+			screenValueStyle.style(t, gui.Text(c, text)).TextColor(t.Text).SingleLine()
+		})
+	})
+	return b.Clicked()
+}
+
+// screenInput 是一个文本框：内容底、1px 主题描边、高 32。
+func screenInput(c *gui.Context, value *string, placeholder, label string) gui.Element {
+	t := c.Theme()
+	return gui.TextInput(c, value).Label(label).Placeholder(placeholder).
+		Height(screenControlH).Padding(screenInputPadV, screenSpace25).
+		Background(t.Background)
+}
+
+// screenIndexSelect 是取值为下标的自绘下拉（框架 Select 只收字符串）。
+func screenIndexSelect(c *gui.Context, selected *int, options []string, label string) {
+	t := c.Theme()
+	parts := gui.SelectBase[int](c, selected)
+	trigger := parts.Trigger.Grow(1).Height(screenControlH).
+		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
+		Background(t.Background).Justify(gui.SpaceBetween).Label(label)
+	trigger.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	trigger.Children(func() {
+		screenValueStyle.style(t, gui.Text(c, options[*selected])).TextColor(t.Text).SingleLine()
+		screenIcon(c, screenIconChevronDown, screenIconMicro, t.TextMuted, "chevron-down")
+	})
+	parts.Popup(func(panel gui.Element) {
+		panel.Padding(screenSpace1).Radius(screenRadiusCard).Background(t.Background)
+		panel.Draw(func(p *gui.Painter, r gui.Rect) {
+			p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
+		})
+		for i, option := range options {
+			item := parts.Item(i).Padding(screenSpace15, screenSpace25).
+				Radius(screenRadiusCtl)
+			switch {
+			case item.Highlighted():
+				item = item.Background(t.Accent)
+			case i == *selected:
+				item = item.Background(t.Surface)
+			}
+			item.Children(func() {
+				screenValueStyle.style(t, gui.Text(c, option)).TextColor(t.Text).SingleLine()
+			})
+		}
+	})
+}
+
+// screenDialogWidth 是对话框面板宽（参考 sm:max-w-md = 448），窗口更窄时收进来。
+func screenDialogWidth(c *gui.Context) float32 {
+	width, _ := c.Size()
+	limit := width - 2*space8
+	if limit < screenDialogW {
+		if limit < screenDialogMinW {
+			return screenDialogMinW
+		}
+		return limit
+	}
+	return screenDialogW
+}
+
+// screenDialogPanel 是一个模态面板：标题（三级）+ 正文 + 动作。
+func screenDialogPanel(c *gui.Context, title string, body func()) {
+	t := c.Theme()
+	panel := gui.Column(c).Gap(screenSpace3)
+	panel.Children(func() {
+		typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
+			Role(gui.RoleHeading).Level(3).SingleLine()
+		body()
+	})
+	panel.Width(screenDialogWidth(c))
+}
+
+// ---- 外观屏 ----
+
+// appearanceThemeOptions 是主题卡的三支，顺序与截图一致。
+var appearanceThemeOptions = []struct {
+	name string
+	icon *gui.SVG
+}{
+	{"浅色", screenIconSun},
+	{"深色", screenIconMoon},
+	{"跟随系统", screenIconDesktop},
+}
+
+var (
+	appearanceLanguages  = []string{"简体中文", "English", "日本語", "한국어"}
+	appearanceUIFonts    = []string{"默认", "PingFang SC", "Helvetica Neue", "Noto Sans SC"}
+	appearanceCodeFonts  = []string{"默认", "SF Mono", "Menlo", "JetBrains Mono"}
+	appearanceCodeThemes = []string{"GitHub", "One Dark Pro", "Solarized Light", "Vitesse Dark"}
+	appearanceSizeSteps  = []string{"特小", "小", "中", "大", "特大"}
+	appearanceSkins      = []string{"Windows 98", "Windows XP", "Windows Vista", "macOS Big Sur", "OS X Tiger"}
+	appearanceFits       = []string{"适应", "填充", "拉伸", "平铺"}
+	appearancePlacements = []string{"左上", "上", "右上", "左", "中", "右", "左下", "下", "右下"}
+	appearanceAttach     = []string{"随内容滚动", "固定"}
+	appearanceTextInks   = []string{"自动", "浅色文字", "深色文字"}
+)
+
+// appearanceState 是本屏可丢的界面状态：选中项、对话框与折叠。不是事实。
+type appearanceState struct {
+	theme     int
+	language  string
+	uiFont    string
+	codeFont  string
+	uiSize    int
+	codeSize  float64
+	codeTheme string
+
+	skin        string
+	skinImage   bool
+	skinOpacity float64
+	skinFit     int
+	skinPlace   int
+	skinAttach  int
+	skinInk     int
+	advanced    bool
+	reloaded    bool
+
+	deleteFor string
+	deleting  bool
+	deleted   map[string]bool
+}
+
+var appearanceScreen = appearanceState{
+	theme:       0, // 截图：浅色卡带选中角标
+	language:    "简体中文",
+	uiFont:      "默认",
+	codeFont:    "默认",
+	uiSize:      2, // 中
+	codeSize:    12,
+	codeTheme:   "GitHub",
+	skin:        "", // 空 = 内置「默认」外观卡被选中
+	skinOpacity: 60,
+}
+
+// renderAppearance 是设置 › 外观这一屏（设置壳的一个分节）。
+func renderAppearance(c *gui.Context) {
+	gui.Column(c).Grow(1).Children(func() {
+		gui.Scroll(c).Grow(1).Children(func() {
+			gui.Column(c).Gap(screenSpace5).Children(func() {
+				screenTitle(c, "外观")
+				appearanceThemeSection(c)
+				appearanceLanguageSection(c)
+				appearanceFontSection(c)
+				appearanceSizeSection(c)
+				appearanceCodeThemeSection(c)
+				appearanceSkinSection(c)
+				appearanceActiveSkin(c)
+			})
+		})
+	})
+	appearanceDeleteDialog(c)
+}
+
+// appearanceThemeSection 是 4.1 的主题段（S-appearance-01–08）。
+func appearanceThemeSection(c *gui.Context) {
+	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
+		screenLabel(c, "主题")
+		gui.Row(c).Wrap().GapX(screenCardGap).GapY(screenCardGap).
+			Label("主题").Children(func() {
+			for i, option := range appearanceThemeOptions {
+				appearanceThemeCard(c, i, option.name, option.icon)
+			}
+		})
+	})
+	screenRule(c)
+}
+
+// appearanceThemeCard 是一张主题卡（240×69）：预览在上、文字在下、角标在右上。
+func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG) {
+	t := c.Theme()
+	selected := appearanceScreen.theme == index
+	frame := t.Border
+	if selected {
+		frame = t.Accent
+	}
+	b := gui.ButtonBase(c).Shrink(0).Width(screenThemeCardW).Height(screenThemeCardH).
+		Radius(screenRadiusCard).Background(t.Background).Padding(screenStroke).
+		AlignItems(gui.Stretch).Label("主题：" + name).Tooltip(name).
+		Role(gui.RoleRadio).AccessSelected(selected)
+	if !selected {
+		switch {
+		case b.Pressed():
+			frame = t.Border.Mix(t.Text, 0.45)
+		case b.Hovered():
+			frame = t.Border.Mix(t.Text, 0.3)
+		}
+	}
+	b.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, frame, screenRadiusCard, screenStroke)
+	})
+	if b.Clicked() {
+		appearanceScreen.theme = index
+	}
+	b.Children(func() {
+		gui.Box(c).Grow(1).Radius(screenRadiusCard).Children(func() {
+			gui.Column(c).Padding(screenSpace2, screenSpace2).Gap(screenSpace05).Children(func() {
+				gui.Row(c).Shrink(0).Height(screenDotSize).Justify(gui.End).Children(func() {
+					if selected {
+						screenSelectedDot(c)
+					}
+				})
+				gui.Column(c).Grow(1).Justify(gui.Center).AlignItems(gui.Center).
+					Gap(screenSpace1).Children(func() {
+					screenIcon(c, icon, screenIconBlock, t.TextMuted, name)
+					screenStrongStyle.style(t, gui.Text(c, name)).TextColor(t.Text).SingleLine()
+				})
+			})
+		})
+	})
+}
+
+// appearanceLanguageSection 是程序语言段（S-appearance-09–11）。
+func appearanceLanguageSection(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
+		screenLabel(c, "程序语言")
+		gui.Row(c).Children(func() {
+			gui.Select(c, &appearanceScreen.language, appearanceLanguages).
+				Width(screenLangW).Height(screenControlH).
+				Background(t.Background).Label("程序语言")
+			gui.Spacer(c)
+		})
+	})
+	screenRule(c)
+}
+
+// appearanceFontSection 是字体段（S-appearance-12–28）。
+func appearanceFontSection(c *gui.Context) {
+	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
+		screenLabel(c, "字体")
+		appearanceFontRow(c, "UI 字体", "用于应用界面和 Markdown 正文",
+			&appearanceScreen.uiFont, appearanceUIFonts)
+		appearanceFontRow(c, "代码字体", "用于终端、代码块和差异内容",
+			&appearanceScreen.codeFont, appearanceCodeFonts)
+	})
+	screenRule(c)
+}
+
+// appearanceFontRow 是一行字体选择：左侧标签 + 说明，右侧下拉（224×32）。
+func appearanceFontRow(c *gui.Context, label, hint string, value *string, options []string) {
+	t := c.Theme()
+	gui.Row(c).AlignItems(gui.Center).Gap(screenSpace4).Children(func() {
+		gui.Column(c).Grow(1).MinWidth(0).Gap(screenSpace05).Children(func() {
+			screenLabel(c, label)
+			screenHint(c, hint)
+		})
+		gui.Select(c, value, options).Width(screenFontSelW).Height(screenControlH).
+			Background(t.Background).Label(label)
+	})
+}
+
+// appearanceSizeSection 是字号段（S-appearance-29–42）：UI 字号五档分段 +
+// 代码字号滑块（12–20px，步长 1）。
+func appearanceSizeSection(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(screenSpace35).Children(func() {
+		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace25).Children(func() {
+			screenLabel(c, "UI 字号")
+			gui.Spacer(c)
+			screenTick(c, "小")
+			appearanceSizeSegments(c)
+			screenTick(c, "大")
+		})
+		gui.Column(c).Shrink(0).Gap(screenSpace15).Children(func() {
+			gui.Row(c).AlignItems(gui.Center).Children(func() {
+				screenLabel(c, "代码字号")
+				gui.Spacer(c)
+				screenValueStyle.style(t, gui.Text(c, appearanceCodeSizeLabel())).
+					TextColor(t.Text).Label("代码字号当前值")
+			})
+			gui.Slider(c, &appearanceScreen.codeSize, 12, 20).Step(1).
+				Label("代码字号").Grow(1)
+			gui.Row(c).Children(func() {
+				screenTick(c, "12px")
+				gui.Spacer(c)
+				screenTick(c, "16px")
+				gui.Spacer(c)
+				screenTick(c, "20px")
+			})
+		})
+	})
+	screenRule(c)
+}
+
+// appearanceCodeSizeLabel 是代码字号的读数（如「12px」，带单位）。
+func appearanceCodeSizeLabel() string {
+	return strconv.Itoa(int(appearanceScreen.codeSize+0.5)) + "px"
+}
+
+// appearanceSizeSegments 是 UI 字号的五档分段：选中段主色底、反白字。
+func appearanceSizeSegments(c *gui.Context) {
+	t := c.Theme()
+	parts := gui.SegmentedBase(c, &appearanceScreen.uiSize, len(appearanceSizeSteps))
+	track := parts.Track.AlignItems(gui.Stretch).Gap(screenStroke).
+		Radius(screenRadiusCtl).Background(t.Border).Padding(screenStroke).
+		Label("UI 字号")
+	track.Children(func() {
+		for i, label := range appearanceSizeSteps {
+			seg := parts.Segment(i).Center().Height(screenSegHSm).
+				Padding(0, screenSpace25).Radius(screenRadiusCtl).
+				Background(t.Background).Label(label)
+			if i == appearanceScreen.uiSize {
+				seg = seg.Background(t.Accent)
+			}
+			seg.Children(func() {
+				color, weight := t.Text, 500
+				if i == appearanceScreen.uiSize {
+					color, weight = t.AccentText, 600
+				}
+				gui.Text(c, label).FontSize(screenValueStyle.sizeIn(t)).
+					FontWeight(weight).TextColor(color).SingleLine()
+			})
+		}
+	})
+}
+
+// ---- 代码主题 ----
+
+// appearanceCodeToken 是预览里的一段代码着色。
+type appearanceCodeToken struct {
+	text string
+	kind int
+}
+
+const (
+	appearanceCodePlain = iota
+	appearanceCodeKeyword
+	appearanceCodeString
+	appearanceCodeFunc
+)
+
+var appearanceCodeSample = [][]appearanceCodeToken{
+	{{"function", appearanceCodeKeyword}, {" ", appearanceCodePlain}, {"greet", appearanceCodeFunc}, {"() {", appearanceCodePlain}},
+	{{"  ", appearanceCodePlain}, {"const", appearanceCodeKeyword}, {" name = ", appearanceCodePlain}, {`"world"`, appearanceCodeString}},
+	{{"  console.", appearanceCodePlain}, {"log", appearanceCodeFunc}, {"(name)", appearanceCodePlain}},
+	{{"  ", appearanceCodePlain}, {"return", appearanceCodeKeyword}, {" true", appearanceCodePlain}},
+	{{"}", appearanceCodePlain}},
+}
+
+// appearanceCodeThemeSection 是代码主题段（S-appearance-43–49）：下拉 + 预览。
+func appearanceCodeThemeSection(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
+		screenLabel(c, "代码主题")
+		gui.Row(c).Children(func() {
+			gui.Select(c, &appearanceScreen.codeTheme, appearanceCodeThemes).
+				Grow(1).Height(screenControlH).Background(t.Background).Label("代码主题")
+		})
+		appearanceCodePreview(c)
+	})
+	screenRule(c)
+}
+
+// appearanceCodePreview 是代码主题预览：左浅右深两块，各五行代码。
+func appearanceCodePreview(c *gui.Context) {
+	t := c.Theme()
+	box := gui.Row(c).Shrink(0).Clip().Radius(screenRadiusCard)
+	box.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
+	})
+	box.Children(func() {
+		appearanceCodePanel(c, false)
+		appearanceCodePanel(c, true)
+	})
+}
+
+// appearanceCodePanel 是预览的一半：行号 + 着色代码。左块恒为浅色，
+// 右块恒为深色，表示同一主题的两种形态。
+func appearanceCodePanel(c *gui.Context, dark bool) {
+	t := c.Theme()
+	bg, fg := colorBG.light, colorText.light
+	if dark {
+		bg, fg = colorBG.dark, colorText.dark
+	}
+	gui.Column(c).Grow(1).Background(bg).Padding(screenSpace3, screenSpace3).
+		Gap(screenSpace05).Children(func() {
+		for i, line := range appearanceCodeSample {
+			line := line
+			gui.Row(c).Height(screenCodeLineH).AlignItems(gui.Center).
+				Gap(screenSpace3).Children(func() {
+				gui.Text(c, strconv.Itoa(i+1)).
+					Font(screenCodeStyle.family).FontSize(screenCodeStyle.sizeIn(t)).
+					TextColor(fg.Alpha(0.45)).Width(screenCodeNumW).
+					TextAlign(gui.End).SingleLine()
+				spans := make([]gui.Span, 0, len(line))
+				for _, token := range line {
+					spans = append(spans, gui.Span{
+						Text:   token.text,
+						Font:   screenCodeStyle.family,
+						Size:   screenCodeStyle.sizeIn(t),
+						Weight: 400,
+						Color:  appearanceCodeColor(token.kind, dark),
+					})
+				}
+				gui.RichText(c, spans...).SingleLine()
+			})
+		}
+	})
+}
+
+// appearanceCodeColor 是预览的着色：关键字、字符串、函数名三种 + 正文。
+func appearanceCodeColor(kind int, dark bool) gui.Color {
+	light := [4]gui.Color{gui.Hex("#0a0a0a"), gui.Hex("#cf222e"), gui.Hex("#0a3069"), gui.Hex("#8250df")}
+	darkSet := [4]gui.Color{gui.Hex("#ececec"), gui.Hex("#ff7b72"), gui.Hex("#a5d6ff"), gui.Hex("#d2a8ff")}
+	if dark {
+		return darkSet[kind]
+	}
+	return light[kind]
+}
+
+// ---- 我的皮肤 ----
+
+// appearanceSkinSection 是 4.3 我的皮肤（S-appearance-50–74）。
+func appearanceSkinSection(c *gui.Context) {
+	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
+		screenLabel(c, "我的皮肤")
+		gui.Row(c).Wrap().GapX(screenCardGap).GapY(screenCardGap).
+			Label("我的皮肤").Children(func() {
+			for _, name := range appearanceSkins {
+				if appearanceScreen.deleted[name] {
+					continue
+				}
+				appearanceSkinCard(c, name)
+			}
+			appearanceDefaultSkinCard(c)
+		})
+		screenHint(c, "暂无自定义皮肤。可用图片新建或导入已有皮肤。")
+		gui.Row(c).Gap(screenSpace2).Children(func() {
+			if screenAction(c, iconPlus, "plus", "用图片新建", screenControlH) {
+				// 打开图片选择器需要宿主能力（未接动作）：按钮照渲染。
+			}
+			if screenAction(c, screenIconFolderOpen, "folder-open", "打开目录", screenControlH) {
+				// 打开皮肤目录需要宿主能力（未接动作）。
+			}
+		})
+	})
+}
+
+// appearanceSkinCard 是一张皮肤卡（240×98）：缩略图在上、名称在下、角标在右上。
+func appearanceSkinCard(c *gui.Context, name string) {
+	t := c.Theme()
+	selected := appearanceScreen.skin == name
+	frame := t.Border
+	if selected {
+		frame = t.Accent
+	}
+	card := gui.ButtonBase(c).Shrink(0).Width(screenSkinCardW).Height(screenSkinCardH).
+		Radius(screenRadiusCard).Background(t.Background).Padding(screenStroke).
+		AlignItems(gui.Stretch).Label("皮肤：" + name).Tooltip(name).
+		Role(gui.RoleRadio).AccessSelected(selected)
+	if !selected {
+		switch {
+		case card.Pressed():
+			frame = t.Border.Mix(t.Text, 0.45)
+		case card.Hovered():
+			frame = t.Border.Mix(t.Text, 0.3)
+		}
+	}
+	card.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, frame, screenRadiusCard, screenStroke)
+	})
+	if card.Clicked() {
+		appearanceScreen.skin = name
+	}
+	card.Children(func() {
+		gui.Box(c).Grow(1).Padding(screenSpace15, screenSpace15).Children(func() {
+			gui.Column(c).Gap(screenSpace1).Children(func() {
+				gui.Row(c).Height(screenDotSize).Justify(gui.End).Children(func() {
+					if selected {
+						screenSelectedDot(c)
+					}
+				})
+				appearanceSkinThumb(c, name)
+				gui.Row(c).AlignItems(gui.Center).Children(func() {
+					gui.Spacer(c)
+					screenStrongStyle.style(t, gui.Text(c, name)).TextColor(t.Text).SingleLine()
+					gui.Spacer(c)
+					if card.Hovered() && !selected {
+						if screenIconButton(c, screenIconTrash, "删除皮肤："+name, "删除皮肤", t.TextMuted) {
+							appearanceScreen.deleteFor = name
+						}
+					}
+				})
+			})
+		})
+	})
+}
+
+// appearanceSkinThumb 是按皮肤配色画的窗口示意（没有缩略图资产）。
+func appearanceSkinThumb(c *gui.Context, name string) {
+	t := c.Theme()
+	title, body, ink := appearanceSkinColors(name, t)
+	box := gui.Box(c).Shrink(0).Height(screenSkinThumbH).Clip()
+	box.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Fill(r, body, screenSpace1)
+		p.Fill(gui.Rect{X: r.X, Y: r.Y, W: r.W, H: screenSkinTitleH}, title, screenSpace1)
+		for i := 0; i < 3; i++ {
+			dot := gui.Rect{
+				X: r.X + screenSpace15 + float32(i)*screenSpace2,
+				Y: r.Y + screenSpace15,
+				W: screenSpace05, H: screenSpace05,
+			}
+			p.Fill(dot, ink, screenSpace05/2)
+		}
+		side := gui.Rect{
+			X: r.X + screenSpace1, Y: r.Y + screenSkinTitleH + screenSpace1,
+			W: r.W * 0.3, H: r.H - screenSkinTitleH - 2*screenSpace1,
+		}
+		p.Fill(side, t.Border.Alpha(0.35), screenSpace05)
+		for i := 0; i < 3; i++ {
+			line := gui.Rect{
+				X: r.X + r.W*0.4, Y: r.Y + screenSkinTitleH + screenSpace15 + float32(i)*screenSpace2,
+				W: r.W * 0.5, H: screenSpace05,
+			}
+			p.Fill(line, t.TextMuted.Alpha(0.35), screenSpace05/2)
+		}
+	})
+}
+
+// appearanceSkinColors 返回 (标题栏, 窗体底, 标题栏标记) 三色。
+func appearanceSkinColors(name string, t *gui.Theme) (title, body, ink gui.Color) {
+	switch name {
+	case "Windows 98":
+		return gui.Hex("#000080"), gui.Hex("#c0c0c0"), gui.Hex("#ffffff")
+	case "Windows XP":
+		return gui.Hex("#0a55c4"), gui.Hex("#d4d0c8"), gui.Hex("#ffffff")
+	case "Windows Vista":
+		return gui.Hex("#6f9fd8"), gui.Hex("#e6eef7"), gui.Hex("#ffffff")
+	case "macOS Big Sur":
+		return gui.Hex("#e8e8e8"), gui.Hex("#f7f7f7"), gui.Hex("#ff5f57")
+	case "OS X Tiger":
+		return gui.Hex("#d8d8d8"), gui.Hex("#efefef"), gui.Hex("#ff5f57")
+	}
+	return t.Surface, t.Background, t.TextMuted
+}
+
+// appearanceDefaultSkinCard 是网格末尾的内置外观卡「默认」：X 图标 + 文字。
+func appearanceDefaultSkinCard(c *gui.Context) {
+	t := c.Theme()
+	selected := appearanceScreen.skin == ""
+	frame := t.Border
+	if selected {
+		frame = t.Accent
+	}
+	card := gui.ButtonBase(c).Shrink(0).Width(screenSkinCardW).Height(screenSkinCardH).
+		Radius(screenRadiusCard).Background(t.Background).Padding(screenStroke).
+		AlignItems(gui.Stretch).Label("皮肤：默认").Tooltip("默认").
+		Role(gui.RoleRadio).AccessSelected(selected)
+	if !selected {
+		switch {
+		case card.Pressed():
+			frame = t.Border.Mix(t.Text, 0.45)
+		case card.Hovered():
+			frame = t.Border.Mix(t.Text, 0.3)
+		}
+	}
+	card.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, frame, screenRadiusCard, screenStroke)
+	})
+	if card.Clicked() {
+		appearanceScreen.skin = ""
+	}
+	card.Children(func() {
+		gui.Box(c).Grow(1).Padding(screenSpace15, screenSpace15).Children(func() {
+			gui.Column(c).Children(func() {
+				gui.Row(c).Height(screenDotSize).Justify(gui.End).Children(func() {
+					if selected {
+						screenSelectedDot(c)
+					}
+				})
+				gui.Column(c).Grow(1).Justify(gui.Center).AlignItems(gui.Center).
+					Gap(screenSpace15).Children(func() {
+					mark := gui.Box(c).Size(screenSegHLg, screenSegHLg).Shrink(0).
+						Radius(screenRadiusCard).Background(t.Surface)
+					mark.Children(func() {
+						gui.Box(c).Grow(1).Center().Children(func() {
+							screenIcon(c, iconXMark, screenIconBlock, t.TextMuted, "x-mark")
+						})
+					})
+					screenValueStyle.style(t, gui.Text(c, "默认")).TextColor(t.Text).SingleLine()
+				})
+			})
+		})
+	})
+}
+
+// ---- 当前皮肤设置（条件：有激活皮肤，S-appearance-76–93） ----
+
+// appearanceActiveSkin 是「当前皮肤设置」段：窗口背景、透明度、大小、位置、
+// 附着方式、文字颜色与高级折叠。
+func appearanceActiveSkin(c *gui.Context) {
+	name := appearanceScreen.skin
+	if name == "" {
+		return
+	}
+	t := c.Theme()
+	screenRule(c)
+	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
+		screenLabel(c, "当前皮肤设置")
+		appearanceSkinBackgroundRow(c)
+		appearanceSkinOpacityRow(c)
+		appearanceSkinSelectRow(c, "大小", &appearanceScreen.skinFit, appearanceFits)
+		appearanceSkinSelectRow(c, "位置", &appearanceScreen.skinPlace, appearancePlacements)
+		appearanceSkinSelectRow(c, "附着方式", &appearanceScreen.skinAttach, appearanceAttach)
+		if appearanceScreen.skinAttach == 1 {
+			gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
+				screenIcon(c, iconWarn, screenIconMicro, t.Warning, "exclamation")
+				screenHint(c, "可能影响滚动性能")
+			})
+		}
+		gui.Column(c).Shrink(0).Gap(screenSpace05).Children(func() {
+			screenLabel(c, "文字颜色")
+			screenHint(c, "根据背景调整文字颜色，保证可读性。")
+		})
+		gui.Row(c).Children(func() {
+			screenIndexSelect(c, &appearanceScreen.skinInk, appearanceTextInks, "文字颜色")
+		})
+		appearanceSkinAdvanced(c)
+	})
+}
+
+// appearanceSkinBackgroundRow 是窗口背景一行：路径 + 更换 + 移除。
+func appearanceSkinBackgroundRow(c *gui.Context) {
+	t := c.Theme()
+	value := "未设置图片"
+	if appearanceScreen.skinImage {
+		value = "~/Pictures/background.png"
+	}
+	gui.Column(c).Shrink(0).Gap(screenSpace15).Children(func() {
+		screenLabel(c, "窗口背景")
+		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace2).Children(func() {
+			screenCodeStyle.style(t, gui.Text(c, value)).TextColor(t.TextMuted).
+				Grow(1).MinWidth(0).SingleLine().Label("背景图路径")
+			if screenButton(c, "更换", "更换背景图", "", false, rowRegular) {
+				appearanceScreen.skinImage = true
+			}
+			if appearanceScreen.skinImage {
+				if screenIconButton(c, iconXMark, "移除背景图", "移除背景图", t.TextMuted) {
+					appearanceScreen.skinImage = false
+				}
+			}
+		})
+	})
+}
+
+// appearanceSkinOpacityRow 是透明度一行：标签 + 值 + 滑块（0–100，步长 5）。
+func appearanceSkinOpacityRow(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(screenSpace15).Children(func() {
+		gui.Row(c).AlignItems(gui.Center).Children(func() {
+			screenLabel(c, "透明度")
+			gui.Spacer(c)
+			screenValueStyle.style(t, gui.Text(c, strconv.Itoa(int(appearanceScreen.skinOpacity+0.5))+"%")).
+				TextColor(t.Text).Label("透明度当前值")
+		})
+		gui.Slider(c, &appearanceScreen.skinOpacity, 0, 100).Step(5).
+			Label("透明度").Grow(1)
+	})
+}
+
+// appearanceSkinSelectRow 是一行下拉：标签在上、选择在下。
+func appearanceSkinSelectRow(c *gui.Context, label string, value *int, options []string) {
+	gui.Column(c).Shrink(0).Gap(screenSpace15).Children(func() {
+		screenLabel(c, label)
+		gui.Row(c).Children(func() {
+			screenIndexSelect(c, value, options, label)
+		})
+	})
+}
+
+// appearanceSkinAdvanced 是高级折叠：展开后给外部打开、打开 skin.json、重新加载。
+func appearanceSkinAdvanced(c *gui.Context) {
+	t := c.Theme()
+	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).Padding(controlPadV, controlPadH).
+		Radius(screenRadiusCtl).Justify(gui.Start).Label("高级")
+	if b.Hovered() {
+		b = b.Background(t.SurfaceHover)
+	}
+	if b.Clicked() {
+		appearanceScreen.advanced = !appearanceScreen.advanced
+	}
+	b.Children(func() {
+		gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
+			screenValueStyle.style(t, gui.Text(c, "高级")).TextColor(t.Text).SingleLine()
+			rotate := float32(0)
+			if appearanceScreen.advanced {
+				rotate = 90
+			}
+			screenIconRotated(c, iconChevronR, screenIconMicro, t.TextMuted, "chevron", rotate)
+		})
+	})
+	if !appearanceScreen.advanced {
+		return
+	}
+	gui.Row(c).Gap(screenSpace2).Children(func() {
+		screenButton(c, "外部打开", "外部打开", "", false, rowRegular)
+		screenButton(c, "打开 skin.json", "打开 skin.json", "", false, rowRegular)
+		if screenButton(c, "重新加载", "重新加载皮肤", "", false, rowRegular) {
+			appearanceScreen.reloaded = true
+		}
+	})
+	if appearanceScreen.reloaded {
+		screenHint(c, "皮肤已重新加载")
+	}
+}
+
+// ---- 删除对话框（S-appearance-60–65） ----
+
+// appearanceDeleteDialog 是「删除皮肤？」确认框。
+func appearanceDeleteDialog(c *gui.Context) {
+	if appearanceScreen.deleteFor == "" {
+		return
+	}
+	t := c.Theme()
+	open := true
+	name := appearanceScreen.deleteFor
+	m := gui.Modal(c, &open, func() {
+		screenDialogPanel(c, "删除皮肤？", func() {
+			typeBody.style(t, gui.Text(c, fmt.Sprintf("“%s”及其全部资源将被永久删除。", name))).
+				TextColor(t.TextMuted).Selectable()
+			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
+				if screenButton(c, "取消", "取消删除", "", false, rowRegular) {
+					appearanceScreen.deleteFor = ""
+					open = false
+				}
+				label := "删除"
+				if appearanceScreen.deleting {
+					label = "正在删除…"
+				}
+				if screenButton(c, label, label, "", true, rowRegular) {
+					if appearanceScreen.deleted == nil {
+						appearanceScreen.deleted = map[string]bool{}
+					}
+					appearanceScreen.deleted[name] = true
+					if appearanceScreen.skin == name {
+						appearanceScreen.skin = ""
+					}
+					appearanceScreen.deleteFor = ""
+					appearanceScreen.deleting = false
+					open = false
+				}
+			})
+		})
+	})
+	if !open || m.Dismissed() {
+		appearanceScreen.deleteFor = ""
+		appearanceScreen.deleting = false
+	}
+}

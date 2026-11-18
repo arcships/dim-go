@@ -4,13 +4,6 @@ package ui
 // 不来自 App Server，也不代表任何真实会话。样例文案与顺序取自
 // docs/domains/wireframes/a.html 的七个画面。
 
-// commandRule 是一条命令规则：命令原文（内容）+ 决定 + 匹配方式。
-type commandRule struct {
-	command  string
-	decision string // 允许 / 拒绝
-	match    string // 精确 / 前缀
-}
-
 // taskState 是后台任务在界面上的三种形态。
 type taskState int
 
@@ -219,63 +212,3 @@ const richReply = "## 先看结论\n\n" +
 	"| 未运行 | 直接发送 |\n" +
 	"| 运行中 | 先入队 |\n\n" +
 	"详见 [U3 的发送与排队](U3-interaction.md)。"
-
-// extSamples 是扩展四类的样例数据（数量：技能 6、插件 8、MCP 4、钩子 3）。
-// 名称与版本是内容；状态只用样式（可用 / 有更新 / 加载失败）。
-func extSamples(kind extKind) []extItem {
-	switch kind {
-	case extSkills:
-		return []extItem{
-			{name: "代码评审", version: "v1.4.0", on: true},
-			{name: "提交信息", version: "v0.9.2", on: true, status: extUpdate},
-			{name: "测试生成", version: "v2.0.1", on: true},
-			{name: "文档同步", version: "v0.3.0", on: false},
-			{name: "依赖升级", version: "v1.0.4", on: false},
-			{name: "发布检查", version: "v0.1.0", on: true, status: extError},
-		}
-	case extPlugins:
-		return []extItem{
-			{name: "GitHub", version: "v0.6.3", on: true},
-			{name: "Linear", version: "v0.4.1", on: true},
-			{name: "Sentry", version: "v0.2.0", on: false},
-			{name: "Figma", version: "v0.1.7", on: false, status: extUpdate},
-			{name: "Notion", version: "v0.3.2", on: true},
-			{name: "Slack", version: "v0.5.0", on: true},
-			{name: "Jira", version: "v0.2.8", on: false},
-			{name: "Datadog", version: "v0.1.1", on: false, status: extError},
-		}
-	case extMCP:
-		return []extItem{
-			{name: "filesystem", version: "v0.9.0", on: true},
-			{name: "postgres", version: "v0.5.2", on: true, status: extUpdate},
-			{name: "playwright", version: "v0.3.0", on: false},
-			{name: "sentry", version: "v0.2.1", on: false},
-		}
-	default:
-		return []extItem{
-			{name: "提交前检查", version: "v1.0.0", on: true},
-			{name: "保存时格式化", version: "v1.0.0", on: true},
-			{name: "推送后通知", version: "v0.4.0", on: false},
-		}
-	}
-}
-
-// cronSamples 是定时任务的样例（S49–S54：任务、计划、下次时间、历史）。
-func cronSamples() []cronTask {
-	return []cronTask{
-		{name: "每晚依赖检查", schedule: "每天 02:00", next: "明天 02:00", on: true, result: "上次成功"},
-		{name: "每周汇总", schedule: "周一 09:00", next: "周一 09:00", on: true, result: "上次成功"},
-		{name: "清理临时文件", schedule: "每天 02:00", next: "明天 02:00", on: false, result: "已停用"},
-		{name: "同步文档站", schedule: "每 6 小时", next: "今天 18:00", on: false, result: "上次失败", status: extError},
-	}
-}
-
-// runtimeSamples 是运行时组件（T13–T15 的样例）。
-func runtimeSamples() []runtimePart {
-	return []runtimePart{
-		{name: "dim-app-server", version: "v3.4.1"},
-		{name: "protocol", version: "v3"},
-		{name: "终端组件", version: "v0.2.0", status: extUpdate},
-		{name: "渲染组件", version: "v0.1.3", status: extError},
-	}
-}

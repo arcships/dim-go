@@ -91,30 +91,6 @@ var screenCases = []screenCase{
 		a.termLines = append(termSamples(termExited), termLine{text: "connection lost", color: 1},
 			termLine{text: "reconnected", color: 2})
 	}},
-	// 权限档位切换的两步确认态。
-	{name: "variant-tier-confirm", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection = ScreenSettings, secProviders
-		a.tierDraft, a.tierPending = "每次询问", "每次询问"
-	}},
-	// 扩展的详情、选择态，MCP 的连接测试与导入。
-	{name: "variant-ext-detail", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
-		a.extDetail = 0
-	}},
-	{name: "variant-ext-select", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
-		a.selectMode = true
-		a.extSelected = map[string]bool{"GitHub": true, "Linear": true}
-	}},
-	{name: "variant-mcp-test", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
-		a.mcpTest["filesystem"], a.mcpTest["postgres"] = mcpTesting, mcpOK
-	}},
-	{name: "variant-mcp-fail", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
-		a.mcpTest["postgres"] = mcpFail
-		a.importMCP = "filesystem"
-	}},
 	// 输入区命令模式（`!`）：空闲与运行中。
 	{name: "variant-shell", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.draft = "!go test ./..."
@@ -124,28 +100,6 @@ var screenCases = []screenCase{
 		a.rightOpen, a.rightTab = true, 4
 		a.termState = termRunning
 		a.termLines = append(termSamples(termRunning), termLine{text: "$ npm run build", color: -1})
-	}},
-	// 设置第 7、8 节：存储与诊断、外观与键位。
-	{name: "variant-storage", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection = ScreenSettings, secStorage
-		a.diagnosticsExported = true
-	}},
-	{name: "variant-appearance-keys", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection = ScreenSettings, secAppearance
-	}},
-	// 设置第 5、6 节：定时任务列表 / 删除确认、运行时与模态（含提交回执）。
-	{name: "variant-cron", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection = ScreenSettings, 4
-	}},
-	{name: "variant-cron-delete", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection, a.cronDeleting = ScreenSettings, 4, 0
-	}},
-	{name: "variant-runtime", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection = ScreenSettings, 5
-	}},
-	{name: "variant-runtime-submit", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection = ScreenSettings, 5
-		a.modalTask, a.modalSubmitted = "重跑全部语言测试", "重跑全部语言测试"
 	}},
 	// 会话目录动作：行末菜单、行内重命名、删除确认、搜索面。
 	{name: "variant-session-menu", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
@@ -174,14 +128,6 @@ var screenCases = []screenCase{
 		a.termState = termExited
 		a.termLines = termSamples(termExited)
 	}},
-	// 设置 · 扩展：四个页签 + 列表（插件 8 行）。
-	{name: "variant-ext", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, 3, 1
-	}},
-	// 设置 · 扩展：读取失败态。
-	{name: "variant-ext-failed", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen, a.settingsSection, a.extState = ScreenSettings, 3, extFailed
-	}},
 	// 富文本：Markdown 的块级样式（标题、列表、行内代码、代码块、引用、表格、链接）。
 	{name: "variant-rich", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.rounds = []round{{
@@ -201,16 +147,10 @@ var screenCases = []screenCase{
 	{name: "variant-goal", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.goalEditing = true
 	}},
-	// 设置屏（P2）：左导航 + 三个分节；默认停在命令规则（含危险动作）。
+	// 设置屏（P2）：左导航 19 节，默认停在首节（账户）。
 	{name: "variant-settings", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.screen = ScreenSettings
-		a.settingsSection = 0
-	}},
-	// 设置 · 命令规则的清空确认态（危险动作两步）。
-	{name: "variant-settings-rules", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.screen = ScreenSettings
-		a.settingsSection = 2
-		a.clearRulesConfirm = true
+		a.settingsSection = secAccount
 	}},
 	// 后台任务：右栏「后台」标签下的运行中任务。
 	{name: "variant-tasks", state: StateRunning, titleBar: &windowTitleBar, setup: func(a *App) {

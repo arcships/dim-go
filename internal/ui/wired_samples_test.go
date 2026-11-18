@@ -102,13 +102,6 @@ func TestWiredScreensExcludeSamples(t *testing.T) {
 	}{
 		{"主界面", func(a *App) { a.screen = ScreenMain }, "真实会话"},
 		{"账号", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAccount }, "ada@real.test"},
-		{"供应商", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders }, "Acme"},
-		{"命令规则", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secRules }, "尚未读取"},
-		{"扩展", func(a *App) { a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1 }, "real-plugin"},
-		{"定时任务", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secCron }, "real-job"},
-		{"运行时", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secRuntime }, "server-real"},
-		{"存储", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secStorage }, "1.5 KB"},
-		{"外观", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAppearance }, "跟随系统"},
 		{"终端", func(a *App) { a.screen, a.rightOpen, a.rightTab = ScreenMain, true, 4 }, "还没有输出"},
 	}
 	for _, screen := range screens {

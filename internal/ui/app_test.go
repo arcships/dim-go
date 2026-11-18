@@ -520,8 +520,8 @@ func TestTerminalStatesAndKeys(t *testing.T) {
 	}
 }
 
-// 最后两个动作：附件移除（可逆）与权限档位（两步确认）。
-func TestAttachmentRemoveAndTierConfirm(t *testing.T) {
+// 附件移除（可逆）。
+func TestAttachmentRemove(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 	if len(app.attachments) != 1 {
 		t.Fatalf("样例附件 %d 条，想要 1", len(app.attachments))
@@ -531,96 +531,6 @@ func TestAttachmentRemoveAndTierConfirm(t *testing.T) {
 	}
 	if len(app.attachments) != 0 {
 		t.Fatal("移除没有生效")
-	}
-
-	// 权限档位：改下拉只进确认态，确认后才生效。
-	app.screen, app.settingsSection = ScreenSettings, secProviders
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	app.tierDraft, app.tierPending = "每次询问", "每次询问"
-	tt.Frame()
-	if _, ok := tt.Find("权限档位确认"); !ok {
-		t.Fatal("没有进入确认态")
-	}
-	if app.tier != "工作区内自动" {
-		t.Fatal("确认前不该改档位")
-	}
-	if err := tt.Click("确认切换权限档位"); err != nil {
-		t.Fatalf("点不到确认：%v", err)
-	}
-	if app.tier != "每次询问" {
-		t.Fatalf("确认后档位 = %q", app.tier)
-	}
-}
-
-// 扩展详情 / 批量选择 / MCP 连接测试。
-func TestExtDetailSelectAndMCP(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	app.screen, app.settingsSection, app.extTab = ScreenSettings, secExtensions, 1
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-
-	// 详情：行末入口进入二级页，返回回列表。
-	if err := tt.Click("详情：GitHub"); err != nil {
-		t.Fatalf("点不到详情入口：%v", err)
-	}
-	if app.extDetail != 0 {
-		t.Fatal("没有进入详情")
-	}
-	tt.Frame()
-	if _, ok := tt.Access("返回扩展列表"); !ok {
-		t.Fatal("详情页缺返回入口")
-	}
-	// 卸载两步。
-	if err := tt.Click("卸载扩展"); err != nil {
-		t.Fatalf("点不到卸载：%v", err)
-	}
-	if !app.extUninstallConfirm || len(app.plugins) != 8 {
-		t.Fatal("第一次点卸载不应生效")
-	}
-	tt.Frame()
-	if err := tt.Click("确认卸载"); err != nil {
-		t.Fatalf("点不到确认卸载：%v", err)
-	}
-	if len(app.plugins) != 7 {
-		t.Fatalf("卸载后剩 %d 条", len(app.plugins))
-	}
-
-	// 选择态：勾两行 → 批量停用。
-	app.extDetail = -1
-	app.selectMode = true
-	app.extSelected = map[string]bool{"GitHub": true, "Linear": true}
-	tt.Frame()
-	if _, ok := tt.Find("批量工具条"); !ok {
-		t.Fatal("选择态缺工具条")
-	}
-	if err := tt.Click("批量停用"); err != nil {
-		t.Fatalf("点不到批量停用：%v", err)
-	}
-	for _, it := range app.plugins {
-		if (it.name == "GitHub" || it.name == "Linear") && it.on {
-			t.Fatalf("%s 没有被停用", it.name)
-		}
-	}
-	if app.selectMode {
-		t.Fatal("批量操作后应退出选择态")
-	}
-
-	// MCP：连接测试三态。
-	app.extTab = 2
-	tt.Frame()
-	if err := tt.Click("连接测试：filesystem"); err != nil {
-		t.Fatalf("点不到测试：%v", err)
-	}
-	if app.mcpTest["filesystem"] != mcpTesting {
-		t.Fatalf("测试后状态 = %v", app.mcpTest["filesystem"])
-	}
-	tt.Frame()
-	if _, ok := tt.Access("连接测试进行中"); !ok {
-		t.Fatal("缺连接测试进行中")
-	}
-	app.mcpTest["filesystem"] = mcpFail
-	tt.Frame()
-	if _, ok := tt.Access("连接测试失败"); !ok {
-		t.Fatal("缺连接测试失败")
 	}
 }
 
@@ -700,110 +610,6 @@ func TestTerminalANSIAndDisconnect(t *testing.T) {
 	}
 	if got := app.termVisible()[len(app.termVisible())-1].text; got != "reconnected" {
 		t.Fatalf("恢复末行 = %q", got)
-	}
-}
-
-// 设置第 7、8 节：八节导航、存储读数带单位、导出回执、键位表。
-func TestSettingsStorageAndKeys(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	app.screen, app.settingsSection = ScreenSettings, secStorage
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	// 导航八节齐。
-	for _, name := range []string{"账号与套餐", "模型与供应商", "命令规则", "扩展",
-		"定时任务", "运行时与模态", "存储与诊断", "外观与键位"} {
-		if _, ok := tt.Find(name); !ok {
-			t.Fatalf("导航缺 %q", name)
-		}
-	}
-	// 读数带单位：占用 1.2 GB。
-	if _, ok := tt.Access("存储读数：占用"); !ok {
-		t.Fatal("缺存储读数行")
-	}
-	if _, ok := tt.Find("GB"); !ok {
-		t.Fatal("读数没有单位")
-	}
-	// 导出：一次点击即给回执。
-	if err := tt.Click("导出诊断"); err != nil {
-		t.Fatalf("点不到导出：%v", err)
-	}
-	if !app.diagnosticsExported {
-		t.Fatal("导出没有生效")
-	}
-	tt.Frame()
-	if _, ok := tt.Find("导出回执"); !ok {
-		t.Fatal("导出没有回执")
-	}
-
-	// 第 8 节：时区与键位表。
-	app.settingsSection = secAppearance
-	tt.Frame()
-	if _, ok := tt.Find("时区"); !ok {
-		t.Fatal("外观与键位缺时区项")
-	}
-	if _, ok := tt.Find("快捷键"); !ok {
-		t.Fatal("缺键位表")
-	}
-	if _, ok := tt.Find("发送 / 停止"); !ok {
-		t.Fatal("键位表缺 Enter 一行")
-	}
-}
-
-// 设置第 5、6 节：任务启停/删除两步、组件清单、模态任务提交回执。
-func TestSettingsCronAndRuntime(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	app.screen, app.settingsSection = ScreenSettings, 4
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if len(app.cron) != 4 {
-		t.Fatalf("定时任务样例 %d 条，想要 4", len(app.cron))
-	}
-	// 启停：只翻转目标行。
-	before := app.cron[0].on
-	info, ok := tt.Access("启用任务：每晚依赖检查")
-	if !ok {
-		t.Fatal("找不到定时任务开关")
-	}
-	tt.ClickAt(info.Bounds.X+4, info.Bounds.Y+info.Bounds.H/2)
-	if app.cron[0].on == before {
-		t.Fatal("开关没有翻转")
-	}
-	if app.cron[1].on != true {
-		t.Fatal("别的任务被连带改了")
-	}
-	// 删除：第一步只进确认，第二步才删。
-	if err := tt.Click("删除任务：每晚依赖检查"); err != nil {
-		t.Fatalf("点不到删除入口：%v", err)
-	}
-	if app.cronDeleting != 0 || len(app.cron) != 4 {
-		t.Fatal("第一次点删除不应生效")
-	}
-	tt.Frame()
-	if _, ok := tt.Find("删除定时任务确认"); !ok {
-		t.Fatal("删除确认行没有出现")
-	}
-	if err := tt.Click("确认删除任务"); err != nil {
-		t.Fatalf("点不到确认删除：%v", err)
-	}
-	if len(app.cron) != 3 {
-		t.Fatalf("确认后剩 %d 条", len(app.cron))
-	}
-
-	// 运行时：组件清单 + 模态提交。
-	app.settingsSection = 5
-	tt.Frame()
-	if _, ok := tt.Access("运行时组件：dim-app-server · v3.4.1 · 可用"); !ok {
-		t.Fatal("运行时组件行缺失")
-	}
-	app.modalTask = "重跑全部语言测试"
-	tt.Frame()
-	if err := tt.Click("提交模态任务"); err != nil {
-		t.Fatalf("点不到提交：%v", err)
-	}
-	if app.modalSubmitted != "重跑全部语言测试" {
-		t.Fatalf("回执 = %q", app.modalSubmitted)
-	}
-	tt.Frame()
-	if _, ok := tt.Find("提交回执"); !ok {
-		t.Fatal("没有提交回执")
 	}
 }
 
@@ -922,61 +728,6 @@ func TestSessionSearch(t *testing.T) {
 	}
 }
 
-// 扩展：四个页签、切页签只换列表、开关点一次只翻转一行、失败态给重试。
-func TestExtensionsTabsAndSwitches(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	app.screen, app.settingsSection = ScreenSettings, 3
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	for _, name := range []string{"技能", "插件", "MCP", "钩子"} {
-		if _, ok := tt.Find(name); !ok {
-			t.Fatalf("扩展缺少页签 %q", name)
-		}
-	}
-	// 切到插件页签：列表换成 8 个插件，分节不变。
-	if err := tt.Click("插件"); err != nil {
-		t.Fatalf("点不到插件页签：%v", err)
-	}
-	if app.extTab != 1 || app.settingsSection != 3 {
-		t.Fatalf("切页签后 tab=%d section=%d", app.extTab, app.settingsSection)
-	}
-	tt.Frame()
-	if _, ok := tt.Find("GitHub"); !ok {
-		t.Fatal("插件页签没有列表")
-	}
-	// 开关：点第一行的开关，只翻转这一行。
-	before := app.plugins[0].on
-	info, ok := tt.Access("启用：GitHub")
-	if !ok {
-		t.Fatal("找不到 GitHub 的开关")
-	}
-	tt.ClickAt(info.Bounds.X+4, info.Bounds.Y+info.Bounds.H/2)
-	if app.plugins[0].on == before {
-		t.Fatal("开关没有翻转")
-	}
-	if app.plugins[1].on != true {
-		t.Fatal("别的行被连带改了")
-	}
-	// 失败态：叹号 + 原因 + 重试。
-	app.extState = extFailed
-	tt.Frame()
-	if _, ok := tt.Access("扩展读取失败"); !ok {
-		t.Fatal("失败态没有说明行")
-	}
-	if _, ok := tt.Access("重试读取"); !ok {
-		t.Fatal("失败态没有重试入口")
-	}
-}
-
-// 扩展空态：一句事实，主语跟着页签。
-func TestExtensionsEmptyState(t *testing.T) {
-	app, _ := newTester(t, StateDefault)
-	app.screen, app.settingsSection, app.extState = ScreenSettings, 3, extEmpty
-	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if _, ok := tt.Find("还没有可用的技能"); !ok {
-		t.Fatal("空态没有一句事实")
-	}
-}
-
 // 设置是独立成屏（P2）：从左栏齿轮进入、从导航的返回入口回来；草稿与滚动位置
 // 不因为进出一趟设置而丢失（UI-8）。
 func TestSettingsRoundTripKeepsDraftAndScroll(t *testing.T) {
@@ -999,7 +750,7 @@ func TestSettingsRoundTripKeepsDraftAndScroll(t *testing.T) {
 	if _, ok := tt.Find("对话流"); ok {
 		t.Fatal("设置屏不应同时显示主界面")
 	}
-	for _, name := range []string{"外观与键位", "模型与供应商", "命令规则"} {
+	for _, name := range []string{"账户", "用量", "个性化", "关于"} {
 		if _, ok := tt.Find(name); !ok {
 			t.Fatalf("设置导航缺分节 %q", name)
 		}
@@ -1022,71 +773,57 @@ func TestSettingsRoundTripKeepsDraftAndScroll(t *testing.T) {
 	}
 }
 
-// 设置里分节可切换；外观的主题改完立即生效（同一帧换主题）。
-func TestSettingsSectionsAndTheme(t *testing.T) {
+// 设置导航的 19 节与内容路由：已重建的分节显示真内容，其余显示占位。
+func TestSettingsNavAndSectionRouting(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 	app.screen = ScreenSettings
 	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	// 主题：切到「暗」后同一帧背景变暗（外观分节）。
-	if err := tt.Click("主题选择"); err != nil {
-		t.Fatalf("点不到主题下拉：%v", err)
-	}
-	// 下拉是框架的原生弹层：聚焦后 ↓ 打开、再 ↓ 移到「暗」、Enter 选中。
-	tt.Key(0, gui.KeyDown)
-	tt.Key(0, gui.KeyDown)
-	tt.Key(0, gui.KeyEnter)
-	if app.themePref != "暗" {
-		t.Fatalf("主题偏好 = %q，想要 暗", app.themePref)
-	}
-	tt.Frame()
-	bg := tt.Image().RGBAAt(SidebarWidth+8, HeaderHeight+8)
-	if bg.R > bg.B || bg.R > 200 {
-		t.Fatalf("切到暗色后主区底色仍是 %v", bg)
-	}
-	// 动效开关：点开关本身（开关比标签窄），状态立即变。
-	if info, ok := tt.Access("关闭动效"); ok {
-		tt.ClickAt(info.Bounds.X+4, info.Bounds.Y+info.Bounds.H/2)
-	}
-	if !app.motionOff {
-		t.Fatal("动效开关没有生效")
-	}
-	// 分节切换：命令规则。
-	tt.Frame()
-	if err := tt.Click("命令规则"); err != nil {
-		t.Fatalf("点不到命令规则：%v", err)
-	}
-	if app.settingsSection != 2 {
-		t.Fatalf("分节 = %d，想要 2（命令规则）", app.settingsSection)
-	}
-	tt.Frame()
-	if _, ok := tt.Find("清空命令规则"); !ok {
-		t.Fatal("命令规则分节缺少危险动作")
-	}
-}
 
-// 清空命令规则是两步动作（AC-13）：第一次只进确认态，第二次才清空。
-func TestClearRulesNeedsConfirm(t *testing.T) {
-	app, tt := newTester(t, StateDefault)
-	app.screen = ScreenSettings
-	app.settingsSection = 2
-	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if err := tt.Click("清空命令规则"); err != nil {
-		t.Fatalf("点不到清空：%v", err)
+	// 19 节齐全，顺序与参考产品一致。
+	want := []string{
+		"账户", "用量", "个性化", "外观", "通用", "快捷键", "模型供应", "多模态",
+		"运行环境", "MCP", "通知", "宠物", "权限", "Git", "Hooks", "插件设置",
+		"外部 Agent", "归档会话", "关于",
 	}
-	if len(app.rules) == 0 {
-		t.Fatal("第一次点击就清空了规则")
+	if len(settingsSectionDefs) != len(want) {
+		t.Fatalf("分节 %d 项，想要 %d", len(settingsSectionDefs), len(want))
 	}
-	if !app.clearRulesConfirm {
-		t.Fatal("第一次点击应进入确认态")
+	lastY := float32(-1)
+	for i, name := range want {
+		info, ok := tt.Find(name)
+		if !ok {
+			t.Fatalf("导航缺第 %d 节 %q", i+1, name)
+		}
+		if info.Y <= lastY {
+			t.Fatalf("第 %d 节 %q 不在上一节下方（Y=%v）", i+1, name, info.Y)
+		}
+		lastY = info.Y
+		if settingsSectionDefs[i].label != name {
+			t.Fatalf("第 %d 节 = %q，想要 %q", i+1, settingsSectionDefs[i].label, name)
+		}
 	}
-	if _, ok := tt.Find("确认清空"); !ok {
-		t.Fatal("确认态没有换成「确认清空」")
+
+	// 账户：真内容（身份与套餐读数）。
+	if app.settingsSection != secAccount {
+		t.Fatalf("默认分节 = %v，想要账户", app.settingsSection)
 	}
-	if err := tt.Click("确认清空"); err != nil {
-		t.Fatalf("点不到确认清空：%v", err)
+	if _, ok := tt.Find("尚未按参考产品重建"); ok {
+		t.Fatal("账户不应显示占位")
 	}
-	if len(app.rules) != 0 {
-		t.Fatalf("确认后仍有 %d 条规则", len(app.rules))
+
+	// 未实现的分节：切过去只有标题 + 一行占位，不放控件。
+	if err := tt.Click("宠物"); err != nil {
+		t.Fatalf("点不到分节：%v", err)
+	}
+	if app.settingsSection != secPets {
+		t.Fatalf("分节 = %v，想要宠物", app.settingsSection)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("宠物"); !ok {
+		t.Fatal("占位分节缺标题")
+	}
+	if _, ok := tt.Find("尚未按参考产品重建"); !ok {
+		t.Fatal("占位分节缺状态句")
 	}
 }
 

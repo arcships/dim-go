@@ -130,7 +130,6 @@ func TestSourceApprovalReplacesComposer(t *testing.T) {
 func TestViewStateSurvivesFactCount(t *testing.T) {
 	app := NewApp(Options{State: StateDefault})
 	app.source = &fakeSource{conn: Connection{Phase: "connected"}, names: []string{"x"}}
-	_ = app.currentExtTitle()
 	// 200 轮：展开态按需创建，不随事实数量重建。
 	app.rounds = benchRounds(200)
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)

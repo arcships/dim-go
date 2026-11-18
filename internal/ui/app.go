@@ -69,17 +69,7 @@ func ParseState(v string) (State, error) {
 	return StateDefault, fmt.Errorf("未知状态 %q：可用 default、running、waiting、failed、empty，或 1–5", v)
 }
 
-// 设置的分节序号（U1-ia §4 的 8 节，顺序与文档一致）。
-const (
-	secAccount    = 0 // 账号与套餐
-	secProviders  = 1 // 模型与供应商
-	secRules      = 2 // 命令规则
-	secExtensions = 3 // 扩展
-	secCron       = 4 // 定时任务
-	secRuntime    = 5 // 运行时与模态
-	secStorage    = 6 // 存储与诊断
-	secAppearance = 7 // 外观与键位
-)
+// 设置的分节标识（19 节，顺序与名称见 settings_sections.go）。
 
 // Screen 是当前屏：主界面或设置（P1/P2，U1-ia §4）。设置独立成屏，返回时恢复
 // 离开前的主界面状态（草稿、滚动位置、展开状态都由 App 持有，切屏不重建它们）。
@@ -112,24 +102,9 @@ const (
 	// VariantTermDisconnected / TermRecovered 是终端的断线与恢复（F31 的退化）。
 	VariantTermDisconnected
 	VariantTermRecovered
-	// VariantTierConfirm 是权限档位切换的两步确认态。
-	VariantTierConfirm
-	// VariantExtDetail / ExtSelect / MCPTest / MCPFail 是扩展的详情、选择态与 MCP 测试三态。
-	VariantExtDetail
-	VariantExtSelect
-	VariantMCPTest
-	VariantMCPFail
 	// VariantShell / ShellRun 是输入区命令模式（`!`）的空闲与运行中。
 	VariantShell
 	VariantShellRun
-	// VariantStorage / AppearanceKeys 是设置第 7、8 节的走查态。
-	VariantStorage
-	VariantAppearanceKeys
-	// VariantCron / CronDelete / Runtime / RuntimeSubmit 是设置第 5、6 节的走查态。
-	VariantCron
-	VariantCronDelete
-	VariantRuntime
-	VariantRuntimeSubmit
 	// VariantSessionMenu / Rename / SessionDelete / Search 是左栏目录动作的四个走查态。
 	VariantSessionMenu
 	VariantSessionRename
@@ -139,15 +114,8 @@ const (
 	VariantTerm
 	VariantTermRunning
 	VariantTermExited
-	// VariantExt 设置 · 扩展（列表）；后三个是同一节的加载 / 空 / 失败态。
-	VariantExt
-	VariantExtFailed
-	VariantExtEmpty
-	VariantExtLoading
-	// VariantSettings 进入设置屏（默认分节）。
+	// VariantSettings 进入设置屏（首节：账户）。
 	VariantSettings
-	// VariantSettingsRules 进入设置屏并停在命令规则的清空确认态。
-	VariantSettingsRules
 )
 
 // variantNames 是 -variant 的取值。
@@ -156,19 +124,11 @@ var variantNames = map[string]Variant{
 	"goal": VariantGoal, "tasks": VariantTasks,
 	"branch-end": VariantBranchEnd, "rich": VariantRich,
 	"term-disconnected": VariantTermDisconnected, "term-recovered": VariantTermRecovered,
-	"tier-confirm": VariantTierConfirm,
-	"ext-detail":   VariantExtDetail, "ext-select": VariantExtSelect,
-	"mcp-test": VariantMCPTest, "mcp-fail": VariantMCPFail,
 	"shell": VariantShell, "shell-run": VariantShellRun,
-	"storage": VariantStorage, "appearance-keys": VariantAppearanceKeys,
-	"cron": VariantCron, "cron-delete": VariantCronDelete,
-	"runtime": VariantRuntime, "runtime-submit": VariantRuntimeSubmit,
 	"session-menu": VariantSessionMenu, "rename": VariantSessionRename,
 	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
-	"term-exited": VariantTermExited,
-	"ext":         VariantExt, "ext-failed": VariantExtFailed,
-	"ext-empty": VariantExtEmpty, "ext-loading": VariantExtLoading, "settings": VariantSettings, "settings-rules": VariantSettingsRules,
+	"term-exited": VariantTermExited, "settings": VariantSettings,
 }
 
 // ParseVariant 解析 -variant。
@@ -176,7 +136,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、tier-confirm、ext-detail、ext-select、mcp-test、mcp-fail、shell、shell-run、storage、appearance-keys、cron、cron-delete、runtime、runtime-submit、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-rules、term、term-running、term-exited、ext、ext-failed、ext-empty、ext-loading", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited", v)
 }
 
 // Options 是骨架的启动参数。
@@ -240,55 +200,20 @@ type App struct {
 	goalDraft        string
 	goalClearConfirm bool
 
-	// 设置屏：屏幕、当前分节、三个分节的样例值。全部是可丢的界面状态。
-	screen            Screen
-	settingsSection   int
-	themePref         string
-	motionOff         bool
-	provider          string
-	providers         []string
-	modelChoice       string
-	models            []string
-	modelPrice        string
-	rules             []commandRule
-	clearRulesConfirm bool
+	// 设置屏：屏幕、当前分节（19 节见 settings_sections.go）、外观偏好与时区。
+	// 全部是可丢的界面状态。
+	screen          Screen
+	settingsSection settingsSectionID
+	themePref       string
+	motionOff       bool
+	timeZone        string
 
-	// 定时任务（设置第 5 节）与运行时（第 6 节）。
-	cron           []cronTask
-	cronState      extState
-	cronDeleting   int
-	cronDeletingID string
-	runtime        []runtimePart
-	runtimeState   extState
-	modalTask      string
-	modalSubmitted string
-
-	// 第 8 节：时区；第 7 节：诊断导出/打开的回执。
-	timeZone            string
-	providerFormOpen    bool
-	providerEditing     string
-	providerIDDraft     string
-	providerNameDraft   string
-	providerBaseDraft   string
-	providerKeyDraft    string
-	providerProbe       map[string]string
-	diagnosticsExported bool
-	diagnosticsOpened   bool
-
-	// 扩展：页签、加载态与四类样例。
-	extTab   int
-	extState extState
-
-	// 扩展的详情（二级页）、选择态与 MCP 的认证 / 导入 / 连接测试。
-	extDetail           int
-	extUninstallConfirm bool
-	selectMode          bool
-	extSelected         map[string]bool
-	mcpTest             map[string]mcpState
-	mcpTestDone         map[string]bool
-	mcpTestReason       string
-	importMCP           string
-	importResult        string
+	// 设置 · 账户（重建屏）：邮箱登录对话框的开合与草稿、重置确认框的类型、
+	// 用量刷新的起点。都是可丢的界面状态，不是事实。
+	accountEmailOpen  bool
+	accountEmailDraft string
+	accountResetType  string
+	accountRefreshAt  time.Time
 
 	// source 非空时，视图从它读事实（A 领域的 Source 接口）；为空时用样例数据
 	// （-demo 与截图）。视图不缓存事实：每次读的都是 Source 的快照。
@@ -305,7 +230,7 @@ type App struct {
 	// lastShellRun 是最近一次已发出的命令运行标识，供「中止」使用。
 	lastShellRun string
 
-	// 待发附件（样例）与权限档位（提交值与草稿值分开：切换要两步确认）。
+	// 待发附件（样例）。
 	attachments       []attachmentChipData
 	attachmentEditing bool
 	attachmentKind    string
@@ -313,9 +238,6 @@ type App struct {
 	attachmentText    string
 	attachmentMedia   string
 	attachmentData    string
-	tier              string
-	tierDraft         string
-	tierPending       string
 
 	// 会话目录：搜索面、行内重命名、删除确认、归档与导出反馈（都属可丢的视图状态）。
 	searchOpen  bool
@@ -333,10 +255,6 @@ type App struct {
 	termLines  []termLine
 	termInput  string
 	termCopied bool
-	plugins    []extItem
-	skills     []extItem
-	mcps       []extItem
-	hooks      []extItem
 	tasks      []task
 
 	// contextUsed / contextLimit 是样例里的上下文用量，百分比由二者算；
@@ -420,38 +338,11 @@ func (a *App) loadSample() {
 	a.tasks = taskSamples()
 
 	a.screen = ScreenMain
-	a.settingsSection = secAppearance
+	a.settingsSection = secAccount
 	a.themePref = "跟随系统"
 	a.motionOff = false
-	a.providers = []string{"Anthropic", "OpenAI"}
-	a.provider = "Anthropic"
-	a.models = []string{"Opus 4.6", "Sonnet 4.6"}
-	a.modelChoice = "Opus 4.6"
-	a.modelPrice = "$3 / 百万 token · $15 / 百万 token（输出）"
-	a.rules = []commandRule{
-		{command: "go test ./...", decision: "允许", match: "精确"},
-		{command: "rm -rf", decision: "拒绝", match: "前缀"},
-	}
-	a.clearRulesConfirm = false
-	a.cron = cronSamples()
-	a.cronState, a.cronDeleting = extLoaded, -1
-	a.runtime = runtimeSamples()
-	a.runtimeState = extLoaded
-	a.modalTask, a.modalSubmitted = "", ""
 	a.timeZone = "跟随系统"
-	a.providerFormOpen = false
-	a.providerEditing = ""
-	a.providerIDDraft, a.providerNameDraft, a.providerBaseDraft, a.providerKeyDraft = "", "", "", ""
-	a.providerProbe = map[string]string{}
-	a.diagnosticsExported, a.diagnosticsOpened = false, false
-	a.extTab, a.extState = 0, extLoaded
-	a.extDetail, a.extUninstallConfirm = -1, false
-	a.selectMode = false
-	a.extSelected = map[string]bool{}
-	a.mcpTest, a.mcpTestDone = map[string]mcpState{}, map[string]bool{}
-	a.importMCP = ""
 	a.attachments = []attachmentChipData{{name: "发送路径.md", kind: "text"}}
-	a.tier, a.tierDraft, a.tierPending = "工作区内自动", "工作区内自动", ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
@@ -461,19 +352,11 @@ func (a *App) loadSample() {
 	a.termState = termIdle
 	a.termLines = termSamples(termIdle)
 	a.termCopied = false
-	a.skills = extSamples(extSkills)
-	a.plugins = extSamples(extPlugins)
-	a.mcps = extSamples(extMCP)
-	a.hooks = extSamples(extHooks)
 
 	switch a.variant {
 	case VariantSettings:
 		a.screen = ScreenSettings
-		a.settingsSection = secAppearance // 外观：主题与动效
-	case VariantSettingsRules:
-		a.screen = ScreenSettings
-		a.settingsSection = secRules // 命令规则：清空确认态
-		a.clearRulesConfirm = true
+		a.settingsSection = secAccount // 设置：首节（账户）
 	case VariantTermDisconnected:
 		a.rightOpen, a.rightTab = true, 4
 		a.termState = termDisconnected
@@ -483,24 +366,6 @@ func (a *App) loadSample() {
 		a.termState = termIdle
 		a.termLines = append(termSamples(termExited), termLine{text: "connection lost", color: 1},
 			termLine{text: "reconnected", color: 2})
-	case VariantTierConfirm:
-		a.screen, a.settingsSection = ScreenSettings, secProviders
-		a.tierDraft, a.tierPending = "每次询问", "每次询问"
-	case VariantExtDetail:
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
-		a.extDetail = 0
-	case VariantExtSelect:
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 1
-		a.selectMode = true
-		a.extSelected = map[string]bool{"GitHub": true, "Linear": true}
-	case VariantMCPTest:
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
-		a.mcpTest["filesystem"] = mcpTesting
-		a.mcpTest["postgres"] = mcpOK
-	case VariantMCPFail:
-		a.screen, a.settingsSection, a.extTab = ScreenSettings, secExtensions, 2
-		a.mcpTest["postgres"] = mcpFail
-		a.importMCP = "filesystem"
 	case VariantShell:
 		a.draft = "!go test ./..."
 	case VariantShellRun:
@@ -508,20 +373,6 @@ func (a *App) loadSample() {
 		a.rightOpen, a.rightTab = true, 4
 		a.termState = termRunning
 		a.termLines = append(termSamples(termRunning), termLine{text: "$ npm run build", color: -1})
-	case VariantStorage:
-		a.screen, a.settingsSection = ScreenSettings, secStorage
-	case VariantAppearanceKeys:
-		a.screen, a.settingsSection = ScreenSettings, secAppearance
-	case VariantCron:
-		a.screen, a.settingsSection = ScreenSettings, secCron
-	case VariantCronDelete:
-		a.screen, a.settingsSection, a.cronDeleting = ScreenSettings, secCron, 0
-	case VariantRuntime:
-		a.screen, a.settingsSection = ScreenSettings, secRuntime
-	case VariantRuntimeSubmit:
-		a.screen, a.settingsSection = ScreenSettings, secRuntime
-		a.modalTask = "重跑全部语言测试"
-		a.modalSubmitted = "重跑全部语言测试"
 	case VariantSessionMenu:
 		*a.menuOpenPtr(0) = true
 	case VariantSessionRename:
@@ -543,17 +394,6 @@ func (a *App) loadSample() {
 			a.termState = termExited
 		}
 		a.termLines = termSamples(a.termState)
-	case VariantExt, VariantExtFailed, VariantExtEmpty, VariantExtLoading:
-		a.screen = ScreenSettings
-		a.settingsSection = secExtensions
-		switch a.variant {
-		case VariantExtFailed:
-			a.extState = extFailed
-		case VariantExtEmpty:
-			a.extState = extEmpty
-		case VariantExtLoading:
-			a.extState = extLoading
-		}
 	case VariantRich:
 		a.rounds = []round{{
 			user:   "把排队的实现讲清楚",
@@ -603,47 +443,18 @@ func (a *App) resetWiredViewState() {
 	a.tasks = nil
 
 	a.screen = ScreenMain
-	a.settingsSection = secAppearance
+	a.settingsSection = secAccount
 	a.themePref = "跟随系统"
 	a.motionOff = false
 	a.timeZone = "跟随系统"
 	a.sidebarWidth = 0
 	a.lastPrefs = PreferencesSnapshot{}
-	a.provider = ""
-	a.providers = nil
-	a.modelChoice = ""
-	a.models = nil
-	a.modelPrice = ""
-	a.rules = nil
-	a.clearRulesConfirm = false
-	a.cron = nil
-	a.cronState = extLoaded
-	a.cronDeleting = -1
-	a.cronDeletingID = ""
-	a.runtime = nil
-	a.runtimeState = extLoaded
-	a.modalTask, a.modalSubmitted = "", ""
-	a.timeZone = "跟随系统"
-	a.providerFormOpen = false
-	a.providerEditing = ""
-	a.providerIDDraft, a.providerNameDraft, a.providerBaseDraft, a.providerKeyDraft = "", "", "", ""
-	a.providerProbe = map[string]string{}
-	a.diagnosticsExported, a.diagnosticsOpened = false, false
-
-	a.extTab, a.extState = 0, extLoaded
-	a.extDetail, a.extUninstallConfirm = -1, false
-	a.selectMode = false
-	a.extSelected = map[string]bool{}
-	a.mcpTest, a.mcpTestDone = map[string]mcpState{}, map[string]bool{}
-	a.importMCP = ""
-	a.plugins, a.skills, a.mcps, a.hooks = nil, nil, nil, nil
 
 	a.attachments = nil
 	a.attachmentEditing = false
 	a.attachmentName, a.attachmentText = "", ""
 	a.attachmentKind = "text"
 	a.attachmentMedia, a.attachmentData = "", ""
-	a.tier, a.tierDraft, a.tierPending = "", "", ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
@@ -1074,34 +885,10 @@ func (a *App) liveUsage() (UsageSnapshot, bool) {
 	return a.source.Usage(), true
 }
 
-// liveExtensions 取扩展四类读数。
-func (a *App) liveExtensions() (ExtensionsSnapshot, bool) {
-	if a.source == nil {
-		return ExtensionsSnapshot{}, false
-	}
-	return a.source.Extensions(), true
-}
-
-// liveSchedules 取定时任务读数。
-func (a *App) liveSchedules() (SchedulesSnapshot, bool) {
-	if a.source == nil {
-		return SchedulesSnapshot{}, false
-	}
-	return a.source.Schedules(), true
-}
-
 // liveTerminal 取终端状态；第三个返回值表示是否由 Source 提供。
 func (a *App) liveTerminal() (TerminalSnapshot, bool) {
 	if a.source == nil {
 		return TerminalSnapshot{}, false
 	}
 	return a.source.Terminal(), true
-}
-
-// currentExtTitle 是 Source 里当前会话的标题（空会话时给空态用）。
-func (a *App) currentExtTitle() string {
-	if snap, ok := a.liveSession(); ok {
-		return snap.Title
-	}
-	return ""
 }
