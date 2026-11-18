@@ -1,0 +1,241 @@
+{
+ "state": "X12-export-dialog",
+ "count": 21,
+ "items": [
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 385,
+   "y": -366,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl",
+   "tag": "div",
+   "role": "dialog",
+   "text": "",
+   "label": "",
+   "x": 221,
+   "y": 197,
+   "w": 588,
+   "h": 331
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.flex min-w-0 flex-col gap-2 text-center sm:text-left > h2.text-lg leading-none font-semibold",
+   "tag": "h2",
+   "role": "",
+   "text": "导出对话",
+   "label": "",
+   "x": 243,
+   "y": 219,
+   "w": 544,
+   "h": 16
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.flex min-w-0 flex-col gap-2 text-center sm:text-left > p.min-w-0 break-words text-muted-foreground text-sm line-clamp-3",
+   "tag": "p",
+   "role": "",
+   "text": "导出「帮我列出当前目录的文件」的会话对话。不包含原始 Provider 请求。",
+   "label": "",
+   "x": 243,
+   "y": 242,
+   "w": 544,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > p.text-sm font-medium text-foreground",
+   "tag": "p",
+   "role": "",
+   "text": "导出内容",
+   "label": "",
+   "x": 243,
+   "y": 273,
+   "w": 544,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > button.peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+   "tag": "button",
+   "role": "checkbox",
+   "text": "",
+   "label": "",
+   "x": 243,
+   "y": 299,
+   "w": 14,
+   "h": 14
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > button.peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 > span.grid place-content-center text-current transition-none",
+   "tag": "span",
+   "role": "",
+   "text": "",
+   "label": "",
+   "icon": true,
+   "x": 244,
+   "y": 300,
+   "w": 12,
+   "h": 12
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > span.text-sm text-foreground",
+   "tag": "span",
+   "role": "",
+   "text": "压缩记录",
+   "label": "",
+   "x": 264,
+   "y": 298,
+   "w": 49,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > button.peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+   "tag": "button",
+   "role": "checkbox",
+   "text": "",
+   "label": "",
+   "x": 334,
+   "y": 299,
+   "w": 14,
+   "h": 14
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > button.peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 > span.grid place-content-center text-current transition-none",
+   "tag": "span",
+   "role": "",
+   "text": "",
+   "label": "",
+   "icon": true,
+   "x": 335,
+   "y": 300,
+   "w": 12,
+   "h": 12
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > span.text-sm text-foreground",
+   "tag": "span",
+   "role": "",
+   "text": "工具详情",
+   "label": "",
+   "x": 355,
+   "y": 298,
+   "w": 49,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > button.peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+   "tag": "button",
+   "role": "checkbox",
+   "text": "",
+   "label": "",
+   "x": 425,
+   "y": 299,
+   "w": 14,
+   "h": 14
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > button.peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary data-[state=indeterminate]:bg-primary data-[state=indeterminate]:text-primary-foreground data-[state=indeterminate]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 > span.grid place-content-center text-current transition-none",
+   "tag": "span",
+   "role": "",
+   "text": "",
+   "label": "",
+   "icon": true,
+   "x": 426,
+   "y": 300,
+   "w": 12,
+   "h": 12
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.space-y-2 > div.flex flex-wrap gap-x-6 gap-y-2 > label.flex cursor-pointer items-center gap-2 > span.text-sm text-foreground",
+   "tag": "span",
+   "role": "",
+   "text": "思考",
+   "label": "",
+   "x": 446,
+   "y": 298,
+   "w": 25,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.flex min-h-0 flex-1 flex-col gap-2 > div.flex items-baseline justify-between > p.text-sm font-medium text-foreground",
+   "tag": "p",
+   "role": "",
+   "text": "消息",
+   "label": "",
+   "x": 243,
+   "y": 329,
+   "w": 25,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.flex min-h-0 flex-1 flex-col gap-2 > div.flex items-center gap-2 > div.relative flex-1 > input.file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive pl-8",
+   "tag": "input",
+   "role": "",
+   "text": "",
+   "label": "",
+   "x": 243,
+   "y": 354,
+   "w": 544,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.flex min-h-0 flex-1 flex-col gap-2 > p.py-6 text-center text-sm text-destructive",
+   "tag": "p",
+   "role": "",
+   "text": "BAD_REQUEST: History cursor exceeds fixed position",
+   "label": "",
+   "x": 243,
+   "y": 392,
+   "w": 544,
+   "h": 60
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3",
+   "tag": "button",
+   "role": "",
+   "text": "取消",
+   "label": "",
+   "x": 673,
+   "y": 475,
+   "w": 55,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 has-[>svg]:px-3",
+   "tag": "button",
+   "role": "",
+   "text": "导出",
+   "label": "",
+   "x": 735,
+   "y": 475,
+   "w": 53,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > button.ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+   "tag": "button",
+   "role": "",
+   "text": "",
+   "label": "",
+   "icon": true,
+   "x": 780,
+   "y": 212,
+   "w": 14,
+   "h": 14
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 flex max-h-[80vh] flex-col sm:max-w-2xl > button.ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 > span.sr-only",
+   "tag": "span",
+   "role": "",
+   "text": "关闭",
+   "label": "",
+   "x": 786,
+   "y": 225,
+   "w": 1,
+   "h": 1
+  }
+ ]
+}

@@ -13,6 +13,7 @@
 | 模板 | 参考产品源码；仓库根记 `<ref>`，定位写作 `<ref>/<相对路径>:<行号>`，相对 `packages/desktop/packages/renderer/src` |
 | 模板行来源 | 本文件的行集合沿用 `docs/domains/requirements/inventory-global.md` §A–§H（元素 ID、文案、控件、默认、条件、定位逐行继承），只新增「已采状态」列并按图标分支拆 3 处（见 §0.4） |
 | 运行时（主窗口补采） | `docs/domains/requirements/runtime/main/` 60 份 `*.json`（`E/N/R/Q/S/K/A/P/D` 八码 + `C1`–`C45` 补采 + 7 份同族补充态），同目录同名 `.png`（1030×725 CSS 视口，DPR=2） |
+| 运行时（本轮补采，`X1`–`X13` / `Y1`–`Y18`） | `docs/domains/requirements/runtime/global/` 34 份 `*.json` + 同名 `.png`（见 §0.2b） |
 | 运行时（旁证，不计入判定） | `docs/domains/requirements/runtime/settings/通用.json`（浏览器数据入口）、`docs/domains/requirements/runtime/session/turns/11-tool-ask-user-pending.png`（提问卡仅截图、无 DOM 导出） |
 | 文案 | 参考产品 `zh-CN` 语言包（`<ref>/i18n/zh-CN.ts`）；`{x}` 为插值占位 |
 | 节点口径 | 每项 = `{chain, tag, role, text, label, x, y, w, h}`，单位 CSS px；`label` 即 `aria-label`/可见标签文本 |
@@ -34,6 +35,41 @@
 
 `A` 的两份 `items` 完全相同（PNG 不同），合并记 `A`。
 
+### 0.2b 本轮补采状态码（全部导出到 `docs/domains/requirements/runtime/global/`）
+
+| 码 | 文件 | 触发方式 | 屏上内容 |
+|---|---|---|---|
+| X1 | `X1-search-pinned-group` | 置顶一条会话后打开「搜索聊天」（空查询） | `置顶聊天` 分组 + 星标结果行 + `工作区` 副行 + `⌘1` + 首行选中 |
+| X2 | `X2-search-query-result` | 同一弹窗键入 `文件` | 查询词 + 置顶结果行（过滤后仍命中） |
+| X3 | `X3-search-recent-results` / `X3b-search-recent-query` | 取消置顶后重开弹窗（空查询 / 键入 `文件`） | `最近聊天` 分组 + 消息图标结果行 |
+| X4 | `X4-slash-empty` | 输入框键入 `/zzzz` | 弹层空态 `未找到命令或技能` |
+| X5 | `X5-slash-selected` | 键入 `/` 后按 ↓ | `/goal` 行强调底（选中态） |
+| X6 | `X6-slash-scrolled` / `X6b-slash-skills-group` / `X6c-slash-skills-header` | 把弹层滚到底 / 滚到 `技能` 分组 | `/compact`、`/branch`、`/workflow`、`技能` 分组与技能候选行 |
+| X7 | `X7-mention-open` | 输入框键入 `@` | `文件` 分组 + 顶层目录候选（`adr-audit/` 等）+ 首行选中 |
+| X8 | `X8-mention-empty` / `X8b-mention-files` | `@zzz` / 删回 `@` | 技能候选组（含描述）/ 文件候选组 |
+| X9 | `X9-mention-noresult` | `@qqqqq` | `未找到文件或目录` |
+| X10 | `X10-dollar-skills` | 输入框键入 `$` | `技能` 分组 + 技能候选（名称 + 描述）+ 首行选中 |
+| X11 | `X11-dollar-noresult` | `$qqqq` | `未找到技能` |
+| X12 | `X12-export-dialog` | 会话行右键 → 导出 | 导出对话框（导出内容三项默认勾选、消息、搜索回合、原始错误行、取消/导出置灰） |
+| X13 | `X13-delete-session-dialog` | 会话行右键 → 删除 | `删除会话` 确认框（单条文案 + 取消/删除） |
+| Y1 | `Y1-terminal-open` | 右栏 `+` → 终端 | 面板内终端（`(base) → dim-agent` 提示符） |
+| Y2 | `Y2-terminal-command` | 在终端里执行 `echo terminal-ok` | 命令行 + 回显 `terminal-ok` + 新提示符 |
+| Y3 | `Y3-terminal-context-menu` | 终端内右键 | 复制选中内容 / 粘贴 / 清屏 / 新建终端 / 关闭进程 |
+| Y4 | `Y4-terminal-last-closed` | 关闭最后一个终端页签 | 页签消失并切回上一页签；**没有**残留提示行 |
+| Y6 | `Y6-plugins-tab` | 技能/插件页 → `插件` → `插件市场` | `Marketplace 暂不可用 / 需要上游 API` |
+| Y7 | `Y7-my-plugins` | 同上 → `我的插件` | 内置 / Dim 插件卡片 + `＋ 添加插件` |
+| Y8 | `Y8-plugin-install-dialog` | `我的插件` → 添加插件 | 从 Git 添加插件（本地文件夹模式：来源、插件 id、安装后启用、取消/添加插件） |
+| Y9 | `Y9-plugin-install-git` | 对话框内切到 `Git 仓库` | Git 仓库 / Git ref（main）字段 |
+| Y10 | `Y10-settings-general-browser` | 设置 → 通用 → 浏览器数据 | `Chrome 数据` 的 `导入…` 与 `浏览器存储` 的 `清理数据…` 入口 |
+| Y11 | `Y11-browser-import-dialog` | 点 `导入…` 后立刻采集 | `正在扫描 Chrome 配置…` + 取消/导入（置灰） |
+| Y12 | `Y12-browser-import-scanned` | 扫描结束 | `Chrome 配置` 三行（`可导入`）+ 错误块（`无法访问 Chrome 加密密钥…`）+ 诊断行 + 重试 |
+| Y13 | `Y13-browser-clear-dialog` | 点 `清理数据…` | `清理浏览器数据` 确认框（描述 + 取消/危险按钮） |
+| Y14 | `Y14-delete-workspace-dialog` | 工作区行 `⋯` → 移除 | `删除工作区会话`（条数 + 路径 + 取消/删除） |
+| Y15 | `Y15-rename-workspace-dialog` | 工作区行 `⋯` → 重命名 | `重命名工作区`（名称标签、预填 input、路径、取消/确认） |
+| Y16 | `Y16-askuser-pending` | 发一条要求 `ask_user` 单选的消息 | 提问卡：标题 `单选测试`、正文、A/B/C 单选、`拒绝`/`提交`（未选时置灰）、会话行 `等待操作` |
+| Y17 | `Y17-askuser-collapsed` | 点 `收起` | 收起态 `待选择 · 3 个选项` + `展开` |
+| Y18 | `Y18-askuser-selected` | 选 A 后 | 选中行主色边框 + `提交` 转实心 |
+
 ### 0.3 列义
 
 - **元素 ID / 名称 / 控件 / 默认 / 条件 / 定位**：与 `inventory-global.md` 同值（条件列已写全祖先链与 `v-if` 分支）。
@@ -54,7 +90,7 @@
 
 ### 0.5 采集局限（判「未出现」前必读）
 
-1. **五类零覆盖**：60 份态里没有任何一份打开过提问卡、四类确认框、两类重命名、导出/Fork、六个导入与更新对话框。这五类的「不可观察」是采集缺口，不是产品缺元素。
+1. **五类原先零覆盖，本轮补掉四类半**：补采后提问卡（`D1`）、删除会话 / 删除工作区 / 重命名工作区 / 导出对话 / 添加插件 / Chrome Cookie 导入 / 浏览器数据清理都有态；仍缺的是「归档（E3）」「会话重命名（F1，`SessionTitle` 不可用）」「Fork（G2，需同一会话在两窗口打开）」与插件市场系四框（上游 API 未接入）。
 2. **同族的两个确认框不属本文件**：`dialog-full-access`（完全访问确认）、`dialog-logout-confirm`（退出登录）已采，但归账户/权限域，不在八类内，不得拿来充当 E 类证据。
 3. **模态与弹层会 aria-hidden 掉背景**：Q/S/K 三态只有弹窗层（5–6 节点），`dialog-*` 同理（6–16 节点）；因此「弹窗背后少元素」不能判缺。
 4. **`search.json` 的标题/描述宽度失真**：`搜索聊天`、`搜索并打开已有聊天` 的 `w` 采成 1（`sr-only`），宽度不可用；PNG 证明二者屏上不可见。
@@ -62,7 +98,7 @@
 6. **C24/C25/C26 的时间线内容不同**（分别停在 21:54 / 21:22 / 21:22）：搜索条以外的节点不能跨态互相补位。
 7. **审批卡坐标随左栏状态平移**：A 在 x≈386，C38/C39 在 x≈30（差 356），坐标不可跨态混用。
 8. **`SessionTitle` 在本机不可用**：C2/C13 的重命名项直接渲染成「重命名（SessionTitle 不可用）」且禁用，F1 在本环境无条件通达。
-9. **提问卡只有一张无 DOM 的截图**：`runtime/session/turns/11-tool-ask-user-pending.png` 能看见面板外观，但该态没有 JSON 导出，无法给出包围盒与文案原文，故 D 类全判不可观察。
+9. **提问卡已补到 DOM**：本轮用 `ask_user` 触发 `Y16`–`Y18`（待答 / 收起 / 已选），单字段单选全组可取；旧旁证 `runtime/session/turns/11-tool-ask-user-pending.png` 只作历史对照。多字段、倒计时、多选与自定义答案仍缺（见 §10.1 D）。
 
 ---
 
@@ -100,16 +136,16 @@
 | G-A2-05 | 「正在加载...」 | 状态行（旋转图标 + 文字，`role=status`） | 隐藏 | 当前页结果未就绪 | `ChatSearchDialog.vue:209`；i18n `common.loading` | 需数据（结果首页未返回；本机会话列表瞬时返回） |
 | G-A2-06 | 「上一页」 | 文字按钮（整行，32px） | 隐藏 | 存在上一页 | `ChatSearchDialog.vue:210`；i18n `sidebar.previousPage` | 需数据（已翻到第 2 页之后） |
 | G-A2-07 | 「显示更多」 | 文字按钮（整行，32px） | 隐藏 | 还有下一页 | `ChatSearchDialog.vue:211`；i18n `sidebar.showMore` | 需数据（结果 >8 条） |
-| G-A2-08 | 「置顶聊天」 / 「最近聊天」 | 分组标题（12px 灰字） | — | 该组有结果 | `ChatSearchDialog.vue:107`；i18n `chatSearch.pinnedChats`、`chatSearch.recentChats` | 需数据（该分组有命中结果；Q 为 0 结果） |
-| G-A2-09 | （会话标题） | 结果行主行（14px 半粗，截断） | — | 有结果 | `ChatSearchDialog.vue:242` | 需数据（任意命中结果） |
-| G-A2-10 | （项目显示名） | 结果行副行（12px 灰字，截断） | — | 有结果 | `ChatSearchDialog.vue:245` | 需数据（结果所属工作区有名） |
+| G-A2-08 | 「置顶聊天」 / 「最近聊天」 | 分组标题（12px 灰字） | — | 该组有结果 | `ChatSearchDialog.vue:107`；i18n `chatSearch.pinnedChats`、`chatSearch.recentChats` | 可见 X1 299,357 432×18（`置顶聊天`）；X3 299,357 432×18（`最近聊天`） |
+| G-A2-09 | （会话标题） | 结果行主行（14px 半粗，截断） | — | 有结果 | `ChatSearchDialog.vue:242` | 可见 X1/X3 345,380 355×18（会话标题） |
+| G-A2-10 | （项目显示名） | 结果行副行（12px 灰字，截断） | — | 有结果 | `ChatSearchDialog.vue:245` | 可见 X1/X3 345,398 355×14（`工作区`） |
 | G-A2-11a | — 行首图标（错误） | 图标（32px 底托，红色告警圈） | 消息图标 | 该行 RPC 失败 | `ChatSearchDialog.vue:237`–`:241` | 需数据（单行加载失败） |
 | G-A2-11b | — 行首图标（加载中） | 图标（32px 底托，旋转） | 消息图标 | 该行数据加载中 | `ChatSearchDialog.vue:237`–`:241` | 需数据（单行加载中，窗口极短） |
 | G-A2-11c | — 行首图标（未读） | 图标（32px 底托，实心圆点） | 消息图标 | 该会话未读 | `ChatSearchDialog.vue:237`–`:241` | 需数据（存在未读会话） |
-| G-A2-11d | — 行首图标（置顶） | 图标（32px 底托，琥珀星标） | 消息图标 | 该会话已置顶 | `ChatSearchDialog.vue:237`–`:241` | 需数据（存在置顶会话） |
-| G-A2-11e | — 行首图标（默认） | 图标（32px 底托，消息图标） | 消息图标 | 以上皆否 | `ChatSearchDialog.vue:237`–`:241` | 需数据（需先有结果行） |
-| G-A2-12 | 「⌘{n}」 / 「Ctrl+{n}」 | 快捷键提示（12px 灰字） | 序号 1–8 | 有结果 | `ChatSearchDialog.vue:248` | 需数据（有结果行） |
-| G-A2-13 | （行选中态） | 行状态（强调底 + 强调前景） | 第 1 行为选中 | 上下键或悬停移动 | `ChatSearchDialog.vue:228` | 需交互（有结果后按 ↑/↓ 或悬停） |
+| G-A2-11d | — 行首图标（置顶） | 图标（32px 底托，琥珀星标） | 消息图标 | 该会话已置顶 | `ChatSearchDialog.vue:237`–`:241` | 可见（仅视觉）X1 行首 32×32 底托内为琥珀星标（PNG） |
+| G-A2-11e | — 行首图标（默认） | 图标（32px 底托，消息图标） | 消息图标 | 以上皆否 | `ChatSearchDialog.vue:237`–`:241` | 可见（仅视觉）X3 行首 32×32 底托内为消息图标（PNG） |
+| G-A2-12 | 「⌘{n}」 / 「Ctrl+{n}」 | 快捷键提示（12px 灰字） | 序号 1–8 | 有结果 | `ChatSearchDialog.vue:248` | 可见 X1/X3 710,389 14×14（`⌘1`） |
+| G-A2-13 | （行选中态） | 行状态（强调底 + 强调前景） | 第 1 行为选中 | 上下键或悬停移动 | `ChatSearchDialog.vue:228` | 可见（仅视觉）X1/X3 首行强调底（PNG；第 1 行默认选中） |
 | G-A2-14 | 「未找到聊天」 | 空态文字（居中，上下留白 32px） | 隐藏 | 无任何结果 | `ChatSearchDialog.vue:259`；i18n `chatSearch.noResults` | 可见 Q 299,350 432×74（Q/S/K 三态均为该分支） |
 
 元素数 18（原 14，`G-A2-11` 拆五行）。
@@ -120,17 +156,17 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-A3-01 | （无文案）弹层容器 | 浮层（`max-h-72`，宽 `min(35rem,100vw-2rem)`，锚在光标上方或下方） | 隐藏 | `@` 提及激活 | `<ref>/components/chat-workspace/composer/tiptap/ComposerEditor.vue:1386` | 需交互（输入框键入 `@`；且 composer 有 cwd） |
+| G-A3-01 | （无文案）弹层容器 | 浮层（`max-h-72`，宽 `min(35rem,100vw-2rem)`，锚在光标上方或下方） | 隐藏 | `@` 提及激活 | `<ref>/components/chat-workspace/composer/tiptap/ComposerEditor.vue:1386` | 可见 X7（弹层 ≈390,330 481×276，由 `文件` 分组 390,328 与候选行反推）；X8b/X9 同容器 |
 | G-A3-02 | （无文案）加载骨架 | 两条脉冲占位（32px） | — | 候选未返回 | `ComposerEditor.vue:1393` | 需数据（文件搜索 RPC 未返回，窗口 <1s） |
-| G-A3-03 | 「未找到文件或目录」 / 「当前无工作区目录」 / 「文件搜索失败。」 | 空态文字 | — | 依次为：查询无命中 / 会话无 cwd / 该次搜索 RPC 失败 | `ComposerEditor.vue:333`；i18n `composer.noFileMatches`、`composer.noProjectDirectory`、`contextPanel.searchFailed` | 需交互（键入 `@` 后打无命中前缀）；第二分支需数据（会话无 cwd）；第三分支需数据（注入 RPC 失败） |
-| G-A3-04 | 「文件」 / 「技能」 | 分组标题（12px 灰字） | — | 该组有候选 | `ComposerEditor.vue:291`；i18n `composer.groupFiles`、`composer.groupSkills` | 需数据（`@` 后候选含文件 / 技能） |
-| G-A3-05 | （文件名 / 目录名） | 候选行主字（加粗；目录名追加 `/`） | — | 文件候选 | `ComposerEditor.vue:1424`、`:271` | 需交互（`@` 后出现文件候选） |
+| G-A3-03 | 「未找到文件或目录」 / 「当前无工作区目录」 / 「文件搜索失败。」 | 空态文字 | — | 依次为：查询无命中 / 会话无 cwd / 该次搜索 RPC 失败 | `ComposerEditor.vue:333`；i18n `composer.noFileMatches`、`composer.noProjectDirectory`、`contextPanel.searchFailed` | 可见 X9 390,539 481×32（`未找到文件或目录`）；另两分支仍需数据（无 cwd / RPC 失败） |
+| G-A3-04 | 「文件」 / 「技能」 | 分组标题（12px 灰字） | — | 该组有候选 | `ComposerEditor.vue:291`；i18n `composer.groupFiles`、`composer.groupSkills` | 可见 X7 390,328（`文件` 分组）；X8b ≈390,330（`技能` 分组） |
+| G-A3-05 | （文件名 / 目录名） | 候选行主字（加粗；目录名追加 `/`） | — | 文件候选 | `ComposerEditor.vue:1424`、`:271` | 可见 X7 401,358 58×18（`adr-audit/` 等目录候选，目录名带 `/`） |
 | G-A3-06 | （所在目录） | 候选行次字（12px 灰字，截断） | 无 | 文件候选且有上级目录 | `ComposerEditor.vue:1426` | 需数据（候选位于子目录） |
 | G-A3-07 | （提交短 hash，7 位） | 候选行主字（半粗） | — | 提交候选 | `ComposerEditor.vue:262` | 需数据（`@` 查询命中 git 提交） |
 | G-A3-08 | （提交标题 subject） | 候选行次字（12px 灰字，截断） | — | 提交候选 | `ComposerEditor.vue:263` | 需数据（同上） |
 | G-A3-09 | （作者 · 日期） | 候选行右尾小字（12px，70% 不透明） | — | 提交候选 | `ComposerEditor.vue:264`、`:1432` | 需数据（同上） |
-| G-A3-10 | （技能名称 + 描述） | 候选行主字 + 次字 | — | 技能候选；描述缺省时只显示名称 | `ComposerEditor.vue:268`、`:269` | 需数据（已安装技能进入候选） |
-| G-A3-11 | （行选中态） | 行状态（强调底 + 强调前景） | 第 0 行 | 上下键或悬停移动 | `ComposerEditor.vue:1421` | 需交互（候选出现后按 ↑/↓） |
+| G-A3-10 | （技能名称 + 描述） | 候选行主字 + 次字 | — | 技能候选；描述缺省时只显示名称 | `ComposerEditor.vue:268`、`:269` | 可见 X8b ≈401,358（`baoyu-translate` + 英文描述） |
+| G-A3-11 | （行选中态） | 行状态（强调底 + 强调前景） | 第 0 行 | 上下键或悬停移动 | `ComposerEditor.vue:1421` | 可见（仅视觉）X7/X8b 首行强调底（PNG） |
 
 元素数 11。
 
@@ -142,11 +178,11 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-A4-01 | （无文案）弹层容器 | 浮层（`max-h-72`，宽 `min(24rem,100vw-2rem)`） | 隐藏 | `$` 提及激活 | `ComposerEditor.vue:1442` | 需交互（输入框键入 `$`） |
+| G-A4-01 | （无文案）弹层容器 | 浮层（`max-h-72`，宽 `min(24rem,100vw-2rem)`） | 隐藏 | `$` 提及激活 | `ComposerEditor.vue:1442` | 可见 X10（弹层 ≈390,320 327×221，同 B1 容器规格） |
 | G-A4-02 | （无文案）加载骨架 | 两条脉冲占位 | — | 技能列表未返回 | `ComposerEditor.vue:1449` | 需数据（技能列表 RPC 未返回） |
-| G-A4-03 | 「未找到技能」 | 空态文字 | — | 无匹配技能 | `ComposerEditor.vue:380`；i18n `composer.noSkill` | 需交互（`$` 后打无命中前缀） |
-| G-A4-04 | （技能名称 + 描述） | 候选行主字 + 右尾小字 | — | 有技能；描述缺省时只显示名称 | `ComposerEditor.vue:1481`、`:1482` | 需数据（`$` 后有技能候选） |
-| G-A4-05 | （行选中态） | 行状态（强调底 + 强调前景） | 第 0 行 | 上下键或悬停移动 | `ComposerEditor.vue:1478` | 需交互（候选出现后按 ↑/↓） |
+| G-A4-03 | 「未找到技能」 | 空态文字 | — | 无匹配技能 | `ComposerEditor.vue:380`；i18n `composer.noSkill` | 可见 X11 390,539 327×32（`未找到技能`） |
+| G-A4-04 | （技能名称 + 描述） | 候选行主字 + 右尾小字 | — | 有技能；描述缺省时只显示名称 | `ComposerEditor.vue:1481`、`:1482` | 可见 X10 401,358 65×18（`agents-sdk` + 描述） |
+| G-A4-05 | （行选中态） | 行状态（强调底 + 强调前景） | 第 0 行 | 上下键或悬停移动 | `ComposerEditor.vue:1478` | 可见（仅视觉）X10 首行强调底（PNG） |
 
 元素数 5。
 
@@ -175,11 +211,11 @@
 |---|---|---|---|---|---|---|
 | G-B1-01 | （无文案）弹层容器 | 浮层（`max-h-72`，宽 `min(24rem,100vw-2rem)`） | 隐藏 | `/` 激活 | `<ref>/components/chat-workspace/composer/tiptap/ComposerEditor.vue:1442` | 可见 C37（随行；容器未单列，按分组标题 390,328 与 PNG 底边 ≈541 反推 ≈390,320 327×221——高度受输入框上方可用空间限制，未达 `max-h-72` 的 288） |
 | G-B1-02 | （无文案）加载骨架 | 两条脉冲占位 | — | 命令/技能未返回 | `ComposerEditor.vue:1449` | 需数据（命令与技能列表首次拉取未返回，窗口 <1s） |
-| G-B1-03 | 「未找到命令或技能」 | 空态文字 | — | 无匹配项 | `ComposerEditor.vue:367`；i18n `composer.noCommandOrSkill` | 需交互（键入 `/` 后再打无匹配字符，如 `/zzzz`） |
-| G-B1-04 | 「指令」 / 「技能」 | 分组标题（12px 灰字） | — | 该组有项 | `ComposerEditor.vue:290`；i18n `composer.groupCommands`、`composer.groupSkills` | 可见「指令」C37 390,328 327×25；「技能」需数据（本会话无技能候选，该组未渲染） |
+| G-B1-03 | 「未找到命令或技能」 | 空态文字 | — | 无匹配项 | `ComposerEditor.vue:367`；i18n `composer.noCommandOrSkill` | 可见 X4 390,539 327×32（`未找到命令或技能`） |
+| G-B1-04 | 「指令」 / 「技能」 | 分组标题（12px 灰字） | — | 该组有项 | `ComposerEditor.vue:290`；i18n `composer.groupCommands`、`composer.groupSkills` | 可见 `指令` 由 C37 命中；`技能` 分支见 X6c ≈390,300（滚动后 `技能` 分组标题 + 技能行） |
 | G-B1-05 | 「/{命令名}」 + （命令描述） | 候选行（主字 + 右尾 12px 灰字，截断） | — | 命令项；无描述时只显示名称 | `ComposerEditor.vue:1481`、`:1482` | 可见 C37（DOM 内 10 行，行按钮 390,352/380/408/436/464/492/520/548/576/604 327×28；PNG 实际露出到 `/reload-skills`，后两行落在弹层裁剪区内） |
-| G-B1-06 | （技能名称） + （技能描述） | 候选行（主字 + 右尾小字） | — | 技能项；无描述时只显示名称 | `ComposerEditor.vue:1481`、`:1482` | 需数据（`/` 过滤后含技能候选；本机列表只有命令 10 项） |
-| G-B1-07 | （行选中态） | 行状态（强调底 + 强调前景） | 第 0 行 | 上下键或悬停移动 | `ComposerEditor.vue:1478` | 需交互（C37 截图里 10 行全为普通底、无一行处于强调态，说明首行并非默认选中，需 ↑/↓ 或悬停才出现） |
+| G-B1-06 | （技能名称） + （技能描述） | 候选行（主字 + 右尾小字） | — | 技能项；无描述时只显示名称 | `ComposerEditor.vue:1481`、`:1482` | 可见 X6c 401,354 65×18（`agents-sdk`）起，随后 background-check / baoyu-* 等技能行 |
+| G-B1-07 | （行选中态） | 行状态（强调底 + 强调前景） | 第 0 行 | 上下键或悬停移动 | `ComposerEditor.vue:1478` | 可见（仅视觉）X5 `/goal` 行强调底（↑/↓ 后第 2 行为选中态；C37 无选中行） |
 | G-B1-08 | 「/agent」「切换至 Agent 模式」 | 固定命令行 | — | 常驻候选 | `<ref>/components/chat-workspace/composer/desktop-slash-commands.ts:37`；i18n `slashCommands.switchToAgent` | 可见 C37 401,358 / 619,359 |
 | G-B1-09 | 「/goal」「切换至 Goal 模式」 | 固定命令行 | — | 常驻候选 | `desktop-slash-commands.ts:43`；i18n `slashCommands.switchToGoal` | 可见 C37 401,386 / 625,387 |
 | G-B1-10 | 「/pet」「唤醒或收起 Pet」 | 固定命令行 | — | 常驻候选 | `desktop-slash-commands.ts:49`；i18n `slashCommands.togglePet` | 可见 C37 401,414 / 635,415 |
@@ -190,9 +226,9 @@
 | G-B1-15 | 「/reload-skills」「重新扫描磁盘上的技能」 | 固定命令行 | — | 常驻候选 | `desktop-slash-commands.ts:79`；i18n `slashCommands.reloadSkills` | 可见 C37 401,554 / 602,555 |
 | G-B1-16 | 「/reload-plugins」「重新扫描已安装插件」 | 固定命令行 | — | 常驻候选 | `desktop-slash-commands.ts:85`；i18n `slashCommands.reloadPlugins` | 可见 C37 401,582 / 612,583（DOM 命中；PNG 中在弹层裁剪区内，需滚动露出） |
 | G-B1-17 | 「/compact」「压缩当前上下文」 | 固定命令行 | — | 常驻候选 | `desktop-slash-commands.ts:91`；i18n `slashCommands.compactContext` | 可见 C37 401,610 / 633,611（DOM 命中；PNG 中在弹层裁剪区内，需滚动露出） |
-| G-B1-18 | 「/fast」「Toggle fast mode」 | 固定命令行（描述未本地化，英文原文） | — | 快速模式可用时 | `desktop-slash-commands.ts:95` | 需交互（弹层滚动：本屏 10 行到 `/compact` 为止，其后在折叠线下）；另需数据（快速模式可用） |
-| G-B1-19 | 「/branch」「侧边对话」 | 固定命令行 | — | 常驻候选 | `desktop-slash-commands.ts:103`；i18n `sideChat.title` | 需交互（弹层滚动到 `/compact` 之后） |
-| G-B1-20 | 「/workflow」「Browse workflows」 | 固定命令行（描述未本地化，英文原文） | — | 常驻候选 | `desktop-slash-commands.ts:107` | 需交互（弹层滚动到末项） |
+| G-B1-18 | 「/fast」「Toggle fast mode」 | 固定命令行（描述未本地化，英文原文） | — | 快速模式可用时 | `desktop-slash-commands.ts:95` | 需数据（`/fast` 仅在快速模式可用；X6b 已滚到末项仍未出现该项） |
+| G-B1-19 | 「/branch」「侧边对话」 | 固定命令行 | — | 常驻候选 | `desktop-slash-commands.ts:103`；i18n `sideChat.title` | 可见 X6c 401,274 45×18（`/branch`，滚动后坐标） |
+| G-B1-20 | 「/workflow」「Browse workflows」 | 固定命令行（描述未本地化，英文原文） | — | 常驻候选 | `desktop-slash-commands.ts:107` | 可见 X6c 401,302 58×18（`/workflow`，同上） |
 
 元素数 20。
 
@@ -333,28 +369,28 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-D1-01 | （无文案）卡片容器 | 卡片（圆角 10px，边框，纵向三段：头 / 可滚动体 / 脚） | 隐藏 | 有提问请求 | `<ref>/components/chat-workspace/interactions/ElicitationPrompt.vue:436`、`:438` | 需数据（App Server 下发 `elicitation`，且会话停在待答态；本机 ask_user 那轮 ≈7.5 分钟后被自动回答） |
-| G-D1-02 | （当前字段标题） | 标题（14px 半粗，截断） | — | 取字段 title → schema title → 回退 | `ElicitationPrompt.vue:451` | 需数据（同上，且字段/schema 带 title） |
+| G-D1-01 | （无文案）卡片容器 | 卡片（圆角 10px，边框，纵向三段：头 / 可滚动体 / 脚） | 隐藏 | 有提问请求 | `<ref>/components/chat-workspace/interactions/ElicitationPrompt.vue:436`、`:438` | 可见 Y16 ≈370,425 690×235（由标题 386,452 与按钮行 636 反推） |
+| G-D1-02 | （当前字段标题） | 标题（14px 半粗，截断） | — | 取字段 title → schema title → 回退 | `ElicitationPrompt.vue:451` | 可见 Y16 386,452 49×18（`单选测试`） |
 | G-D1-03 | 「需要你的回答」 | 标题回退文案 | — | 字段与 schema 都无标题 | `ElicitationPrompt.vue:165`；i18n `elicitation.defaultTitle` | 需数据（同上，且无标题可回退） |
 | G-D1-04 | 「{当前}/{总数}」 | 进度徽标（灰底 10px 圆角小字） | — | 字段数 > 1 | `ElicitationPrompt.vue:453` | 需数据（一次 elicitation 带 ≥2 个字段） |
-| G-D1-05 | 「待选择」 / 「待选择 · {count} 个选项」 / 「已选：{answer}」 / 「已选 {count} 项」 | 收起态状态行（12px 灰，截断） | 隐藏 | 卡片收起时按已答情况切换 | `ElicitationPrompt.vue:171`；i18n `elicitation.awaitingAnswer`/`optionCount`/`selectedAnswer`/`selectedCount` | 需交互（卡片在场后点「收起」；四分支按已答情况各需一次） |
+| G-D1-05 | 「待选择」 / 「待选择 · {count} 个选项」 / 「已选：{answer}」 / 「已选 {count} 项」 | 收起态状态行（12px 灰，截断） | 隐藏 | 卡片收起时按已答情况切换 | `ElicitationPrompt.vue:171`；i18n `elicitation.awaitingAnswer`/`optionCount`/`selectedAnswer`/`selectedCount` | 可见 Y17 386,650 258×14（`待选择 · 3 个选项`）；其余三分支按已答情况仍需交互 |
 | G-D1-06 | 「剩余 {m:ss}」 | 倒计时（12px 等宽数字，`role=timer`） | 无 | 请求带 `deadlineAt` 且未被作答清除 | `ElicitationPrompt.vue:246`；i18n `elicitation.timeLeft` | 需数据（请求带 `deadlineAt`） |
-| G-D1-07 | 「收起」 / 「展开」 | 文字小按钮（带下箭头，收起时旋转 180°） | 「收起」 | 常驻 | `ElicitationPrompt.vue:487`；i18n `elicitation.collapse`、`elicitation.expand` | 需数据（卡片在场）；旋转属视觉 |
-| G-D1-08 | （提问正文） | 多行文字（13px，保留换行） | 无 | 请求带 message | `ElicitationPrompt.vue:499` | 需数据（请求带 message） |
+| G-D1-07 | 「收起」 / 「展开」 | 文字小按钮（带下箭头，收起时旋转 180°） | 「收起」 | 常驻 | `ElicitationPrompt.vue:487`；i18n `elicitation.collapse`、`elicitation.expand` | 可见 Y16/Y17 654,633 61×28（展开/收起切换） |
+| G-D1-08 | （提问正文） | 多行文字（13px，保留换行） | 无 | 请求带 message | `ElicitationPrompt.vue:499` | 可见 Y16 386,485 330×18（`请选择一项（A/B/C）。`） |
 | G-D1-09 | （字段描述） | 说明文字（14px 灰，保留换行） | 无 | 字段带 description | `ElicitationPrompt.vue:507` | 需数据（字段带 description） |
 | G-D1-10 | 「筛选选项…」 | 输入框（placeholder） | 空 | 当前字段选项数 > 8 | `ElicitationPrompt.vue:522`；i18n `elicitation.filterPlaceholder` | 需数据（当前字段 >8 个选项） |
-| G-D1-11 | （单选项条目） | 行 + 单选圈（选中：主色边框 + 浅主色底） | 未选 | 字段为 string 且带 `oneOf` | `ElicitationPrompt.vue:527`、`:544` | 需数据（字段为 `oneOf` 字符串） |
+| G-D1-11 | （单选项条目） | 行 + 单选圈（选中：主色边框 + 浅主色底） | 未选 | 字段为 string 且带 `oneOf` | `ElicitationPrompt.vue:527`、`:544` | 可见（仅视觉）Y16 A/B/C 三行单选圈；Y18 选中 A 后为主色边框 + 浅主色底（PNG） |
 | G-D1-12 | （多选项条目） | 行 + 方形勾选框（选中显示对勾） | 未选 | 字段为 array 且带 `anyOf` | `ElicitationPrompt.vue:598`、`:603` | 需数据（字段为 `anyOf` 数组） |
 | G-D1-13 | 「没有匹配的选项」 | 空态文字（14px 灰） | 隐藏 | 筛选后无匹配 | `ElicitationPrompt.vue:561`、`:616`；i18n `elicitation.noMatch` | 需交互（在筛选框键入无命中词） |
 | G-D1-14 | 「每行输入一个值」 | 多行输入框（1 行起，最多 4 行后内部滚动） | 空 | 字段为无选项数组 | `ElicitationPrompt.vue:630`；i18n `elicitation.freeformPlaceholder` | 需数据（数组字段无 `anyOf`） |
 | G-D1-15 | 「自定义答案」 + 「输入自定义答案」 | 标签（12px 灰）+ 多行输入框 | 空 | 字段允许自定义且有选项 | `ElicitationPrompt.vue:650`、`:665`；i18n `elicitation.customAnswer`、`elicitation.customAnswerPlaceholder` | 需数据（字段 `allowCustom` 且有选项） |
 | G-D1-16 | 「自定义选项」 + 「每行输入一个自定义值」 | 标签 + 多行输入框 | 空 | 数组字段允许自定义 | `ElicitationPrompt.vue:673`、`:687`；i18n `elicitation.customOptions`、`elicitation.customOptionsPlaceholder` | 需数据（数组字段 `allowCustom`） |
 | G-D1-17 | 「请先回答所有必填问题」 / （服务端错误） | 错误文字（14px 危险色） | 隐藏 | 必填未答时提交 / 提交失败 | `ElicitationPrompt.vue:353`；i18n `elicitation.requiredMissing` | 需交互（必填未答时点「提交」，或提交失败） |
-| G-D1-18 | 「拒绝」 | 次按钮（`outline`，小号，左置） | — | 常驻 | `ElicitationPrompt.vue:708`；i18n `elicitation.decline` | 需数据（卡片在场） |
+| G-D1-18 | 「拒绝」 | 次按钮（`outline`，小号，左置） | — | 常驻 | `ElicitationPrompt.vue:708`；i18n `elicitation.decline` | 可见 Y16 386,636 48×28（`拒绝`） |
 | G-D1-19 | 「上一题」 | 次按钮（小号） | 隐藏 | 多字段且非首题 | `ElicitationPrompt.vue:718`；i18n `elicitation.previous` | 需数据（≥2 字段且已走到第 2 题之后） |
 | G-D1-20 | 「下一题」 | 主按钮（小号） | 隐藏 | 多字段且非末题 | `ElicitationPrompt.vue:726`；i18n `elicitation.next` | 需数据（≥2 字段且未到末题） |
-| G-D1-21 | 「提交」 | 主按钮（小号） | — | 单字段或已是末题 | `ElicitationPrompt.vue:734`；i18n `elicitation.submit` | 需数据（卡片在场且为单字段/末题） |
-| G-D1-22 | （按钮禁用态） | 按钮状态（50% 不透明） | 可用 | 提交中；单字段且必填未满足时「提交」禁用 | `ElicitationPrompt.vue:717`、`:731` | 需交互（提交中 / 必填未满足） |
+| G-D1-21 | 「提交」 | 主按钮（小号） | — | 单字段或已是末题 | `ElicitationPrompt.vue:734`；i18n `elicitation.submit` | 可见 Y16 670,636 46×28（`提交`） |
+| G-D1-22 | （按钮禁用态） | 按钮状态（50% 不透明） | 可用 | 提交中；单字段且必填未满足时「提交」禁用 | `ElicitationPrompt.vue:717`、`:731` | 可见（仅视觉）Y16 未选时 `提交` 置灰；Y18 选中后转实心（PNG） |
 
 元素数 22。
 
@@ -383,11 +419,11 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-E2-01 | 「删除会话」 / 「删除 {count} 个会话」 | 标题 | — | 单条 / 多条 | `<ref>/components/sidebar/session/dialogs/DeleteSessionDialog.vue:68`；i18n `sessionDialogs.deleteSessionTitle`、`deleteSessionsTitle` | 需交互（C13 会话行右键 →「删除」157,416；批量需多选后同一入口） |
-| G-E2-02 | 「确定要永久删除“{title}”吗？删除后会话将立即从侧边栏移除，且无法恢复。」 / 「确定要永久删除以下会话吗？{names}」 | 描述 | — | 单条 / 多条；`{names}` 最多三名 + 「等 N 个」 | `DeleteSessionDialog.vue:76`、`:77`；i18n `sessionDialogs.deleteSessionDescription`、`deleteSessionsDescription`、`namesMore` | 需交互（同上；多条分支需先多选 >1 条） |
+| G-E2-01 | 「删除会话」 / 「删除 {count} 个会话」 | 标题 | — | 单条 / 多条 | `<ref>/components/sidebar/session/dialogs/DeleteSessionDialog.vue:68`；i18n `sessionDialogs.deleteSessionTitle`、`deleteSessionsTitle` | 可见 X13 341,311 348×16（`删除会话`） |
+| G-E2-02 | 「确定要永久删除“{title}”吗？删除后会话将立即从侧边栏移除，且无法恢复。」 / 「确定要永久删除以下会话吗？{names}」 | 描述 | — | 单条 / 多条；`{names}` 最多三名 + 「等 N 个」 | `DeleteSessionDialog.vue:76`、`:77`；i18n `sessionDialogs.deleteSessionDescription`、`deleteSessionsDescription`、`namesMore` | 可见 X13 341,334 348×35（`确定要永久删除“帮我列出当前目录的文件”吗？…`） |
 | G-E2-03 | （失败原因） | 错误文字（14px 危险色） | 隐藏 | 删除失败且为单条 | `DeleteSessionDialog.vue:81` | 需交互（删除请求返回错误） |
-| G-E2-04 | 「取消」 | 次按钮（`outline`） | — | 常驻 | `DeleteSessionDialog.vue:85`；i18n `common.cancel` | 需交互（同上） |
-| G-E2-05 | 「删除」 / 「删除 ({count})」 / 「删除中...」 | 危险按钮（`destructive`） | — | 单条 / 多条 / 提交中（提交中禁用） | `DeleteSessionDialog.vue:90`；i18n `common.delete`、`deleteMany`、`deleting` | 需交互（同上；提交中为瞬态） |
+| G-E2-04 | 「取消」 | 次按钮（`outline`） | — | 常驻 | `DeleteSessionDialog.vue:85`；i18n `common.cancel` | 可见 X13 575,383 55×32（`取消`） |
+| G-E2-05 | 「删除」 / 「删除 ({count})」 / 「删除中...」 | 危险按钮（`destructive`） | — | 单条 / 多条 / 提交中（提交中禁用） | `DeleteSessionDialog.vue:90`；i18n `common.delete`、`deleteMany`、`deleting` | 可见 X13 637,383 53×32（`删除`） |
 
 元素数 5。
 
@@ -412,12 +448,12 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-E4-01 | 「删除工作区会话」 | 标题 | — | 打开时 | `<ref>/components/sidebar/session/dialogs/DeleteProjectDialog.vue:34`；i18n `sessionDialogs.deleteProjectTitle` | 需交互（C16 工作区行 `⋯` →「移除」169,478；C17 同位置） |
-| G-E4-02 | 「将删除“{name}”下的 {count} 条会话。」 | 描述 | — | 打开时 | `DeleteProjectDialog.vue:36`；i18n `sessionDialogs.deleteProjectDescription` | 需交互（同上） |
-| G-E4-03 | （工作区路径） | 文字行（14px 灰） | — | 打开时 | `DeleteProjectDialog.vue:40` | 需交互（同上） |
+| G-E4-01 | 「删除工作区会话」 | 标题 | — | 打开时 | `<ref>/components/sidebar/session/dialogs/DeleteProjectDialog.vue:34`；i18n `sessionDialogs.deleteProjectTitle` | 可见 Y14 341,304 348×16（`删除工作区会话`） |
+| G-E4-02 | 「将删除“{name}”下的 {count} 条会话。」 | 描述 | — | 打开时 | `DeleteProjectDialog.vue:36`；i18n `sessionDialogs.deleteProjectDescription` | 可见 Y14 341,327 348×18（`将删除“year”下的 0 条会话。`） |
+| G-E4-03 | （工作区路径） | 文字行（14px 灰） | — | 打开时 | `DeleteProjectDialog.vue:40` | 可见 Y14 341,358 348×18（`/Users/…/Documents/year`） |
 | G-E4-04 | （失败原因） | 错误文字 | 隐藏 | 删除失败 | `DeleteProjectDialog.vue:41` | 需交互（删除请求返回错误） |
-| G-E4-05 | 「取消」 | 次按钮 | — | 常驻 | `DeleteProjectDialog.vue:45`；i18n `common.cancel` | 需交互（同上） |
-| G-E4-06 | 「删除」 | 危险按钮 | — | 常驻 | `DeleteProjectDialog.vue:48`；i18n `common.delete` | 需交互（同上） |
+| G-E4-05 | 「取消」 | 次按钮 | — | 常驻 | `DeleteProjectDialog.vue:45`；i18n `common.cancel` | 可见 Y14 ≈341,395（`取消`） |
+| G-E4-06 | 「删除」 | 危险按钮 | — | 常驻 | `DeleteProjectDialog.vue:48`；i18n `common.delete` | 可见 Y14 ≈341,395（`删除`，危险色） |
 
 元素数 6。
 
@@ -453,13 +489,13 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-F2-01 | 「重命名工作区」 | 标题 | — | 打开时 | `<ref>/components/sidebar/session/dialogs/RenameProjectDialog.vue:81`；i18n `sessionDialogs.renameProjectTitle` | 需交互（C16 工作区行 `⋯` →「重命名」169,450；C45 169,442） |
-| G-F2-02 | 「输入新的工作区名称」 | 描述 | — | 打开时 | `RenameProjectDialog.vue:83`；i18n `sessionDialogs.renameProjectDescription` | 需交互（同上） |
-| G-F2-03 | 「工作区名称」 | 字段标签 | — | 打开时 | `RenameProjectDialog.vue:89`；i18n `sessionDialogs.projectName` | 需交互（同上） |
-| G-F2-04 | 「输入工作区名称」 | 输入框（placeholder，聚焦即全选） | 当前别名 | 打开时 | `RenameProjectDialog.vue:95`；i18n `sessionDialogs.projectNamePlaceholder` | 需交互（同上） |
-| G-F2-05 | （工作区路径） | 文字行（14px 灰） | — | 打开时 | `RenameProjectDialog.vue:106` | 需交互（同上） |
-| G-F2-06 | 「取消」 | 次按钮 | — | 常驻 | `RenameProjectDialog.vue:110`；i18n `common.cancel` | 需交互（同上） |
-| G-F2-07 | 「确认」 | 主按钮 | 禁用 | 非空且与当前不同才可用 | `RenameProjectDialog.vue:118`；i18n `common.confirm` | 需交互（同上） |
+| G-F2-01 | 「重命名工作区」 | 标题 | — | 打开时 | `<ref>/components/sidebar/session/dialogs/RenameProjectDialog.vue:81`；i18n `sessionDialogs.renameProjectTitle` | 可见 Y15 341,258 348×16（`重命名工作区`） |
+| G-F2-02 | 「输入新的工作区名称」 | 描述 | — | 打开时 | `RenameProjectDialog.vue:83`；i18n `sessionDialogs.renameProjectDescription` | 可见 Y15 341,280 348×18（`输入新的工作区名称`） |
+| G-F2-03 | 「工作区名称」 | 字段标签 | — | 打开时 | `RenameProjectDialog.vue:89`；i18n `sessionDialogs.projectName` | 可见 Y15 341,326 348×12（`工作区名称`） |
+| G-F2-04 | 「输入工作区名称」 | 输入框（placeholder，聚焦即全选） | 当前别名 | 打开时 | `RenameProjectDialog.vue:95`；i18n `sessionDialogs.projectNamePlaceholder` | 可见 Y15 ≈341,350 348×40（输入框，预填 `year` 且全选，placeholder `输入工作区名称`） |
+| G-F2-05 | （工作区路径） | 文字行（14px 灰） | — | 打开时 | `RenameProjectDialog.vue:106` | 可见 Y15 341,405 348×18（工作区路径） |
+| G-F2-06 | 「取消」 | 次按钮 | — | 常驻 | `RenameProjectDialog.vue:110`；i18n `common.cancel` | 可见 Y15 ≈575,436（`取消`） |
+| G-F2-07 | 「确认」 | 主按钮 | 禁用 | 非空且与当前不同才可用 | `RenameProjectDialog.vue:118`；i18n `common.confirm` | 可见（仅视觉）Y15 637,436 53×32（`确认`；名称未改时置灰） |
 
 元素数 7。
 
@@ -475,11 +511,11 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-G1-01 | 「导出对话」 | 标题 | — | 打开时 | `<ref>/components/sidebar/session/dialogs/ExportSessionDialog.vue:131`；i18n `sessionDialogs.exportSessionTitle` | 需交互（C13 会话行右键 →「导出」157,352；或 C2「导出」362,167） |
-| G-G1-02 | 「导出「{name}」的会话对话。不包含原始 Provider 请求。」 | 描述（最多 3 行，超出截断） | — | 打开时 | `ExportSessionDialog.vue:133`；i18n `sessionDialogs.exportSessionDescription` | 需交互（同上） |
-| G-G1-03 | 「导出内容」 | 分组标签（14px 中等） | — | 打开时 | `ExportSessionDialog.vue:138`；i18n `sessionDialogs.exportContent` | 需交互（同上） |
-| G-G1-04 | 「压缩记录」 / 「工具详情」 / 「思考」 | 勾选项行（方框 + 14px 文字） | 查实现默认（首屏读代码为未勾选） | 常驻 | `ExportSessionDialog.vue:146`–`:160`；i18n `sessionDialogs.exportIncludeCompaction`、`exportIncludeToolDetails`、`exportIncludeThinking` | 需交互（同上） |
-| G-G1-05 | 「消息」 | 分组标签（14px 中等） | — | 打开时 | `ExportSessionDialog.vue:169`；i18n `sessionDialogs.exportMessages` | 需交互（同上） |
+| G-G1-01 | 「导出对话」 | 标题 | — | 打开时 | `<ref>/components/sidebar/session/dialogs/ExportSessionDialog.vue:131`；i18n `sessionDialogs.exportSessionTitle` | 可见 X12 243,219 544×16（`导出对话`） |
+| G-G1-02 | 「导出「{name}」的会话对话。不包含原始 Provider 请求。」 | 描述（最多 3 行，超出截断） | — | 打开时 | `ExportSessionDialog.vue:133`；i18n `sessionDialogs.exportSessionDescription` | 可见 X12 243,242 544×18（`导出「帮我列出当前目录的文件」的会话对话。不包含原始 Provider 请求。`） |
+| G-G1-03 | 「导出内容」 | 分组标签（14px 中等） | — | 打开时 | `ExportSessionDialog.vue:138`；i18n `sessionDialogs.exportContent` | 可见 X12 243,273 544×18（`导出内容`） |
+| G-G1-04 | 「压缩记录」 / 「工具详情」 / 「思考」 | 勾选项行（方框 + 14px 文字） | 查实现默认（首屏读代码为未勾选） | 常驻 | `ExportSessionDialog.vue:146`–`:160`；i18n `sessionDialogs.exportIncludeCompaction`、`exportIncludeToolDetails`、`exportIncludeThinking` | 可见 X12 264,298（`压缩记录` 49×18 / `工具详情` 355,298 / `思考` 446,298，三者默认已勾） |
+| G-G1-05 | 「消息」 | 分组标签（14px 中等） | — | 打开时 | `ExportSessionDialog.vue:169`；i18n `sessionDialogs.exportMessages` | 可见 X12 243,329 25×18（`消息`） |
 | G-G1-06 | 「保留 {kept} / {total} 个回合」 | 计数文字（12px 灰） | 隐藏 | 大纲已载入 | `ExportSessionDialog.vue:171`；i18n `sessionDialogs.exportKeptCount` | 需数据（回合大纲返回） |
 | G-G1-07 | 「搜索回合」 | 搜索输入框（左置放大镜，placeholder） | 空 | 大纲已载入 | `ExportSessionDialog.vue:181`；i18n `sessionDialogs.exportSearchPlaceholder` | 需数据（同上） |
 | G-G1-08 | 「排除 {count} 个匹配」 | 次级小按钮（`outline`） | 隐藏 | 搜索有匹配；匹配为 0 时禁用 | `ExportSessionDialog.vue:193`；i18n `sessionDialogs.exportExcludeMatches` | 需交互（大纲载入后键入命中词） |
@@ -489,9 +525,9 @@
 | G-G1-12 | 「全部保留」 / 「全部排除」 | 文字按钮（12px 灰） | — | 有回合 | `ExportSessionDialog.vue:264`；i18n `sessionDialogs.exportKeepAll`、`exportKeepNone` | 需数据（大纲含回合） |
 | G-G1-13 | 「压缩记录会单独描述被折叠的回合，排除某个回合不会将其从压缩记录中移除。」 | 说明文字（12px 灰） | 隐藏 | 勾选压缩记录且存在压缩记录 | `ExportSessionDialog.vue:284`；i18n `sessionDialogs.exportCompactionNote` | 需交互（勾选「压缩记录」）+ 需数据（会话有压缩记录） |
 | G-G1-14 | 「会话快照已过期并重新加载。请检查消息和排除项后再次导出。」 | 提示文字（14px，`role=status`） | 隐藏 | 快照过期并重载后 | `ExportSessionDialog.vue:288`；i18n `sessionDialogs.exportOutlineRecovered` | 需数据（导出时会话快照过期并重载） |
-| G-G1-15 | （导出失败原因） | 错误文字 | 隐藏 | 导出失败 | `ExportSessionDialog.vue:290` | 需交互（点「导出」后失败） |
-| G-G1-16 | 「取消」 | 次按钮 | — | 常驻 | `ExportSessionDialog.vue:294`；i18n `common.cancel` | 需交互（同上） |
-| G-G1-17 | 「导出」 / 「导出中…」 | 主按钮 | — | 常驻 / 提交中；未取到大纲时禁用 | `ExportSessionDialog.vue:302`；i18n `sessionDialogs.export`、`exporting` | 需交互（同上） |
+| G-G1-15 | （导出失败原因） | 错误文字 | 隐藏 | 导出失败 | `ExportSessionDialog.vue:290` | 可见 X12 243,392 544×60（原始错误行 `BAD_REQUEST: History cursor exceeds fixed position`） |
+| G-G1-16 | 「取消」 | 次按钮 | — | 常驻 | `ExportSessionDialog.vue:294`；i18n `common.cancel` | 可见 X12 673,475 55×32（`取消`） |
+| G-G1-17 | 「导出」 / 「导出中…」 | 主按钮 | — | 常驻 / 提交中；未取到大纲时禁用 | `ExportSessionDialog.vue:302`；i18n `sessionDialogs.export`、`exporting` | 可见（仅视觉）X12 735,475 53×32（`导出`；大纲失败时置灰，PNG） |
 
 元素数 17。
 
@@ -521,18 +557,18 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-H1-01 | 「从 Git 添加插件」 | 标题 | — | 打开时 | `<ref>/components/plugins/PluginInstallDialog.vue:79`；i18n `plugins.dialogTitle` | 需交互（设置 → 插件 或 技能/插件页「插件」页签 → 添加插件；本机 `runtime/settings/插件设置.json` 与 `main/skills.json` 均为页面级，无此对话框） |
-| G-H1-02 | 「从 GitHub 仓库或 Git URL 添加。」 | 描述 | — | 打开时 | `PluginInstallDialog.vue:80`；i18n `plugins.dialogDescription` | 需交互（同上） |
-| G-H1-03 | 「本地文件夹」 / 「Git 仓库」 | 模式切换（两个等宽小按钮，选中为 `secondary`） | 「本地文件夹」 | 常驻 | `PluginInstallDialog.vue:92`–`:96`；i18n `plugins.native.path`、`plugins.native.git` | 需交互（同上） |
-| G-H1-04 | 「来源」 + 「/path/to/plugin」 | 字段标签 + 输入框 | 空 | 本地文件夹模式 | `PluginInstallDialog.vue:106`–`:109`；i18n `plugins.sourceLabel`、`plugins.native.pathPlaceholder` | 需交互（同上，默认模式即此分支） |
-| G-H1-05 | 「选择文件夹」 | 图标按钮（文件夹图标，`outline`） | — | 本地文件夹模式 | `PluginInstallDialog.vue:114`；i18n `plugins.native.pickPath` | 需交互（同上；点开系统目录选择框） |
-| G-H1-06 | 「Git 仓库」 + 「owner/repo 或 https://github.com/owner/repo」 | 字段标签 + 输入框 | 空 | Git 模式 | `PluginInstallDialog.vue:122`–`:124`；i18n `plugins.native.git`、`plugins.native.gitPlaceholder` | 需交互（对话框内切到「Git 仓库」模式） |
-| G-H1-07 | 「Git ref」 + 「main」 | 字段标签 + 输入框 | 空 | Git 模式 | `PluginInstallDialog.vue:131`–`:134`；i18n `plugins.refLabel`、`plugins.native.refPlaceholder` | 需交互（同上） |
-| G-H1-08 | 「插件 id（可选）」 + 「根据 manifest 自动生成」 | 字段标签 + 输入框 | 空 | 两种模式 | `PluginInstallDialog.vue:142`–`:146`；i18n `plugins.native.idLabel`、`plugins.native.idPlaceholder` | 需交互（同上） |
-| G-H1-09 | 「安装后启用」 | 开关（右侧） | 开 | 常驻 | `PluginInstallDialog.vue:152`；i18n `plugins.native.enableAfterInstall` | 需交互（同上） |
+| G-H1-01 | 「从 Git 添加插件」 | 标题 | — | 打开时 | `<ref>/components/plugins/PluginInstallDialog.vue:79`；i18n `plugins.dialogTitle` | 可见 Y8 327,216 376×16（`从 Git 添加插件`） |
+| G-H1-02 | 「从 GitHub 仓库或 Git URL 添加。」 | 描述 | — | 打开时 | `PluginInstallDialog.vue:80`；i18n `plugins.dialogDescription` | 可见 Y8 ≈327,242（`从 GitHub 仓库或 Git URL 添加。`） |
+| G-H1-03 | 「本地文件夹」 / 「Git 仓库」 | 模式切换（两个等宽小按钮，选中为 `secondary`） | 「本地文件夹」 | 常驻 | `PluginInstallDialog.vue:92`–`:96`；i18n `plugins.native.path`、`plugins.native.git` | 可见 Y8 327,271 184×28（`本地文件夹` 选中）/ `Git 仓库` 并列 |
+| G-H1-04 | 「来源」 + 「/path/to/plugin」 | 字段标签 + 输入框 | 空 | 本地文件夹模式 | `PluginInstallDialog.vue:106`–`:109`；i18n `plugins.sourceLabel`、`plugins.native.pathPlaceholder` | 可见 Y8 327,316 25×15（`来源`）+ 输入框 placeholder `/path/to/plugin` |
+| G-H1-05 | 「选择文件夹」 | 图标按钮（文件夹图标，`outline`） | — | 本地文件夹模式 | `PluginInstallDialog.vue:114`；i18n `plugins.native.pickPath` | 可见 Y8 ≈560,350（文件夹图标按钮） |
+| G-H1-06 | 「Git 仓库」 + 「owner/repo 或 https://github.com/owner/repo」 | 字段标签 + 输入框 | 空 | Git 模式 | `PluginInstallDialog.vue:122`–`:124`；i18n `plugins.native.git`、`plugins.native.gitPlaceholder` | 可见 Y9 ≈327,349（`Git 仓库` 标签 + `owner/repo 或 https://github.com/owner/repo` 输入框） |
+| G-H1-07 | 「Git ref」 + 「main」 | 字段标签 + 输入框 | 空 | Git 模式 | `PluginInstallDialog.vue:131`–`:134`；i18n `plugins.refLabel`、`plugins.native.refPlaceholder` | 可见 Y9 327,349 36×15（`Git ref`）+ `main` 输入框 |
+| G-H1-08 | 「插件 id（可选）」 + 「根据 manifest 自动生成」 | 字段标签 + 输入框 | 空 | 两种模式 | `PluginInstallDialog.vue:142`–`:146`；i18n `plugins.native.idLabel`、`plugins.native.idPlaceholder` | 可见 Y8 327,383 87×15（`插件 id（可选）` + `根据 manifest 自动生成`） |
+| G-H1-09 | 「安装后启用」 | 开关（右侧） | 开 | 常驻 | `PluginInstallDialog.vue:152`；i18n `plugins.native.enableAfterInstall` | 可见 Y8 327,446 61×18（`安装后启用` 开关，默认开） |
 | G-H1-10 | 「请选择插件文件夹。」 / 「请输入 Git 仓库。」 / （服务端错误） | 错误文字（14px 危险色） | 隐藏 | 校验失败 / 安装失败 | `PluginInstallDialog.vue:156`；i18n `plugins.native.pathRequired`、`plugins.native.gitRequired` | 需交互（空路径提交 / 空 Git 仓库提交 / 安装 RPC 失败） |
-| G-H1-11 | 「取消」 | 次按钮（`outline`） | — | 常驻；安装中禁用 | `PluginInstallDialog.vue:161`；i18n `common.cancel` | 需交互（同上） |
-| G-H1-12 | 「添加插件」 | 主按钮（安装中前置旋转图标） | — | 常驻；安装中禁用 | `PluginInstallDialog.vue:165`；i18n `plugins.add` | 需交互（同上；安装中为瞬态） |
+| G-H1-11 | 「取消」 | 次按钮（`outline`） | — | 常驻；安装中禁用 | `PluginInstallDialog.vue:161`；i18n `common.cancel` | 可见 Y8 ≈575,477（`取消`） |
+| G-H1-12 | 「添加插件」 | 主按钮（安装中前置旋转图标） | — | 常驻；安装中禁用 | `PluginInstallDialog.vue:165`；i18n `plugins.add` | 可见 Y8 626,477 77×32（`添加插件`） |
 
 元素数 12。
 
@@ -542,15 +578,15 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-H2-01 | 「安装 {name}」 | 标题 | — | 打开时 | `<ref>/components/plugins/PluginMarketplaceInstallDialog.vue:132`；i18n `plugins.marketplaceInstallTitle` | 需交互（技能/插件页「插件」→ 市场条目「安装」；`main/skills.json` 只采到「技能」页签） |
-| G-H2-02 | 「选择要启用的内置技能。默认全选。」 | 描述 | — | 打开时 | `PluginMarketplaceInstallDialog.vue:133`；i18n `plugins.marketplaceInstallDescription` | 需交互（同上） |
-| G-H2-03 | 「正在加载...」 | 加载行（旋转图标 + 14px 灰字，居中） | 隐藏 | 条目详情加载中 | `PluginMarketplaceInstallDialog.vue:138`；i18n `common.loading` | 需数据（条目详情未返回） |
-| G-H2-04 | （错误消息 + 「重试」） | 错误块（告警图标 + 14px 灰字 + 次级按钮） | 隐藏 | 详情加载失败 | `PluginMarketplaceInstallDialog.vue:149`–`:178`；i18n `common.retry` | 需数据（详情 RPC 失败）+ 需交互（点「重试」） |
-| G-H2-05 | 「技能」 | 分组标签（12px 中等灰） | — | 详情已载入 | `PluginMarketplaceInstallDialog.vue:153`；i18n `plugins.marketplaceSkills` | 需数据（详情返回） |
-| G-H2-06 | （技能名称 + 描述） | 勾选行（方框 + 名称 + 12px 描述） | 全选 | 插件含技能 | `PluginMarketplaceInstallDialog.vue:160`–`:199` | 需数据（该插件含内置技能） |
-| G-H2-07 | 「此插件不包含技能。」 | 空态文字（14px 灰） | 隐藏 | 插件无技能 | `PluginMarketplaceInstallDialog.vue:174`；i18n `plugins.marketplaceNoSkills` | 需数据（该插件无内置技能） |
-| G-H2-08 | 「取消」 | 次按钮（`outline`） | — | 常驻 | `PluginMarketplaceInstallDialog.vue:178`；i18n `common.cancel` | 需交互（同上） |
-| G-H2-09 | 「添加插件」 | 主按钮（安装中前置旋转图标） | 禁用 | 详情未载入、加载中或安装中禁用 | `PluginMarketplaceInstallDialog.vue:185`；i18n `plugins.add` | 需交互（同上；禁用态属视觉） |
+| G-H2-01 | 「安装 {name}」 | 标题 | — | 打开时 | `<ref>/components/plugins/PluginMarketplaceInstallDialog.vue:132`；i18n `plugins.marketplaceInstallTitle` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-02 | 「选择要启用的内置技能。默认全选。」 | 描述 | — | 打开时 | `PluginMarketplaceInstallDialog.vue:133`；i18n `plugins.marketplaceInstallDescription` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-03 | 「正在加载...」 | 加载行（旋转图标 + 14px 灰字，居中） | 隐藏 | 条目详情加载中 | `PluginMarketplaceInstallDialog.vue:138`；i18n `common.loading` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-04 | （错误消息 + 「重试」） | 错误块（告警图标 + 14px 灰字 + 次级按钮） | 隐藏 | 详情加载失败 | `PluginMarketplaceInstallDialog.vue:149`–`:178`；i18n `common.retry` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-05 | 「技能」 | 分组标签（12px 中等灰） | — | 详情已载入 | `PluginMarketplaceInstallDialog.vue:153`；i18n `plugins.marketplaceSkills` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-06 | （技能名称 + 描述） | 勾选行（方框 + 名称 + 12px 描述） | 全选 | 插件含技能 | `PluginMarketplaceInstallDialog.vue:160`–`:199` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-07 | 「此插件不包含技能。」 | 空态文字（14px 灰） | 隐藏 | 插件无技能 | `PluginMarketplaceInstallDialog.vue:174`；i18n `plugins.marketplaceNoSkills` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-08 | 「取消」 | 次按钮（`outline`） | — | 常驻 | `PluginMarketplaceInstallDialog.vue:178`；i18n `common.cancel` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H2-09 | 「添加插件」 | 主按钮（安装中前置旋转图标） | 禁用 | 详情未载入、加载中或安装中禁用 | `PluginMarketplaceInstallDialog.vue:185`；i18n `plugins.add` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
 
 元素数 9。
 
@@ -560,10 +596,10 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-H3-01 | 「替换现有插件？」 | 标题 | — | 打开时 | `<ref>/components/plugins/MarketOverwriteDialog.vue:40`；i18n `plugins.marketOverwriteTitle` | 需数据（市场条目与已装插件同目录名） |
-| G-H3-02 | 「"{name}" 将替换一个来自其他来源（git、手动安装或另一个市场条目）的同名插件。此操作无法撤销。」 | 描述 | — | 打开时 | `MarketOverwriteDialog.vue:42`；i18n `plugins.marketOverwriteDescription` | 需数据（同上） |
-| G-H3-03 | 「取消」 | 次按钮（`outline`） | — | 常驻；工作禁用 | `MarketOverwriteDialog.vue:47`；i18n `common.cancel` | 需数据（同上） |
-| G-H3-04 | 「替换」 | 危险按钮（`destructive`，工作中前置旋转图标） | — | 常驻；工作禁用 | `MarketOverwriteDialog.vue:56`；i18n `plugins.marketOverwriteConfirm` | 需数据（同上）+ 需交互（点「替换」后工作中） |
+| G-H3-01 | 「替换现有插件？」 | 标题 | — | 打开时 | `<ref>/components/plugins/MarketOverwriteDialog.vue:40`；i18n `plugins.marketOverwriteTitle` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H3-02 | 「"{name}" 将替换一个来自其他来源（git、手动安装或另一个市场条目）的同名插件。此操作无法撤销。」 | 描述 | — | 打开时 | `MarketOverwriteDialog.vue:42`；i18n `plugins.marketOverwriteDescription` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H3-03 | 「取消」 | 次按钮（`outline`） | — | 常驻；工作禁用 | `MarketOverwriteDialog.vue:47`；i18n `common.cancel` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H3-04 | 「替换」 | 危险按钮（`destructive`，工作中前置旋转图标） | — | 常驻；工作禁用 | `MarketOverwriteDialog.vue:56`；i18n `plugins.marketOverwriteConfirm` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
 
 元素数 4。
 
@@ -573,13 +609,13 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-H4-01 | 「可用更新」 | 标题 | — | 打开时 | `<ref>/components/plugins/PluginUpdatesDialog.vue:65`；i18n `plugins.updatesTitle` | 需数据（已装插件有更高版本，打开更新横幅/按钮） |
-| G-H4-02 | 「所有插件均为最新版本」 | 空态文字（14px 灰，居中） | 隐藏 | 无待更新项 | `PluginUpdatesDialog.vue:74`；i18n `plugins.noUpdates` | 需数据（打开时无待更新项） |
-| G-H4-03 | （插件占位图标 + 名称） | 行首图标（40px 底托 + 方块图标）+ 名称（14px 中等，截断） | — | 有可更新项 | `PluginUpdatesDialog.vue:87`–`:95` | 需数据（有可更新插件） |
-| G-H4-04 | 「v{旧} → v{新}」 / 「v{新}」 | 版本行（12px 灰） | — | 有记录版本 / 旧版本未知 | `PluginUpdatesDialog.vue:101` | 需数据（同上） |
-| G-H4-05 | （下载进度条 + 「已下载 {size}…」 / 「{已下载} / {总量}」） | 进度条（1px 高）+ 12px 灰字 | 隐藏 | 该插件安装中 | `PluginUpdatesDialog.vue:39`–`:99`、`:10`–`:13`；i18n `plugins.downloadedBytes` | 需交互（点该行「更新」并等到下载开始） |
-| G-H4-06 | 「更新」 | 次级小按钮（刷新图标，安装中旋转） | — | 有可更新项；安装中或全部更新时禁用 | `PluginUpdatesDialog.vue:113`；i18n `plugins.update` | 需数据（有可更新项）+ 需交互（点「更新」） |
-| G-H4-07 | 「全部更新（{count}）」 | 主按钮（刷新图标，更新中旋转） | — | 有可更新项；更新中禁用 | `PluginUpdatesDialog.vue:126`；i18n `plugins.updateAll` | 需数据（同上）+ 需交互（点「全部更新」） |
+| G-H4-01 | 「可用更新」 | 标题 | — | 打开时 | `<ref>/components/plugins/PluginUpdatesDialog.vue:65`；i18n `plugins.updatesTitle` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H4-02 | 「所有插件均为最新版本」 | 空态文字（14px 灰，居中） | 隐藏 | 无待更新项 | `PluginUpdatesDialog.vue:74`；i18n `plugins.noUpdates` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H4-03 | （插件占位图标 + 名称） | 行首图标（40px 底托 + 方块图标）+ 名称（14px 中等，截断） | — | 有可更新项 | `PluginUpdatesDialog.vue:87`–`:95` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H4-04 | 「v{旧} → v{新}」 / 「v{新}」 | 版本行（12px 灰） | — | 有记录版本 / 旧版本未知 | `PluginUpdatesDialog.vue:101` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H4-05 | （下载进度条 + 「已下载 {size}…」 / 「{已下载} / {总量}」） | 进度条（1px 高）+ 12px 灰字 | 隐藏 | 该插件安装中 | `PluginUpdatesDialog.vue:39`–`:99`、`:10`–`:13`；i18n `plugins.downloadedBytes` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H4-06 | 「更新」 | 次级小按钮（刷新图标，安装中旋转） | — | 有可更新项；安装中或全部更新时禁用 | `PluginUpdatesDialog.vue:113`；i18n `plugins.update` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H4-07 | 「全部更新（{count}）」 | 主按钮（刷新图标，更新中旋转） | — | 有可更新项；更新中禁用 | `PluginUpdatesDialog.vue:126`；i18n `plugins.updateAll` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
 
 元素数 7。
 
@@ -589,12 +625,12 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-H5-01 | 「可用更新」 | 标题 | — | 打开时 | `<ref>/components/skills/SkillUpdatesDialog.vue:50`；i18n `skillsMarketplace.updatesTitle` | 需数据（已装技能有更高版本） |
-| G-H5-02 | 「所有技能均为最新版本」 | 空态文字 | 隐藏 | 无待更新项 | `SkillUpdatesDialog.vue:59`；i18n `skillsMarketplace.noUpdates` | 需数据（打开时无待更新项） |
-| G-H5-03 | （技能图标 + 名称） | 行首图标（40px 技能图标）+ 名称 | — | 有可更新项 | `SkillUpdatesDialog.vue:71`–`:77` | 需数据（有可更新技能） |
-| G-H5-04 | 「v{旧} → v{新}」 / 「v{新}」 | 版本行（12px 灰） | — | 有记录版本 / 旧版本未知 | `SkillUpdatesDialog.vue:80` | 需数据（同上） |
-| G-H5-05 | 「更新」 | 次级小按钮（刷新图标，安装中旋转） | — | 有可更新项；安装中或全部更新时禁用 | `SkillUpdatesDialog.vue:89`；i18n `skillsMarketplace.update` | 需数据（有可更新项）+ 需交互（点「更新」） |
-| G-H5-06 | 「全部更新（{count}）」 | 主按钮 | — | 有可更新项；更新中禁用 | `SkillUpdatesDialog.vue:102`；i18n `skillsMarketplace.updateAll` | 需数据（同上）+ 需交互（点「全部更新」） |
+| G-H5-01 | 「可用更新」 | 标题 | — | 打开时 | `<ref>/components/skills/SkillUpdatesDialog.vue:50`；i18n `skillsMarketplace.updatesTitle` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H5-02 | 「所有技能均为最新版本」 | 空态文字 | 隐藏 | 无待更新项 | `SkillUpdatesDialog.vue:59`；i18n `skillsMarketplace.noUpdates` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H5-03 | （技能图标 + 名称） | 行首图标（40px 技能图标）+ 名称 | — | 有可更新项 | `SkillUpdatesDialog.vue:71`–`:77` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H5-04 | 「v{旧} → v{新}」 / 「v{新}」 | 版本行（12px 灰） | — | 有记录版本 / 旧版本未知 | `SkillUpdatesDialog.vue:80` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H5-05 | 「更新」 | 次级小按钮（刷新图标，安装中旋转） | — | 有可更新项；安装中或全部更新时禁用 | `SkillUpdatesDialog.vue:89`；i18n `skillsMarketplace.update` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
+| G-H5-06 | 「全部更新（{count}）」 | 主按钮 | — | 有可更新项；更新中禁用 | `SkillUpdatesDialog.vue:102`；i18n `skillsMarketplace.updateAll` | 需数据（插件市场不可用：`插件市场` 页显示「Marketplace 暂不可用 / 插件市场需要上游 API」，本机无法打开该对话框；非采集操作缺口） |
 
 元素数 6。
 
@@ -604,19 +640,19 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-H6-01 | 「导入 Chrome Cookie」 | 标题 | — | 打开时 | `<ref>/components/settings/BrowserDataSettings.vue:273`；i18n `browserData.importTitle` | 需交互（设置 → 通用 → 浏览器数据 →「导入…」） |
-| G-H6-02 | 「此操作会替换内置浏览器中的全部非分区 Cookie，并重新加载已打开的页面。每个 Cookie 都会单独尝试导入，因此个别 Cookie 可能失败；部分网站可能需要重新登录。」 | 描述 | — | 可导入数量不为 0 | `BrowserDataSettings.vue:274`；i18n `browserData.replaceWarning` | 需数据（所选配置的可导入数 ≠ 0） |
-| G-H6-03 | 「正在扫描 Chrome 配置…」 | 加载行（旋转图标 + 14px 灰字，最小高 96px） | 隐藏 | 扫描中 | `BrowserDataSettings.vue:279`；i18n `browserData.scanning` | 需数据（扫描进行中，窗口极短） |
-| G-H6-04 | 「Chrome 配置」 | 分组标签（12px 中等灰） | — | 扫描完成 | `BrowserDataSettings.vue:283`；i18n `browserData.profileLabel` | 需数据（扫描返回配置列表） |
-| G-H6-05 | （配置名 + 能力标签） | 单选项行（自绘单选圈 + 名称 + 12px 能力标签） | 首个可选配置 | 存在配置 | `BrowserDataSettings.vue:285`–`:300` | 需数据（本机 Chrome 有可读配置） |
+| G-H6-01 | 「导入 Chrome Cookie」 | 标题 | — | 打开时 | `<ref>/components/settings/BrowserDataSettings.vue:273`；i18n `browserData.importTitle` | 可见 Y11 285,250 460×16（`导入 Chrome Cookie`） |
+| G-H6-02 | 「此操作会替换内置浏览器中的全部非分区 Cookie，并重新加载已打开的页面。每个 Cookie 都会单独尝试导入，因此个别 Cookie 可能失败；部分网站可能需要重新登录。」 | 描述 | — | 可导入数量不为 0 | `BrowserDataSettings.vue:274`；i18n `browserData.replaceWarning` | 可见 Y12（标题下描述整段，PNG） |
+| G-H6-03 | 「正在扫描 Chrome 配置…」 | 加载行（旋转图标 + 14px 灰字，最小高 96px） | 隐藏 | 扫描中 | `BrowserDataSettings.vue:279`；i18n `browserData.scanning` | 可见 Y11（`正在扫描 Chrome 配置…` 行 + 导入按钮置灰） |
+| G-H6-04 | 「Chrome 配置」 | 分组标签（12px 中等灰） | — | 扫描完成 | `BrowserDataSettings.vue:283`；i18n `browserData.profileLabel` | 可见 Y12 299,280 432×14（`Chrome 配置`） |
+| G-H6-05 | （配置名 + 能力标签） | 单选项行（自绘单选圈 + 名称 + 12px 能力标签） | 首个可选配置 | 存在配置 | `BrowserDataSettings.vue:285`–`:300` | 可见 Y12 335,312 343×18（`Han` 等 3 个配置行，右侧 `可导入`） |
 | G-H6-06 | 「未找到 Google Chrome 配置。」 | 空态文字 | 隐藏 | 无配置且无错误 | `BrowserDataSettings.vue:302`；i18n `browserData.noProfiles` | 需数据（本机无 Chrome 或配置不可读） |
 | G-H6-07 | 「正在读取所选配置…」 | 加载行（旋转图标 + 14px 灰字） | 隐藏 | 读取所选配置中 | `BrowserDataSettings.vue:304`；i18n `browserData.previewing` | 需数据（切换配置后的预览读取） |
 | G-H6-08 | 「可导入 {importable} · 会话 {session} · 已过期 {expired} · 分区 {partitioned}」 | 计数块（边框 + 浅底，12px） | 隐藏 | 已取到预览 | `BrowserDataSettings.vue:313`；i18n `browserData.counts` | 需数据（预览返回计数） |
 | G-H6-09a | （成功态：对勾图标 + 「已导入 {imported} · 失败 {failed} · 已跳过…」） | 结果块（对勾图标 + 14px 文字） | 隐藏 | 导入结束且失败数为 0 | `BrowserDataSettings.vue:317`–`:328`；i18n `browserData.importResultCounts` | 需交互（点「导入」并等结束，且失败数为 0） |
 | G-H6-09b | （部分失败态：告警图标 + 计数 + 「部分 Cookie 未能导入，部分网站可能需要重新登录。」） | 结果块（告警图标 + 14px 文字 + 12px 警示色说明） | 隐藏 | 导入结束且失败数 >0 | `BrowserDataSettings.vue:317`–`:328`；i18n `browserData.importResultCounts`、`importPartial` | 需数据（导入有失败项） |
-| G-H6-10 | （错误消息 + 诊断行 + 「重试」） | 错误块（危险色 + 等宽诊断行 + 次级按钮） | 隐藏 | 导入或读取失败 | `BrowserDataSettings.vue:331`–`:347` | 需数据（导入/读取 RPC 失败）+ 需交互（点「重试」） |
-| G-H6-11 | 「取消」 / 「关闭」 | 次按钮（`outline`） | — | 未结束时「取消」，已导入后「关闭」 | `BrowserDataSettings.vue:355`；i18n `common.cancel`、`common.close` | 需交互（同上；两文案按结束状态切换） |
-| G-H6-12 | 「导入」 / 「正在导入 Cookie…」 / （阶段文案：正在关闭浏览器页面… / 正在更新浏览器数据… / 正在验证浏览器数据… / 正在恢复原有登录状态…） | 主按钮（导入中前置旋转图标） | 禁用 | 未取到预览、导入中、读取中或扫描中禁用 | `BrowserDataSettings.vue:358`；i18n `browserData.confirmImport`、`importing`、`phaseQuiescing`/`phaseApplying`/`phaseVerifying`/`phaseRollingBack` | 需交互（取到预览后点「导入」；四个阶段文案为瞬间态） |
+| G-H6-10 | （错误消息 + 诊断行 + 「重试」） | 错误块（危险色 + 等宽诊断行 + 次级按钮） | 隐藏 | 导入或读取失败 | `BrowserDataSettings.vue:331`–`:347` | 可见 Y12 299,422 374×28（`无法访问 Chrome 加密密钥。macOS 请解锁钥匙串…`）+ 诊断行 299,454 + 重试 684,440 |
+| G-H6-11 | 「取消」 / 「关闭」 | 次按钮（`outline`） | — | 未结束时「取消」，已导入后「关闭」 | `BrowserDataSettings.vue:355`；i18n `common.cancel`、`common.close` | 可见 Y11/Y12 ≈575,477（`取消`） |
+| G-H6-12 | 「导入」 / 「正在导入 Cookie…」 / （阶段文案：正在关闭浏览器页面… / 正在更新浏览器数据… / 正在验证浏览器数据… / 正在恢复原有登录状态…） | 主按钮（导入中前置旋转图标） | 禁用 | 未取到预览、导入中、读取中或扫描中禁用 | `BrowserDataSettings.vue:358`；i18n `browserData.confirmImport`、`importing`、`phaseQuiescing`/`phaseApplying`/`phaseVerifying`/`phaseRollingBack` | 可见（仅视觉）Y11/Y12 ≈735,477（`导入`；未取到预览时置灰） |
 
 元素数 13（原 12，`G-H6-09` 拆两行）。
 
@@ -626,12 +662,12 @@
 
 | 元素 ID | 名称（文案原文） | 控件 | 默认 | 条件 | 定位 | 已采状态 |
 |---|---|---|---|---|---|---|
-| G-H7-01 | 「清理浏览器数据」 | 标题 | — | 打开时 | `BrowserDataSettings.vue:379`；i18n `browserData.clearTitle` | 需交互（设置 → 通用 → 浏览器数据 →「清理数据…」） |
-| G-H7-02 | 「此操作只会清除内置浏览器中的登录状态、Cookie、本地存储、IndexedDB、Service Worker 和缓存。浏览器页面会关闭并以空白页重新打开。」 | 描述 | — | 打开时 | `BrowserDataSettings.vue:380`；i18n `browserData.clearDescription` | 需交互（同上） |
+| G-H7-01 | 「清理浏览器数据」 | 标题 | — | 打开时 | `BrowserDataSettings.vue:379`；i18n `browserData.clearTitle` | 可见 Y13 313,292 404×16（`清理浏览器数据`） |
+| G-H7-02 | 「此操作只会清除内置浏览器中的登录状态、Cookie、本地存储、IndexedDB、Service Worker 和缓存。浏览器页面会关闭并以空白页重新打开。」 | 描述 | — | 打开时 | `BrowserDataSettings.vue:380`；i18n `browserData.clearDescription` | 可见 Y13 313,314 404×53（`此操作只会清除内置浏览器中的登录状态…`） |
 | G-H7-03 | 「内置浏览器数据已清理。」 | 成功行（对勾 + 14px 文字） | 隐藏 | 清理成功 | `BrowserDataSettings.vue:383`；i18n `browserData.clearSuccess` | 需交互（点「清理浏览器数据」并等成功） |
 | G-H7-04 | （错误消息 + 诊断行） | 错误块（危险色 + 等宽诊断行） | 隐藏 | 清理失败 | `BrowserDataSettings.vue:387` | 需数据（清理 RPC 失败） |
-| G-H7-05 | 「取消」 / 「关闭」 | 次按钮 | — | 未完成时「取消」，完成后「关闭」 | `BrowserDataSettings.vue:393`；i18n `common.cancel`、`common.close` | 需交互（同上；两文案按结束状态切换） |
-| G-H7-06 | 「清理浏览器数据」 / 「正在清理浏览器数据…」 | 危险按钮（清理中前置旋转图标） | — | 未完成时显示；清理中禁用 | `BrowserDataSettings.vue:396`、`:395`；i18n `browserData.confirmClear`、`clearing` | 需交互（同上；清理中为瞬态） |
+| G-H7-05 | 「取消」 / 「关闭」 | 次按钮 | — | 未完成时「取消」，完成后「关闭」 | `BrowserDataSettings.vue:393`；i18n `common.cancel`、`common.close` | 可见 Y13 ≈575,402（`取消`） |
+| G-H7-06 | 「清理浏览器数据」 / 「正在清理浏览器数据…」 | 危险按钮（清理中前置旋转图标） | — | 未完成时显示；清理中禁用 | `BrowserDataSettings.vue:396`、`:395`；i18n `browserData.confirmClear`、`clearing` | 可见 Y13 603,402 114×32（`清理浏览器数据`，危险按钮） |
 
 元素数 6。
 
@@ -639,108 +675,95 @@
 
 ---
 
-## 9. 计数汇总
+## 9. 计数汇总（补采后）
 
 ### 9.1 八类数字
 
-| 区域 | 元素数 | 可见 | 不可观察 | 其中「需数据」 | 其中「需交互」 | 两者兼有 |
-|---|---|---|---|---|---|---|
-| A 搜索 | 46 | 16 | 30 | 22 | 7 | 1 |
-| B 命令 | 29 | 13 | 16 | 5 | 10 | 1 |
-| C 审批 | 63 | 11 | 52 | 47 | 5 | 0 |
-| D 提问 | 22 | 0 | 22 | 18 | 4 | 0 |
-| E 确认 | 21 | 0 | 21 | 1 | 20 | 0 |
-| F 重命名 | 16 | 0 | 16 | 0 | 16 | 0 |
-| G 导出与 Fork | 22 | 0 | 22 | 5 | 15 | 2 |
-| H 导入与更新 | 57 | 0 | 57 | 24 | 26 | 7 |
-| **合计** | **276** | **40** | **236** | **122** | **103** | **11** |
+| 区域 | 元素数 | 可见 | 不可观察 | 主因 |
+|---|---|---|---|---|
+| A 搜索 | 46 | 33 | 13 | 结果集太小（无未读/无失败行）、`@` 提交候选需 git 仓库 |
+| B 命令 | 29 | 21 | 8 | 设置 → 添加模型调色板（B2）未打开；`/fast` 需快速模式 |
+| C 审批 | 63 | 11 | 52 | 沙箱/子代理/成员审批与九类渲染器都要逐工具触发权限请求 |
+| D 提问 | 22 | 9 | 13 | 单字段单选已打通；多字段、倒计时、筛选、多选、自定义答案仍缺 |
+| E 确认 | 21 | 9 | 12 | 删会话 + 删工作区已采；编辑运行中、归档、批量仍未采 |
+| F 重命名 | 16 | 7 | 9 | 工作区重命名已采；**会话重命名被 `SessionTitle` 不可用挡住** |
+| G 导出与 Fork | 22 | 8 | 14 | 导出对话框已采（大纲 RPC 报 `BAD_REQUEST`）；Fork 需两窗口持有 |
+| H 导入与更新 | 57 | 20 | 37 | 添加插件 + Chrome 导入 + 清理已采；市场系四框被上游 API 挡住 |
+| **合计** | **276** | **118** | **158** | 上一版 40 / 236 |
 
-「两者兼有」= 同一行内两个分支分别落在「需数据」与「需交互」，已计入不可观察总数，不重复计入后两列。
+判定口径未变：一行一个模板节点，`可见` 包含「随行」「仅视觉」两种反推。
 
-### 9.2 可见的 40 项落在哪
+### 9.2 本轮从「不可观察」翻成「可见」的 78 项
 
-| 组 | 可见数 | 明细 |
-|---|---|---|
-| A1 会话内搜索 | 9 | 容器、放大镜、输入框、无障碍名、关闭、结果行、上一个、下一个、结果计数（C24/C25/C26） |
-| A2 搜索聊天 | 5 | 容器、sr-only 标题描述、搜索图标、输入框、`未找到聊天`（Q，S/K 同族） |
-| A5 命中高亮 | 2 | 非当前命中、当前命中（C26 同屏各一） |
-| B1 斜杠命令 | 13 | 容器、`指令` 分组、候选行、`/agent`…`/compact` 十项（C37；后两行被弹层裁剪，仅 DOM 命中） |
-| C1 工具权限卡 | 7 | 容器、标题、审批输入区、按钮组、`仅这次`、`拒绝`、`始终允许此命令`（A/C38/C39） |
-| C4 审批输入区 | 4 | 容器、`输入`、`$ {command}`、`cwd`/`timeoutMs` 参数行（A/C38/C39） |
-| 其余组 | 0 | 见 §10 |
+- A2 搜索聊天：`G-A2-08`–`G-A2-13`（分组、结果行、所属工作区、两种行首图标、快捷键、选中态）——`X1`/`X3`
+- A3 `@` 提及：`G-A3-01`、`03`、`04`、`05`、`10`、`11`——`X7`/`X8b`/`X9`
+- A4 `$` 提及：`G-A4-01`、`03`、`04`、`05`——`X10`/`X11`
+- B1 斜杠菜单：`G-B1-03`、`04`(技能分支)、`06`、`07`、`19`、`20`——`X4`/`X5`/`X6c`
+- D1 提问卡：`G-D1-01`、`02`、`05`、`07`、`08`、`11`、`18`、`21`、`22`——`Y16`/`Y17`/`Y18`
+- E2 删除会话：`G-E2-01`、`02`、`04`、`05`——`X13`（`G-E2-03` 仍缺）
+- E4 删除工作区：`G-E4-01`–`03`、`05`、`06`——`Y14`
+- F2 重命名工作区：`G-F2-01`–`07`——`Y15`
+- G1 导出：`G-G1-01`–`05`、`15`、`16`、`17`——`X12`
+- H1 添加插件：`G-H1-01`–`09`、`11`、`12`——`Y8`/`Y9`
+- H6 Chrome 导入：`G-H6-01`–`05`、`10`、`11`、`12`——`Y11`/`Y12`
+- H7 清理数据：`G-H7-01`、`02`、`05`、`06`——`Y13`
 
-一句话结论：**现有 60 份采集态只覆盖了「搜索 + 斜杠命令 + exec 权限卡」三类元素**；其余五类（提问、确认、重命名、导出与 Fork、导入与更新）与审批的另外九类渲染器、两种卡变体，全都没有任何一份停在目标态的采集。
-
-### 9.3 结构性发现（不是元素缺，是采不到）
+### 9.3 结构性发现（补采新增）
 
 | 发现 | 依据 |
 |---|---|
-| `SessionTitle` 不可用 → 会话重命名整组不可通达 | C2 362,76 / C13 157,296 的菜单项文案为「重命名（SessionTitle 不可用）」 |
-| 审批卡大面积遮挡输入区，卡在场时无输入区 | A 态时间线底部只有卡 + 状态条（`inventory-main-rt.md` §0.4 已记）；C38/C39 同 |
-| 斜杠菜单被弹层高度裁掉 2 行 | C37：弹层顶 ≈320、底 ≈541（高 ≈221），DOM 内 10 行（末行 390,604 327×28），PNG 只露出 8 行；`/reload-plugins`、`/compact` 在裁剪区内，`/fast`、`/branch`、`/workflow` 在滚动区外 |
-| 提问卡只有截图、无 DOM | `runtime/session/turns/11-tool-ask-user-pending.png`；无同名 `.json` |
-| 搜索聊天弹窗在三种背景下重复出现，都停在 0 结果 | Q（单测）/ S（定时任务页）/ K（技能页）三份 `items` 同形 |
+| 插件市场整块不可用 → H2/H3/H4/H5 共 28 项不是采集缺口 | `Y6` 页面正文「Marketplace 暂不可用 / 插件市场需要上游 API」 |
+| 导出对话框的大纲 RPC 在本机直接报错 | `X12` 错误行 `BAD_REQUEST: History cursor exceeds fixed position`，`导出` 按钮置灰 |
+| Chrome Cookie 导入被钥匙串挡住 | `Y12` 错误块 `无法访问 Chrome 加密密钥…` + 诊断 `key_access_denied` |
+| 终端是 canvas 渲染，DOM 里只有 `textarea.xterm-helper-textarea` | `Y1`/`Y2` 的 JSON 只有页签文本与 helper textarea；结论状态以 PNG 为准 |
+| 关闭最后一个终端**不会**留提示行 | `Y4` 关闭后页签消失并切回上一页签，面板内无任何残留行 |
+| 斜杠菜单在滚动后确实含 `技能` 分组与 `/branch`、`/workflow` | `X6c`：`技能` 分组 + `agents-sdk` 等 + `/branch` 401,274、`/workflow` 401,302 |
+| `ask_user` 的 elicitation 卡片可直接在会话内触发 | `Y16`–`Y18`：卡片、`等待操作` 徽标、收起态、提交后自动解除 |
 
-## 10. 不可观察清单（236 项）
+## 10. 仍需补采（158 项）
 
-按「不可采的原因」分组；同一 ID 只出现一次。括号内为该组的一次性取证手段。
+### 10.1 需数据（102 项，按区域）
 
-### 10.1 需数据（122 项）
-
-| 区域 | 元素 ID | 一次取证手段 |
-|---|---|---|
-| A（22） | G-A1-02b G-A2-05 G-A2-06 G-A2-07 G-A2-08 G-A2-09 G-A2-10 G-A2-11a G-A2-11b G-A2-11c G-A2-11d G-A2-11e G-A2-12 G-A3-02 G-A3-04 G-A3-06 G-A3-07 G-A3-08 G-A3-09 G-A3-10 G-A4-02 G-A4-04 | 搜索聊天键入命中词（拿到结果行 / 分组 / 快捷键 / 5 种行首图标）；`@` 键入命中前缀（文件+提交+技能三类候选） |
-| B（5） | G-B1-02 G-B1-06 G-B2-04 G-B2-06 G-B2-07 | `/` 后等骨架帧；`/` 过滤出技能项；设置 → 添加模型调色板 |
-| C（47） | G-C1-03 G-C1-04 G-C1-05 G-C1-06 G-C1-07 G-C1-08 G-C1-09 G-C1-10 G-C1-11 G-C1-14 G-C1-15 G-C2-01 G-C2-02 G-C2-03 G-C2-04 G-C2-06 G-C2-07 G-C2-08 G-C3-01 G-C3-02 G-C3-03 G-C3-04 G-C3-05 G-C3-06 G-C3-08 G-C3-09 G-C4-05 G-C4-06 G-C4-07 G-C4-08 G-C4-09 G-C4-10 G-C4-11 G-C4-12 G-C4-13 G-C4-14 G-C4-15 G-C4-16 G-C4-17 G-C4-18 G-C4-19 G-C4-20 G-C4-21 G-C4-22 G-C4-23 G-C4-24 G-C4-25 | 逐工具触发权限请求（read/write/edit、grep/glob、web_search/web_fetch、skill、agent、browser、cua、wait、未登记工具）；沙箱拦下后的放宽请求；子代理换贵模型请求；自动审批交回/失败 |
-| D（18） | G-D1-01 G-D1-02 G-D1-03 G-D1-04 G-D1-06 G-D1-07 G-D1-08 G-D1-09 G-D1-10 G-D1-11 G-D1-12 G-D1-14 G-D1-15 G-D1-16 G-D1-18 G-D1-19 G-D1-20 G-D1-21 | 让 App Server 下发 `elicitation` 并停在待答态（单字段 / 多字段 / 带截止时间 / 各类 schema） |
-| E（1） | G-E3-03 | 归档目标含运行中会话 |
-| F（0） | — | — |
-| G（5） | G-G1-06 G-G1-07 G-G1-10 G-G1-12 G-G1-14 | 导出对话框取到回合大纲；导出时会话快照过期 |
-| H（24） | G-H2-03 G-H2-05 G-H2-06 G-H2-07 G-H3-01 G-H3-02 G-H3-03 G-H4-01 G-H4-02 G-H4-03 G-H4-04 G-H5-01 G-H5-02 G-H5-03 G-H5-04 G-H6-02 G-H6-03 G-H6-04 G-H6-05 G-H6-06 G-H6-07 G-H6-08 G-H6-09b G-H7-04 | 市场条目详情 / 含技能与不含技能的插件；同名来源冲突；有更高版本的插件与技能；本机 Chrome 配置扫描+预览；导入有失败项 |
-
-### 10.2 需交互（103 项）
-
-| 区域 | 元素 ID | 一次取证手段 |
-|---|---|---|
-| A（7） | G-A2-13 G-A3-01 G-A3-05 G-A3-11 G-A4-01 G-A4-03 G-A4-05 | 搜索聊天按 ↑/↓；输入框键入 `@` / `$` 后上下键 |
-| B（10） | G-B1-03 G-B1-07 G-B1-19 G-B1-20 G-B2-01 G-B2-02 G-B2-03 G-B2-05 G-B2-08 G-B2-09 | `/` 后打无匹配串、↑/↓ 移动选中、弹层滚动到底；打开设置 → 添加模型调色板 |
-| C（5） | G-C1-12 G-C1-16 G-C1-21 G-C2-05 G-C3-07 | 点动作后提交失败 / 提交中；成员动作加载失败后点重试 |
-| D（4） | G-D1-05 G-D1-13 G-D1-17 G-D1-22 | 卡片收起、筛选无匹配、必填未答即提交、提交中 |
-| E（20） | G-E1-01 G-E1-02 G-E1-03 G-E1-04 G-E2-01 G-E2-02 G-E2-03 G-E2-04 G-E2-05 G-E3-01 G-E3-02 G-E3-04 G-E3-05 G-E3-06 G-E4-01 G-E4-02 G-E4-03 G-E4-04 G-E4-05 G-E4-06 | 运行中提交编辑；C13「删除」；C13/C45「归档」；C16「移除」 |
-| F（16） | G-F1-01 G-F1-02 G-F1-03 G-F1-04 G-F1-05 G-F1-06 G-F1-07 G-F1-08 G-F1-09 G-F2-01 G-F2-02 G-F2-03 G-F2-04 G-F2-05 G-F2-06 G-F2-07 | F2：C16/C45「重命名」；F1：须先恢复 SessionTitle 能力 |
-| G（15） | G-G1-01 G-G1-02 G-G1-03 G-G1-04 G-G1-05 G-G1-08 G-G1-11 G-G1-15 G-G1-16 G-G1-17 G-G2-01 G-G2-02 G-G2-03 G-G2-04 G-G2-05 | C13/C2「导出」；同会话在两窗口打开后 C13「在新窗口中打开」 |
-| H（26） | G-H1-01 G-H1-02 G-H1-03 G-H1-04 G-H1-05 G-H1-06 G-H1-07 G-H1-08 G-H1-09 G-H1-10 G-H1-11 G-H1-12 G-H2-01 G-H2-02 G-H2-08 G-H2-09 G-H4-05 G-H6-01 G-H6-09a G-H6-11 G-H6-12 G-H7-01 G-H7-02 G-H7-03 G-H7-05 G-H7-06 | 设置 → 插件 / 技能-插件页 → 添加插件；市场条目「安装」；更新按钮；浏览器数据「导入…」/「清理数据…」全流程 |
-
-### 10.3 两者兼有（11 项）
-
-| 元素 ID | 一半靠操作、一半靠数据 |
+| 区域 | 元素 ID |
 |---|---|
-| G-A3-03 | 需交互（`@` 后无命中）∧ 需数据（无 cwd / RPC 失败） |
-| G-B1-18 | 需交互（弹层滚动）∧ 需数据（快速模式可用） |
-| G-G1-09 | 需数据（大纲加载中/失败/不可拆分）∧ 需交互（搜索无匹配） |
-| G-G1-13 | 需交互（勾选压缩记录）∧ 需数据（存在压缩记录） |
-| G-H2-04 | 需数据（详情 RPC 失败）∧ 需交互（点重试） |
-| G-H3-04 | 需数据（同名来源冲突）∧ 需交互（点「替换」后的工作态） |
-| G-H4-06 / G-H4-07 / G-H5-05 / G-H5-06 | 需数据（有更高版本）∧ 需交互（点「更新」/「全部更新」） |
-| G-H6-10 | 需数据（导入/读取失败）∧ 需交互（点重试） |
+| A（13） | `G-A1-02b` `G-A2-05` `G-A2-06` `G-A2-07` `G-A2-11a` `G-A2-11b` `G-A2-11c` `G-A3-02` `G-A3-06` `G-A3-07` `G-A3-08` `G-A3-09` `G-A4-02` |
+| B（5） | `G-B1-02` `G-B1-18` `G-B2-04` `G-B2-06` `G-B2-07` |
+| C（47） | `G-C1-03`–`G-C1-11`、`G-C1-14`、`G-C1-15`、`G-C2-01`–`G-C2-08`（除可见）、`G-C3-01`–`G-C3-09`（除可见）、`G-C4-05`–`G-C4-25` |
+| D（11） | `G-D1-03` `G-D1-04` `G-D1-06` `G-D1-09` `G-D1-10` `G-D1-12` `G-D1-14` `G-D1-15` `G-D1-16` `G-D1-19` `G-D1-20` |
+| E（1） | `G-E3-03` |
+| G（5） | `G-G1-06` `G-G1-07` `G-G1-10` `G-G1-12` `G-G1-14` |
+| H（20） | `G-H2-*` / `G-H3-*` / `G-H4-*` / `G-H5-*`（市场不可用，共 28 项中 20 项落此列，另 8 项见 §10.3）、`G-H6-06`–`09b`、`G-H7-04` |
 
-## 11. 补采清单（按最小操作集）
+### 10.2 需交互（48 项）
 
-每条 = 一次可完成的采集动作 → 一次性解锁的元素数。九条动作合计覆盖 236 项里的 190 项，其中前六条覆盖 131 项。
-
-剩余 46 项不在这九条里，需要额外场景：`G-A1-02b`（搜索骨架帧 1 项）、A3 `@` 提及 11 项、A4 `$` 提及 5 项、B1 的骨架 / 空态 / 行选中 / 滚动三项 7 项、C1 成员审批（含自动审批交回与失败）13 项、C3 子代理模型卡 9 项。
-
-| # | 采集动作 | 解锁元素 |
+| 区域 | 元素 ID | 一次取证手段 |
 |---|---|---|
-| 1 | 设置 → 添加模型，打开模型调色板并键入一次筛选词 | B2 全组 9 项 |
-| 2 | 打开「搜索聊天」并键入命中词（分两次：有未读/置顶会话的库、空库） | A2 剩余 13 项 |
-| 3 | 输入框发一条会触发 `read` / `grep` / `web_fetch` / `skill` / `agent(create)` 的消息，逐个停在审批卡上截图 | C4 的 21 项 + C1-03、C2 全组（需沙箱拦截场景） |
-| 4 | 让 App Server 下发 `elicitation`（单字段 + 多字段 + 带 deadline 各一次）并停在待答态 | D 全组 22 项 |
-| 5 | 设置 → 插件：打开「添加插件」、市场安装、替换确认、插件/技能可用更新四框 | H1/H2/H3/H4/H5 共 38 项 |
-| 6 | 设置 → 通用 → 浏览器数据：打开「导入…」（含扫描、预览、导入成功与部分失败）与「清理数据…」 | H6 13 项 + H7 6 项 |
-| 7 | 会话行右键 →「导出」并等回合大纲载入；再在同会话两窗口时点「在新窗口中打开」 | G1 17 项 + G2 5 项 |
-| 8 | 工作区行 `⋯` →「重命名」；恢复 SessionTitle 能力后会话行「重命名」 | F2 7 项 + F1 9 项 |
-| 9 | 运行中悬停已发消息 → 铅笔 → 提交；会话行「删除」、会话行/工作区「归档」、工作区「移除」 | E1 4 项 + E2 5 项 + E3 6 项 + E4 6 项 |
+| B（6） | `G-B2-01` `G-B2-02` `G-B2-03` `G-B2-05` `G-B2-08` `G-B2-09` | 设置 → 添加模型调色板 |
+| C（5） | `G-C1-12` `G-C1-16` `G-C1-21` `G-C2-05` `G-C3-07` | 点动作后提交中 / 提交失败、成员动作重试 |
+| D（2） | `G-D1-13` `G-D1-17` | 筛选无匹配、必填未答即提交 |
+| E（11） | `G-E1-01`–`04`、`G-E2-03`、`G-E3-01` `02` `04` `05` `06`、`G-E4-04` | 运行中提交编辑、删除失败、批量归档 |
+| F（9） | `G-F1-01`–`09` | **先恢复 `SessionTitle` 能力**（当前 C2/C13 菜单项渲染成「重命名（SessionTitle 不可用）」并禁用） |
+| G（7） | `G-G1-08` `G-G1-11`、`G-G2-01`–`05` | 展开某回合、同会话两窗口后再打开 |
+| H（8） | `G-H1-10` `G-H6-09a` `G-H7-03` + `G-H2-01` `02` `08` `09` `G-H4-05`（后 5 项同时受市场阻塞） | 空路径提交、导入成功、清理成功 |
+
+### 10.3 两者兼有（8 项）
+
+`G-G1-09`（大纲失败分支：本机只给出原始 `BAD_REQUEST`，未走 i18n 文案）、`G-G1-13`、`G-H2-04`、`G-H3-04`、`G-H4-06` `G-H4-07` `G-H5-05` `G-H5-06`。
+
+## 11. 九条动作的执行结果
+
+| # | 动作 | 结果 |
+|---|---|---|
+| 1 | 打开「搜索聊天」并键入命中词 | 完成（`X1`/`X2`/`X3`）；分组与五种行首图标只拿到置顶星标与默认消息两种 |
+| 2 | 斜杠菜单空态 / 选中 / 滚动 | 完成（`X4`/`X5`/`X6*`），额外发现 `技能` 分组与 `/branch`、`/workflow` |
+| 3 | `@` 与 `$` 提及 | 完成（`X7`–`X11`）；提交候选未测（需 git 仓库工作区） |
+| 4 | 提问卡 | 完成单字段单选（`Y16`–`Y18`）；多字段 / 倒计时 / 多选未造出 |
+| 5 | 四类确认框 | 删除会话（`X13`）、删除工作区（`Y14`）完成；编辑运行中（E1）、归档（E3）未采 |
+| 6 | 重命名 | 工作区重命名完成（`Y15`）；会话重命名被 `SessionTitle` 挡住（**blocked**，原因见 §10.2） |
+| 7 | 导出与 Fork | 导出完成（`X12`）；Fork 需同一会话在两窗口打开，本机只允许单窗口持有该会话 |
+| 8 | 导入与更新 | 添加插件（`Y8`/`Y9`）、Chrome 导入（`Y11`/`Y12`）、清理（`Y13`）完成；市场与更新四框被上游 API 挡住 |
+| 9 | 时间线本轮改动块 / 产物块 | 未采：`dim-agent` 工作区不是 git 仓库（改动面板给 `Git 改动不可用`），且没有可触发产物块的轮次 |
+| 补 | 右栏终端（本轮追加） | 完成（`Y1`/`Y2`/`Y3`）；关闭最后一个终端**无提示行**（`Y4` 为证） |
 
 ## 12. 与既有清单的对照
 
@@ -749,11 +772,11 @@
 | §1 A 搜索（46） | A（41） | `G-A1-02` 拆放大镜/转圈两行（+1）；`G-A2-11` 拆 5 个行首图标分支（+4）；其余逐行一致 |
 | §2 B 命令（29） | B（29） | 数量一致；B2 补「实际使用处=设置→添加模型」的采不到原因 |
 | §3 C 审批（63） | C（63） | 数量一致；C1/C4 补实测坐标，C2/C3 补「整组需对应 variant」 |
-| §4 D 提问（22） | D（22） | 数量一致；补「本机只有截图、无 DOM」的旁证 |
-| §5 E 确认（21） | E（21） | 数量一致；每行补入口菜单的实测坐标 |
-| §6 F 重命名（16） | F（16） | 数量一致；补 SessionTitle 不可用这一硬阻塞 |
-| §7 G 导出与 Fork（22） | G（22） | 数量一致；G1 入口补两处坐标 |
-| §8 H 导入与更新（57） | H（56） | `G-H6-09` 拆对勾/告警两行（+1）；H6/H7 补设置页入口坐标旁证 |
+| §4 D 提问（22） | D（22） | 数量一致；本轮已采单字段单选，补 `Y16`–`Y18` 证据 |
+| §5 E 确认（21） | E（21） | 数量一致；E2/E4 已采，E1/E3 仍缺 |
+| §6 F 重命名（16） | F（16） | 数量一致；F2 已采，F1 被 `SessionTitle` 阻塞 |
+| §7 G 导出与 Fork（22） | G（22） | 数量一致；G1 已采（大纲 RPC 报错），G2 仍缺 |
+| §8 H 导入与更新（57） | H（56） | `G-H6-09` 拆对勾/告警两行（+1）；市场系四框为上游 API 阻塞 |
 | **合计 276** | **合计 270** | 差 6 = 3 处图标分支拆行（A1-02 +1、A2-11 +4、H6-09 +1） |
 
 不在本文件范围（避免重复登记）：
@@ -763,3 +786,4 @@
 - 输入区技能按钮浮层（C9 `popover-skills`）→ `inventory-main-rt.md`；不是 A4 的 `$` 提及弹层。
 - 完全访问确认（C6）、退出登录确认（C33）→ 账户 / 权限域。
 - 设置页内的表单元素（`BrowserDataSettings` 页面级 `导入…` / `清理数据…` 按钮、插件设置页）→ 设置域清单；本文件只登记点开的六个对话框。
+- 右栏终端面板（`T-08`/`T-09`）的判定 → `inventory-panels-rt.md`；本轮只提供 `runtime/panels/` 下的 `Y1`–`Y4` 证据。

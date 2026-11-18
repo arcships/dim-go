@@ -1,0 +1,128 @@
+{
+ "state": "X2-search-query-result",
+ "count": 11,
+ "items": [
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 385,
+   "y": -366,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl",
+   "tag": "div",
+   "role": "dialog",
+   "text": "",
+   "label": "",
+   "x": 291,
+   "y": 297,
+   "w": 448,
+   "h": 132
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.flex min-w-0 flex-col gap-2 text-center sm:text-left sr-only > h2.text-lg leading-none font-semibold",
+   "tag": "h2",
+   "role": "",
+   "text": "搜索聊天",
+   "label": "",
+   "x": 291,
+   "y": 297,
+   "w": 1,
+   "h": 16
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.flex min-w-0 flex-col gap-2 text-center sm:text-left sr-only > p.min-w-0 break-words text-muted-foreground text-sm",
+   "tag": "p",
+   "role": "",
+   "text": "搜索并打开已有聊天",
+   "label": "",
+   "x": 291,
+   "y": 320,
+   "w": 1,
+   "h": 18
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.flex h-14 items-center gap-3 border-b px-4 > input.file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground border-input w-full min-w-0 py-1 transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-full rounded-none border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0 dark:bg-transparent",
+   "tag": "input",
+   "role": "",
+   "text": "",
+   "label": "",
+   "x": 331,
+   "y": 298,
+   "w": 394,
+   "h": 48
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.max-h-[420px] overflow-y-auto p-2 > section.py-1 > h3.px-2 pb-1 text-xs font-medium text-muted-foreground",
+   "tag": "h3",
+   "role": "",
+   "text": "置顶聊天",
+   "label": "",
+   "x": 299,
+   "y": 357,
+   "w": 432,
+   "h": 18
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.max-h-[420px] overflow-y-auto p-2 > section.py-1 > button.flex h-12 w-full items-center gap-3 rounded-md px-2 text-left text-sm outline-hidden transition-colors bg-muted text-foreground",
+   "tag": "button",
+   "role": "",
+   "text": "",
+   "label": "",
+   "x": 299,
+   "y": 375,
+   "w": 432,
+   "h": 42
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.max-h-[420px] overflow-y-auto p-2 > section.py-1 > button.flex h-12 w-full items-center gap-3 rounded-md px-2 text-left text-sm outline-hidden transition-colors bg-muted text-foreground > span.flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground",
+   "tag": "span",
+   "role": "",
+   "text": "",
+   "label": "",
+   "icon": true,
+   "x": 306,
+   "y": 382,
+   "w": 28,
+   "h": 28
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.max-h-[420px] overflow-y-auto p-2 > section.py-1 > button.flex h-12 w-full items-center gap-3 rounded-md px-2 text-left text-sm outline-hidden transition-colors bg-muted text-foreground > span.min-w-0 flex-1 > span.block truncate font-medium",
+   "tag": "span",
+   "role": "",
+   "text": "帮我列出当前目录的文件",
+   "label": "",
+   "x": 345,
+   "y": 380,
+   "w": 355,
+   "h": 18
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.max-h-[420px] overflow-y-auto p-2 > section.py-1 > button.flex h-12 w-full items-center gap-3 rounded-md px-2 text-left text-sm outline-hidden transition-colors bg-muted text-foreground > span.min-w-0 flex-1 > span.block truncate text-xs text-muted-foreground",
+   "tag": "span",
+   "role": "",
+   "text": "工作区",
+   "label": "",
+   "x": 345,
+   "y": 398,
+   "w": 355,
+   "h": 14
+  },
+  {
+   "chain": "div.data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full translate-x-[-50%] translate-y-[-50%] border duration-200 sm:max-w-lg max-w-xl gap-0 overflow-hidden rounded-xl border-border bg-background p-0 shadow-2xl > div.max-h-[420px] overflow-y-auto p-2 > section.py-1 > button.flex h-12 w-full items-center gap-3 rounded-md px-2 text-left text-sm outline-hidden transition-colors bg-muted text-foreground > span.shrink-0 text-xs text-muted-foreground",
+   "tag": "span",
+   "role": "",
+   "text": "⌘1",
+   "label": "",
+   "x": 710,
+   "y": 389,
+   "w": 14,
+   "h": 14
+  }
+ ]
+}

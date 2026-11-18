@@ -1,0 +1,161 @@
+{
+ "state": "Y15-rename-workspace-dialog",
+ "count": 14,
+ "items": [
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 385,
+   "y": -844,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 385,
+   "y": -678,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 385,
+   "y": -531,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.mb-3 text-sm leading-relaxed text-foreground > div.contents > div.markstream-vue markdown-renderer timeline-markdown timeline-markdown--assistant > div.node-slot > div.node-content > div.code-block-container rounded-lg border > span.sr-only",
+   "tag": "span",
+   "role": "status",
+   "text": "",
+   "label": "",
+   "x": 385,
+   "y": -365,
+   "w": 1,
+   "h": 1
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md",
+   "tag": "div",
+   "role": "dialog",
+   "text": "",
+   "label": "",
+   "x": 319,
+   "y": 236,
+   "w": 392,
+   "h": 254
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > div.flex min-w-0 flex-col gap-2 text-center sm:text-left > h2.text-lg leading-none font-semibold",
+   "tag": "h2",
+   "role": "",
+   "text": "重命名工作区",
+   "label": "",
+   "x": 341,
+   "y": 258,
+   "w": 348,
+   "h": 16
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > div.flex min-w-0 flex-col gap-2 text-center sm:text-left > p.min-w-0 break-words text-muted-foreground text-sm",
+   "tag": "p",
+   "role": "",
+   "text": "输入新的工作区名称",
+   "label": "",
+   "x": 341,
+   "y": 280,
+   "w": 348,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > div.grid gap-4 py-4 > div.grid gap-2 > label.flex items-center gap-2 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+   "tag": "label",
+   "role": "",
+   "text": "工作区名称",
+   "label": "",
+   "x": 341,
+   "y": 326,
+   "w": 348,
+   "h": 12
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > div.grid gap-4 py-4 > div.grid gap-2 > input.file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+   "tag": "input",
+   "role": "",
+   "text": "",
+   "label": "",
+   "x": 341,
+   "y": 345,
+   "w": 348,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > p.text-sm text-muted-foreground",
+   "tag": "p",
+   "role": "",
+   "text": "/Users/eric8810/Documents/year",
+   "label": "",
+   "x": 341,
+   "y": 405,
+   "w": 348,
+   "h": 18
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 h-9 px-4 py-2 has-[>svg]:px-3",
+   "tag": "button",
+   "role": "",
+   "text": "取消",
+   "label": "",
+   "x": 575,
+   "y": 436,
+   "w": 55,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > div.flex flex-col-reverse gap-2 sm:flex-row sm:justify-end > button.inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 has-[>svg]:px-3",
+   "tag": "button",
+   "role": "",
+   "text": "确认",
+   "label": "",
+   "x": 637,
+   "y": 436,
+   "w": 53,
+   "h": 32
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > button.ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+   "tag": "button",
+   "role": "",
+   "text": "",
+   "label": "",
+   "icon": true,
+   "x": 682,
+   "y": 251,
+   "w": 14,
+   "h": 14
+  },
+  {
+   "chain": "div.bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid max-h-[calc(100vh-2rem)] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border p-6 shadow-lg duration-200 sm:max-w-md > button.ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 > span.sr-only",
+   "tag": "span",
+   "role": "",
+   "text": "关闭",
+   "label": "",
+   "x": 688,
+   "y": 264,
+   "w": 1,
+   "h": 1
+  }
+ ]
+}
