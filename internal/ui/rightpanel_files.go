@@ -22,15 +22,15 @@ import (
 // rpFilesPage 是文件页本体。
 func (a *App) rpFilesPage(c *gui.Context) {
 	s := a.rp()
+	// 目录投影每帧在 View 里做一次（命令面板的文件组也读它）；这里只处理
+	// 「刷新 / 重试」那一次额外重读。
 	refresh := a.rpTakeRefresh()
-	if facts, ok := a.rpFacts(); ok {
-		a.rpLiveTree(facts, refresh)
+	if refresh {
+		a.syncPanelTree(true)
 	}
 	q := rpQuery(s.filter)
 	gui.Column(c).Grow(1).Children(func() {
-		if a.rpOffline(c) {
-			return
-		}
+		a.rpOfflineBar(c)
 		a.rpFilterRow(c)
 		if s.permissionDenied {
 			a.rpPermissionBar(c)
@@ -39,7 +39,7 @@ func (a *App) rpFilesPage(c *gui.Context) {
 			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
 				switch {
 				case q != "":
-					a.rpSearchResults(c, q)
+					a.rpSearchResults(c, q, refresh)
 				case s.loading && len(s.tree) == 0:
 					a.rpSkeleton(c)
 				case s.rootFailed:
@@ -57,6 +57,138 @@ func (a *App) rpFilesPage(c *gui.Context) {
 
 // rpTreePadH 是树区的左右留白（R 态行 410 对面板 405）。
 const rpTreePadH = space1
+
+// rpFacts 取面板读数：只有连着 Source 且适配器实现了 PanelFacts 时才为真。
+// 不满足时（-demo 与截图）两页仍用样例，样例不是事实。
+func (a *App) rpFacts() (PanelFacts, bool) {
+	if a.source == nil {
+		return nil, false
+	}
+	facts, ok := a.source.(PanelFacts)
+	return facts, ok
+}
+
+// rpWired 表示两页现在读的是真实读数（而不是样例）。
+func (a *App) rpWired() bool {
+	_, ok := a.rpFacts()
+	return ok
+}
+
+// rpCwd 是会话的工作目录（目录事实）；空表示服务端没有给。
+func (a *App) rpCwd() string {
+	if snap, ok := a.liveSession(); ok {
+		return snap.Cwd
+	}
+	return ""
+}
+
+// rpTakeRefresh 取一次「刷新」意图：按钮只把计数加一，这里读一次后归零，
+// 保证一次点击只触发一次重读，不是每帧重读。
+func (a *App) rpTakeRefresh() bool {
+	s := a.rp()
+	if s.reload == 0 {
+		return false
+	}
+	s.reload = 0
+	return true
+}
+
+// rpOfflineBar 是断线横幅：面板的本机读数照常显示，但连接阶段与原因要看得见。
+func (a *App) rpOfflineBar(c *gui.Context) {
+	conn := a.liveConnection()
+	if conn.Phase != "disconnected" {
+		return
+	}
+	panelBanner(c, "连接已断开："+conn.Reason, "重新连接", func() {
+		if a.intents != nil {
+			a.dispatch("重新连接", a.intents.Reconnect, nil)
+		}
+	})
+}
+
+// rpMaxDepth 是树的展开深度上限：异常深的目录不再往下读，避免一次读光整棵树。
+const rpMaxDepth = 16
+
+// syncPanelTree 每帧把文件页的目录投影一次。
+//
+// 文件页与命令面板的文件组读同一份投影（都读 s.tree），所以这里在 View 里做，
+// 而不是只在文件页渲染时做。右栏没开、命令面板也没开时不读，省掉没人看的读。
+func (a *App) syncPanelTree(refresh bool) {
+	facts, ok := a.rpFacts()
+	if !ok {
+		return
+	}
+	if !refresh && !a.rightOpen && !a.palette.open {
+		return
+	}
+	a.rpLiveTree(facts, refresh)
+}
+
+// rpLiveTree 用目录读数重建这一帧的树。
+//
+// 每帧重建，视图只留可丢状态（展开态、分页位置）。读不到时把原因落到
+// rootFailed / permissionDenied / dirFailed 上，由既有的错误行画出来。
+func (a *App) rpLiveTree(facts PanelFacts, refresh bool) {
+	s := a.rp()
+	cwd := a.rpCwd()
+	// 根目录的分页位置也存在 dirPages 里（键 "" 是根），「加载更多」把它加上一页。
+	limit := s.dirPages[""]
+	if limit < rpPageSize {
+		limit = rpPageSize
+		s.dirPages[""] = limit
+	}
+	root := facts.FileTree(FileTreeRequest{
+		Cwd: cwd, Offset: 0, Limit: limit, Refresh: refresh,
+	})
+	s.loading = root.Phase == PanelReadLoading
+	s.rootFailed = root.Phase == PanelReadFailed
+	s.permissionDenied = root.Denied
+	s.rootPartial = root.HasMore
+	s.tree = a.rpNodes(facts, cwd, "", root, refresh, 0)
+}
+
+// rpNodes 把一个目录快照映射成树节点；展开的目录再把子级读一页。
+func (a *App) rpNodes(facts PanelFacts, cwd, dir string, snapshot FileTreeSnapshot, refresh bool, depth int) []*rpNode {
+	s := a.rp()
+	nodes := make([]*rpNode, 0, len(snapshot.Entries))
+	for _, entry := range snapshot.Entries {
+		p := rpJoinPath(dir, entry.Name)
+		node := &rpNode{name: entry.Name, dir: entry.Dir, change: rpEntryChange(p, entry.Change)}
+		if entry.Dir && s.dirOpen[p] && depth < rpMaxDepth {
+			limit := s.dirPages[p]
+			if limit < rpPageSize {
+				limit = rpPageSize
+				s.dirPages[p] = limit
+			}
+			child := facts.FileTree(FileTreeRequest{
+				Cwd: cwd, Dir: p, Offset: 0, Limit: limit, Refresh: refresh,
+			})
+			s.dirFailed[p] = child.Phase == PanelReadFailed
+			s.dirLoading[p] = child.Phase == PanelReadLoading
+			node.hasMore = child.HasMore
+			node.children = a.rpNodes(facts, cwd, p, child, refresh, depth+1)
+		}
+		nodes = append(nodes, node)
+	}
+	return nodes
+}
+
+// rpEntryChange 把条目上的 git 状态字母映射成行上的改动标记。
+//
+// 只有合并状态（没有暂存列、没有 ± 行数），所以行上不再画数字：statUnknown
+// 让行尾的 +n/−n 不出现，而不是画一个假的 0。
+func rpEntryChange(p, letter string) *rpChange {
+	if letter == "" {
+		return nil
+	}
+	return &rpChange{path: p, status: letter[0], statUnknown: true}
+}
+
+// rpGitWriteNote 是 git 写动作不可用的原因（暂存 / 还原 / 提交 / 推送 / 切分支）。
+const rpGitWriteNote = "缺少协议方法，D7 也未提供 git 写操作"
+
+// rpGitWriteDisabled 表示这些写动作现在不能发：连着真实读数时一律禁用。
+func (a *App) rpGitWriteDisabled() bool { return a.rpWired() }
 
 // rpQuery 是筛选词：去首尾空白；空串表示不在搜索态。
 func rpQuery(q string) string { return strings.TrimSpace(q) }
@@ -148,7 +280,7 @@ func (a *App) rpTreeRows(c *gui.Context, nodes []*rpNode, prefix string, depth i
 			gui.Column(c).PaddingStart(panelIndent).Children(func() {
 				loaded := a.rpDirLoaded(node, p)
 				a.rpTreeRows(c, node.children[:loaded], p, depth+1)
-				if loaded < len(node.children) {
+				if loaded < len(node.children) || node.hasMore {
 					a.rpLoadMoreRow(c, p)
 				}
 			})
@@ -214,7 +346,7 @@ func (a *App) rpDirRow(c *gui.Context, node *rpNode, p string) {
 		switch {
 		case strings.HasPrefix(node.name, "."):
 			color = t.TextMuted
-		case rpDirChanged(node):
+		case rpDirChanged(node) || node.change != nil:
 			color = t.Warning
 		}
 		typeControl.style(t, gui.Text(c, node.name)).TextColor(color).Grow(1).SingleLine()
@@ -243,11 +375,16 @@ func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string) {
 	t := c.Theme()
 	label := "文件，" + node.name
 	if node.change != nil {
-		label += fmt.Sprintf("，新增 %d 行，删除 %d 行", node.change.added, node.change.removed)
-		if node.change.staged {
-			label += "，已暂存"
+		if node.change.statUnknown {
+			// 只有合并状态、没有行数与暂存列：读屏文案里也不声称没有的事实。
+			label += "，有改动"
 		} else {
-			label += "，未暂存"
+			label += fmt.Sprintf("，新增 %d 行，删除 %d 行", node.change.added, node.change.removed)
+			if node.change.staged {
+				label += "，已暂存"
+			} else {
+				label += "，未暂存"
+			}
 		}
 	}
 	row := gui.ButtonBase(c).Height(panelRowHeight2).Padding(0, panelRowPadH).
@@ -271,7 +408,7 @@ func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string) {
 			color = t.Warning
 		}
 		typeControl.style(t, gui.Text(c, node.name)).TextColor(color).Grow(1).SingleLine()
-		if node.change != nil {
+		if node.change != nil && !node.change.statUnknown {
 			rpStatPair(c, node.change.added, node.change.removed)
 		}
 		if node.change != nil && node.change.staged {
@@ -330,7 +467,11 @@ func rpFileIcon(name string) *gui.SVG {
 
 // rpSearchResults 是搜索态：状态行 / 错误行 / 部分失败 / 上限提示 / 结果行 /
 // 空态（F-04–F-12）。
-func (a *App) rpSearchResults(c *gui.Context, query string) {
+func (a *App) rpSearchResults(c *gui.Context, query string, refresh bool) {
+	if facts, ok := a.rpFacts(); ok {
+		a.rpLiveSearch(c, facts, query, refresh)
+		return
+	}
 	t := c.Theme()
 	s := a.rp()
 	if s.searching {
@@ -367,6 +508,71 @@ func (a *App) rpSearchResults(c *gui.Context, query string) {
 	for _, hit := range matches {
 		a.rpSearchRow(c, hit, query)
 	}
+}
+
+// rpLiveSearch 画真实的搜索读数：读态、失败与重试、部分失败、截断、命中与空态。
+//
+// 命中是内容命中（路径 + 行号），所以先按路径归并再画行：同一文件的多处命中
+// 只占一行，行上的名字与目录取自路径。
+func (a *App) rpLiveSearch(c *gui.Context, facts PanelFacts, query string, refresh bool) {
+	t := c.Theme()
+	s := a.rp()
+	snapshot := facts.FileSearch(FileSearchRequest{
+		Cwd: a.rpCwd(), Query: query, Limit: rpSearchLimit, Refresh: refresh,
+	})
+	switch snapshot.Phase {
+	case PanelReadLoading, PanelReadIdle:
+		typeSecondary.style(t, gui.Text(c, "正在搜索整个工作区…")).
+			TextColor(t.TextMuted).Role(gui.RoleStatus).SingleLine()
+		return
+	case PanelReadFailed:
+		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
+			typeSecondary.style(t, gui.Text(c, "文件搜索失败。")).TextColor(t.Danger).
+				Role(gui.RoleAlert).Grow(1).MaxLines(2)
+			if rpTextAction(c, nil, "重试", "重试搜索", false) {
+				s.reload++
+			}
+		})
+		return
+	}
+	if snapshot.Denied {
+		typeSecondary.style(t, gui.Text(c, "部分文件夹无法搜索，结果可能不完整。")).
+			TextColor(t.Warning).Role(gui.RoleStatus).SingleLine()
+	}
+	if snapshot.Truncated {
+		typeSecondary.style(t, gui.Text(c, fmt.Sprintf("仅显示前 %d 个匹配项", snapshot.Limit))).
+			TextColor(t.TextMuted).SingleLine()
+	}
+	hits := rpPathHits(snapshot.Hits)
+	if len(hits) == 0 {
+		a.rpEmptyBlock(c, "无匹配文件",
+			fmt.Sprintf("没有找到包含“%s”的文件", query))
+		return
+	}
+	for _, hit := range hits {
+		a.rpSearchRow(c, hit, query)
+	}
+}
+
+// rpPathHits 把内容命中按路径归并成搜索行（同一文件的多处命中只占一行）。
+func rpPathHits(hits []FileHitSnapshot) []rpSearchHit {
+	out := make([]rpSearchHit, 0, len(hits))
+	seen := make(map[string]bool, len(hits))
+	for _, hit := range hits {
+		if seen[hit.Path] {
+			continue
+		}
+		seen[hit.Path] = true
+		dir := path.Dir(hit.Path)
+		if dir == "." {
+			dir = ""
+		}
+		out = append(out, rpSearchHit{node: &rpNode{name: path.Base(hit.Path)}, dir: dir})
+		if len(out) >= rpSearchLimit {
+			break
+		}
+	}
+	return out
 }
 
 // rpSearchLimit 是搜索结果的上限（清单 F-08：200）。
@@ -423,11 +629,9 @@ func (a *App) rpSearchRow(c *gui.Context, hit rpSearchHit, query string) {
 				typeMicro.style(t, gui.Text(c, hit.dir)).TextColor(t.TextMuted).SingleLine()
 			}
 		})
-		added, removed := 0, 0
-		if hit.node.change != nil {
-			added, removed = hit.node.change.added, hit.node.change.removed
+		if hit.node.change != nil && !hit.node.change.statUnknown {
+			rpStatPair(c, hit.node.change.added, hit.node.change.removed)
 		}
-		rpStatPair(c, added, removed)
 	})
 	a.rpFileMenu(c, row, hit.node, rpJoinPath(hit.dir, hit.node.name))
 }
@@ -547,19 +751,26 @@ func (a *App) rpFileMenu(c *gui.Context, target gui.Element, node *rpNode, p str
 	m.Popup(func(panel gui.Element) {
 		rpMenuPanel(panel, c.Theme(), panelMenuNoteWidth+panelRowIcon+2*space2)
 		change := node.change
+		// git 写动作与差异读取现在没有通道：连着真实读数时只画禁用项与原因，
+		// 不留"点了像生效"的假入口（见 D14 未接动作与 D7 §1「不做」）。
+		locked := a.rpGitWriteDisabled()
+		note := ""
+		if locked {
+			note = rpGitWriteNote
+		}
 		if change != nil && !change.staged {
-			if menuItem(c, m, iconPlus, "暂存", "暂存", "", false, false) {
+			if menuItem(c, m, iconPlus, "暂存", "暂存", note, locked, false) && !locked {
 				change.staged = true
 			}
 		}
 		if change != nil && change.staged {
-			if menuItem(c, m, iconMinus, "取消暂存", "取消暂存", "", false, false) {
+			if menuItem(c, m, iconMinus, "取消暂存", "取消暂存", note, locked, false) && !locked {
 				change.staged = false
 			}
 		}
 		if change != nil {
 			rpMenuSeparator(c)
-			if menuItem(c, m, iconFileDiff, "查看差异", "查看差异", "", false, false) {
+			if menuItem(c, m, iconFileDiff, "查看差异", "查看差异", note, locked, false) && !locked {
 				a.rpOpen(tabChanges)
 				s.diffOpen[p] = true
 			}

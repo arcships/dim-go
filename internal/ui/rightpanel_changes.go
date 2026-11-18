@@ -13,8 +13,16 @@ import (
 // 共用）→ 已暂存组 / 未暂存组 → 行内 diff → 底部统计；提交或推送菜单与分支
 // 子菜单在范围栏右端，权限不足时各组动作禁用。
 //
-// 事实来源：本产品还没有 git 改动与写动作的读数（Source 见 source.go），所以
-// 列表用样例、暂存与还原只改样例；提交 / 推送 / 分支切换在本批不动真实仓库。
+// 事实来源（Source 见 source.go、适配器见 internal/uiwire）：
+//
+//   - 连着真实读数（PanelFacts）时读 ChangeSet：仓库 / 分支 / 是否有未提交改动 /
+//     改动条目数是 git 只读口径的真实读数；Last Run 范围有声明级路径行。
+//   - 条目级明细（按暂存态分组的行、± 行数、diff 文本）现在没有事实：D7 的 git
+//     只读口径不含这些，协议也没有对应方法。这时画「改动明细不可用」并把原因
+//     写出来，不画样例、也不画成「没有改动」。
+//   - git 写动作（暂存 / 还原 / 提交 / 推送 / 切分支）没有通道：连着真实读数时
+//     一律禁用并在菜单项副行给出原因，不留"点了像生效"的假入口。
+//   - 只在 -demo（没有 Source）时用样例，样例见 rightpanel_sample.go。
 
 // 改动范围的三种取值（D-02–D-04）。
 const (
@@ -24,15 +32,30 @@ const (
 )
 
 // rpChangesPage 是改动页本体。
+//
+// 连着真实读数时先读一次改动快照：能画的行（Last Run 的声明级路径）放进
+// s.changes，读不到明细时的原因由快照给出，画「改动明细不可用」而不是空列表。
 func (a *App) rpChangesPage(c *gui.Context) {
 	s := a.rp()
+	refresh := a.rpTakeRefresh()
+	var snapshot ChangeSet
+	live := false
+	if facts, ok := a.rpFacts(); ok {
+		live = true
+		snapshot = a.rpLiveChangeSet(facts, refresh)
+	}
 	gui.Column(c).Grow(1).Children(func() {
+		a.rpOfflineBar(c)
 		a.rpScopeBar(c)
 		a.rpFilterRow(c)
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
 				if s.loading {
 					a.rpSkeleton(c)
+					return
+				}
+				if live {
+					a.rpLiveChangeGroups(c, snapshot)
 					return
 				}
 				a.rpChangeGroups(c)
@@ -45,10 +68,81 @@ func (a *App) rpChangesPage(c *gui.Context) {
 	a.rpRevertDialog(c)
 }
 
-// rpVisibleChanges 是当前范围下要显示的改动：样例只有「未提交」这一路；
-// 其余两个范围按参考产品的空态处理。
+// rpChangeScope 把范围下标映射成读数请求里的范围词。
+func rpChangeScope(scope int) string {
+	switch scope {
+	case scopeBranch:
+		return ChangeScopeBranch
+	case scopeLastRun:
+		return ChangeScopeLastRun
+	}
+	return ChangeScopeUncommitted
+}
+
+// rpLiveChangeSet 读一次改动快照，并把能画的行放进 s.changes（每帧重建）。
+func (a *App) rpLiveChangeSet(facts PanelFacts, refresh bool) ChangeSet {
+	s := a.rp()
+	snapshot := facts.Changes(ChangesRequest{
+		Cwd: a.rpCwd(), Scope: rpChangeScope(s.scope), Refresh: refresh,
+	})
+	s.loading = snapshot.Phase == PanelReadLoading
+	s.permissionDenied = snapshot.Restricted
+	s.changes = nil
+	for _, file := range snapshot.Files {
+		s.changes = append(s.changes, rpChangeFile(file))
+	}
+	return snapshot
+}
+
+// rpChangeFile 把一条改动快照映射成行；没有行数事实时行上不画数字。
+func rpChangeFile(file ChangeFileSnapshot) *rpChange {
+	change := &rpChange{path: file.Path, statUnknown: !file.StatKnown}
+	if file.Status != "" {
+		change.status = file.Status[0]
+	}
+	if file.StatKnown {
+		change.added, change.removed = file.Added, file.Removed
+	}
+	return change
+}
+
+// rpLiveChangeGroups 按范围画真实读数：读取失败、明细不可用、空态，或
+// Last Run 的路径行。
+func (a *App) rpLiveChangeGroups(c *gui.Context, snapshot ChangeSet) {
+	s := a.rp()
+	if snapshot.Phase == PanelReadFailed {
+		a.rpEmptyBlockIcon(c, iconCircleCheck, "Git 改动不可用",
+			"无法读取改动："+snapshot.Error)
+		return
+	}
+	if snapshot.Unavailable != "" {
+		detail := snapshot.Unavailable
+		if snapshot.Dirty {
+			detail = fmt.Sprintf("%s；Git 读到 %d 个改动文件。", detail, snapshot.ChangedFileCount)
+		}
+		a.rpEmptyBlockIcon(c, iconCircleCheck, "改动明细不可用", detail)
+		return
+	}
+	rows := a.rpVisibleChanges()
+	if len(rows) == 0 {
+		title, detail := a.rpEmptyText(s.scope)
+		a.rpEmptyBlockIcon(c, iconCircleCheck, title, detail)
+		return
+	}
+	for _, change := range rows {
+		a.rpChangeRow(c, change, false)
+	}
+}
+
+// rpVisibleChanges 是当前范围下要显示的改动。
+//
+// 连着真实读数时就是本帧从快照映射出来的行（目前只有 Last Run 范围有条目级
+// 路径清单）；-demo 只有「未提交」这一路，其余两个范围按参考产品的空态处理。
 func (a *App) rpVisibleChanges() []*rpChange {
 	s := a.rp()
+	if a.rpWired() {
+		return s.changes
+	}
 	if s.scope != scopeUncommitted {
 		return nil
 	}
@@ -155,6 +249,12 @@ func (a *App) rpSubmitButton(c *gui.Context) {
 		typeSecondary.style(t, gui.Text(c, "提交或推送")).TextColor(t.Text).SingleLine()
 		rpGlyph(c, iconChevronDown, panelTabIcon, t.TextMuted, "")
 	})
+	// git 写动作现在没有通道：连着真实读数时只画禁用项与原因。
+	locked := a.rpGitWriteDisabled()
+	note := ""
+	if locked {
+		note = rpGitWriteNote
+	}
 	b.Popup(func(panel gui.Element) {
 		rpMenuPanel(panel, t, panelMenuWidth)
 		sub := b.SubmenuItem().MinHeight(panelRowHeight2).Padding(space1, space2).
@@ -171,15 +271,16 @@ func (a *App) rpSubmitButton(c *gui.Context) {
 			rpMenuPanel(panel, t, panelMenuWidth)
 			for _, name := range branches {
 				name := name
-				// 分支切换要写仓库，本批不动事实：菜单只收起。
-				menuItem(c, b, iconBranch, name, "分支："+name, "", name == current, name == current)
+				// 分支切换要写仓库：没有通道时禁用并说明原因。
+				menuItem(c, b, iconBranch, name, "分支："+name, note,
+					locked || name == current, name == current)
 			}
 		})
 		rpMenuSeparator(c)
 		noStaged := len(a.rpStaged()) == 0
-		menuItem(c, b, iconGitCommit, "提交", "提交", "", noStaged, false)
-		menuItem(c, b, iconCloudUpload, "提交并推送", "提交并推送", "", noStaged, false)
-		menuItem(c, b, iconCloudUpload, "推送", "推送", "", false, false)
+		menuItem(c, b, iconGitCommit, "提交", "提交", note, locked || noStaged, false)
+		menuItem(c, b, iconCloudUpload, "提交并推送", "提交并推送", note, locked || noStaged, false)
+		menuItem(c, b, iconCloudUpload, "推送", "推送", note, locked, false)
 	})
 }
 
@@ -310,19 +411,28 @@ func (a *App) rpChangeRow(c *gui.Context, change *rpChange, staged bool) {
 		name.Children(func() {
 			typeControl.style(t, gui.Text(c, path.Base(p))).TextColor(t.Text).SingleLine()
 		})
-		rpStatPair(c, change.added, change.removed)
+		if !change.statUnknown {
+			rpStatPair(c, change.added, change.removed)
+		}
+		locked := s.permissionDenied || a.rpGitWriteDisabled()
+		tip := func(text string) string {
+			if locked {
+				return text + "：" + rpGitWriteNote
+			}
+			return text
+		}
 		if staged {
 			if iconButton(c, iconButtonSpec{icon: iconMinus, label: "取消暂存",
-				tip: "取消暂存", size: rowCompact, disabled: s.permissionDenied}) {
+				tip: tip("取消暂存"), size: rowCompact, disabled: locked}) && !locked {
 				change.staged = false
 			}
 		} else {
-			if iconButton(c, iconButtonSpec{icon: iconPlus, label: "暂存", tip: "暂存",
-				size: rowCompact, disabled: s.permissionDenied}) {
+			if iconButton(c, iconButtonSpec{icon: iconPlus, label: "暂存",
+				tip: tip("暂存"), size: rowCompact, disabled: locked}) && !locked {
 				change.staged = true
 			}
-			if iconButton(c, iconButtonSpec{icon: iconUndo, label: "还原", tip: "还原",
-				size: rowCompact, disabled: s.permissionDenied}) {
+			if iconButton(c, iconButtonSpec{icon: iconUndo, label: "还原",
+				tip: tip("还原"), size: rowCompact, disabled: locked}) && !locked {
 				s.revertPath = p
 			}
 		}
@@ -376,19 +486,24 @@ const rpDiffMaxLines = 60
 func (a *App) rpChangeMenu(c *gui.Context, target gui.Element, change *rpChange, staged bool) {
 	s := a.rp()
 	m := gui.ContextMenuBase(c, target, s.rowMenuPtr("change:"+change.path))
+	locked := a.rpGitWriteDisabled()
+	note := ""
+	if locked {
+		note = rpGitWriteNote
+	}
 	m.Popup(func(panel gui.Element) {
 		rpMenuPanel(panel, c.Theme(), panelMenuNoteWidth+panelRowIcon+2*space2)
 		if staged {
-			if menuItem(c, m, iconMinus, "取消暂存", "取消暂存", "", false, false) {
+			if menuItem(c, m, iconMinus, "取消暂存", "取消暂存", note, locked, false) && !locked {
 				change.staged = false
 			}
 		} else {
-			if menuItem(c, m, iconPlus, "暂存", "暂存", "", false, false) {
+			if menuItem(c, m, iconPlus, "暂存", "暂存", note, locked, false) && !locked {
 				change.staged = true
 			}
 		}
 		rpMenuSeparator(c)
-		if menuItem(c, m, iconUndo, "还原", "还原", "", false, false) {
+		if menuItem(c, m, iconUndo, "还原", "还原", note, locked, false) && !locked {
 			if staged {
 				change.staged = false
 			} else {
@@ -408,15 +523,23 @@ func (a *App) rpChangesFooter(c *gui.Context) {
 	t := c.Theme()
 	changes := a.rpVisibleChanges()
 	added, removed := 0, 0
+	statsKnown := false
 	for _, change := range changes {
 		added += change.added
 		removed += change.removed
+		if !change.statUnknown {
+			statsKnown = true
+		}
 	}
 	rpRule(c)
 	gui.Row(c).Height(panelFooterHeight).Shrink(0).Padding(0, space3).
 		AlignItems(gui.Center).Gap(space2).Children(func() {
 		typeSecondary.style(t, gui.Text(c, fmt.Sprintf("%d 个文件改动", len(changes)))).
 			TextColor(t.TextMuted).Grow(1).SingleLine()
+		if !statsKnown {
+			// 没有行数事实时不画 ± 两列，避免把「不知道」画成 0。
+			return
+		}
 		typeCode.style(t, gui.Text(c, fmt.Sprintf("+%d", added))).TextColor(t.Success).
 			FontSize(typeSecondary.sizeIn(t)).SingleLine()
 		typeCode.style(t, gui.Text(c, fmt.Sprintf("-%d", removed))).TextColor(t.Danger).

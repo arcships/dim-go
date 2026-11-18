@@ -160,7 +160,11 @@ func (a *App) rp() *rightPanelState {
 		s.diffOpen = map[string]bool{}
 		s.tabMenu = map[int]*bool{}
 		s.rowMenu = map[string]*bool{}
-		s.tree, s.changes = rightSample()
+		// 样例只在 -demo（没有 Source）时用；连着读数时两页每帧从 PanelFacts
+		// 重建自己的行，这里不预备样例，免得"没读到"被画成样例。
+		if a.source == nil {
+			s.tree, s.changes = rightSample()
+		}
 		s.pendingAfter = -1
 		s.expanded = false
 	}

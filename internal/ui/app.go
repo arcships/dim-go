@@ -650,6 +650,21 @@ func (a *App) resetWiredViewState() {
 		a.lastPrefs = prefs
 	}
 	a.applyCommandPaletteVariant()
+	a.applyPanelVariant()
+}
+
+// applyPanelVariant 把"停在右栏哪一页"这条视图状态落到走查变体上。
+//
+// 只切视图状态（打开哪一页），不造任何事实：连接模式（-connect）下右栏两页
+// 读的是 PanelFacts 的真实读数，走查与截图需要能直接停在那一页上。每帧不做，
+// 只在重置视图状态时落一次，用户关掉右栏不会被重新打开。
+func (a *App) applyPanelVariant() {
+	switch a.variant {
+	case VariantRightPanel, VariantAddTab, VariantRightExpanded:
+		a.rightOpen, a.rightTab = true, tabFiles
+	case VariantReview, VariantReviewScope:
+		a.rightOpen, a.rightTab = true, tabChanges
+	}
 }
 
 // View 是每帧重建的界面。
@@ -657,6 +672,8 @@ func (a *App) View(c *gui.Context) {
 	a.applyIntentResults()
 	a.syncSelectedSession()
 	a.applyTokens(c)
+	// 右栏文件页的目录投影每帧做一次：文件页与命令面板的文件组读同一份。
+	a.syncPanelTree(false)
 	a.commandPaletteKeys(c)
 	a.debugKeys(c)
 	a.layout(c)

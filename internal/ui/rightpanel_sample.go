@@ -14,6 +14,8 @@ type rpNode struct {
 	dir      bool
 	children []*rpNode
 	change   *rpChange
+	// hasMore 表示这个目录还有没读到的子项（真实读数的分页）；样例行恒为假。
+	hasMore bool
 }
 
 // rpChange 是一条文件改动（清单 D-28–D-72 的行数据）。
@@ -24,7 +26,10 @@ type rpChange struct {
 	staged  bool
 	// status 是时间线改动块用的状态字母（M / A / D / ?）。
 	status byte
-	diff   []string
+	// statUnknown 表示行上没有 ± 行数事实：行尾不画数字，而不是画假的 0。
+	// 样例里的改动都有行数，所以样例行恒为假。
+	statUnknown bool
+	diff        []string
 }
 
 // rightSample 建一份样例：33 个根目录 + 31 个根文件（与运行时清单的 R 态同

@@ -12,6 +12,7 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/fakeappserver"
 	"github.com/arcships/dimagent-mygo/internal/ui"
+	gui "github.com/egoist/mygo/ui"
 )
 
 // 右栏两页的读数：文件树（目录 + git 合并状态 + 分页）、内容搜索（命中 + 上限）、
@@ -545,5 +546,68 @@ func TestPanelFactsAfterDisconnect(t *testing.T) {
 	}
 	if _, ok := panelEntry(after, "notes.md"); !ok {
 		t.Fatalf("断线后的目录里没有 notes.md：%+v", after.Entries)
+	}
+}
+
+// TestPanelPagesRenderWorkspace 把真实读数接到真实页面上：假服务端给会话 cwd，
+// 临时仓库给目录与 git 状态，适配器读，右栏两页画。
+//
+// 断言的是"页面画的是工作区里真实存在的东西"：文件页出现仓库里的文件名、没有
+// 样例行；改动页在没有条目级读数时画「改动明细不可用」＋原因，而不是样例行或
+// 空白（条目级行与 diff 等 D7 出包，见交回说明）。
+func TestPanelPagesRenderWorkspace(t *testing.T) {
+	root := newPanelRepo(t)
+	server := startE2EServer(t, panelScript(root))
+	w := New(newRowsApp(t, server, root))
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	if err := w.Connect(ctx); err != nil {
+		t.Fatalf("连接失败：%v", err)
+	}
+
+	// 文件页：目录读是异步的，反复取帧直到真实条目出现。
+	files := ui.NewApp(ui.Options{State: ui.StateDefault, Source: w, Variant: ui.VariantRightPanel})
+	fileTester := gui.NewTester(files.View, ui.WindowWidth, ui.WindowHeight)
+	waitFrame(t, "文件页画出真实条目", fileTester, "notes.md")
+	if _, ok := fileTester.Find("docs"); !ok {
+		t.Fatal("文件页没有目录行")
+	}
+	for _, sample := range []string{"assets", "CHANGELOG.md", "fib57.py"} {
+		if _, ok := fileTester.Find(sample); ok {
+			t.Fatalf("连着读数时文件页仍画了样例 %q", sample)
+		}
+	}
+	// 已暂存的新增在树上带改动字母：行上不画 ± 数字（没有行数事实）。
+	if _, ok := fileTester.Find("+0"); ok {
+		t.Fatal("没有行数事实时文件页画了 +0")
+	}
+
+	// 改动页：条目级读数缺失 → 画不可用态与原因。
+	review := ui.NewApp(ui.Options{State: ui.StateDefault, Source: w, Variant: ui.VariantReview})
+	reviewTester := gui.NewTester(review.View, ui.WindowWidth, ui.WindowHeight)
+	waitFrame(t, "改动页画出不可用态", reviewTester, "改动明细不可用")
+	if _, ok := reviewTester.Find("git 只读口径只给改动计数，没有按文件与暂存态的条目、± 行数与 diff 文本。；Git 读到 4 个改动文件。"); !ok {
+		t.Fatal("改动页没有给出不可用原因与计数")
+	}
+	for _, sample := range []string{"composer.go", "已暂存 (1)", "全部暂存"} {
+		if _, ok := reviewTester.Find(sample); ok {
+			t.Fatalf("连着读数时改动页仍画了样例 %q", sample)
+		}
+	}
+}
+
+// waitFrame 反复取帧直到画面上出现某段文案（读数在后台，帧要重取）。
+func waitFrame(t *testing.T, what string, tester *gui.Tester, text string) {
+	t.Helper()
+	deadline := time.Now().Add(8 * time.Second)
+	for {
+		tester.Frame()
+		if _, ok := tester.Find(text); ok {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("等待 %s 超时：画面上没有 %q", what, text)
+		}
+		time.Sleep(5 * time.Millisecond)
 	}
 }

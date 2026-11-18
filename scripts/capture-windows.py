@@ -46,7 +46,8 @@ def find_window(pid):
 
 
 def capture(state, width=1440, height=900, suffix=None, variant=""):
-    args = [BIN, "-state", state, "-width", str(width), "-height", str(height)]
+    # -demo：样例数据模式。连接模式是默认，截图脚本显式要样例（不连 App Server）。
+    args = [BIN, "-demo", "-state", state, "-width", str(width), "-height", str(height)]
     if variant:
         args += ["-variant", variant]
     proc = subprocess.Popen(args,
