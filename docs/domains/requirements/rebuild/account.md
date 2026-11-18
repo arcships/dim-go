@@ -5,13 +5,13 @@ Owner: 重建映射规格（本轮）
 输入: [`../inventory-settings-rt.md`](../inventory-settings-rt.md) §1 账户（S-account-01 … 112，112 元素）＋ [`../requirements-settings.md`](../requirements-settings.md) §1（R-ACC-001 … 1133，1133 条）＋ 参考产品 `views/settings/account/AccountSettings.vue`、`AccountSignedIn.vue`、`AccountSignedOut.vue`、`AccountPlanUsage.vue`、`components/account/AccountEmailLoginDialog.vue` ＋ mygo v0.8.3 `ui` 包
 不做: 不写 Go 代码、不定交互终值（U3）、不改需求与清单、不提交结果包。
 
-**先读这段**：本屏可重建。112 个元素全部能落到 mygo 控件或「容器 + 自绘 `Draw`」上；真正的缺口只有 **10 条**（§3.1），集中在四处——头像尺寸与配色、分档配色进度条、带自定义正文的确认框、按容器宽断点。另有 6 条实现约束（§3.3）不构成缺口，但会决定 view 层的写法。
+**先读这段**：本屏可重建。112 个元素全部能落到 mygo 控件或「容器 + 自绘 `Draw`」上；真正的缺口只有 **10 条**（§3.1），集中在四处——头像尺寸与配色、分档配色进度条、带自定义正文的确认框、按容器宽断点。另有 7 条实现约束（§3.3）不构成缺口，但会决定 view 层的写法。
 
 ---
 
 ## 0 口径
 
-### 0.1 三源
+### 0.1 四源
 
 | 源 | 位置 | 用途 |
 |---|---|---|
@@ -29,10 +29,11 @@ Owner: 重建映射规格（本轮）
   - 颜色 → 同文 §3.2 / §3.3 的 `bg / surface / surface-hover / surface-pressed / border / text / text-secondary / accent / accent-on / accent-ink / success / warning / danger / selection / focus`；
   - 控件默认几何 → `docs/domains/U0-control-baseline.md` §1（Button 288×29.31、内边距 6/14、圆角 6、描边 1；Switch 36×20；Text 单行行盒 15.31；`Theme.Radius=6`、`Spacing=4`）。
 - 参考产品用 Tailwind 命名值给规格（`p-5`、`gap-3`、`text-sm`…），本规格把它落到 `space-N` / `type-*` 上；**落不下的一律标 `DS.<名>`**（例：卡片圆角 `rounded-lg` = 8，我们 `Theme.Radius` = 6 —— 差 2，由 design-baseline 裁决，见 D-02）。
+- **间距有一处系统性冲突**：参考本屏大量使用 2 / 6 / 10 / 14 / 20 五个间距（`py-0.5`、`gap-1.5`、`gap-2.5`、`py-3.5`、`p-5`），而 `U2-visual.md` §2.2 的标尺只有 4/8/12/16/24/32/48 七档，且明文写「不得出现非 4 倍数的值」。本规格照参考写 `space-0.5 / 1.5 / 2.5 / 3.5 / 5`，把这五个值当作**待裁决的扩展档**（见 C-07 与 D-08），不擅自吸附——吸附到 4/8/12/16/24 会整体改变本屏密度（卡片内边距 20→16 或 24、芯片内边距 6→8），那是设计决定，不是映射决定。
 
 ### 0.3 运行时包围盒的读法
 
-清单的位置列是**采集坐标**，不是设计值。三处交叉验证表明采集时视口处于缩放状态（身份卡 `p-5`=20 对应量测左边距 18；`text-xl` 行盒 28 对应量测 25；`h-8`=32 对应量测 28、`h-12`=48 对应量测 42）：
+清单的位置列是**采集坐标**，不是设计值。四处交叉验证表明采集时视口处于缩放状态（缩放比 0.875–0.9：身份卡 `p-5`=20 → 量测左边距 18；`text-xl` 行盒 28 → 量测 25；`h-8`=32 → 量测 28；`h-12`=48 → 量测 42）：
 
 - 本规格**只把包围盒当相对锚点**（谁的左缘与谁对齐、谁的宽度是基准），不作为像素验收目标；
 - 验收绝对像素一律回落到 `DS.*` 与 `U0-control-baseline` 的实测值；
@@ -161,7 +162,7 @@ L0  屏幕 · 设置 › 账户                      [Column · 上下滚动 · 
 │   │   │   │   ├─ L3 S-account-67  月度进度条              ← Box + Draw（自绘，见 G-02）· Role(RoleProgress)
 │   │   │   │   └─ L3 S-account-68  「已使用 36%」          ← Text type-secondary-strong tnum · Width DS.meter-pct-w
 │   │   │   └─ L4 周期限制窗口  (cond: windowRows.length>0) [Column · Margin(space-3,0,0,0) · BorderWidth(1,0,0,0) · Padding(space-2.5,0,0,0)]
-│   │   │       ├─ L3 S-account-69  「周期限制」            ← Text type-micro-strong
+│   │   │       ├─ L3 S-account-69  「周期限制」            ← Text type-micro + Bold
 │   │   │       ├─ L3 S-account-70  「以下窗口包含在月度额度内」 ← Text type-micro text-secondary
 │   │   │       └─ L4 窗口行 ×n  [Row · Gap space-2.5 · Margin(space-2,0,0,0)]
 │   │   │           ├─ L3 S-account-71  row.label                ← Text type-secondary-strong · Width DS.window-label-w · SingleLine
@@ -313,7 +314,7 @@ L0  屏幕 · 设置 › 账户                      [Column · 上下滚动 · 
 | 36 | S-account-36 | 套餐标识 BrandMark | `ui.Box` + `.Center()` + `ui.Icon` | Box `.Size(36,36).Radius(DS.chip-r-lg).Background(accent@α)`；到期支换 `Background(surface-hover)` + `TextColor(text-secondary)` | 随套餐到期切色 | R-ACC-436–443 |
 | 37 | S-account-37 | 「DimAgent」 | `ui.Text` | `type-body-strong` | 不翻译 | R-ACC-444–451 |
 | 38 | S-account-38 | planSubtitle（法至内部使用 · ¥0.10 / 月） | `ui.Text` | `type-secondary`；`text-secondary`；`.SingleLine().MinWidth(0)` | 无副标题不渲染 | R-ACC-452–460 |
-| 39 | S-account-39 | statusLabel（生效中） | `ui.Badge` | 覆盖 `.Padding(space-0.5, space-2)`、`.Radius(999)`、`.Background(accent@α).TextColor(accent-ink)`；到期支 `danger@α` / `danger`；徽标字号 = 框架 `FontSize-2`（= 11） | `statusLabel` 非空 | R-ACC-461–472 |
+| 39 | S-account-39 | statusLabel（生效中） | `ui.Badge` | 覆盖 `.Padding(space-0.5, space-2)`、`.Radius(999)`、`.Background(accent@α).TextColor(accent-ink)`；到期支 `danger@α` / `danger`；字号默认 `Theme.FontSize-2`（我们 14 → 12，参考 11）→ 用 `.FontSize(DS.badge-size)` 覆盖 | `statusLabel` 非空 | R-ACC-461–472 |
 | 40 | S-account-40 | ↳ CircleAlert（到期支） | `ui.Icon` | `.Size(12,12)`；`danger` | `isPlanExpired` | R-ACC-473–480 |
 | 41 | S-account-41 | 「到期 2026年12月13日 · 还剩 26 天」 | `ui.Text` | `type-secondary`；`text-secondary`；`.MarginStart(ui.Auto)`；到期支文案「已于 … 到期」 | 到期 / 生效两支；`.SingleLine()` | R-ACC-481–490 |
 | 42 | S-account-42 | 「额度用量」（选中项样式） | `ui.Box` + `ui.Text` | Box `.Padding(space-1, space-2.5).Radius(DS.chip-r).Background(surface).Shadow(0,1,2,0,…)`；Text `type-secondary-strong`；**不是** `Segmented`（参考是静态 `span`，不是可切换项） | `resetsVisible` | R-ACC-491–500 |
@@ -430,6 +431,19 @@ L0  屏幕 · 设置 › 账户                      [Column · 上下滚动 · 
 | C-04 | 两处进度条的**金额列与百分比列必须同宽**，否则两条不齐 | `DS.meter-amount-w` / `DS.meter-pct-w` 只允许定义一次并在 4 个用量行复用（参考源码注释明确写了这条） |
 | C-05 | `ring-1`（计数朵临界到期描边）不占布局 | 框架 `Border` 会占位（`box-sizing: border-box`，占内宽）→ 常态就挂 `Border(1, Transparent)`，到期时只换色，避免尺寸跳动 |
 | C-06 | 刷新按钮「最短旋转时长」（参考有 `MIN_MANUAL_REFRESH_SPIN_MS`） | 不是控件问题，但会决定 `Disabled(refreshing)` 与 `Loop` 的时序：`refreshing` 由上层计时器保证不短于 `DS.spin-min`，不要在 view 里用一次性延时 |
+| C-07 | **间距标尺不足**：本屏用到 2 / 6 / 10 / 14 / 20 五个值，`U2-visual.md` §2.2 只有 4/8/12/16/24/32/48 七档 | 两案，由 design-baseline 选：① 扩展标尺为 `t.Space(n)` 的 n ∈ {0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8, 12}（值 = 2/4/6/8/10/12/14/16/20/24/32/48，都是 2 的倍数，仍是唯一单位制）；② 维持七档并给出吸附表（2→4、6→8、10→8、14→16、20→24 或 16）。用量见 §3.4，改一次就能全局替换 |
+
+### 3.4 间距半档的实际用量（C-07 的表）
+
+| 参考值 | `t.Space(n)` | 本屏用在哪（代表元素，非全集） | 若吸附的风险 |
+|---:|---|---|---|
+| 2 | `space-0.5` | 状态徽标上下内边距（39）、耗尽图标与首行对齐的 2px 下移（55） | 吸附到 4 → 徽标高 +4，与 11px 字号的胶囊比例失真 |
+| 6 | `space-1.5` | 按钮默认内边距（框架即 6，已在用）、UID 行 gap、码行上下内边距、图标与标签间距（63/83）、计数朵左右内边距（45） | 吸附到 8 → 框架按钮内边距需整体覆盖，代价最大 |
+| 10 | `space-2.5` | 服务行横间距（36–41）、胶囊左右内边距（42/43）、用量行上边距（66–68）、窗口区上边距（65） | 吸附到 8 或 12 → 进度条与金额列的相对位置变动，四条进度条要对齐（C-04） |
+| 14 | `space-3.5` | 额度框上下内边距（62/81）、功能额度框内间距（81） | 吸附到 12 或 16 → 额度卡高度 ±4，与参考的 70px 高对不上 |
+| 20 | `space-5` | 身份卡内边距（08）、套餐卡主体内边距（30 内）、卡头左右（31/32）、推广卡内边距（96 内） | 吸附到 16 或 24 → 本屏密度整体变紧或变松，身份卡 96 高对不上 |
+
+> 结论：这五档不是随手写的，是参考产品本屏的节奏骨架。建议扩档（C-07 案 ①），而不是逐处吸附。
 
 ---
 
@@ -438,7 +452,7 @@ L0  屏幕 · 设置 › 账户                      [Column · 上下滚动 · 
 ### 4.1 分组 → 需求 ID（两级：分组区间 + 元素区间）
 
 | 分组 | 区域 | 元素 | 需求 ID | 条数 | 验收时先看什么 |
-|---|---|---|---|---|---:|---|
+|---|---|---|---|---:|---|
 | A.1 页面标题 | A | S-account-01 | R-ACC-001–009 | 9 | 文案逐字、y 位置、滚动行为、二级标题角色 |
 | B.1 到期横幅 | B | S-account-02–07 | R-ACC-010–065 | 56 | 条件出现、宽度与卡同宽、4 类物件、可点外不响应 |
 | B.2 身份卡 | B | S-account-08–19 | R-ACC-066–237 | 172 | 740×96 位置、5 类物件、缺字段塌落、按钮态 |
@@ -509,15 +523,16 @@ L0  屏幕 · 设置 › 账户                      [Column · 上下滚动 · 
 
 | ID | 依赖 | 影响 | 谁来定 |
 |---|---|---|---|
-| D-01 | `design-baseline.md` 尚未生成 | 本文件全部 `DS.*` 占位（约 26 个，见下表） | 设计基线领域 |
+| D-01 | `design-baseline.md` 尚未生成 | 本文件全部 `DS.*` 占位（34 个，见下表） | 设计基线领域 |
 | D-02 | 卡片圆角：参考 `rounded-lg` = 8，我们 `Theme.Radius` = 6 | 本屏 5 个卡框 + 3 个内框全部受影响 | design-baseline 裁决「卡 8 / 控件 6」还是「统一 6」 |
 | D-03 | 图标资产清单（lucide 13 个 + 品牌标识 1 个） | 3、7、15、17、25、33、40、44、55、59、64、82、91、94、95、97、105、109、36 | 资产/设计侧出 SVG；`//go:embed` 落在哪个包待定 |
 | D-04 | `Theme.ScrollbarWidth` 改 10 是全局决定 | 影响所有滚动容器，不只本屏 | 需 A/C 领域确认 |
 | D-05 | 主题取 `Theme.FontSize = 14`（U2 §1.2 的偏离） | `type-*` 全部按 14 算；若回退到 13，本屏字号同比缩小，间距不变 | 已在 U2 留了回退方案 |
 | D-06 | 需求与参考源码的一处不一致：R-ACC-109 期望「未命名」，参考实现回落的是 `accountSettings.fallbackName` =「Dim 账户」 | S-account-10 的空值分支 | 需求侧修正，或实现按需求改文案（二者取一，需裁决） |
 | D-07 | 参考产品的日期/金额本地化格式（「2026年12月13日」「到期 … · 还剩 26 天」「10.8万 / 30万」） | S-account-41、65、66、84 | 数据层返回已本地化字符串还是给原始数值 + 前端格式化 |
+| D-08 | 间距半档（2 / 6 / 10 / 14 / 20）不在 `U2-visual.md` §2.2 的七档标尺上（C-07） | 本屏 112 个元素里约 60 个的间距落在这五档上；不裁决则实现时只能逐处手写数值，违反 U2 §2.6 判定 | design-baseline 裁决「扩档」还是「吸附」 |
 
-`DS.*` 占位清单（26 个，交 design-baseline 一次定完）：
+`DS.*` 占位清单（34 个，交 design-baseline 一次定完）：
 
 | 名 | 用途 | 参考值（Tailwind / 声明） |
 |---|---|---|
@@ -537,6 +552,7 @@ L0  屏幕 · 设置 › 账户                      [Column · 上下滚动 · 
 | `DS.window-label-w` | 窗口标签列宽 | `w-24` = 96 |
 | `DS.metric-row-h` | 指标行最小高 | `min-h-11` = 44 |
 | `DS.meter-track` | 进度条轨道色 | `bg-meter-track`（值未在本次材料中出现） |
+| `DS.badge-size` | 状态徽标字号 | `text-[11px]` = 11（框架默认 = `FontSize-2` = 12） |
 | `DS.alpha-05/10/20/25/40/50/70` | 半透明档位（G-06） | `destructive/5`、`primary/10`、`danger/20`、`destructive/25`、`muted/40`、`border/50`、`border/70` |
 | `DS.bp-page-pad` / `DS.bp-row` / `DS.bp-split` | 三个容器断点（G-05） | 768 / 640 / 1024 |
 | `DS.relaxed` | 说明行行高倍数 | `leading-relaxed` = 1.625 |
