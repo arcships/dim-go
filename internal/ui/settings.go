@@ -39,6 +39,10 @@ func (a *App) settingsContent(c *gui.Context) {
 		renderSettingsPersonalizationScreen(c)
 	case secAppearance:
 		renderAppearance(c)
+	case secGeneral:
+		renderGeneral(c)
+	case secKeybindings:
+		renderKeybindings(c)
 	default:
 		settingsPlaceholder(c, section)
 	}

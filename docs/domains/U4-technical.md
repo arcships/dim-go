@@ -44,15 +44,9 @@ Owner: U4 技术设计（界面领域）
 | EL-27 | 用户消息 | 自绘 Box（气泡） | `round` | `always` |
 | EL-28 | 助手正文 | ui/markdown.View | `markdown.View` | `always` |
 | EL-29 | 设置入口 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
-| EL-30 | 设置分节导航 | gui.ButtonBase（自绘行） | `navRow` | `settings-appearance` |
-| EL-31 | 设置项（标签 + 控件） | gui.Select / gui.Switch | `settingsRow` | `settings-appearance` |
-| EL-32 | 危险动作 · 清空命令规则 | 自绘 ButtonBase（textIconButton） | `textIconButton` | `settings-rules` |
+| EL-30 | 设置分节导航 | gui.ButtonBase（自绘行） | `navRow` | `settings` |
+| EL-31 | 设置项（标签 + 控件） | 自绘行 + gui.Select | `appearanceFontRow` | `settings-appearance` |
 | EL-33 | 目标行 · 编辑态取消 | gui.Button | `actionButton` | `goal-edit` |
-| EL-34 | 扩展分节 | 自绘行（ButtonBase） | `navRow` | `settings-ext` |
-| EL-35 | 扩展页签 | gui.Tabs | `settingsExtensions` | `settings-ext` |
-| EL-36 | 扩展列表行 | 自绘行 + gui.Switch | `extRow` | `settings-ext` |
-| EL-37 | 扩展空态 | 自绘行 + iconGlyph | `settingsExtensions` | `settings-ext-empty` |
-| EL-38 | 扩展读取失败 | 自绘行 + iconGlyph + iconButton | `settingsExtensions` | `settings-ext-failed` |
 | EL-39 | 终端表面 | 右栏标签（gui.Tabs 第五项） | `rightPanel` | `term` |
 | EL-40 | 终端状态点 | 自绘 Box + DrawOver 点 | `terminalPane` | `term` |
 | EL-41 | 终端输出区 | gui.Scroll + 等宽 Text | `terminalPane` | `term-exited` |
@@ -63,24 +57,11 @@ Owner: U4 技术设计（界面领域）
 | EL-46 | 重命名行内编辑 | gui.TextInputBase + actionButton | `renameRow` | `rename` |
 | EL-47 | 删除确认行 | 自绘行 + actionButton | `deleteConfirmRow` | `session-delete` |
 | EL-48 | 搜索面 | gui.TextInputBase | `searchPane` | `search` |
-| EL-49 | 定时任务行 | 自绘行 + gui.Switch | `cronRow` | `settings-cron` |
-| EL-50 | 定时任务删除确认 | 自绘行 + actionButton | `cronRow` | `settings-cron-delete` |
-| EL-51 | 运行时组件行 | 自绘行 | `settingsRuntime` | `settings-runtime` |
-| EL-52 | 模态任务提交 | gui.TextInputBase + actionButton | `settingsRuntime` | `settings-runtime-submit` |
-| EL-53 | 提交回执 | 自绘行 | `settingsRuntime` | `settings-runtime-submit` |
-| EL-54 | 存储读数行 | 自绘行 | `settingsStorage` | `settings-storage` |
-| EL-55 | 诊断动作 | actionButton + iconButton | `settingsStorage` | `settings-storage` |
-| EL-56 | 键位提示表 | 自绘行 | `settingsAppearanceKeys` | `settings-appearance` |
+| EL-56 | 键位行（名称 + 键位） | 自绘行 + 描边键位按钮 | `keybindingRow` | `settings-keybindings` |
 | EL-57 | 命令模式标记 | 自绘行 + iconButton | `shellMarker` | `shell` |
 | EL-58 | 运行命令入口 | iconAction | `sendSlot` | `shell` |
 | EL-59 | 退出命令模式 | 自绘图标入口 | `shellMarker` | `shell` |
-| EL-60 | 扩展开详情页 | 自绘行 + gui.Switch + actionButton | `extDetailView` | `ext-detail` |
-| EL-61 | 批量选择工具条 | 自绘行 + actionButton | `selectToolbar` | `ext-select` |
-| EL-62 | 选择态行（整行勾选） | gui.Checkbox | `extRow` | `ext-select` |
-| EL-63 | MCP 认证状态 | 自绘 Box + DrawOver 点 | `mcpRow` | `mcp` |
-| EL-64 | 连接测试结果 | 自绘行 + iconGlyph | `mcpRow` | `mcp-ok` |
 | EL-65 | 附件行与移除入口 | 自绘行 + iconButton | `chipRow` | `default` |
-| EL-66 | 权限档位设置项 | gui.Select + actionButton | `settingsProviders` | `settings-providers` |
 | EL-67 | 终端断线入口 | 自绘图标入口 | `terminalPane` | `term` |
 | EL-68 | 终端恢复入口 | 自绘图标入口 | `terminalPane` | `term-disconnected` |
 <!-- END:items -->

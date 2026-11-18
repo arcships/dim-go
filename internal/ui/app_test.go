@@ -1441,10 +1441,10 @@ func TestDisabledPrimaryKeepsAccentFill(t *testing.T) {
 	// 图标的左上方是纯填充区，避开图标笔画。
 	x, y := int(btn.X)+3, int(btn.Y)+3
 	fill := img.RGBAAt(x, y)
-	if fill.R == 244 && fill.G == 244 && fill.B == 245 {
+	if fill.R == 255 && fill.G == 255 && fill.B == 255 {
 		t.Fatalf("禁用主图标动作被换成 surface：%v", fill)
 	}
-	if !(fill.B > fill.R && fill.B > fill.G) {
+	if !(fill.G > fill.R && fill.G > fill.B) {
 		t.Fatalf("禁用主图标动作没有 accent 填充：%v", fill)
 	}
 	if fill.R < 100 {

@@ -38,7 +38,6 @@ const (
 	screenSpace35 = 14
 	screenSpace4  = 16
 	screenSpace5  = 20
-	screenSpace6  = 24
 
 	// 几何：design-baseline §3、§4、§7。
 	screenStroke     = 1
@@ -60,22 +59,22 @@ const (
 	screenRuleH      = 1
 
 	// 本屏尺寸（参考产品的 Tailwind 确定值，见 design-baseline §1.3、§3）。
-	screenThemeCardW  = 240
-	screenThemeCardH  = 69
-	screenSkinCardW   = 240
-	screenSkinCardH   = 98
-	screenSkinThumbH  = 58
-	screenSkinTitleH  = 16
-	screenLangW       = 168
-	screenFontSelW    = 224
-	screenSegHSm      = 25
-	screenSegHLg      = 41
-	screenKeyRowH     = 60
-	screenKeyMinW     = 45
-	screenSearchW     = 392
-	screenCodeLineH   = 18
-	screenCodeNumW    = 18
-	screenPanelRadius = 12
+	screenThemeCardW = 240
+	screenThemeCardH = 69
+	screenGridW      = screenThemeCardW*3 + screenCardGap*2
+	screenSkinCardW  = 240
+	screenSkinCardH  = 98
+	screenSkinThumbH = 58
+	screenSkinTitleH = 16
+	screenLangW      = 168
+	screenFontSelW   = 224
+	screenSegHSm     = 25
+	screenSegHLg     = 41
+	screenKeyRowH    = 60
+	screenKeyMinW    = 45
+	screenSearchW    = 392
+	screenCodeLineH  = 18
+	screenCodeNumW   = 18
 )
 
 // 字阶（design-baseline §2）：页面标题 17.5、标签 14/500、说明 10.5、
@@ -85,9 +84,9 @@ var (
 	screenLabelStyle  = fontStep{size: 14, line: 21, weight: 500}
 	screenValueStyle  = fontStep{size: 14, line: 21, weight: 400}
 	screenStrongStyle = fontStep{size: 14, line: 21, weight: 600}
-	screenHintStyle   = fontStep{size: 10.5, line: 14, weight: 400}
+	screenHintStyle   = fontStep{size: 12.25, line: 17.5, weight: 400}
 	screenGroupStyle  = fontStep{size: 12.25, line: 17.5, weight: 600}
-	screenTickStyle   = fontStep{size: 10.5, line: 14, weight: 400}
+	screenTickStyle   = fontStep{size: 11, line: 18, weight: 400}
 	screenCodeStyle   = fontStep{size: 12, line: 17, weight: 400, family: codeFont}
 )
 
@@ -207,11 +206,11 @@ func screenIconRotated(c *gui.Context, icon *gui.SVG, size float32, color gui.Co
 	})
 }
 
-// screenSelectedDot 是主题卡 / 皮肤卡的选中角标：16×16 主色圆 + 白色对勾。
-func screenSelectedDot(c *gui.Context) {
+// screenCornerDot 是贴在容器右上角的选中角标（绝对定位，不占行高）。
+func screenCornerDot(c *gui.Context) {
 	t := c.Theme()
 	box := gui.Box(c).Width(screenDotSize).Height(screenDotSize).Shrink(0).
-		Label("已选中").AccessHidden(true)
+		Absolute().Top(0).Right(0).Label("已选中").AccessHidden(true)
 	box.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Fill(r, t.Accent, screenDotSize/2)
 		inner := gui.Rect{
@@ -317,14 +316,16 @@ func screenIndexSelect(c *gui.Context, selected *int, options []string, label st
 		for i, option := range options {
 			item := parts.Item(i).Padding(screenSpace15, screenSpace25).
 				Radius(screenRadiusCtl)
+			color := t.Text
 			switch {
 			case item.Highlighted():
 				item = item.Background(t.Accent)
+				color = t.AccentText
 			case i == *selected:
 				item = item.Background(t.Surface)
 			}
 			item.Children(func() {
-				screenValueStyle.style(t, gui.Text(c, option)).TextColor(t.Text).SingleLine()
+				screenValueStyle.style(t, gui.Text(c, option)).TextColor(color).SingleLine()
 			})
 		}
 	})
@@ -440,7 +441,8 @@ func renderAppearance(c *gui.Context) {
 func appearanceThemeSection(c *gui.Context) {
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 		screenLabel(c, "主题")
-		gui.Row(c).Wrap().GapX(screenCardGap).GapY(screenCardGap).
+		gui.Row(c).Wrap().MaxWidth(screenGridW).
+			GapX(screenCardGap).GapY(screenCardGap).
 			Label("主题").Children(func() {
 			for i, option := range appearanceThemeOptions {
 				appearanceThemeCard(c, i, option.name, option.icon)
@@ -477,19 +479,15 @@ func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG) 
 		appearanceScreen.theme = index
 	}
 	b.Children(func() {
-		gui.Box(c).Grow(1).Radius(screenRadiusCard).Children(func() {
-			gui.Column(c).Padding(screenSpace2, screenSpace2).Gap(screenSpace05).Children(func() {
-				gui.Row(c).Shrink(0).Height(screenDotSize).Justify(gui.End).Children(func() {
-					if selected {
-						screenSelectedDot(c)
-					}
-				})
-				gui.Column(c).Grow(1).Justify(gui.Center).AlignItems(gui.Center).
-					Gap(screenSpace1).Children(func() {
-					screenIcon(c, icon, screenIconBlock, t.TextMuted, name)
-					screenStrongStyle.style(t, gui.Text(c, name)).TextColor(t.Text).SingleLine()
-				})
+		gui.Box(c).Grow(1).Padding(screenSpace15, screenSpace15).Children(func() {
+			gui.Column(c).Grow(1).Justify(gui.Center).AlignItems(gui.Center).
+				Gap(screenSpace1).Children(func() {
+				screenIcon(c, icon, screenIconBlock, t.TextMuted, name)
+				screenStrongStyle.style(t, gui.Text(c, name)).TextColor(t.Text).SingleLine()
 			})
+			if selected {
+				screenCornerDot(c)
+			}
 		})
 	})
 }
@@ -699,7 +697,8 @@ func appearanceCodeColor(kind int, dark bool) gui.Color {
 func appearanceSkinSection(c *gui.Context) {
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 		screenLabel(c, "我的皮肤")
-		gui.Row(c).Wrap().GapX(screenCardGap).GapY(screenCardGap).
+		gui.Row(c).Wrap().MaxWidth(screenGridW).
+			GapX(screenCardGap).GapY(screenCardGap).
 			Label("我的皮肤").Children(func() {
 			for _, name := range appearanceSkins {
 				if appearanceScreen.deleted[name] {
@@ -750,11 +749,6 @@ func appearanceSkinCard(c *gui.Context, name string) {
 	card.Children(func() {
 		gui.Box(c).Grow(1).Padding(screenSpace15, screenSpace15).Children(func() {
 			gui.Column(c).Gap(screenSpace1).Children(func() {
-				gui.Row(c).Height(screenDotSize).Justify(gui.End).Children(func() {
-					if selected {
-						screenSelectedDot(c)
-					}
-				})
 				appearanceSkinThumb(c, name)
 				gui.Row(c).AlignItems(gui.Center).Children(func() {
 					gui.Spacer(c)
@@ -767,6 +761,9 @@ func appearanceSkinCard(c *gui.Context, name string) {
 					}
 				})
 			})
+			if selected {
+				screenCornerDot(c)
+			}
 		})
 	})
 }
@@ -847,24 +844,20 @@ func appearanceDefaultSkinCard(c *gui.Context) {
 	}
 	card.Children(func() {
 		gui.Box(c).Grow(1).Padding(screenSpace15, screenSpace15).Children(func() {
-			gui.Column(c).Children(func() {
-				gui.Row(c).Height(screenDotSize).Justify(gui.End).Children(func() {
-					if selected {
-						screenSelectedDot(c)
-					}
-				})
-				gui.Column(c).Grow(1).Justify(gui.Center).AlignItems(gui.Center).
-					Gap(screenSpace15).Children(func() {
-					mark := gui.Box(c).Size(screenSegHLg, screenSegHLg).Shrink(0).
-						Radius(screenRadiusCard).Background(t.Surface)
-					mark.Children(func() {
-						gui.Box(c).Grow(1).Center().Children(func() {
-							screenIcon(c, iconXMark, screenIconBlock, t.TextMuted, "x-mark")
-						})
+			gui.Column(c).Grow(1).Justify(gui.Center).AlignItems(gui.Center).
+				Gap(screenSpace15).Children(func() {
+				mark := gui.Box(c).Size(screenSegHLg, screenSegHLg).Shrink(0).
+					Radius(screenRadiusCard).Background(t.Surface)
+				mark.Children(func() {
+					gui.Box(c).Grow(1).Center().Children(func() {
+						screenIcon(c, iconXMark, screenIconBlock, t.TextMuted, "x-mark")
 					})
-					screenValueStyle.style(t, gui.Text(c, "默认")).TextColor(t.Text).SingleLine()
 				})
+				screenValueStyle.style(t, gui.Text(c, "默认")).TextColor(t.Text).SingleLine()
 			})
+			if selected {
+				screenCornerDot(c)
+			}
 		})
 	})
 }

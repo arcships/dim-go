@@ -37,11 +37,11 @@ type generalState struct {
 }
 
 var generalScreen = generalState{
-	keepAwake:  true,  // 截图：开
-	perfLog:    false, // 截图：关
-	launch:     true,  // 截图：开
-	proxyMode:  0,     // 系统代理
-	proxyURL:   "http://127.0.0.1:7890",
+	keepAwake: true,  // 截图：开
+	perfLog:   false, // 截图：关
+	launch:    true,  // 截图：开
+	proxyMode: 0,     // 系统代理
+	proxyURL:  "http://127.0.0.1:7890",
 }
 
 // generalProxyModes 是代理的三档，顺序与截图一致。
@@ -107,7 +107,7 @@ func generalSwitchCard(c *gui.Context, label, hint string, on *bool) {
 				}
 			})
 			gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
-				Radius(screenSwitchH/2).Label(label)
+				Radius(screenSwitchH / 2).Label(label)
 		})
 	})
 }
@@ -163,7 +163,7 @@ func generalProxySegments(c *gui.Context) {
 		Label("代理模式")
 	track.Children(func() {
 		for i, mode := range generalProxyModes {
-			seg := parts.Segment(i).Height(screenSegHLg).AlignItems(gui.Stretch).
+			seg := parts.Segment(i).Grow(1).Height(screenSegHLg).AlignItems(gui.Stretch).
 				Padding(screenStroke).Radius(screenRadiusCtl).Background(t.Border).
 				Label(mode.name)
 			if i == generalScreen.proxyMode {
@@ -323,7 +323,8 @@ func generalImportDialog(c *gui.Context) {
 // generalProfileRow 是一条 Chrome 配置选项（单选）。
 func generalProfileRow(c *gui.Context, index int, text string) {
 	t := c.Theme()
-	row := gui.ButtonBase(c).Shrink(0).Padding(screenSpace15, screenSpace25).
+	row := gui.ButtonBase(c).Shrink(0).AlignSelf(gui.Stretch).Justify(gui.Start).
+		Padding(screenSpace15, screenSpace25).
 		Radius(screenRadiusCtl).Label(text).Role(gui.RoleRadio).
 		AccessSelected(generalScreen.importProfile == index)
 	if row.Hovered() {
@@ -374,16 +375,16 @@ func generalCleanupDialog(c *gui.Context) {
 	if !generalScreen.cleanupOpen {
 		return
 	}
-	t := c.Theme()
 	open := true
 	m := gui.Modal(c, &open, func() {
-		screenDialogPanel(c, "数据清理", func() {
-			screenHint(c, "会话存储由 App Server 管理，此应用不支持跨归属方的扫描和清理。")
+		screenDialogPanel(c, "存储报告", func() {
+			screenHint(c, "会话存储由 App Server 管理，可在此查看其存储用量报告。")
 			gui.Column(c).Gap(screenSpace15).Children(func() {
 				generalMetricRow(c, "数据库", "0 B")
 				generalMetricRow(c, "WAL", "0 B")
 				generalMetricRow(c, "可回收", "0 B")
 			})
+			screenHint(c, "会话存储由 App Server 管理，此应用不支持跨归属方的扫描和清理。")
 			screenHint(c, "如需回收可回收空间，请停止守护进程并离线运行 `dimcode daemon vacuum`。")
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
 				if screenButton(c, "关闭", "关闭数据清理", "", false, rowRegular) {
@@ -391,7 +392,6 @@ func generalCleanupDialog(c *gui.Context) {
 					open = false
 				}
 			})
-			_ = t
 		})
 	})
 	if !open || m.Dismissed() {

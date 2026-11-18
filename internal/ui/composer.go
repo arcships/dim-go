@@ -26,7 +26,7 @@ func (a *App) composer(c *gui.Context) {
 				// 断线：输入位不可用，原因写在原位（不是白屏、不是静默）。
 				t := c.Theme()
 				gui.Column(c).MinHeight(ComposerMinHeight).Padding(space2).
-					Background(t.Surface).Radius(radius).Children(func() {
+					Background(t.Surface).Radius(radiusCard).Children(func() {
 					gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("连接断开").Children(func() {
 						iconGlyph(c, iconWarn, t.Danger, "exclamation")
 						typeBody.style(t, gui.Text(c, "连接已断开："+a.liveConnection().Reason)).
@@ -85,7 +85,7 @@ func (a *App) inputCard(c *gui.Context) {
 	// （UI-22、U2 §4.7 的基线表）。
 	gui.Column(c).MinHeight(ComposerHeight).MaxHeight(ComposerMaxHeight).
 		Padding(space2).Gap(space1).
-		Background(t.Surface).Radius(radius).
+		Background(t.Surface).Radius(radiusCard).
 		Children(func() {
 			gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
 				if a.state == StateEmpty {
@@ -333,7 +333,7 @@ func (a *App) questionCard(c *gui.Context, question QuestionSnapshot) {
 	t := c.Theme()
 	gui.Column(c).MinHeight(ApprovalHeight).
 		Padding(space2).Gap(space2).
-		Background(t.SurfacePressed).Radius(radius).
+		Background(t.SurfacePressed).Radius(radiusCard).
 		Label("需要你回答").Children(func() {
 		iconGlyph(c, iconClock, colorAccentInk.in(t), "clock")
 		typeBody.style(t, gui.Text(c, question.Text)).TextColor(t.Text)
@@ -414,7 +414,7 @@ func (a *App) approvalCard(c *gui.Context) {
 	}
 	gui.Column(c).MinHeight(ApprovalHeight).
 		Padding(space2).Gap(space3).
-		Background(t.Surface).Border(strokeHairline, t.Border).Radius(radius).
+		Background(t.Surface).Border(strokeHairline, t.Border).Radius(radiusCard).
 		Children(func() {
 			// 卡的身份由形状与内容说（UI-23）：时钟图标说明"在等你决定"，命令原文
 			// 是内容；不写「需要你同意」这类界面语。拿不到命令原文时只剩图标与三个
@@ -423,7 +423,7 @@ func (a *App) approvalCard(c *gui.Context) {
 			if cmd != "" {
 				// 命令原文与影响分成两块：命令是一段代码（自己的面与内边距），影响是
 				// 下面一行说明。两者不再粘在一行，扫一眼就能分清哪是命令、哪是影响。
-				gui.Box(c).Shrink(0).Padding(space1, space2).Radius(radius).
+				gui.Box(c).Shrink(0).Padding(space1, space2).Radius(radiusSmall).
 					Background(t.SurfacePressed).Children(func() {
 					typeCode.style(t, gui.RichText(c,
 						gui.Span{Text: cmd, Size: typeCode.sizeIn(t),

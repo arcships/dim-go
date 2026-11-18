@@ -67,46 +67,46 @@ import (
 //	身份块（S-account-10/11/13）可选中：卡内 .Selectable()。
 //	计数朵（S-account-45）常挂 1px 透明描边（C-05），换色时尺寸不跳。
 
-// 本屏几何：值取参考产品的 Tailwind 确定值（规格 §5 的 DS.* 表）。
-// docs/domains/requirements/design-baseline.md 落地后整体替换成 DS.*。
+// 本屏几何：参考的 Tailwind 量 × 0.25rem。design-baseline §1 定下根字号 14 时
+// 0.25rem = 3.5px（= tokens.go 的 spaceUnit），所以几何一律写成 spaceUnit 的倍数：
+// 标尺换档时整屏同比跟随，不另存一套数字。
 const (
-	accCardHeaderH  = 56   // min-h-14
-	accBtnHSm       = 32   // h-8
-	accChipBtnH     = 28   // h-7
-	accAvatar       = 48   // h-12 w-12
-	accAvatarRadius = 24   // 正圆
-	accAvatarInk    = 19   // 0.4 × accAvatar：首字母字号
-	accIdentityMin  = 192  // min-w-[12rem]
-	accDialogW      = 448  // sm:max-w-md
-	accMeterH       = 6    // h-1.5
-	accMeterHThin   = 4    // h-1
-	accMeterAmountW = 152  // 9.5rem（四条用量行共用，C-04）
-	accMeterPctW    = 80   // 5rem（同上）
-	accWindowLabelW = 96   // w-24
-	accMetricRowH   = 44   // min-h-11
-	accMetricColW   = 176  // lg:min-w-[11rem]
-	accChipRadius   = 4    // rounded（UID 芯片）
-	accChipRadiusLg = 8    // rounded-lg（重置段容器）
-	accPillRadius   = 999  // 全圆
-	accBrandMark    = 36   // 套餐标识边长
-	accBrandRadius  = 8
-	accCountW       = 18 // 计数朵最小宽
+	accCardHeaderH  = spaceUnit * 14  // min-h-14
+	accBtnHSm       = spaceUnit * 8   // h-8
+	accChipBtnH     = spaceUnit * 7   // h-7
+	accAvatar       = spaceUnit * 12  // h-12 w-12（实测量到 42）
+	accAvatarRadius = accAvatar / 2   // 正圆
+	accAvatarInk    = accAvatar * 0.4 // 首字母字号（参考 0.4 倍）
+	accIdentityMin  = spaceUnit * 48  // min-w-[12rem]
+	accDialogW      = spaceUnit * 112 // sm:max-w-md = 28rem
+	accMeterH       = spaceUnit * 1.5 // h-1.5
+	accMeterHThin   = spaceUnit       // h-1
+	accMeterAmountW = spaceUnit * 38  // 9.5rem（四条用量行共用，C-04；实测量到 133）
+	accMeterPctW    = spaceUnit * 20  // 5rem（同上，实测 70）
+	accWindowLabelW = spaceUnit * 24  // w-24
+	accMetricRowH   = spaceUnit * 11  // min-h-11
+	accMetricColW   = spaceUnit * 44  // lg:min-w-[11rem]
+	accChipRadius   = radiusSmall     // rounded（UID 芯片）
+	accBrandMark    = spaceUnit * 10  // size-10 ≈ 参考实测的 36
+	accBrandRadius  = radiusCard
+	accCountW       = spaceUnit * 4.5 // 计数朵最小宽（18）
 	accHitMin       = hitMin
 	accCopyHit      = hitMin // 复制 UID 的命中区（参考 18，抬到 hit-min，L13）
 	accIcoBlock     = 16
 	accIcoInline    = 14
 	accIcoMicro     = 12
-	accNoticeBar    = 3 // 耗尽提示左侧条（C-02）
+	accNoticeBar    = 3            // 耗尽提示左侧条（C-02，border-l-[3px]）
+	accFullRadius   = radius * 100 // 胶囊与头像（rounded-full）
 	accRelaxed      = 1.625
 	accSplitW       = 1024 // DS.bp-split（lg）
 	accSpinMin      = 600 * time.Millisecond
 
-	// 间距半档（D-08 待裁决，规格 §3.4）：不吸附到七档标尺。
-	accSpaceHalf = 2  // space-0.5
-	accSpace15   = 6  // space-1.5
-	accSpace25   = 10 // space-2.5
-	accSpace35   = 14 // space-3.5
-	accSpace5    = 20 // space-5
+	// 间距半档（规格 §3.4）：0.5 / 1.5 / 2.5 / 3.5 / 5 档，仍是 0.25rem 的倍数。
+	accSpaceHalf = spaceUnit * 0.5 // space-0.5
+	accSpace15   = spaceUnit * 1.5 // space-1.5
+	accSpace25   = spaceUnit * 2.5 // space-2.5
+	accSpace35   = spaceUnit * 3.5 // space-3.5
+	accSpace5    = spaceUnit * 5   // space-5
 )
 
 // 半透明档位（G-06）：token.Alpha(accAlphaN)。
@@ -855,7 +855,7 @@ func accRenewalText(d accountScreenData) string {
 func (a *App) accountResetSection(c *gui.Context, d accountScreenData) {
 	t := c.Theme()
 	gui.Row(c).Wrap().Shrink(0).AlignSelf(gui.Start).AlignItems(gui.Center).Gap(space1).
-		Padding(space1).Radius(accChipRadiusLg).
+		Padding(space1).Radius(radiusCard).
 		Background(t.SurfaceHover).Label("额度重置").Children(func() {
 		// S-account-42：「额度用量」是静态选中项样式，不是可切换控件。
 		gui.Box(c).Shrink(0).Padding(space1, accSpace25).Radius(radius).
@@ -904,7 +904,7 @@ func accCountBubble(c *gui.Context, count int) {
 		ink = colorAccentInk.in(t)
 	}
 	bubble := gui.Box(c).Shrink(0).MinWidth(accCountW).Padding(0, accSpace15).
-		Radius(accPillRadius).Background(bg).Center().
+		Radius(accFullRadius).Background(bg).Center().
 		Label(fmt.Sprintf("剩余 %d 次", count))
 	bubble.BorderWidth(strokeHairline).BorderColor(t.Border.Alpha(accAlpha0))
 	bubble.Children(func() {
@@ -917,7 +917,7 @@ func accCountBubble(c *gui.Context, count int) {
 func accountDepletedNotice(c *gui.Context) {
 	t := c.Theme()
 	notice := gui.Row(c).Shrink(0).Gap(space3).AlignItems(gui.Start).
-		Padding(space3, space4).Radius(radius).Clip().
+		Padding(space3, space4).Radius(radiusCard).Clip().
 		Background(t.Danger.Alpha(accAlpha05)).
 		Role(gui.RoleStatus).Label(accCopyDepletedTitle)
 	notice.BorderWidth(strokeHairline).BorderColor(t.Danger.Alpha(accAlpha25))
@@ -950,7 +950,7 @@ func accMeterHead(c *gui.Context, label string, feature bool) {
 // accountUnlimitedBox 是 C.6 不限量支（S-account-58–61）。
 func accountUnlimitedBox(c *gui.Context) {
 	t := c.Theme()
-	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radius).
+	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radiusCard).
 		Label(accCopyQuotaUsage)
 	box.BorderWidth(strokeHairline).BorderColor(t.Border.Alpha(accAlpha70))
 	box.Children(func() {
@@ -967,7 +967,7 @@ func accountUnlimitedBox(c *gui.Context) {
 // accountCreditsBox 是 C.7 月度额度（S-account-62–75）。
 func (a *App) accountCreditsBox(c *gui.Context, d accountScreenData) {
 	t := c.Theme()
-	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radius).
+	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radiusCard).
 		Label(accCopyMonthlyQuota)
 	box.BorderWidth(strokeHairline).BorderColor(t.Border.Alpha(accAlpha70))
 	box.Children(func() {
@@ -1051,7 +1051,7 @@ func accountWindowRow(c *gui.Context, row accountWindow, thin bool) {
 // 时，周期限制自己成框，进度条用标准高度。
 func accountWindowBox(c *gui.Context, rows []accountWindow) {
 	t := c.Theme()
-	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radius).
+	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radiusCard).
 		Label(accCopyWindowLimit)
 	box.BorderWidth(strokeHairline).BorderColor(t.Border.Alpha(accAlpha70))
 	box.Children(func() {
@@ -1064,7 +1064,7 @@ func accountWindowBox(c *gui.Context, rows []accountWindow) {
 // accountFeatureBox 是 C.9 功能额度（S-account-81–87）：每个 meter 一框。
 func (a *App) accountFeatureBox(c *gui.Context, meter accountMeter) {
 	t := c.Theme()
-	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radius).
+	box := gui.Column(c).Shrink(0).Padding(accSpace35, space4).Radius(radiusCard).
 		Label(meter.Label)
 	box.BorderWidth(strokeHairline).BorderColor(t.Border.Alpha(accAlpha70))
 	box.Children(func() {
@@ -1482,7 +1482,7 @@ func accUsedLabel(percent float32) string {
 func accBadge(c *gui.Context, text string, danger bool) {
 	t := c.Theme()
 	b := gui.Badge(c, text).Shrink(0).
-		Padding(accSpaceHalf, space2).Radius(accPillRadius).Label(text)
+		Padding(accSpaceHalf, space2).Radius(accFullRadius).Label(text)
 	if danger {
 		b = b.Background(t.Danger.Alpha(accAlpha10)).TextColor(t.Danger)
 	} else {
@@ -1494,13 +1494,13 @@ func accBadge(c *gui.Context, text string, danger bool) {
 // 全屏的卡框都从这里出，描边处数才登记得住（L11）。
 func accCardFrame(c *gui.Context, e gui.Element) gui.Element {
 	t := c.Theme()
-	return e.Radius(radius).Border(strokeHairline, t.Border).Background(t.Surface)
+	return e.Radius(radiusCard).Border(strokeHairline, t.Border).Background(t.Surface)
 }
 
 // accFieldFrame 是行内字段框（UID 芯片、邀请码行）：1px 主题描边 + 次要面。
 func accFieldFrame(c *gui.Context, e gui.Element) gui.Element {
 	t := c.Theme()
-	return e.Border(strokeHairline, t.Border).Background(t.Surface.Alpha(accAlpha40))
+	return e.Border(strokeHairline, t.Border).Background(t.SurfaceHover)
 }
 
 // accResetLabel 是「2026年12月13日 重置」（S-account-65/84）。

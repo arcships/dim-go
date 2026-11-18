@@ -20,41 +20,41 @@ func TestThemeTokens(t *testing.T) {
 		got  gui.Color
 		want string
 	}{
-		{"明 bg", light.Background, "#ffffff"},
-		{"明 surface", light.Surface, "#f4f4f5"},
-		{"明 surface-hover", light.SurfaceHover, "#e9e9ec"},
-		{"明 surface-pressed", light.SurfacePressed, "#dddde1"},
-		{"明 border", light.Border, "#d9d9de"},
-		{"明 text", light.Text, "#18181b"},
-		{"明 text-secondary", light.TextMuted, "#5f5f68"},
-		{"明 accent", light.Accent, "#2563eb"},
-		{"明 accent-hover", light.AccentHover, "#1d4ed8"},
-		{"明 accent-pressed", light.AccentPressed, "#1e40af"},
+		{"明 bg", light.Background, "#f6fdff"},
+		{"明 surface", light.Surface, "#ffffff"},
+		{"明 surface-hover", light.SurfaceHover, "#f5f5f5"},
+		{"明 surface-pressed", light.SurfacePressed, "#ebebeb"},
+		{"明 border", light.Border, "#e5e5e5"},
+		{"明 text", light.Text, "#0a0a0a"},
+		{"明 text-secondary", light.TextMuted, "#737373"},
+		{"明 accent", light.Accent, "#349651"},
+		{"明 accent-hover", light.AccentHover, "#40a35c"},
+		{"明 accent-pressed", light.AccentPressed, "#218a45"},
 		{"明 accent-on", light.AccentText, "#ffffff"},
-		{"明 success", light.Success, "#15803d"},
-		{"明 warning", light.Warning, "#b45309"},
-		{"明 danger", light.Danger, "#b91c1c"},
-		{"明 focus", light.Focus, "#2563eb"},
-		{"明 inverse", light.Inverse, "#18181b"},
+		{"明 success", light.Success, "#009966"},
+		{"明 warning", light.Warning, "#e17100"},
+		{"明 danger", light.Danger, "#e7000b"},
+		{"明 focus", light.Focus, "#a1a1a1"},
+		{"明 inverse", light.Inverse, "#0a0a0a"},
 		{"明 inverse-text", light.InverseText, "#ffffff"},
 
-		{"暗 bg", dark.Background, "#18181b"},
-		{"暗 surface", dark.Surface, "#27272a"},
-		{"暗 surface-hover", dark.SurfaceHover, "#323236"},
-		{"暗 surface-pressed", dark.SurfacePressed, "#3c3c41"},
-		{"暗 border", dark.Border, "#3f3f46"},
-		{"暗 text", dark.Text, "#f4f4f5"},
-		{"暗 text-secondary", dark.TextMuted, "#a1a1aa"},
-		{"暗 accent", dark.Accent, "#2563eb"},
-		{"暗 accent-on", dark.AccentText, "#ffffff"},
-		{"暗 success", dark.Success, "#22c55e"},
-		{"暗 warning", dark.Warning, "#f59e0b"},
-		{"暗 danger", dark.Danger, "#f87171"},
-		{"暗 focus", dark.Focus, "#60a5fa"},
+		{"暗 bg", dark.Background, "#090c0d"},
+		{"暗 surface", dark.Surface, "#0c0c0c"},
+		{"暗 surface-hover", dark.SurfaceHover, "#262626"},
+		{"暗 surface-pressed", dark.SurfacePressed, "#2b2b2b"},
+		{"暗 border", dark.Border, "#2e2e2e"},
+		{"暗 text", dark.Text, "#ececec"},
+		{"暗 text-secondary", dark.TextMuted, "#8a8a8a"},
+		{"暗 accent", dark.Accent, "#63cb7b"},
+		{"暗 accent-on", dark.AccentText, "#010602"},
+		{"暗 success", dark.Success, "#00d492"},
+		{"暗 warning", dark.Warning, "#ffb900"},
+		{"暗 danger", dark.Danger, "#ff6467"},
+		{"暗 focus", dark.Focus, "#63cb7b"},
 
 		// 框架没有字段的 accent-ink（§8.1）。边界只有主题 Border 一套（UI-18）。
-		{"明 accent-ink", colorAccentInk.in(light), "#1d4ed8"},
-		{"暗 accent-ink", colorAccentInk.in(dark), "#60a5fa"},
+		{"明 accent-ink", colorAccentInk.in(light), "#197037"},
+		{"暗 accent-ink", colorAccentInk.in(dark), "#63cb7b"},
 	}
 	for _, c := range colors {
 		if want := gui.Hex(c.want); c.got != want {
@@ -67,22 +67,25 @@ func TestThemeTokens(t *testing.T) {
 		name      string
 		got, want float32
 	}{
-		{"Theme.Spacing", light.Spacing, 4},
+		{"Theme.Spacing", light.Spacing, 3.5},
 		// 字号不覆盖：跟框架的平台默认（macOS 13、其它 14），所以这里比的是同一个值。
 		{"Theme.FontSize", light.FontSize, gui.LightTheme().FontSize},
-		{"Theme.Radius", light.Radius, 6},
+		{"Theme.Radius", light.Radius, 6.75},
 		{"Theme.FocusRingWidth", light.FocusRingWidth, 2},
 		{"Theme.FocusRingOffset", light.FocusRingOffset, 1},
 		{"Theme.ScrollbarWidth", light.ScrollbarWidth, 6},
-		{"space-12", space12, 48},
+		{"space-12", space12, 42},
 		{"row-regular", rowRegular, 28},
 		{"row-compact", rowCompact, 24},
 		{"control-mini", controlMini, 20},
 		{"icon-inline", iconInline, 16},
 		{"control-pad-v", controlPadV, 6},
 		{"control-pad-h", controlPadH, 14},
-		{"radius", radius, 6},
-		{"radius-code", radiusCode, 8},
+		{"radius", radius, 6.75},
+		{"radius-small", radiusSmall, 4.75},
+		{"radius-card", radiusCard, 8.75},
+		{"radius-window-card", radiusWindowCard, 12.75},
+		{"radius-code", radiusCode, 8.75},
 		{"hit-min", hitMin, 24},
 		{"stroke-chevron", strokeChevron, 1.5},
 		{"context-near-percent", contextNearPercent, 90},
@@ -117,15 +120,15 @@ func TestFontSteps(t *testing.T) {
 		line float32
 		w    int
 	}{
-		{"正文", typeBody, 14, 21, 400},
-		{"正文强调", typeBodyStrong, 14, 21, 600},
+		{"正文", typeBody, 14, 24.5, 400},
+		{"正文强调", typeBodyStrong, 14, 24.5, 600},
 		{"次要", typeSecondary, 12.25, 0, 400},
-		{"次要强调", typeSecondaryStrong, 12.25, 0, 600},
+		{"次要强调", typeSecondaryStrong, 12.25, 0, 500},
 		{"标题行会话名", typeTitleRow, 15, 0, 600},
-		{"极小", typeMicro, 10.5, 0, 400},
-		{"代码", typeCode, 12.25, 17.15, 400},
+		{"极小", typeMicro, 10.5, 14, 400},
+		{"代码", typeCode, 13, 20, 400},
 		{"h1", typeH1, 22.4, 33.6, 700},
-		{"h2", typeH2, 18.9, 28.35, 650},
+		{"h2", typeH2, 17.5, 24.5, 600},
 		{"h3", typeH3, 16.1, 24.15, 600},
 		{"h4", typeH4, 14, 21, 600},
 		{"h5", typeH5, 13.3, 19.95, 600},
@@ -181,8 +184,8 @@ func TestViewAppliesTheme(t *testing.T) {
 		dark bool
 		want gui.Color
 	}{
-		{"明", false, gui.Hex("#ffffff")},
-		{"暗", true, gui.Hex("#18181b")},
+		{"明", false, gui.Hex("#f6fdff")},
+		{"暗", true, gui.Hex("#090c0d")},
 	} {
 		app := NewApp(Options{State: StateDefault})
 		tt := gui.NewTesterWith(app.View, WindowWidth, WindowHeight,
@@ -197,18 +200,18 @@ func TestViewAppliesTheme(t *testing.T) {
 }
 
 // TestDisabledContrastUsesFrameworkOpacity 按框架算法重算禁用态（C1）：
-// 不换面，整棵子树压 0.5。禁用次按钮标签 = text 叠 surface 一半 → 3.31:1；
-// 禁用主按钮填充 = accent 叠 surface 一半 → #8cacf0 一类的淡强调面。
+// 不换面，整棵子树压 0.5。禁用次按钮标签 = text 叠 surface 一半 → 3.69:1；
+// 禁用主按钮填充 = accent 叠 surface 一半 → #9acba8 一类的淡强调面。
 func TestDisabledContrastUsesFrameworkOpacity(t *testing.T) {
 	light := theme(false, gui.Preferences{})
 
 	label := mixOver(light.Text, light.Surface, 0.5)
-	if got := contrastRatio(label, light.Surface); math.Abs(got-3.31) > 0.02 {
-		t.Errorf("禁用次按钮标签对 surface = %.2f:1，想要 3.31:1", got)
+	if got := contrastRatio(label, light.Surface); math.Abs(got-3.69) > 0.02 {
+		t.Errorf("禁用次按钮标签对 surface = %.2f:1，想要 3.69:1", got)
 	}
 
 	fill := mixOver(light.Accent, light.Surface, 0.5)
-	want := [3]int{140, 172, 240}
+	want := [3]int{154, 203, 168}
 	got := [3]int{int(fill.R), int(fill.G), int(fill.B)}
 	for i := range want {
 		if d := got[i] - want[i]; d < -2 || d > 2 {

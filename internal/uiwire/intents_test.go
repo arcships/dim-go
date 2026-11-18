@@ -637,57 +637,6 @@ func TestIntentDelete(t *testing.T) {
 	}
 }
 
-// TestIntentCreateProvider 设置 · 模型与供应商 → 新增 provider → provider.create。
-func TestIntentCreateProvider(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("模型与供应商")
-	h.click("新增供应商")
-	h.typeInto("provider 名称", "New Provider")
-	h.typeInto("Base URL", "https://new.test")
-	h.typeInto("API 密钥", "sk-test")
-	h.click("创建 provider")
-	params := h.waitRequest("provider.create")
-	t.Logf("点了「创建 provider」→ 服务端收到 provider.create（%d 次），providerId=%v",
-		len(h.server.RequestsFor("provider.create")), params["providerId"])
-	id, _ := params["providerId"].(string)
-	if len(id) != 36 {
-		t.Fatalf("新建 provider 标识不是 UUID：%v", params)
-	}
-}
-
-// TestIntentProbeProvider 设置 · 模型与供应商 → 探测 → provider.probe。
-func TestIntentProbeProvider(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("模型与供应商")
-	h.click("探测 acme")
-	params := h.waitRequest("provider.probe")
-	t.Logf("点了「探测 acme」→ 服务端收到 provider.probe（%d 次），providerId=%v",
-		len(h.server.RequestsFor("provider.probe")), params["providerId"])
-	if params["providerId"] != "acme" {
-		t.Fatalf("探测参数不对：%v", params)
-	}
-}
-
-// TestIntentProviderModelToggle 设置 · 模型与供应商 → 停用模型 → provider.models.set_enabled。
-func TestIntentProviderModelToggle(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("模型与供应商")
-	h.click("停用模型：model-x")
-	params := h.waitRequest("provider.models.set_enabled")
-	t.Logf("点了「停用模型」→ 服务端收到 provider.models.set_enabled（%d 次），providerId=%v modelId=%v",
-		len(h.server.RequestsFor("provider.models.set_enabled")), params["providerId"], params["modelId"])
-	if params["providerId"] != "acme" {
-		t.Fatalf("模型启停参数不对：%v", params)
-	}
-	ids, _ := params["modelIds"].([]any)
-	if len(ids) != 0 {
-		t.Fatalf("停用后启用模型集合应为空：%v", params)
-	}
-}
-
 // signedOutScript 是一份账号未登录的脚本，用于登录入口测试。
 func signedOutScript() fakeappserver.Script {
 	script := baseScript("/work", false)
@@ -696,80 +645,40 @@ func signedOutScript() fakeappserver.Script {
 			script.Replies[index].Result = map[string]any{"credentialEpoch": "e1", "account": nil}
 		}
 	}
+	// 重建后的账户屏只有 browser 登录；服务端按登录方式分方法名（account.login.browser.begin）。
+	script.Replies = append(script.Replies, fakeappserver.Reply{Method: "account.login.browser.begin",
+		Result: map[string]any{
+			"attemptId": "att-browser-1", "authorizationUrl": "https://example.test/authorize",
+			"expiresAt": 1700000600,
+		}})
 	return script
 }
 
-// TestIntentDeviceLogin 设置 · 账号 → 设备码登录 → account.login.begin。
-func TestIntentDeviceLogin(t *testing.T) {
+// TestIntentAccountSignIn 设置 · 账户 → 登录 → account.login.browser.begin。
+//
+// 旧的「设备码登录」入口随旧分节删除；重建后的账户屏只留参考产品的「登录」
+// （browser 方式），这里按新入口走，断言仍是登录请求的 provider。
+func TestIntentAccountSignIn(t *testing.T) {
 	h := newIntentHarness(t, signedOutScript())
 	h.click("设置")
-	h.click("账号与套餐")
-	h.click("设备码登录")
-	params := h.waitRequest("account.login.begin")
-	t.Logf("点了「设备码登录」→ 服务端收到 account.login.begin（%d 次），providerId=%v",
-		len(h.server.RequestsFor("account.login.begin")), params["providerId"])
+	h.click("登录")
+	params := h.waitRequest("account.login.browser.begin")
+	t.Logf("点了「登录」→ 服务端收到 account.login.browser.begin（%d 次），providerId=%v",
+		len(h.server.RequestsFor("account.login.browser.begin")), params["providerId"])
 	if params["providerId"] != "acme-account" {
 		t.Fatalf("登录参数不对：%v", params)
 	}
 }
 
-// TestIntentLogout 设置 · 账号 → 退出登录 → account.logout。
+// TestIntentLogout 设置 · 账户 → 退出登录 → account.logout。
 func TestIntentLogout(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
 	h.click("设置")
-	h.click("账号与套餐")
+	h.click("退出登录")
 	h.click("退出登录")
 	h.waitRequest("account.logout")
 	t.Logf("点了「退出登录」→ 服务端收到 account.logout（%d 次）",
 		len(h.server.RequestsFor("account.logout")))
-}
-
-// TestIntentSelectModel 设置 · 模型与供应商 → 选 provider → provider.select。
-func TestIntentSelectModel(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("模型与供应商")
-	h.click("切换到 Beta")
-	params := h.waitRequest("provider.select")
-	t.Logf("点了「供应商 · Beta」→ 服务端收到 provider.select（%d 次），providerId=%v modelId=%v",
-		len(h.server.RequestsFor("provider.select")), params["providerId"], params["modelId"])
-	if params["providerId"] != "beta" || params["modelId"] != "model-b" {
-		t.Fatalf("模型选择参数不对：%v", params)
-	}
-}
-
-// TestIntentChangeRule 设置 · 命令规则 → 改一条决定 → permission.set_rules。
-func TestIntentChangeRule(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("命令规则")
-	h.click("拒绝：go test ./...")
-	params := h.waitRequest("permission.set_rules")
-	t.Logf("点了「允许→拒绝」→ 服务端收到 permission.set_rules（%d 次），rules=%v",
-		len(h.server.RequestsFor("permission.set_rules")), params["commandRules"])
-	rules, _ := params["commandRules"].([]any)
-	if len(rules) == 0 {
-		t.Fatalf("规则写入为空：%v", params)
-	}
-	first, _ := rules[0].(map[string]any)
-	if first["decision"] != "deny" {
-		t.Fatalf("规则决定不对：%v", first)
-	}
-}
-
-// TestIntentClearRules 设置 · 命令规则 → 清空（两步）→ permission.set_rules。
-func TestIntentClearRules(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("命令规则")
-	h.click("清空命令规则")
-	h.click("确认清空")
-	params := h.waitRequest("permission.set_rules")
-	t.Logf("点了「清空命令规则 · 确认」→ 服务端收到 permission.set_rules（%d 次），expectedRevision=%v rules=%v",
-		len(h.server.RequestsFor("permission.set_rules")), params["expectedRevision"], params["commandRules"])
-	if params["expectedRevision"] != "rules-rev-1" {
-		t.Fatalf("规则写入版本不对：%v", params)
-	}
 }
 
 // TestIntentCreateBranch 标题行分支菜单 → 从当前分支切出 → session.branch_create。
@@ -938,20 +847,6 @@ func TestIntentStopExecTask(t *testing.T) {
 	}
 }
 
-// TestIntentCancelModalityTask 设置 · 运行时 → 取消运行中的模态任务。
-func TestIntentCancelModalityTask(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("运行时与模态")
-	h.click("取消模态任务：task-1")
-	params := h.waitRequest("modality.task.cancel")
-	t.Logf("点了「取消模态任务」→ 服务端收到 modality.task.cancel（%d 次），task_id=%v",
-		len(h.server.RequestsFor("modality.task.cancel")), params["task_id"])
-	if params["task_id"] != "task-1" {
-		t.Fatalf("取消任务参数不对：%v", params)
-	}
-}
-
 // TestIntentReconnect 断线后点「重新连接」恢复连接阶段。
 func TestIntentReconnect(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
@@ -965,147 +860,6 @@ func TestIntentReconnect(t *testing.T) {
 		return h.wire.Connection().Phase == "connected"
 	})
 	t.Logf("点了「重新连接」→ 连接阶段=%s", h.wire.Connection().Phase)
-}
-
-// TestIntentExtensionToggle 设置 · 扩展 → 插件开关 → plugin.disable。
-func TestIntentExtensionToggle(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("扩展")
-	h.click("插件")
-	h.click("启用：demo-plugin")
-	params := h.waitRequest("plugin.disable")
-	t.Logf("点了「插件 · 启用开关」→ 服务端收到 plugin.disable（%d 次），name=%v",
-		len(h.server.RequestsFor("plugin.disable")), params["name"])
-	if params["name"] != "demo-plugin" {
-		t.Fatalf("插件启停参数不对：%v", params)
-	}
-}
-
-// TestIntentMCPTest 设置 · 扩展 · MCP → 测试 → mcp.test。
-func TestIntentMCPTest(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("扩展")
-	h.click("MCP")
-	h.click("连接测试：mcp-one")
-	params := h.waitRequest("mcp.test")
-	t.Logf("点了「MCP · 测试」→ 服务端收到 mcp.test（%d 次），id=%v",
-		len(h.server.RequestsFor("mcp.test")), params["id"])
-	if params["id"] != "mcp-one" {
-		t.Fatalf("MCP 测试参数不对：%v", params)
-	}
-}
-
-// TestIntentMCPUninstall 设置 · 扩展 · MCP → 详情 → 卸载 → mcp.remove。
-func TestIntentMCPUninstall(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("扩展")
-	h.click("MCP")
-	h.click("详情：mcp-one")
-	h.waitFor("卸载扩展", 2*time.Second)
-	h.click("卸载扩展")
-	params := h.waitRequest("mcp.remove")
-	t.Logf("点了「MCP · 卸载」→ 服务端收到 mcp.remove（%d 次），id=%v",
-		len(h.server.RequestsFor("mcp.remove")), params["id"])
-	if params["id"] != "mcp-one" {
-		t.Fatalf("MCP 删除参数不对：%v", params)
-	}
-}
-
-// TestIntentScheduleToggle 设置 · 定时任务 → 开关 → schedule.set_enabled。
-func TestIntentScheduleToggle(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("定时任务")
-	h.click("启用任务：每晚检查")
-	params := h.waitRequest("schedule.set_enabled")
-	t.Logf("点了「定时任务 · 开关」→ 服务端收到 schedule.set_enabled（%d 次），job_id=%v enabled=%v",
-		len(h.server.RequestsFor("schedule.set_enabled")), params["job_id"], params["enabled"])
-	if params["job_id"] != "job-1" || params["enabled"] != false {
-		t.Fatalf("定时任务启停参数不对：%v", params)
-	}
-}
-
-// TestIntentScheduleDelete 设置 · 定时任务 → 删除 → 确认 → schedule.delete。
-func TestIntentScheduleDelete(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("定时任务")
-	h.click("删除任务：每晚检查")
-	h.waitFor("确认删除任务", 2*time.Second)
-	h.click("确认删除任务")
-	params := h.waitRequest("schedule.delete")
-	t.Logf("点了「定时任务 · 删除」→ 服务端收到 schedule.delete（%d 次），job_id=%v",
-		len(h.server.RequestsFor("schedule.delete")), params["job_id"])
-	if params["job_id"] != "job-1" {
-		t.Fatalf("定时任务删除参数不对：%v", params)
-	}
-}
-
-// TestIntentPluginUninstall 设置 · 扩展 · 插件 → 详情 → 卸载 → plugin.remove。
-func TestIntentPluginUninstall(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("扩展")
-	h.click("插件")
-	h.click("详情：demo-plugin")
-	h.waitFor("卸载扩展", 2*time.Second)
-	h.click("卸载扩展")
-	params := h.waitRequest("plugin.remove")
-	t.Logf("点了「插件 · 卸载」→ 服务端收到 plugin.remove（%d 次），id=%v",
-		len(h.server.RequestsFor("plugin.remove")), params["id"])
-	if params["id"] != "demo-plugin" {
-		t.Fatalf("插件卸载参数不对：%v", params)
-	}
-}
-
-// TestIntentMCPToggle 设置 · 扩展 · MCP → 开关 → mcp.set_enabled。
-func TestIntentMCPToggle(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("扩展")
-	h.click("MCP")
-	h.click("启用：mcp-one")
-	params := h.waitRequest("mcp.set_enabled")
-	t.Logf("点了「MCP · 启用开关」→ 服务端收到 mcp.set_enabled（%d 次），id=%v enabled=%v",
-		len(h.server.RequestsFor("mcp.set_enabled")), params["id"], params["enabled"])
-	if params["id"] != "mcp-one" || params["enabled"] != false {
-		t.Fatalf("MCP 启停参数不对：%v", params)
-	}
-}
-
-// TestIntentMCPImport 设置 · 扩展 · MCP → 导入来源：先预览再应用。
-func TestIntentMCPImport(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("扩展")
-	h.click("MCP")
-	h.click("从 Cursor 导入")
-	preview := h.waitRequest("mcp.import.preview")
-	apply := h.waitRequest("mcp.import.apply")
-	t.Logf("点了「从 Cursor 导入」→ mcp.import.preview（%d 次），from=%v",
-		len(h.server.RequestsFor("mcp.import.preview")), preview["from"])
-	t.Logf("  随后 mcp.import.apply（%d 次），from=%v expectedVersion=%v sourceRevision=%v",
-		len(h.server.RequestsFor("mcp.import.apply")), apply["from"],
-		apply["expectedVersion"], apply["expectedSourceRevision"])
-	if preview["from"] != "src-1" || apply["from"] != "src-1" ||
-		apply["expectedVersion"] != "rev-2" || apply["expectedSourceRevision"] != "src-rev-1" {
-		t.Fatalf("MCP 导入参数不对：preview=%v apply=%v", preview, apply)
-	}
-}
-
-// TestIntentHookToggle 设置 · 扩展 · 钩子 → 开关 → hooks.save。
-func TestIntentHookToggle(t *testing.T) {
-	h := newIntentHarness(t, baseScript("/work", false))
-	h.click("设置")
-	h.click("扩展")
-	h.click("钩子")
-	h.click("启用：保存时格式化")
-	h.waitRequest("hooks.save")
-	t.Logf("点了「钩子 · 开关」→ 服务端收到 hooks.save（%d 次）",
-		len(h.server.RequestsFor("hooks.save")))
 }
 
 // TestIntentShellRun 输入 `!命令` → 运行 → shell.run。

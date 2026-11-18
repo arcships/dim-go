@@ -64,7 +64,7 @@ func (a *App) round(c *gui.Context, i int) {
 			gui.Row(c).Children(func() {
 				gui.Spacer(c)
 				gui.Box(c).MaxWidth(userBubbleMaxWidth).
-					Padding(space2, space3).Radius(radius).
+					Padding(space2, space3).Radius(radiusCard).
 					Background(t.Surface).Children(func() {
 					typeBody.style(t, gui.Text(c, r.user)).Selectable()
 				})
@@ -78,7 +78,7 @@ func (a *App) round(c *gui.Context, i int) {
 			gui.Spacer(c)
 			// 气泡外观画在自绘 Box 上；文本只负责字号与可选。
 			gui.Box(c).MaxWidth(userBubbleMaxWidth).
-				Padding(space2, space3).Radius(radius).
+				Padding(space2, space3).Radius(radiusCard).
 				Background(t.Surface).Children(func() {
 				typeBody.style(t, gui.Text(c, r.user)).Selectable()
 			})
@@ -458,7 +458,7 @@ func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 						gui.Row(c).Children(func() {
 							gui.Spacer(c)
 							gui.Box(c).MaxWidth(userBubbleMaxWidth).Padding(space2, space3).
-								Radius(radius).Background(t.Surface).Children(func() {
+								Radius(radiusCard).Background(t.Surface).Children(func() {
 								typeBody.style(t, gui.Text(c, row.Text)).Selectable()
 							})
 						})

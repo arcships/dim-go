@@ -159,7 +159,7 @@ func TestUILintSeeds(t *testing.T) {
 	}
 
 	// 第十四类：声明了 confirm:true 却没有 confirmProbe（两步确认只剩声明）。
-	noConfirm := actionEntry{ID: "seed", Action: "权限档位", Form: "text", When: "settings-providers",
+	noConfirm := actionEntry{ID: "seed", Action: "允许一次", Form: "text", When: "waiting",
 		Confirm: true}
 	if got := lintConfirm(t, noConfirm); len(got) == 0 || got[0].check != "L5" {
 		t.Fatalf("缺 confirmProbe 的种子没有被 L5 报出：%v", got)
@@ -169,8 +169,8 @@ func TestUILintSeeds(t *testing.T) {
 
 	// 第十三类：把纯图标动作声明成 text（图标按钮的 label 骗过 Find 的那种）。
 	iconAsText := &actionDoc{Items: []actionEntry{{
-		ID: "seed", Action: "打开诊断日志", Form: "text", When: "settings-storage",
-		Probe: "打开诊断日志", Text: "打开诊断日志",
+		ID: "seed", Action: "停止运行", Form: "text", When: "running",
+		Probe: "停止", Text: "停止",
 	}}}
 	if got := lintHighConsequence(t, iconAsText); len(got) == 0 || got[0].check != "L5" {
 		t.Fatalf("图标声明成 text 的种子没有被 L5 报出：%v", got)
@@ -179,9 +179,10 @@ func TestUILintSeeds(t *testing.T) {
 	}
 
 	// 第十类：清单说"用开关"，实现换成图标（或清单写 icon 而实现是开关）。
+	// 种子的界面取运行中的发送槽（实现是纯图标，role 不是 switch）。
 	switched := &actionDoc{Items: []actionEntry{{
-		ID: "seed", Action: "停用插件", Form: "icon", When: "settings-ext",
-		Probe: "启用：GitHub", Tab: 1,
+		ID: "seed", Action: "停止运行", Form: "switch", When: "running",
+		Probe: "停止",
 	}}}
 	if got := lintHighConsequence(t, switched); len(got) == 0 || got[0].check != "L5" {
 		t.Fatalf("开关形式种子没有被 L5 报出：%v", got)
@@ -1214,19 +1215,19 @@ func lintNoOverflow(t *testing.T) []lintFinding {
 		{"主界面·默认", func() *App { return NewApp(Options{State: StateDefault}) }},
 		{"主界面·运行中", func() *App { return NewApp(Options{State: StateRunning}) }},
 		{"主界面·等待同意", func() *App { return NewApp(Options{State: StateWaiting}) }},
-		{"设置·外观", func() *App {
+		{"设置·账户", func() *App {
 			a := NewApp(Options{State: StateDefault})
-			a.screen, a.settingsSection = ScreenSettings, 0
+			a.screen, a.settingsSection = ScreenSettings, secAccount
 			return a
 		}},
-		{"设置·供应商", func() *App {
+		{"设置·用量", func() *App {
 			a := NewApp(Options{State: StateDefault})
-			a.screen, a.settingsSection = ScreenSettings, 1
+			a.screen, a.settingsSection = ScreenSettings, secUsage
 			return a
 		}},
-		{"设置·命令规则", func() *App {
+		{"设置·个性化", func() *App {
 			a := NewApp(Options{State: StateDefault})
-			a.screen, a.settingsSection = ScreenSettings, 2
+			a.screen, a.settingsSection = ScreenSettings, secPersonalization
 			return a
 		}},
 	}
@@ -1310,6 +1311,10 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 		app = NewApp(Options{State: StateRunning})
 	case "settings":
 		app.screen, app.settingsSection = ScreenSettings, secAccount
+	case "settings-appearance":
+		app.screen, app.settingsSection = ScreenSettings, secAppearance
+	case "settings-keybindings":
+		app.screen, app.settingsSection = ScreenSettings, secKeybindings
 	case "shell":
 		app.draft = "!go test ./..."
 	case "session-menu":
@@ -1479,7 +1484,8 @@ type actionEntry struct {
 	Confirm     bool   `json:"confirm"`
 	Basis       string `json:"basis"`
 	// When 是它出现的界面（waiting / running / tasks / branch / branch-end /
-	// term / term-running / settings / settings-rules / settings-ext / default）。
+	// term / term-running / settings / settings-appearance / settings-keybindings /
+	// default）；取值必须能被 testerForWhen 造出来。
 	When string `json:"when"`
 	// Probe 是它在那个界面里的可访问名（缺省用 Action）；Text 是屏幕上的可见
 	// 文字（缺省用 Action）——两步确认类的动作两者不同（「结束分支」→「确认结束分支？」）。

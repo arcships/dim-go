@@ -1,7 +1,7 @@
 {
   "version": 1,
   "owner": "U3",
-  "updated": "2026-11-13",
+  "updated": "2026-11-18",
   "basis": "docs/domains/U3-interaction.md §4/§5/§6；docs/domains/U1-content.md 的判定规则；§9.0 形式的选择",
   "forms": {
     "icon": "纯图标 + tooltip（名称 · 快捷键）",
@@ -105,20 +105,6 @@
       "confirm_when": "branch-end"
     },
     {
-      "id": "AC-09",
-      "action": "修改权限档位",
-      "consequence": "高影响：改变后续所有操作的授权范围",
-      "scope": "当前会话",
-      "form": "text",
-      "confirm": true,
-      "basis": "U1 A8、Q8；U3 T23（改变后续所有操作范围 → 两步确认）",
-      "when": "settings-providers",
-      "probe": "权限档位选择",
-      "text": "工作区内自动",
-      "confirm_probe": "确认切换权限档位",
-      "confirm_when": "providers-confirm"
-    },
-    {
       "id": "AC-10",
       "action": "取消任务",
       "consequence": "可逆：任务可以再跑一次，已产生的输出保留",
@@ -151,67 +137,6 @@
       "when": "branch",
       "probe": "从当前分支切出",
       "in_menu": true
-    },
-    {
-      "id": "AC-13",
-      "action": "清空命令规则",
-      "consequence": "不可逆：删除用户级命令规则，对所有会话立即生效",
-      "scope": "所有会话",
-      "form": "icon+text",
-      "confirm": true,
-      "basis": "U1 T1、T29；U3 设置分节（后续批次接 permission.set_rules）",
-      "when": "settings-rules",
-      "probe": "清空命令规则",
-      "confirm_probe": "确认清空",
-      "confirm_when": "rules-confirm"
-    },
-    {
-      "id": "AC-14",
-      "action": "停用插件",
-      "consequence": "可逆：随时可再启用；已产生的输出保留",
-      "scope": "本机全部会话",
-      "form": "switch",
-      "confirm": false,
-      "basis": "U1 T6、S46；U3 T16",
-      "when": "settings-ext",
-      "probe": "启用：GitHub",
-      "tab": 1
-    },
-    {
-      "id": "AC-15",
-      "action": "停用技能",
-      "consequence": "可逆：随时可再启用",
-      "scope": "本机全部会话",
-      "form": "switch",
-      "confirm": false,
-      "basis": "U1 S43–S46；U3 T16",
-      "when": "settings-ext",
-      "probe": "启用：代码评审",
-      "tab": 0
-    },
-    {
-      "id": "AC-16",
-      "action": "停用 MCP",
-      "consequence": "可逆：停用后该服务器的工具不再出现；配置保留",
-      "scope": "本机全部会话",
-      "form": "switch",
-      "confirm": false,
-      "basis": "U1 T8；U3 T16",
-      "when": "settings-ext",
-      "probe": "启用：filesystem",
-      "tab": 2
-    },
-    {
-      "id": "AC-17",
-      "action": "停用钩子",
-      "consequence": "可逆：钩子不再触发，配置保留",
-      "scope": "本机全部会话",
-      "form": "switch",
-      "confirm": false,
-      "basis": "U1 T7；U3 T16",
-      "when": "settings-ext",
-      "probe": "启用：提交前检查",
-      "tab": 3
     },
     {
       "id": "AC-18",
@@ -297,66 +222,6 @@
       "confirm_when": "session-delete"
     },
     {
-      "id": "AC-25",
-      "action": "启停定时任务",
-      "consequence": "可逆：随时可再启用；历史保留",
-      "scope": "一条定时任务",
-      "form": "switch",
-      "confirm": false,
-      "basis": "U1 S49–S51；U3 T19",
-      "when": "settings-cron",
-      "probe": "启用任务：每晚依赖检查"
-    },
-    {
-      "id": "AC-26",
-      "action": "删除定时任务",
-      "consequence": "不可逆：任务与历史一起删除",
-      "scope": "一条定时任务",
-      "form": "icon+text",
-      "confirm": true,
-      "basis": "U1 S54；U3 T19（行内两步）",
-      "when": "settings-cron-delete",
-      "probe": "确认删除任务",
-      "text": "删除",
-      "confirm_probe": "确认删除任务",
-      "confirm_when": "settings-cron-delete"
-    },
-    {
-      "id": "AC-27",
-      "action": "提交模态任务",
-      "consequence": "可回退：提交后可在运行时里取消；样例一次最多 1 个",
-      "scope": "当前会话",
-      "form": "icon+text",
-      "confirm": false,
-      "basis": "U1 T16/T17；U3 T19",
-      "when": "settings-runtime-submit",
-      "probe": "提交模态任务",
-      "text": "提交任务"
-    },
-    {
-      "id": "AC-28",
-      "action": "导出诊断",
-      "consequence": "无副作用（写出一份诊断包）",
-      "scope": "本机",
-      "form": "text",
-      "confirm": false,
-      "basis": "U1 T26；U3 T20",
-      "when": "settings-storage",
-      "probe": "导出诊断",
-      "text": "导出诊断"
-    },
-    {
-      "id": "AC-29",
-      "action": "打开诊断日志",
-      "consequence": "只读：打开日志位置，不改任何东西",
-      "scope": "本机",
-      "form": "icon",
-      "confirm": false,
-      "basis": "U1 T26；U3 T20",
-      "when": "settings-storage",
-      "probe": "打开诊断日志"
-    },
-    {
       "id": "AC-30",
       "action": "运行命令",
       "consequence": "可逆：命令可以再跑一次；结果进终端输出",
@@ -377,56 +242,6 @@
       "basis": "U1 S25；U3 T21",
       "when": "shell",
       "probe": "退出命令模式"
-    },
-    {
-      "id": "AC-32",
-      "action": "卸载扩展",
-      "consequence": "不可逆：扩展从本机移除，已产生的输出保留",
-      "scope": "本机全部会话",
-      "form": "icon+text",
-      "confirm": true,
-      "basis": "U1 S47；U3 T22（详情页两步）",
-      "when": "ext-detail",
-      "probe": "卸载扩展",
-      "text": "卸载",
-      "confirm_probe": "确认卸载",
-      "confirm_when": "ext-detail-confirm"
-    },
-    {
-      "id": "AC-33",
-      "action": "批量启停",
-      "consequence": "可逆：再选一次即可改回；影响面是多行，但每行都能立刻撤回",
-      "scope": "选中的若干行",
-      "form": "text",
-      "confirm": false,
-      "basis": "U1 S48；U3 T22（不确认的理由：可逆 + 选择本身是显式的）",
-      "when": "ext-select",
-      "probe": "批量停用",
-      "text": "停用"
-    },
-    {
-      "id": "AC-34",
-      "action": "导入 MCP 配置",
-      "consequence": "可逆：导入后可再改或移除",
-      "scope": "一条 MCP 服务器",
-      "form": "text",
-      "confirm": false,
-      "basis": "U1 T10；U3 T22",
-      "when": "mcp",
-      "probe": "导入配置：filesystem",
-      "text": "导入"
-    },
-    {
-      "id": "AC-35",
-      "action": "连接测试",
-      "consequence": "无副作用（只读探测）",
-      "scope": "一条 MCP 服务器",
-      "form": "text",
-      "confirm": false,
-      "basis": "U1 T12；U3 T22",
-      "when": "mcp",
-      "probe": "连接测试：filesystem",
-      "text": "测试"
     }
   ],
   "undecided": [
