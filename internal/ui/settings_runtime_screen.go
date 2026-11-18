@@ -153,7 +153,8 @@ const (
 	rtCopyTitle            = "运行环境"
 	rtCopyDesc             = "由 App Server RuntimeManager 管理；Desktop 不下载、不保留第二份运行时。"
 	rtCopyRefresh          = "刷新"
-	rtCopyError            = "The App Server does not advertise runtime.list; update the bundled runtime."
+	// 能力缺失的提示：中文说明在前，英文原文原样保留。
+	rtCopyError            = "服务端未提供该能力：The App Server does not advertise runtime.list; update the bundled runtime."
 	rtCopyRetry            = "重试"
 	rtCopyFeatures         = "功能组件"
 	rtCopyOfficeCLI        = "OfficeCLI"

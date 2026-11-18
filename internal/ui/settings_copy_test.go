@@ -59,6 +59,10 @@ func TestSettingsCopyMatchesReference(t *testing.T) {
 	if tt.HasText("2026 年 12 月 13 日") {
 		t.Fatal("日期里多了空格")
 	}
+	// S1：「·」前按参考留两个空格。
+	if !tt.HasText("到期 2026年12月13日  · 还剩 26 天") {
+		t.Fatal("到期行不是「到期 2026年12月13日␣␣· 还剩 26 天」")
+	}
 
 	// S8：所有者任务没有状态筛选。
 	tt = render(secModality)

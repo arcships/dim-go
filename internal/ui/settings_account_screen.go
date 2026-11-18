@@ -835,7 +835,8 @@ func accountBrandMark(c *gui.Context, expired bool) {
 	})
 }
 
-// accRenewalText 是「到期 2026年12月13日 · 还剩 26 天」/「已于 … 到期」（S-account-41）。
+// accRenewalText 是「到期 2026年12月13日  · 还剩 26 天」/「已于 … 到期」（S-account-41）。
+// 日期与「·」之间按参考留两个空格。
 func accRenewalText(d accountScreenData) string {
 	if d.RenewalAt.IsZero() {
 		return ""
@@ -847,7 +848,7 @@ func accRenewalText(d accountScreenData) string {
 	case d.RenewalDays == 0:
 		return "到期 " + date + " · 今天结束"
 	}
-	return fmt.Sprintf("到期 %s · 还剩 %d 天", date, d.RenewalDays)
+	return fmt.Sprintf("到期 %s  · 还剩 %d 天", date, d.RenewalDays)
 }
 
 // accountResetSection 是 C.4 重置段：一颗「额度用量」选中芯片 + 每种重置类型一颗胶囊。

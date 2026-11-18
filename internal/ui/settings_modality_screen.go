@@ -546,8 +546,9 @@ var mdIconAlertCircle = mustSVG(`<path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 
 // 本屏文案：逐字取参考产品的 zh-CN（i18n:modalitySettings.*、
 // i18n:modalityTask.*、i18n:modalityRealtime.*）。
 const (
-	mdCopyTitle       = "多模态"
-	mdCopyUnavailable = "The App Server does not expose modality.capabilities."
+	mdCopyTitle = "多模态"
+	// 能力缺失的提示：中文说明在前，服务端/参考产品的英文原文原样保留。
+	mdCopyUnavailable = "服务端未提供该能力：The App Server does not expose modality.capabilities."
 
 	mdCopyGroupImage    = "图像"
 	mdCopyGroupVideo    = "视频"

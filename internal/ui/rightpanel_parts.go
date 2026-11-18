@@ -11,7 +11,8 @@ import (
 // （docs/domains/requirements/inventory-panels.md 区 A：RP-A-01…37）。
 //
 // 组成：拖拽手柄 → 已打开的标签页（图标 + 文案 + 悬停 ×/按住 ⌘ 的 ⌘n 徽标）
-// → ＋新建标签页（六类，按可用性出现）→ 展开面板 / 恢复面板宽度。
+// → ＋新建标签页（六类，按可用性出现）→ 展开面板 / 恢复面板宽度（只在 Review 页，
+// 展开态时留着以便恢复）。
 // 标签页可关、可右键（在右侧新建 / 重新加载 / 关闭 / 关闭其他 / 关闭右侧）。
 
 // 参考产品右栏的类型（RP-A-08…21）。0–6 沿用既有实现的下标（文件 / 改动 /
@@ -332,8 +333,17 @@ func (a *App) rpTabBar(c *gui.Context) {
 			})
 		})
 		a.rpNewTabButton(c)
-		a.rpExpandButton(c)
+		if a.rpShowsExpand() {
+			a.rpExpandButton(c)
+		}
 	})
+}
+
+// rpShowsExpand 是「展开面板 / 恢复面板宽度」的出现条件：参考只在 Review 页
+// 有这颗按钮，文件页顶栏只有 ＋。已展开时任何页都留着它——否则切到别的页就
+// 收不回并排（恢复入口不能丢）。
+func (a *App) rpShowsExpand() bool {
+	return a.rightTab == tabChanges || a.rp().expanded
 }
 
 // rpBackButton 是标签条左端的「返回」（RP-A-02）：从文件预览回到文件页。

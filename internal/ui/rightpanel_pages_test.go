@@ -18,13 +18,17 @@ func rightTester(t *testing.T, tab int) (*App, *gui.Tester) {
 	return app, gui.NewTester(app.View, WindowWidth, WindowHeight)
 }
 
-// 标签条：文件标签、＋新建、展开面板；右键五项；⌘ 徽标按标签数出现。
+// 标签条：文件标签、＋新建；展开面板只在 Review 页；右键五项；⌘ 徽标按标签数出现。
 func TestRightPanelTabBar(t *testing.T) {
 	app, tt := rightTester(t, tabFiles)
-	for _, label := range []string{"文件", "新建标签页", "展开面板"} {
+	for _, label := range []string{"文件", "新建标签页"} {
 		if _, ok := tt.Access(label); !ok {
 			t.Fatalf("标签条缺少 %q", label)
 		}
+	}
+	// 参考的文件页顶栏只有 ＋：展开面板不出现在文件页。
+	if _, ok := tt.Access("展开面板"); ok {
+		t.Fatal("文件页顶栏不该有展开面板")
 	}
 	// 标签右键：五项（清单 RP-A-31…35）。菜单画在窗口里，按文案判在场。
 	if err := tt.RightClick("文件"); err != nil {
@@ -54,6 +58,9 @@ func TestRightPanelTabBar(t *testing.T) {
 	tt.Frame()
 	if app.rightTab != tabChanges {
 		t.Fatalf("打开 Review 后当前页 = %d，想要 %d", app.rightTab, tabChanges)
+	}
+	if _, ok := tt.Access("展开面板"); !ok {
+		t.Fatal("Review 页顶栏缺少展开面板")
 	}
 	if _, ok := tt.Find("未提交改动"); !ok {
 		t.Fatal("改动页没有范围栏")
@@ -318,9 +325,9 @@ func TestRightPanelTabClose(t *testing.T) {
 	}
 }
 
-// 标签条：展开面板占满主区，恢复后回到并排；拖拽手柄改宽度。
+// 标签条：展开面板（Review 页）占满主区，恢复后回到并排；拖拽手柄改宽度。
 func TestRightPanelExpandAndResize(t *testing.T) {
-	app, tt := rightTester(t, tabFiles)
+	app, tt := rightTester(t, tabChanges)
 	before, ok := tt.Find("右栏")
 	if !ok {
 		t.Fatal("找不到右栏")
