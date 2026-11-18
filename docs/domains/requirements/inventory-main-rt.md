@@ -436,7 +436,7 @@ E/N/R 三态没有会话，时间线容器被 `NewThread`（空态）占位；A/
 | TL-12 | （无文案） | 助手区容器 | — | 轮 ∧ （有内容块 ∨ 有终端信息） | A/P/D/T | A 385,142 617×21 | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:15`–`:18` |
 | TL-13 | （无文案） | 轮脚容器 | — | 轮（运行中时整体 inert） | A/P/D/T | A ≈385,470 617×40 | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:48`–`:54` |
 | TL-14 | （本轮产物块） | 组件 | — | 轮 ∧ 非演示模式 ∧ 非只读 ∧ 有 runId ∧ 是最新一轮 | —（需数据） | — | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:56`–`:65`（元素见 `inventory-panels.md` G） |
-| TL-15 | （本轮改动块） | 组件 | — | 轮 ∧ 非演示模式 ∧ 非只读 ∧ 办公模式外 ∧ 有 runId ∧ 有用户消息 ∧ 是最新一轮 | —（需数据） | — | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:67`–`:77`（元素见 `inventory-panels.md` F） |
+| TL-15 | （本轮改动块） | 组件 | — | 轮 ∧ 非演示模式 ∧ 非只读 ∧ 办公模式外 ∧ 有 runId ∧ 有用户消息 ∧ 是最新一轮 | Z2/Z3 | Z2 429,452 620×28（折叠 `1 个文件改动`）；Z3 ≈410,440 620×90（展开） | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:67`–`:77`（元素见 `inventory-panels.md` F） |
 | TL-16 | （无文案） | 分隔行 | — | 行类型 = 显示 ∧ 窗口截断 | —（需数据） | — | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:110`–`:113` |
 | TL-17 | （压缩分隔线） | 分隔行 | — | 行类型 = 显示 ∧ 压缩；或角色 = divider | C27 | C27 509,348 84×21 | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:115`–`:119` |
 | TL-18 | `{系统通知文本}` | 文本块 | — | 消息 ∧ 系统通知消息 | —（需数据） | — | `<ref>/components/chat-workspace/timeline/TimelineRow.vue:135`–`:144` |

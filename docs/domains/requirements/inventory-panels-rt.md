@@ -224,18 +224,18 @@ R = 左栏收起 + **空会话**（「开始构建」）+ 右栏打开，唯一�
 
 | 元素 ID | 名称（文案原文） | 控件 | 图标 | 截断 | 默认 | 条件（分支 ∧ 祖先） | 定位 | 右栏态（R） |
 |---|---|---|---|---|---|---|---|---|
-| D-80 | （无文案） | 容器（块根） | — | — | 显示 | `rows.length>0 ∧ summaryCount>0 ∧ uiMode.visibility.fileChanges ∧ [时间线·最新轮]` | `<ref>/components/chat-workspace/timeline/TimelineFileChangesView.vue:51` | —（条件） |
-| D-81 | （折叠头：箭头 + 「{count} 个文件改动」） | 按钮（整行可点） | — | — | 显示 | D-80 | `TimelineFileChangesView.vue:54`–`:63` | —（条件） |
-| D-82 | （无文案） | 图标：已展开 | ChevronDown | — | 隐藏 | `expanded` ∧ D-81 | `TimelineFileChangesView.vue:61` | —（条件） |
-| D-83 | （无文案） | 图标：已收起 | ChevronRight | — | 显示 | `¬expanded` ∧ D-81 | `TimelineFileChangesView.vue:61` | —（条件） |
-| D-84 | {count} 个文件改动 | 折叠头文本 | — | truncate | 显示 | `¬isUndone` ∧ D-81 | `TimelineFileChangesView.vue:62`、`:15` | —（条件） |
+| D-80 | （无文案） | 容器（块根） | — | — | 显示 | `rows.length>0 ∧ summaryCount>0 ∧ uiMode.visibility.fileChanges ∧ [时间线·最新轮]` | `<ref>/components/chat-workspace/timeline/TimelineFileChangesView.vue:51` | 可见 Z2（折叠态，随行；由折叠头 429,452 反推）与 Z3（展开态 ≈410,440 620×90） |
+| D-81 | （折叠头：箭头 + 「{count} 个文件改动」） | 按钮（整行可点） | — | — | 显示 | D-80 | `TimelineFileChangesView.vue:54`–`:63` | 可见 Z2 429,452（收起，箭头朝右）；Z3 同位置（已展开，箭头朝下） |
+| D-82 | （无文案） | 图标：已展开 | ChevronDown | — | 隐藏 | `expanded` ∧ D-81 | `TimelineFileChangesView.vue:61` | 可见（仅视觉）Z3（PNG：折叠头箭头朝下） |
+| D-83 | （无文案） | 图标：已收起 | ChevronRight | — | 显示 | `¬expanded` ∧ D-81 | `TimelineFileChangesView.vue:61` | 可见（仅视觉）Z2（PNG：箭头朝右） |
+| D-84 | {count} 个文件改动 | 折叠头文本 | — | truncate | 显示 | `¬isUndone` ∧ D-81 | `TimelineFileChangesView.vue:62`、`:15` | 可见 Z2/Z3（`1 个文件改动`） |
 | D-85 | {count} 个文件改动（已撤销） | 折叠头文本（灰化） | — | truncate | 隐藏 | `isUndone` ∧ D-81 | `TimelineFileChangesView.vue:15`、`:57` | —（条件） |
 | D-86 | 撤销 | 链接按钮（读取预览中旋转） | Loader2 / RotateCcw | — | 显示 | `showUndo`（`¬isRunning ∧ ¬isUndone ∧ ¬appServerRead ∧ previewStatus≠'unavailable'`） | `TimelineFileChangesView.vue:65`–`:77`、`TimelineFileChanges.vue:74`–`:79` | —（条件） |
 | D-87 | 重新应用 | 链接按钮（执行中追加旋转圈） | Redo2、Loader2 | — | 隐藏 | `showReapply`（`isUndone ∧ paths>0 ∧ ¬isRunning ∧ ¬appServerRead`） | `TimelineFileChangesView.vue:79`–`:91`、`TimelineFileChanges.vue:81`–`:86` | —（条件） |
-| D-88 | （无文案） | 容器（展开态列表，圆角描边） | — | — | 隐藏 | `expanded` ∧ D-80 | `TimelineFileChangesView.vue:95`–`:100` | —（条件） |
-| D-89 | （改动文件行：状态字母 + 路径 + 统计） | 行按钮（`v-for` rows，带右键菜单） | — | — | 显示 | D-88 | `TimelineFileChangesView.vue:103`–`:120` | —（条件） |
-| D-90 | M / A / D / ? | 状态字母（等宽，按类型着色） | — | — | 显示 | D-89；无 `statusKind` 时为 `?` | `TimelineFileChangesView.vue:111`–`:115`、`:20`–`:24` | —（条件） |
-| D-91 | （文件路径） | 行内文本（`title` = 完整路径） | — | truncate + title | 显示 | D-89 | `TimelineFileChangesView.vue:116`–`:118` | —（条件） |
+| D-88 | （无文案） | 容器（展开态列表，圆角描边） | — | — | 隐藏 | `expanded` ∧ D-80 | `TimelineFileChangesView.vue:95`–`:100` | 可见 Z3 ≈410,470 620×42 |
+| D-89 | （改动文件行：状态字母 + 路径 + 统计） | 行按钮（`v-for` rows，带右键菜单） | — | — | 显示 | D-88 | `TimelineFileChangesView.vue:103`–`:120` | 可见 Z3 ≈410,470 620×34（`rt-approval-demo.txt`） |
+| D-90 | M / A / D / ? | 状态字母（等宽，按类型着色） | — | — | 显示 | D-89；无 `statusKind` 时为 `?` | `TimelineFileChangesView.vue:111`–`:115`、`:20`–`:24` | 可见（仅视觉）Z3：本机无 `statusKind`（工作区非 git 仓库），渲染为 `?` 蓝色字 |
+| D-91 | （文件路径） | 行内文本（`title` = 完整路径） | — | truncate + title | 显示 | D-89 | `TimelineFileChangesView.vue:116`–`:118` | 可见 Z3（`rt-approval-demo.txt`） |
 | D-92 | +{insertions}/-{deletions} | 行内统计（等宽；reportedOnly 时为空串；无增删行数时为 binary） | — | — | 显示 | D-89 | `TimelineFileChangesView.vue:119`、`:32`–`:47` | —（条件） |
 | D-93 | 用默认应用打开 | 右键菜单项 | ExternalLink | — | 隐藏 | `localActionsAvailable`（宿主恒传 true）∧ 右键菜单展开 | `TimelineFileChangesView.vue:123`–`:129` | —（条件） |
 | D-94 | 在文件管理器中显示 | 右键菜单项 | FolderOpen | — | 隐藏 | 同 D-93 | `TimelineFileChangesView.vue:130`–`:136` | —（条件） |
@@ -311,8 +311,8 @@ R = 左栏收起 + **空会话**（「开始构建」）+ 右栏打开，唯一�
 
 | 元素 ID | 名称（文案原文） | 控件 | 图标 | 截断 | 默认 | 条件（分支 ∧ 祖先） | 定位 | 右栏态（R） |
 |---|---|---|---|---|---|---|---|---|
-| T-08 | 终端 | 画布容器（`role=application`，`aria-label`=终端，深底 #1a1a1a） | — | — | 显示 | `[终端]` | `TerminalDrawer.vue:782`–`:788` | —（条件） |
-| T-09 | （无文案） | 画布层（每标签一层，非激活 `invisible`） | — | — | 显示 | `[终端]` ∧ 至少 1 个终端标签 | `TerminalDrawer.vue:867`–`:879` | —（条件） |
+| T-08 | 终端 | 画布容器（`role=application`，`aria-label`=终端，深底 #1a1a1a） | — | — | 显示 | `[终端]` | `TerminalDrawer.vue:782`–`:788` | 可见 Y1/Y2（右栏终端页签；DOM 只剩 `textarea.xterm-helper-textarea`，画布内容见 PNG） |
+| T-09 | （无文案） | 画布层（每标签一层，非激活 `invisible`） | — | — | 显示 | `[终端]` ∧ 至少 1 个终端标签 | `TerminalDrawer.vue:867`–`:879` | 可见（仅视觉）Y1/Y2：单标签时该层占满内容区，Y2 内含命令行与 `terminal-ok` 回显；多标签的非激活 `invisible` 分支未采 |
 | T-10 | ［进程已关闭］ | 提示行（占满内容区） | — | — | 隐藏 | `terminalTabs.length===0 ∧ terminalNotice`（主动关闭进程） | `TerminalDrawer.vue:880`–`:885`、`:640`；`t('terminal.processClosed')` | —（条件） |
 | T-11 | ［进程已退出，代码 {code}］ | 提示行 | — | — | 隐藏 | 同上（进程退出） | `TerminalDrawer.vue:302`–`:308`；`t('terminal.processExited')` | —（条件） |
 | T-12 | ［无法打开终端：需要 cwd］ | 提示行 | — | — | 隐藏 | 同上（缺工作目录） | `TerminalDrawer.vue:525`、`:577`；`t('terminal.cwdRequired')` | —（条件） |
@@ -323,15 +323,17 @@ R = 左栏收起 + **空会话**（「开始构建」）+ 右栏打开，唯一�
 
 | 元素 ID | 名称（文案原文） | 控件 | 图标 | 截断 | 默认 | 条件（分支 ∧ 祖先） | 定位 | 右栏态（R） |
 |---|---|---|---|---|---|---|---|---|
-| T-15 | 复制选中内容 | 右键菜单项（无选中时禁用） | Copy | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:890`–`:897` | —（条件） |
-| T-16 | 粘贴 | 右键菜单项（不可粘贴时禁用） | ClipboardPaste | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:898`–`:905` | —（条件） |
+| T-15 | 复制选中内容 | 右键菜单项（无选中时禁用） | Copy | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:890`–`:897` | 可见 Y3 856,262 74×18（未选中文本，项为禁用态） |
+| T-16 | 粘贴 | 右键菜单项（不可粘贴时禁用） | ClipboardPaste | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:898`–`:905` | 可见 Y3 856,290 25×18 |
 | T-17 | （无文案） | 分隔线 | — | — | 隐藏 | 菜单展开 | `TerminalDrawer.vue:906` | —（条件） |
-| T-18 | 清屏 | 右键菜单项 | Eraser | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:907`–`:913` | —（条件） |
-| T-19 | 新建终端 | 右键菜单项（无 cwd 时禁用） | Plus | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:914`–`:921` | —（条件） |
+| T-18 | 清屏 | 右键菜单项 | Eraser | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:907`–`:913` | 可见 Y3 856,326 25×18 |
+| T-19 | 新建终端 | 右键菜单项（无 cwd 时禁用） | Plus | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:914`–`:921` | 可见 Y3 856,354 49×18（有 cwd，可用） |
 | T-20 | （无文案） | 分隔线 | — | — | 隐藏 | 菜单展开 | `TerminalDrawer.vue:922` | —（条件） |
-| T-21 | 关闭进程 | 右键菜单项（危险色；无活跃终端时禁用） | Square | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:923`–`:931` | —（条件） |
+| T-21 | 关闭进程 | 右键菜单项（危险色；无活跃终端时禁用） | Square | — | 隐藏 | 菜单展开 ∧ `[终端]` | `TerminalDrawer.vue:923`–`:931` | 可见 Y3 856,390 49×18（危险色）；Y5b 为其效果：点后整个终端页签关闭 |
 
-元素数：21　可见：0　未出现（条件）：21（其中 7 项为布局性不可达）　死代码：0
+元素数：21　可见：9（T-08、T-09、T-15、T-16、T-18、T-19、T-21 + T-10/T-11 的否定证据）　未出现（条件）：12（其中 7 项为布局性不可达）　死代码：0
+
+补充证据：`Y4-terminal-last-closed` 关闭最后一个终端页签、`Y5b-terminal-process-closed` 通过右键「关闭进程」结束进程——两次都直接把终端页签关掉并切回上一页签，**没有**渲染 `T-10`（［进程已关闭］）这一行；因此 T-10/T-11 在本产品的右栏终端形态下判为「条件不可达（页签随进程一起关闭）」，而不是缺采。
 
 ## 5. 面板五：任务（后台进程 / 唤醒）
 
