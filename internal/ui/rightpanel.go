@@ -87,7 +87,7 @@ func (a *App) rightPanel(c *gui.Context, width float32) {
 		Label("右栏").Role(gui.RoleGroup).Children(func() {
 		a.rpHandle(c)
 		gui.Column(c).Grow(1).FillHeight().Children(func() {
-			a.rpTabBar(c, width)
+			a.rpTabBar(c)
 			// 块之间的分隔用框架 Divider：方向随容器，颜色取 border（U2 校准 C8）。
 			gui.Divider(c)
 			a.rightPanelBody(c)

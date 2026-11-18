@@ -73,8 +73,6 @@ const (
 	panelMenuWidth = 168
 	// panelMenuNoteWidth 是浮层里两段文案的宽（168 − 内边距 − 图标）。
 	panelMenuNoteWidth = 120
-	// panelDiffLineHeight 是行内 diff 一行的高（代码行高 20）。
-	panelDiffLineHeight = 20
 	// panelDiffPadH 是行内 diff 的左右内边距。
 	panelDiffPadH = space2
 	// panelSkeletonHeight 是骨架条的高（清单 F-03：32）。
@@ -85,14 +83,6 @@ const (
 	panelBadgeSize = 12
 	// panelStatWidth 是行尾 +n/−n 两列的定宽（右对齐成列）。
 	panelStatWidth = 24
-	// panelCloseZone 是标签页右端的关闭区宽（× 的命中盒）。
-	panelCloseZone = addSpace
-)
-
-// addSpace / flushSpace 是拼尺寸用的常量（避免在排布里写表达式）。
-const (
-	addSpace   = 16
-	flushSpace = 2 * space2
 )
 
 // rightPanelState 是右栏可丢的界面状态：开着的标签、筛选词、展开的目录、
@@ -128,7 +118,14 @@ type rightPanelState struct {
 	searchFailed     bool
 	searchPartial    bool
 	permissionDenied bool
-	rootPartial      bool
+	// loading 是首次读取文件树（F-03 的骨架）；rootFailed / rootPartial 是根级
+	// 读取失败与还有未加载项（F-13 / F-45）。
+	loading     bool
+	rootFailed  bool
+	rootPartial bool
+	// lastRunUnavailable / gitFailed 是改动页的两类读取失败（D-20 / D-22）。
+	lastRunUnavailable bool
+	gitFailed          bool
 	// groupsClosed 是改动分组的收起态（默认展开）；键 "staged" / "unstaged"。
 	groupsClosed map[string]bool
 
@@ -140,7 +137,6 @@ type rightPanelState struct {
 	rowMenu      map[string]*bool
 	scopeOpen    bool
 	gitOpen      bool
-	branchOpen   bool
 
 	// revertPath 非空时「还原未暂存改动」的确认框在场。
 	revertPath string
@@ -265,7 +261,10 @@ func (a *App) rpCloseRight(tab int) {
 		return
 	}
 	s.tabs = s.tabs[:index+1]
-	a.rightTab = tab
+	// 当前页在被关掉的那一段里时才切到 tab；否则停在原页。
+	if !rpHasTab(s.tabs, a.rightTab) {
+		a.rightTab = tab
+	}
 }
 
 // rpWidth 是右栏实际占的宽度：展开态占满主区，否则取拖出来的宽度（默认
@@ -311,7 +310,7 @@ func (a *App) rpHandle(c *gui.Context) {
 }
 
 // rpTabBar 是标签条：标签页（可横向滚动）+ ＋新建标签页 + 展开面板。
-func (a *App) rpTabBar(c *gui.Context, width float32) {
+func (a *App) rpTabBar(c *gui.Context) {
 	s := a.rp()
 	a.rpTabKeys(c)
 	gui.Row(c).Height(HeaderHeight).Shrink(0).Padding(space1, space3).
@@ -326,7 +325,6 @@ func (a *App) rpTabBar(c *gui.Context, width float32) {
 		a.rpNewTabButton(c)
 		a.rpExpandButton(c)
 	})
-	_ = width
 }
 
 // rpTabKeys 是 ⌘1…⌘9 切页（RP-A-22）：标签多于 1 个时才生效。
@@ -465,6 +463,10 @@ func rpNewTabItems() []rpNewTabItem {
 func (a *App) rpNewTabButton(c *gui.Context) {
 	t := c.Theme()
 	s := a.rp()
+	if !s.newMenu {
+		// 菜单关着时清掉「在右侧新建」的位置，下一次从 ＋ 打开按末尾插入。
+		s.pendingAfter = -1
+	}
 	m := gui.MenuBase(c, &s.newMenu)
 	tr := m.Trigger.Width(panelBarAction).Height(panelBarAction).Radius(radiusSmall).
 		Center().Label("新建标签页").Tooltip("新建标签页").Cursor(gui.CursorPointer)
@@ -742,7 +744,6 @@ var (
 	iconCircleCheck = mustSVG(`<circle cx="12" cy="12" r="8.25"/><path d="m8.25 12.375 2.625 2.625 5.25-5.25"/>`)
 	// iconFileDiff 是文件行「查看差异」（lucide file-diff）。
 	iconFileDiff = mustSVG(`<path d="M14.25 3.75H6.75a1.5 1.5 0 0 0-1.5 1.5v13.5a1.5 1.5 0 0 0 1.5 1.5h10.5a1.5 1.5 0 0 0 1.5-1.5V7.5z"/><path d="M14.25 3.75V7.5h4.5"/><path d="M9 13.5h2.25M10.125 12.375v2.25M15 12.75h-2.25"/>`)
-	// iconFolderOpenSmall 是展开目录的图标（复用左栏的同形）。
 )
 
 // colorSearchHit 是搜索命中的黄底（参考产品的命中高亮；设计基线未列此 token）。

@@ -145,6 +145,109 @@ func clickAccess(t *testing.T, tt *gui.Tester, name string) {
 	tt.Frame()
 }
 
+// 标签右键的关闭类动作：关闭右侧 / 关闭其他。
+func TestRightPanelTabMenuClose(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
+	app.rp().tabs = []int{tabFiles, tabChanges, tabTerminal}
+	app.rightTab = tabFiles
+	tt.Frame()
+	if err := tt.RightClick("Review"); err != nil {
+		t.Fatalf("右键 Review：%v", err)
+	}
+	if err := tt.Click("关闭右侧标签页"); err != nil {
+		t.Fatalf("点不到关闭右侧标签页：%v", err)
+	}
+	tt.Frame()
+	if len(app.rp().tabs) != 2 || app.rightTab != tabFiles {
+		t.Fatalf("关闭右侧后 tabs=%v active=%d，想要 [文件 Review] 且仍在文件页",
+			app.rp().tabs, app.rightTab)
+	}
+	if err := tt.RightClick("文件"); err != nil {
+		t.Fatalf("右键文件：%v", err)
+	}
+	if err := tt.Click("关闭其他标签页"); err != nil {
+		t.Fatalf("点不到关闭其他标签页：%v", err)
+	}
+	tt.Frame()
+	if len(app.rp().tabs) != 1 || app.rp().tabs[0] != tabFiles {
+		t.Fatalf("关闭其他后 tabs=%v，想要只剩文件", app.rp().tabs)
+	}
+}
+
+// 标签右键的「在右侧新建标签页」：新页插在该标签之后。
+func TestRightPanelTabMenuNewToRight(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
+	app.rp().tabs = []int{tabFiles, tabChanges}
+	app.rightTab = tabFiles
+	tt.Frame()
+	if err := tt.RightClick("文件"); err != nil {
+		t.Fatalf("右键文件：%v", err)
+	}
+	if err := tt.Click("在右侧新建标签页"); err != nil {
+		t.Fatalf("点不到在右侧新建标签页：%v", err)
+	}
+	tt.Frame()
+	if err := tt.Click("终端"); err != nil {
+		t.Fatalf("点不到终端：%v", err)
+	}
+	tt.Frame()
+	want := []int{tabFiles, tabTerminal, tabChanges}
+	got := app.rp().tabs
+	if len(got) != len(want) {
+		t.Fatalf("新页插入后 tabs=%v，想要 %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("新页插入后 tabs=%v，想要 %v", got, want)
+		}
+	}
+	if app.rightTab != tabTerminal {
+		t.Fatalf("新页插入后当前页 = %d，想要终端", app.rightTab)
+	}
+}
+
+// 文件行右键：暂存类一项（暂存 / 取消暂存二选一）+ 查看差异 + 打开类三项 +
+// 另存为 + 复制路径（F-34–F-44）。
+func TestRightPanelFileMenu(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
+	app.right.dirOpen["internal"] = true
+	app.right.dirOpen["internal/ui"] = true
+	tt.Frame()
+	if err := tt.RightClick("composer.go"); err != nil {
+		t.Fatalf("右键未暂存文件：%v", err)
+	}
+	tt.Frame()
+	for _, item := range []string{"暂存", "查看差异", "预览", "用外部工具打开",
+		"在文件管理器中显示", "另存为…", "复制路径"} {
+		if _, ok := tt.Find(item); !ok {
+			t.Fatalf("文件右键菜单缺少 %q", item)
+		}
+	}
+	if _, ok := tt.Find("取消暂存"); ok {
+		t.Fatal("未暂存文件不该出现「取消暂存」")
+	}
+}
+
+// 文件页的读取失败与首次加载：骨架、根级错误、根级「加载更多」。
+func TestRightPanelFilesReadStates(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
+	app.right.tree = nil
+	app.right.loading = true
+	tt.Frame()
+	if _, ok := tt.Find("正在加载文件树"); !ok {
+		t.Fatal("首次加载没有骨架")
+	}
+	app.right.loading = false
+	app.right.rootFailed = true
+	tt.Frame()
+	if _, ok := tt.Find("无法加载此文件夹。"); !ok {
+		t.Fatal("根级读取失败没有错误行")
+	}
+	if _, ok := tt.Find("重试"); !ok {
+		t.Fatal("根级错误行没有重试")
+	}
+}
+
 // 标签条：按住 ⌘ 显示 ⌘n 徽标；⌘2 切到第二个标签（RP-A-22）。
 func TestRightPanelTabShortcuts(t *testing.T) {
 	app, tt := rightTester(t, tabFiles)
@@ -309,6 +412,19 @@ func TestRightPanelChangesScopes(t *testing.T) {
 	if _, ok := tt.Find("没有 Last Run 改动"); !ok {
 		t.Fatal("Last Run 范围没有空态")
 	}
+	app.right.lastRunUnavailable = true
+	tt.Frame()
+	if _, ok := tt.Find("Last Run 改动不可用"); !ok {
+		t.Fatal("Last Run 读取失败没有覆盖文案")
+	}
+	app.right.lastRunUnavailable = false
+	app.right.scope = scopeBranch
+	app.right.gitFailed = true
+	tt.Frame()
+	if _, ok := tt.Find("Git 改动不可用"); !ok {
+		t.Fatal("Git 读取失败没有覆盖文案")
+	}
+	app.right.gitFailed = false
 	// 提交或推送：菜单里先分支，再提交 / 提交并推送 / 推送。
 	app.right.scope = scopeUncommitted
 	tt.Frame()

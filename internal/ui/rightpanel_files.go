@@ -29,11 +29,19 @@ func (a *App) rpFilesPage(c *gui.Context) {
 		}
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
-				if q != "" {
+				switch {
+				case q != "":
 					a.rpSearchResults(c, q)
-					return
+				case s.loading && len(s.tree) == 0:
+					a.rpSkeleton(c)
+				case s.rootFailed:
+					a.rpDirErrorRow(c, "")
+				default:
+					a.rpTreeRows(c, s.tree, "", 0)
+					if s.rootPartial {
+						a.rpLoadMoreRow(c, "")
+					}
 				}
-				a.rpTreeRows(c, s.tree, "", 0)
 			})
 		})
 	})
@@ -65,6 +73,23 @@ func (a *App) rpFilterRow(c *gui.Context) {
 		s.searching = false
 	}
 }
+
+// rpSkeleton 是文件树首次加载的三条骨架（F-03）：每条高 32、左缘与树行同级。
+func (a *App) rpSkeleton(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Label("正在加载文件树").Role(gui.RoleStatus).Children(func() {
+		for i := 0; i < rpSkeletonRows; i++ {
+			gui.Row(c).Height(panelSkeletonHeight).Padding(0, panelRowPadH).
+				AlignItems(gui.Center).Children(func() {
+				gui.Box(c).Height(panelRowHeight2).Grow(1).
+					Radius(radiusSmall).Background(t.SurfaceHover)
+			})
+		}
+	})
+}
+
+// rpSkeletonRows 是骨架条数（F-03：3 条）。
+const rpSkeletonRows = 3
 
 // rpPermissionBar 是没有写入权限时的警告条（F-46–F-48）：琥珀底、告警图标、
 // 文案与行尾「重试」。
@@ -347,7 +372,7 @@ type rpSearchHit struct {
 
 // rpSearch 在样例树上按名字匹配文件（大小写不敏感），返回命中与所在目录。
 func rpSearch(nodes []*rpNode, query string) []rpSearchHit {
-	q := strings.ToLower(query)
+	q := rpAsciiLower(query)
 	var out []rpSearchHit
 	var walk func(list []*rpNode, dir string)
 	walk = func(list []*rpNode, dir string) {
@@ -360,7 +385,7 @@ func rpSearch(nodes []*rpNode, query string) []rpSearchHit {
 				walk(node.children, next)
 				continue
 			}
-			if strings.Contains(strings.ToLower(node.name), q) {
+			if strings.Contains(rpAsciiLower(node.name), q) {
 				out = append(out, rpSearchHit{node: node, dir: dir})
 			}
 		}
@@ -407,11 +432,23 @@ func rpJoinPath(dir, name string) string {
 	return dir + "/" + name
 }
 
+// rpAsciiLower 只折叠 ASCII 大小写：字节长度不变，命中段的字节下标可以直接
+// 用回原文（Unicode 的大小写折叠会改字节长度）。
+func rpAsciiLower(s string) string {
+	b := []byte(s)
+	for i := range b {
+		if b[i] >= 'A' && b[i] <= 'Z' {
+			b[i] += 'a' - 'A'
+		}
+	}
+	return string(b)
+}
+
 // rpHighlighted 画一行带命中高亮的文字：命中段黄底（RP-B-13）。
 func rpHighlighted(c *gui.Context, text, query string, color gui.Color) {
 	t := c.Theme()
-	q := strings.ToLower(query)
-	lower := strings.ToLower(text)
+	q := rpAsciiLower(query)
+	lower := rpAsciiLower(text)
 	at := strings.Index(lower, q)
 	if q == "" || at < 0 {
 		typeControl.style(t, gui.Text(c, text)).TextColor(color).SingleLine()

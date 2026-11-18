@@ -25,11 +25,16 @@ const (
 
 // rpChangesPage 是改动页本体。
 func (a *App) rpChangesPage(c *gui.Context) {
+	s := a.rp()
 	gui.Column(c).Grow(1).Children(func() {
 		a.rpScopeBar(c)
 		a.rpFilterRow(c)
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
+				if s.loading {
+					a.rpSkeleton(c)
+					return
+				}
 				a.rpChangeGroups(c)
 			})
 		})
@@ -166,10 +171,8 @@ func (a *App) rpSubmitButton(c *gui.Context) {
 			rpMenuPanel(panel, t, panelMenuWidth)
 			for _, name := range branches {
 				name := name
-				if menuItem(c, b, iconBranch, name, "分支："+name, "", name == current, name == current) {
-					// 分支切换要写仓库，本批不动事实：菜单只收起。
-					s.branchOpen = false
-				}
+				// 分支切换要写仓库，本批不动事实：菜单只收起。
+				menuItem(c, b, iconBranch, name, "分支："+name, "", name == current, name == current)
 			}
 		})
 		rpMenuSeparator(c)
@@ -206,7 +209,7 @@ func (a *App) rpChangeGroups(c *gui.Context) {
 	s := a.rp()
 	changes := a.rpVisibleChanges()
 	if len(changes) == 0 {
-		title, detail := rpEmptyText(s.scope)
+		title, detail := a.rpEmptyText(s.scope)
 		a.rpEmptyBlockIcon(c, iconCircleCheck, title, detail)
 		return
 	}
@@ -221,12 +224,20 @@ func (a *App) rpChangeGroups(c *gui.Context) {
 	}
 }
 
-// rpEmptyText 是五个空态的标题与说明（D-18–D-27）。
-func rpEmptyText(scope int) (string, string) {
+// rpEmptyText 是五个空态的标题与说明（D-18–D-27）：范围决定基础文案，
+// 读取失败时换成对应的覆盖文案（D-20/D-22 优先于 D-19/D-21）。
+func (a *App) rpEmptyText(scope int) (string, string) {
+	s := a.rp()
 	switch scope {
 	case scopeBranch:
+		if s.gitFailed {
+			return "Git 改动不可用", "无法加载 Git 改动，请刷新后重试。"
+		}
 		return "当前分支没有改动", "当前分支与其基线一致。"
 	case scopeLastRun:
+		if s.lastRunUnavailable {
+			return "Last Run 改动不可用", "当前 agent runtime 无法报告最近一次 run 的改动文件。"
+		}
 		return "没有 Last Run 改动", "最近一次 agent run 没有记录改动文件。"
 	}
 	return "没有未提交的改动", "工作区是干净的"
