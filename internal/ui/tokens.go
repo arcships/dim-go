@@ -67,19 +67,20 @@ const (
 // （强调色作文字/标记）取本文件的 colorXxx.in(t)。边界只有一套：主题的 Border
 // （UI-18），没有第二级边框色。
 const (
-	// 间距：沿用框架基础单位 4，只用七档（U2 §2.1、§2.2）。
-	spaceUnit = 4
-	space1    = 4
-	space2    = 8
-	space3    = 12
-	space4    = 16
-	space6    = 24
-	space8    = 32
-	space12   = 48
+	// 间距：参考产品的根字号 14px，0.25rem = 3.5px，七档都按 3.5 的倍数
+	// （design-baseline §1.1：3.5 / 7 / 10.5 / 14 / 21 / 28 / 42）。
+	spaceUnit = 3.5
+	space1    = 3.5
+	space2    = 7
+	space3    = 10.5
+	space4    = 14
+	space6    = 21
+	space8    = 28
+	space12   = 42
 
-	// 控件内边距：沿用框架按钮（ui/widgets.go 的 styleButton：
-	// Padding(t.Space(1.5), t.Space(3.5)) → 6 / 14）。自绘的文字按钮与官方按钮
-	// 同高，不再自己定 4 / 12（U0 §control-baseline）。
+	// 控件内边距：取参考产品 h-9 / px-4 的 6 / 14（design-baseline §3）。
+	// 框架按钮自己按 t.Space 推内边距；自绘的文字按钮不再另定一套档位
+	// （U0 §control-baseline）。
 	controlPadV = 6
 	controlPadH = 14
 
@@ -101,9 +102,14 @@ const (
 	strokeMarker    = 2
 	focusRingOffset = 1
 
-	// 圆角：控件与卡片同值，沿用框架 Theme.Radius（U2 §8.3）。
-	radius     = 6
-	radiusCode = radius + 2
+	// 圆角：参考产品由 --radius 0.625rem 派生（design-baseline §4）。
+	// 控件与输入框用 md 6.75；卡片用 lg 8.75；主窗卡用 xl 12.75；
+	// 小标签与内层块用 sm 4.75。框架 Theme.Radius 只画控件，取控件档。
+	radiusSmall      = 4.75
+	radius           = 6.75
+	radiusCard       = 8.75
+	radiusWindowCard = 12.75
+	radiusCode       = radius + 2
 
 	// 方向指示的描边：24 网格的 1.5 描边在 16px 盒上约 1px（U2 §4.4、§6.4）。
 	strokeChevron = 1.5
@@ -185,17 +191,17 @@ var (
 	typeControl       = fontStep{size: 14, weight: 400}
 	typeControlStrong = fontStep{size: 14, weight: 600}
 
-	typeBody            = fontStep{size: 14, line: 21, weight: 400}
-	typeBodyStrong      = fontStep{size: 14, line: 21, weight: 600}
+	typeBody            = fontStep{size: 14, line: 24.5, weight: 400}
+	typeBodyStrong      = fontStep{size: 14, line: 24.5, weight: 600}
 	typeSecondary       = fontStep{size: 12.25, weight: 400}
-	typeSecondaryStrong = fontStep{size: 12.25, weight: 600}
+	typeSecondaryStrong = fontStep{size: 12.25, weight: 500}
 	// typeTitleRow 是标题行的会话名：跟官方示例的页面标题同一档（15/600，
 	// 见 notes.png 的 24 与 permissionflow.png 的 20 之间的最小档；标题行只有 48 高）。
 	typeTitleRow        = fontStep{size: 15, weight: 600}
-	typeMicro           = fontStep{size: 10.5, weight: 400}
-	typeCode            = fontStep{size: 12.25, line: 17.15, weight: 400, family: codeFont}
+	typeMicro           = fontStep{size: 10.5, line: 14, weight: 400}
+	typeCode            = fontStep{size: 13, line: 20, weight: 400, family: codeFont}
 	typeH1              = fontStep{size: 22.4, line: 33.6, weight: 700}
-	typeH2              = fontStep{size: 18.9, line: 28.35, weight: 650}
+	typeH2              = fontStep{size: 17.5, line: 24.5, weight: 600}
 	typeH3              = fontStep{size: 16.1, line: 24.15, weight: 600}
 	typeH4              = fontStep{size: 14, line: 21, weight: 600}
 	typeH5              = fontStep{size: 13.3, line: 19.95, weight: 600}
@@ -248,30 +254,37 @@ func (c colorSet) in(t *gui.Theme) gui.Color {
 }
 
 // 颜色 token：每主题 17 个设计 token（其中 accent-ink 框架没有字段），另 3 个
-// 沿用框架、不参与设计（U2 §8.1）。边界只取主题的 Border，不再有第二级边框色
-// （UI-18）。
+// 沿用框架、不参与设计（U2 §8.1）。明暗层级固定为
+// 底 → 卡 → 浮层 → 交互面（design-baseline §5.3）：
+// 明 #f6fdff → #ffffff → #ffffff → #f5f5f5；暗 #090c0d → #0c0c0c → #222222 → #262626。
+// 边界只取主题的 Border，不再有第二级边框色（UI-18）。
 var (
-	colorBG             = colorSet{gui.Hex("#ffffff"), gui.Hex("#18181b")}
-	colorSurface        = colorSet{gui.Hex("#f4f4f5"), gui.Hex("#27272a")}
-	colorSurfaceHover   = colorSet{gui.Hex("#e9e9ec"), gui.Hex("#323236")}
-	colorSurfacePressed = colorSet{gui.Hex("#dddde1"), gui.Hex("#3c3c41")}
-	colorBorder         = colorSet{gui.Hex("#d9d9de"), gui.Hex("#3f3f46")}
-	colorText           = colorSet{gui.Hex("#18181b"), gui.Hex("#f4f4f5")}
-	colorTextSecondary  = colorSet{gui.Hex("#5f5f68"), gui.Hex("#a1a1aa")}
-	colorAccent         = colorSet{gui.Hex("#2563eb"), gui.Hex("#2563eb")}
-	colorAccentHover    = colorSet{gui.Hex("#1d4ed8"), gui.Hex("#1d4ed8")}
-	colorAccentPressed  = colorSet{gui.Hex("#1e40af"), gui.Hex("#1e40af")}
-	colorAccentOn       = colorSet{gui.Hex("#ffffff"), gui.Hex("#ffffff")}
-	colorAccentInk      = colorSet{gui.Hex("#1d4ed8"), gui.Hex("#60a5fa")}
-	colorSuccess        = colorSet{gui.Hex("#15803d"), gui.Hex("#22c55e")}
-	colorWarning        = colorSet{gui.Hex("#b45309"), gui.Hex("#f59e0b")}
-	colorDanger         = colorSet{gui.Hex("#b91c1c"), gui.Hex("#f87171")}
-	colorSelection      = colorSet{gui.RGBA(37, 99, 235, 0.20), gui.RGBA(59, 130, 246, 0.30)}
-	colorFocus          = colorSet{gui.Hex("#2563eb"), gui.Hex("#60a5fa")}
+	colorBG             = colorSet{gui.Hex("#f6fdff"), gui.Hex("#090c0d")}
+	colorSurface        = colorSet{gui.Hex("#ffffff"), gui.Hex("#0c0c0c")}
+	colorSurfaceHover   = colorSet{gui.Hex("#f5f5f5"), gui.Hex("#262626")}
+	colorSurfacePressed = colorSet{gui.Hex("#ebebeb"), gui.Hex("#2b2b2b")}
+	colorBorder         = colorSet{gui.Hex("#e5e5e5"), gui.Hex("#2e2e2e")}
+	colorText           = colorSet{gui.Hex("#0a0a0a"), gui.Hex("#ececec")}
+	colorTextSecondary  = colorSet{gui.Hex("#737373"), gui.Hex("#8a8a8a")}
+	// 主色取 --primary 的 oklch → sRGB（明 oklch(0.6 0.138 150) = #349651，
+	// 暗 oklch(0.76 0.15 149) = #63cb7b）。悬停 / 按下按亮度各降升一档派生。
+	colorAccent        = colorSet{gui.Hex("#349651"), gui.Hex("#63cb7b")}
+	colorAccentHover   = colorSet{gui.Hex("#40a35c"), gui.Hex("#71d887")}
+	colorAccentPressed = colorSet{gui.Hex("#218a45"), gui.Hex("#5ebc72")}
+	colorAccentOn      = colorSet{gui.Hex("#ffffff"), gui.Hex("#010602")}
+	// accent-ink 是强调色作文字 / 标记：作填充的主色在明色下对白底只有 3.7，
+	// 不能兼作正文，取同色相更深一档（明 5.98 对底、6.15 对卡）。
+	colorAccentInk = colorSet{gui.Hex("#197037"), gui.Hex("#63cb7b")}
+	colorSuccess   = colorSet{gui.Hex("#009966"), gui.Hex("#00d492")}
+	colorWarning   = colorSet{gui.Hex("#e17100"), gui.Hex("#ffb900")}
+	colorDanger    = colorSet{gui.Hex("#e7000b"), gui.Hex("#ff6467")}
+	colorSelection = colorSet{gui.RGBA(52, 150, 81, 0.20), gui.RGBA(99, 203, 123, 0.30)}
+	// 焦点环：明 --ring #a1a1a1，暗 --brand-green #63cb7b（design-baseline §5）。
+	colorFocus = colorSet{gui.Hex("#a1a1a1"), gui.Hex("#63cb7b")}
 
 	// 沿用框架默认、不参与设计的三个字段（U2 §8.1）。
-	colorInverse     = colorSet{gui.Hex("#18181b"), gui.Hex("#f4f4f5")}
-	colorInverseText = colorSet{gui.Hex("#ffffff"), gui.Hex("#18181b")}
+	colorInverse     = colorSet{gui.Hex("#0a0a0a"), gui.Hex("#ececec")}
+	colorInverseText = colorSet{gui.Hex("#ffffff"), gui.Hex("#0c0c0c")}
 	colorScrollbar   = colorSet{gui.RGBA(0, 0, 0, 0.32), gui.RGBA(255, 255, 255, 0.35)}
 )
 
