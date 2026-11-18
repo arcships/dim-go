@@ -2,7 +2,7 @@
 
 用法：python3 scripts/check-req.py [文档路径]
 默认检查 docs/domains/requirements/requirements-settings.md，对照
-docs/domains/requirements/inventory-settings-rt.md 的元素清单。
+docs/domains/requirements/inventory-settings-rt.md 的元素清单（19 节 + 壳层）。
 """
 
 import collections
@@ -11,17 +11,15 @@ import sys
 
 DOC = sys.argv[1] if len(sys.argv) > 1 else 'docs/domains/requirements/requirements-settings.md'
 INV = 'docs/domains/requirements/inventory-settings-rt.md'
-SECTIONS = ('account', 'usage', 'personalization', 'appearance')
 
-ROW = re.compile(r'^\|\s*(R-[A-Z]+-\d+)\s*\|\s*(S-[a-z]+-\d+)\s*\|\s*([^|]+?)\s*\|', re.M)
+ROW = re.compile(r'^\|\s*(R-[A-Z]+-\d+)\s*\|\s*(S-[A-Za-z]+-\d+)\s*\|\s*([^|]+?)\s*\|', re.M)
+ELEM = re.compile(r'^\|\s*(S-[A-Za-z]+-\d+)\s*\|', re.M)
 
 doc = open(DOC).read()
 inv = open(INV).read()
 
 rows = ROW.findall(doc)
-elems = collections.OrderedDict(
-    (m.group(1), None) for m in re.finditer(r'^\|\s*(S-[a-z]+-[0-9]+)\s*\|', inv, re.M)
-)
+order = list(dict.fromkeys(m.group(1) for m in ELEM.finditer(inv)))
 
 counts = collections.Counter(r[1] for r in rows)
 dims = collections.defaultdict(set)
@@ -33,22 +31,26 @@ print(f'条目总数: {len(rows)}  重复条目 ID: {len(dups)}')
 if dups:
     print('  ' + ', '.join(dups[:20]))
 
-total_elems = total_rows = 0
-for sec in SECTIONS:
-    names = [e for e in elems if e.split('-')[1] == sec]
-    got = [e for e in names if e in counts]
-    sec_rows = sum(counts[e] for e in got)
-    total_elems += len(names)
-    total_rows += sec_rows
-    lo = min((counts[e] for e in got), default=0)
-    hi = max((counts[e] for e in got), default=0)
-    lo_dims = min((len(dims[e]) for e in got), default=0)
-    print(f'{sec:16s} 元素 {len(got)}/{len(names)}  条目 {sec_rows:5d}  '
-          f'平均 {sec_rows / max(len(got), 1):.2f}  最少 {lo}  最多 {hi}  最少维度 {lo_dims}')
+by_section = collections.OrderedDict()
+for el in order:
+    by_section.setdefault(el.split('-')[1], []).append(el)
 
-missing = [e for e in elems if e.split('-')[1] in SECTIONS and e not in counts]
-print(f'四节合计: 元素 {total_elems}  条目 {total_rows}  平均 {total_rows / total_elems:.2f}')
+total_rows = 0
+for sec, elems in by_section.items():
+    got = [e for e in elems if e in counts]
+    n = sum(counts[e] for e in got)
+    total_rows += n
+    if not got:
+        print(f'{sec:16s} 元素 0/{len(elems)}')
+        continue
+    print(f'{sec:16s} 元素 {len(got)}/{len(elems)}  条目 {n:5d}  '
+          f'平均 {n / len(got):.2f}  最少 {min(counts[e] for e in got)}  '
+          f'最多 {max(counts[e] for e in got)}  最少维度 {min(len(dims[e]) for e in got)}')
+
+print(f'合计: 元素 {len(order)}  条目 {total_rows}  平均 {total_rows / len(order):.2f}')
+
+missing = [e for e in order if e not in counts]
 print(f'未出条目的元素: {len(missing)}' + ('  ' + ' '.join(missing) if missing else ''))
-under = [(e, counts[e]) for e in elems if e.split('-')[1] in SECTIONS and e in counts and counts[e] < 8]
-under += [(e, len(dims[e])) for e in elems if e.split('-')[1] in SECTIONS and e in counts and len(dims[e]) < 5]
+under = [(e, counts[e]) for e in order if e in counts and counts[e] < 8]
+under += [(e, len(dims[e])) for e in order if e in counts and len(dims[e]) < 5]
 print(f'低于下限（<8 条或 <5 维度）: {len(under)}' + ('  ' + str(under[:10]) if under else ''))
