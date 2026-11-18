@@ -36,6 +36,10 @@ func main() {
 		"额外的走查态：branch（分支菜单）、goal（目标编辑）、tasks（后台任务）、settings（设置）、settings-rules（清空确认）、ext / ext-failed / ext-empty / ext-loading（扩展四态）")
 	widthFlag := flag.Int("width", appui.WindowWidth, "窗口宽度（逻辑像素，用于三档宽度对照截图）")
 	heightFlag := flag.Int("height", appui.WindowHeight, "窗口高度（逻辑像素）")
+	noFocusFlag := flag.Bool("no-focus", false,
+		"后台运行（accessory 策略）：窗口可见但不抢焦点、不进 Dock 与菜单栏；自动截图与调试用")
+	shotFlag := flag.String("screenshot", "",
+		"渲染一帧后把窗口截到该 PNG 路径并退出；配合 -no-focus 可在不抢焦点的情况下取图")
 	flag.Parse()
 
 	state, err := appui.ParseState(*stateFlag)
@@ -104,6 +108,11 @@ func main() {
 	}))
 
 	mygo.App.WhenReady(func() {
+		// -no-focus：切到 accessory 策略，窗口仍可见但不激活应用、不占 Dock 与菜单栏，
+		// 供自动截图与后台调试使用（人还要在前台干别的）。必须在 ready 之后调用。
+		if *noFocusFlag {
+			mygo.App.SetActivationPolicy(mygo.ActivationPolicyAccessory)
+		}
 		width, height, x, y := *widthFlag, *heightFlag, 0, 0
 		hasPosition := false
 		if appBase != nil {
@@ -131,6 +140,15 @@ func main() {
 			options.X, options.Y = x, y
 		}
 		win = mygo.NewWindow(options)
+		if *shotFlag != "" {
+			path := *shotFlag
+			time.AfterFunc(900*time.Millisecond, func() {
+				if data, err := win.CapturePage(); err == nil {
+					_ = os.WriteFile(path, data, 0o644)
+				}
+				mygo.App.Quit()
+			})
+		}
 		if appBase != nil {
 			win.OnClose(func(*mygo.CloseEvent) {
 				bounds := win.Bounds()
