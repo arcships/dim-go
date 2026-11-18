@@ -103,7 +103,8 @@ func TestRightPanelBackButton(t *testing.T) {
 
 // 文件页：筛选框、目录行、文件行、搜索四态里的三态（搜索中 / 结果 / 空态）
 // 与「加载更多」。
-func TestRightPanelFilesPage(t *testing.T) {	app, tt := rightTester(t, tabFiles)
+func TestRightPanelFilesPage(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
 	if info, ok := tt.Access("筛选文件"); !ok || info.Placeholder != "筛选文件..." {
 		t.Fatalf("筛选框占位 = %q，想要「筛选文件...」", info.Placeholder)
 	}
@@ -465,5 +466,14 @@ func TestRightPanelChangesScopes(t *testing.T) {
 		if _, ok := tt.Find(label); !ok {
 			t.Fatalf("提交菜单缺少 %q", label)
 		}
+	}
+	tt.CloseMenu()
+
+	// 出现条件（D-08）：有会话 ∧ 范围不是 Last Run。没有会话时这一行只有刷新，
+	// 与参考的空会话页（panel-review-git.png）一致。
+	app.selectedSession = ""
+	tt.Frame()
+	if _, ok := tt.Find("提交或推送"); ok {
+		t.Fatal("没有会话时不应出现提交或推送")
 	}
 }

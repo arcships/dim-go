@@ -1,14 +1,14 @@
 # 重建界面 vs 参考产品：内容差异清单
 
-Status: draft（首版并排比对）
+Status: draft（首版并排比对；2026-11-18 按清单修内容差异）
 Input: `docs/domains/requirements/runtime/settings/*-top.png` / `*-bottom.png`（19 节）、`runtime/main/*.png`、`runtime/panels/*.png`，以及同名 `runtime/**/*.json`（参考产品运行时节点：文案 + 包围盒）
-Owner: 比对（只出清单，不改代码）
-Last updated: 2026-11-18
+Owner: 比对（只出清单，不改代码）；修复与截图由界面实现更新
+Last updated: 2026-11-18（修 10 条、保留 1 条、1 条已消解，见 §6）
 
 ## 0. 方法与口径
 
 - **参考侧**：`runtime/<块>/<名>.json` 的**首趟（未滚动）**节点（文案、标签、图标、`x/y/w/h`，坐标是 CSS 像素）+ 同名截图目视核对。截图窗口 1030×725 CSS（2060×1450 @2x）。
-- **我方侧**：无窗口软件渲染（`ui.NewTester`），设置屏按 1440×3000 视口出整页（19 节都超过一屏），主界面/右栏按 1440×900；同时用 `Tester.Texts/Find` 导出整屏文案做逐字比对。**没有改动仓库里的代码与既有截图**，临时夹具已删。
+- **我方侧**：无窗口软件渲染（`ui.NewTester`），设置屏按 1440×3000 视口出整页（19 节都超过一屏），主界面/右栏按 1440×900；同时用 `Tester.Texts/Find` 导出整屏文案做逐字比对。清单首版**没有改动仓库里的代码与既有截图**；修复后的同口径截图在 `docs/domains/requirements/shots/`（见 §6）。
 - **只比内容**：缺元素、多元素、文案逐字（含标点与空格）、顺序。样式另立 §2，只记明显偏差（间距 >8px、字号不同、颜色不同）。
 - 参考窗口 1030 宽、我们 1440 宽，**列宽/居中位置不做 1:1 比较**；表里的坐标只用于在参考图上定位。
 - 「（数据）」表示差异来自样例数据与参考账号真实数据的差别，不算界面内容差异，单列在 §3。
@@ -18,21 +18,21 @@ Last updated: 2026-11-18
 | # | 屏 | 类别 | 具体差异 | 我方位置 | 参考位置 |
 |---|---|---|---|---|---|
 | S1 | 设置 › 账户 · 套餐用量 · 到期行 | 文案（空格） | 参考「到期 2026年12月13日**␣␣**· 还剩 26 天」（`·` 前两个空格），我们「到期 2026年12月13日**␣**· 还剩 26 天」 | `internal/ui/settings_account_screen.go:851` | `账户-top.png` y≈265 |
-| S2 | 设置 › 个性化 · 命令 Shell | 文案 | 选择器取值：参考「已保存的 Shell 不可用：」，我们「自动（没有受支持的 Shell）」 | `internal/ui/settings_personalization_screen.go:502` | `个性化-bottom.png` y≈312 |
-| S3 | 设置 › 快捷键 · 搜索框 | 多 + 文案 | 我们在框内多一个放大镜图标，占位文案多省略号「搜索快捷键…」；参考只有占位文字「搜索快捷键」，无图标、无省略号 | `internal/ui/settings_keybindings_screen.go:86`、`:99` | `快捷键-top.png` y≈139 输入框 |
-| S4 | 设置 › 模型供应 · 供应商列表 | 多（图形） | 127 行「未启用」供应商的行首图标是**字母占位**（A/V/B/M/C…），参考是品牌 logo（302.AI、Adobe Firefly、Alibaba…） | `internal/ui/settings_configuration_screen.go`（供应商行图标） | `模型供应-top.png` / `-bottom.png` 左列 |
-| S5 | 设置 › 插件设置 · 页首 | 多 | 我们多一行页首标题「插件设置」+ 说明「配置 App Server 插件声明的设置。」；参考直接从第一张插件卡「Model log」开始，没有页首标题 | `internal/ui/settings_plugin_settings_screen.go:163` | `插件设置-top.png` y=83 起 |
-| S6 | 设置 › 关于 · 公告日期 | 文案（空格） | 我们屏幕上是「2026 年 11 月 16 日」（数字与年月日之间多空格，两条公告都有）；参考是「2026年11月16日」。同一份日期在账户节我们不加空格，属我们内部不一致 | `internal/ui/settings_about_screen.go:98`、`:102`、`:439` | `关于-top.png` y≈226、y≈283 |
-| S7 | 设置 › Hooks · 项目来源行 | 文案（有意） | 路径：我们「~/.dimcode/hooks.json」，参考 `/<用户目录>/dim-agent/.dimcode/hooks.json`。**有意**：仓库规则禁绝对路径 | `internal/ui/settings_hooks_screen.go:91` | `Hooks-top.png` y≈282 |
-| S8 | 设置 › 多模态 · 所有者任务 | 多 | 工具条多一个「全部状态」筛选下拉；参考只有标题「所有者任务」+「刷新」+「没有任务。」 | `internal/ui/settings_modality_screen.go:584` | `多模态-bottom.png` y≈1134 |
-| M1 | 主界面 · 空态 · 输入卡下方 | 多 | 多两个按钮「登录账号」「添加供应商」（首次运行引导）；参考空态（已登录）没有这两个入口。**有意**（代码注释标为差异项），但已登录时出现与参考条件不符 | `internal/ui/composer.go:125-137`（`firstRunGuide`） | `empty.png` 输入卡下沿 |
-| M2 | 主界面 · 左栏页脚 | 文案 | 头像首字母「E」；参考「ER」（同屏设置›账户卡里我们显示「ER」，两处不一致） | `internal/ui/app.go:381`（样例 `accountInitial: "E"`）、`sidebar.go:505` | `empty.png` / `session.png` 左下 y≈742 |
-| M3 | 主界面 · 会话态 · 运行中 | 缺 | 缺「已经工作了 {duration} · {actions}」摘要行（参考 TL-46，例如「已经工作了 48.5s · 执行命令」）。我们运行中只有「正在思考 · …」与完成态摘要，没有时长行 | `internal/ui/timeline.go`（无对应元素；`groupSummary` 只出完成态） | `session-running-waiting.png` y≈174、y≈322 |
-| M4 | 主界面 · 会话态 · 过程摘要行 | 多 | 摘要行行首多一个 ✓ 状态位；参考只有分组图标 + 「思考1轮 · 执行1次命令」+ ⌄ | `internal/ui/timeline.go:988`（`statusMark`） | `session.png` y≈163 |
-| M5 | 主界面 · 审批卡 | 文案（有意） | `cwd` 取值：我们 `~/dim-agent`，参考绝对路径。**有意**：仓库规则禁绝对路径 | `internal/ui/composer.go:349` 附近（审批卡输入块） | `session.png` 审批卡 y≈685 |
-| P1 | 右栏 · 文件页顶栏 | 缺 | 缺「← 返回」按钮（参考顶栏：面板开关 · ← · 标签页 · ＋） | `internal/ui/rightpanel_parts.go`（标签条） | `panel-files-root.png` y≈63（x≈127，24×24） |
-| P2 | 右栏 · 文件页顶栏 | 多 | 顶栏多「⤢ 展开面板」；参考文件页只有 ＋（⤢ 只出现在 Review 页） | `internal/ui/rightpanel_parts.go:14` | `panel-files-root.png` 右上 x≈1065 |
-| P3 | 右栏 · 改动页工具条 | 多 | 多「提交或推送」下拉按钮；参考「未提交改动 ⌄」一行只有刷新 | `internal/ui/rightpanel_changes.go:225` | `panel-review-git.png` y≈76 |
+| S2 | 设置 › 个性化 · 命令 Shell | 文案 | 选择器取值：参考「已保存的 Shell 不可用：」，我们「自动（没有受支持的 Shell）」。**已修**：取值改为「已保存的 Shell 不可用：」 | `internal/ui/settings_personalization_screen.go:503`（`psCopyShellNone`） | `个性化-bottom.png` y≈312 |
+| S3 | 设置 › 快捷键 · 搜索框 | 多 + 文案 | 我们在框内多一个放大镜图标，占位文案多省略号「搜索快捷键…」；参考只有占位文字「搜索快捷键」，无图标、无省略号。**已修**：去掉放大镜，占位改「搜索快捷键」 | `internal/ui/settings_keybindings_screen.go:86-100` | `快捷键-top.png` y≈139 输入框 |
+| S4 | 设置 › 模型供应 · 供应商列表 | 多（图形） | 127 行「未启用」供应商的行首图标是**字母占位**（A/V/B/M/C…），参考是品牌 logo（302.AI、Adobe Firefly、Alibaba…）。**已修**：没有品牌资产前统一用中性图标（圆底 + `iconProvider`），明细头部同；不再按名字造字母 | `internal/ui/settings_configuration_screen.go:609-640`（`configProviderMark`） | `模型供应-top.png` / `-bottom.png` 左列 |
+| S5 | 设置 › 插件设置 · 页首 | 多 | 我们多一行页首标题「插件设置」+ 说明「配置 App Server 插件声明的设置。」；参考直接从第一张插件卡「Model log」开始，没有页首标题。**已修**：删页首标题与说明 | `internal/ui/settings_plugin_settings_screen.go:189-199` | `插件设置-top.png` y=83 起 |
+| S6 | 设置 › 关于 · 公告日期 | 文案（空格） | 我们屏幕上是「2026 年 11 月 16 日」（数字与年月日之间多空格，两条公告都有）；参考是「2026年11月16日」。**已消解**：公告不再取参考样例（改为「本次构建」一条真信息，见 §6），屏幕上的样例日期随之消失；账户节的同一格式仍是「2026年12月13日」（不插空格）。核对发现原文案数据本身没有空格，原条目应为渲染误判 | `internal/ui/settings_about_screen.go`（公告改为 `buildAnnouncements`） | `关于-top.png` y≈226、y≈283 |
+| S7 | 设置 › Hooks · 项目来源行 | 文案（有意，保留） | 路径：我们「~/.dimcode/hooks.json」，参考 `/<用户目录>/dim-agent/.dimcode/hooks.json`。**有意**：仓库规则禁绝对路径 | `internal/ui/settings_hooks_screen.go:91` | `Hooks-top.png` y≈282 |
+| S8 | 设置 › 多模态 · 所有者任务 | 多 | 工具条多一个「全部状态」筛选下拉；参考只有标题「所有者任务」+「刷新」+「没有任务。」。**已修**：删状态筛选，只留标题 + 刷新 + 空态 | `internal/ui/settings_modality_screen.go:253-274`（`mdTaskListCard`） | `多模态-bottom.png` y≈1134 |
+| M1 | 主界面 · 空态 · 输入卡下方 | 多 | 多两个按钮「登录账号」「添加供应商」（首次运行引导）；参考空态（已登录）没有这两个入口。**已修（条件化）**：只在**未登录且没有供应商**时出现（`firstRunNeeded`），已登录 / 已有供应商时与参考一致；样例（已登录）空态不再显示。条件成立时的两条入口是保留的差异项 | `internal/ui/composer.go:104-162`、`internal/ui/timeline.go:1418-1433` | `empty.png` 输入卡下沿 |
+| M2 | 主界面 · 左栏页脚 | 文案 | 头像首字母「E」；参考「ER」（同屏设置›账户卡里我们显示「ER」，两处不一致）。**已修**：样例首字母改为 `ER`（`docs/domains/U2-elements.json` 的探针同步） | `internal/ui/app.go:381-382`（样例 `accountInitial`） | `empty.png` / `session.png` 左下 y≈742 |
+| M3 | 主界面 · 会话态 · 运行中 | 缺 | 缺「已经工作了 {duration} · {actions}」摘要行（参考 TL-46，例如「已经工作了 48.5s · 执行命令」）。我们运行中只有「正在思考 · …」与完成态摘要，没有时长行。**已修**：运行中一轮在轮首加分隔行「已经工作了 {时长} · {动作}」（两侧细线 + 折叠箭头，展开是这一轮的工具行），并去掉轮末重复的「正在处理 · 时长」 | `internal/ui/timeline.go:437-535`（`runningSummary` / `runningSummaryText`） | `session-running-waiting.png` y≈174、y≈322 |
+| M4 | 主界面 · 会话态 · 过程摘要行 | 多 | 摘要行行首多一个 ✓ 状态位；参考只有分组图标 + 「思考1轮 · 执行1次命令」+ ⌄。**已修**：去掉行首状态位，只留分组图标 + 文案 + 折叠箭头；状态词留在可读名里 | `internal/ui/timeline.go:592-618`（`roundHeader`） | `session.png` y≈163 |
+| M5 | 主界面 · 审批卡 | 文案（有意，保留） | `cwd` 取值：我们 `~/dim-agent`，参考绝对路径。**有意**：仓库规则禁绝对路径 | `internal/ui/composer.go:349` 附近（审批卡输入块） | `session.png` 审批卡 y≈685 |
+| P1 | 右栏 · 文件页顶栏 | 缺 | 缺「← 返回」按钮（参考顶栏：面板开关 · ← · 标签页 · ＋）。**已修**：标签条左端加「← 返回」（RP-A-02）；没有上层时禁用（文件页本身），文件预览时返回到文件页 | `internal/ui/rightpanel_parts.go:320-350`（`rpBackButton`） | `panel-files-root.png` y≈63（x≈127，24×24） |
+| P2 | 右栏 · 文件页顶栏 | 多 | 顶栏多「⤢ 展开面板」；参考文件页只有 ＋（⤢ 只出现在 Review 页）。**未修**：本轮未列入 | `internal/ui/rightpanel_parts.go:14` | `panel-files-root.png` 右上 x≈1065 |
+| P3 | 右栏 · 改动页工具条 | 保留（登记理由） | 多「提交或推送」下拉按钮；参考无会话的 `panel-review-git.png` 这一行只有刷新。**保留**：参考**有会话**时这行确有「提交或推送」（`runtime/main/session-running-waiting.json` x≈877、y≈59、w≈111，截图同位置可见），没有会话时才只剩刷新；我们的显示条件（有会话 ∧ 范围不是 Last Run）与参考同态一致，`TestRightPanelChangesScopes` 断言无会话时隐藏 | `internal/ui/rightpanel_changes.go:219-286` | `panel-review-git.png` y≈76 / `session-running-waiting.png` y≈59 |
 
 **已核对为一致（无差异）的屏**：设置 › 用量、外观、通用、MCP、Git、权限、通知、宠物、归档会话、运行环境、外部 Agent；主界面 · 空态与审批卡的其余元素；右栏改动页的分组、暂存/还原、`+N -N`、底部统计。逐节核对的文案包括：19 个导航项与顺序、各节标题与分组标题、按钮文案、开关旁的说明句、占位文案、`…` 与 `...` 的用法（通用节的「导入…」「清理数据…」「查看…」我们也是单字符省略号，与参考一致）。
 
@@ -65,25 +65,59 @@ Last updated: 2026-11-18
 
 | 类别 | 条数 | 条目 |
 |---|---:|---|
-| 缺（参考有、我方无） | 2 | M3、P1 |
-| 多（我方有、参考无） | 8 | S3（图标部分）、S4、S5、S8、M1、M4、P2、P3 |
-| 文案（含标点与空格） | 7 | S1、S2、S3（省略号部分）、S6、S7、M2、M5 |
+| 缺（参考有、我方无） | 2 | M3（已修）、P1（已修） |
+| 多（我方有、参考无） | 8 | S3（图标部分，已修）、S4（已修）、S5（已修）、S8（已修）、M1（已修，改为条件化）、M4（已修）、P2（未修）、P3（保留，登记理由） |
+| 文案（含标点与空格） | 7 | S1（未修）、S2（已修）、S3（省略号部分，已修）、S6（已消解）、S7（有意保留）、M2（已修）、M5（有意保留） |
 | 顺序 | 0 | — |
 | 合计 | 16 行 | S3 同时计入「多」与「文案」，故三列相加 17 |
 
-其中**有意为之**的 3 条：S7（路径不用绝对路径）、M5（`cwd` 用 `~`）、M1（首次运行引导，代码里已登记为差异项）。
+修复结果：**10 条已修**（M3、P1、M2、M4、S2、S3、S4、S5、S8、M1），**1 条保留并登记理由**（P3），**1 条已消解**（S6，公告样例日期移除后不再上屏；账户节的日期格式一直没有空格）。仍未修 3 条：S1（本轮未列入）、P2（本轮未列入）、以及有意保留的 S7 / M5。
+
+其中**有意为之**的 3 条：S7（路径不用绝对路径）、M5（`cwd` 用 `~`）、M1（首次运行引导只在「未登录且没有供应商」时出现；条件成立时它仍是我们的差异项）。
 
 ## 5. 最该先修的 10 条
 
-1. **M3** 缺运行中「已经工作了 {duration} · {actions}」——运行中看不出过了多久，也无法一眼看出在做什么；参考把它放在轮首分隔位。
-2. **P1** 右栏文件页缺「← 返回」——进入文件页后没有回上一层的入口。
-3. **M1** 空态多「登录账号 / 添加供应商」——已登录、已有供应商时仍显示，与参考条件不符；应按条件收口。
-4. **S4** 模型供应 127 个供应商用字母占位图标——列表可读性最差的一处，且每行都重复。
-5. **M2** 左栏头像首字母「E」——与同屏账户卡的「ER」自相矛盾，一处改动即可。
-6. **S5** 插件设置多页首标题与说明——参考没有页首标题，多一行会把第一张卡推下去。
-7. **P3** 右栏改动多「提交或推送」——参考该行只有刷新；若保留，至少要与参考同态的截图口径对齐。
-8. **S2** 命令 Shell 取值文案不一致（「自动（没有受支持的 Shell）」vs「已保存的 Shell 不可用：」）。
-9. **S6** 公告日期多空格（且与账户节同类日期不一致）。
-10. **M4** 摘要行多 ✓ 状态位——小改动，但与参考的信息量不同（参考只用图标 + 文案）。
+1. **M3** 缺运行中「已经工作了 {duration} · {actions}」——运行中看不出过了多久，也无法一眼看出在做什么；参考把它放在轮首分隔位。→ **已修**
+2. **P1** 右栏文件页缺「← 返回」——进入文件页后没有回上一层的入口。→ **已修**
+3. **M1** 空态多「登录账号 / 添加供应商」——已登录、已有供应商时仍显示，与参考条件不符；应按条件收口。→ **已修（条件化）**
+4. **S4** 模型供应 127 个供应商用字母占位图标——列表可读性最差的一处，且每行都重复。→ **已修（统一中性图标）**
+5. **M2** 左栏头像首字母「E」——与同屏账户卡的「ER」自相矛盾，一处改动即可。→ **已修**
+6. **S5** 插件设置多页首标题与说明——参考没有页首标题，多一行会把第一张卡推下去。→ **已修**
+7. **P3** 右栏改动多「提交或推送」——参考该行只有刷新；若保留，至少要与参考同态的截图口径对齐。→ **保留（有会话时参考也有，条件同态；见上表）**
+8. **S2** 命令 Shell 取值文案不一致（「自动（没有受支持的 Shell）」vs「已保存的 Shell 不可用：」）。→ **已修**
+9. **S6** 公告日期多空格（且与账户节同类日期不一致）。→ **已消解**（公告样例日期移除；核对无空格）
+10. **M4** 摘要行多 ✓ 状态位——小改动，但与参考的信息量不同（参考只用图标 + 文案）。→ **已修**
 
-> 建议先做 1–5：三条是「缺/多到影响任务」的，两条是一处改动就能自洽的。
+## 6. 本轮修复与证据（2026-11-18）
+
+同口径截图（无窗口软件渲染，设置屏 1440×3000、主界面/右栏 1440×900）在
+`docs/domains/requirements/shots/`：
+
+| 条目 | 截图 | 断言 |
+|---|---|---|
+| S2 | `shots/settings-personalization.png` | `TestSettingsCopyMatchesReference`（取值逐字） |
+| S3 | `shots/settings-keybindings.png` | 同上（占位逐字、无放大镜） |
+| S4 | `shots/settings-providers.png` | 目视：127 行同一个中性图标；明细头部同 |
+| S5 | `shots/settings-plugin-settings.png` | 同上（无页首说明）；首块即「Model log」卡 |
+| S6 | `shots/settings-about.png` | 同上（账户节日期无空格）；公告改为「本次构建」一条，不再有样例日期 |
+| S8 | `shots/settings-modality.png` | 同上（无「全部状态」「状态筛选」） |
+| M1 / M2 | `shots/main-empty.png` | `TestFirstRunGuideHiddenWhenNotNeeded`、`TestEmptyStateFirstRunGuide`；左栏头像 `ER` |
+| M3 / M4 | `shots/main-running.png` | `TestRunningSummaryLine`、「已经工作了 1m 28s · 改动文件」分隔行、摘要行无状态位（`TestRoundHeaderHasNoStatusMark`） |
+| P1 | `shots/panel-files-root.png`、`shots/panel-file-preview.png` | `TestRightPanelBackButton`（根禁用、预览可返回） |
+| P3 | `shots/panel-review.png` | `TestRightPanelChangesScopes`（无会话时这一行只有刷新） |
+
+**M3 的事实边界**：连 App Server 时只有逐行的 `RowSnapshot.Duration`，`SessionSnapshot`
+没有轮级时长，所以「已经工作了 …」只在有轮级时长的视图（样例）里出现；接上服务端
+轮级时长后再覆盖连接态。
+
+**S6 的判读更正**：原文案样例本身就是「2026年11月16日」（无空格），与参考逐字一致，
+首版看到的空格应是渲染侧误判；本轮没有为此改代码，公告的事实口径另由「只给本次
+构建这一条真信息」的改动收敛。
+
+**P3 的判读更正**：参考的 `panel-review-git.png` 是**空会话**页，所以那一行只有刷新；
+`runtime/main/session-running-waiting.json` 在有会话时同一行有「提交或推送」
+（x≈877、y≈59、111×25），与我们的条件（有会话 ∧ 范围不是 Last Run）相同。
+
+**§2 样式差异的进度**（不在本轮内容修复内，另行处理）：Y1 卡片底色、Y2 导航行高、
+Y4/Y5 字号已由样式改动收敛，本文件不再据此判内容差异。
+
