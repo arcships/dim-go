@@ -11,8 +11,10 @@ import (
 // 30 个元素）逐行对应，文案逐字取参考产品中文（插件名与字段名来自插件 schema，
 // 不翻译），数值取 docs/domains/requirements/design-baseline.md：
 //
-//	页面标题 17.5/600、说明 12.25、卡标题 13/600、卡片圆角 8、卡内边距 14、
+//	卡标题 13/600、卡片圆角 8、卡内边距 14、
 //	字段标签 12.25/500、输入框高 32、开关 28×16、行内按钮高 28、字段间 16。
+//
+// 参考的这一节没有页首标题与说明（第一张插件卡就是首块内容），本屏也不画。
 //
 // 只保留可丢的界面状态（pluginSettingsScreen）：3 个插件的表单草稿、保存回执、
 // 读写范围。写事实（插件设置的保存与重新加载）还没有对应 Intents 方法：
@@ -20,7 +22,7 @@ import (
 //
 // # 与参考的差异
 //
-//	内容列的内边距由设置壳给（28），参考的这一节是通栏（标题 x=229，p-0）：
+//	内容列的内边距由设置壳给（28），参考的这一节是通栏（p-0）：
 //	本屏不自行去掉外壳内边距（那会与其余 18 节不一致），差异登记在此。
 //	Web 插件的 Search Service 在参考截图里位于一个带边框、缩进 12 的组里
 //	（png 实测 512.5–552），按对象字段（S-pluginSettings-30）渲染，组标题为空。
@@ -123,8 +125,6 @@ var pluginSettingsScreen = pluginSettingsState{
 
 // 本屏几何：参考的 Tailwind 量换算成 design-baseline §1.1 的档位。
 const (
-	plgPageGap   = 4  // 标题与说明之间
-	plgIntroGap  = 20 // 说明与首卡之间
 	plgCardGap   = 16 // 卡与卡之间
 	plgCardPad   = 14 // p-4：卡内边距
 	plgCardInner = 12 // 卡内块间距（卡标题区与字段区之间）
@@ -147,7 +147,6 @@ const (
 
 // 字阶（design-baseline §2）。
 var (
-	plgTitleStyle = fontStep{size: 17.5, line: 24.5, weight: 600}
 	plgDescStyle  = fontStep{size: 12.25, line: 17.5, weight: 400}
 	plgCardTitle  = fontStep{size: 13, line: 19.5, weight: 600}
 	plgIDStyle    = fontStep{size: 11, line: 17, weight: 400, family: codeFont}
@@ -159,8 +158,6 @@ var (
 
 // 本屏文案：逐字取自参考产品（界面语为 zh-CN，插件名与字段名原样）。
 const (
-	plgCopyTitle        = "插件设置"
-	plgCopyIntro        = "配置 App Server 插件声明的设置。"
 	plgCopyLoading      = "正在加载插件设置..."
 	plgCopyUnavailable  = "当前 App Server 不提供插件设置。"
 	plgCopyEmpty        = "没有已安装插件提供设置。"
@@ -189,28 +186,17 @@ const (
 	plgCopyNumberOnly   = "只接受数字"
 )
 
-// renderPluginSettings 是设置 › 插件设置这一屏（设置壳的一个分节）。
+// renderPluginSettings 是设置 › 插件设置这一屏（设置壳的一个分节）：
+// 参考的这一节没有页首标题与说明，第一张插件卡就是首块内容。
 func renderPluginSettings(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Children(func() {
-				gui.Column(c).Shrink(0).Gap(plgPageGap).Children(func() {
-					plgTitle(c, t)
-					typeSecondary.style(t, gui.Text(c, plgCopyIntro)).
-						TextColor(t.TextMuted).Selectable()
-				})
-				gui.Box(c).Height(plgIntroGap).Shrink(0)
 				plgBody(c, t)
 			})
 		})
 	})
-}
-
-// plgTitle 是页面标题（S-pluginSettings-01）：一级标题。
-func plgTitle(c *gui.Context, t *gui.Theme) {
-	plgTitleStyle.style(t, gui.Text(c, plgCopyTitle)).TextColor(t.Text).
-		Role(gui.RoleHeading).Level(1).SingleLine()
 }
 
 // plgBody 在页面标题下按状态分支：加载 / 不可用 / 失败 / 空 / 表单。

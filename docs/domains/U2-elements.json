@@ -77,8 +77,8 @@
       "icon": "首字母",
       "doc": "U2-forms §1 F12",
       "when": "always",
-      "probe": "账号：E",
-      "text": "E",
+      "probe": "账号：ER",
+      "text": "ER",
       "checkable": true,
       "component": "自绘 Box + DrawOver 首字母",
       "symbol": "avatar"

@@ -49,8 +49,8 @@ import (
 // 能用的控件（S-configuration-10 … 80 的未出现分支）。读数的 provider 走
 // configRecordBody（基础 URL + 模型块 + 底部动作），不再落到占位句。
 //
-// 两处没有资产，用等尺寸示意：供应商品牌图标（参考的 ProviderIcon）用首字母块
-// 代替（与账户屏头像同一方案）；能力徽标只画运行时出现的「视觉」「推理」两种。
+// 两处没有资产，用等尺寸示意：供应商品牌图标（参考的 ProviderIcon）统一用
+// 中性图标（不按名字造字母占位）；能力徽标只画运行时出现的「视觉」「推理」两种。
 
 // 本屏几何：参考产品的 Tailwind 量 × 0.25rem（根字号 14 时 0.25rem = 3.5px =
 // spaceUnit），因此一律写成 spaceUnit 的倍数或既有档位常量。
@@ -89,6 +89,8 @@ const (
 	configIcon     = screenIconMicro
 	configIconBig  = screenIconInline
 	configIconTiny = 12
+	// configMarkInk 是图标位里中性图标相对圆底的比例（24 网格的图形留白）。
+	configMarkInk  = 0.75
 	configDot      = spaceUnit * 2
 	configCheckbox = spaceUnit * 4
 	// 开关 28×16（design-baseline §3）。
@@ -140,7 +142,6 @@ var (
 	configMicroStyle  = fontStep{size: 10.5, line: 14, weight: 400}
 	configBadgeStyle  = fontStep{size: 10, line: 14, weight: 400}
 	configCodeStyle   = fontStep{size: 12.25, line: 17.5, weight: 400, family: codeFont}
-	configMarkStyle   = fontStep{size: 9, line: 14, weight: 500}
 )
 
 // 本屏图标：Heroicons v2 outline（24 网格、1.5 描边、MIT）的内联路径，与
@@ -606,31 +607,30 @@ func configProviderLabel(provider configProvider) string {
 	return provider.name + "，未启用"
 }
 
-// configProviderMark 是供应商图标位：没有品牌资产，用首字母块示意（与账户屏
-// 头像同一方案）；已启用的用主色底。
+// configProviderMark 是供应商图标位：没有品牌资产，统一用中性图标（不按名字
+// 造字母占位，127 行才不会重复同一个字母块）；已启用的用主色底。
 func configProviderMark(c *gui.Context, provider configProvider) {
+	configProviderMarkIcon(c, provider.name, configIcon, provider.configured)
+}
+
+// configProviderMarkIcon 画一个供应商图标位：圆底 + 中性图标。
+func configProviderMarkIcon(c *gui.Context, name string, size float32, configured bool) {
 	t := c.Theme()
-	box := gui.Box(c).Size(configIcon, configIcon).Shrink(0).Center().
-		Label("图标：" + provider.name).AccessHidden(true)
+	box := gui.Box(c).Size(size, size).Shrink(0).Center().
+		Label("图标：" + name).AccessHidden(true)
 	fill, ink := t.SurfacePressed, t.TextMuted
-	if provider.configured {
+	if configured {
 		fill, ink = t.Accent.Alpha(configBadgeFill), colorAccentInk.in(t)
 	}
 	box.Draw(func(p *gui.Painter, r gui.Rect) {
-		p.Fill(r, fill, configIcon/2)
+		p.Fill(r, fill, size/2)
 	})
 	box.Children(func() {
-		configMarkStyle.style(t, gui.Text(c, providerInitial(provider.name))).
-			TextColor(ink).SingleLine()
+		icon := gui.Box(c).Size(size*configMarkInk, size*configMarkInk).Shrink(0)
+		icon.DrawOver(func(p *gui.Painter, r gui.Rect) {
+			p.Icon(iconProvider, r, ink)
+		})
 	})
-}
-
-// providerInitial 是首字母块里的字符：取名称的第一个字符并大写（中文名原样）。
-func providerInitial(name string) string {
-	for _, r := range name {
-		return strings.ToUpper(string(r))
-	}
-	return "?"
 }
 
 // configStatusDot 是状态点：已配置为主色实心，未配置为描边空心（● / ○）。
@@ -750,22 +750,9 @@ func configStatusLabel(on bool) string {
 	return "未启用"
 }
 
-// configProviderMarkBig 是详情头部的供应商图标位（16）。
+// configProviderMarkBig 是详情头部的供应商图标位（16）：与列表行同一个中性图标。
 func configProviderMarkBig(c *gui.Context, provider configProvider) {
-	t := c.Theme()
-	box := gui.Box(c).Size(configIconBig, configIconBig).Shrink(0).Center().
-		Label("图标：" + provider.name).AccessHidden(true)
-	fill, ink := t.SurfacePressed, t.TextMuted
-	if provider.configured {
-		fill, ink = t.Accent.Alpha(configBadgeFill), colorAccentInk.in(t)
-	}
-	box.Draw(func(p *gui.Painter, r gui.Rect) {
-		p.Fill(r, fill, configIconBig/2)
-	})
-	box.Children(func() {
-		configRowStyle.style(t, gui.Text(c, providerInitial(provider.name))).
-			TextColor(ink).SingleLine()
-	})
+	configProviderMarkIcon(c, provider.name, configIconBig, provider.configured)
 }
 
 // configManagedBody 是账户托管供应商的只读详情（S-configuration-14 … 28）：

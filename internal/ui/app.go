@@ -322,17 +322,17 @@ type App struct {
 
 	// 重建后的输入区 / 标题栏视图状态：推理强度、模式、权限、工作区、选择器
 	// 浮层的开合与查询词。全部可丢，不承载事实。
-	effort            float64
-	effortOpen        bool
-	modelOpen         bool
-	modelQuery        string
-	skillsOpen        bool
-	skillQuery        string
-	mode              string
-	modeOpen          bool
-	workspaceName     string
-	workspaceOpen     bool
-	workspaceQuery    string
+	effort         float64
+	effortOpen     bool
+	modelOpen      bool
+	modelQuery     string
+	skillsOpen     bool
+	skillQuery     string
+	mode           string
+	modeOpen       bool
+	workspaceName  string
+	workspaceOpen  bool
+	workspaceQuery string
 	// workspacePath 是空态工作区选择器选中的目录（可丢）：新建会话把它当 cwd。
 	workspacePath string
 	permission    string
@@ -378,8 +378,9 @@ func NewApp(o Options) *App {
 		onState:         o.StateChanged,
 		selectedSession: "s1",
 		connected:       true,
-		accountInitial:  "E",
-		logPath:         o.LogPath,
+		// 样例账号是「eric」：首字母与设置 › 账户卡一致（ER），不另写一个 E。
+		accountInitial: "ER",
+		logPath:        o.LogPath,
 	}
 	// 时间线的助手区自己承担可选区与右键菜单（消息级复制）：Markdown 不再自建
 	// 选区与菜单，把段落交给外层容器（TL-65）。

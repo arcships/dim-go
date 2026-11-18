@@ -8,7 +8,8 @@ import (
 	gui "github.com/egoist/mygo/ui"
 )
 
-// 空态的两条首次运行入口：点了跳设置对应分节，不新建对话框、不发请求。
+// 空态的两条首次运行入口：只在「未登录且没有供应商」时出现；点了跳设置对应
+// 分节，不新建对话框、不发请求。
 func TestEmptyStateFirstRunGuide(t *testing.T) {
 	for _, tc := range []struct {
 		text  string
@@ -18,7 +19,7 @@ func TestEmptyStateFirstRunGuide(t *testing.T) {
 		{"登录账号", "登录账号：打开设置里的账户分节", secAccount},
 		{"添加供应商", "添加供应商：打开设置里的模型供应分节", secProviders},
 	} {
-		app, tt := newTester(t, StateEmpty)
+		app, tt := firstRunTester(t, &fakeSource{conn: Connection{Phase: "connected"}})
 		if _, ok := tt.Find(tc.label); !ok {
 			t.Fatalf("空态缺少入口 %q", tc.label)
 		}
@@ -30,6 +31,45 @@ func TestEmptyStateFirstRunGuide(t *testing.T) {
 				tc.text, app.screen, app.settingsSection, tc.want)
 		}
 	}
+}
+
+// 已登录或已有供应商时空态不摆首次运行入口（参考的空态只有品牌标记与输入卡）。
+func TestFirstRunGuideHiddenWhenNotNeeded(t *testing.T) {
+	signedIn := &fakeSource{conn: Connection{Phase: "connected"},
+		acct: AccountSnapshot{Status: "signed_in", Initial: "ER"}}
+	withProvider := &fakeSource{conn: Connection{Phase: "connected"},
+		settings: SettingsSnapshot{Providers: []ProviderOption{{ID: "p", Name: "某供应商"}}}}
+	signedOutNoProvider := &fakeSource{conn: Connection{Phase: "connected"}}
+
+	cases := []struct {
+		name string
+		src  *fakeSource
+		want bool
+	}{
+		{"已登录", signedIn, false},
+		{"已有供应商", withProvider, false},
+		{"未登录且无供应商", signedOutNoProvider, true},
+	}
+	for _, tc := range cases {
+		_, tt := firstRunTester(t, tc.src)
+		_, ok := tt.Find("登录账号：打开设置里的账户分节")
+		if ok != tc.want {
+			t.Fatalf("%s：首次运行入口出现=%v，想要 %v", tc.name, ok, tc.want)
+		}
+	}
+
+	// -demo（样例账号已登录）同样不摆这两条。
+	_, tt := newTester(t, StateEmpty)
+	if _, ok := tt.Find("登录账号：打开设置里的账户分节"); ok {
+		t.Fatal("已登录的样例空态不应摆首次运行入口")
+	}
+}
+
+// firstRunTester 渲染一个读 Source 的空态（没有会话、没有消息）。
+func firstRunTester(t *testing.T, src *fakeSource) (*App, *gui.Tester) {
+	t.Helper()
+	app := NewApp(Options{Source: src})
+	return app, gui.NewTester(app.View, WindowWidth, WindowHeight)
 }
 
 // 断线卡：两个入口都在；「查看日志」用系统默认程序打开入口交来的路径。

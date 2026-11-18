@@ -71,10 +71,39 @@ func TestRightPanelTabBar(t *testing.T) {
 	}
 }
 
+// P1：标签条左端的「返回」只在有上层（文件预览）时可点；点了回文件页。
+func TestRightPanelBackButton(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
+	if _, ok := tt.Access("返回"); !ok {
+		t.Fatal("标签条缺少「返回」")
+	}
+	// 文件页本身是根：返回无处可去，点了不动。
+	if err := tt.Click("返回"); err != nil {
+		t.Fatalf("点不到返回：%v", err)
+	}
+	tt.Frame()
+	if app.rightTab != tabFiles {
+		t.Fatalf("在文件页点返回后换到了 %d", app.rightTab)
+	}
+
+	// 打开文件预览：返回到文件页。
+	app.rpOpenPreview("internal/ui/composer.go")
+	tt.Frame()
+	if app.rightTab != tabFilePreview {
+		t.Fatalf("预览没有打开：tab=%d", app.rightTab)
+	}
+	if err := tt.Click("返回"); err != nil {
+		t.Fatalf("点不到返回：%v", err)
+	}
+	tt.Frame()
+	if app.rightTab != tabFiles {
+		t.Fatalf("从预览点返回后 tab=%d，想要文件页 %d", app.rightTab, tabFiles)
+	}
+}
+
 // 文件页：筛选框、目录行、文件行、搜索四态里的三态（搜索中 / 结果 / 空态）
 // 与「加载更多」。
-func TestRightPanelFilesPage(t *testing.T) {
-	app, tt := rightTester(t, tabFiles)
+func TestRightPanelFilesPage(t *testing.T) {	app, tt := rightTester(t, tabFiles)
 	if info, ok := tt.Access("筛选文件"); !ok || info.Placeholder != "筛选文件..." {
 		t.Fatalf("筛选框占位 = %q，想要「筛选文件...」", info.Placeholder)
 	}

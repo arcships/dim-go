@@ -83,7 +83,7 @@ func renderKeybindings(c *gui.Context) {
 	})
 }
 
-// keybindingSearch 是搜索框：放大镜 + 占位「搜索快捷键…」，宽 392。
+// keybindingSearch 是搜索框：只有占位「搜索快捷键」，无前置图标、无省略号，宽 392。
 func keybindingSearch(c *gui.Context) {
 	t := c.Theme()
 	box := gui.Row(c).Shrink(0).Width(screenSearchW).Height(screenControlH).
@@ -94,9 +94,8 @@ func keybindingSearch(c *gui.Context) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})
 	box.Children(func() {
-		screenIcon(c, iconSearch, screenIconMicro, t.TextMuted, "search")
 		gui.TextInputBase(c, &keybindingsScreen.query).Grow(1).
-			Label("搜索快捷键").Placeholder("搜索快捷键…")
+			Label("搜索快捷键").Placeholder("搜索快捷键")
 	})
 }
 

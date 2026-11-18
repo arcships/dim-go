@@ -435,13 +435,18 @@ func (a *App) assistant(c *gui.Context, i int, r round) {
 		a.assistantMessageMenu(m, svc, assistantMessageText(r), selectedTextOf(col))
 	})
 	col.Children(func() {
+		if r.status == roundRunning {
+			// 运行中：轮首先写这一轮已经工作了多久、在做什么（TL-46）。
+			a.runningSummary(c, i, r)
+		}
 		if r.thinking != "" {
 			a.thinkingBlock(c, i, r)
 		}
 		if r.reply != "" {
 			markdown.View(c, r.reply, &a.md)
 		}
-		if len(r.ops) > 0 {
+		// 完成态的过程摘要；运行中由上面的时长摘要承担，不再重复。
+		if r.status != roundRunning && len(r.ops) > 0 {
 			a.roundHeader(c, i, r)
 		}
 		if r.status == roundFailed {
@@ -459,13 +464,82 @@ func (a *App) assistant(c *gui.Context, i int, r round) {
 		if r.note != "" {
 			a.note(c, r.note)
 		}
-		if r.status == roundRunning {
-			a.processingLine(c, r)
-		}
 		if hovered {
 			a.assistantActions(c, r)
 		}
 	})
+}
+
+// runningSummary 是运行中一轮的轮首摘要行（TL-46）：两侧细线 +「已经工作了
+// {时长} · {动作}」+ 折叠箭头，展开后是这一轮的工具行。
+func (a *App) runningSummary(c *gui.Context, i int, r round) {
+	t := c.Theme()
+	open := a.openOf(i)
+	title := runningSummaryText(r)
+	var btn gui.Element
+	var progress, arrow float32
+	gui.Row(c).Grow(1).Gap(space2).AlignItems(gui.Center).Children(func() {
+		gui.Box(c).Grow(1).Height(strokeHairline).Background(t.Border)
+		btn = gui.ButtonBase(c).Shrink(0).Height(timelineRowHeight).Gap(space1).
+			AlignItems(gui.Center).Padding(0, space1).Radius(radius).
+			Cursor(gui.CursorPointer).
+			// 屏幕上不摆状态位；状态留在可读名里（与完成态组头同一口径）。
+			Label("状态：" + statusWord(r.status) + "，" + title).
+			Role(gui.RoleDisclosure).Expanded(*open)
+		switch {
+		case btn.Pressed():
+			btn = btn.Background(t.SurfacePressed)
+		case btn.Hovered():
+			btn = btn.Background(t.SurfaceHover)
+		}
+		progress = btn.AnimateTo("running", b2f(*open), timelineCollapse)
+		arrow = btn.AnimateTo("running-arrow", b2f(*open), timelineArrow)
+		btn.Children(func() {
+			typeSecondaryStrong.style(t, gui.Text(c, title)).TextColor(t.TextMuted).SingleLine()
+			chevron(c, t, arrow)
+		})
+		gui.Box(c).Grow(1).Height(strokeHairline).Background(t.Border)
+	})
+	if btn.Clicked() {
+		*open = !*open
+	}
+	a.revealPanel(c, *open, progress, func() {
+		a.roundOps(c, i, r)
+	})
+}
+
+// runningSummaryText 是运行中摘要的文案：「已经工作了 {时长}」，
+// 有动作时再接「 · {动作}」（参考「已经工作了 48.5s · 执行命令」）。
+func runningSummaryText(r round) string {
+	duration := r.duration
+	if duration == "" {
+		duration = "0s"
+	}
+	text := "已经工作了 " + duration
+	if action := runningAction(r); action != "" {
+		text += " · " + action
+	}
+	return text
+}
+
+// runningAction 是运行中摘要里的动作：取这一轮最后一个动作的说法；
+// 还没有动作时是「等待」（参考的同位文案）。
+func runningAction(r round) string {
+	for i := len(r.ops) - 1; i >= 0; i-- {
+		switch r.ops[i].action {
+		case "执行":
+			return "执行命令"
+		case "读取":
+			return "读取文件"
+		case "改动", "编辑", "写入":
+			return "改动文件"
+		case "搜索":
+			return "搜索"
+		case "抓取":
+			return "抓取网页"
+		}
+	}
+	return "等待"
 }
 
 // thinkingBlock 是思考块：灯泡 + 「思考了 Xs」+ 箭头；展开为引用块。
@@ -534,7 +608,7 @@ func (a *App) roundHeader(c *gui.Context, i int, r round) {
 	progress := btn.AnimateTo("group", b2f(*open), timelineCollapse)
 	arrow := btn.AnimateTo("group-arrow", b2f(*open), timelineArrow)
 	btn.Children(func() {
-		statusMark(c, t, r.status)
+		// 行首只有分组图标、文案与折叠箭头（参考不摆状态位）。
 		iconGlyph(c, iconWorkflow, t.TextMuted, "workflow")
 		typeSecondaryStrong.style(t, gui.Text(c, summary)).TextColor(headerColor(t, r.status)).SingleLine()
 		chevron(c, t, arrow)
@@ -543,24 +617,30 @@ func (a *App) roundHeader(c *gui.Context, i int, r round) {
 		*open = !*open
 	}
 	a.revealPanel(c, *open, progress, func() {
-		gui.Row(c).Grow(1).Gap(space2).Children(func() {
-			rail := gui.Box(c).Width(timelineGroupIndent).Shrink(0).AlignSelf(gui.Stretch).Label("分组轨道")
-			rail.DrawOver(func(p *gui.Painter, rect gui.Rect) {
-				x := rect.X + timelineGroupIndent/2
-				p.Fill(gui.Rect{X: x, Y: rect.Y, W: strokeHairline, H: rect.H}, t.Border, 0)
-			})
-			gui.Column(c).Grow(1).Gap(space3).Children(func() {
-				for n, o := range r.ops {
-					a.opRow(c, i, n, o)
-					// 工具行收起时在行下给一条失败原因；展开后原因在详情的
-					// 「失败原因」段里，这里不再重复。
-					if o.failed && o.cause != "" &&
-						!*a.blockOf(fmt.Sprintf("tool:%d:%d", i, n), false) {
-						typeSecondary.style(t, gui.Text(c, o.cause)).TextColor(t.TextMuted).
-							PaddingStart(timelineGroupIndent)
-					}
+		a.roundOps(c, i, r)
+	})
+}
+
+// roundOps 是一轮的工具行（分组头与运行中摘要共用）：左侧轨道 + 缩进的操作行。
+func (a *App) roundOps(c *gui.Context, i int, r round) {
+	t := c.Theme()
+	gui.Row(c).Grow(1).Gap(space2).Children(func() {
+		rail := gui.Box(c).Width(timelineGroupIndent).Shrink(0).AlignSelf(gui.Stretch).Label("分组轨道")
+		rail.DrawOver(func(p *gui.Painter, rect gui.Rect) {
+			x := rect.X + timelineGroupIndent/2
+			p.Fill(gui.Rect{X: x, Y: rect.Y, W: strokeHairline, H: rect.H}, t.Border, 0)
+		})
+		gui.Column(c).Grow(1).Gap(space3).Children(func() {
+			for n, o := range r.ops {
+				a.opRow(c, i, n, o)
+				// 工具行收起时在行下给一条失败原因；展开后原因在详情的
+				// 「失败原因」段里，这里不再重复。
+				if o.failed && o.cause != "" &&
+					!*a.blockOf(fmt.Sprintf("tool:%d:%d", i, n), false) {
+					typeSecondary.style(t, gui.Text(c, o.cause)).TextColor(t.TextMuted).
+						PaddingStart(timelineGroupIndent)
 				}
-			})
+			}
 		})
 	})
 }
@@ -768,19 +848,6 @@ func (a *App) fileChangeRow(c *gui.Context, change fileChange) {
 	})
 }
 
-// processingLine 是运行中的轮末提示：正在处理 · {时长}（TL-70）。
-func (a *App) processingLine(c *gui.Context, r round) {
-	t := c.Theme()
-	duration := r.duration
-	if duration == "" {
-		duration = "0s"
-	}
-	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
-		iconGlyph(c, iconDot, colorAccentInk.in(t), "activity")
-		typeSecondary.style(t, gui.Text(c, "正在处理 · "+duration)).TextColor(t.TextMuted)
-	})
-}
-
 // assistantActions 是轮末动作条：复制、分叉、重试与完成时间（悬停可见）。
 func (a *App) assistantActions(c *gui.Context, r round) {
 	t := c.Theme()
@@ -981,32 +1048,6 @@ func chevronPoints(r gui.Rect, deg float32) [][2]float32 {
 		pts[i] = [2]float32{cx + p[0]*cos - p[1]*sin, cy + p[0]*sin + p[1]*cos}
 	}
 	return pts
-}
-
-// statusMark 是过程摘要行的行首状态位（U2 §4.1、§6.4、校准 C5）：
-// 固定 16×16 盒，尺寸不随字号变化；运行中是居中的 8px 实心圆，其余是
-// Heroicons outline 图标（24 网格 1.5 描边 → 16px 时 1.0px）。
-func statusMark(c *gui.Context, t *gui.Theme, s roundStatus) {
-	if s == roundRunning {
-		box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0).
-			Label("状态：" + statusWord(s))
-		box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-			p.Fill(gui.Rect{
-				X: r.X + (iconInline-dotStatus)/2,
-				Y: r.Y + (iconInline-dotStatus)/2,
-				W: dotStatus, H: dotStatus,
-			}, colorAccentInk.in(t), dotStatus/2)
-		})
-		return
-	}
-	switch s {
-	case roundWaiting:
-		iconBox(c, iconClock, colorAccentInk.in(t), "状态："+statusWord(s))
-	case roundFailed:
-		iconBox(c, iconXMark, t.Danger, "状态："+statusWord(s))
-	default:
-		iconBox(c, iconCheck, t.TextMuted, "状态："+statusWord(s))
-	}
 }
 
 // statusWord 只用于读屏名称：屏幕上不显示状态词（§9.0 A2「能画出来的不写」），
@@ -1375,12 +1416,18 @@ func rowDurationText(d time.Duration) string {
 }
 
 // emptyTimeline 是"会话里还没有消息"的空态（与无会话的空态区分）。
+// 还没登录且没有供应商时，空态下面给两条首次运行入口（见 firstRunNeeded）。
 func (a *App) emptyTimeline(c *gui.Context) {
 	t := c.Theme()
 	gui.Box(c).Grow(1).Center().Label("对话流").Role(gui.RoleLog).Children(func() {
-		gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("空态").Children(func() {
-			iconGlyph(c, iconChat, t.TextMuted, "chat")
-			typeSecondary.style(t, gui.Text(c, "当前会话还没有消息")).TextColor(t.TextMuted)
+		gui.Column(c).AlignItems(gui.Center).Gap(space4).Children(func() {
+			gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("空态").Children(func() {
+				iconGlyph(c, iconChat, t.TextMuted, "chat")
+				typeSecondary.style(t, gui.Text(c, "当前会话还没有消息")).TextColor(t.TextMuted)
+			})
+			if a.firstRunNeeded() {
+				a.firstRunGuide(c)
+			}
 		})
 	})
 }

@@ -499,7 +499,8 @@ const (
 
 	psCopyShellTitle = "命令 Shell"
 	psCopyShellDesc  = "选择 Agent 内置 exec 工具使用的 Shell。"
-	psCopyShellNone  = "自动（没有受支持的 Shell）"
+	// psCopyShellNone 是选择器取值：没有可用的已保存 Shell 时，参考显示这句。
+	psCopyShellNone  = "已保存的 Shell 不可用："
 	psCopyRefresh    = "刷新"
 	psCopyShellScope = "TUI 和 Desktop 共享此设置。新建或重新加载的任务使用它；当前任务保持原 Shell。"
 	psCopyShellCache = "已有任务以其他 Shell 重新加载时，可能降低提示词缓存复用率并消耗额外 token。"

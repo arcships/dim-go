@@ -317,12 +317,13 @@ func (a *App) rpHandle(c *gui.Context) {
 	}
 }
 
-// rpTabBar 是标签条：标签页（可横向滚动）+ ＋新建标签页 + 展开面板。
+// rpTabBar 是标签条：返回 + 标签页（可横向滚动）+ ＋新建标签页 + 展开面板。
 func (a *App) rpTabBar(c *gui.Context) {
 	s := a.rp()
 	a.rpTabKeys(c)
 	gui.Row(c).Height(HeaderHeight).Shrink(0).Padding(space1, space3).
 		AlignItems(gui.Center).Gap(space1).Label("右栏标签").Children(func() {
+		a.rpBackButton(c)
 		gui.ScrollHorizontal(c).Grow(1).Children(func() {
 			gui.Row(c).AlignItems(gui.Center).Gap(space1).Children(func() {
 				for i, tab := range s.tabs {
@@ -333,6 +334,17 @@ func (a *App) rpTabBar(c *gui.Context) {
 		a.rpNewTabButton(c)
 		a.rpExpandButton(c)
 	})
+}
+
+// rpBackButton 是标签条左端的「返回」（RP-A-02）：从文件预览回到文件页。
+// 没有上层时（文件页本身、预览页还没打开文件）禁用，不假装能回去。
+func (a *App) rpBackButton(c *gui.Context) {
+	s := a.rp()
+	back := a.rightTab == tabFilePreview && s.previewPath != ""
+	if iconButton(c, iconButtonSpec{icon: iconChevronL, label: "返回",
+		tip: "返回文件", size: panelBarAction, disabled: !back}) {
+		a.rightTab = tabFiles
+	}
 }
 
 // rpTabKeys 是 ⌘1…⌘9 切页（RP-A-22）：标签多于 1 个时才生效。

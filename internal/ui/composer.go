@@ -18,7 +18,8 @@ import (
 //
 // 来源差异（空态）：参考产品的空态只有品牌标记、「开始构建」与输入卡，首次运行
 // 由一次性欢迎卡（inventory-global K5）承接，没有「登录账号」「添加供应商」这两条
-// 入口。这两条是我们的首次运行引导，点了直接跳设置对应分节，不是参考产品的元素。
+// 入口。这两条是我们的首次运行引导，只在**未登录且没有供应商**时出现（已登录 /
+// 已有供应商时与参考一致，不画），点了直接跳设置对应分节。
 //
 // 来源差异（断线卡）：「查看日志」也是我们加的：参考产品在这一位只给原因与重试。
 // 它打开入口交来的客户端日志（Options.LogPath），打开失败时把路径留在原位供复制。
@@ -102,8 +103,8 @@ func (a *App) composer(c *gui.Context) {
 	})
 }
 
-// emptyThread 是空态（NewThread）：品牌标记 +「开始构建」+ 输入卡 + 控制行，
-// 卡片下方是两条首次运行入口。
+// emptyThread 是空态（NewThread）：品牌标记 +「开始构建」+ 输入卡 + 控制行；
+// 还没登录且没有供应商时，卡片下方多两条首次运行入口。
 // 它占满主区并整体居中，时间线不在空态里重复写一句「还没有消息」。
 func (a *App) emptyThread(c *gui.Context) {
 	t := c.Theme()
@@ -116,9 +117,37 @@ func (a *App) emptyThread(c *gui.Context) {
 						FontWeight(700).Label("开始构建")
 				})
 				a.inputBlock(c, true)
-				a.firstRunGuide(c)
+				if a.firstRunNeeded() {
+					a.firstRunGuide(c)
+				}
 			})
 	})
+}
+
+// firstRunNeeded 是首次运行入口的出现条件：**未登录且没有供应商**。
+// 已登录或已有供应商时，参考产品的空态没有这两条入口。
+func (a *App) firstRunNeeded() bool {
+	return !a.accountLoggedIn() && !a.hasProviders()
+}
+
+// accountLoggedIn 取账号是否已登录：连着 Source 时看服务端确认的状态，
+// 样例（-demo）里有账号首字母就是已登录（样例账号与设置 › 账户同一份）。
+func (a *App) accountLoggedIn() bool {
+	if a.source == nil {
+		return a.accountInitial != ""
+	}
+	return a.source.Account().Status == "signed_in"
+}
+
+// hasProviders 取是否读到任何供应商：管理清单、模型选择器的供应商表或
+// 当前供应商任一非空即算已有供应商；样例（-demo）没有供应商读数，按没有算。
+func (a *App) hasProviders() bool {
+	if a.source == nil {
+		return false
+	}
+	settings := a.source.Settings()
+	return len(settings.ProviderRecords) > 0 || len(settings.Providers) > 0 ||
+		settings.ProviderID != ""
 }
 
 // firstRunGuide 是空态的两条首次运行入口（我们的差异项，见文件头）：

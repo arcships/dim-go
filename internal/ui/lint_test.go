@@ -519,13 +519,12 @@ func lintStatesDistinct(t *testing.T) []lintFinding {
 	for _, s := range states {
 		app := NewApp(Options{State: s})
 		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-		// 状态位是组头这个 disclosure 的可读名的一部分（图标盒不单独成节点），
-		// 因此从文本/标签表里取「状态：…」。
+		// 屏幕上不摆状态位（M4），状态是组头这个 disclosure 的可读名的一部分
+		// （「轮次组头 …，状态：完成，…」或运行中的「状态：正在运行，…」），
+		// 因此从文本/标签表里按「状态：…」截出状态词。
 		var labels []string
 		for _, text := range tt.Texts() {
-			if strings.HasPrefix(text, "状态：") {
-				labels = append(labels, text)
-			}
+			labels = append(labels, statusTokens(text)...)
 		}
 		sort.Strings(labels)
 		if len(labels) == 0 && s != StateEmpty {
@@ -545,6 +544,25 @@ func lintStatesDistinct(t *testing.T) []lintFinding {
 		images[hash] = s
 	}
 	return out
+}
+
+// statusTokens 取一段可读名里的状态词：每个「状态：」之后到下一个分隔符。
+func statusTokens(text string) []string {
+	const marker = "状态："
+	var out []string
+	for {
+		i := strings.Index(text, marker)
+		if i < 0 {
+			return out
+		}
+		rest := text[i+len(marker):]
+		end := strings.IndexAny(rest, "，,；;。")
+		if end < 0 {
+			end = len(rest)
+		}
+		out = append(out, rest[:end])
+		text = rest[end:]
+	}
 }
 
 // L5（渲染侧）：逐条按 `when` 造出它出现的界面，再判形式。

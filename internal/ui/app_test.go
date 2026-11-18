@@ -1298,15 +1298,16 @@ func TestButtonUsesFrameworkHeight(t *testing.T) {
 	}
 }
 
-// C5：状态位是固定 16×16 盒，不随字号变化。
-func TestStatusMarkIs16Box(t *testing.T) {
+// M4：过程摘要行行首不摆状态位（只有分组图标 + 文案 + 折叠箭头）；
+// 状态只留在可读名里。
+func TestRoundHeaderHasNoStatusMark(t *testing.T) {
 	_, tt := newTester(t, StateDefault)
-	r, ok := tt.Find("状态：完成")
-	if !ok {
-		t.Fatal("找不到状态位")
+	if r, ok := tt.Find("状态：完成"); ok {
+		t.Fatalf("摘要行不应再有状态位（找到 %+v）", r)
 	}
-	if r.W != 16 || r.H != 16 {
-		t.Fatalf("状态位 %+v，想要 16×16", r)
+	// 读屏名仍然带状态（上面 TestRoundHeaderAriaNameCarriesStatus 细化）。
+	if !tt.HasText("状态：完成") {
+		t.Fatal("可读名里应保留状态")
 	}
 }
 

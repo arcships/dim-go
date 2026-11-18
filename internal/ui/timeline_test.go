@@ -46,6 +46,22 @@ func TestThinkingBlockExpands(t *testing.T) {
 	}
 }
 
+// M3：运行中的一轮在轮首给「已经工作了 {时长} · {动作}」摘要行；
+// 轮末不再另写一行重复的时长。
+func TestRunningSummaryLine(t *testing.T) {
+	app, tt := newTester(t, StateRunning)
+	summary := runningSummaryText(app.rounds[len(app.rounds)-2])
+	if summary != "已经工作了 1m 28s · 改动文件" {
+		t.Fatalf("摘要文案 = %q", summary)
+	}
+	if !tt.HasText(summary) {
+		t.Fatalf("运行中没有时长摘要行：%v", tt.Texts())
+	}
+	if tt.HasText("正在处理 · 1m 28s") {
+		t.Fatal("轮末不应再写一行同样的时长")
+	}
+}
+
 // 工具分组：运行中的最新一轮默认展开，工具行带参数摘要与差异计数；
 // 点一行展开输入详情。
 func TestToolGroupShowsToolRowsAndDetails(t *testing.T) {

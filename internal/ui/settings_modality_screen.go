@@ -251,7 +251,7 @@ func mdTaskFormCard(c *gui.Context, t *gui.Theme) gui.Element {
 }
 
 // mdTaskListCard 是所有者任务卡（S-modality-41…47 的可见支）：小标题 + 禁用的
-// 状态筛选 + 禁用的刷新 + 空态一行。
+// 刷新 + 空态一行。参考这一行没有状态筛选下拉（只有标题、刷新与空态）。
 func mdTaskListCard(c *gui.Context, t *gui.Theme) gui.Element {
 	card := mdCard(c)
 	card.Children(func() {
@@ -261,8 +261,6 @@ func mdTaskListCard(c *gui.Context, t *gui.Theme) gui.Element {
 				typeSecondaryStrong.style(t, gui.Text(c, mdCopyOwnedTasks)).
 					TextColor(t.Text).SingleLine()
 				gui.Spacer(c)
-				gui.Select(c, &modalityUI.filter, mdTaskFilters).
-					Width(mdFilterW).Height(mdFieldH).Label(mdCopyFilter).Disabled(true)
 				mdIconButton(c, t, accIconRefresh, mdCopyRefresh, mdCopyRefresh, true)
 			})
 			typeSecondary.style(t, gui.Text(c, mdCopyNoTasks)).
@@ -468,11 +466,10 @@ func mdAlertBanner(c *gui.Context, t *gui.Theme, text string) gui.Element {
 
 // ---- 状态 ----
 
-// modalityUIState 是本屏可丢的界面状态：当前分组、状态筛选与表单草稿。
+// modalityUIState 是本屏可丢的界面状态：当前分组与表单草稿。
 // 批量字段一起接线时搬进 App 即可。
 type modalityUIState struct {
-	group  int
-	filter string
+	group int
 
 	category     string
 	operation    string
@@ -488,12 +485,9 @@ type modalityUIState struct {
 }
 
 var modalityUI = modalityUIState{
-	filter:   mdCopyFilterAll,
 	params:   "{}",
 	rtParams: "{}",
 }
-
-var mdTaskFilters = []string{mdCopyFilterAll}
 
 // ---- 几何 / 字阶 / 图标 ----
 
@@ -537,10 +531,9 @@ const (
 	mdTextareaFilesH   = 58   // 文件多行输入
 	mdTextareaPadV     = 6
 	mdTextareaPadX     = 10.5
-	mdRowGap           = 7   // 行内图标与文字之间
-	mdButtonGap        = 7   // 两个按钮之间
-	mdFilterW          = 101 // 状态筛选宽（DOM 实测）
-	mdIconSmall        = 14  // 行内图标
+	mdRowGap           = 7  // 行内图标与文字之间
+	mdButtonGap        = 7  // 两个按钮之间
+	mdIconSmall        = 14 // 行内图标
 	mdAlertPadY        = 7
 	mdAlertPadX        = 10.5
 	mdAlertGap         = 7
@@ -580,8 +573,6 @@ const (
 	mdCopyModel            = "模型（可选）"
 	mdCopyClientTaskID     = "客户端任务 ID（可选）"
 	mdCopyOwnedTasks       = "所有者任务"
-	mdCopyFilter           = "状态筛选"
-	mdCopyFilterAll        = "全部状态"
 	mdCopyRefresh          = "刷新"
 	mdCopyNoTasks          = "没有任务。"
 	mdCopyRealtime         = "实时会话"
