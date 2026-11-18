@@ -24,6 +24,24 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/uiwire"
 )
 
+// retryingIntents 把「重新连接」接到完整启动序列上。
+//
+// 启动阶段就失败时（找不到服务端、服务端没起来），集成层还没有连接监督者，
+// 单纯重连只会得到「未连接服务端」；这时补一次连接与订阅才是真正的重试。
+// 其余意图原样交给适配器，不新增任何协议通道。
+type retryingIntents struct {
+	*uiwire.App
+	connect func(context.Context) error
+}
+
+// Reconnect 先走常规重连；连不上时重走一遍连接与订阅。
+func (r retryingIntents) Reconnect(ctx context.Context) error {
+	if err := r.App.Reconnect(ctx); err == nil {
+		return nil
+	}
+	return r.connect(ctx)
+}
+
 // 启动时序。连接模式第一次运行要等 App Server 拉起并握手，超时按启动失败处理。
 const (
 	// demoShotDelay 是样例模式截图的等待：静态样例第一帧就够。
@@ -163,7 +181,7 @@ func main() {
 		appBase = base
 		wire = uiwire.New(base)
 		source = wire
-		intents = wire
+		intents = retryingIntents{App: wire, connect: wire.Connect}
 		startup.printf("日志：%s", startup.Path())
 	}
 
