@@ -182,6 +182,11 @@ func TestRoundHeaderIsContentPhrase(t *testing.T) {
 		}
 	}
 	for _, text := range tt.Texts() {
+		// 思考块的「思考了 0.3s」与运行中的「正在处理 · 1m 28s」是参考产品
+		// 明确要显示的时长；组头本身仍不写时长。
+		if strings.HasPrefix(text, "思考过程") || strings.HasPrefix(text, "思考了") || strings.HasPrefix(text, "正在思考") || strings.HasPrefix(text, "正在处理") {
+			continue
+		}
 		if duration.MatchString(text) {
 			t.Fatalf("主界面不应出现时长：%q", text)
 		}
@@ -251,8 +256,8 @@ func TestRoundHeaderTogglesOnContentClick(t *testing.T) {
 		t.Fatal("点内容块没有展开")
 	}
 	tt.Advance(300 * time.Millisecond)
-	if !tt.HasText("4 个操作 · 改了 2 个文件") {
-		t.Fatalf("展开后缺少计数：%v", tt.Texts())
+	if !tt.HasText("composer.go") {
+		t.Fatalf("展开后缺少工具行：%v", tt.Texts())
 	}
 	row = headerRow(t, tt)
 	tt.ClickAt(row.X+row.W/2, row.Y+row.H/2)
@@ -269,11 +274,11 @@ func TestRoundHeaderIsLeftAlignedAndContentSized(t *testing.T) {
 		t.Fatal("找不到对话内容")
 	}
 	row := headerRow(t, tt)
-	if row.X != content.X+space4 {
-		t.Fatalf("组头左缘 %v，想要内容列左缘 %v", row.X, content.X+space4)
+	if row.X != content.X+timelinePadX {
+		t.Fatalf("组头左缘 %v，想要内容列左缘 %v", row.X, content.X+timelinePadX)
 	}
-	if row.W >= content.W/2 {
-		t.Fatalf("组头宽 %v，内容列宽 %v：行宽仍是容器给的", row.W, content.W)
+	if want := content.W - 2*timelinePadX; row.W != want {
+		t.Fatalf("组头宽 %v，想要内容列宽 %v", row.W, want)
 	}
 }
 
@@ -1133,11 +1138,11 @@ func TestRegionDimensions(t *testing.T) {
 		t.Fatalf("内容列左缘 %v，想要贴着主区左缘 %v", content.X, SidebarWidth)
 	}
 	row := headerRow(t, tt)
-	if row.X != SidebarWidth+space4 {
-		t.Fatalf("组头左缘 %v，想要内容列左缘 %v", row.X, SidebarWidth+space4)
+	if row.X != SidebarWidth+timelinePadX {
+		t.Fatalf("组头左缘 %v，想要内容列左缘 %v", row.X, SidebarWidth+timelinePadX)
 	}
-	if row.W >= (WindowWidth-SidebarWidth)/2 {
-		t.Fatalf("组头宽 %v，内容仍被容器撑开", row.W)
+	if want := float32(WindowWidth-SidebarWidth) - 2*timelinePadX; row.W != want {
+		t.Fatalf("组头宽 %v，想要内容列宽 %v", row.W, want)
 	}
 }
 

@@ -192,6 +192,8 @@ type App struct {
 	// summaryOpen 是每一轮的展开态（可丢的视图状态）：按轮次索引存一份 *bool，
 	// 指针稳定、按需创建——轮次变多时不必重建数组，view 里也不攒第二份事实。
 	summaryOpen map[int]*bool
+	// blockOpen 是思考块、工具行、产物与改动块的开合（键是块标识）。
+	blockOpen map[string]*bool
 
 	// connected 与 accountInitial 是样例里的连接态与账号首字母：只用于画状态点
 	// 与头像（UI-23），不是事实来源。
@@ -283,25 +285,29 @@ type App struct {
 
 	// 重建后的输入区 / 标题栏视图状态：推理强度、模式、权限、工作区、选择器
 	// 浮层的开合与查询词。全部可丢，不承载事实。
-	effort          float64
-	effortOpen      bool
-	modelOpen       bool
-	modelQuery      string
-	skillsOpen      bool
-	skillQuery      string
-	mode            string
-	modeOpen        bool
-	workspaceName   string
-	workspaceOpen   bool
-	workspaceQuery  string
-	permission      string
-	permissionOpen  bool
-	chatMenuOpen    bool
-	openWithOpen    bool
-	openWithLoading bool
-	openWithApp     string
-	chatPinned      bool
-	headerNote      string
+	effort            float64
+	effortOpen        bool
+	modelOpen         bool
+	modelQuery        string
+	skillsOpen        bool
+	skillQuery        string
+	mode              string
+	modeOpen          bool
+	workspaceName     string
+	workspaceOpen     bool
+	workspaceQuery    string
+	permission        string
+	permissionOpen    bool
+	permissionArmOpen bool
+	permissionArmAck  bool
+	statusBranchOpen  bool
+	statusBranchQuery string
+	chatMenuOpen      bool
+	openWithOpen      bool
+	openWithLoading   bool
+	openWithApp       string
+	chatPinned        bool
+	headerNote        string
 
 	// model 是当前模型名（输入区工具行与标题栏共用）。
 	model string
@@ -360,6 +366,11 @@ func (a *App) loadSample() {
 	}
 	a.rounds = sampleRounds(a.state)
 	a.summaryOpen = make(map[int]*bool)
+	a.blockOpen = make(map[string]*bool)
+	// 运行中的最新一轮把工具分组默认展开：参考产品在输出时就是展开态。
+	if a.state == StateRunning && len(a.rounds) >= 2 {
+		*a.openOf(len(a.rounds) - 2) = true
+	}
 	a.approvalCommand = ""
 	// 上下文用量的样例值：12%，与线框一致；上限只是样例，不是事实。
 	a.contextUsed, a.contextLimit = 24_600, 200_000
@@ -396,6 +407,10 @@ func (a *App) loadSample() {
 	a.workspaceQuery = ""
 	a.permission = "默认权限"
 	a.permissionOpen = false
+	a.permissionArmOpen = false
+	a.permissionArmAck = false
+	a.statusBranchOpen = false
+	a.statusBranchQuery = ""
 	a.chatMenuOpen = false
 	a.openWithOpen = false
 	a.openWithLoading = false
@@ -503,6 +518,7 @@ func (a *App) loadSample() {
 func (a *App) resetWiredViewState() {
 	a.rounds = nil
 	a.summaryOpen = make(map[int]*bool)
+	a.blockOpen = make(map[string]*bool)
 	a.approvalCommand = ""
 	a.contextUsed, a.contextLimit = 0, 0
 	a.contextOpen = false
@@ -546,6 +562,10 @@ func (a *App) resetWiredViewState() {
 	a.workspaceQuery = ""
 	a.permission = "默认权限"
 	a.permissionOpen = false
+	a.permissionArmOpen = false
+	a.permissionArmAck = false
+	a.statusBranchOpen = false
+	a.statusBranchQuery = ""
 	a.chatMenuOpen = false
 	a.openWithOpen = false
 	a.openWithLoading = false
@@ -804,6 +824,9 @@ func (a *App) layout(c *gui.Context) {
 					}
 					a.timeline(c)
 					a.composer(c)
+					if a.statusBarVisible() {
+						a.statusBar(c)
+					}
 				})
 				if panel > 0 {
 					a.rightPanel(c, panel)

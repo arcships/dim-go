@@ -57,7 +57,7 @@ func TestSourceDrivesSidebarAndTimeline(t *testing.T) {
 			t.Fatalf("Source 为空时仍显示样例会话 %q", name)
 		}
 	}
-	if _, ok := tt.Find("还没有消息"); !ok {
+	if _, ok := tt.Find("当前会话还没有消息"); !ok {
 		t.Fatal("空列表没有进空态")
 	}
 

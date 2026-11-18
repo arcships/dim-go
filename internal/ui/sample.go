@@ -29,17 +29,21 @@ const (
 	roundFailed
 )
 
-// op 是一次操作的折叠视图：动作、对象、结果，失败带原因。不带时长：时长
-// 不进界面（§9.0 取向 2）。
+// op 是一次操作的折叠视图：动作、对象、结果，失败带原因。差异计数只在
+// 工具行上出现；时长不进界面（§9.0 取向 2）。
 type op struct {
-	action string
-	target string
-	result string
-	cause  string
-	failed bool
+	action  string
+	target  string
+	result  string
+	cause   string
+	input   string
+	output  string
+	added   int
+	removed int
+	failed  bool
 }
 
-// round 是一轮：用户消息、助手正文、轮次组头与展开后的操作清单。
+// round 是一轮：用户消息、助手正文、思考块、工具分组与轮末块。
 type round struct {
 	user   string
 	reply  string
@@ -50,14 +54,45 @@ type round struct {
 	// note 是本轮下方的一行说明（「结果不确定」）。
 	note string
 	ops  []op
+	// at 是用户消息的发送时间（悬停动作行上显示）；空表示没有。
+	at string
+	// thinking / thinkingDuration 是思考块的原文与时长。
+	thinking         string
+	thinkingDuration string
+	// duration 是运行中轮末的「正在处理 · {时长}」。
+	duration string
+	// retrySeconds 是失败后的自动重试倒计时；0 表示没有重试通知。
+	retrySeconds int
+	// fileChanges 是本轮改动的文件；artifacts 是本轮产物。
+	fileChanges []fileChange
+	artifacts   []artifact
+	// divider 是轮前的分隔文案（压缩/截断）；空表示没有。
+	divider string
+}
+
+// fileChange 是一个改动文件。
+type fileChange struct {
+	path    string
+	status  string
+	added   int
+	removed int
+}
+
+// artifact 是一个产物。
+type artifact struct {
+	name string
 }
 
 func doneOps() []op {
 	return []op{
-		{action: "读取", target: "internal/ui/composer.go", result: "完成"},
-		{action: "改动", target: "internal/ui/composer.go", result: "完成"},
-		{action: "改动", target: "internal/ui/timeline.go", result: "完成"},
+		{action: "读取", target: "internal/ui/composer.go", result: "完成",
+			input: "path: internal/ui/composer.go"},
+		{action: "改动", target: "internal/ui/composer.go", result: "完成",
+			added: 19, removed: 2},
+		{action: "改动", target: "internal/ui/timeline.go", result: "完成",
+			added: 6, removed: 4},
 		{action: "执行", target: "go test ./...", result: "失败",
+			input: "command: go test ./...", output: "$ go test ./...\nFAIL\t./internal/ui",
 			cause: "权限不足，命令没有执行", failed: true},
 	}
 }
@@ -70,19 +105,28 @@ func sampleRounds(s State) []round {
 
 	base := []round{
 		{
-			user:   "看看这次的失败",
-			reply:  "消息在排队判定里丢了：运行中提交会覆盖队列。我把输入位改成“运行中先入队，结束后自动发出”。",
-			status: roundDone,
-			ops:    doneOps(),
+			user:             "看看这次的失败",
+			reply:            "消息在排队判定里丢了：运行中提交会覆盖队列。我把输入位改成“运行中先入队，结束后自动发出”。",
+			status:           roundDone,
+			ops:              doneOps(),
+			at:               "星期二 21:22",
+			thinking:         "用户要看失败原因。先读输入区与时间线，确认排队判定覆盖了草稿。",
+			thinkingDuration: "0.3s",
 		},
 		{
 			user:   "顺手把输入区的旧逻辑也看下",
 			reply:  "输入区已经没有覆盖路径了：草稿与队列分开保存，队列只在上沿显示一行。",
 			status: roundDone,
 			ops: []op{
-				{action: "读取", target: "internal/ui/composer.go", result: "完成"},
-				{action: "改动", target: "internal/ui/composer.go", result: "完成"},
+				{action: "读取", target: "internal/ui/composer.go", result: "完成",
+					input: "path: internal/ui/composer.go"},
+				{action: "改动", target: "internal/ui/composer.go", result: "完成",
+					added: 8, removed: 3},
 			},
+			at:               "星期二 21:23",
+			thinking:         "检查草稿与队列的保存位置，确认没有第二条覆盖路径。",
+			thinkingDuration: "0.5s",
+			divider:          "上下文已压缩",
 		},
 	}
 
@@ -91,8 +135,14 @@ func sampleRounds(s State) []round {
 		reply:  "已经改成排队：运行中的提交先入队，当前这一轮结束后自动发出。",
 		status: roundDone,
 		ops: []op{
-			{action: "改动", target: "internal/ui/composer.go", result: "完成"},
-			{action: "执行", target: "go test ./internal/ui", result: "完成"},
+			{action: "改动", target: "internal/ui/composer.go", result: "完成",
+				added: 19, removed: 2},
+			{action: "执行", target: "go test ./internal/ui", result: "完成",
+				input: "command: go test ./internal/ui", output: "ok  \tgithub.com/arcships/dimagent-mygo/internal/ui"},
+		},
+		at: "星期二 21:25",
+		fileChanges: []fileChange{
+			{path: "internal/ui/composer.go", status: "M", added: 19, removed: 2},
 		},
 	}
 
@@ -102,18 +152,27 @@ func sampleRounds(s State) []round {
 		reply:  richReply,
 		status: roundDone,
 		ops: []op{
-			{action: "读取", target: "internal/ui/composer.go", result: "完成"},
+			{action: "读取", target: "internal/ui/composer.go", result: "完成",
+				input: "path: internal/ui/composer.go"},
 		},
+		at:               "星期二 21:26",
+		thinking:         "把改动按结论、清单与代码块组织，便于逐条核对。",
+		thinkingDuration: "0.4s",
+		artifacts:        []artifact{{name: "排队说明.md"}},
 	}
 
 	switch s {
 	case StateRunning:
 		last.reply = "正在改写发送路径…"
 		last.status = roundRunning
+		last.duration = "1m 28s"
 		last.ops = []op{
-			{action: "读取", target: "internal/ui/composer.go", result: "完成"},
-			{action: "改动", target: "internal/ui/composer.go", result: "完成"},
-			{action: "改动", target: "internal/ui/timeline.go", result: "运行中"},
+			{action: "读取", target: "internal/ui/composer.go", result: "完成",
+				input: "path: internal/ui/composer.go"},
+			{action: "改动", target: "internal/ui/composer.go", result: "完成",
+				added: 19, removed: 2},
+			{action: "改动", target: "internal/ui/timeline.go", result: "运行中",
+				added: 6, removed: 4},
 		}
 	case StateWaiting:
 		last = round{
@@ -122,17 +181,33 @@ func sampleRounds(s State) []round {
 			status: roundWaiting,
 			ops: []op{
 				{action: "读取", target: "tmp/", result: "完成"},
-				{action: "执行", target: "rm -rf ./tmp/*", result: "等待同意"},
+				{action: "执行", target: "rm -rf ./tmp/*", result: "等待同意",
+					input: "command: rm -rf ./tmp/*"},
 			},
 		}
 	case StateFailed:
-		// 未收到事实：不知道这一轮有没有被创建，所以不画轮次组头，只留占位与
-		// 说明行（U3 §6.1「未收到事实前不生成轮次」）。
+		// 先展示一次确实失败的轮次（失败文案 + 自动重试），再给一条「未收到事实」
+		// 的占位轮：不知道它有没有被创建，所以不画组头（U3 §6.1）。
 		last = round{
+			user:   "再跑一次完整测试",
+			reply:  "命令没有拿到执行权限，这一轮到此结束。",
+			status: roundFailed,
+			ops: []op{
+				{action: "读取", target: "internal/ui/composer.go", result: "完成"},
+				{action: "执行", target: "go test ./...", result: "失败",
+					input: "command: go test ./...", output: "$ go test ./...\nFAIL\t./internal/ui",
+					cause: "权限不足，命令没有执行", failed: true},
+			},
+			at:               "星期二 21:27",
+			thinking:         "先读失败点，再重跑完整测试确认。",
+			thinkingDuration: "0.6s",
+			retrySeconds:     5,
+		}
+		return append(base, last, round{
 			user:    "把临时目录清掉",
 			unknown: true,
 			note:    "结果不确定 · 正在核对",
-		}
+		}, rich)
 	}
 
 	// 富文本轮排在最后：默认态因此"至少一轮回复含块级结构"，同时不打乱前几轮

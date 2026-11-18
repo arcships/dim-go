@@ -8,10 +8,14 @@ import (
 )
 
 // 终端是右栏的第五个标签（U1-ia R5 的职责句与 U1 E6「终端会话」都在右栏；
-// S25 的输入区 `!` 前缀是另一件事，属后续批次，本批不做）。
+// S25 的输入区 `!` 前缀是另一件事）。
 //
-// 表面 = 等宽输出区 + 提示行；状态用样式（行首点 + 颜色），不在标题里写「运行中」。
-// 输出里的 ANSI 片段只取颜色（前 8 色），不解析光标移动——本批是界面形态，不接 pty。
+// 形态按参考产品的右栏终端（requirements-panels.md §4，T-01–T-21）：
+// 工具条（终端标签 + 关闭进程 + 新建终端 + 关闭终端）、深色画布、提示行
+// `(base) → 目录`、画布右键菜单（复制选中内容 / 粘贴 / 清屏 / 新建终端 / 关闭进程）。
+//
+// 画布是固定的深底，不随主题变白（R-TM-063）；输出里的 ANSI 片段只取颜色，
+// 不解析光标移动。Go 侧没有 pty：连着 Source 时读它的终端快照，否则用样例。
 
 // termState 是终端的四种状态。
 type termState int
@@ -28,6 +32,31 @@ type termLine struct {
 	text  string
 	color int
 }
+
+// 终端面板的尺寸。
+const (
+	// termToolbarHeight 是工具条高：参考的终端标签 25 + 上下留白（T-01）。
+	termToolbarHeight = rowRegular + 2*space1
+	// termEnvDefault 是样例里的 shell 环境名前缀；连着 Source 时没有这一项。
+	termEnvDefault = "(base)"
+	// termClosedNotice 是进程被关掉后内容区的提示行（T-10，全角方括号）。
+	termClosedNotice = "［进程已关闭］"
+	// termEmptyText 是画布还没有输出时的说明行。
+	termEmptyText = "还没有输出"
+)
+
+// 终端画布的固定配色：不跟随主题（R-TM-063），取参考产品的深底与终端八色。
+var (
+	termCanvasBg    = gui.Hex("#1a1a1a")
+	termCanvasText  = gui.Hex("#e4e4e4")
+	termCanvasMuted = gui.Hex("#8a8a8a")
+	termCanvasShell = gui.Hex("#6cc07a")
+	termCanvasArrow = gui.Hex("#4ec9b0")
+	termAnsiRed     = gui.Hex("#e06c75")
+	termAnsiGreen   = gui.Hex("#98c379")
+	termAnsiYellow  = gui.Hex("#e5c07b")
+	termAnsiBlue    = gui.Hex("#61afef")
+)
 
 // termSamples 返回一组样例输出：ANSI 颜色、长行、多行错误。
 func termSamples(state termState) []termLine {
@@ -86,103 +115,243 @@ func (a *App) terminalView() (termState, []termLine, bool) {
 	return state, lines, true
 }
 
-// terminalPane 是终端表面：一行工具条（状态点 + 清屏 / 中止）+ 输出区 + 提示行。
-func (a *App) terminalPane(c *gui.Context) {
-	t := c.Theme()
-	state, lines, wired := a.terminalView()
+// terminalPanel 是终端面板：工具条 + 深色画布。
+func (a *App) terminalPanel(c *gui.Context) {
+	gui.Column(c).Grow(1).Children(func() {
+		a.termToolbar(c)
+		a.termCanvas(c)
+	})
+}
 
-	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).
+// termToolbar 是终端工具条（T-01–T-07）：终端标签（标题 + 关闭进程）、
+// 新建终端、关闭终端；右侧是走查用的中止 / 清屏 / 复制 / 断线入口。
+func (a *App) termToolbar(c *gui.Context) {
+	t := c.Theme()
+	state, _, wired := a.terminalView()
+	gui.Row(c).Height(termToolbarHeight).Shrink(0).
+		Padding(space1, panelPad).Gap(space1).AlignItems(gui.Center).
 		Label(termLabel(state)).Children(func() {
-		// 状态：行首一个 8px 点（空闲次要色、运行中 accent、已退出成功色、断开
-		// danger）；屏幕上不写状态词，只给读屏名（UI-23/A2）。
-		statusDotMark(c, termColor(t, state), "term")
+		a.termTab(c)
+		if iconButton(c, iconButtonSpec{
+			icon: iconPlus, label: "新建终端", tip: "新建终端",
+			size: rowCompact, disabled: a.workspaceTitle() == "",
+		}) {
+			a.newTerminal()
+		}
+		if iconButton(c, iconButtonSpec{
+			icon: iconXMark, label: "关闭终端", tip: "关闭终端", size: rowCompact,
+		}) {
+			a.closeTerminal()
+		}
 		gui.Spacer(c)
-		if wired {
-			// 中止只在有已发出的运行时出现；清屏与复制是本地动作。
-			if a.lastShellRun != "" {
-				if iconButton(c, iconButtonSpec{icon: iconStop, label: "中止运行", size: rowCompact}) {
-					runID := a.lastShellRun
-					a.dispatch("中止命令", func(ctx context.Context) error {
-						return a.intents.StopShell(ctx, runID)
-					}, func() { a.lastShellRun = "" })
-				}
-			}
-			if iconButton(c, iconButtonSpec{icon: iconXMark, label: "清屏", size: rowCompact}) {
-				a.termLines = nil
-			}
-			if iconButton(c, iconButtonSpec{icon: iconClipboard, label: "复制输出", size: rowCompact}) {
-				c.WriteClipboard(joinLines(visibleLines(lines)))
-				a.termCopied = true
-			}
-			return
-		}
-		// 中止只在运行中出现（可逆，AC-18）；清屏一直在（局部不可逆，AC-19）。
-		if a.termState == termRunning {
-			if iconButton(c, iconButtonSpec{icon: iconStop, label: "中止运行", size: rowCompact}) {
-				a.termState = termExited
+		if state == termRunning {
+			if iconButton(c, iconButtonSpec{
+				icon: iconStop, label: "中止运行", tip: "中止运行 · Ctrl-C", size: rowCompact,
+			}) {
+				a.stopShellRun()
 			}
 		}
-		// 断开与恢复：真实入口（样例里模拟连接状态，F31 的退化规则）。
-		if a.termState == termDisconnected {
-			if iconButton(c, iconButtonSpec{icon: iconUndo, label: "重新连接", size: rowCompact}) {
-				a.termState = termIdle
-				a.termLines = append(a.termLines, termLine{text: "reconnected", color: 2})
-			}
-		} else if iconButton(c, iconButtonSpec{icon: iconWarn, label: "模拟断线", size: rowCompact}) {
-			a.termState = termDisconnected
-			a.termLines = append(a.termLines, termLine{text: "connection lost", color: 1})
-		}
-		if iconButton(c, iconButtonSpec{icon: iconXMark, label: "清屏", size: rowCompact}) {
+		if iconButton(c, iconButtonSpec{
+			icon: iconXMark, label: "清屏", tip: "清屏 · Cmd-K", size: rowCompact,
+		}) {
 			a.termLines = nil
 		}
-		if iconButton(c, iconButtonSpec{icon: iconClipboard, label: "复制输出", size: rowCompact}) {
+		if iconButton(c, iconButtonSpec{
+			icon: iconClipboard, label: "复制输出", tip: "复制输出", size: rowCompact,
+		}) {
+			_, lines, _ := a.terminalView()
+			c.WriteClipboard(joinLines(visibleLines(lines)))
 			a.termCopied = true
 		}
-	})
-
-	if len(lines) == 0 {
-		gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Label("终端空态").Children(func() {
-			iconGlyph(c, iconChat, t.TextMuted, "chat")
-			typeSecondary.style(t, gui.Text(c, "还没有输出")).TextColor(t.TextMuted)
-		})
-		return
-	}
-	// 输出区：等宽、可滚动、按宽度折行（终端里长行折行比横向滚动更常用）。
-	visible := visibleLines(lines)
-	gui.Scroll(c).Grow(1).Children(func() {
-		gui.Column(c).Gap(0).Children(func() {
-			for _, ln := range visible {
-				line := typeCode.style(t, gui.Text(c, ln.text)).TextColor(termColorOf(t, ln.color))
-				_ = line
+		if state == termDisconnected {
+			if iconButton(c, iconButtonSpec{
+				icon: iconUndo, label: "重新连接", tip: "重新连接", size: rowCompact,
+			}) {
+				a.reconnectTerminal()
 			}
+		} else if iconButton(c, iconButtonSpec{
+			icon: iconWarn, label: "模拟断线", tip: "模拟断线", size: rowCompact,
+		}) {
+			a.disconnectTerminal()
+		}
+		if wired {
+			// 连着真实终端时，断线由事实驱动；样例入口不给假状态。
+			_ = t
+		}
+	})
+}
+
+// termTab 是工具条里的终端标签（T-01 / T-02 / T-03）：图标 + 标题 + 关闭进程。
+// 标题是 shell 上报目录的末段，没有上报时回退「终端」。
+func (a *App) termTab(c *gui.Context) {
+	t := c.Theme()
+	chip := gui.Row(c).Height(rowCompact).Shrink(0).Gap(space1).
+		Padding(space1, space2).Radius(radiusSmall).AlignItems(gui.Center).
+		Background(t.SurfaceHover)
+	chip.Children(func() {
+		iconGlyph(c, iconTerminal, t.TextMuted, "terminal")
+		typeSecondaryStrong.style(t, gui.Text(c, a.termTitle())).TextColor(t.Text).
+			SingleLine()
+		if iconButton(c, iconButtonSpec{
+			icon: iconXMark, label: "关闭进程", tip: "关闭进程",
+			size: controlMini, disabled: a.panels.termClosed,
+		}) {
+			a.closeTermProcess()
+		}
+	})
+}
+
+// termCanvas 是深色画布（T-08 / T-09）：输出行 + 提示行，右键开菜单。
+func (a *App) termCanvas(c *gui.Context) {
+	t := c.Theme()
+	_, lines, _ := a.terminalView()
+	body := gui.Column(c).Grow(1).Background(termCanvasBg).Padding(space2, panelPad).
+		Label("终端").Role(gui.RoleGroup).
+		ContextMenu(func(m *gui.Menu) { a.termMenu(m, c) })
+	body.Children(func() {
+		if a.panels.termClosed {
+			gui.Column(c).Grow(1).Center().Children(func() {
+				typeCode.style(t, gui.Text(c, termClosedNotice)).
+					TextColor(termCanvasMuted)
+			})
+			return
+		}
+		visible := visibleLines(lines)
+		gui.Scroll(c).Grow(1).Children(func() {
+			gui.Column(c).Gap(0).Children(func() {
+				if len(visible) == 0 {
+					typeCode.style(t, gui.Text(c, termEmptyText)).TextColor(termCanvasMuted)
+				}
+				for _, ln := range visible {
+					typeCode.style(t, gui.Text(c, ln.text)).
+						TextColor(termColorOf(t, ln.color))
+				}
+				a.termPrompt(c)
+			})
 		})
 	})
 }
 
-// termPrompt 是提示行：等宽输入 + 前缀 `$`。
+// termMenu 是画布右键菜单（T-15–T-21）：复制选中内容 / 粘贴 / 清屏 /
+// 新建终端 / 关闭进程，两组分隔线把危险项单独分开。
+func (a *App) termMenu(m *gui.Menu, c *gui.Context) {
+	// 画布还没有文本选择能力，选中内容恒为空，项保持禁用（与参考的未选中态一致）。
+	m.Item("复制选中内容").Disabled(true)
+	if m.Item("粘贴").Chosen() {
+		if text := c.ReadClipboard(); text != "" {
+			a.termInput += text
+		}
+	}
+	m.Separator()
+	if m.Item("清屏").Chosen() {
+		a.termLines = nil
+	}
+	newItem := m.Item("新建终端")
+	if a.workspaceTitle() == "" {
+		newItem.Disabled(true)
+	}
+	if newItem.Chosen() {
+		a.newTerminal()
+	}
+	m.Separator()
+	closeItem := m.Item("关闭进程").Danger()
+	if a.panels.termClosed {
+		closeItem.Disabled(true)
+	}
+	if closeItem.Chosen() {
+		a.closeTermProcess()
+	}
+}
+
+// termPrompt 是提示行：`(base) → 目录` + 输入框。目录名取工作区标题，
+// 没有上报时只画 `$`。
 func (a *App) termPrompt(c *gui.Context) {
 	t := c.Theme()
-	gui.Row(c).Gap(space2).AlignItems(gui.Center).Shrink(0).Padding(0, space1).Children(func() {
-		typeCode.style(t, gui.Text(c, "$")).TextColor(t.TextMuted)
+	gui.Row(c).Shrink(0).Gap(space1).AlignItems(gui.Center).Children(func() {
+		if env := a.termShellEnv(); env != "" {
+			typeCode.style(t, gui.Text(c, env)).TextColor(termCanvasShell)
+		}
+		typeCode.style(t, gui.Text(c, "→")).TextColor(termCanvasArrow)
+		dir := a.termTitle()
+		if dir != "终端" {
+			typeCode.style(t, gui.Text(c, dir)).TextColor(termCanvasText).
+				FontWeight(600)
+		}
 		gui.TextInputBase(c, &a.termInput).Label("终端输入").Grow(1).
-			Font(codeFont).FontSize(typeCode.sizeIn(t))
+			Font(codeFont).FontSize(typeCode.sizeIn(t)).TextColor(termCanvasText)
 	})
 }
 
-// termColor 是状态点的颜色：空闲次要色、运行中 accent-ink、已退出成功色、断开 danger。
-func termColor(t *gui.Theme, st termState) gui.Color {
-	switch st {
-	case termRunning:
-		return colorAccentInk.in(t)
-	case termExited:
-		return t.Success
-	case termDisconnected:
-		return t.Danger
+// termTitle 是终端标签与提示行里的目录名：取工作区标题的末段；没有上报时
+// 回退「终端」（T-003 / R-TM-022）。
+func (a *App) termTitle() string {
+	title := strings.TrimSpace(a.workspaceTitle())
+	if title == "" {
+		return "终端"
 	}
-	return t.TextMuted
+	if i := strings.LastIndexAny(title, `/\`); i >= 0 && i+1 < len(title) {
+		title = title[i+1:]
+	}
+	if title == "" {
+		return "终端"
+	}
+	return title
 }
 
-// termLabel 是状态的读屏名（屏幕上不写状态词）。
+// termShellEnv 是 shell 的环境名前缀：样例里是 `(base)`，连着 Source 时
+// 还没有这一项事实（终端快照不含它）。
+func (a *App) termShellEnv() string {
+	if a.wired() {
+		return ""
+	}
+	return termEnvDefault
+}
+
+// newTerminal 新建一个终端（T-04 / T-19）：清掉提示并把状态回到空闲。
+func (a *App) newTerminal() {
+	a.panels.termClosed = false
+	a.termState = termIdle
+	a.termLines = nil
+	a.termInput = ""
+}
+
+// closeTermProcess 关闭当前终端的进程（T-21）：内容区换成提示行，标签保留。
+func (a *App) closeTermProcess() {
+	a.panels.termClosed = true
+	a.termState = termExited
+	a.termLines = nil
+}
+
+// closeTerminal 关闭终端标签（T-06）：切回文件面板（参考里是切回上一页签）。
+func (a *App) closeTerminal() {
+	a.panels.termClosed = false
+	a.rightTab = tabFiles
+}
+
+// stopShellRun 中止当前的命令运行（可逆：命令可以再跑一次）。
+func (a *App) stopShellRun() {
+	if a.intents != nil && a.lastShellRun != "" {
+		runID := a.lastShellRun
+		a.dispatch("中止命令", func(ctx context.Context) error {
+			return a.intents.StopShell(ctx, runID)
+		}, func() { a.lastShellRun = "" })
+		return
+	}
+	a.termState = termExited
+}
+
+// disconnectTerminal / reconnectTerminal 是样例里的断线与恢复（F31 的退化规则）。
+func (a *App) disconnectTerminal() {
+	a.termState = termDisconnected
+	a.termLines = append(a.termLines, termLine{text: "connection lost", color: 1})
+}
+
+func (a *App) reconnectTerminal() {
+	a.termState = termIdle
+	a.termLines = append(a.termLines, termLine{text: "reconnected", color: 2})
+}
+
+// termLabel 是工具条的读屏名（屏幕上只写目录名，不写状态词）。
 func termLabel(st termState) string {
 	switch st {
 	case termRunning:
@@ -195,19 +364,19 @@ func termLabel(st termState) string {
 	return "终端 · 空闲"
 }
 
-// termColorOf 把 ANSI 前 8 色映射到主题色；-1 是默认文字色。
+// termColorOf 把 ANSI 前 8 色映射到终端配色；-1 是默认文字色。
 func termColorOf(t *gui.Theme, idx int) gui.Color {
 	switch idx {
 	case 1:
-		return t.Danger
+		return termAnsiRed
 	case 2:
-		return t.Success
+		return termAnsiGreen
 	case 3:
-		return t.Warning
+		return termAnsiYellow
 	case 4:
-		return colorAccentInk.in(t)
+		return termAnsiBlue
 	}
-	return t.Text
+	return termCanvasText
 }
 
 // joinLines 把终端行拼成纯文本，供复制使用。
@@ -218,15 +387,6 @@ func joinLines(lines []termLine) string {
 		b.WriteByte('\n')
 	}
 	return b.String()
-}
-
-// statusDotMark 是带检查器标记的状态点（一行里可能有多个点，标记带名称）。
-func statusDotMark(c *gui.Context, color gui.Color, mark string) {
-	dot := gui.Box(c).Width(dotStatus).Height(dotStatus).Shrink(0).
-		Label("图标：dot:" + mark).AccessHidden(true)
-	dot.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Fill(r, color, dotStatus/2)
-	})
 }
 
 // termLineCount 是输出行数（测试与基线用）。
