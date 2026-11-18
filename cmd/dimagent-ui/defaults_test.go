@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -85,7 +86,8 @@ func TestFindServerExplicitWins(t *testing.T) {
 
 // TestFindServerEnvAndEndpoint 核对环境变量档与「已有端点」档。
 func TestFindServerEnvAndEndpoint(t *testing.T) {
-	dir := t.TempDir()
+	// 端点是真的 Unix socket：路径有长度上界，用短目录。
+	dir := shortDir(t)
 	fromEnv := fakeServer(t, filepath.Join(dir, "env", serverName))
 	t.Setenv(envAppServer, fromEnv)
 	t.Setenv(legacyEnvAppServer, "")
@@ -98,23 +100,52 @@ func TestFindServerEnvAndEndpoint(t *testing.T) {
 		t.Fatalf("应命中环境变量给出的可执行文件: %+v", plan)
 	}
 
-	// 没有可执行文件、没有 PATH、端点存在：不拉起，直接连已有实例。
+	// 没有可执行文件、没有 PATH、端点真的在监听：不拉起，直接连已有实例。
 	t.Setenv(envAppServer, "")
 	t.Setenv("PATH", "")
-	socketDir := filepath.Join(dir, endpointDirName)
-	if err := os.MkdirAll(socketDir, 0o700); err != nil {
-		t.Fatalf("建端点目录: %v", err)
-	}
-	socket := endpointPath(dir)
-	if err := os.WriteFile(socket, nil, 0o600); err != nil {
-		t.Fatalf("写端点占位: %v", err)
-	}
+	socket := liveEndpoint(t, dir)
 	plan, err = findServer("", dir)
 	if err != nil {
 		t.Fatalf("已有端点时应成功: %v", err)
 	}
-	if plan.Path != "" || plan.Endpoint != socket {
+	if plan.Path != "" || plan.Endpoint != socket || plan.Source != "已有服务端点" {
 		t.Fatalf("已有端点时不应拉起服务端: %+v", plan)
+	}
+}
+
+// TestFindServerStaleEndpoint 核对残留端点：socket 文件在但没人监听时不算命中，
+// 发现链继续找可执行文件，不拿残留端点掩盖「没有服务端」。
+func TestFindServerStaleEndpoint(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows 用命名管道，不做端点探测")
+	}
+	dir := shortDir(t)
+	binDir := filepath.Join(dir, "bin")
+	found := fakeServer(t, filepath.Join(binDir, serverName))
+	t.Setenv(envAppServer, "")
+	t.Setenv(legacyEnvAppServer, "")
+	t.Setenv("PATH", binDir)
+	staleEndpoint(t, dir)
+
+	plan, err := findServer("", dir)
+	if err != nil {
+		t.Fatalf("残留端点不该挡住 PATH 里命中的可执行文件: %v", err)
+	}
+	if plan.Path != found || plan.Source != "PATH" {
+		t.Fatalf("应继续命中 PATH 里的可执行文件: %+v", plan)
+	}
+
+	// 连可执行文件也没有：原因里要写明端点残留在、连不上，而不是含混地说找不到。
+	t.Setenv("PATH", "")
+	plan, err = findServer("", dir)
+	if err == nil {
+		t.Fatal("只有残留端点时应视为找不到 App Server")
+	}
+	if plan.Source != "" {
+		t.Fatalf("残留端点不该被当成端点来源: %+v", plan)
+	}
+	if message := err.Error(); !strings.Contains(message, "端点残留") {
+		t.Fatalf("原因里应写明端点残留: %s", message)
 	}
 }
 
@@ -150,4 +181,47 @@ func fakeServer(t *testing.T, path string) string {
 		t.Fatalf("写占位可执行文件: %v", err)
 	}
 	return path
+}
+
+// shortDir 建一个短路径的临时目录：Unix socket 路径有长度上界。
+func shortDir(t *testing.T) string {
+	t.Helper()
+	dir, err := os.MkdirTemp("/tmp", "dim-ui-discovery")
+	if err != nil {
+		t.Fatalf("建临时目录: %v", err)
+	}
+	t.Cleanup(func() { _ = os.RemoveAll(dir) })
+	return dir
+}
+
+// liveEndpoint 建一个真的在监听的端点，返回路径。
+func liveEndpoint(t *testing.T, dataDir string) string {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(dataDir, endpointDirName), 0o700); err != nil {
+		t.Fatalf("建端点目录: %v", err)
+	}
+	socket := endpointPath(dataDir)
+	listener, err := net.Listen("unix", socket)
+	if err != nil {
+		t.Fatalf("监听端点: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	return socket
+}
+
+// staleEndpoint 留下一个没人监听的 socket 文件：上一次服务端崩溃后的残留。
+func staleEndpoint(t *testing.T, dataDir string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(dataDir, endpointDirName), 0o700); err != nil {
+		t.Fatalf("建端点目录: %v", err)
+	}
+	listener, err := net.Listen("unix", endpointPath(dataDir))
+	if err != nil {
+		t.Fatalf("监听端点: %v", err)
+	}
+	// 关掉时不删文件：留下的就是一个「在、但没人听」的端点。
+	listener.(*net.UnixListener).SetUnlinkOnClose(false)
+	if err := listener.Close(); err != nil {
+		t.Fatalf("关闭端点: %v", err)
+	}
 }

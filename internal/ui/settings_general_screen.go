@@ -88,7 +88,8 @@ func renderGeneral(c *gui.Context) {
 // 取值来自宿主环境，不在本屏读进程环境（那是设置领域的事），接线时由事实给。
 func generalPinned() bool { return false }
 
-// generalCard 是一个卡：内容底 + 1px 主题描边 + 卡片圆角，内边距 14/20。
+// generalCard 是一个卡：卡面（白 / 暗 0c0c0c）+ 1px 主题描边 + 卡片圆角，
+// 内边距 14/20。
 func generalCard(c *gui.Context, body func()) {
 	screenCard(c, func() {
 		gui.Column(c).Padding(screenSpace35, screenSpace5).Gap(screenSpace15).

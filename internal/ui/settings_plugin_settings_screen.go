@@ -408,7 +408,7 @@ func plgFieldView(c *gui.Context, t *gui.Theme, f *pluginField) {
 // plgGroupView 是一个对象字段（S-pluginSettings-30）：带边框、缩进 12 的组。
 func plgGroupView(c *gui.Context, t *gui.Theme, f *pluginField) {
 	group := gui.Column(c).Shrink(0).Padding(plgGroupPad, plgGroupPad).
-		Gap(plgGroupGap).Radius(radiusCard).Background(t.Background)
+		Gap(plgGroupGap).Radius(radiusCard).Background(t.Surface)
 	group.BorderWidth(strokeHairline).BorderColor(t.Border)
 	group.Children(func() {
 		if f.label != "" {

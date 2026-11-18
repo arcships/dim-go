@@ -89,6 +89,8 @@ func TestThemeTokens(t *testing.T) {
 		{"hit-min", hitMin, 24},
 		{"stroke-chevron", strokeChevron, 1.5},
 		{"context-near-percent", contextNearPercent, 90},
+		{"设置导航宽", SettingsNavWidth, 224},
+		{"设置导航行高", SettingsNavRowHeight, 35},
 	}
 	for _, m := range metrics {
 		if m.got != m.want {
@@ -120,15 +122,15 @@ func TestFontSteps(t *testing.T) {
 		line float32
 		w    int
 	}{
-		{"正文", typeBody, 14, 24.5, 400},
-		{"正文强调", typeBodyStrong, 14, 24.5, 600},
+		{"正文", typeBody, 12.25, 24.5, 400},
+		{"正文强调", typeBodyStrong, 12.25, 24.5, 600},
 		{"次要", typeSecondary, 12.25, 0, 400},
 		{"次要强调", typeSecondaryStrong, 12.25, 0, 500},
 		{"标题行会话名", typeTitleRow, 15, 0, 600},
 		{"极小", typeMicro, 10.5, 14, 400},
 		{"代码", typeCode, 13, 20, 400},
 		{"h1", typeH1, 22.4, 33.6, 700},
-		{"h2", typeH2, 17.5, 24.5, 600},
+		{"h2", typeH2, 20, 25, 600},
 		{"h3", typeH3, 16.1, 24.15, 600},
 		{"h4", typeH4, 14, 21, 600},
 		{"h5", typeH5, 13.3, 19.95, 600},
@@ -151,11 +153,12 @@ func TestThemeFollowsPreferences(t *testing.T) {
 	if want := gui.LightTheme().FontSize * 1.5; scaled.FontSize != want {
 		t.Fatalf("文本缩放 1.5 的主题字号 = %v，想要 %v", scaled.FontSize, want)
 	}
-	// 正文跟着平台默认字号走：缩放 1.5 后就是平台默认 × 1.5（macOS 13 → 19.5）。
-	if got, want := typeBody.sizeIn(scaled), gui.LightTheme().FontSize*1.5; got != want {
+	// 正文取参考的 text-sm：平台默认字号（参考的根字号 14）的 0.875 倍，随平台同比缩放
+	// （macOS 13 → 11.375）。
+	if got, want := typeBody.sizeIn(scaled), gui.LightTheme().FontSize*1.5*(12.25/14); got != want {
 		t.Fatalf("文本缩放 1.5 的正文 = %v，想要 %v", got, want)
 	}
-	// 次要级是正文的 12.25/14 = 0.875 倍，随平台字号同比缩放。
+	// 次要级与正文同字号（参考同为 text-sm），随平台字号同比缩放。
 	if got, want := typeSecondary.sizeIn(scaled), gui.LightTheme().FontSize*1.5*(12.25/14); got != want {
 		t.Fatalf("文本缩放 1.5 的次要 = %v，想要 %v", got, want)
 	}

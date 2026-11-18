@@ -397,7 +397,7 @@ func mcpButton(c *gui.Context, icon *gui.SVG, mark, text string, primary bool) b
 // 入口。发现 / 预览 / 应用要 App Server 的导入能力，两个入口按禁用态渲染。
 func mcpImportPanel(c *gui.Context) {
 	t := c.Theme()
-	panel := gui.Column(c).Shrink(0).Background(t.Background).Radius(screenRadiusCard)
+	panel := gui.Column(c).Shrink(0).Background(t.Surface).Radius(screenRadiusCard)
 	panel.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
 	})
@@ -542,7 +542,7 @@ func mcpEmpty(c *gui.Context, text string) {
 // 图标按钮）进入编辑器，编辑器带入这一条的真实配置。
 func (a *App) mcpServerCard(c *gui.Context, server mcpServer) {
 	t := c.Theme()
-	card := gui.Column(c).Shrink(0).Background(t.Background).Radius(screenRadiusCard)
+	card := gui.Column(c).Shrink(0).Background(t.Surface).Radius(screenRadiusCard)
 	card.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
 	})

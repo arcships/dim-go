@@ -103,8 +103,7 @@ func settingsPlaceholder(c *gui.Context, section settingsSectionDef) {
 // settingsNav 是左导航：返回主界面的图标入口 + 19 节分节列表。
 //
 // 导航列自己不铺底色：白面由设置壳铺（同一块面），导航再铺一次会把圆角的
-// 四个内角盖成直角。左右留 space2：参考产品的分节行宽 209（design-baseline
-// §7），224 − 2×7 = 210。
+// 四个内角盖成直角。左右留 space2：参考产品的分节行宽 210（224 − 2×7）。
 func (a *App) settingsNav(c *gui.Context) {
 	gui.Column(c).Width(SettingsNavWidth).Shrink(0).
 		Padding(0, space2).Children(func() {
@@ -120,7 +119,7 @@ func (a *App) settingsNav(c *gui.Context) {
 		})
 		// 19 节在矮窗口里放不下：导航列自己滚，内容区不受影响。
 		gui.Scroll(c).Grow(1).Label("设置分节").Children(func() {
-			gui.Column(c).Shrink(0).Gap(space1).Children(func() {
+			gui.Column(c).Shrink(0).Children(func() {
 				for _, section := range settingsSectionDefs {
 					a.navRow(c, section)
 				}
@@ -131,9 +130,11 @@ func (a *App) settingsNav(c *gui.Context) {
 
 // navRow 是导航里的一节：图标 + 名称。自绘行（无外观 ButtonBase），选中态由
 // 底色与字重表达（参考产品同构：选中用强调底色与前景色，其余用次要文字色）。
+// 行高取 SettingsNavRowHeight（35）：相邻两节的文字 y 步进与行高同值，行间不再留缝。
 func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 	t := c.Theme()
-	row := gui.ButtonBase(c).Padding(space1, space3).Radius(radius).Gap(space3).
+	row := gui.ButtonBase(c).Height(SettingsNavRowHeight).Padding(0, space3).
+		Radius(radius).Gap(space3).AlignItems(gui.Center).
 		Label(section.label).Cursor(gui.CursorPointer).Justify(gui.Start)
 	selected := a.settingsSection == section.id
 	switch {

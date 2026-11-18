@@ -33,7 +33,11 @@ const (
 	MainMinWidth = 400
 
 	// R6 设置（独立屏）：左导航 224 + 内容区上限 1008（U0 §12.7、U1-ia §4）。
-	SettingsNavWidth         = 224
+	SettingsNavWidth = 224
+	// SettingsNavRowHeight 是左导航一节的行高：参考实测 35（相邻两节的 y 步进也是
+	// 35，节间不再另加间隙）。
+	SettingsNavRowHeight = 35
+
 	SettingsContentMaxWidth  = 1008
 	SettingsLabelWidth       = 140
 	SettingsRuleCommandWidth = 240
@@ -187,12 +191,13 @@ type fontStep struct {
 
 var (
 	// typeControl 是"控件里的文字"：不设行高，行盒由框架按字形度量给——与官方
-	// Button / Select / TextInput 的 15.31 一致（U0 §control-baseline）。
-	typeControl       = fontStep{size: 14, weight: 400}
-	typeControlStrong = fontStep{size: 14, weight: 600}
+	// Button / Select / TextInput 同基准（U0 §control-baseline）。字号取参考产品的
+	// text-sm：根字号 14 下 0.875rem = 12.25（design-baseline §1.1）。
+	typeControl       = fontStep{size: 12.25, weight: 400}
+	typeControlStrong = fontStep{size: 12.25, weight: 600}
 
-	typeBody            = fontStep{size: 14, line: 24.5, weight: 400}
-	typeBodyStrong      = fontStep{size: 14, line: 24.5, weight: 600}
+	typeBody            = fontStep{size: 12.25, line: 24.5, weight: 400}
+	typeBodyStrong      = fontStep{size: 12.25, line: 24.5, weight: 600}
 	typeSecondary       = fontStep{size: 12.25, weight: 400}
 	typeSecondaryStrong = fontStep{size: 12.25, weight: 500}
 	// typeTitleRow 是标题行的会话名：跟官方示例的页面标题同一档（15/600，
@@ -201,7 +206,7 @@ var (
 	typeMicro           = fontStep{size: 10.5, line: 14, weight: 400}
 	typeCode            = fontStep{size: 13, line: 20, weight: 400, family: codeFont}
 	typeH1              = fontStep{size: 22.4, line: 33.6, weight: 700}
-	typeH2              = fontStep{size: 17.5, line: 24.5, weight: 600}
+	typeH2              = fontStep{size: 20, line: 25, weight: 600}
 	typeH3              = fontStep{size: 16.1, line: 24.15, weight: 600}
 	typeH4              = fontStep{size: 14, line: 21, weight: 600}
 	typeH5              = fontStep{size: 13.3, line: 19.95, weight: 600}
@@ -211,7 +216,8 @@ var (
 // codeFont 是代码的字体栈：系统等宽，不内嵌字体（U2 §1.3）。
 const codeFont = "SF Mono, Menlo, monospace"
 
-// typeBodySize 是正文在文本缩放 1 时的字号，也是主题 FontSize 的基准。
+// typeBodySize 是参考产品的根字号（14），也是主题 FontSize 的基准：本帧的平台字号
+// 与它相比得到文本缩放。正文本身取 text-sm = 0.875 × 根字号（12.25，见 typeBody）。
 const typeBodySize = 14
 
 // textScale 是本帧文字相对正文的倍数：主题字号由框架按系统文本缩放放大，

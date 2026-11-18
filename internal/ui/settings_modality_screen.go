@@ -321,8 +321,8 @@ func mdRealtimeFormCard(c *gui.Context, t *gui.Theme) gui.Element {
 
 // ---- 构件 ----
 
-// mdCard 是任务表单卡：内容底、1px 主题描边、卡片圆角、内边距 10.5，宽度按
-// 参考的 663（窄窗时收到可用宽度）。
+// mdCard 是任务表单卡：卡面（白 / 暗 0c0c0c）、1px 主题描边、卡片圆角、
+// 内边距 10.5，宽度按参考的 663（窄窗时收到可用宽度）。
 func mdCard(c *gui.Context) gui.Element {
 	return mdCardWidth(c, mdFormCardW, mdFormCardPad)
 }
@@ -331,7 +331,7 @@ func mdCard(c *gui.Context) gui.Element {
 func mdCardWidth(c *gui.Context, maxWidth, padding float32) gui.Element {
 	t := c.Theme()
 	return gui.Column(c).Shrink(0).MaxWidth(maxWidth).Padding(padding).
-		Radius(radiusCard).Background(t.Background).
+		Radius(radiusCard).Background(t.Surface).
 		BorderWidth(strokeHairline).BorderColor(t.Border)
 }
 

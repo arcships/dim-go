@@ -79,12 +79,12 @@ func renderNotifications(c *gui.Context) {
 	})
 }
 
-// notifySwitchCard 是一张开关卡（S-notifications-02 … 07）：内容底、1px 主题
-// 描边、卡片圆角；左侧标签，右侧 28×16 开关。卡本身是分组（R-NTF-013：每卡以
-// 分组播报），但卡面不可点（R-NTF-012：点卡空白无响应）。
+// notifySwitchCard 是一张开关卡（S-notifications-02 … 07）：卡面（白 / 暗
+// 0c0c0c）、1px 主题描边、卡片圆角；左侧标签，右侧 28×16 开关。卡本身是分组
+// （R-NTF-013：每卡以分组播报），但卡面不可点（R-NTF-012：点卡空白无响应）。
 func notifySwitchCard(c *gui.Context, label string, on *bool) {
 	t := c.Theme()
-	card := gui.Column(c).Shrink(0).Background(t.Background).
+	card := gui.Column(c).Shrink(0).Background(t.Surface).
 		Radius(screenRadiusCard).Role(gui.RoleGroup).Label(label)
 	card.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCard, screenStroke)

@@ -74,7 +74,7 @@ func rtRefreshButton(c *gui.Context, t *gui.Theme) {
 // 内为错误原文与「重试」。参考的 role=status 保留在卡上。
 func rtErrorCard(c *gui.Context, t *gui.Theme) {
 	card := gui.Column(c).Shrink(0).Padding(rtCardPad).Gap(rtCardGap).
-		Radius(radiusCard).Background(t.Background).
+		Radius(radiusCard).Background(t.Surface).
 		BorderWidth(strokeHairline).BorderColor(t.Danger.Alpha(rtErrorAlpha)).
 		Role(gui.RoleStatus).Label(rtCopyError)
 	card.Children(func() {
@@ -104,7 +104,7 @@ func rtFeatureSection(c *gui.Context, t *gui.Theme) {
 }
 
 // rtFeatureCard 是功能组件卡：标题行（名称 + 右侧状态）+ 说明 + 版本 +
-// 主按钮。卡用共用卡框（内容底、1px 主题描边、卡片圆角），内边距 17.5。
+// 主按钮。卡用共用卡框（卡面、1px 主题描边、卡片圆角），内边距 17.5。
 func rtFeatureCard(c *gui.Context, t *gui.Theme) {
 	screenCard(c, func() {
 		gui.Column(c).Padding(rtFeaturePad).Children(func() {

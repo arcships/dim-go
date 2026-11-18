@@ -6,11 +6,14 @@ package main
 //   - 默认值只有一处：不带参数启动也能起来（数据目录落产品目录，服务端按顺序找）。
 //   - 发现顺序固定：-server → 环境变量 → 可执行文件同目录 → PATH → 已有端点。
 //     每一档都记进日志与「找不到」的原因里，界面与日志能对上。
-//   - 不读 App Server 自己的文件：这里只看端点是否存在，不碰它的数据库与会话文件。
+//   - 「已有端点」要实际探测一次：socket 文件在但没人监听（上次崩溃的残留）不算
+//     命中，发现链继续找可执行文件，不拿残留端点掩盖「没有服务端」。
+//   - 不读 App Server 自己的文件：这里只看端点是否连得上，不碰它的数据库与会话文件。
 
 import (
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -35,6 +38,9 @@ const (
 	logFileName = "dimagent.log"
 	// endpointDirName 是 App Server 运行时目录（含 daemon.sock），与连接领域一致。
 	endpointDirName = "rust"
+	// endpointProbeTimeout 是「已有端点」的探测上限：socket 文件在、实际连不上
+	// （崩溃残留）时不能当成可用端点。
+	endpointProbeTimeout = 400 * time.Millisecond
 )
 
 // resolveDataDir 给出客户端数据目录：参数 → DIM_DATA_DIR → 平台产品目录。
@@ -146,13 +152,59 @@ func findServer(explicit, dataDir string) (serverPlan, error) {
 	}
 	plan.Tried = append(plan.Tried, "PATH 里的 "+serverName)
 
-	if _, err := os.Stat(plan.Endpoint); err == nil {
+	if alive, reason := endpointAlive(plan.Endpoint); alive {
 		plan.Source = "已有服务端点"
 		return plan, nil
+	} else if reason != "" {
+		plan.Tried = append(plan.Tried, plan.Endpoint+"："+reason)
+	} else {
+		plan.Tried = append(plan.Tried, plan.Endpoint)
 	}
-	plan.Tried = append(plan.Tried, plan.Endpoint)
 
 	return plan, fmt.Errorf("按顺序都没找到 App Server，试过：%s", strings.Join(plan.Tried, " → "))
+}
+
+// endpointAlive 实际探测已有端点：socket 文件在但没人监听（上次崩溃的残留）
+// 不算「已有端点」，发现链要继续去找可执行文件。
+//
+// 只连一次、只关一次，不发任何协议消息；它判断的是「有没有人在听」。
+func endpointAlive(path string) (bool, string) {
+	if runtime.GOOS == "windows" {
+		// Windows 用命名管道，没有可探测的 socket 文件。
+		return false, ""
+	}
+	if _, err := os.Stat(path); err != nil {
+		return false, ""
+	}
+	conn, err := net.DialTimeout("unix", path, endpointProbeTimeout)
+	if err != nil {
+		return false, "端点残留，连不上（" + probeReason(err) + "）"
+	}
+	_ = conn.Close()
+	return true, ""
+}
+
+// probeReason 把拨号失败压成一句短原因，只用于「找不到」的说明。
+func probeReason(err error) string {
+	text := err.Error()
+	if index := strings.LastIndex(text, ": "); index >= 0 && index+2 < len(text) {
+		return text[index+2:]
+	}
+	return text
+}
+
+// discoveryHint 是交给集成层的「没有可执行文件」说明：找不到时是发现链的原文，
+// 找到但有端点没可执行文件时说明只能连已有实例。有可执行文件时为空。
+func discoveryHint(plan serverPlan, planErr error) string {
+	switch {
+	case planErr != nil:
+		return planErr.Error()
+	case plan.Path == "":
+		return fmt.Sprintf("只找到已有服务端点 %s，没有可拉起的 App Server 可执行文件"+
+			"（-server、%s、可执行文件同目录、PATH 都没有）", plan.Endpoint, envAppServer)
+	default:
+		return ""
+	}
 }
 
 // resolveExplicit 校验显式给出的可执行文件（绝对路径、相对路径或 PATH 里的名字）。

@@ -70,6 +70,10 @@ type Config struct {
 	DataDir string
 	// ServerPath 是 App Server 可执行文件；端点已存在时不会拉起它。
 	ServerPath string
+	// ServerHint 是「为什么没有可执行文件」的可读说明（发现链试过哪些位置），
+	// 由入口给出。只在 ServerPath 为空且连不上时替换给界面看的原因；原始错误
+	// 仍可 unwrap 出来进日志。
+	ServerHint string
 	// ServerArgs 是追加给服务端的参数（例如 dimcode-server 需要 app-server 子命令）。
 	ServerArgs []string
 	// ServerDefaults 是默认插件/运行时预设文件（`--defaults`）；空表示不带。
@@ -270,6 +274,31 @@ func (a *App) SetWriteGate(gate func() error) {
 	a.writeGate = gate
 }
 
+// SetServerPath 换掉 App Server 可执行文件与「没有可执行文件」的说明。
+//
+// 入口在每次重跑发现链之后调用它：启动时找不到服务端不是进程生命周期内的定局，
+// 装好服务端之后的一次「重新连接」要能用上新路径。已连接的实例由连接监督者持有，
+// 换路径只影响之后新建的监督者，不影响正在用的连接。
+func (a *App) SetServerPath(path, hint string) {
+	a.mu.Lock()
+	a.cfg.ServerPath = path
+	a.cfg.ServerHint = hint
+	a.mu.Unlock()
+}
+
+// serverHintError 把发现链的说明当成人看的原因，原始错误留在 Unwrap 里。
+//
+// 界面原位显示的是发现过程（「按顺序都没找到，试过：…」），而不是拉起服务的
+// 内部细节；日志与 failure.Is 仍能拿到原始错误。
+type serverHintError struct {
+	hint string
+	err  error
+}
+
+func (e *serverHintError) Error() string { return e.hint }
+
+func (e *serverHintError) Unwrap() error { return e.err }
+
 // LoadLocalState 装载本地状态：归档隐藏列表、附件暂存区、工作区根。
 // 它对应启动阶段 local_state；重复调用是空操作。
 func (a *App) LoadLocalState(ctx context.Context) error {
@@ -321,14 +350,18 @@ func (a *App) LoadLocalState(ctx context.Context) error {
 	return nil
 }
 
-// Connect 连服务端并装配各领域。它对应启动阶段 connect；重复调用是空操作。
+// Connect 连服务端并装配各领域。它对应启动阶段 connect；已经连上时是空操作。
+//
+// 连接已断（或上一次启动失败）时重新装配：重新发现可执行文件之后的一次
+// 「重新连接」走的也是这条路。
 func (a *App) Connect(ctx context.Context) error {
 	a.mu.Lock()
 	if a.closed {
 		a.mu.Unlock()
 		return ErrClosed
 	}
-	if a.connected {
+	// 只有控制连接仍然可用才算「已经连上」：连接断掉后重启启动序列是它的用途。
+	if a.connected && a.conn != nil && a.conn.Client.Err() == nil {
 		a.mu.Unlock()
 		return nil
 	}
@@ -336,7 +369,18 @@ func (a *App) Connect(ctx context.Context) error {
 		a.mu.Unlock()
 		return fmt.Errorf("%w: 本地状态尚未装载", ErrNotReady)
 	}
+	// 上一轮的监督者不再使用：回收它拉起的实例，免得重新拉起之后留下一个没人
+	// 管的服务进程（自启实例只由本进程回收）。
+	previous := a.supervisor
+	a.supervisor = nil
+	a.conn = nil
+	a.connected = false
 	a.mu.Unlock()
+	if previous != nil {
+		if _, err := previous.Shutdown(ctx); err != nil {
+			a.record("关闭上一轮连接监督者: %v", err)
+		}
+	}
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -356,6 +400,11 @@ func (a *App) Connect(ctx context.Context) error {
 	conn, err := supervisor.Connect(ctx)
 	if err != nil {
 		supervisor.Close(nil)
+		// 没有可执行文件时，界面该看到的是发现链的说明，不是拉起的内部细节。
+		if a.cfg.ServerPath == "" && strings.TrimSpace(a.cfg.ServerHint) != "" {
+			a.record("连接失败（原始错误）: %v", err)
+			return fmt.Errorf("连接服务端: %w", &serverHintError{hint: a.cfg.ServerHint, err: err})
+		}
 		return fmt.Errorf("连接服务端: %w", err)
 	}
 

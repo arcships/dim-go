@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	gui "github.com/egoist/mygo/ui"
@@ -20,8 +21,9 @@ import (
 //
 // 只保留可丢的界面状态（aboutScreen）：更新状态机、公告展开项、开发态调试
 // 计数。更新事实（host 的 Updater）与公告事实（服务端）都没有接进 Source：
-// 当前停在参考产品的运行时状态 —— 自动更新已禁用、2 条公告、8 条 WIP 能力、
-// 开发态调试条。按钮照渲染、点击只改本屏状态。
+// 当前停在参考产品的运行时状态 —— 自动更新已禁用、1 条构建公告、8 条 WIP 能力、
+// 开发态调试条。当前版本与公告标题取本次构建版本（SetBuildVersion），不写样例号。
+// 按钮照渲染、点击只改本屏状态。
 //
 // # 未实现分支
 //
@@ -31,7 +33,7 @@ import (
 //	                Intents 没有检查与下载），首屏停在「自动更新已禁用」。
 //	S-about-26      公告正文：数据层只有摘要，展开时把摘要按 Markdown 渲染
 //	                （不编造正文）。
-//	S-about-27      「暂无公告」空态：当前 2 条公告，条件不成立；已实现。
+//	S-about-27      「暂无公告」空态：当前 1 条构建公告，条件不成立；已实现。
 
 // aboutUpdatePhase 是软件更新的相位（参考 update 状态机的界面分支）。
 type aboutUpdatePhase int
@@ -88,20 +90,44 @@ var aboutDebugStates = []string{
 	"available", "downloaded", "preparing", "error",
 }
 
-// aboutScreen 的首屏取值与参考产品运行时一致。
+// defaultBuildVersion 是没注入构建版本时的兜底：与入口的 defaultVersion 同值。
+const defaultBuildVersion = "0.1.0"
+
+// buildVersion 是本次运行的构建版本（形如 x.y.z）。
+//
+// 入口在打包时用 `-ldflags -X main.version=` 注入，再在创建视图前交给
+// SetBuildVersion：关于页不写死参考产品的版本号，写死就成了假事实。
+var buildVersion = defaultBuildVersion
+
+// SetBuildVersion 设置本次运行的构建版本。入口在 NewApp 之前调用一次。
+//
+// 关于页的「当前版本」与公告标题都取它：界面显示的是这次运行的实际构建，
+// 不是参考产品的样例值。
+func SetBuildVersion(v string) {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return
+	}
+	buildVersion = v
+	aboutScreen.currentVersion = "v" + v
+	aboutScreen.announcements = buildAnnouncements()
+}
+
+// buildAnnouncements 是公告的本地条目：服务端公告事实还没有接进 Source，
+// 只给「这次运行的是什么构建」这一条真信息，不编造发布记录。
+func buildAnnouncements() []aboutAnnouncement {
+	return []aboutAnnouncement{{
+		id:      "build-" + buildVersion,
+		title:   "DimAgent Desktop " + buildVersion,
+		summary: "当前运行的客户端构建版本 " + buildVersion + "；公告事实尚未接入服务端。",
+	}}
+}
+
+// aboutScreen 的首屏取值只用可丢的界面状态与本次构建版本。
 var aboutScreen = aboutState{
-	phase:          abtDisabled,
-	currentVersion: "v0.9.57",
-	announcements: []aboutAnnouncement{
-		{
-			id: "desktop-0-9-65", title: "DimAgent Desktop 0.9.65 / CLI 0.5.28",
-			date: "2026年11月16日", summary: "DimAgent Desktop 0.9.65 / CLI 0.5.28",
-		},
-		{
-			id: "desktop-0-9-26-fix", title: "0.9.26更新失败解决方案",
-			date: "2026年9月15日", summary: "0.9.26更新失败解决方案",
-		},
-	},
+	phase:               abtDisabled,
+	currentVersion:      "v" + buildVersion,
+	announcements:       buildAnnouncements(),
 	announcementsLoaded: true,
 	capabilities: []aboutCapability{
 		{"文件历史与回退", "上游不处理文件级历史；会话回退使用 session.fork。"},

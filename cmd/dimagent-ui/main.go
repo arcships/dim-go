@@ -14,6 +14,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -27,19 +28,46 @@ import (
 // retryingIntents 把「重新连接」接到完整启动序列上。
 //
 // 启动阶段就失败时（找不到服务端、服务端没起来），集成层还没有连接监督者，
-// 单纯重连只会得到「未连接服务端」；这时补一次连接与订阅才是真正的重试。
-// 其余意图原样交给适配器，不新增任何协议通道。
+// 单纯重连只会得到「未连接服务端」；这时重跑一次发现链、再走一遍连接与订阅才是
+// 真正的重试。其余意图原样交给适配器，不新增任何协议通道。
 type retryingIntents struct {
 	*uiwire.App
-	connect func(context.Context) error
+	// rescan 在重连前重跑发现链，把新的服务端路径交给集成层；可为 nil。
+	rescan func()
 }
 
-// Reconnect 先走常规重连；连不上时重走一遍连接与订阅。
+// Reconnect 先走常规重连；连不上时重新发现服务端，再走一遍连接与订阅。
 func (r retryingIntents) Reconnect(ctx context.Context) error {
 	if err := r.App.Reconnect(ctx); err == nil {
 		return nil
 	}
-	return r.connect(ctx)
+	if r.rescan != nil {
+		r.rescan()
+	}
+	return r.App.Connect(ctx)
+}
+
+// serverDiscovery 是一条可重跑的发现链：启动时跑一次，「重新连接」时再跑一次。
+//
+// 发现结果不能固化：启动时没找到服务端，装好之后的一次「重新连接」必须能用上
+// 新路径。找不到时把「试过哪些位置」一并交给集成层，断线卡原位显示的就是它。
+type serverDiscovery struct {
+	dataDir  string
+	explicit string
+	base     *app.App
+	log      *startupLog
+}
+
+// apply 重跑发现链，把结果交给集成层；返回本次的发现结果与原因。
+func (d serverDiscovery) apply(stage string) (serverPlan, error) {
+	plan, planErr := findServer(d.explicit, d.dataDir)
+	d.base.SetServerPath(plan.Path, discoveryHint(plan, planErr))
+	if planErr != nil {
+		d.log.printf("%s：%v", stage, planErr)
+	} else {
+		d.log.printf("%s：App Server %s", stage, plan.describe())
+	}
+	return plan, planErr
 }
 
 // 启动时序。连接模式第一次运行要等 App Server 拉起并握手，超时按启动失败处理。
@@ -52,6 +80,9 @@ const (
 	connectTimeout = 90 * time.Second
 	// shutdownTimeout 是退出时回收自启实例的上限。
 	shutdownTimeout = 10 * time.Second
+	// quitWaitLimit 是退出路径等「四阶段」结束的上限：超过就按上限继续退出，
+	// 不让一个卡住的阶段把窗口永远留在屏幕上。
+	quitWaitLimit = 3 * time.Second
 )
 
 // defaultVersion 是兜底版本号；打包时用 `-ldflags -X main.version=` 覆盖。
@@ -167,8 +198,10 @@ func main() {
 			startup.printf("服务端点：%s", plan.Endpoint)
 		}
 		base, err := app.New(app.Config{
-			DataDir:    dataDir,
+			DataDir: dataDir,
+			// 找不到可执行文件时保持空路径（不把空字符串固化）：重试会重跑发现链。
 			ServerPath: plan.Path,
+			ServerHint: discoveryHint(plan, planErr),
 			MockModel:  *mockFlag,
 			ClientName: "dimagent-ui",
 			Version:    version,
@@ -179,13 +212,20 @@ func main() {
 			os.Exit(1)
 		}
 		appBase = base
+		discover := serverDiscovery{dataDir: dataDir, explicit: *serverFlag, base: base, log: startup}
 		wire = uiwire.New(base)
 		source = wire
-		intents = retryingIntents{App: wire, connect: wire.Connect}
+		intents = retryingIntents{App: wire, rescan: func() { discover.apply("重新连接") }}
 		startup.printf("日志：%s", startup.Path())
 	}
 
+	// 关于页的版本取实际构建版本（打包时 -ldflags -X main.version=… 注入），
+	// 不在界面里留参考产品的样例号。
+	appui.SetBuildVersion(version)
+
 	var win *mygo.Window
+	// gate 是退出闸门：关窗与 ⌘Q 都等退出四阶段结束（见 quitGate）。
+	var gate *quitGate
 	app := appui.NewApp(appui.Options{
 		Source:  source,
 		Intents: intents,
@@ -307,7 +347,11 @@ func main() {
 				bounds := win.Bounds()
 				_ = appBase.UpdateWindowBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height)
 				// 双击启动的应用关掉窗口就该退出：留着没有窗口的进程只会让自启的
-				// App Server 落到没人回收的地方。
+				// App Server 落到没人回收的地方。退出四阶段没走完就不 Quit，否则
+				// 主循环先退出、自启实例留在机器上（关窗与异步收尾的竞态）。
+				if gate != nil {
+					gate.settle(quitWaitLimit)
+				}
 				mygo.App.Quit()
 			})
 		}
@@ -315,18 +359,19 @@ func main() {
 
 	// 退出时按退出四阶段收尾并回收自己拉起的服务端；只回收空闲实例，别的客户端
 	// 还在用就原样留下。
+	//
+	// 顺序：⌘Q 与关窗都先等四阶段结束再放行 Quit。主线程在监听器里阻塞等待
+	// （上限 quitWaitLimit），收尾本身不需要主线程；这样进程退出时自启实例
+	// 一定已经被回收或确认留下。
 	if appBase != nil {
-		var quitting bool
+		gate = newQuitGate(appBase, startup)
 		mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
-			if quitting {
+			if gate.settled() {
 				return
 			}
-			quitting = true
 			e.PreventDefault()
-			go func() {
-				shutdown(appBase, startup)
-				mygo.App.Quit()
-			}()
+			gate.settle(quitWaitLimit)
+			mygo.App.Quit()
 		})
 	}
 
@@ -334,6 +379,77 @@ func main() {
 		startup.printf("事件循环退出：%v", err)
 		log.Fatal(err)
 	}
+}
+
+// quitGate 把「关窗」与「⌘Q」接到同一次退出上：四阶段只跑一次，跑完才放行 Quit。
+type quitGate struct {
+	base *app.App
+	log  *startupLog
+
+	once sync.Once
+	// done 在四阶段结束后关闭。
+	done chan struct{}
+
+	mu sync.Mutex
+	// gaveUp 表示等待已到上限：之后的 Quit 不再拦住（阶段卡住也总得退出）。
+	gaveUp bool
+}
+
+// newQuitGate 建一个退出闸门；四阶段不在构造时启动，第一次 settle 才启动。
+func newQuitGate(base *app.App, log *startupLog) *quitGate {
+	return &quitGate{base: base, log: log, done: make(chan struct{})}
+}
+
+// begin 启动四阶段（只一次）并返回结束信号。
+func (g *quitGate) begin() <-chan struct{} {
+	g.once.Do(func() {
+		go func() {
+			shutdown(g.base, g.log)
+			close(g.done)
+		}()
+	})
+	return g.done
+}
+
+// settled 报告四阶段是否已经结束（或等待已到上限、已放行）。
+func (g *quitGate) settled() bool {
+	g.mu.Lock()
+	gaveUp := g.gaveUp
+	g.mu.Unlock()
+	if gaveUp {
+		return true
+	}
+	select {
+	case <-g.done:
+		return true
+	default:
+		return false
+	}
+}
+
+// settle 在调用方（主线程）阻塞到四阶段结束，最多 wait 这么久。
+// 返回 true 表示四阶段已结束；false 表示到了上限，按失败继续退出。
+func (g *quitGate) settle(wait time.Duration) bool {
+	done := g.begin()
+	select {
+	case <-done:
+		return true
+	default:
+	}
+	if wait > 0 {
+		timer := time.NewTimer(wait)
+		defer timer.Stop()
+		select {
+		case <-done:
+			return true
+		case <-timer.C:
+		}
+	}
+	g.mu.Lock()
+	g.gaveUp = true
+	g.mu.Unlock()
+	g.log.printf("退出：四阶段在 %.0f ms 内未结束，按上限继续退出", float64(wait.Milliseconds()))
+	return false
 }
 
 // shutdown 按退出四阶段收尾：停意图 → 结束交互 → 关连接 → 回收自启实例。

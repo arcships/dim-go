@@ -81,14 +81,24 @@ parse_version() {
 	printf '%s.%s.%s' "$major" "$minor" "$patch"
 }
 
-# 回退版本：没有 x.y.z 形态的来源时用 0.0.0，并提示用 -v 指定发布版本。
+# 回退版本：没有 x.y.z 形态的来源时用代码里的默认版本（入口的 defaultVersion），
+# 不写 0.0.0 —— 一个打出来的包至少要知道自己是什么版本。
+default_version() {
+	local entry="$ROOT/cmd/dimagent-ui/main.go"
+	local found=""
+	if [[ -f "$entry" ]]; then
+		found="$(sed -n 's/^const defaultVersion = "\([0-9][0-9.]*\)".*$/\1/p' "$entry" | head -n 1)"
+	fi
+	printf '%s' "${found:-0.1.0}"
+}
+
 if [[ -z "$VERSION" ]]; then
 	described="$(git -C "$ROOT" describe --tags 2>/dev/null || true)"
 	VERSION="$(parse_version "$described")"
 	if [[ -z "$VERSION" ]]; then
-		printf 'release: git 标签 %s 不是 x.y.z 形态，版本回退为 0.0.0（发布时请用 -v 指定）\n' \
-			"${described:-（无标签）}" >&2
-		VERSION="0.0.0"
+		VERSION="$(default_version)"
+		printf 'release: git 标签 %s 不是 x.y.z 形态，版本回退为代码默认版本 %s（发布时请用 -v 指定）\n' \
+			"${described:-（无标签）}" "$VERSION" >&2
 	fi
 else
 	raw_version="$VERSION"
@@ -189,6 +199,16 @@ done
 
 # 6. 打包与校验和：.app 整棵进包，sha256 与包同目录。
 PKG="DimAgent-$VERSION-macos-$ARCH.tar.gz"
+# 旧包清理：dist/ 只留本次出包的产物，免得几个版本的包混在一起分不清哪个能用。
+shopt -s nullglob
+for stale in "$DIST"/DimAgent-*.tar.gz "$DIST"/DimAgent-*.tar.gz.sha256; do
+	case "$stale" in
+	"$DIST/$PKG" | "$DIST/$PKG.sha256") continue ;;
+	esac
+	rm -f "$stale"
+	printf 'release: 清理旧包 %s\n' "$(basename "$stale")"
+done
+shopt -u nullglob
 rm -f "$DIST/$PKG" "$DIST/$PKG.sha256"
 (
 	cd "$DIST"
@@ -196,7 +216,26 @@ rm -f "$DIST/$PKG" "$DIST/$PKG.sha256"
 	shasum -a 256 "$PKG" >"$PKG.sha256"
 )
 
-# 7. 汇总：路径、体积与校验和，交给验收照着跑。
+# 7. dist/README：写清这份产物的版本、来源与重出命令（dist 不进仓库）。
+cat >"$DIST/README.md" <<README
+# dist/：本机发布产物
+
+由 \`scripts/release.sh\` 生成，生成时间 $(date '+%Y-%m-%d %H:%M:%S')。
+
+| 文件 | 说明 |
+|---|---|
+| \`DimAgent.app\` | 可双击运行；\`Contents/MacOS\` 下同时放 \`dim-app-server\`，客户端按「可执行文件同目录」发现它 |
+| \`$PKG\` | 打包整棵 \`.app\` |
+| \`$PKG.sha256\` | 包的 sha256 校验和 |
+
+- 版本：\`$VERSION\`；架构：\`$ARCH\`；提交：\`$COMMIT\`。
+- 重出同一版本：\`scripts/release.sh -v $VERSION\`。不带 \`-v\` 时取
+  \`git describe\` 的标签；标签不是 x.y.z 形态时用入口代码里的默认版本。
+- 每次出包都会删掉其它版本的 \`DimAgent-*.tar.gz\` 与校验和，只保留最近一次。
+- 本目录不进仓库（见 \`.gitignore\`），不要手工编辑这里的包。
+README
+
+# 8. 汇总：路径、体积与校验和，交给验收照着跑。
 human() { du -sh "$1" | awk '{print $1}'; }
 printf '\nrelease: 完成（版本 %s，架构 %s，提交 %s）\n' "$VERSION" "$ARCH" "$COMMIT"
 printf '  应用      %s（%s）\n' "$APP" "$(human "$APP")"

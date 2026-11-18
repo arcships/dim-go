@@ -294,8 +294,25 @@ var (
 	iconChevronsR   = mustSVG(`<path d="m6 6.75 5.25 5.25L6 17.25M12.75 6.75 18 12l-5.25 5.25"/>`)
 	iconEffort      = mustSVG(`<path d="M4.5 7.5h15M4.5 12h15M4.5 16.5h9"/>`)
 	iconProvider    = mustSVG(`<path d="M19.5 12a7.5 7.5 0 1 1-2.25-5.303"/><path d="M19.5 4.5V9h-4.5"/>`)
-	iconBrand       = mustSVG(`<path d="M19.8 15.6c1.65-3.6 1.05-7.65-1.95-9.75C14.7 3.45 9.15 4.95 6.3 8.4c-2.85 3.45-1.65 8.55 2.1 10.2 1.35.6 2.85.9 4.35.75"/><path d="M12.6 12.75v7.5"/>`)
+	// iconBrand 是品牌标记（空态与设置 › 账户的套餐行共用）：参考产品的 Dim 标志
+	// ——一圈缺口环（缺口在左下）加一根穿过缺口的竖杆，观感介于「d」与「@」之间。
+	// 它不是 24 网格的线性图标（环比图标粗、标记本身是宽的），故单独给 viewBox
+	// 与两条各自的描边宽度；比例按 empty.png 与 账户-top.png 的标记实测（墨迹
+	// 宽高比 34:24.5，环宽约为标记宽的 0.18，竖杆约为 0.13）。
+	iconBrand = mustBrandSVG(
+		`<g transform="rotate(5 17 13.4)">` +
+			`<path stroke-width="6.2" d="M11.72 21.89A13.6 10.6 0 1 1 23.64 20.45"/>` +
+			`</g>` +
+			`<path stroke-width="4.4" d="M19.4 13.2V22"/>`)
 )
+
+// mustBrandSVG 解析品牌标记：viewBox 取标记自身的比例（34×24.5），描边宽度写在
+// 路径上——不套图标那套 1.5 描边。
+func mustBrandSVG(inner string) *gui.SVG {
+	const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 24.5" fill="none" ` +
+		`stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">`
+	return gui.MustParseSVG([]byte(head + inner + `</svg>`))
+}
 
 // 打开方式的应用图标：参考产品用各应用的品牌图标；这里按同一 24 网格画可辨认的
 // 形状（VS Code 的折角、Zed 的字母 Z、终端的提示符、Ghostty 的幽灵轮廓）。

@@ -150,11 +150,11 @@ func screenRule(c *gui.Context) {
 		Label("分隔线").AccessHidden(true)
 }
 
-// screenCard 是设置页的卡：内容底、卡片圆角、1px 主题描边（描边走 Draw，
-// 着色取 t.Border）。
+// screenCard 是设置页的卡：卡面（白 / 暗 0c0c0c）、卡片圆角、1px 主题描边
+// （描边走 Draw，着色取 t.Border）。
 func screenCard(c *gui.Context, body func()) {
 	t := c.Theme()
-	card := gui.Column(c).Shrink(0).Background(t.Background).Radius(screenRadiusCard)
+	card := gui.Column(c).Shrink(0).Background(t.Surface).Radius(screenRadiusCard)
 	card.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
 	})
@@ -461,7 +461,7 @@ func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG) 
 		frame = t.Accent
 	}
 	b := gui.ButtonBase(c).Shrink(0).Width(screenThemeCardW).Height(screenThemeCardH).
-		Radius(screenRadiusCard).Background(t.Background).Padding(screenStroke).
+		Radius(screenRadiusCard).Background(t.Surface).Padding(screenStroke).
 		AlignItems(gui.Stretch).Label("主题：" + name).Tooltip(name).
 		Role(gui.RoleRadio).AccessSelected(selected)
 	if !selected {
@@ -729,7 +729,7 @@ func appearanceSkinCard(c *gui.Context, name string) {
 		frame = t.Accent
 	}
 	card := gui.ButtonBase(c).Shrink(0).Width(screenSkinCardW).Height(screenSkinCardH).
-		Radius(screenRadiusCard).Background(t.Background).Padding(screenStroke).
+		Radius(screenRadiusCard).Background(t.Surface).Padding(screenStroke).
 		AlignItems(gui.Stretch).Label("皮肤：" + name).Tooltip(name).
 		Role(gui.RoleRadio).AccessSelected(selected)
 	if !selected {
@@ -825,7 +825,7 @@ func appearanceDefaultSkinCard(c *gui.Context) {
 		frame = t.Accent
 	}
 	card := gui.ButtonBase(c).Shrink(0).Width(screenSkinCardW).Height(screenSkinCardH).
-		Radius(screenRadiusCard).Background(t.Background).Padding(screenStroke).
+		Radius(screenRadiusCard).Background(t.Surface).Padding(screenStroke).
 		AlignItems(gui.Stretch).Label("皮肤：默认").Tooltip("默认").
 		Role(gui.RoleRadio).AccessSelected(selected)
 	if !selected {

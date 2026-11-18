@@ -50,13 +50,14 @@ func TestSettingsCopyMatchesReference(t *testing.T) {
 		t.Fatal("插件设置不应再有页首说明")
 	}
 
-	// S6：公告日期不插空格，与账户节同一个格式。
-	tt = render(secAbout)
-	if !tt.HasText("2026年11月16日") {
-		t.Fatal("公告日期不是「2026年11月16日」")
+	// S6：日期口径不插空格。公告不再带样例日期（标题取本次构建版本），
+	// 这条口径的落点换成账户节的续订日期。
+	tt = render(secAccount)
+	if !tt.HasText("到期 2026年12月13日") {
+		t.Fatal("日期不是「2026年12月13日」口径")
 	}
-	if tt.HasText("2026 年 11 月 16 日") {
-		t.Fatal("公告日期里多了空格")
+	if tt.HasText("2026 年 12 月 13 日") {
+		t.Fatal("日期里多了空格")
 	}
 
 	// S8：所有者任务没有状态筛选。

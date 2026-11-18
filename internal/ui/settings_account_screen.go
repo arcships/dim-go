@@ -41,7 +41,8 @@ import (
 //	G-09 滚动条宽：沿用 Theme.ScrollbarWidth（没有改成参考的 10；D-04 是全局决定）。
 //	G-10 图标：mygo 不带图标集；本屏 11 个形状用 Heroicons v2 outline 的内联路径
 //	     （MIT，与 icons.go 同一套 24 网格），不新增素材文件。品牌标识（BrandMark）
-//	     没有资产，用占位圆环（D-03）。
+//	     取 icons.go 的 iconBrand：按参考标记的形状自绘（缺口环 + 竖杆），不引外部
+//	     资源、不冒充真实 logo。
 //
 // 依赖未定项（§5）在本文件里的取值：
 //
@@ -198,9 +199,6 @@ var (
 	accIconGlobe         = mustSVG(`<path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0a8.949 8.949 0 0 0 4.951-1.488A3.987 3.987 0 0 0 13 16h-2a3.987 3.987 0 0 0-3.951 3.512A8.949 8.949 0 0 0 12 21Zm3-11.25a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>`)
 	accIconGift          = mustSVG(`<path d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H4.5a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z"/>`)
 	accIconUpRight       = mustSVG(`<path d="M4.5 19.5 19.5 4.5m0 0H8.25m11.25 0v11.25"/>`)
-	// accIconBrandMark 是套餐标识的占位形状：品牌标识（D-03）没有资产，用一道
-	// 圆环加内弧表示「产品标记」，不冒充任何真实 logo。
-	accIconBrandMark = mustSVG(`<path d="M20.25 12a8.25 8.25 0 1 1-8.25-8.25"/><path d="M12 7.5a4.5 4.5 0 1 0 4.5 4.5"/>`)
 )
 
 // accMeterLevel 是进度条的三个配色档（G-02：参考的 normal / warning / critical）。
@@ -528,7 +526,7 @@ func accountAvatar(c *gui.Context, name string) {
 	}
 	box.Children(func() {
 		if initials == "" {
-			accIcon(c, accIconBrandMark, accAvatarInk, t.AccentText, "")
+			accIcon(c, iconBrand, accAvatarInk, t.AccentText, "")
 			return
 		}
 		gui.Text(c, initials).FontSize(accAvatarInk).FontWeight(600).
@@ -820,6 +818,7 @@ func (a *App) accountServiceRow(c *gui.Context, d accountScreenData) {
 }
 
 // accountBrandMark 是套餐标识（S-account-36）：强调底的方块，到期时换中性面。
+// 标记形状取品牌标记 iconBrand（参考实测墨迹 25×18，方块 35）。
 func accountBrandMark(c *gui.Context, expired bool) {
 	t := c.Theme()
 	box := gui.Box(c).Size(accBrandMark, accBrandMark).Radius(accBrandRadius).
@@ -832,7 +831,7 @@ func accountBrandMark(c *gui.Context, expired bool) {
 		box = box.Background(t.Accent.Alpha(accAlpha10))
 	}
 	box.Children(func() {
-		accIcon(c, accIconBrandMark, accBrandMark/2, color, "brand-mark")
+		accIcon(c, iconBrand, accBrandMark*5/7, color, "brand-mark")
 	})
 }
 
