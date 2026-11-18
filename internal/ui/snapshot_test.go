@@ -182,6 +182,50 @@ var screenCases = []screenCase{
 		a.rightOpen = true
 		a.rightTab = 2
 	}},
+	// 右栏四面板（终端 / 任务 / 侧聊 / 子代理）的重建形态。
+	{name: "panel-terminal-open", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabTerminal
+	}},
+	{name: "panel-terminal-closed", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabTerminal
+		a.closeTermProcess()
+	}},
+	{name: "panel-tasks-list", state: StateRunning, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabTasks
+		a.panels.taskSel = 0
+	}},
+	{name: "panel-tasks-wakeup", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabTasks
+		a.panels.taskKind = 1
+	}},
+	{name: "panel-side-chat-empty", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabSideChat
+	}},
+	{name: "panel-side-chat-ended", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabSideChat
+		a.panels.sideChatSent = []string{"只看 internal/ui 里的发送路径"}
+		a.panels.sideChatEnded = true
+	}},
+	{name: "panel-side-chat-error", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabSideChat
+		a.panels.sideChatError = "读取侧边对话失败：连接已断开"
+	}},
+	{name: "panel-side-chat-end-confirm", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabSideChat
+		a.panels.sideChatSent = []string{"只看 internal/ui 里的发送路径"}
+		a.panels.sideChatConfirm = true
+	}},
+	{name: "panel-subagent-loading", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabSubagent
+	}},
+	{name: "panel-subagent-error", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabSubagent
+		a.panels.subagentError = "读取子代理会话失败：连接已断开"
+	}},
+	{name: "panel-subagent-ready", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
+		a.rightOpen, a.rightTab = true, tabSubagent
+		a.panels.subagentReady = true
+	}},
 	// UI-19：无系统标题栏的窗口，红绿灯落在左栏顶部上方的那条里；标题行是自绘的。
 	{name: "variant-titlebar", state: StateDefault, titleBar: &gui.TitleBar{Height: 28, Left: 78}},
 	// 暗色不是另一个状态，是同一批 token 的另一套值（U2 §3.3）。

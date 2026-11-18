@@ -126,6 +126,12 @@ const (
 	VariantMode
 	VariantPermission
 	VariantWorkspace
+	// 右栏的五个走查态：文件页、改动页、范围下拉、＋新建菜单、展开面板。
+	VariantRightPanel
+	VariantReview
+	VariantReviewScope
+	VariantAddTab
+	VariantRightExpanded
 )
 
 // variantNames 是 -variant 的取值。
@@ -143,6 +149,9 @@ var variantNames = map[string]Variant{
 	"model": VariantModel, "effort": VariantEffort,
 	"skills": VariantSkills, "mode": VariantMode,
 	"permission": VariantPermission, "workspace": VariantWorkspace,
+	"right-panel": VariantRightPanel, "review": VariantReview,
+	"review-scope": VariantReviewScope, "add-tab": VariantAddTab,
+	"right-expanded": VariantRightExpanded,
 }
 
 // ParseVariant 解析 -variant。
@@ -150,7 +159,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded", v)
 }
 
 // Options 是骨架的启动参数。
@@ -276,6 +285,14 @@ type App struct {
 	termInput  string
 	termCopied bool
 	tasks      []task
+
+	// panels 是右栏四个重建面板（后台任务 / 终端 / 侧聊 / 子代理）的可丢视图
+	// 状态：选中的行、草稿、确认框与面板内的加载态。它不是事实。
+	panels panelView
+
+	// right 是右栏外壳与文件 / 改动两页的可丢视图状态（标签页、筛选词、
+	// 目录展开、浮层与拖出来的宽度），见 rightpanel_parts.go。
+	right rightPanelState
 
 	// contextUsed / contextLimit 是样例里的上下文用量，百分比由二者算；
 	// contextOpen 是明细的展开状态。三者都是可丢的界面状态（UI-8）。
@@ -427,6 +444,7 @@ func (a *App) loadSample() {
 	a.termState = termIdle
 	a.termLines = termSamples(termIdle)
 	a.termCopied = false
+	a.panels = newPanelView()
 
 	switch a.variant {
 	case VariantSettings:
@@ -506,6 +524,19 @@ func (a *App) loadSample() {
 	case VariantWorkspace:
 		a.state = StateEmpty
 		a.workspaceOpen = true
+	case VariantRightPanel:
+		a.rightOpen, a.rightTab = true, tabFiles
+	case VariantReview:
+		a.rightOpen, a.rightTab = true, tabChanges
+	case VariantReviewScope:
+		a.rightOpen, a.rightTab = true, tabChanges
+		a.rp().scopeOpen = true
+	case VariantAddTab:
+		a.rightOpen, a.rightTab = true, tabFiles
+		a.rp().newMenu = true
+	case VariantRightExpanded:
+		a.rightOpen, a.rightTab = true, tabFiles
+		a.rp().expanded = true
 	}
 
 	if a.state == StateWaiting {
@@ -582,6 +613,7 @@ func (a *App) resetWiredViewState() {
 	a.termLines = nil
 	a.termCopied = false
 	a.termInput = ""
+	a.panels = newPanelView()
 	a.model = ""
 
 	if a.source != nil {
@@ -792,8 +824,9 @@ func (a *App) layout(c *gui.Context) {
 	windowWidth, _ := c.Size()
 
 	// 右栏只在窗口宽到能并排时展开：主区保 400，右栏保 280。
-	// 更窄的窗口属于 compact，右栏应整屏替代主区，本批次未做。
-	panel := panelWidth(windowWidth, sidebar, a.rightOpen)
+	// 「展开面板」时右栏占满主区（RP-A-36/37）；更窄的窗口属于 compact，
+	// 右栏整屏替代主区，本批次未做。
+	panel := a.rpWidth(windowWidth, sidebar)
 
 	a.searchKeys(c)
 	a.terminalKeys(c)
@@ -808,6 +841,12 @@ func (a *App) layout(c *gui.Context) {
 			a.header(c)
 			a.actionErrorView(c)
 			gui.Row(c).Grow(1).AlignItems(gui.Stretch).Children(func() {
+				// 「展开面板」：右栏占满主区（RP-A-36/37），再按一次恢复。
+				if a.rightOpen && a.rp().expanded {
+					remaining, _ := c.Size()
+					a.rightPanel(c, remaining-sidebar)
+					return
+				}
 				// 窄到并排不下时（compact），右栏整屏替代主区（U1-ia §3.1）：
 				// 同一时刻只显示一处，关闭右栏后主区回来。
 				if a.rightOpen && panel == 0 {

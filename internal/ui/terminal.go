@@ -43,7 +43,13 @@ const (
 	termClosedNotice = "［进程已关闭］"
 	// termEmptyText 是画布还没有输出时的说明行。
 	termEmptyText = "还没有输出"
+	// termCaretWidth / termCaretHeight 是块状光标的尺寸（参考约 9×16）。
+	termCaretWidth  = 9
+	termCaretHeight = 16
 )
+
+// iconEraser 是「清屏」的橡皮擦图形（lucide eraser）。
+var iconEraser = mustSVG(`<path d="m7.5 20.25 11.25-11.25a2.25 2.25 0 0 0 0-3.18l-2.32-2.32a2.25 2.25 0 0 0-3.18 0L4.5 12.75a2.25 2.25 0 0 0 0 3.18l4.32 4.32"/><path d="M7.5 20.25h11.25"/>`)
 
 // 终端画布的固定配色：不跟随主题（R-TM-063），取参考产品的深底与终端八色。
 var (
@@ -115,8 +121,8 @@ func (a *App) terminalView() (termState, []termLine, bool) {
 	return state, lines, true
 }
 
-// terminalPanel 是终端面板：工具条 + 深色画布。
-func (a *App) terminalPanel(c *gui.Context) {
+// terminalPane 是终端面板：工具条 + 深色画布。
+func (a *App) terminalPane(c *gui.Context) {
 	gui.Column(c).Grow(1).Children(func() {
 		a.termToolbar(c)
 		a.termCanvas(c)
@@ -126,8 +132,7 @@ func (a *App) terminalPanel(c *gui.Context) {
 // termToolbar 是终端工具条（T-01–T-07）：终端标签（标题 + 关闭进程）、
 // 新建终端、关闭终端；右侧是走查用的中止 / 清屏 / 复制 / 断线入口。
 func (a *App) termToolbar(c *gui.Context) {
-	t := c.Theme()
-	state, _, wired := a.terminalView()
+	state, _, _ := a.terminalView()
 	gui.Row(c).Height(termToolbarHeight).Shrink(0).
 		Padding(space1, panelPad).Gap(space1).AlignItems(gui.Center).
 		Label(termLabel(state)).Children(func() {
@@ -144,7 +149,9 @@ func (a *App) termToolbar(c *gui.Context) {
 			a.closeTerminal()
 		}
 		gui.Spacer(c)
-		if state == termRunning {
+		// 中止：终端自己在跑，或输入区刚发出过命令（`!` 的命令不经过终端快照，
+		// 只有 lastShellRun 记得它），两者都给入口。
+		if state == termRunning || a.lastShellRun != "" {
 			if iconButton(c, iconButtonSpec{
 				icon: iconStop, label: "中止运行", tip: "中止运行 · Ctrl-C", size: rowCompact,
 			}) {
@@ -152,7 +159,7 @@ func (a *App) termToolbar(c *gui.Context) {
 			}
 		}
 		if iconButton(c, iconButtonSpec{
-			icon: iconXMark, label: "清屏", tip: "清屏 · Cmd-K", size: rowCompact,
+			icon: iconEraser, label: "清屏", tip: "清屏 · Cmd-K", size: rowCompact,
 		}) {
 			a.termLines = nil
 		}
@@ -173,10 +180,6 @@ func (a *App) termToolbar(c *gui.Context) {
 			icon: iconWarn, label: "模拟断线", tip: "模拟断线", size: rowCompact,
 		}) {
 			a.disconnectTerminal()
-		}
-		if wired {
-			// 连着真实终端时，断线由事实驱动；样例入口不给假状态。
-			_ = t
 		}
 	})
 }
@@ -279,6 +282,22 @@ func (a *App) termPrompt(c *gui.Context) {
 		}
 		gui.TextInputBase(c, &a.termInput).Label("终端输入").Grow(1).
 			Font(codeFont).FontSize(typeCode.sizeIn(t)).TextColor(termCanvasText)
+		if a.termInput == "" {
+			termCaret(c)
+		}
+	})
+}
+
+// termCaret 是提示行尾的空心方块光标（参考产品在输入处画一个块状光标）。
+func termCaret(c *gui.Context) {
+	caret := gui.Box(c).Width(termCaretWidth).Height(termCaretHeight).Shrink(0).
+		Label("终端光标").AccessHidden(true)
+	caret.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		line := float32(1)
+		p.Fill(gui.Rect{X: r.X, Y: r.Y, W: r.W, H: line}, termCanvasMuted, 0)
+		p.Fill(gui.Rect{X: r.X, Y: r.Y + r.H - line, W: r.W, H: line}, termCanvasMuted, 0)
+		p.Fill(gui.Rect{X: r.X, Y: r.Y, W: line, H: r.H}, termCanvasMuted, 0)
+		p.Fill(gui.Rect{X: r.X + r.W - line, Y: r.Y, W: line, H: r.H}, termCanvasMuted, 0)
 	})
 }
 

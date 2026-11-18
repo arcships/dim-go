@@ -57,7 +57,7 @@ func (a *App) subagentPanel(c *gui.Context) {
 		case !ready:
 			// 加载态：旋转圈 + 文案（G-06 / G-07）。
 			gui.Column(c).Grow(1).Center().Gap(space2).AlignItems(gui.Center).
-				Children(func() {
+				Busy(true).Children(func() {
 				gui.Spinner(c).Label("正在加载")
 				typeBody.style(t, gui.Text(c, subagentLoadingText)).TextColor(t.TextMuted)
 			})
@@ -73,7 +73,7 @@ func (a *App) subagentTimeline(c *gui.Context) {
 	if len(lines) == 0 && !a.wired() {
 		lines = subagentSamples()
 	}
-	gui.Scroll(c).Grow(1).Locked().Children(func() {
+	gui.Scroll(c).Grow(1).Children(func() {
 		gui.Column(c).Padding(panelPad).Gap(space3).Children(func() {
 			if len(lines) == 0 {
 				typeCode.style(c.Theme(), gui.Text(c, subagentEmptyText)).

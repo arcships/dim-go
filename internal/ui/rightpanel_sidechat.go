@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"strings"
+
 	gui "github.com/egoist/mygo/ui"
 )
 
@@ -24,10 +26,13 @@ const (
 
 // sideChatPanel 是侧聊面板。
 func (a *App) sideChatPanel(c *gui.Context) {
-	t := c.Theme()
 	gui.Column(c).Grow(1).Children(func() {
 		if a.panels.sideChatError != "" {
-			message := a.panels.sideChatError
+			// 错误原文为空时给通用文案，不留空白横幅（S-02 的异常分支）。
+			message := strings.TrimSpace(a.panels.sideChatError)
+			if message == "" {
+				message = sideChatLoadFailed
+			}
 			action := ""
 			if len(a.panels.sideChatSent) == 0 {
 				action = sideChatRetry
@@ -43,7 +48,6 @@ func (a *App) sideChatPanel(c *gui.Context) {
 		}
 		a.sideChatContent(c)
 		a.sideChatComposer(c)
-		_ = t
 	})
 	if a.panels.sideChatConfirm {
 		a.sideChatEndDialog(c)
@@ -77,9 +81,9 @@ func (a *App) sideChatContent(c *gui.Context) {
 						gui.Column(c).Shrink(0).Padding(space2, space3).
 							Radius(radiusCard).Background(t.SurfaceHover).
 							Children(func() {
-							typeBody.style(t, gui.Text(c, text)).TextColor(t.Text).
-								Selectable().MaxLines(8)
-						})
+								typeBody.style(t, gui.Text(c, text)).TextColor(t.Text).
+									Selectable().MaxLines(8)
+							})
 					})
 				}
 			})
@@ -100,13 +104,13 @@ func (a *App) sideChatComposer(c *gui.Context) {
 	t := c.Theme()
 	closed := a.panels.sideChatEnded
 	sending := a.panels.sideChatSending
-	draft := trimSpace(a.panels.sideChatDraft)
+	draft := strings.TrimSpace(a.panels.sideChatDraft)
 	gui.Row(c).Shrink(0).Padding(space2, panelPad).Gap(space1).
 		AlignItems(gui.Center).Children(func() {
 		gui.TextInputBase(c, &a.panels.sideChatDraft).
 			Label("侧边对话输入").Placeholder(sideChatPlaceholder).
 			Height(panelInputHeight).Radius(radius).Padding(space1, space2).
-			Background(t.SurfaceHover).Grow(1).
+			Background(t.Surface).Border(strokeHairline, t.Border).Grow(1).
 			Disabled(closed || sending)
 		if !closed && len(a.panels.sideChatSent) > 0 {
 			if iconButton(c, iconButtonSpec{
@@ -137,7 +141,7 @@ func (a *App) sideChatComposer(c *gui.Context) {
 
 // sendSideChat 把草稿作为一条消息发出去（本地回声；连着 Source 时由事实接管）。
 func (a *App) sendSideChat() {
-	text := trimSpace(a.panels.sideChatDraft)
+	text := strings.TrimSpace(a.panels.sideChatDraft)
 	if text == "" || a.panels.sideChatEnded {
 		return
 	}
@@ -186,16 +190,4 @@ func panelDangerButton(c *gui.Context, text string) bool {
 		typeControlStrong.style(t, gui.Text(c, text)).TextColor(t.AccentText).SingleLine()
 	})
 	return b.Clicked()
-}
-
-// trimSpace 去掉首尾空白（草稿判空用）。
-func trimSpace(s string) string {
-	start, end := 0, len(s)
-	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
-		start++
-	}
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
-		end--
-	}
-	return s[start:end]
 }

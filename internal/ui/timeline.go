@@ -212,8 +212,14 @@ func (a *App) thinkingBlock(c *gui.Context, i int, r round) {
 	t := c.Theme()
 	open := a.blockOf(fmt.Sprintf("think:%d", i), false)
 	title := "思考了 " + r.thinkingDuration
+	if r.thinkingDuration == "" {
+		title = "思考"
+	}
 	if r.status == roundRunning {
 		title = "正在思考 · " + r.thinkingDuration
+		if r.thinkingDuration == "" {
+			title = "正在思考"
+		}
 	}
 	btn := gui.ButtonBase(c).Grow(1).Height(timelineRowHeight).Gap(space1).
 		Justify(gui.Start).AlignItems(gui.Center).Cursor(gui.CursorPointer).
@@ -909,44 +915,165 @@ func roundMeta(r round) string {
 	return meta
 }
 
-// liveTimeline 只画 Source 给的快照：用户消息右对齐，其余按行类型落块。
-// 完整的工具/思考事实要等 Source 补字段；当前先保证「事实进来、样例不掺」。
+// liveTimeline 只画 Source 给的快照：按行的种类落到既有的块上（用户气泡、助手
+// 正文、思考块、工具行与工具组、失败行、产物、改动、压缩分隔），不掺样例。
+//
+// 块的开合态按行序号存（可丢的视图状态），行的顺序与内容都只来自 Source。
 func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 	if len(snap.Rows) == 0 {
 		a.emptyTimeline(c)
 		return
 	}
-	t := c.Theme()
 	gui.Box(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Fill().TrackScroll(&a.feed).
 			Label("对话流").Role(gui.RoleLog).Focusable().TabStop(true).Children(func() {
 			gui.Column(c).Padding(space6, timelinePadX).Gap(timelineRoundGap).
 				Label("对话内容").Children(func() {
-				for _, row := range snap.Rows {
-					row := row
-					switch row.Kind {
-					case "user":
-						gui.Row(c).Grow(1).Children(func() {
-							gui.Spacer(c)
-							gui.Box(c).MaxWidthPercent(userBubbleMaxPercent).
-								Padding(space2, timelinePadX).Radius(radiusCard).
-								Background(t.SurfaceHover).Children(func() {
-								typeBody.style(t, gui.Text(c, row.Text)).TextColor(t.Text).Selectable()
-							})
-						})
-					case "group":
-						gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
-							iconGlyph(c, iconWorkflow, t.TextMuted, "workflow")
-							typeSecondaryStrong.style(t, gui.Text(c, row.Text)).TextColor(t.Text)
-						})
-					default:
-						markdown.View(c, row.Text, &a.md)
-					}
+				for i := range snap.Rows {
+					a.liveRow(c, i, snap.Rows[i])
 				}
 			})
 		})
 		a.backToLatest(c)
 	})
+}
+
+// liveRow 画一行事实：种类决定用哪个块，字段决定块里的文字；认不出的种类
+// 仍按正文画（纯文本回退，不丢内容）。
+func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
+	t := c.Theme()
+	switch row.Kind {
+	case RowUser:
+		gui.Row(c).Grow(1).Children(func() {
+			gui.Spacer(c)
+			gui.Box(c).MaxWidthPercent(userBubbleMaxPercent).
+				Padding(space2, timelinePadX).Radius(radiusCard).
+				Background(t.SurfaceHover).Label("我的消息").Children(func() {
+				typeBody.style(t, gui.Text(c, row.Text)).TextColor(t.Text).Selectable()
+			})
+		})
+	case RowThinking:
+		a.thinkingBlock(c, i, thinkingRound(row))
+	case RowToolGroup:
+		if len(row.Children) == 0 {
+			return
+		}
+		a.roundHeader(c, i, toolGroupRound(row))
+	case RowTool:
+		a.opRow(c, i, 0, toolOp(row))
+	case RowFileChanges:
+		if len(row.Children) == 0 {
+			return
+		}
+		a.fileChangesBlock(c, i, round{fileChanges: fileChangeRows(row)})
+	case RowArtifact:
+		if len(row.Children) == 0 {
+			return
+		}
+		a.artifactsBlock(c, i, round{artifacts: artifactRows(row)})
+	case RowError:
+		a.failureBlock(c)
+	case RowRetry:
+		a.retryNotice(c, round{retrySeconds: int(math.Ceil(row.Duration.Seconds()))})
+	case RowCompression:
+		a.roundDivider(c, row.Text)
+	default:
+		a.liveText(c, row)
+	}
+}
+
+// liveText 是纯文本回退：正文非空就按助手正文画；空行没有可画的内容。
+func (a *App) liveText(c *gui.Context, row RowSnapshot) {
+	if strings.TrimSpace(row.Text) == "" {
+		return
+	}
+	markdown.View(c, row.Text, &a.md)
+}
+
+// thinkingRound 把思考行投成思考块要的一轮（标题里的时长由事实给出）。
+func thinkingRound(row RowSnapshot) round {
+	return round{
+		thinking:         row.Text,
+		thinkingDuration: rowDurationText(row.Duration),
+		status:           liveRoundStatus(row.Status),
+	}
+}
+
+// toolGroupRound 把工具组投成组头的形状：动作、对象、结果都来自子行。
+func toolGroupRound(row RowSnapshot) round {
+	ops := make([]op, 0, len(row.Children))
+	for _, child := range row.Children {
+		ops = append(ops, toolOp(child))
+	}
+	return round{ops: ops, status: liveRoundStatus(row.Status)}
+}
+
+// toolOp 把工具行投成操作行：Title 是动作、Args 是参数摘要、Text 是结果原文。
+// 输入原文没有进快照，所以行里只展开输出。
+func toolOp(row RowSnapshot) op {
+	return op{
+		action:  row.Title,
+		target:  row.Args,
+		output:  row.Text,
+		added:   row.DiffAdd,
+		removed: row.DiffRemove,
+		failed:  row.Status == RowStatusFailed || row.Status == RowStatusCancelled,
+	}
+}
+
+// fileChangeRows 把改动块的子行投成改动文件行。
+func fileChangeRows(row RowSnapshot) []fileChange {
+	out := make([]fileChange, 0, len(row.Children))
+	for _, child := range row.Children {
+		out = append(out, fileChange{
+			path:    child.Text,
+			status:  child.Args,
+			added:   child.DiffAdd,
+			removed: child.DiffRemove,
+		})
+	}
+	return out
+}
+
+// artifactRows 把产物块的子行投成产物卡。
+func artifactRows(row RowSnapshot) []artifact {
+	out := make([]artifact, 0, len(row.Children))
+	for _, child := range row.Children {
+		name := child.Title
+		if name == "" {
+			name = child.Text
+		}
+		out = append(out, artifact{name: name})
+	}
+	return out
+}
+
+// liveRoundStatus 把行状态换成块的三种状态；未知状态按结束画。
+func liveRoundStatus(status string) roundStatus {
+	switch status {
+	case RowStatusRunning, RowStatusPending:
+		return roundRunning
+	case RowStatusFailed, RowStatusCancelled:
+		return roundFailed
+	default:
+		return roundDone
+	}
+}
+
+// rowDurationText 把时长写成块标题里的一档（0.3s / 12s / 1m30s）；0 表示没有
+// 时长事实，返回空串，块标题就不写时长。
+func rowDurationText(d time.Duration) string {
+	if d <= 0 {
+		return ""
+	}
+	if d < time.Second {
+		return fmt.Sprintf("%.1fs", d.Seconds())
+	}
+	seconds := int(d.Seconds())
+	if seconds < 60 {
+		return fmt.Sprintf("%ds", seconds)
+	}
+	return fmt.Sprintf("%dm%ds", seconds/60, seconds%60)
 }
 
 // emptyTimeline 是"会话里还没有消息"的空态（与无会话的空态区分）。

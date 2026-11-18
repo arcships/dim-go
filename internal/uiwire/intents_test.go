@@ -853,8 +853,10 @@ func TestIntentGoalPauseResumeClear(t *testing.T) {
 func TestIntentStopExecTask(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
 	h.click("打开上下文面板")
-	h.click("后台")
-	h.click("停止任务")
+	h.click("新建标签页")
+	h.click("后台进程 1")
+	h.click("取消任务")
+	h.click("确认停止")
 	params := h.waitRequest("session.exec.stop")
 	t.Logf("点了「停止任务」→ 服务端收到 session.exec.stop（%d 次），taskId=%v",
 		len(h.server.RequestsFor("session.exec.stop")), params["taskId"])
@@ -899,6 +901,7 @@ func TestIntentShellStop(t *testing.T) {
 	h.waitRequest("shell.run")
 	h.waitFor("消息", 2*time.Second)
 	h.click("打开上下文面板")
+	h.click("新建标签页")
 	h.click("终端")
 	h.waitFor("中止运行", 2*time.Second)
 	h.click("中止运行")

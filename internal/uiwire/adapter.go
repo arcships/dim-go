@@ -57,11 +57,23 @@ type App struct {
 	tasksMu  sync.Mutex
 	tasks    []ui.ModalityTaskSnapshot
 	tasksErr string
+	// changesMu 保护按轮次缓存的工具声明改动（界面每帧读，不能每帧发请求）。
+	changesMu    sync.Mutex
+	changesByRun map[string][]ui.RowSnapshot
+	changesAsked map[string]bool
+	// changeSlots 限制同时在读的改动数量（见 refreshRunChanges）。
+	changeSlots chan struct{}
 }
 
 // New 包住一个已创建的集成层。
 func New(a *app.App) *App {
-	return &App{A: a, phase: ui.Connection{Phase: "connecting"}}
+	return &App{
+		A:            a,
+		phase:        ui.Connection{Phase: "connecting"},
+		changesByRun: make(map[string][]ui.RowSnapshot),
+		changesAsked: make(map[string]bool),
+		changeSlots:  make(chan struct{}, changeReadSlots),
+	}
 }
 
 // currentSession 返回当前打开的会话标识；读写由 sessionMu 保护。
@@ -356,6 +368,8 @@ func (w *App) Session() (ui.SessionSnapshot, bool) {
 	if !ok {
 		return ui.SessionSnapshot{}, false
 	}
+	// 已收口的轮次排一次改动读取（同一轮只排一次，结果到了再重绘）。
+	w.requestRunChanges(view)
 	return w.snapshot(view), true
 }
 
@@ -392,9 +406,7 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 		out.Goal = v.Goal.Objective
 		out.GoalStatus = string(v.Goal.Status)
 	}
-	for _, row := range v.Rows {
-		out.Rows = append(out.Rows, ui.RowSnapshot{Kind: string(row.Kind), Text: row.Text})
-	}
+	out.Rows = w.rows(v)
 	return out
 }
 

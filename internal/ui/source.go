@@ -193,11 +193,71 @@ type BranchSnapshot struct {
 	Ended bool
 }
 
-// RowSnapshot 是时间线的一行（用户 / 助手 / 过程组）。
+// 时间线行的种类。视图按种类找对应的块；认不出的种类仍按正文文本画，
+// 所以新增种类不会让内容消失（纯文本回退）。
+const (
+	// RowUser 是用户的一次输入。
+	RowUser = "user"
+	// RowAssistant 是助手正文的一段（Markdown）。
+	RowAssistant = "assistant"
+	// RowThinking 是一段思考，正文是思考原文。
+	RowThinking = "thinking"
+	// RowTool 是一次工具调用；Title 是动作，Args 是参数摘要，Text 是结果原文。
+	RowTool = "tool"
+	// RowToolGroup 是连续工具调用的折叠组，Children 是其中的工具行。
+	RowToolGroup = "toolGroup"
+	// RowError 是一轮以失败收口的事实；Text 是服务端给的结果原文（可能为空）。
+	RowError = "error"
+	// RowRetry 是一次自动重试的倒计时；Duration 是剩余时间。
+	//
+	// 协议目前没有重试事实：种类与画法先留着，投影不产生这种行。
+	RowRetry = "retry"
+	// RowArtifact 是本轮产物，Children 是产物行（Text 是名字）。
+	//
+	// 工具与协议都不声明产物：种类与画法先留着，投影不产生这种行。
+	RowArtifact = "artifact"
+	// RowFileChanges 是本轮改动，Children 是改动文件行（Text 是路径）。
+	RowFileChanges = "fileChanges"
+	// RowFileChange 是改动块里的一个文件（只作 Children 出现）。
+	RowFileChange = "fileChange"
+	// RowCompression 是压缩/窗口截断的分隔行，Text 是服务端的摘要原文。
+	RowCompression = "compression"
+)
+
+// 行状态的界面词：前三个是视图按它们选样式的那三种，其余两词是投影原样给出
+// 的服务端状态（视图按结束状态画）。
+const (
+	RowStatusRunning   = "running"
+	RowStatusDone      = "done"
+	RowStatusFailed    = "failed"
+	RowStatusPending   = "pending"
+	RowStatusCancelled = "cancelled"
+)
+
+// RowSnapshot 是时间线的一行。字段只装事实：种类、正文、短标签、参数摘要、
+// 状态、时长、差异计数与分组子行；呈现（字号、图标、颜色）由视图决定。
 type RowSnapshot struct {
-	Kind string // "user" / "assistant" / "group"
+	// Kind 取上面 Row* 之一。
+	Kind string
+	// Text 是这一行的正文：用户消息、助手正文、思考原文、工具结果、压缩摘要。
 	Text string
-	Ops  int
+	// Title 是行首的短标签（工具动作）；空表示该种类没有短标签。
+	Title string
+	// Args 是工具行的参数摘要（命令、路径、查询），不是整段输入。
+	Args string
+	// Status 取 RowStatus* 之一；空表示这一行没有状态事实。
+	Status string
+	// Duration 是这一行已经用掉的时间（思考、工具、重试倒计时）；0 表示没有。
+	Duration time.Duration
+	// DiffAdd / DiffRemove 是改动行数；0 表示没有差异事实（不是"没有改动"）。
+	DiffAdd    int
+	DiffRemove int
+	// Expanded 是这一行默认是否展开；视图仍可在本地覆盖（可丢的界面状态）。
+	//
+	// 目前没有一条事实给出默认开合，所以投影一律给 false，视图按收起画。
+	Expanded bool
+	// Children 是分组里的行：工具组里的工具行、改动块里的文件行、产物行。
+	Children []RowSnapshot
 }
 
 // ApprovalSnapshot 是一条待决审批。

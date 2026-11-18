@@ -16,7 +16,7 @@ import (
 // 面板内的元素只读事实、不写事实：Go 侧只有可丢的视图状态（选中的行、草稿、
 // 确认框的开合），事实一律来自 Source；没有 Source 时用样例。
 
-// 右栏标签的下标（与 rightPanelLabels 同序；app.go 里的变体也用这些值）。
+// 右栏标签的下标（与右栏标签条的类型表同序；app.go 里的变体也用这些值）。
 const (
 	tabFiles = iota
 	tabChanges
@@ -27,15 +27,10 @@ const (
 	tabSubagent
 )
 
-// rightPanelLabels 是标签栏的文案（顺序即下标）。
-var rightPanelLabels = [...]string{"文件", "改动", "后台", "目标", "终端", "侧聊", "子代理"}
-
 // 面板尺寸：参考产品的实测值与需求条目给出的具体值。
 const (
 	// rightPanelTabHeight 是标签栏高：参考实测约 40（design-baseline §7）。
 	rightPanelTabHeight = 40
-	// panelTabMinWidth 是标签在窄面板下的最小宽，窄于它就不再压缩（文字截断）。
-	panelTabMinWidth = 32
 	// panelRowHeight 是面板列表行高：参考 44–48（R-TK-033），取 44。
 	panelRowHeight = 44
 	// panelPad 是面板内容内边距：时间线内边距档 10.5（design-baseline §1.3）。
@@ -52,8 +47,6 @@ const (
 	panelSendSize = 32
 	// panelOutputMinHeight 是进程详情里只读输出框的最小高（K-30：160）。
 	panelOutputMinHeight = 160
-	// panelStatusSize 是列表行与详情头的状态图标尺寸（K-05–K-08：16）。
-	panelStatusSize = iconInline
 )
 
 // panelView 是四个重建面板的视图状态：可丢、不承载事实。
@@ -74,9 +67,10 @@ type panelView struct {
 	sideChatError       string
 	sideChatFromMessage bool
 	sideChatSent        []string
-	// 子代理：加载 / 就绪 / 错误三态与错误原文。
+	// 子代理：加载 / 就绪 / 错误三态、错误原文与只读时间线（本地收到的消息）。
 	subagentReady bool
 	subagentError string
+	subagentLines []string
 }
 
 // newPanelView 是面板视图状态的默认值：没有选中行（详情区不渲染）。
@@ -88,54 +82,16 @@ func newPanelView() panelView {
 func (a *App) rightPanel(c *gui.Context, width float32) {
 	t := c.Theme()
 	// 与主区之间靠面差（surface 对 background）分开，不画竖线（UI-18 第一档）。
-	gui.Column(c).Width(width).Shrink(0).
+	gui.Row(c).Width(width).Shrink(0).FillHeight().
 		Background(t.Surface).
 		Label("右栏").Role(gui.RoleGroup).Children(func() {
-		a.rightPanelTabs(c, width)
-		// 块之间的分隔用框架 Divider：方向随容器，颜色取 border（U2 校准 C8）。
-		gui.Divider(c)
-		a.rightPanelBody(c)
-	})
-}
-
-// rightPanelTabs 是标签栏：七枚紧凑标签等宽铺满，选中项有底色与主前景。
-// 框架 Tabs 的内边距是固定的 10.5，七枚在 320 宽里放不下，故按面板宽自排。
-func (a *App) rightPanelTabs(c *gui.Context, width float32) {
-	t := c.Theme()
-	count := len(rightPanelLabels)
-	avail := width - 2*space2 - float32(count-1)*space1
-	tabWidth := avail / float32(count)
-	if tabWidth < panelTabMinWidth {
-		tabWidth = panelTabMinWidth
-	}
-	gui.Row(c).Height(rightPanelTabHeight).Shrink(0).
-		Padding(space1, space2).Gap(space1).AlignItems(gui.Center).
-		Label("右栏标签").Children(func() {
-		for i, label := range rightPanelLabels {
-			on := i == a.rightTab
-			tab := gui.ButtonBase(c).Width(tabWidth).Height(rowCompact).
-				Radius(radiusSmall).Padding(space1, space1).Label(label)
-			switch {
-			case on:
-				tab = tab.Background(t.SurfaceHover)
-			case tab.Hovered():
-				tab = tab.Background(t.SurfaceHover)
-			}
-			color := t.TextMuted
-			if on {
-				color = t.Text
-			}
-			if tab.Clicked() {
-				a.rightTab = i
-			}
-			tab.Children(func() {
-				text := typeSecondary.style(t, gui.Text(c, label)).TextColor(color)
-				if on {
-					text = text.FontWeight(600)
-				}
-				text.TextAlign(gui.Center).SingleLine()
-			})
-		}
+		a.rpHandle(c)
+		gui.Column(c).Grow(1).FillHeight().Children(func() {
+			a.rpTabBar(c, width)
+			// 块之间的分隔用框架 Divider：方向随容器，颜色取 border（U2 校准 C8）。
+			gui.Divider(c)
+			a.rightPanelBody(c)
+		})
 	})
 }
 
@@ -144,42 +100,25 @@ func (a *App) rightPanelTabs(c *gui.Context, width float32) {
 // rightpanel_subagent.go。
 func (a *App) rightPanelBody(c *gui.Context) {
 	switch a.rightTab {
+	case tabFiles:
+		a.rpFilesPage(c)
+	case tabChanges:
+		a.rpChangesPage(c)
 	case tabTasks:
 		a.tasksPanel(c)
 	case tabGoal:
 		a.goalPanel(c)
 	case tabTerminal:
-		a.terminalPanel(c)
+		a.terminalPane(c)
 	case tabSideChat:
 		a.sideChatPanel(c)
 	case tabSubagent:
 		a.subagentPanel(c)
 	default:
-		a.filesPanel(c)
+		// 参考产品里浏览器 / 文件预览 / 工作流 / 唤醒 / 扩展 / MCP App 由各自的
+		// 功能承载；本产品还没有对应能力，页内容留空。
+		gui.Box(c).Grow(1)
 	}
-}
-
-// filesPanel 是文件 / 改动两个面板的既有形态（本轮不重建）。
-func (a *App) filesPanel(c *gui.Context) {
-	gui.Scroll(c).Grow(1).Children(func() {
-		gui.Column(c).Padding(panelPad).Gap(panelGap).Children(func() {
-			if a.rightTab == tabChanges {
-				a.changesPanel(c)
-				return
-			}
-			fileRow(c, "internal/ui/composer.go")
-			fileRow(c, "internal/ui/timeline.go")
-			fileRow(c, "internal/ui/app.go")
-		})
-	})
-}
-
-// changesPanel 是改动面板的既有形态（本轮不重建）。
-func (a *App) changesPanel(c *gui.Context) {
-	t := c.Theme()
-	typeSecondary.style(t, gui.Text(c, "2 个文件 · +41 −7")).TextColor(t.TextMuted)
-	fileRow(c, "internal/ui/composer.go  +33 −5")
-	fileRow(c, "internal/ui/timeline.go  +8 −2")
 }
 
 // goalPanel 是目标面板的既有形态（本轮不重建）。
@@ -191,13 +130,6 @@ func (a *App) goalPanel(c *gui.Context) {
 			typeSecondary.style(t, gui.Text(c, "运行中的提交先入队，结束后自动发出。")).
 				TextColor(t.TextMuted)
 		})
-	})
-}
-
-func fileRow(c *gui.Context, name string) {
-	t := c.Theme()
-	gui.Row(c).AlignItems(gui.Center).Children(func() {
-		typeSecondary.style(t, gui.Text(c, name)).SingleLine()
 	})
 }
 
@@ -236,20 +168,6 @@ func panelBanner(c *gui.Context, message, action string, onAction func()) {
 	})
 }
 
-// panelIconButton 是面板里的纯图标入口：与 iconButton 同一套五态，但允许
-// 指定尺寸（发送按钮 32、行内按钮 24）。
-func panelIconButton(c *gui.Context, spec iconButtonSpec) bool {
-	return iconButton(c, spec)
-}
-
-// panelSplit 返回面板里"列表 + 详情"两段的宽度占比（参考产品的两段等高）。
-func panelSplit(total float32) float32 {
-	if total <= 0 {
-		return 0
-	}
-	return total / 2
-}
-
 // panelCommandText 拼命令行：`$ {command}`。命令为空时返回空串（该行不渲染）。
 func panelCommandText(command string) string {
 	command = strings.TrimSpace(command)
@@ -257,6 +175,26 @@ func panelCommandText(command string) string {
 		return ""
 	}
 	return "$ " + command
+}
+
+// panelMessage 是只读时间线里的一条消息（侧聊与子代理共用）：用户消息靠右、
+// 带底色，助手正文靠左、无底色；都只能选中复制，没有编辑与引用入口。
+func panelMessage(c *gui.Context, text string, user bool) {
+	t := c.Theme()
+	if user {
+		gui.Column(c).Shrink(0).AlignItems(gui.End).Children(func() {
+			gui.Column(c).Shrink(0).Padding(space2, space3).
+				Radius(radiusCard).Background(t.SurfaceHover).Children(func() {
+				typeBody.style(t, gui.Text(c, text)).TextColor(t.Text).
+					Selectable().MaxLines(8)
+			})
+		})
+		return
+	}
+	gui.Column(c).Shrink(0).Children(func() {
+		typeBody.style(t, gui.Text(c, text)).TextColor(t.Text).
+			Selectable().MaxLines(12)
+	})
 }
 
 // intentStopTask 停止一条后台任务（连着 Source 时才发；样例里只改视图）。
