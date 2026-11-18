@@ -105,8 +105,12 @@ Owner: U2 界面视觉（由 U5 实现产出、U2 判读）
 go test ./internal/ui -run 'TestScreens|TestTitleBarCloseup|TestWordlessCheck' -update
 
 # 真窗口（逐态启动、按窗口号截图；需要屏幕录制权限）
+# 连接是默认，样例图案要显式 -demo（capture-windows.py 内部已带；手截也要带）
 go build -o /tmp/dimagent-ui ./cmd/dimagent-ui
 python3 scripts/capture-windows.py   # 五个状态 + 三档宽度 + 二十八个走查态（branch / branch-end / goal / tasks / settings / settings-rules / ext / ext-failed / term / term-running / term-exited）
+
+# 单态手截（如空态）：-no-focus 不抢焦点、不进 Dock；-screenshot 渲染一帧后写文件退出
+go run ./cmd/dimagent-ui -demo -no-focus -state empty -screenshot <截图路径>
 
 # 基线量测（同一批图上的数值）
 python3 scripts/ui-baseline.py docs/domains/screens/state-default.png

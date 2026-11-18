@@ -191,6 +191,8 @@ func main() {
 		Intents: intents,
 		State:   state,
 		Variant: variant,
+		// 断线卡的「查看日志」用它打开客户端日志；样例模式没有日志时为空串。
+		LogPath: startup.Path(),
 		StateChanged: func(s appui.State) {
 			if win != nil {
 				win.SetTitle(title(s))

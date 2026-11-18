@@ -1,6 +1,6 @@
 # D14 界面接入与交付
 
-Status: 现行（2026-11-14）
+Status: 现行（2026-11-18）
 Owner: D14 界面接线（`internal/uiwire`、`internal/ui` 的接线部分、`cmd/dimagent-ui`）
 依据: `docs/project-organization.md` §5 结果包、`docs/domains/U1-ia.md`、`docs/domains/D1-connection.md`、`docs/domains/D11a-settings.md`、`docs/domains/D11b-extensions.md`、`docs/domains/D9-terminal.md`
 
@@ -14,24 +14,25 @@ Owner: D14 界面接线（`internal/uiwire`、`internal/ui` 的接线部分、`c
 go build ./...
 ```
 
-### 1.1 样例模式（`-demo`，默认）
+### 1.1 样例模式（`-demo`）
 
 不连 App Server，只用静态样例画六个区域与五种状态；截图与走查用这一模式。
+**连接是默认**，样例要显式加 `-demo`（不带参数启动会去发现并连接 App Server）。
 
 ```bash
-go run ./cmd/dimagent-ui
-go run ./cmd/dimagent-ui -state running
-go run ./cmd/dimagent-ui -variant settings
+go run ./cmd/dimagent-ui -demo
+go run ./cmd/dimagent-ui -demo -state running
+go run ./cmd/dimagent-ui -demo -variant settings
 ```
 
-### 1.2 连接真实 App Server（`-connect`）
+### 1.2 连接真实 App Server（默认；`-connect` 可省略）
 
+不带 `-demo` 就是连接模式；旧的 `-connect` 仍被接受，但不改变行为。
 `-server` 指向 App Server 可执行文件；`-mock-model` 让服务端用 mock 模型，不需要账号与网络。
 `-data-dir` 是**客户端数据目录**：端点按真实客户端的规则落在 `<数据目录>/rust/daemon.sock`。
 
 ```bash
 go run ./cmd/dimagent-ui \
-  -connect \
   -data-dir <数据目录> \
   -server <app-server 可执行文件> \
   -mock-model
@@ -135,6 +136,8 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 标题行 · 结束分支（两步确认） | `EndBranch` | `app.EndBranch` | `session.branch_end` | `TestIntentSelectAndEndBranch` |
 | 输入卡 · 添加文本附件 | `WriteAttachment` | `app.WriteAttachment` | `attachment.put` | `TestIntentAttachment` |
 | 右栏终端 · 清屏 / 复制 | 本地 | 视图状态 / `Context.WriteClipboard` | 无 | 本地动作 |
+| 断线卡 · 查看日志 | 本地 | 系统默认处理程序打开 `<数据目录>/logs/dimagent.log`（入口经 `Options.LogPath` 交来） | 无 | 本地动作；打不开时把路径留在卡片第二行供复制（`TestDisconnectedCardLogFailureShowsPath`） |
+| 空态 · 登录账号 / 添加供应商 | 本地 | 切到设置屏的账户 / 模型供应分节 | 无 | 本地动作；**我们的首次运行引导**，参考产品的空态没有这两条（`TestEmptyStateFirstRunGuide`） |
 | 设置 · 运行时 · 取消模态任务 | `CancelModalityTask` | `app.ModalityWrite(task.cancel)` | `modality.task.cancel` | `TestIntentCancelModalityTask` |
 | 目标行 · 设定 / 修改 | `SetGoal` / `EditGoal` | `app.SetGoal/EditGoal` | `session.goal.set` / `session.goal.edit` | `TestIntentSetGoal` / `TestIntentEditGoal` |
 | 目标行 · 暂停 / 恢复 | `PauseGoal` / `ResumeGoal` | `app.PauseGoal/ResumeGoal` | `session.goal.pause` / `session.goal.resume` | `TestIntentGoalPauseResumeClear` |

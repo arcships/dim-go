@@ -14,6 +14,13 @@ import (
 // 几何取 design-baseline：卡片圆角 12.75、控件高 25、行内间距 3.5 / 7 / 14。
 // 文案取 requirements-main 的 IN-*：占位「发送消息...」、工具行「+」「»」「技能」、
 // 右侧「高」+ 模型名 + 发送、底部控制行「工作区」「默认权限」。
+//
+// 来源差异（空态）：参考产品的空态只有品牌标记、「开始构建」与输入卡，首次运行
+// 由一次性欢迎卡（inventory-global K5）承接，没有「登录账号」「添加供应商」这两条
+// 入口。这两条是我们的首次运行引导，点了直接跳设置对应分节，不是参考产品的元素。
+//
+// 来源差异（断线卡）：「查看日志」也是我们加的：参考产品在这一位只给原因与重试。
+// 它打开入口交来的客户端日志（Options.LogPath），打开失败时把路径留在原位供复制。
 
 const (
 	// composerMaxWidth 是输入卡的最大宽（参考 max-w-3xl = 672）。
@@ -91,7 +98,8 @@ func (a *App) composer(c *gui.Context) {
 	})
 }
 
-// emptyThread 是空态（NewThread）：品牌标记 +「开始构建」+ 输入卡 + 控制行。
+// emptyThread 是空态（NewThread）：品牌标记 +「开始构建」+ 输入卡 + 控制行，
+// 卡片下方是两条首次运行入口。
 // 它占满主区并整体居中，时间线不在空态里重复写一句「还没有消息」。
 func (a *App) emptyThread(c *gui.Context) {
 	t := c.Theme()
@@ -104,7 +112,22 @@ func (a *App) emptyThread(c *gui.Context) {
 						FontWeight(700).Label("开始构建")
 				})
 				a.inputBlock(c, true)
+				a.firstRunGuide(c)
 			})
+	})
+}
+
+// firstRunGuide 是空态的两条首次运行入口（我们的差异项，见文件头）：
+// 「登录账号」进设置 · 账户、「添加供应商」进设置 · 模型供应。
+// 它只切屏与分节，不发请求、不新开对话框：设置屏里的入口才是真正的写路径。
+func (a *App) firstRunGuide(c *gui.Context) {
+	gui.Row(c).Justify(gui.Center).Gap(space2).Label("首次运行引导").Children(func() {
+		if actionButton(c, "登录账号", "登录账号：打开设置里的账户分节", false, false).Clicked() {
+			a.screen, a.settingsSection = ScreenSettings, secAccount
+		}
+		if actionButton(c, "添加供应商", "添加供应商：打开设置里的模型供应分节", false, false).Clicked() {
+			a.screen, a.settingsSection = ScreenSettings, secProviders
+		}
 	})
 }
 
@@ -258,22 +281,51 @@ type attachmentChipData struct {
 	path      string
 }
 
-// disconnectedCard 是断线时的输入位说明：原因写在原位，给重新连接入口。
+// disconnectedCard 是断线时的输入位说明：原因写在原位，给重新连接与查看日志入口。
+// 「查看日志」打开入口交来的客户端日志（Options.LogPath）；打不开时把路径留在
+// 卡片第二行供复制，不静默失败。
 func (a *App) disconnectedCard(c *gui.Context) {
 	t := c.Theme()
-	gui.Column(c).MinHeight(ComposerMinHeight).Padding(space4).
+	gui.Column(c).MinHeight(ComposerMinHeight).Padding(space4).Gap(space2).
 		Background(t.Surface).Border(strokeHairline, t.Border).
-		Radius(radiusWindowCard).Children(func() {
-		gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("连接断开").Children(func() {
+		Radius(radiusWindowCard).Label("连接断开").Children(func() {
+		gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 			iconGlyph(c, iconWarn, t.Danger, "exclamation")
 			typeBody.style(t, gui.Text(c, "连接已断开："+a.liveConnection().Reason)).
 				TextColor(t.Danger).SingleLine()
 			gui.Spacer(c)
+			if actionButton(c, "查看日志", "查看日志：用系统默认程序打开客户端日志", false, false).Clicked() {
+				a.openLog()
+			}
 			if actionButton(c, "重新连接", "重新连接服务端", false, false).Clicked() && a.intents != nil {
 				a.dispatch("重新连接", a.intents.Reconnect, nil)
 			}
 		})
+		if a.logNote != "" {
+			gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("日志路径").Children(func() {
+				typeCode.style(t, gui.Text(c, a.logNote)).TextColor(t.TextMuted).SingleLine()
+				if iconButton(c, iconButtonSpec{
+					icon: iconClipboard, label: "复制日志路径", tip: "复制日志路径", size: rowCompact,
+				}) {
+					c.WriteClipboard(a.logNote)
+				}
+			})
+		}
 	})
+}
+
+// openLog 打开客户端日志：成功不留提示，失败把路径（或缺失原因）留在第二行。
+// 打开是本地动作，不经过 Intents：它不是对会话的写入，也不碰 App Server。
+func (a *App) openLog() {
+	if a.logPath == "" {
+		a.logNote = "入口没有记录日志路径（-log 为空）"
+		return
+	}
+	if err := openWithSystem(a.logPath); err != nil {
+		a.logNote = a.logPath
+		return
+	}
+	a.logNote = ""
 }
 
 // approvalCard 是审批卡：整体替换输入区，标题、命令面板与三个决定。

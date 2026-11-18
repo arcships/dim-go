@@ -177,6 +177,10 @@ type Options struct {
 	// Intents 非空时视图上的动作会发起真实写入；为空时动作只留在视图里
 	// （样例走查）。
 	Intents Intents
+	// LogPath 是客户端启动日志的路径（`<数据目录>/logs/dimagent.log`），由入口
+	// 在启动时给出。为空表示这次运行没有日志：断线卡的「查看日志」会写明这一点，
+	// 不自己猜数据目录（视图不推导入口的文件位置）。
+	LogPath string
 	// Changed 在后台意图完成后回调，供入口重绘；可为 nil。
 	Changed func()
 	// StateChanged 在调试键切换状态后回调，供入口更新窗口标题。
@@ -256,6 +260,10 @@ type App struct {
 	intentDone []func()
 	// questionAnswer 是提问卡的回答草稿（可丢的视图状态）。
 	questionAnswer string
+	// logPath 是入口交来的客户端日志路径（Options.LogPath）；logNote 是「查看日志」
+	// 打不开时留在断线卡里的路径或原因。两者都是可丢的视图状态。
+	logPath string
+	logNote string
 	// lastShellRun 是最近一次已发出的命令运行标识，供「中止」使用。
 	lastShellRun string
 
@@ -357,6 +365,7 @@ func NewApp(o Options) *App {
 		selectedSession: "s1",
 		connected:       true,
 		accountInitial:  "E",
+		logPath:         o.LogPath,
 	}
 	a.loadSample()
 	return a
