@@ -374,7 +374,7 @@ func (a *App) sidebarNote(c *gui.Context, text string, indented bool) {
 func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) {
 	t := c.Theme()
 	if a.renaming == index {
-		a.renameRow(c, index, name)
+		a.renameRow(c, index)
 		return
 	}
 	if a.deleting == index {
@@ -565,7 +565,7 @@ func (a *App) usageLabel() string {
 
 // renameRow 是重命名的行内编辑（F35）：面差输入 + 保存 / 取消两个文字按钮，
 // 与目标行的编辑态同一套形式；左栏只有 256 宽，所以分两行（输入一行、按钮一行）。
-func (a *App) renameRow(c *gui.Context, index int, old string) {
+func (a *App) renameRow(c *gui.Context, index int) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Padding(space1, space2).Gap(space1).
 		Label("重命名会话").Children(func() {
@@ -580,7 +580,6 @@ func (a *App) renameRow(c *gui.Context, index int, old string) {
 				a.renaming = -1
 			}
 		})
-		_ = old
 	})
 }
 
