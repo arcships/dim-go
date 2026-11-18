@@ -316,10 +316,12 @@ func (a *App) rpTabBar(c *gui.Context, width float32) {
 	a.rpTabKeys(c)
 	gui.Row(c).Height(HeaderHeight).Shrink(0).Padding(space1, space3).
 		AlignItems(gui.Center).Gap(space1).Label("右栏标签").Children(func() {
-		gui.Row(c).Grow(1).AlignItems(gui.Center).Gap(space1).Children(func() {
-			for i, tab := range s.tabs {
-				a.rpTabItem(c, tab, i)
-			}
+		gui.ScrollHorizontal(c).Grow(1).Children(func() {
+			gui.Row(c).AlignItems(gui.Center).Gap(space1).Children(func() {
+				for i, tab := range s.tabs {
+					a.rpTabItem(c, tab, i)
+				}
+			})
 		})
 		a.rpNewTabButton(c)
 		a.rpExpandButton(c)

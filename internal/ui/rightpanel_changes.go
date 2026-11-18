@@ -263,7 +263,7 @@ func (a *App) rpGroup(c *gui.Context, key, title string, actionIcon *gui.SVG, ac
 			rpGlyph(c, arrow, panelTabIcon, t.TextMuted, "")
 			typeSecondaryStrong.style(t, gui.Text(c, title)).TextColor(t.TextMuted).SingleLine()
 		})
-		if rpTextAction(c, actionIcon, action, action, len(rows) == 0) {
+		if rpTextAction(c, actionIcon, action, action, len(rows) == 0 || s.permissionDenied) {
 			for _, change := range rows {
 				change.staged = stage
 			}
@@ -302,16 +302,16 @@ func (a *App) rpChangeRow(c *gui.Context, change *rpChange, staged bool) {
 		rpStatPair(c, change.added, change.removed)
 		if staged {
 			if iconButton(c, iconButtonSpec{icon: iconMinus, label: "取消暂存",
-				tip: "取消暂存", size: rowCompact}) {
+				tip: "取消暂存", size: rowCompact, disabled: s.permissionDenied}) {
 				change.staged = false
 			}
 		} else {
 			if iconButton(c, iconButtonSpec{icon: iconPlus, label: "暂存", tip: "暂存",
-				size: rowCompact}) {
+				size: rowCompact, disabled: s.permissionDenied}) {
 				change.staged = true
 			}
 			if iconButton(c, iconButtonSpec{icon: iconUndo, label: "还原", tip: "还原",
-				size: rowCompact}) {
+				size: rowCompact, disabled: s.permissionDenied}) {
 				s.revertPath = p
 			}
 		}

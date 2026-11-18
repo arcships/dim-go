@@ -78,6 +78,23 @@ func TestRightPanelFilesPage(t *testing.T) {
 	if info, ok := tt.Access("筛选文件"); !ok || info.Placeholder != "筛选文件..." {
 		t.Fatalf("筛选框占位 = %q，想要「筛选文件...」", info.Placeholder)
 	}
+	// 与运行时清单同数量：33 个根目录 + 31 个根文件（目录全部在前）。
+	if len(app.right.tree) != 64 {
+		t.Fatalf("样例树 %d 项，想要 64（33 目录 + 31 文件）", len(app.right.tree))
+	}
+	dirs := 0
+	for i, node := range app.right.tree {
+		if node.dir {
+			dirs++
+			continue
+		}
+		if i < 33 {
+			t.Fatalf("第 %d 项是文件，目录应全部在前", i)
+		}
+	}
+	if dirs != 33 {
+		t.Fatalf("样例树目录 %d 个，想要 33", dirs)
+	}
 	// R 态：目录全部收起，文件行在目录之后。
 	if _, ok := tt.Access("目录，assets，已收起"); !ok {
 		t.Fatal("没有目录行")
@@ -128,6 +145,25 @@ func clickAccess(t *testing.T, tt *gui.Tester, name string) {
 	tt.Frame()
 }
 
+// 标签条：按住 ⌘ 显示 ⌘n 徽标；⌘2 切到第二个标签（RP-A-22）。
+func TestRightPanelTabShortcuts(t *testing.T) {
+	app, tt := rightTester(t, tabFiles)
+	app.rp().tabs = []int{tabFiles, tabChanges}
+	tt.Frame()
+	tt.HoldModifiers(gui.Cmd)
+	tt.Frame()
+	for _, badge := range []string{"⌘1", "⌘2"} {
+		if _, ok := tt.Find(badge); !ok {
+			t.Fatalf("按住 ⌘ 时标签上没有 %q 徽标", badge)
+		}
+	}
+	tt.Key(gui.Cmd, gui.Key2)
+	tt.Frame()
+	if app.rightTab != tabChanges {
+		t.Fatalf("⌘2 后当前页 = %d，想要 %d", app.rightTab, tabChanges)
+	}
+}
+
 // 标签条：悬停标签出 ×；点 × 关掉最后一页后右栏自动收起（R-TB-029）。
 func TestRightPanelTabClose(t *testing.T) {
 	app, tt := rightTester(t, tabFiles)
@@ -138,11 +174,11 @@ func TestRightPanelTabClose(t *testing.T) {
 	tt.Move(tab.X+tab.W/2, tab.Y+tab.H/2)
 	tt.Frame()
 	tt.Frame()
-	closeBox, ok := tt.Access("关闭标签页：文件")
+	closeBox, ok := tt.Find("关闭标签页：文件")
 	if !ok {
 		t.Fatal("悬停标签没有出现关闭入口")
 	}
-	tt.ClickAt(closeBox.Bounds.X+closeBox.Bounds.W/2, closeBox.Bounds.Y+closeBox.Bounds.H/2)
+	tt.ClickAt(closeBox.X+closeBox.W/2, closeBox.Y+closeBox.H/2)
 	tt.Frame()
 	if app.rightOpen {
 		t.Fatal("关掉最后一页后右栏没有收起")
