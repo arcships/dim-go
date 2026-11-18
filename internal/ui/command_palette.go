@@ -442,6 +442,9 @@ func (a *App) movePaletteGroup(delta int) {
 
 // movePaletteSelection 在当前组内上下移动，越过首尾时回卷。
 func (a *App) movePaletteSelection(delta int) {
+	if a.palette.activeGroup < 0 || a.palette.activeGroup >= commandGroupCount {
+		return
+	}
 	group := a.palette.groups[a.palette.activeGroup]
 	if len(group.items) == 0 {
 		return
@@ -777,9 +780,6 @@ func (a *App) commandPaletteSessions() []commandItem {
 		if a.intents != nil {
 			secondary = func() {
 				id := name
-				if snap, ok := a.liveSession(); ok && snap.ID != "" {
-					id = snap.ID
-				}
 				a.dispatch("归档会话", func(ctx context.Context) error {
 					return a.intents.ArchiveSession(ctx, id, true)
 				}, nil)

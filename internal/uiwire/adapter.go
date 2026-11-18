@@ -400,10 +400,13 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 			Ended:  string(branch.Status) == "ended",
 		})
 	}
-	// 标题是目录事实；目录没有给标题时才退回会话标识。
+	// 标题与工作目录都是目录事实；目录没有给标题时才退回会话标识。
 	if catalog := w.A.Catalog(); catalog != nil {
-		if entry, ok := catalog.Entry(v.SessionID); ok && entry.Title != "" {
-			out.Title = entry.Title
+		if entry, ok := catalog.Entry(v.SessionID); ok {
+			if entry.Title != "" {
+				out.Title = entry.Title
+			}
+			out.Cwd = entry.Workspace
 		}
 	}
 	if v.Goal != nil {

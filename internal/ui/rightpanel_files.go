@@ -14,15 +14,23 @@ import (
 // 结果 / 空态 / 目录错误。行高 28；目录行的箭头 14、文件夹图标 16、名字与
 // 文件行的名字同列（R-RF-160、R-RF-240）。
 //
-// 事实来源：本产品还没有文件树读数，树与改动都用样例（rightpanel_sample.go）；
-// 搜索在本机对样例做同步匹配，所以「正在搜索」只在一帧内出现，错误 / 部分
-// 失败两态要等真实的搜索读数（见交回时的未实现分支表）。
+// 事实来源：连着 Source 且适配器实现 PanelFacts 时，树与搜索读真实读数
+// （D7 的列目录与内容搜索）；只在 -demo（没有 Source）时用样例，样例见
+// rightpanel_sample.go。搜索的读态（进行中 / 失败 / 部分失败 / 截断）都来自
+// 快照，不在视图里猜。
 
 // rpFilesPage 是文件页本体。
 func (a *App) rpFilesPage(c *gui.Context) {
 	s := a.rp()
+	refresh := a.rpTakeRefresh()
+	if facts, ok := a.rpFacts(); ok {
+		a.rpLiveTree(facts, refresh)
+	}
 	q := rpQuery(s.filter)
 	gui.Column(c).Grow(1).Children(func() {
+		if a.rpOffline(c) {
+			return
+		}
 		a.rpFilterRow(c)
 		if s.permissionDenied {
 			a.rpPermissionBar(c)

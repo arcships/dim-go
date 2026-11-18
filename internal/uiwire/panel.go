@@ -141,7 +141,7 @@ func (w *App) FileTree(request ui.FileTreeRequest) ui.FileTreeSnapshot {
 		c.trees[key] = entry
 	}
 	snapshot := entry.snapshot
-	dispatch := panelStale(entry.readAt, entry.fetching, panelTreeTTL)
+	dispatch := panelStale(entry.readAt, entry.fetching, request.Refresh, panelTreeTTL)
 	if dispatch && c.tryAcquire() {
 		entry.fetching = true
 		c.prune(time.Now())
@@ -151,12 +151,13 @@ func (w *App) FileTree(request ui.FileTreeRequest) ui.FileTreeSnapshot {
 	return snapshot
 }
 
-// panelStale 判断缓存项是否该重读：没有读过、过了缓存期，且没有在读。
-func panelStale(readAt time.Time, fetching bool, ttl time.Duration) bool {
+// panelStale 判断缓存项是否该重读：调用方要求刷新、没有读过或过了缓存期，
+// 且没有在读。
+func panelStale(readAt time.Time, fetching, refresh bool, ttl time.Duration) bool {
 	if fetching {
 		return false
 	}
-	return readAt.IsZero() || time.Since(readAt) >= ttl
+	return refresh || readAt.IsZero() || time.Since(readAt) >= ttl
 }
 
 // treeKey 是目录读的缓存键。
@@ -310,7 +311,7 @@ func (w *App) FileSearch(request ui.FileSearchRequest) ui.FileSearchSnapshot {
 		c.searches[key] = entry
 	}
 	snapshot := entry.snapshot
-	dispatch := panelStale(entry.readAt, entry.fetching, panelSearchTTL)
+	dispatch := panelStale(entry.readAt, entry.fetching, request.Refresh, panelSearchTTL)
 	if dispatch && c.tryAcquire() {
 		entry.fetching = true
 		c.prune(time.Now())
@@ -407,7 +408,7 @@ func (w *App) Changes(request ui.ChangesRequest) ui.ChangeSet {
 		c.changes[key] = entry
 	}
 	snapshot := entry.snapshot
-	dispatch := panelStale(entry.readAt, entry.fetching, panelChangesTTL)
+	dispatch := panelStale(entry.readAt, entry.fetching, request.Refresh, panelChangesTTL)
 	if dispatch && c.tryAcquire() {
 		entry.fetching = true
 		c.prune(time.Now())

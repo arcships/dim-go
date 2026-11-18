@@ -192,6 +192,9 @@ type SessionSnapshot struct {
 	Goal    string
 	// GoalStatus 是 active/paused/complete/blocked；空表示没有状态。
 	GoalStatus string
+	// Cwd 是目录里的会话工作目录（绝对路径）；空表示服务端没有给。
+	// 右栏文件页与改动页按它决定读哪个工作区。
+	Cwd string
 	// Branch 是当前查看的分支；Branches 是分支清单（名字即标识）。
 	Branch   string
 	Branches []BranchSnapshot
@@ -548,6 +551,8 @@ type FileTreeRequest struct {
 	Offset int
 	// Limit 是本页条数；0 用适配器的默认页大小。
 	Limit int
+	// Refresh 为真时跳过缓存立刻重读（刷新 / 重试按钮用）。
+	Refresh bool
 }
 
 // FileTreeSnapshot 是一次目录读取的结果。
@@ -604,6 +609,8 @@ type FileSearchRequest struct {
 	Query string
 	// Limit 是命中条数上限；0 用适配器的默认值。
 	Limit int
+	// Refresh 为真时跳过缓存立刻重扫（刷新 / 重试按钮用）。
+	Refresh bool
 }
 
 // FileSearchSnapshot 是一次内容搜索的结果。
@@ -660,6 +667,8 @@ type ChangesRequest struct {
 	Scope string
 	// RunID 是 ChangeScopeLastRun 要读的轮次；空表示取会话已收口的最后一轮。
 	RunID string
+	// Refresh 为真时跳过缓存立刻重读（刷新 / 重试按钮用）。
+	Refresh bool
 }
 
 // ChangeSet 是一次改动读取的结果。

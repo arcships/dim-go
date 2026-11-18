@@ -144,6 +144,12 @@ func TestCommandPaletteEmptyState(t *testing.T) {
 	if !tt.HasText("没有匹配项") {
 		t.Fatalf("没有空态文案：%v", tt.Texts())
 	}
+	// 空态里按上下与回车不应越界。
+	tt.Key(0, gui.KeyDown)
+	tt.Key(0, gui.KeyEnter)
+	if !app.palette.open {
+		t.Fatal("空态回车不应关闭面板")
+	}
 }
 
 // 失焦 300ms 关闭（S-CP-02）。
