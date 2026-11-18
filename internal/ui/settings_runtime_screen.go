@@ -49,8 +49,7 @@ func rtHeader(c *gui.Context, t *gui.Theme) {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(rtTitleGap).Children(func() {
 			typeH2.style(t, gui.Text(c, rtCopyTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(1).SingleLine()
-			typeSecondary.style(t, gui.Text(c, rtCopyDesc)).TextColor(t.TextMuted).
-				Selectable()
+			mdSecondary(c, t, rtCopyDesc).Selectable()
 		})
 		rtRefreshButton(c, t)
 	})

@@ -48,7 +48,7 @@ type hooksEntry struct {
 
 // hooksSource 是一个来源：名称、路径、状态、读写权限与条目。
 type hooksSource struct {
-	title    string
+	title string
 	// user 为真表示用户来源（可编辑、无路径）；否则是项目来源。
 	user     bool
 	path     string
@@ -90,23 +90,21 @@ var hooksScreen = hooksState{
 			title: "项目", path: "~/.dimcode/hooks.json",
 			revision: "native:user/hooks-projects:1",
 			enabled:  false, readonly: true, missing: true,
-			message: "项目钩子文档尚未创建，启用项目钩子后会写入该文件。",
 		},
 	},
 }
 
 // 本屏几何：参考的 Tailwind 量换算成 design-baseline §1.1 的档位。
 const (
-	hkPageGap   = 28   // space-y-8：标题区与内容之间
-	hkSectionGap = 21  // space-y-6：分组之间
-	hkLabelGap  = 14   // 小标题与其列表之间
-	hkCardGap   = 12   // 来源卡 / 条目组之间
-	hkPadV      = 14   // p-4 上下
-	hkPadH      = 14   // p-4 左右
-	hkRowGap    = 10.5 // gap-3：图标与文字块之间
-	hkChipGap   = 7    // gap-2：名称 / 状态 / 徽标之间
-	hkTightGap  = 2    // 名称与状态徽标的上下贴合
-	hkTextGap   = 3.5  // 名称与路径之间
+	hkSectionGap = 21   // space-y-6：分组之间
+	hkLabelGap   = 14   // 小标题与其列表之间
+	hkCardGap    = 12   // 来源卡 / 条目组之间
+	hkPadV       = 14   // p-4 上下
+	hkPadH       = 14   // p-4 左右
+	hkRowGap     = 10.5 // gap-3：图标与文字块之间
+	hkChipGap    = 7    // gap-2：名称 / 状态 / 徽标之间
+	hkTightGap   = 2    // 名称与状态徽标的上下贴合
+	hkTextGap    = 3.5  // 名称与路径之间
 
 	hkIconBlock  = 32 // h-8 w-8：来源图标块
 	hkIconInline = 16 // h-4 w-4：来源图标
@@ -114,11 +112,10 @@ const (
 	hkIconHit    = 28 // 图标按钮 28×28
 	hkIconSize   = 14
 
-	hkBtnH    = 28 // h-7：了解更多 / 编辑
-	hkBadgeV  = 3.5
-	hkBadgeH  = 7
-	hkBadgeR  = 4.75
-	hkRuleRow = 1
+	hkBtnH   = 28 // h-7：了解更多 / 编辑
+	hkBadgeV = 3.5
+	hkBadgeH = 7
+	hkBadgeR = 4.75
 
 	hkBannerPadV  = 7   // 提示条上下
 	hkBannerPadH  = 14  // 提示条左右
@@ -127,9 +124,7 @@ const (
 	hkGroupPadV   = 9.5 // 组头的上下
 	hkEntryH      = 44  // 条目行高
 	hkEntryPadV   = 7
-	hkDialogW     = 448
 	hkEditorMinH  = 180
-	hkDraftLines  = 8
 	hkAlphaBadge  = 0.10
 	hkAlphaBorder = 0.35
 )
@@ -280,7 +275,7 @@ func hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
 				hkNameStyle.style(t, gui.Text(c, s.title)).TextColor(t.Text).SingleLine()
 				hkStatusStyle.style(t, gui.Text(c, hkSourceState(s))).TextColor(t.TextMuted)
 				hkBadge(c, t, hkEnabledLabel(s.enabled), s.enabled)
-				if s.readonly {
+				if s.plugin {
 					hkBadge(c, t, hkCopyReadonly, false)
 				}
 			})

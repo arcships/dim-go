@@ -169,9 +169,9 @@ func mdCapabilityPanel(c *gui.Context, t *gui.Theme) {
 
 // mdCapabilityRow 是一条能力（S-modality-15…17）：行标签 + 模型选择器。
 func mdCapabilityRow(c *gui.Context, t *gui.Theme, capability string) {
-	gui.Column(c).Shrink(0).Gap(mdLabelGap).Children(func() {
+	gui.Column(c).Shrink(0).Gap(mdCapabilityLabelGap).Children(func() {
 		typeSecondaryStrong.style(t, gui.Text(c, capability)).
-			TextColor(t.Text).SingleLine()
+			TextColor(t.Text).LineHeight(mdSmLine).SingleLine()
 		mdModelPicker(c, t, capability)
 	})
 }
@@ -209,7 +209,7 @@ func mdTaskSection(c *gui.Context, t *gui.Theme) {
 		gui.Column(c).Shrink(0).Padding(mdSectionTop, 0, 0, 0).Children(func() {
 			typeH4.style(t, gui.Text(c, mdCopyTasks)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(2).SingleLine()
-			typeSecondary.style(t, gui.Text(c, mdCopyTasksDesc)).TextColor(t.TextMuted).
+			mdSecondary(c, t, mdCopyTasksDesc).
 				Selectable().Margin(mdHeadingGap, 0, 0, 0)
 			mdAlertBanner(c, t, mdCopyTaskUnavailable).Margin(mdSectionInlineGap, 0, 0, 0)
 			mdTaskFormCard(c, t).Margin(mdCardGap, 0, 0, 0)
@@ -283,8 +283,8 @@ func mdRealtimeSection(c *gui.Context, t *gui.Theme) {
 		gui.Column(c).Shrink(0).Padding(mdRealtimeTop, 0, 0, 0).Children(func() {
 			typeH4.style(t, gui.Text(c, mdCopyRealtime)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(2).SingleLine()
-			typeSecondary.style(t, gui.Text(c, mdCopyRealtimeDesc)).
-				TextColor(t.TextMuted).Selectable().Margin(mdHeadingGap, 0, 0, 0)
+			mdSecondary(c, t, mdCopyRealtimeDesc).
+				Selectable().Margin(mdHeadingGap, 0, 0, 0)
 			mdAlertBanner(c, t, mdCopyRealtimeUnavail).
 				Margin(mdSectionInlineGap, 0, 0, 0)
 			mdAlertBanner(c, t, mdCopyAudioUnsupported).
@@ -447,6 +447,12 @@ func mdIconlessButton(c *gui.Context, t *gui.Theme, text string, disabled bool) 
 	})
 }
 
+// mdSecondary 是次级前景的说明文字：12.25 字号，行高按参考的 text-sm（17.5）。
+func mdSecondary(c *gui.Context, t *gui.Theme, text string) gui.Element {
+	return typeSecondary.style(t, gui.Text(c, text)).TextColor(t.TextMuted).
+		LineHeight(mdSmLine)
+}
+
 // mdAlertBanner 是提示条（S-modality-03、29、57、59）：次级面、圆角、内边距
 // 7/10.5，左端警示圆图标，文字次级前景、可选中复制。
 func mdAlertBanner(c *gui.Context, t *gui.Theme, text string) gui.Element {
@@ -455,8 +461,7 @@ func mdAlertBanner(c *gui.Context, t *gui.Theme, text string) gui.Element {
 		Background(t.SurfaceHover).Role(gui.RoleStatus).Label(text)
 	banner.Children(func() {
 		accIcon(c, mdIconAlertCircle, mdIconSmall, t.TextMuted, "alert-circle")
-		typeSecondary.style(t, gui.Text(c, text)).TextColor(t.TextMuted).
-			Selectable()
+		mdSecondary(c, t, text).Selectable()
 	})
 	return banner
 }
@@ -495,18 +500,21 @@ var mdTaskFilters = []string{mdCopyFilterAll}
 // 本屏几何：取参考实现的 Tailwind 确定值与 png 实测（÷2），换算成
 // design-baseline §1.1 的 3.5 网格档位。
 const (
-	mdPageGap          = 17.5 // space-y-5：页首、提示条、页签块之间
-	mdTabsGap          = 21   // 页签条与面板之间
-	mdTabH             = 72   // 页签高（DOM 实测）
-	mdTabPadTop        = 10.5 // 页签上内边距
-	mdTabPadX          = 10.5 // 页签左右内边距
-	mdTabLabelH        = 35   // min-h-10：页签名的最小高度
-	mdTabCountGap      = 2    // 页签名与计数之间
-	mdTabRule          = 1    // 未选中页签的底线
-	mdTabRuleSelected  = 2    // 选中页签的主色条
-	mdCompactW         = 800  // 窗口窄于此换成分组下拉（参考的 isCompact）
-	mdPanelGap         = 21   // 面板标题行与能力行之间
-	mdCapabilityGap    = 24.5 // space-y-7：能力行之间
+	mdPageGap            = 17.5 // space-y-5：页首、提示条、页签块之间
+	mdTabsGap            = 21   // 页签条与面板之间
+	mdTabH               = 72   // 页签高（DOM 实测）
+	mdTabPadTop          = 10.5 // 页签上内边距
+	mdTabPadX            = 10.5 // 页签左右内边距
+	mdTabLabelH          = 35   // min-h-10：页签名的最小高度
+	mdTabCountGap        = 2    // 页签名与计数之间
+	mdTabRule            = 1    // 未选中页签的底线
+	mdTabRuleSelected    = 2    // 选中页签的主色条
+	mdCompactW           = 800  // 窗口窄于此换成分组下拉（参考的 isCompact）
+	mdPanelGap           = 21   // 面板标题行与能力行之间
+	mdCapabilityGap      = 24.5 // space-y-7：能力行之间
+	mdCapabilityLabelGap = 7    // 能力行标签与选择器之间
+	// mdSmLine 是 12.25 字级的行高倍数：参考的 text-sm 行高 17.5 / 12.25。
+	mdSmLine           = 17.5 / 12.25
 	mdPickerW          = 588  // 模型选择器宽（DOM 实测）
 	mdPickerH          = 28   // 选择器高（h-7）
 	mdPickerPadX       = 10.5 // px-3

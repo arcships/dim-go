@@ -121,9 +121,9 @@ var abtMarkdown markdown.Options
 
 // 本屏几何：参考的 Tailwind 量换算成 design-baseline §1.1 的档位。
 const (
-	abtSectionGap = 28   // space-y-8：分节之间（分隔线两侧同值）
+	abtSectionGap = 21   // space-y-6：分节之间（分隔线两侧同值）
 	abtLabelGap   = 21   // 分节标签与其内容之间
-	abtStackGap   = 28   // 软件更新里各行之间（实测 31 / 32）
+	abtStackGap   = 14   // 软件更新里各行之间（实测 31 / 32，行盒含在内）
 	abtListGap    = 8    // 公告条之间、WIP 行之间
 	abtRowPadV    = 10   // 公告条的上下内边距
 	abtRowPadH    = 14   // 公告条与 WIP 行的左右内边距
@@ -145,13 +145,11 @@ const (
 	abtLPadH      = 11
 	abtGroupPadV  = 14
 	abtGroupPadH  = 15
-	abtAlpha12    = 0.12
 	abtDebugGap   = 10.5
 )
 
 // 字阶（design-baseline §2）。
 var (
-	abtTitleStyle = fontStep{size: 17.5, line: 24.5, weight: 600}
 	abtLabelStyle = fontStep{size: 13, line: 19.5, weight: 600}
 	abtValueStyle = fontStep{size: 12.25, line: 17.5, weight: 400}
 	abtMonoStyle  = fontStep{size: 12, line: 17, weight: 400, family: codeFont}
@@ -196,7 +194,6 @@ const (
 	abtCopyDebugNext      = "Next state"
 	abtCopyAnnouncePrefix = "公告："
 	abtCopyExpand         = "展开"
-	abtCopyCollapse       = "收起"
 	abtCopyDownloadPct    = "%d%%"
 	abtCopyNoTitle        = "无标题"
 )
@@ -517,13 +514,15 @@ func abtCapabilityRow(c *gui.Context, t *gui.Theme, cap aboutCapability) {
 	})
 }
 
-// abtWipBadge 是「WIP」徽标（S-about-33）：警示底色、小圆角。
+// abtWipBadge 是「WIP」徽标（S-about-33）：中性面、小圆角。要求 R-ABT-258 写
+// 的是警示底色，但运行时截图取到的是中性面（#f3f3f3 底、#171717 字），以截图为
+// 准；差异登记在文件头。
 func abtWipBadge(c *gui.Context, t *gui.Theme) {
 	b := gui.Row(c).Shrink(0).AlignItems(gui.Center).
 		Padding(abtBadgePadV, abtBadgePadH).Radius(abtBadgeR).
-		Background(t.Warning.Alpha(abtAlpha12)).Label(abtCopyWIPBadgeLabel)
+		Background(t.SurfaceHover).Label(abtCopyWIPBadgeLabel)
 	b.Children(func() {
-		abtWipStyle.style(t, gui.Text(c, abtCopyWIPBadge)).TextColor(t.Warning).
+		abtWipStyle.style(t, gui.Text(c, abtCopyWIPBadge)).TextColor(t.Text).
 			SingleLine()
 	})
 }

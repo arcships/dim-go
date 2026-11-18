@@ -234,7 +234,7 @@ func petsNoteCopy(note petsNote) string {
 // petsSizeRow 是「Pet 大小」：标签 + 滑杆（0.5–2，步长 0.1，宽 112）。
 func petsSizeRow(c *gui.Context) {
 	gui.Column(c).Shrink(0).Gap(screenSpace15).Children(func() {
-		screenLabel(c, petsCopySize)
+		petsLabel(c, petsCopySize)
 		gui.Slider(c, &petsScreen.size, petsSizeMin, petsSizeMax).Step(petsSizeStep).
 			Width(petsSizeW).Label(petsCopySize).Disabled(petsScreen.busy)
 	})

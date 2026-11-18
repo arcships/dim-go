@@ -123,18 +123,17 @@ var pluginSettingsScreen = pluginSettingsState{
 
 // 本屏几何：参考的 Tailwind 量换算成 design-baseline §1.1 的档位。
 const (
-	plgPageGap    = 4   // 标题与说明之间
-	plgIntroGap   = 20  // 说明与首卡之间
-	plgCardGap    = 16  // 卡与卡之间
-	plgCardPad    = 14  // p-4：卡内边距
-	plgCardInner  = 12  // 卡内块间距（卡标题区与字段区之间）
-	plgHeadGap    = 2   // 插件名与 source id 之间
-	plgLabelGap   = 6   // 字段标签与控件之间
-	plgFieldGap   = 16  // 字段与字段之间
-	plgBtnGap     = 8   // 保存与重新加载之间
-	plgRowGap     = 10.5
-	plgGroupPad   = 12 // 对象组的缩进（组内字段）
-	plgGroupGap   = 16
+	plgPageGap   = 4  // 标题与说明之间
+	plgIntroGap  = 20 // 说明与首卡之间
+	plgCardGap   = 16 // 卡与卡之间
+	plgCardPad   = 14 // p-4：卡内边距
+	plgCardInner = 12 // 卡内块间距（卡标题区与字段区之间）
+	plgHeadGap   = 2  // 插件名与 source id 之间
+	plgLabelGap  = 6  // 字段标签与控件之间
+	plgFieldGap  = 16 // 字段与字段之间
+	plgBtnGap    = 8  // 保存与重新加载之间
+	plgGroupPad  = 12 // 对象组的缩进（组内字段）
+	plgGroupGap  = 16
 
 	plgCtlH     = 32 // h-9：输入框与下拉
 	plgBtnH     = 28 // h-8：保存 / 重新加载 / 添加
@@ -143,56 +142,51 @@ const (
 	plgIconSize = 14
 	plgIconHit  = 24
 	plgAddPadV  = 3.5
-	plgAddPadH  = 7
-	plgCardR    = 8.75
 	plgAlpha05  = 0.5
-	plgDialogW  = 448
 )
 
 // 字阶（design-baseline §2）。
 var (
-	plgTitleStyle  = fontStep{size: 17.5, line: 24.5, weight: 600}
-	plgDescStyle   = fontStep{size: 12.25, line: 17.5, weight: 400}
-	plgCardTitle   = fontStep{size: 13, line: 19.5, weight: 600}
-	plgIDStyle     = fontStep{size: 11, line: 17, weight: 400, family: codeFont}
-	plgLabelStyle  = fontStep{size: 12.25, line: 17.5, weight: 500}
-	plgNoteStyle   = fontStep{size: 11, line: 14, weight: 400}
-	plgValueStyle  = fontStep{size: 12.25, line: 17.5, weight: 400}
-	plgSavedStyle  = fontStep{size: 11, line: 14, weight: 500}
-	plgErrStyle    = fontStep{size: 12.25, line: 17.5, weight: 400}
-	plgBtnTextSty  = fontStep{size: 12.25, line: 17.5, weight: 400}
+	plgTitleStyle = fontStep{size: 17.5, line: 24.5, weight: 600}
+	plgDescStyle  = fontStep{size: 12.25, line: 17.5, weight: 400}
+	plgCardTitle  = fontStep{size: 13, line: 19.5, weight: 600}
+	plgIDStyle    = fontStep{size: 11, line: 17, weight: 400, family: codeFont}
+	plgLabelStyle = fontStep{size: 12.25, line: 17.5, weight: 500}
+	plgSavedStyle = fontStep{size: 11, line: 14, weight: 500}
+	plgErrStyle   = fontStep{size: 12.25, line: 17.5, weight: 400}
+	plgBtnTextSty = fontStep{size: 12.25, line: 17.5, weight: 400}
 )
 
 // 本屏文案：逐字取自参考产品（界面语为 zh-CN，插件名与字段名原样）。
 const (
-	plgCopyTitle       = "插件设置"
-	plgCopyIntro       = "配置 App Server 插件声明的设置。"
-	plgCopyLoading     = "正在加载插件设置..."
-	plgCopyUnavailable = "当前 App Server 不提供插件设置。"
-	plgCopyEmpty       = "没有已安装插件提供设置。"
-	plgCopyRetry       = "重试"
-	plgCopyScopeUser   = "用户"
-	plgCopyScopeProj   = "项目"
-	plgCopyScopeNote   = "项目范围只影响当前项目根目录下的插件设置。"
-	plgCopyRootTitle   = "项目根目录"
+	plgCopyTitle        = "插件设置"
+	plgCopyIntro        = "配置 App Server 插件声明的设置。"
+	plgCopyLoading      = "正在加载插件设置..."
+	plgCopyUnavailable  = "当前 App Server 不提供插件设置。"
+	plgCopyEmpty        = "没有已安装插件提供设置。"
+	plgCopyRetry        = "重试"
+	plgCopyScopeUser    = "用户"
+	plgCopyScopeProj    = "项目"
+	plgCopyScopeNote    = "项目范围只影响当前项目根目录下的插件设置。"
+	plgCopyRootTitle    = "项目根目录"
 	plgCopyNoRootChoice = "未选择"
-	plgCopyRootReload  = "重新加载"
-	plgCopyRootNote    = "设置将从 %s 读取并写回；该根目录由已打开的项目会话授权。"
-	plgCopyRootsError  = "读取项目根目录失败。"
-	plgCopyRootsEmpty  = "当前没有已授权的项目根目录。请在项目中打开会话以完成授权。"
-	plgCopyNoProjSrc   = "没有已安装插件声明项目级设置。"
-	plgCopyNoRoot      = "尚未选择已授权的项目根目录。"
-	plgCopySave        = "保存"
-	plgCopySaving      = "正在保存..."
-	plgCopyReload      = "重新加载"
-	plgCopySaved       = "已保存"
-	plgCopyConflict    = "设置已在别处更改。请重新加载后再保存。"
-	plgCopyWithheld    = "此值包含密钥字段，当前表单无法安全编辑。"
-	plgCopyAdd         = "添加"
-	plgCopyRemove      = "移除"
-	plgCopyRetryCard   = "重试"
-	plgCopyErrFallback = "读取插件设置失败"
-	plgCopyNumberOnly  = "只接受数字"
+	plgCopyRootReload   = "重新加载"
+	plgCopyRootNote     = "设置将从 %s 读取并写回；该根目录由已打开的项目会话授权。"
+	plgCopyRootsError   = "读取项目根目录失败。"
+	plgCopyRootsEmpty   = "当前没有已授权的项目根目录。请在项目中打开会话以完成授权。"
+	plgCopyNoProjSrc    = "没有已安装插件声明项目级设置。"
+	plgCopyNoRoot       = "尚未选择已授权的项目根目录。"
+	plgCopySave         = "保存"
+	plgCopySaving       = "正在保存..."
+	plgCopyReload       = "重新加载"
+	plgCopySaved        = "已保存"
+	plgCopyConflict     = "设置已在别处更改。请重新加载后再保存。"
+	plgCopyWithheld     = "此值包含密钥字段，当前表单无法安全编辑。"
+	plgCopyAdd          = "添加"
+	plgCopyRemove       = "移除"
+	plgCopyRetryCard    = "重试"
+	plgCopyErrFallback  = "读取插件设置失败"
+	plgCopyNumberOnly   = "只接受数字"
 )
 
 // renderPluginSettings 是设置 › 插件设置这一屏（设置壳的一个分节）。
@@ -306,39 +300,39 @@ func plgCard(c *gui.Context, t *gui.Theme, src *pluginSource) {
 	screenCard(c, func() {
 		gui.Column(c).Padding(plgCardPad, plgCardPad).Gap(plgCardInner).
 			Children(func() {
-			gui.Column(c).Shrink(0).Gap(plgHeadGap).Children(func() {
-				gui.Row(c).AlignItems(gui.Center).Gap(plgLabelGap).Children(func() {
-					plgCardTitle.style(t, gui.Text(c, src.title)).TextColor(t.Text).
-						SingleLine().Role(gui.RoleHeading).Level(2)
-				})
-				if src.desc != "" {
-					typeSecondary.style(t, gui.Text(c, src.desc)).
-						TextColor(t.TextMuted).Selectable()
-				}
-				plgIDStyle.style(t, gui.Text(c, src.id)).TextColor(t.TextMuted).
-					SingleLine().Selectable().Label("插件标识：" + src.id)
-			})
-			switch {
-			case src.loading:
-				plgNote(c, t, plgCopyLoading)
-			case src.loadError != "":
-				plgErrorRow(c, t, src.loadError, plgCopyRetryCard, func() {
-					// 重拉该卡设置需要 Intents：不动作（未接动作）。
-				})
-			case src.conflict:
-				plgErrorRow(c, t, plgCopyConflict, plgCopyReload, func() {
-					src.conflict = false
-				})
-			}
-			if !src.loading && src.loadError == "" {
-				gui.Column(c).Shrink(0).Gap(plgFieldGap).Children(func() {
-					for i := range src.fields {
-						plgFieldView(c, t, &src.fields[i])
+				gui.Column(c).Shrink(0).Gap(plgHeadGap).Children(func() {
+					gui.Row(c).AlignItems(gui.Center).Gap(plgLabelGap).Children(func() {
+						plgCardTitle.style(t, gui.Text(c, src.title)).TextColor(t.Text).
+							SingleLine().Role(gui.RoleHeading).Level(2)
+					})
+					if src.desc != "" {
+						typeSecondary.style(t, gui.Text(c, src.desc)).
+							TextColor(t.TextMuted).Selectable()
 					}
+					plgIDStyle.style(t, gui.Text(c, src.id)).TextColor(t.TextMuted).
+						SingleLine().Selectable().Label("插件标识：" + src.id)
 				})
-			}
-			plgCardActions(c, t, src)
-		})
+				switch {
+				case src.loading:
+					plgNote(c, t, plgCopyLoading)
+				case src.loadError != "":
+					plgErrorRow(c, t, src.loadError, plgCopyRetryCard, func() {
+						// 重拉该卡设置需要 Intents：不动作（未接动作）。
+					})
+				case src.conflict:
+					plgErrorRow(c, t, plgCopyConflict, plgCopyReload, func() {
+						src.conflict = false
+					})
+				}
+				if !src.loading && src.loadError == "" {
+					gui.Column(c).Shrink(0).Gap(plgFieldGap).Children(func() {
+						for i := range src.fields {
+							plgFieldView(c, t, &src.fields[i])
+						}
+					})
+				}
+				plgCardActions(c, t, src)
+			})
 	})
 }
 
@@ -421,9 +415,6 @@ func plgFieldView(c *gui.Context, t *gui.Theme, f *pluginField) {
 				Padding(screenInputPadV, screenSpace25).Background(t.Background).
 				Label(f.label)
 			input.BorderWidth(strokeHairline).BorderColor(t.Border)
-			if f.kind == plgInt {
-				plgNote(c, t, plgCopyNumberOnly)
-			}
 		})
 	}
 }

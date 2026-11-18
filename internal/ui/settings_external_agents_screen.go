@@ -57,20 +57,17 @@ var externalAgentsScreen = externalAgentsState{unavailable: true}
 
 // 本屏几何：参考的 Tailwind 量换算成 design-baseline §1.1 的档位。
 const (
-	eaPageGap   = 4   // 标题与说明之间
-	eaIntroGap  = 16  // 说明与内容之间
-	eaCardPadV  = 20  // 提示卡的上下内边距（png 实测 96→121）
-	eaCardPadH  = 14  // 提示卡的左右内边距（文字 x=272，卡 x=257）
-	eaTextGap   = 2   // 卡内标题与说明之间
-	eaRowGap    = 10.5
-	eaRowH      = 56  // 行高
-	eaIconHit   = 28
-	eaIconSize  = 14
-	eaSwitchW   = 28
-	eaSwitchH   = 16
-	eaCardR     = 8.75
-	eaBadgePadV = 3.5
-	eaBadgePadH = 7
+	eaPageGap  = 4  // 标题与说明之间
+	eaIntroGap = 16 // 说明与内容之间
+	eaCardPadV = 24 // 提示卡的上下内边距（png 实测 96→121，卡高 86）
+	eaCardPadH = 15 // 提示卡的左右内边距（文字 x=272，卡 x=257）
+	eaTextGap  = 2  // 卡内标题与说明之间
+	eaRowGap   = 10.5
+	eaRowH     = 56 // 行高
+	eaIconHit  = 28
+	eaIconSize = 14
+	eaSwitchW  = 28
+	eaSwitchH  = 16
 )
 
 // 字阶（design-baseline §2）。
@@ -96,10 +93,8 @@ const (
 	eaCopyMissing     = "未安装"
 	eaCopyUnknownNote = "未能从该文件识别版本号，这个 Agent 可能不可用。"
 	eaCopyEdit        = "编辑"
-	eaCopyChoose      = "选择可执行文件"
 	eaCopyFootNote    = "更改将在新对话中生效。"
 	eaCopyRetry       = "重试"
-	eaCopyLoadError   = "探测外部 Agent 失败"
 )
 
 // renderExternalAgents 是设置 › 外部 Agent 这一屏（设置壳的一个分节）。

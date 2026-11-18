@@ -195,13 +195,15 @@ func permIsolationCard(c *gui.Context) {
 				case permissionsScreen.loadError != "":
 					gui.Row(c).Gap(screenSpace2).AlignItems(gui.Center).Children(func() {
 						permAlert(c, permissionsScreen.loadError)
-						if settingsActionButton(c, settingsActionSpec{
+						// 重新拉取要有 Source 的读取方法（见文件头 §未实现分支），
+						// 本屏不造"重试成功"的假象，按钮只渲染。
+						settingsActionButton(c, settingsActionSpec{
 							text: permCopyRefresh, label: permCopyRefresh, height: rowRegular,
-						}) {
-							permissionsScreen.loadError = ""
-							permissionsScreen.loading = true
-						}
+						})
 					})
+				case !permissionsScreen.loaded:
+					// 还没读到设置、也还没报错：按加载中画，卡片不留空白。
+					permLoadingRow(c)
 				case permissionsScreen.backendReason != "":
 					permAlert(c, permCopyUnavailable+permissionsScreen.backendReason)
 				default:
