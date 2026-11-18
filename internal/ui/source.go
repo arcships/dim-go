@@ -37,6 +37,31 @@ type Source interface {
 	Preferences() PreferencesSnapshot
 }
 
+// PanelFacts 是右栏文件页与改动页要读的事实（D7 的只读能力在适配器里的映射）。
+//
+// 为什么单列成一个接口、而不是加进 Source：这三项读的不是"已就绪的内存快照"，
+// 而是本机磁盘与仓库（列目录、扫工作区、读 git 状态），可能耗时。适配器按请求
+// 缓存并在后台刷新，视图每帧用同一份请求读快照：读态、截断与错误都写在快照里，
+// 既不阻塞帧，也不抛错让页面空白。只实现 Source 的适配器仍可编译。
+//
+// 事实口径与 docs/domains/D7-workspace.md 一致，未覆盖的部分不在这里补样例：
+//
+//   - 目录与条目：真实（含隐藏条目、截断说明、git 合并状态）；
+//   - git 状态：只有合并后的单列状态字母（M/A/D/?/R/U）——D7 的 git 只读口径
+//     不区分暂存列（§4.5），也没有 ± 行数与 diff 文本（§1「不做」）；
+//   - 搜索：内容搜索（路径 + 行号 + 列号 + 片段），不是文件名模糊匹配；
+//   - git 写动作（stage / unstage / revert / commit / push / 切分支）：既没有
+//     协议方法，也不在 D7 的能力里，所以本接口不提供发起入口——不设一个永远
+//     失败的写方法。
+type PanelFacts interface {
+	// FileTree 读一个目录的条目；同一请求每帧读的是同一份快照。
+	FileTree(request FileTreeRequest) FileTreeSnapshot
+	// FileSearch 读一次工作区内容搜索的结果。
+	FileSearch(request FileSearchRequest) FileSearchSnapshot
+	// Changes 读一次改动清单（范围见 ChangeScope*）。
+	Changes(request ChangesRequest) ChangeSet
+}
+
 // Intents 是视图发起写的唯一入口：写走既有的 app 方法，不新开协议通道。
 //
 // 没有对应 app 方法的动作不在这里：见 docs/domains/D14-delivery.md 的「未接动作」。
@@ -494,4 +519,199 @@ type TerminalSnapshot struct {
 	Exited   bool
 	ExitCode int
 	Lines    []string
+}
+
+// ---- 右栏文件页与改动页的读数 ----
+
+// 面板读的三态与两种空态（视图按它选骨架 / 内容 / 错误行 / 空态）。
+const (
+	// PanelReadIdle 表示还没读（例如没有可读的工作目录，屏幕尚无请求）。
+	PanelReadIdle = "idle"
+	// PanelReadLoading 表示首次读取还没回来（视图画骨架或「正在搜索…」）。
+	PanelReadLoading = "loading"
+	// PanelReadReady 表示最近一次读取成功（含"读到了空"）。
+	PanelReadReady = "ready"
+	// PanelReadFailed 表示最近一次读取失败，原因在 Error。
+	PanelReadFailed = "failed"
+)
+
+// FileTreeRequest 是一次目录读取的请求。
+//
+// Cwd 与 Dir 来自会话事实（目录里的 cwd）与视图状态（展开到哪一层），
+// Offset / Limit 是视图的分页位置：同一请求在同一帧里读到的总是同一份快照。
+type FileTreeRequest struct {
+	// Cwd 是会话工作目录（绝对路径）；空表示按工作区根读。
+	Cwd string
+	// Dir 是相对 Cwd 的目录路径，"" 表示根；分隔符用 '/'。
+	Dir string
+	// Offset 是本页的起点条数（「加载更多」传已加载条数）；0 表示第一页。
+	Offset int
+	// Limit 是本页条数；0 用适配器的默认页大小。
+	Limit int
+}
+
+// FileTreeSnapshot 是一次目录读取的结果。
+type FileTreeSnapshot struct {
+	// Cwd / Dir / Offset / Limit 回显请求，视图据此判断快照是否属于当前请求。
+	Cwd    string
+	Dir    string
+	Offset int
+	Limit  int
+	// Entries 是本页条目：目录在前、文件在后（按名称字节序分组）。
+	Entries []FileEntrySnapshot
+	// Total 是磁盘上该目录的实际条目数（含被上限截掉的部分）。
+	Total int
+	// HasMore 表示还有没读到的条目（Offset+len(Entries) < Total）。
+	HasMore bool
+	// Truncated 表示本次读取被适配器的条目上限截断（说明在 Note）。
+	Truncated bool
+	// Note 是读取方给出的说明（截断、git 不可用）；空表示没有。
+	Note string
+	// GitKnown 表示这次读取拿到了 git 状态。
+	GitKnown bool
+	// Phase 取 PanelRead* 之一。
+	Phase string
+	// Error 是失败原因原文；空表示没有失败。
+	Error string
+	// Denied 为真表示失败原因是权限不足（EPERM / EACCES）。
+	Denied bool
+	// ReadAt 是这次快照的读取时间；零值表示还没读过。
+	ReadAt time.Time
+}
+
+// FileEntrySnapshot 是一个目录条目。
+type FileEntrySnapshot struct {
+	Name string
+	// Dir 表示目录（不跟随符号链接）。
+	Dir bool
+	// Symlink 表示符号链接；视图按文件画，不进入。
+	Symlink bool
+	// Size 是字节数，ModTime 是修改时间（不跟随链接）。
+	Size    int64
+	ModTime time.Time
+	// Change 是 git 合并状态字母：M 修改 / A 新增 / D 删除 / ? 未跟踪 /
+	// R 重命名 / U 冲突；空表示没有改动事实（或这次没读到 git）。
+	//
+	// 目录的字母由后代聚合而来（D7 §4.2）。没有暂存列：D7 只给合并状态。
+	Change string
+}
+
+// FileSearchRequest 是一次工作区内容搜索的请求。
+type FileSearchRequest struct {
+	// Cwd 是搜索起点（绝对路径）；空表示按工作区根。
+	Cwd string
+	// Query 是关键词；空表示不搜索（快照为 PanelReadIdle）。
+	Query string
+	// Limit 是命中条数上限；0 用适配器的默认值。
+	Limit int
+}
+
+// FileSearchSnapshot 是一次内容搜索的结果。
+//
+// 命中是内容命中（路径 + 行号 + 列号 + 片段），不是文件名模糊匹配：
+// 同一条路可能有多处命中，视图要先按路径归并再画行。
+type FileSearchSnapshot struct {
+	Query string
+	Limit int
+	// Hits 是命中，按 D7 的扫描顺序（工作区路径字节序）。
+	Hits []FileHitSnapshot
+	// Truncated 表示结果不完整，原因在 StopReason。
+	Truncated bool
+	// StopReason 取 max-matches / max-files / max-scan-bytes；空表示扫完。
+	StopReason string
+	// FilesScanned / BytesScanned / Skipped 是扫描规模读数。
+	FilesScanned int
+	BytesScanned int64
+	Skipped      int
+	// Phase 取 PanelRead* 之一。
+	Phase string
+	// Error 是失败原因原文；空表示没有失败。
+	Error string
+	// Denied 为真表示失败原因是权限不足。
+	Denied bool
+	ReadAt time.Time
+}
+
+// FileHitSnapshot 是一处搜索命中（与 workspace.SearchMatch 对齐）。
+type FileHitSnapshot struct {
+	// Path 是相对工作区根的路径（'/' 分隔）。
+	Path   string
+	Line   int
+	Column int
+	// Snippet 是该行去掉首尾空白后的片段，超长时以「…」结尾。
+	Snippet string
+}
+
+// 改动范围的取值（与改动页的范围栏同序）。
+const (
+	// ChangeScopeUncommitted 是工作区的未提交改动。
+	ChangeScopeUncommitted = "uncommitted"
+	// ChangeScopeBranch 是当前分支与基线的差异。
+	ChangeScopeBranch = "branch"
+	// ChangeScopeLastRun 是最近一次 agent run 触达的文件。
+	ChangeScopeLastRun = "lastRun"
+)
+
+// ChangesRequest 是一次改动读取的请求。
+type ChangesRequest struct {
+	// Cwd 是工作区目录（绝对路径）；空表示按工作区根。
+	Cwd string
+	// Scope 取 ChangeScope* 之一；空按未提交。
+	Scope string
+	// RunID 是 ChangeScopeLastRun 要读的轮次；空表示取会话已收口的最后一轮。
+	RunID string
+}
+
+// ChangeSet 是一次改动读取的结果。
+//
+// 已接到的真实读数：仓库与否、当前分支、是否分离头指针、是否有未提交改动、
+// 改动条目数（D7 的 git 只读口径，§4.5）；以及 Last Run 范围的路径清单
+// （工具声明级，coverage=tool_reports，§4.7）。
+//
+// 还没接的读数（不留空位编造）：按暂存态分组的文件行、每行 ± 行数、diff 文本。
+// 它们需要一个"按暂存列 + numstat + diff"的读取能力，D7 明确不做（§1「不做」
+// 里的 git 写与 diff）。Unavailable 非空时视图画「改动不可用」而不是空列表。
+type ChangeSet struct {
+	// Cwd / Scope / RunID 回显请求。
+	Cwd   string
+	Scope string
+	RunID string
+
+	// Repo 表示工作区在 git 工作树里；其余 git 字段只在 Repo 为真时有意义。
+	Repo     bool
+	Branch   string
+	Detached bool
+	Dirty    bool
+	// ChangedFileCount 是 porcelain 列出的改动条目数。
+	ChangedFileCount int
+
+	// Files 是 ChangeScopeLastRun 的路径清单（其余范围为空）。
+	Files []ChangeFileSnapshot
+	// FilesTruncated 表示路径清单被上限截断；Note 给出说明。
+	FilesTruncated bool
+	Note           string
+
+	// Unavailable 非空表示这个层次的事实拿不到（原因原文），视图据此画不可用态。
+	Unavailable string
+	// Restricted 表示权限不足（EPERM / EACCES），写动作与部分读不可用。
+	Restricted bool
+
+	// Phase 取 PanelRead* 之一。
+	Phase  string
+	Error  string
+	ReadAt time.Time
+}
+
+// ChangeFileSnapshot 是一条改动文件。
+type ChangeFileSnapshot struct {
+	// Path 在工作区内是相对路径（'/' 分隔），在工作区外是绝对路径。
+	Path string
+	// Status 是 M/A/D/?/R/U 之一；空表示事实里没有状态。
+	Status string
+	// Exists 表示磁盘上还能 Stat 到（声明删除的文件为 false）。
+	Exists bool
+	// Added / Removed 是行数；没有行数事实时为 0 且 StatKnown 为假。
+	Added     int
+	Removed   int
+	StatKnown bool
 }

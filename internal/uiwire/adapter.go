@@ -63,6 +63,9 @@ type App struct {
 	changesAsked map[string]bool
 	// changeSlots 限制同时在读的改动数量（见 refreshRunChanges）。
 	changeSlots chan struct{}
+	// panel 是右栏文件页与改动页的读数缓存（列目录 / 内容搜索 / git 状态），
+	// 见 panel.go：界面每帧读快照，后台按缓存期重读。
+	panel panelCache
 }
 
 // New 包住一个已创建的集成层。
@@ -73,6 +76,7 @@ func New(a *app.App) *App {
 		changesByRun: make(map[string][]ui.RowSnapshot),
 		changesAsked: make(map[string]bool),
 		changeSlots:  make(chan struct{}, changeReadSlots),
+		panel:        newPanelCache(),
 	}
 }
 

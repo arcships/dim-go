@@ -132,6 +132,9 @@ const (
 	VariantReviewScope
 	VariantAddTab
 	VariantRightExpanded
+	// VariantPalette / PaletteEmpty 打开命令面板，后者停在无匹配项的空态。
+	VariantPalette
+	VariantPaletteEmpty
 )
 
 // variantNames 是 -variant 的取值。
@@ -151,7 +154,8 @@ var variantNames = map[string]Variant{
 	"permission": VariantPermission, "workspace": VariantWorkspace,
 	"right-panel": VariantRightPanel, "review": VariantReview,
 	"review-scope": VariantReviewScope, "add-tab": VariantAddTab,
-	"right-expanded": VariantRightExpanded,
+	"right-expanded":  VariantRightExpanded,
+	"command-palette": VariantPalette, "command-palette-empty": VariantPaletteEmpty,
 }
 
 // ParseVariant 解析 -variant。
@@ -159,7 +163,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty", v)
 }
 
 // Options 是骨架的启动参数。
@@ -336,6 +340,9 @@ type App struct {
 	approvalDecision string
 
 	feed gui.ScrollState
+
+	// palette 是命令面板的视图状态（查询、选中、历史与最近使用）。
+	palette commandPaletteState
 }
 
 // NewApp 建立骨架。状态切换只改界面样例，不连任何服务。
@@ -542,6 +549,20 @@ func (a *App) loadSample() {
 	if a.state == StateWaiting {
 		a.approvalCommand = "ls -la"
 	}
+	a.applyCommandPaletteVariant()
+}
+
+// applyCommandPaletteVariant 把走查变体落到面板开合上（截图用）。
+func (a *App) applyCommandPaletteVariant() {
+	switch a.variant {
+	case VariantPalette:
+		a.openCommandPalette()
+	case VariantPaletteEmpty:
+		a.openCommandPalette()
+		a.palette.query = "zzzz"
+		a.palette.filter = "zzzz"
+		a.palette.lastSeen = "zzzz"
+	}
 }
 
 // resetWiredViewState 只重置可丢的界面状态：不写任何样例事实，事实每帧从
@@ -628,6 +649,7 @@ func (a *App) resetWiredViewState() {
 		a.sidebarWidth = float32(prefs.SidebarWidth)
 		a.lastPrefs = prefs
 	}
+	a.applyCommandPaletteVariant()
 }
 
 // View 是每帧重建的界面。
@@ -635,8 +657,10 @@ func (a *App) View(c *gui.Context) {
 	a.applyIntentResults()
 	a.syncSelectedSession()
 	a.applyTokens(c)
+	a.commandPaletteKeys(c)
 	a.debugKeys(c)
 	a.layout(c)
+	a.commandPalette(c)
 }
 
 // syncSelectedSession 在左栏选中项变化时打开对应会话；选中标识是视图里的行
@@ -771,7 +795,7 @@ func (a *App) applyTokens(c *gui.Context) {
 // debugKeys 是仅用于走查的键位：1–5 切换状态。焦点在输入框里时不抢键，
 // 避免把数字从草稿里吃掉（U3 定稿前的临时做法）。
 func (a *App) debugKeys(c *gui.Context) {
-	if c.FocusTakesText() {
+	if a.palette.open || c.FocusTakesText() {
 		return
 	}
 	switch {
@@ -790,6 +814,9 @@ func (a *App) debugKeys(c *gui.Context) {
 
 // searchKeys 是搜索面的键位（U3 T18）：Esc 收起搜索面（焦点回到列表）。
 func (a *App) searchKeys(c *gui.Context) {
+	if a.palette.open {
+		return
+	}
 	if a.searchOpen && c.Shortcut(0, gui.KeyEscape) {
 		a.searchOpen = false
 		a.searchQuery = ""
@@ -799,6 +826,9 @@ func (a *App) searchKeys(c *gui.Context) {
 // terminalKeys 是终端的键位（U3 T17）：Ctrl-C 中止、Cmd-K 清屏、Esc 收回右栏
 // （回到主界面）。Ctrl-C 在终端输入框里仍是"复制"，所以只在焦点不在输入框时接管。
 func (a *App) terminalKeys(c *gui.Context) {
+	if a.palette.open {
+		return
+	}
 	if !a.rightOpen || a.rightTab != 4 {
 		return
 	}

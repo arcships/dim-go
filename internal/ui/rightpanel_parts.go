@@ -329,6 +329,9 @@ func (a *App) rpTabBar(c *gui.Context) {
 
 // rpTabKeys 是 ⌘1…⌘9 切页（RP-A-22）：标签多于 1 个时才生效。
 func (a *App) rpTabKeys(c *gui.Context) {
+	if a.palette.open {
+		return
+	}
 	s := a.rp()
 	if len(s.tabs) < 2 {
 		return

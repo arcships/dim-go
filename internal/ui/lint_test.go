@@ -390,11 +390,13 @@ func lintSource(name string, src []byte, content *contentDoc) []lintFinding {
 // L11：分隔线与自绘描边只允许出现在登记过的位置。
 func lintDividerAllowlist(files []string) []lintFinding {
 	allowed := map[string]int{
-		"controls.go":            2, // 附件 chip 与新的附件行：都落在 surface 上，需要一条线才看得出是条目
-		"composer.go":            6, // 输入卡 / 审批卡 / 命令面板 / 菜单浮层：参考产品的卡框与浮层边界
-		"icons.go":               1, // 审批的次按钮（一直允许 / 拒绝）：落在卡面上，需要一条轮廓
-		"header.go":              3, // 打开方式组的左边框、组内分隔线、⋯ 菜单的分隔线
-		"sidebar.go":             1, // 框架 Divider：入口区与会话列表两个模块
+		"controls.go": 2, // 附件 chip 与新的附件行：都落在 surface 上，需要一条线才看得出是条目
+		"composer.go": 6, // 输入卡 / 审批卡 / 命令面板 / 菜单浮层：参考产品的卡框与浮层边界
+		"icons.go":    1, // 审批的次按钮（一直允许 / 拒绝）：落在卡面上，需要一条轮廓
+		"header.go":   3, // 打开方式组的左边框、组内分隔线、⋯ 菜单的分隔线
+		"sidebar.go":  1, // 框架 Divider：入口区与会话列表两个模块
+		// 命令面板：浮在整窗之上的模态面，需要一圈描边与下方内容分开（U2 §8、UI-18）。
+		"command_palette.go":     1,
 		"rightpanel.go":          2, // 框架 Divider：标签栏与内容，加错误横幅的一条 1px 描边（橙色浅底落在面板上面）
 		"rightpanel_tasks.go":    2, // 框架 Divider：列表行之间与列表/详情之间（参考的行分隔线 + 详情区顶线）
 		"rightpanel_sidechat.go": 2, // 框架 Divider：结束状态条的顶部分隔线；输入框的一条 1px 描边
