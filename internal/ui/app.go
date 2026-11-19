@@ -1723,10 +1723,17 @@ func (a *App) branchState() (string, []string, bool) {
 	return a.branch, a.branches, false
 }
 
-// currentModel 是标题行末尾要显示的模型：连着 Source 时取当前选择，否则用样例。
+// currentModel 是输入区与调试信息里要显示的模型：连着 Source 时只读设置快照，
+// 读不到就说「未选择模型」；样例只在 -demo（没有 Source）出现。
 func (a *App) currentModel() string {
-	if st, ok := a.liveSettings(); ok && st.Model != "" {
-		return st.Model
+	if st, ok := a.liveSettings(); ok {
+		if name := strings.TrimSpace(st.Model); name != "" {
+			return name
+		}
+		if id := strings.TrimSpace(st.ModelID); id != "" {
+			return id
+		}
+		return modelUnset
 	}
 	if a.model != "" {
 		return a.model

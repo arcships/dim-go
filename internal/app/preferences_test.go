@@ -20,6 +20,7 @@ func TestPreferencesRoundTrip(t *testing.T) {
 		Theme: "暗", MotionOff: true, TimeZone: "UTC", SidebarWidth: 288,
 		Workspaces:       []string{"/tmp/dimagent-test/ws-alpha", "/tmp/dimagent-test/ws-beta"},
 		HooksProjectPath: "/tmp/dimagent-test/hooks-project",
+		UpdateFeedURL:    "https://example.com/updates/latest.json",
 		Window:           WindowPreferences{X: 40, Y: 60, Width: 1280, Height: 820, HasPosition: true},
 	}
 	if err := first.UpdatePreferences(want); err != nil {

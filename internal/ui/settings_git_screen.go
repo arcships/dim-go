@@ -19,8 +19,11 @@ import (
 // 组内「标签 → 说明 4、说明 → 控件 8」，单标签组「标签 → 控件 10」。
 //
 // 只保留可丢的界面状态（gitScreen）：分支前缀、远程与基线分支的选中项、
-// 两个开关、两段指令草稿、Worktree 路径。事实（仓库设置）归 App Server；
-// 接线时把七处读写换成 Source / Intents。
+// 两个开关、两段指令草稿、Worktree 路径。事实（仓库设置）归 App Server。
+//
+// 连着 Source 时这一屏是空态（settingsNoFacts + noteGitSettings）：仓库设置的
+// 读写都没有通道，所以不画样例远程 / 分支清单，也不摆拨了不生效的开关。样例
+// 状态只走 -demo（没有 Source）。
 //
 // # 未实现分支
 //
@@ -108,7 +111,15 @@ type gitState struct {
 var gitScreen = gitState{}
 
 // renderGit 是设置 › Git 这一屏（设置壳的一个分节）。内容自己滚。
-func renderGit(c *gui.Context) {
+//
+// 连着 Source 时没有任何仓库设置事实（远程、基线分支、推送策略、指令补充、
+// Worktree 根目录都读不到也写不了），所以整屏是空态 + 原因：不画样例远程与
+// 分支，也不摆拨了不生效的开关。样例只在 -demo（没有 Source）出现。
+func renderGit(c *gui.Context, a *App) {
+	if a != nil && a.wired() {
+		settingsNoFacts(c, gitCopyTitle, noteGitSettings)
+		return
+	}
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(gitCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(gitSectionGap).Children(func() {

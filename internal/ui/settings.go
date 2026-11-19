@@ -53,39 +53,39 @@ func (a *App) settingsContent(c *gui.Context) {
 	case secUsage:
 		renderSettingsUsageScreen(c)
 	case secPersonalization:
-		renderSettingsPersonalizationScreen(c)
+		renderSettingsPersonalizationScreen(c, a)
 	case secAppearance:
-		renderAppearance(c)
+		renderAppearance(c, a)
 	case secGeneral:
-		renderGeneral(c)
+		renderGeneral(c, a)
 	case secKeybindings:
 		a.renderKeybindings(c)
 	case secProviders:
 		renderConfiguration(c, a)
 	case secModality:
-		renderModality(c)
+		renderModality(c, a)
 	case secRuntime:
-		renderRuntime(c)
+		renderRuntime(c, a)
 	case secMCP:
 		renderMCP(c, a)
 	case secNotifications:
 		a.renderNotifications(c)
 	case secPets:
-		renderPets(c)
+		renderPets(c, a)
 	case secPermissions:
-		renderPermissions(c)
+		renderPermissions(c, a)
 	case secGit:
-		renderGit(c)
+		renderGit(c, a)
 	case secHooks:
 		renderHooks(c, a)
 	case secPluginSettings:
-		renderPluginSettings(c)
+		renderPluginSettings(c, a)
 	case secExternalAgents:
 		renderExternalAgents(c)
 	case secArchived:
 		renderArchived(c)
 	case secAbout:
-		renderAbout(c)
+		a.renderAbout(c)
 	default:
 		settingsPlaceholder(c, section)
 	}
@@ -98,6 +98,23 @@ func settingsPlaceholder(c *gui.Context, section settingsSectionDef) {
 	settingsSectionTitle(c, section.label)
 	typeSecondary.style(t, gui.Text(c, "尚未按参考产品重建")).
 		TextColor(t.TextMuted)
+}
+
+// settingsNoFacts 是"这一屏没有可读的事实"的状态：标题 + 一句原因，不摆控件。
+//
+// 与 settingsPlaceholder 分开：占位是"这一节还没重建"，这里是"这一节重建了，
+// 但服务端没有给出它要的数据"。两种情况都不画样例值当现状。
+func settingsNoFacts(c *gui.Context, title, note string) {
+	t := c.Theme()
+	gui.Column(c).Grow(1).Children(func() {
+		gui.Scroll(c).Grow(1).Label(title).Children(func() {
+			gui.Column(c).Shrink(0).Gap(screenSpace5).Children(func() {
+				screenTitle(c, title)
+				typeSecondary.style(t, gui.Text(c, note)).TextColor(t.TextMuted).
+					Selectable()
+			})
+		})
+	})
 }
 
 // settingsNav 是左导航：返回主界面的图标入口 + 19 节分节列表。

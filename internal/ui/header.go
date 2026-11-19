@@ -143,9 +143,16 @@ func (a *App) chatMenu(c *gui.Context) {
 		if menuItem(c, m, pinIcon, pinText, pinText, "", false, false) {
 			a.chatPinned = !a.chatPinned
 		}
-		// 重命名：采集里 SessionTitle 能力不可用时禁用，并在同一行给括注。
-		menuItem(c, m, iconPencil, "重命名", "重命名（SessionTitle 不可用）",
-			"（SessionTitle 不可用）", true, false)
+		// 重命名：落到左栏的行内改名（同一个会话、同一条 RenameSession 写入）。
+		// 只有"取不到会话"才禁用并写真实原因——RenameSession 一直都在。
+		renameNote := ""
+		if a.wired() && a.currentSessionIndex() < 0 {
+			renameNote = noteNoSessionID
+		}
+		if menuItem(c, m, iconPencil, "重命名", "重命名", renameNote,
+			renameNote != "", false) {
+			a.startHeaderRename()
+		}
 		// 多窗口：在新窗口里打开当前会话；已经有一个窗口显示它时切换到那个窗口
 		// （回执写明是哪一个），不重复开。
 		if menuItem(c, m, iconExternal, "在新窗口中打开", "在新窗口中打开", "", false, false) {
@@ -154,8 +161,15 @@ func (a *App) chatMenu(c *gui.Context) {
 		if menuItem(c, m, iconDownload, "导出", "导出", "", false, false) {
 			a.exportCurrentSession()
 		}
-		if menuItem(c, m, iconArchive, "归档", "归档", "", false, false) {
-			a.headerNote = "已归档"
+		// 归档：接上 Intents 时走 ArchiveSession（左栏与命令面板同一落点），
+		// -demo 才写视图回执。
+		archiveNote := ""
+		if a.intents != nil && a.currentSessionIndex() < 0 {
+			archiveNote = noteNoSessionID
+		}
+		if menuItem(c, m, iconArchive, "归档", "归档", archiveNote,
+			archiveNote != "", false) {
+			a.archiveCurrentSession()
 		}
 		gui.Box(c).Height(strokeHairline).Background(t.Border)
 		// 复制项：先取事实，再决定可用性——没有标识 / 目录时禁用并写原因，不复制
@@ -181,6 +195,39 @@ func (a *App) chatMenu(c *gui.Context) {
 			a.copySessionField(c, a.debugInfo(), "已复制调试信息")
 		}
 	})
+}
+
+// startHeaderRename 把标题栏的「重命名」落到左栏的行内改名上：同一个会话、
+// 同一条写入路径（Intents.RenameSession），不是另开一个只改标题的输入框。
+func (a *App) startHeaderRename() {
+	index := a.currentSessionIndex()
+	if index < 0 && !a.wired() {
+		index = sessionIndex(a.selectedSession)
+	}
+	if index < 0 {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	a.renaming = index
+	a.renameDraft = a.sessionName(index, a.sessionIDAt(index))
+}
+
+// archiveCurrentSession 归档当前会话：接上 Intents 时发 session.archive；样例
+// （没有 Intents）只写视图回执。
+func (a *App) archiveCurrentSession() {
+	index := a.currentSessionIndex()
+	if a.intents == nil {
+		a.headerNote = "已归档"
+		return
+	}
+	if index < 0 && !a.wired() {
+		index = sessionIndex(a.selectedSession)
+	}
+	if index < 0 {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	a.archiveSession(index)
 }
 
 // exportCurrentSession 导出当前会话（标题栏 ⋯ 菜单的「导出」）：索引从会话目录
@@ -306,24 +353,38 @@ func (a *App) copySessionField(c *gui.Context, value, receipt string) {
 }
 
 // openWithGroup 是「打开方式」组：主按钮（默认应用）+ 分隔线 + 更多方式。
+//
+// 连着 Source 时没有外部应用清单，也没有打开调用：主按钮改成中性的「打开方式」，
+// 置灰并写原因，不冒充"正在用某个应用打开"。
 func (a *App) openWithGroup(c *gui.Context) {
 	t := c.Theme()
+	live := a.wired()
 	app := a.openWithApp
-	if app == "" {
-		app = "VS Code"
+	label, icon := "打开方式", iconExternal
+	if !live {
+		if app == "" {
+			app = "VS Code"
+		}
+		label, icon = "在 "+app+" 中打开", openWithIcon(app)
 	}
 	gui.Row(c).Height(rowRegular).Radius(radius).Border(strokeHairline, t.Border).
 		Background(t.Surface).AlignItems(gui.Center).Children(func() {
 		main := gui.ButtonBase(c).Width(composerToolSize).Height(space6).Radius(radius).
-			Label("在 " + app + " 中打开").Tooltip("在 " + app + " 中打开").
-			Cursor(gui.CursorPointer)
-		if main.Hovered() {
+			Label(label).Tooltip(label).Cursor(gui.CursorPointer).Disabled(live)
+		if live {
+			main = main.Tooltip(noteOpenWith).Opacity(0.5)
+		}
+		if main.Hovered() && !live {
 			main = main.Background(t.SurfaceHover)
 		}
 		main.Children(func() {
-			iconBox(c, openWithIcon(app), openWithColor(app, t), "open-with")
+			ink := openWithColor(app, t)
+			if live {
+				ink = t.TextMuted
+			}
+			iconBox(c, icon, ink, "open-with")
 		})
-		if main.Clicked() {
+		if main.Clicked() && !live {
 			a.headerNote = "正在用 " + app + " 打开"
 		}
 		gui.Box(c).Width(strokeHairline).Height(space4).Background(t.Border)
@@ -346,6 +407,10 @@ func (a *App) openWithMenu(c *gui.Context) {
 			Background(t.Surface).Border(strokeHairline, t.Border).
 			Shadow(0, 4, 18, 0, colorShadow.in(t))
 		switch {
+		case a.wired():
+			// 没有探测通道：不列出写死的四款应用，只写"没有清单"。
+			menuItem(c, m, nil, "没有可用的外部应用", "没有可用的外部应用",
+				noteOpenWith, true, false)
 		case a.openWithLoading:
 			menuItem(c, m, nil, "正在检测已安装应用…", "正在检测已安装应用", "", true, false)
 		case len(openWithApps()) == 0:
@@ -360,10 +425,18 @@ func (a *App) openWithMenu(c *gui.Context) {
 			}
 		}
 		gui.Box(c).Height(strokeHairline).Background(t.Border)
-		if menuItem(c, m, iconFolderOpen, "在 Finder 中显示", "在 Finder 中显示", "", false, false) {
+		// 这两项要宿主的打开 / 定位能力：连着 Source 时没有通道，置灰并写原因，
+		// 不给"已显示""正在打开"这类编出来的回执。
+		finderNote, defaultNote := "", ""
+		if a.wired() {
+			finderNote, defaultNote = noteOpenWith, noteOpenWith
+		}
+		if menuItem(c, m, iconFolderOpen, "在 Finder 中显示", "在 Finder 中显示",
+			finderNote, finderNote != "", false) {
 			a.headerNote = "已在 Finder 中显示"
 		}
-		if menuItem(c, m, iconExternal, "用系统默认方式打开", "用系统默认方式打开", "", false, false) {
+		if menuItem(c, m, iconExternal, "用系统默认方式打开", "用系统默认方式打开",
+			defaultNote, defaultNote != "", false) {
 			a.headerNote = "正在用系统默认方式打开"
 		}
 	})

@@ -17,6 +17,7 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/catalog"
 	"github.com/arcships/dimagent-mygo/internal/extensions"
+	"github.com/arcships/dimagent-mygo/internal/host"
 	"github.com/arcships/dimagent-mygo/internal/interaction"
 	"github.com/arcships/dimagent-mygo/internal/settings"
 	"github.com/arcships/dimagent-mygo/internal/shortcut"
@@ -78,6 +79,12 @@ type App struct {
 	termMu      sync.Mutex
 	termStreams map[string]*terminalStream
 	termReaders map[string]*terminal.Terminal
+	// updateMu 保护自动更新编排（见 update.go）：界面每帧读快照，动作在后台跑。
+	updateMu       sync.Mutex
+	update         *host.FeedUpdater
+	updateFeed     string
+	updateConfig   string
+	updateAutoOnce sync.Once
 }
 
 // New 包住一个已创建的集成层。
@@ -662,6 +669,7 @@ func (w *App) settingsFor(sessionID string) ui.SettingsSnapshot {
 		}
 	}
 	if capabilities, ok := settings.Modality(); ok {
+		out.Modality.Known = true
 		out.Modality.Supported = capabilities.Supported
 		out.Modality.Reason = capabilities.UnavailableReason
 		if capabilities.TaskSupported != nil {
@@ -773,6 +781,7 @@ func (w *App) Preferences() ui.PreferencesSnapshot {
 		TimeZone: prefs.TimeZone, SidebarWidth: prefs.SidebarWidth,
 		Workspaces:          append([]string(nil), prefs.Workspaces...),
 		HooksProjectPath:    prefs.HooksProjectPath,
+		UpdateFeedURL:       prefs.UpdateFeedURL,
 		NotifyTaskDone:      prefs.NotifyTaskDone,
 		NotifySound:         prefs.NotifySound,
 		NotifyNeedsResponse: prefs.NotifyNeedsResponse,
@@ -816,6 +825,8 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 	current.SidebarWidth = prefs.SidebarWidth
 	current.Workspaces = append([]string(nil), prefs.Workspaces...)
 	current.HooksProjectPath = prefs.HooksProjectPath
+	// UpdateFeedURL 只走 SetUpdateFeed：通用的偏好落盘（主题、侧栏宽度等）不带
+	// 更新源，不能让一次主题切换把用户填的地址清掉。
 	current.NotifyTaskDone = prefs.NotifyTaskDone
 	current.NotifySound = prefs.NotifySound
 	current.NotifyNeedsResponse = prefs.NotifyNeedsResponse

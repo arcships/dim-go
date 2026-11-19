@@ -150,7 +150,15 @@ var petsScreen = petsState{
 }
 
 // renderPets 是设置 › 宠物这一屏（设置壳的一个分节）。
-func renderPets(c *gui.Context) {
+//
+// 连着 Source 时没有任何 Pet 事实（清单、当前选择、显示开关都没有通道），所以
+// 整屏是空态 + 原因：不把样例的两个内置 Pet 与「dim-fox 已选中」当现状画出来。
+// 样例只在 -demo（没有 Source）出现。
+func renderPets(c *gui.Context, a *App) {
+	if a != nil && a.wired() {
+		settingsNoFacts(c, petsCopyTitle, notePetSettings)
+		return
+	}
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(petsCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(petsSectionGap).Children(func() {

@@ -19,9 +19,12 @@ import (
 // screenHint / screenInput / screenIcon …），settings_general_screen.go 与
 // settings_keybindings_screen.go 直接引用。
 //
-// 只保留可丢的界面状态（appearanceScreen）：选中的主题 / 语言 / 字体 / 字号 /
-// 代码主题 / 皮肤，皮肤的图片与高级折叠，删除对话框。写事实（主题、字体、皮肤）
-// 需要设置领域与宿主能力，本屏只改这些界面状态，接线时换成 Intents。
+// 主题之外的可丢界面状态都在 appearanceScreen 里：语言、字体、字号、代码主题、
+// 皮肤，皮肤的图片与高级折叠，删除对话框。它们都没有写入通道（也没有落盘），
+// 接线时换成 Intents。
+//
+// 主题不走 appearanceScreen：卡片的选中态读 App.themePref（真正决定配色的那个
+// 本地偏好），点卡片就是改主题并落盘（selectTheme），不是只移动一个角标。
 //
 // 两处没有资产，用等尺寸示意：主题卡的预览是 Sun / Moon / Desktop 图标，
 // 皮肤卡的缩略图是按皮肤配色画的窗口示意（不是原始素材）。
@@ -382,8 +385,9 @@ var (
 )
 
 // appearanceState 是本屏可丢的界面状态：选中项、对话框与折叠。不是事实。
+//
+// 主题不在其中：主题卡的选中态读 App 的 themePref（真正决定配色的那个值）。
 type appearanceState struct {
-	theme     int
 	language  string
 	uiFont    string
 	codeFont  string
@@ -407,7 +411,6 @@ type appearanceState struct {
 }
 
 var appearanceScreen = appearanceState{
-	theme:       0, // 截图：浅色卡带选中角标
 	language:    "简体中文",
 	uiFont:      "默认",
 	codeFont:    "默认",
@@ -419,12 +422,12 @@ var appearanceScreen = appearanceState{
 }
 
 // renderAppearance 是设置 › 外观这一屏（设置壳的一个分节）。
-func renderAppearance(c *gui.Context) {
+func renderAppearance(c *gui.Context, a *App) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(screenSpace5).Children(func() {
 				screenTitle(c, "外观")
-				appearanceThemeSection(c)
+				appearanceThemeSection(c, a)
 				appearanceLanguageSection(c)
 				appearanceFontSection(c)
 				appearanceSizeSection(c)
@@ -437,15 +440,52 @@ func renderAppearance(c *gui.Context) {
 	appearanceDeleteDialog(c)
 }
 
+// appearanceThemeValues 是主题卡的顺序对应到本地偏好的主题词：「明」「暗」
+// 「跟随系统」（app.go 的 theme 开关按这三个词选配色）。两个清单顺序必须一致。
+var appearanceThemeValues = []string{"明", "暗", "跟随系统"}
+
+// appearanceThemeIndex 把本地偏好的主题词换成卡片序号：认不出来的词按「跟随
+// 系统」定位，但主题本身仍取原文（这里不改偏好的值）。
+func appearanceThemeIndex(pref string) int {
+	switch pref {
+	case "明":
+		return 0
+	case "暗":
+		return 1
+	}
+	return 2
+}
+
+// selectTheme 是主题卡的一次点选：改本地偏好里的主题并落盘。
+//
+// 主题是客户端自己的偏好（不是 App Server 的事实），所以这一项能真的改：换完
+// 这一帧就换配色，下一次启动按落盘的值恢复。没有 Intents（-demo）时只改视图。
+func (a *App) selectTheme(index int) {
+	if index < 0 || index >= len(appearanceThemeValues) {
+		return
+	}
+	if a.themePref == appearanceThemeValues[index] {
+		return
+	}
+	a.themePref = appearanceThemeValues[index]
+	a.persistPreferences()
+}
+
 // appearanceThemeSection 是 4.1 的主题段（S-appearance-01–08）。
-func appearanceThemeSection(c *gui.Context) {
+//
+// 卡片的选中态读 a.themePref（真正决定配色的那个值）：点一张卡就是改主题，
+// 不是只移动一个角度标。
+func appearanceThemeSection(c *gui.Context, a *App) {
+	selected := appearanceThemeIndex(a.themePref)
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 		screenLabel(c, "主题")
 		gui.Row(c).Wrap().MaxWidth(screenGridW).
 			GapX(screenCardGap).GapY(screenCardGap).
 			Label("主题").Children(func() {
 			for i, option := range appearanceThemeOptions {
-				appearanceThemeCard(c, i, option.name, option.icon)
+				if appearanceThemeCard(c, i, option.name, option.icon, i == selected) {
+					a.selectTheme(i)
+				}
 			}
 		})
 	})
@@ -453,9 +493,10 @@ func appearanceThemeSection(c *gui.Context) {
 }
 
 // appearanceThemeCard 是一张主题卡（240×69）：预览在上、文字在下、角标在右上。
-func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG) {
+// 返回这一帧是否被点中。
+func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG,
+	selected bool) bool {
 	t := c.Theme()
-	selected := appearanceScreen.theme == index
 	frame := t.Border
 	if selected {
 		frame = t.Accent
@@ -475,9 +516,7 @@ func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG) 
 	b.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, frame, screenRadiusCard, screenStroke)
 	})
-	if b.Clicked() {
-		appearanceScreen.theme = index
-	}
+	clicked := b.Clicked()
 	b.Children(func() {
 		gui.Box(c).Grow(1).Padding(screenSpace15, screenSpace15).Children(func() {
 			gui.Column(c).Grow(1).Justify(gui.Center).AlignItems(gui.Center).
@@ -490,6 +529,7 @@ func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG) 
 			}
 		})
 	})
+	return clicked
 }
 
 // appearanceLanguageSection 是程序语言段（S-appearance-09–11）。

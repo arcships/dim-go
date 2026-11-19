@@ -188,8 +188,21 @@ const (
 
 // renderPluginSettings 是设置 › 插件设置这一屏（设置壳的一个分节）：
 // 参考的这一节没有页首标题与说明，第一张插件卡就是首块内容。
-func renderPluginSettings(c *gui.Context) {
+//
+// 连着 Source 时没有任何插件设置的 schema（也就没有可画的字段实例），所以这一屏
+// 只写原因，不画样例的三个插件卡。样例只在 -demo（没有 Source）出现。
+func renderPluginSettings(c *gui.Context, a *App) {
 	t := c.Theme()
+	if a != nil && a.wired() {
+		gui.Column(c).Grow(1).Children(func() {
+			gui.Scroll(c).Grow(1).Children(func() {
+				gui.Column(c).Children(func() {
+					plgNote(c, t, notePluginSettings)
+				})
+			})
+		})
+		return
+	}
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Children(func() {

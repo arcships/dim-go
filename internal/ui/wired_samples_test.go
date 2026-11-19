@@ -30,7 +30,9 @@ func wiredSource() *fakeSource {
 			StorageKnown:  true,
 			Runtimes:      []RuntimeSnapshot{{Name: "server-real", Version: "v9.0.0", Status: "ready"}},
 			RuntimesKnown: true,
-			Modality:      ModalitySnapshot{Supported: true, TaskSupported: true, TaskKnown: true},
+			Modality: ModalitySnapshot{
+				Known: true, Supported: true, TaskSupported: true, TaskKnown: true,
+			},
 		},
 		extensions: ExtensionsSnapshot{
 			Plugins: ExtListSnapshot{Items: []ExtItemSnapshot{{Name: "real-plugin", Version: "v2", Enabled: true}}},
@@ -57,6 +59,10 @@ var samplePhrases = []string{
 	"1.2", "128", "84", "项目 A", "项目 B",
 	"修发送路径", "参考", "旧实现对照",
 	"把日志也开上", "发送路径.md", "rm -rf ./tmp/*",
+	// 审核报告 docs/audit-fakes.md §1 的 P0 假事实：审批卡的 cwd 与空命令回落、
+	// 模型槽的样例品牌、设置 › Git 的远程、设置 › 宠物的 Pet、设置 › 插件设置的
+	// 插件名。它们此前都不在这份清单里，所以缺一条事实时屏上出现样例也没人拦。
+	"~/dim-agent", "ls -la", "seed-2.1-pro", "dim-fox", "Model log", "origin",
 }
 
 // TestPreferencesSeedView 本地偏好进入视图：主题、动效、时区与侧栏宽度。
@@ -103,6 +109,16 @@ func TestWiredScreensExcludeSamples(t *testing.T) {
 		{"主界面", func(a *App) { a.screen = ScreenMain }, "真实会话"},
 		{"账号", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAccount }, "ada@real.test"},
 		{"终端", func(a *App) { a.screen, a.rightOpen, a.rightTab = ScreenMain, true, 4 }, "还没有输出"},
+		// 设置区：这些屏曾经全靠样例（docs/audit-fakes.md 的 P0-3…P0-8 与 T-3）。
+		// 现在它们要么读事实（运行环境），要么只写这一屏读不到的原因。
+		{"设置·运行环境", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secRuntime }, "server-real"},
+		{"设置·多模态", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secModality }, noteModalityGroups},
+		{"设置·Git", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secGit }, noteGitSettings},
+		{"设置·宠物", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPets }, notePetSettings},
+		{"设置·插件设置", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPluginSettings }, notePluginSettings},
+		{"设置·通用", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secGeneral }, noteDesktopSettings},
+		{"设置·个性化", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPersonalization }, notePersonalizationWrite},
+		{"设置·权限", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPermissions }, noteIsolationUnread},
 	}
 	for _, screen := range screens {
 		screen.setup(app)

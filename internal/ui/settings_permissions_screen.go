@@ -156,14 +156,19 @@ type permissionsState struct {
 var permissionsScreen = permissionsState{loaded: true}
 
 // renderPermissions 是设置 › 权限这一屏（设置壳的一个分节）。
-func renderPermissions(c *gui.Context) {
+//
+// 连着 Source 时进程隔离这一卡只写原因：读不到当前的沙箱与网络设置，就不画两个
+// 开关（一个显示在"关"位的开关就是在替服务端回答一个它没答过的问题），也不画
+// 保存（本来就没有写入通道）。命令规则表照旧：它是本屏的草稿，不含任何"现状"。
+func renderPermissions(c *gui.Context, a *App) {
+	live := a != nil && a.wired()
 	permValidateRules()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(permCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(permTitleGap).Children(func() {
 				screenTitle(c, permCopyTitle)
 				gui.Column(c).Shrink(0).Gap(permSectionGap).Children(func() {
-					permIsolationCard(c)
+					permIsolationCard(c, live)
 					gui.Column(c).Shrink(0).Gap(permHeadingGap).Children(func() {
 						screenRule(c)
 						permExecSection(c)
@@ -177,7 +182,7 @@ func renderPermissions(c *gui.Context) {
 
 // permIsolationCard 是「进程隔离」卡（S-sandbox-02 … 17）：盾牌 + 标题 + 说明，
 // 两个开关，保存按钮与范围说明；加载中 / 加载失败 / 后端不可用各一支。
-func permIsolationCard(c *gui.Context) {
+func permIsolationCard(c *gui.Context, live bool) {
 	t := c.Theme()
 	screenCard(c, func() {
 		gui.Column(c).Padding(permCardPad, permCardPad).Gap(permRowGap).
@@ -189,6 +194,10 @@ func permIsolationCard(c *gui.Context) {
 					})
 					permSubhint(c, permCopyIsolationIn)
 				})
+				if live {
+					permSubhint(c, noteIsolationUnread)
+					return
+				}
 				switch {
 				case permissionsScreen.loading:
 					permLoadingRow(c)

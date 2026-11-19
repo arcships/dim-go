@@ -7,6 +7,12 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/host"
 )
 
+// DataDir 返回客户端数据目录。关于 › 软件更新的下载落在其下的 updates/。
+func (a *App) DataDir() string { return a.cfg.DataDir }
+
+// Version 返回本次运行的客户端版本（入口注入）；未配置时为空。
+func (a *App) Version() string { return a.cfg.Version }
+
 // UpdateOptions 是应用更新的装配参数。
 //
 // 版本源默认取现有客户端的渠道约定（基址 https://dimcode.echooai.com、

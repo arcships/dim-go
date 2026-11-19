@@ -460,6 +460,8 @@ func main() {
 					startup.printf("连接失败（%.0f ms）：%v", elapsedMS(started), err)
 				} else {
 					startup.printf("连接就绪（%.0f ms）", elapsedMS(started))
+					// 启动后延迟一次检查更新：没有配置更新源时直接跳过，不打扰。
+					wire.StartUpdateAutoCheck()
 				}
 				// 标题按阶段取一次：失败路径不广播变化，这一步不能省。
 				manager.applyTitles()

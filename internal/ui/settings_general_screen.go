@@ -55,33 +55,42 @@ var generalProxyModes = []struct {
 }
 
 // renderGeneral 是设置 › 通用这一屏（设置壳的一个分节）。
-func renderGeneral(c *gui.Context) {
+//
+// 连着 Source 时这一屏没有可读的事实：唤醒、性能日志、开机自启、数据根目录、
+// 代理、浏览器数据都由桌面自己保管，而服务端不提供这些键。这时不摆开关与输入框
+// （摆一个「开」的开关就是替系统回答一个没人读过的问题），每张卡只写原因；
+// 存储用量是唯一有事实的项，读数取自 Settings().Storage。样例只在 -demo 出现。
+func renderGeneral(c *gui.Context, a *App) {
+	note := ""
+	if a != nil && a.wired() {
+		note = noteDesktopSettings
+	}
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(screenSpace5).Children(func() {
 				screenTitle(c, "通用")
 				generalSwitchCard(c, "保持电脑唤醒",
-					"运行期间阻止系统休眠。屏幕也会保持常亮。", &generalScreen.keepAwake)
+					"运行期间阻止系统休眠。屏幕也会保持常亮。", &generalScreen.keepAwake, note)
 				generalSwitchCard(c, "性能日志",
 					"将各进程 CPU/RSS/IO 采样写入 logs/performance/（每秒一行）。tail 该文件即可实时查看。",
-					&generalScreen.perfLog)
+					&generalScreen.perfLog, note)
 				if generalPinned() {
 					generalCard(c, func() {
 						screenHint(c, "本次启动由 DIM_PERF 决定采集，该开关不生效。")
 					})
 				}
-				generalSwitchCard(c, "登录时自动启动", "", &generalScreen.launch)
-				generalRootDirCard(c)
-				generalProxyCard(c)
-				generalBrowserCard(c)
-				generalCleanupCard(c)
+				generalSwitchCard(c, "登录时自动启动", "", &generalScreen.launch, note)
+				generalRootDirCard(c, note)
+				generalProxyCard(c, note)
+				generalBrowserCard(c, note)
+				generalCleanupCard(c, a, note)
 			})
 		})
 	})
 	generalProxyDialog(c)
 	generalImportDialog(c)
 	generalClearDialog(c)
-	generalCleanupDialog(c)
+	generalCleanupDialog(c, a)
 }
 
 // generalPinned 是性能日志被 DIM_PERF 钉住的条件：启动参数里没有设，返回假。
@@ -98,7 +107,8 @@ func generalCard(c *gui.Context, body func()) {
 }
 
 // generalSwitchCard 是一张开关卡：左侧标题（+ 说明），右侧 28×16 开关。
-func generalSwitchCard(c *gui.Context, label, hint string, on *bool) {
+// note 非空时（连着 Source）不画开关，只把原因写在这一行下面。
+func generalSwitchCard(c *gui.Context, label, hint string, on *bool, note string) {
 	generalCard(c, func() {
 		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace4).Children(func() {
 			gui.Column(c).Grow(1).MinWidth(0).Gap(screenSpace05).Children(func() {
@@ -106,20 +116,36 @@ func generalSwitchCard(c *gui.Context, label, hint string, on *bool) {
 				if hint != "" {
 					screenHint(c, hint)
 				}
+				if note != "" {
+					generalNote(c, note)
+				}
 			})
-			gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
-				Radius(screenSwitchH / 2).Label(label)
+			if note == "" {
+				gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
+					Radius(screenSwitchH / 2).Label(label)
+			}
 		})
 	})
 }
 
-// generalRootDirCard 是会话数据根目录卡（S-general-11–17）。
-func generalRootDirCard(c *gui.Context) {
+// generalNote 是一行"这一项没有事实"的说明：次级前景、可选中复制。
+func generalNote(c *gui.Context, text string) {
+	typeMicro.style(c.Theme(), gui.Text(c, text)).TextColor(c.Theme().TextMuted).
+		Selectable()
+}
+
+// generalRootDirCard 是会话数据根目录卡（S-general-11–17）。note 非空时只写
+// 原因，不给输入框与「重启 App」（两者都没有通道）。
+func generalRootDirCard(c *gui.Context, note string) {
 	generalCard(c, func() {
 		gui.Column(c).Gap(screenSpace05).Children(func() {
 			screenLabel(c, "会话数据根目录")
 			screenHint(c, "会话记录、日志与缓存都位于该目录下。留空则使用默认根目录。保存后需要重启 DimAgent 才能生效。")
 		})
+		if note != "" {
+			generalNote(c, note)
+			return
+		}
 		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace2).Children(func() {
 			screenInput(c, &generalScreen.rootDir, "例如 /Users/you/.dimcode", "会话数据根目录").
 				Grow(1)
@@ -130,13 +156,18 @@ func generalRootDirCard(c *gui.Context) {
 	})
 }
 
-// generalProxyCard 是代理卡（S-general-18–30）。
-func generalProxyCard(c *gui.Context) {
+// generalProxyCard 是代理卡（S-general-18–30）。note 非空时只写原因，不画
+// 三档分段（拨了不生效的分段等于一个假的现状）。
+func generalProxyCard(c *gui.Context, note string) {
 	generalCard(c, func() {
 		gui.Column(c).Gap(screenSpace05).Children(func() {
 			screenLabel(c, "代理")
 			screenHint(c, "应用于模型请求、登录 API，以及后续新启动的工具进程。")
 		})
+		if note != "" {
+			generalNote(c, note)
+			return
+		}
 		generalProxySegments(c)
 		if generalScreen.proxyMode == 2 {
 			gui.Column(c).Gap(screenSpace15).Children(func() {
@@ -189,41 +220,50 @@ func generalProxySegments(c *gui.Context) {
 }
 
 // generalBrowserCard 是浏览器数据卡（S-general-38–45）：标题与说明，下面两行
-// 动作，行间 1px 细线。
-func generalBrowserCard(c *gui.Context) {
+// 动作，行间 1px 细线。note 非空时两行动作禁用，并把原因写在卡里。
+func generalBrowserCard(c *gui.Context, note string) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Children(func() {
 		screenCard(c, func() {
 			gui.Column(c).Padding(screenSpace35, screenSpace5).Gap(screenSpace05).Children(func() {
 				screenStrongStyle.style(t, gui.Text(c, "浏览器数据")).TextColor(t.Text).Label("浏览器数据")
 				screenHint(c, "网站登录状态和存储使用独立的浏览器配置。")
+				if note != "" {
+					generalNote(c, note)
+				}
 			})
 			screenRule(c)
-			generalBrowserRow(c, "Chrome 数据", "导入…", "导入 Chrome Cookie", func() {
+			generalBrowserRow(c, "Chrome 数据", "导入…", "导入 Chrome Cookie", note, func() {
 				generalScreen.importOpen = true
 			})
 			screenRule(c)
-			generalBrowserRow(c, "浏览器存储", "清理数据…", "清理浏览器数据", func() {
+			generalBrowserRow(c, "浏览器存储", "清理数据…", "清理浏览器数据", note, func() {
 				generalScreen.clearOpen = true
 			})
 		})
 	})
 }
 
-// generalBrowserRow 是浏览器数据卡里的一行：行标签 + 右端动作。
-func generalBrowserRow(c *gui.Context, label, action, tip string, run func()) {
+// generalBrowserRow 是浏览器数据卡里的一行：行标签 + 右端动作。disabled 非空
+// 时动作置灰，原因进 tooltip。
+func generalBrowserRow(c *gui.Context, label, action, tip, disabled string, run func()) {
 	t := c.Theme()
 	gui.Row(c).AlignItems(gui.Center).Padding(screenSpace3, screenSpace5).Children(func() {
 		screenStrongStyle.style(t, gui.Text(c, label)).TextColor(t.Text).Label(label)
 		gui.Spacer(c)
+		if disabled != "" {
+			screenButton(c, action, disabled, "", true, rowRegular)
+			return
+		}
 		if screenButton(c, action, tip, "", false, rowRegular) {
 			run()
 		}
 	})
 }
 
-// generalCleanupCard 是数据清理卡（S-general-67–69）。
-func generalCleanupCard(c *gui.Context) {
+// generalCleanupCard 是数据清理卡（S-general-67–69）。存储用量是这一屏里唯一
+// 有事实的项：连着 Source 时也保留入口，读数在对话框里取 Settings().Storage。
+func generalCleanupCard(c *gui.Context, a *App, note string) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Children(func() {
 		screenCard(c, func() {
@@ -232,6 +272,9 @@ func generalCleanupCard(c *gui.Context) {
 				gui.Column(c).Grow(1).MinWidth(0).Gap(screenSpace05).Children(func() {
 					screenStrongStyle.style(t, gui.Text(c, "数据清理")).TextColor(t.Text).Label("数据清理")
 					screenHint(c, "会话存储由 App Server 管理，可在此查看其存储用量报告。")
+					if note != "" {
+						generalNote(c, note)
+					}
 				})
 				if screenButton(c, "查看…", "查看存储用量报告", "", false, rowRegular) {
 					generalScreen.cleanupOpen = true
@@ -372,7 +415,7 @@ func generalClearDialog(c *gui.Context) {
 
 // generalCleanupDialog 是数据清理对话框的 App Server 支（S-general-70–74、86）：
 // 扫描就绪后给出数据库 / WAL / 可回收三行读数，并说明跨归属方不可清理。
-func generalCleanupDialog(c *gui.Context) {
+func generalCleanupDialog(c *gui.Context, a *App) {
 	if !generalScreen.cleanupOpen {
 		return
 	}
@@ -380,6 +423,21 @@ func generalCleanupDialog(c *gui.Context) {
 	m := gui.Modal(c, &open, func() {
 		screenDialogPanel(c, "存储报告", func() {
 			screenHint(c, "会话存储由 App Server 管理，可在此查看其存储用量报告。")
+			if a != nil && a.wired() {
+				// 读数取 Settings().Storage：没读到就写没读到，不写 0 B（0 B 是一个
+				// 会被当成事实的数字）。
+				st, _ := a.liveSettings()
+				if !st.StorageKnown {
+					generalNote(c, noteStorageUnread)
+					return
+				}
+				gui.Column(c).Gap(screenSpace15).Children(func() {
+					generalMetricRow(c, "数据库", rpByteLabel(st.Storage.DatabaseBytes))
+					generalMetricRow(c, "WAL", rpByteLabel(st.Storage.WALBytes))
+					generalMetricRow(c, "可回收", rpByteLabel(st.Storage.ReclaimableBytes))
+				})
+				return
+			}
 			gui.Column(c).Gap(screenSpace15).Children(func() {
 				generalMetricRow(c, "数据库", "0 B")
 				generalMetricRow(c, "WAL", "0 B")

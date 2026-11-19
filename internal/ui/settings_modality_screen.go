@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -18,10 +19,12 @@ import (
 //
 // # 状态
 //
-// App Server 当前不声明 modality.capabilities、任务方法与实时方法，所以本屏
-// 恒为「未声明」态：提示条常显，表单控件按参考渲染但禁用，任务列表为空。
-// 屏内只保留可丢的界面状态（modalityUI）：当前分组、状态筛选与表单草稿；
-// 接线时把这些字段搬进 App 的界面状态即可，渲染函数不必改。
+// 两档：连着 Source 时（mdLiveScreen）只按事实画——能力横幅读
+// ModalitySnapshot（Known / Supported / Reason），任务读 ModalityTasks；服务端
+// 没有分组事实，就不画参考里的「0 / N」计数与能力名；实时会话分节没有实时能力
+// 事实，整块不画。-demo（没有 Source）保留参考的「未声明」样例态：提示条常显，
+// 表单控件按参考渲染但禁用，任务列表为空。
+// 屏内只保留可丢的界面状态（modalityUI）：当前分组、状态筛选与表单草稿。
 //
 // # 可达分支
 //
@@ -45,8 +48,13 @@ import (
 // 五个分组的固有上限取自参考的取值（4 / 3 / 4 / 3 / 3）；能力名只有图像组
 // 在清单里出现（图像生成 / 图像编辑 / 图像增强 / 图像理解），其余四组的
 // 能力名不在任何需求文档里，故只显示标题与计数，不编造行名。
-func renderModality(c *gui.Context) {
+func renderModality(c *gui.Context, a *App) {
 	t := c.Theme()
+	if a != nil && a.wired() {
+		st, _ := a.liveSettings()
+		mdLiveScreen(c, t, st)
+		return
+	}
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Children(func() {
@@ -59,6 +67,138 @@ func renderModality(c *gui.Context) {
 				mdRealtimeSection(c, t)
 			})
 		})
+	})
+}
+
+// ---- 连着 Source 时的这一屏 ----
+//
+// 三件事只按事实画：
+//
+//   - 能力横幅：只读 ModalitySupported / Known。服务端声明了能力就不画横幅；
+//     读不到就说读不到；声明了但不可用就把服务端给的原因写出来。
+//   - 任务：读 Settings().ModalityTasks。读到了就列任务，真的是空才写「没有任务」，
+//     读失败就把原因写出来。
+//   - 分组与能力清单：服务端没有分组事实，所以不画样例的「0 / 4」计数与能力名，
+//     只写一句说明。
+//
+// 实时会话分节整块不画：协议里没有实时方法，也没有实时能力事实；上一版在这一屏
+// 恒写「未声明实时方法」，那是一句无法核对的话。
+func mdLiveScreen(c *gui.Context, t *gui.Theme, st SettingsSnapshot) {
+	gui.Column(c).Grow(1).Children(func() {
+		gui.Scroll(c).Grow(1).Children(func() {
+			gui.Column(c).Children(func() {
+				typeH2.style(t, gui.Text(c, mdCopyTitle)).TextColor(t.Text).
+					Role(gui.RoleHeading).Level(1).SingleLine()
+				if banner := mdCapabilityBanner(st.Modality); banner != "" {
+					mdAlertBanner(c, t, banner).Margin(mdPageGap, 0, 0, 0)
+				}
+				typeSecondary.style(t, gui.Text(c, noteModalityGroups)).
+					TextColor(t.TextMuted).Selectable().Margin(mdPageGap, 0, 0, 0)
+				mdLiveTaskSection(c, t, st)
+			})
+		})
+	})
+}
+
+// mdCapabilityBanner 是能力横幅的文案：读到且可用时为空（不画横幅）。
+func mdCapabilityBanner(m ModalitySnapshot) string {
+	switch {
+	case !m.Known:
+		return mdCopyCapabilityUnread
+	case m.Supported:
+		return ""
+	case strings.TrimSpace(m.Reason) != "":
+		return mdCopyUnsupported + strings.TrimSpace(m.Reason)
+	default:
+		return mdCopyUnsupported
+	}
+}
+
+// mdLiveTaskSection 是连上事实时的「任务」分节：说明、提示（读不到 / 读失败）、
+// 可用时才出现的提交表单，以及所有者任务清单。
+func mdLiveTaskSection(c *gui.Context, t *gui.Theme, st SettingsSnapshot) {
+	section := gui.Column(c).Shrink(0).Margin(mdSectionGap, 0, 0, 0)
+	section.Children(func() {
+		screenRule(c)
+		gui.Column(c).Shrink(0).Padding(mdSectionTop, 0, 0, 0).Children(func() {
+			typeH4.style(t, gui.Text(c, mdCopyTasks)).TextColor(t.Text).
+				Role(gui.RoleHeading).Level(2).SingleLine()
+			mdSecondary(c, t, mdCopyTasksDesc).
+				Selectable().Margin(mdHeadingGap, 0, 0, 0)
+			switch {
+			case !st.Modality.TaskKnown:
+				mdAlertBanner(c, t, mdCopyTasksUnread).
+					Margin(mdSectionInlineGap, 0, 0, 0)
+			case st.TasksError != "":
+				mdAlertBanner(c, t, mdCopyTasksFailed+st.TasksError).
+					Margin(mdSectionInlineGap, 0, 0, 0)
+			case st.Modality.TaskSupported:
+				// 方法已声明，但本版没有提交通道：表单照渲染并禁用，原因写在下面。
+				mdTaskFormCard(c, t).Margin(mdCardGap, 0, 0, 0)
+				typeMicro.style(t, gui.Text(c, noteModalitySubmit)).TextColor(t.TextMuted).
+					Selectable().Margin(mdSectionInlineGap, 0, 0, 0)
+			}
+			mdLiveTaskListCard(c, t, st).Margin(mdCardGap, 0, 0, 0)
+		})
+	})
+}
+
+// mdLiveTaskListCard 是所有者任务卡（同 S-modality-41…47）：标题 + 禁用的刷新 +
+// 清单。清单只画事实里的任务；读不到 / 读失败时上面已经有提示，这里不再重复写
+// 「没有任务」——那是一句会被当成事实的空话。
+func mdLiveTaskListCard(c *gui.Context, t *gui.Theme, st SettingsSnapshot) gui.Element {
+	card := mdCard(c)
+	card.Children(func() {
+		gui.Column(c).Gap(mdFieldGap).Children(func() {
+			gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(mdRowGap).Children(func() {
+				typeSecondaryStrong.style(t, gui.Text(c, mdCopyOwnedTasks)).
+					TextColor(t.Text).SingleLine()
+				gui.Spacer(c)
+				mdIconButton(c, t, accIconRefresh, mdCopyRefresh, mdCopyRefresh, true)
+			})
+			if !st.Modality.TaskKnown || st.TasksError != "" {
+				return
+			}
+			if len(st.ModalityTasks) == 0 {
+				typeSecondary.style(t, gui.Text(c, mdCopyNoTasks)).
+					TextColor(t.TextMuted).Selectable()
+				return
+			}
+			gui.Column(c).Shrink(0).Children(func() {
+				for i, task := range st.ModalityTasks {
+					if i > 0 {
+						screenRule(c)
+					}
+					mdLiveTaskRow(c, t, task)
+				}
+			})
+		})
+	})
+	return card
+}
+
+// mdLiveTaskRow 是一条任务：标识（等宽）、类别 / 操作、状态与进度。
+func mdLiveTaskRow(c *gui.Context, t *gui.Theme, task ModalityTaskSnapshot) {
+	label := task.ID
+	if label == "" {
+		label = "任务"
+	}
+	gui.Row(c).Shrink(0).MinHeight(mdFieldH).AlignItems(gui.Center).Gap(mdRowGap).
+		Label("任务：" + label).Children(func() {
+		gitCodeStyle.style(t, gui.Text(c, label)).TextColor(t.Text).SingleLine()
+		kind := strings.TrimSpace(task.Category + " · " + task.Operation)
+		if kind != "·" && kind != "" {
+			typeMicro.style(t, gui.Text(c, kind)).TextColor(t.TextMuted).SingleLine()
+		}
+		gui.Spacer(c)
+		if task.Progress != "" {
+			typeMicro.style(t, gui.Text(c, task.Progress)).TextColor(t.TextMuted).
+				SingleLine()
+		}
+		if task.State != "" {
+			typeSecondary.style(t, gui.Text(c, task.State)).TextColor(t.TextMuted).
+				Role(gui.RoleStatus).Label(task.State)
+		}
 	})
 }
 
@@ -551,6 +691,12 @@ var mdIconAlertCircle = mustSVG(`<path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 
 const (
 	mdCopyTitle       = "多模态"
 	mdCopyUnavailable = "服务端未提供该能力：The App Server does not expose modality.capabilities."
+
+	// 连着 Source 时的三段文案（按事实分支，不写死"未提供"）。
+	mdCopyCapabilityUnread = "还没有读到模态能力（读数未到）"
+	mdCopyUnsupported      = "服务端声明模态能力不可用："
+	mdCopyTasksUnread      = "还没有读到模态任务清单（读数未到）"
+	mdCopyTasksFailed      = "读取模态任务失败："
 
 	mdCopyGroupImage    = "图像"
 	mdCopyGroupVideo    = "视频"

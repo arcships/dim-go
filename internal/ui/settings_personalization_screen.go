@@ -49,35 +49,47 @@ import (
 // 未接动作（没有对应 Intents 方法，按 D14「未接动作」不提供写入）：
 //
 //	界面模式切换、展示 ACP 会话、默认打开目标应用、子代理模型与上限、
-//	命令 Shell 刷新、打开或创建 AGENTS.md。控件照渲染、状态照参考（可用或
-//	禁用），点击不写事实；变更只留在屏内状态里。
-func renderSettingsPersonalizationScreen(c *gui.Context) {
+//	命令 Shell 刷新、打开或创建 AGENTS.md。
+//
+// 连着 Source 时这些入口一律置灰并把原因写在组下（notePersonalizationWrite）：
+// 拨得动却不落盘的开关等于一个假的现状。-demo 里照参考渲染，控件可点，只改
+// 屏内状态。
+func renderSettingsPersonalizationScreen(c *gui.Context, a *App) {
 	t := c.Theme()
+	// live 表示连着 Source：这一屏没有任何一项的读写通道，所以能点的控件全部
+	// 置灰并把原因写在组下（拨了不生效的开关等于一个假的现状）。
+	live := a != nil && a.wired()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(psPageGap).Children(func() {
 				typeH2.style(t, gui.Text(c, psCopyTitle)).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(2)
-				psUIModeSection(c, t)
+				psUIModeSection(c, t, live)
 				psRule(c, t)
-				psShowACPSection(c, t)
+				psShowACPSection(c, t, live)
 				psRule(c, t)
-				psDefaultAppSection(c, t)
+				psDefaultAppSection(c, t, live)
 				psRule(c, t)
 				psAssistantModelSection(c, t)
 				psRule(c, t)
-				psSubagentModelSection(c, t)
+				psSubagentModelSection(c, t, live)
 				psRule(c, t)
 				psSubagentCountSection(c, t)
 				psRule(c, t)
-				psExecShellSection(c, t)
+				psExecShellSection(c, t, live)
 				psRule(c, t)
 				psPromptLocaleSection(c, t)
 				psRule(c, t)
-				psCustomInstructionsSection(c, t)
+				psCustomInstructionsSection(c, t, live)
 			})
 		})
 	})
+}
+
+// psNoFacts 是"这一组没有事实"的一行原因。
+func psNoFacts(c *gui.Context, t *gui.Theme) {
+	typeMicro.style(t, gui.Text(c, notePersonalizationWrite)).TextColor(t.TextMuted).
+		Selectable()
 }
 
 // ---- 分组 ----
@@ -85,7 +97,7 @@ func renderSettingsPersonalizationScreen(c *gui.Context) {
 // psUIModeSection 是界面模式（S-personalization-02…05）：说明 + 两张等宽卡。
 // 卡是单选项（RoleRadio），选中态是主色描边 + 主色 5% 底（参考
 // border-primary bg-primary/5），未选中态悬停时描边与底色各让一档。
-func psUIModeSection(c *gui.Context, t *gui.Theme) {
+func psUIModeSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Column(c).Shrink(0).Gap(psGroupGap).Children(func() {
 		psFieldHead(c, t, psCopyUIModeTitle, psCopyUIModeDesc)
 		width, _ := c.Size()
@@ -93,27 +105,37 @@ func psUIModeSection(c *gui.Context, t *gui.Theme) {
 			// 窄窗：两卡竖排、撑满内容列（R-PER-038）。
 			gui.Column(c).Shrink(0).Gap(psGroupGap).
 				Role(gui.RoleRadioGroup).Label(psCopyUIModeTitle).Children(func() {
-				psModeCard(c, t, psModeOffice, psCopyModeOffice, psCopyModeOfficeDesc)
-				psModeCard(c, t, psModeCoding, psCopyModeCoding, psCopyModeCodingDesc)
+				psModeCard(c, t, psModeOffice, psCopyModeOffice, psCopyModeOfficeDesc, live)
+				psModeCard(c, t, psModeCoding, psCopyModeCoding, psCopyModeCodingDesc, live)
 			})
+			if live {
+				psNoFacts(c, t)
+			}
 			return
 		}
 		gui.Row(c).Shrink(0).Gap(psGroupGap).
 			Role(gui.RoleRadioGroup).Label(psCopyUIModeTitle).Children(func() {
-			psModeCard(c, t, psModeOffice, psCopyModeOffice, psCopyModeOfficeDesc)
-			psModeCard(c, t, psModeCoding, psCopyModeCoding, psCopyModeCodingDesc)
+			psModeCard(c, t, psModeOffice, psCopyModeOffice, psCopyModeOfficeDesc, live)
+			psModeCard(c, t, psModeCoding, psCopyModeCoding, psCopyModeCodingDesc, live)
 		})
+		if live {
+			psNoFacts(c, t)
+		}
 	})
 }
 
 // psModeCard 是界面模式的一张卡（S-personalization-04/05）：标题 + 一行说明，
 // 整卡可点、可聚焦，读屏按单选项播报（名称 + 是否选中）。
-func psModeCard(c *gui.Context, t *gui.Theme, mode, label, desc string) {
+func psModeCard(c *gui.Context, t *gui.Theme, mode, label, desc string, live bool) {
 	selected := psUI.uiMode == mode
 	card := gui.ButtonBase(c).Shrink(0).Grow(1).MinHeight(psModeCardH).
 		Padding(psModePad).Radius(radius).AlignItems(gui.Center).
 		Role(gui.RoleRadio).AccessSelected(selected).Label(label).
-		BorderWidth(strokeHairline).BorderColor(t.Border)
+		BorderWidth(strokeHairline).BorderColor(t.Border).Disabled(live)
+	if live {
+		// 连着 Source：选中态不再是"服务端的口径"，只说明它是本屏的草稿。
+		card = card.Opacity(psAlpha50)
+	}
 	switch {
 	case selected:
 		card = card.BorderColor(t.Accent).Background(t.Accent.Alpha(psAlpha05))
@@ -127,31 +149,40 @@ func psModeCard(c *gui.Context, t *gui.Theme, mode, label, desc string) {
 			typeMicro.style(t, gui.Text(c, desc)).TextColor(t.TextMuted)
 		})
 	})
-	if card.Clicked() {
+	if card.Clicked() && !live {
 		psUI.uiMode = mode
 	}
 }
 
 // psShowACPSection 是「展示 ACP 会话」（S-personalization-06…08）：左标签 +
 // 说明，右开关。
-func psShowACPSection(c *gui.Context, t *gui.Theme) {
+func psShowACPSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Row(c).Shrink(0).Gap(psLooseGap).AlignItems(gui.Center).
 		Justify(gui.SpaceBetween).Children(func() {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(psTightGap).Children(func() {
 			typeSecondaryStrong.style(t, gui.Text(c, psCopyShowACP)).TextColor(t.Text)
 			typeMicro.style(t, gui.Text(c, psCopyShowACPDesc)).TextColor(t.TextMuted)
+			if live {
+				psNoFacts(c, t)
+				return
+			}
 		})
-		gui.Switch(c, &psUI.showACP).Size(psSwitchW, psSwitchH).Label(psCopyShowACP)
+		if !live {
+			gui.Switch(c, &psUI.showACP).Size(psSwitchW, psSwitchH).Label(psCopyShowACP)
+		}
 	})
 }
 
 // psDefaultAppSection 是「默认打开目标应用」（S-personalization-09…17）：
 // 标签 + 说明 + 宽 280 的下拉。
-func psDefaultAppSection(c *gui.Context, t *gui.Theme) {
+func psDefaultAppSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Column(c).Shrink(0).Gap(psGroupGap).Children(func() {
 		psFieldHead(c, t, psCopyDefaultAppTitle, psCopyDefaultAppDesc)
 		gui.Select(c, &psUI.defaultApp, psDefaultAppOptions).
-			Width(psSelectXs).Label(psCopyDefaultAppTitle)
+			Width(psSelectXs).Label(psCopyDefaultAppTitle).Disabled(live)
+		if live {
+			psNoFacts(c, t)
+		}
 	})
 }
 
@@ -177,7 +208,7 @@ func psAssistantModelSection(c *gui.Context, t *gui.Theme) {
 // psSubagentModelSection 是「子代理模型」（S-personalization-22…26）：
 // 标签 + 触发器。触发器按参考把图标放在取值左边、箭头放在右边；展开是本屏
 // 内的三个模式取值（模型选择对话框见文件头）。
-func psSubagentModelSection(c *gui.Context, t *gui.Theme) {
+func psSubagentModelSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Column(c).Shrink(0).Gap(psTightGap).Children(func() {
 		typeSecondaryStrong.style(t, gui.Text(c, psCopySubagentTitle)).TextColor(t.Text)
 		// 触发器与弹层都建在本列的子树里：节点在创建时就挂到当前父节点上，
@@ -185,7 +216,7 @@ func psSubagentModelSection(c *gui.Context, t *gui.Theme) {
 		sel := gui.SelectBase(c, &psUI.subagentModel)
 		trigger := sel.Trigger.Shrink(0).Height(psBtnH).Padding(controlPadV, psPadBtnX).
 			Radius(radius).AlignItems(gui.Center).Label(psCopySubagentTitle).
-			BorderWidth(strokeHairline).BorderColor(t.Border)
+			BorderWidth(strokeHairline).BorderColor(t.Border).Disabled(live)
 		if trigger.Hovered() {
 			trigger = trigger.Background(t.SurfaceHover)
 		}
@@ -197,6 +228,10 @@ func psSubagentModelSection(c *gui.Context, t *gui.Theme) {
 				psTriggerIcon(c, t, psIconChevronDown, "chevron-down")
 			})
 		})
+		if live {
+			psNoFacts(c, t)
+			return
+		}
 		sel.Popup(func(panel gui.Element) {
 			panel.Padding(space1).Radius(radius).Background(t.Surface).
 				BorderWidth(strokeHairline).BorderColor(t.Border)
@@ -240,16 +275,20 @@ func psSubagentCountSection(c *gui.Context, t *gui.Theme) {
 
 // psExecShellSection 是「命令 Shell」（S-personalization-33…50 的可见支）：
 // 说明 + 禁用的下拉 + 刷新 + 两段说明。
-func psExecShellSection(c *gui.Context, t *gui.Theme) {
+func psExecShellSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Column(c).Shrink(0).Gap(psGroupGap).Children(func() {
 		psFieldHead(c, t, psCopyShellTitle, psCopyShellDesc)
 		gui.Select(c, &psUI.shell, psShellOptions).
 			Width(psSelectXl).Label(psCopyShellTitle).Disabled(true)
 		gui.Row(c).Shrink(0).Gap(psRowGap).AlignItems(gui.Center).Children(func() {
 			// 刷新：没有 Shell 探测接口（未接动作），点击不写事实。
+			tip := psCopyRefresh
+			if live {
+				tip = notePersonalizationWrite
+			}
 			accButton(c, accButtonSpec{
 				variant: accButtonOutline, height: psBtnHSm, label: psCopyRefresh,
-				tip: psCopyRefresh,
+				tip: tip, disabled: live,
 				children: func() {
 					typeControl.style(t, gui.Text(c, psCopyRefresh)).TextColor(t.Text).
 						SingleLine()
@@ -293,7 +332,7 @@ func psOwnerGapLine(c *gui.Context, t *gui.Theme) {
 
 // psCustomInstructionsSection 是「自定义指令」（S-personalization-59…64）：
 // 标题 + 说明 + 文件行（路径 + 打开按钮）+ 一行说明。
-func psCustomInstructionsSection(c *gui.Context, t *gui.Theme) {
+func psCustomInstructionsSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Column(c).Shrink(0).Gap(psLooseGap).Children(func() {
 		gui.Column(c).Shrink(0).Gap(psTightGap).Children(func() {
 			typeSecondaryStrong.style(t, gui.Text(c, psCopyInstructionsTitle)).
@@ -312,7 +351,10 @@ func psCustomInstructionsSection(c *gui.Context, t *gui.Theme) {
 					FontSize(typeCode.sizeIn(t)).TextColor(t.Text).
 					SingleLine().Grow(1).MinWidth(0)
 				// 打开或创建文件：没有打开本地文件的接口（未接动作）。
-				gui.PrimaryButton(c, psCopyOpenAgentsFile).Label(psCopyOpenAgentsFile)
+				b := gui.PrimaryButton(c, psCopyOpenAgentsFile).Label(psCopyOpenAgentsFile)
+				if live {
+					b = b.Disabled(true).Tooltip(notePersonalizationWrite)
+				}
 			})
 			typeMicro.style(t, gui.Text(c, psCopyAgentsFileNote)).
 				TextColor(t.TextMuted).MaxWidth(psProseMax)

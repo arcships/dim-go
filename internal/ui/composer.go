@@ -67,11 +67,13 @@ var typeEmptyTitle = fontStep{size: 21, line: 28, weight: 700}
 // sampleWorkspaceTitle 是样例里的工作区名；接入 Source 后由会话标题替换。
 const sampleWorkspaceTitle = "dim-agent"
 
-// sampleWorkdir 是样例审批卡里的工作目录；接真实审批时由审批事实替换。
-const sampleWorkdir = "~/dim-agent"
-
-// sampleModel 是样例里的当前模型；接入 Source 后读设置快照。
+// sampleModel 是样例里的当前模型；连着 Source 但没有模型事实时显示 modelUnset，
+// 不拿它顶替（它只在 -demo 出现）。
 const sampleModel = "seed-2.1-pro"
+
+// modelUnset 是连着 Source 但还没有模型选择时的模型槽取值：宁可说没有，也不编
+// 一个模型名。
+const modelUnset = "未选择模型"
 
 // composer 是输入位：断线说明、审批卡、提问卡或输入卡，同一位置只放一件事。
 func (a *App) composer(c *gui.Context) {
@@ -381,15 +383,18 @@ func (a *App) openLog() {
 }
 
 // approvalCard 是审批卡：整体替换输入区，标题、命令面板与三个决定。
+//
+// 卡片只画事实里有的两样：要执行的命令原文（ApprovalSnapshot.Command）与三个决定。
+// 审批事实里没有工作目录这一项，所以不画 cwd 行；命令为空（服务端没给原文）时
+// 写清读不到，并让三个决定都不可点——替用户编一条命令再让他按「始终允许」，
+// 等于让他同意一条他没看见的命令。
 func (a *App) approvalCard(c *gui.Context) {
 	t := c.Theme()
-	cmd := a.approvalCommand
+	cmd := strings.TrimSpace(a.approvalCommand)
 	if ap, ok := a.liveApproval(); ok {
-		cmd = ap.Command
+		cmd = strings.TrimSpace(ap.Command)
 	}
-	if cmd == "" {
-		cmd = "ls -la"
-	}
+	readable := cmd != ""
 	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).MinHeight(ApprovalHeight).
 		Padding(space4).Gap(space2).Background(t.Surface).
 		Border(strokeHairline, t.Border).Radius(radiusWindowCard).Label("审批卡").Children(func() {
@@ -399,23 +404,30 @@ func (a *App) approvalCard(c *gui.Context) {
 			gui.Column(c).MinHeight(composerInnerHeight).Padding(space2, space3).Gap(space1).
 				Border(strokeHairline, t.Border).Radius(radiusCard).Children(func() {
 				typeMicro.style(t, gui.Text(c, "输入")).TextColor(t.TextMuted).Label("输入")
+				if !readable {
+					typeCode.style(t, gui.Text(c, noteApprovalCommand)).TextColor(t.TextMuted)
+					return
+				}
 				gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
 					typeCode.style(t, gui.Text(c, "$")).TextColor(t.TextMuted)
 					typeCode.style(t, gui.Text(c, cmd)).TextColor(t.Text)
 				})
-				typeCode.style(t, gui.Text(c, "cwd: "+sampleWorkdir)).TextColor(t.TextMuted)
 			})
+			if !readable {
+				typeMicro.style(t, gui.Text(c, noteApprovalBlocked)).
+					TextColor(t.TextMuted).Selectable()
+			}
 		})
 		gui.Spacer(c)
 		gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 			gui.Spacer(c)
-			if gui.Button(c, "拒绝").Label("拒绝").Clicked() {
+			if gui.Button(c, "拒绝").Label("拒绝").Disabled(!readable).Clicked() {
 				a.respondApproval("deny")
 			}
-			if gui.PrimaryButton(c, "仅这次").Label("仅这次").Clicked() {
+			if gui.PrimaryButton(c, "仅这次").Label("仅这次").Disabled(!readable).Clicked() {
 				a.respondApproval("allow")
 			}
-			if gui.Button(c, "始终允许此命令").Label("始终允许此命令").Clicked() {
+			if gui.Button(c, "始终允许此命令").Label("始终允许此命令").Disabled(!readable).Clicked() {
 				a.respondApproval("allow-always")
 			}
 		})

@@ -27,6 +27,39 @@ const (
 	notePluginWrite = "服务端没有提供插件设置写入（本版不做）"
 	// noteRuntime 用于运行环境的刷新、重试与下载安装。
 	noteRuntime = "服务端没有提供运行环境读取与安装（本版不做）"
+	// noteRuntimeRefresh 用于运行环境页首的「刷新」：读数由连接层按需重读，
+	// 界面没有手动刷新通道。
+	noteRuntimeRefresh = "本版没有手动刷新通道（读数由连接层重读）"
+	// noteRuntimeFeature 用于功能组件卡：服务端不报告组件安装状态。
+	noteRuntimeFeature = "服务端没有提供功能组件的安装状态（本版不做）"
+	// noteModalitySubmit 用于模态任务的提交表单：能力已声明，但本版没有提交通道。
+	noteModalitySubmit = "本版没有提交任务的写入通道（本版不做）"
+	// noteModalityGroups 用于模态能力分组：服务端只声明是否支持，没有分组清单。
+	noteModalityGroups = "服务端只声明了模态是否可用，没有提供分组与能力清单（本版不列）"
+	// noteGitSettings 用于设置 › Git：仓库设置的读写都没有通道。
+	noteGitSettings = "服务端没有提供仓库设置的读写（本版不做）"
+	// notePetSettings 用于设置 › 宠物：Pet 清单与选择都没有通道。
+	notePetSettings = "服务端没有提供 Pet 清单与选择（本版不做）"
+	// notePluginSettings 用于设置 › 插件设置：插件 schema 与写入都没有通道。
+	notePluginSettings = "服务端没有提供插件设置的 schema 与写入（本版不做）"
+	// noteDesktopSettings 用于设置 › 通用里由桌面自己保管的项（唤醒、性能日志、
+	// 开机自启、数据根目录、代理、浏览器数据）。
+	noteDesktopSettings = "服务端没有提供这些桌面设置的读写（本版不做）"
+	// noteStorageUnread 是存储用量还没读到时写在读数位置的说明。
+	noteStorageUnread = "服务端还没有给出存储用量（读数未到）"
+	// notePersonalizationWrite 用于设置 › 个性化里只改屏内状态的项。
+	notePersonalizationWrite = "服务端没有提供这项设置的读写（本版不做）"
+	// NoteUpdateInstall 是「重启安装」置灰时的用户可见原因：解包替换 .app 需要
+	// 宿主安装能力，本版没有接。导出是因为更新适配器与关于页共用同一句。
+	NoteUpdateInstall = "当前版本不支持自动安装（需要宿主安装能力）"
+	// noteIsolationUnread 用于设置 › 权限的进程隔离开关：读不到当前值就不摆开关。
+	noteIsolationUnread = "服务端没有提供进程隔离设置的读取（本版不做）"
+	// noteOpenWith 用于标题栏的「打开方式」：外部应用清单与打开调用都没有通道。
+	noteOpenWith = "当前版本不支持用外部应用打开"
+	// noteApprovalCommand 是审批卡没有命令原文时的说明。
+	noteApprovalCommand = "服务端没有给出要执行的命令"
+	// noteApprovalBlocked 是同一张卡片上"为什么三个决定都不能点"的一句。
+	noteApprovalBlocked = "读不到命令原文，无法判断要执行什么；先不提供决定。"
 	// noteEmailLogin 用于企业邮箱登录的提交。
 	noteEmailLogin = "服务端没有提供企业邮箱登录（本版不做）"
 	// noteThinking 用于思考强度滑杆。

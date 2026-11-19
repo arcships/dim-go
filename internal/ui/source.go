@@ -202,6 +202,9 @@ type PreferencesSnapshot struct {
 	Workspaces []string
 	// HooksProjectPath 是设置 › Hooks 里选中的项目目录。
 	HooksProjectPath string
+	// UpdateFeedURL 是设置 › 关于里填写的更新源（latest.json 地址或基址）；
+	// 空表示未配置：自动更新关闭。
+	UpdateFeedURL string
 	// NotifyTaskDone / NotifySound / NotifyNeedsResponse 是设置 › 通知的三个开关；
 	// 落盘在本地偏好里，宿主的系统通知按它们决定发不发、带不带声音。
 	NotifyTaskDone      bool
@@ -250,6 +253,54 @@ type GlobalShortcutSnapshot struct {
 	Registered bool
 	// Reason 是注册失败的原因（例如键位被别的应用占用）；空表示没有失败。
 	Reason string
+}
+
+// UpdateSnapshot 是设置 › 关于读到的更新事实（宿主本端，不来自 App Server）。
+//
+// 没有实现 UpdateFacts 的 Source 表示这次运行没有更新能力：界面按「自动更新
+// 已禁用」渲染。已实现但 FeedURL 为空时 Configured 为 false，界面显示「未配置
+// 更新源」并禁用检查入口，不假装已是最新。
+type UpdateSnapshot struct {
+	// Configured 表示已经配置更新源。
+	Configured bool
+	// FeedURL 是规范化后的 latest.json 地址；未配置时为空。
+	FeedURL string
+	// ConfigError 是配置本身的问题（例如地址不是 http/https）。
+	ConfigError string
+	// Phase 取 idle / checking / up_to_date / available / downloading /
+	// downloaded / preparing / error。
+	Phase string
+	// CurrentVersion / AvailableVersion 是当前版本与更新源给出的版本。
+	CurrentVersion   string
+	AvailableVersion string
+	// Notes 是更新源给出的发布说明（只展示，不参与判定）。
+	Notes string
+	// Percent 是下载进度（0–100）。
+	Percent int
+	// Err 是检查、下载或安装失败的原因；空表示没有失败。
+	Err string
+	// Installable 表示宿主有安装能力；为假时「重启安装」置灰并给出 Reason。
+	Installable   bool
+	InstallReason string
+}
+
+// UpdateFacts 是可选的更新事实接口。没有实现它的 Source（样例、单屏截图）
+// 仍显示「自动更新已禁用」；实现它的适配器从宿主本端读相位。
+type UpdateFacts interface {
+	Update() UpdateSnapshot
+}
+
+// UpdateIntents 是可选的更新动作接口。动作在后台执行，界面每帧从 UpdateFacts
+// 读回相位，不在点击回调里等网络。
+type UpdateIntents interface {
+	// CheckUpdate 检查更新源；失败原因写在 UpdateFacts 的 Err 里。
+	CheckUpdate(ctx context.Context) error
+	// DownloadUpdate 下载并校验产物。
+	DownloadUpdate(ctx context.Context) error
+	// InstallUpdate 走宿主安装能力；没有能力时返回原因，不写假回执。
+	InstallUpdate(ctx context.Context) error
+	// SetUpdateFeed 保存更新源地址（空串表示关闭自动更新）。
+	SetUpdateFeed(ctx context.Context, feedURL string) error
 }
 
 // Connection 是连接阶段与原因（断线要能看见原因，不是白屏）。
@@ -328,17 +379,17 @@ type QueuedMessageSnapshot struct {
 // Truncated 表示服务端截断过输出；ExitCode 只在 HasExitCode 时有意义。
 // Recorded 表示 record 模式下结果已经写入时间线；Error 是服务端给的失败原文。
 type ShellRunSnapshot struct {
-	RunID      string
-	Command    string
-	Mode       string
-	Status     string
-	Output     string
-	Truncated  bool
-	ExitCode   int
+	RunID       string
+	Command     string
+	Mode        string
+	Status      string
+	Output      string
+	Truncated   bool
+	ExitCode    int
 	HasExitCode bool
-	Error      string
-	Reason     string
-	Recorded   bool
+	Error       string
+	Reason      string
+	Recorded    bool
 }
 
 // CompactionSnapshot 是最近一次上下文压缩（与 projection.Compaction 对齐）。
@@ -596,6 +647,9 @@ type RuntimeSnapshot struct {
 
 // ModalitySnapshot 是模态能力里界面要用的几项。
 type ModalitySnapshot struct {
+	// Known 为假表示还没读到服务端的能力声明：这时不画「未声明」的横幅，
+	// 也不列任何能力。
+	Known         bool
 	Supported     bool
 	TaskSupported bool
 	TaskKnown     bool

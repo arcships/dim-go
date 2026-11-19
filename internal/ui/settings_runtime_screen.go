@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"strings"
+
 	gui "github.com/egoist/mygo/ui"
 )
 
@@ -10,57 +12,139 @@ import (
 // docs/domains/requirements/design-baseline.md（页首 17.5/12.25、错误卡内边距
 // 14、功能组件卡内边距 17.5、按钮高 28）。
 //
-// 结构：页首（标题 + 说明 + 刷新）→ 运行环境条目区（当前是错误分支）→
-// 功能组件（OfficeCLI 卡）。
+// 结构：页首（标题 + 说明 + 刷新）→ 运行环境条目区 → 功能组件（OfficeCLI 卡）。
 //
 // # 可达分支
 //
-// App Server 当前不声明 runtime.list，条目区显示错误分支；功能组件快照已到、
-// OfficeCLI 未安装。参考实现在该状态下可见 11 个元素，本文件实现这 11 个；
-// 未实现的 18 个都带前置条件：
+// 条目区两档：读过 Settings().Runtimes 就一条一张卡（名称、版本、状态、原因），
+// 没读到就一张原因卡（适配器给的 RuntimesReason）；-demo 保留参考的样例错误卡。
+// 功能组件只有 -demo 画「未安装 / 配套版本」，连着 Source 时没有安装状态事实，
+// 只写说明并禁用入口。未实现的分支都带前置条件：
 //
-//	S-runtime-04              加载中的「正在加载...」：错误分支取代了它。
-//	S-runtime-05…17           entries 非 null 时的条目卡（Node.js / Python / uv
-//	                 三条、状态图标、来源分段、启动时获取开关、安装按钮、
-//	                 版本与路径、原因、缺失条目兜底、条目内错误）：App Server
-//	                 没有 runtime.list，就没有可画的条目。
-//	S-runtime-19/20/21        功能组件的加载错误、重试与加载中：快照已到。
-//	S-runtime-26…28           下载进度、逐组件错误、已安装说明：未在下载、
-//	                 无错误、组件未安装。
+//	S-runtime-04              加载中的「正在加载...」：读态由适配器合并，界面
+//	                 不区分"还没开始读"与"正在读"。
+//	S-runtime-07/08           条目内的来源分段、启动时获取开关：服务端不报告。
+//	S-runtime-12…14           安装按钮与进度、逐条目错误：宿主安装能力未接。
+//	S-runtime-19/20/21        功能组件的加载错误、重试与加载中：服务端没有组件
+//	                 状态事实。
+//	S-runtime-26…28           下载进度、逐组件错误、已安装说明：同上。
 //
-// 刷新与「重试」都只表达入口：protocol v3 没有 runtime 读取方法，点击不写
-// 事实（未接动作）。「下载安装」属宿主能力，同样不写事实。
-func renderRuntime(c *gui.Context) {
+// 刷新与「重试」都只表达入口：本版没有手动刷新通道。「下载安装」属宿主能力，
+// 同样不写事实。
+//
+// # 事实来源
+//
+// 连着 Source 时读 Settings().Runtimes / RuntimesKnown：读过就按条目画（名称、
+// 版本、状态与原因）；没读到就把适配器给的 RuntimesReason 写出来，不写死一句
+// 「服务端未提供」——那句话在服务端确实提供了清单时就是假的。功能组件没有安装
+// 状态事实，只写一句说明并禁用入口。-demo（没有 Source）保留样例错误卡。
+func renderRuntime(c *gui.Context, a *App) {
 	t := c.Theme()
+	st, live := a.liveSettings()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(rtPageGap).Children(func() {
-				rtHeader(c, t)
-				rtErrorCard(c, t)
-				rtFeatureSection(c, t)
+				rtHeader(c, t, live)
+				if live {
+					rtLiveSection(c, t, st)
+				} else {
+					rtErrorCard(c, t)
+				}
+				rtFeatureSection(c, t, live)
 			})
 		})
 	})
 }
 
+// rtLiveSection 是连着 Source 时的条目区：读过清单就画条目，没读过就画原因。
+func rtLiveSection(c *gui.Context, t *gui.Theme, st SettingsSnapshot) {
+	if !st.RuntimesKnown {
+		reason := strings.TrimSpace(st.RuntimesReason)
+		if reason == "" {
+			reason = rtCopyUnread
+		}
+		rtReasonCard(c, t, reason)
+		return
+	}
+	if len(st.Runtimes) == 0 {
+		rtEmptyCard(c, t)
+		return
+	}
+	gui.Column(c).Shrink(0).Gap(rtCardGap).Children(func() {
+		for _, entry := range st.Runtimes {
+			rtRuntimeCard(c, t, entry)
+		}
+	})
+}
+
+// rtRuntimeCard 是一条运行环境读数：名称、版本、状态与（不可用时的）原因。
+func rtRuntimeCard(c *gui.Context, t *gui.Theme, entry RuntimeSnapshot) {
+	screenCard(c, func() {
+		gui.Column(c).Padding(rtCardPad).Gap(rtCardGap).Children(func() {
+			gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(rtRowGap).Children(func() {
+				typeH4.style(t, gui.Text(c, entry.Name)).TextColor(t.Text).
+					Role(gui.RoleHeading).Level(3).SingleLine()
+				if entry.Version != "" {
+					typeMicro.style(t, gui.Text(c, entry.Version)).TextColor(t.TextMuted).
+						SingleLine()
+				}
+				gui.Spacer(c)
+				if entry.Status != "" {
+					typeSecondary.style(t, gui.Text(c, entry.Status)).TextColor(t.TextMuted).
+						Role(gui.RoleStatus).Label(entry.Status)
+				}
+			})
+			if entry.Reason != "" {
+				typeMicro.style(t, gui.Text(c, entry.Reason)).TextColor(t.Danger).
+					Selectable()
+			}
+		})
+	})
+}
+
+// rtReasonCard 是没读到清单时的原因卡：只写适配器给的原因与「本版没有刷新通道」。
+func rtReasonCard(c *gui.Context, t *gui.Theme, reason string) {
+	card := gui.Column(c).Shrink(0).Padding(rtCardPad).Gap(rtCardGap).
+		Radius(radiusCard).Background(t.Surface).Role(gui.RoleStatus).Label(rtCopyTitle)
+	card.BorderWidth(strokeHairline).BorderColor(t.Border)
+	card.Children(func() {
+		typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.TextMuted).
+			LineHeight(mdSmLine).Selectable()
+		typeMicro.style(t, gui.Text(c, noteRuntimeRefresh)).TextColor(t.TextMuted).
+			Selectable()
+	})
+}
+
+// rtEmptyCard 是读过清单但服务端没有条目时的空态。
+func rtEmptyCard(c *gui.Context, t *gui.Theme) {
+	screenCard(c, func() {
+		typeSecondary.style(t, gui.Text(c, rtCopyEmptyLive)).TextColor(t.TextMuted).
+			Selectable()
+	})
+}
+
 // rtHeader 是页首（S-runtime-01…03）：标题 + 说明在左，刷新在右、与标题同排。
-func rtHeader(c *gui.Context, t *gui.Theme) {
+func rtHeader(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Row(c).Shrink(0).Gap(rtHeaderGap).AlignItems(gui.Start).Children(func() {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(rtTitleGap).Children(func() {
 			typeH2.style(t, gui.Text(c, rtCopyTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(1).SingleLine()
 			mdSecondary(c, t, rtCopyDesc).Selectable()
 		})
-		rtRefreshButton(c, t)
+		rtRefreshButton(c, t, live)
 	})
 }
 
-// rtRefreshButton 是页首的「刷新」：描边、高 28、图标 + 文字。运行环境读取
-// 没有协议方法，本版不做：入口置灰并写原因（DEC-13）。
-func rtRefreshButton(c *gui.Context, t *gui.Theme) {
+// rtRefreshButton 是页首的「刷新」：描边、高 28、图标 + 文字。读数由连接层按需
+// 重读，界面没有手动刷新通道：入口置灰并写原因（DEC-13）。
+func rtRefreshButton(c *gui.Context, t *gui.Theme, live bool) {
+	tip := noteRuntime
+	if live {
+		tip = noteRuntimeRefresh
+	}
 	accButton(c, accButtonSpec{
 		variant: accButtonOutline, height: rtButtonH, label: rtCopyRefresh,
-		tip: noteRuntime, paddingX: rtPadBtnX, disabled: true,
+		tip: tip, paddingX: rtPadBtnX, disabled: true,
 		children: func() {
 			gui.Row(c).Gap(rtIconGap).AlignItems(gui.Center).Children(func() {
 				accIcon(c, accIconRefresh, rtIconInline, t.Text, "refresh")
@@ -99,37 +183,48 @@ func rtErrorCard(c *gui.Context, t *gui.Theme) {
 }
 
 // rtFeatureSection 是功能组件（S-runtime-18…29 的可见支）：分组标题 + 卡。
-func rtFeatureSection(c *gui.Context, t *gui.Theme) {
+func rtFeatureSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Column(c).Shrink(0).Gap(rtSectionGap).Children(func() {
 		typeH4.style(t, gui.Text(c, rtCopyFeatures)).TextColor(t.Text).
 			Role(gui.RoleHeading).Level(2).SingleLine()
-		rtFeatureCard(c, t)
+		rtFeatureCard(c, t, live)
 	})
 }
 
 // rtFeatureCard 是功能组件卡：标题行（名称 + 右侧状态）+ 说明 + 版本 +
 // 主按钮。卡用共用卡框（卡面、1px 主题描边、卡片圆角），内边距 17.5。
-func rtFeatureCard(c *gui.Context, t *gui.Theme) {
+//
+// 连着 Source 时没有组件安装状态事实：不写「未安装」，也不写配套版本与下载大小，
+// 只说明读不到并禁用安装入口。
+func rtFeatureCard(c *gui.Context, t *gui.Theme, live bool) {
+	tip := noteRuntime
+	if live {
+		tip = noteRuntimeFeature
+	}
 	screenCard(c, func() {
 		gui.Column(c).Padding(rtFeaturePad).Children(func() {
 			gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(rtRowGap).Children(func() {
 				typeH4.style(t, gui.Text(c, rtCopyOfficeCLI)).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(3).SingleLine()
 				gui.Spacer(c)
-				typeSecondary.style(t, gui.Text(c, rtCopyNotInstalled)).
-					TextColor(t.TextMuted).LineHeight(mdSmLine).
-					Role(gui.RoleStatus).Label(rtCopyNotInstalled)
+				if !live {
+					typeSecondary.style(t, gui.Text(c, rtCopyNotInstalled)).
+						TextColor(t.TextMuted).LineHeight(mdSmLine).
+						Role(gui.RoleStatus).Label(rtCopyNotInstalled)
+				}
 			})
 			typeSecondary.style(t, gui.Text(c, rtCopyOfficeCLIDesc)).
 				TextColor(t.TextMuted).LineHeight(mdSmLine).Selectable().
 				Margin(rtTextGap, 0, 0, 0)
-			typeMicro.style(t, gui.Text(c, rtCopyOfficeCLIVersion)).
-				TextColor(t.TextMuted).SingleLine().Margin(rtTextGap, 0, 0, 0)
+			if !live {
+				typeMicro.style(t, gui.Text(c, rtCopyOfficeCLIVersion)).
+					TextColor(t.TextMuted).SingleLine().Margin(rtTextGap, 0, 0, 0)
+			}
 			gui.Row(c).Shrink(0).Margin(rtButtonGap, 0, 0, 0).Children(func() {
 				gui.PrimaryButton(c, rtCopyInstall).Label(rtCopyInstall).
-					Tooltip(noteRuntime).Disabled(true)
+					Tooltip(tip).Disabled(true)
 			})
-			typeMicro.style(t, gui.Text(c, noteRuntime)).TextColor(t.TextMuted).
+			typeMicro.style(t, gui.Text(c, tip)).TextColor(t.TextMuted).
 				Selectable().Margin(rtTextGap, 0, 0, 0)
 		})
 	})
@@ -165,6 +260,8 @@ const (
 	rtCopyRefresh          = "刷新"
 	rtCopyError            = "服务端未提供该能力：The App Server does not advertise runtime.list; update the bundled runtime."
 	rtCopyRetry            = "重试"
+	rtCopyUnread           = "服务端还没有给出运行环境清单（读数未到）"
+	rtCopyEmptyLive        = "服务端没有报告任何运行环境条目。"
 	rtCopyFeatures         = "功能组件"
 	rtCopyOfficeCLI        = "OfficeCLI"
 	rtCopyOfficeCLIDesc    = "创建、读取和编辑 Word、Excel、PowerPoint 文件。"

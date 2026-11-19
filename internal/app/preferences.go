@@ -26,6 +26,9 @@ type Preferences struct {
 	// HooksProjectPath 是设置 › Hooks 里选中的项目目录（本端登记，用于展示与
 	// 后续按目录定位项目钩子）；空表示没有。
 	HooksProjectPath string `json:"hooksProjectPath,omitempty"`
+	// UpdateFeedURL 是设置 › 关于里填写的更新源（latest.json 的地址或基址）。
+	// 空表示未配置：自动更新关闭，界面显示「未配置更新源」，不假装已是最新。
+	UpdateFeedURL string `json:"updateFeedURL,omitempty"`
 	// GlobalShortcutOff 关闭全局唤起快捷键。缺省 false（开启）：旧偏好文件里
 	// 没有这一项时按开启处理。
 	GlobalShortcutOff bool `json:"globalShortcutOff,omitempty"`
@@ -56,20 +59,20 @@ type Preferences struct {
 
 // ViewPreferences 是视图状态在偏好文件里的形状。
 type ViewPreferences struct {
-	SidebarCollapsed    bool     `json:"sidebarCollapsed,omitempty"`
-	SidebarFlat         bool     `json:"sidebarFlat,omitempty"`
-	SidebarByCreated    bool     `json:"sidebarByCreated,omitempty"`
+	SidebarCollapsed    bool              `json:"sidebarCollapsed,omitempty"`
+	SidebarFlat         bool              `json:"sidebarFlat,omitempty"`
+	SidebarByCreated    bool              `json:"sidebarByCreated,omitempty"`
 	CollapsedGroups     []string          `json:"collapsedGroups,omitempty"`
 	PinnedGroups        []string          `json:"pinnedGroups,omitempty"`
 	WorkspaceNames      map[string]string `json:"workspaceNames,omitempty"`
-	RightOpen           bool     `json:"rightOpen,omitempty"`
-	RightTab            int      `json:"rightTab,omitempty"`
-	RightTabs           []int    `json:"rightTabs,omitempty"`
-	RightExpanded       bool     `json:"rightExpanded,omitempty"`
-	RightWidth          int      `json:"rightWidth,omitempty"`
-	FilesFilter         string   `json:"filesFilter,omitempty"`
-	ChangesScope        int      `json:"changesScope,omitempty"`
-	ChangesGroupsClosed []string `json:"changesGroupsClosed,omitempty"`
+	RightOpen           bool              `json:"rightOpen,omitempty"`
+	RightTab            int               `json:"rightTab,omitempty"`
+	RightTabs           []int             `json:"rightTabs,omitempty"`
+	RightExpanded       bool              `json:"rightExpanded,omitempty"`
+	RightWidth          int               `json:"rightWidth,omitempty"`
+	FilesFilter         string            `json:"filesFilter,omitempty"`
+	ChangesScope        int               `json:"changesScope,omitempty"`
+	ChangesGroupsClosed []string          `json:"changesGroupsClosed,omitempty"`
 }
 
 // WindowPreferences 是窗口几何。
@@ -159,6 +162,7 @@ func normalizePreferences(prefs Preferences) Preferences {
 		prefs.TimeZone = def.TimeZone
 	}
 	prefs.HooksProjectPath = strings.TrimSpace(prefs.HooksProjectPath)
+	prefs.UpdateFeedURL = strings.TrimSpace(prefs.UpdateFeedURL)
 	prefs.GlobalShortcutAccelerator = strings.TrimSpace(prefs.GlobalShortcutAccelerator)
 	prefs.Workspaces = normalizeWorkspaceList(prefs.Workspaces)
 	prefs.Window = normalizeWindowBounds(prefs.Window)
