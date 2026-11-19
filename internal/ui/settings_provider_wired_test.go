@@ -262,3 +262,24 @@ func TestProviderFormEditPrefilled(t *testing.T) {
 		t.Fatal("保存成功后表单没有关闭")
 	}
 }
+
+// TestProviderFormSelectsCreatedProvider 断言新增成功后焦点落在新供应商上：
+// 新建回执不带标识，待选的名称在下一帧的读数里解析成那一项。
+func TestProviderFormSelectsCreatedProvider(t *testing.T) {
+	resetSettingsScreenState()
+	src := providerRecordsSource()
+	app := NewApp(Options{State: StateDefault, Source: src})
+	// 服务端新建后清单里出现这一项（与 CreateProvider 的回执后重读同构）。
+	src.settings.ProviderRecords = append(src.settings.ProviderRecords, ProviderRecordSnapshot{
+		ID: "p2", Name: "Acme 2", BaseURL: "https://acme2.test/v1", Enabled: true, Version: 1,
+	})
+	configScreen.selectAfterCreate = "Acme 2"
+	tt := openSettingsSection(t, app, secProviders)
+
+	if got := configScreen.selected; got != "p2" {
+		t.Fatalf("新建后选中的是 %q，想要 p2", got)
+	}
+	if _, ok := tt.Find("https://acme2.test/v1"); !ok {
+		t.Fatal("详情没有切到新建的供应商")
+	}
+}

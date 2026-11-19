@@ -155,7 +155,7 @@ var variantNames = map[string]Variant{
 	"term": VariantTerm, "term-running": VariantTermRunning,
 	"term-exited": VariantTermExited, "settings": VariantSettings,
 	"settings-providers": VariantSettingsProviders,
-	"chat-menu": VariantChatMenu, "open-with": VariantOpenWith,
+	"chat-menu":          VariantChatMenu, "open-with": VariantOpenWith,
 	"model": VariantModel, "effort": VariantEffort,
 	"skills": VariantSkills, "mode": VariantMode,
 	"permission": VariantPermission, "workspace": VariantWorkspace,

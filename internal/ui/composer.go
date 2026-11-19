@@ -35,8 +35,10 @@ const (
 	composerToolSize = 25
 	// composerInnerHeight 是审批卡里命令面板的最小高。
 	composerInnerHeight = 80
-	// brandMarkSize 是空态品牌标记的边长（参考实测墨迹 68×49，方块 68）。
-	brandMarkSize = 68
+	// brandMarkW / brandMarkH 是空态品牌标记的墨迹尺寸（参考实测 68×49，
+	// 与标记自身 34:24.5 的比例一致）。
+	brandMarkW = 68
+	brandMarkH = 49
 	// composerMenuWidth 是标题栏 ⋯ 菜单的最小宽（参考 159；中文括注留余量）。
 	composerMenuWidth = 190
 	// composerControlTriggerHeight 是控制行按钮的高度（参考 21）。
@@ -112,7 +114,7 @@ func (a *App) emptyThread(c *gui.Context) {
 		gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).Gap(space8).
 			Children(func() {
 				gui.Column(c).AlignItems(gui.Center).Gap(space2).Children(func() {
-					brandMark(c, brandMarkSize, t)
+					brandMark(c, brandMarkW, brandMarkH, t)
 					typeEmptyTitle.style(t, gui.Text(c, "开始构建")).
 						FontWeight(700).Label("开始构建")
 				})
@@ -164,12 +166,12 @@ func (a *App) firstRunGuide(c *gui.Context) {
 	})
 }
 
-// brandMark 是空态的品牌图形：68×68（墨迹 68×49），取品牌亮绿；只画形状，
-// 读屏名给产品名。
-func brandMark(c *gui.Context, size float32, t *gui.Theme) {
-	box := gui.Box(c).Width(size).Height(size).Shrink(0).Label("品牌：DimAgent")
+// brandMark 是空态的品牌图形：墨迹 68×49（标记自身的比例），取品牌亮绿；
+// 只画形状，读屏名给产品名。
+func brandMark(c *gui.Context, width, height float32, t *gui.Theme) {
+	box := gui.Box(c).Width(width).Height(height).Shrink(0).Label("品牌：DimAgent")
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(iconBrand, r, colorBrandEmpty)
+		p.Icon(iconBrandWide, r, colorBrandEmpty)
 	})
 }
 

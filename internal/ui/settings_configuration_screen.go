@@ -602,7 +602,9 @@ func (a *App) configProviderRow(c *gui.Context, data configView, provider config
 		row = row.Background(t.SurfaceHover)
 	}
 	if row.Clicked() {
+		// 换供应商时收起表单：表单的草稿属于上一项，留着会让人以为在改新的这一项。
 		configScreen.selected = configKey(provider)
+		configFormClose()
 	}
 	style := configRowStyle
 	if selected {

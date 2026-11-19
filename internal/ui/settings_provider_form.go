@@ -265,7 +265,7 @@ func configFormField(c *gui.Context, value *string, label, placeholder, errText 
 		if errText != "" {
 			// 错误文案就是屏幕上要读的那一行：不另给它 Label，否则 Label 会顶掉
 			// 显示的文字（Text 的 Label 就是它的内容）。
-			configMicroStyle.style(t, gui.Text(c, errText)).TextColor(t.Danger).
+			configRowStyle.style(t, gui.Text(c, errText)).TextColor(t.Danger).
 				Role(gui.RoleAlert).MaxLines(2)
 		}
 	})
@@ -299,7 +299,7 @@ func (a *App) configFormModels(c *gui.Context, data configView, form *configForm
 			configFormModelRow(c, form, index, !form.editing)
 		}
 		if form.modelsErr != "" {
-			configMicroStyle.style(t, gui.Text(c, form.modelsErr)).TextColor(t.Danger).
+			configRowStyle.style(t, gui.Text(c, form.modelsErr)).TextColor(t.Danger).
 				Role(gui.RoleAlert).MaxLines(2)
 		}
 	})
@@ -332,7 +332,7 @@ func configFormModelRow(c *gui.Context, form *configForm, index int, editable bo
 func (a *App) configFormFooter(c *gui.Context, data configView, form *configForm) {
 	t := c.Theme()
 	if form.formErr != "" {
-		configMicroStyle.style(t, gui.Text(c, form.formErr)).TextColor(t.Danger).
+		configRowStyle.style(t, gui.Text(c, form.formErr)).TextColor(t.Danger).
 			Role(gui.RoleAlert).MaxLines(3)
 	}
 	gui.Row(c).Shrink(0).Justify(gui.End).Gap(configGapRow).Children(func() {

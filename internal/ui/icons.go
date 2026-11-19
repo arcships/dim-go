@@ -298,18 +298,30 @@ var (
 	// ——一圈缺口环（缺口在左下）加一根穿过缺口的竖杆，观感介于「d」与「@」之间。
 	// 它不是 24 网格的线性图标（环比图标粗、标记本身是宽的），故单独给 viewBox
 	// 与两条各自的描边宽度；比例按 empty.png 与 账户-top.png 的标记实测（墨迹
-	// 宽高比 34:24.5，环宽约为标记宽的 0.18，竖杆约为 0.13）。
-	iconBrand = mustBrandSVG(
-		`<g transform="rotate(5 17 13.4)">` +
-			`<path stroke-width="6.2" d="M11.72 21.89A13.6 10.6 0 1 1 23.64 20.45"/>` +
-			`</g>` +
-			`<path stroke-width="4.4" d="M19.4 13.2V22"/>`)
+	// 宽高比 34:24.5，环宽约为标记宽的 0.18，竖杆约为 0.13）。viewBox 收紧到
+	// 墨迹的外框，图标本身等比缩放。
+	iconBrand = mustBrandSVG(brandMarkArt, false)
+	// iconBrandWide 是同一标记的「铺满」版（preserveAspectRatio=none）：空态的
+	// 标记按参考实测的墨迹 68×49 画（比例 1.388，比标记自身的 1.327 略宽），
+	// 等比缩放会窄一截，所以空态用这一版把墨迹拉满 68×49。
+	iconBrandWide = mustBrandSVG(brandMarkArt, true)
 )
 
-// mustBrandSVG 解析品牌标记：viewBox 取标记自身的比例（34×24.5），描边宽度写在
-// 路径上——不套图标那套 1.5 描边。
-func mustBrandSVG(inner string) *gui.SVG {
-	const head = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 34 24.5" fill="none" ` +
+// brandMarkArt 是品牌标记的路径（两个版本共用一套形状）。
+const brandMarkArt = `<g transform="rotate(5 17 13.4)">` +
+	`<path stroke-width="6.2" d="M11.72 21.89A13.6 10.6 0 1 1 23.64 20.45"/>` +
+	`</g>` +
+	`<path stroke-width="4.4" d="M19.4 13.2V22"/>`
+
+// mustBrandSVG 解析品牌标记：viewBox 取墨迹的外框（32.5×24.5），描边宽度写在
+// 路径上——不套图标那套 1.5 描边。stretch 为真时按目标框铺满（不留等比白边）。
+func mustBrandSVG(inner string, stretch bool) *gui.SVG {
+	fit := `xMidYMid meet`
+	if stretch {
+		fit = `none`
+	}
+	head := `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0.75 0 32.5 24.5" fill="none" ` +
+		`preserveAspectRatio="` + fit + `" ` +
 		`stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">`
 	return gui.MustParseSVG([]byte(head + inner + `</svg>`))
 }
