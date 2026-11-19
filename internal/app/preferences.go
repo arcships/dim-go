@@ -49,6 +49,27 @@ type Preferences struct {
 	// Windows 是每个窗口的几何，按窗口索引存（0 是主窗口）。多窗口各记各的位置
 	// 与尺寸；关掉的窗口留下的槽位由下一个新窗口沿用。
 	Windows []WindowPreferences `json:"windows,omitempty"`
+	// View 是跨重启记住的视图状态（左栏收起、视图口径、分组折叠、右栏开合与
+	// 标签页、文件页筛选、改动页范围）。它不是服务端事实，也不含任何内容。
+	View ViewPreferences `json:"view"`
+}
+
+// ViewPreferences 是视图状态在偏好文件里的形状。
+type ViewPreferences struct {
+	SidebarCollapsed    bool     `json:"sidebarCollapsed,omitempty"`
+	SidebarFlat         bool     `json:"sidebarFlat,omitempty"`
+	SidebarByCreated    bool     `json:"sidebarByCreated,omitempty"`
+	CollapsedGroups     []string          `json:"collapsedGroups,omitempty"`
+	PinnedGroups        []string          `json:"pinnedGroups,omitempty"`
+	WorkspaceNames      map[string]string `json:"workspaceNames,omitempty"`
+	RightOpen           bool     `json:"rightOpen,omitempty"`
+	RightTab            int      `json:"rightTab,omitempty"`
+	RightTabs           []int    `json:"rightTabs,omitempty"`
+	RightExpanded       bool     `json:"rightExpanded,omitempty"`
+	RightWidth          int      `json:"rightWidth,omitempty"`
+	FilesFilter         string   `json:"filesFilter,omitempty"`
+	ChangesScope        int      `json:"changesScope,omitempty"`
+	ChangesGroupsClosed []string `json:"changesGroupsClosed,omitempty"`
 }
 
 // WindowPreferences 是窗口几何。
@@ -144,7 +165,40 @@ func normalizePreferences(prefs Preferences) Preferences {
 	for i := range prefs.Windows {
 		prefs.Windows[i] = normalizeWindowBounds(prefs.Windows[i])
 	}
+	prefs.View = normalizeViewPreferences(prefs.View)
 	return prefs
+}
+
+// normalizeViewPreferences 去掉视图状态里没有意义的取值：负的标签与宽度按 0，
+// 重复的分组标识只留一份，保持原顺序。
+func normalizeViewPreferences(view ViewPreferences) ViewPreferences {
+	if view.RightTab < 0 {
+		view.RightTab = 0
+	}
+	if view.RightWidth < 0 {
+		view.RightWidth = 0
+	}
+	view.CollapsedGroups = normalizeWorkspaceList(view.CollapsedGroups)
+	view.PinnedGroups = normalizeWorkspaceList(view.PinnedGroups)
+	view.ChangesGroupsClosed = normalizeWorkspaceList(view.ChangesGroupsClosed)
+	if len(view.WorkspaceNames) == 0 {
+		view.WorkspaceNames = nil
+	}
+	seen := make(map[int]bool, len(view.RightTabs))
+	tabs := make([]int, 0, len(view.RightTabs))
+	for _, tab := range view.RightTabs {
+		if tab < 0 || seen[tab] {
+			continue
+		}
+		seen[tab] = true
+		tabs = append(tabs, tab)
+	}
+	if len(tabs) == 0 {
+		view.RightTabs = nil
+	} else {
+		view.RightTabs = tabs
+	}
+	return view
 }
 
 // normalizeWindowBounds 把负的宽高按 0（用默认值）处理。
@@ -211,6 +265,16 @@ func (a *App) Preferences() Preferences {
 	prefs := a.prefs
 	prefs.Workspaces = append([]string(nil), a.prefs.Workspaces...)
 	prefs.Windows = append([]WindowPreferences(nil), a.prefs.Windows...)
+	prefs.View.CollapsedGroups = append([]string(nil), a.prefs.View.CollapsedGroups...)
+	prefs.View.PinnedGroups = append([]string(nil), a.prefs.View.PinnedGroups...)
+	if a.prefs.View.WorkspaceNames != nil {
+		prefs.View.WorkspaceNames = make(map[string]string, len(a.prefs.View.WorkspaceNames))
+		for id, name := range a.prefs.View.WorkspaceNames {
+			prefs.View.WorkspaceNames[id] = name
+		}
+	}
+	prefs.View.RightTabs = append([]int(nil), a.prefs.View.RightTabs...)
+	prefs.View.ChangesGroupsClosed = append([]string(nil), a.prefs.View.ChangesGroupsClosed...)
 	return prefs
 }
 

@@ -202,6 +202,35 @@ type PreferencesSnapshot struct {
 	NotifyTaskDone      bool
 	NotifySound         bool
 	NotifyNeedsResponse bool
+	// View 是跨重启要记住的视图状态：左栏收起、视图口径、分组折叠、右栏开合与
+	// 标签页、两层筛选。它不是事实，重启后按上次的样子渲染。
+	View ViewPreferencesSnapshot
+}
+
+// ViewPreferencesSnapshot 是一组可丢但要跨重启记住的视图选择。
+type ViewPreferencesSnapshot struct {
+	// SidebarCollapsed 是左栏收起态（LB-10 / TB-13）。
+	SidebarCollapsed bool
+	// SidebarFlat / SidebarByCreated 是左栏视图口径（LB-28–LB-33）。
+	SidebarFlat      bool
+	SidebarByCreated bool
+	// CollapsedGroups 是收起的工作区分组标识（LB-34）；PinnedGroups 是置顶的
+	// 工作区分组（LB-44）；WorkspaceNames 是改过的分组显示名（LB-48）。
+	CollapsedGroups []string
+	PinnedGroups    []string
+	WorkspaceNames  map[string]string
+	// RightOpen / RightTab / RightTabs 是右栏的开合、当前页与已打开的标签页。
+	RightOpen bool
+	RightTab  int
+	RightTabs []int
+	// RightExpanded / RightWidth 是「展开面板」与拖出来的宽度。
+	RightExpanded bool
+	RightWidth    int
+	// FilesFilter 是文件页的筛选词（F-01）；ChangesScope 是改动页的范围（D-01）；
+	// ChangesGroupsClosed 是改动页收起的分组（D-33）。
+	FilesFilter         string
+	ChangesScope        int
+	ChangesGroupsClosed []string
 }
 
 // GlobalShortcutSnapshot 是全局唤起快捷键在设置里的状态（本端事实）。
@@ -268,6 +297,53 @@ type SessionSnapshot struct {
 	// Tasks 是未结束的后台任务。
 	Tasks    []TaskSnapshot
 	OpenedAt time.Time
+	// Queued 是已提交、服务端还没消费的输入（排队消息面板 IN-35–IN-42）：
+	// 标识、投递方式、正文与「已应用未消费」。只读事实，撤回与编辑都不在这里。
+	Queued []QueuedMessageSnapshot
+	// ShellRun 是最近一次会话内命令运行；nil 表示没有运行记录（IN-45–IN-52）。
+	ShellRun *ShellRunSnapshot
+	// Compaction 是最近一次上下文压缩的事实（TL-68 / TL-69）；nil 表示没有。
+	Compaction *CompactionSnapshot
+}
+
+// QueuedMessageSnapshot 是一条排队输入（与 projection.PendingInput 对齐）。
+//
+// Mode 取 queue / steer / append：steer 表示要插进当前轮次，界面上写「转向」；
+// Applied 为真表示已经应用到上下文但还没被消费，因而不可撤回。
+type QueuedMessageSnapshot struct {
+	ID      string
+	Mode    string
+	Text    string
+	Applied bool
+}
+
+// ShellRunSnapshot 是一次会话内命令运行的读数（shell.run 回执的字段）。
+//
+// Status 取 running / completed / failed / stopped。Output 是回执里的输出原文，
+// Truncated 表示服务端截断过输出；ExitCode 只在 HasExitCode 时有意义。
+// Recorded 表示 record 模式下结果已经写入时间线；Error 是服务端给的失败原文。
+type ShellRunSnapshot struct {
+	RunID      string
+	Command    string
+	Mode       string
+	Status     string
+	Output     string
+	Truncated  bool
+	ExitCode   int
+	HasExitCode bool
+	Error      string
+	Reason     string
+	Recorded   bool
+}
+
+// CompactionSnapshot 是最近一次上下文压缩（与 projection.Compaction 对齐）。
+//
+// Status 取服务端给的词：running / completed / failed / skipped / cancelled。
+// Summary 是压缩后的摘要正文；取消或失败时可能为空。
+type CompactionSnapshot struct {
+	Status   string
+	Summary  string
+	Strategy string
 }
 
 // TaskSnapshot 是一条后台任务。

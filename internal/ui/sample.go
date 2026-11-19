@@ -330,3 +330,10 @@ const richReply = "## 先看结论\n\n" +
 	"| 未运行 | 直接发送 |\n" +
 	"| 运行中 | 先入队 |\n\n" +
 	"详见 [U3 的发送与排队](U3-interaction.md)。"
+
+// SampleSessionNames 是样例模式的会话名（与左栏行同序）。入口在样例模式下用
+// 它核对深链与开窗的会话名：样例没有真实会话标识，名字就是它的标识。
+func SampleSessionNames(s State) []string {
+	names, _ := sessionSamples(s)
+	return names
+}

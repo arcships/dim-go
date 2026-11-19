@@ -48,9 +48,15 @@ func TestViewShortcutsToggleSidebarAndOpenSettings(t *testing.T) {
 	}
 }
 
+// stubBaseIntents 接住视图状态落盘（视图变化会写一次偏好）；其余方法走嵌入的
+// nil 接口，被调用即 panic，说明测试点到了一个没接的动作。
+type stubBaseIntents struct{ Intents }
+
+func (stubBaseIntents) SetPreferences(context.Context, PreferencesSnapshot) error { return nil }
+
 // stubAccountIntents 只接退出登录：其余方法走嵌入的 nil 接口（被调用即 panic）。
 type stubAccountIntents struct {
-	Intents
+	stubBaseIntents
 	loggedOut chan struct{}
 }
 
@@ -153,7 +159,7 @@ func TestSidebarSkillsEntryOpensPluginSettings(t *testing.T) {
 
 // stubCreateIntents 只接新建会话：记下 cwd。
 type stubCreateIntents struct {
-	Intents
+	stubBaseIntents
 	created chan string
 }
 

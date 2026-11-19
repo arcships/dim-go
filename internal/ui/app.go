@@ -3,6 +3,8 @@ package ui
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -206,6 +208,10 @@ type Options struct {
 	// OnFrame 在每帧视图构建后调用（渲染线程），供宿主外壳（托盘与系统通知）
 	// 读取当前会话状态并刷新菜单；它只读快照，不改视图。可为 nil。
 	OnFrame func(HostSnapshot)
+	// OpenInNewWindow 由入口实现「在新窗口中打开」：入参是会话标识，返回给用户
+	// 看的回执（新开了窗口，还是切到了已打开该会话的窗口）。为空表示这次运行
+	// 没有窗口管理（界面测试 / 单屏截图），该项给出可读原因、不开窗。
+	OpenInNewWindow func(sessionID string) (string, error)
 }
 
 // HostSnapshot 是宿主外壳每一帧要读的会话事实：托盘菜单、图标状态与系统通知
@@ -313,6 +319,9 @@ type App struct {
 	source Source
 	// onFrame 在每帧构建后收到宿主外壳要的会话快照（托盘与通知），可为 nil。
 	onFrame func(HostSnapshot)
+	// openInNewWindow 由入口实开第二个窗口（「在新窗口中打开」）；为空时该项
+	// 只给可读原因，不冒充已经开出窗口。
+	openInNewWindow func(sessionID string) (string, error)
 	// 设置 › 通知的三个开关（本地偏好，接上 Source 时读写事实）。
 	notifyTaskDone      bool
 	notifySound         bool
@@ -453,6 +462,7 @@ func NewApp(o Options) *App {
 		intents:         o.Intents,
 		changed:         o.Changed,
 		onFrame:         o.OnFrame,
+		openInNewWindow: o.OpenInNewWindow,
 		state:           o.State,
 		variant:         o.Variant,
 		onState:         o.StateChanged,
@@ -804,6 +814,9 @@ func (a *App) resetWiredViewState() {
 		a.notifyTaskDone = prefs.NotifyTaskDone
 		a.notifySound = prefs.NotifySound
 		a.notifyNeedsResponse = prefs.NotifyNeedsResponse
+		// 视图状态按上次的样子铺回：左栏收起、视图口径、分组折叠、右栏开合与
+		// 标签页、两层筛选。它是本地偏好，不是事实。
+		a.applyViewPreferences(prefs.View)
 		a.lastPrefs = prefs
 	}
 	a.applyCommandPaletteVariant()
@@ -840,6 +853,9 @@ func (a *App) View(c *gui.Context) {
 	}
 	a.commandPalette(c)
 	a.hostFrame()
+	// 视图状态（左栏收起、右栏标签页、分组折叠、筛选词）变了就落盘一次；没变
+	// 不写。放在每帧末尾，省得每个改动点各记一次。
+	a.persistViewIfChanged()
 }
 
 // hostFrame 把这一帧要读的会话事实交给宿主外壳（托盘与系统通知）。只在接上
@@ -945,6 +961,35 @@ func (a *App) FocusComposer() {
 	a.focusComposer.Store(true)
 }
 
+// ShowSettingsSection 让本窗口进设置屏并停在某一节（深链
+// dimagent://settings/<分节>）。分节标识认不出时返回可读原因，不改屏。
+func (a *App) ShowSettingsSection(slug string) error {
+	section, ok := settingsSectionBySlug(slug)
+	if !ok {
+		return fmt.Errorf("未知的设置分节 %q", slug)
+	}
+	a.screen = ScreenSettings
+	a.settingsSection = section.id
+	return nil
+}
+
+// ShowNotice 在标题栏的回执行里显示一行说明。多窗口与深链的失败原因落在
+// 这里：看得见、不弹窗，也不往日志区堆。
+func (a *App) ShowNotice(text string) {
+	a.headerNote = text
+}
+
+// HasSession 报告目录里是否有这个会话：开新窗口与深链跳转前先认一下，
+// 免得为一个不存在的会话开出一个空窗口。样例模式按样例会话名判断。
+func (a *App) HasSession(id string) bool {
+	for _, name := range a.sessionNames() {
+		if name == id {
+			return true
+		}
+	}
+	return false
+}
+
 // globalShortcut 读全局唤起的状态：接上 Source 时读注册状态；样例（-demo）用
 // 本地的开关与键位（可丢的界面状态，不注册）。
 func (a *App) globalShortcut() GlobalShortcutSnapshot {
@@ -988,6 +1033,128 @@ func (a *App) persistViewState() {
 	a.persistPreferences()
 }
 
+// persistViewIfChanged 在每帧末尾比一次视图状态：变了才落盘，没变不写。它不读
+// 事实，只比本地视图选择。
+func (a *App) persistViewIfChanged() {
+	if a.intents == nil {
+		return
+	}
+	if viewPreferencesEqual(a.viewPreferences(), a.lastPrefs.View) {
+		return
+	}
+	a.persistPreferences()
+}
+
+// viewPreferences 把当前视图状态收成一份快照：只收有明确语义的几项，排序稳定
+// （折叠的分组标识按字典序），避免同一状态写出不同的偏好文件。
+func (a *App) viewPreferences() ViewPreferencesSnapshot {
+	view := ViewPreferencesSnapshot{
+		SidebarCollapsed: a.sidebarCollapsed,
+		SidebarFlat:      a.sidebarView.flat,
+		SidebarByCreated: a.sidebarView.byCreated,
+		RightOpen:        a.rightOpen,
+		RightTab:         a.rightTab,
+		RightTabs:        append([]int(nil), a.right.tabs...),
+		RightExpanded:    a.right.expanded,
+		RightWidth:       int(a.right.width),
+		FilesFilter:      a.right.filter,
+		ChangesScope:     a.right.scope,
+	}
+	for id, collapsed := range a.sidebarView.collapsed {
+		if collapsed {
+			view.CollapsedGroups = append(view.CollapsedGroups, id)
+		}
+	}
+	sort.Strings(view.CollapsedGroups)
+	for id, pinned := range a.sidebarView.pinnedGroups {
+		if pinned {
+			view.PinnedGroups = append(view.PinnedGroups, id)
+		}
+	}
+	sort.Strings(view.PinnedGroups)
+	if len(a.sidebarView.groupNames) > 0 {
+		view.WorkspaceNames = make(map[string]string, len(a.sidebarView.groupNames))
+		for id, name := range a.sidebarView.groupNames {
+			view.WorkspaceNames[id] = name
+		}
+	}
+	for key, closed := range a.right.groupsClosed {
+		if closed {
+			view.ChangesGroupsClosed = append(view.ChangesGroupsClosed, key)
+		}
+	}
+	sort.Strings(view.ChangesGroupsClosed)
+	return view
+}
+
+// viewPreferencesEqual 比两份视图状态：切片逐项比。
+func viewPreferencesEqual(a, b ViewPreferencesSnapshot) bool {
+	if a.SidebarCollapsed != b.SidebarCollapsed || a.SidebarFlat != b.SidebarFlat ||
+		a.SidebarByCreated != b.SidebarByCreated || a.RightOpen != b.RightOpen ||
+		a.RightTab != b.RightTab || a.RightExpanded != b.RightExpanded ||
+		a.RightWidth != b.RightWidth || a.FilesFilter != b.FilesFilter ||
+		a.ChangesScope != b.ChangesScope {
+		return false
+	}
+	return slices.Equal(a.CollapsedGroups, b.CollapsedGroups) &&
+		slices.Equal(a.PinnedGroups, b.PinnedGroups) &&
+		slices.Equal(a.RightTabs, b.RightTabs) &&
+		slices.Equal(a.ChangesGroupsClosed, b.ChangesGroupsClosed) &&
+		maps.Equal(a.WorkspaceNames, b.WorkspaceNames)
+}
+
+// applyViewPreferences 在启动时把上次的视图状态铺回视图：左栏收起、视图口径与
+// 折叠、右栏开合与标签页、两层筛选。它只改可丢的界面状态，不碰任何事实。
+func (a *App) applyViewPreferences(view ViewPreferencesSnapshot) {
+	a.sidebarCollapsed = view.SidebarCollapsed
+	a.sidebarView.flat = view.SidebarFlat
+	a.sidebarView.byCreated = view.SidebarByCreated
+	if view.CollapsedGroups != nil {
+		a.sidebarView.collapsed = make(map[string]bool, len(view.CollapsedGroups))
+		for _, id := range view.CollapsedGroups {
+			a.sidebarView.collapsed[id] = true
+		}
+	}
+	if view.PinnedGroups != nil {
+		a.sidebarView.pinnedGroups = make(map[string]bool, len(view.PinnedGroups))
+		for _, id := range view.PinnedGroups {
+			a.sidebarView.pinnedGroups[id] = true
+		}
+	}
+	if len(view.WorkspaceNames) > 0 {
+		a.sidebarView.groupNames = make(map[string]string, len(view.WorkspaceNames))
+		for id, name := range view.WorkspaceNames {
+			a.sidebarView.groupNames[id] = name
+		}
+	}
+	a.rightOpen = view.RightOpen
+	if view.RightTab >= 0 && view.RightTab < tabCount {
+		a.rightTab = view.RightTab
+	}
+	tabs := make([]int, 0, len(view.RightTabs))
+	for _, tab := range view.RightTabs {
+		if tab >= 0 && tab < tabCount && !rpHasTab(tabs, tab) {
+			tabs = append(tabs, tab)
+		}
+	}
+	if len(tabs) > 0 {
+		if !rpHasTab(tabs, a.rightTab) {
+			tabs = append(tabs, a.rightTab)
+		}
+		a.right.tabs = tabs
+	}
+	a.right.expanded = view.RightExpanded
+	a.right.width = float32(view.RightWidth)
+	a.right.filter = view.FilesFilter
+	a.right.scope = view.ChangesScope
+	if view.ChangesGroupsClosed != nil {
+		a.right.groupsClosed = make(map[string]bool, len(view.ChangesGroupsClosed))
+		for _, key := range view.ChangesGroupsClosed {
+			a.right.groupsClosed[key] = true
+		}
+	}
+}
+
 // persistPreferences 在主题/动效/时区/侧栏宽度/工作区目录变化后落盘；只在接上
 // Intents 时。
 func (a *App) persistPreferences() {
@@ -1002,6 +1169,7 @@ func (a *App) persistPreferences() {
 		NotifyTaskDone:      a.notifyTaskDone,
 		NotifySound:         a.notifySound,
 		NotifyNeedsResponse: a.notifyNeedsResponse,
+		View:                a.viewPreferences(),
 	}
 	if samePreferences(prefs, a.lastPrefs) {
 		return
@@ -1018,6 +1186,9 @@ func samePreferences(a, b PreferencesSnapshot) bool {
 		a.SidebarWidth != b.SidebarWidth || a.HooksProjectPath != b.HooksProjectPath ||
 		a.NotifyTaskDone != b.NotifyTaskDone || a.NotifySound != b.NotifySound ||
 		a.NotifyNeedsResponse != b.NotifyNeedsResponse {
+		return false
+	}
+	if !viewPreferencesEqual(a.View, b.View) {
 		return false
 	}
 	if len(a.Workspaces) != len(b.Workspaces) {

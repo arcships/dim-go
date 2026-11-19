@@ -277,6 +277,7 @@ func (a *App) toggleGroup(ws sidebarWorkspace) {
 		a.sidebarView.collapsed = map[string]bool{}
 	}
 	a.sidebarView.collapsed[ws.id] = !a.groupCollapsed(ws)
+	a.persistViewState()
 }
 
 // sidebarSearching 表示搜索面开着并且有关键字：命中跨组显示，组自动展开。
@@ -290,6 +291,7 @@ func (a *App) collapseAllGroups() {
 	for _, ws := range a.sidebarWorkspaces(a.sidebarThreads()) {
 		a.sidebarView.collapsed[ws.id] = true
 	}
+	a.persistViewState()
 }
 
 // sidebarTimes 是样例里的相对时间；连着 Source 时没有时间事实，全部留空

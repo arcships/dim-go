@@ -592,8 +592,10 @@ func (a *App) sessionMenu(m *gui.Menu, index int, name string) {
 	if m.Item("重命名").Chosen() {
 		a.renaming, a.renameDraft = index, name
 	}
-	// 在新窗口中打开：弹窗窗口不在本批次（清单 §7 之外的窗口形态）。
-	m.Item("在新窗口中打开")
+	// 在新窗口中打开：会话标识从目录取（样例里是行名），交给入口的窗口管理。
+	if m.Item("在新窗口中打开").Chosen() {
+		a.openSessionRowInNewWindow(index)
+	}
 	if m.Item("导出").Chosen() {
 		a.exportSession(index)
 	}
@@ -604,6 +606,16 @@ func (a *App) sessionMenu(m *gui.Menu, index int, name string) {
 	if m.Item("删除").Chosen() {
 		a.deleting = index
 	}
+}
+
+// openSessionRowInNewWindow 在第二个窗口里打开左栏某一行的会话。
+func (a *App) openSessionRowInNewWindow(index int) {
+	names := a.sessionNames()
+	if index < 0 || index >= len(names) {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	a.openSessionInNewWindow(names[index])
 }
 
 // sidebarIconSpec 是行内小动作（21×21 的图标入口）：图标、读屏名、是否显形，

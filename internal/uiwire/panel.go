@@ -406,10 +406,16 @@ func fileHits(matches []workspace.SearchMatch) []ui.FileHitSnapshot {
 
 // Changes 读一次改动清单：git 只读概览，外加 Last Run 范围的路径清单。
 func (w *App) Changes(request ui.ChangesRequest) ui.ChangeSet {
+	return w.changesFor(request, w.currentSession())
+}
+
+// changesFor 读指定窗口会话的改动清单。「最近一次 run」范围要按会话取最后一轮，
+// 所以缓存键里带上会话：两个窗口看不同会话时不会互相顶掉。
+func (w *App) changesFor(request ui.ChangesRequest, sessionID string) ui.ChangeSet {
 	if request.Scope == "" {
 		request.Scope = ui.ChangeScopeUncommitted
 	}
-	key := changesKey(request)
+	key := changesKey(request, sessionID)
 
 	c := &w.panel
 	c.mu.Lock()
@@ -426,23 +432,24 @@ func (w *App) Changes(request ui.ChangesRequest) ui.ChangeSet {
 	if dispatch && c.tryAcquire() {
 		entry.fetching = true
 		c.prune(time.Now())
-		go w.refreshChanges(key, request)
+		go w.refreshChanges(key, request, sessionID)
 	}
 	c.mu.Unlock()
 	return snapshot
 }
 
-// changesKey 是改动读的缓存键。
-func changesKey(request ui.ChangesRequest) string {
-	return strings.Join([]string{request.Cwd, request.Scope, request.RunID}, "\x00")
+// changesKey 是改动读的缓存键：会话也在键里，Last Run 范围才不会被另一个窗口
+// 的会话顶掉。
+func changesKey(request ui.ChangesRequest, sessionID string) string {
+	return strings.Join([]string{request.Cwd, request.Scope, request.RunID, sessionID}, "\x00")
 }
 
 // refreshChanges 在后台读一次改动并写回缓存。
-func (w *App) refreshChanges(key string, request ui.ChangesRequest) {
+func (w *App) refreshChanges(key string, request ui.ChangesRequest, sessionID string) {
 	defer w.panel.release()
 	ctx, cancel := context.WithTimeout(context.Background(), panelReadTimeout)
 	defer cancel()
-	snapshot := w.readChanges(ctx, request)
+	snapshot := w.readChanges(ctx, request, sessionID)
 
 	w.panel.mu.Lock()
 	if entry, ok := w.panel.changes[key]; ok {
@@ -459,7 +466,11 @@ func (w *App) refreshChanges(key string, request ui.ChangesRequest) {
 // 未提交与当前分支两个范围读 D7 的 git 只读概览；条目级事实（按暂存态分组的
 // 文件行、± 行数、diff 文本）D7 不提供，所以不画行、不算行数，只把原因写进
 // Unavailable——视图据此画「改动不可用」，不把"读不到"画成"没有改动"。
-func (w *App) readChanges(ctx context.Context, request ui.ChangesRequest) ui.ChangeSet {
+func (w *App) readChanges(
+	ctx context.Context,
+	request ui.ChangesRequest,
+	sessionID string,
+) ui.ChangeSet {
 	changes := ui.ChangeSet{
 		Cwd: request.Cwd, Scope: request.Scope, RunID: request.RunID,
 		Phase: ui.PanelReadFailed, ReadAt: time.Now(),
@@ -469,7 +480,7 @@ func (w *App) readChanges(ctx context.Context, request ui.ChangesRequest) ui.Cha
 		return changes
 	}
 	if request.Scope == ui.ChangeScopeLastRun {
-		return w.readLastRunChanges(ctx, changes)
+		return w.readLastRunChanges(ctx, changes, sessionID)
 	}
 
 	ws, _, err := w.panelWorkspace(request.Cwd)
@@ -513,8 +524,11 @@ func (w *App) readChanges(ctx context.Context, request ui.ChangesRequest) ui.Cha
 }
 
 // readLastRunChanges 读最近一次 run 的声明级改动（D7 的 coverage=tool_reports）。
-func (w *App) readLastRunChanges(ctx context.Context, changes ui.ChangeSet) ui.ChangeSet {
-	sessionID := w.currentSession()
+func (w *App) readLastRunChanges(
+	ctx context.Context,
+	changes ui.ChangeSet,
+	sessionID string,
+) ui.ChangeSet {
 	if sessionID == "" {
 		changes.Phase = ui.PanelReadReady
 		changes.Unavailable = "没有打开的会话，读不到最近一次 run 的改动。"

@@ -749,7 +749,35 @@ func (w *App) Preferences() ui.PreferencesSnapshot {
 		NotifyTaskDone:      prefs.NotifyTaskDone,
 		NotifySound:         prefs.NotifySound,
 		NotifyNeedsResponse: prefs.NotifyNeedsResponse,
+		View: ui.ViewPreferencesSnapshot{
+			SidebarCollapsed:    prefs.View.SidebarCollapsed,
+			SidebarFlat:         prefs.View.SidebarFlat,
+			SidebarByCreated:    prefs.View.SidebarByCreated,
+			CollapsedGroups:     append([]string(nil), prefs.View.CollapsedGroups...),
+			PinnedGroups:        append([]string(nil), prefs.View.PinnedGroups...),
+			WorkspaceNames:      copyNames(prefs.View.WorkspaceNames),
+			RightOpen:           prefs.View.RightOpen,
+			RightTab:            prefs.View.RightTab,
+			RightTabs:           append([]int(nil), prefs.View.RightTabs...),
+			RightExpanded:       prefs.View.RightExpanded,
+			RightWidth:          prefs.View.RightWidth,
+			FilesFilter:         prefs.View.FilesFilter,
+			ChangesScope:        prefs.View.ChangesScope,
+			ChangesGroupsClosed: append([]string(nil), prefs.View.ChangesGroupsClosed...),
+		},
 	}
+}
+
+// copyNames 复制一份分组显示名（偏好是值传递，切片与映射都要复制）。
+func copyNames(names map[string]string) map[string]string {
+	if len(names) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(names))
+	for id, name := range names {
+		out[id] = name
+	}
+	return out
 }
 
 // SetPreferences 落盘本地偏好。
@@ -764,6 +792,22 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 	current.NotifyTaskDone = prefs.NotifyTaskDone
 	current.NotifySound = prefs.NotifySound
 	current.NotifyNeedsResponse = prefs.NotifyNeedsResponse
+	current.View = app.ViewPreferences{
+		SidebarCollapsed:    prefs.View.SidebarCollapsed,
+		SidebarFlat:         prefs.View.SidebarFlat,
+		SidebarByCreated:    prefs.View.SidebarByCreated,
+		CollapsedGroups:     append([]string(nil), prefs.View.CollapsedGroups...),
+		PinnedGroups:        append([]string(nil), prefs.View.PinnedGroups...),
+		WorkspaceNames:      copyNames(prefs.View.WorkspaceNames),
+		RightOpen:           prefs.View.RightOpen,
+		RightTab:            prefs.View.RightTab,
+		RightTabs:           append([]int(nil), prefs.View.RightTabs...),
+		RightExpanded:       prefs.View.RightExpanded,
+		RightWidth:          prefs.View.RightWidth,
+		FilesFilter:         prefs.View.FilesFilter,
+		ChangesScope:        prefs.View.ChangesScope,
+		ChangesGroupsClosed: append([]string(nil), prefs.View.ChangesGroupsClosed...),
+	}
 	if err := w.A.UpdatePreferences(current); err != nil {
 		return err
 	}
@@ -1159,13 +1203,18 @@ func (w *App) ExportSession(ctx context.Context, sessionID string) (string, erro
 
 // SetPermissionTier 走会话方法切换权限档位；服务端没有该方法时按能力缺失返回。
 func (w *App) SetPermissionTier(ctx context.Context, tier string) error {
-	if w.currentSession() == "" {
+	return w.setPermissionTierFor(ctx, w.currentSession(), tier)
+}
+
+// setPermissionTierFor 切换指定会话的权限档位。
+func (w *App) setPermissionTierFor(ctx context.Context, sessionID, tier string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
 	if strings.TrimSpace(tier) == "" {
 		return fmt.Errorf("权限档位为空")
 	}
-	if err := w.A.SetPermissionTier(ctx, w.currentSession(), interaction.PermissionTier(tier)); err != nil {
+	if err := w.A.SetPermissionTier(ctx, sessionID, interaction.PermissionTier(tier)); err != nil {
 		return err
 	}
 	w.changed()
@@ -1230,10 +1279,15 @@ func (w *App) WriteCommandRules(ctx context.Context, rules []ui.RuleSnapshot) er
 
 // SelectBranch 切换当前查看的分支。
 func (w *App) SelectBranch(ctx context.Context, branchID string) error {
-	if w.currentSession() == "" {
+	return w.selectBranchFor(ctx, w.currentSession(), branchID)
+}
+
+// selectBranchFor 切换指定会话查看的分支。
+func (w *App) selectBranchFor(ctx context.Context, sessionID, branchID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if _, err := w.A.SelectBranch(ctx, w.currentSession(), branchID); err != nil {
+	if _, err := w.A.SelectBranch(ctx, sessionID, branchID); err != nil {
 		return err
 	}
 	w.changed()
@@ -1242,10 +1296,19 @@ func (w *App) SelectBranch(ctx context.Context, branchID string) error {
 
 // CreateBranch 从当前分支的指定轮次切出新分支。
 func (w *App) CreateBranch(ctx context.Context, parentID string, turnIndex int, prompt string) error {
-	if w.currentSession() == "" {
+	return w.createBranchFor(ctx, w.currentSession(), parentID, turnIndex, prompt)
+}
+
+// createBranchFor 从指定会话的指定轮次切出新分支。
+func (w *App) createBranchFor(
+	ctx context.Context,
+	sessionID, parentID string,
+	turnIndex int, prompt string,
+) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if _, err := w.A.CreateBranch(ctx, w.currentSession(), parentID, turnIndex, prompt); err != nil {
+	if _, err := w.A.CreateBranch(ctx, sessionID, parentID, turnIndex, prompt); err != nil {
 		return err
 	}
 	w.changed()
@@ -1254,10 +1317,15 @@ func (w *App) CreateBranch(ctx context.Context, parentID string, turnIndex int, 
 
 // EndBranch 结束一个非主线分支。
 func (w *App) EndBranch(ctx context.Context, branchID string) error {
-	if w.currentSession() == "" {
+	return w.endBranchFor(ctx, w.currentSession(), branchID)
+}
+
+// endBranchFor 结束指定会话里的一个非主线分支。
+func (w *App) endBranchFor(ctx context.Context, sessionID, branchID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if _, err := w.A.EndBranch(ctx, w.currentSession(), branchID); err != nil {
+	if _, err := w.A.EndBranch(ctx, sessionID, branchID); err != nil {
 		return err
 	}
 	w.changed()
@@ -1268,10 +1336,18 @@ func (w *App) EndBranch(ctx context.Context, branchID string) error {
 
 // WriteAttachment 把文本存成会话文件；等到终态后返回写入的附件名。
 func (w *App) WriteAttachment(ctx context.Context, name, text string) (ui.AttachmentRefSnapshot, error) {
-	if w.currentSession() == "" {
+	return w.writeAttachmentFor(ctx, w.currentSession(), name, text)
+}
+
+// writeAttachmentFor 把文本写进指定会话的附件区。
+func (w *App) writeAttachmentFor(
+	ctx context.Context,
+	sessionID, name, text string,
+) (ui.AttachmentRefSnapshot, error) {
+	if sessionID == "" {
 		return ui.AttachmentRefSnapshot{}, fmt.Errorf("没有打开的会话")
 	}
-	view, err := w.A.WriteAttachment(ctx, w.currentSession(), name, text)
+	view, err := w.A.WriteAttachment(ctx, sessionID, name, text)
 	if err != nil {
 		return ui.AttachmentRefSnapshot{}, err
 	}
@@ -1308,10 +1384,15 @@ func (w *App) Reconnect(ctx context.Context) error {
 
 // ReadGoal 读当前目标（session.goal.get），返回原始回执文本。
 func (w *App) ReadGoal(ctx context.Context) (string, error) {
-	if w.currentSession() == "" {
+	return w.readGoalFor(ctx, w.currentSession())
+}
+
+// readGoalFor 读指定会话的目标。
+func (w *App) readGoalFor(ctx context.Context, sessionID string) (string, error) {
+	if sessionID == "" {
 		return "", fmt.Errorf("没有打开的会话")
 	}
-	raw, err := w.A.ReadGoal(ctx, w.currentSession())
+	raw, err := w.A.ReadGoal(ctx, sessionID)
 	if err != nil {
 		return "", err
 	}
@@ -1320,10 +1401,15 @@ func (w *App) ReadGoal(ctx context.Context) (string, error) {
 
 // SetGoal 新建或覆盖目标。
 func (w *App) SetGoal(ctx context.Context, objective string) error {
-	if w.currentSession() == "" {
+	return w.setGoalFor(ctx, w.currentSession(), objective)
+}
+
+// setGoalFor 新建或覆盖指定会话的目标。
+func (w *App) setGoalFor(ctx context.Context, sessionID, objective string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.SetGoal(ctx, w.currentSession(), objective); err != nil {
+	if err := w.A.SetGoal(ctx, sessionID, objective); err != nil {
 		return err
 	}
 	w.changed()
@@ -1332,10 +1418,15 @@ func (w *App) SetGoal(ctx context.Context, objective string) error {
 
 // EditGoal 修改目标文本。
 func (w *App) EditGoal(ctx context.Context, objective string) error {
-	if w.currentSession() == "" {
+	return w.editGoalFor(ctx, w.currentSession(), objective)
+}
+
+// editGoalFor 修改指定会话的目标文本。
+func (w *App) editGoalFor(ctx context.Context, sessionID, objective string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.EditGoal(ctx, w.currentSession(), objective); err != nil {
+	if err := w.A.EditGoal(ctx, sessionID, objective); err != nil {
 		return err
 	}
 	w.changed()
@@ -1344,10 +1435,15 @@ func (w *App) EditGoal(ctx context.Context, objective string) error {
 
 // PauseGoal 暂停目标。
 func (w *App) PauseGoal(ctx context.Context) error {
-	if w.currentSession() == "" {
+	return w.pauseGoalFor(ctx, w.currentSession())
+}
+
+// pauseGoalFor 暂停指定会话的目标。
+func (w *App) pauseGoalFor(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.PauseGoal(ctx, w.currentSession()); err != nil {
+	if err := w.A.PauseGoal(ctx, sessionID); err != nil {
 		return err
 	}
 	w.changed()
@@ -1356,10 +1452,15 @@ func (w *App) PauseGoal(ctx context.Context) error {
 
 // ResumeGoal 恢复目标。
 func (w *App) ResumeGoal(ctx context.Context) error {
-	if w.currentSession() == "" {
+	return w.resumeGoalFor(ctx, w.currentSession())
+}
+
+// resumeGoalFor 恢复指定会话的目标。
+func (w *App) resumeGoalFor(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.ResumeGoal(ctx, w.currentSession()); err != nil {
+	if err := w.A.ResumeGoal(ctx, sessionID); err != nil {
 		return err
 	}
 	w.changed()
@@ -1368,10 +1469,15 @@ func (w *App) ResumeGoal(ctx context.Context) error {
 
 // ClearGoal 清除目标。
 func (w *App) ClearGoal(ctx context.Context) error {
-	if w.currentSession() == "" {
+	return w.clearGoalFor(ctx, w.currentSession())
+}
+
+// clearGoalFor 清除指定会话的目标。
+func (w *App) clearGoalFor(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.ClearGoal(ctx, w.currentSession()); err != nil {
+	if err := w.A.ClearGoal(ctx, sessionID); err != nil {
 		return err
 	}
 	w.changed()
@@ -1380,10 +1486,15 @@ func (w *App) ClearGoal(ctx context.Context) error {
 
 // StopExecTask 停止一条后台任务。
 func (w *App) StopExecTask(ctx context.Context, taskID string) error {
-	if w.currentSession() == "" {
+	return w.stopExecTaskFor(ctx, w.currentSession(), taskID)
+}
+
+// stopExecTaskFor 停止指定会话的一条后台任务。
+func (w *App) stopExecTaskFor(ctx context.Context, sessionID, taskID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	if err := w.A.StopExecTask(ctx, w.currentSession(), taskID); err != nil {
+	if err := w.A.StopExecTask(ctx, sessionID, taskID); err != nil {
 		return err
 	}
 	w.changed()
@@ -1730,6 +1841,11 @@ func (w *App) TestMCP(ctx context.Context, id string) (bool, string, error) {
 // 预览里的 identical 与 conflict/invalid 一律跳过；changed 用 replace；其余按
 // import。没有可应用条目时不发 apply，返回 0。
 func (w *App) ImportMCP(ctx context.Context, sourceID string) (int, error) {
+	return w.importMCPFor(ctx, w.currentSession(), sourceID)
+}
+
+// importMCPFor 在指定会话的工作目录上导入一个 MCP 来源。
+func (w *App) importMCPFor(ctx context.Context, sessionID, sourceID string) (int, error) {
 	service := w.A.Extensions()
 	if service == nil {
 		return 0, fmt.Errorf("扩展领域未就绪")
@@ -1737,7 +1853,7 @@ func (w *App) ImportMCP(ctx context.Context, sourceID string) (int, error) {
 	if strings.TrimSpace(sourceID) == "" {
 		return 0, fmt.Errorf("导入来源为空")
 	}
-	cwd := w.sessionWorkspace(w.currentSession())
+	cwd := w.sessionWorkspace(sessionID)
 	preview, err := service.PreviewMCPImport(ctx, extensions.MCPImportPreviewRequest{
 		Cwd:    cwd,
 		Source: extensions.SourceUser,
@@ -1844,10 +1960,15 @@ func (w *App) CancelModalityTask(ctx context.Context, taskID string) error {
 
 // RunShell 登记一次会话内命令执行，返回运行标识供停止使用。
 func (w *App) RunShell(ctx context.Context, command string) (string, error) {
-	if w.currentSession() == "" {
+	return w.runShellFor(ctx, w.currentSession(), command)
+}
+
+// runShellFor 在指定会话里登记一次命令执行。
+func (w *App) runShellFor(ctx context.Context, sessionID, command string) (string, error) {
+	if sessionID == "" {
 		return "", fmt.Errorf("没有打开的会话")
 	}
-	view, err := w.A.RunShell(ctx, app.ShellRunRequest{SessionID: w.currentSession(), Command: command})
+	view, err := w.A.RunShell(ctx, app.ShellRunRequest{SessionID: sessionID, Command: command})
 	if err != nil {
 		return "", err
 	}
@@ -1861,13 +1982,18 @@ func (w *App) RunShell(ctx context.Context, command string) (string, error) {
 
 // StopShell 停止一次已经发出的命令执行。
 func (w *App) StopShell(ctx context.Context, runID string) error {
-	if w.currentSession() == "" {
+	return w.stopShellFor(ctx, w.currentSession(), runID)
+}
+
+// stopShellFor 停止指定会话里的一次命令执行。
+func (w *App) stopShellFor(ctx context.Context, sessionID, runID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
 	if strings.TrimSpace(runID) == "" {
 		return fmt.Errorf("没有要停止的运行")
 	}
-	if _, err := w.A.StopShell(ctx, app.ShellStopRequest{SessionID: w.currentSession(), RunID: runID}); err != nil {
+	if _, err := w.A.StopShell(ctx, app.ShellStopRequest{SessionID: sessionID, RunID: runID}); err != nil {
 		return err
 	}
 	w.changed()

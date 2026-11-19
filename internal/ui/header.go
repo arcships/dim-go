@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
+
+	"github.com/arcships/dimagent-mygo/internal/deeplink"
 )
 
 // header 是标题栏（参考产品的 ChatHeaderFrame / NewThreadHeader）：会话态为
@@ -144,10 +146,10 @@ func (a *App) chatMenu(c *gui.Context) {
 		// 重命名：采集里 SessionTitle 能力不可用时禁用，并在同一行给括注。
 		menuItem(c, m, iconPencil, "重命名", "重命名（SessionTitle 不可用）",
 			"（SessionTitle 不可用）", true, false)
-		// 多窗口不在本版（DEC：单窗口持有会话）：项保留，回执写明未开窗口，不冒充
-		// 已经开出第二个窗口。
+		// 多窗口：在新窗口里打开当前会话；已经有一个窗口显示它时切换到那个窗口
+		// （回执写明是哪一个），不重复开。
 		if menuItem(c, m, iconExternal, "在新窗口中打开", "在新窗口中打开", "", false, false) {
-			a.headerNote = noteMultiWindow
+			a.openCurrentInNewWindow()
 		}
 		if menuItem(c, m, iconDownload, "导出", "导出", "", false, false) {
 			a.exportCurrentSession()
@@ -159,10 +161,12 @@ func (a *App) chatMenu(c *gui.Context) {
 		// 复制项：先取事实，再决定可用性——没有标识 / 目录时禁用并写原因，不复制
 		// 空串；写剪贴板失败给失败原因，不显示「已复制」。
 		id, cwd, _ := a.sessionCopyFacts()
-		menuItem(c, m, iconLink, "复制会话链接", "复制会话链接", noteSessionLink, true, false)
 		idNote := ""
 		if id == "" {
 			idNote = noteNoSessionID
+		}
+		if menuItem(c, m, iconLink, "复制会话链接", "复制会话链接", idNote, id == "", false) {
+			a.copySessionLink(c, id)
 		}
 		if menuItem(c, m, iconFileCode, "复制会话 ID", "复制会话 ID",
 			idNote, id == "", false) {
@@ -188,6 +192,55 @@ func (a *App) exportCurrentSession() {
 		return
 	}
 	a.exportSession(index)
+}
+
+// openCurrentInNewWindow 在第二个窗口里打开当前会话（标题栏 ⋯ 的「在新窗口中
+// 打开」）：会话标识从目录里的当前项取，与左栏行菜单同一落点。
+func (a *App) openCurrentInNewWindow() {
+	index := a.currentSessionIndex()
+	if index < 0 {
+		// 样例里没有 Source 的当前会话：用左栏选中的那一行（截图与走查要能开窗）。
+		index = sessionIndex(a.selectedSession)
+	}
+	if index < 0 {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	names := a.sessionNames()
+	if index >= len(names) {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	a.openSessionInNewWindow(names[index])
+}
+
+// openSessionInNewWindow 是「在新窗口中打开」的落点：窗口由入口管，这里只把
+// 会话标识交出去并把回执写回来；没有窗口管理时给可读原因，不冒充已经开窗。
+func (a *App) openSessionInNewWindow(sessionID string) {
+	if sessionID == "" {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	if a.openInNewWindow == nil {
+		a.headerNote = noteMultiWindow
+		return
+	}
+	receipt, err := a.openInNewWindow(sessionID)
+	if err != nil {
+		a.headerNote = "无法打开新窗口：" + err.Error()
+		return
+	}
+	a.headerNote = receipt
+}
+
+// copySessionLink 把会话深链写进剪贴板（dimagent://session/<会话>）：链接能被
+// 本机自己的「深链」入口打开，不是本机路径。
+func (a *App) copySessionLink(c *gui.Context, sessionID string) {
+	if sessionID == "" {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	a.copySessionField(c, deeplink.SessionURL(sessionID), "已复制会话链接")
 }
 
 // currentSessionIndex 把当前打开的会话换成目录里的序号；没有打开会话时返回 -1。

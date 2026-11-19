@@ -141,8 +141,8 @@ func TestSidebarGroupOrderByActivity(t *testing.T) {
 	}
 }
 
-// TestSidebarGroupCollapseIsViewState：折叠只记在视图状态里（不落盘），点组头收起
-// 组内会话、再点展开。
+// TestSidebarGroupCollapseIsViewState：折叠记在视图状态里并随偏好落盘（重启后按
+// 收起态渲染），点组头收起组内会话、再点展开。
 func TestSidebarGroupCollapseIsViewState(t *testing.T) {
 	prefs := make(chan PreferencesSnapshot, 4)
 	app := cwdGroupApp(cwdGroupPlaces())
@@ -173,8 +173,11 @@ func TestSidebarGroupCollapseIsViewState(t *testing.T) {
 	}
 	select {
 	case wrote := <-prefs:
-		t.Fatalf("折叠态落了盘：%+v", wrote)
-	default:
+		if len(wrote.View.CollapsedGroups) != 1 || wrote.View.CollapsedGroups[0] != group.id {
+			t.Fatalf("折叠态没有随偏好落盘：%+v", wrote.View.CollapsedGroups)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("折叠态没有落盘")
 	}
 
 	if err := tt.Click("dim-agent"); err != nil {
