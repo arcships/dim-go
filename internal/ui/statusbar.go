@@ -48,6 +48,7 @@ func (a *App) statusPermission(c *gui.Context) {
 	m := gui.MenuBase(c, &a.permissionOpen)
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
 		Gap(space1).AlignItems(gui.Center).Label("权限：" + a.permissionLabel()).
+		Role(gui.RoleButton).Description("可更改权限档位").
 		Tooltip("选择权限").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)
@@ -119,6 +120,7 @@ func (a *App) statusBranch(c *gui.Context) {
 	m := gui.MenuBase(c, &a.statusBranchOpen)
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
 		Gap(space1).AlignItems(gui.Center).Label("分支 " + current).
+		Role(gui.RoleButton).Description("当前分支 " + current + "，可切换或新建").
 		Tooltip("切换分支").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)
@@ -166,6 +168,15 @@ func (a *App) statusBranch(c *gui.Context) {
 	})
 }
 
+// contextUsagePhrase 是上下文用量表的读屏说明：上限未知时只说「未知」，不编
+// 百分比。
+func contextUsagePhrase(pct int, known bool) string {
+	if !known {
+		return "上下文用量未知"
+	}
+	return fmt.Sprintf("上下文用量约 %d%%", pct)
+}
+
 // statusUsage 是右侧的上下文用量表：一条细进度条 + 百分比；点开是明细。
 func (a *App) statusUsage(c *gui.Context) {
 	t := c.Theme()
@@ -177,6 +188,7 @@ func (a *App) statusUsage(c *gui.Context) {
 	m := gui.MenuBase(c, &a.contextOpen)
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
 		Gap(space1).AlignItems(gui.Center).Label(fmt.Sprintf("上下文用量 %s", label)).
+		Role(gui.RoleButton).Description(contextUsagePhrase(pct, a.contextLimit > 0)).
 		Tooltip("上下文用量").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)

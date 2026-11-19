@@ -123,3 +123,59 @@ func TestNotificationPreferencesDefaultForOldFile(t *testing.T) {
 		t.Fatalf("缺省的键应按出厂值（开）处理：%+v", got)
 	}
 }
+
+// TestWindowBoundsPerIndex 核对多窗口的几何各记各的：第二个窗口不影响主窗口，
+// 主窗口同时写在旧的 Window 字段里；重建 App 后两项都还在。
+func TestWindowBoundsPerIndex(t *testing.T) {
+	dir := t.TempDir()
+	first, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("创建 App：%v", err)
+	}
+	if err := first.UpdateWindowBoundsFor(0, 10, 20, 1200, 800); err != nil {
+		t.Fatalf("写主窗口几何：%v", err)
+	}
+	if err := first.UpdateWindowBoundsFor(1, 300, 180, 900, 700); err != nil {
+		t.Fatalf("写第二个窗口几何：%v", err)
+	}
+
+	second, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("重建 App：%v", err)
+	}
+	prefs := second.Preferences()
+	main := prefs.WindowFor(0)
+	if main.X != 10 || main.Y != 20 || main.Width != 1200 || main.Height != 800 || !main.HasPosition {
+		t.Fatalf("主窗口几何 = %+v，想要 10,20 1200x800", main)
+	}
+	extra := prefs.WindowFor(1)
+	if extra.X != 300 || extra.Y != 180 || extra.Width != 900 || extra.Height != 700 || !extra.HasPosition {
+		t.Fatalf("第二个窗口几何 = %+v，想要 300,180 900x700", extra)
+	}
+	if prefs.Window.Width != 1200 || prefs.Window.X != 10 {
+		t.Fatalf("主窗口几何也要写在 Window 里（旧版本回退可读）：%+v", prefs.Window)
+	}
+	if third := prefs.WindowFor(2); third != (WindowPreferences{}) {
+		t.Fatalf("没有记录的窗口索引应返回零值：%+v", third)
+	}
+}
+
+// TestWindowBoundsLegacyFile 核对旧偏好文件（只有 Window）仍能读回主窗口几何。
+func TestWindowBoundsLegacyFile(t *testing.T) {
+	dir := t.TempDir()
+	raw := []byte("{\n  \"window\": {\"x\": 12, \"y\": 34, \"width\": 1024, \"height\": 768, \"hasPosition\": true}\n}\n")
+	if err := os.WriteFile(filepath.Join(dir, "preferences.json"), raw, 0o600); err != nil {
+		t.Fatalf("写偏好文件：%v", err)
+	}
+	app, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("创建 App：%v", err)
+	}
+	got := app.Preferences().WindowFor(0)
+	if got.X != 12 || got.Y != 34 || got.Width != 1024 || got.Height != 768 || !got.HasPosition {
+		t.Fatalf("旧文件的窗口几何 = %+v", got)
+	}
+	if extra := app.Preferences().WindowFor(1); extra != (WindowPreferences{}) {
+		t.Fatalf("旧文件没有第二个窗口的几何：%+v", extra)
+	}
+}

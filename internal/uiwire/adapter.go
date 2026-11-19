@@ -423,11 +423,14 @@ func (w *App) refreshCatalog(ctx context.Context) error {
 	return err
 }
 
-func (w *App) Session() (ui.SessionSnapshot, bool) {
-	if w.currentSession() == "" {
+func (w *App) Session() (ui.SessionSnapshot, bool) { return w.sessionSnapshot(w.currentSession()) }
+
+// sessionSnapshot 取某个会话的快照；会话没打开时 ok 为假。
+func (w *App) sessionSnapshot(sessionID string) (ui.SessionSnapshot, bool) {
+	if sessionID == "" {
 		return ui.SessionSnapshot{}, false
 	}
-	view, ok := w.A.View(w.currentSession())
+	view, ok := w.A.View(sessionID)
 	if !ok {
 		return ui.SessionSnapshot{}, false
 	}
@@ -481,10 +484,15 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 }
 
 func (w *App) Approval() (ui.ApprovalSnapshot, bool) {
-	if w.currentSession() == "" {
+	return w.approvalFor(w.currentSession())
+}
+
+// approvalFor 取某个会话的待决审批。
+func (w *App) approvalFor(sessionID string) (ui.ApprovalSnapshot, bool) {
+	if sessionID == "" {
 		return ui.ApprovalSnapshot{}, false
 	}
-	view, ok := w.A.View(w.currentSession())
+	view, ok := w.A.View(sessionID)
 	if !ok || !view.HasCurrent || view.Current.Kind != interaction.PendingApproval {
 		return ui.ApprovalSnapshot{}, false
 	}
@@ -497,10 +505,15 @@ func (w *App) Approval() (ui.ApprovalSnapshot, bool) {
 }
 
 func (w *App) Question() (ui.QuestionSnapshot, bool) {
-	if w.currentSession() == "" {
+	return w.questionFor(w.currentSession())
+}
+
+// questionFor 取某个会话的待答提问。
+func (w *App) questionFor(sessionID string) (ui.QuestionSnapshot, bool) {
+	if sessionID == "" {
 		return ui.QuestionSnapshot{}, false
 	}
-	view, ok := w.A.View(w.currentSession())
+	view, ok := w.A.View(sessionID)
 	if !ok || !view.HasCurrent || view.Current.Kind != interaction.PendingQuestion ||
 		len(view.Current.Questions) == 0 {
 		return ui.QuestionSnapshot{}, false
@@ -554,10 +567,13 @@ func (w *App) Usage() ui.UsageSnapshot {
 }
 
 // Settings 把设置领域最近确认的读数映射成界面快照。
-func (w *App) Settings() ui.SettingsSnapshot {
+func (w *App) Settings() ui.SettingsSnapshot { return w.settingsFor(w.currentSession()) }
+
+// settingsFor 映射设置读数，权限档位取指定会话的（每窗口各自看自己的会话）。
+func (w *App) settingsFor(sessionID string) ui.SettingsSnapshot {
 	out := ui.SettingsSnapshot{}
-	if w.currentSession() != "" {
-		if tier, ok := w.A.PermissionTier(w.currentSession()); ok {
+	if sessionID != "" {
+		if tier, ok := w.A.PermissionTier(sessionID); ok {
 			out.Tier = string(tier)
 			out.TierKnown = true
 		}
@@ -788,12 +804,15 @@ func (w *App) SetGlobalShortcut(ctx context.Context, enabled bool, accelerator s
 }
 
 // Terminal 是当前会话终端的状态；输出由 pty 流式读取，本批不缓存。
-func (w *App) Terminal() ui.TerminalSnapshot {
+func (w *App) Terminal() ui.TerminalSnapshot { return w.terminalFor(w.currentSession()) }
+
+// terminalFor 取指定会话的终端状态。
+func (w *App) terminalFor(sessionID string) ui.TerminalSnapshot {
 	registry := w.A.Terminals()
-	if registry == nil || w.currentSession() == "" {
+	if registry == nil || sessionID == "" {
 		return ui.TerminalSnapshot{}
 	}
-	terminal, ok := registry.Get(w.currentSession())
+	terminal, ok := registry.Get(sessionID)
 	if !ok {
 		return ui.TerminalSnapshot{}
 	}
@@ -896,7 +915,16 @@ func (w *App) SubmitWithContent(
 	text string,
 	blocks []ui.ContentBlockSnapshot,
 ) error {
-	if w.currentSession() == "" {
+	return w.submitWithContentFor(ctx, w.currentSession(), text, blocks)
+}
+
+// submitWithContentFor 向指定会话提交；会话标识为空即没有打开的会话。
+func (w *App) submitWithContentFor(
+	ctx context.Context,
+	sessionID, text string,
+	blocks []ui.ContentBlockSnapshot,
+) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
 	if strings.TrimSpace(text) == "" && len(blocks) == 0 {
@@ -904,7 +932,7 @@ func (w *App) SubmitWithContent(
 	}
 	content := make([]app.SubmitContentBlock, 0, len(blocks)+1)
 	if len(text) > 4096 {
-		ref, err := w.WriteAttachment(ctx, "pasted-text.txt", text)
+		ref, err := w.writeAttachmentFor(ctx, sessionID, "pasted-text.txt", text)
 		if err != nil {
 			return err
 		}
@@ -925,7 +953,7 @@ func (w *App) SubmitWithContent(
 		content = append(content, mapped)
 	}
 	_, err := w.A.Submit(ctx, app.SubmitRequest{
-		SessionID: w.currentSession(), Text: text, Content: content,
+		SessionID: sessionID, Text: text, Content: content,
 	})
 	w.changed()
 	return err
@@ -934,50 +962,70 @@ func (w *App) SubmitWithContent(
 func (w *App) Queue(ctx context.Context, text string) error { return w.Submit(ctx, text) }
 
 func (w *App) Stop(ctx context.Context) error {
-	if w.currentSession() == "" {
+	return w.stopFor(ctx, w.currentSession())
+}
+
+// stopFor 停止指定会话正在跑的一轮。
+func (w *App) stopFor(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	_, err := w.A.Stop(ctx, w.currentSession())
+	_, err := w.A.Stop(ctx, sessionID)
 	w.changed()
 	return err
 }
 
 func (w *App) RespondApproval(ctx context.Context, decision string) error {
-	if w.currentSession() == "" {
+	return w.respondApprovalFor(ctx, w.currentSession(), decision)
+}
+
+// respondApprovalFor 应答指定会话的待决审批。
+func (w *App) respondApprovalFor(ctx context.Context, sessionID, decision string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	view, ok := w.A.View(w.currentSession())
+	view, ok := w.A.View(sessionID)
 	if !ok || !view.HasCurrent {
 		return fmt.Errorf("没有待决审批")
 	}
-	_, err := w.A.Respond(ctx, w.currentSession(), view.Current.RequestID, approvalResponse(decision))
+	_, err := w.A.Respond(ctx, sessionID, view.Current.RequestID, approvalResponse(decision))
 	w.changed()
 	return err
 }
 
 func (w *App) RespondQuestion(ctx context.Context, answer string) error {
-	if w.currentSession() == "" {
+	return w.respondQuestionFor(ctx, w.currentSession(), answer)
+}
+
+// respondQuestionFor 应答指定会话的待答提问。
+func (w *App) respondQuestionFor(ctx context.Context, sessionID, answer string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	view, ok := w.A.View(w.currentSession())
+	view, ok := w.A.View(sessionID)
 	if !ok || !view.HasCurrent {
 		return fmt.Errorf("没有待答提问")
 	}
-	_, err := w.A.Respond(ctx, w.currentSession(), view.Current.RequestID, questionResponse(answer))
+	_, err := w.A.Respond(ctx, sessionID, view.Current.RequestID, questionResponse(answer))
 	w.changed()
 	return err
 }
 
 // SkipQuestion 是提问卡的「跳过」：按取消提交，不当作拒绝。
 func (w *App) SkipQuestion(ctx context.Context) error {
-	if w.currentSession() == "" {
+	return w.skipQuestionFor(ctx, w.currentSession())
+}
+
+// skipQuestionFor 跳过指定会话的提问。
+func (w *App) skipQuestionFor(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
 		return fmt.Errorf("没有打开的会话")
 	}
-	view, ok := w.A.View(w.currentSession())
+	view, ok := w.A.View(sessionID)
 	if !ok || !view.HasCurrent {
 		return fmt.Errorf("没有待答提问")
 	}
-	_, err := w.A.Respond(ctx, w.currentSession(), view.Current.RequestID,
+	_, err := w.A.Respond(ctx, sessionID, view.Current.RequestID,
 		interaction.Response{Decision: interaction.DecisionCancel})
 	w.changed()
 	return err
@@ -986,9 +1034,14 @@ func (w *App) SkipQuestion(ctx context.Context) error {
 func (w *App) RetrySubmit(ctx context.Context) error { return w.Submit(ctx, "") }
 
 func (w *App) CreateSession(ctx context.Context, cwd string) error {
+	return w.createSessionFor(ctx, w.currentSession(), cwd)
+}
+
+// createSessionFor 新建会话；没有给 cwd 时沿用指定会话（或目录首项）的工作目录。
+func (w *App) createSessionFor(ctx context.Context, sessionID, cwd string) error {
 	if strings.TrimSpace(cwd) == "" {
 		// 界面没有目录选择器：沿用当前会话的工作目录；没有打开会话时取目录首项。
-		cwd = w.sessionWorkspace(w.currentSession())
+		cwd = w.sessionWorkspace(sessionID)
 		if cwd == "" {
 			if names := w.SessionNames(); len(names) > 0 {
 				cwd = w.sessionWorkspace(names[0])
@@ -1041,22 +1094,36 @@ func (w *App) ArchiveSession(ctx context.Context, sessionID string, archived boo
 
 // DeleteSession 先释放订阅再删除；成功后当前会话切到列表首项（没有则清空）。
 func (w *App) DeleteSession(ctx context.Context, sessionID string) error {
-	domain := w.A.Catalog()
-	if domain == nil {
-		return fmt.Errorf("目录未就绪")
-	}
-	if err := domain.Delete(ctx, catalog.DeleteRequest{SessionID: sessionID}); err != nil {
+	next, err := w.deleteSessionFor(ctx, w.currentSession(), sessionID)
+	if err != nil {
 		return err
 	}
-	if w.currentSession() == sessionID {
+	if next != w.currentSession() {
+		w.setSession(next)
+	}
+	return nil
+}
+
+// deleteSessionFor 删除一个会话，返回发起删除的窗口接下来该看哪个会话：
+// 删的不是本窗口的会话时原样返回；是的话切到目录首项，没有则清空。
+func (w *App) deleteSessionFor(ctx context.Context, current, target string) (string, error) {
+	domain := w.A.Catalog()
+	if domain == nil {
+		return current, fmt.Errorf("目录未就绪")
+	}
+	if err := domain.Delete(ctx, catalog.DeleteRequest{SessionID: target}); err != nil {
+		return current, err
+	}
+	next := current
+	if current == target {
 		if names := w.SessionNames(); len(names) > 0 {
-			w.setSession(names[0])
+			next = names[0]
 		} else {
-			w.setSession("")
+			next = ""
 		}
 	}
 	w.changed()
-	return nil
+	return next, nil
 }
 
 // ExportSession 把会话导出到工作目录下的一个带时间戳的 Markdown 文件。

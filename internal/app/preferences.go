@@ -144,13 +144,6 @@ func normalizePreferences(prefs Preferences) Preferences {
 	for i := range prefs.Windows {
 		prefs.Windows[i] = normalizeWindowBounds(prefs.Windows[i])
 	}
-	// 主窗口的几何两处都写：旧版本只读 Window，新版本按索引读 Windows。
-	if len(prefs.Windows) > 0 && hasBounds(prefs.Windows[0]) {
-		prefs.Window = prefs.Windows[0]
-	} else if hasBounds(prefs.Window) {
-		prefs.Windows = growBoundsList(prefs.Windows, 0)
-		prefs.Windows[0] = prefs.Window
-	}
 	return prefs
 }
 
