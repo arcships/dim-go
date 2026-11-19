@@ -577,7 +577,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-ACC-419 | S-account-34 | 状态 | 用量拉取失败 | 标题行下出现一行错误文本 | — | 屏上「error」：行数 = 1 | 未实现（缺：文案「error」只出现在 internal/account/login.go:callbackHandler，不在该元素的渲染点上） |
-| R-ACC-420 | S-account-34 | 内容 | 失败为超时 | 文案取接口消息原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：文案「error」只出现在 internal/account/login.go:callbackHandler，不在该元素的渲染点上） |
+| R-ACC-420 | S-account-34 | 内容 | 失败为超时 | 文案取接口消息原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_account_screen.go:accountPlanCard「d.UsageError 原文写进错误行」） |
 | R-ACC-421 | S-account-34 | 样式 | 打开设置›账户，看「error」 | 警示色、字号 12、单行 | — | 判据 = 屏上「error」：字号 = 12、行数 = 1；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 未实现（缺：文案「error」只出现在 internal/account/login.go:callbackHandler，不在该元素的渲染点上） |
 | R-ACC-422 | S-account-34 | 状态 | 打开设置›账户，看「error」 | 错误行消失，卡片高度回到原值 | — | 屏上「error」：出现次数 = 0 | 未实现（缺：文案「error」只出现在 internal/account/login.go:callbackHandler，不在该元素的渲染点上） |
 | R-ACC-423 | S-account-34 | 关联 | 错误行出现 | 额度数值与进度条保持上次值，不清零 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：文案「error」只出现在 internal/account/login.go:callbackHandler，不在该元素的渲染点上） |
@@ -5713,7 +5713,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GEN-706 | S-general-89 | 交互 | 用鼠标左键单击「关闭」 | 关闭对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有点击/键位处理） |
 | R-GEN-707 | S-general-89 | 样式 | 打开设置›通用，看「关闭」 | 位于右下 | — | 该元素位于容器对应角：边缘距内边距 ≤ 8px | 未实现（缺：该元素的字号/色值/尺寸/间距在屏内没有对应取值） |
 | R-GEN-708 | S-general-89 | 状态 | 打开设置›通用，看「关闭」 | 不渲染 | — | 屏上「关闭」：出现次数 = 0 | 未实现（缺：状态 是「状态转出/消失」类断言，代码里没有对应分支或转出后文案） |
-| R-GEN-709 | S-general-89 | 键盘 | 打开「关闭」后按 Esc | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（缺：该元素没有键盘通路（无 OnKey/快捷键绑定）） |
+| R-GEN-709 | S-general-89 | 键盘 | 打开「关闭」后按 Esc | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（证据 = internal/ui/settings_general_screen.go:generalImportDialog「m.Dismissed() → importOpen=false，与点「关闭」同一条出口」+ mygo Modal 的 Esc 关闭） |
 | R-GEN-710 | S-general-89 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「关闭」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有 Role/Label/Description 标注） |
 | R-GEN-711 | S-general-89 | 记忆 | 打开设置›通用，看「关闭」 | 重新扫描 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有落盘/恢复路径） |
 | R-GEN-712 | S-general-89 | 深色 | 在设置›外观把主题切成深色，再回通用，看「关闭」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（缺：该元素没有从主题 token 取暗色值，或期望的暗色值与 tokens.go 不符） |
@@ -6885,7 +6885,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-609 | S-configuration-77 | 内容 | 添加面板底部 | 按钮「保存」，右侧箭头图标 | — | 屏上「保存」的文案逐字为「保存」（2 字） | 已实现（证据 = internal/ui/settings_provider_form.go:configFormFooter「保存」） |
-| R-CFG-610 | S-configuration-77 | 交互 | 用鼠标左键单击「保存」 | 保存新供应商，成功后选中它并离开面板 | — | 屏上「保存」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现：缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
+| R-CFG-610 | S-configuration-77 | 交互 | 用鼠标左键单击「保存」 | 保存新供应商，成功后选中它并离开面板 | — | 屏上「保存」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（证据 = internal/ui/settings_provider_form.go:configFormSave「Intents.CreateProvider → configFormClose，selectAfterCreate 选中新供应商」） |
 | R-CFG-611 | S-configuration-77 | 状态 | 打开设置›模型供应，看「保存」 | 右侧变旋转图标，按钮禁用 | — | 1 秒内旋转角度变化 ≥ 360° | 已实现（证据 = internal/ui/settings_provider_form.go:configFormFooter「保存」 + 标记 save := gui.PrimaryButton(c, "保存").Label("保存").Height(rowRegular). Disabled(form.saving)） |
 | R-CFG-612 | S-configuration-77 | 状态 | 必填缺失 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（证据 = internal/ui/settings_provider_form.go:configFormFooter「保存」 + 标记 save := gui.PrimaryButton(c, "保存").Label("保存").Height(rowRegular). Disabled(form.saving)） |
 | R-CFG-613 | S-configuration-77 | 样式 | 打开设置›模型供应，看「保存」 | 主色实心，宽约 100，右对齐 | — | 判据 = 色值 = 主色（`CL-ACCENT` 明 #349651 / 暗 #63cb7b） | 未实现（缺：期望取值（100/349651/63）不在该元素的样式行上） |
@@ -7097,7 +7097,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MOD-093 | S-modality-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「图像（当前分组面板）」听播报 | 作为 tabpanel 播报，含分组名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有 Role/Label/Description 标注） |
 | R-MOD-094 | S-modality-12 | 异常 | 该组 0 条能力 | 面板只显示标题与计数，不显示空行 | — | 屏上「图像（当前分组面板）」：出现次数 = 0 | 未实现（缺：异常 是「状态转出/消失」类断言，代码里没有对应分支或转出后文案） |
 | R-MOD-095 | S-modality-12 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「图像（当前分组面板）」 | 只显示当前分组 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：该元素没有窄窗断点处理（无 c.Size()/宽度判断）） |
-| R-MOD-096 | S-modality-12 | 深色 | 在设置›外观把主题切成深色，再回多模态，看「图像（当前分组面板）」 | 与页签条可辨 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（缺：该元素没有从主题 token 取暗色值，或期望的暗色值与 tokens.go 不符） |
+| R-MOD-096 | S-modality-12 | 深色 | 在设置›外观把主题切成深色，再回多模态，看「图像（当前分组面板）」 | 与页签条可辨 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（证据 = internal/ui/settings_modality_screen.go:mdGroupTabs「面板不铺自绘底色；选中药签 2px t.Accent、未选中 1px t.Border，深色取主题 token」） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8585,7 +8585,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-369 | S-mcp-47 | 内容 | 非 STDIO 且新建 | 来自环境变量的请求头列表 +「添加变量」 | — | 屏上「来自环境变量的请求头 + 添加变量」的文案逐字为「添加变量」（4 字） | 已实现（证据 = internal/ui/settings_mcp_screen.go:mcpHTTPFields「添加变量」（常量 mcpCopyAddVar）） |
 | R-MCP-370 | S-mcp-47 | 状态 | 编辑已存 | 不渲染 | — | 屏上「来自环境变量的请求头 + 添加变量」：出现次数 = 0 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-MCP-371 | S-mcp-47 | 交互 | 打开设置›MCP，看「来自环境变量的请求头 + 添加变量」 | 追加一行（头名 → 变量名） | — | 行数+1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-MCP-372 | S-mcp-47 | 样式 | 打开设置›MCP，看「来自环境变量的请求头 + 添加变量」 | 每行两列、高 32 | — | 屏上「来自环境变量的请求头 + 添加变量」：高度 = 32 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-MCP-372 | S-mcp-47 | 样式 | 打开设置›MCP，看「来自环境变量的请求头 + 添加变量」 | 每行两列、高 32 | — | 屏上「来自环境变量的请求头 + 添加变量」：高度 = 32 | 已实现（证据 = internal/ui/settings_mcp_screen.go:mcpStringList「screenInput 高 screenControlH=32 + 行尾删除图标，每行两列」） |
 | R-MCP-373 | S-mcp-47 | 异常 | 变量不存在 | 保存时提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-MCP-374 | S-mcp-47 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「来自环境变量的请求头 + 添加变量」听播报 | 逐行播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现：缺实现：settings_mcp_screen.go 的 mcpHTTPFields 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | R-MCP-375 | S-mcp-47 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「来自环境变量的请求头 + 添加变量」 | 换行 | — | 判据 = 首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
@@ -10200,7 +10200,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-148 | S-pluginSettings-19 | 样式 | 打开设置›插件设置，看「设置已在别处更改。请重新加载后再保存…」 | 12 字号警示 + 小按钮 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-149 | S-pluginSettings-19 | 状态 | 保存后 | 冲突清除 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-150 | S-pluginSettings-19 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「设置已在别处更改。请重新加载后再保存…」听播报 | 播报提示 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-151 | S-pluginSettings-19 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「设置已在别处更改。请重新加载后再保存…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-151 | S-pluginSettings-19 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「设置已在别处更改。请重新加载后再保存…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（证据 = internal/ui/settings_plugin_settings_screen.go:plgErrorRow「Row.Wrap()，文案不设 SingleLine，窄列折行」） |
 | R-PLG-152 | S-pluginSettings-19 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「设置已在别处更改。请重新加载后再保存…」 | 对比≥4.5:1 | — | 屏上「设置已在别处更改。请重新加载后再保存…」：对比度 ≥ 4.5:1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
@@ -10813,7 +10813,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-ABT-089 | S-about-12 | 内容 | 支持更新、idle 或 error | 按钮「检查更新」/「重试」 | — | 屏上「检查更新 / 重试」的文案逐字为「检查更新」（4 字） | 未实现：缺事实/协议：更新状态机的其它相位没有来源能推动（settings_about_screen.go:30-33） |
+| R-ABT-089 | S-about-12 | 内容 | 支持更新、idle 或 error | 按钮「检查更新」/「重试」 | — | 屏上「检查更新 / 重试」的文案逐字为「检查更新」（4 字） | 已实现（证据 = internal/ui/settings_about_screen.go:abtUpdateAction「abtIdle →「检查更新」、abtError →「重试」」） |
 | R-ABT-090 | S-about-12 | 交互 | 用鼠标左键单击「检查更新 / 重试」 | 发起检查，状态转 checking | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议：更新状态机的其它相位没有来源能推动（settings_about_screen.go:30-33） |
 | R-ABT-091 | S-about-12 | 状态 | 自动更新禁用 | 不渲染 | — | 屏上「检查更新 / 重试」：出现次数 = 0 | 未实现：缺事实/协议：更新状态机的其它相位没有来源能推动（settings_about_screen.go:30-33） |
 | R-ABT-092 | S-about-12 | 样式 | 打开设置›关于，看「检查更新 / 重试」 | 描边或主色、高 28 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现：缺事实/协议：更新状态机的其它相位没有来源能推动（settings_about_screen.go:30-33） |
