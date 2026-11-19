@@ -503,11 +503,28 @@ type App struct {
 	confirmAlways bool
 	// approvalDecision 是样例里点过的决定（只用于界面反馈，不发起任何写入）。
 	approvalDecision string
+	// approvalSubmitting 是一次答复正在写：三个决定整组置灰，文案不变。
+	approvalSubmitting bool
+	// approvalError 是卡片自己的失败回执（原始原因），approvalErrorFor 记它属于
+	// 哪一条请求——换一条请求就不沿用上一条的错误。
+	approvalError    string
+	approvalErrorFor string
 
 	feed gui.ScrollState
 
+	// timelineSelected 是时间线上一帧的选中文本：⌘F 打开会话内搜索时预填。
+	// 它是可丢的视图状态，不承载事实。
+	timelineSelected string
+
+	// sessionSearch 是会话内搜索浮层的视图状态（见 search.go）。
+	sessionSearch sessionSearchState
+
 	// palette 是命令面板的视图状态（查询、选中、历史与最近使用）。
 	palette commandPaletteState
+
+	// slash 是输入区斜杠命令弹层的视图状态（开合、前缀、选中与执行反馈），
+	// 见 slash_commands.go。它也是可丢的界面状态，不承载事实。
+	slash slashMenuState
 }
 
 // NewApp 建立骨架。状态切换只改界面样例，不连任何服务。
@@ -526,6 +543,8 @@ func NewApp(o Options) *App {
 		// 样例账号是「eric」：首字母与设置 › 账户卡一致（ER），不另写一个 E。
 		accountInitial: "ER",
 		logPath:        o.LogPath,
+		// 斜杠命令弹层默认没有选中行（参考 C37 的首行不默认高亮）。
+		slash: slashMenuState{selected: -1},
 	}
 	// 时间线的助手区自己承担可选区与右键菜单（消息级复制）：Markdown 不再自建
 	// 选区与菜单，把段落交给外层容器（TL-65）。
@@ -631,6 +650,8 @@ func (a *App) loadSample() {
 	a.headerNote = ""
 	a.model = sampleModel
 	a.searchOpen, a.searchQuery = false, ""
+	a.sessionSearch = sessionSearchState{}
+	a.timelineSelected = ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
 	a.archived, a.renamed = map[int]bool{}, map[int]string{}
@@ -844,6 +865,8 @@ func (a *App) resetWiredViewState() {
 	a.openWithApp = "VS Code"
 	a.headerNote = ""
 	a.searchOpen, a.searchQuery = false, ""
+	a.sessionSearch = sessionSearchState{}
+	a.timelineSelected = ""
 	a.renaming, a.deleting = -1, -1
 	a.renameDraft = ""
 	a.archived, a.renamed = map[int]bool{}, map[int]string{}
@@ -910,12 +933,17 @@ func (a *App) View(c *gui.Context) {
 	// 右栏文件页的目录投影每帧做一次：文件页与命令面板的文件组读同一份。
 	a.syncPanelTree(false)
 	a.commandPaletteKeys(c)
+	a.sessionSearchKeys(c)
 	a.debugKeys(c)
+	a.approvalKeys(c)
+	a.sessionSearchFrame(c)
 	a.layout(c)
 	if a.screen == ScreenMain {
 		a.dirPickDialog(c, dirPickWorkspace)
+		a.sessionSearchOverlay(c)
 	}
 	a.commandPalette(c)
+	a.sessionSearchRestore(c)
 	a.hostFrame()
 	// 视图状态（左栏收起、右栏标签页、分组折叠、筛选词）变了就落盘一次；没变
 	// 不写。放在每帧末尾，省得每个改动点各记一次。
@@ -1281,6 +1309,29 @@ func (a *App) dispatchThen(
 	onOK func(),
 	onFail func(string),
 ) {
+	a.runIntent(label, action, onOK, onFail, true)
+}
+
+// dispatchQuiet 与 dispatchThen 相同，但不写标题下方的全局错误行：失败原因只交给
+// onFail，在原地显示（审批卡自己的错误行），不重复两遍。
+func (a *App) dispatchQuiet(
+	label string,
+	action func(context.Context) error,
+	onOK func(),
+	onFail func(string),
+) {
+	a.runIntent(label, action, onOK, onFail, false)
+}
+
+// runIntent 在后台执行一次写入意图；report 为真时把失败原因挂到全局错误行并登记
+// 重试，为假时只交给 onFail 原地显示。
+func (a *App) runIntent(
+	label string,
+	action func(context.Context) error,
+	onOK func(),
+	onFail func(string),
+	report bool,
+) {
 	if a.intents == nil || action == nil {
 		return
 	}
@@ -1290,18 +1341,25 @@ func (a *App) dispatchThen(
 		err := action(ctx)
 		a.intentMu.Lock()
 		if err != nil {
-			msg := label + "：" + err.Error()
-			a.intentErr = msg
-			// 同一次写入再发一遍就是「重试」：闭包只捕获取材，不缓存事实。
-			a.retryIntent = func() {
-				a.dispatchThen(label, action, onOK, onFail)
+			msg := err.Error()
+			if label != "" {
+				msg = label + "：" + msg
+				// 同一次写入再发一遍就是「重试」：闭包只捕获取材，不缓存事实。
+				a.retryIntent = func() {
+					a.dispatchThen(label, action, onOK, onFail)
+				}
+			}
+			if report {
+				a.intentErr = msg
 			}
 			if onFail != nil {
 				a.intentFail = append(a.intentFail, func() { onFail(msg) })
 			}
 		} else {
-			a.intentErr = ""
-			a.retryIntent = nil
+			if report {
+				a.intentErr = ""
+				a.retryIntent = nil
+			}
 			if onOK != nil {
 				a.intentDone = append(a.intentDone, onOK)
 			}
@@ -1458,6 +1516,11 @@ func (a *App) debugKeys(c *gui.Context) {
 // 会把字符从草稿里吃掉；统一放在最外层按一次，避免左右栏各自抢键。
 func (a *App) viewKeys(c *gui.Context) {
 	if a.palette.open || a.screen != ScreenMain {
+		return
+	}
+	// 会话内搜索开着时 Esc 先关它（A1-03 的 R-GS-034）。
+	if a.sessionSearch.open && c.Shortcut(0, gui.KeyEscape) {
+		a.closeSessionSearch()
 		return
 	}
 	if a.logoutConfirm && c.Shortcut(0, gui.KeyEscape) {

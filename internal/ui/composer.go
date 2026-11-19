@@ -182,6 +182,18 @@ func brandMark(c *gui.Context, width, height float32, t *gui.Theme) {
 
 // inputBlock 是输入卡：正文 + 工具行；空态在下面多一条控制行（工作区 / 权限）。
 func (a *App) inputBlock(c *gui.Context, withControls bool) {
+	// 斜杠命令弹层与执行反馈贴在输入卡上沿：外层列与卡片同宽，弹层靠左
+	// （参考 C37 的弹层与输入区同一条左缘）。
+	a.syncSlashMenu()
+	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).Shrink(0).Children(func() {
+		a.slashNotice(c)
+		a.slashMenu(c)
+		a.composerCard(c, withControls)
+	})
+}
+
+// composerCard 是输入卡本体（圆角框 + 正文 + 工具行 + 可选控制行）。
+func (a *App) composerCard(c *gui.Context, withControls bool) {
 	t := c.Theme()
 	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).MinHeight(composerMinHeight).
 		Background(t.Surface).Border(strokeHairline, t.Border).
@@ -205,12 +217,21 @@ func (a *App) inputBlock(c *gui.Context, withControls bool) {
 			}
 			input := gui.TextAreaBase(c, &a.draft).Placeholder(ph).Grow(1).MinHeight(composerTextMinHeight).
 				Label(name)
+			// 弹层打开时接管输入框里的 ↑↓ / ↵ / Esc（G-B1-01、G-B1-07）。
+			if a.slash.open {
+				input = input.OnTextKey(a.slashTextKey)
+			}
 			// 全局唤起（⌘⇧Space）后把焦点落到输入区：Focus 只在请求被消费的
 			// 那一帧调用一次，用户之后点别处不会再被抢回来（AutoFocus 只对
 			// 当帧新建的元素生效，输入区早就存在，用不上）。
 			if a.focusComposer.Swap(false) {
 				input = input.Focus()
 			}
+			// 点击弹层外（焦点离开输入区）收起弹层，草稿不动。
+			// 点击弹层外（焦点离开输入框）收起弹层，草稿不动。焦点判定用
+			// FocusTakesText：指向别的按钮 / 列表时它变假，而输入框自己是否
+			// 拿着焦点不影响这一判据。
+			a.slashFocus(c)
 			a.composerToolRow(c)
 		})
 		if withControls {
@@ -380,69 +401,6 @@ func (a *App) openLog() {
 		return
 	}
 	a.logNote = ""
-}
-
-// approvalCard 是审批卡：整体替换输入区，标题、命令面板与三个决定。
-//
-// 卡片只画事实里有的两样：要执行的命令原文（ApprovalSnapshot.Command）与三个决定。
-// 审批事实里没有工作目录这一项，所以不画 cwd 行；命令为空（服务端没给原文）时
-// 写清读不到，并让三个决定都不可点——替用户编一条命令再让他按「始终允许」，
-// 等于让他同意一条他没看见的命令。
-func (a *App) approvalCard(c *gui.Context) {
-	t := c.Theme()
-	cmd := strings.TrimSpace(a.approvalCommand)
-	if ap, ok := a.liveApproval(); ok {
-		cmd = strings.TrimSpace(ap.Command)
-	}
-	readable := cmd != ""
-	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).MinHeight(ApprovalHeight).
-		Padding(space4).Gap(space2).Background(t.Surface).
-		Border(strokeHairline, t.Border).Radius(radiusWindowCard).Label("审批卡").Children(func() {
-		gui.Column(c).Gap(space2).Children(func() {
-			typeBodyStrong.style(t, gui.Text(c, "DimAgent 想要：执行")).
-				FontWeight(600).Label("DimAgent 想要：执行")
-			gui.Column(c).MinHeight(composerInnerHeight).Padding(space2, space3).Gap(space1).
-				Border(strokeHairline, t.Border).Radius(radiusCard).Children(func() {
-				typeMicro.style(t, gui.Text(c, "输入")).TextColor(t.TextMuted).Label("输入")
-				if !readable {
-					typeCode.style(t, gui.Text(c, noteApprovalCommand)).TextColor(t.TextMuted)
-					return
-				}
-				gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
-					typeCode.style(t, gui.Text(c, "$")).TextColor(t.TextMuted)
-					typeCode.style(t, gui.Text(c, cmd)).TextColor(t.Text)
-				})
-			})
-			if !readable {
-				typeMicro.style(t, gui.Text(c, noteApprovalBlocked)).
-					TextColor(t.TextMuted).Selectable()
-			}
-		})
-		gui.Spacer(c)
-		gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
-			gui.Spacer(c)
-			if gui.Button(c, "拒绝").Label("拒绝").Disabled(!readable).Clicked() {
-				a.respondApproval("deny")
-			}
-			if gui.PrimaryButton(c, "仅这次").Label("仅这次").Disabled(!readable).Clicked() {
-				a.respondApproval("allow")
-			}
-			if gui.Button(c, "始终允许此命令").Label("始终允许此命令").Disabled(!readable).Clicked() {
-				a.respondApproval("allow-always")
-			}
-		})
-	})
-}
-
-// respondApproval 把审批决定发出去：接上事实时走 Intents，否则只记样例反馈。
-func (a *App) respondApproval(decision string) {
-	if a.intents == nil {
-		a.approvalDecision = decision
-		return
-	}
-	a.dispatch("审批", func(ctx context.Context) error {
-		return a.intents.RespondApproval(ctx, decision)
-	}, nil)
 }
 
 // questionCard 是提问卡：出现时占据输入位，批次只提交一次（U3 §5.5）。

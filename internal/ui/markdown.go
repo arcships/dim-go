@@ -48,6 +48,9 @@ func markdownTheme(t *gui.Theme) *markdown.Theme {
 	md.QuoteText = t.TextMuted
 	md.QuoteBarWidth = 3
 	md.Rule = t.Border
+	// 搜索命中的行内标记（<mark>）：取命中高亮的黄底，与时间线的普通命中同色
+	// （G-A5-01）；当前命中另加下划线（见 searchMarkedMarkdown）。
+	md.Mark = colorSearchHit.in(t)
 	// 呼吸（U0 §3.1 的 M2/M6/M7 量出来的）：
 	//   段落之间：示例 18px 墨迹间隙 / 21px 行盒 ≈ 0.85em，我们原来 0.75em；
 	//   列表项之间：示例 22.5px 行距 = 行盒 + 0.25em，我们已是 0.25em（不动）；

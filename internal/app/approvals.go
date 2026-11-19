@@ -168,12 +168,15 @@ func (a *App) routeSessionNotice(params json.RawMessage) {
 // approvalFacts 把一条审批请求映射成交互裁决的事实。
 func approvalFacts(notice protocol.ApprovalRequestNotice) []interaction.Fact {
 	fact := interaction.Fact{
-		Kind:      interaction.PendingApproval,
-		RequestID: notice.RequestID,
-		SessionID: notice.SessionID,
-		BranchID:  notice.BranchID,
-		TurnID:    notice.Source.TurnID,
-		Action:    approvalAction(notice),
+		Kind:       interaction.PendingApproval,
+		RequestID:  notice.RequestID,
+		SessionID:  notice.SessionID,
+		BranchID:   notice.BranchID,
+		TurnID:     notice.Source.TurnID,
+		Action:     approvalAction(notice),
+		Tool:       notice.Call.Name,
+		ToolInput:  notice.Call.Input,
+		SourceKind: notice.Source.Kind,
 	}
 	fact.AllowLongTerm, fact.LongTermParams = longTermRule(notice)
 	return []interaction.Fact{fact}

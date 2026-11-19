@@ -128,6 +128,11 @@ func (s *Session) SetPermissionTier(ctx context.Context, tier string) error {
 	return s.App.setPermissionTierFor(ctx, s.ID(), tier)
 }
 
+// CompactContext 压缩本窗口会话的上下文（斜杠命令 /compact）。
+func (s *Session) CompactContext(ctx context.Context) error {
+	return s.App.compactContextFor(ctx, s.ID())
+}
+
 func (s *Session) SelectBranch(ctx context.Context, branchID string) error {
 	return s.App.selectBranchFor(ctx, s.ID(), branchID)
 }

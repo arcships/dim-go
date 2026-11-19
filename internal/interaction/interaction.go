@@ -74,6 +74,13 @@ type Fact struct {
 	TurnID    string
 	// Action 是审批的动作描述；提问为空。
 	Action string
+	// Tool 是审批指向的工具名原文（call.name）；提问为空。界面按它挑输入渲染器
+	// 与动作标签，本包不解释含义。
+	Tool string
+	// ToolInput 是工具入参 JSON 原文；本包不解释内容，只在界面按渲染器展示。
+	ToolInput json.RawMessage
+	// SourceKind 是审批来源类别（服务端 BranchSource 的 kind，如 tool / host）。
+	SourceKind string
 	// AllowLongTerm 表示服务端声明这次审批可以长期允许。
 	AllowLongTerm bool
 	// LongTermParams 是长期规则的写入参数原文。本包不解释内容，只在选择长期
@@ -118,6 +125,11 @@ type Item struct {
 	BranchID  string
 	TurnID    string
 	Action    string
+	// Tool / ToolInput / SourceKind 是审批指向的工具、入参原文与来源类别；
+	// 供界面挑输入渲染器与动作标签。提问为空。
+	Tool       string
+	ToolInput  json.RawMessage
+	SourceKind string
 	// AllowLongTerm 是服务端声明的可长期允许标记；是否真的能写还取决于是否
 	// 带长期规则参数。
 	AllowLongTerm bool
@@ -514,7 +526,11 @@ func (a *Arbiter) normalizeApproval(fact Fact) (Fact, string) {
 	if len(fact.LongTermParams) > 0 && !json.Valid(fact.LongTermParams) {
 		return Fact{}, RejectionInvalidFact
 	}
+	if len(fact.ToolInput) > 0 && !json.Valid(fact.ToolInput) {
+		return Fact{}, RejectionInvalidFact
+	}
 	fact.LongTermParams = cloneBytes(fact.LongTermParams)
+	fact.ToolInput = cloneBytes(fact.ToolInput)
 	return fact, ""
 }
 
@@ -527,6 +543,9 @@ func (e *entry) item(position int) Item {
 		BranchID:          e.fact.BranchID,
 		TurnID:            e.fact.TurnID,
 		Action:            e.fact.Action,
+		Tool:              e.fact.Tool,
+		ToolInput:         cloneBytes(e.fact.ToolInput),
+		SourceKind:        e.fact.SourceKind,
 		AllowLongTerm:     e.fact.AllowLongTerm,
 		LongTermAvailable: e.fact.AllowLongTerm && len(e.fact.LongTermParams) > 0,
 		Source:            e.source,

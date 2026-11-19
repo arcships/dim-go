@@ -8,7 +8,6 @@ import (
 	"time"
 
 	gui "github.com/egoist/mygo/ui"
-	"github.com/egoist/mygo/ui/markdown"
 )
 
 // 时间线按参考产品的聊天时间线重建：用户气泡右对齐、助手块左对齐；思考块、
@@ -77,8 +76,8 @@ func (a *App) timeline(c *gui.Context) {
 	}
 
 	gui.Box(c).Grow(1).Children(func() {
-		gui.Scroll(c).Grow(1).Fill().TrackScroll(&a.feed).
-			Label("对话流").Role(gui.RoleLog).Focusable().TabStop(true).Children(func() {
+		feed := a.timelineFeed(c)
+		feed.Children(func() {
 			gui.Column(c).Padding(space6, timelinePadX).Gap(timelineRoundGap).
 				Label("对话内容").Children(func() {
 				gui.Row(c).Shrink(0).Children(func() {
@@ -91,6 +90,18 @@ func (a *App) timeline(c *gui.Context) {
 		})
 		a.backToLatest(c)
 	})
+}
+
+// timelineFeed 是时间线的滚动容器：与搜索关闭时的焦点归还共用一处。
+// 会话内搜索关掉后，焦点回到这条流上（A1-05 的 R-GS-052）。
+func (a *App) timelineFeed(c *gui.Context) gui.Element {
+	feed := gui.Scroll(c).Grow(1).Fill().TrackScroll(&a.feed).
+		Label("对话流").Role(gui.RoleLog).Focusable().TabStop(true)
+	if a.sessionSearch.returnFocus {
+		feed = feed.Focus()
+		a.sessionSearch.returnFocus = false
+	}
+	return feed
 }
 
 // round 画一轮：用户消息右对齐，下面是助手区（思考、正文、工具分组、轮末块）。
@@ -159,6 +170,8 @@ func (a *App) userMessage(c *gui.Context, i int, r round) {
 			})
 		}
 		if selection := selectedTextOf(body); selection != "" {
+			// ⌘F 打开会话内搜索时预填这段选中文本（A1-03）。
+			a.timelineSelected = selection
 			a.selectionBar(c, selection)
 		}
 		// 超过折叠行数时动作行常驻：里面左起第一项就是「展示全部 / 收起」（TL-31）。
@@ -191,7 +204,7 @@ func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Eleme
 			box.Children(func() {
 				a.userAttachmentArea(c, r)
 				if r.user != "" {
-					body := typeBody.style(t, gui.Text(c, r.user)).TextColor(t.Text)
+					body := a.searchText(c, searchKeyUser(i), r.user, typeBody, t.Text)
 					if overflow && !expanded {
 						body = body.MaxLines(bubbleCollapsedLines)
 					}
@@ -207,6 +220,7 @@ func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Eleme
 			})
 		})
 	})
+	a.searchReveal(c, box, i)
 	return box
 }
 
@@ -486,7 +500,8 @@ func (a *App) assistant(c *gui.Context, i int, r round) {
 			a.thinkingBlock(c, i, r)
 		}
 		if r.reply != "" {
-			markdown.View(c, r.reply, &a.md)
+			reply := a.assistantMarkdown(c, searchKeyAssistant(i), r.reply)
+			a.searchReveal(c, reply, i)
 		}
 		// 完成态的过程摘要；运行中由上面的时长摘要承担，不再重复。
 		if r.status != roundRunning && len(r.ops) > 0 {
@@ -619,13 +634,14 @@ func (a *App) thinkingBlock(c *gui.Context, i int, r round) {
 	if btn.Clicked() {
 		*open = !*open
 	}
+	a.searchReveal(c, btn, i)
 	a.revealPanel(c, *open, progress, func() {
 		gui.Row(c).Grow(1).Gap(space2).Children(func() {
 			rail := gui.Box(c).Width(strokeHairline).Shrink(0).AlignSelf(gui.Stretch).Label("思考轨道")
 			rail.DrawOver(func(p *gui.Painter, rect gui.Rect) {
 				p.Fill(rect, t.Border, 0)
 			})
-			typeSecondary.style(t, gui.Text(c, r.thinking)).TextColor(t.TextMuted).
+			a.searchText(c, searchKeyThinking(i), r.thinking, typeSecondary, t.TextMuted).
 				Grow(1).Selectable()
 		})
 	})
@@ -715,7 +731,8 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 		if fileAction(o.action) {
 			iconGlyph(c, iconDocument, t.TextMuted, "file")
 		}
-		typeSecondary.style(t, gui.Text(c, display)).TextColor(t.Text).Shrink(1).SingleLine()
+		a.searchText(c, searchKeyToolParam(roundIndex, opIndex), display, typeSecondary, t.Text).
+			Shrink(1).SingleLine()
 		if o.added > 0 {
 			typeMicro.style(t, gui.Text(c, fmt.Sprintf("+%d", o.added))).TextColor(t.Success)
 		}
@@ -732,25 +749,30 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 	if btn.Clicked() && hasDetails {
 		*open = !*open
 	}
+	a.searchReveal(c, btn, roundIndex)
 	if !hasDetails {
 		return
 	}
 	a.revealPanel(c, *open, progress, func() {
-		a.toolDetail(c, o)
+		a.toolDetail(c, roundIndex, opIndex, o)
 	})
 }
 
 // toolDetail 是工具行的展开区：输入 / 输出 / 失败原因三段，段首写段名，
 // 内容用等宽浅底块；失败原因取危险色。输入与失败原因分开进快照之前，失败的
 // 工具仍给出「失败原因」段，并写明这一段还在等事实，不把输出冒充原因。
-func (a *App) toolDetail(c *gui.Context, o op) {
+func (a *App) toolDetail(c *gui.Context, row, n int, o op) {
 	t := c.Theme()
 	gui.Column(c).Gap(space1).PaddingStart(timelineGroupIndent).Children(func() {
 		if o.input != "" {
-			a.toolDetailSection(c, "输入", t.TextMuted, func() { a.codeBlock(c, o.input) })
+			a.toolDetailSection(c, "输入", t.TextMuted, func() {
+				a.searchCodeBlock(c, searchKeyToolInput(row, n), o.input)
+			})
 		}
 		if o.output != "" {
-			a.toolDetailSection(c, "输出", t.TextMuted, func() { a.codeBlock(c, o.output) })
+			a.toolDetailSection(c, "输出", t.TextMuted, func() {
+				a.searchCodeBlock(c, searchKeyToolOutput(row, n), o.output)
+			})
 		}
 		if o.failed || o.cause != "" {
 			a.toolDetailSection(c, "失败原因", t.Danger, func() {
@@ -1410,8 +1432,8 @@ func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 		return
 	}
 	gui.Box(c).Grow(1).Children(func() {
-		gui.Scroll(c).Grow(1).Fill().TrackScroll(&a.feed).
-			Label("对话流").Role(gui.RoleLog).Focusable().TabStop(true).Children(func() {
+		feed := a.timelineFeed(c)
+		feed.Children(func() {
 			gui.Column(c).Padding(space6, timelinePadX).Gap(timelineRoundGap).
 				Label("对话内容").Children(func() {
 				for i := range snap.Rows {
@@ -1455,28 +1477,33 @@ func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
 	case RowCompression:
 		a.compressionRow(c, compressionRowKey(i), row.Text, row.Status)
 	default:
-		a.liveText(c, row)
+		a.liveText(c, i, row)
 	}
 }
 
 // liveText 是纯文本回退：正文非空就按助手正文画；空行没有可画的内容。
-func (a *App) liveText(c *gui.Context, row RowSnapshot) {
+func (a *App) liveText(c *gui.Context, i int, row RowSnapshot) {
 	if strings.TrimSpace(row.Text) == "" {
 		return
 	}
-	a.assistantText(c, row.Text)
+	a.assistantText(c, i, row.Text)
 }
 
 // assistantText 是一段助手正文：整段可选，右键菜单按选区复制（TL-65）。
-func (a *App) assistantText(c *gui.Context, text string) {
+func (a *App) assistantText(c *gui.Context, i int, text string) {
 	col := gui.Column(c).Shrink(0).Label("助手正文").Selectable()
 	svc := c.Services()
 	col = col.ContextMenu(func(m *gui.Menu) {
 		a.assistantMessageMenu(m, svc, text, selectedTextOf(col))
 	})
 	col.Children(func() {
-		markdown.View(c, text, &a.md)
+		body := a.assistantMarkdown(c, searchKeyAssistant(i), text)
+		a.searchReveal(c, body, i)
 	})
+	if selection := selectedTextOf(col); selection != "" {
+		// ⌘F 打开会话内搜索时预填这段选中文本（A1-03）。
+		a.timelineSelected = selection
+	}
 }
 
 // userRound 把用户行投成一条用户消息：正文与状态来自事实。附件、引用、标注与

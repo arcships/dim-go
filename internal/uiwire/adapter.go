@@ -531,11 +531,86 @@ func (w *App) approvalFor(sessionID string) (ui.ApprovalSnapshot, bool) {
 		return ui.ApprovalSnapshot{}, false
 	}
 	item := view.Current
-	return ui.ApprovalSnapshot{
-		ID:       item.RequestID,
-		Command:  item.Action,
-		LongTerm: item.LongTermAvailable,
-	}, true
+	snapshot := ui.ApprovalSnapshot{
+		ID:         item.RequestID,
+		Command:    approvalCommand(item.ToolInput, item.Tool),
+		LongTerm:   item.LongTermAvailable,
+		Tool:       item.Tool,
+		Input:      string(item.ToolInput),
+		SourceKind: item.SourceKind,
+		Pending:    item.State != interaction.StatePresented,
+		Member:     memberApproval(item),
+	}
+	return snapshot, true
+}
+
+// memberApprovalTool 是成员审批请求的工具名（服务端 member_approval_allow）。
+const memberApprovalTool = "member_approval_allow"
+
+// memberApproval 认出成员审批请求并给出能画的事实。
+//
+// 明细（成员标识、主分支、原始动作）要走 session.collaboration.approval.get，
+// 本端没有这条通道，所以状态只能是 unavailable：只画审批 ID 与"只能拒绝"，不
+// 编成员与分支。
+func memberApproval(item interaction.Item) *ui.ApprovalMemberSnapshot {
+	if item.Tool != memberApprovalTool {
+		return nil
+	}
+	member := &ui.ApprovalMemberSnapshot{
+		State:      ui.ApprovalMemberUnavailable,
+		ApprovalID: approvalInputString(item.ToolInput, "approval_id"),
+	}
+	if member.ApprovalID == "" {
+		member.ApprovalID = approvalInputString(item.ToolInput, "approvalId")
+	}
+	return member
+}
+
+// approvalInputString 取工具入参里的一个字符串字段；没有或类型不对时为空。
+func approvalInputString(input json.RawMessage, key string) string {
+	if len(input) == 0 {
+		return ""
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(input, &fields); err != nil {
+		return ""
+	}
+	var value string
+	if raw, ok := fields[key]; ok {
+		if err := json.Unmarshal(raw, &value); err == nil {
+			return value
+		}
+	}
+	return ""
+}
+
+// approvalCommand 取出命令类工具入参里的命令原文；不是命令工具或没有该字段
+// 时为空——界面据此判断"读不到命令"，不拿工具名顶替。
+func approvalCommand(input json.RawMessage, tool string) string {
+	if len(input) == 0 || !isCommandTool(tool) {
+		return ""
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(input, &fields); err != nil {
+		return ""
+	}
+	var command string
+	if raw, ok := fields["command"]; ok {
+		if err := json.Unmarshal(raw, &command); err == nil {
+			return command
+		}
+	}
+	return ""
+}
+
+// isCommandTool 判断工具是否是启动进程的命令工具（与服务端命令规则的覆盖范围
+// 一致：exec / execute 与常见别名）。
+func isCommandTool(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "exec", "execute", "bash", "shell", "terminal", "exec_command", "run_command":
+		return true
+	}
+	return false
 }
 
 func (w *App) Question() (ui.QuestionSnapshot, bool) {
@@ -1308,6 +1383,42 @@ func (w *App) WriteCommandRules(ctx context.Context, rules []ui.RuleSnapshot) er
 	w.rulesKnown = true
 	w.rulesErr = ""
 	w.rulesMu.Unlock()
+	w.changed()
+	return nil
+}
+
+// ---- 上下文与技能目录 ----
+
+// CompactContext 手动压缩当前窗口会话的上下文：登记一次管理写入，由发送方
+// 转到 `session.context.compact`；压缩结果以时间线事实 `context/compaction`
+// 为准，这里不写第二份状态。
+func (w *App) CompactContext(ctx context.Context) error {
+	return w.compactContextFor(ctx, w.currentSession())
+}
+
+// compactContextFor 压缩指定会话的上下文；会话标识为空即没有打开的会话。
+func (w *App) compactContextFor(ctx context.Context, sessionID string) error {
+	if sessionID == "" {
+		return fmt.Errorf("没有打开的会话")
+	}
+	if _, err := w.A.CompactContext(ctx, sessionID); err != nil {
+		return err
+	}
+	w.changed()
+	return nil
+}
+
+// RefreshSkills 重新扫描磁盘上的技能目录，随后重读一次清单：条目与版本来自
+// 服务端读数，本端不留缓存。
+func (w *App) RefreshSkills(ctx context.Context) error {
+	service := w.A.Extensions()
+	if service == nil {
+		return fmt.Errorf("扩展领域未就绪")
+	}
+	if _, err := service.RefreshSkills(ctx); err != nil {
+		return err
+	}
+	_, _ = service.ListSkills(ctx)
 	w.changed()
 	return nil
 }

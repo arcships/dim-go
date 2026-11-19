@@ -105,6 +105,14 @@ type Intents interface {
 	SelectModel(ctx context.Context, providerID, modelID string) error
 	WriteCommandRules(ctx context.Context, rules []RuleSnapshot) error
 
+	// 上下文：手动压缩当前会话的上下文（斜杠命令 /compact）。压缩结果以时间线
+	// 事实 context/compaction 为准，界面不另存。
+	CompactContext(ctx context.Context) error
+
+	// 扩展：重新扫描磁盘上的技能目录（斜杠命令 /reload-skills）。条目与版本由
+	// 随后的技能读数带回，界面不缓存第二份。
+	RefreshSkills(ctx context.Context) error
+
 	// 分支。
 	SelectBranch(ctx context.Context, branchID string) error
 	CreateBranch(ctx context.Context, parentID string, turnIndex int, prompt string) error
@@ -503,11 +511,86 @@ type RowSnapshot struct {
 }
 
 // ApprovalSnapshot 是一条待决审批。
+//
+// 卡片的输入区按 Tool + Input 挑渲染器（命令 / 文件 / 检索 / 网页 / 技能 /
+// 子代理 / MCP / 图片 / 待办 / 通用）；Tool 与 Input 都是服务端原文，界面不补
+// 字段。Command 是要执行的命令原文的短路径（样例态与只有命令的场景用）。
 type ApprovalSnapshot struct {
 	ID       string
 	Command  string
 	Impact   string
 	LongTerm bool
+	// Tool 是工具名原文（如 exec / read / grep / web_fetch）。
+	Tool string
+	// Input 是工具入参 JSON 原文；空表示服务端没有给入参。
+	Input string
+	// SourceKind 是审批来源类别（tool / host）。
+	SourceKind string
+	// Pending 表示决定已发出、还没有结算：按钮保持禁用直到请求结算。
+	Pending bool
+	// Member 是成员审批的上下文：请求工具为 member_approval_allow 时由连接层填。
+	// protocol v3 没有成员审批明细通道（session.collaboration.approval.get），
+	// 所以状态恒为 unavailable：能画出来的只有审批 ID 与"只能拒绝"。
+	Member *ApprovalMemberSnapshot
+	// Sandbox / SubagentModel / Handoff 是另外三种审批形状。protocol v3 的
+	// approval.request 没有这些字段，连接层不会填；nil 表示没有该事实，界面不画
+	// 那张卡，也不拿工具卡顶替。
+	Sandbox       *ApprovalSandboxSnapshot
+	SubagentModel *ApprovalSubagentModelSnapshot
+	Handoff       *ApprovalHandoffSnapshot
+}
+
+// 成员审批区块的状态，与参考产品 InteractionMemberApproval.state 同义。
+const (
+	// ApprovalMemberLoading 是成员动作还在加载。
+	ApprovalMemberLoading = "loading"
+	// ApprovalMemberReady 是成员动作已就绪，可以审查。
+	ApprovalMemberReady = "ready"
+	// ApprovalMemberError 是成员动作读取失败，可重试。
+	ApprovalMemberError = "error"
+	// ApprovalMemberUnavailable 是本端与 App Server 都给不出原始动作。
+	ApprovalMemberUnavailable = "unavailable"
+)
+
+// ApprovalMemberSnapshot 是成员审批区块的事实。
+type ApprovalMemberSnapshot struct {
+	State          string
+	AgentID        string
+	BranchID       string
+	LeaderBranchID string
+	ApprovalID     string
+	Reason         string
+	Error          string
+	CanRetry       bool
+}
+
+// ApprovalSandboxSnapshot 是沙箱越权卡的事实：被拦的是域名还是路径、哪类访问。
+type ApprovalSandboxSnapshot struct {
+	// ResourceType 取 domain / path；空按 domain 画（参考产品的回退）。
+	ResourceType string
+	// Access 取 read / write / execute；domain 时为空。
+	Access string
+	// Resource 是被拦的域名或路径原文。
+	Resource string
+	// Tool 是发起这次访问的工具名，用于说明句。
+	Tool string
+}
+
+// ApprovalSubagentModelSnapshot 是子代理换模型卡的事实。
+type ApprovalSubagentModelSnapshot struct {
+	TaskTitle     string
+	ModelName     string
+	ProviderName  string
+	FallbackModel string
+	// Pricier 表示这个模型比当前模型贵；false 时不画价格标记。
+	Pricier bool
+}
+
+// ApprovalHandoffSnapshot 是自动审批交回人工的提示块事实。
+type ApprovalHandoffSnapshot struct {
+	// Kind 取 reviewer_uncertain / reviewer_failed。
+	Kind   string
+	Reason string
 }
 
 // QuestionSnapshot 是一条待答提问。

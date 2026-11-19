@@ -25,7 +25,7 @@ import (
 // 窗口模式下 macOS 的红绿灯落在左栏顶部上方：顶部先留一条与控件同高的空带
 // （c.TitleBar().Height），这一条也是拖动窗口的把手。
 func (a *App) sidebar(c *gui.Context) {
-	if !a.palette.open && c.Shortcut(gui.Cmd, gui.KeyG) {
+	if !a.palette.open && !a.sessionSearch.open && c.Shortcut(gui.Cmd, gui.KeyG) {
 		a.toggleSearch()
 	}
 	if a.sidebarCollapsed {

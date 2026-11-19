@@ -938,3 +938,33 @@ func TestIntentShellStop(t *testing.T) {
 		t.Fatalf("停止命令参数不对：%v", params)
 	}
 }
+
+// TestIntentCompactContext 斜杠命令 /compact → session.context.compact（会话流）。
+func TestIntentCompactContext(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false,
+		"session.context.compact",
+	))
+	h.typeInto("消息", "/compact")
+	h.waitFor("斜杠命令", 2*time.Second)
+	h.click("斜杠命令")
+	h.tester.Key(0, gui.KeyDown)
+	h.tester.Key(0, gui.KeyEnter)
+	h.frame()
+	params := h.waitRequest("session.context.compact")
+	t.Logf("在输入框打 /compact 并回车 → 服务端收到 session.context.compact（%d 次），params=%v",
+		len(h.server.RequestsFor("session.context.compact")), params)
+	if params["sessionId"] != e2eSession {
+		t.Fatalf("压缩参数里的会话不对：%v", params)
+	}
+}
+
+// TestIntentRefreshSkills 斜杠命令 /reload-skills → skills.refresh（控制面）。
+func TestIntentRefreshSkills(t *testing.T) {
+	h := newIntentHarness(t, baseScript("/work", false, "skills.refresh"))
+	if err := h.wire.RefreshSkills(context.Background()); err != nil {
+		t.Fatalf("RefreshSkills：%v", err)
+	}
+	h.waitRequest("skills.refresh")
+	t.Logf("RefreshSkills → 服务端收到 skills.refresh（%d 次）",
+		len(h.server.RequestsFor("skills.refresh")))
+}

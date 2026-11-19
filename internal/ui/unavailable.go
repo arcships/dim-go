@@ -72,6 +72,8 @@ const (
 	noteApprovalCommand = "服务端没有给出要执行的命令"
 	// noteApprovalBlocked 是同一张卡片上"为什么三个决定都不能点"的一句。
 	noteApprovalBlocked = "读不到命令原文，无法判断要执行什么；先不提供决定。"
+	// noteMemberApprovalDetail 用于成员审批区块的「重试」：明细要另一条读取通道。
+	noteMemberApprovalDetail = "服务端没有提供成员审批明细的读取（本版不做）"
 	// noteEmailLogin 用于企业邮箱登录的提交。
 	noteEmailLogin = "服务端没有提供企业邮箱登录（本版不做）"
 	// noteThinking 用于思考强度滑杆。
@@ -101,4 +103,13 @@ const (
 	// noteNoWriteChannel 用于连着 Source 却没有写入通道的入口：既不装作生效，也
 	// 不把原因留空。
 	noteNoWriteChannel = "没有连接写通道（不可用）"
+	// notePetShown 用于斜杠命令 `/pet`：Pet 组件不可用，设置里的宠物显示开关
+	// 在同一条件下也置灰（两处同源，不出现「命令说开了、设置说关」）。
+	notePetShown = "Pet 组件在当前环境不可用（设置里的宠物显示开关同样置灰）"
+	// notePluginReload 用于斜杠命令 `/reload-plugins`：只有读清单的方法，没有重扫。
+	notePluginReload = "服务端没有提供重扫插件（本版不做）"
+	// noteFastMode 用于斜杠命令 `/fast`：本端没有快速模式的开关与状态。
+	noteFastMode = "当前版本不支持快速模式"
+	// noteWorkflow 用于斜杠命令 `/workflow`：没有工作流浏览入口。
+	noteWorkflow = "服务端没有提供工作流浏览（本版不做）"
 )

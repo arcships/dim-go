@@ -149,9 +149,15 @@ func TestEndToEndFiveSteps(t *testing.T) {
 	if approval.ID != "ap-1" {
 		t.Fatalf("⑤ 审批标识 = %q，想要 ap-1", approval.ID)
 	}
-	// 审批卡上的动作描述来自刚到的那条通知（工具名 + reason），不是样例常量。
-	if approval.Command != "exec：启动进程" {
-		t.Fatalf("⑤ 审批动作描述 = %q，想要 %q", approval.Command, "exec：启动进程")
+	// 审批卡上的命令原文来自刚到的那条通知的入参，不是样例常量。
+	if approval.Tool != "exec" {
+		t.Fatalf("⑤ 审批工具 = %q，想要 exec", approval.Tool)
+	}
+	if approval.Command != "printf DIMAGENT_APPROVAL_OK" {
+		t.Fatalf("⑤ 审批命令 = %q，想要 %q", approval.Command, "printf DIMAGENT_APPROVAL_OK")
+	}
+	if !strings.Contains(approval.Input, `"command":"printf DIMAGENT_APPROVAL_OK"`) {
+		t.Fatalf("⑤ 审批入参原文没有带到界面: %q", approval.Input)
 	}
 	if strings.Contains(approval.Command, "rm -rf") {
 		t.Fatalf("⑤ 审批里出现了样例命令: %q", approval.Command)
