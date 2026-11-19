@@ -520,8 +520,8 @@ func (a *App) pluginMarketSection(c *gui.Context, t *gui.Theme) {
 				if st.feedSaving {
 					label = pluginMarketSaving
 				}
-				if pluginSmallButton(c, t, label, true, !canAct || st.feedSaving,
-					pluginMarketWriteNote(canAct)) {
+				if pluginSmallButtonLabeled(c, t, label, "保存插件源", true,
+					!canAct || st.feedSaving, pluginMarketWriteNote(canAct)) {
 					a.savePluginFeed(market)
 				}
 			})
