@@ -416,6 +416,9 @@ type SessionSnapshot struct {
 	Branches []BranchSnapshot
 	// TurnCount 是已加载轮次数，用于从当前分支切出时选切点。
 	TurnCount int
+	// HasOlder 表示还有更早的轮次没装载（投影层的分页窗口）。为真时 Rows 只是
+	// 已加载的那一段：导出与搜索都只能覆盖这一段，界面必须写明，不把它说成全量。
+	HasOlder bool
 	// LastTurn 是最后一个已结束的轮：Ended 为假表示还没有结束的轮，Outcome 是
 	// 服务端给的结果词。宿主通知按它区分「完成」与「失败」。
 	LastTurnEnded   bool
@@ -504,9 +507,10 @@ const (
 	RowToolGroup = "toolGroup"
 	// RowError 是一轮以失败收口的事实；Text 是服务端给的结果原文（可能为空）。
 	RowError = "error"
-	// RowRetry 是一次自动重试的倒计时；Duration 是剩余时间。
+	// RowRetry 是一次自动重试的倒计时；剩余时间取 RetryIn（不用 Duration）。
 	//
-	// 协议目前没有重试事实：种类与画法先留着，投影不产生这种行。
+	// 协议 v3 没有重试事实：投影与 adapter 都不产这种行，界面在 RetryIn 为 0 时
+	// 也不画（拿不到剩余时间就不显示，绝不把已耗时当成"还剩"）。
 	RowRetry = "retry"
 	// RowArtifact 是本轮产物，Children 是产物行（Text 是名字）。
 	//
@@ -552,8 +556,15 @@ type RowSnapshot struct {
 	Args string
 	// Status 取 RowStatus* 之一；空表示这一行没有状态事实。
 	Status string
-	// Duration 是这一行已经用掉的时间（思考、工具、重试倒计时）；0 表示没有。
+	// Duration 是这一行已经用掉的时间（思考、工具）；0 表示没有。
+	//
+	// 它是"已耗时"，不是"还剩"：倒计时一律取 RetryIn，两个口径不混用。
 	Duration time.Duration
+	// RetryIn 是自动重试行还剩多久（RowRetry 专用）；0 表示拿不到剩余时间。
+	//
+	// 剩余时间是另一条事实，不能由 Duration 推出：RetryIn 为 0 时界面不画这一
+	// 行，也不写一个推算出来的秒数。
+	RetryIn time.Duration
 	// DiffAdd / DiffRemove 是改动行数；0 表示没有差异事实（不是"没有改动"）。
 	DiffAdd    int
 	DiffRemove int

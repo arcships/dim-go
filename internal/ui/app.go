@@ -1826,6 +1826,17 @@ func (a *App) liveSession() (SessionSnapshot, bool) {
 	return a.source.Session()
 }
 
+// partialHistoryNote 是「只看到已加载那一段」的口径提示：导出与搜索共用同一句，
+// 免得两处各写一套说法。
+const partialHistoryNote = "仅统计已加载部分（历史未全部载入）"
+
+// sessionPartial 报告当前会话是否还有更早的轮次没装载：为真时界面只看得到
+// 已加载的窗口，导出与搜索都不能说成全量（-demo 与没有会话时恒为假）。
+func (a *App) sessionPartial() bool {
+	snap, ok := a.liveSession()
+	return ok && snap.HasOlder
+}
+
 // liveRunning 是"这一轮在跑"：有 Source 时看事实，否则看样例状态。
 func (a *App) liveRunning() bool {
 	if snap, ok := a.liveSession(); ok {

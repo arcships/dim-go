@@ -217,7 +217,10 @@ func TestUserActionsDoWhatTheySay(t *testing.T) {
 	tt.Move(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
 	tt.Frame()
 
-	// 样例模式：分叉可点，只改视图里的分支名（不发写入）。
+	// 样例模式：分叉可点，只改视图里的分支名（不发写入）。起始提问仍是草稿，
+	// 所以先写一句；草稿为空时分叉置灰（见 TestForkWithoutDraftSendsNoWrite）。
+	app.draft = "样例里的一句"
+	tt.Frame()
 	if info, ok := tt.Access("从此处分叉 1"); !ok || info.Disabled {
 		t.Fatalf("样例里分叉应当可点：%+v（找到 %v）", info, ok)
 	}

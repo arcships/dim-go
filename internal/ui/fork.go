@@ -24,6 +24,10 @@ const (
 	forkNoteTurnRunning = "这一轮还没结束，等结束后再分叉"
 	// forkNoteNoTurns 是会话还没有可切出的轮次时的原因。
 	forkNoteNoTurns = "还没有可切出的轮次"
+	// forkNoteNoPrompt 是输入框没有草稿时的原因：新分支的第一条提问取输入框
+	// 草稿，草稿为空就不发——界面不替用户编一句话（协议要求非空 prompt，编出来
+	// 的那句会变成新分支里用户没写过的第一条消息）。
+	forkNoteNoPrompt = "需要先写一句分支说明"
 	// forkNoteJumpPending 是分支建好了但分支清单还没刷新时的回执。
 	forkNoteJumpPending = "已建分支；分支清单还没刷新，未切换"
 )
@@ -64,13 +68,25 @@ func (a *App) forkBlocked() string {
 	return ""
 }
 
-// forkReason 合并一次分叉的不可用原因：轮次问题优先于写通道问题（先看得见
-// 这一行为什么不能切）。
+// forkReason 合并一次分叉的不可用原因：轮次问题优先于写通道问题，其次是没有
+// 起始提问（先看得见这一行为什么不能切）。
 func (a *App) forkReason(turn int, reason string) string {
 	if reason != "" {
 		return reason
 	}
-	return a.forkBlocked()
+	if reason := a.forkBlocked(); reason != "" {
+		return reason
+	}
+	return a.forkPromptReason()
+}
+
+// forkPromptReason 是「新分支的第一条提问」缺失时的原因：分支的起始提问只取
+// 输入框草稿，草稿为空就没有可发的提问——这时置灰，不代写一句用户没说过的话。
+func (a *App) forkPromptReason() string {
+	if strings.TrimSpace(a.draft) == "" {
+		return forkNoteNoPrompt
+	}
+	return ""
 }
 
 // forkParent 是切出分支的父分支：快照的当前分支；样例取样例分支名。
@@ -86,13 +102,15 @@ func (a *App) forkParent() string {
 	return "main"
 }
 
-// forkPrompt 是分支的起始提问：先取输入区草稿（用户正在写的那一句），没有时给
-// 一句可读的默认值——协议要求提示词非空（catalog.BranchCreateRequest）。
-func (a *App) forkPrompt(turn int) string {
-	if prompt := strings.TrimSpace(a.draft); prompt != "" {
-		return prompt
+// forkStarter 是分支的起始提问：只取输入框草稿（用户正在写的那一句）。没有草稿
+// 时返回空串并给出原因——协议要求提示词非空，但界面不替用户编一句：编出来的
+// 那句话会作为用户消息落进新分支。
+func (a *App) forkStarter() (string, string) {
+	prompt := strings.TrimSpace(a.draft)
+	if prompt == "" {
+		return "", forkNoteNoPrompt
 	}
-	return fmt.Sprintf("从第 %d 轮继续", turn)
+	return prompt, ""
 }
 
 // forkAtTurn 以某一轮结束处建分支：成功回调里切到新分支并写切点。
@@ -102,7 +120,12 @@ func (a *App) forkAtTurn(turn int, label string) {
 		return
 	}
 	parent := a.forkParent()
-	prompt := a.forkPrompt(turn)
+	prompt, reason := a.forkStarter()
+	if reason != "" {
+		// 没有用户写的起始提问：不发任何写入，只写原因（入口也已置灰）。
+		a.headerNote = reason
+		return
+	}
 	if a.intents == nil {
 		if a.wired() {
 			a.headerNote = noteNoWriteChannel

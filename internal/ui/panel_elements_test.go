@@ -600,7 +600,8 @@ func TestTerminalLayersKeepBuffers(t *testing.T) {
 }
 
 // TestSubagentGenericLoadFailure：错误原文为空时仍画「加载失败」与重试；
-// 重试清掉错误回到加载态（SG-010 / SG-014）。
+// -demo 里重试清掉错误后回到样例时间线（不是回到一个永远转的加载圈）
+// （SG-010 / SG-014）。
 func TestSubagentGenericLoadFailure(t *testing.T) {
 	app, tt := panelTester(t, tabSubagent)
 	app.panels.subagentFailed = true
@@ -620,19 +621,22 @@ func TestSubagentGenericLoadFailure(t *testing.T) {
 	if app.panels.subagentFailed {
 		t.Fatal("重试没有清掉错误")
 	}
-	if !tt.HasText("正在加载...") {
-		t.Fatalf("重试后没有回到加载态：%v", tt.Texts())
+	if !tt.HasText(subagentSamples()[0]) {
+		t.Fatalf("重试后没有回到样例时间线：%v", tt.Texts())
 	}
 
-	// 已就绪时同样用通用文案，横幅里仍有重试。
-	app.panels.subagentReady = true
+	// 已有消息时出错：行内横幅里同样用通用文案，横幅外仍画时间线。
+	app.panels.subagentLines = subagentSamples()
 	app.panels.subagentFailed = true
 	tt.Frame()
 	if !tt.HasText("加载失败") {
-		t.Fatalf("就绪后的空错误没有兜底：%v", tt.Texts())
+		t.Fatalf("有消息时的空错误没有兜底：%v", tt.Texts())
 	}
 	if _, ok := tt.Find("重试"); !ok {
-		t.Fatalf("就绪后的错误横幅没有重试：%v", tt.Texts())
+		t.Fatalf("错误横幅没有重试：%v", tt.Texts())
+	}
+	if !tt.HasText(subagentSamples()[0]) {
+		t.Fatalf("错误横幅把时间线挤掉了：%v", tt.Texts())
 	}
 }
 

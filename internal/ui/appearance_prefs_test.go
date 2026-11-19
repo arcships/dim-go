@@ -59,6 +59,10 @@ func TestAppearancePreferencesRestore(t *testing.T) {
 	if app.appearance != src.prefs.Appearance {
 		t.Fatalf("外观偏好没有恢复：%+v", app.appearance)
 	}
+	// 代码字级与代码配色是包级值（applyTokens 每帧按本地偏好写一次）：本用例把
+	// 它们改成非默认值，跑完必须还原，否则后面的用例（尤其 lint 的 markdown 检查）
+	// 读到的是这里的残留——单独跑绿、整包跑红的顺序依赖就是这么来的。
+	pinCodeLook(t, src.prefs.Appearance)
 	_ = gui.NewTester(app.View, WindowWidth, WindowHeight)
 
 	// 界面字体与字号进主题。

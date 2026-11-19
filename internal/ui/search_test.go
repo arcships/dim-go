@@ -513,6 +513,36 @@ func TestSessionSearchLiveRowsSearchable(t *testing.T) {
 	}
 }
 
+// TestSessionSearchSaysPartialHistory：快照还有更早的轮次没载入时，结果计数行
+// 要写明「仅统计已加载部分」——只在已装载的行里找到的命中不能说成整段历史的
+// 结果数；全部载入时不出现这句。
+func TestSessionSearchSaysPartialHistory(t *testing.T) {
+	src := wiredSource()
+	src.session.Rows = []RowSnapshot{
+		{Kind: RowUser, Text: "这一页里的一条消息"},
+		{Kind: RowAssistant, Text: "这一页里的回复"},
+	}
+	src.session.HasOlder = true
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	openSessionSearchForTest(t, tt)
+	searchFor(t, tt, "这一页")
+	if len(app.sessionSearch.hits) == 0 {
+		t.Fatalf("已加载的行里应有命中：%v", unitKeys(app.sessionSearch.units))
+	}
+	if !tt.HasText(partialHistoryNote) {
+		t.Fatalf("没有写「仅统计已加载部分」：%v", tt.Texts())
+	}
+
+	// 历史已全部载入：不写这句（否则是把全量说成部分）。
+	src.session.HasOlder = false
+	tt.Frame()
+	if tt.HasText(partialHistoryNote) {
+		t.Fatalf("历史已全部载入仍写「仅统计已加载部分」：%v", tt.Texts())
+	}
+}
+
 // countSearchLabels 数屏幕上逐字等于 text 的标签个数。
 func countSearchLabels(texts []string, text string) int {
 	n := 0

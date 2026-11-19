@@ -457,3 +457,25 @@ func TestExportEmptySessionState(t *testing.T) {
 		}
 	}
 }
+
+// TestExportPanelSaysPartialHistory：快照还有更早的轮次没载入时，面板要写明
+// 「整条会话」也只覆盖已加载的那一段（不多导出，也不把它说成全量）。
+func TestExportPanelSaysPartialHistory(t *testing.T) {
+	snap := exportTestSession()
+	snap.HasOlder = true
+	_, tt := exportTestApp(t, snap)
+	if !tt.HasText(partialHistoryNote) {
+		t.Fatalf("没有写「仅统计已加载部分」：%v", tt.Texts())
+	}
+	// 范围仍是三档，但口径句就在范围下面：导出内容不因此被说成全部历史。
+	if !tt.HasText("整条会话") {
+		t.Fatalf("范围档位不见了：%v", tt.Texts())
+	}
+
+	// 历史已全部载入：不写这句。
+	snap.HasOlder = false
+	_, tt = exportTestApp(t, snap)
+	if tt.HasText(partialHistoryNote) {
+		t.Fatalf("历史已全部载入仍写「仅统计已加载部分」：%v", tt.Texts())
+	}
+}

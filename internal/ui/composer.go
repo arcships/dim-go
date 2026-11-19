@@ -635,6 +635,30 @@ func demoSkills() []ExtItemSnapshot {
 	}
 }
 
+// switchMode 是切换模式的唯一落点：输入卡的模式菜单与斜杠命令 /agent、/goal
+// 都走这里，落点一致（切模式位；Goal 没有目标时打开目标行的编辑框，真正的写入
+// 仍走 SetGoal / EditGoal）。
+//
+// 返回值是这次切换的回执，只写真的发生了什么：本版模式位只改界面标记，不改变
+// 发送、权限与目标写入，所以回执必须写明「尚未影响发送」，不能只回一句「已执行」。
+func (a *App) switchMode(mode string) string {
+	a.mode = mode
+	if mode != "Goal" {
+		return "已切到 " + mode + " 模式（本版模式位只改界面标记，尚未影响发送）"
+	}
+	if a.wired() {
+		if _, hasSession := a.liveSession(); !hasSession {
+			// 目标归会话：没有会话时写不进去，编辑框不打开（入口本身也已置灰）。
+			return "已切到 Goal 模式（本版模式位只改界面标记，尚未影响发送；没有打开的会话，暂时设定不了目标）"
+		}
+	}
+	if _, _, exists := a.goalState(); !exists {
+		a.goalDraft, a.goalEditing = "", true
+		return "已切到 Goal 模式，并在目标行打开了目标编辑框（模式位本身只改界面标记，尚未影响发送）"
+	}
+	return "已切到 Goal 模式（本版模式位只改界面标记，尚未影响发送）"
+}
+
 // modeSelector 是 Agent / Goal 模式选择器。
 func (a *App) modeSelector(c *gui.Context) {
 	t := c.Theme()
@@ -649,7 +673,7 @@ func (a *App) modeSelector(c *gui.Context) {
 		panel.Width(composerModeMenuWidth).Padding(space1).Radius(radiusCard).Background(t.Surface).
 			Border(strokeHairline, t.Border).Shadow(0, 4, 16, 0, colorShadow.in(t))
 		if menuItem(c, m, iconChevronsR, "Agent", "Agent 模式", "", false, a.mode == "Agent") {
-			a.mode = "Agent"
+			a.switchMode("Agent")
 		}
 		// Goal 模式的五个写入（设置 / 修改 / 暂停 / 恢复 / 清除）都已在目标行接通：
 		// 这里只切模式，还没有目标时把目标行的编辑框打开，让「设定目标」走同一条
@@ -657,10 +681,7 @@ func (a *App) modeSelector(c *gui.Context) {
 		_, hasSession := a.liveSession()
 		goalUnavailable := a.wired() && !hasSession
 		if menuItem(c, m, iconTarget, "Goal", "Goal 模式", "", goalUnavailable, a.mode == "Goal") {
-			a.mode = "Goal"
-			if _, _, exists := a.goalState(); !exists {
-				a.goalDraft, a.goalEditing = "", true
-			}
+			a.switchMode("Goal")
 		}
 		if goalUnavailable {
 			typeMicro.style(t, gui.Text(c, "还没有打开会话，暂时设定不了目标")).

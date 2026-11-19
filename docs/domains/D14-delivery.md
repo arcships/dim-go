@@ -147,7 +147,7 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 右栏 · 后台任务停止 | `StopExecTask` | `app.StopExecTask` | `session.exec.stop` | `TestIntentStopExecTask` |
 | 设置 · 外观 / 侧栏 / 窗口 | 本地偏好 | `app.UpdatePreferences`（`<数据目录>/preferences.json`） | 无 | `TestPreferencesRoundTrip` / `TestPreferencesCorruptFallsBack` |
 
-分支切出的起始提问取当前草稿；草稿为空时用「从当前分支切出」，切点取已加载轮次的最后一轮。
+分支切出的起始提问只取当前草稿；草稿为空时不发写入（入口置灰并写「需要先写一句分支说明」），界面不代写起始提问。切点取已加载轮次的最后一轮。
 
 提交正文的真实流程（源码）：`protocol.rs:742-756` 的 `Submit` 收 `user: {content: [ContentBlock]}`；`dim-agent-types/content.rs:36` 定义 `Text { text }` 与 `Image { source }`；`dim-cli/composer.rs:495` 对大段文本先 `attachment.put {sessionId, text}` 取回 `path`，再以 `[Pasted text: path (N lines)]` 作为文本块提交。图片用 `ImageSource{fileId}` 或 `base64{mediaType,data}`。账号登录方法见 `protocol.rs:223-228`，供应商管理见同文件 `204-218`。
 

@@ -948,6 +948,12 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 			a.openFoldsForCurrent()
 		}
 		gui.Spacer(c)
+		// 只在已加载的行里找：还有更早轮次没载入时把口径写在同一行，计数不被读成
+		// 整段历史的命中数。
+		if a.sessionPartial() {
+			typeMicro.style(t, gui.Text(c, partialHistoryNote)).TextColor(t.TextMuted).
+				Label(partialHistoryNote).SingleLine()
+		}
 		count := "0 个结果"
 		if n := len(s.hits); n > 0 {
 			count = fmt.Sprintf("%d / %d 个结果", s.current+1, n)

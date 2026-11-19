@@ -121,10 +121,11 @@ func TestConfirmDeleteFailureKeepsDialog(t *testing.T) {
 	if err := tt.Click(confirmCopyDelete); err != nil {
 		t.Fatalf("点不到删除：%v", err)
 	}
-	tt.Frame()
-	if !tt.HasText("会话已被别处删除") {
-		t.Fatalf("失败原因没有写进弹窗：\n%s", confirmText(tt))
-	}
+	// 删除在后台协程里跑，失败原因要等结果交回渲染线程才落到视图上：等观察值
+	// （错误行 + 按钮恢复），不能点完画一帧就断言。
+	waitFrame(t, tt, "失败原因写回弹窗", func() bool {
+		return tt.HasText("会话已被别处删除") && !app.confirm.busy
+	})
 	if app.confirm.kind != confirmKindDelete || app.confirm.busy {
 		t.Fatalf("失败后弹窗应保留且按钮恢复：kind=%q busy=%v", app.confirm.kind, app.confirm.busy)
 	}
@@ -291,7 +292,10 @@ func TestConfirmEditRunningDialog(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("确认后没有停止当前回合")
 	}
-	tt.Frame()
+	// 停止的结果交回渲染线程后才关弹窗、落定编辑：等观察值，不点完一帧就断言。
+	waitFrame(t, tt, "停止后弹窗关闭且编辑落定", func() bool {
+		return app.confirm.kind == confirmKindNone && app.inlineNotice == noteInlineEdit
+	})
 	if app.confirm.kind != confirmKindNone {
 		t.Fatal("执行后弹窗没有关闭")
 	}

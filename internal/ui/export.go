@@ -259,6 +259,11 @@ func (a *App) exportPanel(c *gui.Context) {
 
 					a.exportChoices(c, exportDescFormat, exportFormats, &st.format)
 					a.exportChoices(c, exportDescScope, exportScopes, &st.scope)
+					// 快照只有已加载的那一段（HasOlder）：导出的范围不能写成全量，
+					// 把口径摊在范围下面，不让人以为「整条会话」是全部历史。
+					if a.sessionPartial() {
+						screenHint(c, partialHistoryNote)
+					}
 					if len(turns) == 0 {
 						screenHint(c, exportEmptyTurns)
 					} else if st.scope == exportScopeTurns {

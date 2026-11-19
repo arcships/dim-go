@@ -67,8 +67,8 @@ type panelView struct {
 	sideChatError       string
 	sideChatFromMessage bool
 	sideChatSent        []string
-	// 子代理：加载 / 就绪 / 错误三态、错误原文与只读时间线（本地收到的消息）。
-	subagentReady bool
+	// 子代理：错误原文与只读时间线（本地收到的消息）。没有"加载 / 就绪"这一对
+	// 布尔：协议没有子代理会话事实，界面不拿一个没有写入点的开关冒充加载中。
 	subagentError string
 	subagentLines []string
 	// subagentFailed 为真表示读取失败但错误原文可能为空（G-02）：界面据此仍画

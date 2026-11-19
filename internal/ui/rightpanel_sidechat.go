@@ -101,58 +101,75 @@ func (a *App) sideChatContent(c *gui.Context) {
 
 // sideChatComposer 是输入区（S-11–S-14）：输入框 + 结束分支 / 停止 / 发送。
 //
-// 连上 Source 后「停止」与「结束分支」都没有通道：按钮照留、置灰、原因进
-// tooltip，不把确认框当成真结束（那样状态条会写"此分支已结束"，服务端却照旧）。
+// 侧聊的写入没有通道（`Intents` 里没有侧聊方法）：连着 Source 时输入框与发送
+// 一起置灰，原因写在输入区上方（也在 tooltip 里），绝不把草稿 append 进本地
+// 切片冒充「已发送」。「停止」与「结束分支」同样置灰写原因，不把确认框当成真
+// 结束（那样状态条会写"此分支已结束"，服务端却照旧）。
 func (a *App) sideChatComposer(c *gui.Context) {
 	t := c.Theme()
 	closed := a.panels.sideChatEnded
 	sending := a.panels.sideChatSending
 	draft := strings.TrimSpace(a.panels.sideChatDraft)
 	live := a.wired()
-	gui.Row(c).Shrink(0).Padding(space2, panelPad).Gap(space1).
-		AlignItems(gui.Center).Children(func() {
-		gui.TextInputBase(c, &a.panels.sideChatDraft).
-			Label("侧边对话输入").Placeholder(sideChatPlaceholder).
-			Height(panelInputHeight).Radius(radius).Padding(space1, space2).
-			Background(t.Surface).Border(strokeHairline, t.Border).Grow(1).
-			Disabled(closed || sending)
-		if !closed && len(a.panels.sideChatSent) > 0 {
-			end := iconButtonSpec{
-				icon: iconCircleStop, label: "结束分支", tip: "结束分支", size: rowCompact,
-			}
+	gui.Column(c).Shrink(0).Padding(space2, panelPad).Gap(space1).Children(func() {
+		// 原因写在输入区上方：禁用态旁边看得见为什么不能发，不只在 tooltip 里。
+		if live {
+			typeMicro.style(t, gui.Text(c, noteSideChatWrite)).TextColor(t.TextMuted).
+				Role(gui.RoleStatus)
+		}
+		gui.Row(c).Shrink(0).Gap(space1).AlignItems(gui.Center).Children(func() {
+			input := gui.TextInputBase(c, &a.panels.sideChatDraft).
+				Label("侧边对话输入").Placeholder(sideChatPlaceholder).
+				Height(panelInputHeight).Radius(radius).Padding(space1, space2).
+				Background(t.Surface).Border(strokeHairline, t.Border).Grow(1).
+				Disabled(closed || sending || live)
 			if live {
-				end.disabled, end.tip = true, noteSideChatWrite
+				input = input.Tooltip(noteSideChatWrite)
 			}
-			if iconButton(c, end) {
-				a.panels.sideChatConfirm = true
+			if !closed && len(a.panels.sideChatSent) > 0 {
+				end := iconButtonSpec{
+					icon: iconCircleStop, label: "结束分支", tip: "结束分支", size: rowCompact,
+				}
+				if live {
+					end.disabled, end.tip = true, noteSideChatWrite
+				}
+				if iconButton(c, end) {
+					a.panels.sideChatConfirm = true
+				}
 			}
-		}
-		if sending {
-			stop := iconButtonSpec{icon: iconStop, label: "停止", tip: "停止", size: rowCompact}
+			if sending {
+				stop := iconButtonSpec{icon: iconStop, label: "停止", tip: "停止", size: rowCompact}
+				if live {
+					stop.disabled, stop.tip = true, noteSideChatWrite
+				}
+				if iconButton(c, stop) {
+					a.panels.sideChatSending = false
+				}
+			}
+			label := "发送"
+			if sending {
+				label = "引导"
+			}
+			tip := label + " · Enter"
 			if live {
-				stop.disabled, stop.tip = true, noteSideChatWrite
+				tip = noteSideChatWrite
 			}
-			if iconButton(c, stop) {
-				a.panels.sideChatSending = false
+			if iconAction(c, iconButtonSpec{
+				icon: iconArrowUp, label: label, tip: tip, size: panelSendSize,
+				disabled: draft == "" || closed || live,
+			}, true) {
+				a.sendSideChat()
 			}
-		}
-		label := "发送"
-		if sending {
-			label = "引导"
-		}
-		if iconAction(c, iconButtonSpec{
-			icon: iconArrowUp, label: label, tip: label + " · Enter", size: panelSendSize,
-			disabled: draft == "" || closed,
-		}, true) {
-			a.sendSideChat()
-		}
+		})
 	})
 }
 
-// sendSideChat 把草稿作为一条消息发出去（本地回声；连着 Source 时由事实接管）。
+// sendSideChat 把草稿发出去。-demo（没有 Source）时这是样例走查的本地回声；
+// 连着 Source 时侧聊没有写入通道，这里直接返回：不 append 本地切片、不清草稿，
+// 也不在只读时间线上画出那条"看起来已发送"的气泡（输入框与发送已置灰写原因）。
 func (a *App) sendSideChat() {
 	text := strings.TrimSpace(a.panels.sideChatDraft)
-	if text == "" || a.panels.sideChatEnded {
+	if text == "" || a.panels.sideChatEnded || a.wired() {
 		return
 	}
 	a.panels.sideChatSent = append(a.panels.sideChatSent, text)

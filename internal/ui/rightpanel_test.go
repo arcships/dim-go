@@ -228,11 +228,15 @@ func TestSideChatErrorBanner(t *testing.T) {
 	}
 }
 
-// 子代理：加载态、错误态与就绪后的只读时间线。
+// 子代理：-demo 给样例只读时间线，错误态给首屏错误与重试；没有加载态
+// （协议没有子代理会话事实，转圈是没有写入点的假状态）。
 func TestSubagentPanelStates(t *testing.T) {
 	app, tt := panelTester(t, tabSubagent)
-	if _, ok := tt.Find(subagentLoadingText); !ok {
-		t.Fatalf("没有加载态文案 %q", subagentLoadingText)
+	if _, ok := tt.Find(subagentSamples()[0]); !ok {
+		t.Fatalf("没有只读时间线：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("正在加载..."); ok {
+		t.Fatalf("仍在画恒转的加载态：%v", tt.Texts())
 	}
 	app.panels.subagentError = "读取子代理会话失败"
 	tt.Frame()
@@ -242,13 +246,14 @@ func TestSubagentPanelStates(t *testing.T) {
 	if _, ok := tt.Access(subagentRetry); !ok {
 		t.Fatal("首屏错误没有重试入口")
 	}
-	app.panels.subagentError = ""
-	app.panels.subagentReady = true
+	if err := tt.Click(subagentRetry); err != nil {
+		t.Fatalf("点不到重试：%v", err)
+	}
 	tt.Frame()
 	if _, ok := tt.Find(subagentSamples()[0]); !ok {
-		t.Fatal("就绪后没有只读时间线")
+		t.Fatalf("重试后没有回到只读时间线：%v", tt.Texts())
 	}
-	if _, ok := tt.Find(subagentLoadingText); ok {
-		t.Fatal("就绪后仍显示加载文案")
+	if _, ok := tt.Find("正在加载..."); ok {
+		t.Fatalf("重试后仍显示加载文案：%v", tt.Texts())
 	}
 }

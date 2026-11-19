@@ -103,6 +103,10 @@ func (w *App) rows(v app.SessionView) []ui.RowSnapshot {
 }
 
 // rowSnapshot 投射单行事实。ok 为假表示这一行没有可画的内容。
+//
+// 这里不产 ui.RowRetry：协议 v3 没有"还剩多久重试"这条事实，投影也没有对应的
+// 行种。界面按 RetryIn 画倒计时、RetryIn 为 0 就不画；将来若有了剩余时间，按
+// ui.RowSnapshot.RetryIn 给（不拿 CreatedAt/UpdatedAt 的差值当剩余）。
 func rowSnapshot(row projection.Row) (ui.RowSnapshot, bool) {
 	status := rowStatus(row.Status)
 	switch row.Kind {

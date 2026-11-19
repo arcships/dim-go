@@ -167,7 +167,8 @@ func TestSlashMenuArrowsAndEnter(t *testing.T) {
 		t.Fatalf("上键选中 %d，想要 %d", app.slash.selected, selectable[0])
 	}
 
-	// 过滤到 /agent，回车执行：模式切到 Agent，草稿清空，弹层收起。
+	// 过滤到 /agent，回车执行：模式切到 Agent，草稿清空，弹层收起；回执写明
+	// 「本版模式位只改界面标记，尚未影响发送」，不许只回一句「已执行」。
 	slashDraft(t, app, tt, "/agent")
 	tt.Key(0, gui.KeyDown)
 	tt.Key(0, gui.KeyEnter)
@@ -180,8 +181,11 @@ func TestSlashMenuArrowsAndEnter(t *testing.T) {
 	if app.slash.open {
 		t.Fatal("执行后弹层没有收起")
 	}
-	if !tt.HasText("已执行：/agent") {
-		t.Fatalf("没有执行反馈：\n%s", strings.Join(tt.Texts(), "\n"))
+	if tt.HasText("已执行：/agent") {
+		t.Fatalf("/agent 仍回一句「已执行」：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	if !tt.HasText(app.slash.notice) || !strings.Contains(app.slash.notice, "尚未影响发送") {
+		t.Fatalf("/agent 回执没有写清生效范围：%q", app.slash.notice)
 	}
 }
 
@@ -225,7 +229,7 @@ func TestSlashMenuDisabledCommandsSayWhy(t *testing.T) {
 		if len(commands) != 1 || commands[0].name != name {
 			t.Fatalf("过滤 %s 命中 %v", name, slashNames(commands))
 		}
-		if commands[0].run != nil {
+		if commands[0].runnable() {
 			t.Fatalf("/%s 不该有可执行路径", name)
 		}
 		if !tt.HasText("不可用：") {
@@ -361,10 +365,89 @@ func TestSlashMenuWithoutSessionSaysWhy(t *testing.T) {
 	app, tt := newSlashTesterWith(t, app)
 	slashDraft(t, app, tt, "/compact")
 	commands := app.slashMenuCommands()
-	if len(commands) != 1 || commands[0].run != nil {
+	if len(commands) != 1 || commands[0].runnable() {
 		t.Fatalf("/compact 在没有会话时仍可执行：%v", slashNames(commands))
 	}
 	if !tt.HasText("还没有打开会话") {
 		t.Fatalf("没有写原因：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+}
+
+// /goal 与输入卡的模式菜单同一落点：切到 Goal 模式，没有目标时打开目标行的
+// 编辑框（真正的写入仍走 SetGoal）；回执写明模式位本版尚未影响发送。
+func TestSlashGoalSwitchesModeAndOpensGoalEditor(t *testing.T) {
+	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
+	app, tt := newSlashTesterWith(t, app)
+	slashDraft(t, app, tt, "/goal")
+	commands := app.slashMenuCommands()
+	if len(commands) != 1 || commands[0].name != "goal" {
+		t.Fatalf("过滤 /goal 命中 %v", slashNames(commands))
+	}
+	if !commands[0].runnable() {
+		t.Fatal("/goal 在已打开会话时不可执行")
+	}
+	tt.Key(0, gui.KeyDown)
+	tt.Key(0, gui.KeyEnter)
+
+	if app.mode != "Goal" {
+		t.Fatalf("模式 = %q，想要 Goal", app.mode)
+	}
+	if !app.goalEditing {
+		t.Fatal("没有目标时 /goal 没有打开目标编辑框（与模式菜单不同落点）")
+	}
+	if _, ok := tt.Access("保存目标"); !ok {
+		t.Fatalf("目标编辑框没有上屏（找不到「保存目标」）：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	if !strings.Contains(app.slash.notice, "目标编辑框") ||
+		!strings.Contains(app.slash.notice, "尚未影响发送") {
+		t.Fatalf("/goal 回执没有写清实际效果：%q", app.slash.notice)
+	}
+	if strings.HasPrefix(app.slash.notice, "已执行") {
+		t.Fatalf("/goal 仍回一句「已执行」：%q", app.slash.notice)
+	}
+}
+
+// /branch 在连接模式下置灰写原因：侧聊还没有事实通道，不把用户送进一个只会
+// 本地回声的面板。
+func TestSlashBranchDisabledWithoutSideChatChannel(t *testing.T) {
+	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
+	app, tt := newSlashTesterWith(t, app)
+	slashDraft(t, app, tt, "/branch")
+	commands := app.slashMenuCommands()
+	if len(commands) != 1 || commands[0].name != "branch" {
+		t.Fatalf("过滤 /branch 命中 %v", slashNames(commands))
+	}
+	if commands[0].runnable() {
+		t.Fatal("/branch 在连接模式下仍可执行")
+	}
+	if commands[0].reason != slashBranchNoChannel {
+		t.Fatalf("/branch 的原因 = %q，想要 %q", commands[0].reason, slashBranchNoChannel)
+	}
+	if !tt.HasText("不可用：" + slashBranchNoChannel) {
+		t.Fatalf("/branch 行内没有写原因：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	// 回车不会执行置灰项：选中行留在 -1，右栏不打开，回执仍是原因句。
+	tt.Key(0, gui.KeyDown)
+	tt.Key(0, gui.KeyEnter)
+	tt.Frame()
+	if app.slash.selected != -1 {
+		t.Fatalf("/branch 可选中（选中 %d）", app.slash.selected)
+	}
+	if app.rightOpen {
+		t.Fatal("/branch 不可用却打开了右栏")
+	}
+	// 绕过键盘直接执行也不写任何东西：动作只回原因。
+	for i, cmd := range app.slashMenuCommands() {
+		if cmd.name == "branch" {
+			app.slash.selected = i
+		}
+	}
+	app.slash.notice = ""
+	app.slashExecuteSelected()
+	if app.rightOpen {
+		t.Fatal("/branch 不可用却打开了右栏")
+	}
+	if app.slash.notice != "不可用："+slashBranchNoChannel {
+		t.Fatalf("/branch 的回执 = %q", app.slash.notice)
 	}
 }

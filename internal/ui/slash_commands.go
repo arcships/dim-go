@@ -36,6 +36,9 @@ const (
 	slashMenuGap = space1
 	// slashMenuDescMax 是说明列的最大宽：命令名完整，说明在右端截断（G-B1-11）。
 	slashMenuDescMax = 168
+	// slashBranchNoChannel 是 /branch 在连接模式下的原因：侧聊还没有事实通道，
+	// 打开它只会本地回声——不装作用。
+	slashBranchNoChannel = "侧聊通道未接通：服务端还没有侧聊的事实接口"
 )
 
 // slashGroup 是命令的分组，顺序即渲染顺序（C37 的分组标题只有一组时也成立）。
@@ -97,6 +100,10 @@ func (s *slashMenuState) dismiss() {
 //
 // run 为 nil 表示本版没有实现路径：行置灰、不可选中，原因写在行内说明位。
 // shortcut 只在确有键位时填（例如打开设置的 ⌘,）；没有绑定就留空，不画占位符。
+//
+// receipt 给「动作确实发生了，但结果不能写成一句已成功」的命令用：它自己完成
+// 动作并返回逐字上屏的回执（取代默认的「已执行：/name」）。默认回执只用在
+// 「执行了就真的生效」的命令上。
 type slashCommand struct {
 	name     string
 	desc     string
@@ -104,7 +111,22 @@ type slashCommand struct {
 	icon     *gui.SVG
 	shortcut string
 	run      func()
+	receipt  func() string
 	reason   string
+}
+
+// runnable 表示这条命令有实现路径（可执行、可被选中）。
+func (c slashCommand) runnable() bool { return c.run != nil || c.receipt != nil }
+
+// execute 执行命令并返回这次执行的逐字回执。
+func (c slashCommand) execute() string {
+	if c.receipt != nil {
+		return c.receipt()
+	}
+	if c.run != nil {
+		c.run()
+	}
+	return "已执行：/" + c.name
 }
 
 // slashMenuPrefix 取行首的斜杠前缀：草稿第一行以 `/` 开头、且后面没有空白时
@@ -204,9 +226,13 @@ func (a *App) slashCommands() []slashCommand {
 		name: "branch", desc: "侧边对话", group: slashGroupCommon,
 		icon: iconChat, run: nil, reason: sessionReason,
 	}
-	if hasSession {
-		// 与「从消息处开始侧边对话」同一落点：右栏侧聊标签；已经在侧聊里时
-		// 只是把它切到前面（G-B1-19 的「聚焦已有侧聊」）。
+	switch {
+	case a.wired():
+		// 侧聊还没有事实通道（发不出去、历史读不回来）：在通道接通前不把用户送进
+		// 一个只会本地回声的面板，按不可用画并写原因。
+		branch.reason = slashBranchNoChannel
+	case hasSession:
+		// -demo 的样例面板：与「从消息处开始侧边对话」同一落点。
 		branch.run = func() {
 			a.rightOpen = true
 			a.rpOpen(tabSideChat)
@@ -216,17 +242,13 @@ func (a *App) slashCommands() []slashCommand {
 
 	goal := slashCommand{
 		name: "goal", desc: "切换至 Goal 模式", group: slashGroupSession,
-		icon: iconTarget, run: func() {
-			a.mode = "Goal"
-			// 与输入卡模式菜单同一落点：还没有目标时把编辑框打开，
-			// 「设定目标」仍走 SetGoal 那条写入。
-			if _, _, exists := a.goalState(); !exists {
-				a.goalDraft, a.goalEditing = "", true
-			}
-		},
+		icon: iconTarget,
+		// 与输入卡模式菜单同一落点（switchMode）；模式位本版只改界面标记，
+		// 回执如实写明这一点，并写清是否打开了目标编辑框。
+		receipt: func() string { return a.switchMode("Goal") },
 	}
 	if a.wired() && !hasSession {
-		goal.run = nil
+		goal.receipt = nil
 		goal.reason = "还没有打开会话，暂时设定不了目标"
 	}
 
@@ -246,7 +268,9 @@ func (a *App) slashCommands() []slashCommand {
 
 		{
 			name: "agent", desc: "切换至 Agent 模式", group: slashGroupSession,
-			icon: iconBot, run: func() { a.mode = "Agent" },
+			icon: iconBot,
+			// 与输入卡模式菜单同一落点；模式位本版只改界面标记，回执写明未生效范围。
+			receipt: func() string { return a.switchMode("Agent") },
 		},
 		goal,
 		{
@@ -369,7 +393,7 @@ func (a *App) slashSelectable() []int {
 	commands := a.slashMenuCommands()
 	selectable := make([]int, 0, len(commands))
 	for i, cmd := range commands {
-		if cmd.run != nil {
+		if cmd.runnable() {
 			selectable = append(selectable, i)
 		}
 	}
@@ -403,19 +427,18 @@ func (a *App) slashMoveSelection(delta int) {
 
 // slashExecuteSelected 执行当前选中项：不可用的只把原因写回反馈行，不执行；
 // 可执行的把命令文本从输入框里清掉并收起弹层（G-B1-08 的「执行后输入框清空
-// 该命令文本」）。
+// 该命令文本」）。反馈行取命令自己的回执，不是一句无差别的「已执行」。
 func (a *App) slashExecuteSelected() {
 	commands := a.slashMenuCommands()
 	if a.slash.selected < 0 || a.slash.selected >= len(commands) {
 		return
 	}
 	cmd := commands[a.slash.selected]
-	if cmd.run == nil {
+	if !cmd.runnable() {
 		a.slash.notice = "不可用：" + cmd.reason
 		return
 	}
-	cmd.run()
-	a.slash.notice = "已执行：/" + cmd.name
+	a.slash.notice = cmd.execute()
 	a.draft = ""
 	a.slash.reset()
 }
@@ -513,7 +536,7 @@ func (a *App) slashCommandRow(c *gui.Context, index int, cmd slashCommand) {
 	selected := index == a.slash.selected
 	label := "/" + cmd.name + "，" + cmd.desc
 	note := cmd.desc
-	if cmd.run == nil {
+	if !cmd.runnable() {
 		note = "不可用：" + cmd.reason
 		label += "，" + note
 	}
@@ -529,12 +552,11 @@ func (a *App) slashCommandRow(c *gui.Context, index int, cmd slashCommand) {
 	} else if row.Hovered() {
 		row = row.Background(t.SurfaceHover)
 	}
-	if cmd.run == nil {
+	if !cmd.runnable() {
 		row = row.Opacity(noteDisabledAlpha)
 	} else {
 		row = row.OnClick(func() {
-			cmd.run()
-			a.slash.notice = "已执行：/" + cmd.name
+			a.slash.notice = cmd.execute()
 			a.draft = ""
 			a.slash.reset()
 		})

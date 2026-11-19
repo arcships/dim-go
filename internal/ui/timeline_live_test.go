@@ -27,7 +27,7 @@ func liveFactSession() SessionSnapshot {
 			{Kind: RowTool, Title: "执行", Args: "go test ./...",
 				Text: "FAIL ./internal/ui", Status: RowStatusFailed},
 			{Kind: RowError, Text: "failed"},
-			{Kind: RowRetry, Duration: 5 * time.Second},
+			{Kind: RowRetry, RetryIn: 5 * time.Second},
 			{Kind: RowArtifact, Children: []RowSnapshot{
 				{Kind: RowArtifact, Text: "排队说明.md"},
 			}},

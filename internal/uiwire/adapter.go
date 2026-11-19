@@ -475,6 +475,9 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 		Pending:   v.PendingCounts.Approvals + v.PendingCounts.Questions,
 		Branch:    v.BranchID,
 		TurnCount: len(v.Turns),
+		// HasOlder 是投影分页窗口的事实：还有更早的轮次没装载时，界面只能
+		// 覆盖已加载这一段（导出 / 搜索要按它写口径）。
+		HasOlder: v.HasOlder,
 
 		LastTurnEnded:   v.LastTurnEnded,
 		LastTurnIndex:   v.LastTurnIndex,

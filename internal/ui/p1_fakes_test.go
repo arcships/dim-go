@@ -122,7 +122,8 @@ func TestHeaderPinPinsSidebarSession(t *testing.T) {
 }
 
 // P1-5：状态条「创建新分支」在连接模式下真的发 session.branch_create（切点是
-// 当前分支已加载的最后一轮），不再点了没反应。
+// 当前分支已加载的最后一轮），不再点了没反应。起始提问取输入框草稿：草稿为空
+// 时置灰不发（见 TestStatusBarCreateBranchWithoutDraftSendsNoWrite）。
 func TestStatusBarCreateBranchSendsIntent(t *testing.T) {
 	src := wiredSource()
 	src.session = SessionSnapshot{
@@ -132,6 +133,7 @@ func TestStatusBarCreateBranchSendsIntent(t *testing.T) {
 	}
 	intents := &p1Intents{branches: make(chan p1BranchCut, 1)}
 	app := NewApp(Options{State: StateDefault, Source: src, Intents: intents})
+	app.draft = forkTestDraft
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
 
 	if err := tt.Click("分支 feature-x"); err != nil {
@@ -143,8 +145,8 @@ func TestStatusBarCreateBranchSendsIntent(t *testing.T) {
 	}
 	select {
 	case got := <-intents.branches:
-		if got.parent != "feature-x" || got.turn != 4 || got.prompt == "" {
-			t.Fatalf("CreateBranch 收到 %+v，想要 feature-x/4/非空提示词", got)
+		if got.parent != "feature-x" || got.turn != 4 || got.prompt != forkTestDraft {
+			t.Fatalf("CreateBranch 收到 %+v，想要 feature-x/4/%q", got, forkTestDraft)
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("创建新分支没有发出 session.branch_create")
@@ -198,13 +200,13 @@ func TestComposerAddWorkspaceOpensDirectoryPicker(t *testing.T) {
 	}
 }
 
-// P1-12：自动重试行只有倒计时是事实；「立即重试」没有通道，置灰并把原因写在
-// tooltip 上，点了不改任何状态。
+// P1-12：自动重试行的倒计时只取剩余时间（RetryIn）；「立即重试」没有通道，
+// 置灰并把原因写在 tooltip 上，点了不改任何状态。
 func TestTimelineRetryNowDisabledWithoutChannel(t *testing.T) {
 	src := wiredSource()
 	src.session = SessionSnapshot{
 		ID: "s1", Title: "真实会话",
-		Rows: []RowSnapshot{{Kind: RowRetry, Duration: 5 * time.Second}},
+		Rows: []RowSnapshot{{Kind: RowRetry, RetryIn: 5 * time.Second}},
 	}
 	app := NewApp(Options{State: StateDefault, Source: src})
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
@@ -226,6 +228,31 @@ func TestTimelineRetryNowDisabledWithoutChannel(t *testing.T) {
 	tt.Frame()
 	if app.retryIntent != nil {
 		t.Fatal("点「立即重试」排上了一次重试动作")
+	}
+}
+
+// P1-12：拿不到剩余时间就不显示这一行——已耗时（Duration）不会被折算成
+// "还剩 N 秒"，屏上既不出现倒计时，也不出现「立即重试」。
+func TestTimelineRetryRowWithoutRemainingTimeIsHidden(t *testing.T) {
+	src := wiredSource()
+	src.session = SessionSnapshot{
+		ID: "s1", Title: "真实会话",
+		Rows: []RowSnapshot{
+			{Kind: RowError, Text: "failed"},
+			{Kind: RowRetry, Duration: 5 * time.Second},
+		},
+	}
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	if tt.HasText("5s 后重试") {
+		t.Fatalf("把已耗时当成了剩余时间：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("立即重试"); ok {
+		t.Fatalf("没有剩余时间仍画了「立即重试」：%v", tt.Texts())
+	}
+	if !tt.HasText("运行失败") {
+		t.Fatalf("失败行没画出来（分不清是不是整段没渲染）：%v", tt.Texts())
 	}
 }
 

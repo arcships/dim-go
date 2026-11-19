@@ -68,6 +68,9 @@ const (
 	noteOpenWith = "当前版本不支持用外部应用打开"
 	// noteApprovalCommand 是审批卡没有命令原文时的说明。
 	noteApprovalCommand = "服务端没有给出要执行的命令"
+	// noteApprovalInput 是审批卡有工具名、却没有入参时的说明：没有内容区可画，
+	// 但要写清读不到的是哪一样。
+	noteApprovalInput = "无法读取该工具的入参"
 	// noteApprovalBlocked 是同一张卡片上"为什么三个决定都不能点"的一句。
 	noteApprovalBlocked = "读不到命令原文，无法判断要执行什么；先不提供决定。"
 	// noteMemberApprovalDetail 用于成员审批区块的「重试」：明细要另一条读取通道。
@@ -96,8 +99,11 @@ const (
 	// noteRetryNow 用于时间线自动重试行的「立即重试」：协议没有立即重试的方法，
 	// 倒计时由服务端事实给，界面没有提前触发的通道。
 	noteRetryNow = "服务端没有提供立即重试（本版不做）"
-	// noteSideChatWrite 用于侧聊的「停止」与「结束分支」：侧聊没有写入与结束通道。
+	// noteSideChatWrite 用于侧聊的「停止」「结束分支」以及输入区：侧聊没有写入与
+	// 结束通道；连上 Source 时输入框与发送一起置灰，原因写这句。
 	noteSideChatWrite = "服务端没有提供侧聊的写入与结束分支（本版不做）"
+	// noteSubagentFacts 用于子代理面板的空态与「重试」：协议没有子代理会话流。
+	noteSubagentFacts = "服务端没有提供子代理会话（本版不做）"
 	// noteNoWriteChannel 用于连着 Source 却没有写入通道的入口：既不装作生效，也
 	// 不把原因留空。
 	noteNoWriteChannel = "没有连接写通道（不可用）"

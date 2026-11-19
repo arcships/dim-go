@@ -844,8 +844,9 @@ func (a *App) failureBlock(c *gui.Context) {
 
 // retryNotice 是自动重试提示：倒计时 + 立即重试。
 //
-// 「立即重试」没有通道（协议没有立即重试的方法，RetrySubmit 也不是这件事），
-// 所以入口照留、置灰并把原因写在 tooltip 上；倒计时本身是服务端事实，不改。
+// 秒数取行事实里的剩余时间（RowSnapshot.RetryIn）；「立即重试」没有通道（协议
+// 没有立即重试的方法，RetrySubmit 也不是这件事），所以入口照留、置灰并把原因
+// 写在 tooltip 上。剩余时间拿不到时整行不画（见 liveRow 的 RowRetry 分支）。
 func (a *App) retryNotice(c *gui.Context, r round) {
 	t := c.Theme()
 	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
@@ -1512,7 +1513,12 @@ func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
 	case RowError:
 		a.failureBlock(c)
 	case RowRetry:
-		a.retryNotice(c, round{retrySeconds: int(math.Ceil(row.Duration.Seconds()))})
+		// 剩余时间是独立事实：拿不到（RetryIn <= 0）就不画这一行，不拿已耗时
+		// 折算成"还剩"。
+		if row.RetryIn <= 0 {
+			return
+		}
+		a.retryNotice(c, round{retrySeconds: int(math.Ceil(row.RetryIn.Seconds()))})
 	case RowCompression:
 		a.compressionRow(c, compressionRowKey(i), row.Text, row.Status)
 	default:

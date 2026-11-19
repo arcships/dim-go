@@ -939,6 +939,10 @@ func lintMarkdownBlocks(t *testing.T) []lintFinding {
 	t.Helper()
 	var out []lintFinding
 
+	// 代码配色是包级值（applyTokens 每帧按本地偏好写一次）：检查器断言的是默认
+	// （GitHub）这套，先把包级值钉成默认并在跑完后还原，不看上一个用例留下了什么。
+	pinCodeLook(t, AppearancePreferences{})
+
 	// ① 配置：主题存在，且关键项与我们的 token 一致。
 	th := theme(false, gui.Preferences{})
 	md := markdownTheme(th)

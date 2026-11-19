@@ -127,13 +127,14 @@ func (a *App) currentApproval() (ApprovalSnapshot, bool) {
 }
 
 // approvalBusy 判断三个决定此刻是否不可点：请求已答等结算、这次答复正在写、
-// 或根本没有可审查的内容。
+// 或根本没有可审查的内容——工具名与入参都没有，或有工具名却读不到入参
+// （看不到要执行什么就不放行）。
 func (a *App) approvalBusy(snap ApprovalSnapshot) bool {
 	if snap.Pending || a.approvalSubmitting {
 		return true
 	}
 	_, _, hasInput := approvalFacts(snap)
-	return !hasInput && strings.TrimSpace(snap.Tool) == ""
+	return !hasInput
 }
 
 // approvalFacts 把快照解成渲染器要的两样：工具名与入参对象。
@@ -199,6 +200,11 @@ func (a *App) toolApprovalBody(c *gui.Context, snap ApprovalSnapshot) {
 			approvalInputPanel(c, approvalPanelFor(tool, input))
 		case tool == "":
 			typeMicro.style(t, gui.Text(c, noteApprovalCommand)).TextColor(t.TextMuted)
+			typeMicro.style(t, gui.Text(c, noteApprovalBlocked)).TextColor(t.TextMuted)
+		default:
+			// 有工具名、没有入参：不画内容区，但要写清读不到什么，且三个决定
+			// 一起置灰（approvalBusy 同因返回真）：看不到要执行什么就不放行。
+			typeMicro.style(t, gui.Text(c, noteApprovalInput)).TextColor(t.TextMuted)
 			typeMicro.style(t, gui.Text(c, noteApprovalBlocked)).TextColor(t.TextMuted)
 		}
 	}

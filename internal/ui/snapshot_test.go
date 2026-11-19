@@ -215,16 +215,13 @@ var screenCases = []screenCase{
 		a.panels.sideChatSent = []string{"只看 internal/ui 里的发送路径"}
 		a.panels.sideChatConfirm = true
 	}},
-	{name: "panel-subagent-loading", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.rightOpen, a.rightTab = true, tabSubagent
-	}},
 	{name: "panel-subagent-error", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.rightOpen, a.rightTab = true, tabSubagent
 		a.panels.subagentError = "读取子代理会话失败：连接已断开"
 	}},
 	{name: "panel-subagent-ready", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.rightOpen, a.rightTab = true, tabSubagent
-		a.panels.subagentReady = true
+		a.panels.subagentLines = subagentSamples()
 	}},
 	// 右栏标签条 + 文件页 + 改动页（本批重建）。
 	{name: "panel-files", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
