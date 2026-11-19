@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -124,6 +125,7 @@ const (
 	VariantSettings
 	VariantSettingsProviders
 	VariantSettingsKeybindings
+	VariantSettingsNotifications
 	// 输入区 / 标题栏的浮层走查态：⋯ 菜单、打开方式、模型、推理强度、技能、
 	// 模式、权限、工作区。
 	VariantChatMenu
@@ -162,6 +164,7 @@ var variantNames = map[string]Variant{
 	"term-exited": VariantTermExited, "settings": VariantSettings,
 	"settings-providers":   VariantSettingsProviders,
 	"settings-keybindings": VariantSettingsKeybindings,
+	"settings-notifications": VariantSettingsNotifications,
 	"chat-menu":            VariantChatMenu, "open-with": VariantOpenWith,
 	"model": VariantModel, "effort": VariantEffort,
 	"skills": VariantSkills, "mode": VariantMode,
@@ -178,7 +181,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-providers、settings-keybindings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty、timeline-hover、timeline-tool-detail", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-providers、settings-keybindings、settings-notifications、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty、timeline-hover、timeline-tool-detail", v)
 }
 
 // Options 是骨架的启动参数。
@@ -200,6 +203,34 @@ type Options struct {
 	Changed func()
 	// StateChanged 在调试键切换状态后回调，供入口更新窗口标题。
 	StateChanged func(State)
+	// OnFrame 在每帧视图构建后调用（渲染线程），供宿主外壳（托盘与系统通知）
+	// 读取当前会话状态并刷新菜单；它只读快照，不改视图。可为 nil。
+	OnFrame func(HostSnapshot)
+}
+
+// HostSnapshot 是宿主外壳每一帧要读的会话事实：托盘菜单、图标状态与系统通知
+// 都由它决定。它不是第二份事实：字段每次从 Source 快照现读。
+type HostSnapshot struct {
+	// SessionID 是当前打开的会话；空表示还没有打开。
+	SessionID    string
+	SessionTitle string
+	// Running 表示当前有一轮在跑。
+	Running bool
+	// Pending 表示有审批或提问待决；PendingID 是待决项的标识（通知去重用）。
+	Pending   bool
+	PendingID string
+	// LastTurn 是最后一个已结束的轮。
+	LastTurnEnded   bool
+	LastTurnIndex   int
+	LastTurnOutcome string
+	// Recent 是按最近活动排序的会话（最多 5 条），给托盘「最近会话」用。
+	Recent []HostSession
+}
+
+// HostSession 是托盘里的一条会话。
+type HostSession struct {
+	ID    string
+	Title string
 }
 
 // App 只保存可丢的界面状态：当前样例状态、左栏与右栏的开合、摘要展开、
@@ -274,6 +305,12 @@ type App struct {
 	// source 非空时，视图从它读事实（A 领域的 Source 接口）；为空时用样例数据
 	// （-demo 与截图）。视图不缓存事实：每次读的都是 Source 的快照。
 	source Source
+	// onFrame 在每帧构建后收到宿主外壳要的会话快照（托盘与通知），可为 nil。
+	onFrame func(HostSnapshot)
+	// 设置 › 通知的三个开关（本地偏好，接上 Source 时读写事实）。
+	notifyTaskDone      bool
+	notifySound         bool
+	notifyNeedsResponse bool
 
 	// 目录选择（左栏「添加工作区」与设置 › Hooks 的项目路径）：两处入口各留一份
 	// 可丢的界面状态，后台结果经 pickResults 交回渲染线程（见 dirpick.go）。
@@ -406,6 +443,7 @@ func NewApp(o Options) *App {
 		source:          o.Source,
 		intents:         o.Intents,
 		changed:         o.Changed,
+		onFrame:         o.OnFrame,
 		state:           o.State,
 		variant:         o.Variant,
 		onState:         o.StateChanged,
@@ -462,6 +500,9 @@ func (a *App) loadSample() {
 	a.contextOpen = false
 	a.confirmAlways = false
 	a.approvalDecision = ""
+	// 设置 › 通知的三个开关：样例与参考产品的出厂状态一致（全开）。
+	a.notifyTaskDone, a.notifySound, a.notifyNeedsResponse = true, true, true
+	a.lastPrefs = PreferencesSnapshot{}
 
 	// 分支、目标、后台任务：默认取"常规"值（分支 main 不上屏，UI-9）。
 	a.branch = "main"
@@ -538,6 +579,10 @@ func (a *App) loadSample() {
 		// 设置 › 快捷键（全局唤起那一项要能单独截图）。
 		a.screen = ScreenSettings
 		a.settingsSection = secKeybindings
+	case VariantSettingsNotifications:
+		// 设置 › 通知（三个开关要能单独截图）。
+		a.screen = ScreenSettings
+		a.settingsSection = secNotifications
 	case VariantTermDisconnected:
 		a.rightOpen, a.rightTab = true, 4
 		a.termState = termDisconnected
@@ -747,6 +792,9 @@ func (a *App) resetWiredViewState() {
 		a.sidebarWidth = float32(prefs.SidebarWidth)
 		a.workspaces = append([]string(nil), prefs.Workspaces...)
 		a.hooksProjectPath = prefs.HooksProjectPath
+		a.notifyTaskDone = prefs.NotifyTaskDone
+		a.notifySound = prefs.NotifySound
+		a.notifyNeedsResponse = prefs.NotifyNeedsResponse
 		a.lastPrefs = prefs
 	}
 	a.applyCommandPaletteVariant()
@@ -782,6 +830,99 @@ func (a *App) View(c *gui.Context) {
 		a.dirPickDialog(c, dirPickWorkspace)
 	}
 	a.commandPalette(c)
+	a.hostFrame()
+}
+
+// hostFrame 把这一帧要读的会话事实交给宿主外壳（托盘与系统通知）。只在接上
+// OnFrame 时做；读的是 Source 的快照，不新增事实。
+func (a *App) hostFrame() {
+	if a.onFrame == nil {
+		return
+	}
+	a.onFrame(a.hostSnapshot())
+}
+
+// hostSnapshot 取宿主外壳要的会话状态：当前会话的运行/待决/最后一轮，加上最近
+// 五个会话。没有打开会话时这些字段为空，托盘仍能给出菜单。
+func (a *App) hostSnapshot() HostSnapshot {
+	out := HostSnapshot{Recent: a.recentSessions(5)}
+	session, ok := a.liveSession()
+	if !ok {
+		return out
+	}
+	out.SessionID = session.ID
+	out.SessionTitle = session.Title
+	out.Running = session.Running
+	out.Pending = session.Pending > 0
+	out.LastTurnEnded = session.LastTurnEnded
+	out.LastTurnIndex = session.LastTurnIndex
+	out.LastTurnOutcome = session.LastTurnOutcome
+	if approval, ok := a.source.Approval(); ok {
+		out.PendingID = approval.ID
+	} else if question, ok := a.source.Question(); ok {
+		out.PendingID = question.ID
+	}
+	return out
+}
+
+// recentSessions 按最近活动时间取前 limit 个会话；时间都未知时按目录顺序。
+func (a *App) recentSessions(limit int) []HostSession {
+	names := a.sessionNames()
+	if len(names) == 0 {
+		return nil
+	}
+	titles := a.sessionTitles()
+	places := a.sessionPlaces()
+	type entry struct {
+		index int
+		at    time.Time
+	}
+	entries := make([]entry, 0, len(names))
+	for i := range names {
+		at := time.Time{}
+		if i < len(places) {
+			at = places[i].UpdatedAt
+		}
+		entries = append(entries, entry{index: i, at: at})
+	}
+	sort.SliceStable(entries, func(i, j int) bool {
+		if entries[i].at.Equal(entries[j].at) {
+			return entries[i].index < entries[j].index
+		}
+		return entries[i].at.After(entries[j].at)
+	})
+	if limit <= 0 || limit > len(entries) {
+		limit = len(entries)
+	}
+	out := make([]HostSession, 0, limit)
+	for _, e := range entries[:limit] {
+		title := names[e.index]
+		if e.index < len(titles) && strings.TrimSpace(titles[e.index]) != "" {
+			title = titles[e.index]
+		}
+		out = append(out, HostSession{ID: names[e.index], Title: title})
+	}
+	return out
+}
+
+// FocusSession 回到主界面并把左栏选中定位到该会话：通知点开与托盘「最近会话」
+// 都由入口调用，下一帧的 syncSelectedSession 会打开它。
+func (a *App) FocusSession(sessionID string) {
+	a.screen = ScreenMain
+	names := a.sessionNames()
+	for i, name := range names {
+		if name == sessionID {
+			a.selectedSession = "s" + strconv.Itoa(i+1)
+			a.lastSelectedSession = ""
+			return
+		}
+	}
+}
+
+// NewSession 回到主界面并新建会话：托盘菜单的「新建会话」由入口调用。
+func (a *App) NewSession() {
+	a.screen = ScreenMain
+	a.createSession()
 }
 
 // FocusComposer 回到主界面并把焦点放到输入区：全局唤起快捷键按下时由入口调用
@@ -837,8 +978,11 @@ func (a *App) persistPreferences() {
 	prefs := PreferencesSnapshot{
 		Theme: a.themePref, MotionOff: a.motionOff,
 		TimeZone: a.timeZone, SidebarWidth: int(a.sidebarWidth),
-		Workspaces:       append([]string(nil), a.workspaces...),
-		HooksProjectPath: a.hooksProjectPath,
+		Workspaces:          append([]string(nil), a.workspaces...),
+		HooksProjectPath:    a.hooksProjectPath,
+		NotifyTaskDone:      a.notifyTaskDone,
+		NotifySound:         a.notifySound,
+		NotifyNeedsResponse: a.notifyNeedsResponse,
 	}
 	if samePreferences(prefs, a.lastPrefs) {
 		return
@@ -852,7 +996,9 @@ func (a *App) persistPreferences() {
 // samePreferences 比两份本地偏好：Workspaces 是切片，逐项比。
 func samePreferences(a, b PreferencesSnapshot) bool {
 	if a.Theme != b.Theme || a.MotionOff != b.MotionOff || a.TimeZone != b.TimeZone ||
-		a.SidebarWidth != b.SidebarWidth || a.HooksProjectPath != b.HooksProjectPath {
+		a.SidebarWidth != b.SidebarWidth || a.HooksProjectPath != b.HooksProjectPath ||
+		a.NotifyTaskDone != b.NotifyTaskDone || a.NotifySound != b.NotifySound ||
+		a.NotifyNeedsResponse != b.NotifyNeedsResponse {
 		return false
 	}
 	if len(a.Workspaces) != len(b.Workspaces) {

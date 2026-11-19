@@ -69,7 +69,7 @@ func (a *App) settingsContent(c *gui.Context) {
 	case secMCP:
 		renderMCP(c, a)
 	case secNotifications:
-		renderNotifications(c)
+		a.renderNotifications(c)
 	case secPets:
 		renderPets(c)
 	case secPermissions:

@@ -60,6 +60,7 @@ func TestExpandHome(t *testing.T) {
 
 // TestFindServerExplicitWins 核对显式指定优先，且不可用时立即失败。
 func TestFindServerExplicitWins(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	dir := t.TempDir()
 	explicit := fakeServer(t, filepath.Join(dir, "explicit", serverName))
 	fromEnv := fakeServer(t, filepath.Join(dir, "env", serverName))
@@ -88,6 +89,7 @@ func TestFindServerExplicitWins(t *testing.T) {
 func TestFindServerEnvAndEndpoint(t *testing.T) {
 	// 端点是真的 Unix socket：路径有长度上界，用短目录。
 	dir := shortDir(t)
+	t.Setenv("HOME", shortDir(t))
 	fromEnv := fakeServer(t, filepath.Join(dir, "env", serverName))
 	t.Setenv(envAppServer, fromEnv)
 	t.Setenv(legacyEnvAppServer, "")
@@ -120,6 +122,7 @@ func TestFindServerStaleEndpoint(t *testing.T) {
 		t.Skip("Windows 用命名管道，不做端点探测")
 	}
 	dir := shortDir(t)
+	t.Setenv("HOME", shortDir(t))
 	binDir := filepath.Join(dir, "bin")
 	found := fakeServer(t, filepath.Join(binDir, serverName))
 	t.Setenv(envAppServer, "")
@@ -151,6 +154,7 @@ func TestFindServerStaleEndpoint(t *testing.T) {
 
 // TestFindServerMissingListsTried 核对都找不到时给出可读原因（列出试过的位置）。
 func TestFindServerMissingListsTried(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 	dir := t.TempDir()
 	t.Setenv(envAppServer, "")
 	t.Setenv(legacyEnvAppServer, "")
@@ -168,6 +172,108 @@ func TestFindServerMissingListsTried(t *testing.T) {
 		if !strings.Contains(message, want) {
 			t.Fatalf("原因里应列出 %q: %s", want, message)
 		}
+	}
+}
+
+// TestFindServerReusesExistingDaemon 核对发现顺序：已有 daemon 先于拉起自带 server，
+// 多个 home 都有 daemon 时按 home 顺序取第一个，本端数据目录排在最后。
+func TestFindServerReusesExistingDaemon(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows 用命名管道，不做端点探测")
+	}
+	home := shortDir(t)
+	t.Setenv("HOME", home)
+	t.Setenv(envAppServer, "")
+	t.Setenv(legacyEnvAppServer, "")
+	// PATH 里放一个可执行文件：已有 daemon 仍然优先，不拉起。
+	binDir := filepath.Join(home, "bin")
+	fakeServer(t, filepath.Join(binDir, serverName))
+	t.Setenv("PATH", binDir)
+
+	dataDir := shortDir(t)
+	own := liveEndpoint(t, dataDir)
+	alpha := liveEndpoint(t, filepath.Join(home, ".dimcode-alpha"))
+
+	plan, err := findServer("", dataDir)
+	if err != nil {
+		t.Fatalf("已有 daemon 时应成功: %v", err)
+	}
+	if !plan.Reuse || plan.DaemonSocket != alpha || plan.Path != "" {
+		t.Fatalf("应复用 ~/.dimcode-alpha 的 daemon，不拉起: %+v", plan)
+	}
+	if plan.Endpoint != own {
+		t.Fatalf("本端端点应保持不变: %q", plan.Endpoint)
+	}
+	if !strings.Contains(plan.Source, ".dimcode-alpha") {
+		t.Fatalf("来源里应写明命中的 home: %q", plan.Source)
+	}
+}
+
+// TestFindServerOwnEndpointLast 核对本端数据目录的 daemon 排在产品 home 之后。
+func TestFindServerOwnEndpointLast(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows 用命名管道，不做端点探测")
+	}
+	home := shortDir(t)
+	t.Setenv("HOME", home)
+	t.Setenv(envAppServer, "")
+	t.Setenv(legacyEnvAppServer, "")
+	t.Setenv("PATH", "")
+
+	dataDir := shortDir(t)
+	own := liveEndpoint(t, dataDir)
+	alpha := liveEndpoint(t, filepath.Join(home, ".dimcode-alpha"))
+
+	plan, err := findServer("", dataDir)
+	if err != nil {
+		t.Fatalf("已有 daemon 时应成功: %v", err)
+	}
+	if plan.DaemonSocket != alpha {
+		t.Fatalf("产品 home 的 daemon 应优先于本端数据目录: %+v", plan)
+	}
+
+	// 产品 home 的 daemon 不在了：退回本端数据目录里还活着的那个。
+	if err := os.Remove(alpha); err != nil {
+		t.Fatalf("移除产品 home 端点: %v", err)
+	}
+	plan, err = findServer("", dataDir)
+	if err != nil {
+		t.Fatalf("本端端点应命中: %v", err)
+	}
+	if !plan.Reuse || plan.DaemonSocket != own || plan.Source != "已有服务端点" {
+		t.Fatalf("应复用本端端点: %+v", plan)
+	}
+}
+
+// TestBridgeEndpoint 核对复用接入：本端端点变成指向对方 socket 的软链，退出时只删
+// 软链、不动对方的 socket。
+func TestBridgeEndpoint(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows 用命名管道")
+	}
+	dir := shortDir(t)
+	own := endpointPath(dir)
+	target := liveEndpoint(t, filepath.Join(dir, "foreign"))
+	log := openStartupLog(filepath.Join(dir, "test.log"))
+	defer log.close()
+
+	if err := bridgeEndpoint(own, target, log); err != nil {
+		t.Fatalf("接入已有 daemon: %v", err)
+	}
+	if got, err := os.Readlink(own); err != nil || got != target {
+		t.Fatalf("本端端点应是指向对方的软链: %q, %v", got, err)
+	}
+	// 再接一次是幂等的：同一条软链不该被反复改写。
+	if err := bridgeEndpoint(own, target, log); err != nil {
+		t.Fatalf("重复接入: %v", err)
+	}
+
+	cleanupEndpoint(own, log)
+	if _, err := os.Lstat(own); !os.IsNotExist(err) {
+		t.Fatalf("退出时应移除复用接入: %v", err)
+	}
+	if _, err := os.Stat(target); err != nil {
+		t.Fatalf("对方的 socket 不该被删: %v", err)
 	}
 }
 

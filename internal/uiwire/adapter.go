@@ -445,6 +445,10 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 		Pending:   v.PendingCounts.Approvals + v.PendingCounts.Questions,
 		Branch:    v.BranchID,
 		TurnCount: len(v.Turns),
+
+		LastTurnEnded:   v.LastTurnEnded,
+		LastTurnIndex:   v.LastTurnIndex,
+		LastTurnOutcome: v.LastTurnOutcome,
 	}
 	for _, pending := range v.Pending.Tasks {
 		out.Tasks = append(out.Tasks, ui.TaskSnapshot{
@@ -724,8 +728,11 @@ func (w *App) Preferences() ui.PreferencesSnapshot {
 	return ui.PreferencesSnapshot{
 		Theme: prefs.Theme, MotionOff: prefs.MotionOff,
 		TimeZone: prefs.TimeZone, SidebarWidth: prefs.SidebarWidth,
-		Workspaces:       append([]string(nil), prefs.Workspaces...),
-		HooksProjectPath: prefs.HooksProjectPath,
+		Workspaces:          append([]string(nil), prefs.Workspaces...),
+		HooksProjectPath:    prefs.HooksProjectPath,
+		NotifyTaskDone:      prefs.NotifyTaskDone,
+		NotifySound:         prefs.NotifySound,
+		NotifyNeedsResponse: prefs.NotifyNeedsResponse,
 	}
 }
 
@@ -738,6 +745,9 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 	current.SidebarWidth = prefs.SidebarWidth
 	current.Workspaces = append([]string(nil), prefs.Workspaces...)
 	current.HooksProjectPath = prefs.HooksProjectPath
+	current.NotifyTaskDone = prefs.NotifyTaskDone
+	current.NotifySound = prefs.NotifySound
+	current.NotifyNeedsResponse = prefs.NotifyNeedsResponse
 	if err := w.A.UpdatePreferences(current); err != nil {
 		return err
 	}

@@ -1,7 +1,8 @@
 // Command dimagent-ui 是客户端入口：默认按连接模式启动，不带参数也能起来。
 //
-//	DimAgent.app                                 双击：默认数据目录 + 自动发现 App Server
+//	DimAgent.app                                 双击：默认数据目录 + 自动发现（先复用已有 daemon）
 //	dimagent-ui -server <可执行文件> -mock-model  指定服务端（验收用）
+//	dimagent-ui -version                         打印客户端与包内 App Server 版本后退出
 //	dimagent-ui -demo                            样例数据，不连服务端（截图与走查）
 //
 // 连接模式的事实全部来自 App Server（经 internal/uiwire 的 Source）；样例模式只用
@@ -15,6 +16,7 @@ import (
 	"log"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -90,13 +92,27 @@ type serverDiscovery struct {
 // apply 重跑发现链，把结果交给集成层；返回本次的发现结果与原因。
 func (d serverDiscovery) apply(stage string) (serverPlan, error) {
 	plan, planErr := findServer(d.explicit, d.dataDir)
+	prepareDiscovery(plan, planErr, d.log, stage)
 	d.base.SetServerPath(plan.Path, discoveryHint(plan, planErr))
-	if planErr != nil {
-		d.log.printf("%s：%v", stage, planErr)
-	} else {
-		d.log.printf("%s：App Server %s", stage, plan.describe())
-	}
 	return plan, planErr
+}
+
+// prepareDiscovery 把一次发现结果落到本端并写日志：复用已有 daemon 时先把它接进
+// 本端端点（见 bridgeEndpoint），日志行固定写「复用已有 daemon：<路径>」，界面上的
+// 连接错误与日志能对上。
+func prepareDiscovery(plan serverPlan, planErr error, log *startupLog, stage string) {
+	switch {
+	case planErr != nil:
+		log.printf("%s：%v", stage, planErr)
+	case plan.Reuse:
+		if err := bridgeEndpoint(plan.Endpoint, plan.DaemonSocket, log); err != nil {
+			log.printf("%s：复用已有 daemon %s 失败：%v", stage, plan.DaemonSocket, err)
+			return
+		}
+		log.printf("%s：复用已有 daemon：%s", stage, plan.DaemonSocket)
+	default:
+		log.printf("%s：App Server %s", stage, plan.describe())
+	}
 }
 
 // 启动时序。连接模式第一次运行要等 App Server 拉起并握手，超时按启动失败处理。
@@ -138,7 +154,7 @@ func main() {
 	dataDirFlag := flag.String("data-dir", "",
 		"客户端数据目录；默认 DIM_DATA_DIR，否则 macOS 的产品目录 ~/Library/Application Support/DimAgent")
 	serverFlag := flag.String("server", "",
-		"App Server 可执行文件；省略时按 DIM_APP_SERVER → 可执行文件同目录 → PATH → 已有端点 的顺序发现")
+		"App Server 可执行文件；省略时先找已有 daemon，再按 DIM_APP_SERVER → 可执行文件同目录 → PATH 发现")
 	mockFlag := flag.Bool("mock-model", false, "连接模式下用 mock 模型拉起服务端（验收用）")
 	variantFlag := flag.String("variant", "",
 		"额外的走查态：branch（分支菜单）、goal（目标编辑）、tasks（后台任务）、settings（设置）、settings-rules（清空确认）、ext / ext-failed / ext-empty / ext-loading（扩展四态）")
@@ -150,7 +166,15 @@ func main() {
 		"渲染一帧后把窗口截到该 PNG 路径并退出；配合 -no-focus 可在不抢焦点的情况下取图")
 	logPathFlag := flag.String("log", "",
 		"客户端启动日志路径；默认 <数据目录>/logs/dimagent.log")
+	versionFlag := flag.Bool("version", false,
+		"打印客户端与包内 App Server 的版本后退出（出包自检用）")
 	flag.Parse()
+
+	// 版本自检在创建窗口之前返回：打包脚本用它确认包内服务端版本，不需要显示器。
+	if *versionFlag {
+		fmt.Printf("DimAgent %s（包内 App Server %s）\n", version, bundledServerLabel())
+		return
+	}
 
 	state, err := appui.ParseState(*stateFlag)
 	if err != nil {
@@ -202,8 +226,10 @@ func main() {
 	var wire *uiwire.App
 	var appBase *app.App
 	if mode == modeConnect {
-		startup.printf("启动：版本 %s 模式 连接 数据目录 %s", version, dataDir)
+		startup.printf("启动：客户端 %s；包内 App Server %s；模式 连接；数据目录 %s",
+			version, bundledServerLabel(), dataDir)
 		plan, planErr := findServer(*serverFlag, dataDir)
+		prepareDiscovery(plan, planErr, startup, "启动")
 		switch {
 		case planErr != nil && plan.Explicit:
 			// 用户指了地方却不可用：立即失败并写清原因，不悄悄换成别的服务端。
@@ -213,9 +239,7 @@ func main() {
 		case planErr != nil:
 			// 自动发现没结果：仍然起窗口，让断线说明在原位给原因与重试入口。
 			titles.setHint("未找到 App Server")
-			startup.printf("%v", planErr)
 		default:
-			startup.printf("App Server：%s", plan.describe())
 			startup.printf("服务端点：%s", plan.Endpoint)
 		}
 		base, err := app.New(app.Config{
@@ -253,6 +277,10 @@ func main() {
 	var win *mygo.Window
 	// gate 是退出闸门：关窗与 ⌘Q 都等退出四阶段结束（见 quitGate）。
 	var gate *quitGate
+	// quitting 表示退出已经开始：关窗回调据此不再把窗口拦成「最小化到托盘」。
+	var quitting atomic.Bool
+	// host 是宿主外壳（托盘与系统通知），窗口与托盘就绪后才有值。
+	var host *shell
 	app := appui.NewApp(appui.Options{
 		Source:  source,
 		Intents: intents,
@@ -260,6 +288,12 @@ func main() {
 		Variant: variant,
 		// 断线卡的「查看日志」用它打开客户端日志；样例模式没有日志时为空串。
 		LogPath: startup.Path(),
+		// 每帧把会话状态交给宿主外壳：托盘菜单、图标状态与系统通知都从这里刷新。
+		OnFrame: func(snapshot appui.HostSnapshot) {
+			if host != nil {
+				host.frame(snapshot)
+			}
+		},
 		StateChanged: func(s appui.State) {
 			if mode == modeConnect {
 				// 连接模式的标题由连接阶段决定，状态切换不改它（见 windowTitle）。
@@ -319,6 +353,28 @@ func main() {
 		}
 		win = mygo.NewWindow(options)
 		titles.attach(win, initialTitle)
+
+		// 宿主外壳：菜单栏托盘图标与系统通知。托盘图标要在应用就绪之后建；
+		// 建不起来（平台不支持托盘）只记一行日志，窗口与快捷键照常可用。
+		host = newShell(app, appBase, startup)
+		host.attachWindow(win)
+		host.quitting = &quitting
+		host.quit = func() {
+			if gate != nil {
+				gate.settle(quitWaitLimit)
+			}
+			mygo.App.Quit()
+		}
+		if err := host.createTray(); err != nil {
+			startup.printf("托盘：%v", err)
+		} else {
+			startup.printf("托盘：已创建（显示/隐藏主窗口、新建会话、最近会话、关窗偏好、退出）")
+		}
+		if mygo.NotificationsSupported() {
+			startup.printf("系统通知：可用（轮完成/失败、待回应三类）")
+		} else {
+			startup.printf("系统通知：当前运行方式不支持（macOS 需要打包后的应用）")
+		}
 
 		// 全局唤起（设置 › 快捷键 › 全局）：mygo 的注册要在主线程上、且事件
 		// 循环已经在跑，所以放在窗口就绪之后。注册失败（键位被别的应用占用、
@@ -394,6 +450,8 @@ func main() {
 				} else if err := os.WriteFile(*shotFlag, data, 0o644); err != nil {
 					startup.printf("写截图失败：%v", err)
 				}
+				// 截图是一次性运行：即使偏好里选了「关窗进托盘」也在截完后退干净。
+				quitting.Store(true)
 				mygo.App.Quit()
 			}
 			if mode == modeDemo {
@@ -410,19 +468,29 @@ func main() {
 			}
 		}
 
-		if appBase != nil {
-			win.OnClose(func(*mygo.CloseEvent) {
+		// 关窗：偏好是「最小化到托盘」时只隐藏窗口，进程留在菜单栏；否则按退出
+		// 四阶段收尾后退出。退出已经开始时一律放行，不把对话框拦回托盘。
+		win.OnClose(func(e *mygo.CloseEvent) {
+			if appBase != nil {
 				bounds := win.Bounds()
 				_ = appBase.UpdateWindowBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height)
-				// 双击启动的应用关掉窗口就该退出：留着没有窗口的进程只会让自启的
-				// App Server 落到没人回收的地方。退出四阶段没走完就不 Quit，否则
-				// 主循环先退出、自启实例留在机器上（关窗与异步收尾的竞态）。
-				if gate != nil {
-					gate.settle(quitWaitLimit)
+				if !quitting.Load() && appBase.Preferences().CloseToTray {
+					e.PreventDefault()
+					win.Hide()
+					host.refresh()
+					startup.printf("关窗：已按偏好最小化到托盘")
+					return
 				}
-				mygo.App.Quit()
-			})
-		}
+			}
+			quitting.Store(true)
+			// 双击启动的应用关掉窗口就该退出：留着没有窗口的进程只会让自启的
+			// App Server 落到没人回收的地方。退出四阶段没走完就不 Quit，否则
+			// 主循环先退出、自启实例留在机器上（关窗与异步收尾的竞态）。
+			if gate != nil {
+				gate.settle(quitWaitLimit)
+			}
+			mygo.App.Quit()
+		})
 	})
 
 	// 退出时按退出四阶段收尾并回收自己拉起的服务端；只回收空闲实例，别的客户端
@@ -445,6 +513,8 @@ func main() {
 		}
 		gate.tidy = func() { cleanupEndpoint(endpoint, startup) }
 		mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
+			// ⌘Q 与菜单退出同样意味着「真的退出」：关窗回调不该再把它拦回托盘。
+			quitting.Store(true)
 			if gate.settled() {
 				return
 			}

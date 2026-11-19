@@ -4,9 +4,10 @@ package main
 //
 // 三条约定：
 //   - 默认值只有一处：不带参数启动也能起来（数据目录落产品目录，服务端按顺序找）。
-//   - 发现顺序固定：-server → 环境变量 → 可执行文件同目录 → PATH → 已有端点。
-//     每一档都记进日志与「找不到」的原因里，界面与日志能对上。
-//   - 「已有端点」要实际探测一次：socket 文件在但没人监听（上次崩溃的残留）不算
+//   - 发现顺序固定：-server → 环境变量 → 已有 daemon（按 home 顺序探测）
+//     → 可执行文件同目录 → PATH。每一档都记进日志与「找不到」的原因里，
+//     界面与日志能对上。
+//   - 「已有 daemon」要实际探测一次：socket 文件在但没人监听（上次崩溃的残留）不算
 //     命中，发现链继续找可执行文件，不拿残留端点掩盖「没有服务端」。
 //   - 不读 App Server 自己的文件：这里只看端点是否连得上，不碰它的数据库与会话文件。
 
@@ -41,7 +42,14 @@ const (
 	// endpointProbeTimeout 是「已有端点」的探测上限：socket 文件在、实际连不上
 	// （崩溃残留）时不能当成可用端点。
 	endpointProbeTimeout = 400 * time.Millisecond
+	// socketName 是产品 daemon 的 socket 文件名；home 下的 rust 子目录与 home 本身
+	// 两种布局都用它（见 socketCandidates）。
+	socketName = "daemon.sock"
 )
+
+// bundledServerVersion 是包内 App Server 的版本，打包时用
+// `-ldflags -X main.bundledServerVersion=…` 注入；开发时直接构建为空。
+var bundledServerVersion = ""
 
 // resolveDataDir 给出客户端数据目录：参数 → DIM_DATA_DIR → 平台产品目录。
 //
@@ -88,7 +96,85 @@ func expandHome(path string) string {
 
 // endpointPath 是已有服务端点（Unix socket）的路径；与连接领域的推导一致。
 func endpointPath(dataDir string) string {
-	return filepath.Join(dataDir, endpointDirName, "daemon.sock")
+	return filepath.Join(dataDir, endpointDirName, socketName)
+}
+
+// daemonHome 是一个「现成 daemon」的 home 目录与它在日志里的名字。
+type daemonHome struct {
+	// Dir 是 daemon home 根目录。
+	Dir string
+	// Label 是日志与「找不到」说明里的写法；本端数据目录为空。
+	Label string
+}
+
+// daemonHomes 是按顺序探测的 daemon home：先看本机产品 CLI 的几个 home（用户
+// 已有的 daemon 就在那里），最后看本端数据目录（上次拉起的实例可能还在）。
+//
+// 探测顺序决定「优先复用谁」：排在前面的 home 里有活着的 daemon 就不再往后看。
+func daemonHomes(dataDir string) []daemonHome {
+	var homes []daemonHome
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		homes = append(homes,
+			daemonHome{Dir: filepath.Join(home, ".dimcode-alpha"), Label: "~/.dimcode-alpha"},
+			daemonHome{Dir: filepath.Join(home, ".dim", "v2"), Label: "~/.dim/v2"},
+			daemonHome{Dir: filepath.Join(home, ".dimcode", "v2"), Label: "~/.dimcode/v2"},
+		)
+	}
+	if dataDir != "" {
+		homes = append(homes, daemonHome{Dir: dataDir})
+	}
+	// 数据目录可能正好是上面某个 home（DIM_DATA_DIR 指过去时）：只留第一次出现。
+	seen := make(map[string]bool, len(homes))
+	unique := homes[:0]
+	for _, home := range homes {
+		if seen[home.Dir] {
+			continue
+		}
+		seen[home.Dir] = true
+		unique = append(unique, home)
+	}
+	return unique
+}
+
+// socketCandidates 给出一个 home 里可能的 socket 路径：产品 daemon 放在 home 下的
+// rust 子目录，也有直接把 socket 放在 home 根下的布局，两种都试。
+func socketCandidates(home daemonHome) []string {
+	rust := filepath.Join(home.Dir, endpointDirName, socketName)
+	flat := filepath.Join(home.Dir, socketName)
+	if home.Label == "" {
+		// 本端数据目录只走连接领域的推导，不额外猜布局。
+		return []string{rust}
+	}
+	return []string{rust, flat}
+}
+
+// daemonHit 是一次「已有 daemon」探测的命中结果。
+type daemonHit struct {
+	// Socket 是活着的 daemon socket 路径。
+	Socket string
+	// Label 是命中 home 的名字；本端数据目录为空。
+	Label string
+}
+
+// findExistingDaemon 按 home 顺序探测现成的 daemon，返回第一个活着端点。
+//
+// 探测只做一次拨号：socket 文件在、没人监听（上次崩溃的残留）不算命中，继续往后找，
+// 也把「为什么不算」记进 tried。整个过程不发协议消息，不碰对方的数据库与日志。
+func findExistingDaemon(dataDir string, tried *[]string) daemonHit {
+	for _, home := range daemonHomes(dataDir) {
+		for _, socket := range socketCandidates(home) {
+			alive, reason := endpointAlive(socket)
+			if alive {
+				return daemonHit{Socket: socket, Label: home.Label}
+			}
+			if reason != "" {
+				*tried = append(*tried, socket+"："+reason)
+			} else {
+				*tried = append(*tried, socket)
+			}
+		}
+	}
+	return daemonHit{}
 }
 
 // serverPlan 是一次发现的结果。
@@ -97,8 +183,13 @@ type serverPlan struct {
 	Path string
 	// Source 说明命中来源，只进日志与界面标题，不参与连接判断。
 	Source string
-	// Endpoint 是已有服务端点的路径（Path 为空时才有意义）。
+	// Endpoint 是本端端点路径（<数据目录>/rust/daemon.sock），连接领域就按它连。
 	Endpoint string
+	// Reuse 表示命中的是已有 daemon：不拉起自己的实例，直接连上它。
+	Reuse bool
+	// DaemonSocket 是已有 daemon 的 socket 实际路径；Reuse 为真时有意义。
+	// 它可能不在本端数据目录里（产品 CLI 的 home），由 bridgeEndpoint 接进本端端点。
+	DaemonSocket string
 	// Tried 按顺序记下试过的位置，找不到时用它给出可读原因。
 	Tried []string
 	// Explicit 表示这次查找来自显式指定（参数或环境变量）：不可用时立即失败，
@@ -111,8 +202,8 @@ func (p serverPlan) describe() string {
 	switch {
 	case p.Path != "":
 		return fmt.Sprintf("%s（来源：%s）", p.Path, p.Source)
-	case p.Source != "":
-		return fmt.Sprintf("%s（%s）", p.Endpoint, p.Source)
+	case p.Reuse:
+		return fmt.Sprintf("复用已有 daemon %s（%s）", p.DaemonSocket, p.Source)
 	default:
 		return "未找到"
 	}
@@ -120,7 +211,7 @@ func (p serverPlan) describe() string {
 
 // findServer 按固定顺序找 App Server；都找不到时返回带「试过哪些位置」的错误。
 //
-// 顺序：-server → DIM_APP_SERVER（兼容旧名）→ 可执行文件同目录 → PATH → 已有端点。
+// 顺序：-server → DIM_APP_SERVER（兼容旧名）→ 已有 daemon → 可执行文件同目录 → PATH。
 // 显式给出（参数或环境变量）但不可用时立即失败：用户指了地方，就不该悄悄换成别的。
 func findServer(explicit, dataDir string) (serverPlan, error) {
 	plan := serverPlan{Endpoint: endpointPath(dataDir)}
@@ -132,6 +223,19 @@ func findServer(explicit, dataDir string) (serverPlan, error) {
 		if v := strings.TrimSpace(os.Getenv(name)); v != "" {
 			return resolveExplicit(plan, "环境变量 "+name, v)
 		}
+	}
+
+	// 现成 daemon 优先：双击启动时用户已有的会话就在它的 home 里，连上它比拉起
+	// 自己的空实例更接近预期结果。命中后不设 Path（不拉起，也就不会往对方 home 写）。
+	if hit := findExistingDaemon(dataDir, &plan.Tried); hit.Socket != "" {
+		plan.Reuse = true
+		plan.DaemonSocket = hit.Socket
+		if hit.Label == "" {
+			plan.Source = "已有服务端点"
+		} else {
+			plan.Source = "已有 daemon（" + hit.Label + "）"
+		}
+		return plan, nil
 	}
 
 	if exe, err := os.Executable(); err == nil {
@@ -151,15 +255,6 @@ func findServer(explicit, dataDir string) (serverPlan, error) {
 		return plan, nil
 	}
 	plan.Tried = append(plan.Tried, "PATH 里的 "+serverName)
-
-	if alive, reason := endpointAlive(plan.Endpoint); alive {
-		plan.Source = "已有服务端点"
-		return plan, nil
-	} else if reason != "" {
-		plan.Tried = append(plan.Tried, plan.Endpoint+"："+reason)
-	} else {
-		plan.Tried = append(plan.Tried, plan.Endpoint)
-	}
 
 	return plan, fmt.Errorf("按顺序都没找到 App Server，试过：%s", strings.Join(plan.Tried, " → "))
 }
@@ -193,18 +288,46 @@ func probeReason(err error) string {
 	return text
 }
 
-// discoveryHint 是交给集成层的「没有可执行文件」说明：找不到时是发现链的原文，
-// 找到但有端点没可执行文件时说明只能连已有实例。有可执行文件时为空。
+// discoveryHint 是交给集成层的「不拉起 App Server」说明：找不到时是发现链的原文，
+// 复用已有 daemon 时说明这次只是接入对方端点。有可拉起的可执行文件时为空。
 func discoveryHint(plan serverPlan, planErr error) string {
 	switch {
 	case planErr != nil:
 		return planErr.Error()
+	case plan.Reuse:
+		return fmt.Sprintf("复用已有 daemon %s：端点连不上（本端没有拉起自带的 App Server）",
+			plan.DaemonSocket)
 	case plan.Path == "":
 		return fmt.Sprintf("只找到已有服务端点 %s，没有可拉起的 App Server 可执行文件"+
 			"（-server、%s、可执行文件同目录、PATH 都没有）", plan.Endpoint, envAppServer)
 	default:
 		return ""
 	}
+}
+
+// bundledServerPath 是随包分发的 App Server：与客户端可执行文件同目录。
+func bundledServerPath() string {
+	exe, err := os.Executable()
+	if err != nil || exe == "" {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(exe), serverName)
+}
+
+// bundledServerLabel 是一行可打印的「包内 App Server」版本说明：打包脚本把构建出的
+// 服务端版本注入进客户端，双击运行时第一行日志里就是这个字符串。
+func bundledServerLabel() string {
+	path := bundledServerPath()
+	if path == "" {
+		return "未知"
+	}
+	if _, err := os.Stat(path); err != nil {
+		return "未随包提供"
+	}
+	if v := strings.TrimSpace(bundledServerVersion); v != "" {
+		return v
+	}
+	return "未注入版本"
 }
 
 // resolveExplicit 校验显式给出的可执行文件（绝对路径、相对路径或 PATH 里的名字）。

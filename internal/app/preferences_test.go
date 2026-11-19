@@ -67,3 +67,59 @@ func TestPreferencesCorruptFallsBack(t *testing.T) {
 		t.Fatalf("损坏文件没有记诊断：%v", app.Diagnostics())
 	}
 }
+
+// TestNotificationPreferencesPersist 核对设置 › 通知的三个开关真的落盘：出厂全开，
+// 关掉后重建 App 仍是关，且与关窗偏好互不影响。
+func TestNotificationPreferencesPersist(t *testing.T) {
+	dir := t.TempDir()
+	first, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("创建 App：%v", err)
+	}
+	defaults := first.Preferences()
+	if !defaults.NotifyTaskDone || !defaults.NotifySound || !defaults.NotifyNeedsResponse {
+		t.Fatalf("通知开关出厂应为开：%+v", defaults)
+	}
+	if defaults.CloseToTray {
+		t.Fatalf("关窗偏好出厂应为关：%+v", defaults)
+	}
+
+	want := defaults
+	want.NotifyTaskDone = false
+	want.NotifySound = false
+	want.NotifyNeedsResponse = true
+	want.CloseToTray = true
+	if err := first.UpdatePreferences(want); err != nil {
+		t.Fatalf("写入偏好：%v", err)
+	}
+
+	second, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("重建 App：%v", err)
+	}
+	got := second.Preferences()
+	if got.NotifyTaskDone || got.NotifySound || !got.NotifyNeedsResponse || !got.CloseToTray {
+		t.Fatalf("通知开关与关窗偏好没有持久化：%+v", got)
+	}
+}
+
+// TestNotificationPreferencesDefaultForOldFile 核对旧偏好文件里没有这三个键时按
+// 出厂值（开）处理，写成显式的 false 才是用户关掉的。
+func TestNotificationPreferencesDefaultForOldFile(t *testing.T) {
+	dir := t.TempDir()
+	raw := []byte("{\n  \"theme\": \"暗\",\n  \"notifyTaskDone\": false\n}\n")
+	if err := os.WriteFile(filepath.Join(dir, "preferences.json"), raw, 0o600); err != nil {
+		t.Fatalf("写偏好文件：%v", err)
+	}
+	app, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("创建 App：%v", err)
+	}
+	got := app.Preferences()
+	if got.NotifyTaskDone {
+		t.Fatalf("文件里显式的 false 应保留：%+v", got)
+	}
+	if !got.NotifySound || !got.NotifyNeedsResponse {
+		t.Fatalf("缺省的键应按出厂值（开）处理：%+v", got)
+	}
+}

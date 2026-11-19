@@ -32,6 +32,17 @@ type Preferences struct {
 	// GlobalShortcutAccelerator 是全局唤起快捷键的键位（如
 	// CmdOrCtrl+Shift+Space）；空表示默认键位。
 	GlobalShortcutAccelerator string `json:"globalShortcutAccelerator,omitempty"`
+	// NotifyTaskDone 是设置 › 通知的「任务完成或失败时通知」：轮完成或失败时发
+	// 系统通知。缺省 true：与参考产品的出厂开关一致。
+	NotifyTaskDone bool `json:"notifyTaskDone"`
+	// NotifySound 是设置 › 通知的「通知声音」：发通知时带系统提示音。
+	NotifySound bool `json:"notifySound"`
+	// NotifyNeedsResponse 是设置 › 通知的「需要我回应时通知」：审批或提问待决时
+	// 发系统通知。
+	NotifyNeedsResponse bool `json:"notifyNeedsResponse"`
+	// CloseToTray 是关窗行为：为真时窗口隐藏、进程留在托盘；为假时按退出处理。
+	// 缺省 false：与参考产品一致，关窗即退出。
+	CloseToTray bool `json:"closeToTray"`
 	// Window 是窗口尺寸与位置；HasPosition 为假时按居中处理。
 	Window WindowPreferences `json:"window"`
 }
@@ -47,7 +58,13 @@ type WindowPreferences struct {
 
 // DefaultPreferences 是缺省偏好。
 func DefaultPreferences() Preferences {
-	return Preferences{Theme: "跟随系统", TimeZone: "跟随系统"}
+	return Preferences{
+		Theme:      "跟随系统",
+		TimeZone:   "跟随系统",
+		NotifyTaskDone:      true,
+		NotifySound:         true,
+		NotifyNeedsResponse: true,
+	}
 }
 
 // preferencesPath 是偏好文件位置。
@@ -69,6 +86,20 @@ func LoadPreferences(dataDir string) (Preferences, error) {
 	var prefs Preferences
 	if err := json.Unmarshal(raw, &prefs); err != nil {
 		return defaults, err
+	}
+	// 三个通知开关出厂为开：旧偏好文件里没有这些键时按开处理，写成显式的 false
+	// 才是用户关掉的。
+	var keys map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &keys); err == nil {
+		if _, ok := keys["notifyTaskDone"]; !ok {
+			prefs.NotifyTaskDone = defaults.NotifyTaskDone
+		}
+		if _, ok := keys["notifySound"]; !ok {
+			prefs.NotifySound = defaults.NotifySound
+		}
+		if _, ok := keys["notifyNeedsResponse"]; !ok {
+			prefs.NotifyNeedsResponse = defaults.NotifyNeedsResponse
+		}
 	}
 	return normalizePreferences(prefs), nil
 }

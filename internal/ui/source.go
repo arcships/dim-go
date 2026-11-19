@@ -197,6 +197,11 @@ type PreferencesSnapshot struct {
 	Workspaces []string
 	// HooksProjectPath 是设置 › Hooks 里选中的项目目录。
 	HooksProjectPath string
+	// NotifyTaskDone / NotifySound / NotifyNeedsResponse 是设置 › 通知的三个开关；
+	// 落盘在本地偏好里，宿主的系统通知按它们决定发不发、带不带声音。
+	NotifyTaskDone      bool
+	NotifySound         bool
+	NotifyNeedsResponse bool
 }
 
 // GlobalShortcutSnapshot 是全局唤起快捷键在设置里的状态（本端事实）。
@@ -255,6 +260,11 @@ type SessionSnapshot struct {
 	Branches []BranchSnapshot
 	// TurnCount 是已加载轮次数，用于从当前分支切出时选切点。
 	TurnCount int
+	// LastTurn 是最后一个已结束的轮：Ended 为假表示还没有结束的轮，Outcome 是
+	// 服务端给的结果词。宿主通知按它区分「完成」与「失败」。
+	LastTurnEnded   bool
+	LastTurnIndex   int
+	LastTurnOutcome string
 	// Tasks 是未结束的后台任务。
 	Tasks    []TaskSnapshot
 	OpenedAt time.Time

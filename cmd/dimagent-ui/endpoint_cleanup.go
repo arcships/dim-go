@@ -8,6 +8,9 @@ package main
 //
 // 只删「文件在、但没人在听」的端点：外部实例还活着时拨号能连上，那是它的
 // socket，不动它。删不掉只记日志，退出路径不因为这一步失败而卡住。
+//
+// 复用已有 daemon 时本端端点是一条软链（见 reuse.go）：它只是本次接入的路径，
+// 退出就移除；软链指向的对方 socket 不动。
 
 import (
 	"os"
@@ -18,6 +21,9 @@ import (
 func cleanupEndpoint(path string, log *startupLog) {
 	if path == "" || runtime.GOOS == "windows" {
 		// Windows 用命名管道，没有可删的 socket 文件。
+		return
+	}
+	if removeBridge(path, log) {
 		return
 	}
 	if _, err := os.Stat(path); err != nil {

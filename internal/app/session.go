@@ -39,6 +39,11 @@ type SessionView struct {
 	// Current 是队列里的第一条待决项；HasCurrent 为假表示没有待决。
 	Current    interaction.Item
 	HasCurrent bool
+	// LastTurnIndex / LastTurnOutcome 是本分支最后一个已结束的轮，供宿主通知区分
+	// 完成与失败；LastTurnEnded 为假表示还没有结束的轮。
+	LastTurnIndex   int
+	LastTurnOutcome string
+	LastTurnEnded   bool
 	// Compaction 是最近一次上下文压缩的摘要；Compactions 是压缩次数。
 	Compaction  *projection.Compaction
 	Compactions int64
@@ -529,6 +534,7 @@ func (a *App) viewOf(runtime *sessionRuntime) SessionView {
 	if runtime.attached.Running != nil {
 		running = *runtime.attached.Running
 	}
+	lastIndex, lastOutcome, lastEnded := lastEndedTurn(view.Turns)
 	return SessionView{
 		SessionID:     view.SessionID,
 		BranchID:      view.BranchID,
@@ -547,9 +553,22 @@ func (a *App) viewOf(runtime *sessionRuntime) SessionView {
 		PendingCounts: counts,
 		Current:       current,
 		HasCurrent:    hasCurrent,
-		Compaction:    view.Compaction,
-		Compactions:   view.Compactions,
+		LastTurnIndex: lastIndex, LastTurnOutcome: lastOutcome, LastTurnEnded: lastEnded,
+		Compaction:  view.Compaction,
+		Compactions: view.Compactions,
 	}
+}
+
+// lastEndedTurn 取最后一个已结束的轮：序号最大且状态为 ended 的那一轮。
+// 没有结束的轮时返回 ended=false，不拿运行中的轮凑结果。
+func lastEndedTurn(turns []projection.Turn) (index int, outcome string, ended bool) {
+	for _, turn := range turns {
+		if turn.Status != projection.TurnEnded || turn.Index < index {
+			continue
+		}
+		index, outcome, ended = turn.Index, turn.Outcome, true
+	}
+	return index, outcome, ended
 }
 
 // reloadPageBudget 是一次重读最多读几页，避免服务端游标不前进时原地打转。

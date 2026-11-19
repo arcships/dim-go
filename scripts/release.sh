@@ -8,10 +8,13 @@
 # 产物（全部在 dist/）：
 #   DimAgent.app/                        可双击运行；Contents/MacOS 下同时放 dim-app-server，
 #                                        客户端按「可执行文件同目录」发现它，双击即可拉起。
+#                                        服务端版本随包写进 Resources/dim-app-server.version 与
+#                                        客户端（启动日志第一行、`DimAgent -version` 都读它）。
 #   DimAgent-<版本>-macos-<架构>.tar.gz   打包整棵 .app
 #   DimAgent-<版本>-macos-<架构>.tar.gz.sha256
 #
-# 服务端：默认在 DIM_SERVER_SRC（缺省 ~/Code/dim-2）里跑 cargo build --release。
+# 服务端：默认在 DIM_SERVER_SRC（缺省 ~/Code/dim-2）里跑 cargo build --release，
+# 构建产物**立即**拷进包：target/ 是可回收缓存，留到最后再拷会拿到空路径。
 # 已经有构建产物时用 DIM_SERVER_BIN 指过去，跳过编译。
 set -euo pipefail
 
@@ -35,9 +38,10 @@ usage() {
   -h, --help            显示本帮助
 
 环境变量：
-  DIM_SERVER_SRC  App Server 源码目录（默认 ~/Code/dim-2），在其中 cargo build --release
-  DIM_SERVER_BIN  已有的 dim-app-server 可执行文件；给出时跳过编译
-  VERSION         与 --version 同义
+  DIM_SERVER_SRC      App Server 源码目录（默认 ~/Code/dim-2），在其中 cargo build --release
+  DIM_SERVER_BIN      已有的 dim-app-server 可执行文件；给出时跳过编译
+  DIM_SERVER_VERSION  包内服务端版本；缺省在源码构建时自动从 cargo 取，用现成二进制时需显式给出
+  VERSION             与 --version 同义
 EOF
 }
 
@@ -92,6 +96,26 @@ default_version() {
 	printf '%s' "${found:-0.1.0}"
 }
 
+# cargo_package_version 取 dim-app-server 的版本：与 hello 回执里的 serverVersion 同源
+# （构建时的 CARGO_PKG_VERSION）。先问 cargo metadata，取不到再读工作区 Cargo.toml。
+cargo_package_version() {
+	local src="$1" version=""
+	if command -v python3 >/dev/null; then
+		version="$(
+			cd "$src" &&
+				cargo metadata --no-deps --format-version 1 2>/dev/null |
+				python3 -c 'import json, sys
+packages = json.load(sys.stdin).get("packages", [])
+print(next((p["version"] for p in packages if p.get("name") == "dim-app-server"), ""))' 2>/dev/null || true
+		)"
+	fi
+	if [[ -z "$version" && -f "$src/Cargo.toml" ]]; then
+		version="$(sed -n '/^\[workspace\.package\]/,/^\[/s/^version *= *"\([^"]*\)".*/\1/p' \
+			"$src/Cargo.toml" | head -n 1)"
+	fi
+	printf '%s' "$version"
+}
+
 if [[ -z "$VERSION" ]]; then
 	described="$(git -C "$ROOT" describe --tags 2>/dev/null || true)"
 	VERSION="$(parse_version "$described")"
@@ -115,7 +139,14 @@ esac
 
 command -v go >/dev/null || die "缺少 go（在 PATH 里找不到）"
 
+# 0. 先清空 bundle 骨架：服务端构建后要立刻拷进包，等客户端构建完再拷会碰上
+#    cargo 缓存回收（target/ 里已经空过一次）。
+rm -rf "$APP"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+
+SERVER_VERSION="${DIM_SERVER_VERSION:-}"
 # 1. 服务端：默认在源码目录里做 release 构建；给了现成二进制就直接用。
+#    构建产物这一步就拷进包，之后不再依赖源码目录里的 target/。
 if [[ -z "$SERVER_BIN" ]]; then
 	[[ -f "$DIM_SERVER_SRC/Cargo.toml" ]] ||
 		die "App Server 源码目录不可用：$DIM_SERVER_SRC（用 DIM_SERVER_SRC 指定，或用 DIM_SERVER_BIN 给现成二进制）"
@@ -123,21 +154,33 @@ if [[ -z "$SERVER_BIN" ]]; then
 	printf 'release: 构建 App Server（%s）\n' "$DIM_SERVER_SRC"
 	(cd "$DIM_SERVER_SRC" && cargo build --release -p dim-app-server)
 	SERVER_BIN="$DIM_SERVER_SRC/target/release/dim-app-server"
+	if [[ -z "$SERVER_VERSION" ]]; then
+		SERVER_VERSION="$(cargo_package_version "$DIM_SERVER_SRC")"
+	fi
 fi
 [[ -f "$SERVER_BIN" ]] || die "App Server 可执行文件不存在：$SERVER_BIN"
 [[ -x "$SERVER_BIN" ]] || die "App Server 可执行文件不可执行：$SERVER_BIN"
+cp "$SERVER_BIN" "$APP/Contents/MacOS/dim-app-server"
+chmod +x "$APP/Contents/MacOS/dim-app-server"
+if [[ -z "$SERVER_VERSION" ]]; then
+	printf 'release: 包内服务端版本未知（用 DIM_SERVER_VERSION 指定）\n' >&2
+fi
+printf 'release: 服务端已拷进包（版本 %s）\n' "${SERVER_VERSION:-未知}"
 
 # 2. 客户端：产物直接写进 bundle 里，保证 Contents/MacOS 与服务端同目录。
+#    包内服务端版本注入客户端：启动日志第一行与 `DimAgent -version` 都从它来。
 printf 'release: 构建客户端（版本 %s）\n' "$VERSION"
-rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+LDFLAGS="-s -w -X main.version=$VERSION"
+if [[ -n "$SERVER_VERSION" ]]; then
+	LDFLAGS="$LDFLAGS -X main.bundledServerVersion=$SERVER_VERSION"
+fi
 (
 	cd "$ROOT"
-	go build -trimpath -ldflags "-s -w -X main.version=$VERSION" \
+	go build -trimpath -ldflags "$LDFLAGS" \
 		-o "$APP/Contents/MacOS/DimAgent" ./cmd/dimagent-ui
 )
-cp "$SERVER_BIN" "$APP/Contents/MacOS/dim-app-server"
-chmod +x "$APP/Contents/MacOS/DimAgent" "$APP/Contents/MacOS/dim-app-server"
+chmod +x "$APP/Contents/MacOS/DimAgent"
+printf '%s\n' "${SERVER_VERSION:-unknown}" >"$APP/Contents/Resources/dim-app-server.version"
 
 # 3. Info.plist：应用名、版本、包标识与最低系统版本；不引用图标与 nib（界面全在 Go 里）。
 cat >"$APP/Contents/Info.plist" <<PLIST
@@ -189,13 +232,21 @@ if [[ "$SIGN" == 1 ]]; then
 	fi
 fi
 
-# 5. 结构自检：两个可执行文件与 Info.plist 必须都在位。
+# 5. 结构自检：两个可执行文件、版本文件与 Info.plist 必须都在位。
 for required in \
 	"$APP/Contents/Info.plist" \
 	"$APP/Contents/MacOS/DimAgent" \
-	"$APP/Contents/MacOS/dim-app-server"; do
+	"$APP/Contents/MacOS/dim-app-server" \
+	"$APP/Contents/Resources/dim-app-server.version"; do
 	[[ -e "$required" ]] || die "产物缺少 $required"
 done
+
+# 5.1 版本自检：包内客户端要能自己报出包内服务端版本（启动日志第一行用的是同一份）。
+if VERSION_LINE="$("$APP/Contents/MacOS/DimAgent" -version 2>/dev/null)"; then
+	printf 'release: 包内版本：%s\n' "$VERSION_LINE"
+else
+	die "包内客户端打印版本失败：$APP/Contents/MacOS/DimAgent -version"
+fi
 
 # 6. 打包与校验和：.app 整棵进包，sha256 与包同目录。
 PKG="DimAgent-$VERSION-macos-$ARCH.tar.gz"
@@ -229,6 +280,8 @@ cat >"$DIST/README.md" <<README
 | \`$PKG.sha256\` | 包的 sha256 校验和 |
 
 - 版本：\`$VERSION\`；架构：\`$ARCH\`；提交：\`$COMMIT\`。
+- 包内 App Server 版本：\`${SERVER_VERSION:-unknown}\`（也写在
+  \`DimAgent.app/Contents/Resources/dim-app-server.version\`；\`DimAgent -version\` 可打印）。
 - 重出同一版本：\`scripts/release.sh -v $VERSION\`。不带 \`-v\` 时取
   \`git describe\` 的标签；标签不是 x.y.z 形态时用入口代码里的默认版本。
 - 每次出包都会删掉其它版本的 \`DimAgent-*.tar.gz\` 与校验和，只保留最近一次。
@@ -240,7 +293,8 @@ human() { du -sh "$1" | awk '{print $1}'; }
 printf '\nrelease: 完成（版本 %s，架构 %s，提交 %s）\n' "$VERSION" "$ARCH" "$COMMIT"
 printf '  应用      %s（%s）\n' "$APP" "$(human "$APP")"
 printf '  客户端    %s（%s）\n' "$APP/Contents/MacOS/DimAgent" "$(ls -lh "$APP/Contents/MacOS/DimAgent" | awk '{print $5}')"
-printf '  服务端    %s（%s）\n' "$APP/Contents/MacOS/dim-app-server" "$(ls -lh "$APP/Contents/MacOS/dim-app-server" | awk '{print $5}')"
+printf '  服务端    %s（%s，版本 %s）\n' "$APP/Contents/MacOS/dim-app-server" \
+	"$(ls -lh "$APP/Contents/MacOS/dim-app-server" | awk '{print $5}')" "${SERVER_VERSION:-未知}"
 printf '  发布包    %s（%s）\n' "$DIST/$PKG" "$(human "$DIST/$PKG")"
 printf '  校验和    %s\n' "$(cat "$DIST/$PKG.sha256")"
 printf '\n双击 %s 即可运行；命令行运行：%s\n' "$APP" "$APP/Contents/MacOS/DimAgent"
