@@ -28,6 +28,14 @@ DimAgent 的 Go 桌面客户端：Go + mygo native UI 承载宿主与界面，Ru
 - `github.com/egoist/mygo` 是本项目的宿主框架（界面与窗口由它承载），属平台依赖，不是例外；其 API 按上游使用，不在本地改语义。
 - 除宿主框架外，第三方依赖默认禁止。既有例外：`internal/terminal` 可用一个伪终端库（仅伪终端创建与读写）；`internal/ui/render` 可用 `markstream-go`（仅 Markdown 流式渲染）。其他模块保持零第三方依赖。新增例外须先在 `docs/domains/A.md` 出设计选择。
 
+## 3.1 测试用模型（强制）
+
+- 测试与验收本应用时，**只允许使用 dimoauth 的 `deepseek v4.1 flash`**（界面里显示为 `DeepSeek V4.1 Flash`）。
+- **不允许使用其他任何模型**，包括默认档、试用模型与更高配的同族模型；其他模型太贵。
+- 这条对**所有 agent** 生效：包括运行参考产品、驱动真实会话、跑端到端用例、截图取证。
+- 需要模型但拿不到 dimoauth 的 `deepseek v4.1 flash` 时：停下来写清缺什么，不许换成别的模型凑数。
+- 不花模型额度的路径优先：进程内替身（`internal/stubmodel`）、`-demo` 样例、离线夹具。
+
 ## 4. 文档位置
 
 | 路径 | 内容 | 所有者 |
