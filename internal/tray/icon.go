@@ -43,10 +43,10 @@ func Icon(status Status) ([]byte, error) {
 	ink := color.RGBA{A: 0xff}
 	switch status {
 	case StatusRunning:
-		fillCircle(canvas, 26, 26, 4, ink)
+		fillCircle(canvas, 25, 26, 4, ink)
 	case StatusWaiting:
-		fillRect(canvas, 25, 19, 28, 26, ink)
-		fillRect(canvas, 25, 28, 28, 31, ink)
+		fillRect(canvas, 24, 17, 27, 25, ink)
+		fillRect(canvas, 24, 27, 27, 30, ink)
 	}
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, canvas); err != nil {
