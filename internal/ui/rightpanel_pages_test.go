@@ -263,6 +263,13 @@ func TestRightPanelFileMenu(t *testing.T) {
 	if _, ok := tt.Find("取消暂存"); ok {
 		t.Fatal("未暂存文件不该出现「取消暂存」")
 	}
+	// 外部打开、文件管理器、另存为要宿主能力（DEC-09）：菜单项留在原位但置灰。
+	for _, item := range []string{"用外部工具打开", "在文件管理器中显示", "另存为…"} {
+		info, ok := tt.Access(item)
+		if !ok || !info.Disabled {
+			t.Fatalf("%q 没有置灰：%+v（找到 %v）", item, info, ok)
+		}
+	}
 }
 
 // 文件页的读取失败与首次加载：骨架、根级错误、根级「加载更多」。

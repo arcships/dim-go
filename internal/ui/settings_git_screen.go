@@ -28,7 +28,8 @@ import (
 //     但远程与分支清单是样例；真实清单要 App Server 的仓库事实。
 //   - R-GIT-021/077/189 的保存期校验（非法字符、无分支、路径不存在）要写入
 //     路径；本屏只在进程内保留输入值，不显示假的错误。
-//   - R-GIT-194 的系统目录选择器要宿主能力，按钮照渲染，点击不改路径。
+//   - R-GIT-194 的系统目录选择器要宿主能力：路径改为手动输入（占位「手动
+//     输入路径」），「选择目录」按钮禁用并写原因（DEC-10）。
 //   - R-GIT-197 的无权限提示同属宿主能力。
 //
 // 差异：参考产品的每段说明可选中复制，本屏照做；输入框的聚焦环取主题的
@@ -183,15 +184,19 @@ func gitNotesGroup(c *gui.Context, label, hint string, value *string, placeholde
 
 // gitWorktreeGroup 是 Worktree 根目录（S-git-23 … 25）：标签、路径输入与
 // 右端「选择目录」图标按钮（输入 703 + 间距 6 + 按钮 32）。
+//
+// 系统目录选择器要宿主能力，本版没有：路径改为手动输入（占位「手动输入路径」），
+// 右侧按钮置灰并写原因（DEC-10）。
 func gitWorktreeGroup(c *gui.Context) {
 	gui.Column(c).Shrink(0).Gap(gitControlGap).Children(func() {
 		gitLabel(c, gitCopyWorktree)
 		gui.Row(c).AlignItems(gui.Center).Gap(gitInlineGap).Children(func() {
-			screenInput(c, &gitScreen.worktree, gitCopyChooseDir, gitCopyWorktree).Grow(1)
-			if gitIconButton(c, screenIconFolderOpen, gitCopyChooseDirA11y) {
-				// 系统目录选择器要宿主能力（未接入）；取消时路径不变。
+			screenInput(c, &gitScreen.worktree, "手动输入路径", gitCopyWorktree).Grow(1)
+			if gitIconButton(c, screenIconFolderOpen, gitCopyChooseDirA11y, noteDirPicker, true) {
+				// 禁用入口不会走到这里；保留分支只为了让点击语义与其余入口一致。
 			}
 		})
+		gitHint(c, "手动输入路径（系统目录选择器未接入）")
 	})
 }
 
@@ -265,17 +270,23 @@ func gitSelect(c *gui.Context, selected *int, options []string, label string) {
 	})
 }
 
-// gitIconButton 是一个 32×32 的描边图标入口（S-git-25）。
-func gitIconButton(c *gui.Context, icon *gui.SVG, label string) bool {
+// gitIconButton 是一个 32×32 的描边图标入口（S-git-25）。tip 非空时写进
+// tooltip；disabled 时整钮置灰，点击不返回真。
+func gitIconButton(c *gui.Context, icon *gui.SVG, label, tip string, disabled bool) bool {
 	t := c.Theme()
+	if tip == "" {
+		tip = label
+	}
 	b := gui.ButtonBase(c).Shrink(0).Width(gitActionSize).Height(gitActionSize).
 		Radius(screenRadiusCtl).Background(t.Background).Center().
-		Label(label).Tooltip(label).Cursor(gui.CursorPointer)
+		Label(label).Tooltip(tip).Cursor(gui.CursorPointer).Disabled(disabled)
 	b.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})
 	ink := t.TextMuted
 	switch {
+	case disabled:
+		b = b.Opacity(0.5)
 	case b.Pressed():
 		b = b.Background(t.SurfacePressed)
 		ink = t.Text

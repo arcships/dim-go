@@ -126,11 +126,12 @@ func (a *App) roundDivider(c *gui.Context, text string) {
 
 // 消息动作没有写入口时写进读屏名、提示与菜单项的原因。分叉要的是「从这条消息
 // 切出」：Intents 只有按轮次切分支的 CreateBranch，RowSnapshot 也不带这一行的
-// 轮次，所以先置灰并写原因，不拿别的轮次顶替（等事实）。
+// 轮次，所以先置灰并写原因，不拿别的轮次顶替（DEC-05）。删除与撤回同样没有
+// 消息级写入通道（DEC-05 同一裁定）。
 const (
-	messageForkUnavailable     = "消息分叉还没有写入口"
-	messageDeleteUnavailable   = "删除消息还没有写入口"
-	messageWithdrawUnavailable = "撤回只在发送中的消息上可用"
+	messageForkUnavailable     = noteMessageFork
+	messageDeleteUnavailable   = noteMessageDelete
+	messageWithdrawUnavailable = noteMessageDelete
 	messageCopyNeedsSelection  = "先选中要复制的文本"
 )
 
@@ -280,12 +281,20 @@ func (a *App) assistantMessageMenu(m *gui.Menu, svc gui.Services, text, selectio
 // userAttachmentArea 是气泡里的附件与引用区（TL-21–TL-26）：定时来源、图片廊、
 // 附件 chip、引用列表与标注，都排在正文之上（R-TL-213）。
 //
-// RowSnapshot 目前没有附件 / 引用 / 标注 / 定时来源字段（等事实）：线上路径传
-// 空，不画假 chip；投影补上字段后由 userRound 填进来即可。
+// RowSnapshot 目前没有附件 / 引用 / 标注 / 定时来源字段（等事实）：真实消息先
+// 画一行占位并注明「等事实」（DEC-07），投影补上字段后由 userRound 填进来即可。
 func (a *App) userAttachmentArea(c *gui.Context, r round) {
 	t := c.Theme()
 	if len(r.images) == 0 && len(r.attachments) == 0 && len(r.quotes) == 0 &&
 		len(r.marks) == 0 && r.wakeup == "" {
+		if r.factsPending {
+			gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space1).
+				Label("附件与引用占位").Children(func() {
+				iconGlyph(c, iconPaperclip, t.TextMuted, "attachment")
+				typeMicro.style(t, gui.Text(c, noteAttachmentFacts)).
+					TextColor(t.TextMuted).SingleLine()
+			})
+		}
 		return
 	}
 	gui.Column(c).Shrink(0).Gap(space1).Label("消息附件与引用").Children(func() {
@@ -790,14 +799,16 @@ func (a *App) artifactsBlock(c *gui.Context, i int, r round) {
 	})
 }
 
-// artifactCard 是一个产物卡：文件名 + 打开。
+// artifactCard 是一个产物卡：文件名 + 打开。协议没有 artifact 概念，打开入口
+// 置灰并写原因（DEC-06）；产物块本身只在投影给出产物行时出现。
 func (a *App) artifactCard(c *gui.Context, art artifact) {
 	t := c.Theme()
 	gui.Row(c).Shrink(0).Padding(space2, space3).Gap(space2).Radius(radius).
 		Background(t.Surface).AlignItems(gui.Center).Label("产物 " + art.name).Children(func() {
 		iconGlyph(c, iconDocument, t.TextMuted, "artifact")
 		typeSecondary.style(t, gui.Text(c, art.name)).TextColor(t.Text).SingleLine()
-		gui.Button(c, "打开").Label("打开产物 " + art.name)
+		gui.Button(c, "打开").Label("打开产物 " + art.name + "（" + noteArtifact + "）").
+			Tooltip(noteArtifact).Disabled(true)
 	})
 }
 
@@ -1315,9 +1326,10 @@ func (a *App) assistantText(c *gui.Context, text string) {
 }
 
 // userRound 把用户行投成一条用户消息：正文与状态来自事实。附件、引用、标注与
-// 定时来源还没有进 RowSnapshot（等事实），所以这里不填，气泡里也就不画假 chip。
+// 定时来源还没有进 RowSnapshot（等事实），所以这里不填；factsPending 让气泡画
+// 一行「等事实」的占位，而不是假 chip（DEC-07）。
 func userRound(row RowSnapshot) round {
-	return round{user: row.Text, status: liveRoundStatus(row.Status)}
+	return round{user: row.Text, status: liveRoundStatus(row.Status), factsPending: true}
 }
 
 // assistantMessageText 是「复制整个消息」要复制的正文：回复原文；没有回复时

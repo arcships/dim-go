@@ -184,8 +184,10 @@ func rpEntryChange(p, letter string) *rpChange {
 	return &rpChange{path: p, status: letter[0], statUnknown: true}
 }
 
-// rpGitWriteNote 是 git 写动作不可用的原因（暂存 / 还原 / 提交 / 推送 / 切分支）。
-const rpGitWriteNote = "缺少协议方法，D7 也未提供 git 写操作"
+// rpGitWriteNote 是 git 写动作不可用的原因（暂存 / 取消暂存 / 还原 / 提交 /
+// 推送 / 切分支）。技术口径是「缺协议方法，D7 不做 git 写」，界面上只写结果
+// （DEC-03、UI-3）。
+const rpGitWriteNote = noteGitWrite
 
 // rpGitWriteDisabled 表示这些写动作现在不能发：连着真实读数时一律禁用。
 func (a *App) rpGitWriteDisabled() bool { return a.rpWired() }
@@ -782,12 +784,18 @@ func (a *App) rpFileMenu(c *gui.Context, target gui.Element, node *rpNode, p str
 			}
 		}
 		rpMenuSeparator(c)
-		menuItem(c, m, iconEye, "预览", "预览", "", false, false)
-		menuItem(c, m, iconExternal, "用外部工具打开", "用外部工具打开", "", false, false)
-		menuItem(c, m, iconFolderOpen, "在文件管理器中显示", "在文件管理器中显示", "", false, false)
-		menuItem(c, m, iconDownload, "另存为…", "另存为…", "", false, false)
+		if menuItem(c, m, iconEye, "预览", "预览", "", false, false) {
+			a.rpOpenPreview(p)
+		}
+		// 外部工具、文件管理器与另存为要宿主/协议能力：本版不做，入口禁用并
+		// 写原因（DEC-09）；复制路径是本地动作，照常可用。
+		menuItem(c, m, iconExternal, "用外部工具打开", "用外部工具打开", notePreviewIO, true, false)
+		menuItem(c, m, iconFolderOpen, "在文件管理器中显示", "在文件管理器中显示", notePreviewIO, true, false)
+		menuItem(c, m, iconDownload, "另存为…", "另存为…", notePreviewIO, true, false)
 		rpMenuSeparator(c)
-		menuItem(c, m, iconCopy, "复制路径", "复制路径", "", false, false)
+		if menuItem(c, m, iconCopy, "复制路径", "复制路径", "", false, false) {
+			c.WriteClipboard(p)
+		}
 	})
 }
 

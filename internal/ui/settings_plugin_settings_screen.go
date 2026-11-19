@@ -232,6 +232,7 @@ func plgBody(c *gui.Context, t *gui.Theme) {
 			return
 		}
 	}
+	plgNote(c, t, notePluginWrite)
 	gui.Column(c).Shrink(0).Gap(plgCardGap).Children(func() {
 		for i := range pluginSettingsScreen.sources {
 			plgCard(c, t, &pluginSettingsScreen.sources[i])
@@ -265,9 +266,7 @@ func plgProjectRootSection(c *gui.Context, t *gui.Theme) {
 			}
 			gui.Select(c, &pluginSettingsScreen.rootName, options).Grow(1).
 				Height(plgCtlH).Label(plgCopyRootTitle)
-			if plgOutlineButton(c, t, plgCopyRootReload, plgBtnH, 0) {
-				// 重拉根目录需要项目会话的事实：不动作（未接动作）。
-			}
+			plgOutlineButtonDisabled(c, t, plgCopyRootReload, plgBtnH, 0, notePluginWrite)
 		})
 		if pluginSettingsScreen.rootsError != "" {
 			plgNote(c, t, pluginSettingsScreen.rootsError+plgCopyRootsError)
@@ -331,25 +330,17 @@ func plgCardActions(c *gui.Context, t *gui.Theme, src *pluginSource) {
 		}
 		save := gui.ButtonBase(c).Shrink(0).Height(plgBtnH).
 			Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
-			Label(label).Background(t.Accent)
+			Label(label).Background(t.Accent).Disabled(true).Tooltip(notePluginWrite)
 		if src.saving {
 			save = save.Opacity(plgAlpha05)
-		} else if save.Pressed() {
-			save = save.Background(t.AccentPressed)
-		} else if save.Hovered() {
-			save = save.Background(t.AccentHover)
 		}
 		save.Children(func() {
 			plgBtnTextSty.style(t, gui.Text(c, label)).TextColor(t.AccentText).
 				SingleLine()
 		})
-		if save.Clicked() && !src.saving {
-			// 写回插件设置需要 Intents：这里只走本屏的校验与回执（未接动作）。
-			plgValidate(src)
-		}
-		if plgOutlineButton(c, t, plgCopyReload, plgBtnH, 0) {
-			plgReload(src)
-		}
+		// 保存与重新加载都要服务端的写入通道，本版没有：入口禁用并写原因
+		// （DEC-12），不再走本屏的假回执。
+		plgOutlineButtonDisabled(c, t, plgCopyReload, plgBtnH, 0, notePluginWrite)
 		gui.Spacer(c)
 		if src.saved {
 			plgSavedStyle.style(t, gui.Text(c, plgCopySaved)).
@@ -398,7 +389,7 @@ func plgFieldView(c *gui.Context, t *gui.Theme, f *pluginField) {
 				plgNote(c, t, f.desc)
 			}
 			input := gui.TextInput(c, &f.text).Height(plgCtlH).
-				Padding(screenInputPadV, screenSpace25).Background(t.Background).
+				Padding(screenInputPadV, screenSpace25).Background(fieldFill(t)).
 				Label(f.label)
 			input.BorderWidth(strokeHairline).BorderColor(t.Border)
 		})
@@ -437,7 +428,7 @@ func plgBoolRow(c *gui.Context, t *gui.Theme, f *pluginField) {
 func plgArrayRow(c *gui.Context, t *gui.Theme, f *pluginField, i int) {
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(plgLabelGap).Children(func() {
 		input := gui.TextInput(c, &f.items[i]).Height(plgCtlH).Grow(1).
-			Padding(screenInputPadV, screenSpace25).Background(t.Background).
+			Padding(screenInputPadV, screenSpace25).Background(fieldFill(t)).
 			Label(f.label)
 		input.BorderWidth(strokeHairline).BorderColor(t.Border)
 		if accIconButton(c, accIconSpec{
@@ -465,14 +456,13 @@ func plgNote(c *gui.Context, t *gui.Theme, text string) {
 	typeSecondary.style(t, gui.Text(c, text)).TextColor(t.TextMuted).Selectable()
 }
 
-// plgErrorRow 是一条错误 + 行内重试（S-pluginSettings-05/18/19）。
+// plgErrorRow 是一条错误 + 行内重试（S-pluginSettings-05/18/19）。重新拉取要
+// 服务端通道，本版不做：按钮置灰并写原因（DEC-12）。
 func plgErrorRow(c *gui.Context, t *gui.Theme, text, action string, run func()) {
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Wrap().Gap(plgBtnGap).Children(func() {
 		plgErrStyle.style(t, gui.Text(c, text)).TextColor(t.Danger).
 			Role(gui.RoleAlert).Label(text)
-		if plgOutlineButton(c, t, action, plgBtnH, 0) {
-			run()
-		}
+		plgOutlineButtonDisabled(c, t, action, plgBtnH, 0, notePluginWrite)
 	})
 }
 
@@ -494,7 +484,20 @@ func plgOutlineButton(c *gui.Context, t *gui.Theme, text string, height, minWidt
 	return b.Clicked()
 }
 
-// plgValidate 是本屏的保存校验：数字字段只收整数，其余字段原样。
+// plgOutlineButtonDisabled 是同款描边按钮的禁用态：tooltip 写原因，点击不生效。
+func plgOutlineButtonDisabled(c *gui.Context, t *gui.Theme, text string, height, minWidth float32, tip string) {
+	b := gui.ButtonBase(c).Shrink(0).Height(height).MinWidth(minWidth).
+		Padding(plgAddPadV, controlPadH).Radius(radius).Label(text).
+		Background(t.Background).Tooltip(tip).Disabled(true)
+	b.BorderWidth(strokeHairline).BorderColor(t.Border)
+	b.Children(func() {
+		plgBtnTextSty.style(t, gui.Text(c, text)).TextColor(t.Text).SingleLine()
+	})
+	b.Opacity(0.5)
+}
+
+// plgValidate 是本屏的保存校验：数字字段只收整数，其余字段原样。保存已按
+// D-12 禁用，本函数只保留给将来的写入路径接线时复用。
 func plgValidate(src *pluginSource) {
 	src.err = ""
 	src.saved = false

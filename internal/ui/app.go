@@ -114,8 +114,10 @@ const (
 	VariantTerm
 	VariantTermRunning
 	VariantTermExited
-	// VariantSettings 进入设置屏（首节：账户）。
+	// VariantSettings 进入设置屏（首节：账户）；VariantSettingsProviders 进模型
+	// 供应节并打开「添加自定义提供商」表单（表单走查与截图用）。
 	VariantSettings
+	VariantSettingsProviders
 	// 输入区 / 标题栏的浮层走查态：⋯ 菜单、打开方式、模型、推理强度、技能、
 	// 模式、权限、工作区。
 	VariantChatMenu
@@ -152,6 +154,7 @@ var variantNames = map[string]Variant{
 	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
 	"term-exited": VariantTermExited, "settings": VariantSettings,
+	"settings-providers": VariantSettingsProviders,
 	"chat-menu": VariantChatMenu, "open-with": VariantOpenWith,
 	"model": VariantModel, "effort": VariantEffort,
 	"skills": VariantSkills, "mode": VariantMode,
@@ -168,7 +171,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty、timeline-hover、timeline-tool-detail", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-providers、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty、timeline-hover、timeline-tool-detail", v)
 }
 
 // Options 是骨架的启动参数。
@@ -266,6 +269,9 @@ type App struct {
 	intentMu   sync.Mutex
 	intentErr  string
 	intentDone []func()
+	// intentFail 是后台意图的失败回调（例如表单要就地显示失败原因）：与
+	// intentDone 一样只在渲染线程上执行，不在后台协程里改视图。
+	intentFail []func()
 	// questionAnswer 是提问卡的回答草稿（可丢的视图状态）。
 	questionAnswer string
 	// logPath 是入口交来的客户端日志路径（Options.LogPath）；logNote 是「查看日志」
@@ -487,6 +493,11 @@ func (a *App) loadSample() {
 	case VariantSettings:
 		a.screen = ScreenSettings
 		a.settingsSection = secAccount // 设置：首节（账户）
+	case VariantSettingsProviders:
+		// 设置 › 模型供应 + 打开「添加自定义提供商」表单（走查与截图用）。
+		a.screen = ScreenSettings
+		a.settingsSection = secProviders
+		configScreen.form = configFormNew()
 	case VariantTermDisconnected:
 		a.rightOpen, a.rightTab = true, 4
 		a.termState = termDisconnected
@@ -767,6 +778,17 @@ func (a *App) persistPreferences() {
 // dispatch 在后台执行一次写入意图：失败原因挂到视图的错误行，成功后把视图状态
 // 更新闭包交回渲染线程（下一帧执行），不在后台协程里改视图。
 func (a *App) dispatch(label string, action func(context.Context) error, onOK func()) {
+	a.dispatchThen(label, action, onOK, nil)
+}
+
+// dispatchThen 是 dispatch 的带失败回调版本：onFail 在渲染线程上收到失败原因
+// （标签已拼好的整句），给需要在原地显示原因的表单用。
+func (a *App) dispatchThen(
+	label string,
+	action func(context.Context) error,
+	onOK func(),
+	onFail func(string),
+) {
 	if a.intents == nil || action == nil {
 		return
 	}
@@ -776,7 +798,11 @@ func (a *App) dispatch(label string, action func(context.Context) error, onOK fu
 		err := action(ctx)
 		a.intentMu.Lock()
 		if err != nil {
-			a.intentErr = label + "：" + err.Error()
+			msg := label + "：" + err.Error()
+			a.intentErr = msg
+			if onFail != nil {
+				a.intentFail = append(a.intentFail, func() { onFail(msg) })
+			}
 		} else {
 			a.intentErr = ""
 			if onOK != nil {
@@ -790,14 +816,18 @@ func (a *App) dispatch(label string, action func(context.Context) error, onOK fu
 	}()
 }
 
-// applyIntentResults 在渲染线程上执行后台意图交回的成功回调。
+// applyIntentResults 在渲染线程上执行后台意图交回的成功与失败回调。
 func (a *App) applyIntentResults() {
 	a.intentMu.Lock()
 	done := a.intentDone
-	a.intentDone = nil
+	failed := a.intentFail
+	a.intentDone, a.intentFail = nil, nil
 	a.intentMu.Unlock()
 	for _, update := range done {
 		update()
+	}
+	for _, fail := range failed {
+		fail()
 	}
 }
 

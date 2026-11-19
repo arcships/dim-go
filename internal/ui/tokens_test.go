@@ -122,8 +122,8 @@ func TestFontSteps(t *testing.T) {
 		line float32
 		w    int
 	}{
-		{"正文", typeBody, 12.25, 24.5, 400},
-		{"正文强调", typeBodyStrong, 12.25, 24.5, 600},
+		{"正文", typeBody, 12.25, 18, 400},
+		{"正文强调", typeBodyStrong, 12.25, 18, 600},
 		{"次要", typeSecondary, 12.25, 0, 400},
 		{"次要强调", typeSecondaryStrong, 12.25, 0, 500},
 		{"标题行会话名", typeTitleRow, 15, 0, 600},

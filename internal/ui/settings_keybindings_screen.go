@@ -89,7 +89,7 @@ func keybindingSearch(c *gui.Context) {
 	box := gui.Row(c).Shrink(0).Width(screenSearchW).Height(screenControlH).
 		AlignItems(gui.Center).Gap(screenSpace15).
 		Padding(screenSpace15, screenSpace25).Radius(screenRadiusCtl).
-		Background(t.Background).Label("搜索快捷键")
+		Background(fieldFill(t)).Label("搜索快捷键")
 	box.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})

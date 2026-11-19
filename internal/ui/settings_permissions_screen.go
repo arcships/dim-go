@@ -195,10 +195,11 @@ func permIsolationCard(c *gui.Context) {
 				case permissionsScreen.loadError != "":
 					gui.Row(c).Gap(screenSpace2).AlignItems(gui.Center).Children(func() {
 						permAlert(c, permissionsScreen.loadError)
-						// 重新拉取要有 Source 的读取方法（见文件头 §未实现分支），
-						// 本屏不造"重试成功"的假象，按钮只渲染。
+						// 重新拉取要有 Source 的读取方法（DEC-17），本屏不造"重试
+						// 成功"的假象：按钮置灰并写原因。
 						settingsActionButton(c, settingsActionSpec{
 							text: permCopyRefresh, label: permCopyRefresh, height: rowRegular,
+							tip: notePermissionWrite, disabled: true,
 						})
 					})
 				case !permissionsScreen.loaded:
@@ -220,11 +221,12 @@ func permIsolationControls(c *gui.Context) {
 	if settingsActionButton(c, settingsActionSpec{
 		variant: settingsActionPrimary, icon: permIconSave, mark: "save",
 		text: permCopySaveIso, label: permCopySaveIso, height: rowRegular,
-		disabled: !permIsolationDirty(),
+		tip: notePermissionWrite, disabled: true,
 	}) {
-		// 写入走 App Server 的进程隔离设置：Intents 里还没有对应方法（见文件头
-		// §未实现分支），这里不造"已保存"的假象。
+		// 写入走 App Server 的进程隔离设置：Intents 里还没有对应方法（DEC-17），
+		// 入口置灰并写原因，这里不造"已保存"的假象。
 	}
+	permSubhint(c, notePermissionWrite)
 	if permissionsScreen.feedback != "" {
 		permNote(c, permissionsScreen.feedback, c.Theme().Success)
 	}
@@ -285,10 +287,10 @@ func permRulesActions(c *gui.Context) {
 	if settingsActionButton(c, settingsActionSpec{
 		variant: settingsActionPrimary, icon: permIconSave, mark: "save",
 		text: permCopySaveRules, label: permCopySaveRules,
-		height: rowRegular, disabled: permRulesBlocked(),
+		height: rowRegular, tip: notePermissionWrite, disabled: true,
 	}) {
 		// 写入走 Intents.WriteCommandRules：本屏的渲染函数拿不到 App / Intents
-		// （见文件头 §未实现分支），保存后才有 S-sandbox-34 的反馈。
+		// （DEC-17），入口禁用并写原因。
 	}
 	if permissionsScreen.permissionFeed != "" {
 		permNote(c, permissionsScreen.permissionFeed, c.Theme().Success)

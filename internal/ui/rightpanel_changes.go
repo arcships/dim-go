@@ -375,7 +375,13 @@ func (a *App) rpGroup(c *gui.Context, key, title string, actionIcon *gui.SVG, ac
 			rpGlyph(c, arrow, panelTabIcon, t.TextMuted, "")
 			typeSecondaryStrong.style(t, gui.Text(c, title)).TextColor(t.TextMuted).SingleLine()
 		})
-		if rpTextAction(c, actionIcon, action, action, len(rows) == 0 || s.permissionDenied) {
+		locked := a.rpGitWriteDisabled()
+		actionLabel := action
+		if locked {
+			actionLabel = action + "（" + rpGitWriteNote + "）"
+		}
+		if rpTextAction(c, actionIcon, action, actionLabel,
+			len(rows) == 0 || s.permissionDenied || locked) && !locked {
 			for _, change := range rows {
 				change.staged = stage
 			}
@@ -511,10 +517,15 @@ func (a *App) rpChangeMenu(c *gui.Context, target gui.Element, change *rpChange,
 			}
 		}
 		rpMenuSeparator(c)
-		menuItem(c, m, iconEye, "预览", "预览", "", false, false)
-		menuItem(c, m, iconExternal, "用外部工具打开", "用外部工具打开", "", false, false)
+		if menuItem(c, m, iconEye, "预览", "预览", "", false, false) {
+			a.rpOpenPreview(change.path)
+		}
+		// 外部工具要宿主能力：本版不做，入口禁用并写原因（DEC-09）。
+		menuItem(c, m, iconExternal, "用外部工具打开", "用外部工具打开", notePreviewIO, true, false)
 		rpMenuSeparator(c)
-		menuItem(c, m, iconCopy, "复制路径", "复制路径", "", false, false)
+		if menuItem(c, m, iconCopy, "复制路径", "复制路径", "", false, false) {
+			c.WriteClipboard(change.path)
+		}
 	})
 }
 

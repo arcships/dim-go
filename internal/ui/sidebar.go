@@ -68,12 +68,13 @@ func (a *App) sidebarHeader(c *gui.Context) {
 
 // sidebarEntrySpec 是一个全局入口行：图标、检查器标记、文案、行尾键帽与动作。
 type sidebarEntrySpec struct {
-	icon   *gui.SVG
-	mark   string
-	label  string
-	keycap string
-	tip    string
-	run    func()
+	icon     *gui.SVG
+	mark     string
+	label    string
+	keycap   string
+	tip      string
+	disabled bool
+	run      func()
 }
 
 // sidebarEntries 是四个全局入口（LB-11–15）：28 高一行的图标 + 文字，悬停整行
@@ -87,10 +88,11 @@ func (a *App) sidebarEntries(c *gui.Context) {
 			icon: iconSearch, mark: "search", label: "搜索", keycap: "⌘G",
 			tip: "搜索 · ⌘G", run: a.toggleSearch,
 		})
-		// 定时任务与技能/插件是独立路由页（清单 §7.3、§7.4），本批次只建入口，
-		// 点击不进页；接页后把 run 换成进页。
+		// 定时任务与技能/插件是独立路由页（清单 §7.3、§7.4），本批次只建入口。
+		// 定时任务的创建与唤醒事实没有服务端方法（DEC-16），入口置灰并写原因。
 		a.sidebarEntry(c, sidebarEntrySpec{
 			icon: iconClock, mark: "clock", label: "定时任务",
+			tip: noteSchedule, disabled: true,
 		})
 		a.sidebarEntry(c, sidebarEntrySpec{
 			icon: iconSidebarGrid, mark: "layout-grid", label: "技能/插件",
@@ -108,9 +110,12 @@ func (a *App) sidebarEntry(c *gui.Context, spec sidebarEntrySpec) {
 	if spec.tip != "" {
 		row = row.Tooltip(spec.tip)
 	}
+	if spec.disabled {
+		row = row.Disabled(true).Opacity(0.5)
+	}
 	hovered := row.Hovered()
 	row = sidebarRowPaint(row, t, false)
-	if row.Clicked() && spec.run != nil {
+	if row.Clicked() && !spec.disabled && spec.run != nil {
 		spec.run()
 	}
 	row.Children(func() {

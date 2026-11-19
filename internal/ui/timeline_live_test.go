@@ -276,3 +276,32 @@ func TestLiveToolDetailShowsFailureSection(t *testing.T) {
 		t.Fatalf("输出原文没有上屏：%v", tt.Texts())
 	}
 }
+
+// 真实消息的附件与引用字段还没进 RowSnapshot（DEC-07）：画一行「等事实」的
+// 占位，不画假 chip。
+func TestUserMessageAttachmentPlaceholder(t *testing.T) {
+	app := NewApp(Options{State: StateDefault})
+	app.source = &fakeSource{
+		conn:    Connection{Phase: "connected"},
+		names:   []string{"接入真实事实"},
+		session: liveFactSession(),
+		hasSess: true,
+	}
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	if _, ok := tt.Find("附件与引用占位"); !ok {
+		t.Fatalf("真实消息没有附件占位：%v", tt.Texts())
+	}
+	if !tt.HasText(noteAttachmentFacts) {
+		t.Fatalf("占位没有写明等事实：%v", tt.Texts())
+	}
+	// 产物块来自事实，但「打开」入口没有协议通道：置灰并写原因（DEC-06）。
+	if err := tt.Click("1 个产物"); err != nil {
+		t.Fatalf("点不到产物块：%v", err)
+	}
+	tt.Advance(300 * time.Millisecond)
+	info, ok := tt.Access("打开产物 排队说明.md（" + noteArtifact + "）")
+	if !ok || !info.Disabled {
+		t.Fatalf("产物打开入口没有置灰：%+v（找到 %v）", info, ok)
+	}
+}

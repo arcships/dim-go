@@ -33,21 +33,20 @@ import (
 // 已接的写入口（都走既有 Intents）：
 //
 //	模型开关与「全选」→ SetProviderModelEnabled（provider.models.set_enabled）；
-//	详情底部「刷新」→ ProbeProvider（provider.probe，只读，不写配置）。
+//	详情底部「刷新」→ ProbeProvider（provider.probe，只读，不写配置）；
+//	左栏「添加」与详情底部「编辑」→ 供应商表单，保存走 CreateProvider /
+//	    UpdateProvider（字段、校验与事实边界见 settings_provider_form.go）。
 //
 // 未接的写入口（屏上没有对应的控件或事实）：
 //
-//	新增 / 编辑 provider：本屏没有「添加自定义提供商」与凭据表单（见下），而
-//	     CreateProvider / UpdateProvider 需要名称、Base URL 与密钥；按「不改外观」
-//	     不新造表单。provider 级「启用」开关同理：UpdateProvider 的签名不含
-//	     enabled，本屏只改界面状态。
+//	provider 级「启用」开关：UpdateProvider 的签名不含 enabled，本屏只改界面状态。
 //	「查看套餐」与账户托管提示条的跳转：跨分节路由与地址都不在本屏的事实里。
 //
-// 未重建的分支：详情面板的另外六种形态（添加自定义提供商 / OpenAI Codex OAuth /
-// Grok Build 设备码 / 通用托管 OAuth / 未配置表单 / 已配置凭据）与「添加模型」
-// 对话框，本屏用与设置壳同一句口径（「尚未按参考产品重建」）占位，不摆看起来
-// 能用的控件（S-configuration-10 … 80 的未出现分支）。读数的 provider 走
-// configRecordBody（基础 URL + 模型块 + 底部动作），不再落到占位句。
+// 未重建的分支：详情面板的另外几种形态（OpenAI Codex OAuth / Grok Build 设备码 /
+// 通用托管 OAuth / 未配置表单 / 已配置凭据）与「添加模型」对话框，本屏用与设置壳
+// 同一句口径（「尚未按参考产品重建」）占位，不摆看起来能用的控件
+// （S-configuration-10 … 80 的未出现分支）。读数的 provider 走 configRecordBody
+// （基础 URL + 模型块 + 底部动作），不再落到占位句。
 //
 // 两处没有资产，用等尺寸示意：供应商品牌图标（参考的 ProviderIcon）统一用
 // 中性图标（不按名字造字母占位）；能力徽标只画运行时出现的「视觉」「推理」两种。
@@ -275,6 +274,12 @@ type configState struct {
 	modelToggles map[string]*bool
 	// models 是 -demo 的样例模型表（读数为真时每帧从 ProviderRecords 取）。
 	models []configModel
+	// form 是新增 / 编辑供应商表单的草稿（见 settings_provider_form.go）；
+	// nil 表示右栏是详情态。
+	form *configForm
+	// selectAfterCreate 是新增成功后要选中的供应商名：新建回执不带标识，
+	// 等下一帧的读数里按名字找到它再选中。
+	selectAfterCreate string
 }
 
 var configScreen = configState{
@@ -364,6 +369,18 @@ func (a *App) configView() configView {
 	if !v.hasSelected && len(v.providers) > 0 {
 		v.selected, v.hasSelected = v.providers[0], true
 		configScreen.selected = configKey(v.selected)
+	}
+	// 新建成功后按名字选中新供应商（回执不带标识，读数是唯一来源）。
+	if name := configScreen.selectAfterCreate; name != "" {
+		for _, provider := range v.providers {
+			if !strings.EqualFold(strings.TrimSpace(provider.name), name) {
+				continue
+			}
+			v.selected, v.hasSelected = provider, true
+			configScreen.selected = configKey(provider)
+			configScreen.selectAfterCreate = ""
+			break
+		}
 	}
 	if a.source != nil && v.hasSelected {
 		v.models = a.configRecordModels(v.selected)
@@ -461,12 +478,12 @@ func configListFill(t *gui.Theme) gui.Color {
 	return t.SurfaceHover.Mix(t.Surface, 0.3)
 }
 
-// configSearchField 是一行搜索：1px 主题描边 + 放大镜 + 无内框的输入框。
+// configSearchField 是一行搜索：输入框底 + 1px 主题描边 + 放大镜 + 无内框的输入框。
 func configSearchField(c *gui.Context, value *string, placeholder, label string) {
 	t := c.Theme()
 	field := gui.Row(c).Grow(1).Height(configFieldH).AlignItems(gui.Center).
 		Gap(configGapIcon).Padding(configFieldPadV, configFieldPadH).
-		Radius(screenRadiusCtl).Background(t.Background).Label(label)
+		Radius(screenRadiusCtl).Background(fieldFill(t)).Label(label)
 	field.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})
@@ -668,16 +685,22 @@ func configAddButton(c *gui.Context) {
 		configRowStyle.style(t, gui.Text(c, "添加")).TextColor(t.TextMuted).SingleLine()
 	})
 	if b.Clicked() {
-		// 「添加自定义提供商」面板（S-configuration-64 … 77）尚未重建：点击只留在
-		// 视图里，不摆看似的表单。
+		// S-configuration-64：打开「添加自定义提供商」表单（见
+		// settings_provider_form.go）。
+		configScreen.form = configFormNew()
 	}
 }
 
 // ---- 右栏：详情（S-configuration-11 … 28） ----
 
-// configDetailColumn 是右栏：头部 + 账户托管（或未重建分支）。
+// configDetailColumn 是右栏：新增 / 编辑表单，或头部 + 账户托管（或读数详情）。
 func (a *App) configDetailColumn(c *gui.Context, data configView) {
 	gui.Column(c).Grow(1).MinWidth(0).Padding(configDetailPad).Children(func() {
+		// 表单占满右栏：它与详情互斥（参考的 panelMode）。
+		if configScreen.form != nil {
+			a.configFormPanel(c, data)
+			return
+		}
 		gui.Column(c).Width(configDetailContentWidth(c)).Grow(1).Gap(configDetailGap).
 			Children(func() {
 				if !data.hasSelected {
@@ -995,9 +1018,15 @@ func configBadge(c *gui.Context, text, label string) {
 	})
 }
 
-// configDetailFooter 是详情底部动作（S-configuration-27/28）：刷新、查看套餐。
+// configDetailFooter 是详情底部动作（S-configuration-27/28）：编辑、刷新、查看套餐。
 func (a *App) configDetailFooter(c *gui.Context, data configView) {
 	gui.Row(c).Shrink(0).Justify(gui.End).Gap(configGapRow).Children(func() {
+		// 账户托管的供应商不能在这里改（提示条写明原因），其余可进编辑表单。
+		if !data.selected.account {
+			if screenAction(c, iconPencil, "edit", "编辑", rowRegular) {
+				configScreen.form = configFormEdit(data.selected, data.models)
+			}
+		}
 		if screenAction(c, screenIconRefresh, "refresh", "刷新", rowRegular) {
 			// 「刷新」= 重新探测这个 provider 的模型清单（provider.probe，只读）。
 			a.configProbeProvider(data.selected)

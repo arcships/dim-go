@@ -327,6 +327,9 @@ func (a *App) termShellEnv() string {
 }
 
 // newTerminal 新建一个终端（T-04 / T-19）：清掉提示并把状态回到空闲。
+//
+// 宿主框架没有多实例终端标签，本产品也只显示一个终端页签（DEC-08）：
+// 「新建终端」复用同一个页签，不追加第二个标签。
 func (a *App) newTerminal() {
 	a.panels.termClosed = false
 	a.termState = termIdle

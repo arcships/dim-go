@@ -77,10 +77,10 @@ const (
 	screenCodeNumW   = 18
 )
 
-// 字阶（design-baseline §2）：页面标题 17.5、标签 14/500、说明 10.5、
-// 分组标题与刻度 12.25/10.5。
+// 字阶（design-baseline §2）：页面标题 20（与设置壳的 h2 同档；实测参考 h2 行盒
+// 25 ≈ 20px）、标签 14/500、说明 10.5、分组标题与刻度 12.25/10.5。
 var (
-	screenTitleStyle  = fontStep{size: 17.5, line: 24.5, weight: 600}
+	screenTitleStyle  = fontStep{size: 20, line: 25, weight: 600}
 	screenLabelStyle  = fontStep{size: 14, line: 21, weight: 500}
 	screenValueStyle  = fontStep{size: 14, line: 21, weight: 400}
 	screenStrongStyle = fontStep{size: 14, line: 21, weight: 600}
@@ -286,12 +286,12 @@ func screenAction(c *gui.Context, icon *gui.SVG, mark, text string, height float
 	return b.Clicked()
 }
 
-// screenInput 是一个文本框：内容底、1px 主题描边、高 32。
+// screenInput 是一个文本框：输入框底（明 #fafafa / 暗 #121212）、1px 主题描边、高 32。
 func screenInput(c *gui.Context, value *string, placeholder, label string) gui.Element {
 	t := c.Theme()
 	return gui.TextInput(c, value).Label(label).Placeholder(placeholder).
 		Height(screenControlH).Padding(screenInputPadV, screenSpace25).
-		Background(t.Background)
+		Background(fieldFill(t))
 }
 
 // screenIndexSelect 是取值为下标的自绘下拉（框架 Select 只收字符串）。

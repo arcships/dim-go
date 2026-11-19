@@ -104,8 +104,9 @@ type Intents interface {
 	// 附件：写入文本附件，返回服务端回执里的标识与路径。
 	WriteAttachment(ctx context.Context, name, text string) (AttachmentRefSnapshot, error)
 
-	// 供应商管理。
-	CreateProvider(ctx context.Context, id, name, baseURL, apiKey string) error
+	// 供应商管理。CreateProvider 带上表单里填的模型条目（模型清单是表单字段，
+	// 新建时随 provider.create 一起下发）。
+	CreateProvider(ctx context.Context, id, name, baseURL, apiKey string, models []ProviderModelDraft) error
 	UpdateProvider(ctx context.Context, id, name, baseURL, apiKey string) error
 	ProbeProvider(ctx context.Context, id string) (int, error)
 	SetProviderModelEnabled(ctx context.Context, providerID, modelID string, enabled bool) error
@@ -410,6 +411,12 @@ type ProviderModelSnapshot struct {
 	Name    string
 	Enabled bool
 	Status  string
+}
+
+// ProviderModelDraft 是新建供应商表单里的一个模型条目：表单只收模型标识，
+// 展示名取标识本身、状态取 active（表单没有第二个字段可给）。
+type ProviderModelDraft struct {
+	ID string
 }
 
 // ModalityTaskSnapshot 是一条模态任务。

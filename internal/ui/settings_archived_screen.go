@@ -89,7 +89,7 @@ const (
 
 // 字阶（design-baseline §2）。
 var (
-	arcTitleStyle  = fontStep{size: 17.5, line: 24.5, weight: 600}
+	arcTitleStyle  = fontStep{size: 20, line: 25, weight: 600}
 	arcRowTitle    = fontStep{size: 13, line: 19.5, weight: 500}
 	arcGroupTitle  = fontStep{size: 13, line: 19.5, weight: 600}
 	arcMetaStyle   = fontStep{size: 11, line: 14, weight: 400}
@@ -259,7 +259,7 @@ func arcToolbar(c *gui.Context, t *gui.Theme) {
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(arcToolGap).Children(func() {
 		search := gui.Row(c).Grow(1).Height(arcCtlH).AlignItems(gui.Center).
 			Gap(screenSpace15).Padding(screenSpace15, screenSpace25).
-			Radius(screenRadiusCtl).Background(t.Background).Label(arcCopySearch)
+			Radius(screenRadiusCtl).Background(fieldFill(t)).Label(arcCopySearch)
 		search.BorderWidth(strokeHairline).BorderColor(t.Border)
 		search.Children(func() {
 			accIcon(c, iconSearch, arcIconSize, t.TextMuted, "search")

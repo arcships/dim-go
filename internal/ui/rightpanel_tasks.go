@@ -51,8 +51,8 @@ func (a *App) tasksPanel(c *gui.Context) {
 		items, live := a.sessionTasks()
 		if a.panels.taskKind == 1 {
 			// 唤醒：Go 侧还没有唤醒事实（Source 的会话快照不含它），
-			// 因此只呈现空态（K-19）。
-			panelEmpty(c, "暂无待唤醒事项")
+			// 因此只呈现空态与原因（K-19、DEC-16）。
+			panelEmpty(c, "暂无待唤醒事项（"+noteSchedule+"）")
 			return
 		}
 		if len(items) == 0 {

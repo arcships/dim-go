@@ -1240,7 +1240,12 @@ func (w *App) StopExecTask(ctx context.Context, taskID string) error {
 // ---- 供应商管理 ----
 
 // CreateProvider 新建一个 provider；driver 取 openai，认证用 bearer + 显式密钥。
-func (w *App) CreateProvider(ctx context.Context, id, name, baseURL, apiKey string) error {
+// models 是表单里填的模型标识：展示名取标识、状态取 active（表单只收标识）。
+func (w *App) CreateProvider(
+	ctx context.Context,
+	id, name, baseURL, apiKey string,
+	models []ui.ProviderModelDraft,
+) error {
 	manager := w.A.Settings()
 	if manager == nil {
 		return fmt.Errorf("设置领域未就绪")
@@ -1256,8 +1261,16 @@ func (w *App) CreateProvider(ctx context.Context, id, name, baseURL, apiKey stri
 	if apiKey != "" {
 		connection.Credential = &settings.ProviderCredential{Action: "set", Value: apiKey}
 	}
+	inputs := make([]settings.ProviderModelInput, 0, len(models))
+	for _, model := range models {
+		inputs = append(inputs, settings.ProviderModelInput{
+			ID:          model.ID,
+			DisplayName: model.ID,
+			Status:      "active",
+		})
+	}
 	if _, err := manager.CreateProvider(ctx, settings.ProviderCreateRequest{
-		ID: id, DisplayName: name, Connection: connection, Enabled: true,
+		ID: id, DisplayName: name, Connection: connection, Models: inputs, Enabled: true,
 	}); err != nil {
 		return err
 	}

@@ -35,8 +35,8 @@ const (
 	composerToolSize = 25
 	// composerInnerHeight 是审批卡里命令面板的最小高。
 	composerInnerHeight = 80
-	// brandMarkSize 是空态品牌标记的边长（参考 56）。
-	brandMarkSize = 56
+	// brandMarkSize 是空态品牌标记的边长（参考实测墨迹 68×49，方块 68）。
+	brandMarkSize = 68
 	// composerMenuWidth 是标题栏 ⋯ 菜单的最小宽（参考 159；中文括注留余量）。
 	composerMenuWidth = 190
 	// composerControlTriggerHeight 是控制行按钮的高度（参考 21）。
@@ -164,11 +164,12 @@ func (a *App) firstRunGuide(c *gui.Context) {
 	})
 }
 
-// brandMark 是空态的品牌图形：56×56，取主色；只画形状，读屏名给产品名。
+// brandMark 是空态的品牌图形：68×68（墨迹 68×49），取品牌亮绿；只画形状，
+// 读屏名给产品名。
 func brandMark(c *gui.Context, size float32, t *gui.Theme) {
 	box := gui.Box(c).Width(size).Height(size).Shrink(0).Label("品牌：DimAgent")
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(iconBrand, r, colorAccent.in(t))
+		p.Icon(iconBrand, r, colorBrandEmpty)
 	})
 }
 
@@ -486,7 +487,11 @@ func (a *App) effortSelector(c *gui.Context) {
 			gui.Spacer(c)
 			typeSecondary.style(t, gui.Text(c, a.effortLabel())).TextColor(t.Text)
 		})
-		gui.Slider(c, &a.effort, 0, 3).Height(composerSliderHeight).Label("思考强度滑杆")
+		// 滑杆只显示当前档：写思考强度需要协议方法，本版没有通道（DEC-15）。
+		// 置灰后拖动不改值，原因写在滑杆下方。
+		gui.Slider(c, &a.effort, 0, 3).Height(composerSliderHeight).
+			Label("思考强度滑杆（" + noteThinking + "）").Disabled(true)
+		typeMicro.style(t, gui.Text(c, noteThinking)).TextColor(t.TextMuted).Selectable()
 	})
 }
 
@@ -827,11 +832,19 @@ type permissionLevel struct {
 // workspace-write / full-access）；参考产品的「默认权限」与「智能权限」都落在
 // workspace-write 上（两者只差审批策略，而协议档位不表达审批策略），所以这两档
 // 同值；「完全访问权限」对应 full-access。
+//
+// read-only 不在这张表里：它只在服务端回执明确给出时显示（见 permissionLabel），
+// 不作为可选档位出现在菜单里。映射与理由见
+// docs/domains/requirements/decisions.md 的 DEC-01/DEC-02。
 var permissionLevels = []permissionLevel{
 	{label: "默认权限", tier: "workspace-write"},
 	{label: "智能权限", tier: "workspace-write"},
 	{label: "完全访问权限", tier: "full-access"},
 }
+
+// permissionReadOnlyLabel 是回执给出 read-only 时的界面文案。它不可选，只在
+// 当前档位显示处出现。
+const permissionReadOnlyLabel = "只读"
 
 // permissionTierOf 把界面文案换成协议取值；未知文案返回 false。
 func permissionTierOf(label string) (string, bool) {
@@ -856,7 +869,8 @@ func permissionLabelOf(tier string) (string, bool) {
 
 // permissionLabel 是权限选择器显示的当前档位：连上事实时读会话档位，样例里用
 // 视图里的值。两档文案共用 workspace-write，所以点过的那一档优先（见
-// permissionChoice）；三档之外的取值原样显示。
+// permissionChoice）；read-only 只在回执明确给出时显示为「只读」；其余未知取值
+// 原样显示。
 func (a *App) permissionLabel() string {
 	st, ok := a.liveSettings()
 	if !ok || !st.TierKnown || st.Tier == "" {
@@ -864,6 +878,9 @@ func (a *App) permissionLabel() string {
 	}
 	if chosen, ok := permissionTierOf(a.permissionChoice); ok && chosen == st.Tier {
 		return a.permissionChoice
+	}
+	if st.Tier == "read-only" {
+		return permissionReadOnlyLabel
 	}
 	if label, ok := permissionLabelOf(st.Tier); ok {
 		return label

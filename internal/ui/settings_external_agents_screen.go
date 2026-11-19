@@ -72,7 +72,7 @@ const (
 
 // 字阶（design-baseline §2）。
 var (
-	eaTitleStyle  = fontStep{size: 17.5, line: 24.5, weight: 600}
+	eaTitleStyle  = fontStep{size: 20, line: 25, weight: 600}
 	eaDescStyle   = fontStep{size: 12.25, line: 17.5, weight: 400}
 	eaCardTitle   = fontStep{size: 13, line: 19.5, weight: 600}
 	eaStatusStyle = fontStep{size: 11, line: 14, weight: 400}

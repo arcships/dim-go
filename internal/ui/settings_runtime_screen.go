@@ -55,11 +55,12 @@ func rtHeader(c *gui.Context, t *gui.Theme) {
 	})
 }
 
-// rtRefreshButton 是页首的「刷新」：描边、高 28、图标 + 文字。
+// rtRefreshButton 是页首的「刷新」：描边、高 28、图标 + 文字。运行环境读取
+// 没有协议方法，本版不做：入口置灰并写原因（DEC-13）。
 func rtRefreshButton(c *gui.Context, t *gui.Theme) {
 	accButton(c, accButtonSpec{
 		variant: accButtonOutline, height: rtButtonH, label: rtCopyRefresh,
-		tip: rtCopyRefresh, paddingX: rtPadBtnX,
+		tip: noteRuntime, paddingX: rtPadBtnX, disabled: true,
 		children: func() {
 			gui.Row(c).Gap(rtIconGap).AlignItems(gui.Center).Children(func() {
 				accIcon(c, accIconRefresh, rtIconInline, t.Text, "refresh")
@@ -84,13 +85,16 @@ func rtErrorCard(c *gui.Context, t *gui.Theme) {
 		gui.Row(c).Shrink(0).Children(func() {
 			accButton(c, accButtonSpec{
 				variant: accButtonOutline, height: rtButtonH, label: rtCopyRetry,
-				tip: rtCopyRetry, paddingX: rtPadBtnX,
+				tip: noteRuntime, paddingX: rtPadBtnX, disabled: true,
 				children: func() {
 					typeSecondary.style(t, gui.Text(c, rtCopyRetry)).TextColor(t.Text).
 						SingleLine()
 				},
 			})
 		})
+		// 入口禁用后仍把原因写在卡内，读屏与目视都能看到。
+		typeMicro.style(t, gui.Text(c, noteRuntime)).TextColor(t.TextMuted).
+			Selectable()
 	})
 }
 
@@ -122,8 +126,11 @@ func rtFeatureCard(c *gui.Context, t *gui.Theme) {
 			typeMicro.style(t, gui.Text(c, rtCopyOfficeCLIVersion)).
 				TextColor(t.TextMuted).SingleLine().Margin(rtTextGap, 0, 0, 0)
 			gui.Row(c).Shrink(0).Margin(rtButtonGap, 0, 0, 0).Children(func() {
-				screenButton(c, rtCopyInstall, rtCopyInstall, "", true, rtButtonH)
+				gui.PrimaryButton(c, rtCopyInstall).Label(rtCopyInstall).
+					Tooltip(noteRuntime).Disabled(true)
 			})
+			typeMicro.style(t, gui.Text(c, noteRuntime)).TextColor(t.TextMuted).
+				Selectable().Margin(rtTextGap, 0, 0, 0)
 		})
 	})
 }

@@ -269,3 +269,52 @@ func TestGoalModeEntryIsWired(t *testing.T) {
 		t.Fatalf("目标编辑框没有出现：\n%s", strings.Join(tt.Texts(), "\n"))
 	}
 }
+
+// 只读只在服务端回执明确给出时显示（DEC-01）：它被翻译成「只读」，且不出现在
+// 可选的三档菜单里。
+func TestPermissionReadOnlyOnlyFromReceipt(t *testing.T) {
+	src := wiredSource()
+	src.settings.Tier = "read-only"
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	if !tt.HasText("权限：只读") {
+		t.Fatalf("回执给出 read-only 时没有显示「只读」：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	if err := tt.Click("权限：只读"); err != nil {
+		t.Fatalf("点权限选择器：%v", err)
+	}
+	tt.Frame()
+	for _, label := range []string{"权限：默认权限", "权限：智能权限", "权限：完全访问权限"} {
+		if _, ok := tt.Find(label); !ok {
+			t.Fatalf("三档菜单缺 %q：%v", label, tt.Texts())
+		}
+	}
+	// 菜单里不出现可选的「只读」项：三档以外的取值不可写。
+	if _, ok := tt.Find("权限：只读"); !ok {
+		t.Fatal("触发按钮的只读文案不应随菜单打开消失")
+	}
+}
+
+// 思考强度没有写入口（DEC-15）：滑杆只显示当前档，拖动不改本地值，原因在浮层里。
+func TestEffortSliderIsDisplayOnly(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.effortOpen = true
+	tt.Frame()
+	if !tt.HasText(noteThinking) {
+		t.Fatalf("思考强度浮层没有写原因：%v", tt.Texts())
+	}
+	if info, ok := tt.Access("思考强度滑杆（" + noteThinking + "）"); !ok || !info.Disabled {
+		t.Fatalf("思考强度滑杆没有禁用：%+v（找到 %v）", info, ok)
+	}
+	// 禁用控件不接收拖动：Tester 的指针事件不会改值。
+	before := app.effort
+	if box, ok := tt.Find("思考强度滑杆（" + noteThinking + "）"); ok {
+		tt.Press(box.X+box.W-2, box.Y+box.H/2)
+		tt.Move(box.X+2, box.Y+box.H/2)
+		tt.Release(box.X+2, box.Y+box.H/2)
+	}
+	if app.effort != before {
+		t.Fatalf("禁用滑杆改了本地值：%v → %v", before, app.effort)
+	}
+}

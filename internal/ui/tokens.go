@@ -43,15 +43,15 @@ const (
 	SettingsRuleCommandWidth = 240
 	SettingsRuleSelectWidth  = 120
 	// 设置 · 扩展：行内名称与版本的定宽，以及"一行放得下"的最小内宽。
-	extNameWidth      = 200
-	extVersionWidth   = 72
-	extRowMinWidth    = extNameWidth + extVersionWidth + space3*3 + 36
+	extNameWidth    = 200
+	extVersionWidth = 72
+	extRowMinWidth  = extNameWidth + extVersionWidth + space3*3 + 36
 	// cronScheduleWidth 是定时任务里「计划」一列的定宽（如 "每天 09:00"）。
 	cronScheduleWidth = 120
 	// cronRowMinWidth 是一行放得下「名称 + 计划 + 下次 + 开关 + 删除」的最小内宽。
 	// keyHintKeysWidth 是快捷键提示表里键位一列的定宽（最长 "Cmd+1…5"）。
 	keyHintKeysWidth = 120
-	cronRowMinWidth   = extNameWidth + cronScheduleWidth + 72 + space2*5 + rowCompact*2
+	cronRowMinWidth  = extNameWidth + cronScheduleWidth + 72 + space2*5 + rowCompact*2
 
 	// SettingsRuleRowMinWidth 是"命令 + 决定 + 匹配方式"排在一行所需的最小内宽；
 	// 窄于它就按行堆叠（一条规则两行），见 U2-forms F23 的退化规则。
@@ -196,21 +196,23 @@ var (
 	typeControl       = fontStep{size: 12.25, weight: 400}
 	typeControlStrong = fontStep{size: 12.25, weight: 600}
 
-	typeBody            = fontStep{size: 12.25, line: 24.5, weight: 400}
-	typeBodyStrong      = fontStep{size: 12.25, line: 24.5, weight: 600}
+	// 正文行高取参考 text-sm 的实测行盒 18（design-baseline §2：行高 17.5、
+	// 块级行盒 18），不再用 24.5 的 2 倍行距。
+	typeBody            = fontStep{size: 12.25, line: 18, weight: 400}
+	typeBodyStrong      = fontStep{size: 12.25, line: 18, weight: 600}
 	typeSecondary       = fontStep{size: 12.25, weight: 400}
 	typeSecondaryStrong = fontStep{size: 12.25, weight: 500}
 	// typeTitleRow 是标题行的会话名：跟官方示例的页面标题同一档（15/600，
 	// 见 notes.png 的 24 与 permissionflow.png 的 20 之间的最小档；标题行只有 48 高）。
-	typeTitleRow        = fontStep{size: 15, weight: 600}
-	typeMicro           = fontStep{size: 10.5, line: 14, weight: 400}
-	typeCode            = fontStep{size: 13, line: 20, weight: 400, family: codeFont}
-	typeH1              = fontStep{size: 22.4, line: 33.6, weight: 700}
-	typeH2              = fontStep{size: 20, line: 25, weight: 600}
-	typeH3              = fontStep{size: 16.1, line: 24.15, weight: 600}
-	typeH4              = fontStep{size: 14, line: 21, weight: 600}
-	typeH5              = fontStep{size: 13.3, line: 19.95, weight: 600}
-	typeH6              = fontStep{size: 12.6, line: 18.9, weight: 600}
+	typeTitleRow = fontStep{size: 15, weight: 600}
+	typeMicro    = fontStep{size: 10.5, line: 14, weight: 400}
+	typeCode     = fontStep{size: 13, line: 20, weight: 400, family: codeFont}
+	typeH1       = fontStep{size: 22.4, line: 33.6, weight: 700}
+	typeH2       = fontStep{size: 20, line: 25, weight: 600}
+	typeH3       = fontStep{size: 16.1, line: 24.15, weight: 600}
+	typeH4       = fontStep{size: 14, line: 21, weight: 600}
+	typeH5       = fontStep{size: 13.3, line: 19.95, weight: 600}
+	typeH6       = fontStep{size: 12.6, line: 18.9, weight: 600}
 )
 
 // codeFont 是代码的字体栈：系统等宽，不内嵌字体（U2 §1.3）。
@@ -259,11 +261,12 @@ func (c colorSet) in(t *gui.Theme) gui.Color {
 	return c.light
 }
 
-// 颜色 token：每主题 17 个设计 token（其中 accent-ink 框架没有字段），另 3 个
-// 沿用框架、不参与设计（U2 §8.1）。明暗层级固定为
+// 颜色 token：每主题 18 个设计 token（其中 accent-ink、输入框底 field 框架没有
+// 字段），另 3 个沿用框架、不参与设计（U2 §8.1）。明暗层级固定为
 // 底 → 卡 → 浮层 → 交互面（design-baseline §5.3）：
 // 明 #f6fdff → #ffffff → #ffffff → #f5f5f5；暗 #090c0d → #0c0c0c → #222222 → #262626。
-// 边界只取主题的 Border，不再有第二级边框色（UI-18）。
+// 边界只取主题的 Border，不再有第二级边框色（UI-18）；输入框底是卡面之上的
+// 独立一档（明 #fafafa / 暗 #121212），不参与这四级层级。
 var (
 	colorBG             = colorSet{gui.Hex("#f6fdff"), gui.Hex("#090c0d")}
 	colorSurface        = colorSet{gui.Hex("#ffffff"), gui.Hex("#0c0c0c")}
@@ -293,6 +296,22 @@ var (
 	colorInverseText = colorSet{gui.Hex("#ffffff"), gui.Hex("#0c0c0c")}
 	colorScrollbar   = colorSet{gui.RGBA(0, 0, 0, 0.32), gui.RGBA(255, 255, 255, 0.35)}
 )
+
+// 输入框底：参考实测 #fafafa（比卡面白一档、比窗口底灰一档）。暗色按基线的同一
+// 层级取近值 #121212（design-baseline §5.2 的代码块底，卡片 #0c0c0c 之上）。
+var colorField = colorSet{gui.Hex("#fafafa"), gui.Hex("#121212")}
+
+// 品牌标记的两个色（参考实测，明暗同一值——它们是品牌色，不随主题变）：
+// 空态标记 #74bc2f、账户标记 #42894c。
+var (
+	colorBrandEmpty   = gui.Hex("#74bc2f")
+	colorBrandAccount = gui.Hex("#42894c")
+	// colorBrandOn 是品牌标记上的前景（账户头像的首字母）。
+	colorBrandOn = gui.Hex("#ffffff")
+)
+
+// fieldFill 是输入框的底色。
+func fieldFill(t *gui.Theme) gui.Color { return colorField.in(t) }
 
 // theme 把 token 映射到框架主题（U2 §3.4、§8.5）：外观决定用哪一套值；
 // 文本缩放与高对比按框架的同一套做法跟随系统设置。

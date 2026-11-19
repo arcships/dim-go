@@ -388,18 +388,18 @@ func mdFieldColumn(c *gui.Context, t *gui.Theme, label string, control func()) {
 	})
 }
 
-// mdDisabledInput 是一个禁用的单行输入框：高 32、1px 主题描边。
+// mdDisabledInput 是一个禁用的单行输入框：高 32、1px 主题描边、输入框底。
 func mdDisabledInput(c *gui.Context, value *string, label string) gui.Element {
 	t := c.Theme()
 	return gui.TextInput(c, value).Label(label).Height(mdFieldH).
-		Padding(controlPadV, mdPickerPadX).Background(t.Background).Disabled(true)
+		Padding(controlPadV, mdPickerPadX).Background(fieldFill(t)).Disabled(true)
 }
 
 // mdTextArea 是一个禁用的多行输入框：宽通栏、给定高度。
 func mdTextArea(c *gui.Context, value *string, label string, height float32) gui.Element {
 	t := c.Theme()
 	return gui.TextArea(c, value).Label(label).Height(height).
-		Padding(mdTextareaPadV, mdTextareaPadX).Background(t.Background).
+		Padding(mdTextareaPadV, mdTextareaPadX).Background(fieldFill(t)).
 		Disabled(true)
 }
 

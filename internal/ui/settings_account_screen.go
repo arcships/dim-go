@@ -512,13 +512,13 @@ func (a *App) accountIdentityCard(c *gui.Context, d accountScreenData) {
 	})
 }
 
-// accountAvatar 是头像（S-account-09）：48 正圆、强调底、反白首字母。
-// 自绘而非 ui.Avatar：它的尺寸与配色都不可覆盖（G-01）。
+// accountAvatar 是头像（S-account-09）：48 正圆、品牌绿底、反白首字母。
+// 自绘而非 ui.Avatar：它的尺寸与配色都不可覆盖（G-01）。底色取参考实测的
+// #42894c（与账户标记同一个品牌绿），不用主色 #349651。
 func accountAvatar(c *gui.Context, name string) {
-	t := c.Theme()
 	initials := accInitials(name)
 	box := gui.Box(c).Size(accAvatar, accAvatar).Radius(accAvatarRadius).Shrink(0).
-		Background(t.Accent).Center().Role(gui.RoleImage)
+		Background(colorBrandAccount).Center().Role(gui.RoleImage)
 	if name != "" {
 		box = box.Label(name)
 	} else {
@@ -526,11 +526,11 @@ func accountAvatar(c *gui.Context, name string) {
 	}
 	box.Children(func() {
 		if initials == "" {
-			accIcon(c, iconBrand, accAvatarInk, t.AccentText, "")
+			accIcon(c, iconBrand, accAvatarInk, colorBrandOn, "")
 			return
 		}
 		gui.Text(c, initials).FontSize(accAvatarInk).FontWeight(600).
-			TextColor(t.AccentText).TextAlign(gui.Center).SingleLine()
+			TextColor(colorBrandOn).TextAlign(gui.Center).SingleLine()
 	})
 }
 
@@ -698,9 +698,13 @@ func (a *App) accountEmailDialog(c *gui.Context) {
 			gui.TextInput(c, &a.accountEmailDraft).Label(accCopyEmailLabel).
 				Placeholder(accCopyEmailSample)
 			gui.Row(c).Justify(gui.End).Children(func() {
-				// 企业邮箱登录没有对应的 Intents 方法（未接动作）：提交不写事实。
-				gui.PrimaryButton(c, accCopyEnterprise).Label(accCopyEnterprise)
+				// 企业邮箱登录提交没有服务端方法，本版不做：按钮置灰并写原因
+				// （DEC-14）。
+				gui.PrimaryButton(c, accCopyEnterprise).Label(accCopyEnterprise).
+					Tooltip(noteEmailLogin).Disabled(true)
 			})
+			typeMicro.style(t, gui.Text(c, noteEmailLogin)).TextColor(t.TextMuted).
+				Selectable()
 		})
 		panel.Width(accDialogWidth(c))
 	})
@@ -818,12 +822,13 @@ func (a *App) accountServiceRow(c *gui.Context, d accountScreenData) {
 }
 
 // accountBrandMark 是套餐标识（S-account-36）：强调底的方块，到期时换中性面。
-// 标记形状取品牌标记 iconBrand（参考实测墨迹 25×18，方块 35）。
+// 标记形状取品牌标记 iconBrand（参考实测墨迹 25×18，方块 35），墨迹取账户品牌绿
+// #42894c（参考实测）。
 func accountBrandMark(c *gui.Context, expired bool) {
 	t := c.Theme()
 	box := gui.Box(c).Size(accBrandMark, accBrandMark).Radius(accBrandRadius).
 		Shrink(0).Center().Label(accCopyBrand)
-	color := colorAccentInk.in(t)
+	color := colorBrandAccount
 	if expired {
 		box = box.Background(t.SurfaceHover)
 		color = t.TextMuted

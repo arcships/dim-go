@@ -244,9 +244,21 @@ func (r *recordIntents) ProbeProvider(_ context.Context, id string) (int, error)
 	return 2, nil
 }
 
-// CreateProvider 记录新增。
-func (r *recordIntents) CreateProvider(_ context.Context, id, name, baseURL, apiKey string) error {
-	r.calls <- "CreateProvider " + name
+// CreateProvider 记录新增（含表单里的模型标识）。
+func (r *recordIntents) CreateProvider(
+	_ context.Context,
+	id, name, baseURL, apiKey string,
+	models []ProviderModelDraft,
+) error {
+	call := "CreateProvider " + name
+	if len(models) > 0 {
+		ids := make([]string, 0, len(models))
+		for _, model := range models {
+			ids = append(ids, model.ID)
+		}
+		call += " models=" + strings.Join(ids, ",")
+	}
+	r.calls <- call
 	return nil
 }
 
@@ -279,5 +291,54 @@ func TestSettingsScreensDemoKeepSamples(t *testing.T) {
 		if !strings.Contains(joinedText(tt), tc.want) {
 			t.Fatalf("分节 %d 在 -demo 下没有样例 %q", tc.section, tc.want)
 		}
+	}
+}
+
+// MCP 的写入口没有通道（DEC-04）：查看连接、断开连接与保存都置灰，并带原因。
+func TestMCPSettingsWriteEntriesDisabled(t *testing.T) {
+	resetSettingsScreenState()
+	src := wiredSource()
+	src.extensions.MCP = ExtListSnapshot{Items: []ExtItemSnapshot{{
+		ID: "mcp-1", Name: "fs-real", Source: "user", Enabled: true,
+		Status: "authenticated", Transport: "stdio", Tools: 7,
+		Command: "npx -y real-server", Connected: true,
+	}}}
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := openSettingsSection(t, app, secMCP)
+
+	for _, label := range []string{mcpCopyInspect, mcpCopyDisconnect} {
+		info, ok := tt.Access(label)
+		if !ok || !info.Disabled {
+			t.Fatalf("%q 没有置灰：%+v（找到 %v）", label, info, ok)
+		}
+	}
+	if err := tt.Click("fs-real"); err != nil {
+		t.Fatalf("点不到 MCP 行：%v", err)
+	}
+	tt.Frame()
+	if !tt.HasText(noteMCPWrite) {
+		t.Fatalf("编辑器没有写原因：%v", tt.Texts())
+	}
+	if info, ok := tt.Access(mcpCopySave); !ok || !info.Disabled {
+		t.Fatalf("保存没有置灰：%+v（找到 %v）", info, ok)
+	}
+}
+
+// 系统目录选择器没有宿主能力（DEC-10）：Worktree 路径改为手动输入，选择目录
+// 按钮置灰并写原因。
+func TestGitWorktreeManualPath(t *testing.T) {
+	resetSettingsScreenState()
+	app := NewApp(Options{State: StateDefault})
+	tt := openSettingsSection(t, app, secGit)
+
+	if !tt.HasText("手动输入路径（系统目录选择器未接入）") {
+		t.Fatalf("没有写手动输入路径：%v", tt.Texts())
+	}
+	info, ok := tt.Access(gitCopyChooseDirA11y)
+	if !ok || !info.Disabled {
+		t.Fatalf("选择目录按钮没有置灰：%+v（找到 %v）", info, ok)
+	}
+	if info.Description != noteDirPicker {
+		t.Fatalf("选择目录的 tooltip = %q，想要 %q", info.Description, noteDirPicker)
 	}
 }

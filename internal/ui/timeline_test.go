@@ -217,7 +217,7 @@ func TestUserActionsDoWhatTheySay(t *testing.T) {
 	tt.Move(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
 	tt.Frame()
 
-	if info, ok := tt.Access("从此处分叉 1（消息分叉还没有写入口）"); !ok || !info.Disabled {
+	if info, ok := tt.Access("从此处分叉 1（" + messageForkUnavailable + "）"); !ok || !info.Disabled {
 		t.Fatalf("分叉没有按不可用画：%+v（找到 %v）", info, ok)
 	}
 	if _, ok := tt.Find("分叉不可用的原因"); !ok {

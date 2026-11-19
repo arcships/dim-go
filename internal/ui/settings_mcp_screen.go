@@ -44,11 +44,12 @@ import (
 //   - S-mcp-32/33/34 编辑器的加载态、已存储值隐藏提示、移动作用域：编辑已有
 //     条目才出现，需要条目快照与 move 能力。
 //   - S-mcp-48/49 表单校验错误与测试结果条：要写入与连接测试的返回值。
-//   - S-mcp-51 删除服务器确认，S-mcp-100…106 查看连接弹窗：都要 App Server
-//     的写入 / inspect 能力；「保存」按禁用态渲染，未接写入前不留看起来能存
-//     的按钮。
-//   - 导入面板的发现结果、预览、应用（S-mcp-113 … 138）：要 App Server 的
-//     discover / preview / apply 能力，本屏只渲染面板骨架，两个入口为禁用态。
+//   - S-mcp-51 删除服务器确认，S-mcp-100…106 查看连接弹窗：都要服务端的
+//     写入 / inspect 能力；本版一律不做，保存、查看连接、断开连接按禁用态
+//     渲染并写原因（DEC-04）。
+//   - 导入面板的发现结果、预览、应用（S-mcp-113 … 138）：要服务端的
+//     discover / preview / apply 能力，本屏只渲染面板骨架，两个入口为禁用态
+//     并写原因（DEC-04）。
 //
 // 差异：参考产品的「了解更多。」与「文档」在悬停时加下划线，框架的文本没有
 // 下划线装饰，本屏只保留链接色（登记为可接受偏差）。
@@ -118,7 +119,7 @@ const (
 	mcpCopyClose       = "关闭"
 	mcpCopyDiscover    = "发现"
 	mcpCopyChooseFile  = "选择 JSON 文件"
-	mcpCopyImportHint  = "发现与预览需要 App Server 的 MCP 导入能力（未接入）。"
+	mcpCopyImportHint  = "发现与预览需要服务端的 MCP 导入能力（本版不做）。"
 
 	mcpCopyConnectTitle = "连接自定义 MCP"
 	mcpCopyDocs         = "文档"
@@ -156,7 +157,7 @@ const (
 	mcpCopyRemoveRow    = "删除该行"
 	mcpCopyCancel       = "取消"
 	mcpCopySave         = "保存"
-	mcpCopySaveOff      = "保存需要 App Server 的 MCP 写入能力（未接入）"
+	mcpCopySaveOff      = noteMCPWrite
 )
 
 // 视图与传输类型：两组常量分开声明，各自的 iota 从 0 起。
@@ -407,7 +408,7 @@ func mcpImportPanel(c *gui.Context) {
 				screenStrongStyle.style(t, gui.Text(c, mcpCopyImportTitle)).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(3).Label(mcpCopyImportTitle).SingleLine()
 				gui.Spacer(c)
-				if mcpIconAction(c, iconXMark, mcpCopyClose, false) {
+				if mcpIconAction(c, iconXMark, mcpCopyClose, "", false) {
 					mcpScreen.importOpen = false
 				}
 			})
@@ -430,7 +431,7 @@ func mcpDisabledButton(c *gui.Context, text string) {
 	t := c.Theme()
 	b := gui.ButtonBase(c).Shrink(0).Height(rowRegular).
 		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
-		Background(t.Background).Label(text).Disabled(true)
+		Background(t.Background).Label(text).Tooltip(noteMCPWrite).Disabled(true)
 	b.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})
@@ -579,18 +580,18 @@ func (a *App) mcpServerCard(c *gui.Context, server mcpServer) {
 			})
 			mcpToolCount(c, server.tools)
 			if server.inspect {
-				if mcpIconAction(c, mcpIconActivity, mcpCopyInspect, false) {
-					// 连接详情弹窗要 App Server 的 inspect 能力（未接入）。
+				// 查看连接要服务端的 inspect 能力，本版没有：禁用并写原因（DEC-04）。
+				if mcpIconAction(c, mcpIconActivity, mcpCopyInspect, noteMCPWrite, true) {
 					childHit = true
 				}
 			}
 			if server.disconnect {
-				if mcpIconAction(c, mcpIconPower, mcpCopyDisconnect, !server.connected) {
-					// 断开连接要 App Server 的 disconnect 能力（未接入）。
+				// 断开连接同样没有通道：禁用并写原因（DEC-04）。
+				if mcpIconAction(c, mcpIconPower, mcpCopyDisconnect, noteMCPWrite, true) {
 					childHit = true
 				}
 			}
-			if mcpIconAction(c, iconGear, mcpCopyConfigure, false) {
+			if mcpIconAction(c, iconGear, mcpCopyConfigure, "", false) {
 				mcpScreen.openEditor(server)
 				childHit = true
 			}
@@ -647,11 +648,14 @@ func mcpToolCount(c *gui.Context, tools int) {
 }
 
 // mcpIconAction 是一个 32×32 的图标入口：命中区 32、悬停与按下有底色、
-// 禁用时半透明。
-func mcpIconAction(c *gui.Context, icon *gui.SVG, label string, disabled bool) bool {
+// 禁用时半透明。tip 非空时作为 tooltip（禁用入口用它写原因）。
+func mcpIconAction(c *gui.Context, icon *gui.SVG, label, tip string, disabled bool) bool {
 	t := c.Theme()
+	if tip == "" {
+		tip = label
+	}
 	b := gui.ButtonBase(c).Shrink(0).Width(mcpActionSize).Height(mcpActionSize).
-		Radius(screenRadiusCtl).Center().Label(label).Tooltip(label).
+		Radius(screenRadiusCtl).Center().Label(label).Tooltip(tip).
 		Cursor(gui.CursorPointer)
 	if disabled {
 		b = b.Disabled(true)
@@ -721,6 +725,8 @@ func mcpEditor(c *gui.Context) {
 			}
 			mcpHTTPFields(c)
 		}
+		mcpHintStyle.style(c.Theme(), gui.Text(c, noteMCPWrite)).
+			TextColor(c.Theme().TextMuted).Selectable()
 		gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
 			if screenButton(c, mcpCopyCancel, mcpCopyCancel+"编辑 MCP 服务器", "", false, screenControlH) {
 				mcpScreen.view = mcpViewList
@@ -820,7 +826,7 @@ func mcpStringList(c *gui.Context, label string, items *[]string, placeholder, a
 				index, removed := i, false
 				gui.Row(c).Gap(screenSpace1).AlignItems(gui.Center).Children(func() {
 					screenInput(c, &(*items)[index], placeholder, placeholder).Grow(1)
-					if mcpIconAction(c, screenIconTrash, removeLabel, false) {
+					if mcpIconAction(c, screenIconTrash, removeLabel, "", false) {
 						removed = true
 					}
 				})
@@ -847,7 +853,7 @@ func mcpKeyValueList(c *gui.Context, label string, items *[]mcpKeyValue, addLabe
 				gui.Row(c).Gap(screenSpace1).AlignItems(gui.Center).Children(func() {
 					screenInput(c, &(*items)[index].key, mcpCopyKey, mcpCopyKey).Grow(1)
 					screenInput(c, &(*items)[index].value, mcpCopyValue, mcpCopyValue).Grow(1)
-					if mcpIconAction(c, screenIconTrash, removeLabel, false) {
+					if mcpIconAction(c, screenIconTrash, removeLabel, "", false) {
 						removed = true
 					}
 				})

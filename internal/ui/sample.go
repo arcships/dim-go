@@ -75,6 +75,9 @@ type round struct {
 	attachments []messageAttachment
 	quotes      []messageQuote
 	marks       []messageMark
+	// factsPending 表示这条消息来自真实事实、但快照还没有附件 / 引用字段：
+	// 画一行「等事实」的占位，不画假 chip（DEC-07）。
+	factsPending bool
 	wakeup      string
 }
 
