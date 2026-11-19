@@ -53,7 +53,14 @@ func (r *catalogReader) ReadCatalog(
 	if client == nil {
 		return catalog.Page{}, failure.New(failure.KindConnectionMissing, "读取会话目录", ErrNotConnected)
 	}
-	params := map[string]any{"limit": query.Limit}
+	// 目录默认只列「人发起」的会话；参考产品把 CLI / ACP / 自动化来源一并列出（#557），
+	// 不传这三个开关时，真实 home 里 315 条会话会一条都不显示。
+	params := map[string]any{
+		"limit":                    query.Limit,
+		"with_internal":            true,
+		"with_acp_sessions":        true,
+		"with_automation_sessions": true,
+	}
 	if cursor != "" {
 		params["cursor"] = cursor
 	}

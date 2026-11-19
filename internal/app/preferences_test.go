@@ -3,11 +3,13 @@ package app
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
 
-// TestPreferencesRoundTrip 改偏好后重建 App，主题、侧栏宽度与窗口几何都要保留。
+// TestPreferencesRoundTrip 改偏好后重建 App，主题、侧栏宽度、登记的目录与窗口
+// 几何都要保留。
 func TestPreferencesRoundTrip(t *testing.T) {
 	dir := t.TempDir()
 	first, err := New(Config{DataDir: dir})
@@ -16,6 +18,8 @@ func TestPreferencesRoundTrip(t *testing.T) {
 	}
 	want := Preferences{
 		Theme: "暗", MotionOff: true, TimeZone: "UTC", SidebarWidth: 288,
+		Workspaces: []string{"/tmp/dimagent-test/ws-alpha", "/tmp/dimagent-test/ws-beta"},
+		HooksProjectPath: "/tmp/dimagent-test/hooks-project",
 		Window: WindowPreferences{X: 40, Y: 60, Width: 1280, Height: 820, HasPosition: true},
 	}
 	if err := first.UpdatePreferences(want); err != nil {
@@ -27,7 +31,7 @@ func TestPreferencesRoundTrip(t *testing.T) {
 		t.Fatalf("重建 App：%v", err)
 	}
 	got := second.Preferences()
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("偏好往返不一致:\n got=%+v\nwant=%+v", got, want)
 	}
 	if got.Window.X != 40 || got.Window.Y != 60 || got.Window.Width != 1280 || got.Window.Height != 820 {

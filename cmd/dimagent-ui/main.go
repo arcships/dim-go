@@ -320,6 +320,31 @@ func main() {
 		win = mygo.NewWindow(options)
 		titles.attach(win, initialTitle)
 
+		// 全局唤起（设置 › 快捷键 › 全局）：mygo 的注册要在主线程上、且事件
+		// 循环已经在跑，所以放在窗口就绪之后。注册失败（键位被别的应用占用、
+		// 键位不合法）不只写日志：集成层把原因留在 GlobalShortcutStatus 里，
+		// 设置屏的原位说明行会显示它。
+		if appBase != nil {
+			appBase.SetGlobalShortcutRegistrar(mygoShortcuts{})
+			appBase.SetGlobalShortcutHandler(func() {
+				if win == nil {
+					return
+				}
+				if win.IsMinimized() {
+					win.Restore()
+				}
+				win.Show()
+				win.Focus()
+				app.FocusComposer()
+				win.Invalidate()
+			})
+			if err := appBase.ApplyGlobalShortcut(); err != nil {
+				startup.printf("全局快捷键：%v", err)
+			} else if status := appBase.GlobalShortcutStatus(); status.Registered {
+				startup.printf("全局快捷键：已注册 %s", status.Accelerator)
+			}
+		}
+
 		// 连接完成的信号：截图等它，免得截到"连接中"的一帧。
 		connectDone := make(chan struct{})
 		if wire == nil {
@@ -412,7 +437,12 @@ func main() {
 		// 自家拉起的服务退出后，socket 文件不该留在数据目录里（外部实例还在监听就
 		// 保留，见 cleanupEndpoint）。
 		endpoint := endpointPath(dataDir)
-		gate.before = titles.freeze
+		gate.before = func() {
+			titles.freeze()
+			// 全局快捷键在主线程上注销：mygo 的 UnregisterAll 要切到主线程，
+			// 而四阶段在主线程上等它结束，留到后台协程里做会互相等。
+			_ = appBase.ReleaseGlobalShortcuts()
+		}
 		gate.tidy = func() { cleanupEndpoint(endpoint, startup) }
 		mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
 			if gate.settled() {
@@ -428,6 +458,23 @@ func main() {
 		startup.printf("事件循环退出：%v", err)
 		log.Fatal(err)
 	}
+}
+
+// mygoShortcuts 把 mygo 的系统级快捷键模块接到集成层要的注册接口上。
+//
+// 只做转调：键位解析、注册表与平台绑定都由 mygo 负责；本文件不碰平台 API。
+type mygoShortcuts struct{}
+
+func (mygoShortcuts) Register(accelerator string, fn func()) error {
+	return mygo.GlobalShortcut.Register(accelerator, fn)
+}
+
+func (mygoShortcuts) Unregister(accelerator string) {
+	mygo.GlobalShortcut.Unregister(accelerator)
+}
+
+func (mygoShortcuts) UnregisterAll() {
+	mygo.GlobalShortcut.UnregisterAll()
 }
 
 // quitGate 把「关窗」与「⌘Q」接到同一次退出上：四阶段只跑一次，跑完才放行 Quit。

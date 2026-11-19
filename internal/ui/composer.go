@@ -197,8 +197,14 @@ func (a *App) inputBlock(c *gui.Context, withControls bool) {
 			if a.shellMode() {
 				ph, name = "输入命令...", "命令"
 			}
-			gui.TextAreaBase(c, &a.draft).Placeholder(ph).Grow(1).MinHeight(composerTextMinHeight).
+			input := gui.TextAreaBase(c, &a.draft).Placeholder(ph).Grow(1).MinHeight(composerTextMinHeight).
 				Label(name)
+			// 全局唤起（⌘⇧Space）后把焦点落到输入区：Focus 只在请求被消费的
+			// 那一帧调用一次，用户之后点别处不会再被抢回来（AutoFocus 只对
+			// 当帧新建的元素生效，输入区早就存在，用不上）。
+			if a.focusComposer.Swap(false) {
+				input = input.Focus()
+			}
 			a.composerToolRow(c)
 		})
 		if withControls {

@@ -61,6 +61,8 @@ type hooksSource struct {
 	revision string
 	enabled  bool
 	readonly bool
+	// project 为真表示项目来源：它有一处可选的目录（本端偏好记着选中的那个）。
+	project bool
 	// plugin 为真时在来源图标右下角叠一个锁（S-hooks-11）。
 	plugin bool
 	// missing 为真表示来源文件缺失（状态标「缺失」）。
@@ -88,7 +90,7 @@ var hkSampleSources = []hooksSource{
 		enabled: true, readonly: true,
 	},
 	{
-		title: "项目", path: "~/.dimcode/hooks.json",
+		title: "项目", path: "~/.dimcode/hooks.json", project: true,
 		revision: "native:user/hooks-projects:1",
 		enabled:  false, readonly: true, missing: true,
 	},
@@ -131,7 +133,7 @@ func hkSourceOf(item ExtItemSnapshot) hooksSource {
 	case "user":
 		return hooksSource{title: "用户", user: true, enabled: true, readonly: true}
 	case "project":
-		return hooksSource{title: "项目", enabled: true, readonly: true}
+		return hooksSource{title: "项目", enabled: true, readonly: true, project: true}
 	case "plugin":
 		return hooksSource{title: "插件", enabled: true, readonly: true, plugin: true}
 	}
@@ -223,7 +225,21 @@ const (
 	hkCopySave       = "保存"
 	hkCopyAsync      = "异步"
 	hkCopyHooksKey   = "hooks"
+	hkCopyChooseDir  = "选择项目目录"
+	hkCopyNoPath     = "未选择项目目录"
 )
+
+// hkSourcePath 是来源卡要显示的路径：项目目录取本端登记的那一个（选中后以它
+// 为准），没有登记时用事实 / 样例带来的路径。
+func (a *App) hkSourcePath(s *hooksSource) string {
+	if s.user {
+		return ""
+	}
+	if s.project && a.hooksProjectPath != "" {
+		return a.hooksProjectPath
+	}
+	return s.path
+}
 
 // renderHooks 是设置 › Hooks 这一屏（设置壳的一个分节）。
 func renderHooks(c *gui.Context, a *App) {
@@ -263,6 +279,7 @@ func renderHooks(c *gui.Context, a *App) {
 		})
 	})
 	hkEditorDialog(c, t)
+	a.dirPickDialog(c, dirPickHooksProject)
 }
 
 // hkHeader 是页首（S-hooks-01…03）：标题 + 右端「了解更多」与刷新。
@@ -331,9 +348,11 @@ func (a *App) hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
 					hkBadge(c, t, hkCopyReadonly, false)
 				}
 			})
-			if s.path != "" {
-				hkPathStyle.style(t, gui.Text(c, s.path)).TextColor(t.TextMuted).
-					SingleLine().Label("路径：" + s.path)
+			if path := a.hkSourcePath(s); path != "" {
+				hkPathStyle.style(t, gui.Text(c, path)).TextColor(t.TextMuted).
+					SingleLine().Label("路径：" + path)
+			} else if s.project {
+				hkNoteLine(c, t, hkCopyNoPath)
 			}
 			if s.message != "" {
 				hkNoteLine(c, t, s.message)
@@ -346,6 +365,12 @@ func (a *App) hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
 				hooksScreen.editorOpen = true
 			}
 			return
+		}
+		// 项目目录：选中后写进本端偏好，路径行与后续按目录定位都以它为准。
+		if s.project {
+			if screenAction(c, screenIconFolderOpen, "folder-open", hkCopyChooseDir, hkBtnH) {
+				a.startDirPick(dirPickHooksProject)
+			}
 		}
 		if !wired {
 			hkProjectToggle(c, t, s)

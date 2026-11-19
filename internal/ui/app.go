@@ -6,10 +6,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	gui "github.com/egoist/mygo/ui"
 	"github.com/egoist/mygo/ui/markdown"
+
+	"github.com/arcships/dimagent-mygo/internal/dirpick"
+	"github.com/arcships/dimagent-mygo/internal/shortcut"
 )
 
 // State 是首片骨架要看的五种界面状态，对应 docs/domains/U1-ia.md §5
@@ -115,9 +119,11 @@ const (
 	VariantTermRunning
 	VariantTermExited
 	// VariantSettings 进入设置屏（首节：账户）；VariantSettingsProviders 进模型
-	// 供应节并打开「添加自定义提供商」表单（表单走查与截图用）。
+	// 供应节并打开「添加自定义提供商」表单（表单走查与截图用）；
+	// VariantSettingsKeybindings 进快捷键节（全局唤起那一项要能截图）。
 	VariantSettings
 	VariantSettingsProviders
+	VariantSettingsKeybindings
 	// 输入区 / 标题栏的浮层走查态：⋯ 菜单、打开方式、模型、推理强度、技能、
 	// 模式、权限、工作区。
 	VariantChatMenu
@@ -154,8 +160,9 @@ var variantNames = map[string]Variant{
 	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
 	"term-exited": VariantTermExited, "settings": VariantSettings,
-	"settings-providers": VariantSettingsProviders,
-	"chat-menu":          VariantChatMenu, "open-with": VariantOpenWith,
+	"settings-providers":   VariantSettingsProviders,
+	"settings-keybindings": VariantSettingsKeybindings,
+	"chat-menu":            VariantChatMenu, "open-with": VariantOpenWith,
 	"model": VariantModel, "effort": VariantEffort,
 	"skills": VariantSkills, "mode": VariantMode,
 	"permission": VariantPermission, "workspace": VariantWorkspace,
@@ -171,7 +178,7 @@ func ParseVariant(v string) (Variant, error) {
 	if got, ok := variantNames[v]; ok {
 		return got, nil
 	}
-	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-providers、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty、timeline-hover、timeline-tool-detail", v)
+	return VariantNone, fmt.Errorf("未知变体 %q：可用 none、term-disconnected、term-recovered、shell、shell-run、session-menu、rename、session-delete、search、branch、branch-end、rich、goal、tasks、settings、settings-providers、settings-keybindings、term、term-running、term-exited、chat-menu、open-with、model、effort、skills、mode、permission、workspace、right-panel、review、review-scope、add-tab、right-expanded、command-palette、command-palette-empty、timeline-hover、timeline-tool-detail", v)
 }
 
 // Options 是骨架的启动参数。
@@ -251,6 +258,11 @@ type App struct {
 	themePref       string
 	motionOff       bool
 	timeZone        string
+	// 样例模式下的全局唤起快捷键（接上 Source 时读注册状态，这两项不参与）。
+	globalShortcutOn    bool
+	globalShortcutAccel string
+	// focusComposer 请求下一帧把焦点放到输入区（全局快捷键唤起时由入口调用）。
+	focusComposer atomic.Bool
 
 	// 设置 · 账户（重建屏）：邮箱登录对话框的开合与草稿、重置确认框的类型、
 	// 用量刷新的起点。都是可丢的界面状态，不是事实。
@@ -262,6 +274,21 @@ type App struct {
 	// source 非空时，视图从它读事实（A 领域的 Source 接口）；为空时用样例数据
 	// （-demo 与截图）。视图不缓存事实：每次读的都是 Source 的快照。
 	source Source
+
+	// 目录选择（左栏「添加工作区」与设置 › Hooks 的项目路径）：两处入口各留一份
+	// 可丢的界面状态，后台结果经 pickResults 交回渲染线程（见 dirpick.go）。
+	addWorkspacePick dirPickState
+	hooksPick        dirPickState
+	// 本端登记的附加工作区与 Hooks 项目目录：随本地偏好落盘，不是服务端授权的
+	// 项目根。
+	workspaces       []string
+	hooksProjectPath string
+	// dirPickRunner / dirPickGOOS 让测试注入选择器与平台；nil / 空表示真实环境。
+	dirPickRunner dirpick.Runner
+	dirPickGOOS   string
+	pickMu        sync.Mutex
+	pickResults   []dirPickOutcome
+
 	// intents 非空时，视图上的动作发起真实写入；写入在后台协程执行，结果回到
 	// intentMu 保护的两个槽位，下一帧在渲染线程上应用。
 	intents    Intents
@@ -451,6 +478,15 @@ func (a *App) loadSample() {
 	a.themePref = "跟随系统"
 	a.motionOff = false
 	a.timeZone = "跟随系统"
+	// 全局唤起快捷键的样例值（接上 Source 时改读注册状态）。
+	a.globalShortcutOn = true
+	a.globalShortcutAccel = shortcut.DefaultAccelerator
+	globalShortcutEdit = globalShortcutEditState{}
+	// 目录选择的两处界面状态与本地登记的目录：样例里从零开始。
+	a.addWorkspacePick = dirPickState{}
+	a.hooksPick = dirPickState{}
+	a.workspaces = nil
+	a.hooksProjectPath = ""
 	a.attachments = nil
 	a.effort = 2
 	a.effortOpen = false
@@ -498,6 +534,10 @@ func (a *App) loadSample() {
 		a.screen = ScreenSettings
 		a.settingsSection = secProviders
 		configScreen.form = configFormNew()
+	case VariantSettingsKeybindings:
+		// 设置 › 快捷键（全局唤起那一项要能单独截图）。
+		a.screen = ScreenSettings
+		a.settingsSection = secKeybindings
 	case VariantTermDisconnected:
 		a.rightOpen, a.rightTab = true, 4
 		a.termState = termDisconnected
@@ -646,6 +686,11 @@ func (a *App) resetWiredViewState() {
 	a.timeZone = "跟随系统"
 	a.sidebarWidth = 0
 	a.lastPrefs = PreferencesSnapshot{}
+	// 目录选择的两处界面状态与本地登记的目录：从本地偏好里恢复。
+	a.addWorkspacePick = dirPickState{}
+	a.hooksPick = dirPickState{}
+	a.workspaces = nil
+	a.hooksProjectPath = ""
 
 	a.attachments = nil
 	a.attachmentEditing = false
@@ -700,6 +745,8 @@ func (a *App) resetWiredViewState() {
 		}
 		a.motionOff = prefs.MotionOff
 		a.sidebarWidth = float32(prefs.SidebarWidth)
+		a.workspaces = append([]string(nil), prefs.Workspaces...)
+		a.hooksProjectPath = prefs.HooksProjectPath
 		a.lastPrefs = prefs
 	}
 	a.applyCommandPaletteVariant()
@@ -723,6 +770,7 @@ func (a *App) applyPanelVariant() {
 // View 是每帧重建的界面。
 func (a *App) View(c *gui.Context) {
 	a.applyIntentResults()
+	a.applyDirPickResults()
 	a.syncSelectedSession()
 	a.applyTokens(c)
 	// 右栏文件页的目录投影每帧做一次：文件页与命令面板的文件组读同一份。
@@ -730,7 +778,30 @@ func (a *App) View(c *gui.Context) {
 	a.commandPaletteKeys(c)
 	a.debugKeys(c)
 	a.layout(c)
+	if a.screen == ScreenMain {
+		a.dirPickDialog(c, dirPickWorkspace)
+	}
 	a.commandPalette(c)
+}
+
+// FocusComposer 回到主界面并把焦点放到输入区：全局唤起快捷键按下时由入口调用
+// （mygo 的快捷键回调在主线程，与渲染同一线程）。
+func (a *App) FocusComposer() {
+	a.screen = ScreenMain
+	a.focusComposer.Store(true)
+}
+
+// globalShortcut 读全局唤起的状态：接上 Source 时读注册状态；样例（-demo）用
+// 本地的开关与键位（可丢的界面状态，不注册）。
+func (a *App) globalShortcut() GlobalShortcutSnapshot {
+	if a.source != nil {
+		return a.source.GlobalShortcut()
+	}
+	return GlobalShortcutSnapshot{
+		Enabled:     a.globalShortcutOn,
+		Accelerator: a.globalShortcutAccel,
+		Label:       shortcut.Label(a.globalShortcutAccel),
+	}
 }
 
 // syncSelectedSession 在左栏选中项变化时打开对应会话；选中标识是视图里的行
@@ -757,7 +828,8 @@ func (a *App) syncSelectedSession() {
 	}, nil)
 }
 
-// persistPreferences 在主题/动效/时区/侧栏宽度变化后落盘；只在接上 Intents 时。
+// persistPreferences 在主题/动效/时区/侧栏宽度/工作区目录变化后落盘；只在接上
+// Intents 时。
 func (a *App) persistPreferences() {
 	if a.intents == nil {
 		return
@@ -765,14 +837,33 @@ func (a *App) persistPreferences() {
 	prefs := PreferencesSnapshot{
 		Theme: a.themePref, MotionOff: a.motionOff,
 		TimeZone: a.timeZone, SidebarWidth: int(a.sidebarWidth),
+		Workspaces:       append([]string(nil), a.workspaces...),
+		HooksProjectPath: a.hooksProjectPath,
 	}
-	if prefs == a.lastPrefs {
+	if samePreferences(prefs, a.lastPrefs) {
 		return
 	}
 	a.lastPrefs = prefs
 	a.dispatch("保存偏好", func(ctx context.Context) error {
 		return a.intents.SetPreferences(ctx, prefs)
 	}, nil)
+}
+
+// samePreferences 比两份本地偏好：Workspaces 是切片，逐项比。
+func samePreferences(a, b PreferencesSnapshot) bool {
+	if a.Theme != b.Theme || a.MotionOff != b.MotionOff || a.TimeZone != b.TimeZone ||
+		a.SidebarWidth != b.SidebarWidth || a.HooksProjectPath != b.HooksProjectPath {
+		return false
+	}
+	if len(a.Workspaces) != len(b.Workspaces) {
+		return false
+	}
+	for i := range a.Workspaces {
+		if a.Workspaces[i] != b.Workspaces[i] {
+			return false
+		}
+	}
+	return true
 }
 
 // dispatch 在后台执行一次写入意图：失败原因挂到视图的错误行，成功后把视图状态

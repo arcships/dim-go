@@ -256,9 +256,31 @@ func (a *App) viewMenu(m *gui.Menu) {
 	}
 }
 
-// addWorkspace 是「添加工作区」的落点：系统目录选择器没有接，先不改列表
-// （不新增空分组，见 R-LB-169）。
-func (a *App) addWorkspace() {}
+// addWorkspace 是「添加工作区」的落点：macOS 弹系统目录选择器，其余平台在同一个
+// 小框里手输路径；选中后目录登记进本地偏好（左栏多一组），取消不改任何状态。
+// 见 dirpick.go。
+func (a *App) addWorkspace() {
+	a.startDirPick(dirPickWorkspace)
+}
+
+// addWorkspacePath 把选中的目录登记成一个附加工作区分组（本地偏好里的一项）。
+// 已经登记过、或服务端本来就授权了同一个目录时不再加一组。
+func (a *App) addWorkspacePath(path string) {
+	for _, existing := range a.workspaces {
+		if existing == path {
+			return
+		}
+	}
+	if a.source != nil {
+		for _, ws := range a.source.Workspaces() {
+			if ws.Path == path {
+				return
+			}
+		}
+	}
+	a.workspaces = append(a.workspaces, path)
+	a.expandGroup(workspaceGroupID(path))
+}
 
 // workspaceGroup 是一个工作区分组（LB-34–57）：一行工作区（图标 / 折叠箭头 +
 // 名称 + 悬停出现的新建与更多）与其会话行；展开且没有会话时写「暂无会话」。

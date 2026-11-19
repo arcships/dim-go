@@ -38,6 +38,8 @@ type Source interface {
 	Terminal() TerminalSnapshot
 	// Preferences 是客户端本地偏好（主题、动效、时区、侧栏宽度）。
 	Preferences() PreferencesSnapshot
+	// GlobalShortcut 是全局唤起快捷键在设置里的状态（本端事实，不来自 App Server）。
+	GlobalShortcut() GlobalShortcutSnapshot
 }
 
 // PanelFacts 是右栏文件页与改动页要读的事实（D7 的只读能力在适配器里的映射）。
@@ -148,6 +150,9 @@ type Intents interface {
 	Reconnect(ctx context.Context) error
 	// SetPreferences 落盘本地偏好。
 	SetPreferences(ctx context.Context, prefs PreferencesSnapshot) error
+	// SetGlobalShortcut 保存全局唤起快捷键的开关与键位，并按新值重新注册；
+	// 注册失败（键位被占用）返回原因。
+	SetGlobalShortcut(ctx context.Context, enabled bool, accelerator string) error
 }
 
 // ContentBlockSnapshot 是一次提交里的内容块。
@@ -180,6 +185,25 @@ type PreferencesSnapshot struct {
 	MotionOff    bool
 	TimeZone     string
 	SidebarWidth int
+	// Workspaces 是本端登记的附加工作区目录（左栏「添加工作区」）；它不是服务端
+	// 授权的项目根，只用于左栏分组。
+	Workspaces []string
+	// HooksProjectPath 是设置 › Hooks 里选中的项目目录。
+	HooksProjectPath string
+}
+
+// GlobalShortcutSnapshot 是全局唤起快捷键在设置里的状态（本端事实）。
+type GlobalShortcutSnapshot struct {
+	// Enabled 是设置里的开关。
+	Enabled bool
+	// Accelerator 是规范化后的键位（如 CmdOrCtrl+Shift+Space）。
+	Accelerator string
+	// Label 是给人看的键位（macOS 上是 ⌘⇧Space）。
+	Label string
+	// Registered 表示系统已经接受了这次注册。
+	Registered bool
+	// Reason 是注册失败的原因（例如键位被别的应用占用）；空表示没有失败。
+	Reason string
 }
 
 // Connection 是连接阶段与原因（断线要能看见原因，不是白屏）。

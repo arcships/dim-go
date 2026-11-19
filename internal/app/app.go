@@ -159,6 +159,8 @@ type App struct {
 	updater       *host.Updater
 	updateOptions UpdateOptions
 	updateDiag    *host.Recorder
+	// shortcut 是全局唤起快捷键的注册状态（本端事实，见 shortcut.go）。
+	shortcut globalShortcut
 
 	// 连接与订阅。
 	supervisor *daemon.Supervisor

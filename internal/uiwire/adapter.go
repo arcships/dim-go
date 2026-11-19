@@ -18,6 +18,7 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/extensions"
 	"github.com/arcships/dimagent-mygo/internal/interaction"
 	"github.com/arcships/dimagent-mygo/internal/settings"
+	"github.com/arcships/dimagent-mygo/internal/shortcut"
 	"github.com/arcships/dimagent-mygo/internal/ui"
 )
 
@@ -684,6 +685,8 @@ func (w *App) Preferences() ui.PreferencesSnapshot {
 	return ui.PreferencesSnapshot{
 		Theme: prefs.Theme, MotionOff: prefs.MotionOff,
 		TimeZone: prefs.TimeZone, SidebarWidth: prefs.SidebarWidth,
+		Workspaces:       append([]string(nil), prefs.Workspaces...),
+		HooksProjectPath: prefs.HooksProjectPath,
 	}
 }
 
@@ -694,11 +697,45 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 	current.MotionOff = prefs.MotionOff
 	current.TimeZone = prefs.TimeZone
 	current.SidebarWidth = prefs.SidebarWidth
+	current.Workspaces = append([]string(nil), prefs.Workspaces...)
+	current.HooksProjectPath = prefs.HooksProjectPath
 	if err := w.A.UpdatePreferences(current); err != nil {
 		return err
 	}
 	w.changed()
 	return nil
+}
+
+// GlobalShortcut 是全局唤起快捷键的状态；本端事实，不从服务端读。
+func (w *App) GlobalShortcut() ui.GlobalShortcutSnapshot {
+	status := w.A.GlobalShortcutStatus()
+	return ui.GlobalShortcutSnapshot{
+		Enabled:     status.Enabled,
+		Accelerator: status.Accelerator,
+		Label:       status.Label,
+		Registered:  status.Registered,
+		Reason:      status.Reason,
+	}
+}
+
+// SetGlobalShortcut 保存全局唤起快捷键的开关与键位，并重新注册。
+//
+// 键位先规范化再落盘：偏好里只存一种写法；规范化失败不写偏好，把原因交回
+// 界面（用户改的那一版还留在输入框里）。注册失败（被占用）同样返回原因，但
+// 偏好已经保存：用户的意图不该因为系统暂时抢不到键位而丢。
+func (w *App) SetGlobalShortcut(ctx context.Context, enabled bool, accelerator string) error {
+	normalized, err := shortcut.Normalize(accelerator)
+	if err != nil {
+		return fmt.Errorf("键位无法识别：%w", err)
+	}
+	prefs := w.A.Preferences()
+	prefs.GlobalShortcutOff = !enabled
+	prefs.GlobalShortcutAccelerator = normalized
+	if err := w.A.UpdatePreferences(prefs); err != nil {
+		return err
+	}
+	w.changed()
+	return w.A.ApplyGlobalShortcut()
 }
 
 // Terminal 是当前会话终端的状态；输出由 pty 流式读取，本批不缓存。

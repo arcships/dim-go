@@ -1,5 +1,7 @@
 package ui
 
+import "path/filepath"
+
 // 本文件是左栏重建后的视图状态与数据视图：工作区分组、每组的会话行、置顶、
 // 折叠、视图菜单与账户菜单。全部是可丢的界面状态，不是事实：会话名、状态标记
 // 与时间仍然每帧从 Source（或样例）读，这里只记"谁被折起来、谁被置顶、菜单
@@ -45,19 +47,48 @@ const (
 	sidebarBuiltinName = "工作区"
 )
 
+// 本端登记的附加工作区分组的标识前缀：与内置工作区和样例分组区分开。
+const workspaceGroupPrefix = "local:"
+
+// workspaceGroupID 是一个本端工作区分组的标识。
+func workspaceGroupID(path string) string { return workspaceGroupPrefix + path }
+
+// workspaceGroupName 是工作区分组的显示名：取目录最后一段，根目录用整条路径。
+func workspaceGroupName(path string) string {
+	name := filepath.Base(path)
+	if name == "" || name == "." || name == string(filepath.Separator) {
+		return path
+	}
+	return name
+}
+
+// expandGroup 把一个分组标成展开（新登记的工作区直接露出「暂无会话」）。
+func (a *App) expandGroup(id string) {
+	if a.sidebarView.collapsed == nil {
+		a.sidebarView.collapsed = map[string]bool{}
+	}
+	a.sidebarView.collapsed[id] = false
+}
+
 // sidebarSampleWorkspaces 是样例里的分组：内置工作区放全部样例会话，另有两个
 // 示例项目分组（默认收起），用来走查折叠与「暂无会话」。
 func (a *App) sidebarWorkspaces() []sidebarWorkspace {
 	builtin := sidebarWorkspace{id: sidebarBuiltinID, name: sidebarBuiltinName, builtin: true}
+	out := make([]sidebarWorkspace, 0, len(a.workspaces)+1)
+	out = append(out, builtin)
+	// 本端登记的工作区（左栏「添加工作区」选中的目录）跟在内置工作区后面。
+	for _, path := range a.workspaces {
+		out = append(out, sidebarWorkspace{id: workspaceGroupID(path), name: workspaceGroupName(path)})
+	}
 	if a.wired() {
-		// 目录快照只有会话，没有工作区归属：只画内置工作区，不发明分组。
-		return []sidebarWorkspace{builtin}
+		// 目录快照只有会话，没有工作区归属：只画内置工作区与本端登记的目录，
+		// 不发明分组。
+		return out
 	}
-	return []sidebarWorkspace{
-		builtin,
-		{id: "p1", name: sampleProjectA},
-		{id: "p2", name: sampleProjectB},
-	}
+	return append(out,
+		sidebarWorkspace{id: "p1", name: sampleProjectA},
+		sidebarWorkspace{id: "p2", name: sampleProjectB},
+	)
 }
 
 // groupCollapsed 取分组的折叠态：没有显式记录时内置工作区展开，其余收起

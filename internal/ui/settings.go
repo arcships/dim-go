@@ -59,7 +59,7 @@ func (a *App) settingsContent(c *gui.Context) {
 	case secGeneral:
 		renderGeneral(c)
 	case secKeybindings:
-		renderKeybindings(c)
+		a.renderKeybindings(c)
 	case secProviders:
 		renderConfiguration(c, a)
 	case secModality:

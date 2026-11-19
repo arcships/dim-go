@@ -19,6 +19,19 @@ type Preferences struct {
 	TimeZone string `json:"timeZone"`
 	// SidebarWidth 是左栏宽度（逻辑像素）；0 表示用默认值。
 	SidebarWidth int `json:"sidebarWidth"`
+	// Workspaces 是本端登记的附加工作区目录（左栏「添加工作区」选中的目录）。
+	// 它只是本地登记，不是 App Server 授权的项目根：新建会话的 cwd 仍只从
+	// 服务端的项目清单取。
+	Workspaces []string `json:"workspaces,omitempty"`
+	// HooksProjectPath 是设置 › Hooks 里选中的项目目录（本端登记，用于展示与
+	// 后续按目录定位项目钩子）；空表示没有。
+	HooksProjectPath string `json:"hooksProjectPath,omitempty"`
+	// GlobalShortcutOff 关闭全局唤起快捷键。缺省 false（开启）：旧偏好文件里
+	// 没有这一项时按开启处理。
+	GlobalShortcutOff bool `json:"globalShortcutOff,omitempty"`
+	// GlobalShortcutAccelerator 是全局唤起快捷键的键位（如
+	// CmdOrCtrl+Shift+Space）；空表示默认键位。
+	GlobalShortcutAccelerator string `json:"globalShortcutAccelerator,omitempty"`
 	// Window 是窗口尺寸与位置；HasPosition 为假时按居中处理。
 	Window WindowPreferences `json:"window"`
 }
@@ -89,6 +102,9 @@ func normalizePreferences(prefs Preferences) Preferences {
 	if strings.TrimSpace(prefs.TimeZone) == "" {
 		prefs.TimeZone = def.TimeZone
 	}
+	prefs.HooksProjectPath = strings.TrimSpace(prefs.HooksProjectPath)
+	prefs.GlobalShortcutAccelerator = strings.TrimSpace(prefs.GlobalShortcutAccelerator)
+	prefs.Workspaces = normalizeWorkspaceList(prefs.Workspaces)
 	if prefs.Window.Width < 0 {
 		prefs.Window.Width = 0
 	}
@@ -98,11 +114,31 @@ func normalizePreferences(prefs Preferences) Preferences {
 	return prefs
 }
 
+// normalizeWorkspaceList 去掉空项与重复项，保留登记顺序。
+func normalizeWorkspaceList(paths []string) []string {
+	if len(paths) == 0 {
+		return nil
+	}
+	seen := make(map[string]bool, len(paths))
+	out := make([]string, 0, len(paths))
+	for _, path := range paths {
+		path = strings.TrimSpace(path)
+		if path == "" || seen[path] {
+			continue
+		}
+		seen[path] = true
+		out = append(out, path)
+	}
+	return out
+}
+
 // Preferences 返回当前本地偏好的副本。
 func (a *App) Preferences() Preferences {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return a.prefs
+	prefs := a.prefs
+	prefs.Workspaces = append([]string(nil), a.prefs.Workspaces...)
+	return prefs
 }
 
 // UpdatePreferences 更新并落盘偏好；内存值先应用，写盘失败只记诊断。
