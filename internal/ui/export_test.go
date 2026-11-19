@@ -64,6 +64,43 @@ func waitExport(t *testing.T, tt *gui.Tester, what string, cond func() bool) {
 	t.Fatalf("等待 %s 超时", what)
 }
 
+// TestExportEntriesOpenPanel：标题栏 ⋯ 与左栏会话行菜单的「导出」都打开面板，
+// 不再直接落到某个本地文件。
+func TestExportEntriesOpenPanel(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	if err := tt.Click("更多操作"); err != nil {
+		t.Fatalf("点不到 ⋯ 菜单：%v", err)
+	}
+	tt.Frame()
+	if err := tt.Click("导出"); err != nil {
+		t.Fatalf("点不到标题栏导出：%v", err)
+	}
+	tt.Frame()
+	if !app.export.open || !tt.HasText(exportTitle) {
+		t.Fatalf("标题栏导出没有打开面板：open=%v texts=%v", app.export.open, tt.Texts())
+	}
+	app.closeExportPanel()
+	tt.Frame()
+
+	row, ok := tt.Find("修发送路径")
+	if !ok {
+		t.Fatalf("找不到会话行：%v", tt.Texts())
+	}
+	tt.Move(row.X+row.W-sidebarActionSize, row.Y+row.H/2)
+	tt.Frame()
+	if err := tt.Click("会话操作：修发送路径"); err != nil {
+		t.Fatalf("点不到行菜单：%v", err)
+	}
+	tt.Frame()
+	if err := tt.ChooseMenuItem("导出"); err != nil {
+		t.Fatalf("点不到行菜单导出：%v", err)
+	}
+	tt.Frame()
+	if !app.export.open || !tt.HasText(exportTitle) {
+		t.Fatalf("行菜单导出没有打开面板：open=%v texts=%v", app.export.open, tt.Texts())
+	}
+}
+
 // TestExportPanelFormatsAndPreview：面板给出三种格式、三种范围、说明文案与预览，
 // 切格式后预览跟着换。
 func TestExportPanelFormatsAndPreview(t *testing.T) {

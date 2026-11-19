@@ -151,8 +151,8 @@ func (a *App) pluginManageView(c *gui.Context) {
 						if pluginSmallButton(c, t, pluginManageReload, false, true, notePluginReload) {
 							// 没有重扫通道：按钮恒禁用，这里不会到达。
 						}
-						if pluginSmallButton(c, t, pluginManageAdd, true,
-							!canWrite || !facts, manageNote(facts, writeNote)) {
+						if pluginSmallButtonLabeled(c, t, pluginManageAdd, "打开添加插件弹窗",
+							true, !canWrite || !facts, manageNote(facts, writeNote)) {
 							a.openPluginInstall()
 						}
 					})
@@ -213,7 +213,7 @@ func (a *App) pluginRow(c *gui.Context, t *gui.Theme, item ExtItemSnapshot, canW
 				SingleLine().Label(item.Name)
 			meta := pluginStatus(item)
 			if item.Version != "" {
-				meta += " · v" + item.Version
+				meta += " · " + pluginVersionLabel(item.Version)
 			}
 			if item.Use == "builtin" || item.Source == "builtin" {
 				meta += " · builtin"
@@ -361,9 +361,21 @@ func pluginVersionLine(item ExtItemSnapshot) string {
 		return ""
 	}
 	if strings.TrimSpace(item.Version) == "" {
-		return "v" + latest
+		return pluginVersionLabel(latest)
 	}
-	return "v" + item.Version + " → v" + latest
+	return pluginVersionLabel(item.Version) + " → " + pluginVersionLabel(latest)
+}
+
+// pluginVersionLabel 给版本号补一个 v：服务端已经带 v 时不重复。
+func pluginVersionLabel(version string) string {
+	version = strings.TrimSpace(version)
+	if version == "" {
+		return ""
+	}
+	if strings.HasPrefix(version, "v") || strings.HasPrefix(version, "V") {
+		return version
+	}
+	return "v" + version
 }
 
 // updatePlugin 更新一个插件；失败原因留在该行。
@@ -575,10 +587,10 @@ func (a *App) pluginMarketRow(c *gui.Context, t *gui.Theme, entry PluginMarketEn
 		gui.Column(c).Shrink(0).Grow(1).Gap(spaceUnit).Children(func() {
 			name := entry.Name
 			if entry.Version != "" {
-				name += " · v" + entry.Version
+				name += " · " + pluginVersionLabel(entry.Version)
 			}
 			typeSecondaryStrong.style(t, gui.Text(c, name)).TextColor(t.Text).
-				SingleLine().Label(entry.Name)
+				SingleLine().Label(name)
 			if entry.Description != "" {
 				typeSecondary.style(t, gui.Text(c, entry.Description)).
 					TextColor(t.TextMuted).SingleLine()

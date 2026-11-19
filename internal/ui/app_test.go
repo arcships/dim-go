@@ -643,20 +643,18 @@ func TestSessionActions(t *testing.T) {
 		}
 	}
 
-	// 重命名：行内编辑 + 保存。
+	// 重命名：弹窗 + 确认。
 	if err := tt.ChooseMenuItem("重命名"); err != nil {
 		t.Fatalf("点不到重命名：%v", err)
 	}
-	if app.renaming != 0 {
-		t.Fatal("没有进入重命名编辑态")
-	}
 	tt.Frame()
-	if _, ok := tt.Find("保存"); !ok {
-		t.Fatal("重命名编辑态缺保存按钮")
+	if !app.renameDialog.open {
+		t.Fatal("没有打开重命名弹窗")
 	}
-	app.renameDraft = "发送路径（改）"
-	if err := tt.Click("保存名称"); err != nil {
-		t.Fatalf("点不到保存：%v", err)
+	app.renameDialog.draft = "发送路径（改）"
+	tt.Frame()
+	if err := tt.Click("确认"); err != nil {
+		t.Fatalf("点不到确认：%v", err)
 	}
 	tt.Frame()
 	if got := app.sessionName(0, ""); got != "发送路径（改）" {

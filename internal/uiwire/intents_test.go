@@ -615,12 +615,13 @@ func TestIntentRename(t *testing.T) {
 	if err := h.tester.ChooseMenuItem("重命名"); err != nil {
 		t.Fatalf("选择重命名：%v", err)
 	}
-	h.waitFor("保存名称", 2*time.Second)
-	h.click("保存名称")
+	h.waitFor("重命名会话", 2*time.Second)
+	h.replaceInto("会话名称", "演示会话（改）")
+	h.click("确认")
 	params := h.waitRequest("session.rename")
-	t.Logf("点了「重命名 · 保存」→ 服务端收到 session.rename（%d 次），title=%v",
+	t.Logf("点了「重命名 · 确认」→ 服务端收到 session.rename（%d 次），title=%v",
 		len(h.server.RequestsFor("session.rename")), params["title"])
-	if params["title"] != "演示会话" {
+	if params["title"] != "演示会话（改）" {
 		t.Fatalf("改名参数不对：%v", params)
 	}
 }
@@ -973,4 +974,35 @@ func TestIntentRefreshSkills(t *testing.T) {
 	h.waitRequest("skills.refresh")
 	t.Logf("RefreshSkills → 服务端收到 skills.refresh（%d 次）",
 		len(h.server.RequestsFor("skills.refresh")))
+}
+
+// TestIntentPluginInstallAndUpdate 验证插件安装与更新的 wire 参数：Git 来源带
+// ref、插件 id 与「安装后启用」原样下发；更新只带插件 id。
+func TestIntentPluginInstallAndUpdate(t *testing.T) {
+	script := baseScript("/work", false)
+	script.Replies = append(script.Replies,
+		fakeappserver.Reply{Method: "plugin.install", Result: map[string]any{"status": "installed"}},
+		fakeappserver.Reply{Method: "plugin.update", Result: map[string]any{"status": "updated"}},
+	)
+	h := newIntentHarness(t, script)
+
+	if err := h.wire.InstallPlugin(context.Background(), "git", "owner/repo", "main", "custom-id", false); err != nil {
+		t.Fatalf("安装插件：%v", err)
+	}
+	params := h.waitRequest("plugin.install")
+	source, _ := params["source"].(map[string]any)
+	if source["git"] != "owner/repo" || source["ref"] != "main" {
+		t.Fatalf("plugin.install 来源不对：%v", params)
+	}
+	if params["id"] != "custom-id" || params["enable"] != false {
+		t.Fatalf("plugin.install id/enable 不对：%v", params)
+	}
+
+	if err := h.wire.UpdatePlugin(context.Background(), "custom-id"); err != nil {
+		t.Fatalf("更新插件：%v", err)
+	}
+	updated := h.waitRequest("plugin.update")
+	if updated["id"] != "custom-id" {
+		t.Fatalf("plugin.update 参数不对：%v", updated)
+	}
 }

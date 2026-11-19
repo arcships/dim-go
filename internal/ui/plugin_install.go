@@ -274,8 +274,7 @@ func (a *App) pluginInstallView(c *gui.Context) {
 				if st.installing {
 					label = pluginAdding
 				}
-				if pluginDialogButtonLabeled(c, t, label, "确认添加插件", true,
-					problem != "", problem) {
+				if pluginDialogButton(c, t, label, true, st.installing, problem != "", problem) {
 					a.confirmPluginInstall()
 				}
 			})
@@ -315,7 +314,7 @@ func (a *App) pluginManifestPreview(c *gui.Context, t *gui.Theme) {
 			return
 		}
 		typeSecondary.style(t, gui.Text(c, fmt.Sprintf("%s（%d）", pluginSkillsEntry, len(p.Skills)))).
-			TextColor(t.TextMuted).Label(pluginSkillsEntry)
+			TextColor(t.TextMuted)
 		for _, skill := range p.Skills {
 			typeSecondary.style(t, gui.Text(c, "· "+skill)).TextColor(t.TextMuted).
 				Label(skill)

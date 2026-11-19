@@ -42,6 +42,8 @@ type sidebarViewState struct {
 	accountMenu bool
 	// groupMenus 按工作区标识记行末菜单的开合。
 	groupMenus map[string]*bool
+	// hoveredGroup 是上一帧指针停留的工作区分组：F2 用它决定行内改名改哪一组。
+	hoveredGroup string
 }
 
 // sidebarWorkspace 是左栏里的一个分组：标识、显示名、目录路径、是否内置（🏠）、

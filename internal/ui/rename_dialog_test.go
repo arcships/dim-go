@@ -164,40 +164,14 @@ func TestWorkspaceRenameDialogShowsPathAndSaves(t *testing.T) {
 	}
 }
 
-// TestInlineRenameStillReachable：弹窗之外，行内快捷改名仍能从菜单进入。
+// TestInlineRenameStillReachable：弹窗之外，行内快捷改名仍能用 F2 进入。
 func TestInlineRenameStillReachable(t *testing.T) {
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if err := tt.Click("更多操作"); err != nil {
-		t.Fatalf("点不到 ⋯ 菜单：%v", err)
-	}
-	tt.Frame()
-	if err := tt.Click("重命名"); err != nil {
-		t.Fatalf("点不到重命名：%v", err)
-	}
-	tt.Frame()
-	// 弹窗里取消，回到主界面。
-	if err := tt.Click("取消"); err != nil {
-		t.Fatalf("点不到取消：%v", err)
-	}
-	tt.Frame()
-	// 左栏会话行的菜单保留「行内重命名」。
-	row, ok := tt.Find("真实会话")
-	if !ok {
-		t.Fatalf("找不到会话行：%v", tt.Texts())
-	}
-	tt.Move(row.X+row.W-20, row.Y+row.H/2)
-	tt.Frame()
-	if err := tt.Click("会话操作：真实会话"); err != nil {
-		t.Fatalf("点不到会话菜单：%v", err)
-	}
-	tt.Frame()
-	if err := tt.Click("行内重命名"); err != nil {
-		t.Fatalf("点不到行内重命名：%v", err)
-	}
+	tt.Key(0, gui.KeyF2)
 	tt.Frame()
 	if app.renaming != 0 {
-		t.Fatalf("行内重命名没有进入编辑（renaming=%d）", app.renaming)
+		t.Fatalf("F2 没有进入行内编辑（renaming=%d）", app.renaming)
 	}
 	if !tt.HasText("重命名会话") {
 		t.Fatalf("行内编辑行没有名字：%v", tt.Texts())

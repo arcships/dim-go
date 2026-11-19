@@ -41,6 +41,7 @@ const (
 	renameCopyEmptyWksp     = "工作区名称不能为空"
 	renameCopyCancel        = "取消"
 	renameCopyConfirm       = "确认"
+	renameCopySaving        = "保存中…"
 	renameCopyBuiltinWksp   = "内置工作区不能重命名"
 )
 
@@ -248,11 +249,18 @@ func (a *App) renameDialogView(c *gui.Context) {
 			}
 			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
 				cancel := gui.Button(c, renameCopyCancel)
+				if st.submitting {
+					cancel = cancel.Disabled(true).Opacity(0.5)
+				}
 				if cancel.Clicked() && !st.submitting {
 					a.closeRenameDialog()
 				}
-				confirm := gui.PrimaryButton(c, renameCopyConfirm).
-					Label(renameCopyConfirm)
+				confirmText := renameCopyConfirm
+				if st.submitting {
+					confirmText = renameCopySaving
+				}
+				confirm := gui.PrimaryButton(c, confirmText).
+					Label(confirmText)
 				if blocked != "" {
 					confirm = confirm.Disabled(true).Opacity(0.5).Tooltip(blocked)
 				}

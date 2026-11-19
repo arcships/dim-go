@@ -1564,6 +1564,23 @@ func (a *App) viewKeys(c *gui.Context) {
 	if a.palette.open || a.screen != ScreenMain {
 		return
 	}
+	// F2：行内快捷改名。指针停在工作区分组上时改该组，否则改当前会话。
+	if c.Shortcut(0, gui.KeyF2) {
+		if id := a.sidebarView.hoveredGroup; id != "" {
+			for _, ws := range a.sidebarWorkspaces(a.sidebarThreads()) {
+				if ws.id == id && !ws.builtin {
+					a.renamingGroup, a.groupRenameDraft = ws.id, ws.name
+					return
+				}
+			}
+		}
+		if index := a.currentSessionIndex(); index >= 0 {
+			a.startInlineRename(index)
+		} else {
+			a.headerNote = noteNoSessionID
+		}
+		return
+	}
 	// 会话内搜索开着时 Esc 先关它（A1-03 的 R-GS-034）。
 	if a.sessionSearch.open && c.Shortcut(0, gui.KeyEscape) {
 		a.closeSessionSearch()
