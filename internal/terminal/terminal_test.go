@@ -624,3 +624,20 @@ func TestExitStatusString(t *testing.T) {
 		t.Fatalf("信号文本 = %q", got)
 	}
 }
+
+// TestEchoOnceThroughPTY 断言一次性命令的输出确实从伪终端读回来（界面读的就是
+// 这条流）：`sh -c 'echo ok'` 的输出出现，进程以 0 退出。
+func TestEchoOnceThroughPTY(t *testing.T) {
+	dir := t.TempDir()
+	term := startTerm(t, "sess-echo-once", dir, Options{
+		Shell:     "/bin/sh",
+		ShellArgs: []string{"-c", "echo ok"},
+	})
+	c := startCapture(t, term)
+	c.waitForLine(t, "ok")
+
+	status := waitStatus(t, term)
+	if status.Code != 0 {
+		t.Fatalf("退出码 = %d，期望 0（%s）", status.Code, status)
+	}
+}

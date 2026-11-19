@@ -37,14 +37,18 @@ const (
 //
 // 连着真实读数时先读一次改动快照：能画的行（Last Run 的声明级路径）放进
 // s.changes，读不到明细时的原因由快照给出，画「改动明细不可用」而不是空列表。
+// 没有可读的工作目录（未打开会话 / 会话没有 cwd）时只画空态，不读 git。
 func (a *App) rpChangesPage(c *gui.Context) {
 	s := a.rp()
 	refresh := a.rpTakeRefresh()
+	emptyTitle, emptyDetail := a.rpNoWorkspace()
 	var snapshot ChangeSet
 	live := false
-	if facts, ok := a.rpFacts(); ok {
-		live = true
-		snapshot = a.rpLiveChangeSet(facts, refresh)
+	if emptyTitle == "" {
+		if facts, ok := a.rpFacts(); ok {
+			live = true
+			snapshot = a.rpLiveChangeSet(facts, refresh)
+		}
 	}
 	gui.Column(c).Grow(1).Children(func() {
 		a.rpOfflineBar(c)
@@ -52,6 +56,12 @@ func (a *App) rpChangesPage(c *gui.Context) {
 		a.rpFilterRow(c)
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
+				if emptyTitle != "" {
+					// 没有工作目录：画空态，不读 git，也不把工作区根的改动画成
+					// 这个会话的改动。
+					a.rpEmptyBlockIcon(c, iconCircleCheck, emptyTitle, emptyDetail)
+					return
+				}
 				if s.loading {
 					a.rpSkeleton(c)
 					return
@@ -63,7 +73,7 @@ func (a *App) rpChangesPage(c *gui.Context) {
 				a.rpChangeGroups(c)
 			})
 		})
-		if len(a.rpVisibleChanges()) > 0 {
+		if emptyTitle == "" && len(a.rpVisibleChanges()) > 0 {
 			a.rpChangesFooter(c)
 		}
 	})

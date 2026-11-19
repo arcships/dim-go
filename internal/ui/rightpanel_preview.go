@@ -29,8 +29,14 @@ func (a *App) rpPreviewPage(c *gui.Context) {
 	s := a.rp()
 	// 「重新加载」与文件页共用一个计数：一次点击只让下一次读跳过缓存。
 	refresh := a.rpTakeRefresh()
+	emptyTitle, emptyDetail := a.rpNoWorkspace()
 	gui.Column(c).Grow(1).Children(func() {
 		a.rpOfflineBar(c)
+		if emptyTitle != "" {
+			// 没有工作目录就没有可读的相对路径：不读磁盘、也不给样例。
+			a.rpEmptyBlockIcon(c, iconDocument, emptyTitle, emptyDetail)
+			return
+		}
 		if s.previewPath == "" {
 			a.rpEmptyBlockIcon(c, iconDocument, "没有打开的文件",
 				"在文件页点一个文件就能在这里看它的内容。")

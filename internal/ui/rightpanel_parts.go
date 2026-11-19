@@ -108,6 +108,11 @@ type rightPanelState struct {
 	tree    []*rpNode
 	changes []*rpChange
 
+	// emptyTitle / emptyDetail 是没有可读工作目录时的空态：非空时两页都画空态，
+	// 不派发读数、不回落到样例，也不拿工作区根顶替会话的 cwd。
+	emptyTitle  string
+	emptyDetail string
+
 	// scope 是改动范围（0 未提交 / 1 当前分支 / 2 Last Run）。
 	scope int
 	// diffOpen 是行内 diff 展开的文件集合。

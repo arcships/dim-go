@@ -20,6 +20,7 @@ import (
 	"github.com/arcships/dimagent-mygo/internal/interaction"
 	"github.com/arcships/dimagent-mygo/internal/settings"
 	"github.com/arcships/dimagent-mygo/internal/shortcut"
+	"github.com/arcships/dimagent-mygo/internal/terminal"
 	"github.com/arcships/dimagent-mygo/internal/ui"
 	"github.com/arcships/dimagent-mygo/internal/write"
 )
@@ -73,6 +74,10 @@ type App struct {
 	// panel 是右栏文件页与改动页的读数缓存（列目录 / 内容搜索 / git 状态），
 	// 见 panel.go：界面每帧读快照，后台按缓存期重读。
 	panel panelCache
+	// termMu 保护终端输出缓冲与读协程登记（见 terminal.go）。
+	termMu      sync.Mutex
+	termStreams map[string]*terminalStream
+	termReaders map[string]*terminal.Terminal
 }
 
 // New 包住一个已创建的集成层。
@@ -84,6 +89,8 @@ func New(a *app.App) *App {
 		changesAsked: make(map[string]bool),
 		changeSlots:  make(chan struct{}, changeReadSlots),
 		panel:        newPanelCache(),
+		termStreams:  make(map[string]*terminalStream),
+		termReaders:  make(map[string]*terminal.Terminal),
 	}
 }
 
@@ -867,27 +874,12 @@ func (w *App) SetGlobalShortcut(ctx context.Context, enabled bool, accelerator s
 	return w.A.ApplyGlobalShortcut()
 }
 
-// Terminal 是当前会话终端的状态；输出由 pty 流式读取，本批不缓存。
+// Terminal 是当前会话终端的状态与输出行（见 terminal.go）。
 func (w *App) Terminal() ui.TerminalSnapshot { return w.terminalFor(w.currentSession()) }
 
-// terminalFor 取指定会话的终端状态。
+// terminalFor 取指定会话的终端状态与输出行。
 func (w *App) terminalFor(sessionID string) ui.TerminalSnapshot {
-	registry := w.A.Terminals()
-	if registry == nil || sessionID == "" {
-		return ui.TerminalSnapshot{}
-	}
-	terminal, ok := registry.Get(sessionID)
-	if !ok {
-		return ui.TerminalSnapshot{}
-	}
-	out := ui.TerminalSnapshot{Active: true, Running: terminal.Alive()}
-	if !out.Running {
-		if status, ok := terminal.ExitStatus(); ok {
-			out.Exited = true
-			out.ExitCode = status.Code
-		}
-	}
-	return out
+	return w.terminalSnapshotFor(sessionID)
 }
 
 // providerLabel 把 provider 标识换成展示名（没有展示名时用标识）。

@@ -38,6 +38,8 @@ func (a *App) rpFilesPage(c *gui.Context) {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
 				switch {
+				case s.emptyTitle != "":
+					a.rpEmptyBlock(c, s.emptyTitle, s.emptyDetail)
 				case q != "":
 					a.rpSearchResults(c, q, refresh)
 				case s.loading && len(s.tree) == 0:
@@ -80,6 +82,26 @@ func (a *App) rpCwd() string {
 		return snap.Cwd
 	}
 	return ""
+}
+
+// rpNoWorkspace 返回两页在没有可读工作目录时的空态标题与说明；标题为空表示
+// 有工作目录可读。
+//
+// 连着 Source 时工作目录只来自会话事实：没打开会话是「未打开会话」，会话没有
+// cwd 是「没有工作区」。两种情况都不回落到样例，也不拿工作区根顶替——那会把
+// 别的目录的东西画成这个会话的文件。样例只在 -demo（没有 Source）时出现。
+func (a *App) rpNoWorkspace() (string, string) {
+	if a.source == nil {
+		return "", ""
+	}
+	snap, ok := a.liveSession()
+	if !ok {
+		return "未打开会话", "打开一个会话后，这里显示它的工作目录。"
+	}
+	if strings.TrimSpace(snap.Cwd) == "" {
+		return "没有工作区", "这个会话没有工作目录，文件与改动都读不到。"
+	}
+	return "", ""
 }
 
 // rpTakeRefresh 取一次「刷新」意图：按钮只把计数加一，这里读一次后归零，
@@ -128,8 +150,16 @@ func (a *App) syncPanelTree(refresh bool) {
 //
 // 每帧重建，视图只留可丢状态（展开态、分页位置）。读不到时把原因落到
 // rootFailed / permissionDenied / dirFailed 上，由既有的错误行画出来。
+// 没有可读的工作目录时不派发读数：树清空、两页都给空态。
 func (a *App) rpLiveTree(facts PanelFacts, refresh bool) {
 	s := a.rp()
+	if title, detail := a.rpNoWorkspace(); title != "" {
+		s.loading, s.rootFailed, s.permissionDenied, s.rootPartial = false, false, false, false
+		s.emptyTitle, s.emptyDetail = title, detail
+		s.tree = nil
+		return
+	}
+	s.emptyTitle, s.emptyDetail = "", ""
 	cwd := a.rpCwd()
 	// 根目录的分页位置也存在 dirPages 里（键 "" 是根），「加载更多」把它加上一页。
 	limit := s.dirPages[""]

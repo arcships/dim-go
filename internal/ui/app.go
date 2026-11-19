@@ -438,7 +438,10 @@ type App struct {
 	termLines  []termLine
 	termInput  string
 	termCopied bool
-	tasks      []task
+	// termCleared 是连着 pty 时「清屏」丢掉的行数基线：快照里的前这么多行不再
+	// 上屏，之后新到的输出照常显示（pty 的输出不因清屏而丢）。
+	termCleared int
+	tasks       []task
 	// termTabs / termActive 是终端的分层画布（T-09）：每个标签一层，激活层与
 	// 上面的 termState / termLines 同步，其余层各自保留输出与滚动位置。
 	termTabs   []termTab
@@ -847,6 +850,7 @@ func (a *App) resetWiredViewState() {
 	a.termLines = nil
 	a.termCopied = false
 	a.termInput = ""
+	a.termCleared = 0
 	a.panels = newPanelView()
 	a.resetPanelViewState()
 	a.model = ""
@@ -1493,10 +1497,14 @@ func (a *App) terminalKeys(c *gui.Context) {
 		return
 	}
 	if !c.FocusTakesText() && c.Shortcut(gui.Ctrl, gui.KeyC) && a.termState == termRunning {
-		a.termState = termExited
+		if a.termLive() {
+			a.termInterrupt()
+		} else {
+			a.termState = termExited
+		}
 	}
 	if c.Shortcut(gui.Cmd, gui.KeyK) {
-		a.termLines = nil
+		a.clearTerminal()
 	}
 	if c.Shortcut(0, gui.KeyEscape) {
 		a.rightOpen = false

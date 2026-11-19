@@ -27,6 +27,9 @@ type fakePanelSource struct {
 	lastSearch  FileSearchRequest
 	lastChange  ChangesRequest
 	lastPreview PreviewRequest
+	// treeCalls / changeCalls 数一次实际派发的读数（0 表示这一帧没读）。
+	treeCalls   int
+	changeCalls int
 	// searchRefreshed 记录搜索请求里出现过一次 Refresh（点了刷新 / 重试）。
 	searchRefreshed bool
 }
@@ -45,6 +48,7 @@ func newFakePanelSource(cwd string) *fakePanelSource {
 
 func (f *fakePanelSource) FileTree(request FileTreeRequest) FileTreeSnapshot {
 	f.lastTree = request
+	f.treeCalls++
 	snapshot, ok := f.trees[request.Dir]
 	if !ok {
 		return FileTreeSnapshot{Cwd: request.Cwd, Dir: request.Dir, Phase: PanelReadReady}
@@ -69,6 +73,7 @@ func (f *fakePanelSource) FileSearch(request FileSearchRequest) FileSearchSnapsh
 
 func (f *fakePanelSource) Changes(request ChangesRequest) ChangeSet {
 	f.lastChange = request
+	f.changeCalls++
 	return f.changes
 }
 
@@ -453,5 +458,85 @@ func TestCommandPaletteReadsWiredTree(t *testing.T) {
 		if got[sample] {
 			t.Fatalf("命令面板的文件组仍含样例 %q", sample)
 		}
+	}
+}
+
+// TestRightPanelNoCwdEmptyState 断言连着 Source 但会话没有工作目录时两页都是
+// 空态：不派发读数、不画样例，也不拿工作区根顶替。
+func TestRightPanelNoCwdEmptyState(t *testing.T) {
+	cases := []struct {
+		name  string
+		tab   int
+		title string
+		// proof 是样例里必然出现、空态里不该出现的一行。
+		proof string
+	}{
+		{name: "文件页", tab: tabFiles, title: "没有工作区", proof: "文件，AGENTS.md"},
+		{name: "改动页", tab: tabChanges, title: "没有工作区", proof: "已暂存 (1)"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			src := newFakePanelSource("")
+			src.trees[""] = readyTree(FileEntrySnapshot{Name: "AGENTS.md"})
+			src.changes = ChangeSet{Phase: PanelReadReady, Repo: true, Branch: "main", Dirty: true}
+			_, tt := rightWiredTester(t, tc.tab, src)
+
+			if _, ok := tt.Find(tc.title); !ok {
+				t.Fatalf("%s 没有空态标题 %q：%v", tc.name, tc.title, tt.Texts())
+			}
+			if _, ok := tt.Find("这个会话没有工作目录，文件与改动都读不到。"); !ok {
+				t.Fatalf("%s 没有空态说明", tc.name)
+			}
+			if _, ok := tt.Find(tc.proof); ok {
+				t.Fatalf("%s 在没有工作目录时仍画了样例 %q", tc.name, tc.proof)
+			}
+			if src.treeCalls != 0 {
+				t.Fatalf("%s 在没有工作目录时仍读了目录 %d 次", tc.name, src.treeCalls)
+			}
+			if src.changeCalls != 0 {
+				t.Fatalf("%s 在没有工作目录时仍读了改动 %d 次", tc.name, src.changeCalls)
+			}
+		})
+	}
+}
+
+// TestRightPanelUnopenedEmptyState 断言连着 Source 但还没打开会话时两页是
+// 「未打开会话」空态，不含样例。
+func TestRightPanelUnopenedEmptyState(t *testing.T) {
+	src := newFakePanelSource("/work")
+	src.hasSess = false
+	src.session = SessionSnapshot{}
+	_, tt := rightWiredTester(t, tabFiles, src)
+	if _, ok := tt.Find("未打开会话"); !ok {
+		t.Fatalf("没有会话时没有空态：%v", tt.Texts())
+	}
+	for _, sample := range []string{"AGENTS.md", "assets", "notes.md"} {
+		if _, ok := tt.Find(sample); ok {
+			t.Fatalf("没有会话时仍画了样例 %q", sample)
+		}
+	}
+	if src.treeCalls != 0 {
+		t.Fatalf("没有会话时仍读了目录 %d 次", src.treeCalls)
+	}
+}
+
+// TestRightPanelPreviewNoCwdEmptyState 断言预览页在没有工作目录时也是空态。
+func TestRightPanelPreviewNoCwdEmptyState(t *testing.T) {
+	src := newFakePanelSource("")
+	src.previews = map[string]PreviewSnapshot{
+		"main.go": {Phase: PanelReadReady, Kind: PreviewText, Content: "package main\n"},
+	}
+	app, tt := rightWiredTester(t, tabFiles, src)
+	app.rpOpenPreview("main.go")
+	tt.Frame()
+
+	if _, ok := tt.Find("没有工作区"); !ok {
+		t.Fatalf("没有工作目录的预览页没有空态：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("样例内容：连着 App Server 时这里读磁盘上的真实文件。"); ok {
+		t.Fatal("没有工作目录的预览页画了样例正文")
+	}
+	if src.lastPreview.Path != "" {
+		t.Fatalf("没有工作目录时仍读了预览 %q", src.lastPreview.Path)
 	}
 }

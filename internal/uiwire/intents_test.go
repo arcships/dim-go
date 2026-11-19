@@ -67,6 +67,23 @@ func (h *intentHarness) waitFor(label string, timeout time.Duration) {
 	h.t.Fatalf("等待 %q 超时：%d 帧后仍未出现", label, frames)
 }
 
+// waitGone 反复渲染直到元素消失：行内编辑（附件编辑）这类一次性面板收起是
+// 后台写入回调的结果，等它真的收起再点下一步，别把回调晚到当成状态没变。
+func (h *intentHarness) waitGone(label string, timeout time.Duration) {
+	h.t.Helper()
+	deadline := time.Now().Add(timeout)
+	frames := 0
+	for time.Now().Before(deadline) {
+		h.tester.Frame()
+		frames++
+		if _, ok := h.tester.Find(label); !ok {
+			return
+		}
+		time.Sleep(time.Millisecond)
+	}
+	h.t.Fatalf("等待 %q 收起超时：%d 帧后仍在", label, frames)
+}
+
 // click 点击界面上显示指定文字或读屏名的元素。
 func (h *intentHarness) click(label string) {
 	h.t.Helper()
@@ -382,12 +399,21 @@ func TestConcurrentUIInteractions(t *testing.T) {
 		wantAttachment := len(h.server.RequestsFor("attachment.put")) + 1
 		start := time.Now()
 
+		// 点「附件」开编辑行。后台事实（排队横幅、附件回执）可能刚好改变输入卡
+		// 的高度，点击按上一帧的几何送出就会落空：没开出编辑行就再点一次。
 		h.click("附件")
+		h.frame()
+		if _, ok := h.tester.Find("附件名"); !ok {
+			h.click("附件")
+			h.frame()
+		}
 		h.waitFor("附件名", 2*time.Second)
 		h.replaceInto("附件名", "note.txt")
 		h.replaceInto("附件内容", "hello")
 		h.click("添加附件")
-		h.waitFor("附件：note.txt", 2*time.Second)
+		// 等附件编辑器收起（后台 attachment.put 的回调关闭它）：同一轮里再加一个
+		// 附件，只等「note.txt」会被上一轮的附件名匹配到，等于没等。
+		h.waitGone("附件编辑", 2*time.Second)
 		h.click("消息")
 		h.tester.Type("hi")
 		h.frame()

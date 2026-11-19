@@ -153,6 +153,11 @@ type Intents interface {
 	// 终端：RunShell 返回运行标识，供 StopShell 使用。
 	RunShell(ctx context.Context, command string) (string, error)
 	StopShell(ctx context.Context, runID string) error
+	// 右栏终端的本机 pty（不经服务端）：StartTerminal 在会话的工作目录里启动
+	// shell，StopTerminal 停止它，WriteTerminal 把原样字节写回 pty。
+	StartTerminal(ctx context.Context) error
+	StopTerminal(ctx context.Context) error
+	WriteTerminal(ctx context.Context, data string) error
 	// Reconnect 重连控制连接（断线后的「重新连接」）。
 	Reconnect(ctx context.Context) error
 	// SetPreferences 落盘本地偏好。
@@ -678,7 +683,9 @@ type ScheduleSnapshot struct {
 
 // TerminalSnapshot 是当前会话终端的状态。
 //
-// 终端输出由 pty 流式读取，本批只接状态，不缓存输出行；Lines 为空。
+// Lines 是适配器从 pty 流里读到的输出（按换行切开，末尾还没换行的半行也给出
+// ——提示符通常不带换行）；连着 Source 但还没有启动终端时 Active 为假。视图只
+// 读这份快照，不自己读 pty。
 type TerminalSnapshot struct {
 	Active   bool
 	Running  bool
