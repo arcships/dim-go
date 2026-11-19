@@ -137,8 +137,10 @@ func (a *App) approvalBusy(snap ApprovalSnapshot) bool {
 	return !hasInput && strings.TrimSpace(snap.Tool) == ""
 }
 
-// approvalFacts 把快照解成渲染器要的两样：工具名与入参对象。入参不是合法对象
-// 时返回空（渲染器按"没有入参"画），不猜字段。
+// approvalFacts 把快照解成渲染器要的两样：工具名与入参对象。
+//
+// 入参不是对象时按参考产品的旧版纯文本入参处理：包成 `{input: 文本}` 交给通用
+// 渲染器原样显示，不猜字段、也不折成"无效入参"；没有入参才是真的没有。
 func approvalFacts(snap ApprovalSnapshot) (string, map[string]any, bool) {
 	tool := strings.TrimSpace(snap.Tool)
 	input := map[string]any{}
@@ -146,6 +148,12 @@ func approvalFacts(snap ApprovalSnapshot) (string, map[string]any, bool) {
 		var parsed map[string]any
 		if err := json.Unmarshal([]byte(raw), &parsed); err == nil && parsed != nil {
 			input = parsed
+		} else {
+			var text string
+			if err := json.Unmarshal([]byte(raw), &text); err != nil {
+				text = raw
+			}
+			input["input"] = text
 		}
 	}
 	if _, ok := input["command"]; !ok && strings.TrimSpace(snap.Command) != "" {

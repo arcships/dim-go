@@ -215,6 +215,12 @@ func approvalRendererFor(tool string, input map[string]any) string {
 	if raw == "" {
 		return approvalRendererCommand
 	}
+	// 旧版纯文本入参（{input: 文本}）一律走通用渲染器：没有字段可挑。
+	if len(input) == 1 {
+		if _, ok := input["input"]; ok {
+			return approvalRendererGeneric
+		}
+	}
 	switch {
 	case strings.HasPrefix(raw, "cua-driver__") || raw == "cua-driver":
 		return approvalRendererCua
@@ -789,7 +795,11 @@ func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 		if panel.FaviconHost != "" {
 			siteBadge(c, panel.FaviconHost, approvalFaviconSize)
 		}
-		typeMicro.style(t, gui.Text(c, panel.Label)).TextColor(t.TextMuted).SingleLine()
+		label := typeMicro.style(t, gui.Text(c, panel.Label)).TextColor(t.TextMuted).SingleLine()
+		if panel.Renderer == approvalRendererGeneric {
+			// 通用渲染器的标签是工具名，取等宽（参考 GenericApprovalPanel 的字面量）。
+			label.Font(codeFamily())
+		}
 	})
 }
 

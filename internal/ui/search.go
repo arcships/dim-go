@@ -114,7 +114,6 @@ type sessionSearchState struct {
 	// focus / selectAll 在下一帧把焦点与全选落到输入框；returnFocus 在关闭后
 	// 把焦点还给时间线。
 	focus       bool
-	rowClicked  bool
 	selectAll   bool
 	returnFocus bool
 
@@ -178,7 +177,8 @@ func (a *App) openSessionSearch() {
 }
 
 // closeSessionSearch 关掉浮层：清查询与命中、复原搜索期间展开的折叠位、把滚动
-// 位置还原到打开前（需求 6），焦点还给时间线。
+// 位置还原到打开前（需求 6），输入框随浮层卸载、焦点还给时间线（R-GS-045、
+// R-GS-052）。
 func (a *App) closeSessionSearch() {
 	s := &a.sessionSearch
 	if !s.open {
@@ -246,6 +246,7 @@ func (a *App) moveSessionSearchHit(delta int) {
 	} else {
 		s.current = ((s.current+delta)%n + n) % n
 	}
+	// 旧命中降为普通底色（R-GS-374）；只有一条时回卷到它自己（R-GS-069、R-GS-077）。
 	a.rebuildSearchRanges()
 	a.openFoldsForCurrent()
 	s.revealAt = s.now
@@ -294,6 +295,7 @@ func (a *App) sessionSearchFrame(c *gui.Context) {
 // 要跟着走；文本量是当前会话的行文，重建比按帧找差异便宜。
 func (a *App) reindexSessionSearch() {
 	s := &a.sessionSearch
+	// 本机同步重建：计数与命中同帧更新，不存在「进行中」的假 0（R-GS-021、R-GS-081）。
 	// 先记下上一帧的当前项（按单元 key + 起点认回来），再重建语料与命中。
 	prevKey, prevStart := "", -1
 	if h, ok := s.currentHit(); ok && h.unit >= 0 && h.unit < len(s.units) {
@@ -576,6 +578,8 @@ func searchSpans(t *gui.Theme, text string, ranges []searchRange, step fontStep,
 	if family == codeFont {
 		family = codeFamily()
 	}
+	// span 不带点击动作（R-GS-370）；span 的文本就是原文，读屏按原文读出（R-GS-371）；
+	// 当前项按索引标出，不随可见性撤销（R-GS-381）。
 	spans := make([]gui.Span, 0, 2*len(ranges)+1)
 	at := 0
 	add := func(s string) {
@@ -875,27 +879,29 @@ func (a *App) sessionSearchInputRow(c *gui.Context) {
 	t := c.Theme()
 	s := &a.sessionSearch
 	gui.Row(c).Shrink(0).Height(sessionSearchInputHeight).
-		Padding(space1, space3).Gap(space2).AlignItems(gui.Center).
-		OnClick(func() { s.rowClicked = true }).Children(func() {
-		// 放大镜 20px，不是按钮：点它等于点输入框（R-GS-011、R-GS-014）。
-		gui.Row(c).Shrink(0).Width(iconBlock).Height(iconBlock).
-			Background(t.SurfacePressed).
-			OnClick(func() { s.focus = true }).Center().
-			Label("搜索图标").Children(func() {
+		Padding(space1, space3).Gap(space2).AlignItems(gui.Center).Children(func() {
+		// 放大镜 20px，不是按钮：点它等于点输入框（R-GS-011、R-GS-014）；
+		// 不设可读名，不单独播报（R-GS-015）；放大镜常驻，不因空查询隐藏（R-GS-018）。
+		gui.Row(c).Shrink(0).Width(iconBlock).Height(iconBlock).Center().
+			OnClick(func() { s.focus = true }).Children(func() {
 			iconGlyphSize(c, iconSearch, iconBlock, t.TextMuted, "search")
 		})
+		// 输入框以 textbox 语义暴露，名称取 Label（不是 placeholder）；Label 只作
+		// 可读名，不进可见文本（R-GS-042、R-GS-044）。
 		input := gui.TextInputBase(c, &s.query).
 			Placeholder(sessionSearchPlaceholder).Label(sessionSearchLabel).Grow(1).
 			FontSize(typeBody.sizeIn(t)).TextColor(t.Text).
 			OnTextKey(a.sessionSearchTextKey)
 		if s.focus {
-			input.AutoFocus()
+			// 打开、再按 ⌘F、点放大镜都用 Focus 落到输入框：这一帧就生效。
+			input = input.Focus()
 			s.focus = false
 		}
 		if s.selectAll {
 			input.SetTextSelection(0, len([]rune(s.query)))
 			s.selectAll = false
 		}
+		// 关闭键 28px 热区，查询为空时也常驻可用（R-GS-051、R-GS-053）。
 		if iconButton(c, iconButtonSpec{
 			icon: iconXMark, label: "关闭搜索", tip: "关闭搜索 · Esc", size: rowRegular,
 		}) {
@@ -912,6 +918,7 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 	gui.Row(c).Shrink(0).Height(sessionSearchResultHeight).
 		Padding(space1, space3).Gap(space1).AlignItems(gui.Center).
 		Label("搜索结果").Role(gui.RoleGroup).Children(func() {
+		// 前后箭头同尺寸同层级，只有图标朝向不同（R-GS-074）。
 		disabled := len(s.hits) == 0
 		if iconButton(c, iconButtonSpec{
 			icon: iconChevronUp, label: "上一个搜索结果",

@@ -228,6 +228,18 @@ func TestApprovalDecisionHints(t *testing.T) {
 	}
 }
 
+// TestApprovalPanelLegacyTextInput：旧版纯文本入参按 `{input: 文本}` 进通用渲染器，
+// 不显示 JSON 转义字面量，也不出现空区块。
+func TestApprovalPanelLegacyTextInput(t *testing.T) {
+	_, tt := approvalTester(t, ApprovalSnapshot{
+		ID: "a-legacy", Tool: "exec", Input: `"ls -la\n第二行"`,
+	})
+	approvalWants(t, tt, "DimAgent 想要：执行", approvalInputLabel, `"input": "ls -la\n第二行"`)
+	if _, ok := tt.Access(approvalCopyAllowOnce); !ok {
+		t.Fatalf("旧版入参时决定按钮不在了：\n%s", p0WindowText(tt))
+	}
+}
+
 // TestApprovalDecisionsFollowTool：长期允许按钮的文案随工具切换，答复值分明细。
 func TestApprovalDecisionsFollowTool(t *testing.T) {
 	cases := []struct {
