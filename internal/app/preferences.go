@@ -55,6 +55,26 @@ type Preferences struct {
 	// View 是跨重启记住的视图状态（左栏收起、视图口径、分组折叠、右栏开合与
 	// 标签页、文件页筛选、改动页范围）。它不是服务端事实，也不含任何内容。
 	View ViewPreferences `json:"view"`
+	// Appearance 是设置 › 外观里会真正影响渲染的几项本地偏好：界面字体与字号、
+	// 代码字体与字号、代码配色。它不是服务端事实。
+	Appearance AppearancePreferences `json:"appearance"`
+}
+
+// AppearancePreferences 是「设置 › 外观」里会真正影响渲染的本地偏好。
+//
+// 空串 / 0 表示用默认：字体空 = 系统 UI 字体栈或系统等宽，字号 0 = 参考的默认
+// 档（界面按平台默认字号，代码 13）。
+type AppearancePreferences struct {
+	// UIFont 是界面字体族；空表示系统 UI 字体栈。
+	UIFont string `json:"uiFont,omitempty"`
+	// CodeFont 是代码字体族；空表示系统等宽。
+	CodeFont string `json:"codeFont,omitempty"`
+	// UIScale 是界面字号的倍率（参考五档：0.85 / 0.93 / 1 / 1.08 / 1.16）。
+	UIScale float32 `json:"uiScale,omitempty"`
+	// CodeSize 是代码字号（DIP）；0 表示默认 13。
+	CodeSize float32 `json:"codeSize,omitempty"`
+	// CodeTheme 是代码配色名；空表示 GitHub（本版内置的一套）。
+	CodeTheme string `json:"codeTheme,omitempty"`
 }
 
 // ViewPreferences 是视图状态在偏好文件里的形状。
@@ -170,7 +190,33 @@ func normalizePreferences(prefs Preferences) Preferences {
 		prefs.Windows[i] = normalizeWindowBounds(prefs.Windows[i])
 	}
 	prefs.View = normalizeViewPreferences(prefs.View)
+	prefs.Appearance = normalizeAppearancePreferences(prefs.Appearance)
 	return prefs
+}
+
+// normalizeAppearancePreferences 把外观偏好夹到可用区间：字体名去空白，字号倍率
+// 落在 0.8–1.3，代码字号落在 10–24，代码配色只认已知的几套。
+func normalizeAppearancePreferences(look AppearancePreferences) AppearancePreferences {
+	look.UIFont = strings.TrimSpace(look.UIFont)
+	look.CodeFont = strings.TrimSpace(look.CodeFont)
+	look.CodeTheme = strings.TrimSpace(look.CodeTheme)
+	if look.UIScale != 0 {
+		if look.UIScale < 0.8 {
+			look.UIScale = 0.8
+		}
+		if look.UIScale > 1.3 {
+			look.UIScale = 1.3
+		}
+	}
+	if look.CodeSize != 0 {
+		if look.CodeSize < 10 {
+			look.CodeSize = 10
+		}
+		if look.CodeSize > 24 {
+			look.CodeSize = 24
+		}
+	}
+	return look
 }
 
 // normalizeViewPreferences 去掉视图状态里没有意义的取值：负的标签与宽度按 0，

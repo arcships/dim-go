@@ -490,7 +490,7 @@ func (a *App) termPrompt(c *gui.Context) {
 			return
 		}
 		input := gui.TextInputBase(c, &a.termInput).Label("终端输入").Grow(1).
-			Font(codeFont).FontSize(typeCode.sizeIn(t)).TextColor(termCanvasText)
+			Font(codeFamily()).FontSize(typeCode.sizeIn(t)).TextColor(termCanvasText)
 		if a.termLive() {
 			input.OnSubmit(func() { a.submitTerminalInput() })
 		}

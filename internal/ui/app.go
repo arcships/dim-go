@@ -317,8 +317,11 @@ type App struct {
 	screen          Screen
 	settingsSection settingsSectionID
 	themePref       string
-	motionOff       bool
-	timeZone        string
+	// appearance 是「设置 › 外观」里会真正影响渲染的本地偏好：界面字体与字号、
+	// 代码字体与字号、代码配色。它不是事实——启动时从本地偏好恢复，改一次落盘一次。
+	appearance AppearancePreferences
+	motionOff  bool
+	timeZone   string
 	// 样例模式下的全局唤起快捷键（接上 Source 时读注册状态，这两项不参与）。
 	globalShortcutOn    bool
 	globalShortcutAccel string
@@ -490,7 +493,6 @@ type App struct {
 	openWithOpen      bool
 	openWithLoading   bool
 	openWithApp       string
-	chatPinned        bool
 	headerNote        string
 
 	// model 是当前模型名（输入区工具行与标题栏共用）。
@@ -591,6 +593,8 @@ func (a *App) loadSample() {
 	a.themePref = "跟随系统"
 	a.motionOff = false
 	a.timeZone = "跟随系统"
+	// 外观偏好（字体、字号、代码配色）在样例里是默认档：样例不读本地偏好。
+	a.appearance = AppearancePreferences{}
 	// 全局唤起快捷键的样例值（接上 Source 时改读注册状态）。
 	a.globalShortcutOn = true
 	a.globalShortcutAccel = shortcut.DefaultAccelerator
@@ -624,7 +628,6 @@ func (a *App) loadSample() {
 	a.openWithOpen = false
 	a.openWithLoading = false
 	a.openWithApp = "VS Code"
-	a.chatPinned = false
 	a.headerNote = ""
 	a.model = sampleModel
 	a.searchOpen, a.searchQuery = false, ""
@@ -803,6 +806,7 @@ func (a *App) resetWiredViewState() {
 	a.motionOff = false
 	a.timeZone = "跟随系统"
 	a.sidebarWidth = 0
+	a.appearance = AppearancePreferences{}
 	a.lastPrefs = PreferencesSnapshot{}
 	// 目录选择的两处界面状态与本地登记的目录：从本地偏好里恢复。
 	a.addWorkspacePick = dirPickState{}
@@ -838,7 +842,6 @@ func (a *App) resetWiredViewState() {
 	a.openWithOpen = false
 	a.openWithLoading = false
 	a.openWithApp = "VS Code"
-	a.chatPinned = false
 	a.headerNote = ""
 	a.searchOpen, a.searchQuery = false, ""
 	a.renaming, a.deleting = -1, -1
@@ -870,6 +873,7 @@ func (a *App) resetWiredViewState() {
 		a.notifyTaskDone = prefs.NotifyTaskDone
 		a.notifySound = prefs.NotifySound
 		a.notifyNeedsResponse = prefs.NotifyNeedsResponse
+		a.appearance = prefs.Appearance
 		// 视图状态只在启动后铺回一次：loadSample 在每次切场景时都会跑，若每次都
 		// 铺回，切场景会把用户刚收起 / 展开的视图盖回上次落盘的值。它是本地偏好，
 		// 不是事实。
@@ -1229,6 +1233,7 @@ func (a *App) persistPreferences() {
 		NotifyTaskDone:      a.notifyTaskDone,
 		NotifySound:         a.notifySound,
 		NotifyNeedsResponse: a.notifyNeedsResponse,
+		Appearance:          a.appearance,
 		View:                a.viewPreferences(),
 	}
 	if samePreferences(prefs, a.lastPrefs) {
@@ -1245,7 +1250,7 @@ func samePreferences(a, b PreferencesSnapshot) bool {
 	if a.Theme != b.Theme || a.MotionOff != b.MotionOff || a.TimeZone != b.TimeZone ||
 		a.SidebarWidth != b.SidebarWidth || a.HooksProjectPath != b.HooksProjectPath ||
 		a.NotifyTaskDone != b.NotifyTaskDone || a.NotifySound != b.NotifySound ||
-		a.NotifyNeedsResponse != b.NotifyNeedsResponse {
+		a.NotifyNeedsResponse != b.NotifyNeedsResponse || a.Appearance != b.Appearance {
 		return false
 	}
 	if !viewPreferencesEqual(a.View, b.View) {
@@ -1404,9 +1409,26 @@ func (a *App) applyTokens(c *gui.Context) {
 	case "暗":
 		dark = true
 	}
-	c.SetTheme(theme(dark, c.Preferences()))
-	// Markdown 的块样式跟着当前主题走（每帧换一次指针，解析缓存留在 a.md 里）。
+	c.SetTheme(themeFor(dark, c.Preferences(), a.appearanceLook()))
+	applyCodeLook(a.appearance)
+	// Markdown 的块样式跟着当前主题与代码配色走（每帧换一次指针，解析缓存留在
+	// a.md 里）。
 	a.md.Theme = markdownTheme(c.Theme())
+}
+
+// appearanceLook 把「设置 › 外观」的本地偏好换成主题要用的界面字体与字号。
+func (a *App) appearanceLook() appearanceLook {
+	return appearanceLook{font: a.appearance.UIFont, scale: a.appearance.UIScale}
+}
+
+// applyCodeLook 写本帧代码文字用的字体、字号与配色：代码字级与 markdown 的代码
+// 块在渲染时读这两份包级值。本地偏好全局一份，各窗口同值，所以不需要每窗口一份。
+func applyCodeLook(look AppearancePreferences) {
+	currentCodeLook = codeLook{
+		family: codeFamilyFor(look.CodeFont),
+		scale:  codeScaleFor(look.CodeSize),
+	}
+	currentCodeTheme = look.CodeTheme
 }
 
 // debugKeys 是仅用于走查的键位：1–5 切换状态。焦点在输入框里时不抢键，

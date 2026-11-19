@@ -62,17 +62,19 @@ const (
 	petsEmptyH     = 48  // 空态虚线框（540 → 588）
 	petsDisabled   = 0.5
 
-	petsCopyTitle     = "宠物"
-	petsCopyShown     = "显示 Pet"
-	petsCopyFloating  = "Pet 会保持在其他窗口上方。"
-	petsCopySize      = "Pet 大小"
-	petsCopyChoose    = "选择 Pet"
-	petsCopyCustom    = "自定义 Pets"
-	petsCopyCreate    = "创建"
-	petsCopyInstall   = "从文件夹安装"
-	petsCopyRefresh   = "刷新"
-	petsCopyOpenDir   = "打开 Pets 文件夹"
-	petsCopyEmpty     = "尚未安装自定义 Pet。"
+	petsCopyTitle    = "宠物"
+	petsCopyShown    = "显示 Pet"
+	petsCopyFloating = "Pet 会保持在其他窗口上方。"
+	petsCopySize     = "Pet 大小"
+	petsCopyChoose   = "选择 Pet"
+	petsCopyCustom   = "自定义 Pets"
+	petsCopyCreate   = "创建"
+	petsCopyInstall  = "从文件夹安装"
+	petsCopyRefresh  = "刷新"
+	petsCopyOpenDir  = "打开 Pets 文件夹"
+	petsCopyEmpty    = "尚未安装自定义 Pet。"
+	// petsCopyEmptyNote 是连接模式下自定义列表的说明：读不到清单，不写"尚未安装"。
+	petsCopyEmptyNote = "服务端没有提供自定义 Pet 清单（本版不做）"
 	petsCopyLoading   = "正在加载..."
 	petsCopyRetry     = "重试"
 	petsCopySelect    = "选择"
@@ -151,23 +153,21 @@ var petsScreen = petsState{
 
 // renderPets 是设置 › 宠物这一屏（设置壳的一个分节）。
 //
-// 连着 Source 时没有任何 Pet 事实（清单、当前选择、显示开关都没有通道），所以
-// 整屏是空态 + 原因：不把样例的两个内置 Pet 与「dim-fox 已选中」当现状画出来。
-// 样例只在 -demo（没有 Source）出现。
+// 连着 Source 时没有任何 Pet 事实（清单、当前选择、显示开关都没有通道）：参考图里
+// 的控件形态照留——开关、列表卡、四个动作按钮——但全部置灰，原因写在 tooltip 与
+// 卡片里（notePetSettings）。列表区没有行可画，所以是一个写着原因的虚线空态，
+// 不拿样例的两个内置 Pet 与「dim-fox 已选中」当现状。样例只在 -demo 出现。
 func renderPets(c *gui.Context, a *App) {
-	if a != nil && a.wired() {
-		settingsNoFacts(c, petsCopyTitle, notePetSettings)
-		return
-	}
+	live := a != nil && a.wired()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(petsCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(petsSectionGap).Children(func() {
 				gui.Column(c).Shrink(0).Gap(petsTitleGap).Children(func() {
 					screenTitle(c, petsCopyTitle)
-					petsStatusCard(c)
+					petsStatusCard(c, live)
 				})
-				petsChooseSection(c)
-				petsCustomSection(c)
+				petsChooseSection(c, live)
+				petsCustomSection(c, live)
 			})
 		})
 	})
@@ -177,7 +177,7 @@ func renderPets(c *gui.Context, a *App) {
 // petsStatusCard 是「显示 Pet」卡（S-pets-02 … 11）：标签 + 说明 + 开关，
 // 下面是不可用提示条；浮窗里再加「Pet 大小」，出错时加错误行与恢复入口，
 // 描述符未加载时给「重试」。
-func petsStatusCard(c *gui.Context) {
+func petsStatusCard(c *gui.Context, live bool) {
 	screenCard(c, func() {
 		gui.Column(c).Padding(petsCardPad, petsCardPad).Gap(petsNoteGap).
 			Children(func() {
@@ -185,13 +185,23 @@ func petsStatusCard(c *gui.Context) {
 					gui.Column(c).Grow(1).MinWidth(0).Gap(petsLineGap).Children(func() {
 						petsLabel(c, petsCopyShown)
 						petsSubhint(c, petsCopyFloating)
+						if live {
+							petsSubhint(c, notePetSettings)
+						}
 					})
-					gui.Switch(c, &petsScreen.shown).
+					sw := gui.Switch(c, &petsScreen.shown).
 						Size(screenSwitchW, screenSwitchH).
 						Radius(screenSwitchH / 2).
 						Label(petsCopyShown).
 						Disabled(petsShownDisabled())
+					if live {
+						sw = sw.Disabled(true).Tooltip(notePetSettings).Opacity(noteDisabledAlpha)
+					}
 				})
+				if live {
+					// 连接模式：没有 Pet 快照，样例的"组件不可用"提示条也不画。
+					return
+				}
 				if note := petsNoteCopy(petsScreen.note); note != "" {
 					petsNoteBar(c, note)
 				}
@@ -255,9 +265,14 @@ const (
 )
 
 // petsChooseSection 是「选择 Pet」（S-pets-12 … 22）：分组标题 + 列表卡。
-func petsChooseSection(c *gui.Context) {
+// 连着 Source 时没有清单可列：列表区是写着原因的虚线空态（形态在，值不编）。
+func petsChooseSection(c *gui.Context, live bool) {
 	gui.Column(c).Shrink(0).Gap(petsGroupGap).Children(func() {
 		petsGroupTitle(c, petsCopyChoose)
+		if live {
+			petsEmptyState(c, notePetSettings)
+			return
+		}
 		if petsScreen.selectionMissing {
 			petsMissingSelection(c)
 		}
@@ -393,12 +408,25 @@ func petsRowButton(c *gui.Context, pet petDescriptor, selected bool) bool {
 
 // petsCustomSection 是「自定义 Pets」（S-pets-23 … 32）：分组标题 + 按钮行 +
 // 空态 / 列表。
-func petsCustomSection(c *gui.Context) {
+func petsCustomSection(c *gui.Context, live bool) {
 	gui.Column(c).Shrink(0).Gap(petsBodyGap).Children(func() {
 		gui.Column(c).Shrink(0).Gap(petsGroupGap).Children(func() {
 			petsGroupTitle(c, petsCopyCustom)
 			gui.Row(c).Wrap().Gap(screenSpace2).AlignItems(gui.Center).Children(func() {
 				loaded := petsScreen.descriptors != nil
+				if live {
+					// 四个动作都要 Pet 领域或宿主能力：形态照留，逐个置灰并写原因。
+					for _, spec := range []settingsActionSpec{
+						{variant: settingsActionPrimary, icon: iconPlus, mark: "plus", text: petsCopyCreate, label: petsCopyCreate},
+						{icon: screenIconFolderOpen, mark: "folder-open", text: petsCopyInstall, label: petsCopyInstall},
+						{icon: screenIconRefresh, mark: "refresh", text: petsCopyRefresh, label: petsCopyRefresh},
+						{icon: screenIconFolderOpen, mark: "folder-open", text: petsCopyOpenDir, label: petsCopyOpenDir},
+					} {
+						spec.height, spec.tip, spec.disabled = screenControlH, notePetSettings, true
+						settingsActionButton(c, spec)
+					}
+					return
+				}
 				settingsActionButton(c, settingsActionSpec{
 					variant: settingsActionPrimary, icon: iconPlus, mark: "plus",
 					text: petsCopyCreate, label: petsCopyCreate,
@@ -421,6 +449,10 @@ func petsCustomSection(c *gui.Context) {
 				})
 			})
 		})
+		if live {
+			petsEmptyState(c, petsCopyEmptyNote)
+			return
+		}
 		switch {
 		case petsScreen.descriptors == nil:
 			// 未加载：列表区不渲染（重试在上面的卡里）。

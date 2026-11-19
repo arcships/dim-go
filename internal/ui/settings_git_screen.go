@@ -21,9 +21,9 @@ import (
 // 只保留可丢的界面状态（gitScreen）：分支前缀、远程与基线分支的选中项、
 // 两个开关、两段指令草稿、Worktree 路径。事实（仓库设置）归 App Server。
 //
-// 连着 Source 时这一屏是空态（settingsNoFacts + noteGitSettings）：仓库设置的
-// 读写都没有通道，所以不画样例远程 / 分支清单，也不摆拨了不生效的开关。样例
-// 状态只走 -demo（没有 Source）。
+// 连着 Source 时这一屏的控件形态照留但全部置灰（noteGitSettings 写在原因条、
+// 行下与 tooltip）：仓库设置的读写都没有通道，所以不画样例远程 / 分支清单。
+// 样例状态只走 -demo（没有 Source）。
 //
 // # 未实现分支
 //
@@ -88,6 +88,8 @@ const (
 	gitCopyChooseDirA11y = "选择目录，按钮"
 	gitCopyRemoteA11y    = "默认远程仓库"
 	gitCopyBaseA11y      = "默认基线分支"
+	// gitCopyUnread 是连接模式下两个下拉的取值位置：没有清单可列，也不摆样例。
+	gitCopyUnread = "未读取"
 )
 
 // 样例数据：远程与分支清单（运行时状态是 origin / main）。
@@ -113,33 +115,54 @@ var gitScreen = gitState{}
 // renderGit 是设置 › Git 这一屏（设置壳的一个分节）。内容自己滚。
 //
 // 连着 Source 时没有任何仓库设置事实（远程、基线分支、推送策略、指令补充、
-// Worktree 根目录都读不到也写不了），所以整屏是空态 + 原因：不画样例远程与
-// 分支，也不摆拨了不生效的开关。样例只在 -demo（没有 Source）出现。
+// Worktree 根目录都读不到也写不了）：参考图里的控件形态照留，但每一个都置灰并
+// 在 tooltip 与卡片下方写原因（noteGitSettings）——看得见"这一屏有什么"，点不动，
+// 也不摆样例远程 / 分支清单当现状。样例只在 -demo（没有 Source）出现。
 func renderGit(c *gui.Context, a *App) {
-	if a != nil && a.wired() {
-		settingsNoFacts(c, gitCopyTitle, noteGitSettings)
-		return
-	}
+	live := a != nil && a.wired()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(gitCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(gitSectionGap).Children(func() {
 				screenTitle(c, gitCopyTitle)
-				gitPrefixGroup(c)
+				if live {
+					gitNoFactsBar(c)
+				}
+				gitPrefixGroup(c, live)
 				gitRule(c)
-				gitSelectGroup(c, gitCopyRemote, gitCopyRemoteHint, &gitScreen.remote, gitRemotes, gitCopyRemoteA11y)
+				gitSelectGroup(c, gitCopyRemote, gitCopyRemoteHint, &gitScreen.remote, gitRemotes, gitCopyRemoteA11y, live)
 				gitRule(c)
-				gitSelectGroup(c, gitCopyBase, gitCopyBaseHint, &gitScreen.base, gitBranches, gitCopyBaseA11y)
+				gitSelectGroup(c, gitCopyBase, gitCopyBaseHint, &gitScreen.base, gitBranches, gitCopyBaseA11y, live)
 				gitRule(c)
-				gitSwitchGroup(c, gitCopyForce, gitCopyForceHint, &gitScreen.forcePush)
+				gitSwitchGroup(c, gitCopyForce, gitCopyForceHint, &gitScreen.forcePush, live)
 				gitRule(c)
-				gitSwitchGroup(c, gitCopyAutoPush, "", &gitScreen.autoPush)
+				gitSwitchGroup(c, gitCopyAutoPush, "", &gitScreen.autoPush, live)
 				gitRule(c)
-				gitNotesGroup(c, gitCopyCommitNotes, gitCopyCommitHint, &gitScreen.commitNotes, gitCopyCommitEx)
+				gitNotesGroup(c, gitCopyCommitNotes, gitCopyCommitHint, &gitScreen.commitNotes, gitCopyCommitEx, live)
 				gitRule(c)
-				gitNotesGroup(c, gitCopyPRNotes, gitCopyPRHint, &gitScreen.prNotes, gitCopyPREx)
+				gitNotesGroup(c, gitCopyPRNotes, gitCopyPRHint, &gitScreen.prNotes, gitCopyPREx, live)
 				gitRule(c)
-				gitWorktreeGroup(c)
+				gitWorktreeGroup(c, live)
 			})
+		})
+	})
+}
+
+// gitNoFactsBar 是连接模式下的原因条：整屏的每一项都读不到也写不了，原因写在
+// 这里一次，每个控件的 tooltip 再写一次。
+func gitNoFactsBar(c *gui.Context) {
+	noteBar(c, noteGitSettings)
+}
+
+// noteBar 是设置屏共用的一行原因条：次要面 + 1px 描边，文字可选中复制。
+// 它只说明"这一屏读不到什么"，不冒充控件。
+func noteBar(c *gui.Context, text string) {
+	t := c.Theme()
+	box := gui.Column(c).Shrink(0).Radius(screenRadiusCtl).Background(t.SurfaceHover).
+		Role(gui.RoleStatus).Label(text)
+	box.BorderWidth(strokeHairline).BorderColor(t.Border)
+	box.Children(func() {
+		gui.Row(c).Shrink(0).Padding(screenSpace15, screenSpace25).Children(func() {
+			typeMicro.style(t, gui.Text(c, text)).TextColor(t.TextMuted).Selectable()
 		})
 	})
 }
@@ -152,44 +175,83 @@ func gitRule(c *gui.Context) {
 }
 
 // gitPrefixGroup 是分支前缀（S-git-02/03）：标签 + 280×32 输入。
-func gitPrefixGroup(c *gui.Context) {
+func gitPrefixGroup(c *gui.Context, live bool) {
 	gui.Column(c).Shrink(0).Gap(gitLabelGap).Children(func() {
 		gitLabel(c, gitCopyPrefix)
-		screenInput(c, &gitScreen.prefix, gitCopyPrefixEx, gitCopyPrefix).
+		input := screenInput(c, &gitScreen.prefix, gitCopyPrefixEx, gitCopyPrefix).
 			Width(gitPrefixW)
+		if live {
+			input = input.Disabled(true).Tooltip(noteGitSettings).Opacity(noteDisabledAlpha)
+		}
 	})
 }
 
 // gitSelectGroup 是一个「标签 + 说明 + 下拉」分组（S-git-04 … 11）。
-func gitSelectGroup(c *gui.Context, label, hint string, selected *int, options []string, a11y string) {
+func gitSelectGroup(c *gui.Context, label, hint string, selected *int, options []string,
+	a11y string, live bool) {
 	gui.Column(c).Shrink(0).Gap(gitControlGap).Children(func() {
 		gitLabelHint(c, label, hint)
+		if live {
+			// 没有远程 / 分支事实：下拉照画，但取值位置写"未读取"，不摆样例清单。
+			gitSelectDisabled(c, label, a11y)
+			return
+		}
 		gitSelect(c, selected, options, a11y)
 	})
 }
 
+// gitSelectDisabled 是连接模式下没有可选项的下拉：形态照参考，整钮置灰，
+// 取值位置写"未读取"，原因进 tooltip。
+func gitSelectDisabled(c *gui.Context, label, a11y string) {
+	t := c.Theme()
+	trigger := gui.ButtonBase(c).Shrink(0).AlignSelf(gui.Start).Height(screenControlH).
+		Padding(gitSelectPadV, gitSelectPadH).Radius(screenRadiusCtl).
+		Background(t.Background).Gap(screenSpace1).Justify(gui.Start).
+		Label(a11y).Tooltip(noteGitSettings).Disabled(true).Opacity(noteDisabledAlpha)
+	trigger.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	trigger.Children(func() {
+		gitValueStyle.style(t, gui.Text(c, gitCopyUnread)).TextColor(t.TextMuted).SingleLine()
+		screenIcon(c, screenIconChevronDown, screenIconMicro, t.TextMuted, "chevron-down")
+	})
+}
+
 // gitSwitchGroup 是一个开关行（S-git-12 … 16）：左侧标签与说明、右侧开关。
-func gitSwitchGroup(c *gui.Context, label, hint string, on *bool) {
+//
+// live 时开关照画并置灰（形态优先），原因进 tooltip 与行下说明——开关的位置
+// 不代表现状，说明行写了"读不到"。
+func gitSwitchGroup(c *gui.Context, label, hint string, on *bool, live bool) {
 	gui.Row(c).AlignItems(gui.Center).Children(func() {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(gitSwitchGap).Children(func() {
 			gitLabel(c, label)
 			if hint != "" {
 				gitHint(c, hint)
 			}
+			if live {
+				gitHint(c, noteGitSettings)
+			}
 		})
-		gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
+		sw := gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
 			Radius(screenSwitchH / 2).Label(label)
+		if live {
+			sw = sw.Disabled(true).Tooltip(noteGitSettings).Opacity(noteDisabledAlpha)
+		}
 	})
 }
 
 // gitNotesGroup 是一段指令补充（S-git-17 … 22）：标签、说明与 100 高的
 // 等宽多行输入。
-func gitNotesGroup(c *gui.Context, label, hint string, value *string, placeholder string) {
+func gitNotesGroup(c *gui.Context, label, hint string, value *string, placeholder string,
+	live bool) {
 	gui.Column(c).Shrink(0).Gap(gitNotesCodeGap).Children(func() {
 		gitLabelHint(c, label, hint)
-		gitCodeStyle.style(c.Theme(), gui.TextArea(c, value)).
+		area := gitCodeStyle.style(c.Theme(), gui.TextArea(c, value)).
 			Label(label).Placeholder(placeholder).Height(gitTextareaH).
 			Padding(gitTextareaPad, gitTextareaPad)
+		if live {
+			area = area.Disabled(true).Tooltip(noteGitSettings).Opacity(noteDisabledAlpha)
+		}
 	})
 }
 
@@ -198,17 +260,30 @@ func gitNotesGroup(c *gui.Context, label, hint string, value *string, placeholde
 //
 // 系统目录选择器要宿主能力，本版没有：路径改为手动输入（占位「手动输入路径」），
 // 右侧按钮置灰并写原因（DEC-10）。
-func gitWorktreeGroup(c *gui.Context) {
+func gitWorktreeGroup(c *gui.Context, live bool) {
 	gui.Column(c).Shrink(0).Gap(gitControlGap).Children(func() {
 		gitLabel(c, gitCopyWorktree)
 		gui.Row(c).AlignItems(gui.Center).Gap(gitInlineGap).Children(func() {
-			screenInput(c, &gitScreen.worktree, "手动输入路径", gitCopyWorktree).Grow(1)
-			if gitIconButton(c, screenIconFolderOpen, gitCopyChooseDirA11y, noteDirPicker, true) {
+			input := screenInput(c, &gitScreen.worktree, "手动输入路径", gitCopyWorktree).Grow(1)
+			if live {
+				input = input.Disabled(true).Tooltip(noteGitSettings).Opacity(noteDisabledAlpha)
+			}
+			if gitIconButton(c, screenIconFolderOpen, gitCopyChooseDirA11y,
+				gitPickerTip(live), true) {
 				// 禁用入口不会走到这里；保留分支只为了让点击语义与其余入口一致。
 			}
 		})
 		gitHint(c, "手动输入路径（系统目录选择器未接入）")
 	})
+}
+
+// gitPickerTip 是「选择目录」的 tooltip：连着 Source 时先写仓库设置读不到，
+// 再写这条入口本身要手动输入。
+func gitPickerTip(live bool) string {
+	if live {
+		return noteGitSettings + "；" + noteDirPicker
+	}
+	return noteDirPicker
 }
 
 // gitInlineGap 是输入与右端按钮之间（959 → 966）。

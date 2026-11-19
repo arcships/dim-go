@@ -8,6 +8,10 @@ package ui
 // 决策记录里，界面上只说「服务端没有提供」或「当前版本不支持」。
 //
 // 新增未接入口时从这里取原因，不要在屏文件里另写一套句子。
+// noteDisabledAlpha 是"可见但禁用"的整棵子树的透明度：0.5 与框架与宠物屏同一
+// 口径（禁用态看得见形状，看得出不可点）。
+const noteDisabledAlpha = 0.5
+
 const (
 	// noteGitWrite 用于暂存 / 取消暂存 / 还原 / 提交 / 推送 / 切分支。
 	noteGitWrite = "服务端没有提供 git 写操作（本版不做）"
@@ -54,6 +58,14 @@ const (
 	NoteUpdateInstall = "当前版本不支持自动安装（需要宿主安装能力）"
 	// noteIsolationUnread 用于设置 › 权限的进程隔离开关：读不到当前值就不摆开关。
 	noteIsolationUnread = "服务端没有提供进程隔离设置的读取（本版不做）"
+	// noteAppearanceLanguage 用于设置 › 外观 › 程序语言：只有一套界面文案。
+	noteAppearanceLanguage = "本版只有简体中文界面，未接入其它语言包"
+	// noteSkinMissing 用于设置 › 外观 › 我的皮肤：没有皮肤渲染器与皮肤素材。
+	noteSkinMissing = "本版没有皮肤渲染器与皮肤素材，皮肤只在参考图里存在"
+	// noteFontMissing 用于某个字体族不在这台机器上。
+	noteFontMissing = "本机没有安装这个字体"
+	// noteFontNotMonospaced 用于代码字体选了非等宽字体。
+	noteFontNotMonospaced = "这个字体不是等宽字体"
 	// noteOpenWith 用于标题栏的「打开方式」：外部应用清单与打开调用都没有通道。
 	noteOpenWith = "当前版本不支持用外部应用打开"
 	// noteApprovalCommand 是审批卡没有命令原文时的说明。
@@ -81,4 +93,12 @@ const (
 	noteNoSessionID = "当前还没有打开的会话"
 	// noteNothingToCopy 是复制项拿到空值时的提示。
 	noteNothingToCopy = "没有可复制的内容"
+	// noteRetryNow 用于时间线自动重试行的「立即重试」：协议没有立即重试的方法，
+	// 倒计时由服务端事实给，界面没有提前触发的通道。
+	noteRetryNow = "服务端没有提供立即重试（本版不做）"
+	// noteSideChatWrite 用于侧聊的「停止」与「结束分支」：侧聊没有写入与结束通道。
+	noteSideChatWrite = "服务端没有提供侧聊的写入与结束分支（本版不做）"
+	// noteNoWriteChannel 用于连着 Source 却没有写入通道的入口：既不装作生效，也
+	// 不把原因留空。
+	noteNoWriteChannel = "没有连接写通道（不可用）"
 )

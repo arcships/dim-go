@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"time"
 
 	gui "github.com/egoist/mygo/ui"
@@ -215,8 +216,48 @@ var (
 	typeH6       = fontStep{size: 12.6, line: 18.9, weight: 600}
 )
 
-// codeFont 是代码的字体栈：系统等宽，不内嵌字体（U2 §1.3）。
-const codeFont = "SF Mono, Menlo, monospace"
+// codeFontStack 是代码的字体栈底：系统等宽，不内嵌字体（U2 §1.3）。
+const codeFontStack = "SF Mono, Menlo, monospace"
+
+// codeFont 是代码字级的族标记：字级里写它表示"这段是代码"，渲染时换成当前偏好
+// 的代码字体栈与字号（见 currentCodeLook）。它不是最终的字体名。
+const codeFont = codeFontStack
+
+// defaultCodeSize 是代码字号的默认档（typeCode 的 13）：偏好里的代码字号按它换算
+// 成倍率。
+const defaultCodeSize = 13
+
+// codeLook 是本帧代码文字用的字体栈与字号倍率。
+type codeLook struct {
+	family string
+	scale  float32
+}
+
+// currentCodeLook 是本帧代码文字用的字体栈与字号倍率：applyTokens 每帧按本地偏好
+// 写一次（本地偏好全局一份，各窗口同值），所有代码字级渲染时读它——所以改设置
+// 下一帧就生效，不需要重启。
+var currentCodeLook = codeLook{family: codeFontStack, scale: 1}
+
+// codeFamily 返回本帧代码文字用的字体栈。
+func codeFamily() string { return currentCodeLook.family }
+
+// codeFamilyFor 把偏好里的代码字体名换成字体栈：空名 = 系统等宽；具体字体在前、
+// 系统等宽兜底（选中的字体不在本机时仍有等宽可读）。
+func codeFamilyFor(name string) string {
+	name = strings.TrimSpace(name)
+	if name == "" || name == codeFontStack {
+		return codeFontStack
+	}
+	return name + ", " + codeFontStack
+}
+
+// codeScaleFor 把偏好里的代码字号换成相对默认档的倍率；越界按默认。
+func codeScaleFor(size float32) float32 {
+	if size < 10 || size > 24 {
+		return 1
+	}
+	return size / defaultCodeSize
+}
 
 // typeBodySize 是参考产品的根字号（14），也是主题 FontSize 的基准：本帧的平台字号
 // 与它相比得到文本缩放。正文本身取 text-sm = 0.875 × 根字号（12.25，见 typeBody）。
@@ -231,15 +272,26 @@ func textScale(t *gui.Theme) float32 {
 	return t.FontSize / typeBodySize
 }
 
-// sizeIn 返回该字级在 t 下的字号，供 span 与需要数字的地方使用。
-func (f fontStep) sizeIn(t *gui.Theme) float32 { return f.size * textScale(t) }
+// sizeIn 返回该字级在 t 下的字号，供 span 与需要数字的地方使用。代码字级再乘
+// 本帧的代码字号倍率（设置 › 外观 › 代码字号）。
+func (f fontStep) sizeIn(t *gui.Theme) float32 {
+	size := f.size * textScale(t)
+	if f.family == codeFont {
+		size *= currentCodeLook.scale
+	}
+	return size
+}
 
 // style 把字级写到 e：字号（含文本缩放）、行高与字重。行高按倍数给，
 // 因此文本放大后行盒等比变高，不会截断（U2 §7.4）；line 为 0 时不设行高，
 // 由框架按字体度量排版（U2 §1.1）。
 func (f fontStep) style(t *gui.Theme, e gui.Element) gui.Element {
-	if f.family != "" {
-		e = e.Font(f.family)
+	family := f.family
+	if family == codeFont {
+		family = codeFamily()
+	}
+	if family != "" {
+		e = e.Font(family)
 	}
 	e = e.FontSize(f.sizeIn(t)).FontWeight(f.weight)
 	if f.line > 0 {
@@ -312,6 +364,27 @@ var (
 
 // fieldFill 是输入框的底色。
 func fieldFill(t *gui.Theme) gui.Color { return colorField.in(t) }
+
+// appearanceLook 是「设置 › 外观」里会真正影响渲染的几项，由本地偏好算出。
+type appearanceLook struct {
+	// font 是界面字体族；空 = 系统 UI 字体栈。
+	font string
+	// scale 是界面字号倍率；0 或 1 = 平台默认。
+	scale float32
+}
+
+// themeFor 在 theme 之上套「设置 › 外观」的本地偏好：界面字体与界面字号。
+// 字号改在主题的 FontSize 上——所有字级都按它等比缩放（textScale）。
+func themeFor(dark bool, prefs gui.Preferences, look appearanceLook) *gui.Theme {
+	t := theme(dark, prefs)
+	if name := strings.TrimSpace(look.font); name != "" {
+		t.Font = name
+	}
+	if look.scale > 0 && look.scale != 1 {
+		t.FontSize *= look.scale
+	}
+	return t
+}
 
 // theme 把 token 映射到框架主题（U2 §3.4、§8.5）：外观决定用哪一套值；
 // 文本缩放与高对比按框架的同一套做法跟随系统设置。

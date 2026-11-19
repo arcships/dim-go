@@ -17,8 +17,13 @@ type sidebarViewState struct {
 	// collapsed 按工作区标识记折叠态；没有记录时按默认值（内置工作区展开，
 	// 其余收起）。
 	collapsed map[string]bool
-	// pinned 按会话序号记置顶；置顶的会话进「已置顶」，不再重复出现在工作区组里。
-	pinned map[int]bool
+	// pinned 按会话标识（目录里的 id）记置顶；置顶的会话进「已置顶」，不再重复
+	// 出现在工作区组里。按标识而不是行号记：列表按活跃时间重排后行号会换人，
+	// 按行号记会把置顶跟到别的会话上。
+	//
+	// 进程内登记（DEC-18、gaps M-05）：不做服务端事实，也不进本地偏好——重启后
+	// 丢失是已登记的口径，不是漏写。
+	pinned map[string]bool
 	// pinnedGroups 按工作区标识记置顶；置顶的工作区分组排在其余分组之前。
 	// 与 pinned 一样是本地视图状态：没有置顶事实，也不写服务端。
 	pinnedGroups map[string]bool
@@ -146,7 +151,7 @@ func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 	}
 	for _, thread := range all {
 		// 置顶的会话在「已置顶」里，不算进目录组的会话数。
-		if a.sidebarView.pinned[thread.index] {
+		if a.threadPinned(thread) {
 			continue
 		}
 		if cleanGroupPath(thread.cwd) == "" {
@@ -370,7 +375,7 @@ func (a *App) sidebarThreads() []sidebarThread {
 func (a *App) unpinnedThreads(all []sidebarThread) []sidebarThread {
 	out := make([]sidebarThread, 0, len(all))
 	for _, thread := range all {
-		if a.sidebarView.pinned[thread.index] {
+		if a.threadPinned(thread) {
 			continue
 		}
 		out = append(out, thread)
@@ -405,23 +410,37 @@ func (a *App) sidebarGroupThreads(ws sidebarWorkspace, all []sidebarThread) []si
 func (a *App) sidebarPinnedThreads(all []sidebarThread) []sidebarThread {
 	out := make([]sidebarThread, 0, len(all))
 	for _, thread := range all {
-		if a.sidebarView.pinned[thread.index] {
+		if a.threadPinned(thread) {
 			out = append(out, thread)
 		}
 	}
 	return out
 }
 
-// togglePin 置顶 / 取消置顶一条会话（视图状态，不改会话本身）。
+// threadPinned 报告一条会话行是否置顶：换行号找会话标识，不按行号记。
+func (a *App) threadPinned(thread sidebarThread) bool {
+	id := a.sessionIDAt(thread.index)
+	return id != "" && a.sidebarView.pinned[id]
+}
+
+// togglePin 置顶 / 取消置顶一条会话（视图状态，不改会话本身）。它按会话标识
+// 记，重排后仍指同一条会话；没有标识（目录越界）时不动状态。
 func (a *App) togglePin(index int) {
-	if a.sidebarView.pinned == nil {
-		a.sidebarView.pinned = map[int]bool{}
+	id := a.sessionIDAt(index)
+	if id == "" {
+		return
 	}
-	a.sidebarView.pinned[index] = !a.sidebarView.pinned[index]
+	if a.sidebarView.pinned == nil {
+		a.sidebarView.pinned = map[string]bool{}
+	}
+	a.sidebarView.pinned[id] = !a.sidebarView.pinned[id]
 }
 
 // pinned 报告一条会话是否置顶。
-func (a *App) pinned(index int) bool { return a.sidebarView.pinned[index] }
+func (a *App) pinned(index int) bool {
+	id := a.sessionIDAt(index)
+	return id != "" && a.sidebarView.pinned[id]
+}
 
 // groupMenuPtr 取某个工作区行末菜单的开合指针（按需创建并缓存：每次返回新指针
 // 的话，框架把开关写进去后看不到）。

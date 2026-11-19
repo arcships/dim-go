@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -263,6 +264,50 @@ func screenButton(c *gui.Context, text, label, tip string, primary bool, height 
 	return b.Clicked()
 }
 
+// screenTextButtonDisabled 是一个置灰的文字按钮（描边态）：形态与 screenButton
+// 一致，点击无效，原因进 tooltip。用于"读不到设置但形态要留"的地方。
+func screenTextButtonDisabled(c *gui.Context, text, tip string, height float32) {
+	t := c.Theme()
+	if height == 0 {
+		height = screenControlH
+	}
+	b := gui.ButtonBase(c).Shrink(0).Height(height).Padding(controlPadV, controlPadH).
+		Radius(screenRadiusCtl).Background(t.Background).Label(text).Tooltip(tip).
+		Disabled(true).Opacity(noteDisabledAlpha)
+	b.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	b.Children(func() {
+		screenValueStyle.style(t, gui.Text(c, text)).TextColor(t.Text).SingleLine()
+	})
+}
+
+// screenActionDisabled 是「图标 + 文字」描边按钮的禁用态（重启 App）：disabled
+// 为假时退回可点的 screenAction。
+func screenActionDisabled(c *gui.Context, icon *gui.SVG, mark, text string,
+	height float32, disabled bool, tip string) {
+	if !disabled {
+		screenAction(c, icon, mark, text, height)
+		return
+	}
+	t := c.Theme()
+	if height == 0 {
+		height = screenControlH
+	}
+	b := gui.ButtonBase(c).Shrink(0).Height(height).Padding(controlPadV, controlPadH).
+		Radius(screenRadiusCtl).Background(t.Background).Label(text).Tooltip(tip).
+		Disabled(true).Opacity(noteDisabledAlpha)
+	b.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	b.Children(func() {
+		gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
+			screenIcon(c, icon, screenIconInline, t.Text, mark)
+			screenValueStyle.style(t, gui.Text(c, text)).TextColor(t.Text).SingleLine()
+		})
+	})
+}
+
 // screenAction 是「图标 + 文字」的描边按钮。
 func screenAction(c *gui.Context, icon *gui.SVG, mark, text string, height float32) bool {
 	t := c.Theme()
@@ -376,7 +421,6 @@ var (
 	appearanceUIFonts    = []string{"默认", "PingFang SC", "Helvetica Neue", "Noto Sans SC"}
 	appearanceCodeFonts  = []string{"默认", "SF Mono", "Menlo", "JetBrains Mono"}
 	appearanceCodeThemes = []string{"GitHub", "One Dark Pro", "Solarized Light", "Vitesse Dark"}
-	appearanceSizeSteps  = []string{"特小", "小", "中", "大", "特大"}
 	appearanceSkins      = []string{"Windows 98", "Windows XP", "Windows Vista", "macOS Big Sur", "OS X Tiger"}
 	appearanceFits       = []string{"适应", "填充", "拉伸", "平铺"}
 	appearancePlacements = []string{"左上", "上", "右上", "左", "中", "右", "左下", "下", "右下"}
@@ -384,17 +428,11 @@ var (
 	appearanceTextInks   = []string{"自动", "浅色文字", "深色文字"}
 )
 
-// appearanceState 是本屏可丢的界面状态：选中项、对话框与折叠。不是事实。
+// appearanceState 是本屏可丢的界面状态：皮肤草稿、对话框与折叠。不是事实。
 //
-// 主题不在其中：主题卡的选中态读 App 的 themePref（真正决定配色的那个值）。
+// 主题、界面字体与字号、代码字体与字号、代码配色都不在其中：它们读 App 的
+// themePref / appearance（会真正影响渲染、也会落盘的本地偏好）。
 type appearanceState struct {
-	language  string
-	uiFont    string
-	codeFont  string
-	uiSize    int
-	codeSize  float64
-	codeTheme string
-
 	skin        string
 	skinImage   bool
 	skinOpacity float64
@@ -411,12 +449,6 @@ type appearanceState struct {
 }
 
 var appearanceScreen = appearanceState{
-	language:    "简体中文",
-	uiFont:      "默认",
-	codeFont:    "默认",
-	uiSize:      2, // 中
-	codeSize:    12,
-	codeTheme:   "GitHub",
 	skin:        "", // 空 = 内置「默认」外观卡被选中
 	skinOpacity: 60,
 }
@@ -428,11 +460,11 @@ func renderAppearance(c *gui.Context, a *App) {
 			gui.Column(c).Gap(screenSpace5).Children(func() {
 				screenTitle(c, "外观")
 				appearanceThemeSection(c, a)
-				appearanceLanguageSection(c)
-				appearanceFontSection(c)
-				appearanceSizeSection(c)
-				appearanceCodeThemeSection(c)
-				appearanceSkinSection(c)
+				appearanceLanguageSection(c, a.wired())
+				appearanceFontSection(c, a)
+				appearanceSizeSection(c, a)
+				appearanceCodeThemeSection(c, a)
+				appearanceSkinSection(c, a.wired())
 				appearanceActiveSkin(c)
 			})
 		})
@@ -533,66 +565,256 @@ func appearanceThemeCard(c *gui.Context, index int, name string, icon *gui.SVG,
 }
 
 // appearanceLanguageSection 是程序语言段（S-appearance-09–11）。
-func appearanceLanguageSection(c *gui.Context) {
+// appearanceLanguageSection 是程序语言段（S-appearance-09–11）。
+//
+// 语言是一个"生效不了"的本地偏好：界面文案只有简体中文一套，没有 i18n 层。所以
+// 连着 Source 时下拉照画但置灰，原因写在下面；-demo 里照参考可点（样例不改任何
+// 文字，只是形态）。
+func appearanceLanguageSection(c *gui.Context, live bool) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 		screenLabel(c, "程序语言")
 		gui.Row(c).Children(func() {
-			gui.Select(c, &appearanceScreen.language, appearanceLanguages).
+			sel := gui.Select(c, &appearanceLanguage, appearanceLanguages).
 				Width(screenLangW).Height(screenControlH).
 				Background(t.Background).Label("程序语言")
+			if live {
+				sel = sel.Disabled(true).Tooltip(noteAppearanceLanguage).
+					Opacity(noteDisabledAlpha)
+			}
 			gui.Spacer(c)
 		})
+		if live {
+			typeMicro.style(t, gui.Text(c, noteAppearanceLanguage)).
+				TextColor(t.TextMuted).Selectable()
+		}
 	})
 	screenRule(c)
 }
 
+// appearanceLanguage 是语言下拉的取值：只有简体中文，且它不落盘（没有生效路径）。
+var appearanceLanguage = appearanceLanguages[0]
+
 // appearanceFontSection 是字体段（S-appearance-12–28）。
-func appearanceFontSection(c *gui.Context) {
+//
+// 两项都是能真正生效的本地偏好：UI 字体写进主题的 Font，代码字体写进代码字级的
+// 字体栈（见 tokens.go 的 codeFamilyFor），重启按落盘的值恢复。
+func appearanceFontSection(c *gui.Context, a *App) {
+	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 		screenLabel(c, "字体")
-		appearanceFontRow(c, "UI 字体", "用于应用界面和 Markdown 正文",
-			&appearanceScreen.uiFont, appearanceUIFonts)
-		appearanceFontRow(c, "代码字体", "用于终端、代码块和差异内容",
-			&appearanceScreen.codeFont, appearanceCodeFonts)
+		appearanceFontRow(c, t, "UI 字体", "用于应用界面和 Markdown 正文",
+			appearanceUIFonts, a.appearance.UIFont, false, func(name string) {
+				a.appearance.UIFont = name
+				a.persistPreferences()
+			})
+		appearanceFontRow(c, t, "代码字体", "用于终端、代码块和差异内容",
+			appearanceCodeFonts, a.appearance.CodeFont, true, func(name string) {
+				a.appearance.CodeFont = name
+				a.persistPreferences()
+			})
 	})
 	screenRule(c)
 }
 
 // appearanceFontRow 是一行字体选择：左侧标签 + 说明，右侧下拉（224×32）。
-func appearanceFontRow(c *gui.Context, label, hint string, value *string, options []string) {
-	t := c.Theme()
+//
+// 本机没有装这个字体时，弹层里该项置灰并写原因（noteFontMissing）——选了也不会
+// 生效，所以不让选。默认项恒可用（系统字体栈）。
+func appearanceFontRow(c *gui.Context, t *gui.Theme, label, hint string,
+	names []string, current string, monospaced bool, apply func(string)) {
+	options := appearanceFontChoices(names, monospaced, current)
+	index := appearanceChoiceIndex(options, current)
 	gui.Row(c).AlignItems(gui.Center).Gap(screenSpace4).Children(func() {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(screenSpace05).Children(func() {
 			screenLabel(c, label)
 			screenHint(c, hint)
+			// 只有"当前选中的这个字体本机没有"才在行下写原因：这一行说的是现状，
+			// 不是弹层里每一选项的说明。
+			if !options[index].usable {
+				typeMicro.style(t, gui.Text(c, options[index].reason)).
+					TextColor(t.TextMuted).Selectable()
+			}
 		})
-		gui.Select(c, value, options).Width(screenFontSelW).Height(screenControlH).
-			Background(t.Background).Label(label)
+		if next, changed := appearanceOptionSelect(c, label, options, index,
+			screenFontSelW); changed && apply != nil {
+			apply(next)
+		}
 	})
+}
+
+// appearanceFontChoice 是一个字体选项：显示名、偏好里存的值、能不能选、为什么。
+type appearanceFontChoice struct {
+	label  string
+	value  string
+	usable bool
+	reason string
+}
+
+// appearanceFontChoices 把字体名清单换成选项：默认项（系统字体栈）永远可用；其余
+// 按本机字体清单判可用性，清单为空（平台不报字体）时按可用处理。
+func appearanceFontChoices(names []string, monospaced bool, current string) []appearanceFontChoice {
+	out := make([]appearanceFontChoice, 0, len(names))
+	for i, name := range names {
+		choice := appearanceFontChoice{label: name}
+		if i > 0 {
+			choice.value = name
+		}
+		choice.usable, choice.reason = appearanceFontUsable(name, monospaced)
+		out = append(out, choice)
+	}
+	// 偏好里的字体不在清单里（旧版本写的、或本机卸掉了）：补一项当前值，
+	// 否则下拉会显示成"默认"。
+	if current != "" {
+		found := false
+		for _, choice := range out {
+			if strings.EqualFold(choice.value, current) {
+				found = true
+			}
+		}
+		if !found {
+			usable, reason := appearanceFontUsable(current, monospaced)
+			out = append(out, appearanceFontChoice{label: current, value: current,
+				usable: usable, reason: reason})
+		}
+	}
+	return out
+}
+
+// systemFontFamilies 是本机字体清单；测试里可替换成固定清单。
+var systemFontFamilies = gui.FontFamilies
+
+// appearanceFontUsable 判一个字体名在本机能不能用：默认项恒可用；本机清单里没有
+// 就不可用；平台不报字体（清单为空）时不判，按可用处理，免得全禁。
+func appearanceFontUsable(name string, monospaced bool) (bool, string) {
+	if name == "" || name == appearanceFontDefault {
+		return true, ""
+	}
+	families := systemFontFamilies()
+	if len(families) == 0 {
+		return true, ""
+	}
+	for _, family := range families {
+		if !strings.EqualFold(family.Name, name) {
+			continue
+		}
+		if monospaced && !family.Monospaced {
+			return false, noteFontNotMonospaced
+		}
+		return true, ""
+	}
+	return false, noteFontMissing
+}
+
+// appearanceFontDefault 是字体清单里"系统字体栈"那一项的名字。
+const appearanceFontDefault = "默认"
+
+// appearanceChoiceIndex 是当前取值对应的选项序号：按值（不含显示名）匹配，
+// 认不出来按第一项（默认）。
+func appearanceChoiceIndex(options []appearanceFontChoice, current string) int {
+	for i, option := range options {
+		if option.value == current {
+			return i
+		}
+	}
+	return 0
+}
+
+// appearanceOptionSelect 是一个"取值 + 弹层"下拉：current 是当前取值的序号，
+// 不可用的选项在弹层里置灰并写原因。返回新取值与是否真的变了。
+func appearanceOptionSelect(c *gui.Context, label string,
+	options []appearanceFontChoice, current int, width float32) (string, bool) {
+	t := c.Theme()
+	if current < 0 || current >= len(options) {
+		current = 0
+	}
+	selected := current
+	parts := gui.SelectBase[int](c, &selected)
+	trigger := parts.Trigger.Shrink(0).Width(width).Height(screenControlH).
+		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
+		Background(t.Background).Justify(gui.SpaceBetween).Label(label)
+	if !options[selected].usable {
+		trigger = trigger.Tooltip(options[selected].reason).Opacity(noteDisabledAlpha)
+	}
+	trigger.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	trigger.Children(func() {
+		screenValueStyle.style(t, gui.Text(c, options[selected].label)).
+			TextColor(t.Text).SingleLine()
+		screenIcon(c, screenIconChevronDown, screenIconMicro, t.TextMuted, "chevron-down")
+	})
+	parts.Popup(func(panel gui.Element) {
+		panel.Padding(screenSpace1).Radius(screenRadiusCard).Background(t.Background)
+		panel.Draw(func(p *gui.Painter, r gui.Rect) {
+			p.Stroke(r, t.Border, screenRadiusCard, screenStroke)
+		})
+		for i, option := range options {
+			item := parts.Item(i).Padding(screenSpace15, screenSpace25).
+				Radius(screenRadiusCtl).Label(option.label)
+			color := t.Text
+			switch {
+			case !option.usable:
+				item = item.Disabled(true).Opacity(noteDisabledAlpha).Tooltip(option.reason)
+				color = t.TextMuted
+			case item.Highlighted():
+				item = item.Background(t.Accent)
+				color = t.AccentText
+			case i == selected:
+				item = item.Background(t.Surface)
+			}
+			item.Children(func() {
+				gui.Column(c).Grow(1).Children(func() {
+					screenValueStyle.style(t, gui.Text(c, option.label)).TextColor(color).
+						SingleLine()
+					if !option.usable {
+						typeMicro.style(t, gui.Text(c, option.reason)).TextColor(t.TextMuted).
+							SingleLine()
+					}
+				})
+			})
+		}
+	})
+	if selected != current && selected >= 0 && selected < len(options) &&
+		options[selected].usable {
+		return options[selected].value, true
+	}
+	return "", false
 }
 
 // appearanceSizeSection 是字号段（S-appearance-29–42）：UI 字号五档分段 +
 // 代码字号滑块（12–20px，步长 1）。
-func appearanceSizeSection(c *gui.Context) {
+//
+// 两项都真的生效：UI 字号写成主题的字号倍率（所有字级等比放大），代码字号写成
+// 代码字级的倍率（见 tokens.go）。改完落盘，重启按上次的档恢复。
+func appearanceSizeSection(c *gui.Context, a *App) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(screenSpace35).Children(func() {
 		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace25).Children(func() {
 			screenLabel(c, "UI 字号")
 			gui.Spacer(c)
 			screenTick(c, "小")
-			appearanceSizeSegments(c)
+			if next, changed := appearanceSizeSegments(c,
+				appearanceUISizeIndex(a.appearance.UIScale)); changed {
+				a.appearance.UIScale = appearanceUISizes[next].scale
+				a.persistPreferences()
+			}
 			screenTick(c, "大")
 		})
 		gui.Column(c).Shrink(0).Gap(screenSpace15).Children(func() {
+			size := float64(appearanceCodeSize(a.appearance.CodeSize))
 			gui.Row(c).AlignItems(gui.Center).Children(func() {
 				screenLabel(c, "代码字号")
 				gui.Spacer(c)
-				screenValueStyle.style(t, gui.Text(c, appearanceCodeSizeLabel())).
+				screenValueStyle.style(t, gui.Text(c, appearanceCodeSizeLabel(size))).
 					TextColor(t.Text).Label("代码字号当前值")
 			})
-			gui.Slider(c, &appearanceScreen.codeSize, 12, 20).Step(1).
+			gui.Slider(c, &size, appearanceCodeSizeMin, appearanceCodeSizeMax).Step(1).
 				Label("代码字号").Grow(1)
+			if float32(size) != appearanceCodeSize(a.appearance.CodeSize) {
+				a.appearance.CodeSize = float32(size)
+				a.persistPreferences()
+			}
 			gui.Row(c).Children(func() {
 				screenTick(c, "12px")
 				gui.Spacer(c)
@@ -605,36 +827,87 @@ func appearanceSizeSection(c *gui.Context) {
 	screenRule(c)
 }
 
+// appearanceUISizes 是 UI 字号的五档：显示名与字号倍率（参考的五档）。
+var appearanceUISizes = []struct {
+	name  string
+	scale float32
+}{
+	{"特小", 0.85},
+	{"小", 0.93},
+	{"中", 1},
+	{"大", 1.08},
+	{"特大", 1.16},
+}
+
+// appearanceUISizeIndex 把偏好里的倍率换成档位序号；认不出来按「中」。
+func appearanceUISizeIndex(scale float32) int {
+	if scale <= 0 {
+		return 2
+	}
+	best := 2
+	bestDiff := float32(1)
+	for i, size := range appearanceUISizes {
+		diff := size.scale - scale
+		if diff < 0 {
+			diff = -diff
+		}
+		if diff < bestDiff {
+			best, bestDiff = i, diff
+		}
+	}
+	return best
+}
+
+// 代码字号的可用区间与默认档：与参考的滑块（12–20）一致，默认 13。
+const (
+	appearanceCodeSizeMin = 12
+	appearanceCodeSizeMax = 20
+)
+
+// appearanceCodeSize 是偏好里的代码字号；0 表示默认档（13）。
+func appearanceCodeSize(size float32) float32 {
+	if size < appearanceCodeSizeMin || size > appearanceCodeSizeMax {
+		return defaultCodeSize
+	}
+	return size
+}
+
 // appearanceCodeSizeLabel 是代码字号的读数（如「12px」，带单位）。
-func appearanceCodeSizeLabel() string {
-	return strconv.Itoa(int(appearanceScreen.codeSize+0.5)) + "px"
+func appearanceCodeSizeLabel(size float64) string {
+	return strconv.Itoa(int(size+0.5)) + "px"
 }
 
 // appearanceSizeSegments 是 UI 字号的五档分段：选中段主色底、反白字。
-func appearanceSizeSegments(c *gui.Context) {
+// 返回选中的档位与是否变了（变了由调用处写进本地偏好）。
+func appearanceSizeSegments(c *gui.Context, selected int) (int, bool) {
 	t := c.Theme()
-	parts := gui.SegmentedBase(c, &appearanceScreen.uiSize, len(appearanceSizeSteps))
+	if selected < 0 || selected >= len(appearanceUISizes) {
+		selected = 2
+	}
+	value := selected
+	parts := gui.SegmentedBase(c, &value, len(appearanceUISizes))
 	track := parts.Track.AlignItems(gui.Stretch).Gap(screenStroke).
 		Radius(screenRadiusCtl).Background(t.Border).Padding(screenStroke).
 		Label("UI 字号")
 	track.Children(func() {
-		for i, label := range appearanceSizeSteps {
+		for i, size := range appearanceUISizes {
 			seg := parts.Segment(i).Center().Height(screenSegHSm).
 				Padding(0, screenSpace25).Radius(screenRadiusCtl).
-				Background(t.Background).Label(label)
-			if i == appearanceScreen.uiSize {
+				Background(t.Background).Label(size.name)
+			if i == selected {
 				seg = seg.Background(t.Accent)
 			}
 			seg.Children(func() {
 				color, weight := t.Text, 500
-				if i == appearanceScreen.uiSize {
+				if i == selected {
 					color, weight = t.AccentText, 600
 				}
-				gui.Text(c, label).FontSize(screenValueStyle.sizeIn(t)).
+				gui.Text(c, size.name).FontSize(screenValueStyle.sizeIn(t)).
 					FontWeight(weight).TextColor(color).SingleLine()
 			})
 		}
 	})
+	return value, value != selected
 }
 
 // ---- 代码主题 ----
@@ -661,18 +934,31 @@ var appearanceCodeSample = [][]appearanceCodeToken{
 }
 
 // appearanceCodeThemeSection 是代码主题段（S-appearance-43–49）：下拉 + 预览。
-func appearanceCodeThemeSection(c *gui.Context) {
-	t := c.Theme()
+//
+// 代码主题真的生效：它决定 markdown 里行内代码与代码块的文字色、底色与边线
+// （见 markdown.go 的 codeThemePalette），也落盘、重启恢复。默认那一套直接用主题
+// token，另外三套是编辑器公开的配色值。
+func appearanceCodeThemeSection(c *gui.Context, a *App) {
+	options := make([]appearanceFontChoice, 0, len(appearanceCodeThemes))
+	for _, name := range appearanceCodeThemes {
+		options = append(options, appearanceFontChoice{label: name, value: name, usable: true})
+	}
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 		screenLabel(c, "代码主题")
-		gui.Row(c).Children(func() {
-			gui.Select(c, &appearanceScreen.codeTheme, appearanceCodeThemes).
-				Grow(1).Height(screenControlH).Background(t.Background).Label("代码主题")
+		gui.Row(c).Grow(1).Children(func() {
+			if next, changed := appearanceOptionSelect(c, "代码主题", options,
+				appearanceChoiceIndex(options, a.appearance.CodeTheme), appearanceCodeThemeW); changed {
+				a.appearance.CodeTheme = next
+				a.persistPreferences()
+			}
 		})
 		appearanceCodePreview(c)
 	})
 	screenRule(c)
 }
+
+// appearanceCodeThemeW 是代码主题下拉的宽（与预览同宽）。
+const appearanceCodeThemeW = 280
 
 // appearanceCodePreview 是代码主题预览：左浅右深两块，各五行代码。
 func appearanceCodePreview(c *gui.Context) {
@@ -734,9 +1020,13 @@ func appearanceCodeColor(kind int, dark bool) gui.Color {
 // ---- 我的皮肤 ----
 
 // appearanceSkinSection 是 4.3 我的皮肤（S-appearance-50–74）。
-func appearanceSkinSection(c *gui.Context) {
+func appearanceSkinSection(c *gui.Context, live bool) {
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 		screenLabel(c, "我的皮肤")
+		if live {
+			typeMicro.style(c.Theme(), gui.Text(c, noteSkinMissing)).
+				TextColor(c.Theme().TextMuted).Selectable()
+		}
 		gui.Row(c).Wrap().MaxWidth(screenGridW).
 			GapX(screenCardGap).GapY(screenCardGap).
 			Label("我的皮肤").Children(func() {
@@ -744,24 +1034,23 @@ func appearanceSkinSection(c *gui.Context) {
 				if appearanceScreen.deleted[name] {
 					continue
 				}
-				appearanceSkinCard(c, name)
+				appearanceSkinCard(c, name, live)
 			}
-			appearanceDefaultSkinCard(c)
+			appearanceDefaultSkinCard(c, live)
 		})
 		screenHint(c, "暂无自定义皮肤。可用图片新建或导入已有皮肤。")
 		gui.Row(c).Gap(screenSpace2).Children(func() {
-			if screenAction(c, iconPlus, "plus", "用图片新建", screenControlH) {
-				// 打开图片选择器需要宿主能力（未接动作）：按钮照渲染。
-			}
-			if screenAction(c, screenIconFolderOpen, "folder-open", "打开目录", screenControlH) {
-				// 打开皮肤目录需要宿主能力（未接动作）。
-			}
+			// 皮肤渲染、图片选择与打开目录都没有通道：形态照留，连着 Source 时置灰。
+			screenActionDisabled(c, iconPlus, "plus", "用图片新建", screenControlH, live,
+				noteSkinMissing)
+			screenActionDisabled(c, screenIconFolderOpen, "folder-open", "打开目录",
+				screenControlH, live, noteSkinMissing)
 		})
 	})
 }
 
 // appearanceSkinCard 是一张皮肤卡（240×98）：缩略图在上、名称在下、角标在右上。
-func appearanceSkinCard(c *gui.Context, name string) {
+func appearanceSkinCard(c *gui.Context, name string, live bool) {
 	t := c.Theme()
 	selected := appearanceScreen.skin == name
 	frame := t.Border
@@ -771,7 +1060,7 @@ func appearanceSkinCard(c *gui.Context, name string) {
 	card := gui.ButtonBase(c).Shrink(0).Width(screenSkinCardW).Height(screenSkinCardH).
 		Radius(screenRadiusCard).Background(t.Surface).Padding(screenStroke).
 		AlignItems(gui.Stretch).Label("皮肤：" + name).Tooltip(name).
-		Role(gui.RoleRadio).AccessSelected(selected)
+		Role(gui.RoleRadio).AccessSelected(selected).Disabled(live).Opacity(skinAlpha(live))
 	if !selected {
 		switch {
 		case card.Pressed():
@@ -783,7 +1072,7 @@ func appearanceSkinCard(c *gui.Context, name string) {
 	card.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, frame, screenRadiusCard, screenStroke)
 	})
-	if card.Clicked() {
+	if card.Clicked() && !live {
 		appearanceScreen.skin = name
 	}
 	card.Children(func() {
@@ -806,6 +1095,14 @@ func appearanceSkinCard(c *gui.Context, name string) {
 			}
 		})
 	})
+}
+
+// skinAlpha 是皮肤卡的透明度：连着 Source 时置灰（没有皮肤渲染器，选了不生效）。
+func skinAlpha(live bool) float32 {
+	if live {
+		return noteDisabledAlpha
+	}
+	return 1
 }
 
 // appearanceSkinThumb 是按皮肤配色画的窗口示意（没有缩略图资产）。
@@ -857,7 +1154,7 @@ func appearanceSkinColors(name string, t *gui.Theme) (title, body, ink gui.Color
 }
 
 // appearanceDefaultSkinCard 是网格末尾的内置外观卡「默认」：X 图标 + 文字。
-func appearanceDefaultSkinCard(c *gui.Context) {
+func appearanceDefaultSkinCard(c *gui.Context, live bool) {
 	t := c.Theme()
 	selected := appearanceScreen.skin == ""
 	frame := t.Border
@@ -867,7 +1164,7 @@ func appearanceDefaultSkinCard(c *gui.Context) {
 	card := gui.ButtonBase(c).Shrink(0).Width(screenSkinCardW).Height(screenSkinCardH).
 		Radius(screenRadiusCard).Background(t.Surface).Padding(screenStroke).
 		AlignItems(gui.Stretch).Label("皮肤：默认").Tooltip("默认").
-		Role(gui.RoleRadio).AccessSelected(selected)
+		Role(gui.RoleRadio).AccessSelected(selected).Disabled(live).Opacity(skinAlpha(live))
 	if !selected {
 		switch {
 		case card.Pressed():
@@ -879,7 +1176,7 @@ func appearanceDefaultSkinCard(c *gui.Context) {
 	card.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, frame, screenRadiusCard, screenStroke)
 	})
-	if card.Clicked() {
+	if card.Clicked() && !live {
 		appearanceScreen.skin = ""
 	}
 	card.Children(func() {

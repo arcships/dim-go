@@ -779,6 +779,13 @@ func (w *App) Preferences() ui.PreferencesSnapshot {
 	return ui.PreferencesSnapshot{
 		Theme: prefs.Theme, MotionOff: prefs.MotionOff,
 		TimeZone: prefs.TimeZone, SidebarWidth: prefs.SidebarWidth,
+		Appearance: ui.AppearancePreferences{
+			UIFont:    prefs.Appearance.UIFont,
+			CodeFont:  prefs.Appearance.CodeFont,
+			UIScale:   prefs.Appearance.UIScale,
+			CodeSize:  prefs.Appearance.CodeSize,
+			CodeTheme: prefs.Appearance.CodeTheme,
+		},
 		Workspaces:          append([]string(nil), prefs.Workspaces...),
 		HooksProjectPath:    prefs.HooksProjectPath,
 		UpdateFeedURL:       prefs.UpdateFeedURL,
@@ -823,6 +830,13 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 	current.MotionOff = prefs.MotionOff
 	current.TimeZone = prefs.TimeZone
 	current.SidebarWidth = prefs.SidebarWidth
+	current.Appearance = app.AppearancePreferences{
+		UIFont:    prefs.Appearance.UIFont,
+		CodeFont:  prefs.Appearance.CodeFont,
+		UIScale:   prefs.Appearance.UIScale,
+		CodeSize:  prefs.Appearance.CodeSize,
+		CodeTheme: prefs.Appearance.CodeTheme,
+	}
 	current.Workspaces = append([]string(nil), prefs.Workspaces...)
 	current.HooksProjectPath = prefs.HooksProjectPath
 	// UpdateFeedURL 只走 SetUpdateFeed：通用的偏好落盘（主题、侧栏宽度等）不带

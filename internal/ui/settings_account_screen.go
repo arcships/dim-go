@@ -561,7 +561,7 @@ func accountUIDRow(c *gui.Context, uid string) {
 		accFieldFrame(c, gui.Box(c).Shrink(0).
 			Padding(accSpaceHalf, accSpace15).Radius(accChipRadius)).
 			Children(func() {
-				gui.Text(c, uid).Font(codeFont).FontSize(typeCode.sizeIn(t)).
+				gui.Text(c, uid).Font(codeFamily()).FontSize(typeCode.sizeIn(t)).
 					TextColor(t.Text).SingleLine()
 			})
 		if accIconButton(c, accIconSpec{
@@ -1188,7 +1188,7 @@ func accountCopyField(c *gui.Context, label, value string, strong bool) {
 			Gap(space2).Padding(accSpace15, accSpace15)).
 			PaddingStart(space3).Selectable()
 		row.Children(func() {
-			code := gui.Text(c, value).Font(codeFont).FontSize(typeCode.sizeIn(t)).
+			code := gui.Text(c, value).Font(codeFamily()).FontSize(typeCode.sizeIn(t)).
 				TextColor(t.Text).SingleLine().Grow(1)
 			if strong {
 				code = code.FontWeight(600)

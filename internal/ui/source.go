@@ -213,6 +213,23 @@ type PreferencesSnapshot struct {
 	// View 是跨重启要记住的视图状态：左栏收起、视图口径、分组折叠、右栏开合与
 	// 标签页、两层筛选。它不是事实，重启后按上次的样子渲染。
 	View ViewPreferencesSnapshot
+	// Appearance 是「设置 › 外观」里会真正影响渲染的几项（界面字体与字号、代码
+	// 字体与字号、代码配色）。它也是本地偏好，不是服务端事实。
+	Appearance AppearancePreferences
+}
+
+// AppearancePreferences 是「设置 › 外观」里会真正影响渲染的本地偏好：读它改
+// 渲染，改它落盘。空串 / 0 表示用默认档。
+//
+// 语言、皮肤、代码配色里除默认之外的主题本版没有实现，因此不在这里：那几项在
+// 屏上是禁用 + 原因（见 unavailable.go），不写一个永远不会生效的值。
+type AppearancePreferences struct {
+	UIFont   string  // 界面字体族；空 = 系统 UI 字体栈
+	CodeFont string  // 代码字体族；空 = 系统等宽
+	UIScale  float32 // 界面字号倍率；0 = 平台默认
+	CodeSize float32 // 代码字号（DIP）；0 = 13
+	// CodeTheme 是代码配色名："" 或 "GitHub" 是内置的一套，其余见 codeThemePalette。
+	CodeTheme string
 }
 
 // ViewPreferencesSnapshot 是一组可丢但要跨重启记住的视图选择。

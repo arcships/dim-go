@@ -51,9 +51,10 @@ import (
 //	界面模式切换、展示 ACP 会话、默认打开目标应用、子代理模型与上限、
 //	命令 Shell 刷新、打开或创建 AGENTS.md。
 //
-// 连着 Source 时这些入口一律置灰并把原因写在组下（notePersonalizationWrite）：
-// 拨得动却不落盘的开关等于一个假的现状。-demo 里照参考渲染，控件可点，只改
-// 屏内状态。
+// 连着 Source 时参考图里的控件形态照留（模式卡、ACP 开关、各下拉、刷新、
+// 「打开或创建文件」），但一律置灰，原因写在 tooltip 与组下
+// （notePersonalizationWrite）：拨得动却不落盘等于一个假的现状。-demo 里照参考
+// 渲染，控件可点，只改屏内状态。
 func renderSettingsPersonalizationScreen(c *gui.Context, a *App) {
 	t := c.Theme()
 	// live 表示连着 Source：这一屏没有任何一项的读写通道，所以能点的控件全部
@@ -134,7 +135,7 @@ func psModeCard(c *gui.Context, t *gui.Theme, mode, label, desc string, live boo
 		BorderWidth(strokeHairline).BorderColor(t.Border).Disabled(live)
 	if live {
 		// 连着 Source：选中态不再是"服务端的口径"，只说明它是本屏的草稿。
-		card = card.Opacity(psAlpha50)
+		card = card.Tooltip(notePersonalizationWrite).Opacity(psAlpha50)
 	}
 	switch {
 	case selected:
@@ -164,11 +165,11 @@ func psShowACPSection(c *gui.Context, t *gui.Theme, live bool) {
 			typeMicro.style(t, gui.Text(c, psCopyShowACPDesc)).TextColor(t.TextMuted)
 			if live {
 				psNoFacts(c, t)
-				return
 			}
 		})
-		if !live {
-			gui.Switch(c, &psUI.showACP).Size(psSwitchW, psSwitchH).Label(psCopyShowACP)
+		sw := gui.Switch(c, &psUI.showACP).Size(psSwitchW, psSwitchH).Label(psCopyShowACP)
+		if live {
+			sw = sw.Disabled(true).Tooltip(notePersonalizationWrite).Opacity(noteDisabledAlpha)
 		}
 	})
 }
@@ -178,8 +179,11 @@ func psShowACPSection(c *gui.Context, t *gui.Theme, live bool) {
 func psDefaultAppSection(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Column(c).Shrink(0).Gap(psGroupGap).Children(func() {
 		psFieldHead(c, t, psCopyDefaultAppTitle, psCopyDefaultAppDesc)
-		gui.Select(c, &psUI.defaultApp, psDefaultAppOptions).
+		sel := gui.Select(c, &psUI.defaultApp, psDefaultAppOptions).
 			Width(psSelectXs).Label(psCopyDefaultAppTitle).Disabled(live)
+		if live {
+			sel = sel.Tooltip(notePersonalizationWrite)
+		}
 		if live {
 			psNoFacts(c, t)
 		}
@@ -217,6 +221,9 @@ func psSubagentModelSection(c *gui.Context, t *gui.Theme, live bool) {
 		trigger := sel.Trigger.Shrink(0).Height(psBtnH).Padding(controlPadV, psPadBtnX).
 			Radius(radius).AlignItems(gui.Center).Label(psCopySubagentTitle).
 			BorderWidth(strokeHairline).BorderColor(t.Border).Disabled(live)
+		if live {
+			trigger = trigger.Tooltip(notePersonalizationWrite).Opacity(psAlpha50)
+		}
 		if trigger.Hovered() {
 			trigger = trigger.Background(t.SurfaceHover)
 		}
@@ -347,7 +354,7 @@ func psCustomInstructionsSection(c *gui.Context, t *gui.Theme, live bool) {
 				Role(gui.RoleGroup).Label(psCopyAgentsPath).
 				BorderWidth(strokeHairline).BorderColor(t.Border)
 			row.Children(func() {
-				gui.Text(c, psCopyAgentsPath).Font(codeFont).
+				gui.Text(c, psCopyAgentsPath).Font(codeFamily()).
 					FontSize(typeCode.sizeIn(t)).TextColor(t.Text).
 					SingleLine().Grow(1).MinWidth(0)
 				// 打开或创建文件：没有打开本地文件的接口（未接动作）。

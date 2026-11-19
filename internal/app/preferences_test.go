@@ -43,6 +43,49 @@ func TestPreferencesRoundTrip(t *testing.T) {
 	}
 }
 
+// TestAppearancePreferencesRoundTrip 外观偏好（界面字体与字号、代码字体与字号、
+// 代码主题）落在 preferences.json 的 appearance.* 下，重建后原样回来，并且越界值
+// 被夹到可用区间。
+func TestAppearancePreferencesRoundTrip(t *testing.T) {
+	dir := t.TempDir()
+	first, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("创建 App：%v", err)
+	}
+	want := AppearancePreferences{
+		UIFont: "PingFang SC", CodeFont: "Menlo", UIScale: 1.08, CodeSize: 18,
+		CodeTheme: "One Dark Pro",
+	}
+	if err := first.UpdatePreferences(Preferences{Appearance: want}); err != nil {
+		t.Fatalf("写入偏好：%v", err)
+	}
+	second, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("重建 App：%v", err)
+	}
+	if got := second.Preferences().Appearance; got != want {
+		t.Fatalf("外观偏好往返不一致：\n got=%+v\nwant=%+v", got, want)
+	}
+
+	// appearance.* 是 preferences.json 里的一节（不是顶层键）。
+	raw, err := os.ReadFile(filepath.Join(dir, "preferences.json"))
+	if err != nil {
+		t.Fatalf("读偏好文件：%v", err)
+	}
+	if !strings.Contains(string(raw), `"appearance"`) ||
+		!strings.Contains(string(raw), `"codeTheme": "One Dark Pro"`) {
+		t.Fatalf("偏好文件里没有 appearance 这一节：\n%s", raw)
+	}
+
+	// 越界值夹回区间：倍率 0.8–1.3、代码字号 10–24。
+	clamped := normalizeAppearancePreferences(AppearancePreferences{
+		UIScale: 4, CodeSize: 99, UIFont: "  Menlo  ",
+	})
+	if clamped.UIScale != 1.3 || clamped.CodeSize != 24 || clamped.UIFont != "Menlo" {
+		t.Fatalf("越界值没有夹回区间：%+v", clamped)
+	}
+}
+
 // TestPreferencesCorruptFallsBack 文件损坏时按默认值启动并记一条诊断。
 func TestPreferencesCorruptFallsBack(t *testing.T) {
 	dir := t.TempDir()

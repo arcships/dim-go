@@ -57,8 +57,9 @@ var generalProxyModes = []struct {
 // renderGeneral 是设置 › 通用这一屏（设置壳的一个分节）。
 //
 // 连着 Source 时这一屏没有可读的事实：唤醒、性能日志、开机自启、数据根目录、
-// 代理、浏览器数据都由桌面自己保管，而服务端不提供这些键。这时不摆开关与输入框
-// （摆一个「开」的开关就是替系统回答一个没人读过的问题），每张卡只写原因；
+// 代理、浏览器数据都由桌面自己保管，而服务端不提供这些键。参考图里的控件形态
+// 照留（开关、输入框、代理三档、两行动作），全部置灰、tooltip 写原因、卡片里
+// 再写一行说明——看得见有什么，拨不动，也不把样例初值当现状。
 // 存储用量是唯一有事实的项，读数取自 Settings().Storage。样例只在 -demo 出现。
 func renderGeneral(c *gui.Context, a *App) {
 	note := ""
@@ -107,7 +108,7 @@ func generalCard(c *gui.Context, body func()) {
 }
 
 // generalSwitchCard 是一张开关卡：左侧标题（+ 说明），右侧 28×16 开关。
-// note 非空时（连着 Source）不画开关，只把原因写在这一行下面。
+// note 非空时（连着 Source）开关照画并置灰，原因进 tooltip 与标题下的说明行。
 func generalSwitchCard(c *gui.Context, label, hint string, on *bool, note string) {
 	generalCard(c, func() {
 		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace4).Children(func() {
@@ -120,9 +121,10 @@ func generalSwitchCard(c *gui.Context, label, hint string, on *bool, note string
 					generalNote(c, note)
 				}
 			})
-			if note == "" {
-				gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
-					Radius(screenSwitchH / 2).Label(label)
+			sw := gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
+				Radius(screenSwitchH / 2).Label(label)
+			if note != "" {
+				sw = sw.Disabled(true).Tooltip(note).Opacity(noteDisabledAlpha)
 			}
 		})
 	})
@@ -144,14 +146,15 @@ func generalRootDirCard(c *gui.Context, note string) {
 		})
 		if note != "" {
 			generalNote(c, note)
-			return
 		}
 		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace2).Children(func() {
-			screenInput(c, &generalScreen.rootDir, "例如 /Users/you/.dimcode", "会话数据根目录").
+			input := screenInput(c, &generalScreen.rootDir, "例如 /Users/you/.dimcode", "会话数据根目录").
 				Grow(1)
-			if screenAction(c, screenIconRefresh, "refresh", "重启 App", screenControlH) {
-				// 重启宿主进程需要宿主能力（未接动作）：按钮照渲染。
+			if note != "" {
+				input = input.Disabled(true).Tooltip(note).Opacity(noteDisabledAlpha)
 			}
+			screenActionDisabled(c, screenIconRefresh, "refresh", "重启 App", screenControlH,
+				note != "", note)
 		})
 	})
 }
@@ -166,9 +169,8 @@ func generalProxyCard(c *gui.Context, note string) {
 		})
 		if note != "" {
 			generalNote(c, note)
-			return
 		}
-		generalProxySegments(c)
+		generalProxySegments(c, note != "", note)
 		if generalScreen.proxyMode == 2 {
 			gui.Column(c).Gap(screenSpace15).Children(func() {
 				screenHint(c, "自定义代理")
@@ -187,12 +189,16 @@ func generalProxyCard(c *gui.Context, note string) {
 }
 
 // generalProxySegments 是代理模式的三档分段：选中档主色描边、白底。
-func generalProxySegments(c *gui.Context) {
+// disabled 为真时三格照画、整块置灰，点击不换档，原因进 tooltip。
+func generalProxySegments(c *gui.Context, disabled bool, note string) {
 	t := c.Theme()
 	parts := gui.SegmentedBase(c, &generalScreen.proxyMode, len(generalProxyModes))
 	track := parts.Track.AlignItems(gui.Stretch).Gap(screenStroke).
 		Radius(screenRadiusCtl).Background(t.Border).Padding(screenStroke).
-		Label("代理模式")
+		Label("代理模式").Tooltip(note).Disabled(disabled)
+	if disabled {
+		track = track.Opacity(noteDisabledAlpha)
+	}
 	track.Children(func() {
 		for i, mode := range generalProxyModes {
 			seg := parts.Segment(i).Grow(1).Height(screenSegHLg).AlignItems(gui.Stretch).
@@ -252,7 +258,7 @@ func generalBrowserRow(c *gui.Context, label, action, tip, disabled string, run 
 		screenStrongStyle.style(t, gui.Text(c, label)).TextColor(t.Text).Label(label)
 		gui.Spacer(c)
 		if disabled != "" {
-			screenButton(c, action, disabled, "", true, rowRegular)
+			screenTextButtonDisabled(c, action, disabled, rowRegular)
 			return
 		}
 		if screenButton(c, action, tip, "", false, rowRegular) {

@@ -5,6 +5,24 @@ import (
 	"github.com/egoist/mygo/ui/markdown"
 )
 
+// codeThemePalette 返回代码配色（文字 / 底 / 边线）。名字认不出来时按默认
+// （GitHub）处理：默认这一套直接用主题 token，不另编颜色。
+func codeThemePalette(name string, t *gui.Theme) (ink, fill, border gui.Color) {
+	switch name {
+	case "One Dark Pro":
+		return gui.Hex("#abb2bf"), gui.Hex("#282c34"), gui.Hex("#3a404b")
+	case "Solarized Light":
+		return gui.Hex("#657b83"), gui.Hex("#fdf6e3"), gui.Hex("#e3dcc6")
+	case "Vitesse Dark":
+		return gui.Hex("#dbd7ca"), gui.Hex("#121212"), gui.Hex("#2a2a2a")
+	}
+	return t.Text, colorSurface.in(t), t.Border
+}
+
+// currentCodeTheme 是本帧的代码配色名：applyTokens 每帧按本地偏好写一次
+// （见 applyCodeLook），markdownTheme 读它。
+var currentCodeTheme string
+
 // markdownTheme 是助手正文的块级样式（C4 §5 的路线：用 mygo 内建 ui/markdown）。
 //
 // 每一项都对着官方示例 markdown-chat.png 量过：示例里 h2 约 18/700、行内代码是
@@ -16,10 +34,13 @@ func markdownTheme(t *gui.Theme) *markdown.Theme {
 	// 颜色取我们的 token（U2 §3）：链接用强调色的文字版，代码块与表头用面层，
 	// 引用竖线用主题边界色（UI-18）。
 	md.Link = colorAccentInk.in(t)
-	md.Code = t.Text
-	md.CodeBackground = colorSurface.in(t)
-	md.CodeBlockBackground = colorSurface.in(t)
-	md.CodeBlockBorder = t.Border
+	// 代码配色取「设置 › 外观 › 代码主题」：默认（GitHub）用主题的面层，其余三套
+	// 是编辑器公开的配色值，只作用于行内代码与代码块。
+	codeInk, codeFill, codeBorder := codeThemePalette(currentCodeTheme, t)
+	md.Code = codeInk
+	md.CodeBackground = codeFill
+	md.CodeBlockBackground = codeFill
+	md.CodeBlockBorder = codeBorder
 	md.CodeBlockRadius = radiusCode
 	md.TableBorder = t.Border
 	md.TableHeader = colorSurface.in(t)

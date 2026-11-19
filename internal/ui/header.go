@@ -136,12 +136,23 @@ func (a *App) chatMenu(c *gui.Context) {
 		panel.MinWidth(composerMenuWidth).Padding(space1).Radius(radiusCard).
 			Background(t.Surface).Border(strokeHairline, t.Border).
 			Shadow(0, 4, 18, 0, colorShadow.in(t))
+		// 置顶：与左栏会话行的「置顶」是同一份视图状态（按会话标识记，置顶的
+		// 会话进左栏「已置顶」）。取不到当前会话时置灰并写原因，不翻一个只让
+		// 菜单文案变、别处看不到的布尔值。
+		pinIndex := a.currentSessionIndex()
+		if pinIndex < 0 && !a.wired() {
+			pinIndex = sessionIndex(a.selectedSession)
+		}
+		pinNote := ""
+		if pinIndex < 0 {
+			pinNote = noteNoSessionID
+		}
 		pinIcon, pinText := iconPin, "置顶"
-		if a.chatPinned {
+		if pinIndex >= 0 && a.pinned(pinIndex) {
 			pinIcon, pinText = iconPinOff, "取消置顶"
 		}
-		if menuItem(c, m, pinIcon, pinText, pinText, "", false, false) {
-			a.chatPinned = !a.chatPinned
+		if menuItem(c, m, pinIcon, pinText, pinText, pinNote, pinIndex < 0, false) {
+			a.togglePin(pinIndex)
 		}
 		// 重命名：落到左栏的行内改名（同一个会话、同一条 RenameSession 写入）。
 		// 只有"取不到会话"才禁用并写真实原因——RenameSession 一直都在。
@@ -162,9 +173,11 @@ func (a *App) chatMenu(c *gui.Context) {
 			a.exportCurrentSession()
 		}
 		// 归档：接上 Intents 时走 ArchiveSession（左栏与命令面板同一落点），
-		// -demo 才写视图回执。
+		// -demo 才写视图回执；连着 Source 却没有写通道时置灰写原因。
 		archiveNote := ""
-		if a.intents != nil && a.currentSessionIndex() < 0 {
+		if a.wired() && a.intents == nil {
+			archiveNote = noteNoWriteChannel
+		} else if a.intents != nil && a.currentSessionIndex() < 0 {
 			archiveNote = noteNoSessionID
 		}
 		if menuItem(c, m, iconArchive, "归档", "归档", archiveNote,
@@ -213,11 +226,15 @@ func (a *App) startHeaderRename() {
 }
 
 // archiveCurrentSession 归档当前会话：接上 Intents 时发 session.archive；样例
-// （没有 Intents）只写视图回执。
+// （没有 Source）只写视图回执。连着 Source 却没有写通道时写原因，不冒充已归档。
 func (a *App) archiveCurrentSession() {
 	index := a.currentSessionIndex()
-	if a.intents == nil {
+	if !a.wired() {
 		a.headerNote = "已归档"
+		return
+	}
+	if a.intents == nil {
+		a.headerNote = noteNoWriteChannel
 		return
 	}
 	if index < 0 && !a.wired() {

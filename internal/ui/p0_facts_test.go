@@ -233,8 +233,9 @@ func TestModalityScreenCapabilityBranches(t *testing.T) {
 	})
 }
 
-// P0-3 / P1-11 设置 › Git 画样例远程与基线分支：没有仓库设置事实就只写原因。
-func TestGitScreenHasNoSampleRemotes(t *testing.T) {
+// P0-3 / P1-11 设置 › Git 画样例远程与基线分支：没有仓库设置事实时，参考里的
+// 控件形态照留但全部置灰，原因写在原因条与 tooltip 上，样例清单不上屏。
+func TestGitScreenKeepsFormWithoutSampleRemotes(t *testing.T) {
 	resetSettingsScreenState()
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
 	tt := openSettingsSection(t, app, secGit)
@@ -248,16 +249,36 @@ func TestGitScreenHasNoSampleRemotes(t *testing.T) {
 			t.Fatalf("连着 Source 仍画了样例 %q：\n%s", sample, text)
 		}
 	}
-	if _, ok := tt.Access("默认远程仓库"); ok {
-		t.Fatalf("连着 Source 仍摆了「默认远程仓库」下拉：\n%s", text)
+	// 形态在：两个下拉都在场，取值位置写"未读取"，整钮置灰、tooltip 写原因。
+	for _, label := range []string{gitCopyRemoteA11y, gitCopyBaseA11y} {
+		info, ok := tt.AccessByRole(gui.RoleButton, label)
+		if !ok {
+			t.Fatalf("连着 Source 时 %q 下拉不见了（形态要留）：\n%s", label, text)
+		}
+		if !info.Disabled || info.Description != noteGitSettings {
+			t.Fatalf("%q 没有置灰或没写原因：%+v", label, info)
+		}
 	}
-	if info, ok := tt.AccessByRole(gui.RoleSwitch, "始终强制推送"); ok {
-		t.Fatalf("连着 Source 仍摆了「始终强制推送」开关：%+v", info)
+	if !tt.HasText(gitCopyUnread) {
+		t.Fatalf("下拉的取值位置没有写「%s」：\n%s", gitCopyUnread, text)
+	}
+	for _, label := range []string{"始终强制推送", "提交后自动推送"} {
+		info, ok := tt.AccessByRole(gui.RoleSwitch, label)
+		if !ok {
+			t.Fatalf("连着 Source 时 %q 开关不见了（形态要留）", label)
+		}
+		if !info.Disabled {
+			t.Fatalf("%q 可以拨（拨了不生效）：%+v", label, info)
+		}
+	}
+	if !tt.HasText("分支前缀") || !tt.HasText("Worktree 根目录") {
+		t.Fatalf("分组标题没有保留：\n%s", text)
 	}
 }
 
-// P0-4 设置 › 宠物画样例 Pet 且 dim-fox 已选中：没有 Pet 事实就只写原因。
-func TestPetsScreenHasNoSamplePets(t *testing.T) {
+// P0-4 设置 › 宠物画样例 Pet 且 dim-fox 已选中：参考里的开关与动作按钮照留、全部
+// 置灰，列表区是写着原因的虚线空态，样例 Pet 不上屏。
+func TestPetsScreenKeepsFormWithoutSamplePets(t *testing.T) {
 	resetSettingsScreenState()
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
 	tt := openSettingsSection(t, app, secPets)
@@ -272,10 +293,23 @@ func TestPetsScreenHasNoSamplePets(t *testing.T) {
 	if _, ok := tt.Find("已选择"); ok {
 		t.Fatalf("连着 Source 仍画了「已选择」：\n%s", text)
 	}
+	if info, ok := tt.AccessByRole(gui.RoleSwitch, petsCopyShown); !ok || !info.Disabled {
+		t.Fatalf("「显示 Pet」开关没有留下或没置灰：%+v（找到 %v）", info, ok)
+	}
+	for _, label := range []string{petsCopyCreate, petsCopyInstall, petsCopyRefresh, petsCopyOpenDir} {
+		info, ok := tt.AccessByRole(gui.RoleButton, label)
+		if !ok || !info.Disabled {
+			t.Fatalf("动作 %q 没有留下或没置灰：%+v（找到 %v）", label, info, ok)
+		}
+	}
+	if !tt.HasText(petsCopyChoose) || !tt.HasText(petsCopyCustom) {
+		t.Fatalf("分组标题没有保留：\n%s", text)
+	}
 }
 
-// P0-5 设置 › 插件设置画样例插件卡与字段：没有插件 schema 就只写原因。
-func TestPluginSettingsScreenHasNoSamplePlugins(t *testing.T) {
+// P0-5 设置 › 插件设置画样例插件卡与字段：卡形与卡底两个按钮照留、置灰，卡内只
+// 写原因，样例插件名不上屏。
+func TestPluginSettingsScreenKeepsFormWithoutSamplePlugins(t *testing.T) {
 	resetSettingsScreenState()
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
 	tt := openSettingsSection(t, app, secPluginSettings)
@@ -287,6 +321,12 @@ func TestPluginSettingsScreenHasNoSamplePlugins(t *testing.T) {
 	for _, sample := range []string{"Model log", "Prompt suggestion", "Max Chars"} {
 		if tt.HasText(sample) {
 			t.Fatalf("连着 Source 仍画了样例 %q：\n%s", sample, text)
+		}
+	}
+	for _, label := range []string{plgCopySave, plgCopyReload} {
+		info, ok := tt.AccessByRole(gui.RoleButton, label)
+		if !ok || !info.Disabled {
+			t.Fatalf("卡底按钮 %q 没有留下或没置灰：%+v（找到 %v）", label, info, ok)
 		}
 	}
 }
@@ -331,9 +371,10 @@ func TestAppearanceThemeCardAppliesAndFollowsPreference(t *testing.T) {
 	}
 }
 
-// P0-9 设置 › 通用的开关只改内存且初值是样例：没有事实就不摆开关，只写原因。
+// P0-9 设置 › 通用的开关只改内存且初值是样例：参考的开关形态照留，但整钮置灰、
+// tooltip 与行下写原因——位置不代表现状。
 // 存储用量是这一屏唯一有事实的项，要读 Settings().Storage。
-func TestGeneralScreenHasNoSampleToggles(t *testing.T) {
+func TestGeneralScreenDisablesSampleToggles(t *testing.T) {
 	resetSettingsScreenState()
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
 	tt := openSettingsSection(t, app, secGeneral)
@@ -342,8 +383,12 @@ func TestGeneralScreenHasNoSampleToggles(t *testing.T) {
 		t.Fatalf("没有写这些桌面设置读不到：\n%s", p0WindowText(tt))
 	}
 	for _, label := range []string{"保持电脑唤醒", "性能日志", "登录时自动启动"} {
-		if info, ok := tt.AccessByRole(gui.RoleSwitch, label); ok {
-			t.Fatalf("%q 摆了一个没有事实来源的开关：%+v", label, info)
+		info, ok := tt.AccessByRole(gui.RoleSwitch, label)
+		if !ok {
+			t.Fatalf("%q 开关不见了（形态要留）", label)
+		}
+		if !info.Disabled || info.Description != noteDesktopSettings {
+			t.Fatalf("%q 可以拨或没写原因：%+v", label, info)
 		}
 	}
 }
@@ -395,17 +440,17 @@ func TestPersonalizationControlsDisabledWithoutChannel(t *testing.T) {
 	if psUI.uiMode != psModeOffice {
 		t.Fatal("置灰的界面模式卡仍改了屏内状态")
 	}
-	if info, ok := tt.AccessByRole(gui.RoleSwitch, psCopyShowACP); ok {
-		t.Fatalf("「展示 ACP 会话」摆了一个没有事实来源的开关：%+v", info)
+	if info, ok := tt.AccessByRole(gui.RoleSwitch, psCopyShowACP); !ok || !info.Disabled {
+		t.Fatalf("「展示 ACP 会话」开关没有留下或没置灰：%+v（找到 %v）", info, ok)
 	}
 	if info, ok := tt.Access(psCopyOpenAgentsFile); !ok || !info.Disabled {
 		t.Fatalf("「打开或创建文件」没有置灰：%+v（找到 %v）", info, ok)
 	}
 }
 
-// P0-11 设置 › 权限的两个隔离开关只改内存、且初值是样例：读不到当前值就不摆
-// 开关（-demo 仍然摆，样例是那一档的常态）。
-func TestPermissionsIsolationHasNoFakeSwitches(t *testing.T) {
+// P0-11 设置 › 权限的两个隔离开关只改内存、且初值是样例：参考的开关形态照留，
+// 但读不到当前值就整钮置灰并写原因（-demo 仍然可拨，样例是那一档的常态）。
+func TestPermissionsIsolationDisablesSampleSwitches(t *testing.T) {
 	resetSettingsScreenState()
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
 	tt := openSettingsSection(t, app, secPermissions)
@@ -414,15 +459,19 @@ func TestPermissionsIsolationHasNoFakeSwitches(t *testing.T) {
 		t.Fatalf("没有写隔离设置读不到：\n%s", p0WindowText(tt))
 	}
 	for _, label := range []string{permCopySandbox, permCopyNetwork} {
-		if info, ok := tt.AccessByRole(gui.RoleSwitch, label); ok {
-			t.Fatalf("%q 摆了一个没有事实来源的开关：%+v", label, info)
+		info, ok := tt.AccessByRole(gui.RoleSwitch, label)
+		if !ok {
+			t.Fatalf("%q 开关不见了（形态要留）", label)
+		}
+		if !info.Disabled {
+			t.Fatalf("%q 可以拨（拨了不生效）：%+v", label, info)
 		}
 	}
 
 	demo := NewApp(Options{State: StateDefault})
 	dtt := openSettingsSection(t, demo, secPermissions)
-	if _, ok := dtt.AccessByRole(gui.RoleSwitch, permCopySandbox); !ok {
-		t.Fatal("-demo 的样例开关被一起删了（样例只该在连接模式外出现）")
+	if info, ok := dtt.AccessByRole(gui.RoleSwitch, permCopySandbox); !ok || info.Disabled {
+		t.Fatalf("-demo 的样例开关被一起禁用了（样例只该在连接模式外出现）：%+v（找到 %v）", info, ok)
 	}
 }
 

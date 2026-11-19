@@ -100,11 +100,15 @@ func (a *App) sideChatContent(c *gui.Context) {
 }
 
 // sideChatComposer 是输入区（S-11–S-14）：输入框 + 结束分支 / 停止 / 发送。
+//
+// 连上 Source 后「停止」与「结束分支」都没有通道：按钮照留、置灰、原因进
+// tooltip，不把确认框当成真结束（那样状态条会写"此分支已结束"，服务端却照旧）。
 func (a *App) sideChatComposer(c *gui.Context) {
 	t := c.Theme()
 	closed := a.panels.sideChatEnded
 	sending := a.panels.sideChatSending
 	draft := strings.TrimSpace(a.panels.sideChatDraft)
+	live := a.wired()
 	gui.Row(c).Shrink(0).Padding(space2, panelPad).Gap(space1).
 		AlignItems(gui.Center).Children(func() {
 		gui.TextInputBase(c, &a.panels.sideChatDraft).
@@ -113,16 +117,22 @@ func (a *App) sideChatComposer(c *gui.Context) {
 			Background(t.Surface).Border(strokeHairline, t.Border).Grow(1).
 			Disabled(closed || sending)
 		if !closed && len(a.panels.sideChatSent) > 0 {
-			if iconButton(c, iconButtonSpec{
+			end := iconButtonSpec{
 				icon: iconCircleStop, label: "结束分支", tip: "结束分支", size: rowCompact,
-			}) {
+			}
+			if live {
+				end.disabled, end.tip = true, noteSideChatWrite
+			}
+			if iconButton(c, end) {
 				a.panels.sideChatConfirm = true
 			}
 		}
 		if sending {
-			if iconButton(c, iconButtonSpec{
-				icon: iconStop, label: "停止", tip: "停止", size: rowCompact,
-			}) {
+			stop := iconButtonSpec{icon: iconStop, label: "停止", tip: "停止", size: rowCompact}
+			if live {
+				stop.disabled, stop.tip = true, noteSideChatWrite
+			}
+			if iconButton(c, stop) {
 				a.panels.sideChatSending = false
 			}
 		}
@@ -150,7 +160,14 @@ func (a *App) sendSideChat() {
 }
 
 // sideChatEndDialog 是结束分支的确认框（S-15–S-18）。
+//
+// 连着 Source 时它不出现：结束分支没有通道，确认后只能改本地布尔值，状态条
+// 会写「此分支已结束」而服务端照旧——那是一条假回执。入口已置灰并写原因。
 func (a *App) sideChatEndDialog(c *gui.Context) {
+	if a.wired() {
+		a.panels.sideChatConfirm = false
+		return
+	}
 	t := c.Theme()
 	open := a.panels.sideChatConfirm
 	m := gui.Modal(c, &open, func() {

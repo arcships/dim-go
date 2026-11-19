@@ -20,6 +20,9 @@ const (
 	statusUsageBarH     = 3
 	statusUsageMenuW    = 260
 	statusBranchMenuW   = 220
+	// statusBranchDefaultPrompt 是「创建新分支」没填输入框时的初始提示词：与
+	// 标题栏「从当前分支切出」同一口径。
+	statusBranchDefaultPrompt = "从当前分支切出"
 	// permissionDialogW 是完全放开确认框的宽（参考 sm:max-w-md = 448）。
 	permissionDialogW = 448
 )
@@ -156,8 +159,27 @@ func (a *App) statusBranch(c *gui.Context) {
 				}
 			}
 		}
-		if menuItem(c, m, iconPlus, "创建新分支", "创建新分支", "", false, false) {
-			if !wired {
+		// 创建新分支：接上 Intents 时与标题栏「从当前分支切出」同一落点
+		// （session.branch_create，切点是当前分支已加载的最后一轮）；-demo 只改
+		// 样例分支表。连着 Source 却没有写通道时置灰写原因，不装作用。
+		createNote := ""
+		if wired && a.intents == nil {
+			createNote = noteNoWriteChannel
+		}
+		if menuItem(c, m, iconPlus, "创建新分支", "创建新分支", createNote,
+			createNote != "", false) {
+			switch {
+			case wired && a.intents != nil:
+				snap, _ := a.liveSession()
+				prompt := strings.TrimSpace(a.draft)
+				if prompt == "" {
+					prompt = statusBranchDefaultPrompt
+				}
+				parent, turn := current, snap.TurnCount
+				a.dispatch("创建新分支", func(ctx context.Context) error {
+					return a.intents.CreateBranch(ctx, parent, turn, prompt)
+				}, nil)
+			case !wired:
 				name := current + "-1"
 				if !containsString(a.branches, name) {
 					a.branches = append(a.branches, name)

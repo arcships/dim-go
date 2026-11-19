@@ -159,6 +159,7 @@ var (
 // 本屏文案：逐字取自参考产品（界面语为 zh-CN，插件名与字段名原样）。
 const (
 	plgCopyLoading      = "正在加载插件设置..."
+	plgCopyTitle        = "插件设置"
 	plgCopyUnavailable  = "当前 App Server 不提供插件设置。"
 	plgCopyEmpty        = "没有已安装插件提供设置。"
 	plgCopyRetry        = "重试"
@@ -189,15 +190,16 @@ const (
 // renderPluginSettings 是设置 › 插件设置这一屏（设置壳的一个分节）：
 // 参考的这一节没有页首标题与说明，第一张插件卡就是首块内容。
 //
-// 连着 Source 时没有任何插件设置的 schema（也就没有可画的字段实例），所以这一屏
-// 只写原因，不画样例的三个插件卡。样例只在 -demo（没有 Source）出现。
+// 连着 Source 时没有插件设置的 schema（也就没有字段实例可画）：参考的卡形态照留
+// ——一张写着原因的卡，加卡底的「保存 / 重新加载」置灰按钮——但不画样例的三个
+// 插件卡。样例只在 -demo（没有 Source）出现。
 func renderPluginSettings(c *gui.Context, a *App) {
 	t := c.Theme()
 	if a != nil && a.wired() {
 		gui.Column(c).Grow(1).Children(func() {
 			gui.Scroll(c).Grow(1).Children(func() {
-				gui.Column(c).Children(func() {
-					plgNote(c, t, notePluginSettings)
+				gui.Column(c).Gap(plgCardGap).Children(func() {
+					plgUnavailableCard(c, t)
 				})
 			})
 		})
@@ -210,6 +212,36 @@ func renderPluginSettings(c *gui.Context, a *App) {
 			})
 		})
 	})
+}
+
+// plgUnavailableCard 是连接模式下的插件设置卡：卡形（卡面、描边、卡内边距）与
+// 卡底的保存 / 重新加载按钮都在，按钮置灰、卡内只写原因——不列样例插件与字段。
+func plgUnavailableCard(c *gui.Context, t *gui.Theme) {
+	screenCard(c, func() {
+		gui.Column(c).Padding(plgCardPad, plgCardPad).Gap(plgCardInner).
+			Children(func() {
+				plgCardTitle.style(t, gui.Text(c, plgCopyTitle)).TextColor(t.Text).
+					SingleLine().Role(gui.RoleHeading).Level(2)
+				plgNote(c, t, notePluginSettings)
+				gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(plgBtnGap).
+					Children(func() {
+						plgPrimaryButtonDisabled(c, t, plgCopySave, notePluginSettings)
+						plgOutlineButtonDisabled(c, t, plgCopyReload, plgBtnH, 0, notePluginSettings)
+						gui.Spacer(c)
+					})
+			})
+	})
+}
+
+// plgPrimaryButtonDisabled 是同款主按钮的禁用态（保存）：tooltip 写原因。
+func plgPrimaryButtonDisabled(c *gui.Context, t *gui.Theme, text, tip string) {
+	b := gui.ButtonBase(c).Shrink(0).Height(plgBtnH).
+		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
+		Label(text).Background(t.Accent).Tooltip(tip).Disabled(true)
+	b.Children(func() {
+		plgBtnTextSty.style(t, gui.Text(c, text)).TextColor(t.AccentText).SingleLine()
+	})
+	b.Opacity(plgAlpha05)
 }
 
 // plgBody 在页面标题下按状态分支：加载 / 不可用 / 失败 / 空 / 表单。

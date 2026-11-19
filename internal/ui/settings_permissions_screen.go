@@ -157,9 +157,10 @@ var permissionsScreen = permissionsState{loaded: true}
 
 // renderPermissions 是设置 › 权限这一屏（设置壳的一个分节）。
 //
-// 连着 Source 时进程隔离这一卡只写原因：读不到当前的沙箱与网络设置，就不画两个
-// 开关（一个显示在"关"位的开关就是在替服务端回答一个它没答过的问题），也不画
-// 保存（本来就没有写入通道）。命令规则表照旧：它是本屏的草稿，不含任何"现状"。
+// 连着 Source 时进程隔离这一卡里的开关照画（参考形态），但整钮置灰，行下与
+// tooltip 写原因（noteIsolationUnread）：读不到当前的沙箱与网络设置，所以开关
+// 的位置不代表现状，也拨不动；保存本来就没有写入通道。命令规则表照旧：它是本屏
+// 的草稿，不含任何"现状"。
 func renderPermissions(c *gui.Context, a *App) {
 	live := a != nil && a.wired()
 	permValidateRules()
@@ -195,7 +196,7 @@ func permIsolationCard(c *gui.Context, live bool) {
 					permSubhint(c, permCopyIsolationIn)
 				})
 				if live {
-					permSubhint(c, noteIsolationUnread)
+					permIsolationControlsDisabled(c)
 					return
 				}
 				switch {
@@ -220,6 +221,34 @@ func permIsolationCard(c *gui.Context, live bool) {
 					permIsolationControls(c)
 				}
 			})
+	})
+}
+
+// permIsolationControlsDisabled 是连接模式下的同一组控件：两个开关与保存按钮
+// 都在场，全部置灰，原因写在开关行下。
+func permIsolationControlsDisabled(c *gui.Context) {
+	permSwitchRowDisabled(c, permCopySandbox, permCopySandboxIn, &permissionsScreen.sandbox)
+	permSwitchRowDisabled(c, permCopyNetwork, permCopyNetworkIn, &permissionsScreen.network)
+	settingsActionButton(c, settingsActionSpec{
+		variant: settingsActionPrimary, icon: permIconSave, mark: "save",
+		text: permCopySaveIso, label: permCopySaveIso, height: rowRegular,
+		tip: noteIsolationUnread, disabled: true,
+	})
+	permSubhint(c, noteIsolationUnread)
+	permSubhint(c, permCopyScope)
+}
+
+// permSwitchRowDisabled 是同款开关行的禁用态：开关照画、置灰，原因进行下说明。
+func permSwitchRowDisabled(c *gui.Context, label, hint string, on *bool) {
+	gui.Row(c).AlignItems(gui.Center).Gap(screenSpace2).Children(func() {
+		gui.Column(c).Grow(1).MinWidth(0).Gap(permLineGap).Children(func() {
+			permLabel(c, label)
+			permSubhint(c, hint)
+			permSubhint(c, noteIsolationUnread)
+		})
+		gui.Switch(c, on).Size(screenSwitchW, screenSwitchH).
+			Radius(screenSwitchH / 2).Label(label).
+			Disabled(true).Tooltip(noteIsolationUnread).Opacity(noteDisabledAlpha)
 	})
 }
 
@@ -401,7 +430,7 @@ func permRuleRow(c *gui.Context, index int) {
 // permMatcherInput 是命令匹配式的输入框（等宽）。
 func permMatcherInput(c *gui.Context, rule *sandboxRule) {
 	screenInput(c, &rule.matcher, permCopyMatcher, permCopyMatcher).
-		Font(codeFont).Grow(1)
+		Font(codeFamily()).Grow(1)
 }
 
 // permRuleSelects 是两个下拉：匹配（精确 / 前缀）与决策（允许 / 拒绝）。

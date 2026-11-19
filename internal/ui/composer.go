@@ -846,8 +846,10 @@ func (a *App) workspaceSelector(c *gui.Context) {
 				a.workspaceName, a.workspacePath = option.name, option.path
 			}
 		}
+		// 添加新工作区：与左栏「添加工作区」同一个目录选择（写进本端登记的
+		// 工作区并落盘本地偏好）。不在这里造一个只改标题的占位名字。
 		if menuItem(c, m, iconPlus, "添加新工作区", "添加新工作区", "", false, false) {
-			a.workspaceName = "新工作区"
+			a.startDirPick(dirPickWorkspace)
 		}
 	})
 }

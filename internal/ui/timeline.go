@@ -793,13 +793,17 @@ func (a *App) failureBlock(c *gui.Context) {
 	})
 }
 
-// retryNotice 是自动重试提示：倒计时 + 立即重试（可逆动作）。
+// retryNotice 是自动重试提示：倒计时 + 立即重试。
+//
+// 「立即重试」没有通道（协议没有立即重试的方法，RetrySubmit 也不是这件事），
+// 所以入口照留、置灰并把原因写在 tooltip 上；倒计时本身是服务端事实，不改。
 func (a *App) retryNotice(c *gui.Context, r round) {
 	t := c.Theme()
 	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 		typeSecondary.style(t, gui.Text(c, fmt.Sprintf("%ds 后重试", r.retrySeconds))).
 			TextColor(t.TextMuted)
-		gui.Button(c, "立即重试").Label("立即重试")
+		gui.Button(c, "立即重试").Label("立即重试").
+			Tooltip(noteRetryNow).Disabled(true).Opacity(noteDisabledAlpha)
 	})
 }
 
