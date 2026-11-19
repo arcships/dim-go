@@ -80,8 +80,9 @@ func (a *App) fullAccessConfirm(c *gui.Context) {
 	}
 	t := c.Theme()
 	open := true
-	m := gui.Modal(c, &open, func() {
-		panel := gui.Column(c).Gap(space3).Children(func() {
+	m := modalShell(gui.Modal(c, &open, func() {
+		panel := gui.Column(c).Gap(space3).
+			Role(gui.RoleAlertDialog).Label("确认开启完全放开？").Children(func() {
 			gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 				iconGlyph(c, iconWarn, t.Warning, "warning")
 				typeH3.style(t, gui.Text(c, "确认开启完全放开？")).TextColor(t.Text).
@@ -106,7 +107,8 @@ func (a *App) fullAccessConfirm(c *gui.Context) {
 			})
 		})
 		panel.Width(permissionDialogW)
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		a.permissionArmOpen = false
 	}
@@ -250,7 +252,7 @@ func (a *App) statusUsage(c *gui.Context) {
 			case usage.Limit > 0:
 				p := int(math.Round(usage.Used / usage.Limit * 100))
 				typeSecondary.style(t, gui.Text(c, fmt.Sprintf("月度用量 %d%%", p))).TextColor(t.Text)
-				a.usageBarSized(c, p, statusUsageMenuW-2*space2)
+				a.usageBarSized(c, p, statusUsageMenuW-2*space2, "套餐用量")
 				if usage.HasResets && !usage.ResetsAt.IsZero() {
 					typeMicro.style(t, gui.Text(c, "重置于 "+usage.ResetsAt.Format("1月2日"))).
 						TextColor(t.TextMuted)
@@ -285,14 +287,16 @@ func (a *App) usageAccountLink(c *gui.Context) {
 
 // usageBar 是状态条里的上下文用量条：底轨 + 已用比例（将满时换警示色）。
 func (a *App) usageBar(c *gui.Context, pct int) {
-	a.usageBarSized(c, pct, statusUsageBarWidth)
+	a.usageBarSized(c, pct, statusUsageBarWidth, "上下文用量")
 }
 
 // usageBarSized 是任意宽度的用量条（浮层里的套餐用量也用它）。
-func (a *App) usageBarSized(c *gui.Context, pct int, width float32) {
+func (a *App) usageBarSized(c *gui.Context, pct int, width float32, label string) {
 	t := c.Theme()
 	box := gui.Box(c).Width(width).Height(statusUsageBarH).Shrink(0).
-		Radius(statusUsageBarH / 2).Background(t.Border).Label("用量条")
+		Radius(statusUsageBarH/2).Background(t.Border).
+		Role(gui.RoleProgress).Range(0, 100, float64(pct)).
+		Value(pctLabel(pct)).Label(label)
 	fill := t.Success
 	if pct >= contextNearPercent {
 		fill = t.Warning

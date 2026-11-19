@@ -155,7 +155,8 @@ func (a *App) userMessage(c *gui.Context, i int, r round) {
 	if text, ok := a.inlineSaved[i]; ok {
 		r.user, edited = text, true
 	}
-	col := gui.Column(c).Shrink(0).Gap(space1).Label("用户消息 " + r.user)
+	col := gui.Column(c).Shrink(0).Gap(space1).
+		Role(gui.RoleArticle).Label("用户消息 " + r.user)
 	// timelineHover 是截图走查态：自动截图没有指针，靠它把悬停动作钉住。
 	hovered := col.Hovered() || a.timelineHover == i
 	col.Children(func() {
@@ -417,7 +418,7 @@ func imageThumb(c *gui.Context, name string) {
 		Background(t.SurfacePressed).Label(label)
 	box.DrawOver(func(p *gui.Painter, rect gui.Rect) {
 		size := float32(iconInline * 2)
-		p.Icon(iconImage, gui.Rect{
+		paintIcon(p, iconImage, gui.Rect{
 			X: rect.X + (rect.W-size)/2,
 			Y: rect.Y + (rect.H-size)/2,
 			W: size, H: size,
@@ -512,7 +513,8 @@ func quoteIntoDraft(draft, selection string) string {
 // assistant 是助手区：思考、正文、工具分组、轮末块与动作条。整块可选（右键
 // 菜单按选区复制，TL-65）；Markdown 的选区交给这一层（ShareSelection）。
 func (a *App) assistant(c *gui.Context, i int, r round) {
-	col := gui.Column(c).Shrink(0).Gap(timelineBlockGap).Label("助手消息").Selectable()
+	col := gui.Column(c).Shrink(0).Gap(timelineBlockGap).
+		Role(gui.RoleArticle).Label("助手消息").Selectable()
 	hovered := col.Hovered()
 	svc := c.Services()
 	col = col.ContextMenu(func(m *gui.Menu) {
@@ -666,7 +668,8 @@ func (a *App) thinkingBlock(c *gui.Context, i int, r round) {
 		gui.Row(c).Grow(1).Gap(space2).Children(func() {
 			rail := gui.Box(c).Width(strokeHairline).Shrink(0).AlignSelf(gui.Stretch).Label("思考轨道")
 			rail.DrawOver(func(p *gui.Painter, rect gui.Rect) {
-				p.Fill(rect, t.Border, 0)
+				// 1px 的轨道按 DPR 落到设备像素格：2× 上正好两列实心像素，不发灰。
+				p.Fill(hairlineRect(rect, p.Scale(), false), t.Border, 0)
 			})
 			a.searchText(c, searchKeyThinking(i), r.thinking, typeSecondary, t.TextMuted).
 				Grow(1).Selectable()
@@ -714,7 +717,8 @@ func (a *App) roundOps(c *gui.Context, i int, r round) {
 		rail := gui.Box(c).Width(timelineGroupIndent).Shrink(0).AlignSelf(gui.Stretch).Label("分组轨道")
 		rail.DrawOver(func(p *gui.Painter, rect gui.Rect) {
 			x := rect.X + timelineGroupIndent/2
-			p.Fill(gui.Rect{X: x, Y: rect.Y, W: strokeHairline, H: rect.H}, t.Border, 0)
+			p.Fill(hairlineRect(gui.Rect{X: x, Y: rect.Y, W: strokeHairline, H: rect.H}, p.Scale(), false),
+				t.Border, 0)
 		})
 		gui.Column(c).Grow(1).Gap(space3).Children(func() {
 			for n, o := range r.ops {
@@ -1210,9 +1214,10 @@ func timelineActionIcon(action string) *gui.SVG {
 
 // iconGlyphSize 是任意边长的图标盒（失败标记用 12，其它用 16）。
 func iconGlyphSize(c *gui.Context, icon *gui.SVG, size float32, color gui.Color, mark string) {
-	box := gui.Box(c).Width(size).Height(size).Shrink(0).Label("图标：" + mark)
+	box := gui.Box(c).Width(size).Height(size).Shrink(0).
+		Label("图标：" + mark).AccessHidden(true)
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(icon, r, color)
+		paintIcon(p, icon, r, color)
 	})
 }
 

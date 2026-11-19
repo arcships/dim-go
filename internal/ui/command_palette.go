@@ -319,7 +319,13 @@ func (a *App) normalizePaletteSelection() {
 func (a *App) commandPaletteLayer(c *gui.Context) {
 	t := c.Theme()
 	windowWidth, windowHeight := c.Size()
-	x := (windowWidth - commandPaletteWidth) / 2
+	// 窄窗里命令面板改满宽、左右留 narrowDialogMargin；其余档仍是 560 居中。
+	width := float32(commandPaletteWidth)
+	x := (windowWidth - width) / 2
+	if narrowWindow(c) {
+		width = dialogWidth(c, commandPaletteWidth)
+		x = narrowDialogMargin
+	}
 	if x < space4 {
 		x = space4
 	}
@@ -329,7 +335,7 @@ func (a *App) commandPaletteLayer(c *gui.Context) {
 		AccessHidden(true).OnClick(a.closeCommandPalette)
 
 	panel := gui.Column(c).Absolute().Left(x).Top(y).
-		Width(commandPaletteWidth).Height(commandPaletteHeight).
+		Width(width).Height(commandPaletteHeight).
 		Background(t.Surface).Border(strokeHairline, t.Border).
 		Radius(radiusWindowCard).Clip().
 		Shadow(0, 10, 30, 0, colorShadow.in(t)).
@@ -389,7 +395,7 @@ func (a *App) commandPaletteInput(c *gui.Context) {
 			a.palette.needsFocus = false
 		}
 	})
-	gui.Box(c).Height(strokeHairline).Shrink(0).Background(t.Border)
+	hairlineBox(c, true, "")
 }
 
 // commandPaletteTextKey 接管输入框里的键（S-CP-06）：上下选择、回车执行、
@@ -533,14 +539,16 @@ func (a *App) commandPaletteResults(c *gui.Context) {
 	}
 	if total == 0 {
 		t := c.Theme()
-		gui.Row(c).Grow(1).AlignItems(gui.Center).Justify(gui.Center).Children(func() {
+		gui.Row(c).Grow(1).AlignItems(gui.Center).Justify(gui.Center).
+			Role(gui.RoleStatus).Label("没有匹配项").Children(func() {
 			typeSecondary.style(t, gui.Text(c, "没有匹配项")).TextColor(t.TextMuted)
 		})
 		return
 	}
 
 	gui.Scroll(c).Grow(1).Children(func() {
-		gui.Column(c).Padding(space1, space2).Gap(space1).Children(func() {
+		gui.Column(c).Padding(space1, space2).Gap(space1).
+			Role(gui.RoleListBox).Label("命令候选").Children(func() {
 			for gi := 0; gi < commandGroupCount; gi++ {
 				group := a.palette.groups[gi]
 				if len(group.items) == 0 {
@@ -575,7 +583,7 @@ func (a *App) commandPaletteRow(c *gui.Context, gi, ii int, item commandItem) {
 	row := gui.Row(c).Shrink(0).Height(commandPaletteRowHeight).Padding(0, space2).
 		Gap(space2).Radius(radius).AlignItems(gui.Center).
 		Label(item.title + "：" + item.detail).
-		Role(gui.RoleOption).AccessSelected(selected)
+		Role(gui.RoleOption).AccessSelected(selected).AccessDisabled(item.disabled)
 	switch {
 	case selected:
 		row = row.Background(t.SurfaceHover)
@@ -631,7 +639,7 @@ func commandPaletteHighlighted(c *gui.Context, text string, at, end int, t *gui.
 // commandPaletteFooter 是底部提示行：固定键位、当前行的次级动作与执行反馈。
 func (a *App) commandPaletteFooter(c *gui.Context) {
 	t := c.Theme()
-	gui.Box(c).Height(strokeHairline).Shrink(0).Background(t.Border)
+	hairlineBox(c, true, "")
 	gui.Row(c).Shrink(0).Height(commandPaletteFooterH).Padding(space1, space3).
 		Gap(space2).AlignItems(gui.Center).Children(func() {
 		hint := "上下选择 · 回车执行 · Tab 换组 · Cmd+回车次级 · Esc 关闭"

@@ -37,22 +37,27 @@ func (a *App) sidebar(c *gui.Context) {
 	gui.Column(c).Width(a.sidebarWidthValue()).Shrink(0).
 		Background(t.Surface).
 		Label("左栏 · 会话列表").Role(gui.RoleNavigation).Focusable().TabStop(true).
-		Children(func() {
-			a.sidebarHeader(c)
-			a.sidebarEntries(c)
-			if a.searchOpen {
-				a.searchPane(c)
-			}
-			a.sidebarList(c)
-			a.accountRow(c)
-		})
+		Children(func() { a.sidebarBody(c) })
+}
+
+// sidebarBody 是左栏的内容：栏头、四个全局入口、搜索面、列表与账户行。常驻
+// 左栏与窄窗抽屉共用，栏宽与面差由外层给。
+func (a *App) sidebarBody(c *gui.Context) {
+	a.sidebarHeader(c)
+	a.sidebarEntries(c)
+	if a.searchOpen {
+		a.searchPane(c)
+	}
+	a.sidebarList(c)
+	a.accountRow(c)
 }
 
 // sidebarHeader 是栏头：macOS 上让出窗口控件那条（只作拖动把手，不放控件），
 // 右端一个收起按钮（LB-10）。
 func (a *App) sidebarHeader(c *gui.Context) {
 	if inset := titleBarInset(c.TitleBar()); inset > 0 {
-		gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位")
+		gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位").
+			AccessHidden(true)
 	}
 	gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).
 		Padding(space1, space2).AlignItems(gui.Center).Children(func() {
@@ -161,7 +166,7 @@ func (a *App) searchPane(c *gui.Context) {
 // sidebarList 是列表本体：已置顶（有置顶时）→ 列表头「会话」→ 工作区分组；
 // 平铺视图换成日期分组。列表自己滚动，账户行贴底不动。
 func (a *App) sidebarList(c *gui.Context) {
-	gui.Scroll(c).Grow(1).Label("会话列表").Children(func() {
+	gui.Scroll(c).Grow(1).Label("会话列表").Role(gui.RoleList).Children(func() {
 		gui.Column(c).Shrink(0).Padding(0, space2).Gap(space2).Children(func() {
 			all := a.sidebarThreads()
 			groups := a.sidebarWorkspaces(all)
@@ -518,7 +523,7 @@ func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) 
 	row := gui.ButtonBase(c).Height(sidebarRowHeight).Padding(space1, space1).
 		Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
 		Label(name).Cursor(gui.CursorPointer).
-		Role(gui.RoleListItem).
+		Role(gui.RoleListItem).AccessSelected(chosen).
 		Description(sessionRowDescription(marker, when, chosen, a.pinned(index))).
 		ContextMenu(func(m *gui.Menu) { a.sessionMenu(m, index, name) })
 	hovered := row.Hovered()
@@ -926,7 +931,8 @@ func sessionIndex(id string) int {
 }
 
 // sidebarRail 是收起后的 12px 边条：不显示会话，点击展开（LB-10 / TB-13）。
-// 读屏名与 tooltip 带 ⌘B，键盘焦点落在边条上按回车同效。
+// 读屏名与 tooltip 带 ⌘B，键盘焦点落在边条上按回车同效。窄窗里它是唯一常驻的
+// 左栏形态，点击展开的是覆盖式抽屉（sidebarDrawer），主区不重新排版。
 func (a *App) sidebarRail(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Width(SidebarRailWidth).Shrink(0).
@@ -934,7 +940,13 @@ func (a *App) sidebarRail(c *gui.Context) {
 		AlignItems(gui.Center).Justify(gui.Center).Gap(space1).
 		Label("展开侧边栏 ⌘B").Tooltip("展开侧边栏 ⌘B").
 		Role(gui.RoleButton).Focusable().TabStop(true).
-		OnClick(func() { a.setSidebarCollapsed(false) }).
+		OnClick(func() {
+			if narrowWindow(c) {
+				a.narrowDrawer = true
+				return
+			}
+			a.setSidebarCollapsed(false)
+		}).
 		Children(func() {
 			for i := 0; i < 3; i++ {
 				gui.Box(c).Width(railMarkWidth).Height(railMarkHeight).
@@ -951,4 +963,22 @@ func (a *App) sessionMarkers() []string {
 	}
 	_, markers := sessionSamples(a.state)
 	return markers
+}
+
+// sidebarDrawer 是窄窗里的覆盖式左栏：256 宽的抽屉压在整棵界面之上（主区不
+// 缩窄），后面一条遮罩接住点击——点遮罩或按 Esc 收起。
+//
+// 只改呈现，不改左栏内容：抽屉里与常驻左栏是同一份 sidebarBody。
+func (a *App) sidebarDrawer(c *gui.Context) {
+	t := c.Theme()
+	_, windowHeight := c.Size()
+	gui.Overlay(c, func() {
+		gui.Box(c).Absolute().Fill().Background(gui.RGBA(0, 0, 0, 0.28)).
+			AccessHidden(true).Label("收起侧边栏抽屉").OnClick(func() { a.narrowDrawer = false })
+		gui.Column(c).Absolute().Left(0).Top(0).
+			Width(SidebarWidth).Height(windowHeight).
+			Background(t.Surface).Clip().
+			Role(gui.RoleNavigation).Focusable().TabStop(true).
+			Label("左栏 · 会话列表").Children(func() { a.sidebarBody(c) })
+	})
 }

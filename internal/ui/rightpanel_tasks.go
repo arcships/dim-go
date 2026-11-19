@@ -97,6 +97,7 @@ func (a *App) taskRow(c *gui.Context, item task, index int, live bool) {
 	row.Children(func() {
 		main := gui.ButtonBase(c).Grow(1).Height(rowRegular).Padding(space1, space1).
 			Radius(radiusSmall).Gap(space2).AlignItems(gui.Center).
+			Role(gui.RoleListItem).AccessSelected(selected).
 			Label("后台任务：" + item.name + " · " + state).Tooltip(item.name)
 		if main.Clicked() {
 			a.panels.taskSel = index

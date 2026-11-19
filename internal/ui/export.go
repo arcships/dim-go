@@ -243,8 +243,9 @@ func (a *App) exportPanel(c *gui.Context) {
 	name := a.exportName()
 
 	open := true
-	m := gui.Modal(c, &open, func() {
-		panel := gui.Column(c).Gap(space2).Width(accDialogWidth(c))
+	m := modalShell(gui.Modal(c, &open, func() {
+		panel := gui.Column(c).Gap(space2).Width(accDialogWidth(c)).
+			Role(gui.RoleDialog).Label(exportTitle)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, exportTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
@@ -338,7 +339,8 @@ func (a *App) exportPanel(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		a.closeExportPanel()
 	}

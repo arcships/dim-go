@@ -298,7 +298,7 @@ func generalProxyDialog(c *gui.Context) {
 		return
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		screenDialogPanel(c, "自定义代理", func() {
 			screenHint(c, "输入 http 或 https 代理 URL。")
 			gui.Column(c).Gap(screenSpace15).Children(func() {
@@ -318,7 +318,8 @@ func generalProxyDialog(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		generalScreen.proxyDialog = false
 	}
@@ -331,7 +332,7 @@ func generalImportDialog(c *gui.Context) {
 	}
 	t := c.Theme()
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		screenDialogPanel(c, "导入 Chrome Cookie", func() {
 			screenHint(c, "此操作会替换内置浏览器中的全部非分区 Cookie…")
 			screenGroupTitle(c, "Chrome 配置")
@@ -363,7 +364,8 @@ func generalImportDialog(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		generalScreen.importOpen = false
 		generalScreen.importResult = false
@@ -399,7 +401,7 @@ func generalClearDialog(c *gui.Context) {
 		return
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		screenDialogPanel(c, "清理浏览器数据", func() {
 			screenHint(c, "此操作只会清除内置浏览器中的登录状态、Cookie…")
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
@@ -413,7 +415,8 @@ func generalClearDialog(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		generalScreen.clearOpen = false
 	}
@@ -426,7 +429,7 @@ func generalCleanupDialog(c *gui.Context, a *App) {
 		return
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		screenDialogPanel(c, "存储报告", func() {
 			screenHint(c, "会话存储由 App Server 管理，可在此查看其存储用量报告。")
 			if a != nil && a.wired() {
@@ -458,7 +461,8 @@ func generalCleanupDialog(c *gui.Context, a *App) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		generalScreen.cleanupOpen = false
 	}

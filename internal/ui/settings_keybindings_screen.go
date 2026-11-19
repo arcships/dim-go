@@ -296,7 +296,8 @@ func keybindingRows(scope string) []keybindingDef {
 // keybindingGroupTitle 是分组标题：13、半粗、次级前景。
 func keybindingGroupTitle(c *gui.Context, text string) {
 	t := c.Theme()
-	keybindingGroupStyle.style(t, gui.Text(c, text)).TextColor(t.TextMuted).Label(text)
+	keybindingGroupStyle.style(t, gui.Text(c, text)).TextColor(t.TextMuted).
+		Role(gui.RoleHeading).Level(3).Label(text)
 }
 
 // keybindingCard 是一组的卡：每行 60 高，行间 1px 细线。
@@ -315,6 +316,7 @@ func keybindingCard(c *gui.Context, rows []keybindingDef) {
 func keybindingRow(c *gui.Context, def keybindingDef) {
 	t := c.Theme()
 	gui.Row(c).Shrink(0).Height(screenKeyRowH).AlignItems(gui.Center).
+		Role(gui.RoleListItem).Label(def.name).
 		Padding(0, screenSpace5).Gap(screenSpace25).Children(func() {
 		keybindingNameStyle.style(t, gui.Text(c, def.name)).TextColor(t.Text).SingleLine()
 		gui.Spacer(c)

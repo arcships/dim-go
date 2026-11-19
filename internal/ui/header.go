@@ -34,9 +34,9 @@ func (a *App) header(c *gui.Context) {
 	bar := c.TitleBar()
 	name := a.sessionTitle()
 
-	// 左内边距让开窗口控件：左栏收起成边条时控件会压到这一行。
+	// 左内边距让开窗口控件：左栏收起成边条（窄窗总是如此）时控件会压到这一行。
 	left := float32(space4)
-	if a.sidebarCollapsed && bar.Left > left {
+	if (a.sidebarCollapsed || narrowWindow(c)) && bar.Left > left {
 		left = bar.Left
 	}
 	right := float32(space4)
@@ -55,10 +55,20 @@ func (a *App) header(c *gui.Context) {
 			return
 		}
 
-		typeSecondary.style(t, gui.Text(c, a.workspaceTitle())).
-			TextColor(t.TextMuted).SingleLine().Label("工作区 " + a.workspaceTitle())
-		typeSecondary.style(t, gui.Text(c, "/")).TextColor(t.TextMuted)
+		// 窄窗只留「会话名 + 分支 + 面板开关」：工作区前缀会把会话名挤到截断
+		// 之外，去掉它；会话名给一个宽度上限单行截断，全名仍在读屏名里。
+		narrow := narrowWindow(c)
+		if !narrow {
+			typeSecondary.style(t, gui.Text(c, a.workspaceTitle())).
+				TextColor(t.TextMuted).SingleLine().Label("工作区 " + a.workspaceTitle())
+			// 斜杠只是视觉分隔，不进读屏顺序（R-TB-153）。
+			typeSecondary.style(t, gui.Text(c, "/")).TextColor(t.TextMuted).
+				AccessHidden(true)
+		}
 		title := typeTitleRow.style(t, gui.Text(c, name)).SingleLine().Label("会话 " + name)
+		if narrow {
+			title = title.MaxWidth(narrowTitleMaxWidth)
+		}
 		// 标题栏双击会话名打开重命名弹窗（行内快捷仍在左栏会话行双击）。
 		if title.DoubleClicked() {
 			a.openSessionRenameDialog(a.currentSessionIndex())
@@ -71,7 +81,7 @@ func (a *App) header(c *gui.Context) {
 		}
 		gui.Spacer(c)
 		a.openWithGroup(c)
-		gui.Box(c).Width(strokeHairline).Height(space4).Background(t.Border).Label("分隔线")
+		hairlineBox(c, false, "分隔线").Height(space4)
 		a.panelToggle(c)
 	})
 }
@@ -201,7 +211,7 @@ func (a *App) chatMenu(c *gui.Context) {
 			archiveNote != "", false) {
 			a.archiveCurrentSession()
 		}
-		gui.Box(c).Height(strokeHairline).Background(t.Border)
+		hairlineBox(c, true, "")
 		// 复制项：先取事实，再决定可用性——没有标识 / 目录时禁用并写原因，不复制
 		// 空串；写剪贴板失败给失败原因，不显示「已复制」。
 		id, cwd, _ := a.sessionCopyFacts()
@@ -420,7 +430,7 @@ func (a *App) openWithGroup(c *gui.Context) {
 		if main.Clicked() && !live {
 			a.headerNote = "正在用 " + app + " 打开"
 		}
-		gui.Box(c).Width(strokeHairline).Height(space4).Background(t.Border)
+		hairlineBox(c, false, "").Height(space4)
 		a.openWithMenu(c)
 	})
 }
@@ -457,7 +467,7 @@ func (a *App) openWithMenu(c *gui.Context) {
 				}
 			}
 		}
-		gui.Box(c).Height(strokeHairline).Background(t.Border)
+		hairlineBox(c, true, "")
 		// 这两项要宿主的打开 / 定位能力：连着 Source 时没有通道，置灰并写原因，
 		// 不给"已显示""正在打开"这类编出来的回执。
 		finderNote, defaultNote := "", ""

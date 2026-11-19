@@ -318,7 +318,7 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 	}
 	st := a.pluginManageState()
 	gui.Column(c).Shrink(0).Gap(plgCardInner).Children(func() {
-		gui.Box(c).Height(strokeHairline).Shrink(0).Background(t.Border)
+		hairlineBox(c, true, "")
 		gui.Row(c).AlignItems(gui.Center).Gap(space2).Children(func() {
 			plgCardTitle.style(t, gui.Text(c, pluginManageUpdates)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(3)
@@ -477,7 +477,7 @@ func (a *App) pluginRemoveView(c *gui.Context) {
 		name = st.removeID
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleAlertDialog).Label(pluginRemoveTitle)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, pluginRemoveTitle)).TextColor(t.Text).
@@ -504,7 +504,8 @@ func (a *App) pluginRemoveView(c *gui.Context) {
 			})
 		})
 		panel.Width(renameDialogWidth(c))
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		if st.removeBusy {
 			return
@@ -526,7 +527,7 @@ func (a *App) pluginMarketSection(c *gui.Context, t *gui.Theme) {
 		st.feedLoaded = true
 	}
 	gui.Column(c).Shrink(0).Gap(plgCardInner).Children(func() {
-		gui.Box(c).Height(strokeHairline).Shrink(0).Background(t.Border)
+		hairlineBox(c, true, "")
 		plgCardTitle.style(t, gui.Text(c, pluginMarketTitle)).TextColor(t.Text).
 			SingleLine().Role(gui.RoleHeading).Level(3)
 		gui.Column(c).Gap(plgLabelGap).Children(func() {

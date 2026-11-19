@@ -689,8 +689,9 @@ func (a *App) accountEmailDialog(c *gui.Context) {
 	}
 	t := c.Theme()
 	open := true
-	m := gui.Modal(c, &open, func() {
-		panel := gui.Column(c).Gap(space3).Children(func() {
+	m := modalShell(gui.Modal(c, &open, func() {
+		panel := gui.Column(c).Gap(space3).
+			Role(gui.RoleDialog).Label(accCopyEnterprise).Children(func() {
 			typeH3.style(t, gui.Text(c, accCopyEnterprise)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3)
 			typeBody.style(t, gui.Text(c, accCopyEmailDetail)).TextColor(t.TextMuted)
@@ -707,7 +708,8 @@ func (a *App) accountEmailDialog(c *gui.Context) {
 				Selectable()
 		})
 		panel.Width(accDialogWidth(c))
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		a.accountEmailOpen = false
 	}
@@ -715,15 +717,7 @@ func (a *App) accountEmailDialog(c *gui.Context) {
 
 // accDialogWidth 是对话框面板宽：参考 sm:max-w-md = 448；窗口更窄时收进窗口内。
 func accDialogWidth(c *gui.Context) float32 {
-	width, _ := c.Size()
-	limit := width - 2*space8
-	if limit < accDialogW {
-		if limit < space12*4 {
-			return space12 * 2
-		}
-		return limit
-	}
-	return accDialogW
+	return dialogWidth(c, accDialogW)
 }
 
 // accountPlanCard 是 C 套餐用量卡（S-account-30–95）。
@@ -1276,8 +1270,9 @@ func (a *App) accountResetDialog(c *gui.Context, d accountScreenData) {
 	}
 	t := c.Theme()
 	open := true
-	m := gui.Modal(c, &open, func() {
-		panel := gui.Column(c).Gap(space3).Children(func() {
+	m := modalShell(gui.Modal(c, &open, func() {
+		panel := gui.Column(c).Gap(space3).
+			Role(gui.RoleDialog).Label(accCopyResetTitle).Children(func() {
 			typeH2.style(t, gui.Text(c, accCopyResetTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(2)
 			typeBody.style(t, gui.Text(c, accCopyResetDetail)).TextColor(t.TextMuted)
@@ -1305,7 +1300,8 @@ func (a *App) accountResetDialog(c *gui.Context, d accountScreenData) {
 			})
 		})
 		panel.Width(accDialogWidth(c))
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		a.accountResetType = ""
 	}
@@ -1410,7 +1406,7 @@ func accIconButton(c *gui.Context, spec accIconSpec) bool {
 			icon = icon.Rotate(rotate)
 		}
 		icon.DrawOver(func(p *gui.Painter, r gui.Rect) {
-			p.Icon(spec.icon, r, ink)
+			paintIcon(p, spec.icon, r, ink)
 		})
 	})
 	return b.Clicked()
@@ -1424,7 +1420,7 @@ func accIcon(c *gui.Context, icon *gui.SVG, size float32, color gui.Color, mark 
 		box = box.Label("图标：" + mark).AccessHidden(true)
 	}
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(icon, r, color)
+		paintIcon(p, icon, r, color)
 	})
 }
 

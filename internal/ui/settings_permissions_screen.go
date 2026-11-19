@@ -493,9 +493,9 @@ func permValidateRules() {
 }
 
 // permNarrow 判内容列是否窄到放不下一整行规则（U2-forms F23 的退化阈值）。
+// 可用宽取 settingsUsableWidth：窄窗没有 224 的常驻导航，不能按窗口直接减。
 func permNarrow(c *gui.Context) bool {
-	width, _ := c.Size()
-	return width-SettingsNavWidth-2*space8 < SettingsRuleRowMinWidth
+	return settingsUsableWidth(c)-2*space8 < SettingsRuleRowMinWidth
 }
 
 // permLeaveDialog 是「命令权限尚未保存」确认框（S-sandbox-36 … 40）。
@@ -504,7 +504,7 @@ func permLeaveDialog(c *gui.Context) {
 		return
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		screenDialogPanel(c, permCopyLeaveTitle, func() {
 			screenHint(c, permCopyLeaveDesc)
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
@@ -529,7 +529,8 @@ func permLeaveDialog(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		permissionsScreen.leaveOpen = false
 	}

@@ -390,6 +390,7 @@ func arcGroupMenu(c *gui.Context, t *gui.Theme, group arcGroupData) {
 // 恢复与删除。
 func arcThreadRow(c *gui.Context, t *gui.Theme, th *archivedThread) {
 	gui.Row(c).Shrink(0).MinHeight(arcRowH).AlignItems(gui.Center).
+		Role(gui.RoleListItem).Label(th.title).
 		Gap(arcRowGap).Padding(arcRowPadV, arcRowPadH).Children(func() {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(arcTextGap).Children(func() {
 			arcRowTitle.style(t, gui.Text(c, th.title)).TextColor(t.Text).
@@ -533,8 +534,9 @@ func arcDeleteThreadDialog(c *gui.Context, t *gui.Theme) {
 
 // arcDialog 是删除类确认框：标题、说明、取消与危险色「删除」。
 func arcDialog(c *gui.Context, t *gui.Theme, open *bool, title, desc string, run func()) {
-	m := gui.Modal(c, open, func() {
-		panel := gui.Column(c).Gap(screenSpace3)
+	m := modalShell(gui.Modal(c, open, func() {
+		panel := gui.Column(c).Gap(screenSpace3).
+			Role(gui.RoleAlertDialog).Label(title)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
@@ -551,7 +553,8 @@ func arcDialog(c *gui.Context, t *gui.Theme, open *bool, title, desc string, run
 			})
 		})
 		panel.Width(arcDialogWidth(c))
-	})
+	}))
+
 	if m.Dismissed() {
 		*open = false
 	}

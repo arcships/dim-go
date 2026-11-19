@@ -331,7 +331,8 @@ func (a *App) rpTabBar(c *gui.Context) {
 		AlignItems(gui.Center).Gap(space1).Label("右栏标签").Children(func() {
 		a.rpBackButton(c)
 		gui.ScrollHorizontal(c).Grow(1).Children(func() {
-			gui.Row(c).AlignItems(gui.Center).Gap(space1).Children(func() {
+			gui.Row(c).AlignItems(gui.Center).Gap(space1).
+				Role(gui.RoleTabList).Label("右栏标签页").Children(func() {
 				for i, tab := range s.tabs {
 					a.rpTabItem(c, tab, i)
 				}
@@ -393,7 +394,8 @@ func (a *App) rpTabItem(c *gui.Context, tab, index int) {
 	label := a.rpTabLabel(tab)
 	b := gui.ButtonBase(c).Height(panelTabHeight).Padding(space1, panelTabPadH).
 		Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
-		Label(label).Tooltip(label).Cursor(gui.CursorPointer)
+		Label(label).Tooltip(label).Cursor(gui.CursorPointer).
+		Role(gui.RoleTab).AccessSelected(active)
 	switch {
 	case active:
 		b = b.Background(t.SurfaceHover)
@@ -419,7 +421,7 @@ func (a *App) rpTabItem(c *gui.Context, tab, index int) {
 			closeBox = gui.Box(c).Width(panelTabIcon).Height(panelTabIcon).Shrink(0).
 				Label("关闭标签页：" + label)
 			closeBox.DrawOver(func(p *gui.Painter, r gui.Rect) {
-				p.Icon(iconXMark, r, t.TextMuted)
+				paintIcon(p, iconXMark, r, t.TextMuted)
 			})
 		}
 	})
@@ -654,7 +656,7 @@ func rpGlyph(c *gui.Context, icon *gui.SVG, size float32, color gui.Color, mark 
 		box = box.Label("图标：" + mark).AccessHidden(true)
 	}
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(icon, r, color)
+		paintIcon(p, icon, r, color)
 	})
 }
 

@@ -371,8 +371,9 @@ func (a *App) rpGroup(c *gui.Context, key, title string, actionIcon *gui.SVG, ac
 	gui.Row(c).Height(panelGroupHeight).Padding(0, panelRowPadH).Gap(space1).
 		AlignItems(gui.Center).Children(func() {
 		label := gui.ButtonBase(c).Grow(1).Height(panelGroupHeight).Radius(radiusSmall).
-			Gap(space1).AlignItems(gui.Center).Label(title + "，切换展开").
-			Cursor(gui.CursorPointer)
+			Gap(space1).AlignItems(gui.Center).
+			Role(gui.RoleTreeItem).Expanded(open).
+			Label(title + "，切换展开").Cursor(gui.CursorPointer)
 		if label.Hovered() {
 			label = label.Background(t.SurfaceHover)
 		}
@@ -413,16 +414,16 @@ func (a *App) rpChangeRow(c *gui.Context, change *rpChange, staged bool) {
 	t := c.Theme()
 	s := a.rp()
 	p := change.path
+	detail := fmt.Sprintf("文件，%s，新增 %d 行，删除 %d 行", p, change.added, change.removed)
 	row := gui.Row(c).Height(panelRowHeight2).Padding(0, panelRowPadH).
-		Gap(panelRowGap).AlignItems(gui.Center).Label(
-		fmt.Sprintf("文件，%s，新增 %d 行，删除 %d 行", p, change.added, change.removed))
+		Gap(panelRowGap).AlignItems(gui.Center).Role(gui.RoleNone)
 	if row.Hovered() {
 		row = row.Background(t.SurfaceHover)
 	}
 	row.Children(func() {
 		rpGlyph(c, rpFileIcon(p), panelRowIcon, t.TextMuted, "")
 		name := gui.ButtonBase(c).Grow(1).Height(panelRowHeight2).
-			Label(path.Base(p)).Tooltip(p).Cursor(gui.CursorPointer)
+			Role(gui.RoleListItem).Label(detail).Tooltip(p).Cursor(gui.CursorPointer)
 		if name.Clicked() {
 			s.diffOpen[p] = !s.diffOpen[p]
 		}
@@ -600,9 +601,10 @@ func (a *App) rpRevertDialog(c *gui.Context) {
 		return
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		t := c.Theme()
 		panel := gui.Column(c).Gap(space2).Padding(space3).Width(panelDialogWidth).
+			Role(gui.RoleAlertDialog).Label("确认还原未暂存改动？").
 			Background(t.Surface).Radius(radiusCard)
 		panel.Draw(func(p *gui.Painter, r gui.Rect) {
 			p.Stroke(r, t.Border, radiusCard, strokeHairline)
@@ -625,7 +627,8 @@ func (a *App) rpRevertDialog(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		s.revertPath = ""
 	}

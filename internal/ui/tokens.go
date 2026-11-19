@@ -63,6 +63,26 @@ const (
 	RightPanelMinWidth       = 280
 	RightPanelPreferredWidth = 320
 	RightPanelMainMinWidth   = 400
+
+	// CompactWidth 是窄窗分档的阈值：窗口窄于它时按 compact 排（U1-ia §3.1
+	// 的窄窗行）。窄窗只改七处形态，别处不变：
+	//   - 左栏只留边条，展开是覆盖式抽屉（不挤压主区）；
+	//   - 右栏整屏替代主区（不与主区并排）；
+	//   - 标题行收成「会话名 + 分支 + 面板开关」，会话名单行截断；
+	//   - 输入区控制行竖排（工作区一行、权限一行）；
+	//   - 设置左导航收成顶部下拉；
+	//   - 命令面板与对话框改满宽、左右留 narrowDialogMargin；
+	//   - 1px 线在绘制时按 DPR 取整（hairline.go）。
+	// 验收档取 720（scripts/capture-windows.py 的第三档）。
+	CompactWidth = 800
+
+	// narrowTitleMaxWidth 是窄窗标题行里会话名的宽度上限：超出单行截断，把
+	// 余量让给分支标记、打开方式与面板开关；全名仍在读屏名里。
+	narrowTitleMaxWidth = 168
+	// narrowDialogMargin 是窄窗命令面板与对话框左右留白（space12＝42）。它要
+	// 大于框架对话框自身的留白（Modal 的内容区最多「窗口−space10−2×space5」），
+	// 否则内容会顶出对话框的圆角面板。
+	narrowDialogMargin = space12
 )
 
 // 视觉 token：docs/domains/U2-visual.md §8 的 token 表（v2：默认优先），

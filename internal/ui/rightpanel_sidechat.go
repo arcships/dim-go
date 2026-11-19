@@ -74,16 +74,16 @@ func (a *App) sideChatContent(c *gui.Context) {
 	sent := a.panels.sideChatSent
 	switch {
 	case len(sent) > 0:
-		gui.Scroll(c).Grow(1).Children(func() {
+		gui.Scroll(c).Grow(1).Label("侧边对话消息").Role(gui.RoleLog).Children(func() {
 			gui.Column(c).Padding(panelPad).Gap(space3).Children(func() {
 				for _, text := range sent {
 					gui.Column(c).Shrink(0).AlignItems(gui.End).Children(func() {
 						gui.Column(c).Shrink(0).Padding(space2, space3).
 							Radius(radiusCard).Background(t.SurfaceHover).
-							Children(func() {
-								typeBody.style(t, gui.Text(c, text)).TextColor(t.Text).
-									Selectable().MaxLines(8)
-							})
+							Role(gui.RoleListItem).Children(func() {
+							typeBody.style(t, gui.Text(c, text)).TextColor(t.Text).
+								Selectable().MaxLines(8)
+						})
 					})
 				}
 			})
@@ -187,23 +187,25 @@ func (a *App) sideChatEndDialog(c *gui.Context) {
 	}
 	t := c.Theme()
 	open := a.panels.sideChatConfirm
-	m := gui.Modal(c, &open, func() {
-		gui.Column(c).Gap(space3).Children(func() {
-			typeH3.style(t, gui.Text(c, sideChatEndTitle)).TextColor(t.Text).
-				Role(gui.RoleHeading).Level(3)
-			typeBody.style(t, gui.Text(c, sideChatEndDetail)).TextColor(t.TextMuted)
-			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
-				if gui.Button(c, "取消").Clicked() {
-					a.panels.sideChatConfirm = false
-				}
-				if panelDangerButton(c, "确认") {
-					a.panels.sideChatConfirm = false
-					a.panels.sideChatEnded = true
-					a.panels.sideChatSending = false
-				}
+	m := modalShell(gui.Modal(c, &open, func() {
+		gui.Column(c).Gap(space3).Role(gui.RoleAlertDialog).Label(sideChatEndTitle).
+			Children(func() {
+				typeH3.style(t, gui.Text(c, sideChatEndTitle)).TextColor(t.Text).
+					Role(gui.RoleHeading).Level(3)
+				typeBody.style(t, gui.Text(c, sideChatEndDetail)).TextColor(t.TextMuted)
+				gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
+					if gui.Button(c, "取消").Clicked() {
+						a.panels.sideChatConfirm = false
+					}
+					if panelDangerButton(c, "确认") {
+						a.panels.sideChatConfirm = false
+						a.panels.sideChatEnded = true
+						a.panels.sideChatSending = false
+					}
+				})
 			})
-		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		a.panels.sideChatConfirm = false
 	}

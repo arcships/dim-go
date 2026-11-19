@@ -268,8 +268,11 @@ type App struct {
 	variant Variant
 	onState func(State)
 
-	sidebarCollapsed    bool
-	sidebarWidth        float32
+	sidebarCollapsed bool
+	sidebarWidth     float32
+	// narrowDrawer 是窄窗里左栏抽屉的开合（窄窗下左栏只留边条，展开是覆盖式
+	// 抽屉，不挤压主区）。它不改 sidebarCollapsed：窗口变宽后左栏按原偏好回来。
+	narrowDrawer        bool
 	lastPrefs           PreferencesSnapshot
 	rightOpen           bool
 	rightTab            int
@@ -1611,8 +1614,19 @@ func (a *App) viewKeys(c *gui.Context) {
 		a.cancelQueuedEdit()
 		return
 	}
+	// 窄窗的覆盖式左栏抽屉：Esc 先关它（它盖在主区之上，与弹出层同一优先级）。
+	if a.narrowDrawer && c.Shortcut(0, gui.KeyEscape) {
+		a.narrowDrawer = false
+		return
+	}
 	if c.Shortcut(gui.Cmd, gui.KeyB) {
-		a.setSidebarCollapsed(!a.sidebarCollapsed)
+		// 窄窗里 ⌘B 开合的是覆盖式抽屉，不改左栏的常驻偏好：窗口变宽后左栏
+		// 还按用户上次的选择回来。
+		if narrowWindow(c) {
+			a.narrowDrawer = !a.narrowDrawer
+		} else {
+			a.setSidebarCollapsed(!a.sidebarCollapsed)
+		}
 	}
 	if c.Shortcut(gui.Cmd, gui.KeyComma) {
 		a.screen = ScreenSettings
@@ -1623,6 +1637,7 @@ func (a *App) viewKeys(c *gui.Context) {
 // （重启后按收起态渲染）；样例模式与没有 Intents 时不写偏好。
 func (a *App) setSidebarCollapsed(collapsed bool) {
 	a.sidebarCollapsed = collapsed
+	a.narrowDrawer = false
 	a.persistViewState()
 }
 
@@ -1665,15 +1680,21 @@ func (a *App) terminalKeys(c *gui.Context) {
 // 挤占顺序按 U1-ia §3.1：右栏先失空间，主区不缩到 400 以下。
 func (a *App) layout(c *gui.Context) {
 	t := c.Theme()
+	narrow := narrowWindow(c)
+	if !narrow {
+		// 窗口变宽后窄窗抽屉没有意义：下次再窄回来时不自动摊开覆盖主区。
+		a.narrowDrawer = false
+	}
 	sidebar := a.sidebarWidthValue()
-	if a.sidebarCollapsed {
+	if narrow || a.sidebarCollapsed {
+		// 窄窗与收起态都只留 12px 边条：窄窗里没有并排放 256 宽左栏的余量，
+		// 展开改为覆盖式抽屉（sidebarDrawer）。
 		sidebar = SidebarRailWidth
 	}
 	windowWidth, _ := c.Size()
 
 	// 右栏只在窗口宽到能并排时展开：主区保 400，右栏保 280。
-	// 「展开面板」时右栏占满主区（RP-A-36/37）；更窄的窗口属于 compact，
-	// 右栏整屏替代主区，本批次未做。
+	// 「展开面板」时右栏占满主区（RP-A-36/37）；窄窗里右栏整屏替代主区。
 	panel := a.rpWidth(windowWidth, sidebar)
 
 	a.viewKeys(c)
@@ -1685,7 +1706,11 @@ func (a *App) layout(c *gui.Context) {
 			a.settings(c)
 			return
 		}
-		a.sidebar(c)
+		if narrow {
+			a.sidebarRail(c)
+		} else {
+			a.sidebar(c)
+		}
 		gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
 			a.header(c)
 			a.headerNoteView(c)
@@ -1697,9 +1722,10 @@ func (a *App) layout(c *gui.Context) {
 					a.rightPanel(c, remaining-sidebar)
 					return
 				}
-				// 窄到并排不下时（compact），右栏整屏替代主区（U1-ia §3.1）：
-				// 同一时刻只显示一处，关闭右栏后主区回来。
-				if a.rightOpen && panel == 0 {
+				// 窄窗（compact）里右栏整屏替代主区（U1-ia §3.1）：同一时刻只
+				// 显示一处，关闭右栏后主区回来。它按覆盖式呈现——主区不缩到
+				// 400 以下去和它并排。
+				if a.rightOpen && (narrow || panel == 0) {
 					remaining, _ := c.Size()
 					a.rightPanel(c, remaining-sidebar)
 					return
@@ -1723,6 +1749,10 @@ func (a *App) layout(c *gui.Context) {
 			})
 		})
 	})
+	// 窄窗的覆盖式左栏抽屉画在整棵界面之后：它盖住主区，主区不因展开重新排版。
+	if narrow && a.narrowDrawer {
+		a.sidebarDrawer(c)
+	}
 }
 
 // sidebarWidthValue 是左栏宽度：本地偏好给了非零值就用它。

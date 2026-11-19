@@ -174,7 +174,7 @@ func (a *App) firstRunGuide(c *gui.Context) {
 func brandMark(c *gui.Context, width, height float32, t *gui.Theme) {
 	box := gui.Box(c).Width(width).Height(height).Shrink(0).Label("品牌：DimAgent")
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(iconBrandWide, r, colorBrandEmpty)
+		paintIcon(p, iconBrandWide, r, colorBrandEmpty)
 	})
 }
 
@@ -261,8 +261,19 @@ func (a *App) composerToolRow(c *gui.Context) {
 }
 
 // composerControls 是空态底部控制行：工作区 + 权限，灰底、圆角随卡片下沿。
+//
+// 窄窗里两个选择器竖排（工作区一行、权限一行）：横向余量不够两个「图标 + 文案」
+// 的入口排一行，横排会把它们压到读不出。行高随之由内容给，不再取定高。
 func (a *App) composerControls(c *gui.Context) {
 	t := c.Theme()
+	if narrowWindow(c) {
+		gui.Column(c).Shrink(0).Padding(space2, space3).Gap(space1).
+			Background(colorControlBar.in(t)).Label("输入区控制行").Children(func() {
+			gui.Row(c).Shrink(0).AlignItems(gui.Center).Children(func() { a.workspaceSelector(c) })
+			gui.Row(c).Shrink(0).AlignItems(gui.Center).Children(func() { a.permissionSelector(c) })
+		})
+		return
+	}
 	gui.Row(c).Height(composerControlHeight).Shrink(0).Padding(space2, space3).
 		Background(colorControlBar.in(t)).AlignItems(gui.Center).Gap(space3).
 		Label("输入区控制行").Children(func() {
@@ -471,7 +482,7 @@ func (a *App) modelSelector(c *gui.Context) {
 			typeSecondary.style(t, gui.Text(c, "子代理")).TextColor(t.TextMuted)
 			typeSecondary.style(t, gui.Text(c, "外部 agent")).TextColor(t.TextMuted)
 		})
-		gui.Box(c).Height(strokeHairline).Background(t.Border)
+		hairlineBox(c, true, "")
 		gui.TextInputBase(c, &a.modelQuery).Placeholder("搜索模型...").Height(composerSearchRowHeight).
 			Padding(0, space2).Radius(radius).Background(t.SurfacePressed).Label("搜索模型")
 		options, currentID := a.modelOptions()

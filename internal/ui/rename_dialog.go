@@ -206,7 +206,7 @@ func (a *App) renameDialogView(c *gui.Context) {
 	open := true
 	problem := a.renameDialogProblem()
 	blocked := a.renameDialogBlocked()
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleDialog).Label(title)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
@@ -271,7 +271,8 @@ func (a *App) renameDialogView(c *gui.Context) {
 			})
 		})
 		panel.Width(renameDialogWidth(c))
-	})
+	}))
+
 	switch {
 	case !open || m.Dismissed():
 		if st.submitting {
@@ -286,13 +287,5 @@ func (a *App) renameDialogView(c *gui.Context) {
 // renameDialogWidth 是重命名弹窗的内容宽：参考 sm:max-w-md = 448，窗口更窄时
 // 收进窗口内（左右各留 28）。
 func renameDialogWidth(c *gui.Context) float32 {
-	width, _ := c.Size()
-	limit := width - 2*space8
-	if limit < 399 {
-		if limit < space12*4 {
-			return space12 * 2
-		}
-		return limit
-	}
-	return 399
+	return dialogWidth(c, 399)
 }

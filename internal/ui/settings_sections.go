@@ -78,6 +78,17 @@ func settingsSectionByID(id settingsSectionID) settingsSectionDef {
 	return settingsSectionDefs[0]
 }
 
+// settingsSectionByLabel 按界面语取一节：窄窗的导航下拉按名称给出选项，
+// 选回来的名称再换回标识（19 节的名称两两不同，见 settingsSectionDefs）。
+func settingsSectionByLabel(label string) (settingsSectionDef, bool) {
+	for _, section := range settingsSectionDefs {
+		if section.label == label {
+			return section, true
+		}
+	}
+	return settingsSectionDef{}, false
+}
+
 // DefaultSettingsSectionSlug 是深链省略分节时进的那一节（账户）。
 const DefaultSettingsSectionSlug = "account"
 

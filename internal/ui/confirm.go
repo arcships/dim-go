@@ -268,7 +268,7 @@ func (a *App) confirmDialog(c *gui.Context) {
 	open := true
 	kind := a.confirm.kind
 	title := a.confirmTitle()
-	dialog := gui.Modal(c, &open, func() {
+	dialog := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleAlertDialog).Label(title)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).SingleLine()
@@ -312,7 +312,8 @@ func (a *App) confirmDialog(c *gui.Context) {
 			})
 		})
 		panel.Width(confirmWidthFor(c))
-	})
+	}))
+
 	// 执行中按 Esc / 点遮罩不关闭；关闭后状态整份清掉。
 	if dialog.Dismissed() && !a.confirm.busy {
 		a.confirm = confirmState{}
@@ -350,17 +351,10 @@ func confirmDangerButton(c *gui.Context, t *gui.Theme, text string, disabled boo
 	return b.Clicked()
 }
 
-// confirmWidthFor 是对话框内容宽：窗口更窄时收进来（R-GC-039）。
+// confirmWidthFor 是对话框内容宽：窄窗里满宽留边距，其余档取 420，窗口更窄时
+// 收进来（R-GC-039）。尺度统一由 dialogWidth 给。
 func confirmWidthFor(c *gui.Context) float32 {
-	width, _ := c.Size()
-	limit := width - 2*space8
-	if limit < confirmWidth {
-		if limit < MainMinWidth/2 {
-			return MainMinWidth / 2
-		}
-		return limit
-	}
-	return confirmWidth
+	return dialogWidth(c, confirmWidth)
 }
 
 // runConfirm 执行当前确认框的动作。

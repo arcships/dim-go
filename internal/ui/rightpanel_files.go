@@ -36,7 +36,8 @@ func (a *App) rpFilesPage(c *gui.Context) {
 			a.rpPermissionBar(c)
 		}
 		gui.Scroll(c).Grow(1).Children(func() {
-			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
+			gui.Column(c).Padding(space1, rpTreePadH).
+				Role(gui.RoleTree).Label("文件树").Children(func() {
 				switch {
 				case s.emptyTitle != "":
 					a.rpEmptyBlock(c, s.emptyTitle, s.emptyDetail)
@@ -301,7 +302,7 @@ func (a *App) rpTreeRows(c *gui.Context, nodes []*rpNode, prefix string, depth i
 			p = prefix + "/" + node.name
 		}
 		if node.dir {
-			a.rpDirRow(c, node, p)
+			a.rpDirRow(c, node, p, depth)
 			if !s.dirOpen[p] {
 				continue
 			}
@@ -318,7 +319,7 @@ func (a *App) rpTreeRows(c *gui.Context, nodes []*rpNode, prefix string, depth i
 			})
 			continue
 		}
-		a.rpFileRow(c, node, p)
+		a.rpFileRow(c, node, p, depth)
 	}
 }
 
@@ -343,7 +344,7 @@ func (a *App) rpDirLoaded(node *rpNode, p string) int {
 const rpPageSize = 20
 
 // rpDirRow 是目录行：箭头 + 文件夹图标 + 目录名（F-17–F-21）。
-func (a *App) rpDirRow(c *gui.Context, node *rpNode, p string) {
+func (a *App) rpDirRow(c *gui.Context, node *rpNode, p string, depth int) {
 	t := c.Theme()
 	s := a.rp()
 	open := s.dirOpen[p]
@@ -353,6 +354,7 @@ func (a *App) rpDirRow(c *gui.Context, node *rpNode, p string) {
 	}
 	row := gui.ButtonBase(c).Height(panelRowHeight2).Padding(0, panelRowPadH).
 		Gap(panelRowGap).AlignItems(gui.Center).Radius(radiusSmall).
+		Role(gui.RoleTreeItem).Expanded(open).Level(depth + 1).
 		Label("目录，" + node.name + "，" + state).Cursor(gui.CursorPointer)
 	switch {
 	case row.Pressed():
@@ -403,7 +405,7 @@ func rpDirChanged(node *rpNode) bool {
 
 // rpFileRow 是文件行：14px 占位 + 文件图标 + 文件名 + 统计 + 暂存点
 // （F-27–F-33），右键出文件菜单（F-34–F-44）。
-func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string) {
+func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string, depth int) {
 	t := c.Theme()
 	label := "文件，" + node.name
 	if node.change != nil {
@@ -421,6 +423,7 @@ func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string) {
 	}
 	row := gui.ButtonBase(c).Height(panelRowHeight2).Padding(0, panelRowPadH).
 		Gap(panelRowGap).AlignItems(gui.Center).Radius(radiusSmall).
+		Role(gui.RoleTreeItem).Level(depth + 1).
 		Label(label).Cursor(gui.CursorPointer)
 	switch {
 	case row.Pressed():
@@ -649,6 +652,7 @@ func (a *App) rpSearchRow(c *gui.Context, hit rpSearchHit, query string) {
 	t := c.Theme()
 	row := gui.ButtonBase(c).Height(panelSearchRowHeight).Padding(space1, panelRowPadH).
 		Gap(panelRowGap).AlignItems(gui.Center).Radius(radiusSmall).
+		Role(gui.RoleListItem).
 		Label("文件，" + hit.node.name + "，" + hit.dir).Cursor(gui.CursorPointer)
 	switch {
 	case row.Pressed():
@@ -739,7 +743,7 @@ func (a *App) rpEmptyBlockIcon(c *gui.Context, icon *gui.SVG, title, detail stri
 				X: r.X + panelEmptyGlyphInset, Y: r.Y + panelEmptyGlyphInset,
 				W: r.W - 2*panelEmptyGlyphInset, H: r.H - 2*panelEmptyGlyphInset,
 			}
-			p.Icon(icon, inner, t.TextMuted)
+			paintIcon(p, icon, inner, t.TextMuted)
 		})
 		typeControlStrong.style(t, gui.Text(c, title)).TextColor(t.Text).
 			TextAlign(gui.Center).SingleLine()
@@ -831,7 +835,5 @@ func (a *App) rpFileMenu(c *gui.Context, target gui.Element, node *rpNode, p str
 
 // rpMenuSeparator 是浮层里的一条分隔线（1px 高的面差，不新增自绘描边）。
 func rpMenuSeparator(c *gui.Context) {
-	t := c.Theme()
-	gui.Box(c).Shrink(0).Height(strokeHairline).Margin(space1, 0, space1, 0).
-		Background(t.Border).Label("分隔线").AccessHidden(true)
+	hairlineBox(c, true, "分隔线").Margin(space1, 0, space1, 0)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 	"testing"
-	"time"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -64,20 +63,6 @@ func newForkTestApp(t *testing.T) (*App, *gui.Tester, *fakeSource, *forkTestInte
 // prompt（界面不替换、不补写）。
 const forkTestDraft = "换成另一种改法继续"
 
-// waitFork 反复渲染，直到条件成立；分叉与跳转都在后台意图完成后的下一帧落下。
-func waitFork(t *testing.T, tt *gui.Tester, what string, cond func() bool) {
-	t.Helper()
-	deadline := time.Now().Add(3 * time.Second)
-	for time.Now().Before(deadline) {
-		tt.Frame()
-		if cond() {
-			return
-		}
-		time.Sleep(time.Millisecond)
-	}
-	t.Fatalf("等待 %s 超时", what)
-}
-
 // TestForkFromUserMessageCreatesBranchAndJumps：悬停用户消息 →「从此处分叉」→
 // CreateBranch(父分支=main，切点=第 1 轮) → SelectBranch(新分支) → 切点回执。
 func TestForkFromUserMessageCreatesBranchAndJumps(t *testing.T) {
@@ -91,8 +76,11 @@ func TestForkFromUserMessageCreatesBranchAndJumps(t *testing.T) {
 	if err := tt.Click("从此处分叉 1"); err != nil {
 		t.Fatalf("点不到从此处分叉：%v", err)
 	}
-	waitFork(t, tt, "分叉与跳转", func() bool {
-		return len(intents.cuts) == 1 && len(intents.selected) == 1
+	waitFrame(t, tt, "分叉与跳转", func() bool {
+		// 回执是在后台结果交回渲染线程后才写的：把它一起等进来，否则这里拿到的
+		// 可能是「意图已发出、界面还没落定」的中间态。
+		return len(intents.cuts) == 1 && len(intents.selected) == 1 &&
+			strings.Contains(app.headerNote, "已切到分支 side-1")
 	})
 	cut := intents.cuts[0]
 	if cut.parent != "main" || cut.turn != 1 {
@@ -124,8 +112,9 @@ func TestForkLatestFromHeaderMenu(t *testing.T) {
 	if err := tt.Click("在新分支继续"); err != nil {
 		t.Fatalf("点不到在新分支继续：%v", err)
 	}
-	waitFork(t, tt, "在新分支继续", func() bool {
-		return len(intents.cuts) == 1 && len(intents.selected) == 1
+	waitFrame(t, tt, "在新分支继续", func() bool {
+		return len(intents.cuts) == 1 && len(intents.selected) == 1 &&
+			strings.Contains(app.headerNote, "切点：第 2 轮结束处")
 	})
 	if intents.cuts[0].turn != 2 || intents.cuts[0].parent != "main" {
 		t.Fatalf("切点不是最后一轮结束处：%+v", intents.cuts[0])
@@ -249,7 +238,7 @@ func TestForkFromMessageMenu(t *testing.T) {
 	if err := tt.ChooseMenuItem("从此处分叉"); err != nil {
 		t.Fatalf("点不到菜单里的从此处分叉：%v", err)
 	}
-	waitFork(t, tt, "菜单分叉", func() bool { return len(intents.cuts) == 1 })
+	waitFrame(t, tt, "菜单分叉", func() bool { return len(intents.cuts) == 1 })
 	if intents.cuts[0].turn != 2 {
 		t.Fatalf("菜单分叉的切点 = %d，想要 2", intents.cuts[0].turn)
 	}
@@ -376,7 +365,7 @@ func TestStatusBarCreateBranchUsesDraft(t *testing.T) {
 	if err := tt.Click("创建新分支"); err != nil {
 		t.Fatalf("点不到创建新分支：%v", err)
 	}
-	waitFork(t, tt, "创建新分支", func() bool { return len(intents.cuts) == 1 })
+	waitFrame(t, tt, "创建新分支", func() bool { return len(intents.cuts) == 1 })
 	cut := intents.cuts[0]
 	if cut.parent != "feature-x" || cut.turn != 4 || cut.prompt != forkTestDraft {
 		t.Fatalf("CreateBranch 收到 %+v，想要 feature-x/4/%q", cut, forkTestDraft)

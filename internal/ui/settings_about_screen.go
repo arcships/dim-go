@@ -445,7 +445,7 @@ func abtUpdateStatus(c *gui.Context, t *gui.Theme, view aboutUpdateView) {
 				box = box.Rotate(box.Loop("abt-spin", time.Second, gui.Linear) * 360)
 			}
 			box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-				p.Icon(icon, r, ink)
+				paintIcon(p, icon, r, ink)
 			})
 		}
 		abtNoteStyle.style(t, gui.Text(c, text)).TextColor(ink).Label(text).MaxLines(2)

@@ -399,7 +399,7 @@ func hkSourceIcon(c *gui.Context, t *gui.Theme, s *hooksSource) {
 	lock := gui.Box(c).Absolute().Right(0).Bottom(0).Width(hkIconLockSize).
 		Height(hkIconLockSize).Label("图标：插件来源").AccessHidden(true)
 	lock.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(hkIconLock, r, t.TextMuted)
+		paintIcon(p, hkIconLock, r, t.TextMuted)
 	})
 }
 
@@ -456,6 +456,8 @@ func hkEntryGroup(c *gui.Context, t *gui.Theme, s *hooksSource) {
 // hkEntryRow 是一条钩子（S-hooks-20）：事件、状态、异步标记、命令与修饰。
 func hkEntryRow(c *gui.Context, t *gui.Theme, e *hooksEntry) {
 	gui.Row(c).Shrink(0).MinHeight(hkEntryH).AlignItems(gui.Center).
+		Role(gui.RoleListItem).
+		Label(e.event+"，"+hkEnabledLabel(e.enabled)).
 		Gap(hkChipGap).Padding(hkEntryPadV, hkPadH).Children(func() {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(hkTightGap).Children(func() {
 			gui.Row(c).AlignItems(gui.Center).Gap(hkChipGap).Children(func() {
@@ -572,8 +574,9 @@ func hkEditorDialog(c *gui.Context, t *gui.Theme) {
 		return
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
-		panel := gui.Column(c).Gap(hkRowGap)
+	m := modalShell(gui.Modal(c, &open, func() {
+		panel := gui.Column(c).Gap(hkRowGap).
+			Role(gui.RoleDialog).Label(hkCopyDocTitle)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, hkCopyDocTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
@@ -603,7 +606,8 @@ func hkEditorDialog(c *gui.Context, t *gui.Theme) {
 			})
 		})
 		panel.Width(accDialogWidth(c))
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		hooksScreen.editorOpen = false
 	}

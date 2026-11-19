@@ -265,7 +265,7 @@ func (a *App) queueRow(c *gui.Context, item QueuedMessageSnapshot) {
 	if steering {
 		label = "排队消息（正在转向）：" + text
 	}
-	row = row.Label(label)
+	row = row.Role(gui.RoleListItem).Label(label)
 	row.Children(func() {
 		if steering {
 			gui.Spinner(c).Label("正在转向")

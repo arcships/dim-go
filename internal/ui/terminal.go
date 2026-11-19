@@ -357,6 +357,9 @@ func (a *App) termTabChip(c *gui.Context, t *gui.Theme, i int) {
 	active := i == a.termActive
 	chip := gui.Row(c).Height(rowCompact).Shrink(0).Gap(space1).
 		Padding(space1, space2).Radius(radiusSmall).AlignItems(gui.Center).
+		// 标签里还有「关闭进程」按钮：给 RoleTab 会让整棵子树对读屏不可见，
+		// 关进程就只剩右键菜单一条路，所以这里按按钮播报，用选中态报当前层。
+		AccessSelected(active).
 		Label("终端标签：" + tab.title)
 	if active {
 		chip = chip.Background(t.SurfaceHover)
@@ -542,11 +545,15 @@ func termCaret(c *gui.Context) {
 	caret := gui.Box(c).Width(termCaretWidth).Height(termCaretHeight).Shrink(0).
 		Label("终端光标").AccessHidden(true)
 	caret.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		line := float32(1)
-		p.Fill(gui.Rect{X: r.X, Y: r.Y, W: r.W, H: line}, termCanvasMuted, 0)
-		p.Fill(gui.Rect{X: r.X, Y: r.Y + r.H - line, W: r.W, H: line}, termCanvasMuted, 0)
-		p.Fill(gui.Rect{X: r.X, Y: r.Y, W: line, H: r.H}, termCanvasMuted, 0)
-		p.Fill(gui.Rect{X: r.X + r.W - line, Y: r.Y, W: line, H: r.H}, termCanvasMuted, 0)
+		// 空心方块的四条边各 1 个设备像素：盒缘与厚度都按 DPR 取整，2× 上四条
+		// 边一样实心（不取整时 1 DIP 的边在半像素上会被摊成两条灰边）。
+		scale := p.Scale()
+		box := snapIconRect(r, scale)
+		line := deviceLength(scale)
+		p.Fill(gui.Rect{X: box.X, Y: box.Y, W: box.W, H: line}, termCanvasMuted, 0)
+		p.Fill(gui.Rect{X: box.X, Y: box.Y + box.H - line, W: box.W, H: line}, termCanvasMuted, 0)
+		p.Fill(gui.Rect{X: box.X, Y: box.Y, W: line, H: box.H}, termCanvasMuted, 0)
+		p.Fill(gui.Rect{X: box.X + box.W - line, Y: box.Y, W: line, H: box.H}, termCanvasMuted, 0)
 	})
 }
 

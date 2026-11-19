@@ -122,10 +122,12 @@ func actionIcon(action string) *gui.SVG {
 func iconBox(c *gui.Context, icon *gui.SVG, color gui.Color, label string) {
 	box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0)
 	if label != "" {
-		box = box.Label(label)
+		// 图标是装饰，名字由宿主控件给：标记只给检查器找元素用，不进读屏顺序。
+		box = box.Label("图标：" + label).AccessHidden(true)
 	}
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(icon, r, color)
+		// 图标按 DPR 落到设备像素格：盒缘在半像素上时 1.5 DIP 的描边会糊一档。
+		paintIcon(p, icon, r, color)
 	})
 }
 
@@ -136,7 +138,7 @@ func iconGlyph(c *gui.Context, icon *gui.SVG, color gui.Color, mark string) {
 	box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0).
 		Label("图标：" + mark).AccessHidden(true)
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(icon, r, color)
+		paintIcon(p, icon, r, color)
 	})
 }
 

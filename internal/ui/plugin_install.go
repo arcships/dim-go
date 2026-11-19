@@ -198,7 +198,7 @@ func (a *App) pluginInstallView(c *gui.Context) {
 	t := c.Theme()
 	open := true
 	problem := a.pluginInstallProblem()
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleDialog).Label(pluginDialogTitle)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, pluginDialogTitle)).TextColor(t.Text).
@@ -289,7 +289,8 @@ func (a *App) pluginInstallView(c *gui.Context) {
 			})
 		})
 		panel.Width(pluginInstallDialogWidth(c))
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		if st.installing {
 			st.open = true
@@ -376,15 +377,7 @@ func pluginDialogButtonLabeled(c *gui.Context, t *gui.Theme, text, label string,
 
 // pluginInstallDialogWidth 是安装弹窗的内容宽：参考 sm:max-w-[30rem] = 420。
 func pluginInstallDialogWidth(c *gui.Context) float32 {
-	width, _ := c.Size()
-	limit := width - 2*space8
-	if limit < 385 {
-		if limit < space12*4 {
-			return space12 * 2
-		}
-		return limit
-	}
-	return 385
+	return dialogWidth(c, 385)
 }
 
 // readPluginManifest 读并校验一个插件目录的 dim-plugin.json，生成预览。

@@ -172,7 +172,7 @@ func screenIcon(c *gui.Context, icon *gui.SVG, size float32, color gui.Color, ma
 		box = box.Label("图标：" + mark).AccessHidden(true)
 	}
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(icon, r, color)
+		paintIcon(p, icon, r, color)
 	})
 }
 
@@ -206,7 +206,7 @@ func screenIconRotated(c *gui.Context, icon *gui.SVG, size float32, color gui.Co
 		box = box.Rotate(degrees)
 	}
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
-		p.Icon(icon, r, color)
+		paintIcon(p, icon, r, color)
 	})
 }
 
@@ -221,7 +221,7 @@ func screenCornerDot(c *gui.Context) {
 			X: r.X + screenDotInset, Y: r.Y + screenDotInset,
 			W: r.W - 2*screenDotInset, H: r.H - 2*screenDotInset,
 		}
-		p.Icon(iconCheck, inner, t.AccentText)
+		paintIcon(p, iconCheck, inner, t.AccentText)
 	})
 }
 
@@ -395,7 +395,8 @@ func screenDialogWidth(c *gui.Context) float32 {
 // screenDialogPanel 是一个模态面板：标题（三级）+ 正文 + 动作。
 func screenDialogPanel(c *gui.Context, title string, body func()) {
 	t := c.Theme()
-	panel := gui.Column(c).Gap(screenSpace3)
+	panel := gui.Column(c).Gap(screenSpace3).
+		Role(gui.RoleDialog).Label(title)
 	panel.Children(func() {
 		typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
 			Role(gui.RoleHeading).Level(3).SingleLine()
@@ -1329,7 +1330,7 @@ func appearanceDeleteDialog(c *gui.Context) {
 	t := c.Theme()
 	open := true
 	name := appearanceScreen.deleteFor
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		screenDialogPanel(c, "删除皮肤？", func() {
 			typeBody.style(t, gui.Text(c, fmt.Sprintf("“%s”及其全部资源将被永久删除。", name))).
 				TextColor(t.TextMuted).Selectable()
@@ -1356,7 +1357,8 @@ func appearanceDeleteDialog(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		appearanceScreen.deleteFor = ""
 		appearanceScreen.deleting = false

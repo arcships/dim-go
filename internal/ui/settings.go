@@ -26,13 +26,35 @@ const (
 // 导航列顶部留出 c.TitleBar().Height，空白区可拖动窗口。
 func (a *App) settings(c *gui.Context) {
 	t := c.Theme()
+	narrow := narrowWindow(c)
 	gui.Row(c).Fill().AlignItems(gui.Stretch).
 		Background(t.Background).Padding(settingsShellInset).Label("设置").Children(func() {
 		gui.Row(c).Fill().AlignItems(gui.Stretch).Radius(radius).
 			Background(t.Surface).Children(func() {
+			if narrow {
+				// 窄窗：224 的常驻导航放不下，收成顶部一行（返回 + 分节下拉），
+				// 内容列占满整屏；导航与内容之间不再画竖线（上下已由一行分开）。
+				gui.Column(c).Grow(1).Children(func() {
+					if inset := titleBarInset(c.TitleBar()); inset > 0 {
+						gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位").
+							AccessHidden(true)
+					}
+					a.settingsNavCompact(c)
+					hairlineBox(c, true, "导航与内容的分隔")
+					gui.Column(c).Grow(1).Children(func() {
+						gui.Column(c).Grow(1).MaxWidth(SettingsContentMaxWidth).
+							Padding(space8, space8).Gap(space4).Children(func() {
+							a.actionErrorView(c)
+							a.settingsContent(c)
+						})
+					})
+				})
+				return
+			}
 			a.settingsNav(c)
 			gui.Box(c).Width(settingsShellRule).Shrink(0).
-				Background(t.Border).Label("导航与内容的分隔")
+				Background(t.Border).Role(gui.RoleSeparator).
+				Orientation(gui.Vertical).AccessHidden(true)
 			gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
 				gui.Column(c).Grow(1).MaxWidth(SettingsContentMaxWidth).
 					Padding(space8, space8).Gap(space4).Children(func() {
@@ -42,6 +64,29 @@ func (a *App) settings(c *gui.Context) {
 			})
 		})
 	})
+}
+
+// settingsNavCompact 是窄窗里的分节导航：返回 + 一个分节下拉（19 节的全集），
+// 选中的名称换回分节标识。下拉的读屏名是「设置分节」，当前值由下拉自己显示。
+func (a *App) settingsNavCompact(c *gui.Context) {
+	current := settingsSectionByID(a.settingsSection)
+	options := make([]string, len(settingsSectionDefs))
+	for i, section := range settingsSectionDefs {
+		options[i] = section.label
+	}
+	pick := current.label
+	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space1).
+		AlignItems(gui.Center).Children(func() {
+		if iconButton(c, iconButtonSpec{icon: iconChevronL, label: "返回主界面", size: rowCompact}) {
+			a.screen = ScreenMain
+		}
+		gui.Select(c, &pick, options).Grow(1).Label("设置分节")
+	})
+	if pick != current.label {
+		if section, ok := settingsSectionByLabel(pick); ok {
+			a.settingsSection = section.id
+		}
+	}
 }
 
 // settingsContent 按当前分节路由内容：已重建的分节显示真内容，其余一律占位。
@@ -118,7 +163,7 @@ func (a *App) settingsNav(c *gui.Context) {
 			gui.Spacer(c)
 		})
 		// 19 节在矮窗口里放不下：导航列自己滚，内容区不受影响。
-		gui.Scroll(c).Grow(1).Label("设置分节").Children(func() {
+		gui.Scroll(c).Grow(1).Label("设置分节").Role(gui.RoleList).Children(func() {
 			gui.Column(c).Shrink(0).Children(func() {
 				for _, section := range settingsSectionDefs {
 					a.navRow(c, section)
@@ -137,6 +182,7 @@ func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 		Radius(radius).Gap(space3).AlignItems(gui.Center).
 		Label(section.label).Cursor(gui.CursorPointer).Justify(gui.Start)
 	selected := a.settingsSection == section.id
+	row = row.Role(gui.RoleListItem).AccessSelected(selected)
 	switch {
 	case selected:
 		row = row.Background(t.SurfacePressed)

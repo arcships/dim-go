@@ -647,7 +647,7 @@ func configProviderMarkIcon(c *gui.Context, name string, size float32, configure
 	box.Children(func() {
 		icon := gui.Box(c).Size(size*configMarkInk, size*configMarkInk).Shrink(0)
 		icon.DrawOver(func(p *gui.Painter, r gui.Rect) {
-			p.Icon(iconProvider, r, ink)
+			paintIcon(p, iconProvider, r, ink)
 		})
 	})
 }
@@ -728,8 +728,7 @@ func (a *App) configDetailColumn(c *gui.Context, data configView) {
 // configDetailContentWidth 是详情内容的宽：参考的 max-w-2xl（672）封顶，
 // 窄窗时收进可用宽度（见 design-baseline §7 的设置内容最大宽 1008）。
 func configDetailContentWidth(c *gui.Context) float32 {
-	width, _ := c.Size()
-	usable := float32(math.Min(float64(width-SettingsNavWidth), SettingsContentMaxWidth))
+	usable := float32(math.Min(float64(settingsUsableWidth(c)), SettingsContentMaxWidth))
 	avail := usable - 2*space8 - configListW - 2*configDetailPad
 	if avail < configDetailMinW {
 		return configDetailMinW
@@ -914,7 +913,7 @@ func (a *App) configModelsCheckbox(c *gui.Context, data configView) {
 				if state == gui.CheckMixed {
 					icon = configIconMinus
 				}
-				p.Icon(icon, r, t.AccentText)
+				paintIcon(p, icon, r, t.AccentText)
 			})
 		default:
 			box.DrawOver(func(p *gui.Painter, r gui.Rect) {

@@ -231,8 +231,8 @@ func (a *App) dirPickDialog(c *gui.Context, target dirPickTarget) {
 		title, field = pluginManageAdd, pluginSourceLabel
 	}
 	open := true
-	m := gui.Modal(c, &open, func() {
-		panel := gui.Column(c).Gap(space2)
+	m := modalShell(gui.Modal(c, &open, func() {
+		panel := gui.Column(c).Gap(space2).Role(gui.RoleAlertDialog).Label(title)
 		panel.Children(func() {
 			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
@@ -267,7 +267,8 @@ func (a *App) dirPickDialog(c *gui.Context, target dirPickTarget) {
 			})
 		})
 		panel.Width(accDialogWidth(c))
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		st.open, st.failure = false, ""
 	}

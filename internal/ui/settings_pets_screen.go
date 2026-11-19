@@ -317,7 +317,7 @@ func petsLoadingRow(c *gui.Context) {
 // petsListCard 是内置 Pet 的列表卡：一行一个 Pet，行间 1px 细线。
 func petsListCard(c *gui.Context) {
 	screenCard(c, func() {
-		gui.Column(c).Shrink(0).Children(func() {
+		gui.Column(c).Shrink(0).Role(gui.RoleList).Label("Pets").Children(func() {
 			for i, pet := range petsScreen.descriptors {
 				if i > 0 {
 					screenRule(c)
@@ -334,7 +334,8 @@ func petsListRow(c *gui.Context, pet petDescriptor) {
 	t := c.Theme()
 	selected := pet.id == petsScreen.selected
 	row := gui.Row(c).Shrink(0).MinHeight(petsRowH).Padding(0, petsCardPad).
-		AlignItems(gui.Center).Gap(petsRowGap).Label(pet.name)
+		AlignItems(gui.Center).Gap(petsRowGap).
+		Role(gui.RoleListItem).AccessSelected(selected).Label(pet.name)
 	if selected {
 		row = row.Background(t.Accent.Alpha(petsSelectedAlpha))
 	}
@@ -480,7 +481,7 @@ func petsEmptyState(c *gui.Context, text string) {
 // petsCustomList 是自定义 Pet 的列表（S-pets-29 … 32）：名字 + 错误 + 选择 + 删除。
 func petsCustomList(c *gui.Context) {
 	screenCard(c, func() {
-		gui.Column(c).Shrink(0).Children(func() {
+		gui.Column(c).Shrink(0).Role(gui.RoleList).Label("自定义 Pets").Children(func() {
 			for i, pet := range petsScreen.custom {
 				if i > 0 {
 					screenRule(c)
@@ -494,7 +495,9 @@ func petsCustomList(c *gui.Context) {
 // petsCustomRow 是一条自定义 Pet：名字与错误在左，选择与删除在右。
 func petsCustomRow(c *gui.Context, pet petDescriptor) {
 	row := gui.Row(c).Shrink(0).MinHeight(petsRowH).Padding(0, petsCardPad).
-		AlignItems(gui.Center).Gap(petsRowGap)
+		AlignItems(gui.Center).Gap(petsRowGap).
+		Role(gui.RoleListItem).Label(pet.name).
+		AccessSelected(pet.id == petsScreen.selected)
 	if pet.id == petsScreen.selected {
 		row = row.Background(c.Theme().Accent.Alpha(petsSelectedAlpha))
 	}
@@ -527,7 +530,7 @@ func petsDeleteDialog(c *gui.Context) {
 	}
 	name := petsDeleteName(petsScreen.deleteFor)
 	open := true
-	m := gui.Modal(c, &open, func() {
+	m := modalShell(gui.Modal(c, &open, func() {
 		screenDialogPanel(c, "删除 "+name+"？", func() {
 			hint := petsCopyDeleteOnly
 			if petsScreen.deleteFor == petsScreen.selected {
@@ -555,7 +558,8 @@ func petsDeleteDialog(c *gui.Context) {
 				}
 			})
 		})
-	})
+	}))
+
 	if !open || m.Dismissed() {
 		petsScreen.deleteFor = ""
 		petsScreen.deleting = false

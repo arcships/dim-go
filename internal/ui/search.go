@@ -840,7 +840,8 @@ func (a *App) sessionSearchOverlay(c *gui.Context) {
 	t := c.Theme()
 	windowWidth, _ := c.Size()
 	sidebar := a.sidebarWidthValue()
-	if a.sidebarCollapsed {
+	if a.sidebarCollapsed || narrowWindow(c) {
+		// 窄窗里左栏只留边条（与 layout 同一判据）：浮层跟着主区的实际左缘走。
 		sidebar = SidebarRailWidth
 	}
 	panel := a.rpWidth(windowWidth, sidebar)

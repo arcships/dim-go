@@ -947,7 +947,7 @@ func approvalImageBlock(c *gui.Context, panel approvalPanelContent) {
 				quarter := float32(approvalImageThumb) / 4
 				inner := gui.Rect{X: r.X + quarter, Y: r.Y + quarter,
 					W: r.W - 2*quarter, H: r.H - 2*quarter}
-				p.Icon(iconEye, inner, t.TextMuted)
+				paintIcon(p, iconEye, inner, t.TextMuted)
 			})
 		}
 		if panel.SizeText != "" {

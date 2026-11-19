@@ -57,7 +57,7 @@ func statusDot(c *gui.Context, color gui.Color, ok bool) {
 // 读屏名给「账号：<首字母>」；没有首字母时退化为一个中性点。
 func avatar(c *gui.Context, t *gui.Theme, initial string) {
 	box := gui.Box(c).Width(rowCompact).Height(rowCompact).Shrink(0).
-		Background(t.SurfacePressed).Radius(rowCompact/2).
+		Background(t.SurfacePressed).Radius(rowCompact / 2).
 		Label("账号：" + initial)
 	box.Children(func() {
 		if initial == "" {
