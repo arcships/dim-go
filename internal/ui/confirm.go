@@ -271,7 +271,7 @@ func (a *App) confirmDialog(c *gui.Context) {
 	dialog := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleAlertDialog).Label(title)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).SingleLine()
+			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).SingleLine()
 			typeSecondary.style(t, gui.Text(c, a.confirmDescription())).
 				TextColor(t.TextMuted).Selectable()
 			if kind == confirmKindArchive && a.confirm.running {

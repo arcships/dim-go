@@ -418,7 +418,7 @@ func (a *App) settingsAccountScreen(c *gui.Context) {
 // accountPageTitle 是 A.1：页面标题「账户」（S-account-01）。
 func accountPageTitle(c *gui.Context) {
 	t := c.Theme()
-	typeH2.style(t, gui.Text(c, accCopyTitle)).TextColor(t.Text).
+	typePageTitle.style(t, gui.Text(c, accCopyTitle)).TextColor(t.Text).
 		Role(gui.RoleHeading).Level(2)
 }
 
@@ -642,7 +642,7 @@ func (a *App) accountSignedOut(c *gui.Context, d accountScreenData) {
 		Role(gui.RoleGroup).Label(accCopyLoginTitle)
 	card.Children(func() {
 		gui.Column(c).Gap(space2).Children(func() {
-			typeH3.style(t, gui.Text(c, accCopyLoginTitle)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, accCopyLoginTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3)
 			typeBody.style(t, gui.Text(c, accCopyLoginDetail)).TextColor(t.TextMuted)
 		})
@@ -692,7 +692,7 @@ func (a *App) accountEmailDialog(c *gui.Context) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).
 			Role(gui.RoleDialog).Label(accCopyEnterprise).Children(func() {
-			typeH3.style(t, gui.Text(c, accCopyEnterprise)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, accCopyEnterprise)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3)
 			typeBody.style(t, gui.Text(c, accCopyEmailDetail)).TextColor(t.TextMuted)
 			typeBodyStrong.style(t, gui.Text(c, accCopyEmailLabel)).TextColor(t.Text)
@@ -1273,7 +1273,7 @@ func (a *App) accountResetDialog(c *gui.Context, d accountScreenData) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).
 			Role(gui.RoleDialog).Label(accCopyResetTitle).Children(func() {
-			typeH2.style(t, gui.Text(c, accCopyResetTitle)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, accCopyResetTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(2)
 			typeBody.style(t, gui.Text(c, accCopyResetDetail)).TextColor(t.TextMuted)
 			gui.Column(c).Gap(space1).Children(func() {

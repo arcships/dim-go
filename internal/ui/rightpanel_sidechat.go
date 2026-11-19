@@ -190,7 +190,7 @@ func (a *App) sideChatEndDialog(c *gui.Context) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		gui.Column(c).Gap(space3).Role(gui.RoleAlertDialog).Label(sideChatEndTitle).
 			Children(func() {
-				typeH3.style(t, gui.Text(c, sideChatEndTitle)).TextColor(t.Text).
+				typeDialogTitle.style(t, gui.Text(c, sideChatEndTitle)).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(3)
 				typeBody.style(t, gui.Text(c, sideChatEndDetail)).TextColor(t.TextMuted)
 				gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {

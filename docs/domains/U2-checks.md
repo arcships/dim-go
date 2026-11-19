@@ -134,3 +134,74 @@ sidebar.go:32 [L2] UI-21、X15：字符串里用字符当图标：搜索 ›
 | Windows / Linux | 无目标机器（§7.1） |
 | U1 内容白名单的正式版 | 现按 `internal/ui` 现状列出（§2），待 U1 出清单后替换并保留来源列 |
 | U3 高后果动作清单的正式版 | 现按 U3 §5.2 列出（§2），待 U3 单列后补 |
+
+## 7 不稳定测试与成因
+
+同一命令（`go test ./internal/ui -count=5`）连跑，失败数曾是 1 / 2 / 1：同样的代码、同样的
+commit，跑一次绿、跑一次红。逐条抓出来之后，成因只有两类，其余都是并发编辑的工作区噪声。
+
+### 7.1 失败清单与频率（修之前）
+
+| 用例 | 频率 | 触发条件 |
+|---|---|---|
+| `TestConfirmDeleteFailureKeepsDialog` | 60 次里失败 15 次（25%）；`-count=5` 的 15 轮里失败 4 轮 | 机器忙、协程调度慢时几乎必现；空载时偶尔 |
+| `TestUILint`（L20 两项） | 只在整包连跑时偶发，单独 `-count=20` 全绿 | 见 7.3 的顺序依赖 |
+
+### 7.2 成因一：点一次就断言后台结果（异步窗口）
+
+`App.runIntent` 在后台协程里执行写入意图，结果交回渲染线程，**下一次渲染**才落到视图上
+（`applyIntentResults`）。`TestConfirmDeleteFailureKeepsDialog` 的写法是「点删除 → `tt.Frame()`
+一次 → 断言弹窗里有失败原因」，于是有一个窗口：协程还没跑完时，界面上仍是执行中的样子
+（按钮写着「删除中...」、弹窗还留着），断言就在这个窗口里随机失败。空载时窗口接近零，所以
+平时看不出来。
+
+修法不是加 sleep（那只是把窗口缩成"通常够用"），而是**画帧直到要断言的观察值成立**：
+
+- `internal/ui/waits_test.go` 的 `waitFrame(t, tt, what, cond)`：反复 `tt.Frame()` 直到 `cond()`
+  成立，3s 只是"卡死"的判定上限，不参与等待语义；
+- `TestConfirmDeleteFailureKeepsDialog` 等「错误行出现 + `busy` 复位」；
+- `TestConfirmEditRunningDialog` 等「弹窗关闭 + 编辑落定」（原来只等 `Stop` 通道，通道发出时
+  onOK 回调还没落到视图上，同一个窗口）；
+- `fork_test.go` 的四个分叉用例原来等的是替身收到了 `CreateBranch` / `SelectBranch`，而之后
+  断言的标题行回执要更晚一帧才写：等条件里补上回执本身，`waitFork` 并入 `waitFrame`。
+
+### 7.3 成因二：包级渲染状态没复位（顺序依赖）
+
+代码主题与代码字级是包级值（`markdown.go` 的 `currentCodeTheme`、`tokens.go` 的
+`currentCodeLook`，全局一份、各窗口同值，`applyTokens` 每帧按本地偏好覆写）。用例外貌用例把
+它改成 `One Dark Pro` 之后没有还原，而 L20 断言的是默认（GitHub）那套配色——`markdownTheme`
+读到的若是残留值，就报「代码块底色 / 行内代码底色没取我们的 token」。当时靠"lint 之前恰好有
+别的用例渲染了默认外观"把值冲掉才没红，属顺序依赖，换执行顺序或单独跑就会翻。
+
+修法：测试侧显式钉住并还原，不靠别人替我们复位。
+
+- `internal/ui/teststate_test.go` 的 `pinCodeLook(t, look)`：把代码字级与配色钉成 `look`，
+  `t.Cleanup` 还原用例开始前的值；
+- 外貌用例用 `pinCodeLook(t, src.prefs.Appearance)` 收尾自己的改动；
+- `lintMarkdownBlocks` 用 `pinCodeLook(t, AppearancePreferences{})` 先钉成默认值再断言。
+
+### 7.4 排查手法（可复跑）
+
+| 手法 | 命令 | 说明 |
+|---|---|---|
+| 放大异步窗口 | 在**只读副本**里给 `runIntent` 的协程起点加固定 delay，再整包跑 | 副本改动不进仓库；deliberate 的"点一次就断言"会稳定红，证明手法有效。200ms 窗口下整包两轮零失败 = 没有别的用例踩这个坑 |
+| 打乱顺序 | `go test ./internal/ui -shuffle=on -count=1`（多个种子） | 抓包级状态残留；修完之后 8 个种子全绿 |
+| 空载 / 满载 | 多个 `go test ./internal/ui -count=N` 并发跑 | 只影响时间敏感项，不影响结果 |
+| 只读快照 | 把仓库复制到 `$TMPDIR/<snapshot>` 上跑 | 工作区同时有人在改 `internal/ui` 时，只有快照上的统计可归因 |
+
+### 7.5 连跑结果（修之后）
+
+| 场景 | 结果 |
+|---|---|
+| 只读快照 `go test ./internal/ui -count=10` × 3 轮 | 3 轮全绿（约 90–100s / 轮） |
+| 只读快照 `-shuffle=on` 8 个种子 | 全绿 |
+| 放大后台窗口（200ms）整包 × 2 | 全绿 |
+| 4 个进程并发 `-count=4` | 全绿 |
+| `TestConfirmDeleteFailureKeepsDialog -count=40` | 40/40 通过（修之前 60 次里失败 15 次） |
+
+### 7.6 不是测试问题的那一类
+
+工作区同时有别的领域在改 `internal/ui` 时，整包连跑会出现另一类"失败"：测试编译不过
+（引用了刚被删掉的字段）、`TestScreens` 与参考图差异超容差（渲染改了、图还没重出）、
+`TestUILint` 报语法错误（读到写了一半的源文件）。这些都随对方的保存而消失，且用同一 commit
+复跑不出现——归因是工作区噪声，不是用例不稳定。判定方法：同一份只读快照上复跑不重现。

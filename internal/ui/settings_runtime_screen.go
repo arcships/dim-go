@@ -127,7 +127,7 @@ func rtEmptyCard(c *gui.Context, t *gui.Theme) {
 func rtHeader(c *gui.Context, t *gui.Theme, live bool) {
 	gui.Row(c).Shrink(0).Gap(rtHeaderGap).AlignItems(gui.Start).Children(func() {
 		gui.Column(c).Grow(1).MinWidth(0).Gap(rtTitleGap).Children(func() {
-			typeH2.style(t, gui.Text(c, rtCopyTitle)).TextColor(t.Text).
+			typePageTitle.style(t, gui.Text(c, rtCopyTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(1).SingleLine()
 			mdSecondary(c, t, rtCopyDesc).Selectable()
 		})

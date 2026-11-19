@@ -85,7 +85,7 @@ func (a *App) fullAccessConfirm(c *gui.Context) {
 			Role(gui.RoleAlertDialog).Label("确认开启完全放开？").Children(func() {
 			gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 				iconGlyph(c, iconWarn, t.Warning, "warning")
-				typeH3.style(t, gui.Text(c, "确认开启完全放开？")).TextColor(t.Text).
+				typeDialogTitle.style(t, gui.Text(c, "确认开启完全放开？")).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(3)
 			})
 			typeBody.style(t, gui.Text(c,

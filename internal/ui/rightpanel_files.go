@@ -578,8 +578,16 @@ func (a *App) rpLiveSearch(c *gui.Context, facts PanelFacts, query string, refre
 			TextColor(t.Warning).Role(gui.RoleStatus).SingleLine()
 	}
 	if snapshot.Truncated {
-		typeSecondary.style(t, gui.Text(c, fmt.Sprintf("仅显示前 %d 个匹配项", snapshot.Limit))).
-			TextColor(t.TextMuted).SingleLine()
+		line := fmt.Sprintf("仅显示前 %d 个匹配项", snapshot.Limit)
+		// 截断的成因分开写：匹配数到上限与扫描规模到上限不是一回事，后者的
+		// 结果可能连"前 N 个"都没覆盖到整个工作区。
+		switch snapshot.StopReason {
+		case "max-files":
+			line += "：已扫到文件数上限，结果可能不完整"
+		case "max-scan-bytes":
+			line += "：已扫到扫描字节上限，结果可能不完整"
+		}
+		typeSecondary.style(t, gui.Text(c, line)).TextColor(t.TextMuted).SingleLine()
 	}
 	hits := rpPathHits(snapshot.Hits)
 	if len(hits) == 0 {

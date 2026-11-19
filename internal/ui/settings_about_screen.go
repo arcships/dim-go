@@ -79,6 +79,10 @@ type aboutState struct {
 	updateVersion   string
 	downloadPercent int
 	updateError     string
+	// retryAction / hasRetryAction 记最近一次失败的更新动作：「重试」重发的是
+	// 失败的那一个（检查 / 下载 / 安装），不是一律退回「再检查一次」。
+	retryAction    abtUpdateActionKind
+	hasRetryAction bool
 
 	announcements        []aboutAnnouncement
 	announcementsLoaded  bool
@@ -318,6 +322,7 @@ func aboutCurrentUpdate() aboutUpdateView {
 		if aboutScreen.updateVersion != "" {
 			view.available = aboutScreen.updateVersion
 		}
+		aboutFallbackError(&view)
 		return view
 	}
 	snapshot := aboutWire.facts.Update()
@@ -368,7 +373,17 @@ func aboutCurrentUpdate() aboutUpdateView {
 			view.phase = abtDisabled
 		}
 	}
+	aboutFallbackError(&view)
 	return view
+}
+
+// aboutFallbackError 把「动作返回了原因、读数里却没有」的失败补到相位上：
+// 适配器一般把失败写进 UpdateFacts.Err（那一条优先，这里不覆盖）；只在读数
+// 没有给出原因时用返回的原文兜底，免得一次失败在屏上变成什么都没发生。
+func aboutFallbackError(view *aboutUpdateView) {
+	if view.err == "" && aboutScreen.updateError != "" {
+		view.phase, view.err = abtError, aboutScreen.updateError
+	}
 }
 
 // abtUpdateSection 是「软件更新」（S-about-01…18）：标签、版本行、状态行、
@@ -480,6 +495,11 @@ func abtUpdateAction(c *gui.Context, t *gui.Theme, view aboutUpdateView) {
 		if view.retryDownload {
 			action = abtActionDownload
 		}
+		// 「重试」重发的是失败的那一个动作：下载失败不再退回检查，安装失败也
+		// 不退回下载。
+		if aboutScreen.hasRetryAction {
+			action = aboutScreen.retryAction
+		}
 	default:
 		// 未配置更新源 / 自动更新已禁用：入口保留但置灰；状态行写明原因。
 		label, disabled = abtCopyCheck, true
@@ -532,18 +552,33 @@ const (
 )
 
 // abtRunUpdateAction 把按钮点击交给更新动作；动作在后台跑，失败原因写回相位。
+//
+// 适配器通常自己把失败写进 UpdateFacts 的相位与 Err；这里同时收下返回的原文：
+// 读数没给出原因时由 aboutFallbackError 显示，重试入口就在同一块「软件更新」里
+// （相位转 abtError 后按钮变成「重试」）。
 func abtRunUpdateAction(action abtUpdateActionKind) {
 	if aboutWire.intents == nil {
 		return
 	}
 	ctx := context.Background()
+	aboutScreen.updateError = ""
+	aboutScreen.hasRetryAction = false
+	var err error
 	switch action {
 	case abtActionCheck:
-		_ = aboutWire.intents.CheckUpdate(ctx)
+		err = aboutWire.intents.CheckUpdate(ctx)
 	case abtActionDownload:
-		_ = aboutWire.intents.DownloadUpdate(ctx)
+		err = aboutWire.intents.DownloadUpdate(ctx)
 	case abtActionInstall:
-		_ = aboutWire.intents.InstallUpdate(ctx)
+		err = aboutWire.intents.InstallUpdate(ctx)
+	}
+	if err == nil {
+		return
+	}
+	aboutScreen.updateError = err.Error()
+	aboutScreen.retryAction, aboutScreen.hasRetryAction = action, true
+	if aboutWire.facts == nil {
+		aboutScreen.phase = abtError
 	}
 }
 

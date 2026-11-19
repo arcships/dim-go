@@ -204,11 +204,11 @@ func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 	})
 }
 
-// settingsSectionTitle 是分节标题：标题层级由字重与字号给（U2 §1），字号与
-// 已重建分节的 h2 同档（20/25），19 节的页首不再一大一小。
+// settingsSectionTitle 是分节标题：标题层级由字重与字号给（U2 §1），字号取
+// design-baseline §2 的页面标题 17.5/24.5/600，19 节的页首同一个档。
 func settingsSectionTitle(c *gui.Context, title string) {
 	t := c.Theme()
-	typeH2.style(t, gui.Text(c, title)).TextColor(t.Text).
+	typePageTitle.style(t, gui.Text(c, title)).TextColor(t.Text).
 		Role(gui.RoleHeading).Level(2)
 }
 

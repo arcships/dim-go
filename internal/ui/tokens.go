@@ -226,14 +226,21 @@ var (
 	// typeTitleRow 是标题行的会话名：跟官方示例的页面标题同一档（15/600，
 	// 见 notes.png 的 24 与 permissionflow.png 的 20 之间的最小档；标题行只有 48 高）。
 	typeTitleRow = fontStep{size: 15, weight: 600}
-	typeMicro    = fontStep{size: 10.5, line: 14, weight: 400}
-	typeCode     = fontStep{size: 13, line: 20, weight: 400, family: codeFont}
-	typeH1       = fontStep{size: 22.4, line: 33.6, weight: 700}
-	typeH2       = fontStep{size: 20, line: 25, weight: 600}
-	typeH3       = fontStep{size: 16.1, line: 24.15, weight: 600}
-	typeH4       = fontStep{size: 14, line: 21, weight: 600}
-	typeH5       = fontStep{size: 13.3, line: 19.95, weight: 600}
-	typeH6       = fontStep{size: 12.6, line: 18.9, weight: 600}
+
+	// typePageTitle 是设置分节的页面标题：design-baseline §2 的 17.5 / 24.5 / 600
+	// （实测行盒 25）。19 节与壳层共用一个档，不再一屏 20、一屏 17.5。
+	typePageTitle = fontStep{size: 17.5, line: 24.5, weight: 600}
+	// typeDialogTitle 是模态面板的标题：design-baseline §2 的 15.75 / 24.5 / 600
+	// （实测行盒 25）。
+	typeDialogTitle = fontStep{size: 15.75, line: 24.5, weight: 600}
+	typeMicro       = fontStep{size: 10.5, line: 14, weight: 400}
+	typeCode        = fontStep{size: 13, line: 20, weight: 400, family: codeFont}
+	typeH1          = fontStep{size: 22.4, line: 33.6, weight: 700}
+	typeH2          = fontStep{size: 20, line: 25, weight: 600}
+	typeH3          = fontStep{size: 16.1, line: 24.15, weight: 600}
+	typeH4          = fontStep{size: 14, line: 21, weight: 600}
+	typeH5          = fontStep{size: 13.3, line: 19.95, weight: 600}
+	typeH6          = fontStep{size: 12.6, line: 18.9, weight: 600}
 )
 
 // codeFontStack 是代码的字体栈底：系统等宽，不内嵌字体（U2 §1.3）。

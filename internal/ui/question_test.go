@@ -169,8 +169,11 @@ func TestQuestionCardBatch(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("提交后没有发出写入")
 	}
-	// 答过之后卡片不再画（等结算时输入区回到正常形态）。
-	tt.Frame()
+	// 答过之后卡片不再画（等结算时输入区回到正常形态）：请求已发出的那一帧卡片
+	// 收起的动作还在后台结果交回之后，等观察值。
+	waitFrame(t, tt, "答过的提问从屏上撤下", func() bool {
+		return !tt.HasText(questionCopyTitleFallback)
+	})
 	if tt.HasText(questionCopyTitleFallback) {
 		t.Fatalf("答过的提问仍在屏上：\n%s", p0WindowText(tt))
 	}
@@ -222,7 +225,10 @@ func TestQuestionCardFailureAndKeys(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Esc 没有走「拒绝」通道")
 	}
-	tt2.Frame()
+	// 「已答」的登记是拒绝结果交回渲染线程后写的：等观察值。
+	waitFrame(t, tt2, "拒绝后记下已答请求", func() bool {
+		return app2.questionAnswered("q-one")
+	})
 	if !app2.questionAnswered("q-one") {
 		t.Fatal("拒绝后没有记下已答请求")
 	}

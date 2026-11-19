@@ -58,7 +58,7 @@ func renderModality(c *gui.Context, a *App) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Children(func() {
-				typeH2.style(t, gui.Text(c, mdCopyTitle)).TextColor(t.Text).
+				typePageTitle.style(t, gui.Text(c, mdCopyTitle)).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(1).SingleLine()
 				mdAlertBanner(c, t, mdCopyUnavailable).
 					Margin(mdPageGap, 0, 0, 0)
@@ -87,7 +87,7 @@ func mdLiveScreen(c *gui.Context, t *gui.Theme, st SettingsSnapshot) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Children(func() {
-				typeH2.style(t, gui.Text(c, mdCopyTitle)).TextColor(t.Text).
+				typePageTitle.style(t, gui.Text(c, mdCopyTitle)).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(1).SingleLine()
 				if banner := mdCapabilityBanner(st.Modality); banner != "" {
 					mdAlertBanner(c, t, banner).Margin(mdPageGap, 0, 0, 0)

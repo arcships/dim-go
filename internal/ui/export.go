@@ -247,7 +247,7 @@ func (a *App) exportPanel(c *gui.Context) {
 		panel := gui.Column(c).Gap(space2).Width(accDialogWidth(c)).
 			Role(gui.RoleDialog).Label(exportTitle)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, exportTitle)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, exportTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
 			// 正文区可滚动：窄窗或手动路径 + 失败原因同屏时，按钮行仍在窗口内
 			// （R-GF-006：内容区可滚动，按钮不被挤到窗外）。

@@ -201,7 +201,7 @@ func (a *App) pluginInstallView(c *gui.Context) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleDialog).Label(pluginDialogTitle)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, pluginDialogTitle)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, pluginDialogTitle)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(2)
 			typeBody.style(t, gui.Text(c, pluginDialogDesc)).TextColor(t.TextMuted)
 			seg := gui.Segmented(c, &st.mode, pluginModeLocal, pluginModeGit).

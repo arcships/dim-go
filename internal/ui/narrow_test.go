@@ -292,3 +292,36 @@ func TestCompactWidthBoundary(t *testing.T) {
 		}
 	}
 }
+
+// 设置 › 权限的规则表头只在三列并排时出现（U2-forms F23）：720 档内容列 664
+// 够三列，表头在；500 档内容列 444 < 512，规则行按行堆叠，表头不画。
+func TestNarrowPermissionRuleTableHeader(t *testing.T) {
+	for _, tc := range []struct {
+		width      int
+		wantHeader bool
+	}{
+		{narrowWidth, true},
+		{500, false},
+	} {
+		app := NewApp(Options{State: StateDefault})
+		app.screen = ScreenSettings
+		app.settingsSection = secPermissions
+		tt := gui.NewTester(app.View, tc.width, WindowHeight)
+		_, ok := tt.Find("命令规则表头")
+		if ok != tc.wantHeader {
+			t.Fatalf("%d 宽：规则表头出现=%v，想要 %v", tc.width, ok, tc.wantHeader)
+		}
+		if !tc.wantHeader {
+			continue
+		}
+		command, ok1 := tt.Find(permCopyColCmd)
+		match, ok2 := tt.Find(permCopyColMatch)
+		decision, ok3 := tt.Find(permCopyColAction)
+		if !ok1 || !ok2 || !ok3 {
+			t.Fatalf("%d 宽：三列表头缺格：%v %v %v", tc.width, ok1, ok2, ok3)
+		}
+		if command.Y != match.Y || decision.Y != match.Y {
+			t.Fatalf("%d 宽：三列表头不在同一行：%v %v %v", tc.width, command.Y, match.Y, decision.Y)
+		}
+	}
+}

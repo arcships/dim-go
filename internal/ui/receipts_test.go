@@ -51,8 +51,11 @@ func TestIntentErrorRowOffersRetry(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("没有发 RenameSession")
 	}
-	tt.Frame()
-	tt.Frame()
+	// 错误行与重试入口是失败结果交回渲染线程后才写的：等观察值，不数帧。
+	waitFrame(t, tt, "失败原因与重试入口出现", func() bool {
+		_, ok := tt.Find("重试未完成的动作")
+		return ok && tt.HasText("重命名：目录拒绝写入")
+	})
 	if _, ok := tt.Find("重试未完成的动作"); !ok {
 		t.Fatalf("失败后没有重试入口：%v", tt.Texts())
 	}
@@ -68,8 +71,10 @@ func TestIntentErrorRowOffersRetry(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("重试没有再发写入")
 	}
-	tt.Frame()
-	tt.Frame()
+	waitFrame(t, tt, "成功后重试入口消失", func() bool {
+		_, ok := tt.Find("重试未完成的动作")
+		return !ok
+	})
 	if _, ok := tt.Find("重试未完成的动作"); ok {
 		t.Fatal("成功后重试入口还在")
 	}

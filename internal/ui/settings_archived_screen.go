@@ -89,7 +89,7 @@ const (
 
 // 字阶（design-baseline §2）。
 var (
-	arcTitleStyle  = fontStep{size: 20, line: 25, weight: 600}
+	arcTitleStyle  = typePageTitle
 	arcRowTitle    = fontStep{size: 13, line: 19.5, weight: 500}
 	arcGroupTitle  = fontStep{size: 13, line: 19.5, weight: 600}
 	arcMetaStyle   = fontStep{size: 11, line: 14, weight: 400}
@@ -538,7 +538,7 @@ func arcDialog(c *gui.Context, t *gui.Theme, open *bool, title, desc string, run
 		panel := gui.Column(c).Gap(screenSpace3).
 			Role(gui.RoleAlertDialog).Label(title)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
 			arcNoteStyle.style(t, gui.Text(c, desc)).TextColor(t.TextMuted).
 				Selectable()

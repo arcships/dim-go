@@ -204,7 +204,11 @@ func TestProviderFormCreateWrites(t *testing.T) {
 	}
 	tt.Frame()
 	rec.expect(t, "CreateProvider Acme 2 models=m9")
-	tt.Frame()
+	// 表单收起是保存结果交回渲染线程后写的：等观察值，不数帧。
+	waitFrame(t, tt, "保存成功后新增表单关闭", func() bool {
+		_, ok := tt.Find("添加自定义提供商")
+		return !ok
+	})
 	if _, ok := tt.Find("添加自定义提供商"); ok {
 		t.Fatal("保存成功后表单没有关闭")
 	}
@@ -257,7 +261,10 @@ func TestProviderFormEditPrefilled(t *testing.T) {
 	}
 	tt.Frame()
 	rec.expect(t, "UpdateProvider p1")
-	tt.Frame()
+	waitFrame(t, tt, "保存成功后编辑表单关闭", func() bool {
+		_, ok := tt.Find("编辑供应商")
+		return !ok
+	})
 	if _, ok := tt.Find("编辑供应商"); ok {
 		t.Fatal("保存成功后表单没有关闭")
 	}

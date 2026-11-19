@@ -437,6 +437,11 @@ func generalCleanupDialog(c *gui.Context, a *App) {
 				// 会被当成事实的数字）。
 				st, _ := a.liveSettings()
 				if !st.StorageKnown {
+					// 读失败与「还没读到」分开写：有原因就给原因，不在读数位置留空。
+					if st.StorageError != "" {
+						generalNote(c, "读取存储用量失败："+st.StorageError)
+						return
+					}
 					generalNote(c, noteStorageUnread)
 					return
 				}

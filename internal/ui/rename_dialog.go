@@ -209,7 +209,7 @@ func (a *App) renameDialogView(c *gui.Context) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleDialog).Label(title)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(2)
 			typeBody.style(t, gui.Text(c, desc)).TextColor(t.TextMuted)
 			gui.Column(c).Gap(space2).Children(func() {

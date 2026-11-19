@@ -43,10 +43,11 @@ const (
 	screenSpace4  = 16
 	screenSpace5  = 20
 
-	// 几何：design-baseline §3、§4、§7。
+	// 几何：design-baseline §3、§4、§7。圆角取基线 §4 的卡内分区 8.75 与
+	// 控件 6.75（tokens.go 的 radiusCard / radius），不再取参考截图拟合时的整数。
 	screenStroke     = 1
-	screenRadiusCard = 8
-	screenRadiusCtl  = 6
+	screenRadiusCard = radiusCard
+	screenRadiusCtl  = radius
 	screenCardGap    = 10
 	screenControlH   = 32
 	screenInputPadV  = 8
@@ -81,10 +82,10 @@ const (
 	screenCodeNumW   = 18
 )
 
-// 字阶（design-baseline §2）：页面标题 20（与设置壳的 h2 同档；实测参考 h2 行盒
-// 25 ≈ 20px）、标签 14/500、说明 10.5、分组标题与刻度 12.25/10.5。
+// 字阶（design-baseline §2）：页面标题 17.5/24.5（typePageTitle）、标签 14/500、
+// 说明 10.5、分组标题与刻度 12.25/10.5。
 var (
-	screenTitleStyle  = fontStep{size: 20, line: 25, weight: 600}
+	screenTitleStyle  = typePageTitle
 	screenLabelStyle  = fontStep{size: 14, line: 21, weight: 500}
 	screenValueStyle  = fontStep{size: 14, line: 21, weight: 400}
 	screenStrongStyle = fontStep{size: 14, line: 21, weight: 600}
@@ -110,7 +111,7 @@ var (
 
 // ---- 三屏共用构件 ----
 
-// screenTitle 是设置分节的页面标题：与账户屏同级（type-h2、二级标题）。
+// screenTitle 是设置分节的页面标题：与账户屏同级（typePageTitle、二级标题）。
 func screenTitle(c *gui.Context, text string) {
 	t := c.Theme()
 	screenTitleStyle.style(t, gui.Text(c, text)).TextColor(t.Text).
@@ -398,7 +399,7 @@ func screenDialogPanel(c *gui.Context, title string, body func()) {
 	panel := gui.Column(c).Gap(screenSpace3).
 		Role(gui.RoleDialog).Label(title)
 	panel.Children(func() {
-		typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
+		typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).
 			Role(gui.RoleHeading).Level(3).SingleLine()
 		body()
 	})

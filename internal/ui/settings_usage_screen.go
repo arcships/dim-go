@@ -42,7 +42,7 @@ func renderSettingsUsageScreen(c *gui.Context) {
 // usPageTitle 是页面标题「用量」（S-usage-01）：与「账户」「个性化」同级的
 // 二级标题，跟随内容滚出，不吸顶。
 func usPageTitle(c *gui.Context, t *gui.Theme) {
-	typeH2.style(t, gui.Text(c, usCopyTitle)).TextColor(t.Text).
+	typePageTitle.style(t, gui.Text(c, usCopyTitle)).TextColor(t.Text).
 		Role(gui.RoleHeading).Level(2)
 }
 

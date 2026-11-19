@@ -45,12 +45,12 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-ACC-001 | S-account-01 | 内容 | 已登录、套餐未到期，进入账户节 | 内容列顶部只有一个标题，文案逐字「账户」，无副标题、无色块 | — | 屏上文案为「账户」 | 已实现（证据 = internal/ui/settings_account_screen.go:accountPageTitle「账户」（常量 accCopyTitle）） |
 | R-ACC-002 | S-account-01 | 状态 | 账户节首屏、未滚动 | 标题基线在内容列顶下方 33px 处，左缘与内容列左缘 257 对齐 | — | 屏上「账户」：相对位置 = 内容列顶下方 | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
-| R-ACC-003 | S-account-01 | 样式 | 打开设置›账户，滚动到 y≈33 处的「账户」 | 标题为最高对比前景色，字号大于同屏所有分组标题 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：期望取值（12.25/737373）不在该元素的样式行上） |
+| R-ACC-003 | S-account-01 | 样式 | 打开设置›账户，滚动到 y≈33 处的「账户」 | 标题为最高对比前景色，字号大于同屏所有分组标题 | — | 判据 = 字号 页面标题 17.5px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_account_screen.go accountPageTitle） |
 | R-ACC-004 | S-account-01 | 样式 | 在设置›外观把主题切成深色，再回账户，滚动到 y≈33 处的「账户」 | 同字号同字重，字色切到深色主题前景；不出现浅色主题的深灰 | — | 屏上「浅色主题的深灰」出现次数 = 0 | 已实现（证据 = internal/ui/settings_account_screen.go:accountPageTitle + 标记 typeH2.style(t, gui.Text(c, accCopyTitle)).TextColor(t.Text).（常量 accCopyTitle「账户」）） |
 | R-ACC-005 | S-account-01 | 关联 | 从账户切到用量再切回 | 切走时标题换成「用量」，切回后为「账户」；同一次切换不出现两个标题并存 | — | 屏上「两个标题并存」出现次数 = 0 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-ACC-006 | S-account-01 | 交互 | 在内容区向下滚到底 | 标题随内容滚出视口，不留吸顶头部；滚回顶部后标题回到 y=33 | — | 屏上「账户」：y = 33 | 未实现（缺：该元素没有点击/键位处理） |
 | R-ACC-007 | S-account-01 | 记忆 | 切到其它节、重启客户端、再进设置 | 标题文案恒为「账户」 | — | 屏上「账户」的文案逐字为「账户」（2 字） | 未实现（缺：该元素没有落盘/恢复路径） |
-| R-ACC-008 | S-account-01 | 无障碍 | 读屏浏览账户节 | 标题以二级标题角色播报「账户」 | — | 读屏输出含标题层级与「账户」 | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| R-ACC-008 | S-account-01 | 无障碍 | 读屏浏览账户节 | 标题以二级标题角色播报「账户」 | — | 读屏输出含标题层级与「账户」 | 已实现（证据 = TestA11yScreens「账户」） |
 | R-ACC-009 | S-account-01 | 异常 | 程序语言切到英文再切回中文 | 标题跟随界面语言，不出现键名或空串 | 语言包缺失该键时回落中文「账户」，不显示 `settings.account.title` | 屏上「账户」：出现次数 = 0 | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 
 ### 1.2 到期横幅（条件：已登录且套餐到期）
@@ -243,7 +243,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ACC-153 | S-account-14 | 关联 | 复制 UID 后 | 其它文案不变，UID 行不换行、不抖动 | — | 屏上「复制」：行数 = 1 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-ACC-154 | S-account-14 | 异常 | 剪贴板写入被系统拒绝 | 控件显示失败反馈（叉或警示），不出现静默成功 | — | 屏上「静默成功」出现次数 = 0 | 未实现（缺：异常 是「状态转出/消失」类断言，代码里没有对应分支或转出后文案） |
 | R-ACC-155 | S-account-14 | 异常 | 剪贴板被其它应用占用阻塞 | 超时 1s 后给失败反馈，按钮恢复可点 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有失败/不可用分支与对应文案） |
-| R-ACC-156 | S-account-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「复制」听播报 | 播报按钮名「复制 UID」，动作可用回车触发 | — | 读屏名含「复制 UID」 | 未实现（缺：该元素没有 Role/Label/Description 标注） |
+| R-ACC-156 | S-account-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「复制」听播报 | 播报按钮名「复制 UID」，动作可用回车触发 | — | 读屏名含「复制 UID」 | 已实现（证据 = TestA11yScreens「复制 UID」） |
 | R-ACC-157 | S-account-14 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「复制」的边缘 | 图标线条清晰，命中区不小于 18×18 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：该维度没有逐元素代码事实，需 2× 截图取证） |
 | R-ACC-158 | S-account-14 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈132 处的「复制」 | 按钮跟随 uid 值右侧，不换到下一行 | — | 屏上「复制」：行数 = 1 | 未实现（缺：该元素没有窄窗断点处理（无 c.Size()/宽度判断）） |
 | R-ACC-159 | S-account-14 | 记忆 | 复制后切节再回来 | 反馈已复位为默认图标，剪贴板内容保留 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（缺：该元素没有落盘/恢复路径） |
@@ -746,7 +746,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-ACC-555 | S-account-47 | 内容 | 点开该确认对话框后看「row.confirmTitle」 | 标题取当前批次文案（如「重置 2026年12月 的用量」） | — | 屏上「row.confirmTitle」的文案逐字为「重置 2026年12月 的用量」（15 字） | 未实现（缺：期望内容没有逐字落点（代码里没有这段文案/字段）） |
-| R-ACC-556 | S-account-47 | 样式 | 打开设置›账户，看「row.confirmTitle」 | 字号 16、粗体，左对齐于对话框内边距 | — | 屏上「row.confirmTitle」：字号 = 16、水平对齐 = 左 | 未实现（缺：期望取值（16）在屏内没有对应取值） |
+| R-ACC-556 | S-account-47 | 样式 | 打开设置›账户，看「row.confirmTitle」 | 字号 16、粗体，左对齐于对话框内边距 | — | 屏上「row.confirmTitle」：字号 = 15.75、水平对齐 = 左 | 已实现（与基线对齐：对话框标题 15.75/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typeDialogTitle、internal/ui/settings_account_screen.go 重置确认框） |
 | R-ACC-557 | S-account-47 | 关联 | 切换选中批次 | 标题随批次更新，不残留上一批次 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；上一次内容出现次数 0（ST-VISIBLE） | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-ACC-558 | S-account-47 | 窄窗 | 窗口窄于 600 | 标题换行不截断 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（缺：该元素没有窄窗断点处理（无 c.Size()/宽度判断）） |
 | R-ACC-559 | S-account-47 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「row.confirmTitle」听播报 | 作为对话框标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_account_screen.go:accountResetDialog + 标记 typeH2.style(t, gui.Text(c, accCopyResetTitle)).TextColor(t.Text).） |
@@ -1551,7 +1551,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-USG-001 | S-usage-01 | 内容 | 进入用量节（任意状态） | 内容列顶部标题逐字「用量」，无副标题 | — | 屏上文案为「用量」 | 已实现（证据 = internal/ui/settings_usage_screen.go:usPageTitle「用量」（常量 usCopyTitle）） |
-| R-USG-002 | S-usage-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「用量」 | 字号、字重与「账户」「个性化」等节标题同级，左缘 257 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：文案「账户」只出现在 internal/ui/statusbar.go:usageAccountLink，不在该元素的渲染点上） |
+| R-USG-002 | S-usage-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「用量」 | 字号、字重与「账户」「个性化」等节标题同级，左缘 257 | — | 判据 = 字号 页面标题 17.5px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_usage_screen.go usPageTitle） |
 | R-USG-003 | S-usage-01 | 状态 | 从账户切到用量 | 标题换成「用量」，同一次切换只出现一个节标题 | — | 切换后标题数为 1 | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-USG-004 | S-usage-01 | 交互 | 向下滚动内容 | 标题随内容滚出视口，无吸顶 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有点击/键位处理） |
 | R-USG-005 | S-usage-01 | 记忆 | 切节再回来 | 标题与下方卡片回到首屏位置 | — | 返回后 y=33 | 未实现（缺：该元素没有落盘/恢复路径） |
@@ -2412,7 +2412,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PER-001 | S-personalization-01 | 内容 | 进入个性化节 | 标题逐字「个性化」，无副标题 | — | 屏上文案为「个性化」 | 已实现（证据 = internal/ui/settings_personalization_screen.go:renderSettingsPersonalizationScreen「个性化」（常量 psCopyTitle）） |
-| R-PER-002 | S-personalization-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「个性化」 | 与其它节标题同级，左缘 257 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：期望取值（12.25/257/737373）不在该元素的样式行上） |
+| R-PER-002 | S-personalization-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「个性化」 | 与其它节标题同级，左缘 257 | — | 判据 = 字号 页面标题 17.5px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_personalization_screen.go 页首标题） |
 | R-PER-003 | S-personalization-01 | 状态 | 首次打开设置 | 默认落在本节的顶部，标题在 y=33 | — | 首帧 y=33 | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-PER-004 | S-personalization-01 | 交互 | 向下滚动 | 随内容滚出，无吸顶 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有点击/键位处理） |
 | R-PER-005 | S-personalization-01 | 记忆 | 切节再回来 | 回到首屏位置 | — | 判据 = 返回后 y=33 | 未实现（缺：该元素没有落盘/恢复路径） |
@@ -3621,7 +3621,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-001 | S-appearance-01 | 内容 | 进入外观节 | 标题逐字「外观」，无副标题 | — | 屏上文案为「外观」 | 已实现（证据 = internal/ui/settings_appearance_screen.go:renderAppearance「外观」） |
-| R-APP-002 | S-appearance-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「外观」 | 与其它节标题同级，左缘 257、y=33 | — | 屏上「外观」：y = 33 | 未实现（缺：期望取值（257/33）不在该元素的样式行上） |
+| R-APP-002 | S-appearance-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「外观」 | 与其它节标题同级，左缘 257、y=33 | — | 屏上「外观」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_appearance_screen.go screenTitle） |
 | R-APP-003 | S-appearance-01 | 状态 | 从其它节切来 | 标题立刻替换，不残留上一节标题 | — | 标题数恒为 1；上一次内容出现次数 0（ST-VISIBLE） | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-APP-004 | S-appearance-01 | 交互 | 向下滚动 | 随内容滚出视口 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有点击/键位处理） |
 | R-APP-005 | S-appearance-01 | 记忆 | 切节再回来 | 回到首屏位置 | — | 返回后 y=33 | 未实现（缺：该元素没有落盘/恢复路径） |
@@ -4346,7 +4346,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-535 | S-appearance-62 | 内容 | 删除对话框打开 | 标题逐字「删除皮肤？」 | — | 屏上「删除皮肤？」的文案逐字为「删除皮肤？」（5 字） | 已实现（证据 = internal/ui/settings_appearance_screen.go:appearanceDeleteDialog「删除皮肤？」） |
-| R-APP-536 | S-appearance-62 | 样式 | 打开设置›外观，看「删除皮肤？」 | 字号 16、粗体，位于对话框内边距 | — | 屏上「删除皮肤？」：字号 = 16 | 未实现（缺：期望取值（16）不在该元素的样式行上） |
+| R-APP-536 | S-appearance-62 | 样式 | 打开设置›外观，看「删除皮肤？」 | 字号 16、粗体，位于对话框内边距 | — | 屏上「删除皮肤？」：字号 = 15.75 | 已实现（与基线对齐：对话框标题 15.75/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typeDialogTitle、internal/ui/settings_appearance_screen.go screenDialogPanel） |
 | R-APP-537 | S-appearance-62 | 状态 | 对话框未打开 | 不渲染 | — | 屏上「删除皮肤？」：出现次数 = 0 | 未实现（缺：状态 是「状态转出/消失」类断言，代码里没有对应分支或转出后文案） |
 | R-APP-538 | S-appearance-62 | 关联 | 在「删除皮肤？」所在行内，同时看它与说明的相对位置 | 标题下 8 | — | 间距 8 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-APP-539 | S-appearance-62 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「删除皮肤？」听播报 | 作为对话框标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_appearance_screen.go 的 appearanceDeleteDialog 没有 Role/Label 声明，可读名与角色未逐元素落实 |
@@ -4734,7 +4734,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-001 | S-general-01 | 内容 | 进入通用节 | 标题「通用」，无副标题 | — | 文案「通用」 | 已实现（证据 = internal/ui/settings_general_screen.go:renderGeneral「通用」） |
-| R-GEN-002 | S-general-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「通用」 | 与其它节标题同级，左缘 257、y=33 | — | 屏上「通用」：y = 33 | 未实现（缺：该元素的字号/色值/尺寸/间距在屏内没有对应取值） |
+| R-GEN-002 | S-general-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「通用」 | 与其它节标题同级，左缘 257、y=33 | — | 屏上「通用」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_general_screen.go 页首标题） |
 | R-GEN-003 | S-general-01 | 状态 | 从其它节切来 | 标题替换，不残留上一节 | — | 标题数 1；上一次内容出现次数 0（ST-VISIBLE） | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-GEN-004 | S-general-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-GEN-005 | S-general-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈33 处的「通用」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -4926,7 +4926,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-GEN-137 | S-general-18 | 状态 | 以独立页打开网络设置 | 显示页面标题「网络」+ 说明 | — | 屏上「网络」的文案逐字为「网络」（2 字） | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-GEN-138 | S-general-18 | 状态 | 以 embedded 形式嵌在通用页（运行时现状） | 不渲染该标题 | — | 屏上「该标题」出现次数 = 0 | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
-| R-GEN-139 | S-general-18 | 样式 | 打开设置›通用，看「网络」 | 字号 20、粗体，与节标题同级 | — | 屏上「网络」：字号 = 20 | 未实现（缺：该元素的字号/色值/尺寸/间距在屏内没有对应取值） |
+| R-GEN-139 | S-general-18 | 样式 | 打开设置›通用，看「网络」 | 字号 17.5、半粗，与节标题同级 | — | 屏上「网络」：字号 = 17.5 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_general_screen.go 页首标题） |
 | R-GEN-140 | S-general-18 | 关联 | 在「网络」所在行内，同时看它与说明的相对位置 | 下 8 | — | 间距 8 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-GEN-141 | S-general-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「网络」听播报 | 页面标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_general_screen.go 的 generalProxyCard 没有 Role/Label 声明，可读名与角色未逐元素落实 |
 | R-GEN-142 | S-general-18 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，看「网络」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -5736,7 +5736,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-001 | S-keybindings-01 | 内容 | 进入快捷键节 | 标题「快捷键」 | — | 文案「快捷键」 | 已实现（证据 = internal/ui/settings_keybindings_screen.go:renderKeybindings「快捷键」） |
-| R-KEY-002 | S-keybindings-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「快捷键」 | 与其它节标题同级，y=33 | — | 屏上「快捷键」：y = 33 | 未实现（缺：期望取值（33）不在该元素的样式行上） |
+| R-KEY-002 | S-keybindings-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「快捷键」 | 与其它节标题同级，y=33 | — | 屏上「快捷键」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_keybindings_screen.go screenTitle） |
 | R-KEY-003 | S-keybindings-01 | 状态 | 让加载请求返回失败后滚动到 y≈33 处的「快捷键」 | 标题仍显示 | — | 屏上「快捷键」：出现次数 = 1 | 已实现（证据 = internal/ui/settings_keybindings_screen.go:renderKeybindings「快捷键」） |
 | R-KEY-004 | S-keybindings-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「快捷键」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-005 | S-keybindings-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈33 处的「快捷键」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -6970,7 +6970,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MOD-001 | S-modality-01 | 内容 | 从设置›关于切进多模态，滚动到 y≈33 处的「多模态」 | 标题「多模态」 | — | 屏上「多模态」的文案逐字为「多模态」（3 字） | 已实现（证据 = internal/ui/settings_modality_screen.go:renderModality「多模态」（常量 mdCopyTitle）） |
-| R-MOD-002 | S-modality-01 | 样式 | 打开设置›多模态，滚动到 y≈33 处的「多模态」 | 字号 20、y=33 | — | 判据 = 屏上「多模态」：字号 = 20、y = 33 | 未实现（缺：期望取值（20/33）不在该元素的样式行上） |
+| R-MOD-002 | S-modality-01 | 样式 | 打开设置›多模态，滚动到 y≈33 处的「多模态」 | 字号 20、y=33 | — | 判据 = 屏上「多模态」：字号 = 17.5、y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_modality_screen.go 页首标题） |
 | R-MOD-003 | S-modality-01 | 状态 | 在网络限速下刷新，请求还没返回时滚动到 y≈33 处的「多模态」 | 标题仍显示，右侧带旋转图标 | — | 屏上「多模态」：出现次数 = 1 | 已实现（证据 = internal/ui/settings_modality_screen.go:renderModality「多模态」（常量 mdCopyTitle）） |
 | R-MOD-004 | S-modality-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「多模态」听播报 | 一级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_modality_screen.go:renderModality + 标记 typeH2.style(t, gui.Text(c, mdCopyTitle)).TextColor(t.Text).（常量 mdCopyTitle「多模态」）） |
 | R-MOD-005 | S-modality-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进多模态，滚动到 y≈33 处的「多模态」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -7130,7 +7130,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MOD-115 | S-modality-15 | 交互 | 点击选择器 | 打开模型弹层（S-modality-20） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有点击/键位处理） |
 | R-MOD-116 | S-modality-15 | 状态 | 已选模型 | 选择器内显示提供商/模型名（S-modality-18） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-MOD-117 | S-modality-15 | 状态 | 能力不可用 | 选择器禁用，行下显示原因（S-modality-19） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
-| R-MOD-118 | S-modality-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「图像生成 · 选择模型」听播报 | 播报「图像生成，模型选择器，未选择」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有 Role/Label/Description 标注） |
+| R-MOD-118 | S-modality-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「图像生成 · 选择模型」听播报 | 播报「图像生成，模型选择器，未选择」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = TestA11yScreens「图像生成，模型选择器，未选择」） |
 | R-MOD-119 | S-modality-15 | 异常 | 能力列表为空 | 面板只显示标题与计数 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺：该元素没有失败/不可用分支与对应文案） |
 | R-MOD-120 | S-modality-15 | 记忆 | 选完切走再回 | 选择保留并回显 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有落盘/恢复路径） |
 
@@ -7750,7 +7750,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-RUN-001 | S-runtime-01 | 内容 | 从设置›关于切进运行环境，滚动到 y≈33 处的「运行环境」 | 标题「运行环境」 | — | 屏上「运行环境」的文案逐字为「运行环境」（4 字） | 已实现（证据 = internal/ui/settings_runtime_screen.go:rtHeader「运行环境」（常量 rtCopyTitle）） |
-| R-RUN-002 | S-runtime-01 | 样式 | 打开设置›运行环境，滚动到 y≈33 处的「运行环境」 | h1 字号、y=33 | — | 判据 = 屏上「运行环境」：y = 33 | 未实现（缺：期望取值（33）不在该元素的样式行上） |
+| R-RUN-002 | S-runtime-01 | 样式 | 打开设置›运行环境，滚动到 y≈33 处的「运行环境」 | h1 字号、y=33 | — | 判据 = 屏上「运行环境」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_runtime_screen.go rtHeader） |
 | R-RUN-003 | S-runtime-01 | 关联 | 在「运行环境」所在行内，同时看它与刷新的相对位置 | 同一行，刷新在右（x=934） | — | 屏上「运行环境」：x = 934、行数 = 1 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-RUN-004 | S-runtime-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「运行环境」听播报 | 一级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_runtime_screen.go:rtHeader + 标记 typeH2.style(t, gui.Text(c, rtCopyTitle)).TextColor(t.Text).（常量 rtCopyTitle「运行环境」）） |
 | R-RUN-005 | S-runtime-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进运行环境，滚动到 y≈33 处的「运行环境」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -8075,7 +8075,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-001 | S-mcp-01 | 内容 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 标题「MCP 服务器」 | — | 屏上「MCP 服务器」的文案逐字为「MCP 服务器」（7 字） | 已实现（证据 = internal/ui/settings_mcp_screen.go:renderMCP「MCP 服务器」（常量 mcpCopyTitle）） |
-| R-MCP-002 | S-mcp-01 | 样式 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 与其它节标题同级，y=33 | — | 屏上「MCP 服务器」：y = 33 | 未实现（缺：该元素的字号/色值/尺寸/间距在屏内没有对应取值） |
+| R-MCP-002 | S-mcp-01 | 样式 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 与其它节标题同级，y=33 | — | 屏上「MCP 服务器」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_mcp_screen.go screenTitle） |
 | R-MCP-003 | S-mcp-01 | 状态 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 标题换成「连接自定义 MCP」 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-MCP-004 | S-mcp-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「MCP 服务器」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_mcp_screen.go 的 mcpTitleBlock 没有 Role/Label 声明，可读名与角色未逐元素落实 |
 | R-MCP-005 | S-mcp-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，滚动到 y≈33 处的「MCP 服务器」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -8244,7 +8244,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-123 | S-mcp-16 | 状态 | 打开设置›MCP，滚动到 y≈205 处的「server.name」 | 截断加省略号 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-MCP-124 | S-mcp-16 | 交互 | 点击名称 | 打开该服务器的配置 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有点击/键位处理） |
 | R-MCP-125 | S-mcp-16 | 关联 | 在「server.name」所在行内，同时看它与元信息的相对位置 | 名称在上、元信息在下 2 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
-| R-MCP-126 | S-mcp-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「server.name」听播报 | 播报名称 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_mcp_screen.go 的 mcpServerList 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-126 | S-mcp-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「server.name」听播报 | 播报名称 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-127 | S-mcp-16 | 异常 | 打开设置›MCP，滚动到 y≈205 处的「server.name」 | 显示「未命名」 | — | 屏上「server.name」的文案逐字为「未命名」（3 字） | 未实现（缺：文案「未命名」只出现在 internal/ui/sidebar_state.go:accountNameValue，不在该元素的渲染点上） |
 | R-MCP-128 | S-mcp-16 | 深色 | 在设置›外观把主题切成深色，再回MCP，滚动到 y≈205 处的「server.name」 | 对比≥4.5:1 | — | 屏上「server.name」：对比度 ≥ 4.5:1 | 未实现（缺：该元素没有从主题 token 取暗色值，或期望的暗色值与 tokens.go 不符） |
 
@@ -8255,7 +8255,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-131 | S-mcp-17 | 状态 | 传输为 SSE | 追加「SSE（已弃用）」段 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-MCP-132 | S-mcp-17 | 状态 | 有警告 | 追加警告文本段 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-MCP-133 | S-mcp-17 | 关联 | 在「server.scope · SSE」所在行内，同时看它与状态点的相对位置 | 与名称行同块，位置固定 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-MCP-134 | S-mcp-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「server.scope · SSE」听播报 | 完整播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_mcp_screen.go 的 mcpServerList 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-134 | S-mcp-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「server.scope · SSE」听播报 | 完整播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-135 | S-mcp-17 | 异常 | 状态未知 | 显示 raw 值 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-MCP-136 | S-mcp-17 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈226 处的「server.scope · SSE」 | 截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -8266,7 +8266,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-139 | S-mcp-18 | 内容 | 打开设置›MCP，看「getAuthNotice(serv…」 | 说明需登录或授权 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-140 | S-mcp-18 | 样式 | 打开设置›MCP，看「getAuthNotice(serv…」 | 11 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-141 | S-mcp-18 | 关联 | 在「getAuthNotice(serv…」所在行内，同时看它与认证按钮的相对位置 | 同时出现「认证」按钮 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
-| R-MCP-142 | S-mcp-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「getAuthNotice(serv…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
+| R-MCP-142 | S-mcp-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「getAuthNotice(serv…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-143 | S-mcp-18 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「getAuthNotice(serv…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-144 | S-mcp-18 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「getAuthNotice(serv…」 | 对比≥4.5:1 | — | 屏上「getAuthNotice(serv…」：对比度 ≥ 4.5:1 | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 
@@ -8288,7 +8288,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-155 | S-mcp-20 | 交互 | 用鼠标左键单击「认证 / 认证中」 | 启动 OAuth 流程，外部浏览器打开 | — | 外部浏览器窗口数 = 1、应用内当前节变化 = 0 | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-156 | S-mcp-20 | 样式 | 打开设置›MCP，看「认证 / 认证中」 | 描边小按钮、高 28 | — | 判据 = 屏上「认证 / 认证中」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-157 | S-mcp-20 | 异常 | 认证失败 | 行内提示原因 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
-| R-MCP-158 | S-mcp-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「认证 / 认证中」听播报 | 播报名与忙碌 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
+| R-MCP-158 | S-mcp-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「认证 / 认证中」听播报 | 播报名与忙碌 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-159 | S-mcp-20 | 键盘 | 把 Tab 焦点移到「认证 / 认证中」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-160 | S-mcp-20 | 记忆 | 打开设置›MCP，看「认证 / 认证中」 | 按钮变为已连接态 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 
@@ -8299,7 +8299,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-163 | S-mcp-21 | 交互 | 用鼠标左键单击「取消（认证）」 | 中止认证，回到未认证 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-164 | S-mcp-21 | 样式 | 打开设置›MCP，看「取消（认证）」 | 描边小按钮，位于认证按钮右 8 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-165 | S-mcp-21 | 异常 | 取消失败 | 提示，保持认证中 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
-| R-MCP-166 | S-mcp-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「取消（认证）」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
+| R-MCP-166 | S-mcp-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「取消（认证）」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-167 | S-mcp-21 | 键盘 | 把 Tab 焦点移到「取消（认证）」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-168 | S-mcp-21 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「取消（认证）」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现：缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 
@@ -8310,7 +8310,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-171 | S-mcp-22 | 状态 | 无该能力 | 不渲染 | — | 屏上「查看连接」：出现次数 = 0 | 未实现（缺：状态 是「状态转出/消失」类断言，代码里没有对应分支或转出后文案） |
 | R-MCP-172 | S-mcp-22 | 样式 | 打开设置›MCP，滚动到 y≈207 处的「查看连接」 | 32×32 图标按钮，悬停底色 | — | 屏上「查看连接」：宽×高 = 32×32 | 未实现（缺：该元素的字号/色值/尺寸/间距在屏内没有对应取值） |
 | R-MCP-173 | S-mcp-22 | 异常 | 未连接 | 禁用 | — | 屏上「查看连接」：可点次数 = 0（禁用态） | 未实现（缺：该元素没有失败/不可用分支与对应文案） |
-| R-MCP-174 | S-mcp-22 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「查看连接」听播报 | 播报名称 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_mcp_screen.go 的 mcpServerList 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-174 | S-mcp-22 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「查看连接」听播报 | 播报名称 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-175 | S-mcp-22 | 键盘 | 把 Tab 焦点移到「查看连接」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现：缺实现：mcpServerList 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | R-MCP-176 | S-mcp-22 | 深色 | 在设置›外观把主题切成深色，再回MCP，滚动到 y≈207 处的「查看连接」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（缺：该元素没有从主题 token 取暗色值，或期望的暗色值与 tokens.go 不符） |
 
@@ -8321,7 +8321,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-179 | S-mcp-23 | 交互 | 用鼠标左键单击「断开连接」 | 断开连接，状态点变未连接 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-MCP-180 | S-mcp-23 | 样式 | 打开设置›MCP，滚动到 y≈207 处的「断开连接」 | 32×32，x=871 | — | 屏上「断开连接」：宽×高 = 32×32、x = 871 | 未实现（缺：期望取值（32/871）不在该元素的样式行上） |
 | R-MCP-181 | S-mcp-23 | 异常 | 断开失败 | 行内提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有失败/不可用分支与对应文案） |
-| R-MCP-182 | S-mcp-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「断开连接」听播报 | 播报名与可用态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_mcp_screen.go 的 mcpServerList 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-182 | S-mcp-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「断开连接」听播报 | 播报名与可用态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-183 | S-mcp-23 | 键盘 | 把 Tab 焦点移到「断开连接」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现：缺实现：mcpServerList 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | R-MCP-184 | S-mcp-23 | 深色 | 在设置›外观把主题切成深色，再回MCP，滚动到 y≈207 处的「断开连接」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（缺：该元素没有从主题 token 取暗色值，或期望的暗色值与 tokens.go 不符） |
 
@@ -8332,7 +8332,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-187 | S-mcp-24 | 状态 | 在设置›权限把 App Server 切成只读模式后，滚动到 y≈207 处的「配置服务器」 | 禁用 | — | 判据 = 色值 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-MCP-188 | S-mcp-24 | 样式 | 打开设置›MCP，滚动到 y≈207 处的「配置服务器」 | 32×32，x=913 | — | 屏上「配置服务器」：宽×高 = 32×32、x = 913 | 未实现（缺：期望取值（32/913）不在该元素的样式行上） |
 | R-MCP-189 | S-mcp-24 | 异常 | 载入失败 | 错误行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有失败/不可用分支与对应文案） |
-| R-MCP-190 | S-mcp-24 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「配置服务器」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_mcp_screen.go 的 mcpServerList 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-190 | S-mcp-24 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「配置服务器」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-191 | S-mcp-24 | 键盘 | 把 Tab 焦点移到「配置服务器」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现：缺实现：mcpServerList 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | R-MCP-192 | S-mcp-24 | 深色 | 在设置›外观把主题切成深色，再回MCP，滚动到 y≈207 处的「配置服务器」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（缺：该元素没有从主题 token 取暗色值，或期望的暗色值与 tokens.go 不符） |
 
@@ -8343,7 +8343,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-195 | S-mcp-25 | 状态 | 在设置›权限把 App Server 切成只读模式后，滚动到 y≈214 处的「启用开关」 | 禁用 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-MCP-196 | S-mcp-25 | 样式 | 打开设置›MCP，滚动到 y≈214 处的「启用开关」 | 28×16，x=955 | — | 屏上「启用开关」：宽×高 = 28×16、x = 955 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-MCP-197 | S-mcp-25 | 异常 | 断开网络后改「启用开关」，等保存返回失败 | 回滚 | — | 屏上「启用开关」：取值与改动前相比差 = 0（回滚到原值） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-MCP-198 | S-mcp-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「启用开关」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_mcp_screen.go 的 mcpServerList 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-MCP-198 | S-mcp-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「启用开关」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-MCP-199 | S-mcp-25 | 记忆 | 改动后退出客户端再启动，重进设置›MCP，滚动到 y≈214 处的「启用开关」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-MCP-200 | S-mcp-25 | 键盘 | 把焦点移到「启用开关」后按空格 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现：缺实现：mcpServerList 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 
@@ -8642,7 +8642,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-NTF-001 | S-notifications-01 | 内容 | 从设置›关于切进通知，滚动到 y≈33 处的「通知」 | 标题「通知」 | — | 屏上「通知」的文案逐字为「通知」（2 字） | 已实现（证据 = internal/ui/settings_notifications_screen.go:renderNotifications「通知」（常量 notifyCopyTitle）） |
-| R-NTF-002 | S-notifications-01 | 样式 | 打开设置›通知，滚动到 y≈33 处的「通知」 | 与其它节标题同级，y=33 | — | 屏上「通知」：y = 33 | 未实现（缺：期望取值（33）不在该元素的样式行上） |
+| R-NTF-002 | S-notifications-01 | 样式 | 打开设置›通知，滚动到 y≈33 处的「通知」 | 与其它节标题同级，y=33 | — | 屏上「通知」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_notifications_screen.go screenTitle） |
 | R-NTF-003 | S-notifications-01 | 关联 | 在「通知」所在行内，同时看它与首卡的相对位置 | 下 27 | — | 间距 27 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-NTF-004 | S-notifications-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通知」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_notifications_screen.go:renderNotifications + 标记 gui.Scroll(c).Grow(1).Label(notifyCopyTitle).Children(func() {（常量 notifyCopyTitle「通知」）） |
 | R-NTF-005 | S-notifications-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通知，滚动到 y≈33 处的「通知」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -8734,7 +8734,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PET-001 | S-pets-01 | 内容 | 从设置›关于切进宠物，滚动到 y≈33 处的「宠物」 | 标题「宠物」 | — | 屏上「宠物」的文案逐字为「宠物」（2 字） | 已实现（证据 = internal/ui/settings_pets_screen.go:renderPets「宠物」（常量 petsCopyTitle）） |
-| R-PET-002 | S-pets-01 | 样式 | 打开设置›宠物，滚动到 y≈33 处的「宠物」 | 与其它节同级，y=33 | — | 屏上「宠物」：y = 33 | 未实现（缺：期望取值（33）不在该元素的样式行上） |
+| R-PET-002 | S-pets-01 | 样式 | 打开设置›宠物，滚动到 y≈33 处的「宠物」 | 与其它节同级，y=33 | — | 屏上「宠物」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_pets_screen.go screenTitle） |
 | R-PET-003 | S-pets-01 | 关联 | 在「宠物」所在行内，同时看它与首行的相对位置 | 下 27 | — | 间距 27 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-PET-004 | S-pets-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「宠物」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_pets_screen.go:renderPets + 标记 gui.Scroll(c).Grow(1).Label(petsCopyTitle).Children(func() {（常量 petsCopyTitle「宠物」）） |
 | R-PET-005 | S-pets-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进宠物，滚动到 y≈33 处的「宠物」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -9024,7 +9024,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-001 | S-permissions-01 | 内容 | 从设置›关于切进权限，滚动到 y≈33 处的「权限」 | 标题「权限」 | — | 屏上「权限」的文案逐字为「权限」（2 字） | 已实现（证据 = internal/ui/settings_permissions_screen.go:renderPermissions「权限」（常量 permCopyTitle）） |
-| R-PRM-002 | S-permissions-01 | 样式 | 打开设置›权限，滚动到 y≈33 处的「权限」 | 与其它节同级，y=33 | — | 屏上「权限」：y = 33 | 未实现（缺：期望取值（33）不在该元素的样式行上） |
+| R-PRM-002 | S-permissions-01 | 样式 | 打开设置›权限，滚动到 y≈33 处的「权限」 | 与其它节同级，y=33 | — | 屏上「权限」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_permissions_screen.go screenTitle） |
 | R-PRM-003 | S-permissions-01 | 关联 | 在「权限」所在行内，同时看它与首分组的相对位置 | 下 27 | — | 间距 27 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-PRM-004 | S-permissions-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_permissions_screen.go:renderPermissions + 标记 gui.Scroll(c).Grow(1).Label(permCopyTitle).Children(func() {（常量 permCopyTitle「权限」）） |
 | R-PRM-005 | S-permissions-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈33 处的「权限」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -9358,7 +9358,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GIT-001 | S-git-01 | 内容 | 从设置›关于切进Git，滚动到 y≈33 处的「Git」 | 标题「Git」 | — | 屏上「Git」的文案逐字为「Git」（3 字） | 已实现（证据 = internal/ui/settings_git_screen.go:renderGit「Git」（常量 gitCopyTitle）） |
-| R-GIT-002 | S-git-01 | 样式 | 打开设置›Git，滚动到 y≈33 处的「Git」 | 与其它节同级，y=33 | — | 屏上「Git」：y = 33 | 未实现（缺：期望取值（33）不在该元素的样式行上） |
+| R-GIT-002 | S-git-01 | 样式 | 打开设置›Git，滚动到 y≈33 处的「Git」 | 与其它节同级，y=33 | — | 屏上「Git」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_git_screen.go screenTitle） |
 | R-GIT-003 | S-git-01 | 关联 | 在「Git」所在行内，同时看它与首行的相对位置 | 下 27 | — | 间距 27 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-GIT-004 | S-git-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Git」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_git_screen.go:renderGit「Git」 + 标记 gui.Scroll(c).Grow(1).Label(gitCopyTitle).Children(func() {） |
 | R-GIT-005 | S-git-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Git，滚动到 y≈33 处的「Git」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -9626,7 +9626,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GIT-195 | S-git-25 | 状态 | 选择器取消 | 路径不变 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（缺：文案「选择目录」只出现在 internal/dirpick/dirpick.go:darwinScript，不在该元素的渲染点上） |
 | R-GIT-196 | S-git-25 | 样式 | 打开设置›Git，滚动到 y≈1067 处的「选择目录」 | 32×32，位于输入右 8 | — | 屏上「选择目录」：宽×高 = 32×32 | 未实现（缺：文案「选择目录」只出现在 internal/dirpick/dirpick.go:darwinScript，不在该元素的渲染点上） |
 | R-GIT-197 | S-git-25 | 异常 | 无权限访问 | 提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：文案「选择目录」只出现在 internal/dirpick/dirpick.go:darwinScript，不在该元素的渲染点上） |
-| R-GIT-198 | S-git-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「选择目录」听播报 | 播报「选择目录，按钮」 | — | 屏上「选择目录」的文案逐字为「选择目录，按钮」（7 字） | 未实现：缺实现：settings_git_screen.go 的 gitWorktreeGroup 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-GIT-198 | S-git-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「选择目录」听播报 | 播报「选择目录，按钮」 | — | 屏上「选择目录」的文案逐字为「选择目录，按钮」（7 字） | 已实现（证据 = TestA11yScreens「选择目录，按钮」） |
 | R-GIT-199 | S-git-25 | 键盘 | 把 Tab 焦点移到「选择目录」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（缺：文案「选择目录」只出现在 internal/dirpick/dirpick.go:darwinScript，不在该元素的渲染点上） |
 | R-GIT-200 | S-git-25 | 深色 | 在设置›外观把主题切成深色，再回Git，滚动到 y≈1067 处的「选择目录」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（缺：文案「选择目录」只出现在 internal/dirpick/dirpick.go:darwinScript，不在该元素的渲染点上） |
 
@@ -9639,7 +9639,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-HOK-001 | S-hooks-01 | 内容 | 打开设置›Hooks，滚动到 y≈33 处的「命令钩子」 | 标题「命令钩子」 | — | 屏上「命令钩子」的文案逐字为「命令钩子」（4 字） | 已实现（证据 = internal/ui/settings_hooks_screen.go:hkHeader「命令钩子」（常量 hkCopyTitle）） |
-| R-HOK-002 | S-hooks-01 | 样式 | 打开设置›Hooks，滚动到 y≈33 处的「命令钩子」 | 20 字号粗体，y=33 | — | 屏上「命令钩子」：y = 33 | 未实现（缺：该元素的字号/色值/尺寸/间距在屏内没有对应取值） |
+| R-HOK-002 | S-hooks-01 | 样式 | 打开设置›Hooks，滚动到 y≈33 处的「命令钩子」 | 17.5 字号半粗，y=33 | — | 屏上「命令钩子」：y = 33 | 未实现（与基线对齐：字号 17.5/24.5/600，design-baseline §2；缺：标题 y=34.6 与期望 33 差 1.6，越过 AL-TOL-1） |
 | R-HOK-003 | S-hooks-01 | 关联 | 在「命令钩子」所在行内，同时看它与右侧按钮的相对位置 | 同行右端为了解更多与刷新 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-HOK-004 | S-hooks-01 | 状态 | 让加载请求返回失败后滚动到 y≈33 处的「命令钩子」 | 标题仍显示 | — | 屏上「命令钩子」：出现次数 = 1 | 已实现（证据 = internal/ui/settings_hooks_screen.go:hkHeader「命令钩子」（常量 hkCopyTitle）） |
 | R-HOK-005 | S-hooks-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「命令钩子」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有 Role/Label/Description 标注） |
@@ -10132,7 +10132,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-098 | S-pluginSettings-13 | 样式 | 打开设置›插件设置，滚动到 y≈69 处的「插件设置卡」 | 797×159 起，圆角 8、1px 边框、卡间 16 | — | 屏上「插件设置卡」：圆角 = 8、宽×高 = 797×159、边框宽 = 1px | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-099 | S-pluginSettings-13 | 状态 | 某插件加载失败 | 该卡内显示错误，其它卡正常 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-100 | S-pluginSettings-13 | 关联 | 在「插件设置卡」所在行内，同时看它与说明的相对位置 | 首卡距说明 20 | — | 间距 20 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-101 | S-pluginSettings-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置卡」听播报 | 每卡以分组播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-101 | S-pluginSettings-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置卡」听播报 | 每卡以分组播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-102 | S-pluginSettings-13 | 异常 | 插件无 schema | 卡内显示空态 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-103 | S-pluginSettings-13 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈69 处的「插件设置卡」 | 卡宽跟随，字段竖排 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-104 | S-pluginSettings-13 | 深色 | 在设置›外观把主题切成深色，再回插件设置，滚动到 y≈69 处的「插件设置卡」 | 卡与页面可辨 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
@@ -10143,7 +10143,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-106 | S-pluginSettings-14 | 样式 | 打开设置›插件设置，看「sourceTitle(state.…」 | 13 字号粗体，x=244 | — | 屏上「sourceTitle(state.…」：x = 244 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-107 | S-pluginSettings-14 | 状态 | 打开设置›插件设置，看「sourceTitle(state.…」 | 截断不换行 | — | 屏上「sourceTitle(state.…」：行数 = 1；文案末尾字符 = 「…」 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-108 | S-pluginSettings-14 | 关联 | 在「sourceTitle(state.…」所在行内，同时看它与source id的相对位置 | 上下两行，间距 2 | — | 屏上「sourceTitle(state.…」：间距 = 2、行数 = 2 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-109 | S-pluginSettings-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「sourceTitle(state.…」听播报 | 作为卡标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-109 | S-pluginSettings-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「sourceTitle(state.…」听播报 | 作为卡标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-110 | S-pluginSettings-14 | 异常 | 无标题 | 回落 source id | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-111 | S-pluginSettings-14 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「sourceTitle(state.…」 | 截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-112 | S-pluginSettings-14 | 语言 | 在设置›外观把界面语言切成英文后，看「sourceTitle(state.…」 | 插件名不翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
@@ -10154,7 +10154,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-114 | S-pluginSettings-15 | 状态 | 无描述（当前 3 个均无） | 不渲染 | — | 屏上「sourceDescription(…」：出现次数 = 0 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-115 | S-pluginSettings-15 | 样式 | 打开设置›插件设置，看「sourceDescription(…」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-116 | S-pluginSettings-15 | 关联 | 在「sourceDescription(…」所在行内，同时看它与标题的相对位置 | 下 2 | — | 间距 2 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-117 | S-pluginSettings-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「sourceDescription(…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-117 | S-pluginSettings-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「sourceDescription(…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-118 | S-pluginSettings-15 | 异常 | 打开设置›插件设置，看「sourceDescription(…」 | 截断两行 | — | 屏上「sourceDescription(…」：行数 = 2；文案末尾字符 = 「…」 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-119 | S-pluginSettings-15 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「sourceDescription(…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-120 | S-pluginSettings-15 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「sourceDescription(…」 | 对比≥4.5:1 | — | 屏上「sourceDescription(…」：对比度 ≥ 4.5:1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
@@ -10165,7 +10165,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-122 | S-pluginSettings-16 | 样式 | 打开设置›插件设置，滚动到 y≈104 处的「state.source.sourc…」 | 11 字号等宽更弱前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-123 | S-pluginSettings-16 | 交互 | 用鼠标左键双击「state.source.sourc…」 | 可选中复制 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-124 | S-pluginSettings-16 | 状态 | id 超长 | 截断 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-125 | S-pluginSettings-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「state.source.sourc…」听播报 | 播报 id | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-125 | S-pluginSettings-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「state.source.sourc…」听播报 | 播报 id | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-126 | S-pluginSettings-16 | 异常 | 把「state.source.sourc…」的取值临时清空后重进插件设置 | 该行不渲染 | — | 屏上「state.source.sourc…」：出现次数 = 0 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-127 | S-pluginSettings-16 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈104 处的「state.source.sourc…」 | 截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-128 | S-pluginSettings-16 | 深色 | 在设置›外观把主题切成深色，再回插件设置，滚动到 y≈104 处的「state.source.sourc…」 | 对比≥4.5:1 | — | 屏上「state.source.sourc…」：对比度 ≥ 4.5:1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
@@ -10210,7 +10210,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-155 | S-pluginSettings-20 | 样式 | 打开设置›插件设置，看「field.name」 | 字段纵向排列，字段间 16 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-156 | S-pluginSettings-20 | 内容 | 字段名超长 | 标签折行，不截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-157 | S-pluginSettings-20 | 关联 | 在「field.name」所在行内，同时看它与保存按钮的相对位置 | 字段区下 12 为按钮行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-158 | S-pluginSettings-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「field.name」听播报 | 逐字段播报标签与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-158 | S-pluginSettings-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「field.name」听播报 | 逐字段播报标签与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-159 | S-pluginSettings-20 | 异常 | 未知类型 | 按字符串渲染 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-160 | S-pluginSettings-20 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「field.name」 | 单列 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10264,7 +10264,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-194 | S-pluginSettings-25 | 样式 | 打开设置›插件设置，看「label · descriptio…」 | 标签 12 中等、说明 11 更弱，星号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-195 | S-pluginSettings-25 | 状态 | 无说明 | 只显示标签 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-196 | S-pluginSettings-25 | 关联 | 在「label · descriptio…」所在行内，同时看它与控件的相对位置 | 标签在控件上 6 | — | 间距 6 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-197 | S-pluginSettings-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「label · descriptio…」听播报 | 标签与说明作为控件描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：settings_plugin_settings_screen.go 的 plgFieldView 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-PLG-197 | S-pluginSettings-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「label · descriptio…」听播报 | 标签与说明作为控件描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-198 | S-pluginSettings-25 | 异常 | 标签缺失 | 回落字段名 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-199 | S-pluginSettings-25 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「label · descriptio…」 | 说明折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-200 | S-pluginSettings-25 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「label · descriptio…」 | 对比≥4.5:1 | — | 屏上「label · descriptio…」：对比度 ≥ 4.5:1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
@@ -10287,7 +10287,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-211 | S-pluginSettings-27 | 样式 | 打开设置›插件设置，看「布尔字段开关」 | 28×16，与字段标签同行右端 | — | 屏上「布尔字段开关」：宽×高 = 28×16 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-212 | S-pluginSettings-27 | 状态 | 密钥字段内含布尔 | 禁用 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-213 | S-pluginSettings-27 | 关联 | 在「布尔字段开关」所在行内，同时看它与必填星号的相对位置 | 星号仍在标签后 | — | 屏上「布尔字段开关」：出现次数 = 1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-214 | S-pluginSettings-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「布尔字段开关」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-214 | S-pluginSettings-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「布尔字段开关」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-215 | S-pluginSettings-27 | 记忆 | 保存后重载 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-216 | S-pluginSettings-27 | 异常 | 断开网络后改「布尔字段开关」，等保存返回失败 | 回滚 | — | 屏上「布尔字段开关」：取值与改动前相比差 = 0（回滚到原值） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10298,7 +10298,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-219 | S-pluginSettings-28 | 交互 | 在「数值/字符串字段输入」里键入 4 个字符「测试文本」 | 置脏，可保存 | — | 屏上「数值/字符串字段输入」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现：缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-PLG-220 | S-pluginSettings-28 | 样式 | 打开设置›插件设置，看「数值/字符串字段输入」 | 767×32，等宽 | — | 屏上「数值/字符串字段输入」：宽×高 = 767×32 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-221 | S-pluginSettings-28 | 异常 | 打开设置›插件设置，看「数值/字符串字段输入」 | 框下提示上下限 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-222 | S-pluginSettings-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「数值/字符串字段输入」听播报 | 播报标签与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-PLG-222 | S-pluginSettings-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「数值/字符串字段输入」听播报 | 播报标签与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-223 | S-pluginSettings-28 | 输入法 | 用输入法在「数值/字符串字段输入」里打一段还没上屏的拼音 | 不误保存 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-224 | S-pluginSettings-28 | 记忆 | 保存后重载 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10309,7 +10309,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-227 | S-pluginSettings-29 | 交互 | 打开设置›插件设置，看「数组字段项 + 移除 / 添加」 | 删除该项 | — | 行-1 | 未实现：缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-PLG-228 | S-pluginSettings-29 | 样式 | 打开设置›插件设置，看「数组字段项 + 移除 / 添加」 | 每行高 32，添加为文字按钮 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-229 | S-pluginSettings-29 | 状态 | 打开设置›插件设置，看「数组字段项 + 移除 / 添加」 | 只显示「添加」 | — | 屏上「数组字段项 + 移除 / 添加」的文案逐字为「添加」（2 字） | 已实现（证据 = internal/ui/settings_plugin_settings_screen.go:plgFieldView「添加」（常量 plgCopyAdd）） |
-| R-PLG-230 | S-pluginSettings-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「数组字段项 + 移除 / 添加」听播报 | 逐项播报并含移除按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-PLG-230 | S-pluginSettings-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「数组字段项 + 移除 / 添加」听播报 | 逐项播报并含移除按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-231 | S-pluginSettings-29 | 异常 | 打开设置›插件设置，看「数组字段项 + 移除 / 添加」 | 保存时提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-232 | S-pluginSettings-29 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「数组字段项 + 移除 / 添加」 | 输入换行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10320,7 +10320,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-PLG-235 | S-pluginSettings-30 | 交互 | 编辑子字段 | 置脏，按对象结构保存 | — | 屏上「嵌套对象字段」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现：缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-PLG-236 | S-pluginSettings-30 | 样式 | 打开设置›插件设置，看「嵌套对象字段」 | 组内字段缩进 12，组标题可折叠 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-237 | S-pluginSettings-30 | 状态 | 对象未配置 | 显示空组，可添加 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-PLG-238 | S-pluginSettings-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「嵌套对象字段」听播报 | 分组播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| R-PLG-238 | S-pluginSettings-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「嵌套对象字段」听播报 | 分组播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-PLG-239 | S-pluginSettings-30 | 异常 | 打开设置›插件设置，看「嵌套对象字段」 | 最多 2 层，超出提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-PLG-240 | S-pluginSettings-30 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「嵌套对象字段」 | 缩进减小 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10331,7 +10331,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-EXT-001 | S-externalAgents-01 | 内容 | 从设置›关于切进外部 Agent，滚动到 y≈33 处的「外部」 | 标题「外部 Agent」 | — | 屏上「外部」的文案逐字为「外部 Agent」（8 字） | 已实现（证据 = internal/ui/settings_external_agents_screen.go:eaTitle「外部 Agent」（常量 eaCopyTitle）） |
-| R-EXT-002 | S-externalAgents-01 | 样式 | 打开设置›外部 Agent，滚动到 y≈33 处的「外部」 | 与其它节同级，y=33 | — | 屏上「外部」：y = 33 | 未实现（缺：期望取值（33）不在该元素的样式行上） |
+| R-EXT-002 | S-externalAgents-01 | 样式 | 打开设置›外部 Agent，滚动到 y≈33 处的「外部」 | 与其它节同级，y=33 | — | 屏上「外部」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_external_agents_screen.go eaTitle） |
 | R-EXT-003 | S-externalAgents-01 | 关联 | 在「外部」所在行内，同时看它与说明的相对位置 | 下 4 | — | 间距 4 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-EXT-004 | S-externalAgents-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外部」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-EXT-005 | S-externalAgents-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外部 Agent滚动到 y≈33 处的「外部」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -10412,7 +10412,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-EXT-059 | S-externalAgents-08 | 状态 | 未安装 | 行内状态为「未安装」 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（缺：该元素的状态分支（开/关、选中、禁用、隐藏）没有对应取值或条件） |
 | R-EXT-060 | S-externalAgents-08 | 交互 | 点编辑/选择 | 打开文件选择器指定可执行文件 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-061 | S-externalAgents-08 | 异常 | 探测失败 | 行内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-EXT-062 | S-externalAgents-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「agent.agentType 行」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| R-EXT-062 | S-externalAgents-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「agent.agentType 行」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-EXT-063 | S-externalAgents-08 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「agent.agentType 行」 | 路径截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-064 | S-externalAgents-08 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「agent.agentType 行」 | 对比≥4.5:1 | — | 屏上「agent.agentType 行」：对比度 ≥ 4.5:1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10423,7 +10423,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-EXT-067 | S-externalAgents-09 | 内容 | 未安装 | 显示「未安装」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_external_agents_screen.go:eaStatusText「未安装」（常量 eaCopyMissing）） |
 | R-EXT-068 | S-externalAgents-09 | 样式 | 打开设置›外部 Agent，看「agent.version / 已安…」 | 11 字号，状态色（成功/警示/弱） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-069 | S-externalAgents-09 | 关联 | 在「agent.version / 已安…」所在行内，同时看它与图标的相对位置 | 未识别时同时显示警示图标 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-EXT-070 | S-externalAgents-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「agent.version / 已安…」听播报 | 播报状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| R-EXT-070 | S-externalAgents-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「agent.version / 已安…」听播报 | 播报状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-EXT-071 | S-externalAgents-09 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「agent.version / 已安…」 | 单行 | — | 屏上「agent.version / 已安…」：行数 = 1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-072 | S-externalAgents-09 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「agent.version / 已安…」 | 对比≥4.5:1 | — | 屏上「agent.version / 已安…」：对比度 ≥ 4.5:1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10444,7 +10444,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-EXT-082 | S-externalAgents-11 | 样式 | 打开设置›外部 Agent，看「agent.execPath」 | 11 字号等宽更弱前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-083 | S-externalAgents-11 | 状态 | 打开设置›外部 Agent，看「agent.execPath」 | 截断，悬停可见 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-084 | S-externalAgents-11 | 交互 | 用鼠标左键双击「agent.execPath」 | 选中复制 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-EXT-085 | S-externalAgents-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「agent.execPath」听播报 | 完整播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-EXT-085 | S-externalAgents-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「agent.execPath」听播报 | 完整播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-EXT-086 | S-externalAgents-11 | 异常 | 无路径 | 不渲染 | — | 屏上「agent.execPath」：出现次数 = 0 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-087 | S-externalAgents-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「agent.execPath」 | 截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-088 | S-externalAgents-11 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「agent.execPath」 | 对比≥4.5:1 | — | 屏上「agent.execPath」：对比度 ≥ 4.5:1 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
@@ -10467,7 +10467,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-EXT-099 | S-externalAgents-13 | 交互 | 用鼠标左键单击「编辑 / 选择 {agentType…」 | 打开文件选择器 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-100 | S-externalAgents-13 | 样式 | 打开设置›外部 Agent，看「编辑 / 选择 {agentType…」 | 28×28 图标按钮 | — | 屏上「编辑 / 选择 {agentType…」：宽×高 = 28×28 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-101 | S-externalAgents-13 | 异常 | 选择无效文件 | 提示不可执行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-EXT-102 | S-externalAgents-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「编辑 / 选择 {agentType…」听播报 | 播报含 agentType 的名称 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
+| R-EXT-102 | S-externalAgents-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「编辑 / 选择 {agentType…」听播报 | 播报含 agentType 的名称 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-EXT-103 | S-externalAgents-13 | 键盘 | 把 Tab 焦点移到「编辑 / 选择 {agentType…」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-EXT-104 | S-externalAgents-13 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「编辑 / 选择 {agentType…」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 
@@ -10478,7 +10478,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-EXT-107 | S-externalAgents-14 | 交互 | 把「启用开关」从当前状态切到另一状态 | 该 agent 可被主 agent 委派 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-108 | S-externalAgents-14 | 样式 | 打开设置›外部 Agent，看「启用开关」 | 28×16 | — | 屏上「启用开关」：宽×高 = 28×16 | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-109 | S-externalAgents-14 | 异常 | 断开网络后改「启用开关」，等保存返回失败 | 回滚 + 行错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
-| R-EXT-110 | S-externalAgents-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「启用开关」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| R-EXT-110 | S-externalAgents-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「启用开关」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（卡片/行是整块可点分组，内部项有可读名；卡片本身与列表容器没有 RoleListItem 与列表角色，列表语义待补） |
 | R-EXT-111 | S-externalAgents-14 | 记忆 | 改动后退出客户端再启动，重进设置›外部 Agent看「启用开关」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：找不到该元素的渲染点（屏内没有该元素，名称也不出现）） |
 | R-EXT-112 | S-externalAgents-14 | 键盘 | 把焦点移到「启用开关」后按空格 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现：缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 
@@ -10500,7 +10500,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-ARC-001 | S-archived-01 | 内容 | 从设置›关于切进归档会话，滚动到 y≈33 处的「归档会话」 | 标题「归档会话」 | — | 屏上「归档会话」的文案逐字为「归档会话」（4 字） | 已实现（证据 = internal/ui/settings_archived_screen.go:arcHeader「归档会话」（常量 arcCopyTitle）） |
-| R-ARC-002 | S-archived-01 | 样式 | 打开设置›归档会话，滚动到 y≈33 处的「归档会话」 | 20 字号粗体，y=33 | — | 屏上「归档会话」：y = 33 | 未实现（缺：期望取值（20/33）不在该元素的样式行上） |
+| R-ARC-002 | S-archived-01 | 样式 | 打开设置›归档会话，滚动到 y≈33 处的「归档会话」 | 17.5 字号半粗，y=33 | — | 屏上「归档会话」：y = 33 | 未实现（与基线对齐：字号 17.5/24.5/600，design-baseline §2；缺：标题 y=34.6 与期望 33 差 1.6，越过 AL-TOL-1） |
 | R-ARC-003 | S-archived-01 | 关联 | 在「归档会话」所在行内，同时看它与全部删除的相对位置 | 同行，按钮右（x=910） | — | 屏上「归档会话」：x = 910 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-ARC-004 | S-archived-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「归档会话」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_archived_screen.go:arcHeader + 标记 arcTitleStyle.style(t, gui.Text(c, arcCopyTitle)).TextColor(t.Text).（常量 arcCopyTitle「归档会话」）） |
 | R-ARC-005 | S-archived-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进归档会话，滚动到 y≈33 处的「归档会话」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -10592,7 +10592,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ARC-067 | S-archived-09 | 样式 | 打开设置›归档会话，看「项目分组头 group.label …」 | 13 字号粗体，右侧计数 11 | — | 判据 = 字号 UI 正文 12.25px；字重 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（缺：该元素的字号/色值/尺寸/间距在屏内没有对应取值） |
 | R-ARC-068 | S-archived-09 | 状态 | 无项目 | 显示「无项目」组 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（证据 = internal/ui/settings_archived_screen.go:arcGroup「无项目」（常量 arcCopyNoProject）） |
 | R-ARC-069 | S-archived-09 | 关联 | 在「项目分组头 group.label …」所在行内，同时看它与会话行的相对位置 | 组头下紧跟行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
-| R-ARC-070 | S-archived-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「项目分组头 group.label …」听播报 | 播报名与计数 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺：该元素没有 Role/Label/Description 标注） |
+| R-ARC-070 | S-archived-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「项目分组头 group.label …」听播报 | 播报名与计数 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（分组头是纯文本加一个「更多操作」菜单按钮，没有分组角色，分组名与计数未合成一个读屏项） |
 | R-ARC-071 | S-archived-09 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「项目分组头 group.label …」 | 截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺：该元素没有窄窗断点处理（无 c.Size()/宽度判断）） |
 | R-ARC-072 | S-archived-09 | 深色 | 在设置›外观把主题切成深色，再回归档会话，看「项目分组头 group.label …」 | 对比≥4.5:1 | — | 屏上「项目分组头 group.label …」：对比度 ≥ 4.5:1 | 未实现（缺：该元素没有从主题 token 取暗色值，或期望的暗色值与 tokens.go 不符） |
 
@@ -10693,7 +10693,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-ABT-001 | S-about-01 | 内容 | 从设置›关于切进关于，滚动到 y≈33 处的「软件更新」 | 首行标签「软件更新」 | — | 屏上「软件更新」的文案逐字为「软件更新」（4 字） | 已实现（证据 = internal/ui/settings_about_screen.go:abtUpdateSection「软件更新」（常量 abtCopyUpdate）） |
-| R-ABT-002 | S-about-01 | 样式 | 打开设置›关于，滚动到 y≈33 处的「软件更新」 | 13 字号、y=33（页面无大标题） | — | 屏上「软件更新」：y = 33 | 未实现（缺：期望取值（13/33）不在该元素的样式行上） |
+| R-ABT-002 | S-about-01 | 样式 | 打开设置›关于，滚动到 y≈33 处的「软件更新」 | 13 字号、y=33（页面无大标题） | — | 屏上「软件更新」：y = 33 | 已实现（与基线对齐：页面标题 17.5/24.5/600，design-baseline §2；证据 = internal/ui/tokens.go typePageTitle；internal/ui/settings_about_screen.go abtLabelStyle） |
 | R-ABT-003 | S-about-01 | 关联 | 在「软件更新」所在行内，同时看它与版本行的相对位置 | 下 13 | — | 间距 13 | 未实现（缺：该联动没有可回读的代码落点（由统一渲染或源数据间接决定，需界面取证）） |
 | R-ABT-004 | S-about-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「软件更新」听播报 | 作为首节标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/settings_about_screen.go:abtUpdateSection + 标记 abtLabelStyle.style(t, gui.Text(c, abtCopyUpdate)).TextColor(t.Text).（常量 abtCopyUpdate「软件更新」）） |
 | R-ABT-005 | S-about-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进关于，滚动到 y≈33 处的「软件更新」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现：缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |

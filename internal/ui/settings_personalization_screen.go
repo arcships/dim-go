@@ -63,7 +63,7 @@ func renderSettingsPersonalizationScreen(c *gui.Context, a *App) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(psPageGap).Children(func() {
-				typeH2.style(t, gui.Text(c, psCopyTitle)).TextColor(t.Text).
+				typePageTitle.style(t, gui.Text(c, psCopyTitle)).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(2)
 				psUIModeSection(c, t, live)
 				psRule(c, t)

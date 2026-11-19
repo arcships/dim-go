@@ -610,7 +610,7 @@ func (a *App) rpRevertDialog(c *gui.Context) {
 			p.Stroke(r, t.Border, radiusCard, strokeHairline)
 		})
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, "确认还原未暂存改动？")).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, "确认还原未暂存改动？")).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
 			typeSecondary.style(t, gui.Text(c,
 				fmt.Sprintf("这会永久丢弃“%s”中的未暂存改动。", s.revertPath))).

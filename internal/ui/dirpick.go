@@ -234,7 +234,7 @@ func (a *App) dirPickDialog(c *gui.Context, target dirPickTarget) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space2).Role(gui.RoleAlertDialog).Label(title)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, title)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
 			if st.manual {
 				screenHint(c, dirPickCopyManualHint)

@@ -351,11 +351,14 @@ func permRulesBlocked() bool {
 	return false
 }
 
-// permRuleTable 是规则表：表头常显（S-sandbox-23 … 26），行是有规则时才出现
-// （S-sandbox-24）。
+// permRuleTable 是规则表：三列并排时表头常显（S-sandbox-23 … 26），行是有规则
+// 时才出现（S-sandbox-24）。窄窗里规则行按行堆叠（U2-forms F23），每一格自带小
+// 标签，表头就不再画——表头只描述并排的三列，堆叠后它对不上任何一行。
 func permRuleTable(c *gui.Context) {
 	gui.Column(c).Shrink(0).Children(func() {
-		permTableHeader(c)
+		if !permNarrow(c) {
+			permTableHeader(c)
+		}
 		for i := range permissionsScreen.rules {
 			permRuleRow(c, i)
 		}
@@ -366,7 +369,8 @@ func permRuleTable(c *gui.Context) {
 func permTableHeader(c *gui.Context) {
 	t := c.Theme()
 	box := gui.Row(c).Shrink(0).MinHeight(permTableH).Padding(0, screenSpace2).
-		AlignItems(gui.Center).Radius(screenRadiusCtl).Background(t.Background)
+		AlignItems(gui.Center).Radius(screenRadiusCtl).Background(t.Background).
+		Role(gui.RoleRow).Label("命令规则表头")
 	box.Draw(func(p *gui.Painter, r gui.Rect) {
 		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
 	})
@@ -493,9 +497,11 @@ func permValidateRules() {
 }
 
 // permNarrow 判内容列是否窄到放不下一整行规则（U2-forms F23 的退化阈值）。
-// 可用宽取 settingsUsableWidth：窄窗没有 224 的常驻导航，不能按窗口直接减。
+// 可用宽取 settingsUsableWidth（窄窗没有 224 的常驻导航，不能按窗口直接减），
+// 再减去设置壳的窗框留白与内容列两侧内边距。
 func permNarrow(c *gui.Context) bool {
-	return settingsUsableWidth(c)-2*space8 < SettingsRuleRowMinWidth
+	content := settingsUsableWidth(c) - 2*settingsShellInset - 2*space8
+	return content < SettingsRuleRowMinWidth
 }
 
 // permLeaveDialog 是「命令权限尚未保存」确认框（S-sandbox-36 … 40）。

@@ -553,7 +553,8 @@ func TestHeaderRenameIsAvailable(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("确认重命名没有发出 session.rename")
 	}
-	tt.Frame()
+	// 通道只证明写入发出去了；弹窗的关闭是结果交回渲染线程后才写的，等观察值。
+	waitFrame(t, tt, "重命名成功后弹窗关闭", func() bool { return !app.renameDialog.open })
 	if app.renameDialog.open {
 		t.Fatal("重命名成功后弹窗没有关闭")
 	}

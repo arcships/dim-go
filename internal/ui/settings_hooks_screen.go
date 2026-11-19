@@ -578,7 +578,7 @@ func hkEditorDialog(c *gui.Context, t *gui.Theme) {
 		panel := gui.Column(c).Gap(hkRowGap).
 			Role(gui.RoleDialog).Label(hkCopyDocTitle)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, hkCopyDocTitle)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, hkCopyDocTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
 			screenHint(c, hkCopyDocDesc)
 			editor := gui.TextArea(c, &hooksScreen.draft).MinHeight(hkEditorMinH).

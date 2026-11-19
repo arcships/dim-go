@@ -57,6 +57,17 @@ func a11ySettings(section settingsSectionID) func(t *testing.T) (*App, *gui.Test
 	}
 }
 
+// a11ySessionSearch 打开会话内搜索浮层。
+func a11ySessionSearch() func(t *testing.T) (*App, *gui.Tester) {
+	return func(t *testing.T) (*App, *gui.Tester) {
+		t.Helper()
+		app := NewApp(Options{State: StateDefault})
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		openSessionSearchForTest(t, tt)
+		return app, tt
+	}
+}
+
 // a11yVariant 造一个走查态。
 func a11yVariant(v Variant) func(t *testing.T) (*App, *gui.Tester) {
 	return func(t *testing.T) (*App, *gui.Tester) {
@@ -66,7 +77,8 @@ func a11yVariant(v Variant) func(t *testing.T) (*App, *gui.Tester) {
 	}
 }
 
-// a11yScreens 是批量验收的表。
+// a11yScreens 是批量验收的表。名字来自需求里的逐字可读名；命中即说明这一屏
+// 上确实有一个读屏项叫这个名字。
 func a11yScreens() []a11yScreen {
 	return []a11yScreen{
 		{"主界面·会话列表", a11yMainScreen(StateDefault), []a11yItem{
@@ -76,6 +88,15 @@ func a11yScreens() []a11yScreen {
 			{gui.RoleTreeItem, "工作区", false, false},
 			{gui.RoleButton, "新建会话", false, false},
 			{gui.RoleButton, "收起侧边栏 ⌘B", false, false},
+			{gui.RoleButton, "定时任务", false, false},
+			{gui.RoleButton, "打开上下文面板", false, false},
+			{gui.RoleMenuButton, "技能", false, false},
+			{gui.RoleButton, "技能/插件", false, false},
+			{gui.RoleButton, "搜索", false, false},
+			{gui.RoleText, "暂无会话", false, false},
+			{gui.RoleMenuButton, "更多打开方式", false, false},
+			{gui.RoleMenuButton, "更多操作", false, false},
+			{gui.RoleButton, "添加工作区", false, false},
 		}},
 		{"主界面·对话流与输入位", a11yMainScreen(StateDefault), []a11yItem{
 			{gui.RoleLog, "对话流", false, false},
@@ -95,12 +116,17 @@ func a11yScreens() []a11yScreen {
 			{gui.RoleTree, "文件树", false, false},
 			{gui.RoleTreeItem, "目录，assets，已收起", false, false},
 			{gui.RoleTreeItem, "文件，README.md", false, false},
+			{gui.RoleButton, "搜索", false, false},
 		}},
 		{"右栏·改动", a11yRightPanel(tabChanges), []a11yItem{
 			{gui.RoleTab, "Review", true, false},
 			{gui.RoleTreeItem, "", false, false},
 			{gui.RoleListItem, "", false, false},
 			{gui.RoleButton, "全部暂存", false, false},
+			{gui.RoleText, "3 个文件改动", false, false},
+			{gui.RoleButton, "取消暂存", false, false},
+			{gui.RoleButton, "暂存", false, false},
+			{gui.RoleButton, "还原", false, false},
 		}},
 		{"右栏·后台任务", func(t *testing.T) (*App, *gui.Tester) {
 			t.Helper()
@@ -111,11 +137,16 @@ func a11yScreens() []a11yScreen {
 		}, []a11yItem{
 			{gui.RoleList, "后台进程", false, false},
 			{gui.RoleListItem, "后台任务：go test ./... · 运行中", true, false},
+			{gui.RoleTab, "唤醒", false, false},
+			{gui.RoleButton, "复制命令", false, false},
+			{gui.RoleText, "运行中", false, false},
 		}},
 		{"右栏·终端", a11yRightPanel(tabTerminal), []a11yItem{
 			{gui.RoleButton, "新建终端", false, false},
 			{gui.RoleButton, "关闭终端", false, false},
 			{gui.RoleButton, "清屏", false, false},
+			{gui.RoleButton, "关闭进程", false, false},
+			{gui.RoleTab, "终端", true, false},
 		}},
 		{"右栏·侧边对话", a11yRightPanel(tabSideChat), []a11yItem{
 			{gui.RoleTab, "侧边对话", true, false},
@@ -131,6 +162,8 @@ func a11yScreens() []a11yScreen {
 		{"设置·账户", a11ySettings(secAccount), []a11yItem{
 			{gui.RoleHeading, "账户", false, false},
 			{gui.RoleButton, "刷新", false, false},
+			{gui.RoleButton, "复制 UID", false, false},
+			{gui.RoleListItem, "账户", true, false},
 		}},
 		{"设置·外观", a11ySettings(secAppearance), []a11yItem{
 			{gui.RoleHeading, "外观", false, false},
@@ -186,6 +219,67 @@ func a11yScreens() []a11yScreen {
 			return app, gui.NewTester(app.View, WindowWidth, WindowHeight)
 		}, []a11yItem{
 			{gui.RoleAlertDialog, "", false, false},
+		}},
+		{"主界面·空态", a11yMainScreen(StateEmpty), []a11yItem{
+			{gui.RoleButton, "定时任务", false, false},
+			{gui.RoleButton, "打开上下文面板", false, false},
+			{gui.RoleMenuButton, "技能", false, false},
+			{gui.RoleButton, "技能/插件", false, false},
+			{gui.RoleButton, "搜索", false, false},
+			{gui.RoleButton, "收起侧边栏 ⌘B", false, false},
+			{gui.RoleButton, "新建会话", false, false},
+			{gui.RoleText, "暂无会话", false, false},
+			{gui.RoleButton, "添加工作区", false, false},
+		}},
+		{"主界面·失败", a11yMainScreen(StateFailed), []a11yItem{
+			{gui.RoleButton, "定时任务", false, false},
+			{gui.RoleButton, "打开上下文面板", false, false},
+			{gui.RoleMenuButton, "技能", false, false},
+			{gui.RoleButton, "技能/插件", false, false},
+			{gui.RoleButton, "搜索", false, false},
+			{gui.RoleButton, "收起侧边栏 ⌘B", false, false},
+			{gui.RoleButton, "新建会话", false, false},
+			{gui.RoleText, "暂无会话", false, false},
+			{gui.RoleMenuButton, "更多打开方式", false, false},
+			{gui.RoleMenuButton, "更多操作", false, false},
+			{gui.RoleButton, "添加工作区", false, false},
+		}},
+		{"主界面·运行中", a11yMainScreen(StateRunning), []a11yItem{
+			{gui.RoleButton, "停止", false, false},
+			{gui.RoleButton, "回到最新", false, false},
+			{gui.RoleButton, "定时任务", false, false},
+			{gui.RoleButton, "打开上下文面板", false, false},
+			{gui.RoleMenuButton, "技能", false, false},
+			{gui.RoleButton, "技能/插件", false, false},
+			{gui.RoleButton, "搜索", false, false},
+			{gui.RoleButton, "收起侧边栏 ⌘B", false, false},
+			{gui.RoleButton, "新建会话", false, false},
+			{gui.RoleText, "暂无会话", false, false},
+			{gui.RoleMenuButton, "更多打开方式", false, false},
+			{gui.RoleMenuButton, "更多操作", false, false},
+			{gui.RoleButton, "添加工作区", false, false},
+		}},
+		{"主界面·等待审批", a11yMainScreen(StateWaiting), []a11yItem{
+			{gui.RoleButton, "定时任务", false, false},
+			{gui.RoleButton, "打开上下文面板", false, false},
+			{gui.RoleButton, "技能/插件", false, false},
+			{gui.RoleButton, "搜索", false, false},
+			{gui.RoleButton, "收起侧边栏 ⌘B", false, false},
+			{gui.RoleButton, "新建会话", false, false},
+			{gui.RoleText, "暂无会话", false, false},
+			{gui.RoleMenuButton, "更多打开方式", false, false},
+			{gui.RoleMenuButton, "更多操作", false, false},
+			{gui.RoleButton, "添加工作区", false, false},
+		}},
+		{"右栏·子代理", a11yRightPanel(tabSubagent), []a11yItem{
+			{gui.RoleMenuButton, "更多操作", false, false},
+		}},
+		{"设置·Git", a11ySettings(secGit), []a11yItem{
+			{gui.RoleButton, "选择目录，按钮", false, false},
+		}},
+		{"设置·模态", a11ySettings(secModality), []a11yItem{
+			{gui.RolePopUpButton, "图像生成，模型选择器，未选择", false, false},
+			{gui.RoleListItem, "多模态", true, false},
 		}},
 	}
 }

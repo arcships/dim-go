@@ -480,7 +480,7 @@ func (a *App) pluginRemoveView(c *gui.Context) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleAlertDialog).Label(pluginRemoveTitle)
 		panel.Children(func() {
-			typeH3.style(t, gui.Text(c, pluginRemoveTitle)).TextColor(t.Text).
+			typeDialogTitle.style(t, gui.Text(c, pluginRemoveTitle)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(2)
 			typeBody.style(t, gui.Text(c, fmt.Sprintf(pluginRemoveDescFmt, name))).
 				TextColor(t.TextMuted)
