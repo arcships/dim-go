@@ -161,38 +161,50 @@ func (a *App) userMessage(c *gui.Context, i int, r round) {
 		if selection := selectedTextOf(body); selection != "" {
 			a.selectionBar(c, selection)
 		}
-		if hovered {
-			a.userActions(c, i, r)
+		// 超过折叠行数时动作行常驻：里面左起第一项就是「展示全部 / 收起」（TL-31）。
+		if hovered || bubbleOverflows(r.user) {
+			a.userActions(c, i, r, hovered)
 		}
 	})
 }
 
 // userBubble 是气泡本体：右对齐、最多 85% 内容宽、浅底圆角；附件、正文同属
-// 一个可选区，右键打开消息菜单（TL-41–TL-43）。
+// 一个可选区，右键打开消息菜单（TL-41–TL-43）。正文超过折叠行数时底部给
+// 「展示全部 / 收起」（TL-31）。
 func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Element {
 	t := c.Theme()
 	var box gui.Element
 	gui.Row(c).Grow(1).Children(func() {
 		gui.Spacer(c)
-		box = gui.Box(c).MaxWidthPercent(userBubbleMaxPercent).
-			Padding(space2, timelinePadX).Radius(radiusCard).
-			Background(t.SurfaceHover).Label("我的消息").Selectable()
-		if pending {
-			box = box.Opacity(0.6)
-		}
-		box.Children(func() {
-			a.userAttachmentArea(c, r)
-			if r.user != "" {
-				body := typeBody.style(t, gui.Text(c, r.user)).TextColor(t.Text)
-				if !pending {
-					// 菜单挂在正文上：可选中文本自带编辑菜单，ContextMenu 在
-					// 它上面才会替换掉那条（选区仍由外层可选区持有）。
-					svc := c.Services()
-					body = body.ContextMenu(func(m *gui.Menu) {
-						a.userMessageMenu(m, svc, i, r, selectedTextOf(box))
-					})
-				}
+		// 气泡与展开入口同在一个限宽的列里：展开入口排在气泡下方，不参与
+		// 可选区，也不会被 85% 的内容宽挤出父容器。
+		expanded := a.userExpandedOf(i)
+		overflow := bubbleOverflows(r.user)
+		gui.Column(c).Shrink(0).MaxWidthPercent(userBubbleMaxPercent).
+			AlignItems(gui.End).Gap(space1).Children(func() {
+			box = gui.Box(c).WidthPercent(100).
+				Padding(space2, timelinePadX).Radius(radiusCard).
+				Background(t.SurfaceHover).Label("我的消息").Selectable()
+			if pending {
+				box = box.Opacity(0.6)
 			}
+			box.Children(func() {
+				a.userAttachmentArea(c, r)
+				if r.user != "" {
+					body := typeBody.style(t, gui.Text(c, r.user)).TextColor(t.Text)
+					if overflow && !expanded {
+						body = body.MaxLines(bubbleCollapsedLines)
+					}
+					if !pending {
+						// 菜单挂在正文上：可选中文本自带编辑菜单，ContextMenu 在
+						// 它上面才会替换掉那条（选区仍由外层可选区持有）。
+						svc := c.Services()
+						body = body.ContextMenu(func(m *gui.Menu) {
+							a.userMessageMenu(m, svc, i, r, selectedTextOf(box))
+						})
+					}
+				}
+			})
 		})
 	})
 	return box
@@ -200,10 +212,17 @@ func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Eleme
 
 // userActions 是用户气泡下的发送时间与四个动作（悬停可见）：复制走剪贴板，
 // 编辑进入行内编辑器（TL-38），侧边对话打开右栏；分叉没有写入口，置灰并写原因。
-func (a *App) userActions(c *gui.Context, i int, r round) {
+func (a *App) userActions(c *gui.Context, i int, r round, hovered bool) {
 	t := c.Theme()
+	overflow := bubbleOverflows(r.user)
 	gui.Column(c).Grow(1).Gap(space1).Label("消息动作").Children(func() {
 		gui.Row(c).Grow(1).Gap(space1).AlignItems(gui.Center).Children(func() {
+			if overflow {
+				a.bubbleExpandButton(c, i, a.userExpandedOf(i))
+			}
+			if !hovered {
+				return
+			}
 			gui.Spacer(c)
 			if r.at != "" {
 				typeMicro.style(t, gui.Text(c, r.at)).TextColor(t.TextMuted).
@@ -1377,6 +1396,11 @@ func roundMeta(r round) string {
 //
 // 块的开合态按行序号存（可丢的视图状态），行的顺序与内容都只来自 Source。
 func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
+	// 正在编辑的那一行被事实移走（消息被删或历史重载）：关掉编辑器，不把改写
+	// 落到别的行上（TL-323）。
+	if a.inlineEditRow >= len(snap.Rows) {
+		a.cancelInlineEdit()
+	}
 	if len(snap.Rows) == 0 {
 		a.emptyTimeline(c)
 		return

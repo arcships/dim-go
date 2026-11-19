@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -62,6 +63,7 @@ func (a *App) resetPanelViewState() {
 	a.inlineDraft = ""
 	a.inlineSaved = map[int]string{}
 	a.inlineNotice = ""
+	a.userExpanded = map[int]bool{}
 	a.artifactsMore = map[string]bool{}
 	a.artifactMenus = map[string]*bool{}
 	a.termTabs = nil
@@ -88,6 +90,12 @@ func (a *App) applyComposerPanelVariant() {
 		a.compactionOpen["1"] = &open
 		a.demoCompaction = sampleCompaction()
 	case VariantArtifacts:
+		if len(a.rounds) > 0 {
+			a.rounds[0].artifacts = sampleArtifacts()
+			*a.blockOf("artifacts:0", false) = true
+		}
+		a.artifactsMore["artifacts:0"] = false
+	case VariantArtifactsMenu:
 		if len(a.rounds) > 0 {
 			a.rounds[0].artifacts = sampleArtifacts()
 			*a.blockOf("artifacts:0", false) = true
@@ -176,9 +184,6 @@ func (a *App) queuedMessages() []QueuedMessageSnapshot {
 	}
 	return a.demoQueued
 }
-
-// queuedMessagesShowing 报告面板此刻要不要画：有排队消息才画。
-func (a *App) queuedMessagesShowing() bool { return len(a.queuedMessages()) > 0 }
 
 // queuePanel 是排队消息面板（IN-35）：标题计数 + 行；位于输入块之上。
 func (a *App) queuePanel(c *gui.Context) {
@@ -374,12 +379,6 @@ func (a *App) shellRunFacts() *ShellRunSnapshot {
 	return a.demoShellRun
 }
 
-// shellPanelShowing 报告 Shell 运行面板此刻要不要画。
-func (a *App) shellPanelShowing() bool {
-	run := a.shellRunFacts()
-	return run != nil && a.shellClosed != run.RunID
-}
-
 // shellRunPanel 是 Shell 运行面板（IN-45–IN-52）：标题行（命令、模式、状态、
 // 停止 / 关闭）+ 可折叠的输出与脚注。
 func (a *App) shellRunPanel(c *gui.Context) {
@@ -442,7 +441,7 @@ func (a *App) shellRunHeader(c *gui.Context, run *ShellRunSnapshot) {
 			if iconButton(c, iconButtonSpec{
 				icon: iconStop, label: "停止命令", tip: "停止", size: rowCompact,
 			}) {
-				a.stopShellRun()
+				a.stopShellPanelRun(run)
 			}
 			return
 		}
@@ -452,6 +451,20 @@ func (a *App) shellRunHeader(c *gui.Context, run *ShellRunSnapshot) {
 			a.shellClosed = run.RunID
 		}
 	})
+}
+
+// stopShellPanelRun 是面板上的「停止」：有运行标识就发一次停止；样例里把状态
+// 收到已停止（不发任何请求）。
+func (a *App) stopShellPanelRun(run *ShellRunSnapshot) {
+	if a.intents != nil && run.RunID != "" {
+		a.dispatch("停止命令", func(ctx context.Context) error {
+			return a.intents.StopShell(ctx, run.RunID)
+		}, func() { a.lastShellRun = "" })
+		return
+	}
+	if a.demoShellRun != nil && a.demoShellRun.RunID == run.RunID {
+		a.demoShellRun.Status = "stopped"
+	}
 }
 
 // shellRunBody 是面板内容（IN-51 / IN-52）：等宽输出块与逐条脚注。

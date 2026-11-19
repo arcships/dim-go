@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -194,6 +195,16 @@ func TestShellRunPanelRunningAndCollapse(t *testing.T) {
 	if _, ok := tt.Access("关闭命令面板"); ok {
 		t.Fatal("运行中不该有「关闭」")
 	}
+	if err := tt.Click("停止命令"); err != nil {
+		t.Fatalf("点不到停止：%v", err)
+	}
+	tt.Frame()
+	if _, ok := tt.Find("状态：已停止"); !ok {
+		t.Fatalf("停止后状态没有更新：%v", tt.Texts())
+	}
+	if _, ok := tt.Access("关闭命令面板"); !ok {
+		t.Fatalf("停止后没有关闭入口：%v", tt.Texts())
+	}
 	if err := tt.Click("命令：go test ./internal/ui -run TestComposerPanels -count=1"); err != nil {
 		t.Fatalf("点不到命令标题：%v", err)
 	}
@@ -201,7 +212,7 @@ func TestShellRunPanelRunningAndCollapse(t *testing.T) {
 	if tt.HasText("--- FAIL: TestComposerPanels") {
 		t.Fatal("折叠后输出仍在")
 	}
-	if _, ok := tt.Find("状态：运行中"); !ok {
+	if _, ok := tt.Find("状态：已停止"); !ok {
 		t.Fatal("折叠把整块面板收掉了")
 	}
 }
@@ -622,5 +633,95 @@ func TestSubagentGenericLoadFailure(t *testing.T) {
 	}
 	if _, ok := tt.Find("重试"); !ok {
 		t.Fatalf("就绪后的错误横幅没有重试：%v", tt.Texts())
+	}
+}
+
+// TestUserBubbleExpandAndCollapse：正文超过折叠行数时底部出现「展示全部」，
+// 点开后换「收起」；短正文不出现这个按钮（TL-31）。
+func TestUserBubbleExpandAndCollapse(t *testing.T) {
+	app := NewApp(Options{State: StateDefault})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if _, ok := tt.Find("展示全部"); ok {
+		t.Fatal("短正文不该出现「展示全部」")
+	}
+
+	long := ""
+	for i := 0; i < 9; i++ {
+		long += "这一行内容用来把气泡撑到折叠行数以上。\n"
+	}
+	src := wiredSource()
+	src.conn = Connection{Phase: "connected"}
+	src.names = []string{"长消息"}
+	src.hasSess = true
+	src.session = SessionSnapshot{ID: "s1", Title: "长消息",
+		Rows: []RowSnapshot{{Kind: RowUser, Text: long}}}
+	app = NewApp(Options{State: StateDefault, Source: src})
+	tt = gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if _, ok := tt.Access("展示全部（当前为折叠）"); !ok {
+		t.Fatalf("超长正文没有折叠入口：%v", tt.Texts())
+	}
+	if r, ok := tt.Find("展示全部"); ok {
+		tt.Move(r.X+r.W/2, r.Y+r.H/2)
+		tt.Frame()
+	}
+	if err := tt.Click("展示全部"); err != nil {
+		t.Fatalf("点不到展示全部：%v", err)
+	}
+	tt.Frame()
+	if !app.userExpanded[0] {
+		t.Fatalf("点了展示全部但展开态没变：%v", app.userExpanded)
+	}
+	if _, ok := tt.Access("收起"); !ok {
+		t.Fatalf("展开后没有「收起」：%v", tt.Texts())
+	}
+	if err := tt.Click("收起"); err != nil {
+		t.Fatalf("点不到收起：%v", err)
+	}
+	tt.Frame()
+	if _, ok := tt.Access("展示全部（当前为折叠）"); !ok {
+		t.Fatal("收起后没有回到折叠入口")
+	}
+}
+
+// shellStopIntents 只实现命令停止与打开会话，其余动作被调用会 panic：
+// 说明面板上的「停止」确实走了写入口。
+type shellStopIntents struct {
+	Intents
+	stopped chan string
+}
+
+func (s *shellStopIntents) OpenSession(context.Context, string) error { return nil }
+func (s *shellStopIntents) StopShell(_ context.Context, runID string) error {
+	s.stopped <- runID
+	return nil
+}
+
+// TestShellRunPanelStopSendsIntent：连线时面板上的「停止」发 StopShell（运行标识
+// 来自事实，不靠输入区记的那一份）。
+func TestShellRunPanelStopSendsIntent(t *testing.T) {
+	src := wiredSource()
+	src.conn = Connection{Phase: "connected"}
+	src.names = []string{"命令面板"}
+	src.hasSess = true
+	src.session = SessionSnapshot{
+		ID: "s1", Title: "命令面板",
+		Rows: []RowSnapshot{{Kind: RowUser, Text: "跑一下"}},
+		ShellRun: &ShellRunSnapshot{
+			RunID: "run-live-1", Command: "go test ./...", Mode: "record", Status: "running",
+		},
+	}
+	stub := &shellStopIntents{stopped: make(chan string, 1)}
+	app := NewApp(Options{State: StateDefault, Source: src, Intents: stub})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	if err := tt.Click("停止命令"); err != nil {
+		t.Fatalf("点不到停止：%v", err)
+	}
+	select {
+	case got := <-stub.stopped:
+		if got != "run-live-1" {
+			t.Fatalf("StopShell 收到 %q，想要 run-live-1", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("点停止没有发 StopShell")
 	}
 }

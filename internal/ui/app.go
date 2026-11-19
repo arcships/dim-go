@@ -158,6 +158,7 @@ const (
 	VariantInlineEdit
 	VariantCompaction
 	VariantArtifacts
+	VariantArtifactsMenu
 	VariantReviewMenu
 	VariantTermLayers
 	VariantSubagentFailed
@@ -188,7 +189,8 @@ var variantNames = map[string]Variant{
 	"timeline-hover": VariantTimelineHover, "timeline-tool-detail": VariantTimelineToolDetail,
 	"queue": VariantQueuePanel, "shell-panel": VariantShellPanel,
 	"inline-edit": VariantInlineEdit, "compaction": VariantCompaction,
-	"artifacts": VariantArtifacts, "review-menu": VariantReviewMenu,
+	"artifacts": VariantArtifacts, "artifacts-menu": VariantArtifactsMenu,
+	"review-menu": VariantReviewMenu,
 	"term-layers": VariantTermLayers, "subagent-failed": VariantSubagentFailed,
 }
 
@@ -382,28 +384,30 @@ type App struct {
 	// 排队消息与 Shell 运行面板的视图状态（可丢）：面板折叠、正在编辑的排队
 	// 消息与草稿、命令面板的折叠与已关闭的运行标识。样例走查用的队列与运行记录
 	// 也放这里（只有 -demo / 截图时由变体灌入，接上 Source 后不读）。
-	queueCollapsed   bool
-	queueEditing     string
-	queueDraft       string
-	queueNotice      string
-	queueNoticeAt    int
-	shellCollapsed   bool
-	shellClosed      string
-	shellRunFrame    int
-	demoQueued       []QueuedMessageSnapshot
-	demoShellRun     *ShellRunSnapshot
-	demoCompaction   *CompactionSnapshot
+	queueCollapsed bool
+	queueEditing   string
+	queueDraft     string
+	queueNotice    string
+	queueNoticeAt  int
+	shellCollapsed bool
+	shellClosed    string
+	shellRunFrame  int
+	demoQueued     []QueuedMessageSnapshot
+	demoShellRun   *ShellRunSnapshot
+	demoCompaction *CompactionSnapshot
 	// 行内编辑器的视图状态（TL-31–TL-34）：正在编辑的行、草稿与样例保存结果。
 	inlineEditRow int
 	inlineDraft   string
 	inlineSaved   map[int]string
 	inlineNotice  string
+	// userExpanded 是气泡「展示全部」的展开态（TL-31），按行序号存。
+	userExpanded map[int]bool
 	// 产物列表的展开态（A-18 / A-19）与行尾下拉（A-14）的开合。
-	artifactsMore   map[string]bool
-	artifactMenus   map[string]*bool
+	artifactsMore map[string]bool
+	artifactMenus map[string]*bool
 	// 压缩摘要区的展开态（TL-69）与样例摘要重试计数。
-	compactionOpen   map[string]*bool
-	compactionTried  int
+	compactionOpen  map[string]*bool
+	compactionTried int
 
 	// 待发附件（样例）。
 	attachments       []attachmentChipData

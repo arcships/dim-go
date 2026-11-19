@@ -117,3 +117,20 @@ python3 scripts/ui-baseline.py docs/domains/screens/state-default.png
 ```
 
 窗口号取自 `CGWindowListCopyWindowInfo`（`/tmp/winid.swift` 的等价脚本在 `scripts/capture-windows.py` 里），按 owner `dimagent-ui` 与窗口名里的「界面骨架」认窗口；不依赖辅助功能权限。
+
+## 四、本批补齐的八块元素
+
+截图由 `go run ./cmd/dimagent-ui -demo -no-focus -variant <名字> -screenshot <路径>` 产出，
+都是真窗口截图（跟随系统外观）。每块一张，产物下拉另有一张展开态。
+
+| 文件 | 走查变体 | 覆盖元素 |
+|---|---|---|
+| `panel-queue.png` | `queue` | IN-35–IN-42 排队消息面板（计数、行、悬停动作、不可用原因） |
+| `panel-shell-run.png` | `shell-panel` | IN-45–IN-52 Shell 运行面板（命令、模式、状态、输出、脚注、关闭） |
+| `timeline-inline-edit.png` | `inline-edit` | TL-31–TL-34 行内编辑器（正文、取消、发送） |
+| `timeline-compaction.png` | `compaction` | TL-68 / TL-69 压缩状态行与展开的摘要区 |
+| `timeline-artifacts.png` | `artifacts` | A-08 / A-18 产物列表（3 行上限、「全部 5 个产物」、行尾下拉触发） |
+| `timeline-artifacts-menu.png` | `artifacts-menu` | A-14–A-17 产物行下拉（箭头翻转、菜单项与原因） |
+| `panel-review-menu.png` | `review-menu` | D-93–D-97 改动行右键菜单（打开类三项、复制路径） |
+| `panel-terminal-layers.png` | `term-layers` | T-09 终端分层画布（两个标签、各层自己的输出） |
+| `panel-subagent-failed.png` | `subagent-failed` | G-02 子代理通用「加载失败」+ 重试 |

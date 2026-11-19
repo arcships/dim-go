@@ -315,10 +315,10 @@ func main() {
 		rescan:  rescan,
 		hint:    hint,
 		// 断线卡的「查看日志」用它打开客户端日志；样例模式没有日志时为空串。
-		logPath: startup.Path(),
-		noFocus: *noFocusFlag,
-		width:   *widthFlag,
-		height:  *heightFlag,
+		logPath:  startup.Path(),
+		noFocus:  *noFocusFlag,
+		width:    *widthFlag,
+		height:   *heightFlag,
 		quitting: &quitting,
 		// 最后一个窗口关掉就退出：没有窗口的进程只会让自启的 App Server 落到
 		// 没人回收的地方（关窗与异步收尾的竞态见 quitGate）。
@@ -331,15 +331,12 @@ func main() {
 		},
 	})
 
-	// 深链走两条入口，落点只有一条路由：
-	//   - 系统交付（macOS 的 openURLs，应用未运行时由系统拉起后到达）经
-	//     mygo.App.OnOpenURL；
-	//   - 命令行上的 dimagent:// 参数由框架的启动参数处理交给同一个 handler。
-	// 两者都要等目录可用（连接结算）之后再落窗，见 windowManager。
-
-	// 深链：协议在系统里注册（打包时 Info.plist 声明；非打包运行会在日志里说明），
-	// 系统交付的 dimagent:// 一律交给窗口管理。OnOpenURL 要在 Run 之前注册，
-	// 才收得到「应用未运行、被系统拉起」时随启动到达的那一条。
+	// 深链：协议在系统里注册（打包时由 Info.plist 的 CFBundleURLTypes 声明；
+	// 未打包运行会在日志里说明系统不接受），系统交付的 dimagent:// 一律交给窗口
+	// 管理。OnOpenURL 要在 Run 之前注册，才收得到「应用未运行、被系统拉起」时随
+	// 启动到达的那一条；命令行上直接给的 dimagent:// 参数由框架的启动参数处理
+	// 交给同一个 handler。两者都要等目录可用（连接结算）之后再落窗，见
+	// windowManager.connectionSettled。
 	if err := mygo.App.RegisterURLScheme(deeplink.Scheme); err != nil {
 		// 未打包运行（裸可执行文件）时系统不接受登记：打包后的 .app 由
 		// Info.plist 的 CFBundleURLTypes 声明，双击运行即可收到系统交付的链接。

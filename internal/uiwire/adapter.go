@@ -1992,6 +1992,10 @@ func (w *App) runShellFor(ctx context.Context, sessionID, command string) (strin
 	if err != nil {
 		return "", err
 	}
+	// 先记一条「运行中」：命令在服务端跑着的时候，输入区下方的面板要能展开、
+	// 能给停止入口；等到终态再换成回执里的输出与退出码。
+	w.recordShellRunRunning(sessionID, command, view.InputID)
+	w.changed()
 	// 服务端可能在回执里给运行标识；等到终态后用它的值作为停止依据。
 	if settled, waitErr := w.A.Wait(ctx, view.ID); waitErr == nil && settled.InputID != "" {
 		view = settled
@@ -1999,6 +2003,16 @@ func (w *App) runShellFor(ctx context.Context, sessionID, command string) (strin
 	w.recordShellRun(view, sessionID, command)
 	w.changed()
 	return view.InputID, nil
+}
+
+// recordShellRunRunning 记一条还在跑的命令：只有命令与运行标识，没有输出。
+func (w *App) recordShellRunRunning(sessionID, command, runID string) {
+	w.shellMu.Lock()
+	w.shellRun = &ui.ShellRunSnapshot{
+		RunID: runID, Command: command, Mode: "record", Status: "running",
+	}
+	w.shellSession = sessionID
+	w.shellMu.Unlock()
 }
 
 // recordShellRun 把一次命令运行的回执细节留成界面读数（shell.run 回执带输出、
