@@ -50,7 +50,15 @@ func TestRetryingIntentsRediscoversServer(t *testing.T) {
 	}
 	wire := uiwire.New(base)
 	discover := serverDiscovery{dataDir: dataDir, explicit: "", base: base}
-	intents := retryingIntents{App: wire, rescan: func() { discover.apply("重新连接") }}
+	// 入口侧的重连日志：与真实入口一样写到启动日志，验收从文件里读。
+	logPath := filepath.Join(dir, "dimagent.log")
+	startup := openStartupLog(logPath)
+	defer startup.close()
+	intents := retryingIntents{
+		App:    wire,
+		rescan: func() { discover.apply("重新连接") },
+		log:    startup,
+	}
 	// 与入口一致：启动时先跑一次发现链，把「没有可执行文件」的说明交给集成层。
 	discover.apply("启动")
 
@@ -89,6 +97,38 @@ func TestRetryingIntentsRediscoversServer(t *testing.T) {
 	}
 	t.Logf("② 装上 %s 之后重新连接：阶段 %s", installed, conn.Phase)
 
-	// 4. 收尾：按退出四阶段回收自启实例，不留服务进程。
-	shutdown(base, nil)
+	// 4. 重连接要在日志里留一行结果（含耗时）：外部验收不用靠界面猜。
+	logText := readText(t, logPath)
+	for _, want := range []string{"重新连接：常规重连失败", "重新连接：连接就绪（", "ms）"} {
+		if !strings.Contains(logText, want) {
+			t.Fatalf("重连日志缺少 %q：\n%s", want, logText)
+		}
+	}
+	t.Logf("③ 重连日志：\n%s", strings.TrimSpace(logText))
+
+	// 5. 标题跟着阶段走：连上之后回到产品标题，不是「连接失败」。
+	titles := newWindowTitle(modeConnect, startup)
+	if got := titles.forConnection(wire.Connection()); got != titleProduct {
+		t.Fatalf("重连后的窗口标题 = %q, want %q", got, titleProduct)
+	}
+	t.Logf("④ 重连后的窗口标题：%s", titleProduct)
+
+	// 6. 收尾：按退出四阶段回收自启实例，再删掉它留下的端点文件。
+	shutdown(base, startup)
+	socket := endpointPath(dataDir)
+	cleanupEndpoint(socket, startup)
+	if _, err := os.Stat(socket); !os.IsNotExist(err) {
+		t.Fatalf("退出后端点文件应已删除：%v", err)
+	}
+	t.Logf("⑤ 退出后端点 %s 已不存在", socket)
+}
+
+// readText 读文件内容；读不到时直接失败（验收要看日志原文）。
+func readText(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("读 %s: %v", path, err)
+	}
+	return string(data)
 }

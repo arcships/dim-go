@@ -34,17 +34,46 @@ type retryingIntents struct {
 	*uiwire.App
 	// rescan 在重连前重跑发现链，把新的服务端路径交给集成层；可为 nil。
 	rescan func()
+	// after 在「重新连接」结束后刷新窗口标题（连接阶段已变）；可为 nil。
+	after func()
+	// log 记录重连的结果与耗时，便于从日志判断重连走的是哪条路径；可为 nil。
+	log *startupLog
 }
 
 // Reconnect 先走常规重连；连不上时重新发现服务端，再走一遍连接与订阅。
+//
+// 两条路径都写一行结果（耗时 + 失败原因）：重连的结果要从日志里看得见，不能只有
+// 界面上的断线卡。
 func (r retryingIntents) Reconnect(ctx context.Context) error {
-	if err := r.App.Reconnect(ctx); err == nil {
+	started := time.Now()
+	retryErr := r.App.Reconnect(ctx)
+	if retryErr == nil {
+		r.log.printf("重新连接：连接就绪（%.0f ms）", elapsedMS(started))
+		r.settle()
 		return nil
 	}
+	// 启动阶段就失败时集成层还没有连接监督者，常规重连只会说「未连接服务端」；
+	// 这时重跑发现链、再走一遍连接与订阅才是真正的重试。
+	r.log.printf("重新连接：常规重连失败（%.0f ms）：%v，重跑发现链", elapsedMS(started), retryErr)
 	if r.rescan != nil {
 		r.rescan()
 	}
-	return r.App.Connect(ctx)
+	err := r.App.Connect(ctx)
+	if err != nil {
+		r.log.printf("重新连接：连接失败（%.0f ms）：%v", elapsedMS(started), err)
+		r.settle()
+		return err
+	}
+	r.log.printf("重新连接：连接就绪（%.0f ms）", elapsedMS(started))
+	r.settle()
+	return nil
+}
+
+// settle 让窗口标题跟上重连之后的连接阶段。
+func (r retryingIntents) settle() {
+	if r.after != nil {
+		r.after()
+	}
 }
 
 // serverDiscovery 是一条可重跑的发现链：启动时跑一次，「重新连接」时再跑一次。
@@ -163,17 +192,9 @@ func main() {
 		defer startup.close()
 	}
 
-	// 标题：样例模式保留「界面骨架」字样（截图脚本按它认窗口），连接模式用产品名。
-	serverHint := ""
-	title := func(s appui.State) string {
-		if mode == modeDemo {
-			return "DimAgent — " + s.String() + "（界面骨架）"
-		}
-		if serverHint != "" {
-			return "DimAgent — " + serverHint
-		}
-		return "DimAgent"
-	}
+	// 标题：样例模式保留「界面骨架」字样（截图脚本按它认窗口）；连接模式按连接阶段
+	// 取（见 windowTitle），启动发现链的说明先挂在 hint 上。
+	titles := newWindowTitle(mode, startup)
 
 	// 连接模式（默认）从真实集成层读事实；-demo 用样例数据。
 	var source appui.Source
@@ -191,7 +212,7 @@ func main() {
 			os.Exit(1)
 		case planErr != nil:
 			// 自动发现没结果：仍然起窗口，让断线说明在原位给原因与重试入口。
-			serverHint = "未找到 App Server"
+			titles.setHint("未找到 App Server")
 			startup.printf("%v", planErr)
 		default:
 			startup.printf("App Server：%s", plan.describe())
@@ -215,7 +236,13 @@ func main() {
 		discover := serverDiscovery{dataDir: dataDir, explicit: *serverFlag, base: base, log: startup}
 		wire = uiwire.New(base)
 		source = wire
-		intents = retryingIntents{App: wire, rescan: func() { discover.apply("重新连接") }}
+		titles.useSource(wire)
+		intents = retryingIntents{
+			App:    wire,
+			rescan: func() { discover.apply("重新连接") },
+			log:    startup,
+			after:  titles.apply,
+		}
 		startup.printf("日志：%s", startup.Path())
 	}
 
@@ -234,8 +261,13 @@ func main() {
 		// 断线卡的「查看日志」用它打开客户端日志；样例模式没有日志时为空串。
 		LogPath: startup.Path(),
 		StateChanged: func(s appui.State) {
+			if mode == modeConnect {
+				// 连接模式的标题由连接阶段决定，状态切换不改它（见 windowTitle）。
+				titles.apply()
+				return
+			}
 			if win != nil {
-				win.SetTitle(title(s))
+				win.SetTitle(titles.base(s))
 			}
 		},
 	})
@@ -268,8 +300,11 @@ func main() {
 			}
 			x, y, hasPosition = prefs.Window.X, prefs.Window.Y, prefs.Window.HasPosition
 		}
+		// 初始标题按界面状态取（样例模式带状态字样）；连接模式的标题之后由
+		// titles 按连接阶段改写。
+		initialTitle := titles.base(state)
 		options := mygo.WindowOptions{
-			Title:     title(state),
+			Title:     initialTitle,
 			Width:     width,
 			Height:    height,
 			MinWidth:  720,
@@ -283,21 +318,29 @@ func main() {
 			options.X, options.Y = x, y
 		}
 		win = mygo.NewWindow(options)
+		titles.attach(win, initialTitle)
 
-		// 连接完成的信号：截图与标题都等它，免得截到"连接中"的一帧。
+		// 连接完成的信号：截图等它，免得截到"连接中"的一帧。
 		connectDone := make(chan struct{})
 		if wire == nil {
 			close(connectDone)
 		} else {
-			wire.OnChange = func() { win.Invalidate() }
+			// 事实变化（连接阶段变化、事件、回执）时重绘并重取标题：断线就是从这里
+			// 把标题改回「连接失败」的，不靠启动协程那一次。
+			wire.OnChange = func() {
+				win.Invalidate()
+				titles.apply()
+			}
 			app.SetChanged(func() { win.Invalidate() })
 			// 集成层目前没有"事实变化"回调：用一帧轮询把收到的流式事件画出来。
-			// 这是显示刷新，不是第二份事实——每帧仍然只从 Source 读。
+			// 这是显示刷新，不是第二份事实——每帧仍然只从 Source 读。标题也在这里
+			// 兜底：失败路径不广播变化，最迟下一帧补上。
 			go func() {
 				ticker := time.NewTicker(250 * time.Millisecond)
 				defer ticker.Stop()
 				for range ticker.C {
 					win.Invalidate()
+					titles.apply()
 				}
 			}()
 			// 连接在后台走；失败时视图在自己的位置显示原因（Connected/Connection
@@ -309,11 +352,11 @@ func main() {
 				started := time.Now()
 				if err := wire.Connect(ctx); err != nil {
 					startup.printf("连接失败（%.0f ms）：%v", elapsedMS(started), err)
-					win.SetTitle("DimAgent — 连接失败")
 				} else {
 					startup.printf("连接就绪（%.0f ms）", elapsedMS(started))
-					win.SetTitle(title(appui.StateDefault))
 				}
+				// 标题按阶段取一次：失败路径不广播变化，这一步不能省。
+				titles.apply()
 				win.Invalidate()
 			}()
 		}
@@ -365,6 +408,12 @@ func main() {
 	// 一定已经被回收或确认留下。
 	if appBase != nil {
 		gate = newQuitGate(appBase, startup)
+		// 四阶段之前先冻结标题（退出途中别翻成「连接失败」），之后清一次本地端点：
+		// 自家拉起的服务退出后，socket 文件不该留在数据目录里（外部实例还在监听就
+		// 保留，见 cleanupEndpoint）。
+		endpoint := endpointPath(dataDir)
+		gate.before = titles.freeze
+		gate.tidy = func() { cleanupEndpoint(endpoint, startup) }
 		mygo.App.OnBeforeQuit(func(e *mygo.QuitEvent) {
 			if gate.settled() {
 				return
@@ -389,6 +438,10 @@ type quitGate struct {
 	once sync.Once
 	// done 在四阶段结束后关闭。
 	done chan struct{}
+	// before 在四阶段之前调用（退出一开始就冻结窗口标题）；可为 nil。
+	before func()
+	// tidy 在四阶段之后清理本地残留（端点文件）；可为 nil。
+	tidy func()
 
 	mu sync.Mutex
 	// gaveUp 表示等待已到上限：之后的 Quit 不再拦住（阶段卡住也总得退出）。
@@ -400,11 +453,17 @@ func newQuitGate(base *app.App, log *startupLog) *quitGate {
 	return &quitGate{base: base, log: log, done: make(chan struct{})}
 }
 
-// begin 启动四阶段（只一次）并返回结束信号。
+// begin 启动四阶段（只一次）并返回结束信号；四阶段前后各做一次入口侧收尾。
 func (g *quitGate) begin() <-chan struct{} {
 	g.once.Do(func() {
+		if g.before != nil {
+			g.before()
+		}
 		go func() {
 			shutdown(g.base, g.log)
+			if g.tidy != nil {
+				g.tidy()
+			}
 			close(g.done)
 		}()
 	})
