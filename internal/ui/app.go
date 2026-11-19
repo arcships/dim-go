@@ -162,10 +162,10 @@ var variantNames = map[string]Variant{
 	"session-delete": VariantSessionDelete, "search": VariantSearch,
 	"term": VariantTerm, "term-running": VariantTermRunning,
 	"term-exited": VariantTermExited, "settings": VariantSettings,
-	"settings-providers":   VariantSettingsProviders,
-	"settings-keybindings": VariantSettingsKeybindings,
+	"settings-providers":     VariantSettingsProviders,
+	"settings-keybindings":   VariantSettingsKeybindings,
 	"settings-notifications": VariantSettingsNotifications,
-	"chat-menu":            VariantChatMenu, "open-with": VariantOpenWith,
+	"chat-menu":              VariantChatMenu, "open-with": VariantOpenWith,
 	"model": VariantModel, "effort": VariantEffort,
 	"skills": VariantSkills, "mode": VariantMode,
 	"permission": VariantPermission, "workspace": VariantWorkspace,
@@ -249,6 +249,12 @@ type App struct {
 	rightTab            int
 	selectedSession     string
 	lastSelectedSession string
+	// renamingGroup / groupRenameDraft 是工作区分组行内改名（LB-48）：正在改的
+	// 组标识与草稿。都是可丢的视图状态。
+	renamingGroup    string
+	groupRenameDraft string
+	// logoutConfirm 是账户菜单「退出登录」的两步确认（LB-101）。
+	logoutConfirm bool
 
 	draft  string
 	rounds []round
@@ -336,6 +342,9 @@ type App struct {
 	// intentFail 是后台意图的失败回调（例如表单要就地显示失败原因）：与
 	// intentDone 一样只在渲染线程上执行，不在后台协程里改视图。
 	intentFail []func()
+	// retryIntent 是最近一次失败动作的重试入口（错误行的「重试」）；成功或用户
+	// 关掉错误行后清空。它只是把同一次写入再发一遍，不缓存事实。
+	retryIntent func()
 	// questionAnswer 是提问卡的回答草稿（可丢的视图状态）。
 	questionAnswer string
 	// logPath 是入口交来的客户端日志路径（Options.LogPath）；logNote 是「查看日志」
@@ -842,6 +851,10 @@ func (a *App) hostFrame() {
 	a.onFrame(a.hostSnapshot())
 }
 
+// HostSnapshot 取宿主外壳要的会话状态。它只读 Source 的快照，可以从任意协程
+// 调用：窗口隐藏到托盘、不再渲染时，入口的轮询仍靠它刷新托盘菜单与系统通知。
+func (a *App) HostSnapshot() HostSnapshot { return a.hostSnapshot() }
+
 // hostSnapshot 取宿主外壳要的会话状态：当前会话的运行/待决/最后一轮，加上最近
 // 五个会话。没有打开会话时这些字段为空，托盘仍能给出菜单。
 func (a *App) hostSnapshot() HostSnapshot {
@@ -969,6 +982,12 @@ func (a *App) syncSelectedSession() {
 	}, nil)
 }
 
+// persistViewState 在视图状态（左栏收起、右栏开合、标签页、分组折叠、筛选词）
+// 变化后落盘一次；比对与去重交给 persistPreferences。
+func (a *App) persistViewState() {
+	a.persistPreferences()
+}
+
 // persistPreferences 在主题/动效/时区/侧栏宽度/工作区目录变化后落盘；只在接上
 // Intents 时。
 func (a *App) persistPreferences() {
@@ -1037,11 +1056,16 @@ func (a *App) dispatchThen(
 		if err != nil {
 			msg := label + "：" + err.Error()
 			a.intentErr = msg
+			// 同一次写入再发一遍就是「重试」：闭包只捕获取材，不缓存事实。
+			a.retryIntent = func() {
+				a.dispatchThen(label, action, onOK, onFail)
+			}
 			if onFail != nil {
 				a.intentFail = append(a.intentFail, func() { onFail(msg) })
 			}
 		} else {
 			a.intentErr = ""
+			a.retryIntent = nil
 			if onOK != nil {
 				a.intentDone = append(a.intentDone, onOK)
 			}
@@ -1075,24 +1099,46 @@ func (a *App) intentError() string {
 	return a.intentErr
 }
 
-// dismissIntentError 清掉错误行。
+// dismissIntentError 清掉错误行（连同它的重试入口）。
 func (a *App) dismissIntentError() {
 	a.intentMu.Lock()
 	a.intentErr = ""
+	a.retryIntent = nil
 	a.intentMu.Unlock()
 }
 
-// actionErrorView 是一行失败原因：只在有错误时出现，关闭入口就在同一行。
+// retryLastIntent 重发最近一次失败的写入：先收起错误行，结果回到同一行。
+func (a *App) retryLastIntent() {
+	a.intentMu.Lock()
+	retry := a.retryIntent
+	a.intentErr = ""
+	a.retryIntent = nil
+	a.intentMu.Unlock()
+	if retry != nil {
+		retry()
+	}
+}
+
+// actionErrorView 是一行失败原因：只在有错误时出现；关闭与「重试」都在同一行。
+// 重试只重发同一次写入，不替用户改参数。
 func (a *App) actionErrorView(c *gui.Context) {
 	reason := a.intentError()
 	if reason == "" {
 		return
 	}
+	a.intentMu.Lock()
+	canRetry := a.retryIntent != nil
+	a.intentMu.Unlock()
 	t := c.Theme()
 	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space2).AlignItems(gui.Center).
 		Label("操作未完成").Children(func() {
 		iconGlyph(c, iconWarn, t.Danger, "exclamation")
 		typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.Danger).Grow(1).SingleLine()
+		if canRetry {
+			if actionButton(c, "重试", "重试未完成的动作", false, false).Clicked() {
+				a.retryLastIntent()
+			}
+		}
 		if iconButton(c, iconButtonSpec{icon: iconXMark, label: "关闭操作失败提示", size: rowCompact}) {
 			a.dismissIntentError()
 		}
@@ -1136,6 +1182,34 @@ func (a *App) debugKeys(c *gui.Context) {
 	case c.Shortcut(0, gui.Key5):
 		a.SetState(StateEmpty)
 	}
+}
+
+// viewKeys 是主界面的全局键位：⌘B 收起 / 展开左栏（TB-13 与 LB-10）、⌘, 打开
+// 设置（LB-97），以及在行内改名里按 Esc 放弃（LB-48）。
+//
+// 这几组键位不依赖指针，也不写输入框：⌘B / ⌘, 不是文字键，焦点在输入框里时不
+// 会把字符从草稿里吃掉；统一放在最外层按一次，避免左右栏各自抢键。
+func (a *App) viewKeys(c *gui.Context) {
+	if a.palette.open || a.screen != ScreenMain {
+		return
+	}
+	if a.renamingGroup != "" && c.Shortcut(0, gui.KeyEscape) {
+		a.renamingGroup, a.groupRenameDraft = "", ""
+		return
+	}
+	if c.Shortcut(gui.Cmd, gui.KeyB) {
+		a.setSidebarCollapsed(!a.sidebarCollapsed)
+	}
+	if c.Shortcut(gui.Cmd, gui.KeyComma) {
+		a.screen = ScreenSettings
+	}
+}
+
+// setSidebarCollapsed 收起 / 展开左栏。收起态与右栏开合并列，是要落盘的视图状态
+// （重启后按收起态渲染）；样例模式与没有 Intents 时不写偏好。
+func (a *App) setSidebarCollapsed(collapsed bool) {
+	a.sidebarCollapsed = collapsed
+	a.persistViewState()
 }
 
 // searchKeys 是搜索面的键位（U3 T18）：Esc 收起搜索面（焦点回到列表）。
@@ -1184,6 +1258,7 @@ func (a *App) layout(c *gui.Context) {
 	// 右栏整屏替代主区，本批次未做。
 	panel := a.rpWidth(windowWidth, sidebar)
 
+	a.viewKeys(c)
 	a.searchKeys(c)
 	a.terminalKeys(c)
 	gui.Row(c).Fill().AlignItems(gui.Stretch).

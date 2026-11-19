@@ -7,9 +7,9 @@ import (
 	"github.com/egoist/mygo"
 
 	"github.com/arcships/dimagent-mygo/internal/app"
-	appui "github.com/arcships/dimagent-mygo/internal/ui"
 	"github.com/arcships/dimagent-mygo/internal/notify"
 	"github.com/arcships/dimagent-mygo/internal/tray"
+	appui "github.com/arcships/dimagent-mygo/internal/ui"
 )
 
 // shell 是宿主外壳：菜单栏托盘图标与系统通知。
@@ -74,7 +74,7 @@ func (s *shell) createTray() error {
 	}
 	s.icon = item
 	// 首帧之前先装一份菜单：图标一出现就能点，不用等下一次状态变化。
-	s.frame(appui.HostSnapshot{})
+	s.syncTray(appui.HostSnapshot{})
 	return nil
 }
 

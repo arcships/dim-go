@@ -59,8 +59,8 @@ type WindowPreferences struct {
 // DefaultPreferences 是缺省偏好。
 func DefaultPreferences() Preferences {
 	return Preferences{
-		Theme:      "跟随系统",
-		TimeZone:   "跟随系统",
+		Theme:               "跟随系统",
+		TimeZone:            "跟随系统",
 		NotifyTaskDone:      true,
 		NotifySound:         true,
 		NotifyNeedsResponse: true,

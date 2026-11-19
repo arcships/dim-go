@@ -137,14 +137,14 @@ func TestSidebarCollapsesAndExpands(t *testing.T) {
 	if !app.sidebarCollapsed {
 		t.Fatal("左栏没有收起")
 	}
-	rail, ok := tt.Find("展开左栏")
+	rail, ok := tt.Find("展开侧边栏 ⌘B")
 	if !ok {
 		t.Fatal("收起后找不到边条")
 	}
 	if rail.W != SidebarRailWidth {
 		t.Fatalf("边条宽 %v，想要 %v", rail.W, SidebarRailWidth)
 	}
-	if err := tt.Click("展开左栏"); err != nil {
+	if err := tt.Click("展开侧边栏 ⌘B"); err != nil {
 		t.Fatalf("点不到边条：%v", err)
 	}
 	if app.sidebarCollapsed {

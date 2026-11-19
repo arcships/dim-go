@@ -37,4 +37,8 @@ const (
 	notePermissionWrite = "服务端没有提供权限设置保存与刷新（本版不做）"
 	// noteAttachmentFacts 是用户消息里附件与引用区的占位说明。
 	noteAttachmentFacts = "附件与引用还没有进快照（等事实）"
+	// notePet 用于账户菜单的「显示 Pet」：浮动 Pet 要宿主浮窗能力。
+	notePet = "当前版本不支持浮动 Pet"
+	// noteInvite 用于账户菜单的「邀请朋友」：邀请链接要服务端给出。
+	noteInvite = "当前版本不支持邀请链接"
 )

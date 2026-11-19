@@ -1,6 +1,6 @@
 # 设置 19 节：逐条需求实现状态对账（只读盘点）
 
-Status: 对账报告（只标状态与证据，不改实现、不改需求文件）
+Status: 对账报告（只标状态与证据，不改实现）；状态列已按批准并入需求文件，见 §7
 Scope: [`requirements-settings.md`](domains/requirements/requirements-settings.md) 的 8,325 条（992 个元素，§1–§19 为 19 节，§20 为壳层 42 个元素）
 Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与需求分析领域，本报告不修改它们
 Last updated: 2026-11-19
@@ -26,7 +26,7 @@ Last updated: 2026-11-19
 
 - 不做屏上像素比对：字号、色值、圆角、坐标的逐值核对要 2× 截图与真实窗口，属 V 领域验收证据；本报告只核「代码里有没有这层实现」。
 - 不驱动界面跑每条场景（悬停、拖拽、断网、重启、读屏逐项走查）：这类条目按代码事实判，遇到负向要求（「无响应 / 不动效」）时以「屏内确实没有这段处理」为证。
-- 不改 `requirements-settings.md`：需求文件所有权在 R 与需求分析领域。本报告是并列的对账产物，可整列并入。
+- 合并是另一次操作：需求文件所有权在 R 与需求分析领域，并入按批准执行，结果与校验见 §7。除新加的 `状态` 列外，需求文件一个字未动。
 
 ### 0.4 判定来源
 
@@ -123,12 +123,12 @@ Last updated: 2026-11-19
 | 缺实现 | S-about-21 | 1 | R-ABT-166 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-about-23 | 1 | R-ABT-183 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-about-25 | 1 | R-ABT-195 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
-| 缺实现 | S-about-27 | 1 | R-ABT-213 | settings_about_screen.go 的 SetBuildVersion 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-about-27 | 1 | R-ABT-213 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-about-29 | 1 | R-ABT-229 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-about-30 | 1 | R-ABT-238 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-about-35 | 1 | R-ABT-278 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-about-36 | 1 | R-ABT-286 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-account-01 | 1 | R-ACC-008 | settings_account_screen.go 的 accountScreenData 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-account-01 | 1 | R-ACC-008 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-account-01 | 1 | R-ACC-009 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-account-02 | 1 | R-ACC-017 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-03 | 1 | R-ACC-026 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
@@ -137,16 +137,16 @@ Last updated: 2026-11-19
 | 缺实现 | S-account-06 | 1 | R-ACC-053 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-08 | 1 | R-ACC-075 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-09 | 1 | R-ACC-103 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
-| 缺实现 | S-account-10 | 1 | R-ACC-114 | settings_account_screen.go 的 accountScreenData 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-account-10 | 1 | R-ACC-114 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-account-10 | 1 | R-ACC-115 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-account-101 | 1 | R-ACC-1040 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-account-102 | 1 | R-ACC-1046 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-account-104 | 1 | R-ACC-1063 | accountReferralCard 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-account-104 | 1 | R-ACC-1063 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-account-105 | 1 | R-ACC-1073 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-106 | 1 | R-ACC-1080 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-account-108 | 1 | R-ACC-1097 | accountReferralCard 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-account-108 | 1 | R-ACC-1097 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-account-109 | 1 | R-ACC-1107 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
-| 缺实现 | S-account-11 | 1 | R-ACC-124 | settings_account_screen.go 的 accountScreenData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-account-11 | 1 | R-ACC-124 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-account-12 | 1 | R-ACC-129 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-account-12 | 1 | R-ACC-131 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-account-14 | 1 | R-ACC-151 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
@@ -173,13 +173,13 @@ Last updated: 2026-11-19
 | 缺实现 | S-account-37 | 1 | R-ACC-449 | settings_account_screen.go 的 accountServiceRow 没有 Role/Label 声明，可读名与角色未逐元素落实 |
 | 缺实现 | S-account-38 | 1 | R-ACC-459 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-account-39 | 1 | R-ACC-469 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
-| 缺实现 | S-account-39 | 1 | R-ACC-470 | settings_account_screen.go 的 accountScreenData 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-account-39 | 1 | R-ACC-470 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-account-40 | 1 | R-ACC-480 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-41 | 1 | R-ACC-490 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-account-42 | 1 | R-ACC-498 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-43 | 1 | R-ACC-510 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-43 | 1 | R-ACC-527 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
-| 缺实现 | S-account-45 | 1 | R-ACC-543 | settings_account_screen.go 的 accountScreenData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-account-45 | 1 | R-ACC-543 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-account-46 | 1 | R-ACC-552 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-account-47 | 1 | R-ACC-562 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-account-48 | 1 | R-ACC-568 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -359,7 +359,7 @@ Last updated: 2026-11-19
 | 缺实现 | S-archived-04 | 1 | R-ARC-031 | arcDeleteAllDialog 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | 缺实现 | S-archived-10 | 1 | R-ARC-079 | arcGroup 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | 缺实现 | S-archived-14 | 1 | R-ARC-111 | settings_archived_screen.go 的 arcDeleteThreadDialog 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-archived-17 | 1 | R-ARC-133 | settings_archived_screen.go 的 renderArchived 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-archived-17 | 1 | R-ARC-133 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-archived-17 | 1 | R-ARC-134 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-configuration-01 | 1 | R-CFG-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-configuration-05 | 1 | R-CFG-037 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
@@ -385,59 +385,59 @@ Last updated: 2026-11-19
 | 缺实现 | S-configuration-27 | 1 | R-CFG-216 | configManagedBody 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | 缺实现 | S-configuration-28 | 1 | R-CFG-222 | settings_configuration_screen.go 的 configManagedBody 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-configuration-28 | 1 | R-CFG-223 | configManagedBody 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-configuration-64 | 1 | R-CFG-509 | settings_provider_form.go 的 title 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-configuration-64 | 1 | R-CFG-509 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-configuration-64 | 1 | R-CFG-510 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-configuration-65 | 1 | R-CFG-517 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-65 | 1 | R-CFG-519 | title 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-configuration-66 | 1 | R-CFG-526 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-67 | 1 | R-CFG-534 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-68 | 1 | R-CFG-542 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-69 | 1 | R-CFG-550 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-70 | 1 | R-CFG-558 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-70 | 1 | R-CFG-559 | title 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-configuration-71 | 1 | R-CFG-567 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-72 | 1 | R-CFG-574 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-73 | 1 | R-CFG-583 | settings_provider_form.go 的 title 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-configuration-74 | 1 | R-CFG-589 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-75 | 1 | R-CFG-597 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-configuration-65 | 1 | R-CFG-517 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-65 | 1 | R-CFG-519 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-configuration-66 | 1 | R-CFG-526 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-67 | 1 | R-CFG-534 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-68 | 1 | R-CFG-542 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-69 | 1 | R-CFG-550 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-70 | 1 | R-CFG-558 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-70 | 1 | R-CFG-559 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-configuration-71 | 1 | R-CFG-567 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-72 | 1 | R-CFG-574 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-73 | 1 | R-CFG-583 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-configuration-74 | 1 | R-CFG-589 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-75 | 1 | R-CFG-597 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-configuration-75 | 1 | R-CFG-598 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-configuration-76 | 1 | R-CFG-606 | settings_provider_form.go 的 title 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-configuration-77 | 1 | R-CFG-615 | settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-configuration-77 | 1 | R-CFG-616 | title 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-configuration-76 | 1 | R-CFG-606 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-configuration-77 | 1 | R-CFG-615 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-configuration-77 | 1 | R-CFG-616 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-configuration-82 | 1 | R-CFG-654 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-externalAgents-01 | 1 | R-EXT-004 | settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-externalAgents-01 | 1 | R-EXT-004 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-externalAgents-01 | 1 | R-EXT-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-externalAgents-01 | 1 | R-EXT-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-externalAgents-02 | 1 | R-EXT-014 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-externalAgents-05 | 1 | R-EXT-038 | settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-externalAgents-06 | 1 | R-EXT-044 | settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-externalAgents-05 | 1 | R-EXT-038 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-externalAgents-06 | 1 | R-EXT-044 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-externalAgents-06 | 1 | R-EXT-045 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-externalAgents-07 | 1 | R-EXT-054 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-externalAgents-08 | 1 | R-EXT-062 | settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-externalAgents-09 | 1 | R-EXT-070 | settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-externalAgents-08 | 1 | R-EXT-062 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-externalAgents-09 | 1 | R-EXT-070 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-externalAgents-10 | 1 | R-EXT-078 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-externalAgents-13 | 1 | R-EXT-103 | renderExternalAgents 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-externalAgents-14 | 1 | R-EXT-110 | settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-externalAgents-14 | 1 | R-EXT-112 | renderExternalAgents 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-general-01 | 1 | R-GEN-004 | settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-externalAgents-13 | 1 | R-EXT-103 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-externalAgents-14 | 1 | R-EXT-110 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-externalAgents-14 | 1 | R-EXT-112 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-general-01 | 1 | R-GEN-004 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-general-01 | 1 | R-GEN-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-general-01 | 1 | R-GEN-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
-| 缺实现 | S-general-02 | 1 | R-GEN-013 | settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-general-02 | 1 | R-GEN-013 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-general-02 | 1 | R-GEN-014 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-general-03 | 1 | R-GEN-021 | settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-general-03 | 1 | R-GEN-021 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-general-03 | 1 | R-GEN-022 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-general-04 | 1 | R-GEN-028 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
-| 缺实现 | S-general-04 | 1 | R-GEN-030 | settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-general-05 | 1 | R-GEN-037 | settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-general-04 | 1 | R-GEN-030 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-general-05 | 1 | R-GEN-037 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-general-05 | 1 | R-GEN-038 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-general-06 | 1 | R-GEN-046 | settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-general-06 | 1 | R-GEN-046 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-general-06 | 1 | R-GEN-047 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-general-07 | 1 | R-GEN-053 | settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-general-07 | 1 | R-GEN-053 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-general-07 | 1 | R-GEN-054 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-general-08 | 1 | R-GEN-062 | settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-general-09 | 1 | R-GEN-069 | settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-general-08 | 1 | R-GEN-062 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-general-09 | 1 | R-GEN-069 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-general-09 | 1 | R-GEN-070 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-general-10 | 1 | R-GEN-078 | settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-general-10 | 1 | R-GEN-078 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-general-11 | 1 | R-GEN-085 | settings_general_screen.go 的 generalRootDirCard 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-general-11 | 1 | R-GEN-086 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-general-12 | 1 | R-GEN-093 | settings_general_screen.go 的 generalRootDirCard 没有显式 Label/Role，也不是文本节点，可读名未落实 |
@@ -553,70 +553,70 @@ Last updated: 2026-11-19
 | 缺实现 | S-hooks-06 | 1 | R-HOK-046 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-hooks-07 | 1 | R-HOK-054 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-hooks-08 | 1 | R-HOK-061 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-hooks-17 | 1 | R-HOK-132 | settings_hooks_screen.go 的 hooksData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-hooks-17 | 1 | R-HOK-132 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-hooks-17 | 1 | R-HOK-133 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-hooks-18 | 1 | R-HOK-141 | settings_hooks_screen.go 的 hkEntryGroup 没有 Role/Label 声明，可读名与角色未逐元素落实 |
 | 缺实现 | S-hooks-18 | 1 | R-HOK-142 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-hooks-21 | 1 | R-HOK-166 | settings_hooks_screen.go 的 hooksData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-01 | 1 | R-KEY-004 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-hooks-21 | 1 | R-HOK-166 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-01 | 1 | R-KEY-004 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-keybindings-01 | 1 | R-KEY-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-keybindings-01 | 1 | R-KEY-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
-| 缺实现 | S-keybindings-02 | 1 | R-KEY-014 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-keybindings-03 | 1 | R-KEY-022 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-04 | 1 | R-KEY-029 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-keybindings-02 | 1 | R-KEY-014 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-keybindings-03 | 1 | R-KEY-022 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-04 | 1 | R-KEY-029 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-keybindings-04 | 1 | R-KEY-030 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-05 | 1 | R-KEY-037 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-05 | 1 | R-KEY-037 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-05 | 1 | R-KEY-038 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-06 | 1 | R-KEY-047 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-keybindings-06 | 1 | R-KEY-048 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-07 | 1 | R-KEY-054 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-keybindings-07 | 1 | R-KEY-056 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-08 | 1 | R-KEY-061 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-06 | 1 | R-KEY-047 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-keybindings-06 | 1 | R-KEY-048 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-07 | 1 | R-KEY-054 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-keybindings-07 | 1 | R-KEY-056 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-08 | 1 | R-KEY-061 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-08 | 1 | R-KEY-062 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-09 | 1 | R-KEY-070 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-09 | 1 | R-KEY-071 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-10 | 1 | R-KEY-077 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-09 | 1 | R-KEY-070 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-09 | 1 | R-KEY-071 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-10 | 1 | R-KEY-077 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-10 | 1 | R-KEY-078 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-11 | 1 | R-KEY-086 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-11 | 1 | R-KEY-087 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-12 | 1 | R-KEY-093 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-11 | 1 | R-KEY-086 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-11 | 1 | R-KEY-087 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-12 | 1 | R-KEY-093 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-12 | 1 | R-KEY-094 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-13 | 1 | R-KEY-102 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-13 | 1 | R-KEY-103 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-14 | 1 | R-KEY-109 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-keybindings-13 | 1 | R-KEY-102 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-13 | 1 | R-KEY-103 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-14 | 1 | R-KEY-109 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-keybindings-14 | 1 | R-KEY-110 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-15 | 1 | R-KEY-117 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-15 | 1 | R-KEY-117 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-15 | 1 | R-KEY-118 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-16 | 1 | R-KEY-126 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-16 | 1 | R-KEY-127 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-17 | 1 | R-KEY-133 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-16 | 1 | R-KEY-126 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-16 | 1 | R-KEY-127 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-17 | 1 | R-KEY-133 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-17 | 1 | R-KEY-134 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-18 | 1 | R-KEY-142 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-18 | 1 | R-KEY-143 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-19 | 1 | R-KEY-149 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-18 | 1 | R-KEY-142 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-18 | 1 | R-KEY-143 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-19 | 1 | R-KEY-149 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-19 | 1 | R-KEY-150 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-20 | 1 | R-KEY-158 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-20 | 1 | R-KEY-159 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-keybindings-21 | 1 | R-KEY-165 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-20 | 1 | R-KEY-158 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-20 | 1 | R-KEY-159 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-keybindings-21 | 1 | R-KEY-165 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-keybindings-21 | 1 | R-KEY-166 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-keybindings-22 | 1 | R-KEY-174 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-22 | 1 | R-KEY-175 | renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-keybindings-22 | 1 | R-KEY-174 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-22 | 1 | R-KEY-175 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-keybindings-23 | 1 | R-KEY-180 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
-| 缺实现 | S-keybindings-23 | 1 | R-KEY-183 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-24 | 1 | R-KEY-190 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-keybindings-25 | 1 | R-KEY-198 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-keybindings-26 | 1 | R-KEY-206 | settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| 缺实现 | S-keybindings-27 | 1 | R-KEY-214 | settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-keybindings-23 | 1 | R-KEY-183 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-24 | 1 | R-KEY-190 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-keybindings-25 | 1 | R-KEY-198 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-keybindings-26 | 1 | R-KEY-206 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| 缺实现 | S-keybindings-27 | 1 | R-KEY-214 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-mcp-01 | 1 | R-MCP-004 | settings_mcp_screen.go 的 mcpTitleBlock 没有 Role/Label 声明，可读名与角色未逐元素落实 |
 | 缺实现 | S-mcp-01 | 1 | R-MCP-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-mcp-01 | 1 | R-MCP-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-mcp-02 | 1 | R-MCP-014 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-mcp-03 | 1 | R-MCP-023 | mcpTitleBlock 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | 缺实现 | S-mcp-04 | 1 | R-MCP-029 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-mcp-07 | 1 | R-MCP-055 | settings_mcp_screen.go 的 mcpServers 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-mcp-07 | 1 | R-MCP-055 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-mcp-08 | 1 | R-MCP-061 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-mcp-14 | 1 | R-MCP-109 | settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-mcp-15 | 1 | R-MCP-117 | settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-mcp-14 | 1 | R-MCP-109 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-mcp-15 | 1 | R-MCP-117 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-mcp-15 | 1 | R-MCP-118 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-mcp-16 | 1 | R-MCP-126 | settings_mcp_screen.go 的 mcpServerList 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-mcp-17 | 1 | R-MCP-134 | settings_mcp_screen.go 的 mcpServerList 没有显式 Label/Role，也不是文本节点，可读名未落实 |
@@ -629,13 +629,13 @@ Last updated: 2026-11-19
 | 缺实现 | S-mcp-24 | 1 | R-MCP-191 | mcpServerList 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | 缺实现 | S-mcp-25 | 1 | R-MCP-198 | settings_mcp_screen.go 的 mcpServerList 没有 Role/Label 声明，可读名与角色未逐元素落实 |
 | 缺实现 | S-mcp-25 | 1 | R-MCP-200 | mcpServerList 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-mcp-30 | 1 | R-MCP-237 | settings_mcp_screen.go 的 mcpServers 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-mcp-30 | 1 | R-MCP-237 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-mcp-30 | 1 | R-MCP-238 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-mcp-31 | 1 | R-MCP-246 | settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-mcp-31 | 1 | R-MCP-247 | mcpServers 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-mcp-35 | 1 | R-MCP-278 | settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-mcp-36 | 1 | R-MCP-286 | settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-mcp-36 | 1 | R-MCP-287 | mcpServers 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-mcp-31 | 1 | R-MCP-246 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-mcp-31 | 1 | R-MCP-247 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-mcp-35 | 1 | R-MCP-278 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-mcp-36 | 1 | R-MCP-286 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-mcp-36 | 1 | R-MCP-287 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-mcp-37 | 1 | R-MCP-294 | mcpTransportSegments 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | 缺实现 | S-mcp-38 | 1 | R-MCP-302 | settings_mcp_screen.go 的 mcpStdioFields 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-mcp-39 | 1 | R-MCP-311 | settings_mcp_screen.go 的 mcpStdioFields 没有显式 Label/Role，也不是文本节点，可读名未落实 |
@@ -647,8 +647,8 @@ Last updated: 2026-11-19
 | 缺实现 | S-mcp-45 | 1 | R-MCP-358 | settings_mcp_screen.go 的 mcpHTTPFields 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-mcp-46 | 1 | R-MCP-366 | settings_mcp_screen.go 的 mcpHTTPFields 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-mcp-47 | 1 | R-MCP-374 | settings_mcp_screen.go 的 mcpHTTPFields 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-mcp-50 | 1 | R-MCP-398 | settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-mcp-50 | 1 | R-MCP-399 | mcpServers 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-mcp-50 | 1 | R-MCP-398 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-mcp-50 | 1 | R-MCP-399 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-modality-01 | 1 | R-MOD-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-modality-01 | 1 | R-MOD-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-modality-03 | 1 | R-MOD-022 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -690,8 +690,8 @@ Last updated: 2026-11-19
 | 缺实现 | S-permissions-21 | 1 | R-PRM-165 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-permissions-22 | 1 | R-PRM-174 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-permissions-23 | 1 | R-PRM-182 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-permissions-26 | 1 | R-PRM-207 | renderPermissions 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-permissions-27 | 1 | R-PRM-215 | renderPermissions 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-permissions-26 | 1 | R-PRM-207 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-permissions-27 | 1 | R-PRM-215 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-permissions-28 | 1 | R-PRM-220 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-personalization-01 | 1 | R-PER-007 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-personalization-01 | 1 | R-PER-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
@@ -730,24 +730,24 @@ Last updated: 2026-11-19
 | 缺实现 | S-pets-02 | 1 | R-PET-014 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-pets-03 | 1 | R-PET-022 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-pets-05 | 1 | R-PET-038 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-pets-09 | 1 | R-PET-071 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-pets-10 | 1 | R-PET-079 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| 缺实现 | S-pets-09 | 1 | R-PET-071 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-pets-10 | 1 | R-PET-079 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | 缺实现 | S-pets-11 | 1 | R-PET-085 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-pets-12 | 1 | R-PET-094 | settings_pets_screen.go 的 petsChooseSection 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-pets-17 | 1 | R-PET-133 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-pets-18 | 1 | R-PET-143 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-pets-19 | 1 | R-PET-151 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-pets-20 | 1 | R-PET-159 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-pets-21 | 1 | R-PET-167 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-pets-25 | 1 | R-PET-196 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-pets-26 | 1 | R-PET-207 | renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
-| 缺实现 | S-pluginSettings-01 | 1 | R-PLG-004 | settings_plugin_settings_screen.go 的 renderPluginSettings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-pets-18 | 1 | R-PET-143 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-pets-19 | 1 | R-PET-151 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-pets-20 | 1 | R-PET-159 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-pets-21 | 1 | R-PET-167 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-pets-25 | 1 | R-PET-196 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-pets-26 | 1 | R-PET-207 | 该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
+| 缺实现 | S-pluginSettings-01 | 1 | R-PLG-004 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-pluginSettings-01 | 1 | R-PLG-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-pluginSettings-01 | 1 | R-PLG-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
-| 缺实现 | S-pluginSettings-02 | 1 | R-PLG-013 | settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-pluginSettings-02 | 1 | R-PLG-013 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-pluginSettings-02 | 1 | R-PLG-014 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
-| 缺实现 | S-pluginSettings-03 | 1 | R-PLG-021 | settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-pluginSettings-04 | 1 | R-PLG-029 | settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| 缺实现 | S-pluginSettings-03 | 1 | R-PLG-021 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-pluginSettings-04 | 1 | R-PLG-029 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | 缺实现 | S-pluginSettings-04 | 1 | R-PLG-030 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-pluginSettings-07 | 1 | R-PLG-053 | settings_plugin_settings_screen.go 的 plgScopeRow 没有显式 Label/Role，也不是文本节点，可读名未落实 |
 | 缺实现 | S-pluginSettings-07 | 1 | R-PLG-054 | plgScopeRow 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
@@ -759,9 +759,9 @@ Last updated: 2026-11-19
 | 缺实现 | S-pluginSettings-22 | 1 | R-PLG-175 | plgCard 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
 | 缺实现 | S-pluginSettings-23 | 1 | R-PLG-180 | 设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | 缺实现 | S-pluginSettings-25 | 1 | R-PLG-197 | settings_plugin_settings_screen.go 的 plgFieldView 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-pluginSettings-26 | 1 | R-PLG-206 | settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-pluginSettings-28 | 1 | R-PLG-222 | settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| 缺实现 | S-pluginSettings-30 | 1 | R-PLG-238 | settings_plugin_settings_screen.go 的 renderPluginSettings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| 缺实现 | S-pluginSettings-26 | 1 | R-PLG-206 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-pluginSettings-28 | 1 | R-PLG-222 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| 缺实现 | S-pluginSettings-30 | 1 | R-PLG-238 | 该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | 缺实现 | S-runtime-01 | 1 | R-RUN-005 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | 缺实现 | S-runtime-01 | 1 | R-RUN-008 | internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | 缺实现 | S-runtime-02 | 1 | R-RUN-014 | internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
@@ -1110,13 +1110,26 @@ Last updated: 2026-11-19
 3. 文件头粗区间（如 `S-account-30–95`）压过了具体函数注释，导致元素落到整屏函数；改为「具体区间 > 小节名命中的组件函数 > 粗区间」。
 4. 记忆类条目一律判「无持久化」；改为分节判定：读数来自 Source 的节（账户 / 用量 / MCP / Hooks / 快捷键 / 模型供应 / 外部 Agent / 权限 / 运行环境 / 多模态）重启后由服务端事实决定，算已实现。
 
-## 7. 并入方式（给需求文件的所有者）
+## 7. 并入记录
 
-`requirements-settings.md` 由 R 与需求分析领域持有，本报告不直接改它。要落成「表格多一列」：
+状态列已并入 [`requirements-settings.md`](domains/requirements/requirements-settings.md)：990 张表各加一列表头 `| 状态 |`（分隔行同步补一格），8,325 条按 R-ID 对齐追加一格。
 
-1. 按 §7 的 R-ID 顺序取值，在每张表末追加一列 `状态`，单元格写 `已实现（证据 = …）` 或 `未实现（缺 …）` 或 `不适用（原因 = …）`；
-2. 表头同一行追加 `| 状态 |`；
-3. 元素级的缺口（§4.1）与不适用分支（§5）同时回给对应领域，由该领域决定是补实现还是改需求。
+| 单元格写法 | 含义 |
+|---|---|
+| `已实现（证据 = internal/ui/<文件>:<行>）` | 元素级：该行直接是元素的渲染点、文案常量或处理代码 |
+| `已实现（屏级：<函数>）` | 屏级：元素在屏头只按区间列出，证据落到该屏渲染函数（873 条） |
+| `未实现：<缺因>：<缺什么>` | 缺因取 §4 的八类 |
+| `不适用：<原因>` | 产品形态到不了的分支 |
+
+并入后校验：
+
+| 项 | 结果 |
+|---|---|
+| 行数 | 11,660 → 11,660（不变） |
+| 数据行 | 8,325 → 8,325，R-ID 顺序逐一相同 |
+| 列数 | 数据行 8 列、表头 8 列，0 行错列 |
+| 其他行 | 0 行被改动（除表头与紧随的分隔行） |
+| 随机 20 条状态与本报告比对 | 20 / 20 一致 |
 
 ## 8. 逐条状态与证据
 
@@ -1129,7 +1142,7 @@ Last updated: 2026-11-19
 | R-ACC-005 | S-account-01 | 关联 | 已实现 | 证据 = internal/ui/settings_account_screen.go:85（文案「用量」在该屏源码里） |
 | R-ACC-006 | S-account-01 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:15（accountScreenData 的本地交互） |
 | R-ACC-007 | S-account-01 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:15（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
-| R-ACC-008 | S-account-01 | 无障碍 | 未实现 | 缺实现：settings_account_screen.go 的 accountScreenData 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-ACC-008 | S-account-01 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-ACC-009 | S-account-01 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-ACC-010 | S-account-02 | 状态 | 已实现 | 证据 = internal/ui/settings_account_screen.go:127（文案「账户」在该屏源码里） |
 | R-ACC-011 | S-account-02 | 状态 | 已实现 | 证据 = internal/ui/settings_account_screen.go:440（accountExpiryBanner 渲染该元素；样式与布局取同屏常量） |
@@ -1235,7 +1248,7 @@ Last updated: 2026-11-19
 | R-ACC-111 | S-account-10 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-112 | S-account-10 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-ACC-113 | S-account-10 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（accountScreenData 渲染该元素；样式与布局取同屏常量） |
-| R-ACC-114 | S-account-10 | 无障碍 | 未实现 | 缺实现：settings_account_screen.go 的 accountScreenData 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-ACC-114 | S-account-10 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-ACC-115 | S-account-10 | 语言 | 未实现 | 缺实现：internal/ui 没有 i18n 层（无 mygo/i18n 引用），文案硬编码中文，跟随语言切换做不到 |
 | R-ACC-116 | S-account-11 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-117 | S-account-11 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（accountScreenData 渲染该元素；样式与布局取同屏常量） |
@@ -1245,7 +1258,7 @@ Last updated: 2026-11-19
 | R-ACC-121 | S-account-11 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-122 | S-account-11 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-123 | S-account-11 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:68（accountScreenData 渲染该元素；样式与布局取同屏常量） |
-| R-ACC-124 | S-account-11 | 无障碍 | 未实现 | 缺实现：settings_account_screen.go 的 accountScreenData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-ACC-124 | S-account-11 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-ACC-125 | S-account-12 | 内容 | 已实现 | 证据 = internal/ui/settings_account_screen.go:90（文案「UID」在该屏源码里） |
 | R-ACC-126 | S-account-12 | 样式 | 已实现 | 证据 = internal/ui/settings_account_screen.go:90（文案「UID」在该屏源码里） |
 | R-ACC-127 | S-account-12 | 状态 | 已实现 | 证据 = internal/ui/settings_account_screen.go:481（accountIdentityCard 渲染该元素；样式与布局取同屏常量） |
@@ -1591,7 +1604,7 @@ Last updated: 2026-11-19
 | R-ACC-467 | S-account-39 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:66（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-468 | S-account-39 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:66（本条要求「不响应」，该处确实没有交互处理） |
 | R-ACC-469 | S-account-39 | 动画 | 未实现 | 缺实现：设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
-| R-ACC-470 | S-account-39 | 无障碍 | 未实现 | 缺实现：settings_account_screen.go 的 accountScreenData 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-ACC-470 | S-account-39 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-ACC-471 | S-account-39 | 异常 | 已实现 | 证据 = internal/ui/settings_account_screen.go:185（文案「生效中」在该屏源码里） |
 | R-ACC-472 | S-account-39 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:66（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-473 | S-account-40 | 状态 | 已实现 | 证据 = internal/ui/settings_account_screen.go:795（accountServiceRow 渲染该元素；样式与布局取同屏常量） |
@@ -1664,7 +1677,7 @@ Last updated: 2026-11-19
 | R-ACC-540 | S-account-45 | 样式 | 已实现 | 证据 = internal/ui/settings_account_screen.go:877（文案「剩余次数」在该屏源码里） |
 | R-ACC-541 | S-account-45 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:69（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-542 | S-account-45 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:69（accountScreenData 渲染该元素；样式与布局取同屏常量） |
-| R-ACC-543 | S-account-45 | 无障碍 | 未实现 | 缺实现：settings_account_screen.go 的 accountScreenData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-ACC-543 | S-account-45 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-ACC-544 | S-account-45 | 窄窗 | 已实现 | 证据 = internal/ui/settings_account_screen.go:877（文案「剩余次数」在该屏源码里） |
 | R-ACC-545 | S-account-45 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:69（accountScreenData 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-546 | S-account-45 | 深色 | 已实现 | 证据 = internal/ui/settings_account_screen.go:877（文案「剩余次数」在该屏源码里） |
@@ -2184,7 +2197,7 @@ Last updated: 2026-11-19
 | R-ACC-1060 | S-account-104 | 样式 | 已实现 | 证据 = internal/ui/settings_account_screen.go:95（文案「复制」在该屏源码里） |
 | R-ACC-1061 | S-account-104 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:1129（accountReferralCard 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-1062 | S-account-104 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:1133（accountReferralCard 里设了 Role/Label） |
-| R-ACC-1063 | S-account-104 | 键盘 | 未实现 | 缺实现：accountReferralCard 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-ACC-1063 | S-account-104 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-ACC-1064 | S-account-104 | 动画 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:1129（屏内无动效代码，本条要求不做动效） |
 | R-ACC-1065 | S-account-104 | 窄窗 | 已实现 | 证据 = internal/ui/settings_account_screen.go:95（文案「复制」在该屏源码里） |
 | R-ACC-1066 | S-account-104 | 关联 | 已实现 | 证据 = internal/ui/settings_account_screen.go:95（文案「复制」在该屏源码里） |
@@ -2218,7 +2231,7 @@ Last updated: 2026-11-19
 | R-ACC-1094 | S-account-108 | 样式 | 已实现 | 证据 = internal/ui/settings_account_screen.go:95（文案「复制」在该屏源码里） |
 | R-ACC-1095 | S-account-108 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:1129（accountReferralCard 渲染该元素；样式与布局取同屏常量） |
 | R-ACC-1096 | S-account-108 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:1133（accountReferralCard 里设了 Role/Label） |
-| R-ACC-1097 | S-account-108 | 键盘 | 未实现 | 缺实现：accountReferralCard 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-ACC-1097 | S-account-108 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-ACC-1098 | S-account-108 | 动画 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:1129（屏内无动效代码，本条要求不做动效） |
 | R-ACC-1099 | S-account-108 | 窄窗 | 已实现 | 证据 = internal/ui/settings_account_screen.go:95（文案「复制」在该屏源码里） |
 | R-ACC-1100 | S-account-108 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_account_screen.go:1129（accountReferralCard 渲染该元素；样式与布局取同屏常量） |
@@ -4546,7 +4559,7 @@ Last updated: 2026-11-19
 | R-GEN-001 | S-general-01 | 内容 | 已实现 | 证据 = internal/ui/settings_general_screen.go:62（文案「通用」在该屏源码里） |
 | R-GEN-002 | S-general-01 | 样式 | 已实现 | 证据 = internal/ui/settings_general_screen.go:62（文案「通用」在该屏源码里） |
 | R-GEN-003 | S-general-01 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
-| R-GEN-004 | S-general-01 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-GEN-004 | S-general-01 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-GEN-005 | S-general-01 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-GEN-006 | S-general-01 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-007 | S-general-01 | 窄窗 | 已实现 | 证据 = internal/ui/settings_general_screen.go:62（文案「通用」在该屏源码里） |
@@ -4555,7 +4568,7 @@ Last updated: 2026-11-19
 | R-GEN-010 | S-general-02 | 样式 | 已实现 | 证据 = internal/ui/settings_general_screen.go:63（文案「保持电脑唤醒」在该屏源码里） |
 | R-GEN-011 | S-general-02 | 关联 | 已实现 | 证据 = internal/ui/settings_general_screen.go:63（文案「保持电脑唤醒」在该屏源码里） |
 | R-GEN-012 | S-general-02 | 关联 | 已实现 | 证据 = internal/ui/settings_general_screen.go:63（文案「保持电脑唤醒」在该屏源码里） |
-| R-GEN-013 | S-general-02 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-GEN-013 | S-general-02 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-GEN-014 | S-general-02 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-GEN-015 | S-general-02 | 窄窗 | 已实现 | 证据 = internal/ui/settings_general_screen.go:63（文案「保持电脑唤醒」在该屏源码里） |
 | R-GEN-016 | S-general-02 | 深色 | 已实现 | 证据 = internal/ui/settings_general_screen.go:63（文案「保持电脑唤醒」在该屏源码里） |
@@ -4563,7 +4576,7 @@ Last updated: 2026-11-19
 | R-GEN-018 | S-general-03 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-019 | S-general-03 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-020 | S-general-03 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
-| R-GEN-021 | S-general-03 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-GEN-021 | S-general-03 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-GEN-022 | S-general-03 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-GEN-023 | S-general-03 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-024 | S-general-03 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
@@ -4572,14 +4585,14 @@ Last updated: 2026-11-19
 | R-GEN-027 | S-general-04 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-028 | S-general-04 | 动画 | 未实现 | 缺实现：设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | R-GEN-029 | S-general-04 | 记忆 | 未实现 | 缺事实：这些设置只是进程内的可丢界面状态，没有持久化事实，重启后不保持 |
-| R-GEN-030 | S-general-04 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-GEN-030 | S-general-04 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-GEN-031 | S-general-04 | 键盘 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:63（renderGeneral 用框架的可聚焦控件，默认入 Tab 序） |
 | R-GEN-032 | S-general-04 | 异常 | 已实现 | 证据 = internal/ui/settings_general_screen.go:63（文案「保持电脑唤醒」在该屏源码里） |
 | R-GEN-033 | S-general-05 | 内容 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
 | R-GEN-034 | S-general-05 | 样式 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
 | R-GEN-035 | S-general-05 | 关联 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
 | R-GEN-036 | S-general-05 | 关联 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
-| R-GEN-037 | S-general-05 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-GEN-037 | S-general-05 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-GEN-038 | S-general-05 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-GEN-039 | S-general-05 | 窄窗 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
 | R-GEN-040 | S-general-05 | 深色 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
@@ -4588,14 +4601,14 @@ Last updated: 2026-11-19
 | R-GEN-043 | S-general-06 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-044 | S-general-06 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 的本地交互） |
 | R-GEN-045 | S-general-06 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
-| R-GEN-046 | S-general-06 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-GEN-046 | S-general-06 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-GEN-047 | S-general-06 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-GEN-048 | S-general-06 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-049 | S-general-07 | 状态 | 已实现 | 证据 = internal/ui/settings_general_screen.go:70（文案「本次启动由 DIM_PERF 决定采集，该开」在该屏源码里） |
 | R-GEN-050 | S-general-07 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-051 | S-general-07 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-052 | S-general-07 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
-| R-GEN-053 | S-general-07 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-GEN-053 | S-general-07 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-GEN-054 | S-general-07 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-GEN-055 | S-general-07 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-056 | S-general-07 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
@@ -4604,14 +4617,14 @@ Last updated: 2026-11-19
 | R-GEN-059 | S-general-08 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 的本地交互） |
 | R-GEN-060 | S-general-08 | 样式 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
 | R-GEN-061 | S-general-08 | 记忆 | 未实现 | 缺事实：这些设置只是进程内的可丢界面状态，没有持久化事实，重启后不保持 |
-| R-GEN-062 | S-general-08 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-GEN-062 | S-general-08 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-GEN-063 | S-general-08 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-064 | S-general-08 | 性能 | 已实现 | 证据 = internal/ui/settings_general_screen.go:65（文案「性能日志」在该屏源码里） |
 | R-GEN-065 | S-general-09 | 内容 | 已实现 | 证据 = internal/ui/settings_general_screen.go:73（文案「登录时自动启动」在该屏源码里） |
 | R-GEN-066 | S-general-09 | 样式 | 已实现 | 证据 = internal/ui/settings_general_screen.go:73（文案「登录时自动启动」在该屏源码里） |
 | R-GEN-067 | S-general-09 | 关联 | 已实现 | 证据 = internal/ui/settings_general_screen.go:73（文案「登录时自动启动」在该屏源码里） |
 | R-GEN-068 | S-general-09 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
-| R-GEN-069 | S-general-09 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-GEN-069 | S-general-09 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-GEN-070 | S-general-09 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-GEN-071 | S-general-09 | 窄窗 | 已实现 | 证据 = internal/ui/settings_general_screen.go:73（文案「登录时自动启动」在该屏源码里） |
 | R-GEN-072 | S-general-09 | 深色 | 已实现 | 证据 = internal/ui/settings_general_screen.go:73（文案「登录时自动启动」在该屏源码里） |
@@ -4620,7 +4633,7 @@ Last updated: 2026-11-19
 | R-GEN-075 | S-general-10 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-076 | S-general-10 | 样式 | 已实现 | 证据 = internal/ui/settings_general_screen.go:73（文案「登录时自动启动」在该屏源码里） |
 | R-GEN-077 | S-general-10 | 记忆 | 未实现 | 缺事实：这些设置只是进程内的可丢界面状态，没有持久化事实，重启后不保持 |
-| R-GEN-078 | S-general-10 | 无障碍 | 未实现 | 缺实现：settings_general_screen.go 的 renderGeneral 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-GEN-078 | S-general-10 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-GEN-079 | S-general-10 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:8（renderGeneral 渲染该元素；样式与布局取同屏常量） |
 | R-GEN-080 | S-general-10 | 键盘 | 已实现 | 屏级证据 = internal/ui/settings_general_screen.go:63（renderGeneral 用框架的可聚焦控件，默认入 Tab 序） |
 | R-GEN-081 | S-general-11 | 内容 | 已实现 | 证据 = internal/ui/settings_general_screen.go:120（文案「会话数据根目录」在该屏源码里） |
@@ -5266,7 +5279,7 @@ Last updated: 2026-11-19
 | R-KEY-001 | S-keybindings-01 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:105（文案「快捷键」在该屏源码里） |
 | R-KEY-002 | S-keybindings-01 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:105（文案「快捷键」在该屏源码里） |
 | R-KEY-003 | S-keybindings-01 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:105（文案「快捷键」在该屏源码里） |
-| R-KEY-004 | S-keybindings-01 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-KEY-004 | S-keybindings-01 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-005 | S-keybindings-01 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-006 | S-keybindings-01 | 记忆 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:105（文案「快捷键」在该屏源码里） |
 | R-KEY-007 | S-keybindings-01 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:105（文案「快捷键」在该屏源码里） |
@@ -5276,7 +5289,7 @@ Last updated: 2026-11-19
 | R-KEY-011 | S-keybindings-02 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-012 | S-keybindings-02 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-013 | S-keybindings-02 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-014 | S-keybindings-02 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-KEY-014 | S-keybindings-02 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-015 | S-keybindings-02 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-016 | S-keybindings-02 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-017 | S-keybindings-03 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
@@ -5284,14 +5297,14 @@ Last updated: 2026-11-19
 | R-KEY-019 | S-keybindings-03 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 的本地交互） |
 | R-KEY-020 | S-keybindings-03 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-021 | S-keybindings-03 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-022 | S-keybindings-03 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-022 | S-keybindings-03 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-023 | S-keybindings-03 | 输入法 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-024 | S-keybindings-03 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-025 | S-keybindings-04 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:67（文案「通用」在该屏源码里） |
 | R-KEY-026 | S-keybindings-04 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:67（文案「通用」在该屏源码里） |
 | R-KEY-027 | S-keybindings-04 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:67（文案「通用」在该屏源码里） |
 | R-KEY-028 | S-keybindings-04 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-029 | S-keybindings-04 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-KEY-029 | S-keybindings-04 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-030 | S-keybindings-04 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-031 | S-keybindings-04 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:67（文案「通用」在该屏源码里） |
 | R-KEY-032 | S-keybindings-04 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:67（文案「通用」在该屏源码里） |
@@ -5299,7 +5312,7 @@ Last updated: 2026-11-19
 | R-KEY-034 | S-keybindings-05 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:52（文案「打开设置」在该屏源码里） |
 | R-KEY-035 | S-keybindings-05 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:52（文案「打开设置」在该屏源码里） |
 | R-KEY-036 | S-keybindings-05 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-037 | S-keybindings-05 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-037 | S-keybindings-05 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-038 | S-keybindings-05 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-039 | S-keybindings-05 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:52（文案「打开设置」在该屏源码里） |
 | R-KEY-040 | S-keybindings-05 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:52（文案「打开设置」在该屏源码里） |
@@ -5309,21 +5322,21 @@ Last updated: 2026-11-19
 | R-KEY-044 | S-keybindings-06 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-KEY-045 | S-keybindings-06 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:323（文案「重置」在该屏源码里） |
 | R-KEY-046 | S-keybindings-06 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-047 | S-keybindings-06 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
-| R-KEY-048 | S-keybindings-06 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-047 | S-keybindings-06 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
+| R-KEY-048 | S-keybindings-06 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-049 | S-keybindings-07 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:323（文案「重置」在该屏源码里） |
 | R-KEY-050 | S-keybindings-07 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:323（文案「重置」在该屏源码里） |
 | R-KEY-051 | S-keybindings-07 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 的本地交互） |
 | R-KEY-052 | S-keybindings-07 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:323（文案「重置」在该屏源码里） |
 | R-KEY-053 | S-keybindings-07 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-054 | S-keybindings-07 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-KEY-054 | S-keybindings-07 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-055 | S-keybindings-07 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
-| R-KEY-056 | S-keybindings-07 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-056 | S-keybindings-07 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-057 | S-keybindings-08 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:53（文案「新建线程」在该屏源码里） |
 | R-KEY-058 | S-keybindings-08 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:53（文案「新建线程」在该屏源码里） |
 | R-KEY-059 | S-keybindings-08 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:53（文案「新建线程」在该屏源码里） |
 | R-KEY-060 | S-keybindings-08 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-061 | S-keybindings-08 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-061 | S-keybindings-08 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-062 | S-keybindings-08 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-063 | S-keybindings-08 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:53（文案「新建线程」在该屏源码里） |
 | R-KEY-064 | S-keybindings-08 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:53（文案「新建线程」在该屏源码里） |
@@ -5332,14 +5345,14 @@ Last updated: 2026-11-19
 | R-KEY-067 | S-keybindings-09 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 的本地交互） |
 | R-KEY-068 | S-keybindings-09 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 的本地交互） |
 | R-KEY-069 | S-keybindings-09 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-070 | S-keybindings-09 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-KEY-071 | S-keybindings-09 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-070 | S-keybindings-09 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-KEY-071 | S-keybindings-09 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-072 | S-keybindings-09 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-KEY-073 | S-keybindings-10 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「切换侧边栏」在该屏源码里） |
 | R-KEY-074 | S-keybindings-10 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「切换侧边栏」在该屏源码里） |
 | R-KEY-075 | S-keybindings-10 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「切换侧边栏」在该屏源码里） |
 | R-KEY-076 | S-keybindings-10 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「切换侧边栏」在该屏源码里） |
-| R-KEY-077 | S-keybindings-10 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-077 | S-keybindings-10 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-078 | S-keybindings-10 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-079 | S-keybindings-10 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「切换侧边栏」在该屏源码里） |
 | R-KEY-080 | S-keybindings-10 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「切换侧边栏」在该屏源码里） |
@@ -5348,14 +5361,14 @@ Last updated: 2026-11-19
 | R-KEY-083 | S-keybindings-11 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-KEY-084 | S-keybindings-11 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（本条要求「不响应」，该处确实没有交互处理） |
 | R-KEY-085 | S-keybindings-11 | 异常 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「⌘B」在该屏源码里） |
-| R-KEY-086 | S-keybindings-11 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-KEY-087 | S-keybindings-11 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-086 | S-keybindings-11 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-KEY-087 | S-keybindings-11 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-088 | S-keybindings-11 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-KEY-089 | S-keybindings-12 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「搜索对话」在该屏源码里） |
 | R-KEY-090 | S-keybindings-12 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「搜索对话」在该屏源码里） |
 | R-KEY-091 | S-keybindings-12 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「搜索对话」在该屏源码里） |
 | R-KEY-092 | S-keybindings-12 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「对话」在该屏源码里） |
-| R-KEY-093 | S-keybindings-12 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-093 | S-keybindings-12 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-094 | S-keybindings-12 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-095 | S-keybindings-12 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「搜索对话」在该屏源码里） |
 | R-KEY-096 | S-keybindings-12 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「搜索对话」在该屏源码里） |
@@ -5364,14 +5377,14 @@ Last updated: 2026-11-19
 | R-KEY-099 | S-keybindings-13 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-KEY-100 | S-keybindings-13 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 的本地交互） |
 | R-KEY-101 | S-keybindings-13 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-102 | S-keybindings-13 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-KEY-103 | S-keybindings-13 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-102 | S-keybindings-13 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-KEY-103 | S-keybindings-13 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-104 | S-keybindings-13 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-KEY-105 | S-keybindings-14 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「对话」在该屏源码里） |
 | R-KEY-106 | S-keybindings-14 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:67（文案「通用」在该屏源码里） |
 | R-KEY-107 | S-keybindings-14 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「对话」在该屏源码里） |
 | R-KEY-108 | S-keybindings-14 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-109 | S-keybindings-14 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-KEY-109 | S-keybindings-14 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-110 | S-keybindings-14 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-111 | S-keybindings-14 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「对话」在该屏源码里） |
 | R-KEY-112 | S-keybindings-14 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:55（文案「对话」在该屏源码里） |
@@ -5379,7 +5392,7 @@ Last updated: 2026-11-19
 | R-KEY-114 | S-keybindings-15 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:56（文案「聚焦输入框」在该屏源码里） |
 | R-KEY-115 | S-keybindings-15 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:56（文案「聚焦输入框」在该屏源码里） |
 | R-KEY-116 | S-keybindings-15 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-117 | S-keybindings-15 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-117 | S-keybindings-15 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-118 | S-keybindings-15 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-119 | S-keybindings-15 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:56（文案「聚焦输入框」在该屏源码里） |
 | R-KEY-120 | S-keybindings-15 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:56（文案「聚焦输入框」在该屏源码里） |
@@ -5388,14 +5401,14 @@ Last updated: 2026-11-19
 | R-KEY-123 | S-keybindings-16 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-KEY-124 | S-keybindings-16 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 的本地交互） |
 | R-KEY-125 | S-keybindings-16 | 异常 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:56（文案「⌘L」在该屏源码里） |
-| R-KEY-126 | S-keybindings-16 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-KEY-127 | S-keybindings-16 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-126 | S-keybindings-16 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-KEY-127 | S-keybindings-16 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-128 | S-keybindings-16 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-KEY-129 | S-keybindings-17 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:57（文案「切换更改面板」在该屏源码里） |
 | R-KEY-130 | S-keybindings-17 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:57（文案「切换更改面板」在该屏源码里） |
 | R-KEY-131 | S-keybindings-17 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:57（文案「切换更改面板」在该屏源码里） |
 | R-KEY-132 | S-keybindings-17 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:57（文案「更改」在该屏源码里） |
-| R-KEY-133 | S-keybindings-17 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-133 | S-keybindings-17 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-134 | S-keybindings-17 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-135 | S-keybindings-17 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:57（文案「切换更改面板」在该屏源码里） |
 | R-KEY-136 | S-keybindings-17 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:57（文案「切换更改面板」在该屏源码里） |
@@ -5404,14 +5417,14 @@ Last updated: 2026-11-19
 | R-KEY-139 | S-keybindings-18 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-KEY-140 | S-keybindings-18 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-141 | S-keybindings-18 | 异常 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:57（文案「⌘⇧B」在该屏源码里） |
-| R-KEY-142 | S-keybindings-18 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-KEY-143 | S-keybindings-18 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-142 | S-keybindings-18 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-KEY-143 | S-keybindings-18 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-144 | S-keybindings-18 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-KEY-145 | S-keybindings-19 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:58（文案「切换终端」在该屏源码里） |
 | R-KEY-146 | S-keybindings-19 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:58（文案「切换终端」在该屏源码里） |
 | R-KEY-147 | S-keybindings-19 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:58（文案「切换终端」在该屏源码里） |
 | R-KEY-148 | S-keybindings-19 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-149 | S-keybindings-19 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-149 | S-keybindings-19 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-150 | S-keybindings-19 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-151 | S-keybindings-19 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:58（文案「切换终端」在该屏源码里） |
 | R-KEY-152 | S-keybindings-19 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:58（文案「切换终端」在该屏源码里） |
@@ -5420,14 +5433,14 @@ Last updated: 2026-11-19
 | R-KEY-155 | S-keybindings-20 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-KEY-156 | S-keybindings-20 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:348（文案「录音中…」在该屏源码里） |
 | R-KEY-157 | S-keybindings-20 | 异常 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:58（文案「⌘J」在该屏源码里） |
-| R-KEY-158 | S-keybindings-20 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-KEY-159 | S-keybindings-20 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-158 | S-keybindings-20 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-KEY-159 | S-keybindings-20 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-160 | S-keybindings-20 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-KEY-161 | S-keybindings-21 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:59（文案「提交更改」在该屏源码里） |
 | R-KEY-162 | S-keybindings-21 | 样式 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:59（文案「提交更改」在该屏源码里） |
 | R-KEY-163 | S-keybindings-21 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:59（文案「提交更改」在该屏源码里） |
 | R-KEY-164 | S-keybindings-21 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-165 | S-keybindings-21 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-165 | S-keybindings-21 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-166 | S-keybindings-21 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-KEY-167 | S-keybindings-21 | 窄窗 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:59（文案「提交更改」在该屏源码里） |
 | R-KEY-168 | S-keybindings-21 | 深色 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:59（文案「提交更改」在该屏源码里） |
@@ -5436,8 +5449,8 @@ Last updated: 2026-11-19
 | R-KEY-171 | S-keybindings-22 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-KEY-172 | S-keybindings-22 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:59（文案「⌘⇧↵」在该屏源码里） |
 | R-KEY-173 | S-keybindings-22 | 异常 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:59（文案「⌘⇧↵」在该屏源码里） |
-| R-KEY-174 | S-keybindings-22 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-KEY-175 | S-keybindings-22 | 键盘 | 未实现 | 缺实现：renderKeybindings 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-KEY-174 | S-keybindings-22 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-KEY-175 | S-keybindings-22 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-KEY-176 | S-keybindings-22 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
 | R-KEY-177 | S-keybindings-23 | 状态 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:348（文案「录音中…」在该屏源码里） |
 | R-KEY-178 | S-keybindings-23 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
@@ -5445,14 +5458,14 @@ Last updated: 2026-11-19
 | R-KEY-180 | S-keybindings-23 | 动画 | 未实现 | 缺实现：设置屏没有动效代码（各屏无 Animation/Transition 调用），过渡与时长做不到 |
 | R-KEY-181 | S-keybindings-23 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 的本地交互） |
 | R-KEY-182 | S-keybindings-23 | 关联 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:348（文案「录音中…」在该屏源码里） |
-| R-KEY-183 | S-keybindings-23 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-183 | S-keybindings-23 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-184 | S-keybindings-23 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-185 | S-keybindings-24 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-186 | S-keybindings-24 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-187 | S-keybindings-24 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-188 | S-keybindings-24 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-189 | S-keybindings-24 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-190 | S-keybindings-24 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-KEY-190 | S-keybindings-24 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-191 | S-keybindings-24 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-192 | S-keybindings-24 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-193 | S-keybindings-25 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
@@ -5460,7 +5473,7 @@ Last updated: 2026-11-19
 | R-KEY-195 | S-keybindings-25 | 内容 | 已实现 | 证据 = internal/ui/settings_keybindings_screen.go:54（文案「⌘B」在该屏源码里） |
 | R-KEY-196 | S-keybindings-25 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-197 | S-keybindings-25 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-198 | S-keybindings-25 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-198 | S-keybindings-25 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-199 | S-keybindings-25 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-200 | S-keybindings-25 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-201 | S-keybindings-26 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
@@ -5468,7 +5481,7 @@ Last updated: 2026-11-19
 | R-KEY-203 | S-keybindings-26 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-204 | S-keybindings-26 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-205 | S-keybindings-26 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-206 | S-keybindings-26 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-KEY-206 | S-keybindings-26 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-KEY-207 | S-keybindings-26 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-208 | S-keybindings-26 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-209 | S-keybindings-27 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
@@ -5476,7 +5489,7 @@ Last updated: 2026-11-19
 | R-KEY-211 | S-keybindings-27 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-212 | S-keybindings-27 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-213 | S-keybindings-27 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
-| R-KEY-214 | S-keybindings-27 | 无障碍 | 未实现 | 缺实现：settings_keybindings_screen.go 的 renderKeybindings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-KEY-214 | S-keybindings-27 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-KEY-215 | S-keybindings-27 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-KEY-216 | S-keybindings-27 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_keybindings_screen.go:13（renderKeybindings 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-001 | S-configuration-01 | 内容 | 已实现 | 证据 = internal/ui/settings_configuration_screen.go:326（文案「模型供应」在该屏源码里） |
@@ -5987,7 +6000,7 @@ Last updated: 2026-11-19
 | R-CFG-506 | S-configuration-64 | 样式 | 已实现 | 证据 = internal/ui/settings_provider_form.go:72（文案「添加自定义提供商」在该屏源码里） |
 | R-CFG-507 | S-configuration-64 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-508 | S-configuration-64 | 关联 | 已实现 | 证据 = internal/ui/settings_provider_form.go:72（文案「添加自定义提供商」在该屏源码里） |
-| R-CFG-509 | S-configuration-64 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-CFG-509 | S-configuration-64 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-CFG-510 | S-configuration-64 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-CFG-511 | S-configuration-64 | 窄窗 | 已实现 | 证据 = internal/ui/settings_provider_form.go:72（文案「添加自定义提供商」在该屏源码里） |
 | R-CFG-512 | S-configuration-64 | 深色 | 已实现 | 证据 = internal/ui/settings_provider_form.go:72（文案「添加自定义提供商」在该屏源码里） |
@@ -5995,16 +6008,16 @@ Last updated: 2026-11-19
 | R-CFG-514 | S-configuration-65 | 状态 | 已实现 | 证据 = internal/ui/settings_provider_form.go:22（文案「协议」在该屏源码里） |
 | R-CFG-515 | S-configuration-65 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
 | R-CFG-516 | S-configuration-65 | 样式 | 已实现 | 证据 = internal/ui/settings_provider_form.go:22（文案「协议」在该屏源码里） |
-| R-CFG-517 | S-configuration-65 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-517 | S-configuration-65 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-518 | S-configuration-65 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-519 | S-configuration-65 | 键盘 | 未实现 | 缺实现：title 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-CFG-519 | S-configuration-65 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-CFG-520 | S-configuration-65 | 窄窗 | 已实现 | 证据 = internal/ui/settings_provider_form.go:22（文案「协议」在该屏源码里） |
 | R-CFG-521 | S-configuration-66 | 内容 | 已实现 | 证据 = internal/ui/settings_provider_form.go:237（文案「我的自定义提供商」在该屏源码里） |
 | R-CFG-522 | S-configuration-66 | 状态 | 已实现 | 证据 = internal/ui/settings_provider_form.go:104（文案「名称」在该屏源码里） |
 | R-CFG-523 | S-configuration-66 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-CFG-524 | S-configuration-66 | 样式 | 已实现 | 证据 = internal/ui/settings_provider_form.go:104（文案「名称」在该屏源码里） |
 | R-CFG-525 | S-configuration-66 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-526 | S-configuration-66 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-526 | S-configuration-66 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-527 | S-configuration-66 | 输入法 | 已实现 | 证据 = internal/ui/settings_provider_form.go:104（文案「名称」在该屏源码里） |
 | R-CFG-528 | S-configuration-66 | 记忆 | 已实现 | 证据 = internal/ui/settings_provider_form.go:104（文案「名称」在该屏源码里） |
 | R-CFG-529 | S-configuration-67 | 内容 | 已实现 | 证据 = internal/ui/settings_provider_form.go:111（文案「基础 URL」在该屏源码里） |
@@ -6012,7 +6025,7 @@ Last updated: 2026-11-19
 | R-CFG-531 | S-configuration-67 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
 | R-CFG-532 | S-configuration-67 | 样式 | 已实现 | 证据 = internal/ui/settings_provider_form.go:111（文案「基础」在该屏源码里） |
 | R-CFG-533 | S-configuration-67 | 异常 | 已实现 | 证据 = internal/ui/settings_provider_form.go:111（文案「基础」在该屏源码里） |
-| R-CFG-534 | S-configuration-67 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-534 | S-configuration-67 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-535 | S-configuration-67 | 窄窗 | 已实现 | 证据 = internal/ui/settings_provider_form.go:111（文案「基础」在该屏源码里） |
 | R-CFG-536 | S-configuration-67 | 记忆 | 已实现 | 证据 = internal/ui/settings_provider_form.go:111（文案「基础」在该屏源码里） |
 | R-CFG-537 | S-configuration-68 | 内容 | 已实现 | 证据 = internal/ui/settings_provider_form.go:116（文案「API 密钥」在该屏源码里） |
@@ -6020,7 +6033,7 @@ Last updated: 2026-11-19
 | R-CFG-539 | S-configuration-68 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
 | R-CFG-540 | S-configuration-68 | 样式 | 已实现 | 证据 = internal/ui/settings_provider_form.go:116（文案「API 密钥」在该屏源码里） |
 | R-CFG-541 | S-configuration-68 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-542 | S-configuration-68 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-542 | S-configuration-68 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-543 | S-configuration-68 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-544 | S-configuration-68 | 高DPI | 已实现 | 证据 = internal/ui/settings_provider_form.go:116（文案「API 密钥」在该屏源码里） |
 | R-CFG-545 | S-configuration-69 | 内容 | 已实现 | 证据 = internal/ui/settings_provider_form.go:22（文案「User-Agent」在该屏源码里） |
@@ -6028,7 +6041,7 @@ Last updated: 2026-11-19
 | R-CFG-547 | S-configuration-69 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
 | R-CFG-548 | S-configuration-69 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-549 | S-configuration-69 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-550 | S-configuration-69 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-550 | S-configuration-69 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-551 | S-configuration-69 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-552 | S-configuration-69 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-553 | S-configuration-70 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
@@ -6036,8 +6049,8 @@ Last updated: 2026-11-19
 | R-CFG-555 | S-configuration-70 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
 | R-CFG-556 | S-configuration-70 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-557 | S-configuration-70 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-558 | S-configuration-70 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-CFG-559 | S-configuration-70 | 键盘 | 未实现 | 缺实现：title 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-CFG-558 | S-configuration-70 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-CFG-559 | S-configuration-70 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-CFG-560 | S-configuration-70 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-561 | S-configuration-71 | 内容 | 已实现 | 证据 = internal/ui/settings_provider_form.go:285（文案「添加模型」在该屏源码里） |
 | R-CFG-562 | S-configuration-71 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
@@ -6045,14 +6058,14 @@ Last updated: 2026-11-19
 | R-CFG-564 | S-configuration-71 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-565 | S-configuration-71 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-566 | S-configuration-71 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-567 | S-configuration-71 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-567 | S-configuration-71 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-568 | S-configuration-71 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-569 | S-configuration-72 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-570 | S-configuration-72 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
 | R-CFG-571 | S-configuration-72 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 的本地交互） |
 | R-CFG-572 | S-configuration-72 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-573 | S-configuration-72 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-574 | S-configuration-72 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-574 | S-configuration-72 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-575 | S-configuration-72 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-576 | S-configuration-72 | 输入法 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-577 | S-configuration-73 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
@@ -6061,13 +6074,13 @@ Last updated: 2026-11-19
 | R-CFG-580 | S-configuration-73 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-581 | S-configuration-73 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-582 | S-configuration-73 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-583 | S-configuration-73 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-CFG-583 | S-configuration-73 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-CFG-584 | S-configuration-73 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-585 | S-configuration-74 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-586 | S-configuration-74 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-587 | S-configuration-74 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-588 | S-configuration-74 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
-| R-CFG-589 | S-configuration-74 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-589 | S-configuration-74 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-590 | S-configuration-74 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-591 | S-configuration-74 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-592 | S-configuration-74 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
@@ -6075,7 +6088,7 @@ Last updated: 2026-11-19
 | R-CFG-594 | S-configuration-75 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-595 | S-configuration-75 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-596 | S-configuration-75 | 关联 | 已实现 | 证据 = internal/ui/settings_provider_form.go:285（文案「添加模型」在该屏源码里） |
-| R-CFG-597 | S-configuration-75 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-CFG-597 | S-configuration-75 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-CFG-598 | S-configuration-75 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-CFG-599 | S-configuration-75 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-600 | S-configuration-75 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
@@ -6084,7 +6097,7 @@ Last updated: 2026-11-19
 | R-CFG-603 | S-configuration-76 | 内容 | 已实现 | 证据 = internal/ui/settings_provider_form.go:31（文案「formError」在该屏源码里） |
 | R-CFG-604 | S-configuration-76 | 样式 | 已实现 | 证据 = internal/ui/settings_provider_form.go:31（文案「formError」在该屏源码里） |
 | R-CFG-605 | S-configuration-76 | 关联 | 已实现 | 证据 = internal/ui/settings_provider_form.go:31（文案「formError」在该屏源码里） |
-| R-CFG-606 | S-configuration-76 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-CFG-606 | S-configuration-76 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-CFG-607 | S-configuration-76 | 异常 | 已实现 | 证据 = internal/ui/settings_provider_form.go:31（文案「formError」在该屏源码里） |
 | R-CFG-608 | S-configuration-76 | 窄窗 | 已实现 | 证据 = internal/ui/settings_provider_form.go:31（文案「formError」在该屏源码里） |
 | R-CFG-609 | S-configuration-77 | 内容 | 已实现 | 证据 = internal/ui/settings_provider_form.go:187（文案「保存」在该屏源码里） |
@@ -6093,8 +6106,8 @@ Last updated: 2026-11-19
 | R-CFG-612 | S-configuration-77 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_provider_form.go:13（title 渲染该元素；样式与布局取同屏常量） |
 | R-CFG-613 | S-configuration-77 | 样式 | 已实现 | 证据 = internal/ui/settings_provider_form.go:187（文案「保存」在该屏源码里） |
 | R-CFG-614 | S-configuration-77 | 异常 | 已实现 | 证据 = internal/ui/settings_provider_form.go:187（文案「保存」在该屏源码里） |
-| R-CFG-615 | S-configuration-77 | 无障碍 | 未实现 | 缺实现：settings_provider_form.go 的 title 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-CFG-616 | S-configuration-77 | 键盘 | 未实现 | 缺实现：title 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-CFG-615 | S-configuration-77 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-CFG-616 | S-configuration-77 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-CFG-617 | S-configuration-78 | 状态 | 未实现 | 缺事实/宿主：详情面板的其它认证与 API Key 形态、「添加模型」对话框与骨架按占位句渲染，未重建（settings_configuration_screen.go:45-49、:1043） |
 | R-CFG-618 | S-configuration-78 | 内容 | 未实现 | 缺事实/宿主：详情面板的其它认证与 API Key 形态、「添加模型」对话框与骨架按占位句渲染，未重建（settings_configuration_screen.go:45-49、:1043） |
 | R-CFG-619 | S-configuration-78 | 交互 | 未实现 | 缺事实/宿主：详情面板的其它认证与 API Key 形态、「添加模型」对话框与骨架按占位句渲染，未重建（settings_configuration_screen.go:45-49、:1043） |
@@ -6989,7 +7002,7 @@ Last updated: 2026-11-19
 | R-MCP-052 | S-mcp-07 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:25（mcpServers 的本地交互） |
 | R-MCP-053 | S-mcp-07 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:25（文案「导入面板」在该屏源码里） |
 | R-MCP-054 | S-mcp-07 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:25（mcpServers 渲染该元素；样式与布局取同屏常量） |
-| R-MCP-055 | S-mcp-07 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-MCP-055 | S-mcp-07 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-MCP-056 | S-mcp-07 | 记忆 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:25（文案「导入面板」在该屏源码里） |
 | R-MCP-057 | S-mcp-08 | 内容 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:60（文案「范围」在该屏源码里） |
 | R-MCP-058 | S-mcp-08 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:60（文案「范围」在该屏源码里） |
@@ -7043,7 +7056,7 @@ Last updated: 2026-11-19
 | R-MCP-106 | S-mcp-14 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:39（mcpServers 渲染该元素；样式与布局取同屏常量） |
 | R-MCP-107 | S-mcp-14 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:110（文案「还没有配置 MCP 服务器」在该屏源码里） |
 | R-MCP-108 | S-mcp-14 | 关联 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:110（文案「还没有配置 MCP 服务器」在该屏源码里） |
-| R-MCP-109 | S-mcp-14 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-109 | S-mcp-14 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-MCP-110 | S-mcp-14 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:39（mcpServers 渲染该元素；样式与布局取同屏常量） |
 | R-MCP-111 | S-mcp-14 | 窄窗 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:110（文案「还没有配置 MCP 服务器」在该屏源码里） |
 | R-MCP-112 | S-mcp-14 | 深色 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:110（文案「还没有配置 MCP 服务器」在该屏源码里） |
@@ -7051,7 +7064,7 @@ Last updated: 2026-11-19
 | R-MCP-114 | S-mcp-15 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:39（mcpServers 渲染该元素；样式与布局取同屏常量） |
 | R-MCP-115 | S-mcp-15 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:111（文案「此范围内没有服务器。」在该屏源码里） |
 | R-MCP-116 | S-mcp-15 | 关联 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:111（文案「此范围内没有服务器。」在该屏源码里） |
-| R-MCP-117 | S-mcp-15 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-117 | S-mcp-15 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-MCP-118 | S-mcp-15 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-MCP-119 | S-mcp-15 | 窄窗 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:111（文案「此范围内没有服务器。」在该屏源码里） |
 | R-MCP-120 | S-mcp-15 | 深色 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:111（文案「此范围内没有服务器。」在该屏源码里） |
@@ -7171,7 +7184,7 @@ Last updated: 2026-11-19
 | R-MCP-234 | S-mcp-30 | 状态 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:124（文案「连接自定义」在该屏源码里） |
 | R-MCP-235 | S-mcp-30 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:124（文案「连接自定义」在该屏源码里） |
 | R-MCP-236 | S-mcp-30 | 关联 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:124（文案「连接自定义」在该屏源码里） |
-| R-MCP-237 | S-mcp-30 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-MCP-237 | S-mcp-30 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-MCP-238 | S-mcp-30 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-MCP-239 | S-mcp-30 | 窄窗 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:124（文案「连接自定义」在该屏源码里） |
 | R-MCP-240 | S-mcp-30 | 深色 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:124（文案「连接自定义」在该屏源码里） |
@@ -7180,8 +7193,8 @@ Last updated: 2026-11-19
 | R-MCP-243 | S-mcp-31 | 状态 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:125（文案「文档」在该屏源码里） |
 | R-MCP-244 | S-mcp-31 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:125（文案「文档」在该屏源码里） |
 | R-MCP-245 | S-mcp-31 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:11（mcpServers 渲染该元素；样式与布局取同屏常量） |
-| R-MCP-246 | S-mcp-31 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-MCP-247 | S-mcp-31 | 键盘 | 未实现 | 缺实现：mcpServers 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-MCP-246 | S-mcp-31 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-MCP-247 | S-mcp-31 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-MCP-248 | S-mcp-31 | 高DPI | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:125（文案「文档」在该屏源码里） |
 | R-MCP-249 | S-mcp-32 | 状态 | 未实现 | 缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-250 | S-mcp-32 | 状态 | 未实现 | 缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
@@ -7212,7 +7225,7 @@ Last updated: 2026-11-19
 | R-MCP-275 | S-mcp-35 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:11（mcpServers 的本地交互） |
 | R-MCP-276 | S-mcp-35 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:64（文案「名称」在该屏源码里） |
 | R-MCP-277 | S-mcp-35 | 异常 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:64（文案「名称」在该屏源码里） |
-| R-MCP-278 | S-mcp-35 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-MCP-278 | S-mcp-35 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-MCP-279 | S-mcp-35 | 输入法 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:64（文案「名称」在该屏源码里） |
 | R-MCP-280 | S-mcp-35 | 记忆 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:64（文案「名称」在该屏源码里） |
 | R-MCP-281 | S-mcp-36 | 内容 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:60（文案「范围」在该屏源码里） |
@@ -7220,8 +7233,8 @@ Last updated: 2026-11-19
 | R-MCP-283 | S-mcp-36 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-MCP-284 | S-mcp-36 | 样式 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:60（文案「范围」在该屏源码里） |
 | R-MCP-285 | S-mcp-36 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:11（mcpServers 渲染该元素；样式与布局取同屏常量） |
-| R-MCP-286 | S-mcp-36 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-MCP-287 | S-mcp-36 | 键盘 | 未实现 | 缺实现：mcpServers 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-MCP-286 | S-mcp-36 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-MCP-287 | S-mcp-36 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-MCP-288 | S-mcp-36 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:11（mcpServers 渲染该元素；样式与布局取同屏常量） |
 | R-MCP-289 | S-mcp-37 | 内容 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:748（mcpTransportSegments 渲染该元素；样式与布局取同屏常量） |
 | R-MCP-290 | S-mcp-37 | 状态 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:748（mcpTransportSegments 渲染该元素；样式与布局取同屏常量） |
@@ -7332,8 +7345,8 @@ Last updated: 2026-11-19
 | R-MCP-395 | S-mcp-50 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:11（mcpServers 渲染该元素；样式与布局取同屏常量） |
 | R-MCP-396 | S-mcp-50 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:11（mcpServers 渲染该元素；样式与布局取同屏常量） |
 | R-MCP-397 | S-mcp-50 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_mcp_screen.go:11（mcpServers 渲染该元素；样式与布局取同屏常量） |
-| R-MCP-398 | S-mcp-50 | 无障碍 | 未实现 | 缺实现：settings_mcp_screen.go 的 mcpServers 没有显式 Label/Role，也不是文本节点，可读名未落实 |
-| R-MCP-399 | S-mcp-50 | 键盘 | 未实现 | 缺实现：mcpServers 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-MCP-398 | S-mcp-50 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
+| R-MCP-399 | S-mcp-50 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-MCP-400 | S-mcp-50 | 记忆 | 已实现 | 证据 = internal/ui/settings_mcp_screen.go:158（文案「取消」在该屏源码里） |
 | R-MCP-401 | S-mcp-51 | 状态 | 未实现 | 缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
 | R-MCP-402 | S-mcp-51 | 内容 | 未实现 | 缺事实/协议/宿主：配置问题、认证流程、插件来源、写入与 discover/inspect 能力都没有（settings_mcp_screen.go:35-52） |
@@ -7477,7 +7490,7 @@ Last updated: 2026-11-19
 | R-PET-068 | S-pets-09 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:83（文案「打开保留素材」在该屏源码里） |
 | R-PET-069 | S-pets-09 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 渲染该元素；样式与布局取同屏常量） |
 | R-PET-070 | S-pets-09 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
-| R-PET-071 | S-pets-09 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-071 | S-pets-09 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-072 | S-pets-09 | 状态 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:83（文案「打开保留素材」在该屏源码里） |
 | R-PET-073 | S-pets-10 | 内容 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:77（文案「重试」在该屏源码里） |
 | R-PET-074 | S-pets-10 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 渲染该元素；样式与布局取同屏常量） |
@@ -7485,7 +7498,7 @@ Last updated: 2026-11-19
 | R-PET-076 | S-pets-10 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:77（文案「重试」在该屏源码里） |
 | R-PET-077 | S-pets-10 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 渲染该元素；样式与布局取同屏常量） |
 | R-PET-078 | S-pets-10 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
-| R-PET-079 | S-pets-10 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-079 | S-pets-10 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-080 | S-pets-10 | 深色 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:77（文案「重试」在该屏源码里） |
 | R-PET-081 | S-pets-11 | 内容 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:69（文案「选择 Pet」在该屏源码里） |
 | R-PET-082 | S-pets-11 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:69（文案「选择」在该屏源码里） |
@@ -7549,7 +7562,7 @@ Last updated: 2026-11-19
 | R-PET-140 | S-pets-18 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:71（文案「创建」在该屏源码里） |
 | R-PET-141 | S-pets-18 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:42（renderPets 渲染该元素；样式与布局取同屏常量） |
 | R-PET-142 | S-pets-18 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
-| R-PET-143 | S-pets-18 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-143 | S-pets-18 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-144 | S-pets-18 | 深色 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:71（文案「创建」在该屏源码里） |
 | R-PET-145 | S-pets-19 | 内容 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:72（文案「从文件夹安装」在该屏源码里） |
 | R-PET-146 | S-pets-19 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
@@ -7557,7 +7570,7 @@ Last updated: 2026-11-19
 | R-PET-148 | S-pets-19 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:72（文案「从文件夹安装」在该屏源码里） |
 | R-PET-149 | S-pets-19 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:42（renderPets 渲染该元素；样式与布局取同屏常量） |
 | R-PET-150 | S-pets-19 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
-| R-PET-151 | S-pets-19 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-151 | S-pets-19 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-152 | S-pets-19 | 记忆 | 未实现 | 缺事实：这些设置只是进程内的可丢界面状态，没有持久化事实，重启后不保持 |
 | R-PET-153 | S-pets-20 | 内容 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:73（文案「刷新」在该屏源码里） |
 | R-PET-154 | S-pets-20 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 的本地交互） |
@@ -7565,7 +7578,7 @@ Last updated: 2026-11-19
 | R-PET-156 | S-pets-20 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:73（文案「刷新」在该屏源码里） |
 | R-PET-157 | S-pets-20 | 异常 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:73（文案「刷新」在该屏源码里） |
 | R-PET-158 | S-pets-20 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
-| R-PET-159 | S-pets-20 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-159 | S-pets-20 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-160 | S-pets-20 | 深色 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:73（文案「刷新」在该屏源码里） |
 | R-PET-161 | S-pets-21 | 内容 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:74（文案「打开 Pets 文件夹」在该屏源码里） |
 | R-PET-162 | S-pets-21 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 的本地交互） |
@@ -7573,7 +7586,7 @@ Last updated: 2026-11-19
 | R-PET-164 | S-pets-21 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:74（文案「打开 Pets 文件夹」在该屏源码里） |
 | R-PET-165 | S-pets-21 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 渲染该元素；样式与布局取同屏常量） |
 | R-PET-166 | S-pets-21 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
-| R-PET-167 | S-pets-21 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-167 | S-pets-21 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-168 | S-pets-21 | 深色 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:74（文案「打开 Pets 文件夹」在该屏源码里） |
 | R-PET-169 | S-pets-22 | 状态 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:75（文案「尚未安装自定义 Pet。」在该屏源码里） |
 | R-PET-170 | S-pets-22 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:29（renderPets 渲染该元素；样式与布局取同屏常量） |
@@ -7602,7 +7615,7 @@ Last updated: 2026-11-19
 | R-PET-193 | S-pets-25 | 内容 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:82（文案「取消」在该屏源码里） |
 | R-PET-194 | S-pets-25 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 的本地交互） |
 | R-PET-195 | S-pets-25 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:82（文案「取消」在该屏源码里） |
-| R-PET-196 | S-pets-25 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-196 | S-pets-25 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-197 | S-pets-25 | 状态 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:82（文案「取消」在该屏源码里） |
 | R-PET-198 | S-pets-25 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
 | R-PET-199 | S-pets-25 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 渲染该元素；样式与布局取同屏常量） |
@@ -7613,7 +7626,7 @@ Last updated: 2026-11-19
 | R-PET-204 | S-pets-26 | 样式 | 已实现 | 证据 = internal/ui/settings_pets_screen.go:80（文案「删除」在该屏源码里） |
 | R-PET-205 | S-pets-26 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 渲染该元素；样式与布局取同屏常量） |
 | R-PET-206 | S-pets-26 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:155（renderPets 里设了 Role/Label） |
-| R-PET-207 | S-pets-26 | 键盘 | 未实现 | 缺实现：renderPets 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PET-207 | S-pets-26 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PET-208 | S-pets-26 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_pets_screen.go:41（renderPets 渲染该元素；样式与布局取同屏常量） |
 | R-PRM-001 | S-permissions-01 | 内容 | 已实现 | 证据 = internal/ui/settings_permissions_screen.go:62（文案「权限」在该屏源码里） |
 | R-PRM-002 | S-permissions-01 | 样式 | 已实现 | 证据 = internal/ui/settings_permissions_screen.go:62（文案「权限」在该屏源码里） |
@@ -7821,7 +7834,7 @@ Last updated: 2026-11-19
 | R-PRM-204 | S-permissions-26 | 样式 | 已实现 | 证据 = internal/ui/settings_permissions_screen.go:88（文案「添加规则」在该屏源码里） |
 | R-PRM-205 | S-permissions-26 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_permissions_screen.go:12（renderPermissions 渲染该元素；样式与布局取同屏常量） |
 | R-PRM-206 | S-permissions-26 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_permissions_screen.go:162（renderPermissions 里设了 Role/Label） |
-| R-PRM-207 | S-permissions-26 | 键盘 | 未实现 | 缺实现：renderPermissions 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PRM-207 | S-permissions-26 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PRM-208 | S-permissions-26 | 深色 | 已实现 | 证据 = internal/ui/settings_permissions_screen.go:88（文案「添加规则」在该屏源码里） |
 | R-PRM-209 | S-permissions-27 | 内容 | 已实现 | 证据 = internal/ui/settings_permissions_screen.go:90（文案「保存权限」在该屏源码里） |
 | R-PRM-210 | S-permissions-27 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_permissions_screen.go:12（renderPermissions 渲染该元素；样式与布局取同屏常量） |
@@ -7829,7 +7842,7 @@ Last updated: 2026-11-19
 | R-PRM-212 | S-permissions-27 | 样式 | 已实现 | 证据 = internal/ui/settings_permissions_screen.go:90（文案「保存权限」在该屏源码里） |
 | R-PRM-213 | S-permissions-27 | 异常 | 已实现 | 证据 = internal/ui/settings_permissions_screen.go:90（文案「保存权限」在该屏源码里） |
 | R-PRM-214 | S-permissions-27 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_permissions_screen.go:162（renderPermissions 里设了 Role/Label） |
-| R-PRM-215 | S-permissions-27 | 键盘 | 未实现 | 缺实现：renderPermissions 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-PRM-215 | S-permissions-27 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-PRM-216 | S-permissions-27 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_permissions_screen.go:12（renderPermissions 渲染该元素；样式与布局取同屏常量） |
 | R-PRM-217 | S-permissions-28 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_permissions_screen.go:12（renderPermissions 渲染该元素；样式与布局取同屏常量） |
 | R-PRM-218 | S-permissions-28 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_permissions_screen.go:12（renderPermissions 渲染该元素；样式与布局取同屏常量） |
@@ -8186,7 +8199,7 @@ Last updated: 2026-11-19
 | R-HOK-129 | S-hooks-17 | 内容 | 已实现 | 证据 = internal/ui/settings_hooks_screen.go:151（文案「条目」在该屏源码里） |
 | R-HOK-130 | S-hooks-17 | 样式 | 已实现 | 证据 = internal/ui/settings_hooks_screen.go:151（文案「条目」在该屏源码里） |
 | R-HOK-131 | S-hooks-17 | 关联 | 已实现 | 证据 = internal/ui/settings_hooks_screen.go:151（文案「条目」在该屏源码里） |
-| R-HOK-132 | S-hooks-17 | 无障碍 | 未实现 | 缺实现：settings_hooks_screen.go 的 hooksData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-HOK-132 | S-hooks-17 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-HOK-133 | S-hooks-17 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-HOK-134 | S-hooks-17 | 窄窗 | 已实现 | 证据 = internal/ui/settings_hooks_screen.go:151（文案「条目」在该屏源码里） |
 | R-HOK-135 | S-hooks-17 | 深色 | 已实现 | 证据 = internal/ui/settings_hooks_screen.go:151（文案「条目」在该屏源码里） |
@@ -8220,7 +8233,7 @@ Last updated: 2026-11-19
 | R-HOK-163 | S-hooks-21 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_hooks_screen.go:11（hooksData 渲染该元素；样式与布局取同屏常量） |
 | R-HOK-164 | S-hooks-21 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_hooks_screen.go:11（hooksData 渲染该元素；样式与布局取同屏常量） |
 | R-HOK-165 | S-hooks-21 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_hooks_screen.go:11（hooksData 渲染该元素；样式与布局取同屏常量） |
-| R-HOK-166 | S-hooks-21 | 无障碍 | 未实现 | 缺实现：settings_hooks_screen.go 的 hooksData 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-HOK-166 | S-hooks-21 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-HOK-167 | S-hooks-21 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_hooks_screen.go:11（hooksData 渲染该元素；样式与布局取同屏常量） |
 | R-HOK-168 | S-hooks-21 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_hooks_screen.go:11（hooksData 渲染该元素；样式与布局取同屏常量） |
 | R-HOK-169 | S-hooks-22 | 内容 | 已实现 | 证据 = internal/ui/settings_hooks_screen.go:500（hkRevisions 渲染该元素；样式与布局取同屏常量） |
@@ -8314,7 +8327,7 @@ Last updated: 2026-11-19
 | R-PLG-001 | S-pluginSettings-01 | 内容 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「插件设置」在该屏源码里） |
 | R-PLG-002 | S-pluginSettings-01 | 样式 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「插件设置」在该屏源码里） |
 | R-PLG-003 | S-pluginSettings-01 | 关联 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「插件设置」在该屏源码里） |
-| R-PLG-004 | S-pluginSettings-01 | 无障碍 | 未实现 | 缺实现：settings_plugin_settings_screen.go 的 renderPluginSettings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-PLG-004 | S-pluginSettings-01 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-PLG-005 | S-pluginSettings-01 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-PLG-006 | S-pluginSettings-01 | 记忆 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「插件设置」在该屏源码里） |
 | R-PLG-007 | S-pluginSettings-01 | 窄窗 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「插件设置」在该屏源码里） |
@@ -8323,7 +8336,7 @@ Last updated: 2026-11-19
 | R-PLG-010 | S-pluginSettings-02 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-011 | S-pluginSettings-02 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-012 | S-pluginSettings-02 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 的本地交互） |
-| R-PLG-013 | S-pluginSettings-02 | 无障碍 | 未实现 | 缺实现：settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-PLG-013 | S-pluginSettings-02 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-PLG-014 | S-pluginSettings-02 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-PLG-015 | S-pluginSettings-02 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-016 | S-pluginSettings-02 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
@@ -8331,7 +8344,7 @@ Last updated: 2026-11-19
 | R-PLG-018 | S-pluginSettings-03 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-019 | S-pluginSettings-03 | 样式 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「正在加载插件设置...」在该屏源码里） |
 | R-PLG-020 | S-pluginSettings-03 | 异常 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「正在加载插件设置...」在该屏源码里） |
-| R-PLG-021 | S-pluginSettings-03 | 无障碍 | 未实现 | 缺实现：settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-PLG-021 | S-pluginSettings-03 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-PLG-022 | S-pluginSettings-03 | 窄窗 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「正在加载插件设置...」在该屏源码里） |
 | R-PLG-023 | S-pluginSettings-03 | 深色 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:161（文案「正在加载插件设置...」在该屏源码里） |
 | R-PLG-024 | S-pluginSettings-03 | 动画 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（屏内无动效代码，本条要求不做动效） |
@@ -8339,7 +8352,7 @@ Last updated: 2026-11-19
 | R-PLG-026 | S-pluginSettings-04 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-027 | S-pluginSettings-04 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-028 | S-pluginSettings-04 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
-| R-PLG-029 | S-pluginSettings-04 | 无障碍 | 未实现 | 缺实现：settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-PLG-029 | S-pluginSettings-04 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-PLG-030 | S-pluginSettings-04 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-PLG-031 | S-pluginSettings-04 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-032 | S-pluginSettings-04 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
@@ -8516,7 +8529,7 @@ Last updated: 2026-11-19
 | R-PLG-203 | S-pluginSettings-26 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-204 | S-pluginSettings-26 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-205 | S-pluginSettings-26 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
-| R-PLG-206 | S-pluginSettings-26 | 无障碍 | 未实现 | 缺实现：settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-PLG-206 | S-pluginSettings-26 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-PLG-207 | S-pluginSettings-26 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-208 | S-pluginSettings-26 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-209 | S-pluginSettings-27 | 状态 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:414（plgBoolRow 渲染该元素；样式与布局取同屏常量） |
@@ -8532,7 +8545,7 @@ Last updated: 2026-11-19
 | R-PLG-219 | S-pluginSettings-28 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-PLG-220 | S-pluginSettings-28 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-221 | S-pluginSettings-28 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
-| R-PLG-222 | S-pluginSettings-28 | 无障碍 | 未实现 | 缺实现：settings_plugin_settings_screen.go 的 renderPluginSettings 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-PLG-222 | S-pluginSettings-28 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-PLG-223 | S-pluginSettings-28 | 输入法 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-224 | S-pluginSettings-28 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:10（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-225 | S-pluginSettings-29 | 内容 | 已实现 | 证据 = internal/ui/settings_plugin_settings_screen.go:139（文案「添加」在该屏源码里） |
@@ -8548,13 +8561,13 @@ Last updated: 2026-11-19
 | R-PLG-235 | S-pluginSettings-30 | 交互 | 未实现 | 缺协议：控件照渲染但不写事实（各屏文件头「未接动作」/「只改界面状态」），没有对应的 Intents 写入方法 |
 | R-PLG-236 | S-pluginSettings-30 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:28（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-237 | S-pluginSettings-30 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:28（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
-| R-PLG-238 | S-pluginSettings-30 | 无障碍 | 未实现 | 缺实现：settings_plugin_settings_screen.go 的 renderPluginSettings 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-PLG-238 | S-pluginSettings-30 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-PLG-239 | S-pluginSettings-30 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:28（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-PLG-240 | S-pluginSettings-30 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_plugin_settings_screen.go:28（renderPluginSettings 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-001 | S-externalAgents-01 | 内容 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:86（文案「外部 Agent」在该屏源码里） |
 | R-EXT-002 | S-externalAgents-01 | 样式 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:86（文案「外部」在该屏源码里） |
 | R-EXT-003 | S-externalAgents-01 | 关联 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:86（文案「外部」在该屏源码里） |
-| R-EXT-004 | S-externalAgents-01 | 无障碍 | 未实现 | 缺实现：settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-EXT-004 | S-externalAgents-01 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-EXT-005 | S-externalAgents-01 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-EXT-006 | S-externalAgents-01 | 记忆 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:86（文案「外部」在该屏源码里） |
 | R-EXT-007 | S-externalAgents-01 | 窄窗 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:86（文案「外部」在该屏源码里） |
@@ -8588,13 +8601,13 @@ Last updated: 2026-11-19
 | R-EXT-035 | S-externalAgents-05 | 内容 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:161（文案「不可用提示卡」在该屏源码里） |
 | R-EXT-036 | S-externalAgents-05 | 样式 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:161（文案「不可用提示卡」在该屏源码里） |
 | R-EXT-037 | S-externalAgents-05 | 关联 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:161（文案「不可用提示卡」在该屏源码里） |
-| R-EXT-038 | S-externalAgents-05 | 无障碍 | 未实现 | 缺实现：settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-EXT-038 | S-externalAgents-05 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-EXT-039 | S-externalAgents-05 | 窄窗 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:161（文案「不可用提示卡」在该屏源码里） |
 | R-EXT-040 | S-externalAgents-05 | 深色 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:161（文案「不可用提示卡」在该屏源码里） |
 | R-EXT-041 | S-externalAgents-06 | 内容 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:89（文案「App Server 模式下不可用」在该屏源码里） |
 | R-EXT-042 | S-externalAgents-06 | 样式 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:89（文案「App Server 模式下不可用」在该屏源码里） |
 | R-EXT-043 | S-externalAgents-06 | 关联 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:89（文案「App Server 模式下不可用」在该屏源码里） |
-| R-EXT-044 | S-externalAgents-06 | 无障碍 | 未实现 | 缺实现：settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-EXT-044 | S-externalAgents-06 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-EXT-045 | S-externalAgents-06 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-EXT-046 | S-externalAgents-06 | 窄窗 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:89（文案「App Server 模式下不可用」在该屏源码里） |
 | R-EXT-047 | S-externalAgents-06 | 深色 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:89（文案「App Server 模式下不可用」在该屏源码里） |
@@ -8612,7 +8625,7 @@ Last updated: 2026-11-19
 | R-EXT-059 | S-externalAgents-08 | 状态 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:93（文案「未安装」在该屏源码里） |
 | R-EXT-060 | S-externalAgents-08 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 的本地交互） |
 | R-EXT-061 | S-externalAgents-08 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
-| R-EXT-062 | S-externalAgents-08 | 无障碍 | 未实现 | 缺实现：settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-EXT-062 | S-externalAgents-08 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-EXT-063 | S-externalAgents-08 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-064 | S-externalAgents-08 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-065 | S-externalAgents-09 | 内容 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
@@ -8620,7 +8633,7 @@ Last updated: 2026-11-19
 | R-EXT-067 | S-externalAgents-09 | 内容 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:93（文案「未安装」在该屏源码里） |
 | R-EXT-068 | S-externalAgents-09 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-069 | S-externalAgents-09 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
-| R-EXT-070 | S-externalAgents-09 | 无障碍 | 未实现 | 缺实现：settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-EXT-070 | S-externalAgents-09 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-EXT-071 | S-externalAgents-09 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-072 | S-externalAgents-09 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-073 | S-externalAgents-10 | 状态 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:94（文案「未能从该文件识别版本号，这个 Agent 可」在该屏源码里） |
@@ -8653,16 +8666,16 @@ Last updated: 2026-11-19
 | R-EXT-100 | S-externalAgents-13 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-101 | S-externalAgents-13 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-102 | S-externalAgents-13 | 无障碍 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 的文本节点由框架 access tree 按内容给名字，UI/access.go） |
-| R-EXT-103 | S-externalAgents-13 | 键盘 | 未实现 | 缺实现：renderExternalAgents 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-EXT-103 | S-externalAgents-13 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-EXT-104 | S-externalAgents-13 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-105 | S-externalAgents-14 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-106 | S-externalAgents-14 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-107 | S-externalAgents-14 | 交互 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 的本地交互） |
 | R-EXT-108 | S-externalAgents-14 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-109 | S-externalAgents-14 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
-| R-EXT-110 | S-externalAgents-14 | 无障碍 | 未实现 | 缺实现：settings_external_agents_screen.go 的 renderExternalAgents 没有 Role/Label 声明，可读名与角色未逐元素落实 |
+| R-EXT-110 | S-externalAgents-14 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role 声明（角色与可读名未逐元素落实） |
 | R-EXT-111 | S-externalAgents-14 | 记忆 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（读数每帧从 Source 取，重启后由 App Server 的事实决定） |
-| R-EXT-112 | S-externalAgents-14 | 键盘 | 未实现 | 缺实现：renderExternalAgents 不是可聚焦控件，也没有 TabStop/Focusable 声明 |
+| R-EXT-112 | S-externalAgents-14 | 键盘 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的可聚焦声明（Tab 序未逐元素落实） |
 | R-EXT-113 | S-externalAgents-15 | 内容 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:96（文案「更改将在新对话中生效。」在该屏源码里） |
 | R-EXT-114 | S-externalAgents-15 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_external_agents_screen.go:8（renderExternalAgents 渲染该元素；样式与布局取同屏常量） |
 | R-EXT-115 | S-externalAgents-15 | 样式 | 已实现 | 证据 = internal/ui/settings_external_agents_screen.go:96（文案「更改将在新对话中生效。」在该屏源码里） |
@@ -8803,7 +8816,7 @@ Last updated: 2026-11-19
 | R-ARC-130 | S-archived-17 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_archived_screen.go:11（renderArchived 渲染该元素；样式与布局取同屏常量） |
 | R-ARC-131 | S-archived-17 | 样式 | 已实现 | 屏级证据 = internal/ui/settings_archived_screen.go:11（renderArchived 渲染该元素；样式与布局取同屏常量） |
 | R-ARC-132 | S-archived-17 | 关联 | 已实现 | 屏级证据 = internal/ui/settings_archived_screen.go:11（renderArchived 渲染该元素；样式与布局取同屏常量） |
-| R-ARC-133 | S-archived-17 | 无障碍 | 未实现 | 缺实现：settings_archived_screen.go 的 renderArchived 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-ARC-133 | S-archived-17 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-ARC-134 | S-archived-17 | 异常 | 未实现 | 缺实现：internal/ui 没有 i18n 层，不存在「缺键回落中文」这条支（settings_notifications_screen.go:28-29 等屏头同口径） |
 | R-ARC-135 | S-archived-17 | 窄窗 | 已实现 | 屏级证据 = internal/ui/settings_archived_screen.go:11（renderArchived 渲染该元素；样式与布局取同屏常量） |
 | R-ARC-136 | S-archived-17 | 深色 | 已实现 | 屏级证据 = internal/ui/settings_archived_screen.go:11（renderArchived 渲染该元素；样式与布局取同屏常量） |
@@ -9019,7 +9032,7 @@ Last updated: 2026-11-19
 | R-ABT-210 | S-about-27 | 状态 | 已实现 | 屏级证据 = internal/ui/settings_about_screen.go:36（SetBuildVersion 渲染该元素；样式与布局取同屏常量） |
 | R-ABT-211 | S-about-27 | 样式 | 已实现 | 证据 = internal/ui/settings_about_screen.go:213（文案「暂无公告」在该屏源码里） |
 | R-ABT-212 | S-about-27 | 关联 | 已实现 | 证据 = internal/ui/settings_about_screen.go:213（文案「暂无公告」在该屏源码里） |
-| R-ABT-213 | S-about-27 | 无障碍 | 未实现 | 缺实现：settings_about_screen.go 的 SetBuildVersion 没有显式 Label/Role，也不是文本节点，可读名未落实 |
+| R-ABT-213 | S-about-27 | 无障碍 | 未实现 | 缺实现：该元素在屏头只按区间列出，屏里没有它自己的 Label/Role，也不是文本节点（可读名未落实） |
 | R-ABT-214 | S-about-27 | 异常 | 已实现 | 屏级证据 = internal/ui/settings_about_screen.go:36（SetBuildVersion 渲染该元素；样式与布局取同屏常量） |
 | R-ABT-215 | S-about-27 | 窄窗 | 已实现 | 证据 = internal/ui/settings_about_screen.go:213（文案「暂无公告」在该屏源码里） |
 | R-ABT-216 | S-about-27 | 深色 | 已实现 | 证据 = internal/ui/settings_about_screen.go:213（文案「暂无公告」在该屏源码里） |

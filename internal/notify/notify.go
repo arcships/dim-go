@@ -161,14 +161,14 @@ func failed(outcome string) bool {
 
 // Note 是一条系统通知。入口按它创建平台的 Notification。
 type Note struct {
-	ID         string
-	Title      string
-	Subtitle   string
-	Body       string
-	Group      string
-	Silent     bool
-	Kind       Kind
-	SessionID  string
+	ID        string
+	Title     string
+	Subtitle  string
+	Body      string
+	Group     string
+	Silent    bool
+	Kind      Kind
+	SessionID string
 	// OnClick 在用户点开通知时调用；入口把它接到平台的通知点击上。
 	OnClick func()
 }

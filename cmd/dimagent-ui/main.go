@@ -420,6 +420,13 @@ func main() {
 				ticker := time.NewTicker(250 * time.Millisecond)
 				defer ticker.Stop()
 				for range ticker.C {
+					// 隐藏到托盘后窗口可能不再渲染：只在窗口不可见时补一次宿主
+					// 外壳的刷新，可见时由每帧的 OnFrame 负责（不重复读会话）。
+					mygo.RunOnMain(func() {
+						if host != nil && !win.IsVisible() {
+							host.frame(app.HostSnapshot())
+						}
+					})
 					win.Invalidate()
 					titles.apply()
 				}

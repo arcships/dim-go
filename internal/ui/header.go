@@ -83,10 +83,14 @@ func (a *App) sessionTitle() string {
 	return sampleSessionName(a.state)
 }
 
-// workspaceTitle 取工作区名：会话快照没有这一项，样例里用固定名。
+// workspaceTitle 取工作区名：会话快照没有这一项，接上事实时用内置工作区名，
+// 不把样例目录名漏到真实会话上；样例里用固定名。
 func (a *App) workspaceTitle() string {
 	if a.workspaceName != "" {
 		return a.workspaceName
+	}
+	if a.wired() {
+		return sidebarBuiltinName
 	}
 	return sampleWorkspaceTitle
 }

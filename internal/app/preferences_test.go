@@ -18,9 +18,9 @@ func TestPreferencesRoundTrip(t *testing.T) {
 	}
 	want := Preferences{
 		Theme: "暗", MotionOff: true, TimeZone: "UTC", SidebarWidth: 288,
-		Workspaces: []string{"/tmp/dimagent-test/ws-alpha", "/tmp/dimagent-test/ws-beta"},
+		Workspaces:       []string{"/tmp/dimagent-test/ws-alpha", "/tmp/dimagent-test/ws-beta"},
 		HooksProjectPath: "/tmp/dimagent-test/hooks-project",
-		Window: WindowPreferences{X: 40, Y: 60, Width: 1280, Height: 820, HasPosition: true},
+		Window:           WindowPreferences{X: 40, Y: 60, Width: 1280, Height: 820, HasPosition: true},
 	}
 	if err := first.UpdatePreferences(want); err != nil {
 		t.Fatalf("写入偏好：%v", err)

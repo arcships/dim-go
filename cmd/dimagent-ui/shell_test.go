@@ -5,8 +5,8 @@ import (
 
 	"github.com/egoist/mygo"
 
-	appui "github.com/arcships/dimagent-mygo/internal/ui"
 	"github.com/arcships/dimagent-mygo/internal/tray"
+	appui "github.com/arcships/dimagent-mygo/internal/ui"
 )
 
 // TestTrayMenuMapping 核对托盘模型到 mygo 菜单的转接：普通项、分隔线、勾选项与

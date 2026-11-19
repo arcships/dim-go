@@ -61,7 +61,7 @@ func (a *App) sidebarHeader(c *gui.Context) {
 			icon: iconSidebarPanelClose, label: "收起侧边栏 ⌘B", tip: "收起侧边栏 ⌘B",
 			size: rowRegular,
 		}) {
-			a.sidebarCollapsed = true
+			a.setSidebarCollapsed(true)
 		}
 	})
 }
@@ -96,6 +96,7 @@ func (a *App) sidebarEntries(c *gui.Context) {
 		})
 		a.sidebarEntry(c, sidebarEntrySpec{
 			icon: iconSidebarGrid, mark: "layout-grid", label: "技能/插件",
+			tip: "技能/插件：设置里的插件设置", run: a.openSkillsPage,
 		})
 	})
 }
@@ -125,6 +126,14 @@ func (a *App) sidebarEntry(c *gui.Context, spec sidebarEntrySpec) {
 			sidebarKeycap(c, t, spec.keycap)
 		}
 	})
+}
+
+// openSkillsPage 打开设置 › 插件设置：左栏「技能/插件」的落点。技能与插件的
+// 安装、启用、卸载都在那一节，而本版没有独立的技能路由页（清单 §7.4 的 PG-12
+// 组尚未按参考产品重建）。
+func (a *App) openSkillsPage() {
+	a.screen = ScreenSettings
+	a.settingsSection = secPluginSettings
 }
 
 // toggleSearch 开合左栏的搜索面（空白查询给全部）。
@@ -301,6 +310,10 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 	threads := a.sidebarGroupThreads(ws, all)
 	gui.Column(c).Shrink(0).Children(func() {
 		gui.Row(c).Shrink(0).PaddingStart(space2).Children(func() {
+			if a.renamingGroup == ws.id {
+				a.groupRenameRow(c, ws)
+				return
+			}
 			row := gui.ButtonBase(c).Height(sidebarGroupRowHeight).Padding(space1, space2).
 				Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
 				Grow(1).Label(ws.name).Cursor(gui.CursorPointer)
@@ -322,10 +335,10 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 			// 指针，也不改变行按钮的宽度。
 			sidebarIconAction(c, sidebarIconSpec{
 				icon: iconPlus, label: "在工作区中新建会话：" + ws.name,
-				hover: hovered, run: a.createSession,
+				hover: hovered, run: func() { a.createSessionIn(ws) },
 			})
 			sidebarIconAction(c, sidebarIconSpec{
-				icon: iconEllipsis, label: "工作区操作：" + ws.name,
+				icon: iconEllipsis, label: "工作区菜单：" + ws.name,
 				hover: hovered || *a.groupMenuPtr(ws.id),
 				menu: func(m *gui.Menu) { a.workspaceMenu(m, ws, threads) },
 				open: a.groupMenuPtr(ws.id),
@@ -352,11 +365,21 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 }
 
 // workspaceMenu 是工作区行的菜单（C16 / C17 / C45）：置顶 / 在文件管理器中显示 /
-// 归档会话 / 重命名 / 移除。工作区目录的写路径本批次只接通「归档会话」——它落在
-// 已有的会话归档上；置顶、在文件管理器中显示、重命名与移除只建菜单。
+// 归档会话 / 重命名 / 移除。
+//
+// 能做的都在本地做完：置顶与改名是本地视图状态，移除会把本端登记的目录一并删掉；
+// 「在文件管理器中显示」要宿主能力，本版没有通道，按 DEC-09 禁用并写原因。
 func (a *App) workspaceMenu(m *gui.Menu, ws sidebarWorkspace, threads []sidebarThread) {
-	m.Item("置顶工作区")
-	m.Item("在文件管理器中显示")
+	if !ws.builtin {
+		pin := "置顶工作区"
+		if a.groupPinned(ws) {
+			pin = "取消置顶工作区"
+		}
+		if m.Item(pin).Subtitle(ws.name).Chosen() {
+			a.toggleGroupPin(ws)
+		}
+	}
+	m.Item("在文件管理器中显示").Disabled(true).Subtitle(notePreviewIO)
 	if len(threads) > 0 {
 		if m.Item("归档会话").Chosen() {
 			for _, thread := range threads {
@@ -365,10 +388,35 @@ func (a *App) workspaceMenu(m *gui.Menu, ws sidebarWorkspace, threads []sidebarT
 		}
 	}
 	m.Separator()
-	m.Item("重命名")
-	if !ws.builtin {
-		m.Item("移除")
+	if m.Item("重命名").Chosen() {
+		a.renamingGroup, a.groupRenameDraft = ws.id, ws.name
 	}
+	if !ws.builtin {
+		if m.Item("移除工作区").Chosen() {
+			a.removeWorkspaceGroup(ws)
+		}
+	}
+}
+
+// groupRenameRow 是组头的行内改名（LB-48）：输入框就地替换名称，Enter 保存、
+// Esc 放弃（Esc 在 viewKeys 里统一处理）。名称留空时回落原名称。
+func (a *App) groupRenameRow(c *gui.Context, ws sidebarWorkspace) {
+	t := c.Theme()
+	gui.Column(c).Grow(1).Shrink(0).Padding(space1, space1).Gap(space1).
+		Label("重命名工作区").Children(func() {
+		input := gui.TextInputBase(c, &a.groupRenameDraft).Label("工作区名称").
+			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
+		input.OnSubmit(func() { a.renameGroup(ws) })
+		gui.Row(c).Gap(space2).Children(func() {
+			gui.Spacer(c)
+			if actionButton(c, "保存", "保存工作区名称", true, false).Clicked() {
+				a.renameGroup(ws)
+			}
+			if actionButton(c, "取消", "取消重命名工作区", false, false).Clicked() {
+				a.renamingGroup, a.groupRenameDraft = "", ""
+			}
+		})
+	})
 }
 
 // groupTooltip 是分组行的悬停说明：有目录时给完整目录，样例分组退回组名。
@@ -542,8 +590,12 @@ func sidebarIconAction(c *gui.Context, spec sidebarIconSpec) bool {
 }
 
 // accountRow 是底部账户行（LB-83–88、LB-100）：18px 首字母头像 + 账户名 +
-// 右侧设置齿轮；整行点开账户菜单（C32）。
+// 右侧设置齿轮；整行点开账户菜单（C32）。退出登录的确认行占同一位置（LB-101）。
 func (a *App) accountRow(c *gui.Context) {
+	if a.logoutConfirm {
+		a.logoutConfirmRow(c)
+		return
+	}
 	t := c.Theme()
 	initial := a.accountInitialValue()
 	name := a.accountNameValue()
@@ -578,18 +630,50 @@ func sidebarAvatar(c *gui.Context, t *gui.Theme, initial string) {
 }
 
 // accountMenu 是账户菜单（C32）：身份项 + 用量 / 显示 Pet / 邀请朋友 + 设置 /
-// 退出登录。用量带着账户事实里的剩余额度；Pet、邀请与退出登录属于账户领域，
-// 本批次只建项不接线。
+// 退出登录。用量带着账户事实里的剩余额度；Pet 与邀请没有通道，按 DEC-09 的口径
+// 禁用并写原因；退出登录走已有的 account.logout（确认后提交）。
 func (a *App) accountMenu(m *gui.Menu) {
 	m.Item(a.accountInitialValue() + "   " + a.accountNameValue()).Disabled(true)
-	m.Item(a.usageLabel())
-	m.Item("显示 Pet")
-	m.Item("邀请朋友")
+	if m.Item(a.usageLabel()).Chosen() {
+		a.screen = ScreenSettings
+		a.settingsSection = secUsage
+	}
+	m.Item("显示 Pet").Disabled(true).Subtitle(notePet)
+	m.Item("邀请朋友").Disabled(true).Subtitle(noteInvite)
 	m.Separator()
 	if m.Item("设置").Chosen() {
 		a.screen = ScreenSettings
 	}
-	m.Item("退出登录")
+	if m.Item("退出登录").Chosen() {
+		a.logoutConfirm = true
+	}
+}
+
+// logoutConfirmRow 是退出登录的两步确认（LB-101）：与删除会话同一套原地确认，
+// 不可逆动作不在菜单里一步完成。确认后走 account.logout；失败原因回到错误行。
+func (a *App) logoutConfirmRow(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Padding(space1, space2).Gap(space1).
+		Label("退出登录确认").Role(gui.RoleAlert).Children(func() {
+		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
+			iconGlyph(c, iconWarn, t.Warning, "warning")
+			typeSecondary.style(t, gui.Text(c, "退出 Dim？")).TextColor(t.Text).Grow(1).SingleLine()
+		})
+		typeMicro.style(t, gui.Text(c, "退出后，需要重新登录才能使用 Dim 账户。")).
+			TextColor(t.TextMuted).MaxLines(2)
+		gui.Row(c).Gap(space2).Children(func() {
+			gui.Spacer(c)
+			if actionButton(c, "退出登录", "确认退出登录", true, false).Clicked() {
+				a.logoutConfirm = false
+				a.dispatch("退出登录", func(ctx context.Context) error {
+					return a.intents.Logout(ctx)
+				}, nil)
+			}
+			if actionButton(c, "取消", "取消退出登录", false, false).Clicked() {
+				a.logoutConfirm = false
+			}
+		})
+	})
 }
 
 // usageLabel 是账户菜单里的用量项：有账户用量事实时把剩余额度写在后面
@@ -662,11 +746,25 @@ func (a *App) sessionIDAt(index int) string {
 // 是当前会话的目录）。样例模式下没有写入路径，切到空态（参考产品的「新建会话」
 // 进入空会话）。
 func (a *App) createSession() {
+	a.createSessionAt(a.currentWorkspaceCwd())
+}
+
+// createSessionIn 在指定工作区分组下新建会话（LB-42）：组先展开（新会话落到
+// 哪一组要看得见），cwd 取该组的目录，不拿当前会话的目录顶替。
+func (a *App) createSessionIn(ws sidebarWorkspace) {
+	a.expandGroup(ws.id)
+	a.createSessionAt(ws.path)
+}
+
+// createSessionAt 按给定工作目录新建会话；目录为空时仍走当前工作区的回落。
+func (a *App) createSessionAt(cwd string) {
 	if a.intents == nil {
 		a.SetState(StateEmpty)
 		return
 	}
-	cwd := a.currentWorkspaceCwd()
+	if cwd == "" {
+		cwd = a.currentWorkspaceCwd()
+	}
 	a.dispatch("新建会话", func(ctx context.Context) error {
 		return a.intents.CreateSession(ctx, cwd)
 	}, nil)
@@ -793,14 +891,16 @@ func sessionIndex(id string) int {
 	return n - 1
 }
 
-// sidebarRail 是收起后的 12px 边条：不显示会话，点击展开。
+// sidebarRail 是收起后的 12px 边条：不显示会话，点击展开（LB-10 / TB-13）。
+// 读屏名与 tooltip 带 ⌘B，键盘焦点落在边条上按回车同效。
 func (a *App) sidebarRail(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Width(SidebarRailWidth).Shrink(0).
 		Background(t.Surface).
 		AlignItems(gui.Center).Justify(gui.Center).Gap(space1).
-		Label("展开左栏").Role(gui.RoleButton).Focusable().TabStop(true).
-		OnClick(func() { a.sidebarCollapsed = false }).
+		Label("展开侧边栏 ⌘B").Tooltip("展开侧边栏 ⌘B").
+		Role(gui.RoleButton).Focusable().TabStop(true).
+		OnClick(func() { a.setSidebarCollapsed(false) }).
 		Children(func() {
 			for i := 0; i < 3; i++ {
 				gui.Box(c).Width(railMarkWidth).Height(railMarkHeight).

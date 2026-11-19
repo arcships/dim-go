@@ -19,6 +19,15 @@ type sidebarViewState struct {
 	collapsed map[string]bool
 	// pinned 按会话序号记置顶；置顶的会话进「已置顶」，不再重复出现在工作区组里。
 	pinned map[int]bool
+	// pinnedGroups 按工作区标识记置顶；置顶的工作区分组排在其余分组之前。
+	// 与 pinned 一样是本地视图状态：没有置顶事实，也不写服务端。
+	pinnedGroups map[string]bool
+	// groupNames 按工作区标识记改过的显示名（LB-48 的重命名）；没有记录时取
+	// 目录末段。
+	groupNames map[string]string
+	// hiddenGroups 按目录记「移除工作区」后不再显示的组：本端登记的目录同时从
+	// workspaces 里删掉，有会话的目录再记一条隐藏，列表里不再出现它。
+	hiddenGroups map[string]bool
 	// flat 是平铺视图（按日期分组，不按工作区分组）；byCreated 是排序口径
 	// （最近创建；默认最近活跃）。
 	flat      bool
@@ -128,8 +137,11 @@ func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 		index[path] = len(groups) - 1
 		return &groups[len(groups)-1]
 	}
-	// 本端登记的目录先建组：没有会话也常显。
+	// 本端登记的目录先建组：没有会话也常显；被「移除工作区」藏起来的目录不再建组。
 	for _, path := range a.workspaces {
+		if a.groupHiddenPath(path) {
+			continue
+		}
 		add(path)
 	}
 	for _, thread := range all {
@@ -144,6 +156,10 @@ func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 			}
 			continue
 		}
+		// 工作区被移除后，它名下的会话不再出现在列表里（不伪造归档）。
+		if a.groupHiddenPath(thread.cwd) {
+			continue
+		}
 		if group := add(thread.cwd); group != nil {
 			group.count++
 			if thread.active.After(group.active) {
@@ -154,7 +170,17 @@ func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 	if !a.wired() {
 		groups = append(groups, sidebarSampleGroups()...)
 	}
+	// 行内改名改的是显示名，不碰目录：按标识取改过的名字。
+	for i := range groups {
+		if name, ok := a.sidebarView.groupNames[groups[i].id]; ok && name != "" {
+			groups[i].name = name
+		}
+	}
+	// 置顶的工作区分组排在其余分组之前，组内相对顺序不变。
 	sort.SliceStable(groups, func(i, j int) bool {
+		if pinI, pinJ := a.groupPinned(groups[i]), a.groupPinned(groups[j]); pinI != pinJ {
+			return pinI
+		}
 		if groups[i].count != groups[j].count {
 			return groups[i].count > groups[j].count
 		}
@@ -164,6 +190,75 @@ func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 		return false
 	})
 	return append([]sidebarWorkspace{builtin}, groups...)
+}
+
+// groupPinned 报告一个工作区分组是否置顶。
+func (a *App) groupPinned(ws sidebarWorkspace) bool {
+	return a.sidebarView.pinnedGroups[ws.id]
+}
+
+// toggleGroupPin 置顶 / 取消置顶一个工作区分组（本地视图状态）。
+func (a *App) toggleGroupPin(ws sidebarWorkspace) {
+	if ws.builtin || ws.id == "" {
+		return
+	}
+	if a.sidebarView.pinnedGroups == nil {
+		a.sidebarView.pinnedGroups = map[string]bool{}
+	}
+	a.sidebarView.pinnedGroups[ws.id] = !a.sidebarView.pinnedGroups[ws.id]
+	a.persistViewState()
+}
+
+// groupHiddenPath 报告一个目录是否被「移除工作区」藏起来。
+func (a *App) groupHiddenPath(path string) bool {
+	path = cleanGroupPath(path)
+	if path == "" || len(a.sidebarView.hiddenGroups) == 0 {
+		return false
+	}
+	return a.sidebarView.hiddenGroups[path]
+}
+
+// renameGroup 保存组头的行内改名（LB-48）：空输入回落原名称，不留空标题。
+// 显示名是本地视图状态，不改目录。
+func (a *App) renameGroup(ws sidebarWorkspace) {
+	name := strings.TrimSpace(a.groupRenameDraft)
+	a.renamingGroup, a.groupRenameDraft = "", ""
+	if name == "" || ws.builtin || ws.id == "" {
+		return
+	}
+	if a.sidebarView.groupNames == nil {
+		a.sidebarView.groupNames = map[string]string{}
+	}
+	a.sidebarView.groupNames[ws.id] = name
+	a.persistViewState()
+}
+
+// removeWorkspaceGroup 移除一个工作区分组（LB-49）：本端登记的目录同时从
+// workspaces 里删掉；组里还有会话时把该目录记成隐藏，列表里不再出现它的行。
+// 当前会话若属于它，主区退回空态（不留在已移除的目录上）。
+func (a *App) removeWorkspaceGroup(ws sidebarWorkspace) {
+	if ws.builtin || ws.path == "" {
+		return
+	}
+	path := cleanGroupPath(ws.path)
+	kept := a.workspaces[:0]
+	for _, registered := range a.workspaces {
+		if cleanGroupPath(registered) == path {
+			continue
+		}
+		kept = append(kept, registered)
+	}
+	a.workspaces = kept
+	if a.sidebarView.hiddenGroups == nil {
+		a.sidebarView.hiddenGroups = map[string]bool{}
+	}
+	a.sidebarView.hiddenGroups[path] = true
+	delete(a.sidebarView.pinnedGroups, ws.id)
+	delete(a.sidebarView.collapsed, ws.id)
+	if current := a.currentWorkspaceCwd(); cleanGroupPath(current) == path {
+		a.SetState(StateEmpty)
+	}
+	a.persistViewState()
 }
 
 // groupCollapsed 取分组的折叠态：没有显式记录时有会话的组展开、空组收起
@@ -176,7 +271,7 @@ func (a *App) groupCollapsed(ws sidebarWorkspace) bool {
 	return !ws.builtin && ws.count == 0
 }
 
-// toggleGroup 折叠 / 展开一个分组（只改可丢的视图状态，不落盘）。
+// toggleGroup 折叠 / 展开一个分组（视图状态；收起态随偏好落盘）。
 func (a *App) toggleGroup(ws sidebarWorkspace) {
 	if a.sidebarView.collapsed == nil {
 		a.sidebarView.collapsed = map[string]bool{}
@@ -247,6 +342,11 @@ func (a *App) sidebarThreads() []sidebarThread {
 		if i < len(places) {
 			thread.cwd = places[i].Cwd
 			thread.active = places[i].UpdatedAt
+		}
+		// 被「移除工作区」藏起来的目录，其会话在任何视图（分组 / 平铺 / 置顶）
+		// 里都不再出现。
+		if a.groupHiddenPath(thread.cwd) {
+			continue
 		}
 		out = append(out, thread)
 	}

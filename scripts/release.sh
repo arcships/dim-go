@@ -139,8 +139,8 @@ esac
 
 command -v go >/dev/null || die "缺少 go（在 PATH 里找不到）"
 
-# 0. 先清空 bundle 骨架：服务端构建后要立刻拷进包，等客户端构建完再拷会碰上
-#    cargo 缓存回收（target/ 里已经空过一次）。
+# 0. 先清空 bundle 骨架：服务端构建产物要立刻拷进包，不能等客户端构建完再拷——
+#    target/ 是可回收缓存，客户端构建期间它可能已经空了。
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
