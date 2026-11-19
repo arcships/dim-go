@@ -1157,6 +1157,18 @@ func (a *App) sessionNames() []string {
 	return names
 }
 
+// sessionTitles 是左栏会话行的显示名：接上 Source 时用标题/预览，样例用名字。
+func (a *App) sessionTitles() []string {
+	if a.source != nil {
+		if titles := a.source.SessionTitles(); len(titles) > 0 {
+			return titles
+		}
+		return a.source.SessionNames()
+	}
+	names, _ := sessionSamples(a.state)
+	return names
+}
+
 // liveSession 取 Source 的当前会话快照。
 func (a *App) liveSession() (SessionSnapshot, bool) {
 	if a.source == nil {

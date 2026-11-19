@@ -342,6 +342,30 @@ func (w *App) Connection() ui.Connection {
 	return w.phase
 }
 
+// SessionTitles 是与 SessionNames 同序的显示名。
+func (w *App) SessionTitles() []string {
+	c := w.A.Catalog()
+	if c == nil {
+		return nil
+	}
+	entries := c.Snapshot().Entries
+	out := make([]string, 0, len(entries))
+	for _, e := range entries {
+		name := e.Title
+		if name == "" {
+			name = e.Preview
+		}
+		if name == "" {
+			name = unnamedSession
+		}
+		out = append(out, name)
+	}
+	return out
+}
+
+// unnamedSession 是没有标题也没有预演的会话的显示名：参考产品不会把标识摆到界面上。
+const unnamedSession = "未命名会话"
+
 // SessionNames 是目录里的会话（不是"已打开"的会话）：读 Catalog 的快照。
 func (w *App) SessionNames() []string {
 	c := w.A.Catalog()

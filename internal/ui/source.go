@@ -15,6 +15,9 @@ type Source interface {
 	Connection() Connection
 	// SessionNames 是左栏的会话列表（按目录顺序）。
 	SessionNames() []string
+	// SessionTitles 是与 SessionNames 同序的显示名：标题优先，其次首条消息预览，
+	// 都没有时退到短标识（参考产品不下发标题的会话不会把整串 uuid 摆出来）。
+	SessionTitles() []string
 	// Workspaces 是服务端授权的工作区（项目根）清单；空表示没有读到或没有授权。
 	// 新建会话的 cwd 只从这里取，不自己拼路径。
 	Workspaces() []WorkspaceSnapshot

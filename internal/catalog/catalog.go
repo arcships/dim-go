@@ -54,6 +54,8 @@ type Entry struct {
 	ID string
 	// Title 是当前标题；空表示服务端还没有标题。
 	Title string
+	// Preview 是服务端给的首条消息预览；标题为空时用它当显示名。
+	Preview string
 	// TitleSource 是标题来源；空表示未知。
 	TitleSource TitleSource
 	// TitleRevision 是标题修订号。标题通知与改名结果都按它合并，较小的不覆盖较大的。

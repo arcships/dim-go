@@ -136,6 +136,7 @@ func (a *App) sidebarTimes(n int) []string {
 // 名称匹配的行（空白查询给全部）。顺序沿用目录顺序。
 func (a *App) sidebarThreads() []sidebarThread {
 	names := a.sessionNames()
+	titles := a.sessionTitles()
 	markers := a.sessionMarkers()
 	times := a.sidebarTimes(len(names))
 	out := make([]sidebarThread, 0, len(names))
@@ -143,7 +144,11 @@ func (a *App) sidebarThreads() []sidebarThread {
 		if a.archived[i] {
 			continue
 		}
-		name := a.sessionName(i, names[i])
+		display := names[i]
+		if i < len(titles) && titles[i] != "" {
+			display = titles[i]
+		}
+		name := a.sessionName(i, display)
 		if a.searchOpen && a.searchQuery != "" && !containsFold(name, a.searchQuery) {
 			continue
 		}

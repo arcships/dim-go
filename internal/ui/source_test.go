@@ -29,6 +29,7 @@ type fakeSource struct {
 
 func (f *fakeSource) Connection() Connection           { return f.conn }
 func (f *fakeSource) SessionNames() []string           { return f.names }
+func (f *fakeSource) SessionTitles() []string          { return nil }
 func (f *fakeSource) Workspaces() []WorkspaceSnapshot  { return f.workspaces }
 func (f *fakeSource) Session() (SessionSnapshot, bool) { return f.session, f.hasSess }
 func (f *fakeSource) Approval() (ApprovalSnapshot, bool) {

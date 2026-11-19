@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver/failure"
@@ -39,6 +40,7 @@ type catalogWireSession struct {
 	UpdatedAt     int64   `json:"updatedAt"`
 	Running       bool    `json:"running"`
 	Title         *string `json:"title"`
+	Preview       *string `json:"preview"`
 	TitleSource   *string `json:"titleSource"`
 	TitleRevision *int64  `json:"titleRevision"`
 }
@@ -71,6 +73,21 @@ func (r *catalogReader) ReadCatalog(
 		params["cwd"] = query.Workspace
 	}
 	raw, err := client.Call(ctx, "session.catalog", params)
+	if err != nil && isInvalidParams(err) {
+		// 老版本服务端不认识来源开关（会话目录参数是后加的）：退回最小参数再试一次，
+		// 否则连「目录」都读不出来，界面会一直空着。
+		fallback := map[string]any{"limit": query.Limit}
+		if cursor != "" {
+			fallback["cursor"] = cursor
+		}
+		if query.Search != "" {
+			fallback["query"] = query.Search
+		}
+		if query.Workspace != "" {
+			fallback["cwd"] = query.Workspace
+		}
+		raw, err = client.Call(ctx, "session.catalog", fallback)
+	}
 	if err != nil {
 		return catalog.Page{}, err
 	}
@@ -96,6 +113,9 @@ func (r *catalogReader) ReadCatalog(
 		}
 		if session.Title != nil {
 			entry.Title = *session.Title
+		}
+		if session.Preview != nil {
+			entry.Preview = *session.Preview
 		}
 		if session.TitleSource != nil {
 			entry.TitleSource = catalog.TitleSource(*session.TitleSource)
@@ -143,4 +163,13 @@ func (s *turnHistorySource) ReadHistory(
 		return catalog.HistoryPage{}, fmt.Errorf("创建按轮历史来源: %w", err)
 	}
 	return source.ReadHistory(ctx, request)
+}
+
+// isInvalidParams 判断服务端是否因为不认识的参数拒绝了请求。
+func isInvalidParams(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "invalid_params") || strings.Contains(msg, "-32602")
 }
