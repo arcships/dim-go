@@ -674,13 +674,14 @@ func TestSessionActions(t *testing.T) {
 	if err := tt.ChooseMenuItem("删除"); err != nil {
 		t.Fatalf("点不到删除：%v", err)
 	}
-	if app.deleting != 0 || app.archived[0] {
+	if app.confirm.kind != confirmKindDelete || app.archived[0] {
 		t.Fatal("第一次选删除不应生效")
 	}
 	tt.Frame()
-	if err := tt.Click("确认删除"); err != nil {
-		t.Fatalf("点不到确认删除：%v", err)
+	if err := tt.Click("删除"); err != nil {
+		t.Fatalf("点不到删除：%v", err)
 	}
+	tt.Frame()
 	if !app.archived[0] {
 		t.Fatal("确认后会话没有移除")
 	}

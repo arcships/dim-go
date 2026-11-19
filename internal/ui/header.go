@@ -172,6 +172,19 @@ func (a *App) chatMenu(c *gui.Context) {
 		if menuItem(c, m, iconDownload, "导出", "导出", "", false, false) {
 			a.exportCurrentSession()
 		}
+		// 在新分支继续：以最后一轮结束处为切点建分支（Intents.CreateBranch），
+		// 成功后切到新分支并写切点。最后一轮没结束、没有轮次或没有写通道时置灰，
+		// 原因写在菜单项里（不往前找别的轮次）。
+		forkTurn, forkReason := a.forkLatest()
+		forkReason = a.forkReason(forkTurn, forkReason)
+		forkLabel := "在新分支继续"
+		if forkReason != "" {
+			forkLabel += "（" + forkReason + "）"
+		}
+		if menuItem(c, m, iconBranch, forkLabel, "在新分支继续", forkReason,
+			forkReason != "", false) {
+			a.forkLatestFromHeader()
+		}
 		// 归档：接上 Intents 时走 ArchiveSession（左栏与命令面板同一落点），
 		// -demo 才写视图回执；连着 Source 却没有写通道时置灰写原因。
 		archiveNote := ""
@@ -247,10 +260,13 @@ func (a *App) archiveCurrentSession() {
 	a.archiveSession(index)
 }
 
-// exportCurrentSession 导出当前会话（标题栏 ⋯ 菜单的「导出」）：索引从会话目录
-// 换算，不在标题栏里按样例位置猜；导出完成后回执写真实路径，失败原因回到错误行。
+// exportCurrentSession 打开当前会话的导出面板（标题栏 ⋯ 菜单的「导出」）：索引
+// 从会话目录换算；样例里用左栏选中的那一行，不在标题栏里按样例位置猜。
 func (a *App) exportCurrentSession() {
 	index := a.currentSessionIndex()
+	if index < 0 && !a.wired() {
+		index = sessionIndex(a.selectedSession)
+	}
 	if index < 0 {
 		a.headerNote = noteNoSessionID
 		return

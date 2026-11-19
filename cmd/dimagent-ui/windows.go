@@ -648,6 +648,9 @@ func (m *windowManager) realCreate(spec windowSpec, index int) *windowSlot {
 		Intents:         intents,
 		LogPath:         m.opts.logPath,
 		OpenInNewWindow: m.OpenSessionFromMenu,
+		SaveFile: func(suggested string) (string, error) {
+			return saveFileWithDialog(slot.win, suggested)
+		},
 		OnFrame: func(snapshot appui.HostSnapshot) {
 			// 托盘与通知读索引最小的那个窗口的会话：多窗口时不会两帧互相顶掉。
 			if slot != m.firstSlot() || m.host == nil {
@@ -719,6 +722,22 @@ func (m *windowManager) realCreate(spec windowSpec, index int) *windowSlot {
 		slot.win.ShowInactive()
 	}
 	return slot
+}
+
+// saveFileWithDialog 是导出面板的系统保存面板：按建议路径的扩展名给过滤器，
+// 窗口在时挂在窗口上（macOS 上是 sheet）。取消返回空路径、无错误。
+func saveFileWithDialog(parent *mygo.Window, suggested string) (string, error) {
+	opts := mygo.SaveDialogOptions{
+		Parent:            parent,
+		Title:             "导出对话",
+		DefaultPath:       suggested,
+		ButtonLabel:       "导出",
+		CreateDirectories: true,
+	}
+	if ext := strings.TrimPrefix(filepath.Ext(suggested), "."); ext != "" {
+		opts.Filters = []mygo.FileFilter{{Name: "会话导出（." + ext + "）", Extensions: []string{ext}}}
+	}
+	return mygo.Dialog.Save(opts)
 }
 
 // windowClosed 把一个窗口的关闭落到清单上：关一个不影响其他窗口；最后一个

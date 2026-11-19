@@ -142,6 +142,12 @@ func (a *App) sessionSearchKeys(c *gui.Context) {
 	if !c.Shortcut(gui.Cmd, gui.KeyF) {
 		return
 	}
+	// 条件：主区有活跃会话（R-GS-001）；没有会话时不给搜索入口。
+	if a.wired() {
+		if _, ok := a.liveSession(); !ok {
+			return
+		}
+	}
 	if a.sessionSearch.open {
 		a.sessionSearch.focus = true
 		a.sessionSearch.selectAll = true
@@ -555,11 +561,6 @@ func (a *App) searchRanges(key string) []searchRange {
 	return a.sessionSearch.byUnit[key]
 }
 
-// searchActive 表示这一帧要画高亮。
-func (a *App) searchActive() bool {
-	return a.sessionSearch.open && len(a.sessionSearch.hits) > 0
-}
-
 // —— 渲染：行内高亮 ——
 
 // searchText 画一段可搜索的文本：有命中时按区间拆成带底色的 span，当前项用
@@ -628,7 +629,7 @@ func (a *App) searchCodeBlock(c *gui.Context, key, text string) {
 
 // searchReveal 在跳转后的一小段时间里把当前命中所在的行滚进视口（A5-02 的
 // 375）。调用点就在画那一行的地方：折叠展开的那一帧也会跟着滚。
-func (a *App) searchReveal(c *gui.Context, el gui.Element, row int) {
+func (a *App) searchReveal(c *gui.Context, el gui.Element, row int, scope searchScope) {
 	s := &a.sessionSearch
 	if !s.open || s.revealAt.IsZero() {
 		return
@@ -638,7 +639,10 @@ func (a *App) searchReveal(c *gui.Context, el gui.Element, row int) {
 		return
 	}
 	h, ok := s.currentHit()
-	if !ok || h.unit < 0 || h.unit >= len(s.units) || s.units[h.unit].row != row {
+	if !ok || h.unit < 0 || h.unit >= len(s.units) {
+		return
+	}
+	if unit := s.units[h.unit]; unit.row != row || unit.scope != scope {
 		return
 	}
 	el.ScrollIntoView(gui.ScrollIntoViewOptions{Block: gui.ScrollCenter})

@@ -137,6 +137,11 @@ type Intents interface {
 	// 扩展：kind 取 "plugin" / "skill" / "hook" / "mcp"。
 	SetExtensionEnabled(ctx context.Context, kind, id string, enabled bool) error
 	UninstallExtension(ctx context.Context, kind, id string) error
+	// InstallPlugin 从 sourceKind（local / git）与 sourceRef 安装一个插件；
+	// id 留空表示按 manifest 自动生成，enable 是「安装后启用」。
+	InstallPlugin(ctx context.Context, sourceKind, sourceRef, id string, enable bool) error
+	// UpdatePlugin 更新一个已安装插件；具体版本由服务端决定。
+	UpdatePlugin(ctx context.Context, pluginID string) error
 	// TestMCP 探测一个工具服务器；返回是否可达与原因。
 	TestMCP(ctx context.Context, id string) (bool, string, error)
 	// ImportMCP 先预览再应用一个导入来源，返回写入的条目数。
@@ -213,6 +218,9 @@ type PreferencesSnapshot struct {
 	// UpdateFeedURL 是设置 › 关于里填写的更新源（latest.json 地址或基址）；
 	// 空表示未配置：自动更新关闭。
 	UpdateFeedURL string
+	// PluginFeedURL 是插件市场源的地址（返回插件清单的 JSON）；空表示未配置：
+	// 插件市场整块禁用并写「未配置插件源」。
+	PluginFeedURL string
 	// NotifyTaskDone / NotifySound / NotifyNeedsResponse 是设置 › 通知的三个开关；
 	// 落盘在本地偏好里，宿主的系统通知按它们决定发不发、带不带声音。
 	NotifyTaskDone      bool
@@ -326,6 +334,43 @@ type UpdateIntents interface {
 	InstallUpdate(ctx context.Context) error
 	// SetUpdateFeed 保存更新源地址（空串表示关闭自动更新）。
 	SetUpdateFeed(ctx context.Context, feedURL string) error
+}
+
+// PluginMarketEntrySnapshot 是插件市场源返回的一个条目。它只是上游清单的内容，
+// 不是 App Server 的事实，也不代表可安装：协议没有市场安装来源。
+type PluginMarketEntrySnapshot struct {
+	Name        string
+	Version     string
+	Description string
+	Source      string
+}
+
+// PluginMarketplaceSnapshot 是插件市场的只读快照。
+type PluginMarketplaceSnapshot struct {
+	// Configured 表示本地偏好里配置了插件源地址。
+	Configured bool
+	// FeedURL 是当前生效的源地址；未配置时为空。
+	FeedURL string
+	// ConfigError 是地址本身的问题（不是 http/https 等）。
+	ConfigError string
+	// Loading 表示正在拉取。
+	Loading bool
+	// Entries 是最近一次成功拉取的条目；失败时保留旧条目。
+	Entries []PluginMarketEntrySnapshot
+	// Err 是拉取失败的原因；空表示没有失败。
+	Err string
+}
+
+// PluginMarketplaceFacts 是可选的插件市场读数。没有实现它的 Source（样例、
+// 单屏截图）不画市场卡片，只写「未配置插件源」。
+type PluginMarketplaceFacts interface {
+	PluginMarketplace() PluginMarketplaceSnapshot
+}
+
+// PluginMarketplaceIntents 是插件市场的动作：保存源地址与重新拉取。
+type PluginMarketplaceIntents interface {
+	SetPluginFeed(ctx context.Context, feedURL string) error
+	RefreshPluginMarketplace(ctx context.Context) error
 }
 
 // Connection 是连接阶段与原因（断线要能看见原因，不是白屏）。
@@ -489,6 +534,15 @@ const (
 type RowSnapshot struct {
 	// Kind 取上面 Row* 之一。
 	Kind string
+	// BranchID 是这一行所属的分支；空表示快照没有给。
+	//
+	// 导出按范围取内容时用它（整条会话 / 仅当前分支）；只读映射，不改投影。
+	BranchID string
+	// TurnIndex 是这一行所属的轮次序号（分支内从 1 开始）；0 表示还没有轮次事实。
+	//
+	// 导出按轮取内容、以及「以某一轮结束处为切点建分支」都用它：没有轮次序号时
+	// 不拿别的轮次顶替（见 unavailable.go）。
+	TurnIndex int
 	// Text 是这一行的正文：用户消息、助手正文、思考原文、工具结果、压缩摘要。
 	Text string
 	// Title 是行首的短标签（工具动作）；空表示该种类没有短标签。
@@ -593,11 +647,28 @@ type ApprovalHandoffSnapshot struct {
 	Reason string
 }
 
-// QuestionSnapshot 是一条待答提问。
+// QuestionSnapshot 是一条待答提问。一个请求带一批问题，界面逐题展示、一次提交；
+// Questions 为空时按 Text / Options 当成单题（旧读数兼容）。
 type QuestionSnapshot struct {
 	ID      string
 	Text    string
 	Options []string
+	// Questions 是整批问题，按服务端给的顺序。
+	Questions []QuestionItemSnapshot
+	// Deadline 是作答截止时间；零值表示请求没有给。protocol v3 的待答清单目前
+	// 不带这个事实，界面只在快照有时画倒计时。
+	Deadline time.Time
+}
+
+// QuestionItemSnapshot 是批次里的一道题：题目、说明、候选项与两个开关。
+type QuestionItemSnapshot struct {
+	ID          string
+	Title       string
+	Description string
+	Text        string
+	Options     []string
+	Multiple    bool
+	AllowCustom bool
 }
 
 // AccountSnapshot 是页脚身份与设置里的账号读数（与 account.Snapshot 对齐）。
@@ -796,12 +867,20 @@ type ExtItemSnapshot struct {
 	// Status/Error 是服务端给出的原始状态与错误；空表示没有。
 	Status string
 	Error  string
+	// UpdateAvailable / LatestVersion 由服务端声明（插件清单）：本端不比较版本号。
+	// 服务端没有给出时不冒充「已是最新」。
+	UpdateAvailable bool
+	LatestVersion   string
+	// Source 是插件的来源（local / git / bundled）；Locked 表示服务端锁定，
+	// 用户不能启停或移除。
+	Source   string
+	Locked   bool
+	Optional bool
 	// Event/Command/Source 是钩子的原始事实，用于单项启停时重建文档；
 	// Matcher/Type/Timeout/Async/OnFailure 是钩子目录的其余扁平字段
 	// （S-hooks-20 的行）。
 	Event     string
 	Command   string
-	Source    string
 	Matcher   string
 	Type      string
 	Timeout   int

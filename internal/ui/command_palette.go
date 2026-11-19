@@ -730,19 +730,12 @@ func (a *App) commandPaletteActions() []commandItem {
 			},
 		},
 		{
-			id: "action:export", title: "导出当前会话", detail: "写到本地文件",
+			id: "action:export", title: "导出当前会话", detail: "打开导出面板",
 			icon:     iconDocument,
 			disabled: a.intents == nil || !hasSession,
 			reason:   commandPaletteUnavailable(a.intents == nil, noIntents, "还没有打开会话"),
 			run: func() {
-				id := session.ID
-				a.dispatch("导出会话", func(ctx context.Context) error {
-					path, err := a.intents.ExportSession(ctx, id)
-					if err == nil && path != "" {
-						a.palette.feedback = "已导出到 " + path
-					}
-					return err
-				}, nil)
+				a.openExportPanel(session.ID, session.Title)
 			},
 		},
 		{

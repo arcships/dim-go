@@ -534,14 +534,24 @@ func (s *appSender) sendExtensionWrite(
 	case "plugin.install":
 		var payload struct {
 			Source extensions.InstallSource `json:"source"`
+			ID     string                   `json:"id"`
+			Enable *bool                    `json:"enable"`
 		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
 			return write.Reply{}, invalidPayload(err)
 		}
-		return callAndReply(ctx, client, methodPluginInstall, map[string]any{
+		enable := true
+		if payload.Enable != nil {
+			enable = *payload.Enable
+		}
+		params := map[string]any{
 			"source": pluginSourceWire(payload.Source),
-			"enable": true,
-		})
+			"enable": enable,
+		}
+		if id := strings.TrimSpace(payload.ID); id != "" {
+			params["id"] = id
+		}
+		return callAndReply(ctx, client, methodPluginInstall, params)
 	case "plugin.enable", "plugin.set_enabled", "plugin.disable":
 		var payload struct {
 			PluginID string `json:"pluginId"`

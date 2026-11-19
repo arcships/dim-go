@@ -135,12 +135,10 @@ func (a *App) roundDivider(c *gui.Context, text string) {
 	})
 }
 
-// 消息动作没有写入口时写进读屏名、提示与菜单项的原因。分叉要的是「从这条消息
-// 切出」：Intents 只有按轮次切分支的 CreateBranch，RowSnapshot 也不带这一行的
-// 轮次，所以先置灰并写原因，不拿别的轮次顶替（DEC-05）。删除与撤回同样没有
-// 消息级写入通道（DEC-05 同一裁定）。
+// 消息动作没有写入口时写进读屏名、提示与菜单项的原因。分叉按 fork.go 走
+// Intents.CreateBranch（以这一轮结束处为切点）；拿不到轮次时置灰并写原因，
+// 不拿别的轮次顶替（DEC-05）。删除与撤回同样没有消息级写入通道。
 const (
-	messageForkUnavailable     = noteMessageFork
 	messageDeleteUnavailable   = noteMessageDelete
 	messageWithdrawUnavailable = noteMessageDelete
 	messageCopyNeedsSelection  = "先选中要复制的文本"
@@ -220,7 +218,7 @@ func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Eleme
 			})
 		})
 	})
-	a.searchReveal(c, box, i)
+	a.searchReveal(c, box, i, searchScopeUser)
 	return box
 }
 
@@ -256,11 +254,21 @@ func (a *App) userActions(c *gui.Context, i int, r round, hovered bool) {
 					a.beginInlineEdit(i, r.user)
 				}
 			}
-			iconButton(c, iconButtonSpec{
+			turn, forkReason := a.forkTurnForRow(i)
+			forkReason = a.forkReason(turn, forkReason)
+			forkLabel := "从此处分叉 " + fmt.Sprint(i+1)
+			forkTip := "从此处分叉：以这一轮结束处为切点"
+			if forkReason != "" {
+				forkLabel += "（" + forkReason + "）"
+				forkTip = forkReason
+			}
+			if iconButton(c, iconButtonSpec{
 				icon:  iconFork,
-				label: "从此处分叉 " + fmt.Sprint(i+1) + "（" + messageForkUnavailable + "）",
-				tip:   messageForkUnavailable, size: rowCompact, disabled: true,
-			})
+				label: forkLabel,
+				tip:   forkTip, size: rowCompact, disabled: forkReason != "",
+			}) {
+				a.forkAtTurn(turn, "从此处分叉")
+			}
 			if iconButton(c, iconButtonSpec{
 				icon: iconBranch, label: "从此处开始侧边对话 " + fmt.Sprint(i+1),
 				tip: "从此处开始侧边对话", size: rowCompact,
@@ -268,12 +276,21 @@ func (a *App) userActions(c *gui.Context, i int, r round, hovered bool) {
 				a.openSideChatFromMessage()
 			}
 		})
-		gui.Row(c).Grow(1).Children(func() {
-			gui.Spacer(c)
-			typeMicro.style(t, gui.Text(c, "分叉不可用："+messageForkUnavailable)).
-				TextColor(t.TextMuted).Label("分叉不可用的原因")
-		})
+		if forkReason := a.forkReasonForRow(i); forkReason != "" {
+			gui.Row(c).Grow(1).Children(func() {
+				gui.Spacer(c)
+				note := "分叉不可用：" + forkReason
+				typeMicro.style(t, gui.Text(c, note)).
+					TextColor(t.TextMuted).Label(note)
+			})
+		}
 	})
+}
+
+// forkReasonForRow 是一行上「从此处分叉」的不可用原因；空表示可点。
+func (a *App) forkReasonForRow(i int) string {
+	turn, reason := a.forkTurnForRow(i)
+	return a.forkReason(turn, reason)
 }
 
 // openSideChatFromMessage 打开右栏的侧边对话，并记下它是「从某条消息之前开始」
@@ -289,6 +306,16 @@ func (a *App) openSideChatFromMessage() {
 func (a *App) userMessageMenu(m *gui.Menu, svc gui.Services, i int, r round, selection string) {
 	if m.Item("从此处开始侧边对话").Chosen() {
 		a.openSideChatFromMessage()
+	}
+	// 从此处分叉：切点取这一行的轮次；拿不到时置灰并把原因写进菜单项。
+	turn, reason := a.forkTurnForRow(i)
+	reason = a.forkReason(turn, reason)
+	forkLabel := "从此处分叉"
+	if reason != "" {
+		forkLabel += "（" + reason + "）"
+	}
+	if m.Item(forkLabel).Disabled(reason != "").Chosen() {
+		a.forkAtTurn(turn, "从此处分叉")
 	}
 	copyLabel := "复制"
 	if selection == "" {
@@ -501,7 +528,7 @@ func (a *App) assistant(c *gui.Context, i int, r round) {
 		}
 		if r.reply != "" {
 			reply := a.assistantMarkdown(c, searchKeyAssistant(i), r.reply)
-			a.searchReveal(c, reply, i)
+			a.searchReveal(c, reply, i, searchScopeAssistant)
 		}
 		// 完成态的过程摘要；运行中由上面的时长摘要承担，不再重复。
 		if r.status != roundRunning && len(r.ops) > 0 {
@@ -523,7 +550,7 @@ func (a *App) assistant(c *gui.Context, i int, r round) {
 			a.note(c, r.note)
 		}
 		if hovered {
-			a.assistantActions(c, r)
+			a.assistantActions(c, i, r)
 		}
 	})
 }
@@ -634,7 +661,7 @@ func (a *App) thinkingBlock(c *gui.Context, i int, r round) {
 	if btn.Clicked() {
 		*open = !*open
 	}
-	a.searchReveal(c, btn, i)
+	a.searchReveal(c, btn, i, searchScopeThinking)
 	a.revealPanel(c, *open, progress, func() {
 		gui.Row(c).Grow(1).Gap(space2).Children(func() {
 			rail := gui.Box(c).Width(strokeHairline).Shrink(0).AlignSelf(gui.Stretch).Label("思考轨道")
@@ -749,7 +776,7 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 	if btn.Clicked() && hasDetails {
 		*open = !*open
 	}
-	a.searchReveal(c, btn, roundIndex)
+	a.searchReveal(c, btn, roundIndex, searchScopeTool)
 	if !hasDetails {
 		return
 	}
@@ -1031,11 +1058,23 @@ func (a *App) fileChangeRow(c *gui.Context, change fileChange) {
 }
 
 // assistantActions 是轮末动作条：复制、分叉、重试与完成时间（悬停可见）。
-func (a *App) assistantActions(c *gui.Context, r round) {
+func (a *App) assistantActions(c *gui.Context, i int, r round) {
 	t := c.Theme()
 	gui.Row(c).Gap(space1).AlignItems(gui.Center).Label("助手动作").Children(func() {
 		iconButton(c, iconButtonSpec{icon: iconCopy, label: "复制整个消息", size: rowCompact})
-		iconButton(c, iconButtonSpec{icon: iconFork, label: "从此处分叉", size: rowCompact})
+		turn, reason := a.forkTurnForRow(i)
+		reason = a.forkReason(turn, reason)
+		forkLabel, forkTip := "从此处分叉", "从此处分叉：以这一轮结束处为切点"
+		if reason != "" {
+			forkLabel += "（" + reason + "）"
+			forkTip = reason
+		}
+		if iconButton(c, iconButtonSpec{
+			icon: iconFork, label: forkLabel, tip: forkTip,
+			size: rowCompact, disabled: reason != "",
+		}) {
+			a.forkAtTurn(turn, "从此处分叉")
+		}
 		iconButton(c, iconButtonSpec{icon: iconRetry, label: "重试", size: rowCompact})
 		if r.at != "" {
 			typeMicro.style(t, gui.Text(c, r.at)).TextColor(t.TextMuted).SingleLine()
@@ -1498,7 +1537,7 @@ func (a *App) assistantText(c *gui.Context, i int, text string) {
 	})
 	col.Children(func() {
 		body := a.assistantMarkdown(c, searchKeyAssistant(i), text)
-		a.searchReveal(c, body, i)
+		a.searchReveal(c, body, i, searchScopeAssistant)
 	})
 	if selection := selectedTextOf(col); selection != "" {
 		// ⌘F 打开会话内搜索时预填这段选中文本（A1-03）。

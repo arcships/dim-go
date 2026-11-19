@@ -621,3 +621,54 @@ func TestSessionSearchMagnifierFocusesInput(t *testing.T) {
 		t.Fatal("点放大镜没有回到输入框")
 	}
 }
+
+// TestSessionSearchClearingQuery：全选删除后回到空查询：结果行消失、命中清空、
+// 时间线高亮一并清除（R-GS-031、R-GS-059、R-GS-060）。
+func TestSessionSearchClearingQuery(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	openSessionSearchForTest(t, tt)
+	searchFor(t, tt, "排队")
+	if len(app.sessionSearch.hits) == 0 {
+		t.Fatal("打样查询应有命中")
+	}
+
+	tt.Command("selectAll")
+	tt.Key(0, gui.KeyBackspace)
+	tt.Frame()
+	if app.sessionSearch.query != "" {
+		t.Fatalf("删除后查询 = %q，期望空", app.sessionSearch.query)
+	}
+	if len(app.sessionSearch.hits) != 0 || len(app.sessionSearch.byUnit) != 0 {
+		t.Fatal("删除后命中没有清空")
+	}
+	if tt.HasText("个结果") {
+		t.Fatalf("删除后结果行仍在：%v", tt.Texts())
+	}
+}
+
+// TestSessionSearchSingleHit：只有一条命中时箭头可用、点后仍停在该条，计数为
+// 「1 / 1 个结果」（R-GS-069、R-GS-077）。
+func TestSessionSearchSingleHit(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	openSessionSearchForTest(t, tt)
+	searchFor(t, tt, "确认排队判定覆盖了草稿")
+	if len(app.sessionSearch.hits) != 1 {
+		t.Fatalf("该查询应只有 1 条命中，实际 %d", len(app.sessionSearch.hits))
+	}
+	if !tt.HasText("1 / 1 个结果") {
+		t.Fatalf("计数应为「1 / 1 个结果」：%v", tt.Texts())
+	}
+	for _, label := range []string{"上一个搜索结果", "下一个搜索结果"} {
+		info, ok := tt.Access(label)
+		if !ok || info.Disabled {
+			t.Fatalf("%q 应可用（只有一条命中）：%+v", label, info)
+		}
+	}
+	if err := tt.Click("下一个搜索结果"); err != nil {
+		t.Fatalf("点不到下一个：%v", err)
+	}
+	tt.Frame()
+	if app.sessionSearch.current != 0 {
+		t.Fatalf("只有一条时当前项变了：%d", app.sessionSearch.current)
+	}
+}

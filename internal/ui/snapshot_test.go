@@ -109,7 +109,7 @@ var screenCases = []screenCase{
 		a.renaming, a.renameDraft = 0, "修发送路径"
 	}},
 	{name: "variant-session-delete", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.deleting = 0
+		a.openDeleteConfirm([]int{0})
 	}},
 	{name: "variant-search", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
 		a.searchOpen = true

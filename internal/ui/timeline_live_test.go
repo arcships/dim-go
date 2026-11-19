@@ -193,7 +193,8 @@ func TestLiveUserMessageActionsAndMenu(t *testing.T) {
 	if _, ok := tt.Find("复制整个消息 1"); !ok {
 		t.Fatalf("悬停后没有消息动作：%v", tt.Texts())
 	}
-	if info, ok := tt.Access("从此处分叉 1（" + messageForkUnavailable + "）"); !ok || !info.Disabled {
+	// 快照没有给轮次（TurnIndex 为 0）：分叉置灰并写原因，不拿别的轮次顶替。
+	if info, ok := tt.Access("从此处分叉 1（" + forkNoteNoTurn + "）"); !ok || !info.Disabled {
 		t.Fatalf("分叉没有置灰：%+v（找到 %v）", info, ok)
 	}
 	if err := tt.Click("复制整个消息 1"); err != nil {

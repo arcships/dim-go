@@ -88,7 +88,8 @@ func (a *App) cancelInlineEdit() {
 	a.inlineNotice = ""
 }
 
-// saveInlineEdit 保存当前编辑。
+// saveInlineEdit 保存当前编辑。会话还在跑时先弹「会话正在运行」确认框（E1）：
+// 停止本次运行再发送，不静默打断一轮对话。
 func (a *App) saveInlineEdit() {
 	if a.inlineEditRow < 0 {
 		return
@@ -97,14 +98,33 @@ func (a *App) saveInlineEdit() {
 	if text == "" {
 		return
 	}
+	if session, ok := a.liveSession(); ok && session.Running {
+		a.openConfirmEditRunning(a.inlineEditRow, text)
+		return
+	}
+	a.saveInlineEditText(a.inlineEditRow, text)
+}
+
+// saveInlineEditText 落定一次编辑：消息写入没有服务端方法时把原因写在编辑器下方，
+// 样例模式里就地替换正文并标「已编辑」。
+func (a *App) saveInlineEditText(row int, text string) {
+	if row < 0 {
+		return
+	}
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return
+	}
 	if a.wired() || a.intents != nil {
+		a.inlineEditRow = row
+		a.inlineDraft = text
 		a.inlineNotice = noteInlineEdit
 		return
 	}
 	if a.inlineSaved == nil {
 		a.inlineSaved = map[int]string{}
 	}
-	a.inlineSaved[a.inlineEditRow] = text
+	a.inlineSaved[row] = text
 	a.inlineEditRow = -1
 	a.inlineDraft = ""
 	a.inlineNotice = ""

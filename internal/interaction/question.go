@@ -365,9 +365,13 @@ func parseQuestionInput(raw json.RawMessage) ([]Question, error) {
 			Question    string            `json:"question"`
 			Text        string            `json:"text"`
 			Prompt      string            `json:"prompt"`
+			Title       string            `json:"title"`
+			Description string            `json:"description"`
 			Options     []json.RawMessage `json:"options"`
 			Multiple    bool              `json:"multiSelect"`
 			MultipleAlt bool              `json:"multiple"`
+			AllowCustom bool              `json:"allowCustom"`
+			CustomAlt   bool              `json:"custom"`
 		} `json:"questions"`
 	}
 	if err := json.Unmarshal(raw, &payload); err != nil {
@@ -392,10 +396,13 @@ func parseQuestionInput(raw json.RawMessage) ([]Question, error) {
 			}
 		}
 		questions = append(questions, Question{
-			ID:       item.ID,
-			Text:     text,
-			Options:  options,
-			Multiple: item.Multiple || item.MultipleAlt,
+			ID:          item.ID,
+			Text:        text,
+			Title:       item.Title,
+			Description: item.Description,
+			Options:     options,
+			Multiple:    item.Multiple || item.MultipleAlt,
+			AllowCustom: item.AllowCustom || item.CustomAlt,
 		})
 	}
 	return questions, nil

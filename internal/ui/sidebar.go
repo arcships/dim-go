@@ -359,8 +359,8 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 			sidebarIconAction(c, sidebarIconSpec{
 				icon: iconEllipsis, label: "工作区菜单：" + ws.name,
 				hover: hovered || *a.groupMenuPtr(ws.id),
-				menu: func(m *gui.Menu) { a.workspaceMenu(m, ws, threads) },
-				open: a.groupMenuPtr(ws.id),
+				menu:  func(m *gui.Menu) { a.workspaceMenu(m, ws, threads) },
+				open:  a.groupMenuPtr(ws.id),
 			})
 		})
 		if !open {
@@ -401,9 +401,12 @@ func (a *App) workspaceMenu(m *gui.Menu, ws sidebarWorkspace, threads []sidebarT
 	m.Item("在文件管理器中显示").Disabled(true).Subtitle(notePreviewIO)
 	if len(threads) > 0 {
 		if m.Item("归档会话").Chosen() {
+			indexes := make([]int, 0, len(threads))
 			for _, thread := range threads {
-				a.archiveSession(thread.index)
+				indexes = append(indexes, thread.index)
 			}
+			// 一次归档多条是高后果动作（会中断运行中的会话）：先弹确认框。
+			a.openArchiveConfirm(indexes)
 		}
 	}
 	m.Separator()
@@ -412,7 +415,7 @@ func (a *App) workspaceMenu(m *gui.Menu, ws sidebarWorkspace, threads []sidebarT
 	}
 	if !ws.builtin {
 		if m.Item("移除工作区").Chosen() {
-			a.removeWorkspaceGroup(ws)
+			a.openWorkspaceDeleteConfirm(ws, threads)
 		}
 	}
 }
@@ -503,10 +506,6 @@ func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) 
 	t := c.Theme()
 	if a.renaming == index {
 		a.renameRow(c, index)
-		return
-	}
-	if a.deleting == index {
-		a.deleteConfirmRow(c, index, name)
 		return
 	}
 	id := "s" + strconv.Itoa(index+1)
@@ -617,7 +616,7 @@ func (a *App) sessionMenu(m *gui.Menu, index int, name string) {
 		a.archiveSession(index)
 	}
 	if m.Item("删除").Chosen() {
-		a.deleting = index
+		a.openDeleteConfirm([]int{index})
 	}
 }
 
@@ -800,29 +799,6 @@ func (a *App) renameRow(c *gui.Context, index int) {
 	})
 }
 
-// deleteConfirmRow 是删除的两步确认（F36）：同一行原地换成「确认删除「名」？」+
-// 删除 / 取消，与结束分支的确认同一套形态；不可逆动作不在菜单里一步完成。
-func (a *App) deleteConfirmRow(c *gui.Context, index int, name string) {
-	t := c.Theme()
-	gui.Column(c).Shrink(0).Padding(space1, space2).Gap(space1).
-		Label("删除会话确认").Children(func() {
-		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
-			iconGlyph(c, iconXMark, t.Danger, "x-mark")
-			typeSecondary.style(t, gui.Text(c, "确认删除「"+name+"」？")).TextColor(t.Danger).
-				SingleLine()
-		})
-		gui.Row(c).Gap(space2).Children(func() {
-			gui.Spacer(c)
-			if actionButton(c, "删除", "确认删除", true, false).Clicked() {
-				a.deleteSession(index)
-			}
-			if actionButton(c, "取消", "取消删除", false, false).Clicked() {
-				a.deleting = -1
-			}
-		})
-	})
-}
-
 // sessionIDAt 把视图里的行序号换成目录里的真实会话标识。
 func (a *App) sessionIDAt(index int) string {
 	names := a.sessionNames()
@@ -902,48 +878,7 @@ func (a *App) archiveSession(index int) {
 	}, nil)
 }
 
-// exportSession 导出一行到本地文件；回执路径显示在同一位置。
-func (a *App) exportSession(index int) {
-	name := a.sessionName(index, a.sessionIDAt(index))
-	if a.intents == nil {
-		a.exported = name
-		return
-	}
-	sessionID := a.sessionIDAt(index)
-	if sessionID == "" {
-		return
-	}
-	var path string
-	a.dispatch("导出", func(ctx context.Context) error {
-		written, err := a.intents.ExportSession(ctx, sessionID)
-		if err == nil {
-			path = written
-		}
-		return err
-	}, func() {
-		if path != "" {
-			a.exported = path
-		}
-	})
-}
-
-// deleteSession 确认删除一行：成功后目录条目消失，当前会话由适配器切走。
-func (a *App) deleteSession(index int) {
-	if a.intents == nil {
-		a.archived[index] = true
-		a.deleting = -1
-		return
-	}
-	sessionID := a.sessionIDAt(index)
-	if sessionID == "" {
-		return
-	}
-	a.dispatch("删除会话", func(ctx context.Context) error {
-		return a.intents.DeleteSession(ctx, sessionID)
-	}, func() {
-		a.deleting = -1
-	})
-}
+// exportSession 与导出面板在 export.go：这里只保留行菜单入口。
 
 // menuOpenPtr 取某一行菜单的开关指针（视图状态，按需创建并缓存指针——
 // 每次返回新指针的话，框架把开关写进去后 map 里看不到）。

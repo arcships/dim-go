@@ -228,6 +228,10 @@ type Options struct {
 	// 看的回执（新开了窗口，还是切到了已打开该会话的窗口）。为空表示这次运行
 	// 没有窗口管理（界面测试 / 单屏截图），该项给出可读原因、不开窗。
 	OpenInNewWindow func(sessionID string) (string, error)
+	// SaveFile 是宿主的系统保存面板：入参是建议路径，返回用户选的路径；空串表示
+	// 取消。为空表示这次运行没有保存面板（界面测试 / 非桌面运行），导出面板退回
+	// 手输路径，不自己猜平台能力。
+	SaveFile func(suggestedPath string) (string, error)
 }
 
 // HostSnapshot 是宿主外壳每一帧要读的会话事实：托盘菜单、图标状态与系统通知
@@ -375,8 +379,12 @@ type App struct {
 	// retryIntent 是最近一次失败动作的重试入口（错误行的「重试」）；成功或用户
 	// 关掉错误行后清空。它只是把同一次写入再发一遍，不缓存事实。
 	retryIntent func()
-	// questionAnswer 是提问卡的回答草稿（可丢的视图状态）。
-	questionAnswer string
+	// question 是提问卡的视图状态（当前题、草稿、筛选、收起与提交态，见
+	// question.go）；questionAnsweredID 是本地已答过的请求标识，答过后不再画卡。
+	question           questionCardState
+	questionAnsweredID string
+	// confirm 是四类确认框的视图状态（见 confirm.go）。
+	confirm confirmState
 	// logPath 是入口交来的客户端日志路径（Options.LogPath）；logNote 是「查看日志」
 	// 打不开时留在断线卡里的路径或原因。两者都是可丢的视图状态。
 	logPath string
@@ -421,16 +429,27 @@ type App struct {
 	attachmentMedia   string
 	attachmentData    string
 
-	// 会话目录：搜索面、行内重命名、删除确认、归档与导出反馈（都属可丢的视图状态）。
+	// 会话目录：搜索面、行内重命名、删除/归档确认（见 confirm.go）、归档与导出
+	// 反馈（都属可丢的视图状态）。
 	searchOpen  bool
 	searchQuery string
 	renaming    int
 	renameDraft string
-	deleting    int
+	// renameDialog 是重命名弹窗（会话 / 工作区）的可丢视图状态，见
+	// rename_dialog.go。行内快捷改名仍由 renaming / renamingGroup 承担。
+	renameDialog renameDialogState
 	archived    map[int]bool
 	renamed     map[int]string
 	exported    string
 	menuOpen    map[int]*bool
+
+	// 导出对话面板（见 export.go）：格式、范围、勾选、手输路径与回执都是可丢的
+	// 界面状态；文件写入结果经 exportResults 交回渲染线程。
+	export exportState
+	// saveFile 是宿主的系统保存面板；nil 表示这次运行没有（退回手输路径）。
+	saveFile      func(suggestedPath string) (string, error)
+	exportMu      sync.Mutex
+	exportResults []exportFileOutcome
 
 	// 左栏重建后的可丢视图状态：工作区分组折叠、置顶、视图菜单与账户菜单
 	// （见 sidebar_state.go）。它不是事实，切会话不重建。
@@ -535,6 +554,7 @@ func NewApp(o Options) *App {
 		changed:         o.Changed,
 		onFrame:         o.OnFrame,
 		openInNewWindow: o.OpenInNewWindow,
+		saveFile:        o.SaveFile,
 		state:           o.State,
 		variant:         o.Variant,
 		onState:         o.StateChanged,
@@ -652,11 +672,15 @@ func (a *App) loadSample() {
 	a.searchOpen, a.searchQuery = false, ""
 	a.sessionSearch = sessionSearchState{}
 	a.timelineSelected = ""
-	a.renaming, a.deleting = -1, -1
+	a.renaming = -1
+	a.question, a.questionAnsweredID = questionCardState{}, ""
+	a.confirm = confirmState{}
 	a.renameDraft = ""
 	a.archived, a.renamed = map[int]bool{}, map[int]string{}
 	a.menuOpen = map[int]*bool{}
 	a.exported = ""
+	a.export = exportState{}
+	a.exportResults = nil
 	a.termState = termIdle
 	a.termLines = termSamples(termIdle)
 	a.termCopied = false
@@ -703,7 +727,7 @@ func (a *App) loadSample() {
 			a.renameDraft = names[0]
 		}
 	case VariantSessionDelete:
-		a.deleting = 0
+		a.openDeleteConfirm([]int{0})
 	case VariantSearch:
 		a.searchOpen = true
 		a.searchQuery = ""
@@ -867,11 +891,15 @@ func (a *App) resetWiredViewState() {
 	a.searchOpen, a.searchQuery = false, ""
 	a.sessionSearch = sessionSearchState{}
 	a.timelineSelected = ""
-	a.renaming, a.deleting = -1, -1
+	a.renaming = -1
+	a.question, a.questionAnsweredID = questionCardState{}, ""
+	a.confirm = confirmState{}
 	a.renameDraft = ""
 	a.archived, a.renamed = map[int]bool{}, map[int]string{}
 	a.menuOpen = map[int]*bool{}
 	a.exported = ""
+	a.export = exportState{}
+	a.exportResults = nil
 	a.termState = termIdle
 	a.termLines = nil
 	a.termCopied = false
@@ -928,6 +956,7 @@ func (a *App) applyPanelVariant() {
 func (a *App) View(c *gui.Context) {
 	a.applyIntentResults()
 	a.applyDirPickResults()
+	a.applyExportResults()
 	a.syncSelectedSession()
 	a.applyTokens(c)
 	// 右栏文件页的目录投影每帧做一次：文件页与命令面板的文件组读同一份。
@@ -936,11 +965,14 @@ func (a *App) View(c *gui.Context) {
 	a.sessionSearchKeys(c)
 	a.debugKeys(c)
 	a.approvalKeys(c)
+	a.questionKeys(c)
 	a.sessionSearchFrame(c)
 	a.layout(c)
 	if a.screen == ScreenMain {
 		a.dirPickDialog(c, dirPickWorkspace)
 		a.sessionSearchOverlay(c)
+		a.exportPanel(c)
+		a.confirmDialog(c)
 	}
 	a.commandPalette(c)
 	a.sessionSearchRestore(c)

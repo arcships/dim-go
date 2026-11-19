@@ -2,6 +2,7 @@ package extensions
 
 import (
 	"context"
+	"strings"
 
 	"github.com/arcships/dimagent-mygo/internal/write"
 )
@@ -53,6 +54,18 @@ func (s InstallSource) validate() error {
 // PluginInstallPayload 是 plugin.install 意图的载荷。
 type PluginInstallPayload struct {
 	Source InstallSource `json:"source"`
+	// ID 是用户指定的插件标识；空表示按 manifest 自动生成。
+	ID string `json:"id,omitempty"`
+	// Enable 是「安装后启用」；nil 表示按启用处理（旧调用方不带这一项）。
+	Enable *bool `json:"enable,omitempty"`
+}
+
+// PluginInstallOptions 是一次安装的可选参数。
+type PluginInstallOptions struct {
+	// ID 留空表示由服务端按 manifest 生成。
+	ID string
+	// Enable 是「安装后启用」。
+	Enable bool
 }
 
 // PluginEnabledPayload 是 plugin.set_enabled 意图的载荷。
@@ -86,10 +99,19 @@ func (s *Service) PluginSnapshot() Snapshot[Plugin] {
 
 // InstallPlugin 从给定来源安装插件。写入经写登记，只发一次。
 func (s *Service) InstallPlugin(ctx context.Context, source InstallSource) (write.IntentView, error) {
+	return s.InstallPluginFrom(ctx, source, PluginInstallOptions{Enable: true})
+}
+
+// InstallPluginFrom 与 InstallPlugin 相同，并带上「插件 id」与「安装后启用」。
+// 用户不填 id 时由服务端按 manifest 生成。
+func (s *Service) InstallPluginFrom(ctx context.Context, source InstallSource, options PluginInstallOptions) (write.IntentView, error) {
 	if err := source.validate(); err != nil {
 		return write.IntentView{}, err
 	}
-	return s.write(ctx, OpPluginInstall, PluginInstallPayload{Source: source}, false)
+	enable := options.Enable
+	return s.write(ctx, OpPluginInstall, PluginInstallPayload{
+		Source: source, ID: strings.TrimSpace(options.ID), Enable: &enable,
+	}, false)
 }
 
 // SetPluginEnabled 写入插件的启用状态。集成层按 Enabled 映射到真实方法

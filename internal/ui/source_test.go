@@ -18,6 +18,8 @@ type fakeSource struct {
 	hasSess    bool
 	approval   ApprovalSnapshot
 	hasAppr    bool
+	question   QuestionSnapshot
+	hasQ       bool
 	conn       Connection
 	acct       AccountSnapshot
 	usage      UsageSnapshot
@@ -38,7 +40,7 @@ func (f *fakeSource) Session() (SessionSnapshot, bool)      { return f.session, 
 func (f *fakeSource) Approval() (ApprovalSnapshot, bool) {
 	return f.approval, f.hasAppr
 }
-func (f *fakeSource) Question() (QuestionSnapshot, bool) { return QuestionSnapshot{}, false }
+func (f *fakeSource) Question() (QuestionSnapshot, bool) { return f.question, f.hasQ }
 func (f *fakeSource) Account() AccountSnapshot           { return f.acct }
 func (f *fakeSource) Usage() UsageSnapshot               { return f.usage }
 func (f *fakeSource) Settings() SettingsSnapshot         { return f.settings }

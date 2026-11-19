@@ -33,8 +33,6 @@ const (
 	composerControlHeight = 40
 	// composerToolSize 是工具行图标按钮的边长（参考 h-7 = 25）。
 	composerToolSize = 25
-	// composerInnerHeight 是审批卡里命令面板的最小高。
-	composerInnerHeight = 80
 	// brandMarkW / brandMarkH 是空态品牌标记的墨迹尺寸（参考实测 68×49，
 	// 与标记自身 34:24.5 的比例一致）。
 	brandMarkW = 68
@@ -90,7 +88,7 @@ func (a *App) composer(c *gui.Context) {
 			gui.Row(c).Justify(gui.Center).Children(func() { a.approvalCard(c) })
 			return
 		}
-		if question, ok := a.liveQuestion(); ok {
+		if question, ok := a.liveQuestion(); ok && !a.questionAnswered(question.ID) {
 			a.questionCard(c, question)
 			return
 		}
@@ -401,39 +399,6 @@ func (a *App) openLog() {
 		return
 	}
 	a.logNote = ""
-}
-
-// questionCard 是提问卡：出现时占据输入位，批次只提交一次（U3 §5.5）。
-func (a *App) questionCard(c *gui.Context, question QuestionSnapshot) {
-	t := c.Theme()
-	gui.Column(c).MinHeight(ApprovalHeight).Padding(space4).Gap(space2).
-		Background(t.Surface).Border(strokeHairline, t.Border).
-		Radius(radiusWindowCard).Label("需要你回答").Children(func() {
-		iconGlyph(c, iconClock, colorAccentInk.in(t), "clock")
-		typeBody.style(t, gui.Text(c, question.Text)).TextColor(t.Text)
-		for _, option := range question.Options {
-			option := option
-			if actionButton(c, option, "选项："+option, false, false).Clicked() {
-				a.questionAnswer = option
-			}
-		}
-		gui.TextInputBase(c, &a.questionAnswer).Label("回答").Grow(1).
-			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed)
-		gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
-			gui.Spacer(c)
-			answer := strings.TrimSpace(a.questionAnswer)
-			if actionButton(c, "回答", "提交回答", true, answer == "").Clicked() && a.intents != nil {
-				a.dispatch("回答", func(ctx context.Context) error {
-					return a.intents.RespondQuestion(ctx, answer)
-				}, func() { a.questionAnswer = "" })
-			}
-			if actionButton(c, "跳过", "跳过这个问题", false, false).Clicked() && a.intents != nil {
-				a.dispatch("跳过提问", func(ctx context.Context) error {
-					return a.intents.SkipQuestion(ctx)
-				}, func() { a.questionAnswer = "" })
-			}
-		})
-	})
 }
 
 // ---- 选择器：推理强度 / 模型 / 技能 / 模式 / 工作区 / 权限 ----

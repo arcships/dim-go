@@ -85,6 +85,13 @@ type App struct {
 	updateFeed     string
 	updateConfig   string
 	updateAutoOnce sync.Once
+	// marketMu 保护插件市场读数（见 plugin_marketplace.go）：界面每帧读快照，
+	// 拉取在后台跑。
+	marketMu      sync.Mutex
+	marketFeed    string
+	marketLoading bool
+	marketEntries []ui.PluginMarketEntrySnapshot
+	marketErr     string
 }
 
 // New 包住一个已创建的集成层。
@@ -628,7 +635,22 @@ func (w *App) questionFor(sessionID string) (ui.QuestionSnapshot, bool) {
 		return ui.QuestionSnapshot{}, false
 	}
 	q := view.Current.Questions[0]
-	return ui.QuestionSnapshot{ID: view.Current.RequestID, Text: q.Text, Options: q.Options}, true
+	items := make([]ui.QuestionItemSnapshot, 0, len(view.Current.Questions))
+	for _, question := range view.Current.Questions {
+		items = append(items, ui.QuestionItemSnapshot{
+			ID:          question.ID,
+			Title:       question.Title,
+			Description: question.Description,
+			Text:        question.Text,
+			Options:     question.Options,
+			Multiple:    question.Multiple,
+			AllowCustom: question.AllowCustom,
+		})
+	}
+	// 截止时间没有 wire 来源：待答清单不带 deadlineAt，这里不编一个时间。
+	return ui.QuestionSnapshot{
+		ID: view.Current.RequestID, Text: q.Text, Options: q.Options, Questions: items,
+	}, true
 }
 
 func (w *App) Account() ui.AccountSnapshot {
@@ -766,12 +788,18 @@ func (w *App) Extensions() ui.ExtensionsSnapshot {
 	out.Plugins = ui.ExtListSnapshot{ReadError: plugins.ReadError, CapabilityMissing: plugins.CapabilityMissing}
 	for _, item := range plugins.Items {
 		out.Plugins.Items = append(out.Plugins.Items, ui.ExtItemSnapshot{
-			ID:      item.ID,
-			Name:    firstNonEmpty(item.Name, item.ID),
-			Version: item.Version,
-			Enabled: item.Enabled,
-			Status:  item.Status,
-			Error:   item.Error,
+			ID:              item.ID,
+			Name:            firstNonEmpty(item.Name, item.ID),
+			Version:         item.Version,
+			Enabled:         item.Enabled,
+			Status:          item.Status,
+			Error:           item.Error,
+			UpdateAvailable: item.UpdateAvailable,
+			LatestVersion:   item.LatestVersion,
+			Locked:          item.Locked,
+			Optional:        item.Optional,
+			Source:          string(item.Source),
+			Description:     item.Description,
 		})
 	}
 	skills := service.SkillSnapshot()
@@ -864,6 +892,7 @@ func (w *App) Preferences() ui.PreferencesSnapshot {
 		Workspaces:          append([]string(nil), prefs.Workspaces...),
 		HooksProjectPath:    prefs.HooksProjectPath,
 		UpdateFeedURL:       prefs.UpdateFeedURL,
+		PluginFeedURL:       prefs.PluginFeedURL,
 		NotifyTaskDone:      prefs.NotifyTaskDone,
 		NotifySound:         prefs.NotifySound,
 		NotifyNeedsResponse: prefs.NotifyNeedsResponse,
@@ -915,7 +944,8 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 	current.Workspaces = append([]string(nil), prefs.Workspaces...)
 	current.HooksProjectPath = prefs.HooksProjectPath
 	// UpdateFeedURL 只走 SetUpdateFeed：通用的偏好落盘（主题、侧栏宽度等）不带
-	// 更新源，不能让一次主题切换把用户填的地址清掉。
+	// 更新源，不能让一次主题切换把用户填的地址清掉。PluginFeedURL 同理只走
+	// SetPluginFeed。
 	current.NotifyTaskDone = prefs.NotifyTaskDone
 	current.NotifySound = prefs.NotifySound
 	current.NotifyNeedsResponse = prefs.NotifyNeedsResponse
@@ -1938,6 +1968,35 @@ func (w *App) SetExtensionEnabled(ctx context.Context, kind, id string, enabled 
 	default:
 		return fmt.Errorf("未接：%s 没有启停写入方法", kind)
 	}
+	w.changed()
+	return nil
+}
+
+// InstallPlugin 从本地目录或 Git 安装一个插件（plugin.install），成功后重读清单。
+func (w *App) InstallPlugin(ctx context.Context, sourceKind, sourceRef, id string, enable bool) error {
+	service := w.A.Extensions()
+	if service == nil {
+		return fmt.Errorf("扩展领域未就绪")
+	}
+	source := extensions.InstallSource{Kind: extensions.Source(sourceKind), Ref: sourceRef}
+	if _, err := service.InstallPluginFrom(ctx, source, extensions.PluginInstallOptions{ID: id, Enable: enable}); err != nil {
+		return err
+	}
+	_, _ = service.ListPlugins(ctx)
+	w.changed()
+	return nil
+}
+
+// UpdatePlugin 更新一个已安装插件（plugin.update），成功后重读清单。
+func (w *App) UpdatePlugin(ctx context.Context, pluginID string) error {
+	service := w.A.Extensions()
+	if service == nil {
+		return fmt.Errorf("扩展领域未就绪")
+	}
+	if _, err := service.UpdatePlugin(ctx, pluginID); err != nil {
+		return err
+	}
+	_, _ = service.ListPlugins(ctx)
 	w.changed()
 	return nil
 }

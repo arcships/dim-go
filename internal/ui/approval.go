@@ -49,7 +49,6 @@ const (
 	approvalCopySubagentReject  = "使用当前模型"
 	approvalCopySubagentAllow   = "本会话允许"
 	// 成员审批区块（`memberApproval.*`）。
-	approvalCopyMemberAction           = "该成员想要："
 	approvalCopyMemberLoading          = "正在加载成员操作..."
 	approvalCopyMemberErrorTitle       = "无法加载成员操作"
 	approvalCopyMemberError            = "App Server 未能返回原始操作。请重试或拒绝。"
@@ -75,7 +74,7 @@ const (
 // 审批卡与决定按钮的键位提示（参考产品 PermissionPrompt 的窗口级键位）。
 const (
 	approvalTipAllowOnce = approvalCopyAllowOnce + " · Enter"
-	approvalTipReject    = approvalCopyReject + " · Esc"
+	approvalTipReject    = approvalCopyReject + " · N"
 )
 
 // approvalKeysReady 判断审批卡此刻能否用键位答复：主界面、没有叠着命令面板、
@@ -88,9 +87,9 @@ func (a *App) approvalKeysReady(c *gui.Context) bool {
 	return ok
 }
 
-// approvalKeys 是审批卡的键位：Enter / y 以「仅这次」答复，Esc / n 拒绝。
-// 与参考产品 PermissionPrompt 的窗口级监听同一套键；答复进行中或请求已不可答时
-// 一律不响应。
+// approvalKeys 是审批卡的键位：Enter / y 以「仅这次」答复，n 拒绝。
+// 不接 Esc：需求 R-AP-017 明确要求「Esc 不答复」，本端按需求留白（参考产品把
+// Esc 绑成拒绝）。答复进行中或请求已不可答时一律不响应。
 func (a *App) approvalKeys(c *gui.Context) {
 	if !a.approvalKeysReady(c) {
 		return
@@ -102,7 +101,7 @@ func (a *App) approvalKeys(c *gui.Context) {
 	switch {
 	case c.Shortcut(0, gui.KeyEnter), c.Shortcut(0, gui.KeyY):
 		a.respondApproval("allow")
-	case c.Shortcut(0, gui.KeyEscape), c.Shortcut(0, gui.KeyN):
+	case c.Shortcut(0, gui.KeyN):
 		a.respondApproval("deny")
 	}
 }
@@ -377,7 +376,7 @@ func (a *App) retryMemberApproval() {
 // handoffBlock 是自动审批交回人工的提示块：不确定时写标题 + 原因，审核失败时
 // 只写整句。
 func (a *App) handoffBlock(c *gui.Context, handoff *ApprovalHandoffSnapshot) {
-	if handoff == nil {
+	if handoff == nil || (handoff.Kind != approvalHandoffUncertain && handoff.Kind != approvalHandoffFailed) {
 		return
 	}
 	t := c.Theme()

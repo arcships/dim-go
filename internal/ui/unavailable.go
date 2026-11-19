@@ -17,8 +17,6 @@ const (
 	noteGitWrite = "服务端没有提供 git 写操作（本版不做）"
 	// noteMCPWrite 用于 MCP 保存 / 删除 / 移动 / 查看连接 / 断开连接。
 	noteMCPWrite = "服务端没有提供 MCP 写入与连接查看（本版不做）"
-	// noteMessageFork 用于用户消息的「从此处分叉」。
-	noteMessageFork = "服务端没有提供消息级分叉（本版不做）"
 	// noteMessageDelete 用于删除消息与撤回。
 	noteMessageDelete = "服务端没有提供消息删除与撤回（本版不做）"
 	// noteArtifact 用于产物卡上的「打开」。

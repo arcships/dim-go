@@ -219,7 +219,7 @@ func TestApprovalDecisionHints(t *testing.T) {
 		t.Fatalf("「仅这次」没有键位提示：%+v（找到 %v）", allow, ok)
 	}
 	reject, ok := tt.Access(approvalCopyReject)
-	if !ok || !strings.Contains(reject.Description, "Esc") {
+	if !ok || !strings.Contains(reject.Description, "N") {
 		t.Fatalf("「拒绝」没有键位提示：%+v（找到 %v）", reject, ok)
 	}
 	longTerm, ok := tt.Access(approvalCopyAlwaysCommand)
@@ -423,7 +423,6 @@ func TestApprovalKeysAnswerDecision(t *testing.T) {
 	}{
 		{"Enter", gui.KeyEnter, "allow"},
 		{"y", gui.KeyY, "allow"},
-		{"Esc", gui.KeyEscape, "deny"},
 		{"n", gui.KeyN, "deny"},
 	}
 	for _, tc := range cases {

@@ -29,6 +29,9 @@ type Preferences struct {
 	// UpdateFeedURL 是设置 › 关于里填写的更新源（latest.json 的地址或基址）。
 	// 空表示未配置：自动更新关闭，界面显示「未配置更新源」，不假装已是最新。
 	UpdateFeedURL string `json:"updateFeedURL,omitempty"`
+	// PluginFeedURL 是插件市场的上游源地址（返回插件清单的 JSON）。空表示未
+	// 配置：插件市场整块禁用并写「未配置插件源」，不画样例条目。
+	PluginFeedURL string `json:"pluginFeedURL,omitempty"`
 	// GlobalShortcutOff 关闭全局唤起快捷键。缺省 false（开启）：旧偏好文件里
 	// 没有这一项时按开启处理。
 	GlobalShortcutOff bool `json:"globalShortcutOff,omitempty"`

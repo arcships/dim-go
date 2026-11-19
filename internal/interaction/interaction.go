@@ -55,12 +55,20 @@ type Response struct {
 	Answer   json.RawMessage
 }
 
-// Question 是一条提问里的一个问题。候选项与是否多选由服务端事实给出，本包不解释。
+// Question 是一条提问里的一个问题。候选项、标题、说明与是否多选/允许自定义都由
+// 服务端事实给出，本包不解释。
 type Question struct {
-	ID       string
-	Text     string
-	Options  []string
-	Multiple bool
+	ID   string
+	Text string
+	// Title / Description 是 ask_user 输入里给出的题目与补充说明；空表示没有，
+	// 由界面决定回退文案。
+	Title       string
+	Description string
+	Options     []string
+	Multiple    bool
+	// AllowCustom 表示这个问题除了选项外还接受自定义答案；没有选项时它没有意义
+	// （自由输入本来就是唯一通道）。
+	AllowCustom bool
 }
 
 // Fact 是一条归一化后的审批事实。wire 形状由连接领域负责，调用方在交界处把

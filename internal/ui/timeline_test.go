@@ -217,11 +217,12 @@ func TestUserActionsDoWhatTheySay(t *testing.T) {
 	tt.Move(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
 	tt.Frame()
 
-	if info, ok := tt.Access("从此处分叉 1（" + messageForkUnavailable + "）"); !ok || !info.Disabled {
-		t.Fatalf("分叉没有按不可用画：%+v（找到 %v）", info, ok)
+	// 样例模式：分叉可点，只改视图里的分支名（不发写入）。
+	if info, ok := tt.Access("从此处分叉 1"); !ok || info.Disabled {
+		t.Fatalf("样例里分叉应当可点：%+v（找到 %v）", info, ok)
 	}
-	if _, ok := tt.Find("分叉不可用的原因"); !ok {
-		t.Fatalf("置灰的分叉没写原因：%v", tt.Texts())
+	if _, ok := tt.Find("分叉不可用的原因"); ok {
+		t.Fatalf("可点的分叉不该写不可用原因：%v", tt.Texts())
 	}
 
 	if err := tt.Click("复制整个消息 1"); err != nil {

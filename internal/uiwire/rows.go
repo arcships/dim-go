@@ -40,6 +40,9 @@ func (w *App) rows(v app.SessionView) []ui.RowSnapshot {
 	}
 	var group []ui.RowSnapshot
 	current := 0
+	// currentBranch 是当前结算轮次所属的分支：失败行与改动块没有自己的行事实，
+	// 沿用这一轮最后一行的分支（导出按分支取范围要用）。
+	currentBranch := ""
 	flushGroup := func() {
 		switch len(group) {
 		case 0:
@@ -48,6 +51,7 @@ func (w *App) rows(v app.SessionView) []ui.RowSnapshot {
 		default:
 			out = append(out, ui.RowSnapshot{
 				Kind: ui.RowToolGroup, Status: groupStatus(group), Children: group,
+				BranchID: group[0].BranchID, TurnIndex: group[0].TurnIndex,
 			})
 		}
 		group = nil
@@ -60,9 +64,15 @@ func (w *App) rows(v app.SessionView) []ui.RowSnapshot {
 		}
 		turn, known := turns[index]
 		if known && turnFailed(turn.Outcome) {
-			out = append(out, ui.RowSnapshot{Kind: ui.RowError, Text: turn.Outcome})
+			out = append(out, ui.RowSnapshot{
+				Kind: ui.RowError, Text: turn.Outcome,
+				BranchID: currentBranch, TurnIndex: index,
+			})
 		}
 		if changes := w.runChangeRows(v.SessionID, turn); len(changes) > 0 {
+			for i := range changes {
+				changes[i].BranchID, changes[i].TurnIndex = currentBranch, index
+			}
 			out = append(out, ui.RowSnapshot{Kind: ui.RowFileChanges, Children: changes})
 		}
 	}
@@ -71,10 +81,15 @@ func (w *App) rows(v app.SessionView) []ui.RowSnapshot {
 			closeTurn(current)
 			current = row.TurnIndex
 		}
+		if row.BranchID != "" {
+			currentBranch = row.BranchID
+		}
 		snapshot, ok := rowSnapshot(row)
 		if !ok {
 			continue
 		}
+		snapshot.BranchID = row.BranchID
+		snapshot.TurnIndex = row.TurnIndex
 		// 工具行先攒着：连续的一段才是一个组。
 		if row.Kind == projection.RowTool {
 			group = append(group, snapshot)
