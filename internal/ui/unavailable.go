@@ -41,4 +41,12 @@ const (
 	notePet = "当前版本不支持浮动 Pet"
 	// noteInvite 用于账户菜单的「邀请朋友」：邀请链接要服务端给出。
 	noteInvite = "当前版本不支持邀请链接"
+	// noteMultiWindow 用于「在新窗口中打开」：多窗口不在本版。
+	noteMultiWindow = "当前版本不支持多窗口"
+	// noteSessionLink 用于「复制会话链接」：没有深链事实，不复制本机路径顶替。
+	noteSessionLink = "当前版本不支持会话链接"
+	// noteNoSessionID 用于需要会话标识的复制 / 导出项。
+	noteNoSessionID = "当前还没有打开的会话"
+	// noteNothingToCopy 是复制项拿到空值时的提示。
+	noteNothingToCopy = "没有可复制的内容"
 )

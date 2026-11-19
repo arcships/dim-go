@@ -144,28 +144,106 @@ func (a *App) chatMenu(c *gui.Context) {
 		// 重命名：采集里 SessionTitle 能力不可用时禁用，并在同一行给括注。
 		menuItem(c, m, iconPencil, "重命名", "重命名（SessionTitle 不可用）",
 			"（SessionTitle 不可用）", true, false)
-		if menuItem(c, m, iconExternal, "在新窗口中打开", "在新窗口中打开", "", false, false) {
-			a.headerNote = "已在新窗口中打开"
-		}
+		// 多窗口不在本版：项保留但禁用，原因写在同一行，不留「已在新窗口中打开」的
+		// 假回执。
+		menuItem(c, m, iconExternal, "在新窗口中打开", "在新窗口中打开",
+			noteMultiWindow, true, false)
 		if menuItem(c, m, iconDownload, "导出", "导出", "", false, false) {
-			a.exported = a.sessionTitle()
+			a.exportCurrentSession()
 		}
 		if menuItem(c, m, iconArchive, "归档", "归档", "", false, false) {
 			a.headerNote = "已归档"
 		}
 		gui.Box(c).Height(strokeHairline).Background(t.Border)
-		if menuItem(c, m, iconLink, "复制会话链接", "复制会话链接", "", false, false) {
-			a.headerNote = "已复制会话链接"
+		// 复制项：先取事实，再决定可用性——没有标识 / 目录时禁用并写原因，不复制
+		// 空串；写剪贴板失败给失败原因，不显示「已复制」。
+		id, cwd, _ := a.sessionCopyFacts()
+		menuItem(c, m, iconLink, "复制会话链接", "复制会话链接", noteSessionLink, true, false)
+		if menuItem(c, m, iconFileCode, "复制会话 ID", "复制会话 ID",
+			noteNoSessionID, id == "", false) {
+			a.copySessionField(c, id, "已复制会话 ID")
 		}
-		if menuItem(c, m, iconFileCode, "复制会话 ID", "复制会话 ID", "", false, false) {
-			a.headerNote = "已复制会话 ID"
+		if cwd != "" && menuItem(c, m, iconFolderOpen, "复制会话路径", "复制会话路径",
+			"", false, false) {
+			a.copySessionField(c, cwd, "已复制会话路径")
 		}
-		if menuItem(c, m, iconFolderOpen, "复制会话路径", "复制会话路径", "", false, false) {
-			a.headerNote = "已复制会话路径"
+		if menuItem(c, m, iconFileCode, "复制调试信息", "复制调试信息",
+			noteNoSessionID, id == "", false) {
+			a.copySessionField(c, a.debugInfo(), "已复制调试信息")
 		}
-		if menuItem(c, m, iconFileCode, "复制调试信息", "复制调试信息", "", false, false) {
-			a.headerNote = "已复制调试信息"
+	})
+}
+
+// exportCurrentSession 导出当前会话（标题栏 ⋯ 菜单的「导出」）：索引从会话目录
+// 换算，不在标题栏里按样例位置猜；导出完成后回执写真实路径，失败原因回到错误行。
+func (a *App) exportCurrentSession() {
+	index := a.currentSessionIndex()
+	if index < 0 {
+		a.headerNote = noteNoSessionID
+		return
+	}
+	a.exportSession(index)
+}
+
+// currentSessionIndex 把当前打开的会话换成目录里的序号；没有打开会话时返回 -1。
+func (a *App) currentSessionIndex() int {
+	id := ""
+	if snap, ok := a.liveSession(); ok {
+		id = snap.ID
+	}
+	if id == "" {
+		return -1
+	}
+	for i, name := range a.sessionNames() {
+		if name == id {
+			return i
 		}
+	}
+	return -1
+}
+
+// sessionCopyFacts 取出复制项要用的事实：会话标识与工作目录。两者都来自当前
+// 会话快照；取不到时返回空串，对应的菜单项禁用。
+func (a *App) sessionCopyFacts() (id, cwd, title string) {
+	if snap, ok := a.liveSession(); ok {
+		return snap.ID, snap.Cwd, snap.Title
+	}
+	if !a.wired() {
+		// 样例：标识取样例行的序号，目录取样例工作区。
+		return "s1", "", a.sessionTitle()
+	}
+	return "", "", ""
+}
+
+// debugInfo 是「复制调试信息」的内容：只有诊断字段（会话标识、标题、模型、
+// 视图状态），不含凭据、token、路径之外的本机信息。
+func (a *App) debugInfo() string {
+	id, cwd, _ := a.sessionCopyFacts()
+	lines := []string{
+		"会话: " + id,
+		"标题: " + a.sessionTitle(),
+		"模型: " + a.currentModel(),
+	}
+	if cwd != "" {
+		lines = append(lines, "工作目录: "+cwd)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// copySessionField 把一段文字写进剪贴板，并在标题下方给回执；写失败时给原因，
+// 不冒充成功。
+func (a *App) copySessionField(c *gui.Context, value, receipt string) {
+	if strings.TrimSpace(value) == "" {
+		a.headerNote = noteNothingToCopy
+		return
+	}
+	a.headerNote = "正在复制…"
+	c.WriteClipboardThen(value, func(err error) {
+		if err != nil {
+			a.headerNote = "复制失败：" + err.Error()
+			return
+		}
+		a.headerNote = receipt
 	})
 }
 

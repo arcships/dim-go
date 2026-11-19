@@ -1120,7 +1120,6 @@ func (a *App) retryLastIntent() {
 }
 
 // actionErrorView 是一行失败原因：只在有错误时出现；关闭与「重试」都在同一行。
-// 重试只重发同一次写入，不替用户改参数。
 func (a *App) actionErrorView(c *gui.Context) {
 	reason := a.intentError()
 	if reason == "" {
@@ -1270,6 +1269,7 @@ func (a *App) layout(c *gui.Context) {
 		a.sidebar(c)
 		gui.Column(c).Grow(1).MinWidth(MainMinWidth).Children(func() {
 			a.header(c)
+			a.headerNoteView(c)
 			a.actionErrorView(c)
 			gui.Row(c).Grow(1).AlignItems(gui.Stretch).Children(func() {
 				// 「展开面板」：右栏占满主区（RP-A-36/37），再按一次恢复。
