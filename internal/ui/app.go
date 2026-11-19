@@ -681,6 +681,7 @@ func (a *App) loadSample() {
 	a.renaming = -1
 	a.question, a.questionAnsweredID = questionCardState{}, ""
 	a.confirm = confirmState{}
+	a.renameDialog = renameDialogState{}
 	a.renameDraft = ""
 	a.archived, a.renamed = map[int]bool{}, map[int]string{}
 	a.menuOpen = map[int]*bool{}
@@ -900,6 +901,7 @@ func (a *App) resetWiredViewState() {
 	a.renaming = -1
 	a.question, a.questionAnsweredID = questionCardState{}, ""
 	a.confirm = confirmState{}
+	a.renameDialog = renameDialogState{}
 	a.renameDraft = ""
 	a.archived, a.renamed = map[int]bool{}, map[int]string{}
 	a.menuOpen = map[int]*bool{}

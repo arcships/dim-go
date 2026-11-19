@@ -204,7 +204,11 @@ func (a *App) pluginInstallView(c *gui.Context) {
 			typeH3.style(t, gui.Text(c, pluginDialogTitle)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(2)
 			typeBody.style(t, gui.Text(c, pluginDialogDesc)).TextColor(t.TextMuted)
-			gui.Segmented(c, &st.mode, pluginModeLocal, pluginModeGit).Label("安装来源")
+			seg := gui.Segmented(c, &st.mode, pluginModeLocal, pluginModeGit).
+				Label("安装来源")
+			if st.installing {
+				seg = seg.Disabled(true).Opacity(0.5)
+			}
 			if st.mode == pluginInstallModeLocal {
 				gui.Column(c).Gap(space2).Children(func() {
 					typeBodyStrong.style(t, gui.Text(c, pluginSourceLabel)).
@@ -212,10 +216,12 @@ func (a *App) pluginInstallView(c *gui.Context) {
 					gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 						gui.TextInput(c, &st.path).Label(pluginSourceLabel).
 							Placeholder(pluginSourcePlace).Grow(1).Height(plgCtlH).
-							Padding(screenInputPadV, screenSpace25)
+							Padding(screenInputPadV, screenSpace25).
+							Disabled(st.installing)
 						if accIconButton(c, accIconSpec{
 							icon: iconFolderOpen, label: pluginPickFolder,
 							tip: pluginPickFolder, size: plgIconSize, hit: plgCtlH,
+							disabled: st.installing,
 						}) {
 							a.startDirPick(dirPickPluginFolder)
 						}
@@ -233,12 +239,14 @@ func (a *App) pluginInstallView(c *gui.Context) {
 						TextColor(t.Text).Label(pluginGitLabel)
 					gui.TextInput(c, &st.git).Label(pluginGitLabel).
 						Placeholder(pluginGitPlace).Height(plgCtlH).
-						Padding(screenInputPadV, screenSpace25)
+						Padding(screenInputPadV, screenSpace25).
+						Disabled(st.installing)
 					typeBodyStrong.style(t, gui.Text(c, pluginRefLabel)).
 						TextColor(t.Text).Label(pluginRefLabel)
 					gui.TextInput(c, &st.ref).Label(pluginRefLabel).
 						Placeholder(pluginRefPlace).Height(plgCtlH).
-						Padding(screenInputPadV, screenSpace25)
+						Padding(screenInputPadV, screenSpace25).
+						Disabled(st.installing)
 					typeSecondary.style(t, gui.Text(c, "Git 仓库的 manifest 在安装时由服务端校验。")).
 						TextColor(t.TextMuted)
 				})
@@ -248,14 +256,15 @@ func (a *App) pluginInstallView(c *gui.Context) {
 					TextColor(t.Text).Label(pluginIDLabel)
 				gui.TextInput(c, &st.id).Label(pluginIDLabel).
 					Placeholder(pluginIDPlace).Height(plgCtlH).
-					Padding(screenInputPadV, screenSpace25)
+					Padding(screenInputPadV, screenSpace25).
+					Disabled(st.installing)
 			})
 			gui.Row(c).AlignItems(gui.Center).Gap(space2).Children(func() {
 				typeBody.style(t, gui.Text(c, pluginEnableLabel)).TextColor(t.Text).
 					Label(pluginEnableLabel)
 				gui.Spacer(c)
-				gui.Switch(c, &st.enable).Size(plgSwitchW, plgSwitchH).
-					Radius(plgSwitchH / 2).Label(pluginEnableLabel)
+				gui.Switch(c, &st.enable).Size(32, 18).
+					Radius(plgSwitchH / 2).Label(pluginEnableLabel).Disabled(st.installing)
 			})
 			if st.err != "" {
 				typeSecondary.style(t, gui.Text(c, st.err)).TextColor(t.Danger).
@@ -324,12 +333,12 @@ func (a *App) pluginManifestPreview(c *gui.Context, t *gui.Theme) {
 
 // pluginDialogButton 是弹窗里的按钮：高 32；主按钮实心主色，次按钮描边。
 func pluginDialogButton(c *gui.Context, t *gui.Theme, text string, primary, busy, disabled bool, tip string) bool {
-	return pluginDialogButtonLabeled(c, t, text, text, primary, disabled, tip)
+	return pluginDialogButtonLabeled(c, t, text, text, primary, busy, disabled, tip)
 }
 
 // pluginDialogButtonLabeled 与 pluginDialogButton 相同，可另给读屏名（同一段
 // 可见文字在不同弹窗里指不同动作时用）。
-func pluginDialogButtonLabeled(c *gui.Context, t *gui.Theme, text, label string, primary, disabled bool, tip string) bool {
+func pluginDialogButtonLabeled(c *gui.Context, t *gui.Theme, text, label string, primary, busy, disabled bool, tip string) bool {
 	b := gui.ButtonBase(c).Shrink(0).Height(plgCtlH).
 		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
 		Label(label).Background(t.Background)
@@ -355,7 +364,12 @@ func pluginDialogButtonLabeled(c *gui.Context, t *gui.Theme, text, label string,
 		textColor = t.AccentText
 	}
 	b.Children(func() {
-		plgBtnTextSty.style(t, gui.Text(c, text)).TextColor(textColor).SingleLine()
+		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
+			if busy {
+				gui.Spinner(c).Size(plgIconSize, plgIconSize)
+			}
+			plgBtnTextSty.style(t, gui.Text(c, text)).TextColor(textColor).SingleLine()
+		})
 	})
 	return b.Clicked()
 }

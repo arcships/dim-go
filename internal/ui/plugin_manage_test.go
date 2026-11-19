@@ -424,3 +424,29 @@ func TestPluginActionsDisabledWithoutWriteChannel(t *testing.T) {
 		t.Fatalf("没有写原因：%v", tt.Texts())
 	}
 }
+
+// TestPluginRemoveFailureStaysInDialog：卸载失败时确认框保留并显示原因。
+func TestPluginRemoveFailureStaysInDialog(t *testing.T) {
+	src := wiredSource()
+	src.extensions.Plugins = ExtListSnapshot{Items: []ExtItemSnapshot{
+		{ID: "real-plugin", Name: "real-plugin", Version: "2.0.0", Enabled: true},
+	}}
+	intents := &pluginTestIntents{failRemove: errors.New("插件正在运行")}
+	app, tt := pluginSettingsTester(src, intents)
+	if err := tt.Click("移除"); err != nil {
+		t.Fatalf("点不到移除：%v", err)
+	}
+	tt.Frame()
+	if err := tt.Click("确认移除插件"); err != nil {
+		t.Fatalf("点不到确认移除：%v", err)
+	}
+	waitPluginFrame(t, tt, func() bool {
+		return strings.Contains(app.pluginManage.removeErr, "插件正在运行")
+	})
+	if app.pluginManage.removeID != "real-plugin" {
+		t.Fatalf("失败后确认框被关掉了：%q", app.pluginManage.removeID)
+	}
+	if !tt.HasText("移除插件：插件正在运行") {
+		t.Fatalf("失败原因没有上屏：%v", tt.Texts())
+	}
+}

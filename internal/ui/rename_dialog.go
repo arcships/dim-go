@@ -217,7 +217,8 @@ func (a *App) renameDialogView(c *gui.Context) {
 				input := gui.TextInputBase(c, &st.draft).
 					Label(field).Placeholder(placeholder).
 					Height(plgCtlH).Padding(screenInputPadV, screenSpace25).
-					Background(fieldFill(t)).BorderWidth(strokeHairline).BorderColor(t.Border)
+					Background(fieldFill(t)).BorderWidth(strokeHairline).BorderColor(t.Border).
+					Disabled(st.builtin || st.submitting)
 				if st.focus {
 					input = input.Focus()
 					st.focus = false

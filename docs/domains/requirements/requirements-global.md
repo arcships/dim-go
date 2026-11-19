@@ -1787,7 +1787,9 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 ## 6. 重命名（16 元素）
 
-两组：会话重命名（F1，9）、工作区重命名（F2，7）。**F1 在本机有一处硬阻塞**：`SessionTitle` 不可用，C2/C13 的菜单项直接渲染成「重命名（SessionTitle 不可用）」且不可点，因此该对话框在本环境无法通达——不是「没点进去」。
+两组：会话重命名（F1，9）、工作区重命名（F2，7）。F1 在本机没有 `SessionTitle` 能力探测：改名直接走 `Intents.RenameSession`（协议已有 `session.rename`），弹窗可通达。
+
+> 实现状态（2026-11-20）：弹窗已建（`internal/ui/rename_dialog.go`），入口为标题栏会话名双击、标题栏 `⋯` 菜单、左栏会话行 / 工作区行菜单；行内快捷改名保留在 F2（`app.go:viewKeys`）与 `sidebar.go:renameRow` / `groupRenameRow`。仍未实现：弹窗动效、描述两行上限、错误行「重试」、输入法组字抑制、默认焦点在「取消」。测试见 `internal/ui/rename_dialog_test.go`、`p0_facts_test.go:TestHeaderRenameIsAvailable`、`interaction_test.go:TestWorkspaceMenuPinsRenamesAndRemoves`、`uiwire/intents_test.go:TestIntentRename`。
 
 ### 6.1 会话重命名（G-F1-01–G-F1-09）
 
@@ -2175,6 +2177,8 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 七组：添加插件（H1，12）、市场安装（H2，9）、替换确认（H3，4）、插件可更新（H4，7）、技能可更新（H5，6）、导入 Chrome Cookie（H6，13）、清理浏览器数据（H7，6）。这些对话框在 60 份态里一份都没打开过（H6/H7 只有设置页入口的旁证），故全部按条件写。
 
+> 实现状态（2026-11-20）：插件管理块落在设置 › 插件设置（`internal/ui/plugin_manage.go` + `plugin_install.go`）——本地 manifest 校验与预览、`plugin.install`、逐项 / 全部更新、`plugin.remove` 确认框、插件市场源配置（空源写「未配置插件源」，不画样例卡片）。市场安装弹窗（H2）、替换确认（H3）、技能更新（H5）、Chrome Cookie 与清理浏览器数据（H6/H7）仍未建。市场清单来自本地偏好里的上游地址（`internal/uiwire/plugin_marketplace.go`），协议没有市场安装来源，条目的「安装」置灰。仍缺：`plugin.list` 不返回 `UpdateAvailable` / `LatestVersion`，真实环境不会出现可更新项（界面已按这两个事实字段实现，测试用注入事实）；下载进度（字节数 / 1px 进度条）也没有协议事件。测试见 `internal/ui/plugin_manage_test.go`、`internal/uiwire/plugin_marketplace_test.go`、`uiwire/intents_test.go:TestIntentPluginInstallAndUpdate`。
+
 ### 8.1 添加插件（G-H1-01–G-H1-12）
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
@@ -2202,78 +2206,78 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GI-021 | G-H1-03 | 样式 | 分段按钮 | 高 28、圆角 6、等宽各占一半；选中 `secondary` 底、未选中透明 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（框架 Segmented：高 28、圆角、等宽） |
 | R-GI-022 | G-H1-03 | 无障碍 | 读屏进入该元素时 | 读作一组单选（tablist 或 radiogroup），含选中态 | — | 读屏文本 = 「本地文件夹」 | 已实现（Segmented 有 Label「安装来源」） |
 | R-GI-023 | G-H1-03 | 键盘 | ← / → 或 Tab + Space | 可切换模式 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（框架 Segmented 的方向键/空格切换） |
-| R-GI-024 | G-H1-03 | 异常 | 切换时安装进行中 | 切换禁用（避免中途换来源） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺 = 安装中模式切换仍可点） |
-| R-GI-025 | G-H1-04 | 状态 | 未观察（条件）：本地文件夹模式 | 字段标签「来源」+ 输入框（占位逐字「/path/to/plugin」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-026 | G-H1-04 | 交互 | 键入路径 | 值与系统选择结果共用同一字段（手输与选择等价） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-027 | G-H1-04 | 内容 | 路径超长 | 单行横向滚动，不撑高 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-024 | G-H1-03 | 异常 | 切换时安装进行中 | 切换禁用（避免中途换来源） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（安装中模式切换 Disabled + 0.5） |
+| R-GI-025 | G-H1-04 | 状态 | 未观察（条件）：本地文件夹模式 | 字段标签「来源」+ 输入框（占位逐字「/path/to/plugin」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-026 | G-H1-04 | 交互 | 键入路径 | 值与系统选择结果共用同一字段（手输与选择等价） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-027 | G-H1-04 | 内容 | 路径超长 | 单行横向滚动，不撑高 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
 | R-GI-028 | G-H1-04 | 样式 | 输入框在屏上时 | 描边 + 圆角 6、高 32；聚焦转强调色 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（输入框高 32、描边、圆角） |
-| R-GI-029 | G-H1-04 | 无障碍 | 读屏进入该元素时 | 与标签关联，读作「来源，编辑框」 | — | 读屏文本 = 「来源，编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-030 | G-H1-04 | 异常 | 路径不存在 / 非目录 | 提交时报错「请选择插件文件夹。」类提示，不在输入时就地弹错 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-031 | G-H1-04 | 记忆 | 关闭后再次打开时 | 不记忆上次路径（打开为空，占位可见） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-032 | G-H1-04 | 内容 | 路径为相对路径 | 允许输入，提交时按实现解析或报错（固定行为） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-033 | G-H1-05 | 状态 | 未观察（条件）：本地文件夹模式 | 输入框右侧图标按钮（文件夹图标，`outline`），可读名「选择文件夹」 | — | 屏上出现 1 个图标按钮 | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-034 | G-H1-05 | 交互 | 鼠标点击该元素时 | 打开系统目录选择框；选定后回填到来源输入框 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-035 | G-H1-05 | 交互 | 取消选择 | 输入框保持原值不变 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-029 | G-H1-04 | 无障碍 | 读屏进入该元素时 | 与标签关联，读作「来源，编辑框」 | — | 读屏文本 = 「来源，编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-030 | G-H1-04 | 异常 | 路径不存在 / 非目录 | 提交时报错「请选择插件文件夹。」类提示，不在输入时就地弹错 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「目录不可读/无 manifest 时报错」） |
+| R-GI-031 | G-H1-04 | 记忆 | 关闭后再次打开时 | 不记忆上次路径（打开为空，占位可见） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（每次打开 pluginInstallState 归零，不记忆上次路径） |
+| R-GI-032 | G-H1-04 | 内容 | 路径为相对路径 | 允许输入，提交时按实现解析或报错（固定行为） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（相对路径按当前进程目录解析；不可读时给原因） |
+| R-GI-033 | G-H1-05 | 状态 | 未观察（条件）：本地文件夹模式 | 输入框右侧图标按钮（文件夹图标，`outline`），可读名「选择文件夹」 | — | 屏上出现 1 个图标按钮 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-034 | G-H1-05 | 交互 | 鼠标点击该元素时 | 打开系统目录选择框；选定后回填到来源输入框 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-035 | G-H1-05 | 交互 | 取消选择 | 输入框保持原值不变 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
 | R-GI-036 | G-H1-05 | 样式 | 图标按钮在屏上时 | 32×32、描边、圆角 6；与输入框同高 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；描边 常规 1px（卡片外框 0.5px / 焦点环 3px） | 已实现（图标按钮命中区 32、描边） |
-| R-GI-037 | G-H1-05 | 无障碍 | 读屏进入该元素时 | 可读名「选择文件夹」 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-038 | G-H1-05 | 键盘 | 按 Enter 时 | 等同点击 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-037 | G-H1-05 | 无障碍 | 读屏进入该元素时 | 可读名「选择文件夹」 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-038 | G-H1-05 | 键盘 | 按 Enter 时 | 等同点击 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
 | R-GI-039 | G-H1-05 | 异常 | 系统对话框不可用 | 提示失败，手输路径仍可用 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（系统选择器不可用时退回手输路径） |
-| R-GI-040 | G-H1-05 | 内容 | 已选路径后 | 按钮文案不变（仍为图标按钮），不显示已选文件名 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-041 | G-H1-05 | 状态 | 安装进行中时 | 禁用 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺 = 安装中「选择文件夹」仍可点） |
-| R-GI-042 | G-H1-06 | 状态 | 未观察（条件）：Git 模式 | 字段标签「Git 仓库」+ 输入框（占位逐字「owner/repo 或 https://github.com/owner/repo」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-043 | G-H1-06 | 内容 | 支持两种写法 | `owner/repo` 与完整 URL 都接受，提交时归一 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-040 | G-H1-05 | 内容 | 已选路径后 | 按钮文案不变（仍为图标按钮），不显示已选文件名 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-041 | G-H1-05 | 状态 | 安装进行中时 | 禁用 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（安装中「选择文件夹」Disabled + 0.5） |
+| R-GI-042 | G-H1-06 | 状态 | 未观察（条件）：Git 模式 | 字段标签「Git 仓库」+ 输入框（占位逐字「owner/repo 或 https://github.com/owner/repo」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-043 | G-H1-06 | 内容 | 支持两种写法 | `owner/repo` 与完整 URL 都接受，提交时归一 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（owner/repo 与完整 URL 都原样作为 git 来源下发） |
 | R-GI-044 | G-H1-06 | 样式 | 仓库地址与 Git URL 两个输入框先后出现时 | 同款输入框（高 32、圆角 6） | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（输入框高 32、描边、圆角） |
-| R-GI-045 | G-H1-06 | 无障碍 | 读屏进入该元素时 | 读作「Git 仓库，编辑框」 | — | 读屏文本 = 「Git 仓库，编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-046 | G-H1-06 | 异常 | 非 GitHub 域名 | 允许（Git URL 通用），不预判失败 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-047 | G-H1-06 | 内容 | 仓库地址含 `.git` 后缀 | 接受，不额外改写 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-048 | G-H1-06 | 状态 | 本地模式下 | 该字段不渲染（随模式切换） | — | 屏上 字段标签 计数 = 0 | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-045 | G-H1-06 | 无障碍 | 读屏进入该元素时 | 读作「Git 仓库，编辑框」 | — | 读屏文本 = 「Git 仓库，编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-046 | G-H1-06 | 异常 | 非 GitHub 域名 | 允许（Git URL 通用），不预判失败 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（不预判域名） |
+| R-GI-047 | G-H1-06 | 内容 | 仓库地址含 `.git` 后缀 | 接受，不额外改写 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（.git 后缀原样下发） |
+| R-GI-048 | G-H1-06 | 状态 | 本地模式下 | 该字段不渲染（随模式切换） | — | 屏上 字段标签 计数 = 0 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
 | R-GI-049 | G-H1-06 | 样式 | 仓库地址与 Git URL 两个输入框先后出现时 | 同款输入框（高 32、圆角 6） | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（输入框高 32、描边、圆角） |
-| R-GI-050 | G-H1-07 | 状态 | 未观察（条件）：Git 模式 | 字段标签「Git ref」+ 输入框（占位「main」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-051 | G-H1-07 | 内容 | 输入框留空时 | 视为默认分支（不显示 `undefined`） | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-052 | G-H1-07 | 内容 | 分支/tag/commit 均可 | 原样传给安装流程，不做格式校验之外的改写 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-050 | G-H1-07 | 状态 | 未观察（条件）：Git 模式 | 字段标签「Git ref」+ 输入框（占位「main」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-051 | G-H1-07 | 内容 | 输入框留空时 | 视为默认分支（不显示 `undefined`） | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-052 | G-H1-07 | 内容 | 分支/tag/commit 均可 | 原样传给安装流程，不做格式校验之外的改写 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（ref 原样下发） |
 | R-GI-053 | G-H1-07 | 样式 | 分支与子目录输入框同屏时 | 同款输入框 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（输入框高 32、描边、圆角） |
-| R-GI-054 | G-H1-07 | 无障碍 | 读屏进入该元素时 | 读作「Git ref，编辑框」 | — | 读屏文本 = 「Git ref，编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-055 | G-H1-07 | 异常 | ref 不存在 | 提交时报错并保留输入 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-056 | G-H1-07 | 内容 | ref 为 commit hash | 接受，原样传递 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-057 | G-H1-07 | 状态 | 本地模式下 | 不渲染 | — | 屏上 字段标签 计数 = 0 | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-054 | G-H1-07 | 无障碍 | 读屏进入该元素时 | 读作「Git ref，编辑框」 | — | 读屏文本 = 「Git ref，编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-055 | G-H1-07 | 异常 | ref 不存在 | 提交时报错并保留输入 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（服务端失败原因回到弹窗并保留输入） |
+| R-GI-056 | G-H1-07 | 内容 | ref 为 commit hash | 接受，原样传递 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（ref 原样下发） |
+| R-GI-057 | G-H1-07 | 状态 | 本地模式下 | 不渲染 | — | 屏上 字段标签 计数 = 0 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
 | R-GI-058 | G-H1-07 | 样式 | 分支与子目录输入框同屏时 | 同款输入框 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35 | 已实现（输入框高 32、描边、圆角） |
-| R-GI-059 | G-H1-08 | 状态 | 未观察（条件）：两种模式下都在 | 字段标签「插件 id（可选）」+ 输入框（占位「根据 manifest 自动生成」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-060 | G-H1-08 | 内容 | 输入框留空时 | 由 manifest 自动生成 id，不报错 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-061 | G-H1-08 | 内容 | 手填非法 id（含空格/大写） | 提交时报错并说明规则 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-059 | G-H1-08 | 状态 | 未观察（条件）：两种模式下都在 | 字段标签「插件 id（可选）」+ 输入框（占位「根据 manifest 自动生成」） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
+| R-GI-060 | G-H1-08 | 内容 | 输入框留空时 | 由 manifest 自动生成 id，不报错 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（id 留空由服务端按 manifest 生成） |
+| R-GI-061 | G-H1-08 | 内容 | 手填非法 id（含空格/大写） | 提交时报错并说明规则 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（非法 id 由服务端失败原因回到弹窗） |
 | R-GI-062 | G-H1-08 | 样式 | 多个输入框同屏时 | 同款（高 32、圆角 6） | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（输入框高 32、描边、圆角） |
-| R-GI-063 | G-H1-08 | 无障碍 | 读屏进入该元素时 | 读作「插件 id（可选），编辑框」 | — | 读屏文本 = 「插件 id（可选），编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
+| R-GI-063 | G-H1-08 | 无障碍 | 读屏进入该元素时 | 读作「插件 id（可选），编辑框」 | — | 读屏文本 = 「插件 id（可选），编辑框」 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「字段与模式切换」） |
 | R-GI-064 | G-H1-08 | 异常 | id 与已装插件冲突 | 走 G-H3 替换确认（若同目录名）或报冲突 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺 = 「替换现有插件？」确认框；plugin.install 不带来源冲突回执，无法判定同名不同来源） |
-| R-GI-065 | G-H1-08 | 内容 | id 含非法字符 | 提交时报错并说明规则 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（证据 = internal/ui/plugin_install.go:readPluginManifest「本地 manifest 校验与预览」） |
-| R-GI-066 | G-H1-08 | 状态 | 安装进行中时 | 禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺 = 安装中插件 id 输入框仍可编辑） |
+| R-GI-065 | G-H1-08 | 内容 | id 含非法字符 | 提交时报错并说明规则 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（非法 id 由服务端失败原因回到弹窗） |
+| R-GI-066 | G-H1-08 | 状态 | 安装进行中时 | 禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（安装中插件 id 输入框 Disabled） |
 | R-GI-067 | G-H1-09 | 状态 | 未观察（条件）：弹窗打开 | 「安装后启用」开关（右侧），默认开 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「添加插件弹窗」） |
 | R-GI-068 | G-H1-09 | 交互 | 鼠标点击该元素时 | 开↔关切换；关时安装后不启用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「添加插件弹窗」） |
-| R-GI-069 | G-H1-09 | 状态 | 安装进行中时 | 开关禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺 = 安装中「安装后启用」开关仍可点） |
-| R-GI-070 | G-H1-09 | 样式 | 开关 | 32×18 轨道、圆角全、开位主色 | — | 判据 = 控件尺寸 开关 28×16；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（开关 28×16，参考 32×18） |
+| R-GI-069 | G-H1-09 | 状态 | 安装进行中时 | 开关禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（安装中「安装后启用」开关 Disabled） |
+| R-GI-070 | G-H1-09 | 样式 | 开关 | 32×18 轨道、圆角全、开位主色 | — | 判据 = 控件尺寸 开关 28×16；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（开关 32×18、圆角全、开位主色） |
 | R-GI-071 | G-H1-09 | 无障碍 | 读屏进入该元素时 | 读作开关，含开/关态与标签 | — | 读屏文本 = 「安装后启用」 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「添加插件弹窗」） |
 | R-GI-072 | G-H1-09 | 键盘 | 按 Space 时 | 切换 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「添加插件弹窗」） |
 | R-GI-073 | G-H1-09 | 记忆 | 关闭后再次打开时 | 回默认开（不记忆上次） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「添加插件弹窗」） |
 | R-GI-074 | G-H1-09 | 内容 | 开关关闭后安装 | 插件已装但未启用，列表显示为未启用 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「添加插件弹窗」） |
 | R-GI-075 | G-H1-09 | 异常 | 启用失败 | 安装完成但启用报错，列表显示未启用并给原因 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「添加插件弹窗」） |
-| R-GI-076 | G-H1-10 | 内容 | 未观察（条件）：空路径提交 | 错误文字逐字「请选择插件文件夹。」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-077 | G-H1-10 | 内容 | 空 Git 仓库提交 | 逐字「请输入 Git 仓库。」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-078 | G-H1-10 | 内容 | 安装 RPC 失败 | 显示服务端错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-079 | G-H1-10 | 状态 | 三分支互斥 | 同一时刻只显示一条 | — | 文案计数为 1 | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-080 | G-H1-10 | 交互 | 补齐输入后重试 | 错误先清除再提交 | — | 错误段恒 1 | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-081 | G-H1-10 | 样式 | 错误段在屏上时 | 14px 危险色、按钮行之上 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（偏差登记：错误行 12.25 danger，参考 14） |
-| R-GI-082 | G-H1-10 | 无障碍 | 读屏进入该元素时 | `role=alert` 播报一次 | — | 播报次数 = 1 | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-083 | G-H1-10 | 内容 | 错误文案 | 两段校验文案 + 服务端错误，三选一 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-084 | G-H1-10 | 样式 | 错误段出现时 | 按钮行之上、字段之下 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-085 | G-H1-11 | 状态 | 未观察（条件）：弹窗在场 | 次按钮「取消」（`outline`） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-086 | G-H1-11 | 交互 | 鼠标点击该元素时 | 关闭；不安装任何插件 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-087 | G-H1-11 | 状态 | 安装进行中时 | 禁用（不允许半途取消） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-088 | G-H1-11 | 键盘 | 按 Esc 时 | 未安装时等同点击；安装中无效 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-089 | G-H1-11 | 样式 | 次按钮在屏上时 | 描边、高 28 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（按钮高 32，参考 28） |
-| R-GI-090 | G-H1-11 | 无障碍 | 读屏进入该元素时 | 读作按钮「取消」 | — | 读屏文本 = 「取消」 | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-091 | G-H1-11 | 内容 | 文案在屏上时 | 恒为「取消」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-092 | G-H1-11 | 异常 | 安装进行中按 Esc 时 | 无效（按钮已禁用） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-093 | G-H1-12 | 状态 | 未观察（条件）：弹窗在场 | 主按钮「添加插件」，安装中前置旋转图标 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺 = 安装中只有「正在安装…」文案，没有旋转图标） |
+| R-GI-076 | G-H1-10 | 内容 | 未观察（条件）：空路径提交 | 错误文字逐字「请选择插件文件夹。」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-077 | G-H1-10 | 内容 | 空 Git 仓库提交 | 逐字「请输入 Git 仓库。」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-078 | G-H1-10 | 内容 | 安装 RPC 失败 | 显示服务端错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-079 | G-H1-10 | 状态 | 三分支互斥 | 同一时刻只显示一条 | — | 文案计数为 1 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-080 | G-H1-10 | 交互 | 补齐输入后重试 | 错误先清除再提交 | — | 错误段恒 1 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-081 | G-H1-10 | 样式 | 错误段在屏上时 | 14px 危险色、按钮行之上 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-082 | G-H1-10 | 无障碍 | 读屏进入该元素时 | `role=alert` 播报一次 | — | 播报次数 = 1 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-083 | G-H1-10 | 内容 | 错误文案 | 两段校验文案 + 服务端错误，三选一 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-084 | G-H1-10 | 样式 | 错误段出现时 | 按钮行之上、字段之下 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「校验与服务端错误行」） |
+| R-GI-085 | G-H1-11 | 状态 | 未观察（条件）：弹窗在场 | 次按钮「取消」（`outline`） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-086 | G-H1-11 | 交互 | 鼠标点击该元素时 | 关闭；不安装任何插件 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-087 | G-H1-11 | 状态 | 安装进行中时 | 禁用（不允许半途取消） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-088 | G-H1-11 | 键盘 | 按 Esc 时 | 未安装时等同点击；安装中无效 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-089 | G-H1-11 | 样式 | 次按钮在屏上时 | 描边、高 28 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-090 | G-H1-11 | 无障碍 | 读屏进入该元素时 | 读作按钮「取消」 | — | 读屏文本 = 「取消」 | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-091 | G-H1-11 | 内容 | 文案在屏上时 | 恒为「取消」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-092 | G-H1-11 | 异常 | 安装进行中按 Esc 时 | 无效（按钮已禁用） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:pluginInstallView「取消：关闭且不发送 plugin.install」） |
+| R-GI-093 | G-H1-12 | 状态 | 未观察（条件）：弹窗在场 | 主按钮「添加插件」，安装中前置旋转图标 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（安装中主按钮前置旋转图标，文案「正在安装…」） |
 | R-GI-094 | G-H1-12 | 交互 | 鼠标点击该元素时 | 开始安装；成功后关闭弹窗并刷新插件列表 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
-| R-GI-095 | G-H1-12 | 状态 | 安装进行中时 | 禁用 + 旋转图标 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（缺 = 安装中按钮置灰，但没有旋转图标） |
+| R-GI-095 | G-H1-12 | 状态 | 安装进行中时 | 禁用 + 旋转图标 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（安装中主按钮置灰并前置旋转图标） |
 | R-GI-096 | G-H1-12 | 异常 | 安装失败 | 弹窗保留、错误可见（G-H1-10）、按钮恢复 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（证据 = internal/ui/plugin_install.go:confirmPluginInstall「Intents.InstallPlugin」） |
 | R-GI-097 | G-H1-12 | 样式 | 主按钮在屏上时 | 实心主色、白字、高 28 | — | 判据 = 底色 主色 明 #339751 / 暗 #63cb7b；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（按钮高 32，参考 28） |
 | R-GI-098 | G-H1-12 | 无障碍 | 读屏进入该元素时 | 读作按钮「添加插件」 | — | 读屏文本 = 「添加插件」 | 已实现（按钮可读名=「添加插件」） |
@@ -2449,7 +2453,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GI-253 | G-H4-06 | 样式 | 次级按钮在屏上时 | `outline`、高 28、图标 14、12–13px | — | 判据 = 控件尺寸 按钮高 次 28；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（缺 = 没有刷新图标） |
 | R-GI-254 | G-H4-06 | 无障碍 | 读屏进入该元素时 | 读作按钮「更新 {插件名}」 | — | 读屏文本 = 「更新 {插件名}」 | 未实现（读屏名是「更新」，不是「更新 {插件名}」） |
 | R-GI-255 | G-H4-06 | 内容 | 按钮文案渲染后 | 恒为「更新」，带刷新图标 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺 = 没有刷新图标） |
-| R-GI-256 | G-H4-06 | 状态 | 该行安装中 | 按钮换成旋转图标（文案保留） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（缺 = 更新中不换成旋转图标） |
+| R-GI-256 | G-H4-06 | 状态 | 该行安装中 | 按钮换成旋转图标（文案保留） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（更新中按钮前置旋转图标，文案保留「更新」） |
 | R-GI-257 | G-H4-07 | 状态 | 未观察（条件）：有可更新项 | 主按钮逐字「全部更新（{count}）」，更新中前置旋转图标 | — | 屏上形如「全部更新（3）」 | 未实现（缺 = 没有旋转图标） |
 | R-GI-258 | G-H4-07 | 交互 | 鼠标点击该元素时 | 依次更新全部；每行进度独立 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（updateAllPlugins 依次更新） |
 | R-GI-259 | G-H4-07 | 状态 | 更新进行中时 | 按钮禁用；行内「更新」同时禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（更新中「全部更新」与行内「更新」都禁用） |

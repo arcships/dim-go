@@ -152,7 +152,7 @@ func (a *App) pluginManageView(c *gui.Context) {
 							// 没有重扫通道：按钮恒禁用，这里不会到达。
 						}
 						if pluginSmallButtonLabeled(c, t, pluginManageAdd, "打开添加插件弹窗",
-							true, !canWrite || !facts, manageNote(facts, writeNote)) {
+							true, false, !canWrite || !facts, manageNote(facts, writeNote)) {
 							a.openPluginInstall()
 						}
 					})
@@ -270,11 +270,12 @@ func pluginWriteNote(canWrite bool) string {
 
 // pluginSmallButton 是管理块里的行内小按钮：高 28，可选主按钮与禁用原因。
 func pluginSmallButton(c *gui.Context, t *gui.Theme, text string, primary, disabled bool, tip string) bool {
-	return pluginSmallButtonLabeled(c, t, text, text, primary, disabled, tip)
+	return pluginSmallButtonLabeled(c, t, text, text, primary, false, disabled, tip)
 }
 
-// pluginSmallButtonLabeled 与 pluginSmallButton 相同，可另给读屏名。
-func pluginSmallButtonLabeled(c *gui.Context, t *gui.Theme, text, label string, primary, disabled bool, tip string) bool {
+// pluginSmallButtonLabeled 与 pluginSmallButton 相同，可另给读屏名与「进行中」
+// （按钮文字前加一个旋转图标）。
+func pluginSmallButtonLabeled(c *gui.Context, t *gui.Theme, text, label string, primary, busy, disabled bool, tip string) bool {
 	b := gui.ButtonBase(c).Shrink(0).Height(plgBtnH).
 		Padding(plgAddPadV, controlPadH).Radius(radius).Label(label).
 		Background(t.Background)
@@ -300,7 +301,12 @@ func pluginSmallButtonLabeled(c *gui.Context, t *gui.Theme, text, label string, 
 		color = t.AccentText
 	}
 	b.Children(func() {
-		plgBtnTextSty.style(t, gui.Text(c, text)).TextColor(color).SingleLine()
+		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
+			if busy {
+				gui.Spinner(c).Size(plgIconSize, plgIconSize)
+			}
+			plgBtnTextSty.style(t, gui.Text(c, text)).TextColor(color).SingleLine()
+		})
 	})
 	return b.Clicked()
 }
@@ -345,8 +351,9 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 				if st.updating[item.ID] {
 					label = pluginManageUpdating
 				}
-				if pluginSmallButton(c, t, label, false,
-					!canWrite || st.updating[item.ID] || st.updatingAll, pluginWriteNote(canWrite)) {
+				if pluginSmallButtonLabeled(c, t, label, label, false,
+					st.updating[item.ID], !canWrite || st.updating[item.ID] || st.updatingAll,
+					pluginWriteNote(canWrite)) {
 					a.updatePlugin(item)
 				}
 			})
@@ -491,7 +498,7 @@ func (a *App) pluginRemoveView(c *gui.Context) {
 					label = pluginRemoveBusy
 				}
 				if pluginDialogButtonLabeled(c, t, label, "确认移除插件", true,
-					st.removeBusy, "") {
+					st.removeBusy, st.removeBusy, "") {
 					a.confirmPluginRemove()
 				}
 			})
@@ -533,7 +540,7 @@ func (a *App) pluginMarketSection(c *gui.Context, t *gui.Theme) {
 					label = pluginMarketSaving
 				}
 				if pluginSmallButtonLabeled(c, t, label, "保存插件源", true,
-					!canAct || st.feedSaving, pluginMarketWriteNote(canAct)) {
+					st.feedSaving, !canAct || st.feedSaving, pluginMarketWriteNote(canAct)) {
 					a.savePluginFeed(market)
 				}
 			})
