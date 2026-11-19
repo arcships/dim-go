@@ -201,9 +201,12 @@ func (a *App) pluginInstallView(c *gui.Context) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleDialog).Label(pluginDialogTitle)
 		panel.Children(func() {
+			// G-H1-01 「从 Git 添加插件」
 			typeDialogTitle.style(t, gui.Text(c, pluginDialogTitle)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(2)
+			// G-H1-02 「从 GitHub 仓库或 Git URL 添加。」
 			typeBody.style(t, gui.Text(c, pluginDialogDesc)).TextColor(t.TextMuted)
+			// G-H1-03 本地文件夹 / Git 仓库
 			seg := gui.Segmented(c, &st.mode, pluginModeLocal, pluginModeGit).
 				Label("安装来源")
 			if st.installing {
@@ -211,6 +214,7 @@ func (a *App) pluginInstallView(c *gui.Context) {
 			}
 			if st.mode == pluginInstallModeLocal {
 				gui.Column(c).Gap(space2).Children(func() {
+					// G-H1-04 「来源」
 					typeBodyStrong.style(t, gui.Text(c, pluginSourceLabel)).
 						TextColor(t.Text).Label(pluginSourceLabel)
 					gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
@@ -219,6 +223,7 @@ func (a *App) pluginInstallView(c *gui.Context) {
 							Padding(screenInputPadV, screenSpace25).
 							Disabled(st.installing)
 						if accIconButton(c, accIconSpec{
+							// G-H1-05 「选择文件夹」
 							icon: iconFolderOpen, label: pluginPickFolder,
 							tip: pluginPickFolder, size: plgIconSize, hit: plgCtlH,
 							disabled: st.installing,
@@ -235,12 +240,14 @@ func (a *App) pluginInstallView(c *gui.Context) {
 				})
 			} else {
 				gui.Column(c).Gap(space2).Children(func() {
+					// G-H1-06 「Git 仓库」+ 占位
 					typeBodyStrong.style(t, gui.Text(c, pluginGitLabel)).
 						TextColor(t.Text).Label(pluginGitLabel)
 					gui.TextInput(c, &st.git).Label(pluginGitLabel).
 						Placeholder(pluginGitPlace).Height(plgCtlH).
 						Padding(screenInputPadV, screenSpace25).
 						Disabled(st.installing)
+					// G-H1-07 「Git ref」
 					typeBodyStrong.style(t, gui.Text(c, pluginRefLabel)).
 						TextColor(t.Text).Label(pluginRefLabel)
 					gui.TextInput(c, &st.ref).Label(pluginRefLabel).
@@ -252,6 +259,7 @@ func (a *App) pluginInstallView(c *gui.Context) {
 				})
 			}
 			gui.Column(c).Gap(space2).Children(func() {
+				// G-H1-08 「插件 id（可选）」
 				typeBodyStrong.style(t, gui.Text(c, pluginIDLabel)).
 					TextColor(t.Text).Label(pluginIDLabel)
 				gui.TextInput(c, &st.id).Label(pluginIDLabel).
@@ -260,12 +268,14 @@ func (a *App) pluginInstallView(c *gui.Context) {
 					Disabled(st.installing)
 			})
 			gui.Row(c).AlignItems(gui.Center).Gap(space2).Children(func() {
+				// G-H1-09 「安装后启用」
 				typeBody.style(t, gui.Text(c, pluginEnableLabel)).TextColor(t.Text).
 					Label(pluginEnableLabel)
 				gui.Spacer(c)
 				gui.Switch(c, &st.enable).Size(32, 18).
 					Radius(plgSwitchH / 2).Label(pluginEnableLabel).Disabled(st.installing)
 			})
+			// G-H1-10 请选择插件文件夹 / 请输入 Git 仓库 / 服务端错误
 			if st.err != "" {
 				typeSecondary.style(t, gui.Text(c, st.err)).TextColor(t.Danger).
 					Role(gui.RoleAlert).Label(st.err)
@@ -275,10 +285,12 @@ func (a *App) pluginInstallView(c *gui.Context) {
 					Role(gui.RoleAlert).Label(st.previewErr)
 			}
 			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
+				// G-H1-11 取消
 				if pluginDialogButton(c, t, pluginCancel, false, false, st.installing, "") &&
 					!st.installing {
 					st.open = false
 				}
+				// G-H1-12 添加插件
 				label := pluginAdd
 				if st.installing {
 					label = pluginAdding

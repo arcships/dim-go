@@ -25,6 +25,7 @@ const (
 )
 
 // userExpandedOf 取某条用户消息的展开态（可丢的视图状态）。
+// TL-32 行内编辑器容器
 func (a *App) userExpandedOf(i int) bool {
 	if a.userExpanded == nil {
 		return false
@@ -140,6 +141,7 @@ func (a *App) inlineEditor(c *gui.Context, i int, r round) {
 			box := gui.Column(c).Shrink(0).Padding(space2, timelinePadX).
 				Radius(radiusCard).Background(t.Surface).
 				Border(strokeHairline, t.Border).Label("行内编辑器")
+			// TL-33 取消（退出编辑）
 			box.Children(func() {
 				gui.TextAreaBase(c, &a.inlineDraft).Grow(1).
 					MinHeight(inlineEditMinHeight).AutoFocus().Label("编辑消息正文")
@@ -152,6 +154,7 @@ func (a *App) inlineEditor(c *gui.Context, i int, r round) {
 						}
 						disabled := strings.TrimSpace(a.inlineDraft) == ""
 						if iconAction(c, iconButtonSpec{
+							// TL-34 发送消息...（保存编辑）
 							icon: iconArrowUp, label: "发送消息...", tip: "保存编辑 · ⌘↵",
 							size: rowCompact, disabled: disabled,
 						}, true) {

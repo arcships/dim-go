@@ -213,6 +213,7 @@ func (a *App) slashCommands() []slashCommand {
 	}
 
 	compact := slashCommand{
+		// G-B1-17 「/compact」「压缩当前上下文」
 		name: "compact", desc: "压缩当前上下文", group: slashGroupCommon,
 		icon: iconChevronUp, run: nil, reason: sessionReason,
 	}
@@ -223,6 +224,7 @@ func (a *App) slashCommands() []slashCommand {
 	}
 
 	branch := slashCommand{
+		// G-B1-19 「/branch」「侧边对话」
 		name: "branch", desc: "侧边对话", group: slashGroupCommon,
 		icon: iconChat, run: nil, reason: sessionReason,
 	}
@@ -241,6 +243,7 @@ func (a *App) slashCommands() []slashCommand {
 	}
 
 	goal := slashCommand{
+		// G-B1-09 「/goal」「切换至 Goal 模式」
 		name: "goal", desc: "切换至 Goal 模式", group: slashGroupSession,
 		icon: iconTarget,
 		// 与输入卡模式菜单同一落点（switchMode）；模式位本版只改界面标记，
@@ -253,6 +256,7 @@ func (a *App) slashCommands() []slashCommand {
 	}
 
 	reloadSkills := slashCommand{
+		// G-B1-15 「/reload-skills」「重新扫描磁盘上的技能」
 		name: "reload-skills", desc: "重新扫描磁盘上的技能", group: slashGroupDebug,
 		icon: iconUndo, reason: "未连接 App Server，没有可重扫的技能目录",
 	}
@@ -274,32 +278,38 @@ func (a *App) slashCommands() []slashCommand {
 		},
 		goal,
 		{
+			// G-B1-10 「/pet」「唤醒或收起 Pet」
 			name: "pet", desc: "唤醒或收起 Pet", group: slashGroupSession,
 			icon: iconPaw, reason: notePetShown,
 		},
 
 		{
+			// G-B1-11 「/settings」「打开设置」
 			name: "settings", desc: "打开设置", group: slashGroupSettings,
 			icon: iconGear, shortcut: "⌘,",
 			run: func() { a.screen, a.settingsSection = ScreenSettings, secAccount },
 		},
 		{
+			// G-B1-12 「/models」「打开模型设置」
 			name: "models", desc: "打开模型设置", group: slashGroupSettings,
 			icon: iconChip,
 			run:  func() { a.screen, a.settingsSection = ScreenSettings, secProviders },
 		},
 		{
+			// G-B1-13 「/mcp」「打开 MCP 设置」
 			name: "mcp", desc: "打开 MCP 设置", group: slashGroupSettings,
 			icon: iconWrench,
 			run:  func() { a.screen, a.settingsSection = ScreenSettings, secMCP },
 		},
 		{
+			// G-B1-14 「/skills」「打开技能」
 			name: "skills", desc: "打开技能", group: slashGroupSettings,
 			icon: iconSparkles, run: a.openSkillsPage,
 		},
 
 		reloadSkills,
 		{
+			// G-B1-16 「/reload-plugins」「重新扫描已安装插件」
 			name: "reload-plugins", desc: "重新扫描已安装插件", group: slashGroupDebug,
 			icon: iconPlug, reason: notePluginReload,
 		},
@@ -308,6 +318,7 @@ func (a *App) slashCommands() []slashCommand {
 			icon: iconGauge, reason: noteFastMode,
 		},
 		{
+			// G-B1-20 「/workflow」「Browse workflows」
 			name: "workflow", desc: "Browse workflows", group: slashGroupDebug,
 			icon: iconCommand, reason: noteWorkflow,
 		},
@@ -486,6 +497,7 @@ func (a *App) slashMenu(c *gui.Context) {
 	for g := 0; g < int(slashGroupCount); g++ {
 		total += len(groups[g])
 	}
+	// IN-03 斜杠命令菜单浮层
 	gui.Column(c).Shrink(0).Width(slashMenuWidth).Padding(slashMenuPad).
 		Gap(slashMenuGap).Background(t.Surface).Border(strokeHairline, t.Border).
 		Radius(radiusCard).Clip().

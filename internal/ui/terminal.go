@@ -409,6 +409,7 @@ func (a *App) termLayer(c *gui.Context, tab *termTab) {
 	body.Children(func() {
 		if tab.closed {
 			gui.Column(c).Grow(1).Center().Children(func() {
+				// T-10 ［进程已关闭］
 				typeCode.style(t, gui.Text(c, termClosedNotice)).
 					TextColor(termCanvasMuted)
 			})

@@ -97,6 +97,7 @@ func (a *App) composer(c *gui.Context) {
 		if hasSession {
 			a.goalRow(c)
 		}
+		// IN-27 底部栈容器（活动条 / 排队 / 面板 / 输入块）
 		// 底部栈：排队消息面板与 Shell 运行面板排在输入块之上（§4.3 的顺序）。
 		a.queuePanel(c)
 		a.shellRunPanel(c)
@@ -118,6 +119,7 @@ func (a *App) emptyThread(c *gui.Context) {
 			Children(func() {
 				gui.Column(c).AlignItems(gui.Center).Gap(space2).Children(func() {
 					brandMark(c, brandMarkW, brandMarkH, t)
+					// NT-02 「开始构建」标题
 					typeEmptyTitle.style(t, gui.Text(c, "开始构建")).
 						FontWeight(700).Label("开始构建")
 				})
@@ -172,6 +174,7 @@ func (a *App) firstRunGuide(c *gui.Context) {
 // brandMark 是空态的品牌图形：墨迹 68×49（标记自身的比例），取品牌亮绿；
 // 只画形状，读屏名给产品名。
 func brandMark(c *gui.Context, width, height float32, t *gui.Theme) {
+	// NT-01 品牌图形
 	box := gui.Box(c).Width(width).Height(height).Shrink(0).Label("品牌：DimAgent")
 	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
 		paintIcon(p, iconBrandWide, r, colorBrandEmpty)
@@ -193,13 +196,16 @@ func (a *App) inputBlock(c *gui.Context, withControls bool) {
 // composerCard 是输入卡本体（圆角框 + 正文 + 工具行 + 可选控制行）。
 func (a *App) composerCard(c *gui.Context, withControls bool) {
 	t := c.Theme()
+	// IN-01 输入块容器（圆角描边卡片）
 	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).MinHeight(composerMinHeight).
+		// NT-04 空态输入块容器（带阴影）
 		Background(t.Surface).Border(strokeHairline, t.Border).
 		Radius(radiusWindowCard).Clip().
 		Shadow(0, 2, 10, 0, colorShadow.in(t)).Label("输入卡").Children(func() {
 		gui.Column(c).Padding(space4).Gap(space2).Children(func() {
 			a.queuedEditBanner(c)
 			if len(a.attachments) > 0 {
+				// IN-26 chip 架（附件与引用的横排）
 				gui.Row(c).Gap(space2).Wrap().Children(func() {
 					for i := range a.attachments {
 						a.attachChip(c, i)
@@ -213,6 +219,7 @@ func (a *App) composerCard(c *gui.Context, withControls bool) {
 			if a.shellMode() {
 				ph, name = "输入命令...", "命令"
 			}
+			// IN-02 占位文本「发送消息...」
 			input := gui.TextAreaBase(c, &a.draft).Placeholder(ph).Grow(1).MinHeight(composerTextMinHeight).
 				Label(name)
 			// 弹层打开时接管输入框里的 ↑↓ / ↵ / Esc（G-B1-01、G-B1-07）。
@@ -243,6 +250,7 @@ func (a *App) composerCard(c *gui.Context, withControls bool) {
 func (a *App) composerToolRow(c *gui.Context) {
 	gui.Row(c).Height(composerToolSize).Shrink(0).AlignItems(gui.Center).Children(func() {
 		gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
+			// IN-05 工具行首个图标按钮（+ 附件）
 			if iconButton(c, iconButtonSpec{
 				icon: iconPlus, label: "附件", tip: "添加附件", size: composerToolSize,
 			}) {
@@ -264,6 +272,7 @@ func (a *App) composerToolRow(c *gui.Context) {
 //
 // 窄窗里两个选择器竖排（工作区一行、权限一行）：横向余量不够两个「图标 + 文案」
 // 的入口排一行，横排会把它们压到读不出。行高随之由内容给，不再取定高。
+// NT-05 空态控制行容器（圆角底 + 灰底）
 func (a *App) composerControls(c *gui.Context) {
 	t := c.Theme()
 	if narrowWindow(c) {
@@ -285,6 +294,7 @@ func (a *App) composerControls(c *gui.Context) {
 
 // sendSlot 是发送 / 停止槽：无草稿时禁用（浅色主色仍是主色），运行中换成停止。
 func (a *App) sendSlot(c *gui.Context) {
+	// IN-12 发送按钮
 	icon, label, tip := iconArrowUp, "发送", "发送消息... · Enter"
 	disabled := strings.TrimSpace(a.draft) == "" || a.disconnected()
 	switch {
@@ -295,6 +305,7 @@ func (a *App) sendSlot(c *gui.Context) {
 	case a.shellMode():
 		icon, label, tip = iconPlay, "运行命令", "运行命令 · Enter"
 		disabled = strings.TrimSpace(a.shellCommand()) == ""
+	// IN-13 运行中：同一位换成停止按钮
 	case a.liveRunning():
 		icon, label, tip = iconStop, "停止", "停止回复 · Enter"
 		disabled = false
@@ -432,6 +443,7 @@ func (a *App) effortLabel() string {
 func (a *App) effortSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.effortOpen)
+	// IN-08 推理强度短标签（四格条 + 短词）
 	tr := m.Trigger.Height(composerToolSize).Padding(0, space1).Radius(radius).
 		Label("思考强度：" + a.effortLabel()).Tooltip("思考强度").
 		Cursor(gui.CursorPointer)
@@ -442,6 +454,7 @@ func (a *App) effortSelector(c *gui.Context) {
 		iconBox(c, iconEffort, colorAccentInk.in(t), "effort")
 		typeSecondary.style(t, gui.Text(c, a.effortLabel())).TextColor(t.Text)
 	})
+	// IN-57 思考强度浮层（滑杆）
 	m.Popup(func(panel gui.Element) {
 		panel.Width(composerEffortMenuWidth).Padding(space3).Gap(space2).Radius(radiusCard).
 			Background(t.Surface).Border(strokeHairline, t.Border).
@@ -463,6 +476,7 @@ func (a *App) effortSelector(c *gui.Context) {
 func (a *App) modelSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.modelOpen)
+	// IN-09 模型选择按钮（模型名）
 	tr := m.Trigger.Height(composerToolSize).Padding(0, space1).Radius(radius).
 		Label("模型：" + a.currentModel()).Tooltip("选择模型").
 		Cursor(gui.CursorPointer)
@@ -473,16 +487,19 @@ func (a *App) modelSelector(c *gui.Context) {
 		iconBox(c, iconProvider, colorAccent.in(t), "provider")
 		typeSecondary.style(t, gui.Text(c, a.currentModel())).TextColor(t.Text).SingleLine()
 	})
+	// IN-53 模型浮层容器
 	m.Popup(func(panel gui.Element) {
 		panel.Width(composerModelMenuWidth).Padding(space2).Gap(space2).Radius(radiusCard).
 			Background(t.Surface).Border(strokeHairline, t.Border).
 			Shadow(0, 4, 18, 0, colorShadow.in(t))
+		// IN-54 浮层标签页（对话 / 子代理 / 外部 Agent）
 		gui.Row(c).Gap(space3).AlignItems(gui.Center).Children(func() {
 			typeBody.style(t, gui.Text(c, "模型")).TextColor(t.Text).Label("模型页签")
 			typeSecondary.style(t, gui.Text(c, "子代理")).TextColor(t.TextMuted)
 			typeSecondary.style(t, gui.Text(c, "外部 agent")).TextColor(t.TextMuted)
 		})
 		hairlineBox(c, true, "")
+		// IN-55 搜索模型...
 		gui.TextInputBase(c, &a.modelQuery).Placeholder("搜索模型...").Height(composerSearchRowHeight).
 			Padding(0, space2).Radius(radius).Background(t.SurfacePressed).Label("搜索模型")
 		options, currentID := a.modelOptions()
@@ -573,6 +590,7 @@ func (a *App) selectModel(option ModelOption) {
 func (a *App) skillsSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.skillsOpen)
+	// IN-07 技能选择器按钮（技能浮层入口）
 	tr := m.Trigger.Width(composerToolSize).Height(composerToolSize).Radius(radius).
 		Label("技能").Tooltip("选择技能").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
@@ -586,6 +604,7 @@ func (a *App) skillsSelector(c *gui.Context) {
 		gui.Row(c).Height(composerSearchRowHeight).Padding(0, space2).Gap(space1).Radius(radius).
 			Background(t.SurfacePressed).AlignItems(gui.Center).Children(func() {
 			iconBox(c, iconSearch, t.TextMuted, "search")
+			// IN-59 搜索技能...
 			gui.TextInputBase(c, &a.skillQuery).Placeholder("搜索技能...").Grow(1).
 				Label("搜索技能")
 		})
@@ -593,11 +612,13 @@ func (a *App) skillsSelector(c *gui.Context) {
 		if readErr != "" {
 			// 读失败要看得见：危险色 + 告警角色 + 一句「读取失败」，不再用次要色
 			// 混在正常条目里。
+			// IN-61 技能读取失败（错误色）
 			typeMicro.style(t, gui.Text(c, "读取技能失败："+readErr)).TextColor(t.Danger).
 				Role(gui.RoleAlert).MaxLines(2)
 			return
 		}
 		if len(skills) == 0 {
+			// IN-62 没有技能的空态文案
 			typeMicro.style(t, gui.Text(c, "还没有技能")).TextColor(t.TextMuted).
 				Padding(space1, space2)
 			return
@@ -607,6 +628,7 @@ func (a *App) skillsSelector(c *gui.Context) {
 			if !strings.Contains(strings.ToLower(skill.Name), strings.ToLower(a.skillQuery)) {
 				continue
 			}
+			// IN-63 技能条目（名称 + 描述）
 			it := m.Item().Padding(space1, space2).Radius(radius).
 				Label("技能：" + skill.Name)
 			it.Children(func() {
@@ -677,6 +699,7 @@ func (a *App) switchMode(mode string) string {
 func (a *App) modeSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.modeOpen)
+	// IN-06 模式选择器按钮
 	tr := m.Trigger.Width(composerToolSize).Height(composerToolSize).Radius(radius).
 		Label("模式：" + a.mode).Tooltip("Agent / Goal").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
@@ -686,6 +709,7 @@ func (a *App) modeSelector(c *gui.Context) {
 	m.Popup(func(panel gui.Element) {
 		panel.Width(composerModeMenuWidth).Padding(space1).Radius(radiusCard).Background(t.Surface).
 			Border(strokeHairline, t.Border).Shadow(0, 4, 16, 0, colorShadow.in(t))
+		// IN-64 模式菜单（Agent / 目标）
 		if menuItem(c, m, iconChevronsR, "Agent", "Agent 模式", "", false, a.mode == "Agent") {
 			a.switchMode("Agent")
 		}
@@ -698,6 +722,7 @@ func (a *App) modeSelector(c *gui.Context) {
 			a.switchMode("Goal")
 		}
 		if goalUnavailable {
+			// IN-65 目标项不可用提示
 			typeMicro.style(t, gui.Text(c, "还没有打开会话，暂时设定不了目标")).
 				TextColor(t.TextMuted).Padding(space1, space2)
 		}
@@ -762,6 +787,7 @@ func (a *App) currentWorkspaceCwd() string {
 func (a *App) workspaceSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.workspaceOpen)
+	// NT-06 工作区选择器按钮
 	tr := m.Trigger.Height(composerControlTriggerHeight).Padding(0, space1).Radius(radius).
 		Label("选择工作区").Tooltip("选择工作区").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
@@ -778,6 +804,7 @@ func (a *App) workspaceSelector(c *gui.Context) {
 		gui.Row(c).Height(composerSearchRowHeight).Padding(0, space2).Gap(space1).Radius(radius).
 			Background(t.SurfacePressed).AlignItems(gui.Center).Children(func() {
 			iconBox(c, iconSearch, t.TextMuted, "search")
+			// NT-07 搜索工作区...
 			gui.TextInputBase(c, &a.workspaceQuery).Placeholder("搜索工作区...").
 				Grow(1).Label("搜索工作区")
 		})
@@ -797,15 +824,18 @@ func (a *App) workspaceSelector(c *gui.Context) {
 			if option.path == "" {
 				// 样例里的工作区没有目录：内置工作区是默认落点（参考产品停在 🏠），
 				// 其余按屏内名字记选中。
+				// NT-08 内置工作区菜单项
 				icon, label = iconHome, "内置工作区"
 				checked = option.name == "工作区" || option.name == a.workspaceName
 			}
+			// NT-09 工作区菜单项（名称 + 路径）
 			if menuItem(c, m, icon, option.name, label, "", false, checked) {
 				a.workspaceName, a.workspacePath = option.name, option.path
 			}
 		}
 		// 添加新工作区：与左栏「添加工作区」同一个目录选择（写进本端登记的
 		// 工作区并落盘本地偏好）。不在这里造一个只改标题的占位名字。
+		// NT-11 添加新工作区
 		if menuItem(c, m, iconPlus, "添加新工作区", "添加新工作区", "", false, false) {
 			a.startDirPick(dirPickWorkspace)
 		}
@@ -904,6 +934,7 @@ func (a *App) applyPermission(level string) {
 func (a *App) permissionSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.permissionOpen)
+	// NT-14 权限选择器按钮
 	tr := m.Trigger.Height(composerControlTriggerHeight).Padding(0, space1).Radius(radius).
 		Label("权限：" + a.permissionLabel()).Tooltip("选择权限").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
@@ -963,6 +994,7 @@ func (a *App) attachChip(c *gui.Context, i int) {
 	}
 	chip := a.attachments[i]
 	label := chip.name
+	// IN-25 图片附件（按 chip 呈现）
 	if chip.kind == "image" {
 		label += " · 图片"
 	}
@@ -1075,6 +1107,7 @@ func (a *App) goalRow(c *gui.Context) {
 		})
 		return
 	}
+	// IN-28 目标活动条
 	gui.Row(c).Height(QueueHeight).Shrink(0).Padding(0, space4).
 		Gap(space2).AlignItems(gui.Center).Label("目标行").Children(func() {
 		iconGlyph(c, iconTarget, colorAccentInk.in(t), "target")

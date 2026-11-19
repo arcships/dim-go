@@ -189,10 +189,12 @@ func approvalPanelFor(tool string, input map[string]any) approvalPanelContent {
 	case approvalRendererWeb:
 		return approvalWebPanel(tool, input)
 	case approvalRendererSkill:
+		// G-C4-17 skill_name 行
 		return approvalInputLinesPanel(approvalRendererSkill, input, []string{"skill_name"})
 	case approvalRendererAgent:
 		return approvalAgentPanel(input)
 	case approvalRendererBrowser:
+		// G-C4-22 浏览器工具的工具名与全部入参
 		return approvalInputLinesPanel(approvalRendererBrowser, input, approvalBrowserKeys)
 	case approvalRendererCua:
 		return approvalCuaPanel(tool, input)
@@ -419,6 +421,7 @@ func approvalTimeoutText(input map[string]any) string {
 }
 
 // approvalCommandPanel 是命令渲染器。
+// G-C4-03 / IN-71 「$ {command}」等宽行
 func approvalCommandPanel(input map[string]any) approvalPanelContent {
 	panel := approvalPanelContent{
 		Renderer: approvalRendererCommand,
@@ -426,6 +429,7 @@ func approvalCommandPanel(input map[string]any) approvalPanelContent {
 		Prefix:   "$",
 		Primary:  approvalText(input, []string{"command", "cmd", "commandPreview", "shellCommand", "script"}),
 	}
+	// G-C4-04 / IN-72 / IN-73 cwd / timeoutMs / runInBackground 参数行
 	for _, key := range approvalCommandKeys {
 		switch key {
 		case "timeoutMs":
@@ -447,6 +451,7 @@ func approvalCommandPanel(input map[string]any) approvalPanelContent {
 
 // approvalFilePanel 是文件渲染器：标签是路径（补丁没有路径时写 patch.diff，
 // 再没有就写工具名），正文是差异 / 写入内容 / 补丁之一，再加参数行。
+// G-C4-05 文件名 / patch.diff / 工具名标签
 func approvalFilePanel(tool string, input map[string]any) approvalPanelContent {
 	name := strings.ToLower(strings.TrimSpace(tool))
 	isEdit := name == "edit" || name == "edit_file"
@@ -476,13 +481,16 @@ func approvalFilePanel(tool string, input map[string]any) approvalPanelContent {
 		panel.DiffOld, panel.DiffOldSet = oldText, hasOld
 		panel.DiffNew, panel.DiffNewSet = newText, hasNew
 	case isWrite && hasContent:
+		// G-C4-07 写入内容（代码块 + 行号）
 		panel.Code, panel.CodeSet, panel.CodeLines = content, true, true
 	case isPatch && hasPatch:
+		// G-C4-08 补丁文本
 		panel.Code, panel.CodeSet = patch, true
 	}
 
 	switch {
 	case isEdit:
+		// G-C4-09 replaceAll / offset / limit / encoding 参数行
 		panel.Lines = approvalInputLines(input, approvalFileEditKeys)
 	case !isWrite && !isPatch:
 		panel.Lines = approvalInputLines(input, approvalFileReadKeys)
@@ -502,12 +510,15 @@ func approvalSearchPanel(input map[string]any) approvalPanelContent {
 	case isListing:
 		panel.Primary = "path: " + path
 	case pattern != "":
+		// G-C4-10 pattern: {值}
 		panel.Primary = "pattern: " + pattern
+		// G-C4-11 path: {值}
 		panel.Lines = approvalLinesWith("path", path)
 	default:
 		panel.Primary = "query: " + query
 		panel.Lines = approvalLinesWith("path", path)
 	}
+	// G-C4-12 include / glob / 上下文行数等检索参数
 	panel.Lines = append(panel.Lines, approvalInputLines(input, approvalSearchKeys)...)
 	return panel
 }
@@ -523,15 +534,19 @@ func approvalLinesWith(key, value string) []string {
 // approvalWebPanel 是网页渲染器：搜索画查询与分页，抓取画 URL 标签与附加参数。
 func approvalWebPanel(tool string, input map[string]any) approvalPanelContent {
 	if approvalCategory(tool) == approvalCategoryWebSearch || approvalText(input, []string{"query", "search_query"}) != "" {
+		// G-C4-13 query: {值}
 		panel := approvalPanelContent{
 			Renderer: approvalRendererWeb,
 			Label:    approvalInputLabel,
 			Primary:  "query: " + approvalText(input, []string{"query", "search_query"}),
 		}
+		// G-C4-14 page / pageSize
 		panel.Lines = approvalInputLines(input, approvalWebSearchKeys)
 		return panel
 	}
 	url := approvalText(input, []string{"url"})
+	// G-C4-15 URL 标签与站点徽记
+	// G-C4-16 startIndex / contextMaxCharacters / mode
 	panel := approvalPanelContent{
 		Renderer:    approvalRendererWeb,
 		Label:       url,
@@ -550,6 +565,7 @@ func approvalAgentPanel(input map[string]any) approvalPanelContent {
 	isCreate := action == "create" || action == "create_external"
 	panel := approvalPanelContent{Renderer: approvalRendererAgent, Label: approvalInputLabel}
 	if !isCreate {
+		// G-C4-21 action / taskId / agentName 等参数行
 		panel.Lines = approvalInputLines(input, approvalAgentOther)
 		return panel
 	}
@@ -558,7 +574,9 @@ func approvalAgentPanel(input map[string]any) approvalPanelContent {
 		Task:  approvalText(input, []string{"taskTitle"}),
 		Model: approvalText(input, []string{"modelId", "model"}),
 	}
+	// G-C4-19 子代理 prompt
 	panel.Prompt = approvalText(input, []string{"prompt"})
+	// G-C4-20 effort / forkContext
 	panel.Lines = approvalInputLines(input, approvalAgentCreate)
 	return panel
 }
@@ -569,6 +587,7 @@ func approvalCuaPanel(tool string, input map[string]any) approvalPanelContent {
 	raw := strings.ToLower(strings.TrimSpace(tool))
 	name := strings.TrimPrefix(raw, "cua-driver__")
 	panel := approvalPanelContent{Renderer: approvalRendererCua, Label: approvalInputLabel}
+	// G-C4-23 tool: {tool} 与全部入参行
 	panel.Lines = append(panel.Lines, "tool: "+name)
 	panel.Lines = append(panel.Lines, approvalRemainingLines(input, map[string]bool{})...)
 	return panel
@@ -577,6 +596,7 @@ func approvalCuaPanel(tool string, input map[string]any) approvalPanelContent {
 // approvalWaitPanel 是等待渲染器：taskId 与 timeoutMs 两行。
 func approvalWaitPanel(input map[string]any) approvalPanelContent {
 	panel := approvalPanelContent{Renderer: approvalRendererWait, Label: approvalInputLabel}
+	// G-C4-24 taskId / timeoutMs
 	panel.Lines = approvalInputLines(input, []string{"taskId"})
 	if text := approvalTimeoutText(input); text != "" {
 		panel.Lines = append(panel.Lines, "timeoutMs: "+text)
@@ -590,6 +610,7 @@ func approvalMCPPanel(tool string, input map[string]any) approvalPanelContent {
 	server, name, ok := splitMCPTool(tool)
 	panel := approvalPanelContent{Renderer: approvalRendererMCP, Label: approvalInputLabel}
 	if ok {
+		// G-C4-23 MCP 的 server / tool 行
 		panel.Lines = append(panel.Lines, "server: "+server, "tool: "+name)
 	} else {
 		panel.Lines = append(panel.Lines, "tool: "+strings.TrimSpace(tool))
@@ -722,6 +743,7 @@ func approvalTodoStatusText(status string) string {
 }
 
 // approvalGenericPanel 是兜底渲染器：工具名做等宽标签，入参原文按两空格缩进画。
+// G-C4-25 工具名 + 入参原文
 func approvalGenericPanel(tool string, input map[string]any) approvalPanelContent {
 	label := strings.TrimSpace(tool)
 	if label == "" {
@@ -767,6 +789,7 @@ func approvalRemainingLines(input map[string]any, skip map[string]bool) []string
 
 // approvalInputPanel 画输入区块：描边 + 卡面 + 标签 + 正文，超过最高高度时内部
 // 滚动。整块只读，不进 Tab 顺序。
+// G-C4-01 审批输入区容器
 func approvalInputPanel(c *gui.Context, panel approvalPanelContent) {
 	if panel.empty() && panel.Label == "" {
 		return
@@ -788,6 +811,7 @@ func approvalInputPanel(c *gui.Context, panel approvalPanelContent) {
 // 站点徽记（参考产品 FaviconImg 的回落：首字母圆徽）。
 func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 	t := c.Theme()
+	// IN-70 面板小标题「输入」（命令类审批面板）
 	if panel.Label == "" {
 		return
 	}
@@ -795,6 +819,7 @@ func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 		if panel.FaviconHost != "" {
 			siteBadge(c, panel.FaviconHost, approvalFaviconSize)
 		}
+		// G-C4-02 输入区标签（命令类是「输入」）
 		label := typeMicro.style(t, gui.Text(c, panel.Label)).TextColor(t.TextMuted).SingleLine()
 		if panel.Renderer == approvalRendererGeneric {
 			// 通用渲染器的标签是工具名，取等宽（参考 GenericApprovalPanel 的字面量）。
@@ -821,6 +846,7 @@ func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 	if panel.HasImage || panel.SizeText != "" {
 		approvalImageBlock(c, panel)
 	}
+	// G-C4-03 主值行（命令带 `$` 前缀）
 	if panel.Primary != "" {
 		gui.Row(c).Gap(space1).AlignItems(gui.Start).Children(func() {
 			if panel.Prefix != "" {
@@ -846,6 +872,7 @@ func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 }
 
 // approvalHeadRow 画子代理创建类的头行：图标 + 名称 + 任务标题 + 模型 id。
+// G-C4-18 子代理创建头行
 func approvalHeadRow(c *gui.Context, head approvalHead) {
 	t := c.Theme()
 	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
@@ -887,6 +914,7 @@ func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
 
 // approvalDiffBlock 画编辑前后两栏：左旧右新、无行号，旧栏危险色、新栏成功色，
 // 两侧等高（按较长一侧的行数补齐空行）；只有一侧有事实时只画那一栏。
+// G-C4-06 编辑前后两栏差异
 func approvalDiffBlock(c *gui.Context, panel approvalPanelContent) {
 	t := c.Theme()
 	rows := 0

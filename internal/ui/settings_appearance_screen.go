@@ -1213,23 +1213,32 @@ func appearanceActiveSkin(c *gui.Context) {
 	t := c.Theme()
 	screenRule(c)
 	gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
+		// S-appearance-76 当前皮肤设置
 		screenLabel(c, "当前皮肤设置")
+		// S-appearance-77 窗口背景
 		appearanceSkinBackgroundRow(c)
+		// S-appearance-82 透明度（滑块）
 		appearanceSkinOpacityRow(c)
+		// S-appearance-83 大小（Select）
 		appearanceSkinSelectRow(c, "大小", &appearanceScreen.skinFit, appearanceFits)
+		// S-appearance-84 位置（Select）
 		appearanceSkinSelectRow(c, "位置", &appearanceScreen.skinPlace, appearancePlacements)
+		// S-appearance-85 附着方式（Select）
 		appearanceSkinSelectRow(c, "附着方式", &appearanceScreen.skinAttach, appearanceAttach)
 		if appearanceScreen.skinAttach == 1 {
 			gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
 				screenIcon(c, iconWarn, screenIconMicro, t.Warning, "exclamation")
+				// S-appearance-86 ⚠ 可能影响滚动性能
 				screenHint(c, "可能影响滚动性能")
 			})
 		}
 		gui.Column(c).Shrink(0).Gap(screenSpace05).Children(func() {
+			// S-appearance-87 文字颜色 · 根据背景调整文字颜色，保证可读性。
 			screenLabel(c, "文字颜色")
 			screenHint(c, "根据背景调整文字颜色，保证可读性。")
 		})
 		gui.Row(c).Children(func() {
+			// S-appearance-88 文字颜色（Select）
 			screenIndexSelect(c, &appearanceScreen.skinInk, appearanceTextInks, "文字颜色")
 		})
 		appearanceSkinAdvanced(c)
@@ -1244,14 +1253,18 @@ func appearanceSkinBackgroundRow(c *gui.Context) {
 		value = "~/Pictures/background.png"
 	}
 	gui.Column(c).Shrink(0).Gap(screenSpace15).Children(func() {
+		// S-appearance-77 窗口背景（标签）
 		screenLabel(c, "窗口背景")
 		gui.Row(c).AlignItems(gui.Center).Gap(screenSpace2).Children(func() {
+			// S-appearance-78 背景图路径（未设置图片）
 			screenCodeStyle.style(t, gui.Text(c, value)).TextColor(t.TextMuted).
 				Grow(1).MinWidth(0).SingleLine().Label("背景图路径")
+			// S-appearance-79 更换
 			if screenButton(c, "更换", "更换背景图", "", false, rowRegular) {
 				appearanceScreen.skinImage = true
 			}
 			if appearanceScreen.skinImage {
+				// S-appearance-80 移除背景图
 				if screenIconButton(c, iconXMark, "移除背景图", "移除背景图", t.TextMuted) {
 					appearanceScreen.skinImage = false
 				}
@@ -1267,9 +1280,11 @@ func appearanceSkinOpacityRow(c *gui.Context) {
 		gui.Row(c).AlignItems(gui.Center).Children(func() {
 			screenLabel(c, "透明度")
 			gui.Spacer(c)
+			// S-appearance-81 透明度当前值
 			screenValueStyle.style(t, gui.Text(c, strconv.Itoa(int(appearanceScreen.skinOpacity+0.5))+"%")).
 				TextColor(t.Text).Label("透明度当前值")
 		})
+		// S-appearance-82 透明度滑块
 		gui.Slider(c, &appearanceScreen.skinOpacity, 0, 100).Step(5).
 			Label("透明度").Grow(1)
 	})
@@ -1289,6 +1304,7 @@ func appearanceSkinSelectRow(c *gui.Context, label string, value *int, options [
 func appearanceSkinAdvanced(c *gui.Context) {
 	t := c.Theme()
 	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).Padding(controlPadV, controlPadH).
+		// S-appearance-89 高级
 		Radius(screenRadiusCtl).Justify(gui.Start).Label("高级")
 	if b.Hovered() {
 		b = b.Background(t.SurfaceHover)
@@ -1310,13 +1326,17 @@ func appearanceSkinAdvanced(c *gui.Context) {
 		return
 	}
 	gui.Row(c).Gap(screenSpace2).Children(func() {
+		// S-appearance-90 外部打开
 		screenButton(c, "外部打开", "外部打开", "", false, rowRegular)
+		// S-appearance-92 打开 skin.json
 		screenButton(c, "打开 skin.json", "打开 skin.json", "", false, rowRegular)
+		// S-appearance-93 重新加载
 		if screenButton(c, "重新加载", "重新加载皮肤", "", false, rowRegular) {
 			appearanceScreen.reloaded = true
 		}
 	})
 	if appearanceScreen.reloaded {
+		// S-appearance-94 皮肤已重新加载
 		screenHint(c, "皮肤已重新加载")
 	}
 }

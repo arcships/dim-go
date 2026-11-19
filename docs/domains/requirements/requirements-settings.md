@@ -4505,168 +4505,168 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-APP-651 | S-appearance-76 | 内容 | 有激活皮肤 | 标签逐字「当前皮肤设置」 | — | 屏上「当前皮肤设置」的文案逐字为「当前皮肤设置」（6 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceActiveSkin「当前皮肤设置」 |
 | R-APP-652 | S-appearance-76 | 状态 | 无激活皮肤 | 整段（含后续控件）不渲染 | — | 屏上「当前皮肤设置」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-653 | S-appearance-76 | 样式 | 打开设置›外观，看「当前皮肤设置」 | 字号 14、中等字重，位于按钮行下方 20 | — | 屏上「当前皮肤设置」：字号 = 14、相对位置 = 按钮行下方 | 未实现（找不到元素渲染点） |
-| R-APP-654 | S-appearance-76 | 关联 | 在「当前皮肤设置」所在行内，同时看它与设置项的相对位置 | 标签下依次为窗口背景、透明度、大小、位置、附着方式、文字颜色、高级 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-APP-655 | S-appearance-76 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「当前皮肤设置」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-656 | S-appearance-76 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外观，看「当前皮肤设置」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-657 | S-appearance-76 | 窄窗 | 把窗口拖到内容列宽 520，看「当前皮肤设置」 | 单行 | — | 屏上「当前皮肤设置」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-APP-658 | S-appearance-76 | 深色 | 在设置›外观把主题切成深色，再回外观，看「当前皮肤设置」 | 对比 ≥4.5:1 | — | 屏上「当前皮肤设置」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-APP-653 | S-appearance-76 | 样式 | 打开设置›外观，看「当前皮肤设置」 | 字号 14、中等字重，位于按钮行下方 20 | — | 屏上「当前皮肤设置」：字号 = 14、相对位置 = 按钮行下方 | 已实现（映射 = S-appearance-76→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Height@screenRule） |
+| R-APP-654 | S-appearance-76 | 关联 | 在「当前皮肤设置」所在行内，同时看它与设置项的相对位置 | 标签下依次为窗口背景、透明度、大小、位置、附着方式、文字颜色、高级 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-appearance-76→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Screen） |
+| R-APP-655 | S-appearance-76 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「当前皮肤设置」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-76→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Label） |
+| R-APP-656 | S-appearance-76 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外观，看「当前皮肤设置」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-76→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-657 | S-appearance-76 | 窄窗 | 把窗口拖到内容列宽 520，看「当前皮肤设置」 | 单行 | — | 屏上「当前皮肤设置」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-appearance-76→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-658 | S-appearance-76 | 深色 | 在设置›外观把主题切成深色，再回外观，看「当前皮肤设置」 | 对比 ≥4.5:1 | — | 屏上「当前皮肤设置」：对比度 ≥ 4.5:1 | 已实现（映射 = S-appearance-76→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-659 | S-appearance-77 | 内容 | 当前皮肤设置出现 | 行标签逐字「窗口背景」 | — | 屏上「窗口背景」的文案逐字为「窗口背景」（4 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow「窗口背景」 |
-| R-APP-660 | S-appearance-77 | 样式 | 打开设置›外观，看「窗口背景」 | 字号 13、左列，与路径值同行 | — | 屏上「窗口背景」：字号 = 13 | 未实现（找不到元素渲染点） |
-| R-APP-661 | S-appearance-77 | 关联 | 在「窗口背景」所在行内，同时看它与路径值的相对位置 | 标签左、值右 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
+| R-APP-660 | S-appearance-77 | 样式 | 打开设置›外观，看「窗口背景」 | 字号 13、左列，与路径值同行 | — | 屏上「窗口背景」：字号 = 13 | 已实现（映射 = S-appearance-77→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = TextColor） |
+| R-APP-661 | S-appearance-77 | 关联 | 在「窗口背景」所在行内，同时看它与路径值的相对位置 | 标签左、值右 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-appearance-77→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Screen） |
 | R-APP-662 | S-appearance-77 | 状态 | 无激活皮肤 | 不渲染 | — | 屏上「窗口背景」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-663 | S-appearance-77 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「窗口背景」听播报 | 与值联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-664 | S-appearance-77 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外观，看「窗口背景」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-665 | S-appearance-77 | 窄窗 | 把窗口拖到内容列宽 520，看「窗口背景」 | 与值竖排 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-APP-666 | S-appearance-77 | 深色 | 在设置›外观把主题切成深色，再回外观，看「窗口背景」 | 对比 ≥4.5:1 | — | 屏上「窗口背景」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-APP-663 | S-appearance-77 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「窗口背景」听播报 | 与值联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-77→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Label） |
+| R-APP-664 | S-appearance-77 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外观，看「窗口背景」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-77→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
+| R-APP-665 | S-appearance-77 | 窄窗 | 把窗口拖到内容列宽 520，看「窗口背景」 | 与值竖排 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-appearance-77→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
+| R-APP-666 | S-appearance-77 | 深色 | 在设置›外观把主题切成深色，再回外观，看「窗口背景」 | 对比 ≥4.5:1 | — | 屏上「窗口背景」：对比度 ≥ 4.5:1 | 已实现（映射 = S-appearance-77→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-APP-667 | S-appearance-78 | 内容 | 已设置背景图 | 显示图片路径（代码样式） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-667 | S-appearance-78 | 内容 | 已设置背景图 | 显示图片路径（代码样式） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-78→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = 文案「未设置图片」等 7 条） |
 | R-APP-668 | S-appearance-78 | 内容 | 未设置背景图 | 显示逐字「未设置图片」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow「未设置图片」 |
-| R-APP-669 | S-appearance-78 | 样式 | 打开设置›外观，看「activeImagePath ??…」 | 等宽字体、弱底块、单行截断 | — | 屏上「activeImagePath ??…」：行数 = 1；文案末尾字符 = 「…」 | 未实现（找不到元素渲染点） |
-| R-APP-670 | S-appearance-78 | 交互 | 用鼠标左键双击「activeImagePath ??…」 | 选中复制 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-669 | S-appearance-78 | 样式 | 打开设置›外观，看「activeImagePath ??…」 | 等宽字体、弱底块、单行截断 | — | 屏上「activeImagePath ??…」：行数 = 1；文案末尾字符 = 「…」 | 已实现（映射 = S-appearance-78→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = TextColor） |
+| R-APP-670 | S-appearance-78 | 交互 | 用鼠标左键双击「activeImagePath ??…」 | 选中复制 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-78→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Pressed@screenButton） |
 | R-APP-671 | S-appearance-78 | 关联 | 在「activeImagePath ??…」所在行内，同时看它与「更换」的相对位置 | 已设置时右侧显示「更换」与移除按钮 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow「更换」 |
-| R-APP-672 | S-appearance-78 | 异常 | 路径文件已删除 | 显示路径并出现错误提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-673 | S-appearance-78 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「activeImagePath ??…」听播报 | 完整播报路径 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-674 | S-appearance-78 | 窄窗 | 把窗口拖到内容列宽 520，看「activeImagePath ??…」 | 截断，悬停显示完整 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-APP-672 | S-appearance-78 | 异常 | 路径文件已删除 | 显示路径并出现错误提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-78→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
+| R-APP-673 | S-appearance-78 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「activeImagePath ??…」听播报 | 完整播报路径 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-78→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Label） |
+| R-APP-674 | S-appearance-78 | 窄窗 | 把窗口拖到内容列宽 520，看「activeImagePath ??…」 | 截断，悬停显示完整 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-appearance-78→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-675 | S-appearance-79 | 内容 | 有激活皮肤 | 按钮文案逐字「更换」 | — | 屏上见「更换」 | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow「更换」 |
-| R-APP-676 | S-appearance-79 | 交互 | 用鼠标左键单击「更换」 | 打开图片选择器，选中后替换窗口背景并即时重绘 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-677 | S-appearance-79 | 状态 | 选择器取消 | 背景不变 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-APP-678 | S-appearance-79 | 样式 | 打开设置›外观，看「更换」 | 描边按钮、高 28，位于路径行右端 | — | 判据 = 屏上「更换」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
-| R-APP-679 | S-appearance-79 | 异常 | 图片不支持 | 提示并保留原背景 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-680 | S-appearance-79 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「更换」听播报 | 播报「更换窗口背景，按钮」 | — | 屏上「更换」的文案逐字为「更换窗口背景，按钮」（9 字） | 未实现（找不到元素渲染点） |
-| R-APP-681 | S-appearance-79 | 键盘 | 把 Tab 焦点移到「更换」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-APP-682 | S-appearance-79 | 记忆 | 更换后重启 | 新背景保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-676 | S-appearance-79 | 交互 | 用鼠标左键单击「更换」 | 打开图片选择器，选中后替换窗口背景并即时重绘 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-79→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Pressed@screenButton） |
+| R-APP-677 | S-appearance-79 | 状态 | 选择器取消 | 背景不变 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（映射到位但没有该维度的标记）：S-appearance-79→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
+| R-APP-678 | S-appearance-79 | 样式 | 打开设置›外观，看「更换」 | 描边按钮、高 28，位于路径行右端 | — | 判据 = 屏上「更换」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-appearance-79→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = TextColor） |
+| R-APP-679 | S-appearance-79 | 异常 | 图片不支持 | 提示并保留原背景 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-79→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
+| R-APP-680 | S-appearance-79 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「更换」听播报 | 播报「更换窗口背景，按钮」 | — | 屏上「更换」的文案逐字为「更换窗口背景，按钮」（9 字） | 已实现（映射 = S-appearance-79→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Label） |
+| R-APP-681 | S-appearance-79 | 键盘 | 把 Tab 焦点移到「更换」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-appearance-79→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
+| R-APP-682 | S-appearance-79 | 记忆 | 更换后重启 | 新背景保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-79→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-683 | S-appearance-80 | 状态 | 已设置背景图 | 移除图标按钮出现在「更换」右侧 | — | 「移除背景图」左边缘 x ≥ 「更换」右边缘 x（差 ≥ 0） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow「更换」 |
 | R-APP-684 | S-appearance-80 | 状态 | 未设置背景图 | 不渲染 | — | 屏上「移除背景图」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-APP-685 | S-appearance-80 | 交互 | 用鼠标左键单击「移除背景图」 | 背景图移除，路径值变「未设置图片」，窗口背景回到皮肤默认 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow「未设置图片」 |
-| R-APP-686 | S-appearance-80 | 样式 | 打开设置›外观，看「移除背景图」 | 24×24 图标按钮，警示色悬停 | — | 屏上「移除背景图」：宽×高 = 24×24 | 未实现（找不到元素渲染点） |
-| R-APP-687 | S-appearance-80 | 交互 | 用鼠标左键单击「移除背景图」 | 是否二次确认 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
-| R-APP-688 | S-appearance-80 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「移除背景图」听播报 | 播报「移除背景图，按钮」 | — | 屏上「移除背景图」的文案逐字为「移除背景图，按钮」（8 字） | 未实现（找不到元素渲染点） |
-| R-APP-689 | S-appearance-80 | 异常 | 移除失败 | 提示失败，背景保持 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-690 | S-appearance-80 | 记忆 | 移除后重启 | 仍无背景图 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-686 | S-appearance-80 | 样式 | 打开设置›外观，看「移除背景图」 | 24×24 图标按钮，警示色悬停 | — | 屏上「移除背景图」：宽×高 = 24×24 | 已实现（映射 = S-appearance-80→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = TextColor） |
+| R-APP-687 | S-appearance-80 | 交互 | 用鼠标左键单击「移除背景图」 | 是否二次确认 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = S-appearance-80→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Pressed@screenButton） |
+| R-APP-688 | S-appearance-80 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「移除背景图」听播报 | 播报「移除背景图，按钮」 | — | 屏上「移除背景图」的文案逐字为「移除背景图，按钮」（8 字） | 已实现（映射 = S-appearance-80→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow；标记 = Label） |
+| R-APP-689 | S-appearance-80 | 异常 | 移除失败 | 提示失败，背景保持 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-80→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
+| R-APP-690 | S-appearance-80 | 记忆 | 移除后重启 | 仍无背景图 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-80→internal/ui/settings_appearance_screen.go:appearanceSkinBackgroundRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-691 | S-appearance-81 | 内容 | 有激活皮肤 | 标签「透明度」+ 当前值（如「60%」） | — | 屏上「透明度 · 值」的文案逐字为「透明度」（3 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow「透明度」 |
-| R-APP-692 | S-appearance-81 | 状态 | 拖动滑块 | 百分比实时变化 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-APP-693 | S-appearance-81 | 样式 | 打开设置›外观，看「透明度 · 值」 | 标签 12、值 13 粗体，位于滑块上方 | — | 屏上「透明度 · 值」：相对位置 = 滑块上方 | 未实现（找不到元素渲染点） |
-| R-APP-694 | S-appearance-81 | 关联 | 在「透明度 · 值」所在行内，同时看它与滑块的相对位置 | 值与滑块位置同源 | — | 判据 = 滑块位置随取值线性变化（已取 ÷ 满程），状态取值变化 1 次（ST-CHANGE-1）；与对侧取值相同、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-692 | S-appearance-81 | 状态 | 拖动滑块 | 百分比实时变化 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-appearance-81→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow |
+| R-APP-693 | S-appearance-81 | 样式 | 打开设置›外观，看「透明度 · 值」 | 标签 12、值 13 粗体，位于滑块上方 | — | 屏上「透明度 · 值」：相对位置 = 滑块上方 | 已实现（映射 = S-appearance-81→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow；标记 = TextColor） |
+| R-APP-694 | S-appearance-81 | 关联 | 在「透明度 · 值」所在行内，同时看它与滑块的相对位置 | 值与滑块位置同源 | — | 判据 = 滑块位置随取值线性变化（已取 ÷ 满程），状态取值变化 1 次（ST-CHANGE-1）；与对侧取值相同、差 0（TX-EXACT） | 已实现（映射 = S-appearance-81→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow；标记 = Screen） |
 | R-APP-695 | S-appearance-81 | 异常 | 打开设置›外观，看「透明度 · 值」 | 显示「0%」，背景图完全透明 | — | 显示 0% | 已实现（逐字）：internal/ui/settings_account_screen.go:accountSampleData「0%」 |
-| R-APP-696 | S-appearance-81 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「透明度 · 值」听播报 | 播报「透明度 60%」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-697 | S-appearance-81 | 窄窗 | 把窗口拖到内容列宽 520，看「透明度 · 值」 | 不换行 | — | 屏上「透明度 · 值」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-APP-698 | S-appearance-81 | 语言 | 在设置›外观把界面语言切成英文后，看「透明度 · 值」 | 百分比格式不变 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-696 | S-appearance-81 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「透明度 · 值」听播报 | 播报「透明度 60%」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-81→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow；标记 = Label） |
+| R-APP-697 | S-appearance-81 | 窄窗 | 把窗口拖到内容列宽 520，看「透明度 · 值」 | 不换行 | — | 屏上「透明度 · 值」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-appearance-81→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow |
+| R-APP-698 | S-appearance-81 | 语言 | 在设置›外观把界面语言切成英文后，看「透明度 · 值」 | 百分比格式不变 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-81→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow；标记 = 文案「透明度」等 3 条） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-APP-699 | S-appearance-82 | 状态 | 有激活皮肤 | 滑块出现，取值 0–100%，步长 5 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-700 | S-appearance-82 | 交互 | 按住「透明度（滑块）」的滑块向右拖动 20px | 窗口背景透明度实时变化 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-701 | S-appearance-82 | 交互 | 点击轨道 | 跳到点击位置并生效 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-702 | S-appearance-82 | 交互 | 键盘左右键 | 每次 ±5% | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-703 | S-appearance-82 | 样式 | 打开设置›外观，看「透明度（滑块）」 | 通栏宽、轨道高 5，位于标签行下方 8 | — | 屏上「透明度（滑块）」：相对位置 = 标签行下方 | 未实现（找不到元素渲染点） |
-| R-APP-704 | S-appearance-82 | 动画 | 按住「透明度（滑块）」的滑块向右拖动 20px | 跟手；点击跳转 100ms 过渡 | — | 屏上「透明度（滑块）」：时长(ms) = 100 | 未实现（找不到元素渲染点） |
-| R-APP-705 | S-appearance-82 | 异常 | 断开网络后改「透明度（滑块）」，等保存返回失败 | 回滚原值 | — | 屏上「透明度（滑块）」：取值与改动前相比差 = 0（回滚到原值） | 未实现（找不到元素渲染点） |
-| R-APP-706 | S-appearance-82 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「透明度（滑块）」听播报 | 播报滑块范围与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-707 | S-appearance-82 | 记忆 | 设置后重启 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-708 | S-appearance-82 | 性能 | 快速拖动 | 背景重绘不掉帧 | — | 判据 = 首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（找不到元素渲染点） |
+| R-APP-699 | S-appearance-82 | 状态 | 有激活皮肤 | 滑块出现，取值 0–100%，步长 5 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Hidden@screenRule） |
+| R-APP-700 | S-appearance-82 | 交互 | 按住「透明度（滑块）」的滑块向右拖动 20px | 窗口背景透明度实时变化 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-701 | S-appearance-82 | 交互 | 点击轨道 | 跳到点击位置并生效 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-702 | S-appearance-82 | 交互 | 键盘左右键 | 每次 ±5% | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-703 | S-appearance-82 | 样式 | 打开设置›外观，看「透明度（滑块）」 | 通栏宽、轨道高 5，位于标签行下方 8 | — | 屏上「透明度（滑块）」：相对位置 = 标签行下方 | 已实现（映射 = S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow；标记 = TextColor） |
+| R-APP-704 | S-appearance-82 | 动画 | 按住「透明度（滑块）」的滑块向右拖动 20px | 跟手；点击跳转 100ms 过渡 | — | 屏上「透明度（滑块）」：时长(ms) = 100 | 未实现（映射到位但没有该维度的标记）：S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow |
+| R-APP-705 | S-appearance-82 | 异常 | 断开网络后改「透明度（滑块）」，等保存返回失败 | 回滚原值 | — | 屏上「透明度（滑块）」：取值与改动前相比差 = 0（回滚到原值） | 未实现（映射到位但没有该维度的标记）：S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow |
+| R-APP-706 | S-appearance-82 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「透明度（滑块）」听播报 | 播报滑块范围与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow；标记 = Label） |
+| R-APP-707 | S-appearance-82 | 记忆 | 设置后重启 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow |
+| R-APP-708 | S-appearance-82 | 性能 | 快速拖动 | 背景重绘不掉帧 | — | 判据 = 首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（映射到位但没有该维度的标记）：S-appearance-82→internal/ui/settings_appearance_screen.go:appearanceSkinOpacityRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-709 | S-appearance-83 | 状态 | 有激活皮肤 | 下拉显示当前大小（如「覆盖」/「适应」/「平铺」） | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/settings_pets_screen.go:petsCopyRecovery「覆盖」 |
-| R-APP-710 | S-appearance-83 | 交互 | 用鼠标左键单击「大小（Select）」 | 展开大小选项 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-711 | S-appearance-83 | 交互 | 点开「大小（Select）」并选中其中一项 | 背景图按所选方式缩放，即时重绘 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-712 | S-appearance-83 | 样式 | 打开设置›外观，看「大小（Select）」 | 宽 224、高 32，右列 | — | 屏上「大小（Select）」：宽度 = 224、高度 = 32 | 未实现（找不到元素渲染点） |
-| R-APP-713 | S-appearance-83 | 关联 | 在「大小（Select）」所在行内，同时看它与位置/附着方式的相对位置 | 三个下拉纵向排列，间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-APP-714 | S-appearance-83 | 异常 | 断开网络后改「大小（Select）」，等保存返回失败 | 回滚 | — | 屏上「大小（Select）」：取值与改动前相比差 = 0（回滚到原值） | 未实现（找不到元素渲染点） |
-| R-APP-715 | S-appearance-83 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「大小（Select）」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-716 | S-appearance-83 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「大小（Select）」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-710 | S-appearance-83 | 交互 | 用鼠标左键单击「大小（Select）」 | 展开大小选项 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-83→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-711 | S-appearance-83 | 交互 | 点开「大小（Select）」并选中其中一项 | 背景图按所选方式缩放，即时重绘 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-83→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-712 | S-appearance-83 | 样式 | 打开设置›外观，看「大小（Select）」 | 宽 224、高 32，右列 | — | 屏上「大小（Select）」：宽度 = 224、高度 = 32 | 已实现（映射 = S-appearance-83→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Height@screenRule） |
+| R-APP-713 | S-appearance-83 | 关联 | 在「大小（Select）」所在行内，同时看它与位置/附着方式的相对位置 | 三个下拉纵向排列，间距 8 | — | 间距 8 | 已实现（映射 = S-appearance-83→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Screen） |
+| R-APP-714 | S-appearance-83 | 异常 | 断开网络后改「大小（Select）」，等保存返回失败 | 回滚 | — | 屏上「大小（Select）」：取值与改动前相比差 = 0（回滚到原值） | 未实现（映射到位但没有该维度的标记）：S-appearance-83→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-715 | S-appearance-83 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「大小（Select）」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-83→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Label） |
+| R-APP-716 | S-appearance-83 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「大小（Select）」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-83→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-717 | S-appearance-84 | 状态 | 有激活皮肤 | 下拉显示当前位置（如「居中」「左上」） | — | 屏上「位置（Select）」：水平对齐 = 居中 | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearancePlacements「左上」 |
-| R-APP-718 | S-appearance-84 | 交互 | 用鼠标左键单击「位置（Select）」 | 展开九宫格或列表形式的九个位置 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-719 | S-appearance-84 | 交互 | 点开「位置（Select）」并选中其中一项 | 背景图位置即时变化 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-720 | S-appearance-84 | 样式 | 打开设置›外观，看「位置（Select）」 | 与大小下拉同款，位于其下 8 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-APP-721 | S-appearance-84 | 状态 | 大小为使背景铺满 | 位置项可能禁用 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-APP-722 | S-appearance-84 | 异常 | 断开网络后改「位置（Select）」，等保存返回失败 | 回滚 | — | 屏上「位置（Select）」：取值与改动前相比差 = 0（回滚到原值） | 未实现（找不到元素渲染点） |
-| R-APP-723 | S-appearance-84 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「位置（Select）」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-APP-724 | S-appearance-84 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「位置（Select）」 | 保持 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-718 | S-appearance-84 | 交互 | 用鼠标左键单击「位置（Select）」 | 展开九宫格或列表形式的九个位置 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-84→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-719 | S-appearance-84 | 交互 | 点开「位置（Select）」并选中其中一项 | 背景图位置即时变化 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-84→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-720 | S-appearance-84 | 样式 | 打开设置›外观，看「位置（Select）」 | 与大小下拉同款，位于其下 8 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-appearance-84→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Height@screenRule） |
+| R-APP-721 | S-appearance-84 | 状态 | 大小为使背景铺满 | 位置项可能禁用 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-appearance-84→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Hidden@screenRule） |
+| R-APP-722 | S-appearance-84 | 异常 | 断开网络后改「位置（Select）」，等保存返回失败 | 回滚 | — | 屏上「位置（Select）」：取值与改动前相比差 = 0（回滚到原值） | 未实现（映射到位但没有该维度的标记）：S-appearance-84→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-723 | S-appearance-84 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「位置（Select）」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-appearance-84→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Label） |
+| R-APP-724 | S-appearance-84 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「位置（Select）」 | 保持 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-84→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-725 | S-appearance-85 | 状态 | 有激活皮肤 | 下拉显示当前附着方式（如「滚动」「固定」） | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceAttach「滚动」 |
-| R-APP-726 | S-appearance-85 | 交互 | 用鼠标左键单击「附着方式」 | 展开附着方式选项 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-727 | S-appearance-85 | 交互 | 选「固定」 | 背景不随内容滚动，并出现性能提示（S-appearance-86） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-728 | S-appearance-85 | 样式 | 打开设置›外观，看「附着方式」 | 与其它下拉同款，位于位置下拉下 8 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-APP-726 | S-appearance-85 | 交互 | 用鼠标左键单击「附着方式」 | 展开附着方式选项 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-85→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-727 | S-appearance-85 | 交互 | 选「固定」 | 背景不随内容滚动，并出现性能提示（S-appearance-86） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-85→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-728 | S-appearance-85 | 样式 | 打开设置›外观，看「附着方式」 | 与其它下拉同款，位于位置下拉下 8 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-appearance-85→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Height@screenRule） |
 | R-APP-729 | S-appearance-85 | 关联 | 在「附着方式」所在行内，同时看它与性能提示的相对位置 | 提示仅在「固定」时出现 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceAttach「固定」 |
-| R-APP-730 | S-appearance-85 | 异常 | 断开网络后改「附着方式」，等保存返回失败 | 回滚 | — | 屏上「附着方式」：取值与改动前相比差 = 0（回滚到原值） | 未实现（找不到元素渲染点） |
-| R-APP-731 | S-appearance-85 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「附着方式」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-732 | S-appearance-85 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「附着方式」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-730 | S-appearance-85 | 异常 | 断开网络后改「附着方式」，等保存返回失败 | 回滚 | — | 屏上「附着方式」：取值与改动前相比差 = 0（回滚到原值） | 未实现（映射到位但没有该维度的标记）：S-appearance-85→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-731 | S-appearance-85 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「附着方式」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-85→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Label） |
+| R-APP-732 | S-appearance-85 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「附着方式」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-85→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-APP-733 | S-appearance-86 | 状态 | 附着方式为「固定」 | 显示逐字「⚠ 可能影响滚动性能」 | — | 屏上「⚠ 可能影响滚动性能」的文案逐字为「⚠ 可能影响滚动性能」（10 字） | 未实现（找不到元素渲染点） |
+| R-APP-733 | S-appearance-86 | 状态 | 附着方式为「固定」 | 显示逐字「⚠ 可能影响滚动性能」 | — | 屏上「⚠ 可能影响滚动性能」的文案逐字为「⚠ 可能影响滚动性能」（10 字） | 已实现（映射 = S-appearance-86→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Hidden@screenRule） |
 | R-APP-734 | S-appearance-86 | 状态 | 打开设置›外观，看「⚠ 可能影响滚动性能」 | 不渲染 | — | 屏上「⚠ 可能影响滚动性能」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-735 | S-appearance-86 | 样式 | 打开设置›外观，看「⚠ 可能影响滚动性能」 | 字号 11、警示色，位于附着方式下拉下方 4 | — | 判据 = 屏上「⚠ 可能影响滚动性能」：字号 = 11、相对位置 = 附着方式下拉下方；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 未实现（找不到元素渲染点） |
-| R-APP-736 | S-appearance-86 | 内容 | 打开设置›外观，看「⚠ 可能影响滚动性能」 | 警示符号与文案在同一行 | — | 屏上「⚠ 可能影响滚动性能」：行数 = 1 | 未实现（找不到元素渲染点） |
+| R-APP-735 | S-appearance-86 | 样式 | 打开设置›外观，看「⚠ 可能影响滚动性能」 | 字号 11、警示色，位于附着方式下拉下方 4 | — | 判据 = 屏上「⚠ 可能影响滚动性能」：字号 = 11、相对位置 = 附着方式下拉下方；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 已实现（映射 = S-appearance-86→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Height@screenRule） |
+| R-APP-736 | S-appearance-86 | 内容 | 打开设置›外观，看「⚠ 可能影响滚动性能」 | 警示符号与文案在同一行 | — | 屏上「⚠ 可能影响滚动性能」：行数 = 1 | 已实现（映射 = S-appearance-86→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = 文案「当前皮肤设置」等 8 条） |
 | R-APP-737 | S-appearance-86 | 关联 | 在「⚠ 可能影响滚动性能」所在行内，同时看它与选项切换的相对位置 | 切回「滚动」后提示立即消失 | — | 屏上「⚠ 可能影响滚动性能」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-738 | S-appearance-86 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⚠ 可能影响滚动性能」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0 | 未实现（找不到元素渲染点） |
-| R-APP-739 | S-appearance-86 | 窄窗 | 把窗口拖到内容列宽 520，看「⚠ 可能影响滚动性能」 | 折行 | — | 判据 = 滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-APP-740 | S-appearance-86 | 深色 | 在设置›外观把主题切成深色，再回外观，看「⚠ 可能影响滚动性能」 | 对比 ≥4.5:1 | — | 屏上「⚠ 可能影响滚动性能」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-APP-738 | S-appearance-86 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⚠ 可能影响滚动性能」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0 | 已实现（映射 = S-appearance-86→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Label） |
+| R-APP-739 | S-appearance-86 | 窄窗 | 把窗口拖到内容列宽 520，看「⚠ 可能影响滚动性能」 | 折行 | — | 判据 = 滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-appearance-86→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-740 | S-appearance-86 | 深色 | 在设置›外观把主题切成深色，再回外观，看「⚠ 可能影响滚动性能」 | 对比 ≥4.5:1 | — | 屏上「⚠ 可能影响滚动性能」：对比度 ≥ 4.5:1 | 已实现（映射 = S-appearance-86→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-741 | S-appearance-87 | 内容 | 有激活皮肤 | 标签「文字颜色」+ 说明「根据背景调整文字颜色，保证可读性。」 | — | 屏上「文字颜色 · 根据背景调整文字颜色，…」的文案逐字为「文字颜色」（4 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceActiveSkin「文字颜色」 |
-| R-APP-742 | S-appearance-87 | 样式 | 打开设置›外观，看「文字颜色 · 根据背景调整文字颜色，…」 | 标签 13、说明 12 次级前景，说明在标签下 2 | — | 判据 = 字号 UI 正文 12.25px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-APP-743 | S-appearance-87 | 关联 | 在「文字颜色 · 根据背景调整文字颜色，…」所在行内，同时看它与下拉的相对位置 | 说明下 8 是文字颜色下拉 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-APP-744 | S-appearance-87 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「文字颜色 · 根据背景调整文字颜色，…」听播报 | 标签与说明作为下拉描述 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-745 | S-appearance-87 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外观，看「文字颜色 · 根据背景调整文字颜色，…」 | 回落中文 | — | 判据 = 字色 破坏 明 #e7000b / 暗 #ff6467；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-746 | S-appearance-87 | 窄窗 | 把窗口拖到内容列宽 520，看「文字颜色 · 根据背景调整文字颜色，…」 | 折行 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-APP-747 | S-appearance-87 | 深色 | 在设置›外观把主题切成深色，再回外观，看「文字颜色 · 根据背景调整文字颜色，…」 | 对比 ≥4.5:1 | — | 屏上「文字颜色 · 根据背景调整文字颜色，…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-APP-742 | S-appearance-87 | 样式 | 打开设置›外观，看「文字颜色 · 根据背景调整文字颜色，…」 | 标签 13、说明 12 次级前景，说明在标签下 2 | — | 判据 = 字号 UI 正文 12.25px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-appearance-87→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Height@screenRule） |
+| R-APP-743 | S-appearance-87 | 关联 | 在「文字颜色 · 根据背景调整文字颜色，…」所在行内，同时看它与下拉的相对位置 | 说明下 8 是文字颜色下拉 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-appearance-87→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Screen） |
+| R-APP-744 | S-appearance-87 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「文字颜色 · 根据背景调整文字颜色，…」听播报 | 标签与说明作为下拉描述 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-87→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Label） |
+| R-APP-745 | S-appearance-87 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外观，看「文字颜色 · 根据背景调整文字颜色，…」 | 回落中文 | — | 判据 = 字色 破坏 明 #e7000b / 暗 #ff6467；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-87→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-746 | S-appearance-87 | 窄窗 | 把窗口拖到内容列宽 520，看「文字颜色 · 根据背景调整文字颜色，…」 | 折行 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-appearance-87→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-747 | S-appearance-87 | 深色 | 在设置›外观把主题切成深色，再回外观，看「文字颜色 · 根据背景调整文字颜色，…」 | 对比 ≥4.5:1 | — | 屏上「文字颜色 · 根据背景调整文字颜色，…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-appearance-87→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Theme） |
 | R-APP-748 | S-appearance-87 | 状态 | 无激活皮肤 | 不渲染 | — | 屏上「文字颜色 · 根据背景调整文字颜色，…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-749 | S-appearance-88 | 状态 | 有激活皮肤 | 下拉显示当前文字颜色策略（如「浅色」「深色」「自动」） | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceThemeOptions「浅色」 |
-| R-APP-750 | S-appearance-88 | 交互 | 用鼠标左键单击「文字颜色」 | 展开颜色策略选项 | — | 判据 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-751 | S-appearance-88 | 交互 | 点开「文字颜色」并选中其中一项 | 界面文字颜色即时变化，与背景对比可读 | — | 判据 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-752 | S-appearance-88 | 样式 | 打开设置›外观，看「文字颜色」 | 通栏宽 224 或 741，高 32 | — | 判据 = 屏上「文字颜色」：高度 = 32；宽 = 224px | 未实现（找不到元素渲染点） |
-| R-APP-753 | S-appearance-88 | 关联 | 在「文字颜色」所在行内，同时看它与背景图的相对位置 | 移除此背景图后该下拉仍生效（作用于皮肤底色） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-APP-754 | S-appearance-88 | 异常 | 断开网络后改「文字颜色」，等保存返回失败 | 回滚 | — | 屏上「文字颜色」：取值与改动前相比差 = 0（回滚到原值） | 未实现（找不到元素渲染点） |
-| R-APP-755 | S-appearance-88 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「文字颜色」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-APP-756 | S-appearance-88 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「文字颜色」 | 保持 | — | 判据 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-750 | S-appearance-88 | 交互 | 用鼠标左键单击「文字颜色」 | 展开颜色策略选项 | — | 判据 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-88→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-751 | S-appearance-88 | 交互 | 点开「文字颜色」并选中其中一项 | 界面文字颜色即时变化，与背景对比可读 | — | 判据 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-88→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Clicked@appearanceSkinAdvanced） |
+| R-APP-752 | S-appearance-88 | 样式 | 打开设置›外观，看「文字颜色」 | 通栏宽 224 或 741，高 32 | — | 判据 = 屏上「文字颜色」：高度 = 32；宽 = 224px | 已实现（映射 = S-appearance-88→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Height@screenRule） |
+| R-APP-753 | S-appearance-88 | 关联 | 在「文字颜色」所在行内，同时看它与背景图的相对位置 | 移除此背景图后该下拉仍生效（作用于皮肤底色） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-appearance-88→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Screen） |
+| R-APP-754 | S-appearance-88 | 异常 | 断开网络后改「文字颜色」，等保存返回失败 | 回滚 | — | 屏上「文字颜色」：取值与改动前相比差 = 0（回滚到原值） | 未实现（映射到位但没有该维度的标记）：S-appearance-88→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
+| R-APP-755 | S-appearance-88 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「文字颜色」听播报 | 播报名称与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = S-appearance-88→internal/ui/settings_appearance_screen.go:appearanceActiveSkin；标记 = Label） |
+| R-APP-756 | S-appearance-88 | 记忆 | 改动后退出客户端再启动，重进设置›外观，看「文字颜色」 | 保持 | — | 判据 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-88→internal/ui/settings_appearance_screen.go:appearanceActiveSkin |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-757 | S-appearance-89 | 内容 | 有激活皮肤 | 折叠按钮文案逐字「高级」，右侧带展开箭头 | — | 屏上见「高级」 | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced「高级」 |
 | R-APP-758 | S-appearance-89 | 状态 | 打开设置›外观，看「高级」 | 箭头朝下，展开区不渲染 | — | 屏上「高级」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-APP-759 | S-appearance-89 | 交互 | 用鼠标左键单击「高级」 | 展开显示「外部打开」「打开 skin.json」「重新加载」等 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced「外部打开」 |
-| R-APP-760 | S-appearance-89 | 样式 | 打开设置›外观，看「高级」 | 全行可点，高 32，字号 13、粗体 | — | 屏上「高级」：字号 = 13、高度 = 32；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-APP-761 | S-appearance-89 | 动画 | 展开 / 收起 | 箭头旋转 120ms，内容高度过渡 150ms | — | 屏上「高级」：时长(ms) = 120 | 未实现（找不到元素渲染点） |
-| R-APP-762 | S-appearance-89 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「高级」听播报 | 播报为展开按钮，含展开/收起状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-APP-763 | S-appearance-89 | 记忆 | 展开后切节再回来 | 回到收起态 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-764 | S-appearance-89 | 键盘 | 把 Tab 焦点移到「高级」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-APP-760 | S-appearance-89 | 样式 | 打开设置›外观，看「高级」 | 全行可点，高 32，字号 13、粗体 | — | 屏上「高级」：字号 = 13、高度 = 32；可点次数 = 1（点击后状态变化次数 ≥ 1） | 已实现（映射 = S-appearance-89→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Height） |
+| R-APP-761 | S-appearance-89 | 动画 | 展开 / 收起 | 箭头旋转 120ms，内容高度过渡 150ms | — | 屏上「高级」：时长(ms) = 120 | 未实现（映射到位但没有该维度的标记）：S-appearance-89→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-762 | S-appearance-89 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「高级」听播报 | 播报为展开按钮，含展开/收起状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-appearance-89→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Label） |
+| R-APP-763 | S-appearance-89 | 记忆 | 展开后切节再回来 | 回到收起态 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-89→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-764 | S-appearance-89 | 键盘 | 把 Tab 焦点移到「高级」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-appearance-89→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-765 | S-appearance-90 | 状态 | 高级已展开 | 按钮文案逐字「外部打开」 | — | 屏上「外部打开」的文案逐字为「外部打开」（4 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced「外部打开」 |
-| R-APP-766 | S-appearance-90 | 交互 | 用鼠标左键单击「外部打开」 | 用外部编辑器打开该皮肤的 skin.json | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-766 | S-appearance-90 | 交互 | 用鼠标左键单击「外部打开」 | 用外部编辑器打开该皮肤的 skin.json | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-90→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Clicked） |
 | R-APP-767 | S-appearance-90 | 状态 | 打开设置›外观，看「外部打开」 | 不渲染 | — | 屏上「外部打开」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-768 | S-appearance-90 | 样式 | 打开设置›外观，看「外部打开」 | 描边按钮、高 28，位于高级区顶部 | — | 判据 = 屏上「外部打开」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
-| R-APP-769 | S-appearance-90 | 异常 | 无默认编辑器 | 提示失败，按钮可重试 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-770 | S-appearance-90 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外部打开」听播报 | 播报按钮名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-771 | S-appearance-90 | 键盘 | 把 Tab 焦点移到「外部打开」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-APP-772 | S-appearance-90 | 记忆 | 打开后返回并点「重新加载」 | 改动生效 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-768 | S-appearance-90 | 样式 | 打开设置›外观，看「外部打开」 | 描边按钮、高 28，位于高级区顶部 | — | 判据 = 屏上「外部打开」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-appearance-90→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Height） |
+| R-APP-769 | S-appearance-90 | 异常 | 无默认编辑器 | 提示失败，按钮可重试 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-90→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-770 | S-appearance-90 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外部打开」听播报 | 播报按钮名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-90→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Label） |
+| R-APP-771 | S-appearance-90 | 键盘 | 把 Tab 焦点移到「外部打开」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-appearance-90→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-772 | S-appearance-90 | 记忆 | 打开后返回并点「重新加载」 | 改动生效 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-90→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -4682,35 +4682,35 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-781 | S-appearance-92 | 状态 | 错误提示条出现 | 按钮文案逐字「打开 skin.json」 | — | 屏上「打开 skin.json」的文案逐字为「打开 skin.json」（12 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced「打开 skin.json」 |
-| R-APP-782 | S-appearance-92 | 交互 | 用鼠标左键单击「打开 skin.json」 | 用外部编辑器打开该文件（同 S-appearance-90） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-APP-782 | S-appearance-92 | 交互 | 用鼠标左键单击「打开 skin.json」 | 用外部编辑器打开该文件（同 S-appearance-90） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-92→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Clicked） |
 | R-APP-783 | S-appearance-92 | 状态 | 无错误 | 不渲染（只在提示条内） | — | 屏上「打开 skin.json」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-784 | S-appearance-92 | 样式 | 打开设置›外观，看「打开 skin.json」 | 描边按钮、高 28，位于提示条内右下 | — | 判据 = 屏上「打开 skin.json」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
-| R-APP-785 | S-appearance-92 | 异常 | 文件不存在 | 提示文件已被删除 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-786 | S-appearance-92 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「打开 skin.json」听播报 | 播报按钮名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-787 | S-appearance-92 | 键盘 | 把 Tab 焦点移到「打开 skin.json」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-APP-788 | S-appearance-92 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「打开 skin.json」的边缘 | 文字与边框清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-APP-784 | S-appearance-92 | 样式 | 打开设置›外观，看「打开 skin.json」 | 描边按钮、高 28，位于提示条内右下 | — | 判据 = 屏上「打开 skin.json」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-appearance-92→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Height） |
+| R-APP-785 | S-appearance-92 | 异常 | 文件不存在 | 提示文件已被删除 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-92→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-786 | S-appearance-92 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「打开 skin.json」听播报 | 播报按钮名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-92→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Label） |
+| R-APP-787 | S-appearance-92 | 键盘 | 把 Tab 焦点移到「打开 skin.json」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-appearance-92→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-788 | S-appearance-92 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「打开 skin.json」的边缘 | 文字与边框清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-appearance-92→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-789 | S-appearance-93 | 状态 | 错误提示条出现 | 按钮文案逐字「重新加载」 | — | 屏上「重新加载」的文案逐字为「重新加载」（4 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced「重新加载」 |
 | R-APP-790 | S-appearance-93 | 交互 | 用鼠标左键单击「重新加载」 | 重新读取皮肤文件；成功后错误提示条消失，皮肤卡可应用 | — | 屏上「重新加载」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-791 | S-appearance-93 | 状态 | 重新加载进行中 | 按钮禁用并显示进行中 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
+| R-APP-791 | S-appearance-93 | 状态 | 重新加载进行中 | 按钮禁用并显示进行中 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-appearance-93→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Hidden@screenIconRotated） |
 | R-APP-792 | S-appearance-93 | 样式 | 打开设置›外观，看「重新加载」 | 描边按钮、高 28，位于「打开 skin.json」右侧 8 | — | 判据 = 屏上「重新加载」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced「打开 skin.json」 |
-| R-APP-793 | S-appearance-93 | 异常 | 仍有错误 | 提示条保留，错误文案更新为最新原因 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-794 | S-appearance-93 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「重新加载」听播报 | 播报按钮名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-795 | S-appearance-93 | 键盘 | 把 Tab 焦点移到「重新加载」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-APP-796 | S-appearance-93 | 动画 | 成功后 | 提示条 120ms 淡出，下方内容上移 | — | 屏上「重新加载」：时长(ms) = 120 | 未实现（找不到元素渲染点） |
+| R-APP-793 | S-appearance-93 | 异常 | 仍有错误 | 提示条保留，错误文案更新为最新原因 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-appearance-93→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-794 | S-appearance-93 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「重新加载」听播报 | 播报按钮名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-93→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Label） |
+| R-APP-795 | S-appearance-93 | 键盘 | 把 Tab 焦点移到「重新加载」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-appearance-93→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-796 | S-appearance-93 | 动画 | 成功后 | 提示条 120ms 淡出，下方内容上移 | — | 屏上「重新加载」：时长(ms) = 120 | 未实现（映射到位但没有该维度的标记）：S-appearance-93→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-APP-797 | S-appearance-94 | 状态 | 重新加载成功 | 提示条位置显示逐字「皮肤已重新加载」 | — | 屏上「皮肤已重新加载」的文案逐字为「皮肤已重新加载」（7 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced「皮肤已重新加载」 |
 | R-APP-798 | S-appearance-94 | 状态 | 未重新加载过 | 不渲染 | — | 屏上「皮肤已重新加载」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-APP-799 | S-appearance-94 | 样式 | 打开设置›外观，看「皮肤已重新加载」 | 字号 12、成功色或次级前景，位于提示条原位 | — | 屏上「皮肤已重新加载」：字号 = 12 | 未实现（找不到元素渲染点） |
-| R-APP-800 | S-appearance-94 | 动画 | 出现后 | 3000ms 后自动淡出 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-APP-801 | S-appearance-94 | 关联 | 在「皮肤已重新加载」所在行内，同时看它与错误提示条的相对位置 | 与错误提示条不同时出现 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-APP-802 | S-appearance-94 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「皮肤已重新加载」听播报 | 状态播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-APP-803 | S-appearance-94 | 异常 | 打开设置›外观，看「皮肤已重新加载」 | 文案不叠加，保持一条 | — | 屏上「皮肤已重新加载」：取值与改动前相同（差 = 0） | 未实现（找不到元素渲染点） |
-| R-APP-804 | S-appearance-94 | 窄窗 | 把窗口拖到内容列宽 520，看「皮肤已重新加载」 | 单行 | — | 屏上「皮肤已重新加载」：行数 = 1 | 未实现（找不到元素渲染点） |
+| R-APP-799 | S-appearance-94 | 样式 | 打开设置›外观，看「皮肤已重新加载」 | 字号 12、成功色或次级前景，位于提示条原位 | — | 屏上「皮肤已重新加载」：字号 = 12 | 已实现（映射 = S-appearance-94→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Height） |
+| R-APP-800 | S-appearance-94 | 动画 | 出现后 | 3000ms 后自动淡出 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-appearance-94→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-801 | S-appearance-94 | 关联 | 在「皮肤已重新加载」所在行内，同时看它与错误提示条的相对位置 | 与错误提示条不同时出现 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-appearance-94→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Screen） |
+| R-APP-802 | S-appearance-94 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「皮肤已重新加载」听播报 | 状态播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-appearance-94→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced；标记 = Label） |
+| R-APP-803 | S-appearance-94 | 异常 | 打开设置›外观，看「皮肤已重新加载」 | 文案不叠加，保持一条 | — | 屏上「皮肤已重新加载」：取值与改动前相同（差 = 0） | 未实现（映射到位但没有该维度的标记）：S-appearance-94→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
+| R-APP-804 | S-appearance-94 | 窄窗 | 把窗口拖到内容列宽 520，看「皮肤已重新加载」 | 单行 | — | 屏上「皮肤已重新加载」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-appearance-94→internal/ui/settings_appearance_screen.go:appearanceSkinAdvanced |
 
 ### 4.6 本节统计
 
@@ -4734,112 +4734,112 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-001 | S-general-01 | 内容 | 进入通用节 | 标题「通用」，无副标题 | — | 文案「通用」 | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「通用」 |
-| R-GEN-002 | S-general-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「通用」 | 与其它节标题同级，左缘 257、y=33 | — | 屏上「通用」：y = 33 | 未实现（找不到元素渲染点） |
+| R-GEN-002 | S-general-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「通用」 | 与其它节标题同级，左缘 257、y=33 | — | 屏上「通用」：y = 33 | 已实现（映射 = S-general-01→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
 | R-GEN-003 | S-general-01 | 状态 | 从其它节切来 | 标题替换，不残留上一节 | — | 标题数 1；上一次内容出现次数 0（ST-VISIBLE） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GEN-004 | S-general-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-005 | S-general-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈33 处的「通用」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-006 | S-general-01 | 记忆 | 切节再回来 | 回到首屏 y=33 | — | 屏上「通用」：y = 33 | 未实现（找不到元素渲染点） |
-| R-GEN-007 | S-general-01 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈33 处的「通用」 | 单行 | — | 屏上「通用」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-GEN-008 | S-general-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「通用」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-GEN-004 | S-general-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-01→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-005 | S-general-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈33 处的「通用」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-01→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-006 | S-general-01 | 记忆 | 切节再回来 | 回到首屏 y=33 | — | 屏上「通用」：y = 33 | 未实现（映射到位但没有该维度的标记）：S-general-01→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-007 | S-general-01 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈33 处的「通用」 | 单行 | — | 屏上「通用」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-general-01→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-008 | S-general-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「通用」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-01→internal/ui/settings_general_screen.go:renderGeneral；标记 = 文案「通用」等 7 条） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-009 | S-general-02 | 内容 | 打开设置›通用，滚动到 y≈100 处的「保持电脑唤醒」 | 标签「保持电脑唤醒」 | — | 屏上「保持电脑唤醒」的文案逐字为「保持电脑唤醒」（6 字） | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「保持电脑唤醒」 |
-| R-GEN-010 | S-general-02 | 样式 | 打开设置›通用，滚动到 y≈100 处的「保持电脑唤醒」 | 字号 14、中等字重，宽 210 | — | 屏上「保持电脑唤醒」：字号 = 14、宽度 = 210 | 未实现（找不到元素渲染点） |
-| R-GEN-011 | S-general-02 | 关联 | 在「保持电脑唤醒」所在行内，同时看它与开关的相对位置 | 行内左对齐，开关在右（x=955） | — | 屏上「保持电脑唤醒」：x = 955、水平对齐 = 左 | 未实现（找不到元素渲染点） |
-| R-GEN-012 | S-general-02 | 关联 | 在「保持电脑唤醒」所在行内，同时看它与说明的相对位置 | 说明在其下 4 | — | 间距 4 | 未实现（找不到元素渲染点） |
-| R-GEN-013 | S-general-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保持电脑唤醒」听播报 | 与开关联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-014 | S-general-02 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈100 处的「保持电脑唤醒」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-015 | S-general-02 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈100 处的「保持电脑唤醒」 | 与开关仍同行 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-GEN-016 | S-general-02 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈100 处的「保持电脑唤醒」 | 对比 ≥4.5:1 | — | 屏上「保持电脑唤醒」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-GEN-010 | S-general-02 | 样式 | 打开设置›通用，滚动到 y≈100 处的「保持电脑唤醒」 | 字号 14、中等字重，宽 210 | — | 屏上「保持电脑唤醒」：字号 = 14、宽度 = 210 | 已实现（映射 = S-general-02→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-011 | S-general-02 | 关联 | 在「保持电脑唤醒」所在行内，同时看它与开关的相对位置 | 行内左对齐，开关在右（x=955） | — | 屏上「保持电脑唤醒」：x = 955、水平对齐 = 左 | 已实现（映射 = S-general-02→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-012 | S-general-02 | 关联 | 在「保持电脑唤醒」所在行内，同时看它与说明的相对位置 | 说明在其下 4 | — | 间距 4 | 已实现（映射 = S-general-02→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-013 | S-general-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保持电脑唤醒」听播报 | 与开关联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-02→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-014 | S-general-02 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈100 处的「保持电脑唤醒」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-02→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-015 | S-general-02 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈100 处的「保持电脑唤醒」 | 与开关仍同行 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-general-02→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-016 | S-general-02 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈100 处的「保持电脑唤醒」 | 对比 ≥4.5:1 | — | 屏上「保持电脑唤醒」：对比度 ≥ 4.5:1 | 已实现（映射 = S-general-02→internal/ui/settings_general_screen.go:renderGeneral；标记 = Theme@screenTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-017 | S-general-03 | 内容 | 打开设置›通用，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 说明「运行期间阻止系统休眠。屏幕也会保持常亮。」 | — | 屏上「运行期间阻止系统休眠。屏幕也会保持常…」的文案逐字为「运行期间阻止系统休眠。屏幕也会保持常亮。」（20 字） | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「运行期间阻止系统休眠。屏幕也会保持常亮。」 |
-| R-GEN-018 | S-general-03 | 样式 | 打开设置›通用，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 字号 12、次级前景，宽 210 自动换两行 | — | 屏上「运行期间阻止系统休眠。屏幕也会保持常…」：字号 = 12、宽度 = 210、行数 = 2 | 未实现（找不到元素渲染点） |
-| R-GEN-019 | S-general-03 | 状态 | 开关打开 | 文案不变 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GEN-020 | S-general-03 | 关联 | 在「运行期间阻止系统休眠。屏幕也会保持常…」所在行内，同时看它与开关的相对位置 | 说明不随开关折行移动 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-GEN-021 | S-general-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「运行期间阻止系统休眠。屏幕也会保持常…」听播报 | 作为开关描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-022 | S-general-03 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-023 | S-general-03 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 折三行 | — | 屏上「运行期间阻止系统休眠。屏幕也会保持常…」：行数 = 3 | 未实现（找不到元素渲染点） |
-| R-GEN-024 | S-general-03 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 对比 ≥4.5:1 | — | 屏上「运行期间阻止系统休眠。屏幕也会保持常…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-GEN-018 | S-general-03 | 样式 | 打开设置›通用，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 字号 12、次级前景，宽 210 自动换两行 | — | 屏上「运行期间阻止系统休眠。屏幕也会保持常…」：字号 = 12、宽度 = 210、行数 = 2 | 已实现（映射 = S-general-03→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-019 | S-general-03 | 状态 | 开关打开 | 文案不变 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-general-03→internal/ui/settings_general_screen.go:renderGeneral；标记 = Disabled@generalSwitchCard） |
+| R-GEN-020 | S-general-03 | 关联 | 在「运行期间阻止系统休眠。屏幕也会保持常…」所在行内，同时看它与开关的相对位置 | 说明不随开关折行移动 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（映射 = S-general-03→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-021 | S-general-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「运行期间阻止系统休眠。屏幕也会保持常…」听播报 | 作为开关描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-03→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-022 | S-general-03 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-03→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-023 | S-general-03 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 折三行 | — | 屏上「运行期间阻止系统休眠。屏幕也会保持常…」：行数 = 3 | 未实现（映射到位但没有该维度的标记）：S-general-03→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-024 | S-general-03 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈119 处的「运行期间阻止系统休眠。屏幕也会保持常…」 | 对比 ≥4.5:1 | — | 屏上「运行期间阻止系统休眠。屏幕也会保持常…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-general-03→internal/ui/settings_general_screen.go:renderGeneral；标记 = Theme@screenTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GEN-025 | S-general-04 | 状态 | 首次打开设置›通用、不做任何改动时滚动到 y≈109 处的「保持电脑唤醒」 | 开关呈关态（轨道次级、滑块居左） | — | 滑块位置 = 左，轨道色 = 当前状态色；水平对齐 = 左 | 未实现（找不到元素渲染点） |
-| R-GEN-026 | S-general-04 | 交互 | 用鼠标左键单击「保持电脑唤醒」 | 翻转；开启后运行期间阻止休眠、屏保不启动 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（找不到元素渲染点） |
-| R-GEN-027 | S-general-04 | 样式 | 28×16 | 圆角全圆、滑块 14 | — | 判据 = 圆角 = 6.75 / 8.75 / 12.75 / 4.75（BO-RADIUS），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GEN-028 | S-general-04 | 动画 | 把「保持电脑唤醒」从当前状态切到另一状态 | 滑块 120ms 位移 | — | 屏上「保持电脑唤醒」：时长(ms) = 120 | 未实现（找不到元素渲染点） |
-| R-GEN-029 | S-general-04 | 记忆 | 开启后重启 | 保持开态 | — | 屏上「保持电脑唤醒」：状态 = 开 | 未实现（找不到元素渲染点） |
-| R-GEN-030 | S-general-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保持电脑唤醒」听播报 | 播报名称与开关状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-031 | S-general-04 | 键盘 | 把焦点移到「保持电脑唤醒」后按空格 | 翻转 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（找不到元素渲染点） |
-| R-GEN-032 | S-general-04 | 异常 | 断开网络后改「保持电脑唤醒」，等保存返回失败 | 回滚到原态 | — | 屏上「保持电脑唤醒」：取值与改动前相比差 = 0（回滚到原值） | 未实现（找不到元素渲染点） |
+| R-GEN-025 | S-general-04 | 状态 | 首次打开设置›通用、不做任何改动时滚动到 y≈109 处的「保持电脑唤醒」 | 开关呈关态（轨道次级、滑块居左） | — | 滑块位置 = 左，轨道色 = 当前状态色；水平对齐 = 左 | 已实现（映射 = S-general-04→internal/ui/settings_general_screen.go:renderGeneral；标记 = Disabled@generalSwitchCard） |
+| R-GEN-026 | S-general-04 | 交互 | 用鼠标左键单击「保持电脑唤醒」 | 翻转；开启后运行期间阻止休眠、屏保不启动 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（映射到位但没有该维度的标记）：S-general-04→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-027 | S-general-04 | 样式 | 28×16 | 圆角全圆、滑块 14 | — | 判据 = 圆角 = 6.75 / 8.75 / 12.75 / 4.75（BO-RADIUS），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-general-04→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-028 | S-general-04 | 动画 | 把「保持电脑唤醒」从当前状态切到另一状态 | 滑块 120ms 位移 | — | 屏上「保持电脑唤醒」：时长(ms) = 120 | 未实现（映射到位但没有该维度的标记）：S-general-04→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-029 | S-general-04 | 记忆 | 开启后重启 | 保持开态 | — | 屏上「保持电脑唤醒」：状态 = 开 | 未实现（映射到位但没有该维度的标记）：S-general-04→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-030 | S-general-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保持电脑唤醒」听播报 | 播报名称与开关状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-04→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-031 | S-general-04 | 键盘 | 把焦点移到「保持电脑唤醒」后按空格 | 翻转 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（映射到位但没有该维度的标记）：S-general-04→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-032 | S-general-04 | 异常 | 断开网络后改「保持电脑唤醒」，等保存返回失败 | 回滚到原态 | — | 屏上「保持电脑唤醒」：取值与改动前相比差 = 0（回滚到原值） | 已实现（映射 = S-general-04→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-033 | S-general-05 | 内容 | 打开设置›通用，滚动到 y≈184 处的「性能日志」 | 标签「性能日志」 | — | 屏上「性能日志」的文案逐字为「性能日志」（4 字） | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「性能日志」 |
-| R-GEN-034 | S-general-05 | 样式 | 打开设置›通用，滚动到 y≈184 处的「性能日志」 | 字号 14、中等字重，宽 436 | — | 屏上「性能日志」：字号 = 14、宽度 = 436 | 未实现（找不到元素渲染点） |
-| R-GEN-035 | S-general-05 | 关联 | 在「性能日志」所在行内，同时看它与开关的相对位置 | 标签左、开关右 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-GEN-036 | S-general-05 | 关联 | 在「性能日志」所在行内，同时看它与说明的相对位置 | 说明下 4，可折两行 | — | 间距 4 | 未实现（找不到元素渲染点） |
-| R-GEN-037 | S-general-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「性能日志」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（找不到元素渲染点） |
-| R-GEN-038 | S-general-05 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈184 处的「性能日志」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（找不到元素渲染点） |
-| R-GEN-039 | S-general-05 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈184 处的「性能日志」 | 与开关同行 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-GEN-040 | S-general-05 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈184 处的「性能日志」 | 对比 ≥4.5:1 | — | 屏上「性能日志」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-GEN-034 | S-general-05 | 样式 | 打开设置›通用，滚动到 y≈184 处的「性能日志」 | 字号 14、中等字重，宽 436 | — | 屏上「性能日志」：字号 = 14、宽度 = 436 | 已实现（映射 = S-general-05→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-035 | S-general-05 | 关联 | 在「性能日志」所在行内，同时看它与开关的相对位置 | 标签左、开关右 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-general-05→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-036 | S-general-05 | 关联 | 在「性能日志」所在行内，同时看它与说明的相对位置 | 说明下 4，可折两行 | — | 间距 4 | 已实现（映射 = S-general-05→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-037 | S-general-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「性能日志」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 已实现（映射 = S-general-05→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-038 | S-general-05 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈184 处的「性能日志」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 已实现（映射 = S-general-05→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-039 | S-general-05 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈184 处的「性能日志」 | 与开关同行 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-general-05→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-040 | S-general-05 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈184 处的「性能日志」 | 对比 ≥4.5:1 | — | 屏上「性能日志」：对比度 ≥ 4.5:1 | 已实现（映射 = S-general-05→internal/ui/settings_general_screen.go:renderGeneral；标记 = Theme@screenTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-041 | S-general-06 | 内容 | 打开设置›通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 说明「将各进程 CPU/RSS/IO 采样写入 logs/performance/（每秒一行）。tail 该文件即可实时查看。」 | — | 屏上「将各进程 CPU/RSS/IO 采样…」的文案逐字为「将各进程 CPU/RSS/IO 采样写入 logs/performance/（每…」（60 字）；且行数 = 1 | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「将各进程 CPU/RSS/IO 采样写入 logs/performance/（每秒一行）。tail 该文件即可实时查看。」 |
-| R-GEN-042 | S-general-06 | 样式 | 打开设置›通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 字号 12、次级前景，宽 436 | — | 屏上「将各进程 CPU/RSS/IO 采样…」：字号 = 12、宽度 = 436 | 未实现（找不到元素渲染点） |
-| R-GEN-043 | S-general-06 | 内容 | 打开设置›通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 路径片段不被拆断在行尾 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-044 | S-general-06 | 交互 | 在「将各进程 CPU/RSS/IO 采样…」上从行首拖到行尾选中文字 | 可复制（含路径） | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-GEN-045 | S-general-06 | 关联 | 在「将各进程 CPU/RSS/IO 采样…」所在行内，同时看它与开关的相对位置 | 开关状态不改文案 | — | 判据 = 相邻间距取 3.5 / 7 / 10.5 / 14 / 21 档（AL-STACK），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GEN-046 | S-general-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「将各进程 CPU/RSS/IO 采样…」听播报 | 完整播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-047 | S-general-06 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-048 | S-general-06 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 对比 ≥4.5:1 | — | 屏上「将各进程 CPU/RSS/IO 采样…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-GEN-042 | S-general-06 | 样式 | 打开设置›通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 字号 12、次级前景，宽 436 | — | 屏上「将各进程 CPU/RSS/IO 采样…」：字号 = 12、宽度 = 436 | 已实现（映射 = S-general-06→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-043 | S-general-06 | 内容 | 打开设置›通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 路径片段不被拆断在行尾 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-06→internal/ui/settings_general_screen.go:renderGeneral；标记 = 文案「通用」等 7 条） |
+| R-GEN-044 | S-general-06 | 交互 | 在「将各进程 CPU/RSS/IO 采样…」上从行首拖到行尾选中文字 | 可复制（含路径） | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（映射到位但没有该维度的标记）：S-general-06→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-045 | S-general-06 | 关联 | 在「将各进程 CPU/RSS/IO 采样…」所在行内，同时看它与开关的相对位置 | 开关状态不改文案 | — | 判据 = 相邻间距取 3.5 / 7 / 10.5 / 14 / 21 档（AL-STACK），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-general-06→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-046 | S-general-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「将各进程 CPU/RSS/IO 采样…」听播报 | 完整播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-06→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-047 | S-general-06 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-06→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-048 | S-general-06 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈204 处的「将各进程 CPU/RSS/IO 采样…」 | 对比 ≥4.5:1 | — | 屏上「将各进程 CPU/RSS/IO 采样…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-general-06→internal/ui/settings_general_screen.go:renderGeneral；标记 = Theme@screenTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-049 | S-general-07 | 状态 | 启动时设置了 DIM_PERF 环境变量 | 说明行显示「本次启动由 DIM_PERF 决定采集，该开关不生效。」 | — | 屏上「本次启动由 DIM_PERF 决定采…」的文案逐字为「本次启动由 DIM_PERF 决定采集，该开关不生效。」（27 字） | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「本次启动由 DIM_PERF 决定采集，该开关不生效。」 |
 | R-GEN-050 | S-general-07 | 状态 | 未设 DIM_PERF | 不渲染 | — | 屏上「本次启动由 DIM_PERF 决定采…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GEN-051 | S-general-07 | 样式 | 打开设置›通用，看「本次启动由 DIM_PERF 决定采…」 | 字号 12、警示色 | — | 判据 = 屏上「本次启动由 DIM_PERF 决定采…」：字号 = 12；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 未实现（找不到元素渲染点） |
-| R-GEN-052 | S-general-07 | 关联 | 在「本次启动由 DIM_PERF 决定采…」所在行内，同时看它与开关的相对位置 | 同时开关为禁用态 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-GEN-053 | S-general-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「本次启动由 DIM_PERF 决定采…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-054 | S-general-07 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，看「本次启动由 DIM_PERF 决定采…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-055 | S-general-07 | 窄窗 | 把窗口拖到内容列宽 520，看「本次启动由 DIM_PERF 决定采…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-GEN-056 | S-general-07 | 深色 | 在设置›外观把主题切成深色，再回通用，看「本次启动由 DIM_PERF 决定采…」 | 对比 ≥4.5:1 | — | 屏上「本次启动由 DIM_PERF 决定采…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-GEN-051 | S-general-07 | 样式 | 打开设置›通用，看「本次启动由 DIM_PERF 决定采…」 | 字号 12、警示色 | — | 判据 = 屏上「本次启动由 DIM_PERF 决定采…」：字号 = 12；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 已实现（映射 = S-general-07→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-052 | S-general-07 | 关联 | 在「本次启动由 DIM_PERF 决定采…」所在行内，同时看它与开关的相对位置 | 同时开关为禁用态 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-general-07→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-053 | S-general-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「本次启动由 DIM_PERF 决定采…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-07→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-054 | S-general-07 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，看「本次启动由 DIM_PERF 决定采…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-07→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-055 | S-general-07 | 窄窗 | 把窗口拖到内容列宽 520，看「本次启动由 DIM_PERF 决定采…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-general-07→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-056 | S-general-07 | 深色 | 在设置›外观把主题切成深色，再回通用，看「本次启动由 DIM_PERF 决定采…」 | 对比 ≥4.5:1 | — | 屏上「本次启动由 DIM_PERF 决定采…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-general-07→internal/ui/settings_general_screen.go:renderGeneral；标记 = Theme@screenTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GEN-057 | S-general-08 | 状态 | 未设 DIM_PERF | 开关可点，默认关 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GEN-058 | S-general-08 | 状态 | DIM_PERF 已设 | 开关禁用、半透明，状态跟随环境变量 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（找不到元素渲染点） |
-| R-GEN-059 | S-general-08 | 交互 | 点开「性能日志」 | 开始写采样文件，logs/performance/ 下出现当天文件 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-060 | S-general-08 | 样式 | 把「性能日志」切到禁用态时，打开设置›通用，滚动到 y≈193 处的「性能日志」 | 轨道与滑块同时降透明 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（找不到元素渲染点） |
-| R-GEN-061 | S-general-08 | 记忆 | 开启后重启 | 保持开态并继续采样 | — | 屏上「性能日志」：状态 = 开 | 未实现（找不到元素渲染点） |
-| R-GEN-062 | S-general-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「性能日志」听播报 | 禁用时播报不可用 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-GEN-063 | S-general-08 | 异常 | 目录不可写 | 开关回滚关态并出现错误行 | — | 屏上「性能日志」：状态 = 关 | 未实现（找不到元素渲染点） |
-| R-GEN-064 | S-general-08 | 性能 | 打开设置›通用，滚动到 y≈193 处的「性能日志」 | 每秒一行，CPU 占用不引起界面卡顿 | — | 屏上「性能日志」：行数 = 1 | 未实现（找不到元素渲染点） |
+| R-GEN-057 | S-general-08 | 状态 | 未设 DIM_PERF | 开关可点，默认关 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-general-08→internal/ui/settings_general_screen.go:renderGeneral；标记 = Disabled@generalSwitchCard） |
+| R-GEN-058 | S-general-08 | 状态 | DIM_PERF 已设 | 开关禁用、半透明，状态跟随环境变量 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 已实现（映射 = S-general-08→internal/ui/settings_general_screen.go:renderGeneral；标记 = Disabled@generalSwitchCard） |
+| R-GEN-059 | S-general-08 | 交互 | 点开「性能日志」 | 开始写采样文件，logs/performance/ 下出现当天文件 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-general-08→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-060 | S-general-08 | 样式 | 把「性能日志」切到禁用态时，打开设置›通用，滚动到 y≈193 处的「性能日志」 | 轨道与滑块同时降透明 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 已实现（映射 = S-general-08→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-061 | S-general-08 | 记忆 | 开启后重启 | 保持开态并继续采样 | — | 屏上「性能日志」：状态 = 开 | 未实现（映射到位但没有该维度的标记）：S-general-08→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-062 | S-general-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「性能日志」听播报 | 禁用时播报不可用 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-general-08→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-063 | S-general-08 | 异常 | 目录不可写 | 开关回滚关态并出现错误行 | — | 屏上「性能日志」：状态 = 关 | 已实现（映射 = S-general-08→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-064 | S-general-08 | 性能 | 打开设置›通用，滚动到 y≈193 处的「性能日志」 | 每秒一行，CPU 占用不引起界面卡顿 | — | 屏上「性能日志」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-general-08→internal/ui/settings_general_screen.go:renderGeneral |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-065 | S-general-09 | 内容 | 打开设置›通用，滚动到 y≈269 处的「登录时自动启动」 | 标签「登录时自动启动」 | — | 屏上「登录时自动启动」的文案逐字为「登录时自动启动」（7 字） | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「登录时自动启动」 |
-| R-GEN-066 | S-general-09 | 样式 | 打开设置›通用，滚动到 y≈269 处的「登录时自动启动」 | 字号 14、中等字重 | — | 屏上「登录时自动启动」：字号 = 14 | 未实现（找不到元素渲染点） |
-| R-GEN-067 | S-general-09 | 关联 | 在「登录时自动启动」所在行内，同时看它与开关的相对位置 | 同行，开关在右 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-GEN-068 | S-general-09 | 状态 | 平台不支持自启 | 标签仍显示，开关禁用 | — | 判据 = 屏上「登录时自动启动」：出现次数 = 1 | 未实现（找不到元素渲染点） |
-| R-GEN-069 | S-general-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「登录时自动启动」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-070 | S-general-09 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈269 处的「登录时自动启动」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-071 | S-general-09 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈269 处的「登录时自动启动」 | 不换行 | — | 屏上「登录时自动启动」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-GEN-072 | S-general-09 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈269 处的「登录时自动启动」 | 对比 ≥4.5:1 | — | 屏上「登录时自动启动」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-GEN-066 | S-general-09 | 样式 | 打开设置›通用，滚动到 y≈269 处的「登录时自动启动」 | 字号 14、中等字重 | — | 屏上「登录时自动启动」：字号 = 14 | 已实现（映射 = S-general-09→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-067 | S-general-09 | 关联 | 在「登录时自动启动」所在行内，同时看它与开关的相对位置 | 同行，开关在右 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-general-09→internal/ui/settings_general_screen.go:renderGeneral；标记 = Switch） |
+| R-GEN-068 | S-general-09 | 状态 | 平台不支持自启 | 标签仍显示，开关禁用 | — | 判据 = 屏上「登录时自动启动」：出现次数 = 1 | 已实现（映射 = S-general-09→internal/ui/settings_general_screen.go:renderGeneral；标记 = Disabled@generalSwitchCard） |
+| R-GEN-069 | S-general-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「登录时自动启动」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-09→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-070 | S-general-09 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通用，滚动到 y≈269 处的「登录时自动启动」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-09→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-071 | S-general-09 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈269 处的「登录时自动启动」 | 不换行 | — | 屏上「登录时自动启动」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-general-09→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-072 | S-general-09 | 深色 | 在设置›外观把主题切成深色，再回通用，滚动到 y≈269 处的「登录时自动启动」 | 对比 ≥4.5:1 | — | 屏上「登录时自动启动」：对比度 ≥ 4.5:1 | 已实现（映射 = S-general-09→internal/ui/settings_general_screen.go:renderGeneral；标记 = Theme@screenTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GEN-073 | S-general-10 | 状态 | 首次打开设置›通用、不做任何改动时滚动到 y≈269 处的「登录时自动启动」 | 关态；系统未登记启动项 | — | 屏上「登录时自动启动」：状态 = 关 | 未实现（找不到元素渲染点） |
-| R-GEN-074 | S-general-10 | 交互 | 点开「登录时自动启动」 | 写入系统启动项，登录后自启 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-075 | S-general-10 | 状态 | 外部删除启动项后打开本条 | 开关回显为关（以系统状态为准） | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-GEN-076 | S-general-10 | 样式 | 打开设置›通用，滚动到 y≈269 处的「登录时自动启动」 | 28×16，与其它开关同款 | — | 屏上「登录时自动启动」：宽×高 = 28×16 | 未实现（找不到元素渲染点） |
-| R-GEN-077 | S-general-10 | 记忆 | 开启后重启 | 保持开态 | — | 屏上「登录时自动启动」：状态 = 开 | 未实现（找不到元素渲染点） |
-| R-GEN-078 | S-general-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「登录时自动启动」听播报 | 播报名称与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-079 | S-general-10 | 异常 | 无权限写启动项 | 回滚关态并提示原因 | — | 屏上「登录时自动启动」：状态 = 关 | 未实现（找不到元素渲染点） |
-| R-GEN-080 | S-general-10 | 键盘 | 把焦点移到「登录时自动启动」后按空格 | 翻转 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（找不到元素渲染点） |
+| R-GEN-073 | S-general-10 | 状态 | 首次打开设置›通用、不做任何改动时滚动到 y≈269 处的「登录时自动启动」 | 关态；系统未登记启动项 | — | 屏上「登录时自动启动」：状态 = 关 | 已实现（映射 = S-general-10→internal/ui/settings_general_screen.go:renderGeneral；标记 = Disabled@generalSwitchCard） |
+| R-GEN-074 | S-general-10 | 交互 | 点开「登录时自动启动」 | 写入系统启动项，登录后自启 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-general-10→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-075 | S-general-10 | 状态 | 外部删除启动项后打开本条 | 开关回显为关（以系统状态为准） | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = S-general-10→internal/ui/settings_general_screen.go:renderGeneral；标记 = Disabled@generalSwitchCard） |
+| R-GEN-076 | S-general-10 | 样式 | 打开设置›通用，滚动到 y≈269 处的「登录时自动启动」 | 28×16，与其它开关同款 | — | 屏上「登录时自动启动」：宽×高 = 28×16 | 已实现（映射 = S-general-10→internal/ui/settings_general_screen.go:renderGeneral；标记 = TextColor@screenTitle） |
+| R-GEN-077 | S-general-10 | 记忆 | 开启后重启 | 保持开态 | — | 屏上「登录时自动启动」：状态 = 开 | 未实现（映射到位但没有该维度的标记）：S-general-10→internal/ui/settings_general_screen.go:renderGeneral |
+| R-GEN-078 | S-general-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「登录时自动启动」听播报 | 播报名称与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-10→internal/ui/settings_general_screen.go:renderGeneral；标记 = Role@screenTitle） |
+| R-GEN-079 | S-general-10 | 异常 | 无权限写启动项 | 回滚关态并提示原因 | — | 屏上「登录时自动启动」：状态 = 关 | 已实现（映射 = S-general-10→internal/ui/settings_general_screen.go:renderGeneral；标记 = erR@generalBrowserCard） |
+| R-GEN-080 | S-general-10 | 键盘 | 把焦点移到「登录时自动启动」后按空格 | 翻转 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（映射到位但没有该维度的标记）：S-general-10→internal/ui/settings_general_screen.go:renderGeneral |
 
 ### 5.2 会话数据根目录
 
@@ -5710,13 +5710,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GEN-705 | S-general-89 | 内容 | 打开设置›通用，看「关闭」 | 只有「关闭」 | — | 屏上「关闭」的文案逐字为「关闭」（2 字）；且状态 = 关 | 已实现（逐字）：internal/account/login.go:Account.waitBrowser「关闭」 |
-| R-GEN-706 | S-general-89 | 交互 | 用鼠标左键单击「关闭」 | 关闭对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-707 | S-general-89 | 样式 | 打开设置›通用，看「关闭」 | 位于右下 | — | 该元素位于容器对应角：边缘距内边距 ≤ 8px | 未实现（找不到元素渲染点） |
+| R-GEN-706 | S-general-89 | 交互 | 用鼠标左键单击「关闭」 | 关闭对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-89→internal/ui/settings_general_screen.go:generalCleanupDialog；标记 = Pressed@screenButton） |
+| R-GEN-707 | S-general-89 | 样式 | 打开设置›通用，看「关闭」 | 位于右下 | — | 该元素位于容器对应角：边缘距内边距 ≤ 8px | 已实现（映射 = S-general-89→internal/ui/settings_general_screen.go:generalCleanupDialog；标记 = TextColor@screenDialogPanel） |
 | R-GEN-708 | S-general-89 | 状态 | 打开设置›通用，看「关闭」 | 不渲染 | — | 屏上「关闭」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GEN-709 | S-general-89 | 键盘 | 打开「关闭」后按 Esc | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GEN-710 | S-general-89 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「关闭」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-711 | S-general-89 | 记忆 | 打开设置›通用，看「关闭」 | 重新扫描 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GEN-712 | S-general-89 | 深色 | 在设置›外观把主题切成深色，再回通用，看「关闭」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-GEN-709 | S-general-89 | 键盘 | 打开「关闭」后按 Esc | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-general-89→internal/ui/settings_general_screen.go:generalCleanupDialog |
+| R-GEN-710 | S-general-89 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「关闭」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-general-89→internal/ui/settings_general_screen.go:generalCleanupDialog；标记 = Label） |
+| R-GEN-711 | S-general-89 | 记忆 | 打开设置›通用，看「关闭」 | 重新扫描 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-general-89→internal/ui/settings_general_screen.go:generalCleanupDialog |
+| R-GEN-712 | S-general-89 | 深色 | 在设置›外观把主题切成深色，再回通用，看「关闭」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-general-89→internal/ui/settings_general_screen.go:generalCleanupDialog；标记 = Theme@screenDialogPanel） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -5736,13 +5736,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-001 | S-keybindings-01 | 内容 | 进入快捷键节 | 标题「快捷键」 | — | 文案「快捷键」 | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:App.renderKeybindings「快捷键」 |
-| R-KEY-002 | S-keybindings-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「快捷键」 | 与其它节标题同级，y=33 | — | 屏上「快捷键」：y = 33 | 未实现（找不到元素渲染点） |
-| R-KEY-003 | S-keybindings-01 | 状态 | 让加载请求返回失败后滚动到 y≈33 处的「快捷键」 | 标题仍显示 | — | 屏上「快捷键」：出现次数 = 1 | 未实现（找不到元素渲染点） |
-| R-KEY-004 | S-keybindings-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「快捷键」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-005 | S-keybindings-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈33 处的「快捷键」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-006 | S-keybindings-01 | 记忆 | 从快捷键切到设置›关于再切回来，滚动到 y≈33 处的「快捷键」 | 回 y=33 | — | 屏上「快捷键」：y = 33 | 未实现（找不到元素渲染点） |
-| R-KEY-007 | S-keybindings-01 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈33 处的「快捷键」 | 单行 | — | 屏上「快捷键」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-KEY-008 | S-keybindings-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「快捷键」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-002 | S-keybindings-01 | 样式 | 把主题在浅色与深色之间各切一次，分别滚动到 y≈33 处的「快捷键」 | 与其它节标题同级，y=33 | — | 屏上「快捷键」：y = 33 | 已实现（映射 = S-keybindings-01→internal/ui/settings_keybindings_screen.go:App.renderKeybindings；标记 = TextColor@screenTitle） |
+| R-KEY-003 | S-keybindings-01 | 状态 | 让加载请求返回失败后滚动到 y≈33 处的「快捷键」 | 标题仍显示 | — | 屏上「快捷键」：出现次数 = 1 | 已实现（映射 = S-keybindings-01→internal/ui/settings_keybindings_screen.go:App.renderKeybindings；标记 = Enabled@App.keybindingGlobalGroup） |
+| R-KEY-004 | S-keybindings-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「快捷键」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-01→internal/ui/settings_keybindings_screen.go:App.renderKeybindings；标记 = Role@screenTitle） |
+| R-KEY-005 | S-keybindings-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈33 处的「快捷键」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-01→internal/ui/settings_keybindings_screen.go:App.renderKeybindings；标记 = err@App.keybindingGlobalGroup） |
+| R-KEY-006 | S-keybindings-01 | 记忆 | 从快捷键切到设置›关于再切回来，滚动到 y≈33 处的「快捷键」 | 回 y=33 | — | 屏上「快捷键」：y = 33 | 未实现（映射到位但没有该维度的标记）：S-keybindings-01→internal/ui/settings_keybindings_screen.go:App.renderKeybindings |
+| R-KEY-007 | S-keybindings-01 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈33 处的「快捷键」 | 单行 | — | 屏上「快捷键」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-keybindings-01→internal/ui/settings_keybindings_screen.go:App.renderKeybindings |
+| R-KEY-008 | S-keybindings-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「快捷键」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-01→internal/ui/settings_keybindings_screen.go:App.renderKeybindings；标记 = 文案「快捷键」） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -5757,234 +5757,234 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-KEY-017 | S-keybindings-03 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈85 处的「搜索快捷键…」 | 空，占位「搜索快捷键…」 | — | 屏上「搜索快捷键…」的文案逐字为「搜索快捷键…」（6 字） | 未实现（找不到元素渲染点） |
-| R-KEY-018 | S-keybindings-03 | 交互 | 输入「终端」 | 列表实时过滤，命中行保留 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-019 | S-keybindings-03 | 交互 | 打开设置›快捷键，滚动到 y≈85 处的「搜索快捷键…」 | 列表恢复两组 8 行 | — | 屏上「搜索快捷键…」：行数 = 8 | 未实现（找不到元素渲染点） |
-| R-KEY-020 | S-keybindings-03 | 样式 | 打开设置›快捷键，滚动到 y≈85 处的「搜索快捷键…」 | 宽 392、高 32、1px 边框、聚焦变主色 | — | 判据 = 屏上「搜索快捷键…」：宽度 = 392、高度 = 32、边框宽 = 1px；色值 = 主色（`CL-ACCENT` 明 #349651 / 暗 #63cb7b） | 未实现（找不到元素渲染点） |
-| R-KEY-021 | S-keybindings-03 | 异常 | 无匹配 | 列表区显示空态（S-keybindings-27） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-KEY-022 | S-keybindings-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「搜索快捷键…」听播报 | 播报为搜索框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-023 | S-keybindings-03 | 输入法 | 中文组合中 | 不按组合串过滤 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-024 | S-keybindings-03 | 记忆 | 从快捷键切到设置›关于再切回来，滚动到 y≈85 处的「搜索快捷键…」 | 搜索词清空 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-017 | S-keybindings-03 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈85 处的「搜索快捷键…」 | 空，占位「搜索快捷键…」 | — | 屏上「搜索快捷键…」的文案逐字为「搜索快捷键…」（6 字） | 未实现（映射到位但没有该维度的标记）：S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch |
+| R-KEY-018 | S-keybindings-03 | 交互 | 输入「终端」 | 列表实时过滤，命中行保留 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch |
+| R-KEY-019 | S-keybindings-03 | 交互 | 打开设置›快捷键，滚动到 y≈85 处的「搜索快捷键…」 | 列表恢复两组 8 行 | — | 屏上「搜索快捷键…」：行数 = 8 | 未实现（映射到位但没有该维度的标记）：S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch |
+| R-KEY-020 | S-keybindings-03 | 样式 | 打开设置›快捷键，滚动到 y≈85 处的「搜索快捷键…」 | 宽 392、高 32、1px 边框、聚焦变主色 | — | 判据 = 屏上「搜索快捷键…」：宽度 = 392、高度 = 32、边框宽 = 1px；色值 = 主色（`CL-ACCENT` 明 #349651 / 暗 #63cb7b） | 已实现（映射 = S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch；标记 = Width） |
+| R-KEY-021 | S-keybindings-03 | 异常 | 无匹配 | 列表区显示空态（S-keybindings-27） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch |
+| R-KEY-022 | S-keybindings-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「搜索快捷键…」听播报 | 播报为搜索框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch；标记 = Label） |
+| R-KEY-023 | S-keybindings-03 | 输入法 | 中文组合中 | 不按组合串过滤 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch |
+| R-KEY-024 | S-keybindings-03 | 记忆 | 从快捷键切到设置›关于再切回来，滚动到 y≈85 处的「搜索快捷键…」 | 搜索词清空 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-03→internal/ui/settings_keybindings_screen.go:keybindingSearch |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-025 | S-keybindings-04 | 内容 | app 组渲染 | 分组标题「通用」 | — | 屏上「通用」的文案逐字为「通用」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingScopes「通用」 |
-| R-KEY-026 | S-keybindings-04 | 样式 | 打开设置›快捷键，滚动到 y≈145 处的「通用」 | 字号 13、粗体、次级前景，y=145 | — | 屏上「通用」：字号 = 13、y = 145 | 未实现（找不到元素渲染点） |
-| R-KEY-027 | S-keybindings-04 | 关联 | 在「通用」所在行内，同时看它与行的相对位置 | 标题下第一行 y=195，间距 20 | — | 间距 20 | 未实现（找不到元素渲染点） |
-| R-KEY-028 | S-keybindings-04 | 状态 | 搜索无匹配 | 该组标题随列表一起隐藏 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-KEY-029 | S-keybindings-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-030 | S-keybindings-04 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈145 处的「通用」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-031 | S-keybindings-04 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈145 处的「通用」 | 单行 | — | 屏上「通用」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-KEY-032 | S-keybindings-04 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈145 处的「通用」 | 对比 ≥4.5:1 | — | 屏上「通用」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-026 | S-keybindings-04 | 样式 | 打开设置›快捷键，滚动到 y≈145 处的「通用」 | 字号 13、粗体、次级前景，y=145 | — | 屏上「通用」：字号 = 13、y = 145 | 已实现（映射 = S-keybindings-04→internal/ui/settings_keybindings_screen.go:keybindingGroups；标记 = TextColor@keybindingGroupTitle） |
+| R-KEY-027 | S-keybindings-04 | 关联 | 在「通用」所在行内，同时看它与行的相对位置 | 标题下第一行 y=195，间距 20 | — | 间距 20 | 已实现（映射 = S-keybindings-04→internal/ui/settings_keybindings_screen.go:keybindingGroups；标记 = Screen@keybindingRows） |
+| R-KEY-028 | S-keybindings-04 | 状态 | 搜索无匹配 | 该组标题随列表一起隐藏 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-keybindings-04→internal/ui/settings_keybindings_screen.go:keybindingGroups |
+| R-KEY-029 | S-keybindings-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-04→internal/ui/settings_keybindings_screen.go:keybindingGroups；标记 = Role@keybindingGroupTitle） |
+| R-KEY-030 | S-keybindings-04 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈145 处的「通用」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-04→internal/ui/settings_keybindings_screen.go:keybindingGroups |
+| R-KEY-031 | S-keybindings-04 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈145 处的「通用」 | 单行 | — | 屏上「通用」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-keybindings-04→internal/ui/settings_keybindings_screen.go:keybindingGroups |
+| R-KEY-032 | S-keybindings-04 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈145 处的「通用」 | 对比 ≥4.5:1 | — | 屏上「通用」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-04→internal/ui/settings_keybindings_screen.go:keybindingGroups；标记 = Theme@keybindingGroupTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-033 | S-keybindings-05 | 内容 | 通用组第 1 行 | 名称「打开设置」 | — | 屏上「打开设置」的文案逐字为「打开设置」（4 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「打开设置」 |
-| R-KEY-034 | S-keybindings-05 | 样式 | 打开设置›快捷键，滚动到 y≈195 处的「打开设置」 | 字号 13、前景，x=272 | — | 屏上「打开设置」：字号 = 13、x = 272 | 未实现（找不到元素渲染点） |
-| R-KEY-035 | S-keybindings-05 | 关联 | 在「打开设置」所在行内，同时看它与绑定按钮的相对位置 | 名称左、按钮右（x≈937），同一行基线 | — | 屏上「打开设置」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-KEY-036 | S-keybindings-05 | 状态 | 该行有错误 | 名称行不变，错误在名称下方 | — | 屏上「打开设置」：相对位置 = 名称下方 | 未实现（找不到元素渲染点） |
-| R-KEY-037 | S-keybindings-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「打开设置」听播报 | 与绑定值连读为「打开设置，⌘,」 | — | 屏上「打开设置」的文案逐字为「打开设置，⌘,」（7 字） | 未实现（找不到元素渲染点） |
-| R-KEY-038 | S-keybindings-05 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈195 处的「打开设置」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-039 | S-keybindings-05 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈195 处的「打开设置」 | 名称与按钮不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-040 | S-keybindings-05 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈195 处的「打开设置」 | 对比 ≥4.5:1 | — | 屏上「打开设置」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-034 | S-keybindings-05 | 样式 | 打开设置›快捷键，滚动到 y≈195 处的「打开设置」 | 字号 13、前景，x=272 | — | 屏上「打开设置」：字号 = 13、x = 272 | 已实现（映射 = S-keybindings-05→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-035 | S-keybindings-05 | 关联 | 在「打开设置」所在行内，同时看它与绑定按钮的相对位置 | 名称左、按钮右（x≈937），同一行基线 | — | 屏上「打开设置」：行数 = 1 | 已实现（映射 = S-keybindings-05→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
+| R-KEY-036 | S-keybindings-05 | 状态 | 该行有错误 | 名称行不变，错误在名称下方 | — | 屏上「打开设置」：相对位置 = 名称下方 | 未实现（映射到位但没有该维度的标记）：S-keybindings-05→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-037 | S-keybindings-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「打开设置」听播报 | 与绑定值连读为「打开设置，⌘,」 | — | 屏上「打开设置」的文案逐字为「打开设置，⌘,」（7 字） | 已实现（映射 = S-keybindings-05→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-038 | S-keybindings-05 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈195 处的「打开设置」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-05→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-039 | S-keybindings-05 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈195 处的「打开设置」 | 名称与按钮不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-05→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-040 | S-keybindings-05 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈195 处的「打开设置」 | 对比 ≥4.5:1 | — | 屏上「打开设置」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-05→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-KEY-041 | S-keybindings-06 | 内容 | 打开设置›快捷键，滚动到 y≈188 处的「⌘,（绑定按钮）」 | 按钮内显示「⌘,」 | — | 屏上「⌘,（绑定按钮）」的文案逐字为「⌘,」（2 字） | 未实现（找不到元素渲染点） |
-| R-KEY-042 | S-keybindings-06 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈188 处的「⌘,（绑定按钮）」 | 描边小按钮、可点，宽 45、高 32 | — | 判据 = 屏上「⌘,（绑定按钮）」：宽度 = 45、高度 = 32；可点次数 = 1（点击后状态变化次数 ≥ 1）；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
-| R-KEY-043 | S-keybindings-06 | 交互 | 用鼠标左键单击「⌘,（绑定按钮）」 | 进入录音态，按钮文案变「录音中…」 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-044 | S-keybindings-06 | 交互 | 录音中按下新组合 | 录制该组合并保存，按钮显示新值 | — | 屏上「⌘,（绑定按钮）」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
+| R-KEY-041 | S-keybindings-06 | 内容 | 打开设置›快捷键，滚动到 y≈188 处的「⌘,（绑定按钮）」 | 按钮内显示「⌘,」 | — | 屏上「⌘,（绑定按钮）」的文案逐字为「⌘,」（2 字） | 已实现（映射 = S-keybindings-06→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = 文案「录音中…」等 2 条） |
+| R-KEY-042 | S-keybindings-06 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈188 处的「⌘,（绑定按钮）」 | 描边小按钮、可点，宽 45、高 32 | — | 判据 = 屏上「⌘,（绑定按钮）」：宽度 = 45、高度 = 32；可点次数 = 1（点击后状态变化次数 ≥ 1）；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（映射到位但没有该维度的标记）：S-keybindings-06→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-043 | S-keybindings-06 | 交互 | 用鼠标左键单击「⌘,（绑定按钮）」 | 进入录音态，按钮文案变「录音中…」 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-06→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-044 | S-keybindings-06 | 交互 | 录音中按下新组合 | 录制该组合并保存，按钮显示新值 | — | 屏上「⌘,（绑定按钮）」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-keybindings-06→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
 | R-KEY-045 | S-keybindings-06 | 状态 | 已改过 | 右侧出现「重置」按钮 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingRow「重置」 |
-| R-KEY-046 | S-keybindings-06 | 异常 | 打开设置›快捷键，滚动到 y≈188 处的「⌘,（绑定按钮）」 | 按钮下方显示冲突提示，按钮保留新值 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-KEY-047 | S-keybindings-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘,（绑定按钮）」听播报 | 播报「打开设置，快捷键 ⌘,，按钮」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-048 | S-keybindings-06 | 键盘 | 把 Tab 焦点移到「⌘,（绑定按钮）」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-KEY-046 | S-keybindings-06 | 异常 | 打开设置›快捷键，滚动到 y≈188 处的「⌘,（绑定按钮）」 | 按钮下方显示冲突提示，按钮保留新值 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-06→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-047 | S-keybindings-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘,（绑定按钮）」听播报 | 播报「打开设置，快捷键 ⌘,，按钮」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-06→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-048 | S-keybindings-06 | 键盘 | 把 Tab 焦点移到「⌘,（绑定按钮）」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-06→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-049 | S-keybindings-07 | 状态 | 绑定 ≠ 默认 | 该行出现「重置」按钮 | — | 屏上「重置」的文案逐字为「重置」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingRow「重置」 |
 | R-KEY-050 | S-keybindings-07 | 状态 | 打开设置›快捷键，看「重置」 | 不渲染 | — | 屏上「重置」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-KEY-051 | S-keybindings-07 | 交互 | 用鼠标左键单击「重置」 | 恢复默认组合，按钮自身消失 | — | 屏上「重置」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-KEY-052 | S-keybindings-07 | 样式 | 打开设置›快捷键，看「重置」 | 文字按钮或小按钮，高 24，位于绑定按钮右侧 8 | — | 屏上「重置」：高度 = 24、相对位置 = 绑定按钮右侧 | 未实现（找不到元素渲染点） |
-| R-KEY-053 | S-keybindings-07 | 异常 | 恢复失败 | 保持新值并提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-054 | S-keybindings-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「重置」听播报 | 播报「重置为默认，按钮」 | — | 屏上「重置」的文案逐字为「重置为默认，按钮」（8 字） | 未实现（找不到元素渲染点） |
-| R-KEY-055 | S-keybindings-07 | 记忆 | 重置后重启 | 仍为默认值 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-056 | S-keybindings-07 | 键盘 | 把 Tab 焦点移到「重置」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-KEY-052 | S-keybindings-07 | 样式 | 打开设置›快捷键，看「重置」 | 文字按钮或小按钮，高 24，位于绑定按钮右侧 8 | — | 屏上「重置」：高度 = 24、相对位置 = 绑定按钮右侧 | 已实现（映射 = S-keybindings-07→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-053 | S-keybindings-07 | 异常 | 恢复失败 | 保持新值并提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-07→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-054 | S-keybindings-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「重置」听播报 | 播报「重置为默认，按钮」 | — | 屏上「重置」的文案逐字为「重置为默认，按钮」（8 字） | 已实现（映射 = S-keybindings-07→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-055 | S-keybindings-07 | 记忆 | 重置后重启 | 仍为默认值 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-07→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-056 | S-keybindings-07 | 键盘 | 把 Tab 焦点移到「重置」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-07→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Key） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-057 | S-keybindings-08 | 内容 | 通用组第 2 行 | 名称「新建线程」 | — | 屏上「新建线程」的文案逐字为「新建线程」（4 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「新建线程」 |
-| R-KEY-058 | S-keybindings-08 | 样式 | 打开设置›快捷键，滚动到 y≈255 处的「新建线程」 | 与首行同款，y=255 | — | 屏上「新建线程」：y = 255 | 未实现（找不到元素渲染点） |
-| R-KEY-059 | S-keybindings-08 | 关联 | 在「新建线程」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-KEY-060 | S-keybindings-08 | 状态 | 有错误 | 错误显示在名称下 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-KEY-061 | S-keybindings-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「新建线程」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-062 | S-keybindings-08 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈255 处的「新建线程」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-063 | S-keybindings-08 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈255 处的「新建线程」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-064 | S-keybindings-08 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈255 处的「新建线程」 | 对比 ≥4.5:1 | — | 屏上「新建线程」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-058 | S-keybindings-08 | 样式 | 打开设置›快捷键，滚动到 y≈255 处的「新建线程」 | 与首行同款，y=255 | — | 屏上「新建线程」：y = 255 | 已实现（映射 = S-keybindings-08→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-059 | S-keybindings-08 | 关联 | 在「新建线程」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-08→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
+| R-KEY-060 | S-keybindings-08 | 状态 | 有错误 | 错误显示在名称下 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-keybindings-08→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-061 | S-keybindings-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「新建线程」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-08→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-062 | S-keybindings-08 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈255 处的「新建线程」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-08→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-063 | S-keybindings-08 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈255 处的「新建线程」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-08→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-064 | S-keybindings-08 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈255 处的「新建线程」 | 对比 ≥4.5:1 | — | 屏上「新建线程」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-08→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-065 | S-keybindings-09 | 内容 | 打开设置›快捷键，滚动到 y≈248 处的「⌘N」 | 显示「⌘N」 | — | 屏上「⌘N」的文案逐字为「⌘N」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「⌘N」 |
-| R-KEY-066 | S-keybindings-09 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈248 处的「⌘N」 | 可点，宽 51 | — | 屏上「⌘N」：宽度 = 51；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-KEY-067 | S-keybindings-09 | 交互 | 点击 → 按 ⌘⇧N | 绑定更新为 ⌘⇧N，右侧出现重置 | — | 屏上「⌘N」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-KEY-068 | S-keybindings-09 | 交互 | 录音中按 Esc | 取消录音，保留原值 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-069 | S-keybindings-09 | 异常 | 只按修饰键松开 | 不记为绑定，仍等待输入 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-KEY-070 | S-keybindings-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘N」听播报 | 播报名与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-071 | S-keybindings-09 | 键盘 | 把 Tab 焦点移到「⌘N」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-KEY-072 | S-keybindings-09 | 记忆 | 重启后 | 保持新绑定 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-066 | S-keybindings-09 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈248 处的「⌘N」 | 可点，宽 51 | — | 屏上「⌘N」：宽度 = 51；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-09→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-067 | S-keybindings-09 | 交互 | 点击 → 按 ⌘⇧N | 绑定更新为 ⌘⇧N，右侧出现重置 | — | 屏上「⌘N」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-keybindings-09→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-068 | S-keybindings-09 | 交互 | 录音中按 Esc | 取消录音，保留原值 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-09→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-069 | S-keybindings-09 | 异常 | 只按修饰键松开 | 不记为绑定，仍等待输入 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-09→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-070 | S-keybindings-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘N」听播报 | 播报名与当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-09→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-071 | S-keybindings-09 | 键盘 | 把 Tab 焦点移到「⌘N」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-09→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-072 | S-keybindings-09 | 记忆 | 重启后 | 保持新绑定 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-09→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-073 | S-keybindings-10 | 内容 | 通用组第 3 行 | 名称「切换侧边栏」 | — | 屏上「切换侧边栏」的文案逐字为「切换侧边栏」（5 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「切换侧边栏」 |
-| R-KEY-074 | S-keybindings-10 | 样式 | 打开设置›快捷键，滚动到 y≈316 处的「切换侧边栏」 | 同款，y=316 | — | 屏上「切换侧边栏」：y = 316 | 未实现（找不到元素渲染点） |
-| R-KEY-075 | S-keybindings-10 | 关联 | 在「切换侧边栏」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-KEY-076 | S-keybindings-10 | 状态 | 打开设置›快捷键，滚动到 y≈316 处的「切换侧边栏」 | 行单独保留，组标题保留 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-KEY-077 | S-keybindings-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「切换侧边栏」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-078 | S-keybindings-10 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈316 处的「切换侧边栏」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-079 | S-keybindings-10 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈316 处的「切换侧边栏」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-080 | S-keybindings-10 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈316 处的「切换侧边栏」 | 对比 ≥4.5:1 | — | 屏上「切换侧边栏」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-074 | S-keybindings-10 | 样式 | 打开设置›快捷键，滚动到 y≈316 处的「切换侧边栏」 | 同款，y=316 | — | 屏上「切换侧边栏」：y = 316 | 已实现（映射 = S-keybindings-10→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-075 | S-keybindings-10 | 关联 | 在「切换侧边栏」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-10→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
+| R-KEY-076 | S-keybindings-10 | 状态 | 打开设置›快捷键，滚动到 y≈316 处的「切换侧边栏」 | 行单独保留，组标题保留 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-keybindings-10→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-077 | S-keybindings-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「切换侧边栏」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-10→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-078 | S-keybindings-10 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈316 处的「切换侧边栏」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-10→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-079 | S-keybindings-10 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈316 处的「切换侧边栏」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-10→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-080 | S-keybindings-10 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈316 处的「切换侧边栏」 | 对比 ≥4.5:1 | — | 屏上「切换侧边栏」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-10→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-081 | S-keybindings-11 | 内容 | 打开设置›快捷键，滚动到 y≈309 处的「⌘B」 | 显示「⌘B」 | — | 屏上「⌘B」的文案逐字为「⌘B」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「⌘B」 |
-| R-KEY-082 | S-keybindings-11 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈309 处的「⌘B」 | 可点，宽 49 | — | 屏上「⌘B」：宽度 = 49；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-KEY-083 | S-keybindings-11 | 交互 | 录制 ⌘⌥B | 更新值并保存 | — | 屏上「⌘B」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
+| R-KEY-082 | S-keybindings-11 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈309 处的「⌘B」 | 可点，宽 49 | — | 屏上「⌘B」：宽度 = 49；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-11→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-083 | S-keybindings-11 | 交互 | 录制 ⌘⌥B | 更新值并保存 | — | 屏上「⌘B」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-keybindings-11→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
 | R-KEY-084 | S-keybindings-11 | 交互 | 录制与 ⌘B 相同的旧值 | 允许写回同值，重置按钮不出现 | — | 屏上「⌘B」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-KEY-085 | S-keybindings-11 | 异常 | 断开网络后改「⌘B」，等保存返回失败 | 显示保存失败提示（S-keybindings-26），值回滚 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-086 | S-keybindings-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘B」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-087 | S-keybindings-11 | 键盘 | 把 Tab 焦点移到「⌘B」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-KEY-088 | S-keybindings-11 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈309 处的「⌘B」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-085 | S-keybindings-11 | 异常 | 断开网络后改「⌘B」，等保存返回失败 | 显示保存失败提示（S-keybindings-26），值回滚 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-11→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-086 | S-keybindings-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘B」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-11→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-087 | S-keybindings-11 | 键盘 | 把 Tab 焦点移到「⌘B」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-11→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-088 | S-keybindings-11 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈309 处的「⌘B」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-11→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-089 | S-keybindings-12 | 内容 | 通用组第 4 行 | 名称「搜索对话」 | — | 屏上「搜索对话」的文案逐字为「搜索对话」（4 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「搜索对话」 |
-| R-KEY-090 | S-keybindings-12 | 样式 | 打开设置›快捷键，滚动到 y≈376 处的「搜索对话」 | 同款，y=376 | — | 屏上「搜索对话」：y = 376 | 未实现（找不到元素渲染点） |
-| R-KEY-091 | S-keybindings-12 | 关联 | 在「搜索对话」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
+| R-KEY-090 | S-keybindings-12 | 样式 | 打开设置›快捷键，滚动到 y≈376 处的「搜索对话」 | 同款，y=376 | — | 屏上「搜索对话」：y = 376 | 已实现（映射 = S-keybindings-12→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-091 | S-keybindings-12 | 关联 | 在「搜索对话」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-12→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
 | R-KEY-092 | S-keybindings-12 | 状态 | 组内最后一行 | 其下有分组间距到「对话」组 | — | 间距 20 | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「对话」 |
-| R-KEY-093 | S-keybindings-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「搜索对话」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-094 | S-keybindings-12 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈376 处的「搜索对话」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-095 | S-keybindings-12 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈376 处的「搜索对话」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-096 | S-keybindings-12 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈376 处的「搜索对话」 | 对比 ≥4.5:1 | — | 屏上「搜索对话」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-093 | S-keybindings-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「搜索对话」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-12→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-094 | S-keybindings-12 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈376 处的「搜索对话」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-12→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-095 | S-keybindings-12 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈376 处的「搜索对话」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-12→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-096 | S-keybindings-12 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈376 处的「搜索对话」 | 对比 ≥4.5:1 | — | 屏上「搜索对话」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-12→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-097 | S-keybindings-13 | 内容 | 打开设置›快捷键，滚动到 y≈369 处的「⌘G」 | 显示「⌘G」 | — | 屏上「⌘G」的文案逐字为「⌘G」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「⌘G」 |
-| R-KEY-098 | S-keybindings-13 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈369 处的「⌘G」 | 可点，宽 50 | — | 屏上「⌘G」：宽度 = 50；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-KEY-099 | S-keybindings-13 | 交互 | 录制 ⌘F | 更新并保存 | — | 屏上「⌘G」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-KEY-100 | S-keybindings-13 | 交互 | 录音中按退格 | 清空为未绑定 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-101 | S-keybindings-13 | 异常 | 冲突（与系统快捷键同名） | 行下显示冲突提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-102 | S-keybindings-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘G」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-103 | S-keybindings-13 | 键盘 | 把 Tab 焦点移到「⌘G」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-KEY-104 | S-keybindings-13 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈369 处的「⌘G」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-098 | S-keybindings-13 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈369 处的「⌘G」 | 可点，宽 50 | — | 屏上「⌘G」：宽度 = 50；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-13→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-099 | S-keybindings-13 | 交互 | 录制 ⌘F | 更新并保存 | — | 屏上「⌘G」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-keybindings-13→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-100 | S-keybindings-13 | 交互 | 录音中按退格 | 清空为未绑定 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-13→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-101 | S-keybindings-13 | 异常 | 冲突（与系统快捷键同名） | 行下显示冲突提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-13→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-102 | S-keybindings-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘G」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-13→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-103 | S-keybindings-13 | 键盘 | 把 Tab 焦点移到「⌘G」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-13→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-104 | S-keybindings-13 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈369 处的「⌘G」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-13→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-105 | S-keybindings-14 | 内容 | chat 组渲染 | 分组标题「对话」 | — | 屏上「对话」的文案逐字为「对话」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「对话」 |
 | R-KEY-106 | S-keybindings-14 | 样式 | 打开设置›快捷键，滚动到 y≈444 处的「对话」 | 与「通用」同款，y=444 | — | 屏上「对话」：y = 444 | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingScopes「通用」 |
-| R-KEY-107 | S-keybindings-14 | 关联 | 在「对话」所在行内，同时看它与上一组的相对位置 | 与通用组末行间距 20 | — | 间距 20 | 未实现（找不到元素渲染点） |
-| R-KEY-108 | S-keybindings-14 | 状态 | 搜索仅命中对话组 | 通用组标题隐藏，本组保留 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-KEY-109 | S-keybindings-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「对话」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-110 | S-keybindings-14 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈444 处的「对话」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-111 | S-keybindings-14 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈444 处的「对话」 | 单行 | — | 屏上「对话」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-KEY-112 | S-keybindings-14 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈444 处的「对话」 | 对比 ≥4.5:1 | — | 屏上「对话」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-107 | S-keybindings-14 | 关联 | 在「对话」所在行内，同时看它与上一组的相对位置 | 与通用组末行间距 20 | — | 间距 20 | 已实现（映射 = S-keybindings-14→internal/ui/settings_keybindings_screen.go:keybindingGroups；标记 = Screen@keybindingRows） |
+| R-KEY-108 | S-keybindings-14 | 状态 | 搜索仅命中对话组 | 通用组标题隐藏，本组保留 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-keybindings-14→internal/ui/settings_keybindings_screen.go:keybindingGroups |
+| R-KEY-109 | S-keybindings-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「对话」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-14→internal/ui/settings_keybindings_screen.go:keybindingGroups；标记 = Role@keybindingGroupTitle） |
+| R-KEY-110 | S-keybindings-14 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈444 处的「对话」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-14→internal/ui/settings_keybindings_screen.go:keybindingGroups |
+| R-KEY-111 | S-keybindings-14 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈444 处的「对话」 | 单行 | — | 屏上「对话」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-keybindings-14→internal/ui/settings_keybindings_screen.go:keybindingGroups |
+| R-KEY-112 | S-keybindings-14 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈444 处的「对话」 | 对比 ≥4.5:1 | — | 屏上「对话」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-14→internal/ui/settings_keybindings_screen.go:keybindingGroups；标记 = Theme@keybindingGroupTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-113 | S-keybindings-15 | 内容 | 对话组第 1 行 | 名称「聚焦输入框」 | — | 屏上「聚焦输入框」的文案逐字为「聚焦输入框」（5 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「聚焦输入框」 |
-| R-KEY-114 | S-keybindings-15 | 样式 | 打开设置›快捷键，滚动到 y≈494 处的「聚焦输入框」 | 同款，y=494 | — | 屏上「聚焦输入框」：y = 494 | 未实现（找不到元素渲染点） |
-| R-KEY-115 | S-keybindings-15 | 关联 | 在「聚焦输入框」所在行内，同时看它与绑定按钮的相对位置 | 同行（x≈934） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-KEY-116 | S-keybindings-15 | 状态 | 有错误 | 错误在名称下 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-KEY-117 | S-keybindings-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「聚焦输入框」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-118 | S-keybindings-15 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈494 处的「聚焦输入框」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-119 | S-keybindings-15 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈494 处的「聚焦输入框」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-120 | S-keybindings-15 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈494 处的「聚焦输入框」 | 对比 ≥4.5:1 | — | 屏上「聚焦输入框」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-114 | S-keybindings-15 | 样式 | 打开设置›快捷键，滚动到 y≈494 处的「聚焦输入框」 | 同款，y=494 | — | 屏上「聚焦输入框」：y = 494 | 已实现（映射 = S-keybindings-15→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-115 | S-keybindings-15 | 关联 | 在「聚焦输入框」所在行内，同时看它与绑定按钮的相对位置 | 同行（x≈934） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-15→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
+| R-KEY-116 | S-keybindings-15 | 状态 | 有错误 | 错误在名称下 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-keybindings-15→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-117 | S-keybindings-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「聚焦输入框」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-15→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-118 | S-keybindings-15 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈494 处的「聚焦输入框」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-15→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-119 | S-keybindings-15 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈494 处的「聚焦输入框」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-15→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-120 | S-keybindings-15 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈494 处的「聚焦输入框」 | 对比 ≥4.5:1 | — | 屏上「聚焦输入框」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-15→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-121 | S-keybindings-16 | 内容 | 打开设置›快捷键，滚动到 y≈487 处的「⌘L」 | 显示「⌘L」 | — | 屏上「⌘L」的文案逐字为「⌘L」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「⌘L」 |
-| R-KEY-122 | S-keybindings-16 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈487 处的「⌘L」 | 可点，宽 48 | — | 屏上「⌘L」：宽度 = 48；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-KEY-123 | S-keybindings-16 | 交互 | 录制 ⌘⇧L | 更新并保存 | — | 屏上「⌘L」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-KEY-124 | S-keybindings-16 | 交互 | 录音中再次点击本按钮 | 退出录音，恢复原值 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-125 | S-keybindings-16 | 异常 | 断开网络后改「⌘L」，等保存返回失败 | 提示 + 回滚 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-126 | S-keybindings-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘L」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-127 | S-keybindings-16 | 键盘 | 把 Tab 焦点移到「⌘L」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-KEY-128 | S-keybindings-16 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈487 处的「⌘L」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-122 | S-keybindings-16 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈487 处的「⌘L」 | 可点，宽 48 | — | 屏上「⌘L」：宽度 = 48；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-16→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-123 | S-keybindings-16 | 交互 | 录制 ⌘⇧L | 更新并保存 | — | 屏上「⌘L」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-keybindings-16→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-124 | S-keybindings-16 | 交互 | 录音中再次点击本按钮 | 退出录音，恢复原值 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-16→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-125 | S-keybindings-16 | 异常 | 断开网络后改「⌘L」，等保存返回失败 | 提示 + 回滚 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-16→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-126 | S-keybindings-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘L」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-16→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-127 | S-keybindings-16 | 键盘 | 把 Tab 焦点移到「⌘L」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-16→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-128 | S-keybindings-16 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈487 处的「⌘L」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-16→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-129 | S-keybindings-17 | 内容 | 对话组第 2 行 | 名称「切换更改面板」 | — | 屏上「切换更改面板」的文案逐字为「切换更改面板」（6 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「切换更改面板」 |
-| R-KEY-130 | S-keybindings-17 | 样式 | 打开设置›快捷键，滚动到 y≈554 处的「切换更改面板」 | 同款，y=554 | — | 屏上「切换更改面板」：y = 554 | 未实现（找不到元素渲染点） |
-| R-KEY-131 | S-keybindings-17 | 关联 | 在「切换更改面板」所在行内，同时看它与绑定按钮的相对位置 | 同行（x≈921，因值更长） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-KEY-132 | S-keybindings-17 | 状态 | 搜索命中「更改」 | 该行保留 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-KEY-133 | S-keybindings-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「切换更改面板」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-134 | S-keybindings-17 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈554 处的「切换更改面板」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-135 | S-keybindings-17 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈554 处的「切换更改面板」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-136 | S-keybindings-17 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈554 处的「切换更改面板」 | 对比 ≥4.5:1 | — | 屏上「切换更改面板」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-130 | S-keybindings-17 | 样式 | 打开设置›快捷键，滚动到 y≈554 处的「切换更改面板」 | 同款，y=554 | — | 屏上「切换更改面板」：y = 554 | 已实现（映射 = S-keybindings-17→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-131 | S-keybindings-17 | 关联 | 在「切换更改面板」所在行内，同时看它与绑定按钮的相对位置 | 同行（x≈921，因值更长） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-17→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
+| R-KEY-132 | S-keybindings-17 | 状态 | 搜索命中「更改」 | 该行保留 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-keybindings-17→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-133 | S-keybindings-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「切换更改面板」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-17→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-134 | S-keybindings-17 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈554 处的「切换更改面板」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-17→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-135 | S-keybindings-17 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈554 处的「切换更改面板」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-17→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-136 | S-keybindings-17 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈554 处的「切换更改面板」 | 对比 ≥4.5:1 | — | 屏上「切换更改面板」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-17→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-137 | S-keybindings-18 | 内容 | 打开设置›快捷键，滚动到 y≈547 处的「⌘⇧B」 | 显示「⌘⇧B」 | — | 屏上「⌘⇧B」的文案逐字为「⌘⇧B」（3 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「⌘⇧B」 |
-| R-KEY-138 | S-keybindings-18 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈547 处的「⌘⇧B」 | 可点，宽 62 | — | 屏上「⌘⇧B」：宽度 = 62；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-KEY-139 | S-keybindings-18 | 交互 | 录制 ⌘⇧C | 更新并保存 | — | 屏上「⌘⇧B」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-KEY-140 | S-keybindings-18 | 状态 | 组合含 ⇧ | 键帽顺序按 ⌘⌥⌃⇧ 规范排列 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-KEY-141 | S-keybindings-18 | 异常 | 打开设置›快捷键，滚动到 y≈547 处的「⌘⇧B」 | 行下冲突提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-142 | S-keybindings-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘⇧B」听播报 | 按字符逐一读出修饰键 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-143 | S-keybindings-18 | 键盘 | 把 Tab 焦点移到「⌘⇧B」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-KEY-144 | S-keybindings-18 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈547 处的「⌘⇧B」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-138 | S-keybindings-18 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈547 处的「⌘⇧B」 | 可点，宽 62 | — | 屏上「⌘⇧B」：宽度 = 62；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-18→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-139 | S-keybindings-18 | 交互 | 录制 ⌘⇧C | 更新并保存 | — | 屏上「⌘⇧B」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-keybindings-18→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-140 | S-keybindings-18 | 状态 | 组合含 ⇧ | 键帽顺序按 ⌘⌥⌃⇧ 规范排列 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（映射到位但没有该维度的标记）：S-keybindings-18→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-141 | S-keybindings-18 | 异常 | 打开设置›快捷键，滚动到 y≈547 处的「⌘⇧B」 | 行下冲突提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-18→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-142 | S-keybindings-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘⇧B」听播报 | 按字符逐一读出修饰键 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-18→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-143 | S-keybindings-18 | 键盘 | 把 Tab 焦点移到「⌘⇧B」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-18→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-144 | S-keybindings-18 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈547 处的「⌘⇧B」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-18→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-145 | S-keybindings-19 | 内容 | 对话组第 3 行 | 名称「切换终端」 | — | 屏上「切换终端」的文案逐字为「切换终端」（4 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「切换终端」 |
-| R-KEY-146 | S-keybindings-19 | 样式 | 打开设置›快捷键，滚动到 y≈615 处的「切换终端」 | 同款，y=615 | — | 屏上「切换终端」：y = 615 | 未实现（找不到元素渲染点） |
-| R-KEY-147 | S-keybindings-19 | 关联 | 在「切换终端」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-KEY-148 | S-keybindings-19 | 状态 | 终端不可用 | 名称仍显示（快捷键保留） | — | 屏上「切换终端」：出现次数 = 1 | 未实现（找不到元素渲染点） |
-| R-KEY-149 | S-keybindings-19 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「切换终端」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-150 | S-keybindings-19 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈615 处的「切换终端」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-151 | S-keybindings-19 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈615 处的「切换终端」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-152 | S-keybindings-19 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈615 处的「切换终端」 | 对比 ≥4.5:1 | — | 屏上「切换终端」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-146 | S-keybindings-19 | 样式 | 打开设置›快捷键，滚动到 y≈615 处的「切换终端」 | 同款，y=615 | — | 屏上「切换终端」：y = 615 | 已实现（映射 = S-keybindings-19→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-147 | S-keybindings-19 | 关联 | 在「切换终端」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-19→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
+| R-KEY-148 | S-keybindings-19 | 状态 | 终端不可用 | 名称仍显示（快捷键保留） | — | 屏上「切换终端」：出现次数 = 1 | 未实现（映射到位但没有该维度的标记）：S-keybindings-19→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-149 | S-keybindings-19 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「切换终端」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-19→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-150 | S-keybindings-19 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈615 处的「切换终端」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-19→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-151 | S-keybindings-19 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈615 处的「切换终端」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-19→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-152 | S-keybindings-19 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈615 处的「切换终端」 | 对比 ≥4.5:1 | — | 屏上「切换终端」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-19→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-153 | S-keybindings-20 | 内容 | 打开设置›快捷键，滚动到 y≈608 处的「⌘J」 | 显示「⌘J」 | — | 屏上「⌘J」的文案逐字为「⌘J」（2 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「⌘J」 |
-| R-KEY-154 | S-keybindings-20 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈608 处的「⌘J」 | 可点，宽 48 | — | 屏上「⌘J」：宽度 = 48；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-KEY-155 | S-keybindings-20 | 交互 | 录制 ⌘` | 更新并保存 | — | 屏上「⌘J」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-KEY-156 | S-keybindings-20 | 状态 | 打开设置›快捷键，滚动到 y≈608 处的「⌘J」 | 按钮显示「录音中…」，其余按钮保持可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-KEY-157 | S-keybindings-20 | 异常 | 断开网络后改「⌘J」，等保存返回失败 | 提示 + 回滚 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-158 | S-keybindings-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘J」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-159 | S-keybindings-20 | 键盘 | 把 Tab 焦点移到「⌘J」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-KEY-160 | S-keybindings-20 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈608 处的「⌘J」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-154 | S-keybindings-20 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈608 处的「⌘J」 | 可点，宽 48 | — | 屏上「⌘J」：宽度 = 48；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-20→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-155 | S-keybindings-20 | 交互 | 录制 ⌘` | 更新并保存 | — | 屏上「⌘J」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-keybindings-20→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-156 | S-keybindings-20 | 状态 | 打开设置›快捷键，滚动到 y≈608 处的「⌘J」 | 按钮显示「录音中…」，其余按钮保持可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（映射到位但没有该维度的标记）：S-keybindings-20→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-157 | S-keybindings-20 | 异常 | 断开网络后改「⌘J」，等保存返回失败 | 提示 + 回滚 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-20→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-158 | S-keybindings-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘J」听播报 | 播报名与值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-20→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-159 | S-keybindings-20 | 键盘 | 把 Tab 焦点移到「⌘J」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-20→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-160 | S-keybindings-20 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈608 处的「⌘J」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-20→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-KEY-161 | S-keybindings-21 | 内容 | 对话组第 4 行 | 名称「提交更改」 | — | 屏上「提交更改」的文案逐字为「提交更改」（4 字） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「提交更改」 |
-| R-KEY-162 | S-keybindings-21 | 样式 | 打开设置›快捷键，滚动到 y≈675 处的「提交更改」 | 同款，y=675 | — | 屏上「提交更改」：y = 675 | 未实现（找不到元素渲染点） |
-| R-KEY-163 | S-keybindings-21 | 关联 | 在「提交更改」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-KEY-164 | S-keybindings-21 | 状态 | 组内最后一行 | 其下为页尾空白 | — | 末行底边到容器底边像素 ≥ 24 | 未实现（找不到元素渲染点） |
-| R-KEY-165 | S-keybindings-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「提交更改」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-166 | S-keybindings-21 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈675 处的「提交更改」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-167 | S-keybindings-21 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈675 处的「提交更改」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-168 | S-keybindings-21 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈675 处的「提交更改」 | 对比 ≥4.5:1 | — | 屏上「提交更改」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-KEY-162 | S-keybindings-21 | 样式 | 打开设置›快捷键，滚动到 y≈675 处的「提交更改」 | 同款，y=675 | — | 屏上「提交更改」：y = 675 | 已实现（映射 = S-keybindings-21→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Height） |
+| R-KEY-163 | S-keybindings-21 | 关联 | 在「提交更改」所在行内，同时看它与绑定按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-21→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Screen） |
+| R-KEY-164 | S-keybindings-21 | 状态 | 组内最后一行 | 其下为页尾空白 | — | 末行底边到容器底边像素 ≥ 24 | 未实现（映射到位但没有该维度的标记）：S-keybindings-21→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-165 | S-keybindings-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「提交更改」听播报 | 与值连读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-21→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Role） |
+| R-KEY-166 | S-keybindings-21 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进快捷键，滚动到 y≈675 处的「提交更改」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-21→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-167 | S-keybindings-21 | 窄窗 | 把窗口拖到内容列宽 520，滚动到 y≈675 处的「提交更改」 | 不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-21→internal/ui/settings_keybindings_screen.go:keybindingRow |
+| R-KEY-168 | S-keybindings-21 | 深色 | 在设置›外观把主题切成深色，再回快捷键，滚动到 y≈675 处的「提交更改」 | 对比 ≥4.5:1 | — | 屏上「提交更改」：对比度 ≥ 4.5:1 | 已实现（映射 = S-keybindings-21→internal/ui/settings_keybindings_screen.go:keybindingRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-KEY-169 | S-keybindings-22 | 内容 | 打开设置›快捷键，滚动到 y≈668 处的「⌘⇧↵」 | 显示「⌘⇧↵」 | — | 屏上「⌘⇧↵」的文案逐字为「⌘⇧↵」（3 字） | 未实现（找不到元素渲染点） |
-| R-KEY-170 | S-keybindings-22 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈668 处的「⌘⇧↵」 | 可点，宽 66 | — | 屏上「⌘⇧↵」：宽度 = 66；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（找不到元素渲染点） |
-| R-KEY-171 | S-keybindings-22 | 交互 | 录制 ⌘↵ | 更新并保存 | — | 屏上「⌘⇧↵」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
+| R-KEY-169 | S-keybindings-22 | 内容 | 打开设置›快捷键，滚动到 y≈668 处的「⌘⇧↵」 | 显示「⌘⇧↵」 | — | 屏上「⌘⇧↵」的文案逐字为「⌘⇧↵」（3 字） | 已实现（映射 = S-keybindings-22→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = 文案「录音中…」等 2 条） |
+| R-KEY-170 | S-keybindings-22 | 状态 | 首次打开设置›快捷键、不做任何改动时滚动到 y≈668 处的「⌘⇧↵」 | 可点，宽 66 | — | 屏上「⌘⇧↵」：宽度 = 66；可点次数 = 1（点击后状态变化次数 ≥ 1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-22→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-171 | S-keybindings-22 | 交互 | 录制 ⌘↵ | 更新并保存 | — | 屏上「⌘⇧↵」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-keybindings-22→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
 | R-KEY-172 | S-keybindings-22 | 状态 | 打开设置›快捷键，滚动到 y≈668 处的「⌘⇧↵」 | 键帽用回车符号而非「Enter」字样 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（逐字）：internal/ui/settings_configuration_screen.go:configDisabledProviderNames「Enter」 |
-| R-KEY-173 | S-keybindings-22 | 异常 | 在「⌘⇧↵」所在行内，同时看它与系统 Cmd+Enter 冲突的相对位置 | 行下冲突提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-173 | S-keybindings-22 | 异常 | 在「⌘⇧↵」所在行内，同时看它与系统 Cmd+Enter 冲突的相对位置 | 行下冲突提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-22→internal/ui/settings_keybindings_screen.go:keybindingButton |
 | R-KEY-174 | S-keybindings-22 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「⌘⇧↵」听播报 | 读作「回车」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/command_palette.go:App.commandPaletteRow「回车」 |
-| R-KEY-175 | S-keybindings-22 | 键盘 | 把 Tab 焦点移到「⌘⇧↵」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-KEY-176 | S-keybindings-22 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈668 处的「⌘⇧↵」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-175 | S-keybindings-22 | 键盘 | 把 Tab 焦点移到「⌘⇧↵」后按回车 | 进入录音态 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-keybindings-22→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
+| R-KEY-176 | S-keybindings-22 | 记忆 | 改动后退出客户端再启动，重进设置›快捷键，滚动到 y≈668 处的「⌘⇧↵」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-keybindings-22→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-KEY-177 | S-keybindings-23 | 状态 | 点击某绑定按钮 | 该按钮文案变「录音中…」 | — | 屏上「录音中…」的文案逐字为「录音中…」（4 字） | 未实现（找不到元素渲染点） |
-| R-KEY-178 | S-keybindings-23 | 状态 | 录制完成 / 取消 | 恢复显示绑定值 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-KEY-179 | S-keybindings-23 | 样式 | 打开设置›快捷键，看「录音中…」 | 与按钮同尺寸，可能带脉冲边框 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35 | 未实现（找不到元素渲染点） |
-| R-KEY-180 | S-keybindings-23 | 动画 | 打开设置›快捷键，看「录音中…」 | 静态边框，不脉冲；减少动效下静态 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-KEY-181 | S-keybindings-23 | 交互 | 录制中按 Esc | 取消并恢复原值 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-177 | S-keybindings-23 | 状态 | 点击某绑定按钮 | 该按钮文案变「录音中…」 | — | 屏上「录音中…」的文案逐字为「录音中…」（4 字） | 未实现（映射到位但没有该维度的标记）：S-keybindings-23→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-178 | S-keybindings-23 | 状态 | 录制完成 / 取消 | 恢复显示绑定值 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（映射到位但没有该维度的标记）：S-keybindings-23→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-179 | S-keybindings-23 | 样式 | 打开设置›快捷键，看「录音中…」 | 与按钮同尺寸，可能带脉冲边框 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35 | 已实现（映射 = S-keybindings-23→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Width） |
+| R-KEY-180 | S-keybindings-23 | 动画 | 打开设置›快捷键，看「录音中…」 | 静态边框，不脉冲；减少动效下静态 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-keybindings-23→internal/ui/settings_keybindings_screen.go:keybindingButton |
+| R-KEY-181 | S-keybindings-23 | 交互 | 录制中按 Esc | 取消并恢复原值 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-23→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Key） |
 | R-KEY-182 | S-keybindings-23 | 关联 | 在「录音中…」所在行内，同时看它与其它行的相对位置 | 同时只允许一行录音 | — | 判据 = 屏上「录音中…」：行数 = 1；可点次数 = 0（禁用态） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-KEY-183 | S-keybindings-23 | 无障碍 | 打开设置›快捷键，看「录音中…」 | 播报「正在录制快捷键」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-KEY-184 | S-keybindings-23 | 异常 | 录制超时 10 秒 | 自动退出录音并恢复原值 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-KEY-183 | S-keybindings-23 | 无障碍 | 打开设置›快捷键，看「录音中…」 | 播报「正在录制快捷键」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-23→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
+| R-KEY-184 | S-keybindings-23 | 异常 | 录制超时 10 秒 | 自动退出录音并恢复原值 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-keybindings-23→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -5999,14 +5999,14 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-KEY-193 | S-keybindings-25 | 状态 | 组合与另一功能冲突 | 显示冲突提示，含冲突键位与被占用功能名 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-KEY-193 | S-keybindings-25 | 状态 | 组合与另一功能冲突 | 显示冲突提示，含冲突键位与被占用功能名 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-keybindings-25→internal/ui/settings_keybindings_screen.go:keybindingButton |
 | R-KEY-194 | S-keybindings-25 | 状态 | 无冲突 | 不渲染 | — | 屏上「conflict」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-KEY-195 | S-keybindings-25 | 内容 | 打开设置›快捷键，看「conflict」 | 文案含「⌘B」等键位与对方名称 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「⌘B」 |
-| R-KEY-196 | S-keybindings-25 | 样式 | 打开设置›快捷键，看「conflict」 | 字号 11、警示色，位于名称下 | — | 判据 = 屏上「conflict」：字号 = 11；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 未实现（找不到元素渲染点） |
-| R-KEY-197 | S-keybindings-25 | 关联 | 在「conflict」所在行内，同时看它与保存的相对位置 | 冲突时是否保存 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-KEY-198 | S-keybindings-25 | 无障碍 | 打开设置›快捷键，看「conflict」 | 播报冲突与被占用者 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-KEY-196 | S-keybindings-25 | 样式 | 打开设置›快捷键，看「conflict」 | 字号 11、警示色，位于名称下 | — | 判据 = 屏上「conflict」：字号 = 11；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 已实现（映射 = S-keybindings-25→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Width） |
+| R-KEY-197 | S-keybindings-25 | 关联 | 在「conflict」所在行内，同时看它与保存的相对位置 | 冲突时是否保存 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-keybindings-25→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Screen） |
+| R-KEY-198 | S-keybindings-25 | 无障碍 | 打开设置›快捷键，看「conflict」 | 播报冲突与被占用者 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-25→internal/ui/settings_keybindings_screen.go:keybindingButton；标记 = Label） |
 | R-KEY-199 | S-keybindings-25 | 异常 | 冲突方被解除后 | 下次保存时提示消失 | — | 屏上「conflict」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-KEY-200 | S-keybindings-25 | 窄窗 | 把窗口拖到内容列宽 520，看「conflict」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
+| R-KEY-200 | S-keybindings-25 | 窄窗 | 把窗口拖到内容列宽 520，看「conflict」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-keybindings-25→internal/ui/settings_keybindings_screen.go:keybindingButton |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -6077,7 +6077,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-CFG-028 | S-configuration-04 | 样式 | 打开设置›模型供应，看「清除搜索」 | 16×16 图标按钮，距右 4 | — | 屏上「清除搜索」：宽×高 = 16×16 | 已实现（映射 = S-configuration-04→internal/ui/settings_configuration_screen.go:configSearchField；标记 = Height） |
 | R-CFG-029 | S-configuration-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「清除搜索」听播报 | 播报「清除搜索，按钮」 | — | 屏上「清除搜索」的文案逐字为「清除搜索，按钮」（7 字） | 已实现（映射 = S-configuration-04→internal/ui/settings_configuration_screen.go:configSearchField；标记 = Label） |
 | R-CFG-030 | S-configuration-04 | 键盘 | 把 Tab 焦点移到「清除搜索」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-configuration-04→internal/ui/settings_configuration_screen.go:configSearchField |
-| R-CFG-031 | S-configuration-04 | 异常 | 清除失败 | 无副作用（纯视图） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-configuration-04→internal/ui/settings_configuration_screen.go:configSearchField |
+| R-CFG-031 | S-configuration-04 | 异常 | 清除失败 | 无副作用（纯视图） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-configuration-04→internal/ui/settings_configuration_screen.go:App.configProviderColumn；标记 = Err） |
 | R-CFG-032 | S-configuration-04 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「清除搜索」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-configuration-04→internal/ui/settings_configuration_screen.go:configSearchField |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
@@ -6282,13 +6282,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-177 | S-configuration-23 | 内容 | 模型列表渲染 | 每行：模型名 + 能力徽标（视觉 / 推理 / 工具 / 自定义 / 媒体）+ 开关 | — | 徽标元素出现次数 = 1，文本逐字为该状态文案（字符数一致） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = 文案「视觉」等 5 条） |
-| R-CFG-178 | S-configuration-23 | 状态 | 打开设置›模型供应，滚动到 y≈287 处的「formatModelName(mo…」 | 该模型出现在聊天模型选择器 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Enabled） |
+| R-CFG-177 | S-configuration-23 | 内容 | 模型列表渲染 | 每行：模型名 + 能力徽标（视觉 / 推理 / 工具 / 自定义 / 媒体）+ 开关 | — | 徽标元素出现次数 = 1，文本逐字为该状态文案（字符数一致） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = 文案「模型列表」等 3 条） |
+| R-CFG-178 | S-configuration-23 | 状态 | 打开设置›模型供应，滚动到 y≈287 处的「formatModelName(mo…」 | 该模型出现在聊天模型选择器 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Visible） |
 | R-CFG-179 | S-configuration-23 | 交互 | 点开关 | 即时启用/停用，计数与全选框同步 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Key@configState.providerToggle） |
-| R-CFG-180 | S-configuration-23 | 样式 | 打开设置›模型供应，滚动到 y≈287 处的「formatModelName(mo…」 | 行高 33（32 行逐行 +33），名称 12 字号 | — | 屏上「formatModelName(mo…」：行数 = 32 | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Padding） |
-| R-CFG-181 | S-configuration-23 | 内容 | 模型名超长 | 截断加省略号，徽标与开关不被挤掉 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = 文案「视觉」等 5 条） |
-| R-CFG-182 | S-configuration-23 | 状态 | 打开设置›模型供应，滚动到 y≈287 处的「formatModelName(mo…」 | 列表内部滚动，搜索框与全选框固定 | — | 内部滚动条出现次数 = 1，可滚动距离 > 0 | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Enabled） |
-| R-CFG-183 | S-configuration-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「formatModelName(mo…」听播报 | 播报模型名、能力与开关状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Label） |
+| R-CFG-180 | S-configuration-23 | 样式 | 打开设置›模型供应，滚动到 y≈287 处的「formatModelName(mo…」 | 行高 33（32 行逐行 +33），名称 12 字号 | — | 屏上「formatModelName(mo…」：行数 = 32 | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Height） |
+| R-CFG-181 | S-configuration-23 | 内容 | 模型名超长 | 截断加省略号，徽标与开关不被挤掉 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = 文案「模型列表」等 3 条） |
+| R-CFG-182 | S-configuration-23 | 状态 | 打开设置›模型供应，滚动到 y≈287 处的「formatModelName(mo…」 | 列表内部滚动，搜索框与全选框固定 | — | 内部滚动条出现次数 = 1，可滚动距离 > 0 | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Visible） |
+| R-CFG-183 | S-configuration-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「formatModelName(mo…」听播报 | 播报模型名、能力与开关状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-23→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Label） |
 | R-CFG-184 | S-configuration-23 | 异常 | 模型下线 | 行显示为禁用并标注 | — | 判据 = 屏上「formatModelName(mo…」：可点次数 = 0（禁用态） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
@@ -6764,35 +6764,35 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-521 | S-configuration-66 | 内容 | 打开设置›模型供应，看「名称」 | 标签「名称」+ 输入，占位「我的自定义提供商」 | — | 屏上「名称」的文案逐字为「名称」（2 字） | 已实现（逐字）：internal/settings/agents.go:validateAgentProfiles「名称」 |
-| R-CFG-522 | S-configuration-66 | 状态 | 打开设置›模型供应，看「名称」 | 占位可见，保存按钮禁用 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-CFG-523 | S-configuration-66 | 交互 | 在「名称」里键入 4 个字符「测试文本」 | 保存按钮变为可用 | — | 屏上「名称」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
-| R-CFG-524 | S-configuration-66 | 样式 | 打开设置›模型供应，看「名称」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-CFG-525 | S-configuration-66 | 异常 | 仅空白字符 | 保存时提示必填 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-526 | S-configuration-66 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「名称」听播报 | 播报为文本框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-527 | S-configuration-66 | 输入法 | 用输入法在「名称」里打一段还没上屏的拼音 | 不误提交 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-528 | S-configuration-66 | 记忆 | 从模型供应切到设置›关于再切回来，看「名称」 | 草稿保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-CFG-522 | S-configuration-66 | 状态 | 打开设置›模型供应，看「名称」 | 占位可见，保存按钮禁用 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-configuration-66→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Disabled@App.configFormFooter） |
+| R-CFG-523 | S-configuration-66 | 交互 | 在「名称」里键入 4 个字符「测试文本」 | 保存按钮变为可用 | — | 屏上「名称」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-configuration-66→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Key） |
+| R-CFG-524 | S-configuration-66 | 样式 | 打开设置›模型供应，看「名称」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-configuration-66→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Width） |
+| R-CFG-525 | S-configuration-66 | 异常 | 仅空白字符 | 保存时提示必填 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-66→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Err） |
+| R-CFG-526 | S-configuration-66 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「名称」听播报 | 播报为文本框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-66→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Label） |
+| R-CFG-527 | S-configuration-66 | 输入法 | 用输入法在「名称」里打一段还没上屏的拼音 | 不误提交 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-66→internal/ui/settings_provider_form.go:App.configFormPanel |
+| R-CFG-528 | S-configuration-66 | 记忆 | 从模型供应切到设置›关于再切回来，看「名称」 | 草稿保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-66→internal/ui/settings_provider_form.go:App.configFormPanel |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-529 | S-configuration-67 | 内容 | 打开设置›模型供应，看「基础」 | 标签「基础 URL」+ 输入 | — | 屏上「基础」的文案逐字为「基础 URL」（6 字） | 已实现（逐字）：internal/ui/settings_configuration_screen.go:configBaseURL「基础 URL」 |
-| R-CFG-530 | S-configuration-67 | 状态 | 打开设置›模型供应，看「基础」 | 保存禁用 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-CFG-531 | S-configuration-67 | 交互 | 输入非法 | 框下提示需 http/https | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-532 | S-configuration-67 | 样式 | 打开设置›模型供应，看「基础」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-CFG-533 | S-configuration-67 | 异常 | 打开设置›模型供应，看「基础」 | 允许保存，运行时拼接 | — | 判据 = 屏上「基础」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
-| R-CFG-534 | S-configuration-67 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「基础」听播报 | 播报为文本框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-535 | S-configuration-67 | 窄窗 | 把窗口宽度缩到最小 720，看「基础」 | 不溢出 | — | 屏上「基础」：横向滚动条 = 0 | 未实现（找不到元素渲染点） |
-| R-CFG-536 | S-configuration-67 | 记忆 | 从模型供应切到设置›关于再切回来，看「基础」 | 草稿保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-CFG-530 | S-configuration-67 | 状态 | 打开设置›模型供应，看「基础」 | 保存禁用 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-configuration-67→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Disabled@App.configFormFooter） |
+| R-CFG-531 | S-configuration-67 | 交互 | 输入非法 | 框下提示需 http/https | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-67→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Key） |
+| R-CFG-532 | S-configuration-67 | 样式 | 打开设置›模型供应，看「基础」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-configuration-67→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Width） |
+| R-CFG-533 | S-configuration-67 | 异常 | 打开设置›模型供应，看「基础」 | 允许保存，运行时拼接 | — | 判据 = 屏上「基础」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-configuration-67→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Err） |
+| R-CFG-534 | S-configuration-67 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「基础」听播报 | 播报为文本框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-67→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Label） |
+| R-CFG-535 | S-configuration-67 | 窄窗 | 把窗口宽度缩到最小 720，看「基础」 | 不溢出 | — | 屏上「基础」：横向滚动条 = 0 | 未实现（映射到位但没有该维度的标记）：S-configuration-67→internal/ui/settings_provider_form.go:App.configFormPanel |
+| R-CFG-536 | S-configuration-67 | 记忆 | 从模型供应切到设置›关于再切回来，看「基础」 | 草稿保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-67→internal/ui/settings_provider_form.go:App.configFormPanel |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-537 | S-configuration-68 | 内容 | 打开设置›模型供应，看「API 密钥」 | 标签「API 密钥」+ 输入，占位「sk-...」 | — | 屏上「API 密钥」的文案逐字为「API 密钥」（6 字） | 已实现（逐字）：internal/ui/settings_provider_form.go:configForm.validate「API 密钥」 |
-| R-CFG-538 | S-configuration-68 | 状态 | 打开设置›模型供应，看「API 密钥」 | 保存禁用 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-CFG-539 | S-configuration-68 | 交互 | 在「API 密钥」里键入 4 个字符「测试文本」 | 密码型输入，可粘贴 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-540 | S-configuration-68 | 样式 | 打开设置›模型供应，看「API 密钥」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-CFG-541 | S-configuration-68 | 异常 | 明显非法前缀 | 保存时提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-542 | S-configuration-68 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「API 密钥」听播报 | 不回读内容 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-543 | S-configuration-68 | 记忆 | 保存后 | 掩码显示，不回明文 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-544 | S-configuration-68 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「API 密钥」的边缘 | 占位清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-CFG-538 | S-configuration-68 | 状态 | 打开设置›模型供应，看「API 密钥」 | 保存禁用 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-configuration-68→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Disabled@App.configFormFooter） |
+| R-CFG-539 | S-configuration-68 | 交互 | 在「API 密钥」里键入 4 个字符「测试文本」 | 密码型输入，可粘贴 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-68→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Key） |
+| R-CFG-540 | S-configuration-68 | 样式 | 打开设置›模型供应，看「API 密钥」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-configuration-68→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Width） |
+| R-CFG-541 | S-configuration-68 | 异常 | 明显非法前缀 | 保存时提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-68→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Err） |
+| R-CFG-542 | S-configuration-68 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「API 密钥」听播报 | 不回读内容 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-68→internal/ui/settings_provider_form.go:App.configFormPanel；标记 = Label） |
+| R-CFG-543 | S-configuration-68 | 记忆 | 保存后 | 掩码显示，不回明文 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-68→internal/ui/settings_provider_form.go:App.configFormPanel |
+| R-CFG-544 | S-configuration-68 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「API 密钥」的边缘 | 占位清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-configuration-68→internal/ui/settings_provider_form.go:App.configFormPanel |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -6807,80 +6807,80 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-553 | S-configuration-70 | 内容 | 添加面板、有草稿模型 | 复选框 +「模型 · {visible}/{total}」 | — | 屏上「模型 · {visible}/{to…」的文案逐字为「模型 · {visible}/{total}」（22 字） | 未实现（找不到元素渲染点） |
-| R-CFG-554 | S-configuration-70 | 状态 | 点「全选」后再看「模型 · {visible}/{to…」 | 复选框选中 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-555 | S-configuration-70 | 交互 | 用鼠标左键单击「模型 · {visible}/{to…」 | 全选/全不选草稿模型 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-556 | S-configuration-70 | 样式 | 打开设置›模型供应，看「模型 · {visible}/{to…」 | 14×14 复选框，标签 12 | — | 屏上「模型 · {visible}/{to…」：宽×高 = 14×14 | 未实现（找不到元素渲染点） |
+| R-CFG-553 | S-configuration-70 | 内容 | 添加面板、有草稿模型 | 复选框 +「模型 · {visible}/{total}」 | — | 屏上「模型 · {visible}/{to…」的文案逐字为「模型 · {visible}/{total}」（22 字） | 已实现（映射 = S-configuration-70→internal/ui/settings_configuration_screen.go:App.configModelsToolbar；标记 = 文案「模型 · %d / %d」） |
+| R-CFG-554 | S-configuration-70 | 状态 | 点「全选」后再看「模型 · {visible}/{to…」 | 复选框选中 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-70→internal/ui/settings_configuration_screen.go:App.configModelsToolbar；标记 = Visible） |
+| R-CFG-555 | S-configuration-70 | 交互 | 用鼠标左键单击「模型 · {visible}/{to…」 | 全选/全不选草稿模型 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-70→internal/ui/settings_configuration_screen.go:App.configModelsToolbar |
+| R-CFG-556 | S-configuration-70 | 样式 | 打开设置›模型供应，看「模型 · {visible}/{to…」 | 14×14 复选框，标签 12 | — | 屏上「模型 · {visible}/{to…」：宽×高 = 14×14 | 已实现（映射 = S-configuration-70→internal/ui/settings_configuration_screen.go:App.configModelsToolbar；标记 = TextColor） |
 | R-CFG-557 | S-configuration-70 | 状态 | 无草稿模型 | 不渲染 | — | 屏上「模型 · {visible}/{to…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-558 | S-configuration-70 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「模型 · {visible}/{to…」听播报 | 播报计数与选中态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-559 | S-configuration-70 | 键盘 | 把焦点移到「模型 · {visible}/{to…」后按空格 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（找不到元素渲染点） |
-| R-CFG-560 | S-configuration-70 | 异常 | 计数与列表不符 | 以列表为准更新 | — | 屏上「模型 · {visible}/{to…」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
+| R-CFG-558 | S-configuration-70 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「模型 · {visible}/{to…」听播报 | 播报计数与选中态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-70→internal/ui/settings_configuration_screen.go:App.configModelsToolbar；标记 = Label） |
+| R-CFG-559 | S-configuration-70 | 键盘 | 把焦点移到「模型 · {visible}/{to…」后按空格 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（映射到位但没有该维度的标记）：S-configuration-70→internal/ui/settings_configuration_screen.go:App.configModelsToolbar |
+| R-CFG-560 | S-configuration-70 | 异常 | 计数与列表不符 | 以列表为准更新 | — | 屏上「模型 · {visible}/{to…」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（映射到位但没有该维度的标记）：S-configuration-70→internal/ui/settings_configuration_screen.go:App.configModelsToolbar |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-561 | S-configuration-71 | 内容 | 打开设置›模型供应，看「添加模型 · 刷新」 | 按钮「添加模型」（加号）与「刷新」（循环箭头） | — | 屏上「添加模型 · 刷新」的文案逐字为「添加模型」（4 字） | 已实现（逐字）：internal/ui/settings_provider_form.go:App.configFormModels「添加模型」 |
-| R-CFG-562 | S-configuration-71 | 交互 | 点添加模型 | 打开「添加自定义模型」对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-563 | S-configuration-71 | 交互 | 点刷新 | 按已填 URL/密钥拉取模型列表 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-564 | S-configuration-71 | 状态 | 打开设置›模型供应，看「添加模型 · 刷新」 | 刷新禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-CFG-565 | S-configuration-71 | 样式 | 打开设置›模型供应，看「添加模型 · 刷新」 | 描边小按钮，高 28，图标在左 | — | 判据 = 屏上「添加模型 · 刷新」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
-| R-CFG-566 | S-configuration-71 | 异常 | 刷新失败 | 错误行，保留已有草稿模型 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-567 | S-configuration-71 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「添加模型 · 刷新」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-568 | S-configuration-71 | 状态 | 协议不支持列表 | 刷新禁用并提示 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
+| R-CFG-562 | S-configuration-71 | 交互 | 点添加模型 | 打开「添加自定义模型」对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-71→internal/ui/settings_provider_form.go:App.configFormModels；标记 = Pressed@screenAction） |
+| R-CFG-563 | S-configuration-71 | 交互 | 点刷新 | 按已填 URL/密钥拉取模型列表 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-71→internal/ui/settings_provider_form.go:App.configFormModels；标记 = Pressed@screenAction） |
+| R-CFG-564 | S-configuration-71 | 状态 | 打开设置›模型供应，看「添加模型 · 刷新」 | 刷新禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（映射到位但没有该维度的标记）：S-configuration-71→internal/ui/settings_provider_form.go:App.configFormModels |
+| R-CFG-565 | S-configuration-71 | 样式 | 打开设置›模型供应，看「添加模型 · 刷新」 | 描边小按钮，高 28，图标在左 | — | 判据 = 屏上「添加模型 · 刷新」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-configuration-71→internal/ui/settings_provider_form.go:App.configFormModels；标记 = TextColor） |
+| R-CFG-566 | S-configuration-71 | 异常 | 刷新失败 | 错误行，保留已有草稿模型 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-71→internal/ui/settings_provider_form.go:App.configFormModels；标记 = Err） |
+| R-CFG-567 | S-configuration-71 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「添加模型 · 刷新」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-71→internal/ui/settings_provider_form.go:App.configFormModels；标记 = Label） |
+| R-CFG-568 | S-configuration-71 | 状态 | 协议不支持列表 | 刷新禁用并提示 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（映射到位但没有该维度的标记）：S-configuration-71→internal/ui/settings_provider_form.go:App.configFormModels |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-569 | S-configuration-72 | 状态 | 有草稿模型 | 搜索框占位「搜索模型名称或 ID」 | — | 屏上「搜索模型名称或」的文案逐字为「搜索模型名称或 ID」（10 字） | 已实现（逐字）：internal/ui/settings_configuration_screen.go:App.configModelsPanel「搜索模型名称或 ID」 |
-| R-CFG-570 | S-configuration-72 | 交互 | 在「搜索模型名称或」里键入 4 个字符「测试文本」 | 草稿模型行实时过滤 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-571 | S-configuration-72 | 交互 | 打开设置›模型供应，看「搜索模型名称或」 | 恢复全部 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-572 | S-configuration-72 | 样式 | 打开设置›模型供应，看「搜索模型名称或」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-CFG-570 | S-configuration-72 | 交互 | 在「搜索模型名称或」里键入 4 个字符「测试文本」 | 草稿模型行实时过滤 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-72→internal/ui/settings_configuration_screen.go:App.configModelsPanel |
+| R-CFG-571 | S-configuration-72 | 交互 | 打开设置›模型供应，看「搜索模型名称或」 | 恢复全部 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-72→internal/ui/settings_configuration_screen.go:App.configModelsPanel |
+| R-CFG-572 | S-configuration-72 | 样式 | 打开设置›模型供应，看「搜索模型名称或」 | 通栏高 32 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-configuration-72→internal/ui/settings_configuration_screen.go:App.configModelsPanel；标记 = Height） |
 | R-CFG-573 | S-configuration-72 | 异常 | 无匹配 | 显示「没有匹配的模型」 | — | 屏上「搜索模型名称或」的文案逐字为「没有匹配的模型」（7 字） | 已实现（逐字）：internal/ui/settings_configuration_screen.go:App.configModelList「没有匹配的模型」 |
-| R-CFG-574 | S-configuration-72 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「搜索模型名称或」听播报 | 播报为搜索框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-CFG-574 | S-configuration-72 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「搜索模型名称或」听播报 | 播报为搜索框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-configuration-72→internal/ui/settings_configuration_screen.go:App.configModelsPanel；标记 = Label@App.configModelsToolbar） |
 | R-CFG-575 | S-configuration-72 | 状态 | 无草稿模型 | 不渲染 | — | 屏上「搜索模型名称或」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-576 | S-configuration-72 | 输入法 | 用输入法在「搜索模型名称或」里打一段还没上屏的拼音 | 不按组合串过滤 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-CFG-576 | S-configuration-72 | 输入法 | 用输入法在「搜索模型名称或」里打一段还没上屏的拼音 | 不按组合串过滤 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-configuration-72→internal/ui/settings_configuration_screen.go:App.configModelsPanel |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-577 | S-configuration-73 | 内容 | 草稿模型列表 | 每行模型名 + 能力徽标 + 开关 | — | 徽标元素出现次数 = 1，文本逐字为该状态文案（字符数一致） | 未实现（找不到元素渲染点） |
-| R-CFG-578 | S-configuration-73 | 状态 | 打开设置›模型供应，看「formatModelName(mo…」 | 保存后该模型可选 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-579 | S-configuration-73 | 交互 | 点开关 | 启停该草稿模型，计数同步 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-580 | S-configuration-73 | 样式 | 打开设置›模型供应，看「formatModelName(mo…」 | 行高 33，与详情模型行同款 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-CFG-581 | S-configuration-73 | 内容 | 打开设置›模型供应，看「formatModelName(mo…」 | 截断，徽标与开关保留 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-582 | S-configuration-73 | 状态 | 无草稿模型 | 列表区显示空态说明 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-583 | S-configuration-73 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「formatModelName(mo…」听播报 | 播报名、能力、开关态 | — | 判据 = 屏上「formatModelName(mo…」：状态 = 关；读屏播报文本逐字等于屏上文案、一次操作 1 条（SR-NAME / SR-COUNT-1） | 未实现（找不到元素渲染点） |
-| R-CFG-584 | S-configuration-73 | 异常 | 打开设置›模型供应，看「formatModelName(mo…」 | 保存时去重 | — | 判据 = 屏上「formatModelName(mo…」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
+| R-CFG-577 | S-configuration-73 | 内容 | 草稿模型列表 | 每行模型名 + 能力徽标 + 开关 | — | 徽标元素出现次数 = 1，文本逐字为该状态文案（字符数一致） | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = 文案「视觉」等 5 条） |
+| R-CFG-578 | S-configuration-73 | 状态 | 打开设置›模型供应，看「formatModelName(mo…」 | 保存后该模型可选 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Enabled） |
+| R-CFG-579 | S-configuration-73 | 交互 | 点开关 | 启停该草稿模型，计数同步 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Key@configState.providerToggle） |
+| R-CFG-580 | S-configuration-73 | 样式 | 打开设置›模型供应，看「formatModelName(mo…」 | 行高 33，与详情模型行同款 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Padding） |
+| R-CFG-581 | S-configuration-73 | 内容 | 打开设置›模型供应，看「formatModelName(mo…」 | 截断，徽标与开关保留 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = 文案「视觉」等 5 条） |
+| R-CFG-582 | S-configuration-73 | 状态 | 无草稿模型 | 列表区显示空态说明 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Enabled） |
+| R-CFG-583 | S-configuration-73 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「formatModelName(mo…」听播报 | 播报名、能力、开关态 | — | 判据 = 屏上「formatModelName(mo…」：状态 = 关；读屏播报文本逐字等于屏上文案、一次操作 1 条（SR-NAME / SR-COUNT-1） | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = Label） |
+| R-CFG-584 | S-configuration-73 | 异常 | 打开设置›模型供应，看「formatModelName(mo…」 | 保存时去重 | — | 判据 = 屏上「formatModelName(mo…」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-configuration-73→internal/ui/settings_configuration_screen.go:App.configModelRow；标记 = reason） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-585 | S-configuration-74 | 状态 | 搜索无匹配 | 显示「没有匹配的模型」 | — | 屏上「没有匹配的模型」的文案逐字为「没有匹配的模型」（7 字） | 已实现（逐字）：internal/ui/settings_configuration_screen.go:App.configModelList「没有匹配的模型」 |
 | R-CFG-586 | S-configuration-74 | 状态 | 有匹配 | 不渲染 | — | 屏上「没有匹配的模型」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-587 | S-configuration-74 | 样式 | 打开设置›模型供应，看「没有匹配的模型」 | 字号 12、次级前景 | — | 屏上「没有匹配的模型」：字号 = 12 | 未实现（找不到元素渲染点） |
-| R-CFG-588 | S-configuration-74 | 关联 | 在「没有匹配的模型」所在行内，同时看它与全选的相对位置 | 空态时全选禁用 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-CFG-589 | S-configuration-74 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有匹配的模型」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-590 | S-configuration-74 | 异常 | 请求失败 | 显示错误行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-591 | S-configuration-74 | 窄窗 | 把窗口宽度缩到最小 720，看「没有匹配的模型」 | 单行 | — | 屏上「没有匹配的模型」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-CFG-592 | S-configuration-74 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「没有匹配的模型」 | 对比 ≥4.5:1 | — | 屏上「没有匹配的模型」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-CFG-587 | S-configuration-74 | 样式 | 打开设置›模型供应，看「没有匹配的模型」 | 字号 12、次级前景 | — | 屏上「没有匹配的模型」：字号 = 12 | 已实现（映射 = S-configuration-74→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Height） |
+| R-CFG-588 | S-configuration-74 | 关联 | 在「没有匹配的模型」所在行内，同时看它与全选的相对位置 | 空态时全选禁用 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-configuration-74→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Screen@configVisibleModelIndexes） |
+| R-CFG-589 | S-configuration-74 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有匹配的模型」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-74→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Label） |
+| R-CFG-590 | S-configuration-74 | 异常 | 请求失败 | 显示错误行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-74→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = reason@App.configModelRow） |
+| R-CFG-591 | S-configuration-74 | 窄窗 | 把窗口宽度缩到最小 720，看「没有匹配的模型」 | 单行 | — | 屏上「没有匹配的模型」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-configuration-74→internal/ui/settings_configuration_screen.go:App.configModelList |
+| R-CFG-592 | S-configuration-74 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「没有匹配的模型」 | 对比 ≥4.5:1 | — | 屏上「没有匹配的模型」：对比度 ≥ 4.5:1 | 已实现（映射 = S-configuration-74→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-593 | S-configuration-75 | 状态 | 无草稿模型 | 显示「还没有模型。可以手动添加，也可以在提供商支持模型列表时点击刷新。」 | — | 屏上「还没有模型。可以手动添加，也可以在提…」的文案逐字为「还没有模型。可以手动添加，也可以在提供商支持模型列表时点击刷新。」（32 字） | 未实现（找不到元素渲染点） |
+| R-CFG-593 | S-configuration-75 | 状态 | 无草稿模型 | 显示「还没有模型。可以手动添加，也可以在提供商支持模型列表时点击刷新。」 | — | 屏上「还没有模型。可以手动添加，也可以在提…」的文案逐字为「还没有模型。可以手动添加，也可以在提供商支持模型列表时点击刷新。」（32 字） | 未实现（映射到位但没有该维度的标记）：S-configuration-75→internal/ui/settings_provider_form.go:App.configFormModels |
 | R-CFG-594 | S-configuration-75 | 状态 | 有草稿模型 | 不渲染 | — | 屏上「还没有模型。可以手动添加，也可以在提…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-595 | S-configuration-75 | 样式 | 打开设置›模型供应，看「还没有模型。可以手动添加，也可以在提…」 | 字号 12、次级前景，两行内 | — | 屏上「还没有模型。可以手动添加，也可以在提…」：字号 = 12、行数 = 2 | 未实现（找不到元素渲染点） |
+| R-CFG-595 | S-configuration-75 | 样式 | 打开设置›模型供应，看「还没有模型。可以手动添加，也可以在提…」 | 字号 12、次级前景，两行内 | — | 屏上「还没有模型。可以手动添加，也可以在提…」：字号 = 12、行数 = 2 | 已实现（映射 = S-configuration-75→internal/ui/settings_provider_form.go:App.configFormModels；标记 = TextColor） |
 | R-CFG-596 | S-configuration-75 | 关联 | 在「还没有模型。可以手动添加，也可以在提…」所在行内，同时看它与两个按钮的相对位置 | 该句点名「添加模型」「刷新」 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（逐字）：internal/ui/settings_provider_form.go:App.configFormModels「添加模型」 |
-| R-CFG-597 | S-configuration-75 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「还没有模型。可以手动添加，也可以在提…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-598 | S-configuration-75 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进模型供应，看「还没有模型。可以手动添加，也可以在提…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-599 | S-configuration-75 | 窄窗 | 把窗口宽度缩到最小 720，看「还没有模型。可以手动添加，也可以在提…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-CFG-600 | S-configuration-75 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「还没有模型。可以手动添加，也可以在提…」 | 对比 ≥4.5:1 | — | 屏上「还没有模型。可以手动添加，也可以在提…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-CFG-597 | S-configuration-75 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「还没有模型。可以手动添加，也可以在提…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-75→internal/ui/settings_provider_form.go:App.configFormModels；标记 = Label） |
+| R-CFG-598 | S-configuration-75 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进模型供应，看「还没有模型。可以手动添加，也可以在提…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-75→internal/ui/settings_provider_form.go:App.configFormModels；标记 = Err） |
+| R-CFG-599 | S-configuration-75 | 窄窗 | 把窗口宽度缩到最小 720，看「还没有模型。可以手动添加，也可以在提…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-configuration-75→internal/ui/settings_provider_form.go:App.configFormModels |
+| R-CFG-600 | S-configuration-75 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「还没有模型。可以手动添加，也可以在提…」 | 对比 ≥4.5:1 | — | 屏上「还没有模型。可以手动添加，也可以在提…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-configuration-75→internal/ui/settings_provider_form.go:App.configFormModels；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-601 | S-configuration-76 | 状态 | 添加面板保存失败 | 面板内错误文本 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-CFG-601 | S-configuration-76 | 状态 | 添加面板保存失败 | 面板内错误文本 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-configuration-76→internal/ui/settings_provider_form.go:App.configFormFooter；标记 = Disabled） |
 | R-CFG-602 | S-configuration-76 | 状态 | 打开设置›模型供应，在无异常提示的状态下看「formError」 | 不渲染 | — | 屏上「formError」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-603 | S-configuration-76 | 内容 | 让「formError」所属请求返回 500 后看「formError」 | 错误原文（如 URL 不可达） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-604 | S-configuration-76 | 样式 | 打开设置›模型供应，看「formError」 | 字号 12、警示色 | — | 判据 = 屏上「formError」：字号 = 12；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 未实现（找不到元素渲染点） |
-| R-CFG-605 | S-configuration-76 | 关联 | 在「formError」所在行内，同时看它与保存的相对位置 | 失败后保存恢复可点 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-CFG-606 | S-configuration-76 | 无障碍 | 打开设置›模型供应，看「formError」 | 警示角色播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-607 | S-configuration-76 | 异常 | 连续 3 次让保存请求失败后看「formError」 | 覆盖一条 | — | 屏上「formError」：列表条数 = 1（覆盖后不新增） | 未实现（找不到元素渲染点） |
-| R-CFG-608 | S-configuration-76 | 窄窗 | 把窗口宽度缩到最小 720，看「formError」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
+| R-CFG-603 | S-configuration-76 | 内容 | 让「formError」所属请求返回 500 后看「formError」 | 错误原文（如 URL 不可达） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-76→internal/ui/settings_provider_form.go:App.configFormFooter；标记 = 文案「取消」等 4 条） |
+| R-CFG-604 | S-configuration-76 | 样式 | 打开设置›模型供应，看「formError」 | 字号 12、警示色 | — | 判据 = 屏上「formError」：字号 = 12；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 已实现（映射 = S-configuration-76→internal/ui/settings_provider_form.go:App.configFormFooter；标记 = TextColor） |
+| R-CFG-605 | S-configuration-76 | 关联 | 在「formError」所在行内，同时看它与保存的相对位置 | 失败后保存恢复可点 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-configuration-76→internal/ui/settings_provider_form.go:App.configFormFooter；标记 = Screen@configFormClose） |
+| R-CFG-606 | S-configuration-76 | 无障碍 | 打开设置›模型供应，看「formError」 | 警示角色播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-76→internal/ui/settings_provider_form.go:App.configFormFooter；标记 = Role） |
+| R-CFG-607 | S-configuration-76 | 异常 | 连续 3 次让保存请求失败后看「formError」 | 覆盖一条 | — | 屏上「formError」：列表条数 = 1（覆盖后不新增） | 已实现（映射 = S-configuration-76→internal/ui/settings_provider_form.go:App.configFormFooter；标记 = Err） |
+| R-CFG-608 | S-configuration-76 | 窄窗 | 把窗口宽度缩到最小 720，看「formError」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-configuration-76→internal/ui/settings_provider_form.go:App.configFormFooter |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -6919,25 +6919,25 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-CFG-633 | S-configuration-80 | 状态 | 模板搜索无匹配 | 显示「没有匹配的模型」 | — | 屏上「没有匹配的模型」的文案逐字为「没有匹配的模型」（7 字） | 已实现（逐字）：internal/ui/settings_configuration_screen.go:App.configModelList「没有匹配的模型」 |
 | R-CFG-634 | S-configuration-80 | 状态 | 有匹配 | 不渲染 | — | 屏上「没有匹配的模型」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-635 | S-configuration-80 | 样式 | 打开设置›模型供应，看「没有匹配的模型」 | 字号 12、次级前景 | — | 屏上「没有匹配的模型」：字号 = 12 | 未实现（找不到元素渲染点） |
-| R-CFG-636 | S-configuration-80 | 关联 | 在「没有匹配的模型」所在行内，同时看它与搜索框的相对位置 | 空态紧贴搜索框下 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-CFG-637 | S-configuration-80 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有匹配的模型」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-638 | S-configuration-80 | 异常 | 模板加载失败 | 显示错误行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-639 | S-configuration-80 | 窄窗 | 把窗口宽度缩到最小 720，看「没有匹配的模型」 | 单行 | — | 屏上「没有匹配的模型」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-CFG-640 | S-configuration-80 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「没有匹配的模型」 | 对比 ≥4.5:1 | — | 屏上「没有匹配的模型」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-CFG-635 | S-configuration-80 | 样式 | 打开设置›模型供应，看「没有匹配的模型」 | 字号 12、次级前景 | — | 屏上「没有匹配的模型」：字号 = 12 | 已实现（映射 = S-configuration-80→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Height） |
+| R-CFG-636 | S-configuration-80 | 关联 | 在「没有匹配的模型」所在行内，同时看它与搜索框的相对位置 | 空态紧贴搜索框下 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-configuration-80→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Screen@configVisibleModelIndexes） |
+| R-CFG-637 | S-configuration-80 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有匹配的模型」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-80→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Label） |
+| R-CFG-638 | S-configuration-80 | 异常 | 模板加载失败 | 显示错误行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-80→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = reason@App.configModelRow） |
+| R-CFG-639 | S-configuration-80 | 窄窗 | 把窗口宽度缩到最小 720，看「没有匹配的模型」 | 单行 | — | 屏上「没有匹配的模型」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-configuration-80→internal/ui/settings_configuration_screen.go:App.configModelList |
+| R-CFG-640 | S-configuration-80 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「没有匹配的模型」 | 对比 ≥4.5:1 | — | 屏上「没有匹配的模型」：对比度 ≥ 4.5:1 | 已实现（映射 = S-configuration-80→internal/ui/settings_configuration_screen.go:App.configModelList；标记 = Theme） |
 
 ### 7.7 其他分支
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-641 | S-configuration-81 | 状态 | 首次加载未完成 | 左栏 4 个骨架项 + 详情 4 个骨架块 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
-| R-CFG-642 | S-configuration-81 | 状态 | 加载完成 | 骨架被真实内容替换 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
-| R-CFG-643 | S-configuration-81 | 样式 | 打开设置›模型供应，看「加载骨架」 | 骨架底色次级，宽高与真实项一致 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
-| R-CFG-644 | S-configuration-81 | 动画 | 在网络限速下刷新，请求还没返回时看「加载骨架」 | 微光扫过；减少动效下静态 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-CFG-645 | S-configuration-81 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「加载骨架」听播报 | 播报「正在加载供应商」一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-646 | S-configuration-81 | 异常 | 让加载请求返回失败后看「加载骨架」 | 骨架转为错误提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-647 | S-configuration-81 | 窄窗 | 把窗口宽度缩到最小 720，看「加载骨架」 | 骨架单列 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-CFG-648 | S-configuration-81 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「加载骨架」 | 可辨 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
+| R-CFG-641 | S-configuration-81 | 状态 | 首次加载未完成 | 左栏 4 个骨架项 + 详情 4 个骨架块 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled；标记 = Enabled） |
+| R-CFG-642 | S-configuration-81 | 状态 | 加载完成 | 骨架被真实内容替换 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled；标记 = Enabled） |
+| R-CFG-643 | S-configuration-81 | 样式 | 打开设置›模型供应，看「加载骨架」 | 骨架底色次级，宽高与真实项一致 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（映射到位但没有该维度的标记）：S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled |
+| R-CFG-644 | S-configuration-81 | 动画 | 在网络限速下刷新，请求还没返回时看「加载骨架」 | 微光扫过；减少动效下静态 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled |
+| R-CFG-645 | S-configuration-81 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「加载骨架」听播报 | 播报「正在加载供应商」一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled |
+| R-CFG-646 | S-configuration-81 | 异常 | 让加载请求返回失败后看「加载骨架」 | 骨架转为错误提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled；标记 = err） |
+| R-CFG-647 | S-configuration-81 | 窄窗 | 把窗口宽度缩到最小 720，看「加载骨架」 | 骨架单列 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled |
+| R-CFG-648 | S-configuration-81 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「加载骨架」 | 可辨 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（映射到位但没有该维度的标记）：S-configuration-81→internal/ui/settings_configuration_screen.go:App.configSetModelEnabled |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -6953,13 +6953,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-CFG-657 | S-configuration-83 | 内容 | 账户托管且未登录 | 提示条标题「由 Dim 账户管理」+ 说明「登录后可使用 Dim 模型。点击跳转到账户设置。」 | — | 屏上「由 Dim 账户管理 · 登录后可使…」的文案逐字为「由 Dim 账户管理」（10 字） | 已实现（逐字）：internal/ui/settings_configuration_screen.go:configManagedBanner「由 Dim 账户管理」 |
-| R-CFG-658 | S-configuration-83 | 状态 | 已登录且套餐未到期时打开设置›模型供应，看「由 Dim 账户管理 · 登录后可使…」 | 说明换成 S-configuration-15 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-CFG-659 | S-configuration-83 | 交互 | 点击说明 | 跳账户节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-660 | S-configuration-83 | 样式 | 打开设置›模型供应，看「由 Dim 账户管理 · 登录后可使…」 | 同 S-configuration-14 提示条 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-CFG-661 | S-configuration-83 | 关联 | 在「由 Dim 账户管理 · 登录后可使…」所在行内，同时看它与模型区的相对位置 | 该态下模型区显示「登录 Dim 以解锁模型。」 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-CFG-662 | S-configuration-83 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「由 Dim 账户管理 · 登录后可使…」听播报 | 播报两段 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-CFG-663 | S-configuration-83 | 窄窗 | 把窗口宽度缩到最小 720，看「由 Dim 账户管理 · 登录后可使…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-CFG-664 | S-configuration-83 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「由 Dim 账户管理 · 登录后可使…」 | 对比 ≥4.5:1 | — | 屏上「由 Dim 账户管理 · 登录后可使…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-CFG-658 | S-configuration-83 | 状态 | 已登录且套餐未到期时打开设置›模型供应，看「由 Dim 账户管理 · 登录后可使…」 | 说明换成 S-configuration-15 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-configuration-83→internal/ui/settings_configuration_screen.go:configManagedBanner；标记 = Hidden@screenIcon） |
+| R-CFG-659 | S-configuration-83 | 交互 | 点击说明 | 跳账户节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-83→internal/ui/settings_configuration_screen.go:configManagedBanner；标记 = Pressed） |
+| R-CFG-660 | S-configuration-83 | 样式 | 打开设置›模型供应，看「由 Dim 账户管理 · 登录后可使…」 | 同 S-configuration-14 提示条 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-configuration-83→internal/ui/settings_configuration_screen.go:configManagedBanner；标记 = Padding） |
+| R-CFG-661 | S-configuration-83 | 关联 | 在「由 Dim 账户管理 · 登录后可使…」所在行内，同时看它与模型区的相对位置 | 该态下模型区显示「登录 Dim 以解锁模型。」 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-configuration-83→internal/ui/settings_configuration_screen.go:configManagedBanner；标记 = Select） |
+| R-CFG-662 | S-configuration-83 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「由 Dim 账户管理 · 登录后可使…」听播报 | 播报两段 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-83→internal/ui/settings_configuration_screen.go:configManagedBanner；标记 = Label） |
+| R-CFG-663 | S-configuration-83 | 窄窗 | 把窗口宽度缩到最小 720，看「由 Dim 账户管理 · 登录后可使…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-configuration-83→internal/ui/settings_configuration_screen.go:configManagedBanner |
+| R-CFG-664 | S-configuration-83 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「由 Dim 账户管理 · 登录后可使…」 | 对比 ≥4.5:1 | — | 屏上「由 Dim 账户管理 · 登录后可使…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-configuration-83→internal/ui/settings_configuration_screen.go:configManagedBanner；标记 = Theme） |
 
 ## 8. 多模态（S-modality-01 … S-modality-70）
 
@@ -8075,35 +8075,35 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-001 | S-mcp-01 | 内容 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 标题「MCP 服务器」 | — | 屏上「MCP 服务器」的文案逐字为「MCP 服务器」（7 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyTitle「MCP 服务器」 |
-| R-MCP-002 | S-mcp-01 | 样式 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 与其它节标题同级，y=33 | — | 屏上「MCP 服务器」：y = 33 | 未实现（找不到元素渲染点） |
+| R-MCP-002 | S-mcp-01 | 样式 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 与其它节标题同级，y=33 | — | 屏上「MCP 服务器」：y = 33 | 已实现（映射 = S-mcp-01→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = TextColor） |
 | R-MCP-003 | S-mcp-01 | 状态 | 打开设置›MCP，滚动到 y≈33 处的「MCP 服务器」 | 标题换成「连接自定义 MCP」 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyConnectTitle「连接自定义 MCP」 |
-| R-MCP-004 | S-mcp-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「MCP 服务器」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-005 | S-mcp-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，滚动到 y≈33 处的「MCP 服务器」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-006 | S-mcp-01 | 记忆 | 从MCP切到设置›关于再切回来，滚动到 y≈33 处的「MCP 服务器」 | 回列表视图 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-007 | S-mcp-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「MCP 服务器」 | 单行 | — | 屏上「MCP 服务器」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-MCP-008 | S-mcp-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「MCP 服务器」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-MCP-004 | S-mcp-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「MCP 服务器」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-01→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Label） |
+| R-MCP-005 | S-mcp-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，滚动到 y≈33 处的「MCP 服务器」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-01→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-006 | S-mcp-01 | 记忆 | 从MCP切到设置›关于再切回来，滚动到 y≈33 处的「MCP 服务器」 | 回列表视图 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-01→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-007 | S-mcp-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「MCP 服务器」 | 单行 | — | 屏上「MCP 服务器」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-mcp-01→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-008 | S-mcp-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「MCP 服务器」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-01→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = 文案「连接自定义 MCP」等 5 条） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-009 | S-mcp-02 | 内容 | 打开设置›MCP，滚动到 y≈61 处的「连接外部工具和数据源。」 | 说明「连接外部工具和数据源。」 | — | 屏上「连接外部工具和数据源。」的文案逐字为「连接外部工具和数据源。」（11 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyDesc「连接外部工具和数据源。」 |
-| R-MCP-010 | S-mcp-02 | 样式 | 打开设置›MCP，滚动到 y≈61 处的「连接外部工具和数据源。」 | 12 字号次级前景，y=61 | — | 屏上「连接外部工具和数据源。」：y = 61 | 未实现（找不到元素渲染点） |
+| R-MCP-010 | S-mcp-02 | 样式 | 打开设置›MCP，滚动到 y≈61 处的「连接外部工具和数据源。」 | 12 字号次级前景，y=61 | — | 屏上「连接外部工具和数据源。」：y = 61 | 已实现（映射 = S-mcp-02→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = TextColor） |
 | R-MCP-011 | S-mcp-02 | 关联 | 在「连接外部工具和数据源。」所在行内，同时看它与链接的相对位置 | 说明后紧跟「了解更多。」 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyLearnMore「了解更多。」 |
-| R-MCP-012 | S-mcp-02 | 交互 | 在「连接外部工具和数据源。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-MCP-013 | S-mcp-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「连接外部工具和数据源。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-014 | S-mcp-02 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，滚动到 y≈61 处的「连接外部工具和数据源。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-015 | S-mcp-02 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈61 处的「连接外部工具和数据源。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-MCP-016 | S-mcp-02 | 深色 | 在设置›外观把主题切成深色，再回MCP，滚动到 y≈61 处的「连接外部工具和数据源。」 | 对比≥4.5:1 | — | 屏上「连接外部工具和数据源。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-012 | S-mcp-02 | 交互 | 在「连接外部工具和数据源。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（映射到位但没有该维度的标记）：S-mcp-02→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-013 | S-mcp-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「连接外部工具和数据源。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-02→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Label） |
+| R-MCP-014 | S-mcp-02 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，滚动到 y≈61 处的「连接外部工具和数据源。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-02→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-015 | S-mcp-02 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈61 处的「连接外部工具和数据源。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-02→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-016 | S-mcp-02 | 深色 | 在设置›外观把主题切成深色，再回MCP，滚动到 y≈61 处的「连接外部工具和数据源。」 | 对比≥4.5:1 | — | 屏上「连接外部工具和数据源。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-02→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-017 | S-mcp-03 | 内容 | 打开设置›MCP，滚动到 y≈61 处的「了解更多。」 | 链接文案「了解更多。」+ 外链图标 | — | 屏上「了解更多。」的文案逐字为「了解更多。」（5 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyLearnMore「了解更多。」 |
-| R-MCP-018 | S-mcp-03 | 交互 | 用鼠标左键单击「了解更多。」 | 外部浏览器打开 MCP 文档 | — | 外部浏览器窗口数 = 1、应用内当前节变化 = 0 | 未实现（找不到元素渲染点） |
-| R-MCP-019 | S-mcp-03 | 样式 | 打开设置›MCP，滚动到 y≈61 处的「了解更多。」 | 链接色，x=395 | — | 屏上「了解更多。」：x = 395 | 未实现（找不到元素渲染点） |
-| R-MCP-020 | S-mcp-03 | 状态 | 把鼠标移到「了解更多。」上停 1 秒 | 下划线出现 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-MCP-021 | S-mcp-03 | 异常 | 无浏览器 | 失败提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-022 | S-mcp-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「了解更多。」听播报 | 播报为链接 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-023 | S-mcp-03 | 键盘 | 把 Tab 焦点移到「了解更多。」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-MCP-024 | S-mcp-03 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「了解更多。」的边缘 | 图标清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-MCP-018 | S-mcp-03 | 交互 | 用鼠标左键单击「了解更多。」 | 外部浏览器打开 MCP 文档 | — | 外部浏览器窗口数 = 1、应用内当前节变化 = 0 | 未实现（映射到位但没有该维度的标记）：S-mcp-03→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-019 | S-mcp-03 | 样式 | 打开设置›MCP，滚动到 y≈61 处的「了解更多。」 | 链接色，x=395 | — | 屏上「了解更多。」：x = 395 | 已实现（映射 = S-mcp-03→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = TextColor） |
+| R-MCP-020 | S-mcp-03 | 状态 | 把鼠标移到「了解更多。」上停 1 秒 | 下划线出现 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-mcp-03→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-021 | S-mcp-03 | 异常 | 无浏览器 | 失败提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-03→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-022 | S-mcp-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「了解更多。」听播报 | 播报为链接 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-03→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Label） |
+| R-MCP-023 | S-mcp-03 | 键盘 | 把 Tab 焦点移到「了解更多。」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-mcp-03→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-024 | S-mcp-03 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「了解更多。」的边缘 | 图标清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-mcp-03→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8142,12 +8142,12 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-MCP-049 | S-mcp-07 | 状态 | 点「导入」 | 列表上方展开导入面板 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpImportPanel；标记 = Disabled） |
 | R-MCP-050 | S-mcp-07 | 状态 | 未打开 | 不渲染 | — | 屏上「导入面板」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-051 | S-mcp-07 | 内容 | 点开「导入面板」 | 含粘贴区、来源说明、导入按钮 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpImportPanel；标记 = 文案「导入 MCP 服务器」等 7 条） |
+| R-MCP-051 | S-mcp-07 | 内容 | 点开「导入面板」 | 含粘贴区、来源说明、导入按钮 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpScopeRow；标记 = 文案「范围」等 4 条） |
 | R-MCP-052 | S-mcp-07 | 交互 | 打开设置›MCP，看「导入面板」 | 收起，不改列表 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpImportPanel；标记 = Pressed@mcpIconAction） |
-| R-MCP-053 | S-mcp-07 | 样式 | 打开设置›MCP，看「导入面板」 | 卡片式面板，内边距 16 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpImportPanel；标记 = Radius） |
-| R-MCP-054 | S-mcp-07 | 异常 | 解析失败 | 面板内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-07→internal/ui/settings_mcp_screen.go:mcpImportPanel |
-| R-MCP-055 | S-mcp-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「导入面板」听播报 | 播报面板标题 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpImportPanel；标记 = Role） |
-| R-MCP-056 | S-mcp-07 | 记忆 | 打开设置›MCP，看「导入面板」 | 清空上次内容 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-07→internal/ui/settings_mcp_screen.go:mcpImportPanel |
+| R-MCP-053 | S-mcp-07 | 样式 | 打开设置›MCP，看「导入面板」 | 卡片式面板，内边距 16 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpScopeRow；标记 = TextColor） |
+| R-MCP-054 | S-mcp-07 | 异常 | 解析失败 | 面板内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-07→internal/ui/settings_mcp_screen.go:mcpScopeRow |
+| R-MCP-055 | S-mcp-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「导入面板」听播报 | 播报面板标题 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-07→internal/ui/settings_mcp_screen.go:mcpScopeRow；标记 = Label） |
+| R-MCP-056 | S-mcp-07 | 记忆 | 打开设置›MCP，看「导入面板」 | 清空上次内容 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-07→internal/ui/settings_mcp_screen.go:mcpScopeRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8164,7 +8164,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-MCP-065 | S-mcp-09 | 状态 | 首次打开设置›MCP、不做任何改动时滚动到 y≈148 处的「全部范围 / 用户 / 项目」 | 下拉显示「全部范围」 | — | 屏上「全部范围 / 用户 / 项目」的文案逐字为「全部范围」（4 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyScopeAll「全部范围」 |
 | R-MCP-066 | S-mcp-09 | 内容 | 点开「全部范围 / 用户 / 项目」所在的下拉，滚动到 y≈148 处的「全部范围 / 用户 / 项目」 | 「全部范围」「用户」「项目」三项 | — | 屏上「全部范围 / 用户 / 项目」的文案逐字为「全部范围」（4 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyScopeAll「全部范围」 |
-| R-MCP-067 | S-mcp-09 | 交互 | 把「全部范围 / 用户 / 项目」从当前状态切到另一状态 | 列表按范围过滤 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-09→internal/ui/settings_mcp_screen.go:mcpScopeRow |
+| R-MCP-067 | S-mcp-09 | 交互 | 把「全部范围 / 用户 / 项目」从当前状态切到另一状态 | 列表按范围过滤 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-09→internal/ui/settings_mcp_screen.go:mcpImportPanel；标记 = Pressed@mcpIconAction） |
 | R-MCP-068 | S-mcp-09 | 样式 | 打开设置›MCP，滚动到 y≈148 处的「全部范围 / 用户 / 项目」 | 140×32，值 12 字号 | — | 屏上「全部范围 / 用户 / 项目」：宽×高 = 140×32 | 已实现（映射 = S-mcp-09→internal/ui/settings_mcp_screen.go:mcpScopeRow；标记 = TextColor） |
 | R-MCP-069 | S-mcp-09 | 异常 | 项目范围不可用 | 该项禁用 | — | 屏上「全部范围 / 用户 / 项目」：可点次数 = 0（禁用态） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-MCP-070 | S-mcp-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「全部范围 / 用户 / 项目」听播报 | 播报当前范围 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-09→internal/ui/settings_mcp_screen.go:mcpScopeRow；标记 = Label） |
@@ -8184,58 +8184,58 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MCP-081 | S-mcp-11 | 内容 | 打开设置›MCP，看「warning.scope · se…」 | 每项显示「scope · serverId · message」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-082 | S-mcp-11 | 样式 | 打开设置›MCP，看「warning.scope · se…」 | 11 字号、警示色，行高 20 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-MCP-083 | S-mcp-11 | 交互 | 用鼠标左键单击「warning.scope · se…」 | 无动作 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-084 | S-mcp-11 | 状态 | 打开设置›MCP，看「warning.scope · se…」 | 全部列出，不折叠 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-085 | S-mcp-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「warning.scope · se…」听播报 | 逐条播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-086 | S-mcp-11 | 异常 | 打开设置›MCP，看「warning.scope · se…」 | 折行 | — | 屏上「warning.scope · se…」：行数 ≥ 2 | 未实现（找不到元素渲染点） |
-| R-MCP-087 | S-mcp-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「warning.scope · se…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-MCP-088 | S-mcp-11 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「warning.scope · se…」 | 对比≥4.5:1 | — | 屏上「warning.scope · se…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-081 | S-mcp-11 | 内容 | 打开设置›MCP，看「warning.scope · se…」 | 每项显示「scope · serverId · message」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = 文案「启用服务器」） |
+| R-MCP-082 | S-mcp-11 | 样式 | 打开设置›MCP，看「warning.scope · se…」 | 11 字号、警示色，行高 20 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Radius） |
+| R-MCP-083 | S-mcp-11 | 交互 | 用鼠标左键单击「warning.scope · se…」 | 无动作 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Clicked） |
+| R-MCP-084 | S-mcp-11 | 状态 | 打开设置›MCP，看「warning.scope · se…」 | 全部列出，不折叠 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Enabled） |
+| R-MCP-085 | S-mcp-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「warning.scope · se…」听播报 | 逐条播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Label） |
+| R-MCP-086 | S-mcp-11 | 异常 | 打开设置›MCP，看「warning.scope · se…」 | 折行 | — | 屏上「warning.scope · se…」：行数 ≥ 2 | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = err@App.mcpToggle） |
+| R-MCP-087 | S-mcp-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「warning.scope · se…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard |
+| R-MCP-088 | S-mcp-11 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「warning.scope · se…」 | 对比≥4.5:1 | — | 屏上「warning.scope · se…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MCP-089 | S-mcp-12 | 状态 | 首次加载 | 显示 3 个骨架卡 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
-| R-MCP-090 | S-mcp-12 | 状态 | 加载完成 | 骨架被列表替换 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
-| R-MCP-091 | S-mcp-12 | 样式 | 打开设置›MCP，看「加载骨架」 | 骨架高约 56，圆角 8 | — | 屏上「加载骨架」：圆角 = 8 | 未实现（找不到元素渲染点） |
-| R-MCP-092 | S-mcp-12 | 动画 | 在网络限速下刷新，请求还没返回时看「加载骨架」 | 静态骨架，不扫光 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-MCP-093 | S-mcp-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「加载骨架」听播报 | 播报「正在加载服务器」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-094 | S-mcp-12 | 异常 | 让请求 30 秒不返回后看「加载骨架」 | 转错误分支 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-095 | S-mcp-12 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「加载骨架」 | 单列 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-MCP-096 | S-mcp-12 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「加载骨架」 | 可辨 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
+| R-MCP-089 | S-mcp-12 | 状态 | 首次加载 | 显示 3 个骨架卡 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState；标记 = State） |
+| R-MCP-090 | S-mcp-12 | 状态 | 加载完成 | 骨架被列表替换 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState；标记 = State） |
+| R-MCP-091 | S-mcp-12 | 样式 | 打开设置›MCP，看「加载骨架」 | 骨架高约 56，圆角 8 | — | 屏上「加载骨架」：圆角 = 8 | 已实现（映射 = S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState；标记 = TextColor） |
+| R-MCP-092 | S-mcp-12 | 动画 | 在网络限速下刷新，请求还没返回时看「加载骨架」 | 静态骨架，不扫光 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState |
+| R-MCP-093 | S-mcp-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「加载骨架」听播报 | 播报「正在加载服务器」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState；标记 = Role） |
+| R-MCP-094 | S-mcp-12 | 异常 | 让请求 30 秒不返回后看「加载骨架」 | 转错误分支 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState；标记 = Err） |
+| R-MCP-095 | S-mcp-12 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「加载骨架」 | 单列 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState |
+| R-MCP-096 | S-mcp-12 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「加载骨架」 | 可辨 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = S-mcp-12→internal/ui/settings_mcp_screen.go:mcpReadState；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MCP-097 | S-mcp-13 | 状态 | 列表请求失败 | 显示错误 + 重试按钮 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-MCP-098 | S-mcp-13 | 交互 | 让请求失败后在「mcpStore.error + 重…」上点「重试」 | 重新拉取列表 | — | 屏上「mcpStore.error + 重…」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-MCP-099 | S-mcp-13 | 内容 | 让「mcpStore.error + 重…」所属请求返回 500 后看「mcpStore.error + 重…」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-100 | S-mcp-13 | 样式 | 打开设置›MCP，看「mcpStore.error + 重…」 | 12 字号警示色 + 描边小按钮 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
+| R-MCP-097 | S-mcp-13 | 状态 | 列表请求失败 | 显示错误 + 重试按钮 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-mcp-13→internal/ui/settings_mcp_screen.go:mcpServerBar；标记 = State@mcpState.openEditor） |
+| R-MCP-098 | S-mcp-13 | 交互 | 让请求失败后在「mcpStore.error + 重…」上点「重试」 | 重新拉取列表 | — | 屏上「mcpStore.error + 重…」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-mcp-13→internal/ui/settings_mcp_screen.go:mcpServerBar；标记 = Pressed@mcpButton） |
+| R-MCP-099 | S-mcp-13 | 内容 | 让「mcpStore.error + 重…」所属请求返回 500 后看「mcpStore.error + 重…」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-13→internal/ui/settings_mcp_screen.go:mcpServerBar；标记 = 文案「服务器」等 3 条） |
+| R-MCP-100 | S-mcp-13 | 样式 | 打开设置›MCP，看「mcpStore.error + 重…」 | 12 字号警示色 + 描边小按钮 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-mcp-13→internal/ui/settings_mcp_screen.go:mcpServerBar；标记 = TextColor） |
 | R-MCP-101 | S-mcp-13 | 状态 | 打开设置›MCP，在无异常提示的状态下看「mcpStore.error + 重…」 | 不渲染 | — | 屏上「mcpStore.error + 重…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-102 | S-mcp-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「mcpStore.error + 重…」听播报 | 播报错误与按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-103 | S-mcp-13 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「mcpStore.error + 重…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-MCP-104 | S-mcp-13 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「mcpStore.error + 重…」 | 对比≥4.5:1 | — | 屏上「mcpStore.error + 重…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-102 | S-mcp-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「mcpStore.error + 重…」听播报 | 播报错误与按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-13→internal/ui/settings_mcp_screen.go:mcpServerBar；标记 = Role） |
+| R-MCP-103 | S-mcp-13 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「mcpStore.error + 重…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-13→internal/ui/settings_mcp_screen.go:mcpServerBar |
+| R-MCP-104 | S-mcp-13 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「mcpStore.error + 重…」 | 对比≥4.5:1 | — | 屏上「mcpStore.error + 重…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-13→internal/ui/settings_mcp_screen.go:mcpServerBar；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-105 | S-mcp-14 | 状态 | 服务器数为 0 | 显示「还没有配置 MCP 服务器」 | — | 屏上「还没有配置 MCP 服务器」的文案逐字为「还没有配置 MCP 服务器」（13 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyNoServers「还没有配置 MCP 服务器」 |
 | R-MCP-106 | S-mcp-14 | 状态 | 有服务器 | 不渲染 | — | 屏上「还没有配置 MCP 服务器」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-107 | S-mcp-14 | 样式 | 打开设置›MCP，看「还没有配置 MCP 服务器」 | 12 字号次级前景，居中 | — | 屏上「还没有配置 MCP 服务器」：水平对齐 = 居中 | 未实现（找不到元素渲染点） |
+| R-MCP-107 | S-mcp-14 | 样式 | 打开设置›MCP，看「还没有配置 MCP 服务器」 | 12 字号次级前景，居中 | — | 屏上「还没有配置 MCP 服务器」：水平对齐 = 居中 | 已实现（映射 = S-mcp-14→internal/ui/settings_mcp_screen.go:mcpEmpty；标记 = Padding） |
 | R-MCP-108 | S-mcp-14 | 关联 | 在「还没有配置 MCP 服务器」所在行内，同时看它与添加按钮的相对位置 | 空态时保留「添加服务器」 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyAddServer「添加服务器」 |
-| R-MCP-109 | S-mcp-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「还没有配置 MCP 服务器」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-110 | S-mcp-14 | 异常 | 请求失败 | 显示错误而非空态 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-111 | S-mcp-14 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「还没有配置 MCP 服务器」 | 单行 | — | 屏上「还没有配置 MCP 服务器」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-MCP-112 | S-mcp-14 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「还没有配置 MCP 服务器」 | 对比≥4.5:1 | — | 屏上「还没有配置 MCP 服务器」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-109 | S-mcp-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「还没有配置 MCP 服务器」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-14→internal/ui/settings_mcp_screen.go:mcpEmpty；标记 = Label） |
+| R-MCP-110 | S-mcp-14 | 异常 | 请求失败 | 显示错误而非空态 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-14→internal/ui/settings_mcp_screen.go:mcpEmpty |
+| R-MCP-111 | S-mcp-14 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「还没有配置 MCP 服务器」 | 单行 | — | 屏上「还没有配置 MCP 服务器」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-mcp-14→internal/ui/settings_mcp_screen.go:mcpEmpty |
+| R-MCP-112 | S-mcp-14 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「还没有配置 MCP 服务器」 | 对比≥4.5:1 | — | 屏上「还没有配置 MCP 服务器」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-14→internal/ui/settings_mcp_screen.go:mcpEmpty；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-113 | S-mcp-15 | 状态 | 当前范围内无服务器 | 显示「此范围内没有服务器。」 | — | 屏上「此范围内没有服务器。」的文案逐字为「此范围内没有服务器。」（10 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyScopeEmpty「此范围内没有服务器。」 |
 | R-MCP-114 | S-mcp-15 | 状态 | 该范围有服务器 | 不渲染 | — | 屏上「此范围内没有服务器。」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-115 | S-mcp-15 | 样式 | 打开设置›MCP，看「此范围内没有服务器。」 | 12 字号次级前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-MCP-115 | S-mcp-15 | 样式 | 打开设置›MCP，看「此范围内没有服务器。」 | 12 字号次级前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-15→internal/ui/settings_mcp_screen.go:mcpEmpty；标记 = Padding） |
 | R-MCP-116 | S-mcp-15 | 关联 | 在「此范围内没有服务器。」所在行内，同时看它与范围下拉的相对位置 | 切换范围后即时出现/消失 | — | 屏上「此范围内没有服务器。」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-117 | S-mcp-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「此范围内没有服务器。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-MCP-118 | S-mcp-15 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，看「此范围内没有服务器。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-MCP-119 | S-mcp-15 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「此范围内没有服务器。」 | 单行 | — | 屏上「此范围内没有服务器。」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-MCP-120 | S-mcp-15 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「此范围内没有服务器。」 | 对比≥4.5:1 | — | 屏上「此范围内没有服务器。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-117 | S-mcp-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「此范围内没有服务器。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-15→internal/ui/settings_mcp_screen.go:mcpEmpty；标记 = Label） |
+| R-MCP-118 | S-mcp-15 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，看「此范围内没有服务器。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-mcp-15→internal/ui/settings_mcp_screen.go:mcpEmpty |
+| R-MCP-119 | S-mcp-15 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「此范围内没有服务器。」 | 单行 | — | 屏上「此范围内没有服务器。」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-mcp-15→internal/ui/settings_mcp_screen.go:mcpEmpty |
+| R-MCP-120 | S-mcp-15 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「此范围内没有服务器。」 | 对比≥4.5:1 | — | 屏上「此范围内没有服务器。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-15→internal/ui/settings_mcp_screen.go:mcpEmpty；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8349,47 +8349,47 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MCP-201 | S-mcp-26 | 状态 | 有插件带入的服务器 | 显示分组标题「来自插件」 | — | 屏上「来自插件」的文案逐字为「来自插件」（4 字） | 未实现（找不到元素渲染点） |
+| R-MCP-201 | S-mcp-26 | 状态 | 有插件带入的服务器 | 显示分组标题「来自插件」 | — | 屏上「来自插件」的文案逐字为「来自插件」（4 字） | 已实现（映射 = S-mcp-26→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Enabled） |
 | R-MCP-202 | S-mcp-26 | 状态 | 触发条件不成立时打开设置›MCP，看「来自插件」 | 不渲染 | — | 屏上「来自插件」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-203 | S-mcp-26 | 样式 | 打开设置›MCP，看「来自插件」 | 13 字号粗体，位于列表后半 | — | 判据 = 字号 UI 正文 12.25px；字重 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-MCP-204 | S-mcp-26 | 关联 | 在「来自插件」所在行内，同时看它与插件项的相对位置 | 标题下为插件服务器行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-MCP-205 | S-mcp-26 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「来自插件」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-206 | S-mcp-26 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，看「来自插件」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-207 | S-mcp-26 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「来自插件」 | 单行 | — | 屏上「来自插件」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-MCP-208 | S-mcp-26 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「来自插件」 | 对比≥4.5:1 | — | 屏上「来自插件」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-203 | S-mcp-26 | 样式 | 打开设置›MCP，看「来自插件」 | 13 字号粗体，位于列表后半 | — | 判据 = 字号 UI 正文 12.25px；字重 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-26→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Radius） |
+| R-MCP-204 | S-mcp-26 | 关联 | 在「来自插件」所在行内，同时看它与插件项的相对位置 | 标题下为插件服务器行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-mcp-26→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Screen） |
+| R-MCP-205 | S-mcp-26 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「来自插件」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-26→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Label） |
+| R-MCP-206 | S-mcp-26 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，看「来自插件」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-26→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = err@App.mcpToggle） |
+| R-MCP-207 | S-mcp-26 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「来自插件」 | 单行 | — | 屏上「来自插件」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-mcp-26→internal/ui/settings_mcp_screen.go:App.mcpServerCard |
+| R-MCP-208 | S-mcp-26 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「来自插件」 | 对比≥4.5:1 | — | 屏上「来自插件」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-26→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-209 | S-mcp-27 | 内容 | 打开设置›MCP，看「plugin.id · plugin…」 | 每项显示插件 id、传输方式与「只读」标记 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_hooks_screen.go:hkCopyReadonly「只读」 |
 | R-MCP-210 | S-mcp-27 | 状态 | 插件已卸载 | 该项消失 | — | 判据 = 屏上「plugin.id · plugin…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-211 | S-mcp-27 | 交互 | 点击只读项 | 不进入编辑（只读） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-212 | S-mcp-27 | 样式 | 打开设置›MCP，看「plugin.id · plugin…」 | 与普通服务器行同高，元信息更弱 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-MCP-213 | S-mcp-27 | 异常 | id 超长 | 截断 | — | 判据 = 屏上「plugin.id · plugin…」：文案末尾字符为「…」，字符数按可用宽度取上限 | 未实现（找不到元素渲染点） |
-| R-MCP-214 | S-mcp-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「plugin.id · plugin…」听播报 | 播报 id、传输、只读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-215 | S-mcp-27 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「plugin.id · plugin…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-MCP-216 | S-mcp-27 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「plugin.id · plugin…」 | 对比≥4.5:1 | — | 屏上「plugin.id · plugin…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-211 | S-mcp-27 | 交互 | 点击只读项 | 不进入编辑（只读） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-27→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Clicked） |
+| R-MCP-212 | S-mcp-27 | 样式 | 打开设置›MCP，看「plugin.id · plugin…」 | 与普通服务器行同高，元信息更弱 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-27→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Radius） |
+| R-MCP-213 | S-mcp-27 | 异常 | id 超长 | 截断 | — | 判据 = 屏上「plugin.id · plugin…」：文案末尾字符为「…」，字符数按可用宽度取上限 | 已实现（映射 = S-mcp-27→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = err@App.mcpToggle） |
+| R-MCP-214 | S-mcp-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「plugin.id · plugin…」听播报 | 播报 id、传输、只读 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-27→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Label） |
+| R-MCP-215 | S-mcp-27 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「plugin.id · plugin…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-27→internal/ui/settings_mcp_screen.go:App.mcpServerCard |
+| R-MCP-216 | S-mcp-27 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「plugin.id · plugin…」 | 对比≥4.5:1 | — | 屏上「plugin.id · plugin…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-27→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MCP-217 | S-mcp-28 | 内容 | 打开设置›MCP，看「需要登录 / 连接成功 / 连接失败」 | 显示结果：需要登录 / 连接成功 / 连接失败 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-218 | S-mcp-28 | 内容 | 打开设置›MCP，看「需要登录 / 连接成功 / 连接失败」 | 附延迟与工具数 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-219 | S-mcp-28 | 内容 | 连接失败 | 附缺权限范围说明 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-220 | S-mcp-28 | 样式 | 打开设置›MCP，看「需要登录 / 连接成功 / 连接失败」 | 11 字号，成功为次级、失败为警示 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-MCP-221 | S-mcp-28 | 关联 | 在「需要登录 / 连接成功 / 连接失败」所在行内，同时看它与测试按钮的相对位置 | 结果与该行绑定，不串到其它行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-MCP-222 | S-mcp-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「需要登录 / 连接成功 / 连接失败」听播报 | 播报结果 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-223 | S-mcp-28 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「需要登录 / 连接成功 / 连接失败」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-MCP-224 | S-mcp-28 | 记忆 | 从MCP切到设置›关于再切回来，看「需要登录 / 连接成功 / 连接失败」 | 结果不保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-MCP-217 | S-mcp-28 | 内容 | 打开设置›MCP，看「需要登录 / 连接成功 / 连接失败」 | 显示结果：需要登录 / 连接成功 / 连接失败 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = 文案「启用服务器」） |
+| R-MCP-218 | S-mcp-28 | 内容 | 打开设置›MCP，看「需要登录 / 连接成功 / 连接失败」 | 附延迟与工具数 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = 文案「启用服务器」） |
+| R-MCP-219 | S-mcp-28 | 内容 | 连接失败 | 附缺权限范围说明 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = 文案「启用服务器」） |
+| R-MCP-220 | S-mcp-28 | 样式 | 打开设置›MCP，看「需要登录 / 连接成功 / 连接失败」 | 11 字号，成功为次级、失败为警示 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Radius） |
+| R-MCP-221 | S-mcp-28 | 关联 | 在「需要登录 / 连接成功 / 连接失败」所在行内，同时看它与测试按钮的相对位置 | 结果与该行绑定，不串到其它行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Screen） |
+| R-MCP-222 | S-mcp-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「需要登录 / 连接成功 / 连接失败」听播报 | 播报结果 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Label） |
+| R-MCP-223 | S-mcp-28 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「需要登录 / 连接成功 / 连接失败」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard |
+| R-MCP-224 | S-mcp-28 | 记忆 | 从MCP切到设置›关于再切回来，看「需要登录 / 连接成功 / 连接失败」 | 结果不保留 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-28→internal/ui/settings_mcp_screen.go:App.mcpServerCard |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MCP-225 | S-mcp-29 | 内容 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 三个图标按钮：查看连接 / 断开连接 / 测试连接 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-226 | S-mcp-29 | 交互 | 点测试 | 发起连接测试，结果显示在该行 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-227 | S-mcp-29 | 状态 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 测试按钮禁用 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；色值 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-MCP-228 | S-mcp-29 | 样式 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 32×32 图标按钮，间距 10 | — | 屏上「查看连接 / 断开连接 / 测试连接」：间距 = 10、宽×高 = 32×32 | 未实现（找不到元素渲染点） |
+| R-MCP-225 | S-mcp-29 | 内容 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 三个图标按钮：查看连接 / 断开连接 / 测试连接 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-29→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = 文案「启用服务器」） |
+| R-MCP-226 | S-mcp-29 | 交互 | 点测试 | 发起连接测试，结果显示在该行 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-29→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Clicked） |
+| R-MCP-227 | S-mcp-29 | 状态 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 测试按钮禁用 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；色值 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-mcp-29→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Enabled） |
+| R-MCP-228 | S-mcp-29 | 样式 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 32×32 图标按钮，间距 10 | — | 屏上「查看连接 / 断开连接 / 测试连接」：间距 = 10、宽×高 = 32×32 | 已实现（映射 = S-mcp-29→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Radius） |
 | R-MCP-229 | S-mcp-29 | 异常 | 查看连接不可用 | 该按钮禁用 | — | 屏上「查看连接 / 断开连接 / 测试连接」：可点次数 = 0（禁用态） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-230 | S-mcp-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「查看连接 / 断开连接 / 测试连接」听播报 | 分别播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-231 | S-mcp-29 | 键盘 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 依次聚焦 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-MCP-232 | S-mcp-29 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「查看连接 / 断开连接 / 测试连接」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-MCP-230 | S-mcp-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「查看连接 / 断开连接 / 测试连接」听播报 | 分别播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-29→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Label） |
+| R-MCP-231 | S-mcp-29 | 键盘 | 打开设置›MCP，看「查看连接 / 断开连接 / 测试连接」 | 依次聚焦 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-mcp-29→internal/ui/settings_mcp_screen.go:App.mcpServerCard |
+| R-MCP-232 | S-mcp-29 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「查看连接 / 断开连接 / 测试连接」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-29→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Theme） |
 
 ### 10.2 编辑表单视图
 
@@ -8397,23 +8397,23 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-MCP-233 | S-mcp-30 | 内容 | view≠list | 标题「连接自定义 MCP」 | — | 屏上「连接自定义」的文案逐字为「连接自定义 MCP」（9 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyConnectTitle「连接自定义 MCP」 |
 | R-MCP-234 | S-mcp-30 | 状态 | 打开设置›MCP，看「连接自定义」 | 不渲染 | — | 屏上「连接自定义」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-235 | S-mcp-30 | 样式 | 打开设置›MCP，看「连接自定义」 | 20 字号粗体，y=33 | — | 屏上「连接自定义」：y = 33 | 未实现（找不到元素渲染点） |
-| R-MCP-236 | S-mcp-30 | 关联 | 在「连接自定义」所在行内，同时看它与文档链接的相对位置 | 同行右侧 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-MCP-237 | S-mcp-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「连接自定义」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-238 | S-mcp-30 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，看「连接自定义」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-239 | S-mcp-30 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「连接自定义」 | 单行 | — | 屏上「连接自定义」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-MCP-240 | S-mcp-30 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「连接自定义」 | 对比≥4.5:1 | — | 屏上「连接自定义」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-MCP-235 | S-mcp-30 | 样式 | 打开设置›MCP，看「连接自定义」 | 20 字号粗体，y=33 | — | 屏上「连接自定义」：y = 33 | 已实现（映射 = S-mcp-30→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = TextColor） |
+| R-MCP-236 | S-mcp-30 | 关联 | 在「连接自定义」所在行内，同时看它与文档链接的相对位置 | 同行右侧 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-mcp-30→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Screen） |
+| R-MCP-237 | S-mcp-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「连接自定义」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-30→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Label） |
+| R-MCP-238 | S-mcp-30 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进MCP，看「连接自定义」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-30→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-239 | S-mcp-30 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「连接自定义」 | 单行 | — | 屏上「连接自定义」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-mcp-30→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-240 | S-mcp-30 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「连接自定义」 | 对比≥4.5:1 | — | 屏上「连接自定义」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-30→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-241 | S-mcp-31 | 内容 | 打开设置›MCP，看「文档」 | 链接「文档」+ 外链图标 | — | 屏上「文档」的文案逐字为「文档」（2 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyDocs「文档」 |
-| R-MCP-242 | S-mcp-31 | 交互 | 用鼠标左键单击「文档」 | 外部浏览器打开文档 | — | 外部浏览器窗口数 = 1、应用内当前节变化 = 0 | 未实现（找不到元素渲染点） |
+| R-MCP-242 | S-mcp-31 | 交互 | 用鼠标左键单击「文档」 | 外部浏览器打开文档 | — | 外部浏览器窗口数 = 1、应用内当前节变化 = 0 | 未实现（映射到位但没有该维度的标记）：S-mcp-31→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
 | R-MCP-243 | S-mcp-31 | 状态 | 打开设置›MCP，看「文档」 | 不渲染 | — | 屏上「文档」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-MCP-244 | S-mcp-31 | 样式 | 打开设置›MCP，看「文档」 | 链接色、12 字号 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-MCP-245 | S-mcp-31 | 异常 | 无浏览器 | 失败提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-246 | S-mcp-31 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「文档」听播报 | 播报为链接 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-247 | S-mcp-31 | 键盘 | 把 Tab 焦点移到「文档」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-MCP-248 | S-mcp-31 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「文档」的边缘 | 图标清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-MCP-244 | S-mcp-31 | 样式 | 打开设置›MCP，看「文档」 | 链接色、12 字号 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-31→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = TextColor） |
+| R-MCP-245 | S-mcp-31 | 异常 | 无浏览器 | 失败提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-31→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-246 | S-mcp-31 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「文档」听播报 | 播报为链接 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-31→internal/ui/settings_mcp_screen.go:mcpTitleBlock；标记 = Label） |
+| R-MCP-247 | S-mcp-31 | 键盘 | 把 Tab 焦点移到「文档」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-mcp-31→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
+| R-MCP-248 | S-mcp-31 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「文档」的边缘 | 图标清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-mcp-31→internal/ui/settings_mcp_screen.go:mcpTitleBlock |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8451,24 +8451,24 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-273 | S-mcp-35 | 内容 | 打开设置›MCP，看「名称」 | 标签「名称」+ 输入 | — | 屏上「名称」的文案逐字为「名称」（2 字） | 已实现（逐字）：internal/settings/agents.go:validateAgentProfiles「名称」 |
-| R-MCP-274 | S-mcp-35 | 状态 | 编辑已存 | 回显名称 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-MCP-275 | S-mcp-35 | 交互 | 清空保存 | 提示必填 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-276 | S-mcp-35 | 样式 | 打开设置›MCP，看「名称」 | 通栏高 32，标签 12 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-MCP-277 | S-mcp-35 | 异常 | 打开设置›MCP，看「名称」 | 提示重名 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-278 | S-mcp-35 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「名称」听播报 | 播报为文本框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-279 | S-mcp-35 | 输入法 | 用输入法在「名称」里打一段还没上屏的拼音 | 不误提交 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-280 | S-mcp-35 | 记忆 | 点开「名称」后点「取消」 | 恢复原名 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-MCP-274 | S-mcp-35 | 状态 | 编辑已存 | 回显名称 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-35→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Disabled） |
+| R-MCP-275 | S-mcp-35 | 交互 | 清空保存 | 提示必填 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-35→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Key@mcpStdioFields） |
+| R-MCP-276 | S-mcp-35 | 样式 | 打开设置›MCP，看「名称」 | 通栏高 32，标签 12 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-35→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = TextColor） |
+| R-MCP-277 | S-mcp-35 | 异常 | 打开设置›MCP，看「名称」 | 提示重名 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-35→internal/ui/settings_mcp_screen.go:mcpEditor |
+| R-MCP-278 | S-mcp-35 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「名称」听播报 | 播报为文本框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-35→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Label@mcpField） |
+| R-MCP-279 | S-mcp-35 | 输入法 | 用输入法在「名称」里打一段还没上屏的拼音 | 不误提交 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-35→internal/ui/settings_mcp_screen.go:mcpEditor |
+| R-MCP-280 | S-mcp-35 | 记忆 | 点开「名称」后点「取消」 | 恢复原名 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-35→internal/ui/settings_mcp_screen.go:mcpEditor |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-281 | S-mcp-36 | 内容 | 打开设置›MCP，看「范围」 | 标签「范围」+ 下拉（用户 / 项目） | — | 屏上「范围」的文案逐字为「范围」（2 字） | 已实现（逐字）：internal/ui/settings_mcp_screen.go:mcpCopyScope「范围」 |
-| R-MCP-282 | S-mcp-36 | 状态 | 首次打开设置›MCP、不做任何改动时看「范围」 | 显示当前范围 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-MCP-283 | S-mcp-36 | 交互 | 把「范围」从当前状态切到另一状态 | 保存后按新范围归属 | — | 屏上「范围」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
-| R-MCP-284 | S-mcp-36 | 样式 | 打开设置›MCP，看「范围」 | 通栏高 32 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-MCP-285 | S-mcp-36 | 状态 | 项目范围不可用 | 该项禁用 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-MCP-286 | S-mcp-36 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「范围」听播报 | 播报当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-MCP-287 | S-mcp-36 | 键盘 | 把焦点放进该列表后按 ↑ 与 ↓ 各一次 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（找不到元素渲染点） |
-| R-MCP-288 | S-mcp-36 | 异常 | 切换失败 | 提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-MCP-282 | S-mcp-36 | 状态 | 首次打开设置›MCP、不做任何改动时看「范围」 | 显示当前范围 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-36→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Disabled） |
+| R-MCP-283 | S-mcp-36 | 交互 | 把「范围」从当前状态切到另一状态 | 保存后按新范围归属 | — | 屏上「范围」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-mcp-36→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Key@mcpStdioFields） |
+| R-MCP-284 | S-mcp-36 | 样式 | 打开设置›MCP，看「范围」 | 通栏高 32 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-36→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = TextColor） |
+| R-MCP-285 | S-mcp-36 | 状态 | 项目范围不可用 | 该项禁用 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-mcp-36→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Disabled） |
+| R-MCP-286 | S-mcp-36 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「范围」听播报 | 播报当前值 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-mcp-36→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Label@mcpField） |
+| R-MCP-287 | S-mcp-36 | 键盘 | 把焦点放进该列表后按 ↑ 与 ↓ 各一次 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 已实现（映射 = S-mcp-36→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Key@mcpStdioFields） |
+| R-MCP-288 | S-mcp-36 | 异常 | 切换失败 | 提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-mcp-36→internal/ui/settings_mcp_screen.go:mcpEditor |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8616,13 +8616,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-393 | S-mcp-50 | 内容 | 编辑视图底部 | 「保存」「测试连接」「取消」（按能力出现） | — | 屏上「保存 / 测试连接 / 取消等底部动…」的文案逐字为「保存」（2 字） | 已实现（逐字）：internal/ui/app.go:App.persistPreferences「保存」 |
-| R-MCP-394 | S-mcp-50 | 交互 | 点保存 | 校验并保存，回列表视图 | — | 屏上「保存 / 测试连接 / 取消等底部动…」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
-| R-MCP-395 | S-mcp-50 | 状态 | 打开设置›MCP，看「保存 / 测试连接 / 取消等底部动…」 | 保存禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-MCP-396 | S-mcp-50 | 样式 | 打开设置›MCP，看「保存 / 测试连接 / 取消等底部动…」 | 保存主色、其余描边，右对齐 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
-| R-MCP-397 | S-mcp-50 | 异常 | 断开网络后改「保存 / 测试连接 / 取消等底部动…」，等保存返回失败 | formError 显示，停留编辑 | — | 屏上「保存 / 测试连接 / 取消等底部动…」：错误文案逐字与接口返回相同（字符数一致） | 未实现（找不到元素渲染点） |
-| R-MCP-398 | S-mcp-50 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保存 / 测试连接 / 取消等底部动…」听播报 | 分别播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-MCP-399 | S-mcp-50 | 键盘 | 把 Tab 焦点移到「保存 / 测试连接 / 取消等底部动…」后按回车 | 触发聚焦按钮 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-MCP-400 | S-mcp-50 | 记忆 | 点开「保存 / 测试连接 / 取消等底部动…」后点「取消」 | 回列表且不改动 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-MCP-394 | S-mcp-50 | 交互 | 点保存 | 校验并保存，回列表视图 | — | 屏上「保存 / 测试连接 / 取消等底部动…」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-mcp-50→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Key@mcpStdioFields） |
+| R-MCP-395 | S-mcp-50 | 状态 | 打开设置›MCP，看「保存 / 测试连接 / 取消等底部动…」 | 保存禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-mcp-50→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Disabled） |
+| R-MCP-396 | S-mcp-50 | 样式 | 打开设置›MCP，看「保存 / 测试连接 / 取消等底部动…」 | 保存主色、其余描边，右对齐 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-mcp-50→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = TextColor） |
+| R-MCP-397 | S-mcp-50 | 异常 | 断开网络后改「保存 / 测试连接 / 取消等底部动…」，等保存返回失败 | formError 显示，停留编辑 | — | 屏上「保存 / 测试连接 / 取消等底部动…」：错误文案逐字与接口返回相同（字符数一致） | 未实现（映射到位但没有该维度的标记）：S-mcp-50→internal/ui/settings_mcp_screen.go:mcpEditor |
+| R-MCP-398 | S-mcp-50 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保存 / 测试连接 / 取消等底部动…」听播报 | 分别播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-50→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Label@mcpField） |
+| R-MCP-399 | S-mcp-50 | 键盘 | 把 Tab 焦点移到「保存 / 测试连接 / 取消等底部动…」后按回车 | 触发聚焦按钮 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-mcp-50→internal/ui/settings_mcp_screen.go:mcpEditor；标记 = Key@mcpStdioFields） |
+| R-MCP-400 | S-mcp-50 | 记忆 | 点开「保存 / 测试连接 / 取消等底部动…」后点「取消」 | 回列表且不改动 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-50→internal/ui/settings_mcp_screen.go:mcpEditor |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -9024,167 +9024,167 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-001 | S-permissions-01 | 内容 | 从设置›关于切进权限，滚动到 y≈33 处的「权限」 | 标题「权限」 | — | 屏上「权限」的文案逐字为「权限」（2 字） | 已实现（逐字）：internal/app/permission.go:ErrPermissionConflict「权限」 |
-| R-PRM-002 | S-permissions-01 | 样式 | 打开设置›权限，滚动到 y≈33 处的「权限」 | 与其它节同级，y=33 | — | 屏上「权限」：y = 33 | 未实现（找不到元素渲染点） |
-| R-PRM-003 | S-permissions-01 | 关联 | 在「权限」所在行内，同时看它与首分组的相对位置 | 下 27 | — | 间距 27 | 未实现（找不到元素渲染点） |
-| R-PRM-004 | S-permissions-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-005 | S-permissions-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈33 处的「权限」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-006 | S-permissions-01 | 记忆 | 从权限切到设置›关于再切回来，滚动到 y≈33 处的「权限」 | 回 y=33 | — | 屏上「权限」：y = 33 | 未实现（找不到元素渲染点） |
-| R-PRM-007 | S-permissions-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「权限」 | 单行 | — | 屏上「权限」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-008 | S-permissions-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「权限」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-PRM-002 | S-permissions-01 | 样式 | 打开设置›权限，滚动到 y≈33 处的「权限」 | 与其它节同级，y=33 | — | 屏上「权限」：y = 33 | 已实现（映射 = S-permissions-01→internal/ui/settings_permissions_screen.go:renderPermissions；标记 = TextColor@screenTitle） |
+| R-PRM-003 | S-permissions-01 | 关联 | 在「权限」所在行内，同时看它与首分组的相对位置 | 下 27 | — | 间距 27 | 已实现（映射 = S-permissions-01→internal/ui/settings_permissions_screen.go:renderPermissions；标记 = Section） |
+| R-PRM-004 | S-permissions-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-01→internal/ui/settings_permissions_screen.go:renderPermissions；标记 = Label） |
+| R-PRM-005 | S-permissions-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈33 处的「权限」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-01→internal/ui/settings_permissions_screen.go:renderPermissions；标记 = err@permValidateRules） |
+| R-PRM-006 | S-permissions-01 | 记忆 | 从权限切到设置›关于再切回来，滚动到 y≈33 处的「权限」 | 回 y=33 | — | 屏上「权限」：y = 33 | 未实现（映射到位但没有该维度的标记）：S-permissions-01→internal/ui/settings_permissions_screen.go:renderPermissions |
+| R-PRM-007 | S-permissions-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「权限」 | 单行 | — | 屏上「权限」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-permissions-01→internal/ui/settings_permissions_screen.go:renderPermissions |
+| R-PRM-008 | S-permissions-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「权限」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-01→internal/ui/settings_permissions_screen.go:renderPermissions；标记 = 文案「权限」） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-009 | S-permissions-02 | 内容 | 打开设置›权限，看「ShieldCheck 图标」 | 盾牌对勾图标在分组标题左 | — | 「ShieldCheck 图标」右边缘 x ≤ 「分组标题」左边缘 x（差 ≥ 0） | 未实现（找不到元素渲染点） |
-| R-PRM-010 | S-permissions-02 | 样式 | 打开设置›权限，看「ShieldCheck 图标」 | 18 px，主色或前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-011 | S-permissions-02 | 关联 | 在「ShieldCheck 图标」所在行内，同时看它与标题的相对位置 | 间距 6，垂直居中 | — | 屏上「ShieldCheck 图标」：间距 = 6、水平对齐 = 居中 | 未实现（找不到元素渲染点） |
-| R-PRM-012 | S-permissions-02 | 状态 | 任何加载态 | 图标不变 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-013 | S-permissions-02 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「ShieldCheck 图标」的边缘 | 线条清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-PRM-014 | S-permissions-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「ShieldCheck 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-015 | S-permissions-02 | 异常 | 把「ShieldCheck 图标」的图标或字体资源临时移除后重进权限 | 标题左移，不塌陷 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-PRM-016 | S-permissions-02 | 深色 | 在设置›外观把主题切成深色，再回权限，看「ShieldCheck 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-PRM-009 | S-permissions-02 | 内容 | 打开设置›权限，看「ShieldCheck 图标」 | 盾牌对勾图标在分组标题左 | — | 「ShieldCheck 图标」右边缘 x ≤ 「分组标题」左边缘 x（差 ≥ 0） | 已实现（映射 = S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = 文案「进程隔离」等 4 条） |
+| R-PRM-010 | S-permissions-02 | 样式 | 打开设置›权限，看「ShieldCheck 图标」 | 18 px，主色或前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Padding） |
+| R-PRM-011 | S-permissions-02 | 关联 | 在「ShieldCheck 图标」所在行内，同时看它与标题的相对位置 | 间距 6，垂直居中 | — | 屏上「ShieldCheck 图标」：间距 = 6、水平对齐 = 居中 | 已实现（映射 = S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Screen） |
+| R-PRM-012 | S-permissions-02 | 状态 | 任何加载态 | 图标不变 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Disabled） |
+| R-PRM-013 | S-permissions-02 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「ShieldCheck 图标」的边缘 | 线条清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard |
+| R-PRM-014 | S-permissions-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「ShieldCheck 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Label@screenIcon） |
+| R-PRM-015 | S-permissions-02 | 异常 | 把「ShieldCheck 图标」的图标或字体资源临时移除后重进权限 | 标题左移，不塌陷 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Err） |
+| R-PRM-016 | S-permissions-02 | 深色 | 在设置›外观把主题切成深色，再回权限，看「ShieldCheck 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-02→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-017 | S-permissions-03 | 内容 | 打开设置›权限，滚动到 y≈100 处的「进程隔离」 | 标题「进程隔离」 | — | 屏上「进程隔离」的文案逐字为「进程隔离」（4 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyIsolation「进程隔离」 |
-| R-PRM-018 | S-permissions-03 | 样式 | 打开设置›权限，滚动到 y≈100 处的「进程隔离」 | 16 字号粗体，x=296 | — | 屏上「进程隔离」：x = 296 | 未实现（找不到元素渲染点） |
-| R-PRM-019 | S-permissions-03 | 关联 | 在「进程隔离」所在行内，同时看它与说明的相对位置 | 下 4 | — | 间距 4 | 未实现（找不到元素渲染点） |
-| R-PRM-020 | S-permissions-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「进程隔离」听播报 | 三级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-021 | S-permissions-03 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈100 处的「进程隔离」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-022 | S-permissions-03 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈100 处的「进程隔离」 | 单行 | — | 屏上「进程隔离」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-023 | S-permissions-03 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈100 处的「进程隔离」 | 对比≥4.5:1 | — | 屏上「进程隔离」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
-| R-PRM-024 | S-permissions-03 | 状态 | 在网络限速下刷新，请求还没返回时滚动到 y≈100 处的「进程隔离」 | 标题仍显示 | — | 屏上「进程隔离」：出现次数 = 1 | 未实现（找不到元素渲染点） |
+| R-PRM-018 | S-permissions-03 | 样式 | 打开设置›权限，滚动到 y≈100 处的「进程隔离」 | 16 字号粗体，x=296 | — | 屏上「进程隔离」：x = 296 | 已实现（映射 = S-permissions-03→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Padding） |
+| R-PRM-019 | S-permissions-03 | 关联 | 在「进程隔离」所在行内，同时看它与说明的相对位置 | 下 4 | — | 间距 4 | 已实现（映射 = S-permissions-03→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Screen） |
+| R-PRM-020 | S-permissions-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「进程隔离」听播报 | 三级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-03→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Label@screenIcon） |
+| R-PRM-021 | S-permissions-03 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈100 处的「进程隔离」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-03→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Err） |
+| R-PRM-022 | S-permissions-03 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈100 处的「进程隔离」 | 单行 | — | 屏上「进程隔离」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-permissions-03→internal/ui/settings_permissions_screen.go:permIsolationCard |
+| R-PRM-023 | S-permissions-03 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈100 处的「进程隔离」 | 对比≥4.5:1 | — | 屏上「进程隔离」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-03→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Theme） |
+| R-PRM-024 | S-permissions-03 | 状态 | 在网络限速下刷新，请求还没返回时滚动到 y≈100 处的「进程隔离」 | 标题仍显示 | — | 屏上「进程隔离」：出现次数 = 1 | 已实现（映射 = S-permissions-03→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Disabled） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-025 | S-permissions-04 | 内容 | 打开设置›权限，滚动到 y≈121 处的「控制命令是否在 App Server…」 | 说明「控制命令是否在 App Server 沙箱中运行，以及沙箱命令是否可以使用网络。」 | — | 屏上「控制命令是否在 App Server…」的文案逐字为「控制命令是否在 App Server 沙箱中运行，以及沙箱命令是否可以使用网络。」（40 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyIsolationIn「控制命令是否在 App Server 沙箱中运行，以及沙箱命令是否可以使用网络。」 |
-| R-PRM-026 | S-permissions-04 | 样式 | 打开设置›权限，滚动到 y≈121 处的「控制命令是否在 App Server…」 | 12 字号次级，宽 356 | — | 屏上「控制命令是否在 App Server…」：宽度 = 356 | 未实现（找不到元素渲染点） |
-| R-PRM-027 | S-permissions-04 | 关联 | 在「控制命令是否在 App Server…」所在行内，同时看它与开关行的相对位置 | 下 12 | — | 间距 12 | 未实现（找不到元素渲染点） |
-| R-PRM-028 | S-permissions-04 | 交互 | 在「控制命令是否在 App Server…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-PRM-029 | S-permissions-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「控制命令是否在 App Server…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-030 | S-permissions-04 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈121 处的「控制命令是否在 App Server…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-031 | S-permissions-04 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈121 处的「控制命令是否在 App Server…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-032 | S-permissions-04 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈121 处的「控制命令是否在 App Server…」 | 对比≥4.5:1 | — | 屏上「控制命令是否在 App Server…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-026 | S-permissions-04 | 样式 | 打开设置›权限，滚动到 y≈121 处的「控制命令是否在 App Server…」 | 12 字号次级，宽 356 | — | 屏上「控制命令是否在 App Server…」：宽度 = 356 | 已实现（映射 = S-permissions-04→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Padding） |
+| R-PRM-027 | S-permissions-04 | 关联 | 在「控制命令是否在 App Server…」所在行内，同时看它与开关行的相对位置 | 下 12 | — | 间距 12 | 已实现（映射 = S-permissions-04→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Screen） |
+| R-PRM-028 | S-permissions-04 | 交互 | 在「控制命令是否在 App Server…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 已实现（映射 = S-permissions-04→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Pressed@settingsActionButton） |
+| R-PRM-029 | S-permissions-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「控制命令是否在 App Server…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-04→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Label@screenIcon） |
+| R-PRM-030 | S-permissions-04 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈121 处的「控制命令是否在 App Server…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-04→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Err） |
+| R-PRM-031 | S-permissions-04 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈121 处的「控制命令是否在 App Server…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-04→internal/ui/settings_permissions_screen.go:permIsolationCard |
+| R-PRM-032 | S-permissions-04 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈121 处的「控制命令是否在 App Server…」 | 对比≥4.5:1 | — | 屏上「控制命令是否在 App Server…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-04→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-033 | S-permissions-05 | 状态 | 隔离设置加载中 | 显示「正在加载...」 | — | 屏上「正在加载...」的文案逐字为「正在加载...」（7 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyLoading「正在加载...」 |
 | R-PRM-034 | S-permissions-05 | 状态 | 已加载 | 不渲染 | — | 屏上「正在加载...」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-035 | S-permissions-05 | 样式 | 打开设置›权限，看「正在加载...」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-036 | S-permissions-05 | 异常 | 让请求 30 秒不返回后看「正在加载...」 | 转错误 + 刷新 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-037 | S-permissions-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「正在加载...」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-038 | S-permissions-05 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「正在加载...」 | 单行 | — | 屏上「正在加载...」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-039 | S-permissions-05 | 深色 | 在设置›外观把主题切成深色，再回权限，看「正在加载...」 | 对比≥4.5:1 | — | 屏上「正在加载...」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
-| R-PRM-040 | S-permissions-05 | 动画 | 刚打开设置›权限、内容还在加载时看「正在加载...」 | 省略号为静态「…」 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-PRM-035 | S-permissions-05 | 样式 | 打开设置›权限，看「正在加载...」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-05→internal/ui/settings_permissions_screen.go:permLoadingRow；标记 = TextColor@screenHint） |
+| R-PRM-036 | S-permissions-05 | 异常 | 让请求 30 秒不返回后看「正在加载...」 | 转错误 + 刷新 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-05→internal/ui/settings_permissions_screen.go:permLoadingRow |
+| R-PRM-037 | S-permissions-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「正在加载...」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-05→internal/ui/settings_permissions_screen.go:permLoadingRow；标记 = Label） |
+| R-PRM-038 | S-permissions-05 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「正在加载...」 | 单行 | — | 屏上「正在加载...」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-permissions-05→internal/ui/settings_permissions_screen.go:permLoadingRow |
+| R-PRM-039 | S-permissions-05 | 深色 | 在设置›外观把主题切成深色，再回权限，看「正在加载...」 | 对比≥4.5:1 | — | 屏上「正在加载...」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-05→internal/ui/settings_permissions_screen.go:permLoadingRow；标记 = Theme@screenHint） |
+| R-PRM-040 | S-permissions-05 | 动画 | 刚打开设置›权限、内容还在加载时看「正在加载...」 | 省略号为静态「…」 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-permissions-05→internal/ui/settings_permissions_screen.go:permLoadingRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-041 | S-permissions-06 | 状态 | 隔离设置不可得 | 显示错误文案 +「刷新」按钮 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyRefresh「刷新」 |
 | R-PRM-042 | S-permissions-06 | 内容 | 无具体错误 | 显示「加载进程隔离设置失败」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyLoadFailed「加载进程隔离设置失败」 |
-| R-PRM-043 | S-permissions-06 | 交互 | 点刷新 | 重拉隔离设置 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-044 | S-permissions-06 | 样式 | 打开设置›权限，看「executionError \」 | 12 字号警示 + 描边小按钮 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 未实现（找不到元素渲染点） |
+| R-PRM-043 | S-permissions-06 | 交互 | 点刷新 | 重拉隔离设置 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Pressed@settingsActionButton） |
+| R-PRM-044 | S-permissions-06 | 样式 | 打开设置›权限，看「executionError \」 | 12 字号警示 + 描边小按钮 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Padding） |
 | R-PRM-045 | S-permissions-06 | 状态 | 打开设置›权限，在无异常提示的状态下看「executionError \」 | 不渲染 | — | 屏上「executionError \」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-046 | S-permissions-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「executionError \」听播报 | 播报错误与按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-047 | S-permissions-06 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「executionError \」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-048 | S-permissions-06 | 深色 | 在设置›外观把主题切成深色，再回权限，看「executionError \」 | 对比≥4.5:1 | — | 屏上「executionError \」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-046 | S-permissions-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「executionError \」听播报 | 播报错误与按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Label@screenIcon） |
+| R-PRM-047 | S-permissions-06 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「executionError \」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard |
+| R-PRM-048 | S-permissions-06 | 深色 | 在设置›外观把主题切成深色，再回权限，看「executionError \」 | 对比≥4.5:1 | — | 屏上「executionError \」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-049 | S-permissions-07 | 状态 | 沙箱后端不可用 | 显示「沙箱后端不可用：{reason}」 | — | 屏上「沙箱后端不可用：{reason}」的文案逐字为「沙箱后端不可用：{reason}」（16 字） | 未实现（找不到元素渲染点） |
+| R-PRM-049 | S-permissions-07 | 状态 | 沙箱后端不可用 | 显示「沙箱后端不可用：{reason}」 | — | 屏上「沙箱后端不可用：{reason}」的文案逐字为「沙箱后端不可用：{reason}」（16 字） | 已实现（映射 = S-permissions-07→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Disabled） |
 | R-PRM-050 | S-permissions-07 | 状态 | 后端可用 | 不渲染 | — | 屏上「沙箱后端不可用：{reason}」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-051 | S-permissions-07 | 内容 | 打开设置›权限，看「沙箱后端不可用：{reason}」 | 含具体原因 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-052 | S-permissions-07 | 样式 | 打开设置›权限，看「沙箱后端不可用：{reason}」 | 12 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-053 | S-permissions-07 | 关联 | 在「沙箱后端不可用：{reason}」所在行内，同时看它与开关的相对位置 | 该态下开关禁用 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-054 | S-permissions-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「沙箱后端不可用：{reason}」听播报 | 播报原因 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-055 | S-permissions-07 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「沙箱后端不可用：{reason}」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-056 | S-permissions-07 | 深色 | 在设置›外观把主题切成深色，再回权限，看「沙箱后端不可用：{reason}」 | 对比≥4.5:1 | — | 屏上「沙箱后端不可用：{reason}」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-051 | S-permissions-07 | 内容 | 打开设置›权限，看「沙箱后端不可用：{reason}」 | 含具体原因 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-07→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = 文案「进程隔离」等 4 条） |
+| R-PRM-052 | S-permissions-07 | 样式 | 打开设置›权限，看「沙箱后端不可用：{reason}」 | 12 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-07→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Padding） |
+| R-PRM-053 | S-permissions-07 | 关联 | 在「沙箱后端不可用：{reason}」所在行内，同时看它与开关的相对位置 | 该态下开关禁用 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-07→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Screen） |
+| R-PRM-054 | S-permissions-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「沙箱后端不可用：{reason}」听播报 | 播报原因 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-07→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Label@screenIcon） |
+| R-PRM-055 | S-permissions-07 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「沙箱后端不可用：{reason}」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-07→internal/ui/settings_permissions_screen.go:permIsolationCard |
+| R-PRM-056 | S-permissions-07 | 深色 | 在设置›外观把主题切成深色，再回权限，看「沙箱后端不可用：{reason}」 | 对比≥4.5:1 | — | 屏上「沙箱后端不可用：{reason}」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-07→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-057 | S-permissions-08 | 内容 | 打开设置›权限，滚动到 y≈153 处的「在沙箱中运行命令」 | 标签「在沙箱中运行命令」 | — | 屏上「在沙箱中运行命令」的文案逐字为「在沙箱中运行命令」（8 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySandbox「在沙箱中运行命令」 |
-| R-PRM-058 | S-permissions-08 | 样式 | 打开设置›权限，滚动到 y≈153 处的「在沙箱中运行命令」 | 13 字号、x=272、y=153 | — | 屏上「在沙箱中运行命令」：x = 272、y = 153 | 未实现（找不到元素渲染点） |
-| R-PRM-059 | S-permissions-08 | 关联 | 在「在沙箱中运行命令」所在行内，同时看它与开关的相对位置 | 同行，开关右（x=955） | — | 屏上「在沙箱中运行命令」：x = 955 | 未实现（找不到元素渲染点） |
-| R-PRM-060 | S-permissions-08 | 关联 | 在「在沙箱中运行命令」所在行内，同时看它与说明的相对位置 | 下 2 | — | 间距 2 | 未实现（找不到元素渲染点） |
-| R-PRM-061 | S-permissions-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「在沙箱中运行命令」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-062 | S-permissions-08 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈153 处的「在沙箱中运行命令」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-063 | S-permissions-08 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈153 处的「在沙箱中运行命令」 | 不换行 | — | 屏上「在沙箱中运行命令」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-064 | S-permissions-08 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈153 处的「在沙箱中运行命令」 | 对比≥4.5:1 | — | 屏上「在沙箱中运行命令」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-058 | S-permissions-08 | 样式 | 打开设置›权限，滚动到 y≈153 处的「在沙箱中运行命令」 | 13 字号、x=272、y=153 | — | 屏上「在沙箱中运行命令」：x = 272、y = 153 | 已实现（映射 = S-permissions-08→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Width@permSwitchRowDisabled） |
+| R-PRM-059 | S-permissions-08 | 关联 | 在「在沙箱中运行命令」所在行内，同时看它与开关的相对位置 | 同行，开关右（x=955） | — | 屏上「在沙箱中运行命令」：x = 955 | 已实现（映射 = S-permissions-08→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Switch） |
+| R-PRM-060 | S-permissions-08 | 关联 | 在「在沙箱中运行命令」所在行内，同时看它与说明的相对位置 | 下 2 | — | 间距 2 | 已实现（映射 = S-permissions-08→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Switch） |
+| R-PRM-061 | S-permissions-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「在沙箱中运行命令」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-08→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Label@permSwitchRowDisabled） |
+| R-PRM-062 | S-permissions-08 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈153 处的「在沙箱中运行命令」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-08→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-063 | S-permissions-08 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈153 处的「在沙箱中运行命令」 | 不换行 | — | 屏上「在沙箱中运行命令」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-permissions-08→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-064 | S-permissions-08 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈153 处的「在沙箱中运行命令」 | 对比≥4.5:1 | — | 屏上「在沙箱中运行命令」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-08→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Theme@settingsActionButton） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-065 | S-permissions-09 | 内容 | 打开设置›权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 说明「使用宿主沙箱后端运行命令。」 | — | 屏上「使用宿主沙箱后端运行命令。」的文案逐字为「使用宿主沙箱后端运行命令。」（13 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySandboxIn「使用宿主沙箱后端运行命令。」 |
-| R-PRM-066 | S-permissions-09 | 样式 | 打开设置›权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 12 字号次级，宽 137 折行 | — | 屏上「使用宿主沙箱后端运行命令。」：宽度 = 137 | 未实现（找不到元素渲染点） |
-| R-PRM-067 | S-permissions-09 | 状态 | 打开设置›权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 文案不变 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-068 | S-permissions-09 | 交互 | 在「使用宿主沙箱后端运行命令。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-PRM-069 | S-permissions-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「使用宿主沙箱后端运行命令。」听播报 | 作为开关描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-070 | S-permissions-09 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-071 | S-permissions-09 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-072 | S-permissions-09 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 对比≥4.5:1 | — | 屏上「使用宿主沙箱后端运行命令。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-066 | S-permissions-09 | 样式 | 打开设置›权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 12 字号次级，宽 137 折行 | — | 屏上「使用宿主沙箱后端运行命令。」：宽度 = 137 | 已实现（映射 = S-permissions-09→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Width@permSwitchRowDisabled） |
+| R-PRM-067 | S-permissions-09 | 状态 | 打开设置›权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 文案不变 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-09→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Disabled） |
+| R-PRM-068 | S-permissions-09 | 交互 | 在「使用宿主沙箱后端运行命令。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 已实现（映射 = S-permissions-09→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Pressed@settingsActionButton） |
+| R-PRM-069 | S-permissions-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「使用宿主沙箱后端运行命令。」听播报 | 作为开关描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-09→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Label@permSwitchRowDisabled） |
+| R-PRM-070 | S-permissions-09 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-09→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-071 | S-permissions-09 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-09→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-072 | S-permissions-09 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈167 处的「使用宿主沙箱后端运行命令。」 | 对比≥4.5:1 | — | 屏上「使用宿主沙箱后端运行命令。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-09→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Theme@settingsActionButton） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-073 | S-permissions-10 | 状态 | 已启用沙箱 | 开关呈开态 | — | 屏上「在沙箱中运行命令」：状态 = 开 | 未实现（找不到元素渲染点） |
-| R-PRM-074 | S-permissions-10 | 交互 | 打开设置›权限，滚动到 y≈158 处的「在沙箱中运行命令」 | 命令改为直接在宿主运行 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-075 | S-permissions-10 | 状态 | 后端不可用 | 禁用 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-076 | S-permissions-10 | 样式 | 打开设置›权限，滚动到 y≈158 处的「在沙箱中运行命令」 | 28×16，x=955 | — | 屏上「在沙箱中运行命令」：宽×高 = 28×16、x = 955 | 未实现（找不到元素渲染点） |
+| R-PRM-073 | S-permissions-10 | 状态 | 已启用沙箱 | 开关呈开态 | — | 屏上「在沙箱中运行命令」：状态 = 开 | 已实现（映射 = S-permissions-10→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Disabled@permSwitchRow） |
+| R-PRM-074 | S-permissions-10 | 交互 | 打开设置›权限，滚动到 y≈158 处的「在沙箱中运行命令」 | 命令改为直接在宿主运行 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-10→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Pressed@settingsActionButton） |
+| R-PRM-075 | S-permissions-10 | 状态 | 后端不可用 | 禁用 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-10→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Disabled@permSwitchRow） |
+| R-PRM-076 | S-permissions-10 | 样式 | 打开设置›权限，滚动到 y≈158 处的「在沙箱中运行命令」 | 28×16，x=955 | — | 屏上「在沙箱中运行命令」：宽×高 = 28×16、x = 955 | 已实现（映射 = S-permissions-10→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Width@permSwitchRow） |
 | R-PRM-077 | S-permissions-10 | 关联 | 在「在沙箱中运行命令」所在行内，同时看它与网络开关的相对位置 | 沙箱关闭时网络开关禁用 | — | 判据 = 屏上「在沙箱中运行命令」：状态 = 关；可点次数 = 0（禁用态） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-078 | S-permissions-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「在沙箱中运行命令」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-079 | S-permissions-10 | 记忆 | 保存后重启 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-080 | S-permissions-10 | 异常 | 断开网络后改「在沙箱中运行命令」，等保存返回失败 | 回滚 + 错误行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-PRM-078 | S-permissions-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「在沙箱中运行命令」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-10→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Label@permSwitchRow） |
+| R-PRM-079 | S-permissions-10 | 记忆 | 保存后重启 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-10→internal/ui/settings_permissions_screen.go:permIsolationControls |
+| R-PRM-080 | S-permissions-10 | 异常 | 断开网络后改「在沙箱中运行命令」，等保存返回失败 | 回滚 + 错误行 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-10→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Err） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-081 | S-permissions-11 | 内容 | 打开设置›权限，滚动到 y≈195 处的「允许网络访问」 | 标签「允许网络访问」 | — | 屏上「允许网络访问」的文案逐字为「允许网络访问」（6 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyNetwork「允许网络访问」 |
-| R-PRM-082 | S-permissions-11 | 样式 | 打开设置›权限，滚动到 y≈195 处的「允许网络访问」 | 13 字号、x=272、y=195 | — | 屏上「允许网络访问」：x = 272、y = 195 | 未实现（找不到元素渲染点） |
-| R-PRM-083 | S-permissions-11 | 关联 | 在「允许网络访问」所在行内，同时看它与开关的相对位置 | 同行，开关右（x=955） | — | 屏上「允许网络访问」：x = 955 | 未实现（找不到元素渲染点） |
-| R-PRM-084 | S-permissions-11 | 状态 | 打开设置›权限，滚动到 y≈195 处的「允许网络访问」 | 标签变弱 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-085 | S-permissions-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「允许网络访问」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-086 | S-permissions-11 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈195 处的「允许网络访问」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-087 | S-permissions-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈195 处的「允许网络访问」 | 单行 | — | 屏上「允许网络访问」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-088 | S-permissions-11 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈195 处的「允许网络访问」 | 对比≥4.5:1 | — | 屏上「允许网络访问」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-082 | S-permissions-11 | 样式 | 打开设置›权限，滚动到 y≈195 处的「允许网络访问」 | 13 字号、x=272、y=195 | — | 屏上「允许网络访问」：x = 272、y = 195 | 已实现（映射 = S-permissions-11→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Width@permSwitchRowDisabled） |
+| R-PRM-083 | S-permissions-11 | 关联 | 在「允许网络访问」所在行内，同时看它与开关的相对位置 | 同行，开关右（x=955） | — | 屏上「允许网络访问」：x = 955 | 已实现（映射 = S-permissions-11→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Switch） |
+| R-PRM-084 | S-permissions-11 | 状态 | 打开设置›权限，滚动到 y≈195 处的「允许网络访问」 | 标签变弱 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-11→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Disabled） |
+| R-PRM-085 | S-permissions-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「允许网络访问」听播报 | 联合播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-11→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Label@permSwitchRowDisabled） |
+| R-PRM-086 | S-permissions-11 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈195 处的「允许网络访问」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-11→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-087 | S-permissions-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈195 处的「允许网络访问」 | 单行 | — | 屏上「允许网络访问」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-permissions-11→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-088 | S-permissions-11 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈195 处的「允许网络访问」 | 对比≥4.5:1 | — | 屏上「允许网络访问」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-11→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Theme@settingsActionButton） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-089 | S-permissions-12 | 内容 | 打开设置›权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 说明「允许沙箱命令访问网络。」 | — | 屏上「允许沙箱命令访问网络。」的文案逐字为「允许沙箱命令访问网络。」（11 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyNetworkIn「允许沙箱命令访问网络。」 |
-| R-PRM-090 | S-permissions-12 | 样式 | 打开设置›权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 12 字号次级，宽 116 | — | 屏上「允许沙箱命令访问网络。」：宽度 = 116 | 未实现（找不到元素渲染点） |
-| R-PRM-091 | S-permissions-12 | 状态 | 打开设置›权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 文案不变，控件禁用 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-092 | S-permissions-12 | 交互 | 在「允许沙箱命令访问网络。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-PRM-093 | S-permissions-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「允许沙箱命令访问网络。」听播报 | 作为开关描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-094 | S-permissions-12 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-095 | S-permissions-12 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-096 | S-permissions-12 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 对比≥4.5:1 | — | 屏上「允许沙箱命令访问网络。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-090 | S-permissions-12 | 样式 | 打开设置›权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 12 字号次级，宽 116 | — | 屏上「允许沙箱命令访问网络。」：宽度 = 116 | 已实现（映射 = S-permissions-12→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Width@permSwitchRowDisabled） |
+| R-PRM-091 | S-permissions-12 | 状态 | 打开设置›权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 文案不变，控件禁用 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-12→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Disabled） |
+| R-PRM-092 | S-permissions-12 | 交互 | 在「允许沙箱命令访问网络。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 已实现（映射 = S-permissions-12→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Pressed@settingsActionButton） |
+| R-PRM-093 | S-permissions-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「允许沙箱命令访问网络。」听播报 | 作为开关描述 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-12→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Label@permSwitchRowDisabled） |
+| R-PRM-094 | S-permissions-12 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-12→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-095 | S-permissions-12 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-12→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-096 | S-permissions-12 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈209 处的「允许沙箱命令访问网络。」 | 对比≥4.5:1 | — | 屏上「允许沙箱命令访问网络。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-12→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Theme@settingsActionButton） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-097 | S-permissions-13 | 状态 | 首次打开设置›权限、不做任何改动时滚动到 y≈200 处的「允许网络访问（开关）」 | 开关状态可辨 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-PRM-098 | S-permissions-13 | 交互 | 点开「允许网络访问（开关）」 | 沙箱命令可访问网络 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-099 | S-permissions-13 | 状态 | 打开设置›权限，滚动到 y≈200 处的「允许网络访问（开关）」 | 禁用 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-100 | S-permissions-13 | 样式 | 打开设置›权限，滚动到 y≈200 处的「允许网络访问（开关）」 | 28×16，x=955 | — | 屏上「允许网络访问（开关）」：宽×高 = 28×16、x = 955 | 未实现（找不到元素渲染点） |
-| R-PRM-101 | S-permissions-13 | 关联 | 在「允许网络访问（开关）」所在行内，同时看它与沙箱开关的相对位置 | 依赖关系明确（关则不生效） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-PRM-102 | S-permissions-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「允许网络访问（开关）」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-103 | S-permissions-13 | 记忆 | 保存后重启 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-104 | S-permissions-13 | 异常 | 断开网络后改「允许网络访问（开关）」，等保存返回失败 | 回滚 | — | 屏上「允许网络访问（开关）」：取值与改动前相比差 = 0（回滚到原值） | 未实现（找不到元素渲染点） |
+| R-PRM-097 | S-permissions-13 | 状态 | 首次打开设置›权限、不做任何改动时滚动到 y≈200 处的「允许网络访问（开关）」 | 开关状态可辨 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Disabled@permSwitchRow） |
+| R-PRM-098 | S-permissions-13 | 交互 | 点开「允许网络访问（开关）」 | 沙箱命令可访问网络 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Pressed@settingsActionButton） |
+| R-PRM-099 | S-permissions-13 | 状态 | 打开设置›权限，滚动到 y≈200 处的「允许网络访问（开关）」 | 禁用 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Disabled@permSwitchRow） |
+| R-PRM-100 | S-permissions-13 | 样式 | 打开设置›权限，滚动到 y≈200 处的「允许网络访问（开关）」 | 28×16，x=955 | — | 屏上「允许网络访问（开关）」：宽×高 = 28×16、x = 955 | 已实现（映射 = S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Width@permSwitchRow） |
+| R-PRM-101 | S-permissions-13 | 关联 | 在「允许网络访问（开关）」所在行内，同时看它与沙箱开关的相对位置 | 依赖关系明确（关则不生效） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Switch） |
+| R-PRM-102 | S-permissions-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「允许网络访问（开关）」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Label@permSwitchRow） |
+| R-PRM-103 | S-permissions-13 | 记忆 | 保存后重启 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls |
+| R-PRM-104 | S-permissions-13 | 异常 | 断开网络后改「允许网络访问（开关）」，等保存返回失败 | 回滚 | — | 屏上「允许网络访问（开关）」：取值与改动前相比差 = 0（回滚到原值） | 已实现（映射 = S-permissions-13→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Err） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-105 | S-permissions-14 | 内容 | 隔离区底部 | 按钮「保存隔离设置」+ 保存图标 | — | 屏上「保存隔离设置」的文案逐字为「保存隔离设置」（6 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySaveIso「保存隔离设置」 |
-| R-PRM-106 | S-permissions-14 | 状态 | 无改动 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-107 | S-permissions-14 | 交互 | 用鼠标左键单击「保存隔离设置」 | 保存两开关，出现 executionFeedback | — | 屏上「保存隔离设置」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
-| R-PRM-108 | S-permissions-14 | 样式 | 打开设置›权限，滚动到 y≈237 处的「保存隔离设置」 | 116×28，主色或描边 | — | 屏上「保存隔离设置」：宽×高 = 116×28 | 未实现（找不到元素渲染点） |
-| R-PRM-109 | S-permissions-14 | 状态 | 打开设置›权限，滚动到 y≈237 处的「保存隔离设置」 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-110 | S-permissions-14 | 异常 | 让「保存隔离设置」所属请求返回 500 后滚动到 y≈237 处的「保存隔离设置」 | executionError 显示 | — | 屏上「保存隔离设置」：错误文案逐字与接口返回相同（字符数一致） | 未实现（找不到元素渲染点） |
-| R-PRM-111 | S-permissions-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保存隔离设置」听播报 | 播报名与忙碌 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-112 | S-permissions-14 | 键盘 | 把 Tab 焦点移到「保存隔离设置」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-PRM-106 | S-permissions-14 | 状态 | 无改动 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-14→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Disabled） |
+| R-PRM-107 | S-permissions-14 | 交互 | 用鼠标左键单击「保存隔离设置」 | 保存两开关，出现 executionFeedback | — | 屏上「保存隔离设置」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-permissions-14→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Pressed@settingsActionButton） |
+| R-PRM-108 | S-permissions-14 | 样式 | 打开设置›权限，滚动到 y≈237 处的「保存隔离设置」 | 116×28，主色或描边 | — | 屏上「保存隔离设置」：宽×高 = 116×28 | 已实现（映射 = S-permissions-14→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Width@permSwitchRowDisabled） |
+| R-PRM-109 | S-permissions-14 | 状态 | 打开设置›权限，滚动到 y≈237 处的「保存隔离设置」 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-14→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Disabled） |
+| R-PRM-110 | S-permissions-14 | 异常 | 让「保存隔离设置」所属请求返回 500 后滚动到 y≈237 处的「保存隔离设置」 | executionError 显示 | — | 屏上「保存隔离设置」：错误文案逐字与接口返回相同（字符数一致） | 未实现（映射到位但没有该维度的标记）：S-permissions-14→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
+| R-PRM-111 | S-permissions-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保存隔离设置」听播报 | 播报名与忙碌 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-14→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled；标记 = Label@permSwitchRowDisabled） |
+| R-PRM-112 | S-permissions-14 | 键盘 | 把 Tab 焦点移到「保存隔离设置」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-permissions-14→internal/ui/settings_permissions_screen.go:permIsolationControlsDisabled |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-113 | S-permissions-15 | 状态 | 保存成功 | 显示成功反馈（如「已保存」） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySavedIso「已保存」 |
 | R-PRM-114 | S-permissions-15 | 状态 | 未保存过 | 不渲染 | — | 屏上「executionFeedback」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-115 | S-permissions-15 | 样式 | 打开设置›权限，看「executionFeedback」 | 12 字号成功或次级前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-116 | S-permissions-15 | 动画 | 出现后 | 3000ms 后淡出 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-PRM-117 | S-permissions-15 | 关联 | 在「executionFeedback」所在行内，同时看它与按钮的相对位置 | 位于按钮下方 8 | — | 屏上「executionFeedback」：相对位置 = 按钮下方 | 未实现（找不到元素渲染点） |
-| R-PRM-118 | S-permissions-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「executionFeedback」听播报 | 状态播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-119 | S-permissions-15 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「executionFeedback」 | 单行 | — | 屏上「executionFeedback」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-120 | S-permissions-15 | 深色 | 在设置›外观把主题切成深色，再回权限，看「executionFeedback」 | 对比≥4.5:1 | — | 屏上「executionFeedback」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-115 | S-permissions-15 | 样式 | 打开设置›权限，看「executionFeedback」 | 12 字号成功或次级前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Width@permSwitchRow） |
+| R-PRM-116 | S-permissions-15 | 动画 | 出现后 | 3000ms 后淡出 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls |
+| R-PRM-117 | S-permissions-15 | 关联 | 在「executionFeedback」所在行内，同时看它与按钮的相对位置 | 位于按钮下方 8 | — | 屏上「executionFeedback」：相对位置 = 按钮下方 | 已实现（映射 = S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Switch） |
+| R-PRM-118 | S-permissions-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「executionFeedback」听播报 | 状态播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Label@permSwitchRow） |
+| R-PRM-119 | S-permissions-15 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「executionFeedback」 | 单行 | — | 屏上「executionFeedback」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls |
+| R-PRM-120 | S-permissions-15 | 深色 | 在设置›外观把主题切成深色，再回权限，看「executionFeedback」 | 对比≥4.5:1 | — | 屏上「executionFeedback」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -9200,156 +9200,156 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-129 | S-permissions-17 | 内容 | 隔离区末尾 | 说明「新命令使用这些设置；正在运行的进程保持启动时的隔离边界。」 | — | 屏上「新命令使用这些设置；正在运行的进程保…」的文案逐字为「新命令使用这些设置；正在运行的进程保持启动时的隔离边界。」（28 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyScope「新命令使用这些设置；正在运行的进程保持启动时的隔离边界。」 |
-| R-PRM-130 | S-permissions-17 | 样式 | 打开设置›权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 12 字号更弱前景，通栏 711 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 通栏宽 = 内容列可用宽（≤ 784，DT-05），单行以「…」收尾（TX-LINE-1 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-131 | S-permissions-17 | 状态 | 打开设置›权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 文案不变 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 文案逐字不变、字符数一致（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-132 | S-permissions-17 | 交互 | 在「新命令使用这些设置；正在运行的进程保…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-PRM-133 | S-permissions-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「新命令使用这些设置；正在运行的进程保…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-134 | S-permissions-17 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-135 | S-permissions-17 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-136 | S-permissions-17 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 对比≥4.5:1 | — | 屏上「新命令使用这些设置；正在运行的进程保…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-130 | S-permissions-17 | 样式 | 打开设置›权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 12 字号更弱前景，通栏 711 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 通栏宽 = 内容列可用宽（≤ 784，DT-05），单行以「…」收尾（TX-LINE-1 / TX-ELLIPSIS） | 已实现（映射 = S-permissions-17→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Width@permSwitchRow） |
+| R-PRM-131 | S-permissions-17 | 状态 | 打开设置›权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 文案不变 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 文案逐字不变、字符数一致（TX-EXACT） | 已实现（映射 = S-permissions-17→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Disabled@permSwitchRow） |
+| R-PRM-132 | S-permissions-17 | 交互 | 在「新命令使用这些设置；正在运行的进程保…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 已实现（映射 = S-permissions-17→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Pressed@settingsActionButton） |
+| R-PRM-133 | S-permissions-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「新命令使用这些设置；正在运行的进程保…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-17→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Label@permSwitchRow） |
+| R-PRM-134 | S-permissions-17 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-17→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Err） |
+| R-PRM-135 | S-permissions-17 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-17→internal/ui/settings_permissions_screen.go:permIsolationControls |
+| R-PRM-136 | S-permissions-17 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈279 处的「新命令使用这些设置；正在运行的进程保…」 | 对比≥4.5:1 | — | 屏上「新命令使用这些设置；正在运行的进程保…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-17→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-137 | S-permissions-18 | 内容 | 打开设置›权限，滚动到 y≈358 处的「权限」 | 分组标题「权限」 | — | 屏上「权限」的文案逐字为「权限」（2 字） | 已实现（逐字）：internal/app/permission.go:ErrPermissionConflict「权限」 |
-| R-PRM-138 | S-permissions-18 | 样式 | 打开设置›权限，滚动到 y≈358 处的「权限」 | 16 字号粗体，y=358 | — | 屏上「权限」：y = 358 | 未实现（找不到元素渲染点） |
-| R-PRM-139 | S-permissions-18 | 关联 | 在「权限」所在行内，同时看它与上一区的相对位置 | 上方 1px 分隔线 | — | 屏上「权限」：分隔线宽 = 1px | 未实现（找不到元素渲染点） |
-| R-PRM-140 | S-permissions-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限」听播报 | 三级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-141 | S-permissions-18 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈358 处的「权限」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-142 | S-permissions-18 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈358 处的「权限」 | 单行 | — | 屏上「权限」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-143 | S-permissions-18 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈358 处的「权限」 | 对比≥4.5:1 | — | 屏上「权限」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
-| R-PRM-144 | S-permissions-18 | 状态 | 在网络限速下刷新，请求还没返回时滚动到 y≈358 处的「权限」 | 仍显示 | — | 屏上「权限」：出现次数 = 1 | 未实现（找不到元素渲染点） |
+| R-PRM-138 | S-permissions-18 | 样式 | 打开设置›权限，滚动到 y≈358 处的「权限」 | 16 字号粗体，y=358 | — | 屏上「权限」：y = 358 | 已实现（映射 = S-permissions-18→internal/ui/settings_permissions_screen.go:permExecSection；标记 = TextColor@permGroupTitle） |
+| R-PRM-139 | S-permissions-18 | 关联 | 在「权限」所在行内，同时看它与上一区的相对位置 | 上方 1px 分隔线 | — | 屏上「权限」：分隔线宽 = 1px | 已实现（映射 = S-permissions-18→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Section） |
+| R-PRM-140 | S-permissions-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限」听播报 | 三级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-18→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Label） |
+| R-PRM-141 | S-permissions-18 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈358 处的「权限」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-18→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Err@permRulesActions） |
+| R-PRM-142 | S-permissions-18 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈358 处的「权限」 | 单行 | — | 屏上「权限」：行数 = 1 | 已实现（映射 = S-permissions-18→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Narrow@permRuleTable） |
+| R-PRM-143 | S-permissions-18 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈358 处的「权限」 | 对比≥4.5:1 | — | 屏上「权限」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-18→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Theme@permGroupTitle） |
+| R-PRM-144 | S-permissions-18 | 状态 | 在网络限速下刷新，请求还没返回时滚动到 y≈358 处的「权限」 | 仍显示 | — | 屏上「权限」：出现次数 = 1 | 已实现（映射 = S-permissions-18→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Disabled@settingsActionButton） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-145 | S-permissions-19 | 内容 | 打开设置›权限，滚动到 y≈379 处的「Exec command 权限」 | 标签「Exec command 权限」 | — | 屏上「Exec command 权限」的文案逐字为「Exec command 权限」（15 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyExecLabel「Exec command 权限」 |
-| R-PRM-146 | S-permissions-19 | 样式 | 打开设置›权限，滚动到 y≈379 处的「Exec command 权限」 | 13 字号，y=379 | — | 屏上「Exec command 权限」：y = 379 | 未实现（找不到元素渲染点） |
-| R-PRM-147 | S-permissions-19 | 关联 | 在「Exec command 权限」所在行内，同时看它与说明的相对位置 | 下 4 | — | 间距 4 | 未实现（找不到元素渲染点） |
-| R-PRM-148 | S-permissions-19 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Exec command 权限」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-149 | S-permissions-19 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈379 处的「Exec command 权限」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-150 | S-permissions-19 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈379 处的「Exec command 权限」 | 单行 | — | 屏上「Exec command 权限」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-151 | S-permissions-19 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈379 处的「Exec command 权限」 | 对比≥4.5:1 | — | 屏上「Exec command 权限」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-146 | S-permissions-19 | 样式 | 打开设置›权限，滚动到 y≈379 处的「Exec command 权限」 | 13 字号，y=379 | — | 屏上「Exec command 权限」：y = 379 | 已实现（映射 = S-permissions-19→internal/ui/settings_permissions_screen.go:permExecSection；标记 = TextColor@permGroupTitle） |
+| R-PRM-147 | S-permissions-19 | 关联 | 在「Exec command 权限」所在行内，同时看它与说明的相对位置 | 下 4 | — | 间距 4 | 已实现（映射 = S-permissions-19→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Section） |
+| R-PRM-148 | S-permissions-19 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Exec command 权限」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-19→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Label） |
+| R-PRM-149 | S-permissions-19 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈379 处的「Exec command 权限」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-19→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Err@permRulesActions） |
+| R-PRM-150 | S-permissions-19 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈379 处的「Exec command 权限」 | 单行 | — | 屏上「Exec command 权限」：行数 = 1 | 已实现（映射 = S-permissions-19→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Narrow@permRuleTable） |
+| R-PRM-151 | S-permissions-19 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈379 处的「Exec command 权限」 | 对比≥4.5:1 | — | 屏上「Exec command 权限」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-19→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Theme@permGroupTitle） |
 | R-PRM-152 | S-permissions-19 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈379 处的「Exec command 权限」 | 「Exec command」不翻译 | — | 屏上「Exec command 权限」的文案逐字为「Exec command」（12 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyExecLabel「Exec command」 |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-153 | S-permissions-20 | 内容 | 打开设置›权限，滚动到 y≈400 处的「App Server 命令规则作用于…」 | 说明「App Server 命令规则作用于 exec 和 execute 调用。」 | — | 屏上「App Server 命令规则作用于…」的文案逐字为「App Server 命令规则作用于 exec 和 execute 调用。」（37 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyExecDesc「App Server 命令规则作用于 exec 和 execute 调用。」 |
-| R-PRM-154 | S-permissions-20 | 样式 | 打开设置›权限，滚动到 y≈400 处的「App Server 命令规则作用于…」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-155 | S-permissions-20 | 关联 | 在「App Server 命令规则作用于…」所在行内，同时看它与规则表的相对位置 | 下 12 | — | 间距 12 | 未实现（找不到元素渲染点） |
-| R-PRM-156 | S-permissions-20 | 交互 | 在「App Server 命令规则作用于…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-PRM-157 | S-permissions-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「App Server 命令规则作用于…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-158 | S-permissions-20 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈400 处的「App Server 命令规则作用于…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-159 | S-permissions-20 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈400 处的「App Server 命令规则作用于…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-160 | S-permissions-20 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈400 处的「App Server 命令规则作用于…」 | 对比≥4.5:1 | — | 屏上「App Server 命令规则作用于…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-154 | S-permissions-20 | 样式 | 打开设置›权限，滚动到 y≈400 处的「App Server 命令规则作用于…」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-20→internal/ui/settings_permissions_screen.go:permExecSection；标记 = TextColor@permGroupTitle） |
+| R-PRM-155 | S-permissions-20 | 关联 | 在「App Server 命令规则作用于…」所在行内，同时看它与规则表的相对位置 | 下 12 | — | 间距 12 | 已实现（映射 = S-permissions-20→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Section） |
+| R-PRM-156 | S-permissions-20 | 交互 | 在「App Server 命令规则作用于…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 已实现（映射 = S-permissions-20→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Pressed@settingsActionButton） |
+| R-PRM-157 | S-permissions-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「App Server 命令规则作用于…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-20→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Label） |
+| R-PRM-158 | S-permissions-20 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈400 处的「App Server 命令规则作用于…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-20→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Err@permRulesActions） |
+| R-PRM-159 | S-permissions-20 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈400 处的「App Server 命令规则作用于…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（映射 = S-permissions-20→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Narrow@permRuleTable） |
+| R-PRM-160 | S-permissions-20 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈400 处的「App Server 命令规则作用于…」 | 对比≥4.5:1 | — | 屏上「App Server 命令规则作用于…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-20→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Theme@permGroupTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-161 | S-permissions-21 | 内容 | 打开设置›权限，滚动到 y≈428 处的「规则」 | 小标题「规则」 | — | 屏上「规则」的文案逐字为「规则」（2 字） | 已实现（逐字）：internal/app/rules.go:ruleSource.ReadRules「规则」 |
-| R-PRM-162 | S-permissions-21 | 样式 | 打开设置›权限，滚动到 y≈428 处的「规则」 | 13 字号粗体，y=428 | — | 屏上「规则」：y = 428 | 未实现（找不到元素渲染点） |
-| R-PRM-163 | S-permissions-21 | 关联 | 在「规则」所在行内，同时看它与说明的相对位置 | 下 2 | — | 间距 2 | 未实现（找不到元素渲染点） |
-| R-PRM-164 | S-permissions-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「规则」听播报 | 四级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-165 | S-permissions-21 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈428 处的「规则」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-166 | S-permissions-21 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈428 处的「规则」 | 单行 | — | 屏上「规则」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-167 | S-permissions-21 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈428 处的「规则」 | 对比≥4.5:1 | — | 屏上「规则」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
-| R-PRM-168 | S-permissions-21 | 状态 | 无规则 | 标题仍显示 | — | 屏上「规则」：出现次数 = 1 | 未实现（找不到元素渲染点） |
+| R-PRM-162 | S-permissions-21 | 样式 | 打开设置›权限，滚动到 y≈428 处的「规则」 | 13 字号粗体，y=428 | — | 屏上「规则」：y = 428 | 已实现（映射 = S-permissions-21→internal/ui/settings_permissions_screen.go:permExecSection；标记 = TextColor@permGroupTitle） |
+| R-PRM-163 | S-permissions-21 | 关联 | 在「规则」所在行内，同时看它与说明的相对位置 | 下 2 | — | 间距 2 | 已实现（映射 = S-permissions-21→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Section） |
+| R-PRM-164 | S-permissions-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「规则」听播报 | 四级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-21→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Label） |
+| R-PRM-165 | S-permissions-21 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈428 处的「规则」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-21→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Err@permRulesActions） |
+| R-PRM-166 | S-permissions-21 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈428 处的「规则」 | 单行 | — | 屏上「规则」：行数 = 1 | 已实现（映射 = S-permissions-21→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Narrow@permRuleTable） |
+| R-PRM-167 | S-permissions-21 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈428 处的「规则」 | 对比≥4.5:1 | — | 屏上「规则」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-21→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Theme@permGroupTitle） |
+| R-PRM-168 | S-permissions-21 | 状态 | 无规则 | 标题仍显示 | — | 屏上「规则」：出现次数 = 1 | 已实现（映射 = S-permissions-21→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Disabled@settingsActionButton） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-169 | S-permissions-22 | 内容 | 打开设置›权限，滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 说明「deny 优先于 allow。exact 匹配完整命令词；prefix 匹配开头的词。」 | — | 屏上「deny 优先于 allow。exa…」的文案逐字为「deny 优先于 allow。exact 匹配完整命令词；prefix 匹配开头…」（43 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyRulesDesc「deny 优先于 allow。exact 匹配完整命令词；prefix 匹配开头的词。」 |
-| R-PRM-170 | S-permissions-22 | 样式 | 打开设置›权限，滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 12 字号更弱前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-171 | S-permissions-22 | 关联 | 在「deny 优先于 allow。exa…」所在行内，同时看它与表头的相对位置 | 下 6 | — | 间距 6 | 未实现（找不到元素渲染点） |
-| R-PRM-172 | S-permissions-22 | 交互 | 在「deny 优先于 allow。exa…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-PRM-173 | S-permissions-22 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「deny 优先于 allow。exa…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-174 | S-permissions-22 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-175 | S-permissions-22 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-176 | S-permissions-22 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 对比≥4.5:1 | — | 屏上「deny 优先于 allow。exa…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-170 | S-permissions-22 | 样式 | 打开设置›权限，滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 12 字号更弱前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-22→internal/ui/settings_permissions_screen.go:permExecSection；标记 = TextColor@permGroupTitle） |
+| R-PRM-171 | S-permissions-22 | 关联 | 在「deny 优先于 allow。exa…」所在行内，同时看它与表头的相对位置 | 下 6 | — | 间距 6 | 已实现（映射 = S-permissions-22→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Section） |
+| R-PRM-172 | S-permissions-22 | 交互 | 在「deny 优先于 allow。exa…」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 已实现（映射 = S-permissions-22→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Pressed@settingsActionButton） |
+| R-PRM-173 | S-permissions-22 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「deny 优先于 allow。exa…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-22→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Label） |
+| R-PRM-174 | S-permissions-22 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-22→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Err@permRulesActions） |
+| R-PRM-175 | S-permissions-22 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（映射 = S-permissions-22→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Narrow@permRuleTable） |
+| R-PRM-176 | S-permissions-22 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈452 处的「deny 优先于 allow。exa…」 | 对比≥4.5:1 | — | 屏上「deny 优先于 allow。exa…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-22→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Theme@permGroupTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-177 | S-permissions-23 | 内容 | 打开设置›权限，看「命令 / 匹配 / 决策 / 规则」 | 表头四列：命令 / 匹配 / 决策 / 规则 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-178 | S-permissions-23 | 样式 | 打开设置›权限，看「命令 / 匹配 / 决策 / 规则」 | 高 28、11 字号次级、列宽 217/… | — | 屏上「命令 / 匹配 / 决策 / 规则」：高度 = 28、宽度 = 217 | 未实现（找不到元素渲染点） |
-| R-PRM-179 | S-permissions-23 | 内容 | 「规则」列 | 仅读屏可见（sr-only） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-180 | S-permissions-23 | 状态 | 无规则 | 表头仍显示 | — | 屏上「命令 / 匹配 / 决策 / 规则」：出现次数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-181 | S-permissions-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「命令 / 匹配 / 决策 / 规则」听播报 | 作为表格表头播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-182 | S-permissions-23 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，看「命令 / 匹配 / 决策 / 规则」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-183 | S-permissions-23 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「命令 / 匹配 / 决策 / 规则」 | 列宽压缩，不横向滚动 | — | 判据 = 屏上「命令 / 匹配 / 决策 / 规则」：横向滚动条 = 0 | 未实现（找不到元素渲染点） |
-| R-PRM-184 | S-permissions-23 | 深色 | 在设置›外观把主题切成深色，再回权限，看「命令 / 匹配 / 决策 / 规则」 | 对比≥4.5:1 | — | 屏上「命令 / 匹配 / 决策 / 规则」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-177 | S-permissions-23 | 内容 | 打开设置›权限，看「命令 / 匹配 / 决策 / 规则」 | 表头四列：命令 / 匹配 / 决策 / 规则 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader；标记 = 文案「命令规则表头」） |
+| R-PRM-178 | S-permissions-23 | 样式 | 打开设置›权限，看「命令 / 匹配 / 决策 / 规则」 | 高 28、11 字号次级、列宽 217/… | — | 屏上「命令 / 匹配 / 决策 / 规则」：高度 = 28、宽度 = 217 | 已实现（映射 = S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader；标记 = Height） |
+| R-PRM-179 | S-permissions-23 | 内容 | 「规则」列 | 仅读屏可见（sr-only） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader；标记 = 文案「命令规则表头」） |
+| R-PRM-180 | S-permissions-23 | 状态 | 无规则 | 表头仍显示 | — | 屏上「命令 / 匹配 / 决策 / 规则」：出现次数 = 1 | 已实现（映射 = S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader；标记 = Hidden@permHeaderCell） |
+| R-PRM-181 | S-permissions-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「命令 / 匹配 / 决策 / 规则」听播报 | 作为表格表头播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader；标记 = Role） |
+| R-PRM-182 | S-permissions-23 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进权限，看「命令 / 匹配 / 决策 / 规则」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader |
+| R-PRM-183 | S-permissions-23 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「命令 / 匹配 / 决策 / 规则」 | 列宽压缩，不横向滚动 | — | 判据 = 屏上「命令 / 匹配 / 决策 / 规则」：横向滚动条 = 0 | 未实现（映射到位但没有该维度的标记）：S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader |
+| R-PRM-184 | S-permissions-23 | 深色 | 在设置›外观把主题切成深色，再回权限，看「命令 / 匹配 / 决策 / 规则」 | 对比≥4.5:1 | — | 屏上「命令 / 匹配 / 决策 / 规则」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-23→internal/ui/settings_permissions_screen.go:permTableHeader；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-185 | S-permissions-24 | 内容 | 有规则 | 每行：命令输入 + 匹配下拉 + 决策下拉 + 移除按钮 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
-| R-PRM-186 | S-permissions-24 | 状态 | 打开设置›权限，看「规则行」 | 命令为空，匹配默认 exact，决策默认 allow | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-187 | S-permissions-24 | 交互 | 改匹配/决策 | 行内即时更新，未保存前不生效 | — | 屏上「规则行」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-PRM-188 | S-permissions-24 | 交互 | 点移除 | 删除该行 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-189 | S-permissions-24 | 样式 | 打开设置›权限，看「规则行」 | 行高 36，控件高 28 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-190 | S-permissions-24 | 异常 | 打开设置›权限，看「规则行」 | 行内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-191 | S-permissions-24 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「规则行」听播报 | 逐控件播报标签 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-192 | S-permissions-24 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「规则行」 | 控件换行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
+| R-PRM-185 | S-permissions-24 | 内容 | 有规则 | 每行：命令输入 + 匹配下拉 + 决策下拉 + 移除按钮 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permMatcherInput；标记 = 文案「命令匹配式」） |
+| R-PRM-186 | S-permissions-24 | 状态 | 打开设置›权限，看「规则行」 | 命令为空，匹配默认 exact，决策默认 allow | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permRemoveButton；标记 = Disabled@settingsActionButton） |
+| R-PRM-187 | S-permissions-24 | 交互 | 改匹配/决策 | 行内即时更新，未保存前不生效 | — | 屏上「规则行」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permRemoveButton；标记 = Pressed@settingsActionButton） |
+| R-PRM-188 | S-permissions-24 | 交互 | 点移除 | 删除该行 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permRemoveButton；标记 = Pressed@settingsActionButton） |
+| R-PRM-189 | S-permissions-24 | 样式 | 打开设置›权限，看「规则行」 | 行高 36，控件高 28 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permMatcherInput；标记 = Font） |
+| R-PRM-190 | S-permissions-24 | 异常 | 打开设置›权限，看「规则行」 | 行内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = err） |
+| R-PRM-191 | S-permissions-24 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「规则行」听播报 | 逐控件播报标签 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permMatcherInput；标记 = Label@screenInput） |
+| R-PRM-192 | S-permissions-24 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「规则行」 | 控件换行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（映射 = S-permissions-24→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = Narrow） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-193 | S-permissions-25 | 状态 | 该行有错 | 行下显示 rule.error，role=alert | — | 该元素 role = alert，文本逐字为该行内容（字符数一致） | 未实现（找不到元素渲染点） |
+| R-PRM-193 | S-permissions-25 | 状态 | 该行有错 | 行下显示 rule.error，role=alert | — | 该元素 role = alert，文本逐字为该行内容（字符数一致） | 已实现（映射 = S-permissions-25→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = Hidden@screenRule） |
 | R-PRM-194 | S-permissions-25 | 状态 | 请求无错误返回时，打开设置›权限，看「rule.error」 | 不渲染 | — | 屏上「rule.error」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-195 | S-permissions-25 | 内容 | 打开设置›权限，看「rule.error」 | 错误原因（如命令为空、重复） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-196 | S-permissions-25 | 样式 | 打开设置›权限，看「rule.error」 | 11 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-197 | S-permissions-25 | 关联 | 在「rule.error」所在行内，同时看它与保存的相对位置 | 有错时保存禁用 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-198 | S-permissions-25 | 无障碍 | 打开设置›权限，看「rule.error」 | 警示播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-199 | S-permissions-25 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「rule.error」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-200 | S-permissions-25 | 深色 | 在设置›外观把主题切成深色，再回权限，看「rule.error」 | 对比≥4.5:1 | — | 屏上「rule.error」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-195 | S-permissions-25 | 内容 | 打开设置›权限，看「rule.error」 | 错误原因（如命令为空、重复） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-25→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = 文案「分隔线」@screenRule） |
+| R-PRM-196 | S-permissions-25 | 样式 | 打开设置›权限，看「rule.error」 | 11 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-25→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = Padding） |
+| R-PRM-197 | S-permissions-25 | 关联 | 在「rule.error」所在行内，同时看它与保存的相对位置 | 有错时保存禁用 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-25→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = Screen） |
+| R-PRM-198 | S-permissions-25 | 无障碍 | 打开设置›权限，看「rule.error」 | 警示播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-25→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = Label@screenRule） |
+| R-PRM-199 | S-permissions-25 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「rule.error」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（映射 = S-permissions-25→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = Narrow） |
+| R-PRM-200 | S-permissions-25 | 深色 | 在设置›外观把主题切成深色，再回权限，看「rule.error」 | 对比≥4.5:1 | — | 屏上「rule.error」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-25→internal/ui/settings_permissions_screen.go:permRuleRow；标记 = Theme@screenRule） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-201 | S-permissions-26 | 内容 | 规则表下 | 按钮「添加规则」 | — | 屏上「添加规则」的文案逐字为「添加规则」（4 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyAddRule「添加规则」 |
-| R-PRM-202 | S-permissions-26 | 交互 | 用鼠标左键单击「添加规则」 | 追加一行空规则并聚焦命令输入 | — | 行+1 | 未实现（找不到元素渲染点） |
-| R-PRM-203 | S-permissions-26 | 状态 | 权限不可用 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-204 | S-permissions-26 | 样式 | 打开设置›权限，滚动到 y≈510 处的「添加规则」 | 72×28 描边，y=510 | — | 屏上「添加规则」：宽×高 = 72×28、y = 510 | 未实现（找不到元素渲染点） |
-| R-PRM-205 | S-permissions-26 | 异常 | 已达上限 | 禁用并提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-206 | S-permissions-26 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「添加规则」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-207 | S-permissions-26 | 键盘 | 把 Tab 焦点移到「添加规则」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-PRM-208 | S-permissions-26 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈510 处的「添加规则」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-PRM-202 | S-permissions-26 | 交互 | 用鼠标左键单击「添加规则」 | 追加一行空规则并聚焦命令输入 | — | 行+1 | 已实现（映射 = S-permissions-26→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Pressed@settingsActionButton） |
+| R-PRM-203 | S-permissions-26 | 状态 | 权限不可用 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-26→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Disabled@settingsActionButton） |
+| R-PRM-204 | S-permissions-26 | 样式 | 打开设置›权限，滚动到 y≈510 处的「添加规则」 | 72×28 描边，y=510 | — | 屏上「添加规则」：宽×高 = 72×28、y = 510 | 已实现（映射 = S-permissions-26→internal/ui/settings_permissions_screen.go:permExecSection；标记 = TextColor@permGroupTitle） |
+| R-PRM-205 | S-permissions-26 | 异常 | 已达上限 | 禁用并提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-26→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Err@permRulesActions） |
+| R-PRM-206 | S-permissions-26 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「添加规则」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-26→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Label） |
+| R-PRM-207 | S-permissions-26 | 键盘 | 把 Tab 焦点移到「添加规则」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = S-permissions-26→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Tab） |
+| R-PRM-208 | S-permissions-26 | 深色 | 在设置›外观把主题切成深色，再回权限，滚动到 y≈510 处的「添加规则」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-permissions-26→internal/ui/settings_permissions_screen.go:permExecSection；标记 = Theme@permGroupTitle） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-209 | S-permissions-27 | 内容 | 规则区底部 | 按钮「保存权限」+ 图标 | — | 屏上「保存权限」的文案逐字为「保存权限」（4 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySaveRules「保存权限」 |
-| R-PRM-210 | S-permissions-27 | 状态 | 无改动 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
-| R-PRM-211 | S-permissions-27 | 交互 | 用鼠标左键单击「保存权限」 | 保存规则，出现反馈 | — | 屏上「保存权限」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
-| R-PRM-212 | S-permissions-27 | 样式 | 打开设置›权限，滚动到 y≈552 处的「保存权限」 | 86×28，主色，y=552 | — | 屏上「保存权限」：宽×高 = 86×28、y = 552 | 未实现（找不到元素渲染点） |
-| R-PRM-213 | S-permissions-27 | 异常 | 让「保存权限」所属请求返回 500 后滚动到 y≈552 处的「保存权限」 | permissionErrorMessage | — | 屏上「保存权限」：错误文案逐字与接口返回相同（字符数一致） | 未实现（找不到元素渲染点） |
-| R-PRM-214 | S-permissions-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保存权限」听播报 | 播报名与忙碌 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-215 | S-permissions-27 | 键盘 | 把 Tab 焦点移到「保存权限」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-PRM-216 | S-permissions-27 | 状态 | 有行内错误 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（找不到元素渲染点） |
+| R-PRM-210 | S-permissions-27 | 状态 | 无改动 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-27→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Disabled@settingsActionButton） |
+| R-PRM-211 | S-permissions-27 | 交互 | 用鼠标左键单击「保存权限」 | 保存规则，出现反馈 | — | 屏上「保存权限」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-permissions-27→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Pressed@settingsActionButton） |
+| R-PRM-212 | S-permissions-27 | 样式 | 打开设置›权限，滚动到 y≈552 处的「保存权限」 | 86×28，主色，y=552 | — | 屏上「保存权限」：宽×高 = 86×28、y = 552 | 已实现（映射 = S-permissions-27→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Height@settingsActionButton） |
+| R-PRM-213 | S-permissions-27 | 异常 | 让「保存权限」所属请求返回 500 后滚动到 y≈552 处的「保存权限」 | permissionErrorMessage | — | 屏上「保存权限」：错误文案逐字与接口返回相同（字符数一致） | 已实现（映射 = S-permissions-27→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Err） |
+| R-PRM-214 | S-permissions-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「保存权限」听播报 | 播报名与忙碌 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-27→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Label@settingsActionButton） |
+| R-PRM-215 | S-permissions-27 | 键盘 | 把 Tab 焦点移到「保存权限」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-permissions-27→internal/ui/settings_permissions_screen.go:permRulesActions |
+| R-PRM-216 | S-permissions-27 | 状态 | 有行内错误 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-permissions-27→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Disabled@settingsActionButton） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-217 | S-permissions-28 | 状态 | 权限保存成功 | 显示成功反馈 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-PRM-217 | S-permissions-28 | 状态 | 权限保存成功 | 显示成功反馈 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-28→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Disabled@settingsActionButton） |
 | R-PRM-218 | S-permissions-28 | 状态 | 打开设置›权限，看「permissionFeedback…」 | 不渲染 | — | 屏上「permissionFeedback…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-219 | S-permissions-28 | 样式 | 打开设置›权限，看「permissionFeedback…」 | 12 字号成功色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-220 | S-permissions-28 | 动画 | 出现后 | 3000ms 后淡出 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-PRM-221 | S-permissions-28 | 关联 | 在「permissionFeedback…」所在行内，同时看它与按钮的相对位置 | 按钮下方 8 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-PRM-222 | S-permissions-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「permissionFeedback…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-223 | S-permissions-28 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「permissionFeedback…」 | 单行 | — | 屏上「permissionFeedback…」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PRM-224 | S-permissions-28 | 深色 | 在设置›外观把主题切成深色，再回权限，看「permissionFeedback…」 | 对比≥4.5:1 | — | 屏上「permissionFeedback…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-219 | S-permissions-28 | 样式 | 打开设置›权限，看「permissionFeedback…」 | 12 字号成功色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-28→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Height@settingsActionButton） |
+| R-PRM-220 | S-permissions-28 | 动画 | 出现后 | 3000ms 后淡出 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-permissions-28→internal/ui/settings_permissions_screen.go:permRulesActions |
+| R-PRM-221 | S-permissions-28 | 关联 | 在「permissionFeedback…」所在行内，同时看它与按钮的相对位置 | 按钮下方 8 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-permissions-28→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Screen） |
+| R-PRM-222 | S-permissions-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「permissionFeedback…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-28→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Label@settingsActionButton） |
+| R-PRM-223 | S-permissions-28 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「permissionFeedback…」 | 单行 | — | 屏上「permissionFeedback…」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-permissions-28→internal/ui/settings_permissions_screen.go:permRulesActions |
+| R-PRM-224 | S-permissions-28 | 深色 | 在设置›外观把主题切成深色，再回权限，看「permissionFeedback…」 | 对比≥4.5:1 | — | 屏上「permissionFeedback…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-28→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-225 | S-permissions-29 | 状态 | 权限保存失败 | 显示错误 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-PRM-225 | S-permissions-29 | 状态 | 权限保存失败 | 显示错误 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Disabled@settingsActionButton） |
 | R-PRM-226 | S-permissions-29 | 状态 | 打开设置›权限，在无异常提示的状态下看「permissionErrorMes…」 | 不渲染 | — | 屏上「permissionErrorMes…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-227 | S-permissions-29 | 内容 | 让「permissionErrorMes…」所属请求返回 500 后看「permissionErrorMes…」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-228 | S-permissions-29 | 样式 | 打开设置›权限，看「permissionErrorMes…」 | 12 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PRM-229 | S-permissions-29 | 关联 | 在「permissionErrorMes…」所在行内，同时看它与反馈的相对位置 | 与成功反馈互斥 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-PRM-230 | S-permissions-29 | 无障碍 | 打开设置›权限，看「permissionErrorMes…」 | 警示播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-231 | S-permissions-29 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「permissionErrorMes…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PRM-232 | S-permissions-29 | 深色 | 在设置›外观把主题切成深色，再回权限，看「permissionErrorMes…」 | 对比≥4.5:1 | — | 屏上「permissionErrorMes…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PRM-227 | S-permissions-29 | 内容 | 让「permissionErrorMes…」所属请求返回 500 后看「permissionErrorMes…」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = 文案「保存权限」） |
+| R-PRM-228 | S-permissions-29 | 样式 | 打开设置›权限，看「permissionErrorMes…」 | 12 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Height@settingsActionButton） |
+| R-PRM-229 | S-permissions-29 | 关联 | 在「permissionErrorMes…」所在行内，同时看它与反馈的相对位置 | 与成功反馈互斥 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Screen） |
+| R-PRM-230 | S-permissions-29 | 无障碍 | 打开设置›权限，看「permissionErrorMes…」 | 警示播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Label@settingsActionButton） |
+| R-PRM-231 | S-permissions-29 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「permissionErrorMes…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions |
+| R-PRM-232 | S-permissions-29 | 深色 | 在设置›外观把主题切成深色，再回权限，看「permissionErrorMes…」 | 对比≥4.5:1 | — | 屏上「permissionErrorMes…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-233 | S-permissions-30 | 状态 | 有未保存改动时离开 | 弹出「命令权限尚未保存」对话框 | — | 屏上「命令权限尚未保存 · 离开前保存更改…」的文案逐字为「命令权限尚未保存」（8 字） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyLeaveTitle「命令权限尚未保存」 |
 | R-PRM-234 | S-permissions-30 | 内容 | 点开「命令权限尚未保存 · 离开前保存更改…」 | 说明 +「取消」「丢弃」「保存」 | — | 屏上「命令权限尚未保存 · 离开前保存更改…」的文案逐字为「保存」（2 字） | 已实现（逐字）：internal/account/login.go:Account.waitBrowser「取消」 |
-| R-PRM-235 | S-permissions-30 | 交互 | 点保存 | 保存后离开 | — | 屏上「命令权限尚未保存 · 离开前保存更改…」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 未实现（找不到元素渲染点） |
-| R-PRM-236 | S-permissions-30 | 交互 | 点丢弃 | 放弃改动并离开 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-237 | S-permissions-30 | 交互 | 点取消 | 留在本页 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-238 | S-permissions-30 | 样式 | 打开设置›权限，看「命令权限尚未保存 · 离开前保存更改…」 | 圆角 12、三按钮右对齐 | — | 屏上「命令权限尚未保存 · 离开前保存更改…」：圆角 = 12、水平对齐 = 右 | 未实现（找不到元素渲染点） |
-| R-PRM-239 | S-permissions-30 | 异常 | 断开网络后改「命令权限尚未保存 · 离开前保存更改…」，等保存返回失败 | 框内错误，停留 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PRM-240 | S-permissions-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「命令权限尚未保存 · 离开前保存更改…」听播报 | 播报标题与三按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-PRM-235 | S-permissions-30 | 交互 | 点保存 | 保存后离开 | — | 屏上「命令权限尚未保存 · 离开前保存更改…」：保存后重进该节取值与改动值逐字相同（差异 = 0 字） | 已实现（映射 = S-permissions-30→internal/ui/settings_permissions_screen.go:permLeaveDialog；标记 = Pressed@settingsActionButton） |
+| R-PRM-236 | S-permissions-30 | 交互 | 点丢弃 | 放弃改动并离开 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-30→internal/ui/settings_permissions_screen.go:permLeaveDialog；标记 = Pressed@settingsActionButton） |
+| R-PRM-237 | S-permissions-30 | 交互 | 点取消 | 留在本页 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-30→internal/ui/settings_permissions_screen.go:permLeaveDialog；标记 = Pressed@settingsActionButton） |
+| R-PRM-238 | S-permissions-30 | 样式 | 打开设置›权限，看「命令权限尚未保存 · 离开前保存更改…」 | 圆角 12、三按钮右对齐 | — | 屏上「命令权限尚未保存 · 离开前保存更改…」：圆角 = 12、水平对齐 = 右 | 已实现（映射 = S-permissions-30→internal/ui/settings_permissions_screen.go:permLeaveDialog；标记 = TextColor@screenDialogPanel） |
+| R-PRM-239 | S-permissions-30 | 异常 | 断开网络后改「命令权限尚未保存 · 离开前保存更改…」，等保存返回失败 | 框内错误，停留 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-permissions-30→internal/ui/settings_permissions_screen.go:permLeaveDialog |
+| R-PRM-240 | S-permissions-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「命令权限尚未保存 · 离开前保存更改…」听播报 | 播报标题与三按钮 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-30→internal/ui/settings_permissions_screen.go:permLeaveDialog；标记 = Role@modalShell） |
 
 ## 14. Git（S-git-01 … S-git-25）
 
@@ -9716,13 +9716,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-HOK-057 | S-hooks-08 | 内容 | 打开设置›Hooks，滚动到 y≈145 处的「来源」 | 小标题「来源」 | — | 屏上「来源」的文案逐字为「来源」（2 字） | 已实现（逐字）：internal/account/account.go:ErrMissingStatusReader「来源」 |
-| R-HOK-058 | S-hooks-08 | 样式 | 打开设置›Hooks，滚动到 y≈145 处的「来源」 | 12 字号次级或粗体，y=145 | — | 屏上「来源」：y = 145 | 未实现（找不到元素渲染点） |
-| R-HOK-059 | S-hooks-08 | 关联 | 在「来源」所在行内，同时看它与来源行的相对位置 | 下 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-HOK-060 | S-hooks-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「来源」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-061 | S-hooks-08 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Hooks，滚动到 y≈145 处的「来源」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-062 | S-hooks-08 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈145 处的「来源」 | 单行 | — | 屏上「来源」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-HOK-063 | S-hooks-08 | 深色 | 在设置›外观把主题切成深色，再回Hooks，滚动到 y≈145 处的「来源」 | 对比≥4.5:1 | — | 屏上「来源」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
-| R-HOK-064 | S-hooks-08 | 状态 | 无来源 | 标题仍显示 | — | 屏上「来源」：出现次数 = 1 | 未实现（找不到元素渲染点） |
+| R-HOK-058 | S-hooks-08 | 样式 | 打开设置›Hooks，滚动到 y≈145 处的「来源」 | 12 字号次级或粗体，y=145 | — | 屏上「来源」：y = 145 | 已实现（映射 = S-hooks-08→internal/ui/settings_hooks_screen.go:renderHooks；标记 = TextColor@hkAlertLine） |
+| R-HOK-059 | S-hooks-08 | 关联 | 在「来源」所在行内，同时看它与来源行的相对位置 | 下 8 | — | 间距 8 | 已实现（映射 = S-hooks-08→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Section） |
+| R-HOK-060 | S-hooks-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「来源」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-08→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Label） |
+| R-HOK-061 | S-hooks-08 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Hooks，滚动到 y≈145 处的「来源」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-08→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Err） |
+| R-HOK-062 | S-hooks-08 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈145 处的「来源」 | 单行 | — | 屏上「来源」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-hooks-08→internal/ui/settings_hooks_screen.go:renderHooks |
+| R-HOK-063 | S-hooks-08 | 深色 | 在设置›外观把主题切成深色，再回Hooks，滚动到 y≈145 处的「来源」 | 对比≥4.5:1 | — | 屏上「来源」：对比度 ≥ 4.5:1 | 已实现（映射 = S-hooks-08→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Theme） |
+| R-HOK-064 | S-hooks-08 | 状态 | 无来源 | 标题仍显示 | — | 屏上「来源」：出现次数 = 1 | 已实现（映射 = S-hooks-08→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Enabled@App.hooksData） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -9770,14 +9770,14 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-HOK-097 | S-hooks-13 | 状态 | 来源有 message | 显示该消息 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-HOK-097 | S-hooks-13 | 状态 | 来源有 message | 显示该消息 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-hooks-13→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = State） |
 | R-HOK-098 | S-hooks-13 | 状态 | 无 message | 不渲染 | — | 屏上「source.message」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-HOK-099 | S-hooks-13 | 样式 | 打开设置›Hooks，看「source.message」 | 11 字号提示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-HOK-100 | S-hooks-13 | 关联 | 在「source.message」所在行内，同时看它与路径的相对位置 | 紧随路径下 2 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-HOK-101 | S-hooks-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「source.message」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-102 | S-hooks-13 | 异常 | 打开设置›Hooks，看「source.message」 | 折行 | — | 屏上「source.message」：行数 ≥ 2 | 未实现（找不到元素渲染点） |
-| R-HOK-103 | S-hooks-13 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「source.message」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-HOK-104 | S-hooks-13 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「source.message」 | 对比≥4.5:1 | — | 屏上「source.message」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-HOK-099 | S-hooks-13 | 样式 | 打开设置›Hooks，看「source.message」 | 11 字号提示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-hooks-13→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Padding） |
+| R-HOK-100 | S-hooks-13 | 关联 | 在「source.message」所在行内，同时看它与路径的相对位置 | 紧随路径下 2 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-hooks-13→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Screen） |
+| R-HOK-101 | S-hooks-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「source.message」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-13→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Label） |
+| R-HOK-102 | S-hooks-13 | 异常 | 打开设置›Hooks，看「source.message」 | 折行 | — | 屏上「source.message」：行数 ≥ 2 | 已实现（映射 = S-hooks-13→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = err@hkUserDoc） |
+| R-HOK-103 | S-hooks-13 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「source.message」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-hooks-13→internal/ui/settings_hooks_screen.go:App.hkSourceCard |
+| R-HOK-104 | S-hooks-13 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「source.message」 | 对比≥4.5:1 | — | 屏上「source.message」：对比度 ≥ 4.5:1 | 已实现（映射 = S-hooks-13→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -9815,13 +9815,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-HOK-129 | S-hooks-17 | 内容 | 打开设置›Hooks，滚动到 y≈339 处的「条目」 | 小标题「条目」 | — | 屏上「条目」的文案逐字为「条目」（2 字） | 已实现（逐字）：internal/ui/settings_hooks_screen.go:hkCopyEntries「条目」 |
-| R-HOK-130 | S-hooks-17 | 样式 | 打开设置›Hooks，滚动到 y≈339 处的「条目」 | 12 字号，y=339 | — | 屏上「条目」：y = 339 | 未实现（找不到元素渲染点） |
-| R-HOK-131 | S-hooks-17 | 关联 | 在「条目」所在行内，同时看它与分组头的相对位置 | 下 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-HOK-132 | S-hooks-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「条目」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-133 | S-hooks-17 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Hooks，滚动到 y≈339 处的「条目」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-134 | S-hooks-17 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈339 处的「条目」 | 单行 | — | 屏上「条目」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-HOK-135 | S-hooks-17 | 深色 | 在设置›外观把主题切成深色，再回Hooks，滚动到 y≈339 处的「条目」 | 对比≥4.5:1 | — | 屏上「条目」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
-| R-HOK-136 | S-hooks-17 | 状态 | 无条目 | 标题仍显示 | — | 屏上「条目」：出现次数 = 1 | 未实现（找不到元素渲染点） |
+| R-HOK-130 | S-hooks-17 | 样式 | 打开设置›Hooks，滚动到 y≈339 处的「条目」 | 12 字号，y=339 | — | 屏上「条目」：y = 339 | 已实现（映射 = S-hooks-17→internal/ui/settings_hooks_screen.go:renderHooks；标记 = TextColor@hkAlertLine） |
+| R-HOK-131 | S-hooks-17 | 关联 | 在「条目」所在行内，同时看它与分组头的相对位置 | 下 8 | — | 间距 8 | 已实现（映射 = S-hooks-17→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Section） |
+| R-HOK-132 | S-hooks-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「条目」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-17→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Label） |
+| R-HOK-133 | S-hooks-17 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Hooks，滚动到 y≈339 处的「条目」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-17→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Err） |
+| R-HOK-134 | S-hooks-17 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈339 处的「条目」 | 单行 | — | 屏上「条目」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-hooks-17→internal/ui/settings_hooks_screen.go:renderHooks |
+| R-HOK-135 | S-hooks-17 | 深色 | 在设置›外观把主题切成深色，再回Hooks，滚动到 y≈339 处的「条目」 | 对比≥4.5:1 | — | 屏上「条目」：对比度 ≥ 4.5:1 | 已实现（映射 = S-hooks-17→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Theme） |
+| R-HOK-136 | S-hooks-17 | 状态 | 无条目 | 标题仍显示 | — | 屏上「条目」：出现次数 = 1 | 已实现（映射 = S-hooks-17→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Enabled@App.hooksData） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -9928,67 +9928,67 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-HOK-209 | S-hooks-27 | 内容 | 在设置›权限把 App Server 切成非 App Server 模式后，看「命令钩子」 | 标题「命令钩子」 | — | 屏上「命令钩子」的文案逐字为「命令钩子」（4 字） | 已实现（逐字）：internal/ui/settings_hooks_screen.go:hkCopyTitle「命令钩子」 |
 | R-HOK-210 | S-hooks-27 | 状态 | 在设置›权限把 App Server 切成 App Server 模式后，看「命令钩子」 | 不渲染（走目录视图） | — | 屏上「命令钩子」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-HOK-211 | S-hooks-27 | 样式 | 打开设置›Hooks，看「命令钩子」 | 20 字号粗体，y=33 | — | 屏上「命令钩子」：y = 33 | 未实现（找不到元素渲染点） |
-| R-HOK-212 | S-hooks-27 | 关联 | 在「命令钩子」所在行内，同时看它与右侧按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-HOK-213 | S-hooks-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「命令钩子」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-214 | S-hooks-27 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Hooks，看「命令钩子」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-215 | S-hooks-27 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「命令钩子」 | 单行 | — | 屏上「命令钩子」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-HOK-216 | S-hooks-27 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「命令钩子」 | 对比≥4.5:1 | — | 屏上「命令钩子」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-HOK-211 | S-hooks-27 | 样式 | 打开设置›Hooks，看「命令钩子」 | 20 字号粗体，y=33 | — | 屏上「命令钩子」：y = 33 | 已实现（映射 = S-hooks-27→internal/ui/settings_hooks_screen.go:hkHeader；标记 = TextColor@screenTitle） |
+| R-HOK-212 | S-hooks-27 | 关联 | 在「命令钩子」所在行内，同时看它与右侧按钮的相对位置 | 同行 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（映射到位但没有该维度的标记）：S-hooks-27→internal/ui/settings_hooks_screen.go:hkHeader |
+| R-HOK-213 | S-hooks-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「命令钩子」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-27→internal/ui/settings_hooks_screen.go:hkHeader；标记 = Role@screenTitle） |
+| R-HOK-214 | S-hooks-27 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Hooks，看「命令钩子」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-hooks-27→internal/ui/settings_hooks_screen.go:hkHeader |
+| R-HOK-215 | S-hooks-27 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「命令钩子」 | 单行 | — | 屏上「命令钩子」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-hooks-27→internal/ui/settings_hooks_screen.go:hkHeader |
+| R-HOK-216 | S-hooks-27 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「命令钩子」 | 对比≥4.5:1 | — | 屏上「命令钩子」：对比度 ≥ 4.5:1 | 已实现（映射 = S-hooks-27→internal/ui/settings_hooks_screen.go:hkHeader；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-HOK-217 | S-hooks-28 | 内容 | 打开设置›Hooks，看「了解更多 · 刷新」 | 「了解更多」按钮 + 「刷新」图标按钮 | — | 屏上「了解更多 · 刷新」的文案逐字为「了解更多」（4 字） | 已实现（逐字）：internal/ui/settings_hooks_screen.go:hkCopyMore「了解更多」 |
-| R-HOK-218 | S-hooks-28 | 交互 | 点了解更多 | 外链打开文档 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-219 | S-hooks-28 | 交互 | 点刷新 | 重读本地三个来源 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-220 | S-hooks-28 | 样式 | 打开设置›Hooks，看「了解更多 · 刷新」 | 高 27/28，右对齐 | — | 屏上「了解更多 · 刷新」：高度 = 27、水平对齐 = 右 | 未实现（找不到元素渲染点） |
-| R-HOK-221 | S-hooks-28 | 异常 | 刷新失败 | loadError 显示 | — | 屏上「了解更多 · 刷新」：错误文案逐字与接口返回相同（字符数一致） | 未实现（找不到元素渲染点） |
-| R-HOK-222 | S-hooks-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「了解更多 · 刷新」听播报 | 分别播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-223 | S-hooks-28 | 键盘 | 把 Tab 焦点移到「了解更多 · 刷新」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-HOK-224 | S-hooks-28 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「了解更多 · 刷新」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-HOK-218 | S-hooks-28 | 交互 | 点了解更多 | 外链打开文档 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-28→internal/ui/settings_hooks_screen.go:hkHeader；标记 = Pressed@screenAction） |
+| R-HOK-219 | S-hooks-28 | 交互 | 点刷新 | 重读本地三个来源 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-28→internal/ui/settings_hooks_screen.go:hkHeader；标记 = Pressed@screenAction） |
+| R-HOK-220 | S-hooks-28 | 样式 | 打开设置›Hooks，看「了解更多 · 刷新」 | 高 27/28，右对齐 | — | 屏上「了解更多 · 刷新」：高度 = 27、水平对齐 = 右 | 已实现（映射 = S-hooks-28→internal/ui/settings_hooks_screen.go:hkHeader；标记 = TextColor@screenTitle） |
+| R-HOK-221 | S-hooks-28 | 异常 | 刷新失败 | loadError 显示 | — | 屏上「了解更多 · 刷新」：错误文案逐字与接口返回相同（字符数一致） | 未实现（映射到位但没有该维度的标记）：S-hooks-28→internal/ui/settings_hooks_screen.go:hkHeader |
+| R-HOK-222 | S-hooks-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「了解更多 · 刷新」听播报 | 分别播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-28→internal/ui/settings_hooks_screen.go:hkHeader；标记 = Role@screenTitle） |
+| R-HOK-223 | S-hooks-28 | 键盘 | 把 Tab 焦点移到「了解更多 · 刷新」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-hooks-28→internal/ui/settings_hooks_screen.go:hkHeader |
+| R-HOK-224 | S-hooks-28 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「了解更多 · 刷新」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-hooks-28→internal/ui/settings_hooks_screen.go:hkHeader；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-HOK-225 | S-hooks-29 | 状态 | 本地加载失败 | 显示 loadError | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-HOK-226 | S-hooks-29 | 状态 | 无钩子 | 显示「未配置命令钩子。」 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-HOK-225 | S-hooks-29 | 状态 | 本地加载失败 | 显示 loadError | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-hooks-29→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Enabled@App.hooksData） |
+| R-HOK-226 | S-hooks-29 | 状态 | 无钩子 | 显示「未配置命令钩子。」 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-hooks-29→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Enabled@App.hooksData） |
 | R-HOK-227 | S-hooks-29 | 状态 | 有钩子 | 两者都不渲染 | — | 屏上「loadError · 未配置命令钩…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-HOK-228 | S-hooks-29 | 样式 | 打开设置›Hooks，看「loadError · 未配置命令钩…」 | 12 字号（错误警示 / 空态次级） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-HOK-229 | S-hooks-29 | 关联 | 在「loadError · 未配置命令钩…」所在行内，同时看它与来源组的相对位置 | 空态位于页首区域 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-HOK-230 | S-hooks-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「loadError · 未配置命令钩…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-231 | S-hooks-29 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「loadError · 未配置命令钩…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-HOK-232 | S-hooks-29 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「loadError · 未配置命令钩…」 | 对比≥4.5:1 | — | 屏上「loadError · 未配置命令钩…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-HOK-228 | S-hooks-29 | 样式 | 打开设置›Hooks，看「loadError · 未配置命令钩…」 | 12 字号（错误警示 / 空态次级） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-hooks-29→internal/ui/settings_hooks_screen.go:renderHooks；标记 = TextColor@hkAlertLine） |
+| R-HOK-229 | S-hooks-29 | 关联 | 在「loadError · 未配置命令钩…」所在行内，同时看它与来源组的相对位置 | 空态位于页首区域 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-hooks-29→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Section） |
+| R-HOK-230 | S-hooks-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「loadError · 未配置命令钩…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-29→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Label） |
+| R-HOK-231 | S-hooks-29 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「loadError · 未配置命令钩…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-hooks-29→internal/ui/settings_hooks_screen.go:renderHooks |
+| R-HOK-232 | S-hooks-29 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「loadError · 未配置命令钩…」 | 对比≥4.5:1 | — | 屏上「loadError · 未配置命令钩…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-hooks-29→internal/ui/settings_hooks_screen.go:renderHooks；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-HOK-233 | S-hooks-30 | 内容 | 打开设置›Hooks，看「来自配置 / 来自工作区 / 来自插…」 | 三组：来自配置 / 来自工作区 / 来自插件（各组非空才显示） | — | 1–3 组 | 未实现（找不到元素渲染点） |
-| R-HOK-234 | S-hooks-30 | 样式 | 打开设置›Hooks，看「来自配置 / 来自工作区 / 来自插…」 | 组标题 13 字号粗体 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-HOK-233 | S-hooks-30 | 内容 | 打开设置›Hooks，看「来自配置 / 来自工作区 / 来自插…」 | 三组：来自配置 / 来自工作区 / 来自插件（各组非空才显示） | — | 1–3 组 | 已实现（映射 = S-hooks-30→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = 文案「路径：」） |
+| R-HOK-234 | S-hooks-30 | 样式 | 打开设置›Hooks，看「来自配置 / 来自工作区 / 来自插…」 | 组标题 13 字号粗体 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-hooks-30→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Padding） |
 | R-HOK-235 | S-hooks-30 | 状态 | 打开设置›Hooks，看「来自配置 / 来自工作区 / 来自插…」 | 该组整块不渲染 | — | 屏上「来自配置 / 来自工作区 / 来自插…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-HOK-236 | S-hooks-30 | 交互 | 点来源按钮 | 打开该来源的编辑对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-237 | S-hooks-30 | 关联 | 在「来自配置 / 来自工作区 / 来自插…」所在行内，同时看它与标题的相对位置 | 首组距标题 20 | — | 间距 20 | 未实现（找不到元素渲染点） |
-| R-HOK-238 | S-hooks-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「来自配置 / 来自工作区 / 来自插…」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-239 | S-hooks-30 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「来自配置 / 来自工作区 / 来自插…」 | 组内换行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-HOK-240 | S-hooks-30 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「来自配置 / 来自工作区 / 来自插…」 | 对比≥4.5:1 | — | 屏上「来自配置 / 来自工作区 / 来自插…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-HOK-236 | S-hooks-30 | 交互 | 点来源按钮 | 打开该来源的编辑对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-30→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Pressed@screenAction） |
+| R-HOK-237 | S-hooks-30 | 关联 | 在「来自配置 / 来自工作区 / 来自插…」所在行内，同时看它与标题的相对位置 | 首组距标题 20 | — | 间距 20 | 已实现（映射 = S-hooks-30→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Screen） |
+| R-HOK-238 | S-hooks-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「来自配置 / 来自工作区 / 来自插…」听播报 | 分组标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-30→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Label） |
+| R-HOK-239 | S-hooks-30 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「来自配置 / 来自工作区 / 来自插…」 | 组内换行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-hooks-30→internal/ui/settings_hooks_screen.go:App.hkSourceCard |
+| R-HOK-240 | S-hooks-30 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「来自配置 / 来自工作区 / 来自插…」 | 对比≥4.5:1 | — | 屏上「来自配置 / 来自工作区 / 来自插…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-hooks-30→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-HOK-241 | S-hooks-31 | 内容 | 打开设置›Hooks，看「source.title · con…」 | 标题 + configPath +「{on} 开 · {off} 关」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-242 | S-hooks-31 | 内容 | 计数为 0 | 显示 0 不隐藏 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
-| R-HOK-243 | S-hooks-31 | 样式 | 打开设置›Hooks，看「source.title · con…」 | 标题 12、路径等宽 11、计数 11 次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-HOK-244 | S-hooks-31 | 交互 | 点击行 | 打开编辑对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-245 | S-hooks-31 | 异常 | 路径无效 | 路径标警示 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-HOK-246 | S-hooks-31 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「source.title · con…」听播报 | 播报标题与开关数 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-247 | S-hooks-31 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「source.title · con…」 | 路径截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-HOK-248 | S-hooks-31 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「source.title · con…」 | 对比≥4.5:1 | — | 屏上「source.title · con…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-HOK-241 | S-hooks-31 | 内容 | 打开设置›Hooks，看「source.title · con…」 | 标题 + configPath +「{on} 开 · {off} 关」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = 文案「路径：」） |
+| R-HOK-242 | S-hooks-31 | 内容 | 计数为 0 | 显示 0 不隐藏 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = 文案「路径：」） |
+| R-HOK-243 | S-hooks-31 | 样式 | 打开设置›Hooks，看「source.title · con…」 | 标题 12、路径等宽 11、计数 11 次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Padding） |
+| R-HOK-244 | S-hooks-31 | 交互 | 点击行 | 打开编辑对话框 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Pressed@screenAction） |
+| R-HOK-245 | S-hooks-31 | 异常 | 路径无效 | 路径标警示 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = err@hkUserDoc） |
+| R-HOK-246 | S-hooks-31 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「source.title · con…」听播报 | 播报标题与开关数 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Label） |
+| R-HOK-247 | S-hooks-31 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「source.title · con…」 | 路径截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard |
+| R-HOK-248 | S-hooks-31 | 深色 | 在设置›外观把主题切成深色，再回Hooks，看「source.title · con…」 | 对比≥4.5:1 | — | 屏上「source.title · con…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-hooks-31→internal/ui/settings_hooks_screen.go:App.hkSourceCard；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-HOK-249 | S-hooks-32 | 状态 | 点来源行 | 弹出该来源的钩子编辑对话框 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-HOK-250 | S-hooks-32 | 内容 | 点开「钩子编辑/条目对话框」 | 标题（来源名）+ 编辑区 + 取消/保存 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-251 | S-hooks-32 | 交互 | 点「保存」后看「钩子编辑/条目对话框」 | 写回该来源配置，列表刷新 | — | 屏上「钩子编辑/条目对话框」：刷新后取值与刷新前不同（差 ≠ 0） | 未实现（找不到元素渲染点） |
-| R-HOK-252 | S-hooks-32 | 交互 | 取消/Esc | 关闭不保存 | — | 屏上「钩子编辑/条目对话框」：状态 = 关 | 未实现（找不到元素渲染点） |
-| R-HOK-253 | S-hooks-32 | 样式 | 打开设置›Hooks，看「钩子编辑/条目对话框」 | 圆角 12，编辑区等宽 | — | 屏上「钩子编辑/条目对话框」：圆角 = 12 | 未实现（找不到元素渲染点） |
-| R-HOK-254 | S-hooks-32 | 异常 | 断开网络后改「钩子编辑/条目对话框」，等保存返回失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-255 | S-hooks-32 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「钩子编辑/条目对话框」听播报 | 播报标题 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-HOK-256 | S-hooks-32 | 记忆 | 打开设置›Hooks，看「钩子编辑/条目对话框」 | 重新读取配置 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-HOK-249 | S-hooks-32 | 状态 | 点来源行 | 弹出该来源的钩子编辑对话框 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（映射到位但没有该维度的标记）：S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog |
+| R-HOK-250 | S-hooks-32 | 内容 | 点开「钩子编辑/条目对话框」 | 标题（来源名）+ 编辑区 + 取消/保存 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog；标记 = 文案「用户钩子文档」等 5 条） |
+| R-HOK-251 | S-hooks-32 | 交互 | 点「保存」后看「钩子编辑/条目对话框」 | 写回该来源配置，列表刷新 | — | 屏上「钩子编辑/条目对话框」：刷新后取值与刷新前不同（差 ≠ 0） | 已实现（映射 = S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog；标记 = Pressed@screenButton） |
+| R-HOK-252 | S-hooks-32 | 交互 | 取消/Esc | 关闭不保存 | — | 屏上「钩子编辑/条目对话框」：状态 = 关 | 已实现（映射 = S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog；标记 = Pressed@screenButton） |
+| R-HOK-253 | S-hooks-32 | 样式 | 打开设置›Hooks，看「钩子编辑/条目对话框」 | 圆角 12，编辑区等宽 | — | 屏上「钩子编辑/条目对话框」：圆角 = 12 | 已实现（映射 = S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog；标记 = TextColor） |
+| R-HOK-254 | S-hooks-32 | 异常 | 断开网络后改「钩子编辑/条目对话框」，等保存返回失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog；标记 = err） |
+| R-HOK-255 | S-hooks-32 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「钩子编辑/条目对话框」听播报 | 播报标题 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog；标记 = Role） |
+| R-HOK-256 | S-hooks-32 | 记忆 | 打开设置›Hooks，看「钩子编辑/条目对话框」 | 重新读取配置 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-hooks-32→internal/ui/settings_hooks_screen.go:hkEditorDialog |
 
 ## 16. 插件设置（S-pluginSettings-01 … S-pluginSettings-30）
 
@@ -9997,13 +9997,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PLG-001 | S-pluginSettings-01 | 内容 | 从设置›关于切进插件设置，滚动到 y≈5 处的「插件设置」 | 标题「插件设置」 | — | 屏上「插件设置」的文案逐字为「插件设置」（4 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyLoading「插件设置」 |
-| R-PLG-002 | S-pluginSettings-01 | 样式 | 打开设置›插件设置，滚动到 y≈5 处的「插件设置」 | h1，x=229、y=5 | — | 屏上「插件设置」：x = 229、y = 5 | 未实现（找不到元素渲染点） |
-| R-PLG-003 | S-pluginSettings-01 | 关联 | 在「插件设置」所在行内，同时看它与说明的相对位置 | 下 4 | — | 间距 4 | 未实现（找不到元素渲染点） |
-| R-PLG-004 | S-pluginSettings-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置」听播报 | 一级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-005 | S-pluginSettings-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，滚动到 y≈5 处的「插件设置」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-006 | S-pluginSettings-01 | 记忆 | 从插件设置切到设置›关于再切回来，滚动到 y≈5 处的「插件设置」 | 位置不变 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-007 | S-pluginSettings-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈5 处的「插件设置」 | 单行 | — | 屏上「插件设置」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PLG-008 | S-pluginSettings-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈5 处的「插件设置」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-PLG-002 | S-pluginSettings-01 | 样式 | 打开设置›插件设置，滚动到 y≈5 处的「插件设置」 | h1，x=229、y=5 | — | 屏上「插件设置」：x = 229、y = 5 | 已实现（映射 = S-pluginSettings-01→internal/ui/settings_plugin_settings_screen.go:plgUnavailableCard；标记 = Padding） |
+| R-PLG-003 | S-pluginSettings-01 | 关联 | 在「插件设置」所在行内，同时看它与说明的相对位置 | 下 4 | — | 间距 4 | 已实现（映射 = S-pluginSettings-01→internal/ui/settings_plugin_settings_screen.go:plgUnavailableCard；标记 = Select@plgNote） |
+| R-PLG-004 | S-pluginSettings-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置」听播报 | 一级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-01→internal/ui/settings_plugin_settings_screen.go:plgUnavailableCard；标记 = Role） |
+| R-PLG-005 | S-pluginSettings-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，滚动到 y≈5 处的「插件设置」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-01→internal/ui/settings_plugin_settings_screen.go:plgUnavailableCard |
+| R-PLG-006 | S-pluginSettings-01 | 记忆 | 从插件设置切到设置›关于再切回来，滚动到 y≈5 处的「插件设置」 | 位置不变 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-01→internal/ui/settings_plugin_settings_screen.go:plgUnavailableCard |
+| R-PLG-007 | S-pluginSettings-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈5 处的「插件设置」 | 单行 | — | 屏上「插件设置」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-01→internal/ui/settings_plugin_settings_screen.go:plgUnavailableCard |
+| R-PLG-008 | S-pluginSettings-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈5 处的「插件设置」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-01→internal/ui/settings_plugin_settings_screen.go:plgUnavailableCard；标记 = 文案「插件设置」等 3 条） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10020,23 +10020,23 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-PLG-017 | S-pluginSettings-03 | 状态 | 首次加载 | 显示「正在加载插件设置...」 | — | 屏上「正在加载插件设置...」的文案逐字为「正在加载插件设置...」（11 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyLoading「正在加载插件设置...」 |
 | R-PLG-018 | S-pluginSettings-03 | 状态 | 已加载 | 不渲染 | — | 屏上「正在加载插件设置...」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-019 | S-pluginSettings-03 | 样式 | 打开设置›插件设置，看「正在加载插件设置...」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-PLG-020 | S-pluginSettings-03 | 异常 | 让请求 30 秒不返回后看「正在加载插件设置...」 | 转错误 + 重试 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-021 | S-pluginSettings-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「正在加载插件设置...」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-022 | S-pluginSettings-03 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「正在加载插件设置...」 | 单行 | — | 屏上「正在加载插件设置...」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PLG-023 | S-pluginSettings-03 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「正在加载插件设置...」 | 对比≥4.5:1 | — | 屏上「正在加载插件设置...」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
-| R-PLG-024 | S-pluginSettings-03 | 动画 | 刚打开设置›插件设置、内容还在加载时看「正在加载插件设置...」 | 省略号为静态「…」 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-PLG-019 | S-pluginSettings-03 | 样式 | 打开设置›插件设置，看「正在加载插件设置...」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-pluginSettings-03→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = TextColor@plgNote） |
+| R-PLG-020 | S-pluginSettings-03 | 异常 | 让请求 30 秒不返回后看「正在加载插件设置...」 | 转错误 + 重试 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-03→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Err） |
+| R-PLG-021 | S-pluginSettings-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「正在加载插件设置...」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-03→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Role@plgErrorRow） |
+| R-PLG-022 | S-pluginSettings-03 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「正在加载插件设置...」 | 单行 | — | 屏上「正在加载插件设置...」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-03→internal/ui/settings_plugin_settings_screen.go:plgBody |
+| R-PLG-023 | S-pluginSettings-03 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「正在加载插件设置...」 | 对比≥4.5:1 | — | 屏上「正在加载插件设置...」：对比度 ≥ 4.5:1 | 已实现（映射 = S-pluginSettings-03→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Theme） |
+| R-PLG-024 | S-pluginSettings-03 | 动画 | 刚打开设置›插件设置、内容还在加载时看「正在加载插件设置...」 | 省略号为静态「…」 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-03→internal/ui/settings_plugin_settings_screen.go:plgBody |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PLG-025 | S-pluginSettings-04 | 状态 | App Server 未提供插件设置 | 显示「当前 App Server 不提供插件设置。」 | — | 屏上「当前 App Server 不提供插…」的文案逐字为「当前 App Server 不提供插件设置。」（22 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyUnavailable「当前 App Server 不提供插件设置。」 |
 | R-PLG-026 | S-pluginSettings-04 | 状态 | 打开设置›插件设置，看「当前 App Server 不提供插…」 | 不渲染 | — | 屏上「当前 App Server 不提供插…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-027 | S-pluginSettings-04 | 样式 | 打开设置›插件设置，看「当前 App Server 不提供插…」 | 12 字号次级或警示 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-PLG-027 | S-pluginSettings-04 | 样式 | 打开设置›插件设置，看「当前 App Server 不提供插…」 | 12 字号次级或警示 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-pluginSettings-04→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = TextColor@plgNote） |
 | R-PLG-028 | S-pluginSettings-04 | 关联 | 在「当前 App Server 不提供插…」所在行内，同时看它与卡片的相对位置 | 该态下不渲染任何插件卡 | — | 屏上「任何插件卡」出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-029 | S-pluginSettings-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「当前 App Server 不提供插…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-030 | S-pluginSettings-04 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，看「当前 App Server 不提供插…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-031 | S-pluginSettings-04 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「当前 App Server 不提供插…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PLG-032 | S-pluginSettings-04 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「当前 App Server 不提供插…」 | 对比≥4.5:1 | — | 屏上「当前 App Server 不提供插…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PLG-029 | S-pluginSettings-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「当前 App Server 不提供插…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-04→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Role@plgErrorRow） |
+| R-PLG-030 | S-pluginSettings-04 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，看「当前 App Server 不提供插…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-04→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Err） |
+| R-PLG-031 | S-pluginSettings-04 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「当前 App Server 不提供插…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-04→internal/ui/settings_plugin_settings_screen.go:plgBody |
+| R-PLG-032 | S-pluginSettings-04 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「当前 App Server 不提供插…」 | 对比≥4.5:1 | — | 屏上「当前 App Server 不提供插…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-pluginSettings-04→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10053,12 +10053,12 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-PLG-041 | S-pluginSettings-06 | 状态 | 无插件提供设置 | 显示「没有已安装插件提供设置。」 | — | 屏上「没有已安装插件提供设置。」的文案逐字为「没有已安装插件提供设置。」（12 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyEmpty「没有已安装插件提供设置。」 |
 | R-PLG-042 | S-pluginSettings-06 | 状态 | 有插件 | 不渲染 | — | 屏上「没有已安装插件提供设置。」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-043 | S-pluginSettings-06 | 样式 | 打开设置›插件设置，看「没有已安装插件提供设置。」 | 12 字号次级，居中或居左 | — | 屏上「没有已安装插件提供设置。」：水平对齐 = 居中 | 未实现（找不到元素渲染点） |
-| R-PLG-044 | S-pluginSettings-06 | 关联 | 在「没有已安装插件提供设置。」所在行内，同时看它与标题的相对位置 | 空态在说明下 24 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-PLG-045 | S-pluginSettings-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有已安装插件提供设置。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-046 | S-pluginSettings-06 | 异常 | 让加载请求返回失败后看「没有已安装插件提供设置。」 | 显示错误而非空态 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-047 | S-pluginSettings-06 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「没有已安装插件提供设置。」 | 单行 | — | 屏上「没有已安装插件提供设置。」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PLG-048 | S-pluginSettings-06 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「没有已安装插件提供设置。」 | 对比≥4.5:1 | — | 屏上「没有已安装插件提供设置。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PLG-043 | S-pluginSettings-06 | 样式 | 打开设置›插件设置，看「没有已安装插件提供设置。」 | 12 字号次级，居中或居左 | — | 屏上「没有已安装插件提供设置。」：水平对齐 = 居中 | 已实现（映射 = S-pluginSettings-06→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = TextColor@plgNote） |
+| R-PLG-044 | S-pluginSettings-06 | 关联 | 在「没有已安装插件提供设置。」所在行内，同时看它与标题的相对位置 | 空态在说明下 24 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-pluginSettings-06→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Screen） |
+| R-PLG-045 | S-pluginSettings-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有已安装插件提供设置。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-06→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Role@plgErrorRow） |
+| R-PLG-046 | S-pluginSettings-06 | 异常 | 让加载请求返回失败后看「没有已安装插件提供设置。」 | 显示错误而非空态 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-06→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Err） |
+| R-PLG-047 | S-pluginSettings-06 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「没有已安装插件提供设置。」 | 单行 | — | 屏上「没有已安装插件提供设置。」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-06→internal/ui/settings_plugin_settings_screen.go:plgBody |
+| R-PLG-048 | S-pluginSettings-06 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「没有已安装插件提供设置。」 | 对比≥4.5:1 | — | 屏上「没有已安装插件提供设置。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-pluginSettings-06→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10108,23 +10108,23 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-PLG-081 | S-pluginSettings-11 | 状态 | 项目范围内无插件声明项目设置 | 显示「没有已安装插件声明项目级设置。」 | — | 屏上「没有已安装插件声明项目级设置。」的文案逐字为「没有已安装插件声明项目级设置。」（15 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyNoProjSrc「没有已安装插件声明项目级设置。」 |
 | R-PLG-082 | S-pluginSettings-11 | 状态 | 有声明 | 不渲染 | — | 屏上「没有已安装插件声明项目级设置。」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-083 | S-pluginSettings-11 | 样式 | 打开设置›插件设置，看「没有已安装插件声明项目级设置。」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-PLG-083 | S-pluginSettings-11 | 样式 | 打开设置›插件设置，看「没有已安装插件声明项目级设置。」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-pluginSettings-11→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = TextColor@plgNote） |
 | R-PLG-084 | S-pluginSettings-11 | 状态 | 用户范围 | 不渲染 | — | 屏上「没有已安装插件声明项目级设置。」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-085 | S-pluginSettings-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有已安装插件声明项目级设置。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-086 | S-pluginSettings-11 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，看「没有已安装插件声明项目级设置。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-087 | S-pluginSettings-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「没有已安装插件声明项目级设置。」 | 单行 | — | 屏上「没有已安装插件声明项目级设置。」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PLG-088 | S-pluginSettings-11 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「没有已安装插件声明项目级设置。」 | 对比≥4.5:1 | — | 屏上「没有已安装插件声明项目级设置。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PLG-085 | S-pluginSettings-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「没有已安装插件声明项目级设置。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-11→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Role@plgErrorRow） |
+| R-PLG-086 | S-pluginSettings-11 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，看「没有已安装插件声明项目级设置。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-11→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Err） |
+| R-PLG-087 | S-pluginSettings-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「没有已安装插件声明项目级设置。」 | 单行 | — | 屏上「没有已安装插件声明项目级设置。」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-11→internal/ui/settings_plugin_settings_screen.go:plgBody |
+| R-PLG-088 | S-pluginSettings-11 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「没有已安装插件声明项目级设置。」 | 对比≥4.5:1 | — | 屏上「没有已安装插件声明项目级设置。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-pluginSettings-11→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PLG-089 | S-pluginSettings-12 | 状态 | 未选根目录 | 显示「尚未选择已授权的项目根目录。」 | — | 屏上「尚未选择已授权的项目根目录。」的文案逐字为「尚未选择已授权的项目根目录。」（14 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyNoRoot「尚未选择已授权的项目根目录。」 |
 | R-PLG-090 | S-pluginSettings-12 | 状态 | 该选项已选中的状态下打开设置›插件设置，看「尚未选择已授权的项目根目录。」 | 不渲染 | — | 屏上「尚未选择已授权的项目根目录。」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-091 | S-pluginSettings-12 | 样式 | 打开设置›插件设置，看「尚未选择已授权的项目根目录。」 | 12 字号提示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-PLG-091 | S-pluginSettings-12 | 样式 | 打开设置›插件设置，看「尚未选择已授权的项目根目录。」 | 12 字号提示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-pluginSettings-12→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = TextColor@plgNote） |
 | R-PLG-092 | S-pluginSettings-12 | 关联 | 在「尚未选择已授权的项目根目录。」所在行内，同时看它与卡片的相对位置 | 该态下不渲染插件卡 | — | 屏上「插件卡」出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PLG-093 | S-pluginSettings-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「尚未选择已授权的项目根目录。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-094 | S-pluginSettings-12 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，看「尚未选择已授权的项目根目录。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PLG-095 | S-pluginSettings-12 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「尚未选择已授权的项目根目录。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-PLG-096 | S-pluginSettings-12 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「尚未选择已授权的项目根目录。」 | 对比≥4.5:1 | — | 屏上「尚未选择已授权的项目根目录。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-PLG-093 | S-pluginSettings-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「尚未选择已授权的项目根目录。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-12→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Role@plgErrorRow） |
+| R-PLG-094 | S-pluginSettings-12 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进插件设置，看「尚未选择已授权的项目根目录。」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pluginSettings-12→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Err） |
+| R-PLG-095 | S-pluginSettings-12 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「尚未选择已授权的项目根目录。」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-pluginSettings-12→internal/ui/settings_plugin_settings_screen.go:plgBody |
+| R-PLG-096 | S-pluginSettings-12 | 深色 | 在设置›外观把主题切成深色，再回插件设置，看「尚未选择已授权的项目根目录。」 | 对比≥4.5:1 | — | 屏上「尚未选择已授权的项目根目录。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-pluginSettings-12→internal/ui/settings_plugin_settings_screen.go:plgBody；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -11121,466 +11121,466 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-001 | S-shell-01 | 内容 | 进入设置 | 侧栏顶部按钮「返回」，左箭头 + 文字 | — | 屏上「返回」的文案逐字为「返回」（2 字） | 已实现（逐字）：internal/settings/agents.go:Manager.UpdateSessionAgent「返回」 |
-| R-SHL-002 | S-shell-01 | 样式 | 打开设置（进入任一节），看「返回」 | 202×28，x=15、y=59，圆角 6 | — | 屏上「返回」：圆角 = 6、宽×高 = 202×28、x = 15 | 未实现（找不到元素渲染点） |
-| R-SHL-003 | S-shell-01 | 交互 | 用鼠标左键单击「返回」 | 关闭设置，回到上次界面 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-004 | S-shell-01 | 交互 | 键盘 Tab + 回车 | 焦点环可见，回车返回 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-005 | S-shell-01 | 状态 | 把鼠标移到「返回」上停 1 秒 | 底色加深 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-006 | S-shell-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回」听播报 | 播报「返回，按钮」 | — | 屏上「返回」的文案逐字为「返回，按钮」（5 字） | 未实现（找不到元素渲染点） |
+| R-SHL-002 | S-shell-01 | 样式 | 打开设置（进入任一节），看「返回」 | 202×28，x=15、y=59，圆角 6 | — | 屏上「返回」：圆角 = 6、宽×高 = 202×28、x = 15 | 已实现（映射 = S-shell-01→internal/ui/settings.go:App.settingsNav；标记 = Width） |
+| R-SHL-003 | S-shell-01 | 交互 | 用鼠标左键单击「返回」 | 关闭设置，回到上次界面 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-01→internal/ui/settings.go:App.settingsNav；标记 = Clicked@titleBarInset） |
+| R-SHL-004 | S-shell-01 | 交互 | 键盘 Tab + 回车 | 焦点环可见，回车返回 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-01→internal/ui/settings.go:App.settingsNav；标记 = Clicked@titleBarInset） |
+| R-SHL-005 | S-shell-01 | 状态 | 把鼠标移到「返回」上停 1 秒 | 底色加深 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-shell-01→internal/ui/settings.go:App.settingsNav；标记 = State@titleBarInset） |
+| R-SHL-006 | S-shell-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回」听播报 | 播报「返回，按钮」 | — | 屏上「返回」的文案逐字为「返回，按钮」（5 字） | 已实现（映射 = S-shell-01→internal/ui/settings.go:App.settingsNav；标记 = Label） |
 | R-SHL-007 | S-shell-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「返回」 | 侧栏隐藏，该按钮不渲染 | — | 屏上「返回」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-008 | S-shell-01 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回」 | 文字与图标可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-008 | S-shell-01 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回」 | 文字与图标可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-01→internal/ui/settings.go:App.settingsNav；标记 = Theme@titleBarInset） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-009 | S-shell-02 | 内容 | 返回按钮内 | 左箭头图标，尺寸 14 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-010 | S-shell-02 | 样式 | 打开设置（进入任一节），看「返回图标」 | 与文字同色，距文字 6 | — | 图标色值 = 相邻文字的色值（色值差 = 0） | 未实现（找不到元素渲染点） |
-| R-SHL-011 | S-shell-02 | 状态 | 把鼠标移到「返回图标」上停 1 秒 | 与文字一起变色 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-012 | S-shell-02 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「返回图标」的边缘 | 线条清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-013 | S-shell-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-014 | S-shell-02 | 异常 | 把「返回图标」的图标或字体资源临时移除后重进壳层 | 文字左移，按钮宽不变 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-015 | S-shell-02 | 关联 | 在「返回图标」所在行内，同时看它与点击的相对位置 | 命中按钮 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-SHL-016 | S-shell-02 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-009 | S-shell-02 | 内容 | 返回按钮内 | 左箭头图标，尺寸 14 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-02→internal/ui/settings.go:App.settingsNav；标记 = 文案「窗口控件让位」等 3 条） |
+| R-SHL-010 | S-shell-02 | 样式 | 打开设置（进入任一节），看「返回图标」 | 与文字同色，距文字 6 | — | 图标色值 = 相邻文字的色值（色值差 = 0） | 已实现（映射 = S-shell-02→internal/ui/settings.go:App.settingsNav；标记 = Width） |
+| R-SHL-011 | S-shell-02 | 状态 | 把鼠标移到「返回图标」上停 1 秒 | 与文字一起变色 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-02→internal/ui/settings.go:App.settingsNav；标记 = State@titleBarInset） |
+| R-SHL-012 | S-shell-02 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「返回图标」的边缘 | 线条清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-02→internal/ui/settings.go:App.settingsNav |
+| R-SHL-013 | S-shell-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-02→internal/ui/settings.go:App.settingsNav；标记 = Label） |
+| R-SHL-014 | S-shell-02 | 异常 | 把「返回图标」的图标或字体资源临时移除后重进壳层 | 文字左移，按钮宽不变 | — | 判据 = 控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-shell-02→internal/ui/settings.go:App.settingsNav；标记 = err@titleBarInset） |
+| R-SHL-015 | S-shell-02 | 关联 | 在「返回图标」所在行内，同时看它与点击的相对位置 | 命中按钮 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-shell-02→internal/ui/settings.go:App.settingsNav；标记 = Screen） |
+| R-SHL-016 | S-shell-02 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-02→internal/ui/settings.go:App.settingsNav；标记 = Theme@titleBarInset） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-017 | S-shell-03 | 内容 | 打开设置（进入任一节），滚动到 y≈105 处的「账户」 | 第 1 项「账户」，y=105 | — | 屏上「账户」的文案逐字为「账户」（2 字）；且y = 105 | 已实现（逐字）：internal/ui/settings_account_screen.go:accCopyTitle「账户」 |
-| R-SHL-018 | S-shell-03 | 状态 | 当前在账户节 | 高亮（底色 + 文字前景）且 disabled | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-SHL-019 | S-shell-03 | 交互 | 点击（非当前节） | 切到账户节，内容区换页 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-020 | S-shell-03 | 样式 | 打开设置（进入任一节），滚动到 y≈105 处的「账户」 | 209×35、圆角 6、图标在左 | — | 屏上「账户」：圆角 = 6、宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-021 | S-shell-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「账户」听播报 | 播报名并标「当前页」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-022 | S-shell-03 | 键盘 | 把焦点放进该列表后按 ↑ 与 ↓ 各一次 | 在 19 项间移动 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-023 | S-shell-03 | 异常 | 该节内容加载失败 | 导航项仍可点 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-024 | S-shell-03 | 记忆 | 重启后再进设置 | 停在最后访问的节 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-SHL-018 | S-shell-03 | 状态 | 当前在账户节 | 高亮（底色 + 文字前景）且 disabled | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-03→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-019 | S-shell-03 | 交互 | 点击（非当前节） | 切到账户节，内容区换页 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-03→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-020 | S-shell-03 | 样式 | 打开设置（进入任一节），滚动到 y≈105 处的「账户」 | 209×35、圆角 6、图标在左 | — | 屏上「账户」：圆角 = 6、宽×高 = 209×35 | 已实现（映射 = S-shell-03→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-021 | S-shell-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「账户」听播报 | 播报名并标「当前页」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-03→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-022 | S-shell-03 | 键盘 | 把焦点放进该列表后按 ↑ 与 ↓ 各一次 | 在 19 项间移动 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-03→internal/ui/settings.go:App.navRow |
+| R-SHL-023 | S-shell-03 | 异常 | 该节内容加载失败 | 导航项仍可点 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-shell-03→internal/ui/settings.go:App.navRow |
+| R-SHL-024 | S-shell-03 | 记忆 | 重启后再进设置 | 停在最后访问的节 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-03→internal/ui/settings.go:App.navRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-025 | S-shell-04 | 内容 | 打开设置（进入任一节），看「账户图标」 | UserCircle 图标，16 px | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-026 | S-shell-04 | 样式 | 打开设置（进入任一节），看「账户图标」 | 距项左内边距 10，与文字间距 8 | — | 屏上「账户图标」：间距 = 8 | 未实现（找不到元素渲染点） |
-| R-SHL-027 | S-shell-04 | 状态 | 打开设置（进入任一节），看「账户图标」 | 图标随文字变前景色 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-028 | S-shell-04 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「账户图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-029 | S-shell-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「账户图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-030 | S-shell-04 | 异常 | 把「账户图标」的图标或字体资源临时移除后重进壳层 | 文字左移，项高不变 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-031 | S-shell-04 | 关联 | 在「账户图标」所在行内，同时看它与点击的相对位置 | 命中导航项 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-SHL-032 | S-shell-04 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「账户图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-025 | S-shell-04 | 内容 | 打开设置（进入任一节），看「账户图标」 | UserCircle 图标，16 px | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-04→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-026 | S-shell-04 | 样式 | 打开设置（进入任一节），看「账户图标」 | 距项左内边距 10，与文字间距 8 | — | 屏上「账户图标」：间距 = 8 | 已实现（映射 = S-shell-04→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-027 | S-shell-04 | 状态 | 打开设置（进入任一节），看「账户图标」 | 图标随文字变前景色 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-04→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-028 | S-shell-04 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「账户图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-04→internal/ui/settings.go:App.navRow |
+| R-SHL-029 | S-shell-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「账户图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-04→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-030 | S-shell-04 | 异常 | 把「账户图标」的图标或字体资源临时移除后重进壳层 | 文字左移，项高不变 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-04→internal/ui/settings.go:App.navRow |
+| R-SHL-031 | S-shell-04 | 关联 | 在「账户图标」所在行内，同时看它与点击的相对位置 | 命中导航项 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-shell-04→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-032 | S-shell-04 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「账户图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-04→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-033 | S-shell-05 | 内容 | 侧栏第 2 项 | 「用量」，y=140 | — | 屏上「用量」的文案逐字为「用量」（2 字）；且y = 140 | 已实现（逐字）：internal/ui/settings_about_screen.go:aboutScreen「用量」 |
-| R-SHL-034 | S-shell-05 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「用量」 | 常态底色，可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-SHL-035 | S-shell-05 | 交互 | 用鼠标左键单击「用量」 | 切到用量节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-036 | S-shell-05 | 样式 | 打开设置（进入任一节），滚动到 y≈140 处的「用量」 | 209×35，与账户项同款 | — | 屏上「用量」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-037 | S-shell-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「用量」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-038 | S-shell-05 | 键盘 | 把 Tab 焦点移到「用量」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-039 | S-shell-05 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈140 处的「用量」 | 侧栏隐藏，改由下拉/返回导航 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
-| R-SHL-040 | S-shell-05 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈140 处的「用量」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-034 | S-shell-05 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「用量」 | 常态底色，可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-035 | S-shell-05 | 交互 | 用鼠标左键单击「用量」 | 切到用量节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-036 | S-shell-05 | 样式 | 打开设置（进入任一节），滚动到 y≈140 处的「用量」 | 209×35，与账户项同款 | — | 屏上「用量」：宽×高 = 209×35 | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-037 | S-shell-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「用量」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-038 | S-shell-05 | 键盘 | 把 Tab 焦点移到「用量」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-05→internal/ui/settings.go:App.navRow |
+| R-SHL-039 | S-shell-05 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈140 处的「用量」 | 侧栏隐藏，改由下拉/返回导航 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（映射到位但没有该维度的标记）：S-shell-05→internal/ui/settings.go:App.navRow |
+| R-SHL-040 | S-shell-05 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈140 处的「用量」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-041 | S-shell-06 | 内容 | 用量项内 | BarChart3 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-042 | S-shell-06 | 样式 | 打开设置（进入任一节），看「用量图标」 | 16 px，次级前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-043 | S-shell-06 | 状态 | 打开设置（进入任一节），看「用量图标」 | 图标升为前景色 | — | 图标色值 = 相邻文字的色值（色值差 = 0） | 未实现（找不到元素渲染点） |
-| R-SHL-044 | S-shell-06 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「用量图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-045 | S-shell-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「用量图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-046 | S-shell-06 | 异常 | 把「用量图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-047 | S-shell-06 | 关联 | 在「用量图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-048 | S-shell-06 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「用量图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-041 | S-shell-06 | 内容 | 用量项内 | BarChart3 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-06→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-042 | S-shell-06 | 样式 | 打开设置（进入任一节），看「用量图标」 | 16 px，次级前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-06→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-043 | S-shell-06 | 状态 | 打开设置（进入任一节），看「用量图标」 | 图标升为前景色 | — | 图标色值 = 相邻文字的色值（色值差 = 0） | 已实现（映射 = S-shell-06→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-044 | S-shell-06 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「用量图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-06→internal/ui/settings.go:App.navRow |
+| R-SHL-045 | S-shell-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「用量图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-06→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-046 | S-shell-06 | 异常 | 把「用量图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-06→internal/ui/settings.go:App.navRow |
+| R-SHL-047 | S-shell-06 | 关联 | 在「用量图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-06→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-048 | S-shell-06 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「用量图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-06→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-049 | S-shell-07 | 内容 | 侧栏第 3 项 | 「个性化」，y=175 | — | 屏上「个性化」的文案逐字为「个性化」（3 字）；且y = 175 | 已实现（逐字）：internal/ui/settings_personalization_screen.go:psCopyTitle「个性化」 |
-| R-SHL-050 | S-shell-07 | 状态 | 首次打开设置 | 该节为默认落地节 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-SHL-051 | S-shell-07 | 交互 | 用鼠标左键单击「个性化」 | 切到个性化节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-052 | S-shell-07 | 样式 | 打开设置（进入任一节），滚动到 y≈175 处的「个性化」 | 209×35，与其它项同款 | — | 屏上「个性化」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-053 | S-shell-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「个性化」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-054 | S-shell-07 | 键盘 | 把 Tab 焦点移到「个性化」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-055 | S-shell-07 | 异常 | 默认节内容失败 | 仍停留该节并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-056 | S-shell-07 | 记忆 | 改动后退出客户端再启动，重进设置（进入任一节），滚动到 y≈175 处的「个性化」 | 默认节仍为个性化 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-SHL-050 | S-shell-07 | 状态 | 首次打开设置 | 该节为默认落地节 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-07→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-051 | S-shell-07 | 交互 | 用鼠标左键单击「个性化」 | 切到个性化节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-07→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-052 | S-shell-07 | 样式 | 打开设置（进入任一节），滚动到 y≈175 处的「个性化」 | 209×35，与其它项同款 | — | 屏上「个性化」：宽×高 = 209×35 | 已实现（映射 = S-shell-07→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-053 | S-shell-07 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「个性化」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-07→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-054 | S-shell-07 | 键盘 | 把 Tab 焦点移到「个性化」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-07→internal/ui/settings.go:App.navRow |
+| R-SHL-055 | S-shell-07 | 异常 | 默认节内容失败 | 仍停留该节并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-07→internal/ui/settings.go:App.navRow |
+| R-SHL-056 | S-shell-07 | 记忆 | 改动后退出客户端再启动，重进设置（进入任一节），滚动到 y≈175 处的「个性化」 | 默认节仍为个性化 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-07→internal/ui/settings.go:App.navRow |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-057 | S-shell-08 | 内容 | 个性化项内 | Sparkles 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-058 | S-shell-08 | 样式 | 打开设置（进入任一节），看「个性化图标」 | 16 px，次级前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-059 | S-shell-08 | 状态 | 打开设置（进入任一节），看「个性化图标」 | 图标升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-060 | S-shell-08 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「个性化图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-061 | S-shell-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「个性化图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-062 | S-shell-08 | 异常 | 把「个性化图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 文字左边缘 x 变化量 ≥ 8 像素 | 未实现（找不到元素渲染点） |
-| R-SHL-063 | S-shell-08 | 关联 | 在「个性化图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-064 | S-shell-08 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「个性化图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-057 | S-shell-08 | 内容 | 个性化项内 | Sparkles 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-08→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-058 | S-shell-08 | 样式 | 打开设置（进入任一节），看「个性化图标」 | 16 px，次级前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-08→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-059 | S-shell-08 | 状态 | 打开设置（进入任一节），看「个性化图标」 | 图标升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-08→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-060 | S-shell-08 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「个性化图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-08→internal/ui/settings.go:App.navRow |
+| R-SHL-061 | S-shell-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「个性化图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-08→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-062 | S-shell-08 | 异常 | 把「个性化图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 文字左边缘 x 变化量 ≥ 8 像素 | 未实现（映射到位但没有该维度的标记）：S-shell-08→internal/ui/settings.go:App.navRow |
+| R-SHL-063 | S-shell-08 | 关联 | 在「个性化图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-08→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-064 | S-shell-08 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「个性化图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-08→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-065 | S-shell-09 | 内容 | 侧栏第 4 项 | 「外观」，y=210 | — | 屏上「外观」的文案逐字为「外观」（2 字）；且y = 210 | 已实现（逐字）：internal/ui/settings_appearance_screen.go:renderAppearance「外观」 |
-| R-SHL-066 | S-shell-09 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「外观」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-067 | S-shell-09 | 交互 | 用鼠标左键单击「外观」 | 切到外观节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-068 | S-shell-09 | 样式 | 打开设置（进入任一节），滚动到 y≈210 处的「外观」 | 209×35 | — | 屏上「外观」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-069 | S-shell-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外观」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-070 | S-shell-09 | 键盘 | 把 Tab 焦点移到「外观」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-066 | S-shell-09 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「外观」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-09→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-067 | S-shell-09 | 交互 | 用鼠标左键单击「外观」 | 切到外观节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-09→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-068 | S-shell-09 | 样式 | 打开设置（进入任一节），滚动到 y≈210 处的「外观」 | 209×35 | — | 屏上「外观」：宽×高 = 209×35 | 已实现（映射 = S-shell-09→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-069 | S-shell-09 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外观」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-09→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-070 | S-shell-09 | 键盘 | 把 Tab 焦点移到「外观」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-09→internal/ui/settings.go:App.navRow |
 | R-SHL-071 | S-shell-09 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈210 处的「外观」 | 不渲染 | — | 屏上「外观」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-072 | S-shell-09 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈210 处的「外观」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-072 | S-shell-09 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈210 处的「外观」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-09→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-073 | S-shell-10 | 内容 | 打开设置（进入任一节），看「外观图标」 | Palette 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-074 | S-shell-10 | 样式 | 打开设置（进入任一节），看「外观图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-075 | S-shell-10 | 状态 | 打开设置（进入任一节），看「外观图标」 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-076 | S-shell-10 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「外观图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-077 | S-shell-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外观图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-078 | S-shell-10 | 异常 | 把「外观图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-079 | S-shell-10 | 关联 | 在「外观图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-080 | S-shell-10 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「外观图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-073 | S-shell-10 | 内容 | 打开设置（进入任一节），看「外观图标」 | Palette 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-10→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-074 | S-shell-10 | 样式 | 打开设置（进入任一节），看「外观图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-10→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-075 | S-shell-10 | 状态 | 打开设置（进入任一节），看「外观图标」 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-10→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-076 | S-shell-10 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「外观图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-10→internal/ui/settings.go:App.navRow |
+| R-SHL-077 | S-shell-10 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外观图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-10→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-078 | S-shell-10 | 异常 | 把「外观图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-10→internal/ui/settings.go:App.navRow |
+| R-SHL-079 | S-shell-10 | 关联 | 在「外观图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-10→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-080 | S-shell-10 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「外观图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-10→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-081 | S-shell-11 | 内容 | 侧栏第 5 项 | 「通用」，y=245 | — | 屏上「通用」的文案逐字为「通用」（2 字）；且y = 245 | 已实现（逐字）：internal/ui/settings_general_screen.go:renderGeneral「通用」 |
-| R-SHL-082 | S-shell-11 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「通用」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-083 | S-shell-11 | 交互 | 用鼠标左键单击「通用」 | 切到通用节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-084 | S-shell-11 | 样式 | 打开设置（进入任一节），滚动到 y≈245 处的「通用」 | 209×35 | — | 屏上「通用」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-085 | S-shell-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-086 | S-shell-11 | 键盘 | 把 Tab 焦点移到「通用」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-087 | S-shell-11 | 异常 | 该节内容失败 | 仍可切并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-088 | S-shell-11 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈245 处的「通用」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-082 | S-shell-11 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「通用」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-11→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-083 | S-shell-11 | 交互 | 用鼠标左键单击「通用」 | 切到通用节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-11→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-084 | S-shell-11 | 样式 | 打开设置（进入任一节），滚动到 y≈245 处的「通用」 | 209×35 | — | 屏上「通用」：宽×高 = 209×35 | 已实现（映射 = S-shell-11→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-085 | S-shell-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-11→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-086 | S-shell-11 | 键盘 | 把 Tab 焦点移到「通用」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-11→internal/ui/settings.go:App.navRow |
+| R-SHL-087 | S-shell-11 | 异常 | 该节内容失败 | 仍可切并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-11→internal/ui/settings.go:App.navRow |
+| R-SHL-088 | S-shell-11 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈245 处的「通用」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-11→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-089 | S-shell-12 | 内容 | 通用项内 | Settings2 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-090 | S-shell-12 | 样式 | 打开设置（进入任一节），看「通用图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-091 | S-shell-12 | 状态 | 把鼠标在「通用图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-092 | S-shell-12 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「通用图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-093 | S-shell-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-094 | S-shell-12 | 异常 | 把「通用图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-095 | S-shell-12 | 关联 | 在「通用图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-096 | S-shell-12 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「通用图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-089 | S-shell-12 | 内容 | 通用项内 | Settings2 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-12→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-090 | S-shell-12 | 样式 | 打开设置（进入任一节），看「通用图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-12→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-091 | S-shell-12 | 状态 | 把鼠标在「通用图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-12→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-092 | S-shell-12 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「通用图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-12→internal/ui/settings.go:App.navRow |
+| R-SHL-093 | S-shell-12 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通用图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-12→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-094 | S-shell-12 | 异常 | 把「通用图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-12→internal/ui/settings.go:App.navRow |
+| R-SHL-095 | S-shell-12 | 关联 | 在「通用图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-12→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-096 | S-shell-12 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「通用图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-12→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-097 | S-shell-13 | 内容 | 侧栏第 6 项 | 「快捷键」，y=280 | — | 屏上「快捷键」的文案逐字为「快捷键」（3 字）；且y = 280 | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:App.renderKeybindings「快捷键」 |
-| R-SHL-098 | S-shell-13 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「快捷键」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-099 | S-shell-13 | 交互 | 用鼠标左键单击「快捷键」 | 切到快捷键节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-100 | S-shell-13 | 样式 | 打开设置（进入任一节），滚动到 y≈280 处的「快捷键」 | 209×35 | — | 屏上「快捷键」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-101 | S-shell-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「快捷键」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-102 | S-shell-13 | 键盘 | 把 Tab 焦点移到「快捷键」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-098 | S-shell-13 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「快捷键」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-13→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-099 | S-shell-13 | 交互 | 用鼠标左键单击「快捷键」 | 切到快捷键节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-13→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-100 | S-shell-13 | 样式 | 打开设置（进入任一节），滚动到 y≈280 处的「快捷键」 | 209×35 | — | 屏上「快捷键」：宽×高 = 209×35 | 已实现（映射 = S-shell-13→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-101 | S-shell-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「快捷键」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-13→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-102 | S-shell-13 | 键盘 | 把 Tab 焦点移到「快捷键」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-13→internal/ui/settings.go:App.navRow |
 | R-SHL-103 | S-shell-13 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈280 处的「快捷键」 | 不渲染 | — | 屏上「快捷键」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-104 | S-shell-13 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈280 处的「快捷键」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-104 | S-shell-13 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈280 处的「快捷键」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-13→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-105 | S-shell-14 | 内容 | 快捷键项内 | Keyboard 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-106 | S-shell-14 | 样式 | 打开设置（进入任一节），看「快捷键图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-107 | S-shell-14 | 状态 | 把鼠标在「快捷键图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-108 | S-shell-14 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「快捷键图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-109 | S-shell-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「快捷键图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-110 | S-shell-14 | 异常 | 把「快捷键图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-111 | S-shell-14 | 关联 | 在「快捷键图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-112 | S-shell-14 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「快捷键图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-105 | S-shell-14 | 内容 | 快捷键项内 | Keyboard 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-14→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-106 | S-shell-14 | 样式 | 打开设置（进入任一节），看「快捷键图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-14→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-107 | S-shell-14 | 状态 | 把鼠标在「快捷键图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-14→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-108 | S-shell-14 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「快捷键图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-14→internal/ui/settings.go:App.navRow |
+| R-SHL-109 | S-shell-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「快捷键图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-14→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-110 | S-shell-14 | 异常 | 把「快捷键图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-14→internal/ui/settings.go:App.navRow |
+| R-SHL-111 | S-shell-14 | 关联 | 在「快捷键图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-14→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-112 | S-shell-14 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「快捷键图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-14→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-113 | S-shell-15 | 内容 | 侧栏第 7 项 | 「模型供应」，y=315 | — | 屏上「模型供应」的文案逐字为「模型供应」（4 字）；且y = 315 | 已实现（逐字）：internal/ui/settings_configuration_screen.go:renderConfiguration「模型供应」 |
-| R-SHL-114 | S-shell-15 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「模型供应」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-115 | S-shell-15 | 交互 | 用鼠标左键单击「模型供应」 | 切到模型供应节（双栏布局） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-116 | S-shell-15 | 样式 | 打开设置（进入任一节），滚动到 y≈315 处的「模型供应」 | 209×35 | — | 屏上「模型供应」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-117 | S-shell-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「模型供应」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-118 | S-shell-15 | 键盘 | 把 Tab 焦点移到「模型供应」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-119 | S-shell-15 | 异常 | 供应商列表加载失败 | 仍可切并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-120 | S-shell-15 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈315 处的「模型供应」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-114 | S-shell-15 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「模型供应」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-15→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-115 | S-shell-15 | 交互 | 用鼠标左键单击「模型供应」 | 切到模型供应节（双栏布局） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-15→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-116 | S-shell-15 | 样式 | 打开设置（进入任一节），滚动到 y≈315 处的「模型供应」 | 209×35 | — | 屏上「模型供应」：宽×高 = 209×35 | 已实现（映射 = S-shell-15→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-117 | S-shell-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「模型供应」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-15→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-118 | S-shell-15 | 键盘 | 把 Tab 焦点移到「模型供应」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-15→internal/ui/settings.go:App.navRow |
+| R-SHL-119 | S-shell-15 | 异常 | 供应商列表加载失败 | 仍可切并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-15→internal/ui/settings.go:App.navRow |
+| R-SHL-120 | S-shell-15 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈315 处的「模型供应」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-15→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-121 | S-shell-16 | 内容 | 模型供应项内 | Brain 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-122 | S-shell-16 | 样式 | 打开设置（进入任一节），看「模型供应图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-123 | S-shell-16 | 状态 | 把鼠标在「模型供应图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-124 | S-shell-16 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「模型供应图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-125 | S-shell-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「模型供应图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-126 | S-shell-16 | 异常 | 把「模型供应图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-127 | S-shell-16 | 关联 | 在「模型供应图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-128 | S-shell-16 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「模型供应图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-121 | S-shell-16 | 内容 | 模型供应项内 | Brain 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-16→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-122 | S-shell-16 | 样式 | 打开设置（进入任一节），看「模型供应图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-16→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-123 | S-shell-16 | 状态 | 把鼠标在「模型供应图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-16→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-124 | S-shell-16 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「模型供应图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-16→internal/ui/settings.go:App.navRow |
+| R-SHL-125 | S-shell-16 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「模型供应图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-16→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-126 | S-shell-16 | 异常 | 把「模型供应图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-16→internal/ui/settings.go:App.navRow |
+| R-SHL-127 | S-shell-16 | 关联 | 在「模型供应图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-16→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-128 | S-shell-16 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「模型供应图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-16→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-129 | S-shell-17 | 内容 | 侧栏第 8 项 | 「多模态」，y=350 | — | 屏上「多模态」的文案逐字为「多模态」（3 字）；且y = 350 | 已实现（逐字）：internal/ui/settings_modality_screen.go:mdCopyTitle「多模态」 |
-| R-SHL-130 | S-shell-17 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「多模态」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-131 | S-shell-17 | 交互 | 用鼠标左键单击「多模态」 | 切到多模态节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-132 | S-shell-17 | 样式 | 打开设置（进入任一节），滚动到 y≈350 处的「多模态」 | 209×35 | — | 屏上「多模态」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-133 | S-shell-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「多模态」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-134 | S-shell-17 | 键盘 | 把 Tab 焦点移到「多模态」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-130 | S-shell-17 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「多模态」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-17→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-131 | S-shell-17 | 交互 | 用鼠标左键单击「多模态」 | 切到多模态节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-17→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-132 | S-shell-17 | 样式 | 打开设置（进入任一节），滚动到 y≈350 处的「多模态」 | 209×35 | — | 屏上「多模态」：宽×高 = 209×35 | 已实现（映射 = S-shell-17→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-133 | S-shell-17 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「多模态」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-17→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-134 | S-shell-17 | 键盘 | 把 Tab 焦点移到「多模态」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-17→internal/ui/settings.go:App.navRow |
 | R-SHL-135 | S-shell-17 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈350 处的「多模态」 | 不渲染 | — | 屏上「多模态」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-136 | S-shell-17 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈350 处的「多模态」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-136 | S-shell-17 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈350 处的「多模态」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-17→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-137 | S-shell-18 | 内容 | 多模态项内 | SlidersHorizontal 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-138 | S-shell-18 | 样式 | 打开设置（进入任一节），看「多模态图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-139 | S-shell-18 | 状态 | 把鼠标在「多模态图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-140 | S-shell-18 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「多模态图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-141 | S-shell-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「多模态图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-142 | S-shell-18 | 异常 | 把「多模态图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-143 | S-shell-18 | 关联 | 在「多模态图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-144 | S-shell-18 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「多模态图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-137 | S-shell-18 | 内容 | 多模态项内 | SlidersHorizontal 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-18→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-138 | S-shell-18 | 样式 | 打开设置（进入任一节），看「多模态图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-18→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-139 | S-shell-18 | 状态 | 把鼠标在「多模态图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-18→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-140 | S-shell-18 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「多模态图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-18→internal/ui/settings.go:App.navRow |
+| R-SHL-141 | S-shell-18 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「多模态图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-18→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-142 | S-shell-18 | 异常 | 把「多模态图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-18→internal/ui/settings.go:App.navRow |
+| R-SHL-143 | S-shell-18 | 关联 | 在「多模态图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-18→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-144 | S-shell-18 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「多模态图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-18→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-145 | S-shell-19 | 内容 | 侧栏第 9 项 | 「运行环境」，y=385 | — | 屏上「运行环境」的文案逐字为「运行环境」（4 字）；且y = 385 | 已实现（逐字）：internal/ui/settings_runtime_screen.go:rtCopyTitle「运行环境」 |
-| R-SHL-146 | S-shell-19 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「运行环境」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-147 | S-shell-19 | 交互 | 用鼠标左键单击「运行环境」 | 切到运行环境节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-148 | S-shell-19 | 样式 | 打开设置（进入任一节），滚动到 y≈385 处的「运行环境」 | 209×35 | — | 屏上「运行环境」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-149 | S-shell-19 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「运行环境」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-150 | S-shell-19 | 键盘 | 把 Tab 焦点移到「运行环境」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-151 | S-shell-19 | 异常 | runtime.list 未声明 | 仍可切，节内显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-152 | S-shell-19 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈385 处的「运行环境」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-146 | S-shell-19 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「运行环境」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-19→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-147 | S-shell-19 | 交互 | 用鼠标左键单击「运行环境」 | 切到运行环境节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-19→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-148 | S-shell-19 | 样式 | 打开设置（进入任一节），滚动到 y≈385 处的「运行环境」 | 209×35 | — | 屏上「运行环境」：宽×高 = 209×35 | 已实现（映射 = S-shell-19→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-149 | S-shell-19 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「运行环境」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-19→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-150 | S-shell-19 | 键盘 | 把 Tab 焦点移到「运行环境」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-19→internal/ui/settings.go:App.navRow |
+| R-SHL-151 | S-shell-19 | 异常 | runtime.list 未声明 | 仍可切，节内显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-19→internal/ui/settings.go:App.navRow |
+| R-SHL-152 | S-shell-19 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈385 处的「运行环境」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-19→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-153 | S-shell-20 | 内容 | 运行环境项内 | SquareTerminal 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-154 | S-shell-20 | 样式 | 打开设置（进入任一节），看「运行环境图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-155 | S-shell-20 | 状态 | 把鼠标在「运行环境图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-156 | S-shell-20 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「运行环境图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-157 | S-shell-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「运行环境图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-158 | S-shell-20 | 异常 | 把「运行环境图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-159 | S-shell-20 | 关联 | 在「运行环境图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-160 | S-shell-20 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「运行环境图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-153 | S-shell-20 | 内容 | 运行环境项内 | SquareTerminal 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-20→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-154 | S-shell-20 | 样式 | 打开设置（进入任一节），看「运行环境图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-20→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-155 | S-shell-20 | 状态 | 把鼠标在「运行环境图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-20→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-156 | S-shell-20 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「运行环境图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-20→internal/ui/settings.go:App.navRow |
+| R-SHL-157 | S-shell-20 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「运行环境图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-20→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-158 | S-shell-20 | 异常 | 把「运行环境图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-20→internal/ui/settings.go:App.navRow |
+| R-SHL-159 | S-shell-20 | 关联 | 在「运行环境图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-20→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-160 | S-shell-20 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「运行环境图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-20→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-161 | S-shell-21 | 内容 | 侧栏第 10 项 | 「MCP」，y=420 | — | 屏上「MCP」的文案逐字为「MCP」（3 字）；且y = 420 | 未实现（找不到元素渲染点） |
-| R-SHL-162 | S-shell-21 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「MCP」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-163 | S-shell-21 | 交互 | 用鼠标左键单击「MCP」 | 切到 MCP 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-164 | S-shell-21 | 样式 | 打开设置（进入任一节），滚动到 y≈420 处的「MCP」 | 209×35，与其它项同款 | — | 屏上「MCP」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-165 | S-shell-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「MCP」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-166 | S-shell-21 | 键盘 | 把 Tab 焦点移到「MCP」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-167 | S-shell-21 | 异常 | 服务器列表加载失败 | 仍可切并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-168 | S-shell-21 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈420 处的「MCP」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-161 | S-shell-21 | 内容 | 侧栏第 10 项 | 「MCP」，y=420 | — | 屏上「MCP」的文案逐字为「MCP」（3 字）；且y = 420 | 已实现（映射 = S-shell-21→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-162 | S-shell-21 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「MCP」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-21→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-163 | S-shell-21 | 交互 | 用鼠标左键单击「MCP」 | 切到 MCP 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-21→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-164 | S-shell-21 | 样式 | 打开设置（进入任一节），滚动到 y≈420 处的「MCP」 | 209×35，与其它项同款 | — | 屏上「MCP」：宽×高 = 209×35 | 已实现（映射 = S-shell-21→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-165 | S-shell-21 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「MCP」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-21→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-166 | S-shell-21 | 键盘 | 把 Tab 焦点移到「MCP」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-21→internal/ui/settings.go:App.navRow |
+| R-SHL-167 | S-shell-21 | 异常 | 服务器列表加载失败 | 仍可切并显示错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-21→internal/ui/settings.go:App.navRow |
+| R-SHL-168 | S-shell-21 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈420 处的「MCP」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-21→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-169 | S-shell-22 | 内容 | MCP 项内 | Wrench 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-170 | S-shell-22 | 样式 | 打开设置（进入任一节），看「MCP 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-171 | S-shell-22 | 状态 | 把鼠标在「MCP 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-172 | S-shell-22 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「MCP 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-173 | S-shell-22 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「MCP 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-174 | S-shell-22 | 异常 | 把「MCP 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-175 | S-shell-22 | 关联 | 在「MCP 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-176 | S-shell-22 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「MCP 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-169 | S-shell-22 | 内容 | MCP 项内 | Wrench 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-22→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-170 | S-shell-22 | 样式 | 打开设置（进入任一节），看「MCP 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-22→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-171 | S-shell-22 | 状态 | 把鼠标在「MCP 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-22→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-172 | S-shell-22 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「MCP 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-22→internal/ui/settings.go:App.navRow |
+| R-SHL-173 | S-shell-22 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「MCP 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-22→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-174 | S-shell-22 | 异常 | 把「MCP 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-22→internal/ui/settings.go:App.navRow |
+| R-SHL-175 | S-shell-22 | 关联 | 在「MCP 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-22→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-176 | S-shell-22 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「MCP 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-22→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-177 | S-shell-23 | 内容 | 侧栏第 11 项 | 「通知」，y=455 | — | 屏上「通知」的文案逐字为「通知」（2 字）；且y = 455 | 已实现（逐字）：internal/app/approvals.go:App.routeSessionEvent「通知」 |
-| R-SHL-178 | S-shell-23 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「通知」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-179 | S-shell-23 | 交互 | 用鼠标左键单击「通知」 | 切到通知节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-180 | S-shell-23 | 样式 | 打开设置（进入任一节），滚动到 y≈455 处的「通知」 | 209×35 | — | 屏上「通知」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-181 | S-shell-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通知」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-182 | S-shell-23 | 键盘 | 把 Tab 焦点移到「通知」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-178 | S-shell-23 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「通知」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-23→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-179 | S-shell-23 | 交互 | 用鼠标左键单击「通知」 | 切到通知节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-23→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-180 | S-shell-23 | 样式 | 打开设置（进入任一节），滚动到 y≈455 处的「通知」 | 209×35 | — | 屏上「通知」：宽×高 = 209×35 | 已实现（映射 = S-shell-23→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-181 | S-shell-23 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通知」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-23→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-182 | S-shell-23 | 键盘 | 把 Tab 焦点移到「通知」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-23→internal/ui/settings.go:App.navRow |
 | R-SHL-183 | S-shell-23 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈455 处的「通知」 | 不渲染 | — | 屏上「通知」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-184 | S-shell-23 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈455 处的「通知」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-184 | S-shell-23 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈455 处的「通知」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-23→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-185 | S-shell-24 | 内容 | 打开设置（进入任一节），看「通知图标」 | Bell 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-186 | S-shell-24 | 样式 | 打开设置（进入任一节），看「通知图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-187 | S-shell-24 | 状态 | 把鼠标在「通知图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-188 | S-shell-24 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「通知图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-189 | S-shell-24 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通知图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-190 | S-shell-24 | 异常 | 把「通知图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-191 | S-shell-24 | 关联 | 在「通知图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-192 | S-shell-24 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「通知图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-185 | S-shell-24 | 内容 | 打开设置（进入任一节），看「通知图标」 | Bell 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-24→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-186 | S-shell-24 | 样式 | 打开设置（进入任一节），看「通知图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-24→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-187 | S-shell-24 | 状态 | 把鼠标在「通知图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-24→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-188 | S-shell-24 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「通知图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-24→internal/ui/settings.go:App.navRow |
+| R-SHL-189 | S-shell-24 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通知图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-24→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-190 | S-shell-24 | 异常 | 把「通知图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-24→internal/ui/settings.go:App.navRow |
+| R-SHL-191 | S-shell-24 | 关联 | 在「通知图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-24→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-192 | S-shell-24 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「通知图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-24→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-193 | S-shell-25 | 内容 | 侧栏第 12 项 | 「宠物」，y=490 | — | 屏上「宠物」的文案逐字为「宠物」（2 字）；且y = 490 | 已实现（逐字）：internal/ui/settings_pets_screen.go:petsCopyTitle「宠物」 |
-| R-SHL-194 | S-shell-25 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「宠物」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-195 | S-shell-25 | 交互 | 用鼠标左键单击「宠物」 | 切到宠物节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-196 | S-shell-25 | 样式 | 打开设置（进入任一节），滚动到 y≈490 处的「宠物」 | 209×35 | — | 屏上「宠物」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-197 | S-shell-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「宠物」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-198 | S-shell-25 | 键盘 | 把 Tab 焦点移到「宠物」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-199 | S-shell-25 | 异常 | Pet 组件不可用 | 仍可切，节内显示提示条 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-200 | S-shell-25 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈490 处的「宠物」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-194 | S-shell-25 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「宠物」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-25→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-195 | S-shell-25 | 交互 | 用鼠标左键单击「宠物」 | 切到宠物节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-25→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-196 | S-shell-25 | 样式 | 打开设置（进入任一节），滚动到 y≈490 处的「宠物」 | 209×35 | — | 屏上「宠物」：宽×高 = 209×35 | 已实现（映射 = S-shell-25→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-197 | S-shell-25 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「宠物」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-25→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-198 | S-shell-25 | 键盘 | 把 Tab 焦点移到「宠物」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-25→internal/ui/settings.go:App.navRow |
+| R-SHL-199 | S-shell-25 | 异常 | Pet 组件不可用 | 仍可切，节内显示提示条 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-25→internal/ui/settings.go:App.navRow |
+| R-SHL-200 | S-shell-25 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈490 处的「宠物」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-25→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-201 | S-shell-26 | 内容 | 打开设置（进入任一节），看「宠物图标」 | PawPrint 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-202 | S-shell-26 | 样式 | 打开设置（进入任一节），看「宠物图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-203 | S-shell-26 | 状态 | 把鼠标在「宠物图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-204 | S-shell-26 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「宠物图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-205 | S-shell-26 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「宠物图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-206 | S-shell-26 | 异常 | 把「宠物图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-207 | S-shell-26 | 关联 | 在「宠物图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-208 | S-shell-26 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「宠物图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-201 | S-shell-26 | 内容 | 打开设置（进入任一节），看「宠物图标」 | PawPrint 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-26→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-202 | S-shell-26 | 样式 | 打开设置（进入任一节），看「宠物图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-26→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-203 | S-shell-26 | 状态 | 把鼠标在「宠物图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-26→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-204 | S-shell-26 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「宠物图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-26→internal/ui/settings.go:App.navRow |
+| R-SHL-205 | S-shell-26 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「宠物图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-26→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-206 | S-shell-26 | 异常 | 把「宠物图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-26→internal/ui/settings.go:App.navRow |
+| R-SHL-207 | S-shell-26 | 关联 | 在「宠物图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-26→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-208 | S-shell-26 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「宠物图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-26→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-209 | S-shell-27 | 内容 | 侧栏第 13 项 | 「权限」，y=525 | — | 屏上「权限」的文案逐字为「权限」（2 字）；且y = 525 | 已实现（逐字）：internal/app/permission.go:ErrPermissionConflict「权限」 |
-| R-SHL-210 | S-shell-27 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「权限」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-211 | S-shell-27 | 交互 | 用鼠标左键单击「权限」 | 切到权限节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-212 | S-shell-27 | 样式 | 打开设置（进入任一节），滚动到 y≈525 处的「权限」 | 209×35 | — | 屏上「权限」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-213 | S-shell-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-214 | S-shell-27 | 键盘 | 把 Tab 焦点移到「权限」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-210 | S-shell-27 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「权限」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-27→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-211 | S-shell-27 | 交互 | 用鼠标左键单击「权限」 | 切到权限节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-27→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-212 | S-shell-27 | 样式 | 打开设置（进入任一节），滚动到 y≈525 处的「权限」 | 209×35 | — | 屏上「权限」：宽×高 = 209×35 | 已实现（映射 = S-shell-27→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-213 | S-shell-27 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-27→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-214 | S-shell-27 | 键盘 | 把 Tab 焦点移到「权限」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-27→internal/ui/settings.go:App.navRow |
 | R-SHL-215 | S-shell-27 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈525 处的「权限」 | 不渲染 | — | 屏上「权限」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-216 | S-shell-27 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈525 处的「权限」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-216 | S-shell-27 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈525 处的「权限」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-27→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-217 | S-shell-28 | 内容 | 打开设置（进入任一节），看「权限图标」 | ShieldCheck 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-218 | S-shell-28 | 样式 | 打开设置（进入任一节），看「权限图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-219 | S-shell-28 | 状态 | 把鼠标在「权限图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-220 | S-shell-28 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「权限图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-221 | S-shell-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-222 | S-shell-28 | 异常 | 把「权限图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-223 | S-shell-28 | 关联 | 在「权限图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-224 | S-shell-28 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「权限图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-217 | S-shell-28 | 内容 | 打开设置（进入任一节），看「权限图标」 | ShieldCheck 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-28→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-218 | S-shell-28 | 样式 | 打开设置（进入任一节），看「权限图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-28→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-219 | S-shell-28 | 状态 | 把鼠标在「权限图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-28→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-220 | S-shell-28 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「权限图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-28→internal/ui/settings.go:App.navRow |
+| R-SHL-221 | S-shell-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「权限图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-28→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-222 | S-shell-28 | 异常 | 把「权限图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-28→internal/ui/settings.go:App.navRow |
+| R-SHL-223 | S-shell-28 | 关联 | 在「权限图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-28→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-224 | S-shell-28 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「权限图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-28→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-225 | S-shell-29 | 内容 | 侧栏第 14 项 | 「Git」，y=560 | — | 屏上「Git」的文案逐字为「Git」（3 字）；且y = 560 | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceCodeThemes「Git」 |
-| R-SHL-226 | S-shell-29 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「Git」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-227 | S-shell-29 | 交互 | 用鼠标左键单击「Git」 | 切到 Git 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-228 | S-shell-29 | 样式 | 打开设置（进入任一节），滚动到 y≈560 处的「Git」 | 209×35 | — | 屏上「Git」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-229 | S-shell-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Git」听播报 | 播报名（不翻译） | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-230 | S-shell-29 | 键盘 | 把 Tab 焦点移到「Git」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-231 | S-shell-29 | 异常 | 仓库不可用 | 仍可切，节内字段为空 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-232 | S-shell-29 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈560 处的「Git」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-226 | S-shell-29 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「Git」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-29→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-227 | S-shell-29 | 交互 | 用鼠标左键单击「Git」 | 切到 Git 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-29→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-228 | S-shell-29 | 样式 | 打开设置（进入任一节），滚动到 y≈560 处的「Git」 | 209×35 | — | 屏上「Git」：宽×高 = 209×35 | 已实现（映射 = S-shell-29→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-229 | S-shell-29 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Git」听播报 | 播报名（不翻译） | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-29→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-230 | S-shell-29 | 键盘 | 把 Tab 焦点移到「Git」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-29→internal/ui/settings.go:App.navRow |
+| R-SHL-231 | S-shell-29 | 异常 | 仓库不可用 | 仍可切，节内字段为空 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-shell-29→internal/ui/settings.go:App.navRow |
+| R-SHL-232 | S-shell-29 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈560 处的「Git」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-29→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-233 | S-shell-30 | 内容 | Git 项内 | GitBranch 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-234 | S-shell-30 | 样式 | 打开设置（进入任一节），看「Git 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-235 | S-shell-30 | 状态 | 把鼠标在「Git 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-236 | S-shell-30 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「Git 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-237 | S-shell-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Git 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-238 | S-shell-30 | 异常 | 把「Git 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-239 | S-shell-30 | 关联 | 在「Git 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-240 | S-shell-30 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「Git 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-233 | S-shell-30 | 内容 | Git 项内 | GitBranch 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-30→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-234 | S-shell-30 | 样式 | 打开设置（进入任一节），看「Git 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-30→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-235 | S-shell-30 | 状态 | 把鼠标在「Git 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-30→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-236 | S-shell-30 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「Git 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-30→internal/ui/settings.go:App.navRow |
+| R-SHL-237 | S-shell-30 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Git 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-30→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-238 | S-shell-30 | 异常 | 把「Git 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-30→internal/ui/settings.go:App.navRow |
+| R-SHL-239 | S-shell-30 | 关联 | 在「Git 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-30→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-240 | S-shell-30 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「Git 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-30→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-241 | S-shell-31 | 内容 | 侧栏第 15 项 | 「Hooks」，y=595 | — | 屏上「Hooks」的文案逐字为「Hooks」（5 字）；且y = 595 | 已实现（逐字）：internal/ui/settings_sections.go:settingsSectionDefs「Hooks」 |
-| R-SHL-242 | S-shell-31 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「Hooks」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-243 | S-shell-31 | 交互 | 用鼠标左键单击「Hooks」 | 切到 Hooks 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-244 | S-shell-31 | 样式 | 打开设置（进入任一节），滚动到 y≈595 处的「Hooks」 | 209×35 | — | 屏上「Hooks」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-245 | S-shell-31 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Hooks」听播报 | 播报名（不翻译） | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-246 | S-shell-31 | 键盘 | 把 Tab 焦点移到「Hooks」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-242 | S-shell-31 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「Hooks」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-31→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-243 | S-shell-31 | 交互 | 用鼠标左键单击「Hooks」 | 切到 Hooks 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-31→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-244 | S-shell-31 | 样式 | 打开设置（进入任一节），滚动到 y≈595 处的「Hooks」 | 209×35 | — | 屏上「Hooks」：宽×高 = 209×35 | 已实现（映射 = S-shell-31→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-245 | S-shell-31 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Hooks」听播报 | 播报名（不翻译） | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-31→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-246 | S-shell-31 | 键盘 | 把 Tab 焦点移到「Hooks」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-31→internal/ui/settings.go:App.navRow |
 | R-SHL-247 | S-shell-31 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈595 处的「Hooks」 | 不渲染 | — | 屏上「Hooks」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-248 | S-shell-31 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈595 处的「Hooks」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-248 | S-shell-31 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈595 处的「Hooks」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-31→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-249 | S-shell-32 | 内容 | Hooks 项内 | Webhook 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-250 | S-shell-32 | 样式 | 打开设置（进入任一节），看「Hooks 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-251 | S-shell-32 | 状态 | 把鼠标在「Hooks 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-252 | S-shell-32 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「Hooks 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-253 | S-shell-32 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Hooks 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-254 | S-shell-32 | 异常 | 把「Hooks 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-255 | S-shell-32 | 关联 | 在「Hooks 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-256 | S-shell-32 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「Hooks 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-249 | S-shell-32 | 内容 | Hooks 项内 | Webhook 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-32→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-250 | S-shell-32 | 样式 | 打开设置（进入任一节），看「Hooks 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-32→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-251 | S-shell-32 | 状态 | 把鼠标在「Hooks 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-32→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-252 | S-shell-32 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「Hooks 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-32→internal/ui/settings.go:App.navRow |
+| R-SHL-253 | S-shell-32 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Hooks 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-32→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-254 | S-shell-32 | 异常 | 把「Hooks 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-32→internal/ui/settings.go:App.navRow |
+| R-SHL-255 | S-shell-32 | 关联 | 在「Hooks 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-32→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-256 | S-shell-32 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「Hooks 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-32→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-257 | S-shell-33 | 内容 | 侧栏第 16 项 | 「插件设置」，y=630 | — | 屏上「插件设置」的文案逐字为「插件设置」（4 字）；且y = 630 | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyLoading「插件设置」 |
-| R-SHL-258 | S-shell-33 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「插件设置」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-259 | S-shell-33 | 交互 | 用鼠标左键单击「插件设置」 | 切到插件设置节（内容列左边界变为 229） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-260 | S-shell-33 | 样式 | 打开设置（进入任一节），滚动到 y≈630 处的「插件设置」 | 209×35 | — | 屏上「插件设置」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-261 | S-shell-33 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-262 | S-shell-33 | 键盘 | 把 Tab 焦点移到「插件设置」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-263 | S-shell-33 | 异常 | 插件设置不可用 | 仍可切，节内显示不可用提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-264 | S-shell-33 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈630 处的「插件设置」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-258 | S-shell-33 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「插件设置」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-33→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-259 | S-shell-33 | 交互 | 用鼠标左键单击「插件设置」 | 切到插件设置节（内容列左边界变为 229） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-shell-33→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-260 | S-shell-33 | 样式 | 打开设置（进入任一节），滚动到 y≈630 处的「插件设置」 | 209×35 | — | 屏上「插件设置」：宽×高 = 209×35 | 已实现（映射 = S-shell-33→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-261 | S-shell-33 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-33→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-262 | S-shell-33 | 键盘 | 把 Tab 焦点移到「插件设置」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-33→internal/ui/settings.go:App.navRow |
+| R-SHL-263 | S-shell-33 | 异常 | 插件设置不可用 | 仍可切，节内显示不可用提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-33→internal/ui/settings.go:App.navRow |
+| R-SHL-264 | S-shell-33 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈630 处的「插件设置」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-33→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-265 | S-shell-34 | 内容 | 插件设置项内 | Plug 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-266 | S-shell-34 | 样式 | 打开设置（进入任一节），看「插件设置图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-267 | S-shell-34 | 状态 | 把鼠标在「插件设置图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-268 | S-shell-34 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「插件设置图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-269 | S-shell-34 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-270 | S-shell-34 | 异常 | 把「插件设置图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-271 | S-shell-34 | 关联 | 在「插件设置图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-272 | S-shell-34 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「插件设置图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-265 | S-shell-34 | 内容 | 插件设置项内 | Plug 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-34→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-266 | S-shell-34 | 样式 | 打开设置（进入任一节），看「插件设置图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-34→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-267 | S-shell-34 | 状态 | 把鼠标在「插件设置图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-34→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-268 | S-shell-34 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「插件设置图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-34→internal/ui/settings.go:App.navRow |
+| R-SHL-269 | S-shell-34 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「插件设置图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-34→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-270 | S-shell-34 | 异常 | 把「插件设置图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-34→internal/ui/settings.go:App.navRow |
+| R-SHL-271 | S-shell-34 | 关联 | 在「插件设置图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-34→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-272 | S-shell-34 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「插件设置图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-34→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-273 | S-shell-35 | 内容 | 侧栏第 17 项 | 「外部 Agent」，y=665 | — | 屏上「外部」的文案逐字为「外部 Agent」（8 字）；且y = 665 | 已实现（逐字）：internal/ui/settings_external_agents_screen.go:eaCopyTitle「外部 Agent」 |
-| R-SHL-274 | S-shell-35 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「外部」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-275 | S-shell-35 | 交互 | 用鼠标左键单击「外部」 | 切到外部 Agent 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-276 | S-shell-35 | 样式 | 打开设置（进入任一节），滚动到 y≈665 处的「外部」 | 209×35；文案较长仍单行 | — | 屏上「外部」：宽×高 = 209×35、行数 = 1 | 未实现（找不到元素渲染点） |
-| R-SHL-277 | S-shell-35 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外部」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-278 | S-shell-35 | 键盘 | 把 Tab 焦点移到「外部」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-279 | S-shell-35 | 异常 | 该能力不可用 | 仍可切，节内显示不可用卡 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-280 | S-shell-35 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈665 处的「外部」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-274 | S-shell-35 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「外部」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-35→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-275 | S-shell-35 | 交互 | 用鼠标左键单击「外部」 | 切到外部 Agent 节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-35→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-276 | S-shell-35 | 样式 | 打开设置（进入任一节），滚动到 y≈665 处的「外部」 | 209×35；文案较长仍单行 | — | 屏上「外部」：宽×高 = 209×35、行数 = 1 | 已实现（映射 = S-shell-35→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-277 | S-shell-35 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外部」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-35→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-278 | S-shell-35 | 键盘 | 把 Tab 焦点移到「外部」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-35→internal/ui/settings.go:App.navRow |
+| R-SHL-279 | S-shell-35 | 异常 | 该能力不可用 | 仍可切，节内显示不可用卡 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-35→internal/ui/settings.go:App.navRow |
+| R-SHL-280 | S-shell-35 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈665 处的「外部」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-35→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-281 | S-shell-36 | 内容 | 外部 Agent 项内 | Bot 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-282 | S-shell-36 | 样式 | 打开设置（进入任一节），看「外部 Agent 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-283 | S-shell-36 | 状态 | 把鼠标在「外部 Agent 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-284 | S-shell-36 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「外部 Agent 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-285 | S-shell-36 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外部 Agent 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-286 | S-shell-36 | 异常 | 把「外部 Agent 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-287 | S-shell-36 | 关联 | 在「外部 Agent 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-288 | S-shell-36 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「外部 Agent 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-281 | S-shell-36 | 内容 | 外部 Agent 项内 | Bot 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-36→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-282 | S-shell-36 | 样式 | 打开设置（进入任一节），看「外部 Agent 图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-36→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-283 | S-shell-36 | 状态 | 把鼠标在「外部 Agent 图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-36→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-284 | S-shell-36 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「外部 Agent 图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-36→internal/ui/settings.go:App.navRow |
+| R-SHL-285 | S-shell-36 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「外部 Agent 图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-36→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-286 | S-shell-36 | 异常 | 把「外部 Agent 图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-36→internal/ui/settings.go:App.navRow |
+| R-SHL-287 | S-shell-36 | 关联 | 在「外部 Agent 图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-36→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-288 | S-shell-36 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「外部 Agent 图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-36→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-289 | S-shell-37 | 内容 | 侧栏第 18 项 | 「归档会话」，y=700 | — | 屏上「归档会话」的文案逐字为「归档会话」（4 字）；且y = 700 | 已实现（逐字）：internal/ui/settings_archived_screen.go:arcCopyTitle「归档会话」 |
-| R-SHL-290 | S-shell-37 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「归档会话」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-291 | S-shell-37 | 交互 | 用鼠标左键单击「归档会话」 | 切到归档会话节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-292 | S-shell-37 | 样式 | 打开设置（进入任一节），滚动到 y≈700 处的「归档会话」 | 209×35 | — | 屏上「归档会话」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-293 | S-shell-37 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「归档会话」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-294 | S-shell-37 | 键盘 | 把 Tab 焦点移到「归档会话」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-290 | S-shell-37 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「归档会话」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-37→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-291 | S-shell-37 | 交互 | 用鼠标左键单击「归档会话」 | 切到归档会话节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-37→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-292 | S-shell-37 | 样式 | 打开设置（进入任一节），滚动到 y≈700 处的「归档会话」 | 209×35 | — | 屏上「归档会话」：宽×高 = 209×35 | 已实现（映射 = S-shell-37→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-293 | S-shell-37 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「归档会话」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-37→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-294 | S-shell-37 | 键盘 | 把 Tab 焦点移到「归档会话」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-37→internal/ui/settings.go:App.navRow |
 | R-SHL-295 | S-shell-37 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈700 处的「归档会话」 | 不渲染 | — | 屏上「归档会话」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-296 | S-shell-37 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈700 处的「归档会话」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-296 | S-shell-37 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈700 处的「归档会话」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-37→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-297 | S-shell-38 | 内容 | 归档会话项内 | Archive 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-298 | S-shell-38 | 样式 | 打开设置（进入任一节），看「归档会话图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-299 | S-shell-38 | 状态 | 把鼠标在「归档会话图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-300 | S-shell-38 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「归档会话图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-301 | S-shell-38 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「归档会话图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-302 | S-shell-38 | 异常 | 把「归档会话图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-303 | S-shell-38 | 关联 | 在「归档会话图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-304 | S-shell-38 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「归档会话图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-297 | S-shell-38 | 内容 | 归档会话项内 | Archive 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-38→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-298 | S-shell-38 | 样式 | 打开设置（进入任一节），看「归档会话图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-38→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-299 | S-shell-38 | 状态 | 把鼠标在「归档会话图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-38→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-300 | S-shell-38 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「归档会话图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-38→internal/ui/settings.go:App.navRow |
+| R-SHL-301 | S-shell-38 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「归档会话图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-38→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-302 | S-shell-38 | 异常 | 把「归档会话图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-38→internal/ui/settings.go:App.navRow |
+| R-SHL-303 | S-shell-38 | 关联 | 在「归档会话图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-38→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-304 | S-shell-38 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「归档会话图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-38→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-SHL-305 | S-shell-39 | 内容 | 侧栏第 19 项（末项） | 「关于」，y=735 | — | 屏上「关于」的文案逐字为「关于」（2 字）；且y = 735 | 已实现（逐字）：internal/ui/settings_sections.go:settingsSectionDefs「关于」 |
-| R-SHL-306 | S-shell-39 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「关于」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-307 | S-shell-39 | 交互 | 用鼠标左键单击「关于」 | 切到关于节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-308 | S-shell-39 | 样式 | 打开设置（进入任一节），滚动到 y≈735 处的「关于」 | 209×35；其下为侧栏底部空白 | — | 屏上「关于」：宽×高 = 209×35 | 未实现（找不到元素渲染点） |
-| R-SHL-309 | S-shell-39 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「关于」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-310 | S-shell-39 | 键盘 | 打开设置（进入任一节），滚动到 y≈735 处的「关于」 | 到达最后一项后焦点离开侧栏 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-SHL-311 | S-shell-39 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进壳层，滚动到 y≈735 处的「关于」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-312 | S-shell-39 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈735 处的「关于」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-SHL-306 | S-shell-39 | 状态 | 先切到设置›关于让本节卸载，再切回壳层，看「关于」 | 可点 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-shell-39→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-307 | S-shell-39 | 交互 | 用鼠标左键单击「关于」 | 切到关于节 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-39→internal/ui/settings.go:App.navRow；标记 = Pressed） |
+| R-SHL-308 | S-shell-39 | 样式 | 打开设置（进入任一节），滚动到 y≈735 处的「关于」 | 209×35；其下为侧栏底部空白 | — | 屏上「关于」：宽×高 = 209×35 | 已实现（映射 = S-shell-39→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-309 | S-shell-39 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「关于」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-39→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-310 | S-shell-39 | 键盘 | 打开设置（进入任一节），滚动到 y≈735 处的「关于」 | 到达最后一项后焦点离开侧栏 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-39→internal/ui/settings.go:App.navRow |
+| R-SHL-311 | S-shell-39 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进壳层，滚动到 y≈735 处的「关于」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-39→internal/ui/settings.go:App.navRow |
+| R-SHL-312 | S-shell-39 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈735 处的「关于」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-39→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-313 | S-shell-40 | 内容 | 打开设置（进入任一节），看「关于图标」 | Info 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-314 | S-shell-40 | 样式 | 打开设置（进入任一节），看「关于图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-315 | S-shell-40 | 状态 | 把鼠标在「关于图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-SHL-316 | S-shell-40 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「关于图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-317 | S-shell-40 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「关于图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-318 | S-shell-40 | 异常 | 把「关于图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-319 | S-shell-40 | 关联 | 在「关于图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 未实现（找不到元素渲染点） |
-| R-SHL-320 | S-shell-40 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「关于图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-313 | S-shell-40 | 内容 | 打开设置（进入任一节），看「关于图标」 | Info 图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-40→internal/ui/settings.go:App.navRow；标记 = 文案「图标：」@iconGlyph） |
+| R-SHL-314 | S-shell-40 | 样式 | 打开设置（进入任一节），看「关于图标」 | 16 px | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-40→internal/ui/settings.go:App.navRow；标记 = Height） |
+| R-SHL-315 | S-shell-40 | 状态 | 把鼠标在「关于图标」上划过使该项高亮 | 升前景 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-40→internal/ui/settings.go:App.navRow；标记 = Hidden@iconGlyph） |
+| R-SHL-316 | S-shell-40 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「关于图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-40→internal/ui/settings.go:App.navRow |
+| R-SHL-317 | S-shell-40 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「关于图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-40→internal/ui/settings.go:App.navRow；标记 = Label） |
+| R-SHL-318 | S-shell-40 | 异常 | 把「关于图标」的图标或字体资源临时移除后重进壳层 | 文字左移 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-40→internal/ui/settings.go:App.navRow |
+| R-SHL-319 | S-shell-40 | 关联 | 在「关于图标」所在行内，同时看它与文字的相对位置 | 间距 8 | — | 间距 8 | 已实现（映射 = S-shell-40→internal/ui/settings.go:App.navRow；标记 = Section） |
+| R-SHL-320 | S-shell-40 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「关于图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-shell-40→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 ### 20.2 窄屏返回
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-321 | S-shell-41 | 状态 | 窄屏且显示详情 | 工具栏出现返回图标按钮，取代侧栏 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-321 | S-shell-41 | 状态 | 窄屏且显示详情 | 工具栏出现返回图标按钮，取代侧栏 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-shell-41→internal/ui/settings.go:App.settingsNavCompact |
 | R-SHL-322 | S-shell-41 | 状态 | 非窄屏（运行时现状） | 不渲染 | — | 屏上「返回」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-323 | S-shell-41 | 交互 | 用鼠标左键单击「返回」 | 回到节列表（窄屏列表态） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-324 | S-shell-41 | 样式 | 打开设置（进入任一节），看「返回」 | 32×32，位于工具栏左 | — | 屏上「返回」：宽×高 = 32×32 | 未实现（找不到元素渲染点） |
-| R-SHL-325 | S-shell-41 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回」听播报 | 播报「返回列表，按钮」 | — | 屏上「返回」的文案逐字为「返回列表，按钮」（7 字） | 未实现（找不到元素渲染点） |
-| R-SHL-326 | S-shell-41 | 键盘 | 把 Tab 焦点移到「返回」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-SHL-323 | S-shell-41 | 交互 | 用鼠标左键单击「返回」 | 回到节列表（窄屏列表态） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-shell-41→internal/ui/settings.go:App.settingsNavCompact |
+| R-SHL-324 | S-shell-41 | 样式 | 打开设置（进入任一节），看「返回」 | 32×32，位于工具栏左 | — | 屏上「返回」：宽×高 = 32×32 | 已实现（映射 = S-shell-41→internal/ui/settings.go:App.settingsNavCompact；标记 = Padding） |
+| R-SHL-325 | S-shell-41 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回」听播报 | 播报「返回列表，按钮」 | — | 屏上「返回」的文案逐字为「返回列表，按钮」（7 字） | 已实现（映射 = S-shell-41→internal/ui/settings.go:App.settingsNavCompact；标记 = Label） |
+| R-SHL-326 | S-shell-41 | 键盘 | 把 Tab 焦点移到「返回」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-41→internal/ui/settings.go:App.settingsNavCompact |
 | R-SHL-327 | S-shell-41 | 异常 | 无选中节 | 不渲染 | — | 屏上「返回」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-328 | S-shell-41 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-SHL-328 | S-shell-41 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回」 | 可辨 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-shell-41→internal/ui/settings.go:App.settingsNavCompact |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-SHL-329 | S-shell-42 | 内容 | 窄屏返回按钮内 | 左箭头图标，16 px | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-SHL-329 | S-shell-42 | 内容 | 窄屏返回按钮内 | 左箭头图标，16 px | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-42→internal/ui/settings.go:App.settingsNavCompact；标记 = 文案「返回主界面」等 2 条） |
 | R-SHL-330 | S-shell-42 | 状态 | 打开设置（进入任一节），看「返回图标」 | 不渲染 | — | 屏上「返回图标」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-SHL-331 | S-shell-42 | 样式 | 打开设置（进入任一节），看「返回图标」 | 与按钮同尺寸，居中 | — | 判据 = 屏上「返回图标」：水平对齐 = 居中；宽高 = 16×16 盒或行档高 × 内容宽（BO-ICON-16 / BO-BOX-RULE），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SHL-332 | S-shell-42 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「返回图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-SHL-333 | S-shell-42 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-SHL-334 | S-shell-42 | 异常 | 把「返回图标」的图标或字体资源临时移除后重进壳层 | 按钮保留命中区 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-SHL-335 | S-shell-42 | 关联 | 在「返回图标」所在行内，同时看它与点击的相对位置 | 命中按钮 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-SHL-336 | S-shell-42 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-SHL-331 | S-shell-42 | 样式 | 打开设置（进入任一节），看「返回图标」 | 与按钮同尺寸，居中 | — | 判据 = 屏上「返回图标」：水平对齐 = 居中；宽高 = 16×16 盒或行档高 × 内容宽（BO-ICON-16 / BO-BOX-RULE），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-shell-42→internal/ui/settings.go:App.settingsNavCompact；标记 = Padding） |
+| R-SHL-332 | S-shell-42 | 高DPI | 在 2× 屏截 2060×1450 原图并放大到 200%，看「返回图标」的边缘 | 清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-shell-42→internal/ui/settings.go:App.settingsNavCompact |
+| R-SHL-333 | S-shell-42 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「返回图标」听播报 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-42→internal/ui/settings.go:App.settingsNavCompact；标记 = Label） |
+| R-SHL-334 | S-shell-42 | 异常 | 把「返回图标」的图标或字体资源临时移除后重进壳层 | 按钮保留命中区 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-shell-42→internal/ui/settings.go:App.settingsNavCompact |
+| R-SHL-335 | S-shell-42 | 关联 | 在「返回图标」所在行内，同时看它与点击的相对位置 | 命中按钮 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-shell-42→internal/ui/settings.go:App.settingsNavCompact；标记 = Section） |
+| R-SHL-336 | S-shell-42 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），看「返回图标」 | 可辨 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（映射到位但没有该维度的标记）：S-shell-42→internal/ui/settings.go:App.settingsNavCompact |
 
 ## 21. 全量合计与门禁自查
 

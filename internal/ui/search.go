@@ -861,6 +861,7 @@ func (a *App) sessionSearchOverlay(c *gui.Context) {
 		// 点击浮层外关闭（A1-01 的 R-GS-002）：透明的一层，接住指针但不画东西。
 		gui.Box(c).Absolute().Fill().AccessHidden(true).OnClick(a.closeSessionSearch)
 
+		// TB-06 消息内搜索浮层容器
 		box := gui.Column(c).Absolute().Left(x).Top(sessionSearchTop).Width(width).
 			Background(colorFloat.in(t)).Border(strokeHairline, t.Border).
 			Radius(radiusCard).Shadow(0, 6, 18, 0, colorShadow.in(t)).
@@ -895,6 +896,7 @@ func (a *App) sessionSearchInputRow(c *gui.Context) {
 		})
 		// 输入框以 textbox 语义暴露，名称取 Label（不是 placeholder）；Label 只作
 		// 可读名，不进可见文本（R-GS-042、R-GS-044）。
+		// TB-07 搜索聊天...
 		input := gui.TextInputBase(c, &s.query).
 			Placeholder(sessionSearchPlaceholder).Label(sessionSearchLabel).Grow(1).
 			FontSize(typeBody.sizeIn(t)).TextColor(t.Text).
@@ -910,6 +912,7 @@ func (a *App) sessionSearchInputRow(c *gui.Context) {
 		}
 		// 关闭键 28px 热区，查询为空时也常驻可用（R-GS-051、R-GS-053）。
 		if iconButton(c, iconButtonSpec{
+			// TB-08 关闭搜索
 			icon: iconXMark, label: "关闭搜索", tip: "关闭搜索 · Esc", size: rowRegular,
 		}) {
 			a.closeSessionSearch()
@@ -928,12 +931,14 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 		// 前后箭头同尺寸同层级，只有图标朝向不同（R-GS-074）。
 		disabled := len(s.hits) == 0
 		if iconButton(c, iconButtonSpec{
+			// TB-09 上一个搜索结果
 			icon: iconChevronUp, label: "上一个搜索结果",
 			tip: "上一个搜索结果 · Shift+Enter", size: rowRegular, disabled: disabled,
 		}) {
 			a.moveSessionSearchHit(-1)
 		}
 		if iconButton(c, iconButtonSpec{
+			// TB-10 下一个搜索结果
 			icon: iconChevronDown, label: "下一个搜索结果",
 			tip: "下一个搜索结果 · Enter", size: rowRegular, disabled: disabled,
 		}) {
@@ -955,6 +960,7 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 			typeMicro.style(t, gui.Text(c, partialHistoryNote)).TextColor(t.TextMuted).
 				Label(partialHistoryNote).SingleLine()
 		}
+		// TB-11 / TB-12 结果计数（0 个结果 / {current} / {total} 个结果）
 		count := "0 个结果"
 		if n := len(s.hits); n > 0 {
 			count = fmt.Sprintf("%d / %d 个结果", s.current+1, n)

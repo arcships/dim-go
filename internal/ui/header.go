@@ -60,11 +60,14 @@ func (a *App) header(c *gui.Context) {
 		narrow := narrowWindow(c)
 		if !narrow {
 			typeSecondary.style(t, gui.Text(c, a.workspaceTitle())).
+				// TB-17 工作区名
 				TextColor(t.TextMuted).SingleLine().Label("工作区 " + a.workspaceTitle())
 			// 斜杠只是视觉分隔，不进读屏顺序（R-TB-153）。
+			// TB-18 斜杠分隔（视觉分隔，不进读屏）
 			typeSecondary.style(t, gui.Text(c, "/")).TextColor(t.TextMuted).
 				AccessHidden(true)
 		}
+		// TB-19 会话名
 		title := typeTitleRow.style(t, gui.Text(c, name)).SingleLine().Label("会话 " + name)
 		if narrow {
 			title = title.MaxWidth(narrowTitleMaxWidth)
@@ -81,6 +84,7 @@ func (a *App) header(c *gui.Context) {
 		}
 		gui.Spacer(c)
 		a.openWithGroup(c)
+		// TB-38 竖分隔线
 		hairlineBox(c, false, "分隔线").Height(space4)
 		a.panelToggle(c)
 	})
@@ -113,8 +117,10 @@ func (a *App) workspaceTitle() string {
 
 // panelToggle 是标题栏右端的面板开关：开时显示关闭形，关时显示打开形。
 func (a *App) panelToggle(c *gui.Context) {
+	// TB-03 / TB-39 上下文档板开关（打开形）
 	icon, label := iconPanelRight, "打开上下文面板"
 	if a.rightOpen {
+		// TB-04 / TB-40 上下文档板开关（关闭形）
 		icon, label = iconPanelClose, "关闭上下文面板"
 	}
 	if iconButton(c, iconButtonSpec{icon: icon, label: label, tip: label, size: rowRegular}) {
@@ -412,6 +418,7 @@ func (a *App) openWithGroup(c *gui.Context) {
 	}
 	gui.Row(c).Height(rowRegular).Radius(radius).Border(strokeHairline, t.Border).
 		Background(t.Surface).AlignItems(gui.Center).Children(func() {
+		// TB-31 主按钮「{打开方式}」
 		main := gui.ButtonBase(c).Width(composerToolSize).Height(space6).Radius(radius).
 			Label(label).Tooltip(label).Cursor(gui.CursorPointer).Disabled(live)
 		if live {
@@ -440,6 +447,7 @@ func (a *App) openWithMenu(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.openWithOpen)
 	tr := m.Trigger.Width(space6 - space1).Height(space6).Radius(radius).
+		// TB-32 更多打开方式
 		Label("更多打开方式").Tooltip("更多打开方式").Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)
@@ -455,12 +463,15 @@ func (a *App) openWithMenu(c *gui.Context) {
 			menuItem(c, m, nil, "没有可用的外部应用", "没有可用的外部应用",
 				noteOpenWith, true, false)
 		case a.openWithLoading:
+			// TB-33 正在检测已安装应用…
 			menuItem(c, m, nil, "正在检测已安装应用…", "正在检测已安装应用", "", true, false)
 		case len(openWithApps()) == 0:
+			// TB-34 未检测到可用应用
 			menuItem(c, m, nil, "未检测到可用应用", "未检测到可用应用", "", true, false)
 		default:
 			for _, app := range openWithApps() {
 				app := app
+				// TB-35 应用名菜单项
 				if menuItem(c, m, openWithIcon(app.name), app.label, app.label, "", false, false) {
 					a.openWithApp = app.name
 					a.headerNote = "正在用 " + app.name + " 打开"
@@ -474,10 +485,12 @@ func (a *App) openWithMenu(c *gui.Context) {
 		if a.wired() {
 			finderNote, defaultNote = noteOpenWith, noteOpenWith
 		}
+		// TB-36 在文件夹中显示
 		if menuItem(c, m, iconFolderOpen, "在 Finder 中显示", "在 Finder 中显示",
 			finderNote, finderNote != "", false) {
 			a.headerNote = "已在 Finder 中显示"
 		}
+		// TB-37 用系统默认方式打开
 		if menuItem(c, m, iconExternal, "用系统默认方式打开", "用系统默认方式打开",
 			defaultNote, defaultNote != "", false) {
 			a.headerNote = "正在用系统默认方式打开"

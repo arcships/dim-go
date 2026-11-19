@@ -46,16 +46,19 @@ func (a *App) tasksPanel(c *gui.Context) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Row(c).Height(rightPanelTabHeight).Shrink(0).
 			Padding(space1, panelPad).AlignItems(gui.Center).Children(func() {
+			// K-02 子标签「后台进程」/「唤醒」
 			gui.Tabs(c, &a.panels.taskKind, "后台进程", "唤醒").Label("任务类型")
 		})
 		items, live := a.sessionTasks()
 		if a.panels.taskKind == 1 {
 			// 唤醒：Go 侧还没有唤醒事实（Source 的会话快照不含它），
 			// 因此只呈现空态与原因（K-19、DEC-16）。
+			// K-19 唤醒页的空态与原因
 			panelEmpty(c, "暂无待唤醒事项（"+noteSchedule+"）")
 			return
 		}
 		if len(items) == 0 {
+			// K-03 后台进程的空态
 			panelEmpty(c, "暂无运行进程")
 			return
 		}
@@ -95,6 +98,7 @@ func (a *App) taskRow(c *gui.Context, item task, index int, live bool) {
 		row = row.Background(th.SurfaceHover)
 	}
 	row.Children(func() {
+		// K-04 行主按钮（状态图标 + 标题）
 		main := gui.ButtonBase(c).Grow(1).Height(rowRegular).Padding(space1, space1).
 			Radius(radiusSmall).Gap(space2).AlignItems(gui.Center).
 			Role(gui.RoleListItem).AccessSelected(selected).
@@ -104,7 +108,9 @@ func (a *App) taskRow(c *gui.Context, item task, index int, live bool) {
 			a.panels.taskArmed = -1
 		}
 		main.Children(func() {
+			// K-05 / K-06 行首状态图标（运行 / 完成 / 失败）
 			iconGlyph(c, icon, color, "task")
+			// K-07 任务标题
 			typeSecondaryStrong.style(th, gui.Text(c, item.name)).TextColor(th.Text).
 				Grow(1).SingleLine()
 		})
@@ -144,7 +150,9 @@ func (a *App) taskDetail(c *gui.Context, item task) {
 	gui.Scroll(c).Grow(1).Children(func() {
 		gui.Column(c).Padding(panelPad).Gap(panelGap).Children(func() {
 			gui.Row(c).Shrink(0).Gap(space2).AlignItems(gui.Center).Children(func() {
+				// K-17 详情头的状态图标
 				iconGlyph(c, icon, color, "task")
+				// K-17 详情头的状态词
 				typeSecondaryStrong.style(th, gui.Text(c, state)).TextColor(th.Text).
 					Grow(1).SingleLine()
 				if item.name != "" {
@@ -171,8 +179,10 @@ func (a *App) taskOutput(c *gui.Context) {
 	th := c.Theme()
 	gui.Column(c).Shrink(0).MinHeight(panelOutputMinHeight).Grow(1).
 		Padding(space2, panelPad).Radius(radius).Background(termCanvasBg).
+		// K-30 只读输出框
 		Label("后台输出").Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
+			// K-31 没有输出时的说明行
 			typeCode.style(th, gui.Text(c, termEmptyText)).TextColor(termCanvasMuted).
 				Selectable().MaxLines(1)
 		})

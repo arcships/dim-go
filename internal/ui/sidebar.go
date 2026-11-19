@@ -486,6 +486,7 @@ func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
 			a.sidebarNote(c, "暂无会话", true)
 			return
 		}
+		// LB-62 日期分组标题
 		a.sidebarHeading(c, "今天")
 		for _, thread := range threads {
 			a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
@@ -512,6 +513,7 @@ func (a *App) sidebarNote(c *gui.Context, text string, indented bool) {
 //
 // 行右键与行内「更多」是同一份菜单（LB-107–112）：置顶 / 重命名 / 在新窗口中
 // 打开 / 导出 / 归档 / 删除。
+// LB-61 平铺视图里的会话行
 func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) {
 	t := c.Theme()
 	if a.renaming == index {
@@ -758,16 +760,19 @@ func (a *App) logoutConfirmRow(c *gui.Context) {
 			iconGlyph(c, iconWarn, t.Warning, "warning")
 			typeSecondary.style(t, gui.Text(c, "退出 Dim？")).TextColor(t.Text).Grow(1).SingleLine()
 		})
+		// LB-102 退出登录对话框描述
 		typeMicro.style(t, gui.Text(c, "退出后，需要重新登录才能使用 Dim 账户。")).
 			TextColor(t.TextMuted).MaxLines(2)
 		gui.Row(c).Gap(space2).Children(func() {
 			gui.Spacer(c)
+			// LB-104 退出登录（危险主按钮）
 			if actionButton(c, "退出登录", "确认退出登录", true, false).Clicked() {
 				a.logoutConfirm = false
 				a.dispatch("退出登录", func(ctx context.Context) error {
 					return a.intents.Logout(ctx)
 				}, nil)
 			}
+			// LB-103 取消
 			if actionButton(c, "取消", "取消退出登录", false, false).Clicked() {
 				a.logoutConfirm = false
 			}
@@ -942,6 +947,7 @@ func (a *App) sidebarRail(c *gui.Context) {
 		Role(gui.RoleButton).Focusable().TabStop(true).
 		OnClick(func() {
 			if narrowWindow(c) {
+				// TB-02 展开侧边栏（收起后的边条）
 				a.narrowDrawer = true
 				return
 			}

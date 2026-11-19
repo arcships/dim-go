@@ -234,13 +234,16 @@ func (a *App) configFormPanel(c *gui.Context, data configView) {
 			gui.Column(c).Shrink(0).Gap(configFormFieldGapV).Children(func() {
 				typeH3.style(t, gui.Text(c, form.title())).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(3).SingleLine()
+				// S-configuration-66 名称
 				configFormField(c, &form.name, "名称", "我的自定义提供商", form.nameErr, false)
+				// S-configuration-67 基础 URL
 				configFormField(c, &form.baseURL, "基础 URL", "https://api.example.com/v1",
 					form.baseURLErr, false)
 				apiKeyPlaceholder := "sk-..."
 				if form.editing {
 					apiKeyPlaceholder = "留空则不改动已保存的密钥"
 				}
+				// S-configuration-68 API 密钥
 				configFormField(c, &form.apiKey, "API 密钥", apiKeyPlaceholder,
 					form.apiKeyErr, true)
 				a.configFormModels(c, data, form)
@@ -282,6 +285,7 @@ func (a *App) configFormModels(c *gui.Context, data configView, form *configForm
 			if form.editing {
 				return
 			}
+			// S-configuration-71 添加模型
 			if screenAction(c, iconPlus, "plus", "添加模型", rowRegular) {
 				form.models = append(form.models, "")
 			}
@@ -292,6 +296,7 @@ func (a *App) configFormModels(c *gui.Context, data configView, form *configForm
 		}
 		configMicroStyle.style(t, gui.Text(c, hint)).TextColor(t.TextMuted).MaxLines(2)
 		if len(form.models) == 0 {
+			// S-configuration-75 还没有模型
 			configMicroStyle.style(t, gui.Text(c, "还没有模型。可以手动添加，也可以留空。")).
 				TextColor(t.TextMuted).MaxLines(2)
 		}
@@ -331,14 +336,17 @@ func configFormModelRow(c *gui.Context, form *configForm, index int, editable bo
 // 动作上方（S-configuration-48 的 formError）。
 func (a *App) configFormFooter(c *gui.Context, data configView, form *configForm) {
 	t := c.Theme()
+	// S-configuration-76 formError 行
 	if form.formErr != "" {
 		configRowStyle.style(t, gui.Text(c, form.formErr)).TextColor(t.Danger).
 			Role(gui.RoleAlert).MaxLines(3)
 	}
 	gui.Row(c).Shrink(0).Justify(gui.End).Gap(configGapRow).Children(func() {
+		// S-configuration-77 取消
 		if screenButton(c, "取消", form.title()+"：取消", "", false, rowRegular) {
 			configFormClose()
 		}
+		// S-configuration-77 保存
 		save := gui.PrimaryButton(c, "保存").Label("保存").Height(rowRegular).
 			Disabled(form.saving)
 		if save.Clicked() {

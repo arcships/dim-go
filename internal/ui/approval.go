@@ -169,8 +169,10 @@ func (a *App) approvalCard(c *gui.Context) {
 	if !ok {
 		return
 	}
+	// IN-43 / IN-66 / G-C1-01 审批卡容器
 	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).Padding(space4).
 		Gap(space3).Background(t.Surface).Border(strokeHairline, t.Border).
+		// G-C2-01 沙箱卡容器（与审批卡同一骨架）
 		Radius(radiusWindowCard).Role(gui.RoleRegion).Label("审批卡").Children(func() {
 		switch {
 		case snap.Sandbox != nil:
@@ -187,6 +189,7 @@ func (a *App) approvalCard(c *gui.Context) {
 // 决定按钮。
 func (a *App) toolApprovalBody(c *gui.Context, snap ApprovalSnapshot) {
 	t := c.Theme()
+	// IN-67 / G-C1-02 标题「DimAgent 想要：{action}」
 	typeBodyStrong.style(t, gui.Text(c, approvalTitle(snap))).
 		FontWeight(600).SingleLine()
 	if snap.Member != nil {
@@ -197,8 +200,10 @@ func (a *App) toolApprovalBody(c *gui.Context, snap ApprovalSnapshot) {
 		tool, input, hasInput := approvalFacts(snap)
 		switch {
 		case hasInput:
+			// IN-69 / G-C1-13 审批输入区（按工具类型挑面板）
 			approvalInputPanel(c, approvalPanelFor(tool, input))
 		case tool == "":
+			// G-C1-08 / G-C1-09 读不到原始操作时的原因句
 			typeMicro.style(t, gui.Text(c, noteApprovalCommand)).TextColor(t.TextMuted)
 			typeMicro.style(t, gui.Text(c, noteApprovalBlocked)).TextColor(t.TextMuted)
 		default:
@@ -216,6 +221,7 @@ func (a *App) toolApprovalBody(c *gui.Context, snap ApprovalSnapshot) {
 // approvalTitle 是工具权限卡的标题：成员请求读成员标题，其余读「{动作}」。
 func approvalTitle(snap ApprovalSnapshot) string {
 	if snap.Member != nil {
+		// G-C1-05 成员审批的标题几种状态
 		switch snap.Member.State {
 		case ApprovalMemberLoading:
 			return approvalCopyMemberLoading
@@ -226,6 +232,7 @@ func approvalTitle(snap ApprovalSnapshot) string {
 		}
 	}
 	_, input, _ := approvalFacts(snap)
+	// G-C1-03 认不出工具时的动作词「使用工具」
 	return approvalWantPrefix + approvalActionWord(snap.Tool, input)
 }
 
@@ -323,15 +330,18 @@ func approvalActionWord(tool string, input map[string]any) string {
 // 成员标识、主分支、错误/不可用说明、审批 ID、原因，失败时还有「重试」。
 func (a *App) memberApprovalBlock(c *gui.Context, member ApprovalMemberSnapshot) {
 	t := c.Theme()
+	// IN-68 / G-C1-04 成员审批上下文块
 	gui.Column(c).WidthPercent(100).Padding(space3).Gap(space1).
 		Background(colorSurfaceHover.in(t)).Radius(radiusCard).
 		Border(strokeHairline, t.Border).Label("成员审批").Children(func() {
 		gui.Column(c).Gap(0).Children(func() {
 			if member.AgentID != "" || member.BranchID != "" {
+				// G-C1-06 成员标识行
 				typeSecondary.style(t, gui.Text(c, memberLabel(member))).
 					TextColor(t.TextMuted).SingleLine()
 			}
 			if member.LeaderBranchID != "" {
+				// G-C1-07 主分支行
 				typeSecondary.style(t, gui.Text(c, "主分支 "+member.LeaderBranchID)).
 					TextColor(t.TextMuted).SingleLine()
 			}
@@ -343,16 +353,19 @@ func (a *App) memberApprovalBlock(c *gui.Context, member ApprovalMemberSnapshot)
 					TextColor(t.TextMuted)
 			case ApprovalMemberReady:
 				if member.Reason != "" {
+					// G-C1-11 审批原因
 					typeSecondary.style(t, gui.Text(c, member.Reason)).TextColor(t.TextMuted)
 				}
 			}
 			if member.State == ApprovalMemberUnavailable && member.ApprovalID != "" {
 				// 审批 ID 是等宽、UI 正文一档的次要色（参考产品 font-mono text-xs）。
+				// G-C1-10 审批 ID（等宽）
 				typeSecondary.style(t, gui.Text(c, approvalCopyMemberIDPrefix+member.ApprovalID)).
 					Font(codeFamily()).TextColor(t.TextMuted)
 			}
 			if member.State == ApprovalMemberError && member.CanRetry {
 				label := approvalCopyMemberRetry + "（重新读取成员操作）"
+				// G-C1-12 重新读取成员操作（重试）
 				if actionButton(c, approvalCopyMemberRetry, label, false, false).Clicked() {
 					a.retryMemberApproval()
 				}
@@ -386,6 +399,7 @@ func (a *App) handoffBlock(c *gui.Context, handoff *ApprovalHandoffSnapshot) {
 		return
 	}
 	t := c.Theme()
+	// IN-77 / G-C1-14 / G-C1-15 自动审批交回人工的提示块
 	gui.Column(c).WidthPercent(100).Padding(space3).Gap(space1).
 		Background(colorSurfaceHover.in(t)).Radius(radiusCard).Label("自动审批提示").
 		Children(func() {
@@ -403,11 +417,13 @@ func (a *App) handoffBlock(c *gui.Context, handoff *ApprovalHandoffSnapshot) {
 
 // approvalErrorLine 是卡片自己的失败回执：一行危险色文字，位于按钮行上方；
 // 同一位置只留最近一次原因。
+// G-C2-05 / G-C3-07 提交失败的错误行
 func (a *App) approvalErrorLine(c *gui.Context, snap ApprovalSnapshot) {
 	if a.approvalError == "" || a.approvalErrorFor != snap.ID {
 		return
 	}
 	t := c.Theme()
+	// IN-78 / G-C1-16 卡片自己的失败回执
 	typeSecondary.style(t, gui.Text(c, a.approvalError)).TextColor(t.Danger).
 		Role(gui.RoleAlert).Label(a.approvalError)
 }
@@ -416,6 +432,7 @@ func (a *App) approvalErrorLine(c *gui.Context, snap ApprovalSnapshot) {
 // 顺序一致。答复进行中或请求不可答时整组置灰。
 func (a *App) approvalActions(c *gui.Context, snap ApprovalSnapshot) {
 	busy := a.approvalBusy(snap)
+	// IN-74 / G-C1-17 决定按钮组
 	gui.Row(c).WidthPercent(100).Gap(space2).AlignItems(gui.Center).Wrap().Children(func() {
 		gui.Spacer(c)
 		for _, action := range approvalActionsFor(snap) {
@@ -429,6 +446,7 @@ func (a *App) approvalActions(c *gui.Context, snap ApprovalSnapshot) {
 			if action.tip != "" {
 				button = button.Tooltip(action.tip)
 			}
+			// G-C1-21 答复进行中整组置灰
 			if busy || action.disabled {
 				button = button.Disabled(true)
 			}
@@ -454,30 +472,37 @@ type approvalAction struct {
 func approvalActionsFor(snap ApprovalSnapshot) []approvalAction {
 	rejectCopy := approvalCopyReject
 	if snap.Sandbox != nil {
+		// G-C2-06 「不允许」
 		rejectCopy = approvalCopyDontAllow
 	}
+	// G-C1-19 「拒绝」/「不允许」
 	actions := []approvalAction{{
 		copy: rejectCopy, decision: "deny", tip: approvalTipReject,
 	}}
 	switch {
 	case snap.Sandbox != nil:
+		// G-C2-07 「仅这次」
 		actions = append(actions, approvalAction{
 			copy: approvalCopyAllowOnce, decision: "allow", primary: true,
 			tip: approvalTipAllowOnce,
 		})
 		actions = append(actions, approvalAction{
 			copy: approvalSandboxLongTermCopy(snap.Sandbox), decision: "allow-always",
+			// G-C2-08 始终允许网络访问 / 始终允许文件访问
 			disabled: !snap.LongTerm,
 		})
 		return actions
 	case snap.SubagentModel != nil:
 		return []approvalAction{
+			// G-C3-08 使用当前模型
 			{copy: approvalCopySubagentReject, decision: "deny"},
+			// G-C3-09 本会话允许
 			{copy: approvalCopySubagentAllow, decision: "allow", primary: true},
 		}
 	case snap.Member != nil:
 		return actions
 	}
+	// G-C1-18 「仅这次」
 	actions = append(actions, approvalAction{
 		copy: approvalCopyAllowOnce, decision: "allow", primary: true, tip: approvalTipAllowOnce,
 	})
@@ -489,6 +514,7 @@ func approvalActionsFor(snap ApprovalSnapshot) []approvalAction {
 
 // approvalLongTermCopy 是长期允许按钮的文案：命令工具是「始终允许此命令」，
 // 读写文件是「允许此会话期间访问」，其余工具是「始终允许文件访问」。
+// G-C1-20 长期允许按钮的三句文案
 func approvalLongTermCopy(snap ApprovalSnapshot) string {
 	if snap.Sandbox != nil {
 		return approvalSandboxLongTermCopy(snap.Sandbox)
@@ -506,6 +532,7 @@ func approvalLongTermCopy(snap ApprovalSnapshot) string {
 }
 
 // approvalSandboxLongTermCopy 是沙箱卡长期允许的文案：域名与文件各一句。
+// G-C2-08 沙箱长期允许的两句文案
 func approvalSandboxLongTermCopy(sandbox *ApprovalSandboxSnapshot) string {
 	if sandbox.ResourceType == "path" {
 		return approvalCopyAlwaysFile
@@ -543,13 +570,17 @@ func (a *App) respondApproval(decision string) {
 
 // sandboxApprovalBody 是沙箱越权卡的主体：拦截标题、被拦资源、说明、错误行、
 // 决定按钮。协议 v3 没有这种请求，连接层不会填；画法按参考产品。
+// IN-75 沙箱拦截卡
 func (a *App) sandboxApprovalBody(c *gui.Context, snap ApprovalSnapshot) {
 	t := c.Theme()
 	sandbox := snap.Sandbox
+	// G-C2-02 网络访问已拦截 / 文件读取已拦截 / 文件写入已拦截 / 文件执行已拦截
 	typeBodyStrong.style(t, gui.Text(c, sandboxTitle(sandbox))).FontWeight(600).SingleLine()
 	if strings.TrimSpace(sandbox.Resource) != "" {
+		// G-C2-03 被拦的域名或路径
 		typeCode.style(t, gui.Text(c, sandbox.Resource)).TextColor(t.Text)
 	}
+	// G-C2-04 {tool} 需要访问该域名 / 需要读取该路径
 	typeSecondary.style(t, gui.Text(c, sandboxMessage(sandbox))).TextColor(t.TextMuted)
 	a.approvalErrorLine(c, snap)
 	a.approvalActions(c, snap)
@@ -572,6 +603,7 @@ func sandboxTitle(sandbox *ApprovalSandboxSnapshot) string {
 }
 
 // sandboxMessage 是沙箱卡的说明句：有工具名时带上工具名，没有就不留空主语。
+// G-C2-04 沙箱说明句的四种写法
 func sandboxMessage(sandbox *ApprovalSandboxSnapshot) string {
 	message := approvalCopySandboxFallbackMessage
 	if sandbox.ResourceType != "path" {
@@ -595,17 +627,22 @@ func sandboxMessage(sandbox *ApprovalSandboxSnapshot) string {
 
 // subagentModelBody 是子代理模型卡的主体：标题、任务行、模型块、价格标记、回退
 // 说明、错误行、决定按钮。协议 v3 没有这种请求，连接层不会填；画法按参考产品。
+// IN-76 子代理模型卡
+// G-C3-01 子代理模型卡容器
 func (a *App) subagentModelBody(c *gui.Context, snap ApprovalSnapshot) {
 	t := c.Theme()
 	model := snap.SubagentModel
+	// G-C3-02 「DimAgent 想要为子任务使用更贵的模型」
 	typeBodyStrong.style(t, gui.Text(c, approvalCopySubagentTitle)).
 		FontWeight(600).SingleLine()
 	if strings.TrimSpace(model.TaskTitle) != "" {
+		// G-C3-03 「子任务 · {taskTitle}」
 		typeSecondary.style(t, gui.Text(c, approvalCopySubagentTask+" · "+model.TaskTitle)).
 			TextColor(t.TextMuted).SingleLine()
 	}
 	gui.Row(c).WidthPercent(100).Padding(space3).Gap(space2).AlignItems(gui.Center).
 		Background(colorSurfaceHover.in(t)).Radius(radiusCard).
+		// G-C3-04 模型块（图标 + 模型名 + 提供方）
 		Border(strokeHairline, t.Border).Label("模型").Children(func() {
 		iconGlyph(c, iconSparkles, colorAccentInk.in(t), "model")
 		gui.Column(c).Grow(1).Shrink(1).Gap(0).Children(func() {
@@ -616,6 +653,7 @@ func (a *App) subagentModelBody(c *gui.Context, snap ApprovalSnapshot) {
 				typeMicro.style(t, gui.Text(c, model.ProviderName)).TextColor(t.TextMuted).SingleLine()
 			}
 		})
+		// G-C3-05 「价格高于当前模型」
 		if model.Pricier {
 			typeMicro.style(t, gui.Text(c, approvalCopySubagentPricier)).TextColor(t.Warning)
 		}
@@ -627,6 +665,7 @@ func (a *App) subagentModelBody(c *gui.Context, snap ApprovalSnapshot) {
 
 // subagentFallbackCopy 是回退说明：有当前模型名时带上名字，没有就退成整句，
 // 不留空占位。
+// G-C3-06 拒绝时子任务将使用当前模型 {model} 继续
 func subagentFallbackCopy(model *ApprovalSubagentModelSnapshot) string {
 	if strings.TrimSpace(model.FallbackModel) == "" {
 		return "拒绝时子任务将继续使用当前模型"

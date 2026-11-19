@@ -77,6 +77,7 @@ func (a *App) settingsNavCompact(c *gui.Context) {
 	pick := current.label
 	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space1).
 		AlignItems(gui.Center).Children(func() {
+		// S-shell-41 / S-shell-42 返回（窄窗导航）
 		if iconButton(c, iconButtonSpec{icon: iconChevronL, label: "返回主界面", size: rowCompact}) {
 			a.screen = ScreenMain
 		}
@@ -157,6 +158,7 @@ func (a *App) settingsNav(c *gui.Context) {
 		}
 		gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).
 			Padding(space1, space2).AlignItems(gui.Center).Gap(space1).Children(func() {
+			// S-shell-01 / S-shell-02 返回主界面
 			if iconButton(c, iconButtonSpec{icon: iconChevronL, label: "返回主界面", size: rowCompact}) {
 				a.screen = ScreenMain
 			}
@@ -199,7 +201,9 @@ func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 		style = typeControlStrong
 	}
 	row.Children(func() {
+		// S-shell-04/06/08/10/12/14/16/18/20/22/24/26/28/30/32/34/36/38/40 分节图标
 		iconGlyph(c, section.icon, ink, section.label)
+		// S-shell-03/05/07/09/11/13/15/17/19/21/23/25/27/29/31/33/35/37/39 分节名称
 		style.style(t, gui.Text(c, section.label)).TextColor(ink)
 	})
 }

@@ -221,6 +221,7 @@ func plgUnavailableCard(c *gui.Context, t *gui.Theme) {
 	screenCard(c, func() {
 		gui.Column(c).Padding(plgCardPad, plgCardPad).Gap(plgCardInner).
 			Children(func() {
+				// S-pluginSettings-01 「插件设置」
 				plgCardTitle.style(t, gui.Text(c, plgCopyTitle)).TextColor(t.Text).
 					SingleLine().Role(gui.RoleHeading).Level(2)
 				plgNote(c, t, notePluginSettings)
@@ -249,9 +250,11 @@ func plgPrimaryButtonDisabled(c *gui.Context, t *gui.Theme, text, tip string) {
 func plgBody(c *gui.Context, t *gui.Theme) {
 	switch {
 	case pluginSettingsScreen.loading:
+		// S-pluginSettings-03 正在加载插件设置...
 		plgNote(c, t, plgCopyLoading)
 		return
 	case pluginSettingsScreen.unavailable:
+		// S-pluginSettings-04 当前 App Server 不提供插件设置。
 		plgNote(c, t, plgCopyUnavailable)
 		return
 	case pluginSettingsScreen.loadError != "":
@@ -261,6 +264,7 @@ func plgBody(c *gui.Context, t *gui.Theme) {
 		return
 	}
 	if len(pluginSettingsScreen.sources) == 0 {
+		// S-pluginSettings-06 没有已安装插件提供设置。
 		plgNote(c, t, plgCopyEmpty)
 		return
 	}
@@ -270,10 +274,12 @@ func plgBody(c *gui.Context, t *gui.Theme) {
 	if pluginSettingsScreen.scope == 1 {
 		plgProjectRootSection(c, t)
 		if pluginSettingsScreen.projectSources == 0 {
+			// S-pluginSettings-11 没有已安装插件声明项目级设置。
 			plgNote(c, t, plgCopyNoProjSrc)
 			return
 		}
 		if !pluginSettingsScreen.rootChosen {
+			// S-pluginSettings-12 尚未选择已授权的项目根目录。
 			plgNote(c, t, plgCopyNoRoot)
 			return
 		}
@@ -291,6 +297,7 @@ func plgScopeRow(c *gui.Context, t *gui.Theme) {
 	gui.Column(c).Shrink(0).Gap(plgLabelGap).Children(func() {
 		gui.Segmented(c, &pluginSettingsScreen.scope, plgCopyScopeUser, plgCopyScopeProj).
 			Label("保存范围")
+		// S-pluginSettings-07 保存范围（用户 / 项目）与说明
 		plgNote(c, t, plgCopyScopeNote)
 	})
 	gui.Box(c).Height(plgCardGap).Shrink(0)
@@ -300,6 +307,7 @@ func plgScopeRow(c *gui.Context, t *gui.Theme) {
 // 下拉、「重新加载」与按该根目录的说明。
 func plgProjectRootSection(c *gui.Context, t *gui.Theme) {
 	gui.Column(c).Shrink(0).Gap(plgLabelGap).Children(func() {
+		// S-pluginSettings-08 项目根目录
 		plgLabelLine(c, t, plgCopyRootTitle, false)
 		gui.Row(c).AlignItems(gui.Center).Gap(plgBtnGap).Children(func() {
 			if pluginSettingsScreen.rootsLoading {
@@ -312,6 +320,7 @@ func plgProjectRootSection(c *gui.Context, t *gui.Theme) {
 			}
 			gui.Select(c, &pluginSettingsScreen.rootName, options).Grow(1).
 				Height(plgCtlH).Label(plgCopyRootTitle)
+			// S-pluginSettings-08 重新加载项目根目录
 			plgOutlineButtonDisabled(c, t, plgCopyRootReload, plgBtnH, 0, notePluginWrite)
 		})
 		if pluginSettingsScreen.rootsError != "" {
@@ -320,6 +329,7 @@ func plgProjectRootSection(c *gui.Context, t *gui.Theme) {
 		if pluginSettingsScreen.rootChosen {
 			plgNote(c, t, plgCopyRootNote)
 		} else {
+			// S-pluginSettings-09 / S-pluginSettings-10 项目根目录的说明与空态
 			plgNote(c, t, plgCopyRootsEmpty)
 		}
 	})

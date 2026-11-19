@@ -282,17 +282,22 @@ func mcpTitleBlock(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(mcpHeadGap).Children(func() {
 		if mcpScreen.view == mcpViewEdit {
+			// S-mcp-30 「连接自定义 MCP」
 			gui.Row(c).AlignItems(gui.Center).Gap(mcpInlineGap).Children(func() {
 				screenTitle(c, mcpCopyConnectTitle)
+				// S-mcp-31 「文档」
 				gui.Spacer(c)
 				mcpLink(c, mcpCopyDocs)
 			})
 			return
 		}
+		// S-mcp-01 「MCP 服务器」
 		screenTitle(c, mcpCopyTitle)
 		gui.Row(c).AlignItems(gui.Center).Gap(mcpInlineGap).Children(func() {
+			// S-mcp-02 「连接外部工具和数据源。」
 			mcpHintStyle.style(t, gui.Text(c, mcpCopyDesc)).TextColor(t.TextMuted).
 				Label(mcpCopyDesc).SingleLine()
+			// S-mcp-03 「了解更多。」
 			mcpLink(c, mcpCopyLearnMore)
 		})
 	})
@@ -333,6 +338,7 @@ func (a *App) mcpListBlock(c *gui.Context) {
 // 两者都不清空上一次确认的清单（行照画），只在清单上方给原因。
 func mcpReadState(c *gui.Context, list ExtListSnapshot) {
 	t := c.Theme()
+	// S-mcp-12 读数的两种读态（能力缺失 / 读取失败）
 	if list.CapabilityMissing {
 		mcpMetaStyle.style(t, gui.Text(c, "服务端没有声明 MCP 能力，清单可能不完整。")).
 			TextColor(t.TextMuted).Role(gui.RoleStatus).Selectable()
@@ -343,16 +349,20 @@ func mcpReadState(c *gui.Context, list ExtListSnapshot) {
 	}
 }
 
+// S-mcp-13 读取 MCP 服务器失败 + 原因
 // mcpServerBar 是「服务器」组头与右端两个动作（S-mcp-04 … 06）。
 func mcpServerBar(c *gui.Context) {
 	t := c.Theme()
 	gui.Row(c).AlignItems(gui.Center).Gap(mcpInlineGap).Children(func() {
+		// S-mcp-04 组头「服务器」
 		mcpGroupStyle.style(t, gui.Text(c, mcpCopyServers)).TextColor(t.Text).
 			Role(gui.RoleHeading).Level(3).Label(mcpCopyServers).SingleLine()
 		gui.Spacer(c)
+		// S-mcp-05 「导入」
 		if mcpButton(c, mcpIconDownload, "download", mcpCopyImport, false) {
 			mcpScreen.importOpen = !mcpScreen.importOpen
 		}
+		// S-mcp-06 「添加服务器」
 		if mcpButton(c, iconPlus, "plus", mcpCopyAddServer, true) {
 			mcpScreen.openEditor(mcpServer{})
 		}
@@ -396,6 +406,7 @@ func mcpButton(c *gui.Context, icon *gui.SVG, mark, text string, primary bool) b
 
 // mcpImportPanel 是导入面板（S-mcp-07、107 … 112）：标题、说明、目标与两个
 // 入口。发现 / 预览 / 应用要 App Server 的导入能力，两个入口按禁用态渲染。
+// S-mcp-07 / S-mcp-08 / S-mcp-09 导入面板（发现 / 选择 JSON 文件 / 导入到用户配置）
 func mcpImportPanel(c *gui.Context) {
 	t := c.Theme()
 	panel := gui.Column(c).Shrink(0).Background(t.Surface).Radius(screenRadiusCard)
@@ -441,6 +452,7 @@ func mcpDisabledButton(c *gui.Context, text string) {
 }
 
 // mcpScopeRow 是范围筛选行（S-mcp-08/09）：标签 11 + 140×32 下拉。
+// S-mcp-07 范围行（全部范围 / 用户 / 项目）
 func mcpScopeRow(c *gui.Context) {
 	t := c.Theme()
 	gui.Row(c).AlignItems(gui.Center).Gap(mcpFieldGap).Children(func() {
@@ -497,6 +509,7 @@ func mcpSelect(c *gui.Context, selected *int, options []string, label string, wi
 }
 
 // mcpServerList 是服务器列表（S-mcp-16 … 25）与两种空态。
+// S-mcp-14 / S-mcp-15 服务器列表
 func (a *App) mcpServerList(c *gui.Context, rows []mcpServer) {
 	if len(rows) == 0 {
 		mcpEmpty(c, mcpCopyNoServers)
@@ -529,6 +542,7 @@ func mcpInScope(server mcpServer, scope int) bool {
 }
 
 // mcpEmpty 是空态：虚线框在框架里没有对应描边，用面差与居中说明表达。
+// S-mcp-14 / S-mcp-15 空态（还没有配置 MCP 服务器 / 此范围内没有服务器）
 func mcpEmpty(c *gui.Context, text string) {
 	t := c.Theme()
 	gui.Row(c).Shrink(0).Padding(mcpPanelPadY, mcpPanelPadX).
@@ -541,6 +555,7 @@ func mcpEmpty(c *gui.Context, text string) {
 
 // mcpServerCard 是一台服务器的卡（S-mcp-16 … 25）。点卡片（不是卡上的开关与
 // 图标按钮）进入编辑器，编辑器带入这一条的真实配置。
+// S-mcp-26 / S-mcp-27 / S-mcp-28 / S-mcp-29 服务器卡（插件来源、只读信息、连接状态、连接动作）
 func (a *App) mcpServerCard(c *gui.Context, server mcpServer) {
 	t := c.Theme()
 	card := gui.Column(c).Shrink(0).Background(t.Surface).Radius(screenRadiusCard)
@@ -572,6 +587,7 @@ func (a *App) mcpServerCard(c *gui.Context, server mcpServer) {
 						mcpMetaStyle.style(t, gui.Text(c, server.warning)).TextColor(t.Danger).
 							SingleLine().Grow(1)
 					}
+					// S-mcp-11 warning.scope · serverId · message
 					if server.auth != "" {
 						mcpMetaStyle.style(t, gui.Text(c, server.auth)).TextColor(t.Danger).
 							SingleLine().Grow(1)
@@ -706,12 +722,14 @@ func (s *mcpState) openEditor(server mcpServer) {
 // mcpEditor 是「连接自定义 MCP」表单：名称、范围、传输类型与两组字段。
 func mcpEditor(c *gui.Context) {
 	gui.Column(c).Shrink(0).Gap(mcpEditorGap).Children(func() {
+		// S-mcp-35 名称
 		mcpField(c, mcpCopyName, func() {
 			name := screenInput(c, &mcpScreen.draft.name, mcpCopyNameExample, mcpCopyName)
 			if mcpScreen.editing {
 				name = name.Disabled(true)
 			}
 		})
+		// S-mcp-36 范围（用户 / 项目）
 		mcpField(c, mcpCopyScope, func() {
 			mcpSelect(c, &mcpScreen.draft.scope,
 				[]string{mcpCopyScopeUser, mcpCopyScopeItem}, mcpCopyScope, mcpScopeW)
@@ -728,6 +746,7 @@ func mcpEditor(c *gui.Context) {
 		mcpHintStyle.style(c.Theme(), gui.Text(c, noteMCPWrite)).
 			TextColor(c.Theme().TextMuted).Selectable()
 		gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
+			// S-mcp-50 保存 / 测试连接 / 取消
 			if screenButton(c, mcpCopyCancel, mcpCopyCancel+"编辑 MCP 服务器", "", false, screenControlH) {
 				mcpScreen.view = mcpViewList
 			}

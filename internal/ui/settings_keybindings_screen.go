@@ -102,6 +102,7 @@ func (a *App) renderKeybindings(c *gui.Context) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(screenSpace5).Children(func() {
+				// S-keybindings-01 分节标题「快捷键」
 				screenTitle(c, "快捷键")
 				keybindingSearch(c)
 				a.keybindingGlobalGroup(c)
@@ -249,6 +250,7 @@ func globalShortcutNoteView(c *gui.Context, text string, danger bool) {
 // keybindingSearch 是搜索框：只有占位「搜索快捷键」，无前置图标、无省略号，宽 392。
 func keybindingSearch(c *gui.Context) {
 	t := c.Theme()
+	// S-keybindings-03 搜索快捷键…
 	box := gui.Row(c).Shrink(0).Width(screenSearchW).Height(screenControlH).
 		AlignItems(gui.Center).Gap(screenSpace15).
 		Padding(screenSpace15, screenSpace25).Radius(screenRadiusCtl).
@@ -263,6 +265,7 @@ func keybindingSearch(c *gui.Context) {
 }
 
 // keybindingGroups 是两组：标题 + 卡片，命中的行保留，整组无命中就不渲染。
+// S-keybindings-04 / S-keybindings-14 分组标题「通用」「对话」
 func keybindingGroups(c *gui.Context) {
 	for _, scope := range keybindingScopes {
 		scope := scope
@@ -318,10 +321,12 @@ func keybindingRow(c *gui.Context, def keybindingDef) {
 	gui.Row(c).Shrink(0).Height(screenKeyRowH).AlignItems(gui.Center).
 		Role(gui.RoleListItem).Label(def.name).
 		Padding(0, screenSpace5).Gap(screenSpace25).Children(func() {
+		// S-keybindings-05/08/10/12/15/17/19/21 快捷键名称（打开设置、新建线程、切换侧边栏、搜索对话、聚焦输入框、切换更改面板、切换终端、提交更改）
 		keybindingNameStyle.style(t, gui.Text(c, def.name)).TextColor(t.Text).SingleLine()
 		gui.Spacer(c)
 		keybindingButton(c, def)
 		if keybindingBinding(def) != def.binding {
+			// S-keybindings-07 重置
 			if screenButton(c, "重置", "重置 "+def.name, "", false, rowRegular) {
 				delete(keybindingsScreen.bindings, def.id)
 				if keybindingsScreen.recording == def.id {
@@ -340,6 +345,7 @@ func keybindingBinding(def keybindingDef) string {
 	return def.binding
 }
 
+// S-keybindings-25 冲突键位（按钮描边转主色）
 // keybindingButton 是键位按钮：描边小按钮、高 32、最小宽 45；录音态显示
 // 「录音中…」，再次点击退出并保留原值。
 func keybindingButton(c *gui.Context, def keybindingDef) {
@@ -347,12 +353,14 @@ func keybindingButton(c *gui.Context, def keybindingDef) {
 	recording := keybindingsScreen.recording == def.id
 	text := keybindingBinding(def)
 	if recording {
+		// S-keybindings-23 录音中…
 		text = "录音中…"
 	}
 	minWidth := float32(0)
 	if !recording {
 		minWidth = screenKeyMinW
 	}
+	// S-keybindings-06/09/11/13/16/18/20/22 键位按钮（⌘, / ⌘N / ⌘B / ⌘G / ⌘L / ⌘⇧B / ⌘J / ⌘⇧↵）
 	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).MinWidth(minWidth).
 		Padding(controlPadV, screenSpace25).Radius(screenRadiusCtl).
 		Background(t.Background).Label("快捷键：" + def.name)

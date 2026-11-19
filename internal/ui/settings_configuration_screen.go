@@ -434,18 +434,21 @@ func (a *App) configProviderColumn(c *gui.Context, data configView) {
 		gui.Row(c).Shrink(0).AlignItems(gui.Center).
 			Padding(configTitlePad, configTitlePad, configTitleGap, configTitlePad).
 			Children(func() {
+				// S-configuration-01 左栏标题「模型供应」
 				configTitleStyle.style(t, gui.Text(c, "模型供应")).TextColor(t.TextMuted).
 					LetterSpacing(configTracking).SingleLine().
 					Role(gui.RoleHeading).Level(3)
 			})
 		// S-configuration-02 / 03：搜索框（放大镜在左、输入框在右）。
 		gui.Row(c).Shrink(0).Padding(0, configPadH, configAddPad, configPadH).Children(func() {
+			// S-configuration-02 / S-configuration-03 搜索供应商（放大镜 + 输入框）
 			configSearchField(c, &configScreen.providerFilter, "搜索供应商", "搜索供应商")
 		})
 		// 读数失败与读空：两行都来自读数，不拿空清单当「没有供应商」。
 		if data.readErr != "" {
 			gui.Row(c).Shrink(0).Padding(0, configPadH, configAddPad, configPadH).
 				Children(func() {
+					// S-configuration-04 读取供应商失败
 					configMicroStyle.style(t, gui.Text(c, "读取供应商失败："+data.readErr)).
 						TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
 				})
@@ -455,12 +458,15 @@ func (a *App) configProviderColumn(c *gui.Context, data configView) {
 			gui.Column(c).Shrink(0).Gap(configGapGroups).
 				Padding(0, configPadH, configAddPad, configPadH).Children(func() {
 				if len(data.providers) == 0 {
+					// S-configuration-04 没有读到供应商
 					configMicroStyle.style(t, gui.Text(c, "没有读到供应商。")).
 						TextColor(t.TextMuted).Role(gui.RoleStatus).MaxLines(2)
 					return
 				}
+				// S-configuration-05 / S-configuration-06 已启用分组
 				a.configProviderGroup(c, data, "已启用", enabled,
 					&configScreen.enabledCollapsed)
+				// S-configuration-07 / S-configuration-08 未启用分组
 				a.configProviderGroup(c, data, "未启用", disabled,
 					&configScreen.disabledCollapsed)
 			})
@@ -671,6 +677,7 @@ func configStatusDot(c *gui.Context, on bool) {
 }
 
 // configAddButton 是左栏底部的「添加」（S-configuration-09）。
+// S-configuration-09 左栏底部的「添加」
 func configAddButton(c *gui.Context) {
 	t := c.Theme()
 	b := gui.ButtonBase(c).Shrink(0).Height(configRowH).AlignItems(gui.Center).
@@ -814,6 +821,7 @@ func configManagedBanner(c *gui.Context) {
 	b := gui.ButtonBase(c).Shrink(0).AlignItems(gui.Start).Gap(configGapBlock).
 		Padding(configBannerPadV, configBannerPadH).Radius(screenRadiusCtl).
 		Background(t.Accent.Alpha(configBannerFill)).
+		// S-configuration-83 「由 Dim 账户管理」提示条（跳账户设置）
 		Label("由 Dim 账户管理").Tooltip("打开账户设置").
 		Cursor(gui.CursorPointer)
 	b.Draw(func(p *gui.Painter, r gui.Rect) {
@@ -863,6 +871,7 @@ func (a *App) configModelsPanel(c *gui.Context, data configView) {
 	gui.Column(c).Grow(1).MinHeight(0).Gap(configGapRow).Children(func() {
 		a.configModelsToolbar(c, data)
 		gui.Row(c).Shrink(0).Children(func() {
+			// S-configuration-72 搜索模型名称或 ID
 			configSearchField(c, &configScreen.modelFilter, "搜索模型名称或 ID",
 				"搜索模型名称或 ID")
 		})
@@ -874,6 +883,7 @@ func (a *App) configModelsPanel(c *gui.Context, data configView) {
 // （S-configuration-20）。
 func (a *App) configModelsToolbar(c *gui.Context, data configView) {
 	t := c.Theme()
+	// S-configuration-70 模型 · {visible}/{total}
 	visible := configVisibleModelIndexes(data.models)
 	label := fmt.Sprintf("模型 · %d / %d", len(visible), len(data.models))
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(configGapRow).Children(func() {
@@ -948,6 +958,7 @@ func configVisibleModelIndexes(models []configModel) []int {
 // configModelList 是模型列表（S-configuration-23/24）：1px 外框，行间一条细线，
 // 列表自己滚。
 func (a *App) configModelList(c *gui.Context, data configView) {
+	// S-configuration-73 模型列表（名称 + 能力徽标 + 开关）
 	t := c.Theme()
 	frame := gui.Column(c).Grow(1).MinHeight(0).Radius(screenRadiusCtl).
 		Background(t.Background).Label("模型列表")
@@ -959,6 +970,7 @@ func (a *App) configModelList(c *gui.Context, data configView) {
 		if len(indexes) == 0 {
 			// S-configuration-24：没有匹配的模型。
 			gui.Row(c).Grow(1).Center().Padding(configEmptyPad, 0).Children(func() {
+				// S-configuration-74 / S-configuration-80 没有匹配的模型
 				configRowStyle.style(t, gui.Text(c, "没有匹配的模型")).
 					TextColor(t.TextMuted).SingleLine()
 			})
@@ -978,6 +990,7 @@ func (a *App) configModelList(c *gui.Context, data configView) {
 }
 
 // configModelRow 是一行模型：名称 + 能力徽标 + 开关（S-configuration-23）。
+// S-configuration-73 一行模型（名称 + 视觉 / 推理徽标 + 启停开关）
 func (a *App) configModelRow(c *gui.Context, data configView, index int) {
 	t := c.Theme()
 	model := data.models[index]
@@ -1020,6 +1033,7 @@ func configBadge(c *gui.Context, text, label string) {
 }
 
 // configDetailFooter 是详情底部动作（S-configuration-27/28）：编辑、刷新、查看套餐。
+// S-configuration-27 / S-configuration-28 详情底部动作（编辑 / 刷新 / 查看套餐）
 func (a *App) configDetailFooter(c *gui.Context, data configView) {
 	gui.Row(c).Shrink(0).Justify(gui.End).Gap(configGapRow).Children(func() {
 		// 账户托管的供应商不能在这里改（提示条写明原因），其余可进编辑表单。
@@ -1040,11 +1054,13 @@ func (a *App) configDetailFooter(c *gui.Context, data configView) {
 
 // configUnbuiltBody 是其余供应商的详情：配置表单（API 密钥 / 测试连接 /
 // 断开 / 删除，S-configuration-44 … 63）尚未重建，用设置壳的同一句口径占位。
+// S-configuration-44 … 63 配置表单尚未重建的占位
 func configUnbuiltBody(c *gui.Context) {
 	t := c.Theme()
 	configRowStyle.style(t, gui.Text(c, "尚未按参考产品重建")).TextColor(t.TextMuted)
 }
 
+// S-configuration-81 加载骨架（读数未到的占位）
 // configSetModelEnabled 把模型开关落到服务端（provider.models.set_enabled）。
 // 样例行（没有标识）与没有 Intents 时只改界面状态。
 func (a *App) configSetModelEnabled(provider configProvider, model configModel, enabled bool) {

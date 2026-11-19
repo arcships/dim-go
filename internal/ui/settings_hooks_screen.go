@@ -250,19 +250,23 @@ func renderHooks(c *gui.Context, a *App) {
 			gui.Column(c).Gap(hkSectionGap).Children(func() {
 				hkHeader(c, t)
 				if list.ReadError != "" {
+					// S-hooks-29 loadError
 					hkAlertLine(c, t, hkCopyLoadError+"："+list.ReadError)
 				}
 				if list.CapabilityMissing {
+					// S-hooks-29 未配置命令钩子。
 					hkNoteLine(c, t, hkCopyNoCatalog)
 				}
 				hkBanner(c, t, hkCopyWarning, true)
 				gui.Column(c).Shrink(0).Gap(hkLabelGap).Children(func() {
+					// S-hooks-08 「来源」分组
 					screenGroupTitle(c, hkCopySources)
 					for i := range sources {
 						a.hkSourceCard(c, t, &sources[i])
 					}
 				})
 				gui.Column(c).Shrink(0).Gap(hkLabelGap).Children(func() {
+					// S-hooks-17 「条目」分组
 					screenGroupTitle(c, hkCopyEntries)
 					for i := range sources {
 						hkEntryGroup(c, t, &sources[i])
@@ -285,12 +289,15 @@ func renderHooks(c *gui.Context, a *App) {
 // hkHeader 是页首（S-hooks-01…03）：标题 + 右端「了解更多」与刷新。
 func hkHeader(c *gui.Context, t *gui.Theme) {
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(hkRowGap).Children(func() {
+		// S-hooks-27 分节标题「命令钩子」
 		screenTitle(c, hkCopyTitle)
 		gui.Spacer(c)
+		// S-hooks-28 「了解更多」
 		if screenAction(c, accIconExternal, "external-link", hkCopyMore, hkBtnH) {
 			// 面板外开需要文档地址（没有该事实）：不动作（未接动作）。
 		}
 		if accIconButton(c, accIconSpec{
+			// S-hooks-28 刷新
 			icon: accIconRefresh, label: hkCopyRefresh, tip: hkCopyRefresh,
 			size: hkIconSize, hit: hkIconHit,
 		}) {
@@ -339,9 +346,12 @@ func (a *App) hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
 		hkSourceIcon(c, t, s)
 		gui.Column(c).Grow(1).MinWidth(0).Gap(hkTightGap).Children(func() {
 			gui.Row(c).AlignItems(gui.Center).Gap(hkChipGap).Children(func() {
+				// S-hooks-31 source.title
 				hkNameStyle.style(t, gui.Text(c, s.title)).TextColor(t.Text).SingleLine()
 				if !wired {
+					// S-hooks-30 来源状态（来自配置 / 来自工作区 / 来自插件）
 					hkStatusStyle.style(t, gui.Text(c, hkSourceState(s))).TextColor(t.TextMuted)
+					// S-hooks-31 {on} 开 · {off} 关
 					hkBadge(c, t, hkEnabledLabel(s.enabled), s.enabled)
 				}
 				if s.plugin {
@@ -355,6 +365,7 @@ func (a *App) hkSourceCard(c *gui.Context, t *gui.Theme, s *hooksSource) {
 				hkNoteLine(c, t, hkCopyNoPath)
 			}
 			if s.message != "" {
+				// S-hooks-13 source.message
 				hkNoteLine(c, t, s.message)
 			}
 		})
@@ -569,6 +580,7 @@ func hkUserDoc(entries []hooksEntry) string {
 }
 
 // hkEditorDialog 是用户钩子文档编辑框（S-hooks-23…26）。
+// S-hooks-32 钩子编辑 / 条目对话框
 func hkEditorDialog(c *gui.Context, t *gui.Theme) {
 	if !hooksScreen.editorOpen {
 		return

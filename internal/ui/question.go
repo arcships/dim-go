@@ -180,6 +180,7 @@ func (a *App) questionCard(c *gui.Context, snap QuestionSnapshot) {
 		})
 		return
 	}
+	// IN-44 / G-D1-01 提问卡容器
 	gui.Column(c).WidthPercent(100).MaxWidth(questionCardWidth).Shrink(0).
 		Padding(space4).Gap(space2).Background(t.Surface).
 		Border(strokeHairline, t.Border).Radius(radiusWindowCard).
@@ -199,6 +200,7 @@ func (a *App) questionHead(c *gui.Context, snap QuestionSnapshot, items []Questi
 	q := &a.question
 	title := questionTitle(items[q.index])
 	gui.Row(c).AlignItems(gui.Center).Gap(space2).Children(func() {
+		// G-D1-02 当前字段标题
 		typeH4.style(t, gui.Text(c, title)).TextColor(t.Text).SingleLine().Label(title)
 		if len(items) > 1 {
 			label := fmt.Sprintf("第 %d 题，共 %d 题", q.index+1, len(items))
@@ -216,6 +218,7 @@ func (a *App) questionHead(c *gui.Context, snap QuestionSnapshot, items []Questi
 		if q.collapsed {
 			label, icon, mark = questionCopyExpand, iconChevronUp, "chevron-up"
 		}
+		// G-D1-07 收起 / 展开
 		clicked, focused := questionCollapseButton(c, t, label, icon, mark, q.busy && !q.collapsed)
 		if focused {
 			q.buttonFocused = true
@@ -283,17 +286,21 @@ func (a *App) questionBody(c *gui.Context, item QuestionItemSnapshot) {
 	gui.Scroll(c).Shrink(0).Height(questionBodyHeight).Children(func() {
 		gui.Column(c).WidthPercent(100).Gap(space2).Children(func() {
 			if text := questionText(item); text != "" {
+				// G-D1-08 提问正文
 				typeBody.style(t, gui.Text(c, text)).TextColor(t.Text).Selectable()
 			}
 			if desc := strings.TrimSpace(item.Description); desc != "" && desc != questionText(item) {
+				// G-D1-09 字段描述
 				typeSecondary.style(t, gui.Text(c, desc)).TextColor(t.TextMuted).Selectable()
 			}
 			if len(item.Options) > questionFilterThreshold {
+				// G-D1-10 筛选选项…
 				gui.TextInputBase(c, &q.filter).Label(questionCopyFilter).
 					Placeholder(questionCopyFilter).Padding(space1, space2).Radius(radius).
 					Background(fieldFill(t)).SingleLine()
 			}
 			if len(item.Options) == 0 {
+				// G-D1-14 每行输入一个值（自由输入）
 				gui.TextAreaBase(c, &q.custom[q.index]).Grow(1).
 					MinHeight(questionInputMinHeight).MaxHeight(questionInputMaxHeight).
 					Label(questionCopyFreeform).Placeholder(questionCopyFreeform).
@@ -321,6 +328,7 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 	options := q.filteredOptions(item)
 	if len(options) == 0 {
 		if strings.TrimSpace(q.filter) != "" {
+			// G-D1-13 没有匹配的选项
 			typeSecondary.style(t, gui.Text(c, questionCopyNoMatch)).
 				TextColor(t.TextMuted).Selectable()
 		}
@@ -330,6 +338,7 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 		for _, option := range options {
 			option := option
 			on := q.selected[q.index][option]
+			// G-D1-12 多选项条目
 			gui.Checkbox(c, &on, option)
 			q.selected[q.index][option] = on
 		}
@@ -345,6 +354,7 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 	gui.RadioGroup(c, func() {
 		for _, option := range options {
 			option := option
+			// G-D1-11 单选项条目
 			gui.Radio(c, &choice, option, option)
 		}
 	}).Label(questionTitle(item))
@@ -355,6 +365,7 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 func (a *App) questionCustomField(c *gui.Context, item QuestionItemSnapshot, label, hint string) {
 	t := c.Theme()
 	q := &a.question
+	// G-D1-15 自定义答案 / 自定义选项
 	typeMicro.style(t, gui.Text(c, label)).TextColor(t.TextMuted).SingleLine()
 	draft := &q.custom[q.index]
 	if item.Multiple {
@@ -382,6 +393,7 @@ func (a *App) questionFoot(c *gui.Context, snap QuestionSnapshot, items []Questi
 	}
 	last := q.index == len(items)-1
 	gui.Row(c).AlignItems(gui.Center).Gap(space2).Children(func() {
+		// G-D1-18 拒绝
 		decline := actionButton(c, questionCopyDecline, "", false, q.busy)
 		if decline.Focused() {
 			q.buttonFocused = true
@@ -391,6 +403,7 @@ func (a *App) questionFoot(c *gui.Context, snap QuestionSnapshot, items []Questi
 		}
 		gui.Spacer(c)
 		if q.index > 0 {
+			// G-D1-19 上一题
 			previous := actionButton(c, questionCopyPrevious, "上一题", false, q.busy)
 			if previous.Focused() {
 				q.buttonFocused = true
@@ -400,6 +413,7 @@ func (a *App) questionFoot(c *gui.Context, snap QuestionSnapshot, items []Questi
 			}
 		}
 		if !last {
+			// G-D1-20 下一题
 			next := actionButton(c, questionCopyNext, "下一题", true, q.busy)
 			if next.Focused() {
 				q.buttonFocused = true

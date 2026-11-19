@@ -213,12 +213,16 @@ func (a *App) renameDialogView(c *gui.Context) {
 				SingleLine().Role(gui.RoleHeading).Level(2)
 			typeBody.style(t, gui.Text(c, desc)).TextColor(t.TextMuted)
 			gui.Column(c).Gap(space2).Children(func() {
+				// G-F1-01 / G-F2-01 弹窗标题（重命名会话 / 重命名工作区）
 				typeBodyStrong.style(t, gui.Text(c, field)).TextColor(t.Text).Label(field)
 				input := gui.TextInputBase(c, &st.draft).
+					// G-F1-02 / G-F2-02 弹窗说明
 					Label(field).Placeholder(placeholder).
 					Height(plgCtlH).Padding(screenInputPadV, screenSpace25).
 					Background(fieldFill(t)).BorderWidth(strokeHairline).BorderColor(t.Border).
+					// G-F1-03 / G-F2-03 字段标签
 					Disabled(st.builtin || st.submitting)
+				// G-F1-04 / G-F2-04 输入框占位
 				if st.focus {
 					input = input.Focus()
 					st.focus = false
@@ -229,6 +233,7 @@ func (a *App) renameDialogView(c *gui.Context) {
 				}
 				input.OnSubmit(func() { a.confirmRenameDialog() })
 				if st.kind == renameWorkspace && strings.TrimSpace(st.path) != "" {
+					// G-F2-05 工作区路径
 					typeBody.style(t, gui.Text(c, st.path)).TextColor(t.TextMuted).
 						Selectable().Label("工作区路径：" + st.path)
 				}
@@ -238,16 +243,20 @@ func (a *App) renameDialogView(c *gui.Context) {
 				typeSecondary.style(t, gui.Text(c, renameCopyBuiltinWksp)).
 					TextColor(t.TextMuted).Label(renameCopyBuiltinWksp)
 			case problem != "":
+				// G-F1-05 / G-F2-05 校验提示（超长 / 同名 / 控制字符 / 为空）
 				typeSecondary.style(t, gui.Text(c, problem)).
 					TextColor(t.TextMuted).Label("校验提示：" + problem)
 			case a.wired() && st.kind == renameSession && a.intents == nil:
+				// G-F1-06 SessionTitle 不可用 / 无写通道
 				typeSecondary.style(t, gui.Text(c, noteNoWriteChannel)).
 					TextColor(t.TextMuted).Label(noteNoWriteChannel)
 			}
+			// G-F1-07 重命名失败原因
 			if st.err != "" {
 				typeSecondary.style(t, gui.Text(c, st.err)).TextColor(t.Danger).
 					Role(gui.RoleAlert).Label(st.err)
 			}
+			// G-F1-08 / G-F2-06 取消
 			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
 				cancel := gui.Button(c, renameCopyCancel)
 				if st.submitting {
@@ -262,6 +271,7 @@ func (a *App) renameDialogView(c *gui.Context) {
 				}
 				confirm := gui.PrimaryButton(c, confirmText).
 					Label(confirmText)
+				// G-F1-09 / G-F2-07 确认
 				if blocked != "" {
 					confirm = confirm.Disabled(true).Opacity(0.5).Tooltip(blocked)
 				}

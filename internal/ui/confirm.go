@@ -167,16 +167,20 @@ func (a *App) anyRunning(indexes []int) bool {
 func (a *App) confirmTitle() string {
 	st := a.confirm
 	switch st.kind {
+	// G-E1-01 「会话正在运行」
 	case confirmKindEditRunning:
 		return confirmCopyEditTitle
+	// G-E2-01 「删除会话」/「删除 {count} 个会话」
 	case confirmKindDelete:
 		if len(st.targets) == 1 {
 			return confirmCopyDeleteOne
 		}
 		return fmt.Sprintf(confirmCopyDeleteMany, len(st.targets))
+	// G-E3-01 「归档 {count} 个会话」
 	case confirmKindArchive:
 		return fmt.Sprintf(confirmCopyArchive, len(st.targets))
 	default:
+		// G-E4-01 「删除工作区会话」
 		return confirmCopyWorkspace
 	}
 }
@@ -185,18 +189,22 @@ func (a *App) confirmTitle() string {
 func (a *App) confirmDescription() string {
 	st := a.confirm
 	switch st.kind {
+	// G-E1-02 会话正在运行的说明句
 	case confirmKindEditRunning:
 		return confirmCopyEditDesc
+	// G-E2-02 删除会话的说明句（含目标名）
 	case confirmKindDelete:
 		if len(st.targets) == 1 {
 			return fmt.Sprintf(confirmCopyDeleteDesc, st.targets[0].title)
 		}
 		return fmt.Sprintf(confirmCopyDeleteList, confirmNames(st.targets))
+	// G-E3-02 归档会话的说明句
 	case confirmKindArchive:
 		return fmt.Sprintf(confirmCopyArchiveSub, confirmNames(st.targets))
 	default:
 		name := strings.TrimSpace(st.workspaceName)
 		if name == "" {
+			// G-E4-02 「将删除“{name}”下的 {count} 条会话。」
 			name = confirmCopyWorkspaceF
 		}
 		return fmt.Sprintf(confirmCopyWorkspaceD, name, len(st.targets))
@@ -229,11 +237,13 @@ func (a *App) confirmPrimaryText() string {
 	switch st.kind {
 	case confirmKindEditRunning:
 		if st.busy {
+			// G-E1-04 停止并发送 / 停止中...
 			return confirmCopyStopBusy
 		}
 		return confirmCopyStopSend
 	case confirmKindDelete:
 		if st.busy {
+			// G-E2-05 删除 / 删除 ({count}) / 删除中...
 			return confirmCopyDeleteBusy
 		}
 		if len(st.targets) > 1 {
@@ -242,6 +252,7 @@ func (a *App) confirmPrimaryText() string {
 		return confirmCopyDelete
 	case confirmKindArchive:
 		if st.busy {
+			// G-E3-06 归档 ({count}) / 归档中...
 			return confirmCopyArchiveBusy
 		}
 		return fmt.Sprintf("%s (%d)", confirmCopyArchiveBtn, len(st.targets))
@@ -249,6 +260,7 @@ func (a *App) confirmPrimaryText() string {
 		if st.busy {
 			return confirmCopyDeleteBusy
 		}
+		// G-E4-06 删除
 		return confirmCopyDelete
 	}
 }
@@ -275,17 +287,20 @@ func (a *App) confirmDialog(c *gui.Context) {
 			typeSecondary.style(t, gui.Text(c, a.confirmDescription())).
 				TextColor(t.TextMuted).Selectable()
 			if kind == confirmKindArchive && a.confirm.running {
+				// G-E3-03 正在运行的会话会被中断
 				typeSecondary.style(t, gui.Text(c, confirmCopyArchiveRun)).
 					TextColor(t.Warning).Selectable()
 			}
 			if kind == confirmKindDeleteWorkspace {
 				a.confirmPathRow(c)
 			}
+			// G-E2-03 / G-E3-04 / G-E4-04 失败原因
 			if a.confirm.err != "" {
 				typeSecondary.style(t, gui.Text(c, a.confirm.err)).TextColor(t.Danger).
 					Selectable().Label(a.confirm.err).Role(gui.RoleAlert)
 			}
 			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
+				// G-E1-03 / G-E2-04 / G-E3-05 / G-E4-05 取消
 				cancel := gui.Button(c, confirmCopyCancel)
 				if confirmDangerous(kind) {
 					// 危险动作的默认焦点在「取消」：回车不会替用户按下删除。
@@ -300,6 +315,7 @@ func (a *App) confirmDialog(c *gui.Context) {
 					}
 					return
 				}
+				// G-E2-05 / G-E3-06 / G-E4-06 确认按钮
 				accept := gui.PrimaryButton(c, a.confirmPrimaryText())
 				if a.confirm.busy {
 					accept = accept.Disabled(true).Opacity(0.5)

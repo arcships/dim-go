@@ -777,6 +777,7 @@ const panelEmptyGlyphInset = 14
 // rpLoadMoreRow 是目录内的「加载更多 / 正在加载...」（F-24）。
 func (a *App) rpLoadMoreRow(c *gui.Context, p string) {
 	s := a.rp()
+	// F-45 加载更多 / 正在加载...
 	label := "加载更多"
 	if s.dirLoading[p] {
 		label = "正在加载..."
@@ -797,12 +798,14 @@ func (a *App) rpDirErrorRow(c *gui.Context, p string) {
 	reason := s.dirError[p]
 	gui.Row(c).Height(panelRowHeight2).Padding(0, panelRowPadH).Gap(space1).
 		AlignItems(gui.Center).Role(gui.RoleAlert).Children(func() {
+		// F-13 无法加载此文件夹。
 		typeSecondary.style(t, gui.Text(c, "无法加载此文件夹。")).TextColor(t.Danger).
 			Shrink(0).SingleLine()
 		if reason != "" {
 			typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.Danger).
 				Grow(1).SingleLine()
 		}
+		// F-14 重试（重读该目录）
 		if rpTextAction(c, nil, "重试", "重试读取文件夹："+p, false) {
 			// 重试 = 清掉失败位并请求一次真正的重读（适配器按 Refresh 跳过缓存），
 			// 不是把同一份失败读数再画一遍。

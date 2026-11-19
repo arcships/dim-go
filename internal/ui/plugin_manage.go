@@ -320,9 +320,11 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 	gui.Column(c).Shrink(0).Gap(plgCardInner).Children(func() {
 		hairlineBox(c, true, "")
 		gui.Row(c).AlignItems(gui.Center).Gap(space2).Children(func() {
+			// G-H4-01 「可用更新」
 			plgCardTitle.style(t, gui.Text(c, pluginManageUpdates)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(3)
 			gui.Spacer(c)
+			// G-H4-07 全部更新（{count}）
 			label := fmt.Sprintf(pluginManageUpdateAll, len(updates))
 			if st.updatingAll {
 				label = pluginManageAllUpdating
@@ -339,14 +341,17 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 		for _, item := range updates {
 			gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space2).Children(func() {
 				gui.Column(c).Shrink(0).Grow(1).Gap(spaceUnit).Children(func() {
+					// G-H4-03 插件图标 + 名称
 					typeSecondaryStrong.style(t, gui.Text(c, item.Name)).TextColor(t.Text).
 						SingleLine().Label(item.Name)
+					// G-H4-04 v{旧} → v{新} / v{新}
 					versions := pluginVersionLine(item)
 					if versions != "" {
 						typeSecondary.style(t, gui.Text(c, versions)).TextColor(t.TextMuted).
 							Label(versions)
 					}
 				})
+				// G-H4-06 更新
 				label := pluginManageUpdate
 				if st.updating[item.ID] {
 					label = pluginManageUpdating

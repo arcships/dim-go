@@ -95,6 +95,7 @@ func (a *App) timeline(c *gui.Context) {
 // timelineFeed 是时间线的滚动容器：与搜索关闭时的焦点归还共用一处。
 // 会话内搜索关掉后，焦点回到这条流上（A1-05 的 R-GS-052）。
 func (a *App) timelineFeed(c *gui.Context) gui.Element {
+	// TL-01 对话流滚动区容器
 	feed := gui.Scroll(c).Grow(1).Fill().TrackScroll(&a.feed).
 		Label("对话流").Role(gui.RoleLog).Focusable().TabStop(true)
 	if a.sessionSearch.returnFocus {
@@ -116,6 +117,7 @@ func (a *App) round(c *gui.Context, i int) {
 		})
 		return
 	}
+	// TL-07 / TL-11 一轮的行外壳（轮容器）
 	gui.Column(c).Shrink(0).Gap(timelineBlockGap).Children(func() {
 		if r.divider != "" {
 			a.compressionRow(c, compressionRowKey(i), r.divider, "")
@@ -127,6 +129,7 @@ func (a *App) round(c *gui.Context, i int) {
 
 // roundDivider 是轮前的分隔行（压缩 / 窗口截断）：两侧细线 + 中间说明。
 func (a *App) roundDivider(c *gui.Context, text string) {
+	// TL-16 / TL-66 窗口截断分隔行
 	t := c.Theme()
 	gui.Row(c).Grow(1).Gap(space2).AlignItems(gui.Center).Label(text).Children(func() {
 		gui.Box(c).Grow(1).Height(strokeHairline).Background(t.Border)
@@ -184,6 +187,7 @@ func (a *App) userMessage(c *gui.Context, i int, r round) {
 // 一个可选区，右键打开消息菜单（TL-41–TL-43）。正文超过折叠行数时底部给
 // 「展示全部 / 收起」（TL-31）。
 func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Element {
+	// TL-20 / TL-26 用户气泡容器与正文
 	t := c.Theme()
 	var box gui.Element
 	gui.Row(c).Grow(1).Children(func() {
@@ -226,6 +230,7 @@ func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Eleme
 // userActions 是用户气泡下的发送时间与四个动作（悬停可见）：复制走剪贴板，
 // 编辑进入行内编辑器（TL-38），侧边对话打开右栏；分叉没有写入口，置灰并写原因。
 func (a *App) userActions(c *gui.Context, i int, r round, hovered bool) {
+	// TL-35 发送时间
 	t := c.Theme()
 	overflow := bubbleOverflows(r.user)
 	gui.Column(c).Grow(1).Gap(space1).Label("消息动作").Children(func() {
@@ -243,6 +248,7 @@ func (a *App) userActions(c *gui.Context, i int, r round, hovered bool) {
 			}
 			if strings.TrimSpace(r.user) != "" {
 				if iconButton(c, iconButtonSpec{
+					// TL-37 复制整个消息
 					icon: iconCopy, label: "复制整个消息 " + fmt.Sprint(i+1),
 					tip: "复制整个消息", size: rowCompact,
 				}) {
@@ -261,6 +267,7 @@ func (a *App) userActions(c *gui.Context, i int, r round, hovered bool) {
 			forkTip := "从此处分叉：以这一轮结束处为切点"
 			if forkReason != "" {
 				forkLabel += "（" + forkReason + "）"
+				// TL-39 / TL-40 从此处分叉 / 从此处开始侧边对话
 				forkTip = forkReason
 			}
 			if iconButton(c, iconButtonSpec{
@@ -375,6 +382,7 @@ func (a *App) userAttachmentArea(c *gui.Context, r round) {
 	}
 	gui.Column(c).Shrink(0).Gap(space1).Label("消息附件与引用").Children(func() {
 		if r.wakeup != "" {
+			// TL-25 定时唤醒来源
 			typeMicro.style(t, gui.Text(c, r.wakeup)).TextColor(t.TextMuted).Label("定时唤醒来源")
 		}
 		if len(r.images) > 0 {
@@ -399,6 +407,7 @@ func (a *App) userAttachmentArea(c *gui.Context, r round) {
 			})
 		}
 		for _, mark := range r.marks {
+			// TL-24 标注卡
 			typeMicro.style(t, gui.Text(c, fmt.Sprintf("标注 %d", mark.num))).
 				TextColor(t.TextMuted).Label("标注 " + fmt.Sprint(mark.num))
 			typeSecondary.style(t, gui.Text(c, mark.text)).TextColor(t.Text).MaxLines(3)
@@ -409,6 +418,7 @@ func (a *App) userAttachmentArea(c *gui.Context, r round) {
 // imageThumb 是一张图片附件的缩略位（TL-21）：固定方角、浅底、图片图标；
 // 图片内容本身还没有进快照，这里只画占位，不假装加载了图片。
 func imageThumb(c *gui.Context, name string) {
+	// TL-21 图片附件廊
 	t := c.Theme()
 	label := "图片附件"
 	if name != "" {
@@ -429,6 +439,7 @@ func imageThumb(c *gui.Context, name string) {
 // attachmentChip 是一个附件 chip（TL-22）：图标 + 文件名；已不可用的附件降
 // 对比并写「不可用」（R-TL-212）。
 func attachmentChip(c *gui.Context, att messageAttachment) {
+	// TL-22 附件 chip 架
 	t := c.Theme()
 	color := t.TextMuted
 	label := "附件 " + att.name
@@ -445,6 +456,7 @@ func attachmentChip(c *gui.Context, att messageAttachment) {
 
 // quoteRow 是一条已发送的引用（TL-23）：标题行 + 被引用的片段。
 func quoteRow(c *gui.Context, quote messageQuote) {
+	// TL-23 引用列表
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(space1).Label("引用 " + quote.title).Children(func() {
 		typeMicro.style(t, gui.Text(c, quote.title)).TextColor(t.TextMuted).SingleLine()
@@ -513,6 +525,7 @@ func quoteIntoDraft(draft, selection string) string {
 // assistant 是助手区：思考、正文、工具分组、轮末块与动作条。整块可选（右键
 // 菜单按选区复制，TL-65）；Markdown 的选区交给这一层（ShareSelection）。
 func (a *App) assistant(c *gui.Context, i int, r round) {
+	// TL-12 / TL-50 助手区容器
 	col := gui.Column(c).Shrink(0).Gap(timelineBlockGap).
 		Role(gui.RoleArticle).Label("助手消息").Selectable()
 	hovered := col.Hovered()
@@ -632,6 +645,7 @@ func runningAction(r round) string {
 // thinkingBlock 是思考块：灯泡 + 「思考了 Xs」+ 箭头；展开为引用块。
 // 用 RoleButton 而不是 Disclosure，保证轮次组头仍是第一个可展开分组（读屏顺序）。
 func (a *App) thinkingBlock(c *gui.Context, i int, r round) {
+	// TL-52 思考块（正在思考 / 思考了 {duration}）
 	t := c.Theme()
 	open := a.blockOf(fmt.Sprintf("think:%d", i), false)
 	title := "思考了 " + r.thinkingDuration
@@ -679,6 +693,7 @@ func (a *App) thinkingBlock(c *gui.Context, i int, r round) {
 
 // toolGroup 是连续工具调用的折叠组：分组头写动作汇总，展开后是缩进的工具行。
 func (a *App) roundHeader(c *gui.Context, i int, r round) {
+	// TL-51 工具调用分组的组头
 	t := c.Theme()
 	open := a.openOf(i)
 	summary := groupSummary(r)
@@ -699,7 +714,9 @@ func (a *App) roundHeader(c *gui.Context, i int, r round) {
 	btn.Children(func() {
 		// 行首只有分组图标、文案与折叠箭头（参考不摆状态位）。
 		iconGlyph(c, iconWorkflow, t.TextMuted, "workflow")
+		// TL-72 分组头的动作汇总文案
 		typeSecondaryStrong.style(t, gui.Text(c, summary)).TextColor(headerColor(t, r.status)).SingleLine()
+		// TL-73 分组折叠箭头
 		chevron(c, t, arrow)
 	})
 	if btn.Clicked() {
@@ -712,6 +729,7 @@ func (a *App) roundHeader(c *gui.Context, i int, r round) {
 
 // roundOps 是一轮的工具行（分组头与运行中摘要共用）：左侧轨道 + 缩进的操作行。
 func (a *App) roundOps(c *gui.Context, i int, r round) {
+	// TL-74 分组内容轨道（缩进的操作行）
 	t := c.Theme()
 	gui.Row(c).Grow(1).Gap(space2).Children(func() {
 		rail := gui.Box(c).Width(timelineGroupIndent).Shrink(0).AlignSelf(gui.Stretch).Label("分组轨道")
@@ -737,6 +755,7 @@ func (a *App) roundOps(c *gui.Context, i int, r round) {
 
 // toolRow 是一行工具调用：图标 + 动词 + 参数 + 差异计数/失败标记 + 箭头。
 func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
+	// TL-54 工具调用标题行
 	t := c.Theme()
 	key := fmt.Sprintf("tool:%d:%d", roundIndex, opIndex)
 	open := a.blockOf(key, false)
@@ -764,15 +783,18 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 		}
 		a.searchText(c, searchKeyToolParam(roundIndex, opIndex), display, typeSecondary, t.Text).
 			Shrink(1).SingleLine()
+		// TL-75 +{新增} / -{删除}
 		if o.added > 0 {
 			typeMicro.style(t, gui.Text(c, fmt.Sprintf("+%d", o.added))).TextColor(t.Success)
 		}
 		if o.removed > 0 {
 			typeMicro.style(t, gui.Text(c, fmt.Sprintf("-%d", o.removed))).TextColor(t.Danger)
 		}
+		// TL-77 ✗ 失败状态标记
 		if o.failed {
 			iconGlyphSize(c, iconXMark, 12, t.Warning, "工具失败")
 		}
+		// TL-78 工具行展开箭头
 		if hasDetails {
 			chevronLabeled(c, t, arrow, "工具展开指示")
 		}
@@ -793,6 +815,7 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 // 内容用等宽浅底块；失败原因取危险色。输入与失败原因分开进快照之前，失败的
 // 工具仍给出「失败原因」段，并写明这一段还在等事实，不把输出冒充原因。
 func (a *App) toolDetail(c *gui.Context, row, n int, o op) {
+	// TL-55 工具调用详情（展开区）
 	t := c.Theme()
 	gui.Column(c).Gap(space1).PaddingStart(timelineGroupIndent).Children(func() {
 		if o.input != "" {
@@ -836,6 +859,7 @@ func (a *App) codeBlock(c *gui.Context, text string) {
 
 // failureBlock 是块失败的标题与说明（TL-57）。
 func (a *App) failureBlock(c *gui.Context) {
+	// TL-57 运行失败的标题与说明
 	t := c.Theme()
 	gui.Row(c).Gap(space2).AlignItems(gui.Start).Children(func() {
 		iconGlyph(c, iconWarn, t.Danger, "failure")
@@ -852,6 +876,7 @@ func (a *App) failureBlock(c *gui.Context) {
 // 没有立即重试的方法，RetrySubmit 也不是这件事），所以入口照留、置灰并把原因
 // 写在 tooltip 上。剩余时间拿不到时整行不画（见 liveRow 的 RowRetry 分支）。
 func (a *App) retryNotice(c *gui.Context, r round) {
+	// TL-58 {seconds}s 后重试
 	t := c.Theme()
 	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
 		typeSecondary.style(t, gui.Text(c, fmt.Sprintf("%ds 后重试", r.retrySeconds))).
@@ -863,6 +888,7 @@ func (a *App) retryNotice(c *gui.Context, r round) {
 
 // artifactsBlock 是本轮产物：计数 + 展开列表（每卡一个打开入口）。
 func (a *App) artifactsBlock(c *gui.Context, i int, r round) {
+	// TL-14 本轮产物块
 	t := c.Theme()
 	open := a.blockOf(fmt.Sprintf("artifacts:%d", i), false)
 	title := fmt.Sprintf("%d 个产物", len(r.artifacts))
@@ -1017,6 +1043,7 @@ func (a *App) artifactMenu(c *gui.Context, target gui.Element, menuKey string, a
 
 // fileChangesBlock 是本轮文件改动：计数 + 展开列表（文件、状态、差异）。
 func (a *App) fileChangesBlock(c *gui.Context, i int, r round) {
+	// TL-15 本轮改动块
 	t := c.Theme()
 	open := a.blockOf(fmt.Sprintf("files:%d", i), false)
 	title := fmt.Sprintf("%d 个文件改动", len(r.fileChanges))
@@ -1064,6 +1091,7 @@ func (a *App) fileChangeRow(c *gui.Context, change fileChange) {
 
 // assistantActions 是轮末动作条：复制、分叉、重试与完成时间（悬停可见）。
 func (a *App) assistantActions(c *gui.Context, i int, r round) {
+	// TL-13 / TL-61 / TL-62 / TL-63 / TL-64 轮末动作条
 	t := c.Theme()
 	gui.Row(c).Gap(space1).AlignItems(gui.Center).Label("助手动作").Children(func() {
 		iconButton(c, iconButtonSpec{icon: iconCopy, label: "复制整个消息", size: rowCompact})
@@ -1098,6 +1126,7 @@ func (a *App) note(c *gui.Context, note string) {
 
 // backToLatest 是浮在时间线右下角的「回到最新」按钮，只在滚离底部后出现。
 func (a *App) backToLatest(c *gui.Context) {
+	// TL-08 回到最新
 	if a.feed.MaxY <= 0 || a.feed.MaxY-a.feed.Y < timelineBackThreshold {
 		return
 	}
@@ -1128,6 +1157,7 @@ func (a *App) revealPanel(c *gui.Context, open bool, progress float32, body func
 // groupSummary 是分组头的动作汇总（TL-72）：
 // 「思考1轮 · 改2次文件、搜1次、抓取2次、其他1次」。
 func groupSummary(r round) string {
+	// TL-72 分组头的动作汇总
 	parts := make([]string, 0, 6)
 	if r.thinking != "" {
 		parts = append(parts, "思考1轮")
@@ -1541,6 +1571,7 @@ func (a *App) liveText(c *gui.Context, i int, row RowSnapshot) {
 
 // assistantText 是一段助手正文：整段可选，右键菜单按选区复制（TL-65）。
 func (a *App) assistantText(c *gui.Context, i int, text string) {
+	// TL-53 markdown 正文
 	col := gui.Column(c).Shrink(0).Label("助手正文").Selectable()
 	svc := c.Services()
 	col = col.ContextMenu(func(m *gui.Menu) {
@@ -1661,6 +1692,7 @@ func rowDurationText(d time.Duration) string {
 // emptyTimeline 是"会话里还没有消息"的空态（与无会话的空态区分）。
 // 还没登录且没有供应商时，空态下面给两条首次运行入口（见 firstRunNeeded）。
 func (a *App) emptyTimeline(c *gui.Context) {
+	// TL-02 当前会话还没有消息
 	t := c.Theme()
 	gui.Box(c).Grow(1).Center().Label("对话流").Role(gui.RoleLog).Children(func() {
 		gui.Column(c).AlignItems(gui.Center).Gap(space4).Children(func() {

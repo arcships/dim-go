@@ -69,17 +69,24 @@ func renderGeneral(c *gui.Context, a *App) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(screenSpace5).Children(func() {
+				// S-general-01 分节标题「通用」
 				screenTitle(c, "通用")
+				// S-general-02 / S-general-04 保持电脑唤醒
 				generalSwitchCard(c, "保持电脑唤醒",
+					// S-general-03 保持电脑唤醒的说明句
 					"运行期间阻止系统休眠。屏幕也会保持常亮。", &generalScreen.keepAwake, note)
+				// S-general-05 / S-general-08 性能日志
 				generalSwitchCard(c, "性能日志",
+					// S-general-06 性能日志的说明句
 					"将各进程 CPU/RSS/IO 采样写入 logs/performance/（每秒一行）。tail 该文件即可实时查看。",
 					&generalScreen.perfLog, note)
 				if generalPinned() {
 					generalCard(c, func() {
+						// S-general-07 本次启动由 DIM_PERF 决定采集
 						screenHint(c, "本次启动由 DIM_PERF 决定采集，该开关不生效。")
 					})
 				}
+				// S-general-09 / S-general-10 登录时自动启动
 				generalSwitchCard(c, "登录时自动启动", "", &generalScreen.launch, note)
 				generalRootDirCard(c, note)
 				generalProxyCard(c, note)
@@ -333,22 +340,29 @@ func generalImportDialog(c *gui.Context) {
 	t := c.Theme()
 	open := true
 	m := modalShell(gui.Modal(c, &open, func() {
+		// G-H6-01 「导入 Chrome Cookie」
 		screenDialogPanel(c, "导入 Chrome Cookie", func() {
+			// G-H6-02 导入说明句（替换全部非分区 Cookie）
 			screenHint(c, "此操作会替换内置浏览器中的全部非分区 Cookie…")
+			// G-H6-04 「Chrome 配置」
 			screenGroupTitle(c, "Chrome 配置")
 			gui.Column(c).Gap(screenSpace05).Children(func() {
+				// G-H6-05 配置名 + 能力标签
 				generalProfileRow(c, 0, "Default · 可导入")
 				generalProfileRow(c, 1, "Profile 1 · 需要授权")
 			})
 			if generalScreen.importResult {
 				gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
 					screenIcon(c, iconCheck, screenIconMicro, t.Success, "check")
+					// G-H6-09a 成功态（已导入 · 失败 · 已跳过）
 					screenHint(c, "已导入 120 · 失败 2 · 已跳过 6")
 				})
 			} else {
+				// G-H6-08 可导入 / 会话 / 已过期 / 分区计数
 				screenHint(c, "可导入 128 · 会话 96 · 已过期 20 · 分区 12")
 			}
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
+				// G-H6-11 取消 / 关闭
 				label := "取消"
 				if generalScreen.importResult {
 					label = "关闭"
@@ -358,6 +372,7 @@ func generalImportDialog(c *gui.Context) {
 					open = false
 				}
 				if !generalScreen.importResult {
+					// G-H6-12 导入
 					if screenButton(c, "导入", "导入 Chrome Cookie", "", true, rowRegular) {
 						generalScreen.importResult = true
 					}
@@ -402,13 +417,17 @@ func generalClearDialog(c *gui.Context) {
 	}
 	open := true
 	m := modalShell(gui.Modal(c, &open, func() {
+		// G-H7-01 「清理浏览器数据」
 		screenDialogPanel(c, "清理浏览器数据", func() {
+			// G-H7-02 清理说明句
 			screenHint(c, "此操作只会清除内置浏览器中的登录状态、Cookie…")
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
+				// G-H7-05 取消
 				if screenButton(c, "取消", "取消清理浏览器数据", "", false, rowRegular) {
 					generalScreen.clearOpen = false
 					open = false
 				}
+				// G-H7-06 清理浏览器数据
 				if screenButton(c, "清理浏览器数据", "清理浏览器数据", "", true, rowRegular) {
 					generalScreen.clearOpen = false
 					open = false
@@ -460,6 +479,7 @@ func generalCleanupDialog(c *gui.Context, a *App) {
 			screenHint(c, "会话存储由 App Server 管理，此应用不支持跨归属方的扫描和清理。")
 			screenHint(c, "如需回收可回收空间，请停止守护进程并离线运行 `dimcode daemon vacuum`。")
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
+				// S-general-89 关闭数据清理
 				if screenButton(c, "关闭", "关闭数据清理", "", false, rowRegular) {
 					generalScreen.cleanupOpen = false
 					open = false

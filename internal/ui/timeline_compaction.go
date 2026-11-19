@@ -19,6 +19,7 @@ import (
 // 重试把样例摘要填上，走查能走完交互。
 
 // compactionWord 是分隔行的状态词（TL-665–TL-668）。
+// TL-67 / TL-68 分隔行状态词（上下文已压缩 / 正在压缩 / 压缩失败 / 已跳过 / 已取消）
 func compactionWord(status, text string) string {
 	switch status {
 	case RowStatusRunning:
@@ -55,6 +56,7 @@ func (a *App) compactionFacts() *CompactionSnapshot {
 // text 是行原文（服务端的摘要或系统提示），status 是这一行的状态；两者都可能
 // 为空，此时按事实或默认词画。
 func (a *App) compressionRow(c *gui.Context, key, text, status string) {
+	// TL-17 压缩分隔行
 	t := c.Theme()
 	if facts := a.compactionFacts(); facts != nil {
 		if facts.Status != "" {
@@ -66,6 +68,7 @@ func (a *App) compressionRow(c *gui.Context, key, text, status string) {
 	}
 	word := compactionWord(status, text)
 	open := a.compactionOpenOf(key)
+	// TL-68 正在压缩 / 压缩失败 / 已跳过 / 已取消
 	btn := gui.ButtonBase(c).Grow(1).Height(timelineRowHeight).Gap(space2).
 		Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).
 		Radius(radius).Label(word).Role(gui.RoleDisclosure).Expanded(*open)
@@ -105,6 +108,7 @@ func (a *App) compactionOpenOf(key string) *bool {
 }
 
 // compactionSummary 是摘要区（TL-675–TL-681）：三态 + 无摘要兜底。
+// TL-69 摘要区（摘要生成中 / 摘要不可用 / 加载失败 + 重试）
 func (a *App) compactionSummary(c *gui.Context, status string) {
 	t := c.Theme()
 	facts := a.compactionFacts()
@@ -135,6 +139,7 @@ func (a *App) compactionSummary(c *gui.Context, status string) {
 
 // compactionUnavailable 是「无法加载摘要。+ 重试」（TL-677）。
 func (a *App) compactionUnavailable(c *gui.Context) {
+	// TL-69 无法加载摘要 + 重试
 	t := c.Theme()
 	gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("无法加载摘要").Children(func() {
 		typeMicro.style(t, gui.Text(c, "无法加载摘要。")).TextColor(t.TextMuted).SingleLine()

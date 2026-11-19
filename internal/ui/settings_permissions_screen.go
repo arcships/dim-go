@@ -167,6 +167,7 @@ func renderPermissions(c *gui.Context, a *App) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(permCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(permTitleGap).Children(func() {
+				// S-permissions-01 分节标题「权限」
 				screenTitle(c, permCopyTitle)
 				gui.Column(c).Shrink(0).Gap(permSectionGap).Children(func() {
 					permIsolationCard(c, live)
@@ -190,9 +191,12 @@ func permIsolationCard(c *gui.Context, live bool) {
 			Children(func() {
 				gui.Column(c).Shrink(0).Gap(permLineGap).Children(func() {
 					gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
+						// S-permissions-02 盾牌图标
 						screenIcon(c, permIconShieldCheck, permIconSize, t.TextMuted, "shield-check")
+						// S-permissions-03 「进程隔离」
 						permGroupTitle(c, permCopyIsolation)
 					})
+					// S-permissions-04 进程隔离的说明句
 					permSubhint(c, permCopyIsolationIn)
 				})
 				if live {
@@ -208,6 +212,7 @@ func permIsolationCard(c *gui.Context, live bool) {
 						// 重新拉取要有 Source 的读取方法（DEC-17），本屏不造"重试
 						// 成功"的假象：按钮置灰并写原因。
 						settingsActionButton(c, settingsActionSpec{
+							// S-permissions-06 读失败后的「刷新」
 							text: permCopyRefresh, label: permCopyRefresh, height: rowRegular,
 							tip: notePermissionWrite, disabled: true,
 						})
@@ -216,6 +221,7 @@ func permIsolationCard(c *gui.Context, live bool) {
 					// 还没读到设置、也还没报错：按加载中画，卡片不留空白。
 					permLoadingRow(c)
 				case permissionsScreen.backendReason != "":
+					// S-permissions-07 「沙箱后端不可用：{reason}」
 					permAlert(c, permCopyUnavailable+permissionsScreen.backendReason)
 				default:
 					permIsolationControls(c)
@@ -227,14 +233,18 @@ func permIsolationCard(c *gui.Context, live bool) {
 // permIsolationControlsDisabled 是连接模式下的同一组控件：两个开关与保存按钮
 // 都在场，全部置灰，原因写在开关行下。
 func permIsolationControlsDisabled(c *gui.Context) {
+	// S-permissions-08 / S-permissions-09 在沙箱中运行命令（开关 + 说明，连接态置灰）
 	permSwitchRowDisabled(c, permCopySandbox, permCopySandboxIn, &permissionsScreen.sandbox)
+	// S-permissions-11 / S-permissions-12 允许网络访问（开关 + 说明，连接态置灰）
 	permSwitchRowDisabled(c, permCopyNetwork, permCopyNetworkIn, &permissionsScreen.network)
 	settingsActionButton(c, settingsActionSpec{
 		variant: settingsActionPrimary, icon: permIconSave, mark: "save",
+		// S-permissions-14 保存隔离设置（连接态置灰）
 		text: permCopySaveIso, label: permCopySaveIso, height: rowRegular,
 		tip: noteIsolationUnread, disabled: true,
 	})
 	permSubhint(c, noteIsolationUnread)
+	// S-permissions-17 隔离设置的作用范围说明
 	permSubhint(c, permCopyScope)
 }
 
@@ -254,10 +264,13 @@ func permSwitchRowDisabled(c *gui.Context, label, hint string, on *bool) {
 
 // permIsolationControls 是已加载时的三行：两个开关 + 保存按钮 + 范围说明。
 func permIsolationControls(c *gui.Context) {
+	// S-permissions-10 在沙箱中运行命令（开关）
 	permSwitchRow(c, permCopySandbox, permCopySandboxIn, &permissionsScreen.sandbox)
+	// S-permissions-13 允许网络访问（开关）
 	permSwitchRow(c, permCopyNetwork, permCopyNetworkIn, &permissionsScreen.network)
 	if settingsActionButton(c, settingsActionSpec{
 		variant: settingsActionPrimary, icon: permIconSave, mark: "save",
+		// S-permissions-15 保存隔离设置与保存回执
 		text: permCopySaveIso, label: permCopySaveIso, height: rowRegular,
 		tip: notePermissionWrite, disabled: true,
 	}) {
@@ -271,6 +284,7 @@ func permIsolationControls(c *gui.Context) {
 	if permissionsScreen.saveError != "" {
 		permAlert(c, permissionsScreen.saveError)
 	}
+	// S-permissions-17 隔离设置的作用范围说明
 	permSubhint(c, permCopyScope)
 }
 
@@ -297,11 +311,16 @@ func permSwitchRow(c *gui.Context, label, hint string, on *bool) {
 func permExecSection(c *gui.Context) {
 	gui.Column(c).Shrink(0).Children(func() {
 		gui.Column(c).Shrink(0).Gap(permLineGap).Children(func() {
+			// S-permissions-18 「权限」分组标题
 			permGroupTitle(c, permCopyExecTitle)
+			// S-permissions-19 「Exec command 权限」
 			permLabel(c, permCopyExecLabel)
+			// S-permissions-20 命令规则的说明句
 			permSubhint(c, permCopyExecDesc)
 			gui.Column(c).Shrink(0).Gap(screenSpace05).Children(func() {
+				// S-permissions-21 「规则」
 				permRulesTitle(c, permCopyRules)
+				// S-permissions-22 deny 优先于 allow。exact / prefix 的匹配口径
 				permSubhint(c, permCopyRulesDesc)
 			})
 		})
@@ -309,6 +328,7 @@ func permExecSection(c *gui.Context) {
 			gui.Column(c).Shrink(0).Gap(screenSpace2).Children(func() {
 				permRuleTable(c)
 				if settingsActionButton(c, settingsActionSpec{
+					// S-permissions-26 添加规则
 					text: permCopyAddRule, label: permCopyAddRule,
 					height: rowRegular, disabled: permissionsScreen.saving,
 				}) {
@@ -323,6 +343,7 @@ func permExecSection(c *gui.Context) {
 // permRulesActions 是保存权限与它的反馈（S-sandbox-33 … 35）。
 func permRulesActions(c *gui.Context) {
 	if settingsActionButton(c, settingsActionSpec{
+		// S-permissions-27 保存权限
 		variant: settingsActionPrimary, icon: permIconSave, mark: "save",
 		text: permCopySaveRules, label: permCopySaveRules,
 		height: rowRegular, tip: notePermissionWrite, disabled: true,
@@ -330,9 +351,11 @@ func permRulesActions(c *gui.Context) {
 		// 写入走 Intents.WriteCommandRules：本屏的渲染函数拿不到 App / Intents
 		// （DEC-17），入口禁用并写原因。
 	}
+	// S-permissions-28 保存权限的反馈
 	if permissionsScreen.permissionFeed != "" {
 		permNote(c, permissionsScreen.permissionFeed, c.Theme().Success)
 	}
+	// S-permissions-29 保存权限的错误
 	if permissionsScreen.permissionErr != "" {
 		permAlert(c, permissionsScreen.permissionErr)
 	}
@@ -366,6 +389,7 @@ func permRuleTable(c *gui.Context) {
 }
 
 // permTableHeader 是表头：命令 / 匹配 / 决策三列可见，第四列「规则」只给读屏。
+// S-permissions-23 表头（命令 / 匹配 / 决策 / 规则）
 func permTableHeader(c *gui.Context) {
 	t := c.Theme()
 	box := gui.Row(c).Shrink(0).MinHeight(permTableH).Padding(0, screenSpace2).
@@ -403,6 +427,7 @@ func permHeaderCell(c *gui.Context, text string, width float32, grow, hidden boo
 
 // permRuleRow 是一条规则（S-sandbox-24 … 31）：命令输入 + 匹配 / 决策下拉 +
 // 移除；窄窗按 U2-forms F23 堆叠成两行。
+// S-permissions-24 规则行（命令输入 + 匹配 / 决策下拉 + 移除）
 func permRuleRow(c *gui.Context, index int) {
 	rule := &permissionsScreen.rules[index]
 	screenRule(c)
@@ -425,6 +450,7 @@ func permRuleRow(c *gui.Context, index int) {
 					permRemoveButton(c, index)
 				})
 			}
+			// S-permissions-25 规则行的校验错误
 			if rule.err != "" {
 				permAlert(c, rule.err)
 			}
@@ -432,12 +458,14 @@ func permRuleRow(c *gui.Context, index int) {
 }
 
 // permMatcherInput 是命令匹配式的输入框（等宽）。
+// S-permissions-24 命令匹配式输入
 func permMatcherInput(c *gui.Context, rule *sandboxRule) {
 	screenInput(c, &rule.matcher, permCopyMatcher, permCopyMatcher).
 		Font(codeFamily()).Grow(1)
 }
 
 // permRuleSelects 是两个下拉：匹配（精确 / 前缀）与决策（允许 / 拒绝）。
+// S-permissions-24 匹配与决策两个下拉
 func permRuleSelects(c *gui.Context, rule *sandboxRule) {
 	gui.Row(c).Grow(1).Gap(screenSpace2).Children(func() {
 		screenIndexSelect(c, &rule.match, permMatchOptions, permCopyColMatch)
@@ -446,6 +474,7 @@ func permRuleSelects(c *gui.Context, rule *sandboxRule) {
 }
 
 // permRemoveButton 是行尾的「移除」（S-sandbox-30）。
+// S-permissions-24 行尾的「移除」
 func permRemoveButton(c *gui.Context, index int) {
 	if settingsActionButton(c, settingsActionSpec{
 		text: permCopyRemove, label: permCopyRemove + "：第 " + permOrdinal(index) + " 条",
@@ -505,6 +534,7 @@ func permNarrow(c *gui.Context) bool {
 }
 
 // permLeaveDialog 是「命令权限尚未保存」确认框（S-sandbox-36 … 40）。
+// S-permissions-30 命令权限尚未保存 · 取消 / 丢弃 / 保存
 func permLeaveDialog(c *gui.Context) {
 	if !permissionsScreen.leaveOpen {
 		return
@@ -585,6 +615,7 @@ func permNote(c *gui.Context, text string, color gui.Color) {
 }
 
 // permLoadingRow 是「正在加载...」（S-sandbox-04）：转圈 + 文案。
+// S-permissions-05 正在加载...
 func permLoadingRow(c *gui.Context) {
 	gui.Row(c).Shrink(0).Gap(screenSpace2).AlignItems(gui.Center).Children(func() {
 		gui.Spinner(c).Size(screenIconInline, screenIconInline).Label(permCopyLoading)

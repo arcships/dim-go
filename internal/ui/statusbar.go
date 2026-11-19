@@ -29,6 +29,7 @@ func (a *App) statusBar(c *gui.Context) {
 	gui.Row(c).Shrink(0).Padding(0, space4).Justify(gui.Center).Children(func() {
 		gui.Row(c).WidthPercent(100).MaxWidth(composerMaxWidth).Height(statusBarHeight).
 			Padding(0, statusBarPadX).Gap(space3).AlignItems(gui.Center).
+			// SB-01 状态条容器
 			Label("状态条").Children(func() {
 			a.statusPermission(c)
 			branch, _, _ := a.branchState()
@@ -47,6 +48,7 @@ func (a *App) statusPermission(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.permissionOpen)
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
+		// SB-02 / SB-03 权限档位（默认权限 / 智能权限 / 完全访问权限）
 		Gap(space1).AlignItems(gui.Center).Label("权限：" + a.permissionLabel()).
 		Role(gui.RoleButton).Description("可更改权限档位").
 		Tooltip("选择权限").Cursor(gui.CursorPointer)
@@ -121,6 +123,7 @@ func (a *App) statusBranch(c *gui.Context) {
 	current, branches, wired := a.branchState()
 	m := gui.MenuBase(c, &a.statusBranchOpen)
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
+		// SB-09 当前分支
 		Gap(space1).AlignItems(gui.Center).Label("分支 " + current).
 		Role(gui.RoleButton).Description("当前分支 " + current + "，可切换或新建").
 		Tooltip("切换分支").Cursor(gui.CursorPointer)
@@ -135,10 +138,12 @@ func (a *App) statusBranch(c *gui.Context) {
 		panel.Width(statusBranchMenuW).Padding(space1).Radius(radiusCard).
 			Background(t.Surface).
 			Shadow(0, 4, 16, 0, colorShadow.in(t))
+		// SB-11 分支分组标题
 		typeMicro.style(t, gui.Text(c, "分支")).TextColor(t.TextMuted).Padding(space1, space2)
 		gui.Row(c).Height(composerSearchRowHeight).Padding(0, space2).Gap(space1).
 			Radius(radius).Background(t.SurfaceHover).AlignItems(gui.Center).Children(func() {
 			iconBox(c, iconSearch, t.TextMuted, "search")
+			// SB-10 搜索分支...
 			gui.TextInputBase(c, &a.statusBranchQuery).Placeholder("搜索分支...").
 				Grow(1).Label("搜索分支")
 		})
@@ -148,6 +153,7 @@ func (a *App) statusBranch(c *gui.Context) {
 				!strings.Contains(strings.ToLower(name), strings.ToLower(a.statusBranchQuery)) {
 				continue
 			}
+			// SB-12 分支菜单项（分支名）
 			if menuItem(c, m, iconBranch, name, "分支："+name, "", false, name == current) {
 				if wired && a.intents != nil {
 					a.dispatch("切换分支", func(ctx context.Context) error {
@@ -168,6 +174,7 @@ func (a *App) statusBranch(c *gui.Context) {
 		} else if note := a.forkPromptReason(); note != "" {
 			createNote = note
 		}
+		// SB-13 创建新分支
 		if menuItem(c, m, iconPlus, "创建新分支", "创建新分支", createNote,
 			createNote != "", false) {
 			switch {
@@ -212,6 +219,7 @@ func (a *App) statusUsage(c *gui.Context) {
 	}
 	m := gui.MenuBase(c, &a.contextOpen)
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
+		// SB-14 上下文用量表（进度条 + 百分比）
 		Gap(space1).AlignItems(gui.Center).Label(fmt.Sprintf("上下文用量 %s", label)).
 		Role(gui.RoleButton).Description(contextUsagePhrase(pct, a.contextLimit > 0)).
 		Tooltip("上下文用量").Cursor(gui.CursorPointer)
@@ -226,6 +234,7 @@ func (a *App) statusUsage(c *gui.Context) {
 		panel.Width(statusUsageMenuW).Padding(space2).Gap(space1).Radius(radiusCard).
 			Background(t.Surface).
 			Shadow(0, 4, 18, 0, colorShadow.in(t))
+		// SB-15 本轮上下文
 		typeSecondaryStrong.style(t, gui.Text(c, "本轮上下文")).TextColor(t.Text)
 		if a.contextLimit > 0 {
 			typeSecondary.style(t, gui.Text(c, fmt.Sprintf("~%s / %s",
@@ -243,6 +252,7 @@ func (a *App) statusUsage(c *gui.Context) {
 		if a.source != nil {
 			usage := a.source.Usage()
 			switch {
+			// SB-18 / SB-20 用量不可用时的原因行
 			case !usage.Available:
 				reason := usage.Reason
 				if reason == "" {
@@ -251,6 +261,7 @@ func (a *App) statusUsage(c *gui.Context) {
 				typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.TextMuted)
 			case usage.Limit > 0:
 				p := int(math.Round(usage.Used / usage.Limit * 100))
+				// SB-21 用量百分比 + 进度条 + 重置时间
 				typeSecondary.style(t, gui.Text(c, fmt.Sprintf("月度用量 %d%%", p))).TextColor(t.Text)
 				a.usageBarSized(c, p, statusUsageMenuW-2*space2, "套餐用量")
 				if usage.HasResets && !usage.ResetsAt.IsZero() {
@@ -258,6 +269,7 @@ func (a *App) statusUsage(c *gui.Context) {
 						TextColor(t.TextMuted)
 				}
 			default:
+				// SB-19 无限额度
 				typeSecondary.style(t, gui.Text(c, "无限额度")).TextColor(t.TextMuted)
 			}
 		} else {
@@ -270,6 +282,7 @@ func (a *App) statusUsage(c *gui.Context) {
 // usageAccountLink 是用量浮层底部的「账户 ↗」：进设置 · 账户，不替换主区内容。
 func (a *App) usageAccountLink(c *gui.Context) {
 	t := c.Theme()
+	// SB-17 账户设置
 	btn := gui.ButtonBase(c).Height(controlMini).Padding(0, space1).Radius(radius).
 		Gap(space1).AlignItems(gui.Center).Label("账户设置").Cursor(gui.CursorPointer)
 	if btn.Hovered() {

@@ -247,6 +247,7 @@ func (a *App) exportPanel(c *gui.Context) {
 		panel := gui.Column(c).Gap(space2).Width(accDialogWidth(c)).
 			Role(gui.RoleDialog).Label(exportTitle)
 		panel.Children(func() {
+			// G-G1-01 「导出对话」标题
 			typeDialogTitle.style(t, gui.Text(c, exportTitle)).TextColor(t.Text).
 				Role(gui.RoleHeading).Level(3).SingleLine()
 			// 正文区可滚动：窄窗或手动路径 + 失败原因同屏时，按钮行仍在窗口内
@@ -254,17 +255,21 @@ func (a *App) exportPanel(c *gui.Context) {
 			body := gui.Scroll(c).Shrink(0).MaxHeight(exportBodyHeight(c)).Label("导出面板内容")
 			body.Children(func() {
 				gui.Column(c).Gap(space2).Children(func() {
+					// G-G1-02 导出说明句
 					desc := fmt.Sprintf("导出「%s」的会话对话。不包含原始 Provider 请求。", name)
 					typeBody.style(t, gui.Text(c, desc)).
 						TextColor(t.TextMuted).Selectable().Label(desc)
 
+					// G-G1-03 / G-G1-04 / G-G1-05 导出内容与格式选项（消息 / 工具详情 / 思考）
 					a.exportChoices(c, exportDescFormat, exportFormats, &st.format)
 					a.exportChoices(c, exportDescScope, exportScopes, &st.scope)
 					// 快照只有已加载的那一段（HasOlder）：导出的范围不能写成全量，
 					// 把口径摊在范围下面，不让人以为「整条会话」是全部历史。
 					if a.sessionPartial() {
+						// G-G1-09 对话未全量加载的口径说明
 						screenHint(c, partialHistoryNote)
 					}
+					// G-G1-09 没有回合时的状态句
 					if len(turns) == 0 {
 						screenHint(c, exportEmptyTurns)
 					} else if st.scope == exportScopeTurns {
@@ -294,6 +299,7 @@ func (a *App) exportPanel(c *gui.Context) {
 						screenHint(c, hint)
 					}
 
+					// G-G1-15 导出失败原因
 					if st.failure != "" {
 						typeSecondary.style(t, gui.Text(c, st.failure)).TextColor(t.Danger).
 							Role(gui.RoleAlert).Label(st.failure).Selectable()
@@ -308,9 +314,11 @@ func (a *App) exportPanel(c *gui.Context) {
 			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
 				if st.busy {
 					screenTextButtonDisabled(c, exportCopyCancel, "正在导出，不能取消", rowRegular)
+					// G-G1-17 导出中…
 					screenTextButtonDisabled(c, "导出中…", "正在导出", rowRegular)
 					return
 				}
+				// G-G1-16 取消
 				if screenButton(c, exportCopyCancel, exportCopyCancel, exportCopyCancel, false, rowRegular) {
 					a.closeExportPanel()
 					open = false
@@ -333,6 +341,7 @@ func (a *App) exportPanel(c *gui.Context) {
 					}
 					return
 				}
+				// G-G1-17 导出
 				if screenButtonDisabledUntil(c, exportCopyFile,
 					"打开保存对话框并写文件", exportCopyFile, !canExport, rowRegular) && canExport {
 					a.startExportFile(content)
@@ -390,11 +399,13 @@ func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
 			kept++
 		}
 	}
+	// G-G1-06 保留 {kept} / {total} 个回合
 	count := fmt.Sprintf("保留 %d / %d 个回合", kept, len(turns))
 	typeSecondary.style(c.Theme(), gui.Text(c, count)).
 		TextColor(c.Theme().TextMuted).Label(count)
 	total := len(turns)
 	gui.Row(c).Gap(space2).Children(func() {
+		// G-G1-12 全部保留 / 全部排除
 		if exportTextButton(c, "全部保留", "第 1 轮起全部勾选", kept == total) {
 			for _, turn := range turns {
 				*a.exportTurnPtr(turn.Index) = true
@@ -406,6 +417,7 @@ func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
 			}
 		}
 	})
+	// G-G1-10 回合清单
 	list := gui.Column(c).Shrink(0).Label("轮次清单")
 	list.Children(func() {
 		gui.Column(c).Gap(space1).Children(func() {
@@ -418,6 +430,7 @@ func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
 
 // exportTurnRow 是一行回合：方框 + 序号 + 预览（单行）。
 func (a *App) exportTurnRow(c *gui.Context, turn exportTurn) {
+	// G-G1-10 回合条目（序号 + 预览）
 	label := fmt.Sprintf("第 %d 轮：%s", turn.Index, turnPreview(turn))
 	box := gui.Checkbox(c, a.exportTurnPtr(turn.Index), label)
 	box.Grow(1).Height(rowRegular)
