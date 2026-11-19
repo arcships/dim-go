@@ -426,12 +426,25 @@ func (a *App) groupMenuPtr(id string) *bool {
 }
 
 // accountNameValue 是账户行显示的名字：连着 Source 时取账号事实，否则用样例。
+// 名字与邮箱都为空时给占位，不留空行（LB-90）。
 func (a *App) accountNameValue() string {
 	if a.source != nil {
 		if name := a.source.Account().Name; name != "" {
 			return name
 		}
-		return a.source.Account().Email
+		if email := a.source.Account().Email; email != "" {
+			return email
+		}
+		return "未命名账户"
 	}
 	return "eric"
+}
+
+// accountStatusPhrase 是账户行的读屏状态说明：登录状态与账户名。头像只是首字母，
+// 不单独播报。
+func (a *App) accountStatusPhrase() string {
+	if a.source != nil && !a.source.Account().Connected {
+		return "未登录，打开账户菜单可登录"
+	}
+	return "已登录 " + a.accountNameValue()
 }

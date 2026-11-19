@@ -67,7 +67,7 @@ func TestFindServerExplicitWins(t *testing.T) {
 	t.Setenv(envAppServer, fromEnv)
 	t.Setenv(legacyEnvAppServer, "")
 
-	plan, err := findServer(explicit, dir)
+	plan, err := findServer(explicit, dir, false)
 	if err != nil {
 		t.Fatalf("显式指定应成功: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestFindServerExplicitWins(t *testing.T) {
 	}
 
 	missing := filepath.Join(dir, "missing", serverName)
-	plan, err = findServer(missing, dir)
+	plan, err = findServer(missing, dir, false)
 	if err == nil {
 		t.Fatal("显式指定不可用时应失败")
 	}
@@ -94,7 +94,7 @@ func TestFindServerEnvAndEndpoint(t *testing.T) {
 	t.Setenv(envAppServer, fromEnv)
 	t.Setenv(legacyEnvAppServer, "")
 
-	plan, err := findServer("", dir)
+	plan, err := findServer("", dir, false)
 	if err != nil {
 		t.Fatalf("环境变量应命中: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestFindServerEnvAndEndpoint(t *testing.T) {
 	t.Setenv(envAppServer, "")
 	t.Setenv("PATH", "")
 	socket := liveEndpoint(t, dir)
-	plan, err = findServer("", dir)
+	plan, err = findServer("", dir, false)
 	if err != nil {
 		t.Fatalf("已有端点时应成功: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestFindServerStaleEndpoint(t *testing.T) {
 	t.Setenv("PATH", binDir)
 	staleEndpoint(t, dir)
 
-	plan, err := findServer("", dir)
+	plan, err := findServer("", dir, false)
 	if err != nil {
 		t.Fatalf("残留端点不该挡住 PATH 里命中的可执行文件: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestFindServerStaleEndpoint(t *testing.T) {
 
 	// 连可执行文件也没有：原因里要写明端点残留在、连不上，而不是含混地说找不到。
 	t.Setenv("PATH", "")
-	plan, err = findServer("", dir)
+	plan, err = findServer("", dir, false)
 	if err == nil {
 		t.Fatal("只有残留端点时应视为找不到 App Server")
 	}
@@ -160,7 +160,7 @@ func TestFindServerMissingListsTried(t *testing.T) {
 	t.Setenv(legacyEnvAppServer, "")
 	t.Setenv("PATH", "")
 
-	plan, err := findServer("", dir)
+	plan, err := findServer("", dir, false)
 	if err == nil {
 		t.Fatal("都找不到时应失败")
 	}
@@ -194,7 +194,7 @@ func TestFindServerReusesExistingDaemon(t *testing.T) {
 	own := liveEndpoint(t, dataDir)
 	alpha := liveEndpoint(t, filepath.Join(home, ".dimcode-alpha"))
 
-	plan, err := findServer("", dataDir)
+	plan, err := findServer("", dataDir, true)
 	if err != nil {
 		t.Fatalf("已有 daemon 时应成功: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestFindServerOwnEndpointLast(t *testing.T) {
 	own := liveEndpoint(t, dataDir)
 	alpha := liveEndpoint(t, filepath.Join(home, ".dimcode-alpha"))
 
-	plan, err := findServer("", dataDir)
+	plan, err := findServer("", dataDir, true)
 	if err != nil {
 		t.Fatalf("已有 daemon 时应成功: %v", err)
 	}
@@ -236,12 +236,90 @@ func TestFindServerOwnEndpointLast(t *testing.T) {
 	if err := os.Remove(alpha); err != nil {
 		t.Fatalf("移除产品 home 端点: %v", err)
 	}
-	plan, err = findServer("", dataDir)
+	plan, err = findServer("", dataDir, true)
 	if err != nil {
 		t.Fatalf("本端端点应命中: %v", err)
 	}
 	if !plan.Reuse || plan.DaemonSocket != own || plan.Source != "已有服务端点" {
 		t.Fatalf("应复用本端端点: %+v", plan)
+	}
+}
+
+// TestFindServerExplicitDataDirSkipsExternal 核对外部 daemon 的隔离：显式数据目录
+// （reuseExternal=false）不碰产品 home 的 daemon，只拉起自己的 server；要复用就
+// 显式打开外部探测（-reuse-daemon 走的就是这一档）。
+func TestFindServerExplicitDataDirSkipsExternal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows 用命名管道，不做端点探测")
+	}
+	home := shortDir(t)
+	t.Setenv("HOME", home)
+	t.Setenv(envAppServer, "")
+	t.Setenv(legacyEnvAppServer, "")
+	// 外部 daemon 活着，PATH 里也有可执行文件。
+	alpha := liveEndpoint(t, filepath.Join(home, ".dimcode-alpha"))
+	binDir := filepath.Join(home, "bin")
+	found := fakeServer(t, filepath.Join(binDir, serverName))
+	t.Setenv("PATH", binDir)
+
+	dataDir := shortDir(t)
+	plan, err := findServer("", dataDir, false)
+	if err != nil {
+		t.Fatalf("给了数据目录时应拉起自己的 server: %v", err)
+	}
+	if plan.Reuse || plan.DaemonSocket != "" {
+		t.Fatalf("显式数据目录不该复用外部 daemon: %+v", plan)
+	}
+	if plan.Path != found || plan.Source != "PATH" {
+		t.Fatalf("应命中自己的可执行文件: %+v", plan)
+	}
+
+	// 连可执行文件也没有：原因里只该有本端位置，不该出现被跳过的外部 home。
+	t.Setenv("PATH", "")
+	plan, err = findServer("", dataDir, false)
+	if err == nil {
+		t.Fatal("没有可执行文件、也不复用外部 daemon 时应报找不到")
+	}
+	message := err.Error()
+	if strings.Contains(message, ".dimcode-alpha") {
+		t.Fatalf("「找不到」的原因里不该出现被跳过的外部 home: %s", message)
+	}
+	if !strings.Contains(message, endpointPath(dataDir)) {
+		t.Fatalf("原因里应列出本端端点: %s", message)
+	}
+
+	// 打开外部探测（-reuse-daemon）时能复用同一个外部 daemon。
+	plan, err = findServer("", dataDir, true)
+	if err != nil {
+		t.Fatalf("允许复用时应有命中: %v", err)
+	}
+	if !plan.Reuse || plan.DaemonSocket != alpha {
+		t.Fatalf("打开外部探测后应复用产品 home 的 daemon: %+v", plan)
+	}
+}
+
+// TestFindServerExplicitDataDirOwnEndpoint 核对隔离语义的边界：调用方自己的数据目录
+// 里还有活着的实例时仍然复用——那是本端端点，不是外部 home。
+func TestFindServerExplicitDataDirOwnEndpoint(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows 用命名管道，不做端点探测")
+	}
+	home := shortDir(t)
+	t.Setenv("HOME", home)
+	t.Setenv(envAppServer, "")
+	t.Setenv(legacyEnvAppServer, "")
+	t.Setenv("PATH", "")
+
+	liveEndpoint(t, filepath.Join(home, ".dimcode-alpha"))
+	dataDir := shortDir(t)
+	own := liveEndpoint(t, dataDir)
+
+	plan, err := findServer("", dataDir, false)
+	if err != nil {
+		t.Fatalf("本端端点应命中: %v", err)
+	}
+	if !plan.Reuse || plan.DaemonSocket != own || plan.Source != "已有服务端点" {
+		t.Fatalf("显式数据目录里自己的实例应复用: %+v", plan)
 	}
 }
 

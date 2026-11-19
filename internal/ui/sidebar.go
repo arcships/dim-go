@@ -189,8 +189,9 @@ func (a *App) sidebarList(c *gui.Context) {
 				}
 				a.workspaceGroup(c, ws, all)
 				if ws.builtin {
-					// 内置工作区与其余工作区之间一条分隔线（LB-57）。
-					gui.Divider(c)
+					// 内置工作区与其余工作区之间一条分隔线（LB-57）：纯装饰，
+					// 不进读屏顺序。
+					gui.Divider(c).AccessHidden(true)
 				}
 			}
 		})
@@ -198,9 +199,11 @@ func (a *App) sidebarList(c *gui.Context) {
 }
 
 // sidebarHeading 是只读分组标题（「已置顶」）：10.5px、侧栏弱文字色，不加计数。
+// 它是分组标题而不是列表项：读屏把它当分组播报，其下的置顶行归它。
 func (a *App) sidebarHeading(c *gui.Context, text string) {
 	t := c.Theme()
 	gui.Row(c).Height(sidebarHeadingHeight).Shrink(0).Padding(space1, space1).
+		Role(gui.RoleGroup).Description("分组标题：" + text).
 		AlignItems(gui.Center).Children(func() {
 		typeMicro.style(t, gui.Text(c, text)).TextColor(colorSidebarHeading.in(t)).SingleLine()
 	})
@@ -212,7 +215,8 @@ func (a *App) listHeader(c *gui.Context) {
 	gui.Row(c).Height(sidebarHeadingHeight).Shrink(0).Padding(space1, space1).
 		Margin(space2, 0, space1, 0).
 		AlignItems(gui.Center).Gap(space1).Children(func() {
-		typeMicro.style(t, gui.Text(c, "会话")).TextColor(colorSidebarHeading.in(t)).SingleLine()
+		typeMicro.style(t, gui.Text(c, "会话")).TextColor(colorSidebarHeading.in(t)).
+			SingleLine().Role(gui.RoleHeading).Level(2)
 		gui.Spacer(c)
 		// 添加工作区：打开系统目录选择器属于平台能力，本批次只留入口与读屏名。
 		if iconButton(c, iconButtonSpec{icon: iconSidebarFolderPlus, label: "添加工作区", size: rowCompact}) {
@@ -316,7 +320,9 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 			}
 			row := gui.ButtonBase(c).Height(sidebarGroupRowHeight).Padding(space1, space2).
 				Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
-				Grow(1).Label(ws.name).Cursor(gui.CursorPointer)
+				Grow(1).Label(ws.name).Cursor(gui.CursorPointer).
+				Role(gui.RoleTreeItem).Expanded(open).
+				Description(groupDescription(ws, open))
 			if !ws.builtin {
 				row = row.Tooltip(groupTooltip(ws))
 			}
@@ -427,6 +433,24 @@ func groupTooltip(ws sidebarWorkspace) string {
 	return ws.name
 }
 
+// groupDescription 是分组行的读屏说明：内置工作区、展开 / 收起与目录。箭头本身
+// 不单独播报（它在组头里，图标没有可读名）。
+func groupDescription(ws sidebarWorkspace, open bool) string {
+	parts := make([]string, 0, 3)
+	if ws.builtin {
+		parts = append(parts, "内置工作区")
+	}
+	if open {
+		parts = append(parts, "已展开")
+	} else {
+		parts = append(parts, "已收起")
+	}
+	if ws.path != "" && !ws.builtin {
+		parts = append(parts, ws.path)
+	}
+	return strings.Join(parts, "，")
+}
+
 // flatGroups 是平铺视图（C12）：按日期分组，不按工作区分组。日期分组用
 // 「今天」一档（目录快照没有时间事实时全部落在今天）。
 func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
@@ -477,6 +501,8 @@ func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) 
 	row := gui.ButtonBase(c).Height(sidebarRowHeight).Padding(space1, space1).
 		Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
 		Label(name).Cursor(gui.CursorPointer).
+		Role(gui.RoleListItem).
+		Description(sessionRowDescription(marker, when, chosen, a.pinned(index))).
 		ContextMenu(func(m *gui.Menu) { a.sessionMenu(m, index, name) })
 	hovered := row.Hovered()
 	menuOpen := *a.menuOpenPtr(index)
@@ -514,6 +540,43 @@ func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) 
 			typeMicro.style(t, gui.Text(c, when)).TextColor(t.TextMuted).SingleLine()
 		}
 	})
+}
+
+// sessionRowDescription 是会话行的读屏补充说明：状态、置顶、选中与相对时间都
+// 进说明，不把图标当成独立读屏项。说明为空时返回空串（框架不播报空说明）。
+func sessionRowDescription(marker, when string, chosen, pinned bool) string {
+	parts := make([]string, 0, 4)
+	switch marker {
+	case "●":
+		parts = append(parts, "正在运行")
+	case "◷":
+		parts = append(parts, "等待你同意")
+	case "✕":
+		parts = append(parts, "失败")
+	}
+	if pinned {
+		parts = append(parts, "已置顶")
+	}
+	if chosen {
+		parts = append(parts, "已选中")
+	}
+	if when != "" {
+		parts = append(parts, timePhrase(when))
+	}
+	return strings.Join(parts, "，")
+}
+
+// timePhrase 把行尾的相对时间换成读屏用的自然语言；认不出的原样返回。
+func timePhrase(when string) string {
+	switch when {
+	case "now":
+		return "刚刚"
+	case "1h":
+		return "1 小时前"
+	case "16m":
+		return "16 分钟前"
+	}
+	return when
 }
 
 // sessionMenu 是会话行的六项菜单（LB-107–112 与 C2 的同构菜单）：置顶 / 重命名 /
@@ -654,7 +717,8 @@ func (a *App) accountMenu(m *gui.Menu) {
 func (a *App) logoutConfirmRow(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Padding(space1, space2).Gap(space1).
-		Label("退出登录确认").Role(gui.RoleAlert).Children(func() {
+		Label("退出登录确认").Role(gui.RoleAlertDialog).
+		Description("退出 Dim？退出后，需要重新登录才能使用 Dim 账户。").Children(func() {
 		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
 			iconGlyph(c, iconWarn, t.Warning, "warning")
 			typeSecondary.style(t, gui.Text(c, "退出 Dim？")).TextColor(t.Text).Grow(1).SingleLine()
@@ -770,12 +834,16 @@ func (a *App) createSessionAt(cwd string) {
 	}, nil)
 }
 
-// saveRename 保存行内改名：接上事实时走目录改名，失败原因回到错误行。
+// saveRename 保存行内改名：接上事实时走目录改名，失败原因回到错误行。名称留空
+// 时回落原名称（退出编辑，不留空标题）。
 func (a *App) saveRename(index int) {
-	if strings.TrimSpace(a.renameDraft) == "" {
+	title := strings.TrimSpace(a.renameDraft)
+	if title == "" {
+		a.renaming = -1
+		a.renameDraft = ""
 		return
 	}
-	title := a.renameDraft
+	a.renameDraft = title
 	if a.intents == nil {
 		a.renamed[index] = title
 		a.renaming = -1

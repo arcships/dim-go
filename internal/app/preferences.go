@@ -43,8 +43,12 @@ type Preferences struct {
 	// CloseToTray 是关窗行为：为真时窗口隐藏、进程留在托盘；为假时按退出处理。
 	// 缺省 false：与参考产品一致，关窗即退出。
 	CloseToTray bool `json:"closeToTray"`
-	// Window 是窗口尺寸与位置；HasPosition 为假时按居中处理。
+	// Window 是主窗口（索引 0）的尺寸与位置；HasPosition 为假时按居中处理。
+	// 主窗口同时写在 Windows[0] 与这里：旧偏好文件只有这一项时仍能读回主窗口位置。
 	Window WindowPreferences `json:"window"`
+	// Windows 是每个窗口的几何，按窗口索引存（0 是主窗口）。多窗口各记各的位置
+	// 与尺寸；关掉的窗口留下的槽位由下一个新窗口沿用。
+	Windows []WindowPreferences `json:"windows,omitempty"`
 }
 
 // WindowPreferences 是窗口几何。
@@ -136,13 +140,57 @@ func normalizePreferences(prefs Preferences) Preferences {
 	prefs.HooksProjectPath = strings.TrimSpace(prefs.HooksProjectPath)
 	prefs.GlobalShortcutAccelerator = strings.TrimSpace(prefs.GlobalShortcutAccelerator)
 	prefs.Workspaces = normalizeWorkspaceList(prefs.Workspaces)
-	if prefs.Window.Width < 0 {
-		prefs.Window.Width = 0
+	prefs.Window = normalizeWindowBounds(prefs.Window)
+	for i := range prefs.Windows {
+		prefs.Windows[i] = normalizeWindowBounds(prefs.Windows[i])
 	}
-	if prefs.Window.Height < 0 {
-		prefs.Window.Height = 0
+	// 主窗口的几何两处都写：旧版本只读 Window，新版本按索引读 Windows。
+	if len(prefs.Windows) > 0 && hasBounds(prefs.Windows[0]) {
+		prefs.Window = prefs.Windows[0]
+	} else if hasBounds(prefs.Window) {
+		prefs.Windows = growBoundsList(prefs.Windows, 0)
+		prefs.Windows[0] = prefs.Window
 	}
 	return prefs
+}
+
+// normalizeWindowBounds 把负的宽高按 0（用默认值）处理。
+func normalizeWindowBounds(bounds WindowPreferences) WindowPreferences {
+	if bounds.Width < 0 {
+		bounds.Width = 0
+	}
+	if bounds.Height < 0 {
+		bounds.Height = 0
+	}
+	return bounds
+}
+
+// hasBounds 表示这条几何有实际记录。
+func hasBounds(bounds WindowPreferences) bool {
+	return bounds.HasPosition || bounds.Width > 0 || bounds.Height > 0
+}
+
+// growBoundsList 把几何列表补到至少 index+1 项。
+func growBoundsList(list []WindowPreferences, index int) []WindowPreferences {
+	for len(list) <= index {
+		list = append(list, WindowPreferences{})
+	}
+	return list
+}
+
+// WindowFor 返回某个窗口索引的几何；没有记录时返回零值（调用方按居中与默认
+// 尺寸处理）。索引 0 在主窗口那一项缺失时回落到旧的 Window 字段。
+func (p Preferences) WindowFor(index int) WindowPreferences {
+	if index < 0 {
+		return WindowPreferences{}
+	}
+	if index < len(p.Windows) && hasBounds(p.Windows[index]) {
+		return p.Windows[index]
+	}
+	if index == 0 {
+		return p.Window
+	}
+	return WindowPreferences{}
 }
 
 // normalizeWorkspaceList 去掉空项与重复项，保留登记顺序。
@@ -169,6 +217,7 @@ func (a *App) Preferences() Preferences {
 	defer a.mu.Unlock()
 	prefs := a.prefs
 	prefs.Workspaces = append([]string(nil), a.prefs.Workspaces...)
+	prefs.Windows = append([]WindowPreferences(nil), a.prefs.Windows...)
 	return prefs
 }
 
@@ -186,11 +235,23 @@ func (a *App) UpdatePreferences(prefs Preferences) error {
 	return nil
 }
 
-// UpdateWindowBounds 记录窗口尺寸与位置。
+// UpdateWindowBounds 记录主窗口（索引 0）的尺寸与位置。
 func (a *App) UpdateWindowBounds(x, y, width, height int) error {
+	return a.UpdateWindowBoundsFor(0, x, y, width, height)
+}
+
+// UpdateWindowBoundsFor 记录某个窗口索引的尺寸与位置；主窗口同时写进 Window
+// 与 Windows[0]，保证旧版本回退时仍读得到主窗口位置。
+func (a *App) UpdateWindowBoundsFor(index, x, y, width, height int) error {
+	if index < 0 {
+		index = 0
+	}
 	prefs := a.Preferences()
-	prefs.Window = WindowPreferences{
-		X: x, Y: y, Width: width, Height: height, HasPosition: true,
+	bounds := WindowPreferences{X: x, Y: y, Width: width, Height: height, HasPosition: true}
+	prefs.Windows = growBoundsList(prefs.Windows, index)
+	prefs.Windows[index] = bounds
+	if index == 0 {
+		prefs.Window = bounds
 	}
 	return a.UpdatePreferences(prefs)
 }

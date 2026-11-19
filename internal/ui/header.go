@@ -144,10 +144,11 @@ func (a *App) chatMenu(c *gui.Context) {
 		// 重命名：采集里 SessionTitle 能力不可用时禁用，并在同一行给括注。
 		menuItem(c, m, iconPencil, "重命名", "重命名（SessionTitle 不可用）",
 			"（SessionTitle 不可用）", true, false)
-		// 多窗口不在本版：项保留但禁用，原因写在同一行，不留「已在新窗口中打开」的
-		// 假回执。
-		menuItem(c, m, iconExternal, "在新窗口中打开", "在新窗口中打开",
-			noteMultiWindow, true, false)
+		// 多窗口不在本版（DEC：单窗口持有会话）：项保留，回执写明未开窗口，不冒充
+		// 已经开出第二个窗口。
+		if menuItem(c, m, iconExternal, "在新窗口中打开", "在新窗口中打开", "", false, false) {
+			a.headerNote = noteMultiWindow
+		}
 		if menuItem(c, m, iconDownload, "导出", "导出", "", false, false) {
 			a.exportCurrentSession()
 		}
@@ -159,8 +160,12 @@ func (a *App) chatMenu(c *gui.Context) {
 		// 空串；写剪贴板失败给失败原因，不显示「已复制」。
 		id, cwd, _ := a.sessionCopyFacts()
 		menuItem(c, m, iconLink, "复制会话链接", "复制会话链接", noteSessionLink, true, false)
+		idNote := ""
+		if id == "" {
+			idNote = noteNoSessionID
+		}
 		if menuItem(c, m, iconFileCode, "复制会话 ID", "复制会话 ID",
-			noteNoSessionID, id == "", false) {
+			idNote, id == "", false) {
 			a.copySessionField(c, id, "已复制会话 ID")
 		}
 		if cwd != "" && menuItem(c, m, iconFolderOpen, "复制会话路径", "复制会话路径",
@@ -168,7 +173,7 @@ func (a *App) chatMenu(c *gui.Context) {
 			a.copySessionField(c, cwd, "已复制会话路径")
 		}
 		if menuItem(c, m, iconFileCode, "复制调试信息", "复制调试信息",
-			noteNoSessionID, id == "", false) {
+			idNote, id == "", false) {
 			a.copySessionField(c, a.debugInfo(), "已复制调试信息")
 		}
 	})

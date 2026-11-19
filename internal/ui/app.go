@@ -1119,7 +1119,22 @@ func (a *App) retryLastIntent() {
 	}
 }
 
+// headerNoteView 是操作回执行：复制、导出、归档这类动作的结果写在这里（10.5px、
+// 次要色，贴标题栏下方）。没有回执时不占高度；回执行不拦截点击，下层的标题栏
+// 拖动区与主区不受影响。
+func (a *App) headerNoteView(c *gui.Context) {
+	if a.headerNote == "" {
+		return
+	}
+	t := c.Theme()
+	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space2).AlignItems(gui.Center).
+		Label("操作回执").Role(gui.RoleStatus).Children(func() {
+		typeMicro.style(t, gui.Text(c, a.headerNote)).TextColor(t.TextMuted).Grow(1).SingleLine()
+	})
+}
+
 // actionErrorView 是一行失败原因：只在有错误时出现；关闭与「重试」都在同一行。
+// 重试只重发同一次写入，不替用户改参数。
 func (a *App) actionErrorView(c *gui.Context) {
 	reason := a.intentError()
 	if reason == "" {

@@ -7,6 +7,8 @@ package main
 //   - 发现顺序固定：-server → 环境变量 → 已有 daemon（按 home 顺序探测）
 //     → 可执行文件同目录 → PATH。每一档都记进日志与「找不到」的原因里，
 //     界面与日志能对上。
+//   - 外部 home 的 daemon 只在「没显式给 -data-dir」或「显式 -reuse-daemon」时探测：
+//     测试与干净验收给了数据目录就只在自己的目录里找服务端，不被本机 daemon 污染。
 //   - 「已有 daemon」要实际探测一次：socket 文件在但没人监听（上次崩溃的残留）不算
 //     命中，发现链继续找可执行文件，不拿残留端点掩盖「没有服务端」。
 //   - 不读 App Server 自己的文件：这里只看端点是否连得上，不碰它的数据库与会话文件。
@@ -111,14 +113,17 @@ type daemonHome struct {
 // 已有的 daemon 就在那里），最后看本端数据目录（上次拉起的实例可能还在）。
 //
 // 探测顺序决定「优先复用谁」：排在前面的 home 里有活着的 daemon 就不再往后看。
-func daemonHomes(dataDir string) []daemonHome {
+// external 为假时不探测产品 home：显式给了数据目录就要只在自己的目录里工作。
+func daemonHomes(dataDir string, external bool) []daemonHome {
 	var homes []daemonHome
-	if home, err := os.UserHomeDir(); err == nil && home != "" {
-		homes = append(homes,
-			daemonHome{Dir: filepath.Join(home, ".dimcode-alpha"), Label: "~/.dimcode-alpha"},
-			daemonHome{Dir: filepath.Join(home, ".dim", "v2"), Label: "~/.dim/v2"},
-			daemonHome{Dir: filepath.Join(home, ".dimcode", "v2"), Label: "~/.dimcode/v2"},
-		)
+	if external {
+		if home, err := os.UserHomeDir(); err == nil && home != "" {
+			homes = append(homes,
+				daemonHome{Dir: filepath.Join(home, ".dimcode-alpha"), Label: "~/.dimcode-alpha"},
+				daemonHome{Dir: filepath.Join(home, ".dim", "v2"), Label: "~/.dim/v2"},
+				daemonHome{Dir: filepath.Join(home, ".dimcode", "v2"), Label: "~/.dimcode/v2"},
+			)
+		}
 	}
 	if dataDir != "" {
 		homes = append(homes, daemonHome{Dir: dataDir})
@@ -160,8 +165,8 @@ type daemonHit struct {
 //
 // 探测只做一次拨号：socket 文件在、没人监听（上次崩溃的残留）不算命中，继续往后找，
 // 也把「为什么不算」记进 tried。整个过程不发协议消息，不碰对方的数据库与日志。
-func findExistingDaemon(dataDir string, tried *[]string) daemonHit {
-	for _, home := range daemonHomes(dataDir) {
+func findExistingDaemon(dataDir string, external bool, tried *[]string) daemonHit {
+	for _, home := range daemonHomes(dataDir, external) {
 		for _, socket := range socketCandidates(home) {
 			alive, reason := endpointAlive(socket)
 			if alive {
@@ -213,7 +218,10 @@ func (p serverPlan) describe() string {
 //
 // 顺序：-server → DIM_APP_SERVER（兼容旧名）→ 已有 daemon → 可执行文件同目录 → PATH。
 // 显式给出（参数或环境变量）但不可用时立即失败：用户指了地方，就不该悄悄换成别的。
-func findServer(explicit, dataDir string) (serverPlan, error) {
+//
+// reuseExternal 决定「已有 daemon」这一档探不探本机产品 CLI 的 home；为假时只探
+// 本端数据目录（显式 -data-dir 的隔离语义，见 main.go）。
+func findServer(explicit, dataDir string, reuseExternal bool) (serverPlan, error) {
 	plan := serverPlan{Endpoint: endpointPath(dataDir)}
 
 	if v := strings.TrimSpace(explicit); v != "" {
@@ -227,7 +235,7 @@ func findServer(explicit, dataDir string) (serverPlan, error) {
 
 	// 现成 daemon 优先：双击启动时用户已有的会话就在它的 home 里，连上它比拉起
 	// 自己的空实例更接近预期结果。命中后不设 Path（不拉起，也就不会往对方 home 写）。
-	if hit := findExistingDaemon(dataDir, &plan.Tried); hit.Socket != "" {
+	if hit := findExistingDaemon(dataDir, reuseExternal, &plan.Tried); hit.Socket != "" {
 		plan.Reuse = true
 		plan.DaemonSocket = hit.Socket
 		if hit.Label == "" {

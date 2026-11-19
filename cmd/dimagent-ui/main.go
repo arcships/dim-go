@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -85,13 +86,16 @@ func (r retryingIntents) settle() {
 type serverDiscovery struct {
 	dataDir  string
 	explicit string
-	base     *app.App
-	log      *startupLog
+	// reuseExternal 表示可以探测本机产品 CLI 的 home（~/.dimcode-alpha 等）。
+	// 显式给了 -data-dir 时为假：测试与干净验收只在数据目录内找服务端。
+	reuseExternal bool
+	base          *app.App
+	log           *startupLog
 }
 
 // apply 重跑发现链，把结果交给集成层；返回本次的发现结果与原因。
 func (d serverDiscovery) apply(stage string) (serverPlan, error) {
-	plan, planErr := findServer(d.explicit, d.dataDir)
+	plan, planErr := findServer(d.explicit, d.dataDir, d.reuseExternal)
 	prepareDiscovery(plan, planErr, d.log, stage)
 	d.base.SetServerPath(plan.Path, discoveryHint(plan, planErr))
 	return plan, planErr
@@ -152,9 +156,12 @@ func main() {
 	stateFlag := flag.String("state", "default",
 		"样例模式的起始状态：default、running、waiting、failed、empty（也可写 1–5）")
 	dataDirFlag := flag.String("data-dir", "",
-		"客户端数据目录；默认 DIM_DATA_DIR，否则 macOS 的产品目录 ~/Library/Application Support/DimAgent")
+		"客户端数据目录；默认 DIM_DATA_DIR，否则 macOS 的产品目录 ~/Library/Application Support/DimAgent。"+
+			"显式给出时只在本数据目录里找服务端，不复用外部 daemon（见 -reuse-daemon）")
 	serverFlag := flag.String("server", "",
 		"App Server 可执行文件；省略时先找已有 daemon，再按 DIM_APP_SERVER → 可执行文件同目录 → PATH 发现")
+	reuseFlag := flag.Bool("reuse-daemon", false,
+		"复用本机已有 daemon（~/.dimcode-alpha、~/.dim/v2、~/.dimcode/v2）；未给 -data-dir 时默认开启")
 	mockFlag := flag.Bool("mock-model", false, "连接模式下用 mock 模型拉起服务端（验收用）")
 	variantFlag := flag.String("variant", "",
 		"额外的走查态：branch（分支菜单）、goal（目标编辑）、tasks（后台任务）、settings（设置）、settings-rules（清空确认）、ext / ext-failed / ext-empty / ext-loading（扩展四态）")
@@ -228,7 +235,14 @@ func main() {
 	if mode == modeConnect {
 		startup.printf("启动：客户端 %s；包内 App Server %s；模式 连接；数据目录 %s",
 			version, bundledServerLabel(), dataDir)
-		plan, planErr := findServer(*serverFlag, dataDir)
+		// 显式给 -data-dir 就是「只在自己的目录里工作」：测试与干净验收不该被本机
+		// 产品 CLI 的 daemon 污染；要复用它们就显式 -reuse-daemon。
+		explicitDataDir := strings.TrimSpace(*dataDirFlag) != ""
+		reuseExternal := *reuseFlag || !explicitDataDir
+		if explicitDataDir && !*reuseFlag {
+			startup.printf("发现：显式 -data-dir，只在本数据目录里找服务端（外部 daemon 不复用；-reuse-daemon 可开启）")
+		}
+		plan, planErr := findServer(*serverFlag, dataDir, reuseExternal)
 		prepareDiscovery(plan, planErr, startup, "启动")
 		switch {
 		case planErr != nil && plan.Explicit:
@@ -257,7 +271,13 @@ func main() {
 			os.Exit(1)
 		}
 		appBase = base
-		discover := serverDiscovery{dataDir: dataDir, explicit: *serverFlag, base: base, log: startup}
+		discover := serverDiscovery{
+			dataDir:       dataDir,
+			explicit:      *serverFlag,
+			reuseExternal: reuseExternal,
+			base:          base,
+			log:           startup,
+		}
 		wire = uiwire.New(base)
 		source = wire
 		titles.useSource(wire)
