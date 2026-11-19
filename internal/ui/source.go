@@ -18,6 +18,10 @@ type Source interface {
 	// SessionTitles 是与 SessionNames 同序的显示名：标题优先，其次首条消息预览，
 	// 都没有时退到短标识（参考产品不下发标题的会话不会把整串 uuid 摆出来）。
 	SessionTitles() []string
+	// SessionPlaces 是与 SessionNames 同序的会话归属：工作目录（左栏按它分组）
+	// 与最近活动时间（会话数相同的组之间按它排序）。Cwd 为空表示服务端没有给
+	// 工作目录，这些会话归左栏内置的「工作区」组。
+	SessionPlaces() []SessionPlaceSnapshot
 	// Workspaces 是服务端授权的工作区（项目根）清单；空表示没有读到或没有授权。
 	// 新建会话的 cwd 只从这里取，不自己拼路径。
 	Workspaces() []WorkspaceSnapshot
@@ -222,6 +226,15 @@ type Connection struct {
 type WorkspaceSnapshot struct {
 	Root int
 	Path string
+}
+
+// SessionPlaceSnapshot 是一条会话在左栏的归属：工作目录与最近活动时间。
+//
+// 分组只用这两个事实：Cwd 决定进哪一组（组名取目录末段），UpdatedAt 只在会话数
+// 相同时决定组的先后。空 Cwd 表示服务端没有给工作目录（归内置「工作区」）。
+type SessionPlaceSnapshot struct {
+	Cwd       string
+	UpdatedAt time.Time
 }
 
 // SessionSnapshot 是首片要用的会话事实（与 app.SessionView 对齐，不多造）。

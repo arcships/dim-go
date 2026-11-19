@@ -284,6 +284,19 @@ func sessionSamples(s State) (sessions []string, markers []string) {
 	return sessions, markers
 }
 
+// sampleSessionPlaces 是样例会话的工作目录：两条在 dim-agent、一条在 rutis，
+// 用来走查按目录分组（组名取目录末段）。这是展示用的占位目录，不是本机路径。
+func sampleSessionPlaces(s State) []SessionPlaceSnapshot {
+	if s == StateEmpty {
+		return nil
+	}
+	return []SessionPlaceSnapshot{
+		{Cwd: "/example/dim-agent"},
+		{Cwd: "/example/rutis"},
+		{Cwd: "/example/dim-agent"},
+	}
+}
+
 // branchSamples 是分支样例：当前分支与全部分支（名字是内容）。
 func branchSamples() (current string, all []string) {
 	return "feature/queue-rework", []string{"main", "feature/queue-rework"}

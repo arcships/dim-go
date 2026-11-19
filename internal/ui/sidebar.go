@@ -172,7 +172,12 @@ func (a *App) sidebarList(c *gui.Context) {
 				a.flatGroups(c, all)
 				return
 			}
-			for _, ws := range a.sidebarWorkspaces() {
+			for _, ws := range a.sidebarWorkspaces(all) {
+				// 搜索命中时只画有命中的组：没有命中的空组（含内置「工作区」）
+				// 不占位，避免命中列表里夹一行「暂无会话」。
+				if a.sidebarSearching() && len(a.sidebarGroupThreads(ws, all)) == 0 {
+					continue
+				}
 				a.workspaceGroup(c, ws, all)
 				if ws.builtin {
 					// 内置工作区与其余工作区之间一条分隔线（LB-57）。
@@ -279,17 +284,20 @@ func (a *App) addWorkspacePath(path string) {
 		}
 	}
 	a.workspaces = append(a.workspaces, path)
-	a.expandGroup(workspaceGroupID(path))
+	// 分组的标识按归一后的目录记（与 sidebarWorkspaces 建组时同一口径）。
+	a.expandGroup(workspaceGroupID(cleanGroupPath(path)))
 }
 
 // workspaceGroup 是一个工作区分组（LB-34–57）：一行工作区（图标 / 折叠箭头 +
 // 名称 + 悬停出现的新建与更多）与其会话行；展开且没有会话时写「暂无会话」。
+// 组名取目录末段，行上悬停给出的说明是完整目录。搜索命中时组一律展开（命中
+// 跨组显示），但不改写折叠态。
 //
 // 行宽按参考产品的两段：工作区行缩进 7，会话行占满内容宽（DOM 实测内置工作区
 // 的会话行 x=7 w=346、其他分组的会话行缩进到 x=14）。
 func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarThread) {
 	t := c.Theme()
-	open := !a.groupCollapsed(ws.id)
+	open := a.sidebarSearching() || !a.groupCollapsed(ws)
 	threads := a.sidebarGroupThreads(ws, all)
 	gui.Column(c).Shrink(0).Children(func() {
 		gui.Row(c).Shrink(0).PaddingStart(space2).Children(func() {
@@ -297,12 +305,12 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 				Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
 				Grow(1).Label(ws.name).Cursor(gui.CursorPointer)
 			if !ws.builtin {
-				row = row.Tooltip(ws.name)
+				row = row.Tooltip(groupTooltip(ws))
 			}
 			hovered := row.Hovered()
 			row = sidebarRowPaint(row, t, false)
 			if row.Clicked() {
-				a.toggleGroup(ws.id)
+				a.toggleGroup(ws)
 			}
 			row.Children(func() {
 				// 悬停时图标槽换成折叠箭头（LB-35）；静止时是 🏠 或文件夹。
@@ -363,10 +371,18 @@ func (a *App) workspaceMenu(m *gui.Menu, ws sidebarWorkspace, threads []sidebarT
 	}
 }
 
+// groupTooltip 是分组行的悬停说明：有目录时给完整目录，样例分组退回组名。
+func groupTooltip(ws sidebarWorkspace) string {
+	if ws.path != "" {
+		return ws.path
+	}
+	return ws.name
+}
+
 // flatGroups 是平铺视图（C12）：按日期分组，不按工作区分组。日期分组用
 // 「今天」一档（目录快照没有时间事实时全部落在今天）。
 func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
-	threads := a.sidebarGroupThreads(sidebarWorkspace{id: sidebarBuiltinID}, all)
+	threads := a.unpinnedThreads(all)
 	gui.Column(c).Shrink(0).Children(func() {
 		if len(threads) == 0 {
 			a.sidebarNote(c, "暂无会话", true)

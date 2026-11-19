@@ -1169,6 +1169,15 @@ func (a *App) sessionTitles() []string {
 	return names
 }
 
+// sessionPlaces 是左栏会话的分组事实：工作目录与最近活动时间。连着 Source 时
+// 读它，否则用样例（样例里同样是可丢的展示数据）。
+func (a *App) sessionPlaces() []SessionPlaceSnapshot {
+	if a.source != nil {
+		return a.source.SessionPlaces()
+	}
+	return sampleSessionPlaces(a.state)
+}
+
 // liveSession 取 Source 的当前会话快照。
 func (a *App) liveSession() (SessionSnapshot, bool) {
 	if a.source == nil {

@@ -1,6 +1,11 @@
 package ui
 
-import "path/filepath"
+import (
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
+)
 
 // 本文件是左栏重建后的视图状态与数据视图：工作区分组、每组的会话行、置顶、
 // 折叠、视图菜单与账户菜单。全部是可丢的界面状态，不是事实：会话名、状态标记
@@ -25,20 +30,30 @@ type sidebarViewState struct {
 	groupMenus map[string]*bool
 }
 
-// sidebarWorkspace 是左栏里的一个工作区分组：标识、显示名、是否内置（🏠）。
+// sidebarWorkspace 是左栏里的一个分组：标识、显示名、目录路径、是否内置（🏠）、
+// 组内会话数与最近活动时间（排序用）。
 type sidebarWorkspace struct {
 	id      string
 	name    string
 	builtin bool
+	// path 是这一组的目录（内置「工作区」与样例空组没有目录）。
+	path string
+	// count 是组里显示的会话数（置顶的不算，它们在「已置顶」里）；active 是
+	// 组里最近的活动时间。
+	count  int
+	active time.Time
 }
 
 // sidebarThread 是一条会话行要显示的内容：目录里的序号、标题、状态标记与相对
-// 时间（相对时间只在样例里有；连着 Source 时为空，不编造）。
+// 时间（相对时间只在样例里有；连着 Source 时为空，不编造）；cwd / active 是
+// 分组用的事实（工作目录与最近活动时间），不上屏。
 type sidebarThread struct {
 	index  int
 	name   string
 	marker string
 	when   string
+	cwd    string
+	active time.Time
 }
 
 // 内置工作区的标识与显示名：参考产品的第一个分组是内置工作区（🏠「工作区」）。
@@ -50,7 +65,7 @@ const (
 // 本端登记的附加工作区分组的标识前缀：与内置工作区和样例分组区分开。
 const workspaceGroupPrefix = "local:"
 
-// workspaceGroupID 是一个本端工作区分组的标识。
+// workspaceGroupID 是一个工作区分组的标识（按目录路径，折叠态按它记）。
 func workspaceGroupID(path string) string { return workspaceGroupPrefix + path }
 
 // workspaceGroupName 是工作区分组的显示名：取目录最后一段，根目录用整条路径。
@@ -62,6 +77,16 @@ func workspaceGroupName(path string) string {
 	return name
 }
 
+// cleanGroupPath 把会话的 cwd 归一成分组的键：去掉首尾空白后取干净路径；空表示
+// 没有工作目录（归内置「工作区」）。
+func cleanGroupPath(path string) string {
+	path = strings.TrimSpace(path)
+	if path == "" {
+		return ""
+	}
+	return filepath.Clean(path)
+}
+
 // expandGroup 把一个分组标成展开（新登记的工作区直接露出「暂无会话」）。
 func (a *App) expandGroup(id string) {
 	if a.sidebarView.collapsed == nil {
@@ -70,50 +95,104 @@ func (a *App) expandGroup(id string) {
 	a.sidebarView.collapsed[id] = false
 }
 
-// sidebarSampleWorkspaces 是样例里的分组：内置工作区放全部样例会话，另有两个
-// 示例项目分组（默认收起），用来走查折叠与「暂无会话」。
-func (a *App) sidebarWorkspaces() []sidebarWorkspace {
+// sidebarSampleGroups 是样例里的两个空目录分组（默认收起）：走查文件夹图标、
+// 折叠与「暂无会话」；接上 Source 时不出现。
+func sidebarSampleGroups() []sidebarWorkspace {
+	return []sidebarWorkspace{
+		{id: "p1", name: sampleProjectA},
+		{id: "p2", name: sampleProjectB},
+	}
+}
+
+// sidebarWorkspaces 建左栏的分组：内置「工作区」在前（没有 cwd 的会话），其余
+// 按会话的工作目录分组，组名取目录末段。本端登记的目录（「添加工作区」）即使
+// 没有会话也留一组，与有会话的同名目录合成一组。
+//
+// 排序：内置「工作区」永远第一；其余按会话数（多在前）、再按最近活动时间；
+// 没有会话的空组排在后面（同档内保持登记 / 出现的先后）。
+func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 	builtin := sidebarWorkspace{id: sidebarBuiltinID, name: sidebarBuiltinName, builtin: true}
-	out := make([]sidebarWorkspace, 0, len(a.workspaces)+1)
-	out = append(out, builtin)
-	// 本端登记的工作区（左栏「添加工作区」选中的目录）跟在内置工作区后面。
+	groups := make([]sidebarWorkspace, 0, len(a.workspaces)+1)
+	index := make(map[string]int, len(a.workspaces)+1)
+	add := func(path string) *sidebarWorkspace {
+		path = cleanGroupPath(path)
+		if path == "" {
+			return nil
+		}
+		if i, ok := index[path]; ok {
+			return &groups[i]
+		}
+		groups = append(groups, sidebarWorkspace{
+			id: workspaceGroupID(path), name: workspaceGroupName(path), path: path,
+		})
+		index[path] = len(groups) - 1
+		return &groups[len(groups)-1]
+	}
+	// 本端登记的目录先建组：没有会话也常显。
 	for _, path := range a.workspaces {
-		out = append(out, sidebarWorkspace{id: workspaceGroupID(path), name: workspaceGroupName(path)})
+		add(path)
 	}
-	if a.wired() {
-		// 目录快照只有会话，没有工作区归属：只画内置工作区与本端登记的目录，
-		// 不发明分组。
-		return out
+	for _, thread := range all {
+		// 置顶的会话在「已置顶」里，不算进目录组的会话数。
+		if a.sidebarView.pinned[thread.index] {
+			continue
+		}
+		if cleanGroupPath(thread.cwd) == "" {
+			builtin.count++
+			if thread.active.After(builtin.active) {
+				builtin.active = thread.active
+			}
+			continue
+		}
+		if group := add(thread.cwd); group != nil {
+			group.count++
+			if thread.active.After(group.active) {
+				group.active = thread.active
+			}
+		}
 	}
-	return append(out,
-		sidebarWorkspace{id: "p1", name: sampleProjectA},
-		sidebarWorkspace{id: "p2", name: sampleProjectB},
-	)
+	if !a.wired() {
+		groups = append(groups, sidebarSampleGroups()...)
+	}
+	sort.SliceStable(groups, func(i, j int) bool {
+		if groups[i].count != groups[j].count {
+			return groups[i].count > groups[j].count
+		}
+		if !groups[i].active.Equal(groups[j].active) {
+			return groups[i].active.After(groups[j].active)
+		}
+		return false
+	})
+	return append([]sidebarWorkspace{builtin}, groups...)
 }
 
-// groupCollapsed 取分组的折叠态：没有显式记录时内置工作区展开，其余收起
-// （与参考产品的初始形态一致：只有内置工作区展开）。
-func (a *App) groupCollapsed(id string) bool {
-	if open, ok := a.sidebarView.collapsed[id]; ok {
-		return open
+// groupCollapsed 取分组的折叠态：没有显式记录时有会话的组展开、空组收起
+// （内置「工作区」默认展开，参考产品的第一个分组总是露出来的）。搜索命中时
+// 由调用方强制展开，不改这里记下的选择。
+func (a *App) groupCollapsed(ws sidebarWorkspace) bool {
+	if collapsed, ok := a.sidebarView.collapsed[ws.id]; ok {
+		return collapsed
 	}
-	return id != sidebarBuiltinID
+	return !ws.builtin && ws.count == 0
 }
 
-// toggleGroup 折叠 / 展开一个分组。
-func (a *App) toggleGroup(id string) {
+// toggleGroup 折叠 / 展开一个分组（只改可丢的视图状态，不落盘）。
+func (a *App) toggleGroup(ws sidebarWorkspace) {
 	if a.sidebarView.collapsed == nil {
 		a.sidebarView.collapsed = map[string]bool{}
 	}
-	a.sidebarView.collapsed[id] = !a.groupCollapsed(id)
+	a.sidebarView.collapsed[ws.id] = !a.groupCollapsed(ws)
 }
+
+// sidebarSearching 表示搜索面开着并且有关键字：命中跨组显示，组自动展开。
+func (a *App) sidebarSearching() bool { return a.searchOpen && a.searchQuery != "" }
 
 // collapseAllGroups 收起全部工作区分组（视图菜单的「折叠全部」）。
 func (a *App) collapseAllGroups() {
 	if a.sidebarView.collapsed == nil {
 		a.sidebarView.collapsed = map[string]bool{}
 	}
-	for _, ws := range a.sidebarWorkspaces() {
+	for _, ws := range a.sidebarWorkspaces(a.sidebarThreads()) {
 		a.sidebarView.collapsed[ws.id] = true
 	}
 }
@@ -133,12 +212,14 @@ func (a *App) sidebarTimes(n int) []string {
 }
 
 // sidebarThreads 是当前要显示的全部会话行：已归档的不出现；搜索面开着时只留
-// 名称匹配的行（空白查询给全部）。顺序沿用目录顺序。
+// 名称匹配的行（空白查询给全部）。顺序沿用目录顺序，并带上分组用的事实
+// （工作目录 / 最近活动时间）。
 func (a *App) sidebarThreads() []sidebarThread {
 	names := a.sessionNames()
 	titles := a.sessionTitles()
 	markers := a.sessionMarkers()
 	times := a.sidebarTimes(len(names))
+	places := a.sessionPlaces()
 	out := make([]sidebarThread, 0, len(names))
 	for i := range names {
 		if a.archived[i] {
@@ -160,23 +241,46 @@ func (a *App) sidebarThreads() []sidebarThread {
 		if i < len(times) {
 			when = times[i]
 		}
-		out = append(out, sidebarThread{
+		thread := sidebarThread{
 			index: i, name: name, marker: marker, when: when,
-		})
+		}
+		if i < len(places) {
+			thread.cwd = places[i].Cwd
+			thread.active = places[i].UpdatedAt
+		}
+		out = append(out, thread)
 	}
 	return sortThreads(out, a.sidebarView.byCreated)
 }
 
-// sidebarGroupThreads 取某个工作区组里的会话行。目录没有工作区归属：全部会话
-// 归内置工作区，其余分组为空（参考产品里空分组也是常显的形态）。
-func (a *App) sidebarGroupThreads(ws sidebarWorkspace, all []sidebarThread) []sidebarThread {
-	if ws.id != sidebarBuiltinID {
-		return nil
-	}
-	// 置顶的会话进「已置顶」，不在工作区组里重复。
+// unpinnedThreads 是没置顶的会话行：置顶的会话进「已置顶」，不在目录组里重复。
+func (a *App) unpinnedThreads(all []sidebarThread) []sidebarThread {
 	out := make([]sidebarThread, 0, len(all))
 	for _, thread := range all {
 		if a.sidebarView.pinned[thread.index] {
+			continue
+		}
+		out = append(out, thread)
+	}
+	return out
+}
+
+// sidebarGroupThreads 取某个目录组里的会话行：内置「工作区」是没有 cwd 的会话，
+// 其余组按 cwd 归到同一目录（路径先归一，末尾分隔符与相对写法不影响归属）。
+func (a *App) sidebarGroupThreads(ws sidebarWorkspace, all []sidebarThread) []sidebarThread {
+	path := cleanGroupPath(ws.path)
+	if !ws.builtin && path == "" {
+		return nil
+	}
+	threads := a.unpinnedThreads(all)
+	out := make([]sidebarThread, 0, len(threads))
+	for _, thread := range threads {
+		cwd := cleanGroupPath(thread.cwd)
+		if ws.builtin {
+			if cwd != "" {
+				continue
+			}
+		} else if cwd != path {
 			continue
 		}
 		out = append(out, thread)

@@ -560,12 +560,12 @@ func TestIntentOpenSession(t *testing.T) {
 		"nextCursor": nil,
 	}}
 	h := newIntentHarness(t, script)
-	h.click("s2")
+	h.click("第二个会话")
 	waitFor(t, "会话切到 s2", func() bool {
 		return h.wire.currentSession() == "s2"
 	})
 	requests := h.server.RequestsFor("session.attach")
-	t.Logf("点了「s2」→ 服务端收到 session.attach（%d 次），当前会话=%s",
+	t.Logf("点了「第二个会话」→ 服务端收到 session.attach（%d 次），当前会话=%s",
 		len(requests), h.wire.currentSession())
 }
 
@@ -584,8 +584,8 @@ func TestIntentCreateSession(t *testing.T) {
 // TestIntentRename 会话菜单 → 重命名 → 保存 → session.rename。
 func TestIntentRename(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
-	h.hoverRow("s1")
-	h.click("会话操作：s1")
+	h.hoverRow("演示会话")
+	h.click("会话操作：演示会话")
 	if err := h.tester.ChooseMenuItem("重命名"); err != nil {
 		t.Fatalf("选择重命名：%v", err)
 	}
@@ -594,7 +594,7 @@ func TestIntentRename(t *testing.T) {
 	params := h.waitRequest("session.rename")
 	t.Logf("点了「重命名 · 保存」→ 服务端收到 session.rename（%d 次），title=%v",
 		len(h.server.RequestsFor("session.rename")), params["title"])
-	if params["title"] != "s1" {
+	if params["title"] != "演示会话" {
 		t.Fatalf("改名参数不对：%v", params)
 	}
 }
@@ -602,8 +602,8 @@ func TestIntentRename(t *testing.T) {
 // TestIntentArchive 会话菜单 → 归档：本地隐藏，不出现在列表里。
 func TestIntentArchive(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
-	h.hoverRow("s1")
-	h.click("会话操作：s1")
+	h.hoverRow("演示会话")
+	h.click("会话操作：演示会话")
 	if err := h.tester.ChooseMenuItem("归档"); err != nil {
 		t.Fatalf("选择归档：%v", err)
 	}
@@ -618,8 +618,8 @@ func TestIntentArchive(t *testing.T) {
 func TestIntentExport(t *testing.T) {
 	dir := t.TempDir()
 	h := newIntentHarness(t, baseScript(dir, false))
-	h.hoverRow("s1")
-	h.click("会话操作：s1")
+	h.hoverRow("演示会话")
+	h.click("会话操作：演示会话")
 	if err := h.tester.ChooseMenuItem("导出"); err != nil {
 		t.Fatalf("选择导出：%v", err)
 	}
@@ -638,8 +638,8 @@ func TestIntentExport(t *testing.T) {
 // TestIntentDelete 会话菜单 → 删除 → 确认 → session.delete。
 func TestIntentDelete(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
-	h.hoverRow("s1")
-	h.click("会话操作：s1")
+	h.hoverRow("演示会话")
+	h.click("会话操作：演示会话")
 	if err := h.tester.ChooseMenuItem("删除"); err != nil {
 		t.Fatalf("选择删除：%v", err)
 	}

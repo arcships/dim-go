@@ -380,6 +380,21 @@ func (w *App) SessionNames() []string {
 	return out
 }
 
+// SessionPlaces 是与 SessionNames 同序的会话归属：目录条目的工作目录与最近
+// 活动时间。左栏按 cwd 分组、同数会话的组之间按时间排序，都用这两项。
+func (w *App) SessionPlaces() []ui.SessionPlaceSnapshot {
+	c := w.A.Catalog()
+	if c == nil {
+		return nil
+	}
+	entries := c.Snapshot().Entries
+	out := make([]ui.SessionPlaceSnapshot, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, ui.SessionPlaceSnapshot{Cwd: e.Workspace, UpdatedAt: e.UpdatedAt})
+	}
+	return out
+}
+
 // Workspaces 是服务端授权的工作区（项目根），读设置领域最近确认的清单。
 func (w *App) Workspaces() []ui.WorkspaceSnapshot {
 	settings := w.A.Settings()
