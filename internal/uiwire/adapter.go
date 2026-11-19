@@ -14,12 +14,14 @@ import (
 
 	"github.com/arcships/dimagent-mygo/internal/account"
 	"github.com/arcships/dimagent-mygo/internal/app"
+	"github.com/arcships/dimagent-mygo/internal/appserver/protocol"
 	"github.com/arcships/dimagent-mygo/internal/catalog"
 	"github.com/arcships/dimagent-mygo/internal/extensions"
 	"github.com/arcships/dimagent-mygo/internal/interaction"
 	"github.com/arcships/dimagent-mygo/internal/settings"
 	"github.com/arcships/dimagent-mygo/internal/shortcut"
 	"github.com/arcships/dimagent-mygo/internal/ui"
+	"github.com/arcships/dimagent-mygo/internal/write"
 )
 
 // App 把 internal/app 的集成层包成界面要的 Source 与 Intents。
@@ -36,6 +38,10 @@ type App struct {
 	mu        sync.RWMutex
 	phase     ui.Connection
 	sessionMu sync.RWMutex
+	// shellMu 保护最近一次命令运行的回执细节（界面每帧读，不能每帧发请求）。
+	shellMu      sync.Mutex
+	shellRun     *ui.ShellRunSnapshot
+	shellSession string
 	// importMu 保护最近一次读取的 MCP 导入来源（界面每帧读，不能每帧发请求）。
 	importMu      sync.Mutex
 	importSources []ui.MCPImportSourceSnapshot
@@ -479,6 +485,20 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 		out.Goal = v.Goal.Objective
 		out.GoalStatus = string(v.Goal.Status)
 	}
+	// 排队消息与最近一次压缩都是投影已有的只读事实：界面每帧读同一份快照。
+	for _, pending := range v.Pending.Inputs {
+		out.Queued = append(out.Queued, ui.QueuedMessageSnapshot{
+			ID: pending.InputID, Mode: pending.Mode, Text: pending.Text, Applied: pending.Applied,
+		})
+	}
+	if v.Compaction != nil {
+		out.Compaction = &ui.CompactionSnapshot{
+			Status:   v.Compaction.Status,
+			Summary:  v.Compaction.Summary,
+			Strategy: v.Compaction.Strategy,
+		}
+	}
+	out.ShellRun = w.shellRunSnapshot(v.SessionID)
 	out.Rows = w.rows(v)
 	return out
 }
@@ -1976,8 +1996,61 @@ func (w *App) runShellFor(ctx context.Context, sessionID, command string) (strin
 	if settled, waitErr := w.A.Wait(ctx, view.ID); waitErr == nil && settled.InputID != "" {
 		view = settled
 	}
+	w.recordShellRun(view, sessionID, command)
 	w.changed()
 	return view.InputID, nil
+}
+
+// recordShellRun 把一次命令运行的回执细节留成界面读数（shell.run 回执带输出、
+// 截断、退出码与原因；界面每帧读这份快照，不再发请求）。
+//
+// 回执缺失时仍记一条已完成但没有任何输出细节的记录：面板据此显示命令与状态，
+// 不把「没拿到回执」画成「命令没跑」。
+func (w *App) recordShellRun(view write.IntentView, sessionID, command string) {
+	run := &ui.ShellRunSnapshot{
+		RunID:   view.InputID,
+		Command: command,
+		Mode:    "record",
+		Status:  "completed",
+	}
+	if len(view.Result) > 0 {
+		if parsed, err := protocol.ParseShellRunResult(view.Result); err == nil {
+			run.RunID = firstNonEmpty(parsed.RunID, run.RunID)
+			run.Status = parsed.Status
+			run.Output = parsed.Output
+			run.Truncated = parsed.Truncated
+			if parsed.ExitCode != nil {
+				run.ExitCode, run.HasExitCode = *parsed.ExitCode, true
+			}
+			if parsed.Reason != nil {
+				run.Reason = *parsed.Reason
+			}
+			if parsed.Recorded != nil {
+				run.Recorded = true
+				if len(parsed.Recorded.Error) > 0 {
+					run.Error = string(parsed.Recorded.Error)
+				}
+			}
+		}
+	}
+	if run.Status == "" {
+		run.Status = "completed"
+	}
+	w.shellMu.Lock()
+	w.shellRun = run
+	w.shellSession = sessionID
+	w.shellMu.Unlock()
+}
+
+// shellRunSnapshot 读取指定会话的命令运行读数。
+func (w *App) shellRunSnapshot(sessionID string) *ui.ShellRunSnapshot {
+	w.shellMu.Lock()
+	defer w.shellMu.Unlock()
+	if w.shellRun == nil || w.shellSession != sessionID {
+		return nil
+	}
+	run := *w.shellRun
+	return &run
 }
 
 // StopShell 停止一次已经发出的命令执行。

@@ -71,6 +71,9 @@ type panelView struct {
 	subagentReady bool
 	subagentError string
 	subagentLines []string
+	// subagentFailed 为真表示读取失败但错误原文可能为空（G-02）：界面据此仍画
+	// 错误行与重试，文案换成通用的「加载失败」，不留一条空横幅。
+	subagentFailed bool
 }
 
 // newPanelView 是面板视图状态的默认值：没有选中行（详情区不渲染）。

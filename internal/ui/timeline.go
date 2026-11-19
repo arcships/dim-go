@@ -100,14 +100,14 @@ func (a *App) round(c *gui.Context, i int) {
 		// 未知提交：只有占位（原文还在本地）与说明行；没有组头、没有操作行，
 		// 因为「这一轮是否存在」本身还没有事实。
 		gui.Column(c).Shrink(0).Gap(space2).Children(func() {
-			a.userBubble(c, r, true)
+			a.userBubble(c, i, r, true)
 			a.note(c, r.note)
 		})
 		return
 	}
 	gui.Column(c).Shrink(0).Gap(timelineBlockGap).Children(func() {
 		if r.divider != "" {
-			a.roundDivider(c, r.divider)
+			a.compressionRow(c, compressionRowKey(i), r.divider, "")
 		}
 		a.userMessage(c, i, r)
 		a.assistant(c, i, r)
@@ -136,13 +136,28 @@ const (
 )
 
 // userMessage 是用户消息行：气泡右对齐；悬停时在气泡下方出现发送时间、动作行
-// 与不可用动作的原因；选中正文时出现选区浮条（TL-44）。
+// 与不可用动作的原因；选中正文时出现选区浮条（TL-44）。编辑中换成行内编辑器。
 func (a *App) userMessage(c *gui.Context, i int, r round) {
+	if a.inlineEditRow == i {
+		a.inlineEditor(c, i, r)
+		return
+	}
+	var edited bool
+	if text, ok := a.inlineSaved[i]; ok {
+		r.user, edited = text, true
+	}
 	col := gui.Column(c).Shrink(0).Gap(space1).Label("用户消息 " + r.user)
 	// timelineHover 是截图走查态：自动截图没有指针，靠它把悬停动作钉住。
 	hovered := col.Hovered() || a.timelineHover == i
 	col.Children(func() {
-		body := a.userBubble(c, r, false)
+		body := a.userBubble(c, i, r, false)
+		if edited {
+			gui.Row(c).Grow(1).Gap(space1).AlignItems(gui.Center).Children(func() {
+				gui.Spacer(c)
+				typeMicro.style(c.Theme(), gui.Text(c, "已编辑")).TextColor(c.Theme().TextMuted).
+					Label("已编辑")
+			})
+		}
 		if selection := selectedTextOf(body); selection != "" {
 			a.selectionBar(c, selection)
 		}
@@ -154,7 +169,7 @@ func (a *App) userMessage(c *gui.Context, i int, r round) {
 
 // userBubble 是气泡本体：右对齐、最多 85% 内容宽、浅底圆角；附件、正文同属
 // 一个可选区，右键打开消息菜单（TL-41–TL-43）。
-func (a *App) userBubble(c *gui.Context, r round, pending bool) gui.Element {
+func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Element {
 	t := c.Theme()
 	var box gui.Element
 	gui.Row(c).Grow(1).Children(func() {
@@ -174,7 +189,7 @@ func (a *App) userBubble(c *gui.Context, r round, pending bool) gui.Element {
 					// 它上面才会替换掉那条（选区仍由外层可选区持有）。
 					svc := c.Services()
 					body = body.ContextMenu(func(m *gui.Menu) {
-						a.userMessageMenu(m, svc, r, selectedTextOf(box))
+						a.userMessageMenu(m, svc, i, r, selectedTextOf(box))
 					})
 				}
 			}
@@ -184,7 +199,7 @@ func (a *App) userBubble(c *gui.Context, r round, pending bool) gui.Element {
 }
 
 // userActions 是用户气泡下的发送时间与四个动作（悬停可见）：复制走剪贴板，
-// 编辑把原文回填输入区，侧边对话打开右栏；分叉没有写入口，置灰并写原因。
+// 编辑进入行内编辑器（TL-38），侧边对话打开右栏；分叉没有写入口，置灰并写原因。
 func (a *App) userActions(c *gui.Context, i int, r round) {
 	t := c.Theme()
 	gui.Column(c).Grow(1).Gap(space1).Label("消息动作").Children(func() {
@@ -203,9 +218,9 @@ func (a *App) userActions(c *gui.Context, i int, r round) {
 				}
 				if iconButton(c, iconButtonSpec{
 					icon: iconPencil, label: "编辑消息 " + fmt.Sprint(i+1),
-					tip: "编辑消息：回填到输入区", size: rowCompact,
+					tip: "编辑消息：行内编辑", size: rowCompact,
 				}) {
-					a.draft = r.user
+					a.beginInlineEdit(i, r.user)
 				}
 			}
 			iconButton(c, iconButtonSpec{
@@ -238,7 +253,7 @@ func (a *App) openSideChatFromMessage() {
 
 // userMessageMenu 是用户消息的右键菜单（TL-41–TL-43）：侧边对话、复制选区、
 // 复制整个消息、编辑；删除与撤回没有写入口，置灰并把原因写进菜单项。
-func (a *App) userMessageMenu(m *gui.Menu, svc gui.Services, r round, selection string) {
+func (a *App) userMessageMenu(m *gui.Menu, svc gui.Services, i int, r round, selection string) {
 	if m.Item("从此处开始侧边对话").Chosen() {
 		a.openSideChatFromMessage()
 	}
@@ -253,7 +268,7 @@ func (a *App) userMessageMenu(m *gui.Menu, svc gui.Services, r round, selection 
 		svc.WriteClipboard(r.user)
 	}
 	if strings.TrimSpace(r.user) != "" && m.Item("编辑消息").Chosen() {
-		a.draft = r.user
+		a.beginInlineEdit(i, r.user)
 	}
 	m.Separator()
 	m.Item("删除消息（" + messageDeleteUnavailable + "）").Disabled(true)
@@ -791,24 +806,135 @@ func (a *App) artifactsBlock(c *gui.Context, i int, r round) {
 		*open = !*open
 	}
 	a.revealPanel(c, *open, progress, func() {
-		gui.Row(c).Wrap().Gap(space2).PaddingStart(timelineGroupIndent).Children(func() {
-			for _, art := range r.artifacts {
-				a.artifactCard(c, art)
-			}
-		})
+		a.artifactList(c, fmt.Sprintf("artifacts:%d", i), r.artifacts)
 	})
 }
 
-// artifactCard 是一个产物卡：文件名 + 打开。协议没有 artifact 概念，打开入口
-// 置灰并写原因（DEC-06）；产物块本身只在投影给出产物行时出现。
-func (a *App) artifactCard(c *gui.Context, art artifact) {
+// artifactShownRows 是收起时最多列出的产物行数（A-08 / A-18）。
+const artifactShownRows = 3
+
+// artifactList 是产物列表（A-08）：收起时最多 3 行，多于 3 行时底部给
+// 「全部 {n} 个产物」；展开后列出全部并换成「收起」。
+func (a *App) artifactList(c *gui.Context, key string, arts []artifact) {
+	expanded := a.artifactsMore[key]
+	rows := arts
+	if !expanded && len(rows) > artifactShownRows {
+		rows = rows[:artifactShownRows]
+	}
+	gui.Column(c).Shrink(0).Gap(0).PaddingStart(timelineGroupIndent).Children(func() {
+		for _, art := range rows {
+			a.artifactRow(c, key, art, len(arts))
+		}
+		if len(arts) > artifactShownRows {
+			a.artifactsMoreButton(c, key, len(arts), expanded)
+		}
+	})
+}
+
+// artifactsMoreButton 是列表底部的展开 / 收起入口（A-18 / A-19）。
+func (a *App) artifactsMoreButton(c *gui.Context, key string, count int, expanded bool) {
 	t := c.Theme()
-	gui.Row(c).Shrink(0).Padding(space2, space3).Gap(space2).Radius(radius).
-		Background(t.Surface).AlignItems(gui.Center).Label("产物 " + art.name).Children(func() {
+	icon, text := iconChevronR, fmt.Sprintf("全部 %d 个产物", count)
+	if expanded {
+		icon, text = iconChevronDown, "收起"
+	}
+	btn := gui.ButtonBase(c).Shrink(0).Height(rowRegular).Gap(space1).
+		Padding(0, space1).Justify(gui.Start).AlignItems(gui.Center).Radius(radius).
+		Cursor(gui.CursorPointer).Label(text)
+	btn.Children(func() {
+		iconGlyph(c, icon, t.TextMuted, "artifacts-more")
+		typeMicro.style(t, gui.Text(c, text)).TextColor(t.TextMuted).SingleLine()
+	})
+	if btn.Clicked() {
+		a.artifactsMore[key] = !expanded
+	}
+}
+
+// artifactRow 是一条产物行（A-08 / A-14）：类型图标 + 文件名（单行截断、
+// 悬停给完整名）+「打开」+ 行尾下拉。协议没有产物内容，打开与下拉项都置灰
+// 并写原因；下拉本身仍可展开（A-14 的展开、翻转、单开由视图状态承担）。
+func (a *App) artifactRow(c *gui.Context, key string, art artifact, count int) {
+	t := c.Theme()
+	row := gui.Row(c).Shrink(0).Height(rowRegular).Gap(space1).Padding(0, space1).
+		AlignItems(gui.Center).Label("产物 " + art.name)
+	if row.Hovered() {
+		row = row.Background(t.SurfaceHover)
+	}
+	menuKey := key + "/" + art.name
+	row.Children(func() {
 		iconGlyph(c, iconDocument, t.TextMuted, "artifact")
-		typeSecondary.style(t, gui.Text(c, art.name)).TextColor(t.Text).SingleLine()
+		gui.Box(c).Grow(1).Children(func() {
+			typeSecondary.style(t, gui.Text(c, art.name)).TextColor(t.Text).
+				Tooltip(art.name).SingleLine()
+		})
 		gui.Button(c, "打开").Label("打开产物 " + art.name + "（" + noteArtifact + "）").
 			Tooltip(noteArtifact).Disabled(true)
+		a.artifactMenuTrigger(c, menuKey, art)
+	})
+	a.artifactMenu(c, row, menuKey, art)
+}
+
+// artifactMenuTrigger 是行尾的下拉触发器（A-14）：ChevronDown 图标按钮，展开后
+// 翻转朝上；同时只开一个。能力都不成立时不出现（A-14 的条件）。
+func (a *App) artifactMenuTrigger(c *gui.Context, menuKey string, art artifact) {
+	if !a.artifactMenuAvailable() {
+		return
+	}
+	open := a.artifactMenuOpen(menuKey)
+	icon := iconChevronDown
+	label := "更多操作"
+	if *open {
+		icon = iconChevronUp
+		label = "更多操作（已展开）"
+	}
+	if iconButton(c, iconButtonSpec{
+		icon: icon, label: label + "：产物 " + art.name, size: rowCompact,
+	}) {
+		a.toggleArtifactMenu(menuKey, !*open)
+	}
+}
+
+// artifactMenuOpen 取某条产物的下拉开合态。
+func (a *App) artifactMenuOpen(menuKey string) *bool {
+	if a.artifactMenus == nil {
+		a.artifactMenus = map[string]*bool{}
+	}
+	if p, ok := a.artifactMenus[menuKey]; ok {
+		return p
+	}
+	open := false
+	a.artifactMenus[menuKey] = &open
+	return &open
+}
+
+// toggleArtifactMenu 打开或收起一条产物的下拉，并把同组的其它下拉收起（A-121）。
+func (a *App) toggleArtifactMenu(menuKey string, open bool) {
+	for name := range a.artifactMenus {
+		if name != menuKey {
+			*a.artifactMenus[name] = false
+		}
+	}
+	*a.artifactMenuOpen(menuKey) = open
+}
+
+// artifactMenuAvailable 报告产物行要不要出现行尾下拉：宿主允许本地操作或允许
+// 下载时才出现（A-14）。本版的宿主没有这两项能力，连线时不画触发器；样例模式
+// 按参考产品的形态画出来（菜单项本身仍置灰，见下）。
+func (a *App) artifactMenuAvailable() bool { return !a.wired() }
+
+// artifactMenu 是产物行的下拉菜单（A-15–A-17）：用默认应用打开 / 在文件管理器
+// 中显示 / 复制路径 / 复制相对路径。产物没有内容与路径事实，四项都置灰并写原因。
+func (a *App) artifactMenu(c *gui.Context, target gui.Element, menuKey string, art artifact) {
+	t := c.Theme()
+	m := gui.ContextMenuBase(c, target, a.artifactMenuOpen(menuKey))
+	m.Popup(func(panel gui.Element) {
+		rpMenuPanel(panel, t, panelMenuNoteWidth+panelRowIcon+2*space2)
+		note := noteArtifact
+		menuItem(c, m, iconExternal, "用默认应用打开", "用默认应用打开", note, true, false)
+		menuItem(c, m, iconFolderOpen, "在文件管理器中显示", "在文件管理器中显示", note, true, false)
+		rpMenuSeparator(c)
+		menuItem(c, m, iconCopy, "复制路径", "复制路径", note, true, false)
+		menuItem(c, m, iconCopy, "复制相对路径", "复制相对路径", note, true, false)
 	})
 }
 
@@ -1299,7 +1425,7 @@ func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
 	case RowRetry:
 		a.retryNotice(c, round{retrySeconds: int(math.Ceil(row.Duration.Seconds()))})
 	case RowCompression:
-		a.roundDivider(c, row.Text)
+		a.compressionRow(c, compressionRowKey(i), row.Text, row.Status)
 	default:
 		a.liveText(c, row)
 	}

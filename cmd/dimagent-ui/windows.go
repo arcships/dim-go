@@ -95,9 +95,15 @@ type windowManager struct {
 	mu     sync.Mutex
 	slots  []*windowSlot
 	active *windowSlot
-	// pending 是窗口就绪之前到达的深链：系统拉起应用时先到 URL、后到 ready。
+	// pending 是还没能落窗的深链：窗口就绪之前到达的（系统拉起应用时先到
+	// URL、后到 ready），以及目录还没读上来时先等着的。
 	pending []string
 	ready   bool
+	// settled 表示连接阶段已经结束（成功或失败）：目录此时可用了。
+	settled bool
+	// deferredOpen 是启动参数里要「在新窗口中打开」的会话：目录还没读上来时先
+	// 记下，连接结算之后再开。
+	deferredOpen []string
 
 	// host 是宿主外壳（托盘与通知），窗口就绪之后才接上；可为 nil。
 	host *shell
@@ -391,19 +397,23 @@ func (m *windowManager) FocusSession(sessionID string) {
 
 // ---- 深链 ----
 
-// handleURL 处理一条深链（mygo.App.OnOpenURL 与 -deeplink 共用）。窗口还没就绪
-// 时先排队：系统拉起应用时 URL 可能先于 ready 到达。
+// handleURL 处理一条深链（mygo.App.OnOpenURL 的落点）：切到主线程再处理，
+// 窗口动作与视图状态都只在主线程上改。
 func (m *windowManager) handleURL(raw string) {
-	mygo.RunOnMain(func() {
-		m.mu.Lock()
-		if !m.ready {
-			m.pending = append(m.pending, raw)
-			m.mu.Unlock()
-			return
-		}
+	mygo.RunOnMain(func() { m.handleURLNow(raw) })
+}
+
+// handleURLNow 在主线程上处理一条深链。窗口还没就绪时先排队：系统拉起应用时
+// URL 可能先于 ready 到达。
+func (m *windowManager) handleURLNow(raw string) {
+	m.mu.Lock()
+	if !m.ready {
+		m.pending = append(m.pending, raw)
 		m.mu.Unlock()
-		m.routeURL(raw)
-	})
+		return
+	}
+	m.mu.Unlock()
+	m.routeURL(raw)
 }
 
 // markReady 建好主窗口之后调用：把排队中的深链按到达顺序处理掉。
@@ -418,6 +428,75 @@ func (m *windowManager) markReady() {
 	}
 }
 
+// connectionSettled 在连接阶段结束（成功或失败）后调用：目录此时可用，排队中
+// 的深链（含启动参数里的第二个窗口）再落窗。失败路径也要调：迟迟连不上时
+// 「会话不在目录里」才是真的原因。
+func (m *windowManager) connectionSettled() {
+	m.mu.Lock()
+	m.settled = true
+	pending := m.pending
+	m.pending = nil
+	deferred := m.deferredOpen
+	m.deferredOpen = nil
+	m.mu.Unlock()
+	for _, raw := range pending {
+		m.routeURL(raw)
+	}
+	for _, sessionID := range deferred {
+		m.openSessionInNewWindow(sessionID)
+	}
+	m.applyTitles()
+	m.invalidateAll()
+}
+
+// openSessionInNewWindow 是启动参数 -new-window 的落点：按「在新窗口中打开」的
+// 语义落窗（已经开在该会话的窗口切过去，不重复开）。目录还没读上来时先记下，
+// 连接结算之后再开。
+func (m *windowManager) openSessionInNewWindow(sessionID string) {
+	if sessionID == "" {
+		return
+	}
+	if m.waitingForCatalog() {
+		m.mu.Lock()
+		m.deferredOpen = append(m.deferredOpen, sessionID)
+		m.mu.Unlock()
+		m.printf("第二个窗口：目录还没读上来，等连接结算后再开（%s）", sessionID)
+		return
+	}
+	receipt, err := m.OpenSessionFromMenu(sessionID)
+	if err != nil {
+		m.printf("第二个窗口：%v", err)
+		if slot := m.activeSlot(); slot != nil && slot.view != nil {
+			slot.view.ShowNotice("无法在新窗口中打开：" + err.Error())
+		}
+		return
+	}
+	m.printf("第二个窗口：%s（%s）", receipt, sessionID)
+}
+
+// waitingForCatalog 报告会话目录是不是还没读上来：连接模式的连接阶段还没
+// 结算，且目录为空。这时深链先排队，不当成未知会话。
+func (m *windowManager) waitingForCatalog() bool {
+	if m.opts.wire == nil {
+		return false
+	}
+	m.mu.Lock()
+	settled := m.settled
+	m.mu.Unlock()
+	if settled {
+		return false
+	}
+	return len(m.opts.wire.SessionNames()) == 0
+}
+
+// deferURL 把一条深链放回队列，等连接结算之后再落窗。
+func (m *windowManager) deferURL(raw string) {
+	m.mu.Lock()
+	m.pending = append(m.pending, raw)
+	m.mu.Unlock()
+	m.printf("深链：%s → 目录还没读上来，等连接结算后再处理", raw)
+}
+
 // routeURL 把一条深链落到窗口上。
 func (m *windowManager) routeURL(raw string) {
 	target, err := deeplink.Parse(raw)
@@ -428,6 +507,11 @@ func (m *windowManager) routeURL(raw string) {
 	switch target.Kind {
 	case deeplink.KindSession:
 		if !m.knownSession(target.SessionID) {
+			// 目录还没读上来时先别判成「会话不存在」：连接结算之后再处理。
+			if m.waitingForCatalog() {
+				m.deferURL(raw)
+				return
+			}
 			m.report("链接里的会话不在目录里：" + target.SessionID)
 			return
 		}
@@ -454,7 +538,7 @@ func (m *windowManager) routeURL(raw string) {
 			m.report("链接里的设置分节不存在：" + slug)
 			return
 		}
-		if slot := m.activeSlot(); slot != nil {
+		if slot := m.activeSlot(); slot != nil && slot.view != nil {
 			if err := slot.view.ShowSettingsSection(slug); err == nil {
 				m.focus(slot)
 				if slot.win != nil && !slot.win.IsDestroyed() {
@@ -623,13 +707,7 @@ func (m *windowManager) realCreate(spec windowSpec, index int) *windowSlot {
 			m.printf("关窗：已按偏好最小化到托盘")
 		}
 	})
-	slot.win.OnClosed(func() {
-		m.remove(slot)
-		m.printf("关窗：第 %d 个窗口关闭（还剩 %d 个）", slot.index+1, m.count())
-		if m.count() == 0 && !m.quitting() && m.opts.onLastClosed != nil {
-			m.opts.onLastClosed()
-		}
-	})
+	slot.win.OnClosed(func() { m.windowClosed(slot) })
 	slot.win.OnFocus(func() {
 		m.mu.Lock()
 		m.active = slot
@@ -641,6 +719,16 @@ func (m *windowManager) realCreate(spec windowSpec, index int) *windowSlot {
 		slot.win.ShowInactive()
 	}
 	return slot
+}
+
+// windowClosed 把一个窗口的关闭落到清单上：关一个不影响其他窗口；最后一个
+// 关掉时按退出处理（没有窗口的进程留着只会让自启的 App Server 没人回收）。
+func (m *windowManager) windowClosed(slot *windowSlot) {
+	m.remove(slot)
+	m.printf("关窗：第 %d 个窗口关闭（还剩 %d 个）", slot.index+1, m.count())
+	if m.count() == 0 && !m.quitting() && m.opts.onLastClosed != nil {
+		m.opts.onLastClosed()
+	}
 }
 
 // windowGeometry 取某个窗口索引的初始几何：偏好里有的用偏好，没有的按主窗口

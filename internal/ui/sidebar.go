@@ -164,10 +164,20 @@ func (a *App) sidebarList(c *gui.Context) {
 	gui.Scroll(c).Grow(1).Label("会话列表").Children(func() {
 		gui.Column(c).Shrink(0).Padding(0, space2).Gap(space2).Children(func() {
 			all := a.sidebarThreads()
-			if pinned := a.sidebarPinnedThreads(all); len(pinned) > 0 {
+			groups := a.sidebarWorkspaces(all)
+			pinnedThreads := a.sidebarPinnedThreads(all)
+			// 置顶区（LB-16–23）收置顶的会话行与置顶的工作区分组：置顶后的分组只在
+			// 这里出现，不在下面的分组列表里重复。
+			pinnedGroups := a.pinnedGroupsOf(groups)
+			if len(pinnedThreads) > 0 || (!a.sidebarView.flat && len(pinnedGroups) > 0) {
 				gui.Column(c).Shrink(0).Children(func() {
 					a.sidebarHeading(c, "已置顶")
-					for _, thread := range pinned {
+					if !a.sidebarView.flat {
+						for _, ws := range pinnedGroups {
+							a.workspaceGroup(c, ws, all)
+						}
+					}
+					for _, thread := range pinnedThreads {
 						a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
 					}
 				})
@@ -181,7 +191,10 @@ func (a *App) sidebarList(c *gui.Context) {
 				a.flatGroups(c, all)
 				return
 			}
-			for _, ws := range a.sidebarWorkspaces(all) {
+			for _, ws := range groups {
+				if a.groupPinned(ws) {
+					continue
+				}
 				// 搜索命中时只画有命中的组：没有命中的空组（含内置「工作区」）
 				// 不占位，避免命中列表里夹一行「暂无会话」。
 				if a.sidebarSearching() && len(a.sidebarGroupThreads(ws, all)) == 0 {
@@ -678,7 +691,8 @@ func (a *App) accountRow(c *gui.Context) {
 		Padding(space1, space2).AlignItems(gui.Center).Gap(space1).Children(func() {
 		row := gui.ButtonBase(c).Grow(1).Height(sidebarAccountHeight).
 			Padding(space1, space2).Radius(radiusSmall).Gap(space2).
-			AlignItems(gui.Center).Label(name).Cursor(gui.CursorPointer)
+			AlignItems(gui.Center).Label(name).Cursor(gui.CursorPointer).
+			Role(gui.RoleMenuButton).Description("账户菜单：" + a.accountStatusPhrase())
 		row = row.PopoverMenuButton(a.accountMenu, gui.PopoverMenuButtonOptions{Open: &a.sidebarView.accountMenu})
 		row = sidebarRowPaint(row, t, false)
 		row.Children(func() {

@@ -55,9 +55,9 @@ func TestRetryingIntentsRediscoversServer(t *testing.T) {
 	startup := openStartupLog(logPath)
 	defer startup.close()
 	intents := retryingIntents{
-		App:    wire,
-		rescan: func() { discover.apply("重新连接") },
-		log:    startup,
+		Session: wire.Pin(""),
+		rescan:  func() { discover.apply("重新连接") },
+		log:     startup,
 	}
 	// 与入口一致：启动时先跑一次发现链，把「没有可执行文件」的说明交给集成层。
 	discover.apply("启动")

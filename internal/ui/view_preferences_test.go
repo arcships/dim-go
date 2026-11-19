@@ -34,6 +34,12 @@ func waitPrefsOf(t *testing.T, ch chan PreferencesSnapshot) PreferencesSnapshot 
 	}
 }
 
+// renameGroupDraft 走一次组头改名的落点（与菜单里的「重命名」同一路径）。
+func (a *App) renameGroupDraft(ws sidebarWorkspace, name string) {
+	a.renamingGroup, a.groupRenameDraft = ws.id, name
+	a.renameGroup(ws)
+}
+
 // TestViewPreferencesRestoreOnStart：PreferencesSnapshot 里的视图状态在启动时
 // 铺回视图（左栏收起、分组折叠、右栏标签页与范围、文件页筛选）。
 func TestViewPreferencesRestoreOnStart(t *testing.T) {
@@ -49,6 +55,8 @@ func TestViewPreferencesRestoreOnStart(t *testing.T) {
 				SidebarFlat:         true,
 				SidebarByCreated:    true,
 				CollapsedGroups:     []string{"builtin"},
+				PinnedGroups:        []string{"local:/work/rutis"},
+				WorkspaceNames:      map[string]string{"local:/work/rutis": "评审目录"},
 				RightOpen:           true,
 				RightTab:            tabChanges,
 				RightTabs:           []int{tabFiles, tabChanges},
@@ -80,6 +88,12 @@ func TestViewPreferencesRestoreOnStart(t *testing.T) {
 	if app.right.filter != "comp" || app.right.scope != 1 {
 		t.Fatalf("筛选词 / 范围没有恢复：%q %v", app.right.filter, app.right.scope)
 	}
+	if !app.sidebarView.pinnedGroups["local:/work/rutis"] {
+		t.Fatalf("工作区置顶没有恢复：%+v", app.sidebarView.pinnedGroups)
+	}
+	if app.sidebarView.groupNames["local:/work/rutis"] != "评审目录" {
+		t.Fatalf("工作区改名没有恢复：%+v", app.sidebarView.groupNames)
+	}
 	if !app.right.groupsClosed["staged"] {
 		t.Fatalf("改动分组折叠态没有恢复：%+v", app.right.groupsClosed)
 	}
@@ -89,6 +103,8 @@ func TestViewPreferencesRestoreOnStart(t *testing.T) {
 // 各写一次偏好，写出去的是当前状态（不是上一次的快照）。
 func TestViewStateChangesPersist(t *testing.T) {
 	src := wiredSource()
+	src.names = []string{"s1", "s2"}
+	src.places = []SessionPlaceSnapshot{{Cwd: "/work/dim-agent"}, {Cwd: "/work/rutis"}}
 	intents := &viewIntents{prefs: make(chan PreferencesSnapshot, 8)}
 	app := NewApp(Options{State: StateDefault, Source: src, Intents: intents})
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
@@ -107,12 +123,24 @@ func TestViewStateChangesPersist(t *testing.T) {
 		t.Fatalf("切到平铺后偏好里没有记：%+v", got.View)
 	}
 
-	group := app.sidebarWorkspaces(app.sidebarThreads())[0] // 内置「工作区」
+	group := app.sidebarWorkspaces(app.sidebarThreads())[1] // 目录组 dim-agent
 	app.toggleGroup(group)
 	tt.Frame()
 	got = waitPrefsOf(t, intents.prefs)
 	if len(got.View.CollapsedGroups) != 1 || got.View.CollapsedGroups[0] != group.id {
 		t.Fatalf("折叠分组后偏好里没有记：%+v", got.View.CollapsedGroups)
+	}
+
+	app.toggleGroupPin(group)
+	got = waitPrefsOf(t, intents.prefs)
+	if len(got.View.PinnedGroups) != 1 || got.View.PinnedGroups[0] != group.id {
+		t.Fatalf("置顶工作区后偏好里没有记：%+v", got.View.PinnedGroups)
+	}
+
+	app.renameGroupDraft(group, "改名后")
+	got = waitPrefsOf(t, intents.prefs)
+	if got.View.WorkspaceNames[group.id] != "改名后" {
+		t.Fatalf("改名后偏好里没有记：%+v", got.View.WorkspaceNames)
 	}
 
 	app.rightOpen = true

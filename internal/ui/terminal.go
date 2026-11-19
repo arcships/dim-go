@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
@@ -123,10 +124,68 @@ func (a *App) terminalView() (termState, []termLine, bool) {
 
 // terminalPane 是终端面板：工具条 + 深色画布。
 func (a *App) terminalPane(c *gui.Context) {
+	a.ensureTermTabs()
 	gui.Column(c).Grow(1).Children(func() {
 		a.termToolbar(c)
 		a.termCanvas(c)
 	})
+}
+
+// termTab 是一个终端标签对应的一层画布（T-09）：自己的状态、输出与滚动位置。
+// 激活层的数据与 App 上的 termState / termLines 同步（其余代码仍读写那一对）。
+type termTab struct {
+	title  string
+	state  termState
+	lines  []termLine
+	closed bool
+	scroll gui.ScrollState
+}
+
+// ensureTermTabs 保证至少有一层画布，并把下标夹在范围内。
+func (a *App) ensureTermTabs() {
+	if len(a.termTabs) == 0 {
+		a.termTabs = []termTab{{
+			title:  a.termTitle(),
+			state:  a.termState,
+			lines:  a.termLines,
+			closed: a.panels.termClosed,
+		}}
+		a.termActive = 0
+	}
+	if a.termActive < 0 || a.termActive >= len(a.termTabs) {
+		a.termActive = 0
+	}
+}
+
+// syncActiveTerminal 把激活层的输出与状态写回层里（其它代码改的是 App 上的
+// termState / termLines）。
+func (a *App) syncActiveTerminal() {
+	a.ensureTermTabs()
+	tab := &a.termTabs[a.termActive]
+	tab.state, tab.lines, tab.closed = a.termState, a.termLines, a.panels.termClosed
+	if tab.title == "" {
+		tab.title = a.termTitle()
+	}
+}
+
+// switchTerminal 切到另一层画布：先把当前层存好，再把目标层铺到 App 上的那一对
+// 字段；非激活层的输出留在自己的缓冲里，不重建。
+func (a *App) switchTerminal(i int) {
+	a.ensureTermTabs()
+	if i < 0 || i >= len(a.termTabs) || i == a.termActive {
+		return
+	}
+	a.syncActiveTerminal()
+	a.termActive = i
+	tab := a.termTabs[i]
+	a.termState, a.termLines = tab.state, tab.lines
+	a.panels.termClosed = tab.closed
+}
+
+// termLayerCount 是当前画布层数（与终端标签数一致）。
+func (a *App) termLayerCount() int {
+	a.ensureTermTabs()
+	return len(a.termTabs)
 }
 
 // termToolbar 是终端工具条（T-01–T-07）：终端标签（标题 + 关闭进程）、
@@ -185,42 +244,78 @@ func (a *App) termToolbar(c *gui.Context) {
 }
 
 // termTab 是工具条里的终端标签（T-01 / T-02 / T-03）：图标 + 标题 + 关闭进程。
-// 标题是 shell 上报目录的末段，没有上报时回退「终端」。
+// 标题是 shell 上报目录的末段，没有上报时回退「终端」。每个标签对应一层画布
+// （T-09）：点标签切到那一层，非激活层的输出留在自己的缓冲里。
 func (a *App) termTab(c *gui.Context) {
 	t := c.Theme()
+	a.ensureTermTabs()
+	for i := range a.termTabs {
+		a.termTabChip(c, t, i)
+	}
+}
+
+// termTabChip 画一个终端标签；激活的那一个取浅底，其余透明。
+func (a *App) termTabChip(c *gui.Context, t *gui.Theme, i int) {
+	tab := a.termTabs[i]
+	active := i == a.termActive
 	chip := gui.Row(c).Height(rowCompact).Shrink(0).Gap(space1).
 		Padding(space1, space2).Radius(radiusSmall).AlignItems(gui.Center).
-		Background(t.SurfaceHover)
+		Label("终端标签：" + tab.title)
+	if active {
+		chip = chip.Background(t.SurfaceHover)
+	}
+	if chip.Clicked() {
+		a.switchTerminal(i)
+	}
 	chip.Children(func() {
 		iconGlyph(c, iconTerminal, t.TextMuted, "terminal")
-		typeSecondaryStrong.style(t, gui.Text(c, a.termTitle())).TextColor(t.Text).
+		typeSecondaryStrong.style(t, gui.Text(c, tab.title)).TextColor(t.Text).
 			SingleLine()
 		if iconButton(c, iconButtonSpec{
 			icon: iconXMark, label: "关闭进程", tip: "关闭进程",
-			size: controlMini, disabled: a.panels.termClosed,
+			size: controlMini, disabled: tab.closed,
 		}) {
-			a.closeTermProcess()
+			a.closeTermProcessAt(i)
 		}
 	})
 }
 
-// termCanvas 是深色画布（T-08 / T-09）：输出行 + 提示行，右键开菜单。
+// termCanvas 是深色画布（T-08 / T-09）：每个终端标签一层，同尺寸、无偏移、
+// 无边框；非激活层不可见但保留自己的滚动缓冲与输出。
 func (a *App) termCanvas(c *gui.Context) {
+	a.syncActiveTerminal()
+	gui.Box(c).Grow(1).Label("终端画布层").Children(func() {
+		for i := range a.termTabs {
+			active := i == a.termActive
+			layer := gui.Column(c).Absolute().Fill().IgnoreInput(!active).
+				AccessHidden(!active).Hidden(!active)
+			if active {
+				layer = layer.Background(termCanvasBg)
+			}
+			layer.Children(func() {
+				a.termLayer(c, &a.termTabs[i])
+			})
+		}
+	})
+}
+
+// termLayer 是一层画布的内容：输出行 + 提示行，右键开菜单。非激活层保留自己
+// 的行与滚动位置（T-09），切回来时从这里接着画。
+func (a *App) termLayer(c *gui.Context, tab *termTab) {
 	t := c.Theme()
-	_, lines, _ := a.terminalView()
-	body := gui.Column(c).Grow(1).Background(termCanvasBg).Padding(space2, panelPad).
+	body := gui.Column(c).Grow(1).Fill().Padding(space2, panelPad).
 		Label("终端").Role(gui.RoleGroup).
 		ContextMenu(func(m *gui.Menu) { a.termMenu(m, c) })
 	body.Children(func() {
-		if a.panels.termClosed {
+		if tab.closed {
 			gui.Column(c).Grow(1).Center().Children(func() {
 				typeCode.style(t, gui.Text(c, termClosedNotice)).
 					TextColor(termCanvasMuted)
 			})
 			return
 		}
-		visible := visibleLines(lines)
-		gui.Scroll(c).Grow(1).Children(func() {
+		visible := visibleLines(tab.lines)
+		gui.Scroll(c).Grow(1).TrackScroll(&tab.scroll).Children(func() {
 			gui.Column(c).Gap(0).Children(func() {
 				if len(visible) == 0 {
 					typeCode.style(t, gui.Text(c, termEmptyText)).TextColor(termCanvasMuted)
@@ -229,7 +324,9 @@ func (a *App) termCanvas(c *gui.Context) {
 					typeCode.style(t, gui.Text(c, ln.text)).
 						TextColor(termColorOf(t, ln.color))
 				}
-				a.termPrompt(c)
+				if tab == &a.termTabs[a.termActive] {
+					a.termPrompt(c)
+				}
 			})
 		})
 	})
@@ -328,12 +425,23 @@ func (a *App) termShellEnv() string {
 
 // newTerminal 新建一个终端（T-04 / T-19）：清掉提示并把状态回到空闲。
 //
-// 宿主框架没有多实例终端标签，本产品也只显示一个终端页签（DEC-08）：
-// 「新建终端」复用同一个页签，不追加第二个标签。
+// 连着真实会话时只有一个终端实例（TerminalSnapshot 只给一个），按 DEC-08
+// 复用同一个页签；样例模式按参考产品的形态追加一层画布，走查多层的切换。
 func (a *App) newTerminal() {
+	if a.wired() {
+		a.panels.termClosed = false
+		a.termState = termIdle
+		a.termLines = nil
+		a.termInput = ""
+		a.syncActiveTerminal()
+		return
+	}
+	a.syncActiveTerminal()
+	title := fmt.Sprintf("终端 %d", len(a.termTabs)+1)
+	a.termTabs = append(a.termTabs, termTab{title: title, state: termIdle})
+	a.termActive = len(a.termTabs) - 1
+	a.termState, a.termLines = termIdle, nil
 	a.panels.termClosed = false
-	a.termState = termIdle
-	a.termLines = nil
 	a.termInput = ""
 }
 
@@ -342,6 +450,22 @@ func (a *App) closeTermProcess() {
 	a.panels.termClosed = true
 	a.termState = termExited
 	a.termLines = nil
+	a.syncActiveTerminal()
+}
+
+// closeTermProcessAt 关闭某一层的进程；其它层的输出与滚动位置不变。
+func (a *App) closeTermProcessAt(i int) {
+	a.ensureTermTabs()
+	if i == a.termActive {
+		a.closeTermProcess()
+		return
+	}
+	if i < 0 || i >= len(a.termTabs) {
+		return
+	}
+	a.termTabs[i].closed = true
+	a.termTabs[i].state = termExited
+	a.termTabs[i].lines = nil
 }
 
 // closeTerminal 关闭终端标签（T-06）：切回文件面板（参考里是切回上一页签）。

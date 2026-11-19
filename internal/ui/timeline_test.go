@@ -206,8 +206,8 @@ func TestFullAccessNeedsConfirmation(t *testing.T) {
 	}
 }
 
-// 用户消息悬停动作（TL-37–TL-40）：复制进剪贴板、编辑回填输入区、侧边对话
-// 打开右栏；分叉没有写入口，置灰并写原因。
+// 用户消息悬停动作（TL-37–TL-40）：复制进剪贴板、编辑进入行内编辑器、侧边
+// 对话打开右栏；分叉没有写入口，置灰并写原因。
 func TestUserActionsDoWhatTheySay(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 	bubble, ok := tt.Find("我的消息")
@@ -234,9 +234,22 @@ func TestUserActionsDoWhatTheySay(t *testing.T) {
 	if err := tt.Click("编辑消息 1"); err != nil {
 		t.Fatalf("点不到编辑：%v", err)
 	}
-	if app.draft != app.rounds[0].user {
-		t.Fatalf("编辑没有回填输入区：%q", app.draft)
+	tt.Frame()
+	if app.inlineEditRow != 0 || app.inlineDraft != app.rounds[0].user {
+		t.Fatalf("编辑没有进入行内编辑器：row=%d draft=%q", app.inlineEditRow, app.inlineDraft)
 	}
+	if _, ok := tt.Find("行内编辑器"); !ok {
+		t.Fatalf("编辑器没有出现：%v", tt.Texts())
+	}
+	if err := tt.Click("取消"); err != nil {
+		t.Fatalf("点不到取消：%v", err)
+	}
+	tt.Frame()
+	if app.inlineEditRow != -1 {
+		t.Fatal("取消没有退出编辑")
+	}
+	tt.Move(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
+	tt.Frame()
 
 	if err := tt.Click("从此处开始侧边对话 1"); err != nil {
 		t.Fatalf("点不到侧边对话：%v", err)
@@ -283,9 +296,11 @@ func TestUserMessageContextMenu(t *testing.T) {
 	if err := tt.ChooseMenuItem("编辑消息"); err != nil {
 		t.Fatalf("点不到菜单编辑：%v", err)
 	}
-	if app.draft != app.rounds[0].user {
-		t.Fatalf("菜单编辑没有回填输入区：%q", app.draft)
+	if app.inlineEditRow != 0 || app.inlineDraft != app.rounds[0].user {
+		t.Fatalf("菜单编辑没有进入行内编辑器：row=%d draft=%q", app.inlineEditRow, app.inlineDraft)
 	}
+	app.cancelInlineEdit()
+	tt.Frame()
 
 	tt.RightClickAt(bubble.X+bubble.W/2, bubble.Y+bubble.H/2)
 	tt.Frame()

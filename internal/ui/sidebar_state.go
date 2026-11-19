@@ -197,6 +197,17 @@ func (a *App) groupPinned(ws sidebarWorkspace) bool {
 	return a.sidebarView.pinnedGroups[ws.id]
 }
 
+// pinnedGroupsOf 挑出置顶的工作区分组，顺序沿用分组顺序（内置组不参与置顶）。
+func (a *App) pinnedGroupsOf(groups []sidebarWorkspace) []sidebarWorkspace {
+	out := make([]sidebarWorkspace, 0, len(groups))
+	for _, ws := range groups {
+		if !ws.builtin && a.groupPinned(ws) {
+			out = append(out, ws)
+		}
+	}
+	return out
+}
+
 // toggleGroupPin 置顶 / 取消置顶一个工作区分组（本地视图状态）。
 func (a *App) toggleGroupPin(ws sidebarWorkspace) {
 	if ws.builtin || ws.id == "" {

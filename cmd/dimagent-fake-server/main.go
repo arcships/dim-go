@@ -26,6 +26,10 @@ import (
 
 const sessionID = "s1"
 
+// secondSessionID 是第二个会话：多窗口与深链的截图证据要在第二个窗口里打开
+// 另一个会话，两个窗口的内容必须真的不同。
+const secondSessionID = "s2"
+
 func main() {
 	dir := flag.String("dir", "/tmp/dimagent-ui-fixture", "假服务端数据目录（socket 落在 <dir>/rust/daemon.sock）")
 	scenario := flag.String("scenario", "streaming", "场景：streaming（推送流式文本）或 approval（推送审批请求）")
@@ -57,17 +61,30 @@ func script(scenario string) fakeappserver.Script {
 	running := scenario == "streaming"
 	return fakeappserver.Script{
 		Features: []string{"session.history.latestTurn"},
-		Sessions: []fakeappserver.Session{{
-			ID:              sessionID,
-			Running:         running,
-			LatestTurnStart: 1,
-			Events:          history("我先看一遍发送路径。排队不再覆盖队列，运行中的提交先入队，这一轮结束后自动发出。", true),
-		}},
+		Sessions: []fakeappserver.Session{
+			{
+				ID:              sessionID,
+				Running:         running,
+				LatestTurnStart: 1,
+				Events:          history("把发送路径改成排队", "我先看一遍发送路径。排队不再覆盖队列，运行中的提交先入队，这一轮结束后自动发出。", true),
+			},
+			{
+				ID:              secondSessionID,
+				LatestTurnStart: 1,
+				Events:          history("对照一下旧的参考实现", "参考实现里队列是按会话存的；这一版按轮存，停止之后队列不残留。", false),
+			},
+		},
 		Replies: []fakeappserver.Reply{
-			{Method: "session.catalog", Result: map[string]any{"sessions": []any{map[string]any{
-				"sessionId": sessionID, "cwd": "/work", "createdAt": 1, "updatedAt": 2,
-				"running": running, "title": "发送路径排队",
-			}}, "nextCursor": nil}},
+			{Method: "session.catalog", Result: map[string]any{"sessions": []any{
+				map[string]any{
+					"sessionId": sessionID, "cwd": "/work", "createdAt": 1, "updatedAt": 2,
+					"running": running, "title": "发送路径排队",
+				},
+				map[string]any{
+					"sessionId": secondSessionID, "cwd": "/work", "createdAt": 1, "updatedAt": 1,
+					"running": false, "title": "参考实现对照",
+				},
+			}, "nextCursor": nil}},
 			{Method: "session.permission.get", Result: map[string]any{
 				"version": 1, "policy": map[string]any{"preset": "workspace-write"},
 			}},
@@ -79,9 +96,9 @@ func script(scenario string) fakeappserver.Script {
 }
 
 // history 是首屏历史：一条用户消息、一轮开始与一段助手文本。
-func history(text string, open bool) []protocol.RawEvent {
+func history(prompt, text string, open bool) []protocol.RawEvent {
 	events := []protocol.RawEvent{
-		raw("e1", 1, "input", "message", `{"mode":"queue","user":{"content":[{"type":"text","text":"把发送路径改成排队"}]}}`),
+		raw("e1", 1, "input", "message", `{"mode":"queue","user":{"content":[{"type":"text","text":"`+prompt+`"}]}}`),
 		raw("e2", 2, "turn", "start", `{"turn_id":"t1"}`),
 		raw("e3", 3, "step", "text", `{"turn_id":"t1","request_id":"r1","delta":"`+text+`"}`),
 	}

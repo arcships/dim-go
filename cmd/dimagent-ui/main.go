@@ -4,9 +4,14 @@
 //	dimagent-ui -server <可执行文件> -mock-model  指定服务端（验收用）
 //	dimagent-ui -version                         打印客户端与包内 App Server 版本后退出
 //	dimagent-ui -demo                            样例数据，不连服务端（截图与走查）
+//	dimagent-ui -new-window <会话>               启动时在第二个窗口打开该会话
+//	dimagent-ui dimagent://settings/appearance   深链：系统交付，或命令行直接传入
 //
 // 连接模式的事实全部来自 App Server（经 internal/uiwire 的 Source）；样例模式只用
 // 静态样例画界面骨架。两种模式共用同一棵视图，差别仅在有没有 Source。
+//
+// 多窗口：同一进程里每个窗口一份界面与一份会话视图，连接与缓存只有一份。窗口
+// 路由（复用 / 聚焦 / 关窗 / 几何记忆）在 windows.go，深链解析在 internal/deeplink。
 package main
 
 import (
@@ -21,9 +26,9 @@ import (
 	"time"
 
 	"github.com/egoist/mygo"
-	"github.com/egoist/mygo/ui"
 
 	"github.com/arcships/dimagent-mygo/internal/app"
+	"github.com/arcships/dimagent-mygo/internal/deeplink"
 	appui "github.com/arcships/dimagent-mygo/internal/ui"
 	"github.com/arcships/dimagent-mygo/internal/uiwire"
 )
@@ -34,7 +39,7 @@ import (
 // 单纯重连只会得到「未连接服务端」；这时重跑一次发现链、再走一遍连接与订阅才是
 // 真正的重试。其余意图原样交给适配器，不新增任何协议通道。
 type retryingIntents struct {
-	*uiwire.App
+	*uiwire.Session
 	// rescan 在重连前重跑发现链，把新的服务端路径交给集成层；可为 nil。
 	rescan func()
 	// after 在「重新连接」结束后刷新窗口标题（连接阶段已变）；可为 nil。
@@ -170,7 +175,11 @@ func main() {
 	noFocusFlag := flag.Bool("no-focus", false,
 		"后台运行（accessory 策略）：窗口可见但不抢焦点、不进 Dock 与菜单栏；自动截图与调试用")
 	shotFlag := flag.String("screenshot", "",
-		"渲染一帧后把窗口截到该 PNG 路径并退出；配合 -no-focus 可在不抢焦点的情况下取图")
+		"渲染一帧后把每个窗口截到 PNG 并退出（第一个窗口用该路径，其余加 -2、-3 后缀）；"+
+			"配合 -no-focus 可在不抢焦点的情况下取图")
+	newWindowFlag := flag.String("new-window", "",
+		"启动时在第二个窗口打开该会话（连接模式取会话标识，样例模式取样例会话名）；"+
+			"已有窗口打开同一个会话时切过去，不重复开")
 	logPathFlag := flag.String("log", "",
 		"客户端启动日志路径；默认 <数据目录>/logs/dimagent.log")
 	versionFlag := flag.Bool("version", false,
@@ -224,14 +233,15 @@ func main() {
 	}
 
 	// 标题：样例模式保留「界面骨架」字样（截图脚本按它认窗口）；连接模式按连接阶段
-	// 取（见 windowTitle），启动发现链的说明先挂在 hint 上。
-	titles := newWindowTitle(mode, startup)
+	// 取（见 windowTitle），启动发现链的说明先记下来，每个窗口建好时挂到自己的标题处。
+	hint := ""
 
-	// 连接模式（默认）从真实集成层读事实；-demo 用样例数据。
-	var source appui.Source
-	var intents appui.Intents
+	// 连接模式（默认）从真实集成层读事实；-demo 用样例数据。每个窗口有自己的
+	// 会话视图（uiwire.Session），连接与缓存只有一份。
 	var wire *uiwire.App
 	var appBase *app.App
+	// rescan 是「重新连接」前重跑发现链的入口；连接模式里随后补上。
+	var rescan func()
 	if mode == modeConnect {
 		startup.printf("启动：客户端 %s；包内 App Server %s；模式 连接；数据目录 %s",
 			version, bundledServerLabel(), dataDir)
@@ -252,7 +262,7 @@ func main() {
 			os.Exit(1)
 		case planErr != nil:
 			// 自动发现没结果：仍然起窗口，让断线说明在原位给原因与重试入口。
-			titles.setHint("未找到 App Server")
+			hint = "未找到 App Server"
 		default:
 			startup.printf("服务端点：%s", plan.Endpoint)
 		}
@@ -279,14 +289,7 @@ func main() {
 			log:           startup,
 		}
 		wire = uiwire.New(base)
-		source = wire
-		titles.useSource(wire)
-		intents = retryingIntents{
-			App:    wire,
-			rescan: func() { discover.apply("重新连接") },
-			log:    startup,
-			after:  titles.apply,
-		}
+		rescan = func() { discover.apply("重新连接") }
 		startup.printf("日志：%s", startup.Path())
 	}
 
@@ -294,36 +297,59 @@ func main() {
 	// 不在界面里留参考产品的样例号。
 	appui.SetBuildVersion(version)
 
-	var win *mygo.Window
 	// gate 是退出闸门：关窗与 ⌘Q 都等退出四阶段结束（见 quitGate）。
 	var gate *quitGate
 	// quitting 表示退出已经开始：关窗回调据此不再把窗口拦成「最小化到托盘」。
 	var quitting atomic.Bool
 	// host 是宿主外壳（托盘与系统通知），窗口与托盘就绪后才有值。
 	var host *shell
-	app := appui.NewApp(appui.Options{
-		Source:  source,
-		Intents: intents,
-		State:   state,
-		Variant: variant,
+
+	// 窗口管理：所有窗口、深链落点与几何记忆都在它里面（见 windows.go）。
+	manager := newWindowManager(windowManagerOptions{
+		mode:    mode,
+		state:   state,
+		variant: variant,
+		log:     startup,
+		base:    appBase,
+		wire:    wire,
+		rescan:  rescan,
+		hint:    hint,
 		// 断线卡的「查看日志」用它打开客户端日志；样例模式没有日志时为空串。
-		LogPath: startup.Path(),
-		// 每帧把会话状态交给宿主外壳：托盘菜单、图标状态与系统通知都从这里刷新。
-		OnFrame: func(snapshot appui.HostSnapshot) {
-			if host != nil {
-				host.frame(snapshot)
+		logPath: startup.Path(),
+		noFocus: *noFocusFlag,
+		width:   *widthFlag,
+		height:  *heightFlag,
+		quitting: &quitting,
+		// 最后一个窗口关掉就退出：没有窗口的进程只会让自启的 App Server 落到
+		// 没人回收的地方（关窗与异步收尾的竞态见 quitGate）。
+		onLastClosed: func() {
+			quitting.Store(true)
+			if gate != nil {
+				gate.settle(quitWaitLimit)
 			}
+			mygo.App.Quit()
 		},
-		StateChanged: func(s appui.State) {
-			if mode == modeConnect {
-				// 连接模式的标题由连接阶段决定，状态切换不改它（见 windowTitle）。
-				titles.apply()
-				return
-			}
-			if win != nil {
-				win.SetTitle(titles.base(s))
-			}
-		},
+	})
+
+	// 深链走两条入口，落点只有一条路由：
+	//   - 系统交付（macOS 的 openURLs，应用未运行时由系统拉起后到达）经
+	//     mygo.App.OnOpenURL；
+	//   - 命令行上的 dimagent:// 参数由框架的启动参数处理交给同一个 handler。
+	// 两者都要等目录可用（连接结算）之后再落窗，见 windowManager。
+
+	// 深链：协议在系统里注册（打包时 Info.plist 声明；非打包运行会在日志里说明），
+	// 系统交付的 dimagent:// 一律交给窗口管理。OnOpenURL 要在 Run 之前注册，
+	// 才收得到「应用未运行、被系统拉起」时随启动到达的那一条。
+	if err := mygo.App.RegisterURLScheme(deeplink.Scheme); err != nil {
+		// 未打包运行（裸可执行文件）时系统不接受登记：打包后的 .app 由
+		// Info.plist 的 CFBundleURLTypes 声明，双击运行即可收到系统交付的链接。
+		startup.printf("深链：本次运行未登记 %s://（未打包时系统不接受）：%v", deeplink.Scheme, err)
+	} else {
+		startup.printf("深链：已登记 %s://（session/<会话>、settings/<分节>）", deeplink.Scheme)
+	}
+	mygo.App.OnOpenURL(func(raw string) {
+		startup.printf("深链：收到 %s", raw)
+		manager.handleURL(raw)
 	})
 
 	// 菜单只留平台必需的最小项（UI-19）：应用菜单（退出、隐藏、关于）、编辑菜单、
@@ -342,42 +368,18 @@ func main() {
 		if *noFocusFlag {
 			mygo.App.SetActivationPolicy(mygo.ActivationPolicyAccessory)
 		}
-		width, height, x, y := *widthFlag, *heightFlag, 0, 0
-		hasPosition := false
-		if appBase != nil {
-			prefs := appBase.Preferences()
-			if prefs.Window.Width > 0 {
-				width = prefs.Window.Width
-			}
-			if prefs.Window.Height > 0 {
-				height = prefs.Window.Height
-			}
-			x, y, hasPosition = prefs.Window.X, prefs.Window.Y, prefs.Window.HasPosition
-		}
-		// 初始标题按界面状态取（样例模式带状态字样）；连接模式的标题之后由
-		// titles 按连接阶段改写。
-		initialTitle := titles.base(state)
-		options := mygo.WindowOptions{
-			Title:     initialTitle,
-			Width:     width,
-			Height:    height,
-			MinWidth:  720,
-			MinHeight: 600,
-			// 无系统标题栏，保留系统阴影、圆角与边缘缩放；红绿灯由系统画在我们
-			// 自绘标题行的上方（UI-19、A4 平台律）。
-			TitleBarStyle: mygo.TitleBarHidden,
-			Content:       ui.View(app.View),
-		}
-		if hasPosition {
-			options.X, options.Y = x, y
-		}
-		win = mygo.NewWindow(options)
-		titles.attach(win, initialTitle)
+
+		// 主窗口（索引 0）。几何按窗口偏好取：旧偏好文件里的 window 仍能读回，
+		// 之后每个窗口按自己的索引记（见 windowManager.windowGeometry）。
+		main := manager.open(windowSpec{})
+		win := main.win
+		app := main.view
 
 		// 宿主外壳：菜单栏托盘图标与系统通知。托盘图标要在应用就绪之后建；
 		// 建不起来（平台不支持托盘）只记一行日志，窗口与快捷键照常可用。
 		host = newShell(app, appBase, startup)
 		host.attachWindow(win)
+		host.windows = manager
 		host.quitting = &quitting
 		host.quit = func() {
 			if gate != nil {
@@ -385,6 +387,7 @@ func main() {
 			}
 			mygo.App.Quit()
 		}
+		manager.setHost(host)
 		if err := host.createTray(); err != nil {
 			startup.printf("托盘：%v", err)
 		} else {
@@ -403,16 +406,10 @@ func main() {
 		if appBase != nil {
 			appBase.SetGlobalShortcutRegistrar(mygoShortcuts{})
 			appBase.SetGlobalShortcutHandler(func() {
-				if win == nil {
-					return
+				manager.focusMain()
+				if slot := manager.mainSlot(); slot != nil && slot.view != nil {
+					slot.view.FocusComposer()
 				}
-				if win.IsMinimized() {
-					win.Restore()
-				}
-				win.Show()
-				win.Focus()
-				app.FocusComposer()
-				win.Invalidate()
 			})
 			if err := appBase.ApplyGlobalShortcut(); err != nil {
 				startup.printf("全局快捷键：%v", err)
@@ -429,10 +426,10 @@ func main() {
 			// 事实变化（连接阶段变化、事件、回执）时重绘并重取标题：断线就是从这里
 			// 把标题改回「连接失败」的，不靠启动协程那一次。
 			wire.OnChange = func() {
-				win.Invalidate()
-				titles.apply()
+				manager.invalidateAll()
+				manager.applyTitles()
 			}
-			app.SetChanged(func() { win.Invalidate() })
+			app.SetChanged(func() { manager.invalidateAll() })
 			// 集成层目前没有"事实变化"回调：用一帧轮询把收到的流式事件画出来。
 			// 这是显示刷新，不是第二份事实——每帧仍然只从 Source 读。标题也在这里
 			// 兜底：失败路径不广播变化，最迟下一帧补上。
@@ -443,12 +440,16 @@ func main() {
 					// 隐藏到托盘后窗口可能不再渲染：只在窗口不可见时补一次宿主
 					// 外壳的刷新，可见时由每帧的 OnFrame 负责（不重复读会话）。
 					mygo.RunOnMain(func() {
-						if host != nil && !win.IsVisible() {
+						if host == nil {
+							return
+						}
+						slot := manager.firstSlot()
+						if slot == nil || slot.win == nil || !slot.win.IsVisible() {
 							host.frame(app.HostSnapshot())
 						}
 					})
-					win.Invalidate()
-					titles.apply()
+					manager.invalidateAll()
+					manager.applyTitles()
 				}
 			}()
 			// 连接在后台走；失败时视图在自己的位置显示原因（Connected/Connection
@@ -464,18 +465,34 @@ func main() {
 					startup.printf("连接就绪（%.0f ms）", elapsedMS(started))
 				}
 				// 标题按阶段取一次：失败路径不广播变化，这一步不能省。
-				titles.apply()
-				win.Invalidate()
+				manager.applyTitles()
+				manager.invalidateAll()
+				// 连接结算：目录可用了，排队中的深链与启动参数此时落窗。放在
+				// connectDone 之前，截图与后续动作看到的已是最终窗口清单。
+				manager.connectionSettled()
 			}()
+		}
+
+		// 窗口就绪：先处理就绪之前排队的深链（系统拉起应用时 URL 可能先到），
+		// 再处理启动参数里的第二个窗口与 -deeplink。连接模式里目录还没读上来时，
+		// 它们会等到连接结算之后再落窗（见 windowManager.connectionSettled）。
+		manager.markReady()
+		if *newWindowFlag != "" {
+			manager.openSessionInNewWindow(*newWindowFlag)
+		}
+		if wire == nil {
+			// 样例模式没有连接阶段：启动参数当场生效（上面的调用已经落窗）。
+			manager.connectionSettled()
 		}
 
 		if *shotFlag != "" {
 			capture := func() {
-				data, err := win.CapturePage()
+				written, err := manager.capture(*shotFlag)
 				if err != nil {
 					startup.printf("截图失败：%v", err)
-				} else if err := os.WriteFile(*shotFlag, data, 0o644); err != nil {
-					startup.printf("写截图失败：%v", err)
+				}
+				for _, path := range written {
+					startup.printf("截图：%s", path)
 				}
 				// 截图是一次性运行：即使偏好里选了「关窗进托盘」也在截完后退干净。
 				quitting.Store(true)
@@ -494,30 +511,6 @@ func main() {
 				}()
 			}
 		}
-
-		// 关窗：偏好是「最小化到托盘」时只隐藏窗口，进程留在菜单栏；否则按退出
-		// 四阶段收尾后退出。退出已经开始时一律放行，不把对话框拦回托盘。
-		win.OnClose(func(e *mygo.CloseEvent) {
-			if appBase != nil {
-				bounds := win.Bounds()
-				_ = appBase.UpdateWindowBounds(bounds.X, bounds.Y, bounds.Width, bounds.Height)
-				if !quitting.Load() && appBase.Preferences().CloseToTray {
-					e.PreventDefault()
-					win.Hide()
-					host.refresh()
-					startup.printf("关窗：已按偏好最小化到托盘")
-					return
-				}
-			}
-			quitting.Store(true)
-			// 双击启动的应用关掉窗口就该退出：留着没有窗口的进程只会让自启的
-			// App Server 落到没人回收的地方。退出四阶段没走完就不 Quit，否则
-			// 主循环先退出、自启实例留在机器上（关窗与异步收尾的竞态）。
-			if gate != nil {
-				gate.settle(quitWaitLimit)
-			}
-			mygo.App.Quit()
-		})
 	})
 
 	// 退出时按退出四阶段收尾并回收自己拉起的服务端；只回收空闲实例，别的客户端
@@ -533,7 +526,9 @@ func main() {
 		// 保留，见 cleanupEndpoint）。
 		endpoint := endpointPath(dataDir)
 		gate.before = func() {
-			titles.freeze()
+			// 退出途中不再翻标题，并把每个窗口的几何记下来（下次按索引还原）。
+			manager.freezeTitles()
+			manager.saveBounds()
 			// 全局快捷键在主线程上注销：mygo 的 UnregisterAll 要切到主线程，
 			// 而四阶段在主线程上等它结束，留到后台协程里做会互相等。
 			_ = appBase.ReleaseGlobalShortcuts()

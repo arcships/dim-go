@@ -151,6 +151,16 @@ const (
 	// VariantTimelineToolDetail 展开第一轮工具分组里的失败工具，走查三段详情。
 	VariantTimelineHover
 	VariantTimelineToolDetail
+	// 底部栈与时间线的六块走查态（截图用）：排队消息、Shell 运行、行内编辑、
+	// 压缩摘要、产物展开、改动右键菜单、终端分层、子代理加载失败。
+	VariantQueuePanel
+	VariantShellPanel
+	VariantInlineEdit
+	VariantCompaction
+	VariantArtifacts
+	VariantReviewMenu
+	VariantTermLayers
+	VariantSubagentFailed
 )
 
 // variantNames 是 -variant 的取值。
@@ -176,6 +186,10 @@ var variantNames = map[string]Variant{
 	"right-expanded":  VariantRightExpanded,
 	"command-palette": VariantPalette, "command-palette-empty": VariantPaletteEmpty,
 	"timeline-hover": VariantTimelineHover, "timeline-tool-detail": VariantTimelineToolDetail,
+	"queue": VariantQueuePanel, "shell-panel": VariantShellPanel,
+	"inline-edit": VariantInlineEdit, "compaction": VariantCompaction,
+	"artifacts": VariantArtifacts, "review-menu": VariantReviewMenu,
+	"term-layers": VariantTermLayers, "subagent-failed": VariantSubagentFailed,
 }
 
 // ParseVariant 解析 -variant。
@@ -261,6 +275,8 @@ type App struct {
 	groupRenameDraft string
 	// logoutConfirm 是账户菜单「退出登录」的两步确认（LB-101）。
 	logoutConfirm bool
+	// viewRestored 表示启动时已经从本地偏好铺回视图状态；之后不再重复铺。
+	viewRestored bool
 
 	draft  string
 	rounds []round
@@ -363,6 +379,32 @@ type App struct {
 	// lastShellRun 是最近一次已发出的命令运行标识，供「中止」使用。
 	lastShellRun string
 
+	// 排队消息与 Shell 运行面板的视图状态（可丢）：面板折叠、正在编辑的排队
+	// 消息与草稿、命令面板的折叠与已关闭的运行标识。样例走查用的队列与运行记录
+	// 也放这里（只有 -demo / 截图时由变体灌入，接上 Source 后不读）。
+	queueCollapsed   bool
+	queueEditing     string
+	queueDraft       string
+	queueNotice      string
+	queueNoticeAt    int
+	shellCollapsed   bool
+	shellClosed      string
+	shellRunFrame    int
+	demoQueued       []QueuedMessageSnapshot
+	demoShellRun     *ShellRunSnapshot
+	demoCompaction   *CompactionSnapshot
+	// 行内编辑器的视图状态（TL-31–TL-34）：正在编辑的行、草稿与样例保存结果。
+	inlineEditRow int
+	inlineDraft   string
+	inlineSaved   map[int]string
+	inlineNotice  string
+	// 产物列表的展开态（A-18 / A-19）与行尾下拉（A-14）的开合。
+	artifactsMore   map[string]bool
+	artifactMenus   map[string]*bool
+	// 压缩摘要区的展开态（TL-69）与样例摘要重试计数。
+	compactionOpen   map[string]*bool
+	compactionTried  int
+
 	// 待发附件（样例）。
 	attachments       []attachmentChipData
 	attachmentEditing bool
@@ -393,6 +435,10 @@ type App struct {
 	termInput  string
 	termCopied bool
 	tasks      []task
+	// termTabs / termActive 是终端的分层画布（T-09）：每个标签一层，激活层与
+	// 上面的 termState / termLines 同步，其余层各自保留输出与滚动位置。
+	termTabs   []termTab
+	termActive int
 
 	// panels 是右栏四个重建面板（后台任务 / 终端 / 侧聊 / 子代理）的可丢视图
 	// 状态：选中的行、草稿、确认框与面板内的加载态。它不是事实。
@@ -584,7 +630,7 @@ func (a *App) loadSample() {
 	a.termLines = termSamples(termIdle)
 	a.termCopied = false
 	a.panels = newPanelView()
-
+	a.resetPanelViewState()
 	switch a.variant {
 	case VariantSettings:
 		a.screen = ScreenSettings
@@ -703,6 +749,7 @@ func (a *App) loadSample() {
 	if a.state == StateWaiting {
 		a.approvalCommand = "ls -la"
 	}
+	a.applyComposerPanelVariant()
 	a.applyCommandPaletteVariant()
 }
 
@@ -797,6 +844,7 @@ func (a *App) resetWiredViewState() {
 	a.termCopied = false
 	a.termInput = ""
 	a.panels = newPanelView()
+	a.resetPanelViewState()
 	a.model = ""
 
 	if a.source != nil {
@@ -814,9 +862,13 @@ func (a *App) resetWiredViewState() {
 		a.notifyTaskDone = prefs.NotifyTaskDone
 		a.notifySound = prefs.NotifySound
 		a.notifyNeedsResponse = prefs.NotifyNeedsResponse
-		// 视图状态按上次的样子铺回：左栏收起、视图口径、分组折叠、右栏开合与
-		// 标签页、两层筛选。它是本地偏好，不是事实。
-		a.applyViewPreferences(prefs.View)
+		// 视图状态只在启动后铺回一次：loadSample 在每次切场景时都会跑，若每次都
+		// 铺回，切场景会把用户刚收起 / 展开的视图盖回上次落盘的值。它是本地偏好，
+		// 不是事实。
+		if !a.viewRestored {
+			a.applyViewPreferences(prefs.View)
+			a.viewRestored = true
+		}
 		a.lastPrefs = prefs
 	}
 	a.applyCommandPaletteVariant()
@@ -1378,8 +1430,27 @@ func (a *App) viewKeys(c *gui.Context) {
 	if a.palette.open || a.screen != ScreenMain {
 		return
 	}
+	if a.logoutConfirm && c.Shortcut(0, gui.KeyEscape) {
+		a.logoutConfirm = false
+		return
+	}
 	if a.renamingGroup != "" && c.Shortcut(0, gui.KeyEscape) {
 		a.renamingGroup, a.groupRenameDraft = "", ""
+		return
+	}
+	// 行内编辑（TL-32）：Esc 放弃、⌘↵ 保存；队列编辑的 Esc 只退出编辑。
+	if a.inlineEditing() {
+		if c.Shortcut(0, gui.KeyEscape) {
+			a.cancelInlineEdit()
+			return
+		}
+		if c.Shortcut(gui.Cmd, gui.KeyEnter) {
+			a.saveInlineEdit()
+			return
+		}
+	}
+	if a.queueEditing != "" && c.Shortcut(0, gui.KeyEscape) {
+		a.cancelQueuedEdit()
 		return
 	}
 	if c.Shortcut(gui.Cmd, gui.KeyB) {

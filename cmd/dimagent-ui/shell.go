@@ -25,6 +25,10 @@ type shell struct {
 	win  *mygo.Window
 	icon *mygo.Tray
 
+	// windows 是多窗口管理：托盘与通知的落点先经过它（复用已打开的窗口），
+	// 没有时退回主窗口视图。可为 nil（单窗口测试）。
+	windows *windowManager
+
 	// watcher 与 notifier 只在连接模式（有集成层）时建：样例模式没有真实事件。
 	watcher  *notify.Watcher
 	notifier *notify.Notifier
@@ -173,16 +177,31 @@ func (s *shell) run(action tray.Action, sessionID string) {
 	case tray.ActionShowWindow:
 		s.showWindow()
 	case tray.ActionHideWindow:
+		if s.windows != nil {
+			s.windows.hideMain()
+			s.refresh()
+			return
+		}
 		if s.win != nil {
 			s.win.Hide()
 			s.refresh()
 		}
 	case tray.ActionNewSession:
+		if s.windows != nil {
+			s.windows.newSessionMain()
+			s.refresh()
+			return
+		}
 		s.showWindow()
 		if s.ui != nil {
 			s.ui.NewSession()
 		}
 	case tray.ActionOpenSession:
+		if s.windows != nil {
+			s.windows.FocusSession(sessionID)
+			s.refresh()
+			return
+		}
 		s.showWindow()
 		if s.ui != nil {
 			s.ui.FocusSession(sessionID)
@@ -201,6 +220,11 @@ func (s *shell) run(action tray.Action, sessionID string) {
 
 // showWindow 把主窗口带到前台：还原、显示、聚焦，应用也切到前台。
 func (s *shell) showWindow() {
+	if s.windows != nil {
+		s.windows.focusMain()
+		s.refresh()
+		return
+	}
 	if s.win == nil {
 		return
 	}
@@ -214,8 +238,13 @@ func (s *shell) showWindow() {
 	s.refresh()
 }
 
-// focusSession 是通知点开的落点：窗口到前台，界面定位到该会话。
+// focusSession 是通知点开的落点：已经有窗口显示该会话就切过去，否则在最近
+// 聚焦的窗口里换过去（没有窗口时开一个）。
 func (s *shell) focusSession(sessionID string) {
+	if s.windows != nil {
+		s.windows.FocusSession(sessionID)
+		return
+	}
 	s.showWindow()
 	if s.ui != nil {
 		s.ui.FocusSession(sessionID)

@@ -222,6 +222,14 @@ func TestWorkspaceMenuPinsRenamesAndRemoves(t *testing.T) {
 	if groups[1].name != "rutis" {
 		t.Fatalf("置顶后首组 = %q，想要 rutis", groups[1].name)
 	}
+	// 置顶的工作区进「已置顶」区（LB-22），不再在下面的分组列表里重复。
+	heading, ok := tt.Find("已置顶")
+	if !ok {
+		t.Fatalf("置顶工作区后没有「已置顶」区：%v", tt.Texts())
+	}
+	if row, ok := tt.Find("rutis"); !ok || row.Y < heading.Y {
+		t.Fatalf("置顶的 rutis 不在「已置顶」区里：heading=%+v row=%+v", heading, row)
+	}
 
 	// 再开菜单：首项换成取消置顶。
 	openGroupMenu(t, tt, "rutis")

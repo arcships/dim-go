@@ -214,6 +214,20 @@ cat >"$APP/Contents/Info.plist" <<PLIST
 	<true/>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- 深链：系统把 dimagent://session/<id>、dimagent://settings/<section>
+	     交给本应用。客户端启动时还会把它登记为默认处理者（mygo 的
+	     RegisterURLScheme；macOS 要求包内先声明，否则登记会被拒绝）。 -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>$BUNDLE_ID</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>dimagent</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
 PLIST
@@ -240,6 +254,18 @@ for required in \
 	"$APP/Contents/Resources/dim-app-server.version"; do
 	[[ -e "$required" ]] || die "产物缺少 $required"
 done
+
+# 5.0 深链自检：Info.plist 必须声明 dimagent://（缺了它系统不会把链接交给本应用）。
+if command -v plutil >/dev/null; then
+	schemes="$(plutil -extract CFBundleURLTypes json -o - "$APP/Contents/Info.plist" 2>/dev/null || true)"
+	if [[ "$schemes" != *'"dimagent"'* ]]; then
+		die "Info.plist 没有声明 dimagent://（CFBundleURLTypes）：$schemes"
+	fi
+	printf 'release: 深链已声明 dimagent://\n'
+else
+	grep -q '<string>dimagent</string>' "$APP/Contents/Info.plist" ||
+		die "Info.plist 没有声明 dimagent://"
+fi
 
 # 5.1 版本自检：包内客户端要能自己报出包内服务端版本（启动日志第一行用的是同一份）。
 if VERSION_LINE="$("$APP/Contents/MacOS/DimAgent" -version 2>/dev/null)"; then

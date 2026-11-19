@@ -34,17 +34,24 @@ func (a *App) subagentPanel(c *gui.Context) {
 	t := c.Theme()
 	ready := a.panels.subagentReady
 	failure := a.panels.subagentError
+	// G-02：读取失败但错误原文为空时仍画错误行，文案换成通用的「加载失败」，
+	// 不留一条空横幅、也不退回加载态。
+	failed := a.panels.subagentFailed || failure != ""
+	if failed && failure == "" {
+		failure = subagentLoadFailed
+	}
 	gui.Column(c).Grow(1).Children(func() {
 		switch {
-		case failure != "" && ready:
+		case failed && ready:
 			// 已就绪但流出错：行内错误横幅（G-01–G-03）。
 			gui.Column(c).Shrink(0).Padding(panelPad, panelPad).Children(func() {
 				panelBanner(c, failure, subagentRetry, func() {
 					a.panels.subagentError = ""
+					a.panels.subagentFailed = false
 				})
 			})
 			a.subagentTimeline(c)
-		case failure != "" && !ready:
+		case failed && !ready:
 			// 还没就绪就出错：空态错误文本 + 次级重试按钮（G-04 / G-05）。
 			gui.Column(c).Grow(1).Center().Padding(space4, panelCenterPad).
 				Gap(space3).AlignItems(gui.Center).Children(func() {
@@ -52,6 +59,7 @@ func (a *App) subagentPanel(c *gui.Context) {
 					TextAlign(gui.Center).MaxLines(6)
 				if gui.Button(c, subagentRetry).Label(subagentRetry).Clicked() {
 					a.panels.subagentError = ""
+					a.panels.subagentFailed = false
 				}
 			})
 		case !ready:

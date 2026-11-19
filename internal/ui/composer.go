@@ -97,6 +97,9 @@ func (a *App) composer(c *gui.Context) {
 		if hasSession {
 			a.goalRow(c)
 		}
+		// 底部栈：排队消息面板与 Shell 运行面板排在输入块之上（§4.3 的顺序）。
+		a.queuePanel(c)
+		a.shellRunPanel(c)
 		gui.Row(c).Justify(gui.Center).Children(func() {
 			// 连上事实但没有打开会话时也是空态：输入卡底下带工作区与权限两处入口
 			// （-demo 的空态走 emptyThread，由它带控制行）。
@@ -183,6 +186,7 @@ func (a *App) inputBlock(c *gui.Context, withControls bool) {
 		Radius(radiusWindowCard).Clip().
 		Shadow(0, 2, 10, 0, colorShadow.in(t)).Label("输入卡").Children(func() {
 		gui.Column(c).Padding(space4).Gap(space2).Children(func() {
+			a.queuedEditBanner(c)
 			if len(a.attachments) > 0 {
 				gui.Row(c).Gap(space2).Wrap().Children(func() {
 					for i := range a.attachments {
@@ -252,6 +256,10 @@ func (a *App) sendSlot(c *gui.Context) {
 	icon, label, tip := iconArrowUp, "发送", "发送消息... · Enter"
 	disabled := strings.TrimSpace(a.draft) == "" || a.disconnected()
 	switch {
+	case a.savingQueuedEdit():
+		// 正在编辑排队消息：发送槽变成保存，文案仍是「发送消息...」。
+		disabled = strings.TrimSpace(a.draft) == ""
+		tip = "保存排队消息"
 	case a.shellMode():
 		icon, label, tip = iconPlay, "运行命令", "运行命令 · Enter"
 		disabled = strings.TrimSpace(a.shellCommand()) == ""
@@ -263,6 +271,8 @@ func (a *App) sendSlot(c *gui.Context) {
 		icon: icon, label: label, tip: tip, size: composerToolSize, disabled: disabled,
 	}, true) {
 		switch {
+		case a.savingQueuedEdit():
+			a.saveQueuedEdit()
 		case a.liveRunning():
 			if a.intents != nil {
 				a.dispatch("停止", a.intents.Stop, nil)

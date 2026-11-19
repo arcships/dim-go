@@ -3,6 +3,8 @@ package ui
 import (
 	"fmt"
 	"path"
+	"path/filepath"
+	"strings"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -520,13 +522,36 @@ func (a *App) rpChangeMenu(c *gui.Context, target gui.Element, change *rpChange,
 		if menuItem(c, m, iconEye, "预览", "预览", "", false, false) {
 			a.rpOpenPreview(change.path)
 		}
-		// 外部工具要宿主能力：本版不做，入口禁用并写原因（DEC-09）。
+		// 外部工具、默认应用与文件管理器都要宿主能力：本版不做，入口禁用并
+		// 写原因（DEC-09）；复制路径与复制相对路径是本地动作，照常可用。
 		menuItem(c, m, iconExternal, "用外部工具打开", "用外部工具打开", notePreviewIO, true, false)
+		menuItem(c, m, iconExternal, "用默认应用打开", "用默认应用打开", notePreviewIO, true, false)
+		menuItem(c, m, iconFolderOpen, "在文件管理器中显示", "在文件管理器中显示", notePreviewIO, true, false)
 		rpMenuSeparator(c)
 		if menuItem(c, m, iconCopy, "复制路径", "复制路径", "", false, false) {
 			c.WriteClipboard(change.path)
 		}
+		// 相对路径只在文件属于工作区时出现（D-97）；算不出来就不画这一项，
+		// 不把空串写进剪贴板。
+		if rel, ok := a.rpRelativePath(change.path); ok {
+			if menuItem(c, m, iconCopy, "复制相对路径", "复制相对路径", "", false, false) {
+				c.WriteClipboard(rel)
+			}
+		}
 	})
+}
+
+// rpRelativePath 把改动路径换成相对工作区的路径；文件在工作区外时 ok 为假。
+func (a *App) rpRelativePath(p string) (string, bool) {
+	cwd := a.rpCwd()
+	if cwd == "" || p == "" {
+		return "", false
+	}
+	rel, err := filepath.Rel(cwd, p)
+	if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return "", false
+	}
+	return rel, true
 }
 
 // rpChangesFooter 是底部统计条（D-77–D-79）：{count} 个文件改动 + 合计。
