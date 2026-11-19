@@ -165,6 +165,21 @@ commit，跑一次绿、跑一次红。逐条抓出来之后，成因只有两�
 - `fork_test.go` 的四个分叉用例原来等的是替身收到了 `CreateBranch` / `SelectBranch`，而之后
   断言的标题行回执要更晚一帧才写：等条件里补上回执本身，`waitFork` 并入 `waitFrame`。
 
+同一个坑还有一处更隐蔽的变体：**等错了地方**。替身通道在写入动作里发信号，信号到的时刻
+结果还没交回渲染线程，所以"收到通道 + 画一两帧"照样是猜帧数。扫出这一类的办法是把 delay
+放在动作**之后**（见 7.4），一次抓到六处，已逐个改成等观察值：
+
+| 用例 | 原来等什么 | 之后断言什么（现在等它） |
+|---|---|---|
+| `TestHeaderRenameIsAvailable` | `RenameSession` 通道 | 弹窗关闭 |
+| `TestIntentErrorRowOffersRetry` | 写入通道 + 连画两帧 | 错误行与「重试」入口出现 / 消失 |
+| `TestQuestionCardBatch` | 提交通道 | 答过的卡片从屏上撤下 |
+| `TestQuestionCardFailureAndKeys` | 「拒绝」通道 | `questionAnswered` 记下已答 |
+| `TestProviderFormCreateWrites` | 写入记录通道 | 新增表单关闭 |
+| `TestProviderFormEditPrefilled` | 写入记录通道 | 编辑表单关闭 |
+
+"连画两帧"也是猜帧数：两帧之内回调没到就是红，它只是把窗口缩小，没有消掉。
+
 ### 7.3 成因二：包级渲染状态没复位（顺序依赖）
 
 代码主题与代码字级是包级值（`markdown.go` 的 `currentCodeTheme`、`tokens.go` 的
@@ -184,7 +199,8 @@ commit，跑一次绿、跑一次红。逐条抓出来之后，成因只有两�
 
 | 手法 | 命令 | 说明 |
 |---|---|---|
-| 放大异步窗口 | 在**只读副本**里给 `runIntent` 的协程起点加固定 delay，再整包跑 | 副本改动不进仓库；deliberate 的"点一次就断言"会稳定红，证明手法有效。200ms 窗口下整包两轮零失败 = 没有别的用例踩这个坑 |
+| 放大异步窗口（动作前） | 在**只读副本**里给 `runIntent` 的协程起点加固定 delay，再整包跑 | 副本改动不进仓库；deliberate 的"点一次就断言"会稳定红，证明手法有效。200ms 窗口下整包两轮零失败 = 没有用例在动作尚未跑完时断言 |
+| 放大异步窗口（动作后） | 同上，delay 放在 `action(ctx)` 返回之后、结果交回渲染线程之前 | 专抓"等错地方"（替身通道 + 数帧）；一次抓到六处，修完 200ms 下整包两轮零失败 |
 | 打乱顺序 | `go test ./internal/ui -shuffle=on -count=1`（多个种子） | 抓包级状态残留；修完之后 8 个种子全绿 |
 | 空载 / 满载 | 多个 `go test ./internal/ui -count=N` 并发跑 | 只影响时间敏感项，不影响结果 |
 | 只读快照 | 把仓库复制到 `$TMPDIR/<snapshot>` 上跑 | 工作区同时有人在改 `internal/ui` 时，只有快照上的统计可归因 |
@@ -195,7 +211,8 @@ commit，跑一次绿、跑一次红。逐条抓出来之后，成因只有两�
 |---|---|
 | 只读快照 `go test ./internal/ui -count=10` × 3 轮 | 3 轮全绿（约 90–100s / 轮） |
 | 只读快照 `-shuffle=on` 8 个种子 | 全绿 |
-| 放大后台窗口（200ms）整包 × 2 | 全绿 |
+| 放大后台窗口（动作前 200ms）整包 × 2 | 全绿 |
+| 放大后台窗口（动作后 200ms）整包 × 2 | 全绿（修六处之前是 6 个用例稳定红） |
 | 4 个进程并发 `-count=4` | 全绿 |
 | `TestConfirmDeleteFailureKeepsDialog -count=40` | 40/40 通过（修之前 60 次里失败 15 次） |
 

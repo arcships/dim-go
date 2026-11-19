@@ -166,7 +166,7 @@ func (a *App) pluginManageView(c *gui.Context) {
 					if facts && plugins.ReadError != "" {
 						typeSecondary.style(t, gui.Text(c, pluginManageReadError+"："+plugins.ReadError)).
 							TextColor(t.Danger).Role(gui.RoleAlert).
-							Label(pluginManageReadError)
+							Label(pluginManageReadError + "：" + plugins.ReadError)
 					}
 					if facts && len(plugins.Items) == 0 {
 						plgNote(c, t, pluginManageEmpty)

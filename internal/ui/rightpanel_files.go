@@ -173,6 +173,8 @@ func (a *App) rpLiveTree(facts PanelFacts, refresh bool) {
 	})
 	s.loading = root.Phase == PanelReadLoading
 	s.rootFailed = root.Phase == PanelReadFailed
+	s.rootError = root.Error
+	s.dirError[""] = root.Error
 	s.permissionDenied = root.Denied
 	s.rootPartial = root.HasMore
 	s.tree = a.rpNodes(facts, cwd, "", root, refresh, 0)
@@ -195,6 +197,7 @@ func (a *App) rpNodes(facts PanelFacts, cwd, dir string, snapshot FileTreeSnapsh
 				Cwd: cwd, Dir: p, Offset: 0, Limit: limit, Refresh: refresh,
 			})
 			s.dirFailed[p] = child.Phase == PanelReadFailed
+			s.dirError[p] = child.Error
 			s.dirLoading[p] = child.Phase == PanelReadLoading
 			node.hasMore = child.HasMore
 			node.children = a.rpNodes(facts, cwd, p, child, refresh, depth+1)
@@ -564,9 +567,15 @@ func (a *App) rpLiveSearch(c *gui.Context, facts PanelFacts, query string, refre
 			TextColor(t.TextMuted).Role(gui.RoleStatus).SingleLine()
 		return
 	case PanelReadFailed:
+		s.searchError = snapshot.Error
 		gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
+			// 通用句 + 原因原文分两段：原因照读数写，不在界面这一层编。
 			typeSecondary.style(t, gui.Text(c, "文件搜索失败。")).TextColor(t.Danger).
-				Role(gui.RoleAlert).Grow(1).MaxLines(2)
+				Role(gui.RoleAlert).Shrink(0).MaxLines(1)
+			if snapshot.Error != "" {
+				typeSecondary.style(t, gui.Text(c, snapshot.Error)).TextColor(t.Danger).
+					Grow(1).MaxLines(2)
+			}
 			if rpTextAction(c, nil, "重试", "重试搜索", false) {
 				s.reload++
 			}
@@ -783,12 +792,22 @@ func (a *App) rpLoadMoreRow(c *gui.Context, p string) {
 func (a *App) rpDirErrorRow(c *gui.Context, p string) {
 	t := c.Theme()
 	s := a.rp()
+	// 通用句后面接读取方给的原因：只有通用句时用户不知道是权限、断线还是路径
+	// 没了；没有原因时这一行与原来一致。
+	reason := s.dirError[p]
 	gui.Row(c).Height(panelRowHeight2).Padding(0, panelRowPadH).Gap(space1).
 		AlignItems(gui.Center).Role(gui.RoleAlert).Children(func() {
 		typeSecondary.style(t, gui.Text(c, "无法加载此文件夹。")).TextColor(t.Danger).
-			Grow(1).SingleLine()
+			Shrink(0).SingleLine()
+		if reason != "" {
+			typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.Danger).
+				Grow(1).SingleLine()
+		}
 		if rpTextAction(c, nil, "重试", "重试读取文件夹："+p, false) {
+			// 重试 = 清掉失败位并请求一次真正的重读（适配器按 Refresh 跳过缓存），
+			// 不是把同一份失败读数再画一遍。
 			s.dirFailed[p] = false
+			s.reload++
 		}
 	})
 }

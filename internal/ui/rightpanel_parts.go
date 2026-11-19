@@ -100,9 +100,11 @@ type rightPanelState struct {
 	// dirOpen 是目录展开态（键是目录路径）；dirPages 是每个目录已加载的子项数。
 	dirOpen  map[string]bool
 	dirPages map[string]int
-	// dirLoading / dirFailed 是「正在加载...」与目录错误行。
+	// dirLoading / dirFailed 是「正在加载...」与目录错误行；dirError 是读取方给出
+	// 的失败原因（空表示只有通用句）。
 	dirLoading map[string]bool
 	dirFailed  map[string]bool
+	dirError   map[string]string
 
 	// tree 是文件树样例；changes 是改动列表样例。
 	tree    []*rpNode
@@ -125,10 +127,13 @@ type rightPanelState struct {
 	searchPartial    bool
 	permissionDenied bool
 	// loading 是首次读取文件树（F-03 的骨架）；rootFailed / rootPartial 是根级
-	// 读取失败与还有未加载项（F-13 / F-45）。
+	// 读取失败与还有未加载项（F-13 / F-45）；rootError 是根级失败的原因原文。
 	loading     bool
 	rootFailed  bool
 	rootPartial bool
+	rootError   string
+	// searchError 是搜索失败的原因原文（空表示只有通用句）。
+	searchError string
 	// lastRunUnavailable / gitFailed 是改动页的两类读取失败（D-20 / D-22）。
 	lastRunUnavailable bool
 	gitFailed          bool
@@ -167,6 +172,7 @@ func (a *App) rp() *rightPanelState {
 		s.dirPages = map[string]int{}
 		s.dirLoading = map[string]bool{}
 		s.dirFailed = map[string]bool{}
+		s.dirError = map[string]string{}
 		s.diffOpen = map[string]bool{}
 		s.tabMenu = map[int]*bool{}
 		s.rowMenu = map[string]*bool{}

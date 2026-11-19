@@ -591,7 +591,10 @@ func (a *App) skillsSelector(c *gui.Context) {
 		})
 		skills, readErr := a.skillEntries()
 		if readErr != "" {
-			typeMicro.style(t, gui.Text(c, readErr)).TextColor(t.TextMuted).SingleLine()
+			// 读失败要看得见：危险色 + 告警角色 + 一句「读取失败」，不再用次要色
+			// 混在正常条目里。
+			typeMicro.style(t, gui.Text(c, "读取技能失败："+readErr)).TextColor(t.Danger).
+				Role(gui.RoleAlert).MaxLines(2)
 			return
 		}
 		if len(skills) == 0 {

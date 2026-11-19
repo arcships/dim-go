@@ -431,8 +431,9 @@ func (a *App) accountSignedIn(c *gui.Context, d accountScreenData) {
 		}
 		a.accountIdentityCard(c, d)
 		if d.AccountError != "" {
+			// 读屏名带上原因原文：只给「账号错误」会把服务端那句吞掉。
 			typeSecondary.style(t, gui.Text(c, d.AccountError)).TextColor(t.Danger).
-				Margin(space3, 0, 0, 0).Label("账号错误")
+				Margin(space3, 0, 0, 0).Label("账号错误：" + d.AccountError)
 		}
 	})
 }
@@ -676,7 +677,7 @@ func (a *App) accountSignedOut(c *gui.Context, d accountScreenData) {
 			}
 			if d.AccountError != "" {
 				typeSecondary.style(t, gui.Text(c, d.AccountError)).TextColor(t.Danger).
-					Label("账号错误")
+					Label("账号错误：" + d.AccountError)
 			}
 		})
 	})
@@ -729,7 +730,7 @@ func (a *App) accountPlanCard(c *gui.Context, d accountScreenData) {
 		a.accountPlanHeader(c)
 		if d.UsageError != "" {
 			typeSecondary.style(t, gui.Text(c, d.UsageError)).TextColor(t.Danger).
-				Padding(space4, accSpace5).Label("用量错误")
+				Padding(space4, accSpace5).Label("用量错误：" + d.UsageError)
 		}
 		if d.UsageLoading {
 			typeSecondary.style(t, gui.Text(c, accCopyLoadingUsage)).TextColor(t.TextMuted).

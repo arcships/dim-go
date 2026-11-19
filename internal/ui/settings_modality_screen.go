@@ -156,6 +156,8 @@ func mdLiveTaskListCard(c *gui.Context, t *gui.Theme, st SettingsSnapshot) gui.E
 				gui.Spacer(c)
 				mdIconButton(c, t, accIconRefresh, mdCopyRefresh, mdCopyRefresh, true)
 			})
+			// 读不到 / 读失败时上面已经有提示，这里不再重复写（也不画成
+			// 「没有任务」——空列表会被当成事实）。
 			if !st.Modality.TaskKnown || st.TasksError != "" {
 				return
 			}

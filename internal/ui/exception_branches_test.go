@@ -759,10 +759,9 @@ func TestIntentFailureBranches(t *testing.T) {
 	for _, tc := range cases {
 		tc := tc
 		t.Run(tc.method, func(t *testing.T) {
+			// 设置屏的包级状态先摆回基线，免得上一条的失败位漏到下一条。
+			resetScreens(t)
 			base := wiredSource()
-			// 关于页读的是包级 aboutScreen 与可选的更新读数；每条用例先把它们
-			// 摆回基线，免得上一条的失败位漏到下一条。
-			aboutScreen = aboutState{phase: abtDisabled}
 			var src Source = base
 			if tc.source != nil {
 				tc.source(base)
@@ -859,5 +858,498 @@ func TestIntentCasesCoverIntents(t *testing.T) {
 				t.Fatalf("%s.%s 没有失败分支用例", iface.name, name)
 			}
 		}
+	}
+}
+
+// TestQuestionDegenerateInputsDoNotPanic 是 question.go 的回归：待答清单为空、
+// 题号 / 槽位对不上、这条提问已经提交过，三种输入都只给原因、不崩。
+//
+// 这一条来自注入测试：RespondQuestion 的失败分支曾在 questionOptions 里按
+// q.selected[q.index] 取值，视图状态的槽位没补齐时数组越界 panic。
+func TestQuestionDegenerateInputsDoNotPanic(t *testing.T) {
+	// 空清单：请求在、题不在。
+	t.Run("空清单", func(t *testing.T) {
+		src := wiredSource()
+		src.question, src.hasQ = QuestionSnapshot{ID: "q1"}, true
+		stub := newFailIntents()
+		app := NewApp(Options{State: StateDefault, Source: src, Intents: stub})
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		tt.Frame()
+		if !tt.HasText(questionCopyNoItems) {
+			t.Fatalf("空清单没有给原因，屏上文字：%v", tt.Texts())
+		}
+		snap, _ := app.liveQuestion()
+		app.submitQuestion(snap)
+		tt.Frame()
+		if app.question.err != questionCopyNoItems {
+			t.Fatalf("空清单提交的原因 = %q，想要 %q", app.question.err, questionCopyNoItems)
+		}
+		if got := stub.count("RespondQuestion"); got != 0 {
+			t.Fatalf("空清单仍发出了 %d 次提交", got)
+		}
+	})
+
+	// 槽位对不上：卡片状态只剩 requestID，三份槽位都是空的（越界的那一次）。
+	t.Run("槽位缺失", func(t *testing.T) {
+		src := wiredSource()
+		src.question = QuestionSnapshot{ID: "q1", Questions: []QuestionItemSnapshot{{
+			ID: "i1", Title: "选一个", Options: []string{"甲", "乙"},
+		}}}
+		src.hasQ = true
+		stub := newFailIntents()
+		app := NewApp(Options{State: StateDefault, Source: src, Intents: stub})
+		app.question = questionCardState{requestID: "q1"}
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		tt.Frame()
+		if !tt.HasText("选一个") {
+			t.Fatalf("槽位缺失时卡片没有画出来：%v", tt.Texts())
+		}
+		snap, _ := app.liveQuestion()
+		app.submitQuestion(snap)
+		tt.Frame()
+		if app.question.err != questionCopyRequired {
+			t.Fatalf("没勾选时的原因 = %q，想要 %q", app.question.err, questionCopyRequired)
+		}
+		if got := stub.count("RespondQuestion"); got != 0 {
+			t.Fatalf("没答完仍发出了 %d 次提交", got)
+		}
+	})
+
+	// 题号越界：索引指到这一批之外。
+	t.Run("题号越界", func(t *testing.T) {
+		src := wiredSource()
+		src.question = QuestionSnapshot{ID: "q1", Questions: []QuestionItemSnapshot{{
+			ID: "i1", Title: "选一个", Options: []string{"甲"},
+		}}}
+		src.hasQ = true
+		app := NewApp(Options{State: StateDefault, Source: src, Intents: newFailIntents()})
+		app.question = questionCardState{requestID: "q1", index: 7}
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		tt.Frame()
+		// 越界题号回到这一批的最后一题，卡片照常画（不 panic、不空白）。
+		if app.question.index != 0 {
+			t.Fatalf("越界题号没有回到范围内：%d", app.question.index)
+		}
+		if !tt.HasText("选一个") {
+			t.Fatalf("越界题号时卡片没有画出来：%v", tt.Texts())
+		}
+		// 直接按越界题号取值：只给空答案，不越界。
+		if got := app.question.answerAt(9, QuestionItemSnapshot{}); got != "" {
+			t.Fatalf("越界题号的答案 = %q，想要空", got)
+		}
+	})
+
+	// 已经提交过的提问：再提交只给原因，不发写入。
+	t.Run("已提交", func(t *testing.T) {
+		src := wiredSource()
+		src.question = QuestionSnapshot{ID: "q1", Questions: []QuestionItemSnapshot{{
+			ID: "i1", Title: "选一个", Options: []string{"甲"},
+		}}}
+		src.hasQ = true
+		stub := newFailIntents()
+		app := NewApp(Options{State: StateDefault, Source: src, Intents: stub})
+		app.questionAnsweredID = "q1"
+		app.question = questionCardState{requestID: "q1"}
+		tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+		tt.Frame()
+		snap, _ := app.liveQuestion()
+		app.submitQuestion(snap)
+		tt.Frame()
+		if app.question.err != questionCopyStale {
+			t.Fatalf("已提交再答的原因 = %q，想要 %q", app.question.err, questionCopyStale)
+		}
+		if got := stub.count("RespondQuestion"); got != 0 {
+			t.Fatalf("已提交的提问仍发出了 %d 次提交", got)
+		}
+	})
+}
+
+// readCase 是一条「读事实的失败分支」用例：适配器给出失败读数，界面必须写出
+// 原因（不是空白区域）；有重读通道的还要给重试入口。
+type readCase struct {
+	name string
+	// inject 往注入源上写这一条的失败读数。
+	inject func(*fakePanelSource)
+	// open 摆好要看的那一屏（设置分节、右栏标签、浮层）。
+	open func(*App)
+	// want 是必须出现在屏上的原因原文（注入时用的是同一句标记）。
+	want string
+	// retry 是可重读入口的读屏名；空表示本版没有重读通道（只写原因）。
+	retry string
+	// update 非空时把 Source 包成带更新读数的实现（关于页两条要用）。
+	update *UpdateSnapshot
+}
+
+// readFail 造一条注入用的原因原文：每种读路径一句，互不串味。
+func readFail(what string) string { return "注入读失败：" + what }
+
+// readFailureCases 是读路径失败分支的清单。
+var readFailureCases = []readCase{
+	{
+		name: "连接断开",
+		inject: func(src *fakePanelSource) {
+			src.conn = Connection{Phase: "disconnected", Reason: readFail("控制连接")}
+		},
+		want:  readFail("控制连接"),
+		retry: "重新连接",
+	},
+	{
+		name: "文件树读失败",
+		inject: func(src *fakePanelSource) {
+			src.trees[""] = FileTreeSnapshot{Phase: PanelReadFailed, Error: readFail("目录")}
+		},
+		open:  func(a *App) { a.rightOpen, a.rightTab = true, tabFiles },
+		want:  readFail("目录"),
+		retry: "重试读取文件夹：",
+	},
+	{
+		name: "文件搜索读失败",
+		inject: func(src *fakePanelSource) {
+			src.search = FileSearchSnapshot{Phase: PanelReadFailed, Error: readFail("搜索")}
+		},
+		open: func(a *App) {
+			a.rightOpen, a.rightTab = true, tabFiles
+			a.rp().filter = "token"
+		},
+		want:  readFail("搜索"),
+		retry: "重试搜索",
+	},
+	{
+		name: "改动读失败",
+		inject: func(src *fakePanelSource) {
+			src.changes = ChangeSet{Phase: PanelReadFailed, Error: readFail("改动")}
+		},
+		open: func(a *App) { a.rightOpen, a.rightTab = true, tabChanges },
+		want: readFail("改动"),
+	},
+	{
+		name: "文件预览读失败",
+		inject: func(src *fakePanelSource) {
+			src.trees[""] = readyTree(FileEntrySnapshot{Name: "main.go"})
+			src.previews = map[string]PreviewSnapshot{
+				"main.go": {Phase: PanelReadFailed, Error: readFail("预览")},
+			}
+		},
+		open: func(a *App) {
+			a.rightOpen, a.rightTab = true, tabFilePreview
+			a.right.previewPath = "main.go"
+		},
+		want:  readFail("预览"),
+		retry: "重试读取文件",
+	},
+	{
+		name: "插件清单读失败",
+		inject: func(src *fakePanelSource) {
+			src.extensions.Plugins = ExtListSnapshot{ReadError: readFail("插件清单")}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPluginSettings },
+		want: readFail("插件清单"),
+	},
+	{
+		name: "技能读失败",
+		inject: func(src *fakePanelSource) {
+			src.extensions.Skills = ExtListSnapshot{ReadError: readFail("技能")}
+		},
+		open: func(a *App) { a.skillsOpen = true },
+		want: readFail("技能"),
+	},
+	{
+		name: "MCP 读失败",
+		inject: func(src *fakePanelSource) {
+			src.extensions.MCP = ExtListSnapshot{ReadError: readFail("MCP")}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secMCP },
+		want: readFail("MCP"),
+	},
+	{
+		name: "Hooks 读失败",
+		inject: func(src *fakePanelSource) {
+			src.extensions.Hooks = ExtListSnapshot{ReadError: readFail("Hooks")}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secHooks },
+		want: readFail("Hooks"),
+	},
+	{
+		name: "运行环境读失败",
+		inject: func(src *fakePanelSource) {
+			src.settings.RuntimesKnown = false
+			src.settings.RuntimesReason = readFail("运行环境")
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secRuntime },
+		want: readFail("运行环境"),
+	},
+	{
+		name: "模态任务读失败",
+		inject: func(src *fakePanelSource) {
+			src.settings.Modality = ModalitySnapshot{Known: true, TaskKnown: true}
+			src.settings.TasksError = readFail("模态任务")
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secModality },
+		want: readFail("模态任务"),
+	},
+	{
+		name: "供应商读失败",
+		inject: func(src *fakePanelSource) {
+			src.settings.ProviderError = readFail("供应商")
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		want: readFail("供应商"),
+	},
+	{
+		name: "存储用量读失败",
+		inject: func(src *fakePanelSource) {
+			src.settings.StorageKnown = false
+			src.settings.StorageError = readFail("存储用量")
+		},
+		open: func(a *App) {
+			a.screen, a.settingsSection = ScreenSettings, secGeneral
+			generalScreen.cleanupOpen = true
+		},
+		want: readFail("存储用量"),
+	},
+	{
+		name: "用量读失败",
+		inject: func(src *fakePanelSource) {
+			src.usage = UsageSnapshot{Available: false, Reason: readFail("用量")}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAccount },
+		want: readFail("用量"),
+	},
+	{
+		name: "登录失败",
+		inject: func(src *fakePanelSource) {
+			src.acct = AccountSnapshot{Initial: "A", Connected: false, Status: "signed_out",
+				LoginPhase: "failed", LoginReason: readFail("登录")}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAccount },
+		want: readFail("登录"),
+	},
+	{
+		name:   "更新源配置错误",
+		update: &UpdateSnapshot{Configured: true, ConfigError: "更新源必须是 http/https 地址"},
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAbout },
+		want:   "更新源必须是 http/https 地址",
+	},
+	{
+		name:   "更新失败",
+		update: &UpdateSnapshot{Configured: true, Phase: "error", Err: readFail("更新")},
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAbout },
+		want:   readFail("更新"),
+		retry:  abtCopyRetry,
+	},
+	{
+		name: "插件市场读失败",
+		inject: func(src *fakePanelSource) {
+			src.market = PluginMarketplaceSnapshot{Configured: true,
+				FeedURL: "https://feed.example.com/plugins.json", Err: readFail("插件市场")}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPluginSettings },
+		want: readFail("插件市场"),
+	},
+	{
+		name: "插件市场源配置错误",
+		inject: func(src *fakePanelSource) {
+			src.market = PluginMarketplaceSnapshot{Configured: true,
+				FeedURL: "https://feed.example.com/plugins.json", ConfigError: readFail("插件市场源")}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPluginSettings },
+		want: readFail("插件市场源"),
+	},
+	{
+		name: "成员审批读不到",
+		inject: func(src *fakePanelSource) {
+			src.approval = ApprovalSnapshot{ID: "a1", Tool: "member_approval_allow",
+				Member: &ApprovalMemberSnapshot{State: ApprovalMemberUnavailable,
+					ApprovalID: "ap-1"}}
+			src.hasAppr = true
+		},
+		want: approvalCopyMemberUnavailable,
+	},
+	{
+		name: "搜索结果扫描上限",
+		inject: func(src *fakePanelSource) {
+			src.search = FileSearchSnapshot{Phase: PanelReadReady, Truncated: true,
+				StopReason: "max-files", Limit: 200,
+				Hits: []FileHitSnapshot{{Path: "main.go", Line: 3, Column: 1, Snippet: "token"}}}
+		},
+		open: func(a *App) {
+			a.rightOpen, a.rightTab = true, tabFiles
+			a.rp().filter = "token"
+		},
+		want: "已扫到文件数上限，结果可能不完整",
+	},
+}
+
+// TestReadFailureBranches 执行读失败清单：每一屏都要把原因写出来，能重读的
+// 给出重试入口（并且真的带上「刷新」请求）。
+func TestReadFailureBranches(t *testing.T) {
+	for _, tc := range readFailureCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			resetScreens(t)
+			src := wiredPanelSource()
+			if tc.inject != nil {
+				tc.inject(src)
+			}
+			var reader Source = src
+			if tc.update != nil {
+				reader = &updateTestSource{fakeSource: src.fakeSource, snapshot: *tc.update}
+				// 面板读数仍要能读：把两份源合成一份。
+				reader = &readUpdateSource{fakePanelSource: src, snapshot: *tc.update}
+			}
+			app := NewApp(Options{State: StateDefault, Source: reader})
+			if tc.open != nil {
+				tc.open(app)
+			}
+			tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+			tt.Frame()
+			if !tt.HasText(tc.want) {
+				t.Fatalf("没有写出读失败的原因 %q\n屏上文字：%v", tc.want, tt.Texts())
+			}
+			if tc.retry == "" {
+				return
+			}
+			if _, ok := tt.Find(tc.retry); !ok {
+				t.Fatalf("读失败后没有重读入口 %q\n屏上文字：%v", tc.retry, tt.Texts())
+			}
+		})
+	}
+}
+
+// resetScreens 把设置屏的包级视图状态摆回基线，并在用例结束后还原：这一族的
+// 状态（关于页、通用页、MCP / Hooks / 供应商）是包级的，用例之间会互相污染。
+func resetScreens(t *testing.T) {
+	t.Helper()
+	savedAbout, savedGeneral := aboutScreen, generalScreen
+	resetSettingsScreenState()
+	aboutScreen = aboutState{phase: abtDisabled}
+	generalScreen = generalState{keepAwake: true, launch: true,
+		proxyMode: 0, proxyURL: "http://127.0.0.1:7890"}
+	t.Cleanup(func() {
+		aboutScreen, generalScreen = savedAbout, savedGeneral
+		resetSettingsScreenState()
+	})
+}
+
+// wiredPanelSource 是「连上事实」的面板注入源：账号、用量、设置与扩展读数取
+// wiredSource 的那一份，文件树与预览留空由用例填。
+func wiredPanelSource() *fakePanelSource {
+	base := wiredSource()
+	base.session.Cwd = "/work"
+	return &fakePanelSource{fakeSource: base, trees: map[string]FileTreeSnapshot{}}
+}
+
+// readUpdateSource 是把面板读数与更新读数合到一份的注入源。
+type readUpdateSource struct {
+	*fakePanelSource
+	snapshot UpdateSnapshot
+}
+
+func (s *readUpdateSource) Update() UpdateSnapshot { return s.snapshot }
+
+// emptyCase 是一条「读事实读到空」的用例：空态要给可读的说明，不是一块空白。
+type emptyCase struct {
+	name  string
+	state func(*fakePanelSource)
+	open  func(*App)
+	want  string
+}
+
+// emptyStateCases 是读路径的空态清单（空列表、空目录、空搜索结果、空清单）。
+var emptyStateCases = []emptyCase{
+	{
+		name: "没有会话",
+		state: func(src *fakePanelSource) {
+			src.names, src.hasSess = nil, false
+			src.session = SessionSnapshot{}
+		},
+		want: "当前会话还没有消息",
+	},
+	{
+		name:  "文件树空目录",
+		state: func(src *fakePanelSource) { src.trees[""] = readyTree() },
+		open:  func(a *App) { a.rightOpen, a.rightTab = true, tabFiles },
+		want:  "无匹配文件",
+	},
+	{
+		name: "搜索无命中",
+		state: func(src *fakePanelSource) {
+			src.search = FileSearchSnapshot{Phase: PanelReadReady, Limit: 200}
+		},
+		open: func(a *App) {
+			a.rightOpen, a.rightTab = true, tabFiles
+			a.rp().filter = "token"
+		},
+		want: "无匹配文件",
+	},
+	{
+		name: "改动为空",
+		state: func(src *fakePanelSource) {
+			src.changes = ChangeSet{Phase: PanelReadReady, Repo: true, Branch: "main"}
+		},
+		open: func(a *App) { a.rightOpen, a.rightTab = true, tabChanges },
+		want: "没有未提交的改动",
+	},
+	{
+		name: "后台任务为空",
+		open: func(a *App) { a.rightOpen, a.rightTab = true, tabTasks },
+		want: "暂无运行进程",
+	},
+	{
+		name: "插件清单为空",
+		state: func(src *fakePanelSource) {
+			src.extensions.Plugins = ExtListSnapshot{}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secPluginSettings },
+		want: pluginManageEmpty,
+	},
+	{
+		name: "技能为空",
+		state: func(src *fakePanelSource) {
+			src.extensions.Skills = ExtListSnapshot{}
+		},
+		open: func(a *App) { a.skillsOpen = true },
+		want: "还没有技能",
+	},
+	{
+		name: "MCP 服务器为空",
+		state: func(src *fakePanelSource) {
+			src.extensions.MCP = ExtListSnapshot{}
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secMCP },
+		want: mcpCopyNoServers,
+	},
+	{
+		name: "模态任务为空",
+		state: func(src *fakePanelSource) {
+			src.settings.Modality = ModalitySnapshot{Known: true, TaskKnown: true,
+				TaskSupported: true}
+			src.settings.ModalityTasks = nil
+		},
+		open: func(a *App) { a.screen, a.settingsSection = ScreenSettings, secModality },
+		want: mdCopyNoTasks,
+	},
+}
+
+// TestReadEmptyStatesHaveCopy 执行空态清单：读到空也要有一句说明，不留空白区域。
+func TestReadEmptyStatesHaveCopy(t *testing.T) {
+	for _, tc := range emptyStateCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			resetScreens(t)
+			src := wiredPanelSource()
+			if tc.state != nil {
+				tc.state(src)
+			}
+			app := NewApp(Options{State: StateDefault, Source: src})
+			if tc.open != nil {
+				tc.open(app)
+			}
+			tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+			tt.Frame()
+			if !tt.HasText(tc.want) {
+				t.Fatalf("空态没有写出 %q\n屏上文字：%v", tc.want, tt.Texts())
+			}
+		})
 	}
 }

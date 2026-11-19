@@ -29,14 +29,18 @@ const (
 	questionCopyCustomOptHint = "每行输入一个自定义值"
 	questionCopyFreeform      = "每行输入一个值"
 	questionCopyRequired      = "请先回答所有必填问题"
-	questionCopyDecline       = "拒绝"
-	questionCopyPrevious      = "上一题"
-	questionCopyNext          = "下一题"
-	questionCopySubmit        = "提交"
-	questionCopyCollapse      = "收起"
-	questionCopyExpand        = "展开"
-	questionCopyTimeout       = "已到作答截止时间"
-	questionCardLabel         = "提问卡"
+	// questionCopyNoItems 是空清单时的原因：提问请求在，却没有可作答的内容。
+	questionCopyNoItems = "这条提问没有可作答的内容"
+	// questionCopyStale 是已经答过 / 已经结算的提问再提交时的原因。
+	questionCopyStale    = "这条提问已经提交过，不能再答"
+	questionCopyDecline  = "拒绝"
+	questionCopyPrevious = "上一题"
+	questionCopyNext     = "下一题"
+	questionCopySubmit   = "提交"
+	questionCopyCollapse = "收起"
+	questionCopyExpand   = "展开"
+	questionCopyTimeout  = "已到作答截止时间"
+	questionCardLabel    = "提问卡"
 
 	// questionFilterThreshold 是出现筛选框的选项数下限（G-D1-10：>8 才出现，
 	// 选项降到 8 个时它随之消失）。
@@ -131,15 +135,51 @@ func (a *App) syncQuestionCard(snap QuestionSnapshot) []QuestionItemSnapshot {
 	return items
 }
 
+// questionSlot 保证第 index 题的三份槽位（勾选 / 自定义答案 / 自定义选项）都在，
+// 并报告 index 是否落在 [0, count) 里。槽位缺就补齐：下标越界只让调用方给原因，
+// 不让索引落到切片外。
+func (q *questionCardState) questionSlot(index, count int) bool {
+	if index < 0 || index >= count {
+		return false
+	}
+	for len(q.selected) <= index {
+		q.selected = append(q.selected, map[string]bool{})
+	}
+	for len(q.custom) <= index {
+		q.custom = append(q.custom, "")
+	}
+	for len(q.extra) <= index {
+		q.extra = append(q.extra, "")
+	}
+	return true
+}
+
 // questionCard 画提问卡：头（标题 / 进度 / 倒计时 / 收起）+ 体 + 脚。
 func (a *App) questionCard(c *gui.Context, snap QuestionSnapshot) {
 	t := c.Theme()
 	items := a.syncQuestionCard(snap)
-	if len(items) == 0 {
-		return
-	}
 	q := &a.question
 	q.buttonFocused = false
+	if len(items) == 0 {
+		// 有请求没有题：给一行可读原因，不留一张空卡（也不 panic）。
+		gui.Column(c).WidthPercent(100).MaxWidth(questionCardWidth).Shrink(0).
+			Padding(space4).Gap(space2).Background(t.Surface).
+			Border(strokeHairline, t.Border).Radius(radiusWindowCard).
+			Role(gui.RoleRegion).Label(questionCardLabel).Children(func() {
+			typeSecondary.style(t, gui.Text(c, questionCopyNoItems)).TextColor(t.TextMuted)
+		})
+		return
+	}
+	if !q.questionSlot(q.index, len(items)) {
+		// 题号不在这一批里：给原因，不拿别的题顶替。
+		gui.Column(c).WidthPercent(100).MaxWidth(questionCardWidth).Shrink(0).
+			Padding(space4).Gap(space2).Background(t.Surface).
+			Border(strokeHairline, t.Border).Radius(radiusWindowCard).
+			Role(gui.RoleRegion).Label(questionCardLabel).Children(func() {
+			typeSecondary.style(t, gui.Text(c, questionCopyNoItems)).TextColor(t.TextMuted)
+		})
+		return
+	}
 	gui.Column(c).WidthPercent(100).MaxWidth(questionCardWidth).Shrink(0).
 		Padding(space4).Gap(space2).Background(t.Surface).
 		Border(strokeHairline, t.Border).Radius(radiusWindowCard).
@@ -238,6 +278,8 @@ func questionClock(left time.Duration) string {
 func (a *App) questionBody(c *gui.Context, item QuestionItemSnapshot) {
 	t := c.Theme()
 	q := &a.question
+	// 体部只画当前这一题：进来先把这一题的槽位补齐，后面按 index 取值不会越界。
+	q.questionSlot(q.index, q.index+1)
 	gui.Scroll(c).Shrink(0).Height(questionBodyHeight).Children(func() {
 		gui.Column(c).WidthPercent(100).Gap(space2).Children(func() {
 			if text := questionText(item); text != "" {
@@ -275,6 +317,7 @@ func (a *App) questionBody(c *gui.Context, item QuestionItemSnapshot) {
 func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 	t := c.Theme()
 	q := &a.question
+	q.questionSlot(q.index, q.index+1)
 	options := q.filteredOptions(item)
 	if len(options) == 0 {
 		if strings.TrimSpace(q.filter) != "" {
@@ -404,6 +447,9 @@ func (q *questionCardState) filteredOptions(item QuestionItemSnapshot) []string 
 
 // singleChoice 取当前题的单选值：多选或未选时为空。
 func (q *questionCardState) singleChoice() string {
+	if q.index < 0 || q.index >= len(q.selected) {
+		return ""
+	}
 	for option := range q.selected[q.index] {
 		return option
 	}
@@ -412,6 +458,9 @@ func (q *questionCardState) singleChoice() string {
 
 // setSingleChoice 记下单选值：单选互斥，只留一个。
 func (q *questionCardState) setSingleChoice(choice string) {
+	if q.index < 0 || q.index >= len(q.selected) {
+		return
+	}
 	if q.selected[q.index] == nil {
 		q.selected[q.index] = map[string]bool{}
 	}
@@ -427,6 +476,10 @@ func (q *questionCardState) setSingleChoice(choice string) {
 // answerAt 取某题的答案原文：自定义答案优先（接管选项），其次勾选项，多选时
 // 勾选在前、自定义选项在后（G-D1-16）。
 func (q *questionCardState) answerAt(index int, item QuestionItemSnapshot) string {
+	// 槽位缺（例如这一批刚换过、视图状态还没补齐）按"没答"处理，不越界取值。
+	if index < 0 || index >= len(q.custom) {
+		return ""
+	}
 	if custom := strings.TrimSpace(q.custom[index]); custom != "" {
 		return custom
 	}
@@ -490,7 +543,17 @@ func questionBatchAnswer(items []QuestionItemSnapshot, answers []string) string 
 func (a *App) submitQuestion(snap QuestionSnapshot) {
 	items := questionItems(snap)
 	q := &a.question
-	if q.busy || len(items) == 0 {
+	if q.busy {
+		return
+	}
+	if len(items) == 0 {
+		// 空清单：给可读原因，不发写入（原来这里静默返回，卡片仍是一块空白）。
+		q.err = questionCopyNoItems
+		return
+	}
+	if a.questionAnswered(snap.ID) {
+		// 已经答过 / 已经结算的提问：再提交只会把旧答案再发一遍。
+		q.err = questionCopyStale
 		return
 	}
 	answers := make([]string, len(items))
