@@ -534,21 +534,28 @@ func TestHeaderRenameIsAvailable(t *testing.T) {
 		t.Fatalf("点不到重命名：%v", err)
 	}
 	tt.Frame()
-	if app.renaming != 0 {
-		t.Fatalf("重命名没有进左栏行内编辑（renaming=%d）", app.renaming)
+	if !app.renameDialog.open || app.renameDialog.kind != renameSession {
+		t.Fatalf("重命名没有打开弹窗（open=%v kind=%v）", app.renameDialog.open, app.renameDialog.kind)
 	}
-	// 保存这一行就是一次 RenameSession：标题栏接的是左栏那条写入路径，不是
-	// 另开一个只改标题、不发请求的输入框。
-	if err := tt.Click("保存名称"); err != nil {
-		t.Fatalf("点不到保存名称：%v", err)
+	if !tt.HasText("重命名会话") {
+		t.Fatalf("弹窗没有标题：%v", tt.Texts())
+	}
+	app.renameDialog.draft = "新的名字"
+	tt.Frame()
+	if err := tt.Click("确认"); err != nil {
+		t.Fatalf("点不到确认：%v", err)
 	}
 	select {
 	case got := <-intents.renamed:
-		if got[0] != "s1" || got[1] == "" {
-			t.Fatalf("RenameSession 收到 %v，想要 s1 + 非空标题", got)
+		if got[0] != "s1" || got[1] != "新的名字" {
+			t.Fatalf("RenameSession 收到 %v，想要 s1 + 新的名字", got)
 		}
 	case <-time.After(2 * time.Second):
-		t.Fatal("保存重命名没有发出 session.rename")
+		t.Fatal("确认重命名没有发出 session.rename")
+	}
+	tt.Frame()
+	if app.renameDialog.open {
+		t.Fatal("重命名成功后弹窗没有关闭")
 	}
 }
 

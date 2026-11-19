@@ -138,8 +138,9 @@ type Intents interface {
 	SetExtensionEnabled(ctx context.Context, kind, id string, enabled bool) error
 	UninstallExtension(ctx context.Context, kind, id string) error
 	// InstallPlugin 从 sourceKind（local / git）与 sourceRef 安装一个插件；
-	// id 留空表示按 manifest 自动生成，enable 是「安装后启用」。
-	InstallPlugin(ctx context.Context, sourceKind, sourceRef, id string, enable bool) error
+	// gitRef 只在 Git 来源下有值；id 留空表示按 manifest 自动生成，enable 是
+	// 「安装后启用」。
+	InstallPlugin(ctx context.Context, sourceKind, sourceRef, gitRef, id string, enable bool) error
 	// UpdatePlugin 更新一个已安装插件；具体版本由服务端决定。
 	UpdatePlugin(ctx context.Context, pluginID string) error
 	// TestMCP 探测一个工具服务器；返回是否可达与原因。
@@ -871,9 +872,10 @@ type ExtItemSnapshot struct {
 	// 服务端没有给出时不冒充「已是最新」。
 	UpdateAvailable bool
 	LatestVersion   string
-	// Source 是插件的来源（local / git / bundled）；Locked 表示服务端锁定，
-	// 用户不能启停或移除。
+	// Source 是插件的来源（local / git / bundled）；Use 是服务端声明的使用方式
+	// （例如 builtin）；Locked 表示服务端锁定，用户不能启停或移除。
 	Source   string
+	Use      string
 	Locked   bool
 	Optional bool
 	// Event/Command/Source 是钩子的原始事实，用于单项启停时重建文档；

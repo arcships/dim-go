@@ -180,24 +180,21 @@ func TestForkLatestDisabledWhileRunning(t *testing.T) {
 	snap.LastTurnEnded = false
 	src.session = snap
 	src.hasSess = true
-	app := NewApp(Options{State: StateDefault, Source: src, Intents: &forkTestIntents{}})
+	intents := &forkTestIntents{}
+	app := NewApp(Options{State: StateDefault, Source: src, Intents: intents})
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
 	if err := tt.Click("更多操作"); err != nil {
 		t.Fatalf("点不到 ⋯ 菜单：%v", err)
 	}
 	tt.Frame()
 	want := "在新分支继续（" + forkNoteTurnRunning + "）"
-	found := false
-	for _, item := range tt.Menu() {
-		if item == want {
-			found = true
-		}
+	if !tt.HasText(want) {
+		t.Fatalf("菜单里没有 %q：%v", want, tt.Texts())
 	}
-	if !found {
-		t.Fatalf("菜单里没有 %q：%v", want, tt.Menu())
-	}
-	if err := tt.ChooseMenuItem(want); err == nil {
-		t.Fatalf("置灰的 %q 仍被选中", want)
+	_ = tt.Click(want)
+	tt.Frame()
+	if len(intents.cuts) != 0 {
+		t.Fatalf("运行中仍发出了 CreateBranch：%+v", intents.cuts)
 	}
 	_ = app
 }

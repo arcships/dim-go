@@ -244,6 +244,7 @@ func TestConfirmDeleteWorkspaceDialog(t *testing.T) {
 func TestConfirmEditRunningDialog(t *testing.T) {
 	src := wiredSource()
 	src.session.Running = true
+	src.session.Rows = []RowSnapshot{{Kind: "user", Text: "原文"}}
 	stub := newConfirmIntents()
 	app := NewApp(Options{State: StateDefault, Source: src, Intents: stub})
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
@@ -268,10 +269,9 @@ func TestConfirmEditRunningDialog(t *testing.T) {
 		t.Fatalf("默认焦点不在「取消」：%+v（ok=%v）", info, ok)
 	}
 
-	// 取消：弹窗关闭，编辑内容与编辑器都还在（不丢用户输入）。
-	if err := tt.Click(confirmCopyCancel); err != nil {
-		t.Fatalf("点不到取消：%v", err)
-	}
+	// 取消（Esc）：弹窗关闭，编辑内容与编辑器都还在（不丢用户输入）。框后面的
+	// 行内编辑器也认 Esc，模态框开着时 Esc 只关框，先关编辑器是错的。
+	tt.Key(0, gui.KeyEscape)
 	tt.Frame()
 	if app.confirm.kind != confirmKindNone {
 		t.Fatal("取消后弹窗没有关闭")

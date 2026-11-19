@@ -732,8 +732,8 @@ func (a *App) commandPaletteActions() []commandItem {
 		{
 			id: "action:export", title: "导出当前会话", detail: "打开导出面板",
 			icon:     iconDocument,
-			disabled: a.intents == nil || !hasSession,
-			reason:   commandPaletteUnavailable(a.intents == nil, noIntents, "还没有打开会话"),
+			disabled: !hasSession,
+			reason:   commandPaletteUnavailable(false, "", "还没有打开会话"),
 			run: func() {
 				a.openExportPanel(session.ID, session.Title)
 			},

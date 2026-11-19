@@ -533,7 +533,7 @@ func TestIntentApproval(t *testing.T) {
 func TestIntentQuestion(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
 	questionEvent := e2eRawEvent("q1", 10, "step", "tool-use",
-		`{"turn_id":"t1","request_id":"r1","call":{"id":"c1","name":"ask_user","input":{"questions":[{"id":"q1","question":"选哪个？","options":["A","B"]}]}}}`)
+		`{"turn_id":"t1","request_id":"r1","call":{"id":"c1","name":"ask_user","input":{"questions":[{"id":"q1","question":"选哪个？","options":["选项一","选项二"]}]}}}`)
 	if err := h.server.PushEvent(e2eSession, questionEvent); err != nil {
 		t.Fatalf("推送提问：%v", err)
 	}
@@ -541,9 +541,9 @@ func TestIntentQuestion(t *testing.T) {
 		_, ok := h.wire.Question()
 		return ok
 	})
-	h.waitFor("提交回答", 2*time.Second)
-	h.typeInto("回答", "A")
-	h.click("提交回答")
+	h.waitFor("提交", 2*time.Second)
+	h.click("选项一")
+	h.click("提交")
 	params := h.waitRequest("question.respond")
 	t.Logf("点了「回答」→ 服务端收到 question.respond（%d 次）",
 		len(h.server.RequestsFor("question.respond")))
@@ -552,11 +552,11 @@ func TestIntentQuestion(t *testing.T) {
 	}
 }
 
-// TestIntentQuestionSkip 点提问卡的「跳过」→ question.respond（decision=cancel）。
+// TestIntentQuestionSkip 点提问卡的「拒绝」→ question.respond（decision=cancel）。
 func TestIntentQuestionSkip(t *testing.T) {
 	h := newIntentHarness(t, baseScript("/work", false))
 	questionEvent := e2eRawEvent("q1", 10, "step", "tool-use",
-		`{"turn_id":"t1","request_id":"r1","call":{"id":"c1","name":"ask_user","input":{"questions":[{"id":"q1","question":"选哪个？","options":["A","B"]}]}}}`)
+		`{"turn_id":"t1","request_id":"r1","call":{"id":"c1","name":"ask_user","input":{"questions":[{"id":"q1","question":"选哪个？","options":["选项一","选项二"]}]}}}`)
 	if err := h.server.PushEvent(e2eSession, questionEvent); err != nil {
 		t.Fatalf("推送提问：%v", err)
 	}
@@ -564,8 +564,8 @@ func TestIntentQuestionSkip(t *testing.T) {
 		_, ok := h.wire.Question()
 		return ok
 	})
-	h.waitFor("跳过", 2*time.Second)
-	h.click("跳过")
+	h.waitFor("拒绝", 2*time.Second)
+	h.click("拒绝")
 	params := h.waitRequest("question.respond")
 	t.Logf("点了「跳过」→ 服务端收到 question.respond（%d 次），decision=%v",
 		len(h.server.RequestsFor("question.respond")), params["decision"])
@@ -640,7 +640,10 @@ func TestIntentArchive(t *testing.T) {
 		len(h.wire.SessionNames()))
 }
 
-// TestIntentExport 会话菜单 → 导出：本地写出一份 Markdown。
+// TestIntentExport 会话菜单 → 导出：打开导出面板，剪贴板导出写出屏上这条对话。
+//
+// 导出入口不再直接落盘：内容模型是「格式 + 范围 + 预览」，文件通路要宿主保存面板
+// （界面测试里没有，退回手输路径）。这里验入口到面板、面板到剪贴板的整条链。
 func TestIntentExport(t *testing.T) {
 	dir := t.TempDir()
 	h := newIntentHarness(t, baseScript(dir, false))
@@ -649,16 +652,19 @@ func TestIntentExport(t *testing.T) {
 	if err := h.tester.ChooseMenuItem("导出"); err != nil {
 		t.Fatalf("选择导出：%v", err)
 	}
-	var file string
-	waitFor(t, "导出文件出现", func() bool {
-		matches, _ := filepath.Glob(filepath.Join(dir, "dimagent-export-*.md"))
-		if len(matches) == 0 {
-			return false
-		}
-		file = matches[0]
-		return true
-	})
-	t.Logf("点了「导出」→ 本地写出 %s", filepath.Base(file))
+	h.waitFor("导出对话", 2*time.Second)
+	if !h.tester.HasText("帮我看下构建") {
+		t.Fatalf("导出预览没有会话内容：%v", h.tester.Texts())
+	}
+	h.click("导出到剪贴板")
+	h.frame()
+	if got := h.tester.Clipboard(); !strings.Contains(got, "帮我看下构建") {
+		t.Fatalf("剪贴板导出没有会话内容：%q", got)
+	}
+	if matches, _ := filepath.Glob(filepath.Join(dir, "dimagent-export-*")); len(matches) > 0 {
+		t.Fatalf("点导出不该直接落盘：%v", matches)
+	}
+	t.Logf("点了「导出」→ 面板打开，剪贴板导出 %d 个字符", len(h.tester.Clipboard()))
 }
 
 // TestIntentDelete 会话菜单 → 删除 → 确认 → session.delete。
@@ -669,8 +675,8 @@ func TestIntentDelete(t *testing.T) {
 	if err := h.tester.ChooseMenuItem("删除"); err != nil {
 		t.Fatalf("选择删除：%v", err)
 	}
-	h.waitFor("确认删除", 2*time.Second)
-	h.click("确认删除")
+	h.waitFor("删除会话", 2*time.Second)
+	h.click("删除")
 	params := h.waitRequest("session.delete")
 	t.Logf("点了「删除 · 确认」→ 服务端收到 session.delete（%d 次），sessionId=%v",
 		len(h.server.RequestsFor("session.delete")), params["sessionId"])

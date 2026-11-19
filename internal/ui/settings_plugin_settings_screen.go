@@ -199,6 +199,7 @@ func renderPluginSettings(c *gui.Context, a *App) {
 		gui.Column(c).Grow(1).Children(func() {
 			gui.Scroll(c).Grow(1).Children(func() {
 				gui.Column(c).Gap(plgCardGap).Children(func() {
+					a.pluginManageView(c)
 					plgUnavailableCard(c, t)
 				})
 			})

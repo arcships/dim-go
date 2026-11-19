@@ -56,6 +56,8 @@ type PluginInstallPayload struct {
 	Source InstallSource `json:"source"`
 	// ID 是用户指定的插件标识；空表示按 manifest 自动生成。
 	ID string `json:"id,omitempty"`
+	// GitRef 是 Git 来源的分支 / 标签；空表示服务端默认。
+	GitRef string `json:"gitRef,omitempty"`
 	// Enable 是「安装后启用」；nil 表示按启用处理（旧调用方不带这一项）。
 	Enable *bool `json:"enable,omitempty"`
 }
@@ -64,6 +66,8 @@ type PluginInstallPayload struct {
 type PluginInstallOptions struct {
 	// ID 留空表示由服务端按 manifest 生成。
 	ID string
+	// GitRef 是 Git 来源的分支 / 标签；空表示服务端默认。
+	GitRef string
 	// Enable 是「安装后启用」。
 	Enable bool
 }
@@ -110,7 +114,8 @@ func (s *Service) InstallPluginFrom(ctx context.Context, source InstallSource, o
 	}
 	enable := options.Enable
 	return s.write(ctx, OpPluginInstall, PluginInstallPayload{
-		Source: source, ID: strings.TrimSpace(options.ID), Enable: &enable,
+		Source: source, ID: strings.TrimSpace(options.ID),
+		GitRef: strings.TrimSpace(options.GitRef), Enable: &enable,
 	}, false)
 }
 

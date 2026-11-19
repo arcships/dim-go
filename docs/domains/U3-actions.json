@@ -163,17 +163,15 @@
     },
     {
       "id": "AC-24",
-      "action": "确认删除",
+      "action": "删除（确认框）",
       "consequence": "不可逆：会话与历史从列表消失",
       "scope": "一条会话",
-      "form": "icon+text",
-      "confirm": true,
-      "basis": "U1 A6；U3 T18（行内两步）",
+      "form": "text",
+      "confirm": false,
+      "basis": "U1 A6；U3 T18；requirements-global §5.2（标题 + 说明 + 取消/删除两枚按钮；两步确认由菜单→弹窗承担）",
       "when": "session-delete",
-      "probe": "确认删除",
-      "text": "删除",
-      "confirm_probe": "确认删除",
-      "confirm_when": "session-delete"
+      "probe": "删除",
+      "text": "删除"
     },
     {
       "id": "AC-30",

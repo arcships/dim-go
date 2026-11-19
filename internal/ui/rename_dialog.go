@@ -255,8 +255,6 @@ func (a *App) renameDialogView(c *gui.Context) {
 					Label(renameCopyConfirm)
 				if blocked != "" {
 					confirm = confirm.Disabled(true).Opacity(0.5).Tooltip(blocked)
-				} else {
-					confirm = confirm.AutoFocus()
 				}
 				if confirm.Clicked() {
 					a.confirmRenameDialog()

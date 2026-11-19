@@ -259,3 +259,33 @@ func TestApplyAskUserRejectsDuplicateCall(t *testing.T) {
 		t.Fatalf("重复调用不应累加: %+v", got)
 	}
 }
+
+// TestQuestionParsesTitleDescriptionAndCustom 核对：ask_user 输入里的字段标题、
+// 说明与「允许自定义」按事实读入，缺省时留空（由界面决定回退文案）。
+func TestQuestionParsesTitleDescriptionAndCustom(t *testing.T) {
+	arbiter, _ := newTestArbiter(t, testSession)
+	item := QuestionItem{
+		RequestID: "q1",
+		CallID:    "c1",
+		EventID:   "e-c1",
+		Sequence:  1,
+		ToolName:  "ask_user",
+		Input: json.RawMessage(`{"questions":[
+			{"id":"env","title":"选择部署目标","description":"只影响本次部署",
+			 "question":"部署到哪？","options":["暂存","生产"],"allowCustom":true},
+			{"id":"note","question":"补充说明"}
+		]}`),
+	}
+	seedQuestionList(t, arbiter, 1, item)
+	current, ok := arbiter.Current()
+	if !ok || len(current.Questions) != 2 {
+		t.Fatalf("问题数不对: %+v ok=%v", current, ok)
+	}
+	first := current.Questions[0]
+	if first.Title != "选择部署目标" || first.Description != "只影响本次部署" || !first.AllowCustom {
+		t.Fatalf("字段事实没有读入: %+v", first)
+	}
+	if second := current.Questions[1]; second.Title != "" || second.Description != "" || second.AllowCustom {
+		t.Fatalf("缺省字段应留空: %+v", second)
+	}
+}

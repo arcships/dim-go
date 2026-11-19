@@ -384,6 +384,13 @@ func (a *App) runConfirm() {
 func (a *App) runConfirmEditRunning() {
 	text := strings.TrimSpace(a.confirm.editText)
 	row := a.confirm.editRow
+	// 弹窗期间这一轮可能已经自己结束：不复查就发停止，会把已经结束的轮当成失败
+	// （G-E1-006）。没在跑就直接落定编辑。
+	if session, ok := a.liveSession(); ok && !session.Running {
+		a.confirm = confirmState{}
+		a.saveInlineEditText(row, text)
+		return
+	}
 	if a.intents == nil {
 		a.saveInlineEditText(row, text)
 		a.confirm = confirmState{}

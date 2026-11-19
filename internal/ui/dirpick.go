@@ -34,6 +34,8 @@ const (
 	dirPickWorkspace dirPickTarget = iota
 	// dirPickHooksProject 是设置 › Hooks 的项目目录。
 	dirPickHooksProject
+	// dirPickPluginFolder 是添加插件弹窗的本地文件夹。
+	dirPickPluginFolder
 )
 
 // dirPickState 是一处入口的界面状态（可丢，不是事实）。
@@ -77,8 +79,11 @@ const (
 
 // pickState 取一处入口的界面状态。
 func (a *App) pickState(target dirPickTarget) *dirPickState {
-	if target == dirPickHooksProject {
+	switch target {
+	case dirPickHooksProject:
 		return &a.hooksPick
+	case dirPickPluginFolder:
+		return &a.pluginPick
 	}
 	return &a.addWorkspacePick
 }
@@ -165,9 +170,13 @@ func (a *App) acceptDir(target dirPickTarget, raw string, st *dirPickState) {
 		return
 	}
 	st.open, st.manual, st.failure = false, false, ""
-	if target == dirPickHooksProject {
+	switch target {
+	case dirPickHooksProject:
 		a.hooksProjectPath = path
-	} else {
+	case dirPickPluginFolder:
+		a.acceptPluginFolder(path)
+		return
+	default:
 		a.addWorkspacePath(path)
 	}
 	a.persistPreferences()
@@ -215,8 +224,11 @@ func (a *App) dirPickDialog(c *gui.Context, target dirPickTarget) {
 	}
 	t := c.Theme()
 	title, field := dirPickCopyWorkspaceTitle, dirPickCopyWorkspaceField
-	if target == dirPickHooksProject {
+	switch target {
+	case dirPickHooksProject:
 		title, field = dirPickCopyHooksTitle, dirPickCopyHooksField
+	case dirPickPluginFolder:
+		title, field = pluginManageAdd, pluginSourceLabel
 	}
 	open := true
 	m := gui.Modal(c, &open, func() {

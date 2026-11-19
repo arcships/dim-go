@@ -799,6 +799,7 @@ func (w *App) Extensions() ui.ExtensionsSnapshot {
 			Locked:          item.Locked,
 			Optional:        item.Optional,
 			Source:          string(item.Source),
+			Use:             item.Use,
 			Description:     item.Description,
 		})
 	}
@@ -1973,13 +1974,14 @@ func (w *App) SetExtensionEnabled(ctx context.Context, kind, id string, enabled 
 }
 
 // InstallPlugin 从本地目录或 Git 安装一个插件（plugin.install），成功后重读清单。
-func (w *App) InstallPlugin(ctx context.Context, sourceKind, sourceRef, id string, enable bool) error {
+func (w *App) InstallPlugin(ctx context.Context, sourceKind, sourceRef, gitRef, id string, enable bool) error {
 	service := w.A.Extensions()
 	if service == nil {
 		return fmt.Errorf("扩展领域未就绪")
 	}
 	source := extensions.InstallSource{Kind: extensions.Source(sourceKind), Ref: sourceRef}
-	if _, err := service.InstallPluginFrom(ctx, source, extensions.PluginInstallOptions{ID: id, Enable: enable}); err != nil {
+	options := extensions.PluginInstallOptions{ID: id, GitRef: gitRef, Enable: enable}
+	if _, err := service.InstallPluginFrom(ctx, source, options); err != nil {
 		return err
 	}
 	_, _ = service.ListPlugins(ctx)

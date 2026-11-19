@@ -535,6 +535,7 @@ func (s *appSender) sendExtensionWrite(
 		var payload struct {
 			Source extensions.InstallSource `json:"source"`
 			ID     string                   `json:"id"`
+			GitRef string                   `json:"gitRef"`
 			Enable *bool                    `json:"enable"`
 		}
 		if err := json.Unmarshal(managed.Payload, &payload); err != nil {
@@ -544,8 +545,12 @@ func (s *appSender) sendExtensionWrite(
 		if payload.Enable != nil {
 			enable = *payload.Enable
 		}
+		source := pluginSourceWire(payload.Source)
+		if ref := strings.TrimSpace(payload.GitRef); ref != "" {
+			source.Ref = ref
+		}
 		params := map[string]any{
-			"source": pluginSourceWire(payload.Source),
+			"source": source,
 			"enable": enable,
 		}
 		if id := strings.TrimSpace(payload.ID); id != "" {

@@ -2,8 +2,10 @@ package ui
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -239,12 +241,31 @@ func TestExportToClipboardReceipt(t *testing.T) {
 	if !strings.HasPrefix(receipt, "已复制到剪贴板 · ") {
 		t.Fatalf("回执不是字符数：%q", receipt)
 	}
-	wantReceipt := "已复制到剪贴板 · " + itoa(utf8.RuneCountInString(want)) + " 个字符"
+	wantReceipt := "已复制到剪贴板 · " + strconv.Itoa(utf8.RuneCountInString(want)) + " 个字符"
 	if receipt != wantReceipt {
 		t.Fatalf("回执 = %q，想要 %q", receipt, wantReceipt)
 	}
 	if !tt.HasText(receipt) {
 		t.Fatalf("回执没有上屏：%v", tt.Texts())
+	}
+}
+
+// TestExportClipboardFailure：剪贴板写失败给原因，不给「已复制」回执。
+func TestExportClipboardFailure(t *testing.T) {
+	app, tt := exportTestApp(t, exportTestSession())
+	tt.FailClipboard(errors.New("剪贴板被占用"))
+	if err := tt.Click("导出到剪贴板"); err != nil {
+		t.Fatalf("点不到导出到剪贴板：%v", err)
+	}
+	tt.Frame()
+	if app.export.receipt != "" {
+		t.Fatalf("写失败却有成功回执：%q", app.export.receipt)
+	}
+	if !strings.Contains(app.export.failure, "复制失败：剪贴板被占用") {
+		t.Fatalf("失败原因不对：%q", app.export.failure)
+	}
+	if info, ok := tt.Access(app.export.failure); !ok || info.Role != gui.RoleAlert {
+		t.Fatalf("失败原因不是 alert：%+v（找到 %v）", info, ok)
 	}
 }
 
@@ -280,7 +301,7 @@ func TestExportToFileWithSavePanel(t *testing.T) {
 	if string(data) != want {
 		t.Fatalf("文件内容与预览不一致：\n--- 文件 ---\n%s\n--- 想要 ---\n%s", data, want)
 	}
-	wantReceipt := "已导出到 " + target + " · " + itoa(len(data)) + " 字节"
+	wantReceipt := "已导出到 " + target + " · " + strconv.Itoa(len(data)) + " 字节"
 	if app.headerNote != wantReceipt {
 		t.Fatalf("回执 = %q，想要 %q", app.headerNote, wantReceipt)
 	}
@@ -324,26 +345,12 @@ func TestExportToFileManualPath(t *testing.T) {
 
 	app.export.path = target
 	app.export.failure = ""
-	if r, ok := tt.Find("写入文件"); ok {
-		t.Logf("写入文件 rect=%+v", r)
-	} else {
-		t.Logf("找不到写入文件：%v", tt.Texts())
-	}
+	// 指针从按钮上移开：第一次点击后悬停的提示层盖在按钮中心；真实用户在读
+	// 失败原因时也会移动指针（这里只清命中，不改任何事实）。
+	tt.Move(10, 10)
+	tt.Frame()
 	if err := tt.Click("写入文件"); err != nil {
 		t.Fatalf("点不到写入文件：%v", err)
-	}
-	t.Logf("点击后 path=%q busy=%v failure=%q open=%v", app.export.path, app.export.busy, app.export.failure, app.export.open)
-	for i := 0; i < 60; i++ {
-		tt.Frame()
-		if !app.export.open {
-			break
-		}
-		time.Sleep(5 * time.Millisecond)
-	}
-	if _, err := os.Stat(target); err == nil {
-		t.Logf("文件已写出，但面板仍开：busy=%v failure=%q receipt=%q", app.export.busy, app.export.failure, app.export.receipt)
-	} else {
-		t.Logf("文件没写出：err=%v busy=%v failure=%q", err, app.export.busy, app.export.failure)
 	}
 	waitExport(t, tt, "手输路径写出", func() bool {
 		if app.export.open {
@@ -352,7 +359,6 @@ func TestExportToFileManualPath(t *testing.T) {
 		_, err := os.Stat(target)
 		return err == nil
 	})
-	_ = target
 	if !strings.Contains(app.headerNote, "字节") {
 		t.Fatalf("手输路径写出后没有字节数回执：%q", app.headerNote)
 	}
@@ -382,7 +388,7 @@ func TestExportPreviewCapsAtTwentyLines(t *testing.T) {
 	snap := SessionSnapshot{ID: "s1", Title: "长会话", Branch: "main", TurnCount: 40}
 	for i := 1; i <= 40; i++ {
 		snap.Rows = append(snap.Rows, RowSnapshot{
-			Kind: RowUser, Text: "第 " + itoa(i) + " 条", Status: RowStatusDone,
+			Kind: RowUser, Text: "第 " + strconv.Itoa(i) + " 条", Status: RowStatusDone,
 			BranchID: "main", TurnIndex: i,
 		})
 	}
@@ -413,17 +419,4 @@ func TestExportEmptySessionState(t *testing.T) {
 			t.Fatalf("%q 没有禁用：%+v（找到 %v）", label, info, ok)
 		}
 	}
-}
-
-// itoa 是测试里的整数转十进制串（避免再引一个包）。
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	digits := ""
-	for n > 0 {
-		digits = string(rune('0'+n%10)) + digits
-		n /= 10
-	}
-	return digits
 }

@@ -205,6 +205,8 @@ func (a *App) closeSessionSearch() {
 	}
 	s.open = false
 	s.query = ""
+	// 预填的选中文本只用一次：不把上一次的选区带到下一次打开（R-GS-009）。
+	a.timelineSelected = ""
 	s.units, s.hits, s.byUnit = nil, nil, nil
 	s.current = -1
 	s.focus = false
@@ -804,14 +806,14 @@ func searchOverlaps(protected [][2]int, start, end int) bool {
 
 // —— 单元标识（渲染端与索引端共用）——
 
-func searchKeyUser(row int) string            { return fmt.Sprintf("u:%d", row) }
-func searchKeyAssistant(row int) string       { return fmt.Sprintf("a:%d", row) }
-func searchKeyThinking(row int) string        { return fmt.Sprintf("t:%d", row) }
-func searchKeyToolParam(row, n int) string    { return fmt.Sprintf("p:%d:%d", row, n) }
-func searchKeyToolInput(row, n int) string    { return fmt.Sprintf("n:%d:%d", row, n) }
-func searchKeyToolOutput(row, n int) string   { return fmt.Sprintf("o:%d:%d", row, n) }
-func searchThinkBlock(row int) string         { return fmt.Sprintf("think:%d", row) }
-func searchToolBlock(row, n int) string       { return fmt.Sprintf("tool:%d:%d", row, n) }
+func searchKeyUser(row int) string          { return fmt.Sprintf("u:%d", row) }
+func searchKeyAssistant(row int) string     { return fmt.Sprintf("a:%d", row) }
+func searchKeyThinking(row int) string      { return fmt.Sprintf("t:%d", row) }
+func searchKeyToolParam(row, n int) string  { return fmt.Sprintf("p:%d:%d", row, n) }
+func searchKeyToolInput(row, n int) string  { return fmt.Sprintf("n:%d:%d", row, n) }
+func searchKeyToolOutput(row, n int) string { return fmt.Sprintf("o:%d:%d", row, n) }
+func searchThinkBlock(row int) string       { return fmt.Sprintf("think:%d", row) }
+func searchToolBlock(row, n int) string     { return fmt.Sprintf("tool:%d:%d", row, n) }
 
 // prefillSearchQuery 是打开浮层时的预填：时间线里选中的文本（单行化）。
 func prefillSearchQuery(selection string) string {
@@ -940,7 +942,7 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 		if s.think {
 			label = "含思考块"
 		}
-		if gui.Button(c, label).Label("搜索范围："+label).
+		if gui.Button(c, label).Label("搜索范围：" + label).
 			Tooltip("搜索范围：思考块是否参与匹配").Height(rowCompact).Clicked() {
 			s.think = !s.think
 			a.openFoldsForCurrent()

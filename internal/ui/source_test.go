@@ -29,6 +29,7 @@ type fakeSource struct {
 	terminal   TerminalSnapshot
 	prefs      PreferencesSnapshot
 	shortcut   GlobalShortcutSnapshot
+	market     PluginMarketplaceSnapshot
 }
 
 func (f *fakeSource) Connection() Connection                { return f.conn }
@@ -51,6 +52,9 @@ func (f *fakeSource) Preferences() PreferencesSnapshot   { return f.prefs }
 func (f *fakeSource) GlobalShortcut() GlobalShortcutSnapshot {
 	return f.shortcut
 }
+
+// PluginMarketplace 让样例 Source 也实现可选的市场读数；没有配置源时是空快照。
+func (f *fakeSource) PluginMarketplace() PluginMarketplaceSnapshot { return f.market }
 
 // TestSourceDrivesSidebarAndTimeline：把 Source 的会话列表改成空 → 界面进空态，
 // 而不是保留样例；把 Running 翻成 true → 停止槽出现。

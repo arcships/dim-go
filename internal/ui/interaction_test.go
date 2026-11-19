@@ -244,28 +244,36 @@ func TestWorkspaceMenuPinsRenamesAndRemoves(t *testing.T) {
 		t.Fatalf("取消置顶后首组 = %q，想要 dim-agent", groups[1].name)
 	}
 
-	// 改名：组头换成输入框，保存后显示新名字。
+	// 改名：菜单打开弹窗；确认后组头显示新名字。
 	openGroupMenu(t, tt, "dim-agent")
 	if err := tt.ChooseMenuItem("重命名"); err != nil {
 		t.Fatalf("点不到重命名：%v", err)
 	}
 	tt.Frame()
-	if _, ok := tt.Find("工作区名称"); !ok {
-		t.Fatalf("组头没有进入行内编辑：%v", tt.Texts())
+	if !app.renameDialog.open || app.renameDialog.kind != renameWorkspace {
+		t.Fatalf("工作区重命名没有打开弹窗（open=%v kind=%v）", app.renameDialog.open, app.renameDialog.kind)
 	}
-	app.groupRenameDraft = "评审目录"
-	if err := tt.Click("保存工作区名称"); err != nil {
-		t.Fatalf("点不到保存：%v", err)
+	if _, ok := tt.Find("工作区名称"); !ok {
+		t.Fatalf("弹窗没有字段标签：%v", tt.Texts())
+	}
+	app.renameDialog.draft = "评审目录"
+	tt.Frame()
+	if err := tt.Click("确认"); err != nil {
+		t.Fatalf("点不到确认：%v", err)
 	}
 	tt.Frame()
 	if _, ok := tt.Find("评审目录"); !ok {
 		t.Fatalf("改名后组头没有新名字：%v", tt.Texts())
 	}
 
-	// 移除：组与组内会话都不再出现。
+	// 移除：确认后组与组内会话都不再出现。
 	openGroupMenu(t, tt, "评审目录")
 	if err := tt.ChooseMenuItem("移除工作区"); err != nil {
 		t.Fatalf("点不到移除工作区：%v", err)
+	}
+	tt.Frame()
+	if err := tt.Click("删除"); err != nil {
+		t.Fatalf("点不到确认删除：%v", err)
 	}
 	tt.Frame()
 	if _, ok := tt.Find("评审目录"); ok {

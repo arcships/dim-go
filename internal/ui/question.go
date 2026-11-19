@@ -292,7 +292,13 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 		}
 		return
 	}
+	// 自定义答案非空时接管答案，选项选中态随之清掉（G-D1-118）；清空自定义后
+	// 回到选项选择。
 	choice := q.singleChoice()
+	if strings.TrimSpace(q.custom[q.index]) != "" {
+		choice = ""
+		q.selected[q.index] = map[string]bool{}
+	}
 	gui.RadioGroup(c, func() {
 		for _, option := range options {
 			option := option
@@ -321,6 +327,10 @@ func (a *App) questionCustomField(c *gui.Context, item QuestionItemSnapshot, lab
 func (a *App) questionFoot(c *gui.Context, snap QuestionSnapshot, items []QuestionItemSnapshot) {
 	t := c.Theme()
 	q := &a.question
+	// 补答之后本地校验错误自动消失（G-D1-138）。
+	if q.err == questionCopyRequired && q.complete(items) {
+		q.err = ""
+	}
 	if q.err != "" {
 		gui.Row(c).Children(func() {
 			typeSecondary.style(t, gui.Text(c, q.err)).TextColor(t.Danger).
@@ -329,7 +339,7 @@ func (a *App) questionFoot(c *gui.Context, snap QuestionSnapshot, items []Questi
 	}
 	last := q.index == len(items)-1
 	gui.Row(c).AlignItems(gui.Center).Gap(space2).Children(func() {
-		decline := actionButton(c, questionCopyDecline, "拒绝这批提问", false, q.busy)
+		decline := actionButton(c, questionCopyDecline, "", false, q.busy)
 		if decline.Focused() {
 			q.buttonFocused = true
 		}
@@ -439,6 +449,16 @@ func (q *questionCardState) answerAt(index int, item QuestionItemSnapshot) strin
 		return strings.Join(picked, "\n")
 	}
 	return picked[0]
+}
+
+// complete 判断这一批的必填是否都答了：没有必填事实，按「每题都有答案」算。
+func (q *questionCardState) complete(items []QuestionItemSnapshot) bool {
+	for i, item := range items {
+		if q.answerAt(i, item) == "" {
+			return false
+		}
+	}
+	return true
 }
 
 // questionLines 把多行草稿切成非空行。

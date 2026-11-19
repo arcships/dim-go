@@ -41,7 +41,6 @@ const (
 	exportDescFormat   = "格式"
 	exportDescScope    = "范围"
 	exportDescPreview  = "预览（前 20 行）"
-	exportDescTurns    = "选中的轮次"
 	exportDescPath     = "保存位置"
 	exportCopyCancel   = "取消"
 	exportCopyClip     = "导出到剪贴板"
@@ -172,8 +171,8 @@ func (a *App) openExportPanel(sessionID, title string) {
 	if st.scope == "" {
 		st.scope = exportScopeSession
 	}
-	// 勾选按上次保留（同一次运行内），但每次打开回到「全部保留」：范围换了之后
-	// 的排除项不该静默沿用（R-GF-033 要求固定一种口径）。
+	// 每次打开回到「全部保留」：上一次的排除项不静默沿用（R-GF-033 要求固定
+	// 一种口径）；格式与范围保留在上次选的那一档。
 	st.turns = nil
 	st.manual = false
 	st.path = ""
@@ -209,12 +208,13 @@ func (a *App) exportSession(index int) {
 		a.openExportPanel(sessionID, title)
 		return
 	}
-	if a.intents == nil {
-		a.headerNote = noteNoWriteChannel
+	if current, ok := a.liveSession(); ok && current.ID == sessionID {
+		// 导出只读快照：已经在看的会话不需要写通道。
+		a.openExportPanel(sessionID, title)
 		return
 	}
-	if current, ok := a.liveSession(); ok && current.ID == sessionID {
-		a.openExportPanel(sessionID, title)
+	if a.intents == nil {
+		a.headerNote = noteNoWriteChannel
 		return
 	}
 	a.headerNote = "正在打开会话…"
@@ -229,6 +229,11 @@ func (a *App) exportSession(index int) {
 func (a *App) exportPanel(c *gui.Context) {
 	st := &a.export
 	if !st.open || a.screen != ScreenMain {
+		return
+	}
+	// 面板开着时切了会话：不拿新会话的行顶替旧标题与旧回执，直接收起。
+	if snap, ok := a.liveSession(); ok && st.sessionID != "" && snap.ID != st.sessionID {
+		a.closeExportPanel()
 		return
 	}
 	t := c.Theme()
@@ -704,16 +709,6 @@ func exportScopeLabel(scope string) string {
 	return exportScopes[0].label
 }
 
-// exportFormatLabel 是格式的屏上名字；文件名与提示共用。
-func exportFormatLabel(format string) string {
-	for _, choice := range exportFormats {
-		if choice.value == format {
-			return choice.label
-		}
-	}
-	return exportFormats[0].label
-}
-
 // exportExtension 是格式对应的文件扩展名。
 func exportExtension(format string) string {
 	switch format {
@@ -798,7 +793,6 @@ func (a *App) startExportFile(content string) {
 
 // exportToManualFile 写手输路径的文件。
 func (a *App) exportToManualFile(content string) {
-	fmt.Printf("DEBUG exportToManualFile path=%q len=%d\n", a.export.path, len(content))
 	path := strings.TrimSpace(a.export.path)
 	if path == "" {
 		a.export.failure = "没有填写保存路径"

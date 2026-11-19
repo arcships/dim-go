@@ -411,6 +411,9 @@ func (a *App) workspaceMenu(m *gui.Menu, ws sidebarWorkspace, threads []sidebarT
 	}
 	m.Separator()
 	if m.Item("重命名").Chosen() {
+		a.openWorkspaceRenameDialog(ws)
+	}
+	if !ws.builtin && m.Item("行内重命名").Chosen() {
 		a.renamingGroup, a.groupRenameDraft = ws.id, ws.name
 	}
 	if !ws.builtin {
@@ -602,7 +605,11 @@ func (a *App) sessionMenu(m *gui.Menu, index int, name string) {
 		a.togglePin(index)
 	}
 	if m.Item("重命名").Chosen() {
-		a.renaming, a.renameDraft = index, name
+		a.openSessionRenameDialog(index)
+	}
+	// 行内快捷改名与弹窗并存：菜单里单独留一项，避免把「重命名」拆成两种行为。
+	if m.Item("行内重命名").Chosen() {
+		a.startInlineRename(index)
 	}
 	// 在新窗口中打开：会话标识从目录取（样例里是行名），交给入口的窗口管理。
 	if m.Item("在新窗口中打开").Chosen() {

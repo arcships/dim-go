@@ -332,6 +332,12 @@ type App struct {
 	// focusComposer 请求下一帧把焦点放到输入区（全局快捷键唤起时由入口调用）。
 	focusComposer atomic.Bool
 
+	// 插件管理（设置 › 插件设置）：已装清单的动作状态、安装弹窗与市场源草稿，
+	// 见 plugin_manage.go。全部是可丢的视图状态。
+	pluginManage  pluginManageState
+	pluginInstall pluginInstallState
+	pluginPick    dirPickState
+
 	// 设置 · 账户（重建屏）：邮箱登录对话框的开合与草稿、重置确认框的类型、
 	// 用量刷新的起点。都是可丢的界面状态，不是事实。
 	accountEmailOpen  bool
@@ -438,10 +444,10 @@ type App struct {
 	// renameDialog 是重命名弹窗（会话 / 工作区）的可丢视图状态，见
 	// rename_dialog.go。行内快捷改名仍由 renaming / renamingGroup 承担。
 	renameDialog renameDialogState
-	archived    map[int]bool
-	renamed     map[int]string
-	exported    string
-	menuOpen    map[int]*bool
+	archived     map[int]bool
+	renamed      map[int]string
+	exported     string
+	menuOpen     map[int]*bool
 
 	// 导出对话面板（见 export.go）：格式、范围、勾选、手输路径与回执都是可丢的
 	// 界面状态；文件写入结果经 exportResults 交回渲染线程。
@@ -961,19 +967,27 @@ func (a *App) View(c *gui.Context) {
 	a.applyTokens(c)
 	// 右栏文件页的目录投影每帧做一次：文件页与命令面板的文件组读同一份。
 	a.syncPanelTree(false)
-	a.commandPaletteKeys(c)
-	a.sessionSearchKeys(c)
-	a.debugKeys(c)
-	a.approvalKeys(c)
-	a.questionKeys(c)
+	// 确认框是模态：它开着时窗口级键位全部让给它（Esc 关框，不关框后的编辑器、
+	// 搜索面或终端）。
+	if a.confirm.kind == confirmKindNone {
+		a.commandPaletteKeys(c)
+		a.sessionSearchKeys(c)
+		a.debugKeys(c)
+		a.approvalKeys(c)
+		a.questionKeys(c)
+	}
 	a.sessionSearchFrame(c)
 	a.layout(c)
+	a.dirPickDialog(c, dirPickPluginFolder)
 	if a.screen == ScreenMain {
 		a.dirPickDialog(c, dirPickWorkspace)
 		a.sessionSearchOverlay(c)
 		a.exportPanel(c)
+		a.renameDialogView(c)
 		a.confirmDialog(c)
 	}
+	a.pluginInstallView(c)
+	a.pluginRemoveView(c)
 	a.commandPalette(c)
 	a.sessionSearchRestore(c)
 	a.hostFrame()

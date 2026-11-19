@@ -58,7 +58,11 @@ func (a *App) header(c *gui.Context) {
 		typeSecondary.style(t, gui.Text(c, a.workspaceTitle())).
 			TextColor(t.TextMuted).SingleLine().Label("工作区 " + a.workspaceTitle())
 		typeSecondary.style(t, gui.Text(c, "/")).TextColor(t.TextMuted)
-		typeTitleRow.style(t, gui.Text(c, name)).SingleLine().Label("会话 " + name)
+		title := typeTitleRow.style(t, gui.Text(c, name)).SingleLine().Label("会话 " + name)
+		// 标题栏双击会话名打开重命名弹窗（行内快捷仍在左栏会话行双击）。
+		if title.DoubleClicked() {
+			a.openSessionRenameDialog(a.currentSessionIndex())
+		}
 		a.chatMenu(c)
 		if a.wired() {
 			a.branchChip(c)
@@ -162,7 +166,7 @@ func (a *App) chatMenu(c *gui.Context) {
 		}
 		if menuItem(c, m, iconPencil, "重命名", "重命名", renameNote,
 			renameNote != "", false) {
-			a.startHeaderRename()
+			a.openSessionRenameDialog(a.currentSessionIndex())
 		}
 		// 多窗口：在新窗口里打开当前会话；已经有一个窗口显示它时切换到那个窗口
 		// （回执写明是哪一个），不重复开。
@@ -223,13 +227,9 @@ func (a *App) chatMenu(c *gui.Context) {
 	})
 }
 
-// startHeaderRename 把标题栏的「重命名」落到左栏的行内改名上：同一个会话、
-// 同一条写入路径（Intents.RenameSession），不是另开一个只改标题的输入框。
-func (a *App) startHeaderRename() {
-	index := a.currentSessionIndex()
-	if index < 0 && !a.wired() {
-		index = sessionIndex(a.selectedSession)
-	}
+// startInlineRename 是会话行的行内快捷改名：与弹窗同一条写入路径
+// （Intents.RenameSession），只是就地替换名称。双击会话行进入。
+func (a *App) startInlineRename(index int) {
 	if index < 0 {
 		a.headerNote = noteNoSessionID
 		return
