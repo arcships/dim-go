@@ -130,6 +130,8 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | MCP · 从来源导入 | `ImportMCP` | `extensions.PreviewMCPImport` → `ApplyMCPImport` | `mcp.import.preview` → `mcp.import.apply` | `TestIntentMCPImport` |
 | 输入区 `!命令` · 运行 | `RunShell` | `app.RunShell`（等回执取运行标识） | `shell.run` | `TestIntentShellRun` |
 | 右栏终端 · 中止 | `StopShell` | `app.StopShell` | `shell.stop` | `TestIntentShellStop` |
+| 斜杠命令 · `/compact` | `CompactContext` | `app.CompactContext`（会话流；结果以 `context/compaction` 事实为准） | `session.context.compact` | `TestIntentCompactContext` |
+| 斜杠命令 · `/reload-skills` | `RefreshSkills` | `extensions.RefreshSkills` → `ListSkills` | `skills.refresh` | `TestIntentRefreshSkills` |
 | 断线 · 重新连接 | `Reconnect` | `app.Reconnect` | 重连 daemon | `TestIntentReconnect` |
 | 标题行 · 切换分支 | `SelectBranch` | `app.SelectBranch` | 无（投影切换） | `TestIntentSelectAndEndBranch` |
 | 标题行 · 从当前分支切出 | `CreateBranch` | `app.CreateBranch` | `session.branch_create` | `TestIntentCreateBranch` |
@@ -172,6 +174,7 @@ MCP 导入的来源来自 `mcp.import.sources`（连接后读一次，界面列�
 | 视图元素 | 现状与缺口 | 当前表现 / 谁能解除 |
 |---|---|---|
 | 设置 · 运行时提交模态任务 | `runtime.list/install` 协议有定义，但服务端未注册 `runtime.*`（D1 §7.1 的 issue）；`SubmitTask` 还需要 `category/operation` | 提交按钮禁用并显示 "blocked：服务端未注册 runtime.* / 模态任务提交方法"；D1 恢复能力后再接 |
+| 斜杠命令 · `/pet`、`/reload-plugins`、`/fast`、`/workflow` | 四项都没有可执行的应用方法：Pet 没有显示状态通道，插件只有读清单没有重扫，快速模式与工作流浏览本版不存在 | 命令在弹层里置灰，行内写原因（见 `internal/ui/unavailable.go` 的 `notePetShown` / `notePluginReload` / `noteFastMode` / `noteWorkflow`） |
 
 附件与登录不再列为未接：`session.submit` 的正文走 `user.content`（`Text` / `Image` 块），长文本先 `attachment.put` 再以 `[Pasted text: path]` 引用；`account.login.*` 与 `provider.*` 已接。
 

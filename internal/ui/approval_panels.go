@@ -138,11 +138,15 @@ type approvalPanelContent struct {
 	Prompt string
 	// Code 是非主值的代码块（写入内容、补丁、JSON 入参）。
 	Code string
+	// CodeSet 表示代码块这个事实在场：内容为空（新建空文件）时也要画一个空块。
+	CodeSet bool
 	// CodeLines 为真时给代码块加行号列（写入文件是行号，补丁不是）。
 	CodeLines bool
-	// DiffOld / DiffNew 是编辑前后两栏；都为空表示不是差异块。
-	DiffOld string
-	DiffNew string
+	// DiffOld / DiffNew 是编辑前后两栏；Set 为假表示这一侧没有事实（不留空栏）。
+	DiffOld    string
+	DiffNew    string
+	DiffOldSet bool
+	DiffNewSet bool
 	// Image 是能画出来的缩略图（入参里的 data URI）；空表示没有像素，只画占位。
 	HasImage bool
 	// ImageData 是解码用的字节（PNG / JPEG / SVG）。
@@ -162,10 +166,10 @@ type approvalHead struct {
 
 // empty 判断这次输入区有没有可画的内容。
 func (p approvalPanelContent) empty() bool {
-	if p.Primary != "" || len(p.Lines) > 0 || p.Code != "" || p.Prompt != "" {
+	if p.Primary != "" || len(p.Lines) > 0 || p.CodeSet || p.Prompt != "" {
 		return false
 	}
-	if p.DiffOld != "" || p.DiffNew != "" || len(p.Todos) > 0 || p.HasImage || p.SizeText != "" {
+	if p.DiffOldSet || p.DiffNewSet || len(p.Todos) > 0 || p.HasImage || p.SizeText != "" {
 		return false
 	}
 	return p.Head == approvalHead{}
@@ -462,12 +466,13 @@ func approvalFilePanel(tool string, input map[string]any) approvalPanelContent {
 	patch, hasPatch := approvalRawText(input, []string{"patch", "input"})
 
 	switch {
-	case isEdit && hasOld && hasNew:
-		panel.DiffOld, panel.DiffNew = oldText, newText
+	case isEdit && (hasOld || hasNew):
+		panel.DiffOld, panel.DiffOldSet = oldText, hasOld
+		panel.DiffNew, panel.DiffNewSet = newText, hasNew
 	case isWrite && hasContent:
-		panel.Code, panel.CodeLines = content, true
+		panel.Code, panel.CodeSet, panel.CodeLines = content, true, true
 	case isPatch && hasPatch:
-		panel.Code = patch
+		panel.Code, panel.CodeSet = patch, true
 	}
 
 	switch {
@@ -719,7 +724,7 @@ func approvalGenericPanel(tool string, input map[string]any) approvalPanelConten
 	panel := approvalPanelContent{Renderer: approvalRendererGeneric, Label: label}
 	if len(input) > 0 {
 		if raw, err := json.MarshalIndent(input, "", "  "); err == nil {
-			panel.Code = string(raw)
+			panel.Code, panel.CodeSet = string(raw), true
 		}
 	}
 	return panel
@@ -791,8 +796,8 @@ func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 // approvalPanelBody 画正文：差异块 / 代码块 / 图片 / 主值行 / 参数行 / 待办。
 func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 	t := c.Theme()
-	if panel.DiffOld != "" || panel.DiffNew != "" {
-		approvalDiffBlock(c, panel.DiffOld, panel.DiffNew)
+	if panel.DiffOldSet || panel.DiffNewSet {
+		approvalDiffBlock(c, panel)
 	}
 	if panel.Head != (approvalHead{}) {
 		approvalHeadRow(c, panel.Head)
@@ -800,7 +805,7 @@ func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 	if panel.Prompt != "" {
 		approvalCodeBlock(c, panel.Prompt, false)
 	}
-	if panel.Code != "" {
+	if panel.CodeSet {
 		approvalCodeBlock(c, panel.Code, panel.CodeLines)
 	}
 	if panel.HasImage || panel.SizeText != "" {
@@ -871,25 +876,36 @@ func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
 }
 
 // approvalDiffBlock 画编辑前后两栏：左旧右新、无行号，旧栏危险色、新栏成功色，
-// 两侧等高（按较长一侧的行数补齐空行）。
-func approvalDiffBlock(c *gui.Context, oldText, newText string) {
+// 两侧等高（按较长一侧的行数补齐空行）；只有一侧有事实时只画那一栏。
+func approvalDiffBlock(c *gui.Context, panel approvalPanelContent) {
 	t := c.Theme()
-	oldLines, newLines := strings.Split(oldText, "\n"), strings.Split(newText, "\n")
-	rows := len(oldLines)
-	if len(newLines) > rows {
-		rows = len(newLines)
+	rows := 0
+	if panel.DiffOldSet {
+		rows = approvalLineCount(panel.DiffOld)
 	}
-	gui.Row(c).WidthPercent(100).Gap(space2).AlignItems(gui.Start).Children(func() {
-		approvalDiffColumn(c, oldText, rows, t.Danger)
-		approvalDiffColumn(c, newText, rows, t.Success)
+	if panel.DiffNewSet && approvalLineCount(panel.DiffNew) > rows {
+		rows = approvalLineCount(panel.DiffNew)
+	}
+	gui.Row(c).WidthPercent(100).Gap(space2).AlignItems(gui.Stretch).Children(func() {
+		if panel.DiffOldSet {
+			approvalDiffColumn(c, panel.DiffOld, rows, t.Danger)
+		}
+		if panel.DiffNewSet {
+			approvalDiffColumn(c, panel.DiffNew, rows, t.Success)
+		}
 	})
+}
+
+// approvalLineCount 是文本的行数：空串也算一行（一个空行）。
+func approvalLineCount(text string) int {
+	return len(strings.Split(text, "\n"))
 }
 
 // approvalDiffColumn 画差异的一栏：行首一条色条 + 等宽文本。
 func approvalDiffColumn(c *gui.Context, text string, rows int, color gui.Color) {
 	t := c.Theme()
 	lines := strings.Split(text, "\n")
-	gui.Row(c).Grow(1).Shrink(1).Gap(space1).AlignItems(gui.Start).Children(func() {
+	gui.Row(c).Grow(1).Shrink(1).Gap(space1).AlignItems(gui.Stretch).Children(func() {
 		bar := gui.Box(c).Width(strokeMarker).Shrink(0).Label("差异标记").AccessHidden(true)
 		bar.DrawOver(func(p *gui.Painter, r gui.Rect) { p.Fill(r, color, 0) })
 		gui.Column(c).Grow(1).Shrink(1).Gap(0).Children(func() {

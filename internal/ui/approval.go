@@ -334,8 +334,9 @@ func (a *App) memberApprovalBlock(c *gui.Context, member ApprovalMemberSnapshot)
 				}
 			}
 			if member.State == ApprovalMemberUnavailable && member.ApprovalID != "" {
-				typeMicro.style(t, gui.Text(c, approvalCopyMemberIDPrefix+member.ApprovalID)).
-					TextColor(t.TextMuted)
+				// 审批 ID 是等宽、UI 正文一档的次要色（参考产品 font-mono text-xs）。
+				typeSecondary.style(t, gui.Text(c, approvalCopyMemberIDPrefix+member.ApprovalID)).
+					Font(codeFamily()).TextColor(t.TextMuted)
 			}
 			if member.State == ApprovalMemberError && member.CanRetry {
 				label := approvalCopyMemberRetry + "（重新读取成员操作）"

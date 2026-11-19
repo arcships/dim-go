@@ -558,3 +558,66 @@ func TestSessionSearchMarkdownHighlightKeepsText(t *testing.T) {
 		}
 	}
 }
+
+// TestSessionSearchWorksOnEmptyTimeline：时间线为空也能打开，结果是「0 个结果」，
+// 不报错（R-GS-008）。
+func TestSessionSearchWorksOnEmptyTimeline(t *testing.T) {
+	app, tt := newTester(t, StateEmpty)
+	openSessionSearchForTest(t, tt)
+	if !app.sessionSearch.open {
+		t.Fatal("空会话里 ⌘F 没有打开浮层")
+	}
+	searchFor(t, tt, "任何词")
+	if !tt.HasText("0 个结果") {
+		t.Fatalf("空时间线应给「0 个结果」：%v", tt.Texts())
+	}
+	if len(tt.Texts()) == 0 {
+		t.Fatal("屏幕没有内容")
+	}
+}
+
+// TestSessionSearchClosesOnSessionSwitch：切会话时搜索关闭、查询清空，不把上一个
+// 会话的查询带过去（R-TB-049）。
+func TestSessionSearchClosesOnSessionSwitch(t *testing.T) {
+	src := wiredSource()
+	src.session.Rows = []RowSnapshot{{Kind: RowUser, Text: "看看 internal/ui"}}
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	openSessionSearchForTest(t, tt)
+	searchFor(t, tt, "internal")
+	if !app.sessionSearch.open {
+		t.Fatal("⌘F 没有打开浮层")
+	}
+
+	src.session = SessionSnapshot{ID: "s2", Title: "另一个会话"}
+	tt.Frame()
+	if app.sessionSearch.open {
+		t.Fatal("切会话后搜索仍开着")
+	}
+	if app.sessionSearch.query != "" {
+		t.Fatalf("切会话后查询没有清空：%q", app.sessionSearch.query)
+	}
+}
+
+// TestSessionSearchMagnifierFocusesInput：点放大镜落到输入框（R-GS-014）。
+func TestSessionSearchMagnifierFocusesInput(t *testing.T) {
+	_, tt := newTester(t, StateDefault)
+	openSessionSearchForTest(t, tt)
+	// 先把焦点从搜索框挪开：Tab 走到浮层里的按钮。
+	tt.Key(0, gui.KeyTab)
+	tt.Frame()
+	if active, _ := tt.TextInputActive(); active {
+		t.Fatal("Tab 之后焦点仍停在搜索框")
+	}
+	// 放大镜的可读名被隐藏，按图标位置点：浮层左端内侧。
+	box, ok := tt.Find("会话内搜索")
+	if !ok {
+		t.Fatalf("找不到浮层：%v", tt.Texts())
+	}
+	tt.ClickAt(box.X+space3+iconBlock/2, box.Y+sessionSearchInputHeight/2)
+	tt.Frame()
+	if active, _ := tt.TextInputActive(); !active {
+		t.Fatal("点放大镜没有回到输入框")
+	}
+}

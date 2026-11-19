@@ -85,6 +85,24 @@ func TestApprovalPanelWriteAndEdit(t *testing.T) {
 		approvalWants(t, tt, "DimAgent 想要：编辑", "/work/tmp/out.txt",
 			"旧文本", "新文本", "replaceAll: true")
 	})
+	t.Run("新建空文件", func(t *testing.T) {
+		// 内容为空也是事实：块要在场（表示"将写入空内容"），不是隐藏。
+		_, tt := approvalTester(t, ApprovalSnapshot{
+			ID: "a-write-empty", Tool: "write",
+			Input: `{"path":"/work/tmp/new.txt","content":""}`,
+		})
+		approvalWants(t, tt, "/work/tmp/new.txt")
+		if _, ok := tt.Find("1"); !ok {
+			t.Fatalf("空内容的代码块没有行号列：\n%s", p0WindowText(tt))
+		}
+	})
+	t.Run("只有新文本", func(t *testing.T) {
+		_, tt := approvalTester(t, ApprovalSnapshot{
+			ID: "a-edit-new", Tool: "edit",
+			Input: `{"path":"/work/tmp/out.txt","newText":"只加这一行"}`,
+		})
+		approvalWants(t, tt, "只加这一行")
+	})
 }
 
 // TestApprovalPanelSearch：检索渲染器画模式主值行、路径与其余参数。
@@ -188,6 +206,26 @@ func TestApprovalPanelTodos(t *testing.T) {
 		"1. [x] 写渲染器 - completed - high",
 		"2. [~] 补测试 - in progress - medium",
 		"3. [ ] 更新需求 - pending - low")
+}
+
+// TestApprovalDecisionHints：一次性允许与拒绝带键位提示（Enter / Esc），长期允许
+// 没有快捷键（参考产品不给它绑键，避免误按长期放行）。
+func TestApprovalDecisionHints(t *testing.T) {
+	_, tt := approvalTester(t, ApprovalSnapshot{
+		ID: "a-hints", Tool: "exec", LongTerm: true, Input: `{"command":"ls"}`,
+	})
+	allow, ok := tt.Access(approvalCopyAllowOnce)
+	if !ok || !strings.Contains(allow.Description, "Enter") {
+		t.Fatalf("「仅这次」没有键位提示：%+v（找到 %v）", allow, ok)
+	}
+	reject, ok := tt.Access(approvalCopyReject)
+	if !ok || !strings.Contains(reject.Description, "Esc") {
+		t.Fatalf("「拒绝」没有键位提示：%+v（找到 %v）", reject, ok)
+	}
+	longTerm, ok := tt.Access(approvalCopyAlwaysCommand)
+	if !ok || strings.Contains(longTerm.Description, "Enter") {
+		t.Fatalf("长期允许不该绑快捷键：%+v（找到 %v）", longTerm, ok)
+	}
 }
 
 // TestApprovalDecisionsFollowTool：长期允许按钮的文案随工具切换，答复值分明细。

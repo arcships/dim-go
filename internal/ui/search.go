@@ -114,6 +114,7 @@ type sessionSearchState struct {
 	// focus / selectAll 在下一帧把焦点与全选落到输入框；returnFocus 在关闭后
 	// 把焦点还给时间线。
 	focus       bool
+	rowClicked  bool
 	selectAll   bool
 	returnFocus bool
 
@@ -874,10 +875,13 @@ func (a *App) sessionSearchInputRow(c *gui.Context) {
 	t := c.Theme()
 	s := &a.sessionSearch
 	gui.Row(c).Shrink(0).Height(sessionSearchInputHeight).
-		Padding(space1, space3).Gap(space2).AlignItems(gui.Center).Children(func() {
+		Padding(space1, space3).Gap(space2).AlignItems(gui.Center).
+		OnClick(func() { s.rowClicked = true }).Children(func() {
 		// 放大镜 20px，不是按钮：点它等于点输入框（R-GS-011、R-GS-014）。
-		gui.Box(c).Shrink(0).OnClick(func() { s.focus = true }).
-			AccessHidden(true).Children(func() {
+		gui.Row(c).Shrink(0).Width(iconBlock).Height(iconBlock).
+			Background(t.SurfacePressed).
+			OnClick(func() { s.focus = true }).Center().
+			Label("搜索图标").Children(func() {
 			iconGlyphSize(c, iconSearch, iconBlock, t.TextMuted, "search")
 		})
 		input := gui.TextInputBase(c, &s.query).
