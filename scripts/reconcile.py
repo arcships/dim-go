@@ -20,8 +20,22 @@
 「需负向取证」，不计入未实现；负向判定优先于逐字命中（文案在代码里也不能证明
 「不触发」）。
 
+第二轮（§4）：对没有可逐字文案的叙述型条目改按**元素映射**判定。
+
+  1. 元素索引：函数 doc 注释里的元素 ID（一处注释覆盖的元素越少越优先）→ 函数体内注释
+     → 清单 symbol 派生的 Go 标识符。支持 `S-account-02–07`、`S-account-10/11/13`、
+     `S-about-01…18` 这类区间/并列写法与 `A1-03` → `G-A1-03` 的短写还原，
+     得到 元素 → (文件, 渲染函数)。跨域误命中按元素族过滤（设置元素只认设置屏，
+     单字母面板元素不认设置屏）。
+  2. 按维度在映射到的函数体里找标记（内容 = 函数内中文字面量，其余见
+     DIM_MARKERS）；函数体指去注释、去字符串的代码行 + 函数区间内的字符串字面量，
+     并向下展开一跳同包被调函数（方法按裸函数名解析）。
+  3. 命中 → 已实现（映射 = 元素→文件:函数；标记 = 标记）；映射到位但无标记 →
+     未实现（映射到位但没有该维度的标记）；无映射 → 未实现（找不到元素渲染点）。
+
 证据只写 `文件:函数`，不写行号。结果写回需求表的状态列，并生成
-docs/reconcile-report.md（分布 + 随机 40 条复核 + 已知局限）。
+docs/reconcile-report.md（第一轮分布与复核 + 第二轮映射判定 + 随机 40 条复核 +
+已知局限）。
 
 用法：
     python3 scripts/reconcile.py            # 写回状态列 + 报告
@@ -33,6 +47,7 @@ from __future__ import annotations
 import argparse
 import collections
 import dataclasses
+import json
 import random
 import re
 import sys
@@ -752,6 +767,436 @@ def judge(row: ReqRow, inv: dict[str, ElementInfo]) -> Verdict:
     )
 
 
+# ---------------------------------------------------------------- 元素映射（第二轮）
+
+# 元素 ID 的区间 / 并列写法：`S-account-02–07`、`S-account-10/11/13`、
+# `TB-20–TB-30`、`LB-11–15`。展开结果必须落在已知元素 ID 集合里，否则丢弃。
+ID_SEQ_RE = re.compile(
+    r'(?P<base>[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*?)-(?P<num>\d+)'
+    r'(?P<rest>(?:\s*(?:[–—~～]|\.\.\.|…|/|,|、|和|与)\s*'
+    r'(?:[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*?-)?\d+)*)')
+ID_CONT_RE = re.compile(
+    r'\s*(?P<sep>[–—~～]|\.\.\.|…|/|,|、|和|与)\s*'
+    r'(?:(?P<base>[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)*?)-)?(?P<num>\d+)')
+TOKEN_ID_RE = re.compile(r'[A-Za-z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+')
+CJK_RE = re.compile(r'[\u4e00-\u9fff]')
+CALL_RE = re.compile(r'(?<![A-Za-z0-9_])([a-z][A-Za-z0-9_]*)\s*\(')
+PANEL_ELEM_RE = re.compile(r'^[A-Z]-\d+[a-z]?$')
+
+MAP_SAMPLE_SEED = 20261121
+MAP_REVIEW_FILE = ROOT / 'scripts' / 'reconcile-review-mapping.json'
+
+MAP_HIT = '映射命中'
+MAP_NO_MARK = '映射到位无标记'
+MAP_NO_POINT = '无渲染点'
+MAP_NEG = '负向'
+MAP_BUCKETS = ['逐字', MAP_HIT, MAP_NO_MARK, MAP_NO_POINT, MAP_NEG]
+
+DIM_CONTENT = '__content__'
+
+# 维度 → 标记组。primary = 领导给定的八组；ext = 为其余维度补的同类组
+# （报告里单列，便于后续收紧）。
+DIM_MARKERS: dict[str, tuple[str, str]] = {
+    '交互': (r'Clicked|Pressed|Key|OnSubmit|Menu', 'primary'),
+    '无障碍': (r'Label|Role|AccessHidden|Aria', 'primary'),
+    '样式': (r'TextColor|Radius|Padding|Width|Height|Font|Type', 'primary'),
+    '异常': (r'(?i)err|错误|失败|重试|Reason', 'primary'),
+    '记忆': (r'(?i)prefs|persist|View\.', 'primary'),
+    '持久化': (r'(?i)prefs|persist|View\.', 'primary'),
+    '动画': (r'Animate|Duration|ease|Ease', 'primary'),
+    '窄窗': (r'narrow|Narrow|Compact|compact', 'primary'),
+    '内容': (DIM_CONTENT, 'primary'),
+    '文案': (DIM_CONTENT, 'primary'),
+    '状态': (r'State|Disabled|Enabled|Visible|Hidden|Loading|Invalidate', 'ext'),
+    '关联': (r'Switch|Navigate|Screen|Section|Tab|Select|Open|Show', 'ext'),
+    '深色': (r'Theme|Dark|Light', 'ext'),
+    '暗色': (r'Theme|Dark|Light', 'ext'),
+    '键盘': (r'Key|Shortcut|Escape|Enter|Cmd|Ctrl|Tab', 'ext'),
+    '高DPI': (r'Scale|Dpi|DPI|Px|Pixel', 'ext'),
+    '性能': (r'Duration|Throttle|Debounce|Cache|time\.', 'ext'),
+    '语言': (DIM_CONTENT, 'ext'),
+    '多语言': (DIM_CONTENT, 'ext'),
+    '输入法': (r'IME|Composition|Compose|Marked', 'ext'),
+    '多窗口': (r'Window', 'ext'),
+    '位置': (r'Row|Column|Align|Gap|Padding|Place|Offset', 'ext'),
+    '拖拽': (r'Drag|Drop', 'ext'),
+    '密度': (r'spaceUnit|Density|Compact|Gap', 'ext'),
+    '悬停': (r'Hover|Hovered', 'ext'),
+    '展开后': (r'Expand|Collapsed|Visible', 'ext'),
+    '数据量': (r'Limit|Count|len\(|Max', 'ext'),
+    '空间': (r'spaceUnit|Width|Height|Gap', 'ext'),
+}
+
+# 同一维度在 mygo 里的其它写法：用来量「无标记」里有多少是标记组漏词，
+# 只作复核参考，不改变判定。
+DIM_ADJACENT: dict[str, str] = {
+    '交互': r'ButtonBase|Hovered|OnClick|Chosen|Selectable|OnKey|OnHover',
+    '样式': (r'Background|BorderColor|BorderWidth|Opacity|Gap|GapX|GapY|AlignItems|'
+             r'Justify|Margin|Stroke|Fill|MinWidth|MaxWidth|Size|Level'),
+    '无障碍': r'Access\(|Tooltip|Level|Hint|DescribedBy|Focusable',
+    '异常': r'Alert|Banner|Toast|Warn|Notice|Fallback',
+    '记忆': r'Screen\.\w+|\.\w*Open =|lastPrefs|prefs|persist',
+    '窄窗': r'Wrap|MinWidth|MaxWidth|Width|Size',
+    '动画': r'After|Opacity|Fade|Spin',
+    '键盘': r'Shortcut|TabStop|Focusable|Focus',
+    '高DPI': r'Scale|Round|Size',
+    '深色': r'TextMuted|Surface|Border|Background',
+    '状态': r'Disabled|Visible|Hidden|Empty|Shown',
+    '关联': r'Switch|Open|Close|Section|Screen',
+}
+
+
+def elem_family(elem_id: str) -> str:
+    """元素族：settings（S-<节>-NN）/ panel（单字母-NN，右栏与时间线）/ other。"""
+    if elem_id.startswith('S-') and elem_id.count('-') >= 2:
+        sec = elem_id.split('-')[1]
+        if not sec.isdigit():
+            return 'settings'
+    if PANEL_ELEM_RE.match(elem_id):
+        return 'panel'
+    return 'other'
+
+
+def family_ok(elem_id: str, rel: str) -> bool:
+    """跨域误命中过滤：设置元素只认设置屏；单字母面板元素不认设置屏。"""
+    name = rel.rsplit('/', 1)[-1]
+    fam = elem_family(elem_id)
+    if fam == 'settings':
+        return name.startswith('settings')
+    if fam == 'panel':
+        return not name.startswith('settings')
+    return True
+
+
+def _pad_elem(base: str, num: int, width: int) -> str:
+    return f'{base}-{num:0{width}d}' if width >= 2 else f'{base}-{num}'
+
+
+def build_elem_aliases(known: set[str]) -> dict[str, str]:
+    """全局面板的短写：`G-A1-03` 在代码里常写成 `A1-03`；`S-accounts-12` 同理。"""
+    aliases: dict[str, str] = {}
+    dup: set[str] = set()
+    for eid in known:
+        if eid.startswith('G-'):
+            short = eid[2:]
+        elif re.match(r'^S-[A-Za-z][A-Za-z0-9]*-', eid):
+            short = eid[2:]
+        else:
+            continue
+        if short in aliases and aliases[short] != eid:
+            dup.add(short)
+        aliases[short] = eid
+    for short in dup:
+        aliases.pop(short, None)
+    return aliases
+
+
+def expand_element_ids(text: str, known: set[str], aliases: dict[str, str] | None = None,
+                       ) -> list[str]:
+    """从一段注释里抽元素 ID：原文写法 + 区间/并列写法展开 + 短写还原，只留已知 ID。"""
+    out: list[str] = []
+    short_map = aliases or {}
+
+    def add(eid: str) -> None:
+        eid = short_map.get(eid, eid)
+        if eid in known and eid not in out:
+            out.append(eid)
+
+    for m in ID_SEQ_RE.finditer(text):
+        base, num_s = m.group('base'), m.group('num')
+        width, cur_num = len(num_s), int(num_s)
+        add(_pad_elem(base, cur_num, width))
+        for c in ID_CONT_RE.finditer(m.group('rest') or ''):
+            sep, b, n = c.group('sep'), c.group('base'), int(c.group('num'))
+            if sep in '–—~～' or sep in ('...', '…'):
+                if b is not None:
+                    base, width = b, len(c.group('num'))
+                if cur_num <= n <= cur_num + 200:
+                    for k in range(cur_num + 1, n + 1):
+                        add(_pad_elem(base, k, width))
+                cur_num = n
+            else:
+                base, width = (b or base), len(c.group('num'))
+                add(_pad_elem(base, n, width))
+                cur_num = n
+    for tok in TOKEN_ID_RE.findall(text):
+        add(tok)
+    return out
+
+
+@dataclasses.dataclass(frozen=True)
+class MapPoint:
+    rel: str
+    func: str
+    source: str          # doc（函数 doc 注释）/ body（函数体内注释）/ symbol（清单符号）
+    span: int = 0        # 同一处注释里出现的元素个数：越小越具体
+
+    def label(self) -> str:
+        return f'{self.rel}:{self.func}'
+
+
+def doc_comment_above(gf: GoFile, line_no: int) -> str:
+    """函数声明正上方紧邻的 // 注释块（Go doc 注释）。"""
+    out: list[str] = []
+    k = line_no - 1
+    while k >= 1:
+        s = gf.lines[k - 1].strip()
+        if s.startswith('//'):
+            out.append(s[2:])
+            k -= 1
+            continue
+        break
+    return '\n'.join(reversed(out))
+
+
+def build_element_render_index(inv: dict[str, ElementInfo], known_ids: set[str]
+                               ) -> dict[str, list[MapPoint]]:
+    """元素 ID → 候选渲染点（doc 注释 → 体内注释 → 清单符号，去重后每条最多 8 个）。"""
+    idx: dict[str, list[MapPoint]] = collections.defaultdict(list)
+    seen: dict[str, set[tuple[str, str]]] = collections.defaultdict(set)
+    aliases = build_elem_aliases(known_ids)
+
+    def add(elem_id: str, point: MapPoint) -> None:
+        if len(idx[elem_id]) >= 8:
+            return
+        key = (point.rel, point.func)
+        if key in seen[elem_id]:
+            return
+        seen[elem_id].add(key)
+        idx[elem_id].append(point)
+
+    for gf in IMPL:
+        for f in gf.funcs:
+            doc = doc_comment_above(gf, f.start)
+            doc_ids = expand_element_ids(doc, known_ids, aliases)
+            for eid in doc_ids:
+                if family_ok(eid, gf.rel):
+                    add(eid, MapPoint(gf.rel, f.name, 'doc', len(doc_ids)))
+            body_comments = [text for text, line in gf.comments if f.start <= line <= f.end]
+            if body_comments:
+                body_ids = expand_element_ids('\n'.join(body_comments), known_ids, aliases)
+                for eid in body_ids:
+                    if family_ok(eid, gf.rel):
+                        add(eid, MapPoint(gf.rel, f.name, 'body', len(body_ids)))
+
+    for elem_id, info in inv.items():
+        if elem_id not in known_ids:
+            continue
+        for sym in info.symbols:
+            hit = SYMBOL_INDEX.get(sym)
+            if not hit:
+                continue
+            rel, func, _line = hit
+            if func == '包级':
+                continue
+            if family_ok(elem_id, rel):
+                add(elem_id, MapPoint(rel, func, 'symbol'))
+
+    order = {'doc': 0, 'body': 1, 'symbol': 2}
+    for elem_id in idx:
+        idx[elem_id].sort(key=lambda p: (order.get(p.source, 3), p.span))
+    return dict(idx)
+
+
+# 函数体检索文本缓存：(rel, func) → (代码 + 字面量, 代码)。字符串已被 scan_go
+# 从代码行里抹掉，字面量另取，避免同一段文案被算两次。
+_FUNC_TEXT: dict[tuple[str, str], tuple[str, str]] = {}
+_MARK_HITS: dict[tuple[str, str, str], tuple[str, str]] = {}
+_ADJ_HITS: dict[tuple[str, str, str], str] = {}
+
+
+def func_text(gf: GoFile, name: str) -> tuple[str, str]:
+    key = (gf.rel, name)
+    cached = _FUNC_TEXT.get(key)
+    if cached is not None:
+        return cached
+    for f in gf.funcs:
+        if f.name != name:
+            continue
+        code = '\n'.join(gf.code_lines[f.start - 1:f.end])
+        lits = '\n'.join(c for c, line in gf.literals if f.start <= line <= f.end)
+        val = (code + '\n' + lits, code)
+        _FUNC_TEXT[key] = val
+        return val
+    _FUNC_TEXT[key] = ('', '')
+    return _FUNC_TEXT[key]
+
+
+def _content_marker(text: str) -> str:
+    lits = [ln.strip() for ln in text.splitlines() if CJK_RE.search(ln)]
+    if not lits:
+        return ''
+    shown = lits[0][:40]
+    if len(lits) > 1:
+        return f'文案「{shown}」等 {len(lits)} 条'
+    return f'文案「{shown}」'
+
+
+# 包级常量/变量的中文字面量：渲染函数通常只写 `Text(c, usCopyTitle)`，文案在常量里。
+_DECL_LITS: dict[str, dict[str, list[str]]] = {}
+
+
+def decl_literals(gf: GoFile) -> dict[str, list[str]]:
+    cached = _DECL_LITS.get(gf.rel)
+    if cached is not None:
+        return cached
+    out: dict[str, list[str]] = collections.defaultdict(list)
+    for content, line in gf.literals:
+        if not CJK_RE.search(content) or gf.func_at(line) != '包级':
+            continue
+        name = gf.func_or_decl_at(line)
+        if name == '包级':
+            continue
+        out[name].append(content.strip())
+    _DECL_LITS[gf.rel] = dict(out)
+    return _DECL_LITS[gf.rel]
+
+
+def content_marker(gf: GoFile, name: str) -> str:
+    """内容档：函数自己的字面量优先，再看它引用到的包级文案常量。"""
+    text, code = func_text(gf, name)
+    marker = _content_marker(text)
+    if marker:
+        return marker
+    lits = decl_literals(gf)
+    used = [t for t in dict.fromkeys(IDENT_RE.findall(code)) if t in lits]
+    extra = '\n'.join(lit for t in used for lit in lits[t][:3])
+    return _content_marker(extra)
+
+
+def marker_in_func(gf: GoFile, name: str, dim: str) -> tuple[str, str] | None:
+    """在函数体（含一跳被调函数）里找该维度的标记 → (标记, 命中函数)。"""
+    key = (gf.rel, name, dim)
+    cached = _MARK_HITS.get(key)
+    if cached is not None:
+        return cached if cached[0] else None
+    sql, _src = DIM_MARKERS.get(dim, (DIM_CONTENT, 'ext'))
+    text, code = func_text(gf, name)
+    found: tuple[str, str] | None = None
+    if text:
+        if sql == DIM_CONTENT:
+            marker = content_marker(gf, name)
+            if marker:
+                found = (marker, name)
+        else:
+            m = re.search(sql, text)
+            if m:
+                found = (m.group(0).strip(), name)
+        if found is None:
+            # 一跳：同包里被本函数调用的辅助函数（方法按裸函数名解析）
+            bare = name.split('.')[-1]
+            for callee in dict.fromkeys(CALL_RE.findall(code)):
+                if callee == bare:
+                    continue
+                target = resolve_callee(gf, callee)
+                if target is None:
+                    continue
+                cgf, cname = target
+                ctext, _ = func_text(cgf, cname)
+                if not ctext:
+                    continue
+                if sql == DIM_CONTENT:
+                    marker = content_marker(cgf, cname)
+                    if marker:
+                        found = (marker, cname)
+                        break
+                else:
+                    m = re.search(sql, ctext)
+                    if m:
+                        found = (m.group(0).strip(), cname)
+                        break
+    _MARK_HITS[key] = found or ('', '')
+    return found
+
+
+def adjacent_marker(gf: GoFile, name: str, dim: str) -> str:
+    """标记组之外、同维度的其它写法（只用于量「无标记」里的漏词）。"""
+    key = (gf.rel, name, dim)
+    cached = _ADJ_HITS.get(key)
+    if cached is not None:
+        return cached
+    sql = DIM_ADJACENT.get(dim)
+    if not sql:
+        _ADJ_HITS[key] = ''
+        return ''
+    text, code = func_text(gf, name)
+    hit = ''
+    if text:
+        m = re.search(sql, code)
+        if m:
+            hit = m.group(0)
+        else:
+            bare = name.split('.')[-1]
+            for callee in dict.fromkeys(CALL_RE.findall(code)):
+                if callee == bare:
+                    continue
+                target = resolve_callee(gf, callee)
+                if target is None:
+                    continue
+                ctext, _ = func_text(target[0], target[1])
+                m = re.search(sql, ctext) if ctext else None
+                if m:
+                    hit = f'{m.group(0)}@{target[1]}'
+                    break
+    _ADJ_HITS[key] = hit
+    return hit
+
+
+@dataclasses.dataclass
+class MapResult:
+
+    kind: str
+    text: str
+    point: MapPoint | None = None
+    marker: str = ''
+    marker_func: str = ''
+    note: str = ''
+
+
+def norm_dim(dim: str) -> str:
+    return re.split(r'[（(]', dim.strip())[0].strip()
+
+
+def judge_mapped(row: ReqRow, inv: dict[str, ElementInfo],
+                 index: dict[str, list[MapPoint]], first: Verdict) -> MapResult:
+    """第二轮：逐字 / 负向沿用第一轮证据，其余按元素映射 + 维度标记判。"""
+    if first.kind == NEG_LABEL:
+        return MapResult(MAP_NEG, first.text)
+    if first.kind == '逐字':
+        return MapResult('逐字', first.text, note='逐字')
+
+    dim = norm_dim(row.dim)
+    points = index.get(row.elem_id, [])
+    test_hint = ''
+    esc = TEST_INDEX.get(row.elem_id)
+    if esc:
+        test_hint = f'；测试提及 {esc[0]}:{esc[1]}'
+
+    if not points:
+        return MapResult(MAP_NO_POINT, f'未实现（找不到元素渲染点）{test_hint}')
+
+    for point in points:
+        gf = GO_BY_REL.get(point.rel)
+        if gf is None:
+            continue
+        hit = marker_in_func(gf, point.func, dim)
+        if hit:
+            marker, where = hit
+            via = '' if where == point.func else f'@{where}'
+            return MapResult(
+                MAP_HIT,
+                f'已实现（映射 = {row.elem_id}→{point.label()}；标记 = {marker}{via}）',
+                point=point, marker=marker, marker_func=where,
+            )
+
+    point = points[0]
+    return MapResult(
+        MAP_NO_MARK,
+        f'未实现（映射到位但没有该维度的标记）：{row.elem_id}→{point.label()}{test_hint}',
+        point=point,
+    )
+
+
 # ---------------------------------------------------------------- 写回
 
 def rewrite(path: Path, verdicts: dict[int, Verdict]) -> bool:
@@ -863,7 +1308,10 @@ def verify_sample(row: ReqRow, verdict: Verdict) -> tuple[bool, str]:
 
 
 def write_report(rows_by_file: dict[Path, list[ReqRow]],
-                 verdicts_by_file: dict[Path, dict[int, Verdict]]) -> None:
+                 verdicts_by_file: dict[Path, dict[int, Verdict]],
+                 map_by_file: dict[Path, dict[int, MapResult]],
+                 inv: dict[str, ElementInfo],
+                 render_index: dict[str, list[MapPoint]]) -> None:
     all_verdicts: list[Verdict] = []
     for rows in rows_by_file.values():
         all_verdicts.extend(verdicts_by_file[rows[0].path].values())
@@ -873,11 +1321,11 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
     lines.append('# 需求实现状态：机械对账报告')
     lines.append('')
     lines.append('Status: 对账报告（脚本生成，可重跑；`python3 scripts/reconcile.py`）')
-    lines.append('Scope: 四份需求表的全部条目（`docs/domains/requirements/requirements-*.md`），'
-                 '状态列由本报告写回')
+    lines.append('Scope: 四份需求表的全部条目（`docs/domains/requirements/requirements-*.md`）；'
+                 '状态列写回的是 §4「按元素映射判定」的结论，§1–§3 是第一轮记录')
     lines.append('Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与需求分析领域')
     lines.append('')
-    lines.append('## 0. 判定口径')
+    lines.append('## 0. 判定口径（第一轮：逐字/符号/测试）')
     lines.append('')
     lines.append('按顺序取第一个命中的证据：')
     lines.append('')
@@ -895,7 +1343,7 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
     lines.append('证据只写 `文件:函数`，不写行号；函数按顶层 `func` 与列 0 的 `}` 切分；'
                  '包级常量/变量记声明名，找不到声明名才写 `包级`。')
     lines.append('')
-    lines.append('## 1. 命中分布（每份）')
+    lines.append('## 1. 第一轮命中分布（每份；状态列已由 §4 覆盖）')
     lines.append('')
     lines.append('| 文件 | 总条数 | 逐字 | 弱 | 测试 | 需负向取证 | 未实现 | 逐字占比 | 未实现占比 |')
     lines.append('|---|---:|---:|---:|---:|---:|---:|---:|---:|')
@@ -919,7 +1367,7 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
                  f'{len(no_lit)} 条，其中判未实现 {len(no_lit_unimpl)} 条）；'
                  '这类条目只能靠元素符号/测试或界面取证，见 §3。')
     lines.append('')
-    lines.append('## 2. 随机 %d 条复核' % SAMPLE_SIZE)
+    lines.append('## 2. 第一轮随机 %d 条复核' % SAMPLE_SIZE)
     lines.append('')
     lines.append('抽样种子固定（`%d`），每份 10 条，优先覆盖「逐字」与「未实现」两档；'
                  '复核结论由脚本按证据反向核验，人工只需看标记为「有分歧」的条目。' % SAMPLE_SEED)
@@ -950,7 +1398,7 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
     lines.append(f'抽样复核：{SAMPLE_SIZE} 条中 {SAMPLE_SIZE - mismatch} 条与证据一致，'
                  f'{mismatch} 条标记有分歧。')
     lines.append('')
-    lines.append('## 3. 已知局限')
+    lines.append('## 3. 第一轮已知局限')
     lines.append('')
     lines.append('- **动态拼接文案**：期望列里带 `{}`、`…` 的字面量（如「已使用 {pct}%」'
                  '「已于 … 到期」）被跳过，无法逐字命中，只会落到弱/未实现。')
@@ -975,7 +1423,406 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
                  '证据写函数名而非行号，切错时函数名仍可用。')
     lines.append('- **只扫 `internal/**/*.go`**：`cmd/`、生成文件与前端资源不在扫描范围。')
     lines.append('')
+    append_map_section(lines, rows_by_file, verdicts_by_file, map_by_file, inv, render_index)
     REPORT.write_text('\n'.join(lines))
+
+
+# ---------------------------------------------------------------- 第二轮报告
+
+def load_map_reviews() -> dict[str, dict]:
+    """人工复核结论（requirement ID → {verdict, note}），没有该文件就留「待复核」。"""
+    if not MAP_REVIEW_FILE.exists():
+        return {}
+    try:
+        data = json.loads(MAP_REVIEW_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    reviews = data.get('reviews', {}) if isinstance(data, dict) else {}
+    return reviews if isinstance(reviews, dict) else {}
+
+
+def signal_list(gf: GoFile, name: str, limit: int = 8) -> str:
+    """函数体直接调用到的构件（`Text`、`TextColor` 这类），供人工复核时判断维度。"""
+    _text, code = func_text(gf, name)
+    names = list(dict.fromkeys(re.findall(r'\.([A-Z]\w+)\(', code)))
+    return ', '.join(names[:limit]) if names else '—'
+
+
+def pick_map_sample(rows: list[ReqRow], results: dict[int, MapResult],
+                    per_file: int = 10) -> list[ReqRow]:
+    """第二轮抽样：优先「映射到位但没有标记」，其次命中，最后无渲染点。"""
+    rng = random.Random(MAP_SAMPLE_SEED)
+    by_kind: dict[str, list[ReqRow]] = collections.defaultdict(list)
+    for row in rows:
+        by_kind[results[row.line_no].kind].append(row)
+    picked: list[ReqRow] = []
+    chosen: set[int] = set()
+    for kind, n in ((MAP_NO_MARK, 7), (MAP_HIT, 2), (MAP_NO_POINT, 1)):
+        pool = by_kind.get(kind, [])
+        for row in rng.sample(pool, min(n, len(pool))):
+            chosen.add(row.line_no)
+            picked.append(row)
+    rest = [r for r in rows if r.line_no not in chosen]
+    if len(picked) < per_file:
+        for row in rng.sample(rest, min(per_file - len(picked), len(rest))):
+            picked.append(row)
+    return picked
+
+
+_DIR_FUNCS: dict[str, dict[str, tuple[GoFile, str]]] = {}
+
+
+def resolve_callee(gf: GoFile, bare: str) -> tuple[GoFile, str] | None:
+    """按裸函数名解析被调函数（同目录、同包；方法名去掉接收者）。"""
+    d = gf.rel.rsplit('/', 1)[0] if '/' in gf.rel else ''
+    table = _DIR_FUNCS.get(d)
+    if table is None:
+        table = {}
+        for other in IMPL:
+            od = other.rel.rsplit('/', 1)[0] if '/' in other.rel else ''
+            if od != d:
+                continue
+            for f in other.funcs:
+                table.setdefault(f.name.split('.')[-1], (other, f.name))
+        _DIR_FUNCS[d] = table
+    return table.get(bare)
+
+
+def _lit_in_func(gf: GoFile, name: str, lit: str) -> bool:
+    text, code = func_text(gf, name)
+    if text and lit in text:
+        return True
+    lits = decl_literals(gf)
+    for ident in set(IDENT_RE.findall(code)):
+        for content in lits.get(ident, []):
+            if lit in content:
+                return True
+    return False
+
+
+def func_reaches_literal(gf: GoFile, name: str, lit: str) -> bool:
+    """函数体（含引用到的包级文案常量、一跳同包被调函数）里是否出现该字面量。"""
+    if _lit_in_func(gf, name, lit):
+        return True
+    _text, code = func_text(gf, name)
+    for callee in dict.fromkeys(CALL_RE.findall(code)):
+        if callee == name.split('.')[-1]:
+            continue
+        target = resolve_callee(gf, callee)
+        if target is None:
+            continue
+        if _lit_in_func(target[0], target[1], lit):
+            return True
+    return False
+
+
+def literal_mapping_state(row: ReqRow, first: Verdict,
+                          render_index: dict[str, list[MapPoint]]) -> str:
+    """逐字档的映射一致性：字面量是否落在该元素的映射函数体（含一跳）内。"""
+    points = render_index.get(row.elem_id, [])
+    if not points:
+        return 'unmapped'
+    ev = first.evidence
+    if not ev:
+        return 'inconsistent'
+    lit = ev[2]
+    for point in points:
+        gf = GO_BY_REL.get(point.rel)
+        if gf is None:
+            continue
+        if func_reaches_literal(gf, point.func, lit):
+            return 'consistent'
+    return 'inconsistent'
+
+
+# ---------------------------------------------------------------- 主流程
+
+def append_map_section(lines: list[str],
+                       rows_by_file: dict[Path, list[ReqRow]],
+                       verdicts_by_file: dict[Path, dict[int, Verdict]],
+                       map_by_file: dict[Path, dict[int, MapResult]],
+                       inv: dict[str, ElementInfo],
+                       render_index: dict[str, list[MapPoint]]) -> None:
+    all_rows = [row for rows in rows_by_file.values() for row in rows]
+    all_results = [map_by_file[row.path][row.line_no] for row in all_rows]
+    total = len(all_results)
+    counts = collections.Counter(r.kind for r in all_results)
+    judged = total - counts['逐字'] - counts[MAP_NEG]
+
+    lines.append('## 4. 第二轮：按元素映射判定')
+    lines.append('')
+    lines.append('第一轮把「期望列抽不出字面量」的叙述型需求压成「未实现」，那是下限，不是结论。'
+                 '第二轮改按**元素 → 渲染函数 → 维度标记**判。')
+    lines.append('')
+    lines.append('### 4.1 判定口径')
+    lines.append('')
+    lines.append('| 判定 | 条件 | 状态列写法 |')
+    lines.append('|---|---|---|')
+    lines.append('| 逐字 | 第一轮逐字命中（不重判） | 沿用 `已实现（逐字）：…` |')
+    lines.append('| 映射命中 | 元素映射到渲染函数，函数体内有该维度的标记 | '
+                 '`已实现（映射 = 元素→文件:函数；标记 = 标记）` |')
+    lines.append('| 映射到位无标记 | 映射到位，函数体内没有该维度的标记 | '
+                 '`未实现（映射到位但没有该维度的标记）：元素→文件:函数` |')
+    lines.append('| 无渲染点 | 元素 ID 在 `internal/**/*.go` 的注释里反查不到渲染函数 | '
+                 '`未实现（找不到元素渲染点）` |')
+    lines.append('| 负向 | 第一轮负向断言（不重判） | 沿用 `需负向取证：…` |')
+    lines.append('')
+    lines.append('映射来源（按优先级）：函数 doc 注释里的元素 ID（同一处注释覆盖的元素越少越优先）→ '
+                 '函数体内注释里的元素 ID → 清单 `symbol` 派生的 Go 标识符。注释里的 '
+                 '`S-account-02–07`、`S-account-10/11/13`、`TB-20–TB-30`、`S-about-01…18` '
+                 '按区间/并列展开，`A1-03` 这类短写还原成 `G-A1-03`，展开结果必须落在已知元素 ID 集合里。'
+                 '跨域误命中按元素族过滤：设置元素只认 `settings*.go`，单字母面板元素不认设置屏。')
+    lines.append('')
+    lines.append('函数体 = 去注释、去字符串的代码行 + 函数区间内的字符串字面量，'
+                 '并向下展开一跳同包（同目录）被调函数，方法按裸函数名解析'
+                 '（`a.rpGroup(` 能解析到 `App.rpGroup`）；命中记 `标记 = X@被调函数`。')
+    lines.append('')
+    lines.append('| 维度 | 标记组 | 来源 |')
+    lines.append('|---|---|---|')
+    for dim in sorted(DIM_MARKERS):
+        sql, src = DIM_MARKERS[dim]
+        shown = '函数内中文字面量' if sql == DIM_CONTENT else f'`{sql}`'
+        lines.append(f'| {dim} | {shown} | {"领导给定" if src == "primary" else "本轮补充"} |')
+    lines.append('')
+    lines.append('未列出的维度按「内容」判（函数内中文字面量）。八组之外的维度用补充标记组，'
+                 '因为需求里出现的维度只有一半落在八组内；记忆/持久化与异常两组按代码习惯写成'
+                 '大小写不敏感（`a.persistPreferences()`、`ErrMsg`），表里给的是实际正则。')
+    lines.append('')
+
+    lines.append('### 4.2 分布')
+    lines.append('')
+    lines.append('| 文件 | 总条数 | 逐字 | 映射命中 | 映射到位无标记 | 无渲染点 | 负向 | 映射命中占比 |')
+    lines.append('|---|---:|---:|---:|---:|---:|---:|---:|')
+    for path, rows in rows_by_file.items():
+        c = collections.Counter(map_by_file[path][r.line_no].kind for r in rows)
+        lines.append(
+            f'| `{path.name}` | {len(rows)} | {c["逐字"]} | {c[MAP_HIT]} | '
+            f'{c[MAP_NO_MARK]} | {c[MAP_NO_POINT]} | {c[MAP_NEG]} | '
+            f'{pct(c[MAP_HIT], len(rows))} |')
+    lines.append(
+        f'| **合计** | **{total}** | **{counts["逐字"]}** | **{counts[MAP_HIT]}** | '
+        f'**{counts[MAP_NO_MARK]}** | **{counts[MAP_NO_POINT]}** | **{counts[MAP_NEG]}** | '
+        f'**{pct(counts[MAP_HIT], total)}** |')
+    lines.append('')
+    mapped_rows = counts[MAP_HIT] + counts[MAP_NO_MARK]
+    lines.append(f'去掉逐字与负向后可判 {judged} 条：元素映射到位 {mapped_rows} 条'
+                 f'（{pct(mapped_rows, judged)}），其中缺该维度标记 {counts[MAP_NO_MARK]} 条；'
+                 f'找不到渲染点 {counts[MAP_NO_POINT]} 条（{pct(counts[MAP_NO_POINT], judged)}）。')
+    lines.append('')
+    lines.append('「无渲染点」是映射的缺口，不是实现的结论：元素 ID 没在 Go 注释里标注，'
+                 '就查不到渲染函数。按域看元素映射覆盖率：')
+    lines.append('')
+    lines.append('| 文件 | 元素数 | 有渲染点 | 覆盖率 |')
+    lines.append('|---|---:|---:|---:|')
+    for path, rows in rows_by_file.items():
+        ids = {r.elem_id for r in rows}
+        mapped = sum(1 for e in ids if e in render_index)
+        lines.append(f'| `{path.name}` | {len(ids)} | {mapped} | {pct(mapped, len(ids))} |')
+    lines.append('')
+    miss_groups: collections.Counter = collections.Counter()
+    for row in all_rows:
+        if row.elem_id in render_index:
+            continue
+        parts = row.elem_id.split('-')
+        head = '-'.join(parts[:2]) if parts[0] in ('S', 'G') and len(parts) >= 3 else parts[0]
+        miss_groups[head] += 1
+    if miss_groups:
+        top = '、'.join(f'`{k}` {n} 条' for k, n in miss_groups.most_common(8))
+        lines.append(f'缺标注最多的元素族（按条数）：{top}。')
+        lines.append('')
+
+    lines.append('### 4.3 按维度')
+    lines.append('')
+    lines.append('| 维度 | 条数 | 逐字 | 映射命中 | 映射到位无标记 | 无渲染点 | 负向 | 标记组来源 |')
+    lines.append('|---|---:|---:|---:|---:|---:|---:|---|')
+    dim_counts: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+    for row, result in zip(all_rows, all_results):
+        dim_counts[norm_dim(row.dim)][result.kind] += 1
+    for dim, c in sorted(dim_counts.items(), key=lambda kv: -sum(kv[1].values())):
+        _sql, src = DIM_MARKERS.get(dim, (DIM_CONTENT, 'none'))
+        source = '领导给定' if src == 'primary' else ('本轮补充' if src == 'ext' else '未定义（按内容）')
+        lines.append(f'| {dim} | {sum(c.values())} | {c["逐字"]} | {c[MAP_HIT]} | '
+                     f'{c[MAP_NO_MARK]} | {c[MAP_NO_POINT]} | {c[MAP_NEG]} | {source} |')
+    lines.append('')
+    lines.append('**横向维度的实现层级在元素函数之上**：窄窗、深色、记忆、高 DPI、键盘、动画这一类，'
+                 '代码把判定放在屏根 / `App` / 主题层（如 `isCompact(width)`、`persistViewState`、'
+                 '主题 token），元素函数本身不出现标记。这些维度的「映射到位但没有标记」'
+                 '多数是层级问题，不是元素没实现；要取证得看屏根函数或界面实拍。')
+    lines.append('')
+
+    lines.append('### 4.4 逐字档的映射一致性')
+    lines.append('')
+    cons = collections.Counter()
+    inconsistent: list[tuple[ReqRow, Verdict]] = []
+    for path, rows in rows_by_file.items():
+        for row in rows:
+            first = verdicts_by_file[path][row.line_no]
+            if first.kind != '逐字':
+                continue
+            state = literal_mapping_state(row, first, render_index)
+            cons[state] += 1
+            if state == 'inconsistent':
+                inconsistent.append((row, first))
+    lines.append(f'逐字 {sum(cons.values())} 条中：字面量落在元素映射函数内 {cons["consistent"]} 条；'
+                 f'元素有映射但字面量不在映射函数内 {cons["inconsistent"]} 条；'
+                 f'元素没有映射点 {cons["unmapped"]} 条。')
+    lines.append('')
+    if inconsistent:
+        lines.append('映射不一致的前 10 条（逐字证据可能指错实现点）：')
+        lines.append('')
+        lines.append('| 需求 ID | 元素 ID | 逐字证据 | 元素映射 |')
+        lines.append('|---|---|---|---|')
+        for row, first in inconsistent[:10]:
+            ev = first.evidence or ('—', '—', '—')
+            point = render_index.get(row.elem_id, [None])[0]
+            where = point.label() if point else '—（无映射点）'
+            lines.append(f'| {row.req_id} | {row.elem_id} | `{ev[0]}:{ev[1]}`「{ev[2]}」 | `{where}` |')
+        lines.append('')
+
+    append_map_review(lines, rows_by_file, map_by_file, inv, render_index)
+
+
+def append_map_review(lines: list[str],
+                      rows_by_file: dict[Path, list[ReqRow]],
+                      map_by_file: dict[Path, dict[int, MapResult]],
+                      inv: dict[str, ElementInfo],
+                      render_index: dict[str, list[MapPoint]]) -> None:
+    reviews = load_map_reviews()
+    all_rows = [row for rows in rows_by_file.values() for row in rows]
+    all_results = [map_by_file[row.path][row.line_no] for row in all_rows]
+    lines.append('### 4.5 随机 %d 条复核（重点：映射到位但没有标记）' % SAMPLE_SIZE)
+    lines.append('')
+    lines.append(f'抽样种子 `{MAP_SAMPLE_SEED}`，每份 10 条 = 7 条「映射到位无标记」+ 2 条「映射命中」'
+                 '+ 1 条「无渲染点」。人工结论存 `scripts/reconcile-review-mapping.json`'
+                 '（需求 ID → 结论），脚本重跑时自动带出；「函数体信号」是该函数直接调用到的构件。')
+    lines.append('')
+    agree = reviewed = 0
+    cat_count: collections.Counter = collections.Counter()
+    per_file = SAMPLE_SIZE // len(rows_by_file)
+    for path, rows in rows_by_file.items():
+        sample = pick_map_sample(rows, map_by_file[path], per_file)
+        lines.append(f'#### {path.name}')
+        lines.append('')
+        lines.append('| 需求 ID | 元素 ID | 维度 | 判定 | 映射 | 函数体信号 | 人工复核 |')
+        lines.append('|---|---|---|---|---|---|---|')
+        for row in sample:
+            result = map_by_file[path][row.line_no]
+            where = f'`{result.point.label()}`' if result.point else '—'
+            if result.marker:
+                where += f' 标记 {result.marker}'
+            if result.point:
+                gf = GO_BY_REL.get(result.point.rel)
+                signals = signal_list(gf, result.point.func) if gf else '—'
+            else:
+                signals = '—'
+            note = reviews.get(row.req_id)
+            if note:
+                reviewed += 1
+                cat = note.get('category', '')
+                verdict = note.get('verdict', '?')
+                if verdict == '确认':
+                    agree += 1
+                if cat:
+                    cat_count[cat] += 1
+                mark = f'{verdict}（{cat}）：{note.get("note", "")}' if cat else \
+                    f'{verdict}：{note.get("note", "")}'
+            else:
+                mark = '待复核'
+            lines.append(f'| {row.req_id} | {row.elem_id} | {norm_dim(row.dim)} | {result.kind} | '
+                         f'{where} | {signals} | {mark} |')
+        lines.append('')
+    if reviewed:
+        lines.append(f'人工复核 {reviewed} 条：与机器判定一致 {agree} 条，有分歧 {reviewed - agree} 条。'
+                     + ('分歧构成：' + '、'.join(f'{k} {n}' for k, n in cat_count.most_common()) + '。'
+                        if cat_count else ''))
+    else:
+        lines.append('人工复核：待填（`scripts/reconcile-review-mapping.json` 未提供或未命中抽样）。')
+    lines.append('')
+
+    lines.append('### 4.6 「缺标记」里有多少是标记组漏词')
+    lines.append('')
+    lines.append('对「映射到位但没有该维度的标记」的条目，再查一遍同维度在 mygo 里的其它写法'
+                 '（`DIM_ADJACENT`，只作参考、不改判定）。这类条目更像标记组不够宽，不像元素缺实现。')
+    lines.append('')
+    leak: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+    examples: dict[str, str] = {}
+    for row, result in zip(all_rows, all_results):
+        if result.kind != MAP_NO_MARK or result.point is None:
+            continue
+        gf = GO_BY_REL.get(result.point.rel)
+        if gf is None:
+            continue
+        dim = norm_dim(row.dim)
+        hit = adjacent_marker(gf, result.point.func, dim)
+        if not hit:
+            continue
+        leak[dim]['漏词'] += 1
+        examples.setdefault(dim, f'{row.req_id} `{hit}`')
+    lines.append('| 维度 | 缺标记条数 | 其中函数体有同类写法 | 例子 |')
+    lines.append('|---|---:|---:|---|')
+    dim_counts: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+    for row in all_rows:
+        dim_counts[norm_dim(row.dim)][map_by_file[row.path][row.line_no].kind] += 1
+    for dim, c in sorted(dim_counts.items(), key=lambda kv: -kv[1][MAP_NO_MARK]):
+        miss = c[MAP_NO_MARK]
+        if not miss:
+            continue
+        n = leak.get(dim, collections.Counter())['漏词']
+        lines.append(f'| {dim} | {miss} | {n}（{pct(n, miss)}） | {examples.get(dim, "—")} |')
+    lines.append('')
+
+    lines.append('### 4.7 最该先修的 10 个「映射到位但缺标记」元素')
+    lines.append('')
+    lines.append('排序用「真缺」＝映射到位、缺该维度的标记，且函数体里连同维度的其它写法'
+                 '（§4.6 的 `DIM_ADJACENT`）也没有；「缺标记条数」是全量。'
+                 '维度缺口列是该元素缺标记的维度构成（按条数）。')
+    lines.append('')
+    miss_by_elem: dict[str, collections.Counter] = collections.defaultdict(collections.Counter)
+    real_by_elem: collections.Counter = collections.Counter()
+    rows_by_elem: collections.Counter = collections.Counter()
+    for row in all_rows:
+        result = map_by_file[row.path][row.line_no]
+        rows_by_elem[row.elem_id] += 1
+        if result.kind != MAP_NO_MARK or result.point is None:
+            continue
+        dim = norm_dim(row.dim)
+        miss_by_elem[row.elem_id][dim] += 1
+        gf = GO_BY_REL.get(result.point.rel)
+        if gf is not None and not adjacent_marker(gf, result.point.func, dim):
+            real_by_elem[row.elem_id] += 1
+    ranked = sorted(real_by_elem.items(), key=lambda kv: (-kv[1], kv[0]))[:10]
+    lines.append('| # | 元素 ID | 名称 | 真缺条数 | 缺标记条数 | 覆盖需求 | 维度缺口 | 映射点 |')
+    lines.append('|---:|---|---|---:|---:|---:|---|---|')
+    for i, (elem_id, real) in enumerate(ranked, start=1):
+        c = miss_by_elem.get(elem_id, collections.Counter())
+        info = inv.get(elem_id)
+        name = (info.name if info else '')[:24] or '—'
+        dims = '、'.join(f'{d} {n}' for d, n in c.most_common(4))
+        point = render_index.get(elem_id, [None])[0]
+        where = f'`{point.label()}`' if point else '—'
+        lines.append(f'| {i} | {elem_id} | {name} | {real} | {sum(c.values())} | '
+                     f'{rows_by_elem[elem_id]} | {dims} | {where} |')
+    lines.append('')
+
+    lines.append('### 4.8 第二轮已知局限')
+    lines.append('')
+    lines.append('- **映射靠注释**：清单没有 `symbol` 列，映射实际依赖 Go 注释里的元素 ID；'
+                 '注释没写的元素一律「无渲染点」，那是缺映射，不等于缺实现。')
+    lines.append('- **一处注释覆盖多元素**：`S-account-02–07` 这类区间把整段元素挂到同一函数，'
+                 '函数里的标记会算到区间内每个元素头上。')
+    lines.append('- **「内容」几乎必命中**：渲染函数里只要有一个中文字面量就算命中，'
+                 '所以内容档的「映射命中」只说明有文案，不说明是本元素那句。')
+    lines.append('- **`err` 标记过宽**：异常档的 `(?i)err` 会匹配 `error`/`ErrMsg` 一类通用名字，'
+                 '异常档命中偏松；异常档缺标记反而更可信。')
+    lines.append('- **标记组窄于实现词汇**：样式档只认 `TextColor|Radius|Padding|Width|Height|Font|Type`，'
+                 '用 `Background`/`BorderColor`/`Opacity`/`Gap`/`AlignItems` 写的样式会被判「无标记」。')
+    lines.append('- **只展开一跳**：被调函数再往下调用的辅助函数不查，深层复用的标记会漏。')
+    lines.append('- **横向维度按元素函数查**：窄窗 / 深色 / 记忆 / 高 DPI / 键盘的实现层级在屏根与主题层，'
+                 '这类「映射到位但缺标记」不能当作元素缺陷读。')
+    lines.append('- **按维度判，不看数值**：命中只说明函数里出现过该类标记，'
+                 '不证明取值等于期望（字号、间距、颜色仍要界面取证）。')
+    lines.append('- **逐字档不重判**：第一轮逐字证据可能指错实现点（§4.4 给了不一致条数与样例）。')
+    lines.append('')
 
 
 # ---------------------------------------------------------------- 主流程
@@ -989,19 +1836,21 @@ TEST_RAW_HITS: dict[str, list[tuple[str, str, int]]] = {}
 SYMBOL_INDEX: dict[str, tuple[str, str, int]] = {}
 ELEM_COMMENT_INDEX: dict[str, tuple[str, str, int]] = {}
 TEST_INDEX: dict[str, tuple[str, str]] = {}
+GO_BY_REL: dict[str, GoFile] = {}
 
 
 def main() -> int:
     global IMPL, TESTS, LITERAL_HITS, RAW_HITS, TEST_LITERAL_HITS, TEST_RAW_HITS, \
-        SYMBOL_INDEX, ELEM_COMMENT_INDEX, TEST_INDEX
+        SYMBOL_INDEX, ELEM_COMMENT_INDEX, TEST_INDEX, GO_BY_REL
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--dry-run', action='store_true', help='只打印分布，不改文件')
     args = ap.parse_args()
 
-    IMPL, TESTS = [], []
+    IMPL, TESTS, GO_BY_REL = [], [], {}
     for path in sorted(GO_DIR.rglob('*.go')):
         rel = path.relative_to(ROOT).as_posix()
         gf = scan_go(path, rel)
+        GO_BY_REL[rel] = gf
         (TESTS if path.name.endswith('_test.go') else IMPL).append(gf)
 
     rows_by_file: dict[Path, list[ReqRow]] = {}
@@ -1021,21 +1870,28 @@ def main() -> int:
     known_ids = {row.elem_id for rows in rows_by_file.values() for row in rows} | set(inv)
     ELEM_COMMENT_INDEX = build_element_comment_index(known_ids)
     TEST_INDEX = build_test_index()
+    RENDER_INDEX = build_element_render_index(inv, known_ids)
+    print(f'元素映射：{len(RENDER_INDEX)} 个元素有渲染点（已知元素 {len(known_ids)} 个）')
 
     verdicts_by_file: dict[Path, dict[int, Verdict]] = {}
+    map_by_file: dict[Path, dict[int, MapResult]] = {}
     for path, rows in rows_by_file.items():
         verdicts_by_file[path] = {row.line_no: judge(row, inv) for row in rows}
-        counts = collections.Counter(v.kind for v in verdicts_by_file[path].values())
+        map_by_file[path] = {row.line_no: judge_mapped(row, inv, RENDER_INDEX, verdicts_by_file[path][row.line_no])
+                             for row in rows}
+        counts = collections.Counter(v.kind for v in map_by_file[path].values())
         print(f'{path.name}: {len(rows)} 条  ' + '  '.join(
-            f'{k}={counts.get(k, 0)}' for k in VERDICT_ORDER if counts.get(k)))
+            f'{k}={counts.get(k, 0)}' for k in MAP_BUCKETS if counts.get(k)))
         if not args.dry_run:
-            changed = rewrite(path, verdicts_by_file[path])
+            changed = rewrite(path, {
+                ln: Verdict(kind=r.kind, text=r.text) for ln, r in map_by_file[path].items()
+            })
             print(f'  状态列{"已写回" if changed else "无变化"}')
 
     if args.dry_run:
         return 0
 
-    write_report(rows_by_file, verdicts_by_file)
+    write_report(rows_by_file, verdicts_by_file, map_by_file, inv, RENDER_INDEX)
     print(f'报告：{REPORT.relative_to(ROOT)}')
     return 0
 
