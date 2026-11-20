@@ -38,6 +38,9 @@ const (
 	// 目录没有未读与星标字段，本端不拿本地状态冒充服务端事实。
 	noteUnreadFact = "会话目录没有未读状态"
 	noteStarFact   = "会话目录没有星标状态"
+	// noteAgentNoWrite 用于状态条的 Agent 配置选择器：清单读到了，但会话没有声明
+	// session.agent.update 或本端没有写通道。
+	noteAgentNoWrite = "当前会话不能切换 Agent 配置"
 	// notePluginWrite 用于插件设置的保存与重新加载。技术口径：协议没有插件设置
 	// 写入方法。
 	notePluginWrite = "当前版本不支持保存插件设置"

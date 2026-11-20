@@ -608,7 +608,7 @@ func (a *App) sessionHoverCard(c *gui.Context, anchor gui.Element, index int, na
 			// LB-81 分支：只有当前会话有事实时才画。
 			if branch != "" {
 				gui.Row(c).Gap(space1).AlignItems(gui.Center).
-					Label("分支：" + branch).Children(func() {
+					Label("所在分支：" + branch).Children(func() {
 					iconGlyphSize(c, iconBranch, sidebarObjectIcon, t.TextMuted, "branch")
 					typeMicro.style(t, gui.Text(c, branch)).TextColor(t.TextMuted).SingleLine()
 				})

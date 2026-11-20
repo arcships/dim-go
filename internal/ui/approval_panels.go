@@ -80,6 +80,8 @@ const (
 	approvalInputMaxHeight = 240
 	// approvalCodeMaxHeight 是代码块的最高高度：比输入区块再矮一档，给标签留位。
 	approvalCodeMaxHeight = 180
+	// approvalDiffMaxHeight 是差异单栏的最高高度：两栏各自滚动，不互相撑高。
+	approvalDiffMaxHeight = 180
 	// approvalTodoMaxLines 是待办清单一次最多画几行（参考产品 DETAIL_LINE_MAX 同量级）。
 	approvalTodoMaxLines = 12
 	// approvalImageThumb 是图片缩略图的边长。
@@ -787,10 +789,11 @@ func approvalRemainingLines(input map[string]any, skip map[string]bool) []string
 
 // ---- 画 ----
 
-// approvalInputPanel 画输入区块：描边 + 卡面 + 标签 + 正文，超过最高高度时内部
-// 滚动。整块只读，不进 Tab 顺序。
+// approvalInputPanel 画输入区块：描边 + 卡面 + 标签 + 正文；内容超出时双向滚动
+// （长命令行横向滚，不折成一团）。整块只读，不进 Tab 顺序。key 用请求标识：
+// 换请求 / 切会话时滚动位置回顶，同一请求内的重绘不跳（R-AP-378）。
 // G-C4-01 审批输入区容器
-func approvalInputPanel(c *gui.Context, panel approvalPanelContent) {
+func approvalInputPanel(c *gui.Context, key string, panel approvalPanelContent) {
 	if panel.empty() && panel.Label == "" {
 		return
 	}
@@ -798,7 +801,7 @@ func approvalInputPanel(c *gui.Context, panel approvalPanelContent) {
 	gui.Column(c).WidthPercent(100).Shrink(0).MaxHeight(approvalInputMaxHeight).
 		Background(t.Surface).Border(strokeHairline, t.Border).Radius(radiusCard).
 		Label("审批输入：" + panel.Label).Children(func() {
-		gui.Scroll(c).Shrink(0).Children(func() {
+		gui.ScrollBoth(c).Key("approval-input:" + key).Shrink(0).Children(func() {
 			gui.Column(c).Padding(space2, space3).Gap(space1).Children(func() {
 				approvalPanelLabel(c, panel)
 				approvalPanelBody(c, panel)
@@ -819,8 +822,10 @@ func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 		if panel.FaviconHost != "" {
 			siteBadge(c, panel.FaviconHost, approvalFaviconSize)
 		}
-		// G-C4-02 输入区标签（命令类是「输入」）
-		label := typeMicro.style(t, gui.Text(c, panel.Label)).TextColor(t.TextMuted).SingleLine()
+		// G-C4-02 输入区标签（命令类是「输入」）；超长标签单行截断，完整值在
+		// tooltip 里（R-AP-423 / R-AP-506）。
+		label := typeMicro.style(t, gui.Text(c, panel.Label)).TextColor(t.TextMuted).
+			SingleLine().Tooltip(panel.Label)
 		if panel.Renderer == approvalRendererGeneric {
 			// 通用渲染器的标签是工具名，取等宽（参考 GenericApprovalPanel 的字面量）。
 			label.Font(codeFamily())
@@ -891,12 +896,13 @@ func approvalHeadRow(c *gui.Context, head approvalHead) {
 	})
 }
 
-// approvalCodeBlock 画只读代码块：等宽、卡面、最高 180 后内部滚动；可选行号列。
+// approvalCodeBlock 画只读代码块：等宽、卡面、最高 180；长行横向滚动、长内容
+// 纵向滚动（R-AP-381 / R-AP-450 / R-AP-587）；可选行号列。
 func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
 	t := c.Theme()
 	gui.Column(c).WidthPercent(100).Shrink(0).MaxHeight(approvalCodeMaxHeight).
 		Radius(radiusSmall).Background(t.SurfacePressed).Children(func() {
-		gui.Scroll(c).Shrink(0).Children(func() {
+		gui.ScrollBoth(c).Shrink(0).Children(func() {
 			gui.Column(c).Padding(space1, space2).Gap(0).Children(func() {
 				for index, line := range strings.Split(code, "\n") {
 					gui.Row(c).Gap(space2).AlignItems(gui.Start).Children(func() {
@@ -939,21 +945,24 @@ func approvalLineCount(text string) int {
 	return len(strings.Split(text, "\n"))
 }
 
-// approvalDiffColumn 画差异的一栏：行首一条色条 + 等宽文本。
+// approvalDiffColumn 画差异的一栏：行首一条色条 + 等宽文本。每栏独立双向滚动
+// （R-AP-433：各栏内部纵向滚动、长行横向滚动），两栏不互相撑高。
 func approvalDiffColumn(c *gui.Context, text string, rows int, color gui.Color) {
 	t := c.Theme()
 	lines := strings.Split(text, "\n")
 	gui.Row(c).Grow(1).Shrink(1).Gap(space1).AlignItems(gui.Stretch).Children(func() {
 		bar := gui.Box(c).Width(strokeMarker).Shrink(0).Label("差异标记").AccessHidden(true)
 		bar.DrawOver(func(p *gui.Painter, r gui.Rect) { p.Fill(r, color, 0) })
-		gui.Column(c).Grow(1).Shrink(1).Gap(0).Children(func() {
-			for index := 0; index < rows; index++ {
-				line := ""
-				if index < len(lines) {
-					line = lines[index]
+		gui.ScrollBoth(c).Grow(1).Shrink(1).MaxHeight(approvalDiffMaxHeight).Children(func() {
+			gui.Column(c).Gap(0).Children(func() {
+				for index := 0; index < rows; index++ {
+					line := ""
+					if index < len(lines) {
+						line = lines[index]
+					}
+					typeCode.style(t, gui.Text(c, line)).TextColor(t.Text)
 				}
-				typeCode.style(t, gui.Text(c, line)).TextColor(t.Text)
-			}
+			})
 		})
 	})
 }

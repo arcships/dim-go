@@ -29,6 +29,8 @@ const (
 	questionCopyCustomOptHint = "每行输入一个自定义值"
 	questionCopyFreeform      = "每行输入一个值"
 	questionCopyRequired      = "请先回答所有必填问题"
+	// questionCopyPending 是收起态状态行的未答文案（G-D1-05）。
+	questionCopyPending = "待选择"
 	// questionCopyNoItems 是空清单时的原因：提问请求在，却没有可作答的内容。
 	questionCopyNoItems = "这条提问没有可作答的内容"
 	// questionCopyStale 是已经答过 / 已经结算的提问再提交时的原因。
@@ -227,6 +229,36 @@ func (a *App) questionHead(c *gui.Context, snap QuestionSnapshot, items []Questi
 			q.collapsed = !q.collapsed
 		}
 	})
+	if q.collapsed {
+		a.questionCollapsedStatus(c, items[q.index])
+	}
+}
+
+// questionCollapsedStatus 是收起态的状态行（G-D1-05）：未答写「待选择」或
+// 「待选择 · N 个选项」，已答单值写「已选：{answer}」，多值写「已选 N 项」。
+// 文案只读当前题，不把整批的进度混进来；超长单行截断，完整值在 tooltip 里。
+func (a *App) questionCollapsedStatus(c *gui.Context, item QuestionItemSnapshot) {
+	t := c.Theme()
+	q := &a.question
+	answer := q.answerAt(q.index, item)
+	text := questionCopyPending
+	enabledOptions := len(item.Options)
+	if enabledOptions > 0 {
+		enabledOptions = len(q.filteredOptions(item))
+	}
+	switch {
+	case answer == "" && enabledOptions > 0:
+		text = fmt.Sprintf("待选择 · %d 个选项", enabledOptions)
+	case answer == "":
+		text = questionCopyPending
+	case item.Multiple:
+		text = fmt.Sprintf("已选 %d 项", len(questionLines(answer)))
+	default:
+		text = "已选：" + answer
+	}
+	// G-D1-05 收起态状态行
+	typeMicro.style(t, gui.Text(c, text)).TextColor(t.TextMuted).SingleLine().
+		Label(text).Tooltip(text).Role(gui.RoleStatus)
 }
 
 // questionCollapseButton 是头上的「收起 / 展开」文字小按钮：12px 次要色、无边框，

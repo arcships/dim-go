@@ -276,6 +276,13 @@ func (a *App) confirmDialog(c *gui.Context) {
 	if a.confirm.kind == confirmKindNone {
 		return
 	}
+	// 键盘：Esc 等同「取消」（不执行）；执行中不关闭。Enter 交给默认焦点按钮——
+	// 危险动作的默认焦点在「取消」，回车不会替用户按下删除（R-GC-019 / R-GC-060 /
+	// R-GC-110 / R-GC-161）。
+	if !a.confirm.busy && c.Shortcut(0, gui.KeyEscape) {
+		a.confirm = confirmState{}
+		return
+	}
 	t := c.Theme()
 	open := true
 	kind := a.confirm.kind
@@ -343,6 +350,7 @@ func (a *App) confirmPathRow(c *gui.Context) {
 	if path == "" {
 		return
 	}
+	// G-E4-03 工作区路径行
 	typeSecondary.style(t, gui.Text(c, path)).TextColor(t.TextMuted).Selectable().
 		Label("工作区路径：" + path)
 }

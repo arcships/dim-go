@@ -544,6 +544,8 @@ type App struct {
 	permissionOpen    bool
 	permissionArmOpen bool
 	permissionArmAck  bool
+	// agentMenuOpen 是状态条「Agent 配置」选择器的开合（SB-08）。
+	agentMenuOpen     bool
 	statusBranchOpen  bool
 	statusBranchQuery string
 	chatMenuOpen      bool

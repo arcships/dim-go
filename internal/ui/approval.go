@@ -201,7 +201,7 @@ func (a *App) toolApprovalBody(c *gui.Context, snap ApprovalSnapshot) {
 		switch {
 		case hasInput:
 			// IN-69 / G-C1-13 审批输入区（按工具类型挑面板）
-			approvalInputPanel(c, approvalPanelFor(tool, input))
+			approvalInputPanel(c, snap.ID, approvalPanelFor(tool, input))
 		case tool == "":
 			// G-C1-08 / G-C1-09 读不到原始操作时的原因句
 			typeMicro.style(t, gui.Text(c, noteApprovalCommand)).TextColor(t.TextMuted)

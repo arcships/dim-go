@@ -401,7 +401,9 @@ func lintDividerAllowlist(files []string) []lintFinding {
 		"approval_panels.go": 1,
 		"icons.go":           1, // 审批的次按钮（一直允许 / 拒绝）：落在卡面上，需要一条轮廓
 		"header.go":          3, // 打开方式组的左边框、组内分隔线、⋯ 菜单的分隔线
-		"sidebar.go":         1, // 框架 Divider：入口区与会话列表两个模块
+		// 框架 Divider：入口区与会话列表两个模块；悬停卡是压在列表上的浮层，
+		// 一圈 1px 描边与下方行分开（LB-79 的「白底/深底 + 阴影 + 圆角」）。
+		"sidebar.go": 2,
 		// 命令面板：浮在整窗之上的模态面，需要一圈描边与下方内容分开（U2 §8、UI-18）。
 		"command_palette.go": 1,
 		// 会话内搜索浮层：压在标题栏与时间线之上的浮层，一圈描边与下方内容

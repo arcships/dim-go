@@ -66,6 +66,12 @@ func (s *Session) Settings() ui.SettingsSnapshot { return s.App.settingsFor(s.ID
 
 func (s *Session) Terminal() ui.TerminalSnapshot { return s.App.terminalFor(s.ID()) }
 
+func (s *Session) AgentConfig() ui.AgentConfigSnapshot { return s.App.agentConfigFor(s.ID()) }
+
+func (s *Session) SelectAgent(ctx context.Context, agentID, expected string) error {
+	return s.App.selectAgentFor(ctx, s.ID(), agentID, expected)
+}
+
 func (s *Session) Changes(request ui.ChangesRequest) ui.ChangeSet {
 	return s.App.changesFor(request, s.ID())
 }

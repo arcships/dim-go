@@ -242,6 +242,12 @@ func (a *App) exportPanel(c *gui.Context) {
 	content := a.exportContent(selected, branch)
 	name := a.exportName()
 
+	// 键盘：Esc 等同「取消」。导出进行中不关闭，留给在途写入回执（R-GF-126）。
+	if !st.busy && c.Shortcut(0, gui.KeyEscape) {
+		a.closeExportPanel()
+		return
+	}
+
 	open := true
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space2).Width(accDialogWidth(c)).

@@ -888,15 +888,14 @@ func (a *App) sessionSearchInputRow(c *gui.Context) {
 	s := &a.sessionSearch
 	gui.Row(c).Shrink(0).Height(sessionSearchInputHeight).
 		Padding(space1, space3).Gap(space2).AlignItems(gui.Center).Children(func() {
-		// 放大镜 20px，不是按钮：点它等于点输入框（R-GS-011、R-GS-014）；
-		// 不设可读名，不单独播报（R-GS-015）；放大镜常驻，不因空查询隐藏（R-GS-018）。
+		// G-A1-02a 输入框左端的放大镜（20px，空查询也常驻）
 		gui.Row(c).Shrink(0).Width(iconBlock).Height(iconBlock).Center().
 			OnClick(func() { s.focus = true }).Children(func() {
 			iconGlyphSize(c, iconSearch, iconBlock, t.TextMuted, "search")
 		})
 		// 输入框以 textbox 语义暴露，名称取 Label（不是 placeholder）；Label 只作
 		// 可读名，不进可见文本（R-GS-042、R-GS-044）。
-		// TB-07 搜索聊天...
+		// TB-07 / G-A1-04 搜索聊天...
 		input := gui.TextInputBase(c, &s.query).
 			Placeholder(sessionSearchPlaceholder).Label(sessionSearchLabel).Grow(1).
 			FontSize(typeBody.sizeIn(t)).TextColor(t.Text).
@@ -925,6 +924,7 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 	t := c.Theme()
 	s := &a.sessionSearch
 	gui.Box(c).Shrink(0).Height(strokeHairline).Background(t.Border)
+	// G-A1-06 结果行（36px，上边框）：左按钮组、右结果计数
 	gui.Row(c).Shrink(0).Height(sessionSearchResultHeight).
 		Padding(space1, space3).Gap(space1).AlignItems(gui.Center).
 		Label("搜索结果").Role(gui.RoleGroup).Children(func() {
@@ -962,7 +962,7 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 			typeMicro.style(t, gui.Text(c, partialHistoryNote)).TextColor(t.TextMuted).
 				Label(partialHistoryNote).SingleLine()
 		}
-		// TB-11 / TB-12 结果计数（0 个结果 / {current} / {total} 个结果）
+		// TB-11 / TB-12 / G-A1-09 结果计数（0 个结果 / {current} / {total} 个结果）
 		count := "0 个结果"
 		if n := len(s.hits); n > 0 {
 			count = fmt.Sprintf("%d / %d 个结果", s.current+1, n)

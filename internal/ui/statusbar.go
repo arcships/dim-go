@@ -20,6 +20,8 @@ const (
 	statusUsageBarH     = 3
 	statusUsageMenuW    = 260
 	statusBranchMenuW   = 220
+	// statusAgentMenuW 是 Agent 配置菜单的宽（配置名 + 默认标记）。
+	statusAgentMenuW = 220
 	// permissionDialogW 是完全放开确认框的宽（参考 sm:max-w-md = 448）。
 	permissionDialogW = 448
 )
@@ -32,6 +34,8 @@ func (a *App) statusBar(c *gui.Context) {
 			// SB-01 状态条容器
 			Label("状态条").Children(func() {
 			a.statusPermission(c)
+			// SB-08 Agent 配置选择器（该会话提供多套配置时才出现）
+			a.statusAgent(c)
 			branch, _, _ := a.branchState()
 			if branch != "" && branch != "main" {
 				a.statusBranch(c)
@@ -71,6 +75,102 @@ func (a *App) statusPermission(c *gui.Context) {
 				a.choosePermission(level.label)
 			}
 		}
+	})
+}
+
+// statusAgent 是状态条里的「Agent 配置」选择器（SB-08）：该会话提供多套 agent
+// 档案时才出现，位置在权限按钮右侧。读数来自 Source.AgentConfig（agent.list +
+// session.agent.get）；切换走 Intents.SelectAgent，带切换前读到的标识做前置条件。
+//
+// 只有一套配置时按参考产品不显示（SB-08 的条件）；读不到清单时也不显示，不画
+// 一个永远加载的按钮。
+func (a *App) statusAgent(c *gui.Context) {
+	if a.source == nil {
+		return
+	}
+	snap := a.source.AgentConfig()
+	if !snap.Known || len(snap.Profiles) < 2 {
+		return
+	}
+	t := c.Theme()
+	currentName := ""
+	for _, profile := range snap.Profiles {
+		if profile.ID == snap.Current {
+			currentName = profile.Name
+			break
+		}
+	}
+	if !snap.CurrentKnown {
+		currentName = ""
+	}
+	label := "Agent 配置"
+	if currentName != "" {
+		label += "：" + currentName
+	}
+	reason := ""
+	switch {
+	case snap.Error != "":
+		reason = snap.Error
+	case !snap.CanSelect:
+		reason = noteAgentNoWrite
+	case a.intents == nil:
+		reason = noteAgentNoWrite
+	}
+	m := gui.MenuBase(c, &a.agentMenuOpen)
+	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
+		Gap(space1).AlignItems(gui.Center).Label(label).
+		Role(gui.RoleButton).Description("可更改 Agent 配置").
+		Cursor(gui.CursorPointer)
+	if reason != "" {
+		tr = tr.Tooltip("Agent 配置：" + reason).Disabled(true)
+	} else {
+		tr = tr.Tooltip("选择 Agent 配置")
+	}
+	if tr.Hovered() && reason == "" {
+		tr = tr.Background(t.SurfaceHover)
+	}
+	tr.Children(func() {
+		iconBox(c, iconSidebarUser, t.TextMuted, "agent")
+		typeMicro.style(t, gui.Text(c, "Agent 配置")).TextColor(t.TextMuted).FontWeight(500)
+		if currentName != "" {
+			typeMicro.style(t, gui.Text(c, currentName)).TextColor(t.TextMuted).SingleLine()
+		}
+	})
+	if reason != "" {
+		return
+	}
+	m.Popup(func(panel gui.Element) {
+		panel.Width(statusAgentMenuW).Padding(space1).Radius(radiusCard).
+			Background(t.Surface).
+			Shadow(0, 4, 16, 0, colorShadow.in(t))
+		for _, profile := range snap.Profiles {
+			profile := profile
+			name := profile.Name
+			if profile.Default {
+				name += "（默认）"
+			}
+			if menuItem(c, m, iconSidebarUser, name, "Agent 配置："+name, "",
+				false, profile.ID == snap.Current) {
+				a.selectAgentConfig(profile.ID, snap.Current, profile.Name)
+			}
+		}
+	})
+}
+
+// selectAgentConfig 切换当前会话的 agent 档案：expected 是切换前读到的标识，
+// 写入走 Intents.SelectAgent；成功后写一行回执，失败走全局错误行与重试入口。
+func (a *App) selectAgentConfig(agentID, expected, name string) {
+	if a.intents == nil {
+		a.headerNote = noteAgentNoWrite
+		return
+	}
+	a.dispatch("切换 Agent 配置", func(ctx context.Context) error {
+		return a.intents.SelectAgent(ctx, agentID, expected)
+	}, func() {
+		if name == "" {
+			name = agentID
+		}
+		a.headerNote = "已切换 Agent 配置：" + name
 	})
 }
 

@@ -32,6 +32,7 @@ type fakeSource struct {
 	shortcut   GlobalShortcutSnapshot
 	market     PluginMarketplaceSnapshot
 	archived   []ArchivedSessionSnapshot
+	agent      AgentConfigSnapshot
 }
 
 func (f *fakeSource) Connection() Connection                { return f.conn }
@@ -55,6 +56,7 @@ func (f *fakeSource) Preferences() PreferencesSnapshot   { return f.prefs }
 func (f *fakeSource) GlobalShortcut() GlobalShortcutSnapshot {
 	return f.shortcut
 }
+func (f *fakeSource) AgentConfig() AgentConfigSnapshot { return f.agent }
 
 // ArchivedSessions 让样例 Source 也实现可选的归档读数；默认为空。
 func (f *fakeSource) ArchivedSessions() []ArchivedSessionSnapshot { return f.archived }

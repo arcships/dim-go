@@ -51,7 +51,7 @@ func (w *App) refreshAgentConfig(ctx context.Context, manager *settings.Manager)
 		w.agentMu.Unlock()
 		return
 	}
-	supported, _ := manager.SupportsSessionAgentUpdate(ctx, sessionID)
+	supported, _ := manager.CanUpdateSessionAgent(ctx, sessionID)
 	current, readErr := manager.ReadSessionAgent(ctx, sessionID, branchID)
 	w.agentMu.Lock()
 	defer w.agentMu.Unlock()
@@ -70,7 +70,10 @@ func (w *App) refreshAgentConfig(ctx context.Context, manager *settings.Manager)
 
 // AgentConfig 返回状态条选择器要的读数。会话或分支换了但还没重读时，当前档案
 // 标成未知，不沿用上一个会话的值。
-func (w *App) AgentConfig() ui.AgentConfigSnapshot {
+func (w *App) AgentConfig() ui.AgentConfigSnapshot { return w.agentConfigFor(w.currentSession()) }
+
+// agentConfigFor 按指定会话取选择器读数（多窗口各自固定会话时用）。
+func (w *App) agentConfigFor(sessionID string) ui.AgentConfigSnapshot {
 	w.agentMu.Lock()
 	defer w.agentMu.Unlock()
 	out := ui.AgentConfigSnapshot{
@@ -80,7 +83,7 @@ func (w *App) AgentConfig() ui.AgentConfigSnapshot {
 		Current:   w.agentCurrent,
 		CanSelect: w.agentCanSelect,
 	}
-	scope := w.currentSession() + "\x00" + w.currentBranch()
+	scope := sessionID + "\x00" + w.currentBranch()
 	out.CurrentKnown = w.agentCurrentKnown && w.agentCurrentScope == scope
 	if !out.CurrentKnown {
 		out.Current = ""
@@ -91,11 +94,15 @@ func (w *App) AgentConfig() ui.AgentConfigSnapshot {
 // SelectAgent 切换当前会话分支的 agent 档案：用读到的当前值做前置条件，成功后
 // 用回执更新快照。
 func (w *App) SelectAgent(ctx context.Context, agentID, expected string) error {
+	return w.selectAgentFor(ctx, w.currentSession(), agentID, expected)
+}
+
+// selectAgentFor 按指定会话切换 agent 档案（多窗口各自固定会话时用）。
+func (w *App) selectAgentFor(ctx context.Context, sessionID, agentID, expected string) error {
 	manager := w.A.Settings()
 	if manager == nil {
 		return errSettingsNotReady
 	}
-	sessionID := w.currentSession()
 	if sessionID == "" {
 		return errNoSession
 	}

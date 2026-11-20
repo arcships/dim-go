@@ -87,6 +87,9 @@ func (f *failIntents) SetPermissionTier(context.Context, string) error {
 func (f *failIntents) SelectModel(context.Context, string, string) error {
 	return f.hit("SelectModel")
 }
+func (f *failIntents) SelectAgent(context.Context, string, string) error {
+	return f.hit("SelectAgent")
+}
 func (f *failIntents) WriteCommandRules(context.Context, []RuleSnapshot) error {
 	return f.hit("WriteCommandRules")
 }
@@ -379,6 +382,18 @@ var intentCases = []intentCase{
 		method: "SelectModel",
 		act: func(r *intentRun) {
 			r.app.selectModel(ModelOption{ID: "model-x", ProviderID: "acme", Name: "Model-X"})
+		},
+	},
+	{
+		method: "SelectAgent",
+		source: func(s *fakeSource) {
+			s.agent = AgentConfigSnapshot{
+				Known: true, Current: "agent-a", CurrentKnown: true, CanSelect: true,
+				Profiles: []AgentConfigProfile{{ID: "agent-a", Name: "A"}, {ID: "agent-b", Name: "B"}},
+			}
+		},
+		act: func(r *intentRun) {
+			r.app.selectAgentConfig("agent-b", "agent-a", "B")
 		},
 	},
 	{
