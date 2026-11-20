@@ -43,8 +43,13 @@ func (a *App) configProviderBody(c *gui.Context, data configView) {
 			a.configTestConnectionRow(c, data)
 		})
 		a.configModelsPanel(c, data)
-		// S-configuration-62 / 63 断开与删除（确认框里置灰）
-		configDangerRow(c, data.selected)
+		gui.Row(c).Shrink(0).AlignItems(gui.Center).Justify(gui.SpaceBetween).
+			Gap(configGapRow).Children(func() {
+			// S-configuration-62 / 63 断开与删除（确认框里置灰）
+			configDangerRow(c, data.selected)
+			// S-configuration-27 / 28 刷新与查看套餐
+			a.configDetailFooter(c, data)
+		})
 	})
 }
 
@@ -145,9 +150,7 @@ func configCredentialRows(c *gui.Context, data configView) {
 		credentialState = "••••••••"
 	}
 	configValueRow(c, "API 密钥", credentialState, "修改 API 密钥", func() {
-		form := configFormEdit(provider, data.models)
-		form.focus = configFormFocusAPIKey
-		configScreen.form = form
+		configScreen.form = configFormEdit(provider, data.models)
 	})
 	if provider.credentialConfigured {
 		// 读屏读「已设置」，不读掩码字符（S-configuration-61 的无障碍行）。
@@ -184,12 +187,12 @@ func (a *App) configTestConnectionRow(c *gui.Context, data configView) {
 			if configScreen.probing {
 				testLabel = "正在测试…"
 			}
-			b := gui.SecondaryButton(c, testLabel).Label("测试连接").Height(rowCompact)
-			if configScreen.probing || provider.id == "" {
-				b = b.Disabled(true).Opacity(noteDisabledAlpha).
-					Tooltip(noteProviderTestUnavailable)
+			disabled := configScreen.probing || provider.id == ""
+			tip := noteProviderProbeBusy
+			if provider.id == "" {
+				tip = noteProviderTestUnavailable
 			}
-			if b.Clicked() {
+			if configButton(c, testLabel, "测试连接", disabled, tip) {
 				a.configProbeProvider(provider, probeTest)
 			}
 			// 保存 = 进编辑态：表单里才有校验与写入口（S-configuration-58 / 60）。
@@ -282,28 +285,28 @@ func (a *App) configModelsEmptyRow(c *gui.Context, data configView) {
 	showRefreshHint := true
 	gui.Column(c).Shrink(0).Gap(configGapIcon).Padding(configModelPadV, 0).
 		Children(func() {
-		if configScreen.probeErr != "" {
-			// S-configuration-54 的「异常」：拉取失败换成错误行。
-			configMicroStyle.style(t, gui.Text(c, "拉取模型失败："+configScreen.probeErr)).
-				TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
-			return
-		}
-		if showRefreshHint {
-			configRowStyle.style(t, gui.Text(c, "还没有模型数据，点击「刷新」获取")).
-				TextColor(t.TextMuted).Selectable().Label("还没有模型数据，点击「刷新」获取")
-		}
-		if screenAction(c, screenIconRefresh, "refresh", "刷新", rowCompact) {
-			a.configProbeProvider(data.selected, probeModels)
-		}
-	})
+			if configScreen.probeErr != "" {
+				// S-configuration-54 的「异常」：拉取失败换成错误行。
+				configMicroStyle.style(t, gui.Text(c, "拉取模型失败："+configScreen.probeErr)).
+					TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
+				return
+			}
+			if showRefreshHint {
+				configRowStyle.style(t, gui.Text(c, "还没有模型数据，点击「刷新」获取")).
+					TextColor(t.TextMuted).Selectable().Label("还没有模型数据，点击「刷新」获取")
+			}
+			if screenAction(c, screenIconRefresh, "refresh", "刷新", rowCompact) {
+				a.configProbeProvider(data.selected, probeModels)
+			}
+		})
 }
 
 // configModelDraft 是「添加模型」对话框的本地草稿：模型标识行、搜索词与全选。
 // 它不持有事实，也不发写请求；保存键没有通道，置灰写原因。
 type configModelDraft struct {
-	rows   []string
-	query  string
-	on     []bool
+	rows    []string
+	query   string
+	on      []bool
 	formErr string
 }
 
@@ -353,12 +356,9 @@ func (a *App) configModelDraftPanel(c *gui.Context, data configView) {
 					d.on = append(d.on, true)
 				}
 				// 协议不支持拉清单（或没有供应商）时刷新禁用并写原因。
-				refresh := gui.SecondaryButton(c, "刷新").Label("刷新").Height(rowCompact)
-				if data.selected.id == "" || !data.selected.remoteModelList {
-					refresh = refresh.Disabled(true).Opacity(noteDisabledAlpha).
-						Tooltip(noteProviderModelListUnavailable)
-				}
-				if refresh.Clicked() {
+				refreshDisabled := data.selected.id == "" || !data.selected.remoteModelList
+				if configButton(c, "刷新", "刷新", refreshDisabled,
+					noteProviderModelListUnavailable) {
 					a.configProbeProvider(data.selected, probeModels)
 				}
 			})
@@ -541,4 +541,37 @@ func (a *App) configProbeProvider(provider configProvider, kind probeKind) {
 			configScreen.probeNote = "已刷新模型清单"
 		}
 	}, onFail)
+}
+
+// configFieldLabelW 是字段标签列宽：四个字（「基础 URL」占两档）排得下，值与
+// 动作从同一列起。
+const configFieldLabelW = 97
+
+// configButton 是一个描边文字按钮：disabled 为真时整钮置灰、原因进 tooltip。
+func configButton(c *gui.Context, text, label string, disabled bool, tip string) bool {
+	t := c.Theme()
+	b := gui.ButtonBase(c).Shrink(0).Height(rowCompact).Padding(controlPadV, controlPadH).
+		Radius(screenRadiusCtl).Background(t.Background).Label(label).Tooltip(tip).
+		Justify(gui.Center)
+	b.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	if disabled {
+		b = b.Disabled(true).Opacity(noteDisabledAlpha)
+	} else {
+		switch {
+		case b.Pressed():
+			b = b.Background(t.SurfacePressed)
+		case b.Hovered():
+			b = b.Background(t.SurfaceHover)
+		}
+	}
+	ink := t.Text
+	if disabled {
+		ink = t.TextMuted
+	}
+	b.Children(func() {
+		configRowStyle.style(t, gui.Text(c, text)).TextColor(ink).SingleLine()
+	})
+	return !disabled && b.Clicked()
 }

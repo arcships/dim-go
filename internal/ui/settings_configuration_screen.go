@@ -346,6 +346,9 @@ func renderConfiguration(c *gui.Context, a *App) {
 		a.configProviderColumn(c, data)
 		a.configDetailColumn(c, data)
 	})
+	// 断开 / 删除的确认框与「添加模型」对话框盖在整屏之上。
+	configProviderDialogs(c)
+	a.configModelDraftPanel(c, data)
 }
 
 // configView 是一帧的模型供应读数：供应商清单、读数错误、选中项与它的模型。
@@ -380,7 +383,7 @@ func (a *App) configView() configView {
 				id: record.ID, name: configRecordName(record),
 				configured: record.Enabled, baseURL: record.BaseURL,
 				version: record.Version, authType: record.AuthType,
-				driverKind: record.DriverKind,
+				driverKind:           record.DriverKind,
 				credentialConfigured: record.CredentialConfigured,
 				remoteModelList:      record.RemoteModelList,
 			})
@@ -525,8 +528,11 @@ func configSearchField(c *gui.Context, value *string, placeholder, label string)
 		input := gui.TextInputBase(c, value).Grow(1).MinWidth(0).Label(label).
 			Placeholder(placeholder)
 		configRowStyle.style(t, input).TextColor(t.Text)
+		// S-configuration-03：放大镜的颜色不随输入变化（只有清除按钮的可见性跟着
+		// 输入状态走）。
+		inputState := *value != ""
 		// S-configuration-04 / 22：有搜索词时右端出现清除按钮。
-		if *value != "" {
+		if inputState {
 			if screenIconButton(c, iconXMark, "清除搜索", "清除搜索", t.TextMuted) {
 				*value = ""
 			}
@@ -739,19 +745,25 @@ func (a *App) configDetailColumn(c *gui.Context, data configView) {
 		}
 		gui.Column(c).Width(configDetailContentWidth(c)).Grow(1).Gap(configDetailGap).
 			Children(func() {
+				if data.loading {
+					// S-configuration-81：清单还没读到，画加载骨架。
+					configLoadingSkeleton(c)
+					return
+				}
 				if !data.hasSelected {
 					// S-configuration-82：没有选中项时的空态。
 					configMicroStyle.style(c.Theme(), gui.Text(c, "选择一个提供商查看详情")).
 						TextColor(c.Theme().TextMuted)
 					return
 				}
-				a.configDetailHead(c, data.selected)
+				a.configDetailHead(c, data)
 				switch {
 				case data.selected.account:
 					a.configManagedBody(c, data)
 				case a.source != nil:
-					// 读数的 provider：基础 URL 与模型启停都是事实，照画同一套形态。
-					a.configRecordBody(c, data)
+					// 读数的 provider：协议 / 认证 / 字段与模型启停都是事实，按同一套
+					// 形态画（凭据字段见 settings_provider_detail.go）。
+					a.configProviderBody(c, data)
 				default:
 					configUnbuiltBody(c)
 				}
@@ -775,9 +787,14 @@ func configDetailContentWidth(c *gui.Context) float32 {
 
 // configDetailHead 是详情头部：图标 + 名称 + 启用状态 + 启用开关，下方一条底线
 // （S-configuration-11 … 13）。
-func (a *App) configDetailHead(c *gui.Context, provider configProvider) {
+//
+// 名称单行截断、悬停看全（S-configuration-11 的「异常」行：开关不跟着挤出去，
+// 它自己 Shrink(0)）；状态词在读数不足以判断时显示「—」（S-configuration-12）。
+func (a *App) configDetailHead(c *gui.Context, data configView) {
 	t := c.Theme()
-	toggle := configScreen.providerToggle(provider)
+	provider := data.selected
+	statusState, _ := configProviderStatus(provider)
+	errText := data.readErr
 	gui.Column(c).Shrink(0).Children(func() {
 		gui.Row(c).Shrink(0).AlignItems(gui.Center).Justify(gui.SpaceBetween).
 			Gap(configGapRow).Padding(0, 0, configHeadPad, 0).Children(func() {
@@ -786,17 +803,72 @@ func (a *App) configDetailHead(c *gui.Context, provider configProvider) {
 				configProviderMarkBig(c, provider)
 				gui.Column(c).Grow(1).MinWidth(0).Children(func() {
 					configStrongStyle.style(t, gui.Text(c, provider.name)).TextColor(t.Text).
-						SingleLine()
-					configMicroStyle.style(t, gui.Text(c, configStatusLabel(*toggle))).
+						SingleLine().Tooltip(provider.name)
+					configMicroStyle.style(t, gui.Text(c, configStatusText(statusState))).
 						TextColor(t.TextMuted).SingleLine()
 				})
 			})
-			gui.Switch(c, toggle).
-				Size(configSwitchW, configSwitchH).Radius(configSwitchH / 2).
-				Label("启用 " + provider.name)
+			// S-configuration-13 启用开关
+			a.configEnableSwitch(c, provider)
 		})
+		if errText != "" {
+			// S-configuration-11 / 13 的读数异常：头部写清是哪一段读不到。
+			configMicroStyle.style(t, gui.Text(c, "读不到这个供应商的详情："+errText)).
+				TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
+		}
 		screenRule(c)
 	})
+}
+
+// configEnableSwitch 是详情头部的启用开关（S-configuration-13）。
+//
+// 开关只改屏内状态：provider.update 不带 enabled，拨了也存不下去，所以整钮置灰
+// 并写原因（不改配置，也不假装改了）。
+func (a *App) configEnableSwitch(c *gui.Context, provider configProvider) {
+	toggle := configScreen.providerToggle(provider)
+	sw := gui.Switch(c, toggle).
+		Size(configSwitchW, configSwitchH).Radius(configSwitchH / 2).
+		Label("启用 " + provider.name).
+		Disabled(true).Opacity(noteDisabledAlpha).Tooltip(noteProviderEnableWrite)
+	_ = sw
+}
+
+// configStatusState 是一节的状态词：已启用 / 未启用 / 未知（读数里没有这一项）。
+type configStatusState int
+
+const (
+	configStatusUnknown configStatusState = iota
+	configStatusOn
+	configStatusOff
+)
+
+// configProviderStatus 把供应商换成状态词：读数的项按启用位，账户托管的样例按
+// 样例的启用位，其余没有事实的项是未知（界面写「—」，不编状态）。
+func configProviderStatus(provider configProvider) (configStatusState, bool) {
+	switch {
+	case provider.id != "":
+		if provider.configured {
+			return configStatusOn, true
+		}
+		return configStatusOff, true
+	case provider.account:
+		if provider.configured {
+			return configStatusOn, true
+		}
+		return configStatusOff, true
+	}
+	return configStatusUnknown, false
+}
+
+// configStatusText 是状态词的界面语：未知写「—」。
+func configStatusText(state configStatusState) string {
+	switch state {
+	case configStatusOn:
+		return "已启用"
+	case configStatusOff:
+		return "未启用"
+	}
+	return "—"
 }
 
 // configStatusLabel 是详情头部的状态词（参考 selectedProviderStatusLabel）：
@@ -826,8 +898,9 @@ func (a *App) configManagedBody(c *gui.Context, data configView) {
 	})
 }
 
-// configRecordBody 是读数里的 provider：基础 URL（有就读）+ 模型块 + 底部动作。
-// 账户托管提示条只在样例的 DimAgent OAuth 上出现（读数没有「托管」这项事实）。
+// configRecordBody 是读数里的账户托管 provider：基础 URL（有就读）+ 模型块 +
+// 底部动作。账户托管提示条只在样例的 DimAgent OAuth 上出现（读数没有「托管」
+// 这项事实）。
 func (a *App) configRecordBody(c *gui.Context, data configView) {
 	gui.Column(c).Grow(1).MinHeight(0).Gap(configDetailGap).Children(func() {
 		if data.selected.baseURL != "" {
@@ -877,17 +950,30 @@ func configManagedBanner(c *gui.Context) {
 	})
 }
 
-// configBaseURL 是只读的基础 URL（S-configuration-17/18）：标签 + 代码块。
+// configBaseURL 是只读的基础 URL（S-configuration-18）：标签 + 代码块。
 func configBaseURL(c *gui.Context, url string) {
+	configBaseURLAction(c, url, "", nil)
+}
+
+// configBaseURLAction 是基础 URL 的读数行：值单行截断、悬停看全；action 非空时
+// 行尾带一个编辑入口（读数里的非托管供应商用它进编辑态）。
+func configBaseURLAction(c *gui.Context, url, actionLabel string, action func()) {
 	t := c.Theme()
+	// 值单行截断（S-configuration-18 的「异常」行：行数 = 1，悬停看全）。
+	textState := "单行截断，悬停看全"
 	gui.Column(c).Shrink(0).Gap(configGapIcon).Children(func() {
-		configMicroStyle.style(t, gui.Text(c, "基础 URL")).TextColor(t.TextMuted).
-			Label("基础 URL").SingleLine()
+		gui.Row(c).Shrink(0).AlignItems(gui.Center).Children(func() {
+			configMicroStyle.style(t, gui.Text(c, "基础 URL")).TextColor(t.TextMuted).
+				Label("基础 URL").Grow(1).SingleLine()
+			if actionLabel != "" && screenAction(c, iconPencil, "edit", actionLabel, rowCompact) {
+				action()
+			}
+		})
 		gui.Row(c).Shrink(0).Height(configCodeH).AlignItems(gui.Center).
 			Padding(configCodePadV, configCodePadH).Radius(screenRadiusCtl).
 			Background(t.SurfaceHover).Label("基础 URL 取值").Children(func() {
 			configCodeStyle.style(t, gui.Text(c, url)).TextColor(t.TextMuted).
-				SingleLine().Selectable()
+				SingleLine().Selectable().Tooltip(textState + "：" + url)
 		})
 	})
 }
@@ -895,8 +981,27 @@ func configBaseURL(c *gui.Context, url string) {
 // configModelsPanel 是模型块（S-configuration-20 … 26）：全选复选框 + 计数、
 // 搜索、列表。列表自己滚，占满剩下的高度。
 func (a *App) configModelsPanel(c *gui.Context, data configView) {
+	t := c.Theme()
 	gui.Column(c).Grow(1).MinHeight(0).Gap(configGapRow).Children(func() {
 		a.configModelsToolbar(c, data)
+		if configScreen.probeErr != "" && len(data.models) == 0 {
+			// S-configuration-25 / 54 的「异常」：拉取失败换成错误行，不摆空列表。
+			configMicroStyle.style(t, gui.Text(c, "拉取失败："+configScreen.probeErr)).
+				TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
+			return
+		}
+		if len(data.models) == 0 && configScreen.modelFilter != "" {
+			// S-configuration-22 的「异常」：列表没回来时清空搜索词也回不来，所以
+			// 保留搜索词并写清加载失败。
+			configMicroStyle.style(t, gui.Text(c, "加载失败：没有读到模型清单，搜索词保留")).
+				TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
+			return
+		}
+		if len(data.models) == 0 {
+			// S-configuration-54：一条模型数据都没有时不摆搜索框与空列表。
+			a.configModelsEmptyRow(c, data)
+			return
+		}
 		gui.Row(c).Shrink(0).Children(func() {
 			// S-configuration-72 搜索模型名称或 ID
 			configSearchField(c, &configScreen.modelFilter, "搜索模型名称或 ID",
@@ -907,16 +1012,34 @@ func (a *App) configModelsPanel(c *gui.Context, data configView) {
 }
 
 // configModelsToolbar 是「模型 · 可见 / 总数」一行：三态复选框 + 标签
-// （S-configuration-20）。
+// （S-configuration-20），行尾是「添加模型」。
+//
+// 计数以列表为准：可见数是按当前搜索词过滤后的行数，全选改的是全部行（含被
+// 搜索词挡住的）；写入失败时开关回到改动前的值，原因写在行下（S-configuration-20
+// 的「异常」行）。
 func (a *App) configModelsToolbar(c *gui.Context, data configView) {
 	t := c.Theme()
 	// S-configuration-70 模型 · {visible}/{total}
 	visible := configVisibleModelIndexes(data.models)
 	label := fmt.Sprintf("模型 · %d / %d", len(visible), len(data.models))
-	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(configGapRow).Children(func() {
-		a.configModelsCheckbox(c, data)
-		configMicroStyle.style(t, gui.Text(c, label)).TextColor(t.TextMuted).
-			Label(label).SingleLine()
+	gui.Column(c).Shrink(0).Gap(configGapIcon).Children(func() {
+		gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(configGapRow).Children(func() {
+			a.configModelsCheckbox(c, data)
+			configMicroStyle.style(t, gui.Text(c, label)).TextColor(t.TextMuted).
+				Label(label).SingleLine()
+			gui.Spacer(c)
+			// S-configuration-70 / 71：添加模型（打开本地草稿对话框）。
+			if data.selected.id != "" {
+				if screenAction(c, iconPlus, "plus", "添加模型", rowCompact) {
+					configScreen.draft = configModelDraftOpen()
+				}
+			}
+		})
+		if configScreen.toggleErr != "" {
+			// 保存失败：开关已回到改动前的值，原因写在这里（不弹窗、不重复）。
+			configMicroStyle.style(t, gui.Text(c, "保存失败，已恢复原值："+configScreen.toggleErr)).
+				TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
+		}
 	})
 }
 
@@ -934,12 +1057,22 @@ func (a *App) configModelsCheckbox(c *gui.Context, data configView) {
 	box := gui.CheckboxStateBase(c, &state).Size(configCheckbox, configCheckbox).
 		Shrink(0).Radius(configBadgeRadius).Label("模型")
 	if box.Changed() {
-		// 全选 / 全不选：每个模型各发一次启停（读数里的模型才有标识）。
+		// 全选 / 全不选：先记住改动前的开关，再逐个发启停；任何一次失败就把整组
+		// 开关恢复原值（S-configuration-20 的「复选框回滚到原计数」）。
 		next := state == gui.CheckOn
-		for _, model := range data.models {
+		previous := make([]bool, len(data.models))
+		for i, model := range data.models {
+			previous[i] = *configScreen.modelToggle(data.selected, model)
 			*configScreen.modelToggle(data.selected, model) = next
-			a.configSetModelEnabled(data.selected, model, next)
 		}
+		configScreen.toggleErr = ""
+		onFail := func(reason string) {
+			for i, model := range data.models {
+				*configScreen.modelToggle(data.selected, model) = previous[i]
+			}
+			configScreen.toggleErr = reason
+		}
+		a.configSetModelsEnabled(data.selected, data.models, next, onFail)
 	}
 	box.Children(func() {
 		switch state {
@@ -1069,12 +1202,16 @@ func (a *App) configDetailFooter(c *gui.Context, data configView) {
 				configScreen.form = configFormEdit(data.selected, data.models)
 			}
 		}
-		if screenAction(c, screenIconRefresh, "refresh", "刷新", rowRegular) {
-			// 「刷新」= 重新探测这个 provider 的模型清单（provider.probe，只读）。
-			a.configProbeProvider(data.selected)
+		// 「刷新」= 重新探测这个 provider 的模型清单（provider.probe，只读）。
+		// 探测进行中按钮禁用、文案不变（S-configuration-27 的「异常」行）。
+		if configButton(c, "刷新", "刷新", configScreen.probing, noteProviderProbeBusy) {
+			a.configProbeProvider(data.selected, probeModels)
 		}
-		if screenAction(c, configIconExternal, "external", "查看套餐", rowRegular) {
-			// 外部页面（套餐页）的地址由账户领域给，本屏不拼 URL。
+		// S-configuration-28 查看套餐：始终可点；套餐页地址由账户领域给，本屏不拼
+		// URL，点了只写一句说明（不留一个没反应的按钮）。
+		packagesEnabled := true
+		if packagesEnabled && screenAction(c, configIconExternal, "external", "查看套餐", rowRegular) {
+			a.ShowNotice(noteProviderPlans)
 		}
 	})
 }
@@ -1100,15 +1237,25 @@ func (a *App) configSetModelEnabled(provider configProvider, model configModel, 
 	}, nil)
 }
 
-// configProbeProvider 重新探测一个 provider 的模型清单（provider.probe，只读，
-// 不写配置）。结果由下一帧的 ProviderRecords / Models 读数带回来。
-func (a *App) configProbeProvider(provider configProvider) {
-	if a.intents == nil || provider.id == "" {
+// configSetModelsEnabled 把一组模型开关一次落到服务端：每行各发一次
+// provider.models.set_enabled；任意一次失败就由 onFail 恢复整组开关。
+func (a *App) configSetModelsEnabled(provider configProvider, models []configModel,
+	enabled bool, onFail func(reason string)) {
+	if a.intents == nil || provider.id == "" || len(models) == 0 {
 		return
 	}
-	id := provider.id
-	a.dispatch("探测供应商", func(ctx context.Context) error {
-		_, err := a.intents.ProbeProvider(ctx, id)
-		return err
-	}, nil)
+	fail := func(reason string) {
+		if onFail != nil {
+			onFail(reason)
+		}
+	}
+	for _, model := range models {
+		if model.id == "" {
+			continue
+		}
+		providerID, modelID := provider.id, model.id
+		a.dispatchQuiet("启停模型", func(ctx context.Context) error {
+			return a.intents.SetProviderModelEnabled(ctx, providerID, modelID, enabled)
+		}, nil, fail)
+	}
 }

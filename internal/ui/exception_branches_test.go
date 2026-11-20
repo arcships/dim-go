@@ -474,7 +474,7 @@ var intentCasesTail = []intentCase{
 	},
 	{
 		method: "ProbeProvider",
-		act:    func(r *intentRun) { r.app.configProbeProvider(configProvider{id: "acme", name: "Acme"}) },
+		act:    func(r *intentRun) { r.app.configProbeProvider(configProvider{id: "acme", name: "Acme"}, probeModels) },
 	},
 	{
 		method: "SetProviderModelEnabled",

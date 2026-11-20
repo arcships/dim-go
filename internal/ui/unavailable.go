@@ -84,6 +84,38 @@ const (
 	// noteSectionIconMissing 用于设置导航里某个分节的图标资源缺失：图标位保留
 	// 原宽度与命中区，只缺图形。
 	noteSectionIconMissing = "这个分节的图标资源缺失"
+	// noteProviderEnableWrite 用于模型供应详情头部的启用开关。技术口径：缺 =
+	// provider.update 不带 enabled 字段（S-configuration-13 的写入与失败回滚做不了）。
+	noteProviderEnableWrite = "当前版本不支持修改供应商的启用状态"
+	// noteProviderAuthWrite 用于认证方式一行。技术口径：缺 = provider.update 不带
+	// 认证类型字段（S-configuration-44 的分段切换）。
+	noteProviderAuthWrite = "当前版本不支持修改认证方式"
+	// noteProviderProtocolWrite 用于协议一行。技术口径：缺 = provider.update 不带
+	// 协议字段（S-configuration-55 的协议单选）。
+	noteProviderProtocolWrite = "当前版本不支持修改协议"
+	// noteProviderConnectWrite 用于「连接并获取模型」。技术口径：缺 = 新供应商的
+	// 探测/拉清单方法（provider.probe 只对已存在的 provider 有效，S-configuration-49）。
+	noteProviderConnectWrite = "当前版本不支持在保存前连接并拉取模型"
+	// noteProviderTestUnavailable 用于「测试连接」在没选中读数项时置灰的原因。
+	noteProviderTestUnavailable = "选中一个已保存的供应商后才能测试连接"
+	// noteProviderProbeBusy 用于探测进行中的「刷新」。
+	noteProviderProbeBusy = "正在探测，完成后可再刷新"
+	// noteProviderModelListUnavailable 用于协议不支持从上游拉清单时的「刷新」。
+	noteProviderModelListUnavailable = "这个协议不支持从上游拉取模型清单"
+	// noteProviderPlans 用于「查看套餐」：套餐页地址由账户领域给，本屏不拼 URL。
+	noteProviderPlans = "当前版本不能打开套餐页面"
+	// noteProviderDisconnectWrite 用于「断开此提供商」确认框。技术口径：缺 =
+	// 断开（清除凭据）的协议方法（S-configuration-62）。
+	noteProviderDisconnectWrite = "当前版本不支持断开提供商"
+	// noteProviderDeleteWrite 用于「删除此提供商」确认框。技术口径：缺 = 删除
+	// provider 的协议方法（S-configuration-63）。
+	noteProviderDeleteWrite = "当前版本不支持删除提供商"
+	// noteProviderUserAgentWrite 用于编辑态的 User-Agent。技术口径：缺 =
+	// provider.update 不带 User-Agent 字段（S-configuration-59）。
+	noteProviderUserAgentWrite = "当前版本不支持单独设置 User-Agent"
+	// noteModelCreateWrite 用于「添加模型」对话框的保存。技术口径：缺 = 给已有
+	// 供应商新增模型的方法（provider.update 的补丁里没有模型，S-configuration-77）。
+	noteModelCreateWrite = "当前版本不支持给已保存的供应商新增模型"
 	// noteSkinMissing 用于设置 › 外观 › 我的皮肤。技术口径：没有皮肤渲染器与皮肤
 	// 素材。
 	noteSkinMissing = "当前版本不支持更换皮肤"

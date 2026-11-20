@@ -225,6 +225,52 @@ func (a *App) configFormSave(data configView, form *configForm) {
 	}, onFail)
 }
 
+// configFormProtocolRow 是编辑态的协议（S-configuration-55 / 65）：只读一行。
+//
+// 协议的写入需要 provider.update 带协议字段，现有的写通道没有它：表单里只显示
+// 读数里的协议（认不出就写原始标识），原因在 tooltip。
+func configFormProtocolRow(c *gui.Context, provider configProvider) {
+	t := c.Theme()
+	state := configProtocolName(provider.driverKind)
+	rawReason := ""
+	if state == "" {
+		state = strings.TrimSpace(provider.driverKind)
+		rawReason = "协议名未映射，显示原始标识"
+	}
+	if state == "" {
+		state = "—"
+	}
+	row := gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(configGapRow).
+		Label("协议").Tooltip(noteProviderProtocolWrite)
+	if rawReason != "" {
+		row = row.Tooltip(rawReason)
+	}
+	row.Children(func() {
+		configRowStyle.style(t, gui.Text(c, "协议")).TextColor(t.Text).
+			Label("协议").Width(configFieldLabelW).SingleLine()
+		configRowStyle.style(t, gui.Text(c, state)).TextColor(t.TextMuted).
+			Grow(1).MinWidth(0).SingleLine()
+	})
+}
+
+// configFormUserAgentRow 是编辑态的 User-Agent（S-configuration-59）：输入框照摆、
+// 置灰，原因写在框下（写通道不带这个字段，填了也存不下去）。
+func configFormUserAgentRow(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(configFormFieldGap).Children(func() {
+		configRowStyle.style(t, gui.Text(c, "User-Agent")).TextColor(t.TextMuted).
+			Label("User-Agent").SingleLine()
+		field := gui.TextInputBase(c, new(string)).Label("User-Agent").
+			Placeholder("留空则使用运行时默认值").
+			Height(configFormInputH).Padding(configFormPadV, configFormPadH).
+			Background(fieldFill(t)).Disabled(true).Opacity(noteDisabledAlpha).
+			Tooltip(noteProviderUserAgentWrite)
+		_ = field
+		configMicroStyle.style(t, gui.Text(c, noteProviderUserAgentWrite)).
+			TextColor(t.TextMuted).MaxLines(2)
+	})
+}
+
 // configFormPanel 是右栏的表单：标题 + 字段 + 模型清单 + 错误行 + 底部动作。
 func (a *App) configFormPanel(c *gui.Context, data configView) {
 	t := c.Theme()
@@ -234,18 +280,22 @@ func (a *App) configFormPanel(c *gui.Context, data configView) {
 			gui.Column(c).Shrink(0).Gap(configFormFieldGapV).Children(func() {
 				typeH3.style(t, gui.Text(c, form.title())).TextColor(t.Text).
 					Role(gui.RoleHeading).Level(3).SingleLine()
-				// S-configuration-66 名称
+				// S-configuration-55 / 65 协议（只读：写通道不带协议字段）
+				configFormProtocolRow(c, data.selected)
+				// S-configuration-56 / 66 名称
 				configFormField(c, &form.name, "名称", "我的自定义提供商", form.nameErr, false)
-				// S-configuration-67 基础 URL
+				// S-configuration-57 / 67 基础 URL
 				configFormField(c, &form.baseURL, "基础 URL", "https://api.example.com/v1",
 					form.baseURLErr, false)
 				apiKeyPlaceholder := "sk-..."
 				if form.editing {
 					apiKeyPlaceholder = "留空则不改动已保存的密钥"
 				}
-				// S-configuration-68 API 密钥
+				// S-configuration-58 / 68 API 密钥
 				configFormField(c, &form.apiKey, "API 密钥", apiKeyPlaceholder,
 					form.apiKeyErr, true)
+				// S-configuration-59 User-Agent（没有写入字段：置灰写原因）
+				configFormUserAgentRow(c)
 				a.configFormModels(c, data, form)
 				a.configFormFooter(c, data, form)
 			})
@@ -289,13 +339,21 @@ func (a *App) configFormModels(c *gui.Context, data configView, form *configForm
 			if screenAction(c, iconPlus, "plus", "添加模型", rowRegular) {
 				form.models = append(form.models, "")
 			}
+			// S-configuration-71 刷新：新建表单还没有供应商，协议也不一定支持拉清单，
+			// 两种情况下都置灰并写原因。
+			refreshDisabled := !form.editing || len(form.models) == 0
+			if configButton(c, "刷新", "刷新", refreshDisabled,
+				noteProviderModelListUnavailable) {
+				form.models = nil
+			}
 		})
 		hint := "每行一个模型标识；新建后可在详情里启停。"
 		if form.editing {
 			hint = "模型在详情里管理：这里只列已有模型。"
 		}
 		configMicroStyle.style(t, gui.Text(c, hint)).TextColor(t.TextMuted).MaxLines(2)
-		if len(form.models) == 0 {
+		modelsState := len(form.models) == 0
+		if modelsState {
 			// S-configuration-75 还没有模型
 			configMicroStyle.style(t, gui.Text(c, "还没有模型。可以手动添加，也可以留空。")).
 				TextColor(t.TextMuted).MaxLines(2)
@@ -332,8 +390,8 @@ func configFormModelRow(c *gui.Context, form *configForm, index int, editable bo
 	})
 }
 
-// configFormFooter 是底部动作（S-configuration-77）：取消 / 保存，失败原因在
-// 动作上方（S-configuration-48 的 formError）。
+// configFormFooter 是编辑态的底部动作（S-configuration-60 / 77）：取消 / 保存，
+// 失败原因在动作上方（S-configuration-19 / 48 的 formError，一条覆盖一条）。
 func (a *App) configFormFooter(c *gui.Context, data configView, form *configForm) {
 	t := c.Theme()
 	// S-configuration-76 formError 行

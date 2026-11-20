@@ -294,8 +294,7 @@ func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 		// S-shell-04/06/08/10/12/14/16/18/20/22/24/26/28/30/32/34/36/38/40 分节图标
 		navIconGlyph(c, section.icon, ink, section.label)
 		// S-shell-03/05/07/09/11/13/15/17/19/21/23/25/27/29/31/33/35/37/39 分节名称
-		style.style(t, gui.Text(c, section.label)).TextColor(ink).
-			Grow(1).MinWidth(0).SingleLine()
+		style.style(t, gui.Text(c, section.label)).TextColor(ink)
 		if errText != "" {
 			// 读数失败：行尾一个警示点（不占文字列），原因在 tooltip。
 			navErrDot(c, section.label)
@@ -306,12 +305,12 @@ func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 // navIconGlyph 是分节图标的图标位：图标缺资源时只画空位，宽度仍是 iconInline，
 // 文字左移不会发生（S-shell-04 等「异常」行）。
 func navIconGlyph(c *gui.Context, icon *gui.SVG, color gui.Color, mark string) {
-	box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0)
-	if icon == nil {
-		box = box.Label("图标：" + mark).Tooltip(noteSectionIconMissing).AccessHidden(true)
+	if icon != nil {
+		iconGlyph(c, icon, color, mark)
 		return
 	}
-	iconGlyph(c, icon, color, mark)
+	gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0).
+		Label("图标：" + mark).Tooltip(noteSectionIconMissing).AccessHidden(true)
 }
 
 // navErrDot 是导航行尾的警示点：3.5 直径的实心点，读屏名带节名。
