@@ -6010,7 +6010,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-KEY-201 | S-keybindings-26 | 状态 | 断开网络后改「saveFailed」，等保存返回失败 | 名称下显示「保存失败」类文案 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySaveFail「保存失败」 |
+| R-KEY-201 | S-keybindings-26 | 状态 | 断开网络后改「saveFailed」，等保存返回失败 | 名称下显示「保存失败」类文案 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-keybindings-26→internal/ui/settings_keybindings_screen.go:App.keybindingRow；标记 = Disabled@App.keybindingButton） |
 | R-KEY-202 | S-keybindings-26 | 状态 | 保存成功 | 不渲染 | — | 屏上「saveFailed」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-KEY-203 | S-keybindings-26 | 内容 | 让「saveFailed」所属请求返回 500 后看「saveFailed」 | 文案说明未生效，可重试 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-keybindings-26→internal/ui/settings_keybindings_screen.go:App.keybindingRow；标记 = 文案「重置」等 2 条） |
 | R-KEY-204 | S-keybindings-26 | 样式 | 打开设置›快捷键，看「saveFailed」 | 字号 11、警示色 | — | 判据 = 屏上「saveFailed」：字号 = 11；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 已实现（映射 = S-keybindings-26→internal/ui/settings_keybindings_screen.go:App.keybindingRow；标记 = Height） |
@@ -9333,11 +9333,11 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-PRM-225 | S-permissions-29 | 状态 | 权限保存失败 | 显示错误 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Disabled@settingsActionButton） |
 | R-PRM-226 | S-permissions-29 | 状态 | 打开设置›权限，在无异常提示的状态下看「permissionErrorMes…」 | 不渲染 | — | 屏上「permissionErrorMes…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-PRM-227 | S-permissions-29 | 内容 | 让「permissionErrorMes…」所属请求返回 500 后看「permissionErrorMes…」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = 文案「请输入命令匹配式。」等 2 条） |
+| R-PRM-227 | S-permissions-29 | 内容 | 让「permissionErrorMes…」所属请求返回 500 后看「permissionErrorMes…」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permSaveRules；标记 = 文案「保存权限」） |
 | R-PRM-228 | S-permissions-29 | 样式 | 打开设置›权限，看「permissionErrorMes…」 | 12 字号警示色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Height@settingsActionButton） |
-| R-PRM-229 | S-permissions-29 | 关联 | 在「permissionErrorMes…」所在行内，同时看它与反馈的相对位置 | 与成功反馈互斥 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Screen） |
+| R-PRM-229 | S-permissions-29 | 关联 | 在「permissionErrorMes…」所在行内，同时看它与反馈的相对位置 | 与成功反馈互斥 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permSaveRules；标记 = Screen） |
 | R-PRM-230 | S-permissions-29 | 无障碍 | 打开设置›权限，看「permissionErrorMes…」 | 警示播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Label@settingsActionButton） |
-| R-PRM-231 | S-permissions-29 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「permissionErrorMes…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions |
+| R-PRM-231 | S-permissions-29 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「permissionErrorMes…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-permissions-29→internal/ui/settings_permissions_screen.go:permSaveRules |
 | R-PRM-232 | S-permissions-29 | 深色 | 在设置›外观把主题切成深色，再回权限，看「permissionErrorMes…」 | 对比≥4.5:1 | — | 屏上「permissionErrorMes…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-permissions-29→internal/ui/settings_permissions_screen.go:permRulesActions；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
@@ -10504,7 +10504,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ARC-003 | S-archived-01 | 关联 | 在「归档会话」所在行内，同时看它与全部删除的相对位置 | 同行，按钮右（x=910） | — | 屏上「归档会话」：x = 910 | 已实现（映射 = S-archived-01→internal/ui/settings_archived_screen.go:arcHeader；标记 = Screen） |
 | R-ARC-004 | S-archived-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「归档会话」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-01→internal/ui/settings_archived_screen.go:arcHeader；标记 = Role） |
 | R-ARC-005 | S-archived-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进归档会话，滚动到 y≈33 处的「归档会话」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-01→internal/ui/settings_archived_screen.go:arcHeader |
-| R-ARC-006 | S-archived-01 | 记忆 | 从归档会话切到设置›关于再切回来，滚动到 y≈33 处的「归档会话」 | 位置不变 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-01→internal/ui/settings_archived_screen.go:arcHeader |
+| R-ARC-006 | S-archived-01 | 记忆 | 从归档会话切到设置›关于再切回来，滚动到 y≈33 处的「归档会话」 | 位置不变 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-01→internal/ui/settings_archived_screen.go:arcHeader；标记 = View.@arcDeleteAllButton） |
 | R-ARC-007 | S-archived-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「归档会话」 | 与按钮不重叠 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-archived-01→internal/ui/settings_archived_screen.go:arcHeader |
 | R-ARC-008 | S-archived-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「归档会话」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-01→internal/ui/settings_archived_screen.go:arcHeader；标记 = 文案「归档会话」） |
 
@@ -10536,10 +10536,10 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ARC-026 | S-archived-04 | 交互 | 在「取消 / 删除」上点「删除」 | 永久删除全部归档会话，列表变空态 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog |
 | R-ARC-027 | S-archived-04 | 状态 | 打开设置›归档会话，看「取消 / 删除」 | 删除禁用 | — | 判据 = 字色 破坏 明 #e7000b / 暗 #ff6467；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（映射到位但没有该维度的标记）：S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog |
 | R-ARC-028 | S-archived-04 | 样式 | 打开设置›归档会话，看「取消 / 删除」 | 删除危险色实心 | — | 判据 = 色值 = 危险色（`CL-DANGER` 明 #e7000b / 暗 #ff6467） | 已实现（映射 = S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog；标记 = TextColor@arcDialog） |
-| R-ARC-029 | S-archived-04 | 异常 | 删除失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog |
+| R-ARC-029 | S-archived-04 | 异常 | 删除失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog；标记 = Err@arcDelete） |
 | R-ARC-030 | S-archived-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「取消 / 删除」听播报 | 分别播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog；标记 = Role@arcDialog） |
 | R-ARC-031 | S-archived-04 | 键盘 | 把 Tab 焦点移到「取消 / 删除」后按回车 | 触发聚焦按钮 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog |
-| R-ARC-032 | S-archived-04 | 记忆 | 删除后重进 | 仍为空 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog |
+| R-ARC-032 | S-archived-04 | 记忆 | 删除后重进 | 仍为空 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-04→internal/ui/settings_archived_screen.go:arcDeleteAllDialog；标记 = View.） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10561,7 +10561,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ARC-045 | S-archived-06 | 异常 | 无匹配 | 显示「没有匹配的会话」 | — | 屏上「搜索归档会话」的文案逐字为「没有匹配的会话」（7 字） | 已实现（逐字）：internal/ui/settings_archived_screen.go:arcCopyNoMatch「没有匹配的会话」 |
 | R-ARC-046 | S-archived-06 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「搜索归档会话」听播报 | 播报为搜索框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-06→internal/ui/settings_archived_screen.go:arcToolbar；标记 = Label） |
 | R-ARC-047 | S-archived-06 | 输入法 | 用输入法在「搜索归档会话」里打一段还没上屏的拼音 | 不按组合串过滤 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-06→internal/ui/settings_archived_screen.go:arcToolbar |
-| R-ARC-048 | S-archived-06 | 记忆 | 从归档会话切到设置›关于再切回来，看「搜索归档会话」 | 清空搜索 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-06→internal/ui/settings_archived_screen.go:arcToolbar |
+| R-ARC-048 | S-archived-06 | 记忆 | 从归档会话切到设置›关于再切回来，看「搜索归档会话」 | 清空搜索 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-06→internal/ui/settings_archived_screen.go:arcToolbar；标记 = View.@arcProjectOptions） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10577,13 +10577,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-ARC-057 | S-archived-08 | 内容 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 三项：「全部项目」「无项目」+ 各项目名 | — | 项数=项目数+2 | 已实现（逐字）：internal/ui/settings_archived_screen.go:arcCopyAllProjects「全部项目」 |
-| R-ARC-058 | S-archived-08 | 状态 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 带对勾 | — | 行内对勾图标个数 = 1，颜色为主色 | 未实现（找不到元素渲染点） |
-| R-ARC-059 | S-archived-08 | 交互 | 点开「全部项目 / 无项目 /」并选中其中一项 | 过滤生效并收起 | — | 展开状态 = 收起（面板不可见） | 未实现（找不到元素渲染点） |
-| R-ARC-060 | S-archived-08 | 样式 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 行高 32、字号 13 | — | 屏上「全部项目 / 无项目 /」：字号 = 13 | 未实现（找不到元素渲染点） |
-| R-ARC-061 | S-archived-08 | 状态 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 面板滚动 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-ARC-062 | S-archived-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「全部项目 / 无项目 /」听播报 | 列表项播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-ARC-063 | S-archived-08 | 异常 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 截断 | — | 判据 = 屏上「全部项目 / 无项目 /」：文案末尾字符为「…」，字符数按可用宽度取上限 | 未实现（找不到元素渲染点） |
-| R-ARC-064 | S-archived-08 | 键盘 | 把 Tab 焦点移到「全部项目 / 无项目 /」后按回车 | 选中 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-ARC-058 | S-archived-08 | 状态 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 带对勾 | — | 行内对勾图标个数 = 1，颜色为主色 | 已实现（映射 = S-archived-08→internal/ui/settings_archived_screen.go:arcToolbar；标记 = Hidden@accIcon） |
+| R-ARC-059 | S-archived-08 | 交互 | 点开「全部项目 / 无项目 /」并选中其中一项 | 过滤生效并收起 | — | 展开状态 = 收起（面板不可见） | 未实现（映射到位但没有该维度的标记）：S-archived-08→internal/ui/settings_archived_screen.go:arcToolbar |
+| R-ARC-060 | S-archived-08 | 样式 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 行高 32、字号 13 | — | 屏上「全部项目 / 无项目 /」：字号 = 13 | 已实现（映射 = S-archived-08→internal/ui/settings_archived_screen.go:arcToolbar；标记 = Height） |
+| R-ARC-061 | S-archived-08 | 状态 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 面板滚动 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-archived-08→internal/ui/settings_archived_screen.go:arcToolbar；标记 = Hidden@accIcon） |
+| R-ARC-062 | S-archived-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「全部项目 / 无项目 /」听播报 | 列表项播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-08→internal/ui/settings_archived_screen.go:arcToolbar；标记 = Label） |
+| R-ARC-063 | S-archived-08 | 异常 | 打开设置›归档会话，看「全部项目 / 无项目 /」 | 截断 | — | 判据 = 屏上「全部项目 / 无项目 /」：文案末尾字符为「…」，字符数按可用宽度取上限 | 未实现（映射到位但没有该维度的标记）：S-archived-08→internal/ui/settings_archived_screen.go:arcToolbar |
+| R-ARC-064 | S-archived-08 | 键盘 | 把 Tab 焦点移到「全部项目 / 无项目 /」后按回车 | 选中 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-archived-08→internal/ui/settings_archived_screen.go:arcToolbar |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10616,7 +10616,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ARC-085 | S-archived-11 | 样式 | 打开设置›归档会话，看「删除项目内全部会话 · 删除项目内所…」 | 菜单圆角 8 + 投影；删除项警示色 | — | 屏上「删除项目内全部会话 · 删除项目内所…」：圆角 = 8 | 已实现（映射 = S-archived-11→internal/ui/settings_archived_screen.go:arcDeleteProjectDialog；标记 = TextColor@arcDialog） |
 | R-ARC-086 | S-archived-11 | 状态 | 项目名为空 | 显示「无项目」 | — | 该处文案逐字为「无项目」（4 字） | 已实现（逐字）：internal/ui/settings_archived_screen.go:arcCopyNoProject「无项目」 |
 | R-ARC-087 | S-archived-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「删除项目内全部会话 · 删除项目内所…」听播报 | 播报菜单项与对话框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-11→internal/ui/settings_archived_screen.go:arcDeleteProjectDialog；标记 = Role@arcDialog） |
-| R-ARC-088 | S-archived-11 | 异常 | 删除失败 | 错误提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-11→internal/ui/settings_archived_screen.go:arcDeleteProjectDialog |
+| R-ARC-088 | S-archived-11 | 异常 | 删除失败 | 错误提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-11→internal/ui/settings_archived_screen.go:arcDeleteProjectDialog；标记 = Err@arcDelete） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10635,7 +10635,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ARC-098 | S-archived-13 | 交互 | 用鼠标左键单击「恢复」 | 会话回到会话列表，行从本页移除 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = S-archived-13→internal/ui/settings_archived_screen.go:arcRestoreButton；标记 = Pressed） |
 | R-ARC-099 | S-archived-13 | 状态 | 打开设置›归档会话，看「恢复」 | 禁用 | — | 判据 = 字色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；底色 禁用 主色 opacity 50% 明 #a3cdad / 暗 #3f6843；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = S-archived-13→internal/ui/settings_archived_screen.go:arcRestoreButton；标记 = Hidden@accIcon） |
 | R-ARC-100 | S-archived-13 | 样式 | 打开设置›归档会话，看「恢复」 | 描边小按钮、高 28 | — | 判据 = 屏上「恢复」：高度 = 28；边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-archived-13→internal/ui/settings_archived_screen.go:arcRestoreButton；标记 = Height） |
-| R-ARC-101 | S-archived-13 | 异常 | 恢复失败 | 行内提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-13→internal/ui/settings_archived_screen.go:arcRestoreButton |
+| R-ARC-101 | S-archived-13 | 异常 | 恢复失败 | 行内提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-13→internal/ui/settings_archived_screen.go:arcThreadRow；标记 = Err@arcRestore） |
 | R-ARC-102 | S-archived-13 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「恢复」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-13→internal/ui/settings_archived_screen.go:arcRestoreButton；标记 = Label） |
 | R-ARC-103 | S-archived-13 | 键盘 | 把 Tab 焦点移到「恢复」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-archived-13→internal/ui/settings_archived_screen.go:arcRestoreButton |
 | R-ARC-104 | S-archived-13 | 深色 | 在设置›外观把主题切成深色，再回归档会话，看「恢复」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-archived-13→internal/ui/settings_archived_screen.go:arcRestoreButton；标记 = Theme） |
@@ -10647,9 +10647,9 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-ARC-107 | S-archived-14 | 交互 | 打开设置›归档会话，看「删除归档 · 确定要永久删除 "{t…」 | 删除该会话，行消失 | — | 屏上「删除归档 · 确定要永久删除 "{t…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-ARC-108 | S-archived-14 | 交互 | 点开「删除归档 · 确定要永久删除 "{t…」后点「取消」 | 关闭不改 | — | 屏上「删除归档 · 确定要永久删除 "{t…」：状态 = 关 | 已实现（映射 = S-archived-14→internal/ui/settings_archived_screen.go:arcThreadRow；标记 = Pressed@arcRestoreButton） |
 | R-ARC-109 | S-archived-14 | 样式 | 打开设置›归档会话，看「删除归档 · 确定要永久删除 "{t…」 | 行内图标按钮 + 危险色确认 | — | 判据 = 色值 = 危险色（`CL-DANGER` 明 #e7000b / 暗 #ff6467） | 已实现（映射 = S-archived-14→internal/ui/settings_archived_screen.go:arcDeleteThreadDialog；标记 = TextColor@arcDialog） |
-| R-ARC-110 | S-archived-14 | 异常 | 删除失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-14→internal/ui/settings_archived_screen.go:arcDeleteThreadDialog |
+| R-ARC-110 | S-archived-14 | 异常 | 删除失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-14→internal/ui/settings_archived_screen.go:arcDeleteThreadDialog；标记 = Err@arcDelete） |
 | R-ARC-111 | S-archived-14 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「删除归档 · 确定要永久删除 "{t…」听播报 | 播报名与对话框 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-14→internal/ui/settings_archived_screen.go:arcDeleteThreadDialog；标记 = Role@arcDialog） |
-| R-ARC-112 | S-archived-14 | 记忆 | 删除后重进 | 不再出现 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-archived-14→internal/ui/settings_archived_screen.go:arcDeleteThreadDialog |
+| R-ARC-112 | S-archived-14 | 记忆 | 删除后重进 | 不再出现 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-archived-14→internal/ui/settings_archived_screen.go:arcDeleteThreadDialog；标记 = View.） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|

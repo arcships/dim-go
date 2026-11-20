@@ -1,4 +1,33 @@
 {
-  "_comment": "本轮做掉的需求（组织侧登记）。reconcile.py 的五档分流附录会逐条核对：这里登记的需求 ID 现在必须已是「已实现（…）」，否则在附录里标成不一致。条目用自己的需求 ID 追溯，不写实现细节。",
-  "done": {}
+  "_comment": "本轮做掉的需求（组织侧登记）。reconcile.py 的附录 §5.4 逐条核对：登记的需求现在必须已是「已实现（…）」，否则在附录里标成不一致。机械判定只看「元素有没有渲染点 + 函数体里有没有该维度的标记」，不看动作有没有接上写通道；所以每条都写清实现点与证明它的测试，做没做以测试为准、以状态列为核对。",
+  "done": {
+    "R-KEY-055": {
+      "note": "重置写本地偏好：删掉这一项后重启仍是出厂值",
+      "test": "TestKeybindingResetDropsOverride / TestKeybindingPreferencesPersist"
+    },
+    "R-KEY-072": {
+      "note": "改键落盘 Preferences.Keybindings，重启后按新键渲染并按新键判定",
+      "test": "TestKeybindingEditPersistsToPreferences / TestKeybindingDrivesMainWindowKeys"
+    },
+    "R-KEY-085": {
+      "note": "保存失败回滚到保存前的值，行下写原因",
+      "test": "TestKeybindingSaveFailureRollsBack"
+    },
+    "R-PRM-211": {
+      "note": "保存权限走 Intents.WriteCommandRules，成功写「已保存。」并重铺草稿",
+      "test": "TestPermissionsSaveWritesRules"
+    },
+    "R-PRM-227": {
+      "note": "写入失败把服务端原文写进错误行（不加前缀）",
+      "test": "TestPermissionsSaveFailureShowsReason"
+    },
+    "R-ARC-057": {
+      "note": "项目筛选选项由归档行的工作目录生成（全部项目 / 无项目 / 各项目名）",
+      "test": "TestArchivedListComesFromFacts"
+    },
+    "R-ARC-098": {
+      "note": "恢复写 ArchiveSession(id,false)，行由事实驱动消失",
+      "test": "TestArchivedRestoreCallsArchiveSession"
+    }
+  }
 }

@@ -325,6 +325,8 @@ func arcToolbar(c *gui.Context, t *gui.Theme) {
 				Label(arcCopySearch).Placeholder(arcCopySearchHolder)
 		})
 		options := arcProjectOptions()
+		// S-archived-08 项目筛选（全部项目 / 无项目 / 各项目名）：选项由归档行的
+		// 工作目录生成，没有归档行时只有前两项。
 		gui.Select(c, &archivedScreen.projectFilter, options).
 			Width(arcFilterW).Height(arcCtlH).Label("项目筛选")
 	})

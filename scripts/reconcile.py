@@ -1353,7 +1353,8 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
     lines.append('')
     lines.append('Status: 对账报告（脚本生成，可重跑；`python3 scripts/reconcile.py`）')
     lines.append('Scope: 四份需求表的全部条目（`docs/domains/requirements/requirements-*.md`）；'
-                 '状态列写回的是 §4「按元素映射判定」的结论，§1–§3 是第一轮记录')
+                 '状态列写回的是 §4「按元素映射判定」的结论，§1–§3 是第一轮记录，'
+                 '§5 是设置 19 节的五档分流与本轮做掉的条目（核对状态列，不看口头说明）')
     lines.append('Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与需求分析领域')
     lines.append('')
     lines.append('## 0. 判定口径（第一轮：逐字/符号/测试）')
@@ -1873,8 +1874,12 @@ GO_BY_REL: dict[str, GoFile] = {}
 
 # ---------------------------------------------------------------- 五档分流附录
 
-def triage_done() -> dict[str, str]:
-    """本轮做掉的需求登记（需求 ID → 一句实现点），没有文件就是空表。"""
+def triage_done() -> dict[str, dict[str, str]]:
+    """本轮做掉的需求登记（需求 ID → {note, test}），没有文件就是空表。
+
+    登记项可以写成一句字符串（只有实现点），也可以写成 {note, test}：test 是证明
+    这条行为的测试名，附录里一并列出，方便核对「做没做」。
+    """
     if not TRIAGE_DONE_FILE.exists():
         return {}
     try:
@@ -1882,7 +1887,15 @@ def triage_done() -> dict[str, str]:
     except (OSError, ValueError):
         return {}
     done = data.get('done', {}) if isinstance(data, dict) else {}
-    return {k: str(v) for k, v in done.items()} if isinstance(done, dict) else {}
+    if not isinstance(done, dict):
+        return {}
+    out: dict[str, dict[str, str]] = {}
+    for req_id, value in done.items():
+        if isinstance(value, dict):
+            out[req_id] = {k: str(v) for k, v in value.items()}
+        else:
+            out[req_id] = {'note': str(value), 'test': ''}
+    return out
 
 
 def elem_family(elem_id: str) -> str:
@@ -2057,14 +2070,22 @@ def append_triage_section(lines: list[str],
                  f'{len(implemented) - ok} 条。登记表在 `scripts/reconcile-triage-done.json`，'
                  '重跑时逐条核对状态列，做没做不看口头说明。')
     lines.append('')
-    lines.append('| 需求 ID | 实现点 | 现状 |')
-    lines.append('|---|---|---|')
+    lines.append('**「不一致」不等于没做**：§4 的判据只看「元素有没有渲染点 + 函数体里有没有该维度的'
+                 '标记」，不看动作有没有接上写通道。这一轮改的是写通道与本端落盘（改键落盘、权限规则'
+                 '真写入、归档行读事实并接恢复/删除），渲染点与标记本来就在，所以有登记的条目现状'
+                 '仍是「未实现（映射到位但没有该维度的标记）」——那一条缺的是「记忆」「异常」这类横向'
+                 '维度的标记，不是行为。清单里每条都写了证明它的测试名，做没做按测试核。')
+    lines.append('')
+    lines.append('| 需求 ID | 实现点 | 证明它的测试 | 现状 |')
+    lines.append('|---|---|---|---|')
     for req_id, state, evidence in implemented:
-        lines.append(f'| {req_id} | {done[req_id]} | {state}{evidence} |')
+        entry = done[req_id]
+        test = entry.get('test', '') or '—'
+        lines.append(f'| {req_id} | {entry.get("note", "")} | {test} | {state}{evidence} |')
     lines.append('')
 
 
-def check_done(done: dict[str, str],
+def check_done(done: dict[str, dict[str, str]],
                rows_by_file: dict[Path, list[ReqRow]],
                map_by_file: dict[Path, dict[int, MapResult]]) -> list[tuple[str, str, str]]:
     """核对登记表：每条登记的需求现在必须已是「已实现（…）」。"""

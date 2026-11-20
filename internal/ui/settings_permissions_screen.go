@@ -96,7 +96,6 @@ const (
 	permCopyRemove    = "移除"
 	permCopySaveRules = "保存权限"
 	permCopySaved     = "已保存。"
-	permCopySaveFail  = "保存失败："
 	// permCopyRulesAuto 是没有手动刷新通道时的说明：规则读数随连接自动重读。
 	permCopyRulesAuto = "命令规则会随连接自动重新读取，这里没有手动刷新"
 
@@ -464,7 +463,9 @@ func permSaveRules(a *App) {
 		permissionsScreen.rulesSeeded = false
 	}, func(reason string) {
 		permissionsScreen.saving = false
-		permissionsScreen.permissionErr = permCopySaveFail + reason
+		// 错误行写服务端原文（S-permissions-29 的「错误原文」），不加前缀：
+		// 前缀会把「逐字等于接口返回」这条判据改成两句话。
+		permissionsScreen.permissionErr = reason
 	})
 }
 
