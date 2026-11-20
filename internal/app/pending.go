@@ -40,6 +40,7 @@ func (a *App) seedPending(ctx context.Context, runtime *sessionRuntime) {
 				Mode:        input.Mode,
 				Text:        pendingInputText(input),
 				Attachments: pendingInputAttachments(input),
+				HasUser:     input.User != nil,
 				Applied:     input.Applied,
 			})
 		}

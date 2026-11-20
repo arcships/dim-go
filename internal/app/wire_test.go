@@ -232,13 +232,18 @@ func TestPendingSeedingOnAttach(t *testing.T) {
 		Replies: []fakeappserver.Reply{
 			{Method: "session.input.pending", Result: map[string]any{
 				"branchId": "main", "through": 5, "next": nil,
-				"inputs": []any{map[string]any{"inputId": "i-2", "sequence": 5, "mode": "queue", "applied": false}},
+				"inputs": []any{map[string]any{
+					"inputId": "i-2", "sequence": 5, "mode": "queue", "applied": false,
+					"user": map[string]any{"content": []any{
+						map[string]any{"type": "text", "text": "再跑一次"},
+					}},
+				}},
 			}},
 		},
 	})
 	result2 := startAssembly(t, server2, assemblyOptions{session: testSession})
 	view2, _ := result2.base.View(testSession)
-	if !hasPendingInput(view2, "i-2", "") {
+	if !hasPendingInput(view2, "i-2", "再跑一次") {
 		t.Fatalf("可读的一类应注入: %+v", view2.Pending)
 	}
 	if len(view2.Pending.Tasks) != 0 || len(view2.Pending.Collaborations) != 0 {

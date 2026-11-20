@@ -84,6 +84,12 @@ func questionKey(requestID, callID string) string {
 // ----- 装载 -----
 
 func (i *inventory) seedInput(item PendingInput, through int64) {
+	// 服务端注入的环境/状态上下文块也在 `session.input.pending` 里，但它们不是
+	// 用户排队的一条消息（没有 user、没有正文、没有附件）：装载时就不进队列
+	// 清单，与按历史推导的口径一致。
+	if !item.IsUserInput() {
+		return
+	}
 	i.inputs[item.InputID] = &pendingInputEntry{item: item, floor: through}
 }
 

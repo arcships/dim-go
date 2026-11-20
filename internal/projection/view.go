@@ -160,8 +160,21 @@ type PendingInput struct {
 	Text     string
 	// Attachments 是这条输入携带的附件条数；正文为空时界面据此写「附件 N 个」。
 	Attachments int
+	// HasUser 为真表示回执里带了用户内容（user）。服务端自己注入的环境/状态
+	// 上下文块（输入投递方式 append、没有 user、没有正文与附件）不算用户输入。
+	HasUser bool
 	// Applied 为真表示已被应用但未消费：仍在清单里，但不可撤回。
 	Applied bool
+}
+
+// IsUserInput 报告这条待消费输入是不是一次用户输入：带用户内容、带正文或带
+// 附件。服务端注入的环境/状态上下文块三样都没有，不进队列清单——它们不是
+// 用户排队的一条消息，界面也没有可展示的正文。
+//
+// 这条口径与按历史推导时 `input/message` 折叠的取值一致：三样都没有的输入
+// 只按目标变更处理，不进队列。
+func (p PendingInput) IsUserInput() bool {
+	return p.HasUser || p.Text != "" || p.Attachments > 0
 }
 
 // PendingQuestion 是一批尚未回答的提问。提问内容原样保留，由交互裁决解释。

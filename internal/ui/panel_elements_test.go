@@ -82,6 +82,53 @@ func TestQueuePanelRowsAndCollapse(t *testing.T) {
 	}
 }
 
+// TestQueuePanelHiddenWithoutPendingInputs：待处理输入为空时面板不出现——没有
+// 标题计数，也没有一条「没有正文」的占位行。真实回执里的环境/状态上下文块在
+// 投影里就被滤掉了，界面这一层拿到的就是空清单。
+func TestQueuePanelHiddenWithoutPendingInputs(t *testing.T) {
+	src := queuedSource()
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	if _, ok := tt.Find("排队消息面板"); ok {
+		t.Fatalf("待处理输入为空却画了排队面板：%v", tt.Texts())
+	}
+	for _, text := range tt.Texts() {
+		if strings.Contains(text, "条消息") {
+			t.Fatalf("待处理输入为空却出现计数文案 %q：%v", text, tt.Texts())
+		}
+	}
+}
+
+// TestQueuePanelListsOnlyRealQueuedRows：两条真实排队输入只画两行，正文与
+// 投递方式都来自快照；不出现「没有正文」的占位行。
+func TestQueuePanelListsOnlyRealQueuedRows(t *testing.T) {
+	src := queuedSource(
+		QueuedMessageSnapshot{ID: "q1", Mode: "queue", Text: "再补一条错误分支的测试"},
+		QueuedMessageSnapshot{ID: "q2", Mode: "steer", Text: "先把编译过的包跑一遍"},
+	)
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	if !tt.HasText("2 条消息") {
+		t.Fatalf("计数文案不对：%v", tt.Texts())
+	}
+	for _, want := range []struct{ text, label string }{
+		{"再补一条错误分支的测试", "排队消息：再补一条错误分支的测试"},
+		{"先把编译过的包跑一遍", "排队消息（正在转向）：先把编译过的包跑一遍"},
+	} {
+		if !tt.HasText(want.text) {
+			t.Fatalf("排队行没有显示正文 %q：%v", want.text, tt.Texts())
+		}
+		if info, ok := tt.Access(want.label); !ok || info.Role != gui.RoleListItem {
+			t.Fatalf("没有一行的读屏名是 %q（找到 %v）：%+v", want.label, ok, info)
+		}
+	}
+	if tt.HasText(noteQueueNoText) {
+		t.Fatalf("有正文的排队行里出现了 %q：%v", noteQueueNoText, tt.Texts())
+	}
+}
+
 // TestQueuePanelEditEntersComposer：点「编辑」把正文放进输入块并显示
 // 「正在编辑排队消息」；取消后恢复；连线保存走失败分支并保留草稿（IN-40 / IN-436）。
 func TestQueuePanelEditEntersComposer(t *testing.T) {
