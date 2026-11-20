@@ -431,6 +431,7 @@ func (a *App) accountSignedIn(c *gui.Context, d accountScreenData) {
 		}
 		a.accountIdentityCard(c, d)
 		if d.AccountError != "" {
+			// S-account-20 账号错误行（account.error.message 原文）
 			// 读屏名带上原因原文：只给「账号错误」会把服务端那句吞掉。
 			typeSecondary.style(t, gui.Text(c, d.AccountError)).TextColor(t.Danger).
 				Margin(space3, 0, 0, 0).Label("账号错误：" + d.AccountError)

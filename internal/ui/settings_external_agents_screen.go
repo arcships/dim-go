@@ -105,6 +105,7 @@ func renderExternalAgents(c *gui.Context) {
 			gui.Column(c).Children(func() {
 				gui.Column(c).Shrink(0).Gap(eaPageGap).Children(func() {
 					eaTitle(c, t)
+					// S-externalAgents-02 页面说明句（外部 agent CLI 作为子 agent 启用）
 					eaDescStyle.style(t, gui.Text(c, eaCopyIntro)).
 						TextColor(t.TextMuted).Selectable()
 				})
@@ -125,10 +126,12 @@ func eaTitle(c *gui.Context, t *gui.Theme) {
 func eaBody(c *gui.Context, t *gui.Theme) {
 	switch {
 	case externalAgentsScreen.loading:
+		// S-externalAgents-03 正在探测外部 Agent…
 		typeSecondary.style(t, gui.Text(c, eaCopyLoading)).
 			TextColor(t.TextMuted).Label(eaCopyLoading)
 		return
 	case externalAgentsScreen.loadError != "":
+		// S-externalAgents-04 读取失败原因 + 「重试」
 		gui.Row(c).Shrink(0).AlignItems(gui.Center).Wrap().Gap(eaRowGap).
 			Children(func() {
 				eaNoteStyle.style(t, gui.Text(c, externalAgentsScreen.loadError)).
@@ -151,6 +154,7 @@ func eaBody(c *gui.Context, t *gui.Theme) {
 			eaAgentRow(c, t, &externalAgentsScreen.agents[i])
 		}
 	})
+	// S-externalAgents-15 页尾说明（更改将在新对话中生效）
 	eaNoteStyle.style(t, gui.Text(c, eaCopyFootNote)).TextColor(t.TextMuted).
 		Selectable()
 }

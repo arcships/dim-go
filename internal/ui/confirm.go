@@ -78,6 +78,9 @@ type confirmState struct {
 	workspaceID   string
 	workspaceName string
 	workspacePath string
+	// workspaceCount 是打开时该工作区下的会话条数：描述里的计数按它定格，
+	// 确认时执行的是 targets（两者分开，弹窗期间集合变了也不改描述）。
+	workspaceCount int
 	// running 表示打开时目标里有正在运行的会话（E3 的警告按它定格）。
 	running bool
 	// editText / editRow 是 E1 待发送的编辑正文与行号。
@@ -121,11 +124,12 @@ func (a *App) openWorkspaceDeleteConfirm(ws sidebarWorkspace, threads []sidebarT
 		indexes = append(indexes, thread.index)
 	}
 	a.confirm = confirmState{
-		kind:          confirmKindDeleteWorkspace,
-		targets:       a.confirmTargets(indexes),
-		workspaceID:   ws.id,
-		workspaceName: ws.name,
-		workspacePath: ws.path,
+		kind:           confirmKindDeleteWorkspace,
+		targets:        a.confirmTargets(indexes),
+		workspaceID:    ws.id,
+		workspaceName:  ws.name,
+		workspacePath:  ws.path,
+		workspaceCount: len(indexes),
 	}
 }
 
@@ -207,7 +211,8 @@ func (a *App) confirmDescription() string {
 			// G-E4-02 「将删除“{name}”下的 {count} 条会话。」
 			name = confirmCopyWorkspaceF
 		}
-		return fmt.Sprintf(confirmCopyWorkspaceD, name, len(st.targets))
+		// 计数按打开时定格（G-E4-01 异常）：弹窗期间集合变了，描述不跟着跳。
+		return fmt.Sprintf(confirmCopyWorkspaceD, name, st.workspaceCount)
 	}
 }
 
@@ -287,12 +292,19 @@ func (a *App) confirmDialog(c *gui.Context) {
 	open := true
 	kind := a.confirm.kind
 	title := a.confirmTitle()
+	desc := a.confirmDescription()
 	dialog := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleAlertDialog).Label(title)
+		// described 是说明句的元素：挂成对话框的 describedby。读屏先读对话框名
+		// （标题），再读这段说明，最后才到按钮；说明是这段确认的唯一解释。
+		var described gui.Element
 		panel.Children(func() {
-			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).SingleLine()
-			typeSecondary.style(t, gui.Text(c, a.confirmDescription())).
-				TextColor(t.TextMuted).Selectable()
+			// G-E1-01 / G-E2-01 / G-E3-01 / G-E4-01 弹窗标题（同一时刻只有一种）
+			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).SingleLine().
+				Label(title).Role(gui.RoleHeading)
+			// G-E1-02 / G-E2-02 / G-E3-02 / G-E4-02 弹窗说明（会话名逐个可听）
+			described = typeSecondary.style(t, gui.Text(c, desc)).
+				TextColor(t.TextMuted).Selectable().Label(desc)
 			if kind == confirmKindArchive && a.confirm.running {
 				// G-E3-03 正在运行的会话会被中断
 				typeSecondary.style(t, gui.Text(c, confirmCopyArchiveRun)).
@@ -317,12 +329,13 @@ func (a *App) confirmDialog(c *gui.Context) {
 					a.confirm = confirmState{}
 				}
 				if confirmDangerous(kind) {
+					// G-E1-04 停止并发送（执行中禁用并写「停止中...」）
 					if confirmDangerButton(c, t, a.confirmPrimaryText(), a.confirm.busy) {
 						a.runConfirm()
 					}
 					return
 				}
-				// G-E2-05 / G-E3-06 / G-E4-06 确认按钮
+				// G-E2-05 / G-E3-06 / G-E4-06 确认按钮（执行中禁用）
 				accept := gui.PrimaryButton(c, a.confirmPrimaryText())
 				if a.confirm.busy {
 					accept = accept.Disabled(true).Opacity(0.5)
@@ -334,6 +347,9 @@ func (a *App) confirmDialog(c *gui.Context) {
 				}
 			})
 		})
+		if described != (gui.Element{}) {
+			panel.DescribedBy(described)
+		}
 		panel.Width(confirmWidthFor(c))
 	}))
 

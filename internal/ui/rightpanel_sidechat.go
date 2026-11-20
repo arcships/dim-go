@@ -39,6 +39,7 @@ func (a *App) sideChatPanel(c *gui.Context) {
 			}
 			// 「重试」只在 -demo 有：连着 Source 时没有重读侧聊的通道，留一个
 			// 点了只清错误行的按钮就是假重试（U3 §13.6）。
+			// S-03 横幅尾部的「重试」文字按钮（加载中 / 已发出时不给）
 			action := ""
 			if len(a.panels.sideChatSent) == 0 && !a.wired() {
 				action = sideChatRetry

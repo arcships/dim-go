@@ -123,6 +123,7 @@ func renderGit(c *gui.Context, a *App) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(gitCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(gitSectionGap).Children(func() {
+				// S-git-01 页面标题「Git」
 				screenTitle(c, gitCopyTitle)
 				if live {
 					gitNoFactsBar(c)

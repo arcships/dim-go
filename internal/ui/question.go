@@ -394,19 +394,24 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 }
 
 // questionCustomField 是「自定义答案 / 自定义选项」：一行灰标签 + 多行输入框。
+// 标签与输入框成对：输入框以这行可见标签为可读名（LabelledBy），读屏先念标签
+// 再念输入内容，提示语留在 placeholder 里。
 func (a *App) questionCustomField(c *gui.Context, item QuestionItemSnapshot, label, hint string) {
 	t := c.Theme()
 	q := &a.question
-	// G-D1-15 自定义答案 / 自定义选项
-	typeMicro.style(t, gui.Text(c, label)).TextColor(t.TextMuted).SingleLine()
+	// G-D1-15 自定义答案 / G-D1-16 自定义选项
+	labelEl := typeMicro.style(t, gui.Text(c, label)).TextColor(t.TextMuted).SingleLine()
 	draft := &q.custom[q.index]
 	if item.Multiple {
 		draft = &q.extra[q.index]
 	}
-	gui.TextAreaBase(c, draft).Grow(1).
+	input := gui.TextAreaBase(c, draft).Grow(1).
 		MinHeight(questionInputMinHeight).MaxHeight(questionInputMaxHeight).
 		Label(label).Placeholder(hint).Padding(space1, space2).Radius(radius).
 		Background(fieldFill(t))
+	if labelEl != (gui.Element{}) {
+		input.LabelledBy(labelEl)
+	}
 }
 
 // questionFoot 是脚部：错误行 + 拒绝 / 上一题 / 下一题 / 提交。
@@ -418,6 +423,7 @@ func (a *App) questionFoot(c *gui.Context, snap QuestionSnapshot, items []Questi
 		q.err = ""
 	}
 	if q.err != "" {
+		// G-D1-17 错误行：14px 危险色、脚部按钮行之上、role=alert 播报一次
 		gui.Row(c).Children(func() {
 			typeSecondary.style(t, gui.Text(c, q.err)).TextColor(t.Danger).
 				Selectable().Label(q.err).Role(gui.RoleAlert)
@@ -458,6 +464,7 @@ func (a *App) questionFoot(c *gui.Context, snap QuestionSnapshot, items []Questi
 		// 单题且未答时「提交」直接禁用（G-D1-22）；多题交给提交时的校验，
 		// 因为「下一题」不阻断前进。
 		empty := len(items) == 1 && q.answerAt(0, items[0]) == ""
+		// G-D1-21 提交（实心强调色、高 28、脚部最右）；执行中与未答时禁用
 		submit := actionButton(c, questionCopySubmit, questionCopySubmit, true, q.busy || empty)
 		if submit.Focused() {
 			q.buttonFocused = true
@@ -545,7 +552,17 @@ func (q *questionCardState) answerAt(index int, item QuestionItemSnapshot) strin
 		return ""
 	}
 	if item.Multiple {
-		return strings.Join(picked, "\n")
+		// 勾选在前、自定义选项在后；同一值只留第一次出现（G-D1-16）。
+		seen := make(map[string]bool, len(picked))
+		merged := picked[:0]
+		for _, value := range picked {
+			if seen[value] {
+				continue
+			}
+			seen[value] = true
+			merged = append(merged, value)
+		}
+		return strings.Join(merged, "\n")
 	}
 	return picked[0]
 }

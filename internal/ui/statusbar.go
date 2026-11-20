@@ -348,6 +348,7 @@ func (a *App) statusUsage(c *gui.Context) {
 			typeMicro.style(t, gui.Text(c, "速率：42 tok/s")).TextColor(t.TextMuted)
 		}
 		gui.Box(c).Height(strokeHairline).Background(t.Border)
+		// SB-16 用量浮层分组标题（参考文案「计划」，本端取「套餐用量」）
 		typeMicro.style(t, gui.Text(c, "套餐用量")).TextColor(t.TextMuted)
 		if a.source != nil {
 			usage := a.source.Usage()

@@ -345,16 +345,16 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-ACC-238 | S-account-20 | 状态 | 账号请求失败（网络、401、刷新） | 身份卡底部出现一行错误文本，位于按钮行下方 | — | 屏上「account.error.mess…」：行数 = 1、相对位置 = 按钮行下方 | 未实现（找不到元素渲染点） |
-| R-ACC-239 | S-account-20 | 内容 | 错误为超时 | 文案取服务端返回的错误消息原文，不套模板前缀 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-ACC-240 | S-account-20 | 样式 | 错误行出现 | 警示色文字、单行、字号为最小正文级 | — | 判据 = 屏上「account.error.mess…」：行数 = 1；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 未实现（找不到元素渲染点） |
+| R-ACC-238 | S-account-20 | 状态 | 账号请求失败（网络、401、刷新） | 身份卡底部出现一行错误文本，位于按钮行下方 | — | 屏上「account.error.mess…」：行数 = 1、相对位置 = 按钮行下方 | 未实现（映射到位但没有该维度的标记）：S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn |
+| R-ACC-239 | S-account-20 | 内容 | 错误为超时 | 文案取服务端返回的错误消息原文，不套模板前缀 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn；标记 = 文案「账号错误：」） |
+| R-ACC-240 | S-account-20 | 样式 | 错误行出现 | 警示色文字、单行、字号为最小正文级 | — | 判据 = 屏上「account.error.mess…」：行数 = 1；色值 = 警示色（`CL-WARN` 明 #e17100 / 暗 #ffb900） | 已实现（映射 = S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn；标记 = TextColor） |
 | R-ACC-241 | S-account-20 | 状态 | 刷新成功后 | 错误行消失，卡片高度回到 96 | — | 屏上「account.error.mess…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-ACC-242 | S-account-20 | 关联 | 错误行出现 | 身份卡不切换到错误卡，头像与名字仍显示旧值 | — | 屏上「account.error.mess…」：出现次数 = 1 | 未实现（找不到元素渲染点） |
-| R-ACC-243 | S-account-20 | 交互 | 选中错误文本 | 可选中复制，便于报障 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-ACC-244 | S-account-20 | 异常 | 错误消息含超长 URL | 自动换行，不横向溢出 | — | 屏上「account.error.mess…」：横向滚动条 = 0；行数 ≥ 2 | 未实现（找不到元素渲染点） |
+| R-ACC-242 | S-account-20 | 关联 | 错误行出现 | 身份卡不切换到错误卡，头像与名字仍显示旧值 | — | 屏上「account.error.mess…」：出现次数 = 1 | 已实现（映射 = S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn；标记 = Screen） |
+| R-ACC-243 | S-account-20 | 交互 | 选中错误文本 | 可选中复制，便于报障 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn |
+| R-ACC-244 | S-account-20 | 异常 | 错误消息含超长 URL | 自动换行，不横向溢出 | — | 屏上「account.error.mess…」：横向滚动条 = 0；行数 ≥ 2 | 已实现（映射 = S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn；标记 = Err） |
 | R-ACC-245 | S-account-20 | 无障碍 | 打开设置›账户，看「account.error.mess…」 | 以警示角色播报一次，不重复播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-ACC-246 | S-account-20 | 窄窗 | 把窗口拖到内容列宽 520，看「account.error.mess…」 | 错误行换行成两行，卡片高度随之增加 | — | 屏上「account.error.mess…」：行数 = 2 | 未实现（找不到元素渲染点） |
-| R-ACC-247 | S-account-20 | 深色 | 在设置›外观把主题切成深色，再回账户，看「account.error.mess…」 | 警示字色在深色下对比 ≥4.5:1 | — | 屏上「account.error.mess…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-ACC-246 | S-account-20 | 窄窗 | 把窗口拖到内容列宽 520，看「account.error.mess…」 | 错误行换行成两行，卡片高度随之增加 | — | 屏上「account.error.mess…」：行数 = 2 | 未实现（映射到位但没有该维度的标记）：S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn |
+| R-ACC-247 | S-account-20 | 深色 | 在设置›外观把主题切成深色，再回账户，看「account.error.mess…」 | 警示字色在深色下对比 ≥4.5:1 | — | 屏上「account.error.mess…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-account-20→internal/ui/settings_account_screen.go:App.accountSignedIn；标记 = Theme） |
 
 ### 1.7 未登录分支（条件：未登录）
 
@@ -8642,13 +8642,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-NTF-001 | S-notifications-01 | 内容 | 从设置›关于切进通知，滚动到 y≈33 处的「通知」 | 标题「通知」 | — | 屏上「通知」的文案逐字为「通知」（2 字） | 已实现（逐字）：internal/app/approvals.go:App.routeSessionEvent「通知」 |
-| R-NTF-002 | S-notifications-01 | 样式 | 打开设置›通知，滚动到 y≈33 处的「通知」 | 与其它节标题同级，y=33 | — | 屏上「通知」：y = 33 | 未实现（找不到元素渲染点） |
-| R-NTF-003 | S-notifications-01 | 关联 | 在「通知」所在行内，同时看它与首卡的相对位置 | 下 27 | — | 间距 27 | 未实现（找不到元素渲染点） |
-| R-NTF-004 | S-notifications-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通知」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-NTF-005 | S-notifications-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通知，滚动到 y≈33 处的「通知」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-NTF-006 | S-notifications-01 | 记忆 | 从通知切到设置›关于再切回来，滚动到 y≈33 处的「通知」 | 回 y=33 | — | 屏上「通知」：y = 33 | 未实现（找不到元素渲染点） |
-| R-NTF-007 | S-notifications-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「通知」 | 单行 | — | 屏上「通知」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-NTF-008 | S-notifications-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「通知」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-NTF-002 | S-notifications-01 | 样式 | 打开设置›通知，滚动到 y≈33 处的「通知」 | 与其它节标题同级，y=33 | — | 屏上「通知」：y = 33 | 已实现（映射 = S-notifications-01→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = TextColor@screenTitle） |
+| R-NTF-003 | S-notifications-01 | 关联 | 在「通知」所在行内，同时看它与首卡的相对位置 | 下 27 | — | 间距 27 | 已实现（映射 = S-notifications-01→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = Switch） |
+| R-NTF-004 | S-notifications-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「通知」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-notifications-01→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = Label） |
+| R-NTF-005 | S-notifications-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进通知，滚动到 y≈33 处的「通知」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-notifications-01→internal/ui/settings_notifications_screen.go:App.renderNotifications |
+| R-NTF-006 | S-notifications-01 | 记忆 | 从通知切到设置›关于再切回来，滚动到 y≈33 处的「通知」 | 回 y=33 | — | 屏上「通知」：y = 33 | 已实现（映射 = S-notifications-01→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = persist@App.notifySwitchCard） |
+| R-NTF-007 | S-notifications-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「通知」 | 单行 | — | 屏上「通知」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-notifications-01→internal/ui/settings_notifications_screen.go:App.renderNotifications |
+| R-NTF-008 | S-notifications-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「通知」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-notifications-01→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = 文案「通知」等 4 条） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8718,14 +8718,14 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-NTF-057 | S-notifications-08 | 状态 | 首次打开设置›通知、不做任何改动时滚动到 y≈238 处的「需要我回应时通知」 | 开关状态可辨 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-NTF-058 | S-notifications-08 | 交互 | 点开「需要我回应时通知」 | 审批/提问到达时发通知 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-NTF-059 | S-notifications-08 | 交互 | 打开设置›通知，滚动到 y≈238 处的「需要我回应时通知」 | 不发通知 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-NTF-060 | S-notifications-08 | 样式 | 打开设置›通知，滚动到 y≈238 处的「需要我回应时通知」 | 28×16 | — | 屏上「需要我回应时通知」：宽×高 = 28×16 | 未实现（找不到元素渲染点） |
-| R-NTF-061 | S-notifications-08 | 异常 | 无响应体 | 回滚并提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-NTF-062 | S-notifications-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「需要我回应时通知」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-NTF-063 | S-notifications-08 | 记忆 | 改动后退出客户端再启动，重进设置›通知，滚动到 y≈238 处的「需要我回应时通知」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-NTF-064 | S-notifications-08 | 键盘 | 把焦点移到「需要我回应时通知」后按空格 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（找不到元素渲染点） |
+| R-NTF-057 | S-notifications-08 | 状态 | 首次打开设置›通知、不做任何改动时滚动到 y≈238 处的「需要我回应时通知」 | 开关状态可辨 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（映射到位但没有该维度的标记）：S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications |
+| R-NTF-058 | S-notifications-08 | 交互 | 点开「需要我回应时通知」 | 审批/提问到达时发通知 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications |
+| R-NTF-059 | S-notifications-08 | 交互 | 打开设置›通知，滚动到 y≈238 处的「需要我回应时通知」 | 不发通知 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications |
+| R-NTF-060 | S-notifications-08 | 样式 | 打开设置›通知，滚动到 y≈238 处的「需要我回应时通知」 | 28×16 | — | 屏上「需要我回应时通知」：宽×高 = 28×16 | 已实现（映射 = S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = TextColor@screenTitle） |
+| R-NTF-061 | S-notifications-08 | 异常 | 无响应体 | 回滚并提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications |
+| R-NTF-062 | S-notifications-08 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「需要我回应时通知」听播报 | 播报名与状态 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = Label） |
+| R-NTF-063 | S-notifications-08 | 记忆 | 改动后退出客户端再启动，重进设置›通知，滚动到 y≈238 处的「需要我回应时通知」 | 保持 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications；标记 = persist@App.notifySwitchCard） |
+| R-NTF-064 | S-notifications-08 | 键盘 | 把焦点移到「需要我回应时通知」后按空格 | 切换 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 未实现（映射到位但没有该维度的标记）：S-notifications-08→internal/ui/settings_notifications_screen.go:App.renderNotifications |
 
 ## 12. 宠物（S-pets-01 … S-pets-26）
 
@@ -8734,13 +8734,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PET-001 | S-pets-01 | 内容 | 从设置›关于切进宠物，滚动到 y≈33 处的「宠物」 | 标题「宠物」 | — | 屏上「宠物」的文案逐字为「宠物」（2 字） | 已实现（逐字）：internal/ui/settings_pets_screen.go:petsCopyTitle「宠物」 |
-| R-PET-002 | S-pets-01 | 样式 | 打开设置›宠物，滚动到 y≈33 处的「宠物」 | 与其它节同级，y=33 | — | 屏上「宠物」：y = 33 | 未实现（找不到元素渲染点） |
-| R-PET-003 | S-pets-01 | 关联 | 在「宠物」所在行内，同时看它与首行的相对位置 | 下 27 | — | 间距 27 | 未实现（找不到元素渲染点） |
-| R-PET-004 | S-pets-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「宠物」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PET-005 | S-pets-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进宠物，滚动到 y≈33 处的「宠物」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-PET-006 | S-pets-01 | 记忆 | 从宠物切到设置›关于再切回来，滚动到 y≈33 处的「宠物」 | 回 y=33 | — | 屏上「宠物」：y = 33 | 未实现（找不到元素渲染点） |
-| R-PET-007 | S-pets-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「宠物」 | 单行 | — | 屏上「宠物」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-PET-008 | S-pets-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「宠物」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-PET-002 | S-pets-01 | 样式 | 打开设置›宠物，滚动到 y≈33 处的「宠物」 | 与其它节同级，y=33 | — | 屏上「宠物」：y = 33 | 已实现（映射 = S-pets-01→internal/ui/settings_pets_screen.go:renderPets；标记 = TextColor@screenTitle） |
+| R-PET-003 | S-pets-01 | 关联 | 在「宠物」所在行内，同时看它与首行的相对位置 | 下 27 | — | 间距 27 | 已实现（映射 = S-pets-01→internal/ui/settings_pets_screen.go:renderPets；标记 = Section） |
+| R-PET-004 | S-pets-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「宠物」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pets-01→internal/ui/settings_pets_screen.go:renderPets；标记 = Label） |
+| R-PET-005 | S-pets-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进宠物，滚动到 y≈33 处的「宠物」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pets-01→internal/ui/settings_pets_screen.go:renderPets；标记 = Err@petsStatusCard） |
+| R-PET-006 | S-pets-01 | 记忆 | 从宠物切到设置›关于再切回来，滚动到 y≈33 处的「宠物」 | 回 y=33 | — | 屏上「宠物」：y = 33 | 未实现（映射到位但没有该维度的标记）：S-pets-01→internal/ui/settings_pets_screen.go:renderPets |
+| R-PET-007 | S-pets-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「宠物」 | 单行 | — | 屏上「宠物」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-pets-01→internal/ui/settings_pets_screen.go:renderPets |
+| R-PET-008 | S-pets-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「宠物」 | 跟随翻译 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-pets-01→internal/ui/settings_pets_screen.go:renderPets；标记 = 文案「宠物」） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -9358,13 +9358,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-GIT-001 | S-git-01 | 内容 | 从设置›关于切进Git，滚动到 y≈33 处的「Git」 | 标题「Git」 | — | 屏上「Git」的文案逐字为「Git」（3 字） | 已实现（逐字）：internal/ui/settings_appearance_screen.go:appearanceCodeThemes「Git」 |
-| R-GIT-002 | S-git-01 | 样式 | 打开设置›Git，滚动到 y≈33 处的「Git」 | 与其它节同级，y=33 | — | 屏上「Git」：y = 33 | 未实现（找不到元素渲染点） |
-| R-GIT-003 | S-git-01 | 关联 | 在「Git」所在行内，同时看它与首行的相对位置 | 下 27 | — | 间距 27 | 未实现（找不到元素渲染点） |
-| R-GIT-004 | S-git-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Git」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GIT-005 | S-git-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Git，滚动到 y≈33 处的「Git」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GIT-006 | S-git-01 | 记忆 | 从Git切到设置›关于再切回来，滚动到 y≈33 处的「Git」 | 回 y=33 | — | 屏上「Git」：y = 33 | 未实现（找不到元素渲染点） |
-| R-GIT-007 | S-git-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「Git」 | 单行 | — | 屏上「Git」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-GIT-008 | S-git-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「Git」 | 不翻译（产品名） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-GIT-002 | S-git-01 | 样式 | 打开设置›Git，滚动到 y≈33 处的「Git」 | 与其它节同级，y=33 | — | 屏上「Git」：y = 33 | 已实现（映射 = S-git-01→internal/ui/settings_git_screen.go:renderGit；标记 = TextColor@screenTitle） |
+| R-GIT-003 | S-git-01 | 关联 | 在「Git」所在行内，同时看它与首行的相对位置 | 下 27 | — | 间距 27 | 已实现（映射 = S-git-01→internal/ui/settings_git_screen.go:renderGit；标记 = Section） |
+| R-GIT-004 | S-git-01 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「Git」听播报 | 二级标题播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-git-01→internal/ui/settings_git_screen.go:renderGit；标记 = Label） |
+| R-GIT-005 | S-git-01 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进Git，滚动到 y≈33 处的「Git」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-git-01→internal/ui/settings_git_screen.go:renderGit |
+| R-GIT-006 | S-git-01 | 记忆 | 从Git切到设置›关于再切回来，滚动到 y≈33 处的「Git」 | 回 y=33 | — | 屏上「Git」：y = 33 | 未实现（映射到位但没有该维度的标记）：S-git-01→internal/ui/settings_git_screen.go:renderGit |
+| R-GIT-007 | S-git-01 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈33 处的「Git」 | 单行 | — | 屏上「Git」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-git-01→internal/ui/settings_git_screen.go:renderGit |
+| R-GIT-008 | S-git-01 | 语言 | 在设置›外观把界面语言切成英文后，滚动到 y≈33 处的「Git」 | 不翻译（产品名） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-git-01→internal/ui/settings_git_screen.go:renderGit；标记 = 文案「默认远程仓库」等 15 条） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10342,35 +10342,35 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-EXT-009 | S-externalAgents-02 | 内容 | 打开设置›外部 Agent，滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 说明「将外部 agent CLI 作为子 agent 启用，主 agent 可委派任务给它们。」 | — | 屏上「将外部 agent CLI 作为子 …」的文案逐字为「将外部 agent CLI 作为子 agent 启用，主 agent 可委派任务…」（44 字） | 已实现（逐字）：internal/ui/settings_external_agents_screen.go:eaCopyIntro「将外部 agent CLI 作为子 agent 启用，主 agent 可委派任务给它们。」 |
-| R-EXT-010 | S-externalAgents-02 | 样式 | 打开设置›外部 Agent，滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-EXT-011 | S-externalAgents-02 | 关联 | 在「将外部 agent CLI 作为子 …」所在行内，同时看它与提示卡的相对位置 | 下 16 | — | 间距 16 | 未实现（找不到元素渲染点） |
-| R-EXT-012 | S-externalAgents-02 | 交互 | 在「将外部 agent CLI 作为子 …」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-EXT-013 | S-externalAgents-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「将外部 agent CLI 作为子 …」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-014 | S-externalAgents-02 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外部 Agent滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-015 | S-externalAgents-02 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-EXT-016 | S-externalAgents-02 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 对比≥4.5:1 | — | 屏上「将外部 agent CLI 作为子 …」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-EXT-010 | S-externalAgents-02 | 样式 | 打开设置›外部 Agent，滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-externalAgents-02→internal/ui/settings_external_agents_screen.go:renderExternalAgents；标记 = TextColor） |
+| R-EXT-011 | S-externalAgents-02 | 关联 | 在「将外部 agent CLI 作为子 …」所在行内，同时看它与提示卡的相对位置 | 下 16 | — | 间距 16 | 已实现（映射 = S-externalAgents-02→internal/ui/settings_external_agents_screen.go:renderExternalAgents；标记 = Select） |
+| R-EXT-012 | S-externalAgents-02 | 交互 | 在「将外部 agent CLI 作为子 …」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（映射到位但没有该维度的标记）：S-externalAgents-02→internal/ui/settings_external_agents_screen.go:renderExternalAgents |
+| R-EXT-013 | S-externalAgents-02 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「将外部 agent CLI 作为子 …」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-02→internal/ui/settings_external_agents_screen.go:renderExternalAgents；标记 = Role@eaTitle） |
+| R-EXT-014 | S-externalAgents-02 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进外部 Agent滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-02→internal/ui/settings_external_agents_screen.go:renderExternalAgents；标记 = Err@eaBody） |
+| R-EXT-015 | S-externalAgents-02 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-externalAgents-02→internal/ui/settings_external_agents_screen.go:renderExternalAgents |
+| R-EXT-016 | S-externalAgents-02 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent滚动到 y≈61 处的「将外部 agent CLI 作为子 …」 | 对比≥4.5:1 | — | 屏上「将外部 agent CLI 作为子 …」：对比度 ≥ 4.5:1 | 已实现（映射 = S-externalAgents-02→internal/ui/settings_external_agents_screen.go:renderExternalAgents；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-EXT-017 | S-externalAgents-03 | 状态 | 打开设置›外部 Agent，看「正在探测外部 Agent…」 | 显示「正在探测外部 Agent…」 | — | 屏上「正在探测外部 Agent…」的文案逐字为「正在探测外部 Agent…」（13 字） | 未实现（找不到元素渲染点） |
+| R-EXT-017 | S-externalAgents-03 | 状态 | 打开设置›外部 Agent，看「正在探测外部 Agent…」 | 显示「正在探测外部 Agent…」 | — | 屏上「正在探测外部 Agent…」的文案逐字为「正在探测外部 Agent…」（13 字） | 已实现（映射 = S-externalAgents-03→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Loading） |
 | R-EXT-018 | S-externalAgents-03 | 状态 | 打开设置›外部 Agent，看「正在探测外部 Agent…」 | 不渲染 | — | 屏上「正在探测外部 Agent…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-EXT-019 | S-externalAgents-03 | 样式 | 打开设置›外部 Agent，看「正在探测外部 Agent…」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-EXT-020 | S-externalAgents-03 | 动画 | 打开设置›外部 Agent，看「正在探测外部 Agent…」 | 省略号为静态「…」，不转圈 | — | 判据 = 1 秒内旋转角度变化 ≥ 360°；文案末尾字符 = 「…」 | 未实现（找不到元素渲染点） |
-| R-EXT-021 | S-externalAgents-03 | 异常 | 让请求 30 秒不返回后看「正在探测外部 Agent…」 | 转错误 + 重试 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-022 | S-externalAgents-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「正在探测外部 Agent…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-023 | S-externalAgents-03 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「正在探测外部 Agent…」 | 单行 | — | 屏上「正在探测外部 Agent…」：行数 = 1 | 未实现（找不到元素渲染点） |
-| R-EXT-024 | S-externalAgents-03 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「正在探测外部 Agent…」 | 对比≥4.5:1 | — | 屏上「正在探测外部 Agent…」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-EXT-019 | S-externalAgents-03 | 样式 | 打开设置›外部 Agent，看「正在探测外部 Agent…」 | 12 字号次级 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-externalAgents-03→internal/ui/settings_external_agents_screen.go:eaBody；标记 = TextColor） |
+| R-EXT-020 | S-externalAgents-03 | 动画 | 打开设置›外部 Agent，看「正在探测外部 Agent…」 | 省略号为静态「…」，不转圈 | — | 判据 = 1 秒内旋转角度变化 ≥ 360°；文案末尾字符 = 「…」 | 未实现（映射到位但没有该维度的标记）：S-externalAgents-03→internal/ui/settings_external_agents_screen.go:eaBody |
+| R-EXT-021 | S-externalAgents-03 | 异常 | 让请求 30 秒不返回后看「正在探测外部 Agent…」 | 转错误 + 重试 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-03→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Err） |
+| R-EXT-022 | S-externalAgents-03 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「正在探测外部 Agent…」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-03→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Label） |
+| R-EXT-023 | S-externalAgents-03 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「正在探测外部 Agent…」 | 单行 | — | 屏上「正在探测外部 Agent…」：行数 = 1 | 未实现（映射到位但没有该维度的标记）：S-externalAgents-03→internal/ui/settings_external_agents_screen.go:eaBody |
+| R-EXT-024 | S-externalAgents-03 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「正在探测外部 Agent…」 | 对比≥4.5:1 | — | 屏上「正在探测外部 Agent…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-externalAgents-03→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-EXT-025 | S-externalAgents-04 | 状态 | 探测失败 | 显示错误 + 重试 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-EXT-026 | S-externalAgents-04 | 交互 | 让请求失败后在「loadError + 重试」上点「重试」 | 重新探测 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-027 | S-externalAgents-04 | 样式 | 打开设置›外部 Agent，看「loadError + 重试」 | 12 字号警示 + 小按钮 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
+| R-EXT-025 | S-externalAgents-04 | 状态 | 探测失败 | 显示错误 + 重试 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-externalAgents-04→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Loading） |
+| R-EXT-026 | S-externalAgents-04 | 交互 | 让请求失败后在「loadError + 重试」上点「重试」 | 重新探测 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-04→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Pressed@plgOutlineButton） |
+| R-EXT-027 | S-externalAgents-04 | 样式 | 打开设置›外部 Agent，看「loadError + 重试」 | 12 字号警示 + 小按钮 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-externalAgents-04→internal/ui/settings_external_agents_screen.go:eaBody；标记 = TextColor） |
 | R-EXT-028 | S-externalAgents-04 | 状态 | 打开设置›外部 Agent，在无异常提示的状态下看「loadError + 重试」 | 不渲染 | — | 屏上「loadError + 重试」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-EXT-029 | S-externalAgents-04 | 内容 | 让「loadError + 重试」所属请求返回 500 后看「loadError + 重试」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-030 | S-externalAgents-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「loadError + 重试」听播报 | 播报错误 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-031 | S-externalAgents-04 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「loadError + 重试」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
-| R-EXT-032 | S-externalAgents-04 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「loadError + 重试」 | 对比≥4.5:1 | — | 屏上「loadError + 重试」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-EXT-029 | S-externalAgents-04 | 内容 | 让「loadError + 重试」所属请求返回 500 后看「loadError + 重试」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-04→internal/ui/settings_external_agents_screen.go:eaBody；标记 = 文案「正在探测外部 Agent…」等 3 条） |
+| R-EXT-030 | S-externalAgents-04 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「loadError + 重试」听播报 | 播报错误 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-04→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Label） |
+| R-EXT-031 | S-externalAgents-04 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「loadError + 重试」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-externalAgents-04→internal/ui/settings_external_agents_screen.go:eaBody |
+| R-EXT-032 | S-externalAgents-04 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「loadError + 重试」 | 对比≥4.5:1 | — | 屏上「loadError + 重试」：对比度 ≥ 4.5:1 | 已实现（映射 = S-externalAgents-04→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -10486,12 +10486,12 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 |---|---|---|---|---|---|---|---|
 | R-EXT-113 | S-externalAgents-15 | 内容 | 可用态 | 显示「更改将在新对话中生效。」 | — | 屏上「更改将在新对话中生效。」的文案逐字为「更改将在新对话中生效。」（11 字） | 已实现（逐字）：internal/ui/settings_external_agents_screen.go:eaCopyFootNote「更改将在新对话中生效。」 |
 | R-EXT-114 | S-externalAgents-15 | 状态 | unavailable | 不渲染 | — | 屏上「更改将在新对话中生效。」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-EXT-115 | S-externalAgents-15 | 样式 | 打开设置›外部 Agent，看「更改将在新对话中生效。」 | 11 字号更弱前景，页尾 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-EXT-116 | S-externalAgents-15 | 关联 | 在「更改将在新对话中生效。」所在行内，同时看它与开关的相对位置 | 提示开关变更的生效时机 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-EXT-117 | S-externalAgents-15 | 交互 | 在「更改将在新对话中生效。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 未实现（找不到元素渲染点） |
-| R-EXT-118 | S-externalAgents-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「更改将在新对话中生效。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-EXT-119 | S-externalAgents-15 | 执行 | 运行中会话 | 提示生效范围（仅新对话） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（找不到元素渲染点） |
-| R-EXT-120 | S-externalAgents-15 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「更改将在新对话中生效。」 | 对比≥4.5:1 | — | 屏上「更改将在新对话中生效。」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
+| R-EXT-115 | S-externalAgents-15 | 样式 | 打开设置›外部 Agent，看「更改将在新对话中生效。」 | 11 字号更弱前景，页尾 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-externalAgents-15→internal/ui/settings_external_agents_screen.go:eaBody；标记 = TextColor） |
+| R-EXT-116 | S-externalAgents-15 | 关联 | 在「更改将在新对话中生效。」所在行内，同时看它与开关的相对位置 | 提示开关变更的生效时机 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-externalAgents-15→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Screen） |
+| R-EXT-117 | S-externalAgents-15 | 交互 | 在「更改将在新对话中生效。」上从行首拖到行尾选中文字 | 可复制 | — | 点击复制后剪贴板内容 = 该值（差异字符 0） | 已实现（映射 = S-externalAgents-15→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Pressed@plgOutlineButton） |
+| R-EXT-118 | S-externalAgents-15 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「更改将在新对话中生效。」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-externalAgents-15→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Label） |
+| R-EXT-119 | S-externalAgents-15 | 执行 | 运行中会话 | 提示生效范围（仅新对话） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 已实现（映射 = S-externalAgents-15→internal/ui/settings_external_agents_screen.go:eaBody；标记 = 文案「正在探测外部 Agent…」等 3 条） |
+| R-EXT-120 | S-externalAgents-15 | 深色 | 在设置›外观把主题切成深色，再回外部 Agent看「更改将在新对话中生效。」 | 对比≥4.5:1 | — | 屏上「更改将在新对话中生效。」：对比度 ≥ 4.5:1 | 已实现（映射 = S-externalAgents-15→internal/ui/settings_external_agents_screen.go:eaBody；标记 = Theme） |
 
 ## 18. 归档会话（S-archived-01 … S-archived-17）
 

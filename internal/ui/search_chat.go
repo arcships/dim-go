@@ -374,6 +374,7 @@ func (a *App) chatSearchDialog(c *gui.Context) {
 	open := true
 	// G-A2-01 搜索聊天对话框（模态，背景被遮罩压暗）
 	dialog := modalShell(gui.Modal(c, &open, func() {
+		// G-A2-02 标题 + 描述（只作可读名与说明，屏上不写可见行）
 		panel := gui.Column(c).Width(chatSearchWidth).Role(gui.RoleDialog).
 			Label(chatSearchTitle).Description(chatSearchDescription).
 			Background(t.Surface).Border(strokeHairline, t.Border).
@@ -396,6 +397,7 @@ func (a *App) chatSearchInputRow(c *gui.Context) {
 	// （UI-18、X14）。
 	gui.Row(c).Shrink(0).Height(chatSearchInputHeight).Padding(space1, space3).
 		Gap(space2).AlignItems(gui.Center).Background(t.SurfacePressed).Children(func() {
+		// G-A2-03 搜索图标
 		iconGlyph(c, iconSearch, t.TextMuted, "search")
 		// G-A2-04 搜索聊天（输入框占位与可读名）
 		input := gui.TextInputBase(c, &s.query).

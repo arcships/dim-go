@@ -903,8 +903,10 @@ func (a *App) retryNotice(c *gui.Context, r round) {
 // artifactsBlock 是本轮产物：计数 + 展开列表（每卡一个打开入口）。
 func (a *App) artifactsBlock(c *gui.Context, i int, r round) {
 	// TL-14 本轮产物块
+	// A-01 产物块容器（块根：折叠头 + 可展开列表）
 	t := c.Theme()
 	open := a.blockOf(fmt.Sprintf("artifacts:%d", i), false)
+	// A-02 计数文本（{count} 个产物）
 	title := fmt.Sprintf("%d 个产物", len(r.artifacts))
 	btn := gui.ButtonBase(c).Grow(1).Height(timelineRowHeight).Gap(space1).
 		Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).Radius(radius).
@@ -938,6 +940,7 @@ func (a *App) artifactList(c *gui.Context, key string, arts []artifact) {
 	if !expanded && len(rows) > artifactShownRows {
 		rows = rows[:artifactShownRows]
 	}
+	// A-07 产物列表容器（每行一条产物）
 	gui.Column(c).Shrink(0).Gap(0).PaddingStart(timelineGroupIndent).Children(func() {
 		for _, art := range rows {
 			a.artifactRow(c, key, art, len(arts))
@@ -979,11 +982,14 @@ func (a *App) artifactRow(c *gui.Context, key string, art artifact, count int) {
 	}
 	menuKey := key + "/" + art.name
 	row.Children(func() {
+		// A-09 文件类型图标
 		iconGlyph(c, iconDocument, t.TextMuted, "artifact")
 		gui.Box(c).Grow(1).Children(func() {
+			// A-10 文件名（单行截断，悬停给完整名）
 			typeSecondary.style(t, gui.Text(c, art.name)).TextColor(t.Text).
 				Tooltip(art.name).SingleLine()
 		})
+		// A-13 行内「打开」（协议没有产物内容，置灰并写原因）
 		gui.Button(c, "打开").Label("打开产物 " + art.name + "（" + noteArtifact + "）").
 			Tooltip(noteArtifact).Disabled(true)
 		a.artifactMenuTrigger(c, menuKey, art)
@@ -1745,6 +1751,9 @@ func (a *App) liveRowBody(c *gui.Context, i int, row RowSnapshot) {
 }
 
 // liveText 是纯文本回退：正文非空就按助手正文画；空行没有可画的内容。
+//
+// TL-18 系统通知文本 / TL-19 其它角色的消息正文：服务端的 system 行与认不出
+// 种类的行都落到这里，正文原样画成一个文本块（不分系统/其它角色另起样式）。
 func (a *App) liveText(c *gui.Context, i int, row RowSnapshot) {
 	if strings.TrimSpace(row.Text) == "" {
 		return

@@ -163,6 +163,7 @@ func renderPets(c *gui.Context, a *App) {
 		gui.Scroll(c).Grow(1).Label(petsCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(petsSectionGap).Children(func() {
 				gui.Column(c).Shrink(0).Gap(petsTitleGap).Children(func() {
+					// S-pets-01 页面标题「宠物」
 					screenTitle(c, petsCopyTitle)
 					petsStatusCard(c, live)
 				})

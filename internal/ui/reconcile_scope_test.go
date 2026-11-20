@@ -330,3 +330,113 @@ func TestSessionSearchKeyboardArrows(t *testing.T) {
 		t.Fatalf("回车后当前项 = %d，想要 1", app.sessionSearch.current)
 	}
 }
+
+// TestConfirmDialogAccessibleAnatomy：四类确认框共用一套可访问结构——带名的
+// alertdialog（名字是标题）、标题是 heading、说明句挂成 describedby（读屏先读
+// 标题，再读说明，最后才到按钮）。说明是这段确认的唯一解释，正文里逐字可见
+// （G-E1-01/02、G-E2-01/02、G-E3-01/02、G-E4-01/02）。
+func TestConfirmDialogAccessibleAnatomy(t *testing.T) {
+	cases := []struct {
+		name  string
+		open  func(a *App)
+		title string
+		desc  string
+	}{
+		{
+			name:  "删除会话",
+			open:  func(a *App) { a.openDeleteConfirm([]int{0}) },
+			title: confirmCopyDeleteOne,
+			desc:  "确定要永久删除“修发送路径”吗？删除后会话将立即从侧边栏移除，且无法恢复。",
+		},
+		{
+			name:  "归档会话",
+			open:  func(a *App) { a.openArchiveConfirm([]int{0}) },
+			title: "归档 1 个会话",
+			desc:  "确定要归档以下会话吗？“修发送路径”",
+		},
+		{
+			name:  "会话正在运行",
+			open:  func(a *App) { a.openConfirmEditRunning(0, "改过的正文") },
+			title: confirmCopyEditTitle,
+			desc:  confirmCopyEditDesc,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app, tt := newTester(t, StateDefault)
+			tc.open(app)
+			tt.Frame()
+			dialog, ok := tt.AccessByRole(gui.RoleAlertDialog, tc.title)
+			if !ok {
+				t.Fatalf("找不到名为 %q 的 alertdialog：%v", tc.title, tt.Texts())
+			}
+			if !strings.Contains(dialog.Description, tc.desc) {
+				t.Fatalf("对话框说明 = %q，想要包含 %q", dialog.Description, tc.desc)
+			}
+			if heading, ok := tt.AccessByRole(gui.RoleHeading, tc.title); !ok || heading.Bounds.H <= 0 {
+				t.Fatalf("标题不是可读的 heading：%+v（ok=%v）", heading, ok)
+			}
+			if !tt.HasText(tc.desc) {
+				t.Fatalf("说明句没有逐字画出：%v", tt.Texts())
+			}
+		})
+	}
+}
+
+// TestConfirmWorkspaceDescriptionAndPath：删除工作区会话的说明按打开时的计数定格，
+// 目标变多也不改；路径行按事实给出完整目录（G-E4-01/02/03）。
+func TestConfirmWorkspaceDescriptionAndPath(t *testing.T) {
+	app := cwdGroupApp([]SessionPlaceSnapshot{
+		{Cwd: "/work/dim-agent"},
+		{Cwd: "/work/rutis"},
+	})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	groups := app.sidebarWorkspaces(app.sidebarThreads())
+	var target sidebarWorkspace
+	for _, group := range groups {
+		if group.name == "rutis" {
+			target = group
+		}
+	}
+	if target.id == "" {
+		t.Fatalf("找不到 rutis 组：%+v", groups)
+	}
+	threads := app.sidebarGroupThreads(target, app.sidebarThreads())
+	app.openWorkspaceDeleteConfirm(target, threads)
+	tt.Frame()
+
+	desc := "将删除“rutis”下的 1 条会话。"
+	dialog, ok := tt.AccessByRole(gui.RoleAlertDialog, confirmCopyWorkspace)
+	if !ok {
+		t.Fatalf("找不到工作区确认框：%v", tt.Texts())
+	}
+	if !strings.Contains(dialog.Description, desc) {
+		t.Fatalf("对话框说明 = %q，想要包含 %q", dialog.Description, desc)
+	}
+	// 弹窗期间计数不再变：描述定格在打开时的那一刻。
+	if !strings.Contains(app.confirmDescription(), "1 条会话") {
+		t.Fatalf("说明没有按打开时的计数定格：%q", app.confirmDescription())
+	}
+	if info, ok := tt.Access("工作区路径：/work/rutis"); !ok || info.Name != "工作区路径：/work/rutis" {
+		t.Fatalf("路径行没有按事实给出：%+v（ok=%v）", info, ok)
+	}
+
+	// 打开期间目标集合变了也不改标题与说明：两者都按打开时那一刻定格。
+	beforeTitle, beforeDesc := app.confirmTitle(), app.confirmDescription()
+	app.confirm.targets = append(app.confirm.targets,
+		confirmTarget{index: 0, id: "s1", title: "修发送路径"})
+	if app.confirmTitle() != beforeTitle || app.confirmDescription() != beforeDesc {
+		t.Fatalf("打开期间的改动改了标题/说明：%q / %q", app.confirmTitle(), app.confirmDescription())
+	}
+
+	// 计数为 0（工作区下已没有会话）时仍可打开，描述照常写「0 条会话」。
+	app.confirm = confirmState{}
+	app.openWorkspaceDeleteConfirm(target, nil)
+	tt.Frame()
+	if app.confirm.kind != confirmKindDeleteWorkspace {
+		t.Fatalf("计数为 0 时打不开工作区确认框：%q", app.confirm.kind)
+	}
+	if !strings.Contains(app.confirmDescription(), "0 条会话") {
+		t.Fatalf("计数为 0 的说明不对：%q", app.confirmDescription())
+	}
+}

@@ -817,7 +817,8 @@ func approvalInputPanel(c *gui.Context, persistKey string, panel approvalPanelCo
 }
 
 // approvalPanelLabel 画顶部标签：普通标签是 11px 次要色；网页抓取在 URL 前画
-// 站点徽记（参考产品 FaviconImg 的回落：首字母圆徽）。
+// 站点徽记（参考产品 FaviconImg 的回落：首字母圆徽）。标签位样式在这里一次给全：
+// 11px 次要色、单行截断、完整值在 tooltip（G-C4-02 / G-C4-05 / G-C4-15）。
 func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 	t := c.Theme()
 	// IN-70 面板小标题「输入」（命令类审批面板）
@@ -840,6 +841,10 @@ func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 }
 
 // approvalPanelBody 画正文：差异块 / 代码块 / 图片 / 主值行 / 参数行 / 待办。
+//
+// 各渲染器的正文样式都在这里一次给全：主值行 90% 不透明、参数行与值行 70% 不透明，
+// 都是等宽（G-C4-03 / G-C4-09 / G-C4-10 / G-C4-11 / G-C4-12 / G-C4-20 / G-C4-21 /
+// G-C4-22 / G-C4-23 / G-C4-24 的「主值更亮、参数弱一档」）。
 func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 	t := c.Theme()
 	if panel.DiffOldSet || panel.DiffNewSet {
@@ -867,13 +872,15 @@ func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 			if panel.Prefix != "" {
 				text = strings.TrimPrefix(text, panel.Prefix+" ")
 			}
-			typeCode.style(t, gui.Text(c, text)).TextColor(t.Text)
+			// 主值行比参数行亮一档：90% 不透明（G-C4-10 样式）。
+			typeCode.style(t, gui.Text(c, text)).TextColor(t.Text).Opacity(0.9)
 		})
 	}
 	if len(panel.Lines) > 0 {
 		gui.Column(c).PaddingStart(space2).Gap(0).Children(func() {
 			for _, line := range panel.Lines {
-				typeCode.style(t, gui.Text(c, line)).TextColor(t.TextMuted)
+				// 参数行 70% 不透明，比主值行弱一档（G-C4-09 / G-C4-11 样式）。
+				typeCode.style(t, gui.Text(c, line)).TextColor(t.TextMuted).Opacity(0.7)
 			}
 		})
 	}
@@ -883,7 +890,8 @@ func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 }
 
 // approvalHeadRow 画子代理创建类的头行：图标 + 名称 + 任务标题 + 模型 id。
-// G-C4-18 子代理创建头行
+// G-C4-18 子代理创建头行（图标 + 名称 + 任务标题 + 模型 id 的行样式在这里给：
+// 间距、单行截断与次要色）
 func approvalHeadRow(c *gui.Context, head approvalHead) {
 	t := c.Theme()
 	gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
@@ -905,7 +913,8 @@ func approvalHeadRow(c *gui.Context, head approvalHead) {
 // approvalCodeBlock 画只读代码块：等宽、卡面；长行横向滚动、长内容纵向滚动
 // （R-AP-381 / R-AP-450 / R-AP-587）；可选行号列。
 //
-// G-C4-08 补丁文本；G-C4-25 工具名 + 入参原文（通用渲染器）
+// G-C4-08 补丁文本；G-C4-25 工具名 + 入参原文（通用渲染器）。代码块样式在这里
+// 给全：等宽 12px、行号列次要色右对齐、内容自带滚动（G-C4-07 / G-C4-08 的样式）。
 func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
 	t := c.Theme()
 	maxHeight := float32(approvalCodeMaxHeight)
@@ -932,7 +941,8 @@ func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
 
 // approvalDiffBlock 画编辑前后两栏：左旧右新、无行号，旧栏危险色、新栏成功色，
 // 两侧等高（按较长一侧的行数补齐空行）；只有一侧有事实时只画那一栏。
-// G-C4-06 编辑前后两栏差异
+// G-C4-06 编辑前后两栏差异（两栏各自滚动、各自限高；此处的 Width 与限高给的是
+// 分栏与滚动容器的尺寸）
 func approvalDiffBlock(c *gui.Context, panel approvalPanelContent) {
 	t := c.Theme()
 	rows := 0

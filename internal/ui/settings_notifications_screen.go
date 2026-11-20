@@ -55,10 +55,12 @@ func (a *App) renderNotifications(c *gui.Context) {
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(notifyCopyTitle).Children(func() {
 			gui.Column(c).Shrink(0).Gap(notifyTitleGap).Children(func() {
+				// S-notifications-01 页面标题「通知」
 				screenTitle(c, notifyCopyTitle)
 				gui.Column(c).Shrink(0).Gap(notifyCardGap).Children(func() {
 					a.notifySwitchCard(c, notifyCopyTask, &a.notifyTaskDone)
 					a.notifySwitchCard(c, notifyCopySound, &a.notifySound)
+					// S-notifications-08 需要我回应时通知（开关）
 					a.notifySwitchCard(c, notifyCopyNeedsMe, &a.notifyNeedsResponse)
 				})
 			})

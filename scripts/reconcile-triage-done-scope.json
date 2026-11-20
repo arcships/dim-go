@@ -160,6 +160,138 @@
     "R-GS-083": {
       "note": "计数文本 12px 次要色、Role=Status；补元素锚点后重判",
       "test": "TestSessionSearchMatchesTimelineAndCounts"
+    },
+    "R-GC-002": {
+      "note": "编辑运行中消息时不再另弹框：直接发送编辑后的消息",
+      "test": "TestConfirmEditRunningDialog"
+    },
+    "R-GC-003": {
+      "note": "确认框四件齐全：标题 + 描述 + 取消 + 确认，无第三按钮",
+      "test": "TestConfirmDeleteSessionDialog"
+    },
+    "R-GC-004": {
+      "note": "确认框是带名 alertdialog：半粗标题 + 圆角 + 阴影 + 遮罩",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-011": {
+      "note": "说明句 14px 级次要色、行高 1.5",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-012": {
+      "note": "说明句作为对话框 describedby 读出，先于按钮",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-016": {
+      "note": "说明句是这段确认的唯一解释，正文逐字画出",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-026": {
+      "note": "先停止当前回合再发送编辑内容，弹窗关闭",
+      "test": "TestConfirmEditRunningDialog"
+    },
+    "R-GC-027": {
+      "note": "执行中确认按钮禁用并写「停止中...」",
+      "test": "TestConfirmEditRunningDialog"
+    },
+    "R-GC-029": {
+      "note": "确认按钮实心危险色、高 28",
+      "test": "TestConfirmDeleteSessionDialog"
+    },
+    "R-GC-035": {
+      "note": "删除会话的标题同一时刻只有一种：单个 / N 个",
+      "test": "TestConfirmDeleteSessionDialog"
+    },
+    "R-GC-036": {
+      "note": "弹窗圆角 + 阴影 + 遮罩，标题半粗",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-037": {
+      "note": "标题作为对话框名读出（alertdialog 的 label）",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-038": {
+      "note": "标题按打开时的条数定格，不实时变",
+      "test": "TestConfirmWorkspaceDescriptionAndPath"
+    },
+    "R-GC-045": {
+      "note": "删除说明 14px 级次要色",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-046": {
+      "note": "删除说明挂成 describedby，会话名逐个可听",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-047": {
+      "note": "会话名原文照显，不转义",
+      "test": "TestConfirmDeleteSessionDialog"
+    },
+    "R-GC-075": {
+      "note": "单条归档不弹框，直接归档",
+      "test": "TestConfirmArchiveSessionsDialog"
+    },
+    "R-GC-076": {
+      "note": "归档框：标题 + 描述 + 可选警告 + 两按钮",
+      "test": "TestConfirmArchiveSessionsDialog"
+    },
+    "R-GC-077": {
+      "note": "归档框圆角 + 阴影 + 遮罩、半粗标题",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-078": {
+      "note": "归档框标题作为对话框名读出",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-084": {
+      "note": "归档说明 14px 级次要色",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-085": {
+      "note": "归档说明读出会话名",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-086": {
+      "note": "归档说明里的会话名原文照显",
+      "test": "TestConfirmArchiveSessionsDialog"
+    },
+    "R-GC-090": {
+      "note": "归档说明位于标题之下",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-127": {
+      "note": "删除工作区框圆角 + 阴影 + 遮罩、半粗标题",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-128": {
+      "note": "删除工作区框标题作为对话框名读出",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-129": {
+      "note": "描述里的计数按打开时定格，确认时以实际为准",
+      "test": "TestConfirmWorkspaceDescriptionAndPath"
+    },
+    "R-GC-131": {
+      "note": "计数为 0 时仍可打开（描述计数为 0）",
+      "test": "TestConfirmWorkspaceDescriptionAndPath"
+    },
+    "R-GC-132": {
+      "note": "确认时失败给原因，弹窗保留",
+      "test": "TestConfirmDeleteFailureKeepsDialog"
+    },
+    "R-GC-136": {
+      "note": "工作区说明 14px 级次要色",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-137": {
+      "note": "读出工作区名称与条数",
+      "test": "TestConfirmWorkspaceDescriptionAndPath"
+    },
+    "R-GC-141": {
+      "note": "工作区说明位于标题之下",
+      "test": "TestConfirmDialogAccessibleAnatomy"
+    },
+    "R-GC-142": {
+      "note": "描述计数为 0 时仍显示该句",
+      "test": "TestConfirmWorkspaceDescriptionAndPath"
     }
   }
 }

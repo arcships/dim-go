@@ -269,6 +269,7 @@ func (a *App) rpFilterRow(c *gui.Context) {
 	gui.Column(c).Shrink(0).Padding(space1, space3).Children(func() {
 		gui.Row(c).Height(panelFilterHeight).Gap(space1).AlignItems(gui.Center).
 			Children(func() {
+				// F-02 筛选框左端的搜索图标
 				rpGlyph(c, iconSearch, iconInline, t.TextMuted, "search")
 				input := gui.TextInputBase(c, &s.filter).Grow(1).Label("筛选文件").
 					Placeholder("筛选文件...").FontSize(typeSecondary.sizeIn(t)).
@@ -389,6 +390,7 @@ func (a *App) rpTreeRows(c *gui.Context, nodes []*rpNode, prefix string, depth i
 				a.rpDirErrorRow(c, p)
 				continue
 			}
+			// F-23 子级目录 / 文件行（递归一层，缩进 14）
 			gui.Column(c).PaddingStart(panelIndent).Children(func() {
 				loaded := a.rpDirLoaded(node, p)
 				a.rpTreeRows(c, node.children[:loaded], p, depth+1)
@@ -913,6 +915,9 @@ func (a *App) rpDirErrorRow(c *gui.Context, p string) {
 	}
 	// 重试 = 清掉失败位并请求这一格的重读（适配器按 Refresh 跳过缓存）：
 	// 根级仍走整树刷新，子目录只重读自己。
+	//
+	// F-13 根级错误行（无法加载此文件夹）/ F-14 行尾「重试」：p 为空时这一行
+	// 就是根级的错误行与重试入口。
 	panelErrorRow(c, who, sentence, reason, retryA11y, func() {
 		s.dirFailed[p] = false
 		if p == "" {

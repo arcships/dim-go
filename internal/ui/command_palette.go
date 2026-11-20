@@ -334,6 +334,8 @@ func (a *App) commandPaletteLayer(c *gui.Context) {
 	gui.Box(c).Absolute().Fill().Background(gui.RGBA(0, 0, 0, 0.28)).
 		AccessHidden(true).OnClick(a.closeCommandPalette)
 
+	// G-B2-01 标题与描述（只作面板的可读名，屏上不写可见行）/
+	// G-B2-02 面板容器（圆角 + 1px 描边的弹出底）
 	panel := gui.Column(c).Absolute().Left(x).Top(y).
 		Width(width).Height(commandPaletteHeight).
 		Background(t.Surface).Border(strokeHairline, t.Border).
@@ -382,6 +384,7 @@ func (a *App) commandPaletteLayer(c *gui.Context) {
 // commandPaletteInput 是搜索输入行：放大镜 + 无边框输入框。
 func (a *App) commandPaletteInput(c *gui.Context) {
 	t := c.Theme()
+	// G-B2-03 搜索输入（左置放大镜、打开即聚焦）
 	gui.Row(c).Shrink(0).Height(commandPaletteInputHeight).
 		Padding(space1, space3).Gap(space2).AlignItems(gui.Center).Children(func() {
 		iconGlyph(c, iconSearch, t.TextMuted, "search")
@@ -395,6 +398,7 @@ func (a *App) commandPaletteInput(c *gui.Context) {
 			a.palette.needsFocus = false
 		}
 	})
+	// G-B2-07 分隔线（输入行与候选列表之间的 1px 细线）
 	hairlineBox(c, true, "")
 }
 
@@ -539,6 +543,7 @@ func (a *App) commandPaletteResults(c *gui.Context) {
 	}
 	if total == 0 {
 		t := c.Theme()
+		// G-B2-08 空态（居中，有搜索词且匹配数为 0）
 		gui.Row(c).Grow(1).AlignItems(gui.Center).Justify(gui.Center).
 			Role(gui.RoleStatus).Label("没有匹配项").Children(func() {
 			typeSecondary.style(t, gui.Text(c, "没有匹配项")).TextColor(t.TextMuted)
@@ -546,6 +551,7 @@ func (a *App) commandPaletteResults(c *gui.Context) {
 		return
 	}
 
+	// G-B2-09 列表容器（滚动）
 	gui.Scroll(c).Grow(1).Children(func() {
 		gui.Column(c).Padding(space1, space2).Gap(space1).
 			Role(gui.RoleListBox).Label("命令候选").Children(func() {
@@ -566,6 +572,7 @@ func (a *App) commandPaletteResults(c *gui.Context) {
 // commandPaletteGroupHeader 是组标题：图标 + 名称 + 条数。
 func (a *App) commandPaletteGroupHeader(c *gui.Context, gi int, group commandGroup) {
 	t := c.Theme()
+	// G-B2-04 分组标题
 	gui.Row(c).Shrink(0).Height(commandPaletteHeaderH).Padding(0, space1).
 		Gap(space1).AlignItems(gui.Center).Label("分组：" + group.label).Children(func() {
 		iconGlyph(c, commandGroupIcons[gi], t.TextMuted, "group")
@@ -580,6 +587,7 @@ func (a *App) commandPaletteGroupHeader(c *gui.Context, gi int, group commandGro
 func (a *App) commandPaletteRow(c *gui.Context, gi, ii int, item commandItem) {
 	t := c.Theme()
 	selected := gi == a.palette.activeGroup && ii == a.palette.selected
+	// G-B2-05 命令项（图标 + 文字，选中态强调底）
 	row := gui.Row(c).Shrink(0).Height(commandPaletteRowHeight).Padding(0, space2).
 		Gap(space2).Radius(radius).AlignItems(gui.Center).
 		Label(item.title + "：" + item.detail).
