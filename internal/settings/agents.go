@@ -137,7 +137,7 @@ func (m *Manager) CanUpdateSessionAgent(ctx context.Context, sessionID string) (
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	sessionID, _, err := normalizeAgentScope(sessionID, "")
+	sessionID, _, err := normalizeAgentScope(sessionID, "main")
 	if err != nil {
 		return false, err
 	}

@@ -1,4 +1,165 @@
 {
   "_comment": "主窗口 / 全局面板本轮做掉的需求（组织侧登记）。reconcile.py 的附录 §6.4 逐条核对：登记的需求现在必须是「已实现（…）」，否则标成不一致。做没做以状态列与测试名为准。",
-  "done": {}
+  "done": {
+    "R-TB-115": {
+      "note": "左栏收起时标题栏导航组：上一个工作区会话，边界置灰并写原因",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-TB-116": {
+      "note": "点上一个导航：把同工作区的前一条会话交给打开通道",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-TB-117": {
+      "note": "首条会话时上一个禁用，不回卷",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-TB-124": {
+      "note": "左栏收起时标题栏导航组：下一个工作区会话",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-TB-125": {
+      "note": "点下一个导航：打开同工作区的后一条会话",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-TB-126": {
+      "note": "末条会话时下一个禁用",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-TB-132": {
+      "note": "左栏收起时标题栏导航组：在当前工作区新建会话",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-TB-133": {
+      "note": "点新建：CreateSession 带当前工作区 cwd，左栏保持收起",
+      "test": "TestSidebarCollapsedNavGroup"
+    },
+    "R-LB-484": {
+      "note": "会话行悬停 500ms 出现 hover 卡（标题 + 工作区）",
+      "test": "TestSessionHoverCard"
+    },
+    "R-LB-485": {
+      "note": "卡内标题完整显示，最多两行，不截成省略号",
+      "test": "TestSessionHoverCard"
+    },
+    "R-LB-487": {
+      "note": "卡面：浮层底色 + 1px 描边 + 阴影 + 圆角，宽小于栏宽",
+      "test": "TestSessionHoverCard"
+    },
+    "R-LB-490": {
+      "note": "卡内第二行：工作区图标 + 工作区名",
+      "test": "TestSessionHoverCard"
+    },
+    "R-LB-491": {
+      "note": "重命名工作区后卡内名称同步（按当前分组名取，不缓存旧名）",
+      "test": "TestSessionHoverCard"
+    },
+    "R-SB-093": {
+      "note": "会话提供多套 Agent 配置时，状态条权限按钮右侧出现「Agent 配置」",
+      "test": "TestStatusAgentSelector"
+    },
+    "R-SB-094": {
+      "note": "点 Agent 配置打开菜单，选中项切换走 session.agent.update，带切换前标识",
+      "test": "TestStatusAgentSelector"
+    },
+    "R-SB-097": {
+      "note": "与权限按钮同规格：无边框、次要前景色、21 高",
+      "test": "TestStatusAgentSelector"
+    },
+    "R-SB-099": {
+      "note": "读屏名与说明带当前配置名与「可更改 Agent 配置」",
+      "test": "TestStatusAgentSelector"
+    },
+    "R-GQ-035": {
+      "note": "收起态状态行未答写「待选择」",
+      "test": "TestQuestionCollapsedStatusLine"
+    },
+    "R-GQ-036": {
+      "note": "收起态未答且选项多：逐字「待选择 · {count} 个选项」",
+      "test": "TestQuestionCollapsedStatusLine"
+    },
+    "R-GQ-037": {
+      "note": "收起态已答单值：逐字「已选：{answer}」",
+      "test": "TestQuestionCollapsedStatusLine"
+    },
+    "R-GQ-038": {
+      "note": "收起态已答多值：逐字「已选 {count} 项」",
+      "test": "TestQuestionCollapsedStatusLine"
+    },
+    "R-GQ-039": {
+      "note": "四分支互斥：同一时刻只画一句",
+      "test": "TestQuestionCollapsedStatusLine"
+    },
+    "R-GQ-040": {
+      "note": "状态行：12px 次要色、单行截断、完整值在 tooltip",
+      "test": "TestQuestionCollapsedStatusLine"
+    },
+    "R-GC-019": {
+      "note": "确认框 Esc 等同取消；执行中不关闭",
+      "test": "TestConfirmDeleteSessionDialog / TestConfirmKeyboardFocusCycle"
+    },
+    "R-GC-060": {
+      "note": "删除确认框 Esc 等同取消，不删会话",
+      "test": "TestConfirmDeleteSessionDialog"
+    },
+    "R-GC-110": {
+      "note": "归档确认框 Esc 等同取消",
+      "test": "TestConfirmArchiveSessionsDialog"
+    },
+    "R-GC-161": {
+      "note": "删除工作区确认框 Esc 等同取消",
+      "test": "TestConfirmDeleteWorkspaceDialog"
+    },
+    "R-GF-126": {
+      "note": "导出面板 Esc 等同取消；导出进行中不关闭",
+      "test": "TestExportEscapeCloses"
+    },
+    "R-AP-372": {
+      "note": "审批输入区可滚动（双向），卡片位置不动",
+      "test": "TestApprovalLongContentScrolls"
+    },
+    "R-AP-378": {
+      "note": "审批输入区按请求标识 key：换请求/切会话滚动回顶",
+      "test": "TestApprovalLongContentScrolls（渲染覆盖；滚动偏移由框架状态保存，Tester 不暴露）"
+    },
+    "R-AP-433": {
+      "note": "编辑前后两栏各自双向滚动、各自限高，不互相撑高",
+      "test": "TestApprovalPanelWriteAndEdit（渲染覆盖；两栏各自 ScrollBoth，Tester 不暴露滚动偏移）"
+    },
+    "R-AP-450": {
+      "note": "补丁块双向滚动，长行横向滚，不撑破卡片",
+      "test": "TestApprovalPanelWriteAndEdit（渲染覆盖；横向滚动由 ScrollBoth 提供）"
+    },
+    "R-AP-587": {
+      "note": "通用代码块双向滚动，长行不撑破卡片",
+      "test": "TestApprovalPanelLegacyTextInput（渲染覆盖；横向滚动由 ScrollBoth 提供）"
+    },
+    "R-GS-011": {
+      "note": "输入框左端放大镜 20px，常驻；补元素锚点后重判",
+      "test": "TestSessionSearchMagnifierFocusesInput"
+    },
+    "R-GS-013": {
+      "note": "放大镜取次要色、20px；补元素锚点后重判",
+      "test": "TestSessionSearchMagnifierFocusesInput"
+    },
+    "R-GS-018": {
+      "note": "查询为空时放大镜仍显示；补元素锚点后重判",
+      "test": "TestSessionSearchOpensOnCommandF"
+    },
+    "R-GS-057": {
+      "note": "结果行上边框 1px，横跨浮层内宽；补元素锚点后重判",
+      "test": "TestSessionSearchMatchesTimelineAndCounts"
+    },
+    "R-GS-058": {
+      "note": "结果行以工具行读出（按钮组 + 计数）；补元素锚点后重判",
+      "test": "TestSessionSearchArrowButtons"
+    },
+    "R-GS-079": {
+      "note": "结果计数逐字「{current} / {total} 个结果」；补元素锚点后重判",
+      "test": "TestSessionSearchMatchesTimelineAndCounts"
+    },
+    "R-GS-083": {
+      "note": "计数文本 12px 次要色、Role=Status；补元素锚点后重判",
+      "test": "TestSessionSearchMatchesTimelineAndCounts"
+    }
+  }
 }

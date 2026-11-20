@@ -281,3 +281,23 @@ func TestAgentCapabilitiesAndWriter(t *testing.T) {
 		t.Fatalf("缺写登记应分类：%v", err)
 	}
 }
+
+func TestCanUpdateSessionAgentReadsOnlyTheMethodTable(t *testing.T) {
+	admin := &stubAgentAdmin{supported: true, supportsGet: true}
+	manager := mustNewManager(t, Config{Features: allFeatures(), Agents: admin})
+	ok, err := manager.CanUpdateSessionAgent(context.Background(), "s1")
+	if err != nil || !ok {
+		t.Fatalf("声明了 session.agent.update 应可切换：ok=%v err=%v", ok, err)
+	}
+	if admin.supportCalls != 1 || admin.currentCalls != 0 || admin.listCalls != 0 {
+		t.Fatalf("只该读方法表：supports=%d reads=%d list=%d",
+			admin.supportCalls, admin.currentCalls, admin.listCalls)
+	}
+	if _, err := manager.CanUpdateSessionAgent(context.Background(), ""); !errors.Is(err, ErrInvalidAgentRequest) {
+		t.Fatalf("缺会话应拒绝：%v", err)
+	}
+	missing := mustNewManager(t, Config{Features: stubFeatures{}})
+	if ok, err := missing.CanUpdateSessionAgent(context.Background(), "s1"); err == nil || ok {
+		t.Fatalf("缺接口应不可切换并给原因：ok=%v err=%v", ok, err)
+	}
+}

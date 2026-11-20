@@ -1591,6 +1591,10 @@ func (w *App) selectBranchFor(ctx context.Context, sessionID, branchID string) e
 	if _, err := w.A.SelectBranch(ctx, sessionID, branchID); err != nil {
 		return err
 	}
+	// 分支换了，会话当前 agent 档案跟着换：重读一次，不沿用上一个分支的值。
+	if manager := w.A.Settings(); manager != nil {
+		w.refreshAgentConfig(ctx, manager)
+	}
 	w.changed()
 	return nil
 }

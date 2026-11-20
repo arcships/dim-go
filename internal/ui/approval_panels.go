@@ -82,6 +82,11 @@ const (
 	approvalCodeMaxHeight = 180
 	// approvalDiffMaxHeight 是差异单栏的最高高度：两栏各自滚动，不互相撑高。
 	approvalDiffMaxHeight = 180
+	// approvalDiffLineCap 是差异单栏一次渲染的行数上限（极端输入才触发）。
+	approvalDiffLineCap = 2000
+	// approvalCodeCompactHeight 是窄窗里代码块的最高高度：再矮一档，让按钮行
+	// 留在窗口内（R-AP-450 / R-AP-587 的窄窗口径）。
+	approvalCodeCompactHeight = 120
 	// approvalTodoMaxLines 是待办清单一次最多画几行（参考产品 DETAIL_LINE_MAX 同量级）。
 	approvalTodoMaxLines = 12
 	// approvalImageThumb 是图片缩略图的边长。
@@ -790,10 +795,11 @@ func approvalRemainingLines(input map[string]any, skip map[string]bool) []string
 // ---- 画 ----
 
 // approvalInputPanel 画输入区块：描边 + 卡面 + 标签 + 正文；内容超出时双向滚动
-// （长命令行横向滚，不折成一团）。整块只读，不进 Tab 顺序。key 用请求标识：
-// 换请求 / 切会话时滚动位置回顶，同一请求内的重绘不跳（R-AP-378）。
+// （长命令行横向滚，不折成一团）。整块只读，不进 Tab 顺序。persistKey 用请求
+// 标识：换请求 / 切会话时滚动位置回顶，同一请求内的重绘沿用同一份滚动位置
+// （R-AP-378）。
 // G-C4-01 审批输入区容器
-func approvalInputPanel(c *gui.Context, key string, panel approvalPanelContent) {
+func approvalInputPanel(c *gui.Context, persistKey string, panel approvalPanelContent) {
 	if panel.empty() && panel.Label == "" {
 		return
 	}
@@ -801,7 +807,7 @@ func approvalInputPanel(c *gui.Context, key string, panel approvalPanelContent) 
 	gui.Column(c).WidthPercent(100).Shrink(0).MaxHeight(approvalInputMaxHeight).
 		Background(t.Surface).Border(strokeHairline, t.Border).Radius(radiusCard).
 		Label("审批输入：" + panel.Label).Children(func() {
-		gui.ScrollBoth(c).Key("approval-input:" + key).Shrink(0).Children(func() {
+		gui.ScrollBoth(c).Key("approval-input:" + persistKey).Shrink(0).Children(func() {
 			gui.Column(c).Padding(space2, space3).Gap(space1).Children(func() {
 				approvalPanelLabel(c, panel)
 				approvalPanelBody(c, panel)
@@ -896,11 +902,17 @@ func approvalHeadRow(c *gui.Context, head approvalHead) {
 	})
 }
 
-// approvalCodeBlock 画只读代码块：等宽、卡面、最高 180；长行横向滚动、长内容
-// 纵向滚动（R-AP-381 / R-AP-450 / R-AP-587）；可选行号列。
+// approvalCodeBlock 画只读代码块：等宽、卡面；长行横向滚动、长内容纵向滚动
+// （R-AP-381 / R-AP-450 / R-AP-587）；可选行号列。
+//
+// G-C4-08 补丁文本；G-C4-25 工具名 + 入参原文（通用渲染器）
 func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
 	t := c.Theme()
-	gui.Column(c).WidthPercent(100).Shrink(0).MaxHeight(approvalCodeMaxHeight).
+	maxHeight := float32(approvalCodeMaxHeight)
+	if narrowWindow(c) {
+		maxHeight = approvalCodeCompactHeight
+	}
+	gui.Column(c).WidthPercent(100).Shrink(0).MaxHeight(maxHeight).
 		Radius(radiusSmall).Background(t.SurfacePressed).Children(func() {
 		gui.ScrollBoth(c).Shrink(0).Children(func() {
 			gui.Column(c).Padding(space1, space2).Gap(0).Children(func() {
@@ -950,6 +962,14 @@ func approvalLineCount(text string) int {
 func approvalDiffColumn(c *gui.Context, text string, rows int, color gui.Color) {
 	t := c.Theme()
 	lines := strings.Split(text, "\n")
+	// 极端长差异只画前 approvalDiffLineCap 行，余下的行数写在末尾；滚动容器里
+	// 仍有上限，避免一次审批把整棵界面拖慢（R-AP-381 的 200 行远小于这个上限）。
+	total := rows
+	reason := ""
+	if rows > approvalDiffLineCap {
+		rows = approvalDiffLineCap
+		reason = fmt.Sprintf("已截断 %d 行，完整内容见会话记录", total-approvalDiffLineCap)
+	}
 	gui.Row(c).Grow(1).Shrink(1).Gap(space1).AlignItems(gui.Stretch).Children(func() {
 		bar := gui.Box(c).Width(strokeMarker).Shrink(0).Label("差异标记").AccessHidden(true)
 		bar.DrawOver(func(p *gui.Painter, r gui.Rect) { p.Fill(r, color, 0) })
@@ -961,6 +981,9 @@ func approvalDiffColumn(c *gui.Context, text string, rows int, color gui.Color) 
 						line = lines[index]
 					}
 					typeCode.style(t, gui.Text(c, line)).TextColor(t.Text)
+				}
+				if reason != "" {
+					typeMicro.style(t, gui.Text(c, reason)).TextColor(t.Warning).SingleLine()
 				}
 			})
 		})

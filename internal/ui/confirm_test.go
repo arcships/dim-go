@@ -159,6 +159,14 @@ func TestConfirmArchiveSessionsDialog(t *testing.T) {
 	if !tt.HasText("归档 (1)") {
 		t.Fatalf("归档按钮没有带数量：\n%s", confirmText(tt))
 	}
+	// Esc 等同取消：弹窗关闭，会话不归档。
+	tt.Key(0, gui.KeyEscape)
+	tt.Frame()
+	if app.confirm.kind != confirmKindNone || app.archived[0] {
+		t.Fatalf("Esc 没有取消归档：kind=%q archived=%v", app.confirm.kind, app.archived[0])
+	}
+	app.openArchiveConfirm([]int{0})
+	tt.Frame()
 	// 归档可恢复：默认焦点在主按钮上，回车就是确认。
 	if info, ok := tt.Access("归档 (1)"); !ok || !info.Focused {
 		t.Fatalf("归档的默认焦点不在主按钮：%+v（ok=%v）", info, ok)
@@ -222,6 +230,14 @@ func TestConfirmDeleteWorkspaceDialog(t *testing.T) {
 			t.Fatalf("工作区确认框缺少 %q：\n%s", want, confirmText(tt))
 		}
 	}
+	// Esc 等同取消：弹窗关闭，会话不删。
+	tt.Key(0, gui.KeyEscape)
+	tt.Frame()
+	if app.confirm.kind != confirmKindNone {
+		t.Fatalf("Esc 没有关闭工作区确认框：%s", app.confirm.kind)
+	}
+	app.openWorkspaceDeleteConfirm(target, app.sidebarGroupThreads(target, app.sidebarThreads()))
+	tt.Frame()
 	deletedBefore := len(app.archived)
 	if err := tt.Click(confirmCopyDelete); err != nil {
 		t.Fatalf("点不到删除：%v", err)

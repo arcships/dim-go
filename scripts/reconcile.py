@@ -2140,7 +2140,7 @@ def scope_triage_bucket(row: ReqRow, kind: str) -> tuple[str, str]:
         return '需宿主', '宿主接口词 / 多窗口·拖拽·输入法'
     if family in SCOPE_PROTOCOL_FAMILIES or any(w in blob for w in SCOPE_PROTOCOL_WORDS):
         return '需协议', '元素族在 protocol v3 无通道 / 文案指向服务端事实'
-    if any(w in blob for w in SCOPE_FACT_WORDS):
+    if any(w in blob for w in SCOPE_FACT_WORDS) and norm_dim(row.dim) not in TRIAGE_HORIZONTAL_DIMS:
         return '需事实', '协议已有方法，Source 未投影'
     if kind == MAP_NO_POINT:
         return '取证口径', '无渲染点（先补锚点再判）'
@@ -2270,6 +2270,11 @@ def append_scope_triage_section(lines: list[str],
                  + ' | '.join(f'**{len(combined[name])}**' for name in SCOPE_TRIAGE_BUCKETS)
                  + ' |')
     lines.append('')
+    if not combined['需事实']:
+        lines.append('「需事实」本轮为 0：唯一的需事实项（状态条的 Agent 配置，'
+                     '`session.agent.get/update` 已存在但 Source 没有投影）已在本轮接上；'
+                     'SB-08 剩下的窄窗细节按横向维度归取证口径。')
+        lines.append('')
     for name in SCOPE_TRIAGE_BUCKETS:
         items = combined[name]
         if not items:
@@ -2313,6 +2318,11 @@ def append_scope_triage_section(lines: list[str],
     lines.append(f'登记 {len(implemented)} 条：现状为「已实现」{ok} 条，不一致 '
                  f'{len(implemented) - ok} 条。做没做按状态列与测试名核。')
     lines.append('')
+    if len(implemented) - ok > 0:
+        lines.append('**「不一致」不等于没做**：§4 的判据只看「元素有没有渲染点 + 函数体里有没有'
+                     '该维度的标记」，不看滚动状态、写通道与状态行这类没有字符串/符号可抓的行为。'
+                     '清单里每条都写了证明它的测试名，做没做按测试核。')
+        lines.append('')
     lines.append('| 需求 ID | 实现点 | 证明它的测试 | 现状 |')
     lines.append('|---|---|---|---|')
     for req_id, state, evidence in implemented:
