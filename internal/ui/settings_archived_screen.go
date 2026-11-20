@@ -1,8 +1,10 @@
 package ui
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -159,7 +161,7 @@ func renderArchived(c *gui.Context, a *App) {
 					arcNoteStyle.style(t, gui.Text(c, archivedScreen.opErr)).
 						TextColor(t.Danger).Role(gui.RoleAlert).Label(archivedScreen.opErr)
 				}
-				arcBody(c, t)
+				arcBody(c, a, t)
 			})
 		})
 	})
@@ -219,7 +221,7 @@ func arcHeader(c *gui.Context, t *gui.Theme) {
 // arcDeleteAllButton 是「全部删除」（S-archived-02）：危险色描边按钮，
 // 没有归档会话时禁用并半透明。
 func arcDeleteAllButton(c *gui.Context, t *gui.Theme) bool {
-	disabled := len(archivedScreen.threads) == 0
+	disabled := len(archivedView.threads) == 0
 	b := gui.ButtonBase(c).Shrink(0).Height(arcBtnH).
 		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
 		Label(arcCopyDeleteAll).Disabled(disabled)
@@ -246,7 +248,7 @@ func arcDeleteAllButton(c *gui.Context, t *gui.Theme) bool {
 const arcAlpha08 = 0.08
 
 // arcBody 按状态分支：加载骨架 / 空态 / 搜索筛选与分组。
-func arcBody(c *gui.Context, t *gui.Theme) {
+func arcBody(c *gui.Context, a *App, t *gui.Theme) {
 	switch {
 	case archivedScreen.loading:
 		arcSkeleton(c, t)
@@ -256,7 +258,7 @@ func arcBody(c *gui.Context, t *gui.Theme) {
 			TextColor(t.Danger).Role(gui.RoleAlert)
 		return
 	}
-	if len(archivedScreen.threads) == 0 {
+	if len(archivedView.threads) == 0 {
 		arcEmptyState(c, t, arcCopyEmpty, "")
 		return
 	}
@@ -268,7 +270,7 @@ func arcBody(c *gui.Context, t *gui.Theme) {
 	}
 	gui.Column(c).Shrink(0).Gap(arcGroupGap).Children(func() {
 		for _, group := range groups {
-			arcGroup(c, t, group)
+			arcGroup(c, a, t, group)
 		}
 	})
 }
@@ -332,7 +334,7 @@ func arcToolbar(c *gui.Context, t *gui.Theme) {
 func arcProjectOptions() []string {
 	out := []string{arcCopyAllProjects, arcCopyNoProject}
 	seen := map[string]bool{}
-	for _, th := range archivedScreen.threads {
+	for _, th := range archivedView.threads {
 		if th.project == "" || seen[th.project] {
 			continue
 		}
@@ -351,9 +353,9 @@ type arcGroupData struct {
 // arcGroups 按项目分组并应用搜索与筛选。
 func arcGroups() []arcGroupData {
 	query := strings.TrimSpace(archivedScreen.query)
-	order := make([]string, 0, len(archivedScreen.threads))
+	order := make([]string, 0, len(archivedView.threads))
 	index := map[string]int{}
-	for _, th := range archivedScreen.threads {
+	for _, th := range archivedView.threads {
 		if !arcMatchFilter(th) {
 			continue
 		}
@@ -369,7 +371,7 @@ func arcGroups() []arcGroupData {
 	for i, project := range order {
 		out[i].project = project
 	}
-	for _, th := range archivedScreen.threads {
+	for _, th := range archivedView.threads {
 		if !arcMatchFilter(th) {
 			continue
 		}
@@ -395,7 +397,7 @@ func arcMatchFilter(th archivedThread) bool {
 }
 
 // arcGroup 是一个项目分组（S-archived-09/10/11/12）：分组头 + 行卡。
-func arcGroup(c *gui.Context, t *gui.Theme, group arcGroupData) {
+func arcGroup(c *gui.Context, a *App, t *gui.Theme, group arcGroupData) {
 	gui.Column(c).Shrink(0).Gap(arcGroupGap).Children(func() {
 		gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(arcChipGap).Children(func() {
 			label := group.project
@@ -414,7 +416,7 @@ func arcGroup(c *gui.Context, t *gui.Theme, group arcGroupData) {
 					if i > 0 {
 						screenRule(c)
 					}
-					arcThreadRow(c, t, &group.threads[i])
+					arcThreadRow(c, a, t, &group.threads[i])
 				}
 			})
 		})
@@ -444,7 +446,7 @@ func arcGroupMenu(c *gui.Context, t *gui.Theme, group arcGroupData) {
 
 // arcThreadRow 是一条归档会话（S-archived-12/13/14）：标题、状态、归档时间、
 // 恢复与删除。
-func arcThreadRow(c *gui.Context, t *gui.Theme, th *archivedThread) {
+func arcThreadRow(c *gui.Context, a *App, t *gui.Theme, th *archivedThread) {
 	gui.Row(c).Shrink(0).MinHeight(arcRowH).AlignItems(gui.Center).
 		Role(gui.RoleListItem).Label(th.title).
 		Gap(arcRowGap).Padding(arcRowPadV, arcRowPadH).Children(func() {
@@ -460,7 +462,7 @@ func arcThreadRow(c *gui.Context, t *gui.Theme, th *archivedThread) {
 			})
 		})
 		if arcRestoreButton(c, t) {
-			arcRemoveThread(th.id)
+			arcRestore(a, th.id)
 		}
 		if accIconButton(c, accIconSpec{
 			icon: screenIconTrash, label: arcCopyDeleteThread,
@@ -509,7 +511,8 @@ func arcArchivedLabel(date string) string {
 	return strings.Replace(arcCopyArchivedAt, "%s", date, 1)
 }
 
-// arcRemoveThread 从屏内表里移除一条（事实写回未接，见文件头）。
+// arcRemoveThread 从屏内表里移除一条：只用于样例模式（没有事实可读，行由屏内
+// 状态给）。连着 Source 时行由事实驱动，下一帧就不在了，不在这里改。
 func arcRemoveThread(id string) {
 	out := archivedScreen.threads[:0]
 	for _, th := range archivedScreen.threads {
@@ -520,14 +523,58 @@ func arcRemoveThread(id string) {
 	archivedScreen.threads = out
 }
 
+// arcRestore 恢复一条归档会话：连着 Source 时写 ArchiveSession(id, false)
+// （取消本端归档），样例模式只改屏内表。失败原因写在页首错误行。
+func arcRestore(a *App, id string) {
+	if a == nil || a.intents == nil || !archivedView.wired {
+		arcRemoveThread(id)
+		return
+	}
+	archivedScreen.opErr = ""
+	a.dispatch("恢复归档会话", func(ctx context.Context) error {
+		return a.intents.ArchiveSession(ctx, id, false)
+	}, nil)
+}
+
+// arcDelete 删除一条或几条归档会话：一条一条发 DeleteSession，第一条失败就停并
+// 写原因（后面的不再发，避免把失败掩在一串成功后面）。样例模式只改屏内表。
+func arcDelete(a *App, ids []string) {
+	archivedScreen.opErr = ""
+	if a == nil || a.intents == nil || !archivedView.wired {
+		for _, id := range ids {
+			arcRemoveThread(id)
+		}
+		return
+	}
+	for _, id := range ids {
+		sessionID := id
+		a.dispatchQuiet("删除归档会话", func(ctx context.Context) error {
+			return a.intents.DeleteSession(ctx, sessionID)
+		}, nil, func(reason string) {
+			archivedScreen.opErr = reason
+		})
+	}
+}
+
+// arcIDs 取一组归档行的会话标识。
+func arcIDs(threads []archivedThread) []string {
+	out := make([]string, 0, len(threads))
+	for _, th := range threads {
+		out = append(out, th.id)
+	}
+	return out
+}
+
 // arcDeleteAllDialog 是「删除所有归档会话」（S-archived-03/04）。
-func arcDeleteAllDialog(c *gui.Context, t *gui.Theme) {
+func arcDeleteAllDialog(c *gui.Context, t *gui.Theme, a *App) {
 	if !archivedScreen.deleteAllOpen {
 		return
 	}
+	threads := archivedView.threads
 	open := true
 	arcDialog(c, t, &open, arcCopyDeleteAllTitle,
-		arcDeleteAllDesc(len(archivedScreen.threads)), func() {
+		arcDeleteAllDesc(len(threads)), func() {
+			arcDelete(a, arcIDs(threads))
 			archivedScreen.threads = nil
 			archivedScreen.deleteAllOpen = false
 		})
@@ -537,20 +584,23 @@ func arcDeleteAllDialog(c *gui.Context, t *gui.Theme) {
 }
 
 // arcDeleteProjectDialog 是「删除项目内全部会话」（S-archived-11 的对话框）。
-func arcDeleteProjectDialog(c *gui.Context, t *gui.Theme) {
+func arcDeleteProjectDialog(c *gui.Context, t *gui.Theme, a *App) {
 	if archivedScreen.deleteProjectName == "" {
 		return
 	}
 	project := archivedScreen.deleteProjectName
 	count := 0
-	for _, th := range archivedScreen.threads {
+	var doomed []archivedThread
+	for _, th := range archivedView.threads {
 		if th.project == project {
 			count++
+			doomed = append(doomed, th)
 		}
 	}
 	open := true
 	arcDialog(c, t, &open, arcCopyDeleteProject,
 		arcDeleteProjectDesc(project, count), func() {
+			arcDelete(a, arcIDs(doomed))
 			out := archivedScreen.threads[:0]
 			for _, th := range archivedScreen.threads {
 				if th.project != project {
@@ -566,13 +616,13 @@ func arcDeleteProjectDialog(c *gui.Context, t *gui.Theme) {
 }
 
 // arcDeleteThreadDialog 是「删除归档」（S-archived-14 的对话框）。
-func arcDeleteThreadDialog(c *gui.Context, t *gui.Theme) {
+func arcDeleteThreadDialog(c *gui.Context, t *gui.Theme, a *App) {
 	if archivedScreen.deleteThreadID == "" {
 		return
 	}
 	id := archivedScreen.deleteThreadID
 	title := ""
-	for _, th := range archivedScreen.threads {
+	for _, th := range archivedView.threads {
 		if th.id == id {
 			title = th.title
 			break
@@ -580,7 +630,7 @@ func arcDeleteThreadDialog(c *gui.Context, t *gui.Theme) {
 	}
 	open := true
 	arcDialog(c, t, &open, arcCopyDeleteThread, arcDeleteOneDesc(title), func() {
-		arcRemoveThread(id)
+		arcDelete(a, []string{id})
 		archivedScreen.deleteThreadID = ""
 	})
 	if !open {

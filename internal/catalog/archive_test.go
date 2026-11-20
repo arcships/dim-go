@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 )
 
 // TestArchivePersistsAcrossRestart 确认隐藏列表跨实例（模拟重启）保持，且文件带版本号。
@@ -168,5 +169,33 @@ func TestArchiveRejectsEmptySessionID(t *testing.T) {
 	}
 	if _, err := OpenArchive("  "); err == nil {
 		t.Fatal("空路径应被拒绝")
+	}
+}
+
+// TestHiddenRecordsCarryArchiveTime：HiddenRecords 带上本端登记的归档时间，
+// 设置 › 归档会话按它显示「{日期} 归档」；没有登记时为零值。
+func TestHiddenRecordsCarryArchiveTime(t *testing.T) {
+	archive, err := OpenArchive(filepath.Join(t.TempDir(), "archive.json"))
+	if err != nil {
+		t.Fatalf("打开归档列表：%v", err)
+	}
+	if err := archive.Hide("s1"); err != nil {
+		t.Fatalf("归档：%v", err)
+	}
+	at := archive.HiddenAt("s1")
+	if at.IsZero() {
+		t.Fatal("归档后没有记下归档时间")
+	}
+	if _, err := time.Parse(time.RFC3339, at.UTC().Format(time.RFC3339)); err != nil {
+		t.Fatalf("归档时间不是合法时间：%v", err)
+	}
+	if !archive.HiddenAt("nope").IsZero() {
+		t.Fatal("没归档的会话不应当有归档时间")
+	}
+	if err := archive.Unhide("s1"); err != nil {
+		t.Fatalf("取消归档：%v", err)
+	}
+	if !archive.HiddenAt("s1").IsZero() {
+		t.Fatal("取消归档后归档时间应当清掉")
 	}
 }

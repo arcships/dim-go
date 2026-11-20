@@ -129,7 +129,7 @@ func (a *App) settingsContent(c *gui.Context) {
 	case secExternalAgents:
 		renderExternalAgents(c)
 	case secArchived:
-		renderArchived(c)
+		renderArchived(c, a)
 	case secAbout:
 		a.renderAbout(c)
 	default:
