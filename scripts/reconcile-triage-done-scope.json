@@ -402,9 +402,8 @@
       "status_note": "行为已覆盖（重复选项各自成行），判定抓不到「异常」标记"
     },
     "R-GQ-118": {
-      "note": "自定义答案非空时接管答案，选项选中态清除",
-      "test": "TestQuestionCustomAnswerOverridesOptions",
-      "status_note": "行为已覆盖（自定义接管答案），判定抓不到「交互」标记：输入框不走 Clicked/Key"
+      "note": "自定义答案接管答案：选项选中态清掉，提交的是自定义那一段",
+      "test": "TestQuestionCustomOverridesSelection"
     },
     "R-GQ-119": {
       "note": "清空自定义框即回到选项选择",
@@ -417,9 +416,8 @@
       "status_note": "行为已覆盖（整段作答案），判定抓不到「内容」标记：文案取自常量"
     },
     "R-GQ-123": {
-      "note": "自定义生效后选项取消选中",
-      "test": "TestQuestionCustomAnswerOverridesOptions",
-      "status_note": "行为已覆盖（自定义生效后取消选中），判定抓不到「状态」标记"
+      "note": "选项已选中后再输入自定义：自定义生效、选项取消选中",
+      "test": "TestQuestionCustomOverridesSelection"
     },
     "R-GQ-127": {
       "note": "多选答案与自定义选项合并提交（勾选在前）",
@@ -523,6 +521,62 @@
     "R-TL-700": {
       "note": "装载第一轮时恢复遮罩挡住时间线，不铺半截内容",
       "test": "TestRestoreMaskCoversTimeline"
+    },
+    "R-GS-126": {
+      "note": "目录读回后加载行消失、结果行接上；空目录换空态，不在加载行上滞留",
+      "test": "TestChatSearchLoadingSettlesIntoResults"
+    },
+    "R-GS-133": {
+      "note": "上一页/显示更多是焦点链上的按钮：Tab 走到即拿焦点，Enter 与点击同一落点",
+      "test": "TestChatSearchPagingByKeyboard"
+    },
+    "R-GS-164": {
+      "note": "结果行副行只写工作区显示名，不出现绝对路径",
+      "test": "TestChatSearchGroupsAndFilters"
+    },
+    "R-GS-230": {
+      "note": "点空态无动作：不关对话框、不换选中会话",
+      "test": "TestChatSearchLoadingSettlesIntoResults"
+    },
+    "R-GM-191": {
+      "note": "分组标题是 RoleGroup，且排在组内候选之上（读屏先念标题）",
+      "test": "TestCommandPaletteGroupHeaderPrecedesItems"
+    },
+    "R-GM-192": {
+      "note": "某组被过滤空时该组标题一起消失，别的组标题不受影响",
+      "test": "TestCommandPaletteFilteredGroupLosesHeader"
+    },
+    "R-GM-197": {
+      "note": "回车执行高亮候选并关闭面板（鼠标点击同一落点）",
+      "test": "TestCommandPaletteArrowsAndEnter"
+    },
+    "R-GM-201": {
+      "note": "不可用行仍置灰，原因写进同一句可读名（「，不可用：<原因>」），可见行也写原因",
+      "test": "TestCommandPaletteDisabledReasonInName"
+    },
+    "R-GM-229": {
+      "note": "高亮项走到可视区外时列表跟随滚动，选中行始终落在面板内",
+      "test": "TestCommandPaletteSelectionStaysInPanel"
+    },
+    "R-GM-174": {
+      "note": "Esc 即时关；失焦走 300ms 宽限，两条关闭通道分开",
+      "test": "TestCommandPaletteEscapeIsImmediateButBlurWaits"
+    },
+    "R-GQ-107": {
+      "note": "筛选后选项全隐藏时行数为 0、只留空态句",
+      "test": "TestQuestionFilterHidesAllOptions"
+    },
+    "R-GQ-175": {
+      "note": "提交中「提交」与「拒绝」都禁用，再点不发第二次写入",
+      "test": "TestQuestionSubmitDisablesWhileBusy"
+    },
+    "R-GC-064": {
+      "note": "删除执行中 Esc 不关闭弹窗",
+      "test": "TestConfirmBusyBlocksEscapeAndRepeat"
+    },
+    "R-GC-068": {
+      "note": "执行中按钮换成「删除中...」并禁用，重复点击不重复发删除",
+      "test": "TestConfirmBusyBlocksEscapeAndRepeat"
     }
   }
 }

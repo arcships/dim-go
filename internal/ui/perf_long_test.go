@@ -205,8 +205,35 @@ func TestPerfVirtualWindow(t *testing.T) {
 	if !tt.HasText("第 1 轮") {
 		t.Fatal("滚到顶后没有首轮的正文")
 	}
-	t.Logf("2000 轮 / %d 行：首帧 %.2fms · 渲染 %d 行 · 滚到底一帧 %.2fms · 内容高 %.0fDIP（占位估算）",
-		total, first, app.renderedRows(), bottom, app.feed.MaxY)
+	// 停在中间不动：视口上沿那一行最多挪缓冲带那几行（后几帧只是实测行高回填，
+	// 让上沿与下沿各吃进几行），然后收敛到稳定区间，不能一直来回跳。
+	app.feed.Y = app.feed.MaxY / 2
+	tt.Frame()
+	tt.Frame()
+	from, to := app.renderedSpan()
+	if from <= 0 || to >= total {
+		t.Fatalf("中间的渲染区间没有在行中间：%d–%d（总行数 %d）", from, to, total)
+	}
+	settled := false
+	for i := 0; i < 12; i++ {
+		tt.Frame()
+		f, e := app.renderedSpan()
+		if drift := f - from; drift < -timelineWindowBuffer || drift > timelineWindowBuffer {
+			t.Fatalf("滚动位置没动，视口上沿跑了 %d 行（缓冲只有 %d）：%d → %d",
+				drift, timelineWindowBuffer, from, f)
+		}
+		if f == from && e == to {
+			settled = true
+			break
+		}
+		from, to = f, e
+	}
+	if !settled {
+		t.Fatalf("渲染区间 12 帧内没有收敛：%d–%d", from, to)
+	}
+	t.Logf("2000 轮 / %d 行：首帧 %.2fms · 渲染 %d 行 · 滚到底一帧 %.2fms"+
+		"· 中间区间 %d–%d 稳定 · 内容高 %.0fDIP（占位估算）",
+		total, first, app.renderedRows(), bottom, from, to, app.feed.MaxY)
 }
 
 // medFramesOnly 只取中位数（滚动后的稳态）。
