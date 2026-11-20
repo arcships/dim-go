@@ -200,8 +200,7 @@ func TestStopArmExpiresThenRearms(t *testing.T) {
 	if !app.stopArmed {
 		t.Fatal("第一次 Esc 没有武装")
 	}
-	app.stopArmedAt = time.Now().Add(-stopConfirmWindow - time.Second)
-	tt.Frame()
+	tt.Advance(stopConfirmWindow + time.Second)
 	if app.stopArmed {
 		t.Fatal("超过 3 秒后武装态没有撤除")
 	}

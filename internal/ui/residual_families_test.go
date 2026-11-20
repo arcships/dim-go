@@ -500,6 +500,7 @@ func TestTaskWakeupsFromSource(t *testing.T) {
 		hasSess: true,
 		wakeups: WakeupsSnapshot{Items: []WakeupSnapshot{
 			{ID: "w1", TriggerAt: time.Date(2026, 11, 20, 9, 30, 0, 0, time.Local), Prompt: "把夜间构建的结果发出来"},
+			{ID: "w2", Prompt: "没有触发时刻的记录"},
 		}},
 	}
 	app := NewApp(Options{State: StateDefault, Source: src})
@@ -517,6 +518,14 @@ func TestTaskWakeupsFromSource(t *testing.T) {
 	tt.Frame()
 	if !tt.HasText("09:30 触发") {
 		t.Fatalf("唤醒详情没有触发时刻：%v", tt.Texts())
+	}
+	// 没有触发时刻时写「触发时间未知」，不留空的 {time}。
+	if err := tt.Click("没有触发时刻的记录"); err != nil {
+		t.Fatalf("点不到第二条唤醒行：%v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("触发时间未知") {
+		t.Fatalf("缺时刻时没有写「触发时间未知」：%v", tt.Texts())
 	}
 }
 
@@ -591,19 +600,41 @@ func TestTimelineFileChangesBlock(t *testing.T) {
 		t.Fatal("行内没有状态字母")
 	}
 	// 行右键：打开类两项置灰写原因，复制路径算不出工作目录时也置灰。
-	r, _ := tt.Find("改动文件 internal/ui/composer.go")
-	t.Logf("row rect = %+v window %d×%d", r, WindowWidth, WindowHeight)
-	tt.RightClickAt(r.X+r.W/2, r.Y+r.H/2)
-	tt.Frame()
-	menu := tt.Menu()
-	want := []string{"用默认应用打开", "在文件管理器中显示", "-", "复制路径"}
-	if len(menu) != len(want) {
-		t.Fatalf("右键菜单 = %v，想要 %v", menu, want)
+	// 菜单画在窗口里（不是原生菜单）：按文案与禁用态判。
+	if err := tt.RightClick("改动文件 internal/ui/composer.go"); err != nil {
+		t.Fatalf("点不到改动文件行：%v", err)
 	}
-	for i := range want {
-		if menu[i] != want[i] {
-			t.Fatalf("右键菜单第 %d 项 = %q，想要 %q", i+1, menu[i], want[i])
+	tt.Frame()
+	// 菜单形状与顺序：打开类两项在复制类之上，复制路径在复制相对路径之上；
+	// 两类之间一条分隔线（D-93–D-97）。
+	var last float32 = -1
+	for _, label := range []string{"用默认应用打开", "在文件管理器中显示",
+		"复制路径", "复制相对路径"} {
+		r, ok := tt.Find(label)
+		if !ok {
+			t.Fatalf("右键菜单缺少 %q：%v", label, tt.Texts())
 		}
+		if r.Y <= last {
+			t.Fatalf("右键菜单顺序不对：%q 不在上一项下面（y=%.1f，上一项 %.1f）", label, r.Y, last)
+		}
+		last = r.Y
+	}
+	if !tt.HasText("分隔线") {
+		t.Fatal("打开类与复制类之间缺少分隔线")
+	}
+	for _, label := range []string{"用默认应用打开", "在文件管理器中显示", "复制路径"} {
+		info, ok := tt.Access(label)
+		if !ok || !info.Disabled {
+			t.Fatalf("%q 应置灰：%+v", label, info)
+		}
+	}
+	// 打开类两项要写原因（unavailable.go 口径），不能只给一个没有说明的灰项。
+	if !tt.HasText(notePreviewIO) {
+		t.Fatalf("置灰的打开类入口没有写原因 %q：%v", notePreviewIO, tt.Texts())
+	}
+	// 行上的路径本身就是工作区相对路径：复制相对路径不需要工作目录。
+	if info, ok := tt.Access("复制相对路径"); !ok || info.Disabled {
+		t.Fatalf("「复制相对路径」应可点：%+v", info)
 	}
 }
 
@@ -635,22 +666,33 @@ func TestTimelineFileChangeMenuCopiesPaths(t *testing.T) {
 		tt.Advance(500 * time.Millisecond)
 		tt.Frame()
 	}
-	if err := tt.RightClick("internal/ui/composer.go"); err != nil {
+	if err := tt.RightClick("改动文件 internal/ui/composer.go"); err != nil {
 		t.Fatalf("点不到改动文件行：%v", err)
 	}
 	tt.Frame()
-	if err := tt.ChooseMenuItem("复制路径"); err != nil {
+	// 有工作目录时两项复制都能点：禁用态只留给打开类（宿主没有通道）。
+	for _, label := range []string{"复制路径", "复制相对路径"} {
+		info, ok := tt.Access(label)
+		if !ok || info.Disabled {
+			t.Fatalf("%q 应可点：%+v", label, info)
+		}
+	}
+	if info, ok := tt.Access("用默认应用打开"); !ok || !info.Disabled {
+		t.Fatalf("「用默认应用打开」应置灰：%+v", info)
+	}
+	if err := tt.Click("复制路径"); err != nil {
 		t.Fatalf("点不到「复制路径」：%v", err)
 	}
 	if got := tt.Clipboard(); got != "/work/demo/internal/ui/composer.go" {
 		t.Fatalf("复制的绝对路径 = %q", got)
 	}
 	tt.Frame()
-	if err := tt.RightClick("internal/ui/composer.go"); err != nil {
+	tt.Frame()
+	if err := tt.RightClick("改动文件 internal/ui/composer.go"); err != nil {
 		t.Fatalf("点不到改动文件行：%v", err)
 	}
 	tt.Frame()
-	if err := tt.ChooseMenuItem("复制相对路径"); err != nil {
+	if err := tt.Click("复制相对路径"); err != nil {
 		t.Fatalf("点不到「复制相对路径」：%v", err)
 	}
 	if got := tt.Clipboard(); got != "internal/ui/composer.go" {

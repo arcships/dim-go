@@ -400,7 +400,7 @@ func (a *App) escKeycap(c *gui.Context) {
 // stopKeys 是 Esc 的两段确认：首次武装、3 秒内第二次停止、超时撤除；武装中
 // 点停止键由 sendSlot 一点即停，与这条路径互不影响（R-IN-163 / R-IN-191）。
 func (a *App) stopKeys(c *gui.Context) {
-	if a.stopArmed && time.Since(a.stopArmedAt) > stopConfirmWindow {
+	if a.stopArmed && c.Now().Sub(a.stopArmedAt) > stopConfirmWindow {
 		a.stopArmed, a.stopArmedAt = false, time.Time{}
 	}
 	if !a.liveRunning() {
@@ -409,14 +409,16 @@ func (a *App) stopKeys(c *gui.Context) {
 	if !c.Shortcut(0, gui.KeyEscape) {
 		return
 	}
-	if a.stopArmed && time.Since(a.stopArmedAt) <= stopConfirmWindow {
+	if a.stopArmed && c.Now().Sub(a.stopArmedAt) <= stopConfirmWindow {
 		a.stopArmed, a.stopArmedAt = false, time.Time{}
 		if a.intents != nil {
 			a.dispatch("停止", a.intents.Stop, nil)
 		}
 		return
 	}
-	a.stopArmed, a.stopArmedAt = true, time.Now()
+	a.stopArmed, a.stopArmedAt = true, c.Now()
+	// 3 秒后要一帧把武装态撤掉：不靠用户下一次输入才更新。
+	c.After(stopConfirmWindow)
 }
 
 // sendUnavailableReason 是发送不可用且不可排队时的原因；空表示没有要写的。

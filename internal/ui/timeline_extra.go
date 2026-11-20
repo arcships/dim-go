@@ -26,6 +26,9 @@ const (
 	siteIconBox = iconInline
 	// siteIconMax 是一行里最多画几个站点图标。
 	siteIconMax = 3
+	// narrowMentionRunes 是窄窗里提及名称保留的字符数：超出的按「…」收，
+	// 保留完整值在悬停提示里（TL-28 / TL-30 的窄窗形态）。
+	narrowMentionRunes = 12
 )
 
 // mentionOr 取第一个非空值；两个都空时返回 fallback。
@@ -451,6 +454,7 @@ func (a *App) mentionChip(c *gui.Context, m mention) {
 		if index := strings.LastIndex(name, "/"); index >= 0 && index+1 < len(name) {
 			name = name[index+1:]
 		}
+		name = narrowMention(c, name)
 		btn := gui.ButtonBase(c).Shrink(0).Height(mentionChipH).Gap(space1).
 			Padding(0, space1).Radius(radiusSmall).Background(t.SurfacePressed).
 			AlignItems(gui.Center).Cursor(gui.CursorPointer).
@@ -484,9 +488,23 @@ func (a *App) mentionChip(c *gui.Context, m mention) {
 			Tooltip(m.full + "（" + noteOpenWith + "）").Opacity(noteDisabledAlpha)
 		btn.Children(func() {
 			iconGlyph(c, iconGlobe, t.TextMuted, "mention-link")
-			typeSecondary.style(t, gui.Text(c, m.text)).TextColor(t.Text).SingleLine()
+			typeSecondary.style(t, gui.Text(c, narrowMention(c, m.text))).
+				TextColor(t.Text).SingleLine()
 		})
 	}
+}
+
+// narrowMention 在窄窗里把提及名称收到 12 个字符，宽窗原样返回；完整值仍在
+// 按钮的悬停提示里。
+func narrowMention(c *gui.Context, name string) string {
+	if !narrowWindow(c) {
+		return name
+	}
+	runes := []rune(name)
+	if len(runes) <= narrowMentionRunes {
+		return name
+	}
+	return string(runes[:narrowMentionRunes-1]) + "…"
 }
 
 // userBody 是用户消息正文：有行内提及时按提及切开画 chip / 按钮，没有时按原文

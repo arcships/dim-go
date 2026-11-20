@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -258,9 +259,12 @@ func (a *App) rpSkeleton(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Label("正在加载文件树").Role(gui.RoleStatus).Children(func() {
 		for i := 0; i < rpSkeletonRows; i++ {
-			// D-16 骨架条：中性浅块，宽度撑满列表宽（窄窗下随列表收缩）。
-			gui.Row(c).Height(panelSkeletonHeight).Padding(0, panelRowPadH).
-				AlignItems(gui.Center).Children(func() {
+			// D-16 骨架条：中性浅块，宽度撑满列表宽（窄窗下随列表收缩）；
+			// 三条同步脉冲（同一 key、同一周期），减少动效时框架直接停在稳态。
+			row := gui.Row(c).Height(panelSkeletonHeight).Padding(0, panelRowPadH).
+				AlignItems(gui.Center)
+			pulse := row.Loop("skeleton-pulse", rpSkeletonPulse, gui.EaseInOut)
+			row.Opacity(0.55 + 0.45*(1-abs32(2*pulse-1))).Children(func() {
 				gui.Box(c).Height(panelRowHeight2).Grow(1).
 					Radius(radiusSmall).Background(t.SurfaceHover)
 			})
@@ -270,6 +274,17 @@ func (a *App) rpSkeleton(c *gui.Context) {
 
 // rpSkeletonRows 是骨架条数（F-03：3 条）。
 const rpSkeletonRows = 3
+
+// rpSkeletonPulse 是骨架脉冲的周期（参考产品的骨架呼吸约 1.2s）。
+const rpSkeletonPulse = 1200 * time.Millisecond
+
+// abs32 取绝对值（脉冲按三角波来回）。
+func abs32(v float32) float32 {
+	if v < 0 {
+		return -v
+	}
+	return v
+}
 
 // rpPermissionBar 是没有写入权限时的警告条（F-46–F-48）：琥珀底、告警图标、
 // 文案与行尾「重试」。

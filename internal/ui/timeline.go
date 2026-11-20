@@ -706,6 +706,8 @@ func (a *App) roundHeader(c *gui.Context, i int, r round) {
 	open := a.openOf(i)
 	summary := groupSummary(r)
 	title := workProcessTitle(r, summary)
+	// 窄窗里左栏只有边条：按窄窗的可用宽度收标题，不把整行挤出内容列。
+	title = fitPhrase(c, t, title, a.sidebarCollapsed || narrowWindow(c), a.rightOpen)
 	phrase := roundHeaderPhrase(r)
 	btn := gui.ButtonBase(c).Grow(1).Height(timelineRowHeight).Gap(space1).
 		Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).Radius(radius).
@@ -1101,11 +1103,7 @@ func (a *App) fileChangesBlock(c *gui.Context, i int, r round) {
 		if btn.Clicked() {
 			*open = !*open
 		}
-		if len(r.fileChanges) > 0 {
-			a.fileChangeMenu(c, btn, "probe", r.fileChanges[0])
-		}
-		_ = progress
-		if *open {
+		a.revealPanel(c, *open, progress, func() {
 			// D-88 展开态列表容器：圆角描边，行在容器内。
 			list := gui.Column(c).Shrink(0).Gap(0).Padding(space1, space1).
 				Radius(radius).Border(strokeHairline, t.Border)
@@ -1114,7 +1112,7 @@ func (a *App) fileChangesBlock(c *gui.Context, i int, r round) {
 					a.fileChangeRow(c, i, n, change)
 				}
 			})
-		}
+		})
 	})
 }
 
@@ -1231,8 +1229,23 @@ func (a *App) fileChangeRow(c *gui.Context, turn, index int, change fileChange) 
 func (a *App) fileChangeMenu(c *gui.Context, target gui.Element, key string, change fileChange) {
 	m := gui.ContextMenuBase(c, target, a.blockOf("fileChangeMenu:"+key, false))
 	m.Popup(func(panel gui.Element) {
-		m.Item("probe-one")
-		m.Item("probe-two")
+		rpMenuPanel(panel, c.Theme(), panelMenuNoteWidth+panelRowIcon+2*space2)
+		// D-93 / D-94：打开外部应用与文件管理器都要宿主能力，本版没有通道。
+		menuItem(c, m, iconExternal, "用默认应用打开", "用默认应用打开", notePreviewIO, true, false)
+		menuItem(c, m, iconFolderOpen, "在文件管理器中显示", "在文件管理器中显示", notePreviewIO, true, false)
+		// D-95 打开类与复制类之间的分隔线
+		rpMenuSeparator(c)
+		// D-96 复制路径（绝对路径；算不出工作目录时置灰）
+		abs, absOK := a.timelineFilePath(change.path)
+		if menuItem(c, m, iconCopy, "复制路径", "复制路径", "", !absOK, false) && absOK {
+			c.WriteClipboard(abs)
+		}
+		// D-97 复制相对路径（工作区内才出现）
+		if rel, ok := a.timelineRelativePath(change.path); ok {
+			if menuItem(c, m, iconCopy, "复制相对路径", "复制相对路径", "", false, false) {
+				c.WriteClipboard(rel)
+			}
+		}
 	})
 }
 

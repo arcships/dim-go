@@ -35,6 +35,8 @@ const (
 	sidebarBrandMark = 16
 	// sidebarUpdateHeight 是栏头更新按钮的行高（取行档 row-compact）。
 	sidebarUpdateHeight = rowCompact
+	// sidebarUpdateMinWidth 是更新按钮的最小宽：百分比位数变化时不抖左缘（LB-05）。
+	sidebarUpdateMinWidth = 64
 	// sidebarHintHeight 是拖入提示的主副两行高。
 	sidebarHintHeight = 52
 )
@@ -161,6 +163,7 @@ func (a *App) sidebarUpdateButton(c *gui.Context) {
 	}
 	t := c.Theme()
 	b := gui.ButtonBase(c).Shrink(0).Height(sidebarUpdateHeight).
+		MinWidth(sidebarUpdateMinWidth).Justify(gui.Center).
 		Padding(0, space2).Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
 		Label(spec.label).Tooltip(spec.tip).Description(spec.tip).
 		Cursor(gui.CursorPointer)

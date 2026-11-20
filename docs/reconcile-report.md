@@ -25,10 +25,10 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | `requirements-settings.md` | 8325 | 672 | 875 | 5 | 633 | 6140 | 8.1% | 73.8% |
 | `requirements-main.md` | 3520 | 483 | 1665 | 107 | 384 | 881 | 13.7% | 25.0% |
 | `requirements-global.md` | 2348 | 372 | 1177 | 48 | 197 | 554 | 15.8% | 23.6% |
-| `requirements-panels.md` | 2152 | 349 | 359 | 78 | 170 | 1196 | 16.2% | 55.6% |
-| **合计** | **16345** | **1876** | **4076** | **238** | **1384** | **8771** | **11.5%** | **53.7%** |
+| `requirements-panels.md` | 2152 | 350 | 369 | 78 | 170 | 1185 | 16.3% | 55.1% |
+| **合计** | **16345** | **1877** | **4086** | **238** | **1384** | **8760** | **11.5%** | **53.6%** |
 
-「未实现」里有一半以上是「期望列没有可逐字文案」造成的（无可用字面量 13925 条，其中判未实现 8433 条）；这类条目只能靠元素符号/测试或界面取证，见 §3。
+「未实现」里有一半以上是「期望列没有可逐字文案」造成的（无可用字面量 13925 条，其中判未实现 8424 条）；这类条目只能靠元素符号/测试或界面取证，见 §3。
 
 ## 2. 第一轮随机 40 条复核
 
@@ -166,12 +166,12 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | 文件 | 总条数 | 逐字 | 映射命中 | 映射到位无标记 | 无渲染点 | 负向 | 映射命中占比 |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | `requirements-settings.md` | 8325 | 672 | 4578 | 2038 | 404 | 633 | 55.0% |
-| `requirements-main.md` | 3520 | 483 | 1758 | 715 | 180 | 384 | 49.9% |
+| `requirements-main.md` | 3520 | 483 | 1764 | 709 | 180 | 384 | 50.1% |
 | `requirements-global.md` | 2348 | 372 | 932 | 449 | 398 | 197 | 39.7% |
-| `requirements-panels.md` | 2152 | 349 | 1104 | 386 | 143 | 170 | 51.3% |
-| **合计** | **16345** | **1876** | **8372** | **3588** | **1125** | **1384** | **51.2%** |
+| `requirements-panels.md` | 2152 | 350 | 1106 | 383 | 143 | 170 | 51.4% |
+| **合计** | **16345** | **1877** | **8380** | **3579** | **1125** | **1384** | **51.3%** |
 
-去掉逐字与负向后可判 13085 条：元素映射到位 11960 条（91.4%），其中缺该维度标记 3588 条；找不到渲染点 1125 条（8.6%）。
+去掉逐字与负向后可判 13084 条：元素映射到位 11959 条（91.4%），其中缺该维度标记 3579 条；找不到渲染点 1125 条（8.6%）。
 
 「无渲染点」是映射的缺口，不是实现的结论：元素 ID 没在 Go 注释里标注，就查不到渲染函数。按域看元素映射覆盖率：
 
@@ -192,15 +192,15 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | 样式 | 1984 | 55 | 1657 | 75 | 184 | 13 | 领导给定 |
 | 内容 | 1924 | 688 | 951 | 12 | 138 | 135 | 领导给定 |
 | 无障碍 | 1893 | 304 | 1355 | 57 | 158 | 19 | 领导给定 |
-| 异常 | 1745 | 92 | 622 | 615 | 108 | 308 | 领导给定 |
+| 异常 | 1745 | 93 | 622 | 614 | 108 | 308 | 领导给定 |
 | 交互 | 1436 | 67 | 823 | 303 | 91 | 152 | 领导给定 |
 | 关联 | 1380 | 136 | 914 | 135 | 75 | 120 | 本轮补充 |
-| 窄窗 | 858 | 11 | 65 | 688 | 66 | 28 | 领导给定 |
+| 窄窗 | 858 | 11 | 72 | 681 | 66 | 28 | 领导给定 |
 | 记忆 | 688 | 20 | 66 | 535 | 40 | 27 | 领导给定 |
 | 深色 | 569 | 0 | 538 | 3 | 28 | 0 | 本轮补充 |
 | 键盘 | 482 | 5 | 167 | 276 | 28 | 6 | 本轮补充 |
 | 高DPI | 292 | 0 | 23 | 255 | 11 | 3 | 本轮补充 |
-| 动画 | 285 | 1 | 30 | 226 | 20 | 8 | 领导给定 |
+| 动画 | 285 | 1 | 31 | 225 | 20 | 8 | 领导给定 |
 | 性能 | 88 | 0 | 16 | 62 | 7 | 3 | 本轮补充 |
 | 语言 | 69 | 4 | 57 | 0 | 4 | 4 | 本轮补充 |
 | 输入法 | 30 | 0 | 2 | 26 | 0 | 2 | 本轮补充 |
@@ -221,7 +221,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 ### 4.4 逐字档的映射一致性
 
-逐字 1876 条中：字面量落在元素映射函数内 1372 条；元素有映射但字面量不在映射函数内 382 条；元素没有映射点 122 条。
+逐字 1877 条中：字面量落在元素映射函数内 1373 条；元素有映射但字面量不在映射函数内 382 条；元素没有映射点 122 条。
 
 映射不一致的前 10 条（逐字证据可能指错实现点）：
 
@@ -261,14 +261,14 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 需求 ID | 元素 ID | 维度 | 判定 | 映射 | 函数体信号 | 人工复核 |
 |---|---|---|---|---|---|---|
-| R-IN-787 | IN-74 | 动画 | 映射到位无标记 | `internal/ui/approval.go:App.approvalActions` | Row, WidthPercent, Gap, AlignItems, Wrap, Children, Spacer, PrimaryButton | 待复核 |
+| R-IN-796 | IN-74 | 记忆 | 映射到位无标记 | `internal/ui/approval.go:App.approvalActions` | Row, WidthPercent, Gap, AlignItems, Wrap, Children, Spacer, PrimaryButton | 待复核 |
 | R-TL-062 | TL-07 | 性能 | 映射到位无标记 | `internal/ui/timeline.go:App.round` | Column, Shrink, Gap, Children, TrimSpace | 待复核 |
-| R-TL-542 | TL-55 | 动画 | 映射到位无标记 | `internal/ui/timeline.go:App.toolDetail` | Theme, Column, Gap, PaddingStart, Children, Text | 待复核 |
-| R-TL-778 | TL-78 | 高DPI | 映射到位无标记 | `internal/ui/timeline.go:App.opRow` | Theme, Sprintf, ButtonBase, Grow, Height, Gap, AlignItems, Padding | 待复核 |
-| R-SB-206 | SB-17 | 高DPI | 映射到位无标记 | `internal/ui/statusbar.go:App.usageAccountLink` | Theme, ButtonBase, Height, Padding, Radius, AlignItems, Label, Cursor | 待复核 |
+| R-TL-560 | TL-56 | 记忆 | 映射到位无标记 | `internal/ui/timeline_extra.go:App.subagentChip` | Theme, ButtonBase, Shrink, Height, Gap, Radius, Background, Cursor | 待复核 |
+| R-IN-082 | IN-06 | 记忆 | 映射到位无标记 | `internal/ui/composer.go:App.modeSelector` | Theme, MenuBase, Width, Height, Radius, Tooltip, Cursor, Hovered | 待复核 |
+| R-SB-224 | SB-19 | 记忆 | 映射到位无标记 | `internal/ui/statusbar.go:App.statusUsage` | Theme, MenuBase, Height, Padding, Radius, AlignItems, Label, Sprintf | 待复核 |
 | R-LB-228 | LB-34 | 异常 | 映射到位无标记 | `internal/ui/sidebar.go:App.workspaceGroup` | Theme, Column, Shrink, Children, Row, PaddingStart, ButtonBase, Height | 待复核 |
-| R-TL-730 | TL-74 | 状态 | 映射到位无标记 | `internal/ui/timeline.go:App.roundOps` | Theme, Row, Grow, Gap, Children, Box, Width, Shrink | 待复核 |
-| R-LB-032 | LB-05 | 状态 | 映射命中 | `internal/ui/sidebar_extra.go:App.sidebarUpdateButton` 标记 Disabled | Theme, ButtonBase, Shrink, Height, Radius, Gap, AlignItems, Tooltip | 待复核 |
+| R-TL-767 | TL-77 | 记忆 | 映射到位无标记 | `internal/ui/timeline.go:App.opRow` | Theme, Sprintf, ButtonBase, Grow, Height, Gap, AlignItems, Padding | 待复核 |
+| R-LB-032 | LB-05 | 状态 | 映射命中 | `internal/ui/sidebar_extra.go:App.sidebarUpdateButton` 标记 Disabled | Theme, ButtonBase, Shrink, Height, Justify, Radius, Gap, AlignItems | 待复核 |
 | R-TB-045 | TB-06 | 样式 | 映射命中 | `internal/ui/search.go:App.sessionSearchOverlay` 标记 Width | Theme, Size, Overlay, Box, Absolute, Fill, AccessHidden, OnClick | 待复核 |
 | R-TL-090 | TL-10 | 样式 | 无渲染点 | — | — | 待复核 |
 
@@ -291,18 +291,18 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 需求 ID | 元素 ID | 维度 | 判定 | 映射 | 函数体信号 | 人工复核 |
 |---|---|---|---|---|---|---|
-| R-TM-139 | T-17 | 异常 | 映射到位无标记 | `internal/ui/terminal.go:App.termMenu` | Item, Disabled, Chosen, ReadClipboard, Separator, Subtitle, Danger | 待复核 |
-| R-RD-155 | D-15 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpScopeBar` | Theme, Row, Height, Shrink, Padding, Gap, Children, MenuBase | 待复核 |
-| R-RD-456 | D-48 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpDiffBlock` | Theme, Column, Shrink, Padding, Background, Draw, Stroke, Children | 待复核 |
-| R-RD-681 | D-71 | 性能 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeRow` | Theme, Sprintf, Row, Height, Padding, AlignItems, Role, Hovered | 待复核 |
-| R-TK-153 | K-19 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel.go:panelEmpty` | Theme, Column, Grow, Center, Padding, Children, Text, TextColor | 待复核 |
-| R-RF-230 | F-27 | 拖拽 | 映射到位无标记 | `internal/ui/rightpanel_files.go:App.rpFileRow` | Theme, Sprintf, ButtonBase, Height, Padding, AlignItems, Radius, Level | 待复核 |
-| R-RD-647 | D-68 | 高DPI | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeMenu` | ContextMenuBase, Popup, Theme, WriteClipboard | 待复核 |
-| R-RF-275 | F-32 | 关联 | 映射命中 | `internal/ui/rightpanel_files.go:App.rpFileRow` 标记 Open | Theme, Sprintf, ButtonBase, Height, Padding, AlignItems, Radius, Level | 待复核 |
+| R-TM-142 | T-17 | 异常 | 映射到位无标记 | `internal/ui/terminal.go:App.termMenu` | Item, Disabled, Chosen, ReadClipboard, Separator, Subtitle, Danger | 待复核 |
+| R-RD-156 | D-15 | 窄窗 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpScopeBar` | Theme, Row, Height, Shrink, Padding, Gap, Children, MenuBase | 待复核 |
+| R-RD-475 | D-50 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeGroups` | Sprintf | 待复核 |
+| R-RD-697 | D-73 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpRevertDialog` | Modal, Theme, Column, Gap, Padding, Width, Label, Radius | 有分歧（负向期望）：期望是「标题不变、说明换路径」，属于稳定性断言；无记忆标记不构成缺失证据 |
+| R-TK-161 | K-20 | 动画 | 映射到位无标记 | `internal/ui/rightpanel_tasks.go:App.taskStateGlyph` | Box, Width, Height, Shrink, AccessHidden, DrawOver, Rotate, Loop | 待复核 |
+| R-RF-237 | F-27 | 键盘 | 映射到位无标记 | `internal/ui/rightpanel_files.go:App.rpFileRow` | Theme, Sprintf, ButtonBase, Height, Padding, AlignItems, Radius, Level | 确认：rpFileRow 没有键盘处理（只有 Pressed/Hovered/Clicked），逐行焦点与 Enter 预览未实现 |
+| R-RD-664 | D-70 | 高DPI | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeRow` | Theme, Sprintf, Row, Height, Padding, AlignItems, Role, Hovered | 待复核 |
+| R-RF-273 | F-32 | 内容 | 映射命中 | `internal/ui/rightpanel_files.go:App.rpFileRow` 标记 文案「文件，」等 5 条 | Theme, Sprintf, ButtonBase, Height, Padding, AlignItems, Radius, Level | 待复核 |
 | R-RF-012 | F-01 | 异常 | 映射命中 | `internal/ui/rightpanel_files.go:App.rpFilterRow` 标记 erR | Theme, Column, Shrink, Padding, Children, Row, Height, Gap | 待复核 |
 | R-RA-046 | A-06 | 异常 | 无渲染点 | — | — | 待复核 |
 
-人工复核 3 条：与机器判定一致 1 条，有分歧 2 条。分歧构成：映射错位 1、负向期望 1。
+人工复核 5 条：与机器判定一致 2 条，有分歧 3 条。分歧构成：负向期望 2、映射错位 1。
 
 ### 4.6 「缺标记」里有多少是标记组漏词
 
@@ -310,14 +310,14 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 维度 | 缺标记条数 | 其中函数体有同类写法 | 例子 |
 |---|---:|---:|---|
-| 窄窗 | 688 | 623（90.6%） | R-ACC-033 `Wrap` |
-| 异常 | 615 | 128（20.8%） | R-ACC-029 `Banner` |
+| 窄窗 | 681 | 618（90.7%） | R-ACC-033 `Wrap` |
+| 异常 | 614 | 128（20.8%） | R-ACC-029 `Banner` |
 | 记忆 | 535 | 215（40.2%） | R-ACC-354 `.accountEmailOpen =` |
 | 状态 | 313 | 31（9.9%） | R-RUN-033 `Empty@rtLiveSection` |
 | 交互 | 303 | 138（45.5%） | R-ACC-074 `Selectable` |
 | 键盘 | 276 | 11（4.0%） | R-ACC-603 `Focus` |
 | 高DPI | 255 | 188（73.7%） | R-ACC-027 `Size@fontStep.style` |
-| 动画 | 226 | 100（44.2%） | R-ACC-017 `Opacity@accButton` |
+| 动画 | 225 | 101（44.9%） | R-ACC-017 `Opacity@accButton` |
 | 关联 | 135 | 4（3.0%） | R-IN-482 `Close` |
 | 样式 | 75 | 8（10.7%） | R-TL-006 `Fill` |
 | 性能 | 62 | 0（0.0%） | — |

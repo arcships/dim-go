@@ -24,6 +24,9 @@ import (
 // taskCopiedFeedback 是「已复制」反馈的停留时长（K-26：2 秒）。
 const taskCopiedFeedback = 2 * time.Second
 
+// taskArmedTimeout 是停止入口的待确认窗口（K-14：3 秒或失焦自动复位）。
+const taskArmedTimeout = 3 * time.Second
+
 // taskStateText 是行与详情头共用的状态词：屏幕上的字由数据的取值决定，
 // 不写字面量状态（UI-23 / L6）。
 func taskStateText(st taskState) string {
@@ -296,6 +299,16 @@ func (a *App) taskStopButton(c *gui.Context, item task, index int, live bool) {
 	if iconButton(c, iconButtonSpec{icon: icon, label: label, size: rowCompact, color: color}) {
 		if !armed {
 			a.panels.taskArmed = index
+			// K-14 的三秒窗口：到点仍在待确认就复位成 K-13 的外观。
+			time.AfterFunc(taskArmedTimeout, func() {
+				if a.panels.taskArmed != index {
+					return
+				}
+				a.panels.taskArmed = -1
+				if a.changed != nil {
+					a.changed()
+				}
+			})
 			return
 		}
 		a.panels.taskArmed = -1
@@ -463,13 +476,13 @@ func (a *App) wakeupDetail(c *gui.Context, item task) {
 	th := c.Theme()
 	gui.Scroll(c).Grow(1).Children(func() {
 		gui.Column(c).Padding(panelPad).Gap(panelGap).Children(func() {
-			at := item.wakeAt
-			if at == "" {
-				at = "时刻未知"
+			// K-35 {time} 触发；没有时刻时写「触发时间未知」，不留空的 {time}。
+			text := "触发时间未知"
+			if item.wakeAt != "" {
+				text = item.wakeAt + " 触发"
 			}
-			// K-35 {time} 触发
-			typeSecondaryStrong.style(th, gui.Text(c, at+" 触发")).TextColor(th.Text).
-				SingleLine().Label(at + " 触发")
+			typeSecondaryStrong.style(th, gui.Text(c, text)).TextColor(th.Text).
+				SingleLine().Label(text)
 			// K-36 唤醒提示内容（可换行）
 			if item.wakeBody != "" {
 				typeBody.style(th, gui.Text(c, item.wakeBody)).TextColor(th.Text).
