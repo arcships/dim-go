@@ -732,7 +732,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GS-034 | G-A1-03 | 键盘 | 输入框内按 Esc | 关闭浮层并清除高亮 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A1-03→internal/ui/search.go:App.sessionSearchTextKey；标记 = Key） |
 | R-GS-035 | G-A1-03 | 内容 | 查询超长 | 单行横向滚动，框高不变 | — | 框高恒 44 行内 | 已实现（映射 = G-A1-03→internal/ui/app.go:App.viewKeys；标记 = 文案「工作区」@App.sidebarWorkspaces） |
 | R-GS-036 | G-A1-03 | 无障碍 | 读屏进入该元素时 | 输入框可读名为「搜索聊天消息」（见 G-A1-04），值为当前查询 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/search.go:sessionSearchLabel「搜索聊天消息」 |
-| R-GS-037 | G-A1-03 | 异常 | 检索 RPC 失败 | 保持查询词，结果区给 0 或上次值，不弹错误框 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A1-03→internal/ui/timeline.go:App.userMessage；标记 = Reason@App.userActions） |
+| R-GS-037 | G-A1-03 | 异常 | 检索 RPC 失败 | 保持查询词，结果区给 0 或上次值，不弹错误框 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A1-03→internal/ui/app.go:App.viewKeys；标记 = err@App.createSessionAt） |
 | R-GS-038 | G-A1-04 | 无障碍 | 读屏进入浮层 | 输入框可读名逐字「搜索聊天消息」 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/search.go:sessionSearchLabel「搜索聊天消息」 |
 | R-GS-039 | G-A1-04 | 状态 | C24/C25/C26 | 该可读名恒定，不随查询或结果数变化 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE） | 未实现（找不到元素渲染点） |
 | R-GS-040 | G-A1-04 | 关联 | 读屏读取可读名与占位文案时 | 可读名（「搜索聊天消息」）与占位（「搜索聊天...」）是两段不同文本，不互相顶替 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/search.go:sessionSearchLabel「搜索聊天消息」 |
@@ -1276,7 +1276,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GM-146 | G-B1-18 | 异常 | 切换失败 | 提示失败，模式不变 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-18→internal/ui/slash_commands.go:App.slashCommands；标记 = Reason） |
 | R-GM-147 | G-B1-18 | 内容 | 英文描述宽度 | 英文描述比中文长时仍单行 truncate | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-B1-18→internal/ui/slash_commands.go:App.slashCommands；标记 = 文案「还没有打开会话」等 17 条） |
 | R-GM-148 | G-B1-19 | 内容 | 未观察（条件）：弹层滚动到 `/compact` 之后 | 主字「/branch」，描述「侧边对话」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/rightpanel_parts.go:rpNewTabItems「侧边对话」 |
-| R-GM-149 | G-B1-19 | 交互 | 选中一条会话后执行时 | 为当前回合开启侧边对话（右栏「侧聊」标签） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/slash_commands.go:slashBranchNoChannel「侧聊」 |
+| R-GM-149 | G-B1-19 | 交互 | 选中一条会话后执行时 | 为当前回合开启侧边对话（右栏「侧聊」标签） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-B1-19→internal/ui/slash_commands.go:App.slashCommands |
 | R-GM-150 | G-B1-19 | 状态 | 已在侧聊中 | 命令仍可用，执行后聚焦已有侧聊而非新开 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-19→internal/ui/slash_commands.go:App.slashCommands；标记 = State@App.switchMode） |
 | R-GM-151 | G-B1-19 | 关联 | 打开侧聊面板时 | 与「从消息处开侧聊」同一能力，两个入口 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-19→internal/ui/slash_commands.go:App.slashCommands；标记 = Open） |
 | R-GM-152 | G-B1-19 | 样式 | 行样式渲染后 | 同 G-B1-05 | — | 判据 = 行高 UI 正文 17.5px | 未实现（映射到位但没有该维度的标记）：G-B1-19→internal/ui/slash_commands.go:App.slashCommands |

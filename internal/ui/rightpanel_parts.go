@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"path"
 	"runtime"
 
 	gui "github.com/egoist/mygo/ui"
@@ -101,10 +102,12 @@ type rightPanelState struct {
 	dirOpen  map[string]bool
 	dirPages map[string]int
 	// dirLoading / dirFailed 是「正在加载...」与目录错误行；dirError 是读取方给出
-	// 的失败原因（空表示只有通用句）。
+	// 的失败原因（空表示只有通用句）。dirRefresh 是那一格的一侧重读请求：重试只
+	// 重读这个目录，不把整棵树推倒重来。
 	dirLoading map[string]bool
 	dirFailed  map[string]bool
 	dirError   map[string]string
+	dirRefresh map[string]bool
 
 	// tree 是文件树样例；changes 是改动列表样例。
 	tree    []*rpNode
@@ -173,6 +176,7 @@ func (a *App) rp() *rightPanelState {
 		s.dirLoading = map[string]bool{}
 		s.dirFailed = map[string]bool{}
 		s.dirError = map[string]string{}
+		s.dirRefresh = map[string]bool{}
 		s.diffOpen = map[string]bool{}
 		s.tabMenu = map[int]*bool{}
 		s.rowMenu = map[string]*bool{}
@@ -580,6 +584,10 @@ func (a *App) rpTabLabel(tab int) string {
 	case tabBrowser:
 		return "浏览器"
 	case tabFilePreview:
+		// RP-A-12：预览标签文案是文件名；还没选文件时用「打开文件」。
+		if p := a.rp().previewPath; p != "" {
+			return path.Base(p)
+		}
 		return "打开文件"
 	case tabWorkflow:
 		return "工作流"

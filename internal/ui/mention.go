@@ -65,7 +65,7 @@ const (
 	pickRetrySkillText  = "重试技能读取"
 	// pickRetryNoChannel 是技能读数没有重试通道时的原因（没有刷新技能的读数入口
 	// 之外的路径：刷新走 /reload-skills，这里不给第二个写入口）。
-	pickRetryNoChannel = "技能的读数没有单独的刷新入口：用 /reload-skills 重扫技能目录"
+	pickRetryNoChannel = "技能清单没有单独的刷新入口，用 /reload-skills 重新扫描"
 	pickSearchingText  = "正在搜索"
 	// pickCapNote 是候选到扫描上限时的说明（G-A3 的文件数量上限）。
 	pickCapNote = "工作区文件超过 5000 个，候选只取前 5000 个"

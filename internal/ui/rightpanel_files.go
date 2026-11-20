@@ -195,8 +195,15 @@ func (a *App) rpNodes(facts PanelFacts, cwd, dir string, snapshot FileTreeSnapsh
 				limit = rpPageSize
 				s.dirPages[p] = limit
 			}
+			// 这个目录刚点过「重试」时带 Refresh 重读一次，然后清掉标记：只重读
+			// 这一格，不做整树刷新（F-26 / R-RF-219）。
+			childRefresh := refresh
+			if s.dirRefresh[p] {
+				childRefresh = true
+				delete(s.dirRefresh, p)
+			}
 			child := facts.FileTree(FileTreeRequest{
-				Cwd: cwd, Dir: p, Offset: 0, Limit: limit, Refresh: refresh,
+				Cwd: cwd, Dir: p, Offset: 0, Limit: limit, Refresh: childRefresh,
 			})
 			s.dirFailed[p] = child.Phase == PanelReadFailed
 			s.dirError[p] = child.Error
@@ -544,8 +551,10 @@ func (a *App) rpSearchResults(c *gui.Context, query string, refresh bool) {
 			typeSecondary.style(t, gui.Text(c, "文件搜索失败。")).TextColor(t.Danger).
 				Role(gui.RoleAlert)
 			if rpTextAction(c, nil, "重试", "重试搜索", false) {
+				// 样例里的搜索是同步匹配：重试当帧出结果，不停在「正在搜索」上
+				// ——那会是一个没有返回点的假等待（F-06 / R-RF-046）。
 				s.searchFailed = false
-				s.searching = true
+				s.searching = false
 			}
 		})
 		return
@@ -809,14 +818,21 @@ func (a *App) rpLoadMoreRow(c *gui.Context, p string) {
 }
 
 // rpDirErrorRow 是目录内的错误行（F-25/F-26）：危险色文案 + 行尾「重试」。
+//
+// 读屏名带上目录：读屏用户听到「无法加载文件夹：src/components」，才知道是哪
+// 一格出错（R-RF-215）。根级失败给「无法加载文件树」。
 func (a *App) rpDirErrorRow(c *gui.Context, p string) {
 	t := c.Theme()
 	s := a.rp()
 	// 通用句后面接读取方给的原因：只有通用句时用户不知道是权限、断线还是路径
 	// 没了；没有原因时这一行与原来一致。
 	reason := s.dirError[p]
+	who := "无法加载文件树"
+	if p != "" {
+		who = "无法加载文件夹：" + p
+	}
 	gui.Row(c).Height(panelRowHeight2).Padding(0, panelRowPadH).Gap(space1).
-		AlignItems(gui.Center).Role(gui.RoleAlert).Children(func() {
+		AlignItems(gui.Center).Role(gui.RoleAlert).Label(who).Children(func() {
 		// F-13 无法加载此文件夹。
 		typeSecondary.style(t, gui.Text(c, "无法加载此文件夹。")).TextColor(t.Danger).
 			Shrink(0).SingleLine()
@@ -826,10 +842,14 @@ func (a *App) rpDirErrorRow(c *gui.Context, p string) {
 		}
 		// F-14 重试（重读该目录）
 		if rpTextAction(c, nil, "重试", "重试读取文件夹："+p, false) {
-			// 重试 = 清掉失败位并请求一次真正的重读（适配器按 Refresh 跳过缓存），
-			// 不是把同一份失败读数再画一遍。
+			// 重试 = 清掉失败位并请求这一格的重读（适配器按 Refresh 跳过缓存）：
+			// 根级仍走整树刷新，子目录只重读自己。
 			s.dirFailed[p] = false
-			s.reload++
+			if p == "" {
+				s.reload++
+			} else {
+				s.dirRefresh[p] = true
+			}
 		}
 	})
 }

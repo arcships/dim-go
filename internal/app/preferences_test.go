@@ -223,3 +223,71 @@ func TestWindowBoundsLegacyFile(t *testing.T) {
 		t.Fatalf("旧文件没有第二个窗口的几何：%+v", extra)
 	}
 }
+
+// TestKeybindingPreferencesPersist 界面内快捷键落在 preferences.json 的
+// keybindings 下：只存改过的动作、键位写成规范写法，重建 App 原样回来；与出厂值
+// 相同的项与认不出的键位都不落盘。
+func TestKeybindingPreferencesPersist(t *testing.T) {
+	dir := t.TempDir()
+	first, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("创建 App：%v", err)
+	}
+	if err := first.UpdatePreferences(Preferences{Keybindings: map[string]string{
+		"toggle-sidebar": "⌘⌥B",         // 改过：字形要换成规范写法
+		"open-settings":  "CmdOrCtrl+,", // 与出厂值相同：不存
+		"no-such-action": "Cmd+K",       // 未知动作：丢掉
+	}}); err != nil {
+		t.Fatalf("写入偏好：%v", err)
+	}
+	second, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("重建 App：%v", err)
+	}
+	got := second.Preferences().Keybindings
+	if len(got) != 1 || got["toggle-sidebar"] != "Cmd+Alt+B" {
+		t.Fatalf("快捷键偏好往返不一致：%v", got)
+	}
+
+	raw, err := os.ReadFile(filepath.Join(dir, "preferences.json"))
+	if err != nil {
+		t.Fatalf("读偏好文件：%v", err)
+	}
+	if !strings.Contains(string(raw), `"keybindings"`) ||
+		!strings.Contains(string(raw), `"toggle-sidebar": "Cmd+Alt+B"`) {
+		t.Fatalf("偏好文件里没有 keybindings 这一节：\n%s", raw)
+	}
+	if strings.Contains(string(raw), "no-such-action") {
+		t.Fatalf("未知动作被写进了偏好：\n%s", raw)
+	}
+
+	// 全部改回出厂值时这一节消失：删掉一项就是重置，偏好文件不留空壳。
+	if err := second.UpdatePreferences(Preferences{}); err != nil {
+		t.Fatalf("重置偏好：%v", err)
+	}
+	third, err := New(Config{DataDir: dir})
+	if err != nil {
+		t.Fatalf("再次重建 App：%v", err)
+	}
+	if got := third.Preferences().Keybindings; len(got) != 0 {
+		t.Fatalf("重置后还剩快捷键：%v", got)
+	}
+}
+
+// TestKeybindingsCopyIsIndependent 取回的偏要是副本：改它不影响 App 内的值。
+func TestKeybindingsCopyIsIndependent(t *testing.T) {
+	app, err := New(Config{DataDir: t.TempDir()})
+	if err != nil {
+		t.Fatalf("创建 App：%v", err)
+	}
+	if err := app.UpdatePreferences(Preferences{Keybindings: map[string]string{
+		"toggle-terminal": "Cmd+Alt+J",
+	}}); err != nil {
+		t.Fatalf("写入偏好：%v", err)
+	}
+	prefs := app.Preferences()
+	prefs.Keybindings["toggle-terminal"] = "Cmd+Alt+K"
+	if got := app.Preferences().Keybindings["toggle-terminal"]; got != "Cmd+Alt+J" {
+		t.Fatalf("改副本影响到了 App 内的偏好：%q", got)
+	}
+}

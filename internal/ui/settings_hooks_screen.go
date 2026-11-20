@@ -203,7 +203,7 @@ const (
 	hkCopyMore       = "了解更多"
 	hkCopyRefresh    = "刷新"
 	hkCopyLoadError  = "加载设置失败"
-	hkCopyNoCatalog  = "服务端没有声明钩子目录能力，这一屏只有本端能确认的部分。"
+	hkCopyNoCatalog  = "暂时读不到钩子目录，这一屏只有本机确认的部分。"
 	hkCopyWarning    = "钩子会在这些生命周期事件上运行 shell 命令。"
 	hkCopySources    = "来源"
 	hkCopyEntries    = "条目"

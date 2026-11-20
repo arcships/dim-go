@@ -1,9 +1,10 @@
-// Package shortcut 是全局唤起快捷键的键位写法：默认值、输入规范化与展示。
+// Package shortcut 是键位写法的共用层：全局唤起快捷键的默认值、输入规范化，
+// 以及「设置 › 快捷键」两组的界面内动作与其出厂键位。
 //
 // 为什么单独成包：同一套写法有两处要用——集成层（internal/app 的偏好落盘与
 // 系统级注册）与视图层（internal/ui 的设置 › 快捷键）。ui 不 import app（A 领域
-// 边界），所以放在这个只依赖标准库的叶包里。本包只做文本换算，不注册、不读
-// 偏好、不碰窗口。
+// 边界），所以放在这个只依赖标准库的叶包里。本包只做文本换算与出厂值，不注册、
+// 不读偏好、不碰窗口。
 package shortcut
 
 import (
@@ -50,7 +51,7 @@ var keyAliases = map[string]string{
 	"end":      "End",
 	"pageup":   "PageUp",
 	"pagedown": "PageDown",
-	"escape":   "Escape", "esc": "Escape",
+	"escape": "Escape", "esc": "Escape",
 	"printscreen": "PrintScreen",
 	"numdec":      "NumDec", "numadd": "NumAdd", "numsub": "NumSub",
 	"nummult": "NumMult", "numdiv": "NumDiv",
@@ -78,7 +79,8 @@ var glyphs = strings.NewReplacer(
 //
 // 接受 Electron 风格的 "Cmd+Shift+Space"、"cmdorctrl+shift+space" 与 macOS
 // 字形 "⌘⇧Space"。返回错误时不猜：空键位、缺主键、缺修饰键、认不出的名字都
-// 拒绝——全局快捷键至少要有一个修饰键，否则一个裸键会吃掉整个系统的输入。
+// 拒绝——界面内的快捷键同样至少要有一个修饰键，否则一个裸键会把输入框里的
+// 字符吃掉。
 func Normalize(input string) (string, error) {
 	text := strings.TrimSpace(input)
 	if text == "" {
@@ -117,7 +119,7 @@ func Normalize(input string) (string, error) {
 		return "", fmt.Errorf("键位缺少主键：%q", input)
 	}
 	if len(modifiers) == 0 {
-		return "", fmt.Errorf("全局快捷键至少要有一个修饰键")
+		return "", fmt.Errorf("快捷键至少要有一个修饰键")
 	}
 	ordered := make([]string, 0, len(modifierOrder))
 	for _, name := range modifierOrder {
@@ -262,4 +264,94 @@ func keyGlyph(name string) string {
 		return "→"
 	}
 	return name
+}
+
+// ---- 界面内快捷键（设置 › 快捷键：通用 / 对话 两组） ----
+
+// Action 是一条界面内快捷键的出厂值。
+//
+// 键位只登记在这里：集成层按 ID 落盘本地偏好，视图层按 ID 读出实际键位并判断
+// 按键。动作能不能生效不在本包判断（有的动作本版没有落点，见视图层的行状态）。
+type Action struct {
+	// ID 是偏好的键，跨版本不变。
+	ID string
+	// Default 是出厂键位（Electron 写法）。
+	Default string
+}
+
+// inAppActions 是两组 8 行的出厂键位，顺序与参考产品截图一致。
+var inAppActions = []Action{
+	{"open-settings", "CmdOrCtrl+,"},
+	{"new-thread", "CmdOrCtrl+N"},
+	{"toggle-sidebar", "CmdOrCtrl+B"},
+	{"search-chat", "CmdOrCtrl+G"},
+	{"focus-composer", "CmdOrCtrl+L"},
+	{"toggle-changes", "CmdOrCtrl+Shift+B"},
+	{"toggle-terminal", "CmdOrCtrl+J"},
+	{"submit-changes", "CmdOrCtrl+Shift+Enter"},
+}
+
+// Actions 返回界面内快捷键的出厂表（副本，调用方不能改到本包的表）。
+func Actions() []Action {
+	return append([]Action(nil), inAppActions...)
+}
+
+// ActionByID 按 ID 取出厂键位；第二个返回值为假表示没有这个动作。
+func ActionByID(id string) (Action, bool) {
+	for _, action := range inAppActions {
+		if action.ID == id {
+			return action, true
+		}
+	}
+	return Action{}, false
+}
+
+// DefaultBinding 返回某个动作的出厂键位；没有这个动作时为空。
+func DefaultBinding(id string) string {
+	if action, ok := ActionByID(id); ok {
+		return action.Default
+	}
+	return ""
+}
+
+// NormalizeBindings 把一份「动作 ID → 键位」收成可以落盘的形状：
+//
+//   - 只留已知动作，未知 ID 丢掉（旧版本或手改的偏好不扩散）；
+//   - 键位先规范化，认不出的丢掉；
+//   - 与出厂值相同的项不存（偏好里只存改过的，删掉这项就是「重置」）。
+//
+// 返回值可能为空：全都没改时返回 nil，偏好文件里不写这一节。
+func NormalizeBindings(bindings map[string]string) map[string]string {
+	if len(bindings) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(bindings))
+	for id, binding := range bindings {
+		action, ok := ActionByID(strings.TrimSpace(id))
+		if !ok {
+			continue
+		}
+		normalized, err := Normalize(binding)
+		if err != nil {
+			continue
+		}
+		if normalized == action.Default {
+			continue
+		}
+		out[action.ID] = normalized
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// Binding 返回某个动作的当前键位：改过的取 override，没改过的取出厂值。
+func Binding(overrides map[string]string, id string) string {
+	if binding, ok := overrides[id]; ok {
+		if normalized, err := Normalize(binding); err == nil {
+			return normalized
+		}
+	}
+	return DefaultBinding(id)
 }

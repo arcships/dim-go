@@ -36,14 +36,15 @@ const (
 )
 
 // 排队消息与命令面板的新增原因文案（集中在 unavailable.go 之外的两条，因为
-// 它们只属于底部栈；理由见 decisions.md 的「缺通道就置灰」）。
+// 它们只属于底部栈；理由见 decisions.md 的「缺通道就置灰」）。技术口径：这些
+// 动作在 protocol v3 里没有对应的写方法。
 const (
-	noteQueueReorder    = "服务端没有提供排队消息排序（本版不做）"
-	noteQueueWithdraw   = "服务端没有提供排队消息撤回（本版不做）"
-	noteQueueEdit       = "服务端没有提供排队消息编辑（本版不做）"
-	noteQueueSteer      = "服务端没有提供插话写入（本版不做）"
-	noteShellOutput     = "服务端没有回传这次运行的输出"
-	noteCompactionRetry = "服务端没有提供摘要重取（本版不做）"
+	noteQueueReorder    = "当前版本不支持给排队消息排序"
+	noteQueueWithdraw   = "当前版本不支持撤回排队消息"
+	noteQueueEdit       = "当前版本不支持编辑排队消息"
+	noteQueueSteer      = "当前版本不支持插入消息"
+	noteShellOutput     = "没有读到这次运行的输出"
+	noteCompactionRetry = "当前版本不支持重新生成摘要"
 	// noteQueueNoText 是没有正文也没有附件事实的排队输入的说明：不拿「附件」
 	// 两个字替它顶上正文（那会把每条输入都说成附件）。
 	noteQueueNoText = "没有正文"

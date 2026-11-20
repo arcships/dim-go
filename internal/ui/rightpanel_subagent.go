@@ -17,8 +17,11 @@ const (
 	subagentRetry      = "重试"
 	subagentLoadFailed = "加载失败"
 	subagentEmptyText  = "还没有输出"
-	// subagentNoSession 是没有子代理消息时的空态标题。
+	// subagentNoSession 是没有子代理消息时的空态标题（有会话、协议没有这条事实）。
 	subagentNoSession = "未打开子代理会话"
+	// subagentNoOpenSession / subagentNoSession 的两种原因：没打开会话与协议缺
+	// 子代理会话流是两件事，空态里分开写。
+	subagentNoOpenSession = "还没有打开会话"
 )
 
 // iconCircleStop 是「结束分支」的圆形停止图标（CircleStop）。
@@ -76,12 +79,17 @@ func (a *App) subagentPanel(c *gui.Context) {
 				a.subagentRetryEntry(c)
 			})
 		case live && len(lines) == 0:
-			// 没有事实：空态 + 原因，不转圈。
+			// 没有事实：空态 + 原因，不转圈。原因按两种情形分开写：
+			// 没打开会话（先要有会话）与有会话但协议没有子代理会话流。
+			title, note := subagentNoSession, noteSubagentFacts
+			if a.selectedSession == "" {
+				title, note = subagentNoOpenSession, noteSubagentNoSession
+			}
 			gui.Column(c).Grow(1).Center().Padding(space4, panelCenterPad).
 				Gap(space2).AlignItems(gui.Center).Children(func() {
-				typeBody.style(t, gui.Text(c, subagentNoSession)).TextColor(t.TextMuted).
+				typeBody.style(t, gui.Text(c, title)).TextColor(t.TextMuted).
 					TextAlign(gui.Center)
-				typeMicro.style(t, gui.Text(c, noteSubagentFacts)).TextColor(t.TextMuted).
+				typeMicro.style(t, gui.Text(c, note)).TextColor(t.TextMuted).
 					TextAlign(gui.Center).MaxLines(4).Role(gui.RoleStatus)
 			})
 		default:

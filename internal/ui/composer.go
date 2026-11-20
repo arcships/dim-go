@@ -699,19 +699,19 @@ func demoSkills() []ExtItemSnapshot {
 func (a *App) switchMode(mode string) string {
 	a.mode = mode
 	if mode != "Goal" {
-		return "已切到 " + mode + " 模式（本版模式位只改界面标记，尚未影响发送）"
+		return "已切到 " + mode + " 模式（这个模式目前只改变界面标记，尚未影响发送）"
 	}
 	if a.wired() {
 		if _, hasSession := a.liveSession(); !hasSession {
 			// 目标归会话：没有会话时写不进去，编辑框不打开（入口本身也已置灰）。
-			return "已切到 Goal 模式（本版模式位只改界面标记，尚未影响发送；没有打开的会话，暂时设定不了目标）"
+			return "已切到 Goal 模式（目前只改变界面标记，尚未影响发送；没有打开的会话，暂时设定不了目标）"
 		}
 	}
 	if _, _, exists := a.goalState(); !exists {
 		a.goalDraft, a.goalEditing = "", true
-		return "已切到 Goal 模式，并在目标行打开了目标编辑框（模式位本身只改界面标记，尚未影响发送）"
+		return "已切到 Goal 模式，并在目标行打开了目标编辑框（模式本身只改变界面标记，尚未影响发送）"
 	}
-	return "已切到 Goal 模式（本版模式位只改界面标记，尚未影响发送）"
+	return "已切到 Goal 模式（这个模式目前只改变界面标记，尚未影响发送）"
 }
 
 // modeSelector 是 Agent / Goal 模式选择器。
@@ -829,7 +829,7 @@ func (a *App) workspaceSelector(c *gui.Context) {
 		})
 		options := a.workspaceOptions()
 		if len(options) == 0 {
-			typeMicro.style(t, gui.Text(c, "服务端没有授权的工作区")).TextColor(t.TextMuted).
+			typeMicro.style(t, gui.Text(c, "还没有可用的工作区")).TextColor(t.TextMuted).
 				Padding(space1, space2)
 		}
 		for _, option := range options {

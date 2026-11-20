@@ -688,16 +688,16 @@ var mdIconAlertCircle = mustSVG(`<path d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 
 // 本屏文案：逐字取参考产品的 zh-CN（i18n:modalitySettings.*、
 // i18n:modalityTask.*、i18n:modalityRealtime.*）。
 //
-// 能力缺失的提示保留英文原文，前面加中文说明（「服务端未提供该能力：」），
-// 让人先看懂是什么，再能对上服务端的原话。
+// 能力缺失时只说「当前版本不支持」，不把协议方法名与英文原文摊到屏上；原话只
+// 留在注释与日志里，供代码与排查引用。
 const (
 	mdCopyTitle       = "多模态"
-	mdCopyUnavailable = "服务端未提供该能力：The App Server does not expose modality.capabilities."
+	mdCopyUnavailable = "当前版本不支持多模态任务"
 
 	// 连着 Source 时的三段文案（按事实分支，不写死"未提供"）。
-	mdCopyCapabilityUnread = "还没有读到模态能力（读数未到）"
-	mdCopyUnsupported      = "服务端声明模态能力不可用："
-	mdCopyTasksUnread      = "还没有读到模态任务清单（读数未到）"
+	mdCopyCapabilityUnread = "暂时读不到模态能力"
+	mdCopyUnsupported      = "当前版本不支持模态任务："
+	mdCopyTasksUnread      = "暂时读不到模态任务清单"
 	mdCopyTasksFailed      = "读取模态任务失败："
 
 	mdCopyGroupImage    = "图像"

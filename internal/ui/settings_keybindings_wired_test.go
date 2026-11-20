@@ -150,7 +150,7 @@ func TestKeybindingsGlobalShortcutRejectsInvalidKey(t *testing.T) {
 		t.Fatalf("点不到「应用」：%v", err)
 	}
 	tt.Frame()
-	if !tt.HasText("键位无法识别：全局快捷键至少要有一个修饰键") {
+	if !tt.HasText("键位无法识别：快捷键至少要有一个修饰键") {
 		t.Fatalf("没有就地给出原因：%v", tt.Texts())
 	}
 	select {

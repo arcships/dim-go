@@ -537,8 +537,8 @@ func TestTaskWakeupsCapabilityMissing(t *testing.T) {
 	app := NewApp(Options{State: StateDefault, Source: src})
 	app.rightOpen, app.rightTab, app.panels.taskKind = true, tabTasks, 1
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if !tt.HasText("暂无待唤醒事项（服务端没有提供唤醒读取）") {
-		t.Fatalf("空态没有写能力缺失：%v", tt.Texts())
+	if !tt.HasText("暂无待唤醒事项（暂时读不到定时任务）") {
+		t.Fatalf("空态没有写读不到定时任务：%v", tt.Texts())
 	}
 }
 

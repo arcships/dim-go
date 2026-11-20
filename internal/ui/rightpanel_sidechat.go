@@ -22,6 +22,10 @@ const (
 	sideChatEndDetail    = "此操作会永久结束该分支并中断当前回合。分支将不再接收消息，但历史仍可在此标签页中查看。"
 	sideChatRetry        = "重试"
 	sideChatLoadFailed   = "加载失败"
+	// sideChatEndedNote / sideChatSendingNote 是输入区不可用的两种界面原因
+	// （S-11）：与「本版没有写入通道」分开写，灰着不说明就成了没有原因的灰。
+	sideChatEndedNote   = "此分支已结束，不再接收消息"
+	sideChatSendingNote = "正在发送，稍后可继续输入"
 )
 
 // sideChatPanel 是侧聊面板。
@@ -93,10 +97,19 @@ func (a *App) sideChatContent(c *gui.Context) {
 			gui.Spinner(c).Label("正在加载")
 		})
 	case a.panels.sideChatFromMessage:
-		panelEmpty(c, sideChatEmptyBefore)
+		panelEmptyNote(c, sideChatEmptyBefore, a.sideChatFactsNote())
 	default:
-		panelEmpty(c, sideChatEmptyThread)
+		panelEmptyNote(c, sideChatEmptyThread, a.sideChatFactsNote())
 	}
+}
+
+// sideChatFactsNote 是没有消息可画时的原因：连着 Source 时侧聊的分支与消息都在
+// 服务端，本端没有读取通道；-demo 的样例本来就有内容，不需要这句。
+func (a *App) sideChatFactsNote() string {
+	if a.wired() {
+		return noteSideChatFacts
+	}
+	return ""
 }
 
 // sideChatComposer 是输入区（S-11–S-14）：输入框 + 结束分支 / 停止 / 发送。
@@ -113,6 +126,7 @@ func (a *App) sideChatComposer(c *gui.Context) {
 	live := a.wired()
 	gui.Column(c).Shrink(0).Padding(space2, panelPad).Gap(space1).Children(func() {
 		// 原因写在输入区上方：禁用态旁边看得见为什么不能发，不只在 tooltip 里。
+		// 分支已结束时上方的状态条已经说明了，不再重复一行。
 		if live {
 			typeMicro.style(t, gui.Text(c, noteSideChatWrite)).TextColor(t.TextMuted).
 				Role(gui.RoleStatus)
@@ -123,8 +137,8 @@ func (a *App) sideChatComposer(c *gui.Context) {
 				Height(panelInputHeight).Radius(radius).Padding(space1, space2).
 				Background(t.Surface).Border(strokeHairline, t.Border).Grow(1).
 				Disabled(closed || sending || live)
-			if live {
-				input = input.Tooltip(noteSideChatWrite)
+			if note := a.sideChatDisabledNote(); note != "" {
+				input = input.Tooltip(note)
 			}
 			if !closed && len(a.panels.sideChatSent) > 0 {
 				end := iconButtonSpec{
@@ -151,8 +165,8 @@ func (a *App) sideChatComposer(c *gui.Context) {
 				label = "引导"
 			}
 			tip := label + " · Enter"
-			if live {
-				tip = noteSideChatWrite
+			if note := a.sideChatDisabledNote(); note != "" {
+				tip = note
 			}
 			if iconAction(c, iconButtonSpec{
 				icon: iconArrowUp, label: label, tip: tip, size: panelSendSize,
@@ -162,6 +176,20 @@ func (a *App) sideChatComposer(c *gui.Context) {
 			}
 		})
 	})
+}
+
+// sideChatDisabledNote 是输入区与发送入口不可用的原因（S-11/S-14）：分支已结束、
+// 正在发送、本版没有写入通道三种分开写。空串表示可以输入。
+func (a *App) sideChatDisabledNote() string {
+	switch {
+	case a.panels.sideChatEnded:
+		return sideChatEndedNote
+	case a.panels.sideChatSending:
+		return sideChatSendingNote
+	case a.wired():
+		return noteSideChatWrite
+	}
+	return ""
 }
 
 // sendSideChat 把草稿发出去。-demo（没有 Source）时这是样例走查的本地回声；

@@ -15,6 +15,9 @@ const (
 	taskFailed
 	// taskStopped 是「已停止」（取消 / 被信号结束）：图标是方块，文案取已停止。
 	taskStopped
+	// taskStopping 是「已发停止、还在等结束」（K-15）：既不是已完成，也不是已
+	// 停止；等结束事实到了才换状态词。
+	taskStopping
 	// taskNoStatus 是读到任务、读不到状态时的兜底（K-63 的「状态未知」）。
 	taskNoStatus
 )
@@ -117,16 +120,13 @@ type round struct {
 	// divider 是轮前的分隔文案（压缩/截断）；空表示没有。
 	divider string
 	// images / attachments / quotes / marks / wakeup 是用户消息里的附件与引用
-	// （TL-21–TL-25）。它们是视图样例字段：RowSnapshot 还没有这些事实，线上
-	// 一律留空（等事实），样例与测试可以直接给出条目。
+	// （TL-21–TL-25）。它们是视图样例字段：RowSnapshot 还没有这些事实（DEC-07），
+	// 线上一律留空，样例与测试可以直接给出条目；留空时这一区整块不画。
 	images      []string
 	attachments []messageAttachment
 	quotes      []messageQuote
 	marks       []messageMark
-	// factsPending 表示这条消息来自真实事实、但快照还没有附件 / 引用字段：
-	// 画一行「等事实」的占位，不画假 chip（DEC-07）。
-	factsPending bool
-	wakeup       string
+	wakeup      string
 }
 
 // messageAttachment 是用户消息里的一个附件 chip（TL-22）；missing 表示附件

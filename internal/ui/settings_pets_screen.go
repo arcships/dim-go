@@ -74,7 +74,7 @@ const (
 	petsCopyOpenDir  = "打开 Pets 文件夹"
 	petsCopyEmpty    = "尚未安装自定义 Pet。"
 	// petsCopyEmptyNote 是连接模式下自定义列表的说明：读不到清单，不写"尚未安装"。
-	petsCopyEmptyNote = "服务端没有提供自定义 Pet 清单（本版不做）"
+	petsCopyEmptyNote = "当前版本不支持自定义 Pet"
 	petsCopyLoading   = "正在加载..."
 	petsCopyRetry     = "重试"
 	petsCopySelect    = "选择"

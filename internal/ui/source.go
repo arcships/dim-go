@@ -236,6 +236,9 @@ type PreferencesSnapshot struct {
 	// Appearance 是「设置 › 外观」里会真正影响渲染的几项（界面字体与字号、代码
 	// 字体与字号、代码配色）。它也是本地偏好，不是服务端事实。
 	Appearance AppearancePreferences
+	// Keybindings 是「设置 › 快捷键」两组里改过的键位（动作 ID → Electron 写法）；
+	// 没有这一项的动作按出厂值渲染与判断。它同样是本地偏好，不是服务端事实。
+	Keybindings map[string]string
 }
 
 // AppearancePreferences 是「设置 › 外观」里会真正影响渲染的本地偏好：读它改
@@ -375,6 +378,26 @@ type PluginMarketplaceFacts interface {
 type PluginMarketplaceIntents interface {
 	SetPluginFeed(ctx context.Context, feedURL string) error
 	RefreshPluginMarketplace(ctx context.Context) error
+}
+
+// ArchivedSessionSnapshot 是一条归档会话：本端归档登记（归档时间）与服务端目录
+// 条目（标题、工作目录）合起来的一行。
+type ArchivedSessionSnapshot struct {
+	ID string
+	// Title 是服务端给的标题；空表示标题还没到，用 Preview。
+	Title   string
+	Preview string
+	// Workspace 是服务端给的工作目录，左栏按它分组；空表示服务端没有给。
+	Workspace string
+	// ArchivedAt 是本端登记归档的时间。
+	ArchivedAt time.Time
+}
+
+// ArchivedFacts 是可选的归档会话读数。归档只是本端隐藏登记（App Server 没有
+// 归档事实），但条目本身来自服务端目录：没有实现它的 Source（样例、单屏截图）
+// 不画归档行，只写空态。
+type ArchivedFacts interface {
+	ArchivedSessions() []ArchivedSessionSnapshot
 }
 
 // Connection 是连接阶段与原因（断线要能看见原因，不是白屏）。
@@ -971,10 +994,18 @@ type WakeupSnapshot struct {
 // ——提示符通常不带换行）；连着 Source 但还没有启动终端时 Active 为假。视图只
 // 读这份快照，不自己读 pty。
 type TerminalSnapshot struct {
-	Active   bool
-	Running  bool
-	Exited   bool
+	Active  bool
+	Running bool
+	// Exited 表示进程已经结束；结束原因由下面三项给出。
+	Exited bool
+	// ExitKnown 表示读到了退出状态；为假时界面只说「进程已退出」，
+	// 不写一个假的「代码 0」。
+	ExitKnown bool
+	// ExitCode 是退出码，只在 ExitKnown 且未被信号终止时有意义。
 	ExitCode int
+	// Signaled / Signal 表示进程被信号终止（此时没有数字退出码）。
+	Signaled bool
+	Signal   int
 	Lines    []string
 }
 

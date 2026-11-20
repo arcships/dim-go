@@ -37,6 +37,8 @@ func taskStateText(st taskState) string {
 		return "失败"
 	case taskStopped:
 		return "已停止"
+	case taskStopping:
+		return "正在停止"
 	case taskNoStatus:
 		return "状态未知"
 	}
@@ -59,6 +61,9 @@ func taskStateIconIn(st taskState, th *gui.Theme) (*gui.SVG, gui.Color) {
 		return iconXMark, danger
 	case taskStopped:
 		return iconStop, muted
+	case taskStopping:
+		// 正在停止：圈还在转（行尾另有一个禁用的旋转圈），颜色取次要色。
+		return iconSidebarSpinner, muted
 	case taskNoStatus:
 		return iconClock, muted
 	}
@@ -72,7 +77,7 @@ func taskStateLine(item task) string {
 	if item.kind == taskWakeup {
 		return state
 	}
-	if item.state == taskRunning {
+	if item.state == taskRunning || item.state == taskStopping {
 		if elapsed := taskElapsed(item); elapsed != "" {
 			return state + " · " + elapsed
 		}
@@ -251,7 +256,7 @@ func taskRowTime(item task) string {
 func (a *App) taskStateGlyph(c *gui.Context, item task, th *gui.Theme) {
 	icon, color := taskStateIconIn(item.state, th)
 	mark := "状态：" + taskStateText(item.state)
-	if item.state == taskRunning {
+	if item.state == taskRunning || item.state == taskStopping {
 		// 运行中的圈持续旋转；盒子的读屏名与静态图标同一口径
 		// （「图标：task」，见 U2-elements 的后台任务行）。
 		spin := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0).

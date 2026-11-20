@@ -17,7 +17,7 @@ const (
 	// inlineEditMinHeight 是编辑器的正文最小高（参考 ≈240×56）。
 	inlineEditMinHeight = 56
 	// noteInlineEdit 是连线模式下保存失败的原因。
-	noteInlineEdit = "服务端没有提供消息编辑（本版不做）"
+	noteInlineEdit = "当前版本不支持编辑消息"
 	// bubbleCollapsedLines 是气泡折叠时显示的行数（TL-31：固定行数，参考 8）。
 	bubbleCollapsedLines = 8
 	// bubbleLineRunes 是按字符估算一行的宽度（中文正文约 40 字一行）。

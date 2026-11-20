@@ -21,13 +21,24 @@ import (
 //	通用：打开设置 ⌘, / 新建线程 ⌘N / 切换侧边栏 ⌘B / 搜索对话 ⌘G
 //	对话：聚焦输入框 ⌘L / 切换更改面板 ⌘⇧B / 切换终端 ⌘J / 提交更改 ⌘⇧↵
 //
-// 后两组的 8 行取自截图 runtime/settings/快捷键-top.png，仍然只改界面状态
-// （keybindingsScreen）：保存这些绑定需要宿主按键捕获与设置领域的写路径。
+// # 接了什么
 //
-// 分组「全局」是接线的：开关、键位与注册结果都来自 Source.GlobalShortcut，
-// 改动走 Intents.SetGlobalShortcut（落本地偏好并重新注册系统级快捷键）。
-// 录制按键要宿主捕获键盘，本批用文本输入改键（输入 ⌘⇧Space 或 Cmd+Shift+Space
-// 都认）。
+//   - 分组「全局」接的是本端偏好与系统级注册：开关、键位与注册结果都来自
+//     Source.GlobalShortcut，改动走 Intents.SetGlobalShortcut（落本地偏好并重新
+//     注册系统级快捷键）。
+//   - 后两组的 8 行（S-keybindings-05 … 22）接的是本地偏好
+//     Preferences.Keybindings：改键、重置都落盘，重启后按改过的键渲染；按键判定
+//     在 App.keybindingHit（keymap.go），主界面上真的按得动。
+//   - 「提交更改」（submit-changes）本版没有落点：那一行保留形态、按钮置灰并写
+//     原因（S-keybindings-22 的形态在，动作不在），不改键。
+//
+// # 与本文件原先的差异
+//
+// 原先后两组只改屏内状态，重启就丢；现在按本地偏好落盘。原先点击键帽进入
+// 「录音中…」而不会真的捕获按键——那是录制态的样子货。本版改为**文本改键**：
+// 点键帽展开一个输入框，输入 ⌘⇧B 或 Cmd+Shift+B 都认，规范化失败就地写原因并
+// 保留原值，所以不放「录音中…」这句（没有任何东西在录音）。改键保存失败时回滚
+// 到保存前的值，原因写在行下（R-KEY-203/205 的回滚口径）。
 
 // keybindingStyle 是键帽文字：11、半粗（design-baseline §2「键帽 / 计数」）。
 var keybindingStyle = fontStep{size: 11, line: 18, weight: 600}
@@ -39,25 +50,29 @@ var (
 	keybindingGroupStyle = fontStep{size: 13, line: 19.5, weight: 600}
 )
 
-// keybindingDef 是一条快捷键：分组、名称、默认绑定。
+// keybindingDef 是一条快捷键的行：分组、动作 ID、名称。键位不在这里——改过的
+// 取本地偏好，没改过的取出厂值（internal/shortcut 的 Actions）。
 type keybindingDef struct {
-	id      string
-	scope   string
-	name    string
-	binding string
+	id    string
+	scope string
+	name  string
 }
 
 // keybindingDefs 是两组 8 条，顺序与截图一致。
 var keybindingDefs = []keybindingDef{
-	{"open-settings", "app", "打开设置", "⌘,"},
-	{"new-thread", "app", "新建线程", "⌘N"},
-	{"toggle-sidebar", "app", "切换侧边栏", "⌘B"},
-	{"search-chat", "app", "搜索对话", "⌘G"},
-	{"focus-composer", "chat", "聚焦输入框", "⌘L"},
-	{"toggle-changes", "chat", "切换更改面板", "⌘⇧B"},
-	{"toggle-terminal", "chat", "切换终端", "⌘J"},
-	{"submit-changes", "chat", "提交更改", "⌘⇧↵"},
+	{"open-settings", "app", "打开设置"},
+	{"new-thread", "app", "新建线程"},
+	{"toggle-sidebar", "app", "切换侧边栏"},
+	{"search-chat", "app", "搜索对话"},
+	{"focus-composer", "chat", "聚焦输入框"},
+	{"toggle-changes", "chat", "切换更改面板"},
+	{"toggle-terminal", "chat", "切换终端"},
+	{"submit-changes", "chat", "提交更改"},
 }
+
+// keybindingNoAction 是「这一行的动作本版没有落点」的用户可见原因：保留入口、
+// 置灰、写清为什么。不出现协议方法名与「本版不做」这类内部口径。
+const keybindingNoAction = "当前版本不支持这个快捷键"
 
 // keybindingScopes 是两个分组标题，顺序与截图一致。
 var keybindingScopes = []struct {
@@ -68,16 +83,25 @@ var keybindingScopes = []struct {
 	{"chat", "对话"},
 }
 
-// keybindingsState 是本屏可丢的界面状态：搜索词、录音中的行、改过的键位。
+// keybindingErrors 是行内错误的几种写法：认不出的键位、与别的行冲突、落盘失败。
+const (
+	keybindingErrInvalid  = "这个键位不可用：至少需要一个修饰键与一个主键"
+	keybindingErrConflict = "与「%s」冲突，仍然保存了这个键位"
+	keybindingErrSave     = "这个键位没有保存成功"
+)
+
+// keybindingsState 是本屏可丢的界面状态：搜索词、正在改键的行与其草稿、行内错误。
+// 键位本身不在这里（那是本地偏好，见 App.keybindings）。
 type keybindingsState struct {
-	query     string
-	recording string
-	bindings  map[string]string
+	query string
+	// editing 是正在改键的动作 ID；空表示没有在改。
+	editing string
+	draft   string
+	// errors 是行内错误（动作 ID → 一句原因），落盘成功后清掉。
+	errors map[string]string
 }
 
-var keybindingsScreen = keybindingsState{
-	bindings: map[string]string{},
-}
+var keybindingsScreen = keybindingsState{}
 
 // 全局唤起这一行的名称、说明与输入宽（分组「全局」）。
 const (
@@ -106,7 +130,7 @@ func (a *App) renderKeybindings(c *gui.Context) {
 				screenTitle(c, "快捷键")
 				keybindingSearch(c)
 				a.keybindingGlobalGroup(c)
-				keybindingGroups(c)
+				a.keybindingGroups(c)
 			})
 		})
 	})
@@ -266,16 +290,15 @@ func keybindingSearch(c *gui.Context) {
 
 // keybindingGroups 是两组：标题 + 卡片，命中的行保留，整组无命中就不渲染。
 // S-keybindings-04 / S-keybindings-14 分组标题「通用」「对话」
-func keybindingGroups(c *gui.Context) {
+func (a *App) keybindingGroups(c *gui.Context) {
 	for _, scope := range keybindingScopes {
-		scope := scope
 		rows := keybindingRows(scope.id)
 		if len(rows) == 0 {
 			continue
 		}
 		gui.Column(c).Shrink(0).Gap(screenSpace25).Children(func() {
 			keybindingGroupTitle(c, scope.title)
-			keybindingCard(c, rows)
+			a.keybindingCard(c, rows)
 		})
 	}
 }
@@ -304,70 +327,80 @@ func keybindingGroupTitle(c *gui.Context, text string) {
 }
 
 // keybindingCard 是一组的卡：每行 60 高，行间 1px 细线。
-func keybindingCard(c *gui.Context, rows []keybindingDef) {
+func (a *App) keybindingCard(c *gui.Context, rows []keybindingDef) {
 	screenCard(c, func() {
 		for i, def := range rows {
 			if i > 0 {
 				screenRule(c)
 			}
-			keybindingRow(c, def)
+			a.keybindingRow(c, def)
 		}
 	})
 }
 
-// keybindingRow 是一行：名称 + 键位按钮 + 条件出现的「重置」。
-func keybindingRow(c *gui.Context, def keybindingDef) {
+// keybindingRow 是一行：名称 + 键位按钮（或改键输入框）+ 条件出现的「重置」，
+// 行下是行内错误。
+func (a *App) keybindingRow(c *gui.Context, def keybindingDef) {
 	t := c.Theme()
-	gui.Row(c).Shrink(0).Height(screenKeyRowH).AlignItems(gui.Center).
-		Role(gui.RoleListItem).Label(def.name).
-		Padding(0, screenSpace5).Gap(screenSpace25).Children(func() {
-		// S-keybindings-05/08/10/12/15/17/19/21 快捷键名称（打开设置、新建线程、切换侧边栏、搜索对话、聚焦输入框、切换更改面板、切换终端、提交更改）
-		keybindingNameStyle.style(t, gui.Text(c, def.name)).TextColor(t.Text).SingleLine()
-		gui.Spacer(c)
-		keybindingButton(c, def)
-		if keybindingBinding(def) != def.binding {
-			// S-keybindings-07 重置
-			if screenButton(c, "重置", "重置 "+def.name, "", false, rowRegular) {
-				delete(keybindingsScreen.bindings, def.id)
-				if keybindingsScreen.recording == def.id {
-					keybindingsScreen.recording = ""
+	gui.Column(c).Shrink(0).Children(func() {
+		gui.Row(c).Shrink(0).Height(screenKeyRowH).AlignItems(gui.Center).
+			Role(gui.RoleListItem).Label(def.name).
+			Padding(0, screenSpace5).Gap(screenSpace25).Children(func() {
+			// S-keybindings-05/08/10/12/15/17/19/21 快捷键名称（打开设置、新建线程、切换侧边栏、搜索对话、聚焦输入框、切换更改面板、切换终端、提交更改）
+			keybindingNameStyle.style(t, gui.Text(c, def.name)).TextColor(t.Text).SingleLine()
+			gui.Spacer(c)
+			if keybindingsScreen.editing == def.id {
+				a.keybindingEditor(c, def)
+			} else {
+				a.keybindingButton(c, def)
+			}
+			if !a.keybindingIsDefault(def.id) && keybindingsScreen.editing != def.id {
+				// S-keybindings-07 重置
+				if screenButton(c, "重置", "重置 "+def.name, "", false, rowRegular) {
+					a.resetKeybinding(def)
 				}
 			}
+		})
+		if err := keybindingsScreen.errors[def.id]; err != "" {
+			// S-keybindings-24/26 行内错误（无效组合 / 保存失败）
+			rowIndent(c, func() {
+				screenHintStyle.style(t, gui.Text(c, err)).TextColor(t.Danger).
+					Label(def.name + "：" + err)
+			})
 		}
 	})
 }
 
-// keybindingBinding 返回当前绑定：改过的取界面状态，否则取默认。
-func keybindingBinding(def keybindingDef) string {
-	if binding, ok := keybindingsScreen.bindings[def.id]; ok {
-		return binding
-	}
-	return def.binding
+// rowIndent 让行内错误与行名左缘对齐（缩进一个行内边距）。
+func rowIndent(c *gui.Context, body func()) {
+	gui.Row(c).Shrink(0).Padding(0, screenSpace5).Children(body)
 }
 
+// keybindingDefault 是某一行没改过时的键位（内部写法）。
+func keybindingDefault(id string) string { return shortcut.DefaultBinding(id) }
+
+// keybindingValue 是这一行当前的键位（内部写法）：改过的取本地偏好，否则出厂值。
+func (a *App) keybindingValue(id string) string { return a.keybindingAccel(id) }
+
+// keybindingIsDefault 判这一行有没有改过：与出厂值的规范写法不同即改过。
+func (a *App) keybindingIsDefault(id string) bool {
+	return shortcut.Binding(a.keybindings, id) == keybindingDefault(id)
+}
+
+// keybindingHasAction 判这一行的动作本版有没有落点：没有落点的行置灰并写原因。
+func keybindingHasAction(id string) bool { return id != "submit-changes" }
+
+// keybindingButton 是键位按钮：显示当前键位。没有落点的动作置灰（原因在 tooltip
+// 与读屏名里），点击不进入改键。
 // S-keybindings-25 冲突键位（按钮描边转主色）
-// keybindingButton 是键位按钮：描边小按钮、高 32、最小宽 45；录音态显示
-// 「录音中…」，再次点击退出并保留原值。
-func keybindingButton(c *gui.Context, def keybindingDef) {
+func (a *App) keybindingButton(c *gui.Context, def keybindingDef) {
 	t := c.Theme()
-	recording := keybindingsScreen.recording == def.id
-	text := keybindingBinding(def)
-	if recording {
-		// S-keybindings-23 录音中…
-		text = "录音中…"
-	}
-	minWidth := float32(0)
-	if !recording {
-		minWidth = screenKeyMinW
-	}
-	// S-keybindings-06/09/11/13/16/18/20/22 键位按钮（⌘, / ⌘N / ⌘B / ⌘G / ⌘L / ⌘⇧B / ⌘J / ⌘⇧↵）
-	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).MinWidth(minWidth).
+	act := keybindingHasAction(def.id)
+	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).MinWidth(screenKeyMinW).
 		Padding(controlPadV, screenSpace25).Radius(screenRadiusCtl).
 		Background(t.Background).Label("快捷键：" + def.name)
-	if recording {
-		b = b.Background(t.Surface).Draw(func(p *gui.Painter, r gui.Rect) {
-			p.Stroke(r, t.Accent, screenRadiusCtl, screenStroke)
-		})
+	if !act {
+		b = b.Disabled(true).Opacity(noteDisabledAlpha).Tooltip(keybindingNoAction)
 	} else {
 		b = b.Draw(func(p *gui.Painter, r gui.Rect) {
 			p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
@@ -378,15 +411,135 @@ func keybindingButton(c *gui.Context, def keybindingDef) {
 		case b.Hovered():
 			b = b.Background(t.SurfaceHover)
 		}
-	}
-	if b.Clicked() {
-		if recording {
-			keybindingsScreen.recording = ""
-		} else {
-			keybindingsScreen.recording = def.id
+		if b.Clicked() {
+			keybindingsScreen.editing = def.id
+			keybindingsScreen.draft = shortcut.Label(a.keybindingValue(def.id))
 		}
 	}
 	b.Children(func() {
-		keybindingStyle.style(t, gui.Text(c, text)).TextColor(t.Text).SingleLine()
+		ink := t.Text
+		if !act {
+			ink = t.TextMuted
+		}
+		// S-keybindings-06/09/11/13/16/18/20/22 键位按钮（⌘, / ⌘N / ⌘B / ⌘G / ⌘L / ⌘⇧B / ⌘J / ⌘⇧↵）
+		keybindingStyle.style(t, gui.Text(c, shortcut.Label(a.keybindingValue(def.id)))).
+			TextColor(ink).SingleLine()
 	})
+}
+
+// keybindingEditor 是改键输入态：文本输入 +「应用」「取消」；回车等同应用。
+func (a *App) keybindingEditor(c *gui.Context, def keybindingDef) {
+	input := screenInput(c, &keybindingsScreen.draft, "例如 ⌘⇧B", def.name+"快捷键").
+		Width(globalShortcutInputW)
+	input.OnSubmit(func() { a.commitKeybinding(def) })
+	if screenButton(c, "应用", "应用"+def.name+"快捷键", "", false, rowRegular) {
+		a.commitKeybinding(def)
+	}
+	if screenButton(c, "取消", "取消修改"+def.name+"快捷键", "", false, rowRegular) {
+		keybindingsScreen.editing = ""
+		delete(keybindingsScreen.errors, def.id)
+	}
+}
+
+// commitKeybinding 校验并保存一次改键：
+//
+//   - 认不出的键位不保存，原值保留，行下写原因；
+//   - 与别的行撞键不阻断保存（按钮保留新值），行下写冲突提示；
+//   - 落盘失败回滚到保存前的值，行下写失败原因。
+func (a *App) commitKeybinding(def keybindingDef) {
+	errs := keybindingsScreen.errs()
+	normalized, err := shortcut.Normalize(keybindingsScreen.draft)
+	if err != nil {
+		keybindingsScreen.editing = ""
+		errs[def.id] = keybindingErrInvalid
+		return
+	}
+	keybindingsScreen.editing = ""
+	if conflict := a.keybindingConflict(def.id, normalized); conflict != "" {
+		errs[def.id] = strings.Replace(keybindingErrConflict, "%s", conflict, 1)
+	} else {
+		delete(errs, def.id)
+	}
+	a.setKeybinding(def.id, normalized)
+}
+
+// keybindingConflict 返回与新键位撞车的另一行名称；没有撞车时为空。
+//
+// 比对按「实际按下的键」算，不按字面：⌘B 与 CmdOrCtrl+B 在 macOS 上是同一个键，
+// 字面不同也要算冲突（parseAccelerator 把两者换成同一组修饰键与主键）。
+func (a *App) keybindingConflict(id, accelerator string) string {
+	mods, key, ok := parseAccelerator(accelerator)
+	if !ok {
+		return ""
+	}
+	for _, other := range keybindingDefs {
+		if other.id == id {
+			continue
+		}
+		otherMods, otherKey, otherOK := parseAccelerator(a.keybindingValue(other.id))
+		if !otherOK {
+			continue
+		}
+		if otherMods == mods && otherKey == key {
+			return other.name
+		}
+	}
+	return ""
+}
+
+// resetKeybinding 把一行恢复出厂值并落盘。
+func (a *App) resetKeybinding(def keybindingDef) {
+	delete(keybindingsScreen.errors, def.id)
+	if keybindingsScreen.editing == def.id {
+		keybindingsScreen.editing = ""
+	}
+	a.setKeybinding(def.id, keybindingDefault(def.id))
+}
+
+// setKeybinding 写本地镜像并落盘：与出厂值相同就是删掉这一项（重置）。没有
+// Intents 时（-demo）只改本地镜像；落盘失败时回滚并把原因挂到行内错误。
+func (a *App) setKeybinding(id, accelerator string) {
+	previous := copyBindingMap(a.keybindings)
+	next := make(map[string]string, len(a.keybindings)+1)
+	for other, binding := range a.keybindings {
+		next[other] = binding
+	}
+	if accelerator == "" || accelerator == keybindingDefault(id) {
+		delete(next, id)
+	} else {
+		next[id] = accelerator
+	}
+	if len(next) == 0 {
+		next = nil
+	}
+	a.keybindings = next
+	a.persistKeybindings(previous, id)
+}
+
+// persistKeybindings 落盘一次快捷键偏好；失败回滚镜像并把原因交给行内错误。
+func (a *App) persistKeybindings(previous map[string]string, id string) {
+	if a.intents == nil {
+		return
+	}
+	prefs := a.preferenceSnapshot()
+	if samePreferences(prefs, a.lastPrefs) {
+		return
+	}
+	a.lastPrefs = prefs
+	a.dispatchQuiet("保存快捷键", func(ctx context.Context) error {
+		return a.intents.SetPreferences(ctx, prefs)
+	}, nil, func(string) {
+		a.keybindings = previous
+		a.lastPrefs.Keybindings = copyBindingMap(previous)
+		errs := keybindingsScreen.errs()
+		errs[id] = keybindingErrSave
+	})
+}
+
+// errs 取行内错误表（按需创建）。
+func (s *keybindingsState) errs() map[string]string {
+	if s.errors == nil {
+		s.errors = map[string]string{}
+	}
+	return s.errors
 }

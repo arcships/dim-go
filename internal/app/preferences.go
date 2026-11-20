@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/arcships/dimagent-mygo/internal/shortcut"
 )
 
 // Preferences 是客户端自己的本地偏好。它不属于 App Server 的事实，单独落盘在
@@ -61,6 +63,10 @@ type Preferences struct {
 	// Appearance 是设置 › 外观里会真正影响渲染的几项本地偏好：界面字体与字号、
 	// 代码字体与字号、代码配色。它不是服务端事实。
 	Appearance AppearancePreferences `json:"appearance"`
+	// Keybindings 是设置 › 快捷键里「通用」「对话」两组改过的键位（动作 ID →
+	// Electron 写法）。只存与出厂值不同的项：删掉一项就是重置。它不是服务端事实，
+	// 也不影响全局唤起那一条（那条单独存）。
+	Keybindings map[string]string `json:"keybindings,omitempty"`
 }
 
 // AppearancePreferences 是「设置 › 外观」里会真正影响渲染的本地偏好。
@@ -194,6 +200,7 @@ func normalizePreferences(prefs Preferences) Preferences {
 	}
 	prefs.View = normalizeViewPreferences(prefs.View)
 	prefs.Appearance = normalizeAppearancePreferences(prefs.Appearance)
+	prefs.Keybindings = shortcut.NormalizeBindings(prefs.Keybindings)
 	return prefs
 }
 
@@ -328,6 +335,12 @@ func (a *App) Preferences() Preferences {
 	}
 	prefs.View.RightTabs = append([]int(nil), a.prefs.View.RightTabs...)
 	prefs.View.ChangesGroupsClosed = append([]string(nil), a.prefs.View.ChangesGroupsClosed...)
+	if a.prefs.Keybindings != nil {
+		prefs.Keybindings = make(map[string]string, len(a.prefs.Keybindings))
+		for id, binding := range a.prefs.Keybindings {
+			prefs.Keybindings[id] = binding
+		}
+	}
 	return prefs
 }
 

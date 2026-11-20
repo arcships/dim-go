@@ -273,7 +273,7 @@ func gitWorktreeGroup(c *gui.Context, live bool) {
 				// 禁用入口不会走到这里；保留分支只为了让点击语义与其余入口一致。
 			}
 		})
-		gitHint(c, "手动输入路径（系统目录选择器未接入）")
+		gitHint(c, "手动输入路径（当前版本没有目录选择器）")
 	})
 }
 

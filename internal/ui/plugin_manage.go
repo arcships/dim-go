@@ -57,7 +57,7 @@ const (
 	pluginMarketRetry     = "重试"
 	pluginMarketRefresh   = "刷新"
 	pluginMarketInstall   = "安装"
-	pluginMarketNoInstall = "服务端没有提供市场安装来源（本版不做）"
+	pluginMarketNoInstall = "当前版本不支持从市场安装"
 
 	pluginInstalledFmt = "已安装 %s"
 	pluginRemovedFmt   = "已移除 %s"
@@ -623,7 +623,7 @@ func pluginMarketWriteNote(canAct bool) string {
 	if canAct {
 		return ""
 	}
-	return "本版没有插件市场通道（不可用）"
+	return "当前版本不支持安装插件"
 }
 
 // savePluginFeed 保存插件源地址并触发一次拉取。

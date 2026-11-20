@@ -243,8 +243,8 @@ func TestLiveAssistantContextMenu(t *testing.T) {
 	}
 }
 
-// 工具详情三段在事实时间线上同样成立：失败原因没有单独进快照时给出占位，
-// 不把输出冒充原因。
+// 工具详情在事实时间线上只有输入 / 输出 / 失败原因三段里有内容的那几段：失败
+// 原因没有进快照时整段不画，也不在屏上写内部说明，更不把输出冒充原因。
 func TestLiveToolDetailShowsFailureSection(t *testing.T) {
 	app := NewApp(Options{State: StateDefault})
 	session := liveFactSession()
@@ -267,19 +267,16 @@ func TestLiveToolDetailShowsFailureSection(t *testing.T) {
 	if _, ok := tt.Find("工具详情：输出"); !ok {
 		t.Fatalf("没有输出段：%v", tt.Texts())
 	}
-	if _, ok := tt.Find("工具详情：失败原因"); !ok {
-		t.Fatalf("没有失败原因段：%v", tt.Texts())
-	}
-	if !tt.HasText("失败原因还没有单独进快照（等事实）") {
-		t.Fatalf("失败原因段没有写明等事实：%v", tt.Texts())
+	if _, ok := tt.Find("工具详情：失败原因"); ok {
+		t.Fatalf("没有原因原文却画了失败原因段：%v", tt.Texts())
 	}
 	if !tt.HasText("权限不足，命令没有执行") {
 		t.Fatalf("输出原文没有上屏：%v", tt.Texts())
 	}
 }
 
-// 真实消息的附件与引用字段还没进 RowSnapshot（DEC-07）：画一行「等事实」的
-// 占位，不画假 chip。
+// 真实消息的附件与引用字段还没进 RowSnapshot（DEC-07）：没有内容时这一区整块
+// 不画，屏上不留内部说明。
 func TestUserMessageAttachmentPlaceholder(t *testing.T) {
 	app := NewApp(Options{State: StateDefault})
 	app.source = &fakeSource{
@@ -290,13 +287,15 @@ func TestUserMessageAttachmentPlaceholder(t *testing.T) {
 	}
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
 
-	if _, ok := tt.Find("附件与引用占位"); !ok {
-		t.Fatalf("真实消息没有附件占位：%v", tt.Texts())
+	if _, ok := tt.Find("附件与引用占位"); ok {
+		t.Fatalf("真实消息画了附件占位：%v", tt.Texts())
 	}
-	if !tt.HasText(noteAttachmentFacts) {
-		t.Fatalf("占位没有写明等事实：%v", tt.Texts())
+	for _, word := range []string{"等事实", "进快照", "快照", "附件与引用"} {
+		if tt.HasText(word) {
+			t.Fatalf("屏上出现了内部说明 %q：%v", word, tt.Texts())
+		}
 	}
-	// 产物块来自事实，但「打开」入口没有协议通道：置灰并写原因（DEC-06）。
+	// 产物块来自事实，但「打开」入口没有通道：置灰并写用户能读的原因（DEC-06）。
 	if err := tt.Click("1 个产物"); err != nil {
 		t.Fatalf("点不到产物块：%v", err)
 	}

@@ -15,13 +15,18 @@ import (
 //	页面标题 17.5/600、行标题 13、元信息 11、空态主文 15、卡片圆角 8、
 //	行高 56、搜索框与筛选高 32、描边按钮高 28、空态虚线框 220 高。
 //
-// 当前可见分支是无归档会话（空态）。App Server 没有归档事实，Source 也没有
-// 归档清单：本屏只保留**可丢的界面状态**（archivedScreen，含一个空的会话表）。
-// 事实接线后把会话填进 threads 即可，渲染函数不必改。
+// # 接了什么
 //
-// 已接的事实写入口只有一个：Intents.ArchiveSession（取消归档 = 恢复）。本屏
-// 的恢复与删除按钮拿不到 Intents（渲染函数只收 Context），因此只改屏内状态，
-// 不冒充已经写回服务端（见 D14「未接动作」）。
+//   - 列表读事实：连着 Source 且它实现 ArchivedFacts 时，行来自
+//     ArchivedSessions()——本端归档登记（归档时间）+ 服务端目录条目（标题、
+//     首条预览、工作目录）。样例与单屏截图没有这份读数，空白态。
+//   - 恢复（S-archived-13）：Intents.ArchiveSession(id, false)，即取消本端归档；
+//     成功后这一行从事实里消失，不留在屏上。
+//   - 删除（S-archived-14）与两种批量删除（S-archived-04、S-archived-11）：
+//     Intents.DeleteSession，一条一条发；失败把原因写在页首错误行，成功的行由
+//     事实驱动消失。
+//   - App Server 没有归档事实：归档=本端登记（catalog 的隐藏列表）。所以「全部
+//     删除」同时意味着把这些会话从服务端删掉，对话框的「不可撤销」是字面意思。
 //
 // # 未实现分支
 //
@@ -51,6 +56,8 @@ type archivedState struct {
 	deleteAllOpen     bool
 	deleteProjectName string
 	deleteThreadID    string
+	// opErr 是本屏动作（恢复 / 删除）失败的原因；空表示没有失败。它不是事实。
+	opErr string
 }
 
 // archivedScreen 的首屏取值与参考产品运行时一致：没有归档会话。
@@ -132,20 +139,69 @@ const (
 	arcCopyGroupLabel     = "会话"
 )
 
+// archivedView 是本帧要画的归档行：连着 Source 时来自事实，样例模式取屏内表。
+// 它每帧重算一次，不跨帧缓存（事实变了下一帧就跟上）。
+var archivedView struct {
+	threads []archivedThread
+	wired   bool
+}
+
 // renderArchived 是设置 › 归档会话这一屏（设置壳的一个分节）。
-func renderArchived(c *gui.Context) {
+func renderArchived(c *gui.Context, a *App) {
 	t := c.Theme()
+	archivedView.wired = a != nil && a.wired()
+	archivedView.threads = arcThreads(a)
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Gap(arcGroupGap).Children(func() {
 				arcHeader(c, t)
+				if archivedScreen.opErr != "" {
+					arcNoteStyle.style(t, gui.Text(c, archivedScreen.opErr)).
+						TextColor(t.Danger).Role(gui.RoleAlert).Label(archivedScreen.opErr)
+				}
 				arcBody(c, t)
 			})
 		})
 	})
-	arcDeleteAllDialog(c, t)
-	arcDeleteProjectDialog(c, t)
-	arcDeleteThreadDialog(c, t)
+	arcDeleteAllDialog(c, t, a)
+	arcDeleteProjectDialog(c, t, a)
+	arcDeleteThreadDialog(c, t, a)
+}
+
+// arcThreads 取这一帧的归档行：连着 Source 且它提供归档读数时读事实，否则取
+// 屏内表（样例模式只有空表）。
+func arcThreads(a *App) []archivedThread {
+	if a == nil || !a.wired() {
+		return archivedScreen.threads
+	}
+	facts, ok := a.source.(ArchivedFacts)
+	if !ok {
+		return nil
+	}
+	sessions := facts.ArchivedSessions()
+	out := make([]archivedThread, 0, len(sessions))
+	for _, session := range sessions {
+		title := strings.TrimSpace(session.Title)
+		if title == "" {
+			title = strings.TrimSpace(session.Preview)
+		}
+		out = append(out, archivedThread{
+			id:       session.ID,
+			title:    title,
+			project:  session.Workspace,
+			archived: arcDateLabel(session.ArchivedAt),
+		})
+	}
+	return out
+}
+
+// arcDateLabel 把归档时间换成「月 日」：参考产品的归档行只给到日（11 月 20 日）。
+// 没有登记时间时返回空串，行上就不写那一段（不造一个日期）。
+func arcDateLabel(at time.Time) string {
+	if at.IsZero() {
+		return ""
+	}
+	return fmt.Sprintf("%d 月 %d 日", at.Month(), at.Day())
 }
 
 // arcHeader 是页首（S-archived-01/02）：标题 + 右端「全部删除」。

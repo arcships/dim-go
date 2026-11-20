@@ -114,13 +114,15 @@ type chatSearchState struct {
 	returnFocus bool
 }
 
-// chatSearchKeys 是窗口级键位：⌘G 打开（已打开时只重新聚焦输入框，不新开第二个）。
-// 确认框与命令面板在场时让给它们。
+// chatSearchKeys 是窗口级键位：键位取自「设置 › 快捷键」的 search-chat（出厂值 ⌘G），
+// 打开对话框；已打开时不重复打开。确认框与命令面板在场时让给它们。
+//
+// 键位走 App.keybindingHit：改过键之后这里跟着改，不再写死 ⌘G。
 func (a *App) chatSearchKeys(c *gui.Context) {
 	if a.screen != ScreenMain || a.palette.open || a.sessionSearch.open {
 		return
 	}
-	if !c.Shortcut(gui.Cmd, gui.KeyG) {
+	if !a.keybindingHit(c, "search-chat") {
 		return
 	}
 	a.openChatSearch()

@@ -41,8 +41,11 @@ func TestFileRowOpensPreview(t *testing.T) {
 	if src.lastPreview.Path != "notes.md" || src.lastPreview.Cwd != "/work" {
 		t.Fatalf("预览读的请求 = %+v，想要 /work 下的 notes.md", src.lastPreview)
 	}
-	if _, ok := tt.Find("打开文件"); !ok {
-		t.Fatal("标签条里没有「打开文件」")
+	if got := app.rpTabLabel(tabFilePreview); got != "notes.md" {
+		t.Fatalf("预览标签文案 = %q，想要文件名 notes.md（RP-A-12）", got)
+	}
+	if _, ok := tt.Find("打开文件"); ok {
+		t.Fatal("选了文件后标签仍写着「打开文件」")
 	}
 	if got := joinedText(tt); !strings.Contains(got, "hello\nworld\n") {
 		t.Fatalf("预览页没有显示文件内容：\n%s", got)

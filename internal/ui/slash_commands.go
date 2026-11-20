@@ -38,7 +38,7 @@ const (
 	slashMenuDescMax = 168
 	// slashBranchNoChannel 是 /branch 在连接模式下的原因：侧聊还没有事实通道，
 	// 打开它只会本地回声——不装作用。
-	slashBranchNoChannel = "侧聊通道未接通：服务端还没有侧聊的事实接口"
+	slashBranchNoChannel = "侧边对话当前不可用，先在这里继续"
 )
 
 // slashGroup 是命令的分组，顺序即渲染顺序（C37 的分组标题只有一组时也成立）。

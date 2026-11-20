@@ -136,7 +136,7 @@ func buildAnnouncements() []aboutAnnouncement {
 	return []aboutAnnouncement{{
 		id:      "build-" + buildVersion,
 		title:   "DimAgent Desktop " + buildVersion,
-		summary: "当前运行的客户端构建版本 " + buildVersion + "；公告事实尚未接入服务端。",
+		summary: "当前运行的客户端构建版本 " + buildVersion + "。",
 	}}
 }
 
@@ -147,14 +147,14 @@ var aboutScreen = aboutState{
 	announcements:       buildAnnouncements(),
 	announcementsLoaded: true,
 	capabilities: []aboutCapability{
-		{"文件历史与回退", "上游不处理文件级历史；会话回退使用 session.fork。"},
-		{"删除分支", "App Server 没有删除分支的方法。"},
-		{"重命名分支", "只有客户端本地显示名，没有跨客户端的分支元数据。"},
-		{"分支独立模型", "session.model.update 仅支持 main；子分支继承切出时的配置。"},
-		{"跨客户端归档", "App Server 没有归档事实；只能保留 Desktop 本地隐藏列表。"},
-		{"MCP 交互询问", "MCP elicitation 尚未实现；模型提问使用 Questions 的 ask_user。"},
-		{"全局用量账本", "目前只有按会话的模型/用量；聚合结果不完整且不是权威数据。"},
-		{"远程附件读取", "只有本地客户端可以读取 attachment.put 返回的路径。"},
+		{"文件历史与回退", "没有文件级历史；回退以整轮为切点。"},
+		{"删除分支", "当前版本不能删除分支。"},
+		{"重命名分支", "只有本机的显示名，不跨客户端同步。"},
+		{"分支独立模型", "只有主分支可以换模型；子分支沿用切出时的配置。"},
+		{"跨客户端归档", "归档只留在本机，不同步到其它客户端。"},
+		{"MCP 交互询问", "模型提问走问答卡，不支持 MCP 交互询问。"},
+		{"全局用量账本", "只有按会话的模型与用量，没有跨会话的汇总。"},
+		{"远程附件读取", "附件只能由本机客户端读取。"},
 	},
 	isDev: true,
 }

@@ -119,7 +119,7 @@ const (
 	mcpCopyClose       = "关闭"
 	mcpCopyDiscover    = "发现"
 	mcpCopyChooseFile  = "选择 JSON 文件"
-	mcpCopyImportHint  = "发现与预览需要服务端的 MCP 导入能力（本版不做）。"
+	mcpCopyImportHint  = "当前版本不支持发现与预览 MCP 服务器。"
 
 	mcpCopyConnectTitle = "连接自定义 MCP"
 	mcpCopyDocs         = "文档"
@@ -340,7 +340,7 @@ func mcpReadState(c *gui.Context, list ExtListSnapshot) {
 	t := c.Theme()
 	// S-mcp-12 读数的两种读态（能力缺失 / 读取失败）
 	if list.CapabilityMissing {
-		mcpMetaStyle.style(t, gui.Text(c, "服务端没有声明 MCP 能力，清单可能不完整。")).
+		mcpMetaStyle.style(t, gui.Text(c, "当前版本读不到完整的 MCP 清单，下面列出的是已确认的部分。")).
 			TextColor(t.TextMuted).Role(gui.RoleStatus).Selectable()
 	}
 	if list.ReadError != "" {

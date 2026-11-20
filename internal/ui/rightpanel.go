@@ -148,9 +148,20 @@ func (a *App) goalPanel(c *gui.Context) {
 
 // panelEmpty 是面板空态：居中、次要色、可换行（K-18/K-19、S-07/S-08）。
 func panelEmpty(c *gui.Context, text string) {
+	panelEmptyNote(c, text, "")
+}
+
+// panelEmptyNote 是带原因的空态：主句照需求逐字给，第二行写为什么现在是空的
+// （缺事实 / 缺通道）。原因为空时与空态同一形态（不多留一行空隙）。
+func panelEmptyNote(c *gui.Context, text, note string) {
 	t := c.Theme()
 	gui.Column(c).Grow(1).Center().Padding(space4, panelCenterPad).Children(func() {
 		typeBody.style(t, gui.Text(c, text)).TextColor(t.TextMuted).TextAlign(gui.Center)
+		if note != "" {
+			typeMicro.style(t, gui.Text(c, note)).TextColor(t.TextMuted).
+				TextAlign(gui.Center).MaxLines(4).Role(gui.RoleStatus).
+				Margin(space2, 0, 0, 0)
+		}
 	})
 }
 

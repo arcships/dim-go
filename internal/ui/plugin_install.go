@@ -254,7 +254,7 @@ func (a *App) pluginInstallView(c *gui.Context) {
 						Placeholder(pluginRefPlace).Height(plgCtlH).
 						Padding(screenInputPadV, screenSpace25).
 						Disabled(st.installing)
-					typeSecondary.style(t, gui.Text(c, "Git 仓库的 manifest 在安装时由服务端校验。")).
+					typeSecondary.style(t, gui.Text(c, "Git 仓库的清单在安装时会先校验。")).
 						TextColor(t.TextMuted)
 				})
 			}

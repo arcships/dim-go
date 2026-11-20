@@ -555,9 +555,9 @@ const (
 	psCopyShellCache = "已有任务以其他 Shell 重新加载时，可能降低提示词缓存复用率并消耗额外 token。"
 
 	psCopyPromptLocaleTitle = "提示词语言"
-	psCopyPromptLocaleDesc  = "提示词语言已禁用：App Server 会话还没有语言载体，Agent 无法接收此设置。" +
-		"Desktop 不会写入本地提示词语言文件。"
-	psCopyPromptLocaleGap = "Owner 缺口："
+	psCopyPromptLocaleDesc  = "提示词语言已禁用：会话还没有语言载体，Agent 接收不到这个设置。" +
+		"本机也不会写入本地提示词语言文件。"
+	psCopyPromptLocaleGap = "相关说明："
 
 	psCopyInstructionsTitle = "自定义指令"
 	psCopyInstructionsDesc  = "App Server 在分支加载时从下面的文件读取你的全局自定义指令，并定期重新检查。" +

@@ -30,6 +30,9 @@ type rpChange struct {
 	// 样例里的改动都有行数，所以样例行恒为假。
 	statUnknown bool
 	diff        []string
+	// diffNote 是读不到 diff 内容时的原因（D-47-443）：非空时块内给提示，
+	// 而不是什么都不画。
+	diffNote string
 }
 
 // rightSample 建一份样例：33 个根目录 + 31 个根文件（与运行时清单的 R 态同

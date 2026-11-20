@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"context"
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
@@ -31,14 +32,20 @@ import (
 //   - 沙箱不可用提示条（S-permissions-07）用警示色文字，没有琥珀底：与账户屏的
 //     到期条同口径（不新增第二套警示面）。
 //
+// # 接了什么
+//
+//   - 规则表（S-permissions-18 … 31）：增删改都是草稿，**保存权限**（S-permissions-27）
+//     接 Intents.WriteCommandRules，成功写「已保存。」，失败把原因写进错误行；
+//     规则与版本前置条件由 Source.Settings().Rules 给（读到就按它铺草稿，读失败
+//     就写原因）。冲突（服务端版本变了）不重试，直接把原因摆出来重读。
+//   - 保存成功后重新按事实铺一次草稿：屏上留下的是服务端接受的规则，不是本地那份。
+//
 // # 未实现分支
 //
-//   - 写入：保存隔离设置（S-permissions-14/15/16）、保存权限（S-permissions-33/34）
-//     都要 App Server 的设置事实；本屏只改可丢的草稿，`executionFeedback` /
-//     `executionError` / `permissionFeedbackMessage` / `permissionErrorMessage`
-//     的渲染分支都在，但没有写入路径去触发它们。
-//   - 加载 / 刷新：S-permissions-04/05/06 的分支在（loading / error + 刷新），
-//     但重新拉取要有 Source 的读取方法，本屏的「刷新」只清错误位。
+//   - 进程隔离开关与它的保存（S-permissions-08 … 16）：服务端不提供这组设置的
+//     读取，读不到当前值就不摆一个会漂的开关；连接态置灰并写原因。
+//   - 刷新（S-permissions-06）：规则读数由连接层按需重读，本屏没有手动刷新通道，
+//     那个入口只在读失败时出现，置灰并写原因。
 //   - 离开拦截（S-permissions-36 … 40）：对话框在，但"切到别的分节前拦一次"
 //     要有设置壳的离开钩子（settings.go 的 settingsContent 直接换屏），本屏
 //     触发不到；判定保持原样，等接线时由壳调用。
@@ -89,7 +96,9 @@ const (
 	permCopyRemove    = "移除"
 	permCopySaveRules = "保存权限"
 	permCopySaved     = "已保存。"
-	permCopySaveFail  = "保存失败"
+	permCopySaveFail  = "保存失败："
+	// permCopyRulesAuto 是没有手动刷新通道时的说明：规则读数随连接自动重读。
+	permCopyRulesAuto = "命令规则会随连接自动重新读取，这里没有手动刷新"
 
 	permCopyErrEmpty     = "请输入命令匹配式。"
 	permCopyErrDuplicate = "命令匹配式不能重复。"
@@ -143,7 +152,11 @@ type permissionsState struct {
 	feedback     string
 	saveError    string
 
-	rules          []sandboxRule
+	rules []sandboxRule
+	// rulesSeeded 表示草稿已经按服务端的规则铺过一次：之后再读到的规则不覆盖用户
+	// 正在改的草稿，保存成功后由 permSaveRules 主动清掉它再铺一次。
+	rulesSeeded    bool
+	rulesReadErr   string
 	permissionFeed string
 	permissionErr  string
 
@@ -163,6 +176,7 @@ var permissionsScreen = permissionsState{loaded: true}
 // 的草稿，不含任何"现状"。
 func renderPermissions(c *gui.Context, a *App) {
 	live := a != nil && a.wired()
+	permSyncRules(a, live)
 	permValidateRules()
 	gui.Column(c).Grow(1).Children(func() {
 		gui.Scroll(c).Grow(1).Label(permCopyTitle).Children(func() {
@@ -173,7 +187,7 @@ func renderPermissions(c *gui.Context, a *App) {
 					permIsolationCard(c, live)
 					gui.Column(c).Shrink(0).Gap(permHeadingGap).Children(func() {
 						screenRule(c)
-						permExecSection(c)
+						permExecSection(c, a, live)
 					})
 				})
 			})
@@ -308,7 +322,7 @@ func permSwitchRow(c *gui.Context, label, hint string, on *bool) {
 
 // permExecSection 是规则区（S-sandbox-18 … 35）：分组标题、标签、说明、
 // 规则表与两个按钮。
-func permExecSection(c *gui.Context) {
+func permExecSection(c *gui.Context, a *App, live bool) {
 	gui.Column(c).Shrink(0).Children(func() {
 		gui.Column(c).Shrink(0).Gap(permLineGap).Children(func() {
 			// S-permissions-18 「权限」分组标题
@@ -335,21 +349,42 @@ func permExecSection(c *gui.Context) {
 					permissionsScreen.rules = append(permissionsScreen.rules, sandboxRule{})
 				}
 			})
-			permRulesActions(c)
+			// 读失败：写原因；刷新入口保留但置灰（规则读数由连接层按需重读）。
+			if live && permissionsScreen.rulesReadErr != "" {
+				gui.Row(c).Gap(screenSpace2).AlignItems(gui.Center).Children(func() {
+					permAlert(c, permissionsScreen.rulesReadErr)
+					settingsActionButton(c, settingsActionSpec{
+						text: permCopyRefresh, label: permCopyRefresh, height: rowRegular,
+						tip: permCopyRulesAuto, disabled: true,
+					})
+				})
+			}
+			permRulesActions(c, a, live)
 		})
 	})
 }
 
 // permRulesActions 是保存权限与它的反馈（S-sandbox-33 … 35）。
-func permRulesActions(c *gui.Context) {
+//
+// 连着 Source 时保存权限是**真写入**：整份规则集合交给 Intents.WriteCommandRules，
+// 成功写「已保存。」并按回执重铺草稿，失败把原因写进错误行（冲突不重试）。
+// 没有连接时（-demo）入口置灰并写原因，不造「已保存」的假象。
+func permRulesActions(c *gui.Context, a *App, live bool) {
+	disabled := !live || permRulesBlocked()
+	tip := ""
+	switch {
+	case !live:
+		tip = notePermissionWrite
+	case permRulesBlocked():
+		tip = permCopyErrEmpty
+	}
 	if settingsActionButton(c, settingsActionSpec{
 		// S-permissions-27 保存权限
 		variant: settingsActionPrimary, icon: permIconSave, mark: "save",
 		text: permCopySaveRules, label: permCopySaveRules,
-		height: rowRegular, tip: notePermissionWrite, disabled: true,
+		height: rowRegular, tip: tip, disabled: disabled,
 	}) {
-		// 写入走 Intents.WriteCommandRules：本屏的渲染函数拿不到 App / Intents
-		// （DEC-17），入口禁用并写原因。
+		permSaveRules(a)
 	}
 	// S-permissions-28 保存权限的反馈
 	if permissionsScreen.permissionFeed != "" {
@@ -359,6 +394,78 @@ func permRulesActions(c *gui.Context) {
 	if permissionsScreen.permissionErr != "" {
 		permAlert(c, permissionsScreen.permissionErr)
 	}
+}
+
+// permSyncRules 按事实铺一次规则草稿：连着 Source、读到规则、且还没铺过时铺，
+// 之后不覆盖用户正在改的草稿。读失败把原因留在 permRulesBlocked 之外的一行里。
+func permSyncRules(a *App, live bool) {
+	if !live {
+		return
+	}
+	st, ok := a.liveSettings()
+	if !ok {
+		return
+	}
+	permissionsScreen.rulesReadErr = st.RulesError
+	if !st.RulesKnown || permissionsScreen.rulesSeeded {
+		return
+	}
+	permissionsScreen.loaded = true
+	rules := make([]sandboxRule, 0, len(st.Rules))
+	for _, rule := range st.Rules {
+		match := 0
+		if rule.Match == "prefix" {
+			match = 1
+		}
+		decision := 0
+		if rule.Decision == "deny" {
+			decision = 1
+		}
+		rules = append(rules, sandboxRule{matcher: rule.Command, match: match, decision: decision, touched: true})
+	}
+	permissionsScreen.rules = rules
+	permissionsScreen.rulesSeeded = true
+}
+
+// permSaveRules 把草稿整份写给服务端；成功写回执，失败写原因。
+//
+// 空匹配式的行在保存前被丢掉（校验已经拦住了"填过又清空"的行，这里兜住从没填过
+// 的空行）：服务端不接受空命令，发过去只会换一个语焉不详的错误。
+func permSaveRules(a *App) {
+	if a == nil || a.intents == nil {
+		return
+	}
+	payload := make([]RuleSnapshot, 0, len(permissionsScreen.rules))
+	for _, rule := range permissionsScreen.rules {
+		matcher := strings.TrimSpace(rule.matcher)
+		if matcher == "" {
+			continue
+		}
+		match := "exact"
+		if rule.match == 1 {
+			match = "prefix"
+		}
+		decision := "allow"
+		if rule.decision == 1 {
+			decision = "deny"
+		}
+		payload = append(payload, RuleSnapshot{Command: matcher, Decision: decision, Match: match})
+	}
+	permissionsScreen.permissionFeed = ""
+	permissionsScreen.permissionErr = ""
+	permissionsScreen.saving = true
+	a.dispatchQuiet("保存权限", func(ctx context.Context) error {
+		return a.intents.WriteCommandRules(ctx, payload)
+	}, func() {
+		permissionsScreen.saving = false
+		permissionsScreen.permissionFeed = permCopySaved
+		permissionsScreen.permissionErr = ""
+		// 回执里的规则是服务端接受的版本：清掉播种标记，下一帧按事实重铺。
+		permissionsScreen.rulesSeeded = false
+	}, func(reason string) {
+		permissionsScreen.saving = false
+		permissionsScreen.permissionErr = permCopySaveFail + reason
+	})
 }
 
 // permRulesBlocked 判保存权限是否不可用：有行内错误或正在保存（R-PRM-197）。

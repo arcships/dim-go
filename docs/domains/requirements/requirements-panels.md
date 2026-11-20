@@ -296,7 +296,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-221 | F-26 | 异常 | 再失败 | 停在「重试」，不显示第二行错误 | — | 错误行计数仍为 1 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RF-222 | F-26 | 无障碍 | 读屏 | 读作按钮「重试」，并说明属于哪个目录 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-RF-223 | F-26 | 键盘 | Enter | 重新读取该目录，成功后换成子项列表 | — | 键盘触发后重试次数 1 | 已实现（映射 = F-26→internal/ui/rightpanel_files.go:App.rpDirErrorRow；标记 = Tab@App.rp） |
-| R-RF-224 | F-26 | 记忆 | 切标签再回 | 若目录仍失败，回来仍可重试 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（映射到位但没有该维度的标记）：F-26→internal/ui/rightpanel_files.go:App.rpDirErrorRow |
+| R-RF-224 | F-26 | 记忆 | 切标签再回 | 若目录仍失败，回来仍可重试 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 未实现（映射到位但没有该维度的标记）：F-26→internal/ui/rightpanel_files.go:App.rpDirErrorRow；测试提及 internal/ui/panel_gap_test.go:包级 |
 | R-RF-225 | F-26 | 关联 | 同一行里同时有「无法加载此文件夹。」错误行时 | 尾按钮贴错误行右端，不换行、不压住错误文本 | — | 同一行内右对齐线的 x 差 0 | 已实现（映射 = F-26→internal/ui/rightpanel_files.go:App.rpDirErrorRow；标记 = Open@App.rp） |
 | R-RF-226 | F-27 | 状态 | R 态：根级文件行 | 每个文件占 1 行：410,1020 616×28；行内为 14px 占位、文件图标、文件名（461,1025 555×18）、统计、暂存点；R 态 31 行 | — | 行高 28；R 态文件行数 31 | 已实现（映射 = F-27→internal/ui/rightpanel_files.go:App.rpFileRow；标记 = Hidden@rpGlyph） |
 | R-RF-227 | F-27 | 交互 | 单击文件行 | 在右栏打开该文件的预览标签（574 行预览清单承担），文件树不内联展开 | — | 右栏标签数 +1（新增预览标签） | 已实现（映射 = F-27→internal/ui/rightpanel_files.go:App.rpFileRow；标记 = Pressed） |
@@ -592,7 +592,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-070 | D-06 | 键盘 | ↑/↓ 移到第二项 + Enter | 可选定并关闭菜单，范围切到分支 | — | 键盘触发后选定该项次数 1 | 已实现（映射 = D-06→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Tab） |
 | R-RD-071 | D-07 | 状态 | 未观察（条件）：下拉展开（MS 态） | 第三项主文案「Last Run 改动」（27,156 78×18）+ 副行「最近一次 agent run 触达的文件」（115,158 148×14） | — | 副行为菜单内最长文案，菜单宽仍 280 | 已实现（逐字）：internal/ui/rightpanel_changes.go:rpScopeItems「Last Run 改动」 |
 | R-RD-072 | D-07 | 交互 | 点击 | 切到 Last Run 范围；无 run 记录时给 D-19 空态 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = D-07→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Menu） |
-| R-RD-073 | D-07 | 内容 | 副行超宽 | 副行 truncate，不推动菜单变宽 | — | 菜单右缘越界像素 0 | 已实现（映射 = D-07→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = 文案「改动范围：」等 5 条） |
+| R-RD-073 | D-07 | 内容 | 副行超宽 | 副行 truncate，不推动菜单变宽 | — | 菜单右缘越界像素 0 | 已实现（映射 = D-07→internal/ui/settings_account_screen.go:accDate；标记 = 文案「%d年%d月%d日」） |
 | R-RD-074 | D-07 | 关联 | 「Last Run 改动」同时在场时 | 选定后触发器文案变「Last Run 改动」 | — | 两级文案逐项相同（差 0） | 已实现（逐字）：internal/ui/rightpanel_changes.go:rpScopeItems「Last Run 改动」 |
 | R-RD-075 | D-07 | 样式 | 范围下拉里另两个范围同时在场时 | 同层级；副行 12px 次要色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = D-07→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Height） |
 | R-RD-076 | D-07 | 无障碍 | 读屏 | 读出「Last Run 改动，最近一次 agent run 触达的文件」 | — | 读屏文本逐字为「Last Run 改动，最近一次 agent run 触达的文件」（差异字符 0） | 已实现（映射 = D-07→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Label） |
@@ -644,11 +644,11 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-122 | D-12 | 交互 | 点击（有已暂存） | 以已暂存内容提交；菜单关闭；动作进行中显示执行态 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = D-12→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = Menu） |
 | R-RD-123 | D-12 | 状态 | 无已暂存改动 | 项置灰且点击无效，不弹「无可提交内容」对话框 | — | 置灰态点击后状态变化次数 0 | 已实现（映射 = D-12→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = State） |
 | R-RD-124 | D-12 | 关联 | 提交成功 | 列表刷新为空（或该组消失），底部统计清零；树内暂存点消失 | — | 成功后列表行计数为 0 | 已实现（映射 = D-12→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = Open） |
-| R-RD-125 | D-12 | 异常 | 钩子拒绝 | 菜单关闭、给出失败原因；已暂存内容保留 | — | 失败前后，暂存集合的取值差 0 | 已实现（映射 = D-12→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = Err@App.rp） |
+| R-RD-125 | D-12 | 异常 | 钩子拒绝 | 菜单关闭、给出失败原因；已暂存内容保留 | — | 失败前后，暂存集合的取值差 0 | 已实现（映射 = D-12→internal/ui/settings_plugin_settings_screen.go:plgValidate；标记 = err） |
 | R-RD-126 | D-12 | 样式 | 菜单项同时在场时 | 项高 28、图标 16、文字 14 级；置灰时整体降透明度 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = D-12→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = Height） |
 | R-RD-127 | D-12 | 无障碍 | 读屏 | 读作菜单项「提交」，不可用时播报不可用 | — | 读屏含可用态（命中次数 ≥1） | 已实现（逐字）：internal/ui/command_palette.go:App.commandPaletteActions「提交」 |
 | R-RD-128 | D-12 | 键盘 | Enter | 以已暂存内容提交，菜单关闭 | — | 键盘触发后提交次数 1 | 已实现（映射 = D-12→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = Tab） |
-| R-RD-129 | D-12 | 记忆 | 提交后重开菜单 | 提交类项因无已暂存而置灰 | — | 重开后两项禁用态计数 ≥1 | 未实现（映射到位但没有该维度的标记）：D-12→internal/ui/rightpanel_changes.go:App.rpSubmitButton |
+| R-RD-129 | D-12 | 记忆 | 提交后重开菜单 | 提交类项因无已暂存而置灰 | — | 重开后两项禁用态计数 ≥1 | 未实现（映射到位但没有该维度的标记）：D-12→internal/ui/settings_plugin_settings_screen.go:plgValidate |
 | R-RD-130 | D-13 | 状态 | 未观察（条件）：菜单展开 | 菜单项「提交并推送」，CloudUpload 图标；无已暂存时置灰 | — | 屏上文案逐字「提交并推送」 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpSubmitButton「提交并推送」 |
 | R-RD-131 | D-13 | 交互 | 点击 | 提交后立即推送；两段动作有统一执行态；菜单关闭 | — | 点击后菜单计数 0 | 已实现（映射 = D-13→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = Menu） |
 | R-RD-132 | D-13 | 异常 | 提交成功但推送失败 | 已提交部分生效，失败原因告知；不把已提交回滚 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = D-13→internal/ui/rightpanel_changes.go:App.rpSubmitButton；标记 = Err@App.rp） |
@@ -971,12 +971,12 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-437 | D-47 | 状态 | 未观察（条件）：已暂存行被点开、行内 diff 展开时 | 行下方出现内联展开容器，宽度与行一致，上缘紧贴该行下沿、无间隙 | — | 容器左缘与行左缘对齐线的 x 差 0 | 已实现（映射 = D-47→internal/ui/rightpanel_changes.go:App.rpChangeRow；标记 = Disabled） |
 | R-RD-438 | D-47 | 交互 | 点击行再次 | 容器消失；行高回 28 | — | 收起后子级块计数 0 | 已实现（映射 = D-47→internal/ui/rightpanel_changes.go:App.rpChangeRow；标记 = Clicked） |
 | R-RD-439 | D-47 | 关联 | 代码块同时在场时 | 容器内承载代码块；容器本身无边框，描边在代码块上 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = D-47→internal/ui/rightpanel_changes.go:App.rpChangeRow；标记 = Open） |
-| R-RD-440 | D-47 | 动画 | 展开 | 高度增长一次性完成，行不横移 | 减少动效下瞬切 | 展开前后已有行 y 差 0 | 未实现（映射到位但没有该维度的标记）：D-47→internal/ui/rightpanel_changes.go:App.rpDiffBlock |
+| R-RD-440 | D-47 | 动画 | 展开 | 高度增长一次性完成，行不横移 | 减少动效下瞬切 | 展开前后已有行 y 差 0 | 未实现（映射到位但没有该维度的标记）：D-47→internal/ui/rightpanel_changes.go:rpChangeFile |
 | R-RD-441 | D-47 | 样式 | 浅色 / 深色 | 容器无额外底色，与列表底一致；代码块自带圆角 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = D-47→internal/ui/rightpanel_changes.go:App.rpDiffBlock；标记 = Padding） |
-| R-RD-442 | D-47 | 无障碍 | 读屏 | 作为行展开的内容区，进入后可读 diff 文本 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-47→internal/ui/rightpanel_changes.go:App.rpChangeRow；标记 = Role） |
+| R-RD-442 | D-47 | 无障碍 | 读屏 | 作为行展开的内容区，进入后可读 diff 文本 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-47→internal/ui/rightpanel_changes.go:App.rpDiffBlock；标记 = Role） |
 | R-RD-443 | D-47 | 异常 | diff 内容读取失败 | 容器内给失败提示，不出现空白块 | — | 失败后屏上错误提示计数 ≥1 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-RD-444 | D-47 | 记忆 | 收起再展开 | 滚动位置回到 diff 顶部 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：D-47→internal/ui/rightpanel_changes.go:App.rpDiffBlock |
-| R-RD-445 | D-47 | 性能 | 展开 500 行 diff | 展开 ≤200ms，滚动流畅 | — | 判据 = 动效 折叠 300ms cubic-bezier(0.16, 1, 0.3, 1)；其余 = 滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（映射到位但没有该维度的标记）：D-47→internal/ui/rightpanel_changes.go:App.rpDiffBlock |
+| R-RD-444 | D-47 | 记忆 | 收起再展开 | 滚动位置回到 diff 顶部 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：D-47→internal/ui/rightpanel_changes.go:rpChangeFile |
+| R-RD-445 | D-47 | 性能 | 展开 500 行 diff | 展开 ≤200ms，滚动流畅 | — | 判据 = 动效 折叠 300ms cubic-bezier(0.16, 1, 0.3, 1)；其余 = 滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（映射到位但没有该维度的标记）：D-47→internal/ui/rightpanel_changes.go:rpChangeFile |
 | R-RD-446 | D-48 | 状态 | 未观察（条件）：文件内容已取到且行已展开时 | 出现 unified diff 代码块：等宽、行首 +/- 着色；该块隐藏了头部、复制与展开按钮 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = D-48→internal/ui/rightpanel_changes.go:App.rpChangeRow；标记 = Disabled） |
 | R-RD-447 | D-48 | 内容 | diff 超长行 | 横向滚动（不折行），滚动条贴块底 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（映射 = D-48→internal/ui/rightpanel_changes.go:App.rpDiffBlock；标记 = 文案「已截断」） |
 | R-RD-448 | D-48 | 内容 | 二进制文件 | 不渲染代码块，给出不可展示提示 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
@@ -984,7 +984,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-450 | D-48 | 交互 | 选中代码文本 | 可选中复制；不影响行的展开状态 | — | 剪贴板文本与选中 diff 文本差 0；选中前后行展开状态差 0 | 已实现（映射 = D-48→internal/ui/rightpanel_changes.go:App.rpChangeRow；标记 = Clicked） |
 | R-RD-451 | D-48 | 关联 | 「已截断」同时在场时 | 截断时块内出现「已截断」提示（D-49），其余照常显示 | — | 「已截断」提示计数 1（文案逐字「已截断」）；其余内容行数差 0 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpDiffBlock「已截断」 |
 | R-RD-452 | D-48 | 样式 | 浅色 / 深色 | 等宽 12px 级；增行绿底、删行红底、上下文透明；圆角小 | — | 判据 = 字号 UI 正文 12.25px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = D-48→internal/ui/rightpanel_changes.go:App.rpDiffBlock；标记 = Padding） |
-| R-RD-453 | D-48 | 无障碍 | 读屏 | 逐行读出「加/减/上下文」与内容；不读颜色 | — | 读屏含增删语义（命中次数 ≥1） | 已实现（映射 = D-48→internal/ui/rightpanel_changes.go:App.rpChangeRow；标记 = Role） |
+| R-RD-453 | D-48 | 无障碍 | 读屏 | 逐行读出「加/减/上下文」与内容；不读颜色 | — | 读屏含增删语义（命中次数 ≥1） | 已实现（映射 = D-48→internal/ui/rightpanel_changes.go:App.rpDiffBlock；标记 = Role） |
 | R-RD-454 | D-48 | 异常 | 内容解码失败 | 提示不可展示，块不出现半截乱码 | — | 屏上 U+FFFD 计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RD-455 | D-48 | 性能 | 500 行代码块 | 展开与滚动无可感卡顿 | — | 判据 = 首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（映射到位但没有该维度的标记）：D-48→internal/ui/rightpanel_changes.go:App.rpDiffBlock |
 | R-RD-456 | D-48 | 记忆 | 切标签再回 | 展开态与滚动位置按文件恢复 | — | 切回前后，位置逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：D-48→internal/ui/rightpanel_changes.go:App.rpDiffBlock |
@@ -1717,8 +1717,8 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TM-038 | T-05 | 异常 | 提示贴边被裁 | 自动翻转方向，不出窗口 | — | 贴边裁剪像素 0 | 已实现（映射 = T-05→internal/ui/terminal.go:App.termToolbar；标记 = err@App.stopShellRun） |
 | R-TM-039 | T-05 | 交互 | 悬停按钮是否显示提示 | 只在悬停时出现，键盘聚焦也可触发（按实现一致） | — | 聚焦后提示可见像素 >0 | 未实现（映射到位但没有该维度的标记）：T-05→internal/ui/terminal.go:App.termToolbar |
 | R-TM-040 | T-05 | 窄窗 | 提示贴右边 | 自动向左翻转，不出窗口 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = T-05→internal/ui/terminal.go:App.termToolbar；标记 = Compact） |
-| R-TM-041 | T-06 | 状态 | 不可达（右栏布局）；抽屉布局下「关闭终端」图标按钮（X） | 位于标签条最右 | — | 关闭键计数 1 | 已实现（映射 = T-06→internal/ui/terminal.go:App.closeTerminal；标记 = State@App.stopLiveTerminal） |
-| R-TM-042 | T-06 | 交互 | 点击 | 关闭当前激活终端 | — | 点击后标签减少 1 | 未实现（映射到位但没有该维度的标记）：T-06→internal/ui/terminal.go:App.closeTerminal |
+| R-TM-041 | T-06 | 状态 | 不可达（右栏布局）；抽屉布局下「关闭终端」图标按钮（X） | 位于标签条最右 | — | 关闭键计数 1 | 已实现（映射 = T-06→internal/ui/terminal.go:App.closeTerminal；标记 = State@App.closeTermTab） |
+| R-TM-042 | T-06 | 交互 | 点击 | 关闭当前激活终端 | — | 点击后标签减少 1 | 未实现（映射到位但没有该维度的标记）：T-06→internal/ui/terminal.go:App.closeTerminal；测试提及 internal/ui/panel_gap_test.go:包级 |
 | R-TM-043 | T-06 | 状态 | 无终端 | 按钮不渲染或禁用 | — | 判据 = 没有终端时不可点（触发次数 0）；触发次数 1（可点）或 0（禁用），差 0（ST-ENABLED / ST-CHANGE-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-TM-044 | T-06 | 样式 | 图标按钮 | 无边框、悬停浅底；与 T-04 同尺寸 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = T-06→internal/ui/terminal.go:App.termToolbar；标记 = Height） |
 | R-TM-045 | T-06 | 无障碍 | 读屏 | 可读名「关闭终端」 | — | 读屏含该名（命中次数 ≥1） | 已实现（逐字）：internal/ui/terminal.go:App.termToolbar「关闭终端」 |
@@ -1768,14 +1768,14 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TM-084 | T-10 | 无障碍 | 读屏 | 读出「进程已关闭」 | — | 读屏含该句（命中次数 ≥1） | 已实现（逐字）：internal/ui/terminal.go:termClosedNotice「进程已关闭」 |
 | R-TM-085 | T-10 | 异常 | 关闭后立刻新建 | 提示消失，换成新画布 | — | 新建后提示行计数 0 | 未实现（映射到位但没有该维度的标记）：T-10→internal/ui/terminal.go:App.termLayer |
 | R-TM-086 | T-10 | 记忆 | 切标签再回 | 若仍无终端，提示仍在 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：T-10→internal/ui/terminal.go:App.termLayer |
-| R-TM-087 | T-11 | 状态 | 未观察（条件）：进程自行退出且无标签 | 提示行「［进程已退出，代码 {code}］」，代码为真实退出码 | — | 屏上文案逐字含退出码（命中次数 ≥1） | 未实现（找不到元素渲染点） |
-| R-TM-088 | T-11 | 内容 | 退出码为 0 | 仍显示「代码 0」，不省略 | — | 屏上出现「代码 0」 | 未实现（找不到元素渲染点） |
+| R-TM-087 | T-11 | 状态 | 未观察（条件）：进程自行退出且无标签 | 提示行「［进程已退出，代码 {code}］」，代码为真实退出码 | — | 屏上文案逐字含退出码（命中次数 ≥1） | 已实现（映射 = T-11→internal/ui/terminal.go:App.terminalView；标记 = State） |
+| R-TM-088 | T-11 | 内容 | 退出码为 0 | 仍显示「代码 0」，不省略 | — | 屏上出现「代码 0」 | 已实现（映射 = T-11→internal/ui/terminal.go:termExitNotice；标记 = 文案「［进程已退出，信号 %d］」等 2 条） |
 | R-TM-089 | T-11 | 内容 | 被信号终止（无数字码） | 按实现显示信号说明或 128+n，不显示空「代码 」 | — | 空代码计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-TM-090 | T-11 | 关联 | 「［进程已关闭］」同时在场时 | 二者互斥，由结束原因决定 | — | 两提示不同时在场（同屏计数 ≤1） | 未实现（找不到元素渲染点） |
-| R-TM-091 | T-11 | 样式 | 「［进程已关闭］」同时在场时 | 同样式：深底、居中、次要浅色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-TM-092 | T-11 | 无障碍 | 读屏 | 读出退出码 | — | 读屏含退出码（命中次数 ≥1） | 未实现（找不到元素渲染点） |
-| R-TM-093 | T-11 | 异常 | 退出码未知 | 只显示「进程已退出」，不带空代码段 | — | 无「代码 」空位 | 未实现（找不到元素渲染点） |
-| R-TM-094 | T-11 | 记忆 | 切标签再回 | 提示与退出码保留 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（找不到元素渲染点） |
+| R-TM-090 | T-11 | 关联 | 「［进程已关闭］」同时在场时 | 二者互斥，由结束原因决定 | — | 两提示不同时在场（同屏计数 ≤1） | 已实现（映射 = T-11→internal/ui/terminal.go:App.termLayer；标记 = Tab） |
+| R-TM-091 | T-11 | 样式 | 「［进程已关闭］」同时在场时 | 同样式：深底、居中、次要浅色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = T-11→internal/ui/terminal.go:App.termLayer；标记 = Padding） |
+| R-TM-092 | T-11 | 无障碍 | 读屏 | 读出退出码 | — | 读屏含退出码（命中次数 ≥1） | 已实现（映射 = T-11→internal/ui/terminal.go:App.termLayer；标记 = Label） |
+| R-TM-093 | T-11 | 异常 | 退出码未知 | 只显示「进程已退出」，不带空代码段 | — | 无「代码 」空位 | 已实现（逐字）：internal/ui/terminal.go:termExitedNotice「进程已退出」 |
+| R-TM-094 | T-11 | 记忆 | 切标签再回 | 提示与退出码保留 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：T-11→internal/ui/terminal.go:App.terminalView；测试提及 internal/ui/panel_gap_test.go:包级 |
 | R-TM-095 | T-12 | 状态 | 未观察（条件）：没有工作目录时 | 提示行「［无法打开终端：需要 cwd］」 | — | 屏上文案逐字相同（差异字符 0） | 未实现（找不到元素渲染点） |
 | R-TM-096 | T-12 | 关联 | 同一面板里相关元素同时在场时 | 若 `terminalPanelWorkspaceCwds` 不含 `activePanelCwd`，终端标签本身不可用（挂载条件不成立） | — | 判据 = 没有 cwd 时标签不可开（打开次数 0）；打开次数 1（挂载条件成立）或 0（不成立），差 0（ST-ENABLED / ST-CHANGE-1） | 未实现（找不到元素渲染点） |
 | R-TM-097 | T-12 | 内容 | 会话切换工作区后回看 | 提示随 cwd 缺失出现/消失，不缓存旧提示 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
@@ -1994,13 +1994,13 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TK-115 | K-14 | 异常 | armed 期间该行结束 | 按钮整体消失，不残留 armed 态 | — | 行结束后按钮计数 0；上一次内容出现次数 0（ST-VISIBLE） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-TK-116 | K-14 | 内容 | armed 期间行时间更新 | armed 态不因时间刷新而复位 | — | 待确认态文本计数 1，3 秒后仍为 1（不复位） | 已实现（映射 = K-14→internal/ui/rightpanel_tasks.go:App.taskStopButton；标记 = 文案「取消任务」等 2 条） |
 | R-TK-117 | K-15 | 状态 | 待确认操作正在提交时 | 按钮禁用并显示旋转圈（Loader2），不再接受点击 | — | 行首旋转圈计数 1；按钮触发次数 0（禁用） | 已实现（映射 = K-15→internal/ui/rightpanel_tasks.go:taskTrailingSpinner；标记 = Hidden） |
-| R-TK-118 | K-15 | 动画 | 执行中 | 旋转连续；请求结束后按结果切换 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：K-15→internal/ui/rightpanel_tasks.go:taskTrailingSpinner |
+| R-TK-118 | K-15 | 动画 | 执行中 | 旋转连续；请求结束后按结果切换 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：K-15→internal/ui/rightpanel_tasks.go:taskTrailingSpinner；测试提及 internal/ui/panel_gap_test.go:包级 |
 | R-TK-119 | K-15 | 关联 | 「停止 / 取消唤醒」与「确认停止 / 再次点击取消唤醒」同时在场时 | pending 覆盖二者外观，避免重复提交 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = K-15→internal/ui/rightpanel_tasks.go:App.taskRow；标记 = Select） |
 | R-TK-120 | K-15 | 样式 | 确认框里主按钮与次按钮同时在场时 | 同尺寸，仅换图标并降透明 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = K-15→internal/ui/rightpanel_tasks.go:taskTrailingSpinner；标记 = Width） |
-| R-TK-121 | K-15 | 无障碍 | 读屏 | 播报「正在停止」 | — | 读屏含执行中（命中次数 ≥1） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:App.taskRow「正在停止」 |
+| R-TK-121 | K-15 | 无障碍 | 读屏 | 播报「正在停止」 | — | 读屏含执行中（命中次数 ≥1） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:taskStateText「正在停止」 |
 | R-TK-122 | K-15 | 异常 | 请求超时 | 回到非 armed 态并提示未完成 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = K-15→internal/ui/rightpanel_tasks.go:App.taskRow；标记 = 失败@taskStateText） |
 | R-TK-123 | K-15 | 样式 | 「确认停止 / 再次点击取消唤醒」同时在场时 | 同为危险色系，但降透明并停止响应点击 | — | 判据 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = K-15→internal/ui/rightpanel_tasks.go:taskTrailingSpinner；标记 = Width） |
-| R-TK-124 | K-15 | 记忆 | 执行结束回到可停态 | 按钮恢复为 K-13 外观 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：K-15→internal/ui/rightpanel_tasks.go:taskTrailingSpinner |
+| R-TK-124 | K-15 | 记忆 | 执行结束回到可停态 | 按钮恢复为 K-13 外观 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：K-15→internal/ui/rightpanel_tasks.go:taskTrailingSpinner；测试提及 internal/ui/panel_gap_test.go:包级 |
 | R-TK-125 | K-16 | 状态 | 未观察（条件）：条目不可以停止且这是唤醒行时 | 行尾显示旋转圈（Loader2），表示该唤醒不可取消/进行中 | — | 屏上行尾旋转圈计数 +1 | 已实现（映射 = K-16→internal/ui/rightpanel_tasks.go:taskTrailingSpinner；标记 = Hidden） |
 | R-TK-126 | K-16 | 关联 | 「停止 / 取消唤醒」同时在场时 | 二者互斥：可停则给按钮，不可停则给圈 | — | 按钮与圈的计数之和 = 1（互斥） | 已实现（映射 = K-16→internal/ui/rightpanel_tasks.go:App.taskRow；标记 = Select） |
 | R-TK-127 | K-16 | 样式 | 确认框里主按钮与次按钮同时在场时 | 同尺寸、次要色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = K-16→internal/ui/rightpanel_tasks.go:taskTrailingSpinner；标记 = Width） |
@@ -2019,15 +2019,15 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TK-140 | K-17 | 内容 | 详情内容比可视高度长 | 区域内滚动，列表不被挤压（列表高度固定或按比例） | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = K-17→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = 文案「打开日志」等 2 条） |
 | R-TK-141 | K-18 | 内容 | 未观察（条件）：后台进程标签、列表为空时 | 空态文字逐字「暂无运行进程」，居中、次要色 | — | 屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:App.tasksPanel「暂无运行进程」 |
 | R-TK-142 | K-18 | 关联 | 「暂无待唤醒事项」同时在场时 | 两标签各用各的文案，不串用 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
-| R-TK-143 | K-18 | 样式 | 空态 | 居中、12–14px 次要色、上下留白 | — | 判据 = 字号 正文 14px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = K-18→internal/ui/rightpanel.go:panelEmpty；标记 = Padding） |
-| R-TK-144 | K-18 | 无障碍 | 读屏 | 读出该句 | — | 读屏含该句（命中次数 ≥1） | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
+| R-TK-143 | K-18 | 样式 | 空态 | 居中、12–14px 次要色、上下留白 | — | 判据 = 字号 正文 14px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = K-18→internal/ui/rightpanel.go:panelEmpty；标记 = Padding@panelEmptyNote） |
+| R-TK-144 | K-18 | 无障碍 | 读屏 | 读出该句 | — | 读屏含该句（命中次数 ≥1） | 已实现（映射 = K-18→internal/ui/rightpanel.go:panelEmpty；标记 = Role@panelEmptyNote） |
 | R-TK-145 | K-18 | 异常 | 接口失败 | 不出空态（改走失败提示） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
 | R-TK-146 | K-18 | 记忆 | 新进程出现 | 空态消失，换成行 | — | 出现进程后空态计数 0 | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
 | R-TK-147 | K-18 | 交互 | 点击空态文字 | 无动作（不提供「新建」入口） | — | 点击前后屏上文案、计数与 y 坐标差 0 | 已实现（逐字）：internal/catalog/mutate.go:TitleConflictError.Unwrap「新建」 |
 | R-TK-148 | K-18 | 窄窗 | 面板宽 311 | 文案单行不折行 | — | 窄窗下 1 行 | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
 | R-TK-149 | K-19 | 内容 | 未观察（条件）：唤醒标签、列表为空时 | 空态文字逐字「暂无待唤醒事项」 | — | 屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:App.tasksPanel「暂无待唤醒事项」 |
-| R-TK-150 | K-19 | 样式 | 「暂无运行进程」同时在场时 | 同样式，仅文案不同 | — | 判据 = 字号 UI 正文 12.25px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = K-19→internal/ui/rightpanel.go:panelEmpty；标记 = Padding） |
-| R-TK-151 | K-19 | 无障碍 | 读屏 | 读出该句 | — | 读屏含该句（命中次数 ≥1） | 已实现（映射 = K-19→internal/ui/rightpanel_tasks.go:App.tasksPanel；标记 = Label） |
+| R-TK-150 | K-19 | 样式 | 「暂无运行进程」同时在场时 | 同样式，仅文案不同 | — | 判据 = 字号 UI 正文 12.25px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = K-19→internal/ui/rightpanel.go:panelEmpty；标记 = Padding@panelEmptyNote） |
+| R-TK-151 | K-19 | 无障碍 | 读屏 | 读出该句 | — | 读屏含该句（命中次数 ≥1） | 已实现（映射 = K-19→internal/ui/rightpanel.go:panelEmpty；标记 = Role@panelEmptyNote） |
 | R-TK-152 | K-19 | 异常 | 接口失败 | 不出空态 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = K-19→internal/ui/rightpanel_tasks.go:App.tasksPanel；标记 = Err@App.sessionWakeups） |
 | R-TK-153 | K-19 | 记忆 | 新唤醒出现 | 空态消失 | — | 出现后空态计数 0 | 未实现（映射到位但没有该维度的标记）：K-19→internal/ui/rightpanel.go:panelEmpty；测试提及 internal/ui/residual_families_test.go:包级 |
 | R-TK-154 | K-19 | 内容 | 曾有过唤醒、现已清空 | 仍显示「暂无待唤醒事项」（不含历史） | — | 文案前后逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:App.tasksPanel「暂无待唤醒事项」 |
@@ -2046,23 +2046,23 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TK-162 | K-20 | 异常 | 状态未知 | 用兜底图标（K-08），不显示空白 | — | 图标字符数 ≥1 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-TK-163 | K-20 | 内容 | 状态为 running 且退出码已就绪（异常组合） | 图标优先显示运行中，退出码不在此处 | — | 行首图标形状优先为运行中（运行中图标计数 1）；退出码文本计数 0 | 已实现（映射 = K-20→internal/ui/rightpanel_tasks.go:App.taskStateGlyph；标记 = 文案「状态：」等 2 条） |
 | R-TK-164 | K-20 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 图标 2× 下清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = K-20→internal/ui/rightpanel_tasks.go:App.taskStateGlyph；标记 = Scale@paintIcon） |
-| R-TK-165 | K-21 | 内容 | 未观察（条件）：进程状态为运行中时 | 状态文本「运行中 · {time}」，time 为已运行时长或开始时刻 | — | 屏上文案形如「运行中 · 12s」 | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 5 条@taskStateText） |
-| R-TK-166 | K-21 | 内容 | 运行时长增长 | 数字随运行更新，不闪、不跳行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 5 条@taskStateText） |
+| R-TK-165 | K-21 | 内容 | 未观察（条件）：进程状态为运行中时 | 状态文本「运行中 · {time}」，time 为已运行时长或开始时刻 | — | 屏上文案形如「运行中 · 12s」 | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 6 条@taskStateText） |
+| R-TK-166 | K-21 | 内容 | 运行时长增长 | 数字随运行更新，不闪、不跳行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 6 条@taskStateText） |
 | R-TK-167 | K-21 | 关联 | Loader2图标同时在场时 | 与行内图标同一状态 | — | 两处文案逐字相同（差异字符 0） | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Select） |
 | R-TK-168 | K-21 | 样式 | 同一面板里同类项的其它实例同时在场时 | 14px 级、主前景色；单行 truncate | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Padding） |
 | R-TK-169 | K-21 | 无障碍 | 读屏 | 播报「运行中，已运行 N 秒」 | — | 读屏含时长（命中次数 ≥1） | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Label@App.wakeupDetail） |
 | R-TK-170 | K-21 | 异常 | 运行状态丢失（断线） | 文本停在最后已知状态并标「状态未知」，不假装运行中 | — | 详情头状态文本逐字含「状态未知」（命中次数 ≥1），不出现「运行中」 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-TK-171 | K-21 | 状态 | 进程刚启动（无时长） | 显示「运行中」，不带「· 」空段 | — | 悬空分隔点计数 0 | 已实现（逐字）：internal/ui/rightpanel_tasks.go:taskStateText「运行中」 |
 | R-TK-172 | K-21 | 样式 | 详情头状态文本与详情头状态文本同时在场时 | 同字号同位置，切换状态时行宽不跳 | — | 判据 = 字号 UI 正文 12.25px；其余 = 两段文本左缘 x 差 ≤ 1px，切换时行宽变化 0（AL-TOL-1） | 已实现（映射 = K-21→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Padding） |
-| R-TK-173 | K-22 | 内容 | 未观察（条件）：进程状态为已完成时 | 状态文本「已完成 · {time}」，time 为完成时刻或总耗时 | — | 屏上文案形如「已完成 · 8s」 | 已实现（映射 = K-22→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 5 条@taskStateText） |
-| R-TK-174 | K-22 | 内容 | 完成时有退出码 | 退出码不写在这行（在 K-28 元信息里），此处只给状态与时间 | — | 该行退出码计数 0 | 已实现（映射 = K-22→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 5 条@taskStateText） |
+| R-TK-173 | K-22 | 内容 | 未观察（条件）：进程状态为已完成时 | 状态文本「已完成 · {time}」，time 为完成时刻或总耗时 | — | 屏上文案形如「已完成 · 8s」 | 已实现（映射 = K-22→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 6 条@taskStateText） |
+| R-TK-174 | K-22 | 内容 | 完成时有退出码 | 退出码不写在这行（在 K-28 元信息里），此处只给状态与时间 | — | 该行退出码计数 0 | 已实现（映射 = K-22→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 6 条@taskStateText） |
 | R-TK-175 | K-22 | 样式 | 详情头状态文本同时在场时 | 同字号；已完成可用成功色或主前景色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；字号 UI 正文 12.25px | 已实现（映射 = K-22→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Padding） |
 | R-TK-176 | K-22 | 无障碍 | 读屏 | 播报「已完成」 | — | 读屏含状态（命中次数 ≥1） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:taskStateText「已完成」 |
 | R-TK-177 | K-22 | 异常 | 完成时间缺失 | 只显示「已完成」，不带「· 」空段 | — | 悬空分隔点计数 0 | 已实现（逐字）：internal/ui/rightpanel_tasks.go:taskStateText「已完成」 |
 | R-TK-178 | K-22 | 状态 | 完成时间缺失 | 只显示「已完成」 | — | 悬空分隔点计数 0 | 已实现（逐字）：internal/ui/rightpanel_tasks.go:taskStateText「已完成」 |
 | R-TK-179 | K-22 | 交互 | 点击状态文本 | 无动作 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：K-22→internal/ui/rightpanel_tasks.go:taskStateLine |
 | R-TK-180 | K-22 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 等宽数字与状态文字在 2× 下对齐 | — | 2× 截图上对齐线的 x 差 0 | 未实现（映射到位但没有该维度的标记）：K-22→internal/ui/rightpanel_tasks.go:taskStateLine |
-| R-TK-181 | K-23 | 内容 | 未观察（条件）：进程状态为失败时 | 状态文本「失败 · {time}」 | — | 屏上文案形如「失败 · 8s」 | 已实现（映射 = K-23→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 5 条@taskStateText） |
+| R-TK-181 | K-23 | 内容 | 未观察（条件）：进程状态为失败时 | 状态文本「失败 · {time}」 | — | 屏上文案形如「失败 · 8s」 | 已实现（映射 = K-23→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 6 条@taskStateText） |
 | R-TK-182 | K-23 | 关联 | 「终端操作失败」同时在场时 | 失败状态与 `terminalFailed` 提示可同时出现（一个说结果、一个说终端），不互相替代 | — | 两类提示同屏计数各为 1（互不替代） | 已实现（映射 = K-23→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Select） |
 | R-TK-183 | K-23 | 样式 | 危险色 | 14px 级、危险色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；字号 正文 14px | 已实现（映射 = K-23→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Padding） |
 | R-TK-184 | K-23 | 无障碍 | 读屏 | 播报「失败」 | — | 读屏含状态（命中次数 ≥1） | 已实现（逐字）：internal/account/account.go:ErrStatusRead「失败」 |
@@ -2070,7 +2070,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TK-186 | K-23 | 状态 | 失败但无时长 | 只显示「失败」 | — | 悬空分隔点计数 0 | 已实现（逐字）：internal/account/account.go:ErrStatusRead「失败」 |
 | R-TK-187 | K-23 | 交互 | 点击状态文本 | 无动作 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：K-23→internal/ui/rightpanel_tasks.go:taskStateLine |
 | R-TK-188 | K-23 | 窄窗 | 面板宽 311 | 单行 truncate，原因在 K-33/K-28 | — | 窄窗下 1 行 | 已实现（映射 = K-23→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Compact） |
-| R-TK-189 | K-24 | 内容 | 未观察（条件）：进程状态为已取消时 | 状态文本「已停止 · {time}」 | — | 屏上文案形如「已停止 · 3s」 | 已实现（映射 = K-24→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 5 条@taskStateText） |
+| R-TK-189 | K-24 | 内容 | 未观察（条件）：进程状态为已取消时 | 状态文本「已停止 · {time}」 | — | 屏上文案形如「已停止 · 3s」 | 已实现（映射 = K-24→internal/ui/rightpanel_tasks.go:taskStateLine；标记 = 文案「已完成」等 6 条@taskStateText） |
 | R-TK-190 | K-24 | 关联 | 方块图标同时在场时 | 与行内方块图标一致 | — | 两处文案逐字相同（差异字符 0） | 已实现（映射 = K-24→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Select） |
 | R-TK-191 | K-24 | 样式 | 同一面板里同类项的其它实例同时在场时 | 同字号；次要色或中性色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = K-24→internal/ui/rightpanel_tasks.go:App.taskDetail；标记 = Padding） |
 | R-TK-192 | K-24 | 无障碍 | 读屏 | 播报「已停止」 | — | 读屏含状态（命中次数 ≥1） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:taskStateText「已停止」 |
@@ -2245,20 +2245,20 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SC-049 | S-06 | 窄窗 | 面板宽 311 | 居中位置不变 | — | 窄窗下居中位置与容器中心 x 差 0 | 未实现（映射到位但没有该维度的标记）：S-06→internal/ui/rightpanel_sidechat.go:App.sideChatContent |
 | R-SC-050 | S-07 | 内容 | 未观察（条件）：既没错误也没空态、分支未建、但从某条消息之前发起时 | 空态文本逐字「此侧边对话会从所选消息之前开始。」，居中 | — | 屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_sidechat.go:sideChatEmptyBefore「此侧边对话会从所选消息之前开始。」 |
 | R-SC-051 | S-07 | 关联 | 空态文本同时在场时 | 两条互斥，由 branchId 是否存在决定 | — | 两文案不同时在场（同屏计数 ≤1） | 已实现（映射 = S-07→internal/ui/rightpanel_sidechat.go:App.sideChatContent；标记 = Select） |
-| R-SC-052 | S-07 | 样式 | 空态文本 | 14px 级次要色、居中、左右留白 24 | — | 判据 = 字号 正文 14px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = S-07→internal/ui/rightpanel.go:panelEmpty；标记 = Padding） |
-| R-SC-053 | S-07 | 无障碍 | 读屏 | 读出该句 | — | 读屏含该句（命中次数 ≥1） | 已实现（映射 = S-07→internal/ui/rightpanel_sidechat.go:App.sideChatContent；标记 = Label） |
+| R-SC-052 | S-07 | 样式 | 空态文本 | 14px 级次要色、居中、左右留白 24 | — | 判据 = 字号 正文 14px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = S-07→internal/ui/rightpanel.go:panelEmpty；标记 = Padding@panelEmptyNote） |
+| R-SC-053 | S-07 | 无障碍 | 读屏 | 读出该句 | — | 读屏含该句（命中次数 ≥1） | 已实现（映射 = S-07→internal/ui/rightpanel.go:panelEmpty；标记 = Role@panelEmptyNote） |
 | R-SC-054 | S-07 | 异常 | 分支建立后 | 该文案消失，换成内容区或 S-08 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（映射到位但没有该维度的标记）：S-07→internal/ui/rightpanel.go:panelEmpty |
 | R-SC-055 | S-07 | 状态 | 分支建立后回看 | 文案消失，换成内容区或 S-08 | — | 建分支后该文案计数 0 | 未实现（映射到位但没有该维度的标记）：S-07→internal/ui/rightpanel.go:panelEmpty |
 | R-SC-056 | S-07 | 交互 | 点击文案 | 无动作 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：S-07→internal/ui/rightpanel.go:panelEmpty |
-| R-SC-057 | S-07 | 样式 | 空态文本同时在场时 | 同字号、同色、同居中；两条不同时出现的空态在外观上一致 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-07→internal/ui/rightpanel.go:panelEmpty；标记 = Padding） |
+| R-SC-057 | S-07 | 样式 | 空态文本同时在场时 | 同字号、同色、同居中；两条不同时出现的空态在外观上一致 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-07→internal/ui/rightpanel.go:panelEmpty；标记 = Padding@panelEmptyNote） |
 | R-SC-058 | S-08 | 内容 | 未观察（条件）：没有错误提示、不在空态、也不在输入态时 | 空态文本逐字「就当前 thread 提问。侧边对话会继承启动时的上下文。」；「thread」保持原文小写 | — | 屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_sidechat.go:sideChatEmptyThread「就当前 thread 提问。侧边对话会继承启动时的上下文。」 |
-| R-SC-059 | S-08 | 样式 | 「此侧边对话会从所选消息之前开始。」同时在场时 | 同字号同色同居中 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-08→internal/ui/rightpanel.go:panelEmpty；标记 = Padding） |
-| R-SC-060 | S-08 | 无障碍 | 读屏 | 读出整句（含英文 thread） | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（映射 = S-08→internal/ui/rightpanel_sidechat.go:App.sideChatContent；标记 = Label） |
-| R-SC-061 | S-08 | 异常 | 首次发送后 | 文案消失，换成内容区 | — | 发送后空态计数 0 | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty |
-| R-SC-062 | S-08 | 交互 | 点击文案 | 无动作；用户点输入框即可开始 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty |
-| R-SC-063 | S-08 | 状态 | 分支已关闭且无消息 | 文案仍在（关闭态由 S-04 表达，两者可同屏） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty |
-| R-SC-064 | S-08 | 交互 | 点击文案 | 无动作 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty |
-| R-SC-065 | S-08 | 记忆 | 切走再回 | 若仍未发送首条消息，文案仍在 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty |
+| R-SC-059 | S-08 | 样式 | 「此侧边对话会从所选消息之前开始。」同时在场时 | 同字号同色同居中 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-08→internal/ui/rightpanel.go:panelEmpty；标记 = Padding@panelEmptyNote） |
+| R-SC-060 | S-08 | 无障碍 | 读屏 | 读出整句（含英文 thread） | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（映射 = S-08→internal/ui/rightpanel.go:panelEmpty；标记 = Role@panelEmptyNote） |
+| R-SC-061 | S-08 | 异常 | 首次发送后 | 文案消失，换成内容区 | — | 发送后空态计数 0 | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty；测试提及 internal/ui/panel_gap_test.go:包级 |
+| R-SC-062 | S-08 | 交互 | 点击文案 | 无动作；用户点输入框即可开始 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty；测试提及 internal/ui/panel_gap_test.go:包级 |
+| R-SC-063 | S-08 | 状态 | 分支已关闭且无消息 | 文案仍在（关闭态由 S-04 表达，两者可同屏） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty；测试提及 internal/ui/panel_gap_test.go:包级 |
+| R-SC-064 | S-08 | 交互 | 点击文案 | 无动作 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty；测试提及 internal/ui/panel_gap_test.go:包级 |
+| R-SC-065 | S-08 | 记忆 | 切走再回 | 若仍未发送首条消息，文案仍在 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：S-08→internal/ui/rightpanel.go:panelEmpty；测试提及 internal/ui/panel_gap_test.go:包级 |
 | R-SC-066 | S-09 | 状态 | 未观察（条件）：分支还没收尾、待处理的交互是权限申请时 | 输入区上方出现权限卡位（复用审批域 InlinePermissionPrompt），内容与审批卡同构 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
 | R-SC-067 | S-09 | 关联 | 同一面板里相关元素同时在场时 | 同一套组件与文案规则；侧聊内不另造窄版 | — | 元素集合与 C1 一致 | 未实现（找不到元素渲染点） |
 | R-SC-068 | S-09 | 状态 | 分支已结束 | 卡位不出现（不再接收交互） | — | 关闭后卡位计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
@@ -2275,16 +2275,16 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SC-079 | S-10 | 无障碍 | 读屏 | 卡位内可按提问卡顺序读出 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 未实现（找不到元素渲染点） |
 | R-SC-080 | S-10 | 异常 | 提交失败 | 卡位保留并显示错误 | — | 失败后卡位计数 1 | 未实现（找不到元素渲染点） |
 | R-SC-081 | S-10 | 记忆 | 切标签再回 | 若仍有未答复请求，卡位重建 | — | 切回后卡位仍计数 1 | 未实现（找不到元素渲染点） |
-| R-SC-082 | S-11 | 状态 | 未观察（条件）：右栏停在侧聊标签时（输入区常驻） | 输入框在场，占位文案逐字「问一个旁支问题…」 | — | 屏上占位文案逐字相同（差异字符 0） | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Disabled） |
-| R-SC-083 | S-11 | 状态 | 分支已关闭 / 发送中 / 分支未就绪 | 输入框禁用（不可键入、占位变灰） | — | 输入触发次数 0；占位文案色值与启用态差 >0 | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Disabled） |
-| R-SC-084 | S-11 | 内容 | 键入多行 | 输入框随内容增高至上限后内部滚动 | — | 判据 = 控件尺寸 输入框高 32（行内 25）；其余 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = 文案「侧边对话输入」等 7 条） |
+| R-SC-082 | S-11 | 状态 | 未观察（条件）：右栏停在侧聊标签时（输入区常驻） | 输入框在场，占位文案逐字「问一个旁支问题…」 | — | 屏上占位文案逐字相同（差异字符 0） | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatDisabledNote；标记 = Disabled） |
+| R-SC-083 | S-11 | 状态 | 分支已关闭 / 发送中 / 分支未就绪 | 输入框禁用（不可键入、占位变灰） | — | 输入触发次数 0；占位文案色值与启用态差 >0 | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatDisabledNote；标记 = Disabled） |
+| R-SC-084 | S-11 | 内容 | 键入多行 | 输入框随内容增高至上限后内部滚动 | — | 判据 = 控件尺寸 输入框高 32（行内 25）；其余 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatDisabledNote；标记 = 文案「此分支已结束，不再接收消息」等 2 条） |
 | R-SC-085 | S-11 | 交互 | Enter / Shift+Enter | Enter 发送、Shift+Enter 换行（与主输入区一致） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Pressed@iconAction） |
 | R-SC-086 | S-11 | 交互 | 输入法组字 | 组字期间 Enter 不发送（不打断中文输入） | — | 组字期按 Enter 后消息发送次数 0；输入框字符数不变 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-SC-087 | S-11 | 关联 | 「发送 / 引导」同时在场时 | 有内容且可发送时「发送」可用；空内容时禁用 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/settings/modality_realtime.go:Manager.SendRealtime「发送」 |
 | R-SC-088 | S-11 | 样式 | 输入框 | 与主输入区同款：浅底、圆角、无边框；占位次要色 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = S-11→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Padding） |
 | R-SC-089 | S-11 | 无障碍 | 读屏 | 读作多行输入框，可读名含「侧边对话」 | — | 可读名字符数 ≥1 | 已实现（逐字）：internal/ui/rightpanel_parts.go:rpNewTabItems「侧边对话」 |
-| R-SC-090 | S-11 | 异常 | 发送失败 | 草稿保留在框内，不清空 | — | 失败后草稿计数 1 | 未实现（映射到位但没有该维度的标记）：S-11→internal/ui/rightpanel_sidechat.go:App.sideChatComposer |
-| R-SC-091 | S-11 | 记忆 | 切标签再回 | 草稿保留（同一次右栏会话内） | — | 切回后草稿仍计数 1 | 未实现（映射到位但没有该维度的标记）：S-11→internal/ui/rightpanel_sidechat.go:App.sideChatComposer |
+| R-SC-090 | S-11 | 异常 | 发送失败 | 草稿保留在框内，不清空 | — | 失败后草稿计数 1 | 未实现（映射到位但没有该维度的标记）：S-11→internal/ui/rightpanel_sidechat.go:App.sideChatDisabledNote；测试提及 internal/ui/panel_gap_test.go:包级 |
+| R-SC-091 | S-11 | 记忆 | 切标签再回 | 草稿保留（同一次右栏会话内） | — | 切回后草稿仍计数 1 | 未实现（映射到位但没有该维度的标记）：S-11→internal/ui/rightpanel_sidechat.go:App.sideChatDisabledNote；测试提及 internal/ui/panel_gap_test.go:包级 |
 | R-SC-092 | S-12 | 状态 | 未观察（条件）：侧聊激活、分支已建且不是 main、有消息、状态为开放且没收尾时 | 输入区右侧「结束分支」图标按钮（CircleStop），`title` 为「结束分支」 | — | 屏上出现该按钮 1 个 | 已实现（逐字）：internal/ui/command_palette.go:App.commandPaletteActions「结束分支」 |
 | R-SC-093 | S-12 | 交互 | 点击 | 弹出确认框（S-15）；未确认前分支仍在 | — | 点击后确认框计数 +1 | 已实现（映射 = S-12→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Pressed@iconAction） |
 | R-SC-094 | S-12 | 状态 | 分支为 main / 未建分支 / 已结束 | 按钮不出现 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
@@ -2304,15 +2304,15 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SC-108 | S-14 | 状态 | 未观察（条件）：右栏停在侧聊标签时 | 主按钮（Send 图标）：分支运行中 `title` 为「引导」，否则「发送」 | — | 按钮 title 文案逐字为「引导」（运行中）或「发送」（其他） | 已实现（逐字）：internal/ui/composer.go:App.firstRunGuide「引导」 |
 | R-SC-109 | S-14 | 交互 | 点击（发送） | 发送输入框内容，清空草稿，消息进入时间线 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Pressed@iconAction） |
 | R-SC-110 | S-14 | 交互 | 点击（引导） | 把内容作为引导发送给运行中的回合，不中断 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Pressed@iconAction） |
-| R-SC-111 | S-14 | 状态 | 输入内容为空、分支已关闭或正在发送时 | 按钮禁用（降透明） | — | 禁用态点击后状态变化次数 0 | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Disabled） |
-| R-SC-112 | S-14 | 状态 | 分支已关闭 | 按钮禁用（不再接收消息） | — | 按钮触发次数 0（禁用） | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Disabled） |
+| R-SC-111 | S-14 | 状态 | 输入内容为空、分支已关闭或正在发送时 | 按钮禁用（降透明） | — | 禁用态点击后状态变化次数 0 | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatDisabledNote；标记 = Disabled） |
+| R-SC-112 | S-14 | 状态 | 分支已关闭 | 按钮禁用（不再接收消息） | — | 按钮触发次数 0（禁用） | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatDisabledNote；标记 = Disabled） |
 | R-SC-113 | S-14 | 样式 | 主按钮 | 圆形实心、黑底白箭头（或强调色），直径 32 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Padding） |
 | R-SC-114 | S-14 | 无障碍 | 读屏 | 可读名随态：「发送」/「引导」 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/settings/modality_realtime.go:Manager.SendRealtime「发送」 |
 | R-SC-115 | S-14 | 键盘 | Enter（在输入框内） | 等同点击发送 | — | 键盘触发后发送次数 1 | 已实现（映射 = S-14→internal/ui/rightpanel_sidechat.go:App.sideChatComposer；标记 = Enter） |
 | R-SC-116 | S-14 | 异常 | 发送失败 | 草稿保留、消息不出现在时间线、给错误（S-01） | — | 失败后草稿计数 1 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-SC-117 | S-14 | 记忆 | 切标签再回 | 按钮回到「发送」（若回合已结束） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/settings/modality_realtime.go:Manager.SendRealtime「发送」 |
 | R-SC-118 | S-15 | 状态 | 未观察（条件）：点了「结束分支」、确认框已弹出时 | 弹出确认框，标题逐字「结束此分支？」 | — | 屏上标题逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_sidechat.go:sideChatEndTitle「结束此分支？」 |
-| R-SC-119 | S-15 | 关联 | 确认弹窗说明文本同时在场时 | 标题 + 说明 + 两按钮，四件齐全 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：S-15→internal/ui/rightpanel_sidechat.go:App.sideChatEndDialog |
+| R-SC-119 | S-15 | 关联 | 确认弹窗说明文本同时在场时 | 标题 + 说明 + 两按钮，四件齐全 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-15→internal/ui/settings_personalization_screen.go:renderSettingsPersonalizationScreen；标记 = Screen） |
 | R-SC-120 | S-15 | 交互 | 点遮罩 / Esc | 等同取消，分支不变 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-15→internal/ui/rightpanel_sidechat.go:App.sideChatEndDialog；标记 = Clicked） |
 | R-SC-121 | S-15 | 样式 | 弹窗 | 16px 级半粗主前景；圆角 + 阴影 | — | 判据 = 字号 对话框标题 15.75px；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-15→internal/ui/rightpanel_sidechat.go:App.sideChatEndDialog；标记 = TextColor） |
 | R-SC-122 | S-15 | 无障碍 | 读屏 | 作为对话框名读出 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-15→internal/ui/rightpanel_sidechat.go:App.sideChatEndDialog；标记 = Role） |
@@ -2365,14 +2365,14 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SG-006 | G-01 | 无障碍 | 读屏 | `role=alert` 播报一次 | — | 读屏播报次数 1 | 已实现（映射 = G-01→internal/ui/rightpanel.go:panelBanner；标记 = Role） |
 | R-SG-007 | G-01 | 窄窗 | 面板宽 311 | 文案折行，「重试」仍在行内 | — | 窄窗下的包围盒交集面积 0 | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-SG-008 | G-01 | 内容 | 错误消息含英文 | 原文显示，不翻译 | — | 文本与来源逐项相同（差 0） | 已实现（映射 = G-01→internal/ui/rightpanel.go:panelBanner；标记 = 文案「图标：」@iconGlyph） |
-| R-SG-009 | G-02 | 内容 | 未观察（条件）：子代理流出错、连接已就绪、且右栏停在子代理标签时 | 横幅内错误消息，单行 truncate（悬停出完整值） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 3 条） |
+| R-SG-009 | G-02 | 内容 | 未观察（条件）：子代理流出错、连接已就绪、且右栏停在子代理标签时 | 横幅内错误消息，单行 truncate（悬停出完整值） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 4 条） |
 | R-SG-010 | G-02 | 内容 | 消息为空 | 显示通用「加载失败」，不留空横幅 | — | 横幅内字符数 ≥1 | 已实现（逐字）：internal/ui/rightpanel_sidechat.go:sideChatLoadFailed「加载失败」 |
-| R-SG-011 | G-02 | 样式 | 横幅同时在场时 | 13–14px、深橙/危险色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Padding） |
-| R-SG-012 | G-02 | 无障碍 | 读屏 | 读出完整消息（不截断） | — | 读屏含全文（命中次数 ≥1） | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Role） |
+| R-SG-011 | G-02 | 样式 | 横幅同时在场时 | 13–14px、深橙/危险色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-02→internal/ui/settings_account_screen.go:accMeter；标记 = Width） |
+| R-SG-012 | G-02 | 无障碍 | 读屏 | 读出完整消息（不截断） | — | 读屏含全文（命中次数 ≥1） | 已实现（映射 = G-02→internal/ui/settings_account_screen.go:accMeter；标记 = Role） |
 | R-SG-013 | G-02 | 交互 | 点击文本 | 无动作（重试由 G-03 承担） | — | 点击前后屏上文案、计数与 y 坐标差 0 | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Clicked@panelBanner） |
 | R-SG-014 | G-02 | 状态 | 消息为空 | 显示通用「加载失败」 | — | 横幅内字符数 ≥1 | 已实现（逐字）：internal/ui/rightpanel_sidechat.go:sideChatLoadFailed「加载失败」 |
 | R-SG-015 | G-02 | 窄窗 | 面板宽 311 | 单行 truncate，悬停可看全 | — | 窄窗下仍 1 行 | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Compact@panelBanner） |
-| R-SG-016 | G-02 | 记忆 | 切走再回 | 错误横幅按实况重建 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel |
+| R-SG-016 | G-02 | 记忆 | 切走再回 | 错误横幅按实况重建 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：G-02→internal/ui/settings_account_screen.go:accMeter |
 | R-SG-017 | G-03 | 状态 | 未观察（条件）：子代理流出错、连接已就绪、且右栏停在子代理标签时 | 横幅尾部文字按钮「重试」，前置刷新图标（RefreshCw） | — | 屏上文案逐字「重试」 | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-SG-018 | G-03 | 交互 | 点击 | 重新拉取该子代理会话流；按钮短暂禁用 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-03→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Clicked@panelBanner） |
 | R-SG-019 | G-03 | 异常 | 重试再失败 | 横幅保留，按钮可再点 | — | 二次失败仍触发次数 1 | 已实现（映射 = G-03→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Err） |
@@ -2381,7 +2381,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SG-022 | G-03 | 内容 | 按钮文案 | 恒为「重试」 | — | 两次取值逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-SG-023 | G-03 | 样式 | 「重试」同时在场时 | 同为文字/次按钮，位于横幅行尾 | — | 判据 = 字号 UI 正文 12.25px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-03→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Padding） |
 | R-SG-024 | G-03 | 记忆 | 切走再回 | 错误未消则按钮仍在 | — | 「重试」按钮计数 1（错误未消） | 未实现（映射到位但没有该维度的标记）：G-03→internal/ui/rightpanel_subagent.go:App.subagentPanel |
-| R-SG-025 | G-04 | 内容 | 未观察（条件）：子代理流出错、连接还没就绪时 | 空态区显示错误文本（警告色），文案为错误消息原文 | — | 屏上警告色文本计数 +1 | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 3 条） |
+| R-SG-025 | G-04 | 内容 | 未观察（条件）：子代理流出错、连接还没就绪时 | 空态区显示错误文本（警告色），文案为错误消息原文 | — | 屏上警告色文本计数 +1 | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 4 条） |
 | R-SG-026 | G-04 | 关联 | 「重试」同时在场时 | 文本下方跟「重试」次级按钮，二者成组 | — | 两件同时计数 1 | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-SG-027 | G-04 | 状态 | 错误消除 | 文本消失，换成加载态（G-06/G-07）或内容区 | — | 恢复后错误文本计数 0 | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Disabled@App.subagentRetryEntry） |
 | R-SG-028 | G-04 | 样式 | 空态错误 | 14px 级警告色、居中、左右留白 24 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Padding） |

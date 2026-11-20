@@ -199,7 +199,7 @@ func (a *App) configFormSave(data configView, form *configForm) {
 	if form.editing {
 		if form.id == "" {
 			form.saving = false
-			form.formErr = "这个供应商没有服务端标识，无法保存"
+			form.formErr = "这个供应商缺少标识，无法保存"
 			return
 		}
 		id, key := form.id, form.key

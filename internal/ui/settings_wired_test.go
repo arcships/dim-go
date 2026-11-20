@@ -116,7 +116,7 @@ func TestMCPSettingsReadError(t *testing.T) {
 	if _, ok := tt.Find("读取 MCP 服务器失败：mcp.catalog 超时"); !ok {
 		t.Fatal("读数失败没有给出原因")
 	}
-	if _, ok := tt.Find("服务端没有声明 MCP 能力，清单可能不完整。"); !ok {
+	if _, ok := tt.Find("当前版本读不到完整的 MCP 清单，下面列出的是已确认的部分。"); !ok {
 		t.Fatal("能力缺失没有给出说明")
 	}
 	if _, ok := tt.Find("fs-real"); !ok {
@@ -331,7 +331,7 @@ func TestGitWorktreeManualPath(t *testing.T) {
 	app := NewApp(Options{State: StateDefault})
 	tt := openSettingsSection(t, app, secGit)
 
-	if !tt.HasText("手动输入路径（系统目录选择器未接入）") {
+	if !tt.HasText("手动输入路径（当前版本没有目录选择器）") {
 		t.Fatalf("没有写手动输入路径：%v", tt.Texts())
 	}
 	info, ok := tt.Access(gitCopyChooseDirA11y)

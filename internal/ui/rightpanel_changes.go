@@ -105,8 +105,11 @@ func (a *App) rpLiveChangeSet(facts PanelFacts, refresh bool) ChangeSet {
 }
 
 // rpChangeFile 把一条改动快照映射成行；没有行数事实时行上不画数字。
+//
+// 连着真实读数时 diff 读不到（协议只到文件级），行展开后块内给原因，不留空白
+// 块（D-47-443）；样例行自带 diff 文本，不受影响。
 func rpChangeFile(file ChangeFileSnapshot) *rpChange {
-	change := &rpChange{path: file.Path, statUnknown: !file.StatKnown}
+	change := &rpChange{path: file.Path, statUnknown: !file.StatKnown, diffNote: noteDiffContent}
 	if file.Status != "" {
 		change.status = file.Status[0]
 	}
@@ -460,11 +463,24 @@ func (a *App) rpChangeRow(c *gui.Context, change *rpChange, staged bool) {
 	a.rpChangeMenu(c, row, change, staged)
 }
 
-// rpDiffBlock 是行内 unified diff（D-47–D-49）：等宽、按行着色，行数多时
-// 只画前若干行并给「已截断」。
+// rpDiffBlock 是行内 unified diff（D-47–D-49）：等宽、按行着色；超长行横向
+// 滚动而不折行（D-48-447）；行数多时只画前若干行，并在块顶给「已截断」
+// （D-49-457：提示在内容之上）。块收起由行点击负责。
 func (a *App) rpDiffBlock(c *gui.Context, change *rpChange) {
 	t := c.Theme()
 	if len(change.diff) == 0 {
+		// 读不到 diff 内容时给失败提示，不留一个空白块（D-47-443）。
+		if change.diffNote != "" {
+			block := gui.Column(c).Shrink(0).Padding(space1, panelDiffPadH).
+				Radius(radiusSmall).Background(t.Surface)
+			block.Draw(func(p *gui.Painter, r gui.Rect) {
+				p.Stroke(r, t.Border, radiusSmall, strokeHairline)
+			})
+			block.Children(func() {
+				typeSecondary.style(t, gui.Text(c, change.diffNote)).TextColor(t.TextMuted).
+					Role(gui.RoleStatus).MaxLines(2)
+			})
+		}
 		return
 	}
 	lines := change.diff
@@ -479,20 +495,25 @@ func (a *App) rpDiffBlock(c *gui.Context, change *rpChange) {
 		p.Stroke(r, t.Border, radiusSmall, strokeHairline)
 	})
 	block.Children(func() {
-		for _, line := range lines {
-			color := t.TextMuted
-			switch {
-			case len(line) > 0 && line[0] == '+':
-				color = t.Success
-			case len(line) > 0 && line[0] == '-':
-				color = t.Danger
-			}
-			typeCode.style(t, gui.Text(c, line)).TextColor(color).
-				FontSize(typeMicro.sizeIn(t)).SingleLine()
-		}
 		if truncated {
 			typeSecondary.style(t, gui.Text(c, "已截断")).TextColor(t.TextMuted).SingleLine()
 		}
+		// 超长行不折行：整列放进横向滚动容器，滚动条贴在块底。
+		gui.ScrollHorizontal(c).Children(func() {
+			gui.Column(c).Children(func() {
+				for _, line := range lines {
+					color := t.TextMuted
+					switch {
+					case len(line) > 0 && line[0] == '+':
+						color = t.Success
+					case len(line) > 0 && line[0] == '-':
+						color = t.Danger
+					}
+					typeCode.style(t, gui.Text(c, line)).TextColor(color).
+						FontSize(typeMicro.sizeIn(t)).SingleLine()
+				}
+			})
+		})
 	})
 }
 

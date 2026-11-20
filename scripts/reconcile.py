@@ -792,6 +792,37 @@ MAP_NO_POINT = '无渲染点'
 MAP_NEG = '负向'
 MAP_BUCKETS = ['逐字', MAP_HIT, MAP_NO_MARK, MAP_NO_POINT, MAP_NEG]
 
+# ---- 附录：五档分流。词表与元素族是分档口径的唯一来源（报告 §5.1 由它生成）。
+
+TRIAGE_DONE_FILE = ROOT / 'scripts' / 'reconcile-triage-done.json'
+TRIAGE_BUCKETS = ['本版可做', '需协议', '需素材', '需宿主能力', '取证口径']
+
+TRIAGE_MATERIAL_WORDS = (
+    '皮肤', '缩略图', '素材', '封面', '波形', '预览图', '用图片', '图片资源', '图标资源',
+)
+TRIAGE_MATERIAL_RE = re.compile('|'.join(TRIAGE_MATERIAL_WORDS))
+
+TRIAGE_HOST_WORDS = (
+    '文件选择器', '目录选择器', '系统对话框', '托盘', '系统通知', '默认应用', 'Finder',
+    '全屏', '多显示器', '系统级', '开机自启', '休眠', '日志文件', '伪终端', '自动安装',
+    '麦克风', '摄像头',
+)
+TRIAGE_HOST_RE = re.compile('|'.join(TRIAGE_HOST_WORDS))
+# 通用（桌面设置）、通知（系统通知）、运行环境（下载安装）、关于（自动安装）：都要宿主通道。
+TRIAGE_HOST_FAMILIES = {'S-general', 'S-notifications', 'S-runtime', 'S-about'}
+
+# 事实、写入或清单在 App Server、protocol v3 没有对应方法或字段的元素族。
+TRIAGE_PROTOCOL_FAMILIES = {
+    'S-account', 'S-usage', 'S-personalization', 'S-modality', 'S-mcp', 'S-git', 'S-hooks',
+    'S-pluginSettings', 'S-externalAgents',
+}
+
+# 横向维度：判定在屏根 / 主题 / App 层（§4.3、§4.8），元素函数里不出现标记。
+TRIAGE_HORIZONTAL_DIMS = {
+    '窄窗', '深色', '暗色', '记忆', '高DPI', '键盘', '动画', '性能', '输入法', '多窗口',
+    '拖拽', '数据量', '密度', '空间', '位置', '悬停', '展开后', '语言', '多语言',
+}
+
 DIM_CONTENT = '__content__'
 
 # 维度 → 标记组。primary = 领导给定的八组；ext = 为其余维度补的同类组
@@ -1424,6 +1455,7 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
     lines.append('- **只扫 `internal/**/*.go`**：`cmd/`、生成文件与前端资源不在扫描范围。')
     lines.append('')
     append_map_section(lines, rows_by_file, verdicts_by_file, map_by_file, inv, render_index)
+    append_triage_section(lines, rows_by_file, map_by_file)
     REPORT.write_text('\n'.join(lines))
 
 
@@ -1837,6 +1869,222 @@ SYMBOL_INDEX: dict[str, tuple[str, str, int]] = {}
 ELEM_COMMENT_INDEX: dict[str, tuple[str, str, int]] = {}
 TEST_INDEX: dict[str, tuple[str, str]] = {}
 GO_BY_REL: dict[str, GoFile] = {}
+
+
+# ---------------------------------------------------------------- 五档分流附录
+
+def triage_done() -> dict[str, str]:
+    """本轮做掉的需求登记（需求 ID → 一句实现点），没有文件就是空表。"""
+    if not TRIAGE_DONE_FILE.exists():
+        return {}
+    try:
+        data = json.loads(TRIAGE_DONE_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    done = data.get('done', {}) if isinstance(data, dict) else {}
+    return {k: str(v) for k, v in done.items()} if isinstance(done, dict) else {}
+
+
+def elem_family(elem_id: str) -> str:
+    """元素族：`S-appearance-50` → `S-appearance`；`IN-66` → `IN`。"""
+    parts = elem_id.split('-')
+    if parts[0] == 'S' and len(parts) >= 3:
+        return 'S-' + parts[1]
+    return parts[0]
+
+
+def elem_index(elem_id: str) -> int:
+    """元素序号：`S-appearance-50` → 50；不是 `族-序号` 形状时返回 -1。"""
+    tail = elem_id.rsplit('-', 1)[-1]
+    return int(tail) if tail.isdigit() else -1
+
+
+def elem_needs_assets(elem_id: str) -> bool:
+    """皮肤（`S-appearance-50` 起）与宠物要图片素材；没有素材连形态都画不出来。"""
+    family = elem_family(elem_id)
+    if family == 'S-pets':
+        return True
+    return family == 'S-appearance' and elem_index(elem_id) >= 50
+
+
+def triage_bucket(row: ReqRow, kind: str) -> tuple[str, str]:
+    """把一条未实现分到五档之一，返回 (档位, 命中规则)。
+
+    规则按顺序取第一个命中（口径见附录 §5.1）：
+    素材 → 宿主 → 协议 → 取证口径 → 本版可做。
+    前三档说的是「缺什么才能做」；取证口径说的是「这条判定本身要补证据」——
+    无渲染点、横向维度、语言包缺失都属这一类，它们不指向一个待实现的功能。
+    """
+    blob = ' '.join((row.expected, row.acceptance, row.cells[3] if len(row.cells) > 3 else ''))
+    family = elem_family(row.elem_id)
+    if TRIAGE_MATERIAL_RE.search(row.expected) or elem_needs_assets(row.elem_id):
+        return '需素材', '期望列素材词 / 皮肤·宠物元素'
+    if TRIAGE_HOST_RE.search(blob) or family in TRIAGE_HOST_FAMILIES:
+        return '需宿主能力', '宿主接口词 / 元素族'
+    if family in TRIAGE_PROTOCOL_FAMILIES:
+        return '需协议', '元素族在服务端'
+    if kind == MAP_NO_POINT:
+        return '取证口径', '无渲染点（先补锚点再判）'
+    if norm_dim(row.dim) in TRIAGE_HORIZONTAL_DIMS:
+        return '取证口径', '横向维度'
+    if '语言包' in blob:
+        return '取证口径', '无 i18n 层'
+    return '本版可做', '本地偏好 / 本地草稿 / 已有事实'
+
+
+def pick_triage_sample(rows: list[ReqRow], limit: int = 10) -> list[ReqRow]:
+    """每档取代表性 10 条：先在元素族之间摊开，再按需求 ID 补齐。"""
+    picked: list[ReqRow] = []
+    seen: set[str] = set()
+    for row in rows:
+        family = elem_family(row.elem_id)
+        if family in seen:
+            continue
+        seen.add(family)
+        picked.append(row)
+        if len(picked) >= limit:
+            return picked
+    for row in rows:
+        if row in picked:
+            continue
+        picked.append(row)
+        if len(picked) >= limit:
+            break
+    return picked
+
+
+def append_triage_section(lines: list[str],
+                          rows_by_file: dict[Path, list[ReqRow]],
+                          map_by_file: dict[Path, dict[int, MapResult]]) -> None:
+    """附录：把「设置 19 节」的未实现条目按五档分，并核对本轮做掉的条目。"""
+    settings_path = next((p for p in rows_by_file if p.name == 'requirements-settings.md'), None)
+    lines.append('## 5. 附录：设置 19 节的未实现分流（五档）')
+    lines.append('')
+    if settings_path is None:
+        lines.append('没有读到 `requirements-settings.md`，本节跳过。')
+        lines.append('')
+        return
+    rows = rows_by_file[settings_path]
+    results = map_by_file[settings_path]
+    unimplemented = [row for row in rows if results[row.line_no].kind in (MAP_NO_MARK, MAP_NO_POINT)]
+    total = len(rows)
+    lines.append('本节只分 `requirements-settings.md`（19 节 + 壳层）。分流的对象是**现行状态列**的'
+                 f'未实现条目（§4 口径：映射到位无标记 + 无渲染点），共 {len(unimplemented)} 条；'
+                 '第一轮逐字口径的 6,140 条是同一批需求的下限计数，两者不是两批条目，'
+                 '差别在判定口径（§1 的「未实现」含「期望列抽不出字面量」的叙述型条目）。')
+    lines.append('')
+
+    buckets: dict[str, list[tuple[ReqRow, str]]] = {name: [] for name in TRIAGE_BUCKETS}
+    for row in unimplemented:
+        bucket, rule = triage_bucket(row, results[row.line_no].kind)
+        buckets[bucket].append((row, rule))
+    dims = collections.Counter(norm_dim(row.dim) for row in unimplemented)
+
+    lines.append('### 5.1 分档口径')
+    lines.append('')
+    lines.append('| 档 | 判据（按顺序取第一个命中） | 含义 |')
+    lines.append('|---|---|---|')
+    lines.append(f'| 需素材 | 期望列命中素材词（{"、".join(TRIAGE_MATERIAL_WORDS)}） | '
+                 '缺图片素材（皮肤图、缩略图、封面）就画不出，写实现也验不了 |')
+    lines.append(f'| 需宿主能力 | 期望/场景/验收列命中宿主接口词（{len(TRIAGE_HOST_WORDS)} 个），'
+                 f'或元素族属 {", ".join(f"`{f}`" for f in sorted(TRIAGE_HOST_FAMILIES))} | '
+                 '要系统对话框、托盘、通知、休眠、下载安装等宿主通道 |')
+    lines.append(f'| 需协议 | 元素族属 '
+                 f'{", ".join(f"`{f}`" for f in sorted(TRIAGE_PROTOCOL_FAMILIES))} | '
+                 '事实、写入或清单在 App Server，protocol v3 没有对应方法或字段 |')
+    lines.append('| 取证口径 | 判定为无渲染点，或维度属横向维度（' +
+                 '、'.join(sorted(TRIAGE_HORIZONTAL_DIMS)) + '），或场景是「语言包缺失回落」 | '
+                 '这一档不是待实现功能，是判定要补证据：补元素锚点后重判，或界面实拍取证 |')
+    lines.append('| 本版可做 | 其余 | 本地偏好、本地草稿、已有事实能落地；本节列出这些条目 |')
+    lines.append('')
+    lines.append('表里的词表与元素族是**一次判定**，脚本按它逐条分，不逐条人工过；'
+                 '分档只说「要什么才能做」，不改状态列（状态列仍由 §4 判）。'
+                 '「无渲染点」按 §4.2 的口径归取证档：那是映射缺口，不是实现结论；'
+                 '把它记成「需协议」会把缺注释的元素算成缺服务端方法。')
+    lines.append('')
+
+    lines.append('### 5.2 分档计数')
+    lines.append('')
+    lines.append('| 档 | 条数 | 占比 | 主要维度 | 主要元素族 |')
+    lines.append('|---|---:|---:|---|---|')
+    for name in TRIAGE_BUCKETS:
+        items = buckets[name]
+        if not items:
+            lines.append(f'| {name} | 0 | 0.0% | — | — |')
+            continue
+        dim_c = collections.Counter(norm_dim(row.dim) for row, _rule in items)
+        fam_c = collections.Counter(elem_family(row.elem_id) for row, _rule in items)
+        dims_top = '、'.join(f'{d} {n}' for d, n in dim_c.most_common(3))
+        fams_top = '、'.join(f'`{f}` {n}' for f, n in fam_c.most_common(3))
+        lines.append(f'| {name} | {len(items)} | {pct(len(items), len(unimplemented))} | '
+                     f'{dims_top} | {fams_top} |')
+    lines.append(f'| **合计** | **{len(unimplemented)}** | **100.0%** | — | — |')
+    lines.append('')
+    lines.append('未实现条目的维度构成（全量，供对照）：' +
+                 '、'.join(f'{d} {n}' for d, n in dims.most_common(10)) + '。')
+    lines.append('')
+
+    lines.append('### 5.3 每档代表条目（每档 10 条）')
+    lines.append('')
+    for name in TRIAGE_BUCKETS:
+        items = buckets[name]
+        lines.append(f'#### {name}（{len(items)} 条）')
+        lines.append('')
+        if not items:
+            lines.append('无。')
+            lines.append('')
+            continue
+        lines.append('| 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |')
+        lines.append('|---|---|---|---|---|---|')
+        for row in pick_triage_sample([r for r, _ in items]):
+            where = results[row.line_no].kind
+            expected = row.expected.replace('|', '/')[:36] or '—'
+            rule = triage_bucket(row, where)[1]
+            lines.append(f'| {row.req_id} | {row.elem_id} | {norm_dim(row.dim)} | '
+                         f'{expected} | {where} | {rule} |')
+        lines.append('')
+
+    done = triage_done()
+    lines.append('### 5.4 本轮做掉的条目')
+    lines.append('')
+    if not done:
+        lines.append('本轮没有登记做掉的条目（`scripts/reconcile-triage-done.json` 为空）。')
+        lines.append('')
+        return
+    implemented = check_done(done, rows_by_file, map_by_file)
+    ok = sum(1 for _req, state, _ev in implemented if state == '已实现')
+    lines.append(f'登记 {len(implemented)} 条：现状为「已实现」{ok} 条，不一致 '
+                 f'{len(implemented) - ok} 条。登记表在 `scripts/reconcile-triage-done.json`，'
+                 '重跑时逐条核对状态列，做没做不看口头说明。')
+    lines.append('')
+    lines.append('| 需求 ID | 实现点 | 现状 |')
+    lines.append('|---|---|---|')
+    for req_id, state, evidence in implemented:
+        lines.append(f'| {req_id} | {done[req_id]} | {state}{evidence} |')
+    lines.append('')
+
+
+def check_done(done: dict[str, str],
+               rows_by_file: dict[Path, list[ReqRow]],
+               map_by_file: dict[Path, dict[int, MapResult]]) -> list[tuple[str, str, str]]:
+    """核对登记表：每条登记的需求现在必须已是「已实现（…）」。"""
+    index: dict[str, tuple[ReqRow, MapResult]] = {}
+    for path, rows in rows_by_file.items():
+        for row in rows:
+            index.setdefault(row.req_id, (row, map_by_file[path][row.line_no]))
+    out: list[tuple[str, str, str]] = []
+    for req_id in done:
+        hit = index.get(req_id)
+        if hit is None:
+            out.append((req_id, '找不到这条需求', ''))
+            continue
+        row, result = hit
+        if result.kind in (MAP_NO_MARK, MAP_NO_POINT):
+            out.append((req_id, f'仍为未实现（{result.kind}）', ''))
+            continue
+        evidence = f'（{result.kind}）'
+        out.append((req_id, '已实现', evidence))
+    return out
 
 
 def main() -> int:

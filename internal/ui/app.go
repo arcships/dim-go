@@ -327,8 +327,11 @@ type App struct {
 	// appearance 是「设置 › 外观」里会真正影响渲染的本地偏好：界面字体与字号、
 	// 代码字体与字号、代码配色。它不是事实——启动时从本地偏好恢复，改一次落盘一次。
 	appearance AppearancePreferences
-	motionOff  bool
-	timeZone   string
+	// keybindings 是「设置 › 快捷键」两组里改过的键位（动作 ID → Electron 写法）。
+	// 没有某个动作时按出厂值；改键即落盘，重置就是删掉这一项。
+	keybindings map[string]string
+	motionOff   bool
+	timeZone    string
 	// 样例模式下的全局唤起快捷键（接上 Source 时读注册状态，这两项不参与）。
 	globalShortcutOn    bool
 	globalShortcutAccel string
@@ -474,6 +477,8 @@ type App struct {
 	termLines  []termLine
 	termInput  string
 	termCopied bool
+	// termExit 是进程的结束事实（T-11）：退出码 / 信号，激活层与它同步。
+	termExit termExit
 	// termCleared 是连着 pty 时「清屏」丢掉的行数基线：快照里的前这么多行不再
 	// 上屏，之后新到的输出照常显示（pty 的输出不因清屏而丢）。
 	termCleared int
@@ -958,6 +963,7 @@ func (a *App) resetWiredViewState() {
 		a.notifySound = prefs.NotifySound
 		a.notifyNeedsResponse = prefs.NotifyNeedsResponse
 		a.appearance = prefs.Appearance
+		a.keybindings = copyBindingMap(prefs.Keybindings)
 		// 视图状态只在启动后铺回一次：loadSample 在每次切场景时都会跑，若每次都
 		// 铺回，切场景会把用户刚收起 / 展开的视图盖回上次落盘的值。它是本地偏好，
 		// 不是事实。
@@ -1331,13 +1337,10 @@ func (a *App) applyViewPreferences(view ViewPreferencesSnapshot) {
 	}
 }
 
-// persistPreferences 在主题/动效/时区/侧栏宽度/工作区目录变化后落盘；只在接上
-// Intents 时。
-func (a *App) persistPreferences() {
-	if a.intents == nil {
-		return
-	}
-	prefs := PreferencesSnapshot{
+// preferenceSnapshot 把当前本地偏好收成一份快照：主题、动效、时区、侧栏宽度、
+// 工作区目录、通知开关、外观与快捷键、视图状态。落盘前的唯一取值点。
+func (a *App) preferenceSnapshot() PreferencesSnapshot {
+	return PreferencesSnapshot{
 		Theme: a.themePref, MotionOff: a.motionOff,
 		TimeZone: a.timeZone, SidebarWidth: int(a.sidebarWidth),
 		Workspaces:          append([]string(nil), a.workspaces...),
@@ -1346,8 +1349,18 @@ func (a *App) persistPreferences() {
 		NotifySound:         a.notifySound,
 		NotifyNeedsResponse: a.notifyNeedsResponse,
 		Appearance:          a.appearance,
+		Keybindings:         copyBindingMap(a.keybindings),
 		View:                a.viewPreferences(),
 	}
+}
+
+// persistPreferences 在主题/动效/时区/侧栏宽度/工作区目录变化后落盘；只在接上
+// Intents 时。
+func (a *App) persistPreferences() {
+	if a.intents == nil {
+		return
+	}
+	prefs := a.preferenceSnapshot()
 	if samePreferences(prefs, a.lastPrefs) {
 		return
 	}
@@ -1368,11 +1381,39 @@ func samePreferences(a, b PreferencesSnapshot) bool {
 	if !viewPreferencesEqual(a.View, b.View) {
 		return false
 	}
+	if !bindingsEqual(a.Keybindings, b.Keybindings) {
+		return false
+	}
 	if len(a.Workspaces) != len(b.Workspaces) {
 		return false
 	}
 	for i := range a.Workspaces {
 		if a.Workspaces[i] != b.Workspaces[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// copyBindingMap 复制一份快捷键偏好：映射按下标共享，落盘与读取都不能交出同一份。
+func copyBindingMap(bindings map[string]string) map[string]string {
+	if len(bindings) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(bindings))
+	for id, binding := range bindings {
+		out[id] = binding
+	}
+	return out
+}
+
+// bindingsEqual 比两份快捷键偏好：项数与每一项都要一致。
+func bindingsEqual(a, b map[string]string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for id, binding := range a {
+		if other, ok := b[id]; !ok || other != binding {
 			return false
 		}
 	}
@@ -1652,8 +1693,8 @@ func (a *App) viewKeys(c *gui.Context) {
 		a.narrowDrawer = false
 		return
 	}
-	if c.Shortcut(gui.Cmd, gui.KeyB) {
-		// 窄窗里 ⌘B 开合的是覆盖式抽屉，不改左栏的常驻偏好：窗口变宽后左栏
+	if a.keybindingHit(c, "toggle-sidebar") {
+		// 窄窗里这个键开合的是覆盖式抽屉，不改左栏的常驻偏好：窗口变宽后左栏
 		// 还按用户上次的选择回来。
 		if narrowWindow(c) {
 			a.narrowDrawer = !a.narrowDrawer
@@ -1661,9 +1702,37 @@ func (a *App) viewKeys(c *gui.Context) {
 			a.setSidebarCollapsed(!a.sidebarCollapsed)
 		}
 	}
-	if c.Shortcut(gui.Cmd, gui.KeyComma) {
+	if a.keybindingHit(c, "open-settings") {
 		a.screen = ScreenSettings
 	}
+	// 下面四条是「设置 › 快捷键」两组里另外四个有落点的动作：键位改过就按改过的，
+	// 没改过按出厂值。submit-changes（提交更改）本版没有落点，那一行在设置屏里
+	// 置灰并写原因，这里不接管它的键。
+	if a.keybindingHit(c, "new-thread") {
+		a.createSessionAt("")
+	}
+	if a.keybindingHit(c, "focus-composer") {
+		a.focusComposer.Store(true)
+	}
+	if a.keybindingHit(c, "toggle-changes") {
+		a.toggleRightTab(tabChanges)
+	}
+	if a.keybindingHit(c, "toggle-terminal") {
+		a.toggleRightTab(tabTerminal)
+	}
+}
+
+// toggleRightTab 开合右栏的某一页：已经是这一页就收起右栏，否则切到这一页
+// （右栏没开时一并打开）。
+func (a *App) toggleRightTab(tab int) {
+	if a.rightOpen && a.rightTab == tab {
+		a.rightOpen = false
+		a.persistViewState()
+		return
+	}
+	a.rightOpen = true
+	a.rpOpen(tab)
+	a.persistViewState()
 }
 
 // setSidebarCollapsed 收起 / 展开左栏。收起态与右栏开合并列，是要落盘的视图状态
@@ -1915,7 +1984,9 @@ func (a *App) sessionTasks() ([]task, bool) {
 		for _, item := range snap.Tasks {
 			state := taskRunning
 			if item.Stopping {
-				state = taskDone
+				// 已发停止、还没结束：状态词写「正在停止」，不写成「已完成」——
+				// 服务端还没有给结束事实（K-15）。
+				state = taskStopping
 			}
 			task := task{
 				id: item.ID, kind: taskProcess, name: item.Description,
@@ -1945,7 +2016,7 @@ func (a *App) sessionWakeups() ([]task, string) {
 	}
 	snapshot := a.source.Wakeups()
 	if snapshot.CapabilityMissing {
-		return nil, "（服务端没有提供唤醒读取）"
+		return nil, "（暂时读不到定时任务）"
 	}
 	if snapshot.ReadError != "" {
 		return nil, "（读取失败：" + snapshot.ReadError + "）"

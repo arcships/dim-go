@@ -252,16 +252,15 @@ const (
 // 本屏文案：逐字取参考产品的 zh-CN（i18n:runtimeSettings.*、
 // i18n:featureRuntimes.*）。
 //
-// 能力缺失的提示保留英文原文，前面加中文说明（「服务端未提供该能力：」），
-// 让人先看懂是什么，再能对上服务端的原话。
+// 能力缺失时只说当前版本的结果，不把协议方法名与英文原文摊到屏上。
 const (
 	rtCopyTitle            = "运行环境"
-	rtCopyDesc             = "由 App Server RuntimeManager 管理；Desktop 不下载、不保留第二份运行时。"
+	rtCopyDesc             = "运行环境由服务端统一管理；这里显示它给出的清单，本机不另存一份。"
 	rtCopyRefresh          = "刷新"
-	rtCopyError            = "服务端未提供该能力：The App Server does not advertise runtime.list; update the bundled runtime."
+	rtCopyError            = "当前版本不支持读取运行环境"
 	rtCopyRetry            = "重试"
-	rtCopyUnread           = "服务端还没有给出运行环境清单（读数未到）"
-	rtCopyEmptyLive        = "服务端没有报告任何运行环境条目。"
+	rtCopyUnread           = "暂时读不到运行环境清单"
+	rtCopyEmptyLive        = "还没有读到运行环境。"
 	rtCopyFeatures         = "功能组件"
 	rtCopyOfficeCLI        = "OfficeCLI"
 	rtCopyOfficeCLIDesc    = "创建、读取和编辑 Word、Excel、PowerPoint 文件。"

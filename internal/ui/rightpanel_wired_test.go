@@ -32,6 +32,8 @@ type fakePanelSource struct {
 	changeCalls int
 	// searchRefreshed 记录搜索请求里出现过一次 Refresh（点了刷新 / 重试）。
 	searchRefreshed bool
+	// treeRefreshed 记录带 Refresh 的目录读取（"" 是根）：用来验「只重读这一格」。
+	treeRefreshed []string
 }
 
 func newFakePanelSource(cwd string) *fakePanelSource {
@@ -49,6 +51,9 @@ func newFakePanelSource(cwd string) *fakePanelSource {
 func (f *fakePanelSource) FileTree(request FileTreeRequest) FileTreeSnapshot {
 	f.lastTree = request
 	f.treeCalls++
+	if request.Refresh {
+		f.treeRefreshed = append(f.treeRefreshed, request.Dir)
+	}
 	snapshot, ok := f.trees[request.Dir]
 	if !ok {
 		return FileTreeSnapshot{Cwd: request.Cwd, Dir: request.Dir, Phase: PanelReadReady}

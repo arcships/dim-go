@@ -364,20 +364,13 @@ func (a *App) assistantMessageMenu(m *gui.Menu, svc gui.Services, text, selectio
 // userAttachmentArea 是气泡里的附件与引用区（TL-21–TL-26）：定时来源、图片廊、
 // 附件 chip、引用列表与标注，都排在正文之上（R-TL-213）。
 //
-// RowSnapshot 目前没有附件 / 引用 / 标注 / 定时来源字段（等事实）：真实消息先
-// 画一行占位并注明「等事实」（DEC-07），投影补上字段后由 userRound 填进来即可。
+// 技术口径：RowSnapshot 目前没有附件 / 引用 / 标注 / 定时来源字段（DEC-07）。
+// 真实消息没有这些内容，这一区就整块不画——没有内容时不摆占位、不写内部说明；
+// 投影补上字段后由 userRound 填进来即可。
 func (a *App) userAttachmentArea(c *gui.Context, r round) {
 	t := c.Theme()
 	if len(r.images) == 0 && len(r.attachments) == 0 && len(r.quotes) == 0 &&
 		len(r.marks) == 0 && r.wakeup == "" {
-		if r.factsPending {
-			gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space1).
-				Label("附件与引用占位").Children(func() {
-				iconGlyph(c, iconPaperclip, t.TextMuted, "attachment")
-				typeMicro.style(t, gui.Text(c, noteAttachmentFacts)).
-					TextColor(t.TextMuted).SingleLine()
-			})
-		}
 		return
 	}
 	gui.Column(c).Shrink(0).Gap(space1).Label("消息附件与引用").Children(func() {
@@ -832,8 +825,9 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 }
 
 // toolDetail 是工具行的展开区：输入 / 输出 / 失败原因三段，段首写段名，
-// 内容用等宽浅底块；失败原因取危险色。输入与失败原因分开进快照之前，失败的
-// 工具仍给出「失败原因」段，并写明这一段还在等事实，不把输出冒充原因。
+// 内容用等宽浅底块；失败原因取危险色。技术口径：输入与失败原因分开进快照之前，
+// 失败的工具只有输出可用——没有原因原文时「失败原因」段整段不画，不把输出冒充
+// 原因，也不在屏上留一句内部说明。
 func (a *App) toolDetail(c *gui.Context, row, n int, o op) {
 	// TL-55 工具调用详情（展开区）
 	t := c.Theme()
@@ -853,14 +847,9 @@ func (a *App) toolDetail(c *gui.Context, row, n int, o op) {
 				a.searchCodeBlock(c, searchKeyToolOutput(row, n), o.output)
 			})
 		}
-		if o.failed || o.cause != "" {
+		if o.cause != "" {
 			a.toolDetailSection(c, "失败原因", t.Danger, func() {
-				if o.cause != "" {
-					a.codeBlock(c, o.cause)
-					return
-				}
-				typeSecondary.style(t, gui.Text(c, "失败原因还没有单独进快照（等事实）")).
-					TextColor(t.TextMuted)
+				a.codeBlock(c, o.cause)
 			})
 		}
 	})
@@ -1781,11 +1770,11 @@ func (a *App) assistantText(c *gui.Context, i int, text string) {
 	}
 }
 
-// userRound 把用户行投成一条用户消息：正文与状态来自事实。附件、引用、标注与
-// 定时来源还没有进 RowSnapshot（等事实），所以这里不填；factsPending 让气泡画
-// 一行「等事实」的占位，而不是假 chip（DEC-07）。
+// userRound 把用户行投成一条用户消息：正文与状态来自事实。技术口径：附件、引用、
+// 标注与定时来源还没有进 RowSnapshot（DEC-07），所以这里不填；气泡里没有这些
+// 内容时整块不画，不摆占位也不写内部说明。
 func userRound(row RowSnapshot) round {
-	return round{user: row.Text, status: liveRoundStatus(row.Status), factsPending: true}
+	return round{user: row.Text, status: liveRoundStatus(row.Status)}
 }
 
 // assistantMessageText 是「复制整个消息」要复制的正文：回复原文；没有回复时

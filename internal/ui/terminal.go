@@ -32,6 +32,16 @@ const (
 	termDisconnected
 )
 
+// termExit 是终端进程的结束事实（T-11）：退出码与终止信号都可能没有（进程还
+// 在跑，或没有读到退出状态）。界面按这三项决定提示行的写法，不把「不知道」
+// 写成「代码 0」。
+type termExit struct {
+	known    bool
+	code     int
+	signaled bool
+	signal   int
+}
+
 // termLine 是输出区的一行：颜色是 ANSI 前 8 色的下标（-1 表示默认色）。
 type termLine struct {
 	text  string
@@ -46,6 +56,9 @@ const (
 	termEnvDefault = "(base)"
 	// termClosedNotice 是进程被关掉后内容区的提示行（T-10，全角方括号）。
 	termClosedNotice = "［进程已关闭］"
+	// termExitedNotice 是没有退出状态可读时的提示行（T-11 / R-TM-093）：不带空的
+	// 「代码 」段。
+	termExitedNotice = "［进程已退出］"
 	// termEmptyText 是画布还没有输出时的说明行。
 	termEmptyText = "还没有输出"
 	// termNotStartedText 是连着 pty 但终端还没起来时的说明行：点「新建终端」
@@ -114,10 +127,13 @@ func termSamples(state termState) []termLine {
 }
 
 // terminalView 取终端的状态与输出行：连着 Source 时读快照，否则用样例。
-func (a *App) terminalView() (termState, []termLine, bool) {
+//
+// 第二个返回值是结束事实（T-11）：只有连着 pty 且进程真结束了才有；样例里的
+// 「已退出」没有退出状态，界面据此只写「进程已退出」。
+func (a *App) terminalView() (termState, []termLine, termExit, bool) {
 	snapshot, ok := a.liveTerminal()
 	if !ok {
-		return a.termState, a.termLines, false
+		return a.termState, a.termLines, a.termExit, false
 	}
 	state := termIdle
 	switch {
@@ -130,7 +146,14 @@ func (a *App) terminalView() (termState, []termLine, bool) {
 	for _, line := range snapshot.Lines {
 		lines = append(lines, termLine{text: line, color: -1})
 	}
-	return state, lines, true
+	exit := termExit{}
+	if snapshot.Exited {
+		exit = termExit{
+			known: snapshot.ExitKnown, code: snapshot.ExitCode,
+			signaled: snapshot.Signaled, signal: snapshot.Signal,
+		}
+	}
+	return state, lines, exit, true
 }
 
 // termLive 表示终端页接的是本机 pty：连着 Source 且有写入口。
@@ -201,7 +224,7 @@ func (a *App) syncLiveTerminal() {
 	if !a.termLive() {
 		return
 	}
-	state, lines, ok := a.terminalView()
+	state, lines, exit, ok := a.terminalView()
 	if !ok {
 		return
 	}
@@ -212,7 +235,7 @@ func (a *App) syncLiveTerminal() {
 	if a.termCleared < 0 {
 		a.termCleared = 0
 	}
-	a.termState, a.termLines = state, lines[a.termCleared:]
+	a.termState, a.termLines, a.termExit = state, lines[a.termCleared:], exit
 }
 
 // terminalPane 是终端面板：工具条 + 深色画布。
@@ -232,6 +255,8 @@ type termTab struct {
 	state  termState
 	lines  []termLine
 	closed bool
+	// exit 是该层进程的结束事实（T-11）：没有退出状态时只写「进程已退出」。
+	exit   termExit
 	scroll gui.ScrollState
 }
 
@@ -243,6 +268,7 @@ func (a *App) ensureTermTabs() {
 			state:  a.termState,
 			lines:  a.termLines,
 			closed: a.panels.termClosed,
+			exit:   a.termExit,
 		}}
 		a.termActive = 0
 	}
@@ -252,12 +278,15 @@ func (a *App) ensureTermTabs() {
 }
 
 // syncActiveTerminal 把激活层的输出与状态写回层里（其它代码改的是 App 上的
-// termState / termLines）。
+// termState / termLines）。标题跟着事实走：连着 pty 时每帧从会话工作目录重取，
+// shell 换了目录后标签标题随之更新（R-TM-024）；样例里标题是「终端 N」，不因
+// 工作区标题而改名。
 func (a *App) syncActiveTerminal() {
 	a.ensureTermTabs()
 	tab := &a.termTabs[a.termActive]
 	tab.state, tab.lines, tab.closed = a.termState, a.termLines, a.panels.termClosed
-	if tab.title == "" {
+	tab.exit = a.termExit
+	if a.wired() || tab.title == "" {
 		tab.title = a.termTitle()
 	}
 }
@@ -272,7 +301,7 @@ func (a *App) switchTerminal(i int) {
 	a.syncActiveTerminal()
 	a.termActive = i
 	tab := a.termTabs[i]
-	a.termState, a.termLines = tab.state, tab.lines
+	a.termState, a.termLines, a.termExit = tab.state, tab.lines, tab.exit
 	a.panels.termClosed = tab.closed
 }
 
@@ -285,7 +314,7 @@ func (a *App) termLayerCount() int {
 // termToolbar 是终端工具条（T-01–T-07）：终端标签（标题 + 关闭进程）、
 // 新建终端、关闭终端；右侧是中止 / 清屏 / 复制（样例另有断线入口）。
 func (a *App) termToolbar(c *gui.Context) {
-	state, _, _ := a.terminalView()
+	state, _, _, _ := a.terminalView()
 	startNote := a.termStartNote()
 	gui.Row(c).Height(termToolbarHeight).Shrink(0).
 		Padding(space1, panelPad).Gap(space1).AlignItems(gui.Center).
@@ -360,6 +389,7 @@ func (a *App) termTabChip(c *gui.Context, t *gui.Theme, i int) {
 		// 标签里还有「关闭进程」按钮：给 RoleTab 会让整棵子树对读屏不可见，
 		// 关进程就只剩右键菜单一条路，所以这里按按钮播报，用选中态报当前层。
 		AccessSelected(active).
+		Tooltip(a.termTitlePath()).
 		Label("终端标签：" + tab.title)
 	if active {
 		chip = chip.Background(t.SurfaceHover)
@@ -425,6 +455,15 @@ func (a *App) termLayer(c *gui.Context, tab *termTab) {
 					typeCode.style(t, gui.Text(c, ln.text)).
 						TextColor(termColorOf(t, ln.color))
 				}
+				// T-11 进程自行退出：最后一屏内容保留，末尾给结束提示行（退出码 /
+				// 信号按事实写，读不到退出状态时只写「进程已退出」）。
+				if tab.state == termExited {
+					gui.Row(c).Shrink(0).Padding(space1, 0).Grow(1).Justify(gui.Center).
+						Label(termExitNotice(tab.exit)).Children(func() {
+						typeCode.style(t, gui.Text(c, termExitNotice(tab.exit))).
+							TextColor(termCanvasMuted).TextAlign(gui.Center).SingleLine()
+					})
+				}
 				if tab == &a.termTabs[a.termActive] {
 					a.termPrompt(c)
 				}
@@ -462,6 +501,18 @@ func (a *App) termMenu(m *gui.Menu, c *gui.Context) {
 	if closeItem.Chosen() {
 		a.closeTermProcess()
 	}
+}
+
+// termExitNotice 是进程自行退出后的提示行（T-11）。退出码与信号按事实写；
+// 退出状态读不到时只写「进程已退出」，不留空的「代码 」段（R-TM-093）。
+func termExitNotice(exit termExit) string {
+	switch {
+	case exit.signaled && exit.signal != 0:
+		return fmt.Sprintf("［进程已退出，信号 %d］", exit.signal)
+	case exit.known && !exit.signaled:
+		return fmt.Sprintf("［进程已退出，代码 %d］", exit.code)
+	}
+	return termExitedNotice
 }
 
 // termCloseNote 是「关闭进程」不能用的原因；空串表示当前有在跑的终端。
@@ -582,6 +633,19 @@ func (a *App) termTitle() string {
 	return title
 }
 
+// termTitlePath 是终端标签悬停时给的完整路径（R-TM-018）：连着 pty 时是会话
+// 工作目录原文；没有这条事实时退回标题，不编一个路径。
+func (a *App) termTitlePath() string {
+	if a.wired() {
+		if snapshot, ok := a.liveSession(); ok {
+			if p := strings.TrimSpace(snapshot.Cwd); p != "" {
+				return p
+			}
+		}
+	}
+	return a.termTitle()
+}
+
 // termShellEnv 是 shell 的环境名前缀：样例里是 `(base)`，连着 Source 时
 // 还没有这一项事实（终端快照不含它）。
 func (a *App) termShellEnv() string {
@@ -628,6 +692,7 @@ func (a *App) resetTerminalView() {
 	a.panels.termClosed = false
 	a.termState = termIdle
 	a.termLines = nil
+	a.termExit = termExit{}
 	a.termCleared = 0
 	a.termInput = ""
 }
@@ -677,16 +742,48 @@ func (a *App) closeTermProcessAt(i int) {
 	a.termTabs[i].lines = nil
 }
 
-// closeTerminal 关闭终端标签（T-06）：连着 pty 时先停止终端，再切回文件面板
-// （参考里是切回上一页签）。
+// closeTerminal 关闭当前终端标签（T-06）：连着 pty 时先停止终端，停止成功后才
+// 收标签（停止失败时标签还在，原因走全局错误行，不假装已关，T-06-048）；标签
+// 减少 1 个，关掉最后一个时终端页回到「未启动」并切回文件页。
 func (a *App) closeTerminal() {
 	if a.wired() {
-		a.stopLiveTerminal(false)
+		a.closeLiveTerminal()
+		return
+	}
+	a.closeTermTab()
+}
+
+// closeLiveTerminal 停止本机 pty，成功后才收掉标签。
+func (a *App) closeLiveTerminal() {
+	if !a.termLive() {
+		a.closeTermTab()
+		return
+	}
+	a.dispatchThen("关闭终端", a.intents.StopTerminal, func() {
+		a.resetTerminalView()
+		a.closeTermTab()
+	}, nil)
+}
+
+// closeTermTab 收掉当前终端标签。
+func (a *App) closeTermTab() {
+	a.syncActiveTerminal()
+	if len(a.termTabs) <= 1 {
+		// 最后一层：收回终端页（不留下一个后台还在跑的层），右栏回到文件页。
+		a.termTabs = []termTab{{title: a.termTitle(), state: termIdle}}
+		a.termActive = 0
+		a.resetTerminalView()
 		a.rightTab = tabFiles
 		return
 	}
-	a.panels.termClosed = false
-	a.rightTab = tabFiles
+	i := a.termActive
+	a.termTabs = append(a.termTabs[:i:i], a.termTabs[i+1:]...)
+	if a.termActive >= len(a.termTabs) {
+		a.termActive = len(a.termTabs) - 1
+	}
+	tab := a.termTabs[a.termActive]
+	a.termState, a.termLines, a.termExit = tab.state, tab.lines, tab.exit
+	a.panels.termClosed = tab.closed
 }
 
 // stopShellRun 中止当前的命令运行（可逆：命令可以再跑一次）。

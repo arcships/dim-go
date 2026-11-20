@@ -122,6 +122,16 @@ func (a *Archive) Unhide(sessionID string) error {
 	return nil
 }
 
+// HiddenAt 返回一条会话的归档时间；没有这条记录时为零值。
+func (a *Archive) HiddenAt(sessionID string) time.Time {
+	if sessionID == "" {
+		return time.Time{}
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.entries[sessionID].HiddenAt
+}
+
 // Hidden 报告一个会话是否被隐藏。
 func (a *Archive) Hidden(sessionID string) bool {
 	if sessionID == "" {

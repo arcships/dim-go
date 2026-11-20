@@ -281,7 +281,11 @@ func (w *App) terminalSnapshotFor(sessionID string) ui.TerminalSnapshot {
 	if !out.Running {
 		if status, ok := term.ExitStatus(); ok {
 			out.Exited = true
+			// 退出状态读到了才写代码/信号：没读到时不拿零值冒充「代码 0」。
+			out.ExitKnown = true
 			out.ExitCode = status.Code
+			out.Signaled = status.Signaled
+			out.Signal = status.Signal
 		}
 	}
 	out.Lines = w.terminalStreamFor(sessionID).snapshot()

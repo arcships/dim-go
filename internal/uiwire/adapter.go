@@ -459,6 +459,27 @@ func (w *App) SessionPlaces() []ui.SessionPlaceSnapshot {
 	return out
 }
 
+// ArchivedSessions 是设置 › 归档会话的读数：本端归档登记（归档时间）与服务端
+// 目录条目（标题、首条预览、工作目录）合成一行。归档只是本端隐藏，不写服务端。
+func (w *App) ArchivedSessions() []ui.ArchivedSessionSnapshot {
+	c := w.A.Catalog()
+	if c == nil {
+		return nil
+	}
+	records := c.HiddenRecords()
+	out := make([]ui.ArchivedSessionSnapshot, 0, len(records))
+	for _, record := range records {
+		out = append(out, ui.ArchivedSessionSnapshot{
+			ID:         record.Entry.ID,
+			Title:      record.Entry.Title,
+			Preview:    record.Entry.Preview,
+			Workspace:  record.Entry.Workspace,
+			ArchivedAt: record.HiddenAt,
+		})
+	}
+	return out
+}
+
 // Workspaces 是服务端授权的工作区（项目根），读设置领域最近确认的清单。
 func (w *App) Workspaces() []ui.WorkspaceSnapshot {
 	settings := w.A.Settings()
@@ -971,6 +992,7 @@ func (w *App) Preferences() ui.PreferencesSnapshot {
 			CodeSize:  prefs.Appearance.CodeSize,
 			CodeTheme: prefs.Appearance.CodeTheme,
 		},
+		Keybindings:         copyNames(prefs.Keybindings),
 		Workspaces:          append([]string(nil), prefs.Workspaces...),
 		HooksProjectPath:    prefs.HooksProjectPath,
 		UpdateFeedURL:       prefs.UpdateFeedURL,
@@ -1023,6 +1045,7 @@ func (w *App) SetPreferences(ctx context.Context, prefs ui.PreferencesSnapshot) 
 		CodeSize:  prefs.Appearance.CodeSize,
 		CodeTheme: prefs.Appearance.CodeTheme,
 	}
+	current.Keybindings = copyNames(prefs.Keybindings)
 	current.Workspaces = append([]string(nil), prefs.Workspaces...)
 	current.HooksProjectPath = prefs.HooksProjectPath
 	// UpdateFeedURL 只走 SetUpdateFeed：通用的偏好落盘（主题、侧栏宽度等）不带

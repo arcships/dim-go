@@ -19,7 +19,7 @@ import (
 // Fork 不可用的原因（用户可见；集中在这里，入口处复用同一句）。
 const (
 	// forkNoteNoTurn 是拿不到这一行所属轮次时的原因。
-	forkNoteNoTurn = "服务端没有给出这条消息的轮次，无法确定切点"
+	forkNoteNoTurn = "这条消息还没有对应的轮次，无法确定切点"
 	// forkNoteTurnRunning 是这一轮还没结束时的原因：切点只认已结束的轮次。
 	forkNoteTurnRunning = "这一轮还没结束，等结束后再分叉"
 	// forkNoteNoTurns 是会话还没有可切出的轮次时的原因。

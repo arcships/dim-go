@@ -356,6 +356,32 @@ func (c *Catalog) HiddenEntries() []Entry {
 	return hidden
 }
 
+// HiddenRecord 是一条归档条目及其归档时间。
+type HiddenRecord struct {
+	Entry Entry
+	// HiddenAt 是本端登记归档的时间；零值表示登记里没有这一项。
+	HiddenAt time.Time
+}
+
+// HiddenRecords 与 HiddenEntries 同序，但带上本端登记的归档时间（设置 ›
+// 归档会话按「{日期} 归档」显示）。目录里已经没有的会话不出现在这里。
+func (c *Catalog) HiddenRecords() []HiddenRecord {
+	entries := c.HiddenEntries()
+	out := make([]HiddenRecord, 0, len(entries))
+	for _, entry := range entries {
+		out = append(out, HiddenRecord{Entry: entry, HiddenAt: c.hiddenAt(entry.ID)})
+	}
+	return out
+}
+
+// hiddenAt 取一条会话的归档时间；没有登记或归档列表不可用时为零值。
+func (c *Catalog) hiddenAt(sessionID string) time.Time {
+	if c.cfg.Archive == nil || sessionID == "" {
+		return time.Time{}
+	}
+	return c.cfg.Archive.HiddenAt(sessionID)
+}
+
 // Entry 返回一条条目的只读副本。
 func (c *Catalog) Entry(sessionID string) (Entry, bool) {
 	c.mu.Lock()
