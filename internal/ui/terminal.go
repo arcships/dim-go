@@ -528,6 +528,11 @@ func (a *App) termCloseNote() string {
 
 // termPrompt 是提示行：`(base) → 目录` + 输入框。目录名取会话的工作目录。
 func (a *App) termPrompt(c *gui.Context) {
+	// 没有运行中的终端时整行不画：画出来的 `→ 目录` 会被读成一个正在等输入的
+	// shell，而按什么都没反应。原因在画布上，「新建终端」在工具条上。
+	if a.wired() && !a.termAlive() {
+		return
+	}
 	t := c.Theme()
 	gui.Row(c).Shrink(0).Gap(space1).AlignItems(gui.Center).Children(func() {
 		if env := a.termShellEnv(); env != "" {
@@ -538,11 +543,6 @@ func (a *App) termPrompt(c *gui.Context) {
 		if dir != "终端" {
 			typeCode.style(t, gui.Text(c, dir)).TextColor(termCanvasText).
 				FontWeight(600)
-		}
-		// 连着 pty 但没有运行中的终端时，提示行只画目录：不摆一个敲不进东西的
-		// 输入框（原因写在画布上）。
-		if a.wired() && !a.termAlive() {
-			return
 		}
 		input := gui.TextInputBase(c, &a.termInput).Label("终端输入").Grow(1).
 			Font(codeFamily()).FontSize(typeCode.sizeIn(t)).TextColor(termCanvasText)
