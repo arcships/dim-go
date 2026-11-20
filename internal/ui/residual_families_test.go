@@ -557,12 +557,12 @@ func TestChangesSkeletonFromReadState(t *testing.T) {
 	src := newFakePanelSource("/work/demo")
 	src.changes = ChangeSet{Phase: PanelReadLoading}
 	_, tt := rightWiredTester(t, tabChanges, src)
-	if _, ok := tt.Find("正在加载文件树"); !ok {
+	if _, ok := tt.Find("正在加载改动"); !ok {
 		t.Fatalf("读取中没有骨架容器：%v", tt.Texts())
 	}
 	src.changes = ChangeSet{Phase: PanelReadReady}
 	tt.Frame()
-	if _, ok := tt.Find("正在加载文件树"); ok {
+	if _, ok := tt.Find("正在加载改动"); ok {
 		t.Fatal("读完以后骨架还在")
 	}
 	if !tt.HasText("没有未提交的改动") {

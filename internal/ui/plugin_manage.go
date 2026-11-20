@@ -47,7 +47,7 @@ const (
 	pluginManageNoUpdates   = "所有插件均为最新版本"
 	// pluginUpdateNoProgress 是 G-H4-05 下载进度条的缺项原因：插件清单里没有
 	// 下载进度字段（protocol v3 也没有进度事件），因此更新中不画进度条，只写原因。
-	pluginUpdateNoProgress = "服务端没有下载进度读数，不画进度条"
+	pluginUpdateNoProgress = "当前版本看不到下载进度"
 
 	pluginMarketTitle       = "插件市场"
 	pluginMarketFeedLabel   = "插件源"
@@ -57,12 +57,15 @@ const (
 	pluginMarketUnset       = "未配置插件源"
 	pluginMarketUnavailable = "市场暂不可用"
 	// pluginMarketNoFacts 是「市场暂不可用」的原因：这条连接没有市场读数。
-	pluginMarketNoFacts   = "这条连接没有插件市场读数（Source 没有提供市场快照）"
-	pluginMarketLoading   = "正在加载..."
-	pluginMarketEmpty     = "插件源没有返回条目"
-	pluginMarketRetry     = "重试"
-	pluginMarketRefresh   = "刷新"
-	pluginMarketInstall = "安装"
+	pluginMarketNoFacts = "当前版本不支持插件市场"
+	pluginMarketLoading = "正在加载..."
+	pluginMarketEmpty   = "插件源没有返回条目"
+	pluginMarketRetry   = "重试"
+	// pluginMarketRetryDetail 是详情失败块里「重试」的读屏名：同一屏上的市场块
+	// 也有一个「重试」，读屏要能分开这两个入口。
+	pluginMarketRetryDetail = "重试加载详情"
+	pluginMarketRefresh     = "刷新"
+	pluginMarketInstall     = "安装"
 	// G-H2-01 安装详情的标题与 G-H2-02 描述（逐字取参考产品中文）。
 	pluginMarketInstallTitleFmt = "安装 %s"
 	pluginMarketInstallDesc     = "选择要启用的内置技能。默认全选。"
@@ -85,11 +88,18 @@ const (
 	pluginMarketNoDescription = "插件源没有给出这个条目的说明"
 	// 安装通道的两条门槛：条目没有 Git 地址；同名插件已装（替换确认 G-H3 未建）。
 	pluginMarketNoInstallSource = "插件源没有给出可安装的 Git 地址（plugin.install 只接受本地目录或 Git 地址）"
-	pluginMarketNameTakenFmt    = "已安装同名插件「%s」，替换确认还没有通道"
+	pluginMarketNameTakenFmt    = "已安装同名插件「%s」，当前版本不支持替换"
+	// 详情读不到时主按钮置灰的原因（读失败时框里另有失败块与「重试」）。
+	pluginMarketDetailFailed = "插件源读取失败"
 	// 安装中的进度：protocol v3 的 plugin.install 只有阶段事件，没有字节读数。
-	pluginMarketInstallProgress = "服务端没有安装进度读数，不画进度条"
+	pluginMarketInstallProgress = "当前版本看不到安装进度"
+	// 安装中「取消」置灰的原因（与「不允许半途取消」同口径）。
+	pluginMarketCancelBusy = "安装中不能取消"
 	// 勾选只决定这次安装的启用清单：plugin.install 没有技能参数。
 	pluginMarketSkillPickNote = "勾选只决定安装后启用哪些技能；安装本身装整包。"
+	// pluginMarketSkillsMaxH 是技能勾选列表的高度上限：4 行（每行两行文字），
+	// 再多就在框里滚，不把弹窗顶出屏幕。
+	pluginMarketSkillsMaxH = rowCompact * 6
 
 	pluginInstalledFmt = "已安装 %s"
 	pluginRemovedFmt   = "已移除 %s"
@@ -217,6 +227,7 @@ func (a *App) pluginManageView(c *gui.Context) {
 						a.pluginRow(c, t, item, canWrite)
 					}
 					a.pluginUpdatesSection(c, t, updates, canWrite, facts && plugins.ReadError == "")
+					a.skillUpdatesSection(c, t)
 					a.pluginMarketSection(c, t)
 				})
 		})
@@ -383,8 +394,11 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 			}
 		})
 		if len(updates) == 0 {
-			// G-H4-02 空态（14px 次要色；读屏名就是这一句）
-			plgNote(c, t, pluginManageNoUpdates)
+			// G-H4-02 空态（14px 次要色、居中；读屏名就是这一句）
+			gui.Row(c).Shrink(0).Justify(gui.Center).Children(func() {
+				typeBody.style(t, gui.Text(c, pluginManageNoUpdates)).
+					TextColor(t.TextMuted).Label(pluginManageNoUpdates)
+			})
 			return
 		}
 		if st.updateErr != "" {
@@ -656,9 +670,8 @@ func (a *App) pluginMarketSection(c *gui.Context, t *gui.Theme) {
 	})
 }
 
-// pluginMarketRow 是一个市场条目：名称 / 版本 / 说明；「安装」打开详情
-// （G-H2）。条目来自上游清单的只读快照，安装动作本身没有协议通道，详情里的
-// 主按钮置灰并写原因。
+// pluginMarketRow 是一个市场条目：名称 / 版本 / 说明 / 来源；「安装」打开详情
+// （G-H2）。条目来自上游清单的只读快照，可安装与否看条目有没有给出 Git 地址。
 func (a *App) pluginMarketRow(c *gui.Context, t *gui.Theme, entry PluginMarketEntrySnapshot) {
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space2).Children(func() {
 		gui.Column(c).Shrink(0).Grow(1).Gap(spaceUnit).Children(func() {
@@ -679,16 +692,104 @@ func (a *App) pluginMarketRow(c *gui.Context, t *gui.Theme, entry PluginMarketEn
 		})
 		// G-H2 市场条目的「安装」入口：有条目事实就打开详情
 		if pluginSmallButton(c, t, pluginMarketInstall, false, false, "") {
-			st := a.pluginManageState()
-			st.marketEntry = entry
-			st.marketOpen = true
+			a.openMarketDetail(entry)
 		}
 	})
 }
 
-// pluginMarketDetailView 画市场安装详情：标题与描述来自条目与固定文案；技能
-// 勾选与安装动作缺事实/协议，按块写原因，不画假的勾选行。
-// G-H2-01 标题 / G-H2-02 描述 / G-H2-08 取消 / G-H2-09 安装
+// openMarketDetail 打开条目的安装详情：技能勾选位的初值是「全选」。
+func (a *App) openMarketDetail(entry PluginMarketEntrySnapshot) {
+	st := a.pluginManageState()
+	st.marketEntry = entry
+	st.marketSkills = map[string]bool{}
+	for _, skill := range entry.Skills {
+		st.marketSkills[skill.Name] = true
+	}
+	st.marketInstalling = false
+	st.marketErr = ""
+	st.marketOpen = true
+}
+
+// closeMarketDetail 关掉详情：勾选位、安装中与失败原因一起丢掉（都是可丢状态）。
+func (a *App) closeMarketDetail() {
+	st := a.pluginManageState()
+	st.marketOpen = false
+	st.marketEntry = PluginMarketEntrySnapshot{}
+	st.marketSkills = map[string]bool{}
+	st.marketInstalling = false
+	st.marketErr = ""
+}
+
+// pluginMarketLookup 在读数里按名字取同一个条目：重拉之后条目内容会变，详情读
+// 最新的一份；取不到（重拉中 / 失败）时保留打开时的快照，标题不空。
+func pluginMarketLookup(facts PluginMarketplaceSnapshot, name string) (PluginMarketEntrySnapshot, bool) {
+	for _, entry := range facts.Entries {
+		if entry.Name == name {
+			return entry, true
+		}
+	}
+	return PluginMarketEntrySnapshot{}, false
+}
+
+// marketInstallProblem 返回「添加插件」被禁用的原因：空串表示可点。
+//
+// 市场条目没有自己的安装方法：条目给出 Git 地址时走 plugin.install 的 Git 来源；
+// 没给地址、没有写通道、同名插件已装（替换确认 G-H3 未建）都禁用并写原因。
+func (a *App) marketInstallProblem(entry PluginMarketEntrySnapshot, facts PluginMarketplaceSnapshot,
+	hasFacts bool) string {
+	st := a.pluginManageState()
+	switch {
+	case st.marketInstalling:
+		return pluginAdding
+	case a.intents == nil:
+		return noteNoWriteChannel
+	case !hasFacts:
+		return pluginMarketNoFacts
+	case facts.Loading:
+		return pluginMarketLoading
+	case facts.Err != "":
+		return pluginMarketDetailFailed
+	case strings.TrimSpace(entry.Git) == "":
+		return pluginMarketNoInstallSource
+	}
+	if plugins, ok := a.pluginList(); ok {
+		for _, item := range plugins.Items {
+			if item.Name == entry.Name {
+				return fmt.Sprintf(pluginMarketNameTakenFmt, entry.Name)
+			}
+		}
+	}
+	return ""
+}
+
+// confirmMarketInstall 装一个市场条目：走 plugin.install 的 Git 来源，装后启用。
+// 技能勾选没有对应的写参数（plugin.install 没有技能参数），所以勾选只决定这次
+// 安装的启用清单，界面在勾选区写清这一点。
+func (a *App) confirmMarketInstall(entry PluginMarketEntrySnapshot, facts PluginMarketplaceSnapshot,
+	hasFacts bool) {
+	if a.marketInstallProblem(entry, facts, hasFacts) != "" {
+		return
+	}
+	st := a.pluginManageState()
+	name := entry.Name
+	st.marketInstalling = true
+	st.marketErr = ""
+	a.dispatchQuiet("添加插件", func(ctx context.Context) error {
+		return a.intents.InstallPlugin(ctx, "git", strings.TrimSpace(entry.Git),
+			strings.TrimSpace(entry.GitRef), "", true)
+	}, func() {
+		a.closeMarketDetail()
+		a.pluginManageState().notice = fmt.Sprintf(pluginInstalledFmt, name)
+	}, func(msg string) {
+		st := a.pluginManageState()
+		st.marketInstalling = false
+		st.marketErr = msg
+	})
+}
+
+// pluginMarketDetailView 画市场安装详情（G-H2）：标题、描述、字段、加载与失败
+// 块、技能勾选行、安装 / 取消按钮，以及安装中与成功、失败回执。
+// G-H2-01 标题 / G-H2-02 描述 / G-H2-08 取消 / G-H2-09 添加插件
 func (a *App) pluginMarketDetailView(c *gui.Context) {
 	st := a.pluginManageState()
 	if !st.marketOpen {
@@ -701,45 +802,270 @@ func (a *App) pluginMarketDetailView(c *gui.Context) {
 		st.marketOpen = false
 		return
 	}
+	facts, hasFacts := a.pluginMarketFacts()
+	if hasFacts {
+		if current, ok := pluginMarketLookup(facts, name); ok {
+			entry = current
+		}
+	}
+	problem := a.marketInstallProblem(entry, facts, hasFacts)
 	title := fmt.Sprintf(pluginMarketInstallTitleFmt, name)
 	open := true
 	m := modalShell(gui.Modal(c, &open, func() {
 		panel := gui.Column(c).Gap(space3).Role(gui.RoleDialog).Label(title)
 		panel.Children(func() {
-			// G-H2-01 「安装 {name}」
+			// G-H2-01 「安装 {name}」：标题只读条目名，不等详情
 			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(2)
 			// G-H2-02 描述
 			typeBody.style(t, gui.Text(c, pluginMarketInstallDesc)).TextColor(t.TextMuted)
-			meta := entry.Name
-			if entry.Version != "" {
-				meta += " · " + pluginVersionLabel(entry.Version)
+			a.pluginMarketDetailFields(c, t, entry)
+			a.pluginMarketDetailState(c, t, facts, hasFacts)
+			a.pluginMarketSkills(c, t, entry)
+			// 安装中：主按钮前置旋转图标；进度条没有读数，写原因
+			if st.marketInstalling {
+				typeMicro.style(t, gui.Text(c, pluginMarketInstallProgress)).
+					TextColor(t.TextMuted).Label(pluginMarketInstallProgress).SingleLine()
 			}
-			if entry.Source != "" {
-				meta += " · " + entry.Source
+			// 失败回执：原因留在框里，按钮恢复可点（重试就是再点一次）
+			if st.marketErr != "" {
+				typeSecondary.style(t, gui.Text(c, st.marketErr)).TextColor(t.Danger).
+					Role(gui.RoleAlert).Label(st.marketErr)
 			}
-			typeSecondary.style(t, gui.Text(c, meta)).TextColor(t.TextMuted).
-				Label(meta).SingleLine()
-			gui.Column(c).Gap(plgLabelGap).Children(func() {
-				// 技能分组：条目没有技能清单，分组标题与勾选行都不画
-				plgNote(c, t, pluginMarketNoSkills)
-			})
+			// 主按钮置灰的原因：加载中与安装中已经在别处写清，其余原因在这里写一行
+			if problem != "" && problem != pluginMarketLoading && problem != pluginAdding {
+				plgNote(c, t, problem)
+			}
 			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
-				// G-H2-08 取消
-				if pluginDialogButton(c, t, pluginCancel, false, false, false, "") {
-					st.marketOpen = false
+				// G-H2-08 取消（安装中禁用，不允许半途取消）
+				if pluginDialogButton(c, t, pluginCancel, false, false, st.marketInstalling,
+					pluginMarketCancelBusy) && !st.marketInstalling {
+					a.closeMarketDetail()
 					open = false
 				}
-				// G-H2-09 添加插件（没有市场安装来源：置灰并写原因）
-				pluginDialogButton(c, t, pluginAdd, true, false, true, pluginMarketNoInstall)
+				// G-H2-09 添加插件
+				label := pluginAdd
+				if st.marketInstalling {
+					label = pluginAdding
+				}
+				if pluginDialogButton(c, t, label, true, st.marketInstalling,
+					problem != "", problem) {
+					a.confirmMarketInstall(entry, facts, hasFacts)
+				}
 			})
 		})
 		panel.Width(pluginInstallDialogWidth(c))
 	}))
 
-	if !open || m.Dismissed() {
-		st.marketOpen = false
+	// G-H2-08 键盘：Modal 内建 Esc，焦点不在按钮上也照样关框；安装中不生效
+	// （与「取消」置灰同口径）。这里只在弹窗自己身上接一次，不吃全局键位。
+	if m.OverlayShortcut(0, gui.KeyEscape) && !st.marketInstalling {
+		open = false
 	}
+	if !open || m.Dismissed() {
+		if st.marketInstalling {
+			return
+		}
+		a.closeMarketDetail()
+	}
+}
+
+// pluginMarketDetailFields 是详情的一组只读字段：名称、版本、作者、来源、安装
+// 位置与说明；缺一项就写该项的原因，不猜也不留空行。
+func (a *App) pluginMarketDetailFields(c *gui.Context, t *gui.Theme, entry PluginMarketEntrySnapshot) {
+	version := ""
+	if strings.TrimSpace(entry.Version) != "" {
+		version = pluginVersionLabel(entry.Version)
+	}
+	gui.Column(c).Shrink(0).Gap(spaceUnit).Children(func() {
+		pluginMarketField(c, t, pluginMarketFieldName, entry.Name, "")
+		pluginMarketField(c, t, pluginMarketFieldVersion, version, pluginMarketNoVersion)
+		pluginMarketField(c, t, pluginMarketFieldAuthor, entry.Author, pluginMarketNoAuthor)
+		pluginMarketField(c, t, pluginMarketFieldSource, entry.Source, pluginMarketNoSource)
+		pluginMarketField(c, t, pluginMarketFieldLocation, entry.Location, pluginMarketNoLocation)
+		plgLabelStyle.style(t, gui.Text(c, pluginMarketFieldDesc)).TextColor(t.TextMuted).
+			Label(pluginMarketFieldDesc)
+		if strings.TrimSpace(entry.Description) == "" {
+			typeSecondary.style(t, gui.Text(c, pluginMarketNoDescription)).
+				TextColor(t.TextMuted).Label(pluginMarketNoDescription)
+			return
+		}
+		typeSecondary.style(t, gui.Text(c, entry.Description)).TextColor(t.TextMuted).
+			Selectable().MaxLines(3).Label(pluginMarketFieldDesc)
+	})
+}
+
+// pluginMarketField 一行只读字段：12.25 的标签 + 值；值缺失时写原因。
+func pluginMarketField(c *gui.Context, t *gui.Theme, label, value, missing string) {
+	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space2).Children(func() {
+		plgLabelStyle.style(t, gui.Text(c, label)).TextColor(t.TextMuted).Label(label)
+		if strings.TrimSpace(value) == "" {
+			typeSecondary.style(t, gui.Text(c, missing)).TextColor(t.TextMuted).
+				Label(missing)
+			return
+		}
+		typeSecondaryStrong.style(t, gui.Text(c, value)).TextColor(t.Text).
+			SingleLine().Label(label + "：" + value)
+	})
+}
+
+// pluginMarketDetailState 是详情里的加载行与失败块（G-H2-03 / G-H2-04）：读不到
+// 详情时说清是「正在加载」还是「加载失败」，失败块里的「重试」真的重拉一次清单。
+func (a *App) pluginMarketDetailState(c *gui.Context, t *gui.Theme, facts PluginMarketplaceSnapshot,
+	hasFacts bool) {
+	if !hasFacts || (!facts.Loading && facts.Err == "") {
+		return
+	}
+	if facts.Loading {
+		// G-H2-03 「正在加载...」：旋转图标 + 14px 灰字，居中
+		gui.Row(c).Shrink(0).Justify(gui.Center).AlignItems(gui.Center).
+			Gap(space1).Children(func() {
+			gui.Spinner(c).Size(plgIconSize, plgIconSize)
+			typeSecondary.style(t, gui.Text(c, pluginMarketLoading)).TextColor(t.TextMuted).
+				Label(pluginMarketLoading)
+		})
+		return
+	}
+	// G-H2-04 错误块：告警图标 + 错误文案 + 次级按钮「重试」
+	market, canAct := a.pluginMarketIntents()
+	gui.Row(c).Shrink(0).AlignItems(gui.Center).Wrap().Gap(space2).Children(func() {
+		accIcon(c, accIconTriangleAlert, plgIconSize, t.Danger, "triangle-alert")
+		typeSecondary.style(t, gui.Text(c, facts.Err)).TextColor(t.Danger).
+			Role(gui.RoleAlert).Label(facts.Err)
+		gui.Spacer(c)
+		if pluginSmallButtonLabeled(c, t, pluginMarketRetry, pluginMarketRetryDetail,
+			false, false, !canAct, pluginMarketWriteNote(canAct)) {
+			a.refreshPluginMarket(market)
+		}
+	})
+}
+
+// pluginMarketSkills 是详情里的技能清单：分组标签（G-H2-05）、勾选行
+// （G-H2-06，默认全选）、无技能的空态（G-H2-07），以及「源没给清单」的说明。
+func (a *App) pluginMarketSkills(c *gui.Context, t *gui.Theme, entry PluginMarketEntrySnapshot) {
+	st := a.pluginManageState()
+	if entry.Skills == nil {
+		// 源没给清单：不断言「不包含技能」，写原因
+		plgNote(c, t, pluginMarketNoSkills)
+		return
+	}
+	if len(entry.Skills) == 0 {
+		// G-H2-07 空态句（14px 灰）
+		plgNote(c, t, pluginEmptySkills)
+		return
+	}
+	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space2).Children(func() {
+		// G-H2-05 「技能」分组标签（12.25 中等灰）
+		plgLabelStyle.style(t, gui.Text(c, pluginSkillsEntry)).TextColor(t.TextMuted).
+			Label(pluginSkillsEntry)
+		gui.Spacer(c)
+		pluginMarketSelectAllBox(c, t, entry, st)
+	})
+	// 勾选行多了就滚：高度上限受弹窗约束（G-H2-06）
+	gui.Scroll(c).Shrink(0).MaxHeight(pluginMarketSkillsMaxH).Children(func() {
+		gui.Column(c).Shrink(0).Gap(space2).Children(func() {
+			for _, skill := range entry.Skills {
+				pluginMarketSkillRow(c, t, st, skill)
+			}
+		})
+	})
+	plgNote(c, t, pluginMarketSkillPickNote)
+}
+
+// pluginMarketSelectAllBox 是技能的全选位：全选 / 部分 / 全不选三态，点一次改全部。
+func pluginMarketSelectAllBox(c *gui.Context, t *gui.Theme, entry PluginMarketEntrySnapshot,
+	st *pluginManageState) {
+	selected := 0
+	for _, skill := range entry.Skills {
+		if st.marketSkills[skill.Name] {
+			selected++
+		}
+	}
+	state := gui.CheckOff
+	switch {
+	case selected == len(entry.Skills):
+		state = gui.CheckOn
+	case selected > 0:
+		state = gui.CheckMixed
+	}
+	box := gui.CheckboxStateBase(c, &state).Size(plgIconSize, plgIconSize).
+		Shrink(0).Radius(radius).Label(pluginMarketSelectAll)
+	if st.marketInstalling {
+		box = box.Disabled(true)
+	}
+	if box.Changed() {
+		next := state == gui.CheckOn
+		for _, skill := range entry.Skills {
+			st.marketSkills[skill.Name] = next
+		}
+	}
+	box.Children(func() {
+		box.DrawOver(func(p *gui.Painter, r gui.Rect) {
+			switch state {
+			case gui.CheckOn, gui.CheckMixed:
+				p.Fill(r, t.Accent, radius)
+				icon := iconCheck
+				if state == gui.CheckMixed {
+					icon = iconDot
+				}
+				paintIcon(p, icon, r, t.AccentText)
+			default:
+				p.Stroke(r, t.Border, radius, strokeHairline)
+			}
+		})
+	})
+}
+
+// pluginMarketSkillRow 是一条技能勾选行（G-H2-06）：方框 + 名称 + 描述；点行
+// （不只是方框）就切换该技能的勾选。勾选只决定安装后的启用清单。
+//
+// 整行是一个复选项：读屏把名称与描述一起读出来（G-H2-06 无障碍），所以描述那
+// 一行只给眼睛看（对读屏隐藏），同一个方框也只是画出来——输入由整行接。
+func pluginMarketSkillRow(c *gui.Context, t *gui.Theme, st *pluginManageState,
+	skill PluginMarketSkillSnapshot) {
+	on := st.marketSkills[skill.Name]
+	description := strings.TrimSpace(skill.Description)
+	label := skill.Name
+	if description != "" {
+		label += "，" + description
+	}
+	row := gui.ButtonBase(c).Shrink(0).Grow(1).Gap(space2).AlignItems(gui.Center).
+		Role(gui.RoleCheckBox).Checked(on).Label(label).Cursor(gui.CursorPointer)
+	if st.marketInstalling {
+		row = row.Disabled(true).Opacity(0.5)
+	}
+	if row.Clicked() {
+		on = !on
+		st.marketSkills[skill.Name] = on
+	}
+	if row.Hovered() && !st.marketInstalling {
+		row = row.Background(t.SurfaceHover)
+	}
+	row.Children(func() {
+		pluginMarketCheckFace(c, t, on)
+		gui.Column(c).Shrink(0).Grow(1).Gap(spaceUnit).Children(func() {
+			typeBodyStrong.style(t, gui.Text(c, skill.Name)).TextColor(t.Text).SingleLine()
+			if description != "" {
+				typeSecondary.style(t, gui.Text(c, description)).TextColor(t.TextMuted).
+					MaxLines(2).AccessHidden(true)
+			}
+		})
+	})
+}
+
+// pluginMarketCheckFace 是勾选框的方框：勾上时实心主色 + 勾，未勾时描边。它只是
+// 外观（输入由整行接），所以对读屏隐藏，也不自己吃点击。
+func pluginMarketCheckFace(c *gui.Context, t *gui.Theme, on bool) {
+	box := gui.Box(c).Size(plgIconSize, plgIconSize).Shrink(0).
+		Radius(radius).AccessHidden(true)
+	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		if !on {
+			p.Stroke(r, t.Border, radius, strokeHairline)
+			return
+		}
+		p.Fill(r, t.Accent, radius)
+		paintIcon(p, iconCheck, r, t.AccentText)
+	})
 }
 
 // pluginMarketWriteNote 是市场写入口置灰的原因。
@@ -747,7 +1073,7 @@ func pluginMarketWriteNote(canAct bool) string {
 	if canAct {
 		return ""
 	}
-	return "当前版本不支持安装插件"
+	return "这条连接没有插件市场动作（Source 没有提供市场动作）"
 }
 
 // savePluginFeed 保存插件源地址并触发一次拉取。

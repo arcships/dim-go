@@ -301,8 +301,17 @@ func (a *App) groupHiddenPath(path string) bool {
 // 显示名是本地视图状态，不改目录。
 func (a *App) renameGroup(ws sidebarWorkspace) {
 	name := strings.TrimSpace(a.groupRenameDraft)
+	if hasRenameControlChars(name) {
+		// 与重命名弹窗同一套判断：控制字符留在编辑态并写原因。
+		a.headerNote = renameCopyCtrlWorkspace
+		return
+	}
 	a.renamingGroup, a.groupRenameDraft = "", ""
 	if name == "" || ws.builtin || ws.id == "" {
+		return
+	}
+	if name == ws.name {
+		// 名字没改就不写本地偏好（与弹窗「请输入不同的工作区名称」同一个结果）。
 		return
 	}
 	if a.sidebarView.groupNames == nil {

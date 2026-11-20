@@ -378,7 +378,7 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 		}
 		body := func() {
 			if len(threads) == 0 {
-				a.sidebarNote(c, "暂无会话", true)
+				a.sidebarNote(c, a.sidebarEmptyText(), true)
 				return
 			}
 			for _, thread := range threads {
@@ -486,7 +486,7 @@ func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
 	threads := a.unpinnedThreads(all)
 	gui.Column(c).Shrink(0).Children(func() {
 		if len(threads) == 0 {
-			a.sidebarNote(c, "暂无会话", true)
+			a.sidebarNote(c, a.sidebarEmptyText(), true)
 			return
 		}
 		// LB-62 日期分组标题
@@ -498,6 +498,22 @@ func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
 		a.sidebarFlatLoadingRow(c)
 		a.sidebarFlatPager(c, limit, len(threads))
 	})
+}
+
+// sidebarEmptyText 区分「读到了、没有会话」与「还在读 / 读不到」：正在连接写
+// 「正在连接…」，断线写「连接已断开」，只有连上且目录为空才写「暂无会话」
+// （四态里空、读取中、错误要分得开）。
+func (a *App) sidebarEmptyText() string {
+	if !a.wired() {
+		return "暂无会话"
+	}
+	switch a.liveConnection().Phase {
+	case "connecting":
+		return "正在连接…"
+	case "disconnected":
+		return "连接已断开"
+	}
+	return "暂无会话"
 }
 
 // sidebarNote 是一行说明文字（「暂无会话」「没有匹配的会话」）：10.5px、最淡的
@@ -928,6 +944,17 @@ func (a *App) saveRename(index int) {
 	if title == "" {
 		a.renaming = -1
 		a.renameDraft = ""
+		return
+	}
+	// 与弹窗同一套判断：名字没改就不发请求；控制字符留在编辑态并写原因
+	// （行内没有错误行，原因进标题栏下方那一行）。
+	if title == a.sessionName(index, a.sessionIDAt(index)) {
+		a.renaming = -1
+		a.renameDraft = ""
+		return
+	}
+	if hasRenameControlChars(title) {
+		a.headerNote = renameCopyCtrlSession
 		return
 	}
 	a.renameDraft = title

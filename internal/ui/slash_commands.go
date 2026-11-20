@@ -207,7 +207,7 @@ func (a *App) slashCommands() []slashCommand {
 		_, hasSession = a.liveSession()
 	}
 	noIntents := a.intents == nil
-	sessionReason := "还没有打开会话"
+	sessionReason := noteNoOpenSession
 	if noIntents {
 		sessionReason = "未连接 App Server，无法执行"
 	}
@@ -246,13 +246,13 @@ func (a *App) slashCommands() []slashCommand {
 		// G-B1-09 「/goal」「切换至 Goal 模式」
 		name: "goal", desc: "切换至 Goal 模式", group: slashGroupSession,
 		icon: iconTarget,
-		// 与输入卡模式菜单同一落点（switchMode）；模式位本版只改界面标记，
+		// 与输入卡模式菜单同一落点（switchMode）；模式只决定输入区显示哪一档，
 		// 回执如实写明这一点，并写清是否打开了目标编辑框。
 		receipt: func() string { return a.switchMode("Goal") },
 	}
 	if a.wired() && !hasSession {
 		goal.receipt = nil
-		goal.reason = "还没有打开会话，暂时设定不了目标"
+		goal.reason = noteNoSessionGoal
 	}
 
 	reloadSkills := slashCommand{
@@ -273,7 +273,7 @@ func (a *App) slashCommands() []slashCommand {
 		{
 			name: "agent", desc: "切换至 Agent 模式", group: slashGroupSession,
 			icon: iconBot,
-			// 与输入卡模式菜单同一落点；模式位本版只改界面标记，回执写明未生效范围。
+			// 与输入卡模式菜单同一落点；模式只决定输入区显示哪一档，回执写明这个范围。
 			receipt: func() string { return a.switchMode("Agent") },
 		},
 		goal,

@@ -78,6 +78,8 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 设置 · 账号与套餐 | `Source.Account` / `Source.Usage` | 读服务端账号状态、身份、用量与登录状态 |
 | 设置 · 模型与供应商 | `Source.Settings`（provider/model/权限档位） | 读模型目录快照；档位来自 `session.permission.get` |
 | 设置 · 扩展 | `Source.Extensions`（四类） | 读 `plugin.list` / `skills.catalog` / `hooks.catalog` / `mcp.catalog` 快照 |
+| 设置 · 插件市场 | `Source.PluginMarketplace`（可选，`uiwire` 实现） | 读本地偏好里的源地址，按该地址拉条目；条目的作者、安装位置、Git 来源与技能清单原样展示，缺项写原因（`internal/uiwire/plugin_marketplace.go`） |
+| 设置 · 技能更新 | `Source.SkillUpdates`（可选） | 只有实现可选接口的连接才有读数；真实的 `uiwire` 适配器没有（protocol 缺读取方法，见 §5） |
 | 设置 · 定时任务 | `Source.Schedules` | 读 `schedule.list` 快照 |
 | 设置 · 运行时与模态 | `Source.Settings`（runtimes/modality） | 读最近一次成功读数；能力缺失显示原因 |
 | 设置 · 存储与诊断 | `Source.Settings`（storage） | 读 `storage.report` 读数 |
@@ -97,6 +99,7 @@ go run ./cmd/dimagent-ui -connect -data-dir <数据目录>
 | 视图元素 | `ui.Intents` | app / 领域方法 | 服务端方法 | 测试 |
 |---|---|---|---|---|
 | 发送槽 | `Submit` / `SubmitWithContent` | `app.Submit`（`user.content`） | `session.submit` | `TestIntentSubmit` / `TestIntentSubmitContent` |
+| 市场详情的「添加插件」 | `InstallPlugin(kind=git)` | `app.InstallPlugin` | `plugin.install` | `TestPluginMarketDetailInstallsViaGitSource`（`internal/ui`，替身接住写入） |
 | 长文本发送（>4KB） | `SubmitWithContent` | `attachment.put` → `[Pasted text: path]` | `session.submit` | `TestIntentSubmitLargeText` |
 | 停止槽 | `Stop` | `app.Stop`（本批新增：主线停止） | `session.stop` | `TestIntentStop` |
 | 审批 · 允许一次 / 一直允许 / 拒绝 | `RespondApproval` | `app.Respond` | `approval.respond` | `TestIntentApproval` |
@@ -174,6 +177,9 @@ MCP 导入的来源来自 `mcp.import.sources`（连接后读一次，界面列�
 | 视图元素 | 现状与缺口 | 当前表现 / 谁能解除 |
 |---|---|---|
 | 设置 · 运行时提交模态任务 | `runtime.list/install` 协议有定义，但服务端未注册 `runtime.*`（D1 §7.1 的 issue）；`SubmitTask` 还需要 `category/operation` | 提交按钮禁用并显示 "blocked：服务端未注册 runtime.* / 模态任务提交方法"；D1 恢复能力后再接 |
+| 设置 · 技能更新的读取与写入 | protocol v3 有 `skills.update`（按安装记录），但没有「哪些技能有新版本」的读取方法：`skills.installations` 只给当前 revision、`skills.catalog` 不带版本 | 逐项与「全部更新」置灰并写原因；`ui.SkillUpdatesFacts` / `ui.SkillUpdateIntents` 由能给出该读数的连接实现 |
+| 市场的同名替换确认（G-H3） | 同名插件已装时本端不去覆盖，但「替换现有插件？」确认框未建 | 详情主按钮置灰并写「已安装同名插件…替换确认还没有通道」 |
+| 市场条目没有 Git 地址 | 条目不是协议的安装来源，`plugin.install` 只接受本地目录或 Git 地址 | 主按钮置灰并写「插件源没有给出可安装的 Git 地址」 |
 | 斜杠命令 · `/pet`、`/reload-plugins`、`/fast`、`/workflow` | 四项都没有可执行的应用方法：Pet 没有显示状态通道，插件只有读清单没有重扫，快速模式与工作流浏览本版不存在 | 命令在弹层里置灰，行内写原因（见 `internal/ui/unavailable.go` 的 `notePetShown` / `notePluginReload` / `noteFastMode` / `noteWorkflow`） |
 
 附件与登录不再列为未接：`session.submit` 的正文走 `user.content`（`Text` / `Image` 块），长文本先 `attachment.put` 再以 `[Pasted text: path]` 引用；`account.login.*` 与 `provider.*` 已接。

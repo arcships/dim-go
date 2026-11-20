@@ -132,9 +132,9 @@ func (a *App) tasksPanel(c *gui.Context) {
 	if a.source != nil && !a.hasOpenSession() {
 		// 没有会话就没有任务事实：不拿样例顶替，也不说"暂无"。
 		if wakeups {
-			panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的唤醒记录。")
+			panelEmptyNote(c, noteNoOpenSession, "打开一个会话后，这里显示它的唤醒记录。")
 		} else {
-			panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的后台进程。")
+			panelEmptyNote(c, noteNoOpenSession, "打开一个会话后，这里显示它的后台进程。")
 		}
 		return
 	}

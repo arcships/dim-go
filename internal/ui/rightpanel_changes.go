@@ -56,7 +56,7 @@ func (a *App) rpChangesPage(c *gui.Context) {
 		// 没有写入权限时与文件页同一块警告条（同一个读数位）：条上的「重试」
 		// 重读本页，不留"操作全灰却没有一句原因"的面（U3 §13.2）。
 		if s.permissionDenied {
-			a.rpPermissionBar(c)
+			a.rpPermissionBar(c, rpRetryChanges)
 		}
 		gui.Scroll(c).Grow(1).Children(func() {
 			// 改动列表是一个焦点组：Tab 进一次，↑/↓ 在行与分组标题之间移动，
@@ -71,7 +71,7 @@ func (a *App) rpChangesPage(c *gui.Context) {
 					return
 				}
 				if s.loading {
-					a.rpSkeleton(c)
+					a.rpSkeleton(c, rpSkeletonChanges)
 					return
 				}
 				if live {

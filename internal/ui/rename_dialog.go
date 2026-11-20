@@ -126,12 +126,21 @@ func (a *App) renameDialogProblem() string {
 	if trimmed == a.renameDialog.original {
 		return same
 	}
-	for _, r := range draft {
-		if unicode.IsControl(r) {
-			return ctrl
-		}
+	if hasRenameControlChars(draft) {
+		return ctrl
 	}
 	return ""
+}
+
+// hasRenameControlChars 报告名称里是否有控制字符。行内快捷改名与弹窗共用这条
+// 判断：同一个名字不在弹窗里被拒、在行内被接受。
+func hasRenameControlChars(draft string) bool {
+	for _, r := range draft {
+		if unicode.IsControl(r) {
+			return true
+		}
+	}
+	return false
 }
 
 // renameDialogBlocked 返回确认按钮被禁用的原因：空串表示可点。

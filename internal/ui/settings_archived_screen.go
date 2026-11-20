@@ -53,7 +53,6 @@ type archivedState struct {
 
 	query         string
 	projectFilter string
-	rootSelection string
 
 	deleteAllOpen     bool
 	deleteProjectName string
@@ -105,7 +104,6 @@ var (
 	arcEmptyTitle  = fontStep{size: 15, line: 21, weight: 500}
 	arcBtnStyle    = fontStep{size: 12.25, line: 17.5, weight: 400}
 	arcNoteStyle   = fontStep{size: 12.25, line: 17.5, weight: 400}
-	arcSearchStyle = fontStep{size: 12.25, line: 17.5, weight: 400}
 )
 
 // 本屏图标：Heroicons v2 outline（24 网格、1.5 描边、MIT）的内联路径。
@@ -138,7 +136,6 @@ const (
 	arcCopyNoMatchDesc    = "请尝试其他搜索词或项目筛选条件"
 	arcCopyMore           = "更多操作"
 	arcCopyLoading        = "正在加载归档会话"
-	arcCopyGroupLabel     = "会话"
 )
 
 // archivedView 是本帧要画的归档行：连着 Source 时来自事实，样例模式取屏内表。
@@ -197,13 +194,14 @@ func arcThreads(a *App) []archivedThread {
 	return out
 }
 
-// arcDateLabel 把归档时间换成「月 日」：参考产品的归档行只给到日（11 月 20 日）。
+// arcDateLabel 把归档时间换成「月日」：归档行只给到日（11月20日）。数字与
+// 「月」「日」之间不插空格，与账户节的「2026年12月13日」同一口径（S6）。
 // 没有登记时间时返回空串，行上就不写那一段（不造一个日期）。
 func arcDateLabel(at time.Time) string {
 	if at.IsZero() {
 		return ""
 	}
-	return fmt.Sprintf("%d 月 %d 日", at.Month(), at.Day())
+	return fmt.Sprintf("%d月%d日", at.Month(), at.Day())
 }
 
 // arcHeader 是页首（S-archived-01/02）：标题 + 右端「全部删除」。

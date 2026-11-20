@@ -147,7 +147,6 @@ const (
 
 // 字阶（design-baseline §2）。
 var (
-	plgDescStyle  = fontStep{size: 12.25, line: 17.5, weight: 400}
 	plgCardTitle  = fontStep{size: 13, line: 19.5, weight: 600}
 	plgIDStyle    = fontStep{size: 11, line: 17, weight: 400, family: codeFont}
 	plgLabelStyle = fontStep{size: 12.25, line: 17.5, weight: 500}
@@ -183,7 +182,6 @@ const (
 	plgCopyAdd          = "添加"
 	plgCopyRemove       = "移除"
 	plgCopyRetryCard    = "重试"
-	plgCopyErrFallback  = "读取插件设置失败"
 	plgCopyNumberOnly   = "只接受数字"
 )
 

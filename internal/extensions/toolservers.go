@@ -73,6 +73,23 @@ type ToolServer struct {
 	AuthMissingScopes []string
 }
 
+// ToolServerProblem 是一条读不出来的 MCP 配置（`mcp.catalog` 的 invalid 条目）：
+// 界面据此画「配置问题」提示，不把坏条目混进清单，也不静默丢掉。
+type ToolServerProblem struct {
+	// Scope 是配置所在的作用域（user / project / plugin）；空表示服务端没有给。
+	Scope string
+	// ServerID 是坏条目的标识；空表示坏在整份配置上。
+	ServerID string
+	// Message 是服务端给出的原因原文。
+	Message string
+}
+
+// ToolServerProblemReader 是可选能力：读 MCP 目录里的无效条目。实现它时清单读取
+// 会把问题一起留下；不实现时界面只画清单。
+type ToolServerProblemReader interface {
+	ReadToolServerProblems(ctx context.Context) ([]ToolServerProblem, error)
+}
+
 // ToolServerConfiguration 生成 alpha.21 `mcp.save` 的配置文档。
 //
 // stdio 不能带 url，http/sse 不能带 command；空字段必须省略，否则服务端返回
@@ -503,7 +520,27 @@ func (s *Service) ListToolServers(ctx context.Context) (Snapshot[ToolServer], er
 	if s.cfg.ToolServers == nil {
 		return missingReader(s, "mcp.catalog", &s.toolServers)
 	}
-	return readInto(s, ctx, "mcp.catalog", &s.toolServers, s.cfg.ToolServers.ReadToolServers)
+	snapshot, err := readInto(s, ctx, "mcp.catalog", &s.toolServers, s.cfg.ToolServers.ReadToolServers)
+	if err != nil {
+		return snapshot, err
+	}
+	// 无效条目与清单一起读：它们说明「为什么某个服务器没出现在列表里」。
+	// 问题读取失败不影响清单本身，也不清空上一次确认的问题。
+	if reader, ok := s.cfg.ToolServers.(ToolServerProblemReader); ok {
+		if problems, problemErr := reader.ReadToolServerProblems(ctx); problemErr == nil {
+			s.mu.Lock()
+			s.toolServerProblems = append([]ToolServerProblem(nil), problems...)
+			s.mu.Unlock()
+		}
+	}
+	return snapshot, nil
+}
+
+// ToolServerProblems 返回最近一次清单读数里的无效条目。
+func (s *Service) ToolServerProblems() []ToolServerProblem {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]ToolServerProblem(nil), s.toolServerProblems...)
 }
 
 // ToolServerSnapshot 返回最近一次工具服务器读数，不发起请求。

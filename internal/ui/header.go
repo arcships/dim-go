@@ -278,7 +278,8 @@ func (a *App) chatMenu(c *gui.Context) {
 		if menuItem(c, m, pinIcon, pinText, pinText, pinNote, pinIndex < 0, false) {
 			a.togglePin(pinIndex)
 		}
-		// 重命名：落到左栏的行内改名（同一个会话、同一条 RenameSession 写入）。
+		// 重命名：打开重命名弹窗（与左栏会话行菜单同一入口、同一条
+		// RenameSession 写入）；行内改名只是同一动作的快捷方式（双击 / F2）。
 		// 只有"取不到会话"才禁用并写真实原因——RenameSession 一直都在。
 		renameNote := ""
 		if a.wired() && a.currentSessionIndex() < 0 {

@@ -19,9 +19,8 @@ const (
 	subagentEmptyText  = "还没有输出"
 	// subagentNoSession 是没有子代理消息时的空态标题（有会话、协议没有这条事实）。
 	subagentNoSession = "未打开子代理会话"
-	// subagentNoOpenSession / subagentNoSession 的两种原因：没打开会话与协议缺
-	// 子代理会话流是两件事，空态里分开写。
-	subagentNoOpenSession = "还没有打开会话"
+	// 没打开会话与「协议缺子代理会话流」是两件事，空态里分开写；没打开会话时的
+	// 标题与其余六个面板共用 noteNoOpenSession（同一个空态不叫两种名字）。
 )
 
 // iconCircleStop 是「结束分支」的圆形停止图标（CircleStop）。
@@ -83,7 +82,7 @@ func (a *App) subagentPanel(c *gui.Context) {
 			// 没打开会话（先要有会话）与有会话但协议没有子代理会话流。
 			title, note := subagentNoSession, noteSubagentFacts
 			if !a.hasOpenSession() {
-				title, note = subagentNoOpenSession, noteSubagentNoSession
+				title, note = noteNoOpenSession, noteSubagentNoSession
 			}
 			gui.Column(c).Grow(1).Center().Padding(space4, panelCenterPad).
 				Gap(space2).AlignItems(gui.Center).Children(func() {

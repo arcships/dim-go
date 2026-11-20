@@ -72,7 +72,7 @@ const (
 	// pickCommitNoChannel 是提交候选的缺项原因。提交候选要一份 git 历史读数
 	// （短 hash + 提交标题），protocol v3 没有对应方法，Source 也没有投影：
 	// 读不到清单就不列这一组，只在空态里把原因写清楚，不拿别的读数顶替。
-	pickCommitNoChannel = "提交候选没有读数通道：protocol v3 没有 git 提交清单方法"
+	pickCommitNoChannel = "当前版本读不到提交清单"
 )
 
 // 候选的二级说明（读屏名里带上「文件 / 目录」）。

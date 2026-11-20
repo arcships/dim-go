@@ -96,7 +96,7 @@ func configProtocolRow(c *gui.Context, provider configProvider) {
 	if state == "" {
 		// 协议名未映射：原始标识照写，tooltip 说明为什么不认识。
 		state = strings.TrimSpace(provider.driverKind)
-		rawReason = "协议名未映射，显示原始标识"
+		rawReason = configCopyRawProtocol
 	}
 	if state == "" {
 		state = "—"
@@ -311,8 +311,19 @@ func (a *App) configModelsEmptyRow(c *gui.Context, data configView) {
 				return
 			}
 			if showRefreshHint {
-				configRowStyle.style(t, gui.Text(c, "还没有模型数据，点击「刷新」获取")).
-					TextColor(t.TextMuted).Selectable().Label("还没有模型数据，点击「刷新」获取")
+				// S-configuration-25 / 40 / 41：账号形态的 provider 未登录时写登录
+				// 之后的预期，不摆一个空列表。
+				hint := "还没有模型数据，点击「刷新」获取"
+				if account := data.selected.providerAccount; account != nil && !account.Authenticated {
+					switch account.Namespace {
+					case configNamespaceGrok:
+						hint = configCopyGrokNoModels
+					default:
+						hint = configCopyAutoModels
+					}
+				}
+				configRowStyle.style(t, gui.Text(c, hint)).
+					TextColor(t.TextMuted).Selectable().Label(hint)
 			}
 			if screenAction(c, screenIconRefresh, "refresh", "刷新", rowCompact) {
 				a.configProbeProvider(data.selected, probeModels)
@@ -381,39 +392,31 @@ func (a *App) configModelDraftPanel(c *gui.Context, data configView) {
 					a.configProbeProvider(data.selected, probeModels)
 				}
 			})
-			// S-configuration-72 搜索模型名称或 ID
+			// 搜索词同时过滤已选行与模板。
 			configSearchField(c, &d.query, "搜索模型名称或 ID", "搜索模型名称或 ID")
-			if len(d.rows) == 0 {
-				// S-configuration-75 还没有模型
-				configMicroStyle.style(t,
-					gui.Text(c, "还没有模型。可以手动添加，也可以在提供商支持模型列表时点击刷新。")).
-					TextColor(t.TextMuted).MaxLines(2)
-				return
-			}
-			if len(d.visibleIndexes()) == 0 {
-				configMicroStyle.style(t, gui.Text(c, "没有匹配的模型")).
-					TextColor(t.TextMuted).MaxLines(2)
-				return
-			}
-			for _, i := range d.visibleIndexes() {
-				index := i
-				gui.Row(c).AlignItems(gui.Center).Gap(configGapRow).Children(func() {
-					on := d.on[index]
-					if gui.Checkbox(c, &on, fmt.Sprintf("模型 %d", index+1)).
-						Label(fmt.Sprintf("模型 %d", index+1)).Changed() {
-						d.on[index] = on
-					}
-					input := gui.TextInput(c, &d.rows[index]).
-						Label(fmt.Sprintf("草稿模型 %d", index+1)).Placeholder("模型标识").
-						Height(configFormInputH).Padding(configFormPadV, configFormPadH).
-						Grow(1).MinWidth(0).Background(fieldFill(t))
-					_ = input
-					if screenIconButton(c, iconXMark, fmt.Sprintf("删除草稿模型 %d", index+1),
-						"删除这一行", t.TextMuted) {
-						d.removeAt(index)
+			groups := a.configModelTemplates(data.selected.id, d.query)
+			gui.Scroll(c).Shrink(0).MaxHeight(configModelPickerMaxH).
+				Label("模型模板").Children(func() {
+				gui.Column(c).Shrink(0).Gap(configGapItems).Children(func() {
+					a.configModelCustomItem(c, d)
+					// S-configuration-79 使用模板创建
+					gui.Column(c).Shrink(0).Gap(configGapItems).Children(func() {
+						configStrongStyle.style(t, gui.Text(c, "使用模板创建")).
+							TextColor(t.Text).Label("使用模板创建").SingleLine()
+						configMicroStyle.style(t, gui.Text(c, configCopyTemplateDesc)).
+							TextColor(t.TextMuted).MaxLines(2)
+					})
+					a.configModelTemplateGroups(c, d, groups)
+					if d.query != "" && len(groups) == 0 && len(d.visibleIndexes()) == 0 {
+						// S-configuration-80 没有匹配的模型
+						gui.Row(c).Padding(configGapBlock, 0).Children(func() {
+							configRowStyle.style(t, gui.Text(c, "没有匹配的模型")).
+								TextColor(t.TextMuted).SingleLine()
+						})
 					}
 				})
-			}
+			})
+			a.configModelDraftRows(c, d)
 			if d.formErr != "" {
 				// 保存试过一次：校验不过写字段原因，校验通过写「没有通道」。
 				configRowStyle.style(t, gui.Text(c, d.formErr)).TextColor(t.Danger).
@@ -438,6 +441,193 @@ func (a *App) configModelDraftPanel(c *gui.Context, data configView) {
 	if !open || dialog.Dismissed() {
 		configScreen.draft = nil
 	}
+}
+
+// 添加模型对话框的文案：逐字取自参考产品 zh-CN。
+const (
+	// configCopyAddModelHint 是「添加自定义模型」的说明（S-configuration-78）。
+	configCopyAddModelHint = "从空白配置开始；搜索内容会预填为模型 ID。"
+	// configCopyTemplateDesc 是「使用模板创建」的说明（S-configuration-79）。
+	configCopyTemplateDesc = "选择预设配置作为起点，保存前仍可修改所有字段。"
+)
+
+// configModelCustomItem 是列表第一项「添加自定义模型」：把搜索词预填成模型标识。
+func (a *App) configModelCustomItem(c *gui.Context, d *configModelDraft) {
+	t := c.Theme()
+	item := gui.ButtonBase(c).Shrink(0).AlignItems(gui.Start).Gap(configGapRow).
+		Padding(configGapBlock, configGapRow).Radius(screenRadiusCtl).
+		Label("添加自定义模型").Cursor(gui.CursorPointer)
+	if item.Hovered() {
+		item = item.Background(t.SurfaceHover)
+	}
+	if item.Clicked() {
+		d.add(strings.TrimSpace(d.query))
+	}
+	item.Children(func() {
+		gui.Box(c).Shrink(0).Margin(configGapItems, 0).Children(func() {
+			screenIcon(c, iconPlus, configIcon, t.TextMuted, "plus")
+		})
+		gui.Column(c).Grow(1).MinWidth(0).Gap(configGapItems).Children(func() {
+			// S-configuration-78 添加自定义模型 · 说明
+			configStrongStyle.style(t, gui.Text(c, "添加自定义模型")).TextColor(t.Text).
+				SingleLine()
+			configMicroStyle.style(t, gui.Text(c, configCopyAddModelHint)).
+				TextColor(t.TextMuted).MaxLines(2)
+		})
+	})
+}
+
+// configTemplateGroup 是一组模板：来源供应商 + 它的模型。
+type configTemplateGroup struct {
+	providerID   string
+	providerName string
+	models       []configTemplateModel
+}
+
+// configTemplateModel 是模板里的一个模型。
+type configTemplateModel struct {
+	id   string
+	name string
+}
+
+// configModelPickerMaxH 是模板列表的最大高度（参考的 max-h-[420px] 折半）。
+const configModelPickerMaxH = 260
+
+// configModelTemplates 取可当模板的模型：来自模型目录里除当前供应商之外的条目；
+// 搜索词按供应商名、模型标识与展示名过滤（不区分大小写）。
+func (a *App) configModelTemplates(excludeProviderID, query string) []configTemplateGroup {
+	settings, ok := a.liveSettings()
+	if !ok {
+		return nil
+	}
+	names := make(map[string]string, len(settings.Providers))
+	for _, provider := range settings.Providers {
+		names[provider.ID] = provider.Name
+	}
+	groups := make([]configTemplateGroup, 0, len(names))
+	index := make(map[string]int, len(names))
+	for _, model := range settings.Models {
+		if model.ProviderID == "" || model.ProviderID == excludeProviderID {
+			continue
+		}
+		providerName := names[model.ProviderID]
+		if providerName == "" {
+			providerName = model.ProviderID
+		}
+		if !configMatches(query, providerName) && !configMatches(query, model.Name) &&
+			!configMatches(query, model.ID) {
+			continue
+		}
+		position, seen := index[model.ProviderID]
+		if !seen {
+			groups = append(groups, configTemplateGroup{
+				providerID: model.ProviderID, providerName: providerName,
+			})
+			position = len(groups) - 1
+			index[model.ProviderID] = position
+		}
+		groups[position].models = append(groups[position].models,
+			configTemplateModel{id: model.ID, name: model.Name})
+	}
+	return groups
+}
+
+// configModelTemplateGroups 画出模板分组：供应商标题 + 每个模型一行。
+func (a *App) configModelTemplateGroups(c *gui.Context, d *configModelDraft, groups []configTemplateGroup) {
+	t := c.Theme()
+	for _, group := range groups {
+		label := fmt.Sprintf("%s，%d 个模型", group.providerName, len(group.models))
+		gui.Column(c).Shrink(0).Gap(configGapItems).Children(func() {
+			configMicroStyle.style(t, gui.Text(c, group.providerName)).TextColor(t.TextMuted).
+				Label(label).SingleLine()
+			for _, model := range group.models {
+				entry := gui.ButtonBase(c).Shrink(0).Height(configRowH).
+					AlignItems(gui.Center).Padding(0, configGapRow).
+					Radius(screenRadiusCtl).Label("模板模型 " + model.name).
+					Cursor(gui.CursorPointer)
+				if entry.Hovered() {
+					entry = entry.Background(t.SurfaceHover)
+				}
+				if entry.Clicked() {
+					d.add(model.id)
+				}
+				entry.Children(func() {
+					configRowStyle.style(t, gui.Text(c, model.name)).TextColor(t.Text).
+						Grow(1).MinWidth(0).SingleLine()
+					configMicroStyle.style(t, gui.Text(c, model.id)).TextColor(t.TextMuted).
+						SingleLine()
+				})
+			}
+		})
+	}
+}
+
+// configModelDraftRows 是已选模型：全选、计数与逐行可改的标识。
+func (a *App) configModelDraftRows(c *gui.Context, d *configModelDraft) {
+	t := c.Theme()
+	if len(d.rows) == 0 {
+		// S-configuration-75 还没有模型
+		configMicroStyle.style(t,
+			gui.Text(c, "还没有模型。可以手动添加，也可以在提供商支持模型列表时点击刷新。")).
+			TextColor(t.TextMuted).MaxLines(2)
+		return
+	}
+	// S-configuration-70 模型 · {visible}/{total}
+	label := fmt.Sprintf("模型 · %d / %d", d.enabledCount(), len(d.rows))
+	gui.Row(c).AlignItems(gui.Center).Gap(configGapRow).Children(func() {
+		state := gui.CheckOff
+		switch {
+		case d.enabledCount() == len(d.rows) && len(d.rows) > 0:
+			state = gui.CheckOn
+		case d.enabledCount() > 0:
+			state = gui.CheckMixed
+		}
+		box := gui.CheckboxStateBase(c, &state).Size(configCheckbox, configCheckbox).
+			Shrink(0).Radius(configBadgeRadius).Label("模型")
+		if box.Changed() {
+			next := state == gui.CheckOn
+			for i := range d.on {
+				d.on[i] = next
+			}
+		}
+		configMicroStyle.style(t, gui.Text(c, label)).TextColor(t.TextMuted).
+			Label(label).SingleLine()
+	})
+	for _, i := range d.visibleIndexes() {
+		index := i
+		gui.Row(c).AlignItems(gui.Center).Gap(configGapRow).Children(func() {
+			on := d.on[index]
+			if gui.Checkbox(c, &on, fmt.Sprintf("模型 %d", index+1)).
+				Label(fmt.Sprintf("模型 %d", index+1)).Changed() {
+				d.on[index] = on
+			}
+			gui.TextInput(c, &d.rows[index]).
+				Label(fmt.Sprintf("草稿模型 %d", index+1)).Placeholder("模型标识").
+				Height(configFormInputH).Padding(configFormPadV, configFormPadH).
+				Grow(1).MinWidth(0).Background(fieldFill(t))
+			if screenIconButton(c, iconXMark, fmt.Sprintf("删除草稿模型 %d", index+1),
+				"删除这一行", t.TextMuted) {
+				d.removeAt(index)
+			}
+		})
+	}
+}
+
+// add 把一条模型标识加进草稿（重复的不再加）。
+func (d *configModelDraft) add(id string) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		d.rows = append(d.rows, "")
+		d.on = append(d.on, true)
+		return
+	}
+	for _, row := range d.rows {
+		if strings.TrimSpace(row) == id {
+			return
+		}
+	}
+	d.rows = append(d.rows, id)
+	d.on = append(d.on, true)
 }
 
 // visibleIndexes 是过滤后的草稿行下标（名称子串、不区分大小写）。

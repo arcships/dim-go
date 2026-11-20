@@ -905,27 +905,96 @@ func (a *App) artifactsBlock(c *gui.Context, i int, r round) {
 	// TL-14 本轮产物块
 	// A-01 产物块容器（块根：折叠头 + 可展开列表）
 	t := c.Theme()
-	open := a.blockOf(fmt.Sprintf("artifacts:%d", i), false)
-	// A-02 计数文本（{count} 个产物）
-	title := fmt.Sprintf("%d 个产物", len(r.artifacts))
-	btn := gui.ButtonBase(c).Grow(1).Height(timelineRowHeight).Gap(space1).
-		Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).Radius(radius).
-		Cursor(gui.CursorPointer).Label(title).Role(gui.RoleDisclosure).Expanded(*open)
-	if btn.Hovered() {
-		btn = btn.Background(t.SurfaceHover)
-	}
-	progress := btn.AnimateTo("artifacts", b2f(*open), timelineCollapse)
-	arrow := btn.AnimateTo("artifacts-arrow", b2f(*open), timelineArrow)
-	btn.Children(func() {
-		iconGlyph(c, iconDocument, t.TextMuted, "artifacts")
-		typeSecondary.style(t, gui.Text(c, title)).TextColor(t.Text)
-		chevronLabeled(c, t, arrow, "产物展开指示")
+	key := fmt.Sprintf("artifacts:%d", i)
+	open := a.blockOf(key, false)
+	var progress float32
+	gui.Row(c).Shrink(0).AlignItems(gui.Center).Children(func() {
+		// A-02 计数文本（{count} 个产物）
+		title := fmt.Sprintf("%d 个产物", len(r.artifacts))
+		btn := gui.ButtonBase(c).Grow(1).Height(timelineRowHeight).Gap(space1).
+			Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).Radius(radius).
+			Cursor(gui.CursorPointer).Label(title).Role(gui.RoleDisclosure).Expanded(*open)
+		if btn.Hovered() {
+			btn = btn.Background(t.SurfaceHover)
+		}
+		progress = btn.AnimateTo("artifacts", b2f(*open), timelineCollapse)
+		arrow := btn.AnimateTo("artifacts-arrow", b2f(*open), timelineArrow)
+		btn.Children(func() {
+			iconGlyph(c, iconDocument, t.TextMuted, "artifacts")
+			typeSecondary.style(t, gui.Text(c, title)).TextColor(t.Text)
+			chevronLabeled(c, t, arrow, "产物展开指示")
+		})
+		if btn.Clicked() {
+			*open = !*open
+		}
+		// A-03 块头「提交或推送」：当前分支非空时才出现（A-03 的条件）。
+		if a.artifactsGitAvailable() {
+			a.artifactsGitButton(c, key)
+		}
 	})
-	if btn.Clicked() {
-		*open = !*open
-	}
 	a.revealPanel(c, *open, progress, func() {
-		a.artifactList(c, fmt.Sprintf("artifacts:%d", i), r.artifacts)
+		a.artifactList(c, key, r.artifacts)
+	})
+}
+
+// artifactsGitAvailable 报告产物块头要不要出现「提交或推送」（A-03）：
+// 当前分支非空才算有 git 可写对象；没有分支时块头只剩计数文本。
+func (a *App) artifactsGitAvailable() bool {
+	branch, _, _ := a.branchState()
+	return strings.TrimSpace(branch) != ""
+}
+
+// artifactsGitMenuOpen 取产物块头菜单的开合态（A-03）。
+func (a *App) artifactsGitMenuOpen(key string) *bool {
+	if a.artifactGit == nil {
+		a.artifactGit = map[string]*bool{}
+	}
+	if p, ok := a.artifactGit[key]; ok {
+		return p
+	}
+	open := false
+	a.artifactGit[key] = &open
+	return &open
+}
+
+// artifactsGitButton 是产物块头的「提交或推送」（A-03–A-06）：CloudUpload +
+// 文案 + ChevronDown，菜单固定三项 提交 / 提交并推送 / 推送。协议 v3 没有 git
+// 写方法，三项都置灰并把原因写在菜单项里（缺通道不藏入口）。
+func (a *App) artifactsGitButton(c *gui.Context, key string) {
+	t := c.Theme()
+	open := a.artifactsGitMenuOpen(key)
+	b := gui.MenuBase(c, open)
+	tr := b.Trigger.Height(rowRegular).Padding(0, space2).Radius(radius).
+		Gap(space1).AlignItems(gui.Center).Background(t.Background).
+		Label("提交或推送").Tooltip("提交或推送").
+		Cursor(gui.CursorPointer).Expanded(*open)
+	tr.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, radius, strokeHairline)
+	})
+	switch {
+	case tr.Pressed():
+		tr = tr.Background(t.SurfacePressed)
+	case tr.Hovered():
+		tr = tr.Background(t.SurfaceHover)
+	}
+	tr.Children(func() {
+		rpGlyph(c, iconCloudUpload, panelRowIcon, t.TextMuted, "")
+		typeSecondary.style(t, gui.Text(c, "提交或推送")).TextColor(t.Text).SingleLine()
+		arrow := iconChevronDown
+		if *open {
+			arrow = iconChevronUp
+		}
+		rpGlyph(c, arrow, panelTabIcon, t.TextMuted, "")
+	})
+	b.Popup(func(panel gui.Element) {
+		rpMenuPanel(panel, t, panelMenuWidth)
+		// A-04 提交 / A-05 提交并推送 / A-06 推送：三项顺序固定、图标同右栏
+		// （R-RA-021）。协议 v3 没有 git 写方法，三项一律置灰并把原因写进项里；
+		// 「无已暂存改动」也置灰提交两项，但没有通道时推送同样是灰的——原因不
+		// 藏，也不拿别项顶替。
+		menuItem(c, b, iconGitCommit, "提交", "提交", noteGitWrite, true, false)
+		menuItem(c, b, iconCloudUpload, "提交并推送", "提交并推送", noteGitWrite, true, false)
+		menuItem(c, b, iconCloudUpload, "推送", "推送", noteGitWrite, true, false)
 	})
 }
 
@@ -980,7 +1049,12 @@ func (a *App) artifactRow(c *gui.Context, key string, art artifact, count int) {
 	if row.Hovered() {
 		row = row.Background(t.SurfaceHover)
 	}
+	// A-11 文件已不存在：整行半透明（约 60%），行内标「已删除」，不再给「打开」。
+	if art.missing {
+		row = row.Opacity(artifactMissingAlpha)
+	}
 	menuKey := key + "/" + art.name
+	unopenable := !art.missing && art.canOpen != nil && !*art.canOpen
 	row.Children(func() {
 		// A-09 文件类型图标
 		iconGlyph(c, iconDocument, t.TextMuted, "artifact")
@@ -989,13 +1063,29 @@ func (a *App) artifactRow(c *gui.Context, key string, art artifact, count int) {
 			typeSecondary.style(t, gui.Text(c, art.name)).TextColor(t.Text).
 				Tooltip(art.name).SingleLine()
 		})
-		// A-13 行内「打开」（协议没有产物内容，置灰并写原因）
-		gui.Button(c, "打开").Label("打开产物 " + art.name + "（" + noteArtifact + "）").
-			Tooltip(noteArtifact).Disabled(true)
-		a.artifactMenuTrigger(c, menuKey, art)
+		switch {
+		case art.missing:
+			// A-11 行内标签「已删除」（小号次要色，不加底色）
+			typeMicro.style(t, gui.Text(c, "已删除")).TextColor(t.TextMuted).
+				Label("已删除").SingleLine()
+		case unopenable:
+			// A-12 条目存在但不可打开：在「打开」的位置显示替代文本，不是按钮。
+			typeMicro.style(t, gui.Text(c, "无法预览文件")).TextColor(t.TextMuted).
+				Label("无法预览文件").SingleLine()
+		default:
+			// A-13 行内「打开」（协议没有产物内容，置灰并写原因）
+			gui.Button(c, "打开").Label("打开产物 " + art.name + "（" + noteArtifact + "）").
+				Tooltip(noteArtifact).Disabled(true)
+		}
+		if !art.missing && !unopenable {
+			a.artifactMenuTrigger(c, menuKey, art)
+		}
 	})
 	a.artifactMenu(c, row, menuKey, art)
 }
+
+// artifactMissingAlpha 是「已删除」产物行的不透明度（需求给约 60%）。
+const artifactMissingAlpha = 0.6
 
 // artifactMenuTrigger 是行尾的下拉触发器（A-14）：ChevronDown 图标按钮，展开后
 // 翻转朝上；同时只开一个。能力都不成立时不出现（A-14 的条件）。
@@ -1849,7 +1939,12 @@ func artifactRows(row RowSnapshot) []artifact {
 		if name == "" {
 			name = child.Text
 		}
-		out = append(out, artifact{name: name})
+		art := artifact{name: name, canOpen: child.ArtifactCanOpen}
+		// 只有快照明确给出「不存在」才标已删除；没有这条事实时按存在画。
+		if child.ArtifactExists != nil && !*child.ArtifactExists {
+			art.missing = true
+		}
+		out = append(out, art)
 	}
 	return out
 }
@@ -1886,14 +1981,26 @@ func rowDurationText(d time.Duration) string {
 
 // emptyTimeline 是"会话里还没有消息"的空态（与无会话的空态区分）。
 // 还没登录且没有供应商时，空态下面给两条首次运行入口（见 firstRunNeeded）。
+//
+// 连接还在建立时写「正在连接…」：那时会话目录与当前会话都还没读到，画
+// 「当前会话还没有消息」会把读取中当成空态（四态要分得开）。
 func (a *App) emptyTimeline(c *gui.Context) {
 	// TL-02 当前会话还没有消息
 	t := c.Theme()
+	text := "当前会话还没有消息"
+	if a.wired() {
+		switch a.liveConnection().Phase {
+		case "connecting":
+			text = "正在连接…"
+		case "disconnected":
+			text = "连接已断开"
+		}
+	}
 	gui.Box(c).Grow(1).Center().Label("对话流").Role(gui.RoleLog).Children(func() {
 		gui.Column(c).AlignItems(gui.Center).Gap(space4).Children(func() {
 			gui.Row(c).Gap(space2).AlignItems(gui.Center).Label("空态").Children(func() {
 				iconGlyph(c, iconChat, t.TextMuted, "chat")
-				typeSecondary.style(t, gui.Text(c, "当前会话还没有消息")).TextColor(t.TextMuted)
+				typeSecondary.style(t, gui.Text(c, text)).TextColor(t.TextMuted)
 			})
 			if a.firstRunNeeded() {
 				a.firstRunGuide(c)

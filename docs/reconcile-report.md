@@ -22,13 +22,13 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 文件 | 总条数 | 逐字 | 弱 | 测试 | 需负向取证 | 未实现 | 逐字占比 | 未实现占比 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `requirements-settings.md` | 8325 | 681 | 1121 | 7 | 633 | 5883 | 8.2% | 70.7% |
+| `requirements-settings.md` | 8325 | 701 | 1228 | 16 | 633 | 5747 | 8.4% | 69.0% |
 | `requirements-main.md` | 3520 | 489 | 1744 | 106 | 384 | 797 | 13.9% | 22.6% |
-| `requirements-global.md` | 2348 | 382 | 1322 | 100 | 197 | 347 | 16.3% | 14.8% |
-| `requirements-panels.md` | 2152 | 352 | 480 | 171 | 170 | 979 | 16.4% | 45.5% |
-| **合计** | **16345** | **1904** | **4667** | **384** | **1384** | **8006** | **11.6%** | **49.0%** |
+| `requirements-global.md` | 2348 | 391 | 1406 | 140 | 197 | 214 | 16.7% | 9.1% |
+| `requirements-panels.md` | 2152 | 354 | 512 | 171 | 170 | 945 | 16.4% | 43.9% |
+| **合计** | **16345** | **1935** | **4890** | **433** | **1384** | **7703** | **11.8%** | **47.1%** |
 
-「未实现」里有一半以上是「期望列没有可逐字文案」造成的（无可用字面量 13923 条，其中判未实现 7725 条）；这类条目只能靠元素符号/测试或界面取证，见 §3。
+「未实现」里有一半以上是「期望列没有可逐字文案」造成的（无可用字面量 13923 条，其中判未实现 7449 条）；这类条目只能靠元素符号/测试或界面取证，见 §3。
 
 ## 2. 第一轮随机 40 条复核
 
@@ -38,16 +38,16 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 需求 ID | 元素 ID | 维度 | 机器判定 | 证据 | 复核 |
 |---|---|---|---|---|---|
-| R-RUN-181 | S-runtime-23 | 关联 | 逐字 | `internal/ui/settings_runtime_screen.go:rtCopyInstall`「下载安装」 | 通过（字面量在 internal/ui/settings_runtime_screen.go:rtCopyInstall 内） |
-| R-PLG-161 | S-pluginSettings-21 | 内容 | 逐字 | `internal/ui/app.go:App.persistPreferencesThen`「保存」 | 通过（字面量在 internal/ui/app.go:App.persistPreferencesThen 内） |
-| R-PRM-089 | S-permissions-12 | 内容 | 逐字 | `internal/ui/settings_permissions_screen.go:permCopyNetworkIn`「允许沙箱命令访问网络。」 | 通过（字面量在 internal/ui/settings_permissions_screen.go:permCopyNetworkIn 内） |
-| R-CFG-633 | S-configuration-80 | 状态 | 逐字 | `internal/ui/settings_configuration_screen.go:App.configModelList`「没有匹配的模型」 | 通过（字面量在 internal/ui/settings_configuration_screen.go:App.configModelList 内） |
-| R-GEN-594 | S-general-75 | 内容 | 逐字 | `internal/ui/settings_general_screen.go:generalCleanupDialog`「0 B」 | 通过（字面量在 internal/ui/settings_general_screen.go:generalCleanupDialog 内） |
-| R-PER-441 | S-personalization-47 | 内容 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-SHL-261 | S-shell-33 | 无障碍 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-USG-345 | S-usage-43 | 内容 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-CFG-310 | S-configuration-39 | 无障碍 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-MOD-505 | S-modality-64 | 内容 | 逐字 | `internal/ui/settings_modality_screen.go:mdCopyOpenSession`「打开会话」 | 通过（字面量在 internal/ui/settings_modality_screen.go:mdCopyOpenSession 内） |
+| R-HOK-145 | S-hooks-19 | 状态 | 逐字 | `internal/ui/settings_hooks_screen.go:hkCopyNoEntries`「没有条目」 | 通过（字面量在 internal/ui/settings_hooks_screen.go:hkCopyNoEntries 内） |
+| R-PET-113 | S-pets-15 | 内容 | 逐字 | `internal/settings/models.go:buildModelSnapshot`「选择」 | 通过（字面量在 internal/settings/models.go:buildModelSnapshot 内） |
+| R-CFG-521 | S-configuration-66 | 内容 | 逐字 | `internal/settings/agents.go:validateAgentProfiles`「名称」 | 通过（字面量在 internal/settings/agents.go:validateAgentProfiles 内） |
+| R-GEN-569 | S-general-72 | 内容 | 逐字 | `internal/ui/settings_general_screen.go:generalCleanupDialog`「数据库」 | 通过（字面量在 internal/ui/settings_general_screen.go:generalCleanupDialog 内） |
+| R-PER-442 | S-personalization-47 | 样式 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-USG-346 | S-usage-43 | 样式 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-CFG-419 | S-configuration-53 | 交互 | 未实现 | — | 通过（文案/符号/测试均无命中） |
 | R-USG-037 | S-usage-05 | 交互 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-MOD-013 | S-modality-02 | 高DPI | 未实现 | — | 通过（文案/符号/测试均无命中） |
 
 ### requirements-main.md
 
@@ -57,7 +57,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-TL-285 | TL-28 | 无障碍 | 逐字 | `internal/ui/timeline_extra.go:App.mentionChip`「打开文件」 | 通过（字面量在 internal/ui/timeline_extra.go:App.mentionChip 内） |
 | R-LB-869 | LB-94 | 关联 | 逐字 | `internal/ui/sidebar.go:App.accountMenu`「显示 Pet」 | 通过（字面量在 internal/ui/sidebar.go:App.accountMenu 内） |
 | R-LB-613 | LB-96 | 动画 | 逐字 | `internal/ui/sidebar.go:App.accountMenu`「邀请朋友」 | 通过（字面量在 internal/ui/sidebar.go:App.accountMenu 内） |
-| R-LB-361 | LB-54 | 样式 | 逐字 | `internal/ui/sidebar.go:App.workspaceGroup`「暂无会话」 | 通过（字面量在 internal/ui/sidebar.go:App.workspaceGroup 内） |
+| R-LB-361 | LB-54 | 样式 | 逐字 | `internal/ui/sidebar.go:App.sidebarEmptyText`「暂无会话」 | 通过（字面量在 internal/ui/sidebar.go:App.sidebarEmptyText 内） |
 | R-NT-119 | NT-10 | 高DPI | 未实现 | — | 通过（文案/符号/测试均无命中） |
 | R-LB-357 | LB-56 | 关联 | 未实现 | — | 通过（文案/符号/测试均无命中） |
 | R-NT-057 | NT-05 | 动画 | 未实现 | — | 通过（文案/符号/测试均无命中） |
@@ -73,26 +73,26 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-GF-071 | G-G1-09 | 关联 | 逐字 | `internal/ui/command_palette.go:App.commandPaletteActions`「导出」 | 通过（字面量在 internal/ui/command_palette.go:App.commandPaletteActions 内） |
 | R-GC-121 | G-E3-06 | 无障碍 | 逐字 | `internal/ui/command_palette.go:App.commandPaletteActions`「归档」 | 通过（字面量在 internal/ui/command_palette.go:App.commandPaletteActions 内） |
 | R-GQ-101 | G-D1-13 | 内容 | 逐字 | `internal/ui/question.go:questionCopyNoMatch`「没有匹配的选项」 | 通过（字面量在 internal/ui/question.go:questionCopyNoMatch 内） |
-| R-GS-299 | G-A3-09 | 内容 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-GS-052 | G-A1-05 | 关联 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-GI-157 | G-H2-07 | 样式 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-GF-175 | G-G2-04 | 交互 | 未实现 | — | 通过（文案/符号/测试均无命中） |
 | R-GS-022 | G-A1-02b | 异常 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-GI-177 | G-H3-01 | 无障碍 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-GF-171 | G-G2-04 | 样式 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-AP-424 | G-C4-05 | 记忆 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-GS-296 | G-A3-08 | 内容 | 未实现 | — | 通过（文案/符号/测试均无命中） |
 
 ### requirements-panels.md
 
 | 需求 ID | 元素 ID | 维度 | 机器判定 | 证据 | 复核 |
 |---|---|---|---|---|---|
-| R-RA-138 | A-17 | 状态 | 逐字 | `internal/ui/rightpanel_changes.go:App.rpChangeMenu`「在文件管理器中显示」 | 通过（字面量在 internal/ui/rightpanel_changes.go:App.rpChangeMenu 内） |
-| R-TK-216 | K-27 | 样式 | 逐字 | `internal/ui/rightpanel_tasks.go:App.taskCopyCommand`「复制命令」 | 通过（字面量在 internal/ui/rightpanel_tasks.go:App.taskCopyCommand 内） |
-| R-TK-001 | K-01 | 状态 | 逐字 | `internal/ui/rightpanel_tasks.go:App.tasksPanel`「后台进程」 | 通过（字面量在 internal/ui/rightpanel_tasks.go:App.tasksPanel 内） |
+| R-RA-130 | A-16 | 状态 | 逐字 | `internal/ui/rightpanel_changes.go:App.rpChangeMenu`「用默认应用打开」 | 通过（字面量在 internal/ui/rightpanel_changes.go:App.rpChangeMenu 内） |
+| R-TK-210 | K-26 | 无障碍 | 逐字 | `internal/ui/rightpanel_tasks.go:App.taskCopyCommand`「已复制」 | 通过（字面量在 internal/ui/rightpanel_tasks.go:App.taskCopyCommand 内） |
+| R-TM-167 | T-21 | 状态 | 逐字 | `internal/ui/terminal.go:App.termTabChip`「关闭进程」 | 通过（字面量在 internal/ui/terminal.go:App.termTabChip 内） |
 | R-RD-893 | D-97 | 状态 | 逐字 | `internal/ui/rightpanel_changes.go:App.rpChangeMenu`「复制相对路径」 | 通过（字面量在 internal/ui/rightpanel_changes.go:App.rpChangeMenu 内） |
 | R-RD-511 | D-54 | 无障碍 | 逐字 | `internal/ui/rightpanel_changes.go:App.rpChangeGroups`「未暂存」 | 通过（字面量在 internal/ui/rightpanel_changes.go:App.rpChangeGroups 内） |
-| R-TM-025 | T-04 | 状态 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-RD-042 | D-03 | 交互 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-TM-015 | T-02 | 异常 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-TM-097 | T-12 | 内容 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-RD-043 | D-03 | 样式 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-TM-070 | T-09 | 状态 | 未实现 | — | 通过（文案/符号/测试均无命中） |
 | R-RF-303 | F-35 | 记忆 | 未实现 | — | 通过（文案/符号/测试均无命中） |
-| R-RD-419 | D-44 | 记忆 | 未实现 | — | 通过（文案/符号/测试均无命中） |
+| R-RD-420 | D-44 | 关联 | 未实现 | — | 通过（文案/符号/测试均无命中） |
 
 抽样复核：40 条中 40 条与证据一致，0 条标记有分歧。
 
@@ -165,42 +165,42 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 文件 | 总条数 | 逐字 | 映射命中 | 映射到位无标记 | 无渲染点 | 负向 | 映射命中占比 |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| `requirements-settings.md` | 8325 | 681 | 4809 | 1882 | 320 | 633 | 57.8% |
+| `requirements-settings.md` | 8325 | 701 | 4955 | 1882 | 154 | 633 | 59.5% |
 | `requirements-main.md` | 3520 | 489 | 1827 | 694 | 126 | 384 | 51.9% |
-| `requirements-global.md` | 2348 | 382 | 1145 | 371 | 253 | 197 | 48.8% |
-| `requirements-panels.md` | 2152 | 352 | 1169 | 387 | 74 | 170 | 54.3% |
-| **合计** | **16345** | **1904** | **8950** | **3334** | **773** | **1384** | **54.8%** |
+| `requirements-global.md` | 2348 | 391 | 1280 | 362 | 118 | 197 | 54.5% |
+| `requirements-panels.md` | 2152 | 354 | 1190 | 396 | 42 | 170 | 55.3% |
+| **合计** | **16345** | **1935** | **9252** | **3334** | **440** | **1384** | **56.6%** |
 
-去掉逐字与负向后可判 13057 条：元素映射到位 12284 条（94.1%），其中缺该维度标记 3334 条；找不到渲染点 773 条（5.9%）。
+去掉逐字与负向后可判 13026 条：元素映射到位 12586 条（96.6%），其中缺该维度标记 3334 条；找不到渲染点 440 条（3.4%）。
 
 「无渲染点」是映射的缺口，不是实现的结论：元素 ID 没在 Go 注释里标注，就查不到渲染函数。按域看元素映射覆盖率：
 
 | 文件 | 元素数 | 有渲染点 | 覆盖率 |
 |---|---:|---:|---:|
-| `requirements-settings.md` | 992 | 945 | 95.3% |
+| `requirements-settings.md` | 992 | 969 | 97.7% |
 | `requirements-main.md` | 344 | 329 | 95.6% |
-| `requirements-global.md` | 276 | 237 | 85.9% |
-| `requirements-panels.md` | 244 | 231 | 94.7% |
+| `requirements-global.md` | 276 | 259 | 93.8% |
+| `requirements-panels.md` | 244 | 237 | 97.1% |
 
-缺标注最多的元素族（按条数）：`S-configuration` 152 条、`S-general` 112 条、`G-H6` 72 条、`NT` 62 条、`S-mcp` 56 条、`G-H5` 52 条、`A` 50 条、`G-G2` 42 条。
+缺标注最多的元素族（按条数）：`S-general` 112 条、`NT` 62 条、`G-G2` 42 条、`TL` 41 条、`IN` 36 条、`G-H3` 33 条、`G-A3` 25 条、`S-keybindings` 24 条。
 
 ### 4.3 按维度
 
 | 维度 | 条数 | 逐字 | 映射命中 | 映射到位无标记 | 无渲染点 | 负向 | 标记组来源 |
 |---|---:|---:|---:|---:|---:|---:|---|
-| 状态 | 2570 | 505 | 1151 | 253 | 107 | 554 | 本轮补充 |
-| 样式 | 1984 | 55 | 1744 | 43 | 129 | 13 | 领导给定 |
-| 内容 | 1924 | 695 | 983 | 12 | 99 | 135 | 领导给定 |
-| 无障碍 | 1893 | 310 | 1420 | 33 | 111 | 19 | 领导给定 |
-| 异常 | 1745 | 95 | 708 | 560 | 74 | 308 | 领导给定 |
-| 交互 | 1436 | 66 | 912 | 244 | 62 | 152 | 领导给定 |
-| 关联 | 1380 | 136 | 950 | 131 | 43 | 120 | 本轮补充 |
-| 窄窗 | 858 | 11 | 92 | 675 | 52 | 28 | 领导给定 |
-| 记忆 | 688 | 20 | 78 | 538 | 25 | 27 | 领导给定 |
-| 深色 | 569 | 0 | 546 | 0 | 23 | 0 | 本轮补充 |
-| 键盘 | 482 | 5 | 189 | 263 | 19 | 6 | 本轮补充 |
+| 状态 | 2570 | 515 | 1184 | 254 | 63 | 554 | 本轮补充 |
+| 样式 | 1984 | 55 | 1805 | 43 | 68 | 13 | 领导给定 |
+| 内容 | 1924 | 711 | 1016 | 13 | 49 | 135 | 领导给定 |
+| 无障碍 | 1893 | 312 | 1473 | 33 | 56 | 19 | 领导给定 |
+| 异常 | 1745 | 96 | 757 | 538 | 46 | 308 | 领导给定 |
+| 交互 | 1436 | 68 | 940 | 244 | 32 | 152 | 领导给定 |
+| 关联 | 1380 | 136 | 965 | 131 | 28 | 120 | 本轮补充 |
+| 窄窗 | 858 | 11 | 105 | 685 | 29 | 28 | 领导给定 |
+| 记忆 | 688 | 20 | 78 | 545 | 18 | 27 | 领导给定 |
+| 深色 | 569 | 0 | 555 | 0 | 14 | 0 | 本轮补充 |
+| 键盘 | 482 | 5 | 197 | 262 | 12 | 6 | 本轮补充 |
 | 高DPI | 292 | 0 | 26 | 257 | 6 | 3 | 本轮补充 |
-| 动画 | 285 | 1 | 31 | 226 | 19 | 8 | 领导给定 |
+| 动画 | 285 | 1 | 31 | 230 | 15 | 8 | 领导给定 |
 | 性能 | 88 | 0 | 16 | 65 | 4 | 3 | 本轮补充 |
 | 语言 | 69 | 4 | 61 | 0 | 0 | 4 | 本轮补充 |
 | 输入法 | 30 | 0 | 2 | 26 | 0 | 2 | 本轮补充 |
@@ -221,7 +221,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 ### 4.4 逐字档的映射一致性
 
-逐字 1904 条中：字面量落在元素映射函数内 1427 条；元素有映射但字面量不在映射函数内 385 条；元素没有映射点 92 条。
+逐字 1935 条中：字面量落在元素映射函数内 1502 条；元素有映射但字面量不在映射函数内 390 条；元素没有映射点 43 条。
 
 映射不一致的前 10 条（逐字证据可能指错实现点）：
 
@@ -246,16 +246,16 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 需求 ID | 元素 ID | 维度 | 判定 | 映射 | 函数体信号 | 人工复核 |
 |---|---|---|---|---|---|---|
-| R-CFG-391 | S-configuration-49 | 键盘 | 映射到位无标记 | `internal/ui/settings_configuration_screen.go:configUnbuiltBody` | Theme, Text, TextColor | 待复核 |
+| R-CFG-407 | S-configuration-51 | 异常 | 映射到位无标记 | `internal/ui/settings_configuration_screen.go:configUnbuiltBody` | Theme, Text, TextColor | 待复核 |
 | R-USG-465 | S-usage-57 | 窄窗 | 映射到位无标记 | `internal/ui/settings_usage_screen.go:renderSettingsUsageScreen` | Theme, Column, Grow, Children, Scroll, Gap | 待复核 |
 | R-PER-595 | S-personalization-65 | 窄窗 | 映射到位无标记 | `internal/ui/settings_personalization_screen.go:renderSettingsPersonalizationScreen` | Theme, Column, Grow, Children, Scroll, Gap, Text, TextColor | 待复核 |
 | R-APP-306 | S-appearance-35 | 异常 | 映射到位无标记 | `internal/ui/settings_appearance_screen.go:appearanceSizeSection` | Theme, Column, Shrink, Gap, Children, Row, AlignItems, Spacer | 待复核 |
 | R-HOK-012 | S-hooks-02 | 异常 | 映射到位无标记 | `internal/ui/settings_hooks_screen.go:hkHeader` | Row, Shrink, AlignItems, Gap, Children, Spacer | 待复核 |
-| R-MOD-424 | S-modality-53 | 记忆 | 映射到位无标记 | `internal/ui/settings_modality_screen.go:mdTaskSection` | Column, Shrink, Margin, Children, Padding, Text, TextColor, Level | 待复核 |
+| R-MOD-426 | S-modality-54 | 交互 | 映射到位无标记 | `internal/ui/settings_modality_screen.go:mdTaskSection` | Column, Shrink, Margin, Children, Padding, Text, TextColor, Level | 待复核 |
 | R-ACC-1051 | S-account-103 | 交互 | 映射到位无标记 | `internal/ui/settings_account_screen.go:App.accountReferralCard` | Theme, Column, Shrink, Clip, Label, Children, Row, AlignItems | 待复核 |
-| R-CFG-568 | S-configuration-71 | 状态 | 映射命中 | `internal/ui/settings_provider_detail.go:App.configModelDraftPanel` 标记 State | Theme, Modal, Sprintf, Row, AlignItems, Gap, Children, CheckboxStateBase | 待复核 |
+| R-CFG-417 | S-configuration-53 | 内容 | 映射命中 | `internal/ui/settings_configuration_screen.go:configUnbuiltBody` 标记 文案「尚未按参考产品重建」 | Theme, Text, TextColor | 待复核 |
 | R-ACC-1000 | S-account-96 | 无障碍 | 映射命中 | `internal/ui/settings_account_screen.go:App.accountReferralCard` 标记 Role | Theme, Column, Shrink, Clip, Label, Children, Row, AlignItems | 待复核 |
-| R-APP-646 | S-appearance-75 | 样式 | 无渲染点 | — | — | 待复核 |
+| R-APP-645 | S-appearance-75 | 内容 | 无渲染点 | — | — | 待复核 |
 
 #### requirements-main.md
 
@@ -285,22 +285,22 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-AP-496 | G-C4-14 | 记忆 | 映射到位无标记 | `internal/ui/approval_panels.go:approvalWebPanel` | — | 待复核 |
 | R-AP-394 | G-C4-03 | 内容 | 映射命中 | `internal/ui/approval_panels.go:approvalCommandPanel` 标记 文案「输入」 | TrimSpace | 待复核 |
 | R-AP-016 | G-C1-01 | 无障碍 | 映射命中 | `internal/ui/approval.go:App.approvalCard` 标记 Role | Theme, Column, WidthPercent, MaxWidth, Padding, Background, Border, Role | 待复核 |
-| R-GI-445 | G-H7-03 | 内容 | 无渲染点 | — | — | 待复核 |
+| R-GS-285 | G-A3-07 | 无障碍 | 无渲染点 | — | — | 待复核 |
 
 #### requirements-panels.md
 
 | 需求 ID | 元素 ID | 维度 | 判定 | 映射 | 函数体信号 | 人工复核 |
 |---|---|---|---|---|---|---|
-| R-TM-131 | T-16 | 样式 | 映射到位无标记 | `internal/ui/terminal.go:App.termMenu` | Item, Disabled, Subtitle, Chosen, ReadClipboard, Separator, Danger | 待复核 |
-| R-RD-149 | D-15 | 动画 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpScopeBar` | Theme, Row, Height, Shrink, Padding, Gap, Children, MenuBase | 待复核 |
-| R-RD-456 | D-48 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpDiffBlock` | Theme, Column, Shrink, Padding, Background, Draw, Stroke, Children | 待复核 |
-| R-RD-681 | D-71 | 性能 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeRow` | Theme, Sprintf, Row, Height, Padding, AlignItems, Role, Background | 待复核 |
-| R-TK-145 | K-18 | 异常 | 映射到位无标记 | `internal/ui/rightpanel.go:panelEmpty` | — | 待复核 |
-| R-RF-216 | F-25 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_files.go:App.rpDirErrorRow` | — | 待复核 |
-| R-RD-647 | D-68 | 高DPI | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeMenu` | ContextMenuBase, Popup, Theme, WriteClipboard | 待复核 |
-| R-RF-259 | F-30 | 关联 | 映射命中 | `internal/ui/rightpanel_files.go:App.rpFileRow` 标记 Select | Theme, Sprintf, ButtonBase, Height, Padding, AlignItems, Radius, Level | 待复核 |
+| R-TM-076 | T-09 | 异常 | 映射到位无标记 | `internal/ui/terminal.go:App.termLayer` | Theme, Column, Grow, Fill, Padding, Role, Children, Center | 待复核 |
+| R-RD-144 | D-14 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpSubmitButton` | Theme, MenuBase, Height, Padding, Radius, AlignItems, Label, Tooltip | 待复核 |
+| R-RD-455 | D-48 | 性能 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpDiffBlock` | Theme, Column, Shrink, Padding, Background, Draw, Stroke, Children | 待复核 |
+| R-RD-672 | D-70 | 性能 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeRow` | Theme, Sprintf, Row, Height, Padding, AlignItems, Role, Background | 待复核 |
+| R-TK-098 | K-12 | 高DPI | 映射到位无标记 | `internal/ui/rightpanel_tasks.go:taskRowTime` | — | 待复核 |
+| R-RF-201 | F-23 | 性能 | 映射到位无标记 | `internal/ui/rightpanel_files.go:App.rpTreeRows` | Column, PaddingStart, Children | 待复核 |
+| R-RD-640 | D-67 | 记忆 | 映射到位无标记 | `internal/ui/rightpanel_changes.go:App.rpChangeMenu` | ContextMenuBase, Popup, Theme, WriteClipboard | 待复核 |
+| R-RF-260 | F-30 | 样式 | 映射命中 | `internal/ui/rightpanel_files.go:App.rpFileRow` 标记 Height | Theme, Sprintf, ButtonBase, Height, Padding, AlignItems, Radius, Level | 待复核 |
 | R-RF-012 | F-01 | 异常 | 映射命中 | `internal/ui/rightpanel_files.go:App.rpFilterRow` 标记 erR | Theme, Column, Shrink, Padding, Children, Row, Height, Gap | 待复核 |
-| R-RA-092 | A-11 | 样式 | 无渲染点 | — | — | 待复核 |
+| R-TM-110 | T-13 | 内容 | 无渲染点 | — | — | 待复核 |
 
 人工复核：待填（`scripts/reconcile-review-mapping.json` 未提供或未命中抽样）。
 
@@ -310,20 +310,20 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 维度 | 缺标记条数 | 其中函数体有同类写法 | 例子 |
 |---|---:|---:|---|
-| 窄窗 | 675 | 618（91.6%） | R-ACC-033 `Wrap` |
-| 异常 | 560 | 121（21.6%） | R-ACC-029 `Banner` |
-| 记忆 | 538 | 224（41.6%） | R-ACC-354 `.accountEmailOpen =` |
-| 键盘 | 263 | 7（2.7%） | R-ACC-603 `Focus` |
+| 窄窗 | 685 | 623（90.9%） | R-ACC-033 `Wrap` |
+| 记忆 | 545 | 222（40.7%） | R-ACC-354 `.accountEmailOpen =` |
+| 异常 | 538 | 118（21.9%） | R-ACC-029 `Banner` |
+| 键盘 | 262 | 7（2.7%） | R-ACC-603 `Focus` |
 | 高DPI | 257 | 191（74.3%） | R-ACC-027 `Size@fontStep.style` |
-| 状态 | 253 | 31（12.3%） | R-RUN-033 `Empty@rtLiveSection` |
-| 交互 | 244 | 125（51.2%） | R-ACC-074 `Selectable` |
-| 动画 | 226 | 107（47.3%） | R-ACC-017 `Opacity@accButton` |
+| 状态 | 254 | 31（12.2%） | R-RUN-033 `Empty@rtLiveSection` |
+| 交互 | 244 | 124（50.8%） | R-ACC-074 `Selectable` |
+| 动画 | 230 | 110（47.8%） | R-ACC-017 `Opacity@accButton` |
 | 关联 | 131 | 4（3.1%） | R-IN-482 `Close` |
 | 性能 | 65 | 0（0.0%） | — |
 | 样式 | 43 | 7（16.3%） | R-TL-006 `Fill` |
 | 无障碍 | 33 | 0（0.0%） | — |
 | 输入法 | 26 | 0（0.0%） | — |
-| 内容 | 12 | 0（0.0%） | — |
+| 内容 | 13 | 0（0.0%） | — |
 | 多窗口 | 5 | 0（0.0%） | — |
 | 拖拽 | 2 | 0（0.0%） | — |
 | 数据量 | 1 | 0（0.0%） | — |
@@ -342,8 +342,8 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | 6 | IN-35 | （排队消息面板） | 8 | 8 | 14 | 状态 5、关联 1、异常 1、记忆 1 | `internal/ui/composer_panels.go:App.queuePanel` |
 | 7 | TL-55 | （工具调用详情） | 8 | 8 | 21 | 状态 4、动画 1、记忆 1、高DPI 1 | `internal/ui/timeline.go:App.toolDetail` |
 | 8 | G-A5-02 | （当前命中片段） | 7 | 7 | 10 | 交互 2、关联 1、无障碍 1、异常 1 | `internal/ui/search.go:App.searchReveal` |
-| 9 | S-personalization-30 | 子代理总数限制（滑块） | 7 | 9 | 20 | 交互 4、动画 1、异常 1、记忆 1 | `internal/ui/settings_personalization_screen.go:psSubagentCountSection` |
-| 10 | TL-01 | （无文案） | 7 | 9 | 17 | 状态 2、交互 2、样式 2、异常 1 | `internal/ui/timeline.go:App.timelineFeed` |
+| 9 | NT-14 | 默认权限 / 智能权限 / 完全访问权限 | 7 | 9 | 26 | 异常 3、记忆 2、窄窗 1、高DPI 1 | `internal/ui/composer.go:App.permissionSelector` |
+| 10 | S-personalization-30 | 子代理总数限制（滑块） | 7 | 9 | 20 | 交互 4、动画 1、异常 1、记忆 1 | `internal/ui/settings_personalization_screen.go:psSubagentCountSection` |
 
 ### 4.8 第二轮已知局限
 
@@ -359,7 +359,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 ## 5. 附录：设置 19 节的未实现分流（五档）
 
-本节只分 `requirements-settings.md`（19 节 + 壳层）。分流的对象是**现行状态列**的未实现条目（§4 口径：映射到位无标记 + 无渲染点），共 2202 条；第一轮逐字口径的 6,140 条是同一批需求的下限计数，两者不是两批条目，差别在判定口径（§1 的「未实现」含「期望列抽不出字面量」的叙述型条目）。
+本节只分 `requirements-settings.md`（19 节 + 壳层）。分流的对象是**现行状态列**的未实现条目（§4 口径：映射到位无标记 + 无渲染点），共 2036 条；第一轮逐字口径的 6,140 条是同一批需求的下限计数，两者不是两批条目，差别在判定口径（§1 的「未实现」含「期望列抽不出字面量」的叙述型条目）。
 
 ### 5.1 分档口径
 
@@ -377,18 +377,18 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 | 档 | 条数 | 占比 | 主要维度 | 主要元素族 |
 |---|---:|---:|---|---|
-| 本版可做 | 63 | 2.9% | 异常 30、交互 15、状态 9 | `S-configuration` 22、`S-archived` 15、`S-keybindings` 14 |
-| 需协议 | 1199 | 54.5% | 窄窗 331、异常 260、交互 118 | `S-personalization` 256、`S-usage` 219、`S-account` 192 |
-| 需素材 | 155 | 7.0% | 异常 41、窄窗 32、记忆 23 | `S-appearance` 116、`S-pets` 39 |
-| 需宿主能力 | 393 | 17.8% | 窄窗 107、异常 68、状态 45 | `S-general` 253、`S-about` 58、`S-runtime` 53 |
-| 取证口径 | 392 | 17.8% | 窄窗 103、键盘 42、记忆 37 | `S-configuration` 190、`S-appearance` 57、`S-keybindings` 47 |
-| **合计** | **2202** | **100.0%** | — | — |
+| 本版可做 | 66 | 3.2% | 异常 32、交互 16、状态 9 | `S-configuration` 25、`S-archived` 15、`S-keybindings` 14 |
+| 需协议 | 1158 | 56.9% | 窄窗 331、异常 251、交互 114 | `S-personalization` 256、`S-usage` 219、`S-account` 192 |
+| 需素材 | 155 | 7.6% | 异常 41、窄窗 32、记忆 23 | `S-appearance` 116、`S-pets` 39 |
+| 需宿主能力 | 382 | 18.8% | 窄窗 107、异常 57、状态 45 | `S-general` 242、`S-about` 58、`S-runtime` 53 |
+| 取证口径 | 275 | 13.5% | 窄窗 91、键盘 41、记忆 37 | `S-configuration` 73、`S-appearance` 57、`S-keybindings` 47 |
+| **合计** | **2036** | **100.0%** | — | — |
 
-未实现条目的维度构成（全量，供对照）：窄窗 573、异常 429、交互 183、状态 180、键盘 165、记忆 158、动画 142、高DPI 134、无障碍 54、关联 51。
+未实现条目的维度构成（全量，供对照）：窄窗 561、异常 399、交互 165、状态 164、键盘 164、记忆 158、动画 142、高DPI 134、关联 39、无障碍 30。
 
 ### 5.3 每档代表条目（每档 10 条）
 
-#### 本版可做（63 条）
+#### 本版可做（66 条）
 
 | 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |
 |---|---|---|---|---|---|
@@ -403,7 +403,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-APP-278 | S-appearance-32 | 异常 | 回滚 | 映射到位无标记 | 本地偏好 / 本地草稿 / 已有事实 |
 | R-APP-287 | S-appearance-33 | 异常 | 回滚 | 映射到位无标记 | 本地偏好 / 本地草稿 / 已有事实 |
 
-#### 需协议（1199 条）
+#### 需协议（1158 条）
 
 | 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |
 |---|---|---|---|---|---|
@@ -433,7 +433,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-APP-465 | S-appearance-53 | 异常 | 显示首字母块（S-appearance-57） | 映射到位无标记 | 期望列素材词 / 皮肤·宠物元素 |
 | R-APP-466 | S-appearance-53 | 记忆 | 保持最后选择 | 映射到位无标记 | 期望列素材词 / 皮肤·宠物元素 |
 
-#### 需宿主能力（393 条）
+#### 需宿主能力（382 条）
 
 | 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |
 |---|---|---|---|---|---|
@@ -448,7 +448,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-GEN-028 | S-general-04 | 动画 | 滑块 120ms 位移 | 映射到位无标记 | 宿主接口词 / 元素族 |
 | R-GEN-029 | S-general-04 | 记忆 | 保持开态 | 映射到位无标记 | 宿主接口词 / 元素族 |
 
-#### 取证口径（392 条）
+#### 取证口径（275 条）
 
 | 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |
 |---|---|---|---|---|---|
@@ -600,9 +600,9 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 
 ## 6. 附录：主窗口与全局面板的未实现分流（五档）
 
-本节只分 `requirements-main.md`（主窗口五区）与 `requirements-global.md`（全局面板八类）。分流的对象是**现行状态列**的未实现条目（§4 口径：映射到位无标记 + 无渲染点）：主窗口 820 条、全局面板 624 条，合计 1444 条。
+本节只分 `requirements-main.md`（主窗口五区）与 `requirements-global.md`（全局面板八类）。分流的对象是**现行状态列**的未实现条目（§4 口径：映射到位无标记 + 无渲染点）：主窗口 820 条、全局面板 480 条，合计 1300 条。
 
-领导给的 881 / 554 是 §1 第一轮「未实现」的下限计数（只看字面量、符号、测试），与本节不是同一批：第二轮把「元素映射到位、但函数体里没有该维度标记」也算成未实现，所以全局面板从 554 涨到 624 条；主窗口从 881 条到 820 条，差别很小。
+领导给的 881 / 554 是 §1 第一轮「未实现」的下限计数（只看字面量、符号、测试），与本节不是同一批：第二轮把「元素映射到位、但函数体里没有该维度标记」也算成未实现，所以全局面板从 554 涨到 480 条；主窗口从 881 条到 820 条，差别很小。
 
 ### 6.1 分档口径
 
@@ -621,15 +621,15 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | 文件 | 现行未实现 | 本版可做 | 需协议 | 需事实 | 需宿主 | 取证口径 |
 |---|---:|---:|---:|---:|---:|---:|
 | `requirements-main.md` | 820 | 217 | 4 | 0 | 17 | 582 |
-| `requirements-global.md` | 624 | 166 | 228 | 0 | 16 | 214 |
-| **合计** | **1444** | **383** | **232** | **0** | **33** | **796** |
+| `requirements-global.md` | 480 | 166 | 139 | 0 | 5 | 170 |
+| **合计** | **1300** | **383** | **143** | **0** | **22** | **752** |
 
 「需事实」本轮为 0：唯一的需事实项（状态条的 Agent 配置，`session.agent.get/update` 已存在但 Source 没有投影）已在本轮接上；SB-08 剩下的窄窗细节按横向维度归取证口径。
 
-- **本版可做** 383 条（26.5%）：维度 异常 99、状态 93、关联 77；元素族 `G-C4` 42、`G-B1` 35、`G-C1` 28、`G-D1` 18、`G-A1` 17。
-- **需协议** 232 条（16.1%）：维度 样式 38、无障碍 32、状态 30；元素族 `G-H6` 56、`G-G2` 38、`G-C3` 27、`G-H2` 27、`G-C2` 26。
-- **需宿主** 33 条（2.3%）：维度 状态 7、异常 6、内容 6；元素族 `G-H6` 8、`G-H4` 5、`G-H7` 3、`TB-01` 2、`TB-31` 2。
-- **取证口径** 796 条（55.1%）：维度 记忆 246、窄窗 111、键盘 88；元素族 `G-H5` 44、`G-C1` 38、`G-C4` 36、`G-A3` 27、`NT-12` 17。
+- **本版可做** 383 条（29.5%）：维度 异常 99、状态 93、关联 77；元素族 `G-C4` 42、`G-B1` 35、`G-C1` 28、`G-D1` 18、`G-A1` 17。
+- **需协议** 143 条（11.0%）：维度 记忆 18、关联 16、状态 16；元素族 `G-G2` 38、`G-C3` 27、`G-C2` 26、`G-H3` 24、`G-A2` 9。
+- **需宿主** 22 条（1.7%）：维度 状态 6、多窗口 5、输入法 4；元素族 `G-H4` 5、`TB-01` 2、`TB-31` 2、`TL-18` 2、`TB-05` 1。
+- **取证口径** 752 条（57.8%）：维度 记忆 246、窄窗 110、键盘 88；元素族 `G-C1` 38、`G-C4` 36、`G-A3` 27、`NT-12` 17、`G-B1` 15。
 
 ### 6.3 每档代表条目（每档 10 条）
 
@@ -648,7 +648,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-TB-279 | TB-36 | 异常 | 系统侧报错，客户端不崩 | 映射到位无标记 | 本地视图状态 / 已有事实 |
 | R-TB-299 | TB-39 | 异常 | 右栏收起，按钮仍为打开态 | 映射到位无标记 | 本地视图状态 / 已有事实 |
 
-#### 需协议（232 条）
+#### 需协议（143 条）
 
 | 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |
 |---|---|---|---|---|---|
@@ -660,14 +660,14 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-AP-297 | G-C3-01 | 关联 | 三卡互斥，同一时刻一张 | 映射到位无标记 | 元素族在 protocol v3 无通道 / 文案指向服务端事实 |
 | R-GS-169 | G-A2-11a | 关联 | 五分支互斥（失败/加载/未读/置顶/默认） | 映射到位无标记 | 元素族在 protocol v3 无通道 / 文案指向服务端事实 |
 | R-GF-142 | G-G2-01 | 内容 | 标题逐字「会话正在使用中」 | 无渲染点 | 元素族在 protocol v3 无通道 / 文案指向服务端事实 |
-| R-GI-119 | G-H2-03 | 动画 | 旋转连续；详情到达后整行消失 | 无渲染点 | 元素族在 protocol v3 无通道 / 文案指向服务端事实 |
+| R-GI-119 | G-H2-03 | 动画 | 旋转连续；详情到达后整行消失 | 映射到位无标记 | 元素族在 protocol v3 无通道 / 文案指向服务端事实 |
 | R-GI-174 | G-H3-01 | 内容 | 标题逐字「替换现有插件？」，问号为中文全角 | 无渲染点 | 元素族在 protocol v3 无通道 / 文案指向服务端事实 |
 
 #### 需事实（0 条）
 
 无。
 
-#### 需宿主（33 条）
+#### 需宿主（22 条）
 
 | 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |
 |---|---|---|---|---|---|
@@ -682,7 +682,7 @@ Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与�
 | R-IN-182 | IN-13 | 多窗口 | 一个窗口停止后，另一个窗口同步退回发送键 | 映射到位无标记 | 宿主接口词 / 多窗口·拖拽·输入法 |
 | R-IN-621 | IN-59 | 输入法 | 组合期间列表不逐键抖动 | 映射到位无标记 | 宿主接口词 / 多窗口·拖拽·输入法 |
 
-#### 取证口径（796 条）
+#### 取证口径（752 条）
 
 | 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |
 |---|---|---|---|---|---|

@@ -117,6 +117,32 @@ func (f *failIntents) ProbeProvider(context.Context, string) (int, error) {
 func (f *failIntents) SetProviderModelEnabled(context.Context, string, string, bool) error {
 	return f.hit("SetProviderModelEnabled")
 }
+func (f *failIntents) CompleteProviderOAuth(context.Context, string, string, string, string) error {
+	return f.hit("CompleteProviderOAuth")
+}
+func (f *failIntents) PollProviderOAuth(
+	context.Context, string, string, string,
+) (ProviderOAuthProgressSnapshot, error) {
+	return ProviderOAuthProgressSnapshot{}, f.hit("PollProviderOAuth")
+}
+func (f *failIntents) CancelProviderOAuth(context.Context, string, string, string) error {
+	return f.hit("CancelProviderOAuth")
+}
+func (f *failIntents) LogoutProviderOAuth(context.Context, string, string) error {
+	return f.hit("LogoutProviderOAuth")
+}
+func (f *failIntents) OpenProviderOAuthURL(context.Context, string) error {
+	return f.hit("OpenProviderOAuthURL")
+}
+func (f *failIntents) RefreshProviders(context.Context) error {
+	return f.hit("RefreshProviders")
+}
+func (f *failIntents) SaveMCPServer(context.Context, MCPServerDraft) error {
+	return f.hit("SaveMCPServer")
+}
+func (f *failIntents) RemoveMCPServer(context.Context, string) error {
+	return f.hit("RemoveMCPServer")
+}
 func (f *failIntents) BeginLogin(context.Context, string) (LoginPromptSnapshot, error) {
 	return LoginPromptSnapshot{}, f.hit("BeginLogin")
 }
@@ -497,6 +523,24 @@ var intentCasesTail = []intentCase{
 			r.app.configSetModelEnabled(configProvider{id: "acme"},
 				configModel{id: "model-x", name: "Model-X"}, false)
 		},
+	},
+	{
+		method: "BeginProviderOAuth",
+		source: func(src *fakeSource) {
+			src.settings.ProviderRecordsKnown = true
+			src.settings.ProviderRecords = []ProviderRecordSnapshot{{
+				ID: "openai-codex", Name: "OpenAI Codex", BaseURL: "https://api.test/v1",
+				DriverKind: "openai", AuthType: "bearer", Enabled: true, Version: 1,
+				Authority: "openai_codex",
+				Account: &ProviderAccountSnapshot{
+					Namespace:    configNamespaceCodex,
+					LoginMethods: []string{configLoginBrowser},
+				},
+			}}
+		},
+		open:  func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		act:   func(r *intentRun) { r.click(configCopyCodexSignIn) },
+		local: true,
 	},
 	{
 		method: "BeginLogin",

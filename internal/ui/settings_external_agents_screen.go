@@ -88,7 +88,6 @@ const (
 	eaCopyLoading     = "正在探测外部 Agent…"
 	eaCopyUnavailable = "App Server 模式下不可用"
 	eaCopyUnavailDesc = "App Server 尚未实现外部代理。此模式下 Desktop 无法检测或配置它们。"
-	eaCopyInstalled   = "已安装"
 	eaCopyUnknown     = "未识别版本"
 	eaCopyMissing     = "未安装"
 	eaCopyUnknownNote = "未能从该文件识别版本号，这个 Agent 可能不可用。"

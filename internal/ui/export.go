@@ -536,7 +536,7 @@ func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
 		TextColor(t.TextMuted).Label(count)
 
 	// G-G1-07 回合搜索（左置放大镜、占位「搜索回合」，无边框）
-	gui.Row(c).Shrink(0).Height(rowRegular).Padding(0, space2).
+	gui.Row(c).Shrink(0).Height(screenControlH).Padding(0, space2).
 		Gap(space2).AlignItems(gui.Center).Children(func() {
 		iconGlyph(c, iconSearch, t.TextMuted, "search")
 		gui.TextInputBase(c, &st.search).Placeholder(exportSearchTurns).
@@ -664,7 +664,6 @@ func exportTurnBodyText(turn exportTurn) string {
 	}
 	return strings.TrimRight(b.String(), "\n")
 }
-
 
 // exportTurnPtr 取一轮勾选位的稳定指针：只在视图里存，不写事实。
 func (a *App) exportTurnPtr(index int) *bool {

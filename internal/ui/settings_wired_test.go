@@ -24,6 +24,7 @@ func resetSettingsScreenState() {
 		selected: configDimName,
 		models:   append([]configModel(nil), configModelTable...),
 	}
+	configOAuthReset()
 	resetAppearanceScreenState()
 }
 
@@ -326,7 +327,7 @@ func TestMCPSettingsWriteEntriesDisabled(t *testing.T) {
 		t.Fatalf("点不到 MCP 行：%v", err)
 	}
 	tt.Frame()
-	if !tt.HasText(noteMCPWrite) {
+	if !tt.HasText(noteMCPNoSave) {
 		t.Fatalf("编辑器没有写原因：%v", tt.Texts())
 	}
 	if info, ok := tt.Access(mcpCopySave); !ok || !info.Disabled {

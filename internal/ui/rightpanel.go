@@ -142,7 +142,7 @@ func (a *App) rightPanelBody(c *gui.Context) {
 // 同一件事的第二个入口（U3 §13.4）。
 func (a *App) goalPanel(c *gui.Context) {
 	if a.source != nil && !a.hasOpenSession() {
-		panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的目标。")
+		panelEmptyNote(c, noteNoOpenSession, "打开一个会话后，这里显示它的目标。")
 		return
 	}
 	objective, status, exists := a.goalState()

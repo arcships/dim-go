@@ -446,13 +446,14 @@ func (a *App) Connect(ctx context.Context) error {
 		return fmt.Errorf("创建会话目录: %w", err)
 	}
 	accountDomain, err := account.New(account.Config{
-		Status:     &accountStatusReader{wire: a.accountWire},
-		Usage:      &accountUsageReader{wire: a.accountWire},
-		Models:     &accountModelReader{wire: a.accountWire},
-		Providers:  &accountProviderSource{wire: a.accountWire},
-		Auth:       &accountAuthSource{wire: a.accountWire},
-		DeviceAuth: a.deviceAuth,
-		Actions:    writes,
+		Status:        &accountStatusReader{wire: a.accountWire},
+		Usage:         &accountUsageReader{wire: a.accountWire},
+		Models:        &accountModelReader{wire: a.accountWire},
+		Providers:     &accountProviderSource{wire: a.accountWire},
+		Auth:          &accountAuthSource{wire: a.accountWire},
+		DeviceAuth:    a.deviceAuth,
+		ProviderOAuth: &providerOAuthSource{app: a},
+		Actions:       writes,
 	})
 	if err != nil {
 		writes.Close()

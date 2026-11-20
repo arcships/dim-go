@@ -721,7 +721,7 @@ func (a *App) commandPaletteActions() []commandItem {
 		},
 		{
 			id: "action:new-session", title: "新建会话", detail: "在工作区里开一个会话",
-			icon:     iconPlus,
+			icon: iconPlus,
 			// G-B2-06 行尾快捷键：这一行与 new-thread 键位是同一个动作，
 			// 显示当前实际绑定（改过键就显示改后的）。
 			shortcut: a.keybindingLabel("new-thread"),
@@ -753,7 +753,7 @@ func (a *App) commandPaletteActions() []commandItem {
 			id: "action:archive", title: "归档当前会话", detail: "从列表移入已归档",
 			icon:     iconArchive,
 			disabled: a.intents == nil || !hasSession,
-			reason:   commandPaletteUnavailable(a.intents == nil, noIntents, "还没有打开会话"),
+			reason:   commandPaletteUnavailable(a.intents == nil, noIntents, noteNoOpenSession),
 			run: func() {
 				id := session.ID
 				a.dispatch("归档会话", func(ctx context.Context) error {
@@ -765,7 +765,7 @@ func (a *App) commandPaletteActions() []commandItem {
 			id: "action:export", title: "导出当前会话", detail: "打开导出面板",
 			icon:     iconDocument,
 			disabled: !hasSession,
-			reason:   commandPaletteUnavailable(false, "", "还没有打开会话"),
+			reason:   commandPaletteUnavailable(false, "", noteNoOpenSession),
 			run: func() {
 				a.openExportPanel(session.ID, session.Title)
 			},

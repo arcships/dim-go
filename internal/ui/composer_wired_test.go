@@ -176,7 +176,7 @@ func TestPermissionTierEntriesSendIntent(t *testing.T) {
 		}
 	})
 
-	t.Run("输入区控制行", func(t *testing.T) {
+	t.Run("输入区控制行：没有会话时与状态条同一条判断", func(t *testing.T) {
 		src := wiredSource()
 		src.settings.Tier = "workspace-write"
 		src.names, src.hasSess, src.session = nil, false, SessionSnapshot{}
@@ -191,11 +191,19 @@ func TestPermissionTierEntriesSendIntent(t *testing.T) {
 			t.Fatalf("点权限选择器：%v", err)
 		}
 		tt.Frame()
-		if err := tt.Click("权限：智能权限"); err != nil {
-			t.Fatalf("点智能权限：%v", err)
+		// 空态没有可写的会话：档位入口与状态条共用 permissionControlLock，
+		// 置灰并写原因，不发出注定失败的 SetPermissionTier。
+		info, ok := tt.Access("权限：智能权限")
+		if !ok || !info.Disabled {
+			t.Fatalf("空态里权限档位没有置灰写原因：%+v（找到 %v）", info, ok)
 		}
-		if got := waitString(t, stub.tiers, "权限切换"); got != "workspace-write" {
-			t.Fatalf("SetPermissionTier 收到 %q，想要 workspace-write", got)
+		if info.Description != notePermissionNoSession {
+			t.Fatalf("置灰原因 = %q，想要 %q", info.Description, notePermissionNoSession)
+		}
+		select {
+		case tier := <-stub.tiers:
+			t.Fatalf("没有会话却发了 SetPermissionTier(%q)", tier)
+		default:
 		}
 	})
 }

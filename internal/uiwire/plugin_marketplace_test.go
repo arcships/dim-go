@@ -38,6 +38,41 @@ func TestParsePluginFeedAcceptsObjectAndArray(t *testing.T) {
 	}
 }
 
+// TestParsePluginFeedCarriesDetailFields：条目声明的作者、安装位置、Git 来源与
+// 技能清单都进快照；skills 缺省与空数组分开保留（界面按两种文案画）。
+func TestParsePluginFeedCarriesDetailFields(t *testing.T) {
+	entries, err := parsePluginFeed([]byte(`{"plugins":[
+		{"name":"alpha","version":"1.0.0","author":"Ada","location":"~/.dim/plugins/alpha",
+		 "git":"owner/alpha","gitRef":"main",
+		 "skills":[{"name":"one","description":"第一条"},{"name":"  "}]},
+		{"name":"beta","skills":[]}
+	]}`))
+	if err != nil {
+		t.Fatalf("解析：%v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("条目数不对：%+v", entries)
+	}
+	alpha := entries[0]
+	if alpha.Author != "Ada" || alpha.Location != "~/.dim/plugins/alpha" ||
+		alpha.Git != "owner/alpha" || alpha.GitRef != "main" {
+		t.Fatalf("条目字段没有透传：%+v", alpha)
+	}
+	if len(alpha.Skills) != 1 || alpha.Skills[0].Name != "one" ||
+		alpha.Skills[0].Description != "第一条" {
+		t.Fatalf("技能清单不对（空名应当被丢掉）：%+v", alpha.Skills)
+	}
+	if entries[1].Skills == nil {
+		t.Fatal("skills: [] 被当成了「源没给清单」")
+	}
+	if len(entries[1].Skills) != 0 {
+		t.Fatalf("空技能数组解析出了条目：%+v", entries[1].Skills)
+	}
+	if entries[1].Git != "" {
+		t.Fatalf("没给 Git 地址的条目却有来源：%+v", entries[1])
+	}
+}
+
 func TestFetchPluginFeedReadsUpstream(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Accept") != "application/json" {

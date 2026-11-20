@@ -694,24 +694,24 @@ func demoSkills() []ExtItemSnapshot {
 // 都走这里，落点一致（切模式位；Goal 没有目标时打开目标行的编辑框，真正的写入
 // 仍走 SetGoal / EditGoal）。
 //
-// 返回值是这次切换的回执，只写真的发生了什么：本版模式位只改界面标记，不改变
-// 发送、权限与目标写入，所以回执必须写明「尚未影响发送」，不能只回一句「已执行」。
+// 返回值是这次切换的回执，只写真的发生了什么：模式只决定输入区显示哪一档，不
+// 改变发送、权限与目标写入，所以回执必须写清这个范围，不能只回一句「已执行」。
 func (a *App) switchMode(mode string) string {
 	a.mode = mode
 	if mode != "Goal" {
-		return "已切到 " + mode + " 模式（这个模式目前只改变界面标记，尚未影响发送）"
+		return "已切到 " + mode + " 模式（只改输入区的模式显示，不改变发送行为）"
 	}
 	if a.wired() {
 		if _, hasSession := a.liveSession(); !hasSession {
 			// 目标归会话：没有会话时写不进去，编辑框不打开（入口本身也已置灰）。
-			return "已切到 Goal 模式（目前只改变界面标记，尚未影响发送；没有打开的会话，暂时设定不了目标）"
+			return "已切到 Goal 模式（只改输入区的模式显示，不改变发送行为；没有打开的会话，暂时设定不了目标）"
 		}
 	}
 	if _, _, exists := a.goalState(); !exists {
 		a.goalDraft, a.goalEditing = "", true
-		return "已切到 Goal 模式，并在目标行打开了目标编辑框（模式本身只改变界面标记，尚未影响发送）"
+		return "已切到 Goal 模式，并在目标行打开了目标编辑框（只改输入区的模式显示，不改变发送行为）"
 	}
-	return "已切到 Goal 模式（这个模式目前只改变界面标记，尚未影响发送）"
+	return "已切到 Goal 模式（只改输入区的模式显示，不改变发送行为）"
 }
 
 // modeSelector 是 Agent / Goal 模式选择器。
@@ -742,7 +742,7 @@ func (a *App) modeSelector(c *gui.Context) {
 		}
 		if goalUnavailable {
 			// IN-65 目标项不可用提示
-			typeMicro.style(t, gui.Text(c, "还没有打开会话，暂时设定不了目标")).
+			typeMicro.style(t, gui.Text(c, noteNoSessionGoal)).
 				TextColor(t.TextMuted).Padding(space1, space2)
 		}
 	})
@@ -927,6 +927,41 @@ func (a *App) permissionLabel() string {
 	return st.Tier
 }
 
+// permissionMenuItems 画权限菜单的三档：状态条与空态控制行共用同一份候选、
+// 同一个勾选态与同一条写入路径。lock 是当前不能写回服务端的原因（空串表示
+// 可点）：两处入口都按它置灰并逐项写明原因，不出现一个能点、一个点不动。
+func (a *App) permissionMenuItems(c *gui.Context, m gui.MenuParts, lock string) {
+	for _, level := range permissionLevels {
+		level := level
+		if menuItem(c, m, iconShield, level.label, "权限："+level.label, lock, lock != "",
+			level.label == a.permissionLabel()) {
+			// 完全放开是高后果：先确认，不在菜单里一步生效（见 choosePermission）。
+			a.choosePermission(level.label)
+		}
+	}
+}
+
+// permissionControlLock 返回权限档位入口不能写回服务端的原因：空串表示可点。
+// 档位写的是会话的状态，所以没有写通道、或还没打开会话时都不能发请求；状态条
+// 与空态控制行两处入口共用这一处判断（R-SB-025：同一个组件、两个挂载点）。
+func (a *App) permissionControlLock() string {
+	if a.source == nil {
+		// 样例：只改视图，不发请求。
+		return ""
+	}
+	if a.intents == nil {
+		return noteNoWriteChannel
+	}
+	if a.liveConnection().Phase == "connecting" {
+		// 连接还在建立：不是「没有会话」，先写真实阶段。
+		return "正在连接…"
+	}
+	if _, ok := a.liveSession(); !ok {
+		return notePermissionNoSession
+	}
+	return ""
+}
+
 // choosePermission 是权限菜单里点一档：完全放开先确认（两步），其余直接生效。
 func (a *App) choosePermission(level string) {
 	if level == "完全访问权限" && level != a.permissionLabel() {
@@ -954,8 +989,15 @@ func (a *App) permissionSelector(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.permissionOpen)
 	// NT-14 权限选择器按钮
+	lock := a.permissionControlLock()
+	tip := "选择权限"
+	if lock != "" {
+		// 不可写时把原因写进 tooltip 与说明：与状态条同一个口径。
+		tip = "选择权限：" + lock
+	}
 	tr := m.Trigger.Height(composerControlTriggerHeight).Padding(0, space1).Radius(radius).
-		Label("权限：" + a.permissionLabel()).Tooltip("选择权限").Cursor(gui.CursorPointer)
+		Label("权限：" + a.permissionLabel()).Tooltip(tip).
+		Description(lock).Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)
 	}
@@ -966,13 +1008,7 @@ func (a *App) permissionSelector(c *gui.Context) {
 	m.Popup(func(panel gui.Element) {
 		panel.Width(composerPermissionMenuWidth).Padding(space1).Radius(radiusCard).Background(t.Surface).
 			Border(strokeHairline, t.Border).Shadow(0, 4, 16, 0, colorShadow.in(t))
-		for _, level := range permissionLevels {
-			level := level
-			if menuItem(c, m, iconShield, level.label, "权限："+level.label, "", false,
-				level.label == a.permissionLabel()) {
-				a.choosePermission(level.label)
-			}
-		}
+		a.permissionMenuItems(c, m, lock)
 	})
 }
 

@@ -21,12 +21,17 @@ import (
 // pluginFeedURL），清单由本端按该地址拉取。未配置源地址时界面整块禁用并写
 // 「未配置插件源」，不画样例条目；配置了才拉取。
 //
-// 清单只用来展示：协议没有市场安装来源，所以条目的「安装」入口置灰并写原因。
+// 清单只有条目内容：协议没有「市场条目」这种安装来源，所以条目里给出 Git 地址
+// （git / gitRef）时安装走 plugin.install 的 Git 来源；没给地址时界面置灰并写
+// 原因。技能清单与作者、安装位置同样只是条目声明的，界面按原样展示。
 //
 // 源文件形状（本端定义，最小集合）：
 //
 //	{"plugins": [{"name": "...", "version": "1.2.0",
-//	              "description": "...", "source": "owner/repo"}]}
+//	              "description": "...", "source": "owner/repo",
+//	              "author": "...", "location": "~/.dim/plugins/<id>",
+//	              "git": "owner/repo", "gitRef": "main",
+//	              "skills": [{"name": "...", "description": "..."}]}]}
 //
 // 顶层也可以直接是数组。未知字段忽略；没有 name（或 id）的条目被丢掉。
 
@@ -49,6 +54,20 @@ type pluginFeedEntry struct {
 	Version     string `json:"version"`
 	Description string `json:"description"`
 	Source      string `json:"source"`
+	// Author / Location 是条目声明的作者与安装位置；空表示源没有给。
+	Author   string `json:"author"`
+	Location string `json:"location"`
+	// Git / GitRef 是可交给 plugin.install 的 Git 来源；Git 为空表示这条没有。
+	Git    string `json:"git"`
+	GitRef string `json:"gitRef"`
+	// Skills 是条目声明的内置技能；缺这一项与给了空数组不是一回事（界面分开写）。
+	Skills []pluginFeedSkill `json:"skills"`
+}
+
+// pluginFeedSkill 是条目声明的一个内置技能。
+type pluginFeedSkill struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
 }
 
 // PluginMarketplace 返回插件市场的只读快照（实现 ui.PluginMarketplaceFacts）。
@@ -202,12 +221,33 @@ func parsePluginFeed(body []byte) ([]ui.PluginMarketEntrySnapshot, error) {
 		if name == "" {
 			continue
 		}
-		out = append(out, ui.PluginMarketEntrySnapshot{
+		snapshot := ui.PluginMarketEntrySnapshot{
 			Name:        name,
-			Version:     entry.Version,
-			Description: entry.Description,
-			Source:      entry.Source,
-		})
+			Version:     strings.TrimSpace(entry.Version),
+			Description: strings.TrimSpace(entry.Description),
+			Source:      strings.TrimSpace(entry.Source),
+			Author:      strings.TrimSpace(entry.Author),
+			Location:    strings.TrimSpace(entry.Location),
+			Git:         strings.TrimSpace(entry.Git),
+			GitRef:      strings.TrimSpace(entry.GitRef),
+		}
+		// skills 缺省（null）与空数组分开保留：前者是「源没给清单」，后者是
+		// 「源给了、但没有技能」，界面按两种文案画。
+		if entry.Skills != nil {
+			skills := make([]ui.PluginMarketSkillSnapshot, 0, len(entry.Skills))
+			for _, skill := range entry.Skills {
+				skillName := strings.TrimSpace(skill.Name)
+				if skillName == "" {
+					continue
+				}
+				skills = append(skills, ui.PluginMarketSkillSnapshot{
+					Name:        skillName,
+					Description: strings.TrimSpace(skill.Description),
+				})
+			}
+			snapshot.Skills = skills
+		}
+		out = append(out, snapshot)
 	}
 	return out, nil
 }

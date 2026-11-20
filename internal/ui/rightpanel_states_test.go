@@ -131,7 +131,7 @@ func TestFilesPanelStateTable(t *testing.T) {
 				src := newFakePanelSource("")
 				return src
 			},
-			want:     []string{"没有工作区", "这个会话没有工作目录，文件与改动都读不到。"},
+			want:     []string{"没有工作目录", "这个会话没有工作目录，文件与改动都读不到。"},
 			disabled: []string{"筛选文件"},
 		},
 		{
@@ -250,6 +250,22 @@ func TestFilesPanelStateTable(t *testing.T) {
 			absent: []string{"文件搜索失败。", rpEmptyDirTitle},
 		},
 		{
+			name: "权限不足给警告条与重试",
+			tab:  tabFiles,
+			src: func() *fakePanelSource {
+				src := newFakePanelSource("/work")
+				tree := readyTree(FileEntrySnapshot{Name: "main.go"})
+				tree.Denied = true
+				src.trees[""] = tree
+				return src
+			},
+			// 读到了目录但权限不足：内容照画，另加一条警告条（不是错误行，
+			// 也不是空态）。
+			want:    []string{"没有写入权限，部分操作不可用", "文件，main.go", "重试读取文件树"},
+			absent:  []string{"无法加载文件树。", rpEmptyDirTitle},
+			enabled: []string{"重试读取文件树"},
+		},
+		{
 			name: "断线仍读本机",
 			tab:  tabFiles,
 			src: func() *fakePanelSource {
@@ -259,7 +275,7 @@ func TestFilesPanelStateTable(t *testing.T) {
 			},
 			want: []string{"连接已断开：连接被网络中断", "重新连接", "文件，main.go"},
 			// 断线不等于没有工作目录：本机读数照常，不能退回「未打开会话」。
-			absent: []string{"未打开会话", "没有工作区"},
+			absent: []string{"未打开会话", "没有工作目录"},
 		},
 	})
 }
@@ -296,7 +312,7 @@ func TestChangesPanelStateTable(t *testing.T) {
 			src: func() *fakePanelSource {
 				return newFakePanelSource("")
 			},
-			want:     []string{"没有工作区", "这个会话没有工作目录，文件与改动都读不到。"},
+			want:     []string{"没有工作目录", "这个会话没有工作目录，文件与改动都读不到。"},
 			absent:   []string{"没有未提交的改动"},
 			disabled: []string{"筛选文件"},
 		},
@@ -308,8 +324,8 @@ func TestChangesPanelStateTable(t *testing.T) {
 				src.changes = ChangeSet{Phase: PanelReadLoading}
 				return src
 			},
-			want:   []string{"正在加载文件树"},
-			absent: []string{"没有未提交的改动", "Git 改动不可用"},
+			want:   []string{"正在加载改动"},
+			absent: []string{"没有未提交的改动", "Git 改动不可用", "正在加载文件树"},
 		},
 		{
 			name: "读取失败给错误行与重试",
@@ -367,7 +383,7 @@ func TestChangesPanelStateTable(t *testing.T) {
 					Restricted: true, Unavailable: "读不到条目"}
 				return src
 			},
-			want: []string{"没有写入权限，部分操作不可用", "重试读取文件树"},
+			want: []string{"没有写入权限，部分操作不可用", "重试读取改动"},
 		},
 		{
 			name: "断线仍读本机 git",
@@ -378,7 +394,7 @@ func TestChangesPanelStateTable(t *testing.T) {
 				return src
 			},
 			want:   []string{"连接已断开：连接被网络中断", "重新连接", "没有未提交的改动"},
-			absent: []string{"未打开会话", "没有工作区"},
+			absent: []string{"未打开会话", "没有工作目录"},
 		},
 	})
 }
@@ -698,7 +714,7 @@ func TestSubagentPanelStateTable(t *testing.T) {
 			name:   "未打开会话",
 			tab:    tabSubagent,
 			src:    wiredNoSession,
-			want:   []string{"还没有打开会话", noteSubagentNoSession},
+			want:   []string{"未打开会话", noteSubagentNoSession},
 			absent: []string{"未打开子代理会话"},
 		},
 		{

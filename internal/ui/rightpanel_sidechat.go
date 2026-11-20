@@ -82,7 +82,7 @@ func (a *App) sideChatClosedBar(c *gui.Context) {
 func (a *App) sideChatContent(c *gui.Context) {
 	t := c.Theme()
 	if a.source != nil && !a.hasOpenSession() {
-		panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的侧边对话。")
+		panelEmptyNote(c, noteNoOpenSession, "打开一个会话后，这里显示它的侧边对话。")
 		return
 	}
 	sent := a.panels.sideChatSent

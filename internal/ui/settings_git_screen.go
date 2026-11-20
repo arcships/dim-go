@@ -84,7 +84,6 @@ const (
 	gitCopyPRHint        = "AI 生成 PR description 时的额外提示"
 	gitCopyPREx          = "例如：包含测试步骤，说明破坏性变更..."
 	gitCopyWorktree      = "Worktree 根目录"
-	gitCopyChooseDir     = "选择目录..."
 	gitCopyChooseDirA11y = "选择目录，按钮"
 	gitCopyRemoteA11y    = "默认远程仓库"
 	gitCopyBaseA11y      = "默认基线分支"

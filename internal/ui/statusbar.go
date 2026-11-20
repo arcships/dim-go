@@ -53,12 +53,9 @@ func (a *App) statusPermission(c *gui.Context) {
 	m := gui.MenuBase(c, &a.permissionOpen)
 	// 权限档位要落到服务端才有意义：连着事实却没有写入通道时，按钮显示最后已知
 	// 档位并置灰，原因写进 tooltip 与菜单项说明——不给一个点了没反应的入口
-	// （SB-02 的「不可修改时给原因」，SB-03 的「说明来源」）。
-	locked := a.source != nil && a.intents == nil
-	reason := ""
-	if locked {
-		reason = noteNoWriteChannel
-	}
+	// （SB-02 的「不可修改时给原因」，SB-03 的「说明来源」）。判断与空态控制行
+	// 共用 permissionControlLock：同一个组件、两个挂载点，可用性一致。
+	reason := a.permissionControlLock()
 	tip := "选择权限"
 	describe := "可更改权限档位"
 	if reason != "" {
@@ -81,14 +78,7 @@ func (a *App) statusPermission(c *gui.Context) {
 		panel.Width(composerPermissionMenuWidth).Padding(space1).Radius(radiusCard).
 			Background(t.Surface).
 			Shadow(0, 4, 16, 0, colorShadow.in(t))
-		for _, level := range permissionLevels {
-			level := level
-			if menuItem(c, m, iconShield, level.label, "权限："+level.label, reason, locked,
-				level.label == a.permissionLabel()) {
-				// 完全放开是高后果：先确认，不在菜单里一步生效（见 choosePermission）。
-				a.choosePermission(level.label)
-			}
-		}
+		a.permissionMenuItems(c, m, reason)
 	})
 }
 

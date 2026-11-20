@@ -17,17 +17,12 @@ const (
 	// R1 左栏。
 	SidebarWidth     = 256
 	SidebarRailWidth = 12
-	SidebarMinWidth  = 200
-	SidebarMaxWidth  = 360
 
 	// R2 标题行。
 	HeaderHeight = 48
 
-	// R4 输入位：卡片 60–300，上沿可带一行队列（33）。
+	// R4 输入位：卡片最小高度 60，上沿可带一行队列（33）。
 	ComposerMinHeight = 60
-	ComposerMaxHeight = 300
-	ComposerHeight    = 124
-	ApprovalHeight    = 150
 	QueueHeight       = 33
 
 	// R3 的宽度下限：右栏打开时主区不缩到 400 以下。
@@ -43,10 +38,8 @@ const (
 	SettingsLabelWidth       = 140
 	SettingsRuleCommandWidth = 240
 	SettingsRuleSelectWidth  = 120
-	// 设置 · 扩展：行内名称与版本的定宽，以及"一行放得下"的最小内宽。
-	extNameWidth    = 200
-	extVersionWidth = 72
-	extRowMinWidth  = extNameWidth + extVersionWidth + space3*3 + 36
+	// 设置 · 扩展：行内名称列的定宽。
+	extNameWidth = 200
 	// cronScheduleWidth 是定时任务里「计划」一列的定宽（如 "每天 09:00"）。
 	cronScheduleWidth = 120
 	// cronRowMinWidth 是一行放得下「名称 + 计划 + 下次 + 开关 + 删除」的最小内宽。
@@ -165,13 +158,8 @@ const (
 
 // 首片局部尺寸：宽度与最小高度，不是间距，不进 §2.2 的标尺。
 const (
-	composerPadding       = space2 // 队列条与输入卡之间 8（U2 §2.3）
 	sidebarHeaderHeight   = 32
-	userBubbleMaxWidth    = 520
 	composerTextMinHeight = 44
-	opNumberWidth         = 16
-	opActionWidth         = 36
-	opResultWidth         = 56
 	railMarkWidth         = 6
 	railMarkHeight        = 2
 	// placeholderInput 是空输入框的最小占位：四个字以内，只说明"这里能写"，

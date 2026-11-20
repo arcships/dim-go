@@ -288,6 +288,17 @@ func (w *App) refreshProviderRecords(ctx context.Context) {
 			RemoteModelList:      summary.RemoteModelList,
 		}
 		if detail, readErr := manager.ReadProvider(ctx, summary.ID); readErr == nil {
+			record.Authority = detail.CredentialAuthority
+			if detail.Account != nil {
+				record.Account = &ui.ProviderAccountSnapshot{
+					Namespace:        detail.Account.Namespace,
+					LoginMethods:     append([]string(nil), detail.Account.LoginMethods...),
+					Authenticated:    detail.Account.Authenticated,
+					AccountLabel:     detail.Account.AccountLabel,
+					AccountPreview:   detail.Account.AccountPreview,
+					RecoveryRequired: detail.Account.RecoveryRequired,
+				}
+			}
 			for _, model := range detail.Models {
 				record.Models = append(record.Models, ui.ProviderModelSnapshot{
 					ID: model.ID, Name: firstNonEmpty(model.DisplayName, model.ID),
@@ -968,6 +979,14 @@ func (w *App) Extensions() ui.ExtensionsSnapshot {
 	out.MCPImportSources = append([]ui.MCPImportSourceSnapshot(nil), w.importSources...)
 	out.ImportError = w.importErr
 	w.importMu.Unlock()
+	for _, problem := range service.ToolServerProblems() {
+		out.MCPProblems = append(out.MCPProblems, ui.MCPProblemSnapshot{
+			Scope: problem.Scope, ServerID: problem.ServerID, Message: problem.Message,
+		})
+	}
+	out.MCPCanSave = service.SupportsFeature("mcp.save")
+	out.MCPCanTest = service.SupportsFeature("mcp.test")
+	out.MCPCanRemove = service.SupportsFeature("mcp.remove")
 	return out
 }
 
@@ -1932,6 +1951,129 @@ func (w *App) SetProviderModelEnabled(
 	return nil
 }
 
+// RefreshProviders 重读 provider 管理清单与每个 provider 的详情。
+func (w *App) RefreshProviders(ctx context.Context) error {
+	w.refreshProviderRecords(ctx)
+	w.changed()
+	w.providerMu.Lock()
+	reason := w.providerErr
+	w.providerMu.Unlock()
+	if reason != "" {
+		return fmt.Errorf("%s", reason)
+	}
+	return nil
+}
+
+// providerOAuth 取账号领域里的按提供商登录入口。
+func (w *App) providerOAuth() (*account.ProviderOAuth, error) {
+	domain := w.A.Account()
+	if domain == nil {
+		return nil, fmt.Errorf("账号领域未就绪")
+	}
+	oauth := domain.ProviderOAuth()
+	if oauth == nil {
+		return nil, fmt.Errorf("当前版本不能登录这个提供商")
+	}
+	return oauth, nil
+}
+
+// BeginProviderOAuth 发起一次按提供商的登录（browser / device）。
+func (w *App) BeginProviderOAuth(
+	ctx context.Context, providerID, namespace, method, redirectURI string,
+) (ui.ProviderOAuthStartSnapshot, error) {
+	oauth, err := w.providerOAuth()
+	if err != nil {
+		return ui.ProviderOAuthStartSnapshot{}, err
+	}
+	if method == "device" {
+		start, err := oauth.BeginDevice(ctx, namespace, providerID)
+		if err != nil {
+			return ui.ProviderOAuthStartSnapshot{}, err
+		}
+		return ui.ProviderOAuthStartSnapshot{
+			Attempt:                 start.Attempt,
+			VerificationURI:         start.VerificationURI,
+			VerificationURIComplete: start.VerificationURIComplete,
+			UserCode:                start.UserCode,
+			Interval:                int(start.Interval / time.Second),
+		}, nil
+	}
+	start, err := oauth.BeginBrowser(ctx, namespace, providerID, redirectURI)
+	if err != nil {
+		return ui.ProviderOAuthStartSnapshot{}, err
+	}
+	return ui.ProviderOAuthStartSnapshot{
+		Attempt:          start.Attempt,
+		AuthorizationURL: start.AuthorizationURL,
+		RedirectURI:      start.RedirectURI,
+	}, nil
+}
+
+// CompleteProviderOAuth 用回调地址完成浏览器登录。
+func (w *App) CompleteProviderOAuth(
+	ctx context.Context, providerID, namespace, attempt, callbackURL string,
+) error {
+	oauth, err := w.providerOAuth()
+	if err != nil {
+		return err
+	}
+	if err := oauth.CompleteBrowser(ctx, namespace, providerID, attempt, callbackURL); err != nil {
+		return err
+	}
+	w.refreshProviderRecords(ctx)
+	w.changed()
+	return nil
+}
+
+// PollProviderOAuth 查一次按提供商登录的尝试状态。
+func (w *App) PollProviderOAuth(
+	ctx context.Context, providerID, namespace, attempt string,
+) (ui.ProviderOAuthProgressSnapshot, error) {
+	oauth, err := w.providerOAuth()
+	if err != nil {
+		return ui.ProviderOAuthProgressSnapshot{}, err
+	}
+	progress, err := oauth.Poll(ctx, namespace, providerID, attempt)
+	if err != nil {
+		return ui.ProviderOAuthProgressSnapshot{}, err
+	}
+	if progress.Stage == account.ProviderOAuthCompleted {
+		w.refreshProviderRecords(ctx)
+		w.changed()
+	}
+	return ui.ProviderOAuthProgressSnapshot{
+		Stage: string(progress.Stage), Reason: progress.Reason,
+	}, nil
+}
+
+// CancelProviderOAuth 取消一次按提供商的登录尝试。
+func (w *App) CancelProviderOAuth(ctx context.Context, providerID, namespace, attempt string) error {
+	oauth, err := w.providerOAuth()
+	if err != nil {
+		return err
+	}
+	return oauth.Cancel(ctx, namespace, providerID, attempt)
+}
+
+// LogoutProviderOAuth 登出一个提供商账号。
+func (w *App) LogoutProviderOAuth(ctx context.Context, providerID, namespace string) error {
+	oauth, err := w.providerOAuth()
+	if err != nil {
+		return err
+	}
+	if err := oauth.Logout(ctx, namespace, providerID); err != nil {
+		return err
+	}
+	w.refreshProviderRecords(ctx)
+	w.changed()
+	return nil
+}
+
+// OpenProviderOAuthURL 用系统浏览器打开授权 / 验证地址。
+func (w *App) OpenProviderOAuthURL(_ context.Context, url string) error {
+	return account.OpenBrowserURL(url)
+}
+
 // looksLikeUUID 判断 provider 标识是否已是服务端要求的小写 UUID。
 func looksLikeUUID(value string) bool {
 	if len(value) != 36 || value[8] != '-' || value[13] != '-' || value[18] != '-' || value[23] != '-' {
@@ -2154,6 +2296,62 @@ func (w *App) UninstallExtension(ctx context.Context, kind, id string) error {
 	default:
 		return fmt.Errorf("未接：extensions.Service 没有 %s 卸载方法", kind)
 	}
+	w.changed()
+	return nil
+}
+
+// SaveMCPServer 新建一个工具服务器（mcp.save），成功后重读目录。
+func (w *App) SaveMCPServer(ctx context.Context, draft ui.MCPServerDraft) error {
+	service := w.A.Extensions()
+	if service == nil {
+		return fmt.Errorf("扩展领域未就绪")
+	}
+	env := make(map[string]string, len(draft.Env))
+	for _, item := range draft.Env {
+		key := strings.TrimSpace(item.Key)
+		if key == "" {
+			continue
+		}
+		env[key] = item.Value
+	}
+	spec := extensions.ToolServerSpec{
+		Name:      strings.TrimSpace(draft.Name),
+		Transport: extensions.ToolTransport(draft.Transport),
+		Command:   strings.TrimSpace(draft.Command),
+		URL:       strings.TrimSpace(draft.URL),
+		Env:       env,
+		Source:    extensions.Source(draft.Scope),
+	}
+	for _, arg := range draft.Args {
+		if arg != "" {
+			spec.Args = append(spec.Args, arg)
+		}
+	}
+	view, err := service.AddToolServer(ctx, spec)
+	if err != nil {
+		return err
+	}
+	if view.Status != write.StatusSucceeded {
+		if view.Reason != "" {
+			return fmt.Errorf("%s", view.Reason)
+		}
+		return fmt.Errorf("保存没有成功")
+	}
+	_, _ = service.ListToolServers(ctx)
+	w.changed()
+	return nil
+}
+
+// RemoveMCPServer 删除一个工具服务器（mcp.remove），成功后重读目录。
+func (w *App) RemoveMCPServer(ctx context.Context, id string) error {
+	service := w.A.Extensions()
+	if service == nil {
+		return fmt.Errorf("扩展领域未就绪")
+	}
+	if _, err := service.RemoveToolServer(ctx, id); err != nil {
+		return err
+	}
+	_, _ = service.ListToolServers(ctx)
 	w.changed()
 	return nil
 }

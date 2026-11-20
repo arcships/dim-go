@@ -148,13 +148,11 @@ func hkSourceOf(item ExtItemSnapshot) hooksSource {
 const (
 	hkSectionGap = 21   // space-y-6：分组之间
 	hkLabelGap   = 14   // 小标题与其列表之间
-	hkCardGap    = 12   // 来源卡 / 条目组之间
 	hkPadV       = 14   // p-4 上下
 	hkPadH       = 14   // p-4 左右
 	hkRowGap     = 10.5 // gap-3：图标与文字块之间
 	hkChipGap    = 7    // gap-2：名称 / 状态 / 徽标之间
 	hkTightGap   = 2    // 名称与状态徽标的上下贴合
-	hkTextGap    = 3.5  // 名称与路径之间
 
 	hkIconBlock  = 32 // h-8 w-8：来源图标块
 	hkIconInline = 16 // h-4 w-4：来源图标

@@ -69,7 +69,7 @@ func TestArchivedListComesFromFacts(t *testing.T) {
 		t.Fatalf("标题为空时没有用首条预览当显示名：%v", tt.Texts())
 	}
 	// 项目分组用工作目录；归档日期按月日显示。
-	if !tt.HasText("/w/alpha") || !tt.HasText(arcArchivedLabel("3 月 4 日")) {
+	if !tt.HasText("/w/alpha") || !tt.HasText(arcArchivedLabel("3月4日")) {
 		t.Fatalf("分组或归档日期不对：%v", tt.Texts())
 	}
 }

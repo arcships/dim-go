@@ -481,8 +481,8 @@ func TestRightPanelNoCwdEmptyState(t *testing.T) {
 		// proof 是样例里必然出现、空态里不该出现的一行。
 		proof string
 	}{
-		{name: "文件页", tab: tabFiles, title: "没有工作区", proof: "文件，AGENTS.md"},
-		{name: "改动页", tab: tabChanges, title: "没有工作区", proof: "已暂存 (1)"},
+		{name: "文件页", tab: tabFiles, title: "没有工作目录", proof: "文件，AGENTS.md"},
+		{name: "改动页", tab: tabChanges, title: "没有工作目录", proof: "已暂存 (1)"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -540,7 +540,7 @@ func TestRightPanelPreviewNoCwdEmptyState(t *testing.T) {
 	app.rpOpenPreview("main.go")
 	tt.Frame()
 
-	if _, ok := tt.Find("没有工作区"); !ok {
+	if _, ok := tt.Find("没有工作目录"); !ok {
 		t.Fatalf("没有工作目录的预览页没有空态：%v", tt.Texts())
 	}
 	if _, ok := tt.Find("样例内容：连着 App Server 时这里读磁盘上的真实文件。"); ok {

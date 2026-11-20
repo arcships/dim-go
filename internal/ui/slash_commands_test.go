@@ -168,7 +168,7 @@ func TestSlashMenuArrowsAndEnter(t *testing.T) {
 	}
 
 	// 过滤到 /agent，回车执行：模式切到 Agent，草稿清空，弹层收起；回执写明
-	// 「本版模式位只改界面标记，尚未影响发送」，不许只回一句「已执行」。
+	// 「只改输入区的模式显示，不改变发送行为」，不许只回一句「已执行」。
 	slashDraft(t, app, tt, "/agent")
 	tt.Key(0, gui.KeyDown)
 	tt.Key(0, gui.KeyEnter)
@@ -184,8 +184,11 @@ func TestSlashMenuArrowsAndEnter(t *testing.T) {
 	if tt.HasText("已执行：/agent") {
 		t.Fatalf("/agent 仍回一句「已执行」：\n%s", strings.Join(tt.Texts(), "\n"))
 	}
-	if !tt.HasText(app.slash.notice) || !strings.Contains(app.slash.notice, "尚未影响发送") {
+	if !tt.HasText(app.slash.notice) || !strings.Contains(app.slash.notice, "不改变发送行为") {
 		t.Fatalf("/agent 回执没有写清生效范围：%q", app.slash.notice)
+	}
+	if strings.Contains(app.slash.notice, "界面标记") {
+		t.Fatalf("/agent 回执用了开发口径：%q", app.slash.notice)
 	}
 }
 
@@ -368,13 +371,13 @@ func TestSlashMenuWithoutSessionSaysWhy(t *testing.T) {
 	if len(commands) != 1 || commands[0].runnable() {
 		t.Fatalf("/compact 在没有会话时仍可执行：%v", slashNames(commands))
 	}
-	if !tt.HasText("还没有打开会话") {
+	if !tt.HasText(noteNoOpenSession) {
 		t.Fatalf("没有写原因：\n%s", strings.Join(tt.Texts(), "\n"))
 	}
 }
 
 // /goal 与输入卡的模式菜单同一落点：切到 Goal 模式，没有目标时打开目标行的
-// 编辑框（真正的写入仍走 SetGoal）；回执写明模式位本版尚未影响发送。
+// 编辑框（真正的写入仍走 SetGoal）；回执写明模式只改输入区的模式显示。
 func TestSlashGoalSwitchesModeAndOpensGoalEditor(t *testing.T) {
 	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
 	app, tt := newSlashTesterWith(t, app)
@@ -399,7 +402,7 @@ func TestSlashGoalSwitchesModeAndOpensGoalEditor(t *testing.T) {
 		t.Fatalf("目标编辑框没有上屏（找不到「保存目标」）：\n%s", strings.Join(tt.Texts(), "\n"))
 	}
 	if !strings.Contains(app.slash.notice, "目标编辑框") ||
-		!strings.Contains(app.slash.notice, "尚未影响发送") {
+		!strings.Contains(app.slash.notice, "不改变发送行为") {
 		t.Fatalf("/goal 回执没有写清实际效果：%q", app.slash.notice)
 	}
 	if strings.HasPrefix(app.slash.notice, "已执行") {

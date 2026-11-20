@@ -136,6 +136,18 @@ type Intents interface {
 	UpdateProvider(ctx context.Context, id, name, baseURL, apiKey string) error
 	ProbeProvider(ctx context.Context, id string) (int, error)
 	SetProviderModelEnabled(ctx context.Context, providerID, modelID string, enabled bool) error
+	// RefreshProviders 重读 provider 管理清单（登录 / 登出后刷新详情用）。
+	RefreshProviders(ctx context.Context) error
+
+	// 按提供商的账号登录（OpenAI Codex / Grok Build / 托管帐号）。
+	// namespace 由 provider 读数给出；method 取 browser / device。
+	BeginProviderOAuth(ctx context.Context, providerID, namespace, method, redirectURI string) (ProviderOAuthStartSnapshot, error)
+	CompleteProviderOAuth(ctx context.Context, providerID, namespace, attempt, callbackURL string) error
+	PollProviderOAuth(ctx context.Context, providerID, namespace, attempt string) (ProviderOAuthProgressSnapshot, error)
+	CancelProviderOAuth(ctx context.Context, providerID, namespace, attempt string) error
+	LogoutProviderOAuth(ctx context.Context, providerID, namespace string) error
+	// OpenProviderOAuthURL 用系统浏览器打开授权 / 验证地址（只用于用户显式点击）。
+	OpenProviderOAuthURL(ctx context.Context, url string) error
 
 	// 账号登录：method 取 browser / device。
 	BeginLogin(ctx context.Context, method string) (LoginPromptSnapshot, error)
@@ -156,6 +168,10 @@ type Intents interface {
 	TestMCP(ctx context.Context, id string) (bool, string, error)
 	// ImportMCP 先预览再应用一个导入来源，返回写入的条目数。
 	ImportMCP(ctx context.Context, sourceID string) (int, error)
+	// SaveMCPServer 新建一个工具服务器（mcp.save）；只收编辑器里能如实提交的字段。
+	SaveMCPServer(ctx context.Context, draft MCPServerDraft) error
+	// RemoveMCPServer 删除一个工具服务器（mcp.remove）。
+	RemoveMCPServer(ctx context.Context, id string) error
 
 	// 定时任务。
 	SetScheduleEnabled(ctx context.Context, jobID string, enabled bool) error
@@ -515,8 +531,7 @@ type SessionSnapshot struct {
 	LastTurnIndex   int
 	LastTurnOutcome string
 	// Tasks 是未结束的后台任务。
-	Tasks    []TaskSnapshot
-	OpenedAt time.Time
+	Tasks []TaskSnapshot
 	// Queued 是已提交、服务端还没消费的输入（排队消息面板 IN-35–IN-42）：
 	// 标识、投递方式、正文与「已应用未消费」。只读事实，撤回与编辑都不在这里。
 	Queued []QueuedMessageSnapshot
@@ -652,6 +667,11 @@ type RowSnapshot struct {
 	Args string
 	// Status 取 RowStatus* 之一；空表示这一行没有状态事实。
 	Status string
+	// ArtifactExists / ArtifactCanOpen 是产物行的事实（RowArtifact 的子行）：
+	// nil 表示快照没有给。协议 v3 没有产物方法，投影目前不产生这两种事实；
+	// 视图在 nil 时按「存在、可打开」画，不凭空标「已删除」或「无法预览」。
+	ArtifactExists  *bool
+	ArtifactCanOpen *bool
 	// Duration 是这一行已经用掉的时间（思考、工具）；0 表示没有。
 	//
 	// 它是"已耗时"，不是"还剩"：倒计时一律取 RetryIn，两个口径不混用。
@@ -902,6 +922,22 @@ type ProviderRecordSnapshot struct {
 	// 决定能不能点）。
 	RemoteModelList bool
 	Models          []ProviderModelSnapshot
+	// Authority 是服务端的 credentialAuthority（static / account /
+	// openai_codex / grok）：详情面板按它选认证形态。
+	Authority string
+	// Account 是这个 provider 的账号描述；nil 表示服务端没有给（静态凭据）。
+	Account *ProviderAccountSnapshot
+}
+
+// ProviderAccountSnapshot 是 provider 的账号描述（非敏感）：命名空间决定登录
+// 形态，LoginMethods 决定摆哪几个登录入口，Authenticated 决定已登录还是未登录。
+type ProviderAccountSnapshot struct {
+	Namespace        string
+	LoginMethods     []string
+	Authenticated    bool
+	AccountLabel     string
+	AccountPreview   string
+	RecoveryRequired bool
 }
 
 // ProviderModelSnapshot 是 provider 下的一个模型。
@@ -916,6 +952,26 @@ type ProviderModelSnapshot struct {
 // 展示名取标识本身、状态取 active（表单没有第二个字段可给）。
 type ProviderModelDraft struct {
 	ID string
+}
+
+// ProviderOAuthStartSnapshot 是一次已发起的提供商登录：浏览器方式给授权地址，
+// 设备码方式给验证地址与用户码；不含令牌与授权码。
+type ProviderOAuthStartSnapshot struct {
+	Attempt                 string
+	AuthorizationURL        string
+	RedirectURI             string
+	VerificationURI         string
+	VerificationURIComplete string
+	UserCode                string
+	// Interval 是设备码轮询间隔（秒）；0 表示按默认间隔。
+	Interval int
+}
+
+// ProviderOAuthProgressSnapshot 是一次尝试的服务端状态：Stage 取
+// pending / completed / failed / cancelled / expired。
+type ProviderOAuthProgressSnapshot struct {
+	Stage  string
+	Reason string
 }
 
 // ModalityTaskSnapshot 是一条模态任务。
@@ -979,9 +1035,41 @@ type ExtensionsSnapshot struct {
 	Skills  ExtListSnapshot
 	MCP     ExtListSnapshot
 	Hooks   ExtListSnapshot
+	// MCPProblems 是 mcp.catalog 里读不出来的条目：配置问题提示按它画。
+	MCPProblems []MCPProblemSnapshot
+	// MCPCanSave / MCPCanTest / MCPCanRemove 报告服务端是否声明了对应的写入方法：
+	// 没声明时入口禁用并写原因，不留一个点了只报错的按钮。
+	MCPCanSave   bool
+	MCPCanTest   bool
+	MCPCanRemove bool
 	// MCPImportSources 是服务端扫描到的导入来源；ImportError 是非空时的原因。
 	MCPImportSources []MCPImportSourceSnapshot
 	ImportError      string
+}
+
+// MCPProblemSnapshot 是一条读不出来的 MCP 配置。
+type MCPProblemSnapshot struct {
+	Scope    string
+	ServerID string
+	Message  string
+}
+
+// MCPServerDraft 是编辑器提交给服务端的工具服务器配置：只收这份通道能带过去的
+// 字段（名称、作用域、传输方式、启动命令 / 地址、参数与环境变量）。
+type MCPServerDraft struct {
+	Name      string
+	Scope     string
+	Transport string
+	Command   string
+	Args      []string
+	URL       string
+	Env       []MCPEnvValue
+}
+
+// MCPEnvValue 是一条环境变量；空值表示只声明键名。
+type MCPEnvValue struct {
+	Key   string
+	Value string
 }
 
 // MCPImportSourceSnapshot 是一个可导入的客户端配置来源。

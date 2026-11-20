@@ -34,7 +34,7 @@ func (a *App) rpFilesPage(c *gui.Context) {
 		a.rpOfflineBar(c)
 		a.rpFilterRow(c)
 		if s.permissionDenied {
-			a.rpPermissionBar(c)
+			a.rpPermissionBar(c, rpRetryFiles)
 		}
 		gui.Scroll(c).Grow(1).Children(func() {
 			// 树是一个焦点组：Tab 把焦点带进树（停在最近一次聚焦的行），
@@ -49,7 +49,7 @@ func (a *App) rpFilesPage(c *gui.Context) {
 				case q != "":
 					a.rpSearchResults(c, q, refresh)
 				case s.loading && len(s.tree) == 0:
-					a.rpSkeleton(c)
+					a.rpSkeleton(c, rpSkeletonFiles)
 				case s.rootFailed:
 					a.rpDirErrorRow(c, "")
 				default:
@@ -100,7 +100,7 @@ func (a *App) rpCwd() string {
 // 有工作目录可读。
 //
 // 连着 Source 时工作目录只来自会话事实：没打开会话是「未打开会话」，会话没有
-// cwd 是「没有工作区」。两种情况都不回落到样例，也不拿工作区根顶替——那会把
+// cwd 是「没有工作目录」。两种情况都不回落到样例，也不拿工作区根顶替——那会把
 // 别的目录的东西画成这个会话的文件。样例只在 -demo（没有 Source）时出现。
 func (a *App) rpNoWorkspace() (string, string) {
 	if a.source == nil {
@@ -108,10 +108,12 @@ func (a *App) rpNoWorkspace() (string, string) {
 	}
 	snap, ok := a.liveSession()
 	if !ok {
-		return "未打开会话", "打开一个会话后，这里显示它的工作目录。"
+		return noteNoOpenSession, "打开一个会话后，这里显示它的工作目录。"
 	}
 	if strings.TrimSpace(snap.Cwd) == "" {
-		return "没有工作区", "这个会话没有工作目录，文件与改动都读不到。"
+		// 标题与说明、终端页用同一个词（工作目录）：同一个事实不在同一屏里
+		// 叫两个名字。
+		return "没有工作目录", "这个会话没有工作目录，文件与改动都读不到。"
 	}
 	return "", ""
 }
@@ -312,9 +314,12 @@ const (
 // rpSkeleton 是文件树与改动列表首次加载的三条骨架（F-03 / D-16）：每条高 32、
 // 左缘与树行同级；中性浅块、深色主题换深灰块，不用品牌色。容器用状态角色表达
 // 「正在加载」（读屏只说一次），三条骨架本身不单独播报。
-func (a *App) rpSkeleton(c *gui.Context) {
+//
+// label 是读屏播报的对象名：两个面板共用这套骨架，但播报要说清在读哪一份
+// （文件页「正在加载文件树」、改动页「正在加载改动」），不沿用文件页的名字。
+func (a *App) rpSkeleton(c *gui.Context, label string) {
 	t := c.Theme()
-	gui.Column(c).Label("正在加载文件树").Role(gui.RoleStatus).Children(func() {
+	gui.Column(c).Label(label).Role(gui.RoleStatus).Children(func() {
 		for i := 0; i < rpSkeletonRows; i++ {
 			// D-16 骨架条：中性浅块，宽度撑满列表宽（窄窗下随列表收缩）；
 			// 三条同步脉冲（同一 key、同一周期），减少动效时框架直接停在稳态。
@@ -328,6 +333,15 @@ func (a *App) rpSkeleton(c *gui.Context) {
 		}
 	})
 }
+
+// rpSkeletonFiles / rpSkeletonChanges 是两个面板骨架的读屏名；
+// rpRetryFiles / rpRetryChanges 是两页「重试」的读屏名。
+const (
+	rpSkeletonFiles   = "正在加载文件树"
+	rpSkeletonChanges = "正在加载改动"
+	rpRetryFiles      = "重试读取文件树"
+	rpRetryChanges    = "重试读取改动"
+)
 
 // rpSkeletonRows 是骨架条数（F-03：3 条）。
 const rpSkeletonRows = 3
@@ -344,8 +358,9 @@ func abs32(v float32) float32 {
 }
 
 // rpPermissionBar 是没有写入权限时的警告条（F-46–F-48）：琥珀底、告警图标、
-// 文案与行尾「重试」。
-func (a *App) rpPermissionBar(c *gui.Context) {
+// 文案与行尾「重试」。retryLabel 是「重试」的读屏名：文件页与改动页共用这条
+// 横幅，但重读的是各自的读数，不沿用文件页的名字。
+func (a *App) rpPermissionBar(c *gui.Context, retryLabel string) {
 	t := c.Theme()
 	s := a.rp()
 	bar := gui.Row(c).Shrink(0).Padding(space1, panelBannerPadH).Gap(panelRowGap).
@@ -358,7 +373,7 @@ func (a *App) rpPermissionBar(c *gui.Context) {
 		rpGlyph(c, iconWarn, panelRowIcon, t.Warning, "warning")
 		typeSecondary.style(t, gui.Text(c, "没有写入权限，部分操作不可用")).
 			TextColor(t.Warning).Grow(1).SingleLine()
-		if rpTextAction(c, iconRetry, "重试", "重试读取文件树", false) {
+		if rpTextAction(c, iconRetry, "重试", retryLabel, false) {
 			s.permissionDenied = false
 			s.reload++
 		}

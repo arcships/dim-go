@@ -55,7 +55,6 @@ var (
 	iconGripVertical = mustSVG(`<circle cx="9.75" cy="5.25" r="1.125"/><circle cx="14.25" cy="5.25" r="1.125"/><circle cx="9.75" cy="12" r="1.125"/><circle cx="14.25" cy="12" r="1.125"/><circle cx="9.75" cy="18.75" r="1.125"/><circle cx="14.25" cy="18.75" r="1.125"/>`)
 	iconTrash        = mustSVG(`<path d="M4.5 6.75h15M9.75 6.75V4.5h4.5v2.25M6.75 6.75l.75 12a1.5 1.5 0 0 0 1.5 1.5h6a1.5 1.5 0 0 0 1.5-1.5l.75-12"/>`)
 	iconList         = mustSVG(`<path d="M8.25 6.75h12M8.25 12h12M8.25 17.25h12M3.75 6.75h.008M3.75 12h.008M3.75 17.25h.008"/>`)
-	iconCornerDown   = mustSVG(`<path d="M6.75 4.5v9a3 3 0 0 0 3 3h9"/><path d="m15.75 13.5 3 3-3 3"/>`)
 )
 
 // resetPanelViewState 重置底部栈与时间线新增块的可丢视图状态。

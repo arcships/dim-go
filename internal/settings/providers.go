@@ -39,10 +39,23 @@ type ProviderRecordError struct {
 }
 
 // ProviderAccount 是 provider 的账号视图；只保留登录方式与状态。
+//
+// Namespace 是发起登录与登出所用的账号方法命名空间（account /
+// account.codex / account.grok），由服务端给出，界面据此选择登录形态。
+// Authenticated 与 AccountLabel 是服务端报告的非敏感状态：原生 OAuth 给
+// 账号预览，托管帐号给邮箱 / 名称；凭据原文与令牌从不进入本结构。
 type ProviderAccount struct {
 	Namespace    string
 	LoginMethods []string
 	State        string
+	// Authenticated 表示服务端确认这个 provider 的账号已登录。
+	Authenticated bool
+	// AccountLabel 是账号标识（可读）；空表示服务端没有给。
+	AccountLabel string
+	// AccountPreview 是脱敏后的账号预览；空表示服务端没有给。
+	AccountPreview string
+	// RecoveryRequired 表示服务端要求重新授权。
+	RecoveryRequired bool
 }
 
 // ProviderConnectionInfo 是 provider 连接的安全视图；不含凭据。

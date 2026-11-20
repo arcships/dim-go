@@ -159,6 +159,12 @@ type fileChange struct {
 // artifact 是一个产物。
 type artifact struct {
 	name string
+	// missing 是「文件已不存在」的事实（A-11）：整行半透明、行内标「已删除」，
+	// 不再给「打开」。没有这条事实时按文件存在画。
+	missing bool
+	// canOpen 是「能否打开」的事实（A-12）：nil 表示没有这条事实（按可打开画）；
+	// 指向 false 时「打开」的位置换成「无法预览文件」。
+	canOpen *bool
 }
 
 func doneOps() []op {

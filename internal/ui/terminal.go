@@ -81,7 +81,8 @@ const (
 	termNoProcessNote     = "没有运行中的终端"
 	termExitedCloseNote   = "进程已退出"
 	termClosedNote        = "进程已关闭"
-	termNoOutputNote      = "还没有输出"
+	// 「还没有输出」既是空画布的说明，也是复制 / 清屏置灰的原因：同一句话只定义
+	// 一次（termEmptyText），两处共用。
 	// termCaretWidth / termCaretHeight 是块状光标的尺寸（参考约 9×16）。
 	termCaretWidth  = 9
 	termCaretHeight = 16
@@ -343,14 +344,14 @@ func (a *App) termPasteNote() string {
 // 有可见输出。
 func (a *App) termOutputNote() string {
 	if a.terminalPhase() == termPhaseClosed {
-		return termNoOutputNote
+		return termEmptyText
 	}
 	for _, line := range a.termVisible() {
 		if strings.TrimSpace(line.text) != "" {
 			return ""
 		}
 	}
-	return termNoOutputNote
+	return termEmptyText
 }
 
 // termTip 在入口不可用时把原因并进悬停提示（界面只说结果，不写内部术语）。
@@ -719,13 +720,16 @@ func (a *App) termMenu(m *gui.Menu, c *gui.Context) {
 }
 
 // termExitNotice 是进程自行退出后的提示行（T-11）。退出码与信号按事实写；
-// 退出状态读不到时只写「进程已退出」，不留空的「代码 」段（R-TM-093）。
+// 退出状态读不到时只写「进程已退出」，不留空的「退出码 」段（R-TM-093）。
+//
+// 措辞与 shell 脚注（composer_panels.go 的「进程退出码 N」）统一为「退出码」：
+// 同一个事实不在这两处用「代码」与「退出码」两种叫法。
 func termExitNotice(exit termExit) string {
 	switch {
 	case exit.signaled && exit.signal != 0:
 		return fmt.Sprintf("［进程已退出，信号 %d］", exit.signal)
 	case exit.known && !exit.signaled:
-		return fmt.Sprintf("［进程已退出，代码 %d］", exit.code)
+		return fmt.Sprintf("［进程已退出，退出码 %d］", exit.code)
 	}
 	return termExitedNotice
 }

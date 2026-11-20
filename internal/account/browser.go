@@ -10,6 +10,15 @@ import (
 // 浏览器关掉之后登录仍可能完成，退出码也不改变登录状态。
 type systemBrowser struct{}
 
+// OpenBrowserURL 用系统默认处理程序打开一个地址。它只用于用户显式发起的授权页
+// 与验证页；不打开任意文件，也不等待浏览器退出。
+func OpenBrowserURL(url string) error {
+	if url == "" {
+		return fmt.Errorf("%w: 地址为空", ErrBrowserOpen)
+	}
+	return systemBrowser{}.Open(url)
+}
+
 // Open 按平台启动系统浏览器。失败只说明没能拉起处理程序，不代表授权被拒绝。
 func (systemBrowser) Open(url string) error {
 	var command *exec.Cmd

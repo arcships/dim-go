@@ -178,6 +178,7 @@ type Service struct {
 	skillIssues          []SkillIssue
 	hooks                Snapshot[Hook]
 	toolServers          Snapshot[ToolServer]
+	toolServerProblems   []ToolServerProblem
 	probes               map[string]ToolServerProbe
 	imports              map[string]ImportPreview
 	mcpPreviews          map[string]MCPImportPreview
@@ -253,6 +254,16 @@ func (s *Service) requireFeature(name string) error {
 	}
 	s.cfg.Logf("extensions: 能力缺失 feature=%s reason=hello", name)
 	return &CapabilityError{Feature: name, Err: ErrCapabilityMissing}
+}
+
+// SupportsFeature 报告 hello 是否声明了某项能力。没有能力声明时按「不知道」处理，
+// 返回真：界面不据此置灰，交给调用结果给原因。界面的「保存 / 测试」入口据它
+// 决定能不能点，避免留一个点了只报错的按钮。
+func (s *Service) SupportsFeature(name string) bool {
+	if s.cfg.Features == nil {
+		return true
+	}
+	return s.cfg.Features.HasFeature(name)
 }
 
 // wrapReadError 把能力缺失归一成 CapabilityError；其他错误原样返回。

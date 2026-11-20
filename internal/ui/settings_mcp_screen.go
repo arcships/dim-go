@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -93,6 +94,7 @@ var (
 	mcpIconActivity = mustSVG(`<path d="M3 12h3.75l2.25-6 4.5 12 2.25-6H21"/>`)
 	mcpIconPower    = mustSVG(`<path d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9"/>`)
 	mcpIconWrench   = mustSVG(`<path d="M21.75 6.75a4.5 4.5 0 0 1-4.884 4.484c-1.076-.091-2.264.071-2.95.904l-7.152 8.684a2.548 2.548 0 1 1-3.586-3.586l8.684-7.152c.833-.686.995-1.874.904-2.95a4.5 4.5 0 0 1 6.336-4.486l-3.276 3.276a3.004 3.004 0 0 0 2.25 2.25l3.276-3.276c.256.565.398 1.192.398 1.852Z"/><path d="M4.867 19.125h.008v.008h-.008v-.008Z"/>`)
+	mcpIconMove     = mustSVG(`<path d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"/>`)
 )
 
 // 本屏文案：逐字取自参考产品的 zh-CN（i18n:toolsSettings.*、common.*）。
@@ -157,7 +159,23 @@ const (
 	mcpCopyRemoveRow    = "删除该行"
 	mcpCopyCancel       = "取消"
 	mcpCopySave         = "保存"
-	mcpCopySaveOff      = noteMCPWrite
+	// 编辑器里的状态与动作文案（S-mcp-33 / 34 / 48 / 49 / 51）。
+	mcpCopyWithheld         = "已存储的值已隐藏，留空即可保留。"
+	mcpCopyMoveHint         = "移动到另一个作用域会改写对应作用域的 mcp.json。"
+	mcpCopyMoveToProject    = "移动到项目"
+	mcpCopyMoveToUser       = "移动到用户"
+	mcpCopyMoveConfirmTitle = "移动 MCP 条目？"
+	mcpCopyMoveConfirmBody  = "将「%s」移动到另一个作用域？"
+	mcpCopyConfirm          = "确认"
+	mcpCopyPluginReadOnly   = "插件来源的服务器不能在这里删除"
+	mcpCopyDeleteTitle      = "删除服务器"
+	mcpCopyDeleteBody       = "删除后这个服务器的配置会从当前作用域移除。"
+	mcpCopyDelete           = "删除"
+	mcpCopyTest             = "测试连接"
+	mcpCopyTesting          = "正在测试…"
+	mcpCopyTestOK           = "连接成功"
+	mcpCopyTestFailed       = "连接失败"
+	mcpCopyTestUnavailable  = "先保存服务器后才能测试连接"
 )
 
 // 视图与传输类型：两组常量分开声明，各自的 iota 从 0 起。
@@ -257,6 +275,24 @@ type mcpState struct {
 	editing    bool // 编辑器打开的是已有条目（名称不可改）
 	enabled    map[string]*bool
 	draft      mcpDraft
+	// formErr 是校验或保存失败的原因；三个字段原因分别贴在各自输入框下。
+	formErr string
+	nameErr string
+	cmdErr  string
+	urlErr  string
+	saving  bool
+	// testing / testNote / testOK 是一次连接测试的进行中与结果。
+	testing  bool
+	testNote string
+	testOK   bool
+	// deleteFor 是打开着的删除确认框指向的服务器标识；空表示没开。
+	deleteFor string
+	// editID / editSource 是编辑器打开的条目（测试连接与删除要用）。
+	editID     string
+	editSource string
+	// moveOpen 是「移动作用域」确认框是否打开，moveTo 是目标作用域。
+	moveOpen bool
+	moveTo   string
 }
 
 var mcpScreen = mcpState{view: mcpViewList, enabled: map[string]*bool{}}
@@ -268,13 +304,16 @@ func renderMCP(c *gui.Context, a *App) {
 			gui.Column(c).Shrink(0).Gap(mcpSectionGap).Children(func() {
 				mcpTitleBlock(c)
 				if mcpScreen.view == mcpViewEdit {
-					mcpEditor(c)
+					a.mcpEditor(c)
 				} else {
 					a.mcpListBlock(c)
 				}
 			})
 		})
 	})
+	// 删除确认与移动确认盖在整屏之上。
+	a.mcpDeleteDialog(c)
+	mcpMoveDialog(c)
 }
 
 // mcpTitleBlock 是页首：列表视图是标题 + 说明 + 链接；编辑器是标题 + 文档。
@@ -329,8 +368,55 @@ func (a *App) mcpListBlock(c *gui.Context) {
 			mcpImportPanel(c)
 		}
 		mcpScopeRow(c)
+		mcpProblemBanner(c, a.mcpProblems())
 		mcpReadState(c, list)
 		a.mcpServerList(c, rows)
+	})
+}
+
+// mcpProblems 取目录里读不出来的条目（配置问题横幅的数据源）。
+func (a *App) mcpProblems() []MCPProblemSnapshot {
+	if a.source == nil {
+		return nil
+	}
+	return a.source.Extensions().MCPProblems
+}
+
+// mcpProblemBanner 是「N 个 MCP 配置问题需要注意」（S-mcp-10）：一行标题 +
+// 每条一行明细（作用域 · 标识 · 原因）。没有问题时整块不占高度。
+func mcpProblemBanner(c *gui.Context, problems []MCPProblemSnapshot) {
+	if len(problems) == 0 {
+		return
+	}
+	t := c.Theme()
+	banner := gui.Column(c).Shrink(0).Padding(mcpPanelPadY, mcpPanelPadX).
+		Radius(screenRadiusCard).Background(t.Warning.Alpha(0.1)).
+		Label(fmt.Sprintf("%d 个 MCP 配置问题需要注意", len(problems)))
+	banner.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Warning.Alpha(0.4), screenRadiusCard, screenStroke)
+	})
+	banner.Children(func() {
+		gui.Column(c).Gap(mcpRowNameGap).Children(func() {
+			gui.Row(c).AlignItems(gui.Center).Gap(mcpInlineGap).Children(func() {
+				screenIcon(c, iconWarn, screenIconInline, t.Warning, "warning")
+				mcpNameStyle.style(t,
+					gui.Text(c, fmt.Sprintf("%d 个 MCP 配置问题需要注意", len(problems)))).
+					TextColor(t.Text).SingleLine()
+			})
+			for _, problem := range problems {
+				scope := problem.Scope
+				if scope == "" {
+					scope = "config"
+				}
+				subject := problem.ServerID
+				if subject == "" {
+					subject = "mcp.json"
+				}
+				line := fmt.Sprintf("%s · %s · %s", scope, subject, problem.Message)
+				mcpMetaStyle.style(t, gui.Text(c, line)).TextColor(t.TextMuted).
+					Selectable().MaxLines(2)
+			}
+		})
 	})
 }
 
@@ -607,6 +693,10 @@ func (a *App) mcpServerCard(c *gui.Context, server mcpServer) {
 					childHit = true
 				}
 			}
+			// S-mcp-51 删除服务器入口（插件来源只读，其它来源可删）
+			if a.mcpDeleteAction(c, server) {
+				childHit = true
+			}
 			if mcpIconAction(c, iconGear, mcpCopyConfigure, "", false) {
 				mcpScreen.openEditor(server)
 				childHit = true
@@ -698,7 +788,11 @@ func mcpIconAction(c *gui.Context, icon *gui.SVG, label, tip string, disabled bo
 func (s *mcpState) openEditor(server mcpServer) {
 	s.view = mcpViewEdit
 	s.editing = server.name != ""
+	s.editID = server.id
+	s.editSource = server.scope
 	s.draft = mcpDraft{}
+	s.formErr, s.nameErr, s.cmdErr, s.urlErr = "", "", "", ""
+	s.testNote, s.testOK = "", false
 	if !s.editing {
 		return
 	}
@@ -720,8 +814,20 @@ func (s *mcpState) openEditor(server mcpServer) {
 }
 
 // mcpEditor 是「连接自定义 MCP」表单：名称、范围、传输类型与两组字段。
-func mcpEditor(c *gui.Context) {
+func (a *App) mcpEditor(c *gui.Context) {
+	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(mcpEditorGap).Children(func() {
+		// S-mcp-33 已存储的值已隐藏：编辑已有条目时，环境变量只给键名、值不回显。
+		if mcpScreen.editing {
+			mcpNotice(c, mcpCopyWithheld)
+			// 编辑态的保存没有「保留已存值」的合并通道：入口置灰，原因写在原地。
+			mcpHintStyle.style(t, gui.Text(c, noteMCPEditSave)).TextColor(t.TextMuted).
+				MaxLines(2)
+		}
+		// S-mcp-34 移动作用域说明 + 对话框入口
+		if mcpScreen.editing {
+			mcpMoveRow(c)
+		}
 		// S-mcp-35 名称
 		mcpField(c, mcpCopyName, func() {
 			name := screenInput(c, &mcpScreen.draft.name, mcpCopyNameExample, mcpCopyName)
@@ -729,6 +835,7 @@ func mcpEditor(c *gui.Context) {
 				name = name.Disabled(true)
 			}
 		})
+		mcpFieldError(c, mcpScreen.nameErr)
 		// S-mcp-36 范围（用户 / 项目）
 		mcpField(c, mcpCopyScope, func() {
 			mcpSelect(c, &mcpScreen.draft.scope,
@@ -743,16 +850,263 @@ func mcpEditor(c *gui.Context) {
 			}
 			mcpHTTPFields(c)
 		}
-		mcpHintStyle.style(c.Theme(), gui.Text(c, noteMCPWrite)).
-			TextColor(c.Theme().TextMuted).Selectable()
+		mcpFieldError(c, mcpScreen.cmdErr)
+		mcpFieldError(c, mcpScreen.urlErr)
+		// S-mcp-49 测试结果（成功 / 失败与原因）
+		if mcpScreen.testNote != "" {
+			ink := t.TextMuted
+			role := gui.RoleStatus
+			if !mcpScreen.testOK {
+				ink = t.Danger
+				role = gui.RoleAlert
+			}
+			mcpHintStyle.style(t, gui.Text(c, mcpScreen.testNote)).TextColor(ink).
+				Role(role).Selectable().MaxLines(2)
+		}
+		// S-mcp-48 表单校验与保存失败的原因
+		if mcpScreen.formErr != "" {
+			mcpHintStyle.style(t, gui.Text(c, mcpScreen.formErr)).TextColor(t.Danger).
+				Role(gui.RoleAlert).Selectable().MaxLines(3)
+		}
+		if !a.mcpCanSave() {
+			mcpHintStyle.style(t, gui.Text(c, noteMCPNoSave)).TextColor(t.TextMuted).
+				Selectable().MaxLines(2)
+		}
 		gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
 			// S-mcp-50 保存 / 测试连接 / 取消
 			if screenButton(c, mcpCopyCancel, mcpCopyCancel+"编辑 MCP 服务器", "", false, screenControlH) {
 				mcpScreen.view = mcpViewList
+				mcpResetEditorErrors()
 			}
-			mcpSaveButton(c, mcpCopySave)
+			a.mcpTestButton(c)
+			a.mcpSaveButton(c)
 		})
 	})
+}
+
+// mcpFieldError 是一个字段的校验原因；空时什么也不画。
+func mcpFieldError(c *gui.Context, text string) {
+	if text == "" {
+		return
+	}
+	mcpHintStyle.style(c.Theme(), gui.Text(c, text)).TextColor(c.Theme().Danger).
+		Role(gui.RoleAlert).MaxLines(2)
+}
+
+// mcpCanSave / mcpCanTest / mcpCanRemove 读服务端声明的写入能力；没有 Source
+// （-demo）时按可用渲染，点了也只改界面状态。
+func (a *App) mcpCanSave() bool {
+	if a.source == nil {
+		return false
+	}
+	return a.source.Extensions().MCPCanSave
+}
+
+func (a *App) mcpCanTest() bool {
+	if a.source == nil {
+		return false
+	}
+	return a.source.Extensions().MCPCanTest
+}
+
+func (a *App) mcpCanRemove() bool {
+	if a.source == nil {
+		return false
+	}
+	return a.source.Extensions().MCPCanRemove
+}
+
+// mcpResetEditorErrors 清掉上一次校验与测试留下的原因。
+func mcpResetEditorErrors() {
+	mcpScreen.formErr, mcpScreen.nameErr, mcpScreen.cmdErr, mcpScreen.urlErr = "", "", "", ""
+	mcpScreen.testNote, mcpScreen.testOK = "", false
+}
+
+// mcpMoveRow 是「移动作用域」一行（S-mcp-34）：说明 + 移到另一个作用域的入口，
+// 确认框里的确认键置灰写原因（没有移动方法）。
+func mcpMoveRow(c *gui.Context) {
+	t := c.Theme()
+	gui.Row(c).Shrink(0).AlignItems(gui.Center).Wrap().Gap(mcpInlineGap).Children(func() {
+		mcpHintStyle.style(t, gui.Text(c, mcpCopyMoveHint)).TextColor(t.TextMuted).
+			Grow(1).MinWidth(0).MaxLines(2)
+		target := mcpCopyMoveToProject
+		if mcpScreen.draft.scope == 1 {
+			target = mcpCopyMoveToUser
+		}
+		if mcpButton(c, mcpIconMove, "move", target, false) {
+			mcpScreen.moveOpen = true
+			if mcpScreen.draft.scope == 1 {
+				mcpScreen.moveTo = mcpCopyScopeUser
+			} else {
+				mcpScreen.moveTo = mcpCopyScopeItem
+			}
+		}
+	})
+}
+
+// mcpTestButton 是「测试连接」：有服务端方法时可点，结果写在编辑器里（S-mcp-49）。
+func (a *App) mcpTestButton(c *gui.Context) {
+	t := c.Theme()
+	disabled := mcpScreen.testing || mcpScreen.editID == "" || !a.mcpCanTest()
+	tip := mcpCopyTestUnavailable
+	if mcpScreen.testing {
+		tip = mcpCopyTesting
+	}
+	if !a.mcpCanTest() {
+		tip = noteMCPNoTest
+	}
+	label := mcpCopyTest
+	if mcpScreen.testing {
+		label = mcpCopyTesting
+	}
+	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).
+		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
+		Background(t.Background).Label(label).Tooltip(tip)
+	b.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Stroke(r, t.Border, screenRadiusCtl, screenStroke)
+	})
+	if disabled {
+		b = b.Disabled(true).Opacity(noteDisabledAlpha)
+	} else if b.Hovered() {
+		b = b.Background(t.SurfaceHover)
+	}
+	clicked := !disabled && b.Clicked()
+	b.Children(func() {
+		screenValueStyle.style(t, gui.Text(c, label)).TextColor(t.Text).SingleLine()
+	})
+	if !clicked {
+		return
+	}
+	id := mcpScreen.editID
+	mcpScreen.testing = true
+	mcpScreen.testNote = ""
+	a.dispatchQuiet("测试 MCP 连接", func(ctx context.Context) error {
+		reachable, reason, err := a.intents.TestMCP(ctx, id)
+		if err != nil {
+			return err
+		}
+		if reachable {
+			mcpScreen.testOK = true
+			mcpScreen.testNote = mcpCopyTestOK
+			return nil
+		}
+		if reason == "" {
+			reason = mcpCopyTestFailed
+		}
+		return fmt.Errorf("%s", reason)
+	}, func() {
+		mcpScreen.testing = false
+	}, func(reason string) {
+		mcpScreen.testing = false
+		mcpScreen.testOK = false
+		mcpScreen.testNote = "连接失败：" + strings.TrimPrefix(reason, "测试 MCP 连接：")
+	})
+}
+
+// mcpSaveButton 是保存：新建时按编辑器字段提交（mcp.save），编辑已有条目时没有
+// 「保留已存值」的合并通道，按钮置灰写原因。
+func (a *App) mcpSaveButton(c *gui.Context) {
+	t := c.Theme()
+	label := mcpCopySave
+	disabled := mcpScreen.saving || !a.mcpCanSave() || mcpScreen.editing
+	tip := ""
+	if mcpScreen.editing {
+		tip = noteMCPEditSave
+	} else if !a.mcpCanSave() {
+		tip = noteMCPNoSave
+	} else if mcpScreen.saving {
+		tip = mcpCopyTesting
+	}
+	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).
+		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
+		Background(t.Accent).Label(label).Tooltip(tip)
+	if disabled {
+		b = b.Disabled(true).Opacity(noteDisabledAlpha)
+	} else if b.Hovered() {
+		b = b.Background(t.AccentHover)
+	}
+	clicked := !disabled && b.Clicked()
+	b.Children(func() {
+		screenValueStyle.style(t, gui.Text(c, label)).TextColor(t.AccentText).SingleLine()
+	})
+	if clicked {
+		a.mcpSaveDraft()
+	}
+}
+
+// mcpSaveDraft 先做本地校验，再提交新建；失败原因留在编辑器里。
+func (a *App) mcpSaveDraft() {
+	mcpResetEditorErrors()
+	if !mcpValidateDraft(&mcpScreen.draft) {
+		return
+	}
+	if mcpScreen.draft.bearer != "" || len(mcpScreen.draft.headers) > 0 ||
+		len(mcpScreen.draft.envHeaders) > 0 || len(mcpScreen.draft.passthrough) > 0 ||
+		mcpScreen.draft.cwd != "" {
+		// 通道只带名称、传输、命令 / 地址、参数与环境变量：其余的字段不能假装
+		// 保存了，保存前说清除。
+		mcpScreen.formErr = noteMCPPartialSave
+		return
+	}
+	draft := mcpScreen.draft
+	scope := mcpCopyScopeUser
+	if draft.scope == 1 {
+		scope = mcpCopyScopeItem
+	}
+	transport := "stdio"
+	switch draft.transport {
+	case mcpTransportHTTP:
+		transport = "http"
+	case mcpTransportSse:
+		transport = "sse"
+	}
+	out := MCPServerDraft{
+		Name: draft.name, Scope: scope, Transport: transport,
+		Command: draft.command, Args: append([]string(nil), draft.args...), URL: draft.url,
+	}
+	for _, env := range draft.env {
+		if strings.TrimSpace(env.key) == "" {
+			continue
+		}
+		out.Env = append(out.Env, MCPEnvValue{Key: env.key, Value: env.value})
+	}
+	mcpScreen.saving = true
+	a.dispatchQuiet("保存 MCP 服务器", func(ctx context.Context) error {
+		return a.intents.SaveMCPServer(ctx, out)
+	}, func() {
+		mcpScreen.saving = false
+		mcpScreen.view = mcpViewList
+		mcpResetEditorErrors()
+	}, func(reason string) {
+		mcpScreen.saving = false
+		mcpScreen.formErr = strings.TrimPrefix(reason, "保存 MCP 服务器：")
+	})
+}
+
+// mcpValidateDraft 校验编辑器：名称必填；stdio 要启动命令；http / sse 要合法地址。
+func mcpValidateDraft(d *mcpDraft) bool {
+	ok := true
+	if strings.TrimSpace(d.name) == "" {
+		mcpScreen.nameErr = "请填写服务器名称"
+		ok = false
+	}
+	switch d.transport {
+	case mcpTransportStdio:
+		if strings.TrimSpace(d.command) == "" {
+			mcpScreen.cmdErr = "请填写启动命令"
+			ok = false
+		}
+	default:
+		url := strings.TrimSpace(d.url)
+		if url == "" {
+			mcpScreen.urlErr = "请填写服务器地址"
+			ok = false
+		} else if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+			mcpScreen.urlErr = "服务器地址需以 http:// 或 https:// 开头"
+			ok = false
+		}
+	}
+	return ok
 }
 
 // mcpField 是一个字段：13/500 标签 + 控件，标签与控件相距 10。
@@ -900,14 +1254,95 @@ func mcpAddButton(c *gui.Context, label string, run func()) {
 	}
 }
 
-// mcpSaveButton 是保存：写入归 App Server，未接写入前按禁用态渲染（不留
-// 看起来能存的按钮）。
-func mcpSaveButton(c *gui.Context, label string) {
+// mcpDeleteAction 是服务器卡上的删除入口（S-mcp-51）：插件来源只读，其它来源
+// 打开确认框。返回这一帧是否点到了它（卡片本身不再算被点）。
+func (a *App) mcpDeleteAction(c *gui.Context, server mcpServer) bool {
+	tip := ""
+	disabled := false
+	switch {
+	case server.scope == "plugin":
+		tip, disabled = mcpCopyPluginReadOnly, true
+	case server.id == "":
+		tip, disabled = mcpCopyTestUnavailable, true
+	case !a.mcpCanRemove():
+		tip, disabled = noteMCPNoRemove, true
+	}
+	if mcpIconAction(c, screenIconTrash, "删除服务器", tip, disabled) {
+		if !disabled {
+			mcpScreen.deleteFor = server.id
+		}
+		return true
+	}
+	return false
+}
+
+// mcpDeleteDialog 是删除服务器确认（S-mcp-51）：标题、说明、取消 / 删除；删除
+// 走 mcp.remove，失败原因写在列表上方。
+func (a *App) mcpDeleteDialog(c *gui.Context) {
+	if mcpScreen.deleteFor == "" {
+		return
+	}
 	t := c.Theme()
-	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).
-		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
-		Background(t.Accent).Label(label).Tooltip(mcpCopySaveOff).Disabled(true)
-	b.Children(func() {
-		screenValueStyle.style(t, gui.Text(c, label)).TextColor(t.AccentText).SingleLine()
+	open := true
+	id := mcpScreen.deleteFor
+	dialog := gui.Modal(c, &open, func() {
+		screenDialogPanel(c, mcpCopyDeleteTitle, func() {
+			typeBody.style(t, gui.Text(c, mcpCopyDeleteBody)).TextColor(t.TextMuted).
+				Selectable().MaxLines(3)
+			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
+				if screenButton(c, mcpCopyCancel, "取消删除服务器", "", false, rowRegular) {
+					open = false
+				}
+				deletable := a.mcpCanRemove()
+				deleteButton := gui.PrimaryButton(c, mcpCopyDelete).Label(mcpCopyDelete).
+					Height(rowRegular)
+				if !deletable {
+					deleteButton = deleteButton.Disabled(true).
+						Opacity(noteDisabledAlpha).Tooltip(noteMCPNoRemove)
+				}
+				if deletable && deleteButton.Clicked() {
+					mcpScreen.deleteFor = ""
+					a.dispatchQuiet("删除 MCP 服务器", func(ctx context.Context) error {
+						return a.intents.RemoveMCPServer(ctx, id)
+					}, nil, func(reason string) {
+						a.ShowNotice(strings.TrimPrefix(reason, "删除 MCP 服务器："))
+					})
+					return
+				}
+			})
+		})
 	})
+	if !open || dialog.Dismissed() {
+		mcpScreen.deleteFor = ""
+	}
+}
+
+// mcpMoveDialog 是「移动 MCP 条目？」确认（S-mcp-34）：确认键置灰写原因（没有
+// 移动作用域的方法），取消关闭。
+func mcpMoveDialog(c *gui.Context) {
+	if !mcpScreen.moveOpen {
+		return
+	}
+	t := c.Theme()
+	open := true
+	dialog := gui.Modal(c, &open, func() {
+		screenDialogPanel(c, mcpCopyMoveConfirmTitle, func() {
+			body := fmt.Sprintf(mcpCopyMoveConfirmBody, strings.TrimSpace(mcpScreen.draft.name))
+			typeBody.style(t, gui.Text(c, body)).TextColor(t.TextMuted).
+				Selectable().MaxLines(3)
+			typeMicro.style(t, gui.Text(c, noteMCPMove)).TextColor(t.TextMuted).MaxLines(2)
+			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
+				if screenButton(c, mcpCopyCancel, "取消移动", "", false, rowRegular) {
+					open = false
+				}
+				confirm := gui.PrimaryButton(c, mcpCopyConfirm).Label(mcpCopyConfirm).
+					Height(rowRegular).Disabled(true).Opacity(noteDisabledAlpha).
+					Tooltip(noteMCPMove)
+				_ = confirm
+			})
+		})
+	})
+	if !open || dialog.Dismissed() {
+		mcpScreen.moveOpen = false
+	}
 }

@@ -434,6 +434,12 @@ func TestRightPanelChangesPage(t *testing.T) {
 // 改动页：范围切换的三条空态（当前分支 / Last Run），以及提交或推送菜单。
 func TestRightPanelChangesScopes(t *testing.T) {
 	app, tt := rightTester(t, tabChanges)
+	// 时间线的本轮产物块也有同名的「提交或推送」（A-03）：这一条只验右栏的
+	// 那个入口，先把样例产物块摘掉，点击才不会落到另一个同名按钮上。
+	for i := range app.rounds {
+		app.rounds[i].artifacts = nil
+	}
+	tt.Frame()
 	// 范围下拉：三项，各带副行。
 	if err := tt.Click("未提交改动"); err != nil {
 		t.Fatalf("点不到范围下拉：%v", err)

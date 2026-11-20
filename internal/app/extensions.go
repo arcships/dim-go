@@ -239,6 +239,34 @@ func (r *extensionReaders) ReadToolServers(ctx context.Context) ([]extensions.To
 	return servers, nil
 }
 
+// ReadToolServerProblems 实现 extensions.ToolServerProblemReader：把 `mcp.catalog`
+// 的 invalid 条目原样交给界面（作用域 + 标识 + 原因）。
+func (r *extensionReaders) ReadToolServerProblems(
+	ctx context.Context,
+) ([]extensions.ToolServerProblem, error) {
+	client, err := r.app.requireControl("读取工具服务器配置问题")
+	if err != nil {
+		return nil, err
+	}
+	raw, err := client.Call(ctx, methodMCPCatalog, nil)
+	if err != nil {
+		return nil, err
+	}
+	catalog, err := protocol.ParseMCPCatalogResult(raw)
+	if err != nil {
+		return nil, fmt.Errorf("MCP 目录无法解析: %w", err)
+	}
+	problems := make([]extensions.ToolServerProblem, 0, len(catalog.Invalid))
+	for _, entry := range catalog.Invalid {
+		problems = append(problems, extensions.ToolServerProblem{
+			Scope:    entry.Source,
+			ServerID: entry.ID,
+			Message:  entry.Error,
+		})
+	}
+	return problems, nil
+}
+
 // ProbeToolServer 实现显式探测（`mcp.test`）：只读，不改配置。
 //
 // 回执形状未在 D1 冻结；这里按 `{ok|reachable, tools[], reason|error}` 宽容解析，

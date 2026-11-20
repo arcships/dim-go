@@ -179,6 +179,10 @@ type configProvider struct {
 	driverKind           string
 	credentialConfigured bool
 	remoteModelList      bool
+	// authority 是服务端的凭据归属（static / account / openai_codex / grok）。
+	authority string
+	// providerAccount 是这个 provider 的账号描述；nil 表示服务端没有给（静态凭据）。
+	providerAccount *ProviderAccountSnapshot
 }
 
 // configKey 是供应商在视图状态里的键：读数的用服务端标识，样例用名称。
@@ -386,6 +390,8 @@ func (a *App) configView() configView {
 				driverKind:           record.DriverKind,
 				credentialConfigured: record.CredentialConfigured,
 				remoteModelList:      record.RemoteModelList,
+				authority:            record.Authority,
+				providerAccount:      record.Account,
 			})
 		}
 	}
@@ -765,6 +771,10 @@ func (a *App) configDetailColumn(c *gui.Context, data configView) {
 				switch {
 				case data.selected.account:
 					a.configManagedBody(c, data)
+				case a.source != nil && data.selected.providerAccount != nil:
+					// 账号形态的 provider（Codex / Grok / 托管帐号）：状态区 + 基础
+					// URL + 模型块（见 settings_provider_oauth.go）。
+					a.configOAuthBody(c, data)
 				case a.source != nil:
 					// 读数的 provider：协议 / 认证 / 字段与模型启停都是事实，按同一套
 					// 形态画（凭据字段见 settings_provider_detail.go）。
@@ -1200,8 +1210,10 @@ func configBadge(c *gui.Context, text, label string) {
 // S-configuration-27 / S-configuration-28 详情底部动作（编辑 / 刷新 / 查看套餐）
 func (a *App) configDetailFooter(c *gui.Context, data configView) {
 	gui.Row(c).Shrink(0).Justify(gui.End).Gap(configGapRow).Children(func() {
-		// 账户托管的供应商不能在这里改（提示条写明原因），其余可进编辑表单。
-		if !data.selected.account {
+		// 账户托管的供应商不能在这里改（提示条写明原因），其余可进编辑表单；
+		// 账号形态的供应商（Codex / Grok / 托管帐号）也不走通用表单：凭据在账号
+		// 侧，通用表单里没有可写的字段。
+		if !data.selected.account && data.selected.providerAccount == nil {
 			if screenAction(c, iconPencil, "edit", "编辑", rowRegular) {
 				configScreen.form = configFormEdit(data.selected, data.models)
 			}

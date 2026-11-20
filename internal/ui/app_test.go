@@ -94,6 +94,30 @@ func TestDebugKeysSwitchState(t *testing.T) {
 	}
 }
 
+// 连着 Source 时走查键不生效：1–5 不切样例状态，也不把视图状态按样例重置一遍。
+func TestDebugKeysOffWhenWired(t *testing.T) {
+	resetScreens(t)
+	app := NewApp(Options{State: StateDefault, Source: wiredSource()})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	tt.Frame()
+	// 先在本地留下两处可丢的视图状态：切到设置屏、一个登记的工作区名。
+	app.screen, app.settingsSection = ScreenSettings, secAccount
+	app.workspaceName = "登记的目录"
+	tt.Frame()
+	for _, key := range []gui.Key{gui.Key1, gui.Key2, gui.Key3, gui.Key4, gui.Key5} {
+		tt.Key(0, key)
+		if app.State() != StateDefault {
+			t.Fatalf("连着 Source 时按 %v 切了样例状态：%v", key, app.State())
+		}
+		if app.screen != ScreenSettings {
+			t.Fatalf("连着 Source 时按 %v 把屏切回了主界面", key)
+		}
+		if app.workspaceName != "登记的目录" {
+			t.Fatalf("连着 Source 时按 %v 重置了视图状态：workspaceName=%q", key, app.workspaceName)
+		}
+	}
+}
+
 // 焦点在输入框里时，数字键必须留给草稿，不切状态。
 func TestDebugKeysYieldToTextInput(t *testing.T) {
 	app, tt := newTester(t, StateDefault)

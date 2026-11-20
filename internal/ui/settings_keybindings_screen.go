@@ -106,7 +106,7 @@ var keybindingsScreen = keybindingsState{}
 // 全局唤起这一行的名称、说明与输入宽（分组「全局」）。
 const (
 	globalShortcutName = "全局唤起"
-	globalShortcutHint = "在任意应用里按下，把窗口带到前台并聚焦输入区。"
+	globalShortcutHint = "在任意应用里按下，把窗口带到前台并聚焦输入框。"
 	// globalShortcutInputW 是改键输入框的宽：够放 18 个键位字符。
 	globalShortcutInputW = 180
 )

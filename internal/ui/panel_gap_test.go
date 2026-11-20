@@ -15,7 +15,7 @@ import (
 // 条目编号见 docs/domains/requirements/requirements-panels.md §1–§7。
 
 // TestTerminalExitCodeNotice 断言进程自行退出后画布给带真实退出码的提示行
-// （T-11 / R-TM-087 / R-TM-088），代码 0 也照写。
+// （T-11 / R-TM-087 / R-TM-088），退出码 0 也照写。
 func TestTerminalExitCodeNotice(t *testing.T) {
 	src := liveTerminalSource("/work/project", TerminalSnapshot{
 		Active: true, Exited: true, ExitKnown: true, ExitCode: 0,
@@ -23,7 +23,7 @@ func TestTerminalExitCodeNotice(t *testing.T) {
 	})
 	_, tt := terminalTester(t, src, newTerminalIntents())
 
-	const want = "［进程已退出，代码 0］"
+	const want = "［进程已退出，退出码 0］"
 	if !tt.HasText(want) {
 		t.Fatalf("画布没有退出提示行 %q：%v", want, tt.Texts())
 	}
@@ -37,7 +37,7 @@ func TestTerminalExitCodeNotice(t *testing.T) {
 	}
 }
 
-// TestTerminalExitSignalNotice 断言被信号终止时写信号号，不写空的「代码 」
+// TestTerminalExitSignalNotice 断言被信号终止时写信号号，不写空的「退出码 」
 // （R-TM-089）。
 func TestTerminalExitSignalNotice(t *testing.T) {
 	src := liveTerminalSource("/work/project", TerminalSnapshot{
@@ -49,22 +49,22 @@ func TestTerminalExitSignalNotice(t *testing.T) {
 		t.Fatalf("没有按信号写提示行：%v", tt.Texts())
 	}
 	for _, text := range tt.Texts() {
-		if strings.Contains(text, "代码 ") {
-			t.Fatalf("被信号终止时写了空的代码段：%q", text)
+		if strings.Contains(text, "退出码 ") {
+			t.Fatalf("被信号终止时写了空的退出码段：%q", text)
 		}
 	}
 }
 
 // TestTerminalExitUnknownNotice 断言读不到退出状态时只写「进程已退出」
-// （R-TM-093），不拿零值冒充代码 0。
+// （R-TM-093），不拿零值冒充退出码 0。
 func TestTerminalExitUnknownNotice(t *testing.T) {
 	src := liveTerminalSource("/work/project", TerminalSnapshot{Active: true, Exited: true})
 	_, tt := terminalTester(t, src, newTerminalIntents())
 	if !tt.HasText(termExitedNotice) {
 		t.Fatalf("没有写通用退出提示：%v", tt.Texts())
 	}
-	if tt.HasText("［进程已退出，代码 0］") {
-		t.Fatalf("退出状态未知却写了代码 0：%v", tt.Texts())
+	if tt.HasText("［进程已退出，退出码 0］") {
+		t.Fatalf("退出状态未知却写了退出码 0：%v", tt.Texts())
 	}
 }
 
@@ -75,8 +75,8 @@ func TestTerminalExitNoticeUnit(t *testing.T) {
 		exit termExit
 		want string
 	}{
-		{"代码", termExit{known: true, code: 2}, "［进程已退出，代码 2］"},
-		{"零码", termExit{known: true, code: 0}, "［进程已退出，代码 0］"},
+		{"退出码", termExit{known: true, code: 2}, "［进程已退出，退出码 2］"},
+		{"零码", termExit{known: true, code: 0}, "［进程已退出，退出码 0］"},
 		{"信号", termExit{known: true, signaled: true, signal: 9}, "［进程已退出，信号 9］"},
 		{"信号无号", termExit{known: true, signaled: true}, termExitedNotice},
 		{"未知", termExit{}, termExitedNotice},
@@ -381,7 +381,7 @@ func TestSubagentEmptyReasons(t *testing.T) {
 	noSession.rightOpen, noSession.rightTab = true, tabSubagent
 	tt2 := gui.NewTester(noSession.View, WindowWidth, WindowHeight)
 	tt2.Frame()
-	if !tt2.HasText(subagentNoOpenSession) {
+	if !tt2.HasText(noteNoOpenSession) {
 		t.Fatalf("没打开会话时的空态标题不对：%v", tt2.Texts())
 	}
 	if !tt2.HasText(noteSubagentNoSession) {

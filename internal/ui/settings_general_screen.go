@@ -29,6 +29,10 @@ type generalState struct {
 	proxyDraft  string
 
 	importOpen bool
+	// browserImport / browserClear 是浏览器数据两个对话框的各态（可丢的界面
+	// 状态，见 settings_browser_states.go）。零值是「没有宿主通道」。
+	browserImport browserImportState
+	browserClear  browserClearState
 
 	clearOpen   bool
 	cleanupOpen bool
@@ -341,29 +345,45 @@ func generalProxyDialog(c *gui.Context) {
 // generalImportDialog 是「导入 Chrome Cookie」对话框（S-general-46–60）。
 //
 // 导入整条链（扫描 Chrome 配置、按配置读计数、逐个导入并给部分失败回执）都要
-// 桌面宿主的浏览器数据通道；本版没有这个通道，所以扫描中 / 无配置 / 读取中 /
-// 部分失败 / 错误重试 / 成功回执这些态都到不了。这里不画样例配置与假计数，只
-// 保留标题、说明与两个按钮，并把缺什么写在对话框里。
+// 桌面宿主的浏览器数据通道；本版没有这个通道。对话框的每个态都按
+// settings_browser_states.go 画全（扫描中、无配置、读取中、计数、部分失败、
+// 成功、错误重试），没有通道时停在「没有通道」态：动作置灰、原因上屏，不画
+// 样例配置与假计数；其余各态由视图状态注入后逐态验收。
 func generalImportDialog(c *gui.Context) {
 	if !generalScreen.importOpen {
 		return
 	}
+	st := &generalScreen.browserImport
 	open := true
 	m := modalShell(gui.Modal(c, &open, func() {
 		// G-H6-01 「导入 Chrome Cookie」
 		screenDialogPanel(c, "导入 Chrome Cookie", func() {
-			// G-H6-02 导入说明句（逐字，不截断）
-			screenHint(c, generalImportDesc)
-			// 扫描行、配置行与计数没有读数：写原因（不画样例配置与假计数）
-			generalNote(c, noteBrowserNoImport)
+			// G-H6-02 导入说明句（逐字，不截断）；可导入数为 0 时不出现。
+			if browserImportShowDesc(st) {
+				screenHint(c, generalImportDesc)
+			}
+			generalBrowserImportStates(c, st)
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
-				// G-H6-11 取消
-				if screenButton(c, "取消", "取消导入 Chrome Cookie", "", false, rowRegular) {
+				// G-H6-11 取消（导入中禁用）；回执出来后同一按钮转「关闭」
+				// （G-H6-09a / 09b）。
+				label := "取消"
+				if browserImportHasResult(st.phase) {
+					label = "关闭"
+				}
+				if st.phase == browserImportImporting {
+					screenTextButtonDisabled(c, label, "正在导入 Cookie，无法中止", rowRegular)
+				} else if screenButton(c, label, label+"导入 Chrome Cookie", "", false, rowRegular) {
 					generalScreen.importOpen = false
 					open = false
 				}
-				// G-H6-12 导入（没有通道：置灰并写原因）
-				screenTextButtonDisabled(c, "导入", noteBrowserNoImport, rowRegular)
+				if !browserImportHasResult(st.phase) {
+					// G-H6-12 导入：没有通道时置灰并写原因；导入中显示执行态。
+					importLabel := "导入"
+					if st.phase == browserImportImporting {
+						importLabel = "正在导入 Cookie…"
+					}
+					screenTextButtonDisabled(c, importLabel, noteBrowserNoImport, rowRegular)
+				}
 			})
 		})
 	}))
@@ -373,30 +393,60 @@ func generalImportDialog(c *gui.Context) {
 	}
 }
 
+// browserImportHasResult 报告导入是否已出回执：成功后按钮转「关闭」，不再给
+// 「导入」。
+func browserImportHasResult(phase browserImportPhase) bool {
+	return phase == browserImportDone || phase == browserImportPartial
+}
+
+// browserImportShowDesc 报告说明句是否在屏上：可导入数为 0 时没有内容可替换，
+// 说明句不出现（R-GI-326 / R-GI-331）。
+func browserImportShowDesc(st *browserImportState) bool {
+	switch st.phase {
+	case browserImportReady, browserImportImporting, browserImportDone, browserImportPartial:
+		return st.counts.importable != 0
+	}
+	return true
+}
+
 // generalClearDialog 是「清理浏览器数据」对话框（S-general-61–66）。
 //
-// 清理成功 / 失败回执要宿主真的清一遍浏览器数据；本版没有这个通道，因此不假装
-// 清理成功（成功行与错误块都画不出来），只在对话框里写清缺什么，动作置灰。
+// 清理成功 / 失败回执要宿主真的清一遍浏览器数据；本版没有这个通道。对话框照画
+// 标题、说明与动作，停在没有通道态：动作置灰、原因上屏，不假装清理成功；成功行
+// 与错误块按状态画全（G-H7-03 / G-H7-04），由视图状态注入后逐态验收。
 func generalClearDialog(c *gui.Context) {
 	if !generalScreen.clearOpen {
 		return
 	}
+	st := &generalScreen.browserClear
 	open := true
 	m := modalShell(gui.Modal(c, &open, func() {
 		// G-H7-01 「清理浏览器数据」
 		screenDialogPanel(c, "清理浏览器数据", func() {
-			// G-H7-02 清理说明句（逐字，不截断）
+			// G-H7-02 清理说明句（逐字，不截断；清理中保留）。
 			screenHint(c, generalClearDesc)
-			// 成功行与错误块没有回执：写原因（不假装清理成功）
-			generalNote(c, noteBrowserNoClear)
+			generalClearStates(c, st)
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
-				// G-H7-05 取消
-				if screenButton(c, "取消", "取消清理浏览器数据", "", false, rowRegular) {
+				// G-H7-05 取消；清理成功后同一按钮转「关闭」（G-H7-03 / 05）。
+				label := "取消"
+				if st.phase == browserClearSuccess {
+					label = "关闭"
+				}
+				if st.phase == browserClearClearing {
+					screenTextButtonDisabled(c, label, "正在清理浏览器数据，无法中止", rowRegular)
+				} else if screenButton(c, label, label+"清理浏览器数据", "", false, rowRegular) {
 					generalScreen.clearOpen = false
 					open = false
 				}
-				// G-H7-06 清理浏览器数据（没有通道：置灰并写原因）
-				screenTextButtonDisabled(c, "清理浏览器数据", noteBrowserNoClear, rowRegular)
+				if st.phase != browserClearSuccess {
+					// G-H7-06 清理浏览器数据：没有通道时置灰并写原因；清理中显示
+					// 执行文案（G-H7-06）。
+					clearLabel := "清理浏览器数据"
+					if st.phase == browserClearClearing {
+						clearLabel = "正在清理浏览器数据…"
+					}
+					screenTextButtonDisabled(c, clearLabel, noteBrowserNoClear, rowRegular)
+				}
 			})
 		})
 	}))

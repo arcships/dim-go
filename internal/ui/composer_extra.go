@@ -196,7 +196,7 @@ func (a *App) attachMenu(c *gui.Context) {
 			_, hasSession := a.liveSession()
 			goalReason := ""
 			if a.wired() && !hasSession {
-				goalReason = "还没有打开会话，暂时设定不了目标"
+				goalReason = noteNoSessionGoal
 			}
 			if menuItem(c, m, iconTarget, "目标", "目标模式", goalReason,
 				goalReason != "", a.mode == "Goal") {

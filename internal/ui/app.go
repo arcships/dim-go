@@ -347,6 +347,10 @@ type App struct {
 	pluginInstall pluginInstallState
 	pluginPick    dirPickState
 
+	// 技能更新（同一节里的「技能更新」块与它的弹窗，见 skill_updates.go）：弹窗
+	// 开合、逐项与全部更新的进行中、逐行失败原因与回执。都是可丢的视图状态。
+	skillUpdates skillUpdatesState
+
 	// 设置 · 账户（重建屏）：邮箱登录对话框的开合与草稿、重置确认框的类型、
 	// 用量刷新的起点。都是可丢的界面状态，不是事实。
 	accountEmailOpen  bool
@@ -414,10 +418,8 @@ type App struct {
 	queueEditing   string
 	queueDraft     string
 	queueNotice    string
-	queueNoticeAt  int
 	shellCollapsed bool
 	shellClosed    string
-	shellRunFrame  int
 	demoQueued     []QueuedMessageSnapshot
 	demoShellRun   *ShellRunSnapshot
 	demoCompaction *CompactionSnapshot
@@ -431,9 +433,10 @@ type App struct {
 	// 产物列表的展开态（A-18 / A-19）与行尾下拉（A-14）的开合。
 	artifactsMore map[string]bool
 	artifactMenus map[string]*bool
-	// 压缩摘要区的展开态（TL-69）与样例摘要重试计数。
-	compactionOpen  map[string]*bool
-	compactionTried int
+	// 产物块头的「提交或推送」菜单开合（A-03），按块键存。
+	artifactGit map[string]*bool
+	// 压缩摘要区的展开态（TL-69）。
+	compactionOpen map[string]*bool
 
 	// submitting 是一条提交正在写：在途时发送槽禁用，submitDraft 也只发一次
 	// （R-IN-136、R-IN-140）；请求有结果（成功或失败）才解除。
@@ -1048,6 +1051,7 @@ func (a *App) View(c *gui.Context) {
 	a.pluginInstallView(c)
 	a.pluginRemoveView(c)
 	a.pluginMarketDetailView(c)
+	a.skillUpdatesDialog(c)
 	a.commandPalette(c)
 	a.sessionSearchRestore(c)
 	a.hostFrame()
@@ -1643,10 +1647,11 @@ func applyCodeLook(look AppearancePreferences) {
 	currentCodeTheme = look.CodeTheme
 }
 
-// debugKeys 是仅用于走查的键位：1–5 切换状态。焦点在输入框里时不抢键，
-// 避免把数字从草稿里吃掉（U3 定稿前的临时做法）。
+// debugKeys 是走查用的键位：1–5 切换样例状态。只在 -demo（没有 Source）时生效，
+// 连着 Source 时这些数字键不归界面（否则按一下就把视图状态按样例重置一遍）。
+// 焦点在输入框里时同样不抢键，避免把数字从草稿里吃掉。
 func (a *App) debugKeys(c *gui.Context) {
-	if a.palette.open || c.FocusTakesText() {
+	if a.wired() || a.palette.open || c.FocusTakesText() {
 		return
 	}
 	switch {

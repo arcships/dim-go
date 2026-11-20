@@ -518,7 +518,7 @@ func (a *App) runConfirmDeleteWorkspace() {
 	done := func() {
 		a.removeWorkspaceGroup(workspace)
 		a.confirm = confirmState{}
-		a.headerNote = confirmReceipt("已删除", len(targets), "条会话")
+		a.headerNote = confirmReceipt("已删除", len(targets), "个会话")
 	}
 	if a.intents == nil {
 		for _, target := range targets {

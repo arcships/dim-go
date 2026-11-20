@@ -236,7 +236,7 @@ func configFormProtocolRow(c *gui.Context, provider configProvider) {
 	rawReason := ""
 	if state == "" {
 		state = strings.TrimSpace(provider.driverKind)
-		rawReason = "协议名未映射，显示原始标识"
+		rawReason = configCopyRawProtocol
 	}
 	if state == "" {
 		state = "—"
@@ -254,8 +254,9 @@ func configFormProtocolRow(c *gui.Context, provider configProvider) {
 	})
 }
 
-// configFormUserAgentRow 是编辑态的 User-Agent（S-configuration-59）：输入框照摆、
-// 置灰，原因写在框下（写通道不带这个字段，填了也存不下去）。
+// configFormUserAgentRow 是编辑 / 新增态的 User-Agent（S-configuration-59 / 69）：
+// 输入框照摆、置灰，参考的输入说明逐字写在框下，写通道不带这个字段的原因另写
+// 一句（不做假输入）。
 func configFormUserAgentRow(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(configFormFieldGap).Children(func() {
@@ -267,10 +268,17 @@ func configFormUserAgentRow(c *gui.Context) {
 			Background(fieldFill(t)).Disabled(true).Opacity(noteDisabledAlpha).
 			Tooltip(noteProviderUserAgentWrite)
 		_ = field
+		// S-configuration-69 输入说明
+		configMicroStyle.style(t, gui.Text(c, configCopyUserAgentHint)).
+			TextColor(t.TextMuted).MaxLines(2)
+		// 缺写入通道的原因另起一句，不把「不能填」写成「还没填」。
 		configMicroStyle.style(t, gui.Text(c, noteProviderUserAgentWrite)).
 			TextColor(t.TextMuted).MaxLines(2)
 	})
 }
+
+// configCopyUserAgentHint 是 User-Agent 的输入说明（S-configuration-59 / 69）。
+const configCopyUserAgentHint = "留空则使用运行时默认值。仅应用于此供应商的模型获取和模型请求。"
 
 // configFormPanel 是右栏的表单：标题 + 字段 + 模型清单 + 错误行 + 底部动作。
 func (a *App) configFormPanel(c *gui.Context, data configView) {

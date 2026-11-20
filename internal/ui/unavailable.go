@@ -20,9 +20,22 @@ const (
 	// noteGitWrite 用于暂存 / 取消暂存 / 还原 / 提交 / 推送 / 切分支。技术口径：
 	// 协议没有 git 写方法，D7 不做 git 写。
 	noteGitWrite = "当前版本不支持 git 写操作"
-	// noteMCPWrite 用于 MCP 保存 / 删除 / 移动 / 查看连接 / 断开连接。技术口径：
-	// protocol v3 没有 MCP 写入与连接查看方法。
+	// noteMCPWrite 用于 MCP 查看连接 / 断开连接。技术口径：protocol v3 没有连接
+	// 查看与断开方法。
 	noteMCPWrite = "当前版本不支持修改 MCP 连接"
+	// noteMCPNoSave / noteMCPNoTest / noteMCPNoRemove 用于 hello 没有声明对应 MCP
+	// 方法时的入口：置灰并写原因，不留点了只报错的按钮。
+	noteMCPNoSave   = "当前服务端版本不支持保存 MCP 配置"
+	noteMCPNoTest   = "当前服务端版本不支持测试 MCP 连接"
+	noteMCPNoRemove = "当前服务端版本不支持删除 MCP 服务器"
+	// noteMCPEditSave 用于编辑已有条目时的保存。技术口径：缺 = 保存前读回配置的
+	// 合并通道（mcp.configuration），直接保存会把没回显的密钥一起清掉。
+	noteMCPEditSave = "当前版本不支持在保留已存值的前提下修改 MCP 服务器"
+	// noteMCPPartialSave 用于草稿里填了写入通道带不过去的字段（Bearer、请求头、
+	// 工作目录、环境变量透传）时的保存。
+	noteMCPPartialSave = "当前版本保存不了 Bearer 令牌、请求头与工作目录"
+	// noteMCPMove 用于编辑器里的「移动作用域」。技术口径：缺 = mcp.move。
+	noteMCPMove = "当前版本不支持移动 MCP 条目的作用域"
 	// noteMessageDelete 用于删除消息与撤回。技术口径：协议没有消息删除 / 撤回方法。
 	noteMessageDelete = "当前版本不支持删除与撤回消息"
 	// noteArtifact 用于产物卡上的「打开」。技术口径：协议没有产物内容读取方法。
@@ -33,7 +46,7 @@ const (
 	// noteDirPicker 用于系统目录选择器的替代输入。技术口径：宿主没有目录选择器。
 	noteDirPicker = "请手动输入路径"
 	// noteSessionNavSample 用于样例态的会话前后导航：没有会话目录事实，不切会话。
-	noteSessionNavSample = "样例状态没有会话列表可切换"
+	noteSessionNavSample = "没有会话列表可切换"
 	// noteUnreadFact / noteStarFact 用于会话行的「标为未读」与「星标会话」：会话
 	// 目录没有未读与星标字段，本端不拿本地状态冒充服务端事实。
 	noteUnreadFact = "会话目录没有未读状态"
@@ -72,10 +85,10 @@ const (
 	// noteBrowserNoImport 是 G-H6 导入 Chrome Cookie 的缺项原因。技术口径：扫描
 	// Chrome 配置、按配置读计数、逐个导入并给回执都要宿主的浏览器数据通道，
 	// 本版没有接（协议 v3 也没有浏览器数据方法）。
-	noteBrowserNoImport = "导入不可用：桌面宿主没有提供 Chrome 配置扫描与 Cookie 导入通道"
+	noteBrowserNoImport = "当前版本不支持导入 Chrome Cookie"
 	// noteBrowserNoClear 是 G-H7 清理浏览器数据的缺项原因。技术口径：清理与回执
 	// 同一套浏览器数据通道，本版没有接。
-	noteBrowserNoClear = "清理不可用：桌面宿主没有提供浏览器数据清理通道"
+	noteBrowserNoClear = "当前版本不支持清理浏览器数据"
 	// notePersonalizationWrite 用于设置 › 个性化里只改屏内状态的项。技术口径：协议
 	// 没有这项设置的写入方法。
 	notePersonalizationWrite = "当前版本不支持修改这项设置"
@@ -109,6 +122,9 @@ const (
 	// noteProviderProtocolWrite 用于协议一行。技术口径：缺 = provider.update 不带
 	// 协议字段（S-configuration-55 的协议单选）。
 	noteProviderProtocolWrite = "当前版本不支持修改协议"
+	// configCopyRawProtocol 是协议名认不出来时那一行的 tooltip（S-configuration-55
+	// 的异常行）：详情与编辑表单共用这一句，两处各写一份就会走形。
+	configCopyRawProtocol = "协议名未映射，显示原始标识"
 	// noteProviderConnectWrite 用于「连接并获取模型」。技术口径：缺 = 新供应商的
 	// 探测/拉清单方法（provider.probe 只对已存在的 provider 有效，S-configuration-49）。
 	noteProviderConnectWrite = "当前版本不支持在保存前连接并拉取模型"
@@ -129,7 +145,7 @@ const (
 	// noteProviderProbeBusy 用于探测进行中的「刷新」。
 	noteProviderProbeBusy = "正在探测，完成后可再刷新"
 	// noteProviderModelListUnavailable 用于协议不支持从上游拉清单时的「刷新」。
-	noteProviderModelListUnavailable = "这个协议不支持从上游拉取模型清单"
+	noteProviderModelListUnavailable = "当前版本不支持从上游拉取模型清单"
 	// noteProviderPlans 用于「查看套餐」：套餐页地址由账户领域给，本屏不拼 URL。
 	noteProviderPlans = "当前版本不能打开套餐页面"
 	// noteProviderDisconnectWrite 用于「断开此提供商」确认框。技术口径：缺 =
@@ -218,9 +234,18 @@ const (
 	// noteSubagentNoSession 是还没有打开会话时的空态原因：这时缺的不是子代理
 	// 通道，而是整个会话。
 	noteSubagentNoSession = "打开一个会话后，这里会显示它的子代理输出"
+	// noteNoOpenSession 是每个面板与选择器共用的空态标题：同一个事实不在一处写
+	// 「未打开会话」、在另一处写「还没有打开会话」。
+	noteNoOpenSession = "未打开会话"
+	// noteNoSessionGoal 是没有打开会话时设定目标被挡住的原因：目标归会话。
+	noteNoSessionGoal = "未打开会话，暂时设定不了目标"
 	// noteNoWriteChannel 用于连着 Source 却没有写入通道的入口：既不装作生效，也
 	// 不把原因留空。
 	noteNoWriteChannel = "当前连接不支持写入"
+	// notePermissionNoSession 用于权限档位选择器在没有打开会话时置灰的原因：
+	// 档位写的是会话状态（session.set_permission_tier 要会话标识），空态里没有
+	// 可写的对象——与筛选文件同一句法（「打开一个会话后才能…」）。
+	notePermissionNoSession = "打开一个会话后才能切换权限"
 	// notePetShown 用于斜杠命令 `/pet`：Pet 组件不可用，设置里的宠物显示开关
 	// 在同一条件下也置灰（两处同源，不出现「命令说开了、设置说关」）。
 	notePetShown = "Pet 组件在当前环境不可用（设置里的宠物显示开关同样置灰）"

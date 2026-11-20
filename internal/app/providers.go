@@ -158,6 +158,7 @@ func providerDetailFromWire(raw json.RawMessage, providerID string) (settings.Pr
 			Actions             []string        `json:"actions"`
 			Connection          json.RawMessage `json:"connection"`
 			Models              json.RawMessage `json:"models"`
+			Account             json.RawMessage `json:"account"`
 			Preferences         map[string]struct {
 				ReasoningEffort json.RawMessage `json:"reasoningEffort"`
 				ServiceTier     json.RawMessage `json:"serviceTier"`
@@ -189,6 +190,9 @@ func providerDetailFromWire(raw json.RawMessage, providerID string) (settings.Pr
 		Version:             &version,
 		Enabled:             entry.Enabled,
 		Actions:             append([]string(nil), entry.Actions...),
+	}
+	if account := parseProviderAccount(entry.Account); account != nil {
+		detail.Account = account
 	}
 	if len(entry.Connection) > 0 {
 		var connection struct {
@@ -249,6 +253,55 @@ func providerDetailFromWire(raw json.RawMessage, providerID string) (settings.Pr
 		}
 	}
 	return detail, nil
+}
+
+// parseProviderAccount 解析 provider.management 的 account 描述。
+//
+// 两种形状：托管帐号给 `{namespace, loginMethods, state:{account:{...}}}`，
+// 原生 OAuth 给 `{namespace, loginMethods, state:{authenticated, ...}}`。
+// 没有 account 字段时返回 nil（静态凭据的 provider 不属于账号形态）。
+func parseProviderAccount(raw json.RawMessage) *settings.ProviderAccount {
+	if len(raw) == 0 {
+		return nil
+	}
+	var wire struct {
+		Namespace    string   `json:"namespace"`
+		LoginMethods []string `json:"loginMethods"`
+		State        struct {
+			Authenticated    bool   `json:"authenticated"`
+			RecoveryRequired bool   `json:"recoveryRequired"`
+			AccountIDPreview string `json:"accountIdPreview"`
+			Account          *struct {
+				Subject string `json:"subject"`
+				Email   string `json:"email"`
+				Name    string `json:"name"`
+			} `json:"account"`
+		} `json:"state"`
+	}
+	if err := json.Unmarshal(raw, &wire); err != nil || wire.Namespace == "" {
+		return nil
+	}
+	account := &settings.ProviderAccount{
+		Namespace:        wire.Namespace,
+		LoginMethods:     append([]string(nil), wire.LoginMethods...),
+		Authenticated:    wire.State.Authenticated,
+		RecoveryRequired: wire.State.RecoveryRequired,
+		AccountPreview:   wire.State.AccountIDPreview,
+	}
+	if wire.State.Account != nil {
+		account.Authenticated = true
+		account.AccountLabel = firstNonEmpty(
+			wire.State.Account.Name, wire.State.Account.Email, wire.State.Account.Subject)
+		if account.AccountPreview == "" {
+			account.AccountPreview = wire.State.Account.Subject
+		}
+	}
+	if account.Authenticated {
+		account.State = "signed_in"
+	} else {
+		account.State = "signed_out"
+	}
+	return account
 }
 
 // providerModelEntry 是管理回执里的一个模型条目。

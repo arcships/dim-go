@@ -130,6 +130,9 @@ type Config struct {
 	Auth any
 	// DeviceAuth 发起与轮询设备码登录；nil 表示本端不支持 device 登录。
 	DeviceAuth DeviceAuthorizationSource
+	// ProviderOAuth 是按提供商登录（Codex / Grok / 托管帐号）的来源；nil 表示
+	// 本端不支持这项登录，界面按不可用渲染并写原因。
+	ProviderOAuth ProviderOAuthSource
 	// Browser 打开系统浏览器；nil 时按平台调用系统默认处理程序。
 	Browser Browser
 	// Actions 是写登记；登出与重置经它发出。nil 表示本端不提供账号动作。
@@ -183,6 +186,8 @@ type Account struct {
 	resetAttempt  int
 	// resetKeys 按「订阅标识:重置类型」保存在不确定结果下复用的幂等键；只在内存。
 	resetKeys map[string]string
+	// providerOAuth 是按提供商登录的入口；没有通道时为 nil。
+	providerOAuth *ProviderOAuth
 }
 
 // New 创建账号领域实例。Status 必填；登录尝试状态机在启动时校验。
@@ -202,12 +207,16 @@ func New(cfg Config) (*Account, error) {
 		return nil, err
 	}
 	return &Account{
-		cfg:        cfg,
-		status:     StatusUnknown,
-		loginPhase: LoginIdle,
-		reason:     "尚未读取账号状态",
+		cfg:           cfg,
+		status:        StatusUnknown,
+		loginPhase:    LoginIdle,
+		reason:        "尚未读取账号状态",
+		providerOAuth: NewProviderOAuth(cfg.ProviderOAuth),
 	}, nil
 }
+
+// ProviderOAuth 返回按提供商登录的入口；没有通道时为 nil。
+func (a *Account) ProviderOAuth() *ProviderOAuth { return a.providerOAuth }
 
 // Refresh 读取账号状态，并用服务端事实替换本地镜像状态。
 //

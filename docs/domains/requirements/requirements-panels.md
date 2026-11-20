@@ -89,9 +89,9 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-021 | F-03 | 状态 | 未观察（条件）：首次打开文件面板、文件树还没返回时 | 树区出现 3 条骨架，每条高 32、左缘与树行同级缩进，颜色为浅灰脉冲块 | — | 骨架条数为 3，单条高 32 | 未实现（映射到位但没有该维度的标记）：F-03→internal/ui/rightpanel_files.go:App.rpSkeleton |
 | R-RF-022 | F-03 | 动画 | 骨架在场期间 | 三条骨架同步脉冲（透明度往复），不逐条错峰 | 减少动效下停为静态浅灰块 | 观察 2s 内三条同步 | 已实现（映射 = F-03→internal/ui/rightpanel_files.go:App.rpSkeleton；标记 = Ease） |
 | R-RF-023 | F-03 | 关联 | 文件树返回 | 骨架在返回的同一次渲染中整体消失，换成行列表；不留半截骨架 | — | 树出现后屏上骨架计数为 0 | 未实现（映射到位但没有该维度的标记）：F-03→internal/ui/rightpanel_files.go:App.rpSkeleton |
-| R-RF-024 | F-03 | 内容 | 树上已经有文件行时再触发一次刷新 | 不再出现骨架：旧树留在屏上直到新树替换，避免闪烁 | — | 二次加载全程骨架计数 0 | 已实现（映射 = F-03→internal/ui/rightpanel_files.go:App.rpSkeleton；标记 = 文案「正在加载文件树」） |
+| R-RF-024 | F-03 | 内容 | 树上已经有文件行时再触发一次刷新 | 不再出现骨架：旧树留在屏上直到新树替换，避免闪烁 | — | 二次加载全程骨架计数 0 | 未实现（映射到位但没有该维度的标记）：F-03→internal/ui/rightpanel_files.go:App.rpSkeleton |
 | R-RF-025 | F-03 | 样式 | 浅色 / 深色 | 骨架底色为中性浅块，深色主题下换成深灰块，不用品牌色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；行高 UI 正文 17.5px | 已实现（映射 = F-03→internal/ui/rightpanel_files.go:App.rpSkeleton；标记 = Height） |
-| R-RF-026 | F-03 | 无障碍 | 读屏 | 骨架不播报文本；加载状态由容器 `aria-busy` 表达，读屏只说「正在加载」一次 | — | 读屏播报次数 1（不逐条） | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpSkeleton「正在加载」 |
+| R-RF-026 | F-03 | 无障碍 | 读屏 | 骨架不播报文本；加载状态由容器 `aria-busy` 表达，读屏只说「正在加载」一次 | — | 读屏播报次数 1（不逐条） | 已实现（逐字）：internal/ui/rightpanel_files.go:rpSkeletonFiles「正在加载」 |
 | R-RF-027 | F-03 | 异常 | 加载失败 | 骨架换成错误行（F-13），不无限脉冲 | — | 失败后骨架计数为 0 | 未实现（映射到位但没有该维度的标记）：F-03→internal/ui/rightpanel_files.go:App.rpSkeleton |
 | R-RF-028 | F-03 | 记忆 | 切标签再回、树已就绪 | 不再出现骨架（数据已在内存） | — | 第二次进入骨架计数 0 | 未实现（映射到位但没有该维度的标记）：F-03→internal/ui/rightpanel_files.go:App.rpSkeleton |
 | R-RF-029 | F-04 | 状态 | 未观察（条件）：在筛选框输入查询、结果还没返回时 | 树区顶部出现一行状态文本，文案逐字「正在搜索整个工作区…」，次要色，行高与树行一致 | — | 屏上该行文案逐字为「正在搜索整个工作区…」 | 已实现（映射 = F-04→internal/ui/rightpanel_files.go:App.rpSearchResults；标记 = Loading@App.rpLiveSearch） |
@@ -221,7 +221,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-146 | F-17 | 关联 | 目录展开 | 子级行紧跟在该行之下并向内缩进（PB 态子级行 x=19，父行 x=5） | — | 子级行左缘比父行大 14 | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-147 | F-17 | 样式 | 浅色 / 深色 | 目录名 14px 级、主前景色；`.*` 开头目录名灰化；行无分割线 | — | 判据 = 字号 正文 14px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 行底无底色填充（悬停底出现次数 0），行高 24（BO-ROW-24 / ST-HOVER） | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Height） |
 | R-RF-148 | F-17 | 无障碍 | 读屏 | 行读作「目录，目录名，已展开/已收起」，可展开状态可读 | — | 读屏文本逐字形如「目录，目录名，已展开/已收起」（差异字符 0） | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Role） |
-| R-RF-149 | F-17 | 记忆 | 切标签再回 | 展开状态保留（同一右栏会话内） | — | 切回前后展开行集合差 0 | 未实现（映射到位但没有该维度的标记）：F-17→internal/ui/rightpanel_files.go:App.rpDirRow |
+| R-RF-149 | F-17 | 记忆 | 切标签再回 | 展开状态保留（同一右栏会话内） | — | 切回前后展开行集合差 0 | 已实现（证据 = TestTreeExpansionSurvivesTabSwitch） |
 | R-RF-150 | F-17 | 性能 | 33 个根目录 + 253 个子项展开 | 展开/收起无可感卡顿，滚动流畅 | — | 展开 200+ 行后仍可滚动 | 未实现（映射到位但没有该维度的标记）：F-17→internal/ui/rightpanel_files.go:App.rpDirRow |
 | R-RF-151 | F-18 | 状态 | 未观察（条件）：目录行已展开时 | 箭头换成向下的 ChevronDown，位置与收起态同一点，尺寸 14 | — | 展开后箭头旋转角 90°；x 坐标与其余态相同（差 0） | 已实现（映射 = F-18→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
 | R-RF-152 | F-18 | 动画 | 点击展开 | 箭头旋转 90°（向下），旋转时长 ≤150ms | 减少动效下直接切换朝向 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：F-18→internal/ui/rightpanel_files.go:App.rpDirRow；测试提及 internal/ui/panel_nits_test.go:包级 |
@@ -238,7 +238,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-163 | F-19 | 关联 | 文件行的占位 | 文件行没有箭头，用等宽 14px 占位（F-28）对齐，保证文件名列左缘一致 | — | 目录名与文件名同列（462 / 461） | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-164 | F-19 | 无障碍 | 读屏 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Role） |
 | R-RF-165 | F-19 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 箭头 2× 下边缘清晰、不糊 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-19→internal/ui/rightpanel_files.go:App.rpDirRow |
-| R-RF-166 | F-19 | 记忆 | 切标签再回 | 收起态目录回来仍是朝右 | — | 切回前后箭头旋转角差 0 | 未实现（映射到位但没有该维度的标记）：F-19→internal/ui/rightpanel_files.go:App.rpDirRow |
+| R-RF-166 | F-19 | 记忆 | 切标签再回 | 收起态目录回来仍是朝右 | — | 切回前后箭头旋转角差 0 | 已实现（证据 = TestTreeExpansionSurvivesTabSwitch） |
 | R-RF-167 | F-20 | 状态 | R 态、目录行在场 | 目录名左侧为文件夹图标；收起用 `folder`、展开用 `folder-open`（同一位置换形） | — | 每行图标计数为 1，展开态换开合形 | 已实现（映射 = F-20→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
 | R-RF-168 | F-20 | 关联 | 该行名字置灰显示时 | 图标不随名字灰化而变灰（`.*` 目录只灰化名字） | — | 判据 = 色值 次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-20→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-169 | F-20 | 样式 | 浅色 / 深色 | 线稿图标、次要前景色，尺寸 16；与文件名图标同尺寸 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-20→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Height） |
@@ -414,7 +414,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-332 | F-39 | 样式 | 同一右键菜单里同时显示其它菜单项时 | 项高 28、图标 16、文字 14 级 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = F-39→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Width） |
 | R-RF-333 | F-39 | 无障碍 | 读屏 | 读作「预览」 | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/approval_panels.go:approvalImageBlock「预览」 |
 | R-RF-334 | F-39 | 键盘 | Enter | 右栏打开该文件的预览标签 | — | 键盘触发后预览次数 1 | 已实现（映射 = F-39→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Tab@App.rp） |
-| R-RF-335 | F-39 | 记忆 | 关闭预览回树 | 树展开状态不变 | — | 返回后逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：F-39→internal/ui/rightpanel_files.go:App.rpFileMenu |
+| R-RF-335 | F-39 | 记忆 | 关闭预览回树 | 树展开状态不变 | — | 返回后逐项相同（差 0） | 已实现（证据 = TestTreeExpansionSurvivesPreviewRoundTrip） |
 | R-RF-336 | F-40 | 状态 | 未观察（条件）：右键菜单展开 | 菜单项「用外部工具打开」，ExternalLink 图标 | — | 屏上该文案计数 +1 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpFileMenu「用外部工具打开」 |
 | R-RF-337 | F-40 | 交互 | 点击 | 交给系统默认应用打开该文件；右栏不新增标签，菜单关闭 | — | 点击前后，右栏标签数的取值差 0 | 已实现（映射 = F-40→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Menu） |
 | R-RF-338 | F-40 | 关联 | 相关元素同时在场时（原「与「在文件管理器中显示」」） | 一个打开文件本体、一个定位目录；两项并存不合并 | — | 两项计数各为 1 | 已实现（映射 = F-40→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Open） |
@@ -475,15 +475,15 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-386 | F-46 | 状态 | 未观察（条件）：读目录被系统拒绝（EPERM / EACCES）时 | 筛选行下方出现警告条，文案逐字「没有写入权限，部分操作不可用」，琥珀底色、通栏 | — | 屏上文案逐字相同（差异字符 0）；条左缘与面板内边距对齐线的 x 差 0 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpPermissionBar「没有写入权限，部分操作不可用」 |
 | R-RF-387 | F-46 | 关联 | AlertTriangle图标与「重试」同时在场时 | 条内左侧告警图标、文字、尾部「重试」三者同排 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-RF-388 | F-46 | 关联 | 权限恢复 | 条整体消失，不留空白条 | — | 恢复后条计数为 0 | 已实现（映射 = F-46→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Open@App.rp） |
-| R-RF-389 | F-46 | 内容 | 多条权限错误 | 只显示一条（不按错误条数堆叠） | — | 条计数为 1 | 已实现（映射 = F-46→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = 文案「没有写入权限，部分操作不可用」等 4 条） |
+| R-RF-389 | F-46 | 内容 | 多条权限错误 | 只显示一条（不按错误条数堆叠） | — | 条计数为 1 | 已实现（映射 = F-46→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = 文案「没有写入权限，部分操作不可用」等 3 条） |
 | R-RF-390 | F-46 | 样式 | 浅色 / 深色 | 琥珀底（约 10% 透明）+ 琥珀描边；深色主题下改用暗琥珀底 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；色值 边框 明 #e5e5e5 / 暗 #2e2e2e；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = F-46→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Padding） |
 | R-RF-391 | F-46 | 交互 | 悬停条 | 条本身不点击（点击由尾部「重试」承担） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
-| R-RF-392 | F-46 | 无障碍 | 读屏 | `role=alert` 播报一次全文 | — | 读屏播报文本与屏上文案逐字相同（差异字符 0） | 已实现（映射 = F-46→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Role） |
+| R-RF-392 | F-46 | 无障碍 | 读屏 | `role=alert` 播报一次全文 | — | 读屏播报文本与屏上文案逐字相同（差异字符 0） | 已实现（映射 = F-46→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Label） |
 | R-RF-393 | F-46 | 窄窗 | 面板宽 311 | 文案折行，条高增加，图标与「重试」不重叠 | — | 窄窗下三件的包围盒交集面积 0 | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-RF-394 | F-47 | 状态 | 未观察（条件）：读目录被系统拒绝（EPERM / EACCES）时 | 条左端出现 AlertTriangle 图标，16px，琥珀色 | — | 屏上出现三角告警图标 1 个 | 已实现（映射 = F-47→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = State@App.rp） |
 | R-RF-395 | F-47 | 关联 | 同一行里文案与该项同时在场、需要对齐时 | 图标与首行文字基线居中，不随折行下落 | — | 折行前后，图标与首行文字的基线 y 差 0 | 已实现（映射 = F-47→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Open@App.rp） |
 | R-RF-396 | F-47 | 样式 | 浅色 / 深色 | 琥珀色描边线稿，与条底对比可辨 | — | 判据 = 字色 次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = F-47→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Padding） |
-| R-RF-397 | F-47 | 无障碍 | 读屏 | 不播报图标（告警语义由文本承担） | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = F-47→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Role） |
+| R-RF-397 | F-47 | 无障碍 | 读屏 | 不播报图标（告警语义由文本承担） | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = F-47→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Label） |
 | R-RF-398 | F-47 | 交互 | 点击图标 | 无动作 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 已实现（映射 = F-47→internal/ui/rightpanel_files.go:App.rpPermissionBar；标记 = Menu@App.rp） |
 | R-RF-399 | F-47 | 异常 | 图标资源缺失 | 只留文字，不出现破图方框 | — | 破图计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RF-400 | F-47 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 图标清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-47→internal/ui/rightpanel_files.go:App.rpPermissionBar |
@@ -543,7 +543,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-021 | D-01 | 关联 | 底部统计同时在场时 | 切范围后底部统计按新范围重算，不沿用上一范围的数字 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Open） |
 | R-RD-022 | D-01 | 异常 | 下拉展开时列表正在刷新 | 菜单照常展开；选定后以最新一次刷新结果为准 | — | 两份列表计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Err@App.rp） |
 | R-RD-023 | D-01 | 异常 | 权限不足读不到分支列表 | 切到分支范围时给 D-22 不可用空态，菜单本身不置灰 | — | 切到分支范围后空态块计数 1（D-22 文案）；菜单自身禁用计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Err@App.rp） |
-| R-RD-024 | D-01 | 记忆 | 同一右栏会话内切标签再回 | 范围保持上次所选（不清回未提交） | — | 切回前后，文案的取值差 0 | 未实现（映射到位但没有该维度的标记）：D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar |
+| R-RD-024 | D-01 | 记忆 | 同一右栏会话内切标签再回 | 范围保持上次所选（不清回未提交） | — | 切回前后，文案的取值差 0 | 已实现（证据 = TestChangesScopeSurvivesTabSwitch） |
 | R-RD-025 | D-01 | 无障碍 | 读屏展开下拉 | 读出「已展开，3 个选项」，并能逐个读出主副文案 | — | 读屏文本逐字含「已展开，3 个选项」；主副文案各读出 1 次（读屏项数 = 选项数） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Label） |
 | R-RD-026 | D-01 | 键盘 | 下拉展开时按 Esc | 收起菜单、焦点回触发器，范围不变 | — | Esc 前后，范围的取值差 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Tab） |
 | R-RD-027 | D-01 | 键盘 | Tab 离开触发器 | 菜单若展开则收起，焦点移到下一个控件（筛选框） | — | Tab 后菜单计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Tab） |
@@ -1512,38 +1512,38 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RA-017 | A-02 | 记忆 | 切会话再回 | 按该回合重算 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：A-02→internal/ui/timeline.go:App.artifactsBlock |
 | R-RA-018 | A-03 | 状态 | 未观察（条件）：当前分支可用时 | 块头右侧「提交或推送」按钮：CloudUpload + 文案 + ChevronDown | — | 屏上文案逐字「提交或推送」，含两个图标 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpSubmitButton「提交或推送」 |
 | R-RA-019 | A-03 | 状态 | 非 Git 仓库 / 分支为空 | 按钮不出现，块头只剩计数文本 | — | 无分支时按钮计数为 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-RA-020 | A-03 | 交互 | 单击 | 展开菜单（A-04–A-06），箭头翻转；点外部关闭 | — | 点击后屏上出现 3 个菜单项 | 未实现（找不到元素渲染点） |
-| R-RA-021 | A-03 | 关联 | 「提交或推送」按钮同时在场时 | 三处同名按钮共用一套图标与菜单项顺序，不各自造词 | — | 三处文案与项集合逐项相同（差 0） | 未实现（找不到元素渲染点） |
-| R-RA-022 | A-03 | 状态 | 点击后动作进行中 | 按钮禁用并显示执行态，不可重复触发 | — | 执行中再次点击后状态变化次数 0 | 未实现（找不到元素渲染点） |
-| R-RA-023 | A-03 | 样式 | 次按钮 | 浅底、细描边、小圆角；图标 16px 在左、箭头 14px 在右 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-RA-020 | A-03 | 交互 | 单击 | 展开菜单（A-04–A-06），箭头翻转；点外部关闭 | — | 点击后屏上出现 3 个菜单项 | 已实现（映射 = A-03→internal/ui/timeline.go:App.artifactsGitMenuOpen；标记 = Menu） |
+| R-RA-021 | A-03 | 关联 | 「提交或推送」按钮同时在场时 | 三处同名按钮共用一套图标与菜单项顺序，不各自造词 | — | 三处文案与项集合逐项相同（差 0） | 已实现（映射 = A-03→internal/ui/timeline.go:App.artifactsGitMenuOpen；标记 = Open） |
+| R-RA-022 | A-03 | 状态 | 点击后动作进行中 | 按钮禁用并显示执行态，不可重复触发 | — | 执行中再次点击后状态变化次数 0 | 已实现（映射 = A-03→internal/ui/timeline.go:App.artifactsGitAvailable；标记 = State） |
+| R-RA-023 | A-03 | 样式 | 次按钮 | 浅底、细描边、小圆角；图标 16px 在左、箭头 14px 在右 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = A-03→internal/ui/timeline.go:App.artifactsGitButton；标记 = Height） |
 | R-RA-024 | A-03 | 无障碍 | 读屏 | 读作可展开按钮「提交或推送」 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpSubmitButton「提交或推送」 |
-| R-RA-025 | A-03 | 键盘 | Enter 展开、Esc 关 | 全键盘可操作 | — | 键盘触发后展开与关闭次数 1 | 未实现（找不到元素渲染点） |
+| R-RA-025 | A-03 | 键盘 | Enter 展开、Esc 关 | 全键盘可操作 | — | 键盘触发后展开与关闭次数 1 | 已实现（映射 = A-03→internal/ui/timeline.go:App.artifactsGitButton；标记 = Tab） |
 | R-RA-026 | A-03 | 异常 | 无已暂存改动 | 「提交」「提交并推送」置灰，仅「推送」可用 | — | 两项禁用态计数 ≥1 | 已实现（逐字）：internal/ui/command_palette.go:App.commandPaletteActions「提交」 |
-| R-RA-027 | A-03 | 窄窗 | 窄窗 | 按钮与计数文本同排不重叠，文案可截断 | — | 窄窗下的包围盒交集面积 0 | 未实现（找不到元素渲染点） |
+| R-RA-027 | A-03 | 窄窗 | 窄窗 | 按钮与计数文本同排不重叠，文案可截断 | — | 窄窗下的包围盒交集面积 0 | 未实现（映射到位但没有该维度的标记）：A-03→internal/ui/timeline.go:App.artifactsGitAvailable；测试提及 internal/ui/rightpanel_pages_test.go:TestRightPanelChangesScopes |
 | R-RA-028 | A-04 | 状态 | 未观察（条件）：菜单展开 | 菜单项「提交」，GitCommit 图标 | — | 屏上文案逐字「提交」 | 已实现（逐字）：internal/ui/command_palette.go:App.commandPaletteActions「提交」 |
-| R-RA-029 | A-04 | 交互 | 点击 | 以已暂存内容提交；菜单关闭；块内计数不变 | — | 点击后菜单计数 0 | 未实现（找不到元素渲染点） |
-| R-RA-030 | A-04 | 状态 | 无已暂存 | 置灰不可点 | — | 置灰态点击后状态变化次数 0 | 未实现（找不到元素渲染点） |
+| R-RA-029 | A-04 | 交互 | 点击 | 以已暂存内容提交；菜单关闭；块内计数不变 | — | 点击后菜单计数 0 | 已实现（映射 = A-04→internal/ui/timeline.go:App.artifactsGitButton；标记 = Menu） |
+| R-RA-030 | A-04 | 状态 | 无已暂存 | 置灰不可点 | — | 置灰态点击后状态变化次数 0 | 已实现（映射 = A-04→internal/ui/timeline.go:App.artifactsGitButton；标记 = Hidden@rpGlyph） |
 | R-RA-031 | A-04 | 异常 | 钩子拒绝 | 菜单关闭并给失败原因，不显示成功态 | — | 失败后原因文案字符数 ≥1 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-RA-032 | A-04 | 样式 | 菜单项同时在场时 | 项高 28、图标 16、文字 14 级 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-RA-032 | A-04 | 样式 | 菜单项同时在场时 | 项高 28、图标 16、文字 14 级 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = A-04→internal/ui/timeline.go:App.artifactsGitButton；标记 = Height） |
 | R-RA-033 | A-04 | 无障碍 | 读屏 | 读作菜单项「提交」 | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/command_palette.go:App.commandPaletteActions「提交」 |
-| R-RA-034 | A-04 | 键盘 | Enter | 等同点击 | — | 键盘触发后提交次数 1 | 未实现（找不到元素渲染点） |
-| R-RA-035 | A-04 | 异常 | 无远端但有已暂存 | 提交仍可用（提交不需要远端），只有推送类不可用 | — | 判据 = 没有远端时提交可点；触发次数 1（可点）或 0（禁用），差 0（ST-ENABLED / ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-RA-034 | A-04 | 键盘 | Enter | 等同点击 | — | 键盘触发后提交次数 1 | 已实现（映射 = A-04→internal/ui/timeline.go:App.artifactsGitButton；标记 = Tab） |
+| R-RA-035 | A-04 | 异常 | 无远端但有已暂存 | 提交仍可用（提交不需要远端），只有推送类不可用 | — | 判据 = 没有远端时提交可点；触发次数 1（可点）或 0（禁用），差 0（ST-ENABLED / ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：A-04→internal/ui/timeline.go:App.artifactsGitButton |
 | R-RA-036 | A-05 | 状态 | 未观察（条件）：菜单展开 | 菜单项「提交并推送」，CloudUpload 图标 | — | 屏上文案逐字「提交并推送」 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpSubmitButton「提交并推送」 |
-| R-RA-037 | A-05 | 交互 | 点击 | 提交后立即推送；统一执行态；菜单关闭 | — | 点击后菜单计数 0 | 未实现（找不到元素渲染点） |
-| R-RA-038 | A-05 | 异常 | 提交成功但推送失败 | 本地提交保留，失败原因告知 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-RA-039 | A-05 | 样式 | 「提交」同时在场时 | 同尺寸同层级 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-RA-037 | A-05 | 交互 | 点击 | 提交后立即推送；统一执行态；菜单关闭 | — | 点击后菜单计数 0 | 已实现（映射 = A-05→internal/ui/timeline.go:App.artifactsGitButton；标记 = Menu） |
+| R-RA-038 | A-05 | 异常 | 提交成功但推送失败 | 本地提交保留，失败原因告知 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：A-05→internal/ui/timeline.go:App.artifactsGitButton |
+| R-RA-039 | A-05 | 样式 | 「提交」同时在场时 | 同尺寸同层级 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = A-05→internal/ui/timeline.go:App.artifactsGitButton；标记 = Height） |
 | R-RA-040 | A-05 | 无障碍 | 读屏 | 读作「提交并推送」 | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpSubmitButton「提交并推送」 |
-| R-RA-041 | A-05 | 键盘 | Enter | 等同点击 | — | 键盘触发后状态变化次数 1 | 未实现（找不到元素渲染点） |
-| R-RA-042 | A-05 | 状态 | 无已暂存 | 置灰不可点 | — | 置灰态点击后状态变化次数 0 | 未实现（找不到元素渲染点） |
-| R-RA-043 | A-05 | 键盘 | Enter | 等同点击：提交并推送 | — | 键盘触发后状态变化次数 1 | 未实现（找不到元素渲染点） |
+| R-RA-041 | A-05 | 键盘 | Enter | 等同点击 | — | 键盘触发后状态变化次数 1 | 已实现（映射 = A-05→internal/ui/timeline.go:App.artifactsGitButton；标记 = Tab） |
+| R-RA-042 | A-05 | 状态 | 无已暂存 | 置灰不可点 | — | 置灰态点击后状态变化次数 0 | 已实现（映射 = A-05→internal/ui/timeline.go:App.artifactsGitButton；标记 = Hidden@rpGlyph） |
+| R-RA-043 | A-05 | 键盘 | Enter | 等同点击：提交并推送 | — | 键盘触发后状态变化次数 1 | 已实现（映射 = A-05→internal/ui/timeline.go:App.artifactsGitButton；标记 = Tab） |
 | R-RA-044 | A-06 | 状态 | 未观察（条件）：菜单展开 | 菜单项「推送」，CloudUpload 图标 | — | 屏上文案逐字「推送」 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpSubmitButton「推送」 |
-| R-RA-045 | A-06 | 交互 | 点击 | 推送当前分支；菜单关闭 | — | 点击后菜单计数 0 | 未实现（找不到元素渲染点） |
-| R-RA-046 | A-06 | 异常 | 远端非快进 | 提示需先拉取/变基，不自动强推 | — | 强推次数 0 | 未实现（找不到元素渲染点） |
-| R-RA-047 | A-06 | 样式 | 菜单项同时在场时 | 末项，下缘留白与上缘一致 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 未实现（找不到元素渲染点） |
+| R-RA-045 | A-06 | 交互 | 点击 | 推送当前分支；菜单关闭 | — | 点击后菜单计数 0 | 已实现（映射 = A-06→internal/ui/timeline.go:App.artifactsGitButton；标记 = Menu） |
+| R-RA-046 | A-06 | 异常 | 远端非快进 | 提示需先拉取/变基，不自动强推 | — | 强推次数 0 | 未实现（映射到位但没有该维度的标记）：A-06→internal/ui/timeline.go:App.artifactsGitButton；测试提及 internal/ui/timeline_artifacts_states_test.go:包级 |
+| R-RA-047 | A-06 | 样式 | 菜单项同时在场时 | 末项，下缘留白与上缘一致 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = A-06→internal/ui/timeline.go:App.artifactsGitButton；标记 = Height） |
 | R-RA-048 | A-06 | 无障碍 | 读屏 | 读作「推送」 | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpSubmitButton「推送」 |
-| R-RA-049 | A-06 | 键盘 | Enter | 等同点击 | — | 键盘触发后推送次数 1 | 未实现（找不到元素渲染点） |
-| R-RA-050 | A-06 | 状态 | 无远端 | 置灰不可点 | — | 置灰态点击后状态变化次数 0 | 未实现（找不到元素渲染点） |
-| R-RA-051 | A-06 | 键盘 | Enter | 等同点击：开始推送 | — | 键盘触发后推送次数 1 | 未实现（找不到元素渲染点） |
+| R-RA-049 | A-06 | 键盘 | Enter | 等同点击 | — | 键盘触发后推送次数 1 | 已实现（映射 = A-06→internal/ui/timeline.go:App.artifactsGitButton；标记 = Tab） |
+| R-RA-050 | A-06 | 状态 | 无远端 | 置灰不可点 | — | 置灰态点击后状态变化次数 0 | 已实现（映射 = A-06→internal/ui/timeline.go:App.artifactsGitButton；标记 = Hidden@rpGlyph） |
+| R-RA-051 | A-06 | 键盘 | Enter | 等同点击：开始推送 | — | 键盘触发后推送次数 1 | 已实现（映射 = A-06→internal/ui/timeline.go:App.artifactsGitButton；标记 = Tab） |
 | R-RA-052 | A-07 | 状态 | 未观察（条件）：块在场 | 产物列表容器：圆角 + 1px 描边，内含产物行；紧贴块头下方（间距 ≤8） | — | 容器上缘与块头下缘间距 ≤8 | 已实现（映射 = A-07→internal/ui/timeline.go:App.artifactList；标记 = Disabled@App.artifactRow） |
 | R-RA-053 | A-07 | 关联 | 列表底部展开按钮与「收起」同时在场时 | 列表折叠时最多 3 行，底部展开按钮在容器之下 | — | 折叠态行数 ≤3 | 已实现（映射 = A-07→internal/ui/timeline.go:App.artifactList；标记 = Show） |
 | R-RA-054 | A-07 | 交互 | 滚动 | 随整块滚出，不独立滚动 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = A-07→internal/ui/timeline.go:App.artifactList；标记 = Key@App.artifactRow） |
@@ -1562,8 +1562,8 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RA-062 | A-08 | 状态 | 列表已展开时 | 显示全部行，底部按钮换成「收起」（A-19） | — | 行数 = count（差 0） | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpDirRow「收起」 |
 | R-RA-063 | A-08 | 交互 | 单击行 | 打开该文件的预览（与「打开」按钮同结果） | — | 点击后预览计数 +1 | 已实现（逐字）：internal/account/login.go:ErrBrowserOpen「打开」 |
 | R-RA-064 | A-08 | 交互 | 右键行 | 出菜单（默认应用打开 / 在文件管理器中显示 / 分隔线 / 复制路径），与 D-89 同套 | — | 菜单项集合与 D-89 一致 | 已实现（映射 = A-08→internal/ui/timeline.go:App.artifactList；标记 = Key@App.artifactRow） |
-| R-RA-065 | A-08 | 内容 | 文件名超长 | 单行 truncate，悬停出完整路径 | — | 悬停后浮层内完整路径与完整值逐字相同（差异字符 0） | 已实现（映射 = A-08→internal/ui/timeline.go:App.artifactList；标记 = 文案「产物」等 3 条@App.artifactRow） |
-| R-RA-066 | A-08 | 内容 | 同名文件来自不同目录 | 只显示文件名，靠 `title` 区分 | — | 两行各自悬停后浮层路径逐字相同（差异字符 0） | 已实现（映射 = A-08→internal/ui/timeline.go:App.artifactList；标记 = 文案「产物」等 3 条@App.artifactRow） |
+| R-RA-065 | A-08 | 内容 | 文件名超长 | 单行 truncate，悬停出完整路径 | — | 悬停后浮层内完整路径与完整值逐字相同（差异字符 0） | 已实现（映射 = A-08→internal/ui/timeline.go:App.artifactList；标记 = 文案「产物」等 7 条@App.artifactRow） |
+| R-RA-066 | A-08 | 内容 | 同名文件来自不同目录 | 只显示文件名，靠 `title` 区分 | — | 两行各自悬停后浮层路径逐字相同（差异字符 0） | 已实现（映射 = A-08→internal/ui/timeline.go:App.artifactList；标记 = 文案「产物」等 7 条@App.artifactRow） |
 | R-RA-067 | A-08 | 内容 | 行内无「打开」按钮（不可打开） | 该行只显示图标与名字，行尾不出现下拉（A-14 条件不成立） | — | 判据 = 没有按钮时行尾宽度与有按钮时相同；行尾空白宽度 = 行右缘 − 最后可见文本右缘，与有按钮时差 0（AL-TOL-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RA-068 | A-08 | 关联 | 计数文本在场、需要对照数量时 | 折叠时计数仍为全量，不等于可见行数 | — | 计数 ≥ 行数（差 ≥0） | 已实现（映射 = A-08→internal/ui/timeline.go:App.artifactList；标记 = Show） |
 | R-RA-069 | A-08 | 样式 | 浅色 / 深色 | 行高 28、无分割线；悬停浅底 | — | 判据 = 行高 空态主标题 28px；底色 悬停底 明 #f5f5f5 / 暗 #262626（侧栏 明 #e2e9ed / 暗 #282c2b） | 已实现（映射 = A-08→internal/ui/timeline.go:App.artifactList；标记 = Padding） |
@@ -1579,7 +1579,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RA-079 | A-09 | 无障碍 | 读屏 | 不播报图标 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = A-09→internal/ui/timeline.go:App.artifactRow；标记 = Label） |
 | R-RA-080 | A-09 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 图标在 2× 下不糊（位图按 2× 提供） | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：A-09→internal/ui/timeline.go:App.artifactRow |
 | R-RA-081 | A-09 | 状态 | 行半透明（已删除） | 图标随之半透明，不保持原亮度 | — | 已删除行图标不透明度与常规行差 ≥1 | 已实现（映射 = A-09→internal/ui/timeline.go:App.artifactRow；标记 = Disabled） |
-| R-RA-082 | A-10 | 内容 | 未观察（条件）：行在场 | 文件名文本，`title` 为完整路径；超长 truncate | — | 悬停后浮层内完整路径与完整值逐字相同（差异字符 0） | 已实现（映射 = A-10→internal/ui/timeline.go:App.artifactRow；标记 = 文案「产物」等 3 条） |
+| R-RA-082 | A-10 | 内容 | 未观察（条件）：行在场 | 文件名文本，`title` 为完整路径；超长 truncate | — | 悬停后浮层内完整路径与完整值逐字相同（差异字符 0） | 已实现（映射 = A-10→internal/ui/timeline.go:App.artifactRow；标记 = 文案「产物」等 7 条） |
 | R-RA-083 | A-10 | 状态 | 文件已删除 | 文件名变灰/半透明，但文案仍是原名 | — | 文案不改写成「（已删除）」 | 已实现（映射 = A-10→internal/ui/timeline.go:App.artifactRow；标记 = Disabled） |
 | R-RA-084 | A-10 | 样式 | 浅色 / 深色 | 14px 级主前景色；单行 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = A-10→internal/ui/timeline.go:App.artifactRow；标记 = Height） |
 | R-RA-085 | A-10 | 无障碍 | 读屏 | 播报完整路径 | — | 读屏含完整路径（命中次数 ≥1） | 已实现（映射 = A-10→internal/ui/timeline.go:App.artifactRow；标记 = Label） |
@@ -1589,28 +1589,28 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RA-089 | A-10 | 无障碍 | 读屏 | 播报文件名与「产物」语义 | — | 读屏含语义（命中次数 ≥1） | 已实现（逐字）：internal/host/update.go:Updater.downloadRelease「产物」 |
 | R-RA-090 | A-11 | 状态 | 未观察（条件）：条目已经不存在时 | 行内出现「已删除」标签，整行半透明（约 60%） | — | 屏上出现文案「已删除」，行不透明度 <1 | 已实现（逐字）：internal/ui/confirm.go:App.runConfirmDelete「已删除」 |
 | R-RA-091 | A-11 | 关联 | 「打开」同时在场时 | 该行不显示「打开」按钮 | — | 「打开」按钮计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-RA-092 | A-11 | 样式 | 行内同时在场时 | 小号标签、次要色或危险色，不加底色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-RA-092 | A-11 | 样式 | 行内同时在场时 | 小号标签、次要色或危险色，不加底色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = A-11→internal/ui/timeline.go:App.artifactRow；标记 = Height） |
 | R-RA-093 | A-11 | 无障碍 | 读屏 | 读出「已删除」 | — | 读屏含状态（命中次数 ≥1） | 已实现（逐字）：internal/ui/confirm.go:App.runConfirmDelete「已删除」 |
-| R-RA-094 | A-11 | 异常 | 文件被重新创建 | 刷新后标签消失、行恢复不透明 | — | 「已删除」标签计数 0；行不透明度与常规行相同（差 0） | 未实现（找不到元素渲染点） |
-| R-RA-095 | A-11 | 记忆 | 切会话再回 | 按重建时的 `exists` 判定 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（找不到元素渲染点） |
+| R-RA-094 | A-11 | 异常 | 文件被重新创建 | 刷新后标签消失、行恢复不透明 | — | 「已删除」标签计数 0；行不透明度与常规行相同（差 0） | 未实现（映射到位但没有该维度的标记）：A-11→internal/ui/timeline.go:App.artifactRow；测试提及 internal/ui/timeline_artifacts_states_test.go:包级 |
+| R-RA-095 | A-11 | 记忆 | 切会话再回 | 按重建时的 `exists` 判定 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：A-11→internal/ui/timeline.go:App.artifactRow；测试提及 internal/ui/timeline_artifacts_states_test.go:包级 |
 | R-RA-096 | A-11 | 内容 | 文件被重命名后同名重建 | 标签按新记录的 `exists` 判定，不沿用旧的「已删除」 | — | 刷新后状态字母与磁盘 exists 判定一致（差异项 0），不沿用旧「已删除」 | 已实现（逐字）：internal/ui/confirm.go:App.runConfirmDelete「已删除」 |
-| R-RA-097 | A-11 | 记忆 | 切会话再回 | 按重建数据判定 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（找不到元素渲染点） |
+| R-RA-097 | A-11 | 记忆 | 切会话再回 | 按重建数据判定 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：A-11→internal/ui/timeline.go:App.artifactRow；测试提及 internal/ui/timeline_artifacts_states_test.go:包级 |
 | R-RA-098 | A-12 | 状态 | **死代码**（条件是条目不可打开；唯一调用点没传这个参数）：若实现 | 行内「打开」按钮位置显示替代文本「无法预览文件」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/account/login.go:ErrBrowserOpen「打开」 |
-| R-RA-099 | A-12 | 关联 | 「打开」不在场、只有该项在场时 | 两者只出现一个 | — | 两者计数之和为 1 | 未实现（找不到元素渲染点） |
-| R-RA-100 | A-12 | 内容 | 无法预览的原因不同 | 文案恒定「无法预览文件」，不拼原因 | — | 文案里变量占位计数 0 | 未实现（找不到元素渲染点） |
+| R-RA-099 | A-12 | 关联 | 「打开」不在场、只有该项在场时 | 两者只出现一个 | — | 两者计数之和为 1 | 已实现（映射 = A-12→internal/ui/timeline.go:App.artifactRow；标记 = Open） |
+| R-RA-100 | A-12 | 内容 | 无法预览的原因不同 | 文案恒定「无法预览文件」，不拼原因 | — | 文案里变量占位计数 0 | 已实现（逐字）：internal/ui/timeline.go:App.artifactRow「无法预览文件」 |
 | R-RA-101 | A-12 | 样式 | 若实现 | 小号次要色，与「打开」按钮同高但不带描边 | — | 判据 = 字号 UI 正文 12.25px；控件尺寸 按钮高 行内 21 / 小 25 / 次 28 / 常规 32 / 大 35 | 已实现（逐字）：internal/account/login.go:ErrBrowserOpen「打开」 |
-| R-RA-102 | A-12 | 无障碍 | 若实现 | 读出「无法预览文件」 | — | 读屏含该句（命中次数 ≥1） | 未实现（找不到元素渲染点） |
-| R-RA-103 | A-12 | 交互 | 点了它 | 无动作（不是按钮） | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（找不到元素渲染点） |
+| R-RA-102 | A-12 | 无障碍 | 若实现 | 读出「无法预览文件」 | — | 读屏含该句（命中次数 ≥1） | 已实现（逐字）：internal/ui/timeline.go:App.artifactRow「无法预览文件」 |
+| R-RA-103 | A-12 | 交互 | 点了它 | 无动作（不是按钮） | — | 点击前后屏上文案、计数与 y 坐标差 0 | 已实现（映射 = A-12→internal/ui/timeline.go:App.artifactRow；标记 = Key） |
 | R-RA-104 | A-12 | 异常 | 能力恢复 | 换成「打开」按钮 | — | 刷新后按钮计数 +1 | 已实现（逐字）：internal/account/login.go:ErrBrowserOpen「打开」 |
-| R-RA-105 | A-12 | 记忆 | 切走再回 | 状态按重建数据判定 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（找不到元素渲染点） |
+| R-RA-105 | A-12 | 记忆 | 切走再回 | 状态按重建数据判定 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：A-12→internal/ui/timeline.go:App.artifactRow；测试提及 internal/ui/timeline_artifacts_states_test.go:包级 |
 | R-RA-106 | A-13 | 状态 | 未观察（条件）：条目存在且可打开时 | 行尾「打开」按钮：ExternalLink 图标 + 文案，紧贴行右缘左侧 | — | 屏上文案逐字「打开」 | 已实现（逐字）：internal/account/login.go:ErrBrowserOpen「打开」 |
 | R-RA-107 | A-13 | 交互 | 点击 | 在右栏打开该文件预览；时间线不新增面板 | — | 点击后预览标签计数 +1 | 已实现（映射 = A-13→internal/ui/timeline.go:App.artifactRow；标记 = Key） |
-| R-RA-108 | A-13 | 关联 | 下拉同时在场时 | 按钮主体与下拉触发器分开命中：主体打开、箭头出菜单 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = A-13→internal/ui/timeline.go:App.artifactRow；标记 = Open@App.artifactMenuTrigger） |
+| R-RA-108 | A-13 | 关联 | 下拉同时在场时 | 按钮主体与下拉触发器分开命中：主体打开、箭头出菜单 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = A-13→internal/ui/timeline.go:App.artifactRow；标记 = Open） |
 | R-RA-109 | A-13 | 状态 | 文件已删除 | 按钮消失（换成 A-11 的标签） | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（映射 = A-13→internal/ui/timeline.go:App.artifactRow；标记 = Disabled） |
 | R-RA-110 | A-13 | 样式 | 次按钮 | 无底色、文字+图标、12–13px；悬停浅底 | — | 判据 = 字号 UI 正文 12.25px；底色 悬停底 明 #f5f5f5 / 暗 #262626（侧栏 明 #e2e9ed / 暗 #282c2b）；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = A-13→internal/ui/timeline.go:App.artifactRow；标记 = Height） |
 | R-RA-111 | A-13 | 无障碍 | 读屏 | 读作按钮「打开 {文件名}」 | — | 读屏含文件名（命中次数 ≥1） | 已实现（映射 = A-13→internal/ui/timeline.go:App.artifactRow；标记 = Label） |
 | R-RA-112 | A-13 | 键盘 | Enter | 等同点击 | — | 键盘触发后打开次数 1 | 已实现（映射 = A-13→internal/ui/timeline.go:App.artifactRow；标记 = Key） |
-| R-RA-113 | A-13 | 异常 | 预览打开失败 | 提示失败，时间线不变 | — | 失败后屏上错误提示计数 ≥1 | 未实现（映射到位但没有该维度的标记）：A-13→internal/ui/timeline.go:App.artifactRow |
+| R-RA-113 | A-13 | 异常 | 预览打开失败 | 提示失败，时间线不变 | — | 失败后屏上错误提示计数 ≥1 | 未实现（映射到位但没有该维度的标记）：A-13→internal/ui/timeline.go:App.artifactRow；测试提及 internal/ui/timeline_artifacts_states_test.go:包级 |
 | R-RA-114 | A-14 | 状态 | 未观察（条件）：宿主允许本地操作或允许下载、且「打开」按钮在场时 | 行尾下拉触发器：ChevronDown 图标按钮，位于「打开」右侧 | — | 屏上出现下拉箭头 1 个 | 已实现（逐字）：internal/account/login.go:ErrBrowserOpen「打开」 |
 | R-RA-115 | A-14 | 交互 | 点击 | 展开下拉菜单（A-15–A-17） | — | 点击后菜单项计数 +1 | 已实现（映射 = A-14→internal/ui/timeline.go:App.artifactMenuTrigger；标记 = Menu） |
 | R-RA-116 | A-14 | 状态 | 两项能力都不成立 | 触发器不出现（只留「打开」） | — | 没有菜单能力时箭头计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
@@ -2227,7 +2227,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SC-031 | S-04 | 记忆 | 切走再回 | 若分支仍关闭，状态条仍在 | — | 切回前后屏上取值逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：S-04→internal/ui/rightpanel_sidechat.go:App.sideChatClosedBar |
 | R-SC-032 | S-04 | 交互 | 点击状态条 | 无动作（不提供关闭按钮） | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：S-04→internal/ui/rightpanel_sidechat.go:App.sideChatClosedBar |
 | R-SC-033 | S-05 | 状态 | 未观察（条件）：分支已建且有消息时 | 内容区显示只读时间线（复用 PlainTimeline），占面板剩余高度，可滚动 | — | 有消息时内容区计数 1 | 未实现（映射到位但没有该维度的标记）：S-05→internal/ui/rightpanel_sidechat.go:App.sideChatContent |
-| R-SC-034 | S-05 | 内容 | 消息很多 | 纵向滚动；新消息到达时若在底部则跟随，上滚后停止跟随 | — | 上滚后滚动位置停在原处（差 0） | 已实现（映射 = S-05→internal/ui/rightpanel_sidechat.go:App.sideChatContent；标记 = 文案「未打开会话」等 4 条） |
+| R-SC-034 | S-05 | 内容 | 消息很多 | 纵向滚动；新消息到达时若在底部则跟随，上滚后停止跟随 | — | 上滚后滚动位置停在原处（差 0） | 已实现（映射 = S-05→internal/ui/rightpanel_sidechat.go:App.sideChatContent；标记 = 文案「打开一个会话后，这里显示它的侧边对话。」等 3 条） |
 | R-SC-035 | S-05 | 状态 | 分支运行中 | 内容区底部显示运行中指示（由时间线承担），内容仍可滚动查看历史 | — | 运行中历史行数 ≥1 | 未实现（映射到位但没有该维度的标记）：S-05→internal/ui/rightpanel_sidechat.go:App.sideChatContent |
 | R-SC-036 | S-05 | 交互 | 点击消息 | 只读：不出现编辑、重发等操作菜单 | — | 编辑入口计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-SC-037 | S-05 | 交互 | 选中文本 | 可选中复制 | — | 剪贴板文本与源文案逐字相同（差异字符 0） | 未实现（映射到位但没有该维度的标记）：S-05→internal/ui/rightpanel_sidechat.go:App.sideChatContent |
@@ -2365,7 +2365,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SG-006 | G-01 | 无障碍 | 读屏 | `role=alert` 播报一次 | — | 读屏播报次数 1 | 已实现（映射 = G-01→internal/ui/rightpanel.go:panelBanner；标记 = Role） |
 | R-SG-007 | G-01 | 窄窗 | 面板宽 311 | 文案折行，「重试」仍在行内 | — | 窄窗下的包围盒交集面积 0 | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-SG-008 | G-01 | 内容 | 错误消息含英文 | 原文显示，不翻译 | — | 文本与来源逐项相同（差 0） | 已实现（映射 = G-01→internal/ui/rightpanel.go:panelBanner；标记 = 文案「图标：」@iconGlyph） |
-| R-SG-009 | G-02 | 内容 | 未观察（条件）：子代理流出错、连接已就绪、且右栏停在子代理标签时 | 横幅内错误消息，单行 truncate（悬停出完整值） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 4 条） |
+| R-SG-009 | G-02 | 内容 | 未观察（条件）：子代理流出错、连接已就绪、且右栏停在子代理标签时 | 横幅内错误消息，单行 truncate（悬停出完整值） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-02→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 3 条） |
 | R-SG-010 | G-02 | 内容 | 消息为空 | 显示通用「加载失败」，不留空横幅 | — | 横幅内字符数 ≥1 | 已实现（逐字）：internal/ui/rightpanel_sidechat.go:sideChatLoadFailed「加载失败」 |
 | R-SG-011 | G-02 | 样式 | 横幅同时在场时 | 13–14px、深橙/危险色 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-02→internal/ui/settings_account_screen.go:accMeter；标记 = Width） |
 | R-SG-012 | G-02 | 无障碍 | 读屏 | 读出完整消息（不截断） | — | 读屏含全文（命中次数 ≥1） | 已实现（映射 = G-02→internal/ui/settings_account_screen.go:accMeter；标记 = Role） |
@@ -2381,7 +2381,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SG-022 | G-03 | 内容 | 按钮文案 | 恒为「重试」 | — | 两次取值逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-SG-023 | G-03 | 样式 | 「重试」同时在场时 | 同为文字/次按钮，位于横幅行尾 | — | 判据 = 字号 UI 正文 12.25px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-03→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Padding） |
 | R-SG-024 | G-03 | 记忆 | 切走再回 | 错误未消则按钮仍在 | — | 「重试」按钮计数 1（错误未消） | 未实现（映射到位但没有该维度的标记）：G-03→internal/ui/rightpanel_subagent.go:App.subagentPanel |
-| R-SG-025 | G-04 | 内容 | 未观察（条件）：子代理流出错、连接还没就绪时 | 空态区显示错误文本（警告色），文案为错误消息原文 | — | 屏上警告色文本计数 +1 | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 4 条） |
+| R-SG-025 | G-04 | 内容 | 未观察（条件）：子代理流出错、连接还没就绪时 | 空态区显示错误文本（警告色），文案为错误消息原文 | — | 屏上警告色文本计数 +1 | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = 文案「加载失败」等 3 条） |
 | R-SG-026 | G-04 | 关联 | 「重试」同时在场时 | 文本下方跟「重试」次级按钮，二者成组 | — | 两件同时计数 1 | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-SG-027 | G-04 | 状态 | 错误消除 | 文本消失，换成加载态（G-06/G-07）或内容区 | — | 恢复后错误文本计数 0 | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Disabled@App.subagentRetryEntry） |
 | R-SG-028 | G-04 | 样式 | 空态错误 | 14px 级警告色、居中、左右留白 24 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = G-04→internal/ui/rightpanel_subagent.go:App.subagentPanel；标记 = Padding） |
@@ -2401,13 +2401,13 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-SG-042 | G-06 | 动画 | 加载中 | 旋转连续；内容到达后与内容区同帧切换 | 减少动效下静态 | 判据 = 过渡 200ms ease-out，减少动效时 none（§6 动效表 + motionTransition） | 未实现（找不到元素渲染点） |
 | R-SG-043 | G-06 | 关联 | 「正在加载...」同时在场时 | 圈与「正在加载...」上下排列，同一条件下同时出现 | — | 两者同时计数 1 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpLoadMoreRow「正在加载...」 |
 | R-SG-044 | G-06 | 样式 | 居中 | 32px 级、次要色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-SG-045 | G-06 | 无障碍 | 读屏 | 播报「正在加载」一次 | — | 读屏播报次数 1 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpSkeleton「正在加载」 |
+| R-SG-045 | G-06 | 无障碍 | 读屏 | 播报「正在加载」一次 | — | 读屏播报次数 1 | 已实现（逐字）：internal/ui/rightpanel_files.go:rpSkeletonFiles「正在加载」 |
 | R-SG-046 | G-06 | 异常 | 加载失败 | 转到 G-04 空态错误，圈消失 | — | 失败后圈计数 0 | 未实现（找不到元素渲染点） |
 | R-SG-047 | G-06 | 内容 | 加载超过 30s | 圈持续转，不显示超时文案 | — | 文案计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-SG-048 | G-06 | 窄窗 | 面板宽 311 | 居中位置不变 | — | 窄窗下居中位置与容器中心 x 差 0 | 未实现（找不到元素渲染点） |
 | R-SG-049 | G-07 | 内容 | 未观察（条件）：子代理没出错、连接还没就绪时 | 加载态文本逐字「正在加载...」，三点为英文句点 | — | 屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpLoadMoreRow「正在加载...」 |
 | R-SG-050 | G-07 | 样式 | 状态圈同时在场时 | 14px 级次要色、居中、与圈间距 8 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 未实现（找不到元素渲染点） |
-| R-SG-051 | G-07 | 无障碍 | 读屏 | 与圈一起只播报一次「正在加载」 | — | 同一状态的读屏播报次数 1 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpSkeleton「正在加载」 |
+| R-SG-051 | G-07 | 无障碍 | 读屏 | 与圈一起只播报一次「正在加载」 | — | 同一状态的读屏播报次数 1 | 已实现（逐字）：internal/ui/rightpanel_files.go:rpSkeletonFiles「正在加载」 |
 | R-SG-052 | G-07 | 异常 | 加载超过 10s | 文案不变（不显示「仍在加载」第二句） | — | 文案前后逐字相同（差异字符 0） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-SG-053 | G-07 | 状态 | 就绪后回看 | 加载文案消失，换成内容区 | — | 就绪后该文案计数 0 | 未实现（找不到元素渲染点） |
 | R-SG-054 | G-07 | 交互 | 点击加载文案 | 无动作 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（找不到元素渲染点） |
