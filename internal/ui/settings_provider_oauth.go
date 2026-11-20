@@ -70,6 +70,7 @@ const (
 	configCopySignOut             = "退出登录"
 	configCopyConnected           = "已连接"
 	configCopyCallbackRequired    = "Callback URL 不能为空"
+	configCopyRedirectRequired    = "回调地址不能为空"
 	configCopyChecking            = "正在查询登录状态…"
 )
 
@@ -398,6 +399,11 @@ func (a *App) configOAuthMessages(c *gui.Context, provider configProvider, accou
 	t := c.Theme()
 	flow := configOAuthFlow
 	if flow.providerKey != configKey(provider) {
+		// 这次尝试不属于当前 provider：只剩服务端状态里的一条「需要重新授权」。
+		if account.RecoveryRequired {
+			configMicroStyle.style(t, gui.Text(c, "登录已失效，需要重新授权")).
+				TextColor(t.Danger).Role(gui.RoleAlert).MaxLines(2)
+		}
 		return
 	}
 	switch {
@@ -427,6 +433,11 @@ func (a *App) configOAuthBegin(provider configProvider, method string) {
 	redirectURI := ""
 	if namespace == configNamespaceAccount && method == configLoginBrowser {
 		redirectURI = strings.TrimSpace(configOAuthFlow.redirectURI)
+		if redirectURI == "" {
+			// 托管帐号的浏览器登录必须先有回调地址：空着就不发请求，就地写原因。
+			configOAuthFlow.err = configCopyRedirectRequired
+			return
+		}
 	}
 	configOAuthFlow = providerOAuthFlow{
 		providerKey: key, providerID: providerID, namespace: namespace,
@@ -600,6 +611,8 @@ func (a *App) configOAuthRefresh() {
 		return
 	}
 	configOAuthFlow.pending = true
+	configOAuthFlow.providerKey = configKey(a.configView().selected)
+	configOAuthFlow.err = ""
 	a.dispatchQuiet("刷新账号", func(ctx context.Context) error {
 		return a.intents.RefreshProviders(ctx)
 	}, func() {
@@ -620,6 +633,7 @@ func (a *App) configOAuthLogout(provider configProvider) {
 	namespace := provider.providerAccount.Namespace
 	providerID := provider.id
 	configOAuthFlow.pending = true
+	configOAuthFlow.providerKey = key
 	configOAuthFlow.err = ""
 	a.dispatchQuiet("退出登录", func(ctx context.Context) error {
 		return a.intents.LogoutProviderOAuth(ctx, providerID, namespace)

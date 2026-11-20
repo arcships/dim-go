@@ -117,6 +117,11 @@ func (f *failIntents) ProbeProvider(context.Context, string) (int, error) {
 func (f *failIntents) SetProviderModelEnabled(context.Context, string, string, bool) error {
 	return f.hit("SetProviderModelEnabled")
 }
+func (f *failIntents) BeginProviderOAuth(
+	context.Context, string, string, string, string,
+) (ProviderOAuthStartSnapshot, error) {
+	return ProviderOAuthStartSnapshot{}, f.hit("BeginProviderOAuth")
+}
 func (f *failIntents) CompleteProviderOAuth(context.Context, string, string, string, string) error {
 	return f.hit("CompleteProviderOAuth")
 }
@@ -452,6 +457,7 @@ func branchSource(src *fakeSource) {
 }
 
 // intentCasesTail 接 intentCases：分支、附件、供应商、账号、扩展。
+
 var intentCasesTail = []intentCase{
 	{
 		method: "SelectBranch",
@@ -518,6 +524,29 @@ var intentCasesTail = []intentCase{
 		act:    func(r *intentRun) { r.app.configProbeProvider(configProvider{id: "acme", name: "Acme"}, probeModels) },
 	},
 	{
+		// 账号形态的供应商（Codex）：发起登录失败时原因写在账号块下方那一行
+		// （就地显示，不挂全局错误行），再点一次入口就是重试。
+		method: "BeginProviderOAuth",
+		source: func(src *fakeSource) {
+			src.settings.ProviderRecordsKnown = true
+			src.settings.ProviderRecords = []ProviderRecordSnapshot{{
+				ID: "codex", Name: "OpenAI Codex", BaseURL: "https://api.test/v1",
+				Enabled: true, Version: 1, Authority: "openai_codex",
+				Account: &ProviderAccountSnapshot{
+					Namespace: "account.codex", LoginMethods: []string{configLoginBrowser},
+				},
+			}}
+		},
+		open: func(a *App) {
+			a.screen, a.settingsSection = ScreenSettings, secProviders
+			configScreen.selected = "codex"
+		},
+		local: true,
+		act: func(r *intentRun) {
+			r.app.configOAuthBegin(r.app.configView().selected, configLoginBrowser)
+		},
+	},
+	{
 		method: "SetProviderModelEnabled",
 		act: func(r *intentRun) {
 			r.app.configSetModelEnabled(configProvider{id: "acme"},
@@ -525,22 +554,73 @@ var intentCasesTail = []intentCase{
 		},
 	},
 	{
-		method: "BeginProviderOAuth",
-		source: func(src *fakeSource) {
-			src.settings.ProviderRecordsKnown = true
-			src.settings.ProviderRecords = []ProviderRecordSnapshot{{
-				ID: "openai-codex", Name: "OpenAI Codex", BaseURL: "https://api.test/v1",
-				DriverKind: "openai", AuthType: "bearer", Enabled: true, Version: 1,
-				Authority: "openai_codex",
-				Account: &ProviderAccountSnapshot{
-					Namespace:    configNamespaceCodex,
-					LoginMethods: []string{configLoginBrowser},
-				},
-			}}
+		method: "CompleteProviderOAuth",
+		source: oauthFailSource(false),
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		local:  true,
+		act: func(r *intentRun) {
+			configOAuthFlow = providerOAuthFlow{
+				providerKey: "codex", providerID: "codex", namespace: "account.codex",
+				method: configLoginBrowser, attempt: "a1",
+				callbackURL: "http://127.0.0.1/callback?code=x",
+			}
+			r.app.configOAuthCompleteBrowser(r.app.configView().selected)
 		},
-		open:  func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
-		act:   func(r *intentRun) { r.click(configCopyCodexSignIn) },
-		local: true,
+	},
+	{
+		method: "PollProviderOAuth",
+		source: oauthFailSource(false),
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		local:  true,
+		act: func(r *intentRun) {
+			configOAuthFlow = providerOAuthFlow{
+				providerKey: "codex", providerID: "codex", namespace: "account.codex",
+				method: configLoginDevice, attempt: "a1", userCode: "CD-1",
+			}
+			r.app.configOAuthSchedulePoll("codex", "codex", "account.codex", "a1", time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
+		},
+	},
+	{
+		method: "CancelProviderOAuth",
+		source: oauthFailSource(false),
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		local:  true,
+		act: func(r *intentRun) {
+			configOAuthFlow = providerOAuthFlow{
+				providerKey: "codex", providerID: "codex", namespace: "account.codex",
+				method: configLoginBrowser, attempt: "a1",
+			}
+			r.app.configOAuthCancel(r.app.configView().selected)
+		},
+	},
+	{
+		method: "LogoutProviderOAuth",
+		source: oauthFailSource(true),
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		local:  true,
+		act:    func(r *intentRun) { r.app.configOAuthLogout(r.app.configView().selected) },
+	},
+	{
+		method: "OpenProviderOAuthURL",
+		source: oauthFailSource(false),
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		local:  true,
+		act: func(r *intentRun) {
+			configOAuthFlow = providerOAuthFlow{
+				providerKey: "codex", providerID: "codex", namespace: "account.codex",
+				method: configLoginBrowser, attempt: "a1",
+				authorizationURL: "https://auth.test/start",
+			}
+			r.app.configOAuthOpenURL("https://auth.test/start")
+		},
+	},
+	{
+		method: "RefreshProviders",
+		source: oauthFailSource(true),
+		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secProviders },
+		local:  true,
+		act:    func(r *intentRun) { r.app.configOAuthRefresh() },
 	},
 	{
 		method: "BeginLogin",
@@ -554,6 +634,32 @@ var intentCasesTail = []intentCase{
 		method: "Logout",
 		open:   func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAccount },
 		act:    func(r *intentRun) { r.click(accCopySignOut) },
+	},
+	{
+		method: "SaveMCPServer",
+		source: func(src *fakeSource) { src.extensions.MCPCanSave = true },
+		open: func(a *App) {
+			a.screen, a.settingsSection = ScreenSettings, secMCP
+			mcpScreen.view = mcpViewEdit
+			mcpScreen.draft = mcpDraft{name: "本地工具", command: "npx"}
+		},
+		local: true,
+		act:   func(r *intentRun) { r.app.mcpSaveDraft() },
+	},
+	{
+		method: "RemoveMCPServer",
+		source: func(src *fakeSource) {
+			src.extensions.MCPCanRemove = true
+			src.extensions.MCP = ExtListSnapshot{Items: []ExtItemSnapshot{{
+				ID: "srv-1", Name: "srv-1", Source: "user", Transport: "stdio", Enabled: true,
+			}}}
+		},
+		open:  func(a *App) { a.screen, a.settingsSection = ScreenSettings, secMCP },
+		local: true,
+		act: func(r *intentRun) {
+			r.click("删除服务器")
+			r.click(mcpCopyDelete)
+		},
 	},
 	{
 		method: "SetExtensionEnabled",
@@ -1412,5 +1518,21 @@ func TestReadEmptyStatesHaveCopy(t *testing.T) {
 				t.Fatalf("空态没有写出 %q\n屏上文字：%v", tc.want, tt.Texts())
 			}
 		})
+	}
+}
+
+// oauthFailSource 造一个 Codex 账号形态的 provider 读数，供按提供商登录的失败
+// 分支用（authenticated 决定已连接卡还是未登录块）。
+func oauthFailSource(authenticated bool) func(*fakeSource) {
+	return func(src *fakeSource) {
+		src.settings.ProviderRecordsKnown = true
+		src.settings.ProviderRecords = []ProviderRecordSnapshot{{
+			ID: "codex", Name: "OpenAI Codex", BaseURL: "https://api.test/v1",
+			Enabled: true, Version: 1, Authority: "openai_codex",
+			Account: &ProviderAccountSnapshot{
+				Namespace: "account.codex", LoginMethods: []string{configLoginBrowser},
+				Authenticated: authenticated, AccountLabel: "ada@example.test",
+			},
+		}}
 	}
 }

@@ -33,20 +33,28 @@ import (
 // 服务器开关走 SetExtensionEnabled("mcp")。没有单独的「重新加载」Intents：
 // 清单随扩展读数重读，所以本屏不摆刷新按钮。
 //
-// # 未实现分支（清单里条件成立才出现的行）
+// # 已接与未接的分支
 //
-//   - S-mcp-10…13 配置问题横幅与明细、加载骨架、错误 + 重试：要 App Server 的
-//     配置问题与加载态事实；本屏只画读数里的 ReadError / 能力缺失两行。
-//   - S-mcp-14/15 两种空态有渲染（无服务器 / 范围筛选空）；读数为空时走「无服务器」。
+//   - S-mcp-10 配置问题横幅：mcp.catalog 的无效条目（作用域 · 标识 · 原因）
+//     逐条列出；没有问题时整块不占高度。S-mcp-11 明细行同块。
+//   - S-mcp-12 读数的能力缺失 / 读取失败两行都在。
+//   - S-mcp-14/15 两种空态有渲染（无服务器 / 范围筛选空）。
 //   - S-mcp-18 认证提示、S-mcp-20/21 认证与取消认证：OAuth 流程要宿主能力，
 //     本屏不摆认证按钮（该服务器无需认证）。
 //   - S-mcp-26…29 来自插件的服务器（发现、只读、测试结果、三个图标按钮）：
-//     插件来源的连接测试与只读标记要 App Server 的 inspect 能力。
-//   - S-mcp-32/33/34 编辑器的加载态、已存储值隐藏提示、移动作用域：编辑已有
-//     条目才出现，需要条目快照与 move 能力。
-//   - S-mcp-48/49 表单校验错误与测试结果条：要写入与连接测试的返回值。
-//   - S-mcp-51 删除服务器确认，S-mcp-100…106 查看连接弹窗：都要服务端的
-//     写入 / inspect 能力；本版一律不做，保存、查看连接、断开连接按禁用态
+//     插件来源的删除与连接测试按只读禁用并写原因。
+//   - S-mcp-32 编辑器的加载态：要读回单条配置的通道（mcp.configuration），本版
+//     没有；编辑器不摆一个假的加载骨架。
+//   - S-mcp-33 已存储值隐藏提示：编辑已有条目时写「已存储的值已隐藏，留空即可
+//     保留。」；「密钥值存储在用户范围」那句要配置回执里的事实，本版没有。
+//   - S-mcp-34 移动作用域：说明与入口都在，确认框照开、确认键置灰写原因
+//     （没有 mcp.move）。
+//   - S-mcp-48 表单校验：名称必填、stdio 要启动命令、http / sse 要合法地址；
+//     原因贴在字段下，保存失败的原因在底部。
+//   - S-mcp-49 测试结果：有 mcp.test 时按条目测试并写「连接成功」或失败原因。
+//   - S-mcp-51 删除服务器确认：用户 / 项目来源可删（mcp.remove），插件来源
+//     只读；没有方法时入口禁用并写原因。
+//   - S-mcp-100…106 查看连接弹窗：要 inspect 能力；查看连接与断开连接按禁用态
 //     渲染并写原因（DEC-04）。
 //   - 导入面板的发现结果、预览、应用（S-mcp-113 … 138）：要服务端的
 //     discover / preview / apply 能力，本屏只渲染面板骨架，两个入口为禁用态
@@ -173,6 +181,7 @@ const (
 	mcpCopyDelete           = "删除"
 	mcpCopyTest             = "测试连接"
 	mcpCopyTesting          = "正在测试…"
+	mcpCopySaving           = "正在保存…"
 	mcpCopyTestOK           = "连接成功"
 	mcpCopyTestFailed       = "连接失败"
 	mcpCopyTestUnavailable  = "先保存服务器后才能测试连接"
@@ -287,6 +296,8 @@ type mcpState struct {
 	testOK   bool
 	// deleteFor 是打开着的删除确认框指向的服务器标识；空表示没开。
 	deleteFor string
+	// listErr 是列表视图里的操作失败原因（删除这类动作不挂全局错误行）。
+	listErr string
 	// editID / editSource 是编辑器打开的条目（测试连接与删除要用）。
 	editID     string
 	editSource string
@@ -369,6 +380,10 @@ func (a *App) mcpListBlock(c *gui.Context) {
 		}
 		mcpScopeRow(c)
 		mcpProblemBanner(c, a.mcpProblems())
+		if mcpScreen.listErr != "" {
+			mcpMetaStyle.style(c.Theme(), gui.Text(c, mcpScreen.listErr)).
+				TextColor(c.Theme().Danger).Role(gui.RoleAlert).Selectable().MaxLines(2)
+		}
 		mcpReadState(c, list)
 		a.mcpServerList(c, rows)
 	})
@@ -382,8 +397,9 @@ func (a *App) mcpProblems() []MCPProblemSnapshot {
 	return a.source.Extensions().MCPProblems
 }
 
-// mcpProblemBanner 是「N 个 MCP 配置问题需要注意」（S-mcp-10）：一行标题 +
+// mcpProblemBanner 是「N 个 MCP 配置问题需要注意」：一行标题 +
 // 每条一行明细（作用域 · 标识 · 原因）。没有问题时整块不占高度。
+// S-mcp-10 配置问题横幅 / S-mcp-11 配置问题明细
 func mcpProblemBanner(c *gui.Context, problems []MCPProblemSnapshot) {
 	if len(problems) == 0 {
 		return
@@ -814,6 +830,8 @@ func (s *mcpState) openEditor(server mcpServer) {
 }
 
 // mcpEditor 是「连接自定义 MCP」表单：名称、范围、传输类型与两组字段。
+// S-mcp-33 已存储值隐藏提示 / S-mcp-34 移动作用域行 / S-mcp-48 表单校验原因 /
+// S-mcp-49 测试结果条
 func (a *App) mcpEditor(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Shrink(0).Gap(mcpEditorGap).Children(func() {
@@ -1015,7 +1033,7 @@ func (a *App) mcpSaveButton(c *gui.Context) {
 	} else if !a.mcpCanSave() {
 		tip = noteMCPNoSave
 	} else if mcpScreen.saving {
-		tip = mcpCopyTesting
+		tip = mcpCopySaving
 	}
 	b := gui.ButtonBase(c).Shrink(0).Height(screenControlH).
 		Padding(controlPadV, controlPadH).Radius(screenRadiusCtl).
@@ -1084,6 +1102,7 @@ func (a *App) mcpSaveDraft() {
 }
 
 // mcpValidateDraft 校验编辑器：名称必填；stdio 要启动命令；http / sse 要合法地址。
+// S-mcp-48 表单校验错误
 func mcpValidateDraft(d *mcpDraft) bool {
 	ok := true
 	if strings.TrimSpace(d.name) == "" {
@@ -1302,10 +1321,11 @@ func (a *App) mcpDeleteDialog(c *gui.Context) {
 				}
 				if deletable && deleteButton.Clicked() {
 					mcpScreen.deleteFor = ""
+					mcpScreen.listErr = ""
 					a.dispatchQuiet("删除 MCP 服务器", func(ctx context.Context) error {
 						return a.intents.RemoveMCPServer(ctx, id)
 					}, nil, func(reason string) {
-						a.ShowNotice(strings.TrimPrefix(reason, "删除 MCP 服务器："))
+						mcpScreen.listErr = strings.TrimPrefix(reason, "删除 MCP 服务器：")
 					})
 					return
 				}

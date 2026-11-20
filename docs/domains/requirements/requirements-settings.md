@@ -1426,7 +1426,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-ACC-1057 | S-account-104 | 内容 | 邀请码区出现 | 按钮文案逐字「复制」 | — | 屏上为「复制」 | 已实现（逐字）：internal/ui/composer.go:App.disconnectedCard「复制」 |
+| R-ACC-1057 | S-account-104 | 内容 | 邀请码区出现 | 按钮文案逐字「复制」 | — | 屏上为「复制」 | 已实现（逐字）：internal/ui/approval_panels.go:App.approvalCopyButton「复制」 |
 | R-ACC-1058 | S-account-104 | 交互 | 打开设置›账户，滚动到 y≈717 处的「复制」 | 复制邀请码；按钮出现「已复制」反馈后复位 | — | 屏上「复制」的文案逐字为「已复制」（3 字） | 已实现（逐字）：internal/ui/settings_account_screen.go:accCopyCopied「已复制」 |
 | R-ACC-1059 | S-account-104 | 状态 | 无邀请码 | 不渲染 | — | 屏上「复制」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-ACC-1060 | S-account-104 | 样式 | 打开设置›账户，滚动到 y≈717 处的「复制」 | 描边小按钮，右对齐于码值行 | — | 屏上「复制」：水平对齐 = 右 | 已实现（映射 = S-account-104→internal/ui/settings_account_screen.go:App.accountReferralCard；标记 = Height） |
@@ -1472,7 +1472,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-ACC-1091 | S-account-108 | 内容 | 网址区出现 | 按钮文案逐字「复制」 | — | 屏上为「复制」 | 已实现（逐字）：internal/ui/composer.go:App.disconnectedCard「复制」 |
+| R-ACC-1091 | S-account-108 | 内容 | 网址区出现 | 按钮文案逐字「复制」 | — | 屏上为「复制」 | 已实现（逐字）：internal/ui/approval_panels.go:App.approvalCopyButton「复制」 |
 | R-ACC-1092 | S-account-108 | 交互 | 打开设置›账户，滚动到 y≈782 处的「复制」 | 复制完整邀请链接并给出「已复制」反馈 | — | 屏上「复制」的文案逐字为「已复制」（3 字） | 已实现（逐字）：internal/ui/settings_account_screen.go:accCopyCopied「已复制」 |
 | R-ACC-1093 | S-account-108 | 状态 | 无邀请链接 | 不渲染 | — | 屏上「复制」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-ACC-1094 | S-account-108 | 样式 | 打开设置›账户，滚动到 y≈782 处的「复制」 | 描边小按钮，右对齐网址行 | — | 屏上「复制」：水平对齐 = 右 | 已实现（映射 = S-account-108→internal/ui/settings_account_screen.go:App.accountReferralCard；标记 = Height） |
@@ -6900,9 +6900,9 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-CFG-619 | S-configuration-78 | 交互 | 输入搜索词后打开 | 模型 ID 预填为搜索词 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem；标记 = Clicked） |
 | R-CFG-620 | S-configuration-78 | 样式 | 打开设置›模型供应，看「添加自定义模型 · 从空白配置开始；…」 | 圆角 12、圆角面板、遮罩 | — | 屏上「添加自定义模型 · 从空白配置开始；…」：圆角 = 12 | 已实现（映射 = S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem；标记 = Padding） |
 | R-CFG-621 | S-configuration-78 | 交互 | 打开「添加自定义模型 · 从空白配置开始；…」后按 Esc | 关闭不保存 | — | 屏上「添加自定义模型 · 从空白配置开始；…」：状态 = 关 | 已实现（映射 = S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem；标记 = Clicked） |
-| R-CFG-622 | S-configuration-78 | 异常 | 断开网络后改「添加自定义模型 · 从空白配置开始；…」，等保存返回失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem |
+| R-CFG-622 | S-configuration-78 | 异常 | 断开网络后改「添加自定义模型 · 从空白配置开始；…」，等保存返回失败 | 框内错误 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem；测试提及 internal/ui/settings_provider_addmodel_test.go:包级 |
 | R-CFG-623 | S-configuration-78 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「添加自定义模型 · 从空白配置开始；…」听播报 | 播报标题与说明 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem；标记 = Label） |
-| R-CFG-624 | S-configuration-78 | 窄窗 | 把窗口宽度缩到最小 720，看「添加自定义模型 · 从空白配置开始；…」 | 宽 = 窗口 − 32 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem |
+| R-CFG-624 | S-configuration-78 | 窄窗 | 把窗口宽度缩到最小 720，看「添加自定义模型 · 从空白配置开始；…」 | 宽 = 窗口 − 32 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-configuration-78→internal/ui/settings_provider_detail.go:App.configModelCustomItem；测试提及 internal/ui/settings_provider_addmodel_test.go:包级 |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -7992,7 +7992,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-RUN-177 | S-runtime-23 | 内容 | 未安装 | 徽标「未安装」+ 状态图标，role=status | — | 该元素 role = status，文本逐字为「未安装」（3 字） | 已实现（逐字）：internal/ui/settings_runtime_screen.go:rtCopyNotInstalled「未安装」 |
-| R-RUN-178 | S-runtime-23 | 内容 | 已就绪 | 徽标「已安装」 | — | 徽标文本逐字为「已安装」（3 字） | 已实现（逐字）：internal/ui/settings_external_agents_screen.go:eaCopyInstalled「已安装」 |
+| R-RUN-178 | S-runtime-23 | 内容 | 已就绪 | 徽标「已安装」 | — | 徽标文本逐字为「已安装」（3 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyEmpty「已安装」 |
 | R-RUN-179 | S-runtime-23 | 样式 | 打开设置›运行环境，滚动到 y≈254 处的「未安装」 | 小圆角徽标，底色弱，11 字号 | — | 判据 = 圆角 = 6.75 / 8.75 / 12.75 / 4.75（BO-RADIUS），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = S-runtime-23→internal/ui/settings_runtime_screen.go:rtFeatureSection；标记 = TextColor） |
 | R-RUN-180 | S-runtime-23 | 状态 | 下载中 | 徽标「安装中」+ 旋转图标 | — | 徽标文本逐字为「安装中」（3 字） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketCancelBusy「安装中」 |
 | R-RUN-181 | S-runtime-23 | 关联 | 在「未安装」所在行内，同时看它与按钮的相对位置 | 未安装时按钮为「下载安装」 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（逐字）：internal/ui/settings_runtime_screen.go:rtCopyInstall「下载安装」 |
@@ -8049,7 +8049,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RUN-217 | S-runtime-28 | 内容 | 状态 ready | 显示「已安装并验证。新任务立即生效；已有任务需重启应用，已有终端需重新打开。」 | — | 屏上「已安装并验证。新任务立即生效；已有任…」的文案逐字为「已安装并验证。新任务立即生效；已有任务需重启应用，已有终端需重新打开。」（35 字） | 已实现（映射 = S-runtime-28→internal/ui/settings_runtime_screen.go:rtFeatureSection；标记 = 文案「功能组件」） |
 | R-RUN-218 | S-runtime-28 | 状态 | 未安装 | 不渲染 | — | 屏上「已安装并验证。新任务立即生效；已有任…」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RUN-219 | S-runtime-28 | 样式 | 打开设置›运行环境，看「已安装并验证。新任务立即生效；已有任…」 | 12 字号次级前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 该说明单行、超宽以「…」收尾，横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = S-runtime-28→internal/ui/settings_runtime_screen.go:rtFeatureSection；标记 = TextColor） |
-| R-RUN-220 | S-runtime-28 | 关联 | 在「已安装并验证。新任务立即生效；已有任…」所在行内，同时看它与徽标的相对位置 | 徽标同为「已安装」 | — | 徽标文本逐字为「已安装」（3 字） | 已实现（逐字）：internal/ui/settings_external_agents_screen.go:eaCopyInstalled「已安装」 |
+| R-RUN-220 | S-runtime-28 | 关联 | 在「已安装并验证。新任务立即生效；已有任…」所在行内，同时看它与徽标的相对位置 | 徽标同为「已安装」 | — | 徽标文本逐字为「已安装」（3 字） | 已实现（逐字）：internal/ui/settings_plugin_settings_screen.go:plgCopyEmpty「已安装」 |
 | R-RUN-221 | S-runtime-28 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「已安装并验证。新任务立即生效；已有任…」听播报 | 播报整段 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-runtime-28→internal/ui/settings_runtime_screen.go:rtFeatureSection；标记 = Role） |
 | R-RUN-222 | S-runtime-28 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进运行环境，看「已安装并验证。新任务立即生效；已有任…」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-runtime-28→internal/ui/settings_runtime_screen.go:renderRuntime；标记 = erR） |
 | R-RUN-223 | S-runtime-28 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「已安装并验证。新任务立即生效；已有任…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-runtime-28→internal/ui/settings_runtime_screen.go:rtFeatureSection |
@@ -8184,14 +8184,14 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MCP-081 | S-mcp-11 | 内容 | 打开设置›MCP，看「warning.scope · se…」 | 每项显示「scope · serverId · message」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = 文案「启用服务器」） |
-| R-MCP-082 | S-mcp-11 | 样式 | 打开设置›MCP，看「warning.scope · se…」 | 11 字号、警示色，行高 20 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Radius） |
+| R-MCP-081 | S-mcp-11 | 内容 | 打开设置›MCP，看「warning.scope · se…」 | 每项显示「scope · serverId · message」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:mcpProblemBanner；标记 = 文案「%d 个 MCP 配置问题需要注意」等 2 条） |
+| R-MCP-082 | S-mcp-11 | 样式 | 打开设置›MCP，看「warning.scope · se…」 | 11 字号、警示色，行高 20 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:mcpProblemBanner；标记 = Padding） |
 | R-MCP-083 | S-mcp-11 | 交互 | 用鼠标左键单击「warning.scope · se…」 | 无动作 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Clicked） |
-| R-MCP-084 | S-mcp-11 | 状态 | 打开设置›MCP，看「warning.scope · se…」 | 全部列出，不折叠 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Enabled） |
-| R-MCP-085 | S-mcp-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「warning.scope · se…」听播报 | 逐条播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Label） |
+| R-MCP-084 | S-mcp-11 | 状态 | 打开设置›MCP，看「warning.scope · se…」 | 全部列出，不折叠 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:mcpProblemBanner；标记 = Hidden@screenIcon） |
+| R-MCP-085 | S-mcp-11 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「warning.scope · se…」听播报 | 逐条播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:mcpProblemBanner；标记 = Label） |
 | R-MCP-086 | S-mcp-11 | 异常 | 打开设置›MCP，看「warning.scope · se…」 | 折行 | — | 屏上「warning.scope · se…」：行数 ≥ 2 | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Err@mcpState.openEditor） |
-| R-MCP-087 | S-mcp-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「warning.scope · se…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard |
-| R-MCP-088 | S-mcp-11 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「warning.scope · se…」 | 对比≥4.5:1 | — | 屏上「warning.scope · se…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:App.mcpServerCard；标记 = Theme） |
+| R-MCP-087 | S-mcp-11 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「warning.scope · se…」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-11→internal/ui/settings_mcp_screen.go:mcpProblemBanner |
+| R-MCP-088 | S-mcp-11 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「warning.scope · se…」 | 对比≥4.5:1 | — | 屏上「warning.scope · se…」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-11→internal/ui/settings_mcp_screen.go:mcpProblemBanner；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -8594,12 +8594,12 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-MCP-377 | S-mcp-48 | 状态 | 表单校验失败 | 显示 formError 或 error | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:App.mcpEditor；标记 = Disabled） |
-| R-MCP-378 | S-mcp-48 | 内容 | 让「formError · error」所属请求返回 500 后看「formError · error」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:App.mcpEditor；标记 = 文案「编辑 MCP 服务器」） |
+| R-MCP-378 | S-mcp-48 | 内容 | 让「formError · error」所属请求返回 500 后看「formError · error」 | 错误原文 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:mcpValidateDraft；标记 = 文案「请填写服务器名称」等 4 条） |
 | R-MCP-379 | S-mcp-48 | 样式 | 打开设置›MCP，看「formError · error」 | 12 字号警示色，位于表单底部 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:App.mcpEditor；标记 = TextColor） |
-| R-MCP-380 | S-mcp-48 | 关联 | 在「formError · error」所在行内，同时看它与保存的相对位置 | 失败后保存可重试 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:App.mcpEditor；标记 = Screen） |
+| R-MCP-380 | S-mcp-48 | 关联 | 在「formError · error」所在行内，同时看它与保存的相对位置 | 失败后保存可重试 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:mcpValidateDraft；标记 = Screen） |
 | R-MCP-381 | S-mcp-48 | 状态 | 打开设置›MCP，在无异常提示的状态下看「formError · error」 | 不渲染 | — | 屏上「formError · error」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-MCP-382 | S-mcp-48 | 无障碍 | 打开设置›MCP，看「formError · error」 | 警示播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:App.mcpEditor；标记 = Role） |
-| R-MCP-383 | S-mcp-48 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「formError · error」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-48→internal/ui/settings_mcp_screen.go:App.mcpEditor；测试提及 internal/ui/settings_mcp_editor_test.go:包级 |
+| R-MCP-383 | S-mcp-48 | 窄窗 | 把窗口拖到 720×600（内容列约 520），看「formError · error」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-mcp-48→internal/ui/settings_mcp_screen.go:mcpValidateDraft；测试提及 internal/ui/settings_mcp_editor_test.go:包级 |
 | R-MCP-384 | S-mcp-48 | 深色 | 在设置›外观把主题切成深色，再回MCP，看「formError · error」 | 对比≥4.5:1 | — | 屏上「formError · error」：对比度 ≥ 4.5:1 | 已实现（映射 = S-mcp-48→internal/ui/settings_mcp_screen.go:App.mcpEditor；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
@@ -8631,7 +8631,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MCP-403 | S-mcp-51 | 交互 | 在「删除服务器确认」上点「删除」 | 删除该服务器并回列表 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-51→internal/ui/settings_mcp_screen.go:App.mcpDeleteAction；标记 = Pressed@mcpIconAction） |
 | R-MCP-404 | S-mcp-51 | 交互 | 点开「删除服务器确认」后点「取消」 | 关闭不改 | — | 屏上「删除服务器确认」：状态 = 关 | 已实现（映射 = S-mcp-51→internal/ui/settings_mcp_screen.go:App.mcpDeleteAction；标记 = Pressed@mcpIconAction） |
 | R-MCP-405 | S-mcp-51 | 样式 | 打开设置›MCP，看「删除服务器确认」 | 圆角 12、危险色主按钮 | — | 判据 = 屏上「删除服务器确认」：圆角 = 12；色值 = 危险色（`CL-DANGER` 明 #e7000b / 暗 #ff6467） | 已实现（映射 = S-mcp-51→internal/ui/settings_mcp_screen.go:App.mcpDeleteAction；标记 = Width@mcpIconAction） |
-| R-MCP-406 | S-mcp-51 | 异常 | 删除失败 | 框内提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-51→internal/ui/settings_mcp_screen.go:App.mcpDeleteDialog；标记 = err） |
+| R-MCP-406 | S-mcp-51 | 异常 | 删除失败 | 框内提示 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-51→internal/ui/settings_mcp_screen.go:App.mcpDeleteDialog；标记 = Err） |
 | R-MCP-407 | S-mcp-51 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「删除服务器确认」听播报 | 播报标题与说明 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-mcp-51→internal/ui/settings_mcp_screen.go:App.mcpDeleteAction；标记 = Label@mcpIconAction） |
 | R-MCP-408 | S-mcp-51 | 记忆 | 删除后重进 | 不再出现 | — | 判据 = 重启后取值与重启前差 0、写入次数 = 变更次数（PF-PERSIST-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：S-mcp-51→internal/ui/settings_mcp_screen.go:App.mcpDeleteAction；测试提及 internal/ui/settings_mcp_editor_test.go:包级 |
 
@@ -9079,7 +9079,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
 | R-PRM-041 | S-permissions-06 | 状态 | 隔离设置不可得 | 显示错误文案 +「刷新」按钮 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_about_screen.go:abtCopyRefresh「刷新」 |
-| R-PRM-042 | S-permissions-06 | 内容 | 无具体错误 | 显示「加载进程隔离设置失败」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyLoadFailed「加载进程隔离设置失败」 |
+| R-PRM-042 | S-permissions-06 | 内容 | 无具体错误 | 显示「加载进程隔离设置失败」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = 文案「进程隔离」等 4 条） |
 | R-PRM-043 | S-permissions-06 | 交互 | 点刷新 | 重拉隔离设置 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Pressed@settingsActionButton） |
 | R-PRM-044 | S-permissions-06 | 样式 | 打开设置›权限，看「executionError \」 | 12 字号警示 + 描边小按钮 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Padding） |
 | R-PRM-045 | S-permissions-06 | 状态 | 打开设置›权限，在无异常提示的状态下看「executionError \」 | 不渲染 | — | 屏上「executionError \」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
@@ -9177,7 +9177,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-113 | S-permissions-15 | 状态 | 保存成功 | 显示成功反馈（如「已保存」） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySavedIso「已保存」 |
+| R-PRM-113 | S-permissions-15 | 状态 | 保存成功 | 显示成功反馈（如「已保存」） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopySaved「已保存」 |
 | R-PRM-114 | S-permissions-15 | 状态 | 未保存过 | 不渲染 | — | 屏上「executionFeedback」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-PRM-115 | S-permissions-15 | 样式 | 打开设置›权限，看「executionFeedback」 | 12 字号成功或次级前景 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls；标记 = Width@permSwitchRow） |
 | R-PRM-116 | S-permissions-15 | 动画 | 出现后 | 3000ms 后淡出 | — | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：S-permissions-15→internal/ui/settings_permissions_screen.go:permIsolationControls |
@@ -9610,7 +9610,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GIT-185 | S-git-24 | 状态 | 未设置 | 空，占位「选择目录...」 | — | 屏上「选择目录...」的文案逐字为「选择目录...」（7 字） | 已实现（逐字）：internal/ui/settings_git_screen.go:gitCopyChooseDir「选择目录...」 |
+| R-GIT-185 | S-git-24 | 状态 | 未设置 | 空，占位「选择目录...」 | — | 屏上「选择目录...」的文案逐字为「选择目录...」（7 字） | 已实现（逐字）：internal/ui/settings_git_screen.go:gitCopyChooseDirA11y「选择目录」 |
 | R-GIT-186 | S-git-24 | 内容 | 已设置 | 显示绝对路径，过长截断 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-git-24→internal/ui/settings_git_screen.go:gitWorktreeGroup；标记 = 文案「手动输入路径」等 2 条） |
 | R-GIT-187 | S-git-24 | 交互 | 点击输入框 | 可直接编辑路径 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-git-24→internal/ui/settings_git_screen.go:gitWorktreeGroup；标记 = Pressed@gitIconButton） |
 | R-GIT-188 | S-git-24 | 样式 | 打开设置›Git，滚动到 y≈1067 处的「选择目录...」 | 703×32，1px 边框 | — | 屏上「选择目录...」：宽×高 = 703×32、边框宽 = 1px | 已实现（映射 = S-git-24→internal/ui/settings_git_screen.go:gitWorktreeGroup；标记 = TextColor@gitLabel） |
@@ -11170,7 +11170,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-SHL-036 | S-shell-05 | 样式 | 打开设置（进入任一节），滚动到 y≈140 处的「用量」 | 209×35，与账户项同款 | — | 屏上「用量」：宽×高 = 209×35 | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Height） |
 | R-SHL-037 | S-shell-05 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「用量」听播报 | 播报名 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Label） |
 | R-SHL-038 | S-shell-05 | 键盘 | 把 Tab 焦点移到「用量」后按回车 | 与点击一致 | — | 判据 = 焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：S-shell-05→internal/ui/settings.go:App.navRow |
-| R-SHL-039 | S-shell-05 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈140 处的「用量」 | 侧栏隐藏，改由下拉/返回导航 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（证据 = TestNarrowSettingsSectionUsesFullWidth） |
+| R-SHL-039 | S-shell-05 | 窄窗 | 把窗口拖到 720×600（内容列约 520），滚动到 y≈140 处的「用量」 | 侧栏隐藏，改由下拉/返回导航 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（映射到位但没有该维度的标记）：S-shell-05→internal/ui/settings.go:App.navRow |
 | R-SHL-040 | S-shell-05 | 深色 | 在设置›外观把主题切成深色，再回设置（任一节），滚动到 y≈140 处的「用量」 | 可辨 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = S-shell-05→internal/ui/settings.go:App.navRow；标记 = Theme） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |

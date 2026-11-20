@@ -222,6 +222,9 @@ const (
 	// noteRetryNow 用于时间线自动重试行的「立即重试」。技术口径：协议没有立即重试的
 	// 方法，倒计时由服务端事实给，界面没有提前触发的通道。
 	noteRetryNow = "当前版本不支持立即重试"
+	// noteRetryInFlight 用于轮末重试在途时（发送中或还有轮在跑）：按钮禁用并写
+	// 这句，避免连点重跑出两轮（R-XR-123 / R-XR-124）。
+	noteRetryInFlight = "正在运行，结束后可重试"
 	// noteSideChatWrite 用于侧聊的「停止」「结束分支」以及输入区。技术口径：侧聊没有
 	// 写入与结束通道；连上 Source 时输入框与发送一起置灰，原因写这句。
 	noteSideChatWrite = "当前版本不支持侧边对话的发送与结束"

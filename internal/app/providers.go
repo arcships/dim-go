@@ -12,14 +12,13 @@ import (
 
 // provider 与协作/agent 面在服务端上的方法名（alpha.21 实测，见 D11a §6.3）。
 const (
-	methodProviderList           = "provider.list"
-	methodProviderManagement     = "provider.management"
-	methodProviderProbe          = "provider.probe"
-	methodCollaborationPolicy    = "collaboration.model_policy"
-	methodCollaborationSetPolicy = "collaboration.set_model_policy"
-	methodAgentList              = "agent.list"
-	methodSessionAgentGet        = "session.agent.get"
-	methodSessionAgentUpdate     = "session.agent.update"
+	methodProviderList        = "provider.list"
+	methodProviderManagement  = "provider.management"
+	methodProviderProbe       = "provider.probe"
+	methodCollaborationPolicy = "collaboration.model_policy"
+	methodAgentList           = "agent.list"
+	methodSessionAgentGet     = "session.agent.get"
+	methodSessionAgentUpdate  = "session.agent.update"
 )
 
 // providerAdmin 实现 settings.ProviderAdmin：清单、详情与只读探测。

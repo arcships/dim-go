@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"sync"
 
 	"github.com/arcships/dimagent-mygo/internal/appserver/transport"
 )
@@ -28,9 +27,6 @@ type Child interface {
 type processChild struct {
 	cmd  *exec.Cmd
 	done chan struct{}
-
-	mu      sync.Mutex
-	waitErr error
 }
 
 func (p *processChild) PID() int {
@@ -47,12 +43,6 @@ func (p *processChild) Kill() error {
 		return nil
 	}
 	return p.cmd.Process.Kill()
-}
-
-func (p *processChild) WaitError() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return p.waitErr
 }
 
 // spawnDaemon 拉起自己拥有的服务实例。
@@ -90,10 +80,8 @@ func spawnDaemon(cfg Config, request SpawnRequest) (Child, error) {
 	}
 	child := &processChild{cmd: cmd, done: make(chan struct{})}
 	go func() {
-		err := cmd.Wait()
-		child.mu.Lock()
-		child.waitErr = err
-		child.mu.Unlock()
+		// 退出状态不往上报：句柄只负责「还在不在」，诊断不复制服务端日志与退出码。
+		_ = cmd.Wait()
 		close(child.done)
 	}()
 	return child, nil

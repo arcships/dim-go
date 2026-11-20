@@ -297,6 +297,12 @@ type App struct {
 	// timelineHover 是走查变体钉住的悬停轮次（-1 表示没有）：自动截图没有指针，
 	// 只影响用户消息的悬停动作是否显形，不改任何事实。
 	timelineHover int
+	// turnCopied / turnCopiedAt 是「复制整轮内容」的短暂反馈（TL-61）：哪一轮、
+	// 什么时候复制的。图标在反馈窗口内换成勾，窗口外按时间算回复制图标。
+	turnCopied   int
+	turnCopiedAt time.Time
+	// turnCopyError 是剪贴板写入失败的原因；空表示没有。
+	turnCopyError string
 
 	// connected 与 accountInitial 是样例里的连接态与账号首字母：只用于画状态点
 	// 与头像（UI-23），不是事实来源。
@@ -571,8 +577,23 @@ type App struct {
 	// 哪一条请求——换一条请求就不沿用上一条的错误。
 	approvalError    string
 	approvalErrorFor string
+	// approvalExpanded 记哪些输入区块被「展开」过：长命令 / 长输出缺省折成
+	// 前几行，按钮展开后再画全文。key 是请求标识 + 渲染器，换请求就回到折叠态。
+	approvalExpanded map[string]bool
+	// approvalCopyNote 是输入区块「复制」的回执（成功给字符数，失败给原因），
+	// approvalCopyFor 记它长在哪个区块上。
+	approvalCopyFor  string
+	approvalCopyNote string
+	// approvalRing 是审批卡这一帧的焦点环：卡容器 + 卡内按钮，顺序即 Tab 顺序。
+	// 它只在画卡的这一帧里有效（每帧重收），不承载事实。
+	approvalRing []gui.Element
 
 	feed gui.ScrollState
+
+	// rowHeights 是时间线的实测行高缓存，renderedCount 是上一帧画出来的行数
+	// （见 timeline_window.go）；两者都是可丢的视图状态，只服务渲染窗口。
+	rowHeights    rowHeights
+	renderedCount int
 
 	// timelineSelected 是时间线上一帧的选中文本：⌘F 打开会话内搜索时预填。
 	// 它是可丢的视图状态，不承载事实。
@@ -646,6 +667,7 @@ func (a *App) loadSample() {
 	a.summaryOpen = make(map[int]*bool)
 	a.blockOpen = make(map[string]*bool)
 	a.timelineHover = -1
+	a.turnCopied = -1
 	// 运行中的最新一轮把工具分组默认展开：参考产品在输出时就是展开态。
 	if a.state == StateRunning && len(a.rounds) >= 2 {
 		*a.openOf(len(a.rounds) - 2) = true
@@ -879,6 +901,7 @@ func (a *App) resetWiredViewState() {
 	a.summaryOpen = make(map[int]*bool)
 	a.blockOpen = make(map[string]*bool)
 	a.timelineHover = -1
+	a.turnCopied = -1
 	a.approvalCommand = ""
 	a.contextUsed, a.contextLimit = 0, 0
 	a.contextOpen = false

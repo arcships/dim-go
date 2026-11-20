@@ -35,18 +35,20 @@ import (
 //	模型开关与「全选」→ SetProviderModelEnabled（provider.models.set_enabled）；
 //	详情底部「刷新」→ ProbeProvider（provider.probe，只读，不写配置）；
 //	左栏「添加」与详情底部「编辑」→ 供应商表单，保存走 CreateProvider /
-//	    UpdateProvider（字段、校验与事实边界见 settings_provider_form.go）。
+//	    UpdateProvider（字段、校验与事实边界见 settings_provider_form.go）；
+//	账号形态的提供商（OpenAI Codex / Grok Build / 托管帐号）→ 发起、轮询、完成、
+//	    取消与登出都走按提供商的账号方法（见 settings_provider_oauth.go）。
 //
 // 未接的写入口（屏上没有对应的控件或事实）：
 //
 //	provider 级「启用」开关：UpdateProvider 的签名不含 enabled，本屏只改界面状态。
 //	「查看套餐」与账户托管提示条的跳转：跨分节路由与地址都不在本屏的事实里。
 //
-// 未重建的分支：详情面板的另外几种形态（OpenAI Codex OAuth / Grok Build 设备码 /
-// 通用托管 OAuth / 未配置表单 / 已配置凭据）与「添加模型」对话框，本屏用与设置壳
-// 同一句口径（「尚未按参考产品重建」）占位，不摆看起来能用的控件
-// （S-configuration-10 … 80 的未出现分支）。读数的 provider 走 configRecordBody
-// （基础 URL + 模型块 + 底部动作），不再落到占位句。
+// 已重建的分支：账号形态的详情面板（S-configuration-29 … 43）与「添加模型」
+// 对话框（S-configuration-78/79/80）都在本屏；未配置表单 / 已配置凭据走
+// settings_provider_detail.go 与 settings_provider_form.go。读数的 provider 走
+// configRecordBody 或账号形态（configOAuthBody），不再落到占位句。
+// 屏上仍用一句口径占位的是 -demo 里既没有账号也没有读数的那一支（configUnbuiltBody）。
 //
 // 两处没有资产，用等尺寸示意：供应商品牌图标（参考的 ProviderIcon）统一用
 // 中性图标（不按名字造字母占位）；能力徽标只画运行时出现的「视觉」「推理」两种。

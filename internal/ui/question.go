@@ -669,9 +669,10 @@ func (a *App) declineQuestion(snap QuestionSnapshot) {
 	})
 }
 
-// questionKeys 是提问卡的窗口级键位：Esc 拒绝、↵ 提交（多题时先逐题前进，末题
-// 提交）。焦点在文字输入里时不抢键（输入框里的 ↵ 是换行）；焦点已经在卡里的
-// 按钮上时交给那枚按钮（否则一次回车会既点按钮又提交）。
+// questionKeys 是提问卡的窗口级键位：Esc 拒绝、← / → 上一题 / 下一题、↵ 提交
+// （多题时先逐题前进，末题提交）。焦点在文字输入里时不抢键（输入框里的 ↵ 是换行、
+// ← / → 是移光标）；焦点已经在卡里的按钮上时交给那枚按钮（否则一次回车会既点按钮
+// 又提交）。
 func (a *App) questionKeys(c *gui.Context) {
 	if a.palette.open || a.screen != ScreenMain {
 		return
@@ -693,6 +694,18 @@ func (a *App) questionKeys(c *gui.Context) {
 		return
 	}
 	if q.buttonFocused || c.FocusTakesText() {
+		return
+	}
+	if c.Shortcut(0, gui.KeyLeft) {
+		if q.index > 0 {
+			a.goQuestion(q.index - 1)
+		}
+		return
+	}
+	if c.Shortcut(0, gui.KeyRight) {
+		if q.index < len(items)-1 {
+			a.goQuestion(q.index + 1)
+		}
 		return
 	}
 	if c.Shortcut(0, gui.KeyEnter) {

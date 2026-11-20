@@ -93,6 +93,9 @@ const (
 	approvalImageThumb = 64
 	// approvalLineNumberWidth 是代码块行号列的宽度：两位数行号放得下。
 	approvalLineNumberWidth = 21
+	// approvalFoldLines 是输入区块折叠时保留的行数：超过这个行数的长命令 /
+	// 长输出先折起来，块内给「展开（共 N 行）」，展开后给「收起」。
+	approvalFoldLines = 12
 	// approvalFaviconSize 是网页抓取标签里站点徽记的直径（参考 FaviconImg 的 16）。
 	approvalFaviconSize = 16
 	// approvalPatchLabel 是补丁请求没有路径时的标签（参考产品字面量 `patch.diff`）。
@@ -162,6 +165,37 @@ type approvalPanelContent struct {
 	SizeText string
 	// Todos 是待办清单的行（含状态标记）。
 	Todos []string
+}
+
+// copyText 是这一块可以复制出去的原文：代码块 > prompt > 主值行 > 参数行。
+// 都没有时返回空串，标签行不画复制入口。
+func (panel approvalPanelContent) copyText() string {
+	switch {
+	case panel.CodeSet:
+		return panel.Code
+	case panel.Prompt != "":
+		return panel.Prompt
+	case panel.Primary != "":
+		return panel.Primary
+	case len(panel.Lines) > 0:
+		return strings.Join(panel.Lines, "\n")
+	}
+	return ""
+}
+
+// copyLabel 是复制入口的读屏名尾巴：按可复制的那一段取，读作「复制代码」这类。
+func (panel approvalPanelContent) copyLabel() string {
+	switch {
+	case panel.CodeSet:
+		return "代码"
+	case panel.Prompt != "":
+		return "prompt"
+	case panel.Primary != "":
+		return "命令"
+	case len(panel.Lines) > 0:
+		return "参数"
+	}
+	return "内容"
 }
 
 // approvalHead 是子代理创建类的头行。
@@ -795,31 +829,34 @@ func approvalRemainingLines(input map[string]any, skip map[string]bool) []string
 // ---- 画 ----
 
 // approvalInputPanel 画输入区块：描边 + 卡面 + 标签 + 正文；内容超出时双向滚动
-// （长命令行横向滚，不折成一团）。整块只读，不进 Tab 顺序。persistKey 用请求
-// 标识：换请求 / 切会话时滚动位置回顶，同一请求内的重绘沿用同一份滚动位置
-// （R-AP-378）。
+// （长命令行横向滚，不折成一团）。整块只读；右上角给「复制」、长内容给「展开 /
+// 收起」，这两枚入口进审批卡的焦点环（Tab 到得了）。persistKey 用请求标识：换请求
+// / 切会话时滚动位置回顶，同一请求内的重绘沿用同一份滚动位置（R-AP-378）。
 // G-C4-01 审批输入区容器
-func approvalInputPanel(c *gui.Context, persistKey string, panel approvalPanelContent) {
+func (a *App) approvalInputPanel(c *gui.Context, persistKey string, panel approvalPanelContent) {
 	if panel.empty() && panel.Label == "" {
 		return
 	}
 	t := c.Theme()
+	key := persistKey + ":" + panel.Renderer
 	gui.Column(c).WidthPercent(100).Shrink(0).MaxHeight(approvalInputMaxHeight).
 		Background(t.Surface).Border(strokeHairline, t.Border).Radius(radiusCard).
 		Label("审批输入：" + panel.Label).Children(func() {
 		gui.ScrollBoth(c).Key("approval-input:" + persistKey).Shrink(0).Children(func() {
 			gui.Column(c).Padding(space2, space3).Gap(space1).Children(func() {
-				approvalPanelLabel(c, panel)
-				approvalPanelBody(c, panel)
+				a.approvalPanelLabel(c, key, panel)
+				a.approvalPanelBody(c, key, panel)
+				a.approvalCopyReceipt(c, key)
 			})
 		})
 	})
 }
 
 // approvalPanelLabel 画顶部标签：普通标签是 11px 次要色；网页抓取在 URL 前画
-// 站点徽记（参考产品 FaviconImg 的回落：首字母圆徽）。标签位样式在这里一次给全：
-// 11px 次要色、单行截断、完整值在 tooltip（G-C4-02 / G-C4-05 / G-C4-15）。
-func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
+// 站点徽记（参考产品 FaviconImg 的回落：首字母圆徽）。右侧是「复制」入口：面板
+// 里有一段可复制的原文（代码 / prompt / 主值行 / 参数行）时才出现。
+// G-C4-02 输入区标签（11px 次要色、单行截断、完整值在 tooltip，R-AP-423 / R-AP-506）
+func (a *App) approvalPanelLabel(c *gui.Context, key string, panel approvalPanelContent) {
 	t := c.Theme()
 	// IN-70 面板小标题「输入」（命令类审批面板）
 	if panel.Label == "" {
@@ -837,6 +874,51 @@ func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 			// 通用渲染器的标签是工具名，取等宽（参考 GenericApprovalPanel 的字面量）。
 			label.Font(codeFamily())
 		}
+		gui.Spacer(c)
+		if text := panel.copyText(); text != "" {
+			// R-AP-447 / R-AP-538 原文与 prompt 可复制
+			a.approvalCopyButton(c, t, key, panel, text)
+		}
+	})
+}
+
+// approvalCopyButton 是输入区块右上角的复制入口：只有图标，读作「复制{标签}」。
+// 它进审批卡的焦点环：Tab 从卡容器先到它，再到决定按钮。
+func (a *App) approvalCopyButton(c *gui.Context, t *gui.Theme, key string, panel approvalPanelContent, text string) {
+	name := "复制" + panel.copyLabel()
+	b := gui.ButtonBase(c).Width(rowCompact).Height(rowCompact).Radius(radius).
+		Shrink(0).Label(name).Tooltip(name + "：把这段内容复制到剪贴板")
+	a.approvalRing = append(a.approvalRing, b)
+	switch {
+	case b.Pressed():
+		b.Background(t.SurfacePressed)
+	case b.Hovered():
+		b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		iconBox(c, iconClipboard, t.TextMuted, "")
+	})
+	if b.Clicked() {
+		a.approvalCopyFor = key
+		c.WriteClipboardThen(text, func(err error) {
+			if err != nil {
+				// 复制失败不静默：回执写原因（R-AP-447 的另一半）。
+				a.approvalCopyNote = "复制失败：" + err.Error()
+				return
+			}
+			a.approvalCopyNote = fmt.Sprintf("已复制 %d 个字符", len([]rune(text)))
+		})
+	}
+}
+
+// approvalCopyReceipt 是复制回执：一行小字，只长在刚点过的那一块下面。
+func (a *App) approvalCopyReceipt(c *gui.Context, key string) {
+	if a.approvalCopyFor != key || a.approvalCopyNote == "" {
+		return
+	}
+	t := c.Theme()
+	gui.Row(c).Shrink(0).Label(a.approvalCopyNote).Role(gui.RoleStatus).Children(func() {
+		typeMicro.style(t, gui.Text(c, a.approvalCopyNote)).TextColor(t.TextMuted).SingleLine()
 	})
 }
 
@@ -845,7 +927,7 @@ func approvalPanelLabel(c *gui.Context, panel approvalPanelContent) {
 // 各渲染器的正文样式都在这里一次给全：主值行 90% 不透明、参数行与值行 70% 不透明，
 // 都是等宽（G-C4-03 / G-C4-09 / G-C4-10 / G-C4-11 / G-C4-12 / G-C4-20 / G-C4-21 /
 // G-C4-22 / G-C4-23 / G-C4-24 的「主值更亮、参数弱一档」）。
-func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
+func (a *App) approvalPanelBody(c *gui.Context, key string, panel approvalPanelContent) {
 	t := c.Theme()
 	if panel.DiffOldSet || panel.DiffNewSet {
 		approvalDiffBlock(c, panel)
@@ -854,10 +936,10 @@ func approvalPanelBody(c *gui.Context, panel approvalPanelContent) {
 		approvalHeadRow(c, panel.Head)
 	}
 	if panel.Prompt != "" {
-		approvalCodeBlock(c, panel.Prompt, false)
+		a.approvalCodeBlock(c, key+"#prompt", panel.Prompt, false)
 	}
 	if panel.CodeSet {
-		approvalCodeBlock(c, panel.Code, panel.CodeLines)
+		a.approvalCodeBlock(c, key+"#code", panel.Code, panel.CodeLines)
 	}
 	if panel.HasImage || panel.SizeText != "" {
 		approvalImageBlock(c, panel)
@@ -913,19 +995,28 @@ func approvalHeadRow(c *gui.Context, head approvalHead) {
 // approvalCodeBlock 画只读代码块：等宽、卡面；长行横向滚动、长内容纵向滚动
 // （R-AP-381 / R-AP-450 / R-AP-587）；可选行号列。
 //
+// 超过 approvalFoldLines 行的长内容先折起来，块尾给「展开（共 N 行）」；展开后
+// 给「收起」并把全文画出来（折叠状态在 App 里按区块记住，换请求就回到折叠态）。
+//
 // G-C4-08 补丁文本；G-C4-25 工具名 + 入参原文（通用渲染器）。代码块样式在这里
 // 给全：等宽 12px、行号列次要色右对齐、内容自带滚动（G-C4-07 / G-C4-08 的样式）。
-func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
+func (a *App) approvalCodeBlock(c *gui.Context, key, code string, lineNumbers bool) {
 	t := c.Theme()
 	maxHeight := float32(approvalCodeMaxHeight)
 	if narrowWindow(c) {
 		maxHeight = approvalCodeCompactHeight
 	}
+	lines := strings.Split(code, "\n")
+	folded := len(lines) > approvalFoldLines && !a.approvalExpanded[key]
+	shown := lines
+	if folded {
+		shown = lines[:approvalFoldLines]
+	}
 	gui.Column(c).WidthPercent(100).Shrink(0).MaxHeight(maxHeight).
 		Radius(radiusSmall).Background(t.SurfacePressed).Children(func() {
 		gui.ScrollBoth(c).Shrink(0).Children(func() {
 			gui.Column(c).Padding(space1, space2).Gap(0).Children(func() {
-				for index, line := range strings.Split(code, "\n") {
+				for index, line := range shown {
 					gui.Row(c).Gap(space2).AlignItems(gui.Start).Children(func() {
 						if lineNumbers {
 							typeMicro.style(t, gui.Text(c, fmt.Sprintf("%d", index+1))).
@@ -936,6 +1027,36 @@ func approvalCodeBlock(c *gui.Context, code string, lineNumbers bool) {
 				}
 			})
 		})
+		if len(lines) > approvalFoldLines {
+			a.approvalFoldToggle(c, t, key, len(lines), folded)
+		}
+	})
+}
+
+// approvalFoldToggle 是代码块底部的「展开（共 N 行）」/「收起」：整行文字按钮，
+// 进焦点环，Enter / 空格与点击同一落点。
+func (a *App) approvalFoldToggle(c *gui.Context, t *gui.Theme, key string, total int, folded bool) {
+	text, label := fmt.Sprintf("展开（共 %d 行）", total), "展开代码块"
+	if !folded {
+		text, label = "收起", "收起代码块"
+	}
+	b := gui.ButtonBase(c).Shrink(0).Height(rowCompact).Padding(0, space2).
+		Radius(radiusSmall).Label(label + "：" + text)
+	a.approvalRing = append(a.approvalRing, b)
+	switch {
+	case b.Pressed():
+		b.Background(t.SurfacePressed)
+	case b.Hovered():
+		b.Background(t.SurfaceHover)
+	}
+	if b.Clicked() {
+		if a.approvalExpanded == nil {
+			a.approvalExpanded = map[string]bool{}
+		}
+		a.approvalExpanded[key] = folded
+	}
+	b.Children(func() {
+		typeMicro.style(t, gui.Text(c, text)).TextColor(t.TextMuted).SingleLine()
 	})
 }
 

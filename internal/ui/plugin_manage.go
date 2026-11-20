@@ -1073,7 +1073,7 @@ func pluginMarketWriteNote(canAct bool) string {
 	if canAct {
 		return ""
 	}
-	return "这条连接没有插件市场动作（Source 没有提供市场动作）"
+	return "当前版本不支持修改插件源"
 }
 
 // savePluginFeed 保存插件源地址并触发一次拉取。

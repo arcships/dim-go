@@ -163,7 +163,9 @@ func (a *App) sidebarList(c *gui.Context) {
 			// 这里出现，不在下面的分组列表里重复。
 			pinnedGroups := a.pinnedGroupsOf(groups)
 			if len(pinnedThreads) > 0 || (!a.sidebarView.flat && len(pinnedGroups) > 0) {
-				gui.Column(c).Shrink(0).Children(func() {
+				// 置顶区的会话行同样是一个焦点组（与组内会话行同一口径）：Tab
+				// 进一次，↑/↓ 在置顶行之间移动。
+				gui.Column(c).Shrink(0).FocusGroup(gui.Vertical).Children(func() {
 					a.sidebarHeading(c, "已置顶")
 					if !a.sidebarView.flat {
 						for _, ws := range pinnedGroups {
@@ -385,11 +387,15 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 				a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when, thread.cwd)
 			}
 		}
+		// 组内会话行是一个焦点组（R-LB-338、R-LB-538）：Tab 进组一次，停在组内
+		// 第一行；↑/↓ 在组内逐行移动，Home/End 到组内首末行；行本身按 Enter /
+		// 空格打开（sessionItem 的 Clicked 已覆盖这两个键）。焦点组只包会话行，
+		// 工作区行仍在组外，按 Tab 单独走。
 		if ws.builtin {
-			body()
+			gui.Column(c).Shrink(0).FocusGroup(gui.Vertical).Children(body)
 			return
 		}
-		gui.Column(c).Shrink(0).Padding(0, space2).Children(body)
+		gui.Column(c).Shrink(0).Padding(0, space2).FocusGroup(gui.Vertical).Children(body)
 	})
 }
 
@@ -484,7 +490,8 @@ func groupDescription(ws sidebarWorkspace, open bool) string {
 // 更多」/「显示更少」；加载行（LB-63）只在本端真有分页读取时出现。
 func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
 	threads := a.unpinnedThreads(all)
-	gui.Column(c).Shrink(0).Children(func() {
+	// 平铺视图的会话行也是一个焦点组：Tab 进一次，↑/↓ 逐行移动，Home/End 首末。
+	gui.Column(c).Shrink(0).FocusGroup(gui.Vertical).Children(func() {
 		if len(threads) == 0 {
 			a.sidebarNote(c, a.sidebarEmptyText(), true)
 			return

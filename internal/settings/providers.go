@@ -330,12 +330,6 @@ type providerHeaderParam struct {
 	Value  string `json:"value,omitempty"`
 }
 
-type providerProbeParams struct {
-	ProviderID string                   `json:"providerId"`
-	Connection *providerConnectionParam `json:"connection,omitempty"`
-	Patch      *providerPatchParam      `json:"connectionPatch,omitempty"`
-}
-
 type providerModelsEnabledParams struct {
 	Op              string   `json:"op"`
 	ProviderID      string   `json:"providerId"`

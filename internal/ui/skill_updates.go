@@ -46,9 +46,9 @@ const (
 	// 读屏名说明点它会发生什么。
 	skillUpdatesOpenLabel = "打开技能可用更新"
 
-	// 缺读数 / 缺通道的原因，逐块写清。
-	skillUpdatesNoFacts   = "这条连接没有技能更新读数（protocol v3 没有「技能有新版本」的读取方法）"
-	skillUpdatesNoChannel = "当前连接没有技能更新通道（skills.update）"
+	// 缺读数 / 缺通道的原因，逐块写清（上屏只写用户能读的结果）。
+	skillUpdatesNoFacts   = "当前版本读不到技能更新"
+	skillUpdatesNoChannel = "当前版本不支持更新技能"
 	skillUpdatesReadError = "读取技能更新失败"
 	skillUpdatesCountFmt  = "%d 个技能有可用更新"
 

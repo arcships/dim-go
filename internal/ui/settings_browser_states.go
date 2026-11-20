@@ -55,7 +55,7 @@ type browserCookieCounts struct {
 // browserImportState 是导入对话框的可丢视图状态。
 type browserImportState struct {
 	phase browserImportPhase
-	// progress 是扫描进度，取值 0–1；负数表示长度未知（画不确定进度条）。
+	// progress 是扫描进度，取值 0–1；0 或负数表示没有百分比读数（画不确定进度条）。
 	progress float64
 	// profiles / selected 是扫描出的配置与当前选中项。
 	profiles []browserChromeProfile

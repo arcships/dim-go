@@ -221,7 +221,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-146 | F-17 | 关联 | 目录展开 | 子级行紧跟在该行之下并向内缩进（PB 态子级行 x=19，父行 x=5） | — | 子级行左缘比父行大 14 | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-147 | F-17 | 样式 | 浅色 / 深色 | 目录名 14px 级、主前景色；`.*` 开头目录名灰化；行无分割线 | — | 判据 = 字号 正文 14px；字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 行底无底色填充（悬停底出现次数 0），行高 24（BO-ROW-24 / ST-HOVER） | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Height） |
 | R-RF-148 | F-17 | 无障碍 | 读屏 | 行读作「目录，目录名，已展开/已收起」，可展开状态可读 | — | 读屏文本逐字形如「目录，目录名，已展开/已收起」（差异字符 0） | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Role） |
-| R-RF-149 | F-17 | 记忆 | 切标签再回 | 展开状态保留（同一右栏会话内） | — | 切回前后展开行集合差 0 | 已实现（证据 = TestTreeExpansionSurvivesTabSwitch） |
+| R-RF-149 | F-17 | 记忆 | 切标签再回 | 展开状态保留（同一右栏会话内） | — | 切回前后展开行集合差 0 | 未实现（映射到位但没有该维度的标记）：F-17→internal/ui/rightpanel_files.go:App.rpDirRow |
 | R-RF-150 | F-17 | 性能 | 33 个根目录 + 253 个子项展开 | 展开/收起无可感卡顿，滚动流畅 | — | 展开 200+ 行后仍可滚动 | 未实现（映射到位但没有该维度的标记）：F-17→internal/ui/rightpanel_files.go:App.rpDirRow |
 | R-RF-151 | F-18 | 状态 | 未观察（条件）：目录行已展开时 | 箭头换成向下的 ChevronDown，位置与收起态同一点，尺寸 14 | — | 展开后箭头旋转角 90°；x 坐标与其余态相同（差 0） | 已实现（映射 = F-18→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
 | R-RF-152 | F-18 | 动画 | 点击展开 | 箭头旋转 90°（向下），旋转时长 ≤150ms | 减少动效下直接切换朝向 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：F-18→internal/ui/rightpanel_files.go:App.rpDirRow；测试提及 internal/ui/panel_nits_test.go:包级 |
@@ -238,7 +238,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-163 | F-19 | 关联 | 文件行的占位 | 文件行没有箭头，用等宽 14px 占位（F-28）对齐，保证文件名列左缘一致 | — | 目录名与文件名同列（462 / 461） | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-164 | F-19 | 无障碍 | 读屏 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Role） |
 | R-RF-165 | F-19 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 箭头 2× 下边缘清晰、不糊 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-19→internal/ui/rightpanel_files.go:App.rpDirRow |
-| R-RF-166 | F-19 | 记忆 | 切标签再回 | 收起态目录回来仍是朝右 | — | 切回前后箭头旋转角差 0 | 已实现（证据 = TestTreeExpansionSurvivesTabSwitch） |
+| R-RF-166 | F-19 | 记忆 | 切标签再回 | 收起态目录回来仍是朝右 | — | 切回前后箭头旋转角差 0 | 未实现（映射到位但没有该维度的标记）：F-19→internal/ui/rightpanel_files.go:App.rpDirRow |
 | R-RF-167 | F-20 | 状态 | R 态、目录行在场 | 目录名左侧为文件夹图标；收起用 `folder`、展开用 `folder-open`（同一位置换形） | — | 每行图标计数为 1，展开态换开合形 | 已实现（映射 = F-20→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
 | R-RF-168 | F-20 | 关联 | 该行名字置灰显示时 | 图标不随名字灰化而变灰（`.*` 目录只灰化名字） | — | 判据 = 色值 次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-20→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-169 | F-20 | 样式 | 浅色 / 深色 | 线稿图标、次要前景色，尺寸 16；与文件名图标同尺寸 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-20→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Height） |
@@ -414,7 +414,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-332 | F-39 | 样式 | 同一右键菜单里同时显示其它菜单项时 | 项高 28、图标 16、文字 14 级 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = F-39→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Width） |
 | R-RF-333 | F-39 | 无障碍 | 读屏 | 读作「预览」 | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/approval_panels.go:approvalImageBlock「预览」 |
 | R-RF-334 | F-39 | 键盘 | Enter | 右栏打开该文件的预览标签 | — | 键盘触发后预览次数 1 | 已实现（映射 = F-39→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Tab@App.rp） |
-| R-RF-335 | F-39 | 记忆 | 关闭预览回树 | 树展开状态不变 | — | 返回后逐项相同（差 0） | 已实现（证据 = TestTreeExpansionSurvivesPreviewRoundTrip） |
+| R-RF-335 | F-39 | 记忆 | 关闭预览回树 | 树展开状态不变 | — | 返回后逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：F-39→internal/ui/rightpanel_files.go:App.rpFileMenu |
 | R-RF-336 | F-40 | 状态 | 未观察（条件）：右键菜单展开 | 菜单项「用外部工具打开」，ExternalLink 图标 | — | 屏上该文案计数 +1 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpFileMenu「用外部工具打开」 |
 | R-RF-337 | F-40 | 交互 | 点击 | 交给系统默认应用打开该文件；右栏不新增标签，菜单关闭 | — | 点击前后，右栏标签数的取值差 0 | 已实现（映射 = F-40→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Menu） |
 | R-RF-338 | F-40 | 关联 | 相关元素同时在场时（原「与「在文件管理器中显示」」） | 一个打开文件本体、一个定位目录；两项并存不合并 | — | 两项计数各为 1 | 已实现（映射 = F-40→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Open） |
@@ -543,7 +543,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-021 | D-01 | 关联 | 底部统计同时在场时 | 切范围后底部统计按新范围重算，不沿用上一范围的数字 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Open） |
 | R-RD-022 | D-01 | 异常 | 下拉展开时列表正在刷新 | 菜单照常展开；选定后以最新一次刷新结果为准 | — | 两份列表计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Err@App.rp） |
 | R-RD-023 | D-01 | 异常 | 权限不足读不到分支列表 | 切到分支范围时给 D-22 不可用空态，菜单本身不置灰 | — | 切到分支范围后空态块计数 1（D-22 文案）；菜单自身禁用计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Err@App.rp） |
-| R-RD-024 | D-01 | 记忆 | 同一右栏会话内切标签再回 | 范围保持上次所选（不清回未提交） | — | 切回前后，文案的取值差 0 | 已实现（证据 = TestChangesScopeSurvivesTabSwitch） |
+| R-RD-024 | D-01 | 记忆 | 同一右栏会话内切标签再回 | 范围保持上次所选（不清回未提交） | — | 切回前后，文案的取值差 0 | 未实现（映射到位但没有该维度的标记）：D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar |
 | R-RD-025 | D-01 | 无障碍 | 读屏展开下拉 | 读出「已展开，3 个选项」，并能逐个读出主副文案 | — | 读屏文本逐字含「已展开，3 个选项」；主副文案各读出 1 次（读屏项数 = 选项数） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Label） |
 | R-RD-026 | D-01 | 键盘 | 下拉展开时按 Esc | 收起菜单、焦点回触发器，范围不变 | — | Esc 前后，范围的取值差 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Tab） |
 | R-RD-027 | D-01 | 键盘 | Tab 离开触发器 | 菜单若展开则收起，焦点移到下一个控件（筛选框） | — | Tab 后菜单计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Tab） |

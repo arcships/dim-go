@@ -20,10 +20,9 @@ const (
 	TopicWakeups   Topic = "wakeups"
 )
 
-// 以下别名只为兼容尚未跟随改名的集成层与测试；新代码使用上面的名称。
+// 以下别名只为兼容尚未跟随改名的集成层；新代码使用上面的名称。
 const (
-	TopicToolServers = TopicMCP
-	TopicScheduler   = TopicSchedule
+	TopicScheduler = TopicSchedule
 )
 
 // Notice 是一条管理面变更通知。

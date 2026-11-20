@@ -248,6 +248,12 @@ errors.Is(err, &extensions.CapabilityError{Feature: "schedule.list"})
 ### 4.6 MCP：保存、配置、探测、删除与导入
 
 - 目录读取按 `mcp.catalog`：`userRevision` 是保存/删除的前置版本；`servers[]` 形如 `{id,source,enabled,transport,referencedVariables,unsetVariables}`，真实回执没有 name/command/url，本端用 `id` 作为显示名，详细配置走 `mcp.configuration`。
+- 目录里的无效条目（`invalid[]`）随清单一起留下：`ToolServerProblemReader` 可选实现，
+  `Service.ToolServerProblems()` 返回副本（作用域、标识、原因）。问题读取失败不清空
+  上一次确认的问题，也不影响清单本身；界面据此画「配置问题」横幅。
+- 写入入口按 hello 能力声明决定能否点：`Service.SupportsFeature(name)` 报告声明；
+  没有能力来源时按「不知道」返回真，交给调用结果给原因。MCP 屏的保存 / 测试 /
+  删除入口分别按 `mcp.save` / `mcp.test` / `mcp.remove` 置灰并写原因。
 - 保存按 `mcp.save`：参数 `{id,source,expectedVersion,configuration}`。配置文档由 `ToolServerConfiguration` 生成：stdio 只带 `command/args/env`，HTTP/SSE 只带 `url/env`，空字段必须省略；否则服务端返回 `mcp_invalid_config`。回执是空对象 `{}`。
 - 读回配置按 `mcp.configuration`：回执 `{revision,enabled,secretsInUserScope,configuration:{type,command,argsCount,cwd,envNames,referencedVariables,unsetVariables}}`。`envNames` 只是键名，不含值。
 - 探测按 `mcp.test`：参数 `{id,source}`，回执 `{status:"connected",latencyMs,tools:[{name,description,inputSchema}]}`；探测只在显式调用时发生，不写回配置。

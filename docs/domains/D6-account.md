@@ -592,6 +592,41 @@ DIMAGENT_APP_SERVER_BIN=<App Server 可执行文件路径> \
 28. **hash 回调**：原客户端从 query 或 hash 解析回调；环回 HTTP 只能收到 query，hash 形式无法读取（真实提供方使用 query）。
 29. **provider 绑定清理不在本领域**：原客户端登出后清 App Server provider 凭据绑定；本包只清账号镜像状态，绑定清理归集成层/D11。
 
+### 4.8 按提供商的账号登录（Codex / Grok / 托管帐号）
+
+设置 › 模型供应 的详情页按 `provider.management` 的 `account.namespace` 选登录形态；
+命名空间决定方法族，本包不按供应商名字猜：
+
+| 命名空间 | 形态 | 定位参数 |
+|---|---|---|
+| `account` | 托管帐号（Dim 与其它 `account.providers` 条目） | `providerId`（+ 目录、回调地址） |
+| `account.codex` | OpenAI Codex 浏览器登录 | 无 |
+| `account.grok` | Grok Build 设备码登录 | 无 |
+
+方法后缀在各命名空间一致：`status`、`login.browser.begin`、`login.browser.complete`、
+`login.begin`、`login.status`、`login.cancel`、`logout`。
+
+接口（`ProviderOAuthSource` 由集成层实现；`ProviderOAuth` 只做校验与转发）：
+
+- `ReadStatus(ctx, namespace, providerID)`：非敏感状态（已登录、账号标识 / 预览、
+  是否要求重新授权、到期时间），不含令牌。
+- `BeginBrowser(ctx, namespace, providerID, redirectURI)`：返回尝试标识与授权地址。
+- `BeginDevice(ctx, namespace, providerID)`：返回尝试标识、验证地址与用户码。
+- `CompleteBrowser(ctx, namespace, providerID, attempt, callbackURL)`：一次交换。
+- `Poll(ctx, namespace, providerID, attempt)`：`pending / completed / failed /
+  cancelled / expired`；失败原因转成可读句，认不出的错误码原样上行。
+- `Cancel(ctx, namespace, providerID, attempt)`：按尝试标识释放。
+- `Logout(ctx, namespace, providerID)`：清除服务端保存的凭据。
+
+校验在发请求前完成：托管帐号必须带 `providerId`；原生 OAuth 不接受 `providerId`；
+发起回执缺尝试标识 / 地址 / 用户码时整次失败；空回调、空尝试标识与未知状态都拒绝。
+`ProviderOAuth` 不缓存状态，也不持有授权码、设备码或令牌副本。
+
+测试：`internal/account/provider_oauth_test.go`（目标校验、发起回执校验、转发与
+未知状态拒绝）、`internal/app/provider_oauth_test.go`（`account` 两种状态回执的
+解析、参数形状与错误码换句）、`internal/ui/settings_provider_oauth_test.go`
+（三种形态的未登录 / 等待 / 已连接 / 失败分支与入口）。
+
 ## 8. 下一步
 
 1. D1 冻结真实账号 wire（§6.3 的方法名与参数）；集成层（`internal/app/account_sources.go`）把 `ProviderAuthorizationBegin.Email` 与设备码邮箱提示接到 begin 请求，并把账号动作的 `providerId`/`resetType`/`subscriptionId`/`idempotencyKey` 原样下发（当前适配器还没有转发 email）。

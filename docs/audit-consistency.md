@@ -54,6 +54,21 @@ Status: 已执行（2026-11-20）
 
 ## 5 本轮改动
 
+共 12 处（同一事实的措辞 8 处、同一交互两条路径 2 处、四态 1 处、文档 1 处）：
+
+1. 终端结束提示改「退出码」；
+2. 改动页骨架读屏名「正在加载改动」；
+3. 改动页权限条「重试读取改动」；
+4. 子代理空态标题「未打开会话」；
+5. 文件/改动页空态标题「没有工作目录」；
+6. 归档日期不插空格；
+7. E4 删除回执与其余删除回执同一量词；
+8. 快捷键屏的「输入框」与同一屏说明一致；
+9. 行内改名与弹窗共用控制字符 / 同名判断；
+10. 权限档位的两个挂载点共用一份菜单与一处可用性判断；
+11. 左栏与时间线区分「正在连接…」/「连接已断开」/空态；
+12. `docs/domains/U3-interaction.md` 随代码改并补变更记录。
+
 - 生产代码：`terminal.go`、`rightpanel_files.go`、`rightpanel_changes.go`、`rightpanel_subagent.go`、`confirm.go`、`settings_archived_screen.go`、`composer.go`、`statusbar.go`、`unavailable.go`、`sidebar.go`、`sidebar_state.go`、`timeline.go`、`rename_dialog.go`、`settings_keybindings_screen.go`、`header.go`（注释）。
 - 测试：`panel_gap_test.go`、`terminal_states_test.go`、`rightpanel_states_test.go`、`rightpanel_wired_test.go`、`residual_families_test.go`、`composer_wired_test.go`、`settings_archived_wired_test.go`，新增 `consistency_states_test.go`。
 - 文档：`docs/domains/U3-interaction.md`；本文件。
@@ -61,5 +76,5 @@ Status: 已执行（2026-11-20）
 ## 6 验收
 
 - `go build ./...`、`go vet ./...`：通过。
-- `go test ./... -count=1`：与本轮无关的失败仍在（并行工作中的 OAuth / MCP / 浏览器导入用例：`TestIntentCasesCoverIntents`、`TestMCPSettingsWriteEntriesDisabled`、`TestProviderOAuth*`、`TestGeneralImportReadyShowsProfilesAndCounts`），不在本轮改动的文件里；本轮触及的面板、终端、输入区、重命名、导出、侧栏用例单跑全绿。
+- `go test ./... -count=1`：本轮触及的用例（面板四态、终端、权限、重命名、导出、侧栏、时间线）单跑全绿；整包仍受并行工作中的 OAuth / MCP 改动影响（最后一次跑到的失败是 `TestIntentCasesCoverIntents` 与 MCP 相关用例，其测试文件正在被另一路修改，不在本轮改动范围）。整包全绿要在那部分落地后复跑。
 - 缺真实 App Server / 真实屏读器的走查项仍按 blocked 记，不用替身结果代替。

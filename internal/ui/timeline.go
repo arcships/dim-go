@@ -84,9 +84,16 @@ func (a *App) timeline(c *gui.Context) {
 				gui.Row(c).Shrink(0).Children(func() {
 					iconButton(c, iconButtonSpec{icon: iconChevronUp, label: "读取更早的记录", size: rowCompact})
 				})
-				for i := range a.rounds {
+				// 行数超过门槛后只画视口里那几段（见 timeline_window.go）；
+				// 占位顶住滚动长度，轮次内容与顺序不变。
+				span := a.rowSpanFor(c, feed.Bounds().H, len(a.rounds), func(i int) float32 {
+					return estimateRound(a.rounds[i])
+				})
+				windowSpacer(c, span.above)
+				for i := span.start; i < span.end; i++ {
 					a.round(c, i)
 				}
+				windowSpacer(c, span.below)
 			})
 		})
 		a.backToLatest(c)
@@ -112,14 +119,15 @@ func (a *App) round(c *gui.Context, i int) {
 	if r.unknown {
 		// 未知提交：只有占位（原文还在本地）与说明行；没有组头、没有操作行，
 		// 因为「这一轮是否存在」本身还没有事实。
-		gui.Column(c).Shrink(0).Gap(space2).Children(func() {
+		el := gui.Column(c).Shrink(0).Gap(space2).Children(func() {
 			a.userBubble(c, i, r, true)
 			a.note(c, r.note)
 		})
+		a.measureRow(i, el)
 		return
 	}
 	// TL-07 / TL-11 一轮的行外壳（轮容器）
-	gui.Column(c).Shrink(0).Gap(timelineBlockGap).Children(func() {
+	el := gui.Column(c).Shrink(0).Gap(timelineBlockGap).Children(func() {
 		// TL-04 / TL-05 用户消息轨道与标记（每条用户消息一个标记）
 		a.userRail(c, strings.TrimSpace(r.user) != "")
 		if r.divider != "" {
@@ -128,6 +136,7 @@ func (a *App) round(c *gui.Context, i int) {
 		a.userMessage(c, i, r)
 		a.assistant(c, i, r)
 	})
+	a.measureRow(i, el)
 }
 
 // roundDivider 是轮前的分隔行（压缩 / 窗口截断）：两侧细线 + 中间说明。
@@ -161,10 +170,13 @@ func (a *App) userMessage(c *gui.Context, i int, r round) {
 	if text, ok := a.inlineSaved[i]; ok {
 		r.user, edited = text, true
 	}
+	// 一条消息是一个可聚焦行：悬停显形之外，键盘 Tab 进来也把动作条露出来
+	// （TL-37–TL-40 的键盘入口；指针与键盘两条路走同一份动作条）。
 	col := gui.Column(c).Shrink(0).Gap(space1).
-		Role(gui.RoleArticle).Label("用户消息 " + r.user)
+		Role(gui.RoleArticle).Label("用户消息 " + r.user).
+		Focusable().TabStop(true)
 	// timelineHover 是截图走查态：自动截图没有指针，靠它把悬停动作钉住。
-	hovered := col.Hovered() || a.timelineHover == i
+	hovered := col.Hovered() || col.Focused() || a.timelineHover == i
 	col.Children(func() {
 		body := a.userBubble(c, i, r, false)
 		if edited {
@@ -520,8 +532,10 @@ func quoteIntoDraft(draft, selection string) string {
 func (a *App) assistant(c *gui.Context, i int, r round) {
 	// TL-12 / TL-50 助手区容器
 	col := gui.Column(c).Shrink(0).Gap(timelineBlockGap).
-		Role(gui.RoleArticle).Label("助手消息").Selectable()
-	hovered := col.Hovered()
+		Role(gui.RoleArticle).Label("助手消息").Selectable().
+		Focusable().TabStop(true)
+	// 轮末动作条的键盘入口：焦点停在助手区上时动作条同样显形（TL-61–TL-64）。
+	hovered := col.Hovered() || col.Focused()
 	svc := c.Services()
 	col = col.ContextMenu(func(m *gui.Menu) {
 		a.assistantMessageMenu(m, svc, assistantMessageText(r), selectedTextOf(col))
@@ -834,7 +848,9 @@ func (a *App) toolDetail(c *gui.Context, row, n int, o op) {
 	gui.Column(c).Gap(space1).PaddingStart(timelineGroupIndent).Children(func() {
 		if o.input != "" {
 			a.toolDetailSection(c, "输入", t.TextMuted, func() {
-				a.searchCodeBlock(c, searchKeyToolInput(row, n), o.input)
+				a.toolDetailScroll(c, func() {
+					a.searchCodeBlock(c, searchKeyToolInput(row, n), o.input)
+				})
 			})
 		}
 		// TL-59 终端类工具失败：输出与原因收在「终端错误详情」里，标题行带复制。
@@ -844,15 +860,26 @@ func (a *App) toolDetail(c *gui.Context, row, n int, o op) {
 		}
 		if o.output != "" {
 			a.toolDetailSection(c, "输出", t.TextMuted, func() {
-				a.searchCodeBlock(c, searchKeyToolOutput(row, n), o.output)
+				a.toolDetailScroll(c, func() {
+					a.searchCodeBlock(c, searchKeyToolOutput(row, n), o.output)
+				})
 			})
 		}
 		if o.cause != "" {
 			a.toolDetailSection(c, "失败原因", t.Danger, func() {
-				a.codeBlock(c, o.cause)
+				a.toolDetailScroll(c, func() {
+					a.codeBlock(c, o.cause)
+				})
 			})
 		}
 	})
+}
+
+// toolDetailScroll 是一段详情内容的滚动容器：超过上限高双向滚动，长行横向滚，
+// 不把整张卡片撑高（TL-55 / R-XR-113）。
+func (a *App) toolDetailScroll(c *gui.Context, body func()) {
+	gui.ScrollBoth(c).Shrink(0).MaxHeight(toolDetailMaxHeight).
+		Label("工具详情内容").Children(body)
 }
 
 // toolDetailSection 是一段工具详情：段名（可定位）+ 一段内容。
@@ -1342,15 +1369,46 @@ func (a *App) fileChangeMenu(c *gui.Context, target gui.Element, key string, cha
 	})
 }
 
-// assistantActions 是轮末动作条：复制、分叉、重试与完成时间（悬停可见）。
+// turnCopiedFeedback 是「复制整轮内容」反馈的停留时长（TL-61 / TL-607）。
+const turnCopiedFeedback = 1200 * time.Millisecond
+
+// toolDetailMaxHeight 是工具行详情里一段内容的高度上限：超出的部分在这段里
+// 双向滚动，不把整张卡片撑高（TL-55）。
+const toolDetailMaxHeight = 160
+
+// assistantActions 是轮末动作条：复制、分叉、重试与完成时间（悬停或键盘焦点
+// 落在这一轮上时可见）。运行中的轮脚只留计时行，动作条不出现（TL-13）。
 func (a *App) assistantActions(c *gui.Context, i int, r round) {
 	// TL-13 / TL-61 / TL-62 / TL-63 / TL-64 轮末动作条
+	if r.status == roundRunning {
+		return
+	}
 	t := c.Theme()
+	// 在途（发送中或还有轮在跑）时重试禁用：连点只新增一轮（R-XR-123 / R-XR-124）。
+	inFlight := a.submitting || a.anyRoundRunning()
+	stopped := r.status == roundStopped
+	now := c.Now()
 	gui.Row(c).Gap(space1).AlignItems(gui.Center).Label("助手动作").Children(func() {
-		iconButton(c, iconButtonSpec{icon: iconCopy, label: "复制整个消息", size: rowCompact})
+		copied := a.turnCopiedNow(i, now)
+		copyIcon := iconCopy
+		copyLabel := "复制整个消息"
+		if copied {
+			copyIcon = iconCheck
+			// 反馈窗口内读屏名也带上「已复制」：图标变化不是可读信息。
+			copyLabel = "复制整个消息（已复制）"
+		}
+		if iconButton(c, iconButtonSpec{
+			icon: copyIcon, label: copyLabel, tip: "复制整个消息", size: rowCompact,
+		}) {
+			a.copyTurn(c, i, assistantMessageText(r), now)
+		}
 		turn, reason := a.forkTurnForRow(i)
 		reason = a.forkReason(turn, reason)
 		forkLabel, forkTip := "从此处分叉", "从此处分叉：以这一轮结束处为切点"
+		if stopped && reason == "" {
+			// 停止态只留可用项（复制 / 重试）：分叉没有可继续的轮末。
+			reason = "这一轮已被停止，没有可继续的轮末"
+		}
 		if reason != "" {
 			forkLabel += "（" + reason + "）"
 			forkTip = reason
@@ -1361,10 +1419,85 @@ func (a *App) assistantActions(c *gui.Context, i int, r round) {
 		}) {
 			a.forkAtTurn(turn, "从此处分叉")
 		}
-		iconButton(c, iconButtonSpec{icon: iconRetry, label: "重试", size: rowCompact})
+		retryLabel, retryTip := "重试", "重试：以这一轮的输入再跑一轮"
+		if inFlight {
+			retryLabel += "（" + noteRetryInFlight + "）"
+			retryTip = noteRetryInFlight
+		}
+		if iconButton(c, iconButtonSpec{
+			icon: iconRetry, label: retryLabel, tip: retryTip,
+			size: rowCompact, disabled: inFlight,
+		}) {
+			a.retryRound(i)
+		}
 		if r.at != "" {
 			typeMicro.style(t, gui.Text(c, r.at)).TextColor(t.TextMuted).SingleLine()
 		}
+		if a.turnCopyError != "" {
+			// 剪贴板写入失败：原因留在动作条右侧，不冒充「已复制」。
+			typeMicro.style(t, gui.Text(c, a.turnCopyError)).TextColor(t.Danger).SingleLine()
+		}
+	})
+}
+
+// anyRoundRunning 报告是否还有一轮在跑（样例模式读轮状态）。
+func (a *App) anyRoundRunning() bool {
+	if a.liveRunning() {
+		return true
+	}
+	for _, r := range a.rounds {
+		if r.status == roundRunning {
+			return true
+		}
+	}
+	return false
+}
+
+// turnCopiedNow 报告某轮的复制反馈是否还在窗口内：时间取渲染帧的时钟
+// （测试里是虚拟时钟），窗口过后下一帧就按时间算回复制图标。
+func (a *App) turnCopiedNow(i int, now time.Time) bool {
+	return a.turnCopied == i && now.Sub(a.turnCopiedAt) < turnCopiedFeedback
+}
+
+// copyTurn 复制整轮助手内容：写入剪贴板后图标短暂变勾，窗口过后按时间算回
+// 复制图标（TL-601 / TL-607）；写入失败时把原因留在动作条上。
+//
+// 时间戳取点击那一帧的时钟（写剪贴板的回调在帧外，拿不到渲染时钟），
+// 之后每帧按当前帧时钟与它比，窗口一过自然回到复制图标。
+func (a *App) copyTurn(c *gui.Context, i int, text string, now time.Time) {
+	c.WriteClipboardThen(text, func(err error) {
+		if err != nil {
+			a.turnCopyError = "复制失败：" + err.Error()
+			return
+		}
+		a.turnCopyError = ""
+		a.turnCopied, a.turnCopiedAt = i, now
+		c.Announce("已复制")
+		if a.changed != nil {
+			time.AfterFunc(turnCopiedFeedback, a.changed)
+		}
+	})
+}
+
+// retryRound 用这一轮原来的输入再跑一轮：时间线追加新轮，旧轮保留（TL-619）。
+// 在途时按钮已禁用，这里再挡一次，保证连点只新增一轮（R-XR-124）。
+func (a *App) retryRound(i int) {
+	if a.submitting || a.anyRoundRunning() || i < 0 || i >= len(a.rounds) {
+		return
+	}
+	// 连着 App Server 时走它的重跑方法：不拿当前草稿冒充原轮输入。
+	if a.intents != nil {
+		a.dispatch("重试", a.intents.RetrySubmit, nil)
+		return
+	}
+	source := a.rounds[i]
+	if strings.TrimSpace(source.user) == "" {
+		return
+	}
+	a.rounds = append(a.rounds, round{
+		user:     source.user,
+		status:   roundRunning,
+		duration: "0s",
 	})
 }
 
@@ -1776,9 +1909,16 @@ func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 				Label("对话内容").Children(func() {
 				// TL-06 视口外还有未装载的行时给等高占位。
 				a.virtualTopPlaceholder(c)
-				for i := range snap.Rows {
+				// 行数超过门槛后只画视口里那几行（见 timeline_window.go）；
+				// 视口外按行高估算顶住滚动长度，行的内容与顺序不变。
+				span := a.rowSpanFor(c, feed.Bounds().H, len(snap.Rows), func(i int) float32 {
+					return estimateLiveRow(snap.Rows[i])
+				})
+				windowSpacer(c, span.above)
+				for i := span.start; i < span.end; i++ {
 					a.liveRow(c, i, snap.Rows[i])
 				}
+				windowSpacer(c, span.below)
 			})
 		})
 		a.backToLatest(c)
@@ -1788,10 +1928,11 @@ func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 // liveRow 画一行事实：外层只负责用户消息轨道，行内容交给 liveRowBody。
 // TL-04 / TL-05 轨道与标记按行种类出现。
 func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
-	gui.Column(c).Shrink(0).Children(func() {
+	el := gui.Column(c).Shrink(0).Children(func() {
 		a.userRail(c, row.Kind == RowUser)
 		a.liveRowBody(c, i, row)
 	})
+	a.measureRow(i, el)
 }
 
 // liveRowBody 画一行事实：种类决定用哪个块，字段决定块里的文字；认不出的种类

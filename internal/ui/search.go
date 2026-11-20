@@ -222,17 +222,24 @@ func (a *App) closeSessionSearch() {
 }
 
 // sessionSearchTextKey 接管输入框里的键（A1-03）：Esc 关闭、回车下一个、
-// Shift+回车上一个、⌘F 重新聚焦并全选。
+// Shift+回车上一个、↑ / ↓ 同上两个按钮、Home / End 跳到首 / 末条命中、
+// ⌘F 重新聚焦并全选。
 func (a *App) sessionSearchTextKey(k gui.TextKey) bool {
 	switch {
 	case k.Mods == 0 && k.Key == gui.KeyEscape:
 		a.closeSessionSearch()
 		return true
-	case k.Mods == 0 && k.Key == gui.KeyEnter:
+	case k.Mods == 0 && k.Key == gui.KeyEnter, k.Mods == 0 && k.Key == gui.KeyDown:
 		a.moveSessionSearchHit(1)
 		return true
-	case k.Mods == gui.Shift && k.Key == gui.KeyEnter:
+	case k.Mods == gui.Shift && k.Key == gui.KeyEnter, k.Mods == 0 && k.Key == gui.KeyUp:
 		a.moveSessionSearchHit(-1)
+		return true
+	case k.Mods == 0 && k.Key == gui.KeyHome:
+		a.sessionSearchJump(-1)
+		return true
+	case k.Mods == 0 && k.Key == gui.KeyEnd:
+		a.sessionSearchJump(1)
 		return true
 	case k.Mods == gui.Cmd && k.Key == gui.KeyF:
 		a.sessionSearch.focus = true
@@ -255,6 +262,24 @@ func (a *App) moveSessionSearchHit(delta int) {
 		s.current = ((s.current+delta)%n + n) % n
 	}
 	// 旧命中降为普通底色（R-GS-374）；只有一条时回卷到它自己（R-GS-069、R-GS-077）。
+	a.rebuildSearchRanges()
+	a.openFoldsForCurrent()
+	s.revealAt = s.now
+}
+
+// sessionSearchJump 把当前命中跳到首条（edge<0）或末条（edge>0），与点
+// G-A1-07 / G-A1-08 按钮走到同一个落点；没有命中时不动。
+func (a *App) sessionSearchJump(edge int) {
+	s := &a.sessionSearch
+	n := len(s.hits)
+	if n == 0 {
+		return
+	}
+	if edge < 0 {
+		s.current = 0
+	} else {
+		s.current = n - 1
+	}
 	a.rebuildSearchRanges()
 	a.openFoldsForCurrent()
 	s.revealAt = s.now

@@ -163,17 +163,27 @@ func approvalFacts(snap ApprovalSnapshot) (string, map[string]any, bool) {
 }
 
 // approvalCard 画审批卡：外层骨架 + 三选一的主体。
+//
+// 卡是键盘的一块独立区域（R-IN-842、U3 F4）：卡出现即拿焦点（AutoFocus），
+// Tab / ⇧Tab 在卡内控件之间循环，不逃到背景；Esc 不答复，也不把焦点放走。
 func (a *App) approvalCard(c *gui.Context) {
 	t := c.Theme()
 	snap, ok := a.currentApproval()
 	if !ok {
 		return
 	}
+	// 焦点环只在卡片这一帧内有效，每帧重收。
+	a.approvalRing = a.approvalRing[:0]
 	// IN-43 / IN-66 / G-C1-01 审批卡容器
-	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).Padding(space4).
+	card := gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).Padding(space4).
 		Gap(space3).Background(t.Surface).Border(strokeHairline, t.Border).
 		// G-C2-01 沙箱卡容器（与审批卡同一骨架）
-		Radius(radiusWindowCard).Role(gui.RoleRegion).Label("审批卡").Children(func() {
+		Radius(radiusWindowCard).Role(gui.RoleRegion).Label("审批卡").
+		// 卡容器自己可聚焦：焦点先落在卡上（读屏读卡标题与第一段），Tab 才到
+		// 第一个决定——不预选任何一个决定，免得 Enter 变成误批准。
+		Focusable().AutoFocus()
+	a.approvalRing = append(a.approvalRing, card)
+	card.Children(func() {
 		switch {
 		case snap.Sandbox != nil:
 			a.sandboxApprovalBody(c, snap)
@@ -183,6 +193,40 @@ func (a *App) approvalCard(c *gui.Context) {
 			a.toolApprovalBody(c, snap)
 		}
 	})
+	a.approvalTabCycle(card)
+}
+
+// approvalTabCycle 把 Tab / ⇧Tab 圈在卡片里：焦点在卡内时，Tab 走到环上的下一
+// 个控件（⇧Tab 上一个，首尾相接），焦点不在卡内时不拦。
+//
+// 键位登记在卡容器上，框架只在焦点位于卡容器或卡内元素上时把它交给卡片
+// （焦点链），所以卡片之外按 Tab 照旧走全局顺序。
+func (a *App) approvalTabCycle(card gui.Element) {
+	next := card.Shortcut(0, gui.KeyTab)
+	prev := card.Shortcut(gui.Shift, gui.KeyTab)
+	if !next && !prev {
+		return
+	}
+	step := 1
+	if prev {
+		step = -1
+	}
+	ring := a.approvalRing
+	at := -1
+	for i, el := range ring {
+		if el.Focused() {
+			at = i
+			break
+		}
+	}
+	if at < 0 || len(ring) < 2 {
+		println("TRAP skip at=", at, "ring=", len(ring))
+		return
+	}
+	println("TRAP at=", at, "step=", step, "ring=", len(ring), "focused->", (at+step+len(ring))%len(ring))
+	to := ring[(at+step+len(ring))%len(ring)]
+	to.Focus()
+	println("TRAP after Focus() Focused()=", to.Focused())
 }
 
 // toolApprovalBody 是工具权限卡的主体：标题、成员区块、输入区、提示块、错误行、
@@ -201,7 +245,7 @@ func (a *App) toolApprovalBody(c *gui.Context, snap ApprovalSnapshot) {
 		switch {
 		case hasInput:
 			// IN-69 / G-C1-13 审批输入区（按工具类型挑面板）
-			approvalInputPanel(c, snap.ID, approvalPanelFor(tool, input))
+			a.approvalInputPanel(c, snap.ID, approvalPanelFor(tool, input))
 		case tool == "":
 			// G-C1-08 / G-C1-09 读不到原始操作时的原因句
 			typeMicro.style(t, gui.Text(c, noteApprovalCommand)).TextColor(t.TextMuted)
@@ -366,7 +410,10 @@ func (a *App) memberApprovalBlock(c *gui.Context, member ApprovalMemberSnapshot)
 			if member.State == ApprovalMemberError && member.CanRetry {
 				label := approvalCopyMemberRetry + "（重新读取成员操作）"
 				// G-C1-12 重新读取成员操作（重试）
-				if actionButton(c, approvalCopyMemberRetry, label, false, false).Clicked() {
+				retry := actionButton(c, approvalCopyMemberRetry, label, false, false)
+				// 卡内的按钮都在焦点环上：Tab 从卡容器走到它，再走到三个决定。
+				a.approvalRing = append(a.approvalRing, retry)
+				if retry.Clicked() {
 					a.retryMemberApproval()
 				}
 			}
@@ -450,6 +497,8 @@ func (a *App) approvalActions(c *gui.Context, snap ApprovalSnapshot) {
 			if busy || action.disabled {
 				button = button.Disabled(true)
 			}
+			// 决定按钮按渲染顺序进焦点环：Tab 从「拒绝」走到长期允许。
+			a.approvalRing = append(a.approvalRing, button)
 			if button.Clicked() {
 				a.respondApproval(action.decision)
 			}

@@ -877,23 +877,6 @@ func legacyImportPreview(source string, preview MCPImportPreview) ImportPreview 
 	return legacy
 }
 
-func validateImportPreview(preview ImportPreview) error {
-	seen := make(map[string]struct{}, len(preview.Candidates))
-	for index, candidate := range preview.Candidates {
-		if strings.TrimSpace(candidate.Key) == "" {
-			return invalidRequest("导入预览第 %d 条候选缺少键", index+1)
-		}
-		if _, duplicate := seen[candidate.Key]; duplicate {
-			return invalidRequest("导入预览候选键重复: %q", candidate.Key)
-		}
-		seen[candidate.Key] = struct{}{}
-		if err := candidate.Server.validate(); err != nil {
-			return fmt.Errorf("导入预览候选 %q: %w", candidate.Key, err)
-		}
-	}
-	return nil
-}
-
 func cloneImportPreview(preview ImportPreview) ImportPreview {
 	cloned := ImportPreview{Source: preview.Source, ReadAt: preview.ReadAt}
 	cloned.Candidates = make([]ImportCandidate, len(preview.Candidates))

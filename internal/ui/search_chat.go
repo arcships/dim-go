@@ -104,6 +104,9 @@ type chatSearchState struct {
 	// hits 是本帧按查询算出的全部命中；rows 是已加载页里的那几行。
 	hits []chatSearchHit
 	rows []chatSearchHit
+	// lastQuery 是上一帧的查询：查询一变就把翻页位置收回第一页，新查询不从
+	// 上一次的页号接着来（G-A2-06 的「上一页」不会停在新结果的空页上）。
+	lastQuery string
 
 	phase      chatSearchPhase
 	failReason string
@@ -135,6 +138,7 @@ func (a *App) openChatSearch() {
 	s.query = ""
 	s.page = 1
 	s.selected = 0
+	s.lastQuery = ""
 	s.hits, s.rows = nil, nil
 	s.focus = true
 	s.selectAll = true
@@ -152,6 +156,7 @@ func (a *App) closeChatSearch() {
 	s.query = ""
 	s.page = 1
 	s.selected = 0
+	s.lastQuery = ""
 	s.hits, s.rows = nil, nil
 	s.phase = chatSearchReady
 	s.failReason = ""
@@ -171,6 +176,12 @@ func (a *App) chatSearchFrame(c *gui.Context) {
 		return
 	}
 	s.hits, s.phase, s.failReason = a.chatSearchMatches(s.query)
+	// 查询变了就回到第一页、第 1 行：新查询不从上一句的页号与选中项接着来。
+	if s.query != s.lastQuery {
+		s.lastQuery = s.query
+		s.page = 1
+		s.selected = 0
+	}
 	// 分页位置按命中总数收敛：结果变少时不留在空页上。
 	if pages := chatSearchPageCount(len(s.hits)); s.page > pages {
 		s.page = pages
@@ -277,8 +288,8 @@ func (a *App) chatSearchCatalog() (
 	return names, a.source.SessionTitles(), a.source.SessionPlaces(), chatSearchReady, ""
 }
 
-// chatSearchTextKey 接管输入框里的键：↑↓ 选择、Enter 打开、Esc 关闭、
-// ⌘1–⌘8（其它平台 Ctrl+1–8）直接打开第 n 条。
+// chatSearchTextKey 接管输入框里的键：↑↓ 选择、Home / End 跳到首 / 末条、
+// Enter 打开、Esc 关闭、⌘1–⌘8（其它平台 Ctrl+1–8）直接打开第 n 条。
 func (a *App) chatSearchTextKey(k gui.TextKey) bool {
 	s := &a.chatSearch
 	if !s.open {
@@ -293,6 +304,12 @@ func (a *App) chatSearchTextKey(k gui.TextKey) bool {
 		return true
 	case k.Mods == 0 && k.Key == gui.KeyDown:
 		a.moveChatSelection(1)
+		return true
+	case k.Mods == 0 && k.Key == gui.KeyHome:
+		a.chatSearchJump(-1)
+		return true
+	case k.Mods == 0 && k.Key == gui.KeyEnd:
+		a.chatSearchJump(1)
 		return true
 	case k.Mods == 0 && k.Key == gui.KeyEnter:
 		a.openSelectedChat()
@@ -345,6 +362,21 @@ func (a *App) moveChatSelection(delta int) {
 		next = n - 1
 	}
 	s.selected = next
+}
+
+// chatSearchJump 把选中行跳到首条（edge<0）或末条（edge>0）；没有结果时不动。
+// 与 ↑↓ 一样只改选中项，输入框里的查询不变。
+func (a *App) chatSearchJump(edge int) {
+	s := &a.chatSearch
+	n := len(s.rows)
+	if n == 0 {
+		return
+	}
+	if edge < 0 {
+		s.selected = 0
+		return
+	}
+	s.selected = n - 1
 }
 
 // openSelectedChat 打开当前选中行（Enter / 点击同一落点）。
@@ -619,7 +651,7 @@ func chatSearchHint(index int) string {
 func (a *App) chatSearchTextRow(c *gui.Context, text, label string, run func()) {
 	t := c.Theme()
 	b := gui.ButtonBase(c).Shrink(0).Height(rowCompact).Padding(0, space3).
-		Radius(radiusSmall).Label(label).Cursor(gui.CursorPointer)
+		Radius(radiusSmall).Label(label).Role(gui.RoleButton).Cursor(gui.CursorPointer)
 	if b.Hovered() {
 		b = b.Background(t.SurfaceHover)
 	}
