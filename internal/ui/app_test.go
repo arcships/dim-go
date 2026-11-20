@@ -134,10 +134,14 @@ func TestDebugKeysYieldToTextInput(t *testing.T) {
 }
 
 // Tab 依次经过三个可聚焦区域：左栏、对话流、输入框。
+//
+// 预算 160 次：对话流里的每条消息行与其动作条（复制 / 编辑 / 分叉 / 侧边对话）、
+// 轮末动作条各自都是 Tab 停靠点，从左上到输入区要走过一整屏的停靠点；40 次是
+// 消息行还没有键盘入口时的旧口径。
 func TestTabReachesEachRegion(t *testing.T) {
 	_, tt := newTester(t, StateDefault)
 	reached := map[string]bool{}
-	for i := 0; i < 40 && len(reached) < 3; i++ {
+	for i := 0; i < 160 && len(reached) < 3; i++ {
 		tt.Key(0, gui.KeyTab)
 		for _, label := range []string{"左栏 · 会话列表", "对话流", "消息"} {
 			if tt.Focused(label) {
