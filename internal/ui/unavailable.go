@@ -97,6 +97,9 @@ const (
 	noteMultiWindow = "当前运行方式没有多窗口"
 	// noteNoSessionID 用于需要会话标识的复制 / 导出项。
 	noteNoSessionID = "当前还没有打开的会话"
+	// noteNoWorkspacePath 用于算不出路径时置灰的复制项：没有工作目录就拼不出
+	// 绝对路径，也换不出相对路径；灰着却不写原因就成了没有说明的灰项。
+	noteNoWorkspacePath = "没有工作目录，无法计算路径"
 	// noteNothingToCopy 是复制项拿到空值时的提示。
 	noteNothingToCopy = "没有可复制的内容"
 	// noteRetryNow 用于时间线自动重试行的「立即重试」：协议没有立即重试的方法，
