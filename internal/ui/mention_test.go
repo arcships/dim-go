@@ -422,3 +422,28 @@ func TestFilePickCapNote(t *testing.T) {
 		t.Fatalf("缺上限说明 %q：\n%s", pickCapNote, strings.Join(tt.Texts(), "\n"))
 	}
 }
+
+// G-A3-07：`@` 弹层本应把提交类候选并入文件组。提交清单没有读数通道（protocol
+// v3 无 git 提交方法），所以整组不画；空态里补一行原因，不另立空分组标题。
+func TestFilePickCommitCandidatesWriteReason(t *testing.T) {
+	app, tt := mentionTester(t)
+	typeDraft(t, tt, "@zzz")
+	tt.Frame()
+	if !tt.HasText(pickNoFileText) {
+		t.Fatalf("缺文件空态文案：%v", tt.Texts())
+	}
+	if !tt.HasText(pickCommitNoChannel) {
+		t.Fatalf("空态没有写提交候选缺失的原因：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("候选分组：提交"); ok {
+		t.Fatal("读不到提交清单却画了提交分组")
+	}
+	// 有文件候选时提交组仍不画，也不在候选下留一行原因（空态才写）。
+	typeDraft(t, tt, " @comp")
+	if app.pick.query != "comp" {
+		t.Fatalf("前缀 = %q，想要 comp", app.pick.query)
+	}
+	if tt.HasText(pickCommitNoChannel) {
+		t.Fatalf("有候选时仍写了提交缺失原因：%v", tt.Texts())
+	}
+}

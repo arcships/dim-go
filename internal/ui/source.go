@@ -349,13 +349,30 @@ type UpdateIntents interface {
 	SetUpdateFeed(ctx context.Context, feedURL string) error
 }
 
+// PluginMarketSkillSnapshot 是市场条目声明的内置技能：名称与一句说明。
+type PluginMarketSkillSnapshot struct {
+	Name        string
+	Description string
+}
+
 // PluginMarketEntrySnapshot 是插件市场源返回的一个条目。它只是上游清单的内容，
-// 不是 App Server 的事实，也不代表可安装：协议没有市场安装来源。
+// 不是 App Server 的事实：只有条目给出 Git 地址时才有可安装来源（走
+// plugin.install 的 Git 来源）。
 type PluginMarketEntrySnapshot struct {
 	Name        string
 	Version     string
 	Description string
 	Source      string
+	// Author 是条目声明的作者；空表示源没有给。
+	Author string
+	// Location 是条目声明的安装位置；空表示源没有给（界面写原因，不自己拼路径）。
+	Location string
+	// Git/GitRef 是条目给出的可安装 Git 地址与分支 / 标签；Git 为空表示这个条目
+	// 没有能交给 plugin.install 的来源。
+	Git    string
+	GitRef string
+	// Skills 是条目声明的内置技能；空表示源没有给技能清单。
+	Skills []PluginMarketSkillSnapshot
 }
 
 // PluginMarketplaceSnapshot 是插件市场的只读快照。
@@ -384,6 +401,43 @@ type PluginMarketplaceFacts interface {
 type PluginMarketplaceIntents interface {
 	SetPluginFeed(ctx context.Context, feedURL string) error
 	RefreshPluginMarketplace(ctx context.Context) error
+}
+
+// SkillUpdateSnapshot 是一条技能更新：一条安装记录 + 服务端声明的新版本。
+//
+// ID 是安装记录标识（`skills.update` 的 id），不是技能条目标识：一次安装可以
+// 带多个技能，更新按安装记录走。
+type SkillUpdateSnapshot struct {
+	ID            string
+	Name          string
+	Version       string
+	LatestVersion string
+	Source        string
+	// Notes 是变更说明（上游给的原文，只展示）。
+	Notes string
+}
+
+// SkillUpdatesSnapshot 是技能更新的只读快照。
+type SkillUpdatesSnapshot struct {
+	// Items 是最近一次读到的可更新项；空表示读了但没有可更新项。
+	Items []SkillUpdateSnapshot
+	// ReadError 非空表示最近一次读取失败；这时 Items 保留旧读数。
+	ReadError string
+}
+
+// SkillUpdatesFacts 是可选的技能更新读数。
+//
+// protocol v3 有 `skills.update`（按安装记录更新），但没有「哪些安装有新版本」
+// 的读取方法：`skills.installations` 只给当前 revision，`skills.catalog` 不带
+// 版本。所以本端不比较版本号，也不编造「有新版本」；没有实现这个接口的连接
+// （含真实的 uiwire 适配器）在界面上写清原因并禁用更新入口。
+type SkillUpdatesFacts interface {
+	SkillUpdates() SkillUpdatesSnapshot
+}
+
+// SkillUpdateIntents 是可选的技能更新动作：按安装记录标识更新一条（`skills.update`）。
+type SkillUpdateIntents interface {
+	UpdateSkill(ctx context.Context, installationID string) error
 }
 
 // ArchivedSessionSnapshot 是一条归档会话：本端归档登记（归档时间）与服务端目录

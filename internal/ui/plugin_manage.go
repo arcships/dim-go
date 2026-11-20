@@ -62,14 +62,34 @@ const (
 	pluginMarketEmpty     = "插件源没有返回条目"
 	pluginMarketRetry     = "重试"
 	pluginMarketRefresh   = "刷新"
-	pluginMarketInstall   = "安装"
-	pluginMarketNoInstall = "当前版本不支持从市场安装"
+	pluginMarketInstall = "安装"
 	// G-H2-01 安装详情的标题与 G-H2-02 描述（逐字取参考产品中文）。
 	pluginMarketInstallTitleFmt = "安装 %s"
 	pluginMarketInstallDesc     = "选择要启用的内置技能。默认全选。"
-	// G-H2-06 / G-H2-07 技能清单的缺项原因：市场条目没有技能字段（协议也没有
-	// 市场安装来源），因此不画勾选行，也不写「此插件不包含技能」那种断言。
-	pluginMarketNoSkills = "插件源没有给出这个条目的技能清单，无法勾选技能"
+	// G-H2-06 / G-H2-07 技能清单的两种情况分开写：源没有给清单（不画勾选行，写
+	// 原因），源给了空清单（画参考产品的空态句「此插件不包含技能。」）。
+	pluginMarketNoSkills  = "插件源没有给出这个条目的技能清单，无法勾选技能"
+	pluginMarketSelectAll = "全选"
+	// 详情的一组只读字段（G-H2-01 标题之下）：名称、版本、作者、来源、安装位置。
+	pluginMarketFieldName     = "名称"
+	pluginMarketFieldVersion  = "版本"
+	pluginMarketFieldAuthor   = "作者"
+	pluginMarketFieldSource   = "来源"
+	pluginMarketFieldLocation = "安装位置"
+	pluginMarketFieldDesc     = "说明"
+	// 字段缺失时写原因：不猜、不留空行。
+	pluginMarketNoVersion     = "插件源没有给出这个条目的版本"
+	pluginMarketNoAuthor      = "插件源没有给出这个条目的作者"
+	pluginMarketNoSource      = "插件源没有给出这个条目的来源"
+	pluginMarketNoLocation    = "插件源没有给出安装位置"
+	pluginMarketNoDescription = "插件源没有给出这个条目的说明"
+	// 安装通道的两条门槛：条目没有 Git 地址；同名插件已装（替换确认 G-H3 未建）。
+	pluginMarketNoInstallSource = "插件源没有给出可安装的 Git 地址（plugin.install 只接受本地目录或 Git 地址）"
+	pluginMarketNameTakenFmt    = "已安装同名插件「%s」，替换确认还没有通道"
+	// 安装中的进度：protocol v3 的 plugin.install 只有阶段事件，没有字节读数。
+	pluginMarketInstallProgress = "服务端没有安装进度读数，不画进度条"
+	// 勾选只决定这次安装的启用清单：plugin.install 没有技能参数。
+	pluginMarketSkillPickNote = "勾选只决定安装后启用哪些技能；安装本身装整包。"
 
 	pluginInstalledFmt = "已安装 %s"
 	pluginRemovedFmt   = "已移除 %s"
@@ -98,9 +118,13 @@ type pluginManageState struct {
 	feedLoaded bool
 	feedSaving bool
 	feedErr    string
-	// 市场安装详情（G-H2）：打开的是哪一个条目。条目来自上游清单的只读快照。
-	marketOpen  bool
-	marketEntry PluginMarketEntrySnapshot
+	// 市场安装详情（G-H2）：打开的是哪一个条目、勾选了哪些技能、安装中与失败
+	// 原因。条目来自上游清单的只读快照；勾选位是本端可丢的界面状态。
+	marketOpen       bool
+	marketEntry      PluginMarketEntrySnapshot
+	marketSkills     map[string]bool
+	marketInstalling bool
+	marketErr        string
 }
 
 // pluginManage 返回本轮要画的插件管理状态（惰性建映射）。
@@ -110,6 +134,9 @@ func (a *App) pluginManageState() *pluginManageState {
 	}
 	if a.pluginManage.rowErr == nil {
 		a.pluginManage.rowErr = map[string]string{}
+	}
+	if a.pluginManage.marketSkills == nil {
+		a.pluginManage.marketSkills = map[string]bool{}
 	}
 	return &a.pluginManage
 }
@@ -328,7 +355,7 @@ func pluginSmallButtonLabeled(c *gui.Context, t *gui.Theme, text, label string, 
 
 // pluginUpdatesSection 是「可用更新」：清单读到时总是画标题；没有可更新项时
 // 给空态「所有插件均为最新版本」，不把「读不到清单」说成「都最新」。
-// G-H4-01 标题 / G-H4-02 空态 / G-H4-05 进度条缺项原因
+// G-H4-01 标题 / G-H4-02 空态
 func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtItemSnapshot,
 	canWrite, known bool) {
 	if !known {
@@ -376,7 +403,7 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 						typeSecondary.style(t, gui.Text(c, versions)).TextColor(t.TextMuted).
 							Label(versions)
 					}
-					// G-H4-05 更新中：没有进度事实，就写清为什么没有进度条
+					// 更新中：没有进度事实，就写清为什么没有进度条（不画假进度）
 					if st.updating[item.ID] {
 						typeMicro.style(t, gui.Text(c, pluginUpdateNoProgress)).
 							TextColor(t.TextMuted).Label(pluginUpdateNoProgress).SingleLine()
@@ -661,7 +688,7 @@ func (a *App) pluginMarketRow(c *gui.Context, t *gui.Theme, entry PluginMarketEn
 
 // pluginMarketDetailView 画市场安装详情：标题与描述来自条目与固定文案；技能
 // 勾选与安装动作缺事实/协议，按块写原因，不画假的勾选行。
-// G-H2-01 标题 / G-H2-02 描述 / G-H2-06 技能清单缺项 / G-H2-08 取消 / G-H2-09 安装
+// G-H2-01 标题 / G-H2-02 描述 / G-H2-08 取消 / G-H2-09 安装
 func (a *App) pluginMarketDetailView(c *gui.Context) {
 	st := a.pluginManageState()
 	if !st.marketOpen {
@@ -694,7 +721,7 @@ func (a *App) pluginMarketDetailView(c *gui.Context) {
 			typeSecondary.style(t, gui.Text(c, meta)).TextColor(t.TextMuted).
 				Label(meta).SingleLine()
 			gui.Column(c).Gap(plgLabelGap).Children(func() {
-				// G-H2-05 技能分组：条目没有技能清单，分组标题与勾选行都不画
+				// 技能分组：条目没有技能清单，分组标题与勾选行都不画
 				plgNote(c, t, pluginMarketNoSkills)
 			})
 			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {

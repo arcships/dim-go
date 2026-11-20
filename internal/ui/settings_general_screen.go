@@ -354,7 +354,7 @@ func generalImportDialog(c *gui.Context) {
 		screenDialogPanel(c, "导入 Chrome Cookie", func() {
 			// G-H6-02 导入说明句（逐字，不截断）
 			screenHint(c, generalImportDesc)
-			// G-H6-03 / G-H6-05 / G-H6-08 扫描行、配置行与计数没有读数：写原因
+			// 扫描行、配置行与计数没有读数：写原因（不画样例配置与假计数）
 			generalNote(c, noteBrowserNoImport)
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
 				// G-H6-11 取消
@@ -387,7 +387,7 @@ func generalClearDialog(c *gui.Context) {
 		screenDialogPanel(c, "清理浏览器数据", func() {
 			// G-H7-02 清理说明句（逐字，不截断）
 			screenHint(c, generalClearDesc)
-			// G-H7-03 / G-H7-04 成功行与错误块没有回执：写原因
+			// 成功行与错误块没有回执：写原因（不假装清理成功）
 			generalNote(c, noteBrowserNoClear)
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
 				// G-H7-05 取消

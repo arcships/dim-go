@@ -471,3 +471,62 @@ func TestPluginRemoveFailureStaysInDialog(t *testing.T) {
 		t.Fatalf("失败原因没有上屏：%v", tt.Texts())
 	}
 }
+
+// TestPluginUpdatesEmptyState：插件清单读到了、没有可更新项时画「可用更新」标题
+// 与空态「所有插件均为最新版本」，不出现「全部更新」按钮（G-H4-02）。
+func TestPluginUpdatesEmptyState(t *testing.T) {
+	src := wiredSource()
+	src.extensions.Plugins = ExtListSnapshot{Items: []ExtItemSnapshot{
+		{ID: "p1", Name: "已是最新的插件", Version: "1.0.0", Enabled: true},
+	}}
+	_, tt := pluginSettingsTester(src, &pluginTestIntents{})
+	if !tt.HasText(pluginManageUpdates) {
+		t.Fatalf("没有画「可用更新」标题：%v", tt.Texts())
+	}
+	if !tt.HasText(pluginManageNoUpdates) {
+		t.Fatalf("没有给「所有插件均为最新版本」：%v", tt.Texts())
+	}
+	if info, ok := tt.Access(pluginManageNoUpdates); !ok || info.Role != gui.RoleText {
+		t.Fatalf("空态没有按一行文字画：%+v（找到 %v）", info, ok)
+	}
+	if _, ok := tt.Find("全部更新（0）"); ok {
+		t.Fatal("没有可更新项时仍画了「全部更新（0）」")
+	}
+}
+
+// TestPluginUpdatesProgressHasNoFacts：更新进行中没有下载进度事实，就写原因，
+// 不画一条假进度条（G-H4-05）。
+func TestPluginUpdatesProgressHasNoFacts(t *testing.T) {
+	src := wiredSource()
+	src.extensions.Plugins = ExtListSnapshot{Items: []ExtItemSnapshot{
+		{ID: "p1", Name: "待更新插件", Version: "1.0.0", LatestVersion: "1.1.0", UpdateAvailable: true, Enabled: true},
+	}}
+	app, tt := pluginSettingsTester(src, &pluginTestIntents{})
+	app.pluginManageState().updating["p1"] = true
+	tt.Frame()
+	if !tt.HasText(pluginUpdateNoProgress) {
+		t.Fatalf("更新中没有写「没有进度读数」：%v", tt.Texts())
+	}
+	if !tt.HasText(pluginManageUpdating) {
+		t.Fatalf("更新中的按钮文案不对：%v", tt.Texts())
+	}
+}
+
+// marketlessSource 是有事实、但没有可选市场读数的连接。
+type marketlessSource struct{ Source }
+
+// TestPluginMarketNoFacts：没有市场读数时整块换成「市场暂不可用」+原因，不画
+// 样例条目（G-H2 的前置块）。
+func TestPluginMarketNoFacts(t *testing.T) {
+	// 只拿 Source 接口本身：不实现可选的 PluginMarketplaceFacts，市场读数就没有。
+	_, tt := pluginSettingsTester(marketlessSource{Source: wiredSource()}, nil)
+	if !tt.HasText(pluginMarketUnavailable) {
+		t.Fatalf("没有写「市场暂不可用」：%v", tt.Texts())
+	}
+	if !tt.HasText(pluginMarketNoFacts) {
+		t.Fatalf("没有写市场不可用的原因：%v", tt.Texts())
+	}
+	if tt.HasText(pluginMarketUnset) {
+		t.Fatal("没有市场读数时把它说成「未配置插件源」")
+	}
+}

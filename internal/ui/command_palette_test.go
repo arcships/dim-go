@@ -269,3 +269,36 @@ func paletteTitles(items []commandItem) []string {
 	}
 	return out
 }
+
+// TestCommandPaletteRowShortcut：有界面内快捷键的动作在行尾画实际键位（改过键
+// 就画改后的），没有绑定的行不画（G-B2-06）。
+func TestCommandPaletteRowShortcut(t *testing.T) {
+	app, tt := newPaletteTester(t, StateDefault)
+	want := app.keybindingLabel("new-thread")
+	if want == "" {
+		t.Fatal("new-thread 没有可读键位")
+	}
+	if _, ok := tt.Find("新建会话"); !ok {
+		t.Fatalf("命令面板没有「新建会话」行：%v", tt.Texts())
+	}
+	if !tt.HasText(want) {
+		t.Fatalf("行尾没有快捷键 %q：%v", want, tt.Texts())
+	}
+	// 读屏名带上同一个键位；样例模式这一行不可用，快捷键仍要画（R-GM-210）。
+	if info, ok := tt.Access("新建会话：在工作区里开一个会话，快捷键 " + want); !ok || !info.Disabled {
+		t.Fatalf("行读屏名没有带快捷键：%+v（找到 %v）", info, ok)
+	}
+	app.keybindings = map[string]string{"new-thread": "Cmd+Alt+N"}
+	tt.Frame()
+	changed := app.keybindingLabel("new-thread")
+	if changed == want {
+		t.Fatal("改键后键位没有变")
+	}
+	if !tt.HasText(changed) {
+		t.Fatalf("改键后行尾没有换成 %q：%v", changed, tt.Texts())
+	}
+	// 没有绑定的行不画快捷键：行读屏名里没有「快捷键」这一段。
+	if info, ok := tt.Access("停止这次运行：中止当前回复"); !ok {
+		t.Fatalf("没有绑定的行读屏名不对：%+v（找到 %v）", info, ok)
+	}
+}

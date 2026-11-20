@@ -303,7 +303,8 @@
     },
     "R-TB-017": {
       "note": "左右栏开合时草稿随主区走、不丢字",
-      "test": "TestTitleBarPanelAndSidebarToggles"
+      "test": "TestTitleBarPanelAndSidebarToggles",
+      "status_note": "行为已覆盖（草稿随主区走），判定抓不到「异常」标记：展开左栏没有失败分支"
     },
     "R-TB-019": {
       "note": "点「打开上下文面板」：右栏打开，按钮换成关闭形",
@@ -327,11 +328,13 @@
     },
     "R-TB-061": {
       "note": "查询词极长时浮层宽度不变，输入框在自己的高内横向滚动",
-      "test": "TestSessionSearchLongQueryKeepsWidth"
+      "test": "TestSessionSearchLongQueryKeepsWidth",
+      "status_note": "行为已覆盖（浮层宽度不变），判定抓不到「异常」标记：长查询不是错误分支"
     },
     "R-TB-071": {
       "note": "关闭时清掉全部高亮与当前项，下一次打开是干净状态",
-      "test": "TestSessionSearchCloseClearsHighlights"
+      "test": "TestSessionSearchCloseClearsHighlights",
+      "status_note": "行为已覆盖（关闭清高亮），判定抓不到「异常」标记：关闭路径没有错误分支"
     },
     "R-TB-074": {
       "note": "已在第一个结果时按上一个：索引按环绕跳到最后一个",
@@ -339,11 +342,13 @@
     },
     "R-TB-075": {
       "note": "跳转后命中项滚进视口（居中定位），不被滚出视口",
-      "test": "TestSessionSearchRestoresScroll"
+      "test": "TestSessionSearchRestoresScroll",
+      "status_note": "行为已覆盖（滚进视口），判定抓不到「关联」标记：滚动定位不走 Switch/Open 这类词"
     },
     "R-TB-079": {
       "note": "命中在折叠区里时自动展开该块再定位",
-      "test": "TestSessionSearchExpandsFoldedRegions"
+      "test": "TestSessionSearchExpandsFoldedRegions",
+      "status_note": "行为已覆盖（自动展开折叠块），判定抓不到「异常」标记"
     },
     "R-TB-083": {
       "note": "已在最后一个结果时按下一个：环绕回到第一个命中",
@@ -351,7 +356,8 @@
     },
     "R-TB-088": {
       "note": "换查询词后序号归零并定位首个命中",
-      "test": "TestSessionSearchQueryResetsIndex"
+      "test": "TestSessionSearchQueryResetsIndex",
+      "status_note": "行为已覆盖（序号归零），判定抓不到「异常」标记"
     },
     "R-TB-098": {
       "note": "结果行显示「{current} / {total} 个结果」，随命中更新",
@@ -359,7 +365,8 @@
     },
     "R-TB-100": {
       "note": "新内容进来时计数按当前命中集合实时重算",
-      "test": "TestSessionSearchCountFollowsNewContent"
+      "test": "TestSessionSearchCountFollowsNewContent",
+      "status_note": "行为已覆盖（计数实时重算），判定抓不到「关联」标记"
     },
     "R-SB-028": {
       "note": "切档失败：文案留在切换前档位并给出原因",
@@ -391,35 +398,43 @@
     },
     "R-GQ-098": {
       "note": "多个选项各自成行、各自可勾",
-      "test": "TestQuestionMultiSelectKeyboard"
+      "test": "TestQuestionMultiSelectKeyboard",
+      "status_note": "行为已覆盖（重复选项各自成行），判定抓不到「异常」标记"
     },
     "R-GQ-118": {
       "note": "自定义答案非空时接管答案，选项选中态清除",
-      "test": "TestQuestionCustomAnswerOverridesOptions"
+      "test": "TestQuestionCustomAnswerOverridesOptions",
+      "status_note": "行为已覆盖（自定义接管答案），判定抓不到「交互」标记：输入框不走 Clicked/Key"
     },
     "R-GQ-119": {
       "note": "清空自定义框即回到选项选择",
-      "test": "TestQuestionCustomAnswerOverridesOptions"
+      "test": "TestQuestionCustomAnswerOverridesOptions",
+      "status_note": "行为已覆盖（清空即回选项），判定抓不到「内容」标记：文案取自常量"
     },
     "R-GQ-122": {
       "note": "自定义答案按整段作为答案",
-      "test": "TestQuestionCustomAnswerOverridesOptions"
+      "test": "TestQuestionCustomAnswerOverridesOptions",
+      "status_note": "行为已覆盖（整段作答案），判定抓不到「内容」标记：文案取自常量"
     },
     "R-GQ-123": {
       "note": "自定义生效后选项取消选中",
-      "test": "TestQuestionCustomAnswerOverridesOptions"
+      "test": "TestQuestionCustomAnswerOverridesOptions",
+      "status_note": "行为已覆盖（自定义生效后取消选中），判定抓不到「状态」标记"
     },
     "R-GQ-127": {
       "note": "多选答案与自定义选项合并提交（勾选在前）",
-      "test": "TestQuestionMergedAnswerDedups"
+      "test": "TestQuestionMergedAnswerDedups",
+      "status_note": "行为已覆盖（合并提交），判定抓不到「交互」标记：answerAt 是纯函数"
     },
     "R-GQ-128": {
       "note": "合并时同一值只出现一次（去重）",
-      "test": "TestQuestionMergedAnswerDedups"
+      "test": "TestQuestionMergedAnswerDedups",
+      "status_note": "行为已覆盖（去重），判定抓不到「内容」标记：字符串在纯函数里拼"
     },
     "R-GQ-131": {
       "note": "合并顺序为勾选在前、自定义在后",
-      "test": "TestQuestionMergedAnswerDedups"
+      "test": "TestQuestionMergedAnswerDedups",
+      "status_note": "行为已覆盖（勾选在前），判定抓不到「内容」标记：字符串在纯函数里拼"
     },
     "R-GQ-129": {
       "note": "自定义选项的标签与输入框同款样式",

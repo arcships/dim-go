@@ -481,3 +481,184 @@ func TestExportPanelSaysPartialHistory(t *testing.T) {
 		t.Fatalf("历史已全部载入仍写「仅统计已加载部分」：%v", tt.Texts())
 	}
 }
+
+// TestExportTurnSearchFiltersList：回合清单有搜索框（占位「搜索回合」），键入
+// 实时过滤；无命中给「没有回合匹配此搜索。」，不是「没有回合」（G-G1-07）。
+func TestExportTurnSearchFiltersList(t *testing.T) {
+	app, tt := exportTestApp(t, exportTestSession())
+	if err := tt.Click(exportSearchTurns); err != nil {
+		t.Fatalf("点不到回合搜索框：%v", err)
+	}
+	tt.Type("第二条")
+	tt.Frame()
+	if _, ok := tt.Find("第 2 轮：第二条消息"); !ok {
+		t.Fatalf("搜索命中的回合没有留下：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("第 1 轮：第一条消息"); ok {
+		t.Fatalf("搜索应当滤掉第 1 轮的条目：%v", tt.Texts())
+	}
+	app.export.search = "没有这个回合"
+	tt.Frame()
+	if !tt.HasText(exportNoMatchText) {
+		t.Fatalf("无命中没有给空态句：%v", tt.Texts())
+	}
+	app.export.search = ""
+	tt.Frame()
+	if _, ok := tt.Find("第 1 轮：第一条消息"); !ok {
+		t.Fatalf("清空搜索没有恢复第 1 轮：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("第 2 轮：第二条消息"); !ok {
+		t.Fatalf("清空搜索没有恢复第 2 轮：%v", tt.Texts())
+	}
+}
+
+// TestExportExcludeMatchesBySearch：搜索后「排除 {count} 个匹配」只取消命中且仍
+// 勾选的回合；计数为 0 时按钮置灰。与「全部排除」是两个入口（G-G1-08）。
+func TestExportExcludeMatchesBySearch(t *testing.T) {
+	app, tt := exportTestApp(t, exportTestSession())
+	app.export.scope = exportScopeTurns
+	app.export.search = "第二条"
+	tt.Frame()
+	if !tt.HasText("排除 1 个匹配") {
+		t.Fatalf("匹配计数不对：%v", tt.Texts())
+	}
+	if err := tt.Click("排除 1 个匹配"); err != nil {
+		t.Fatalf("点不到按搜索排除：%v", err)
+	}
+	tt.Frame()
+	if *app.exportTurnPtr(2) {
+		t.Fatal("命中的第 2 轮没有取消勾选")
+	}
+	if !*app.exportTurnPtr(1) {
+		t.Fatal("没命中的第 1 轮被一起排除了")
+	}
+	if !tt.HasText("排除 0 个匹配") {
+		t.Fatalf("全部排除后计数没回到 0：%v", tt.Texts())
+	}
+	if !tt.HasText("保留 1 / 2 个回合") {
+		t.Fatalf("保留计数不对：%v", tt.Texts())
+	}
+}
+
+// TestExportTurnBodyExpands：展开箭头画该轮正文（等宽块），再点收起；勾选位不
+// 因展开变化（G-G1-10 / G-G1-11）。
+func TestExportTurnBodyExpands(t *testing.T) {
+	app, tt := exportTestApp(t, exportTestSession())
+	if err := tt.Click("展开回合正文"); err != nil {
+		t.Fatalf("点不到展开箭头：%v", err)
+	}
+	tt.Frame()
+	if !tt.HasText("助手：第一条回复") {
+		t.Fatalf("展开后没有正文：%v", tt.Texts())
+	}
+	if !*app.exportTurnPtr(1) {
+		t.Fatal("展开改到了勾选位")
+	}
+	if err := tt.Click("收起回合正文"); err != nil {
+		t.Fatalf("点不到收起箭头：%v", err)
+	}
+	tt.Frame()
+	if tt.HasText("助手：第一条回复") {
+		t.Fatalf("收起后正文仍在：%v", tt.Texts())
+	}
+}
+
+// TestExportContentOptionsGateSections：「导出内容」三项默认不勾；勾上工具与思考
+// 才进导出文本；勾上压缩记录且确有压缩记录时给说明句（G-G1-03 / G-G1-04 / G-G1-13）。
+func TestExportContentOptionsGateSections(t *testing.T) {
+	snap := exportTestSession()
+	snap.Rows = append(snap.Rows, RowSnapshot{
+		Kind: RowCompression, Text: "折叠了 3 轮", Status: RowStatusDone,
+		BranchID: "main", TurnIndex: 2,
+	})
+	app, tt := exportTestApp(t, snap)
+	turns, branch := app.exportTurns()
+	app.export.format = exportFormatMarkdown
+	if body := app.exportContent(turns, branch); strings.Contains(body, "工具：") ||
+		strings.Contains(body, "思考：") {
+		t.Fatalf("三项未勾时仍导出了工具或思考：\n%s", body)
+	}
+	for _, label := range []string{exportOptTools, exportOptThink, exportOptCompress} {
+		info, ok := tt.AccessByRole(gui.RoleCheckBox, label)
+		if !ok || info.Checked {
+			t.Fatalf("勾选项 %q 默认应当未勾：%+v（找到 %v）", label, info, ok)
+		}
+	}
+	if tt.HasText(exportCompressNote) {
+		t.Fatal("未勾压缩记录时出现了说明句")
+	}
+	// 「思考」在时间线上也有同名节点：点前两个唯一文案的勾选项，第三个直接改位
+	// （UI 上的勾选态仍由下面的 AccessByRole 断言）。
+	for _, label := range []string{exportOptTools, exportOptCompress} {
+		if err := tt.Click(label); err != nil {
+			t.Fatalf("点不到勾选项 %q：%v", label, err)
+		}
+	}
+	app.export.includeThink = true
+	tt.Frame()
+	for _, label := range []string{exportOptTools, exportOptThink, exportOptCompress} {
+		if info, ok := tt.AccessByRole(gui.RoleCheckBox, label); !ok || !info.Checked {
+			t.Fatalf("勾选项 %q 没有显示成已勾：%+v（找到 %v）", label, info, ok)
+		}
+	}
+	body := app.exportContent(turns, branch)
+	for _, want := range []string{"工具：", "思考：先看看事实", "压缩记录：折叠了 3 轮"} {
+		if !strings.Contains(body, want) {
+			t.Fatalf("勾上后导出缺 %q：\n%s", want, body)
+		}
+	}
+	if !tt.HasText(exportCompressNote) {
+		t.Fatalf("勾上压缩记录且有压缩记录时缺说明句：%v", tt.Texts())
+	}
+}
+
+// TestExportStaleSnapshotNotice：面板打开后会话被重新加载（行变了）→ 给一次
+// 过期提示，不自动导出；提示恒一条（G-G1-14）。
+func TestExportStaleSnapshotNotice(t *testing.T) {
+	snap := exportTestSession()
+	src := wiredSource()
+	src.names = []string{snap.ID}
+	src.titles = []string{snap.Title}
+	src.session = snap
+	src.hasSess = true
+	app := NewApp(Options{State: StateDefault, Source: src})
+	app.openExportPanel(snap.ID, snap.Title)
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	tt.Frame()
+	if tt.HasText(exportStaleNotice) {
+		t.Fatal("快照没变就出现了过期提示")
+	}
+	src.session.Rows = append(src.session.Rows, RowSnapshot{
+		Kind: RowAssistant, Text: "重新加载后多出来的一行", Status: RowStatusDone,
+		BranchID: "main", TurnIndex: 2,
+	})
+	src.session.TurnCount = 3
+	tt.Frame()
+	if !tt.HasText(exportStaleNotice) {
+		t.Fatalf("快照变了没有过期提示：%v", tt.Texts())
+	}
+	// 再变一次：提示仍只有一条（不叠加），且面板没被自动导出或收起。
+	before := 0
+	for _, text := range tt.Texts() {
+		if text == exportStaleNotice {
+			before++
+		}
+	}
+	src.session.Rows = append(src.session.Rows, RowSnapshot{
+		Kind: RowAssistant, Text: "第二次重载", Status: RowStatusDone,
+		BranchID: "main", TurnIndex: 2,
+	})
+	tt.Frame()
+	after := 0
+	for _, text := range tt.Texts() {
+		if text == exportStaleNotice {
+			after++
+		}
+	}
+	if before != 1 || after != 1 {
+		t.Fatalf("过期提示条数 = %d → %d，想要恒 1 条", before, after)
+	}
+	if !app.export.open {
+		t.Fatal("过期提示把面板收起了")
+	}
+}
