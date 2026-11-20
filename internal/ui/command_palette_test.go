@@ -284,9 +284,10 @@ func TestCommandPaletteRowShortcut(t *testing.T) {
 	if !tt.HasText(want) {
 		t.Fatalf("行尾没有快捷键 %q：%v", want, tt.Texts())
 	}
-	// 读屏名带上同一个键位；样例模式这一行不可用，快捷键仍要画（R-GM-210）。
-	if info, ok := tt.Access("新建会话：在工作区里开一个会话，快捷键 " + want); !ok || !info.Disabled {
-		t.Fatalf("行读屏名没有带快捷键：%+v（找到 %v）", info, ok)
+	// 读屏名带上同一个键位；样例模式这一行不可用，原因与快捷键都要念出来
+	// （R-GM-210，G-B2-05 的禁用原因可读）。
+	if info, ok := tt.Access("新建会话：在工作区里开一个会话，不可用：未连接 App Server，无法执行，快捷键 " + want); !ok || !info.Disabled {
+		t.Fatalf("行读屏名没有带快捷键与不可用原因：%+v（找到 %v）", info, ok)
 	}
 	app.keybindings = map[string]string{"new-thread": "Cmd+Alt+N"}
 	tt.Frame()
@@ -298,7 +299,115 @@ func TestCommandPaletteRowShortcut(t *testing.T) {
 		t.Fatalf("改键后行尾没有换成 %q：%v", changed, tt.Texts())
 	}
 	// 没有绑定的行不画快捷键：行读屏名里没有「快捷键」这一段。
-	if info, ok := tt.Access("停止这次运行：中止当前回复"); !ok {
+	if info, ok := tt.Access("停止这次运行：中止当前回复，不可用：当前没有正在运行的回复"); !ok || info.KeyShortcuts != "" {
 		t.Fatalf("没有绑定的行读屏名不对：%+v（找到 %v）", info, ok)
+	}
+}
+
+// 不可用行的原因进可读名：置灰之外还要能听出为什么（G-B2-05 的异常列）。
+func TestCommandPaletteDisabledReasonInName(t *testing.T) {
+	app, tt := newPaletteTester(t, StateDefault)
+	tt.Frame()
+	name := "新建会话：在工作区里开一个会话，不可用：未连接 App Server，无法执行"
+	if key := app.keybindingLabel("new-thread"); key != "" {
+		name += "，快捷键 " + key
+	}
+	info, ok := tt.Access(name)
+	if !ok {
+		t.Fatalf("不可用行的读屏名里没有原因：%v", tt.Texts())
+	}
+	if !info.Disabled {
+		t.Fatalf("不可用行没有置灰：%+v", info)
+	}
+	if !tt.HasText("不可用：未连接 App Server，无法执行") {
+		t.Fatalf("屏上没有写原因：%v", tt.Texts())
+	}
+}
+
+// 分组标题排在组内候选之前（G-B2-04 的读屏顺序）。
+func TestCommandPaletteGroupHeaderPrecedesItems(t *testing.T) {
+	_, tt := newPaletteTester(t, StateDefault)
+	header, ok := tt.AccessByRole(gui.RoleGroup, "分组：动作")
+	if !ok {
+		t.Fatalf("分组标题不是分组：%v", tt.Texts())
+	}
+	first, ok := tt.AccessByRole(gui.RoleOption, "停止这次运行：中止当前回复，不可用：当前没有正在运行的回复")
+	if !ok {
+		t.Fatalf("找不到动作组第一行：%v", tt.Texts())
+	}
+	if header.Bounds.Y >= first.Bounds.Y {
+		t.Fatalf("分组标题 y=%.0f 不在首行 y=%.0f 之上", header.Bounds.Y, first.Bounds.Y)
+	}
+}
+
+// 某组被过滤空时标题一起消失，别的组标题不受影响（G-B2-04 的异常列）。
+func TestCommandPaletteFilteredGroupLosesHeader(t *testing.T) {
+	_, tt := newPaletteTester(t, StateDefault)
+	tt.Type("账户")
+	settlePaletteQuery(tt)
+	tt.Frame()
+	if _, ok := tt.Access("分组：设置项"); !ok {
+		t.Fatalf("设置项组标题没有留下：%v", tt.Texts())
+	}
+	for _, gone := range []string{"分组：动作", "分组：会话", "分组：文件"} {
+		if _, ok := tt.Access(gone); ok {
+			t.Fatalf("被过滤空的组还留着标题 %q：%v", gone, tt.Texts())
+		}
+	}
+}
+
+// 高亮项移出可视区时列表跟随滚动（G-B2-09 的「高亮项移动时列表跟随」）。
+func TestCommandPaletteSelectionStaysInPanel(t *testing.T) {
+	app, tt := newPaletteTester(t, StateDefault)
+	panel, ok := tt.Access("命令面板")
+	if !ok {
+		t.Fatal("找不到命令面板")
+	}
+	// 走到设置项组（最后一组），把高亮移到该组末条：它本来落在面板下缘之外。
+	for i := 0; i < commandGroupCount-1; i++ {
+		tt.Key(0, gui.KeyTab)
+	}
+	tt.Frame()
+	if app.palette.activeGroup != commandGroupSettings {
+		t.Fatalf("Tab 没有走到设置项组：%d", app.palette.activeGroup)
+	}
+	for i := 0; i < commandPaletteGroupLimit; i++ {
+		tt.Key(0, gui.KeyDown)
+	}
+	tt.Frame()
+	group := app.palette.groups[app.palette.activeGroup]
+	item := group.items[app.palette.selected]
+	row, ok := tt.AccessByRole(gui.RoleOption, item.title+"："+item.detail)
+	if !ok {
+		t.Fatalf("找不到高亮行 %q：%v", item.title, tt.Texts())
+	}
+	bottom := panel.Bounds.Y + panel.Bounds.H
+	if row.Bounds.Y < panel.Bounds.Y || row.Bounds.Y+row.Bounds.H > bottom {
+		t.Fatalf("高亮行 %q 在面板外：行 y=%.0f..%.0f，面板 y=%.0f..%.0f",
+			item.title, row.Bounds.Y, row.Bounds.Y+row.Bounds.H, panel.Bounds.Y, bottom)
+	}
+}
+
+// Esc 立刻关，失焦要等 300ms：两条关闭通道不混（S-CP-02、G-B2-02 的交互）。
+func TestCommandPaletteEscapeIsImmediateButBlurWaits(t *testing.T) {
+	app, tt := newPaletteTester(t, StateDefault)
+	tt.Key(0, gui.KeyEscape)
+	if app.palette.open {
+		t.Fatal("Esc 之后还要等一帧才关")
+	}
+
+	tt.Key(gui.Cmd, gui.KeyK)
+	tt.Frame()
+	if !app.palette.open {
+		t.Fatal("Cmd+K 没有重新打开面板")
+	}
+	tt.SetWindowActive(false)
+	tt.Frame()
+	if !app.palette.open {
+		t.Fatal("刚失焦就关了，没有 300ms 宽限")
+	}
+	tt.Advance(commandPaletteCloseDelay + 20*time.Millisecond)
+	if app.palette.open {
+		t.Fatal("失焦超过 300ms 仍没关")
 	}
 }

@@ -577,7 +577,7 @@ var intentCasesTail = []intentCase{
 				providerKey: "codex", providerID: "codex", namespace: "account.codex",
 				method: configLoginDevice, attempt: "a1", userCode: "CD-1",
 			}
-			r.app.configOAuthSchedulePoll("codex", "codex", "account.codex", "a1", time.Millisecond)
+			r.app.configOAuthPoll("codex", "codex", "account.codex", "a1", time.Millisecond)
 			time.Sleep(10 * time.Millisecond)
 		},
 	},

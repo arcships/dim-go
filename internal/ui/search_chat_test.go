@@ -382,3 +382,122 @@ func TestChatSearchRowStates(t *testing.T) {
 		t.Fatalf("没有置顶却出现了星标文案：\n%s", strings.Join(tt.Texts(), "\n"))
 	}
 }
+
+// chatSearchFocusByTab 在对话框里按 Tab 直到某个可读名拿到焦点：键盘能走到哪
+// 个控件，就证明那个控件在焦点链上（分页按钮不是只能点）。
+func chatSearchFocusByTab(tt *gui.Tester, name string, limit int) bool {
+	for i := 0; i < limit; i++ {
+		if info, ok := tt.Access(name); ok && info.Focused {
+			return true
+		}
+		tt.Key(0, gui.KeyTab)
+		tt.Frame()
+	}
+	info, ok := tt.Access(name)
+	return ok && info.Focused
+}
+
+// 翻页按钮的键盘通道：Tab 走到「显示更多」/「上一页」，Enter 与点击同一落点
+// （G-A2-06、G-A2-07 的键盘列）。
+func TestChatSearchPagingByKeyboard(t *testing.T) {
+	app := NewApp(Options{State: StateDefault, Source: chatSearchWiredSource()})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	openChatSearchForTest(t, tt)
+
+	if !chatSearchFocusByTab(tt, "显示下一页结果", 4) {
+		t.Fatalf("Tab 走不到「显示更多」：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	tt.Key(0, gui.KeyEnter)
+	tt.Frame()
+	if app.chatSearch.page != 2 || len(app.chatSearch.rows) != 10 {
+		t.Fatalf("Enter 翻页后 page=%d rows=%d，想要第 2 页 10 行",
+			app.chatSearch.page, len(app.chatSearch.rows))
+	}
+
+	if !chatSearchFocusByTab(tt, "回到上一页结果", 4) {
+		t.Fatalf("Tab 走不到「上一页」：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	tt.Key(0, gui.KeyEnter)
+	tt.Frame()
+	if app.chatSearch.page != 1 || len(app.chatSearch.rows) != 8 {
+		t.Fatalf("Enter 回退后 page=%d rows=%d，想要第 1 页 8 行",
+			app.chatSearch.page, len(app.chatSearch.rows))
+	}
+	if app.chatSearch.selected != 0 {
+		t.Fatalf("回退页后选中行 = %d，想要第 0 行", app.chatSearch.selected)
+	}
+}
+
+// Home / End 把选中行跳到首条 / 末条，输入框里的查询不变（与 ↑↓ 同一族键位，
+// G-A2-13 的选中行迁移）。
+func TestChatSearchHomeEndSelection(t *testing.T) {
+	app := NewApp(Options{State: StateDefault, Source: chatSearchWiredSource()})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	openChatSearchForTest(t, tt)
+
+	tt.Key(0, gui.KeyEnd)
+	tt.Frame()
+	if got, want := app.chatSearch.selected, len(app.chatSearch.rows)-1; got != want {
+		t.Fatalf("End 之后选中行 = %d，想要末条 %d", got, want)
+	}
+	tt.Key(0, gui.KeyHome)
+	tt.Frame()
+	if app.chatSearch.selected != 0 {
+		t.Fatalf("Home 之后选中行 = %d，想要首条 0", app.chatSearch.selected)
+	}
+	if app.chatSearch.query != "" {
+		t.Fatalf("Home / End 改了查询词：%q", app.chatSearch.query)
+	}
+}
+
+// 目录读回后加载行消失、结果行出现：加载态不残留成常驻文案（G-A2-05 的
+// 「结果返回后整行消失」），空目录则换成空态而不是停在加载中（G-A2-14）。
+func TestChatSearchLoadingSettlesIntoResults(t *testing.T) {
+	// names 为 nil：连着 Source，目录还没读回。
+	src := &fakeSource{conn: Connection{Phase: "connected"}}
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	openChatSearchForTest(t, tt)
+	if !tt.HasText(chatSearchLoadingText) {
+		t.Fatalf("加载中没有「正在加载...」：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+
+	// 目录读回（一条会话）：加载行让位给结果行。
+	src.names = []string{"s1"}
+	src.titles = []string{"修复发送路径"}
+	tt.Frame()
+	if app.chatSearch.phase != chatSearchReady {
+		t.Fatalf("目录读回后读态 = %v，想要就绪", app.chatSearch.phase)
+	}
+	if tt.HasText(chatSearchLoadingText) {
+		t.Fatalf("目录读回后加载行还在：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	if !tt.HasText("修复发送路径") {
+		t.Fatalf("目录读回后没有结果行：\n%s", strings.Join(tt.Texts(), "\n"))
+	}
+	if len(app.chatSearch.rows) != 1 {
+		t.Fatalf("目录读回后行数 = %d，想要 1", len(app.chatSearch.rows))
+	}
+
+	// 目录读回但没有会话：空态出场，而不是停在加载中。
+	src.names, src.titles = []string{}, []string{}
+	tt.Frame()
+	if tt.HasText(chatSearchLoadingText) {
+		t.Fatal("空目录仍停在加载行")
+	}
+	if !tt.HasText(chatSearchEmptyText) {
+		t.Fatalf("空目录没有空态 %q：\n%s", chatSearchEmptyText, strings.Join(tt.Texts(), "\n"))
+	}
+
+	// 点空态没有动作：不关对话框、不打开任何会话（G-A2-14 的交互列）。
+	before := app.selectedSession
+	if err := tt.Click(chatSearchEmptyText); err == nil {
+		tt.Frame()
+	}
+	if !app.chatSearch.open {
+		t.Fatal("点空态把对话框关掉了")
+	}
+	if app.selectedSession != before {
+		t.Fatalf("点空态换了选中会话：%q → %q", before, app.selectedSession)
+	}
+}

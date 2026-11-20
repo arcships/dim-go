@@ -6416,14 +6416,14 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-CFG-273 | S-configuration-35 | 内容 | Codex 能力被禁用 | 显示禁用原因说明 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-35→internal/ui/settings_provider_oauth.go:App.configOAuthBody；标记 = 文案「拉取失败：」等 4 条@App.configModelsPanel） |
+| R-CFG-273 | S-configuration-35 | 内容 | Codex 能力被禁用 | 显示禁用原因说明 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
 | R-CFG-274 | S-configuration-35 | 状态 | 未禁用 | 不渲染 | — | 屏上「（禁用态说明）」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-275 | S-configuration-35 | 样式 | 打开设置›模型供应，看「（禁用态说明）」 | 字号 12、警示或次级前景 | — | 屏上「（禁用态说明）」：字号 = 12 | 已实现（映射 = S-configuration-35→internal/ui/settings_provider_oauth.go:App.configOAuthBody；标记 = Height） |
+| R-CFG-275 | S-configuration-35 | 样式 | 打开设置›模型供应，看「（禁用态说明）」 | 字号 12、警示或次级前景 | — | 屏上「（禁用态说明）」：字号 = 12 | 未实现（找不到元素渲染点） |
 | R-CFG-276 | S-configuration-35 | 关联 | 在「（禁用态说明）」所在行内，同时看它与登录按钮的相对位置 | 禁用时登录按钮不渲染 | — | 屏上「（禁用态说明）」：出现次数 = 0；可点次数 = 0（禁用态） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-CFG-277 | S-configuration-35 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「（禁用态说明）」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-35→internal/ui/settings_provider_oauth.go:App.configOAuthBody；标记 = Role@App.configModelsPanel） |
-| R-CFG-278 | S-configuration-35 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进模型供应，看「（禁用态说明）」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-configuration-35→internal/ui/settings_provider_oauth.go:App.configOAuthBody；标记 = Err@App.configModelsPanel） |
-| R-CFG-279 | S-configuration-35 | 窄窗 | 把窗口宽度缩到最小 720，看「（禁用态说明）」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（映射到位但没有该维度的标记）：S-configuration-35→internal/ui/settings_provider_oauth.go:App.configOAuthBody |
-| R-CFG-280 | S-configuration-35 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「（禁用态说明）」 | 对比 ≥4.5:1 | — | 屏上「（禁用态说明）」：对比度 ≥ 4.5:1 | 已实现（映射 = S-configuration-35→internal/ui/settings_provider_oauth.go:App.configOAuthBody；标记 = Theme@App.configModelsPanel） |
+| R-CFG-277 | S-configuration-35 | 无障碍 | 打开系统读屏 VoiceOver，用 VO+→ 逐项走到「（禁用态说明）」听播报 | 播报一次 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-CFG-278 | S-configuration-35 | 异常 | 把界面语言切到英文并删掉该键的语言包条目，重进模型供应，看「（禁用态说明）」 | 回落中文 | — | 判据 = 说明与失败文案 10.5/14、色 #737373 / #8a8a8a、贴触发控件下方 3.5（TX-TIP）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-CFG-279 | S-configuration-35 | 窄窗 | 把窗口宽度缩到最小 720，看「（禁用态说明）」 | 折行 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
+| R-CFG-280 | S-configuration-35 | 深色 | 在设置›外观把主题切成深色，再回模型供应，看「（禁用态说明）」 | 对比 ≥4.5:1 | — | 屏上「（禁用态说明）」：对比度 ≥ 4.5:1 | 未实现（找不到元素渲染点） |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|

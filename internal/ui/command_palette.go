@@ -575,9 +575,10 @@ func (a *App) commandPaletteResults(c *gui.Context) {
 // commandPaletteGroupHeader 是组标题：图标 + 名称 + 条数。
 func (a *App) commandPaletteGroupHeader(c *gui.Context, gi int, group commandGroup) {
 	t := c.Theme()
-	// G-B2-04 分组标题
+	// G-B2-04 分组标题（读作「分组：…」，先于组内候选）
 	gui.Row(c).Shrink(0).Height(commandPaletteHeaderH).Padding(0, space1).
-		Gap(space1).AlignItems(gui.Center).Label("分组：" + group.label).Children(func() {
+		Gap(space1).AlignItems(gui.Center).Role(gui.RoleGroup).
+		Label("分组：" + group.label).Children(func() {
 		iconGlyph(c, commandGroupIcons[gi], t.TextMuted, "group")
 		typeMicro.style(t, gui.Text(c, group.label)).TextColor(t.TextMuted)
 		typeMicro.style(t, gui.Text(c, fmt.Sprintf("%d", len(group.items)))).
@@ -592,7 +593,12 @@ func (a *App) commandPaletteRow(c *gui.Context, gi, ii int, item commandItem) {
 	selected := gi == a.palette.activeGroup && ii == a.palette.selected
 	// G-B2-05 命令项（图标 + 文字，选中态强调底）
 	// G-B2-06 行尾快捷键小字：读屏名里带上同一个键位（空串按未绑定处理）。
+	// G-B2-05 异常：不可用行把原因写进同一句可读名——置灰之外还要能听出为什么，
+	// 否则读屏只会念一个没有理由的「不可用」选项。
 	label := item.title + "：" + item.detail
+	if item.disabled && item.reason != "" {
+		label += "，不可用：" + item.reason
+	}
 	if item.shortcut != "" {
 		label += "，快捷键 " + item.shortcut
 	}
@@ -637,6 +643,11 @@ func (a *App) commandPaletteRow(c *gui.Context, gi, ii int, item commandItem) {
 		return
 	}
 	row.OnClick(func() { a.executePaletteRow(gi, ii, false) })
+	// G-B2-09 内容：高亮项移动时列表跟随——选中行走键盘走到可视区外时，把它
+	// 滚回列表里；鼠标点选的那一行本来就在可视区，不需要再滚。
+	if selected {
+		row.ScrollIntoView()
+	}
 }
 
 // commandPaletteHighlighted 画带命中高亮的标题（与右栏搜索同一种底色）。

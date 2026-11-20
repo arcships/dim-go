@@ -463,6 +463,66 @@
     "R-GQ-171": {
       "note": "提交为脚部最右的实心强调色按钮",
       "test": "TestQuestionCardBatch"
+    },
+    "R-TL-601": {
+      "note": "复制整轮助手内容写剪贴板，图标在反馈窗口内变勾，窗口过后按时间算回",
+      "test": "TestTurnCopyWritesClipboardAndShowsCheck"
+    },
+    "R-TL-619": {
+      "note": "按原轮输入重跑：时间线追加新轮，旧轮保留",
+      "test": "TestTurnRetryAppendsRoundAndDisablesWhileInFlight"
+    },
+    "R-XR-123": {
+      "note": "重试在途（发送中或还有轮在跑）时按钮禁用并写原因",
+      "test": "TestTurnRetryAppendsRoundAndDisablesWhileInFlight"
+    },
+    "R-XR-124": {
+      "note": "连点只新增一轮，不覆盖旧轮（在途时第二次点击无动作）",
+      "test": "TestTurnRetryAppendsRoundAndDisablesWhileInFlight"
+    },
+    "R-XR-173": {
+      "note": "轮脚停止态动作条只留可用项：复制与重试在，分叉置灰写原因",
+      "test": "TestTurnActionsHiddenWhileRunningAndTrimmedWhenStopped"
+    },
+    "R-XR-121": {
+      "note": "停止态复制仍可用（复制已产生的内容）",
+      "test": "TestTurnActionsHiddenWhileRunningAndTrimmedWhenStopped"
+    },
+    "R-TL-109": {
+      "note": "运行中的轮脚不出动作条：其内控件这一帧不可交互",
+      "test": "TestTurnActionsHiddenWhileRunningAndTrimmedWhenStopped"
+    },
+    "R-TL-064": {
+      "note": "回到最新在底部时不常驻，滚离底部才出现",
+      "test": "TestBackToLatestHiddenAtBottomAndRestoresFollowing"
+    },
+    "R-XR-096": {
+      "note": "回到最新按当前滚动位置重算：底部与阈值内都不显示",
+      "test": "TestBackToLatestRecalculatesByPosition"
+    },
+    "R-XR-098": {
+      "note": "点回到最新后开始滚回底部（恢复跟随）",
+      "test": "TestBackToLatestHiddenAtBottomAndRestoresFollowing"
+    },
+    "R-TL-656": {
+      "note": "压缩分隔行点开摘要区，再点收起",
+      "test": "TestCompressionRowExpandsSummary"
+    },
+    "R-TL-661": {
+      "note": "压缩行读屏口径：Disclosure 角色 + 展开态，收起时不画摘要区",
+      "test": "TestCompressionRowExpandsSummary"
+    },
+    "R-TL-552": {
+      "note": "工具详情「输出」段显示失败工具的输出，「失败原因」段给原因，两段不混",
+      "test": "TestToolDetailHasThreeSections"
+    },
+    "R-TL-730": {
+      "note": "分组内容有左侧竖线轨道，工具行缩进在轨道右侧",
+      "test": "TestGroupOpsRailIndentsRows"
+    },
+    "R-TL-700": {
+      "note": "装载第一轮时恢复遮罩挡住时间线，不铺半截内容",
+      "test": "TestRestoreMaskCoversTimeline"
     }
   }
 }

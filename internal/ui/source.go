@@ -1057,6 +1057,8 @@ type MCPProblemSnapshot struct {
 // MCPServerDraft 是编辑器提交给服务端的工具服务器配置：只收这份通道能带过去的
 // 字段（名称、作用域、传输方式、启动命令 / 地址、参数与环境变量）。
 type MCPServerDraft struct {
+	// ID 是新建条目的标识（界面按名称归一化后给出）；空表示由服务端或名称决定。
+	ID        string
 	Name      string
 	Scope     string
 	Transport string

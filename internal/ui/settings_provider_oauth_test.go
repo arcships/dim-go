@@ -326,3 +326,51 @@ func TestProviderOAuthModelsEmptyCopy(t *testing.T) {
 
 // 确认 tester 的取消点击走的是可读名，不是位置。
 var _ = gui.RoleTextField
+
+// TestProviderOAuthDevicePolls 断言设备码登录的轮询由渲染线程按间隔发起：pending
+// 推后下一次，completed 结束等待并写回执（S-configuration-32）。
+func TestProviderOAuthDevicePolls(t *testing.T) {
+	resetSettingsScreenState()
+	oauth := newOAuthIntents()
+	oauth.pollStage = "pending"
+	app := NewApp(Options{State: StateDefault,
+		Source: oauthSource("grok-build", "Grok Build", configNamespaceGrok,
+			"grok", false, configLoginDevice), Intents: oauth})
+	tt := openSettingsSection(t, app, secProviders)
+
+	if err := tt.Click(configCopyGrokSignIn); err != nil {
+		t.Fatalf("点不到登录：%v", err)
+	}
+	oauth.expect(t, "Begin grok-build account.grok device ")
+	tt.Frame()
+	// 间隔没到：这一帧不查。
+	tt.Frame()
+	select {
+	case got := <-oauth.calls:
+		t.Fatalf("间隔没到就查了：%q", got)
+	default:
+	}
+	configOAuthFlow.nextPoll = time.Now().Add(-time.Second)
+	tt.Frame()
+	oauth.expect(t, "Poll grok-build account.grok att-device")
+	tt.Frame()
+	tt.Frame()
+	if configOAuthFlow.polling {
+		t.Fatal("pending 后仍标记查询在路上")
+	}
+	if configOAuthFlow.nextPoll.Before(time.Now()) {
+		t.Fatal("pending 没有推后下一次查询")
+	}
+	oauth.pollStage = "completed"
+	configOAuthFlow.nextPoll = time.Now().Add(-time.Second)
+	tt.Frame()
+	oauth.expect(t, "Poll grok-build account.grok att-device")
+	tt.Frame()
+	tt.Frame()
+	if configOAuthFlow.attempt != "" {
+		t.Fatalf("completed 后仍在等待：%+v", configOAuthFlow)
+	}
+	if !tt.HasText("登录成功") {
+		t.Fatalf("完成后没有回执：%v", tt.Texts())
+	}
+}

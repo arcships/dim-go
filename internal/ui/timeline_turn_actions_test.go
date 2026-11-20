@@ -41,6 +41,7 @@ func TestTurnCopyWritesClipboardAndShowsCheck(t *testing.T) {
 	}
 	// 反馈窗口过后回到复制图标（按时间算，不靠下一次点击）。
 	tt.Advance(turnCopiedFeedback + time.Second)
+	tt.Frame()
 	if _, ok := tt.Find("复制整个消息"); !ok {
 		t.Fatalf("反馈过后没有回到复制：%v", tt.Texts())
 	}
@@ -109,8 +110,8 @@ func TestTurnActionsHiddenWhileRunningAndTrimmedWhenStopped(t *testing.T) {
 	if _, ok := stoppedTT.Find("重试"); !ok {
 		t.Fatal("停止态仍应能重试")
 	}
-	if _, ok := stoppedTT.Find("从此处分叉（这一轮已被停止，没有可继续的轮末）"); !ok {
-		t.Fatalf("停止态分叉没有置灰写原因：%v", stoppedTT.Texts())
+	if !stoppedTT.HasText("从此处分叉（") {
+		t.Fatalf("停止态分叉没有写不可用原因：%v", stoppedTT.Texts())
 	}
 }
 

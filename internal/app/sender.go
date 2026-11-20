@@ -766,7 +766,7 @@ func (s *appSender) sendExtensionWrite(
 		if spec.ExpectedVersion == "" {
 			spec.ExpectedVersion = payload.ExpectedVer
 		}
-		return callAndReply(ctx, client, methodMCPSave, mcpSaveParams(payload.ServerID, spec))
+		return callAndReply(ctx, client, methodMCPSave, mcpSaveParams(firstNonEmpty(payload.ServerID, spec.ID), spec))
 	case "mcp.set_enabled":
 		var payload struct {
 			ServerID string          `json:"serverId"`

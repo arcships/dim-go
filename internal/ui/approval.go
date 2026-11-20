@@ -164,24 +164,25 @@ func approvalFacts(snap ApprovalSnapshot) (string, map[string]any, bool) {
 
 // approvalCard 画审批卡：外层骨架 + 三选一的主体。
 //
-// 卡是键盘的一块独立区域（R-IN-842、U3 F4）：卡出现即拿焦点（AutoFocus），
-// Tab / ⇧Tab 在卡内控件之间循环，不逃到背景；Esc 不答复，也不把焦点放走。
+// 卡是键盘的一块独立区域（R-IN-842、U3 F4）：卡出现即拿焦点（焦点先落在卡
+// 容器上，不预选任何决定），Tab / ⇧Tab 在卡内控件之间循环，不逃到背景；Esc
+// 不答复，也不把焦点放走。
 func (a *App) approvalCard(c *gui.Context) {
 	t := c.Theme()
 	snap, ok := a.currentApproval()
 	if !ok {
 		return
 	}
+	// 换一条请求就是一张新卡：焦点重新交给卡容器，不沿用上一条卡上的位置。
+	newCard := a.approvalFocusFor != snap.ID
+	a.approvalFocusFor = snap.ID
 	// 焦点环只在卡片这一帧内有效，每帧重收。
 	a.approvalRing = a.approvalRing[:0]
 	// IN-43 / IN-66 / G-C1-01 审批卡容器
 	card := gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).Padding(space4).
 		Gap(space3).Background(t.Surface).Border(strokeHairline, t.Border).
 		// G-C2-01 沙箱卡容器（与审批卡同一骨架）
-		Radius(radiusWindowCard).Role(gui.RoleRegion).Label("审批卡").
-		// 卡容器自己可聚焦：焦点先落在卡上（读屏读卡标题与第一段），Tab 才到
-		// 第一个决定——不预选任何一个决定，免得 Enter 变成误批准。
-		Focusable().AutoFocus()
+		Radius(radiusWindowCard).Role(gui.RoleRegion).Label("审批卡").Focusable()
 	a.approvalRing = append(a.approvalRing, card)
 	card.Children(func() {
 		switch {
@@ -193,25 +194,35 @@ func (a *App) approvalCard(c *gui.Context) {
 			a.toolApprovalBody(c, snap)
 		}
 	})
-	a.approvalTabCycle(card)
+	if newCard {
+		// 卡出现：焦点进卡容器（Tab 才到第一个决定，不预选任何一个）。
+		card.AutoFocus()
+	}
+	a.approvalTabKeys(card)
 }
 
-// approvalTabCycle 把 Tab / ⇧Tab 圈在卡片里：焦点在卡内时，Tab 走到环上的下一
-// 个控件（⇧Tab 上一个，首尾相接），焦点不在卡内时不拦。
+// approvalTabKeys 把 Tab / ⇧Tab 圈在卡片里：焦点在卡内时，Tab 走到环上的下一
+// 处（⇧Tab 上一处，首尾相接），不逃到背景；焦点不在卡内时不拦。
 //
-// 键位登记在卡容器上，框架只在焦点位于卡容器或卡内元素上时把它交给卡片
-// （焦点链），所以卡片之外按 Tab 照旧走全局顺序。
-func (a *App) approvalTabCycle(card gui.Element) {
-	next := card.Shortcut(0, gui.KeyTab)
-	prev := card.Shortcut(gui.Shift, gui.KeyTab)
-	if !next && !prev {
+// 键位登记在卡容器上：框架只在焦点位于卡容器或卡内元素上时把这它交给卡片
+// （焦点链），卡片之外按 Tab 照旧走全局顺序；登记同时把框架自己的 Tab 换焦点
+// 挡掉，焦点才不会先跑出卡外。
+func (a *App) approvalTabKeys(card gui.Element) {
+	if card.Shortcut(0, gui.KeyTab) {
+		a.approvalFocusStep(false)
+	}
+	if card.Shortcut(gui.Shift, gui.KeyTab) {
+		a.approvalFocusStep(true)
+	}
+}
+
+// approvalFocusStep 把焦点在卡内的焦点环上移动一步：back 为真时上一处，首尾
+// 相接。焦点不在环上时从卡容器算起。
+func (a *App) approvalFocusStep(back bool) {
+	ring := a.approvalRing
+	if len(ring) < 2 {
 		return
 	}
-	step := 1
-	if prev {
-		step = -1
-	}
-	ring := a.approvalRing
 	at := -1
 	for i, el := range ring {
 		if el.Focused() {
@@ -219,14 +230,14 @@ func (a *App) approvalTabCycle(card gui.Element) {
 			break
 		}
 	}
-	if at < 0 || len(ring) < 2 {
-		println("TRAP skip at=", at, "ring=", len(ring))
-		return
+	if at < 0 {
+		at = 0
 	}
-	println("TRAP at=", at, "step=", step, "ring=", len(ring), "focused->", (at+step+len(ring))%len(ring))
-	to := ring[(at+step+len(ring))%len(ring)]
-	to.Focus()
-	println("TRAP after Focus() Focused()=", to.Focused())
+	step := 1
+	if back {
+		step = -1
+	}
+	ring[(at+step+len(ring))%len(ring)].Focus()
 }
 
 // toolApprovalBody 是工具权限卡的主体：标题、成员区块、输入区、提示块、错误行、

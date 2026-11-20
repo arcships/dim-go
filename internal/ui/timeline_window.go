@@ -91,6 +91,9 @@ type rowSpan struct {
 // rows 是这一帧真正画出来的行数（自查与测试用）。
 func (a *App) renderedRows() int { return a.renderedCount }
 
+// renderedSpan 是这一帧画出来的行区间（自查与测试用）。
+func (a *App) renderedSpan() (int, int) { return a.renderedFrom, a.renderedTo }
+
 // rowSpanFor 算这一帧要画的行区间。[viewport] 是滚动区的可见高度（DIP，
 // 0 表示还没有布局结果），[estimate] 按行序号给高度估算值，用它折算视口落在
 // 累加高度里的哪几行。
@@ -169,6 +172,7 @@ func (a *App) rowSpanFor(c *gui.Context, viewport float32, n int, estimate func(
 		}
 	}
 	a.renderedCount = end - start
+	a.renderedFrom, a.renderedTo = start, end
 	return rowSpan{start: start, end: end, above: above, below: below}
 }
 

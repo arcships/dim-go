@@ -1067,9 +1067,9 @@ func (a *App) mcpSaveDraft() {
 		return
 	}
 	draft := mcpScreen.draft
-	scope := mcpCopyScopeUser
+	scope := "user"
 	if draft.scope == 1 {
-		scope = mcpCopyScopeItem
+		scope = "project"
 	}
 	transport := "stdio"
 	switch draft.transport {
@@ -1079,7 +1079,7 @@ func (a *App) mcpSaveDraft() {
 		transport = "sse"
 	}
 	out := MCPServerDraft{
-		Name: draft.name, Scope: scope, Transport: transport,
+		ID: mcpServerID(draft.name), Name: draft.name, Scope: scope, Transport: transport,
 		Command: draft.command, Args: append([]string(nil), draft.args...), URL: draft.url,
 	}
 	for _, env := range draft.env {
@@ -1099,6 +1099,30 @@ func (a *App) mcpSaveDraft() {
 		mcpScreen.saving = false
 		mcpScreen.formErr = strings.TrimPrefix(reason, "保存 MCP 服务器：")
 	})
+}
+
+// mcpServerID 把服务器名归一化成条目标识（参考的 normalizeMcpServerId）：
+// 小写、非字母数字折成连字符、去掉首尾连字符；空名回落到 mcp-server。
+func mcpServerID(name string) string {
+	lower := strings.ToLower(strings.TrimSpace(name))
+	var b strings.Builder
+	dash := false
+	for _, r := range lower {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			if dash && b.Len() > 0 {
+				b.WriteByte('-')
+			}
+			dash = false
+			b.WriteRune(r)
+			continue
+		}
+		dash = true
+	}
+	id := strings.Trim(b.String(), "-")
+	if id == "" {
+		return "mcp-server"
+	}
+	return id
 }
 
 // mcpValidateDraft 校验编辑器：名称必填；stdio 要启动命令；http / sse 要合法地址。

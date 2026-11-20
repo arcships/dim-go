@@ -26,6 +26,8 @@ const (
 //
 // Env 只用于写入，不会出现在清单读数里；本包也不记录、不打印它的内容。
 type ToolServerSpec struct {
+	// ID 是条目在目标作用域里的标识；空表示用 Name。界面对新建条目按名称生成。
+	ID        string            `json:"id,omitempty"`
 	Name      string            `json:"name"`
 	Transport ToolTransport     `json:"transport"`
 	Command   string            `json:"command,omitempty"`

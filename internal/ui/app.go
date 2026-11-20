@@ -557,11 +557,14 @@ type App struct {
 	agentMenuOpen     bool
 	statusBranchOpen  bool
 	statusBranchQuery string
-	chatMenuOpen      bool
-	openWithOpen      bool
-	openWithLoading   bool
-	openWithApp       string
-	headerNote        string
+	// headerBranchOpen 是标题栏分支标记菜单的开合（与状态条的分支菜单同一份
+	// 分支表，位置不同）。
+	headerBranchOpen bool
+	chatMenuOpen     bool
+	openWithOpen     bool
+	openWithLoading  bool
+	openWithApp      string
+	headerNote       string
 
 	// model 是当前模型名（输入区工具行与标题栏共用）。
 	model string
@@ -587,13 +590,19 @@ type App struct {
 	// approvalRing 是审批卡这一帧的焦点环：卡容器 + 卡内按钮，顺序即 Tab 顺序。
 	// 它只在画卡的这一帧里有效（每帧重收），不承载事实。
 	approvalRing []gui.Element
+	// approvalFocusFor 记焦点是哪一条请求的卡上拿到的：换请求就是一张新卡，
+	// 焦点重新进卡。
+	approvalFocusFor string
 
 	feed gui.ScrollState
 
-	// rowHeights 是时间线的实测行高缓存，renderedCount 是上一帧画出来的行数
-	// （见 timeline_window.go）；两者都是可丢的视图状态，只服务渲染窗口。
+	// rowHeights 是时间线的实测行高缓存，renderedCount / renderedFrom /
+	// renderedTo 是上一帧画出来的行（见 timeline_window.go）；都是可丢的视图
+	// 状态，只服务渲染窗口。
 	rowHeights    rowHeights
 	renderedCount int
+	renderedFrom  int
+	renderedTo    int
 
 	// timelineSelected 是时间线上一帧的选中文本：⌘F 打开会话内搜索时预填。
 	// 它是可丢的视图状态，不承载事实。

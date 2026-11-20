@@ -2315,6 +2315,7 @@ func (w *App) SaveMCPServer(ctx context.Context, draft ui.MCPServerDraft) error 
 		env[key] = item.Value
 	}
 	spec := extensions.ToolServerSpec{
+		ID:        strings.TrimSpace(draft.ID),
 		Name:      strings.TrimSpace(draft.Name),
 		Transport: extensions.ToolTransport(draft.Transport),
 		Command:   strings.TrimSpace(draft.Command),

@@ -1513,7 +1513,7 @@ func (a *App) note(c *gui.Context, note string) {
 // backToLatest 是浮在时间线右下角的「回到最新」按钮，只在滚离底部后出现。
 func (a *App) backToLatest(c *gui.Context) {
 	// TL-08 回到最新
-	if a.feed.MaxY <= 0 || a.feed.MaxY-a.feed.Y < timelineBackThreshold {
+	if !backToLatestVisible(a.feed) {
 		return
 	}
 	gui.Row(c).Absolute().Bottom(space3).Right(timelinePadX).Children(func() {
@@ -1521,6 +1521,12 @@ func (a *App) backToLatest(c *gui.Context) {
 			a.feed.ScrollTo(0, math.MaxFloat32, gui.Smooth)
 		}
 	})
+}
+
+// backToLatestVisible 是「回到最新」的显隐判据：在底部（含阈值内的近底部）不
+// 显示，滚离底部才显示；位置一变就按新位置重算（R-XR-096）。
+func backToLatestVisible(feed gui.ScrollState) bool {
+	return feed.MaxY > 0 && feed.MaxY-feed.Y >= timelineBackThreshold
 }
 
 // revealPanel 是折叠容器的展开区：高度按 0.3s 曲线增长，内容随进度淡入。

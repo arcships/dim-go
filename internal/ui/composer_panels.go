@@ -59,6 +59,9 @@ var (
 
 // resetPanelViewState 重置底部栈与时间线新增块的可丢视图状态。
 func (a *App) resetPanelViewState() {
+	// 实测行高属于"上一段历史"：换会话后按新的内容重新量（timeline_window.go）。
+	a.rowHeights = rowHeights{}
+	a.renderedCount = 0
 	a.queueCollapsed = false
 	a.queueEditing = ""
 	a.queueDraft = ""

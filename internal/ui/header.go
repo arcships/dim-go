@@ -168,7 +168,10 @@ func (a *App) header(c *gui.Context) {
 				AccessHidden(true)
 		}
 		// TB-19 会话名
-		title := typeTitleRow.style(t, gui.Text(c, name)).SingleLine().Label("会话 " + name)
+		title := typeTitleRow.style(t, gui.Text(c, name)).SingleLine().
+			Label("会话 " + name).
+			// 截断后悬停给全名：屏上放不下的部分靠提示补，不改读屏名。
+			Tooltip(name)
 		if narrow {
 			title = title.MaxWidth(narrowTitleMaxWidth)
 		}
@@ -235,15 +238,75 @@ func (a *App) panelToggle(c *gui.Context) {
 // branchMarker 是标题栏里的分支标记：参考产品本行不显示分支，这里只在
 // 非 main 分支（或接上事实）时给一个不可点的标记，避免把分支入口丢掉。
 func (a *App) branchMarker(c *gui.Context) {
-	branch, _, wired := a.branchState()
+	branch, branches, wired := a.branchState()
 	if branch == "" || (!wired && branch == "main") {
 		return
 	}
 	t := c.Theme()
-	gui.Row(c).Gap(space1).AlignItems(gui.Center).Label("分支 " + branch).Children(func() {
+	m := gui.MenuBase(c, &a.headerBranchOpen)
+	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
+		Gap(space1).AlignItems(gui.Center).Label("分支 " + branch).
+		Tooltip("切换分支").Description("当前分支 " + branch + "，可切换或新建").
+		Cursor(gui.CursorPointer)
+	if tr.Hovered() {
+		tr = tr.Background(t.SurfaceHover)
+	}
+	tr.Children(func() {
 		iconGlyph(c, iconBranch, t.TextMuted, "branch")
 		typeMicro.style(t, gui.Text(c, branch)).TextColor(t.TextMuted).SingleLine()
 	})
+	m.Popup(func(panel gui.Element) {
+		panel.Width(statusBranchMenuW).Padding(space1).Radius(radiusCard).
+			Background(t.Surface).
+			Shadow(0, 4, 16, 0, colorShadow.in(t))
+		typeMicro.style(t, gui.Text(c, "分支")).TextColor(t.TextMuted).Padding(space1, space2)
+		for _, name := range branches {
+			name := name
+			if menuItem(c, m, iconBranch, name, "分支："+name, "", false, name == branch) {
+				a.switchBranch(name, wired)
+			}
+		}
+		// 新建分支：与状态条上的同一入口同一落点（样例只改样例分支表，接上事实
+		// 走 session.branch_create；没有写通道时状态条那边置灰写原因）。
+		if menuItem(c, m, iconPlus, "创建新分支", "创建新分支", "", false, false) {
+			a.createBranchFrom(branch, wired)
+		}
+	})
+}
+
+// switchBranch 切换当前分支：接上事实且有写通道时走 Intents.SelectBranch，
+// 样例模式只改视图里的样例分支。
+func (a *App) switchBranch(name string, wired bool) {
+	if wired && a.intents != nil {
+		a.dispatch("切换分支", func(ctx context.Context) error {
+			return a.intents.SelectBranch(ctx, name)
+		}, func() { a.branch = name })
+		return
+	}
+	a.branch = name
+}
+
+// createBranchFrom 从当前分支切出新分支：样例模式按「{当前}-1」加一条；
+// 接上事实时与状态条同一落点（取草稿作为新分支的第一条提问）。
+func (a *App) createBranchFrom(current string, wired bool) {
+	if wired && a.intents != nil {
+		prompt, reason := a.forkStarter()
+		if reason != "" {
+			a.headerNote = reason
+			return
+		}
+		snap, _ := a.liveSession()
+		parent, turn := current, snap.TurnCount
+		a.dispatch("创建新分支", func(ctx context.Context) error {
+			return a.intents.CreateBranch(ctx, parent, turn, prompt)
+		}, nil)
+		return
+	}
+	name := current + "-1"
+	if !containsString(a.branches, name) {
+		a.branches = append(a.branches, name)
+	}
+	a.branch = name
 }
 
 // chatMenu 是会话 `⋯` 菜单（TB-20–TB-30）：9 个可见项 + 置顶/取消置顶两种状态。

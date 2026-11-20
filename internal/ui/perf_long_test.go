@@ -99,16 +99,16 @@ func frameMS(tt *gui.Tester) float64 {
 }
 
 // medFrames 连画 n 帧，返回中位数与最大值（毫秒）。
-func medFrames(tt *gui.Tester, n int) (med float64, max float64) {
+func medFrames(tt *gui.Tester, n int) (med float64, peak float64) {
 	frames := make([]float64, 0, n)
 	for i := 0; i < n; i++ {
 		f := frameMS(tt)
 		frames = append(frames, f)
-		if f > max {
-			max = f
+		if f > peak {
+			peak = f
 		}
 	}
-	return median(frames), max
+	return median(frames), peak
 }
 
 // TestPerfLongHistory 是 200 轮（1000 行）的四件实测：首帧、稳态帧、滚到顶 /
@@ -221,6 +221,7 @@ func TestPerfVirtualSearchReveal(t *testing.T) {
 	app, tt, _ := perfLongTester(t, 2000)
 	app.feed.Y = 0
 	tt.Frame()
+	idle := frameMS(tt)
 
 	// 打开会话内搜索并查一个只在第 1500 轮出现过的词。
 	app.sessionSearch.open = true
@@ -228,7 +229,8 @@ func TestPerfVirtualSearchReveal(t *testing.T) {
 	app.sessionSearch.query = "第 1500 轮"
 	app.sessionSearch.focus = false
 	app.sessionSearch.current = -1
-	tt.Frame()
+	// 浮层开着时每帧重建一次命中：这一帧的时间就是长会话里搜索的每帧代价。
+	withSearch := frameMS(tt)
 	tt.Frame()
 	if len(app.sessionSearch.hits) == 0 {
 		t.Fatalf("没有命中：units=%d query=%q", len(app.sessionSearch.units), app.sessionSearch.query)
@@ -244,6 +246,8 @@ func TestPerfVirtualSearchReveal(t *testing.T) {
 	if !tt.HasText("第 1500 轮") {
 		t.Fatalf("命中所在行没有被拉进渲染窗口（渲染 %d 行）", app.renderedRows())
 	}
+	t.Logf("10000 行：搜索关闭一帧 %.2fms · 浮层开着重建命中的一帧 %.2fms（命中 %d 条，语料 %d 段）",
+		idle, withSearch, len(app.sessionSearch.hits), len(app.sessionSearch.units))
 }
 
 // perfToolSource 造一条带长输出的工具行（正文 = output），并把它展开。
@@ -266,61 +270,184 @@ func perfToolSource(output string) *App {
 	return app
 }
 
+// perfLongOutputTester 建一个"减少动效"的 Tester：UI-5 要求减少动效时折叠容器
+// 直接给终值，这样量到的是"整段都已展开"的帧，而不是 300ms 过渡里的中间态。
+func perfLongOutputTester(app *App) *gui.Tester {
+	return gui.NewTesterWith(app.View, WindowWidth, WindowHeight,
+		gui.TesterOptions{Preferences: gui.Preferences{ReduceMotion: true}})
+}
+
+// perfScrollDetail 在工具详情自己的滚动区里滚一格/几格，返回这几帧的中位数。
+// 详情是独立的最大高度双向滚动容器（TL-55 / R-XR-113），外层时间线的滚动
+// 位置与它无关，所以长输出要在这里滚。
+func perfScrollDetail(t *testing.T, tt *gui.Tester, dx, dy float32) float64 {
+	t.Helper()
+	box, ok := tt.Find("工具详情内容")
+	if !ok {
+		t.Fatalf("找不到工具详情的滚动区：%v", tt.Texts())
+	}
+	tt.Wheel(box.X+box.W/2, box.Y+box.H/2, dx, dy)
+	return medFramesOnly(tt, 4)
+}
+
 // TestPerfLongToolOutput 是单条 1 MB 工具输出的渲染与滚动。
 func TestPerfLongToolOutput(t *testing.T) {
 	output := perfBigOutput(1 << 20)
+	lines := strings.Count(output, "\n") + 1
 	app := perfToolSource(output)
-	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	// 展开是 300ms 的高度过渡：走完再量，量到的才是"整段都在"的帧。
-	tt.Advance(400 * time.Millisecond)
+	tt := perfLongOutputTester(app)
 
+	// 整段都在：最后一行也在元素树里（没有截断，也没有只画前几行）。
+	if !tt.HasText("coverage") {
+		t.Fatal("长输出的正文没有上屏")
+	}
 	first := frameMS(tt)
-	steady, max := medFrames(tt, 10)
+	steady, peak := medFrames(tt, 10)
 	if steady > budgetLongOutputMS {
 		t.Fatalf("1MB 输出稳态帧 %.2fms 超过预算 %.0fms", steady, budgetLongOutputMS)
 	}
-	if max > budgetLongOutputMS {
-		t.Fatalf("1MB 输出帧最大 %.2fms 超过预算 %.0fms", max, budgetLongOutputMS)
+	if peak > budgetLongOutputMS {
+		t.Fatalf("1MB 输出帧最大 %.2fms 超过预算 %.0fms", peak, budgetLongOutputMS)
 	}
-	// 滚动：视口里只有一段，滚到中间与末尾各画一帧。
-	for _, y := range []float32{app.feed.MaxY / 2, app.feed.MaxY} {
-		app.feed.Y = y
-		if f := frameMS(tt); f > budgetLongOutputMS {
-			t.Fatalf("1MB 输出滚动到 %.0f 一帧 %.2fms 超过预算 %.0fms", y, f, budgetLongOutputMS)
+	// 滚动：在详情自己的滚动区里向下、向右各滚几格。
+	var scroll float64
+	for i := 0; i < 3; i++ {
+		if f := perfScrollDetail(t, tt, 0, 60); f > budgetLongOutputMS {
+			t.Fatalf("1MB 输出竖向滚动一帧 %.2fms 超过预算 %.0fms", f, budgetLongOutputMS)
 		}
+		scroll = max(scroll, perfScrollDetail(t, tt, 40, 0))
+	}
+	if scroll > budgetLongOutputMS {
+		t.Fatalf("1MB 输出横向滚动一帧 %.2fms 超过预算 %.0fms", scroll, budgetLongOutputMS)
 	}
 	runtime.GC()
 	var mem runtime.MemStats
 	runtime.ReadMemStats(&mem)
 	t.Logf("1MB 输出（%d 字节，%d 行）：首帧 %.2fms · 稳态 %.2fms 最大 %.2f（预算 %.0f）"+
-		"· 单行内容高 %.0fDIP · 常驻堆 %.1fMB",
-		len(output), strings.Count(output, "\n")+1, first, steady, max,
-		budgetLongOutputMS, app.feed.MaxY, float64(mem.HeapAlloc)/(1<<20))
+		"· 滚动一帧 ≤%.2fms · 常驻堆 %.1fMB",
+		len(output), lines, first, steady, peak, budgetLongOutputMS, scroll,
+		float64(mem.HeapAlloc)/(1<<20))
 }
 
 // TestPerfLongCodeBlock 是 1000 行代码块的渲染与滚动。
 func TestPerfLongCodeBlock(t *testing.T) {
 	output := perfCodeLines(1000)
 	app := perfToolSource(output)
-	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	tt.Advance(400 * time.Millisecond)
+	tt := perfLongOutputTester(app)
 
 	first := frameMS(tt)
-	steady, max := medFrames(tt, 10)
+	steady, peak := medFrames(tt, 10)
 	if steady > budgetLongOutputMS {
 		t.Fatalf("1000 行代码块稳态帧 %.2fms 超过预算 %.0fms", steady, budgetLongOutputMS)
 	}
-	if max > budgetLongOutputMS {
-		t.Fatalf("1000 行代码块帧最大 %.2fms 超过预算 %.0fms", max, budgetLongOutputMS)
+	if peak > budgetLongOutputMS {
+		t.Fatalf("1000 行代码块帧最大 %.2fms 超过预算 %.0fms", peak, budgetLongOutputMS)
 	}
+	scroll := perfScrollDetail(t, tt, 0, 60)
+	if scroll > budgetLongOutputMS {
+		t.Fatalf("1000 行代码块滚动一帧 %.2fms 超过预算 %.0fms", scroll, budgetLongOutputMS)
+	}
+	t.Logf("1000 行代码块（%d 字节）：首帧 %.2fms · 稳态 %.2fms 最大 %.2f（预算 %.0f）· 滚动一帧 %.2fms",
+		len(output), first, steady, peak, budgetLongOutputMS, scroll)
+}
+
+// perfMarkdownBody 造一段 n 字的助手正文（带标题、列表与行内代码）。
+func perfMarkdownBody(n int) string {
+	var b strings.Builder
+	b.Grow(n + 256)
+	section := 1
+	for b.Len() < n {
+		fmt.Fprintf(&b, "## 第 %d 节\n\n", section)
+		fmt.Fprintf(&b, "这一节说明 `send()` 的排队路径：为真就入队，轮结束后由 "+
+			"`drainQueue()` 发出下一条，测试在 `internal/ui/composer_test.go`。\n\n")
+		fmt.Fprintf(&b, "- 入队不写事实，只调 `Intents.QueueSubmit`\n")
+		fmt.Fprintf(&b, "- 面板照旧显示条数\n\n")
+		section++
+	}
+	return b.String()
+}
+
+// TestPerfLongAssistantBody 是超长正文（12k 字以上 Markdown）的渲染、滚动与
+// 流式追加：TL-19 / TL-53 的"渲染与滚动可接受""流式追加不卡顿"。
+func TestPerfLongAssistantBody(t *testing.T) {
+	// 20 KB 正文：runes 约 12k（>10k 字，TL-53 的档）。
+	body := perfMarkdownBody(20000)
+	src := wiredSource()
+	src.names = []string{"长正文"}
+	src.hasSess = true
+	src.session = SessionSnapshot{
+		ID: "s1", Title: "长正文", Branch: "main", TurnCount: 1,
+		Rows: []RowSnapshot{
+			{Kind: RowUser, TurnIndex: 1, Status: RowStatusDone, Text: "把改动说明写全"},
+			{Kind: RowAssistant, TurnIndex: 1, Status: RowStatusDone, Text: body},
+		},
+	}
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+	first := frameMS(tt)
+	steady, peak := medFrames(tt, 10)
+	if steady > budgetLongOutputMS {
+		t.Fatalf("长正文稳态帧 %.2fms 超过预算 %.0fms", steady, budgetLongOutputMS)
+	}
+	if peak > budgetLongOutputMS {
+		t.Fatalf("长正文帧最大 %.2fms 超过预算 %.0fms", peak, budgetLongOutputMS)
+	}
+	// 滚到中间与末尾各一帧。
+	var scroll float64
 	for _, y := range []float32{app.feed.MaxY / 2, app.feed.MaxY} {
 		app.feed.Y = y
-		if f := frameMS(tt); f > budgetLongOutputMS {
-			t.Fatalf("1000 行代码块滚动到 %.0f 一帧 %.2fms 超过预算 %.0fms", y, f, budgetLongOutputMS)
-		}
+		scroll = max(scroll, frameMS(tt))
 	}
-	t.Logf("1000 行代码块（%d 字节）：首帧 %.2fms · 稳态 %.2fms 最大 %.2f（预算 %.0f）· 内容高 %.0fDIP",
-		len(output), first, steady, max, budgetLongOutputMS, app.feed.MaxY)
+	if scroll > budgetLongOutputMS {
+		t.Fatalf("长正文滚动一帧 %.2fms 超过预算 %.0fms", scroll, budgetLongOutputMS)
+	}
+
+	// 流式追加：正文每帧多一段，量这些帧。追加时解析缓存要跟着失效，
+	// 每帧都在给"当前这段"排版，是最坏情况。
+	app.feed.Y = 0
+	tt.Frame()
+	chunk := 120
+	var appendPeak, appendMed float64
+	frames := make([]float64, 0, 12)
+	for i := 0; i < 12; i++ {
+		text := src.session.Rows[1].Text
+		if i > 0 {
+			text += body[:chunk]
+		}
+		app.feed.Y = 0
+		src.session.Rows[1].Text = text
+		frames = append(frames, frameMS(tt))
+	}
+	appendMed = median(frames)
+	for _, f := range frames {
+		appendPeak = max(appendPeak, f)
+	}
+	if appendPeak > budgetLongOutputMS {
+		t.Fatalf("流式追加一帧 %.2fms 超过预算 %.0fms", appendPeak, budgetLongOutputMS)
+	}
+	t.Logf("长正文（%d 字，%d 字节）：首帧 %.2fms · 稳态 %.2f 最大 %.2f（预算 %.0f）"+
+		"· 滚动一帧 %.2fms · 流式追加 %.2f/%.2fms · 内容高 %.0fDIP",
+		len([]rune(body)), len(body), first, steady, peak, budgetLongOutputMS, scroll,
+		appendMed, appendPeak, app.feed.MaxY)
+}
+
+// TestPerfLongHistory500 是 500 轮（2500 行）的首屏：TL-01 的"500 轮历史，
+// 打开时首屏 < 1s 可交互"。
+func TestPerfLongHistory500(t *testing.T) {
+	const rounds = 500
+	_, tt, first := perfLongTester(t, rounds)
+	if first > budgetFirstFrameMS {
+		t.Fatalf("500 轮首帧 %.2fms 超过预算 %.0fms", first, budgetFirstFrameMS)
+	}
+	steady, peak := medFrames(tt, 10)
+	if steady > budgetSteadyFrameMS {
+		t.Fatalf("500 轮稳态帧 %.2fms 超过预算 %.0fms", steady, budgetSteadyFrameMS)
+	}
+	if peak > budgetLongFeedMS {
+		t.Fatalf("500 轮帧最大 %.2fms 超过预算 %.0fms", peak, budgetLongFeedMS)
+	}
+	t.Logf("500 轮 / %d 行：首帧 %.2fms（TL-01 判据 1000ms，PF-250 取 %.0f）· 稳态 %.2fms 最大 %.2f",
+		len(perfLongRows(rounds)), first, budgetFirstFrameMS, steady, peak)
 }
 
 // perfBigOutput 造一段约 n 字节的命令输出（每行 64 字节，等宽、含路径与状态）。

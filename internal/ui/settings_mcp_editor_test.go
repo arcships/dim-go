@@ -45,7 +45,7 @@ func (m *mcpIntents) expect(t *testing.T, want string) {
 }
 
 func (m *mcpIntents) SaveMCPServer(_ context.Context, draft MCPServerDraft) error {
-	m.calls <- fmt.Sprintf("Save %s %s %s %s %v", draft.Name, draft.Scope,
+	m.calls <- fmt.Sprintf("Save %s %s %s %s %s %v", draft.ID, draft.Name, draft.Scope,
 		draft.Transport, draft.Command, draft.Args)
 	return m.saveErr
 }
@@ -135,7 +135,7 @@ func TestMCPEditorValidates(t *testing.T) {
 	if err := tt.Click(mcpCopySave); err != nil {
 		t.Fatalf("点不到保存：%v", err)
 	}
-	intents.expect(t, "Save 本地工具 用户 stdio npx [-y server]")
+	intents.expect(t, "Save mcp-server 本地工具 user stdio npx [-y server]")
 	tt.Frame()
 	if mcpScreen.view != mcpViewList {
 		t.Fatal("保存成功后没有回到列表")
@@ -321,5 +321,21 @@ func TestMCPCapabilityReasons(t *testing.T) {
 	tt.Frame()
 	if mcpScreen.deleteFor != "" {
 		t.Fatalf("没有删除通道时打开了删除框：%q", mcpScreen.deleteFor)
+	}
+}
+
+// TestMCPServerID 断言名称归一化成条目标识：小写、非字母数字折成连字符。
+func TestMCPServerID(t *testing.T) {
+	cases := map[string]string{
+		"my-server": "my-server",
+		"My Server": "my-server",
+		"  本地 工具  ": "mcp-server",
+		"files__v2": "files-v2",
+		"--edges--": "edges",
+	}
+	for name, want := range cases {
+		if got := mcpServerID(name); got != want {
+			t.Fatalf("mcpServerID(%q) = %q，想要 %q", name, got, want)
+		}
 	}
 }

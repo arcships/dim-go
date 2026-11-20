@@ -44,7 +44,7 @@ import (
 //	provider 级「启用」开关：UpdateProvider 的签名不含 enabled，本屏只改界面状态。
 //	「查看套餐」与账户托管提示条的跳转：跨分节路由与地址都不在本屏的事实里。
 //
-// 已重建的分支：账号形态的详情面板（S-configuration-29 … 43）与「添加模型」
+// 已重建的分支：账号形态的详情面板（S-configuration-29 … 34、36 … 43）与「添加模型」
 // 对话框（S-configuration-78/79/80）都在本屏；未配置表单 / 已配置凭据走
 // settings_provider_detail.go 与 settings_provider_form.go。读数的 provider 走
 // configRecordBody 或账号形态（configOAuthBody），不再落到占位句。

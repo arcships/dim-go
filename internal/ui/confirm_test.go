@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -317,5 +318,96 @@ func TestConfirmEditRunningDialog(t *testing.T) {
 	}
 	if app.inlineNotice != noteInlineEdit {
 		t.Fatalf("消息写入没有通道时的原因 = %q，想要 %q", app.inlineNotice, noteInlineEdit)
+	}
+}
+
+// blockingConfirmIntents 让删除一直挂在写入上：用来观察执行中的禁用态、Esc
+// 与重复点击（G-E2-04 的异常列、G-E2-05 的执行中文案）。
+type blockingConfirmIntents struct {
+	stubConfirmIntents
+	release chan struct{}
+	calls   atomic.Int32
+}
+
+func (s *blockingConfirmIntents) DeleteSession(context.Context, string) error {
+	s.calls.Add(1)
+	<-s.release
+	return nil
+}
+
+// 危险动作执行中：按钮换成「删除中...」并禁用，Esc 不关门，再点不会发第二次。
+func TestConfirmBusyBlocksEscapeAndRepeat(t *testing.T) {
+	src := wiredSource()
+	src.names = []string{"s1"}
+	src.titles = []string{"真实会话"}
+	stub := &blockingConfirmIntents{release: make(chan struct{})}
+	app := NewApp(Options{State: StateDefault, Source: src, Intents: stub})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	app.openDeleteConfirm([]int{0})
+	tt.Frame()
+	if err := tt.Click(confirmCopyDelete); err != nil {
+		t.Fatalf("点不到删除：%v", err)
+	}
+	tt.Frame()
+	if !app.confirm.busy {
+		t.Fatal("删除后没有进入执行中")
+	}
+	info, ok := tt.Access(confirmCopyDeleteBusy)
+	if !ok || !info.Disabled {
+		t.Fatalf("执行中的确认按钮 = %+v（找到 %v），想要「%s」且禁用", info, ok, confirmCopyDeleteBusy)
+	}
+
+	// Esc 执行中不关门：弹窗与原因都还在原位。
+	tt.Key(0, gui.KeyEscape)
+	tt.Frame()
+	if app.confirm.kind != confirmKindDelete {
+		t.Fatalf("执行中 Esc 关掉了弹窗：kind=%q", app.confirm.kind)
+	}
+
+	// 再点一次按钮不会发第二次删除。先等第一次写入真的落到通道上，再点。
+	deadline := time.Now().Add(2 * time.Second)
+	for stub.calls.Load() == 0 && time.Now().Before(deadline) {
+		tt.Frame()
+		time.Sleep(2 * time.Millisecond)
+	}
+	if got := stub.calls.Load(); got != 1 {
+		t.Fatalf("删除后写入次数 = %d，想要 1", got)
+	}
+	if err := tt.Click(confirmCopyDeleteBusy); err == nil {
+		tt.Frame()
+	}
+	if got := stub.calls.Load(); got != 1 {
+		t.Fatalf("执行中又发了一次删除：%d 次", got)
+	}
+
+	close(stub.release)
+	waitFrame(t, tt, "删除执行完收盘", func() bool { return app.confirm.kind == confirmKindNone })
+}
+
+// 说明句可以选中复制：确认框里的解释文字不是装饰，能整段带走（G-E2-02 的
+// 说明句；对话框把它挂成 describedby，读屏与剪贴板都拿同一段）。
+func TestConfirmDescriptionIsCopyable(t *testing.T) {
+	app, tt := newTester(t, StateDefault)
+	app.openDeleteConfirm([]int{0})
+	tt.Frame()
+	desc := app.confirmDescription()
+	rect, ok := tt.Find(desc)
+	if !ok {
+		t.Fatalf("找不到说明句：%s", confirmText(tt))
+	}
+	// 拖选整句再复制：选中不进剪贴板就不算「可复制」。
+	tt.Press(rect.X+2, rect.Y+rect.H/2)
+	tt.Move(rect.X+rect.W-2, rect.Y+rect.H/2)
+	tt.Release(rect.X+rect.W-2, rect.Y+rect.H/2)
+	tt.Frame()
+	tt.Key(gui.Cmd, gui.KeyC)
+	tt.Frame()
+	if got := tt.Clipboard(); got != desc {
+		t.Fatalf("复制到剪贴板的是 %q，想要整句说明 %q", got, desc)
+	}
+	// 复制不改弹窗状态：还停在删除确认上，没有替用户执行。
+	if app.confirm.kind != confirmKindDelete || app.archived[0] {
+		t.Fatalf("复制过程中弹窗状态变了：kind=%q archived=%v", app.confirm.kind, app.archived[0])
 	}
 }

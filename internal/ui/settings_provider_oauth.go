@@ -11,9 +11,9 @@ import (
 
 // 本文件是「设置 › 模型供应」详情里按提供商登录的四种形态：
 //
-//	OpenAI Codex    浏览器登录：授权地址 → 回调地址 → 完成交换（S-configuration-29…36）
-//	Grok Build      设备码登录：验证地址 + 用户码 → 轮询 → 完成（S-configuration-37…40）
-//	托管帐号         浏览器 / 设备码二选一（S-configuration-41…43）
+//	OpenAI Codex    浏览器登录：授权地址 → 回调地址 → 完成交换（S-configuration-29/30/31/32/33/34/36）
+//	Grok Build      设备码登录：验证地址 + 用户码 → 轮询 → 完成（S-configuration-37/38/39/40）
+//	托管帐号         浏览器 / 设备码二选一（S-configuration-41/42/43）
 //	Dim 与账户托管   只读提示条 + 模型块（既有分支，不在这里）
 //
 // 形态由服务端 provider.management 的 account.namespace 决定，登录方式由
@@ -43,12 +43,10 @@ const (
 	configCopyCodexSignedOut      = "登录 OpenAI 后可在 DimAgent 中使用 Codex 模型。"
 	configCopyCodexSignIn         = "使用 OpenAI 登录"
 	configCopyCodexSignedIn       = "令牌已生效。模型开关决定聊天中可用的 Codex 模型。"
-	configCopyCodexDisabled       = "环境设置已禁用 OpenAI Codex。"
 	configCopyCodexWaiting        = "请将浏览器地址栏中的 callback URL 复制到 DimAgent 完成登录。"
 	configCopyGrokSignedOut       = "登录 SuperGrok 或 Premium+ 后，即可在 DimAgent 中使用 Grok Build 模型。"
 	configCopyGrokSignIn          = "使用 SuperGrok / Premium+ 登录"
 	configCopyGrokSignedIn        = "OAuth 令牌已生效。模型开关决定聊天中可用的 Grok Build 模型。"
-	configCopyGrokDisabled        = "环境设置已禁用 Grok Build OAuth。"
 	configCopyGrokWaiting         = "正在等待授权..."
 	configCopyGrokNoModels        = "登录后加载 Grok Build 模型。"
 	configCopyGrokDeviceCode      = "设备码"
@@ -94,6 +92,11 @@ type providerOAuthFlow struct {
 	callbackURL string
 	// pending 表示一次发起 / 完成请求还在路上；此时入口禁用。
 	pending bool
+	// interval / nextPoll / polling 是设备码轮询的节奏：下一次查询时刻由渲染线程
+	// 检查，不在定时器协程里读写界面状态。
+	interval time.Duration
+	nextPoll time.Time
+	polling  bool
 	// err 是这次尝试的失败原因；空表示没有错误。
 	err string
 	// note 是一句结果回执（登录成功 / 已退出登录）。
@@ -125,7 +128,7 @@ func configOAuthDeclares(account *ProviderAccountSnapshot, method string) bool {
 }
 
 // configOAuthBody 是账号形态 provider 的详情：状态区 + 基础 URL + 模型块 + 底部
-// 动作（S-configuration-29 … 43）。
+// 动作（S-configuration-29 … 34、36 … 43）。
 func (a *App) configOAuthBody(c *gui.Context, data configView) {
 	gui.Column(c).Grow(1).MinHeight(0).Gap(configDetailGap).Children(func() {
 		gui.Column(c).Shrink(0).Gap(configDetailGap).Children(func() {
@@ -147,6 +150,7 @@ func (a *App) configOAuthStatus(c *gui.Context, data configView) {
 	if account == nil {
 		return
 	}
+	a.configOAuthMaybePoll(provider)
 	flow := configOAuthFlow
 	mine := flow.providerKey == configKey(provider) && flow.attempt != ""
 	switch {
@@ -467,7 +471,8 @@ func (a *App) configOAuthBegin(provider configProvider, method string) {
 			if interval <= 0 {
 				interval = 2 * time.Second
 			}
-			a.configOAuthSchedulePoll(key, providerID, namespace, start.Attempt, interval)
+			configOAuthFlow.interval = interval
+			configOAuthFlow.nextPoll = time.Now().Add(interval)
 		} else if start.AuthorizationURL != "" {
 			// 授权页在发起后直接打开；失败也不影响下面的复制与手动打开。
 			_ = a.intents.OpenProviderOAuthURL(context.Background(), start.AuthorizationURL)
@@ -481,34 +486,45 @@ func (a *App) configOAuthBegin(provider configProvider, method string) {
 	})
 }
 
-// configOAuthSchedulePoll 按服务端给的间隔查一次尝试状态；pending 时再排下一次。
-// 每次查询是一次短请求；尝试被取消或换 provider 后结果直接丢弃。
-func (a *App) configOAuthSchedulePoll(providerKey, providerID, namespace, attempt string, interval time.Duration) {
-	if attempt == "" || interval <= 0 {
+// configOAuthMaybePoll 在渲染线程上判断是否该查一次尝试状态：间隔不到、已有
+// 查询在路上或换了 provider 时都不动。它不建定时器，下一次查询由下一帧触发。
+func (a *App) configOAuthMaybePoll(provider configProvider) {
+	flow := configOAuthFlow
+	if flow.providerKey != configKey(provider) || flow.attempt == "" || flow.polling {
 		return
 	}
-	time.AfterFunc(interval, func() {
-		if a.intents == nil {
-			return
-		}
+	if flow.nextPoll.IsZero() || time.Now().Before(flow.nextPoll) {
+		return
+	}
+	a.configOAuthPoll(flow.providerKey, flow.providerID, flow.namespace, flow.attempt,
+		flow.interval)
+}
+
+// configOAuthPoll 查一次尝试状态；pending 时把下一次查询时刻推后，结果由
+// configOAuthPollResult 在渲染线程上结算。尝试被取消或换 provider 后结果丢弃。
+func (a *App) configOAuthPoll(providerKey, providerID, namespace, attempt string, interval time.Duration) {
+	if a.intents == nil || attempt == "" {
+		return
+	}
+	if configOAuthFlow.attempt != attempt || configOAuthFlow.providerKey != providerKey {
+		return
+	}
+	configOAuthFlow.polling = true
+	var progress ProviderOAuthProgressSnapshot
+	a.dispatchQuiet("查询登录状态", func(ctx context.Context) error {
+		next, err := a.intents.PollProviderOAuth(ctx, providerID, namespace, attempt)
+		progress = next
+		return err
+	}, func() {
+		a.configOAuthPollResult(providerKey, providerID, namespace, attempt, progress, interval)
+	}, func(reason string) {
 		if configOAuthFlow.attempt != attempt || configOAuthFlow.providerKey != providerKey {
 			return
 		}
-		var progress ProviderOAuthProgressSnapshot
-		a.dispatchQuiet("查询登录状态", func(ctx context.Context) error {
-			next, err := a.intents.PollProviderOAuth(ctx, providerID, namespace, attempt)
-			progress = next
-			return err
-		}, func() {
-			a.configOAuthPollResult(providerKey, providerID, namespace, attempt, progress, interval)
-		}, func(reason string) {
-			if configOAuthFlow.attempt != attempt || configOAuthFlow.providerKey != providerKey {
-				return
-			}
-			configOAuthFlow.attempt = ""
-			configOAuthFlow.pending = false
-			configOAuthFlow.err = strings.TrimPrefix(reason, "查询登录状态：")
-		})
+		configOAuthFlow.attempt = ""
+		configOAuthFlow.pending = false
+		configOAuthFlow.polling = false
+		configOAuthFlow.err = strings.TrimPrefix(reason, "查询登录状态：")
 	})
 }
 
@@ -523,7 +539,12 @@ func (a *App) configOAuthPollResult(
 	}
 	switch progress.Stage {
 	case "pending":
-		a.configOAuthSchedulePoll(providerKey, providerID, namespace, attempt, interval)
+		configOAuthFlow.polling = false
+		next := interval
+		if next <= 0 {
+			next = 2 * time.Second
+		}
+		configOAuthFlow.nextPoll = time.Now().Add(next)
 		return
 	case "completed":
 		configOAuthFlow = providerOAuthFlow{redirectURI: configOAuthFlow.redirectURI,

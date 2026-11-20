@@ -39,8 +39,9 @@ func focusOn(tt *gui.Tester, name string) bool {
 // TestApprovalCardTabOrderAndEscDoesNotAnswer：审批卡三个按钮按渲染顺序接 Tab
 // （拒绝 → 仅这次 → 始终允许此命令，R-AP-016），Esc 不答复（R-AP-017）。
 //
-// 需求里「Tab 在按钮之间循环、不逃到背景」这一条本版没有做到：第三次 Tab 之后
-// 焦点离开卡片（已记在需求表的未实现里，见交付说明），这里不断言那一句。
+// 卡出现时焦点落在卡容器上（R-IN-842、U3 F4：不预选任何决定），所以这里从卡
+// 容器 Tab 出去找每一个决定，并断言焦点真的落在那个按钮自己身上（不是停在包着
+// 它的卡片上）。Tab 在卡内循环、不逃到背景由 approval_focus_test.go 取证。
 func TestApprovalCardTabOrderAndEscDoesNotAnswer(t *testing.T) {
 	app, tt := newTester(t, StateWaiting)
 	if _, ok := app.currentApproval(); !ok {
@@ -48,11 +49,11 @@ func TestApprovalCardTabOrderAndEscDoesNotAnswer(t *testing.T) {
 	}
 	order := []string{approvalCopyReject, approvalCopyAllowOnce, approvalCopyAlwaysCommand}
 	for i, label := range order {
-		if !focusByTab(t, tt, label, false, 80) {
-			t.Fatalf("第 %d 个按钮 %q 拿不到焦点", i+1, label)
+		for n := 0; n < 20 && !focusOn(tt, label); n++ {
+			tt.Key(0, gui.KeyTab)
 		}
-		if i > 0 && !focusOn(tt, label) {
-			t.Fatalf("焦点在 %q 上时报告的不是它自己", label)
+		if !focusOn(tt, label) {
+			t.Fatalf("第 %d 个按钮 %q 拿不到焦点：%v", i+1, label, tt.Texts())
 		}
 	}
 	before := app.approvalDecision

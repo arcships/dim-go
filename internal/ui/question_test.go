@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -35,6 +36,20 @@ func (s *stubQuestionIntents) RespondQuestion(_ context.Context, answer string) 
 
 func (s *stubQuestionIntents) SkipQuestion(context.Context) error {
 	s.declines <- struct{}{}
+	return nil
+}
+
+// blockingQuestionIntents 让提交一直挂在写入上：用来观察执行中的禁用态与
+// 「再点不会再发一次」。
+type blockingQuestionIntents struct {
+	stubBaseIntents
+	release chan struct{}
+	calls   atomic.Int32
+}
+
+func (s *blockingQuestionIntents) RespondQuestion(context.Context, string) error {
+	s.calls.Add(1)
+	<-s.release
 	return nil
 }
 
@@ -289,5 +304,167 @@ func TestQuestionCardFilterAndCollapse(t *testing.T) {
 	}
 	if tt.HasText(questionCopyNoMatch) {
 		t.Fatalf("收起后体部还画着：\n%s", p0WindowText(tt))
+	}
+}
+
+// 多题分页键盘：→ 前进一题、← 回退一题，首题 ← 不越界，已答内容保留
+// （G-D1-19、G-D1-20 的键盘列）。
+func TestQuestionArrowsSwitchPages(t *testing.T) {
+	stub := &stubQuestionIntents{answers: make(chan string, 1), declines: make(chan struct{}, 1)}
+	app, tt := questionTester(t, threeQuestionBatch(), stub)
+	tt.Frame()
+
+	tt.Key(0, gui.KeyRight)
+	tt.Frame()
+	if app.question.index != 1 || !tt.HasText("2/3") {
+		t.Fatalf("→ 之后 index=%d 屏上：\n%s", app.question.index, p0WindowText(tt))
+	}
+	tt.Key(0, gui.KeyLeft)
+	tt.Frame()
+	if app.question.index != 0 {
+		t.Fatalf("← 之后 index=%d，想要回到首题", app.question.index)
+	}
+	tt.Key(0, gui.KeyLeft)
+	tt.Frame()
+	if app.question.index != 0 {
+		t.Fatalf("首题再按 ← 越界到 index=%d", app.question.index)
+	}
+}
+
+// 自由输入里的 Enter 是换行，不是提交（G-D1-14 的交互列）。
+func TestQuestionFreeformEnterInsertsNewline(t *testing.T) {
+	snap := QuestionSnapshot{ID: "q-free", Questions: []QuestionItemSnapshot{{
+		Title: "补充说明",
+	}}}
+	stub := &stubQuestionIntents{answers: make(chan string, 1), declines: make(chan struct{}, 1)}
+	app, tt := questionTester(t, snap, stub)
+	tt.Frame()
+
+	if err := tt.Click(questionCopyFreeform); err != nil {
+		t.Fatalf("点不到自由输入框：%v", err)
+	}
+	tt.Type("第一行")
+	tt.Key(0, gui.KeyEnter)
+	tt.Frame()
+	tt.Type("第二行")
+	tt.Frame()
+
+	if got := app.question.custom[0]; !strings.Contains(got, "\n") {
+		t.Fatalf("自由输入里按 Enter 没有换行：%q", got)
+	}
+	select {
+	case answer := <-stub.answers:
+		t.Fatalf("自由输入里按 Enter 就提交了：%q", answer)
+	default:
+	}
+	if !tt.HasText("补充说明") {
+		t.Fatalf("卡片被 Enter 撤掉了：\n%s", p0WindowText(tt))
+	}
+}
+
+// 提交进行中：脚部按钮整组置灰，再点不会再发一次（G-D1-21、G-D1-22）。
+func TestQuestionSubmitDisablesWhileBusy(t *testing.T) {
+	snap := QuestionSnapshot{ID: "q-busy", Questions: []QuestionItemSnapshot{{
+		Title: "确认继续", Options: []string{"继续", "停下"},
+	}}}
+	stub := &blockingQuestionIntents{release: make(chan struct{})}
+	app, tt := questionTester(t, snap, stub)
+	tt.Frame()
+
+	if err := tt.Click("继续"); err != nil {
+		t.Fatalf("点不到选项：%v", err)
+	}
+	tt.Frame()
+	if err := tt.Click(questionCopySubmit); err != nil {
+		t.Fatalf("点不到「提交」：%v", err)
+	}
+	tt.Frame()
+	if !app.question.busy {
+		t.Fatalf("提交后没有进入执行中：%+v", app.question)
+	}
+	for _, label := range []string{questionCopySubmit, questionCopyDecline} {
+		info, ok := tt.Access(label)
+		if !ok || !info.Disabled {
+			t.Fatalf("执行中 %q 没有置灰：%+v（找到 %v）", label, info, ok)
+		}
+	}
+	// 再点一次不会走第二次写入：先等第一次写入真的落到通道上，再点。
+	deadline := time.Now().Add(2 * time.Second)
+	for stub.calls.Load() == 0 && time.Now().Before(deadline) {
+		tt.Frame()
+		time.Sleep(2 * time.Millisecond)
+	}
+	if got := stub.calls.Load(); got != 1 {
+		t.Fatalf("提交后写入次数 = %d，想要 1", got)
+	}
+	if err := tt.Click(questionCopySubmit); err == nil {
+		tt.Frame()
+	}
+	if got := stub.calls.Load(); got != 1 {
+		t.Fatalf("执行中又发了一次写入：%d 次", got)
+	}
+	close(stub.release)
+	waitFrame(t, tt, "提交流程收盘", func() bool { return !app.question.busy })
+}
+
+// 筛选后全部隐藏：选项一行不留，只剩空态句（G-D1-13 的异常列）。
+func TestQuestionFilterHidesAllOptions(t *testing.T) {
+	options := []string{"a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "b1"}
+	snap := QuestionSnapshot{ID: "q-filter", Questions: []QuestionItemSnapshot{{
+		Title: "挑一个", Options: options,
+	}}}
+	_, tt := questionTester(t, snap, nil)
+	if err := tt.Click(questionCopyFilter); err != nil {
+		t.Fatalf("点不到筛选框：%v", err)
+	}
+	tt.Type("zzz")
+	tt.Frame()
+	if !tt.HasText(questionCopyNoMatch) {
+		t.Fatalf("筛选无匹配时没有空态句：\n%s", p0WindowText(tt))
+	}
+	for _, option := range options {
+		if tt.HasText(option) {
+			t.Fatalf("筛掉之后选项 %q 还在屏上：\n%s", option, p0WindowText(tt))
+		}
+	}
+}
+
+// 自定义答案接管答案：选项选中态清掉，提交的是自定义那一段（G-D1-15）。
+func TestQuestionCustomOverridesSelection(t *testing.T) {
+	snap := QuestionSnapshot{ID: "q-custom", Questions: []QuestionItemSnapshot{{
+		Title: "部署目标", Options: []string{"暂存", "生产"}, AllowCustom: true,
+	}}}
+	stub := &stubQuestionIntents{answers: make(chan string, 1), declines: make(chan struct{}, 1)}
+	app, tt := questionTester(t, snap, stub)
+	tt.Frame()
+
+	if err := tt.Click("暂存"); err != nil {
+		t.Fatalf("点不到选项：%v", err)
+	}
+	tt.Frame()
+	if !app.question.selected[0]["暂存"] {
+		t.Fatalf("选项没有被选中：%v", app.question.selected[0])
+	}
+	if err := tt.Click(questionCopyCustom); err != nil {
+		t.Fatalf("点不到自定义答案框：%v", err)
+	}
+	tt.Type("现场决定")
+	tt.Frame()
+	if got := app.question.selected[0]; len(got) != 0 {
+		t.Fatalf("输入自定义后选项选中态没清：%v", got)
+	}
+	if got := app.question.answerAt(0, questionItems(snap)[0]); got != "现场决定" {
+		t.Fatalf("答案 = %q，想要自定义内容", got)
+	}
+	if err := tt.Click(questionCopySubmit); err != nil {
+		t.Fatalf("点不到「提交」：%v", err)
+	}
+	select {
+	case got := <-stub.answers:
+		if got != "现场决定" {
+			t.Fatalf("提交的答案 = %q，想要「现场决定」", got)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("提交后没有发出写入")
 	}
 }
