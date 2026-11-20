@@ -176,7 +176,11 @@ func (a *App) userMessage(c *gui.Context, i int, r round) {
 		Role(gui.RoleArticle).Label("用户消息 " + r.user).
 		Focusable().TabStop(true)
 	// timelineHover 是截图走查态：自动截图没有指针，靠它把悬停动作钉住。
-	hovered := col.Hovered() || col.Focused() || a.timelineHover == i
+	//
+	// 动作条里每一项自己也是 Tab 停靠点：焦点走到动作条上时这一行也得继续画着
+	// （FocusWithin），否则焦点一离开消息行，动作条连同它按 Tab 到的按钮一起
+	// 消失，焦点落空，下一次 Tab 又从窗口第一个停靠点重来。
+	hovered := col.Hovered() || col.FocusWithin() || a.timelineHover == i
 	col.Children(func() {
 		body := a.userBubble(c, i, r, false)
 		if edited {
@@ -534,8 +538,10 @@ func (a *App) assistant(c *gui.Context, i int, r round) {
 	col := gui.Column(c).Shrink(0).Gap(timelineBlockGap).
 		Role(gui.RoleArticle).Label("助手消息").Selectable().
 		Focusable().TabStop(true)
-	// 轮末动作条的键盘入口：焦点停在助手区上时动作条同样显形（TL-61–TL-64）。
-	hovered := col.Hovered() || col.Focused()
+	// 轮末动作条的键盘入口：焦点停在助手区或它里面的动作上时动作条显形
+	// （TL-61–TL-64）；用 FocusWithin 是为了焦点走到动作条自己的按钮上时
+	// 动作条不消失（否则焦点落空，Tab 从窗口第一个停靠点重来）。
+	hovered := col.Hovered() || col.FocusWithin()
 	svc := c.Services()
 	col = col.ContextMenu(func(m *gui.Menu) {
 		a.assistantMessageMenu(m, svc, assistantMessageText(r), selectedTextOf(col))

@@ -8,6 +8,9 @@
 //	type <文本>             发送一段文本按键（ASCII 可见字符）
 //	keys <键码>[,<键码>…]    按 macOS 虚拟键码发送按键（支持带修饰的组合，
 //	                        例如 56,49 是 Shift+Space）
+//	combo <修饰键> <键码>    带修饰键按一次，修饰键写 csao（c=Cmd、s=Shift、
+//	                        a=Option、o=Control 之外的 Control 用 ctrl），例如
+//	                        "combo c 40" 是 ⌘K
 //	ocr <png>              识别图上的文字，逐行输出「x y 宽 高 置信度 文本」
 //	                        （坐标是图片像素，原点左上）
 //
@@ -101,6 +104,33 @@ func type(_ text: String) {
 	}
 }
 
+// combo 按住修饰键再按一次普通键。
+func combo(_ mods: String, _ code: CGKeyCode) {
+	var flags: CGEventFlags = []
+	var held: [CGKeyCode] = []
+	if mods.contains("c") { flags.insert(.maskCommand); held.append(55) }
+	if mods.contains("a") { flags.insert(.maskAlternate); held.append(58) }
+	if mods.contains("o") { flags.insert(.maskControl); held.append(59) }
+	if mods.contains("s") { flags.insert(.maskShift); held.append(56) }
+	let src = CGEventSource(stateID: .hidSystemState)
+	for key in held {
+		CGEvent(keyboardEventSource: src, virtualKey: key, keyDown: true)?.post(tap: .cghidEventTap)
+		usleep(20_000)
+	}
+	let down = CGEvent(keyboardEventSource: src, virtualKey: code, keyDown: true)
+	down?.flags = flags
+	down?.post(tap: .cghidEventTap)
+	usleep(30_000)
+	let up = CGEvent(keyboardEventSource: src, virtualKey: code, keyDown: false)
+	up?.flags = flags
+	up?.post(tap: .cghidEventTap)
+	usleep(30_000)
+	for key in held.reversed() {
+		CGEvent(keyboardEventSource: src, virtualKey: key, keyDown: false)?.post(tap: .cghidEventTap)
+		usleep(20_000)
+	}
+}
+
 func keys(_ codes: [CGKeyCode]) {
 	let src = CGEventSource(stateID: .hidSystemState)
 	for code in codes {
@@ -130,6 +160,9 @@ case "keys":
 	guard args.count >= 3 else { fail("keys 需要键码") }
 	let codes = args[2].split(separator: ",").compactMap { CGKeyCode($0) }
 	keys(codes)
+case "combo":
+	guard args.count >= 4, let code = CGKeyCode(args[3]) else { fail("combo 需要修饰键与键码") }
+	combo(args[2], code)
 case "ocr":
 	guard args.count >= 3 else { fail("ocr 需要图片路径") }
 	ocr(args[2])
