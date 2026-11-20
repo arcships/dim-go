@@ -772,13 +772,17 @@ func (a *App) loadSample() {
 		a.openChatSearch()
 	case VariantTerm, VariantTermRunning, VariantTermExited:
 		a.rightOpen, a.rightTab = true, 4
-		switch a.variant {
-		case VariantTermRunning:
-			a.termState = termRunning
-		case VariantTermExited:
-			a.termState = termExited
+		// 走查变体只截样例：连着事实时不能拿样例顶替真实终端（否则界面看着
+		// 有输出，实际没有 pty 在跑）。
+		if !a.wired() {
+			switch a.variant {
+			case VariantTermRunning:
+				a.termState = termRunning
+			case VariantTermExited:
+				a.termState = termExited
+			}
+			a.termLines = termSamples(a.termState)
 		}
-		a.termLines = termSamples(a.termState)
 	case VariantRich:
 		a.rounds = []round{{
 			user:   "把排队的实现讲清楚",
