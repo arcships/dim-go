@@ -479,6 +479,12 @@ type App struct {
 	termCopied bool
 	// termExit 是进程的结束事实（T-11）：退出码 / 信号，激活层与它同步。
 	termExit termExit
+	// termReadFailed 是输出读出失败（§1.2.1 状态 10）：进程可能还在跑，但没有新
+	// 行会进来，界面据此收起提示行；激活层与它同步。
+	termReadFailed bool
+	// termStarting 是启动请求在途（状态 5）：置上后不再发第二次启动，也不收页签；
+	// 请求回来（成功或失败）即清。它是可丢的视图状态，不是事实。
+	termStarting bool
 	// termCleared 是连着 pty 时「清屏」丢掉的行数基线：快照里的前这么多行不再
 	// 上屏，之后新到的输出照常显示（pty 的输出不因清屏而丢）。
 	termCleared int
@@ -2006,20 +2012,20 @@ func (a *App) sessionTasks() ([]task, bool) {
 //
 // 返回的空态说明由读数决定：服务端没有唤醒读取方法（能力缺失）与读取失败分开
 // 写，不把「读不到」说成「没有待唤醒事项」。样例（-demo）沿用定时任务的未接
-// 口径，写在同一句括号里。
+// 口径。说明不带括号：由面板决定呈现形态（U3 §13.3）。
 func (a *App) sessionWakeups() ([]task, string) {
 	if a.source == nil {
 		if len(a.wakeups) == 0 {
-			return nil, "（" + noteSchedule + "）"
+			return nil, noteSchedule
 		}
 		return a.wakeups, ""
 	}
 	snapshot := a.source.Wakeups()
 	if snapshot.CapabilityMissing {
-		return nil, "（暂时读不到定时任务）"
+		return nil, "暂时读不到定时任务"
 	}
 	if snapshot.ReadError != "" {
-		return nil, "（读取失败：" + snapshot.ReadError + "）"
+		return nil, "读取失败：" + snapshot.ReadError
 	}
 	items := make([]task, 0, len(snapshot.Items))
 	for _, item := range snapshot.Items {

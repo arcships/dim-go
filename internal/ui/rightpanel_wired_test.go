@@ -32,6 +32,8 @@ type fakePanelSource struct {
 	changeCalls int
 	// searchRefreshed 记录搜索请求里出现过一次 Refresh（点了刷新 / 重试）。
 	searchRefreshed bool
+	// changeRefreshed 记录改动请求里出现过一次 Refresh（点了刷新 / 重试）。
+	changeRefreshed bool
 	// treeRefreshed 记录带 Refresh 的目录读取（"" 是根）：用来验「只重读这一格」。
 	treeRefreshed []string
 }
@@ -78,6 +80,9 @@ func (f *fakePanelSource) FileSearch(request FileSearchRequest) FileSearchSnapsh
 
 func (f *fakePanelSource) Changes(request ChangesRequest) ChangeSet {
 	f.lastChange = request
+	if request.Refresh {
+		f.changeRefreshed = true
+	}
 	f.changeCalls++
 	return f.changes
 }
@@ -277,7 +282,7 @@ func TestRightPanelFilesDeniedAndFailed(t *testing.T) {
 	if _, ok := tt.Find("没有写入权限，部分操作不可用"); !ok {
 		t.Fatal("权限不足时没有权限条")
 	}
-	if _, ok := tt.Find("无法加载此文件夹。"); !ok {
+	if _, ok := tt.Find("无法加载文件树。"); !ok {
 		t.Fatal("读取失败时没有错误行")
 	}
 	if _, ok := tt.Find("无匹配文件"); ok {

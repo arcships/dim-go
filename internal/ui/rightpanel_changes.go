@@ -52,12 +52,17 @@ func (a *App) rpChangesPage(c *gui.Context) {
 		a.rpOfflineBar(c)
 		a.rpScopeBar(c)
 		a.rpFilterRow(c)
+		// 没有写入权限时与文件页同一块警告条（同一个读数位）：条上的「重试」
+		// 重读本页，不留"操作全灰却没有一句原因"的面（U3 §13.2）。
+		if s.permissionDenied {
+			a.rpPermissionBar(c)
+		}
 		gui.Scroll(c).Grow(1).Children(func() {
 			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
 				if emptyTitle != "" {
 					// 没有工作目录：画空态，不读 git，也不把工作区根的改动画成
 					// 这个会话的改动。
-					a.rpEmptyBlockIcon(c, iconCircleCheck, emptyTitle, emptyDetail)
+					a.rpEmptyBlockIcon(c, iconFolders, emptyTitle, emptyDetail)
 					return
 				}
 				if s.loading {
@@ -121,11 +126,14 @@ func rpChangeFile(file ChangeFileSnapshot) *rpChange {
 
 // rpLiveChangeGroups 按范围画真实读数：读取失败、明细不可用、空态，或
 // Last Run 的路径行。
+//
+// 三种"没有行"分开：读取失败给错误行与重试（告警色），明细不可用给灰字原因
+// （能力缺口，不是错误），真的没有改动才给空态（U3 §13.2）。
 func (a *App) rpLiveChangeGroups(c *gui.Context, snapshot ChangeSet) {
 	s := a.rp()
 	if snapshot.Phase == PanelReadFailed {
-		a.rpEmptyBlockIcon(c, iconCircleCheck, "Git 改动不可用",
-			"无法读取改动："+snapshot.Error)
+		panelErrorRow(c, "无法读取改动", "Git 改动不可用", snapshot.Error,
+			"重试读取改动", func() { s.reload++ })
 		return
 	}
 	if snapshot.Unavailable != "" {
@@ -133,7 +141,7 @@ func (a *App) rpLiveChangeGroups(c *gui.Context, snapshot ChangeSet) {
 		if snapshot.Dirty {
 			detail = fmt.Sprintf("%s；Git 读到 %d 个改动文件。", detail, snapshot.ChangedFileCount)
 		}
-		a.rpEmptyBlockIcon(c, iconCircleCheck, "改动明细不可用", detail)
+		a.rpEmptyBlockIcon(c, iconDiff, "改动明细不可用", detail)
 		return
 	}
 	rows := a.rpVisibleChanges()
@@ -196,8 +204,10 @@ func (a *App) rpScopeBar(c *gui.Context) {
 			}
 		})
 		gui.Spacer(c)
-		if iconButton(c, iconButtonSpec{icon: iconRetry, label: "刷新", tip: "刷新改动",
-			size: panelBarAction}) {
+		reloadNote := a.rpReloadNote()
+		if iconButton(c, iconButtonSpec{icon: iconRetry, label: "刷新",
+			tip: termTip("刷新改动", reloadNote), size: panelBarAction,
+			disabled: reloadNote != ""}) {
 			s.reload++
 		}
 		if a.rpShowGitAction() {
@@ -319,8 +329,18 @@ func (a *App) rpUnstaged() []*rpChange {
 }
 
 // rpChangeGroups 是空态或两组列表（D-17–D-72）。
+//
+// 读取失败（样例里的 gitFailed）先于空态判断：读不到就不说"没有改动"，
+// 给错误行与重试（U3 §13.2）。
 func (a *App) rpChangeGroups(c *gui.Context) {
 	s := a.rp()
+	if s.gitFailed {
+		panelErrorRow(c, "无法读取改动", "Git 改动不可用", "", "重试读取改动", func() {
+			s.gitFailed = false
+			s.reload++
+		})
+		return
+	}
 	changes := a.rpVisibleChanges()
 	if len(changes) == 0 {
 		title, detail := a.rpEmptyText(s.scope)
@@ -338,15 +358,12 @@ func (a *App) rpChangeGroups(c *gui.Context) {
 	}
 }
 
-// rpEmptyText 是五个空态的标题与说明（D-18–D-27）：范围决定基础文案，
-// 读取失败时换成对应的覆盖文案（D-20/D-22 优先于 D-19/D-21）。
+// rpEmptyText 是空态的标题与说明（D-18–D-27）：范围决定基础文案；读取失败
+// 不再是空态（见 rpChangeGroups 与 rpLiveChangeGroups），能力缺口另给原因。
 func (a *App) rpEmptyText(scope int) (string, string) {
 	s := a.rp()
 	switch scope {
 	case scopeBranch:
-		if s.gitFailed {
-			return "Git 改动不可用", "无法加载 Git 改动，请刷新后重试。"
-		}
 		return "当前分支没有改动", "当前分支与其基线一致。"
 	case scopeLastRun:
 		if s.lastRunUnavailable {

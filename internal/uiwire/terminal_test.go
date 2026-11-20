@@ -2,6 +2,8 @@ package uiwire
 
 import (
 	"context"
+	"errors"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -84,6 +86,49 @@ func TestTerminalStreamSplitsLines(t *testing.T) {
 		if got[i] != want[i] {
 			t.Fatalf("第 %d 行 = %q，想要 %q", i+1, got[i], want[i])
 		}
+	}
+}
+
+// scriptedReader 先给出预置的字节，再给出一个固定的错误（err 为空表示 EOF）。
+type scriptedReader struct {
+	chunks []string
+	err    error
+}
+
+func (r *scriptedReader) Read(p []byte) (int, error) {
+	if len(r.chunks) == 0 {
+		if r.err == nil {
+			return 0, io.EOF
+		}
+		return 0, r.err
+	}
+	n := copy(p, r.chunks[0])
+	r.chunks = r.chunks[1:]
+	return n, nil
+}
+
+// TestTerminalReadFailureIsAFact 断言读 pty 得到的 EOF 算正常收尾，其它读错误
+// 登记成「读不到输出」的事实（界面据此收起输入行）；已读到的行照常保留。
+func TestTerminalReadFailureIsAFact(t *testing.T) {
+	eof := &terminalStream{}
+	if err := pumpTerminal(&scriptedReader{chunks: []string{"$ ls\n"}}, eof, func() {}); !errors.Is(err, io.EOF) {
+		t.Fatalf("读到 EOF 的返回 = %v，想要 io.EOF", err)
+	}
+	if eof.failed() {
+		t.Fatal("EOF 被当成了读失败（进程正常退出不是读不到输出）")
+	}
+
+	broken := &terminalStream{}
+	readErr := errors.New("设备读失败")
+	err := pumpTerminal(&scriptedReader{chunks: []string{"$ make\n", "building…\n"}, err: readErr}, broken, func() {})
+	if !errors.Is(err, readErr) {
+		t.Fatalf("读失败的返回 = %v，想要 %v", err, readErr)
+	}
+	if !broken.failed() {
+		t.Fatal("读到非 EOF 错误却没有登记成读失败")
+	}
+	if got := broken.snapshot(); len(got) != 2 || got[1] != "building…" {
+		t.Fatalf("读失败前读到的行没有保留：%q", got)
 	}
 }
 

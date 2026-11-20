@@ -106,6 +106,15 @@ func (a *App) rpNoWorkspace() (string, string) {
 	return "", ""
 }
 
+// rpReloadNote 是「重新加载 / 刷新」不能用的原因：没有可读的工作目录时重读
+// 也读不出东西，那是一个点了没反应的入口（U3 §13.0 第 4 条）。
+func (a *App) rpReloadNote() string {
+	if title, _ := a.rpNoWorkspace(); title != "" {
+		return "没有可读的工作目录，暂时不能重新加载"
+	}
+	return ""
+}
+
 // rpTakeRefresh 取一次「刷新」意图：按钮只把计数加一，这里读一次后归零，
 // 保证一次点击只触发一次重读，不是每帧重读。
 func (a *App) rpTakeRefresh() bool {
@@ -240,16 +249,23 @@ func rpQuery(q string) string { return strings.TrimSpace(q) }
 
 // rpFilterRow 是筛选框：前置放大镜、占位「筛选文件...」、无边框无底色，高 25
 // （RP-B-01 / F-01）。
+//
+// 没有可读的工作目录时筛选框禁用并写原因：输入了也筛不出东西——那是一个
+// "看起来能用、按了没反应"的入口（U3 §13.1）。
 func (a *App) rpFilterRow(c *gui.Context) {
 	t := c.Theme()
 	s := a.rp()
+	note := a.rpFilterNote()
 	gui.Column(c).Shrink(0).Padding(space1, space3).Children(func() {
 		gui.Row(c).Height(panelFilterHeight).Gap(space1).AlignItems(gui.Center).
 			Children(func() {
 				rpGlyph(c, iconSearch, iconInline, t.TextMuted, "search")
-				gui.TextInputBase(c, &s.filter).Grow(1).Label("筛选文件").
+				input := gui.TextInputBase(c, &s.filter).Grow(1).Label("筛选文件").
 					Placeholder("筛选文件...").FontSize(typeSecondary.sizeIn(t)).
-					TextColor(t.Text)
+					TextColor(t.Text).Disabled(note != "")
+				if note != "" {
+					input = input.Tooltip(note)
+				}
 			})
 	})
 	// 焦点在框内按 Esc：退出搜索态并清空查询（F-01、R-RF-007）。
@@ -258,6 +274,29 @@ func (a *App) rpFilterRow(c *gui.Context) {
 		s.searching = false
 	}
 }
+
+// rpFilterNote 是筛选框不可用的原因；空串表示可以筛选。
+//
+// 两种"没有工作目录"分开写：没打开会话与会话没有 cwd 是两件事，改法也不同。
+func (a *App) rpFilterNote() string {
+	if a.source == nil {
+		return ""
+	}
+	if _, ok := a.liveSession(); !ok {
+		return rpFilterNoSessionNote
+	}
+	if strings.TrimSpace(a.rpCwd()) == "" {
+		return rpFilterNoCwdNote
+	}
+	return ""
+}
+
+const (
+	// rpFilterNoSessionNote 是没打开会话时筛选框的禁用原因。
+	rpFilterNoSessionNote = "打开一个会话后才能筛选文件"
+	// rpFilterNoCwdNote 是会话没有工作目录时筛选框的禁用原因。
+	rpFilterNoCwdNote = "这个会话没有工作目录，暂时不能筛选文件"
+)
 
 // rpSkeleton 是文件树与改动列表首次加载的三条骨架（F-03 / D-16）：每条高 32、
 // 左缘与树行同级；中性浅块、深色主题换深灰块，不用品牌色。容器用状态角色表达
@@ -320,7 +359,8 @@ func (a *App) rpTreeRows(c *gui.Context, nodes []*rpNode, prefix string, depth i
 	s := a.rp()
 	if len(nodes) == 0 {
 		if depth == 0 {
-			a.rpEmptyBlock(c, "无匹配文件", "")
+			// 读到了、但这一层没有条目：空态，不是错误态，也不是搜索无命中。
+			a.rpEmptyBlock(c, rpEmptyDirTitle, rpEmptyDirDetail)
 		}
 		return
 	}
@@ -371,6 +411,13 @@ func (a *App) rpDirLoaded(node *rpNode, p string) int {
 
 // rpPageSize 是目录与树的分页大小（清单 R-RF-190 的一批子项）。
 const rpPageSize = 20
+
+// 空目录的文案：读到空目录与"搜索没有命中"是两种空，不能共用一句
+// （U3 §13.1）。
+const (
+	rpEmptyDirTitle  = "这个文件夹是空的"
+	rpEmptyDirDetail = "这里还没有文件。"
+)
 
 // rpDirRow 是目录行：箭头 + 文件夹图标 + 目录名（F-17–F-21）。
 func (a *App) rpDirRow(c *gui.Context, node *rpNode, p string, depth int) {
@@ -817,39 +864,33 @@ func (a *App) rpLoadMoreRow(c *gui.Context, p string) {
 	}
 }
 
-// rpDirErrorRow 是目录内的错误行（F-25/F-26）：危险色文案 + 行尾「重试」。
+// rpDirErrorRow 是目录内的错误行（F-25/F-26）：告警图标 + 危险色文案 + 行尾
+// 「重试」。
 //
 // 读屏名带上目录：读屏用户听到「无法加载文件夹：src/components」，才知道是哪
-// 一格出错（R-RF-215）。根级失败给「无法加载文件树」。
+// 一格出错（R-RF-215）。根级失败说「无法加载文件树」——根不是某一个文件夹，
+// 写「此文件夹」会指向一格不存在的东西。
 func (a *App) rpDirErrorRow(c *gui.Context, p string) {
-	t := c.Theme()
 	s := a.rp()
 	// 通用句后面接读取方给的原因：只有通用句时用户不知道是权限、断线还是路径
 	// 没了；没有原因时这一行与原来一致。
 	reason := s.dirError[p]
 	who := "无法加载文件树"
+	sentence := "无法加载文件树。"
+	retryA11y := "重试读取文件树"
 	if p != "" {
 		who = "无法加载文件夹：" + p
+		sentence = "无法加载此文件夹。"
+		retryA11y = "重试读取文件夹：" + p
 	}
-	gui.Row(c).Height(panelRowHeight2).Padding(0, panelRowPadH).Gap(space1).
-		AlignItems(gui.Center).Role(gui.RoleAlert).Label(who).Children(func() {
-		// F-13 无法加载此文件夹。
-		typeSecondary.style(t, gui.Text(c, "无法加载此文件夹。")).TextColor(t.Danger).
-			Shrink(0).SingleLine()
-		if reason != "" {
-			typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.Danger).
-				Grow(1).SingleLine()
-		}
-		// F-14 重试（重读该目录）
-		if rpTextAction(c, nil, "重试", "重试读取文件夹："+p, false) {
-			// 重试 = 清掉失败位并请求这一格的重读（适配器按 Refresh 跳过缓存）：
-			// 根级仍走整树刷新，子目录只重读自己。
-			s.dirFailed[p] = false
-			if p == "" {
-				s.reload++
-			} else {
-				s.dirRefresh[p] = true
-			}
+	// 重试 = 清掉失败位并请求这一格的重读（适配器按 Refresh 跳过缓存）：
+	// 根级仍走整树刷新，子目录只重读自己。
+	panelErrorRow(c, who, sentence, reason, retryA11y, func() {
+		s.dirFailed[p] = false
+		if p == "" {
+			s.reload++
+		} else {
+			s.dirRefresh[p] = true
 		}
 	})
 }

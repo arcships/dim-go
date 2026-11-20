@@ -37,8 +37,10 @@ func (a *App) sideChatPanel(c *gui.Context) {
 			if message == "" {
 				message = sideChatLoadFailed
 			}
+			// 「重试」只在 -demo 有：连着 Source 时没有重读侧聊的通道，留一个
+			// 点了只清错误行的按钮就是假重试（U3 §13.6）。
 			action := ""
-			if len(a.panels.sideChatSent) == 0 {
+			if len(a.panels.sideChatSent) == 0 && !a.wired() {
 				action = sideChatRetry
 			}
 			gui.Column(c).Shrink(0).Padding(panelPad, panelPad).Children(func() {
@@ -73,8 +75,15 @@ func (a *App) sideChatClosedBar(c *gui.Context) {
 
 // sideChatContent 是内容区（S-05–S-08）：有消息给只读时间线，发送中给旋转圈，
 // 否则给空态文案（由是否「从某条消息之前发起」决定用哪一条）。
+//
+// 没打开会话与"有会话但读不到侧聊"分开写：前者缺整个会话，后者缺通道
+// （U3 §13.6）。
 func (a *App) sideChatContent(c *gui.Context) {
 	t := c.Theme()
+	if a.source != nil && !a.hasOpenSession() {
+		panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的侧边对话。")
+		return
+	}
 	sent := a.panels.sideChatSent
 	switch {
 	case len(sent) > 0:
@@ -94,7 +103,7 @@ func (a *App) sideChatContent(c *gui.Context) {
 		})
 	case a.panels.sideChatSending:
 		gui.Column(c).Grow(1).Center().Children(func() {
-			gui.Spinner(c).Label("正在加载")
+			gui.Spinner(c).Label("正在等待回复")
 		})
 	case a.panels.sideChatFromMessage:
 		panelEmptyNote(c, sideChatEmptyBefore, a.sideChatFactsNote())

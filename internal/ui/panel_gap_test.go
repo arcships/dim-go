@@ -372,8 +372,11 @@ func TestSubagentEmptyReasons(t *testing.T) {
 		t.Fatalf("有会话时的空态不对：%v", tt.Texts())
 	}
 
-	// 没有会话：先要打开会话。
-	noSession := NewApp(Options{State: StateDefault, Source: wiredSource()})
+	// 没有会话：先要打开会话。快照没有会话才算「没打开」——只清选中名不够。
+	noSessionSrc := wiredSource()
+	noSessionSrc.hasSess = false
+	noSessionSrc.session = SessionSnapshot{}
+	noSession := NewApp(Options{State: StateDefault, Source: noSessionSrc})
 	noSession.selectedSession = ""
 	noSession.rightOpen, noSession.rightTab = true, tabSubagent
 	tt2 := gui.NewTester(noSession.View, WindowWidth, WindowHeight)

@@ -458,7 +458,9 @@ func (a *App) rpTabMenu(c *gui.Context, target gui.Element, tab int) {
 			s.newMenu = true
 		}
 		if rpReloadable(tab) {
-			if menuItem(c, m, iconRetry, "重新加载", "重新加载", "", false, false) {
+			reloadNote := a.rpReloadNote()
+			if menuItem(c, m, iconRetry, "重新加载", "重新加载", reloadNote,
+				reloadNote != "", false) {
 				s.reload++
 			}
 		}

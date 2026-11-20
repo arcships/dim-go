@@ -284,10 +284,10 @@ func TestRightPanelFilesReadStates(t *testing.T) {
 	app.right.loading = false
 	app.right.rootFailed = true
 	tt.Frame()
-	if _, ok := tt.Find("无法加载此文件夹。"); !ok {
+	if _, ok := tt.Find("无法加载文件树。"); !ok {
 		t.Fatal("根级读取失败没有错误行")
 	}
-	if _, ok := tt.Find("重试"); !ok {
+	if _, ok := tt.Find("重试读取文件树"); !ok {
 		t.Fatal("根级错误行没有重试")
 	}
 }

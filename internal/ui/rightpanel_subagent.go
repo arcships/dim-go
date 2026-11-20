@@ -82,7 +82,7 @@ func (a *App) subagentPanel(c *gui.Context) {
 			// 没有事实：空态 + 原因，不转圈。原因按两种情形分开写：
 			// 没打开会话（先要有会话）与有会话但协议没有子代理会话流。
 			title, note := subagentNoSession, noteSubagentFacts
-			if a.selectedSession == "" {
+			if !a.hasOpenSession() {
 				title, note = subagentNoOpenSession, noteSubagentNoSession
 			}
 			gui.Column(c).Grow(1).Center().Padding(space4, panelCenterPad).

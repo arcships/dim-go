@@ -613,6 +613,8 @@ var intentCasesGoal = []intentCase{
 		method: "StartTerminal",
 		source: func(src *fakeSource) {
 			src.session = SessionSnapshot{ID: "s1", Title: "真实会话", Cwd: "/tmp"}
+			// 还没启动：快照里没有 pty（有在跑时「新建终端」本来就是禁用的）。
+			src.terminal = TerminalSnapshot{}
 		},
 		act: func(r *intentRun) { r.app.startLiveTerminal() },
 	},
@@ -1000,7 +1002,7 @@ var readFailureCases = []readCase{
 		},
 		open:  func(a *App) { a.rightOpen, a.rightTab = true, tabFiles },
 		want:  readFail("目录"),
-		retry: "重试读取文件夹：",
+		retry: "重试读取文件树",
 	},
 	{
 		name: "文件搜索读失败",
@@ -1269,7 +1271,7 @@ var emptyStateCases = []emptyCase{
 		name:  "文件树空目录",
 		state: func(src *fakePanelSource) { src.trees[""] = readyTree() },
 		open:  func(a *App) { a.rightOpen, a.rightTab = true, tabFiles },
-		want:  "无匹配文件",
+		want:  rpEmptyDirTitle,
 	},
 	{
 		name: "搜索无命中",

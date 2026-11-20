@@ -154,8 +154,15 @@ func TestTasksPanelEmptyStates(t *testing.T) {
 	if app.panels.taskKind != 1 {
 		t.Fatalf("子标签 = %d，想要 1", app.panels.taskKind)
 	}
-	if _, ok := tt.Find("暂无待唤醒事项（" + noteSchedule + "）"); !ok {
-		t.Fatal("唤醒空态文案不对")
+	// 样例里没有唤醒读数：写「读不到」与原因，不写「暂无」。
+	if _, ok := tt.Find("读不到唤醒记录"); !ok {
+		t.Fatal("唤醒空态主句不对")
+	}
+	if _, ok := tt.Find(noteSchedule); !ok {
+		t.Fatal("唤醒空态没有写原因")
+	}
+	if _, ok := tt.Find("暂无待唤醒事项"); ok {
+		t.Fatal("读不到唤醒记录时画成了「暂无待唤醒事项」")
 	}
 }
 

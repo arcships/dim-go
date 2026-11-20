@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 
@@ -38,6 +39,27 @@ type terminalStream struct {
 	mu      sync.Mutex
 	lines   []string
 	partial string
+	// readFailed 置上表示读 pty 时拿到了 EOF 以外的错误：之后不会再有新行进来，
+	// 界面据此收起输入行（进程可能还在跑，写进去也看不到回声）。
+	readFailed bool
+}
+
+// fail 登记一次读错误：只置标记，不再追加行。
+func (s *terminalStream) fail(err error) {
+	_ = err
+	s.mu.Lock()
+	s.readFailed = true
+	s.mu.Unlock()
+}
+
+// failed 表示这个流已经读不动了。
+func (s *terminalStream) failed() bool {
+	if s == nil {
+		return false
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.readFailed
 }
 
 // append 追加一段读到的字节，按换行切成行；CRLF 行尾的 '\r' 去掉（其余控制
@@ -240,15 +262,26 @@ func (w *App) readTerminal(sessionID string, term *terminal.Terminal, stream *te
 		}
 		w.termMu.Unlock()
 	}()
+	pumpTerminal(term, stream, w.changed)
+}
+
+// pumpTerminal 把 reader 的输出推进缓冲，直到出错：EOF 是正常收尾（进程退出或
+// 设备已关），其余错误登记成「读不到输出」的事实——界面据此收起输入行，而不是
+// 继续画一个没有回声的终端。
+func pumpTerminal(reader io.Reader, stream *terminalStream, changed func()) error {
 	buf := make([]byte, terminalReadChunk)
 	for {
-		n, err := term.Read(buf)
+		n, err := reader.Read(buf)
 		if n > 0 {
 			stream.append(string(buf[:n]))
-			w.changed()
+			changed()
 		}
 		if err != nil {
-			return
+			if !errors.Is(err, io.EOF) {
+				stream.fail(err)
+				changed()
+			}
+			return err
 		}
 	}
 }
@@ -288,6 +321,8 @@ func (w *App) terminalSnapshotFor(sessionID string) ui.TerminalSnapshot {
 			out.Signal = status.Signal
 		}
 	}
-	out.Lines = w.terminalStreamFor(sessionID).snapshot()
+	stream := w.terminalStreamFor(sessionID)
+	out.ReadFailed = stream.failed()
+	out.Lines = stream.snapshot()
 	return out
 }

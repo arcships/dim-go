@@ -1006,7 +1006,10 @@ type TerminalSnapshot struct {
 	// Signaled / Signal 表示进程被信号终止（此时没有数字退出码）。
 	Signaled bool
 	Signal   int
-	Lines    []string
+	// ReadFailed 表示输出读出失败：适配器读到的是 EOF 以外的错误，之后不会再有
+	// 新行进来（进程可能还在跑）。界面据此把输入行收起——写进去也看不到回声。
+	ReadFailed bool
+	Lines      []string
 }
 
 // ---- 右栏文件页与改动页的读数 ----

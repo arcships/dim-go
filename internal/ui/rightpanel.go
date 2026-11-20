@@ -134,16 +134,64 @@ func (a *App) rightPanelBody(c *gui.Context) {
 	}
 }
 
-// goalPanel 是目标面板的既有形态（本轮不重建）。
+// goalPanel 是目标面板：只读地画当前目标与它的状态。
+//
+// 事实口径：目标归会话，来自会话快照（goalState）。没有打开会话时给空态，
+// 会话没有目标时给「还没有设置目标」并写清在哪儿设。面板内不摆任何写入口：
+// 设置 / 修改 / 暂停 / 恢复 / 清除都在输入区上沿的目标行，这里再摆一套就是
+// 同一件事的第二个入口（U3 §13.4）。
 func (a *App) goalPanel(c *gui.Context) {
+	if a.source != nil && !a.hasOpenSession() {
+		panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的目标。")
+		return
+	}
+	objective, status, exists := a.goalState()
+	if !exists {
+		panelEmptyNote(c, "还没有设置目标", "在输入区切到 Goal 模式即可设置目标。")
+		return
+	}
 	t := c.Theme()
 	gui.Scroll(c).Grow(1).Children(func() {
 		gui.Column(c).Padding(panelPad).Gap(panelGap).Children(func() {
-			typeBodyStrong.style(t, gui.Text(c, "把发送路径改成排队"))
-			typeSecondary.style(t, gui.Text(c, "运行中的提交先入队，结束后自动发出。")).
-				TextColor(t.TextMuted)
+			typeBodyStrong.style(t, gui.Text(c, objective)).TextColor(t.Text).
+				Selectable().MaxLines(12)
+			if line := goalStatusText(status); line != "" {
+				gui.Row(c).Shrink(0).Gap(space1).AlignItems(gui.Center).
+					Label("目标状态：" + line).Children(func() {
+					iconGlyph(c, iconTarget, t.TextMuted, "")
+					typeSecondary.style(t, gui.Text(c, line)).TextColor(t.TextMuted).
+						SingleLine()
+				})
+			}
 		})
 	})
+}
+
+// hasOpenSession 报告当前有没有会话：连着 Source 时以会话快照为准（有会话名
+// 但快照还没到，仍算没打开），-demo 里看选中的样例会话。右栏各面板共用这一
+// 口径，避免"有会话名就说打开了"与"没有快照就画样例"两种偏差。
+func (a *App) hasOpenSession() bool {
+	if a.source != nil {
+		_, ok := a.liveSession()
+		return ok
+	}
+	return a.selectedSession != ""
+}
+
+// goalStatusText 把会话快照里的目标状态映射成界面词；没有状态时不写一行，
+// 不拿一个默认值冒充事实。
+func goalStatusText(status string) string {
+	switch status {
+	case "active":
+		return "进行中"
+	case "paused":
+		return "已暂停"
+	case "complete":
+		return "已完成"
+	case "blocked":
+		return "已阻塞"
+	}
+	return ""
 }
 
 // panelEmpty 是面板空态：居中、次要色、可换行（K-18/K-19、S-07/S-08）。
@@ -190,6 +238,29 @@ func panelBanner(c *gui.Context, message, action string, onAction func()) {
 			})
 		}
 	})
+}
+
+// panelErrorRow 是读取失败的整行形态（不是空态）：通用句 + 原因原文 + 重试。
+//
+// 与 panelEmpty 的区别是"读到了没有内容"与"没读到"：失败行用警示色与告警角色，
+// 空态用中性色；两者混用会让用户把读不到当成没有内容（U3 §13）。
+func panelErrorRow(c *gui.Context, who, sentence, reason, retryA11y string, onRetry func()) {
+	t := c.Theme()
+	gui.Row(c).Shrink(0).MinHeight(panelRowHeight2).Padding(space2, panelRowPadH).
+		Gap(space1).AlignItems(gui.Center).Role(gui.RoleAlert).Label(who).
+		Children(func() {
+			rpGlyph(c, iconWarn, panelRowIcon, t.Danger, "")
+			typeSecondary.style(t, gui.Text(c, sentence)).TextColor(t.Danger).
+				Shrink(0).SingleLine()
+			if reason != "" {
+				typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.Danger).
+					Grow(1).SingleLine()
+			}
+			// 重试只重读，不带写；读不到时不给"看起来已生效"的动作。
+			if rpTextAction(c, nil, "重试", retryA11y, false) && onRetry != nil {
+				onRetry()
+			}
+		})
 }
 
 // panelCommandText 拼命令行：`$ {command}`。命令为空时返回空串（该行不渲染）。

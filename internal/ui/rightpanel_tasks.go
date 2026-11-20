@@ -124,18 +124,39 @@ func taskMetaLine(item task) string {
 }
 
 // tasksPanel 是任务面板：子标签（后台进程 / 唤醒）+ 列表 + 详情 + 空态。
+//
+// 三种"没有行"分开：没打开会话（先要有会话才有任务）、读不到（唤醒读数的
+// 能力缺失或读取失败）与真的没有（暂无运行进程 / 暂无待唤醒事项）。
 func (a *App) tasksPanel(c *gui.Context) {
+	wakeups := a.panels.taskKind == 1
+	if a.source != nil && !a.hasOpenSession() {
+		// 没有会话就没有任务事实：不拿样例顶替，也不说"暂无"。
+		if wakeups {
+			panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的唤醒记录。")
+		} else {
+			panelEmptyNote(c, "未打开会话", "打开一个会话后，这里显示它的后台进程。")
+		}
+		return
+	}
 	gui.Column(c).Grow(1).Children(func() {
+		// 断线时任务列表仍按最后一次快照显示（它不来自本机），横幅说明这一层；
+		// 行上的停止入口同时禁用并写原因（U3 §13.3）。
+		a.rpOfflineBar(c)
 		gui.Row(c).Height(rightPanelTabHeight).Shrink(0).
 			Padding(space1, panelPad).AlignItems(gui.Center).Children(func() {
 			// K-02 子标签「后台进程」/「唤醒」
 			gui.Tabs(c, &a.panels.taskKind, "后台进程", "唤醒").Label("任务类型")
 		})
-		if a.panels.taskKind == 1 {
+		if wakeups {
 			items, note := a.sessionWakeups()
 			if len(items) == 0 {
-				// K-19 唤醒页的空态与原因
-				panelEmpty(c, "暂无待唤醒事项"+note)
+				if note != "" {
+					// 读不到 ≠ 没有：能力缺失与读取失败都写原因，主句不写「暂无」。
+					panelEmptyNote(c, "读不到唤醒记录", note)
+					return
+				}
+				// K-19 唤醒页的空态
+				panelEmpty(c, "暂无待唤醒事项")
 				return
 			}
 			selected := a.taskSelection(len(items))
@@ -293,6 +314,9 @@ func taskTrailingSpinner(c *gui.Context, th *gui.Theme, label string) {
 // taskStopButton 是行尾的停止入口（K-13 / K-14）：第一次点进待确认（勾形 +
 // 危险色），再点发停止请求。参考的「3 秒或失焦自动复位」还没有计时器（未实现），
 // 现在只在选中行变化时复位。
+//
+// 断线时入口禁用并写原因：这时发不出请求，留一个点了没反应的按钮就是假入口
+// （U3 §13.3）。
 func (a *App) taskStopButton(c *gui.Context, item task, index int, live bool) {
 	th := c.Theme()
 	// 待确认只在三秒窗口内有效：时间到点由计时器请求重绘，状态本身按时间算，
@@ -304,7 +328,15 @@ func (a *App) taskStopButton(c *gui.Context, item task, index int, live bool) {
 	if armed {
 		label, icon = "确认停止", iconCheck
 	}
-	if iconButton(c, iconButtonSpec{icon: icon, label: label, size: rowCompact, color: color}) {
+	spec := iconButtonSpec{icon: icon, label: label, size: rowCompact, color: color}
+	if a.disconnected() {
+		spec.disabled = true
+		spec.tip = label + "：" + noteOffline
+	}
+	if iconButton(c, spec) {
+		if a.disconnected() {
+			return
+		}
 		if !armed {
 			a.panels.taskArmed = index
 			a.panels.taskArmedAt = time.Now()
@@ -410,11 +442,18 @@ func (a *App) copyTaskCommand(c *gui.Context, item task) {
 // taskOutput 是只读输出框（K-30 / K-31）：深底、最小高 160、可滚动；
 // 输出达到服务端上限时在右下角给「预览已截断」（K-32），读取失败时换成
 // 失败提示行与「重新连接」（K-33 / K-34）。
+//
+// 连着 Source 时本端没有任务输出的读取通道：框里写「读不到输出」，不写
+// 「还没有输出」——后者是一句关于事实的话，这里并不知道（U3 §13.3）。
 func (a *App) taskOutput(c *gui.Context, item task) {
 	th := c.Theme()
 	if item.logFailed {
 		a.taskOutputFailed(c, item)
 		return
+	}
+	empty := termEmptyText
+	if a.wired() {
+		empty = noteTaskOutput
 	}
 	box := gui.Column(c).Shrink(0).MinHeight(panelOutputMinHeight).Grow(1).
 		Padding(space2, panelPad).Radius(radius).Background(termCanvasBg).
@@ -423,8 +462,8 @@ func (a *App) taskOutput(c *gui.Context, item task) {
 	box.Children(func() {
 		gui.Scroll(c).Grow(1).Children(func() {
 			// K-31 没有输出时的说明行
-			typeCode.style(th, gui.Text(c, termEmptyText)).TextColor(termCanvasMuted).
-				Selectable().MaxLines(1)
+			typeCode.style(th, gui.Text(c, empty)).TextColor(termCanvasMuted).
+				Selectable().MaxLines(2)
 		})
 		if item.logTruncated {
 			// K-32 预览已截断：右下角的覆盖标签（半透明黑底、白字）。
@@ -442,6 +481,9 @@ func (a *App) taskOutput(c *gui.Context, item task) {
 
 // taskOutputFailed 是输出读取失败（K-33）与「重新连接」（K-34）：危险色的
 // 提示行，行尾是重连入口；重连只重读一次输出，不清掉任务本身。
+//
+// 连着 Source 时没有输出读取通道：入口禁用并写原因，不留一个点了只清标记的
+// 「重新连接」（U3 §13.3）。
 func (a *App) taskOutputFailed(c *gui.Context, item task) {
 	th := c.Theme()
 	gui.Row(c).Shrink(0).MinHeight(panelOutputMinHeight).
@@ -451,8 +493,17 @@ func (a *App) taskOutputFailed(c *gui.Context, item task) {
 		iconGlyph(c, iconWarn, th.Danger, "终端操作失败")
 		typeBody.style(th, gui.Text(c, "终端操作失败")).TextColor(th.Danger).
 			Grow(1).MaxLines(2)
-		if actionButton(c, "重新连接", "重新连接输出", false, false).Clicked() {
+		disabled := a.wired()
+		label := "重新连接"
+		if disabled {
+			label = "重新连接输出：" + noteTaskOutput
+		}
+		if actionButton(c, "重新连接", label, false, disabled).Clicked() && !disabled {
 			a.reconnectTaskOutput(item)
+		}
+		if disabled {
+			typeMicro.style(th, gui.Text(c, noteTaskOutput)).TextColor(th.TextMuted).
+				MaxLines(2)
 		}
 	})
 }

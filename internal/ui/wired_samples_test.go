@@ -109,7 +109,7 @@ func TestWiredScreensExcludeSamples(t *testing.T) {
 	}{
 		{"主界面", func(a *App) { a.screen = ScreenMain }, "真实会话"},
 		{"账号", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secAccount }, "ada@real.test"},
-		{"终端", func(a *App) { a.screen, a.rightOpen, a.rightTab = ScreenMain, true, 4 }, "还没有输出"},
+		{"终端", func(a *App) { a.screen, a.rightOpen, a.rightTab = ScreenMain, true, 4 }, termNoCwdText},
 		// 设置区：这些屏曾经全靠样例（docs/audit-fakes.md 的 P0-3…P0-8 与 T-3）。
 		// 现在它们要么读事实（运行环境），要么只写这一屏读不到的原因。
 		{"设置·运行环境", func(a *App) { a.screen, a.settingsSection = ScreenSettings, secRuntime }, "server-real"},

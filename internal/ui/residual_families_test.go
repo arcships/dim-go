@@ -533,12 +533,20 @@ func TestTaskWakeupsFromSource(t *testing.T) {
 // 「没有待唤醒事项」（K-19）。
 func TestTaskWakeupsCapabilityMissing(t *testing.T) {
 	src := &fakeSource{conn: Connection{Phase: "connected"},
+		session: SessionSnapshot{ID: "s1", Title: "真实会话"}, hasSess: true,
 		wakeups: WakeupsSnapshot{CapabilityMissing: true}}
 	app := NewApp(Options{State: StateDefault, Source: src})
 	app.rightOpen, app.rightTab, app.panels.taskKind = true, tabTasks, 1
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	if !tt.HasText("暂无待唤醒事项（暂时读不到定时任务）") {
-		t.Fatalf("空态没有写读不到定时任务：%v", tt.Texts())
+	// 读不到 ≠ 没有：主句写「读不到唤醒记录」，原因单独一行，不写「暂无」。
+	if !tt.HasText("读不到唤醒记录") {
+		t.Fatalf("读不到时没有写清读不到：%v", tt.Texts())
+	}
+	if !tt.HasText("暂时读不到定时任务") {
+		t.Fatalf("没有写出读不到的原因：%v", tt.Texts())
+	}
+	if tt.HasText("暂无待唤醒事项") {
+		t.Fatalf("读不到时画成了「没有待唤醒事项」：%v", tt.Texts())
 	}
 }
 
