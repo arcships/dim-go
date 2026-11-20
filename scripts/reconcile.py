@@ -795,6 +795,7 @@ MAP_BUCKETS = ['逐字', MAP_HIT, MAP_NO_MARK, MAP_NO_POINT, MAP_NEG]
 # ---- 附录：五档分流。词表与元素族是分档口径的唯一来源（报告 §5.1 由它生成）。
 
 TRIAGE_DONE_FILE = ROOT / 'scripts' / 'reconcile-triage-done.json'
+SCOPE_DONE_FILE = ROOT / 'scripts' / 'reconcile-triage-done-scope.json'
 TRIAGE_BUCKETS = ['本版可做', '需协议', '需素材', '需宿主能力', '取证口径']
 
 TRIAGE_MATERIAL_WORDS = (
@@ -816,6 +817,37 @@ TRIAGE_PROTOCOL_FAMILIES = {
     'S-account', 'S-usage', 'S-personalization', 'S-modality', 'S-mcp', 'S-git', 'S-hooks',
     'S-pluginSettings', 'S-externalAgents',
 }
+
+# ---- 附录：主窗口与全局面板的五档分流（§6）。口径与 §5 同源，只把「需素材」
+# 换成「需事实」：这两份需求没有皮肤/宠物素材，缺的是 App Server 已给、Go 侧
+# 尚未投影的事实（当前只有「Agent 配置」一项：session.agent.get/update 已存在，
+# Source 还没有对应读数）。
+
+SCOPE_TRIAGE_BUCKETS = ['本版可做', '需协议', '需事实', '需宿主', '取证口径']
+SCOPE_REQ_FILES = ('requirements-main.md', 'requirements-global.md')
+
+SCOPE_HOST_WORDS = (
+    '保存对话框', '保存面板', '系统保存', '下载', '安装包', '重启安装', '浏览器数据',
+    'Chrome', '系统通知', '窗口控件', '窗口拖动', '拖拽窗口', '红绿灯', '全屏',
+    '多显示器', '系统级', '托盘',
+)
+SCOPE_HOST_RE = re.compile('|'.join(SCOPE_HOST_WORDS))
+SCOPE_HOST_DIMS = {'多窗口', '拖拽', '输入法'}
+
+# 协议 v3 没有对应方法/字段的元素族：成员审批明细、沙箱越权卡、子代理模型卡、
+# 会话 Fork 副本、市场安装、浏览器数据导入/清理；以及左栏里只存在于参考产品
+# 会话目录、protocol 不投影的未读点、改动摘要、定时来源、逐会话分支。
+SCOPE_PROTOCOL_FAMILIES = {
+    'LB-67', 'LB-70', 'LB-74', 'LB-76', 'LB-81', 'LB-82',
+    'G-C2', 'G-C3', 'G-G2', 'G-H2', 'G-H3', 'G-H6', 'G-H7',
+}
+SCOPE_PROTOCOL_WORDS = (
+    '未读', '改动摘要', '定时来源', '成员', '审批历史', '会话复制', '快照过期',
+    '插件市场', '市场安装', '下载进度', 'Cookie', '电脑操作', '沙箱',
+    '子代理模型', '分支不一致',
+)
+SCOPE_FACT_WORDS = ('Agent 配置', '多套 Agent 配置')
+
 
 # 横向维度：判定在屏根 / 主题 / App 层（§4.3、§4.8），元素函数里不出现标记。
 TRIAGE_HORIZONTAL_DIMS = {
@@ -1354,7 +1386,8 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
     lines.append('Status: 对账报告（脚本生成，可重跑；`python3 scripts/reconcile.py`）')
     lines.append('Scope: 四份需求表的全部条目（`docs/domains/requirements/requirements-*.md`）；'
                  '状态列写回的是 §4「按元素映射判定」的结论，§1–§3 是第一轮记录，'
-                 '§5 是设置 19 节的五档分流与本轮做掉的条目（核对状态列，不看口头说明）')
+                 '§5 是设置 19 节的五档分流与本轮做掉的条目，§6 是主窗口与全局面板的'
+                 '五档分流（核对状态列，不看口头说明）')
     lines.append('Owner: 组织 agent（验收判定侧）；需求文件与元素清单归 R 与需求分析领域')
     lines.append('')
     lines.append('## 0. 判定口径（第一轮：逐字/符号/测试）')
@@ -1457,6 +1490,7 @@ def write_report(rows_by_file: dict[Path, list[ReqRow]],
     lines.append('')
     append_map_section(lines, rows_by_file, verdicts_by_file, map_by_file, inv, render_index)
     append_triage_section(lines, rows_by_file, map_by_file)
+    append_scope_triage_section(lines, rows_by_file, map_by_file)
     REPORT.write_text('\n'.join(lines))
 
 
@@ -2075,6 +2109,209 @@ def append_triage_section(lines: list[str],
                  '真写入、归档行读事实并接恢复/删除），渲染点与标记本来就在，所以有登记的条目现状'
                  '仍是「未实现（映射到位但没有该维度的标记）」——那一条缺的是「记忆」「异常」这类横向'
                  '维度的标记，不是行为。清单里每条都写了证明它的测试名，做没做按测试核。')
+    lines.append('')
+    lines.append('| 需求 ID | 实现点 | 证明它的测试 | 现状 |')
+    lines.append('|---|---|---|---|')
+    for req_id, state, evidence in implemented:
+        entry = done[req_id]
+        test = entry.get('test', '') or '—'
+        lines.append(f'| {req_id} | {entry.get("note", "")} | {test} | {state}{evidence} |')
+    lines.append('')
+
+
+def scope_elem_family(elem_id: str) -> str:
+    """主窗口 / 全局元素族：`LB-70` → `LB-70`，`G-C1-04` → `G-C1`。"""
+    parts = elem_id.split('-')
+    if len(parts) >= 2:
+        return '-'.join(parts[:2])
+    return elem_id
+
+
+def scope_triage_bucket(row: ReqRow, kind: str) -> tuple[str, str]:
+    """把主窗口 / 全局面板的一条未实现分到五档，返回 (档位, 命中规则)。
+
+    顺序：宿主 → 协议 → 事实 → 取证口径 → 本版可做。前三档说的是「缺什么」；
+    取证口径说的是「判定缺证据」，不指向待实现功能。
+    """
+    blob = ' '.join((row.expected, row.acceptance, row.cells[3] if len(row.cells) > 3 else ''))
+    family = scope_elem_family(row.elem_id)
+    if (SCOPE_HOST_RE.search(blob) or TRIAGE_HOST_RE.search(blob)
+            or norm_dim(row.dim) in SCOPE_HOST_DIMS):
+        return '需宿主', '宿主接口词 / 多窗口·拖拽·输入法'
+    if family in SCOPE_PROTOCOL_FAMILIES or any(w in blob for w in SCOPE_PROTOCOL_WORDS):
+        return '需协议', '元素族在 protocol v3 无通道 / 文案指向服务端事实'
+    if any(w in blob for w in SCOPE_FACT_WORDS):
+        return '需事实', '协议已有方法，Source 未投影'
+    if kind == MAP_NO_POINT:
+        return '取证口径', '无渲染点（先补锚点再判）'
+    if norm_dim(row.dim) in TRIAGE_HORIZONTAL_DIMS:
+        return '取证口径', '横向维度'
+    if '语言包' in blob:
+        return '取证口径', '无 i18n 层'
+    return '本版可做', '本地视图状态 / 已有事实'
+
+
+def pick_scope_sample(rows: list[ReqRow], limit: int = 10) -> list[ReqRow]:
+    """每档取代表 10 条：先摊开元素族，再按需求 ID 补齐。"""
+    picked: list[ReqRow] = []
+    seen: set[str] = set()
+    for row in rows:
+        family = scope_elem_family(row.elem_id)
+        if family in seen:
+            continue
+        seen.add(family)
+        picked.append(row)
+        if len(picked) >= limit:
+            return picked
+    for row in rows:
+        if row in picked:
+            continue
+        picked.append(row)
+        if len(picked) >= limit:
+            break
+    return picked
+
+
+def scope_done() -> dict[str, dict[str, str]]:
+    """主窗口 / 全局面板本轮做掉的需求登记；没有文件就是空表。"""
+    if not SCOPE_DONE_FILE.exists():
+        return {}
+    try:
+        data = json.loads(SCOPE_DONE_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+    done = data.get('done', {}) if isinstance(data, dict) else {}
+    if not isinstance(done, dict):
+        return {}
+    out: dict[str, dict[str, str]] = {}
+    for req_id, value in done.items():
+        if isinstance(value, dict):
+            out[req_id] = {k: str(v) for k, v in value.items()}
+        else:
+            out[req_id] = {'note': str(value), 'test': ''}
+    return out
+
+
+def append_scope_triage_section(lines: list[str],
+                                rows_by_file: dict[Path, list[ReqRow]],
+                                map_by_file: dict[Path, dict[int, MapResult]]) -> None:
+    """附录：主窗口（main）与全局面板（global）的未实现五档分流与本轮登记。"""
+    lines.append('## 6. 附录：主窗口与全局面板的未实现分流（五档）')
+    lines.append('')
+    picked_files = [(p, rows_by_file[p]) for p in rows_by_file
+                    if p.name in SCOPE_REQ_FILES]
+    if not picked_files:
+        lines.append('没有读到主窗口 / 全局面板的需求表，本节跳过。')
+        lines.append('')
+        return
+
+    # 登记对象是现行状态列的未实现（§4 口径），不是 §1 的第一轮下限。
+    per_file: dict[str, list[ReqRow]] = {}
+    per_results: dict[str, dict[int, MapResult]] = {}
+    for path, rows in picked_files:
+        results = map_by_file[path]
+        per_file[path.name] = [row for row in rows
+                               if results[row.line_no].kind in (MAP_NO_MARK, MAP_NO_POINT)]
+        per_results[path.name] = results
+    all_rows = [row for rows in per_file.values() for row in rows]
+    total = len(all_rows)
+    first_round = {'requirements-main.md': 881, 'requirements-global.md': 554}
+
+    lines.append('本节只分 `requirements-main.md`（主窗口五区）与 `requirements-global.md`'
+                 '（全局面板八类）。分流的对象是**现行状态列**的未实现条目（§4 口径：'
+                 '映射到位无标记 + 无渲染点）：主窗口 '
+                 f'{len(per_file.get("requirements-main.md", []))} 条、全局面板 '
+                 f'{len(per_file.get("requirements-global.md", []))} 条，合计 {total} 条。')
+    lines.append('')
+    lines.append('领导给的 881 / 554 是 §1 第一轮「未实现」的下限计数（只看字面量、符号、'
+                 '测试），与本节不是同一批：第二轮把「元素映射到位、但函数体里没有该维度'
+                 '标记」也算成未实现，所以全局面板从 554 涨到 '
+                 f'{len(per_file.get("requirements-global.md", []))} 条；主窗口从 '
+                 f'{first_round["requirements-main.md"]} 条到 '
+                 f'{len(per_file.get("requirements-main.md", []))} 条，差别很小。')
+    lines.append('')
+
+    lines.append('### 6.1 分档口径')
+    lines.append('')
+    lines.append('| 档 | 判据（按顺序取第一个命中） | 含义 |')
+    lines.append('|---|---|---|')
+    lines.append(f'| 需宿主 | 期望/场景/验收列命中宿主接口词（{len(SCOPE_HOST_WORDS)} 个，另继承 §5 的词表），'
+                 '或维度属多窗口、拖拽、输入法 | 要系统保存面板、窗口拖动、全屏、托盘、下载安装等宿主通道 |')
+    lines.append(f'| 需协议 | 元素族属 '
+                 f'{", ".join(f"`{f}`" for f in sorted(SCOPE_PROTOCOL_FAMILIES))}，'
+                 '或文案命中服务端事实词（' + '、'.join(SCOPE_PROTOCOL_WORDS) + '） | '
+                 'protocol v3 没有对应方法或字段（未读、改动摘要、逐会话分支、成员审批明细、'
+                 '会话 Fork 副本、市场安装、浏览器数据） |')
+    lines.append(f'| 需事实 | 文案命中（{"、".join(SCOPE_FACT_WORDS)}） | '
+                 '协议已有方法（如 `session.agent.get/update`），Go 侧 Source 还没投影出该读数 |')
+    lines.append('| 取证口径 | 判定为无渲染点，或维度属横向维度（' +
+                 '、'.join(sorted(TRIAGE_HORIZONTAL_DIMS)) + '），或场景是「语言包缺失回落」 | '
+                 '这一档不是待实现功能，是判定要补证据：补元素锚点后重判，或界面实拍取证 |')
+    lines.append('| 本版可做 | 其余 | 本端视图状态、已有事实或已有写通道能落地 |')
+    lines.append('')
+    lines.append('分档只说「要什么才能做」，不改状态列；状态列仍由 §4 判。')
+    lines.append('')
+
+    lines.append('### 6.2 分档计数')
+    lines.append('')
+    lines.append('| 文件 | 现行未实现 | 本版可做 | 需协议 | 需事实 | 需宿主 | 取证口径 |')
+    lines.append('|---|---:|---:|---:|---:|---:|---:|')
+    combined: dict[str, list[tuple[ReqRow, str]]] = {name: [] for name in SCOPE_TRIAGE_BUCKETS}
+    for path, rows in picked_files:
+        results = per_results[path.name]
+        counts = {name: 0 for name in SCOPE_TRIAGE_BUCKETS}
+        for row in per_file[path.name]:
+            bucket, rule = scope_triage_bucket(row, results[row.line_no].kind)
+            counts[bucket] += 1
+            combined[bucket].append((row, rule))
+        lines.append(f'| `{path.name}` | {len(per_file[path.name])} | '
+                     + ' | '.join(str(counts[name]) for name in SCOPE_TRIAGE_BUCKETS) + ' |')
+    lines.append(f'| **合计** | **{total}** | '
+                 + ' | '.join(f'**{len(combined[name])}**' for name in SCOPE_TRIAGE_BUCKETS)
+                 + ' |')
+    lines.append('')
+    for name in SCOPE_TRIAGE_BUCKETS:
+        items = combined[name]
+        if not items:
+            continue
+        dim_c = collections.Counter(norm_dim(row.dim) for row, _rule in items)
+        fam_c = collections.Counter(scope_elem_family(row.elem_id) for row, _rule in items)
+        lines.append(f'- **{name}** {len(items)} 条（{pct(len(items), total)}）：维度 '
+                     + '、'.join(f'{d} {n}' for d, n in dim_c.most_common(3))
+                     + '；元素族 ' + '、'.join(f'`{f}` {n}' for f, n in fam_c.most_common(5)) + '。')
+    lines.append('')
+
+    lines.append('### 6.3 每档代表条目（每档 10 条）')
+    lines.append('')
+    for name in SCOPE_TRIAGE_BUCKETS:
+        items = combined[name]
+        lines.append(f'#### {name}（{len(items)} 条）')
+        lines.append('')
+        if not items:
+            lines.append('无。')
+            lines.append('')
+            continue
+        lines.append('| 需求 ID | 元素 ID | 维度 | 期望 | 判定 | 分档依据 |')
+        lines.append('|---|---|---|---|---|---|')
+        for row in pick_scope_sample([r for r, _ in items]):
+            result = per_results[row.path.name][row.line_no]
+            expected = row.expected.replace('|', '/')[:36] or '—'
+            rule = scope_triage_bucket(row, result.kind)[1]
+            lines.append(f'| {row.req_id} | {row.elem_id} | {norm_dim(row.dim)} | '
+                         f'{expected} | {result.kind} | {rule} |')
+        lines.append('')
+
+    done = scope_done()
+    lines.append('### 6.4 本轮做掉的条目（主窗口 / 全局面板）')
+    lines.append('')
+    if not done:
+        lines.append('本轮没有登记（`scripts/reconcile-triage-done-scope.json` 为空）。')
+        lines.append('')
+        return
+    implemented = check_done(done, rows_by_file, map_by_file)
+    ok = sum(1 for _req, state, _ev in implemented if state == '已实现')
+    lines.append(f'登记 {len(implemented)} 条：现状为「已实现」{ok} 条，不一致 '
+                 f'{len(implemented) - ok} 条。做没做按状态列与测试名核。')
     lines.append('')
     lines.append('| 需求 ID | 实现点 | 证明它的测试 | 现状 |')
     lines.append('|---|---|---|---|')

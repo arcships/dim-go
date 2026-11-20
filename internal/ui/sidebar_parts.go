@@ -37,6 +37,8 @@ const (
 	sidebarKeycapWidth  = 32
 	// sidebarEmptyIndent 是「暂无会话」相对分组行的缩进（与行文字同一列）。
 	sidebarEmptyIndent = space8
+	// sidebarHoverCardWidth 是会话行悬停卡的宽：小于栏宽（256），长标题折行。
+	sidebarHoverCardWidth = 216
 	// radiusFull 是胶囊与头像的整圆半径。
 	radiusFull = 999
 )

@@ -21,11 +21,13 @@ var (
 	iconDotEmpty = mustSVG(`<circle cx="12" cy="12" r="0" fill="none" stroke="none"/>`)
 
 	// 动作：新建、搜索、收起/展开侧栏、右栏、附件、发送、停止。
-	iconPlus       = mustSVG(`<path d="M12 4.5v15m7.5-7.5h-15"/>`)
-	iconSearch     = mustSVG(`<path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>`)
-	iconChevronR   = mustSVG(`<path d="M8.25 4.5 15.75 12l-7.5 7.5"/>`)
-	iconChevronL   = mustSVG(`<path d="M15.75 19.5 8.25 12l7.5-7.5"/>`)
-	iconChevronUp  = mustSVG(`<path d="m4.5 15.75 7.5-7.5 7.5 7.5"/>`)
+	iconPlus      = mustSVG(`<path d="M12 4.5v15m7.5-7.5h-15"/>`)
+	iconSearch    = mustSVG(`<path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/>`)
+	iconChevronR  = mustSVG(`<path d="M8.25 4.5 15.75 12l-7.5 7.5"/>`)
+	iconChevronL  = mustSVG(`<path d="M15.75 19.5 8.25 12l7.5-7.5"/>`)
+	iconChevronUp = mustSVG(`<path d="m4.5 15.75 7.5-7.5 7.5 7.5"/>`)
+	// iconSquarePen 是「在工作区中新建会话」的方框加笔（lucide square-pen 同形）。
+	iconSquarePen  = mustSVG(`<path d="M12 3.75H5.25A1.5 1.5 0 0 0 3.75 5.25v13.5a1.5 1.5 0 0 0 1.5 1.5h13.5a1.5 1.5 0 0 0 1.5-1.5V12"/><path d="M17.25 3.75a2.121 2.121 0 0 1 3 3L12 15l-3.75.75L9 12l8.25-8.25Z"/>`)
 	iconPanelRight = mustSVG(`<path d="M3.75 4.5h16.5v15H3.75z"/><path d="M14.25 4.5v15"/>`)
 	iconPaperclip  = mustSVG(`<path d="m18.375 12.739-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13"/>`)
 	iconArrowUp    = mustSVG(`<path d="M12 19.5v-15m0 0-6.75 6.75M12 4.5l6.75 6.75"/>`)

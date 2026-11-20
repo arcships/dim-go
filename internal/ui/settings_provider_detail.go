@@ -87,7 +87,7 @@ func configAuthRow(c *gui.Context, provider configProvider) {
 	})
 }
 
-// configProtocolRow 是协议一行（S-configuration-55）：只读，显示映射后的名字；
+// configProtocolRow 是协议一行：只读，显示映射后的名字；
 // 协议名认不出来时显示服务端给的原始标识（S-configuration-55 的「异常」行）。
 func configProtocolRow(c *gui.Context, provider configProvider) {
 	t := c.Theme()
@@ -136,15 +136,29 @@ func configProtocolName(kind string) string {
 // configCredentialRows 是三个可写字段的读数行（S-configuration-56 / 57 / 46 / 61）：
 // 名称、基础 URL、API 密钥。每行显示读数值，行尾是进编辑态的入口。
 func configCredentialRows(c *gui.Context, data configView) {
+	// S-configuration-56 名称
+	configNameRow(c, data)
+	// S-configuration-18 基础 URL 的读数（单行截断、悬停看全）
+	configBaseURLAction(c, data.selected.baseURL, "编辑基础 URL", func() {
+		configScreen.form = configFormEdit(data.selected, data.models)
+	})
+	// S-configuration-46 / S-configuration-61 API 密钥
+	configAPIKeyRow(c, data)
+}
+
+// configNameRow 是名称的读数行（S-configuration-56）：回显当前名称，行尾进编辑态。
+func configNameRow(c *gui.Context, data configView) {
 	provider := data.selected
 	configValueRow(c, "名称", dashIfEmpty(provider.name), "编辑名称", func() {
 		configScreen.form = configFormEdit(provider, data.models)
 	})
-	configValueRow(c, "基础 URL", dashIfEmpty(provider.baseURL), "编辑基础 URL", func() {
-		configScreen.form = configFormEdit(provider, data.models)
-	})
-	// S-configuration-46 / S-configuration-61 API 密钥：只显示「已设置」的掩码，
-	// 从不回显原文；点「修改」进编辑态，空着表示不改。
+}
+
+// configAPIKeyRow 是 API 密钥的读数行（S-configuration-46 / 61）：只显示「已设置」
+// 的掩码，从不回显原文；点「修改」进编辑态，空着表示不改。
+func configAPIKeyRow(c *gui.Context, data configView) {
+	t := c.Theme()
+	provider := data.selected
 	credentialState := "未设置"
 	if provider.credentialConfigured {
 		credentialState = "••••••••"
@@ -154,9 +168,14 @@ func configCredentialRows(c *gui.Context, data configView) {
 	})
 	if provider.credentialConfigured {
 		// 读屏读「已设置」，不读掩码字符（S-configuration-61 的无障碍行）。
-		configMicroStyle.style(c.Theme(), gui.Text(c, "API 密钥已设置")).
-			TextColor(c.Theme().TextMuted).Label("API 密钥已设置")
+		configMicroStyle.style(t, gui.Text(c, "API 密钥已设置")).
+			TextColor(t.TextMuted).Label("API 密钥已设置")
+		return
 	}
+	// S-configuration-46 的「异常」：没有凭据时保存会被拦下，行下先写清。
+	credentialErr := "保存前需要填写 API 密钥"
+	configMicroStyle.style(t, gui.Text(c, credentialErr)).TextColor(t.Danger).
+		Role(gui.RoleAlert).MaxLines(1)
 }
 
 // configValueRow 是一行字段读数：标签 + 值 + 行尾动作。值单行截断，悬停看全。
@@ -406,7 +425,7 @@ func (a *App) configModelDraftPanel(c *gui.Context, data configView) {
 				}
 				// 保存先做本地校验：填了合法标识也发不出写请求（模型的新建只有
 				// provider.create 带清单，改已有供应商的模型没有方法），原因就地写。
-				if gui.PrimaryButton(c, "保存").Label("保存").Height(rowRegular).Clicked() {
+				if gui.PrimaryButton(c, "保存").Label("保存模型").Height(rowRegular).Clicked() {
 					if errText := d.validate(); errText != "" {
 						d.formErr = errText
 					} else {
@@ -507,6 +526,9 @@ func configLoadingSkeleton(c *gui.Context) {
 
 // ---- 探测（测试连接 / 刷新） ----
 
+// probeIntentLabel 是一次探测在错误行里的动作名。
+const probeIntentLabel = "测试连接"
+
 // probeKind 是一次探测的用途：界面对结果的写法不同（行内结果 / 错误行）。
 type probeKind int
 
@@ -525,11 +547,12 @@ func (a *App) configProbeProvider(provider configProvider, kind probeKind) {
 	configScreen.probing = true
 	configScreen.probeErr = ""
 	configScreen.probeNote = ""
+	// 失败原因带动作前缀进标题下的错误行（那里要能点「重试」），面板里去掉前缀。
 	onFail := func(reason string) {
 		configScreen.probing = false
-		configScreen.probeErr = reason
+		configScreen.probeErr = strings.TrimPrefix(reason, probeIntentLabel+"：")
 	}
-	a.dispatchThen("探测供应商", func(ctx context.Context) error {
+	a.dispatchThen(probeIntentLabel, func(ctx context.Context) error {
 		_, err := a.intents.ProbeProvider(ctx, id)
 		return err
 	}, func() {

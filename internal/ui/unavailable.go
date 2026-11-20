@@ -32,6 +32,12 @@ const (
 	notePreviewIO = "当前版本不支持另存与外部打开"
 	// noteDirPicker 用于系统目录选择器的替代输入。技术口径：宿主没有目录选择器。
 	noteDirPicker = "请手动输入路径"
+	// noteSessionNavSample 用于样例态的会话前后导航：没有会话目录事实，不切会话。
+	noteSessionNavSample = "样例状态没有会话列表可切换"
+	// noteUnreadFact / noteStarFact 用于会话行的「标为未读」与「星标会话」：会话
+	// 目录没有未读与星标字段，本端不拿本地状态冒充服务端事实。
+	noteUnreadFact = "会话目录没有未读状态"
+	noteStarFact   = "会话目录没有星标状态"
 	// notePluginWrite 用于插件设置的保存与重新加载。技术口径：协议没有插件设置
 	// 写入方法。
 	notePluginWrite = "当前版本不支持保存插件设置"
@@ -96,6 +102,18 @@ const (
 	// noteProviderConnectWrite 用于「连接并获取模型」。技术口径：缺 = 新供应商的
 	// 探测/拉清单方法（provider.probe 只对已存在的 provider 有效，S-configuration-49）。
 	noteProviderConnectWrite = "当前版本不支持在保存前连接并拉取模型"
+	// noteProviderAWSCreds 用于 AWS 认证的三件套。技术口径：缺 = provider.update
+	// 不带 Access Key ID / Secret Access Key / Session Token（S-configuration-45）。
+	noteProviderAWSCreds = "当前版本不支持填写 AWS 访问密钥"
+	// noteProviderRegion 用于 Region / 基础 URL 那一行。技术口径：缺 = provider.update
+	// 不带上游 Region（S-configuration-47）。
+	noteProviderRegion = "当前版本不支持设置上游 Region"
+	// noteProviderUsage 用于供应商详情里的用量 / 账户面板。技术口径：缺 = 按供应商
+	// 读用量与账户的协议方法（S-configuration-51 / 52）。
+	noteProviderUsage = "当前版本读不到按供应商的用量与账户"
+	// noteProviderOrg 用于 OpenAI 的组织 / 项目字段。技术口径：缺 = provider.update
+	// 不带 Organization ID / Project ID（S-configuration-53）。
+	noteProviderOrg = "当前版本不支持填写组织与项目标识"
 	// noteProviderTestUnavailable 用于「测试连接」在没选中读数项时置灰的原因。
 	noteProviderTestUnavailable = "选中一个已保存的供应商后才能测试连接"
 	// noteProviderProbeBusy 用于探测进行中的「刷新」。
@@ -113,6 +131,9 @@ const (
 	// noteProviderUserAgentWrite 用于编辑态的 User-Agent。技术口径：缺 =
 	// provider.update 不带 User-Agent 字段（S-configuration-59）。
 	noteProviderUserAgentWrite = "当前版本不支持单独设置 User-Agent"
+	// noteProviderBuiltin 用于「内置供应商不提供删除」。技术口径：provider.list 的
+	// 回执不带「内置 / 自定义」标记，界面分不出哪些是内置（S-configuration-63）。
+	noteProviderBuiltin = "当前版本分不出内置与自定义供应商"
 	// noteModelCreateWrite 用于「添加模型」对话框的保存。技术口径：缺 = 给已有
 	// 供应商新增模型的方法（provider.update 的补丁里没有模型，S-configuration-77）。
 	noteModelCreateWrite = "当前版本不支持给已保存的供应商新增模型"

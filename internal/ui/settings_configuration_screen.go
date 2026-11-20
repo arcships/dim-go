@@ -487,6 +487,11 @@ func (a *App) configProviderColumn(c *gui.Context, data configView) {
 		gui.Scroll(c).Grow(1).Label("供应商").Children(func() {
 			gui.Column(c).Shrink(0).Gap(configGapGroups).
 				Padding(0, configPadH, configAddPad, configPadH).Children(func() {
+				if data.loading {
+					// S-configuration-81：清单还没读到，画加载骨架。
+					configLoadingSkeleton(c)
+					return
+				}
 				if len(data.providers) == 0 {
 					// S-configuration-04 没有读到供应商
 					configMicroStyle.style(t, gui.Text(c, "没有读到供应商。")).
@@ -786,7 +791,7 @@ func configDetailContentWidth(c *gui.Context) float32 {
 }
 
 // configDetailHead 是详情头部：图标 + 名称 + 启用状态 + 启用开关，下方一条底线
-// （S-configuration-11 … 13）。
+// （S-configuration-11 / 12；启用开关本身见 configEnableSwitch）。
 //
 // 名称单行截断、悬停看全（S-configuration-11 的「异常」行：开关不跟着挤出去，
 // 它自己 Shrink(0)）；状态词在读数不足以判断时显示「—」（S-configuration-12）。
@@ -808,7 +813,6 @@ func (a *App) configDetailHead(c *gui.Context, data configView) {
 						TextColor(t.TextMuted).SingleLine()
 				})
 			})
-			// S-configuration-13 启用开关
 			a.configEnableSwitch(c, provider)
 		})
 		if errText != "" {
@@ -1246,7 +1250,7 @@ func (a *App) configSetModelsEnabled(provider configProvider, models []configMod
 	}
 	fail := func(reason string) {
 		if onFail != nil {
-			onFail(reason)
+			onFail(strings.TrimPrefix(reason, "启停模型："))
 		}
 	}
 	for _, model := range models {
@@ -1254,7 +1258,7 @@ func (a *App) configSetModelsEnabled(provider configProvider, models []configMod
 			continue
 		}
 		providerID, modelID := provider.id, model.id
-		a.dispatchQuiet("启停模型", func(ctx context.Context) error {
+		a.dispatchThen("启停模型", func(ctx context.Context) error {
 			return a.intents.SetProviderModelEnabled(ctx, providerID, modelID, enabled)
 		}, nil, fail)
 	}

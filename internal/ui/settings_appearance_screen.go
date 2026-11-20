@@ -646,7 +646,6 @@ func appearanceSelectionMark(c *gui.Context, t *gui.Theme) {
 // 兜底的纯色圆点；正常运行走图标。
 var screenCornerDotGlyphMissing bool
 
-
 // appearanceLanguageSection 是程序语言段（S-appearance-09–11）。
 // appearanceLanguageSection 是程序语言段（S-appearance-09–11）。
 //
@@ -723,7 +722,7 @@ func appearanceFontRow(c *gui.Context, t *gui.Theme, label, hint string,
 				}
 			})
 			if appearanceChoiceTrigger(c, t, label, options[index].label, open,
-					screenFontSelW) {
+				screenFontSelW) {
 				appearanceChoiceToggle(label, true)
 			}
 		})

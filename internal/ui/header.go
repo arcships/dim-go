@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"strconv"
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
@@ -28,6 +29,100 @@ func openWithApps() []appOpenWith {
 	}
 }
 
+// sessionNavGroup 是左栏收起时标题栏里的导航按钮组（TB-14–TB-16）：上一个 /
+// 下一个同工作区会话、在当前工作区新建会话。展开入口仍由 12px 边条承担。
+// 会话前后导航没有本地视图状态：顺序每帧从会话目录与工作目录事实重算，边界处
+// 置灰而不是回卷（R-TB-117、R-TB-126、R-TB-130）。
+func (a *App) sessionNavGroup(c *gui.Context) {
+	prev, next, cwd := a.workspaceNeighbors()
+	canNavigate := a.intents != nil || a.source != nil
+	reason := noteSessionNavSample
+	if canNavigate {
+		reason = ""
+	}
+	gui.Row(c).Shrink(0).Gap(space1).AlignItems(gui.Center).
+		Label("会话导航").Role(gui.RoleGroup).Children(func() {
+		// TB-14 上一个工作区会话
+		if iconButton(c, iconButtonSpec{
+			icon: iconChevronL, label: "上一个工作区会话",
+			tip:  navTip("上一个工作区会话", prev < 0, reason),
+			size: rowRegular, disabled: prev < 0,
+		}) {
+			a.selectSessionIndex(prev)
+		}
+		// TB-15 下一个工作区会话
+		if iconButton(c, iconButtonSpec{
+			icon: iconChevronR, label: "下一个工作区会话",
+			tip:  navTip("下一个工作区会话", next < 0, reason),
+			size: rowRegular, disabled: next < 0,
+		}) {
+			a.selectSessionIndex(next)
+		}
+		// TB-16 在工作区中新建会话
+		if iconButton(c, iconButtonSpec{
+			icon: iconSquarePen, label: "在工作区中新建会话",
+			tip: "在工作区中新建会话", size: rowRegular,
+		}) {
+			a.createSessionAt(cwd)
+		}
+	})
+}
+
+// navTip 是导航按钮的悬停提示：边界与样例态都把原因写出来，不给「点了没反应」。
+func navTip(label string, disabled bool, reason string) string {
+	if !disabled {
+		return label
+	}
+	if reason != "" {
+		return label + "：" + reason
+	}
+	return label + "：已到该工作区的边界"
+}
+
+// selectSessionIndex 打开目录里第 index 条会话：复用左栏行的选中通道，
+// 下一帧由 syncSelectedSession 发起真实打开。
+func (a *App) selectSessionIndex(index int) {
+	if index < 0 || index >= len(a.sessionNames()) {
+		return
+	}
+	a.selectedSession = "s" + strconv.Itoa(index+1)
+}
+
+// workspaceNeighbors 取当前会话在同一工作区（按 cwd 分组）里的前后邻居。返回的
+// 是会话目录序号；-1 表示没有邻居（边界或找不到当前会话）。排序按左栏列表顺序。
+func (a *App) workspaceNeighbors() (prev, next int, cwd string) {
+	prev, next = -1, -1
+	current := a.currentSessionIndex()
+	if current < 0 {
+		return
+	}
+	cwd = a.currentWorkspaceCwd()
+	order := make([]int, 0, len(a.sessionNames()))
+	for _, thread := range a.sidebarThreads() {
+		if strings.TrimSpace(thread.cwd) == strings.TrimSpace(cwd) {
+			order = append(order, thread.index)
+		}
+	}
+	if len(order) == 0 {
+		for index := range a.sessionNames() {
+			order = append(order, index)
+		}
+	}
+	for i, index := range order {
+		if index != current {
+			continue
+		}
+		if i > 0 {
+			prev = order[i-1]
+		}
+		if i+1 < len(order) {
+			next = order[i+1]
+		}
+		break
+	}
+	return
+}
+
 // header 画标题栏。
 func (a *App) header(c *gui.Context) {
 	t := c.Theme()
@@ -48,6 +143,11 @@ func (a *App) header(c *gui.Context) {
 		Padding(0, right, 0, left).
 		Gap(space2).AlignItems(gui.Center).DragWindow().
 		Label("标题行").Role(gui.RoleGroup).Children(func() {
+		// TB-13–TB-16：左栏收起时，标题栏左侧是导航按钮组。展开入口仍留给
+		// 12px 边条（TB-13 已由边条承担），这里补上会话前后导航与新建。
+		if a.sidebarCollapsed && !narrowWindow(c) {
+			a.sessionNavGroup(c)
+		}
 		// 空态：参考产品只有右侧面板开关，不写会话名。
 		if a.state == StateEmpty && !a.wired() {
 			gui.Spacer(c)

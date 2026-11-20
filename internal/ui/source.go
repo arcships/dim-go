@@ -50,6 +50,9 @@ type Source interface {
 	Preferences() PreferencesSnapshot
 	// GlobalShortcut 是全局唤起快捷键在设置里的状态（本端事实，不来自 App Server）。
 	GlobalShortcut() GlobalShortcutSnapshot
+	// AgentConfig 是 agent 档案清单与当前会话分支采用的档案（状态条选择器）。
+	// protocol v3 的 `agent.list` / `session.agent.get` 提供这两项事实。
+	AgentConfig() AgentConfigSnapshot
 }
 
 // PanelFacts 是右栏文件页与改动页要读的事实（D7 的只读能力在适配器里的映射）。
@@ -106,6 +109,9 @@ type Intents interface {
 	// 设置。
 	SetPermissionTier(ctx context.Context, tier string) error
 	SelectModel(ctx context.Context, providerID, modelID string) error
+	// SelectAgent 切换当前会话分支采用的 agent 档案；expected 是切换前读到的
+	// 标识（空表示当前没有采用档案），写入失败时不覆盖别人刚改过的选择。
+	SelectAgent(ctx context.Context, agentID, expected string) error
 	WriteCommandRules(ctx context.Context, rules []RuleSnapshot) error
 
 	// 上下文：手动压缩当前会话的上下文（斜杠命令 /compact）。压缩结果以时间线
@@ -756,6 +762,26 @@ type UsageSnapshot struct {
 	Reason    string
 	ResetsAt  time.Time
 	HasResets bool
+}
+
+// AgentConfigProfile 是一条 agent 档案（`agent.list`）。
+type AgentConfigProfile struct {
+	ID      string
+	Name    string
+	Default bool
+}
+
+// AgentConfigSnapshot 是状态条「Agent 配置」选择器的读数：
+//   - Known 表示清单读到过（含读到空）；假且没有 Error 时按加载中处理；
+//   - Current 是当前会话分支采用的档案标识，CurrentKnown 表示该项已读到；
+//   - CanSelect 表示会话声明了 session.agent.update，可切换。
+type AgentConfigSnapshot struct {
+	Profiles     []AgentConfigProfile
+	Known        bool
+	Error        string
+	Current      string
+	CurrentKnown bool
+	CanSelect    bool
 }
 
 // SettingsSnapshot 是设置里来自事实的几项（与 settings 领域视图对齐）。

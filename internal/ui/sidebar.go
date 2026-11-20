@@ -171,7 +171,7 @@ func (a *App) sidebarList(c *gui.Context) {
 						}
 					}
 					for _, thread := range pinnedThreads {
-						a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
+						a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when, thread.cwd)
 					}
 				})
 			}
@@ -382,7 +382,7 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 				return
 			}
 			for _, thread := range threads {
-				a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
+				a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when, thread.cwd)
 			}
 		}
 		if ws.builtin {
@@ -493,7 +493,7 @@ func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
 		a.sidebarHeading(c, "今天")
 		limit := a.sidebarFlatLimit(len(threads))
 		for _, thread := range threads[:limit] {
-			a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
+			a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when, thread.cwd)
 		}
 		a.sidebarFlatLoadingRow(c)
 		a.sidebarFlatPager(c, limit, len(threads))
@@ -520,7 +520,7 @@ func (a *App) sidebarNote(c *gui.Context, text string, indented bool) {
 // 行右键与行内「更多」是同一份菜单（LB-107–112）：置顶 / 重命名 / 在新窗口中
 // 打开 / 导出 / 归档 / 删除。
 // LB-61 平铺视图里的会话行
-func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) {
+func (a *App) sessionItem(c *gui.Context, index int, name, marker, when, cwd string) {
 	t := c.Theme()
 	if a.renaming == index {
 		a.renameRow(c, index)
@@ -540,7 +540,7 @@ func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) 
 	if row.Clicked() && !chosen {
 		a.selectedSession = id
 	}
-	row.Children(func() {
+	row = row.Children(func() {
 		sidebarStatusSlot(c, t, marker, a.pinned(index))
 		typeSecondary.style(t, gui.Text(c, name)).TextColor(t.Text).Grow(1).SingleLine()
 		if marker == "◷" {
@@ -570,6 +570,66 @@ func (a *App) sessionItem(c *gui.Context, index int, name, marker, when string) 
 			typeMicro.style(t, gui.Text(c, when)).TextColor(t.TextMuted).SingleLine()
 		}
 	})
+	// LB-79–LB-82：悬停卡（标题 / 所属工作区 / 分支）。
+	a.sessionHoverCard(c, row, index, name, cwd)
+}
+
+// sessionHoverCard 是会话行的悬停卡：首行完整标题（最多两行），第二行所属
+// 工作区（图标 + 名称），当前会话还有分支事实时追加第三行。
+//
+// 分支只画当前会话的：会话目录（SessionNames / SessionPlaces）没有逐会话分支
+// 字段，给别的行套一个分支名就是编造；当前会话的分支来自 SessionSnapshot 与
+// 分支写通道，是事实。
+func (a *App) sessionHoverCard(c *gui.Context, anchor gui.Element, index int, name, cwd string) {
+	t := c.Theme()
+	workspace := a.threadWorkspaceName(cwd)
+	branch := ""
+	if index == a.currentSessionIndex() {
+		if current, _, _ := a.branchState(); current != "" {
+			branch = current
+		}
+	}
+	gui.TooltipBase(c, anchor, func(tip gui.Element) {
+		// LB-79 悬停卡容器：白底 / 深底 + 描边 + 阴影，浮在行下缘，宽度小于栏宽。
+		tip.Width(sidebarHoverCardWidth).Padding(space2, space3).Radius(radiusCard).
+			Background(colorFloat.in(t)).Border(strokeHairline, t.Border).
+			Shadow(0, 4, 16, 0, colorShadow.in(t)).
+			AttachTo(anchor, gui.AnchorTopStart, gui.AnchorBottomStart).
+			Margin(space1, 0, 0, 0).Children(func() {
+			// LB-79 卡内标题：完整标题，最多两行；超长折行不截成省略号。
+			typeSecondaryStrong.style(t, gui.Text(c, name)).TextColor(t.Text).
+				MaxLines(2).Label("会话标题：" + name)
+			// LB-80 所属工作区：图标 + 名称；没有工作目录时回落内置工作区。
+			gui.Row(c).Gap(space1).AlignItems(gui.Center).
+				Label("所属工作区：" + workspace).Children(func() {
+				iconGlyphSize(c, iconSidebarFolder, sidebarObjectIcon, t.TextMuted, "workspace")
+				typeMicro.style(t, gui.Text(c, workspace)).TextColor(t.TextMuted).SingleLine()
+			})
+			// LB-81 分支：只有当前会话有事实时才画。
+			if branch != "" {
+				gui.Row(c).Gap(space1).AlignItems(gui.Center).
+					Label("分支：" + branch).Children(func() {
+					iconGlyphSize(c, iconBranch, sidebarObjectIcon, t.TextMuted, "branch")
+					typeMicro.style(t, gui.Text(c, branch)).TextColor(t.TextMuted).SingleLine()
+				})
+			}
+		})
+	})
+}
+
+// threadWorkspaceName 取一条会话所属工作区的显示名：按 cwd 找同名分组（改名后
+// 用新名），找不到就取目录末段；没有 cwd 归内置「工作区」。
+func (a *App) threadWorkspaceName(cwd string) string {
+	cwd = strings.TrimSpace(cwd)
+	if cwd == "" {
+		return sidebarBuiltinName
+	}
+	for _, ws := range a.sidebarWorkspaces(a.sidebarThreads()) {
+		if strings.TrimSpace(ws.path) == cwd && ws.name != "" {
+			return ws.name
+		}
+	}
+	return workspaceGroupName(cwd)
 }
 
 // sessionRowDescription 是会话行的读屏补充说明：状态、置顶、选中与相对时间都
@@ -619,6 +679,10 @@ func (a *App) sessionMenu(m *gui.Menu, index int, name string) {
 	if m.Item(pin).Chosen() {
 		a.togglePin(index)
 	}
+	// LB-70 / LB-71：未读点与星标要有会话目录的未读、星标事实；protocol v3 的
+	// 会话目录只有标题 / 工作区 / 时间。入口保留并写原因，不拿本地状态冒充。
+	m.Item("标为未读").Disabled(true).Subtitle(noteUnreadFact)
+	m.Item("星标会话").Disabled(true).Subtitle(noteStarFact)
 	if m.Item("重命名").Chosen() {
 		a.openSessionRenameDialog(index)
 	}

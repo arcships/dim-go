@@ -131,6 +131,22 @@ func (m *Manager) readSessionAgent(ctx context.Context, sessionID, branchID stri
 	return agent, nil
 }
 
+// CanUpdateSessionAgent 回答该会话是否声明 session.agent.update：只读会话方法表，
+// 不发写请求。会话未声明或方法表读不到时返回 false。
+func (m *Manager) CanUpdateSessionAgent(ctx context.Context, sessionID string) (bool, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	sessionID, _, err := normalizeAgentScope(sessionID, "")
+	if err != nil {
+		return false, err
+	}
+	if m.cfg.Agents == nil {
+		return false, missing(FeatureSessionAgentUpdate, "未提供会话 agent 接口")
+	}
+	return m.cfg.Agents.SupportsSessionAgentUpdate(ctx, sessionID)
+}
+
 // UpdateSessionAgent 更新会话分支采用的 agent 档案。
 //
 // 真实方法没有服务端 revision；本包先读当前 AgentID，与 ExpectedAgentID 不符即

@@ -102,6 +102,15 @@ type App struct {
 	marketLoading bool
 	marketEntries []ui.PluginMarketEntrySnapshot
 	marketErr     string
+	// agentMu 保护 agent 档案清单与会话当前档案（状态条的 Agent 配置选择器）。
+	agentMu           sync.Mutex
+	agentProfiles     []ui.AgentConfigProfile
+	agentKnown        bool
+	agentErr          string
+	agentCurrent      string
+	agentCurrentScope string
+	agentCurrentKnown bool
+	agentCanSelect    bool
 }
 
 // New 包住一个已创建的集成层。
@@ -220,6 +229,7 @@ func (w *App) loadFacts(ctx context.Context) {
 	}
 	if settings := w.A.Settings(); settings != nil {
 		w.refreshModels(ctx, settings)
+		w.refreshAgentConfig(ctx, settings)
 		_, _ = settings.RefreshStorage(ctx)
 		_, _ = settings.RefreshRuntimes(ctx)
 		_, _ = settings.RefreshModality(ctx)
@@ -1196,6 +1206,9 @@ func (w *App) OpenSession(ctx context.Context, name string) error {
 		return fmt.Errorf("打开会话 %s：%w", name, err)
 	}
 	w.setSession(name)
+	if manager := w.A.Settings(); manager != nil {
+		w.refreshAgentConfig(ctx, manager)
+	}
 	w.changed()
 	return nil
 }

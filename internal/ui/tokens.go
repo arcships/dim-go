@@ -404,6 +404,8 @@ type appearanceLook struct {
 // 字号改在主题的 FontSize 上——所有字级都按它等比缩放（textScale）。
 func themeFor(dark bool, prefs gui.Preferences, look appearanceLook) *gui.Theme {
 	t := theme(dark, prefs)
+	// LB-79：会话行悬停卡在指针停留 500ms 后出现（参考产品的 hover 延时）。
+	t.TooltipDelay = 500 * time.Millisecond
 	if name := strings.TrimSpace(look.font); name != "" {
 		t.Font = name
 	}

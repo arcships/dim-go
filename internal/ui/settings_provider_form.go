@@ -181,7 +181,8 @@ func (a *App) configFormSave(data configView, form *configForm) {
 		return
 	}
 	name := strings.TrimSpace(form.name)
-	baseURL := strings.TrimSpace(form.baseURL)
+	// 基础 URL 末尾重复的斜杠在保存时归一化（S-configuration-57 的「异常」行）。
+	baseURL := configNormalizeBaseURL(form.baseURL)
 	apiKey := strings.TrimSpace(form.apiKey)
 	if a.intents == nil {
 		form.formErr = "未连接 App Server，无法保存"
@@ -291,9 +292,9 @@ func (a *App) configFormPanel(c *gui.Context, data configView) {
 				if form.editing {
 					apiKeyPlaceholder = "留空则不改动已保存的密钥"
 				}
-				// S-configuration-58 / 68 API 密钥
-				configFormField(c, &form.apiKey, "API 密钥", apiKeyPlaceholder,
-					form.apiKeyErr, true)
+				// S-configuration-58 / 68 API 密钥（密码型，可切换显示）
+				configFormSecretField(c, &form.apiKey, "API 密钥", apiKeyPlaceholder,
+					form.apiKeyErr)
 				// S-configuration-59 User-Agent（没有写入字段：置灰写原因）
 				configFormUserAgentRow(c)
 				a.configFormModels(c, data, form)
@@ -322,6 +323,53 @@ func configFormField(c *gui.Context, value *string, label, placeholder, errText 
 				Role(gui.RoleAlert).MaxLines(2)
 		}
 	})
+}
+
+// configFormSecretField 是一个密码型字段（S-configuration-58）：默认掩码，标签
+// 行尾的按钮切换显示；读屏只读字段名，不回读内容。
+func configFormSecretField(c *gui.Context, value *string, label, placeholder, errText string) {
+	t := c.Theme()
+	gui.Column(c).Shrink(0).Gap(configFormFieldGap).Children(func() {
+		gui.Row(c).AlignItems(gui.Center).Children(func() {
+			configRowStyle.style(t, gui.Text(c, label)).TextColor(t.Text).
+				Label(label).Grow(1).MinWidth(0).SingleLine()
+			toggle := "显示密钥"
+			if configFormShowSecret {
+				toggle = "隐藏密钥"
+			}
+			if screenButton(c, toggle, toggle, "", false, rowCompact) {
+				configFormShowSecret = !configFormShowSecret
+			}
+		})
+		input := gui.TextInput(c, value).Label(label).Placeholder(placeholder).
+			Height(configFormInputH).Padding(configFormPadV, configFormPadH).
+			Background(fieldFill(t))
+		if !configFormShowSecret {
+			// 密钥是密码型输入：屏幕上只有掩码，读屏也不回读内容。
+			input = input.Password()
+		}
+		if errText != "" {
+			configRowStyle.style(t, gui.Text(c, errText)).TextColor(t.Danger).
+				Role(gui.RoleAlert).MaxLines(2)
+		}
+	})
+}
+
+// configFormShowSecret 是密钥字段的显隐开关（可丢的界面状态，默认掩码）。
+var configFormShowSecret bool
+
+// configNormalizeBaseURL 归一化基础 URL：去首尾空白、末尾多余的斜杠只留一个
+// （有路径时去掉末尾斜杠），空串原样返回。
+func configNormalizeBaseURL(raw string) string {
+	base := strings.TrimSpace(raw)
+	if base == "" {
+		return ""
+	}
+	trimmed := strings.TrimRight(base, "/")
+	if trimmed == "" {
+		return base
+	}
+	return trimmed
 }
 
 // configFormModels 是模型清单：新增时可加 / 删行，编辑时只读（见文件头）。

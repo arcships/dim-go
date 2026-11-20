@@ -28,6 +28,482 @@
     "R-ARC-098": {
       "note": "恢复写 ArchiveSession(id,false)，行由事实驱动消失",
       "test": "TestArchivedRestoreCallsArchiveSession"
+    },
+    "R-CFG-019": {
+      "note": "搜索框：放大镜颜色不随输入变化，只有清除按钮的可见性跟输入状态走",
+      "test": "TestProviderSettingsReadsRecords"
+    },
+    "R-CFG-132": {
+      "note": "编辑态的基础 URL 由代码块变成输入框（表单字段）",
+      "test": "TestProviderFormEditPrefilled"
+    },
+    "R-CFG-139": {
+      "note": "基础 URL 单行截断，悬停显示全文",
+      "test": "TestProviderSettingsReadsRecords"
+    },
+    "R-CFG-145": {
+      "note": "表单校验与保存失败的原因都在详情内的 formError 行",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-151": {
+      "note": "连续失败只覆盖同一条 formError，不追加",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-160": {
+      "note": "模型全选写入失败后整组开关回滚到改动前的值，并写原因",
+      "test": "TestProviderSelectAllRollsBack"
+    },
+    "R-CFG-175": {
+      "note": "模型清单没读到时清空搜索词不会恢复列表：保留搜索词并写加载失败",
+      "test": "TestProviderModelsEmptyState"
+    },
+    "R-CFG-198": {
+      "note": "拉取失败把空列表换成错误行",
+      "test": "TestProviderModelsEmptyState"
+    },
+    "R-CFG-211": {
+      "note": "探测进行中「刷新」禁用、文案不变",
+      "test": "TestProviderProbeBusyDisablesEntries"
+    },
+    "R-CFG-220": {
+      "note": "「查看套餐」始终可点，点了写说明（本屏不拼套餐页地址）",
+      "test": "TestProviderProbeBusyDisablesEntries"
+    },
+    "R-CFG-346": {
+      "note": "认证方式只显示当前的一个标签（API Key）",
+      "test": "TestProviderDetailMasksCredential"
+    },
+    "R-CFG-362": {
+      "note": "已存密钥只显示掩码，不回显明文",
+      "test": "TestProviderDetailMasksCredential"
+    },
+    "R-CFG-363": {
+      "note": "点「修改 API 密钥」进编辑态，保存后替换",
+      "test": "TestProviderDetailMasksCredential"
+    },
+    "R-CFG-365": {
+      "note": "没有凭据时行下写「保存前需要填写 API 密钥」",
+      "test": "TestProviderDetailMasksCredential"
+    },
+    "R-CFG-366": {
+      "note": "密钥字段是密码型输入，读屏不回读内容",
+      "test": "TestProviderFormSecretToggle"
+    },
+    "R-CFG-367": {
+      "note": "粘贴进来的密钥去首尾空白后保存",
+      "test": "TestProviderFormSecretToggle"
+    },
+    "R-CFG-394": {
+      "note": "「测试连接」发起一次 provider.probe，结果写在行内",
+      "test": "TestProviderDetailTestConnection"
+    },
+    "R-CFG-395": {
+      "note": "探测进行中「测试连接」禁用、「保存」仍可用",
+      "test": "TestProviderProbeBusyDisablesEntries"
+    },
+    "R-CFG-397": {
+      "note": "测试失败把服务端原因写在行内，已填字段不动",
+      "test": "TestProviderDetailTestConnection"
+    },
+    "R-CFG-398": {
+      "note": "「测试连接」「保存」都有读屏名",
+      "test": "TestProviderDetailTestConnection"
+    },
+    "R-CFG-425": {
+      "note": "没有模型数据时写「还没有模型数据，点击「刷新」获取」",
+      "test": "TestProviderModelsEmptyState"
+    },
+    "R-CFG-428": {
+      "note": "这句点名同行的「刷新」按钮，点了走 provider.probe",
+      "test": "TestProviderModelsEmptyState"
+    },
+    "R-CFG-429": {
+      "note": "空态句可选中复制",
+      "test": "TestProviderModelsEmptyState"
+    },
+    "R-CFG-430": {
+      "note": "空态句有读屏名，只播一次",
+      "test": "TestProviderModelsEmptyState"
+    },
+    "R-CFG-431": {
+      "note": "拉取失败换成错误行",
+      "test": "TestProviderModelsEmptyState"
+    },
+    "R-CFG-437": {
+      "note": "协议一行只读显示读数，不给改",
+      "test": "TestProviderFormEditPrefilled"
+    },
+    "R-CFG-439": {
+      "note": "协议名认不出来时显示服务端给的原始标识",
+      "test": "TestProviderFormEditPrefilled"
+    },
+    "R-CFG-442": {
+      "note": "名称回显读数里的当前值",
+      "test": "TestProviderFormEditPrefilled"
+    },
+    "R-CFG-443": {
+      "note": "清空名称保存时在框下写「请填写名称」",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-445": {
+      "note": "同名供应商（不区分大小写）在框下写「名称已被其他供应商使用」",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-446": {
+      "note": "名称是带读屏名的文本框",
+      "test": "TestProviderFormEditPrefilled"
+    },
+    "R-CFG-450": {
+      "note": "基础 URL 回显读数（含 /v1 路径）",
+      "test": "TestProviderFormEditPrefilled"
+    },
+    "R-CFG-451": {
+      "note": "非法 URL 在框下写需 http/https",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-453": {
+      "note": "保存时基础 URL 末尾多余的斜杠归一化",
+      "test": "TestProviderFormNormalizesBaseURL"
+    },
+    "R-CFG-454": {
+      "note": "基础 URL 是带读屏名的文本框",
+      "test": "TestProviderFormEditPrefilled"
+    },
+    "R-CFG-458": {
+      "note": "已存密钥显示掩码，输入即为替换",
+      "test": "TestProviderDetailMasksCredential"
+    },
+    "R-CFG-459": {
+      "note": "密钥默认密码型，按钮切换显示",
+      "test": "TestProviderFormSecretToggle"
+    },
+    "R-CFG-461": {
+      "note": "密钥为空且没有已存凭据时保存被拦下并提示",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-462": {
+      "note": "密钥字段读屏不回读内容",
+      "test": "TestProviderFormSecretToggle"
+    },
+    "R-CFG-464": {
+      "note": "密钥去首尾空白后保存",
+      "test": "TestProviderFormSecretToggle"
+    },
+    "R-CFG-474": {
+      "note": "取消退出编辑，不发请求",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-475": {
+      "note": "保存先校验再走 UpdateProvider/CreateProvider，成功后回详情",
+      "test": "TestProviderFormCreateWrites"
+    },
+    "R-CFG-476": {
+      "note": "保存中保存键禁用",
+      "test": "TestProviderFormCreateWrites"
+    },
+    "R-CFG-478": {
+      "note": "保存失败回 formError 并留在编辑态",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-482": {
+      "note": "详情里的「修改 API 密钥」进可编辑密钥态",
+      "test": "TestProviderDetailMasksCredential"
+    },
+    "R-CFG-485": {
+      "note": "保存失败写原因、留在编辑态，已存密钥不动",
+      "test": "TestProviderFormValidation"
+    },
+    "R-CFG-486": {
+      "note": "读屏读「API 密钥已设置」，不读掩码字符",
+      "test": "TestProviderDetailMasksCredential"
+    },
+    "R-CFG-489": {
+      "note": "「断开此提供商」弹出同名确认框",
+      "test": "TestProviderDisconnectDialogBlocks"
+    },
+    "R-CFG-492": {
+      "note": "取消关闭确认框，不改状态",
+      "test": "TestProviderDisconnectDialogBlocks"
+    },
+    "R-CFG-495": {
+      "note": "确认框有标题与说明的读屏名",
+      "test": "TestProviderDisconnectDialogBlocks"
+    },
+    "R-CFG-497": {
+      "note": "「删除此提供商」弹出同名确认框",
+      "test": "TestProviderDeleteDialogBlocks"
+    },
+    "R-CFG-500": {
+      "note": "取消关闭删除确认框",
+      "test": "TestProviderDeleteDialogBlocks"
+    },
+    "R-CFG-503": {
+      "note": "删除确认框有标题与说明的读屏名",
+      "test": "TestProviderDeleteDialogBlocks"
+    },
+    "R-CFG-555": {
+      "note": "「添加模型」草稿的全选 / 全不选",
+      "test": "TestProviderModelDraftValidatesLocally"
+    },
+    "R-CFG-560": {
+      "note": "计数以列表为准：可见数按搜索词算",
+      "test": "TestProviderModelDraftValidatesLocally"
+    },
+    "R-CFG-564": {
+      "note": "新建表单没有供应商时「刷新」禁用",
+      "test": "TestProviderFormOpensFromAdd"
+    },
+    "R-CFG-568": {
+      "note": "协议不支持拉清单时「刷新」禁用并写原因",
+      "test": "TestProviderFormOpensFromAdd"
+    },
+    "R-CFG-570": {
+      "note": "草稿模型行按搜索词实时过滤",
+      "test": "TestProviderModelDraftValidatesLocally"
+    },
+    "R-CFG-571": {
+      "note": "清空搜索词恢复全部草稿行",
+      "test": "TestProviderModelDraftValidatesLocally"
+    },
+    "R-CFG-593": {
+      "note": "没有草稿模型时写「还没有模型。可以手动添加…」",
+      "test": "TestProviderModelDraftValidatesLocally"
+    },
+    "R-CFG-643": {
+      "note": "读数未到时画骨架，宽高与真实行一致",
+      "test": "TestProviderDetailLoadingSkeleton"
+    },
+    "R-CFG-645": {
+      "note": "骨架播报「正在加载供应商」一次",
+      "test": "TestProviderDetailLoadingSkeleton"
+    },
+    "R-SHL-023": {
+      "note": "该节读数失败时导航项仍可点，切过去后节内自己写错误",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-030": {
+      "note": "分节图标缺资源时只留同宽图标位，名称左缘与行高不变",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-046": {
+      "note": "同上（用量节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-055": {
+      "note": "读数失败不拦切节：仍停留该节并显示错误",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-062": {
+      "note": "同上（个性化节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-078": {
+      "note": "同上（外观节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-087": {
+      "note": "读数失败仍可切并显示错误",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-094": {
+      "note": "同上（通用节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-110": {
+      "note": "同上（快捷键节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-119": {
+      "note": "供应商清单失败仍可切并显示错误",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-126": {
+      "note": "同上（模型供应节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-142": {
+      "note": "同上（多模态节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-151": {
+      "note": "运行环境未声明仍可切，节内显示错误",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-158": {
+      "note": "同上（运行环境节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-167": {
+      "note": "服务器清单失败仍可切并显示错误",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-174": {
+      "note": "同上（MCP 节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-190": {
+      "note": "同上（通知节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-199": {
+      "note": "Pet 组件不可用仍可切",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-206": {
+      "note": "同上（宠物节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-222": {
+      "note": "同上（权限节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-231": {
+      "note": "仓库不可用仍可切",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-238": {
+      "note": "同上（Git 节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-254": {
+      "note": "同上（Hooks 节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-263": {
+      "note": "插件设置不可用仍可切",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-270": {
+      "note": "同上（插件设置节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-279": {
+      "note": "能力不可用仍可切",
+      "test": "TestSettingsNavKeepsSectionClickableOnReadFailure"
+    },
+    "R-SHL-286": {
+      "note": "同上（外部 Agent 节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-302": {
+      "note": "同上（归档会话节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-318": {
+      "note": "同上（关于节图标）",
+      "test": "TestSettingsNavIconMissingKeepsTextColumn"
+    },
+    "R-SHL-321": {
+      "note": "窄窗出现返回按钮、常驻侧栏收起",
+      "test": "TestSettingsNarrowBackToSectionList"
+    },
+    "R-SHL-323": {
+      "note": "窄窗返回先回节列表，节列表态再返回回主界面",
+      "test": "TestSettingsNarrowBackToSectionList"
+    },
+    "R-SHL-334": {
+      "note": "返回图标缺资源时退回同族箭头，命中区仍是 24×24",
+      "test": "TestSettingsNarrowBackIconMissingKeepsHitArea"
+    },
+    "R-APP-028": {
+      "note": "主题落盘失败后角标回滚到原主题并提示",
+      "test": "TestAppearanceThemeSaveFailureRollsBack"
+    },
+    "R-APP-038": {
+      "note": "主题预览图标缺资源时用等尺寸底色块占位，文字不跳",
+      "test": "TestAppearanceThemePreviewIconFallsBack"
+    },
+    "R-APP-047": {
+      "note": "同上（深色卡）",
+      "test": "TestAppearanceThemeSaveFailureRollsBack"
+    },
+    "R-APP-055": {
+      "note": "系统报不出外观时按浅色渲染、卡仍选中，并写原因",
+      "test": "TestAppearanceSystemUnknownFallsBackLight"
+    },
+    "R-APP-065": {
+      "note": "选中角标的对勾缺资源时用纯色圆点兜底",
+      "test": "TestAppearanceThemePreviewIconFallsBack"
+    },
+    "R-APP-130": {
+      "note": "字体下拉点开后有搜索框 + 默认项 + 本机字体列表",
+      "test": "TestAppearanceFontPanelSearchesAndApplies"
+    },
+    "R-APP-131": {
+      "note": "选中字体立即生效并落盘",
+      "test": "TestAppearanceFontChoiceIsPersisted"
+    },
+    "R-APP-164": {
+      "note": "代码字体与 UI 字体同一套面板",
+      "test": "TestAppearanceFontPanelSearchesAndApplies"
+    },
+    "R-APP-165": {
+      "note": "代码字体立即进代码字级",
+      "test": "TestAppearanceFontChoiceIsPersisted"
+    },
+    "R-APP-173": {
+      "note": "字体列表按族名子串实时过滤（不区分大小写）",
+      "test": "TestAppearanceFontPanelSearchesAndApplies"
+    },
+    "R-APP-174": {
+      "note": "清空搜索词恢复全部（面板留着）",
+      "test": "TestAppearanceFontSearchEmpty"
+    },
+    "R-APP-198": {
+      "note": "点一行字体就应用并收起面板",
+      "test": "TestAppearanceFontPanelSearchesAndApplies"
+    },
+    "R-APP-224": {
+      "note": "读不到系统字体时写原因并给「重试」，重试后列表回来",
+      "test": "TestAppearanceFontListRetry"
+    },
+    "R-APP-264": {
+      "note": "UI 字号分段：点「特小」立即切到最小档",
+      "test": "TestAppearanceUISizeSegmentIsPersisted"
+    },
+    "R-APP-265": {
+      "note": "分段控件左右键移动、Home/End 到端点",
+      "test": "TestAppearanceUISizeKeyboardHomeEnd"
+    },
+    "R-APP-275": {
+      "note": "点「小」切到第二档",
+      "test": "TestAppearanceUISizeSegmentIsPersisted"
+    },
+    "R-APP-284": {
+      "note": "点「中」切到默认档",
+      "test": "TestAppearanceUISizeSegmentIsPersisted"
+    },
+    "R-APP-294": {
+      "note": "点「大」切到第四档",
+      "test": "TestAppearanceUISizeSegmentIsPersisted"
+    },
+    "R-APP-303": {
+      "note": "点「特大」切到最大档",
+      "test": "TestAppearanceUISizeSegmentIsPersisted"
+    },
+    "R-APP-336": {
+      "note": "代码字号滑块拖动实时改代码字级与读数",
+      "test": "TestAppearanceCodeSizeChangesCodeText"
+    },
+    "R-APP-337": {
+      "note": "点轨道跳到点击位置（框架滑块的拖拽落点）",
+      "test": "TestAppearanceCodeSizeChangesCodeText"
+    },
+    "R-APP-338": {
+      "note": "滑块左右键每次 ±1，Home/End 到两端",
+      "test": "TestAppearanceCodeSizeKeyboardHomeEnd"
+    },
+    "R-APP-384": {
+      "note": "代码主题按分组列出，选中后代码区与预览同步换配色",
+      "test": "TestAppearanceCodeThemeAppliesToPreview"
+    },
+    "R-APP-403": {
+      "note": "点一行代码主题就选定并收起面板",
+      "test": "TestAppearanceCodeThemeAppliesToPreview"
+    },
+    "R-APP-419": {
+      "note": "深色主题在浅色界面下也给深色代码底",
+      "test": "TestAppearanceCodeThemeAppliesToPreview"
     }
   }
 }
