@@ -800,7 +800,10 @@ type SettingsSnapshot struct {
 	TasksError    string
 	// ProviderRecords 是 provider 管理清单；ProviderError 非空表示读取失败。
 	ProviderRecords []ProviderRecordSnapshot
-	ProviderError   string
+	// ProviderRecordsKnown 表示清单已经读到过（含读到空）：假且没有错误时界面画
+	// 加载骨架，不把「还没读到」画成「没有供应商」。
+	ProviderRecordsKnown bool
+	ProviderError        string
 }
 
 // ProviderRecordSnapshot 是一个 provider 及其模型。
@@ -812,7 +815,13 @@ type ProviderRecordSnapshot struct {
 	AuthType   string
 	Enabled    bool
 	Version    int
-	Models     []ProviderModelSnapshot
+	// CredentialConfigured 报告服务端是否已存凭据：界面按它显示掩码或「未设置」，
+	// 凭据原文从不下发。
+	CredentialConfigured bool
+	// RemoteModelList 报告这个协议支持从上游拉模型清单（界面的「刷新」按钮据此
+	// 决定能不能点）。
+	RemoteModelList bool
+	Models          []ProviderModelSnapshot
 }
 
 // ProviderModelSnapshot 是 provider 下的一个模型。

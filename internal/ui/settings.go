@@ -45,6 +45,10 @@ func (a *App) settings(c *gui.Context) {
 						gui.Column(c).Grow(1).MaxWidth(SettingsContentMaxWidth).
 							Padding(space8, space8).Gap(space4).Children(func() {
 							a.actionErrorView(c)
+							if a.settingsNarrowList {
+								a.settingsSectionList(c)
+								return
+							}
 							a.settingsContent(c)
 						})
 					})
@@ -75,19 +79,95 @@ func (a *App) settingsNavCompact(c *gui.Context) {
 		options[i] = section.label
 	}
 	pick := current.label
+	// S-shell-41：窄窗一点开设置就有返回按钮（取代常驻侧栏）；在看内容时它回
+	// 节列表，在节列表时它回主界面。
+	narrowState := narrowWindow(c)
+	backVisible := narrowState
+	errText := a.settingsSectionErrText(a.settingsSection)
 	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space1).
 		AlignItems(gui.Center).Children(func() {
-		// S-shell-41 / S-shell-42 返回（窄窗导航）
-		if iconButton(c, iconButtonSpec{icon: iconChevronL, label: "返回主界面", size: rowCompact}) {
-			a.screen = ScreenMain
+		if backVisible {
+			label := "返回节列表"
+			if a.settingsNarrowList {
+				label = "返回主界面"
+			}
+			// S-shell-41 / S-shell-42 返回（窄窗导航）：图标资源缺失也保留命中区。
+			backPressed := iconButton(c, iconButtonSpec{icon: navBackIcon(), label: label,
+				tip: label, size: rowCompact})
+			if backPressed {
+				if a.settingsNarrowList {
+					a.screen = ScreenMain
+				} else {
+					// 回到节列表（窄屏列表态）：只换内容列，导航行留着。
+					a.settingsNarrowList = true
+				}
+			}
+			if errText != "" {
+				// 这一节的读数失败：导航行上写原因，切节不受影响。
+				navErrDot(c, current.label)
+			}
 		}
 		gui.Select(c, &pick, options).Grow(1).Label("设置分节")
 	})
 	if pick != current.label {
 		if section, ok := settingsSectionByLabel(pick); ok {
 			a.settingsSection = section.id
+			a.settingsNarrowList = false
 		}
 	}
+}
+
+// navBackIcon 是窄窗导航的返回图标：资源缺失时退回同一族的三角箭头，命中区不变
+// （S-shell-42）。
+func navBackIcon() *gui.SVG {
+	if iconChevronL != nil {
+		return iconChevronL
+	}
+	return iconChevronLFallback
+}
+
+// iconChevronLFallback 是返回图标的兜底图形：与 iconChevronL 同一网格与描边。
+var iconChevronLFallback = mustSVG(`<path d="M15.75 19.5 8.25 12l7.5-7.5"/>`)
+
+// settingsSectionList 是窄窗的节列表态：19 节逐行（图标 + 名称 + 选中态），点一行
+// 进该节的内容。窄窗没有常驻侧栏，这份列表就是「回到节列表」看到的那一屏。
+func (a *App) settingsSectionList(c *gui.Context) {
+	t := c.Theme()
+	gui.Column(c).Grow(1).Label("设置分节列表").
+		Role(gui.RoleList).Children(func() {
+		gui.Scroll(c).Grow(1).Children(func() {
+			gui.Column(c).Shrink(0).Gap(space1).Children(func() {
+				for _, section := range settingsSectionDefs {
+					row := gui.ButtonBase(c).Shrink(0).Height(SettingsNavRowHeight).
+						Padding(0, space3).Radius(radius).Gap(space3).
+						AlignItems(gui.Center).Justify(gui.Start).
+						Label(section.label).Cursor(gui.CursorPointer).
+						Role(gui.RoleListItem)
+					selected := a.settingsSection == section.id
+					row = row.AccessSelected(selected)
+					switch {
+					case selected:
+						row = row.Background(t.SurfacePressed)
+					case row.Hovered():
+						row = row.Background(t.SurfaceHover)
+					}
+					if row.Clicked() {
+						a.settingsSection = section.id
+						a.settingsNarrowList = false
+					}
+					ink, style := t.TextMuted, typeControl
+					if selected {
+						ink, style = t.Text, typeControlStrong
+					}
+					row.Children(func() {
+						navIconGlyph(c, section.icon, ink, section.label)
+						style.style(t, gui.Text(c, section.label)).TextColor(ink).
+							Grow(1).MinWidth(0).SingleLine()
+					})
+				}
+			})
+		})
+	})
 }
 
 // settingsContent 按当前分节路由内容：已重建的分节显示真内容，其余一律占位。
@@ -178,8 +258,14 @@ func (a *App) settingsNav(c *gui.Context) {
 // navRow 是导航里的一节：图标 + 名称。自绘行（无外观 ButtonBase），选中态由
 // 底色与字重表达（参考产品同构：选中用强调底色与前景色，其余用次要文字色）。
 // 行高取 SettingsNavRowHeight（35）：相邻两节的文字 y 步进与行高同值，行间不再留缝。
+//
+// 两处异常形态（S-shell 各节的「异常」行）：
+//   - 图标资源缺失时只留同宽的图标位，文字左缘不动、行高不变；
+//   - 该节的读数失败时行尾挂一个警示点，原因进 tooltip；行仍可点，点了照常切过去
+//     （切过去以后节内自己写错误）。
 func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 	t := c.Theme()
+	errText := a.settingsSectionErrText(section.id)
 	row := gui.ButtonBase(c).Height(SettingsNavRowHeight).Padding(0, space3).
 		Radius(radius).Gap(space3).AlignItems(gui.Center).
 		Label(section.label).Cursor(gui.CursorPointer).Justify(gui.Start)
@@ -191,7 +277,11 @@ func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 	case row.Hovered():
 		row = row.Background(t.SurfaceHover)
 	}
+	if errText != "" {
+		row = row.Tooltip(errText)
+	}
 	if row.Clicked() {
+		// 读数失败也不拦：导航项始终可切，失败由节内写（S-shell-03 / 07 / 11 …）。
 		a.settingsSection = section.id
 	}
 	ink := t.TextMuted
@@ -202,10 +292,69 @@ func (a *App) navRow(c *gui.Context, section settingsSectionDef) {
 	}
 	row.Children(func() {
 		// S-shell-04/06/08/10/12/14/16/18/20/22/24/26/28/30/32/34/36/38/40 分节图标
-		iconGlyph(c, section.icon, ink, section.label)
+		navIconGlyph(c, section.icon, ink, section.label)
 		// S-shell-03/05/07/09/11/13/15/17/19/21/23/25/27/29/31/33/35/37/39 分节名称
-		style.style(t, gui.Text(c, section.label)).TextColor(ink)
+		style.style(t, gui.Text(c, section.label)).TextColor(ink).
+			Grow(1).MinWidth(0).SingleLine()
+		if errText != "" {
+			// 读数失败：行尾一个警示点（不占文字列），原因在 tooltip。
+			navErrDot(c, section.label)
+		}
 	})
+}
+
+// navIconGlyph 是分节图标的图标位：图标缺资源时只画空位，宽度仍是 iconInline，
+// 文字左移不会发生（S-shell-04 等「异常」行）。
+func navIconGlyph(c *gui.Context, icon *gui.SVG, color gui.Color, mark string) {
+	box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0)
+	if icon == nil {
+		box = box.Label("图标：" + mark).Tooltip(noteSectionIconMissing).AccessHidden(true)
+		return
+	}
+	iconGlyph(c, icon, color, mark)
+}
+
+// navErrDot 是导航行尾的警示点：3.5 直径的实心点，读屏名带节名。
+func navErrDot(c *gui.Context, mark string) {
+	t := c.Theme()
+	box := gui.Box(c).Size(space1, space1).Shrink(0).
+		Label("读取失败：" + mark).Role(gui.RoleStatus).AccessHidden(true)
+	box.Draw(func(p *gui.Painter, r gui.Rect) {
+		p.Fill(r, t.Danger, space1/2)
+	})
+}
+
+// settingsSectionErrText 是一节的读数失败原因：有事实读数的节给出服务端原文，
+// 其余节没有错误来源就返回空（不编原因）。
+func (a *App) settingsSectionErrText(id settingsSectionID) string {
+	if a.source == nil {
+		return ""
+	}
+	settings := a.source.Settings()
+	extensions := a.source.Extensions()
+	switch id {
+	case secProviders:
+		return settings.ProviderError
+	case secRuntime:
+		return settings.RuntimesReason
+	case secPermissions:
+		return settings.RulesError
+	case secMCP:
+		return extensions.MCP.ReadError
+	case secHooks:
+		return extensions.Hooks.ReadError
+	case secPluginSettings:
+		return extensions.Plugins.ReadError
+	case secExternalAgents:
+		return extensions.Plugins.ReadError
+	case secUsage:
+		usage := a.source.Usage()
+		if usage.Reason != "" && !usage.Available {
+			return usage.Reason
+		}
+		return ""
+	}
+	return ""
 }
 
 // settingsSectionTitle 是分节标题：标题层级由字重与字号给（U2 §1），字号取

@@ -45,6 +45,12 @@ const (
 	panelTabPadH = space2
 	// panelTabIcon 是标签页图标（h-3.5 = 14）。
 	panelTabIcon = 14
+	// panelTabClose 是标签页关闭按钮的命中区（16×16：比 14 的图形多 1px 四周，
+	// 悬停时手指落在图形边缘也能点到；图形仍按 panelTabIcon 画在正中）。
+	panelTabClose = 16
+	// panelTabLabelMax 是标签文案的截断宽：标签条横向滚动，单个标签不按内容
+	// 无限变宽；超出的部分以「…」收尾，完整文案在悬停提示里。
+	panelTabLabelMax = 132
 	// panelBarAction 是标签条右端图标按钮的边长（实测 25）。
 	panelBarAction = 25
 	// panelFilterHeight 是筛选框高（行内 25）。
@@ -165,6 +171,9 @@ type rightPanelState struct {
 	// previewPath 是文件预览页正在看的文件（相对会话工作目录，'/' 分隔）；
 	// 空表示还没有选文件。预览内容每帧从 PanelFacts 读，这里只留路径。
 	previewPath string
+	// selPath 是列表里选中的那一行（文件页与改动页共用，按仓库内相对路径记）：
+	// 只影响行的选中底色与读屏的选中态，不是事实。
+	selPath string
 }
 
 // rp 取右栏状态并在第一次用到时补默认值。
@@ -341,8 +350,11 @@ func (a *App) rpTabBar(c *gui.Context) {
 		AlignItems(gui.Center).Gap(space1).Label("右栏标签").Children(func() {
 		a.rpBackButton(c)
 		gui.ScrollHorizontal(c).Grow(1).Children(func() {
+			// 标签条是一个焦点组：Tab 把焦点带进标签条（停在当前页签），
+			// ←/→ 在页签之间移动，Home/End 到首尾；不在每个页签上各停一次。
 			gui.Row(c).AlignItems(gui.Center).Gap(space1).
-				Role(gui.RoleTabList).Label("右栏标签页").Children(func() {
+				Role(gui.RoleTabList).Label("右栏标签页").
+				FocusGroup(gui.Horizontal).Children(func() {
 				for i, tab := range s.tabs {
 					a.rpTabItem(c, tab, i)
 				}
@@ -402,9 +414,15 @@ func (a *App) rpTabItem(c *gui.Context, tab, index int) {
 	s := a.rp()
 	active := tab == a.rightTab
 	label := a.rpTabLabel(tab)
+	// 悬停提示给完整标识：预览页的标签文案是文件名（会截断），提示里给整条
+	// 相对路径；其余标签的文案就是完整标识。
+	tip := label
+	if tab == tabFilePreview && s.previewPath != "" {
+		tip = s.previewPath
+	}
 	b := gui.ButtonBase(c).Height(panelTabHeight).Padding(space1, panelTabPadH).
 		Radius(radiusSmall).Gap(space1).AlignItems(gui.Center).
-		Label(label).Tooltip(label).Cursor(gui.CursorPointer).
+		Label(label).Tooltip(tip).Cursor(gui.CursorPointer).
 		Role(gui.RoleTab).AccessSelected(active)
 	switch {
 	case active:
@@ -423,15 +441,23 @@ func (a *App) rpTabItem(c *gui.Context, tab, index int) {
 	var closeBox gui.Element
 	b.Children(func() {
 		rpGlyph(c, rpTabIcon(tab), panelTabIcon, t.TextMuted, "")
-		typeSecondary.style(t, gui.Text(c, label)).TextColor(t.Text).SingleLine()
+		// 标签文案单行、超宽以「…」收尾；单个标签不按内容无限变宽（标签条
+		// 另有横向滚动），完整标识在悬停提示里。
+		typeSecondary.style(t, gui.Text(c, label)).TextColor(t.Text).
+			SingleLine().Ellipsis("…").MaxWidth(panelTabLabelMax)
 		switch {
 		case badge:
 			typeMicro.style(t, gui.Text(c, rpShortcut(index+1))).TextColor(t.TextMuted)
 		case hovered:
-			closeBox = gui.Box(c).Width(panelTabIcon).Height(panelTabIcon).Shrink(0).
+			// 关闭按钮：16×16 命中区，图形按 14 画在正中（RP-A-23）。
+			closeBox = gui.Box(c).Width(panelTabClose).Height(panelTabClose).Shrink(0).
 				Label("关闭标签页：" + label)
 			closeBox.DrawOver(func(p *gui.Painter, r gui.Rect) {
-				paintIcon(p, iconXMark, r, t.TextMuted)
+				inner := gui.Rect{
+					X: r.X + (r.W-panelTabIcon)/2, Y: r.Y + (r.H-panelTabIcon)/2,
+					W: panelTabIcon, H: panelTabIcon,
+				}
+				paintIcon(p, iconXMark, inner, t.TextMuted)
 			})
 		}
 	})

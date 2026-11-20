@@ -172,6 +172,13 @@ type configProvider struct {
 	account    bool
 	baseURL    string
 	version    int
+	// authType / driverKind 是协议与认证方式（读数原文，不在界面上改）；
+	// credentialConfigured 表示服务端已存凭据（只给「已设置」这一位事实）；
+	// remoteModelList 表示协议支持从上游拉模型清单。
+	authType             string
+	driverKind           string
+	credentialConfigured bool
+	remoteModelList      bool
 }
 
 // configKey 是供应商在视图状态里的键：读数的用服务端标识，样例用名称。
@@ -277,6 +284,18 @@ type configState struct {
 	// form 是新增 / 编辑供应商表单的草稿（见 settings_provider_form.go）；
 	// nil 表示右栏是详情态。
 	form *configForm
+	// draft 是「添加模型」对话框的本地草稿（见 settings_provider_detail.go）；
+	// nil 表示对话框没开。它只校验，不发写请求（模型新建没有通道）。
+	draft *configModelDraft
+	// probing 是一次 provider 探测（测试连接 / 刷新）进行中：两个入口都禁用。
+	probing   bool
+	probeErr  string
+	probeNote string
+	// disconnectFor / deleteFor 是打开着的确认框指向的供应商键；空表示没开。
+	disconnectFor string
+	deleteFor     string
+	// toggleErr 是模型全选写入失败的原因（失败后开关回到改动前的值）。
+	toggleErr string
 	// selectAfterCreate 是新增成功后要选中的供应商名：新建回执不带标识，
 	// 等下一帧的读数里按名字找到它再选中。
 	selectAfterCreate string
@@ -339,6 +358,9 @@ type configView struct {
 	selected    configProvider
 	hasSelected bool
 	models      []configModel
+	// loading 表示清单还没读到过（清单为空且没有错误）：画加载骨架，不把
+	// 「还没读到」画成「没有供应商」。
+	loading bool
 }
 
 // configView 取这一帧的读数。选中项只是视图状态（configScreen.selected），
@@ -351,11 +373,16 @@ func (a *App) configView() configView {
 	} else {
 		settings, _ := a.liveSettings()
 		v.readErr = settings.ProviderError
+		v.loading = !settings.ProviderRecordsKnown && settings.ProviderError == "" &&
+			len(settings.ProviderRecords) == 0
 		for _, record := range settings.ProviderRecords {
 			v.providers = append(v.providers, configProvider{
 				id: record.ID, name: configRecordName(record),
 				configured: record.Enabled, baseURL: record.BaseURL,
-				version: record.Version,
+				version: record.Version, authType: record.AuthType,
+				driverKind: record.DriverKind,
+				credentialConfigured: record.CredentialConfigured,
+				remoteModelList:      record.RemoteModelList,
 			})
 		}
 	}

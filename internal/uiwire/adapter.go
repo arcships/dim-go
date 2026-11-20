@@ -67,6 +67,7 @@ type App struct {
 	// providerMu 保护 provider 管理清单。
 	providerMu      sync.Mutex
 	providerRecords []ui.ProviderRecordSnapshot
+	providerKnown   bool
 	providerErr     string
 	// tasksMu 保护最近一次读取的模态任务清单。
 	tasksMu  sync.Mutex
@@ -266,12 +267,15 @@ func (w *App) refreshProviderRecords(ctx context.Context) {
 		return
 	}
 	w.providerErr = ""
+	w.providerKnown = true
 	w.providerRecords = w.providerRecords[:0]
 	for _, summary := range list.Providers {
 		record := ui.ProviderRecordSnapshot{
 			ID: summary.ID, Name: firstNonEmpty(summary.DisplayName, summary.ID),
 			BaseURL: summary.BaseURL, DriverKind: summary.DriverKind,
 			AuthType: summary.AuthType, Enabled: summary.Enabled, Version: summary.Version,
+			CredentialConfigured: summary.CredentialConfigured,
+			RemoteModelList:      summary.RemoteModelList,
 		}
 		if detail, readErr := manager.ReadProvider(ctx, summary.ID); readErr == nil {
 			for _, model := range detail.Models {
@@ -846,6 +850,7 @@ func (w *App) settingsFor(sessionID string) ui.SettingsSnapshot {
 	w.tasksMu.Unlock()
 	w.providerMu.Lock()
 	out.ProviderRecords = append([]ui.ProviderRecordSnapshot(nil), w.providerRecords...)
+	out.ProviderRecordsKnown = w.providerKnown
 	out.ProviderError = w.providerErr
 	w.providerMu.Unlock()
 	if report, ok := settings.Storage(); ok {

@@ -155,7 +155,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-087 | F-11 | 关联 | 查询变化 | 文案随查询实时更新，不缓存上一次查询 | — | 判据 = 文案随查询同帧更新：每次查询变化后文案变化 1 次、与查询值差 0（ST-CHANGE-1 / TX-EXACT） | 已实现（映射 = F-11→internal/ui/rightpanel_files.go:App.rpSearchResults；标记 = Open@App.rp） |
 | R-RF-088 | F-11 | 样式 | 浅色 / 深色 | 次要前景色、字号小于标题；居中、最多两行 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-11→internal/ui/rightpanel_files.go:App.rpEmptyBlock；标记 = Padding@App.rpEmptyBlockIcon） |
 | R-RF-089 | F-11 | 无障碍 | 读屏 | 读出完整句子（含查询词），不省略引号 | — | 读屏文本含查询词（命中次数 ≥1） | 已实现（映射 = F-11→internal/ui/rightpanel_files.go:App.rpSearchResults；标记 = Role） |
-| R-RF-090 | F-11 | 异常 | 查询为空串却进了空态 | 不出现「没有找到包含“”的文件」：查询为空不进入搜索空态 | — | 空查询下该句计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
+| R-RF-090 | F-11 | 异常 | 查询为空串却进了空态 | 不出现「没有找到包含“”的文件」：查询为空不进入搜索空态 | — | 空查询下该句计数 0 | 已实现（映射 = F-11→internal/ui/rightpanel_files.go:App.rpFilesPage:46；标记 = 空查询走树分支（q != "" 才进搜索空态），不出现「没有找到包含“”的文件」；测试 = TestPanelFileSearchEmptyStateOnce） |
 | R-RF-091 | F-11 | 记忆 | 切标签再回 | 空态文案按当前查询重算，不残留旧查询词 | — | 切回前后，文案与新查询逐项相同（差 0）；上一次内容出现次数 0（ST-VISIBLE） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RF-092 | F-11 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 说明行的直角引号与中文在 2× 下不糊，引号仍成对 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-11→internal/ui/rightpanel_files.go:App.rpEmptyBlock |
 | R-RF-093 | F-12 | 状态 | 未观察（条件）：搜索态且命中 ≥1（PL 态实测） | 每个命中占 1 行：全宽态 5,y 1021×44；行内三件：文件图标、文件名（55,y 922×18）、次级目录（55,y+18，高 16） | — | 行高 44；文件名与次级目录同一列左缘 55 | 已实现（映射 = F-12→internal/ui/rightpanel_files.go:App.rpSearchRow；标记 = Hidden@rpGlyph） |
@@ -202,13 +202,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-127 | F-15 | 记忆 | 新增文件后刷新 | 空态消失，出现新行 | — | 刷新后空态计数为 0 | 未实现（映射到位但没有该维度的标记）：F-15→internal/ui/rightpanel_files.go:App.rpEmptyBlock |
 | R-RF-128 | F-15 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 48px 圆底在 2× 下边缘平滑，无锯齿色边 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-15→internal/ui/rightpanel_files.go:App.rpEmptyBlock |
 | R-RF-129 | F-16 | 内容 | 未观察（条件）：同上 | 标题文案逐字「无匹配文件」，居中、主前景色、字号大于说明 | — | 屏上文案逐字为「无匹配文件」 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpTreeRows「无匹配文件」 |
-| R-RF-130 | F-16 | 内容 | 空树但根为 partial（还有未加载部分） | 不显示空态，改由「加载更多」（F-45）承载 | — | 「加载更多」按钮计数 1；空态标题计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
+| R-RF-130 | F-16 | 内容 | 空树但根为 partial（还有未加载部分） | 不显示空态，改由「加载更多」（F-45）承载 | — | 「加载更多」按钮计数 1；空态标题计数 0 | 已实现（映射 = F-16→internal/ui/rightpanel_files.go:App.rpFilesPage:58；标记 = 空树且 rootPartial 时只画「加载更多」，不画空态；测试 = TestPanelFileTreePartialWithoutEmpty） |
 | R-RF-131 | F-16 | 样式 | 浅色 / 深色 | 中等字重、居中；深色主题取主前景色 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-16→internal/ui/rightpanel_files.go:App.rpEmptyBlock；标记 = Padding@App.rpEmptyBlockIcon） |
 | R-RF-132 | F-16 | 交互 | 点击 | 无动作、无悬停反馈 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 未实现（映射到位但没有该维度的标记）：F-16→internal/ui/rightpanel_files.go:App.rpEmptyBlock |
 | R-RF-133 | F-16 | 无障碍 | 读屏 | 作为标题读出，先于说明 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 未实现（映射到位但没有该维度的标记）：F-16→internal/ui/rightpanel_files.go:App.rpEmptyBlock |
 | R-RF-134 | F-16 | 窄窗 | 面板宽 311 | 标题单行居中，不被裁剪 | — | 窄窗下标题包围盒裁剪像素 0 | 未实现（映射到位但没有该维度的标记）：F-16→internal/ui/rightpanel_files.go:App.rpEmptyBlock |
 | R-RF-135 | F-16 | 关联 | 搜索无命中的空态在场时 | 「无匹配文件」在搜索空态（F-10）与空树空态（F-16）两处复用同一文案，但所属说明行不同 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpTreeRows「无匹配文件」 |
-| R-RF-136 | F-16 | 异常 | 树为空且查询为空（搜索空态与空树空态同时成立） | 只显示一处空态（按搜索态优先），不并排两套图标与标题 | — | 空态块计数为 1 | 未实现（映射到位但没有该维度的标记）：F-16→internal/ui/rightpanel_files.go:App.rpEmptyBlock |
+| R-RF-136 | F-16 | 异常 | 树为空且查询为空（搜索空态与空树空态同时成立） | 只显示一处空态（按搜索态优先），不并排两套图标与标题 | — | 空态块计数为 1 | 已实现（映射 = F-16→internal/ui/rightpanel_files.go:App.rpFilesPage:45-49；标记 = 搜索态优先于空树空态，两者不同时在场；测试 = TestPanelFileSearchEmptyStateOnce（每处空态计数 1）） |
 | R-RF-137 | F-17 | 状态 | R 态：右栏打开、树已加载 | 每个根目录占 1 行：410,95 616×28；行内左起为箭头（14px）、文件夹图标、目录名；R 态共 33 行 | — | 行高 28；R 态目录行数 33 | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
 | R-RF-138 | F-17 | 状态 | PB 态（全宽、已展开） | 目录行 5,95 1021×28；行宽随面板宽变化，行高恒 28 | — | 全宽态行宽 1021 | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
 | R-RF-139 | F-17 | 交互 | 单击行 | 展开或收起该目录；目录名与图标不变，行底出现短促选中底 | — | 单击后子级行计数变化 ±1 | 已实现（映射 = F-17→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Pressed） |
@@ -224,7 +224,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-149 | F-17 | 记忆 | 切标签再回 | 展开状态保留（同一右栏会话内） | — | 切回前后展开行集合差 0 | 未实现（映射到位但没有该维度的标记）：F-17→internal/ui/rightpanel_files.go:App.rpDirRow |
 | R-RF-150 | F-17 | 性能 | 33 个根目录 + 253 个子项展开 | 展开/收起无可感卡顿，滚动流畅 | — | 展开 200+ 行后仍可滚动 | 未实现（映射到位但没有该维度的标记）：F-17→internal/ui/rightpanel_files.go:App.rpDirRow |
 | R-RF-151 | F-18 | 状态 | 未观察（条件）：目录行已展开时 | 箭头换成向下的 ChevronDown，位置与收起态同一点，尺寸 14 | — | 展开后箭头旋转角 90°；x 坐标与其余态相同（差 0） | 已实现（映射 = F-18→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
-| R-RF-152 | F-18 | 动画 | 点击展开 | 箭头旋转 90°（向下），旋转时长 ≤150ms | 减少动效下直接切换朝向 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：F-18→internal/ui/rightpanel_files.go:App.rpDirRow |
+| R-RF-152 | F-18 | 动画 | 点击展开 | 箭头旋转 90°（向下），旋转时长 ≤150ms | 减少动效下直接切换朝向 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（做不了：箭头旋转 ≤150ms 需要逐帧录屏取证；本版只有形状切换，没有时长读数） |
 | R-RF-153 | F-18 | 关联 | 右向箭头图标不在场、只有该项在场时 | 同一行任一时刻只有一个箭头：展开显示 F-18、收起显示 F-19 | — | 每行箭头计数为 1 | 已实现（映射 = F-18→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-154 | F-18 | 样式 | 浅色 / 深色 | 次要前景色描边，粗细与文件图标一致 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-18→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Height） |
 | R-RF-155 | F-18 | 交互 | 单击箭头 | 等同单击整行（展开切换），不额外弹菜单 | — | 点箭头与点行的结果逐项相同（差 0） | 已实现（映射 = F-18→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Pressed） |
@@ -234,7 +234,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-159 | F-19 | 状态 | R 态、目录全部收起 | 每行左端为向右的 ChevronRight（14px），33 行一致；JSON 未单列该 svg | — | R 态 33 行箭头全为朝右 | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = State@App.rp） |
 | R-RF-160 | F-19 | 位置 | 目录图标与目录名同时在场时 | 箭头与目录名之间隔一个文件夹图标；箭头左缘 x=410，目录名左缘 x=462 | — | 箭头与名之间距离 52 | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Row） |
 | R-RF-161 | F-19 | 样式 | 浅色 / 深色 | 次要前景色、细描边；悬停行时不变色 | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Height） |
-| R-RF-162 | F-19 | 动画 | 收起 | 从朝下转回朝右，与展开动画同一时长 | 减少动效下直接切换 | 收起全程上方行 y 差 0 | 未实现（映射到位但没有该维度的标记）：F-19→internal/ui/rightpanel_files.go:App.rpDirRow |
+| R-RF-162 | F-19 | 动画 | 收起 | 从朝下转回朝右，与展开动画同一时长 | 减少动效下直接切换 | 收起全程上方行 y 差 0 | 未实现（做不了：同 R-RF-152，收起方向的旋转时长要逐帧取证） |
 | R-RF-163 | F-19 | 关联 | 文件行的占位 | 文件行没有箭头，用等宽 14px 占位（F-28）对齐，保证文件名列左缘一致 | — | 目录名与文件名同列（462 / 461） | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Open） |
 | R-RF-164 | F-19 | 无障碍 | 读屏 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = F-19→internal/ui/rightpanel_files.go:App.rpDirRow；标记 = Role） |
 | R-RF-165 | F-19 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 箭头 2× 下边缘清晰、不糊 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-19→internal/ui/rightpanel_files.go:App.rpDirRow |
@@ -309,7 +309,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-234 | F-27 | 关联 | 文件树按目录在前、文件在后排序显示时 | 目录全部排在文件之前（R 态 33 目录在上、31 文件在下），同类按名排序 | — | 判据 = 目录行 y 全部小于文件行 y（差 ≥ 28，偏差 ≤ 1px）；同类内按名称升序、序位差 0（BO-ROW-28 / AL-TOL-1 / SR-ORDER-DOM） | 已实现（映射 = F-27→internal/ui/rightpanel_files.go:App.rpFileRow；标记 = Open） |
 | R-RF-235 | F-27 | 样式 | 浅色 / 深色 | 行高 28、无分割线；悬停底色在深色主题下同样可见 | — | 判据 = 行高 空态主标题 28px；底色 悬停底 明 #f5f5f5 / 暗 #262626（侧栏 明 #e2e9ed / 暗 #282c2b） | 已实现（映射 = F-27→internal/ui/rightpanel_files.go:App.rpFileRow；标记 = Height） |
 | R-RF-236 | F-27 | 无障碍 | 读屏 | 行读作「文件，名称，+x/-y，已暂存/未暂存」；可读名不是整条路径 | — | 每行对应读屏项 1 | 已实现（映射 = F-27→internal/ui/rightpanel_files.go:App.rpFileRow；标记 = Role） |
-| R-RF-237 | F-27 | 键盘 | 方向键 + Enter | 可逐行移动焦点，Enter 打开预览 | — | 预览标签数 +1 | 未实现（映射到位但没有该维度的标记）：F-27→internal/ui/rightpanel_files.go:App.rpFileRow |
+| R-RF-237 | F-27 | 键盘 | 方向键 + Enter | 可逐行移动焦点，Enter 打开预览 | — | 预览标签数 +1 | 已实现（映射 = F-27→internal/ui/rightpanel_files.go:App.rpFilesPage:45 的 FocusGroup(gui.Vertical)；标记 = FocusGroup@文件树（Tab 进一次、↑↓ 逐行、Home/End 首尾），Enter/Space 由行按钮的 Clicked 承担；测试 = TestPanelTreeIsOneFocusGroup / TestPanelTreeEnterActivatesRow） |
 | R-RF-238 | F-27 | 记忆 | 切标签再回、外部改文件 | 统计与暂存点随刷新更新；不保留旧统计 | — | 刷新后统计文本与当前改动数一致（差 0） | 未实现（映射到位但没有该维度的标记）：F-27→internal/ui/rightpanel_files.go:App.rpFileRow |
 | R-RF-239 | F-27 | 性能 | 64 行（33+31）同时在场 | 滚动与悬停无卡顿 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-27→internal/ui/rightpanel_files.go:App.rpFileRow |
 | R-RF-240 | F-28 | 状态 | R 态、文件行在场 | 文件名左侧有一段 14px 占位（与目录箭头同宽），使文件名与目录名同列；JSON 未单列 | — | 文件名左缘 461 与目录名 462 相差 ≤1 | 已实现（映射 = F-28→internal/ui/rightpanel_files.go:App.rpFileRow；标记 = Hidden@rpGlyph） |
@@ -388,7 +388,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-RF-306 | F-36 | 样式 | 浅色 / 深色 | 中性分隔色，透明度低于边框色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = F-36→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Width） |
 | R-RF-307 | F-36 | 交互 | 悬停分隔线 | 无悬停反馈、不可聚焦 | — | 悬停前后屏上文案、计数与 y 坐标差 0 | 已实现（映射 = F-36→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Menu） |
 | R-RF-308 | F-36 | 无障碍 | 读屏 | 分隔线读作分隔符，不进普通项序列 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = F-36→internal/ui/rightpanel_files.go:App.rpFileMenu；标记 = Label@App.rpGitWriteDisabled） |
-| R-RF-309 | F-36 | 异常 | 同一列表里相邻项都不在场时 | 分隔线随之不渲染，不留孤立线 | — | 没有相邻项时分隔线计数 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
+| R-RF-309 | F-36 | 异常 | 同一列表里相邻项都不在场时 | 分隔线随之不渲染，不留孤立线 | — | 没有相邻项时分隔线计数 0 | 已实现（映射 = F-36→internal/ui/rightpanel_files.go:App.rpFileMenu:942-944；标记 = startGroup：分隔线只在两组之间画，前一组没有项时不留孤立线；测试 = TestPanelFileMenuHasNoOrphanSeparator（无改动 1 条、有改动 3 条）） |
 | R-RF-310 | F-36 | 记忆 | 重开菜单 | 分隔线位置固定，不随项数量漂移 | — | 重开前后，位置逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：F-36→internal/ui/rightpanel_files.go:App.rpFileMenu |
 | R-RF-311 | F-36 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 1px 线在 2× 下为 2 物理像素、不发灰 | — | 判据 = 像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：F-36→internal/ui/rightpanel_files.go:App.rpFileMenu |
 | R-RF-312 | F-37 | 状态 | 未观察（条件）：行有未暂存改动、菜单已展开时 | 菜单项「查看差异」，GitCompare 图标，位于分隔线之后 | — | 屏上出现文案「查看差异」 | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpFileMenu「查看差异」 |
@@ -539,7 +539,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-017 | D-01 | 交互 | 菜单展开时再点触发器 | 菜单收起，箭头回正；不重新加载列表 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Menu） |
 | R-RD-018 | D-01 | 动画 | 展开下拉 | 菜单自触发器下沿向右对齐展开，无横向漂移；≤120ms | 减少动效下直接出现 | 判据 = 动效 折叠 300ms cubic-bezier(0.16, 1, 0.3, 1)；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar |
 | R-RD-019 | D-01 | 样式 | 深色主题 | 触发器文字与箭头在深底上对比可读；悬停底色比浅色主题更亮一档 | — | 判据 = 底色 悬停底 明 #f5f5f5 / 暗 #262626（侧栏 明 #e2e9ed / 暗 #282c2b）；其余 = 文字与底色对比度 ≥ 4.5:1（正文）、≥ 3:1（大字与图标）（CL-CONTRAST） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Height） |
-| R-RD-020 | D-01 | 关联 | 筛选框同时在场时 | 切范围后筛选框清空；两者不同时改变对方的焦点 | — | 切范围后筛选框字符数 0；两处焦点位置差 0（互不改对方焦点） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Open） |
+| R-RD-020 | D-01 | 关联 | 筛选框同时在场时 | 切范围后筛选框清空；两者不同时改变对方的焦点 | — | 切范围后筛选框字符数 0；两处焦点位置差 0（互不改对方焦点） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar:240；标记 = 选中范围时 s.filter = ""；测试 = TestPanelChangesScopeSwitchClearsFilter） |
 | R-RD-021 | D-01 | 关联 | 底部统计同时在场时 | 切范围后底部统计按新范围重算，不沿用上一范围的数字 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Open） |
 | R-RD-022 | D-01 | 异常 | 下拉展开时列表正在刷新 | 菜单照常展开；选定后以最新一次刷新结果为准 | — | 两份列表计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Err@App.rp） |
 | R-RD-023 | D-01 | 异常 | 权限不足读不到分支列表 | 切到分支范围时给 D-22 不可用空态，菜单本身不置灰 | — | 切到分支范围后空态块计数 1（D-22 文案）；菜单自身禁用计数 0 | 已实现（映射 = D-01→internal/ui/rightpanel_changes.go:App.rpScopeBar；标记 = Err@App.rp） |
@@ -701,7 +701,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-172 | D-17 | 记忆 | 切到别范围再回空态 | 图标重现，位置不变（居中于列表区） | — | 切回前后，图标位置逐项相同（差 0） | 未实现（映射到位但没有该维度的标记）：D-17→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-173 | D-18 | 内容 | PC 态：未提交范围、工作区干净 | 标题逐字「没有未提交的改动」（全宽态 466,224 98×18），主前景色、居中 | — | 屏上文案逐字为「没有未提交的改动」 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpEmptyText「没有未提交的改动」 |
 | R-RD-174 | D-18 | 关联 | 该项下方同时有说明行时 | 下方紧跟 D-23「工作区是干净的」（478,242），两行间距 18 | — | 标题 y+18 = 说明 y | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpEmptyText「工作区是干净的」 |
-| R-RD-175 | D-18 | 内容 | 过滤后 0 条但仓库有改动 | 不显示该标题（此时走「筛选无命中」而非「工作区干净」） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
+| R-RD-175 | D-18 | 内容 | 过滤后 0 条但仓库有改动 | 不显示该标题（此时走「筛选无命中」而非「工作区干净」） | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-18→internal/ui/rightpanel_changes.go:App.rpFilterNoMatch:371；标记 = 筛选 0 条且有改动时给「没有匹配的改动」，不说「工作区是干净的」；测试 = TestPanelChangesFilterNoMatch） |
 | R-RD-176 | D-18 | 样式 | 浅色 / 深色 | 中等字重、主前景色，字号大于说明行；居中 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；字号 12.25 / 行高 18 / 字重 400，说明文字 10.5 / 14（TX-TYPE-BODY / TX-TYPE-MICRO） | 已实现（映射 = D-18→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Padding@App.rpEmptyBlockIcon） |
 | R-RD-177 | D-18 | 交互 | 点击标题 | 无动作、不可聚焦 | — | 点击前后屏上文案、计数与 y 坐标差 0 | 已实现（映射 = D-18→internal/ui/rightpanel_changes.go:App.rpEmptyText；标记 = Menu@App.rp） |
 | R-RD-178 | D-18 | 无障碍 | 读屏 | 作为空态标题读出，先于说明 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 已实现（映射 = D-18→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Role@App.rpGroup） |
@@ -786,7 +786,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 |---|---|---|---|---|---|---|---|
 | R-RD-253 | D-28 | 状态 | PG 态：有 1 个已暂存文件 | 组行在场：724,130 301×28，整行可点；文本「已暂存（1）」749,137 57×14，计数为实际条数 | — | 屏上文案形如「已暂存（1）」，行 301×28 | 已实现（映射 = D-28→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Visible） |
 | R-RD-254 | D-28 | 内容 | 已暂存 3 个（PAS 态） | 括号内数字随条数变（「已暂存（3）」），不写死 | — | 计数与行数逐项相同（差 0） | 已实现（映射 = D-28→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = 文案「已暂存 (%d)」等 4 条） |
-| R-RD-255 | D-28 | 状态 | 无已暂存 | 整个组不渲染（PAS 全暂存后未暂存组消失，反之亦然） | — | 无已暂存时该组计数为 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
+| R-RD-255 | D-28 | 状态 | 无已暂存 | 整个组不渲染（PAS 全暂存后未暂存组消失，反之亦然） | — | 无已暂存时该组计数为 0 | 已实现（映射 = D-28→internal/ui/rightpanel_changes.go:App.rpChangeGroups:401；标记 = len(staged) > 0 才画组；测试 = TestPanelGroupsSkipEmptyAndCollapse（无已暂存时该组计数 0）） |
 | R-RD-256 | D-28 | 交互 | 单击组行 | 收起 / 展开组内文件行；箭头与组标题不变 | — | 点击后子行计数变化 ±1 | 已实现（映射 = D-28→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Menu@App.rp） |
 | R-RD-257 | D-28 | 交互 | 悬停组行 | 行底浅色高亮；行尾「全部取消暂存」（D-31）同时可见 | — | 判据 = 底色 悬停底 明 #f5f5f5 / 暗 #262626（侧栏 明 #e2e9ed / 暗 #282c2b） | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpChangeGroups「全部取消暂存」 |
 | R-RD-258 | D-28 | 关联 | 行内同时在场时 | 展开后若某文件已内联展开（D-47），收起再展开时按文件 id 恢复 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-28→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Open@App.rp） |
@@ -798,7 +798,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-264 | D-28 | 窄窗 | 面板宽 311 | 组标题与行尾按钮同排不重叠，标题可 truncate | — | 311 宽下不重叠 | 未实现（映射到位但没有该维度的标记）：D-28→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-265 | D-28 | 性能 | 253 行时切换组 | 收起/展开无可感卡顿 | — | 判据 = 首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（映射到位但没有该维度的标记）：D-28→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-266 | D-29 | 状态 | 未观察（条件）：已暂存分组已展开时 | 组标题左侧箭头为 ChevronDown（朝下），位置与收起态同一点 | — | 展开后箭头旋转角 90° | 已实现（映射 = D-29→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Visible） |
-| R-RD-267 | D-29 | 动画 | 点击展开 | 箭头旋转 90°，≤150ms；行不横向位移 | 减少动效下直接切换 | 展开过程中下方行 y 差 0；时长 = 期望列给的毫秒值（±0ms），减少动效时 none（§6 动效表） | 未实现（映射到位但没有该维度的标记）：D-29→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
+| R-RD-267 | D-29 | 动画 | 点击展开 | 箭头旋转 90°，≤150ms；行不横向位移 | 减少动效下直接切换 | 展开过程中下方行 y 差 0；时长 = 期望列给的毫秒值（±0ms），减少动效时 none（§6 动效表） | 未实现（做不了：分组箭头 90°/≤150ms 要逐帧录屏取证；本版只有形状切换） |
 | R-RD-268 | D-29 | 关联 | 右向箭头图标不在场、只有该项在场时 | 同一时刻只有一个箭头 | — | 箭头计数为 1 | 已实现（映射 = D-29→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Open@App.rp） |
 | R-RD-269 | D-29 | 样式 | 浅色 / 深色 | 次要色、14px，与未暂存组的箭头同尺寸 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = D-29→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Padding@App.rpEmptyBlockIcon） |
 | R-RD-270 | D-29 | 无障碍 | 读屏 | 不单独播报（展开态由组行读出） | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-29→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Role@App.rpGroup） |
@@ -808,13 +808,13 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-274 | D-30 | 状态 | PG 态、已暂存组收起 | 组标题左侧为 ChevronRight（朝右）；JSON 未单列该 svg | — | 收起态箭头旋转角 0° | 已实现（映射 = D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Visible） |
 | R-RD-275 | D-30 | 位置 | 组标题同时在场时 | 箭头在文本左，间隔 6–8；文本左缘 749、组行左缘 724 | — | 箭头与文本基线 y 差 0 | 已实现（映射 = D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Column@App.rpEmptyBlockIcon） |
 | R-RD-276 | D-30 | 样式 | 下向箭头图标同时在场时 | 同尺寸同色，仅朝向不同 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Padding@App.rpEmptyBlockIcon） |
-| R-RD-277 | D-30 | 动画 | 收起 | 从朝下转回朝右，与展开同动画 | 减少动效下直接切换 | 收起全程上方行 y 差 0 | 未实现（映射到位但没有该维度的标记）：D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
+| R-RD-277 | D-30 | 动画 | 收起 | 从朝下转回朝右，与展开同动画 | 减少动效下直接切换 | 收起全程上方行 y 差 0 | 未实现（做不了：同 R-RD-267，收起方向） |
 | R-RD-278 | D-30 | 无障碍 | 读屏 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Role@App.rpGroup） |
 | R-RD-279 | D-30 | 记忆 | 切标签再回 | 收起态仍朝右 | — | 切回前后箭头旋转角差 0 | 未实现（映射到位但没有该维度的标记）：D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-280 | D-30 | 窄窗 | 面板宽 311 | 箭头不被裁，标题按剩余宽 truncate | — | 窄窗下箭头包围盒裁剪像素 0 | 未实现（映射到位但没有该维度的标记）：D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-281 | D-30 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 2× 下边缘清晰 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；像素比对：形与期望列一致、边缘差 ≤ 1px（AL-TOL-1），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：D-30→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-282 | D-31 | 状态 | PG 态：已暂存组展开 | 组行尾出现「全部取消暂存」小按钮（920,135 95×18），文案逐字 | — | 屏上文案逐字为「全部取消暂存」，包围盒 920,135 95×18 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpChangeGroups「全部取消暂存」 |
-| R-RD-283 | D-31 | 状态 | 组收起 | 按钮随组一起不渲染（只在展开时出现） | — | 收起后按钮计数为 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
+| R-RD-283 | D-31 | 状态 | 组收起 | 按钮随组一起不渲染（只在展开时出现） | — | 收起后按钮计数为 0 | 已实现（映射 = D-31→internal/ui/rightpanel_changes.go:App.rpGroup:453；标记 = if open 才画批量按钮；测试 = TestPanelGroupsSkipEmptyAndCollapse（收起后「全部暂存」计数 0）） |
 | R-RD-284 | D-31 | 交互 | 点击 | 该组全部文件回到未暂存；组消失或计数归零；未暂存组出现对应条数 | — | 两组计数互换（各差 0） | 已实现（映射 = D-31→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Menu@App.rp） |
 | R-RD-285 | D-31 | 状态 | 执行中 | 图标换成旋转圈（Loader2），按钮禁用，文案保留 | — | 执行中图标旋转且不触发次数 1 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RD-286 | D-31 | 状态 | 组内已无文件 / 无权限 / 动作中 | 按钮置灰不可点（三种条件共用禁用态） | — | 禁用态点击后状态变化次数 0 | 已实现（映射 = D-31→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Visible） |
@@ -1003,7 +1003,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 |---|---|---|---|---|---|---|---|
 | R-RD-465 | D-50 | 状态 | PG 态：2 个未暂存文件 | 组行在场：724,190 301×28，整行可点；文本「未暂存（2）」749,197 59×14 | — | 屏上文案形如「未暂存（2）」 | 已实现（映射 = D-50→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Visible） |
 | R-RD-466 | D-50 | 内容 | 253 个未暂存（PU 态） | 计数为真实条数「未暂存（253）」，不截断为「99+」 | — | 屏上文案逐字含「253」 | 已实现（映射 = D-50→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = 文案「已暂存 (%d)」等 4 条） |
-| R-RD-467 | D-50 | 状态 | 全部暂存后（PAS-done 态） | 未暂存组整体不渲染；底部统计仍按全部改动计 | — | 该组计数为 0 时组行消失 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
+| R-RD-467 | D-50 | 状态 | 全部暂存后（PAS-done 态） | 未暂存组整体不渲染；底部统计仍按全部改动计 | — | 该组计数为 0 时组行消失 | 已实现（映射 = D-50→internal/ui/rightpanel_changes.go:App.rpChangeGroups:405；标记 = len(unstaged) > 0 才画组；测试 = TestPanelGroupsSkipEmptyAndCollapse（全部暂存后未暂存组不在场）） |
 | R-RD-468 | D-50 | 交互 | 单击组行 | 收起 / 展开组内行；行尾「全部暂存」随组显隐 | — | 点击后子行计数变化 ±1 | 已实现（逐字）：internal/ui/rightpanel_changes.go:App.rpChangeGroups「全部暂存」 |
 | R-RD-469 | D-50 | 交互 | 悬停 | 行底高亮；行尾批量按钮同时可见 | — | 判据 = 底色 悬停底 明 #f5f5f5 / 暗 #262626（侧栏 明 #e2e9ed / 暗 #282c2b） | 已实现（映射 = D-50→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Menu@App.rp） |
 | R-RD-470 | D-50 | 关联 | 同一面板里相关元素同时在场时 | 两组纵向排列：已暂存在上、未暂存在下；顺序不随条数变化 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 已实现（映射 = D-50→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Open@App.rp） |
@@ -1015,7 +1015,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-476 | D-50 | 窄窗 | 面板宽 311 | 标题与批量按钮同排不重叠 | — | 311 宽下不重叠 | 未实现（映射到位但没有该维度的标记）：D-50→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-477 | D-50 | 性能 | 253 行 | 收起/展开与滚动无可感卡顿 | — | 253 行下流畅 | 未实现（映射到位但没有该维度的标记）：D-50→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-478 | D-51 | 状态 | 未观察（条件）：未暂存分组已展开时 | 组标题左侧箭头 ChevronDown（朝下） | — | 展开后箭头旋转角 90° | 已实现（映射 = D-51→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Visible） |
-| R-RD-479 | D-51 | 动画 | 点击展开 | 箭头旋转 90°、≤150ms；标题不位移 | 减少动效下瞬切 | 展开全程中下方行 y 差 0；时长 = 期望列给的毫秒值（±0ms），减少动效时 none（§6 动效表） | 未实现（映射到位但没有该维度的标记）：D-51→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
+| R-RD-479 | D-51 | 动画 | 点击展开 | 箭头旋转 90°、≤150ms；标题不位移 | 减少动效下瞬切 | 展开全程中下方行 y 差 0；时长 = 期望列给的毫秒值（±0ms），减少动效时 none（§6 动效表） | 未实现（做不了：分组箭头旋转要录屏量时长） |
 | R-RD-480 | D-51 | 关联 | 右向箭头图标不在场、只有该项在场时 | 同一时刻只有一个箭头 | — | 箭头计数为 1 | 已实现（映射 = D-51→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Open@App.rp） |
 | R-RD-481 | D-51 | 样式 | 同一面板里相关元素同时在场时 | 同尺寸同色，只是位于未暂存组行 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-51→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Padding@App.rpEmptyBlockIcon） |
 | R-RD-482 | D-51 | 无障碍 | 读屏 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-51→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Role@App.rpGroup） |
@@ -1025,7 +1025,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-486 | D-52 | 状态 | PG 态、未暂存组收起 | 组标题左侧 ChevronRight（朝右） | — | 收起态箭头旋转角 0° | 已实现（映射 = D-52→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Visible） |
 | R-RD-487 | D-52 | 位置 | 组标题同时在场时 | 箭头在文本左侧，文本左缘 749、组行左缘 724 | — | 与已暂存组对齐线逐项相同（差 0） | 已实现（映射 = D-52→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Column@App.rpEmptyBlockIcon） |
 | R-RD-488 | D-52 | 样式 | 下向箭头图标同时在场时 | 同尺寸同色 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-52→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Padding@App.rpEmptyBlockIcon） |
-| R-RD-489 | D-52 | 动画 | 收起 | 转回朝右，与展开同长 | 减少动效下瞬切 | 判据 = 动效 箭头 150ms cubic-bezier(0.4, 0, 0.2, 1)；动效 折叠 300ms cubic-bezier(0.16, 1, 0.3, 1) | 未实现（映射到位但没有该维度的标记）：D-52→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
+| R-RD-489 | D-52 | 动画 | 收起 | 转回朝右，与展开同长 | 减少动效下瞬切 | 判据 = 动效 箭头 150ms cubic-bezier(0.4, 0, 0.2, 1)；动效 折叠 300ms cubic-bezier(0.16, 1, 0.3, 1) | 未实现（做不了：同 R-RD-479，收起方向） |
 | R-RD-490 | D-52 | 无障碍 | 读屏 | 不单独播报 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-52→internal/ui/rightpanel_changes.go:App.rpChangeGroups；标记 = Role@App.rpGroup） |
 | R-RD-491 | D-52 | 记忆 | 切标签再回 | 仍朝右 | — | 切回后前后取值差 0 | 未实现（映射到位但没有该维度的标记）：D-52→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
 | R-RD-492 | D-52 | 窄窗 | 面板宽 311 | 箭头不被裁 | — | 窄窗下包围盒裁剪像素 0 | 未实现（映射到位但没有该维度的标记）：D-52→internal/ui/rightpanel_changes.go:App.rpChangeGroups |
@@ -1284,7 +1284,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-738 | D-77 | 内容 | 1 个文件 | 文案为「1 个文件改动」，不加复数变化 | — | 无「文件们」类变化 | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter；标记 = 文案「%d 个文件改动」） |
 | R-RD-739 | D-77 | 状态 | 无改动 | 底部条不显示（整条随 `files.length>0` 出现） | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-RD-740 | D-77 | 关联 | 同一面板里相关元素同时在场时 | 总数 = 已暂存 + 未暂存（1+2=3），任一动作后同步 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter |
-| R-RD-741 | D-77 | 关联 | 筛选框同时在场时 | 筛选只影响列表显示，不改底部统计（统计按仓库全量） | — | 筛选前后，底部数字的取值差 0 | 未实现（映射到位但没有该维度的标记）：D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter |
+| R-RD-741 | D-77 | 关联 | 筛选框同时在场时 | 筛选只影响列表显示，不改底部统计（统计按仓库全量） | — | 筛选前后，底部数字的取值差 0 | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpFilteredChanges:184；标记 = 筛选只作用于列表与分组计数，rpChangesFooter 仍按 rpVisibleChanges 全量算；测试 = TestPanelChangesFilterNoMatch（筛选前后底部恒为 3 个文件改动）） |
 | R-RD-742 | D-77 | 位置 | 底部条 | 贴在面板底部（PG 态 y=700），与列表之间有一条分隔线 | — | 统计 y=700，含上分隔线 | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter；标记 = Row） |
 | R-RD-743 | D-77 | 样式 | 浅色 / 深色 | 12px 级次要色；底部条底色与面板同或极浅 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter；标记 = Height） |
 | R-RD-744 | D-77 | 无障碍 | 读屏 | 读出「3 个文件改动」，并可与总数一起读 | — | 读屏文本逐字含「3 个文件改动」（差异字符 0）；与总数连续读出（读屏项相邻） | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter；标记 = Label@rpRule） |
@@ -1300,7 +1300,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-754 | D-77 | 关联 | 同一行里同时有底部统计文本与底部统计文本时 | 三段左中右分布：总数在左，+ 与 − 在右，互不挤压 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter |
 | R-RD-755 | D-77 | 异常 | 统计与列表不同步（竞态） | 以下发时刻的列表为准刷新，屏上不同时出现「3 个文件改动」与 2 行 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（映射到位但没有该维度的标记）：D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter |
 | R-RD-756 | D-77 | 无障碍 | 读屏读到底部条 | 读出「3 个文件改动，共新增 4 行，共删除 1 行」一段话 | — | 读屏文本逐字为「3 个文件改动，共新增 4 行，共删除 1 行」（差异字符 0） | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter；标记 = Label@rpRule） |
-| R-RD-757 | D-77 | 键盘 | Tab 到面板底部 | 底部统计不可聚焦（纯文本），焦点跳过它 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter |
+| R-RD-757 | D-77 | 键盘 | Tab 到面板底部 | 底部统计不可聚焦（纯文本），焦点跳过它 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter:678；标记 = 统计只用 gui.Text，没有可聚焦元素；测试 = TestPanelFooterIsNotFocusable（Tab 走完一屏从不落在统计上）） |
 | R-RD-758 | D-77 | 高DPI | 屏幕缩放到 2 倍时（DPR=2） | 三段文字在 2× 下同一基线 | — | 2× 截图上基线逐项相同（差 0） | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter；标记 = Scale@fontStep.sizeIn） |
 | R-RD-759 | D-77 | 多语言 | 系统语言切到英文 | 总数文案按语言包切换，数字与 +/− 不变 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter；标记 = 文案「%d 个文件改动」） |
 | R-RD-760 | D-77 | 性能 | 253 行改动 | 滚动时底部条固定不动，只列表滚动 | — | 滚动时统计 y 前后取值差 0 | 未实现（映射到位但没有该维度的标记）：D-77→internal/ui/rightpanel_changes.go:App.rpChangesFooter |
@@ -1339,7 +1339,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RD-786 | D-80 | 记忆 | 切会话再回 | 块按该会话最新回合重建 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：D-80→internal/ui/timeline.go:App.fileChangesBlock；测试提及 internal/ui/residual_families_test.go:包级 |
 | R-RD-787 | D-81 | 状态 | 块在场 | 折叠头为整行可点按钮：左箭头 + 文本，点击切换展开 | — | 点击后列表计数变化 ±1 | 已实现（映射 = D-81→internal/ui/timeline.go:App.fileChangesBlock；标记 = Hidden@arrowLabeled） |
 | R-RD-788 | D-81 | 交互 | 悬停 | 头行整行浅底，箭头与文本不变 | — | 判据 = 底色 悬停底 明 #f5f5f5 / 暗 #262626（侧栏 明 #e2e9ed / 暗 #282c2b） | 已实现（映射 = D-81→internal/ui/timeline.go:App.fileChangesBlock；标记 = Clicked） |
-| R-RD-789 | D-81 | 键盘 | Enter / Space | 等同点击；焦点留在头行 | — | 键盘触发后展开收起次数 1 | 未实现（映射到位但没有该维度的标记）：D-81→internal/ui/timeline.go:App.fileChangesBlock |
+| R-RD-789 | D-81 | 键盘 | Enter / Space | 等同点击；焦点留在头行 | — | 键盘触发后展开收起次数 1 | 未实现（做不了：时间线改动块头行不是可聚焦控件，timeline.go:fileChangeRow 的头行没有 Focusable；先要改时间线段结构，本轮只做右栏面板） |
 | R-RD-790 | D-81 | 关联 | 头行右侧 | 本产品形态下头行右侧不挂「撤销 / 重新应用」（见 §2.7 不适用），展开/收起与右侧空白互不影响 | — | 头行右侧按钮计数 0；展开前后右侧空白宽度差 0 | 已实现（映射 = D-81→internal/ui/timeline.go:App.fileChangesBlock；标记 = Open@App.blockOf） |
 | R-RD-791 | D-81 | 无障碍 | 读屏 | 读作按钮「N 个文件改动，已收起/已展开」 | — | 读屏含计数与状态（命中次数 ≥1） | 已实现（映射 = D-81→internal/ui/timeline.go:App.fileChangesBlock；标记 = Label） |
 | R-RD-792 | D-81 | 样式 | 浅色 / 深色 | 头行高约 28；文本 14px 级；无边框无底色（悬停除外） | — | 判据 = 行高 UI 正文 17.5px；字号 正文 14px | 已实现（映射 = D-81→internal/ui/timeline.go:App.fileChangesBlock；标记 = Height） |
@@ -1883,7 +1883,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TK-004 | K-01 | 关联 | 同一面板里相关元素同时在场时 | 两个标签各自独立列表，切换时容器重建，不混排 | — | 切换后列表行集合差 0（不混排） | 已实现（映射 = K-01→internal/ui/rightpanel_tasks.go:App.taskList；标记 = Select@App.taskRow） |
 | R-TK-005 | K-01 | 样式 | 浅色 / 深色 | 面板内通栏容器，无边框、无底色 | — | 判据 = 内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = K-01→internal/ui/rightpanel_tasks.go:App.taskList；标记 = Height@App.taskRow） |
 | R-TK-006 | K-01 | 无障碍 | 读屏 | 读作列表「后台进程」，行读作列表项 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/rightpanel_tasks.go:App.tasksPanel「后台进程」 |
-| R-TK-007 | K-01 | 异常 | 列表接口失败 | 容器内给失败提示，不清空成空态 | — | 失败提示计数 ≥1；列表行数 >0（不以空态替代） | 未实现（映射到位但没有该维度的标记）：K-01→internal/ui/rightpanel_tasks.go:App.taskList |
+| R-TK-007 | K-01 | 异常 | 列表接口失败 | 容器内给失败提示，不清空成空态 | — | 失败提示计数 ≥1；列表行数 >0（不以空态替代） | 未实现（做不了：缺事实——会话快照 Tasks 只有 []TaskSnapshot、没有读取失败字段（internal/ui/source.go:458），界面分不出「读不到」与「没有任务」） |
 | R-TK-008 | K-01 | 记忆 | 切标签再回 | 列表按实况重建，滚动位置回到顶部 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：K-01→internal/ui/rightpanel_tasks.go:App.taskList |
 | R-TK-009 | K-01 | 性能 | 50 个进程 | 滚动流畅，行高稳定 | — | 判据 = 行高 UI 正文 17.5px；其余 = 滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；首帧 ≤ 250ms、稳态帧 ≤ 16ms、长列表一帧 ≤ 60ms（PF-250 / PF-16 / PF-60） | 未实现（映射到位但没有该维度的标记）：K-01→internal/ui/rightpanel_tasks.go:App.taskList |
 | R-TK-010 | K-02 | 状态 | 未观察（条件）：打开唤醒标签、列表非空时 | 列表容器同构，可读名「唤醒」 | — | 可读名逐字「唤醒」 | 已实现（逐字）：internal/ui/rightpanel_tasks.go:App.tasksPanel「唤醒」 |
@@ -2021,7 +2021,7 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-TK-142 | K-18 | 关联 | 「暂无待唤醒事项」同时在场时 | 两标签各用各的文案，不串用 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
 | R-TK-143 | K-18 | 样式 | 空态 | 居中、12–14px 次要色、上下留白 | — | 判据 = 字号 正文 14px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（映射 = K-18→internal/ui/rightpanel.go:panelEmpty；标记 = Padding@panelEmptyNote） |
 | R-TK-144 | K-18 | 无障碍 | 读屏 | 读出该句 | — | 读屏含该句（命中次数 ≥1） | 已实现（映射 = K-18→internal/ui/rightpanel.go:panelEmpty；标记 = Role@panelEmptyNote） |
-| R-TK-145 | K-18 | 异常 | 接口失败 | 不出空态（改走失败提示） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
+| R-TK-145 | K-18 | 异常 | 接口失败 | 不出空态（改走失败提示） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（做不了：同 R-TK-007，任务列表没有失败读数） |
 | R-TK-146 | K-18 | 记忆 | 新进程出现 | 空态消失，换成行 | — | 出现进程后空态计数 0 | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |
 | R-TK-147 | K-18 | 交互 | 点击空态文字 | 无动作（不提供「新建」入口） | — | 点击前后屏上文案、计数与 y 坐标差 0 | 已实现（逐字）：internal/catalog/mutate.go:TitleConflictError.Unwrap「新建」 |
 | R-TK-148 | K-18 | 窄窗 | 面板宽 311 | 文案单行不折行 | — | 窄窗下 1 行 | 未实现（映射到位但没有该维度的标记）：K-18→internal/ui/rightpanel.go:panelEmpty |

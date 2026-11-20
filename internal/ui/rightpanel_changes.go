@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"path"
+	"strings"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -58,7 +59,11 @@ func (a *App) rpChangesPage(c *gui.Context) {
 			a.rpPermissionBar(c)
 		}
 		gui.Scroll(c).Grow(1).Children(func() {
-			gui.Column(c).Padding(space1, rpTreePadH).Children(func() {
+			// 改动列表是一个焦点组：Tab 进一次，↑/↓ 在行与分组标题之间移动，
+			// Home/End 到首尾；Enter/Space 等同点击（分组展开、行展开 diff）。
+			gui.Column(c).Padding(space1, rpTreePadH).
+				Role(gui.RoleList).Label("改动列表").
+				FocusGroup(gui.Vertical).Children(func() {
 				if emptyTitle != "" {
 					// 没有工作目录：画空态，不读 git，也不把工作区根的改动画成
 					// 这个会话的改动。
@@ -144,8 +149,12 @@ func (a *App) rpLiveChangeGroups(c *gui.Context, snapshot ChangeSet) {
 		a.rpEmptyBlockIcon(c, iconDiff, "改动明细不可用", detail)
 		return
 	}
-	rows := a.rpVisibleChanges()
+	rows := a.rpFilteredChanges()
 	if len(rows) == 0 {
+		if a.rpFilterEmpty() {
+			a.rpFilterNoMatch(c)
+			return
+		}
 		title, detail := a.rpEmptyText(s.scope)
 		a.rpEmptyBlockIcon(c, iconCircleCheck, title, detail)
 		return
@@ -168,6 +177,32 @@ func (a *App) rpVisibleChanges() []*rpChange {
 		return nil
 	}
 	return s.changes
+}
+
+// rpFilteredChanges 是筛选后的可见改动：筛选词为空时就是全部可见改动；筛选
+// 只影响列表显示，底部统计仍按全量算（D-77 / R-RD-741）。
+func (a *App) rpFilteredChanges() []*rpChange {
+	s := a.rp()
+	rows := a.rpVisibleChanges()
+	q := rpAsciiLower(rpQuery(s.filter))
+	if q == "" {
+		return rows
+	}
+	out := make([]*rpChange, 0, len(rows))
+	for _, change := range rows {
+		if strings.Contains(rpAsciiLower(change.path), q) {
+			out = append(out, change)
+		}
+	}
+	return out
+}
+
+// rpFilterEmpty 报告「筛选词非空、仓库里有改动、但一条也没匹配上」：这时给
+// 「筛选无命中」的空态，不说「工作区是干净的」（R-RD-175）。
+func (a *App) rpFilterEmpty() bool {
+	s := a.rp()
+	return rpQuery(s.filter) != "" && len(a.rpVisibleChanges()) > 0 &&
+		len(a.rpFilteredChanges()) == 0
 }
 
 // rpScopeBar 是范围栏：左端范围下拉（D-01–D-07），右端刷新（D-15）与
@@ -199,7 +234,10 @@ func (a *App) rpScopeBar(c *gui.Context) {
 				scope := i
 				if menuItem(c, m, nil, item.name, "改动范围："+item.name, item.note,
 					false, s.scope == scope) {
+					// 切范围后筛选框清空：上一个范围的筛选词不该筛掉新范围的行
+					// （R-RD-006 / R-RD-020）。
 					s.scope = scope
+					s.filter = ""
 				}
 			}
 		})
@@ -307,10 +345,10 @@ func (a *App) rpSubmitButton(c *gui.Context) {
 	})
 }
 
-// rpStaged / rpUnstaged 按暂存态分两组。
+// rpStaged / rpUnstaged 按暂存态分两组（筛选后）。
 func (a *App) rpStaged() []*rpChange {
 	var out []*rpChange
-	for _, change := range a.rpVisibleChanges() {
+	for _, change := range a.rpFilteredChanges() {
 		if change.staged {
 			out = append(out, change)
 		}
@@ -320,12 +358,20 @@ func (a *App) rpStaged() []*rpChange {
 
 func (a *App) rpUnstaged() []*rpChange {
 	var out []*rpChange
-	for _, change := range a.rpVisibleChanges() {
+	for _, change := range a.rpFilteredChanges() {
 		if !change.staged {
 			out = append(out, change)
 		}
 	}
 	return out
+}
+
+// rpFilterNoMatch 是改动页「筛选无命中」的空态：与「工作区是干净的」分开，
+// 用户一眼能看出是筛选词筛掉了、还是仓库真的没有改动（R-RD-175）。
+func (a *App) rpFilterNoMatch(c *gui.Context) {
+	query := rpQuery(a.rp().filter)
+	a.rpEmptyBlockIcon(c, iconSearch, "没有匹配的改动",
+		fmt.Sprintf("没有找到路径包含“%s”的改动", query))
 }
 
 // rpChangeGroups 是空态或两组列表（D-17–D-72）。
@@ -341,8 +387,12 @@ func (a *App) rpChangeGroups(c *gui.Context) {
 		})
 		return
 	}
-	changes := a.rpVisibleChanges()
+	changes := a.rpFilteredChanges()
 	if len(changes) == 0 {
+		if a.rpFilterEmpty() {
+			a.rpFilterNoMatch(c)
+			return
+		}
 		title, detail := a.rpEmptyText(s.scope)
 		a.rpEmptyBlockIcon(c, iconCircleCheck, title, detail)
 		return
@@ -411,10 +461,13 @@ func (a *App) rpGroup(c *gui.Context, key, title string, actionIcon *gui.SVG, ac
 		if locked {
 			actionLabel = action + "（" + rpGitWriteNote + "）"
 		}
-		if rpTextAction(c, actionIcon, action, actionLabel,
-			len(rows) == 0 || s.permissionDenied || locked) && !locked {
-			for _, change := range rows {
-				change.staged = stage
+		// 批量按钮随组一起出现：组收起时不画（D-31），收起态只剩标题与计数。
+		if open {
+			if rpTextAction(c, actionIcon, action, actionLabel,
+				len(rows) == 0 || s.permissionDenied || locked) && !locked {
+				for _, change := range rows {
+					change.staged = stage
+				}
 			}
 		}
 	})
@@ -433,17 +486,35 @@ func (a *App) rpChangeRow(c *gui.Context, change *rpChange, staged bool) {
 	s := a.rp()
 	p := change.path
 	detail := fmt.Sprintf("文件，%s，新增 %d 行，删除 %d 行", p, change.added, change.removed)
+	selected := s.selPath == p
 	row := gui.Row(c).Height(panelRowHeight2).Padding(0, panelRowPadH).
-		Gap(panelRowGap).AlignItems(gui.Center).Role(gui.RoleNone)
-	if row.Hovered() {
+		Gap(panelRowGap).AlignItems(gui.Center).Role(gui.RoleNone).
+		AccessSelected(selected)
+	switch {
+	case selected:
+		// 选中行：悬停底色 + 1px 主题描边；与展开的 diff 块同一处上下文。
+		row = row.Background(t.SurfaceHover)
+		row.Draw(func(painter *gui.Painter, r gui.Rect) {
+			painter.Stroke(r, t.Border, radiusSmall, strokeHairline)
+		})
+	case row.Hovered():
 		row = row.Background(t.SurfaceHover)
 	}
 	row.Children(func() {
 		rpGlyph(c, rpFileIcon(p), panelRowIcon, t.TextMuted, "")
 		name := gui.ButtonBase(c).Grow(1).Height(panelRowHeight2).
 			Role(gui.RoleListItem).Label(detail).Tooltip(p).Cursor(gui.CursorPointer)
+		// 单击：选中并展开/收起行内 diff；双击：打开预览（D-33 / 与文件页同一
+		// 结果）。双击的第二下不会再翻一次 diff。
 		if name.Clicked() {
-			s.diffOpen[p] = !s.diffOpen[p]
+			s.selPath = p
+			if !name.DoubleClicked() {
+				s.diffOpen[p] = !s.diffOpen[p]
+			}
+		}
+		if name.DoubleClicked() {
+			s.selPath = p
+			a.rpOpenPreview(p)
 		}
 		name.Children(func() {
 			typeControl.style(t, gui.Text(c, path.Base(p))).TextColor(t.Text).SingleLine()

@@ -27,6 +27,12 @@ func (a *App) rpOpenPreview(p string) {
 func (a *App) rpPreviewPage(c *gui.Context) {
 	t := c.Theme()
 	s := a.rp()
+	// Esc 从预览返回文件页（与标签条左端的「返回」同一结果）；焦点在输入框里
+	// 时 Esc 归输入框（清查询），这里不抢。
+	if s.previewPath != "" && !c.FocusTakesText() && c.Shortcut(0, gui.KeyEscape) {
+		a.rightTab = tabFiles
+		return
+	}
 	// 「重新加载」与文件页共用一个计数：一次点击只让下一次读跳过缓存。
 	refresh := a.rpTakeRefresh()
 	emptyTitle, emptyDetail := a.rpNoWorkspace()

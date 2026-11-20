@@ -323,7 +323,10 @@ type App struct {
 	// 全部是可丢的界面状态。
 	screen          Screen
 	settingsSection settingsSectionID
-	themePref       string
+	// settingsNarrowList 是窄窗的两级导航：真表示停在「节列表」，假表示在看某一节
+	// 的内容。宽窗不用它（224 的常驻导航同时在屏上）。
+	settingsNarrowList bool
+	themePref          string
 	// appearance 是「设置 › 外观」里会真正影响渲染的本地偏好：界面字体与字号、
 	// 代码字体与字号、代码配色。它不是事实——启动时从本地偏好恢复，改一次落盘一次。
 	appearance AppearancePreferences
@@ -1367,6 +1370,16 @@ func (a *App) preferenceSnapshot() PreferencesSnapshot {
 // persistPreferences 在主题/动效/时区/侧栏宽度/工作区目录变化后落盘；只在接上
 // Intents 时。
 func (a *App) persistPreferences() {
+	a.persistPreferencesThen(nil)
+}
+
+// persistPreferencesThen 与 persistPreferences 相同，落盘失败时把原因交给
+// onFail（调用方据此回滚自己刚改的那一项）。
+//
+// lastPrefs 在失败时保留这一份尝试过的快照：下一帧不会再发一遍同样的写入（否则
+// 每帧都发一次、错误行永远刷不完）。调用方回滚后快照与 lastPrefs 不同，下帧会再
+// 写一次回滚后的值，失败也就到此为止。
+func (a *App) persistPreferencesThen(onFail func(saveErr string)) {
 	if a.intents == nil {
 		return
 	}
@@ -1375,9 +1388,9 @@ func (a *App) persistPreferences() {
 		return
 	}
 	a.lastPrefs = prefs
-	a.dispatch("保存偏好", func(ctx context.Context) error {
+	a.dispatchThen("保存偏好", func(ctx context.Context) error {
 		return a.intents.SetPreferences(ctx, prefs)
-	}, nil)
+	}, nil, onFail)
 }
 
 // samePreferences 比两份本地偏好：Workspaces 是切片，逐项比。
@@ -1592,7 +1605,10 @@ func (a *App) actionErrorView(c *gui.Context) {
 // 外观跟随系统，文本缩放与高对比跟随系统设置。
 func (a *App) applyTokens(c *gui.Context) {
 	dark := false
-	if sys := c.Theme(); sys != nil {
+	sys := c.Theme()
+	// 系统外观能不能报出来：报不出时按浅色渲染，外观屏在「跟随系统」卡下写原因。
+	appearanceSystemKnown = sys != nil
+	if sys != nil {
 		dark = sys.Dark
 	}
 	// 设置 · 外观 · 主题：跟随系统 / 明 / 暗，改完立即生效（同一帧换主题）。

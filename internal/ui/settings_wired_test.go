@@ -24,11 +24,21 @@ func resetSettingsScreenState() {
 		selected: configDimName,
 		models:   append([]configModel(nil), configModelTable...),
 	}
+	resetAppearanceScreenState()
+}
+
+// resetAppearanceScreenState 清掉外观屏的包级视图状态（展开中的下拉、搜索词、
+// 皮肤草稿与对话框）。它跨用例共享，开着面板进下一个用例会把尺寸段挤出窗口。
+func resetAppearanceScreenState() {
+	appearanceScreen = appearanceState{skinOpacity: 60}
 }
 
 // openSettingsSection 打开设置屏的一个分节并渲染一帧。
 func openSettingsSection(t *testing.T, app *App, section settingsSectionID) *gui.Tester {
 	t.Helper()
+	if section == secAppearance {
+		resetAppearanceScreenState()
+	}
 	app.screen, app.settingsSection = ScreenSettings, section
 	return gui.NewTester(app.View, WindowWidth, WindowHeight)
 }

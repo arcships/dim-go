@@ -37,8 +37,12 @@ func (a *App) rpFilesPage(c *gui.Context) {
 			a.rpPermissionBar(c)
 		}
 		gui.Scroll(c).Grow(1).Children(func() {
+			// 树是一个焦点组：Tab 把焦点带进树（停在最近一次聚焦的行），
+			// ↑/↓ 在可见行之间移动，Home/End 到首尾；Enter/Space 等同点击
+			// （目录展开、文件打开预览）。
 			gui.Column(c).Padding(space1, rpTreePadH).
-				Role(gui.RoleTree).Label("文件树").Children(func() {
+				Role(gui.RoleTree).Label("文件树").
+				FocusGroup(gui.Vertical).Children(func() {
 				switch {
 				case s.emptyTitle != "":
 					a.rpEmptyBlock(c, s.emptyTitle, s.emptyDetail)
@@ -49,6 +53,12 @@ func (a *App) rpFilesPage(c *gui.Context) {
 				case s.rootFailed:
 					a.rpDirErrorRow(c, "")
 				default:
+					// 空树但根还有没读到的条目时，「加载更多」是唯一入口：不再
+					// 同时画空态（空态只表示"读到了、但没东西"）。
+					if len(s.tree) == 0 && s.rootPartial {
+						a.rpLoadMoreRow(c, "")
+						break
+					}
 					a.rpTreeRows(c, s.tree, "", 0)
 					if s.rootPartial {
 						a.rpLoadMoreRow(c, "")
@@ -483,6 +493,7 @@ func rpDirChanged(node *rpNode) bool {
 // （F-27–F-33），右键出文件菜单（F-34–F-44）。
 func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string, depth int) {
 	t := c.Theme()
+	s := a.rp()
 	label := "文件，" + node.name
 	if node.change != nil {
 		if node.change.statUnknown {
@@ -499,9 +510,16 @@ func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string, depth int) {
 	}
 	row := gui.ButtonBase(c).Height(panelRowHeight2).Padding(0, panelRowPadH).
 		Gap(panelRowGap).AlignItems(gui.Center).Radius(radiusSmall).
-		Role(gui.RoleTreeItem).Level(depth + 1).
+		Role(gui.RoleTreeItem).Level(depth + 1).AccessSelected(s.selPath == p).
 		Label(label).Cursor(gui.CursorPointer)
 	switch {
+	case s.selPath == p:
+		// 选中态：与悬停同一档底色（不新增第二级面差），另加 1px 主题描边
+		// 把"选中的那一行"与"鼠标恰好在的那一行"分开。
+		row = row.Background(t.SurfaceHover)
+		row.Draw(func(p *gui.Painter, r gui.Rect) {
+			p.Stroke(r, t.Border, radiusSmall, strokeHairline)
+		})
 	case row.Pressed():
 		row = row.Background(t.SurfacePressed)
 	case row.Hovered():
@@ -526,8 +544,10 @@ func (a *App) rpFileRow(c *gui.Context, node *rpNode, p string, depth int) {
 			rpStagedDot(c)
 		}
 	})
-	// 文件行的单击是「打开预览」（F-27）：在「打开文件」页看这个文件。
+	// 文件行的单击是「选中并打开预览」（F-27）：在「打开文件」页看这个文件；
+	// 双击同一次结果（第二次点击已作用在同一行上，不额外开标签）。
 	if row.Clicked() {
+		s.selPath = p
 		a.rpOpenPreview(p)
 	}
 	a.rpFileMenu(c, row, node, p)
@@ -742,11 +762,18 @@ func rpSearch(nodes []*rpNode, query string) []rpSearchHit {
 // + 统计，行高 44。
 func (a *App) rpSearchRow(c *gui.Context, hit rpSearchHit, query string) {
 	t := c.Theme()
+	s := a.rp()
+	p := rpJoinPath(hit.dir, hit.node.name)
 	row := gui.ButtonBase(c).Height(panelSearchRowHeight).Padding(space1, panelRowPadH).
 		Gap(panelRowGap).AlignItems(gui.Center).Radius(radiusSmall).
-		Role(gui.RoleListItem).
+		Role(gui.RoleListItem).AccessSelected(s.selPath == p).
 		Label("文件，" + hit.node.name + "，" + hit.dir).Cursor(gui.CursorPointer)
 	switch {
+	case s.selPath == p:
+		row = row.Background(t.SurfaceHover)
+		row.Draw(func(painter *gui.Painter, r gui.Rect) {
+			painter.Stroke(r, t.Border, radiusSmall, strokeHairline)
+		})
 	case row.Pressed():
 		row = row.Background(t.SurfacePressed)
 	case row.Hovered():
@@ -765,9 +792,10 @@ func (a *App) rpSearchRow(c *gui.Context, hit rpSearchHit, query string) {
 		}
 	})
 	if row.Clicked() {
-		a.rpOpenPreview(rpJoinPath(hit.dir, hit.node.name))
+		s.selPath = p
+		a.rpOpenPreview(p)
 	}
-	a.rpFileMenu(c, row, hit.node, rpJoinPath(hit.dir, hit.node.name))
+	a.rpFileMenu(c, row, hit.node, p)
 }
 
 // rpJoinPath 拼仓库内相对路径。
@@ -910,24 +938,35 @@ func (a *App) rpFileMenu(c *gui.Context, target gui.Element, node *rpNode, p str
 		if locked {
 			note = rpGitWriteNote
 		}
-		if change != nil && !change.staged {
-			if menuItem(c, m, iconPlus, "暂存", "暂存", note, locked, false) && !locked {
-				change.staged = true
-			}
-		}
-		if change != nil && change.staged {
-			if menuItem(c, m, iconMinus, "取消暂存", "取消暂存", note, locked, false) && !locked {
-				change.staged = false
+		// 分隔线只画在两组之间：前一组没有项时不留一条孤立线（F-36 / F-43）。
+		items := 0
+		startGroup := func() {
+			if items > 0 {
+				rpMenuSeparator(c)
 			}
 		}
 		if change != nil {
-			rpMenuSeparator(c)
+			startGroup()
+			if !change.staged {
+				if menuItem(c, m, iconPlus, "暂存", "暂存", note, locked, false) && !locked {
+					change.staged = true
+				}
+				items++
+			}
+			if change.staged {
+				if menuItem(c, m, iconMinus, "取消暂存", "取消暂存", note, locked, false) && !locked {
+					change.staged = false
+				}
+				items++
+			}
+			startGroup()
 			if menuItem(c, m, iconFileDiff, "查看差异", "查看差异", note, locked, false) && !locked {
 				a.rpOpen(tabChanges)
 				s.diffOpen[p] = true
 			}
+			items++
 		}
-		rpMenuSeparator(c)
+		startGroup()
 		if menuItem(c, m, iconEye, "预览", "预览", "", false, false) {
 			a.rpOpenPreview(p)
 		}
@@ -936,10 +975,12 @@ func (a *App) rpFileMenu(c *gui.Context, target gui.Element, node *rpNode, p str
 		menuItem(c, m, iconExternal, "用外部工具打开", "用外部工具打开", notePreviewIO, true, false)
 		menuItem(c, m, iconFolderOpen, "在文件管理器中显示", "在文件管理器中显示", notePreviewIO, true, false)
 		menuItem(c, m, iconDownload, "另存为…", "另存为…", notePreviewIO, true, false)
-		rpMenuSeparator(c)
+		items += 4
+		startGroup()
 		if menuItem(c, m, iconCopy, "复制路径", "复制路径", "", false, false) {
 			c.WriteClipboard(p)
 		}
+		items++
 	})
 }
 

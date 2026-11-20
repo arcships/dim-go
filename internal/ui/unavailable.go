@@ -69,7 +69,21 @@ const (
 	// noteIsolationUnread 用于设置 › 权限的进程隔离开关：读不到当前值就不摆开关。
 	noteIsolationUnread = "暂时读不到进程隔离的状态"
 	// noteAppearanceLanguage 用于设置 › 外观 › 程序语言：只有一套界面文案。
+	// 缺 = i18n 层（S-appearance-10 / 11 的切换与「本节文案同步变化」做不到），
+	// 所以下拉保留形态、置灰，并写这句。
 	noteAppearanceLanguage = "当前版本只有简体中文界面"
+	// noteSystemAppearanceUnknown 用于设置 › 外观 › 跟随系统卡：宿主报不出系统外观
+	// （无头运行 / 平台没有该通道）时按浅色渲染，并在卡下写这一句。
+	noteSystemAppearanceUnknown = "暂时读不到系统外观，已按浅色显示"
+	// noteThemeIconMissing 用于主题卡的预览图标：图标资源缺失时用等尺寸底色块占位。
+	noteThemeIconMissing = "主题预览图标资源缺失，已用底色块占位"
+	// noteThemeMarkMissing 用于主题卡的选中角标：对勾资源缺失时用纯色圆点兜底。
+	noteThemeMarkMissing = "选中标记资源缺失，已用圆点占位"
+	// noteFontListMissing 用于字体面板：系统报不出字体清单时写这句并给「重试」。
+	noteFontListMissing = "无法读取系统字体列表。"
+	// noteSectionIconMissing 用于设置导航里某个分节的图标资源缺失：图标位保留
+	// 原宽度与命中区，只缺图形。
+	noteSectionIconMissing = "这个分节的图标资源缺失"
 	// noteSkinMissing 用于设置 › 外观 › 我的皮肤。技术口径：没有皮肤渲染器与皮肤
 	// 素材。
 	noteSkinMissing = "当前版本不支持更换皮肤"

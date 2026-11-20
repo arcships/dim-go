@@ -6,15 +6,11 @@ import (
 )
 
 // codeThemePalette 返回代码配色（文字 / 底 / 边线）。名字认不出来时按默认
-// （GitHub）处理：默认这一套直接用主题 token，不另编颜色。
+// （GitHub）处理：默认这一套直接用主题 token，不另编颜色。成对的主题按界面深浅
+// 取形态；只有深色的主题两种界面都用它的深色（S-appearance-48）。
 func codeThemePalette(name string, t *gui.Theme) (ink, fill, border gui.Color) {
-	switch name {
-	case "One Dark Pro":
-		return gui.Hex("#abb2bf"), gui.Hex("#282c34"), gui.Hex("#3a404b")
-	case "Solarized Light":
-		return gui.Hex("#657b83"), gui.Hex("#fdf6e3"), gui.Hex("#e3dcc6")
-	case "Vitesse Dark":
-		return gui.Hex("#dbd7ca"), gui.Hex("#121212"), gui.Hex("#2a2a2a")
+	if palette, ok := appearanceCodeInkFor(name, t.Dark); ok {
+		return palette.fg, palette.bg, palette.border
 	}
 	return t.Text, colorSurface.in(t), t.Border
 }
