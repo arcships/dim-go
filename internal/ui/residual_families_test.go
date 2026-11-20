@@ -605,11 +605,9 @@ func TestTimelineFileChangesBlock(t *testing.T) {
 		t.Fatalf("点不到改动文件行：%v", err)
 	}
 	tt.Frame()
-	// 菜单形状与顺序：打开类两项在复制类之上，复制路径在复制相对路径之上；
-	// 两类之间一条分隔线（D-93–D-97）。
+	// 菜单形状与顺序：打开类两项在复制类之上；两类之间一条分隔线（D-93–D-97）。
 	var last float32 = -1
-	for _, label := range []string{"用默认应用打开", "在文件管理器中显示",
-		"复制路径", "复制相对路径"} {
+	for _, label := range []string{"用默认应用打开", "在文件管理器中显示", "复制路径"} {
 		r, ok := tt.Find(label)
 		if !ok {
 			t.Fatalf("右键菜单缺少 %q：%v", label, tt.Texts())
@@ -632,9 +630,20 @@ func TestTimelineFileChangesBlock(t *testing.T) {
 	if !tt.HasText(notePreviewIO) {
 		t.Fatalf("置灰的打开类入口没有写原因 %q：%v", notePreviewIO, tt.Texts())
 	}
-	// 行上的路径本身就是工作区相对路径：复制相对路径不需要工作目录。
-	if info, ok := tt.Access("复制相对路径"); !ok || info.Disabled {
-		t.Fatalf("「复制相对路径」应可点：%+v", info)
+	// 「复制路径」算不出工作目录时也置灰，同样必须写原因：灰着不写原因等于
+	// 让用户猜为什么点不动。
+	if info, ok := tt.Access("复制路径"); !ok || info.Description != noteNoWorkspacePath {
+		t.Fatalf("置灰的「复制路径」原因 = %q，想要 %q：%+v", info.Description, noteNoWorkspacePath, info)
+	}
+	// 没有工作目录就没有「复制相对路径」：相对路径要相对一个工作区说（D-97）。
+	if tt.HasText("复制相对路径") {
+		t.Fatalf("没有工作目录却画了「复制相对路径」：%v", tt.Texts())
+	}
+	// 整张菜单里的灰项都要把原因送进读屏（不能只画在屏上）。
+	for _, label := range []string{"用默认应用打开", "在文件管理器中显示", "复制路径"} {
+		if info, ok := tt.Access(label); !ok || !info.Disabled || info.Description == "" {
+			t.Fatalf("%q 置灰却没有读屏原因：%+v", label, info)
+		}
 	}
 }
 

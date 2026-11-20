@@ -63,6 +63,7 @@ type panelView struct {
 	// taskReload 是输出重连的帧计数（K-34），重连后视图从空输出重画。
 	taskCopiedID  string
 	taskCopiedAt  time.Time
+	taskArmedAt   time.Time
 	taskCopyError string
 	taskReload    int
 	// 侧聊：草稿、分支是否已结束、结束确认框、发送中、错误行、是否由某条

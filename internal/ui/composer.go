@@ -977,12 +977,17 @@ func (a *App) permissionSelector(c *gui.Context) {
 }
 
 // menuItem 是一行自绘菜单项：16px 图标 + 名称 + 可选括注 + 末尾勾选。
+// note 是这一项的说明（置灰原因或当前状态），画在名称下面，同时设成读屏的
+// Description：只画在屏上的说明读屏读不到，等于没有说明。
 // 返回值是这一项是否被选中（菜单由 MenuBase 负责关闭）。
 func menuItem(c *gui.Context, m gui.MenuParts, icon *gui.SVG, text, label, note string,
 	disabled, checked bool) bool {
 	t := c.Theme()
 	it := m.Item().MinHeight(rowRegular).Padding(space1, space2).Radius(radius).
 		Gap(space2).AlignItems(gui.Center).Label(label).Disabled(disabled)
+	if note != "" {
+		it = it.Description(note)
+	}
 	if disabled {
 		it = it.Opacity(0.5)
 	}

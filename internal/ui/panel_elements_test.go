@@ -549,6 +549,10 @@ func TestArtifactRowDropdown(t *testing.T) {
 		if !ok || !info.Disabled {
 			t.Fatalf("下拉项 %q 不存在或没有置灰：%+v（找到 %v）", item, info, ok)
 		}
+		// 屏上的说明也要进读屏：菜单项的 note 设成 Description。
+		if info.Description != noteArtifact {
+			t.Fatalf("下拉项 %q 的读屏说明 = %q，想要 %q", item, info.Description, noteArtifact)
+		}
 	}
 	// 打开另一行：前一个自动收起（同时只开一个）。
 	if err := tt.Click("更多操作：产物 稿.pdf"); err != nil {
@@ -561,16 +565,6 @@ func TestArtifactRowDropdown(t *testing.T) {
 	if !*app.artifactMenuOpen("artifacts:0/稿.pdf") {
 		t.Fatal("第二个下拉没有展开")
 	}
-}
-
-// changesMenuSource 造一个带工作目录的会话，供改动页右键菜单用。
-func changesMenuSource(cwd string) *fakeSource {
-	src := wiredSource()
-	src.conn = Connection{Phase: "connected"}
-	src.names = []string{"改动"}
-	src.hasSess = true
-	src.session = SessionSnapshot{ID: "s1", Title: "改动", Cwd: cwd}
-	return src
 }
 
 // TestChangeRowMenuItems：改动行右键有打开（默认应用 / 文件管理器）与两组复制；
@@ -596,18 +590,30 @@ func TestChangeRowMenuItems(t *testing.T) {
 			t.Fatalf("%q 没有置灰：%+v（找到 %v）", item, info, ok)
 		}
 	}
-	// 没有工作目录时不算相对路径：这一项不该出现。
+	// 没有工作目录时不算相对路径：这一项不该出现；置灰的复制项要写原因。
 	if tt.HasText("复制相对路径") {
 		t.Fatal("没有工作目录却给了复制相对路径")
 	}
-	// 有工作目录时出现；点了把相对路径写进剪贴板。
-	app2 := NewApp(Options{State: StateDefault, Source: changesMenuSource("/work")})
-	app2.rightOpen, app2.rightTab = true, tabChanges
-	if rel, ok := app2.rpRelativePath("/work/internal/ui/composer.go"); !ok || rel != "internal/ui/composer.go" {
+	if info, ok := tt.Access("复制路径"); !ok || info.Disabled || info.Description != "" {
+		t.Fatalf("右栏「复制路径」不受工作目录影响：%+v（找到 %v）", info, ok)
+	}
+	// 两处复制相对路径共用同一个判定：工作区内给相对路径，工作区外与无工作目录
+	// 都不给（D-97）。
+	if rel, ok := workspaceRelativePath("/work", "/work/internal/ui/composer.go"); !ok ||
+		rel != "internal/ui/composer.go" {
 		t.Fatalf("相对路径算错：%q（%v）", rel, ok)
 	}
-	if _, ok := app2.rpRelativePath("/elsewhere/x.go"); ok {
+	if _, ok := workspaceRelativePath("/work", "/elsewhere/x.go"); ok {
 		t.Fatal("工作区外的路径不该给相对路径")
+	}
+	if _, ok := workspaceRelativePath("/work", "internal/ui/composer.go"); !ok {
+		t.Fatal("工作区内的相对路径行应给相对路径")
+	}
+	if _, ok := workspaceRelativePath("", "internal/ui/composer.go"); ok {
+		t.Fatal("没有工作目录时不该给相对路径")
+	}
+	if _, ok := workspaceRelativePath("/work", "../x.go"); ok {
+		t.Fatal("跑出工作区的相对路径不该给")
 	}
 }
 

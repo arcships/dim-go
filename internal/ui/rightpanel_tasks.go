@@ -290,7 +290,10 @@ func taskTrailingSpinner(c *gui.Context, th *gui.Theme, label string) {
 // 现在只在选中行变化时复位。
 func (a *App) taskStopButton(c *gui.Context, item task, index int, live bool) {
 	th := c.Theme()
-	armed := a.panels.taskArmed == index
+	// 待确认只在三秒窗口内有效：时间到点由计时器请求重绘，状态本身按时间算，
+	// 计时器不写界面状态（渲染线程之外不碰视图）。
+	armed := a.panels.taskArmed == index &&
+		time.Since(a.panels.taskArmedAt) < taskArmedTimeout
 	label, icon := "取消任务", iconXMark
 	color := th.Danger
 	if armed {
@@ -299,16 +302,11 @@ func (a *App) taskStopButton(c *gui.Context, item task, index int, live bool) {
 	if iconButton(c, iconButtonSpec{icon: icon, label: label, size: rowCompact, color: color}) {
 		if !armed {
 			a.panels.taskArmed = index
-			// K-14 的三秒窗口：到点仍在待确认就复位成 K-13 的外观。
-			time.AfterFunc(taskArmedTimeout, func() {
-				if a.panels.taskArmed != index {
-					return
-				}
-				a.panels.taskArmed = -1
-				if a.changed != nil {
-					a.changed()
-				}
-			})
+			a.panels.taskArmedAt = time.Now()
+			// K-14 的三秒窗口：到点重绘一帧，按时间算的 armed 自然复位。
+			if a.changed != nil {
+				time.AfterFunc(taskArmedTimeout, a.changed)
+			}
 			return
 		}
 		a.panels.taskArmed = -1
@@ -397,15 +395,10 @@ func (a *App) copyTaskCommand(c *gui.Context, item task) {
 		a.panels.taskCopiedID = item.id
 		a.panels.taskCopiedAt = time.Now()
 		c.Announce("已复制")
-		time.AfterFunc(taskCopiedFeedback, func() {
-			if a.panels.taskCopiedID != item.id {
-				return
-			}
-			a.panels.taskCopiedID = ""
-			if a.changed != nil {
-				a.changed()
-			}
-		})
+		// 计时器只请求重绘：两秒窗口由 taskCopied 按时间算，不在计时器里写状态。
+		if a.changed != nil {
+			time.AfterFunc(taskCopiedFeedback, a.changed)
+		}
 	})
 }
 

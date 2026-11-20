@@ -1144,23 +1144,27 @@ func (a *App) timelineFilePath(p string) (string, bool) {
 	return filepath.Join(cwd, filepath.FromSlash(p)), true
 }
 
-// timelineRelativePath 是改动行的相对工作区路径（D-97）：相对路径原样用，
-// 绝对路径换算成相对路径；文件在工作区外（或没有工作目录）时 ok 为假，菜单项
-// 不出现（不把空串写进剪贴板）。
-func (a *App) timelineRelativePath(p string) (string, bool) {
+// workspaceRelativePath 是「复制相对路径」的唯一判定（D-97）：行属于工作区时给出
+// 相对路径，文件在工作区外、或者没有工作目录算不出来时 ok 为假。时间线改动行与
+// 右栏改动菜单共用这一处，条件与文案不会一处一个样。
+//
+// 行上的路径已经是相对路径时也要求有工作目录：相对路径是相对工作区说的，没有
+// 工作目录就无从判断它属于哪个工作区（不拿裸路径冒充相对路径）。
+func workspaceRelativePath(cwd, p string) (string, bool) {
 	p = strings.TrimSpace(p)
-	if p == "" {
+	cwd = strings.TrimSpace(cwd)
+	if p == "" || cwd == "" {
 		return "", false
 	}
 	if !filepath.IsAbs(p) {
-		return filepath.ToSlash(p), true
-	}
-	cwd := a.rpCwd()
-	if cwd == "" {
-		return "", false
+		rel := filepath.Clean(filepath.FromSlash(p))
+		if rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return "", false
+		}
+		return filepath.ToSlash(rel), true
 	}
 	rel, err := filepath.Rel(cwd, p)
-	if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+	if err != nil || rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || rel == ".." {
 		return "", false
 	}
 	return filepath.ToSlash(rel), true
@@ -1235,13 +1239,17 @@ func (a *App) fileChangeMenu(c *gui.Context, target gui.Element, key string, cha
 		menuItem(c, m, iconFolderOpen, "在文件管理器中显示", "在文件管理器中显示", notePreviewIO, true, false)
 		// D-95 打开类与复制类之间的分隔线
 		rpMenuSeparator(c)
-		// D-96 复制路径（绝对路径；算不出工作目录时置灰）
+		// D-96 复制路径（绝对路径；算不出工作目录时置灰并写原因）
 		abs, absOK := a.timelineFilePath(change.path)
-		if menuItem(c, m, iconCopy, "复制路径", "复制路径", "", !absOK, false) && absOK {
+		absNote := ""
+		if !absOK {
+			absNote = noteNoWorkspacePath
+		}
+		if menuItem(c, m, iconCopy, "复制路径", "复制路径", absNote, !absOK, false) && absOK {
 			c.WriteClipboard(abs)
 		}
-		// D-97 复制相对路径（工作区内才出现）
-		if rel, ok := a.timelineRelativePath(change.path); ok {
+		// D-97 复制相对路径（行属于工作区才出现；与右栏同一判定）
+		if rel, ok := workspaceRelativePath(a.rpCwd(), change.path); ok {
 			if menuItem(c, m, iconCopy, "复制相对路径", "复制相对路径", "", false, false) {
 				c.WriteClipboard(rel)
 			}
