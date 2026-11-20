@@ -99,6 +99,7 @@ func (a *App) renderedSpan() (int, int) { return a.renderedFrom, a.renderedTo }
 // 累加高度里的哪几行。
 func (a *App) rowSpanFor(c *gui.Context, viewport float32, n int, estimate func(int) float32) rowSpan {
 	a.renderedCount = n
+	a.renderedFrom, a.renderedTo = 0, n
 	a.rowHeights.keep(n)
 	if n <= timelineWindowMin {
 		return rowSpan{start: 0, end: n}

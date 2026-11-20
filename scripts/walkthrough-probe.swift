@@ -8,10 +8,14 @@
 //	type <文本>             发送一段文本按键（ASCII 可见字符）
 //	keys <键码>[,<键码>…]    按 macOS 虚拟键码发送按键（支持带修饰的组合，
 //	                        例如 56,49 是 Shift+Space）
+//	ocr <png>              识别图上的文字，逐行输出「x y 宽 高 置信度 文本」
+//	                        （坐标是图片像素，原点左上）
 //
 // 坐标一律用「点」（DIP），与界面截图里量出来的逻辑像素一致。
 import Foundation
 import CoreGraphics
+import ImageIO
+import Vision
 
 func fail(_ message: String) -> Never {
 	FileHandle.standardError.write((message + "\n").data(using: .utf8)!)
@@ -39,6 +43,33 @@ func list(_ pid: pid_t) {
 		if layer != 0 { continue }
 		let b = rect(w, kCGWindowBounds as String)
 		print("\(num)\t\(owner)\t\(name)\t\(Int(b.origin.x))\t\(Int(b.origin.y))\t\(Int(b.size.width))\t\(Int(b.size.height))")
+	}
+}
+
+// ocr 识别一张图上的文字：坐标从 Vision 的归一化左下原点换成图片像素左上原点。
+func ocr(_ path: String) {
+	let url = URL(fileURLWithPath: path) as CFURL
+	guard let src = CGImageSourceCreateWithURL(url, nil),
+		let image = CGImageSourceCreateImageAtIndex(src, 0, nil) else {
+		fail("读不了图片 \(path)")
+	}
+	let width = CGFloat(image.width), height = CGFloat(image.height)
+	let request = VNRecognizeTextRequest()
+	request.recognitionLevel = .accurate
+	request.recognitionLanguages = ["zh-Hans", "en-US"]
+	request.usesLanguageCorrection = true
+	guard let handler = try? VNImageRequestHandler(cgImage: image, options: [:]) else {
+		fail("视觉框架初始化失败")
+	}
+	do { try handler.perform([request]) } catch { fail("识别失败：\(error)") }
+	for case let observation as VNRecognizedTextObservation in request.results ?? [] {
+		guard let best = observation.topCandidates(1).first else { continue }
+		let box = observation.boundingBox
+		let x = box.minX * width
+		let y = (1 - box.maxY) * height
+		let w = box.width * width
+		let h = box.height * height
+		print(String(format: "%.0f\t%.0f\t%.0f\t%.0f\t%.2f\t%@", x, y, w, h, best.confidence, best.string))
 	}
 }
 
@@ -99,6 +130,9 @@ case "keys":
 	guard args.count >= 3 else { fail("keys 需要键码") }
 	let codes = args[2].split(separator: ",").compactMap { CGKeyCode($0) }
 	keys(codes)
+case "ocr":
+	guard args.count >= 3 else { fail("ocr 需要图片路径") }
+	ocr(args[2])
 default:
 	fail("未知子命令 \(args[1])")
 }

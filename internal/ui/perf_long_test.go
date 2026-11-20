@@ -12,12 +12,15 @@ import (
 
 // 本文件是长历史与长输出的实测口径（U4 §3）。与 perf_test.go 的分工：
 // perf_test.go 守"一屏 + 200 轮样例"的三条预算（PF-250 / PF-16 / PF-60）；
-// 本文件补测三件更重的事，并把实测值写回 docs/domains/U4-technical.md：
+// 本文件补测更重的几件事，并把实测值写回 docs/domains/U4-technical.md：
 //
 //  1. 200 轮快照（每轮 = 用户 + 思考 + 2 条工具 + 正文，共 1000 行）的首帧、
 //     稳态帧、滚到顶 / 底、跳到中间轮的帧时间与常驻堆；
-//  2. 渲染窗口（虚拟化）：行数超过门槛后只画视口内的行，搜索定位仍可用；
-//  3. 长输出：单条 1 MB 工具输出与 1000 行代码块的渲染与滚动。
+//  2. 500 轮（2500 行）的首屏——TL-01 的"打开时首屏 < 1s"；
+//  3. 渲染窗口（虚拟化）：行数超过门槛后只画视口内的行，滚到顶 / 底仍对得上，
+//     会话内搜索跳过去仍能定位；
+//  4. 长输出：单条 1 MB 工具输出、1000 行代码块的渲染与滚动；
+//  5. 长正文：近 12k 字 Markdown 的渲染、滚动与流式追加。
 //
 // 预算（docs/domains/requirements/design-baseline.md §11.8）：首帧 ≤ 250ms
 // （PF-250）、稳态帧 ≤ 16ms（PF-16）、长列表一帧 ≤ 60ms（PF-60）。
@@ -324,9 +327,16 @@ func TestPerfLongToolOutput(t *testing.T) {
 	app := perfToolSource(output)
 	tt := perfLongOutputTester(app)
 
-	// 整段都在：最后一行也在元素树里（没有截断，也没有只画前几行）。
-	if !tt.HasText("coverage") {
-		t.Fatal("长输出的正文没有上屏")
+	// 整段都在：元素树里有一段与原文逐字相同的文本（没有截断成前几行）。
+	whole := false
+	for _, s := range tt.Texts() {
+		if s == output {
+			whole = true
+			break
+		}
+	}
+	if !whole {
+		t.Fatal("1MB 输出的正文不是整段上屏（被截断了）")
 	}
 	first := frameMS(tt)
 	steady, peak := medFrames(tt, 10)
