@@ -143,8 +143,8 @@ func TestSessionSearchEnterMovesBetweenHits(t *testing.T) {
 	}
 }
 
-// TestSessionSearchArrowButtons：上下箭头按钮与回车等价，0 命中时禁用
-// （A1-07、A1-08、R-GS-065、R-GS-073）。
+// TestSessionSearchArrowButtons：上下箭头按钮与回车等价，0 命中时不出现
+// （A1-07、A1-08、R-GS-065、R-GS-073、R-TB-091）。
 func TestSessionSearchArrowButtons(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 	openSessionSearchForTest(t, tt)
@@ -169,13 +169,10 @@ func TestSessionSearchArrowButtons(t *testing.T) {
 	if len(app.sessionSearch.hits) != 0 {
 		t.Fatalf("该查询不应有命中：%d", len(app.sessionSearch.hits))
 	}
+	// 零命中没有可跳的对象：两个箭头整块不出现（R-TB-091、R-TB-094），不是禁用态。
 	for _, label := range []string{"上一个搜索结果", "下一个搜索结果"} {
-		info, ok := tt.Access(label)
-		if !ok {
-			t.Fatalf("找不到按钮 %q", label)
-		}
-		if !info.Disabled {
-			t.Fatalf("0 命中时 %q 应禁用", label)
+		if info, ok := tt.Access(label); ok {
+			t.Fatalf("0 命中时不该有 %q：%+v", label, info)
 		}
 	}
 }

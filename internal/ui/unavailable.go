@@ -81,6 +81,9 @@ const (
 	noteThinking = "服务端没有提供思考强度写入（本版不做）"
 	// noteSchedule 用于定时任务入口与唤醒页。
 	noteSchedule = "服务端没有提供定时任务创建与唤醒事实（本版不做）"
+	// noteTaskLog 用于进程详情的「打开日志」：日志在服务端，本端没有打开文件的
+	// 宿主通道，入口保留但置灰（K-27）。
+	noteTaskLog = "当前版本不能打开日志文件（需要宿主打开文件的通道）"
 	// notePermissionWrite 用于权限设置的保存与刷新。
 	notePermissionWrite = "服务端没有提供权限设置保存与刷新（本版不做）"
 	// noteAttachmentFacts 是用户消息里附件与引用区的占位说明。
@@ -116,4 +119,22 @@ const (
 	noteFastMode = "当前版本不支持快速模式"
 	// noteWorkflow 用于斜杠命令 `/workflow`：没有工作流浏览入口。
 	noteWorkflow = "服务端没有提供工作流浏览（本版不做）"
+	// noteTodoFacts 用于活动条的「待办」：会话快照没有待办清单。
+	noteTodoFacts = "服务端没有提供待办清单（本版不做）"
+	// noteSubagentActivity 用于活动条的「子代理」：与子代理面板同一句原因。
+	noteSubagentActivity = noteSubagentFacts
+	// noteZDR 用于模型浮层的零数据保留标记：模型目录没有这个字段。
+	noteZDR = "服务端没有提供零数据保留标记（本版不做）"
+	// noteModelsRetry 用于模型浮层的「重试」：读数由连接层重读，没有手动刷新通道。
+	noteModelsRetry = "本版没有手动刷新模型清单的通道（读数由连接层重读）"
+	// noteSiteIcon 用于行内链接与网页工具行的站点图标：本版不取 favicon。
+	noteSiteIcon = "本版不加载站点图标（没有网络取图）"
+	// noteTerminalDetail 用于终端错误详情：没有调试详情时说明缺哪一样。
+	noteTerminalDetail = "服务端没有回传终端调试详情"
+	// noteStopArm 是停止按钮第一次点击时的提示：再点一次才真的停。
+	noteStopArm = "再点一次停止回复（Esc 取消）"
+	// noteRestore 是时间线恢复遮罩上的说明：恢复期间不摆内容。
+	noteRestore = "正在恢复历史位置"
+	// noteSendUnknown 是发送能力还没确定时输入区给的原因。
+	noteSendUnknown = "发送能力还没有确定（等连接确认）"
 )

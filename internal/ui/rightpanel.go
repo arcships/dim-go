@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"strings"
+	"time"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -58,6 +59,12 @@ type panelView struct {
 	taskKind  int
 	taskSel   int
 	taskArmed int
+	// 任务详情：复制命令的两秒反馈（K-26，按任务标识记）与失败原因；
+	// taskReload 是输出重连的帧计数（K-34），重连后视图从空输出重画。
+	taskCopiedID  string
+	taskCopiedAt  time.Time
+	taskCopyError string
+	taskReload    int
 	// 侧聊：草稿、分支是否已结束、结束确认框、发送中、错误行、是否由某条
 	// 消息之前发起（决定用哪条空态文案）、本地发出的消息。
 	sideChatDraft       string

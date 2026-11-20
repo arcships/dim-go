@@ -25,9 +25,6 @@ import (
 // 窗口模式下 macOS 的红绿灯落在左栏顶部上方：顶部先留一条与控件同高的空带
 // （c.TitleBar().Height），这一条也是拖动窗口的把手。
 func (a *App) sidebar(c *gui.Context) {
-	if !a.palette.open && !a.sessionSearch.open && c.Shortcut(gui.Cmd, gui.KeyG) {
-		a.toggleSearch()
-	}
 	if a.sidebarCollapsed {
 		a.sidebarRail(c)
 		return
@@ -40,28 +37,29 @@ func (a *App) sidebar(c *gui.Context) {
 		Children(func() { a.sidebarBody(c) })
 }
 
-// sidebarBody 是左栏的内容：栏头、四个全局入口、搜索面、列表与账户行。常驻
-// 左栏与窄窗抽屉共用，栏宽与面差由外层给。
+// sidebarBody 是左栏的内容：栏头、四个全局入口、列表与账户行。常驻左栏与
+// 窄窗抽屉共用，栏宽与面差由外层给。
 func (a *App) sidebarBody(c *gui.Context) {
 	a.sidebarHeader(c)
 	a.sidebarEntries(c)
-	if a.searchOpen {
-		a.searchPane(c)
-	}
 	a.sidebarList(c)
 	a.accountRow(c)
 }
 
-// sidebarHeader 是栏头：macOS 上让出窗口控件那条（只作拖动把手，不放控件），
-// 右端一个收起按钮（LB-10）。
+// sidebarHeader 是栏头：macOS 上让出窗口控件那条（只作拖动把手，不放控件，
+// LB-01），其余平台左侧画品牌图形与产品名（LB-02、LB-03）；右端是更新入口
+// （LB-04–LB-09，有更新相位时才出现）与收起按钮（LB-10）。
 func (a *App) sidebarHeader(c *gui.Context) {
 	if inset := titleBarInset(c.TitleBar()); inset > 0 {
+		// LB-01 窗口控件让位带：只有尺寸，没有可见像素，也不进读屏。
 		gui.Row(c).Height(inset).Shrink(0).DragWindow().Label("窗口控件让位").
 			AccessHidden(true)
 	}
 	gui.Row(c).Height(sidebarHeaderHeight).Shrink(0).
-		Padding(space1, space2).AlignItems(gui.Center).Children(func() {
+		Padding(space1, space2).AlignItems(gui.Center).Gap(space1).Children(func() {
+		a.sidebarBrand(c)
 		gui.Spacer(c)
+		a.sidebarUpdateButton(c)
 		if iconButton(c, iconButtonSpec{
 			icon: iconSidebarPanelClose, label: "收起侧边栏 ⌘B", tip: "收起侧边栏 ⌘B",
 			size: rowRegular,
@@ -91,7 +89,7 @@ func (a *App) sidebarEntries(c *gui.Context) {
 		})
 		a.sidebarEntry(c, sidebarEntrySpec{
 			icon: iconSearch, mark: "search", label: "搜索", keycap: "⌘G",
-			tip: "搜索 · ⌘G", run: a.toggleSearch,
+			tip: "搜索 · ⌘G", run: a.openChatSearch,
 		})
 		// 定时任务与技能/插件是独立路由页（清单 §7.3、§7.4），本批次只建入口。
 		// 定时任务的创建与唤醒事实没有服务端方法（DEC-16），入口置灰并写原因。
@@ -141,32 +139,22 @@ func (a *App) openSkillsPage() {
 	a.settingsSection = secPluginSettings
 }
 
-// toggleSearch 开合左栏的搜索面（空白查询给全部）。
-func (a *App) toggleSearch() {
-	a.searchOpen = !a.searchOpen
-	if !a.searchOpen {
-		a.searchQuery = ""
-	}
-}
-
-// searchPane 是左栏的搜索面（F37）：一行面差输入，Esc 或再点搜索收起；
-// 过滤只作用于左栏列表，不改会话本身。参考产品把入口做成全窗搜索弹窗
-// （清单 §7.2），弹窗不在本批次，这里保留行内过滤。
-func (a *App) searchPane(c *gui.Context) {
-	t := c.Theme()
-	gui.Row(c).Shrink(0).Padding(space1, space2).Gap(space2).
-		AlignItems(gui.Center).Label("搜索会话").Children(func() {
-		iconGlyph(c, iconSearch, t.TextMuted, "search-pane")
-		gui.TextInputBase(c, &a.searchQuery).Grow(1).Label("搜索会话").
-			Padding(space1, space2).Radius(radius).Background(t.SurfacePressed).
-			Placeholder("搜索")
-	})
-}
-
 // sidebarList 是列表本体：已置顶（有置顶时）→ 列表头「会话」→ 工作区分组；
 // 平铺视图换成日期分组。列表自己滚动，账户行贴底不动。
+//
+// 列表区同时是「拖入文件夹」的落点（LB-105 / LB-106）：拖着文件夹停在上面时
+// 用提示覆盖列表，松手把文件夹登记成工作区并新建会话；账户行在列表之外，不被
+// 提示遮住。
 func (a *App) sidebarList(c *gui.Context) {
-	gui.Scroll(c).Grow(1).Label("会话列表").Role(gui.RoleList).Children(func() {
+	scroll := gui.Scroll(c).Grow(1).Label("会话列表").Role(gui.RoleList)
+	if files := scroll.DroppedFiles(); files != nil {
+		a.sidebarDroppedFiles(files)
+	}
+	// LB-105 拖入态：文件停在列表上时用提示覆盖列表（账户行在列表之外）。
+	over := scroll.FileDragOver()
+	a.sidebarView.dragOver = over
+	hint := over || a.sidebarView.dragHint
+	scroll.Children(func() {
 		gui.Column(c).Shrink(0).Padding(0, space2).Gap(space2).Children(func() {
 			all := a.sidebarThreads()
 			groups := a.sidebarWorkspaces(all)
@@ -188,23 +176,32 @@ func (a *App) sidebarList(c *gui.Context) {
 				})
 			}
 			a.listHeader(c)
-			if len(all) == 0 && a.searchQuery != "" {
-				a.sidebarNote(c, "没有匹配的会话", false)
+			// 拖入失败的原因（LB-662）：只在列表头下方写一行，不留下半截提示。
+			if reason := a.sidebarDragLabel(); reason != "" {
+				a.sidebarNote(c, reason, false)
+			}
+			if hint {
+				// LB-105 / LB-106 拖入提示：覆盖列表区，主副两行，只有一个。
+				a.sidebarDragHint(c)
 				return
 			}
 			if a.sidebarView.flat {
 				a.flatGroups(c, all)
 				return
 			}
+			// LB-58 / LB-59 工作区分页：一页 sidebarGroupPageSize 个分组，
+			// 尾部给「上一页」/「显示更多」。
+			unpinned := make([]sidebarWorkspace, 0, len(groups))
 			for _, ws := range groups {
 				if a.groupPinned(ws) {
 					continue
 				}
-				// 搜索命中时只画有命中的组：没有命中的空组（含内置「工作区」）
-				// 不占位，避免命中列表里夹一行「暂无会话」。
-				if a.sidebarSearching() && len(a.sidebarGroupThreads(ws, all)) == 0 {
-					continue
-				}
+				unpinned = append(unpinned, ws)
+			}
+			visible, page, pages := a.sidebarGroupWindow(unpinned)
+			// LB-60 落点线：列表最前与最后各一条，拖着工作区停在上面时显形。
+			a.sidebarDropLine(c, true)
+			for _, ws := range visible {
 				a.workspaceGroup(c, ws, all)
 				if ws.builtin {
 					// 内置工作区与其余工作区之间一条分隔线（LB-57）：纯装饰，
@@ -212,6 +209,8 @@ func (a *App) sidebarList(c *gui.Context) {
 					gui.Divider(c).AccessHidden(true)
 				}
 			}
+			a.sidebarDropLine(c, false)
+			a.sidebarGroupPager(c, page, pages)
 		})
 	})
 }
@@ -321,14 +320,13 @@ func (a *App) addWorkspacePath(path string) {
 
 // workspaceGroup 是一个工作区分组（LB-34–57）：一行工作区（图标 / 折叠箭头 +
 // 名称 + 悬停出现的新建与更多）与其会话行；展开且没有会话时写「暂无会话」。
-// 组名取目录末段，行上悬停给出的说明是完整目录。搜索命中时组一律展开（命中
-// 跨组显示），但不改写折叠态。
+// 组名取目录末段，行上悬停给出的说明是完整目录。
 //
 // 行宽按参考产品的两段：工作区行缩进 7，会话行占满内容宽（DOM 实测内置工作区
 // 的会话行 x=7 w=346、其他分组的会话行缩进到 x=14）。
 func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarThread) {
 	t := c.Theme()
-	open := a.sidebarSearching() || !a.groupCollapsed(ws)
+	open := !a.groupCollapsed(ws)
 	threads := a.sidebarGroupThreads(ws, all)
 	gui.Column(c).Shrink(0).Children(func() {
 		gui.Row(c).Shrink(0).PaddingStart(space2).Children(func() {
@@ -343,6 +341,8 @@ func (a *App) workspaceGroup(c *gui.Context, ws sidebarWorkspace, all []sidebarT
 				Description(groupDescription(ws, open))
 			if !ws.builtin {
 				row = row.Tooltip(groupTooltip(ws))
+				// LB-60 工作区行可拖：拖动只带标识，落点线决定放到最前 / 最后。
+				row = row.Drag(sidebarGroupDrag{id: ws.id})
 			}
 			hovered := row.Hovered()
 			if hovered {
@@ -479,6 +479,9 @@ func groupDescription(ws sidebarWorkspace, open bool) string {
 
 // flatGroups 是平铺视图（C12）：按日期分组，不按工作区分组。日期分组用
 // 「今天」一档（目录快照没有时间事实时全部落在今天）。
+//
+// 平铺视图按批展示（LB-64 / LB-65）：默认 sidebarFlatPageSize 行，尾部给「显示
+// 更多」/「显示更少」；加载行（LB-63）只在本端真有分页读取时出现。
 func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
 	threads := a.unpinnedThreads(all)
 	gui.Column(c).Shrink(0).Children(func() {
@@ -488,9 +491,12 @@ func (a *App) flatGroups(c *gui.Context, all []sidebarThread) {
 		}
 		// LB-62 日期分组标题
 		a.sidebarHeading(c, "今天")
-		for _, thread := range threads {
+		limit := a.sidebarFlatLimit(len(threads))
+		for _, thread := range threads[:limit] {
 			a.sessionItem(c, thread.index, thread.name, thread.marker, thread.when)
 		}
+		a.sidebarFlatLoadingRow(c)
+		a.sidebarFlatPager(c, limit, len(threads))
 	})
 }
 

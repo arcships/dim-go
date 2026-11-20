@@ -185,6 +185,41 @@ func TestAppliedInputStaysPendingButNotWithdrawable(t *testing.T) {
 	}
 }
 
+// TestInputTextAcceptsInputTextBlocksAndCountsAttachments 验证排队输入的正文抽取
+// 不挑块类型：Responses 形状的 input_text、纯字符串块都算正文；附件条数按事实
+// 数出来，正文为空时界面据此写「附件 N 个」。
+func TestInputTextAcceptsInputTextBlocksAndCountsAttachments(t *testing.T) {
+	folder := newFolder(t)
+	mustHistory(t, folder, mainBranch, page(3,
+		ev("i1", 1, "input", "message",
+			`{"mode":"queue","user":{"content":[{"type":"input_text","text":"先跑一遍编译"}]}}`),
+		ev("i2", 2, "input", "message",
+			`{"mode":"queue","user":{"content":["纯字符串正文"]}}`),
+		ev("i3", 3, "input", "message",
+			`{"mode":"queue","user":null,"attachments":[{"attachmentId":"a1"},{"attachmentId":"a2"}]}`),
+	))
+	inputs := folder.View().Pending.Inputs
+	if len(inputs) != 3 {
+		t.Fatalf("排队输入应为 3，实际 %+v", inputs)
+	}
+	byID := map[string]PendingInput{}
+	for _, input := range inputs {
+		byID[input.InputID] = input
+	}
+	if got := byID["i1"].Text; got != "先跑一遍编译" {
+		t.Fatalf("input_text 块的正文 = %q，想要「先跑一遍编译」", got)
+	}
+	if got := byID["i2"].Text; got != "纯字符串正文" {
+		t.Fatalf("纯字符串块的正文 = %q，想要「纯字符串正文」", got)
+	}
+	if got := byID["i3"].Text; got != "" {
+		t.Fatalf("只有附件的输入不该有正文：%q", got)
+	}
+	if got := byID["i3"].Attachments; got != 2 {
+		t.Fatalf("附件条数 = %d，想要 2", got)
+	}
+}
+
 // TestWithdrawnInputLeavesViewAndInventory 验证撤回的输入从清单与视图里一起消失。
 func TestWithdrawnInputLeavesViewAndInventory(t *testing.T) {
 	folder := newFolder(t)

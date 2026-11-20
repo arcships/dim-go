@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"math"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -119,6 +120,8 @@ func (a *App) round(c *gui.Context, i int) {
 	}
 	// TL-07 / TL-11 一轮的行外壳（轮容器）
 	gui.Column(c).Shrink(0).Gap(timelineBlockGap).Children(func() {
+		// TL-04 / TL-05 用户消息轨道与标记（每条用户消息一个标记）
+		a.userRail(c, strings.TrimSpace(r.user) != "")
 		if r.divider != "" {
 			a.compressionRow(c, compressionRowKey(i), r.divider, "")
 		}
@@ -207,10 +210,7 @@ func (a *App) userBubble(c *gui.Context, i int, r round, pending bool) gui.Eleme
 			box.Children(func() {
 				a.userAttachmentArea(c, r)
 				if r.user != "" {
-					body := a.searchText(c, searchKeyUser(i), r.user, typeBody, t.Text)
-					if overflow && !expanded {
-						body = body.MaxLines(bubbleCollapsedLines)
-					}
+					body := a.userBody(c, i, r.user, overflow, expanded)
 					if !pending {
 						// 菜单挂在正文上：可选中文本自带编辑菜单，ContextMenu 在
 						// 它上面才会替换掉那条（选区仍由外层可选区持有）。
@@ -546,11 +546,15 @@ func (a *App) assistant(c *gui.Context, i int, r round) {
 			a.searchReveal(c, reply, i, searchScopeAssistant)
 		}
 		// 完成态的过程摘要；运行中由上面的时长摘要承担，不再重复。
-		if r.status != roundRunning && len(r.ops) > 0 {
+		if r.status != roundRunning && (len(r.ops) > 0 || r.status == roundFailed || r.status == roundStopped) {
 			a.roundHeader(c, i, r)
 		}
 		if r.status == roundFailed {
 			a.failureBlock(c)
+		}
+		if r.status == roundStopped {
+			// TL-60 用户中断：停止不是失败，单独给一行通知。
+			a.userInterrupted(c)
 		}
 		if r.retrySeconds > 0 {
 			a.retryNotice(c, r)
@@ -692,11 +696,16 @@ func (a *App) thinkingBlock(c *gui.Context, i int, r round) {
 }
 
 // toolGroup 是连续工具调用的折叠组：分组头写动作汇总，展开后是缩进的工具行。
+//
+// 组头同时承担「工作过程」一行：完成的轮写「工作过程 · 动作汇总」，被停止的轮
+// 写「已停止 · 时长」，失败的轮按有没有终端现场分成「{时长} 后失败」与「出错前
+// 的工作过程」两种（TL-45 / TL-47 / TL-48 / TL-49）。
 func (a *App) roundHeader(c *gui.Context, i int, r round) {
 	// TL-51 工具调用分组的组头
 	t := c.Theme()
 	open := a.openOf(i)
 	summary := groupSummary(r)
+	title := workProcessTitle(r, summary)
 	phrase := roundHeaderPhrase(r)
 	btn := gui.ButtonBase(c).Grow(1).Height(timelineRowHeight).Gap(space1).
 		Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).Radius(radius).
@@ -715,7 +724,7 @@ func (a *App) roundHeader(c *gui.Context, i int, r round) {
 		// 行首只有分组图标、文案与折叠箭头（参考不摆状态位）。
 		iconGlyph(c, iconWorkflow, t.TextMuted, "workflow")
 		// TL-72 分组头的动作汇总文案
-		typeSecondaryStrong.style(t, gui.Text(c, summary)).TextColor(headerColor(t, r.status)).SingleLine()
+		typeSecondaryStrong.style(t, gui.Text(c, title)).TextColor(headerColor(t, r.status)).SingleLine()
 		// TL-73 分组折叠箭头
 		chevron(c, t, arrow)
 	})
@@ -740,6 +749,11 @@ func (a *App) roundOps(c *gui.Context, i int, r round) {
 		})
 		gui.Column(c).Grow(1).Gap(space3).Children(func() {
 			for n, o := range r.ops {
+				// TL-56 子代理通知行：工具名认得出是子代理时画 chip，不画普通工具行。
+				if subagentTool(o.action) {
+					a.subagentChip(c, o.target, o.output)
+					continue
+				}
 				a.opRow(c, i, n, o)
 				// 工具行收起时在行下给一条失败原因；展开后原因在详情的
 				// 「失败原因」段里，这里不再重复。
@@ -776,6 +790,10 @@ func (a *App) opRow(c *gui.Context, roundIndex, opIndex int, o op) {
 	progress := btn.AnimateTo("tool", b2f(*open), timelineCollapse)
 	arrow := btn.AnimateTo("tool-arrow", b2f(*open), timelineArrow)
 	btn.Children(func() {
+		// TL-76 网页工具行的站点图标批次（有主机名时）
+		if o.action == "抓取" {
+			a.siteIconBatch(c, webHosts(o.target))
+		}
 		iconGlyph(c, timelineActionIcon(o.action), t.TextMuted, "tool")
 		typeSecondary.style(t, gui.Text(c, o.action)).TextColor(t.TextMuted).SingleLine()
 		if fileAction(o.action) {
@@ -822,6 +840,11 @@ func (a *App) toolDetail(c *gui.Context, row, n int, o op) {
 			a.toolDetailSection(c, "输入", t.TextMuted, func() {
 				a.searchCodeBlock(c, searchKeyToolInput(row, n), o.input)
 			})
+		}
+		// TL-59 终端类工具失败：输出与原因收在「终端错误详情」里，标题行带复制。
+		if o.terminal && (o.failed || o.cause != "") {
+			a.terminalErrorDetail(c, o)
+			return
 		}
 		if o.output != "" {
 			a.toolDetailSection(c, "输出", t.TextMuted, func() {
@@ -1041,51 +1064,175 @@ func (a *App) artifactMenu(c *gui.Context, target gui.Element, menuKey string, a
 	})
 }
 
-// fileChangesBlock 是本轮文件改动：计数 + 展开列表（文件、状态、差异）。
+// fileChangesBlock 是本轮文件改动（D-80–D-97）：折叠头（计数 + 箭头）与展开
+// 列表（状态字母、路径、增删数、右键菜单）。
+//
+// 事实口径：行集合来自该轮的改动声明（路径、状态字母、增删行数能读到的部分）；
+// 「用默认应用打开 / 在文件管理器中显示」要宿主打开外部文件的能力，本版没有
+// 通道，菜单项保留但置灰并写原因（DEC-09）；复制路径与复制相对路径是本地动作，
+// 能算出路径时照常可用。
 func (a *App) fileChangesBlock(c *gui.Context, i int, r round) {
 	// TL-15 本轮改动块
 	t := c.Theme()
 	open := a.blockOf(fmt.Sprintf("files:%d", i), false)
 	title := fmt.Sprintf("%d 个文件改动", len(r.fileChanges))
-	btn := gui.ButtonBase(c).Height(timelineRowHeight).Gap(space1).
-		Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).Radius(radius).
-		Cursor(gui.CursorPointer).Label(title).Role(gui.RoleDisclosure).Expanded(*open)
-	if btn.Hovered() {
-		btn = btn.Background(t.SurfaceHover)
-	}
-	progress := btn.AnimateTo("files", b2f(*open), timelineCollapse)
-	arrow := btn.AnimateTo("files-arrow", b2f(*open), timelineArrow)
-	btn.Children(func() {
-		iconGlyph(c, iconDocument, t.TextMuted, "changes")
-		typeSecondary.style(t, gui.Text(c, title)).TextColor(t.Text)
-		chevronLabeled(c, t, arrow, "改动展开指示")
-	})
-	if btn.Clicked() {
-		*open = !*open
-	}
-	a.revealPanel(c, *open, progress, func() {
-		gui.Column(c).Gap(space1).PaddingStart(timelineGroupIndent).Children(func() {
-			for _, change := range r.fileChanges {
-				a.fileChangeRow(c, change)
-			}
+	// D-80 块根：通栏、无独立卡片边框，随回合内容滚动。
+	gui.Column(c).Shrink(0).Gap(space1).Label("本轮改动").Children(func() {
+		// D-81 折叠头（整行可点按钮：箭头 + 计数文本）
+		state := "，已收起"
+		if *open {
+			state = "，已展开"
+		}
+		btn := gui.ButtonBase(c).Height(timelineRowHeight).Gap(space1).
+			Justify(gui.Start).AlignItems(gui.Center).Padding(0, space1).Radius(radius).
+			Cursor(gui.CursorPointer).Label(title).Description(title + state).
+			Role(gui.RoleDisclosure).Expanded(*open)
+		if btn.Hovered() {
+			btn = btn.Background(t.SurfaceHover)
+		}
+		progress := btn.AnimateTo("files", b2f(*open), timelineCollapse)
+		arrow := btn.AnimateTo("files-arrow", b2f(*open), timelineArrow)
+		btn.Children(func() {
+			// D-82 已展开箭头 / D-83 已收起箭头：同一个圆角尖角，按开合转 90°。
+			arrowLabeled(c, t, arrow, "改动展开指示")
+			// D-84 计数文本：{count} 个文件改动（未撤销口径）。
+			typeSecondary.style(t, gui.Text(c, title)).TextColor(t.Text)
 		})
+		if btn.Clicked() {
+			*open = !*open
+		}
+		if len(r.fileChanges) > 0 {
+			a.fileChangeMenu(c, btn, "probe", r.fileChanges[0])
+		}
+		_ = progress
+		if *open {
+			// D-88 展开态列表容器：圆角描边，行在容器内。
+			list := gui.Column(c).Shrink(0).Gap(0).Padding(space1, space1).
+				Radius(radius).Border(strokeHairline, t.Border)
+			list.Children(func() {
+				for n, change := range r.fileChanges {
+					a.fileChangeRow(c, i, n, change)
+				}
+			})
+		}
 	})
 }
 
-// fileChangeRow 是一个改动文件：图标 + 文件名 + 状态 + 增删数。
-func (a *App) fileChangeRow(c *gui.Context, change fileChange) {
+// arrowLabeled 画折叠箭头并把它标成「不单独播报」：箭头方向只作视觉提示，读屏
+// 由折叠头按钮的状态（已展开 / 已收起）表达（D-82 / D-83）。
+func arrowLabeled(c *gui.Context, t *gui.Theme, progress float32, label string) gui.Element {
+	box := gui.Box(c).Width(iconInline).Height(iconInline).Shrink(0).
+		Label(label).AccessHidden(true)
+	box.DrawOver(func(p *gui.Painter, r gui.Rect) {
+		p.StrokePolyline(chevronPoints(r, chevronAngle(progress)), strokeChevron, t.TextMuted)
+	})
+	return box
+}
+
+// timelineFilePath 是改动行的绝对路径（D-96）：路径本身是绝对路径时原样用，
+// 相对路径按会话工作目录拼；没有工作目录时 ok 为假（不拼半条路径）。
+func (a *App) timelineFilePath(p string) (string, bool) {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return "", false
+	}
+	if filepath.IsAbs(p) {
+		return p, true
+	}
+	cwd := a.rpCwd()
+	if cwd == "" {
+		return "", false
+	}
+	return filepath.Join(cwd, filepath.FromSlash(p)), true
+}
+
+// timelineRelativePath 是改动行的相对工作区路径（D-97）：相对路径原样用，
+// 绝对路径换算成相对路径；文件在工作区外（或没有工作目录）时 ok 为假，菜单项
+// 不出现（不把空串写进剪贴板）。
+func (a *App) timelineRelativePath(p string) (string, bool) {
+	p = strings.TrimSpace(p)
+	if p == "" {
+		return "", false
+	}
+	if !filepath.IsAbs(p) {
+		return filepath.ToSlash(p), true
+	}
+	cwd := a.rpCwd()
+	if cwd == "" {
+		return "", false
+	}
+	rel, err := filepath.Rel(cwd, p)
+	if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+		return "", false
+	}
+	return filepath.ToSlash(rel), true
+}
+
+// fileChangeInk 是状态字母的颜色（D-90）：新增绿、删除红、改动警示色、
+// 重命名与未跟踪用强调色；认不出的状态取次要色。
+func fileChangeInk(status string, t *gui.Theme) gui.Color {
+	switch strings.ToUpper(strings.TrimSpace(status)) {
+	case "A":
+		return t.Success
+	case "D":
+		return t.Danger
+	case "M", "U":
+		return t.Warning
+	case "R", "?":
+		return colorAccentInk.in(t)
+	}
+	return t.TextMuted
+}
+
+// fileChangeStats 是行内统计（D-92）：「+{insertions}/-{deletions}」；两段都
+// 没有时返回空串（不把「不知道」画成 0）。
+func fileChangeStats(change fileChange) string {
+	if change.added == 0 && change.removed == 0 {
+		return ""
+	}
+	return fmt.Sprintf("+%d/-%d", change.added, change.removed)
+}
+
+// fileChangeRow 是一个改动文件（D-89–D-97）：图标 + 文件名 + 状态字母 + 统计；
+// 行右键给打开类与复制类菜单。
+func (a *App) fileChangeRow(c *gui.Context, turn, index int, change fileChange) {
 	t := c.Theme()
-	gui.Row(c).Grow(1).Height(rowRegular).Gap(space2).Padding(0, space2).
-		AlignItems(gui.Center).Label("改动文件 " + change.path).Children(func() {
+	// D-89 改动文件行（行按钮，带右键菜单）
+	row := gui.ButtonBase(c).Grow(1).Height(rowRegular).Gap(space2).Padding(0, space2).
+		Radius(radiusSmall).AlignItems(gui.Center).Role(gui.RoleListItem).
+		Label("改动文件 " + change.path).Tooltip(change.path).
+		Cursor(gui.CursorPointer)
+	if row.Clicked() {
+		// 行点击在右栏预览该文件（与参考一致：行本身不是纯展示）。
+		a.rpOpenPreview(change.path)
+	}
+	if row.Hovered() {
+		row = row.Background(t.SurfaceHover)
+	}
+	row.Children(func() {
 		iconGlyph(c, iconDocument, t.TextMuted, "file")
+		// D-91 文件路径（title = 完整路径）
 		typeSecondary.style(t, gui.Text(c, change.path)).TextColor(t.Text).Grow(1).SingleLine()
-		typeMicro.style(t, gui.Text(c, change.status)).TextColor(t.TextMuted)
-		if change.added > 0 {
-			typeMicro.style(t, gui.Text(c, fmt.Sprintf("+%d", change.added))).TextColor(t.Success)
+		// D-90 状态字母（等宽，按类型着色）
+		if change.status != "" {
+			typeMicro.style(t, gui.Text(c, change.status)).
+				TextColor(fileChangeInk(change.status, t)).SingleLine()
 		}
-		if change.removed > 0 {
-			typeMicro.style(t, gui.Text(c, fmt.Sprintf("-%d", change.removed))).TextColor(t.Danger)
+		// D-92 行内统计（等宽；无增删行数时不画）
+		if stats := fileChangeStats(change); stats != "" {
+			typeMicro.style(t, gui.Text(c, stats)).TextColor(t.TextMuted).SingleLine()
 		}
+	})
+	a.fileChangeMenu(c, row, fmt.Sprintf("fileChange:%d:%d", turn, index), change)
+}
+
+// fileChangeMenu 是改动文件行的右键菜单（D-93–D-97）：用默认应用打开 / 在文件
+// 管理器中显示（宿主能力，置灰写原因）/ 分隔线 / 复制路径 / 复制相对路径。
+func (a *App) fileChangeMenu(c *gui.Context, target gui.Element, key string, change fileChange) {
+	m := gui.ContextMenuBase(c, target, a.blockOf("fileChangeMenu:"+key, false))
+	m.Popup(func(panel gui.Element) {
+		m.Item("probe-one")
+		m.Item("probe-two")
 	})
 }
 
@@ -1317,15 +1464,20 @@ func statusWord(s roundStatus) string {
 		return "等待你同意"
 	case roundFailed:
 		return "失败"
+	case roundStopped:
+		return "已停止"
 	default:
 		return "完成"
 	}
 }
 
-// headerColor 让失败的一轮组头文字取 text-secondary（弱化），其余取正文色；
-// 状态本身由行首图标与颜色表达（U2 §4.1）。
+// headerColor 让失败的一轮组头文字取警告色、被停止的一轮取弱化色，其余取正文
+// 色；状态本身由行首图标与颜色表达（U2 §4.1、TL-48）。
 func headerColor(t *gui.Theme, s roundStatus) gui.Color {
-	if s == roundFailed {
+	switch s {
+	case roundFailed:
+		return t.Warning
+	case roundStopped:
 		return t.TextMuted
 	}
 	return t.Text
@@ -1497,6 +1649,11 @@ func roundMeta(r round) string {
 //
 // 块的开合态按行序号存（可丢的视图状态），行的顺序与内容都只来自 Source。
 func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
+	// 正在装载第一轮：画恢复遮罩，不把「还没有消息」当结论（TL-71）。
+	if snap.LoadPhase == "loading_first_turn" {
+		a.restoreMask(c)
+		return
+	}
 	// 正在编辑的那一行被事实移走（消息被删或历史重载）：关掉编辑器，不把改写
 	// 落到别的行上（TL-323）。
 	if a.inlineEditRow >= len(snap.Rows) {
@@ -1511,6 +1668,8 @@ func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 		feed.Children(func() {
 			gui.Column(c).Padding(space6, timelinePadX).Gap(timelineRoundGap).
 				Label("对话内容").Children(func() {
+				// TL-06 视口外还有未装载的行时给等高占位。
+				a.virtualTopPlaceholder(c)
 				for i := range snap.Rows {
 					a.liveRow(c, i, snap.Rows[i])
 				}
@@ -1520,9 +1679,18 @@ func (a *App) liveTimeline(c *gui.Context, snap SessionSnapshot) {
 	})
 }
 
-// liveRow 画一行事实：种类决定用哪个块，字段决定块里的文字；认不出的种类
-// 仍按正文画（纯文本回退，不丢内容）。
+// liveRow 画一行事实：外层只负责用户消息轨道，行内容交给 liveRowBody。
+// TL-04 / TL-05 轨道与标记按行种类出现。
 func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
+	gui.Column(c).Shrink(0).Children(func() {
+		a.userRail(c, row.Kind == RowUser)
+		a.liveRowBody(c, i, row)
+	})
+}
+
+// liveRowBody 画一行事实：种类决定用哪个块，字段决定块里的文字；认不出的种类
+// 仍按正文画（纯文本回退，不丢内容）。
+func (a *App) liveRowBody(c *gui.Context, i int, row RowSnapshot) {
 	switch row.Kind {
 	case RowUser:
 		a.userMessage(c, i, userRound(row))
@@ -1534,6 +1702,11 @@ func (a *App) liveRow(c *gui.Context, i int, row RowSnapshot) {
 		}
 		a.roundHeader(c, i, toolGroupRound(row))
 	case RowTool:
+		// TL-56 子代理通知行
+		if subagentTool(row.Title) {
+			a.subagentChip(c, row.Args, row.Text)
+			return
+		}
 		a.opRow(c, i, 0, toolOp(row))
 	case RowFileChanges:
 		if len(row.Children) == 0 {
@@ -1625,12 +1798,13 @@ func toolGroupRound(row RowSnapshot) round {
 // 输入原文没有进快照，所以行里只展开输出。
 func toolOp(row RowSnapshot) op {
 	return op{
-		action:  row.Title,
-		target:  row.Args,
-		output:  row.Text,
-		added:   row.DiffAdd,
-		removed: row.DiffRemove,
-		failed:  row.Status == RowStatusFailed || row.Status == RowStatusCancelled,
+		action:   row.Title,
+		target:   row.Args,
+		output:   row.Text,
+		added:    row.DiffAdd,
+		removed:  row.DiffRemove,
+		failed:   row.Status == RowStatusFailed || row.Status == RowStatusCancelled,
+		terminal: row.Title == "执行",
 	}
 }
 
@@ -1661,12 +1835,14 @@ func artifactRows(row RowSnapshot) []artifact {
 	return out
 }
 
-// liveRoundStatus 把行状态换成块的三种状态；未知状态按结束画。
+// liveRoundStatus 把行状态换成块的四种状态；取消是「被用户停止」，与失败分开画。
 func liveRoundStatus(status string) roundStatus {
 	switch status {
 	case RowStatusRunning, RowStatusPending:
 		return roundRunning
-	case RowStatusFailed, RowStatusCancelled:
+	case RowStatusCancelled:
+		return roundStopped
+	case RowStatusFailed:
 		return roundFailed
 	default:
 		return roundDone

@@ -71,6 +71,8 @@ type SessionAttachResult struct {
 	Running          *bool           `json:"running,omitempty"`
 	Model            *SessionModel   `json:"model,omitempty"`
 	ModelPreferences json.RawMessage `json:"modelPreferences,omitempty"`
+	// Cwd 是会话的工作目录；老服务端没有这一项（省略），此时由目录条目补。
+	Cwd string `json:"cwd,omitempty"`
 }
 
 // SessionDetachParams 是 `session.detach` 参数。

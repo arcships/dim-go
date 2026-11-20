@@ -146,7 +146,9 @@ type App struct {
 	archive   *catalog.Archive
 	staging   *attachments.Store
 	workspace *workspace.Workspace
-	terminals *terminal.Registry
+	// workspaceRoots 是未配置工作区根时按会话目录打开的工作区（按规范路径缓存）。
+	workspaceRoots map[string]*workspace.Workspace
+	terminals      *terminal.Registry
 	// changes 是变更读取的来源适配器；随实例存在，不新增全局状态。
 	changes workspace.ChangeSource
 	// accountWire 是账号域在控制连接上的适配；provider 解析结果按实例缓存。
@@ -224,10 +226,11 @@ func New(cfg Config) (*App, error) {
 	}
 
 	app := &App{
-		cfg:       cfg,
-		phase:     PhaseInitial,
-		terminals: terminal.NewRegistry(),
-		sessions:  make(map[string]*sessionRuntime),
+		cfg:            cfg,
+		phase:          PhaseInitial,
+		terminals:      terminal.NewRegistry(),
+		sessions:       make(map[string]*sessionRuntime),
+		workspaceRoots: make(map[string]*workspace.Workspace),
 	}
 	// 变更来源只依赖本实例：按会话与 run 读工具结果声明，不持有额外状态。
 	app.changes = &changeSource{app: app}
@@ -922,6 +925,41 @@ func (a *App) Workspace() *workspace.Workspace {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	return a.workspace
+}
+
+// WorkspaceFor 返回读取 root（会话的工作目录）用的只读工作区。
+//
+// 配置了工作区根（自检与夹具显式给出）时以它为界，原样返回。没有配置时以
+// root 本身为根打开一个只读工作区并按规范路径缓存：真实客户端不预设工作区根，
+// 会话的 cwd 就是服务端给的目录事实，右栏的文件与改动都按它读。root 为空且没有
+// 配置根时返回 nil（调用方按「没有可读的工作目录」处理，不拿别的目录顶替）。
+func (a *App) WorkspaceFor(root string) (*workspace.Workspace, error) {
+	root = strings.TrimSpace(root)
+	a.mu.Lock()
+	configured := a.workspace
+	if configured != nil || root == "" {
+		a.mu.Unlock()
+		return configured, nil
+	}
+	if cached, ok := a.workspaceRoots[root]; ok {
+		a.mu.Unlock()
+		return cached, nil
+	}
+	a.mu.Unlock()
+
+	opened, err := workspace.NewWorkspace(root)
+	if err != nil {
+		return nil, err
+	}
+	key := opened.Root()
+	a.mu.Lock()
+	if existing, ok := a.workspaceRoots[key]; ok {
+		a.mu.Unlock()
+		return existing, nil
+	}
+	a.workspaceRoots[key] = opened
+	a.mu.Unlock()
+	return opened, nil
 }
 
 // Attachments 返回附件暂存区；本地状态尚未装载时为 nil。

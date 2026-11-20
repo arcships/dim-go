@@ -467,8 +467,8 @@ type approvalAction struct {
 }
 
 // approvalActionsFor 按快照给出按钮组。成员审批只留「拒绝」（明细读不到时允许
-// 等于同意一个没看见的操作）；沙箱与子代理模型卡按参考产品换文案；长期允许按钮
-// 在服务端没有给出长期规则时置灰，而不是假装能写。
+// 等于同意一个没看见的操作）；沙箱与子代理模型卡按参考产品换文案；服务端没有给出
+// 长期规则时，工具卡不画长期允许按钮（R-AP-214：不出现，而不是禁用）。
 func approvalActionsFor(snap ApprovalSnapshot) []approvalAction {
 	rejectCopy := approvalCopyReject
 	if snap.Sandbox != nil {
@@ -506,9 +506,13 @@ func approvalActionsFor(snap ApprovalSnapshot) []approvalAction {
 	actions = append(actions, approvalAction{
 		copy: approvalCopyAllowOnce, decision: "allow", primary: true, tip: approvalTipAllowOnce,
 	})
-	actions = append(actions, approvalAction{
-		copy: approvalLongTermCopy(snap), decision: "allow-always", disabled: !snap.LongTerm,
-	})
+	// R-AP-214：请求没有给出长期规则（`allow_all`）时，长期允许这一项整块不画——
+	// 不渲染成禁用态，免得看起来「只差一步就能点」。
+	if snap.LongTerm {
+		actions = append(actions, approvalAction{
+			copy: approvalLongTermCopy(snap), decision: "allow-always",
+		})
+	}
 	return actions
 }
 

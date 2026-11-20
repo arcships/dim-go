@@ -163,16 +163,45 @@ func inputText(data map[string]any) string {
 	return strings.Join(bodies, "\n")
 }
 
-// textBlocks 拼接 type 为 text 的内容块；其他块不贡献文本。
+// textBlocks 拼接内容块里的可见文本。块类型既有 text（本项目提交的形状），也有
+// input_text（Responses 风格的输入块）；纯字符串块按正文处理。
 func textBlocks(parts any) string {
 	var builder strings.Builder
 	for _, value := range array(parts) {
-		block := object(value)
-		if stringValue(block["type"]) == "text" {
-			builder.WriteString(stringValue(block["text"]))
+		if text, ok := value.(string); ok {
+			builder.WriteString(text)
+			continue
 		}
+		block := object(value)
+		if block == nil || !isTextBlockType(stringValue(block["type"])) {
+			continue
+		}
+		builder.WriteString(stringValue(block["text"]))
 	}
 	return builder.String()
+}
+
+// isTextBlockType 判断内容块类型是不是用户可见正文。空类型不算：目标块、环境块
+// 这类上下文块没有 type 但有 text，不能把它们的原文当正文画进时间线。
+func isTextBlockType(kind string) bool {
+	switch kind {
+	case "text", "input_text":
+		return true
+	}
+	return false
+}
+
+// attachmentCount 数一条输入事实里携带的附件条数：附件清单可能在输入自身，也可能
+// 在 user 段里。两处都有时取较大的那一份（同一次输入的两处写法是同一份清单，不重复
+// 相加）；只数条数，不解释每条附件。
+func attachmentCount(data map[string]any) int {
+	count := len(array(data["attachments"]))
+	if user := object(data["user"]); user != nil {
+		if inner := len(array(user["attachments"])); inner > count {
+			count = inner
+		}
+	}
+	return count
 }
 
 // shellInputBody 解出会话内命令的正文。实体只解一层，顺序与服务端一致。

@@ -108,10 +108,11 @@ func (i *inventory) openInput(event protocol.RawEvent, data map[string]any, text
 		return
 	}
 	i.inputs[event.ID] = &pendingInputEntry{item: PendingInput{
-		InputID:  event.ID,
-		Sequence: event.Sequence,
-		Mode:     firstString(data, "mode"),
-		Text:     text,
+		InputID:     event.ID,
+		Sequence:    event.Sequence,
+		Mode:        firstString(data, "mode"),
+		Text:        text,
+		Attachments: attachmentCount(data),
 	}}
 }
 

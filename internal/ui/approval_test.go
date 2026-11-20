@@ -266,13 +266,15 @@ func TestApprovalDecisionsFollowTool(t *testing.T) {
 		})
 	}
 
-	// 服务端没有给出长期规则参数时，长期允许置灰，不假装能写。
+	// 服务端没有给出长期规则参数时，长期允许整块不画（R-AP-214）：不渲染成
+	// 禁用态，也不假装能写。
 	_, tt := approvalTester(t, ApprovalSnapshot{ID: "d4", Tool: "read",
 		Input: `{"path":"/work/a.go"}`})
-	info, ok := tt.Access(approvalCopyAllowForSession)
-	if !ok || !info.Disabled {
-		t.Fatalf("服务端没有长期规则时按钮仍可点：%+v（找到 %v）", info, ok)
+	if info, ok := tt.Access(approvalCopyAllowForSession); ok {
+		t.Fatalf("服务端没有长期规则时仍画了长期允许：%+v", info)
 	}
+	// 对照：另外两个决定还在（不是整组消失）。
+	approvalWants(t, tt, approvalCopyReject, approvalCopyAllowOnce)
 }
 
 // TestApprovalMemberUnreviewable：成员审批按请求工具名认出来，只画审批 ID 与

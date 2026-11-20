@@ -26,6 +26,7 @@ type fakeSource struct {
 	settings   SettingsSnapshot
 	extensions ExtensionsSnapshot
 	schedules  SchedulesSnapshot
+	wakeups    WakeupsSnapshot
 	terminal   TerminalSnapshot
 	prefs      PreferencesSnapshot
 	shortcut   GlobalShortcutSnapshot
@@ -47,6 +48,7 @@ func (f *fakeSource) Usage() UsageSnapshot               { return f.usage }
 func (f *fakeSource) Settings() SettingsSnapshot         { return f.settings }
 func (f *fakeSource) Extensions() ExtensionsSnapshot     { return f.extensions }
 func (f *fakeSource) Schedules() SchedulesSnapshot       { return f.schedules }
+func (f *fakeSource) Wakeups() WakeupsSnapshot           { return f.wakeups }
 func (f *fakeSource) Terminal() TerminalSnapshot         { return f.terminal }
 func (f *fakeSource) Preferences() PreferencesSnapshot   { return f.prefs }
 func (f *fakeSource) GlobalShortcut() GlobalShortcutSnapshot {

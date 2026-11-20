@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"time"
 
 	gui "github.com/egoist/mygo/ui"
 )
@@ -93,9 +94,11 @@ func (a *App) composer(c *gui.Context) {
 			return
 		}
 		// 接上事实且已打开会话时保留目标行（参考产品把它做成输入区上沿的活动条）。
-		_, hasSession := a.liveSession()
+		snap, hasSession := a.liveSession()
 		if hasSession {
 			a.goalRow(c)
+			// IN-29 – IN-34 活动条（待办 / 子代理 / 分支 / 唤醒 / 进程 / 文件改动）
+			a.activityBar(c, snap)
 		}
 		// IN-27 底部栈容器（活动条 / 排队 / 面板 / 输入块）
 		// 底部栈：排队消息面板与 Shell 运行面板排在输入块之上（§4.3 的顺序）。
@@ -189,6 +192,7 @@ func (a *App) inputBlock(c *gui.Context, withControls bool) {
 	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).Shrink(0).Children(func() {
 		a.slashNotice(c)
 		a.slashMenu(c)
+		a.pickPopover(c)
 		a.composerCard(c, withControls)
 	})
 }
@@ -196,6 +200,11 @@ func (a *App) inputBlock(c *gui.Context, withControls bool) {
 // composerCard 是输入卡本体（圆角框 + 正文 + 工具行 + 可选控制行）。
 func (a *App) composerCard(c *gui.Context, withControls bool) {
 	t := c.Theme()
+	// IN-14 停止确认：武装后 Esc 取消，不再落到别的 Esc 分支。
+	a.stopKeys(c)
+	if !a.liveRunning() {
+		a.stopArmed = false
+	}
 	// IN-01 输入块容器（圆角描边卡片）
 	gui.Column(c).WidthPercent(100).MaxWidth(composerMaxWidth).MinHeight(composerMinHeight).
 		// NT-04 空态输入块容器（带阴影）
@@ -222,9 +231,13 @@ func (a *App) composerCard(c *gui.Context, withControls bool) {
 			// IN-02 占位文本「发送消息...」
 			input := gui.TextAreaBase(c, &a.draft).Placeholder(ph).Grow(1).MinHeight(composerTextMinHeight).
 				Label(name)
-			// 弹层打开时接管输入框里的 ↑↓ / ↵ / Esc（G-B1-01、G-B1-07）。
-			if a.slash.open {
+			// 弹层打开时接管输入框里的 ↑↓ / ↵ / Esc（G-B1-01、G-B1-07；提及弹层
+			// 见 G-A3-11 / G-A4-05）。两个弹层互斥，同一时刻只有一个接管。
+			switch {
+			case a.slash.open:
 				input = input.OnTextKey(a.slashTextKey)
+			case a.pick.open:
+				input = input.OnTextKey(a.pickTextKey)
 			}
 			// 全局唤起（⌘⇧Space）后把焦点落到输入区：Focus 只在请求被消费的
 			// 那一帧调用一次，用户之后点别处不会再被抢回来（AutoFocus 只对
@@ -238,6 +251,8 @@ func (a *App) composerCard(c *gui.Context, withControls bool) {
 			// 拿着焦点不影响这一判据。
 			a.slashFocus(c)
 			a.composerToolRow(c)
+			// IN-15 / IN-16 发送不可用原因与（无通道的）重试。
+			a.sendReasonRow(c)
 		})
 		if withControls {
 			a.composerControls(c)
@@ -250,19 +265,30 @@ func (a *App) composerCard(c *gui.Context, withControls bool) {
 func (a *App) composerToolRow(c *gui.Context) {
 	gui.Row(c).Height(composerToolSize).Shrink(0).AlignItems(gui.Center).Children(func() {
 		gui.Row(c).Gap(space2).AlignItems(gui.Center).Children(func() {
-			// IN-05 工具行首个图标按钮（+ 附件）
-			if iconButton(c, iconButtonSpec{
-				icon: iconPlus, label: "附件", tip: "添加附件", size: composerToolSize,
-			}) {
-				a.attachmentEditing = !a.attachmentEditing
+			if narrowWindow(c) {
+				// IN-22 紧凑浮层：`+` 打开附件 / 模式 / 技能菜单。
+				a.attachMenu(c)
+			} else {
+				// IN-05 工具行首个图标按钮（+ 直接打开附件编辑）
+				if iconButton(c, iconButtonSpec{
+					icon: iconPlus, label: "附件", tip: "添加附件", size: composerToolSize,
+				}) {
+					a.attachmentEditing = !a.attachmentEditing
+				}
+				a.modeSelector(c)
+				a.skillsSelector(c)
 			}
-			a.modeSelector(c)
-			a.skillsSelector(c)
 		})
 		gui.Spacer(c)
 		gui.Row(c).Gap(space4).AlignItems(gui.Center).Children(func() {
-			a.effortSelector(c)
-			a.modelSelector(c)
+			if !narrowWindow(c) {
+				a.effortSelector(c)
+				a.modelSelector(c)
+			}
+			// IN-14 Esc 两段确认武装后，停止键左侧给键帽。
+			if a.stopArmed && a.liveRunning() {
+				a.escKeycap(c)
+			}
 			a.sendSlot(c)
 		})
 	})
@@ -292,11 +318,12 @@ func (a *App) composerControls(c *gui.Context) {
 	})
 }
 
-// sendSlot 是发送 / 停止槽：无草稿时禁用（浅色主色仍是主色），运行中换成停止。
+// sendSlot 是发送 / 停止槽：无草稿或提交还在途时禁用（浅色主色仍是主色），运行中
+// 换成停止。
 func (a *App) sendSlot(c *gui.Context) {
 	// IN-12 发送按钮
 	icon, label, tip := iconArrowUp, "发送", "发送消息... · Enter"
-	disabled := strings.TrimSpace(a.draft) == "" || a.disconnected()
+	disabled := strings.TrimSpace(a.draft) == "" || a.disconnected() || a.submitting
 	switch {
 	case a.savingQueuedEdit():
 		// 正在编辑排队消息：发送槽变成保存，文案仍是「发送消息...」。
@@ -305,7 +332,7 @@ func (a *App) sendSlot(c *gui.Context) {
 	case a.shellMode():
 		icon, label, tip = iconPlay, "运行命令", "运行命令 · Enter"
 		disabled = strings.TrimSpace(a.shellCommand()) == ""
-	// IN-13 运行中：同一位换成停止按钮
+	// IN-13 运行中：同一位换成停止按钮；点按钮一点即停，不进入 Esc 的武装态。
 	case a.liveRunning():
 		icon, label, tip = iconStop, "停止", "停止回复 · Enter"
 		disabled = false
@@ -317,6 +344,7 @@ func (a *App) sendSlot(c *gui.Context) {
 		case a.savingQueuedEdit():
 			a.saveQueuedEdit()
 		case a.liveRunning():
+			a.stopArmed, a.stopArmedAt = false, time.Time{}
 			if a.intents != nil {
 				a.dispatch("停止", a.intents.Stop, nil)
 			}
@@ -329,14 +357,25 @@ func (a *App) sendSlot(c *gui.Context) {
 }
 
 // submitDraft 发送当前草稿；附件块沿用原提交路径（样例只清空草稿）。
+//
+// 在途守卫（R-IN-136、R-IN-140）：同一条提交没回来之前不再发第二条——发送槽在
+// 这一帧就置灰，这里再挡一次（键盘、命令面板与别处的入口都走这个方法）。请求
+// 有结果才解锁：成功清空草稿，失败把原因留到全局错误行并允许重试。
 func (a *App) submitDraft() {
+	if a.intents == nil || a.submitting {
+		return
+	}
 	text := a.draft
 	blocks := a.attachmentBlocks()
-	a.dispatch("发送", func(ctx context.Context) error {
+	a.submitting = true
+	a.dispatchThen("发送", func(ctx context.Context) error {
 		return a.intents.SubmitWithContent(ctx, text, blocks)
 	}, func() {
+		a.submitting = false
 		a.draft = ""
 		a.attachments = nil
+	}, func(string) {
+		a.submitting = false
 	})
 }
 
@@ -486,51 +525,30 @@ func (a *App) modelSelector(c *gui.Context) {
 	tr.Children(func() {
 		iconBox(c, iconProvider, colorAccent.in(t), "provider")
 		typeSecondary.style(t, gui.Text(c, a.currentModel())).TextColor(t.Text).SingleLine()
+		// IN-11 priority 服务档标记（服务端选择里给了才画）。
+		a.modelFactorIcons(c, a.modelOverlayFacts())
 	})
 	// IN-53 模型浮层容器
 	m.Popup(func(panel gui.Element) {
 		panel.Width(composerModelMenuWidth).Padding(space2).Gap(space2).Radius(radiusCard).
 			Background(t.Surface).Border(strokeHairline, t.Border).
 			Shadow(0, 4, 18, 0, colorShadow.in(t))
-		// IN-54 浮层标签页（对话 / 子代理 / 外部 Agent）
-		gui.Row(c).Gap(space3).AlignItems(gui.Center).Children(func() {
-			typeBody.style(t, gui.Text(c, "模型")).TextColor(t.Text).Label("模型页签")
-			typeSecondary.style(t, gui.Text(c, "子代理")).TextColor(t.TextMuted)
-			typeSecondary.style(t, gui.Text(c, "外部 agent")).TextColor(t.TextMuted)
-		})
+		facts := a.modelOverlayFacts()
+		// IN-54 浮层标签页（模型 / 子代理 / 外部 agent）
+		a.modelTabs(c, m)
 		hairlineBox(c, true, "")
-		// IN-55 搜索模型...
-		gui.TextInputBase(c, &a.modelQuery).Placeholder("搜索模型...").Height(composerSearchRowHeight).
-			Padding(0, space2).Radius(radius).Background(t.SurfacePressed).Label("搜索模型")
-		options, currentID := a.modelOptions()
-		gui.Row(c).Gap(space2).AlignItems(gui.Start).Children(func() {
-			// 最近使用：服务端没有「最近用过哪些模型」的事实，能解析出来的只有当前
-			// 选择，所以这一栏最多一项；没有当前选择时整栏不画。
-			if recent, ok := a.recentModel(options, currentID); ok {
-				gui.Column(c).Width(composerRecentWidth).Gap(space1).Children(func() {
-					gui.Row(c).Gap(space1).AlignItems(gui.Center).Children(func() {
-						iconBox(c, iconClock, t.TextMuted, "recent")
-						typeMicro.style(t, gui.Text(c, "最近使用")).TextColor(t.TextMuted)
-					})
-					if a.modelOpen {
-						if menuItem(c, m, iconProvider, recent.Name, "最近使用："+recent.Name, "", false, true) {
-							a.selectModel(recent)
-						}
-					}
-				})
-			}
-			gui.Column(c).Grow(1).Gap(space1).Children(func() {
-				for _, option := range options {
-					option := option
-					if !strings.Contains(strings.ToLower(option.Name), strings.ToLower(a.modelQuery)) {
-						continue
-					}
-					if menuItem(c, m, nil, option.Name, "模型："+option.Name, "", false, option.ID == currentID) {
-						a.selectModel(option)
-					}
-				}
-			})
-		})
+		if a.modelTab == 0 {
+			// IN-55 搜索模型...
+			gui.TextInputBase(c, &a.modelQuery).Placeholder("搜索模型...").Height(composerSearchRowHeight).
+				Padding(0, space2).Radius(radius).Background(t.SurfacePressed).Label("搜索模型")
+		}
+		// IN-56 四种状态与模型列表
+		a.modelTabBody(c, m, facts)
+		if a.modelTab == 0 {
+			hairlineBox(c, true, "")
+			// IN-10 ZDR 徽标位：没有事实时写明原因，不画假盾牌。
+			a.zdrNote(c)
+		}
 	})
 }
 
@@ -660,14 +678,15 @@ func (a *App) skillEntries() ([]ExtItemSnapshot, string) {
 	return skills.Items, skills.ReadError
 }
 
-// demoSkills 是 -demo 的静态技能清单：只有没有 Source 时才用。
+// demoSkills 是 -demo 的静态技能清单：只有没有 Source 时才用。样例里的技能都是
+// 「已安装且启用」——`$` 提及弹层按 Enabled 过滤，没启用的技能不进候选。
 func demoSkills() []ExtItemSnapshot {
 	return []ExtItemSnapshot{
-		{Name: "agents-sdk", Description: "Build AI agents on Cloudflare Workers using the Agents SDK."},
-		{Name: "background-check", Description: "Comprehensive OSINT background investigation."},
-		{Name: "baoyu-format-markdown", Description: "Formats plain text or markdown files with frontmatter."},
-		{Name: "baoyu-infographic", Description: "Generate professional infographics with layout types."},
-		{Name: "deep-read", Description: "Read and summarize long documents."},
+		{Name: "agents-sdk", Description: "Build AI agents on Cloudflare Workers using the Agents SDK.", Enabled: true},
+		{Name: "background-check", Description: "Comprehensive OSINT background investigation.", Enabled: true},
+		{Name: "baoyu-format-markdown", Description: "Formats plain text or markdown files with frontmatter.", Enabled: true},
+		{Name: "baoyu-infographic", Description: "Generate professional infographics with layout types.", Enabled: true},
+		{Name: "deep-read", Description: "Read and summarize long documents.", Enabled: true},
 	}
 }
 

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -123,6 +124,70 @@ func TestQueuePanelEditEntersComposer(t *testing.T) {
 	tt.Frame()
 	if app.queueEditing != "" || app.draft != "" {
 		t.Fatalf("取消后没有退出编辑：editing=%q draft=%q", app.queueEditing, app.draft)
+	}
+}
+
+// TestQueuePanelRowsShowTextOrAttachmentCount：排队行的正文取快照正文的摘要（长正文
+// 截断加省略号）；只有附件事实时写「附件 N 个」；两样都没有时才写「没有正文」。
+// 没有正文的输入不能被一律标成「附件」——那会把一整列文字输入全说成附件。
+func TestQueuePanelRowsShowTextOrAttachmentCount(t *testing.T) {
+	long := "先看下构建日志第 1 行\n第二段  有空白的正文" +
+		"再补一段很长的正文用来看截断，这段正文会超过八十个字符的上限，后面的内容只在编辑里可见，所以行里必须截断并加省略号，不能把整段都塞进一行"
+	src := queuedSource(
+		QueuedMessageSnapshot{ID: "q1", Mode: "queue", Text: long},
+		QueuedMessageSnapshot{ID: "q2", Mode: "queue", Text: "", Attachments: 3},
+		QueuedMessageSnapshot{ID: "q3", Mode: "queue", Text: "   "},
+	)
+	app := NewApp(Options{State: StateDefault, Source: src})
+	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
+
+	summary := queueSummary(long)
+	if summary == "" || !strings.HasSuffix(summary, "…") {
+		t.Fatalf("长正文没有被截断成摘要：%q", summary)
+	}
+	if strings.Contains(summary, "\n") {
+		t.Fatalf("摘要里还有换行：%q", summary)
+	}
+	if _, ok := tt.Find("排队消息：" + summary); !ok {
+		t.Fatalf("排队行没有显示正文摘要 %q：%v", summary, tt.Texts())
+	}
+	if _, ok := tt.Find("排队消息：附件"); ok {
+		t.Fatalf("有正文的排队行被标成了附件：%v", tt.Texts())
+	}
+
+	if !tt.HasText("附件 3 个") {
+		t.Fatalf("只有附件事实的排队行没有写「附件 3 个」：%v", tt.Texts())
+	}
+	if _, ok := tt.Find("排队消息：" + noteQueueNoText); !ok {
+		t.Fatalf("没有正文也没有附件的排队行没有写 %q：%v", noteQueueNoText, tt.Texts())
+	}
+	for _, text := range tt.Texts() {
+		if !strings.HasPrefix(text, "排队消息：") {
+			continue
+		}
+		if strings.TrimSpace(strings.TrimPrefix(text, "排队消息：")) == "附件" {
+			t.Fatalf("排队行仍然只有「附件」两个字：%v", tt.Texts())
+		}
+	}
+}
+
+// TestQueueLineTextUsesFactsOnly 直接核对排队行的取值：正文摘要优先，附件条数次之，
+// 都没有才说没有正文。
+func TestQueueLineTextUsesFactsOnly(t *testing.T) {
+	cases := []struct {
+		name string
+		item QueuedMessageSnapshot
+		want string
+	}{
+		{"正文", QueuedMessageSnapshot{Text: "再补一条测试"}, "再补一条测试"},
+		{"正文折叠空白", QueuedMessageSnapshot{Text: " 先跑\n一遍  "}, "先跑 一遍"},
+		{"只有附件", QueuedMessageSnapshot{Attachments: 2}, "附件 2 个"},
+		{"都没有", QueuedMessageSnapshot{}, noteQueueNoText},
+	}
+	for _, tc := range cases {
+		if got := queueLineText(tc.item); got != tc.want {
+			t.Errorf("%s：queueLineText = %q，想要 %q", tc.name, got, tc.want)
+		}
 	}
 }
 

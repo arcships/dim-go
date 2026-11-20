@@ -41,6 +41,9 @@ type Source interface {
 	Extensions() ExtensionsSnapshot
 	// Schedules 是定时任务读数（与 extensions.Snapshot[ScheduledTask] 对齐）。
 	Schedules() SchedulesSnapshot
+	// Wakeups 是当前会话 / 分支的唤醒记录读数（与 extensions.Snapshot[Wakeup]
+	// 对齐）：任务面板「唤醒」子标签与唤醒详情（K-35 / K-36）用它。
+	Wakeups() WakeupsSnapshot
 	// Terminal 是当前会话终端的状态；Active 为假表示没有终端实例。
 	Terminal() TerminalSnapshot
 	// Preferences 是客户端本地偏好（主题、动效、时区、侧栏宽度）。
@@ -405,7 +408,11 @@ type SessionSnapshot struct {
 	Running bool
 	Rows    []RowSnapshot
 	Pending int
-	Goal    string
+	// LoadPhase 是投影装载状态机的阶段（closed / loading_first_turn / ready /
+	// paging）。界面只在 loading_first_turn 时画恢复遮罩（TL-71），其余阶段
+	// 按已装载内容画。
+	LoadPhase string
+	Goal      string
 	// GoalStatus 是 active/paused/complete/blocked；空表示没有状态。
 	GoalStatus string
 	// Cwd 是目录里的会话工作目录（绝对路径）；空表示服务端没有给。
@@ -439,12 +446,14 @@ type SessionSnapshot struct {
 // QueuedMessageSnapshot 是一条排队输入（与 projection.PendingInput 对齐）。
 //
 // Mode 取 queue / steer / append：steer 表示要插进当前轮次，界面上写「转向」；
-// Applied 为真表示已经应用到上下文但还没被消费，因而不可撤回。
+// Attachments 是附件条数（正文为空时界面写「附件 N 个」）；Applied 为真表示已经
+// 应用到上下文但还没被消费，因而不可撤回。
 type QueuedMessageSnapshot struct {
-	ID      string
-	Mode    string
-	Text    string
-	Applied bool
+	ID          string
+	Mode        string
+	Text        string
+	Attachments int
+	Applied     bool
 }
 
 // ShellRunSnapshot 是一次会话内命令运行的读数（shell.run 回执的字段）。
@@ -481,6 +490,10 @@ type TaskSnapshot struct {
 	ID          string
 	Description string
 	Stopping    bool
+	// StartedAt 是任务开始时刻（服务端 startedAt，毫秒精度）；零值表示没有。
+	StartedAt time.Time
+	// BranchID 是任务所属分支；main 不在行上画徽标。
+	BranchID string
 }
 
 // BranchSnapshot 是一个分支。
@@ -730,6 +743,15 @@ type SettingsSnapshot struct {
 	Model      string
 	ModelID    string
 	Models     []ModelOption
+	// ModelsKnown 表示模型目录已经读到过（含读到空）；假表示还没读完。
+	// 模型浮层按它区分「模型加载中…」与「暂无可用模型」（IN-56）。
+	ModelsKnown bool
+	// ModelsError 是最近一次模型目录读取失败的原因；空表示没有失败。
+	// 它只说明读取失败，不代替目录内容。
+	ModelsError string
+	// ServiceTier 是当前模型的服务档（服务端选择里的原文，如 priority）；
+	// 空表示服务端没有给。界面按它决定要不要画 priority 图标（IN-11）。
+	ServiceTier string
 	// ModelRevision 是当前选择的版本前置条件；空表示服务端没有给。
 	ModelRevision string
 	// Tier 是当前会话的权限档位；TierKnown 为假表示还没读到。
@@ -925,6 +947,22 @@ type ScheduleSnapshot struct {
 	NextRunAt  time.Time
 	LastRunAt  time.Time
 	LastStatus string
+}
+
+// WakeupsSnapshot 是当前会话 / 分支的唤醒记录读数。
+type WakeupsSnapshot struct {
+	Items             []WakeupSnapshot
+	ReadError         string
+	CapabilityMissing bool
+}
+
+// WakeupSnapshot 是一条唤醒记录（与 extensions.Wakeup 对齐）。
+type WakeupSnapshot struct {
+	ID string
+	// TriggerAt 是触发时刻；零值表示服务端没有给。
+	TriggerAt time.Time
+	Prompt    string
+	State     string
 }
 
 // TerminalSnapshot 是当前会话终端的状态。

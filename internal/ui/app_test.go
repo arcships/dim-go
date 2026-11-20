@@ -707,32 +707,40 @@ func TestSessionActions(t *testing.T) {
 	}
 }
 
-// 搜索面：点搜索展开，输入过滤，空白给全部，Esc 关闭。
+// 搜索入口：点左栏「搜索」打开搜索聊天对话框（⌘G 同一条路），输入即时过滤，
+// Esc 关闭；左栏列表本身不再被过滤（G-A2-01）。
 func TestSessionSearch(t *testing.T) {
 	app, tt := newTester(t, StateDefault)
 	if err := tt.Click("搜索"); err != nil {
 		t.Fatalf("点不到搜索：%v", err)
 	}
-	if !app.searchOpen {
-		t.Fatal("搜索没有展开")
-	}
 	tt.Frame()
-	app.searchQuery = "旧实现"
-	tt.Frame()
-	if _, ok := tt.Find("修发送路径"); ok {
-		t.Fatal("过滤后仍显示不匹配的行")
+	if !app.chatSearch.open {
+		t.Fatal("点搜索没有打开搜索聊天对话框")
 	}
-	if _, ok := tt.Find("旧实现对照"); !ok {
-		t.Fatal("过滤后匹配的行不见了")
+	if err := tt.Click(chatSearchLabel); err != nil {
+		t.Fatalf("点不到搜索聊天输入框：%v", err)
 	}
-	app.searchQuery = ""
+	tt.Type("旧实现")
 	tt.Frame()
-	if _, ok := tt.Find("修发送路径"); !ok {
-		t.Fatal("空白查询应给全部")
+	for _, row := range app.chatSearch.rows {
+		if row.title == "修发送路径" {
+			t.Fatal("过滤后仍留着不匹配的结果")
+		}
+	}
+	var matched bool
+	for _, row := range app.chatSearch.rows {
+		if row.title == "旧实现对照" {
+			matched = true
+		}
+	}
+	if !matched {
+		t.Fatalf("过滤后匹配的会话不见了：%+v", app.chatSearch.rows)
 	}
 	tt.Key(0, gui.KeyEscape)
-	if app.searchOpen {
-		t.Fatal("Esc 没有收起搜索面")
+	tt.Frame()
+	if app.chatSearch.open {
+		t.Fatal("Esc 没有关闭搜索聊天对话框")
 	}
 }
 

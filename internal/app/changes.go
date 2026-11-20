@@ -275,12 +275,24 @@ func toAny(values []string) []any {
 // 路径，不覆盖会话内命令（exec）、外部修改或没有声明的写入；调用方据此展示，
 // 不应把它当成权威的 run 级改动清单。
 func (a *App) RunChanges(ctx context.Context, sessionID, runID string) (workspace.RunChanges, error) {
-	ws := a.Workspace()
-	if ws == nil {
-		return workspace.RunChanges{}, ErrWorkspaceUnavailable
-	}
 	if strings.TrimSpace(sessionID) == "" {
 		return workspace.RunChanges{}, fmt.Errorf("%w: 缺少会话标识", ErrInvalidConfig)
+	}
+	ws := a.Workspace()
+	if ws == nil {
+		// 没有配置工作区根时按会话自己的 cwd 打开（真实客户端不预设根）。
+		cwd := ""
+		if view, ok := a.View(sessionID); ok {
+			cwd = view.Cwd
+		}
+		opened, err := a.WorkspaceFor(cwd)
+		if err != nil {
+			return workspace.RunChanges{}, fmt.Errorf("打开会话工作目录: %w", err)
+		}
+		ws = opened
+	}
+	if ws == nil {
+		return workspace.RunChanges{}, ErrWorkspaceUnavailable
 	}
 	return ws.ReadRunChanges(ctx, a.changes, sessionID, runID)
 }

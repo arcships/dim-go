@@ -929,20 +929,22 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 		Padding(space1, space3).Gap(space1).AlignItems(gui.Center).
 		Label("搜索结果").Role(gui.RoleGroup).Children(func() {
 		// 前后箭头同尺寸同层级，只有图标朝向不同（R-GS-074）。
-		disabled := len(s.hits) == 0
-		if iconButton(c, iconButtonSpec{
-			// TB-09 上一个搜索结果
-			icon: iconChevronUp, label: "上一个搜索结果",
-			tip: "上一个搜索结果 · Shift+Enter", size: rowRegular, disabled: disabled,
-		}) {
-			a.moveSessionSearchHit(-1)
-		}
-		if iconButton(c, iconButtonSpec{
-			// TB-10 下一个搜索结果
-			icon: iconChevronDown, label: "下一个搜索结果",
-			tip: "下一个搜索结果 · Enter", size: rowRegular, disabled: disabled,
-		}) {
-			a.moveSessionSearchHit(1)
+		// R-TB-091：零命中时没有可跳的对象，两个箭头整块不画——不渲染成禁用态。
+		if len(s.hits) > 0 {
+			if iconButton(c, iconButtonSpec{
+				// TB-09 上一个搜索结果
+				icon: iconChevronUp, label: "上一个搜索结果",
+				tip: "上一个搜索结果 · Shift+Enter", size: rowRegular,
+			}) {
+				a.moveSessionSearchHit(-1)
+			}
+			if iconButton(c, iconButtonSpec{
+				// TB-10 下一个搜索结果
+				icon: iconChevronDown, label: "下一个搜索结果",
+				tip: "下一个搜索结果 · Enter", size: rowRegular,
+			}) {
+				a.moveSessionSearchHit(1)
+			}
 		}
 		label := "不含思考块"
 		if s.think {

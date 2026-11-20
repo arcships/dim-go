@@ -1,23 +1,65 @@
 package ui
 
+import "time"
+
 // 本文件是首片骨架的静态样例：内容固定，用来走查区域与状态，
 // 不来自 App Server，也不代表任何真实会话。样例文案与顺序取自
 // docs/domains/wireframes/a.html 的七个画面。
 
-// taskState 是后台任务在界面上的三种形态。
+// taskState 是后台任务在界面上的四种形态（K-05–K-08）。
 type taskState int
 
 const (
 	taskRunning taskState = iota
 	taskDone
 	taskFailed
+	// taskStopped 是「已停止」（取消 / 被信号结束）：图标是方块，文案取已停止。
+	taskStopped
+	// taskNoStatus 是读到任务、读不到状态时的兜底（K-63 的「状态未知」）。
+	taskNoStatus
+)
+
+// taskKind 是任务行的种类：后台进程或唤醒（K-01 / K-02 两个子标签）。
+type taskKind int
+
+const (
+	taskProcess taskKind = iota
+	taskWakeup
 )
 
 // task 是一个后台任务行：名字是内容，状态是样式。
+//
+// 事实口径：id / name / state 来自会话快照的未结束后台任务；pid、结束时刻、
+// 触发时刻、命令行与日志状态在 Go 侧拿不到时留空（详情按段拼接，空段不画），
+// 不编造。
 type task struct {
 	id    string
+	kind  taskKind
 	name  string
 	state taskState
+	// pending 表示已经发出停止、还在等结束事实（K-15 的旋转圈）。
+	pending bool
+	// branch 是任务所属分支（K-11 徽标；main 不画）。
+	branch string
+	// startedAt 是开始时刻的墙钟文本（K-12 / K-21 / K-28）。
+	startedAt string
+	// startAt 是同一时刻的 time 形态（运行时长按它算）；零值表示没有。
+	startAt time.Time
+	// endedAt 是结束时刻的墙钟文本（K-22–K-24 / K-28）。
+	endedAt string
+	// pid 是进程号（K-28）；空表示没有这项事实。
+	pid string
+	// toolName 是发起该任务的工具名（K-28）；空表示没有这项事实。
+	toolName string
+	// command 是命令行原文（K-29）；空表示没有这项事实。
+	command string
+	// logTruncated 表示输出达到服务端上限（K-32）。
+	logTruncated bool
+	// logFailed 表示输出读取失败（K-33），重连后清掉（K-34）。
+	logFailed bool
+	// wakeAt 是唤醒触发时刻（K-35），wakeBody 是唤醒提示正文（K-36）。
+	wakeAt   string
+	wakeBody string
 }
 
 type roundStatus int
@@ -27,6 +69,9 @@ const (
 	roundRunning
 	roundWaiting
 	roundFailed
+	// roundStopped 是运行被用户停止的一轮：标题写「已停止」，另给一行「用户中断」
+	// （TL-47 / TL-60），不与失败混用。
+	roundStopped
 )
 
 // op 是一次操作的折叠视图：动作、对象、结果，失败带原因。差异计数只在
@@ -41,6 +86,9 @@ type op struct {
 	added   int
 	removed int
 	failed  bool
+	// terminal 表示这是终端类工具（执行）的事实行：失败时详情用「终端错误详情」
+	// 收起（TL-59）。样例行不置这一位，仍按输入 / 输出 / 失败原因三段画。
+	terminal bool
 }
 
 // round 是一轮：用户消息、助手正文、思考块、工具分组与轮末块。
@@ -303,10 +351,22 @@ func branchSamples() (current string, all []string) {
 }
 
 // taskSamples 是后台任务样例：一个在跑、一个完成。
+//
+// 样例带命令行、pid、工具名与时刻，用来走查详情的元信息行（K-28）与命令行
+// （K-29）；这些字段只有 -demo 才有，连着 Source 时由服务端事实决定有无。
 func taskSamples() []task {
+	started := time.Now().Add(-12 * time.Second)
 	return []task{
-		{name: "go test ./...", state: taskRunning},
-		{name: "npm run build", state: taskDone},
+		{
+			name: "go test ./...", kind: taskProcess, state: taskRunning,
+			command: "go test ./...", toolName: "exec", pid: "48213",
+			startedAt: taskClock(started), startAt: started,
+		},
+		{
+			name: "npm run build", kind: taskProcess, state: taskDone,
+			command: "npm run build", toolName: "exec", pid: "47902",
+			startedAt: "21:10", endedAt: "21:12",
+		},
 	}
 }
 

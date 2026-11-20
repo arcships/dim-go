@@ -392,6 +392,9 @@ func lintDividerAllowlist(files []string) []lintFinding {
 	allowed := map[string]int{
 		"controls.go": 2, // 附件 chip 与新的附件行：都落在 surface 上，需要一条线才看得出是条目
 		"composer.go": 5, // 输入卡 / 命令面板 / 菜单浮层：参考产品的卡框与浮层边界（审批卡已移到 approval.go）
+		// 输入区保留元素：`+` 附件菜单浮层的一圈描边，与停止确认 Esc 键帽
+		// 的键帽轮廓（IN-17–IN-22 / IN-14）；两处都落在输入卡面上，需要边界。
+		"composer_extra.go": 2,
 		// 审批卡（三种卡共用骨架）：参考 PermissionPrompt 的 rounded-lg border 卡框。
 		"approval.go": 1,
 		// 审批输入区：参考 approval-panels 的「描边 + 卡片底」区块，与卡面分出一档。
@@ -406,9 +409,17 @@ func lintDividerAllowlist(files []string) []lintFinding {
 		"search.go": 1,
 		// 斜杠命令弹层：贴在输入卡上沿的浮层，一圈描边与时间线分开（§3.1 G-B1-01
 		// 的「上层底色 + 描边 + 阴影」）。
-		"slash_commands.go":      1,
-		"rightpanel.go":          2, // 框架 Divider：标签栏与内容，加错误横幅的一条 1px 描边（橙色浅底落在面板上面）
-		"rightpanel_tasks.go":    2, // 框架 Divider：列表行之间与列表/详情之间（参考的行分隔线 + 详情区顶线）
+		"slash_commands.go": 1,
+		// 提及弹层（@ / $）：贴在输入卡上沿的浮层，一圈描边与时间线分开（G-A3-01
+		// 的「上层底色 + 描边 + 阴影」）。
+		"mention.go": 1,
+		// 搜索聊天对话框：模态浮层，一圈描边与压暗的背景分开（G-A2-01）。
+		"search_chat.go":      1,
+		"rightpanel.go":       2, // 框架 Divider：标签栏与内容，加错误横幅的一条 1px 描边（橙色浅底落在面板上面）
+		"rightpanel_tasks.go": 3, // 框架 Divider：列表行之间，以及两个子标签各自的列表/详情之间（参考的行分隔线 + 详情区顶线）
+		// 时间线「本轮改动」展开列表：参考 TimelineFileChanges 的圆角描边容器
+		// （D-88），行在容器内、与块外内容分开。
+		"timeline.go":            1,
 		"rightpanel_sidechat.go": 2, // 框架 Divider：结束状态条的顶部分隔线；输入框的一条 1px 描边
 		// 设置 › 账户（重建屏）：卡框、行内字段框、outline 按钮各一条 1px 轮廓，
 		// 三处都在各自的构造器里只出现一次（accCardFrame / accFieldFrame / accButton），
@@ -1371,7 +1382,7 @@ func testerForWhen(t *testing.T, when string) *gui.Tester {
 	case "session-delete":
 		app.openDeleteConfirm([]int{0})
 	case "search":
-		app.searchOpen = true
+		app.openChatSearch()
 	case "term":
 		app.rightOpen, app.rightTab = true, 4
 	case "term-running":

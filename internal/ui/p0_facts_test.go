@@ -88,7 +88,12 @@ func TestApprovalCardShowsOnlyCommandFact(t *testing.T) {
 		if !tt.HasText(noteApprovalCommand) {
 			t.Fatalf("命令为空时没有写清读不到：\n%s", text)
 		}
-		p0ButtonsDisabled(t, tt, "拒绝", "仅这次", "始终允许此命令")
+		// 请求没有给出长期规则：工具卡的两个决定置灰，长期允许整块不画
+		// （R-AP-214）。
+		p0ButtonsDisabled(t, tt, "拒绝", "仅这次")
+		if info, ok := tt.Access("始终允许此命令"); ok {
+			t.Fatalf("没有长期规则时仍画了长期允许：%+v", info)
+		}
 	})
 
 	t.Run("命令来自事实", func(t *testing.T) {

@@ -30,6 +30,9 @@ const (
 	shellPanelPad = space3
 	// shellOutputMaxHeight 是输出块的最大高：超出后内部滚动。
 	shellOutputMaxHeight = 132
+	// queueSummaryMaxRunes 是排队行正文摘要的字符上限：再长的正文截断加省略号，
+	// 整段正文仍在编辑入口里（编辑读的是快照的完整正文）。
+	queueSummaryMaxRunes = 80
 )
 
 // 排队消息与命令面板的新增原因文案（集中在 unavailable.go 之外的两条，因为
@@ -41,6 +44,9 @@ const (
 	noteQueueSteer      = "服务端没有提供插话写入（本版不做）"
 	noteShellOutput     = "服务端没有回传这次运行的输出"
 	noteCompactionRetry = "服务端没有提供摘要重取（本版不做）"
+	// noteQueueNoText 是没有正文也没有附件事实的排队输入的说明：不拿「附件」
+	// 两个字替它顶上正文（那会把每条输入都说成附件）。
+	noteQueueNoText = "没有正文"
 )
 
 // 新增的图标形状：三点竖排把手、垃圾桶、列表（与 lucide 同一 24 网格、1.5 描边）。
@@ -257,10 +263,7 @@ func (a *App) queueRow(c *gui.Context, item QueuedMessageSnapshot) {
 	if row.Hovered() || a.queueEditing == item.ID {
 		row = row.Background(t.SurfaceHover)
 	}
-	text := item.Text
-	if strings.TrimSpace(text) == "" {
-		text = "附件"
-	}
+	text := queueLineText(item)
 	label := "排队消息：" + text
 	if steering {
 		label = "排队消息（正在转向）：" + text
@@ -298,6 +301,33 @@ func (a *App) queueRow(c *gui.Context, item QueuedMessageSnapshot) {
 			})
 		}
 	})
+}
+
+// queueLineText 是一条排队消息在行里显示的文字：有正文就显示正文摘要（换行与
+// 连续空白折成一个空格，超过上限截断加省略号）；只有附件就写「附件 N 个」；
+// 两样都没有才写「没有正文」。不把没有正文的输入一律标成「附件」。
+func queueLineText(item QueuedMessageSnapshot) string {
+	if text := queueSummary(item.Text); text != "" {
+		return text
+	}
+	if item.Attachments > 0 {
+		return fmt.Sprintf("附件 %d 个", item.Attachments)
+	}
+	return noteQueueNoText
+}
+
+// queueSummary 把正文折成单行摘要并截断到 queueSummaryMaxRunes 个字符。
+func queueSummary(text string) string {
+	fields := strings.Fields(text)
+	if len(fields) == 0 {
+		return ""
+	}
+	joined := strings.Join(fields, " ")
+	runes := []rune(joined)
+	if len(runes) <= queueSummaryMaxRunes {
+		return joined
+	}
+	return string(runes[:queueSummaryMaxRunes]) + "…"
 }
 
 // beginQueuedEdit 把排队消息的正文放进输入块（IN-436）：输入卡里出现「正在编辑

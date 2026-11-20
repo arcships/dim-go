@@ -56,6 +56,16 @@ type PendingInput struct {
 	Sequence int64             `json:"sequence"`
 	Mode     string            `json:"mode"`
 	User     *PendingInputUser `json:"user,omitempty"`
+	// Message 是这条输入的完整正文（服务端可省略，正文也可能只在 user.content 里）。
+	Message string `json:"message,omitempty"`
+	// Preview 是服务端给这条输入的正文摘要：没有完整正文时界面显示它（截断后）。
+	Preview string `json:"preview,omitempty"`
+	// Attachments 是这条输入携带的附件条目；内容由上层解释，本包只保留条数事实。
+	// 没有这一项时为空（老服务端不写）。
+	Attachments []json.RawMessage `json:"attachments,omitempty"`
+	// AttachmentNames 是附件文件名清单：与 Attachments 是同一件事的两种写法，
+	// 只用作条数事实，不解释单个文件名。
+	AttachmentNames []string `json:"attachmentNames,omitempty"`
 	// Applied 表示已应用到上下文但尚未消费，因而不允许撤回。
 	Applied bool `json:"applied"`
 }

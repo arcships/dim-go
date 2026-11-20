@@ -113,7 +113,8 @@ func TestSubagentPanelEmptyStateWithoutFacts(t *testing.T) {
 }
 
 // P0-1 残留：有工具名、读不到入参时，卡片不画内容区，但要写清读不到什么，并把
-// 「拒绝 / 仅这次 / 始终允许此命令」三个决定一起置灰——看不到要执行什么就不放行。
+// 「拒绝 / 仅这次」两个决定一起置灰——看不到要执行什么就不放行；这张快照没有
+// 长期规则，长期允许整块不画（R-AP-214）。
 func TestApprovalCardMissingInputDisablesDecisions(t *testing.T) {
 	src := wiredSource()
 	src.hasAppr = true
@@ -127,10 +128,13 @@ func TestApprovalCardMissingInputDisablesDecisions(t *testing.T) {
 	if !tt.HasText(noteApprovalBlocked) {
 		t.Fatalf("没有写清为什么不能决定：%v", tt.Texts())
 	}
-	p0ButtonsDisabled(t, tt, "拒绝", "仅这次", "始终允许此命令")
+	p0ButtonsDisabled(t, tt, "拒绝", "仅这次")
+	if info, ok := tt.Access("始终允许此命令"); ok {
+		t.Fatalf("没有长期规则时仍画了长期允许：%+v", info)
+	}
 
-	// 置灰的入口不能真的答复（三个决定都点一遍）。
-	for _, label := range []string{"拒绝", "仅这次", "始终允许此命令"} {
+	// 置灰的入口不能真的答复（两个决定都点一遍）。
+	for _, label := range []string{"拒绝", "仅这次"} {
 		_ = tt.Click(label)
 		tt.Frame()
 		if app.approvalDecision != "" {

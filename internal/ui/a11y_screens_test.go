@@ -195,10 +195,11 @@ func a11yScreens() []a11yScreen {
 			{gui.RoleListBox, "命令候选", false, false},
 			{gui.RoleTextField, "搜索命令", false, false},
 		}},
-		{"左栏搜索", a11yVariant(VariantSearch), []a11yItem{
-			{gui.RoleTextField, "搜索会话", false, false},
-			{gui.RoleButton, "搜索", false, false},
-			{gui.RoleList, "会话列表", false, false},
+		// 左栏「搜索」行打开的是搜索聊天对话框（G-A2-01）：模态期间读屏只进得出
+		// 对话框本身与它的搜索输入框，对话框之外的左栏会话列表不可达。
+		{"搜索聊天", a11yVariant(VariantSearch), []a11yItem{
+			{gui.RoleDialog, chatSearchTitle, false, false},
+			{gui.RoleTextField, chatSearchLabel, false, false},
 		}},
 		{"侧边栏收起", func(t *testing.T) (*App, *gui.Tester) {
 			t.Helper()

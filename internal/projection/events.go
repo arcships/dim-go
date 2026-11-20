@@ -69,7 +69,10 @@ func (s *foldState) applyInput(event protocol.RawEvent, data map[string]any) {
 	change := s.goal.record(event, data)
 	text := inputText(data)
 	hasUser := data["user"] != nil
-	if !hasUser && text == "" {
+	// 只有附件、没有正文的用户输入仍是一次输入：进清单（界面按附件条数写），
+	// 不能因为没有可见文本就当成上下文块丢掉。
+	hasAttachments := attachmentCount(data) > 0
+	if !hasUser && text == "" && !hasAttachments {
 		if change == nil {
 			return
 		}

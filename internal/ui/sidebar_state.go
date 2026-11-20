@@ -44,6 +44,27 @@ type sidebarViewState struct {
 	groupMenus map[string]*bool
 	// hoveredGroup 是上一帧指针停留的工作区分组：F2 用它决定行内改名改哪一组。
 	hoveredGroup string
+	// groupPage 是分组视图里当前的工作区页（LB-58 / LB-59），0 起。页大小
+	// 见 sidebarGroupPageSize；分组少于一页时页恒为 0，尾部分页项不出现。
+	groupPage int
+	// flatLimit 是平铺视图里当前展示的会话行数（LB-64 / LB-65）；0 表示用
+	// 默认阈值 sidebarFlatPageSize。
+	flatLimit int
+	// flatLoading 是平铺视图的「正在加载更多」态（LB-63）。会话目录一次读入，
+	// 本版没有置真的位置；字段留给接上分页读取的那一天。
+	flatLoading bool
+	// groupOrder 是拖拽调整过的工作区分组顺序（LB-60）：按标识记，排在前面的
+	// 先出现；没记过的分组仍按会话数 / 活跃时间排。
+	groupOrder []string
+	// dragError 是一次拖入失败的原文（LB-662）：只在列表头下方显示一行，下次
+	// 拖入或添加成功时清掉。
+	dragError string
+	// dragOver 是本帧是否有文件被拖到列表上（LB-105）：由列表区的 FileDragOver
+	// 每帧写入。
+	dragOver bool
+	// dragHint 是注入的拖入态：宿主拖拽事件在无窗口 Tester 里造不出来，测试
+	// 直接置真来走查提示的渲染；正常运行时恒假。
+	dragHint bool
 }
 
 // sidebarWorkspace 是左栏里的一个分组：标识、显示名、目录路径、是否内置（🏠）、
@@ -188,6 +209,16 @@ func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 		if pinI, pinJ := a.groupPinned(groups[i]), a.groupPinned(groups[j]); pinI != pinJ {
 			return pinI
 		}
+		// 拖拽调整过的顺序（LB-60）：记过的分组按记录的先后排，没记过的排在
+		// 后面仍按会话数与活跃时间。
+		ri, oki := a.groupRank(groups[i])
+		rj, okj := a.groupRank(groups[j])
+		if oki != okj {
+			return oki
+		}
+		if oki && ri != rj {
+			return ri < rj
+		}
 		if groups[i].count != groups[j].count {
 			return groups[i].count > groups[j].count
 		}
@@ -197,6 +228,36 @@ func (a *App) sidebarWorkspaces(all []sidebarThread) []sidebarWorkspace {
 		return false
 	})
 	return append([]sidebarWorkspace{builtin}, groups...)
+}
+
+// groupRank 是分组在拖拽顺序里的位次；没有记过的分组 ok 为假。
+func (a *App) groupRank(ws sidebarWorkspace) (int, bool) {
+	for i, id := range a.sidebarView.groupOrder {
+		if id == ws.id {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
+// moveGroupTo 把一次拖拽落点落到顺序上（LB-60）：atTop 为真时排到最前，
+// 否则排到最后。只改本地视图顺序，不写偏好、不碰目录。
+func (a *App) moveGroupTo(id string, atTop bool) {
+	if id == "" {
+		return
+	}
+	order := make([]string, 0, len(a.sidebarView.groupOrder)+1)
+	for _, existing := range a.sidebarView.groupOrder {
+		if existing != id {
+			order = append(order, existing)
+		}
+	}
+	if atTop {
+		order = append([]string{id}, order...)
+	} else {
+		order = append(order, id)
+	}
+	a.sidebarView.groupOrder = order
 }
 
 // groupPinned 报告一个工作区分组是否置顶。
@@ -280,8 +341,7 @@ func (a *App) removeWorkspaceGroup(ws sidebarWorkspace) {
 }
 
 // groupCollapsed 取分组的折叠态：没有显式记录时有会话的组展开、空组收起
-// （内置「工作区」默认展开，参考产品的第一个分组总是露出来的）。搜索命中时
-// 由调用方强制展开，不改这里记下的选择。
+// （内置「工作区」默认展开，参考产品的第一个分组总是露出来的）。
 func (a *App) groupCollapsed(ws sidebarWorkspace) bool {
 	if collapsed, ok := a.sidebarView.collapsed[ws.id]; ok {
 		return collapsed
@@ -297,9 +357,6 @@ func (a *App) toggleGroup(ws sidebarWorkspace) {
 	a.sidebarView.collapsed[ws.id] = !a.groupCollapsed(ws)
 	a.persistViewState()
 }
-
-// sidebarSearching 表示搜索面开着并且有关键字：命中跨组显示，组自动展开。
-func (a *App) sidebarSearching() bool { return a.searchOpen && a.searchQuery != "" }
 
 // collapseAllGroups 收起全部工作区分组（视图菜单的「折叠全部」）。
 func (a *App) collapseAllGroups() {
@@ -345,9 +402,6 @@ func (a *App) sidebarThreads() []sidebarThread {
 			display = titles[i]
 		}
 		name := a.sessionName(i, display)
-		if a.searchOpen && a.searchQuery != "" && !containsFold(name, a.searchQuery) {
-			continue
-		}
 		marker := ""
 		if i < len(markers) {
 			marker = markers[i]

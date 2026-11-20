@@ -24,8 +24,9 @@ func wiredSource() *fakeSource {
 			ResetsAt: time.Date(2026, 1, 2, 0, 0, 0, 0, time.UTC)},
 		settings: SettingsSnapshot{
 			Provider: "Acme", ProviderID: "acme", Providers: []ProviderOption{{ID: "acme", Name: "Acme"}},
-			Model: "Model-X", ModelID: "model-x", Models: []ModelOption{{ID: "model-x", ProviderID: "acme", Name: "Model-X"}},
-			Tier: "full-access", TierKnown: true,
+			Model: "Model-X", ModelID: "model-x", ModelsKnown: true,
+			Models: []ModelOption{{ID: "model-x", ProviderID: "acme", Name: "Model-X"}},
+			Tier:   "full-access", TierKnown: true,
 			Storage:       StorageSnapshot{DatabaseBytes: 1536, WALBytes: 2048, ReclaimableBytes: 0},
 			StorageKnown:  true,
 			Runtimes:      []RuntimeSnapshot{{Name: "server-real", Version: "v9.0.0", Status: "ready"}},

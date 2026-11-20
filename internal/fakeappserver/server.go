@@ -721,6 +721,8 @@ func (s *Server) attach(
 	head := state.head
 	running := state.spec.Running
 	branchID := state.spec.BranchID
+	cwd := state.spec.Cwd
+	model := sessionModel(state.spec)
 	replay := append([]protocol.RawEvent(nil), state.spec.AttachReplay...)
 	s.mu.Unlock()
 
@@ -736,7 +738,17 @@ func (s *Server) attach(
 		SessionID: attach.SessionID,
 		Sequence:  &head,
 		Running:   &running,
+		Cwd:       cwd,
+		Model:     model,
 	}, nil
+}
+
+// sessionModel 把脚本里的会话模型拼成 attach 回执的形状；两者都为空时回执不带 model。
+func sessionModel(spec Session) *protocol.SessionModel {
+	if spec.ModelProviderID == "" && spec.ModelID == "" {
+		return nil
+	}
+	return &protocol.SessionModel{ProviderID: spec.ModelProviderID, ModelID: spec.ModelID}
 }
 
 func (s *Server) detach(

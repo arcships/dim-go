@@ -158,6 +158,8 @@ type PendingInput struct {
 	Sequence int64
 	Mode     string
 	Text     string
+	// Attachments 是这条输入携带的附件条数；正文为空时界面据此写「附件 N 个」。
+	Attachments int
 	// Applied 为真表示已被应用但未消费：仍在清单里，但不可撤回。
 	Applied bool
 }

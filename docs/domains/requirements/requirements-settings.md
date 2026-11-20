@@ -7187,7 +7187,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-MOD-157 | S-modality-20 | 空间 | 选择器靠近窗口底部 | 弹层翻转到上方，不超出窗口 | — | 开关状态变化次数 = 1（由当前态切到另一态） | 已实现（映射 = S-modality-20→internal/ui/settings_modality_screen.go:renderModality；标记 = Gap） |
 | R-MOD-158 | S-modality-20 | 动画 | 打开设置›多模态，看「模型选择弹层」 | 淡入 100ms | — | 屏上「模型选择弹层」：时长(ms) = 100 | 未实现（映射到位但没有该维度的标记）：S-modality-20→internal/ui/settings_modality_screen.go:renderModality |
 | R-MOD-159 | S-modality-20 | 无障碍 | 点开「模型选择弹层」 | 焦点进入搜索框，Esc 可关 | — | 判据 = 一次操作播报 1 条、重复 0 条、只含对象名与状态（SR-COUNT-1 / SR-TONE-PLAIN）；可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-modality-20→internal/ui/settings_modality_screen.go:renderModality；标记 = Role） |
-| R-MOD-160 | S-modality-20 | 异常 | 无可用模型 | 弹层显示「无可用模型」 | — | 屏上「模型选择弹层」的文案逐字为「无可用模型」（5 字） | 未实现（映射到位但没有该维度的标记）：S-modality-20→internal/ui/settings_modality_screen.go:renderModality |
+| R-MOD-160 | S-modality-20 | 异常 | 无可用模型 | 弹层显示「无可用模型」 | — | 屏上「模型选择弹层」的文案逐字为「无可用模型」（5 字） | 已实现（逐字）：internal/ui/composer_extra.go:modelEmptyState「无可用模型」 |
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
@@ -7246,7 +7246,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-MOD-201 | S-modality-26 | 状态 | 当前提供商无可用模型 | 弹层显示「无可用模型」 | — | 屏上「无可用模型」的文案逐字为「无可用模型」（5 字） | 未实现（映射到位但没有该维度的标记）：S-modality-26→internal/ui/settings_modality_screen.go:renderModality |
+| R-MOD-201 | S-modality-26 | 状态 | 当前提供商无可用模型 | 弹层显示「无可用模型」 | — | 屏上「无可用模型」的文案逐字为「无可用模型」（5 字） | 已实现（逐字）：internal/ui/composer_extra.go:modelEmptyState「无可用模型」 |
 | R-MOD-202 | S-modality-26 | 状态 | 有模型 | 不渲染 | — | 屏上「无可用模型」：出现次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-MOD-203 | S-modality-26 | 样式 | 打开设置›多模态，看「无可用模型」 | 字号 12、次级前景 | — | 屏上「无可用模型」：字号 = 12 | 已实现（映射 = S-modality-26→internal/ui/settings_modality_screen.go:renderModality；标记 = TextColor） |
 | R-MOD-204 | S-modality-26 | 关联 | 在「无可用模型」所在行内，同时看它与分组的相对位置 | 只在当前组为空处显示 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px | 已实现（映射 = S-modality-26→internal/ui/settings_modality_screen.go:renderModality；标记 = Screen） |
@@ -9078,7 +9078,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-PRM-041 | S-permissions-06 | 状态 | 隔离设置不可得 | 显示错误文案 +「刷新」按钮 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyRefresh「刷新」 |
+| R-PRM-041 | S-permissions-06 | 状态 | 隔离设置不可得 | 显示错误文案 +「刷新」按钮 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_about_screen.go:abtCopyRefresh「刷新」 |
 | R-PRM-042 | S-permissions-06 | 内容 | 无具体错误 | 显示「加载进程隔离设置失败」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/settings_permissions_screen.go:permCopyLoadFailed「加载进程隔离设置失败」 |
 | R-PRM-043 | S-permissions-06 | 交互 | 点刷新 | 重拉隔离设置 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Pressed@settingsActionButton） |
 | R-PRM-044 | S-permissions-06 | 样式 | 打开设置›权限，看「executionError \」 | 12 字号警示 + 描边小按钮 | — | 判据 = 边框宽 = 1px，边框色 = 明 #e5e5e5 / 暗 #2e2e2e（CL-BORDER） | 已实现（映射 = S-permissions-06→internal/ui/settings_permissions_screen.go:permIsolationCard；标记 = Padding） |

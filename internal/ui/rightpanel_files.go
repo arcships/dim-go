@@ -141,7 +141,8 @@ func (a *App) syncPanelTree(refresh bool) {
 	if !ok {
 		return
 	}
-	if !refresh && !a.rightOpen && !a.palette.open {
+	// 提及弹层的文件候选读同一份目录投影：它在场时也要读（见 mention.go）。
+	if !refresh && !a.rightOpen && !a.palette.open && !a.pick.open {
 		return
 	}
 	a.rpLiveTree(facts, refresh)
@@ -250,11 +251,14 @@ func (a *App) rpFilterRow(c *gui.Context) {
 	}
 }
 
-// rpSkeleton 是文件树首次加载的三条骨架（F-03）：每条高 32、左缘与树行同级。
+// rpSkeleton 是文件树与改动列表首次加载的三条骨架（F-03 / D-16）：每条高 32、
+// 左缘与树行同级；中性浅块、深色主题换深灰块，不用品牌色。容器用状态角色表达
+// 「正在加载」（读屏只说一次），三条骨架本身不单独播报。
 func (a *App) rpSkeleton(c *gui.Context) {
 	t := c.Theme()
 	gui.Column(c).Label("正在加载文件树").Role(gui.RoleStatus).Children(func() {
 		for i := 0; i < rpSkeletonRows; i++ {
+			// D-16 骨架条：中性浅块，宽度撑满列表宽（窄窗下随列表收缩）。
 			gui.Row(c).Height(panelSkeletonHeight).Padding(0, panelRowPadH).
 				AlignItems(gui.Center).Children(func() {
 				gui.Box(c).Height(panelRowHeight2).Grow(1).

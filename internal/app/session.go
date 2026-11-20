@@ -34,6 +34,9 @@ type SessionView struct {
 	Unlanded     int
 	// Running 是打开会话时服务端给出的运行状态；当前只在 attach 回执里读取。
 	Running bool
+	// Cwd 是这个已打开会话的工作目录：attach 回执给的就用它，没给时取目录条目。
+	// 界面右栏的文件与改动页按它决定读哪个目录；空表示两处都没有读到。
+	Cwd string
 	// PendingCounts 是审批与提问的待决条数。
 	PendingCounts interaction.Counts
 	// Current 是队列里的第一条待决项；HasCurrent 为假表示没有待决。
@@ -250,6 +253,22 @@ func (a *App) View(sessionID string) (SessionView, bool) {
 		return SessionView{}, false
 	}
 	return a.viewOf(runtime), true
+}
+
+// SessionModel 返回这个已打开会话在 attach 回执里的模型；会话没打开或回执没给
+// model 时 ok 为假。
+//
+// 它只读回执里的一个字段，不折叠视图：模型槽每帧都读它，不能每次都重算整份视图。
+func (a *App) SessionModel(sessionID string) (providerID, modelID string, ok bool) {
+	runtime, found := a.session(sessionID)
+	if !found || runtime.attached.Model == nil {
+		return "", "", false
+	}
+	model := runtime.attached.Model
+	if strings.TrimSpace(model.ProviderID) == "" && strings.TrimSpace(model.ModelID) == "" {
+		return "", "", false
+	}
+	return model.ProviderID, model.ModelID, true
 }
 
 // LoadOlder 向前翻一页历史：用投影给出的游标读一页，再交回同一个折叠入口。
@@ -535,7 +554,7 @@ func (a *App) viewOf(runtime *sessionRuntime) SessionView {
 		running = *runtime.attached.Running
 	}
 	lastIndex, lastOutcome, lastEnded := lastEndedTurn(view.Turns)
-	return SessionView{
+	out := SessionView{
 		SessionID:     view.SessionID,
 		BranchID:      view.BranchID,
 		BranchStatus:  view.BranchStatus,
@@ -550,6 +569,7 @@ func (a *App) viewOf(runtime *sessionRuntime) SessionView {
 		HasOlder:      view.HasOlder,
 		Unlanded:      view.Unlanded,
 		Running:       running,
+		Cwd:           strings.TrimSpace(runtime.attached.Cwd),
 		PendingCounts: counts,
 		Current:       current,
 		HasCurrent:    hasCurrent,
@@ -557,6 +577,15 @@ func (a *App) viewOf(runtime *sessionRuntime) SessionView {
 		Compaction:  view.Compaction,
 		Compactions: view.Compactions,
 	}
+	// attach 回执没给 cwd 时退回目录条目：会话在目录里就有工作目录。
+	if out.Cwd == "" {
+		if catalog := a.Catalog(); catalog != nil {
+			if entry, ok := catalog.Entry(view.SessionID); ok {
+				out.Cwd = strings.TrimSpace(entry.Workspace)
+			}
+		}
+	}
+	return out
 }
 
 // lastEndedTurn 取最后一个已结束的轮：序号最大且状态为 ended 的那一轮。

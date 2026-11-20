@@ -112,7 +112,7 @@ var screenCases = []screenCase{
 		a.openDeleteConfirm([]int{0})
 	}},
 	{name: "variant-search", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {
-		a.searchOpen = true
+		a.openChatSearch()
 	}},
 	// 终端三态（右栏第五个标签）：空闲 / 运行中 / 已退出。
 	{name: "variant-term", state: StateDefault, titleBar: &windowTitleBar, setup: func(a *App) {

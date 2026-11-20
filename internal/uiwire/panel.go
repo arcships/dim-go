@@ -706,7 +706,12 @@ func (w *App) readPreview(ctx context.Context, request ui.PreviewRequest) ui.Pre
 // cwd 是会话事实（目录里的 cwd）；空表示按工作区根读。会话目录落在工作区根
 // 之外时明确报错，不悄悄换成根目录——那样画出来的树不是用户以为的那一份。
 func (w *App) panelWorkspace(cwd string) (*workspace.Workspace, string, error) {
-	ws := w.A.Workspace()
+	// 没有配置工作区根时按会话 cwd 打开只读工作区：真实客户端不预设根，cwd 是
+	// 服务端事实。配置了根时仍以配置的根为界（自检与夹具用）。
+	ws, err := w.A.WorkspaceFor(cwd)
+	if err != nil {
+		return nil, "", fmt.Errorf("打不开会话工作目录: %w", err)
+	}
 	if ws == nil {
 		return nil, "", errors.New("工作区未配置：没有可读的工作目录")
 	}

@@ -35,11 +35,12 @@ func (a *App) seedPending(ctx context.Context, runtime *sessionRuntime) {
 		items := make([]projection.PendingInput, 0, len(inputs))
 		for _, input := range inputs {
 			items = append(items, projection.PendingInput{
-				InputID:  input.InputID,
-				Sequence: input.Sequence,
-				Mode:     input.Mode,
-				Text:     pendingInputText(input.User),
-				Applied:  input.Applied,
+				InputID:     input.InputID,
+				Sequence:    input.Sequence,
+				Mode:        input.Mode,
+				Text:        pendingInputText(input),
+				Attachments: pendingInputAttachments(input),
+				Applied:     input.Applied,
 			})
 		}
 		runtime.folder.SeedPendingInputs(branchID, through, items)
@@ -141,26 +142,52 @@ func fetchPendingPages[T any](
 	return through, items, fmt.Errorf("未完成事项超过 %d 页，结果不完整", maxPendingPages)
 }
 
-// pendingInputText 从待消费输入里取出可展示的文本：只拼接文本块，其余块不解释。
-func pendingInputText(user *protocol.PendingInputUser) string {
-	if user == nil {
-		return ""
+// pendingInputText 从待消费输入里取出可展示的正文：先拼 user.content 里的文本块，
+// 没有时退回服务端给的正文与摘要（message / preview，两者都可省略）。
+//
+// 文本块既有本项目提交的 `type=text`，也有 Responses 形状的 `type=input_text`；
+// 纯字符串块同样算正文。只有附件、没有正文的输入返回空串（界面按附件条数写），
+// 不拿「附件」两个字替每条输入顶上正文。
+func pendingInputText(input protocol.PendingInput) string {
+	if user := input.User; user != nil {
+		var builder strings.Builder
+		for _, block := range user.Content {
+			var plain string
+			if err := json.Unmarshal(block, &plain); err == nil {
+				builder.WriteString(plain)
+				continue
+			}
+			var parsed struct {
+				Type string `json:"type"`
+				Text string `json:"text"`
+			}
+			if err := json.Unmarshal(block, &parsed); err != nil {
+				continue
+			}
+			switch parsed.Type {
+			case "", "text", "input_text":
+				builder.WriteString(parsed.Text)
+			}
+		}
+		if text := builder.String(); strings.TrimSpace(text) != "" {
+			return text
+		}
 	}
-	var builder strings.Builder
-	for _, block := range user.Content {
-		var parsed struct {
-			Type string `json:"type"`
-			Text string `json:"text"`
-		}
-		if err := json.Unmarshal(block, &parsed); err != nil {
-			continue
-		}
-		if parsed.Type != "" && parsed.Type != "text" {
-			continue
-		}
-		builder.WriteString(parsed.Text)
+	// 队列项形状：完整正文与预览是服务端给的字符串；两者都没有才算没有正文。
+	if strings.TrimSpace(input.Message) != "" {
+		return input.Message
 	}
-	return builder.String()
+	return input.Preview
+}
+
+// pendingInputAttachments 数这条输入的附件条数：附件条目与附件名清单是同一件事的
+// 两种写法，取较大的那一份，避免同一份清单被算两遍。
+func pendingInputAttachments(input protocol.PendingInput) int {
+	count := len(input.Attachments)
+	if names := len(input.AttachmentNames); names > count {
+		count = names
+	}
+	return count
 }
 
 // seedQuestionsFromList 把清单一页里未结算的 ask_user 调用装进投影与交互裁决。

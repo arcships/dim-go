@@ -15,30 +15,24 @@ Owner: U4 技术设计（界面领域）
 <!-- BEGIN:items -->
 | # | 可见元素 | 组件（框架 / 自绘） | 代码符号 | 出现的态 |
 |---|---|---|---|---|
-| EL-01 | 左栏入口 · 新建 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
-| EL-02 | 左栏入口 · 搜索 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
-| EL-03 | 左栏入口 · 收起左栏 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
-| EL-04 | 连接状态 | 自绘 Box + DrawOver 圆 | `statusDot` | `always` |
+| EL-01 | 左栏入口 · 新建 | gui.ButtonBase + 自绘图标 | `sidebarEntry` | `always` |
+| EL-02 | 左栏入口 · 搜索 | gui.ButtonBase + 自绘图标 | `sidebarEntry` | `always` |
+| EL-03 | 左栏入口 · 收起侧边栏 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
 | EL-05 | 账号 | 自绘 Box + DrawOver 首字母 | `avatar` | `always` |
 | EL-06 | 标题行会话名 | 自绘 Row + gui.Text | `header` | `always` |
-| EL-07 | 右栏入口 | gui.ButtonBase + 自绘图标 | `iconMenuButton` | `always` |
-| EL-08 | 分支标记 | gui.ButtonBase + PopoverMenuButton（原生菜单） | `branchChip` | `branch` |
+| EL-07 | 右栏入口 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
+| EL-08 | 分支标记 | 自绘 Row + iconBox | `branchMarker` | `branch` |
 | EL-09 | 轮次组头 | CollapsibleBase + 自绘行 | `roundHeader` | `always` |
 | EL-10 | 过程条目 | 自绘行 | `opRow` | `always` |
 | EL-11 | 结果不确定 | 自绘 Row + iconGlyph | `note` | `failed` |
-| EL-12 | 审批决定 · 允许一次 | 自绘 ButtonBase（textIconButton） | `textIconButton` | `waiting` |
-| EL-13 | 审批决定 · 一直允许 | 自绘 ButtonBase（textIconButton） | `textIconButton` | `waiting` |
-| EL-14 | 审批决定 · 拒绝 | 自绘 ButtonBase（textIconButton） | `textIconButton` | `waiting` |
-| EL-15 | 队列条 · 撤回 | gui.ButtonBase + 自绘图标 | `iconButton` | `running` |
-| EL-16 | 上下文用量 | CollapsibleBase + 自绘行 | `contextMeter` | `always` |
+| EL-12 | 审批决定 · 允许一次 | gui.Button | `actionButton` | `waiting` |
+| EL-13 | 审批决定 · 一直允许 | gui.Button | `actionButton` | `waiting` |
+| EL-14 | 审批决定 · 拒绝 | gui.Button | `actionButton` | `waiting` |
 | EL-17 | 附件入口 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
 | EL-18 | 发送槽（发送） | 自绘 ButtonBase（iconAction） | `iconAction` | `always` |
 | EL-19 | 发送槽（停止） | 自绘 ButtonBase（iconAction） | `iconAction` | `running` |
 | EL-20 | 读取更早 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
-| EL-21 | 空态 | 自绘 Row + iconGlyph | `timeline` | `empty` |
-| EL-22 | 目标行 | 自绘 Row + TextAreaBase | `goalRow` | `always` |
-| EL-23 | 目标行 · 修改入口 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
-| EL-24 | 目标行 · 编辑态保存 | gui.PrimaryButton | `actionButton` | `goal-edit` |
+| EL-21 | 空态 | gui.Text + brandMark | `emptyThread` | `empty` |
 | EL-25 | 后台任务行 | 自绘 Row + iconGlyph | `taskRow` | `tasks` |
 | EL-26 | 后台任务 · 取消 | gui.ButtonBase + 自绘图标 | `iconButton` | `tasks` |
 | EL-27 | 用户消息 | 自绘 Box（气泡） | `round` | `always` |
@@ -46,7 +40,6 @@ Owner: U4 技术设计（界面领域）
 | EL-29 | 设置入口 | gui.ButtonBase + 自绘图标 | `iconButton` | `always` |
 | EL-30 | 设置分节导航 | gui.ButtonBase（自绘行） | `navRow` | `settings` |
 | EL-31 | 设置项（标签 + 控件） | 自绘行 + gui.Select | `appearanceFontRow` | `settings-appearance` |
-| EL-33 | 目标行 · 编辑态取消 | gui.Button | `actionButton` | `goal-edit` |
 | EL-39 | 终端表面 | 右栏标签（gui.Tabs 第五项） | `rightPanel` | `term` |
 | EL-40 | 终端状态点 | 自绘 Box + DrawOver 点 | `terminalPane` | `term` |
 | EL-41 | 终端输出区 | gui.Scroll + 等宽 Text | `terminalPane` | `term-exited` |
@@ -55,13 +48,10 @@ Owner: U4 技术设计（界面领域）
 | EL-44 | 会话行末动作入口 | gui.ButtonBase + PopoverMenuButton | `sessionItem` | `session-menu` |
 | EL-45 | 会话动作菜单 | gui.PopoverMenuButton | `sessionItem` | `session-menu` |
 | EL-46 | 重命名行内编辑 | gui.TextInputBase + actionButton | `renameRow` | `rename` |
-| EL-47 | 删除确认行 | 自绘行 + actionButton | `deleteConfirmRow` | `session-delete` |
-| EL-48 | 搜索面 | gui.TextInputBase | `searchPane` | `search` |
+| EL-47 | 删除确认框 | gui.Modal + confirmDialog | `confirmDialog` | `session-delete` |
+| EL-48 | 搜索聊天输入框 | gui.TextInputBase | `chatSearchInputRow` | `search` |
 | EL-56 | 键位行（名称 + 键位） | 自绘行 + 描边键位按钮 | `keybindingRow` | `settings-keybindings` |
-| EL-57 | 命令模式标记 | 自绘行 + iconButton | `shellMarker` | `shell` |
 | EL-58 | 运行命令入口 | iconAction | `sendSlot` | `shell` |
-| EL-59 | 退出命令模式 | 自绘图标入口 | `shellMarker` | `shell` |
-| EL-65 | 附件行与移除入口 | 自绘行 + iconButton | `chipRow` | `default` |
 | EL-67 | 终端断线入口 | 自绘图标入口 | `terminalPane` | `term` |
 | EL-68 | 终端恢复入口 | 自绘图标入口 | `terminalPane` | `term-disconnected` |
 <!-- END:items -->

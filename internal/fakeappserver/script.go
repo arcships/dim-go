@@ -44,6 +44,11 @@ type Session struct {
 	BranchID string
 	// Running 是 attach 回执里的运行状态。
 	Running bool
+	// Cwd 是 attach 回执里的会话工作目录；空时回执不带这一项（老服务端形状）。
+	Cwd string
+	// ModelProviderID / ModelID 是 attach 回执里的会话模型；都为空时回执不带 model。
+	ModelProviderID string
+	ModelID         string
 	// Head 是 attach 回执里的头部序号；0 时取事件里的最大序号。
 	Head int64
 	// LatestTurnStart 是最近一轮的起始序号；大于 0 时 latestTurn 读取从它开始。

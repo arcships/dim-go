@@ -253,17 +253,17 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-AP-203 | G-C1-20 | 状态 | A 态：`allow_all` 且工具为 `exec` | 次按钮「始终允许此命令」在场：891,632 109×28 | — | 屏上文案逐字「始终允许此命令」，包围盒 891,632 109×28 | 已实现（逐字）：internal/ui/approval.go:approvalCopyAlwaysCommand「始终允许此命令」 |
 | R-AP-204 | G-C1-20 | 内容 | `read`/`write`/`edit` 的 `allow_all` | 同一位置文案换「允许此会话期间访问」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/approval.go:approvalCopyAllowForSession「允许此会话期间访问」 |
 | R-AP-205 | G-C1-20 | 内容 | 其他工具的 `allow_all` | 文案为「始终允许文件访问」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/approval.go:approvalCopyAlwaysFile「始终允许文件访问」 |
-| R-AP-206 | G-C1-20 | 状态 | 三种文案互斥 | 同一按钮只显示一种，由工具类别决定 | — | 屏上 次按钮 计数 = 1 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
+| R-AP-206 | G-C1-20 | 状态 | 三种文案互斥 | 同一按钮只显示一种，由工具类别决定 | — | 屏上 次按钮 计数 = 1 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
 | R-AP-207 | G-C1-20 | 交互 | 鼠标点击该元素时 | 以「始终允许」答复；卡片消失；后续同类请求不再询问 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 已实现（逐字）：internal/ui/approval.go:approvalCopyAlwaysCommand「始终允许」 |
-| R-AP-208 | G-C1-20 | 关联 | 两种放行按钮先后出现时 | 长期允许与一次性允许答复值不同 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
-| R-AP-209 | G-C1-20 | 状态 | 提交进行中时 | 禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
+| R-AP-208 | G-C1-20 | 关联 | 两种放行按钮先后出现时 | 长期允许与一次性允许答复值不同 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
+| R-AP-209 | G-C1-20 | 状态 | 提交进行中时 | 禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
 | R-AP-210 | G-C1-20 | 样式 | 拒绝与长期允许按钮同屏时 | 同尺寸（高 28）、描边次按钮；只因文案长短宽度不同（109 vs 48） | — | 判据 = 描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-C1-20→internal/ui/approval.go:approvalLongTermCopy；标记 = Type@approvalSandboxLongTermCopy） |
-| R-AP-211 | G-C1-20 | 无障碍 | 读屏进入该元素时 | 读作按钮，名称与当前文案一致，并说明作用域（命令 / 会话 / 文件） | — | 播报顺序 = 始终允许此命令 → 允许此会话期间访问 → 始终允许文件访问 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
-| R-AP-212 | G-C1-20 | 键盘 | 按 Enter 时 | 以长期允许答复该请求，卡片消失 | — | 屏上 卡片 计数 = 0 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
-| R-AP-213 | G-C1-20 | 异常 | 提交失败 | 卡片保留、按钮回可点 | — | 卡片 计数 = 1；次按钮 可点状态 = 可点 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
+| R-AP-211 | G-C1-20 | 无障碍 | 读屏进入该元素时 | 读作按钮，名称与当前文案一致，并说明作用域（命令 / 会话 / 文件） | — | 播报顺序 = 始终允许此命令 → 允许此会话期间访问 → 始终允许文件访问 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
+| R-AP-212 | G-C1-20 | 键盘 | 按 Enter 时 | 以长期允许答复该请求，卡片消失 | — | 屏上 卡片 计数 = 0 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
+| R-AP-213 | G-C1-20 | 异常 | 提交失败 | 卡片保留、按钮回可点 | — | 卡片 计数 = 1；次按钮 可点状态 = 可点 | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
 | R-AP-214 | G-C1-20 | 异常 | 请求不提供 `allow_all` | 按钮不出现（不显示为禁用） | — | 屏上 为禁用 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-AP-215 | G-C1-20 | 记忆 | 已允许后同一工具再请求 | 不再出卡（长期允许生效），日志里可查 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
-| R-AP-216 | G-C1-20 | 窄窗 | 窗口收窄到最窄宽度时 | 长文案仍完整（可缩字号或折行），不裁成「始终允许…」 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS）；字号 12.25 / 行高 18 / 字重 400，说明文字 10.5 / 14（TX-TYPE-BODY / TX-TYPE-MICRO） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy |
+| R-AP-215 | G-C1-20 | 记忆 | 已允许后同一工具再请求 | 不再出卡（长期允许生效），日志里可查 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
+| R-AP-216 | G-C1-20 | 窄窗 | 窗口收窄到最窄宽度时 | 长文案仍完整（可缩字号或折行），不裁成「始终允许…」 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS）；字号 12.25 / 行高 18 / 字重 400，说明文字 10.5 / 14（TX-TYPE-BODY / TX-TYPE-MICRO） | 未实现（映射到位但没有该维度的标记）：G-C1-20→internal/ui/approval.go:approvalLongTermCopy；测试提及 internal/ui/negative_evidence_test.go:包级 |
 | R-AP-217 | G-C1-20 | 多语言 | 把界面语言切到英文时 | 三种作用域文案各自本地化 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-C1-20→internal/ui/approval.go:approvalLongTermCopy；标记 = 文案「始终允许此命令」等 3 条） |
 | R-AP-218 | G-C1-20 | 内容 | 沙箱越权请求到达时 | 同一位置换成「始终允许网络访问 / 始终允许文件访问」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-C1-20→internal/ui/approval.go:approvalLongTermCopy；标记 = 文案「始终允许此命令」等 3 条） |
 | R-AP-219 | G-C1-21 | 状态 | 未观察（条件）：点动作后提交中 | 整组按钮降到 50% 不透明并禁用，文案不变 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED） | 已实现（映射 = G-C1-21→internal/ui/approval.go:App.approvalActions；标记 = Disabled） |
@@ -443,7 +443,7 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-AP-372 | G-C4-01 | 交互 | 鼠标滚轮在元素上滚动时 | 区块内部滚动，卡片位置不动 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：G-C4-01→internal/ui/approval_panels.go:approvalInputPanel |
 | R-AP-373 | G-C4-01 | 交互 | 选中屏上文本后 | 命令行与参数行可选中复制 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-C4-01→internal/ui/approval_panels.go:approvalInputPanel |
 | R-AP-374 | G-C4-01 | 关联 | 同一请求换用不同工具、输入区整块切换时 | 同一区块按工具切换内容（命令 / 文件 / 搜索 / 网页 / 技能 / 子代理 / 浏览器 / CUA / 等待 / 通用），区块本身不变形 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：G-C4-01→internal/ui/approval_panels.go:approvalInputPanel |
-| R-AP-375 | G-C4-01 | 样式 | 分别切到浅色与深色主题时 | 底色比卡片底略深或略浅一档，形成「输入框」感；描边 1px | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（逐字）：internal/ui/settings_keybindings_screen.go:keybindingDefs「输入框」 |
+| R-AP-375 | G-C4-01 | 样式 | 分别切到浅色与深色主题时 | 底色比卡片底略深或略浅一档，形成「输入框」感；描边 1px | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；描边 常规 1px（卡片外框 0.5px / 焦点环 3px）；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px | 已实现（逐字）：internal/ui/search_chat.go:chatSearchLabel「输入框」 |
 | R-AP-376 | G-C4-01 | 无障碍 | 读屏进入该元素时 | 区块只读展示，不进 Tab 顺序；内容可整体读取 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-C4-01→internal/ui/approval_panels.go:approvalInputPanel；标记 = Label） |
 | R-AP-377 | G-C4-01 | 异常 | 入参无法解析 | 退回通用渲染器（C4-25），不出现空区块 | — | 屏上 空区块 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-AP-378 | G-C4-01 | 记忆 | 切到其它会话再切回时 | 区块按请求重建，滚动回顶 | — | 判据 = 滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：G-C4-01→internal/ui/approval_panels.go:approvalInputPanel |
@@ -788,15 +788,15 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GS-086 | G-A2-01 | 状态 | Q：按 `⌘G` 或点左栏「搜索」 | 模态对话框出现：实测 291,293 448×139，`max-w-xl`、无内边距、无右上关闭按钮 | — | 屏上出现 1 个 `role=dialog`，包围盒 291,293 448×139 | 未实现（找不到元素渲染点） |
-| R-GS-087 | G-A2-01 | 关联 | 搜索聊天对话框打开、背景时间线仍在时 | 背景被遮罩压暗，遮罩内不可交互 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-088 | G-A2-01 | 交互 | 按 Esc 时 | 关闭对话框，焦点回到唤起前的位置 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-089 | G-A2-01 | 状态 | 已有对话框时再唤起 | 不新开第二个；聚焦已有输入框 | — | 对话框计数恒为 1 | 未实现（找不到元素渲染点） |
-| R-GS-090 | G-A2-01 | 样式 | 分别切到浅色与深色主题时 | 圆角 + 阴影 + 上层底色；深色主题下描边更明显 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-GS-091 | G-A2-01 | 无障碍 | 读屏进入该元素时 | 作为模态对话框，焦点进入框内并困住 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-092 | G-A2-01 | 异常 | 会话列表接口失败 | 对话框保留并显示空态或错误提示，不空白无反馈 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-093 | G-A2-01 | 记忆 | 关闭后再次打开时 | 不记忆上次查询（每次打开为空、聚焦输入框） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-094 | G-A2-01 | 窄窗 | 窗口收窄到最窄宽度时 | 宽按 `min(max-w-xl, 100vw-…)` 收缩，不溢出 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-GS-086 | G-A2-01 | 状态 | Q：按 `⌘G` 或点左栏「搜索」 | 模态对话框出现：实测 291,293 448×139，`max-w-xl`、无内边距、无右上关闭按钮 | — | 屏上出现 1 个 `role=dialog`，包围盒 291,293 448×139 | 已实现（映射 = G-A2-01→internal/ui/search_chat.go:App.chatSearchCatalog；标记 = Loading） |
+| R-GS-087 | G-A2-01 | 关联 | 搜索聊天对话框打开、背景时间线仍在时 | 背景被遮罩压暗，遮罩内不可交互 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-01→internal/ui/search_chat.go:App.chatSearchDialog；标记 = Screen） |
+| R-GS-088 | G-A2-01 | 交互 | 按 Esc 时 | 关闭对话框，焦点回到唤起前的位置 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A2-01→internal/ui/search_chat.go:App.chatSearchDialog；标记 = Pressed@App.chatSearchInputRow） |
+| R-GS-089 | G-A2-01 | 状态 | 已有对话框时再唤起 | 不新开第二个；聚焦已有输入框 | — | 对话框计数恒为 1 | 已实现（映射 = G-A2-01→internal/ui/search_chat.go:App.chatSearchCatalog；标记 = Loading） |
+| R-GS-090 | G-A2-01 | 样式 | 分别切到浅色与深色主题时 | 圆角 + 阴影 + 上层底色；深色主题下描边更明显 | — | 判据 = 圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = G-A2-01→internal/ui/search_chat.go:App.chatSearchDialog；标记 = Width） |
+| R-GS-091 | G-A2-01 | 无障碍 | 读屏进入该元素时 | 作为模态对话框，焦点进入框内并困住 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A2-01→internal/ui/search_chat.go:App.chatSearchDialog；标记 = Role） |
+| R-GS-092 | G-A2-01 | 异常 | 会话列表接口失败 | 对话框保留并显示空态或错误提示，不空白无反馈 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-01→internal/ui/search_chat.go:App.closeChatSearch；标记 = Reason） |
+| R-GS-093 | G-A2-01 | 记忆 | 关闭后再次打开时 | 不记忆上次查询（每次打开为空、聚焦输入框） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-A2-01→internal/ui/search_chat.go:App.closeChatSearch；测试提及 internal/ui/a11y_screens_test.go:a11yScreens |
+| R-GS-094 | G-A2-01 | 窄窗 | 窗口收窄到最窄宽度时 | 宽按 `min(max-w-xl, 100vw-…)` 收缩，不溢出 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：G-A2-01→internal/ui/search_chat.go:App.closeChatSearch；测试提及 internal/ui/a11y_screens_test.go:a11yScreens |
 | R-GS-095 | G-A2-02 | 内容 | 打开「搜索聊天」对话框时 | 标题「搜索聊天」与描述「搜索并打开已有聊天」为 `sr-only`：屏上不可见，仅供读屏 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（逐字）：internal/ui/search.go:sessionSearchPlaceholder「搜索聊天」 |
 | R-GS-096 | G-A2-02 | 无障碍 | 读屏进入该元素时 | 标题作为对话框名、描述作为说明被读出 | — | 读屏文本 = 「搜索聊天」 | 未实现（找不到元素渲染点） |
 | R-GS-097 | G-A2-02 | 状态 | 任何状态 | 两者恒定 `sr-only`，不在任何状态下显形 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
@@ -814,74 +814,74 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GS-109 | G-A2-03 | 内容 | 输入框有内容 | 图标不随文字滚动，贴在框左端内侧 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
 | R-GS-110 | G-A2-03 | 状态 | 结果为空 | 图标仍显示（不换成告警图标） | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
 | R-GS-111 | G-A2-04 | 内容 | 打开「搜索聊天」对话框时 | 输入框占位逐字「搜索聊天」（不入 JSON，PNG 可见）；实测 331,294 394×48（模板声明 56，实测 48） | — | 屏上占位逐字为「搜索聊天」；包围盒 331,294 394×48 | 已实现（逐字）：internal/ui/search.go:sessionSearchPlaceholder「搜索聊天」 |
-| R-GS-112 | G-A2-04 | 状态 | 打开即聚焦 | 光标在框内，无边框高亮（无边框设计） | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED） | 未实现（找不到元素渲染点） |
-| R-GS-113 | G-A2-04 | 交互 | 在输入框键入时 | 逐字过滤会话；结果最多 8 条 | — | 结果数 ≤8 | 未实现（找不到元素渲染点） |
-| R-GS-114 | G-A2-04 | 键盘 | 按 ↑ 或 ↓ 时 | 在结果间移动选中项（G-A2-13），输入框内容不变 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-115 | G-A2-04 | 键盘 | 按 Enter 时 | 打开当前选中会话并关闭对话框 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-116 | G-A2-04 | 键盘 | ⌘1–⌘8 / Ctrl+1–8 | 直接打开对应序号结果（见 G-A2-12） | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-117 | G-A2-04 | 内容 | 查询超长 | 单行横向滚动，框高恒 48 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-118 | G-A2-04 | 无障碍 | 读屏进入该元素时 | 读作搜索输入框，值为当前查询 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-119 | G-A2-04 | 异常 | 查询无命中 | 结果区显示「未找到聊天」（G-A2-14），输入框保留查询 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-120 | G-A2-05 | 状态 | 未观察（条件）：当前页结果未就绪（`role=status`，旋转图标 + 文字） | 结果区显示「正在加载...」，三点为英文句点 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketLoading「正在加载...」 |
-| R-GS-121 | G-A2-05 | 动画 | 加载进行中时 | 旋转图标连续旋转；结果返回后整行消失 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
+| R-GS-112 | G-A2-04 | 状态 | 打开即聚焦 | 光标在框内，无边框高亮（无边框设计） | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED） | 已实现（映射 = G-A2-04→internal/ui/search_chat.go:App.chatSearchInputRow；标记 = Hidden@iconGlyph） |
+| R-GS-113 | G-A2-04 | 交互 | 在输入框键入时 | 逐字过滤会话；结果最多 8 条 | — | 结果数 ≤8 | 已实现（映射 = G-A2-04→internal/ui/search_chat.go:App.chatSearchInputRow；标记 = Pressed） |
+| R-GS-114 | G-A2-04 | 键盘 | 按 ↑ 或 ↓ 时 | 在结果间移动选中项（G-A2-13），输入框内容不变 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A2-04→internal/ui/search_chat.go:App.chatSearchInputRow；标记 = Key） |
+| R-GS-115 | G-A2-04 | 键盘 | 按 Enter 时 | 打开当前选中会话并关闭对话框 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A2-04→internal/ui/search_chat.go:App.chatSearchInputRow；标记 = Key） |
+| R-GS-116 | G-A2-04 | 键盘 | ⌘1–⌘8 / Ctrl+1–8 | 直接打开对应序号结果（见 G-A2-12） | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A2-04→internal/ui/search_chat.go:App.chatSearchInputRow；标记 = Key） |
+| R-GS-117 | G-A2-04 | 内容 | 查询超长 | 单行横向滚动，框高恒 48 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；滚动条宽 6、滑块 ≥ 24（SC-WIDTH-6 / SC-THUMB-24）；滚轮一格 54、150ms（SC-STEP-54）；初始位置与横向溢出按 SC-ANCHOR / SC-OVERFLOW-0；包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A2-04→internal/ui/search_chat.go:App.chatSearchInputRow；标记 = 文案「搜索聊天」等 2 条） |
+| R-GS-118 | G-A2-04 | 无障碍 | 读屏进入该元素时 | 读作搜索输入框，值为当前查询 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-04→internal/ui/search_chat.go:App.chatSearchInputRow；标记 = Label） |
+| R-GS-119 | G-A2-04 | 异常 | 查询无命中 | 结果区显示「未找到聊天」（G-A2-14），输入框保留查询 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/search_chat.go:chatSearchEmptyText「未找到聊天」 |
+| R-GS-120 | G-A2-05 | 状态 | 未观察（条件）：当前页结果未就绪（`role=status`，旋转图标 + 文字） | 结果区显示「正在加载...」，三点为英文句点 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/search_chat.go:chatSearchLoadingText「正在加载...」 |
+| R-GS-121 | G-A2-05 | 动画 | 加载进行中时 | 旋转图标连续旋转；结果返回后整行消失 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1)；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（映射到位但没有该维度的标记）：G-A2-05→internal/ui/search_chat.go:App.chatSearchResults；测试提及 internal/ui/search_chat_test.go:包级 |
 | R-GS-122 | G-A2-05 | 关联 | 检索进行中、尚无命中时 | 加载中不显示「未找到聊天」（避免先空后有的闪烁） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-123 | G-A2-05 | 样式 | 状态行在屏上时 | 居中、12–13px 次要色、上下留白 8 | — | 判据 = 字号 代码 13px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-124 | G-A2-05 | 无障碍 | 读屏进入该元素时 | `role=status` 播报一次 | — | 播报次数 = 1 | 未实现（找不到元素渲染点） |
-| R-GS-125 | G-A2-05 | 异常 | 加载失败 | 换成空态或错误提示，不停在加载中 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-126 | G-A2-05 | 内容 | 首屏结果瞬时返回 | 该行可能只出现 1 帧；不得残留成常驻文案 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-127 | G-A2-05 | 样式 | 加载行与空态文案先后出现时 | 同为居中文案，但一行带旋转图标、一行不带 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-128 | G-A2-06 | 状态 | 未观察（条件）：已翻到第 2 页之后 | 结果列表顶部出现整行「上一页」文字按钮（32px 高） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 未实现（找不到元素渲染点） |
-| R-GS-129 | G-A2-06 | 交互 | 鼠标点击该元素时 | 回到上一页；选中项重置为第 1 条 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-123 | G-A2-05 | 样式 | 状态行在屏上时 | 居中、12–13px 次要色、上下留白 8 | — | 判据 = 字号 代码 13px；内边距 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28）/ 卡片外框 4.5；档位 3.5·7·10.5·14·21·28px；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-05→internal/ui/search_chat.go:App.chatSearchResults；标记 = Height） |
+| R-GS-124 | G-A2-05 | 无障碍 | 读屏进入该元素时 | `role=status` 播报一次 | — | 播报次数 = 1 | 已实现（映射 = G-A2-05→internal/ui/search_chat.go:App.chatSearchResults；标记 = Label） |
+| R-GS-125 | G-A2-05 | 异常 | 加载失败 | 换成空态或错误提示，不停在加载中 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-05→internal/ui/search_chat.go:App.chatSearchResults；标记 = Reason） |
+| R-GS-126 | G-A2-05 | 内容 | 首屏结果瞬时返回 | 该行可能只出现 1 帧；不得残留成常驻文案 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-05→internal/ui/search_chat.go:App.chatSearchResults；标记 = 文案「正在加载搜索聊天」等 3 条） |
+| R-GS-127 | G-A2-05 | 样式 | 加载行与空态文案先后出现时 | 同为居中文案，但一行带旋转图标、一行不带 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-05→internal/ui/search_chat.go:App.chatSearchResults；标记 = Height） |
+| R-GS-128 | G-A2-06 | 状态 | 未观察（条件）：已翻到第 2 页之后 | 结果列表顶部出现整行「上一页」文字按钮（32px 高） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 已实现（逐字）：internal/ui/search_chat.go:chatSearchPrevText「上一页」 |
+| R-GS-129 | G-A2-06 | 交互 | 鼠标点击该元素时 | 回到上一页；选中项重置为第 1 条 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-06→internal/ui/search_chat.go:App.chatSearchTextRow；标记 = Clicked） |
 | R-GS-130 | G-A2-06 | 状态 | 已在第 1 页 | 按钮不出现 | — | 屏上 文字按钮 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-131 | G-A2-06 | 样式 | 整行文字按钮在屏上时 | 左对齐、12–13px 次要色、悬停浅底 | — | 判据 = 行高 UI 正文 17.5px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GS-132 | G-A2-06 | 无障碍 | 读屏进入该元素时 | 读作按钮「上一页」 | — | 读屏文本 = 「上一页」 | 未实现（找不到元素渲染点） |
-| R-GS-133 | G-A2-06 | 键盘 | 按 Enter 时 | 等同点击 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-134 | G-A2-06 | 内容 | 上一页进行中 | 按钮短暂禁用，列表不闪空 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-135 | G-A2-06 | 样式 | 行首与行尾边界处 | 为列表顶部第一行（在分组标题之上） | — | 判据 = 该行在分组标题之上：该行 y + 行高 ≤ 分组标题 y + 1px，出现次数 1（AL-STACK / AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-136 | G-A2-07 | 状态 | 未观察（条件）：还有下一页（结果 >8 条） | 结果列表底部出现整行「显示更多」文字按钮（32px 高） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 未实现（找不到元素渲染点） |
-| R-GS-137 | G-A2-07 | 交互 | 鼠标点击该元素时 | 追加下一页；已显示项不重排 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-138 | G-A2-07 | 状态 | 已到末页 | 按钮消失 | — | 屏上 文字按钮 计数 = 0 | 未实现（找不到元素渲染点） |
-| R-GS-139 | G-A2-07 | 关联 | 结果超过一页、上一页按钮同时在屏上时 | 两者可同屏（上方上一页、下方显示更多） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-140 | G-A2-07 | 样式 | 整行文字按钮在屏上时 | 与「上一页」同款，居中或左对齐一致 | — | 判据 = 行高 UI 正文 17.5px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-141 | G-A2-07 | 无障碍 | 读屏进入该元素时 | 读作按钮「显示更多」 | — | 读屏文本 = 「显示更多」 | 未实现（找不到元素渲染点） |
-| R-GS-142 | G-A2-07 | 内容 | 加载下一页 | 按钮短暂禁用，已显示项不重排 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-143 | G-A2-07 | 样式 | 行首与行尾边界处 | 为列表底部最后一行（在结果行之下） | — | 判据 = 该行在结果行之下，y 差 = 相邻块档（3.5 / 7 / 10.5 / 14 / 21 之一），偏差 ≤ 1px（AL-STACK / AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-144 | G-A2-08 | 内容 | 未观察（条件）：该分组有命中 | 分组标题「置顶聊天」在上、「最近聊天」在下，12px 灰字 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 未实现（找不到元素渲染点） |
+| R-GS-131 | G-A2-06 | 样式 | 整行文字按钮在屏上时 | 左对齐、12–13px 次要色、悬停浅底 | — | 判据 = 行高 UI 正文 17.5px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-A2-06→internal/ui/search_chat.go:App.chatSearchTextRow；标记 = Height） |
+| R-GS-132 | G-A2-06 | 无障碍 | 读屏进入该元素时 | 读作按钮「上一页」 | — | 读屏文本 = 「上一页」 | 已实现（逐字）：internal/ui/search_chat.go:chatSearchPrevText「上一页」 |
+| R-GS-133 | G-A2-06 | 键盘 | 按 Enter 时 | 等同点击 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：G-A2-06→internal/ui/search_chat.go:App.chatSearchTextRow；测试提及 internal/ui/search_chat_test.go:包级 |
+| R-GS-134 | G-A2-06 | 内容 | 上一页进行中 | 按钮短暂禁用，列表不闪空 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-06→internal/ui/search_chat.go:App.chatSearchResults；标记 = 文案「正在加载搜索聊天」等 3 条） |
+| R-GS-135 | G-A2-06 | 样式 | 行首与行尾边界处 | 为列表顶部第一行（在分组标题之上） | — | 判据 = 该行在分组标题之上：该行 y + 行高 ≤ 分组标题 y + 1px，出现次数 1（AL-STACK / AL-TOL-1） | 已实现（映射 = G-A2-06→internal/ui/search_chat.go:App.chatSearchTextRow；标记 = Height） |
+| R-GS-136 | G-A2-07 | 状态 | 未观察（条件）：还有下一页（结果 >8 条） | 结果列表底部出现整行「显示更多」文字按钮（32px 高） | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 已实现（逐字）：internal/ui/search_chat.go:chatSearchMoreText「显示更多」 |
+| R-GS-137 | G-A2-07 | 交互 | 鼠标点击该元素时 | 追加下一页；已显示项不重排 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-07→internal/ui/search_chat.go:App.chatSearchTextRow；标记 = Clicked） |
+| R-GS-138 | G-A2-07 | 状态 | 已到末页 | 按钮消失 | — | 屏上 文字按钮 计数 = 0 | 已实现（映射 = G-A2-07→internal/ui/search_chat.go:App.chatSearchResults；标记 = Loading） |
+| R-GS-139 | G-A2-07 | 关联 | 结果超过一页、上一页按钮同时在屏上时 | 两者可同屏（上方上一页、下方显示更多） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A2-07→internal/ui/search_chat.go:App.chatSearchResults；标记 = Select@App.chatSearchHitRow） |
+| R-GS-140 | G-A2-07 | 样式 | 整行文字按钮在屏上时 | 与「上一页」同款，居中或左对齐一致 | — | 判据 = 行高 UI 正文 17.5px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/search_chat.go:chatSearchPrevText「上一页」 |
+| R-GS-141 | G-A2-07 | 无障碍 | 读屏进入该元素时 | 读作按钮「显示更多」 | — | 读屏文本 = 「显示更多」 | 已实现（逐字）：internal/ui/search_chat.go:chatSearchMoreText「显示更多」 |
+| R-GS-142 | G-A2-07 | 内容 | 加载下一页 | 按钮短暂禁用，已显示项不重排 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-07→internal/ui/search_chat.go:App.chatSearchResults；标记 = 文案「正在加载搜索聊天」等 3 条） |
+| R-GS-143 | G-A2-07 | 样式 | 行首与行尾边界处 | 为列表底部最后一行（在结果行之下） | — | 判据 = 该行在结果行之下，y 差 = 相邻块档（3.5 / 7 / 10.5 / 14 / 21 之一），偏差 ≤ 1px（AL-STACK / AL-TOL-1） | 已实现（映射 = G-A2-07→internal/ui/search_chat.go:App.chatSearchTextRow；标记 = Height） |
+| R-GS-144 | G-A2-08 | 内容 | 未观察（条件）：该分组有命中 | 分组标题「置顶聊天」在上、「最近聊天」在下，12px 灰字 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 已实现（逐字）：internal/ui/search_chat.go:chatSearchGroupLabels「置顶聊天」 |
 | R-GS-145 | G-A2-08 | 状态 | 某组无命中 | 该组标题不渲染（不显示空组） | — | 屏上 空组 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-146 | G-A2-08 | 关联 | 两个分组标题同时在场时 | 置顶组排在最近组之前，顺序固定 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 未实现（找不到元素渲染点） |
-| R-GS-147 | G-A2-08 | 样式 | 分组标题在屏上时 | 12px、次要色、左侧内边距与结果行文字对齐 | — | 判据 = 字号 说明文字 10.5px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 未实现（找不到元素渲染点） |
-| R-GS-148 | G-A2-08 | 无障碍 | 读屏进入该元素时 | 作为分组标题读出，行归入组 | — | 读屏文本 = 「置顶聊天」 | 未实现（找不到元素渲染点） |
+| R-GS-146 | G-A2-08 | 关联 | 两个分组标题同时在场时 | 置顶组排在最近组之前，顺序固定 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 已实现（映射 = G-A2-08→internal/ui/search_chat.go:App.chatSearchResults；标记 = Select@App.chatSearchHitRow） |
+| R-GS-147 | G-A2-08 | 样式 | 分组标题在屏上时 | 12px、次要色、左侧内边距与结果行文字对齐 | — | 判据 = 字号 说明文字 10.5px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 已实现（映射 = G-A2-08→internal/ui/search_chat.go:App.chatSearchResults；标记 = Height） |
+| R-GS-148 | G-A2-08 | 无障碍 | 读屏进入该元素时 | 作为分组标题读出，行归入组 | — | 读屏文本 = 「置顶聊天」 | 已实现（映射 = G-A2-08→internal/ui/search_chat.go:App.chatSearchResults；标记 = Label） |
 | R-GS-149 | G-A2-08 | 异常 | 两组都无命中 | 两个标题都不出现，只留空态 | — | 屏上 分组标题 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-150 | G-A2-08 | 状态 | 两组都有命中 | 两个标题都显示：置顶在上、最近在下 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 未实现（找不到元素渲染点） |
-| R-GS-151 | G-A2-08 | 异常 | 某组命中被排除后为空 | 该组标题消失，另一组不受影响 | — | 屏上 分组标题 计数 = 0 | 未实现（找不到元素渲染点） |
-| R-GS-152 | G-A2-09 | 内容 | 未观察（条件）：有结果 | 结果行主行显示会话标题（14px 半粗），超长 truncate | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-153 | G-A2-09 | 内容 | 标题为空 | 显示「未命名会话」，不留空行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/confirm.go:confirmCopyUnnamed「未命名会话」 |
-| R-GS-154 | G-A2-09 | 状态 | 选中 | 主行随整行进入强调底 + 强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；字色 主文字 明 #0a0a0a / 暗 #ececec | 未实现（找不到元素渲染点） |
-| R-GS-155 | G-A2-09 | 样式 | 主行与副行同屏排列时 | 主行 14px 半粗、主前景；副行 12px 次要 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GS-156 | G-A2-09 | 无障碍 | 读屏进入该元素时 | 播报会话标题 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-157 | G-A2-09 | 异常 | 标题含不可见字符 | 按可见字符显示 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-158 | G-A2-09 | 状态 | 该行数据加载中 | 主行显示占位（骨架或空白），不留 literal「加载中」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/timeline.go:App.timelineSkeleton「加载中」 |
+| R-GS-150 | G-A2-08 | 状态 | 两组都有命中 | 两个标题都显示：置顶在上、最近在下 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 已实现（映射 = G-A2-08→internal/ui/search_chat.go:App.chatSearchResults；标记 = Loading） |
+| R-GS-151 | G-A2-08 | 异常 | 某组命中被排除后为空 | 该组标题消失，另一组不受影响 | — | 屏上 分组标题 计数 = 0 | 已实现（映射 = G-A2-08→internal/ui/search_chat.go:App.chatSearchResults；标记 = Reason） |
+| R-GS-152 | G-A2-09 | 内容 | 未观察（条件）：有结果 | 结果行主行显示会话标题（14px 半粗），超长 truncate | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A2-09→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = 文案「已置顶」等 3 条@App.chatSearchRowIcon） |
+| R-GS-153 | G-A2-09 | 内容 | 标题为空 | 显示「未命名会话」，不留空行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/search_chat.go:chatSearchUnnamedText「未命名会话」 |
+| R-GS-154 | G-A2-09 | 状态 | 选中 | 主行随整行进入强调底 + 强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；字色 主文字 明 #0a0a0a / 暗 #ececec | 已实现（映射 = G-A2-09→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Hidden@App.chatSearchRowIcon） |
+| R-GS-155 | G-A2-09 | 样式 | 主行与副行同屏排列时 | 主行 14px 半粗、主前景；副行 12px 次要 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-A2-09→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Height） |
+| R-GS-156 | G-A2-09 | 无障碍 | 读屏进入该元素时 | 播报会话标题 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A2-09→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Label） |
+| R-GS-157 | G-A2-09 | 异常 | 标题含不可见字符 | 按可见字符显示 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-A2-09→internal/ui/search_chat.go:App.chatSearchHitRow；测试提及 internal/ui/search_chat_test.go:包级 |
+| R-GS-158 | G-A2-09 | 状态 | 该行数据加载中 | 主行显示占位（骨架或空白），不留 literal「加载中」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/composer_extra.go:modelEmptyState「加载中」 |
 | R-GS-159 | G-A2-09 | 状态 | 该行加载失败 | 主行显示会话 id 或「无法加载」，不空白 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/approval.go:approvalCopyMemberErrorTitle「无法加载」 |
-| R-GS-160 | G-A2-10 | 内容 | 未观察（条件）：结果所属工作区有名 | 副行显示项目显示名（12px 灰字），超长 truncate | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-GS-160 | G-A2-10 | 内容 | 未观察（条件）：结果所属工作区有名 | 副行显示项目显示名（12px 灰字），超长 truncate | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A2-10→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = 文案「已置顶」等 3 条@App.chatSearchRowIcon） |
 | R-GS-161 | G-A2-10 | 状态 | 工作区无名 | 副行不出现（或留空），不显示原始路径 | — | 屏上 原始路径 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-162 | G-A2-10 | 样式 | 副行紧跟主行渲染时 | 12px 次要色、与主行左缘对齐 | — | 判据 = 字号 UI 正文 12.25px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 未实现（找不到元素渲染点） |
-| R-GS-163 | G-A2-10 | 无障碍 | 读屏进入该元素时 | 播报项目名 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-164 | G-A2-10 | 异常 | 路径含本机 home | 只显示显示名，不泄露绝对路径 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-GS-162 | G-A2-10 | 样式 | 副行紧跟主行渲染时 | 12px 次要色、与主行左缘对齐 | — | 判据 = 字号 UI 正文 12.25px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 已实现（映射 = G-A2-10→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Height） |
+| R-GS-163 | G-A2-10 | 无障碍 | 读屏进入该元素时 | 播报项目名 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A2-10→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Label） |
+| R-GS-164 | G-A2-10 | 异常 | 路径含本机 home | 只显示显示名，不泄露绝对路径 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-A2-10→internal/ui/search_chat.go:App.chatSearchHitRow；测试提及 internal/ui/search_chat_test.go:包级 |
 | R-GS-165 | G-A2-10 | 状态 | 该行加载中 | 副行不出现（避免半截项目名） | — | 屏上 结果行副行 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-GS-166 | G-A2-10 | 状态 | 行加载失败 | 副行不出现，主行承担错误表达 | — | 屏上 结果行副行 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-167 | G-A2-10 | 内容 | 项目名与标题相同 | 仍两行都显示（不合并） | — | 屏上 结果行副行 计数 = 1 | 未实现（找不到元素渲染点） |
-| R-GS-168 | G-A2-11a | 状态 | 未观察（条件）：该行 RPC 失败 | 行首 32px 底托内显示红色告警圈图标 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 未实现（找不到元素渲染点） |
-| R-GS-169 | G-A2-11a | 关联 | 五种行状态分布在不同会话行上时 | 五分支互斥（失败/加载/未读/置顶/默认） | — | 屏上 图标 计数 = 1 | 未实现（找不到元素渲染点） |
-| R-GS-170 | G-A2-11a | 样式 | 底托在屏上时 | 32px 圆角底托 + 图标；告警为危险色 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GS-171 | G-A2-11a | 无障碍 | 读屏进入该元素时 | 播报该行「加载失败」 | — | 读屏文本 = 「加载失败」 | 已实现（逐字）：internal/ui/rightpanel_sidechat.go:sideChatLoadFailed「加载失败」 |
-| R-GS-172 | G-A2-11a | 异常 | 该行稍后恢复 | 图标换成对应状态（未读/置顶/默认） | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-GS-173 | G-A2-11a | 内容 | 该行数据完全失败 | 底托仍是 32px（不留空位导致行错位） | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-174 | G-A2-11a | 状态 | 失败行被选中 | 选中态覆盖底托（强调底），图标仍可辨 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED） | 未实现（找不到元素渲染点） |
+| R-GS-167 | G-A2-10 | 内容 | 项目名与标题相同 | 仍两行都显示（不合并） | — | 屏上 结果行副行 计数 = 1 | 已实现（映射 = G-A2-10→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = 文案「已置顶」等 3 条@App.chatSearchRowIcon） |
+| R-GS-168 | G-A2-11a | 状态 | 未观察（条件）：该行 RPC 失败 | 行首 32px 底托内显示红色告警圈图标 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 已实现（映射 = G-A2-11a→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Hidden） |
+| R-GS-169 | G-A2-11a | 关联 | 五种行状态分布在不同会话行上时 | 五分支互斥（失败/加载/未读/置顶/默认） | — | 屏上 图标 计数 = 1 | 未实现（映射到位但没有该维度的标记）：G-A2-11a→internal/ui/search_chat.go:App.chatSearchRowIcon |
+| R-GS-170 | G-A2-11a | 样式 | 底托在屏上时 | 32px 圆角底托 + 图标；告警为危险色 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-A2-11a→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Width） |
+| R-GS-171 | G-A2-11a | 无障碍 | 读屏进入该元素时 | 播报该行「加载失败」 | — | 读屏文本 = 「加载失败」 | 已实现（逐字）：internal/ui/composer_extra.go:modelEmptyState「加载失败」 |
+| R-GS-172 | G-A2-11a | 异常 | 该行稍后恢复 | 图标换成对应状态（未读/置顶/默认） | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（映射到位但没有该维度的标记）：G-A2-11a→internal/ui/search_chat.go:App.chatSearchRowIcon |
+| R-GS-173 | G-A2-11a | 内容 | 该行数据完全失败 | 底托仍是 32px（不留空位导致行错位） | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A2-11a→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = 文案「已置顶」等 3 条） |
+| R-GS-174 | G-A2-11a | 状态 | 失败行被选中 | 选中态覆盖底托（强调底），图标仍可辨 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED） | 已实现（映射 = G-A2-11a→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Hidden） |
 | R-GS-175 | G-A2-11a | 交互 | 点击失败行 | 打开失败会话或给提示，不静默无反应 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-GS-176 | G-A2-11b | 状态 | 未观察（条件）：该行数据加载中 | 底托内显示旋转圈 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
 | R-GS-177 | G-A2-11b | 动画 | 加载进行中时 | 旋转连续；返回后切到对应状态图标 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（找不到元素渲染点） |
 | R-GS-178 | G-A2-11b | 样式 | 底托在屏上时 | 同 32px 底托，图标次要色 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GS-179 | G-A2-11b | 无障碍 | 读屏进入该元素时 | 播报「加载中」 | — | 读屏文本 = 「加载中」 | 已实现（逐字）：internal/ui/timeline.go:App.timelineSkeleton「加载中」 |
+| R-GS-179 | G-A2-11b | 无障碍 | 读屏进入该元素时 | 播报「加载中」 | — | 读屏文本 = 「加载中」 | 已实现（逐字）：internal/ui/composer_extra.go:modelEmptyState「加载中」 |
 | R-GS-180 | G-A2-11b | 异常 | 长时间不返回 | 停在加载态，不擅自判失败 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
 | R-GS-181 | G-A2-11b | 内容 | 加载中行被选中 | 底托与图标同时进入强调底，图标仍可辨 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；字色 主文字 明 #0a0a0a / 暗 #ececec | 未实现（找不到元素渲染点） |
 | R-GS-182 | G-A2-11b | 状态 | 加载完成但为未读 | 切到未读圆点（不是默认图标） | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
@@ -894,47 +894,47 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GS-189 | G-A2-11c | 状态 | 未读且置顶 | 只显示一种（未读优先），不叠两个图标 | — | 屏上 图标 计数 = 1 | 未实现（找不到元素渲染点） |
 | R-GS-190 | G-A2-11c | 内容 | 多条未读 | 每条各自显示圆点，不汇总到一行 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
 | R-GS-191 | G-A2-11c | 交互 | 点击未读行 | 打开会话后该行圆点消失 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
-| R-GS-192 | G-A2-11d | 状态 | 未观察（条件）：该会话已置顶 | 底托内显示琥珀星标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-193 | G-A2-11d | 关联 | 置顶行渲染在分组内时 | 星标行必落在「置顶聊天」组内 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-194 | G-A2-11d | 样式 | 星标 | 琥珀色、描边或实心一致 | — | 判据 = 色值 次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GS-195 | G-A2-11d | 无障碍 | 读屏进入该元素时 | 播报「已置顶」 | — | 读屏文本 = 「已置顶」 | 已实现（逐字）：internal/ui/sidebar.go:App.sidebarList「已置顶」 |
-| R-GS-196 | G-A2-11d | 异常 | 取消置顶后 | 星标消失，行可能移出置顶组 | — | 屏上 图标 计数 = 0 | 未实现（找不到元素渲染点） |
+| R-GS-192 | G-A2-11d | 状态 | 未观察（条件）：该会话已置顶 | 底托内显示琥珀星标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-11d→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Hidden） |
+| R-GS-193 | G-A2-11d | 关联 | 置顶行渲染在分组内时 | 星标行必落在「置顶聊天」组内 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/search_chat.go:chatSearchGroupLabels「置顶聊天」 |
+| R-GS-194 | G-A2-11d | 样式 | 星标 | 琥珀色、描边或实心一致 | — | 判据 = 色值 次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-A2-11d→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Width） |
+| R-GS-195 | G-A2-11d | 无障碍 | 读屏进入该元素时 | 播报「已置顶」 | — | 读屏文本 = 「已置顶」 | 已实现（逐字）：internal/ui/search_chat.go:App.chatSearchRowIcon「已置顶」 |
+| R-GS-196 | G-A2-11d | 异常 | 取消置顶后 | 星标消失，行可能移出置顶组 | — | 屏上 图标 计数 = 0 | 未实现（映射到位但没有该维度的标记）：G-A2-11d→internal/ui/search_chat.go:App.chatSearchRowIcon；测试提及 internal/ui/search_chat_test.go:包级 |
 | R-GS-197 | G-A2-11d | 状态 | 置顶且加载失败 | 显示告警图标（失败优先），不显示星标 | — | 屏上 星标 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-198 | G-A2-11d | 内容 | 置顶组内多行 | 每行都有星标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（找不到元素渲染点） |
-| R-GS-199 | G-A2-11d | 交互 | 点击置顶行 | 打开会话，星标与分组不变 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-200 | G-A2-11e | 状态 | 未观察（条件）：以上皆否 | 底托内显示默认消息图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
+| R-GS-198 | G-A2-11d | 内容 | 置顶组内多行 | 每行都有星标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = G-A2-11d→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = 文案「已置顶」等 3 条） |
+| R-GS-199 | G-A2-11d | 交互 | 点击置顶行 | 打开会话，星标与分组不变 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-11d→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Pressed） |
+| R-GS-200 | G-A2-11e | 状态 | 未观察（条件）：以上皆否 | 底托内显示默认消息图标 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = G-A2-11e→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Hidden） |
 | R-GS-201 | G-A2-11e | 关联 | 兜底 | 任何状态取值异常都落到本分支，不显示空底托 | — | 屏上 空底托 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-202 | G-A2-11e | 样式 | 底托在屏上时 | 32px、中性底、线稿图标 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
+| R-GS-202 | G-A2-11e | 样式 | 底托在屏上时 | 32px、中性底、线稿图标 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-A2-11e→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Width） |
 | R-GS-203 | G-A2-11e | 无障碍 | 读屏进入该元素时 | 不播报额外状态（只有标题与项目名） | — | 播报次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-204 | G-A2-11e | 内容 | 默认图标行的标题为空 | 仍显示默认图标（不空底托） | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-205 | G-A2-11e | 状态 | 该行从默认变未读 | 图标切到未读圆点 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-GS-206 | G-A2-11e | 交互 | 点击默认图标行 | 打开会话 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-207 | G-A2-11e | 样式 | 底托色 | 中性底色 + 线稿图标；选中行转强调底 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 未实现（找不到元素渲染点） |
-| R-GS-208 | G-A2-12 | 内容 | 未观察（条件）：有结果行 | 行尾快捷键提示：macOS 为「⌘{n}」、其它平台「Ctrl+{n}」，n 为 1–8 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-GS-204 | G-A2-11e | 内容 | 默认图标行的标题为空 | 仍显示默认图标（不空底托） | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-11e→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = 文案「已置顶」等 3 条） |
+| R-GS-205 | G-A2-11e | 状态 | 该行从默认变未读 | 图标切到未读圆点 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（映射 = G-A2-11e→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Hidden） |
+| R-GS-206 | G-A2-11e | 交互 | 点击默认图标行 | 打开会话 | — | 判据 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0）；可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-11e→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Pressed） |
+| R-GS-207 | G-A2-11e | 样式 | 底托色 | 中性底色 + 线稿图标；选中行转强调底 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d | 已实现（映射 = G-A2-11e→internal/ui/search_chat.go:App.chatSearchRowIcon；标记 = Width） |
+| R-GS-208 | G-A2-12 | 内容 | 未观察（条件）：有结果行 | 行尾快捷键提示：macOS 为「⌘{n}」、其它平台「Ctrl+{n}」，n 为 1–8 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-12→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = 文案「已置顶」等 3 条@App.chatSearchRowIcon） |
 | R-GS-209 | G-A2-12 | 内容 | 第 9 条之后 | 超过 8 条不显示序号提示（本对话框最多 8 条） | — | 最多 8 个提示 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-210 | G-A2-12 | 关联 | 按下对话框内搜索输入框的快捷键时 | 提示的键位与实际可用的快捷键一致（同一修饰键） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-211 | G-A2-12 | 样式 | 快捷键提示与主副行同屏时 | 12px 灰字、字距略松、右对齐 | — | 判据 = 字号 UI 正文 12.25px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；字号 12.25 / 行高 18 / 字重 400，说明文字 10.5 / 14（TX-TYPE-BODY / TX-TYPE-MICRO） | 未实现（找不到元素渲染点） |
-| R-GS-212 | G-A2-12 | 无障碍 | 读屏进入该元素时 | 播报「快捷键 ⌘1」类信息 | — | 读屏文本 = 「快捷键 ⌘1」 | 未实现（找不到元素渲染点） |
-| R-GS-213 | G-A2-12 | 异常 | 自定义快捷键冲突 | 提示随实际绑定变化，不写死 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-210 | G-A2-12 | 关联 | 按下对话框内搜索输入框的快捷键时 | 提示的键位与实际可用的快捷键一致（同一修饰键） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-12→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Select） |
+| R-GS-211 | G-A2-12 | 样式 | 快捷键提示与主副行同屏时 | 12px 灰字、字距略松、右对齐 | — | 判据 = 字号 UI 正文 12.25px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；字号 12.25 / 行高 18 / 字重 400，说明文字 10.5 / 14（TX-TYPE-BODY / TX-TYPE-MICRO） | 已实现（映射 = G-A2-12→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Height） |
+| R-GS-212 | G-A2-12 | 无障碍 | 读屏进入该元素时 | 播报「快捷键 ⌘1」类信息 | — | 读屏文本 = 「快捷键 ⌘1」 | 已实现（映射 = G-A2-12→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Label） |
+| R-GS-213 | G-A2-12 | 异常 | 自定义快捷键冲突 | 提示随实际绑定变化，不写死 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-A2-12→internal/ui/search_chat.go:App.chatSearchHitRow；测试提及 internal/ui/search_chat_test.go:包级 |
 | R-GS-214 | G-A2-12 | 内容 | 平台为 Linux | 显示「Ctrl+{n}」，不显示 ⌘ | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-215 | G-A2-12 | 状态 | 结果被排除到 8 条以内 | 序号连续（1..n），不留空号 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-216 | G-A2-13 | 状态 | 未观察（条件）：有结果后按 ↑/↓ 或悬停 | 当前行显示强调底 + 强调前景；默认第 1 行为选中 | — | 有且只有 1 行高亮 | 未实现（找不到元素渲染点） |
-| R-GS-217 | G-A2-13 | 交互 | 鼠标悬停到另一行时 | 高亮移到悬停行，键盘选中同步 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-218 | G-A2-13 | 交互 | 点击高亮行 | 与 Enter 同：打开该会话并关闭对话框 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-215 | G-A2-12 | 状态 | 结果被排除到 8 条以内 | 序号连续（1..n），不留空号 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-12→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Hidden@App.chatSearchRowIcon） |
+| R-GS-216 | G-A2-13 | 状态 | 未观察（条件）：有结果后按 ↑/↓ 或悬停 | 当前行显示强调底 + 强调前景；默认第 1 行为选中 | — | 有且只有 1 行高亮 | 已实现（映射 = G-A2-13→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Hidden@App.chatSearchRowIcon） |
+| R-GS-217 | G-A2-13 | 交互 | 鼠标悬停到另一行时 | 高亮移到悬停行，键盘选中同步 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-13→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Pressed@App.chatSearchRowIcon） |
+| R-GS-218 | G-A2-13 | 交互 | 点击高亮行 | 与 Enter 同：打开该会话并关闭对话框 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-13→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Pressed@App.chatSearchRowIcon） |
 | R-GS-219 | G-A2-13 | 动画 | 反复按 ↑ / ↓ 时 | 高亮瞬时迁移（≤80ms），不滚动页面（列表内跟随滚动） | 减少动效下瞬切 | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；时长 = 期望列给的毫秒值（±0ms），减少动效时 none（§6 动效表） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-220 | G-A2-13 | 样式 | 高亮在屏上时 | 圆角小、强调底 10–15%、文字转强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-221 | G-A2-13 | 无障碍 | 读屏进入该元素时 | 高亮行作为当前项播报 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-222 | G-A2-13 | 异常 | 结果刷新后原选中项消失 | 高亮回到第 1 行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-223 | G-A2-13 | 内容 | 高亮行的主副行与图标 | 全部转为强调前景（含副行与图标），不只主行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-220 | G-A2-13 | 样式 | 高亮在屏上时 | 圆角小、强调底 10–15%、文字转强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-13→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Height） |
+| R-GS-221 | G-A2-13 | 无障碍 | 读屏进入该元素时 | 高亮行作为当前项播报 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A2-13→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = Label） |
+| R-GS-222 | G-A2-13 | 异常 | 结果刷新后原选中项消失 | 高亮回到第 1 行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-13→internal/ui/search_chat.go:App.chatSearchFrame；标记 = Reason） |
+| R-GS-223 | G-A2-13 | 内容 | 高亮行的主副行与图标 | 全部转为强调前景（含副行与图标），不只主行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A2-13→internal/ui/search_chat.go:App.chatSearchHitRow；标记 = 文案「已置顶」等 3 条@App.chatSearchRowIcon） |
 | R-GS-224 | G-A2-13 | 状态 | 结果列表只有 1 行 | 该行默认高亮，↑/↓ 不改变 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-225 | G-A2-14 | 内容 | Q 态：无任何命中 | 空态文字逐字「未找到聊天」（实测 299,350 432×74），居中、上下留白 32 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-GS-225 | G-A2-14 | 内容 | Q 态：无任何命中 | 空态文字逐字「未找到聊天」（实测 299,350 432×74），居中、上下留白 32 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/search_chat.go:chatSearchEmptyText「未找到聊天」 |
 | R-GS-226 | G-A2-14 | 关联 | 检索进行中时 | 加载中不显示本文案 | — | 屏上 本文案 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-227 | G-A2-14 | 样式 | 空态在屏上时 | 14px 级次要色、居中 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GS-228 | G-A2-14 | 无障碍 | 读屏进入该元素时 | 读出该句 | — | 读屏文本 = 「未找到聊天」 | 未实现（找不到元素渲染点） |
-| R-GS-229 | G-A2-14 | 异常 | 输入查询后仍空 | 文案不变（不把查询词写进空态） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-230 | G-A2-14 | 交互 | 点击空态 | 无动作 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-227 | G-A2-14 | 样式 | 空态在屏上时 | 14px 级次要色、居中 | — | 判据 = 字号 正文 14px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-A2-14→internal/ui/search_chat.go:App.chatSearchEmptyRow；标记 = Height） |
+| R-GS-228 | G-A2-14 | 无障碍 | 读屏进入该元素时 | 读出该句 | — | 读屏文本 = 「未找到聊天」 | 已实现（映射 = G-A2-14→internal/ui/search_chat.go:App.chatSearchEmptyRow；标记 = Label） |
+| R-GS-229 | G-A2-14 | 异常 | 输入查询后仍空 | 文案不变（不把查询词写进空态） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-A2-14→internal/ui/search_chat.go:App.chatSearchEmptyRow；测试提及 internal/ui/search_chat_test.go:包级 |
+| R-GS-230 | G-A2-14 | 交互 | 点击空态 | 无动作 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-A2-14→internal/ui/search_chat.go:App.chatSearchEmptyRow；测试提及 internal/ui/search_chat_test.go:包级 |
 | R-GS-231 | G-A2-14 | 状态 | 查询为空白字符 | 按无结果处理并显示该句（不显示「未找到聊天」以外的词） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-232 | G-A2-14 | 内容 | 查询非空且无命中 | 空态句不嵌查询词（与 A1-11 不同） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-GS-232 | G-A2-14 | 内容 | 查询非空且无命中 | 空态句不嵌查询词（与 A1-11 不同） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A2-14→internal/ui/search_chat.go:App.chatSearchEmptyRow；标记 = 文案「未找到聊天」） |
 
 ### 2.3 `@` 提及弹层（G-A3-01–G-A3-11）
 
@@ -942,55 +942,55 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GS-233 | G-A3-01 | 状态 | 未观察（条件）：输入框可用 ∧ 有 cwd ∧ 键入 `@` | 弹层出现：`max-h-72`、宽 `min(35rem, 100vw-2rem)`，锚在光标上方或下方（空间不足时翻转） | — | 屏上出现 1 个弹层，不溢出窗口 | 未实现（找不到元素渲染点） |
-| R-GS-234 | G-A3-01 | 关联 | 输入框先键入 `@` 再键入 `$` 时 | 二者互斥：`@` 与 `$` 不同时触发两个弹层 | — | 弹层计数为 1 | 未实现（找不到元素渲染点） |
-| R-GS-235 | G-A3-01 | 交互 | 输入空格 / Esc | 弹层关闭，`@` 与已输入前缀保留或按规则清掉（不留半截候选） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-236 | G-A3-01 | 动画 | 该元素出现时 | 出现 ≤120ms，锚点不跳 | 减少动效下瞬切 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（找不到元素渲染点） |
-| R-GS-237 | G-A3-01 | 样式 | 浮层在屏上时 | 上层底色 + 描边 + 阴影；圆角与主输入区一致 | — | 判据 = 底色 浮层 明 #ffffff / 暗 #222222；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-GS-238 | G-A3-01 | 无障碍 | 读屏进入该元素时 | 读作候选列表（listbox），可逐项遍历 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-GS-233 | G-A3-01 | 状态 | 未观察（条件）：输入框可用 ∧ 有 cwd ∧ 键入 `@` | 弹层出现：`max-h-72`、宽 `min(35rem, 100vw-2rem)`，锚在光标上方或下方（空间不足时翻转） | — | 屏上出现 1 个弹层，不溢出窗口 | 已实现（映射 = G-A3-01→internal/ui/mention.go:App.pickPopover；标记 = Loading） |
+| R-GS-234 | G-A3-01 | 关联 | 输入框先键入 `@` 再键入 `$` 时 | 二者互斥：`@` 与 `$` 不同时触发两个弹层 | — | 弹层计数为 1 | 已实现（映射 = G-A3-01→internal/ui/mention.go:App.pickPopover；标记 = Open@App.pickRow） |
+| R-GS-235 | G-A3-01 | 交互 | 输入空格 / Esc | 弹层关闭，`@` 与已输入前缀保留或按规则清掉（不留半截候选） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-01→internal/ui/mention.go:App.pickPopover；标记 = Pressed@App.pickSkeletons） |
+| R-GS-236 | G-A3-01 | 动画 | 该元素出现时 | 出现 ≤120ms，锚点不跳 | 减少动效下瞬切 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（映射到位但没有该维度的标记）：G-A3-01→internal/ui/mention.go:pickTriggerOf；测试提及 internal/ui/lint_test.go:lintDividerAllowlist |
+| R-GS-237 | G-A3-01 | 样式 | 浮层在屏上时 | 上层底色 + 描边 + 阴影；圆角与主输入区一致 | — | 判据 = 底色 浮层 明 #ffffff / 暗 #222222；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 已实现（映射 = G-A3-01→internal/ui/mention.go:App.pickPopover；标记 = Height） |
+| R-GS-238 | G-A3-01 | 无障碍 | 读屏进入该元素时 | 读作候选列表（listbox），可逐项遍历 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A3-01→internal/ui/mention.go:App.pickPopover；标记 = Label） |
 | R-GS-239 | G-A3-01 | 异常 | 无 cwd | 弹层不出现（改由 G-A3-03 的空态文案说明），不留空弹层 | — | 屏上 浮层 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-240 | G-A3-01 | 内容 | `@` 在行首 / 行中 | 两种情况都可触发（不限于行首） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（找不到元素渲染点） |
-| R-GS-241 | G-A3-02 | 状态 | 未观察（条件）：候选未返回 | 弹层内显示两条脉冲骨架（32px 高） | — | 骨架 2 条 | 未实现（找不到元素渲染点） |
-| R-GS-242 | G-A3-02 | 动画 | 骨架在屏上时 | 同步脉冲；返回后与候选行同帧替换 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（找不到元素渲染点） |
-| R-GS-243 | G-A3-02 | 样式 | 骨架在屏上时 | 中性浅块、与候选行同高 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-GS-240 | G-A3-01 | 内容 | `@` 在行首 / 行中 | 两种情况都可触发（不限于行首） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = G-A3-01→internal/ui/mention.go:App.pickPopover；标记 = 文案「候选列表：」） |
+| R-GS-241 | G-A3-02 | 状态 | 未观察（条件）：候选未返回 | 弹层内显示两条脉冲骨架（32px 高） | — | 骨架 2 条 | 已实现（映射 = G-A3-02→internal/ui/mention.go:App.pickSkeletons；标记 = Hidden） |
+| R-GS-242 | G-A3-02 | 动画 | 骨架在屏上时 | 同步脉冲；返回后与候选行同帧替换 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（映射到位但没有该维度的标记）：G-A3-02→internal/ui/mention.go:App.pickSkeletons |
+| R-GS-243 | G-A3-02 | 样式 | 骨架在屏上时 | 中性浅块、与候选行同高 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A3-02→internal/ui/mention.go:App.pickSkeletons；标记 = Height） |
 | R-GS-244 | G-A3-02 | 无障碍 | 读屏进入该元素时 | 不播报骨架，只播报「正在搜索」一次 | — | 播报次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-245 | G-A3-02 | 异常 | 搜索失败 | 换成 G-A3-03 的失败文案 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-246 | G-A3-02 | 内容 | 候选很少（1 条） | 骨架仍先出现（按拉取时序），随后替换为 1 行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（找不到元素渲染点） |
-| R-GS-247 | G-A3-02 | 状态 | 候选为空 | 骨架之后给空态（G-A3-03），不留在骨架 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 未实现（找不到元素渲染点） |
-| R-GS-248 | G-A3-02 | 交互 | 骨架期间按 Enter | 无候选可选，Enter 不插入任何内容 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-249 | G-A3-03 | 内容 | 未观察（条件）：查询无命中 | 空态文字逐字「未找到文件或目录」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-250 | G-A3-03 | 内容 | 会话无 cwd | 空态文字逐字「当前无工作区目录」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-251 | G-A3-03 | 内容 | 该次搜索 RPC 失败 | 空态文字逐字「文件搜索失败。」（含句号） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/rightpanel_files.go:App.rpSearchResults「文件搜索失败。」 |
-| R-GS-252 | G-A3-03 | 状态 | 三分支互斥 | 同一时刻只有一条（按条件优先级：无 cwd > 失败 > 无命中） | — | 文案计数为 1 | 未实现（找不到元素渲染点） |
-| R-GS-253 | G-A3-03 | 样式 | 空态在屏上时 | 14px 次要色、左内边距与候选行文字对齐 | — | 判据 = 字号 正文 14px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 未实现（找不到元素渲染点） |
-| R-GS-254 | G-A3-03 | 无障碍 | 读屏进入该元素时 | 读出当前空态文案 | — | 读屏文本 = 「未找到文件或目录」 | 未实现（找不到元素渲染点） |
-| R-GS-255 | G-A3-03 | 状态 | 无 cwd 且查询也失败 | 按优先级显示「当前无工作区目录」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-256 | G-A3-03 | 关联 | 无命中、`@` 弹层仍展开时 | 空态出现时弹层仍在（不关闭） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-245 | G-A3-02 | 异常 | 搜索失败 | 换成 G-A3-03 的失败文案 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（映射到位但没有该维度的标记）：G-A3-02→internal/ui/mention.go:App.pickSkeletons |
+| R-GS-246 | G-A3-02 | 内容 | 候选很少（1 条） | 骨架仍先出现（按拉取时序），随后替换为 1 行 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = G-A3-02→internal/ui/mention.go:App.pickSkeletons；标记 = 文案「正在搜索」） |
+| R-GS-247 | G-A3-02 | 状态 | 候选为空 | 骨架之后给空态（G-A3-03），不留在骨架 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 已实现（映射 = G-A3-02→internal/ui/mention.go:App.pickSkeletons；标记 = Hidden） |
+| R-GS-248 | G-A3-02 | 交互 | 骨架期间按 Enter | 无候选可选，Enter 不插入任何内容 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-02→internal/ui/mention.go:App.pickSkeletons；标记 = Pressed） |
+| R-GS-249 | G-A3-03 | 内容 | 未观察（条件）：查询无命中 | 空态文字逐字「未找到文件或目录」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/mention.go:pickNoFileText「未找到文件或目录」 |
+| R-GS-250 | G-A3-03 | 内容 | 会话无 cwd | 空态文字逐字「当前无工作区目录」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/mention.go:pickNoWorkspaceText「当前无工作区目录」 |
+| R-GS-251 | G-A3-03 | 内容 | 该次搜索 RPC 失败 | 空态文字逐字「文件搜索失败。」（含句号） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/mention.go:pickFileFailedText「文件搜索失败。」 |
+| R-GS-252 | G-A3-03 | 状态 | 三分支互斥 | 同一时刻只有一条（按条件优先级：无 cwd > 失败 > 无命中） | — | 文案计数为 1 | 已实现（映射 = G-A3-03→internal/ui/mention.go:App.pickFailedRow；标记 = Disabled） |
+| R-GS-253 | G-A3-03 | 样式 | 空态在屏上时 | 14px 次要色、左内边距与候选行文字对齐 | — | 判据 = 字号 正文 14px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 已实现（映射 = G-A3-03→internal/ui/mention.go:App.pickFailedRow；标记 = Height） |
+| R-GS-254 | G-A3-03 | 无障碍 | 读屏进入该元素时 | 读出当前空态文案 | — | 读屏文本 = 「未找到文件或目录」 | 已实现（映射 = G-A3-03→internal/ui/mention.go:App.pickFailedRow；标记 = Role） |
+| R-GS-255 | G-A3-03 | 状态 | 无 cwd 且查询也失败 | 按优先级显示「当前无工作区目录」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/mention.go:pickNoWorkspaceText「当前无工作区目录」 |
+| R-GS-256 | G-A3-03 | 关联 | 无命中、`@` 弹层仍展开时 | 空态出现时弹层仍在（不关闭） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-03→internal/ui/mention.go:App.pickFileState；标记 = Open@App.rp） |
 | R-GS-257 | G-A3-04 | 内容 | 未观察（条件）：该组有候选 | 分组标题「文件」「技能」，12px 灰字 | — | 判据 = 字号 UI 正文 12.25px；字重 常规 400 / 中粗 500 / 半粗 600 / 粗 700 | 已实现（逐字）：internal/appserver/daemon/process.go:spawnDaemon「文件」 |
 | R-GS-258 | G-A3-04 | 状态 | 某组无候选 | 该组标题不渲染 | — | 屏上 分组标题 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-259 | G-A3-04 | 关联 | 文件组与技能组同时在场时 | 文件组在技能组之前（提交类并入文件组所在区段） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-260 | G-A3-04 | 样式 | 分组标题在屏上时 | 12px 次要色，与候选行文字左缘对齐 | — | 判据 = 字号 UI 正文 12.25px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 未实现（找不到元素渲染点） |
-| R-GS-261 | G-A3-04 | 无障碍 | 读屏进入该元素时 | 分组标题先于组内候选 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-GS-259 | G-A3-04 | 关联 | 文件组与技能组同时在场时 | 文件组在技能组之前（提交类并入文件组所在区段） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：G-A3-04→internal/ui/mention.go:pickGroupHeader |
+| R-GS-260 | G-A3-04 | 样式 | 分组标题在屏上时 | 12px 次要色，与候选行文字左缘对齐 | — | 判据 = 字号 UI 正文 12.25px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 已实现（映射 = G-A3-04→internal/ui/mention.go:pickGroupHeader；标记 = Height） |
+| R-GS-261 | G-A3-04 | 无障碍 | 读屏进入该元素时 | 分组标题先于组内候选 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A3-04→internal/ui/mention.go:pickGroupHeader；标记 = Label） |
 | R-GS-262 | G-A3-04 | 内容 | 提交类候选 | 并入「文件」组显示（不另立第三组） | — | 组数为 2 | 已实现（逐字）：internal/appserver/daemon/process.go:spawnDaemon「文件」 |
 | R-GS-263 | G-A3-04 | 状态 | 只有技能候选 | 只显示「技能」组标题 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/approval.go:approvalActionWord「技能」 |
 | R-GS-264 | G-A3-04 | 状态 | 只有文件候选 | 只显示「文件」组标题（C37 无技能时的同规则） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/appserver/daemon/process.go:spawnDaemon「文件」 |
-| R-GS-265 | G-A3-05 | 内容 | 未观察（条件）：文件候选 | 候选行主字为文件名（加粗）；目录名追加 `/` | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（找不到元素渲染点） |
-| R-GS-266 | G-A3-05 | 内容 | 文件名超长 | 主字 truncate，`title` 给完整路径 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-267 | G-A3-05 | 交互 | 鼠标点击候选行时 | 把该路径作为提及插入输入框（替换当前 `@前缀`） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-268 | G-A3-05 | 状态 | 选中项 | 行显示强调底 + 强调前景 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED） | 未实现（找不到元素渲染点） |
-| R-GS-269 | G-A3-05 | 样式 | 主字 | 14px 加粗主前景；与次级目录形成两级 | — | 判据 = 字号 正文 14px；字重 粗 700 | 未实现（找不到元素渲染点） |
-| R-GS-270 | G-A3-05 | 无障碍 | 读屏进入该元素时 | 播报名称与「目录/文件」 | — | 读屏文本 = 「目录/文件」 | 未实现（找不到元素渲染点） |
-| R-GS-271 | G-A3-05 | 状态 | 候选被过滤掉 | 该行整体移除，行高不留空 | — | 屏上 候选行主字 计数 = 0 | 未实现（找不到元素渲染点） |
-| R-GS-272 | G-A3-05 | 内容 | 目录候选 | 主字为目录名 + 尾部 `/`，可继续追问子目录 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（找不到元素渲染点） |
-| R-GS-273 | G-A3-06 | 状态 | 未观察（条件）：候选位于子目录 | 次级行显示所在目录（12px 灰字，截断） | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-GS-265 | G-A3-05 | 内容 | 未观察（条件）：文件候选 | 候选行主字为文件名（加粗）；目录名追加 `/` | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-266 | G-A3-05 | 内容 | 文件名超长 | 主字 truncate，`title` 给完整路径 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-267 | G-A3-05 | 交互 | 鼠标点击候选行时 | 把该路径作为提及插入输入框（替换当前 `@前缀`） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = Pressed） |
+| R-GS-268 | G-A3-05 | 状态 | 选中项 | 行显示强调底 + 强调前景 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED） | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = Hidden@iconGlyph） |
+| R-GS-269 | G-A3-05 | 样式 | 主字 | 14px 加粗主前景；与次级目录形成两级 | — | 判据 = 字号 正文 14px；字重 粗 700 | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = Height） |
+| R-GS-270 | G-A3-05 | 无障碍 | 读屏进入该元素时 | 播报名称与「目录/文件」 | — | 读屏文本 = 「目录/文件」 | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = Label） |
+| R-GS-271 | G-A3-05 | 状态 | 候选被过滤掉 | 该行整体移除，行高不留空 | — | 屏上 候选行主字 计数 = 0 | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = Hidden@iconGlyph） |
+| R-GS-272 | G-A3-05 | 内容 | 目录候选 | 主字为目录名 + 尾部 `/`，可继续追问子目录 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = G-A3-05→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-273 | G-A3-06 | 状态 | 未观察（条件）：候选位于子目录 | 次级行显示所在目录（12px 灰字，截断） | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A3-06→internal/ui/mention.go:App.pickRow；标记 = Hidden@iconGlyph） |
 | R-GS-274 | G-A3-06 | 状态 | 候选在根目录 | 次级行不出现（不留空行） | — | 屏上 候选行次字 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-275 | G-A3-06 | 样式 | 次级行 | 12px 次要色、与主字左缘对齐 | — | 判据 = 字号 UI 正文 12.25px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 未实现（找不到元素渲染点） |
-| R-GS-276 | G-A3-06 | 无障碍 | 读屏进入该元素时 | 播报所在目录 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-GS-275 | G-A3-06 | 样式 | 次级行 | 12px 次要色、与主字左缘对齐 | — | 判据 = 字号 UI 正文 12.25px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 已实现（映射 = G-A3-06→internal/ui/mention.go:App.pickRow；标记 = Height） |
+| R-GS-276 | G-A3-06 | 无障碍 | 读屏进入该元素时 | 播报所在目录 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A3-06→internal/ui/mention.go:App.pickRow；标记 = Label） |
 | R-GS-277 | G-A3-06 | 内容 | 候选位于根目录 | 次级行不出现，主字占据整行 | — | 屏上 候选行次字 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-278 | G-A3-06 | 状态 | 次级目录超长 | truncate 加省略号，悬停出完整路径 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-GS-278 | G-A3-06 | 状态 | 次级目录超长 | truncate 加省略号，悬停出完整路径 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A3-06→internal/ui/mention.go:App.pickRow；标记 = Hidden@iconGlyph） |
 | R-GS-279 | G-A3-06 | 内容 | 次级路径为 `.` | 不显示「.」，直接省略该行 | — | 判据 = 行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-280 | G-A3-06 | 样式 | 次级行颜色 | 次要色（浅一档），不与主字同色 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
-| R-GS-281 | G-A3-06 | 记忆 | 关闭后重新打开弹层时 | 根级候选仍无次级行（不记忆上次的次级路径） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-280 | G-A3-06 | 样式 | 次级行颜色 | 次要色（浅一档），不与主字同色 | — | 判据 = 字色 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 已实现（映射 = G-A3-06→internal/ui/mention.go:App.pickRow；标记 = Height） |
+| R-GS-281 | G-A3-06 | 记忆 | 关闭后重新打开弹层时 | 根级候选仍无次级行（不记忆上次的次级路径） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-A3-06→internal/ui/mention.go:App.pickRow |
 | R-GS-282 | G-A3-07 | 内容 | 未观察（条件）：查询命中 git 提交 | 候选行主字为 7 位短 hash，半粗 | — | 屏上出现 7 位 hash | 未实现（找不到元素渲染点） |
 | R-GS-283 | G-A3-07 | 内容 | hash 冲突（同前缀） | 仍显示短 hash，靠次级标题区分 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
 | R-GS-284 | G-A3-07 | 样式 | 候选行主字与提交类条目同屏时 | 同字号，字重用半粗而非加粗；等宽显示 hash | — | 判据 = 字重 半粗 600；其余 = 字号 12.25 / 行高 18 / 字重 400，说明文字 10.5 / 14（TX-TYPE-BODY / TX-TYPE-MICRO） | 未实现（找不到元素渲染点） |
@@ -1016,23 +1016,23 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GS-304 | G-A3-09 | 内容 | 日期缺失 | 只显示作者 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
 | R-GS-305 | G-A3-09 | 状态 | 行很窄（面板 311） | 右尾小字被挤掉时优先保留主字与次字 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
 | R-GS-306 | G-A3-09 | 关联 | 作者与日期同处行右侧时 | 两者同处一行右侧，不重叠 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-307 | G-A3-10 | 内容 | 未观察（条件）：已安装技能进入候选 | 主字为技能名、次字为描述；描述缺省时只显示名称 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-308 | G-A3-10 | 内容 | 技能名含命名空间 | 原样显示（不裁前缀） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-309 | G-A3-10 | 样式 | 技能候选与文件候选先后出现时 | 同一套两级样式（主字 + 次字） | — | 判据 = 字号 UI 正文 12.25px | 未实现（找不到元素渲染点） |
-| R-GS-310 | G-A3-10 | 无障碍 | 读屏进入该元素时 | 播报名称与描述 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-311 | G-A3-10 | 内容 | 技能描述为空 | 只显示名称，右尾留空 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-312 | G-A3-10 | 状态 | 技能被过滤 | 行整体移除 | — | 屏上 候选行主字 计数 = 0 | 未实现（找不到元素渲染点） |
-| R-GS-313 | G-A3-10 | 内容 | 技能名与文件重名 | 分属不同组，各自成行，不合并 | — | 屏上 候选行主字 计数 = 1 | 未实现（找不到元素渲染点） |
-| R-GS-314 | G-A3-10 | 样式 | 主字与右尾同屏时 | 名称为主字、描述为右尾小字（12px） | — | 判据 = 字号 UI 正文 12.25px | 未实现（找不到元素渲染点） |
-| R-GS-315 | G-A3-10 | 记忆 | 关闭后重新打开弹层时 | 技能候选重新拉取 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-316 | G-A3-11 | 状态 | 未观察（条件）：候选出现后按 ↑/↓ | 选中行显示强调底 + 强调前景，默认第 0 行 | — | 有且只有 1 行高亮 | 未实现（找不到元素渲染点） |
-| R-GS-317 | G-A3-11 | 交互 | 鼠标悬停到另一行时 | 高亮迁到悬停行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-318 | G-A3-11 | 交互 | 按 Enter 时 | 插入选中候选并关闭弹层 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-319 | G-A3-11 | 样式 | 高亮在屏上时 | 强调底 10–15%、圆角小、文字转强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-320 | G-A3-11 | 无障碍 | 读屏进入该元素时 | 高亮项作为当前项读出 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-321 | G-A3-11 | 异常 | 候选刷新后原选中项消失 | 高亮回到第 0 行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-322 | G-A3-11 | 内容 | 按 End / Home（若支持） | 跳到首/末候选（不支持则不动） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-323 | G-A3-11 | 状态 | 结果为空 | 无高亮行（不是把空态高亮） | — | 屏上 高亮行 计数 = 0（不是把空态高亮） | 未实现（找不到元素渲染点） |
+| R-GS-307 | G-A3-10 | 内容 | 未观察（条件）：已安装技能进入候选 | 主字为技能名、次字为描述；描述缺省时只显示名称 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-308 | G-A3-10 | 内容 | 技能名含命名空间 | 原样显示（不裁前缀） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-309 | G-A3-10 | 样式 | 技能候选与文件候选先后出现时 | 同一套两级样式（主字 + 次字） | — | 判据 = 字号 UI 正文 12.25px | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = Height） |
+| R-GS-310 | G-A3-10 | 无障碍 | 读屏进入该元素时 | 播报名称与描述 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = Label） |
+| R-GS-311 | G-A3-10 | 内容 | 技能描述为空 | 只显示名称，右尾留空 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-312 | G-A3-10 | 状态 | 技能被过滤 | 行整体移除 | — | 屏上 候选行主字 计数 = 0 | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = Hidden@iconGlyph） |
+| R-GS-313 | G-A3-10 | 内容 | 技能名与文件重名 | 分属不同组，各自成行，不合并 | — | 屏上 候选行主字 计数 = 1 | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-314 | G-A3-10 | 样式 | 主字与右尾同屏时 | 名称为主字、描述为右尾小字（12px） | — | 判据 = 字号 UI 正文 12.25px | 已实现（映射 = G-A3-10→internal/ui/mention.go:App.pickRow；标记 = Height） |
+| R-GS-315 | G-A3-10 | 记忆 | 关闭后重新打开弹层时 | 技能候选重新拉取 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-A3-10→internal/ui/mention.go:App.pickRow；测试提及 internal/ui/mention_test.go:包级 |
+| R-GS-316 | G-A3-11 | 状态 | 未观察（条件）：候选出现后按 ↑/↓ | 选中行显示强调底 + 强调前景，默认第 0 行 | — | 有且只有 1 行高亮 | 已实现（映射 = G-A3-11→internal/ui/mention.go:App.syncPick；标记 = State@pickState.reset） |
+| R-GS-317 | G-A3-11 | 交互 | 鼠标悬停到另一行时 | 高亮迁到悬停行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-11→internal/ui/mention.go:App.syncPick；标记 = Menu） |
+| R-GS-318 | G-A3-11 | 交互 | 按 Enter 时 | 插入选中候选并关闭弹层 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-11→internal/ui/mention.go:App.syncPick；标记 = Menu） |
+| R-GS-319 | G-A3-11 | 样式 | 高亮在屏上时 | 强调底 10–15%、圆角小、文字转强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-11→internal/ui/composer.go:App.composerCard；标记 = Width） |
+| R-GS-320 | G-A3-11 | 无障碍 | 读屏进入该元素时 | 高亮项作为当前项读出 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A3-11→internal/ui/composer.go:App.composerCard；标记 = Label） |
+| R-GS-321 | G-A3-11 | 异常 | 候选刷新后原选中项消失 | 高亮回到第 0 行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-11→internal/ui/composer.go:App.composerCard；标记 = Reason） |
+| R-GS-322 | G-A3-11 | 内容 | 按 End / Home（若支持） | 跳到首/末候选（不支持则不动） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A3-11→internal/ui/composer.go:App.composerCard；标记 = 文案「输入卡」等 5 条） |
+| R-GS-323 | G-A3-11 | 状态 | 结果为空 | 无高亮行（不是把空态高亮） | — | 屏上 高亮行 计数 = 0（不是把空态高亮） | 已实现（映射 = G-A3-11→internal/ui/mention.go:App.syncPick；标记 = State@pickState.reset） |
 
 ### 2.4 `$` 技能提及弹层（G-A4-01–G-A4-05）
 
@@ -1040,47 +1040,47 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GS-324 | G-A4-01 | 状态 | 未观察（条件）：键入 `$` | 弹层出现：`max-h-72`、宽 `min(24rem, 100vw-2rem)` | — | 屏上出现 1 个弹层 | 未实现（找不到元素渲染点） |
-| R-GS-325 | G-A4-01 | 关联 | 先键入 `@` 再键入 `$` 时 | 与 `@` 弹层互斥；同时键入时只有一个生效 | — | 弹层计数为 1 | 未实现（找不到元素渲染点） |
-| R-GS-326 | G-A4-01 | 交互 | Esc / 空格 | 关闭弹层，不留半截候选 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-327 | G-A4-01 | 动画 | 该元素出现时 | ≤120ms，锚点不跳 | 减少动效下瞬切 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（找不到元素渲染点） |
-| R-GS-328 | G-A4-01 | 样式 | 浮层在屏上时 | 与 `@` 弹层同一套底色/描边/阴影，只宽度不同 | — | 判据 = 底色 浮层 明 #ffffff / 暗 #222222；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 未实现（找不到元素渲染点） |
-| R-GS-329 | G-A4-01 | 无障碍 | 读屏进入该元素时 | 读作候选列表，可遍历 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
+| R-GS-324 | G-A4-01 | 状态 | 未观察（条件）：键入 `$` | 弹层出现：`max-h-72`、宽 `min(24rem, 100vw-2rem)` | — | 屏上出现 1 个弹层 | 已实现（映射 = G-A4-01→internal/ui/mention.go:App.pickPopover；标记 = Loading） |
+| R-GS-325 | G-A4-01 | 关联 | 先键入 `@` 再键入 `$` 时 | 与 `@` 弹层互斥；同时键入时只有一个生效 | — | 弹层计数为 1 | 已实现（映射 = G-A4-01→internal/ui/mention.go:App.pickPopover；标记 = Open@App.pickRow） |
+| R-GS-326 | G-A4-01 | 交互 | Esc / 空格 | 关闭弹层，不留半截候选 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-01→internal/ui/mention.go:App.pickPopover；标记 = Pressed@App.pickSkeletons） |
+| R-GS-327 | G-A4-01 | 动画 | 该元素出现时 | ≤120ms，锚点不跳 | 减少动效下瞬切 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（映射到位但没有该维度的标记）：G-A4-01→internal/ui/mention.go:pickTriggerOf；测试提及 internal/ui/mention_test.go:包级 |
+| R-GS-328 | G-A4-01 | 样式 | 浮层在屏上时 | 与 `@` 弹层同一套底色/描边/阴影，只宽度不同 | — | 判据 = 底色 浮层 明 #ffffff / 暗 #222222；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px | 已实现（映射 = G-A4-01→internal/ui/mention.go:App.pickPopover；标记 = Height） |
+| R-GS-329 | G-A4-01 | 无障碍 | 读屏进入该元素时 | 读作候选列表，可遍历 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A4-01→internal/ui/mention.go:App.pickPopover；标记 = Label） |
 | R-GS-330 | G-A4-01 | 异常 | provider 不可用 | 弹层不出现，键入 `$` 当普通字符 | — | 屏上 浮层 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-331 | G-A4-01 | 内容 | `$` 在行中 | 同样触发（不限行首） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（找不到元素渲染点） |
-| R-GS-332 | G-A4-02 | 状态 | 未观察（条件）：技能列表未返回 | 弹层内两条脉冲骨架 | — | 骨架 2 条 | 未实现（找不到元素渲染点） |
-| R-GS-333 | G-A4-02 | 动画 | 骨架在屏上时 | 同步脉冲；返回后同帧替换 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（找不到元素渲染点） |
-| R-GS-334 | G-A4-02 | 样式 | 骨架在屏上时 | 中性浅块、与候选行同高 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
+| R-GS-331 | G-A4-01 | 内容 | `$` 在行中 | 同样触发（不限行首） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = G-A4-01→internal/ui/mention.go:App.pickPopover；标记 = 文案「候选列表：」） |
+| R-GS-332 | G-A4-02 | 状态 | 未观察（条件）：技能列表未返回 | 弹层内两条脉冲骨架 | — | 骨架 2 条 | 已实现（映射 = G-A4-02→internal/ui/mention.go:App.pickSkeletons；标记 = Hidden） |
+| R-GS-333 | G-A4-02 | 动画 | 骨架在屏上时 | 同步脉冲；返回后同帧替换 | 减少动效下静态 | 判据 = 动效 布局 250ms / 颜色 150ms / 折叠 300ms；缓动 cubic-bezier(0.16, 1, 0.3, 1) / cubic-bezier(0.4, 0, 0.2, 1) | 未实现（映射到位但没有该维度的标记）：G-A4-02→internal/ui/mention.go:App.pickSkeletons |
+| R-GS-334 | G-A4-02 | 样式 | 骨架在屏上时 | 中性浅块、与候选行同高 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；其余 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A4-02→internal/ui/mention.go:App.pickSkeletons；标记 = Height） |
 | R-GS-335 | G-A4-02 | 无障碍 | 读屏进入该元素时 | 不逐条播报骨架 | — | 播报次数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-336 | G-A4-02 | 内容 | 技能很少（1 条） | 骨架先出，随后替换 1 行 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 未实现（找不到元素渲染点） |
-| R-GS-337 | G-A4-02 | 状态 | 技能列表为空 | 骨架后给空态（G-A4-03） | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-338 | G-A4-02 | 交互 | 骨架期间按 Enter | 不插入任何内容 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-339 | G-A4-02 | 样式 | 骨架在屏上时 | 两条 32px 脉冲块，与候选行同高 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-340 | G-A4-03 | 内容 | 未观察（条件）：`$` 后打无命中前缀 | 空态文字逐字「未找到技能」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
+| R-GS-336 | G-A4-02 | 内容 | 技能很少（1 条） | 骨架先出，随后替换 1 行 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM） | 已实现（映射 = G-A4-02→internal/ui/mention.go:App.pickSkeletons；标记 = 文案「正在搜索」） |
+| R-GS-337 | G-A4-02 | 状态 | 技能列表为空 | 骨架后给空态（G-A4-03） | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A4-02→internal/ui/mention.go:App.pickSkeletons；标记 = Hidden） |
+| R-GS-338 | G-A4-02 | 交互 | 骨架期间按 Enter | 不插入任何内容 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-02→internal/ui/mention.go:App.pickSkeletons；标记 = Pressed） |
+| R-GS-339 | G-A4-02 | 样式 | 骨架在屏上时 | 两条 32px 脉冲块，与候选行同高 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A4-02→internal/ui/mention.go:App.pickSkeletons；标记 = Height） |
+| R-GS-340 | G-A4-03 | 内容 | 未观察（条件）：`$` 后打无命中前缀 | 空态文字逐字「未找到技能」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/mention.go:pickNoSkillText「未找到技能」 |
 | R-GS-341 | G-A4-03 | 状态 | 有候选 | 空态不出现 | — | 屏上 空态文字 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-342 | G-A4-03 | 样式 | 空态在屏上时 | 14px 次要色、左内边距与候选对齐 | — | 判据 = 字号 正文 14px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 未实现（找不到元素渲染点） |
-| R-GS-343 | G-A4-03 | 无障碍 | 读屏进入该元素时 | 读出该句 | — | 读屏文本 = 「未找到技能」 | 未实现（找不到元素渲染点） |
+| R-GS-342 | G-A4-03 | 样式 | 空态在屏上时 | 14px 次要色、左内边距与候选对齐 | — | 判据 = 字号 正文 14px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 已实现（映射 = G-A4-03→internal/ui/mention.go:App.pickEmptyRow；标记 = Height） |
+| R-GS-343 | G-A4-03 | 无障碍 | 读屏进入该元素时 | 读出该句 | — | 读屏文本 = 「未找到技能」 | 已实现（映射 = G-A4-03→internal/ui/mention.go:App.pickEmptyRow；标记 = Label） |
 | R-GS-344 | G-A4-03 | 状态 | 查询非空且有候选 | 空态不出现 | — | 屏上 空态文字 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
-| R-GS-345 | G-A4-03 | 内容 | 空态句不嵌查询词 | 固定为「未找到技能」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-346 | G-A4-03 | 样式 | 空态在屏上时 | 14px 次要色、左内边距与候选对齐 | — | 判据 = 字号 正文 14px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 未实现（找不到元素渲染点） |
-| R-GS-347 | G-A4-03 | 关联 | 无匹配技能、`$` 弹层仍展开时 | 空态在场时弹层不关闭 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-348 | G-A4-04 | 内容 | 未观察（条件）：有技能候选 | 主字为技能名、右尾小字为描述；描述缺省时只显示名称 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-349 | G-A4-04 | 内容 | 同名技能多处安装 | 按工作区 > 用户 > 插件优先级去重，只出现一条 | — | 同名只 1 行 | 未实现（找不到元素渲染点） |
-| R-GS-350 | G-A4-04 | 内容 | 技能被禁用 | 不进入候选 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 未实现（找不到元素渲染点） |
-| R-GS-351 | G-A4-04 | 交互 | 鼠标点击候选行时 | 插入该技能名（替换 `$前缀`）并关闭弹层 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-352 | G-A4-04 | 样式 | 两级 | 主字 14px、右尾 12px 次要色 | — | 判据 = 字号 UI 正文 12.25px | 未实现（找不到元素渲染点） |
-| R-GS-353 | G-A4-04 | 无障碍 | 读屏进入该元素时 | 播报名称与描述 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 未实现（找不到元素渲染点） |
-| R-GS-354 | G-A4-04 | 状态 | 候选被过滤 | 行整体移除 | — | 屏上 候选行主字 计数 = 0 | 未实现（找不到元素渲染点） |
-| R-GS-355 | G-A4-04 | 内容 | 无描述 | 只显示名称，右尾留空 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
-| R-GS-356 | G-A4-04 | 样式 | 主字与右尾同屏时 | 名称 14px、描述 12px 次要色 | — | 判据 = 字号 UI 正文 12.25px | 未实现（找不到元素渲染点） |
-| R-GS-357 | G-A4-05 | 状态 | 未观察（条件）：候选出现后按 ↑/↓ | 选中行强调底 + 强调前景，默认第 0 行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-358 | G-A4-05 | 交互 | 按 Enter 时 | 插入选中技能并关闭弹层 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-359 | G-A4-05 | 样式 | 高亮在屏上时 | 强调底 10–15%、文字转强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-360 | G-A4-05 | 无障碍 | 读屏进入该元素时 | 当前项被读出 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（找不到元素渲染点） |
-| R-GS-361 | G-A4-05 | 异常 | 候选列表刷新 | 高亮保持或回第 0 行，不消失成空 | — | 高亮恒有 1 行 | 未实现（找不到元素渲染点） |
-| R-GS-362 | G-A4-05 | 状态 | 无候选 | 无高亮行 | — | 屏上 高亮行 计数 = 0 | 未实现（找不到元素渲染点） |
-| R-GS-363 | G-A4-05 | 内容 | 按 Home / End（若支持） | 跳首/末候选 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GS-364 | G-A4-05 | 键盘 | ↑ 在首项 | 停在首项或循环到末项（行为固定即可） | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
+| R-GS-345 | G-A4-03 | 内容 | 空态句不嵌查询词 | 固定为「未找到技能」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/mention.go:pickNoSkillText「未找到技能」 |
+| R-GS-346 | G-A4-03 | 样式 | 空态在屏上时 | 14px 次要色、左内边距与候选对齐 | — | 判据 = 字号 正文 14px；内边距 左缘 侧栏 7 / 时间线 10.5 / 设置 21（宽屏 28） | 已实现（映射 = G-A4-03→internal/ui/mention.go:App.pickEmptyRow；标记 = Height） |
+| R-GS-347 | G-A4-03 | 关联 | 无匹配技能、`$` 弹层仍展开时 | 空态在场时弹层不关闭 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：G-A4-03→internal/ui/mention.go:App.pickEmptyRow；测试提及 internal/ui/mention_test.go:包级 |
+| R-GS-348 | G-A4-04 | 内容 | 未观察（条件）：有技能候选 | 主字为技能名、右尾小字为描述；描述缺省时只显示名称 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-349 | G-A4-04 | 内容 | 同名技能多处安装 | 按工作区 > 用户 > 插件优先级去重，只出现一条 | — | 同名只 1 行 | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-350 | G-A4-04 | 内容 | 技能被禁用 | 不进入候选 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0） | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-351 | G-A4-04 | 交互 | 鼠标点击候选行时 | 插入该技能名（替换 `$前缀`）并关闭弹层 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = Pressed） |
+| R-GS-352 | G-A4-04 | 样式 | 两级 | 主字 14px、右尾 12px 次要色 | — | 判据 = 字号 UI 正文 12.25px | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = Height） |
+| R-GS-353 | G-A4-04 | 无障碍 | 读屏进入该元素时 | 播报名称与描述 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = Label） |
+| R-GS-354 | G-A4-04 | 状态 | 候选被过滤 | 行整体移除 | — | 屏上 候选行主字 计数 = 0 | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = Hidden@iconGlyph） |
+| R-GS-355 | G-A4-04 | 内容 | 无描述 | 只显示名称，右尾留空 | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = 文案「文件」等 3 条） |
+| R-GS-356 | G-A4-04 | 样式 | 主字与右尾同屏时 | 名称 14px、描述 12px 次要色 | — | 判据 = 字号 UI 正文 12.25px | 已实现（映射 = G-A4-04→internal/ui/mention.go:App.pickRow；标记 = Height） |
+| R-GS-357 | G-A4-05 | 状态 | 未观察（条件）：候选出现后按 ↑/↓ | 选中行强调底 + 强调前景，默认第 0 行 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-05→internal/ui/mention.go:App.syncPick；标记 = State@pickState.reset） |
+| R-GS-358 | G-A4-05 | 交互 | 按 Enter 时 | 插入选中技能并关闭弹层 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-05→internal/ui/mention.go:App.syncPick；标记 = Menu） |
+| R-GS-359 | G-A4-05 | 样式 | 高亮在屏上时 | 强调底 10–15%、文字转强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-05→internal/ui/composer.go:App.composerCard；标记 = Width） |
+| R-GS-360 | G-A4-05 | 无障碍 | 读屏进入该元素时 | 当前项被读出 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-A4-05→internal/ui/composer.go:App.composerCard；标记 = Label） |
+| R-GS-361 | G-A4-05 | 异常 | 候选列表刷新 | 高亮保持或回第 0 行，不消失成空 | — | 高亮恒有 1 行 | 已实现（映射 = G-A4-05→internal/ui/composer.go:App.composerCard；标记 = Reason） |
+| R-GS-362 | G-A4-05 | 状态 | 无候选 | 无高亮行 | — | 屏上 高亮行 计数 = 0 | 已实现（映射 = G-A4-05→internal/ui/mention.go:App.syncPick；标记 = State@pickState.reset） |
+| R-GS-363 | G-A4-05 | 内容 | 按 Home / End（若支持） | 跳首/末候选 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数 = 1、超宽以「…」收尾且横向溢出 0（TX-LINE-1 / TX-ELLIPSIS / SC-OVERFLOW-0）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-05→internal/ui/composer.go:App.composerCard；标记 = 文案「输入卡」等 5 条） |
+| R-GS-364 | G-A4-05 | 键盘 | ↑ 在首项 | 停在首项或循环到末项（行为固定即可） | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-A4-05→internal/ui/mention.go:App.syncPick；标记 = Key） |
 
 ### 2.5 时间线命中高亮（G-A5-01–G-A5-02）
 
@@ -1128,8 +1128,8 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 
 | 需求 ID | 元素 ID | 维度 | 场景 | 期望 | 异常 | 验收 | 状态 |
 |---|---|---|---|---|---|---|---|
-| R-GM-001 | G-B1-01 | 状态 | C37：输入框行首键入 `/` | 弹层出现：宽 327（`min(24rem,100vw-2rem)`），高受输入框上方空间限制 ≈221（未达 `max-h-72` 的 288） | — | 屏上出现 1 个弹层，宽 327 | 已实现（映射 = G-B1-01→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@slashMenuState.dismiss） |
-| R-GM-002 | G-B1-01 | 状态 | 输入框位于窗口顶部（上方空间不足） | 弹层向下展开或高度压缩，不遮挡输入行本身 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-B1-01→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@slashMenuState.dismiss） |
+| R-GM-001 | G-B1-01 | 状态 | C37：输入框行首键入 `/` | 弹层出现：宽 327（`min(24rem,100vw-2rem)`），高受输入框上方空间限制 ≈221（未达 `max-h-72` 的 288） | — | 屏上出现 1 个弹层，宽 327 | 已实现（映射 = G-B1-01→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@pickState.dismiss） |
+| R-GM-002 | G-B1-01 | 状态 | 输入框位于窗口顶部（上方空间不足） | 弹层向下展开或高度压缩，不遮挡输入行本身 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-B1-01→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@pickState.dismiss） |
 | R-GM-003 | G-B1-01 | 交互 | 继续键入字符 | 弹层按前缀过滤，行数与高度同步变化，锚点不跳 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-B1-01→internal/ui/slash_commands.go:App.slashTextKey；标记 = Key） |
 | R-GM-004 | G-B1-01 | 交互 | 按 Esc 时 | 弹层关闭，`/` 与前缀保留在输入框（不吞字） | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-01→internal/ui/slash_commands.go:App.slashTextKey；标记 = Key） |
 | R-GM-005 | G-B1-01 | 交互 | 点击弹层外 | 关闭弹层，不发送消息 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
@@ -1179,17 +1179,17 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GM-049 | G-B1-06 | 状态 | 技能候选被过滤 | 行整体移除，不留空组 | — | 屏上 候选行 计数 = 0 | 已实现（映射 = G-B1-06→internal/ui/slash_commands.go:App.slashMenu；标记 = Disabled@App.slashCommandRow） |
 | R-GM-050 | G-B1-06 | 内容 | 技能名带命名空间 | 原样显示（不裁前缀） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-B1-06→internal/ui/slash_commands.go:App.slashMenu；标记 = 文案「斜杠命令」等 2 条） |
 | R-GM-051 | G-B1-06 | 键盘 | Enter 选中技能行 | 插入技能名并关闭弹层 | — | 判据 = 读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 未实现（映射到位但没有该维度的标记）：G-B1-06→internal/ui/slash_commands.go:App.slashMenu；测试提及 internal/ui/slash_commands_test.go:包级 |
-| R-GM-052 | G-B1-07 | 状态 | 未观察（条件）：按 ↑/↓ 或悬停 | 选中行显示强调底 + 强调前景；C37 截图里 10 行全为普通底，说明首行并非默认选中 | — | 未操作时无高亮；操作后 1 行高亮 | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@slashMenuState.dismiss） |
+| R-GM-052 | G-B1-07 | 状态 | 未观察（条件）：按 ↑/↓ 或悬停 | 选中行显示强调底 + 强调前景；C37 截图里 10 行全为普通底，说明首行并非默认选中 | — | 未操作时无高亮；操作后 1 行高亮 | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@pickState.dismiss） |
 | R-GM-053 | G-B1-07 | 交互 | 反复按 ↑ / ↓ 时 | 高亮逐行迁移，列表跟随滚动保证可见 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashMoveSelection；标记 = Menu@App.slashSelectable） |
 | R-GM-054 | G-B1-07 | 交互 | 按 Enter 时 | 执行/插入当前高亮项并关闭弹层 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashMoveSelection；标记 = Menu@App.slashSelectable） |
 | R-GM-055 | G-B1-07 | 样式 | 高亮在屏上时 | 强调底 10–15%、圆角小、文字转强调前景 | — | 判据 = 底色 内容底 明 #ffffff / 暗 #0c0c0c、侧栏 明 #f6fdff / 暗 #090c0d；圆角 按钮·输入框 6.75 / 卡内分区 8.75 / 主窗卡 12.75 / 小标签 4.75px；其余 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-07→internal/ui/composer.go:App.composerCard；标记 = Width） |
 | R-GM-056 | G-B1-07 | 无障碍 | 读屏进入该元素时 | 当前项被读出 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；读屏顺序 = 渲染顺序、序位 = 父容器内第 n 个（SR-ORDER-DOM）；文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；焦点环 2px + 外扩 1px、明 #a1a1a1 / 暗 #63cb7b、每次聚焦可见 1 次（ST-FOCUS） | 已实现（映射 = G-B1-07→internal/ui/composer.go:App.composerCard；标记 = Label） |
 | R-GM-057 | G-B1-07 | 异常 | 过滤后高亮项消失 | 高亮落到新的首项，不停在不存在的位置 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashTextKey；标记 = reason@App.slashExecuteSelected） |
 | R-GM-058 | G-B1-07 | 内容 | 无操作时 | 10 行全为普通底（C37 实测），说明首行不默认高亮 | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashTextKey；标记 = 文案「不可用：」@App.slashExecuteSelected） |
-| R-GM-059 | G-B1-07 | 状态 | 鼠标移出弹层 | 高亮保留在最后悬停行（不清空） | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@slashMenuState.dismiss） |
+| R-GM-059 | G-B1-07 | 状态 | 鼠标移出弹层 | 高亮保留在最后悬停行（不清空） | — | 判据 = 底色 选中底 明 #f5f5f5 / 暗 #262626；字色 主文字 明 #0a0a0a / 暗 #ececec；其余 = 选中底 明 #f5f5f5 / 暗 #262626 + 左缘 2px 主色（ST-SELECTED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（映射 = G-B1-07→internal/ui/slash_commands.go:App.slashTextKey；标记 = State@pickState.dismiss） |
 | R-GM-060 | G-B1-08 | 内容 | 在输入框键入 `/` 打开指令菜单时 | 行内主字「/agent」（401,358）、右尾描述「切换至 Agent 模式」（619,359） | — | 判据 = 间距 纵向 10.5 / 14 / 7 / 21、横向 3.5 / 7 / 14px；其余 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/slash_commands.go:App.slashCommands「切换至 Agent 模式」 |
 | R-GM-061 | G-B1-08 | 交互 | 选中一条会话后执行时 | 输入区切换到 Agent 模式；弹层关闭；输入框清空该命令文本 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = G-B1-08→internal/ui/slash_commands.go:App.slashExecuteSelected；标记 = Menu） |
-| R-GM-062 | G-B1-08 | 状态 | 已是 Agent 模式 | 候选仍出现（命令幂等），执行后模式不变 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-B1-08→internal/ui/slash_commands.go:App.slashExecuteSelected；标记 = State@slashMenuState.reset） |
+| R-GM-062 | G-B1-08 | 状态 | 已是 Agent 模式 | 候选仍出现（命令幂等），执行后模式不变 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（映射 = G-B1-08→internal/ui/slash_commands.go:App.slashExecuteSelected；标记 = State@pickState.reset） |
 | R-GM-063 | G-B1-08 | 关联 | 执行 /agent 后回到主界面时 | 标题栏模式标签随之为 Agent，不出现两处不一致 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
 | R-GM-064 | G-B1-08 | 样式 | 行样式渲染后 | 与 G-B1-05 同款（主字 + 右尾描述） | — | 判据 = 行高 UI 正文 17.5px；字号 UI 正文 12.25px | 未实现（映射到位但没有该维度的标记）：G-B1-08→internal/ui/slash_commands.go:App.slashExecuteSelected；测试提及 internal/ui/slash_commands_test.go:包级 |
 | R-GM-065 | G-B1-08 | 无障碍 | 读屏进入该元素时 | 播报「/agent，切换至 Agent 模式」 | — | 读屏文本 = 「/agent，切换至 Agent 模式」 | 未实现（映射到位但没有该维度的标记）：G-B1-08→internal/ui/slash_commands.go:App.slashExecuteSelected；测试提及 internal/ui/slash_commands_test.go:包级 |
@@ -2313,13 +2313,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GI-123 | G-H2-03 | 内容 | 加载行在屏上时 | 「正在加载...」+ 旋转图标，居中 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketLoading「正在加载...」 |
 | R-GI-124 | G-H2-03 | 状态 | 加载完成 | 整行消失（不留空白 32px） | — | 屏上 加载行 计数 = 0 | 未实现（找不到元素渲染点） |
 | R-GI-125 | G-H2-03 | 无障碍 | 读屏进入该元素时 | `role=status` 播报一次 | — | 播报次数 = 1 | 未实现（找不到元素渲染点） |
-| R-GI-126 | G-H2-04 | 状态 | 未观察（条件）：详情加载失败 | 错误块：告警图标 + 错误文案 + 次级按钮「重试」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketRetry「重试」 |
+| R-GI-126 | G-H2-04 | 状态 | 未观察（条件）：详情加载失败 | 错误块：告警图标 + 错误文案 + 次级按钮「重试」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-GI-127 | G-H2-04 | 交互 | 鼠标点击「重试」时 | 重新拉取详情；成功后错误块消失、技能列表出现 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1）；可见时出现次数 1；消失后 0 且不占位（ST-VISIBLE） | 未实现（找不到元素渲染点） |
-| R-GI-128 | G-H2-04 | 状态 | 重试进行中时 | 「重试」禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketRetry「重试」 |
+| R-GI-128 | G-H2-04 | 状态 | 重试进行中时 | 「重试」禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-GI-129 | G-H2-04 | 样式 | 错误块在屏上时 | 告警图标 16、14px 次要色、按钮高 28 | — | 判据 = 字号 正文 14px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 未实现（找不到元素渲染点） |
-| R-GI-130 | G-H2-04 | 无障碍 | 读屏进入该元素时 | `role=alert` 播报错误，随后可聚焦「重试」 | — | 读屏文本 = 「重试」 | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketRetry「重试」 |
+| R-GI-130 | G-H2-04 | 无障碍 | 读屏进入该元素时 | `role=alert` 播报错误，随后可聚焦「重试」 | — | 读屏文本 = 「重试」 | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-GI-131 | G-H2-04 | 异常 | 连续失败 | 错误仍 1 块，可重复重试 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
-| R-GI-132 | G-H2-04 | 内容 | 错误块在屏上时 | 告警图标 + 错误文案 + 「重试」，三件一组 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketRetry「重试」 |
+| R-GI-132 | G-H2-04 | 内容 | 错误块在屏上时 | 告警图标 + 错误文案 + 「重试」，三件一组 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-GI-133 | G-H2-04 | 状态 | 重试后加载中 | 错误块换成加载行 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
 | R-GI-134 | G-H2-05 | 内容 | 未观察（条件）：详情已载入 | 分组标签逐字「技能」（12px 中等灰） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/ui/approval.go:approvalActionWord「技能」 |
 | R-GI-135 | G-H2-05 | 状态 | 插件无技能 | 标签不出现（只留空态文案 G-H2-07） | — | 屏上 分组标签 计数 = 0 | 需负向取证：期望/验收列为负向断言，需界面或代码事实反向取证 |
@@ -2604,13 +2604,13 @@ Baseline: 验收列按 [`design-baseline.md`](design-baseline.md) §11「本产�
 | R-GI-394 | G-H6-09b | 内容 | 结果文案渲染后 | 计数 + 「部分 Cookie 未能导入，部分网站可能需要重新登录。」 | — | 判据 = 一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
 | R-GI-395 | G-H6-09b | 状态 | 无失败 | 改走成功分支 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（找不到元素渲染点） |
 | R-GI-396 | G-H6-09b | 样式 | 结果块在屏上时 | 告警琥珀色 + 14px 主文 + 12px 说明 | — | 判据 = 色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a；字号 UI 正文 12.25px | 未实现（找不到元素渲染点） |
-| R-GI-397 | G-H6-10 | 状态 | 未观察（条件）：导入或读取失败 | 错误块：危险色消息 + 等宽诊断行 + 次级按钮「重试」 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketRetry「重试」 |
+| R-GI-397 | G-H6-10 | 状态 | 未观察（条件）：导入或读取失败 | 错误块：危险色消息 + 等宽诊断行 + 次级按钮「重试」 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-GI-398 | G-H6-10 | 交互 | 鼠标点击「重试」时 | 重新读取/导入；按钮短暂禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（找不到元素渲染点） |
 | R-GI-399 | G-H6-10 | 内容 | 诊断行很长 | 等宽、可折行、可复制（便于报障） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
 | R-GI-400 | G-H6-10 | 样式 | 错误块在屏上时 | 危险色 14px + 等宽 12px 诊断行 + 按钮高 28 | — | 判据 = 字号 UI 正文 12.25px；色值 主文字 明 #0a0a0a / 暗 #ececec、次文字 明 #737373 / 暗 #8a8a8a | 未实现（找不到元素渲染点） |
 | R-GI-401 | G-H6-10 | 无障碍 | 读屏进入该元素时 | `role=alert` 播报消息，诊断行可单独读到 | — | 判据 = 可读名逐字等于屏上文案、图标按钮等无屏上文案的取期望列给的词；角色按作用取（SR-NAME / SR-ROLE）；色值取 token：主色 #349651/#63cb7b、正文 #0a0a0a/#ececec、次文 #737373/#8a8a8a、边框 #e5e5e5/#2e2e2e、警示 #e17100/#ffb900，偏差 0（CL-ACCENT / CL-TEXT / CL-TEXT-2 / CL-BORDER / CL-WARN） | 未实现（找不到元素渲染点） |
-| R-GI-402 | G-H6-10 | 内容 | 错误块在屏上时 | 危险色消息 + 等宽诊断行 + 「重试」 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketRetry「重试」 |
-| R-GI-403 | G-H6-10 | 状态 | 重试进行中时 | 「重试」禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginMarketRetry「重试」 |
+| R-GI-402 | G-H6-10 | 内容 | 错误块在屏上时 | 危险色消息 + 等宽诊断行 + 「重试」 | — | 判据 = 包围盒高取行档 18/24/28/30/32/35/48/60 之一、宽 = 内容宽 + 2×14（BO-BOX-RULE / BO-PAD-14），偏差 ≤ 1px（AL-TOL-1） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
+| R-GI-403 | G-H6-10 | 状态 | 重试进行中时 | 「重试」禁用 | — | 判据 = 可点次数 1（可点）或 0（禁用且 opacity 50%）（ST-ENABLED）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 已实现（逐字）：internal/ui/app.go:App.actionErrorView「重试」 |
 | R-GI-404 | G-H6-10 | 样式 | 诊断行在屏上时 | 等宽 12px、可折行 | — | 判据 = 字号 UI 正文 12.25px；其余 = 字号 12.25 / 行高 18 / 字重 400，说明文字 10.5 / 14（TX-TYPE-BODY / TX-TYPE-MICRO）；行数按内容折行（上限 2 行，内容列 ≤ 520 时按 TX-WRAP-520）、末行超宽以「…」收尾（TX-LINE-2 / TX-WRAP-520 / TX-ELLIPSIS） | 未实现（找不到元素渲染点） |
 | R-GI-405 | G-H6-11 | 状态 | 未观察（条件）：导入未结束时 | 次按钮「取消」（`outline`） | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/account/login.go:Account.waitBrowser「取消」 |
 | R-GI-406 | G-H6-11 | 状态 | 已导入后 | 同一按钮文案变「关闭」 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（逐字）：internal/account/login.go:Account.waitBrowser「关闭」 |

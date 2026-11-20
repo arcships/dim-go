@@ -189,57 +189,46 @@ func TestSidebarGroupCollapseIsViewState(t *testing.T) {
 	}
 }
 
-// TestSidebarSearchShowsHitsAcrossGroupsAndExpands：搜索命中时跨组显示，组自动
-// 展开；查询清空后回到原来的折叠态。
-func TestSidebarSearchShowsHitsAcrossGroupsAndExpands(t *testing.T) {
+// TestChatSearchFindsSessionsAcrossWorkspaceGroups：跨会话检索不按工作区分组
+// 切分——一条查询能把两个目录组里的会话一起找出来（G-A2-01 的「跨会话」）。
+func TestChatSearchFindsSessionsAcrossWorkspaceGroups(t *testing.T) {
 	app := cwdGroupApp(cwdGroupPlaces())
 	tt := gui.NewTester(app.View, WindowWidth, WindowHeight)
-	groups := app.sidebarWorkspaces(app.sidebarThreads())
-	if app.sidebarView.collapsed == nil {
-		app.sidebarView.collapsed = map[string]bool{}
-	}
-	for _, group := range groups[1:] {
-		app.sidebarView.collapsed[group.id] = true
-	}
+	tt.Key(gui.Cmd, gui.KeyG)
 	tt.Frame()
-	if _, ok := tt.Find("评审甲"); ok {
-		t.Fatal("搜索前两组应处于折叠态")
+	if !app.chatSearch.open {
+		t.Fatal("⌘G 没有打开搜索聊天对话框")
 	}
-
-	app.searchOpen, app.searchQuery = true, "评审"
+	if len(app.chatSearch.rows) != 3 {
+		t.Fatalf("空查询的结果 = %d 条，想要三条会话", len(app.chatSearch.rows))
+	}
+	if err := tt.Click(chatSearchLabel); err != nil {
+		t.Fatalf("点不到搜索聊天输入框：%v", err)
+	}
+	tt.Type("评审")
 	tt.Frame()
-	// 命中跨组显示，且折叠住的组被自动展开。
-	for _, name := range []string{"评审甲", "评审乙", "评审丙"} {
-		if _, ok := tt.Find(name); !ok {
-			t.Fatalf("搜索命中 %q 没有跨组显示：\n%v", name, tt.Texts())
+	for _, title := range []string{"评审甲", "评审乙", "评审丙"} {
+		if !tt.HasText(title) {
+			t.Fatalf("跨组命中 %q 没有出现在对话框里：\n%v", title, tt.Texts())
 		}
 	}
-	if _, ok := tt.Find("暂无会话"); ok {
-		t.Fatalf("搜索时仍画了没有命中的空组：\n%v", tt.Texts())
+	// 副行是各自的工作区显示名（目录末段），跨组的归属不同。
+	places := map[string]bool{}
+	for _, row := range app.chatSearch.rows {
+		places[row.place] = true
 	}
-	for _, group := range groups[1:] {
-		if !app.sidebarView.collapsed[group.id] {
-			t.Fatalf("%s 的折叠态被搜索改写了", group.name)
-		}
-	}
-
-	// 只命中一组的查询：另一组的行与组头都不出现。
-	app.searchQuery = "乙"
-	tt.Frame()
-	if _, ok := tt.Find("评审甲"); ok {
-		t.Fatal("只命中一组时仍显示了别组的行")
-	}
-	if _, ok := tt.Find("dim-agent"); ok {
-		t.Fatal("没有命中的组头还在")
-	}
-	if _, ok := tt.Find("评审乙"); !ok {
-		t.Fatal("命中的行没出现")
+	if !places["dim-agent"] || !places["rutis"] {
+		t.Fatalf("结果的工作区归属 = %v，想要 dim-agent 与 rutis 都在", places)
 	}
 
-	// 清空查询：折叠态照旧。
-	app.searchQuery = ""
+	// 只命中一组：另一组的会话与它无关，不在结果里。
+	if err := tt.Click(chatSearchLabel); err != nil {
+		t.Fatalf("点不到搜索聊天输入框：%v", err)
+	}
+	tt.Command("selectAll")
+	tt.Type("丙")
 	tt.Frame()
-	if _, ok := tt.Find("评审甲"); ok {
-		t.Fatal("清空查询后折叠态没有恢复")
+	if len(app.chatSearch.rows) != 1 || app.chatSearch.rows[0].title != "评审丙" {
+		t.Fatalf("过滤后 = %+v", app.chatSearch.rows)
 	}
 }

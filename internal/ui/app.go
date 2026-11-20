@@ -429,6 +429,10 @@ type App struct {
 	compactionOpen  map[string]*bool
 	compactionTried int
 
+	// submitting 是一条提交正在写：在途时发送槽禁用，submitDraft 也只发一次
+	// （R-IN-136、R-IN-140）；请求有结果（成功或失败）才解除。
+	submitting bool
+
 	// 待发附件（样例）。
 	attachments       []attachmentChipData
 	attachmentEditing bool
@@ -438,10 +442,11 @@ type App struct {
 	attachmentMedia   string
 	attachmentData    string
 
-	// 会话目录：搜索面、行内重命名、删除/归档确认（见 confirm.go）、归档与导出
-	// 反馈（都属可丢的视图状态）。
-	searchOpen  bool
-	searchQuery string
+	// 会话目录：搜索聊天对话框（见 search_chat.go）、@ / $ 提及弹层（见
+	// mention.go）、行内重命名、删除/归档确认（见 confirm.go）、归档与导出反馈
+	// （都属可丢的视图状态）。
+	chatSearch  chatSearchState
+	pick        pickState
 	renaming    int
 	renameDraft string
 	// renameDialog 是重命名弹窗（会话 / 工作区）的可丢视图状态，见
@@ -473,6 +478,8 @@ type App struct {
 	// 上屏，之后新到的输出照常显示（pty 的输出不因清屏而丢）。
 	termCleared int
 	tasks       []task
+	// wakeups 是样例里的唤醒记录（只在 -demo 出现；接上 Source 时读 Wakeups）。
+	wakeups []task
 	// termTabs / termActive 是终端的分层画布（T-09）：每个标签一层，激活层与
 	// 上面的 termState / termLines 同步，其余层各自保留输出与滚动位置。
 	termTabs   []termTab
@@ -494,10 +501,18 @@ type App struct {
 
 	// 重建后的输入区 / 标题栏视图状态：推理强度、模式、权限、工作区、选择器
 	// 浮层的开合与查询词。全部可丢，不承载事实。
-	effort         float64
-	effortOpen     bool
-	modelOpen      bool
-	modelQuery     string
+	effort     float64
+	effortOpen bool
+	modelOpen  bool
+	modelQuery string
+	// modelTab 是模型浮层的页签（0 模型 / 1 子代理 / 2 外部 agent）。
+	modelTab int
+	// attachOpen 是 `+` 附件菜单的开合（IN-17–IN-22）。
+	attachOpen bool
+	// stopArmed / stopArmedAt 是 Esc 两段确认的武装态与武装时刻：第一次 Esc 武装，
+	// 3 秒内第二次 Esc 才停止，超时撤除（IN-14）。点停止键不受它影响。
+	stopArmed      bool
+	stopArmedAt    time.Time
 	skillsOpen     bool
 	skillQuery     string
 	mode           string
@@ -657,6 +672,10 @@ func (a *App) loadSample() {
 	a.effortOpen = false
 	a.modelOpen = false
 	a.modelQuery = ""
+	a.modelTab = 0
+	a.attachOpen = false
+	a.stopArmed = false
+	a.stopArmedAt = time.Time{}
 	a.skillsOpen = false
 	a.skillQuery = ""
 	a.mode = "Agent"
@@ -678,7 +697,7 @@ func (a *App) loadSample() {
 	a.openWithApp = "VS Code"
 	a.headerNote = ""
 	a.model = sampleModel
-	a.searchOpen, a.searchQuery = false, ""
+	a.chatSearch, a.pick = chatSearchState{}, pickState{}
 	a.sessionSearch = sessionSearchState{}
 	a.timelineSelected = ""
 	a.renaming = -1
@@ -739,8 +758,7 @@ func (a *App) loadSample() {
 	case VariantSessionDelete:
 		a.openDeleteConfirm([]int{0})
 	case VariantSearch:
-		a.searchOpen = true
-		a.searchQuery = ""
+		a.openChatSearch()
 	case VariantTerm, VariantTermRunning, VariantTermExited:
 		a.rightOpen, a.rightTab = true, 4
 		switch a.variant {
@@ -878,6 +896,10 @@ func (a *App) resetWiredViewState() {
 	a.effortOpen = false
 	a.modelOpen = false
 	a.modelQuery = ""
+	a.modelTab = 0
+	a.attachOpen = false
+	a.stopArmed = false
+	a.stopArmedAt = time.Time{}
 	a.skillsOpen = false
 	a.skillQuery = ""
 	a.mode = "Agent"
@@ -898,7 +920,7 @@ func (a *App) resetWiredViewState() {
 	a.openWithLoading = false
 	a.openWithApp = "VS Code"
 	a.headerNote = ""
-	a.searchOpen, a.searchQuery = false, ""
+	a.chatSearch, a.pick = chatSearchState{}, pickState{}
 	a.sessionSearch = sessionSearchState{}
 	a.timelineSelected = ""
 	a.renaming = -1
@@ -970,23 +992,34 @@ func (a *App) View(c *gui.Context) {
 	a.applyExportResults()
 	a.syncSelectedSession()
 	a.applyTokens(c)
-	// 右栏文件页的目录投影每帧做一次：文件页与命令面板的文件组读同一份。
-	a.syncPanelTree(false)
+	// 提及弹层按草稿开合要先算：它开着时这一帧也要读目录投影（文件候选读的是
+	// 同一份树），顺序见下一条。
+	a.pickFrame()
+	a.syncPick()
+	// 「重试」只作用于这一帧：候选与目录投影都在这一帧里跳过缓存重读一次。
+	pickRefresh := a.pick.refresh
+	a.pick.refresh = false
+	// 右栏文件页的目录投影每帧做一次：文件页、命令面板的文件组与提及弹层的
+	// 文件候选读同一份。
+	a.syncPanelTree(pickRefresh)
 	// 确认框是模态：它开着时窗口级键位全部让给它（Esc 关框，不关框后的编辑器、
 	// 搜索面或终端）。
 	if a.confirm.kind == confirmKindNone {
 		a.commandPaletteKeys(c)
 		a.sessionSearchKeys(c)
+		a.chatSearchKeys(c)
 		a.debugKeys(c)
 		a.approvalKeys(c)
 		a.questionKeys(c)
 	}
 	a.sessionSearchFrame(c)
+	a.chatSearchFrame(c)
 	a.layout(c)
 	a.dirPickDialog(c, dirPickPluginFolder)
 	if a.screen == ScreenMain {
 		a.dirPickDialog(c, dirPickWorkspace)
 		a.sessionSearchOverlay(c)
+		a.chatSearchDialog(c)
 		a.exportPanel(c)
 		a.renameDialogView(c)
 		a.confirmDialog(c)
@@ -1641,17 +1674,6 @@ func (a *App) setSidebarCollapsed(collapsed bool) {
 	a.persistViewState()
 }
 
-// searchKeys 是搜索面的键位（U3 T18）：Esc 收起搜索面（焦点回到列表）。
-func (a *App) searchKeys(c *gui.Context) {
-	if a.palette.open {
-		return
-	}
-	if a.searchOpen && c.Shortcut(0, gui.KeyEscape) {
-		a.searchOpen = false
-		a.searchQuery = ""
-	}
-}
-
 // terminalKeys 是终端的键位（U3 T17）：Ctrl-C 中止、Cmd-K 清屏、Esc 收回右栏
 // （回到主界面）。Ctrl-C 在终端输入框里仍是"复制"，所以只在焦点不在输入框时接管。
 func (a *App) terminalKeys(c *gui.Context) {
@@ -1698,7 +1720,6 @@ func (a *App) layout(c *gui.Context) {
 	panel := a.rpWidth(windowWidth, sidebar)
 
 	a.viewKeys(c)
-	a.searchKeys(c)
 	a.terminalKeys(c)
 	gui.Row(c).Fill().AlignItems(gui.Stretch).
 		Background(t.Background).Children(func() {
@@ -1884,6 +1905,10 @@ func (a *App) liveApproval() (ApprovalSnapshot, bool) {
 }
 
 // sessionTasks 取后台任务：连着 Source 时用会话快照，否则用样例。
+//
+// 快照只有标识、描述、开始时刻、分支与「已发停止」：状态是按这两项推出来的
+// （有停止回执即「已完成」，否则「运行中」），pid、结束时刻与命令行的读取通道
+// 没有接，详情里留空、不编造。
 func (a *App) sessionTasks() ([]task, bool) {
 	if snap, ok := a.liveSession(); ok {
 		tasks := make([]task, 0, len(snap.Tasks))
@@ -1892,11 +1917,56 @@ func (a *App) sessionTasks() ([]task, bool) {
 			if item.Stopping {
 				state = taskDone
 			}
-			tasks = append(tasks, task{id: item.ID, name: item.Description, state: state})
+			task := task{
+				id: item.ID, kind: taskProcess, name: item.Description,
+				state: state, pending: item.Stopping, branch: snap.Branch,
+			}
+			if !item.StartedAt.IsZero() {
+				task.startedAt = taskClock(item.StartedAt)
+			}
+			tasks = append(tasks, task)
 		}
 		return tasks, true
 	}
 	return a.tasks, false
+}
+
+// sessionWakeups 取唤醒记录：连着 Source 时读 Wakeups()，否则用样例。
+//
+// 返回的空态说明由读数决定：服务端没有唤醒读取方法（能力缺失）与读取失败分开
+// 写，不把「读不到」说成「没有待唤醒事项」。样例（-demo）沿用定时任务的未接
+// 口径，写在同一句括号里。
+func (a *App) sessionWakeups() ([]task, string) {
+	if a.source == nil {
+		if len(a.wakeups) == 0 {
+			return nil, "（" + noteSchedule + "）"
+		}
+		return a.wakeups, ""
+	}
+	snapshot := a.source.Wakeups()
+	if snapshot.CapabilityMissing {
+		return nil, "（服务端没有提供唤醒读取）"
+	}
+	if snapshot.ReadError != "" {
+		return nil, "（读取失败：" + snapshot.ReadError + "）"
+	}
+	items := make([]task, 0, len(snapshot.Items))
+	for _, item := range snapshot.Items {
+		wakeup := task{
+			id: item.ID, kind: taskWakeup, name: item.Prompt, state: taskNoStatus,
+			wakeAt: taskClock(item.TriggerAt), wakeBody: item.Prompt,
+		}
+		items = append(items, wakeup)
+	}
+	return items, ""
+}
+
+// taskClock 把时刻写成详情与行上用的墙钟文本（时:分，本地时区）。
+func taskClock(at time.Time) string {
+	if at.IsZero() {
+		return ""
+	}
+	return at.Local().Format("15:04")
 }
 
 // branchState 返回当前分支与分支清单：连着 Source 时取会话快照，否则用样例。

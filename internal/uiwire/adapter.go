@@ -36,6 +36,8 @@ type App struct {
 	OnChange func()
 	// SessionID 是当前打开的会话 id；空表示还没打开。
 	SessionID string
+	// sessionBranch 是当前会话所在分支：与 SessionID 同一把 sessionMu 保护。
+	sessionBranch string
 
 	mu        sync.RWMutex
 	phase     ui.Connection
@@ -54,6 +56,10 @@ type App struct {
 	rulesRevision string
 	rulesKnown    bool
 	rulesErr      string
+	// modelsMu 保护最近一次模型目录读取的失败原因：界面每帧读，不能每帧发请求。
+	// 读到成功就清空；没读到过时为空，由 Settings().Models 的 ok 区分。
+	modelsMu  sync.Mutex
+	modelsErr string
 	// accountMu 保护 provider 登录方式与最近一次登录提示。
 	accountMu    sync.Mutex
 	loginMethods []string
@@ -72,6 +78,9 @@ type App struct {
 	changesAsked map[string]bool
 	// changeSlots 限制同时在读的改动数量（见 refreshRunChanges）。
 	changeSlots chan struct{}
+	// wakeupsMu 保护唤醒记录的「已问过」标记（见 wakeups.go）。
+	wakeupsMu    sync.Mutex
+	wakeupsAsked map[string]bool
 	// panel 是右栏文件页与改动页的读数缓存（列目录 / 内容搜索 / git 状态），
 	// 见 panel.go：界面每帧读快照，后台按缓存期重读。
 	panel panelCache
@@ -101,6 +110,7 @@ func New(a *app.App) *App {
 		phase:        ui.Connection{Phase: "connecting"},
 		changesByRun: make(map[string][]ui.RowSnapshot),
 		changesAsked: make(map[string]bool),
+		wakeupsAsked: make(map[string]bool),
 		changeSlots:  make(chan struct{}, changeReadSlots),
 		panel:        newPanelCache(),
 		termStreams:  make(map[string]*terminalStream),
@@ -119,6 +129,20 @@ func (w *App) currentSession() string {
 func (w *App) setSession(id string) {
 	w.sessionMu.Lock()
 	w.SessionID = id
+	w.sessionMu.Unlock()
+}
+
+// currentBranch 返回当前会话所在分支（与 SessionID 同一把锁保护）。
+func (w *App) currentBranch() string {
+	w.sessionMu.RLock()
+	defer w.sessionMu.RUnlock()
+	return w.sessionBranch
+}
+
+// setBranch 记下当前会话的分支：唤醒读数与任务行上的分支徽标按它取范围。
+func (w *App) setBranch(id string) {
+	w.sessionMu.Lock()
+	w.sessionBranch = id
 	w.sessionMu.Unlock()
 }
 
@@ -194,7 +218,7 @@ func (w *App) loadFacts(ctx context.Context) {
 		_, _ = account.RefreshModels(ctx)
 	}
 	if settings := w.A.Settings(); settings != nil {
-		_, _ = settings.RefreshModels(ctx)
+		w.refreshModels(ctx, settings)
 		_, _ = settings.RefreshStorage(ctx)
 		_, _ = settings.RefreshRuntimes(ctx)
 		_, _ = settings.RefreshModality(ctx)
@@ -213,6 +237,19 @@ func (w *App) loadFacts(ctx context.Context) {
 	w.refreshModalityTasks(ctx)
 	w.refreshAccountProviders(ctx)
 	w.refreshProviderRecords(ctx)
+}
+
+// refreshModels 读一次模型目录，并把失败原因留给界面（IN-56 的「加载失败」）。
+// 成功时清空上一条原因：界面只读最近一次读数的结论，不累积历史错误。
+func (w *App) refreshModels(ctx context.Context, manager *settings.Manager) {
+	_, err := manager.RefreshModels(ctx)
+	w.modelsMu.Lock()
+	defer w.modelsMu.Unlock()
+	if err != nil {
+		w.modelsErr = err.Error()
+		return
+	}
+	w.modelsErr = ""
 }
 
 // refreshProviderRecords 读取 provider 清单与每个 provider 的详情。
@@ -463,6 +500,9 @@ func (w *App) sessionSnapshot(sessionID string) (ui.SessionSnapshot, bool) {
 	}
 	// 已收口的轮次排一次改动读取（同一轮只排一次，结果到了再重绘）。
 	w.requestRunChanges(view)
+	// 唤醒记录按会话 / 分支排一次读取（任务面板的「唤醒」子标签用它）。
+	w.setBranch(view.BranchID)
+	w.requestWakeups(viewIdentity{sessionID: view.SessionID, branchID: view.BranchID})
 	return w.snapshot(view), true
 }
 
@@ -475,6 +515,8 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 		Pending:   v.PendingCounts.Approvals + v.PendingCounts.Questions,
 		Branch:    v.BranchID,
 		TurnCount: len(v.Turns),
+		// LoadPhase 是投影装载阶段：界面只在 loading_first_turn 时画恢复遮罩。
+		LoadPhase: string(v.LoadPhase),
 		// HasOlder 是投影分页窗口的事实：还有更早的轮次没装载时，界面只能
 		// 覆盖已加载这一段（导出 / 搜索要按它写口径）。
 		HasOlder: v.HasOlder,
@@ -484,9 +526,14 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 		LastTurnOutcome: v.LastTurnOutcome,
 	}
 	for _, pending := range v.Pending.Tasks {
-		out.Tasks = append(out.Tasks, ui.TaskSnapshot{
+		task := ui.TaskSnapshot{
 			ID: pending.TaskID, Description: pending.Description, Stopping: pending.Stopping,
-		})
+			BranchID: v.BranchID,
+		}
+		if pending.StartedAt > 0 {
+			task.StartedAt = time.UnixMilli(pending.StartedAt)
+		}
+		out.Tasks = append(out.Tasks, task)
 	}
 	for _, branch := range v.Branches {
 		out.Branches = append(out.Branches, ui.BranchSnapshot{
@@ -496,13 +543,19 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 			Ended:  string(branch.Status) == "ended",
 		})
 	}
-	// 标题与工作目录都是目录事实；目录没有给标题时才退回会话标识。
+	// 标题与工作目录：标题取目录条目；工作目录优先用已打开会话视图里的目录事实
+	// （attach 回执或目录条目都已在 app.SessionView 里合过），视图没有时才读目录。
+	if cwd := strings.TrimSpace(v.Cwd); cwd != "" {
+		out.Cwd = cwd
+	}
 	if catalog := w.A.Catalog(); catalog != nil {
 		if entry, ok := catalog.Entry(v.SessionID); ok {
 			if entry.Title != "" {
 				out.Title = entry.Title
 			}
-			out.Cwd = entry.Workspace
+			if out.Cwd == "" {
+				out.Cwd = entry.Workspace
+			}
 		}
 	}
 	if v.Goal != nil {
@@ -512,7 +565,8 @@ func (w *App) snapshot(v app.SessionView) ui.SessionSnapshot {
 	// 排队消息与最近一次压缩都是投影已有的只读事实：界面每帧读同一份快照。
 	for _, pending := range v.Pending.Inputs {
 		out.Queued = append(out.Queued, ui.QueuedMessageSnapshot{
-			ID: pending.InputID, Mode: pending.Mode, Text: pending.Text, Applied: pending.Applied,
+			ID: pending.InputID, Mode: pending.Mode, Text: pending.Text,
+			Attachments: pending.Attachments, Applied: pending.Applied,
 		})
 	}
 	if v.Compaction != nil {
@@ -716,7 +770,9 @@ func (w *App) settingsFor(sessionID string) ui.SettingsSnapshot {
 	if settings == nil {
 		return out
 	}
-	if models, ok := settings.Models(); ok {
+	models, modelsKnown := settings.Models()
+	if modelsKnown {
+		out.ModelsKnown = true
 		for _, provider := range models.Providers {
 			out.Providers = append(out.Providers, ui.ProviderOption{
 				ID: provider.ID, Name: firstNonEmpty(provider.Name, provider.ID),
@@ -734,8 +790,30 @@ func (w *App) settingsFor(sessionID string) ui.SettingsSnapshot {
 			out.Provider = providerLabel(models, selection.ProviderID)
 			out.Model = modelLabel(models, selection.ProviderID, selection.ModelID)
 			out.ModelRevision = selection.Revision
+			out.ServiceTier = selection.ServiceTier
 		}
 	}
+	// provider 记录里没有选择时，退回已打开会话的模型事实（attach 回执的 model）：
+	// 真实会话可以带模型而全局选择为空（或模型目录没读到时也照样有会话模型），
+	// 模型槽不能因此写「未选择模型」。用户刚选过模型时以 provider 记录为准（它是
+	// 更新后的选择），这里只补空。
+	if out.ModelID == "" && sessionID != "" {
+		if providerID, modelID, ok := w.A.SessionModel(sessionID); ok && strings.TrimSpace(modelID) != "" {
+			out.ProviderID = providerID
+			out.ModelID = modelID
+			out.Provider = providerID
+			out.Model = modelID
+			if modelsKnown {
+				out.Model = modelLabel(models, providerID, modelID)
+				if providerID != "" {
+					out.Provider = providerLabel(models, providerID)
+				}
+			}
+		}
+	}
+	w.modelsMu.Lock()
+	out.ModelsError = w.modelsErr
+	w.modelsMu.Unlock()
 	w.rulesMu.Lock()
 	out.Rules = append([]ui.RuleSnapshot(nil), w.rules...)
 	out.RulesKnown = w.rulesKnown
