@@ -69,6 +69,13 @@ const (
 	noteDesktopSettings = "当前版本不支持修改这些桌面设置"
 	// noteStorageUnread 是存储用量还没读到时写在读数位置的空态。
 	noteStorageUnread = "暂时读不到存储用量"
+	// noteBrowserNoImport 是 G-H6 导入 Chrome Cookie 的缺项原因。技术口径：扫描
+	// Chrome 配置、按配置读计数、逐个导入并给回执都要宿主的浏览器数据通道，
+	// 本版没有接（协议 v3 也没有浏览器数据方法）。
+	noteBrowserNoImport = "导入不可用：桌面宿主没有提供 Chrome 配置扫描与 Cookie 导入通道"
+	// noteBrowserNoClear 是 G-H7 清理浏览器数据的缺项原因。技术口径：清理与回执
+	// 同一套浏览器数据通道，本版没有接。
+	noteBrowserNoClear = "清理不可用：桌面宿主没有提供浏览器数据清理通道"
 	// notePersonalizationWrite 用于设置 › 个性化里只改屏内状态的项。技术口径：协议
 	// 没有这项设置的写入方法。
 	notePersonalizationWrite = "当前版本不支持修改这项设置"

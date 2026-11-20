@@ -217,13 +217,17 @@ func (a *App) workspaceTitle() string {
 
 // panelToggle 是标题栏右端的面板开关：开时显示关闭形，关时显示打开形。
 func (a *App) panelToggle(c *gui.Context) {
+	// 按钮形态跟右栏可见性走：可见时给关闭形，不可见时给打开形。
+	panelVisible := a.rightOpen
 	// TB-03 / TB-39 上下文档板开关（打开形）
 	icon, label := iconPanelRight, "打开上下文面板"
-	if a.rightOpen {
+	if panelVisible {
 		// TB-04 / TB-40 上下文档板开关（关闭形）
 		icon, label = iconPanelClose, "关闭上下文面板"
 	}
-	if iconButton(c, iconButtonSpec{icon: icon, label: label, tip: label, size: rowRegular}) {
+	// 开关本身带上「开着」的底色与 AccessSelected，点一下开合（TB-19 / TB-27）。
+	if iconToggle(c, iconButtonSpec{icon: icon, label: label, tip: label, size: rowRegular},
+		panelVisible) {
 		a.rightOpen = !a.rightOpen
 	}
 }

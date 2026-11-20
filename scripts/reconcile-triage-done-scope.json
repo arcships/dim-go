@@ -292,6 +292,162 @@
     "R-GC-142": {
       "note": "描述计数为 0 时仍显示该句",
       "test": "TestConfirmWorkspaceDescriptionAndPath"
+    },
+    "R-TB-010": {
+      "note": "点「展开侧边栏」：左栏展开、边条消失，换成左栏内的收起按钮",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-011": {
+      "note": "⌘B 与点击同效，连按两次回到收起态",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-017": {
+      "note": "左右栏开合时草稿随主区走、不丢字",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-019": {
+      "note": "点「打开上下文面板」：右栏打开，按钮换成关闭形",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-027": {
+      "note": "点「关闭上下文面板」：右栏关闭，主区回全宽",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-296": {
+      "note": "会话态点打开面板：右栏打开、标题栏右侧内容左移",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-302": {
+      "note": "会话态右栏已开：出现关闭面板按钮",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-303": {
+      "note": "点关闭面板：右栏关闭、主区回全宽",
+      "test": "TestTitleBarPanelAndSidebarToggles"
+    },
+    "R-TB-061": {
+      "note": "查询词极长时浮层宽度不变，输入框在自己的高内横向滚动",
+      "test": "TestSessionSearchLongQueryKeepsWidth"
+    },
+    "R-TB-071": {
+      "note": "关闭时清掉全部高亮与当前项，下一次打开是干净状态",
+      "test": "TestSessionSearchCloseClearsHighlights"
+    },
+    "R-TB-074": {
+      "note": "已在第一个结果时按上一个：索引按环绕跳到最后一个",
+      "test": "TestSessionSearchEnterMovesBetweenHits"
+    },
+    "R-TB-075": {
+      "note": "跳转后命中项滚进视口（居中定位），不被滚出视口",
+      "test": "TestSessionSearchRestoresScroll"
+    },
+    "R-TB-079": {
+      "note": "命中在折叠区里时自动展开该块再定位",
+      "test": "TestSessionSearchExpandsFoldedRegions"
+    },
+    "R-TB-083": {
+      "note": "已在最后一个结果时按下一个：环绕回到第一个命中",
+      "test": "TestSessionSearchEnterMovesBetweenHits"
+    },
+    "R-TB-088": {
+      "note": "换查询词后序号归零并定位首个命中",
+      "test": "TestSessionSearchQueryResetsIndex"
+    },
+    "R-TB-098": {
+      "note": "结果行显示「{current} / {total} 个结果」，随命中更新",
+      "test": "TestSessionSearchMatchesTimelineAndCounts"
+    },
+    "R-TB-100": {
+      "note": "新内容进来时计数按当前命中集合实时重算",
+      "test": "TestSessionSearchCountFollowsNewContent"
+    },
+    "R-SB-028": {
+      "note": "切档失败：文案留在切换前档位并给出原因",
+      "test": "TestStatusPermissionFailureKeepsTier"
+    },
+    "R-SB-156": {
+      "note": "会话态右侧出现用量表，上限未知时文本为「—」",
+      "test": "TestStatusUsagePanelStates"
+    },
+    "R-SB-208": {
+      "note": "用量不可用时浮层内显示原因文本",
+      "test": "TestStatusUsagePanelStates"
+    },
+    "R-SB-218": {
+      "note": "无限额度时显示「无限额度」说明文本",
+      "test": "TestStatusUsagePanelStates"
+    },
+    "R-SB-228": {
+      "note": "无明细且无错误时显示空文案",
+      "test": "TestStatusUsagePanelStates"
+    },
+    "R-SB-238": {
+      "note": "有明细时出现「月度用量 39%」+ 进度条",
+      "test": "TestStatusUsagePanelStates"
+    },
+    "R-GQ-093": {
+      "note": "多选项：空格勾选/取消，可同时勾选多项",
+      "test": "TestQuestionMultiSelectKeyboard"
+    },
+    "R-GQ-098": {
+      "note": "多个选项各自成行、各自可勾",
+      "test": "TestQuestionMultiSelectKeyboard"
+    },
+    "R-GQ-118": {
+      "note": "自定义答案非空时接管答案，选项选中态清除",
+      "test": "TestQuestionCustomAnswerOverridesOptions"
+    },
+    "R-GQ-119": {
+      "note": "清空自定义框即回到选项选择",
+      "test": "TestQuestionCustomAnswerOverridesOptions"
+    },
+    "R-GQ-122": {
+      "note": "自定义答案按整段作为答案",
+      "test": "TestQuestionCustomAnswerOverridesOptions"
+    },
+    "R-GQ-123": {
+      "note": "自定义生效后选项取消选中",
+      "test": "TestQuestionCustomAnswerOverridesOptions"
+    },
+    "R-GQ-127": {
+      "note": "多选答案与自定义选项合并提交（勾选在前）",
+      "test": "TestQuestionMergedAnswerDedups"
+    },
+    "R-GQ-128": {
+      "note": "合并时同一值只出现一次（去重）",
+      "test": "TestQuestionMergedAnswerDedups"
+    },
+    "R-GQ-131": {
+      "note": "合并顺序为勾选在前、自定义在后",
+      "test": "TestQuestionMergedAnswerDedups"
+    },
+    "R-GQ-129": {
+      "note": "自定义选项的标签与输入框同款样式",
+      "test": "TestQuestionCardBatch"
+    },
+    "R-GQ-130": {
+      "note": "自定义选项的标签与输入框成对读出（LabelledBy）",
+      "test": "TestQuestionCardBatch"
+    },
+    "R-GQ-133": {
+      "note": "自定义答案的标签与输入框同款样式",
+      "test": "TestQuestionCardBatch"
+    },
+    "R-GQ-139": {
+      "note": "错误行 14px 危险色，位于脚部按钮行之上",
+      "test": "TestQuestionCardBatch"
+    },
+    "R-GQ-140": {
+      "note": "错误行以 role=alert 播报",
+      "test": "TestQuestionCardBatch"
+    },
+    "R-GQ-168": {
+      "note": "提交按钮提交答案并让卡片消失",
+      "test": "TestQuestionCardBatch"
+    },
+    "R-GQ-171": {
+      "note": "提交为脚部最右的实心强调色按钮",
+      "test": "TestQuestionCardBatch"
     }
   }
 }

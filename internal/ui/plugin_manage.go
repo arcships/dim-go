@@ -45,19 +45,31 @@ const (
 	pluginManageAllDone     = "已更新 %d 个插件"
 	pluginManageUpdateFail  = "更新失败"
 	pluginManageNoUpdates   = "所有插件均为最新版本"
+	// pluginUpdateNoProgress 是 G-H4-05 下载进度条的缺项原因：插件清单里没有
+	// 下载进度字段（protocol v3 也没有进度事件），因此更新中不画进度条，只写原因。
+	pluginUpdateNoProgress = "服务端没有下载进度读数，不画进度条"
 
-	pluginMarketTitle     = "插件市场"
-	pluginMarketFeedLabel = "插件源"
-	pluginMarketFeedPlace = "https://example.com/plugins.json"
-	pluginMarketSave      = "保存"
-	pluginMarketSaving    = "正在保存…"
-	pluginMarketUnset     = "未配置插件源"
+	pluginMarketTitle       = "插件市场"
+	pluginMarketFeedLabel   = "插件源"
+	pluginMarketFeedPlace   = "https://example.com/plugins.json"
+	pluginMarketSave        = "保存"
+	pluginMarketSaving      = "正在保存…"
+	pluginMarketUnset       = "未配置插件源"
+	pluginMarketUnavailable = "市场暂不可用"
+	// pluginMarketNoFacts 是「市场暂不可用」的原因：这条连接没有市场读数。
+	pluginMarketNoFacts   = "这条连接没有插件市场读数（Source 没有提供市场快照）"
 	pluginMarketLoading   = "正在加载..."
 	pluginMarketEmpty     = "插件源没有返回条目"
 	pluginMarketRetry     = "重试"
 	pluginMarketRefresh   = "刷新"
 	pluginMarketInstall   = "安装"
 	pluginMarketNoInstall = "当前版本不支持从市场安装"
+	// G-H2-01 安装详情的标题与 G-H2-02 描述（逐字取参考产品中文）。
+	pluginMarketInstallTitleFmt = "安装 %s"
+	pluginMarketInstallDesc     = "选择要启用的内置技能。默认全选。"
+	// G-H2-06 / G-H2-07 技能清单的缺项原因：市场条目没有技能字段（协议也没有
+	// 市场安装来源），因此不画勾选行，也不写「此插件不包含技能」那种断言。
+	pluginMarketNoSkills = "插件源没有给出这个条目的技能清单，无法勾选技能"
 
 	pluginInstalledFmt = "已安装 %s"
 	pluginRemovedFmt   = "已移除 %s"
@@ -86,6 +98,9 @@ type pluginManageState struct {
 	feedLoaded bool
 	feedSaving bool
 	feedErr    string
+	// 市场安装详情（G-H2）：打开的是哪一个条目。条目来自上游清单的只读快照。
+	marketOpen  bool
+	marketEntry PluginMarketEntrySnapshot
 }
 
 // pluginManage 返回本轮要画的插件管理状态（惰性建映射）。
@@ -174,7 +189,7 @@ func (a *App) pluginManageView(c *gui.Context) {
 					for _, item := range plugins.Items {
 						a.pluginRow(c, t, item, canWrite)
 					}
-					a.pluginUpdatesSection(c, t, updates, canWrite)
+					a.pluginUpdatesSection(c, t, updates, canWrite, facts && plugins.ReadError == "")
 					a.pluginMarketSection(c, t)
 				})
 		})
@@ -311,9 +326,12 @@ func pluginSmallButtonLabeled(c *gui.Context, t *gui.Theme, text, label string, 
 	return b.Clicked()
 }
 
-// pluginUpdatesSection 是「可用更新」：有可更新项才画；逐项更新 + 全部更新。
-func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtItemSnapshot, canWrite bool) {
-	if len(updates) == 0 {
+// pluginUpdatesSection 是「可用更新」：清单读到时总是画标题；没有可更新项时
+// 给空态「所有插件均为最新版本」，不把「读不到清单」说成「都最新」。
+// G-H4-01 标题 / G-H4-02 空态 / G-H4-05 进度条缺项原因
+func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtItemSnapshot,
+	canWrite, known bool) {
+	if !known {
 		return
 	}
 	st := a.pluginManageState()
@@ -324,6 +342,9 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 			plgCardTitle.style(t, gui.Text(c, pluginManageUpdates)).TextColor(t.Text).
 				SingleLine().Role(gui.RoleHeading).Level(3)
 			gui.Spacer(c)
+			if len(updates) == 0 {
+				return
+			}
 			// G-H4-07 全部更新（{count}）
 			label := fmt.Sprintf(pluginManageUpdateAll, len(updates))
 			if st.updatingAll {
@@ -334,6 +355,11 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 				a.updateAllPlugins(updates)
 			}
 		})
+		if len(updates) == 0 {
+			// G-H4-02 空态（14px 次要色；读屏名就是这一句）
+			plgNote(c, t, pluginManageNoUpdates)
+			return
+		}
 		if st.updateErr != "" {
 			typeSecondary.style(t, gui.Text(c, st.updateErr)).TextColor(t.Danger).
 				Role(gui.RoleAlert).Label(st.updateErr)
@@ -349,6 +375,11 @@ func (a *App) pluginUpdatesSection(c *gui.Context, t *gui.Theme, updates []ExtIt
 					if versions != "" {
 						typeSecondary.style(t, gui.Text(c, versions)).TextColor(t.TextMuted).
 							Label(versions)
+					}
+					// G-H4-05 更新中：没有进度事实，就写清为什么没有进度条
+					if st.updating[item.ID] {
+						typeMicro.style(t, gui.Text(c, pluginUpdateNoProgress)).
+							TextColor(t.TextMuted).Label(pluginUpdateNoProgress).SingleLine()
 					}
 				})
 				// G-H4-06 更新
@@ -556,7 +587,12 @@ func (a *App) pluginMarketSection(c *gui.Context, t *gui.Theme) {
 			}
 		})
 		switch {
-		case !hasFacts || strings.TrimSpace(facts.FeedURL) == "":
+		case !hasFacts:
+			// 没有市场读数：整块换成「市场暂不可用」+原因，不画样例条目。
+			plgNote(c, t, pluginMarketUnavailable)
+			plgNote(c, t, pluginMarketNoFacts)
+			return
+		case strings.TrimSpace(facts.FeedURL) == "":
 			plgNote(c, t, pluginMarketUnset)
 			return
 		case facts.ConfigError != "":
@@ -593,8 +629,9 @@ func (a *App) pluginMarketSection(c *gui.Context, t *gui.Theme) {
 	})
 }
 
-// pluginMarketRow 是一个市场条目：名称 / 版本 / 说明；安装入口置灰（协议没有
-// 市场安装来源）。
+// pluginMarketRow 是一个市场条目：名称 / 版本 / 说明；「安装」打开详情
+// （G-H2）。条目来自上游清单的只读快照，安装动作本身没有协议通道，详情里的
+// 主按钮置灰并写原因。
 func (a *App) pluginMarketRow(c *gui.Context, t *gui.Theme, entry PluginMarketEntrySnapshot) {
 	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space2).Children(func() {
 		gui.Column(c).Shrink(0).Grow(1).Gap(spaceUnit).Children(func() {
@@ -613,9 +650,69 @@ func (a *App) pluginMarketRow(c *gui.Context, t *gui.Theme, entry PluginMarketEn
 					SingleLine()
 			}
 		})
-		// 市场安装要服务端给出条目与安装来源，协议没有：入口保留但置灰。
-		pluginSmallButton(c, t, pluginMarketInstall, false, true, pluginMarketNoInstall)
+		// G-H2 市场条目的「安装」入口：有条目事实就打开详情
+		if pluginSmallButton(c, t, pluginMarketInstall, false, false, "") {
+			st := a.pluginManageState()
+			st.marketEntry = entry
+			st.marketOpen = true
+		}
 	})
+}
+
+// pluginMarketDetailView 画市场安装详情：标题与描述来自条目与固定文案；技能
+// 勾选与安装动作缺事实/协议，按块写原因，不画假的勾选行。
+// G-H2-01 标题 / G-H2-02 描述 / G-H2-06 技能清单缺项 / G-H2-08 取消 / G-H2-09 安装
+func (a *App) pluginMarketDetailView(c *gui.Context) {
+	st := a.pluginManageState()
+	if !st.marketOpen {
+		return
+	}
+	t := c.Theme()
+	entry := st.marketEntry
+	name := strings.TrimSpace(entry.Name)
+	if name == "" {
+		st.marketOpen = false
+		return
+	}
+	title := fmt.Sprintf(pluginMarketInstallTitleFmt, name)
+	open := true
+	m := modalShell(gui.Modal(c, &open, func() {
+		panel := gui.Column(c).Gap(space3).Role(gui.RoleDialog).Label(title)
+		panel.Children(func() {
+			// G-H2-01 「安装 {name}」
+			typeDialogTitle.style(t, gui.Text(c, title)).TextColor(t.Text).
+				SingleLine().Role(gui.RoleHeading).Level(2)
+			// G-H2-02 描述
+			typeBody.style(t, gui.Text(c, pluginMarketInstallDesc)).TextColor(t.TextMuted)
+			meta := entry.Name
+			if entry.Version != "" {
+				meta += " · " + pluginVersionLabel(entry.Version)
+			}
+			if entry.Source != "" {
+				meta += " · " + entry.Source
+			}
+			typeSecondary.style(t, gui.Text(c, meta)).TextColor(t.TextMuted).
+				Label(meta).SingleLine()
+			gui.Column(c).Gap(plgLabelGap).Children(func() {
+				// G-H2-05 技能分组：条目没有技能清单，分组标题与勾选行都不画
+				plgNote(c, t, pluginMarketNoSkills)
+			})
+			gui.Row(c).Justify(gui.End).Gap(space2).Children(func() {
+				// G-H2-08 取消
+				if pluginDialogButton(c, t, pluginCancel, false, false, false, "") {
+					st.marketOpen = false
+					open = false
+				}
+				// G-H2-09 添加插件（没有市场安装来源：置灰并写原因）
+				pluginDialogButton(c, t, pluginAdd, true, false, true, pluginMarketNoInstall)
+			})
+		})
+		panel.Width(pluginInstallDialogWidth(c))
+	}))
+
+	if !open || m.Dismissed() {
+		st.marketOpen = false
+	}
 }
 
 // pluginMarketWriteNote 是市场写入口置灰的原因。

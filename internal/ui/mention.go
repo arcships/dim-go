@@ -69,6 +69,10 @@ const (
 	pickSearchingText  = "正在搜索"
 	// pickCapNote 是候选到扫描上限时的说明（G-A3 的文件数量上限）。
 	pickCapNote = "工作区文件超过 5000 个，候选只取前 5000 个"
+	// pickCommitNoChannel 是 G-A3-07 提交候选的缺项原因。提交候选要一份 git
+	// 历史读数（短 hash + 提交标题），protocol v3 没有对应方法，Source 也没有
+	// 投影：读不到清单就不列这一组，只在空态里把原因写清楚，不拿别的读数顶替。
+	pickCommitNoChannel = "提交候选没有读数通道：protocol v3 没有 git 提交清单方法"
 )
 
 // 候选的二级说明（读屏名里带上「文件 / 目录」）。
@@ -782,6 +786,10 @@ func (a *App) pickFailedRow(c *gui.Context) {
 
 // pickEmptyRow 是这一组的空态（未找到文件或目录 / 当前无工作区目录 / 未找到技能）。
 // G-A3-03 / G-A4-03 空态（14px 次要色、左内边距与候选主字对齐）
+//
+// G-A3-07 提交候选：`@` 弹层本应把提交类候选并入文件组所在区段。提交清单没有
+// 读数通道（见 pickCommitNoChannel），因此整组不画；空态里补一行原因，不画空白
+// 分组标题，也不拿「未找到」冒充「读不到」。
 func (a *App) pickEmptyRow(c *gui.Context) {
 	t := c.Theme()
 	text := pickNoSkillText
@@ -793,8 +801,21 @@ func (a *App) pickEmptyRow(c *gui.Context) {
 	} else if a.pick.skillRead.empty != "" {
 		text = a.pick.skillRead.empty
 	}
-	gui.Row(c).Shrink(0).Height(pickRowHeight).Padding(0, space2).
+	note := ""
+	if a.pick.kind == pickFile {
+		note = pickCommitNoChannel
+	}
+	height := float32(pickRowHeight)
+	if note != "" {
+		height = pickRowHeight * 2
+	}
+	gui.Row(c).Shrink(0).Height(height).Padding(0, space2).
 		AlignItems(gui.Center).Label(text).Children(func() {
-		typeSecondary.style(t, gui.Text(c, text)).TextColor(t.TextMuted).SingleLine()
+		gui.Column(c).Gap(pickGap).Children(func() {
+			typeSecondary.style(t, gui.Text(c, text)).TextColor(t.TextMuted).SingleLine()
+			if note != "" {
+				typeMicro.style(t, gui.Text(c, note)).TextColor(t.TextMuted).Label(note)
+			}
+		})
 	})
 }

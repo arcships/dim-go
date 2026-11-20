@@ -354,8 +354,8 @@ func TestPluginRemoveConfirmsAndReports(t *testing.T) {
 	}
 }
 
-// TestPluginMarketplaceConfiguredList：配置了插件源时画上游条目；安装入口置灰
-// （协议没有市场安装来源），并且不出现样例卡片。
+// TestPluginMarketplaceConfiguredList：配置了插件源时画上游条目；点「安装」打开
+// 详情（标题 / 描述来自条目），技能清单与安装动作没有事实/协议，按块写原因。
 func TestPluginMarketplaceConfiguredList(t *testing.T) {
 	src := wiredSource()
 	src.market = PluginMarketplaceSnapshot{
@@ -370,14 +370,35 @@ func TestPluginMarketplaceConfiguredList(t *testing.T) {
 			t.Fatalf("市场块缺少 %q：%v", want, tt.Texts())
 		}
 	}
-	if info, ok := tt.Access("安装"); !ok || !info.Disabled {
-		t.Fatalf("市场安装入口没有置灰：%+v（找到 %v）", info, ok)
+	if info, ok := tt.Access("安装"); !ok || info.Disabled {
+		t.Fatalf("市场安装入口应当可点：%+v（找到 %v）", info, ok)
 	}
 	if tt.HasText(pluginMarketUnset) {
 		t.Fatal("已配置源时仍写「未配置插件源」")
 	}
 	if tt.HasText("Model log") {
 		t.Fatal("市场块画了样例卡片")
+	}
+
+	// 详情：标题「安装 {name}」、描述逐字；技能清单没有读数，写原因不画勾选行。
+	if err := tt.Click("安装"); err != nil {
+		t.Fatalf("点不到安装：%v", err)
+	}
+	tt.Frame()
+	for _, want := range []string{"安装 market-plugin", pluginMarketInstallDesc, pluginMarketNoSkills} {
+		if !tt.HasText(want) {
+			t.Fatalf("安装详情缺少 %q：%v", want, tt.Texts())
+		}
+	}
+	if info, ok := tt.Access(pluginAdd); !ok || !info.Disabled {
+		t.Fatalf("市场安装主按钮没有按不可用画：%+v（找到 %v）", info, ok)
+	}
+	if err := tt.Click(pluginCancel); err != nil {
+		t.Fatalf("点不到取消：%v", err)
+	}
+	tt.Frame()
+	if tt.HasText(pluginMarketInstallDesc) {
+		t.Fatal("取消后详情没有关")
 	}
 }
 

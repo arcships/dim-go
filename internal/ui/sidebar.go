@@ -1010,25 +1010,31 @@ func sessionIndex(id string) int {
 // 左栏形态，点击展开的是覆盖式抽屉（sidebarDrawer），主区不重新排版。
 func (a *App) sidebarRail(c *gui.Context) {
 	t := c.Theme()
-	gui.Column(c).Width(SidebarRailWidth).Shrink(0).
+	// 展开的动作只有一处：点击、指针按下的回执与键盘（焦点在边条上按回车）都走它。
+	expand := func() {
+		if narrowWindow(c) {
+			a.narrowDrawer = true
+			return
+		}
+		a.setSidebarCollapsed(false)
+	}
+	rail := gui.Column(c).Width(SidebarRailWidth).Shrink(0).
 		Background(t.Surface).
 		AlignItems(gui.Center).Justify(gui.Center).Gap(space1).
+		// TB-02 展开侧边栏（收起后的边条）
 		Label("展开侧边栏 ⌘B").Tooltip("展开侧边栏 ⌘B").
 		Role(gui.RoleButton).Focusable().TabStop(true).
-		OnClick(func() {
-			if narrowWindow(c) {
-				// TB-02 展开侧边栏（收起后的边条）
-				a.narrowDrawer = true
-				return
-			}
-			a.setSidebarCollapsed(false)
-		}).
-		Children(func() {
-			for i := 0; i < 3; i++ {
-				gui.Box(c).Width(railMarkWidth).Height(railMarkHeight).
-					Radius(railMarkHeight / 2).Background(t.TextMuted)
-			}
-		})
+		OnClick(expand)
+	rail.Children(func() {
+		for i := 0; i < 3; i++ {
+			gui.Box(c).Width(railMarkWidth).Height(railMarkHeight).
+				Radius(railMarkHeight / 2).Background(t.TextMuted)
+		}
+	})
+	// 键盘：边条拿到焦点后按回车与点击同效（Tab 能走到它，读屏名带 ⌘B）。
+	if rail.Focused() && c.Shortcut(0, gui.KeyEnter) {
+		expand()
+	}
 }
 
 // sessionMarkers 是会话行的状态标记：连着 Source 时不画样例标记（真实状态由

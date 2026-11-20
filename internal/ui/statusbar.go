@@ -51,11 +51,25 @@ func (a *App) statusBar(c *gui.Context) {
 func (a *App) statusPermission(c *gui.Context) {
 	t := c.Theme()
 	m := gui.MenuBase(c, &a.permissionOpen)
+	// 权限档位要落到服务端才有意义：连着事实却没有写入通道时，按钮显示最后已知
+	// 档位并置灰，原因写进 tooltip 与菜单项说明——不给一个点了没反应的入口
+	// （SB-02 的「不可修改时给原因」，SB-03 的「说明来源」）。
+	locked := a.source != nil && a.intents == nil
+	reason := ""
+	if locked {
+		reason = noteNoWriteChannel
+	}
+	tip := "选择权限"
+	describe := "可更改权限档位"
+	if reason != "" {
+		// 不可改时把原因写进说明与 tooltip：点开菜单也逐项写一次，说明「为什么点不动」。
+		tip = "选择权限：" + reason
+		describe = reason
+	}
 	tr := m.Trigger.Height(statusBarTriggerH).Padding(0, space1).Radius(radius).
 		// SB-02 / SB-03 权限档位（默认权限 / 智能权限 / 完全访问权限）
 		Gap(space1).AlignItems(gui.Center).Label("权限：" + a.permissionLabel()).
-		Role(gui.RoleButton).Description("可更改权限档位").
-		Tooltip("选择权限").Cursor(gui.CursorPointer)
+		Role(gui.RoleButton).Tooltip(tip).Description(describe).Cursor(gui.CursorPointer)
 	if tr.Hovered() {
 		tr = tr.Background(t.SurfaceHover)
 	}
@@ -69,7 +83,7 @@ func (a *App) statusPermission(c *gui.Context) {
 			Shadow(0, 4, 16, 0, colorShadow.in(t))
 		for _, level := range permissionLevels {
 			level := level
-			if menuItem(c, m, iconShield, level.label, "权限："+level.label, "", false,
+			if menuItem(c, m, iconShield, level.label, "权限："+level.label, reason, locked,
 				level.label == a.permissionLabel()) {
 				// 完全放开是高后果：先确认，不在菜单里一步生效（见 choosePermission）。
 				a.choosePermission(level.label)
@@ -352,15 +366,17 @@ func (a *App) statusUsage(c *gui.Context) {
 		typeMicro.style(t, gui.Text(c, "套餐用量")).TextColor(t.TextMuted)
 		if a.source != nil {
 			usage := a.source.Usage()
-			switch {
-			// SB-18 / SB-20 用量不可用时的原因行
-			case !usage.Available:
+			// SB-18 / SB-19 / SB-20 / SB-21：用量浮层的四分支各画一行，状态由
+			// usagePanelState 一次判出来，后面不再按字段重复判断。
+			switch usagePanelState(usage) {
+			// SB-18 / SB-20 用量不可用时的原因行（加载中与无明细共用这一行）
+			case usagePanelUnavailable:
 				reason := usage.Reason
 				if reason == "" {
 					reason = "暂无用量明细"
 				}
 				typeSecondary.style(t, gui.Text(c, reason)).TextColor(t.TextMuted)
-			case usage.Limit > 0:
+			case usagePanelMetered:
 				p := int(math.Round(usage.Used / usage.Limit * 100))
 				// SB-21 用量百分比 + 进度条 + 重置时间
 				typeSecondary.style(t, gui.Text(c, fmt.Sprintf("月度用量 %d%%", p))).TextColor(t.Text)
@@ -378,6 +394,30 @@ func (a *App) statusUsage(c *gui.Context) {
 		}
 		a.usageAccountLink(c)
 	})
+}
+
+// usagePanelKind 是用量浮层的分支：明细行、无限额度、无明细。
+type usagePanelKind int
+
+const (
+	// usagePanelUnavailable 是「读不到明细」：字段缺失，浮层给原因行。
+	usagePanelUnavailable usagePanelKind = iota
+	// usagePanelMetered 是有额度上限：给百分比 + 进度条 + 重置时间。
+	usagePanelMetered
+	// usagePanelUnlimited 是无限额度：给一句说明，不画进度条。
+	usagePanelUnlimited
+)
+
+// usagePanelState 把用量快照判成一个分支：不可用优先，其次看有没有额度上限。
+func usagePanelState(usage UsageSnapshot) usagePanelKind {
+	switch {
+	case !usage.Available:
+		return usagePanelUnavailable
+	case usage.Limit > 0:
+		return usagePanelMetered
+	default:
+		return usagePanelUnlimited
+	}
 }
 
 // usageAccountLink 是用量浮层底部的「账户 ↗」：进设置 · 账户，不替换主区内容。

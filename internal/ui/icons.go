@@ -169,6 +169,40 @@ func iconButton(c *gui.Context, spec iconButtonSpec) bool {
 	return iconAction(c, spec, false)
 }
 
+// iconToggle 画一个「开合」图标入口（标题栏的同文档板开关这类）：与 iconButton
+// 同尺寸同规格，但 active 为真时按钮保持按下底色——开关的当前状态在按钮本身上
+// 看得出，而不只靠图标朝向。返回它是否被按下（Clicked）。
+func iconToggle(c *gui.Context, spec iconButtonSpec, active bool) bool {
+	t := c.Theme()
+	size := spec.size
+	if size < hitMin {
+		size = hitMin
+	}
+	tip := spec.label
+	if spec.tip != "" {
+		tip = spec.tip
+	}
+	b := gui.ButtonBase(c).Width(size).Height(size).Radius(radius).
+		Label(spec.label).Tooltip(tip).Disabled(spec.disabled).
+		AccessSelected(active)
+	if active {
+		// 开着的开关给一层浅底，和悬停同档但常驻。
+		b = b.Background(t.SurfacePressed)
+	}
+	switch {
+	case spec.disabled:
+		b = b.Opacity(0.5)
+	case b.Pressed():
+		b = b.Background(t.SurfacePressed)
+	case b.Hovered():
+		b = b.Background(t.SurfaceHover)
+	}
+	b.Children(func() {
+		iconBox(c, spec.icon, t.TextMuted, "")
+	})
+	return b.Clicked()
+}
+
 // iconAction 是图标入口的本体：primary 为真时用强调色填充（发送/停止这种主
 // 动作），否则透明底。五态：默认 / 悬停 / 按下 / 聚焦（框架环）/ 禁用。
 func iconAction(c *gui.Context, spec iconButtonSpec, primary bool) bool {

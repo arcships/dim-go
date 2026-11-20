@@ -930,7 +930,8 @@ func (a *App) sessionSearchResultRow(c *gui.Context) {
 		Label("搜索结果").Role(gui.RoleGroup).Children(func() {
 		// 前后箭头同尺寸同层级，只有图标朝向不同（R-GS-074）。
 		// R-TB-091：零命中时没有可跳的对象，两个箭头整块不画——不渲染成禁用态。
-		if len(s.hits) > 0 {
+		arrowsVisible := len(s.hits) > 0
+		if arrowsVisible {
 			if iconButton(c, iconButtonSpec{
 				// TB-09 上一个搜索结果
 				icon: iconChevronUp, label: "上一个搜索结果",

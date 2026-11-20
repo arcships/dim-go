@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"runtime"
 	"strings"
 
 	gui "github.com/egoist/mygo/ui"
@@ -82,6 +83,17 @@ func parseAccelerator(accelerator string) (gui.Modifiers, gui.Key, bool) {
 // keybindingAccel 是某个界面内动作当前的键位：改过的取本地镜像，没改过的取出厂值。
 func (a *App) keybindingAccel(id string) string {
 	return shortcut.Binding(a.keybindings, id)
+}
+
+// keybindingLabel 是某个界面内动作当前键位的可读写法（macOS 用字形，其它平台
+// 用加号写法）。行尾快捷键小字与设置屏共用这一套换算；认不出的键位返回空串，
+// 行尾就不画（G-B2-06）。
+func (a *App) keybindingLabel(id string) string {
+	accel := a.keybindingAccel(id)
+	if strings.TrimSpace(accel) == "" {
+		return ""
+	}
+	return shortcut.LabelFor(accel, runtime.GOOS)
 }
 
 // keybindingHit 判断某个界面内动作的键位这一帧是否被按下。键位认不出来时返回假：

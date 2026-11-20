@@ -154,6 +154,8 @@ func TestExportPanelFormatsAndPreview(t *testing.T) {
 // 可解析，Markdown / 纯文本保留工具与思考。
 func TestExportFormatsCarryTheSameTurns(t *testing.T) {
 	app, _ := exportTestApp(t, exportTestSession())
+	// 三项内容勾选默认关（R-GF-027 首屏未勾选）：要工具与思考进文件就得先勾上。
+	app.export.includeTools, app.export.includeThink, app.export.includeCompress = true, true, true
 	turns, branch := app.exportTurns()
 	if len(turns) != 2 {
 		t.Fatalf("回合数 = %d，想要 2：%+v", len(turns), turns)

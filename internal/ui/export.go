@@ -50,6 +50,28 @@ const (
 	exportEmptyTurns   = "这个会话还没有回合。"
 	exportEmptyPreview = "没有可预览的内容。"
 	exportManualHint   = "系统保存面板不可用，请直接输入保存路径。"
+
+	// G-G1-03 / G-G1-05 两个分组标题（导出内容 / 消息）。
+	exportDescContent  = "导出内容"
+	exportDescMessages = "消息"
+	// G-G1-04 三项内容勾选。
+	exportOptCompress = "压缩记录"
+	exportOptTools    = "工具详情"
+	exportOptThink    = "思考"
+
+	// G-G1-07 回合搜索的占位与读屏名。
+	exportSearchTurns = "搜索回合"
+	// G-G1-08 按搜索批量排除；计数为当次匹配且仍勾选的回合数。
+	exportExcludeMatchesFmt = "排除 %d 个匹配"
+	exportExcludeMatchesTip = "把匹配当前搜索且仍勾选的回合全部取消勾选"
+	// G-G1-09 搜索无命中（与「没有回合」分开，前者是过滤结果）。
+	exportNoMatchText = "没有回合匹配此搜索。"
+	// G-G1-11 回合正文的最大高：超出在块内双向滚动。
+	exportTurnBodyMax = 256
+	// G-G1-13 勾选「压缩记录」且存在压缩记录时的说明句。
+	exportCompressNote = "压缩记录会单独描述被折叠的回合，排除某个回合不会将其从压缩记录中移除。"
+	// G-G1-14 导出前快照过期（会话在面板打开后被重新加载）的提示。
+	exportStaleNotice = "会话快照已过期并重新加载。请检查消息和排除项后再次导出。"
 )
 
 // previewMaxLines 是预览的行数上限。
@@ -99,6 +121,21 @@ type exportState struct {
 	scope  string
 	// turns 是「选中的轮次」的勾选位；nil 表示全选（打开时的默认）。
 	turns map[int]*bool
+	// expanded 记本次打开里哪些回合展开了正文（G-G1-11）；正文随快照已在，
+	// 不另取，也不留「加载中…」。
+	expanded map[int]bool
+	// search 是回合清单的过滤词（G-G1-07），只在视图里存活。
+	search string
+	// includeCompress / includeTools / includeThink 是「导出内容」三项勾选
+	// （G-G1-04）：勾上才进导出文本，默认都不勾（与首屏一致）。这三项跨次打开
+	// 保留，与格式、范围同一口径（R-GF-033 固定一种行为）。
+	includeCompress bool
+	includeTools    bool
+	includeThink    bool
+	// stale 是快照过期提示（G-G1-14）；mark 是打开面板时的快照指纹，用来判
+	// 「面板打开后会话被重新加载」。
+	stale bool
+	mark  string
 	// manual 为真表示保存面板不可用，面板里出输入位；path 是手输路径。
 	manual       bool
 	path         string
@@ -172,8 +209,12 @@ func (a *App) openExportPanel(sessionID, title string) {
 		st.scope = exportScopeSession
 	}
 	// 每次打开回到「全部保留」：上一次的排除项不静默沿用（R-GF-033 要求固定
-	// 一种口径）；格式与范围保留在上次选的那一档。
+	// 一种口径）；格式、范围与三项内容勾选保留在上次选的那一档。
 	st.turns = nil
+	st.expanded = map[int]bool{}
+	st.search = ""
+	st.stale = false
+	st.mark = a.exportSnapshotMark()
 	st.manual = false
 	st.path = ""
 	st.manualReason = ""
@@ -238,6 +279,12 @@ func (a *App) exportPanel(c *gui.Context) {
 	}
 	t := c.Theme()
 	turns, branch := a.exportTurns()
+	// G-G1-14 快照过期：面板打开后会话被重新加载（行或分支变了）就不再拿新内容
+	// 直接导出，先给一次提示；指纹随后更新，提示恒一条，不叠加。
+	if mark := a.exportSnapshotMark(); mark != "" && st.mark != "" && mark != st.mark {
+		st.stale = true
+		st.mark = mark
+	}
 	selected := a.exportScopeTurns(turns, branch)
 	content := a.exportContent(selected, branch)
 	name := a.exportName()
@@ -266,7 +313,7 @@ func (a *App) exportPanel(c *gui.Context) {
 					typeBody.style(t, gui.Text(c, desc)).
 						TextColor(t.TextMuted).Selectable().Label(desc)
 
-					// G-G1-03 / G-G1-04 / G-G1-05 导出内容与格式选项（消息 / 工具详情 / 思考）
+					// G-G1-03 / G-G1-04 导出内容与格式选项（消息 / 工具详情 / 思考）
 					a.exportChoices(c, exportDescFormat, exportFormats, &st.format)
 					a.exportChoices(c, exportDescScope, exportScopes, &st.scope)
 					// 快照只有已加载的那一段（HasOlder）：导出的范围不能写成全量，
@@ -275,10 +322,14 @@ func (a *App) exportPanel(c *gui.Context) {
 						// G-G1-09 对话未全量加载的口径说明
 						screenHint(c, partialHistoryNote)
 					}
-					// G-G1-09 没有回合时的状态句
+					// G-G1-03 导出内容分组（三项勾选 / G-G1-13 压缩记录说明）
+					a.exportContentOptions(c, turns)
+					// G-G1-05 第二分组「消息」：无回合时只给状态句
+					screenGroupTitle(c, exportDescMessages)
 					if len(turns) == 0 {
+						// G-G1-09 没有回合时的状态句
 						screenHint(c, exportEmptyTurns)
-					} else if st.scope == exportScopeTurns {
+					} else {
 						a.exportTurnPicker(c, turns)
 					}
 
@@ -305,6 +356,12 @@ func (a *App) exportPanel(c *gui.Context) {
 						screenHint(c, hint)
 					}
 
+					// G-G1-14 快照过期提示（role=status；不自动导出，等用户再点）
+					if st.stale {
+						typeSecondary.style(t, gui.Text(c, exportStaleNotice)).
+							TextColor(t.Warning).Role(gui.RoleStatus).
+							Label(exportStaleNotice).Selectable()
+					}
 					// G-G1-15 导出失败原因
 					if st.failure != "" {
 						typeSecondary.style(t, gui.Text(c, st.failure)).TextColor(t.Danger).
@@ -393,12 +450,80 @@ func (a *App) exportChoices(c *gui.Context, label string, options []exportChoice
 	})
 }
 
-// exportTurnPicker 是「选中的轮次」：计数、全部保留 / 全部排除与轮次清单。
-func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
-	if len(turns) == 0 {
-		screenHint(c, exportEmptyTurns)
-		return
+// exportContentOptions 是「导出内容」分组：三项勾选（压缩记录 / 工具详情 /
+// 思考），勾选「压缩记录」且本轮快照里确有压缩记录时补一句说明。
+// G-G1-03 分组标签 / G-G1-04 三项勾选 / G-G1-13 压缩记录说明
+func (a *App) exportContentOptions(c *gui.Context, turns []exportTurn) {
+	st := &a.export
+	t := c.Theme()
+	screenGroupTitle(c, exportDescContent)
+	gui.Column(c).Gap(space1).Children(func() {
+		gui.Checkbox(c, &st.includeCompress, exportOptCompress).Height(rowRegular)
+		gui.Checkbox(c, &st.includeTools, exportOptTools).Height(rowRegular)
+		gui.Checkbox(c, &st.includeThink, exportOptThink).Height(rowRegular)
+	})
+	// G-G1-13 压缩记录说明：只在勾上且这次导出的回合里存在压缩记录时出现。
+	if st.includeCompress && exportHasCompression(turns) {
+		typeMicro.style(t, gui.Text(c, exportCompressNote)).TextColor(t.TextMuted).
+			Label(exportCompressNote)
 	}
+}
+
+// exportHasCompression 判断回合里是否含压缩记录（导出 Tuns 的 Notes 前缀）。
+func exportHasCompression(turns []exportTurn) bool {
+	const prefix = "压缩记录："
+	for _, turn := range turns {
+		for _, note := range turn.Notes {
+			if strings.HasPrefix(note, prefix) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// exportSnapshotMark 是当前会话快照的指纹：标识、分支、行数、轮次数与最后一行。
+// 只用来发现「面板打开后会话被重新加载」，不参与导出内容。
+func (a *App) exportSnapshotMark() string {
+	snap, ok := a.liveSession()
+	if !ok {
+		return ""
+	}
+	last := ""
+	if n := len(snap.Rows); n > 0 {
+		row := snap.Rows[n-1]
+		last = row.Kind + ":" + row.Text
+	}
+	return fmt.Sprintf("%s|%s|%d|%d|%t|%s",
+		snap.ID, snap.Branch, len(snap.Rows), snap.TurnCount, snap.HasOlder, last)
+}
+
+// exportTurnMatches 是回合搜索的匹配口径：序号、用户消息、助手回复、思考、
+// 工具（动作 / 参数 / 结果）与备注里任意一处含查询词即匹配（不区分大小写）。
+func exportTurnMatches(turn exportTurn, query string) bool {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q == "" {
+		return true
+	}
+	fields := []string{turn.User, strings.Join(turn.Assistant, "\n"),
+		strings.Join(turn.Thinking, "\n"), strings.Join(turn.Notes, "\n")}
+	for _, tool := range turn.Tools {
+		fields = append(fields, tool.Action, tool.Args, tool.Result)
+	}
+	fields = append(fields, fmt.Sprintf("第 %d 轮", turn.Index))
+	for _, field := range fields {
+		if strings.Contains(strings.ToLower(field), q) {
+			return true
+		}
+	}
+	return false
+}
+
+// exportTurnPicker 是「消息」下的回合清单：计数、搜索、按搜索批量排除、全部
+// 保留 / 全部排除与逐轮勾选 + 展开正文。
+func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
+	t := c.Theme()
+	st := &a.export
 	kept := 0
 	for _, turn := range turns {
 		if *a.exportTurnPtr(turn.Index) {
@@ -407,10 +532,41 @@ func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
 	}
 	// G-G1-06 保留 {kept} / {total} 个回合
 	count := fmt.Sprintf("保留 %d / %d 个回合", kept, len(turns))
-	typeSecondary.style(c.Theme(), gui.Text(c, count)).
-		TextColor(c.Theme().TextMuted).Label(count)
+	typeSecondary.style(t, gui.Text(c, count)).
+		TextColor(t.TextMuted).Label(count)
+
+	// G-G1-07 回合搜索（左置放大镜、占位「搜索回合」，无边框）
+	gui.Row(c).Shrink(0).Height(rowRegular).Padding(0, space2).
+		Gap(space2).AlignItems(gui.Center).Children(func() {
+		iconGlyph(c, iconSearch, t.TextMuted, "search")
+		gui.TextInputBase(c, &st.search).Placeholder(exportSearchTurns).
+			Label(exportSearchTurns).Grow(1)
+	})
+
+	filtered := make([]exportTurn, 0, len(turns))
+	for _, turn := range turns {
+		if exportTurnMatches(turn, st.search) {
+			filtered = append(filtered, turn)
+		}
+	}
+	// G-G1-06 无过滤时计数即全量；过滤时把命中数写在排除按钮上，不改 total。
+	matchedKept := 0
+	for _, turn := range filtered {
+		if *a.exportTurnPtr(turn.Index) {
+			matchedKept++
+		}
+	}
 	total := len(turns)
 	gui.Row(c).Gap(space2).Children(func() {
+		// G-G1-08 排除 {count} 个匹配（与「全部排除」是两个入口，不合并）
+		if strings.TrimSpace(st.search) != "" {
+			label := fmt.Sprintf(exportExcludeMatchesFmt, matchedKept)
+			if exportTextButton(c, label, exportExcludeMatchesTip, matchedKept == 0) {
+				for _, turn := range filtered {
+					*a.exportTurnPtr(turn.Index) = false
+				}
+			}
+		}
 		// G-G1-12 全部保留 / 全部排除
 		if exportTextButton(c, "全部保留", "第 1 轮起全部勾选", kept == total) {
 			for _, turn := range turns {
@@ -423,24 +579,92 @@ func (a *App) exportTurnPicker(c *gui.Context, turns []exportTurn) {
 			}
 		}
 	})
+	if len(filtered) == 0 {
+		// G-G1-09 搜索无匹配（「没有回合」与「没有匹配」是两个条件）
+		screenHint(c, exportNoMatchText)
+		return
+	}
 	// G-G1-10 回合清单
 	list := gui.Column(c).Shrink(0).Label("轮次清单")
 	list.Children(func() {
 		gui.Column(c).Gap(space1).Children(func() {
-			for _, turn := range turns {
+			for _, turn := range filtered {
 				a.exportTurnRow(c, turn)
 			}
 		})
 	})
 }
 
-// exportTurnRow 是一行回合：方框 + 序号 + 预览（单行）。
+// exportTurnRow 是一行回合：展开箭头 + 方框 + 序号 + 预览（单行）；展开后
+// 正文在行下方以等宽块显示（最大高 256，双向滚动）。
+// G-G1-10 回合条目 / G-G1-11 回合正文
 func (a *App) exportTurnRow(c *gui.Context, turn exportTurn) {
-	// G-G1-10 回合条目（序号 + 预览）
-	label := fmt.Sprintf("第 %d 轮：%s", turn.Index, turnPreview(turn))
-	box := gui.Checkbox(c, a.exportTurnPtr(turn.Index), label)
-	box.Grow(1).Height(rowRegular)
+	st := &a.export
+	if st.expanded == nil {
+		st.expanded = map[int]bool{}
+	}
+	expanded := st.expanded[turn.Index]
+	// G-G1-10 展开箭头
+	arrow := accIconSpec{
+		icon: iconChevronR, label: "展开回合正文", tip: "展开这一轮的正文",
+		size: screenIconMicro, hit: rowRegular,
+	}
+	if expanded {
+		arrow.icon = iconChevronDown
+		arrow.label, arrow.tip = "收起回合正文", "收起这一轮的正文"
+	}
+	gui.Row(c).Shrink(0).AlignItems(gui.Center).Gap(space1).Children(func() {
+		if accIconButton(c, arrow) {
+			st.expanded[turn.Index] = !expanded
+		}
+		label := fmt.Sprintf("第 %d 轮：%s", turn.Index, turnPreview(turn))
+		box := gui.Checkbox(c, a.exportTurnPtr(turn.Index), label)
+		box.Grow(1).Height(rowRegular)
+	})
+	if !expanded {
+		return
+	}
+	a.exportTurnBodyBlock(c, turn)
 }
+
+// exportTurnBodyBlock 是展开后的回合正文块：等宽 12px、浅底、圆角 6、内边距 8、
+// 最大高 256、双向滚动、可选中复制。正文随快照已在，没有「加载中…」阶段；正文
+// 为空时块内留空（G-G1-11）。
+func (a *App) exportTurnBodyBlock(c *gui.Context, turn exportTurn) {
+	t := c.Theme()
+	body := exportTurnBodyText(turn)
+	gui.ScrollBoth(c).Shrink(0).MaxHeight(exportTurnBodyMax).Children(func() {
+		gui.Column(c).Padding(space2).Radius(radius).Background(t.SurfaceHover).
+			Label("回合正文").Selectable().Children(func() {
+			if strings.TrimSpace(body) == "" {
+				return
+			}
+			typeCode.style(t, gui.Text(c, body)).TextColor(t.Text).Selectable()
+		})
+	})
+}
+
+// exportTurnBodyText 把一轮的内容摊成正文：用户 / 助手 / 思考 / 工具 / 备注。
+func exportTurnBodyText(turn exportTurn) string {
+	var b strings.Builder
+	if strings.TrimSpace(turn.User) != "" {
+		b.WriteString("用户：" + turn.User + "\n")
+	}
+	if len(turn.Assistant) > 0 {
+		b.WriteString("助手：" + strings.Join(turn.Assistant, "\n\n") + "\n")
+	}
+	for _, thinking := range turn.Thinking {
+		b.WriteString("思考：" + thinking + "\n")
+	}
+	for _, tool := range turn.Tools {
+		b.WriteString("工具：" + toolLine(tool) + "\n")
+	}
+	for _, note := range turn.Notes {
+		b.WriteString(note + "\n")
+	}
+	return strings.TrimRight(b.String(), "\n")
+}
+
 
 // exportTurnPtr 取一轮勾选位的稳定指针：只在视图里存，不写事实。
 func (a *App) exportTurnPtr(index int) *bool {
@@ -614,7 +838,11 @@ func (a *App) exportScopeTurns(turns []exportTurn, branch string) []exportTurn {
 
 // exportContent 按格式生成整份导出文本。空回合也给出文件头：导出的是一份文件，
 // 不是空字符串。
+//
+// G-G1-03 三项内容勾选在这里生效：没勾的段整段不进导出（工具 / 思考 /
+// 压缩记录），消息正文始终导出。
 func (a *App) exportContent(turns []exportTurn, branch string) string {
+	turns = a.exportApplyContentOptions(turns)
 	meta := exportDocument{
 		Format:        exportDocFormat,
 		FormatVersion: exportDocVersion,
@@ -642,6 +870,37 @@ func (a *App) exportContent(turns []exportTurn, branch string) string {
 	default:
 		return exportMarkdown(meta)
 	}
+}
+
+// exportApplyContentOptions 按三项勾选过滤回合内容：未勾的段置空，不改消息
+// 正文与轮次序号（G-G1-03「三项全部关闭时导出为纯消息」）。
+func (a *App) exportApplyContentOptions(turns []exportTurn) []exportTurn {
+	st := &a.export
+	if st.includeCompress && st.includeTools && st.includeThink {
+		return turns
+	}
+	out := make([]exportTurn, len(turns))
+	for i, turn := range turns {
+		copied := turn
+		if !st.includeTools {
+			copied.Tools = nil
+		}
+		if !st.includeThink {
+			copied.Thinking = nil
+		}
+		if !st.includeCompress {
+			notes := make([]string, 0, len(turn.Notes))
+			for _, note := range turn.Notes {
+				if strings.HasPrefix(note, "压缩记录：") {
+					continue
+				}
+				notes = append(notes, note)
+			}
+			copied.Notes = notes
+		}
+		out[i] = copied
+	}
+	return out
 }
 
 // exportMarkdown 是 Markdown 导出：文件头 + 每轮的小节。

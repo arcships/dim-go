@@ -113,6 +113,9 @@ type commandItem struct {
 	icon     *gui.SVG
 	disabled bool
 	reason   string
+	// shortcut 是这一行对应动作的实际键位（可读写法）；空表示这个动作没有
+	// 界面内快捷键，行尾不留占位（G-B2-06）。
+	shortcut string
 
 	run func()
 
@@ -588,9 +591,14 @@ func (a *App) commandPaletteRow(c *gui.Context, gi, ii int, item commandItem) {
 	t := c.Theme()
 	selected := gi == a.palette.activeGroup && ii == a.palette.selected
 	// G-B2-05 命令项（图标 + 文字，选中态强调底）
+	// G-B2-06 行尾快捷键小字：读屏名里带上同一个键位（空串按未绑定处理）。
+	label := item.title + "：" + item.detail
+	if item.shortcut != "" {
+		label += "，快捷键 " + item.shortcut
+	}
 	row := gui.Row(c).Shrink(0).Height(commandPaletteRowHeight).Padding(0, space2).
 		Gap(space2).Radius(radius).AlignItems(gui.Center).
-		Label(item.title + "：" + item.detail).
+		Label(label).
 		Role(gui.RoleOption).AccessSelected(selected).AccessDisabled(item.disabled)
 	switch {
 	case selected:
@@ -619,6 +627,11 @@ func (a *App) commandPaletteRow(c *gui.Context, gi, ii int, item commandItem) {
 				typeMicro.style(t, gui.Text(c, note)).TextColor(t.TextMuted).SingleLine()
 			}
 		})
+		if item.shortcut != "" {
+			// G-B2-06 行尾快捷键（12px、字距加大、次要色；禁用行照画）
+			typeMicro.style(t, gui.Text(c, item.shortcut)).TextColor(t.TextMuted).
+				LetterSpacing(configTracking).SingleLine()
+		}
 	})
 	if item.disabled {
 		return
@@ -709,6 +722,9 @@ func (a *App) commandPaletteActions() []commandItem {
 		{
 			id: "action:new-session", title: "新建会话", detail: "在工作区里开一个会话",
 			icon:     iconPlus,
+			// G-B2-06 行尾快捷键：这一行与 new-thread 键位是同一个动作，
+			// 显示当前实际绑定（改过键就显示改后的）。
+			shortcut: a.keybindingLabel("new-thread"),
 			disabled: a.intents == nil || a.currentWorkspaceCwd() == "",
 			reason:   commandPaletteUnavailable(a.intents == nil, noIntents, "没有可用的工作区"),
 			run:      a.createSession,

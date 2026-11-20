@@ -1619,11 +1619,11 @@ PG 态（`panel-review-git`）：面板 x 719–1030（311 宽），范围触发
 | R-RA-119 | A-14 | 键盘 | Enter / ↓ | 展开并把焦点移入第一项 | — | 键盘触发后进入菜单次数 1 | 已实现（映射 = A-14→internal/ui/timeline.go:App.artifactMenuTrigger；标记 = Key） |
 | R-RA-120 | A-14 | 异常 | 菜单打开后行被移除 | 菜单随之关闭，不留悬空菜单 | — | 悬空菜单计数 0 | 未实现（映射到位但没有该维度的标记）：A-14→internal/ui/timeline.go:App.artifactMenuTrigger；测试提及 internal/ui/panel_elements_test.go:包级 |
 | R-RA-121 | A-14 | 状态 | 菜单已打开 | 箭头翻转朝上，其它行下拉保持闭合 | — | 同时只有 1 个菜单展开 | 已实现（映射 = A-14→internal/ui/timeline.go:App.artifactMenuAvailable；标记 = Disabled@menuItem） |
-| R-RA-122 | A-15 | 状态 | **死代码**（可下载标记从没被传入）：若实现 | 下拉菜单项「下载」，Download 图标 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（逐字）：internal/ui/settings_about_screen.go:abtCopyDownloading「下载」 |
+| R-RA-122 | A-15 | 状态 | **死代码**（可下载标记从没被传入）：若实现 | 下拉菜单项「下载」，Download 图标 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px；其余 = 图标 16×16 盒、viewBox 24、描边 1.5、线端 round（IC-BOX-16 / IC-STROKE-1.5 / IC-CAP-ROUND），2× 截图彩边 0 像素（IC-EDGE-0） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginUpdateNoProgress「下载」 |
 | R-RA-123 | A-15 | 交互 | 点击 | 触发下载到本机默认位置；菜单关闭 | — | 点击后菜单计数 0 | 已实现（映射 = A-15→internal/ui/timeline.go:App.artifactMenu；标记 = Menu） |
 | R-RA-124 | A-15 | 内容 | 文件已删除 | 该项置灰不可点 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT） | 已实现（映射 = A-15→internal/ui/timeline.go:App.artifactMenu；标记 = 文案「用默认应用打开」等 8 条） |
 | R-RA-125 | A-15 | 样式 | 若实现 | 项高 28、图标 16、文字 14 级 | — | 判据 = 控件尺寸 图标 16 / 14 / 12px | 已实现（映射 = A-15→internal/ui/timeline.go:App.artifactMenu；标记 = Width） |
-| R-RA-126 | A-15 | 无障碍 | 若实现 | 读作「下载」 | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/settings_about_screen.go:abtCopyDownloading「下载」 |
+| R-RA-126 | A-15 | 无障碍 | 若实现 | 读作「下载」 | — | 读屏文本与屏上文案逐字相同（差异字符 0） | 已实现（逐字）：internal/ui/plugin_manage.go:pluginUpdateNoProgress「下载」 |
 | R-RA-127 | A-15 | 异常 | 下载失败 | 提示失败，不留半截文件 | — | 判据 = 相对位置 = 同级相邻关系，纵向间距取 3.5/7/10.5/14/21 档（AL-STACK）、左缘对齐文字列（AL-LEFT-40 或 AL-LEFT-14），偏差 ≤ 1px（AL-TOL-1） | 未实现（映射到位但没有该维度的标记）：A-15→internal/ui/timeline.go:App.artifactMenu |
 | R-RA-128 | A-15 | 记忆 | 再次打开菜单 | 项仍在 | — | 该项计数 1 | 未实现（映射到位但没有该维度的标记）：A-15→internal/ui/timeline.go:App.artifactMenu |
 | R-RA-129 | A-15 | 异常 | 下载目标不可写 | 提示失败，不生成 0 字节文件 | — | 判据 = 文案逐字等于期望列、字符数一致、差 0（TX-EXACT）；一次操作后状态取值变化 1 次、取值与期望列一致（ST-CHANGE-1） | 未实现（映射到位但没有该维度的标记）：A-15→internal/ui/timeline.go:App.artifactMenu |

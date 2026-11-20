@@ -370,8 +370,8 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 		for _, option := range options {
 			option := option
 			on := q.selected[q.index][option]
-			// G-D1-12 多选项条目
-			gui.Checkbox(c, &on, option)
+			// G-D1-12 多选项条目：空格勾选 / 取消，动作随勾选框一起报给读屏。
+			gui.Checkbox(c, &on, option).KeyShortcuts(0, gui.KeySpace)
 			q.selected[q.index][option] = on
 		}
 		return
@@ -386,8 +386,8 @@ func (a *App) questionOptions(c *gui.Context, item QuestionItemSnapshot) {
 	gui.RadioGroup(c, func() {
 		for _, option := range options {
 			option := option
-			// G-D1-11 单选项条目
-			gui.Radio(c, &choice, option, option)
+			// G-D1-11 单选项条目：空格选中，单选项互斥。
+			gui.Radio(c, &choice, option, option).KeyShortcuts(0, gui.KeySpace)
 		}
 	}).Label(questionTitle(item))
 	q.setSingleChoice(choice)

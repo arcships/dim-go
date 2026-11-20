@@ -1047,6 +1047,7 @@ func (a *App) View(c *gui.Context) {
 	}
 	a.pluginInstallView(c)
 	a.pluginRemoveView(c)
+	a.pluginMarketDetailView(c)
 	a.commandPalette(c)
 	a.sessionSearchRestore(c)
 	a.hostFrame()

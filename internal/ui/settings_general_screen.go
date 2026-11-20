@@ -28,9 +28,7 @@ type generalState struct {
 	proxyDialog bool
 	proxyDraft  string
 
-	importOpen    bool
-	importProfile int
-	importResult  bool
+	importOpen bool
 
 	clearOpen   bool
 	cleanupOpen bool
@@ -53,6 +51,14 @@ var generalProxyModes = []struct {
 	{"无代理", screenIconBan},
 	{"自定义代理", screenIconSliders},
 }
+
+// G-H6-02 / G-H7-02 的说明句逐字取需求表，不截断（长句在对话框里折行）。
+const (
+	generalImportDesc = "此操作会替换内置浏览器中的全部非分区 Cookie，并重新加载已打开的页面。" +
+		"每个 Cookie 都会单独尝试导入，因此个别 Cookie 可能失败；部分网站可能需要重新登录。"
+	generalClearDesc = "此操作只会清除内置浏览器中的登录状态、Cookie、本地存储、IndexedDB、" +
+		"Service Worker 和缓存。浏览器页面会关闭并以空白页重新打开。"
+)
 
 // renderGeneral 是设置 › 通用这一屏（设置壳的一个分节）。
 //
@@ -333,84 +339,44 @@ func generalProxyDialog(c *gui.Context) {
 }
 
 // generalImportDialog 是「导入 Chrome Cookie」对话框（S-general-46–60）。
+//
+// 导入整条链（扫描 Chrome 配置、按配置读计数、逐个导入并给部分失败回执）都要
+// 桌面宿主的浏览器数据通道；本版没有这个通道，所以扫描中 / 无配置 / 读取中 /
+// 部分失败 / 错误重试 / 成功回执这些态都到不了。这里不画样例配置与假计数，只
+// 保留标题、说明与两个按钮，并把缺什么写在对话框里。
 func generalImportDialog(c *gui.Context) {
 	if !generalScreen.importOpen {
 		return
 	}
-	t := c.Theme()
 	open := true
 	m := modalShell(gui.Modal(c, &open, func() {
 		// G-H6-01 「导入 Chrome Cookie」
 		screenDialogPanel(c, "导入 Chrome Cookie", func() {
-			// G-H6-02 导入说明句（替换全部非分区 Cookie）
-			screenHint(c, "此操作会替换内置浏览器中的全部非分区 Cookie…")
-			// G-H6-04 「Chrome 配置」
-			screenGroupTitle(c, "Chrome 配置")
-			gui.Column(c).Gap(screenSpace05).Children(func() {
-				// G-H6-05 配置名 + 能力标签
-				generalProfileRow(c, 0, "Default · 可导入")
-				generalProfileRow(c, 1, "Profile 1 · 需要授权")
-			})
-			if generalScreen.importResult {
-				gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
-					screenIcon(c, iconCheck, screenIconMicro, t.Success, "check")
-					// G-H6-09a 成功态（已导入 · 失败 · 已跳过）
-					screenHint(c, "已导入 120 · 失败 2 · 已跳过 6")
-				})
-			} else {
-				// G-H6-08 可导入 / 会话 / 已过期 / 分区计数
-				screenHint(c, "可导入 128 · 会话 96 · 已过期 20 · 分区 12")
-			}
+			// G-H6-02 导入说明句（逐字，不截断）
+			screenHint(c, generalImportDesc)
+			// G-H6-03 / G-H6-05 / G-H6-08 扫描行、配置行与计数没有读数：写原因
+			generalNote(c, noteBrowserNoImport)
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
-				// G-H6-11 取消 / 关闭
-				label := "取消"
-				if generalScreen.importResult {
-					label = "关闭"
-				}
-				if screenButton(c, label, label, "", false, rowRegular) {
+				// G-H6-11 取消
+				if screenButton(c, "取消", "取消导入 Chrome Cookie", "", false, rowRegular) {
 					generalScreen.importOpen = false
 					open = false
 				}
-				if !generalScreen.importResult {
-					// G-H6-12 导入
-					if screenButton(c, "导入", "导入 Chrome Cookie", "", true, rowRegular) {
-						generalScreen.importResult = true
-					}
-				}
+				// G-H6-12 导入（没有通道：置灰并写原因）
+				screenTextButtonDisabled(c, "导入", noteBrowserNoImport, rowRegular)
 			})
 		})
 	}))
 
 	if !open || m.Dismissed() {
 		generalScreen.importOpen = false
-		generalScreen.importResult = false
 	}
-}
-
-// generalProfileRow 是一条 Chrome 配置选项（单选）。
-func generalProfileRow(c *gui.Context, index int, text string) {
-	t := c.Theme()
-	row := gui.ButtonBase(c).Shrink(0).AlignSelf(gui.Stretch).Justify(gui.Start).
-		Padding(screenSpace15, screenSpace25).
-		Radius(screenRadiusCtl).Label(text).Role(gui.RoleRadio).
-		AccessSelected(generalScreen.importProfile == index)
-	if row.Hovered() {
-		row = row.Background(t.SurfaceHover)
-	}
-	if row.Clicked() {
-		generalScreen.importProfile = index
-	}
-	row.Children(func() {
-		gui.Row(c).Gap(screenSpace15).AlignItems(gui.Center).Children(func() {
-			if generalScreen.importProfile == index {
-				screenIcon(c, iconCheck, screenIconMicro, t.Accent, "check")
-			}
-			screenValueStyle.style(t, gui.Text(c, text)).TextColor(t.Text).SingleLine()
-		})
-	})
 }
 
 // generalClearDialog 是「清理浏览器数据」对话框（S-general-61–66）。
+//
+// 清理成功 / 失败回执要宿主真的清一遍浏览器数据；本版没有这个通道，因此不假装
+// 清理成功（成功行与错误块都画不出来），只在对话框里写清缺什么，动作置灰。
 func generalClearDialog(c *gui.Context) {
 	if !generalScreen.clearOpen {
 		return
@@ -419,19 +385,18 @@ func generalClearDialog(c *gui.Context) {
 	m := modalShell(gui.Modal(c, &open, func() {
 		// G-H7-01 「清理浏览器数据」
 		screenDialogPanel(c, "清理浏览器数据", func() {
-			// G-H7-02 清理说明句
-			screenHint(c, "此操作只会清除内置浏览器中的登录状态、Cookie…")
+			// G-H7-02 清理说明句（逐字，不截断）
+			screenHint(c, generalClearDesc)
+			// G-H7-03 / G-H7-04 成功行与错误块没有回执：写原因
+			generalNote(c, noteBrowserNoClear)
 			gui.Row(c).Justify(gui.End).Gap(screenSpace2).Children(func() {
 				// G-H7-05 取消
 				if screenButton(c, "取消", "取消清理浏览器数据", "", false, rowRegular) {
 					generalScreen.clearOpen = false
 					open = false
 				}
-				// G-H7-06 清理浏览器数据
-				if screenButton(c, "清理浏览器数据", "清理浏览器数据", "", true, rowRegular) {
-					generalScreen.clearOpen = false
-					open = false
-				}
+				// G-H7-06 清理浏览器数据（没有通道：置灰并写原因）
+				screenTextButtonDisabled(c, "清理浏览器数据", noteBrowserNoClear, rowRegular)
 			})
 		})
 	}))
